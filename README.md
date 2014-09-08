@@ -1,38 +1,27 @@
-meldon_detection
+oberlin_detection
 
 
-Make sure you have the following installed:
+Make sure you have the following standard components installed:
 
 opencv
 cv_bridge
 image_transport
+openni
 
-Set $DECTECTION to the appropriate directory 
-```
-export DETECTION=$HOME/catkin_ws/src/baxter_h2r_packages/meldon_detection
-```
+Install the non-standard package h2r/bing.
 
-Install the matio dependencies
-```
-export PKG_CONFIG_PATH=$DECTECTION/src/kdes/dependencies/matio:$PKG_CONFIG_PATH
-cd $DECTECTION/src/kdes
-./install-dependencies.sh #NOTE: this will yield an error referencing doxygen. This is fine.
-export LD_LIBRARY_PATH=$DECTECTION/src/kdes/dependencies/matio/src/.libs:$LD_LIBRARY_PATH
-cd KernelDescriptors_CPU/
-make
-cd $CATKIN_WS
-catkin_make
-```
-
-<Everything should now be built>
- 
 To run:
 
 ```
-rosrun meldon_detection talker $CATKIN_WS
-roslaunch baxter_ork detection.launch
-rosrun object_recognition_ros client
+roslaunch openni_launch openni.launch depth_registration:=true
+rosrun oberlin_detection oberlin_detection
 ```
 
-The last step must be performed every time you wish to receive a labeling.
-Labeled clusters are published to /labeled_objects in the form of RecognizedObjectArray.msg
+
+rosrun oberlin_detection save_blueboxes file_prefix:=collection_round_11
+rosrun oberlin_detection save_detections file_prefix:=collection_round_11
+rosrun oberlin_detection publish_detections
+
+In the future, the program will snoop the classCrops folder and base object categories on what it finds.
+For now, classes are manually specified in the API.
+
