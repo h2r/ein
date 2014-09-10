@@ -32,8 +32,26 @@ include_directories(include
 )
 
 add_executable(oberlin_detector src/oberlin_detection.cpp)
+add_executable(capture_object src/capture_object.cpp)
+add_executable(train_classifier src/train_classifier.cpp)
+add_executable(publish_detections src/publish_detections.cpp)
 
 target_link_libraries(oberlin_detector
+	${catkin_LIBRARIES}
+	${OpenCV_LIBS}
+	BINGLIB ###
+)
+target_link_libraries(capture_object
+	${catkin_LIBRARIES}
+	${OpenCV_LIBS}
+	BINGLIB ###
+)
+target_link_libraries(train_classifier
+	${catkin_LIBRARIES}
+	${OpenCV_LIBS}
+	BINGLIB ###
+)
+target_link_libraries(publish_detections
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
 	BINGLIB ###

@@ -1,17 +1,22 @@
+//// these macros below were moved to other files
+//#define RUN_INFERENCE // generates the blue boxes
+//#define PUBLISH_OBJECTS // requires blue, brown, and gray boxes, and inference
+//#define DRAW_LABEL
+//#define DRAW_ORIENTOR
+//#define RELOAD_DATA
+//#define RELEARN_VOCAB
+//#define LEARN_ONLY
+//// these macros above were moved to other files
+
+//#define RUN_TRACKING // calculates the red boxes
+
 #define DRAW_WHITE
 #define DRAW_GREEN
 #define DRAW_BLUE // depends on green boxes
 //#define DRAW_RED // depends on blue boxes
 #define DRAW_GRAY
-#define DRAW_PINK // depends on blue boxes
-#define DRAW_BROWN // depends on blue and gray boxes and pointcloud configuration
-
-#define DRAW_LABEL
-#define DRAW_ORIENTOR
-
-#define RUN_INFERENCE // generates the blue boxes
-//#define RUN_TRACKING // generates the red boxes
-#define PUBLISH_OBJECTS // requires blue, brown, and gray boxes
+//#define DRAW_PINK // depends on blue boxes
+#define DRAW_BROWN // depends on blue and gray boxes, inference, and pointcloud configuration
 
 const int k = 1;
 int numRedBoxes = 5;
@@ -35,8 +40,9 @@ double rejectAreaScale = 6*6;
 int tGO = 40;
 int bGO = 140;
 
-// point cloud bias and gain calibration
+// point cloud affine calibration
 /*
+// this is for the uncalibrated point cloud
 double pcbcX = 5;
 double pcbcY = -25;
 double pcgc11 = 1.0+(50.0 / 640.0);
@@ -44,6 +50,7 @@ double pcgc12 = 0.0;
 double pcgc21 = 0.0;
 double pcgc22 = 1.0+(12.0 / 480.0);
 */
+// this is for the calibrated point cloud
 double pcbcX = 10;//5;
 double pcbcY = 0;//-25;
 double pcgc11 = 1;//1.0+(50.0 / 640.0);
@@ -51,16 +58,9 @@ double pcgc12 = 0.0;
 double pcgc21 = 0.0;
 double pcgc22 = 1;//1.0+(12.0 / 480.0);
 
-
-// if you add more examples, you must reload the data for them to 
-//   be taken into account.
-// if you add a class or many new examples, it would be wise to
-//   recalculate the vocab.
 // if you add an immense number of examples or some new classes and
 //   you begin having discriminative problems (confusion), you can
 //   increase the number of words.
-#define RELOAD_DATA
-//#define RELEARN_VOCAB
 const int vocabNumWords = 1000;
 const double grayBlur = 1.0;
 
@@ -70,14 +70,6 @@ const double colorHistLambda = 1.0;
 const double colorHistThresh = 0.1;
 const int colorHistBoxHalfWidth = 1;
 
-// you can mine hard negatives by modifying the box saving routine 
-//   to save examples not belonging to class C while only showint it
-//   class C objects
-//#define SAVE_BOXES
-//#define SAVE_ANNOTATED_BOXES
-// always increment the prefix so that the next person doesn't overwrite
-//   your examples.  
-char run_prefix[] = "autolearn_16";
 int fcRange = 1;
 
 double densityDecay = 0.7;
@@ -119,6 +111,29 @@ double redDecay = 0.7;
 #include "../../bing/Objectness/Objectness.h"
 #include "../../bing/Objectness/ValStructVec.h"
 #include "../../bing/Objectness/CmShow.h"
+
+// you can mine hard negatives by modifying the box saving routine 
+//   to save examples not belonging to class C while only showint it
+//   class C objects
+//#define SAVE_ANNOTATED_BOXES
+// always increment the prefix so that the next person doesn't overwrite
+//   your examples.  
+//char run_prefix[] = "autolearn_16";
+std::string data_directory = "unspecified_dd";
+std::string vocab_file = "unspecified_vf";
+std::string knn_file = "unspecified_kf";
+std::string label_file = "unspecified_lf";
+
+std::string run_prefix = "unspecified_rp";
+std::string class_name = "unspecified_cn";
+
+std::string class_labels= "unspecified_cl1 unspecified_cl2";
+std::string class_pose_models = "unspecified_pm1 unspecified_pm2";
+
+int retrain_vocab = 0;
+int reextract_knn = 0;
+std::string class_list = "unspecified_class_list";
+
 
 //KernelDescManager* kdm;
 static unsigned int LOC_MODEL_TYPE=0; //0 or 3
@@ -435,9 +450,25 @@ geometry_msgs::Pose getPose(pcl::PointCloud<pcl::PointXYZRGB> &cluster)
   return pose;
 }
 
+void loadROSParamsFromArgs()
+{
+  ros::NodeHandle nh("~");
+
+  nh.getParam("vocab_file", vocab_file);
+  nh.getParam("knn_file", knn_file);
+  nh.getParam("label_file", label_file);
+
+  nh.getParam("data_directory", data_directory);
+  nh.getParam("class_labels", class_labels);
+  nh.getParam("class_pose_models", class_pose_models);
+
+  nh.getParam("class_name", class_name);
+  nh.getParam("run_prefix", run_prefix);
+}
+
 void loadROSParams()
 {
-  ros::NodeHandle nh;
+  ros::NodeHandle nh("~");
 
   nh.getParam("number_red_boxes", numRedBoxes);
   nh.getParam("green_box_threshold", gBoxThresh);
@@ -454,13 +485,18 @@ void loadROSParams()
   nh.getParam("density_decay", densityDecay);
   nh.getParam("depth_decay", depthDecay);
   nh.getParam("red_decay", redDecay);
+  nh.getParam("data_directory", data_directory);
+  nh.getParam("class_labels", class_labels);
+  nh.getParam("class_pose_models", class_pose_models);
+  nh.getParam("class_name", class_name);
+  nh.getParam("run_prefix", run_prefix);
 }
 
 void saveROSParams()
 {
-  ros::NodeHandle nh;
+  ros::NodeHandle nh("~");
 
-  nh.setParam("number_red_boxes", numRedBoxes);
+  nh.setParam("/camera/number_red_boxes", numRedBoxes);
   nh.setParam("green_box_threshold", gBoxThresh);
   nh.setParam("pink_box_threshold", pBoxThresh);
   nh.setParam("threshold_fraction", threshFraction);
@@ -475,6 +511,11 @@ void saveROSParams()
   nh.setParam("density_decay", densityDecay);
   nh.setParam("depth_decay", depthDecay);
   nh.setParam("red_decay", redDecay);
+  nh.setParam("data_directory", data_directory);
+  nh.setParam("class_labels", class_labels);
+  nh.setParam("class_pose_models", class_pose_models);
+  nh.setParam("class_name", class_name);
+  nh.setParam("run_prefix", run_prefix);
 }
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg){
@@ -1247,7 +1288,7 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
       	int yb = y+gBoxH;
       	cv::Point thisTop(xt,yt);
       	cv::Point thisBot(xb,yb);
-      #ifdef DRAW_PINK
+
 	int reject = 0;
       	if (pBoxIndicator[y*imW+x] < thisThresh) {
 	  reject = 1;
@@ -1273,10 +1314,11 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
 	}
 
 	if (!reject) {
+    #ifdef DRAW_PINK
       	  rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(100,100,255));
+    #endif
       	  pointCloudPoints.push_back(cv::Point(x,y));
       	}
-      #endif
       }
     }
 
@@ -1449,7 +1491,7 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
   cout << "published" << endl;
   #endif
 
-  #ifdef DRAW_RED
+  #ifdef RUN_TRACKING 
   #pragma omp parallel for
   for (int r = 0; r < numRedBoxes; r++) {
 
@@ -1569,11 +1611,13 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
       if (thisClass == 7)
 	sprintf(labelName, "sippyCup");
 
+    #ifdef DRAW_RED
       if (thisRedBox->persistence > 0.5) {
 	rectangle(cv_ptr->image, dTop, dBot, cv::Scalar(0,0,255));
 	cv::Point text_anchor(dTop.x, dTop.y+20);
 	putText(cv_ptr->image, labelName, text_anchor, MY_FONT, 1.5, Scalar(0,0,255), 2.0);
       }
+    #endif
     } else {
       int winJ = -1;
       float winD = 1e6;
@@ -1677,11 +1721,13 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
       if (thisClass == 7)
 	sprintf(labelName, "sippyCup");
 
+    #ifdef DRAW_RED
       if (thisRedBox->persistence > 0.5) {
 	rectangle(cv_ptr->image, dTop, dBot, cv::Scalar(0,0,255));
 	cv::Point text_anchor(dTop.x, dTop.y+20);
 	putText(cv_ptr->image, labelName, text_anchor, MY_FONT, 1.5, Scalar(0,0,255), 2.0);
       }
+    #endif
     }
 
   }
@@ -1828,7 +1874,7 @@ int main(int argc, char **argv) {
   // 4 plastic
   // 7 sippy
 
-#ifdef DRAW_RED
+#ifdef RUN_TRACKING
 
   redBoxes = new redBox[numRedBoxes];
   redBoxes[0].classLabel = 1;
@@ -1858,18 +1904,36 @@ int main(int argc, char **argv) {
 #endif
 
   ros::init(argc, argv, "oberlin_detection");
-  ros::NodeHandle n;
+  ros::NodeHandle n("~");
   std::string s;
+
+//cout << argc << " " << endl;
+//for (int i = 0; i < argc; i++)
+//  cout << argv[i] << " ";
+//cout << endl;
+
+  loadROSParamsFromArgs();
+  cout << endl << "numRedBoxes: " << numRedBoxes << endl;
+  cout << "data_directory: " << data_directory << endl << "class_name: " << class_name << endl 
+       << "run_prefix: " << run_prefix << endl << "class_pose_models: " << class_pose_models << endl 
+       << "class_labels: " << class_labels << endl << "vocab_file: " << vocab_file << endl 
+       << "knn_file: " << knn_file << endl << "label_file: " << label_file << endl
+       << endl;
+exit(0);
 
   saveROSParams();
 
   package_path = ros::package::getPath("oberlin_detection");
   class_crops_path = package_path + "/classCrops/";
   saved_crops_path = package_path + "/savedCrops";
+
   bing_trained_models_path = package_path + "/bing_trained_models/";
   objectness_matrix_path = bing_trained_models_path + "ObjNessB2W8I.idx.yml";
   objectness_path_prefix = bing_trained_models_path + "ObjNessB2W8MAXBGR";
-
+  // The other models
+  //ObjNessB2W8MAXBGR
+  //ObjNessB2W8I
+  //ObjNessB2W8HSV
 
   image_transport::Subscriber image_sub;
   ros::Subscriber depth_sub;
@@ -1877,13 +1941,11 @@ int main(int argc, char **argv) {
   image_transport::ImageTransport it(n);
   ros::Subscriber clusters = n.subscribe("/tabletop/clusters", 1, clusterCallback);
 
-  // XXX sometimes depth_registered stops publishing
   ros::Subscriber points = n.subscribe("/camera/depth_registered/points", 1, pointCloudCallback);
   //ros::Subscriber points = n.subscribe("/camera/depth/points", 1, pointCloudCallback);
 
   //ros::Subscriber table = n.subscribe("/tabletop/clusters", 1, tableCallback);
 
-  //rec_objs = n.advertise<object_recognition_msgs::RecognizedObjectArray>("labeled_objects", 10);
   rec_objs = n.advertise<object_recognition_msgs::RecognizedObjectArray>("labeled_objects", 10);
   markers = n.advertise<visualization_msgs::MarkerArray>("object_markers", 10);
 
@@ -1894,8 +1956,8 @@ int main(int argc, char **argv) {
   cv::namedWindow("Density Viewer");
   //cv::namedWindow("Depth Viewer");
   //cv::moveWindow("Depth Viewer", 2000+700, 0);
-  cv::moveWindow("Density Viewer", 2000+0, 700);
-  cv::moveWindow("Object Viewer", 2000+0, 0);
+  //cv::moveWindow("Density Viewer", 2000+0, 700);
+  //cv::moveWindow("Object Viewer", 2000+0, 0);
 
 
   DataSetVOC voc("../VOC2007/");
@@ -1912,8 +1974,6 @@ int main(int argc, char **argv) {
 
   printf("objectness_path_prefix \"%s\"\n", objectness_path_prefix.c_str());
 
-  //int result = objNess.loadTrainedModel("/home/oberlin/catkin_ws_baxter/src/baxter_h2r_packages/meldon_detection/ObjectnessTrainedModel/ObjNessB2W8I");
-  //int result = objNess.loadTrainedModel("/home/oberlin/catkin_ws_baxter/src/baxter_h2r_packages/meldon_detection/ObjectnessTrainedModel/ObjNessB2W8HSV");
   int result = objNess.loadTrainedModel(objectness_path_prefix);
   cout << "result: " << result << endl << endl;
 
@@ -1947,31 +2007,34 @@ int main(int argc, char **argv) {
   Mat vocabulary;
 
 #ifdef RELEARN_VOCAB
-  bowGetFeatures(class_crops_path, "gyroBowl", grayBlur);
-  bowGetFeatures(class_crops_path, "mixBowl", grayBlur);
-  bowGetFeatures(class_crops_path, "woodSpoon", grayBlur);
-  bowGetFeatures(class_crops_path, "plasticSpoon", grayBlur);
-  bowGetFeatures(class_crops_path, "background", grayBlur);
-  bowGetFeatures(class_crops_path, "human", grayBlur);
-  bowGetFeatures(class_crops_path, "sippyCup", grayBlur);
+  retrain_vocab = 1;
+#endif 
+  if (retrain_vocab) {
+    bowGetFeatures(class_crops_path, "gyroBowl", grayBlur);
+    bowGetFeatures(class_crops_path, "mixBowl", grayBlur);
+    bowGetFeatures(class_crops_path, "woodSpoon", grayBlur);
+    bowGetFeatures(class_crops_path, "plasticSpoon", grayBlur);
+    bowGetFeatures(class_crops_path, "background", grayBlur);
+    bowGetFeatures(class_crops_path, "human", grayBlur);
+    bowGetFeatures(class_crops_path, "sippyCup", grayBlur);
 
-  cout << "Clustering features...";
-  vocabulary = bowtrainer->cluster();
-  cout << "done." << endl;
+    cout << "Clustering features...";
+    vocabulary = bowtrainer->cluster();
+    cout << "done." << endl;
 
-  FileStorage fsvO;
-  cout<<"Writing vocab..."<< endl << vocabularyPath << endl << "...";
-  fsvO.open(vocabularyPath, FileStorage::WRITE);
-  fsvO << "vocab" << vocabulary;
-  fsvO.release();
-  cout << "done." << endl;
-#else
-  FileStorage fsvI;
-  cout<<"Reading vocab..."<< endl << vocabularyPath << endl << "...";
-  fsvI.open(vocabularyPath, FileStorage::READ);
-  fsvI["vocab"] >> vocabulary;
-  cout << "done." << vocabulary.size() << endl;
-#endif
+    FileStorage fsvO;
+    cout<<"Writing vocab..."<< endl << vocabularyPath << endl << "...";
+    fsvO.open(vocabularyPath, FileStorage::WRITE);
+    fsvO << "vocab" << vocabulary;
+    fsvO.release();
+    cout << "done." << endl;
+  } else {
+    FileStorage fsvI;
+    cout<<"Reading vocab..."<< endl << vocabularyPath << endl << "...";
+    fsvI.open(vocabularyPath, FileStorage::READ);
+    fsvI["vocab"] >> vocabulary;
+    cout << "done." << vocabulary.size() << endl;
+  }
 
   matcher = new BFMatcher(NORM_L2);
   bowExtractor = new BOWImgDescriptorExtractor(extractor,matcher);
@@ -1981,35 +2044,42 @@ int main(int argc, char **argv) {
   Mat kNNlabels;
 
 #ifdef RELOAD_DATA
-  kNNGetFeatures(class_crops_path, "gyroBowl", 1, grayBlur, kNNfeatures, kNNlabels);
-  kNNGetFeatures(class_crops_path, "mixBowl", 2, grayBlur, kNNfeatures, kNNlabels);
-  kNNGetFeatures(class_crops_path, "woodSpoon", 3, grayBlur, kNNfeatures, kNNlabels);
-  kNNGetFeatures(class_crops_path, "plasticSpoon", 4, grayBlur, kNNfeatures, kNNlabels);
-  kNNGetFeatures(class_crops_path, "background", 5, grayBlur, kNNfeatures, kNNlabels);
-  //kNNGetFeatures(class_crops_path, "human", 6, grayBlur, kNNfeatures, kNNlabels);
-  //kNNGetFeatures(class_crops_path, "sippyCup", 7, grayBlur, kNNfeatures, kNNlabels);
-
-  FileStorage fsfO;
-  cout<<"Writing features and labels..."<< endl << featuresPath << endl << "...";
-  fsfO.open(featuresPath, FileStorage::WRITE);
-  fsfO << "features" << kNNfeatures;
-  fsfO << "labels" << kNNlabels;
-  fsfO.release();
-  cout << "done." << endl;
-#else
-  FileStorage fsfI;
-  cout<<"Reading features and labels..."<< endl << featuresPath << endl << "...";
-  fsfI.open(featuresPath, FileStorage::READ);
-  fsfI["features"] >> kNNfeatures;
-  fsfI["labels"] >> kNNlabels;
-  cout << "done." << kNNfeatures.size() << " " << kNNlabels.size() << endl;
+  reextract_knn = 1;
 #endif
+  if (reextract_knn) {
+    kNNGetFeatures(class_crops_path, "gyroBowl", 1, grayBlur, kNNfeatures, kNNlabels);
+    kNNGetFeatures(class_crops_path, "mixBowl", 2, grayBlur, kNNfeatures, kNNlabels);
+    kNNGetFeatures(class_crops_path, "woodSpoon", 3, grayBlur, kNNfeatures, kNNlabels);
+    kNNGetFeatures(class_crops_path, "plasticSpoon", 4, grayBlur, kNNfeatures, kNNlabels);
+    kNNGetFeatures(class_crops_path, "background", 5, grayBlur, kNNfeatures, kNNlabels);
+    //kNNGetFeatures(class_crops_path, "human", 6, grayBlur, kNNfeatures, kNNlabels);
+    //kNNGetFeatures(class_crops_path, "sippyCup", 7, grayBlur, kNNfeatures, kNNlabels);
+
+    FileStorage fsfO;
+    cout<<"Writing features and labels..."<< endl << featuresPath << endl << "...";
+    fsfO.open(featuresPath, FileStorage::WRITE);
+    fsfO << "features" << kNNfeatures;
+    fsfO << "labels" << kNNlabels;
+    fsfO.release();
+    cout << "done." << endl;
+  } else { 
+    FileStorage fsfI;
+    cout<<"Reading features and labels..."<< endl << featuresPath << endl << "...";
+    fsfI.open(featuresPath, FileStorage::READ);
+    fsfI["features"] >> kNNfeatures;
+    fsfI["labels"] >> kNNlabels;
+    cout << "done." << kNNfeatures.size() << " " << kNNlabels.size() << endl;
+  }
 
   cout << kNNlabels.size().height << " " << kNNlabels.size().width << endl;
   cout << kNNfeatures.size().height << " " << kNNfeatures.size().width << endl;
 
   kNN = new CvKNearest(kNNfeatures, kNNlabels);
 
+#endif
+
+#ifdef TRAIN_ONLY
+  exit(0);
 #endif
 
   // manually definining spoon filters
