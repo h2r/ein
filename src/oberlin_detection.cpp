@@ -70,7 +70,7 @@ const double colorHistLambda = 1.0;
 const double colorHistThresh = 0.1;
 const int colorHistBoxHalfWidth = 1;
 
-int fcRange = 1;
+int fcRange = 10;
 
 double densityDecay = 0.7;
 double depthDecay = 0.7;
@@ -118,7 +118,6 @@ double redDecay = 0.7;
 //#define SAVE_ANNOTATED_BOXES
 // always increment the prefix so that the next person doesn't overwrite
 //   your examples.  
-//char run_prefix[] = "autolearn_16";
 std::string data_directory = "unspecified_dd";
 std::string vocab_file = "unspecified_vf";
 std::string knn_file = "unspecified_kf";
@@ -130,8 +129,12 @@ std::string class_name = "unspecified_cn";
 std::string class_labels= "unspecified_cl1 unspecified_cl2";
 std::string class_pose_models = "unspecified_pm1 unspecified_pm2";
 
+vector<string> classLabels; 
+vector<string> classPoseModels;
+
 int retrain_vocab = 0;
 int reextract_knn = 0;
+int rewrite_labels = 0;
 std::string class_list = "unspecified_class_list";
 
 
@@ -213,6 +216,22 @@ Eigen::Vector3d tablePosition;
 double tableBias;
 double tableBiasMargin = -5.001;
 
+
+void CallBackFunc(int event, int x, int y, int flags, void* userdata) {
+  if ( event == EVENT_LBUTTONDOWN ) {
+#ifdef CAPTURE_ONLY
+    fc = 0;
+#endif
+    //cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+  } else if ( event == EVENT_RBUTTONDOWN ) {
+    //cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+  } else if  ( event == EVENT_MBUTTONDOWN ) {
+    //cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+  } else if ( event == EVENT_MOUSEMOVE ) {
+    //cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
+  }
+}
+
 cv::Point pcCorrection(double x, double y, double imW, double imH) {
   cv::Point output;
 
@@ -261,7 +280,7 @@ void bowGetFeatures(std::string classDir, const char *className, double sigma) {
         detector->detect(gray_image, keypoints);
         extractor->compute(gray_image, keypoints, descriptors);
 
-        cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << endl;
+        cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " " << endl;
 
         if (!descriptors.empty())
           bowtrainer->add(descriptors);
@@ -464,6 +483,8 @@ void loadROSParamsFromArgs()
 
   nh.getParam("class_name", class_name);
   nh.getParam("run_prefix", run_prefix);
+
+  saved_crops_path = data_directory + "/" + class_name + "/";
 }
 
 void loadROSParams()
@@ -490,6 +511,8 @@ void loadROSParams()
   nh.getParam("class_pose_models", class_pose_models);
   nh.getParam("class_name", class_name);
   nh.getParam("run_prefix", run_prefix);
+
+  saved_crops_path = data_directory + "/" + class_name + "/";
 }
 
 void saveROSParams()
@@ -575,7 +598,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   int boxesToConsider= 50000;
 
-  fc = (fc + 1) % fcRange;
+  //fc = (fc + 1) % fcRange;
 
   Size sz = img_cvt.size();
   int imW = sz.width;
@@ -1152,7 +1175,7 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
     detector->detect(gray_image, keypoints);
     bowExtractor->compute(gray_image, keypoints, descriptors);
 
-    double label = 0.0;
+    double label = -1;
     if (!descriptors.empty() && !keypoints.empty()) {
     
       Mat colorHist(1, colorHistNumBins*colorHistNumBins, descriptors.type());
@@ -1197,6 +1220,7 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
     }
 
     char labelName[256]; 
+    /*
     if (label == 0)
       sprintf(labelName, "VOID");
     if (label == 1)
@@ -1213,23 +1237,29 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
       sprintf(labelName, "human");
     if (label == 7)
       sprintf(labelName, "sippyCup");
+    */
+    if (label == -1)
+      sprintf(labelName, "VOID");
+    else
+      sprintf(labelName, "%s", classLabels[label].c_str());
 
     bLabels.push_back(label);
   
   #ifdef SAVE_ANNOTATED_BOXES
     // save the crops
     if (fc == 0) {
+      fc = 1;
       Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
       char buf[1000];
-      sprintf(buf, class_crops_path + "/%s/%s_%d.ppm", 
-	labelName, run_prefix, cropCounter);
+      sprintf(buf, class_crops_path + "/%s_toAudit/%s%s_%d.ppm", 
+	labelName, labelName, run_prefix, cropCounter);
       imwrite(buf, crop);
       cropCounter++;
     }
   #endif
     int winningO = -1;
   #ifdef DRAW_ORIENTOR
-    if (label == 3 || label == 4) {
+    if (0 == classPoseModels[label].compare("S")) {
 
       Mat gCrop = img_cvt(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
       cv::resize(gCrop, gCrop, orientedFilters[0].size());
@@ -1270,6 +1300,7 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
   #endif
 
     double thisThresh = pBoxThresh;
+    /*
     if (label == 1)
       thisThresh = gbPBT;
     if (label == 2)
@@ -1278,6 +1309,7 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
       thisThresh = wsPBT;
     if (label == 4)
       thisThresh = psPBT;
+    */
 
     vector<cv::Point> pointCloudPoints;
     for (int x = bTops[c].x; x <= bBots[c].x-gBoxW; x+=gBoxStrideX) {
@@ -1326,8 +1358,8 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
 
 
   #ifdef PUBLISH_OBJECTS
-    if (label >= 1 && label <= 4) {
-cout << "hit a publishable object  " << endl;
+    if (label >= 0) {
+cout << "hit a publishable object " << label << " " << classLabels[label] << " " << classPoseModels[label] << endl;
 
       geometry_msgs::Pose object_pose;
 
@@ -1345,7 +1377,8 @@ cout << "hit a publishable object  " << endl;
 
       // handle the rotation differently depending on the class
       // if we have a spoon
-      if (label == 3 || label == 4) {
+      //if (label == 3 || label == 4) {
+      if (0 == classPoseModels[label].compare("S")) {
       	double theta = (M_PI / 2.0) + (winningO*2*M_PI/ORIENTATIONS);
       	R(0,0) = cos(theta); R(0,1) = -sin(theta); R(0,2) = 0;
       	R(1,0) = sin(theta); R(1,1) =  cos(theta); R(1,2) = 0;
@@ -1389,7 +1422,30 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
       //roa_to_send.objects[c].point_clouds[0].header = roa_to_send.header;
       //roa_to_send.objects[c].pose.header = roa_to_send.header;
 
+      if (0 == classPoseModels[label].compare("B")) {
+	ma_to_send.markers[c].type =  visualization_msgs::Marker::SPHERE;
+	ma_to_send.markers[c].scale.x = 0.15;
+	ma_to_send.markers[c].scale.y = 0.15;
+	ma_to_send.markers[c].scale.z = 0.15;
+	ma_to_send.markers[c].color.a = 1.0;
+	ma_to_send.markers[c].color.r = 0.9;
+	ma_to_send.markers[c].color.g = 0.9;
+	ma_to_send.markers[c].color.b = 0.0;
+      } else if (0 == classPoseModels[label].compare("S")) {
+	ma_to_send.markers[c].type =  visualization_msgs::Marker::CUBE;
+	ma_to_send.markers[c].scale.x = 0.2;
+	ma_to_send.markers[c].scale.y = 0.02;
+	ma_to_send.markers[c].scale.z = 0.02;
+	ma_to_send.markers[c].color.a = 1.0;
+	ma_to_send.markers[c].color.r = 0.25;
+	ma_to_send.markers[c].color.g = 0.25;
+	ma_to_send.markers[c].color.b = 0.25;
+      }
+      ma_to_send.markers[c].header =  roa_to_send.header;
+      ma_to_send.markers[c].action = visualization_msgs::Marker::ADD;
+
       char labelName[256]; 
+      /*
       if (label == 0)
 	sprintf(labelName, "VOID");
       if (label == 1) {
@@ -1454,6 +1510,12 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
 	sprintf(labelName, "human");
       if (label == 7)
 	sprintf(labelName, "sippyCup");
+      */
+
+      if (label == -1)
+	sprintf(labelName, "VOID");
+      else
+	sprintf(labelName, "%s", classLabels[label].c_str());
 
       ma_to_send.markers[c].header =  roa_to_send.header;
       ma_to_send.markers[c].action = visualization_msgs::Marker::ADD;
@@ -1594,6 +1656,7 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
 
 
       char labelName[256]; 
+      /*
       if (thisClass == 0)
 	sprintf(labelName, "VOID");
       if (thisClass == 1)
@@ -1610,6 +1673,13 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
 	sprintf(labelName, "human");
       if (thisClass == 7)
 	sprintf(labelName, "sippyCup");
+      */
+      if (label == -1)
+	sprintf(labelName, "VOID");
+      else
+	sprintf(labelName, "%s", classLabels[label].c_str());
+  
+    
 
     #ifdef DRAW_RED
       if (thisRedBox->persistence > 0.5) {
@@ -1704,6 +1774,7 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
 
 
       char labelName[256]; 
+      /*
       if (thisClass == 0)
 	sprintf(labelName, "VOID");
       if (thisClass == 1)
@@ -1720,6 +1791,11 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
 	sprintf(labelName, "human");
       if (thisClass == 7)
 	sprintf(labelName, "sippyCup");
+      */
+      if (label == -1)
+	sprintf(labelName, "VOID");
+      else
+	sprintf(labelName, "%s", classLabels[label].c_str());
 
     #ifdef DRAW_RED
       if (thisRedBox->persistence > 0.5) {
@@ -1738,13 +1814,14 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
 #ifdef SAVE_BOXES
   // save the crops
   if (fc == 0) {
+    fc = 1;
     for (int c = bTops.size()-1; c >= 0; c--) {
       Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
       char buf[1000];
-      sprintf(buf, saved_crops_path + "/%s_%d.ppm", 
-	run_prefix, cropCounter);
+      sprintf(buf, "%s%s%s_%d.ppm", saved_crops_path.c_str(), class_name.c_str(), run_prefix.c_str(), cropCounter);
       // uncomment if statement for hard negative mining
       //if(bLabels[c] != 7) {
+	cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
 	imwrite(buf, crop);
 	cropCounter++;
       //}
@@ -1919,67 +1996,58 @@ int main(int argc, char **argv) {
        << "class_labels: " << class_labels << endl << "vocab_file: " << vocab_file << endl 
        << "knn_file: " << knn_file << endl << "label_file: " << label_file << endl
        << endl;
-exit(0);
+//exit(0);
 
   saveROSParams();
 
   package_path = ros::package::getPath("oberlin_detection");
-  class_crops_path = package_path + "/classCrops/";
-  saved_crops_path = package_path + "/savedCrops";
+  class_crops_path = data_directory + "/";
 
-  bing_trained_models_path = package_path + "/bing_trained_models/";
-  objectness_matrix_path = bing_trained_models_path + "ObjNessB2W8I.idx.yml";
-  objectness_path_prefix = bing_trained_models_path + "ObjNessB2W8MAXBGR";
   // The other models
   //ObjNessB2W8MAXBGR
   //ObjNessB2W8I
   //ObjNessB2W8HSV
-
-  image_transport::Subscriber image_sub;
-  ros::Subscriber depth_sub;
-
-  image_transport::ImageTransport it(n);
-  ros::Subscriber clusters = n.subscribe("/tabletop/clusters", 1, clusterCallback);
-
-  ros::Subscriber points = n.subscribe("/camera/depth_registered/points", 1, pointCloudCallback);
-  //ros::Subscriber points = n.subscribe("/camera/depth/points", 1, pointCloudCallback);
-
-  //ros::Subscriber table = n.subscribe("/tabletop/clusters", 1, tableCallback);
-
-  rec_objs = n.advertise<object_recognition_msgs::RecognizedObjectArray>("labeled_objects", 10);
-  markers = n.advertise<visualization_msgs::MarkerArray>("object_markers", 10);
-
-  image_sub = it.subscribe("/camera/rgb/image_raw", 1, imageCallback);
-  //depth_sub = it.subscribe("/camera/depth_registered/image_raw", 1, depthCallback);
-
-  cv::namedWindow("Object Viewer");
-  cv::namedWindow("Density Viewer");
-  //cv::namedWindow("Depth Viewer");
-  //cv::moveWindow("Depth Viewer", 2000+700, 0);
-  //cv::moveWindow("Density Viewer", 2000+0, 700);
-  //cv::moveWindow("Object Viewer", 2000+0, 0);
-
+  bing_trained_models_path = package_path + "/bing_trained_models/";
+  objectness_matrix_path = bing_trained_models_path + "ObjNessB2W8I.idx.yml";
+  objectness_path_prefix = bing_trained_models_path + "ObjNessB2W8MAXBGR";
 
   DataSetVOC voc("../VOC2007/");
   Objectness objNess(voc, 2, 8, 2);
   glObjectness = &(objNess);
 
-  printf(" objectness_matrix_path: \"%s\"\n", objectness_matrix_path.c_str());
-
-  CvMat* my_matrix;
-  my_matrix = (CvMat*)cvLoad(objectness_matrix_path.c_str());
-  int *data = my_matrix->data.i;
-
-  cout << "test" << endl << "test" << data[0] << data[1] << data[2] << data[6] << endl << endl;
-
-  printf("objectness_path_prefix \"%s\"\n", objectness_path_prefix.c_str());
-
+  printf("objectness_path_prefix: %s\n", objectness_path_prefix.c_str());
   int result = objNess.loadTrainedModel(objectness_path_prefix);
   cout << "result: " << result << endl << endl;
 
+  image_transport::Subscriber image_sub;
+  image_transport::ImageTransport it(n);
+  image_sub = it.subscribe("/camera/rgb/image_raw", 1, imageCallback);
+
+  ros::Subscriber clusters = n.subscribe("/tabletop/clusters", 1, clusterCallback);
+  ros::Subscriber points = n.subscribe("/camera/depth_registered/points", 1, pointCloudCallback);
+
+  rec_objs = n.advertise<object_recognition_msgs::RecognizedObjectArray>("labeled_objects", 10);
+  markers = n.advertise<visualization_msgs::MarkerArray>("object_markers", 10);
+
+  cv::namedWindow("Object Viewer");
+  cv::namedWindow("Density Viewer");
+  setMouseCallback("Object Viewer", CallBackFunc, NULL);
+
   fc = 0;
   cropCounter = 0;
+  tableNormal = Eigen::Vector3d(1,0,0);
+  tableBias = 0;
 
+  //ros::Subscriber points = n.subscribe("/camera/depth/points", 1, pointCloudCallback);
+  //ros::Subscriber table = n.subscribe("/tabletop/clusters", 1, tableCallback);
+
+  //cv::moveWindow("Object Viewer", 2000+0, 0);
+  //cv::moveWindow("Density Viewer", 2000+0, 700);
+
+  //ros::Subscriber depth_sub;
+  //depth_sub = it.subscribe("/camera/depth_registered/image_raw", 1, depthCallback);
+  //cv::namedWindow("Depth Viewer");
+  //cv::moveWindow("Depth Viewer", 2000+700, 0);
 
 #ifdef RUN_INFERENCE
 
@@ -2001,8 +2069,60 @@ exit(0);
 
   char vocabularyPath[1024];
   char featuresPath[1024];
-  sprintf(vocabularyPath, "%s/vocab.yml", class_crops_path.c_str());
-  sprintf(featuresPath, "%s/features.yml", class_crops_path.c_str());
+  char labelsPath[1024];
+  sprintf(vocabularyPath, "%s/%s", data_directory.c_str(), vocab_file.c_str());
+  sprintf(featuresPath, "%s/%s", data_directory.c_str(), knn_file.c_str());
+  sprintf(labelsPath, "%s/%s", data_directory.c_str(), label_file.c_str());
+  cout << "vocabularyPath: " << vocabularyPath << endl;
+  cout << "featuresPath: " << featuresPath << endl;
+  cout << "labelsPath: " << labelsPath << endl;
+
+
+#ifdef TRAIN_ONLY
+  string bufstr; // Have a buffer string
+
+  stringstream ss_cl(class_labels); 
+  while (ss_cl >> bufstr)
+    classLabels.push_back(bufstr);
+
+  stringstream ss_cpm(class_pose_models); 
+  while (ss_cpm >> bufstr)
+    classPoseModels.push_back(bufstr);
+
+  cout << classLabels.size() << endl;
+  cout << classPoseModels.size() << endl;
+
+  if ((classLabels.size() != classPoseModels.size()) || (classLabels.size() <= 1)) {
+    cout << "label or pose model problem. exitting." << endl;
+    exit(0);
+  }
+#endif
+
+#ifdef REWRITE_LABELS
+  rewrite_labels = 1;
+#endif 
+  if (rewrite_labels) {
+    FileStorage fsvO;
+    cout<<"Writing labels and pose models..."<< endl << labelsPath << endl << "...";
+    fsvO.open(labelsPath, FileStorage::WRITE);
+    fsvO << "labels" << classLabels;
+    fsvO << "poseModels" << classPoseModels;
+    fsvO.release();
+    cout << "done." << endl;
+  } else {
+    FileStorage fsvI;
+    cout<<"Reading labels and pose models..."<< endl << labelsPath << endl << "...";
+    fsvI.open(labelsPath, FileStorage::READ);
+    fsvI["labels"] >> classLabels;
+    fsvI["poseModels"] >> classPoseModels;
+    cout << "done. " << classLabels.size() << " " << classPoseModels.size() << endl;
+  }
+
+  int numClasses = classLabels.size();
+  
+  for (int i = 0; i < numClasses; i++) {
+    cout << classLabels[i] << " " << classPoseModels[i] << endl;
+  }
 
   Mat vocabulary;
 
@@ -2010,6 +2130,12 @@ exit(0);
   retrain_vocab = 1;
 #endif 
   if (retrain_vocab) {
+    for (int i = 0; i < numClasses; i++) {
+      cout << "Getting BOW features for class " << classLabels[i] 
+	   << " with pose model " << classPoseModels[i] << " index " << i << endl;
+      bowGetFeatures(class_crops_path, classLabels[i].c_str(), grayBlur);
+    }
+/*
     bowGetFeatures(class_crops_path, "gyroBowl", grayBlur);
     bowGetFeatures(class_crops_path, "mixBowl", grayBlur);
     bowGetFeatures(class_crops_path, "woodSpoon", grayBlur);
@@ -2017,6 +2143,7 @@ exit(0);
     bowGetFeatures(class_crops_path, "background", grayBlur);
     bowGetFeatures(class_crops_path, "human", grayBlur);
     bowGetFeatures(class_crops_path, "sippyCup", grayBlur);
+*/
 
     cout << "Clustering features...";
     vocabulary = bowtrainer->cluster();
@@ -2047,6 +2174,12 @@ exit(0);
   reextract_knn = 1;
 #endif
   if (reextract_knn) {
+    for (int i = 0; i < numClasses; i++) {
+      cout << "Getting kNN features for class " << classLabels[i] 
+	   << " with pose model " << classPoseModels[i] << " index " << i << endl;
+      kNNGetFeatures(class_crops_path, classLabels[i].c_str(), i, grayBlur, kNNfeatures, kNNlabels);
+    }
+/*
     kNNGetFeatures(class_crops_path, "gyroBowl", 1, grayBlur, kNNfeatures, kNNlabels);
     kNNGetFeatures(class_crops_path, "mixBowl", 2, grayBlur, kNNfeatures, kNNlabels);
     kNNGetFeatures(class_crops_path, "woodSpoon", 3, grayBlur, kNNfeatures, kNNlabels);
@@ -2054,6 +2187,7 @@ exit(0);
     kNNGetFeatures(class_crops_path, "background", 5, grayBlur, kNNfeatures, kNNlabels);
     //kNNGetFeatures(class_crops_path, "human", 6, grayBlur, kNNfeatures, kNNlabels);
     //kNNGetFeatures(class_crops_path, "sippyCup", 7, grayBlur, kNNfeatures, kNNlabels);
+*/
 
     FileStorage fsfO;
     cout<<"Writing features and labels..."<< endl << featuresPath << endl << "...";
@@ -2091,6 +2225,12 @@ exit(0);
     }
   }
 
+  // Spoon filters are used to estimate the orientation of spoon-like objects
+  // based on their green maps. Hard coded for convenience. 
+  // This approach is pretty flexible and could work for other types of objects.
+  // A map could be estimated by some other process and loaded here, or just represented
+  // as bitmap and converted here.
+  // TODO make this comparison based based on an affine transformation, it will be more accurate.
 /*
   // Diagonal Spoon Filter
   for (int x = 0; x < O_FILTER_SPOON_HEAD_WIDTH; x++) {
@@ -2149,13 +2289,9 @@ exit(0);
   l1norm = orientedFilters[0].dot(Mat::ones(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F));
   orientedFilters[0] = orientedFilters[0] / l1norm;
 
-  tableNormal = Eigen::Vector3d(1,0,0);
-  tableBias = 0;
-
   ros::spin();
   return 0;
 }
-
 
 
 /* Notes
