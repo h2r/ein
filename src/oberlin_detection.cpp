@@ -92,7 +92,7 @@ double redDecay = 0.7;
 #include <sstream>
 #include <iostream>
 #include <math.h>
-//#include "libkerneldesc.cc"
+#include <string>
 
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
@@ -131,6 +131,9 @@ std::string class_pose_models = "unspecified_pm1 unspecified_pm2";
 
 vector<string> classLabels; 
 vector<string> classPoseModels;
+vector<CvKNearest*> classPosekNNs;
+vector<Mat> classPosekNNfeatures;
+vector<Mat> classPosekNNlabels;
 
 int retrain_vocab = 0;
 int reextract_knn = 0;
@@ -325,7 +328,7 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
         detector->detect(gray_image, keypoints);
         bowExtractor->compute(gray_image, keypoints, descriptors);
 
-        cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << descriptors.type() << endl;
+        cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " type: " << descriptors.type() << endl;
 
         if (!descriptors.empty() && !keypoints.empty()) {
 	
@@ -374,6 +377,110 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 
           kNNfeatures.push_back(descriptors2);
           kNNlabels.push_back(label);
+        }
+      }
+    }
+  }
+}
+
+void posekNNGetFeatures(std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels) {
+
+  string sClassName(className);
+
+  int label = 0;
+
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+
+  char buf[1024];
+  sprintf(buf, "%s%s", classDir.c_str(), className);
+  dpdf = opendir(buf);
+  if (dpdf != NULL){
+    while (epdf = readdir(dpdf)){
+      if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
+
+	string fileName(epdf->d_name);
+
+	string poseIndex = fileName.substr(sClassName.size()+1, string::npos);
+	poseIndex = poseIndex.substr(0,  poseIndex.length()-4);
+	label = std::atoi(poseIndex.c_str());
+
+        vector<KeyPoint> keypoints;
+        Mat descriptors;
+
+        char filename[1024];
+        sprintf(filename, "%s%s/%s", classDir.c_str(), className, epdf->d_name);
+        Mat image;
+        image = imread(filename);
+
+	Size sz = image.size();
+	int imW = sz.width;
+	int imH = sz.height;
+
+        Mat gray_image;
+        Mat yCrCb_image;
+        cvtColor(image, gray_image, CV_BGR2GRAY);
+        cvtColor(image, yCrCb_image, CV_BGR2YCrCb);
+        GaussianBlur(gray_image, gray_image, cv::Size(0,0), sigma);
+        GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), sigma);
+
+        detector->detect(gray_image, keypoints);
+        bowExtractor->compute(gray_image, keypoints, descriptors);
+
+        cout << className << ":  "  << epdf->d_name << "  "  << fileName << " " << descriptors.size() << 
+	  " type: " << descriptors.type() << " label: " << label << endl;
+
+        if (!descriptors.empty() && !keypoints.empty()) {
+	
+	  Mat colorHist(1, colorHistNumBins*colorHistNumBins, descriptors.type());
+	  for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
+	    colorHist.at<float>(i) = 0;
+
+	  double numPix = 0;
+	  // traverse all of the keypoints
+	  for (int kk = 0; kk < keypoints.size(); kk++) {
+	    // count pixels in a neighborhood of the keypoint
+	    int yMin = max(int(keypoints[kk].pt.y)-colorHistBoxHalfWidth,0);
+	    int yMax = min(int(keypoints[kk].pt.y)+colorHistBoxHalfWidth,imH);
+	    int xMin = max(int(keypoints[kk].pt.x)-colorHistBoxHalfWidth,0);
+	    int xMax = min(int(keypoints[kk].pt.x)+colorHistBoxHalfWidth,imW);
+	    for (int y = yMin; y < yMax; y++) {
+	      for (int x = xMin; x < xMax; x++) {
+
+		cv::Vec3b thisColor = yCrCb_image.at<cv::Vec3b>(y,x);
+
+		int CrBin = thisColor[1]/colorHistBinWidth;
+		int CbBin = thisColor[2]/colorHistBinWidth;
+
+		colorHist.at<float>(CrBin + CbBin*colorHistNumBins)++;
+
+		numPix++;
+	      }
+	    }
+	  }
+	  // normalize the histogram
+	  for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
+	    colorHist.at<float>(i) = colorHist.at<float>(i) / numPix;
+
+	  Mat descriptors2 = Mat(1, descriptors.size().width + colorHistNumBins*colorHistNumBins, descriptors.type());
+	  for (int i = 0; i < descriptors.size().width; i++) 
+	    descriptors2.at<float>(i) = descriptors.at<float>(i);
+	  for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) {
+	    //if ( colorHist.at<float>(i) > 0.1 )
+	      //cout << i << ":" << colorHist.at<float>(i) << " ";
+	    colorHist.at<float>(i) = min(colorHist.at<float>(i), float(colorHistThresh));
+	    descriptors2.at<float>(i+descriptors.size().width) = colorHistLambda * colorHist.at<float>(i);
+	  }
+//exit(0);
+/*
+*/
+
+          //kNNfeatures.push_back(descriptors2);
+          kNNfeatures.push_back(descriptors);
+          kNNlabels.push_back(label);
+	  //label++;
         }
       }
     }
@@ -1161,6 +1268,7 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
   roa_to_send.objects.resize(bTops.size());
   ma_to_send.markers.resize(bTops.size()+1);
   for (int c = 0; c < bTops.size(); c++) {
+fprintf(stderr, " object check1"); fflush(stderr);
     vector<KeyPoint> keypoints;
     Mat descriptors;
 
@@ -1175,7 +1283,9 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
     detector->detect(gray_image, keypoints);
     bowExtractor->compute(gray_image, keypoints, descriptors);
 
+fprintf(stderr, " object check2"); fflush(stderr);
     double label = -1;
+    double poseIndex = -1;
     if (!descriptors.empty() && !keypoints.empty()) {
     
       Mat colorHist(1, colorHistNumBins*colorHistNumBins, descriptors.type());
@@ -1217,6 +1327,9 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
       }
 
       label = kNN->find_nearest(descriptors2,k);
+      if (0 == classPoseModels[label].compare("G")) {
+	poseIndex = classPosekNNs[label]->find_nearest(descriptors,k);
+      }
     }
 
     char labelName[256]; 
@@ -1257,46 +1370,62 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
       cropCounter++;
     }
   #endif
+fprintf(stderr, " object check3 label %f", label); fflush(stderr);
+
     int winningO = -1;
-  #ifdef DRAW_ORIENTOR
-    if (0 == classPoseModels[label].compare("S")) {
+    if (label >= 0) 
+      if (0 == classPoseModels[label].compare("S")) {
 
-      Mat gCrop = img_cvt(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
-      cv::resize(gCrop, gCrop, orientedFilters[0].size());
-      gCrop.convertTo(gCrop, orientedFilters[0].type());
+  fprintf(stderr, " object checkS"); fflush(stderr);
 
-      Mat gcChannels[3];
-      split(gCrop, gcChannels);
+	Mat gCrop = img_cvt(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
+	cv::resize(gCrop, gCrop, orientedFilters[0].size());
+	gCrop.convertTo(gCrop, orientedFilters[0].type());
 
-      double winningScore = -1;
-      for (int o = 0; o < ORIENTATIONS; o++) {
-      	double thisScore = gcChannels[1].dot(orientedFilters[o]);
-      	if (thisScore > winningScore) {
-      	  winningScore = thisScore;
-      	  winningO = o;
-      	}
+	Mat gcChannels[3];
+	split(gCrop, gcChannels);
+
+	double winningScore = -1;
+	for (int o = 0; o < ORIENTATIONS; o++) {
+	  double thisScore = gcChannels[1].dot(orientedFilters[o]);
+	  if (thisScore > winningScore) {
+	    winningScore = thisScore;
+	    winningO = o;
+	  }
+	}
+
+	#ifdef DRAW_ORIENTOR
+	Mat vCrop = cv_ptr->image(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
+	vCrop = vCrop.mul(0.5);
+
+	Mat scaledFilter;
+	cv::resize(orientedFilters[winningO], scaledFilter, vCrop.size());
+	scaledFilter = biggestL1*scaledFilter;
+	 
+	vector<Mat> channels;
+	channels.push_back(Mat::zeros(scaledFilter.size(), scaledFilter.type()));
+	channels.push_back(Mat::zeros(scaledFilter.size(), scaledFilter.type()));
+	channels.push_back(scaledFilter);
+	merge(channels, scaledFilter);
+
+	scaledFilter.convertTo(scaledFilter, vCrop.type());
+	vCrop = vCrop + 128*scaledFilter;
+	#endif
       }
+fprintf(stderr, " object check4"); fflush(stderr);
 
-      Mat vCrop = cv_ptr->image(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
-      vCrop = vCrop.mul(0.5);
-
-      Mat scaledFilter;
-      cv::resize(orientedFilters[winningO], scaledFilter, vCrop.size());
-      scaledFilter = biggestL1*scaledFilter;
-       
-      vector<Mat> channels;
-      channels.push_back(Mat::zeros(scaledFilter.size(), scaledFilter.type()));
-      channels.push_back(Mat::zeros(scaledFilter.size(), scaledFilter.type()));
-      channels.push_back(scaledFilter);
-      merge(channels, scaledFilter);
-
-      scaledFilter.convertTo(scaledFilter, vCrop.type());
-      vCrop = vCrop + 128*scaledFilter;
-    }
-  #endif
+    string augmentedLabelName = labelName;
+    if (label >= 0) 
+      if (0 == classPoseModels[label].compare("G")) {
+	string result;
+	ostringstream convert;
+	convert << poseIndex;
+	result = convert.str();
+	augmentedLabelName = augmentedLabelName + " " + result;
+      }
   #ifdef DRAW_LABEL
     cv::Point text_anchor(bTops[c].x, bBots[c].y);
-    putText(cv_ptr->image, labelName, text_anchor, MY_FONT, 1.5, Scalar(255,0,0), 2.0);
+    putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(255,0,0), 2.0);
   #endif
 
     double thisThresh = pBoxThresh;
@@ -1311,6 +1440,7 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
       thisThresh = psPBT;
     */
 
+fprintf(stderr, " object check5"); fflush(stderr);
     vector<cv::Point> pointCloudPoints;
     for (int x = bTops[c].x; x <= bBots[c].x-gBoxW; x+=gBoxStrideX) {
       for (int y = bTops[c].y; y <= bBots[c].y-gBoxH; y+=gBoxStrideY) {
@@ -1355,11 +1485,14 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
     }
 
 
+fprintf(stderr, " object check6"); fflush(stderr);
 
 
   #ifdef PUBLISH_OBJECTS
     if (label >= 0) {
-cout << "hit a publishable object " << label << " " << classLabels[label] << " " << classPoseModels[label] << endl;
+cout << "check" << endl;
+cout << "hit a publishable object " << label << " " << classLabels[label] 
+<< " " << classPoseModels[label] << c << " of total objects" << bTops.size() << endl;
 
       geometry_msgs::Pose object_pose;
 
@@ -1421,6 +1554,8 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
       roa_to_send.objects[c].header = roa_to_send.header;
       //roa_to_send.objects[c].point_clouds[0].header = roa_to_send.header;
       //roa_to_send.objects[c].pose.header = roa_to_send.header;
+
+      roa_to_send.objects[c].type.key = augmentedLabelName;
 
       if (0 == classPoseModels[label].compare("B")) {
 	ma_to_send.markers[c].type =  visualization_msgs::Marker::SPHERE;
@@ -1524,10 +1659,13 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
     }
   #endif
 
+    if (label >= 0) 
+      cout << "  finished a publishable object " << label << " " << classLabels[label] << " " << classPoseModels[label] << endl;
   }
 
   // publish the table
   {
+cout << "table check 1" << endl;
     int c = bTops.size();
     ma_to_send.markers[c].pose = tablePose;
     ma_to_send.markers[c].type =  visualization_msgs::Marker::CUBE;
@@ -1543,9 +1681,11 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
     ma_to_send.markers[c].action = visualization_msgs::Marker::ADD;
     ma_to_send.markers[c].id = c;
     ma_to_send.markers[c].lifetime = ros::Duration(1.0);
+cout << "table check 2" << endl;
   }
 
   #ifdef PUBLISH_OBJECTS
+  cout << "about to publish" << endl;
   if (bTops.size() > 0) {
     rec_objs.publish(roa_to_send);
   }
@@ -1554,7 +1694,6 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
   #endif
 
   #ifdef RUN_TRACKING 
-  #pragma omp parallel for
   for (int r = 0; r < numRedBoxes; r++) {
 
     redBox *thisRedBox = &(redBoxes[r]);
@@ -1572,6 +1711,12 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
 
 
     int redStride = 30;
+
+// XXX
+// check the old position of the redbox, keep its distance
+// randomly alter the size of the test boxes, save the new size in that red box
+// make feature computation efficient
+// this should give interesting behavior
     
     if (accepted) {
       
@@ -1656,24 +1801,6 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
 
 
       char labelName[256]; 
-      /*
-      if (thisClass == 0)
-	sprintf(labelName, "VOID");
-      if (thisClass == 1)
-	sprintf(labelName, "gyroBowl");
-      if (thisClass == 2)
-	sprintf(labelName, "mixBowl");
-      if (thisClass == 3)
-	sprintf(labelName, "woodSpoon");
-      if (thisClass == 4)
-	sprintf(labelName, "plasticSpoon");
-      if (thisClass == 5)
-	sprintf(labelName, "background");
-      if (thisClass == 6)
-	sprintf(labelName, "human");
-      if (thisClass == 7)
-	sprintf(labelName, "sippyCup");
-      */
       if (label == -1)
 	sprintf(labelName, "VOID");
       else
@@ -1774,24 +1901,6 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
 
 
       char labelName[256]; 
-      /*
-      if (thisClass == 0)
-	sprintf(labelName, "VOID");
-      if (thisClass == 1)
-	sprintf(labelName, "gyroBowl");
-      if (thisClass == 2)
-	sprintf(labelName, "mixBowl");
-      if (thisClass == 3)
-	sprintf(labelName, "woodSpoon");
-      if (thisClass == 4)
-	sprintf(labelName, "plasticSpoon");
-      if (thisClass == 5)
-	sprintf(labelName, "background");
-      if (thisClass == 6)
-	sprintf(labelName, "human");
-      if (thisClass == 7)
-	sprintf(labelName, "sippyCup");
-      */
       if (label == -1)
 	sprintf(labelName, "VOID");
       else
@@ -2022,6 +2131,7 @@ int main(int argc, char **argv) {
   image_transport::Subscriber image_sub;
   image_transport::ImageTransport it(n);
   image_sub = it.subscribe("/camera/rgb/image_raw", 1, imageCallback);
+  //image_sub = it.subscribe("/filter_time/filtered_image", 1, imageCallback);
 
   ros::Subscriber clusters = n.subscribe("/tabletop/clusters", 1, clusterCallback);
   ros::Subscriber points = n.subscribe("/camera/depth_registered/points", 1, pointCloudCallback);
@@ -2037,17 +2147,6 @@ int main(int argc, char **argv) {
   cropCounter = 0;
   tableNormal = Eigen::Vector3d(1,0,0);
   tableBias = 0;
-
-  //ros::Subscriber points = n.subscribe("/camera/depth/points", 1, pointCloudCallback);
-  //ros::Subscriber table = n.subscribe("/tabletop/clusters", 1, tableCallback);
-
-  //cv::moveWindow("Object Viewer", 2000+0, 0);
-  //cv::moveWindow("Density Viewer", 2000+0, 700);
-
-  //ros::Subscriber depth_sub;
-  //depth_sub = it.subscribe("/camera/depth_registered/image_raw", 1, depthCallback);
-  //cv::namedWindow("Depth Viewer");
-  //cv::moveWindow("Depth Viewer", 2000+700, 0);
 
 #ifdef RUN_INFERENCE
 
@@ -2134,18 +2233,13 @@ int main(int argc, char **argv) {
       cout << "Getting BOW features for class " << classLabels[i] 
 	   << " with pose model " << classPoseModels[i] << " index " << i << endl;
       bowGetFeatures(class_crops_path, classLabels[i].c_str(), grayBlur);
+      if (classPoseModels[i].compare("G") == 0) {
+	string thisPoseLabel = classLabels[i] + "Poses";
+	bowGetFeatures(class_crops_path, thisPoseLabel.c_str(), grayBlur);
+      }
     }
-/*
-    bowGetFeatures(class_crops_path, "gyroBowl", grayBlur);
-    bowGetFeatures(class_crops_path, "mixBowl", grayBlur);
-    bowGetFeatures(class_crops_path, "woodSpoon", grayBlur);
-    bowGetFeatures(class_crops_path, "plasticSpoon", grayBlur);
-    bowGetFeatures(class_crops_path, "background", grayBlur);
-    bowGetFeatures(class_crops_path, "human", grayBlur);
-    bowGetFeatures(class_crops_path, "sippyCup", grayBlur);
-*/
 
-    cout << "Clustering features...";
+    cout << "Clustering features..." << endl;
     vocabulary = bowtrainer->cluster();
     cout << "done." << endl;
 
@@ -2170,6 +2264,10 @@ int main(int argc, char **argv) {
   Mat kNNfeatures;
   Mat kNNlabels;
 
+  classPosekNNs.resize(numClasses);
+  classPosekNNfeatures.resize(numClasses);
+  classPosekNNlabels.resize(numClasses);
+
 #ifdef RELOAD_DATA
   reextract_knn = 1;
 #endif
@@ -2178,22 +2276,27 @@ int main(int argc, char **argv) {
       cout << "Getting kNN features for class " << classLabels[i] 
 	   << " with pose model " << classPoseModels[i] << " index " << i << endl;
       kNNGetFeatures(class_crops_path, classLabels[i].c_str(), i, grayBlur, kNNfeatures, kNNlabels);
+      if (classPoseModels[i].compare("G") == 0) {
+	string thisPoseLabel = classLabels[i] + "Poses";
+	//kNNGetFeatures(class_crops_path, thisPoseLabel.c_str(), i, grayBlur, kNNfeatures, kNNlabels);
+	posekNNGetFeatures(class_crops_path, thisPoseLabel.c_str(), grayBlur, classPosekNNfeatures[i], classPosekNNlabels[i]);
+      }
     }
-/*
-    kNNGetFeatures(class_crops_path, "gyroBowl", 1, grayBlur, kNNfeatures, kNNlabels);
-    kNNGetFeatures(class_crops_path, "mixBowl", 2, grayBlur, kNNfeatures, kNNlabels);
-    kNNGetFeatures(class_crops_path, "woodSpoon", 3, grayBlur, kNNfeatures, kNNlabels);
-    kNNGetFeatures(class_crops_path, "plasticSpoon", 4, grayBlur, kNNfeatures, kNNlabels);
-    kNNGetFeatures(class_crops_path, "background", 5, grayBlur, kNNfeatures, kNNlabels);
-    //kNNGetFeatures(class_crops_path, "human", 6, grayBlur, kNNfeatures, kNNlabels);
-    //kNNGetFeatures(class_crops_path, "sippyCup", 7, grayBlur, kNNfeatures, kNNlabels);
-*/
 
     FileStorage fsfO;
     cout<<"Writing features and labels..."<< endl << featuresPath << endl << "...";
     fsfO.open(featuresPath, FileStorage::WRITE);
     fsfO << "features" << kNNfeatures;
     fsfO << "labels" << kNNlabels;
+    for (int i = 0; i < numClasses; i++) {
+      if (classPoseModels[i].compare("G") == 0) {
+	string fnOut = "features" + classLabels[i];
+	string lnOut = "labels" + classLabels[i];
+	cout << "G: " << classLabels[i] << " " << fnOut << " " << lnOut << endl;
+	fsfO << fnOut << classPosekNNfeatures[i];
+	fsfO << lnOut << classPosekNNlabels[i];
+      }
+    }
     fsfO.release();
     cout << "done." << endl;
   } else { 
@@ -2202,13 +2305,31 @@ int main(int argc, char **argv) {
     fsfI.open(featuresPath, FileStorage::READ);
     fsfI["features"] >> kNNfeatures;
     fsfI["labels"] >> kNNlabels;
+    for (int i = 0; i < numClasses; i++) {
+      if (classPoseModels[i].compare("G") == 0) {
+	string fnIn = "features" + classLabels[i];
+	string lnIn = "labels" + classLabels[i];
+	cout << "G: " << classLabels[i] << " " << fnIn << " " << lnIn << endl;
+	fsfI[fnIn] >> classPosekNNfeatures[i];
+	fsfI[lnIn] >> classPosekNNlabels[i];
+      }
+    }
     cout << "done." << kNNfeatures.size() << " " << kNNlabels.size() << endl;
   }
 
   cout << kNNlabels.size().height << " " << kNNlabels.size().width << endl;
   cout << kNNfeatures.size().height << " " << kNNfeatures.size().width << endl;
 
+  cout << "Main kNN..." << endl;
   kNN = new CvKNearest(kNNfeatures, kNNlabels);
+  cout << "Done" << endl;
+  for (int i = 0; i < numClasses; i++) {
+    if (classPoseModels[i].compare("G") == 0) {
+      cout << "Class " << i << " kNN..." << classPosekNNfeatures[i].size() << classPosekNNlabels[i].size() << endl;
+      classPosekNNs[i] = new CvKNearest(classPosekNNfeatures[i], classPosekNNlabels[i]);
+      cout << "Done" << endl;
+    }
+  }
 
 #endif
 
