@@ -2191,8 +2191,8 @@ int main(int argc, char **argv) {
   cout << classLabels.size() << endl;
   cout << classPoseModels.size() << endl;
 
-  if ((classLabels.size() != classPoseModels.size()) || (classLabels.size() <= 1)) {
-    cout << "label or pose model problem. exitting." << endl;
+  if ((classLabels.size() != classPoseModels.size()) || (classLabels.size() < 1)) {
+    cout << "label or pose model problem. exiting." << endl;
     exit(0);
   }
 #endif

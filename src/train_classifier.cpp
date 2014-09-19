@@ -5,7 +5,7 @@
 #define RELOAD_DATA
 // if you add a class or many new examples, it would be wise to
 //   recalculate the vocab.
-//#define RELEARN_VOCAB
+#define RELEARN_VOCAB
 // similarly you must rewrite the labels.
 #define REWRITE_LABELS
 
