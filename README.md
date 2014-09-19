@@ -16,10 +16,17 @@ To get up and running you will need to perform three steps.
 2.) "Train" a BoW-kNN classifier.
 3.) Publish detections.
 
+First make a data directory
+```
+roscd oberlin_detection
+mkdir -p data/object_class_1
+```
+
 
 To gather data for your objects, point your kinect at your tabletop and run a command similar to:
 ```
-rosrun oberlin_detection capture_object _data_directory:="/home/oberlin/catkin_ws_baxter/src/oberlin_detection/data2" _class_name:="class3" _run_prefix:="june2round1"
+roslaunch openni_launch openni.launch depth_registration:=true
+rosrun oberlin_detection capture_object _data_directory:="$(rospack find oberlin_detection)/data" _class_name:="object_class_1" _run_prefix:="june2round1"
 ```
 Make sure that data_directory/class_name is the FULL PATH to an existing directory.
 
@@ -40,7 +47,7 @@ you want to train.
 
 Next, train the classifier. Run a command similar to:
 ```
-rosrun oberlin_detection train_classifier _data_directory:="/home/oberlin/catkin_ws_baxter/src/oberlin_detection/data2" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml" _class_labels:="class2 class3" _class_pose_models:="B S"
+rosrun oberlin_detection train_classifier _data_directory:="$(rospack find oberlin_detection)/data" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml" _class_labels:="object_class_1" _class_pose_models:="B"
 ```
 This will create three files (for vocab, knn, and labels) in the locations specified, paths relative to data_directory. The string
 class_labels should be a " "-delimited list of the subdirectories you gathered data in, relative to data_directory. The string
