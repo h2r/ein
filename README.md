@@ -61,3 +61,27 @@ boxes.
 You can subscribe to /oberlin_detection/labeled_objects and /oberlin_detection/object_markers. Open RViz and try viewing the markers.
 The table estimate should appear and should align well with the point cloud. Markers should appear for the blue boxes.
 
+
+
+*New*
+Generic Pose Estimation
+
+Now that you are familiar with the basic interface, you can try training a generic pose estimator. This means memorizing what
+an object looks like from various known viewpoints and inferring orientation based on those views.
+
+Suppose you have trained a model for a "book", but now you want to know which way the book is facing on the table so that you
+can open and read it. Create a folder "bookPoses" and run capture_object as above, this time pointing to the folder "bookPoses"
+instead of "book". Take images of the book from various points of view. It would be a good idea to structure the capturing process
+so that you can recover the viewpoint from the shot index.
+
+Now, when you go to run train_classifier, specify "G" as the pose model for the class "book". In addition to normal training, the
+program will now include the images in the "bookPoses" folder during vocabulary clustering. It will also train a separate kNN
+classifier on the "bookPoses" images and save that classifier in the same file as the other classifier.
+
+When you run publish_detections, you will notice that the blue boxes are now annotated with winning pose numbers. The published
+object_recognition_msgs::RecognizedObject.type.key fields for books now contain "book %d" where %d is the winning pose index. 
+
+
+
+
+
