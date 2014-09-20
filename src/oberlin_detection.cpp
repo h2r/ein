@@ -8,18 +8,18 @@
 //#define LEARN_ONLY
 //// these macros above were moved to other files
 
-//#define RUN_TRACKING // calculates the red boxes
+#define RUN_TRACKING // calculates the red boxes
 
 #define DRAW_WHITE
 #define DRAW_GREEN
 #define DRAW_BLUE // depends on green boxes
-//#define DRAW_RED // depends on blue boxes
+#define DRAW_RED // depends on blue boxes
 #define DRAW_GRAY
 //#define DRAW_PINK // depends on blue boxes
 #define DRAW_BROWN // depends on blue and gray boxes, inference, and pointcloud configuration
 
 const int k = 1;
-int numRedBoxes = 5;
+int numRedBoxes = 2;
 //int gBoxThreshMultiplier = 1.1;
 double gBoxThresh = 3;
 double pBoxThresh = 5;
@@ -200,6 +200,7 @@ typedef struct {
   int numGreenBoxes;
   cv::Point anchor;
   double persistence;
+  double lastDistance;
 } redBox;
 
 redBox *redBoxes;
@@ -1696,6 +1697,8 @@ cout << "table check 2" << endl;
   #ifdef RUN_TRACKING 
   for (int r = 0; r < numRedBoxes; r++) {
 
+    cout << "dealing with redBox[" << r << "]" << endl;
+
     redBox *thisRedBox = &(redBoxes[r]);
     int thisClass = thisRedBox->classLabel;
 
@@ -1717,19 +1720,40 @@ cout << "table check 2" << endl;
 // randomly alter the size of the test boxes, save the new size in that red box
 // make feature computation efficient
 // this should give interesting behavior
+
+    int thisK = 2;
+    int winJ = -1;
+    float winD = 1e6;
+
+    int rbMinWidth = 50;
+    int rbMaxWidth = 250;
+    cv::Point rbDelta(0,0);
+    int deltaRnd = lrand48() % 4;
+    if (deltaRnd == 0) {
+      if (thisRedBox->bot.x+gBoxW <= rbMaxWidth)
+	rbDelta.x = gBoxW;
+    } else if (deltaRnd == 1) {
+      if (thisRedBox->bot.x-gBoxW >= rbMinWidth)
+	rbDelta.x = -gBoxW;
+    } else if (deltaRnd == 2) {
+      if (thisRedBox->bot.y+gBoxH <= rbMaxWidth)
+	rbDelta.y = gBoxH;
+    } else if (deltaRnd == 3) {
+      if (thisRedBox->bot.y-gBoxH >= rbMinWidth)
+	rbDelta.y = -gBoxH;
+    }
+    
     
     if (accepted) {
       
       cv::Point hTop = bTops[thisRedBox->rootBlueBox];
       cv::Point hBot = bBots[thisRedBox->rootBlueBox];
 
-      int winJ = -1;
-      float winD = 1e6;
       cv::Point winTop(0,0);
       cv::Point winBot(0,0);
       
-      int ix = min(hTop.x + thisRedBox->bot.x, hBot.x);
-      int iy = min(hTop.y + thisRedBox->bot.y, hBot.y);
+      int ix = min(hTop.x + thisRedBox->bot.x + rbDelta.x, hBot.x);
+      int iy = min(hTop.y + thisRedBox->bot.y + rbDelta.y, hBot.y);
       /*1*/cv::Point itTop(hTop.x,0);
       /*1*/cv::Point itBot(ix , 0);
       for (/*1*/; itBot.x <= hBot.x; /*2*/) {
@@ -1745,33 +1769,77 @@ cout << "table check 2" << endl;
 
 	  Mat crop = original_cam_img(cv::Rect(itTop.x, itTop.y, itBot.x-itTop.x, itBot.y-itTop.y));
 	  Mat gray_image;
+	  Mat yCrCb_image;
 	  cvtColor(crop, gray_image, CV_BGR2GRAY);
+	  cvtColor(crop, yCrCb_image, CV_BGR2YCrCb);
 	  GaussianBlur(gray_image, gray_image, cv::Size(0,0), grayBlur);
+	  GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), grayBlur);
 
 	  detector->detect(gray_image, keypoints);
 	  bowExtractor->compute(gray_image, keypoints, descriptors);
 
-	  int thisK = 16;
 	  Mat neighbors(1, thisK, CV_32F);
 	  Mat dist;
 	  if (!descriptors.empty()) {
-	    kNN->find_nearest(descriptors, thisK, 0, 0, &neighbors, &dist);
-	  }
+	    Mat colorHist(1, colorHistNumBins*colorHistNumBins, descriptors.type());
+	    for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
+	      colorHist.at<float>(i) = 0;
 
-	  int thisJ = 0;
-	  float thisD = 1e6;
-	  for (int n = 0; n < thisK; n++) {
-	    if (neighbors.at<float>(n,1) == float(thisClass)) { 
-	      thisJ++;
-	      thisD = min(dist.at<float>(n,1), winD);
+	    double numPix = 0;
+	    // traverse all of the keypoints
+	    for (int kk = 0; kk < keypoints.size(); kk++) {
+	      // count pixels in a neighborhood of the keypoint
+	      int yMin = max(int(keypoints[kk].pt.y)-colorHistBoxHalfWidth,0);
+	      int yMax = min(int(keypoints[kk].pt.y)+colorHistBoxHalfWidth,imH);
+	      int xMin = max(int(keypoints[kk].pt.x)-colorHistBoxHalfWidth,0);
+	      int xMax = min(int(keypoints[kk].pt.x)+colorHistBoxHalfWidth,imW);
+	      for (int y = yMin; y < yMax; y++) {
+		for (int x = xMin; x < xMax; x++) {
+
+		  cv::Vec3b thisColor = yCrCb_image.at<cv::Vec3b>(y,x);
+
+		  int CrBin = thisColor[1]/colorHistBinWidth;
+		  int CbBin = thisColor[2]/colorHistBinWidth;
+
+		  colorHist.at<float>(CrBin + CbBin*colorHistNumBins)++;
+
+		  numPix++;
+		}
+	      }
 	    }
-	  }
-	  cout << thisJ << endl;
-	  if (thisJ > 0 && thisD < winD) {
-	    winJ = thisJ;
-	    winD = thisD;
-	    winTop = itTop;
-	    winBot = itBot;
+	    // normalize the histogram
+	    for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
+	      colorHist.at<float>(i) = colorHist.at<float>(i) / numPix;
+
+	    Mat descriptors2 = Mat(1, descriptors.size().width + colorHistNumBins*colorHistNumBins, descriptors.type());
+	    for (int i = 0; i < descriptors.size().width; i++) 
+	      descriptors2.at<float>(i) = descriptors.at<float>(i);
+	    for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) {
+	      colorHist.at<float>(i) = min(colorHist.at<float>(i), float(colorHistThresh));
+	      descriptors2.at<float>(i+descriptors.size().width) = colorHistLambda * colorHist.at<float>(i);
+	    }
+
+	    //kNN->find_nearest(descriptors, thisK, 0, 0, &neighbors, &dist);
+	    kNN->find_nearest(descriptors2, thisK, 0, 0, &neighbors, &dist);
+
+	    int thisJ = 0;
+	    float thisD = 1e6;
+	    // XXX this business is a little mucked up, thisK=1 has funny behavior
+	    //for (int n = 0; n < thisK; n++) 
+	    for (int n = 0; n < 1; n++) {
+	      cout << "  neighbors[" << n <<"] is " << (neighbors.at<float>(n,1)) << endl;
+	      if (neighbors.at<float>(n,1) == float(thisClass)) { 
+		thisJ++;
+		thisD = min(dist.at<float>(n,1), winD);
+	      }
+	    }
+	    cout << thisJ << endl;
+	    if (thisJ > 0 && thisD < winD) {
+	      winJ = thisJ;
+	      winD = thisD;
+	      winTop = itTop;
+	      winBot = itBot;
+	    }
 	  }
 
 
@@ -1801,23 +1869,21 @@ cout << "table check 2" << endl;
 
 
       char labelName[256]; 
-      if (label == -1)
+      if (thisClass== -1)
 	sprintf(labelName, "VOID");
       else
-	sprintf(labelName, "%s", classLabels[label].c_str());
+	sprintf(labelName, "%s", classLabels[thisClass].c_str());
   
     
 
     #ifdef DRAW_RED
-      if (thisRedBox->persistence > 0.5) {
+      if (thisRedBox->persistence > 0.0) {
 	rectangle(cv_ptr->image, dTop, dBot, cv::Scalar(0,0,255));
 	cv::Point text_anchor(dTop.x, dTop.y+20);
 	putText(cv_ptr->image, labelName, text_anchor, MY_FONT, 1.5, Scalar(0,0,255), 2.0);
       }
     #endif
     } else {
-      int winJ = -1;
-      float winD = 1e6;
       cv::Point winTop(0,0);
       cv::Point winBot(0,0);
 
@@ -1825,8 +1891,8 @@ cout << "table check 2" << endl;
 	cv::Point hTop = bTops[c];
 	cv::Point hBot = bBots[c];
 	
-	int ix = min(hTop.x + thisRedBox->bot.x, hBot.x);
-	int iy = min(hTop.y + thisRedBox->bot.y, hBot.y);
+	int ix = min(hTop.x + thisRedBox->bot.x + rbDelta.x, hBot.x);
+	int iy = min(hTop.y + thisRedBox->bot.y + rbDelta.y, hBot.y);
 	/*1*/cv::Point itTop(hTop.x,0);
 	/*1*/cv::Point itBot(ix , 0);
 	for (/*1*/; itBot.x <= hBot.x; /*2*/) {
@@ -1842,35 +1908,78 @@ cout << "table check 2" << endl;
 
 	    Mat crop = original_cam_img(cv::Rect(itTop.x, itTop.y, itBot.x-itTop.x, itBot.y-itTop.y));
 	    Mat gray_image;
+	    Mat yCrCb_image;
 	    cvtColor(crop, gray_image, CV_BGR2GRAY);
+	    cvtColor(crop, yCrCb_image, CV_BGR2YCrCb);
 	    GaussianBlur(gray_image, gray_image, cv::Size(0,0), grayBlur);
+	    GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), grayBlur);
 
 	    detector->detect(gray_image, keypoints);
 	    bowExtractor->compute(gray_image, keypoints, descriptors);
 
-	    int thisK = 16;
 	    Mat neighbors(1, thisK, CV_32F);
 	    Mat dist;
 	    if (!descriptors.empty()) {
-	      kNN->find_nearest(descriptors, thisK, 0, 0, &neighbors, &dist);
-	    }
+	      Mat colorHist(1, colorHistNumBins*colorHistNumBins, descriptors.type());
+	      for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
+		colorHist.at<float>(i) = 0;
 
-	    int thisJ = 0;
-	    float thisD = 1e6;
-	    for (int n = 0; n < thisK; n++) {
-	      if (neighbors.at<float>(n,1) == float(thisClass)) {
-		thisJ++;
-		thisD = min(dist.at<float>(n,1), winD);
+	      double numPix = 0;
+	      // traverse all of the keypoints
+	      for (int kk = 0; kk < keypoints.size(); kk++) {
+		// count pixels in a neighborhood of the keypoint
+		int yMin = max(int(keypoints[kk].pt.y)-colorHistBoxHalfWidth,0);
+		int yMax = min(int(keypoints[kk].pt.y)+colorHistBoxHalfWidth,imH);
+		int xMin = max(int(keypoints[kk].pt.x)-colorHistBoxHalfWidth,0);
+		int xMax = min(int(keypoints[kk].pt.x)+colorHistBoxHalfWidth,imW);
+		for (int y = yMin; y < yMax; y++) {
+		  for (int x = xMin; x < xMax; x++) {
+
+		    cv::Vec3b thisColor = yCrCb_image.at<cv::Vec3b>(y,x);
+
+		    int CrBin = thisColor[1]/colorHistBinWidth;
+		    int CbBin = thisColor[2]/colorHistBinWidth;
+
+		    colorHist.at<float>(CrBin + CbBin*colorHistNumBins)++;
+
+		    numPix++;
+		  }
+		}
 	      }
-	    }
-	    cout << thisJ << endl;
-	    if (thisJ > 0 && thisD < winD) {
-	      winJ = thisJ;
-	      winD = thisD;
-	      winTop = itTop;
-	      winBot = itBot;
-	    }
+	      // normalize the histogram
+	      for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
+		colorHist.at<float>(i) = colorHist.at<float>(i) / numPix;
 
+	      Mat descriptors2 = Mat(1, descriptors.size().width + colorHistNumBins*colorHistNumBins, descriptors.type());
+	      for (int i = 0; i < descriptors.size().width; i++) 
+		descriptors2.at<float>(i) = descriptors.at<float>(i);
+	      for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) {
+		colorHist.at<float>(i) = min(colorHist.at<float>(i), float(colorHistThresh));
+		descriptors2.at<float>(i+descriptors.size().width) = colorHistLambda * colorHist.at<float>(i);
+	      }
+
+	      //kNN->find_nearest(descriptors, thisK, 0, 0, &neighbors, &dist);
+	      kNN->find_nearest(descriptors2, thisK, 0, 0, &neighbors, &dist);
+
+	      int thisJ = 0;
+	      float thisD = 1e6;
+	      //for (int n = 0; n < thisK; n++) 
+	      for (int n = 0; n < 1; n++) {
+		cout << "  neighbors[" << n <<"] is " << (neighbors.at<float>(n,1)) << endl;
+		if (neighbors.at<float>(n,1) == float(thisClass)) {
+		  thisJ++;
+		  thisD = min(dist.at<float>(n,1), winD);
+		}
+	      }
+	      cout << thisJ << endl;
+	      if (thisJ > 0 && thisD < winD) {
+		winJ = thisJ;
+		winD = thisD;
+		winTop = itTop;
+		winBot = itBot;
+	      }
+
+	    }
 
 	    cout << "class: " << thisClass << " descriptors: " << keypoints.size() << " " << itBot << itTop << "  " << hTop << hBot << endl;
 
@@ -1901,20 +2010,24 @@ cout << "table check 2" << endl;
 
 
       char labelName[256]; 
-      if (label == -1)
+      if (thisClass == -1)
 	sprintf(labelName, "VOID");
       else
-	sprintf(labelName, "%s", classLabels[label].c_str());
+	sprintf(labelName, "%s", classLabels[thisClass].c_str());
 
     #ifdef DRAW_RED
-      if (thisRedBox->persistence > 0.5) {
+      if (thisRedBox->persistence > 0.0) {
 	rectangle(cv_ptr->image, dTop, dBot, cv::Scalar(0,0,255));
 	cv::Point text_anchor(dTop.x, dTop.y+20);
 	putText(cv_ptr->image, labelName, text_anchor, MY_FONT, 1.5, Scalar(0,0,255), 2.0);
       }
     #endif
     }
-
+    
+    if (winD < thisRedBox->lastDistance) {
+      thisRedBox->bot = cv::Point(thisRedBox->bot.x + rbDelta.x, thisRedBox->bot.y + rbDelta.y);
+    }
+    thisRedBox->lastDistance = winD;
   }
   #endif
 
@@ -2050,6 +2163,8 @@ void clusterCallback(const visualization_msgs::MarkerArray& msg){
 
 int main(int argc, char **argv) {
 
+  srand(time(NULL));
+
   // initialize the redBoxes
   //   it is ok to add more redBoxes and ok to duplicate classes,
   //   i.e. you can add a second gyroBowl
@@ -2063,21 +2178,23 @@ int main(int argc, char **argv) {
 #ifdef RUN_TRACKING
 
   redBoxes = new redBox[numRedBoxes];
-  redBoxes[0].classLabel = 1;
+  redBoxes[0].classLabel = 0;
   redBoxes[0].top = cv::Point(0,0);
-  redBoxes[0].bot = cv::Point(150, 150);
-  redBoxes[1].classLabel = 2;
+  redBoxes[0].bot = cv::Point(50, 50);
+  redBoxes[1].classLabel = 1;
   redBoxes[1].top = cv::Point(0,0);
-  redBoxes[1].bot = cv::Point(200, 200);
-  redBoxes[2].classLabel = 3;
+  redBoxes[1].bot = cv::Point(50, 50);
+/*
+  redBoxes[2].classLabel = 2;
   redBoxes[2].top = cv::Point(0,0);
   redBoxes[2].bot = cv::Point(250,250);
-  redBoxes[3].classLabel = 4;
+  redBoxes[3].classLabel = 3;
   redBoxes[3].top = cv::Point(0,0);
   redBoxes[3].bot = cv::Point(250,250);
-  redBoxes[4].classLabel = 7;
+  redBoxes[4].classLabel = 4;
   redBoxes[4].top = cv::Point(0,0);
   redBoxes[4].bot = cv::Point(100,100);
+*/
 
   // initialize the rest
   for (int r = 0; r < numRedBoxes; r++) {
@@ -2085,6 +2202,7 @@ int main(int argc, char **argv) {
     redBoxes[r].numGreenBoxes;
     redBoxes[r].anchor = cv::Point(0,0);
     redBoxes[r].persistence = 0;
+    redBoxes[r].lastDistance = 0;
   }
 
 #endif
