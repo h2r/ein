@@ -172,12 +172,14 @@ called self filtering.
 Where k might be around 3.
 
 \subsection{Automatic Teaching}
+
 \begin{enumerate}
   \item Place an object in front of the robot.
   \item Robot repeats k times:
   \begin{enumerate}
     \item Infer a stateless grasp on the object.
-    \item if a pose model exists, infer the base pose for the grasp. else, start a new pose model.
+    \item \textbf{if} a pose model exists, infer the base pose for the grasp. \\
+	  \textbf{else}, start a new pose model.
     \item Perform semi-automatic teaching with the object.
     \item Replace the object.
   \end{enumerate}
