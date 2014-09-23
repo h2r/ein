@@ -39,7 +39,7 @@ bool isFiniteNumber(double x)
     return (x <= DBL_MAX && x >= -DBL_MAX); 
 } 
 
-double imageDecay = 0.9;
+double imageDecay = 0.95;
 double pointCloudDecay = 0.9;
 
 cv::Mat cam_img;
