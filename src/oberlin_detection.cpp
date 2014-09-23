@@ -2302,8 +2302,8 @@ int main(int argc, char **argv) {
 
   image_transport::Subscriber image_sub;
   image_transport::ImageTransport it(n);
-  //image_sub = it.subscribe("/camera/rgb/image_raw", 1, imageCallback);
-  image_sub = it.subscribe("/filter_time/filtered_image", 1, imageCallback);
+  image_sub = it.subscribe("/camera/rgb/image_raw", 1, imageCallback);
+  //image_sub = it.subscribe("/filter_time/filtered_image", 1, imageCallback);
 
   ros::Subscriber clusters = n.subscribe("/tabletop/clusters", 1, clusterCallback);
   ros::Subscriber points = n.subscribe("/camera/depth_registered/points", 1, pointCloudCallback);
