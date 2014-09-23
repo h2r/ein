@@ -18,8 +18,11 @@
 //#define DRAW_PINK // depends on blue boxes
 #define DRAW_BROWN // depends on blue and gray boxes, inference, and pointcloud configuration
 
-const int k = 1;
-int numRedBoxes = 2;
+#define DRAW_RED_KEYPOINTS
+
+const int k = 4;
+int redK = 1;
+int numRedBoxes = 3;
 //int gBoxThreshMultiplier = 1.1;
 double gBoxThresh = 3;
 double pBoxThresh = 5;
@@ -74,7 +77,7 @@ int fcRange = 10;
 
 double densityDecay = 0.7;
 double depthDecay = 0.7;
-double redDecay = 0.7;
+double redDecay = 0.9;
 
 #include <dirent.h>
 
@@ -981,7 +984,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     }
   }
 
-
   // create the blue boxes from the parental green boxes
   vector<cv::Point> bTops; 
   vector<cv::Point> bBots;
@@ -1104,11 +1106,6 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
 	    pcl::PointXYZRGB p1 = pointCloud.at(tranTop.x, tranTop.y);
 	    pcl::PointXYZRGB p2 = pointCloud.at(tranBot.x, tranBot.y);
 
-
-	    //tablePose.position.x = p0.x;
-	    //tablePose.position.y = p0.y;
-	    //tablePose.position.z = p0.z;
-
 	    Eigen::Vector3d localTablePosition(p0.x,p0.y,p0.z);
 
 	    // a little gram-schmidt...
@@ -1170,19 +1167,12 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
 
 	      tableNormal = tableTangent2.cross(tableTangent1);
 
-
-
-  cout << tableNormal << endl;
+cout << tableNormal << endl;
 
 	      tableBiasSum = tableBiasSum + tableNormal.dot(localTablePosition);
 	      tableBias = tableBiasSum / acceptedBrBoxes;
 
 	      cv::Matx33f R;
-	      /*
-	      R(0,0) = p02.x(); R(0,1) = p01.x(); R(0,2) = p03.x();
-	      R(1,0) = p02.y(); R(1,1) = p01.y(); R(1,2) = p03.y();
-	      R(2,0) = p02.z(); R(2,1) = p01.z(); R(2,2) = p03.z();
-	      */
 	      R(0,0) = tableTangent2.x(); R(0,1) = tableTangent1.x(); R(0,2) = tableNormal.x();
 	      R(1,0) = tableTangent2.y(); R(1,1) = tableTangent1.y(); R(1,2) = tableNormal.y();
 	      R(2,0) = tableTangent2.z(); R(2,1) = tableTangent1.z(); R(2,2) = tableNormal.z();
@@ -1211,78 +1201,47 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
       //break;
   }
 
-/*
-  if (pointCloud.size() > 0) {
-    pcl::PointXYZRGB p0 = pointCloud.at(brTop.x, brBot.y);
-    pcl::PointXYZRGB p1 = pointCloud.at(brTop.x, brTop.y);
-    pcl::PointXYZRGB p2 = pointCloud.at(brBot.x, brBot.y);
-
-    cout << "p0, p1, p2:  " << p0 << p1 << p2 << endl;
-
-    tablePose.position.x = p0.x;
-    tablePose.position.y = p0.y;
-    tablePose.position.z = p0.z;
-
-    Eigen::Vector3d tablePosition(p0.x,p0.y,p0.z);
-
-    // a little gram-schmidt...
-    Eigen::Vector3d p01(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
-    Eigen::Vector3d p02(p2.x - p0.x, p2.y - p0.y, p2.z - p0.z);
-
-    double p01norm = sqrt(p01.dot(p01));
-    if (p01norm > 0) {
-      p01 = p01 / p01norm;
-    }
-
-    double p01p02dot = p01.dot(p02);
-    p02 = p02 - p01p02dot * p01;
-
-    double p02norm = sqrt(p02.dot(p02));
-    if (p02norm > 0) {
-      p02 = p02 / p02norm;
-    }
-    // ... and now p01 and p02 are orthonormal
-
-    // using the right hand rule for cross product order
-    Eigen::Vector3d p03 = p02.cross(p01);
-    tableNormal = p03;
-    tableBias = tableNormal.dot(tablePosition);
-
-    cv::Matx33f R;
-    R(0,0) = p02.x(); R(0,1) = p01.x(); R(0,2) = p03.x();
-    R(1,0) = p02.y(); R(1,1) = p01.y(); R(1,2) = p03.y();
-    R(2,0) = p02.z(); R(2,1) = p01.z(); R(2,2) = p03.z();
-
-    //R(0,0) = cos(theta); R(0,1) = -sin(theta); R(0,2) = 0;
-    //R(1,0) = sin(theta); R(1,1) =  cos(theta); R(1,2) = 0;
-    //R(2,0) = 0;          R(2,1) = 0;           R(2,2) = 1;
-
-    Eigen::Matrix3f rotation;
-    rotation << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
-    Eigen::Quaternionf objectQuaternion(rotation);
-    //tablePose.orientation = objectQuaternion(rotation);
-  }
-*/
+  vector< vector<KeyPoint> > bKeypoints;
+  vector< vector<int> > bWords;
+  vector< vector<int> > pIoCbuffer;
+  vector<Mat> bYCrCb;
 
   vector<int> bLabels;
   // classify the crops
   roa_to_send.objects.resize(bTops.size());
   ma_to_send.markers.resize(bTops.size()+1);
+  bWords.resize(bTops.size());
+  bKeypoints.resize(bTops.size());
+  bYCrCb.resize(bTops.size());
   for (int c = 0; c < bTops.size(); c++) {
 fprintf(stderr, " object check1"); fflush(stderr);
-    vector<KeyPoint> keypoints;
+    vector<KeyPoint>& keypoints = bKeypoints[c];
     Mat descriptors;
+
 
     Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
     Mat gray_image;
-    Mat yCrCb_image;
+    Mat& yCrCb_image = bYCrCb[c];
     cvtColor(crop, gray_image, CV_BGR2GRAY);
     cvtColor(crop, yCrCb_image, CV_BGR2YCrCb);
     GaussianBlur(gray_image, gray_image, cv::Size(0,0), grayBlur);
     GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), grayBlur);
 
     detector->detect(gray_image, keypoints);
-    bowExtractor->compute(gray_image, keypoints, descriptors);
+    bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
+cout << "pIoCbuffer: " << pIoCbuffer.size() < " ";
+    bWords[c].resize(keypoints.size());
+    for (int w = 0; w < vocabNumWords; w++) {
+      int numDescrOfWord = pIoCbuffer[w].size();
+if (numDescrOfWord > 0)
+cout << "[" << w << "]: " << numDescrOfWord << " ";
+      for (int w2 = 0; w2 < numDescrOfWord; w2++) {
+	bWords[c][pIoCbuffer[w][w2]] = w;
+      }
+    }
+    
+    int crH = bBots[c].y-bTops[c].y;
+    int crW = bBots[c].x-bTops[c].x;
 
 fprintf(stderr, " object check2"); fflush(stderr);
     double label = -1;
@@ -1298,9 +1257,9 @@ fprintf(stderr, " object check2"); fflush(stderr);
       for (int kk = 0; kk < keypoints.size(); kk++) {
 	// count pixels in a neighborhood of the keypoint
 	int yMin = max(int(keypoints[kk].pt.y)-colorHistBoxHalfWidth,0);
-	int yMax = min(int(keypoints[kk].pt.y)+colorHistBoxHalfWidth,imH);
+	int yMax = min(int(keypoints[kk].pt.y)+colorHistBoxHalfWidth,crH);
 	int xMin = max(int(keypoints[kk].pt.x)-colorHistBoxHalfWidth,0);
-	int xMax = min(int(keypoints[kk].pt.x)+colorHistBoxHalfWidth,imW);
+	int xMax = min(int(keypoints[kk].pt.x)+colorHistBoxHalfWidth,crW);
 	for (int y = yMin; y < yMax; y++) {
 	  for (int x = xMin; x < xMax; x++) {
 
@@ -1334,24 +1293,6 @@ fprintf(stderr, " object check2"); fflush(stderr);
     }
 
     char labelName[256]; 
-    /*
-    if (label == 0)
-      sprintf(labelName, "VOID");
-    if (label == 1)
-      sprintf(labelName, "gyroBowl");
-    if (label == 2)
-      sprintf(labelName, "mixBowl");
-    if (label == 3)
-      sprintf(labelName, "woodSpoon");
-    if (label == 4)
-      sprintf(labelName, "plasticSpoon");
-    if (label == 5)
-      sprintf(labelName, "background");
-    if (label == 6)
-      sprintf(labelName, "human");
-    if (label == 7)
-      sprintf(labelName, "sippyCup");
-    */
     if (label == -1)
       sprintf(labelName, "VOID");
     else
@@ -1713,7 +1654,7 @@ cout << "table check 2" << endl;
     }
 
 
-    int redStride = 30;
+    int redStride = 10;
 
 // XXX
 // check the old position of the redbox, keep its distance
@@ -1721,37 +1662,68 @@ cout << "table check 2" << endl;
 // make feature computation efficient
 // this should give interesting behavior
 
-    int thisK = 2;
     int winJ = -1;
     float winD = 1e6;
 
+    int proposalValid = 0;
+
+    int deltaAmplitude = ((lrand48() % 2)*10);
+
     int rbMinWidth = 50;
-    int rbMaxWidth = 250;
+    int rbMaxWidth = 500;
     cv::Point rbDelta(0,0);
-    int deltaRnd = lrand48() % 4;
-    if (deltaRnd == 0) {
-      if (thisRedBox->bot.x+gBoxW <= rbMaxWidth)
-	rbDelta.x = gBoxW;
-    } else if (deltaRnd == 1) {
-      if (thisRedBox->bot.x-gBoxW >= rbMinWidth)
-	rbDelta.x = -gBoxW;
-    } else if (deltaRnd == 2) {
-      if (thisRedBox->bot.y+gBoxH <= rbMaxWidth)
-	rbDelta.y = gBoxH;
-    } else if (deltaRnd == 3) {
-      if (thisRedBox->bot.y-gBoxH >= rbMinWidth)
-	rbDelta.y = -gBoxH;
+
+    while (!proposalValid) {
+      int deltaRnd = lrand48() % 6;
+      if (deltaRnd == 0) {
+	if (thisRedBox->bot.x+deltaAmplitude <= rbMaxWidth) {
+	  rbDelta.x = deltaAmplitude;
+	  proposalValid = 1;
+	}
+      } else if (deltaRnd == 1) {
+	if (thisRedBox->bot.x-deltaAmplitude >= rbMinWidth) {
+	  rbDelta.x = -deltaAmplitude;
+	  proposalValid = 1;
+	}
+      } else if (deltaRnd == 2) {
+	if (thisRedBox->bot.y+deltaAmplitude <= rbMaxWidth) {
+	  rbDelta.y = deltaAmplitude;
+	  proposalValid = 1;
+	}
+      } else if (deltaRnd == 3) {
+	if (thisRedBox->bot.y-deltaAmplitude >= rbMinWidth) {
+	  rbDelta.y = -deltaAmplitude;
+	  proposalValid = 1;
+	}
+      } else if (deltaRnd == 4) {
+	if ((thisRedBox->bot.y-deltaAmplitude >= rbMinWidth) &&
+	    (thisRedBox->bot.x-deltaAmplitude >= rbMinWidth) ) {
+	  rbDelta.y = -deltaAmplitude;
+	  rbDelta.x = -deltaAmplitude;
+	  proposalValid = 1;
+	}
+      } else if (deltaRnd == 5) {
+	if ((thisRedBox->bot.y+deltaAmplitude <= rbMaxWidth) &&
+	    (thisRedBox->bot.x+deltaAmplitude <= rbMaxWidth) ) {
+	  rbDelta.y = deltaAmplitude;
+	  rbDelta.x = deltaAmplitude;
+	  proposalValid = 1;
+	}
+      }
     }
     
+    cv::Point winTop(0,0);
+    cv::Point winBot(thisRedBox->bot.x, thisRedBox->bot.y);
     
     if (accepted) {
-      
-      cv::Point hTop = bTops[thisRedBox->rootBlueBox];
-      cv::Point hBot = bBots[thisRedBox->rootBlueBox];
 
-      cv::Point winTop(0,0);
-      cv::Point winBot(0,0);
+      int thisRootBlueBox = thisRedBox->rootBlueBox;
       
+      cv::Point hTop = bTops[thisRootBlueBox];
+      cv::Point hBot = bBots[thisRootBlueBox];
+      int crW = hBot.x - hTop.x;
+      int crH = hBot.y - hTop.y;
+
       int ix = min(hTop.x + thisRedBox->bot.x + rbDelta.x, hBot.x);
       int iy = min(hTop.y + thisRedBox->bot.y + rbDelta.y, hBot.y);
       /*1*/cv::Point itTop(hTop.x,0);
@@ -1765,23 +1737,66 @@ cout << "table check 2" << endl;
 
 	  // score this crop
 	  vector<KeyPoint> keypoints;
+	  
+	  /*
 	  Mat descriptors;
 
-	  Mat crop = original_cam_img(cv::Rect(itTop.x, itTop.y, itBot.x-itTop.x, itBot.y-itTop.y));
 	  Mat gray_image;
-	  Mat yCrCb_image;
 	  cvtColor(crop, gray_image, CV_BGR2GRAY);
-	  cvtColor(crop, yCrCb_image, CV_BGR2YCrCb);
 	  GaussianBlur(gray_image, gray_image, cv::Size(0,0), grayBlur);
-	  GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), grayBlur);
 
 	  detector->detect(gray_image, keypoints);
 	  bowExtractor->compute(gray_image, keypoints, descriptors);
+	  */
+      
+	  /*
+	  Mat crop = original_cam_img(cv::Rect(itTop.x, itTop.y, itBot.x-itTop.x, itBot.y-itTop.y));
+	  Mat yCrCb_image;
+	  cvtColor(crop, yCrCb_image, CV_BGR2YCrCb);
+	  GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), grayBlur);
+	  */
 
-	  Mat neighbors(1, thisK, CV_32F);
+	  Mat& yCrCb_image = bYCrCb[thisRootBlueBox];
+
+	  cv::Point lItTop(itTop.x-hTop.x, itTop.y-hTop.y);
+	  cv::Point lItBot(itBot.x-hTop.x, itBot.y-hTop.y);
+
+	  Mat descriptors(1,vocabNumWords, CV_32F);
+	  float totalWords = bWords[thisRootBlueBox].size();
+	  float countedWords = 0;
+//cout << "totalWords: " << totalWords;
+	  for (int w = 0; w < totalWords; w++) {
+	    int tX = bKeypoints[thisRootBlueBox][w].pt.x;
+	    int tY = bKeypoints[thisRootBlueBox][w].pt.y;
+	    // check for containment in this box
+//cout << " tX tY:" << tX << " " << tY << " " << itTop << itBot << lItTop << lItBot << hTop << hBot << endl;
+	    if(
+	      (tX >= lItTop.x) &&
+	      (tX <= lItBot.x) &&
+	      (tY >= lItTop.y) &&
+	      (tY <= lItBot.y) 
+	      ) {
+//cout << " w:" << w << " " << endl;
+	      descriptors.at<float>(bWords[thisRootBlueBox][w])++;
+	      keypoints.push_back(bKeypoints[thisRootBlueBox][w]);
+	      countedWords++;
+	#ifdef DRAW_RED_KEYPOINTS
+	      rectangle(cv_ptr->image, cv::Point(hTop.x+tX,hTop.y+tY), 
+		cv::Point(hTop.x+tX+1,hTop.y+tY+1), cv::Scalar(0,0,255));
+	#endif
+	
+	    }
+	  }
+	  if (countedWords > 0)
+	    for (int w = 0; w < vocabNumWords; w++) {
+	      descriptors.at<float>(w) = descriptors.at<float>(w) / countedWords;
+	    }
+
+	  Mat neighbors(1, redK, CV_32F);
 	  Mat dist;
 	  if (!descriptors.empty()) {
 	    Mat colorHist(1, colorHistNumBins*colorHistNumBins, descriptors.type());
+	    /**/
 	    for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
 	      colorHist.at<float>(i) = 0;
 
@@ -1790,9 +1805,9 @@ cout << "table check 2" << endl;
 	    for (int kk = 0; kk < keypoints.size(); kk++) {
 	      // count pixels in a neighborhood of the keypoint
 	      int yMin = max(int(keypoints[kk].pt.y)-colorHistBoxHalfWidth,0);
-	      int yMax = min(int(keypoints[kk].pt.y)+colorHistBoxHalfWidth,imH);
+	      int yMax = min(int(keypoints[kk].pt.y)+colorHistBoxHalfWidth,crH);
 	      int xMin = max(int(keypoints[kk].pt.x)-colorHistBoxHalfWidth,0);
-	      int xMax = min(int(keypoints[kk].pt.x)+colorHistBoxHalfWidth,imW);
+	      int xMax = min(int(keypoints[kk].pt.x)+colorHistBoxHalfWidth,crW);
 	      for (int y = yMin; y < yMax; y++) {
 		for (int x = xMin; x < xMax; x++) {
 
@@ -1810,27 +1825,32 @@ cout << "table check 2" << endl;
 	    // normalize the histogram
 	    for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
 	      colorHist.at<float>(i) = colorHist.at<float>(i) / numPix;
+	    /**/
 
 	    Mat descriptors2 = Mat(1, descriptors.size().width + colorHistNumBins*colorHistNumBins, descriptors.type());
 	    for (int i = 0; i < descriptors.size().width; i++) 
 	      descriptors2.at<float>(i) = descriptors.at<float>(i);
+
+	    /**/
 	    for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) {
 	      colorHist.at<float>(i) = min(colorHist.at<float>(i), float(colorHistThresh));
 	      descriptors2.at<float>(i+descriptors.size().width) = colorHistLambda * colorHist.at<float>(i);
 	    }
+	    /**/
 
-	    //kNN->find_nearest(descriptors, thisK, 0, 0, &neighbors, &dist);
-	    kNN->find_nearest(descriptors2, thisK, 0, 0, &neighbors, &dist);
+	    //kNN->find_nearest(descriptors, redK, 0, 0, &neighbors, &dist);
+	    kNN->find_nearest(descriptors2, redK, 0, 0, &neighbors, &dist);
 
 	    int thisJ = 0;
 	    float thisD = 1e6;
-	    // XXX this business is a little mucked up, thisK=1 has funny behavior
-	    //for (int n = 0; n < thisK; n++) 
-	    for (int n = 0; n < 1; n++) {
-	      cout << "  neighbors[" << n <<"] is " << (neighbors.at<float>(n,1)) << endl;
-	      if (neighbors.at<float>(n,1) == float(thisClass)) { 
+	    // XXX this business is a little mucked up, redK=1 has funny behavior
+	    for (int n = 0; n < redK; n++) 
+	    //for (int n = 0; n < 1; n++) 
+	    {
+	      cout << "  neighbors[" << n <<"] is " << (neighbors.at<float>(n)) << endl;
+	      if (neighbors.at<float>(n) == float(thisClass)) { 
 		thisJ++;
-		thisD = min(dist.at<float>(n,1), winD);
+		thisD = min(dist.at<float>(n), winD);
 	      }
 	    }
 	    cout << thisJ << endl;
@@ -1842,9 +1862,7 @@ cout << "table check 2" << endl;
 	    }
 	  }
 
-
 	  cout << "class: " << thisClass << " descriptors: " << keypoints.size() << " " << itBot << itTop << "  " << hTop << hBot << endl;
-
 
 	  /*4*/itTop.y += redStride;
 	  /*4*/itBot.y += redStride;
@@ -1853,43 +1871,13 @@ cout << "table check 2" << endl;
 	/*2*/itTop.x += redStride;
 	/*2*/itBot.x += redStride;
       }
-
-      // always decay persistence but only add it if we got a hit
-      thisRedBox->persistence = redDecay*thisRedBox->persistence;
-      if (winD < 1e6) {
-	thisRedBox->anchor.x = redDecay*thisRedBox->anchor.x + (1.0-redDecay)*winTop.x;
-	thisRedBox->anchor.y = redDecay*thisRedBox->anchor.y + (1.0-redDecay)*winTop.y;
-	thisRedBox->persistence = thisRedBox->persistence + (1.0-redDecay)*1.0;
-      }
-
-      //cv::Point dTop(winTop.x+10, winTop.y+10);
-      //cv::Point dBot(winBot.x-10, winBot.y-10);
-      cv::Point dTop(thisRedBox->anchor.x, thisRedBox->anchor.y);
-      cv::Point dBot(thisRedBox->anchor.x + winBot.x - winTop.x, thisRedBox->anchor.y + winBot.y - winTop.y);
-
-
-      char labelName[256]; 
-      if (thisClass== -1)
-	sprintf(labelName, "VOID");
-      else
-	sprintf(labelName, "%s", classLabels[thisClass].c_str());
-  
-    
-
-    #ifdef DRAW_RED
-      if (thisRedBox->persistence > 0.0) {
-	rectangle(cv_ptr->image, dTop, dBot, cv::Scalar(0,0,255));
-	cv::Point text_anchor(dTop.x, dTop.y+20);
-	putText(cv_ptr->image, labelName, text_anchor, MY_FONT, 1.5, Scalar(0,0,255), 2.0);
-      }
-    #endif
     } else {
-      cv::Point winTop(0,0);
-      cv::Point winBot(0,0);
 
       for (int c = 0; c < bTops.size(); c++) {
 	cv::Point hTop = bTops[c];
 	cv::Point hBot = bBots[c];
+	int crW = hBot.x - hTop.x;
+	int crH = hBot.y - hTop.y;
 	
 	int ix = min(hTop.x + thisRedBox->bot.x + rbDelta.x, hBot.x);
 	int iy = min(hTop.y + thisRedBox->bot.y + rbDelta.y, hBot.y);
@@ -1904,6 +1892,7 @@ cout << "table check 2" << endl;
 
 	    // score this crop
 	    vector<KeyPoint> keypoints;
+	    /*
 	    Mat descriptors;
 
 	    Mat crop = original_cam_img(cv::Rect(itTop.x, itTop.y, itBot.x-itTop.x, itBot.y-itTop.y));
@@ -1916,11 +1905,49 @@ cout << "table check 2" << endl;
 
 	    detector->detect(gray_image, keypoints);
 	    bowExtractor->compute(gray_image, keypoints, descriptors);
+	    */
 
-	    Mat neighbors(1, thisK, CV_32F);
+	    Mat& yCrCb_image = bYCrCb[c];
+	    cout << &(bYCrCb[c]) << endl;
+
+	    cv::Point lItTop(itTop.x-hTop.x, itTop.y-hTop.y);
+	    cv::Point lItBot(itBot.x-hTop.x, itBot.y-hTop.y);
+
+	    Mat descriptors(1,vocabNumWords, CV_32F);
+	    float totalWords = bWords[c].size();
+	    float countedWords = 0;
+//cout << "totalWords: " << totalWords;
+	    for (int w = 0; w < totalWords; w++) {
+	      int tX = bKeypoints[c][w].pt.x;
+	      int tY = bKeypoints[c][w].pt.y;
+	      // check for containment in this box
+//cout << " tX tY:" << tX << " " << tY << " " << itTop << itBot << lItTop << lItBot << hTop << hBot << endl;
+	      if(
+		(tX >= lItTop.x) &&
+		(tX <= lItBot.x) &&
+		(tY >= lItTop.y) &&
+		(tY <= lItBot.y) 
+		) {
+//cout << " w:" << w << " " << endl;
+		descriptors.at<float>(bWords[c][w])++;
+		keypoints.push_back(bKeypoints[c][w]);
+		countedWords++;		
+	#ifdef DRAW_RED_KEYPOINTS
+		rectangle(cv_ptr->image, cv::Point(hTop.x+tX,hTop.y+tY), 
+		  cv::Point(hTop.x+tX+1,hTop.y+tY+1), cv::Scalar(0,0,255));
+	#endif
+	      }
+	    }
+	    if (countedWords > 0)
+	      for (int w = 0; w < vocabNumWords; w++) {
+		descriptors.at<float>(w) = descriptors.at<float>(w) / countedWords;
+	      }
+
+	    Mat neighbors(1, redK, CV_32F);
 	    Mat dist;
 	    if (!descriptors.empty()) {
 	      Mat colorHist(1, colorHistNumBins*colorHistNumBins, descriptors.type());
+	      /**/
 	      for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
 		colorHist.at<float>(i) = 0;
 
@@ -1928,10 +1955,12 @@ cout << "table check 2" << endl;
 	      // traverse all of the keypoints
 	      for (int kk = 0; kk < keypoints.size(); kk++) {
 		// count pixels in a neighborhood of the keypoint
+// XXX this should be min-ed against the blue box width and height
+// XXX also do this at the other corresponding location
 		int yMin = max(int(keypoints[kk].pt.y)-colorHistBoxHalfWidth,0);
-		int yMax = min(int(keypoints[kk].pt.y)+colorHistBoxHalfWidth,imH);
+		int yMax = min(int(keypoints[kk].pt.y)+colorHistBoxHalfWidth,crH);
 		int xMin = max(int(keypoints[kk].pt.x)-colorHistBoxHalfWidth,0);
-		int xMax = min(int(keypoints[kk].pt.x)+colorHistBoxHalfWidth,imW);
+		int xMax = min(int(keypoints[kk].pt.x)+colorHistBoxHalfWidth,crW);
 		for (int y = yMin; y < yMax; y++) {
 		  for (int x = xMin; x < xMax; x++) {
 
@@ -1949,26 +1978,35 @@ cout << "table check 2" << endl;
 	      // normalize the histogram
 	      for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
 		colorHist.at<float>(i) = colorHist.at<float>(i) / numPix;
+	      /**/
 
 	      Mat descriptors2 = Mat(1, descriptors.size().width + colorHistNumBins*colorHistNumBins, descriptors.type());
 	      for (int i = 0; i < descriptors.size().width; i++) 
 		descriptors2.at<float>(i) = descriptors.at<float>(i);
+
+	      /**/
 	      for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) {
 		colorHist.at<float>(i) = min(colorHist.at<float>(i), float(colorHistThresh));
 		descriptors2.at<float>(i+descriptors.size().width) = colorHistLambda * colorHist.at<float>(i);
 	      }
+	      /**/
 
-	      //kNN->find_nearest(descriptors, thisK, 0, 0, &neighbors, &dist);
-	      kNN->find_nearest(descriptors2, thisK, 0, 0, &neighbors, &dist);
+	      //kNN->find_nearest(descriptors, redK, 0, 0, &neighbors, &dist);
+	      kNN->find_nearest(descriptors2, redK, 0, 0, &neighbors, &dist);
+
+// XXX fill this out
+//if (r == 2)
+  //rectangle(cv_ptr->image, itTop, itBot, cv::Scalar(0,0,128));
 
 	      int thisJ = 0;
 	      float thisD = 1e6;
-	      //for (int n = 0; n < thisK; n++) 
-	      for (int n = 0; n < 1; n++) {
-		cout << "  neighbors[" << n <<"] is " << (neighbors.at<float>(n,1)) << endl;
-		if (neighbors.at<float>(n,1) == float(thisClass)) {
+	      for (int n = 0; n < redK; n++) 
+	      //for (int n = 0; n < 1; n++) 
+	      {
+		cout << "  neighbors[" << n <<"] is " << (neighbors.at<float>(n)) << endl;
+		if (neighbors.at<float>(n) == float(thisClass)) {
 		  thisJ++;
-		  thisD = min(dist.at<float>(n,1), winD);
+		  thisD = min(dist.at<float>(n), winD);
 		}
 	      }
 	      cout << thisJ << endl;
@@ -1983,7 +2021,6 @@ cout << "table check 2" << endl;
 
 	    cout << "class: " << thisClass << " descriptors: " << keypoints.size() << " " << itBot << itTop << "  " << hTop << hBot << endl;
 
-
 	    /*4*/itTop.y += redStride;
 	    /*4*/itBot.y += redStride;
 	  }
@@ -1991,41 +2028,51 @@ cout << "table check 2" << endl;
 	  /*2*/itTop.x += redStride;
 	  /*2*/itBot.x += redStride;
 	}
-
-
       }
+    }
 
-      // always decay persistence but only add it if we got a hit
-      thisRedBox->persistence = redDecay*thisRedBox->persistence;
-      if (winD < 1e6) {
-	thisRedBox->anchor.x = redDecay*thisRedBox->anchor.x + (1.0-redDecay)*winTop.x;
-	thisRedBox->anchor.y = redDecay*thisRedBox->anchor.y + (1.0-redDecay)*winTop.y;
-	thisRedBox->persistence = thisRedBox->persistence + (1.0-redDecay)*1.0;
-      }
+    // always decay persistence but only add it if we got a hit
+    thisRedBox->persistence = redDecay*thisRedBox->persistence;
+    if (winD < 1e6) {
+      thisRedBox->anchor.x = redDecay*thisRedBox->anchor.x + (1.0-redDecay)*winTop.x;
+      thisRedBox->anchor.y = redDecay*thisRedBox->anchor.y + (1.0-redDecay)*winTop.y;
+      thisRedBox->persistence = thisRedBox->persistence + (1.0-redDecay)*1.0;
+    }
 
-      //cv::Point dTop(winTop.x+10, winTop.y+10);
-      //cv::Point dBot(winBot.x-10, winBot.y-10);
-      cv::Point dTop(thisRedBox->anchor.x, thisRedBox->anchor.y);
-      cv::Point dBot(thisRedBox->anchor.x + winBot.x - winTop.x, thisRedBox->anchor.y + winBot.y - winTop.y);
+    //cv::Point dTop(winTop.x+10, winTop.y+10);
+    //cv::Point dBot(winBot.x-10, winBot.y-10);
+    //cv::Point dTop(thisRedBox->anchor.x, thisRedBox->anchor.y);
+    //cv::Point dBot(thisRedBox->anchor.x + winBot.x - winTop.x, thisRedBox->anchor.y + winBot.y - winTop.y);
+    cv::Point dTop(thisRedBox->anchor.x, thisRedBox->anchor.y);
+    cv::Point dBot(thisRedBox->anchor.x + thisRedBox->bot.x, thisRedBox->anchor.y + thisRedBox->bot.y);
 
-
-      char labelName[256]; 
-      if (thisClass == -1)
-	sprintf(labelName, "VOID");
-      else
-	sprintf(labelName, "%s", classLabels[thisClass].c_str());
+    char labelName[256]; 
+    if (thisClass == -1)
+      sprintf(labelName, "VOID");
+    else
+      sprintf(labelName, "%s", classLabels[thisClass].c_str());
 
     #ifdef DRAW_RED
-      if (thisRedBox->persistence > 0.0) {
-	rectangle(cv_ptr->image, dTop, dBot, cv::Scalar(0,0,255));
-	cv::Point text_anchor(dTop.x, dTop.y+20);
-	putText(cv_ptr->image, labelName, text_anchor, MY_FONT, 1.5, Scalar(0,0,255), 2.0);
-      }
-    #endif
+    //if (thisRedBox->persistence > 0.0) 
+    {
+      rectangle(cv_ptr->image, dTop, dBot, cv::Scalar(0,0,128));
+      cv::Point text_anchor(dTop.x, dTop.y+20);
+      putText(cv_ptr->image, labelName, text_anchor, MY_FONT, 1.5, Scalar(0,0,128), 2.0);
     }
+
+    {
+      rectangle(cv_ptr->image, winTop, winBot, cv::Scalar(0,0,255));
+      cv::Point text_anchor(winTop.x, winTop.y+20);
+      putText(cv_ptr->image, labelName, text_anchor, MY_FONT, 1.5, Scalar(0,0,255), 2.0);
+    }
+    #endif
     
     if (winD < thisRedBox->lastDistance) {
-      thisRedBox->bot = cv::Point(thisRedBox->bot.x + rbDelta.x, thisRedBox->bot.y + rbDelta.y);
+      if (thisRedBox->persistence > 0.5)
+	thisRedBox->bot = cv::Point(redDecay*thisRedBox->bot.x + (1.0-redDecay)*(winBot.x - winTop.x), 
+				    redDecay*thisRedBox->bot.y + (1.0-redDecay)*(winBot.y - winTop.y) );
+      else
+	thisRedBox->bot = cv::Point((winBot.x - winTop.x), (winBot.y - winTop.y));
     }
     thisRedBox->lastDistance = winD;
   }
@@ -2184,10 +2231,10 @@ int main(int argc, char **argv) {
   redBoxes[1].classLabel = 1;
   redBoxes[1].top = cv::Point(0,0);
   redBoxes[1].bot = cv::Point(50, 50);
-/*
   redBoxes[2].classLabel = 2;
   redBoxes[2].top = cv::Point(0,0);
-  redBoxes[2].bot = cv::Point(250,250);
+  redBoxes[2].bot = cv::Point(50,50);
+/*
   redBoxes[3].classLabel = 3;
   redBoxes[3].top = cv::Point(0,0);
   redBoxes[3].bot = cv::Point(250,250);
