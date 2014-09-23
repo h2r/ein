@@ -1218,27 +1218,34 @@ fprintf(stderr, " object check1"); fflush(stderr);
     vector<KeyPoint>& keypoints = bKeypoints[c];
     Mat descriptors;
 
+fprintf(stderr, " a"); fflush(stderr);
 
     Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
     Mat gray_image;
     Mat& yCrCb_image = bYCrCb[c];
+fprintf(stderr, "b"); fflush(stderr);
     cvtColor(crop, gray_image, CV_BGR2GRAY);
     cvtColor(crop, yCrCb_image, CV_BGR2YCrCb);
+fprintf(stderr, "c"); fflush(stderr);
     GaussianBlur(gray_image, gray_image, cv::Size(0,0), grayBlur);
     GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), grayBlur);
+fprintf(stderr, "d"); fflush(stderr);
 
     detector->detect(gray_image, keypoints);
     bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
-cout << "pIoCbuffer: " << pIoCbuffer.size() < " ";
+fprintf(stderr, "e "); fflush(stderr);
+cout << "pIoCbuffer: " << pIoCbuffer.size() < " "; cout.flush();
+cout << "kpSize: " << keypoints.size() < " "; cout.flush();
     bWords[c].resize(keypoints.size());
-    for (int w = 0; w < vocabNumWords; w++) {
-      int numDescrOfWord = pIoCbuffer[w].size();
+    if ((pIoCbuffer.size() > 0) && (keypoints.size() > 0))
+      for (int w = 0; w < vocabNumWords; w++) {
+	int numDescrOfWord = pIoCbuffer[w].size();
 if (numDescrOfWord > 0)
 cout << "[" << w << "]: " << numDescrOfWord << " ";
-      for (int w2 = 0; w2 < numDescrOfWord; w2++) {
-	bWords[c][pIoCbuffer[w][w2]] = w;
+	for (int w2 = 0; w2 < numDescrOfWord; w2++) {
+	  bWords[c][pIoCbuffer[w][w2]] = w;
+	}
       }
-    }
     
     int crH = bBots[c].y-bTops[c].y;
     int crW = bBots[c].x-bTops[c].x;
@@ -2295,8 +2302,8 @@ int main(int argc, char **argv) {
 
   image_transport::Subscriber image_sub;
   image_transport::ImageTransport it(n);
-  image_sub = it.subscribe("/camera/rgb/image_raw", 1, imageCallback);
-  //image_sub = it.subscribe("/filter_time/filtered_image", 1, imageCallback);
+  //image_sub = it.subscribe("/camera/rgb/image_raw", 1, imageCallback);
+  image_sub = it.subscribe("/filter_time/filtered_image", 1, imageCallback);
 
   ros::Subscriber clusters = n.subscribe("/tabletop/clusters", 1, clusterCallback);
   ros::Subscriber points = n.subscribe("/camera/depth_registered/points", 1, pointCloudCallback);
