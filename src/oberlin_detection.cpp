@@ -8,7 +8,7 @@
 //#define LEARN_ONLY
 //// these macros above were moved to other files
 
-#define RUN_TRACKING // calculates the red boxes
+//#define RUN_TRACKING // calculates the red boxes
 
 #define DRAW_WHITE
 #define DRAW_GREEN
