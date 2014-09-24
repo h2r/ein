@@ -8,7 +8,7 @@
 //#define LEARN_ONLY
 //// these macros above were moved to other files
 
-//#define RUN_TRACKING // calculates the red boxes
+#define RUN_TRACKING // calculates the red boxes
 
 #define DRAW_WHITE
 #define DRAW_GREEN
@@ -18,11 +18,13 @@
 //#define DRAW_PINK // depends on blue boxes
 #define DRAW_BROWN // depends on blue and gray boxes, inference, and pointcloud configuration
 
+#define DRAW_BLUE_KEYPOINTS
 #define DRAW_RED_KEYPOINTS
+
 
 const int k = 4;
 int redK = 1;
-int numRedBoxes = 3;
+int numRedBoxes = 1;
 //int gBoxThreshMultiplier = 1.1;
 double gBoxThresh = 3;
 double pBoxThresh = 5;
@@ -38,10 +40,6 @@ double mbPBT = 0.0;//7.0;
 // adjust these to reject blue boxes
 double rejectScale = 2.0;
 double rejectAreaScale = 6*6;
-
-// gray box offset from the top and bottom of the screen
-int tGO = 40;
-int bGO = 140;
 
 // point cloud affine calibration
 /*
@@ -149,8 +147,10 @@ static unsigned int LOC_MODEL_TYPE=0; //0 or 3
 
 cv::Mat cam_img;
 cv::Mat depth_img;
-ros::Publisher rec_objs;
-ros::Publisher markers;
+ros::Publisher rec_objs_blue;
+ros::Publisher rec_objs_red;
+ros::Publisher markers_blue;
+ros::Publisher markers_red;
 bool real_img = false;
 bool vis = true;
 
@@ -222,6 +222,15 @@ Eigen::Vector3d tableTangent2;
 Eigen::Vector3d tablePosition;
 double tableBias;
 double tableBiasMargin = -5.001;
+
+// gray box offset from the top and bottom of the screen
+int tGO = 40;
+int bGO = 140;
+
+// all range mode switch and bounds
+int all_range_mode = 0;
+cv::Point armTop;
+cv::Point armBot;
 
 
 void CallBackFunc(int event, int x, int y, int flags, void* userdata) {
@@ -580,6 +589,7 @@ geometry_msgs::Pose getPose(pcl::PointCloud<pcl::PointXYZRGB> &cluster)
   return pose;
 }
 
+// TODO probably don't need two separate functions for this
 void loadROSParamsFromArgs()
 {
   ros::NodeHandle nh("~");
@@ -594,6 +604,8 @@ void loadROSParamsFromArgs()
 
   nh.getParam("class_name", class_name);
   nh.getParam("run_prefix", run_prefix);
+
+  nh.getParam("all_range_mode", all_range_mode);
 
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
@@ -622,6 +634,7 @@ void loadROSParams()
   nh.getParam("class_pose_models", class_pose_models);
   nh.getParam("class_name", class_name);
   nh.getParam("run_prefix", run_prefix);
+  nh.getParam("all_range_mode", all_range_mode);
 
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
@@ -650,6 +663,7 @@ void saveROSParams()
   nh.setParam("class_pose_models", class_pose_models);
   nh.setParam("class_name", class_name);
   nh.setParam("run_prefix", run_prefix);
+  nh.setParam("all_range_mode", all_range_mode);
 }
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg){
@@ -667,8 +681,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     return;
   }
 
-  object_recognition_msgs::RecognizedObjectArray roa_to_send;
-  visualization_msgs::MarkerArray ma_to_send; 
+  object_recognition_msgs::RecognizedObjectArray roa_to_send_blue;
+  visualization_msgs::MarkerArray ma_to_send_blue; 
 
   int boxesPerSize = 800;
   
@@ -831,7 +845,12 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   // determine table edges, i.e. the gray boxes
   int top_gray_bottom = 0 + tGO;
-  int bottom_gray_top = imH - bGO;
+  int bottom_gray_top = imH - 1 - bGO;
+
+  if (all_range_mode) {
+    top_gray_bottom = 0;
+    bottom_gray_top = imH-1;
+  }
 
 #ifdef DRAW_GRAY
   rectangle(cv_ptr->image, cv::Point(0,0), cv::Point(imW-1, top_gray_bottom), cv::Scalar(128,128,128));
@@ -988,28 +1007,33 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   vector<cv::Point> bTops; 
   vector<cv::Point> bBots;
   vector<cv::Point> bCens;
-  // track the half widths and half heights of the blue boxes for the merge step later
-  vector<int> bHWs;
-  vector<int> bHHs;
 
-  double rejectArea = rejectAreaScale*gBoxW*gBoxH;
-  for (int c = 0; c < total_components; c++) {
-    int allow = 1;
-    if (cBots[c].x - cTops[c].x < rejectScale*gBoxW || cBots[c].y - cTops[c].y < rejectScale*gBoxH)
-      allow = 0;
-    if ((cBots[c].x - cTops[c].x)*(cBots[c].y - cTops[c].y) < rejectArea)
-      allow = 0;
-    //if (cTops[c].y > rejectLow || cBots[c].y < rejectHigh)
-      //allow = 0;
-    if (allow == 1) {
-      bTops.push_back(cTops[c]);
-      bBots.push_back(cBots[c]);
-      bCens.push_back(cv::Point((cTops[c].x+cBots[c].x)/2, (cTops[c].y+cBots[c].y)/2));
-      int t = bTops.size()-1;
-      bHWs.push_back(bCens[t].x-bTops[t].x);
-      bHHs.push_back(bCens[t].y-bTops[t].y);
+  armTop = cv::Point(150, 100);
+  armBot = cv::Point(imW-150, imH-100);
+
+  if (!all_range_mode) {
+    double rejectArea = rejectAreaScale*gBoxW*gBoxH;
+    for (int c = 0; c < total_components; c++) {
+      int allow = 1;
+      if (cBots[c].x - cTops[c].x < rejectScale*gBoxW || cBots[c].y - cTops[c].y < rejectScale*gBoxH)
+	allow = 0;
+      if ((cBots[c].x - cTops[c].x)*(cBots[c].y - cTops[c].y) < rejectArea)
+	allow = 0;
+      //if (cTops[c].y > rejectLow || cBots[c].y < rejectHigh)
+	//allow = 0;
+      if (allow == 1) {
+	bTops.push_back(cTops[c]);
+	bBots.push_back(cBots[c]);
+	bCens.push_back(cv::Point((cTops[c].x+cBots[c].x)/2, (cTops[c].y+cBots[c].y)/2));
+	int t = bTops.size()-1;
+      }
     }
+  } else {
+    bTops.push_back(armTop);
+    bBots.push_back(armBot);
+    bCens.push_back(cv::Point((armTop.x+armBot.x)/2, (armTop.y+armBot.y)/2));
   }
+
 
 
   // copy the density map to the rendered image
@@ -1084,9 +1108,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 	      !isFiniteNumber(p2.z) ) {
 	    reject = 1;
 
-	    #ifdef DRAW_BROWN
+  #ifdef DRAW_BROWN
 	    rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(200,200,200));
-	    #endif
+  #endif
 	  }
 
 //cout << thisBrTop << thisBrBot << "p0, p1, p2:  " << p0 << p1 << p2 << endl;
@@ -1135,16 +1159,16 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
 		!isFiniteNumber(p03.z()) ) {
 	      reject = 1;
 
-	      #ifdef DRAW_BROWN
+  #ifdef DRAW_BROWN
 	      rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,50,200));
-	      #endif
+  #endif
 	    }
 
 	    if (!reject) {
 	      acceptedBrBoxes++;
-	      #ifdef DRAW_BROWN
+  #ifdef DRAW_BROWN
 	      rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,51,102));
-	      #endif
+  #endif
 
 	      tablePositionSum.x() = tablePositionSum.x() + p0.x + p1.x + p2.x;
 	      tablePositionSum.y() = tablePositionSum.y() + p0.y + p1.y + p2.y;
@@ -1208,8 +1232,8 @@ cout << tableNormal << endl;
 
   vector<int> bLabels;
   // classify the crops
-  roa_to_send.objects.resize(bTops.size());
-  ma_to_send.markers.resize(bTops.size()+1);
+  roa_to_send_blue.objects.resize(bTops.size());
+  ma_to_send_blue.markers.resize(bTops.size()+1);
   bWords.resize(bTops.size());
   bKeypoints.resize(bTops.size());
   bYCrCb.resize(bTops.size());
@@ -1237,7 +1261,7 @@ fprintf(stderr, "e "); fflush(stderr);
 cout << "pIoCbuffer: " << pIoCbuffer.size() < " "; cout.flush();
 cout << "kpSize: " << keypoints.size() < " "; cout.flush();
     bWords[c].resize(keypoints.size());
-    if ((pIoCbuffer.size() > 0) && (keypoints.size() > 0))
+    if ((pIoCbuffer.size() > 0) && (keypoints.size() > 0)) {
       for (int w = 0; w < vocabNumWords; w++) {
 	int numDescrOfWord = pIoCbuffer[w].size();
 if (numDescrOfWord > 0)
@@ -1246,6 +1270,25 @@ cout << "[" << w << "]: " << numDescrOfWord << " ";
 	  bWords[c][pIoCbuffer[w][w2]] = w;
 	}
       }
+  
+  #ifdef DRAW_BLUE_KEYPOINTS
+      for (int kp = 0; kp < keypoints.size(); kp++) {
+	int tX = keypoints[kp].pt.x;
+	int tY = keypoints[kp].pt.y;
+	cv::Point kpTop = cv::Point(bTops[c].x+tX-1,bTops[c].y+tY-1);
+	cv::Point kpBot = cv::Point(bTops[c].x+tX,bTops[c].y+tY);
+	if(
+	  (kpTop.x >= 1) &&
+	  (kpBot.x <= imW-2) &&
+	  (kpTop.y >= 1) &&
+	  (kpBot.y <= imH-2) 
+	  ) {
+	  rectangle(cv_ptr->image, kpTop, kpBot, cv::Scalar(255,0,0));
+	}
+      }
+  #endif 
+
+    }
     
     int crH = bBots[c].y-bTops[c].y;
     int crW = bBots[c].x-bTops[c].x;
@@ -1373,8 +1416,10 @@ fprintf(stderr, " object check4"); fflush(stderr);
 	augmentedLabelName = augmentedLabelName + " " + result;
       }
   #ifdef DRAW_LABEL
-    cv::Point text_anchor(bTops[c].x, bBots[c].y);
-    putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(255,0,0), 2.0);
+    cv::Point text_anchor(bTops[c].x+1, bBots[c].y-2);
+    cv::Point text_anchor2(bTops[c].x+2, bBots[c].y-2);
+    putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(255,192,192), 2.0);
+    putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(255,0,0), 1.0);
   #endif
 
     double thisThresh = pBoxThresh;
@@ -1474,59 +1519,64 @@ cout << "constructing rotation matrix" << endl;
 
       objectQuaternion = tableQuaternion * objectQuaternion;
 
-      roa_to_send.objects[c].pose.pose.pose.orientation.x = objectQuaternion.x();
-      roa_to_send.objects[c].pose.pose.pose.orientation.y = objectQuaternion.y();
-      roa_to_send.objects[c].pose.pose.pose.orientation.z = objectQuaternion.z();
-      roa_to_send.objects[c].pose.pose.pose.orientation.w = objectQuaternion.w();
+      roa_to_send_blue.objects[c].pose.pose.pose.orientation.x = objectQuaternion.x();
+      roa_to_send_blue.objects[c].pose.pose.pose.orientation.y = objectQuaternion.y();
+      roa_to_send_blue.objects[c].pose.pose.pose.orientation.z = objectQuaternion.z();
+      roa_to_send_blue.objects[c].pose.pose.pose.orientation.w = objectQuaternion.w();
 
-      // XXX fill out the point cloud using the vector<cv::Point>> pointCloudPoints.
-
-      // XXX determine the x,y,z coordinates of the object from the point cloud
+      // determine the x,y,z coordinates of the object from the point cloud
       // this bounding box has top left  bTops[x] and bBots[c]
 cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
       if (pointCloud.size() > 0) {
 	pcl::PointCloud<pcl::PointXYZRGB> object_cloud;
 	getCluster(object_cloud, pointCloud, pointCloudPoints);
 	geometry_msgs::Pose pose = getPose(object_cloud);
-	roa_to_send.objects[c].point_clouds.resize(1);
-	pcl::toROSMsg(object_cloud, roa_to_send.objects[c].point_clouds[0]);
-	roa_to_send.objects[c].pose.pose.pose.position = pose.position;
+	roa_to_send_blue.objects[c].point_clouds.resize(1);
+	pcl::toROSMsg(object_cloud, roa_to_send_blue.objects[c].point_clouds[0]);
+	roa_to_send_blue.objects[c].pose.pose.pose.position = pose.position;
       } else {
-	roa_to_send.objects[c].pose.pose.pose.position = object_pose.position;
+	roa_to_send_blue.objects[c].pose.pose.pose.position = object_pose.position;
       }
 
-      ma_to_send.markers[c].pose = roa_to_send.objects[c].pose.pose.pose;
+      ma_to_send_blue.markers[c].pose = roa_to_send_blue.objects[c].pose.pose.pose;
 
-      roa_to_send.header.stamp = ros::Time::now();
-      roa_to_send.header.frame_id = "/camera_rgb_optical_frame";
+      roa_to_send_blue.header.stamp = ros::Time::now();
+      roa_to_send_blue.header.frame_id = "/camera_rgb_optical_frame";
 
-      roa_to_send.objects[c].header = roa_to_send.header;
-      //roa_to_send.objects[c].point_clouds[0].header = roa_to_send.header;
-      //roa_to_send.objects[c].pose.header = roa_to_send.header;
+      roa_to_send_blue.objects[c].header = roa_to_send_blue.header;
+      //roa_to_send_blue.objects[c].point_clouds[0].header = roa_to_send_blue.header;
+      //roa_to_send_blue.objects[c].pose.header = roa_to_send_blue.header;
 
-      roa_to_send.objects[c].type.key = augmentedLabelName;
+      roa_to_send_blue.objects[c].type.key = augmentedLabelName;
 
       if (0 == classPoseModels[label].compare("B")) {
-	ma_to_send.markers[c].type =  visualization_msgs::Marker::SPHERE;
-	ma_to_send.markers[c].scale.x = 0.15;
-	ma_to_send.markers[c].scale.y = 0.15;
-	ma_to_send.markers[c].scale.z = 0.15;
-	ma_to_send.markers[c].color.a = 1.0;
-	ma_to_send.markers[c].color.r = 0.9;
-	ma_to_send.markers[c].color.g = 0.9;
-	ma_to_send.markers[c].color.b = 0.0;
+	ma_to_send_blue.markers[c].type =  visualization_msgs::Marker::SPHERE;
+	ma_to_send_blue.markers[c].scale.x = 0.15;
+	ma_to_send_blue.markers[c].scale.y = 0.15;
+	ma_to_send_blue.markers[c].scale.z = 0.15;
+	ma_to_send_blue.markers[c].color.a = 0.5;
+	ma_to_send_blue.markers[c].color.r = 0.9;
+	ma_to_send_blue.markers[c].color.g = 0.9;
+	ma_to_send_blue.markers[c].color.b = 0.0;
       } else if (0 == classPoseModels[label].compare("S")) {
-	ma_to_send.markers[c].type =  visualization_msgs::Marker::CUBE;
-	ma_to_send.markers[c].scale.x = 0.2;
-	ma_to_send.markers[c].scale.y = 0.02;
-	ma_to_send.markers[c].scale.z = 0.02;
-	ma_to_send.markers[c].color.a = 1.0;
-	ma_to_send.markers[c].color.r = 0.25;
-	ma_to_send.markers[c].color.g = 0.25;
-	ma_to_send.markers[c].color.b = 0.25;
-      }
-      ma_to_send.markers[c].header =  roa_to_send.header;
-      ma_to_send.markers[c].action = visualization_msgs::Marker::ADD;
+	ma_to_send_blue.markers[c].type =  visualization_msgs::Marker::CUBE;
+	ma_to_send_blue.markers[c].scale.x = 0.2;
+	ma_to_send_blue.markers[c].scale.y = 0.02;
+	ma_to_send_blue.markers[c].scale.z = 0.02;
+	ma_to_send_blue.markers[c].color.a = 0.50;
+	ma_to_send_blue.markers[c].color.r = 0.25;
+	ma_to_send_blue.markers[c].color.g = 0.25;
+	ma_to_send_blue.markers[c].color.b = 0.25;
+      } else {
+	ma_to_send_blue.markers[c].type =  visualization_msgs::Marker::CUBE;
+	ma_to_send_blue.markers[c].scale.x = 0.2;
+	ma_to_send_blue.markers[c].scale.y = 0.02;
+	ma_to_send_blue.markers[c].scale.z = 0.02;
+	ma_to_send_blue.markers[c].color.a = 0.5;
+	ma_to_send_blue.markers[c].color.r = 0.0;
+	ma_to_send_blue.markers[c].color.g = 0.9;
+	ma_to_send_blue.markers[c].color.b = 0.9;
+      } 
 
       char labelName[256]; 
       /*
@@ -1534,59 +1584,59 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
 	sprintf(labelName, "VOID");
       if (label == 1) {
 	sprintf(labelName, "gyroBowl");
-	ma_to_send.markers[c].type =  visualization_msgs::Marker::SPHERE;
-	ma_to_send.markers[c].scale.x = 0.15;
-	ma_to_send.markers[c].scale.y = 0.15;
-	ma_to_send.markers[c].scale.z = 0.15;
-	ma_to_send.markers[c].color.a = 1.0;
-	ma_to_send.markers[c].color.r = 0.9;
-	ma_to_send.markers[c].color.g = 0.9;
-	ma_to_send.markers[c].color.b = 0.0;
+	ma_to_send_blue.markers[c].type =  visualization_msgs::Marker::SPHERE;
+	ma_to_send_blue.markers[c].scale.x = 0.15;
+	ma_to_send_blue.markers[c].scale.y = 0.15;
+	ma_to_send_blue.markers[c].scale.z = 0.15;
+	ma_to_send_blue.markers[c].color.a = 1.0;
+	ma_to_send_blue.markers[c].color.r = 0.9;
+	ma_to_send_blue.markers[c].color.g = 0.9;
+	ma_to_send_blue.markers[c].color.b = 0.0;
 
-	ma_to_send.markers[c].header =  roa_to_send.header;
-	ma_to_send.markers[c].action = visualization_msgs::Marker::ADD;
+	ma_to_send_blue.markers[c].header =  roa_to_send_blue.header;
+	ma_to_send_blue.markers[c].action = visualization_msgs::Marker::ADD;
       }
       if (label == 2) {
 	sprintf(labelName, "mixBowl");
-	ma_to_send.markers[c].type =  visualization_msgs::Marker::SPHERE;
-	ma_to_send.markers[c].scale.x = 0.17;
-	ma_to_send.markers[c].scale.y = 0.17;
-	ma_to_send.markers[c].scale.z = 0.17;
-	ma_to_send.markers[c].color.a = 1.0;
-	ma_to_send.markers[c].color.r = 0.8;
-	ma_to_send.markers[c].color.g = 0.8;
-	ma_to_send.markers[c].color.b = 0.8;
+	ma_to_send_blue.markers[c].type =  visualization_msgs::Marker::SPHERE;
+	ma_to_send_blue.markers[c].scale.x = 0.17;
+	ma_to_send_blue.markers[c].scale.y = 0.17;
+	ma_to_send_blue.markers[c].scale.z = 0.17;
+	ma_to_send_blue.markers[c].color.a = 1.0;
+	ma_to_send_blue.markers[c].color.r = 0.8;
+	ma_to_send_blue.markers[c].color.g = 0.8;
+	ma_to_send_blue.markers[c].color.b = 0.8;
 
-	ma_to_send.markers[c].header =  roa_to_send.header;
-	ma_to_send.markers[c].action = visualization_msgs::Marker::ADD;
+	ma_to_send_blue.markers[c].header =  roa_to_send_blue.header;
+	ma_to_send_blue.markers[c].action = visualization_msgs::Marker::ADD;
       }
       if (label == 3) {
 	sprintf(labelName, "woodSpoon");
-	ma_to_send.markers[c].type =  visualization_msgs::Marker::CUBE;
-	ma_to_send.markers[c].scale.x = 0.2;
-	ma_to_send.markers[c].scale.y = 0.02;
-	ma_to_send.markers[c].scale.z = 0.02;
-	ma_to_send.markers[c].color.a = 1.0;
-	ma_to_send.markers[c].color.r = 0.80;
-	ma_to_send.markers[c].color.g = 0.80;
-	ma_to_send.markers[c].color.b = 0.50;
+	ma_to_send_blue.markers[c].type =  visualization_msgs::Marker::CUBE;
+	ma_to_send_blue.markers[c].scale.x = 0.2;
+	ma_to_send_blue.markers[c].scale.y = 0.02;
+	ma_to_send_blue.markers[c].scale.z = 0.02;
+	ma_to_send_blue.markers[c].color.a = 1.0;
+	ma_to_send_blue.markers[c].color.r = 0.80;
+	ma_to_send_blue.markers[c].color.g = 0.80;
+	ma_to_send_blue.markers[c].color.b = 0.50;
 
-	ma_to_send.markers[c].header =  roa_to_send.header;
-	ma_to_send.markers[c].action = visualization_msgs::Marker::ADD;
+	ma_to_send_blue.markers[c].header =  roa_to_send_blue.header;
+	ma_to_send_blue.markers[c].action = visualization_msgs::Marker::ADD;
       }
       if (label == 4) {
 	sprintf(labelName, "plasticSpoon");
-	ma_to_send.markers[c].type =  visualization_msgs::Marker::CUBE;
-	ma_to_send.markers[c].scale.x = 0.2;
-	ma_to_send.markers[c].scale.y = 0.02;
-	ma_to_send.markers[c].scale.z = 0.02;
-	ma_to_send.markers[c].color.a = 1.0;
-	ma_to_send.markers[c].color.r = 0.25;
-	ma_to_send.markers[c].color.g = 0.25;
-	ma_to_send.markers[c].color.b = 0.25;
+	ma_to_send_blue.markers[c].type =  visualization_msgs::Marker::CUBE;
+	ma_to_send_blue.markers[c].scale.x = 0.2;
+	ma_to_send_blue.markers[c].scale.y = 0.02;
+	ma_to_send_blue.markers[c].scale.z = 0.02;
+	ma_to_send_blue.markers[c].color.a = 1.0;
+	ma_to_send_blue.markers[c].color.r = 0.25;
+	ma_to_send_blue.markers[c].color.g = 0.25;
+	ma_to_send_blue.markers[c].color.b = 0.25;
 
-	ma_to_send.markers[c].header =  roa_to_send.header;
-	ma_to_send.markers[c].action = visualization_msgs::Marker::ADD;
+	ma_to_send_blue.markers[c].header =  roa_to_send_blue.header;
+	ma_to_send_blue.markers[c].action = visualization_msgs::Marker::ADD;
       }
       if (label == 5)
 	sprintf(labelName, "background");
@@ -1601,10 +1651,10 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
       else
 	sprintf(labelName, "%s", classLabels[label].c_str());
 
-      ma_to_send.markers[c].header =  roa_to_send.header;
-      ma_to_send.markers[c].action = visualization_msgs::Marker::ADD;
-      ma_to_send.markers[c].id = c;
-      ma_to_send.markers[c].lifetime = ros::Duration(1.0);
+      ma_to_send_blue.markers[c].header =  roa_to_send_blue.header;
+      ma_to_send_blue.markers[c].action = visualization_msgs::Marker::ADD;
+      ma_to_send_blue.markers[c].id = c;
+      ma_to_send_blue.markers[c].lifetime = ros::Duration(1.0);
     }
   #endif
 
@@ -1616,33 +1666,37 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
   {
 cout << "table check 1" << endl;
     int c = bTops.size();
-    ma_to_send.markers[c].pose = tablePose;
-    ma_to_send.markers[c].type =  visualization_msgs::Marker::CUBE;
-    ma_to_send.markers[c].scale.x = 1.0;
-    ma_to_send.markers[c].scale.y = 1.0;
-    ma_to_send.markers[c].scale.z = 0.002;
-    ma_to_send.markers[c].color.a = 0.5;
-    ma_to_send.markers[c].color.r = 176/255.0;
-    ma_to_send.markers[c].color.g = 133/255.0;
-    ma_to_send.markers[c].color.b = 14/255.0;
+    ma_to_send_blue.markers[c].pose = tablePose;
+    ma_to_send_blue.markers[c].type =  visualization_msgs::Marker::CUBE;
+    ma_to_send_blue.markers[c].scale.x = 1.0;
+    ma_to_send_blue.markers[c].scale.y = 1.0;
+    ma_to_send_blue.markers[c].scale.z = 0.002;
+    ma_to_send_blue.markers[c].color.a = 0.5;
+    ma_to_send_blue.markers[c].color.r = 176/255.0;
+    ma_to_send_blue.markers[c].color.g = 133/255.0;
+    ma_to_send_blue.markers[c].color.b = 14/255.0;
 
-    ma_to_send.markers[c].header =  roa_to_send.header;
-    ma_to_send.markers[c].action = visualization_msgs::Marker::ADD;
-    ma_to_send.markers[c].id = c;
-    ma_to_send.markers[c].lifetime = ros::Duration(1.0);
+    ma_to_send_blue.markers[c].header =  roa_to_send_blue.header;
+    ma_to_send_blue.markers[c].action = visualization_msgs::Marker::ADD;
+    ma_to_send_blue.markers[c].id = c;
+    ma_to_send_blue.markers[c].lifetime = ros::Duration(1.0);
 cout << "table check 2" << endl;
   }
 
   #ifdef PUBLISH_OBJECTS
   cout << "about to publish" << endl;
   if (bTops.size() > 0) {
-    rec_objs.publish(roa_to_send);
+    rec_objs_blue.publish(roa_to_send_blue);
   }
-  markers.publish(ma_to_send);
+  markers_blue.publish(ma_to_send_blue);
   cout << "published" << endl;
   #endif
 
   #ifdef RUN_TRACKING 
+  object_recognition_msgs::RecognizedObjectArray roa_to_send_red;
+  visualization_msgs::MarkerArray ma_to_send_red; 
+  roa_to_send_red.objects.resize(numRedBoxes);
+  ma_to_send_red.markers.resize(numRedBoxes);
   for (int r = 0; r < numRedBoxes; r++) {
 
     cout << "dealing with redBox[" << r << "]" << endl;
@@ -1788,8 +1842,16 @@ cout << "table check 2" << endl;
 	      keypoints.push_back(bKeypoints[thisRootBlueBox][w]);
 	      countedWords++;
 	#ifdef DRAW_RED_KEYPOINTS
-	      rectangle(cv_ptr->image, cv::Point(hTop.x+tX,hTop.y+tY), 
-		cv::Point(hTop.x+tX+1,hTop.y+tY+1), cv::Scalar(0,0,255));
+	      cv::Point kpTop = cv::Point(hTop.x+tX,hTop.y+tY);
+	      cv::Point kpBot = cv::Point(hTop.x+tX+1,hTop.y+tY+1);
+	      if(
+		(kpTop.x >= 1) &&
+		(kpBot.x <= imW-2) &&
+		(kpTop.y >= 1) &&
+		(kpBot.y <= imH-2) 
+		) {
+		rectangle(cv_ptr->image, kpTop, kpBot, cv::Scalar(0,0,255));
+	      }
 	#endif
 	
 	    }
@@ -1801,7 +1863,7 @@ cout << "table check 2" << endl;
 
 	  Mat neighbors(1, redK, CV_32F);
 	  Mat dist;
-	  if (!descriptors.empty()) {
+	  if (countedWords > 0) {
 	    Mat colorHist(1, colorHistNumBins*colorHistNumBins, descriptors.type());
 	    /**/
 	    for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
@@ -1850,7 +1912,6 @@ cout << "table check 2" << endl;
 
 	    int thisJ = 0;
 	    float thisD = 1e6;
-	    // XXX this business is a little mucked up, redK=1 has funny behavior
 	    for (int n = 0; n < redK; n++) 
 	    //for (int n = 0; n < 1; n++) 
 	    {
@@ -1940,8 +2001,16 @@ cout << "table check 2" << endl;
 		keypoints.push_back(bKeypoints[c][w]);
 		countedWords++;		
 	#ifdef DRAW_RED_KEYPOINTS
-		rectangle(cv_ptr->image, cv::Point(hTop.x+tX,hTop.y+tY), 
-		  cv::Point(hTop.x+tX+1,hTop.y+tY+1), cv::Scalar(0,0,255));
+		cv::Point kpTop = cv::Point(hTop.x+tX,hTop.y+tY);
+		cv::Point kpBot = cv::Point(hTop.x+tX+1,hTop.y+tY+1);
+		if(
+		  (kpTop.x >= 1) &&
+		  (kpBot.x <= imW-2) &&
+		  (kpTop.y >= 1) &&
+		  (kpBot.y <= imH-2) 
+		  ) {
+		  rectangle(cv_ptr->image, kpTop, kpBot, cv::Scalar(0,0,255));
+		}
 	#endif
 	      }
 	    }
@@ -1952,7 +2021,7 @@ cout << "table check 2" << endl;
 
 	    Mat neighbors(1, redK, CV_32F);
 	    Mat dist;
-	    if (!descriptors.empty()) {
+	    if (countedWords > 0) {
 	      Mat colorHist(1, colorHistNumBins*colorHistNumBins, descriptors.type());
 	      /**/
 	      for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
@@ -1962,8 +2031,6 @@ cout << "table check 2" << endl;
 	      // traverse all of the keypoints
 	      for (int kk = 0; kk < keypoints.size(); kk++) {
 		// count pixels in a neighborhood of the keypoint
-// XXX this should be min-ed against the blue box width and height
-// XXX also do this at the other corresponding location
 		int yMin = max(int(keypoints[kk].pt.y)-colorHistBoxHalfWidth,0);
 		int yMax = min(int(keypoints[kk].pt.y)+colorHistBoxHalfWidth,crH);
 		int xMin = max(int(keypoints[kk].pt.x)-colorHistBoxHalfWidth,0);
@@ -2001,7 +2068,6 @@ cout << "table check 2" << endl;
 	      //kNN->find_nearest(descriptors, redK, 0, 0, &neighbors, &dist);
 	      kNN->find_nearest(descriptors2, redK, 0, 0, &neighbors, &dist);
 
-// XXX fill this out
 //if (r == 2)
   //rectangle(cv_ptr->image, itTop, itBot, cv::Scalar(0,0,128));
 
@@ -2062,15 +2128,41 @@ cout << "table check 2" << endl;
     #ifdef DRAW_RED
     //if (thisRedBox->persistence > 0.0) 
     {
-      rectangle(cv_ptr->image, dTop, dBot, cv::Scalar(0,0,128));
-      cv::Point text_anchor(dTop.x, dTop.y+20);
-      putText(cv_ptr->image, labelName, text_anchor, MY_FONT, 1.5, Scalar(0,0,128), 2.0);
+      cv::Point outTop = cv::Point(dTop.x, dTop.y);
+      cv::Point outBot = cv::Point(dBot.x, dBot.y);
+      cv::Point inTop = cv::Point(dTop.x+1,dTop.y+1);
+      cv::Point inBot = cv::Point(dBot.x-1,dBot.y-1);
+      rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(64,64,192));
+      rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(160,160,224));
+
+      #ifdef DRAW_LABEL
+      cv::Point text_anchor(dTop.x+1, dBot.y-2);
+      cv::Point text_anchor2(dTop.x+2, dBot.y-2);
+      putText(cv_ptr->image, labelName, text_anchor, MY_FONT, 1.5, Scalar(160,160,224), 2.0);
+      putText(cv_ptr->image, labelName, text_anchor2, MY_FONT, 1.5, Scalar(64,64,192), 1.0);
+      #endif
+      //rectangle(cv_ptr->image, dTop, dBot, cv::Scalar(0,0,128));
+      //cv::Point text_anchor(dTop.x, dTop.y+20);
+      //putText(cv_ptr->image, labelName, text_anchor, MY_FONT, 1.5, Scalar(0,0,192), 2.0);
     }
 
     {
-      rectangle(cv_ptr->image, winTop, winBot, cv::Scalar(0,0,255));
-      cv::Point text_anchor(winTop.x, winTop.y+20);
-      putText(cv_ptr->image, labelName, text_anchor, MY_FONT, 1.5, Scalar(0,0,255), 2.0);
+      cv::Point outTop = cv::Point(winTop.x, winTop.y);
+      cv::Point outBot = cv::Point(winBot.x, winBot.y);
+      cv::Point inTop = cv::Point(winTop.x+1,winTop.y+1);
+      cv::Point inBot = cv::Point(winBot.x-1,winBot.y-1);
+      rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(0,0,255));
+      rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(192,192,255));
+
+      #ifdef DRAW_LABEL
+      cv::Point text_anchor(winTop.x+1, winBot.y-2);
+      cv::Point text_anchor2(winTop.x+2, winBot.y-2);
+      putText(cv_ptr->image, labelName, text_anchor, MY_FONT, 1.5, Scalar(192,192,255), 2.0);
+      putText(cv_ptr->image, labelName, text_anchor2, MY_FONT, 1.5, Scalar(0,0,255), 1.0);
+      #endif
+      //rectangle(cv_ptr->image, winTop, winBot, cv::Scalar(0,0,255));
+      //cv::Point text_anchor(winTop.x, winTop.y+20);
+      //putText(cv_ptr->image, labelName, text_anchor, MY_FONT, 1.5, Scalar(0,0,255), 2.0);
     }
     #endif
     
@@ -2082,7 +2174,165 @@ cout << "table check 2" << endl;
 	thisRedBox->bot = cv::Point((winBot.x - winTop.x), (winBot.y - winTop.y));
     }
     thisRedBox->lastDistance = winD;
+
+    double thisThresh = pBoxThresh;
+
+    #ifdef PUBLISH_OBJECTS
+    vector<cv::Point> pointCloudPoints;
+    for (int x = dTop.x; x <= dBot.x-gBoxW; x+=gBoxStrideX) {
+      for (int y = dTop.y; y <= dBot.y-gBoxH; y+=gBoxStrideY) {
+      	int xt = x;
+      	int yt = y;
+      	int xb = x+gBoxW;
+      	int yb = y+gBoxH;
+      	cv::Point thisTop(xt,yt);
+      	cv::Point thisBot(xb,yb);
+
+	int reject = 0;
+      	if (pBoxIndicator[y*imW+x] < thisThresh) {
+	  reject = 1;
+	}
+
+	// check to see if the point cloud point lies above the table
+	if (reject == 0 && pointCloud.size() > 0) {
+	  //double bcX = min(max(double(x)+pcbcX+(double(gBoxW)/2.0),0.0),double(imW));
+	  //double bcY = min(max(double(y)+pcbcY+(double(gBoxH)/2.0),0.0),double(imH));
+	  //double bgcX = pcgc11*bcX + pcgc12*bcY;
+	  //double bgcY = pcgc21*bcX + pcgc22*bcY;
+	  //pcl::PointXYZRGB pcp = pointCloud.at(floor(bgcX), floor(bgcY));
+
+
+	  cv::Point transformedPixel = pcCorrection( 
+	    double(x)+(double(gBoxW)/2.0), double(y)+(double(gBoxH)/2.0), imW, imH);
+	  pcl::PointXYZRGB pcp = pointCloud.at(transformedPixel.x, transformedPixel.y);
+
+	  Eigen::Vector3d pinkPoint(pcp.x,pcp.y,pcp.z);
+	  reject = 1;
+	  if (pinkPoint.dot(tableNormal) >= tableBias + tableBiasMargin)
+	    reject = 0;
+	}
+
+	if (!reject) {
+    #ifdef DRAW_PINK
+      	  rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(100,100,255));
+    #endif
+      	  pointCloudPoints.push_back(cv::Point(x,y));
+      	}
+      }
+    }
+
+    if (thisClass >= 0) {
+cout << "publish red check" << endl;
+cout << "hit a red publishable object " << thisClass << " " << r << endl;
+
+      geometry_msgs::Pose object_pose;
+
+      // XXX obtain the quaternion pose for the table
+      Eigen::Quaternionf tableQuaternion;
+      tableQuaternion.x() = tablePose.orientation.x;
+      tableQuaternion.y() = tablePose.orientation.y;
+      tableQuaternion.z() = tablePose.orientation.z;
+      tableQuaternion.w() = tablePose.orientation.w;
+
+      cv::Matx33f R;
+      R(0,0) = 1; R(0,1) = 0; R(0,2) = 0;
+      R(1,0) = 0; R(1,1) = 1; R(1,2) = 0;
+      R(2,0) = 0; R(2,1) = 0; R(2,2) = 1;
+
+cout << "constructing rotation matrix" << endl;
+
+      Eigen::Matrix3f rotation;
+      rotation << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
+      Eigen::Quaternionf objectQuaternion(rotation);
+
+      objectQuaternion = tableQuaternion * objectQuaternion;
+
+      roa_to_send_red.objects[r].pose.pose.pose.orientation.x = objectQuaternion.x();
+      roa_to_send_red.objects[r].pose.pose.pose.orientation.y = objectQuaternion.y();
+      roa_to_send_red.objects[r].pose.pose.pose.orientation.z = objectQuaternion.z();
+      roa_to_send_red.objects[r].pose.pose.pose.orientation.w = objectQuaternion.w();
+
+
+      // determine the x,y,z coordinates of the object from the point cloud
+cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
+      if (pointCloud.size() > 0) {
+	pcl::PointCloud<pcl::PointXYZRGB> object_cloud;
+	getCluster(object_cloud, pointCloud, pointCloudPoints);
+	geometry_msgs::Pose pose = getPose(object_cloud);
+	roa_to_send_red.objects[r].point_clouds.resize(1);
+	pcl::toROSMsg(object_cloud, roa_to_send_red.objects[r].point_clouds[0]);
+	roa_to_send_red.objects[r].pose.pose.pose.position = pose.position;
+      } else {
+	roa_to_send_red.objects[r].pose.pose.pose.position = object_pose.position;
+      }
+
+      ma_to_send_red.markers[r].pose = roa_to_send_red.objects[r].pose.pose.pose;
+
+      roa_to_send_red.header.stamp = ros::Time::now();
+      roa_to_send_red.header.frame_id = "/camera_rgb_optical_frame";
+
+      roa_to_send_red.objects[r].header = roa_to_send_red.header;
+      //roa_to_send_red.objects[r].point_clouds[0].header = roa_to_send_red.header;
+      //roa_to_send_red.objects[r].pose.header = roa_to_send_red.header;
+
+      char labelName[256]; 
+      if (thisClass == -1)
+	sprintf(labelName, "VOID");
+      else
+	sprintf(labelName, "%s", classLabels[thisClass].c_str());
+
+      if (0 == classPoseModels[thisClass].compare("B")) {
+	ma_to_send_red.markers[r].type =  visualization_msgs::Marker::SPHERE;
+	ma_to_send_red.markers[r].scale.x = 0.15;
+	ma_to_send_red.markers[r].scale.y = 0.15;
+	ma_to_send_red.markers[r].scale.z = 0.15;
+	ma_to_send_red.markers[r].color.a = 0.5;
+	ma_to_send_red.markers[r].color.r = 0.9;
+	ma_to_send_red.markers[r].color.g = 0.9;
+	ma_to_send_red.markers[r].color.b = 0.0;
+      } else if (0 == classPoseModels[thisClass].compare("S")) {
+	ma_to_send_red.markers[r].type =  visualization_msgs::Marker::CUBE;
+	ma_to_send_red.markers[r].scale.x = 0.2;
+	ma_to_send_red.markers[r].scale.y = 0.02;
+	ma_to_send_red.markers[r].scale.z = 0.02;
+	ma_to_send_red.markers[r].color.a = 0.50;
+	ma_to_send_red.markers[r].color.r = 0.25;
+	ma_to_send_red.markers[r].color.g = 0.25;
+	ma_to_send_red.markers[r].color.b = 0.25;
+      } else {
+	ma_to_send_red.markers[r].type =  visualization_msgs::Marker::CUBE;
+	ma_to_send_red.markers[r].scale.x = 0.2;
+	ma_to_send_red.markers[r].scale.y = 0.02;
+	ma_to_send_red.markers[r].scale.z = 0.02;
+	ma_to_send_red.markers[r].color.a = 0.5;
+	ma_to_send_red.markers[r].color.r = 0.0;
+	ma_to_send_red.markers[r].color.g = 0.9;
+	ma_to_send_red.markers[r].color.b = 0.9;
+      } 
+
+      ma_to_send_red.markers[r].header =  roa_to_send_red.header;
+      ma_to_send_red.markers[r].action = visualization_msgs::Marker::ADD;
+      ma_to_send_red.markers[r].id = r;
+      ma_to_send_red.markers[r].lifetime = ros::Duration(1.0);
+
+      roa_to_send_red.objects[r].type.key = labelName;
+    }
+  #endif
+
+
+
   }
+
+
+  #ifdef PUBLISH_OBJECTS
+  cout << "about to publish red" << endl;
+  if (numRedBoxes > 0) {
+    rec_objs_red.publish(roa_to_send_red);
+    markers_red.publish(ma_to_send_red);
+  }
+  cout << "published red" << endl;
+  #endif
+
   #endif
 
 #endif
@@ -2107,7 +2357,12 @@ cout << "table check 2" << endl;
 
 #ifdef DRAW_BLUE
   for (int c = bTops.size()-1; c >= 0; c--) {
-    rectangle(cv_ptr->image, bTops[c], bBots[c], cv::Scalar(255,0,0));
+    cv::Point outTop = cv::Point(bTops[c].x, bTops[c].y);
+    cv::Point outBot = cv::Point(bBots[c].x, bBots[c].y);
+    cv::Point inTop = cv::Point(bTops[c].x+1,bTops[c].y+1);
+    cv::Point inBot = cv::Point(bBots[c].x-1,bBots[c].y-1);
+    rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(255,0,0));
+    rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(255,192,192));
   }
 #endif
 
@@ -2235,13 +2490,13 @@ int main(int argc, char **argv) {
   redBoxes[0].classLabel = 0;
   redBoxes[0].top = cv::Point(0,0);
   redBoxes[0].bot = cv::Point(50, 50);
+/*
   redBoxes[1].classLabel = 1;
   redBoxes[1].top = cv::Point(0,0);
   redBoxes[1].bot = cv::Point(50, 50);
   redBoxes[2].classLabel = 2;
   redBoxes[2].top = cv::Point(0,0);
   redBoxes[2].bot = cv::Point(50,50);
-/*
   redBoxes[3].classLabel = 3;
   redBoxes[3].top = cv::Point(0,0);
   redBoxes[3].bot = cv::Point(250,250);
@@ -2270,7 +2525,10 @@ int main(int argc, char **argv) {
 //  cout << argv[i] << " ";
 //cout << endl;
 
+cout << "all_range_mode: " << all_range_mode << endl;
+
   loadROSParamsFromArgs();
+  cout << "all_range_mode: " << all_range_mode << endl;
   cout << endl << "numRedBoxes: " << numRedBoxes << endl;
   cout << "data_directory: " << data_directory << endl << "class_name: " << class_name << endl 
        << "run_prefix: " << run_prefix << endl << "class_pose_models: " << class_pose_models << endl 
@@ -2308,11 +2566,13 @@ int main(int argc, char **argv) {
   ros::Subscriber clusters = n.subscribe("/tabletop/clusters", 1, clusterCallback);
   ros::Subscriber points = n.subscribe("/camera/depth_registered/points", 1, pointCloudCallback);
 
-  rec_objs = n.advertise<object_recognition_msgs::RecognizedObjectArray>("labeled_objects", 10);
-  markers = n.advertise<visualization_msgs::MarkerArray>("object_markers", 10);
+  rec_objs_blue = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_labeled_objects", 10);
+  rec_objs_red = n.advertise<object_recognition_msgs::RecognizedObjectArray>("red_labeled_objects", 10);
+  markers_blue = n.advertise<visualization_msgs::MarkerArray>("blue_object_markers", 10);
+  markers_red = n.advertise<visualization_msgs::MarkerArray>("red_object_markers", 10);
 
-  cv::namedWindow("Object Viewer");
   cv::namedWindow("Density Viewer");
+  cv::namedWindow("Object Viewer");
   setMouseCallback("Object Viewer", CallBackFunc, NULL);
 
   fc = 0;
