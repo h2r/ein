@@ -60,7 +60,7 @@ Make sure your files were written and they look sensible.
 
 Finally, run something like:
 ```
-rosrun oberlin_detection publish_detections _data_directory:="/home/oberlin/catkin_ws_baxter/src/oberlin_detection/data2" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml"
+rosrun oberlin_detection publish_detections _data_directory:="$(rospack find oberlin_detection)/data" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml"
 ```
 This should bring up two familiar windows. This time, blue boxes should be labeled and table detections should be shown as brown
 boxes.
