@@ -89,6 +89,18 @@ When you run publish_detections, you will notice that the blue boxes are now ann
 object_recognition_msgs::RecognizedObject.type.key fields for books now contain "book %d" where %d is the winning pose index. 
 
 
+*New*
+Red boxes
+Pass _red_box_list:="class1 class2" when running publish_detections to generate red box pairs for class1 and class2.
+Each red box pair consists of a bright red box and a dark red box assigned to a single class. The bright red box is the
+current frame's red box detection. The dark red box is the average red box detection.
+
+*New*
+All Range Mode
+Pass _all_range_mode:="0" or "1" to turn all range mode off (rail mode) or on.
+
+
+
 
 
 
