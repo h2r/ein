@@ -24,12 +24,17 @@
 
 const int k = 4;
 int redK = 1;
-int numRedBoxes = 1;
+int numRedBoxes = 0;
 //int gBoxThreshMultiplier = 1.1;
 double gBoxThresh = 3;
 double pBoxThresh = 5;
 double threshFraction = 0.35;
 double densityPower = 1.0;//1.0/4.0;
+
+double densityDecay = 0.7;
+double depthDecay = 0.7;
+double redDecay = 0.9;
+
 
 // pink box thresholds for the principle classes
 double psPBT = 0.0;//5.0;
@@ -65,6 +70,7 @@ double pcgc22 = 1;//1.0+(12.0 / 480.0);
 const int vocabNumWords = 1000;
 const double grayBlur = 1.0;
 
+// paramaters for the color histogram feature
 const double colorHistNumBins = 8;
 const double colorHistBinWidth = 256/colorHistNumBins;
 const double colorHistLambda = 1.0;
@@ -72,10 +78,6 @@ const double colorHistThresh = 0.1;
 const int colorHistBoxHalfWidth = 1;
 
 int fcRange = 10;
-
-double densityDecay = 0.7;
-double depthDecay = 0.7;
-double redDecay = 0.9;
 
 #include <dirent.h>
 
@@ -130,45 +132,14 @@ std::string class_name = "unspecified_cn";
 std::string class_labels= "unspecified_cl1 unspecified_cl2";
 std::string class_pose_models = "unspecified_pm1 unspecified_pm2";
 
+std::string red_box_list = "";
+
+vector<string> redBoxLabels;
 vector<string> classLabels; 
 vector<string> classPoseModels;
 vector<CvKNearest*> classPosekNNs;
 vector<Mat> classPosekNNfeatures;
 vector<Mat> classPosekNNlabels;
-
-int retrain_vocab = 0;
-int reextract_knn = 0;
-int rewrite_labels = 0;
-std::string class_list = "unspecified_class_list";
-
-
-//KernelDescManager* kdm;
-static unsigned int LOC_MODEL_TYPE=0; //0 or 3
-
-cv::Mat cam_img;
-cv::Mat depth_img;
-ros::Publisher rec_objs_blue;
-ros::Publisher rec_objs_red;
-ros::Publisher markers_blue;
-ros::Publisher markers_red;
-bool real_img = false;
-bool vis = true;
-
-// Top variables are top left corners of bounding boxes (smallest coordinates)
-// Bot variables are bottom right corners of bounding boxes (largenst coordinates)
-// Cen cariables are centers of bounding boxes
-cv::vector<cv::Point> wTop;
-cv::vector<cv::Point> wBot;
-cv::vector<cv::Point> nTop;
-cv::vector<cv::Point> nBot;
-
-Objectness *glObjectness;
-int fc;
-int cropCounter;
-
-double *temporalDensity = NULL;
-double *temporalDepth = NULL;
-
 
 DescriptorMatcher *matcher;
 FeatureDetector *detector;
@@ -182,9 +153,27 @@ std::string bing_trained_models_path;
 std::string objectness_matrix_path;
 std::string objectness_path_prefix;
 std::string saved_crops_path;
-pcl::PointCloud<pcl::PointXYZRGB> pointCloud;
 
-geometry_msgs::Pose tablePose;
+int retrain_vocab = 0;
+int reextract_knn = 0;
+int rewrite_labels = 0;
+
+cv::Mat cam_img;
+cv::Mat depth_img;
+ros::Publisher rec_objs_blue;
+ros::Publisher rec_objs_red;
+ros::Publisher markers_blue;
+ros::Publisher markers_red;
+bool real_img = false;
+
+Objectness *glObjectness;
+int fc;
+int cropCounter;
+
+double *temporalDensity = NULL;
+double *temporalDepth = NULL;
+
+pcl::PointCloud<pcl::PointXYZRGB> pointCloud;
 
 #define MY_FONT FONT_HERSHEY_PLAIN
 
@@ -194,6 +183,35 @@ geometry_msgs::Pose tablePose;
 #define O_FILTER_SPOON_SHAFT_WIDTH 1
 Mat *orientedFilters;
 int biggestL1 = 0;
+
+
+// Top variables are top left corners of bounding boxes (smallest coordinates)
+// Bot variables are bottom right corners of bounding boxes (largenst coordinates)
+// Cen cariables are centers of bounding boxes
+
+// white boxes come from ork. in the future they can lay down
+//  green or red boxes to require 'accounting for'.
+cv::vector<cv::Point> wTop;
+cv::vector<cv::Point> wBot;
+
+// objectness proposed bounding boxes
+cv::vector<cv::Point> nTop;
+cv::vector<cv::Point> nBot;
+
+// bounding boxes of connected components of green matter,
+//  they are the candidate blue boxes
+vector<cv::Point> cTops; 
+vector<cv::Point> cBots;
+
+// create the blue boxes from the parental green boxes
+vector<cv::Point> bTops; 
+vector<cv::Point> bBots;
+vector<cv::Point> bCens;
+vector< vector<KeyPoint> > bKeypoints;
+vector< vector<int> > bWords;
+vector<Mat> bYCrCb;
+vector<int> bLabels;
+
 
 typedef struct {
   int classLabel;
@@ -222,10 +240,16 @@ Eigen::Vector3d tableTangent2;
 Eigen::Vector3d tablePosition;
 double tableBias;
 double tableBiasMargin = -5.001;
+geometry_msgs::Pose tablePose;
 
 // gray box offset from the top and bottom of the screen
 int tGO = 40;
 int bGO = 140;
+int lGO = 10;
+int rGO = 10;
+
+cv::Point grayTop;
+cv::Point grayBot;
 
 // all range mode switch and bounds
 int all_range_mode = 0;
@@ -606,6 +630,7 @@ void loadROSParamsFromArgs()
   nh.getParam("run_prefix", run_prefix);
 
   nh.getParam("all_range_mode", all_range_mode);
+  nh.getParam("red_box_list", red_box_list);
 
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
@@ -635,6 +660,7 @@ void loadROSParams()
   nh.getParam("class_name", class_name);
   nh.getParam("run_prefix", run_prefix);
   nh.getParam("all_range_mode", all_range_mode);
+  nh.getParam("red_box_list", red_box_list);
 
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
@@ -664,6 +690,7 @@ void saveROSParams()
   nh.setParam("class_name", class_name);
   nh.setParam("run_prefix", run_prefix);
   nh.setParam("all_range_mode", all_range_mode);
+  nh.setParam("red_box_list", red_box_list);
 }
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg){
@@ -747,14 +774,12 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     }
   }
 
-  if(vis){
-    // draw the ork bounding boxes
-    for(int i =0; i<wTop.size(); i++){
 #ifdef DRAW_WHITE
-      rectangle(cv_ptr->image, wTop[i], wBot[i], cv::Scalar(255,255,255));
-#endif
-    }
+  // draw the ork bounding boxes
+  for(int i =0; i<wTop.size(); i++){
+    rectangle(cv_ptr->image, wTop[i], wBot[i], cv::Scalar(255,255,255));
   }
+#endif
 
   // XXX make this prettier
   for(int i =0; i < min(numBoxes, boxesToConsider); i++){
@@ -844,28 +869,44 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   // determine table edges, i.e. the gray boxes
-  int top_gray_bottom = 0 + tGO;
-  int bottom_gray_top = imH - 1 - bGO;
+  grayTop = cv::Point(lGO, tGO);
+  grayBot = cv::Point(imW-rGO, imH-bGO);
 
   if (all_range_mode) {
-    top_gray_bottom = 0;
-    bottom_gray_top = imH-1;
+    grayTop = armTop;
+    grayBot = armBot;
   }
 
 #ifdef DRAW_GRAY
-  rectangle(cv_ptr->image, cv::Point(0,0), cv::Point(imW-1, top_gray_bottom), cv::Scalar(128,128,128));
-  rectangle(cv_ptr->image, cv::Point(0,bottom_gray_top), cv::Point(imW-1, imH-1), cv::Scalar(128,128,128));
+  cv::Point outTop = cv::Point(grayTop.x, grayTop.y);
+  cv::Point outBot = cv::Point(grayBot.x, grayBot.y);
+  cv::Point inTop = cv::Point(grayTop.x+1,grayTop.y+1);
+  cv::Point inBot = cv::Point(grayBot.x-1,grayBot.y-1);
+  rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(128,128,128));
+  rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(32,32,32));
 #endif
 
-  // truncate the density above the gray boxes
+  // truncate the density outside the gray box
   for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < top_gray_bottom; y++) {
+    for (int y = 0; y < grayTop.y; y++) {
+      density[y*imW+x] = 0;
+    }
+  }
+
+  for (int x = 0; x < grayTop.x; x++) {
+    for (int y = grayTop.y; y < grayBot.y; y++) {
+      density[y*imW+x] = 0;
+    }
+  }
+
+  for (int x = grayBot.x; x < imW; x++) {
+    for (int y = grayTop.y; y < grayBot.y; y++) {
       density[y*imW+x] = 0;
     }
   }
 
   for (int x = 0; x < imW; x++) {
-    for (int y = bottom_gray_top; y < imH; y++) {
+    for (int y = grayBot.y; y < imH; y++) {
       density[y*imW+x] = 0;
     }
   }
@@ -901,12 +942,12 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   double *gBoxComponentLabels = new double[imW*imH];
   double *pBoxIndicator = new double[imW*imH];
 
-  vector<cv::Point> cTops; 
-  vector<cv::Point> cBots;
-
   vector<int> parentX;
   vector<int> parentY;
   vector<int> parentD;
+  
+  cTops.resize(0);
+  cBots.resize(0);
 
   const int directionX[] = {1, 0, -1,  0};
   const int directionY[] = {0, 1,  0, -1};
@@ -962,7 +1003,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       	cTops.push_back(thisTop);
       	cBots.push_back(thisBot);
 
-
       	while( parentX.size() > 0 ) {
       	  int index = parentX.size()-1;
       	  int direction = parentD[index];
@@ -1003,10 +1043,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     }
   }
 
-  // create the blue boxes from the parental green boxes
-  vector<cv::Point> bTops; 
-  vector<cv::Point> bBots;
-  vector<cv::Point> bCens;
+  bTops.resize(0);
+  bBots.resize(0);
+  bCens.resize(0);
 
   armTop = cv::Point(150, 100);
   armBot = cv::Point(imW-150, imH-100);
@@ -1069,9 +1108,10 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   tablePositionSum = Eigen::Vector3d(0,0,0);
   tableBiasSum = 0;
 
-  for (int bY = top_gray_bottom + brownPadding; 
-	bY < bottom_gray_top-brownBoxWidth-brownPadding; bY=bY+(brownBoxWidth/2)) {
-    for (int bX = brownPadding; bX < imW-brownBoxWidth-brownPadding; bX = bX+(brownBoxWidth/2)) {
+  for (int bY = grayTop.y + brownPadding; 
+	bY < grayBot.y - brownBoxWidth-brownPadding; bY=bY+(brownBoxWidth/2)) {
+    for (int bX = grayTop.x + brownPadding; 
+	bX < grayBot.x - brownBoxWidth-brownPadding; bX = bX+(brownBoxWidth/2)) {
       cv::Point thisCen = cv::Point(bX+brownBoxWidth/2, bY+brownBoxWidth/2);
 
       thisBrTop.x = bX;
@@ -1225,18 +1265,15 @@ cout << tableNormal << endl;
       //break;
   }
 
-  vector< vector<KeyPoint> > bKeypoints;
-  vector< vector<int> > bWords;
   vector< vector<int> > pIoCbuffer;
-  vector<Mat> bYCrCb;
 
-  vector<int> bLabels;
   // classify the crops
   roa_to_send_blue.objects.resize(bTops.size());
   ma_to_send_blue.markers.resize(bTops.size()+1);
-  bWords.resize(bTops.size());
   bKeypoints.resize(bTops.size());
+  bWords.resize(bTops.size());
   bYCrCb.resize(bTops.size());
+  bLabels.resize(bTops.size());
   for (int c = 0; c < bTops.size(); c++) {
 fprintf(stderr, " object check1"); fflush(stderr);
     vector<KeyPoint>& keypoints = bKeypoints[c];
@@ -1348,7 +1385,7 @@ fprintf(stderr, " object check2"); fflush(stderr);
     else
       sprintf(labelName, "%s", classLabels[label].c_str());
 
-    bLabels.push_back(label);
+    bLabels[c] = label;
   
   #ifdef SAVE_ANNOTATED_BOXES
     // save the crops
@@ -2419,8 +2456,9 @@ void clusterCallback(const visualization_msgs::MarkerArray& msg){
 		ROS_INFO("Objects found: %d", int(msg.markers.size()));
 		float f;
 		std::string res;
-		if(LOC_MODEL_TYPE == 0) f= 580;
-		else f=525;
+		//if(LOC_MODEL_TYPE == 0) f= 580;
+		//else f=525;
+		f = 525;
 		float cx = (width/2) - 0.5;
 		float cy = (height/2) - 0.5;
 		for(int i=0; i<msg.markers.size(); i++){
@@ -2474,47 +2512,9 @@ int main(int argc, char **argv) {
 
   srand(time(NULL));
 
-  // initialize the redBoxes
-  //   it is ok to add more redBoxes and ok to duplicate classes,
-  //   i.e. you can add a second gyroBowl
-  // number class
-  // 1 gyro
-  // 2 mix
-  // 3 wood
-  // 4 plastic
-  // 7 sippy
+  string bufstr; // Have a buffer string
 
-#ifdef RUN_TRACKING
 
-  redBoxes = new redBox[numRedBoxes];
-  redBoxes[0].classLabel = 0;
-  redBoxes[0].top = cv::Point(0,0);
-  redBoxes[0].bot = cv::Point(50, 50);
-/*
-  redBoxes[1].classLabel = 1;
-  redBoxes[1].top = cv::Point(0,0);
-  redBoxes[1].bot = cv::Point(50, 50);
-  redBoxes[2].classLabel = 2;
-  redBoxes[2].top = cv::Point(0,0);
-  redBoxes[2].bot = cv::Point(50,50);
-  redBoxes[3].classLabel = 3;
-  redBoxes[3].top = cv::Point(0,0);
-  redBoxes[3].bot = cv::Point(250,250);
-  redBoxes[4].classLabel = 4;
-  redBoxes[4].top = cv::Point(0,0);
-  redBoxes[4].bot = cv::Point(100,100);
-*/
-
-  // initialize the rest
-  for (int r = 0; r < numRedBoxes; r++) {
-    redBoxes[r].rootBlueBox = 0;
-    redBoxes[r].numGreenBoxes;
-    redBoxes[r].anchor = cv::Point(0,0);
-    redBoxes[r].persistence = 0;
-    redBoxes[r].lastDistance = 0;
-  }
-
-#endif
 
   ros::init(argc, argv, "oberlin_detection");
   ros::NodeHandle n("~");
@@ -2580,6 +2580,8 @@ cout << "all_range_mode: " << all_range_mode << endl;
   tableNormal = Eigen::Vector3d(1,0,0);
   tableBias = 0;
 
+  int numClasses = 0;
+
 #ifdef RUN_INFERENCE
 
   // SIFT 
@@ -2610,8 +2612,6 @@ cout << "all_range_mode: " << all_range_mode << endl;
 
 
 #ifdef TRAIN_ONLY
-  string bufstr; // Have a buffer string
-
   stringstream ss_cl(class_labels); 
   while (ss_cl >> bufstr)
     classLabels.push_back(bufstr);
@@ -2649,7 +2649,7 @@ cout << "all_range_mode: " << all_range_mode << endl;
     cout << "done. " << classLabels.size() << " " << classPoseModels.size() << endl;
   }
 
-  int numClasses = classLabels.size();
+  numClasses = classLabels.size();
   
   for (int i = 0; i < numClasses; i++) {
     cout << classLabels[i] << " " << classPoseModels[i] << endl;
@@ -2841,6 +2841,65 @@ cout << "all_range_mode: " << all_range_mode << endl;
 
   l1norm = orientedFilters[0].dot(Mat::ones(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F));
   orientedFilters[0] = orientedFilters[0] / l1norm;
+
+
+#ifdef RUN_TRACKING
+  // initialize the redBoxes
+  stringstream ss_rb(red_box_list); 
+  while (ss_rb >> bufstr)
+    redBoxLabels.push_back(bufstr);
+
+  int redBoxProposals = redBoxLabels.size();
+
+  redBoxes = new redBox[redBoxProposals];
+/*
+  redBoxes[0].classLabel = 0;
+  redBoxes[0].top = cv::Point(0,0);
+  redBoxes[0].bot = cv::Point(50, 50);
+  redBoxes[1].classLabel = 1;
+  redBoxes[1].top = cv::Point(0,0);
+  redBoxes[1].bot = cv::Point(50, 50);
+  redBoxes[2].classLabel = 2;
+  redBoxes[2].top = cv::Point(0,0);
+  redBoxes[2].bot = cv::Point(50,50);
+  redBoxes[3].classLabel = 3;
+  redBoxes[3].top = cv::Point(0,0);
+  redBoxes[3].bot = cv::Point(250,250);
+  redBoxes[4].classLabel = 4;
+  redBoxes[4].top = cv::Point(0,0);
+  redBoxes[4].bot = cv::Point(100,100);
+*/
+
+  // initialize the rest
+  for (int r = 0; r < redBoxProposals; r++) {
+
+    int thisClassLabel = -1;
+    for (int i = 0; i < numClasses; i++) {
+      if (!classLabels[i].compare(redBoxLabels[r])) {
+	thisClassLabel = i;
+      }
+    }
+
+    if (thisClassLabel > -1) {
+      numRedBoxes++;
+      cout << "accepting red box suggestion " << r << " \"" << redBoxLabels[r] << "\" as red box number " << numRedBoxes << endl;
+      redBoxes[r].classLabel = thisClassLabel;
+      redBoxes[r].top = cv::Point(0,0);
+      redBoxes[r].bot = cv::Point(50, 50);
+      redBoxes[r].rootBlueBox = 0;
+      redBoxes[r].numGreenBoxes;
+      redBoxes[r].anchor = cv::Point(0,0);
+      redBoxes[r].persistence = 0;
+      redBoxes[r].lastDistance = 0;
+    } else {
+      cout << "rejecting red box suggestion " << r << " \"" << redBoxLabels[r] << "\"" << endl;
+    }
+  }
+
+#endif
+
+
+
 
   ros::spin();
   return 0;
