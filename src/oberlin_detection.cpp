@@ -15,7 +15,7 @@
 #define DRAW_BLUE // depends on green boxes
 #define DRAW_RED // depends on blue boxes
 #define DRAW_GRAY
-//#define DRAW_PINK // depends on blue boxes
+#define DRAW_PINK // depends on blue boxes
 #define DRAW_BROWN // depends on blue and gray boxes, inference, and pointcloud configuration
 
 #define DRAW_BLUE_KEYPOINTS
@@ -291,6 +291,61 @@ cv::Point pcCorrection(double x, double y, double imW, double imH) {
   output.y = round(bgcY);
 
   return output;
+}
+
+  
+void getPointCloudPoints(cv_bridge::CvImagePtr cv_ptr, vector<cv::Point>& pointCloudPoints, double *pBoxIndicator, double thisThresh, 
+  cv::Point top, cv::Point bot, int imW, int imH, int gBoxStrideX, int gBoxStrideY, int gBoxW, int gBoxH) {
+
+  for (int x = top.x; x <= bot.x-gBoxW; x+=gBoxStrideX) {
+    for (int y = top.y; y <= bot.y-gBoxH; y+=gBoxStrideY) {
+      int xt = x;
+      int yt = y;
+      int xb = x+gBoxW;
+      int yb = y+gBoxH;
+      cv::Point thisTop(xt,yt);
+      cv::Point thisBot(xb,yb);
+
+      int reject = 0;
+      if (pBoxIndicator[y*imW+x] < thisThresh) {
+	reject = 1;
+      }
+
+      // check to see if the point cloud point lies above the table
+      if (reject == 0 && pointCloud.size() > 0) {
+	//double bcX = min(max(double(x)+pcbcX+(double(gBoxW)/2.0),0.0),double(imW));
+	//double bcY = min(max(double(y)+pcbcY+(double(gBoxH)/2.0),0.0),double(imH));
+	//double bgcX = pcgc11*bcX + pcgc12*bcY;
+	//double bgcY = pcgc21*bcX + pcgc22*bcY;
+	//pcl::PointXYZRGB pcp = pointCloud.at(floor(bgcX), floor(bgcY));
+
+
+	cv::Point transformedPixel = pcCorrection( 
+	  double(x)+(double(gBoxW)/2.0), double(y)+(double(gBoxH)/2.0), imW, imH);
+	pcl::PointXYZRGB pcp = pointCloud.at(transformedPixel.x, transformedPixel.y);
+
+	// this check also checks for nans in the points
+	Eigen::Vector3d pinkPoint(pcp.x,pcp.y,pcp.z);
+	if (all_range_mode) {
+	  reject = 1;
+	  if (pinkPoint.dot(tableNormal) >= -FLT_MAX)
+	    reject = 0;
+	} else {
+	  reject = 1;
+	  if (pinkPoint.dot(tableNormal) >= tableBias + tableBiasMargin)
+	    reject = 0;
+	}
+      }
+
+      if (!reject) {
+  #ifdef DRAW_PINK
+	rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(100,100,255));
+  #endif
+	pointCloudPoints.push_back(cv::Point(x,y));
+      }
+    }
+  }
+
 }
 
 
@@ -1511,49 +1566,10 @@ fprintf(stderr, " object check4"); fflush(stderr);
     */
 
 fprintf(stderr, " object check5"); fflush(stderr);
+
     vector<cv::Point> pointCloudPoints;
-    for (int x = bTops[c].x; x <= bBots[c].x-gBoxW; x+=gBoxStrideX) {
-      for (int y = bTops[c].y; y <= bBots[c].y-gBoxH; y+=gBoxStrideY) {
-      	int xt = x;
-      	int yt = y;
-      	int xb = x+gBoxW;
-      	int yb = y+gBoxH;
-      	cv::Point thisTop(xt,yt);
-      	cv::Point thisBot(xb,yb);
-
-	int reject = 0;
-      	if (pBoxIndicator[y*imW+x] < thisThresh) {
-	  reject = 1;
-	}
-
-	// check to see if the point cloud point lies above the table
-	if (reject == 0 && pointCloud.size() > 0) {
-	  //double bcX = min(max(double(x)+pcbcX+(double(gBoxW)/2.0),0.0),double(imW));
-	  //double bcY = min(max(double(y)+pcbcY+(double(gBoxH)/2.0),0.0),double(imH));
-	  //double bgcX = pcgc11*bcX + pcgc12*bcY;
-	  //double bgcY = pcgc21*bcX + pcgc22*bcY;
-	  //pcl::PointXYZRGB pcp = pointCloud.at(floor(bgcX), floor(bgcY));
-
-
-	  cv::Point transformedPixel = pcCorrection( 
-	    double(x)+(double(gBoxW)/2.0), double(y)+(double(gBoxH)/2.0), imW, imH);
-	  pcl::PointXYZRGB pcp = pointCloud.at(transformedPixel.x, transformedPixel.y);
-
-	  Eigen::Vector3d pinkPoint(pcp.x,pcp.y,pcp.z);
-	  reject = 1;
-	  if (pinkPoint.dot(tableNormal) >= tableBias + tableBiasMargin)
-	    reject = 0;
-	}
-
-	if (!reject) {
-    #ifdef DRAW_PINK
-      	  rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(100,100,255));
-    #endif
-      	  pointCloudPoints.push_back(cv::Point(x,y));
-      	}
-      }
-    }
-
+    getPointCloudPoints(cv_ptr, pointCloudPoints, pBoxIndicator, thisThresh, 
+      bTops[c], bBots[c], imW, imH, gBoxStrideX, gBoxStrideY, gBoxW, gBoxH);
 
 fprintf(stderr, " object check6"); fflush(stderr);
 
@@ -2104,47 +2120,8 @@ cout << "table check 2" << endl;
 
     #ifdef PUBLISH_OBJECTS
     vector<cv::Point> pointCloudPoints;
-    for (int x = dTop.x; x <= dBot.x-gBoxW; x+=gBoxStrideX) {
-      for (int y = dTop.y; y <= dBot.y-gBoxH; y+=gBoxStrideY) {
-      	int xt = x;
-      	int yt = y;
-      	int xb = x+gBoxW;
-      	int yb = y+gBoxH;
-      	cv::Point thisTop(xt,yt);
-      	cv::Point thisBot(xb,yb);
-
-	int reject = 0;
-      	if (pBoxIndicator[y*imW+x] < thisThresh) {
-	  reject = 1;
-	}
-
-	// check to see if the point cloud point lies above the table
-	if (reject == 0 && pointCloud.size() > 0) {
-	  //double bcX = min(max(double(x)+pcbcX+(double(gBoxW)/2.0),0.0),double(imW));
-	  //double bcY = min(max(double(y)+pcbcY+(double(gBoxH)/2.0),0.0),double(imH));
-	  //double bgcX = pcgc11*bcX + pcgc12*bcY;
-	  //double bgcY = pcgc21*bcX + pcgc22*bcY;
-	  //pcl::PointXYZRGB pcp = pointCloud.at(floor(bgcX), floor(bgcY));
-
-
-	  cv::Point transformedPixel = pcCorrection( 
-	    double(x)+(double(gBoxW)/2.0), double(y)+(double(gBoxH)/2.0), imW, imH);
-	  pcl::PointXYZRGB pcp = pointCloud.at(transformedPixel.x, transformedPixel.y);
-
-	  Eigen::Vector3d pinkPoint(pcp.x,pcp.y,pcp.z);
-	  reject = 1;
-	  if (pinkPoint.dot(tableNormal) >= tableBias + tableBiasMargin)
-	    reject = 0;
-	}
-
-	if (!reject) {
-    #ifdef DRAW_PINK
-      	  rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(100,100,255));
-    #endif
-      	  pointCloudPoints.push_back(cv::Point(x,y));
-      	}
-      }
-    }
+    getPointCloudPoints(cv_ptr, pointCloudPoints, pBoxIndicator, thisThresh, 
+      dTop, dBot, imW, imH, gBoxStrideX, gBoxStrideY, gBoxW, gBoxH);
 
     if (thisClass >= 0) {
 cout << "publish red check" << endl;
