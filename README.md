@@ -1,4 +1,4 @@
-## oberlin_detection
+# oberlin_detection
 
 
 Make sure you have the following standard components installed:
@@ -22,7 +22,7 @@ roscd oberlin_detection
 mkdir -p data/object_class_1
 ```
 
-# Gather Data
+## Gather Data
 
 To gather data for your objects, point your kinect at your tabletop and run a command similar to:
 ```
@@ -45,7 +45,7 @@ MAKE SURE to **change the run_prefix** so you don't overwrite your data.
 Run capture_object for every object you want to train, using a different subdirectory of data_directory for each class
 you want to train.
 
-# Train
+## Train
 
 Next, train the classifier. Run a command similar to:
 ```
@@ -59,7 +59,7 @@ rotational estimates, its entry should be an "S".
 
 **Make sure your files were written** and they look sensible.
 
-# Detect
+## Detect
 
 Finally, run something like:
 ```
@@ -72,7 +72,7 @@ You can subscribe to /oberlin_detection/blue_labeled_objects and /oberlin_detect
 Open RViz and try viewing the markers. The table estimate should appear and should align well with 
 the point cloud. Markers should appear for the blue boxes.
 
-# Generic Pose Estimation
+## Generic Pose Estimation
 
 Now that you are familiar with the basic interface, you can try training a generic pose estimator. This means memorizing what
 an object looks like from various known viewpoints and inferring orientation based on those views.
@@ -89,7 +89,7 @@ classifier on the "bookPoses" images and save that classifier in the same file a
 When you run publish_detections, you will notice that the blue boxes are now annotated with winning pose numbers. The published
 object_recognition_msgs::RecognizedObject.type.key fields for books now contain "book %d" where %d is the winning pose index. 
 
-# Red boxes
+## Red boxes
 
 Pass _red_box_list:="class1 class2" when running publish_detections to generate red box pairs for class1 and class2.
 Each red box pair consists of a bright red box and a dark red box assigned to a single class. The bright red box is the
@@ -98,14 +98,14 @@ current frame's red box detection. The dark red box is the average red box detec
 You can also subscribe to /oberlin_detection/red_labeled_objects and /oberlin_detection/red_object_markers. The
 table marker is not included in red_object_markers.
 
-# Brown Boxes
+## Brown Boxes
 
 Brown boxes represent a detected table or flat surface. There are several shades, depending on
 whether the point cloud is valid in checked locations. The table estimates at all valid brown
 boxes are averaged and used to infer pose for objects using certain pose models.
 
 
-# *New* All Range Mode
+## *New* All Range Mode
 
 To activate All Range Mode, pass 
 ```
@@ -117,7 +117,7 @@ _arm_box_right:="10" _arm_box_right:="20" _arm_box_right:="30" _arm_box_right:="
 ```
 sets the top left corner of the ARM box to (10,20) and the bottom right to (640-30,480-40).
 
-# *New* Gray Box
+## *New* Gray Box
 
 The gray box is a boundary outside of which green boxes are suppressed. That is,
 in rail mode the area outside of the grey box is ignored.
