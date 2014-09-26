@@ -111,11 +111,25 @@ To activate All Range Mode, pass
 ```
 _all_range_mode:="0" or "1" 
 ```
-to turn all range mode off (rail mode) or on. Off is default. Passing
+to turn All Range Mode off (Rail Mode) or on. Off is default. Passing
 ```
 _arm_box_right:="10" _arm_box_right:="20" _arm_box_right:="30" _arm_box_right:="40" 
 ```
 sets the top left corner of the ARM box to (10,20) and the bottom right to (640-30,480-40).
+When ARM is active, the ARM box is the only blue box.
+
+There are two main situations where this is desirable. First, the single blue box can act
+as a **trap**.  Train a class for the background images you are likely to encounter, and
+train a class for a target object.  The blue box classification reported for the ARM box
+will tell you whether the target entered the area of interest.
+
+Second, red box detections become meaningful in that the system behaves like a sliding 
+window detector with an adaptive window size and aspect ratio. Thus you should activate 
+ARM when you expect heavy clutter and know exactly what you want to track with red boxes.
+
+You may ask yourself "If ARM mode works, why do I ever use Rail Mode?" You might also ask
+yourself "Where did my training crops come from?" and "What happens when I have 100 object
+classes?"
 
 ## *New* Gray Box
 
