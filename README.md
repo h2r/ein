@@ -1,5 +1,5 @@
 # oberlin_detection
-
+/play ohmy
 
 Make sure you have the following standard components installed:
 
