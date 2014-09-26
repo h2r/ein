@@ -1,4 +1,4 @@
-oberlin_detection
+## oberlin_detection
 
 
 Make sure you have the following standard components installed:
@@ -8,27 +8,28 @@ cv_bridge
 image_transport
 openni
 
-Install the non-standard package h2r/bing.
+**Install** the non-standard package h2r/bing.
 
 To get up and running you will need to perform three steps.
 
-1.) Gather data for your objects.
-2.) "Train" a BoW-kNN classifier.
-3.) Publish detections.
+1. Gather data for your objects.
+2. Train a BoW-kNN classifier.
+3. Publish detections.
 
-First make a data directory
+First **make a data directory**
 ```
 roscd oberlin_detection
 mkdir -p data/object_class_1
 ```
 
+# Gather Data
 
 To gather data for your objects, point your kinect at your tabletop and run a command similar to:
 ```
 roslaunch openni_launch openni.launch depth_registration:=true
 rosrun oberlin_detection capture_object _data_directory:="$(rospack find oberlin_detection)/data" _class_name:="object_class_1" _run_prefix:="june2round1"
 ```
-Make sure that data_directory/class_name is the FULL PATH to an existing directory.
+Make sure that **data_directory/class_name** is the FULL PATH to an existing directory.
 
 This should open two windows. The first is the view through your kinect, augmented with information, called "Object Viewer". 
 The second is an eerie green interpretation of the view called "Density Viewer". Look at the Object Viewer.
@@ -39,11 +40,12 @@ blue box that was on the screen. Notice that run_prefix is included in the file 
 
 Move the object around the table and capture crops of many different views. When you have enough crops, stop. If you want to
 gather more data for the same object, run the command again but i
-MAKE SURE to change the run_prefix so you don't overwrite your data.
+MAKE SURE to **change the run_prefix** so you don't overwrite your data.
 
 Run capture_object for every object you want to train, using a different subdirectory of data_directory for each class
 you want to train.
 
+# Train
 
 Next, train the classifier. Run a command similar to:
 ```
@@ -55,8 +57,9 @@ class_pose_models is a " "-delimited list of the pose models for your classes. I
 care about its rotation in the plane of the table) its entry should be a "B", but if it is most like a spoon and you want
 rotational estimates, its entry should be an "S".
 
-Make sure your files were written and they look sensible.
+**Make sure your files were written** and they look sensible.
 
+# Detect
 
 Finally, run something like:
 ```
@@ -65,13 +68,11 @@ rosrun oberlin_detection publish_detections _data_directory:="$(rospack find obe
 This should bring up two familiar windows. This time, blue boxes should be labeled and table detections should be shown as brown
 boxes.
 
-You can subscribe to /oberlin_detection/labeled_objects and /oberlin_detection/object_markers. Open RViz and try viewing the markers.
-The table estimate should appear and should align well with the point cloud. Markers should appear for the blue boxes.
+You can subscribe to /oberlin_detection/blue_labeled_objects and /oberlin_detection/blue_object_markers. 
+Open RViz and try viewing the markers. The table estimate should appear and should align well with 
+the point cloud. Markers should appear for the blue boxes.
 
-
-
-*New*
-Generic Pose Estimation
+# Generic Pose Estimation
 
 Now that you are familiar with the basic interface, you can try training a generic pose estimator. This means memorizing what
 an object looks like from various known viewpoints and inferring orientation based on those views.
@@ -88,19 +89,44 @@ classifier on the "bookPoses" images and save that classifier in the same file a
 When you run publish_detections, you will notice that the blue boxes are now annotated with winning pose numbers. The published
 object_recognition_msgs::RecognizedObject.type.key fields for books now contain "book %d" where %d is the winning pose index. 
 
+# Red boxes
 
-*New*
-Red boxes
 Pass _red_box_list:="class1 class2" when running publish_detections to generate red box pairs for class1 and class2.
 Each red box pair consists of a bright red box and a dark red box assigned to a single class. The bright red box is the
 current frame's red box detection. The dark red box is the average red box detection.
 
-*New*
-All Range Mode
-Pass _all_range_mode:="0" or "1" to turn all range mode off (rail mode) or on.
+You can also subscribe to /oberlin_detection/red_labeled_objects and /oberlin_detection/red_object_markers. The
+table marker is not included in red_object_markers.
+
+# Brown Boxes
+
+Brown boxes represent a detected table or flat surface. There are several shades, depending on
+whether the point cloud is valid in checked locations. The table estimates at all valid brown
+boxes are averaged and used to infer pose for objects using certain pose models.
 
 
+# *New* All Range Mode
 
+To activate All Range Mode, pass 
+```
+_all_range_mode:="0" or "1" 
+```
+to turn all range mode off (rail mode) or on. Off is default. Passing
+```
+_arm_box_right:="10" _arm_box_right:="20" _arm_box_right:="30" _arm_box_right:="40" 
+```
+sets the top left corner of the ARM box to (10,20) and the bottom right to (640-30,480-40).
+
+# *New* Gray Box
+
+The gray box is a boundary outside of which green boxes are suppressed. That is,
+in rail mode the area outside of the grey box is ignored.
+
+Similarly to the ARM box, one can adjust the gray box by passing
+```
+_gray_box_right:="10" _gray_box_right:="20" _gray_box_right:="30" _gray_box_right:="40" 
+```
+which sets the top left corner of the gray box to (10,20) and the bottom right to (640-30,480-40).
 
 
 
