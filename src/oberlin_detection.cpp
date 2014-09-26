@@ -25,6 +25,7 @@
 const int k = 4;
 int redK = 1;
 int numRedBoxes = 0;
+int max_red_proposals = 1000;
 //int gBoxThreshMultiplier = 1.1;
 double gBoxThresh = 3;
 double pBoxThresh = 5;
@@ -46,7 +47,7 @@ double mbPBT = 0.0;//7.0;
 double rejectScale = 2.0;
 double rejectAreaScale = 6*6;
 
-// point cloud affine calibration
+// point cloud affine extrinsic calibration
 /*
 // this is for the uncalibrated point cloud
 double pcbcX = 5;
@@ -247,12 +248,15 @@ int tGO = 40;
 int bGO = 140;
 int lGO = 10;
 int rGO = 10;
-
 cv::Point grayTop;
 cv::Point grayBot;
 
 // all range mode switch and bounds
 int all_range_mode = 0;
+int tARM = 100;
+int bARM = 100;
+int lARM = 150;
+int rARM = 150;
 cv::Point armTop;
 cv::Point armBot;
 
@@ -408,9 +412,6 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 	    colorHist.at<float>(i) = min(colorHist.at<float>(i), float(colorHistThresh));
 	    descriptors2.at<float>(i+descriptors.size().width) = colorHistLambda * colorHist.at<float>(i);
 	  }
-//exit(0);
-/*
-*/
 
           kNNfeatures.push_back(descriptors2);
           kNNlabels.push_back(label);
@@ -510,14 +511,9 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
 	    colorHist.at<float>(i) = min(colorHist.at<float>(i), float(colorHistThresh));
 	    descriptors2.at<float>(i+descriptors.size().width) = colorHistLambda * colorHist.at<float>(i);
 	  }
-//exit(0);
-/*
-*/
 
-          //kNNfeatures.push_back(descriptors2);
           kNNfeatures.push_back(descriptors);
           kNNlabels.push_back(label);
-	  //label++;
         }
       }
     }
@@ -632,6 +628,16 @@ void loadROSParamsFromArgs()
   nh.getParam("all_range_mode", all_range_mode);
   nh.getParam("red_box_list", red_box_list);
 
+  nh.getParam("gray_box_top", tGO);
+  nh.getParam("gray_box_bot", bGO);
+  nh.getParam("gray_box_left", lGO);
+  nh.getParam("gray_box_right", rGO);
+
+  nh.getParam("arm_box_top", tARM);
+  nh.getParam("arm_box_bot", bARM);
+  nh.getParam("arm_box_left", lARM);
+  nh.getParam("arm_box_right", rARM);
+
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
 
@@ -662,6 +668,16 @@ void loadROSParams()
   nh.getParam("all_range_mode", all_range_mode);
   nh.getParam("red_box_list", red_box_list);
 
+  nh.getParam("gray_box_top", tGO);
+  nh.getParam("gray_box_bot", bGO);
+  nh.getParam("gray_box_left", lGO);
+  nh.getParam("gray_box_right", rGO);
+
+  nh.getParam("arm_box_top", tARM);
+  nh.getParam("arm_box_bot", bARM);
+  nh.getParam("arm_box_left", lARM);
+  nh.getParam("arm_box_right", rARM);
+
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
 
@@ -669,7 +685,7 @@ void saveROSParams()
 {
   ros::NodeHandle nh("~");
 
-  nh.setParam("/camera/number_red_boxes", numRedBoxes);
+  nh.setParam("number_red_boxes", numRedBoxes);
   nh.setParam("green_box_threshold", gBoxThresh);
   nh.setParam("pink_box_threshold", pBoxThresh);
   nh.setParam("threshold_fraction", threshFraction);
@@ -691,6 +707,16 @@ void saveROSParams()
   nh.setParam("run_prefix", run_prefix);
   nh.setParam("all_range_mode", all_range_mode);
   nh.setParam("red_box_list", red_box_list);
+
+  nh.setParam("gray_box_top", tGO);
+  nh.setParam("gray_box_bot", bGO);
+  nh.setParam("gray_box_left", lGO);
+  nh.setParam("gray_box_right", rGO);
+
+  nh.setParam("arm_box_top", tARM);
+  nh.setParam("arm_box_bot", bARM);
+  nh.setParam("arm_box_left", lARM);
+  nh.setParam("arm_box_right", rARM);
 }
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg){
@@ -1047,8 +1073,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   bBots.resize(0);
   bCens.resize(0);
 
-  armTop = cv::Point(150, 100);
-  armBot = cv::Point(imW-150, imH-100);
+  armTop = cv::Point(lARM, tARM);
+  armBot = cv::Point(imW-rARM, imH-bARM);
 
   if (!all_range_mode) {
     double rejectArea = rejectAreaScale*gBoxW*gBoxH;
@@ -1074,7 +1100,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
 
-
   // copy the density map to the rendered image
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
@@ -1083,7 +1108,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       //img_cvt.at<uchar>(y, x, 0) = 0;
     }
   }
-
 
 
 #ifdef RUN_INFERENCE
@@ -1764,6 +1788,7 @@ cout << "table check 2" << endl;
     float winD = 1e6;
 
     int proposalValid = 0;
+    int proposals = 0;
 
     int deltaAmplitude = ((lrand48() % 2)*10);
 
@@ -1771,7 +1796,8 @@ cout << "table check 2" << endl;
     int rbMaxWidth = 500;
     cv::Point rbDelta(0,0);
 
-    while (!proposalValid) {
+    while (!proposalValid && proposals < max_red_proposals) {
+      proposals++;
       int deltaRnd = lrand48() % 6;
       if (deltaRnd == 0) {
 	if (thisRedBox->bot.x+deltaAmplitude <= rbMaxWidth) {
@@ -1812,16 +1838,24 @@ cout << "table check 2" << endl;
     
     cv::Point winTop(0,0);
     cv::Point winBot(thisRedBox->bot.x, thisRedBox->bot.y);
-    
-    if (accepted) {
 
-      int thisRootBlueBox = thisRedBox->rootBlueBox;
-      
-      cv::Point hTop = bTops[thisRootBlueBox];
-      cv::Point hBot = bBots[thisRootBlueBox];
+    vector<int> theseBlueBoxes;
+
+    if (accepted) {
+      theseBlueBoxes.push_back(thisRedBox->rootBlueBox);
+    } else {
+      for (int bb = 0; bb < bTops.size(); bb++) {
+	theseBlueBoxes.push_back(bb);
+      }
+    }
+
+    for (int cc = 0; cc < theseBlueBoxes.size(); cc++) {
+      int c = theseBlueBoxes[cc];
+      cv::Point hTop = bTops[c];
+      cv::Point hBot = bBots[c];
       int crW = hBot.x - hTop.x;
       int crH = hBot.y - hTop.y;
-
+      
       int ix = min(hTop.x + thisRedBox->bot.x + rbDelta.x, hBot.x);
       int iy = min(hTop.y + thisRedBox->bot.y + rbDelta.y, hBot.y);
       /*1*/cv::Point itTop(hTop.x,0);
@@ -1835,37 +1869,34 @@ cout << "table check 2" << endl;
 
 	  // score this crop
 	  vector<KeyPoint> keypoints;
-	  
 	  /*
 	  Mat descriptors;
 
+	  Mat crop = original_cam_img(cv::Rect(itTop.x, itTop.y, itBot.x-itTop.x, itBot.y-itTop.y));
 	  Mat gray_image;
+	  Mat yCrCb_image;
 	  cvtColor(crop, gray_image, CV_BGR2GRAY);
+	  cvtColor(crop, yCrCb_image, CV_BGR2YCrCb);
 	  GaussianBlur(gray_image, gray_image, cv::Size(0,0), grayBlur);
+	  GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), grayBlur);
 
 	  detector->detect(gray_image, keypoints);
 	  bowExtractor->compute(gray_image, keypoints, descriptors);
 	  */
-      
-	  /*
-	  Mat crop = original_cam_img(cv::Rect(itTop.x, itTop.y, itBot.x-itTop.x, itBot.y-itTop.y));
-	  Mat yCrCb_image;
-	  cvtColor(crop, yCrCb_image, CV_BGR2YCrCb);
-	  GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), grayBlur);
-	  */
 
-	  Mat& yCrCb_image = bYCrCb[thisRootBlueBox];
+	  Mat& yCrCb_image = bYCrCb[c];
+	  cout << &(bYCrCb[c]) << endl;
 
 	  cv::Point lItTop(itTop.x-hTop.x, itTop.y-hTop.y);
 	  cv::Point lItBot(itBot.x-hTop.x, itBot.y-hTop.y);
 
 	  Mat descriptors(1,vocabNumWords, CV_32F);
-	  float totalWords = bWords[thisRootBlueBox].size();
+	  float totalWords = bWords[c].size();
 	  float countedWords = 0;
 //cout << "totalWords: " << totalWords;
 	  for (int w = 0; w < totalWords; w++) {
-	    int tX = bKeypoints[thisRootBlueBox][w].pt.x;
-	    int tY = bKeypoints[thisRootBlueBox][w].pt.y;
+	    int tX = bKeypoints[c][w].pt.x;
+	    int tY = bKeypoints[c][w].pt.y;
 	    // check for containment in this box
 //cout << " tX tY:" << tX << " " << tY << " " << itTop << itBot << lItTop << lItBot << hTop << hBot << endl;
 	    if(
@@ -1875,10 +1906,10 @@ cout << "table check 2" << endl;
 	      (tY <= lItBot.y) 
 	      ) {
 //cout << " w:" << w << " " << endl;
-	      descriptors.at<float>(bWords[thisRootBlueBox][w])++;
-	      keypoints.push_back(bKeypoints[thisRootBlueBox][w]);
-	      countedWords++;
-	#ifdef DRAW_RED_KEYPOINTS
+	      descriptors.at<float>(bWords[c][w])++;
+	      keypoints.push_back(bKeypoints[c][w]);
+	      countedWords++;		
+      #ifdef DRAW_RED_KEYPOINTS
 	      cv::Point kpTop = cv::Point(hTop.x+tX,hTop.y+tY);
 	      cv::Point kpBot = cv::Point(hTop.x+tX+1,hTop.y+tY+1);
 	      if(
@@ -1889,8 +1920,7 @@ cout << "table check 2" << endl;
 		) {
 		rectangle(cv_ptr->image, kpTop, kpBot, cv::Scalar(0,0,255));
 	      }
-	#endif
-	
+      #endif
 	    }
 	  }
 	  if (countedWords > 0)
@@ -1947,13 +1977,16 @@ cout << "table check 2" << endl;
 	    //kNN->find_nearest(descriptors, redK, 0, 0, &neighbors, &dist);
 	    kNN->find_nearest(descriptors2, redK, 0, 0, &neighbors, &dist);
 
+//if (r == 2)
+//rectangle(cv_ptr->image, itTop, itBot, cv::Scalar(0,0,128));
+
 	    int thisJ = 0;
 	    float thisD = 1e6;
 	    for (int n = 0; n < redK; n++) 
 	    //for (int n = 0; n < 1; n++) 
 	    {
 	      cout << "  neighbors[" << n <<"] is " << (neighbors.at<float>(n)) << endl;
-	      if (neighbors.at<float>(n) == float(thisClass)) { 
+	      if (neighbors.at<float>(n) == float(thisClass)) {
 		thisJ++;
 		thisD = min(dist.at<float>(n), winD);
 	      }
@@ -1965,6 +1998,7 @@ cout << "table check 2" << endl;
 	      winTop = itTop;
 	      winBot = itBot;
 	    }
+
 	  }
 
 	  cout << "class: " << thisClass << " descriptors: " << keypoints.size() << " " << itBot << itTop << "  " << hTop << hBot << endl;
@@ -1976,170 +2010,9 @@ cout << "table check 2" << endl;
 	/*2*/itTop.x += redStride;
 	/*2*/itBot.x += redStride;
       }
-    } else {
-
-      for (int c = 0; c < bTops.size(); c++) {
-	cv::Point hTop = bTops[c];
-	cv::Point hBot = bBots[c];
-	int crW = hBot.x - hTop.x;
-	int crH = hBot.y - hTop.y;
-	
-	int ix = min(hTop.x + thisRedBox->bot.x + rbDelta.x, hBot.x);
-	int iy = min(hTop.y + thisRedBox->bot.y + rbDelta.y, hBot.y);
-	/*1*/cv::Point itTop(hTop.x,0);
-	/*1*/cv::Point itBot(ix , 0);
-	for (/*1*/; itBot.x <= hBot.x; /*2*/) {
-	  
-	  /*3*/itTop.y = hTop.y;
-	  /*3*/itBot.y = iy;
-	  for (/*3*/; itBot.y <= hBot.y; /*4*/) {
-
-
-	    // score this crop
-	    vector<KeyPoint> keypoints;
-	    /*
-	    Mat descriptors;
-
-	    Mat crop = original_cam_img(cv::Rect(itTop.x, itTop.y, itBot.x-itTop.x, itBot.y-itTop.y));
-	    Mat gray_image;
-	    Mat yCrCb_image;
-	    cvtColor(crop, gray_image, CV_BGR2GRAY);
-	    cvtColor(crop, yCrCb_image, CV_BGR2YCrCb);
-	    GaussianBlur(gray_image, gray_image, cv::Size(0,0), grayBlur);
-	    GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), grayBlur);
-
-	    detector->detect(gray_image, keypoints);
-	    bowExtractor->compute(gray_image, keypoints, descriptors);
-	    */
-
-	    Mat& yCrCb_image = bYCrCb[c];
-	    cout << &(bYCrCb[c]) << endl;
-
-	    cv::Point lItTop(itTop.x-hTop.x, itTop.y-hTop.y);
-	    cv::Point lItBot(itBot.x-hTop.x, itBot.y-hTop.y);
-
-	    Mat descriptors(1,vocabNumWords, CV_32F);
-	    float totalWords = bWords[c].size();
-	    float countedWords = 0;
-//cout << "totalWords: " << totalWords;
-	    for (int w = 0; w < totalWords; w++) {
-	      int tX = bKeypoints[c][w].pt.x;
-	      int tY = bKeypoints[c][w].pt.y;
-	      // check for containment in this box
-//cout << " tX tY:" << tX << " " << tY << " " << itTop << itBot << lItTop << lItBot << hTop << hBot << endl;
-	      if(
-		(tX >= lItTop.x) &&
-		(tX <= lItBot.x) &&
-		(tY >= lItTop.y) &&
-		(tY <= lItBot.y) 
-		) {
-//cout << " w:" << w << " " << endl;
-		descriptors.at<float>(bWords[c][w])++;
-		keypoints.push_back(bKeypoints[c][w]);
-		countedWords++;		
-	#ifdef DRAW_RED_KEYPOINTS
-		cv::Point kpTop = cv::Point(hTop.x+tX,hTop.y+tY);
-		cv::Point kpBot = cv::Point(hTop.x+tX+1,hTop.y+tY+1);
-		if(
-		  (kpTop.x >= 1) &&
-		  (kpBot.x <= imW-2) &&
-		  (kpTop.y >= 1) &&
-		  (kpBot.y <= imH-2) 
-		  ) {
-		  rectangle(cv_ptr->image, kpTop, kpBot, cv::Scalar(0,0,255));
-		}
-	#endif
-	      }
-	    }
-	    if (countedWords > 0)
-	      for (int w = 0; w < vocabNumWords; w++) {
-		descriptors.at<float>(w) = descriptors.at<float>(w) / countedWords;
-	      }
-
-	    Mat neighbors(1, redK, CV_32F);
-	    Mat dist;
-	    if (countedWords > 0) {
-	      Mat colorHist(1, colorHistNumBins*colorHistNumBins, descriptors.type());
-	      /**/
-	      for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
-		colorHist.at<float>(i) = 0;
-
-	      double numPix = 0;
-	      // traverse all of the keypoints
-	      for (int kk = 0; kk < keypoints.size(); kk++) {
-		// count pixels in a neighborhood of the keypoint
-		int yMin = max(int(keypoints[kk].pt.y)-colorHistBoxHalfWidth,0);
-		int yMax = min(int(keypoints[kk].pt.y)+colorHistBoxHalfWidth,crH);
-		int xMin = max(int(keypoints[kk].pt.x)-colorHistBoxHalfWidth,0);
-		int xMax = min(int(keypoints[kk].pt.x)+colorHistBoxHalfWidth,crW);
-		for (int y = yMin; y < yMax; y++) {
-		  for (int x = xMin; x < xMax; x++) {
-
-		    cv::Vec3b thisColor = yCrCb_image.at<cv::Vec3b>(y,x);
-
-		    int CrBin = thisColor[1]/colorHistBinWidth;
-		    int CbBin = thisColor[2]/colorHistBinWidth;
-
-		    colorHist.at<float>(CrBin + CbBin*colorHistNumBins)++;
-
-		    numPix++;
-		  }
-		}
-	      }
-	      // normalize the histogram
-	      for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
-		colorHist.at<float>(i) = colorHist.at<float>(i) / numPix;
-	      /**/
-
-	      Mat descriptors2 = Mat(1, descriptors.size().width + colorHistNumBins*colorHistNumBins, descriptors.type());
-	      for (int i = 0; i < descriptors.size().width; i++) 
-		descriptors2.at<float>(i) = descriptors.at<float>(i);
-
-	      /**/
-	      for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) {
-		colorHist.at<float>(i) = min(colorHist.at<float>(i), float(colorHistThresh));
-		descriptors2.at<float>(i+descriptors.size().width) = colorHistLambda * colorHist.at<float>(i);
-	      }
-	      /**/
-
-	      //kNN->find_nearest(descriptors, redK, 0, 0, &neighbors, &dist);
-	      kNN->find_nearest(descriptors2, redK, 0, 0, &neighbors, &dist);
-
-//if (r == 2)
-  //rectangle(cv_ptr->image, itTop, itBot, cv::Scalar(0,0,128));
-
-	      int thisJ = 0;
-	      float thisD = 1e6;
-	      for (int n = 0; n < redK; n++) 
-	      //for (int n = 0; n < 1; n++) 
-	      {
-		cout << "  neighbors[" << n <<"] is " << (neighbors.at<float>(n)) << endl;
-		if (neighbors.at<float>(n) == float(thisClass)) {
-		  thisJ++;
-		  thisD = min(dist.at<float>(n), winD);
-		}
-	      }
-	      cout << thisJ << endl;
-	      if (thisJ > 0 && thisD < winD) {
-		winJ = thisJ;
-		winD = thisD;
-		winTop = itTop;
-		winBot = itBot;
-	      }
-
-	    }
-
-	    cout << "class: " << thisClass << " descriptors: " << keypoints.size() << " " << itBot << itTop << "  " << hTop << hBot << endl;
-
-	    /*4*/itTop.y += redStride;
-	    /*4*/itBot.y += redStride;
-	  }
-
-	  /*2*/itTop.x += redStride;
-	  /*2*/itBot.x += redStride;
-	}
-      }
     }
+    
+// XXX finish factoring
 
     // always decay persistence but only add it if we got a hit
     thisRedBox->persistence = redDecay*thisRedBox->persistence;
@@ -2509,24 +2382,15 @@ void clusterCallback(const visualization_msgs::MarkerArray& msg){
 }
 
 int main(int argc, char **argv) {
-
   srand(time(NULL));
 
   string bufstr; // Have a buffer string
-
-
 
   ros::init(argc, argv, "oberlin_detection");
   ros::NodeHandle n("~");
   std::string s;
 
-//cout << argc << " " << endl;
-//for (int i = 0; i < argc; i++)
-//  cout << argv[i] << " ";
-//cout << endl;
-
-cout << "all_range_mode: " << all_range_mode << endl;
-
+  cout << "all_range_mode: " << all_range_mode << endl;
   loadROSParamsFromArgs();
   cout << "all_range_mode: " << all_range_mode << endl;
   cout << endl << "numRedBoxes: " << numRedBoxes << endl;
@@ -2536,8 +2400,6 @@ cout << "all_range_mode: " << all_range_mode << endl;
        << "knn_file: " << knn_file << endl << "label_file: " << label_file << endl
        << endl;
 //exit(0);
-
-  saveROSParams();
 
   package_path = ros::package::getPath("oberlin_detection");
   class_crops_path = data_directory + "/";
@@ -2710,7 +2572,6 @@ cout << "all_range_mode: " << all_range_mode << endl;
       kNNGetFeatures(class_crops_path, classLabels[i].c_str(), i, grayBlur, kNNfeatures, kNNlabels);
       if (classPoseModels[i].compare("G") == 0) {
 	string thisPoseLabel = classLabels[i] + "Poses";
-	//kNNGetFeatures(class_crops_path, thisPoseLabel.c_str(), i, grayBlur, kNNfeatures, kNNlabels);
 	posekNNGetFeatures(class_crops_path, thisPoseLabel.c_str(), grayBlur, classPosekNNfeatures[i], classPosekNNlabels[i]);
       }
     }
@@ -2850,29 +2711,9 @@ cout << "all_range_mode: " << all_range_mode << endl;
     redBoxLabels.push_back(bufstr);
 
   int redBoxProposals = redBoxLabels.size();
-
   redBoxes = new redBox[redBoxProposals];
-/*
-  redBoxes[0].classLabel = 0;
-  redBoxes[0].top = cv::Point(0,0);
-  redBoxes[0].bot = cv::Point(50, 50);
-  redBoxes[1].classLabel = 1;
-  redBoxes[1].top = cv::Point(0,0);
-  redBoxes[1].bot = cv::Point(50, 50);
-  redBoxes[2].classLabel = 2;
-  redBoxes[2].top = cv::Point(0,0);
-  redBoxes[2].bot = cv::Point(50,50);
-  redBoxes[3].classLabel = 3;
-  redBoxes[3].top = cv::Point(0,0);
-  redBoxes[3].bot = cv::Point(250,250);
-  redBoxes[4].classLabel = 4;
-  redBoxes[4].top = cv::Point(0,0);
-  redBoxes[4].bot = cv::Point(100,100);
-*/
 
-  // initialize the rest
   for (int r = 0; r < redBoxProposals; r++) {
-
     int thisClassLabel = -1;
     for (int i = 0; i < numClasses; i++) {
       if (!classLabels[i].compare(redBoxLabels[r])) {
@@ -2882,7 +2723,7 @@ cout << "all_range_mode: " << all_range_mode << endl;
 
     if (thisClassLabel > -1) {
       numRedBoxes++;
-      cout << "accepting red box suggestion " << r << " \"" << redBoxLabels[r] << "\" as red box number " << numRedBoxes << endl;
+      cout << "accepting red box suggestion " << r << " \"" << redBoxLabels[r] << "\" as red box number " << numRedBoxes-1 << endl;
       redBoxes[r].classLabel = thisClassLabel;
       redBoxes[r].top = cv::Point(0,0);
       redBoxes[r].bot = cv::Point(50, 50);
@@ -2898,8 +2739,7 @@ cout << "all_range_mode: " << all_range_mode << endl;
 
 #endif
 
-
-
+  saveROSParams();
 
   ros::spin();
   return 0;
