@@ -107,7 +107,7 @@ boxes are averaged and used to infer pose for objects using certain pose models.
 
 ## *New* All Range Mode
 
-To activate All Range Mode, pass 
+To activate All Range Mode :feelsgood:, pass 
 ```
 _all_range_mode:="0" or "1" 
 ```
@@ -123,13 +123,13 @@ as a **trap**.  Train a class for the background images you are likely to encoun
 train a class for a target object.  The blue box classification reported for the ARM box
 will tell you whether the target entered the area of interest.
 
-Second, red box detections become meaningful in that the system behaves like a sliding 
-window detector with an adaptive window size and aspect ratio. Thus you should activate 
+Second, red box detections become meaningful in that the system behaves like a **sliding 
+window detector** with an adaptive window size and aspect ratio. Thus you should activate 
 ARM when you expect heavy clutter and know exactly what you want to track with red boxes.
 
 You may ask yourself "If ARM mode works, why do I ever use Rail Mode?" You might also ask
 yourself "Where did my training crops come from?" and "What happens when I have 100 object
-classes?"
+classes?":suspect:
 
 ## *New* Gray Box
 
@@ -142,5 +142,21 @@ _gray_box_right:="10" _gray_box_right:="20" _gray_box_right:="30" _gray_box_righ
 ```
 which sets the top left corner of the gray box to (10,20) and the bottom right to (640-30,480-40).
 
+## *Experimental* Filter Time
 
+There is another node provided called filter_time. It publishes to
+```
+/filter_time/filtered_image
+/filter_time/filtered_pointcloud
+```
+and now is a good time to mention that you can redirect input to oberlin_detection with
+```
+_image_topic:="/filter_time/filtered_image"
+_pc_topic:="/filter_time/filtered_pointcloud"
+```
+
+## Thanks :metal:
+Thanks for reading. I hope this is at least entertaining.
+
+:japanese_goblin:
 
