@@ -39,7 +39,7 @@ window somewhere in the main part. Check the contents of data_directory/class_na
 blue box that was on the screen. Notice that run_prefix is included in the file names.
 
 Move the object around the table and capture crops of many different views. When you have enough crops, stop. If you want to
-gather more data for the same object, run the command again but i
+gather more data for the same object, run the command again but
 MAKE SURE to **change the run_prefix** so you don't overwrite your data.
 
 Run capture_object for every object you want to train, using a different subdirectory of data_directory for each class
