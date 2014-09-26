@@ -135,6 +135,9 @@ std::string class_pose_models = "unspecified_pm1 unspecified_pm2";
 
 std::string red_box_list = "";
 
+std::string image_topic = "/camera/rgb/image_raw"; // "/filter_time/filtered_image"
+std::string pc_topic = "/camera/depth_registered/points";
+
 vector<string> redBoxLabels;
 vector<string> classLabels; 
 vector<string> classPoseModels;
@@ -638,6 +641,10 @@ void loadROSParamsFromArgs()
   nh.getParam("arm_box_left", lARM);
   nh.getParam("arm_box_right", rARM);
 
+  nh.getParam("image_topic", image_topic);
+  nh.getParam("pc_topic", pc_topic);
+
+
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
 
@@ -678,6 +685,10 @@ void loadROSParams()
   nh.getParam("arm_box_left", lARM);
   nh.getParam("arm_box_right", rARM);
 
+  nh.getParam("image_topic", image_topic);
+  nh.getParam("pc_topic", pc_topic);
+
+
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
 
@@ -717,6 +728,10 @@ void saveROSParams()
   nh.setParam("arm_box_bot", bARM);
   nh.setParam("arm_box_left", lARM);
   nh.setParam("arm_box_right", rARM);
+
+  nh.setParam("image_topic", image_topic);
+  nh.setParam("pc_topic", pc_topic);
+
 }
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg){
@@ -2422,11 +2437,10 @@ int main(int argc, char **argv) {
 
   image_transport::Subscriber image_sub;
   image_transport::ImageTransport it(n);
-  image_sub = it.subscribe("/camera/rgb/image_raw", 1, imageCallback);
-  //image_sub = it.subscribe("/filter_time/filtered_image", 1, imageCallback);
+  image_sub = it.subscribe(image_topic, 1, imageCallback);
+  ros::Subscriber points = n.subscribe(pc_topic, 1, pointCloudCallback);
 
   ros::Subscriber clusters = n.subscribe("/tabletop/clusters", 1, clusterCallback);
-  ros::Subscriber points = n.subscribe("/camera/depth_registered/points", 1, pointCloudCallback);
 
   rec_objs_blue = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_labeled_objects", 10);
   rec_objs_red = n.advertise<object_recognition_msgs::RecognizedObjectArray>("red_labeled_objects", 10);
