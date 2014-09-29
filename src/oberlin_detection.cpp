@@ -15,7 +15,7 @@
 #define DRAW_BLUE // depends on green boxes
 #define DRAW_RED // depends on blue boxes
 #define DRAW_GRAY
-#define DRAW_PINK // depends on blue boxes
+//#define DRAW_PINK // depends on blue boxes
 #define DRAW_BROWN // depends on blue and gray boxes, inference, and pointcloud configuration
 
 #define DRAW_BLUE_KEYPOINTS
@@ -24,28 +24,10 @@
 
 const int k = 4;
 int redK = 1;
-int numRedBoxes = 0;
-int max_red_proposals = 1000;
-//int gBoxThreshMultiplier = 1.1;
-double gBoxThresh = 3;
-double pBoxThresh = 5;
-double threshFraction = 0.35;
-double densityPower = 1.0;//1.0/4.0;
 
 double densityDecay = 0.7;
 double depthDecay = 0.7;
 double redDecay = 0.9;
-
-
-// pink box thresholds for the principle classes
-double psPBT = 0.0;//5.0;
-double wsPBT = 0.0;//6.5;
-double gbPBT = 0.0;//6.0;
-double mbPBT = 0.0;//7.0;
-
-// adjust these to reject blue boxes
-double rejectScale = 2.0;
-double rejectAreaScale = 6*6;
 
 // point cloud affine extrinsic calibration
 /*
@@ -216,6 +198,10 @@ vector< vector<int> > bWords;
 vector<Mat> bYCrCb;
 vector<int> bLabels;
 
+// adjust these to reject blue boxes
+double rejectScale = 2.0;
+double rejectAreaScale = 6*6;
+
 
 typedef struct {
   int classLabel;
@@ -229,6 +215,8 @@ typedef struct {
 } redBox;
 
 redBox *redBoxes;
+int numRedBoxes = 0;
+int max_red_proposals = 1000;
 
 // the brownBox
 cv::Point brTop;
@@ -245,6 +233,21 @@ Eigen::Vector3d tablePosition;
 double tableBias;
 double tableBiasMargin = -5.001;
 geometry_msgs::Pose tablePose;
+
+int gBoxW = 10;
+int gBoxH = 10;
+//int gBoxThreshMultiplier = 1.1;
+double gBoxThresh = 3;
+double threshFraction = 0.35;
+
+// pink box thresholds for the principle classes
+double psPBT = 0.0;//5.0;
+double wsPBT = 0.0;//6.5;
+double gbPBT = 0.0;//6.0;
+double mbPBT = 0.0;//7.0;
+
+double pBoxThresh = 5;
+double densityPower = 1.0;//1.0/4.0;
 
 // gray box offset from the top and bottom of the screen
 int tGO = 40;
@@ -895,7 +898,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   // now update the exponential average of the density
   // and set the density to be a thresholded version of this
-  //double threshFraction = 0.35;
   double maxDensity = 0;
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
@@ -930,6 +932,10 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   // determine table edges, i.e. the gray boxes
+  lGO = gBoxW*(lGO/gBoxW);
+  rGO = gBoxW*(rGO/gBoxW);
+  tGO = gBoxH*(tGO/gBoxH);
+  bGO = gBoxH*(bGO/gBoxH);
   grayTop = cv::Point(lGO, tGO);
   grayBot = cv::Point(imW-rGO, imH-bGO);
 
@@ -939,12 +945,14 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
 #ifdef DRAW_GRAY
-  cv::Point outTop = cv::Point(grayTop.x, grayTop.y);
-  cv::Point outBot = cv::Point(grayBot.x, grayBot.y);
-  cv::Point inTop = cv::Point(grayTop.x+1,grayTop.y+1);
-  cv::Point inBot = cv::Point(grayBot.x-1,grayBot.y-1);
-  rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(128,128,128));
-  rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(32,32,32));
+  {
+    cv::Point outTop = cv::Point(grayTop.x, grayTop.y);
+    cv::Point outBot = cv::Point(grayBot.x, grayBot.y);
+    cv::Point inTop = cv::Point(grayTop.x+1,grayTop.y+1);
+    cv::Point inBot = cv::Point(grayBot.x-1,grayBot.y-1);
+    rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(128,128,128));
+    rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(32,32,32));
+  }
 #endif
 
   // truncate the density outside the gray box
@@ -993,8 +1001,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     }
   }
 
-  int gBoxW = 10;
-  int gBoxH = 10;
   int gBoxStrideX = ceil(float(gBoxW / 2.0));
   int gBoxStrideY = ceil(float(gBoxH / 2.0));
 
@@ -1015,8 +1021,15 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   int total_components = 0;
 
-  for (int x = 0; x < imW-gBoxW; x+=gBoxStrideX) {
-    for (int y = 0; y < imH-gBoxH; y+=gBoxStrideY) {
+  // make sure that green boxes stay within the grey
+  // box and stay on the canonical green matter grid
+  int xS = gBoxW*(grayTop.x/gBoxW);
+  int xF = min(grayBot.x-gBoxW, imW-gBoxW);
+  int yS = gBoxH*(grayTop.y/gBoxH);
+  int yF = min(grayBot.y-gBoxH, imH-gBoxH);
+
+  for (int x = xS; x <= xF; x+=gBoxStrideX) {
+    for (int y = yS; y <= yF; y+=gBoxStrideY) {
 
       int xt = x;
       int yt = y;
@@ -1108,6 +1121,10 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   bBots.resize(0);
   bCens.resize(0);
 
+  lARM = gBoxW*(lARM/gBoxW);
+  rARM = gBoxW*(rARM/gBoxW);
+  tARM = gBoxH*(tARM/gBoxH);
+  bARM = gBoxH*(bARM/gBoxH);
   armTop = cv::Point(lARM, tARM);
   armBot = cv::Point(imW-rARM, imH-bARM);
 
@@ -1149,8 +1166,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   // the brown box is a box representing the location of the dominant table in the scene.
   // locate a good choice for the brown box.
-  int brownBoxWidth = 2*gBoxW;//50;
-  int brownPadding = 10;
+  int brownBoxWidth = gBoxW;//50;
+  int brownPadding = 0;
   brTop = cv::Point(0,0);
   brBot = cv::Point(brownBoxWidth,brownBoxWidth);
 
@@ -1168,9 +1185,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   tableBiasSum = 0;
 
   for (int bY = grayTop.y + brownPadding; 
-	bY < grayBot.y - brownBoxWidth-brownPadding; bY=bY+(brownBoxWidth/2)) {
+	bY <= grayBot.y - brownBoxWidth-brownPadding; bY=bY+(brownBoxWidth/2)) {
     for (int bX = grayTop.x + brownPadding; 
-	bX < grayBot.x - brownBoxWidth-brownPadding; bX = bX+(brownBoxWidth/2)) {
+	bX <= grayBot.x - brownBoxWidth-brownPadding; bX = bX+(brownBoxWidth/2)) {
       cv::Point thisCen = cv::Point(bX+brownBoxWidth/2, bY+brownBoxWidth/2);
 
       thisBrTop.x = bX;
@@ -1181,8 +1198,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       int reject = 0;
       for (int c = 0; c < bTops.size(); c++) {
 	//cout << "brBox   " << c << " / " << bTops.size() << " " << fabs(bCens[c].x - thisCen.x) << endl;
-	if ( fabs(bCens[c].x - thisCen.x) < 1+((fabs(bBots[c].x-bTops[c].x)+brownBoxWidth)/2) && 
-	      fabs(bCens[c].y - thisCen.y) < 1+((fabs(bBots[c].y-bTops[c].y)+brownBoxWidth)/2) ) {
+	if ( fabs(bCens[c].x - thisCen.x) < ((fabs(bBots[c].x-bTops[c].x)+brownBoxWidth)/2)-1 && 
+	      fabs(bCens[c].y - thisCen.y) < ((fabs(bBots[c].y-bTops[c].y)+brownBoxWidth)/2)-1 ) {
 	  reject = 1;
 	  break;
 	} 
@@ -1208,7 +1225,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 	    reject = 1;
 
   #ifdef DRAW_BROWN
-	    rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(200,200,200));
+	    rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,102,204));
   #endif
 	  }
 
@@ -1219,7 +1236,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 	    cv::Point tranTop = pcCorrection(thisBrTop.x, thisBrTop.y, imW, imH);
 	    cv::Point tranBot = pcCorrection(thisBrBot.x, thisBrBot.y, imW, imH);
 
-cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << endl;
+//cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << endl;
 
 	    //pcl::PointXYZRGB p0 = pointCloud.at(thisBrTop.x, thisBrBot.y);
 	    //pcl::PointXYZRGB p1 = pointCloud.at(thisBrTop.x, thisBrTop.y);
@@ -1259,7 +1276,7 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
 	      reject = 1;
 
   #ifdef DRAW_BROWN
-	      rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,50,200));
+	      rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,76,153));
   #endif
 	    }
 
@@ -1290,7 +1307,7 @@ cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << 
 
 	      tableNormal = tableTangent2.cross(tableTangent1);
 
-cout << tableNormal << endl;
+//cout << tableNormal << endl;
 
 	      tableBiasSum = tableBiasSum + tableNormal.dot(localTablePosition);
 	      tableBias = tableBiasSum / acceptedBrBoxes;
@@ -1323,6 +1340,18 @@ cout << tableNormal << endl;
     //if (!reject)
       //break;
   }
+
+  // draw it again to go over the brown boxes
+#ifdef DRAW_GRAY
+  {
+    cv::Point outTop = cv::Point(grayTop.x, grayTop.y);
+    cv::Point outBot = cv::Point(grayBot.x, grayBot.y);
+    cv::Point inTop = cv::Point(grayTop.x+1,grayTop.y+1);
+    cv::Point inBot = cv::Point(grayBot.x-1,grayBot.y-1);
+    rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(128,128,128));
+    rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(32,32,32));
+  }
+#endif
 
   vector< vector<int> > pIoCbuffer;
 

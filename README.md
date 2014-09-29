@@ -89,9 +89,13 @@ classifier on the "bookPoses" images and save that classifier in the same file a
 When you run publish_detections, you will notice that the blue boxes are now annotated with winning pose numbers. The published
 object_recognition_msgs::RecognizedObject.type.key fields for books now contain "book %d" where %d is the winning pose index. 
 
-## Red boxes
+## Red Boxes
 
-Pass _red_box_list:="class1 class2" when running publish_detections to generate red box pairs for class1 and class2.
+Pass 
+```
+_red_box_list:="class1 class2" 
+```
+when running publish_detections to generate red box pairs for class1 and class2.
 Each red box pair consists of a bright red box and a dark red box assigned to a single class. The bright red box is the
 current frame's red box detection. The dark red box is the average red box detection.
 
