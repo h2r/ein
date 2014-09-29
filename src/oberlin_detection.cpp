@@ -295,8 +295,10 @@ cv::Point pcCorrection(double x, double y, double imW, double imH) {
 
   
 void getPointCloudPoints(cv_bridge::CvImagePtr cv_ptr, vector<cv::Point>& pointCloudPoints, double *pBoxIndicator, double thisThresh, 
-  cv::Point top, cv::Point bot, int imW, int imH, int gBoxStrideX, int gBoxStrideY, int gBoxW, int gBoxH) {
+  cv::Point topIn, cv::Point botIn, int imW, int imH, int gBoxStrideX, int gBoxStrideY, int gBoxW, int gBoxH) {
 
+  cv::Point top(gBoxStrideX*(topIn.x / gBoxStrideX), gBoxStrideY*(topIn.y / gBoxStrideY));
+  cv::Point bot(gBoxStrideX*(botIn.x / gBoxStrideX), gBoxStrideY*(botIn.y / gBoxStrideY));
   for (int x = top.x; x <= bot.x-gBoxW; x+=gBoxStrideX) {
     for (int y = top.y; y <= bot.y-gBoxH; y+=gBoxStrideY) {
       int xt = x;
@@ -354,6 +356,60 @@ bool isFiniteNumber(double x)
     return (x <= DBL_MAX && x >= -DBL_MAX); 
 } 
 
+void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descriptors, Mat& descriptors2) {
+  Size sz = yCrCb_image.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+
+  Mat colorHist(1, colorHistNumBins*colorHistNumBins, descriptors.type());
+  for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
+    colorHist.at<float>(i) = 0;
+
+  double numPix = 0;
+  // traverse all of the keypoints
+  for (int kk = 0; kk < keypoints.size(); kk++) {
+    // count pixels in a neighborhood of the keypoint
+    int yMin = max(int(keypoints[kk].pt.y)-colorHistBoxHalfWidth,0);
+    int yMax = min(int(keypoints[kk].pt.y)+colorHistBoxHalfWidth,imH);
+    int xMin = max(int(keypoints[kk].pt.x)-colorHistBoxHalfWidth,0);
+    int xMax = min(int(keypoints[kk].pt.x)+colorHistBoxHalfWidth,imW);
+    for (int y = yMin; y < yMax; y++) {
+      for (int x = xMin; x < xMax; x++) {
+
+	cv::Vec3b thisColor = yCrCb_image.at<cv::Vec3b>(y,x);
+
+	int CrBin = thisColor[1]/colorHistBinWidth;
+	int CbBin = thisColor[2]/colorHistBinWidth;
+
+	colorHist.at<float>(CrBin + CbBin*colorHistNumBins)++;
+
+	numPix++;
+      }
+    }
+  }
+  // normalize the histogram
+  for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
+    colorHist.at<float>(i) = colorHist.at<float>(i) / numPix;
+
+  descriptors2 = Mat(1, descriptors.size().width + colorHistNumBins*colorHistNumBins, descriptors.type());
+  for (int i = 0; i < descriptors.size().width; i++) 
+    descriptors2.at<float>(i) = descriptors.at<float>(i);
+  for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) {
+    //if ( colorHist.at<float>(i) > 0.1 )
+      //cout << i << ":" << colorHist.at<float>(i) << " ";
+    colorHist.at<float>(i) = min(colorHist.at<float>(i), float(colorHistThresh));
+    descriptors2.at<float>(i+descriptors.size().width) = colorHistLambda * colorHist.at<float>(i);
+  }
+}
+
+void processImage(Mat &image, Mat& gray_image, Mat& yCrCb_image, double sigma) {
+  cvtColor(image, gray_image, CV_BGR2GRAY);
+  cvtColor(image, yCrCb_image, CV_BGR2YCrCb);
+  GaussianBlur(gray_image, gray_image, cv::Size(0,0), sigma);
+  GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), sigma);
+}
+
 void bowGetFeatures(std::string classDir, const char *className, double sigma) {
 
   DIR *dpdf;
@@ -375,16 +431,17 @@ void bowGetFeatures(std::string classDir, const char *className, double sigma) {
         sprintf(filename, "%s%s/%s", classDir.c_str(), className, epdf->d_name);
         Mat image;
         image = imread(filename);
+
         Mat gray_image;
-        cvtColor(image, gray_image, CV_BGR2GRAY);
-        GaussianBlur(gray_image, gray_image, cv::Size(0,0), sigma);
+        Mat yCrCb_image;
+	processImage(image, gray_image, yCrCb_image, sigma);
 
         detector->detect(gray_image, keypoints);
         extractor->compute(gray_image, keypoints, descriptors);
 
         cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " " << endl;
 
-        if (!descriptors.empty())
+        if (!descriptors.empty() && !keypoints.empty())
           bowtrainer->add(descriptors);
       }
     }
@@ -407,22 +464,16 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 
         vector<KeyPoint> keypoints;
         Mat descriptors;
+        Mat descriptors2;
 
         char filename[1024];
         sprintf(filename, "%s%s/%s", classDir.c_str(), className, epdf->d_name);
         Mat image;
         image = imread(filename);
 
-	Size sz = image.size();
-	int imW = sz.width;
-	int imH = sz.height;
-
         Mat gray_image;
         Mat yCrCb_image;
-        cvtColor(image, gray_image, CV_BGR2GRAY);
-        cvtColor(image, yCrCb_image, CV_BGR2YCrCb);
-        GaussianBlur(gray_image, gray_image, cv::Size(0,0), sigma);
-        GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), sigma);
+	processImage(image, gray_image, yCrCb_image, sigma);
 
         detector->detect(gray_image, keypoints);
         bowExtractor->compute(gray_image, keypoints, descriptors);
@@ -430,46 +481,7 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
         cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " type: " << descriptors.type() << endl;
 
         if (!descriptors.empty() && !keypoints.empty()) {
-	
-	  Mat colorHist(1, colorHistNumBins*colorHistNumBins, descriptors.type());
-	  for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
-	    colorHist.at<float>(i) = 0;
-
-	  double numPix = 0;
-	  // traverse all of the keypoints
-	  for (int kk = 0; kk < keypoints.size(); kk++) {
-	    // count pixels in a neighborhood of the keypoint
-	    int yMin = max(int(keypoints[kk].pt.y)-colorHistBoxHalfWidth,0);
-	    int yMax = min(int(keypoints[kk].pt.y)+colorHistBoxHalfWidth,imH);
-	    int xMin = max(int(keypoints[kk].pt.x)-colorHistBoxHalfWidth,0);
-	    int xMax = min(int(keypoints[kk].pt.x)+colorHistBoxHalfWidth,imW);
-	    for (int y = yMin; y < yMax; y++) {
-	      for (int x = xMin; x < xMax; x++) {
-
-		cv::Vec3b thisColor = yCrCb_image.at<cv::Vec3b>(y,x);
-
-		int CrBin = thisColor[1]/colorHistBinWidth;
-		int CbBin = thisColor[2]/colorHistBinWidth;
-
-		colorHist.at<float>(CrBin + CbBin*colorHistNumBins)++;
-
-		numPix++;
-	      }
-	    }
-	  }
-	  // normalize the histogram
-	  for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
-	    colorHist.at<float>(i) = colorHist.at<float>(i) / numPix;
-
-	  Mat descriptors2 = Mat(1, descriptors.size().width + colorHistNumBins*colorHistNumBins, descriptors.type());
-	  for (int i = 0; i < descriptors.size().width; i++) 
-	    descriptors2.at<float>(i) = descriptors.at<float>(i);
-	  for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) {
-	    //if ( colorHist.at<float>(i) > 0.1 )
-	      //cout << i << ":" << colorHist.at<float>(i) << " ";
-	    colorHist.at<float>(i) = min(colorHist.at<float>(i), float(colorHistThresh));
-	    descriptors2.at<float>(i+descriptors.size().width) = colorHistLambda * colorHist.at<float>(i);
-	  }
+	  appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
 
           kNNfeatures.push_back(descriptors2);
           kNNlabels.push_back(label);
@@ -496,7 +508,6 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
   if (dpdf != NULL){
     while (epdf = readdir(dpdf)){
       if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
-
 	string fileName(epdf->d_name);
 
 	string poseIndex = fileName.substr(sClassName.size()+1, string::npos);
@@ -505,22 +516,16 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
 
         vector<KeyPoint> keypoints;
         Mat descriptors;
+	Mat descriptors2;
 
         char filename[1024];
         sprintf(filename, "%s%s/%s", classDir.c_str(), className, epdf->d_name);
         Mat image;
         image = imread(filename);
 
-	Size sz = image.size();
-	int imW = sz.width;
-	int imH = sz.height;
-
         Mat gray_image;
         Mat yCrCb_image;
-        cvtColor(image, gray_image, CV_BGR2GRAY);
-        cvtColor(image, yCrCb_image, CV_BGR2YCrCb);
-        GaussianBlur(gray_image, gray_image, cv::Size(0,0), sigma);
-        GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), sigma);
+	processImage(image, gray_image, yCrCb_image, sigma);
 
         detector->detect(gray_image, keypoints);
         bowExtractor->compute(gray_image, keypoints, descriptors);
@@ -529,47 +534,7 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
 	  " type: " << descriptors.type() << " label: " << label << endl;
 
         if (!descriptors.empty() && !keypoints.empty()) {
-	
-	  Mat colorHist(1, colorHistNumBins*colorHistNumBins, descriptors.type());
-	  for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
-	    colorHist.at<float>(i) = 0;
-
-	  double numPix = 0;
-	  // traverse all of the keypoints
-	  for (int kk = 0; kk < keypoints.size(); kk++) {
-	    // count pixels in a neighborhood of the keypoint
-	    int yMin = max(int(keypoints[kk].pt.y)-colorHistBoxHalfWidth,0);
-	    int yMax = min(int(keypoints[kk].pt.y)+colorHistBoxHalfWidth,imH);
-	    int xMin = max(int(keypoints[kk].pt.x)-colorHistBoxHalfWidth,0);
-	    int xMax = min(int(keypoints[kk].pt.x)+colorHistBoxHalfWidth,imW);
-	    for (int y = yMin; y < yMax; y++) {
-	      for (int x = xMin; x < xMax; x++) {
-
-		cv::Vec3b thisColor = yCrCb_image.at<cv::Vec3b>(y,x);
-
-		int CrBin = thisColor[1]/colorHistBinWidth;
-		int CbBin = thisColor[2]/colorHistBinWidth;
-
-		colorHist.at<float>(CrBin + CbBin*colorHistNumBins)++;
-
-		numPix++;
-	      }
-	    }
-	  }
-	  // normalize the histogram
-	  for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
-	    colorHist.at<float>(i) = colorHist.at<float>(i) / numPix;
-
-	  Mat descriptors2 = Mat(1, descriptors.size().width + colorHistNumBins*colorHistNumBins, descriptors.type());
-	  for (int i = 0; i < descriptors.size().width; i++) 
-	    descriptors2.at<float>(i) = descriptors.at<float>(i);
-	  for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) {
-	    //if ( colorHist.at<float>(i) > 0.1 )
-	      //cout << i << ":" << colorHist.at<float>(i) << " ";
-	    colorHist.at<float>(i) = min(colorHist.at<float>(i), float(colorHistThresh));
-	    descriptors2.at<float>(i+descriptors.size().width) = colorHistLambda * colorHist.at<float>(i);
-	  }
-
+	  appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
           kNNfeatures.push_back(descriptors);
           kNNlabels.push_back(label);
         }
@@ -1372,22 +1337,19 @@ cout << tableNormal << endl;
 fprintf(stderr, " object check1"); fflush(stderr);
     vector<KeyPoint>& keypoints = bKeypoints[c];
     Mat descriptors;
+    Mat descriptors2;
 
 fprintf(stderr, " a"); fflush(stderr);
 
     Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
     Mat gray_image;
     Mat& yCrCb_image = bYCrCb[c];
-fprintf(stderr, "b"); fflush(stderr);
-    cvtColor(crop, gray_image, CV_BGR2GRAY);
-    cvtColor(crop, yCrCb_image, CV_BGR2YCrCb);
-fprintf(stderr, "c"); fflush(stderr);
-    GaussianBlur(gray_image, gray_image, cv::Size(0,0), grayBlur);
-    GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), grayBlur);
-fprintf(stderr, "d"); fflush(stderr);
+    processImage(crop, gray_image, yCrCb_image, grayBlur);
 
     detector->detect(gray_image, keypoints);
     bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
+
+    // save the word assignments for the keypoints so we can use them for red boxes
 fprintf(stderr, "e "); fflush(stderr);
 cout << "pIoCbuffer: " << pIoCbuffer.size() < " "; cout.flush();
 cout << "kpSize: " << keypoints.size() < " "; cout.flush();
@@ -1421,51 +1383,12 @@ cout << "[" << w << "]: " << numDescrOfWord << " ";
 
     }
     
-    int crH = bBots[c].y-bTops[c].y;
-    int crW = bBots[c].x-bTops[c].x;
-
 fprintf(stderr, " object check2"); fflush(stderr);
     double label = -1;
     double poseIndex = -1;
     if (!descriptors.empty() && !keypoints.empty()) {
     
-      Mat colorHist(1, colorHistNumBins*colorHistNumBins, descriptors.type());
-      for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
-	colorHist.at<float>(i) = 0;
-
-      double numPix = 0;
-      // traverse all of the keypoints
-      for (int kk = 0; kk < keypoints.size(); kk++) {
-	// count pixels in a neighborhood of the keypoint
-	int yMin = max(int(keypoints[kk].pt.y)-colorHistBoxHalfWidth,0);
-	int yMax = min(int(keypoints[kk].pt.y)+colorHistBoxHalfWidth,crH);
-	int xMin = max(int(keypoints[kk].pt.x)-colorHistBoxHalfWidth,0);
-	int xMax = min(int(keypoints[kk].pt.x)+colorHistBoxHalfWidth,crW);
-	for (int y = yMin; y < yMax; y++) {
-	  for (int x = xMin; x < xMax; x++) {
-
-	    cv::Vec3b thisColor = yCrCb_image.at<cv::Vec3b>(y,x);
-
-	    int CrBin = thisColor[1]/colorHistBinWidth;
-	    int CbBin = thisColor[2]/colorHistBinWidth;
-
-	    colorHist.at<float>(CrBin + CbBin*colorHistNumBins)++;
-
-	    numPix++;
-	  }
-	}
-      }
-      // normalize the histogram
-      for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
-	colorHist.at<float>(i) = colorHist.at<float>(i) / numPix;
-
-      Mat descriptors2 = Mat(1, descriptors.size().width + colorHistNumBins*colorHistNumBins, descriptors.type());
-      for (int i = 0; i < descriptors.size().width; i++) 
-	descriptors2.at<float>(i) = descriptors.at<float>(i);
-      for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) {
-	colorHist.at<float>(i) = min(colorHist.at<float>(i), float(colorHistThresh));
-	descriptors2.at<float>(i+descriptors.size().width) = colorHistLambda * colorHist.at<float>(i);
-      }
+      appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
 
       label = kNN->find_nearest(descriptors2,k);
       if (0 == classPoseModels[label].compare("G")) {
@@ -1896,32 +1819,17 @@ cout << "table check 2" << endl;
 	/*3*/itTop.y = hTop.y;
 	/*3*/itBot.y = iy;
 	for (/*3*/; itBot.y <= hBot.y; /*4*/) {
-
-
 	  // score this crop
 	  vector<KeyPoint> keypoints;
-	  /*
-	  Mat descriptors;
-
-	  Mat crop = original_cam_img(cv::Rect(itTop.x, itTop.y, itBot.x-itTop.x, itBot.y-itTop.y));
-	  Mat gray_image;
-	  Mat yCrCb_image;
-	  cvtColor(crop, gray_image, CV_BGR2GRAY);
-	  cvtColor(crop, yCrCb_image, CV_BGR2YCrCb);
-	  GaussianBlur(gray_image, gray_image, cv::Size(0,0), grayBlur);
-	  GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), grayBlur);
-
-	  detector->detect(gray_image, keypoints);
-	  bowExtractor->compute(gray_image, keypoints, descriptors);
-	  */
+	  Mat descriptors(1,vocabNumWords, CV_32F);
+	  Mat descriptors2;
 
 	  Mat& yCrCb_image = bYCrCb[c];
-	  cout << &(bYCrCb[c]) << endl;
+//cout << &(bYCrCb[c]) << endl;
 
 	  cv::Point lItTop(itTop.x-hTop.x, itTop.y-hTop.y);
 	  cv::Point lItBot(itBot.x-hTop.x, itBot.y-hTop.y);
 
-	  Mat descriptors(1,vocabNumWords, CV_32F);
 	  float totalWords = bWords[c].size();
 	  float countedWords = 0;
 //cout << "totalWords: " << totalWords;
@@ -1954,68 +1862,23 @@ cout << "table check 2" << endl;
       #endif
 	    }
 	  }
-	  if (countedWords > 0)
-	    for (int w = 0; w < vocabNumWords; w++) {
-	      descriptors.at<float>(w) = descriptors.at<float>(w) / countedWords;
-	    }
 
 	  Mat neighbors(1, redK, CV_32F);
 	  Mat dist;
 	  if (countedWords > 0) {
-	    Mat colorHist(1, colorHistNumBins*colorHistNumBins, descriptors.type());
-	    /**/
-	    for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
-	      colorHist.at<float>(i) = 0;
-
-	    double numPix = 0;
-	    // traverse all of the keypoints
-	    for (int kk = 0; kk < keypoints.size(); kk++) {
-	      // count pixels in a neighborhood of the keypoint
-	      int yMin = max(int(keypoints[kk].pt.y)-colorHistBoxHalfWidth,0);
-	      int yMax = min(int(keypoints[kk].pt.y)+colorHistBoxHalfWidth,crH);
-	      int xMin = max(int(keypoints[kk].pt.x)-colorHistBoxHalfWidth,0);
-	      int xMax = min(int(keypoints[kk].pt.x)+colorHistBoxHalfWidth,crW);
-	      for (int y = yMin; y < yMax; y++) {
-		for (int x = xMin; x < xMax; x++) {
-
-		  cv::Vec3b thisColor = yCrCb_image.at<cv::Vec3b>(y,x);
-
-		  int CrBin = thisColor[1]/colorHistBinWidth;
-		  int CbBin = thisColor[2]/colorHistBinWidth;
-
-		  colorHist.at<float>(CrBin + CbBin*colorHistNumBins)++;
-
-		  numPix++;
-		}
-	      }
+	    // normalize the BoW
+	    for (int w = 0; w < vocabNumWords; w++) {
+	      descriptors.at<float>(w) = descriptors.at<float>(w) / countedWords;
 	    }
-	    // normalize the histogram
-	    for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
-	      colorHist.at<float>(i) = colorHist.at<float>(i) / numPix;
-	    /**/
 
-	    Mat descriptors2 = Mat(1, descriptors.size().width + colorHistNumBins*colorHistNumBins, descriptors.type());
-	    for (int i = 0; i < descriptors.size().width; i++) 
-	      descriptors2.at<float>(i) = descriptors.at<float>(i);
-
-	    /**/
-	    for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) {
-	      colorHist.at<float>(i) = min(colorHist.at<float>(i), float(colorHistThresh));
-	      descriptors2.at<float>(i+descriptors.size().width) = colorHistLambda * colorHist.at<float>(i);
-	    }
-	    /**/
+	    appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
 
 	    //kNN->find_nearest(descriptors, redK, 0, 0, &neighbors, &dist);
 	    kNN->find_nearest(descriptors2, redK, 0, 0, &neighbors, &dist);
 
-//if (r == 2)
-//rectangle(cv_ptr->image, itTop, itBot, cv::Scalar(0,0,128));
-
 	    int thisJ = 0;
 	    float thisD = 1e6;
-	    for (int n = 0; n < redK; n++) 
-	    //for (int n = 0; n < 1; n++) 
-	    {
+	    for (int n = 0; n < redK; n++) {
 	      cout << "  neighbors[" << n <<"] is " << (neighbors.at<float>(n)) << endl;
 	      if (neighbors.at<float>(n) == float(thisClass)) {
 		thisJ++;
@@ -2032,7 +1895,8 @@ cout << "table check 2" << endl;
 
 	  }
 
-	  cout << "class: " << thisClass << " descriptors: " << keypoints.size() << " " << itBot << itTop << "  " << hTop << hBot << endl;
+	  cout << "class: " << thisClass << " descriptors: " << keypoints.size() << " " 
+	    << itBot << itTop << "  " << hTop << hBot << endl;
 
 	  /*4*/itTop.y += redStride;
 	  /*4*/itBot.y += redStride;
@@ -2121,7 +1985,7 @@ cout << "table check 2" << endl;
     #ifdef PUBLISH_OBJECTS
     vector<cv::Point> pointCloudPoints;
     getPointCloudPoints(cv_ptr, pointCloudPoints, pBoxIndicator, thisThresh, 
-      dTop, dBot, imW, imH, gBoxStrideX, gBoxStrideY, gBoxW, gBoxH);
+      dTop    , dBot    , imW, imH, gBoxStrideX, gBoxStrideY, gBoxW, gBoxH);
 
     if (thisClass >= 0) {
 cout << "publish red check" << endl;
