@@ -174,7 +174,7 @@ pcl::PointCloud<pcl::PointXYZRGB> pointCloud;
 
 #define MY_FONT FONT_HERSHEY_PLAIN
 
-#define ORIENTATIONS 36 
+#define ORIENTATIONS 72//36 
 #define O_FILTER_WIDTH 25
 #define O_FILTER_SPOON_HEAD_WIDTH 6 
 #define O_FILTER_SPOON_SHAFT_WIDTH 1
@@ -231,7 +231,14 @@ redBox *redBoxes;
 int numRedBoxes = 0;
 double persistenceThresh = 0.5;
 int max_red_proposals = 1000;
-double slidesPerFrame = 0.20;
+double slidesPerFrame = 0.0;
+int rbMinWidth = 10;
+int rbMaxWidth = 400;
+
+int redRounds = 10;
+int redStride = 5;
+int redPeriod = 4;
+int redDigitsWSRN = 5; 
 
 // the brownBox
 cv::Point brTop;
@@ -248,6 +255,7 @@ Eigen::Vector3d tablePosition;
 double tableBias;
 double tableBiasMargin = -5.001;
 geometry_msgs::Pose tablePose;
+Mat tablePerspective;
 
 double *gBoxIndicator;
 int gBoxW = 10;
@@ -1029,7 +1037,28 @@ void getOrientation(cv_bridge::CvImagePtr cv_ptr, Mat& img_cvt,
 fprintf(stderr, " object checkS"); fflush(stderr);
 cout << top << " " << bot << " "; cout.flush();
 
-      Mat gCrop = img_cvt(cv::Rect(top.x, top.y, bot.x-top.x, bot.y-top.y));
+      Mat gCrop1 = img_cvt(cv::Rect(top.x, top.y, bot.x-top.x, bot.y-top.y));
+
+      // grow to the max dimension to avoid distortion
+      int crows = gCrop1.rows;
+      int ccols = gCrop1.cols;
+      int maxDim = max(crows, ccols);
+      Mat gCrop(maxDim, maxDim, gCrop1.type());
+      int tRy = (maxDim-crows)/2;
+      int tRx = (maxDim-ccols)/2;
+
+      for (int x = 0; x < maxDim; x++) {
+	for (int y = 0; y < maxDim; y++) {
+	  int tx = x - tRx;
+	  int ty = y - tRy;
+	  if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols)
+	    gCrop.at<cv::Vec3b>(y, x) = gCrop1.at<cv::Vec3b>(ty, tx);
+	  else
+	    gCrop.at<cv::Vec3b>(y, x) = cv::Vec<uchar, 3>(0,0,0);
+	}
+      }
+//cout << endl << gCrop1 << endl << endl << endl << endl << gCrop << endl;
+
       cv::resize(gCrop, gCrop, orientedFilters[0].size());
       gCrop.convertTo(gCrop, orientedFilters[0].type());
 
@@ -1050,7 +1079,10 @@ cout << top << " " << bot << " "; cout.flush();
       vCrop = vCrop.mul(0.5);
 
       Mat scaledFilter;
+      // XXX
       cv::resize(orientedFilters[winningO], scaledFilter, vCrop.size());
+      //cv::resize(orientedFilters[fc % ORIENTATIONS], scaledFilter, vCrop.size());
+cout << "FILTERS: " << fc << " " << orientedFilters[fc % ORIENTATIONS].size() << endl;
       scaledFilter = biggestL1*scaledFilter;
        
       vector<Mat> channels;
@@ -1074,6 +1106,97 @@ fprintf(stderr, " object check4"); fflush(stderr);
       augmentedLabelName = augmentedLabelName + " " + result;
     }
   }
+}
+
+void init_oriented_filters() {
+
+  for (int x = 0; x < O_FILTER_WIDTH; x++) {
+    for (int y = 0; y < O_FILTER_WIDTH; y++) {
+      orientedFilters[0].at<double>(y,x) = 0.0;
+    }
+  }
+  // Spoon filters are used to estimate the orientation of spoon-like objects
+  // based on their green maps. Hard coded for convenience. 
+  // This approach is pretty flexible and could work for other types of objects.
+  // A map could be estimated by some other process and loaded here, or just represented
+  // as bitmap and converted here.
+  // TODO make this comparison based based on an affine transformation, it will be more accurate.
+/*
+  // Diagonal Spoon Filter
+  for (int x = 0; x < O_FILTER_SPOON_HEAD_WIDTH; x++) {
+    for (int y = 0; y < O_FILTER_SPOON_HEAD_WIDTH; y++) {
+      orientedFilters[0].at<double>(y,x) = 1.0;
+    }
+  }
+  for (int x = 0; x < O_FILTER_WIDTH; x++) {
+    for (int y = max(0,x-O_FILTER_SPOON_SHAFT_WIDTH); y < min(O_FILTER_WIDTH, x+O_FILTER_SPOON_SHAFT_WIDTH); y++) {
+      orientedFilters[0].at<double>(y,x) = 1.0;
+    }
+  }
+*/
+/*
+  // Vertical Spoon Filter
+  int center = (O_FILTER_WIDTH-1)/2;
+  for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH; x <= center+O_FILTER_SPOON_SHAFT_WIDTH; x++) {
+    for (int y = 0; y < O_FILTER_WIDTH; y++) {
+      orientedFilters[0].at<double>(y,x) = 1.0;
+    }
+  }
+  for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH-1; x <= center+O_FILTER_SPOON_SHAFT_WIDTH+1; x++) {
+    for (int y = 1; y < 3+O_FILTER_SPOON_HEAD_WIDTH; y++) {
+      orientedFilters[0].at<double>(y,x) = 1.0;
+    }
+  }
+  for (int x = center-O_FILTER_SPOON_HEAD_WIDTH; x <= center+O_FILTER_SPOON_HEAD_WIDTH; x++) {
+    for (int y = 2; y < 2+O_FILTER_SPOON_HEAD_WIDTH; y++) {
+      orientedFilters[0].at<double>(y,x) = 1.0;
+    }
+  }
+*/
+  // Vertical Knife Filter
+  int center = (O_FILTER_WIDTH-1)/2;
+  for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH; x <= center+O_FILTER_SPOON_SHAFT_WIDTH; x++) {
+    for (int y = 0; y < O_FILTER_WIDTH; y++) {
+      orientedFilters[0].at<double>(y,x) = 1.0;
+    }
+  }
+
+  Mat tmp; 
+
+  // it is important to L1 normalize the filters so that comparing dot products makes sense.
+  // that is, they should all respond equally to a constant image.
+  biggestL1 = -1;
+
+  for (int o = 1; o < ORIENTATIONS; o++) {
+    // Compute a rotation matrix with respect to the center of the image
+    Point center = Point(O_FILTER_WIDTH/2, O_FILTER_WIDTH/2);
+    double angle = o*360.0/ORIENTATIONS;
+    double scale = 1.0;
+
+    // Get the rotation matrix with the specifications above
+    Mat rot_mat = getRotationMatrix2D( center, angle, scale );
+
+    // Rotate the warped image
+    //warpAffine(orientedFilters[0], orientedFilters[o], rot_mat, orientedFilters[o].size());
+    warpAffine(orientedFilters[0], tmp, rot_mat, orientedFilters[o].size());
+    warpPerspective(tmp, orientedFilters[o], tablePerspective, orientedFilters[o].size(), INTER_NEAREST);
+
+    double l1norm = orientedFilters[o].dot(Mat::ones(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F));
+    orientedFilters[o] = orientedFilters[o] / l1norm;
+    
+    if (l1norm > biggestL1)
+      biggestL1 = l1norm;
+  }
+
+  tmp = orientedFilters[0].clone();
+  warpPerspective(tmp, orientedFilters[0], tablePerspective, orientedFilters[0].size(), INTER_NEAREST);
+cout << endl << tablePerspective << endl;
+cout << endl << orientedFilters[0] << endl;
+
+  double l1norm = orientedFilters[0].dot(Mat::ones(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F));
+  orientedFilters[0] = orientedFilters[0] / l1norm;
+  if (l1norm > biggestL1)
+    biggestL1 = l1norm;
 }
 
 
@@ -1139,6 +1262,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   int boxesToConsider= 50000;
 
   //fc = (fc + 1) % fcRange;
+  // XXX
+  fc = fc++;
 
   Size sz = img_cvt.size();
   int imW = sz.width;
@@ -1650,6 +1775,83 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 	      tablePose.position.y = tablePosition.y();
 	      tablePose.position.z = tablePosition.z();
 
+	      cv::Point2f srcQuad[4]; 
+	      cv::Point2f dstQuad[4]; 
+
+	      double normalizer = 1.0;
+
+	      double scale = 1;
+	      srcQuad[0].x = 0;
+	      srcQuad[0].y = 0;
+
+	      srcQuad[1].x = scale;
+	      srcQuad[1].y = 0;
+
+	      srcQuad[2].x = 0;
+	      srcQuad[2].y = scale;
+
+	      srcQuad[3].x = scale;
+	      srcQuad[3].y = scale;
+
+	      //dstQuad[0].x = 0;
+	      //dstQuad[0].y = 0;
+
+/*
+	      tableNormal = -tableNormal;
+
+	      normalizer = tableNormal.z();
+	      if (fabs(normalizer) < 1e-6)
+		normalizer = 1.0;
+	      dstQuad[0].x = (tableNormal.x()) / normalizer;
+	      dstQuad[0].y = (tableNormal.y()) / normalizer;
+
+	      normalizer = tableTangent2.z() + tableNormal.z();
+	      if (fabs(normalizer) < 1e-6)
+		normalizer = 1.0;
+	      dstQuad[1].x = (tableTangent2.x() + tableNormal.x()) / normalizer;
+	      dstQuad[1].y = (tableTangent2.y() + tableNormal.y()) / normalizer;
+
+	      normalizer = tableTangent1.z() + tableNormal.z();
+	      if (fabs(normalizer) < 1e-6)
+		normalizer = 1.0;
+	      dstQuad[2].x = (-tableTangent1.x() + tableNormal.x()) / normalizer;
+	      dstQuad[2].y = (-tableTangent1.y() + tableNormal.y()) / normalizer;
+
+	      normalizer = tableTangent1.z() + tableTangent2.z() + tableNormal.z();
+	      if (fabs(normalizer) < 1e-6)
+		normalizer = 1.0;
+	      dstQuad[3].x = (tableTangent2.x() + -tableTangent1.x() + tableNormal.x()) / normalizer;
+	      dstQuad[3].y = (tableTangent2.y() + -tableTangent1.y() + tableNormal.y()) / normalizer;
+
+	      tableNormal = -tableNormal;
+
+	      dstQuad[0].x -= dstQuad[0].x;
+	      dstQuad[0].y -= dstQuad[0].y;
+	      dstQuad[1].x -= dstQuad[0].x;
+	      dstQuad[1].y -= dstQuad[0].y;
+	      dstQuad[2].x -= dstQuad[0].x;
+	      dstQuad[2].y -= dstQuad[0].y;
+	      dstQuad[3].x -= dstQuad[0].x;
+	      dstQuad[3].y -= dstQuad[0].y;
+*/
+
+
+
+	      dstQuad[0].x = 0;
+	      dstQuad[0].y = 0;
+	      dstQuad[1].x = tableTangent2.x();
+	      dstQuad[1].y = tableTangent2.y();
+	      dstQuad[2].x = -tableTangent1.x();
+	      dstQuad[2].y = -tableTangent1.y();
+	      dstQuad[3].x = -tableTangent1.x() + tableTangent2.x();
+	      dstQuad[3].y = -tableTangent1.y() + tableTangent2.y();
+
+	      tablePerspective = getPerspectiveTransform(srcQuad, dstQuad);
+
+//cout << endl << "tablePerspective, R: " << tablePerspective << R << endl;
+//cout << srcQuad[0] << srcQuad[1] << srcQuad[2] << srcQuad[3] << endl; 
+//cout << dstQuad[0] << dstQuad[1] << dstQuad[2] << dstQuad[3] << endl; 
+
 	      rejectAll = 0;
 	    }
 	  }
@@ -1661,6 +1863,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     //if (!reject)
       //break;
   }
+  
+  init_oriented_filters();
 
   // draw it again to go over the brown boxes
 #ifdef DRAW_GRAY
@@ -1871,7 +2075,7 @@ cout << "dealing with redBox[" << r << "]" << endl;
 // make feature computation efficient
 // this should give interesting behavior
 
-    int redRounds = 10;
+    int thisRedStride = redStride*redPeriod;
     int winJ = -1;
     float winD = 1e6;
     cv::Point winTop(0,0);
@@ -1886,21 +2090,22 @@ cout << "dealing with redBox[" << r << "]" << endl;
       redRounds = 1;
 
     for (int redR = 0; redR < redRounds; redR++) {
-      int redStride = 10;
 
       int proposalValid = 0;
       int proposals = 0;
 
       //int deltaAmplitude = ((lrand48() % 3)*10);
       // "wide-scale random noise"
-      int dmax = 5;
-      int digits = (lrand48() % dmax);
-      int deltaAmplitude = (1 << digits);
-      for (int d = 0; d < digits; d++)
-	deltaAmplitude += ((lrand48() % 2) << d);
+      int dmax = redDigitsWSRN;
+      int digits = 1 + (lrand48() % (dmax));
+      int deltaAmplitude = (1 << (digits-1)) + (lrand48() % (1 << (digits-1)));
+      
+      //int dmax = 5;
+      //int digits = (lrand48() % dmax);
+      //int deltaAmplitude = (1 << digits);
+      //for (int d = 0; d < digits; d++)
+	//deltaAmplitude += ((lrand48() % 2) << d);
 
-      int rbMinWidth = 10;
-      int rbMaxWidth = 400;
       cv::Point rbDelta(0,0);
       cv::Point cornerDelta(0,0);
 
@@ -1965,8 +2170,17 @@ cout << "dealing with redBox[" << r << "]" << endl;
       if (accepted) {
 	theseBlueBoxes.push_back(thisRedBox->rootBlueBox);
       } else {
-	for (int bb = 0; bb < bTops.size(); bb++) {
-	  theseBlueBoxes.push_back(bb);
+	int root_search = 0;
+	if (root_search == 0) {
+	  // search every box
+	  for (int bb = 0; bb < bTops.size(); bb++) {
+	    theseBlueBoxes.push_back(bb);
+	  }
+	} else if (root_search == 1) {
+	  // search a random box
+	  // consider removing
+	  if (bTops.size() > 0)
+	    theseBlueBoxes.push_back(lrand48() % bTops.size());
 	}
       }
 
@@ -1992,8 +2206,10 @@ cout << "dealing with redBox[" << r << "]" << endl;
 	  hBot.x = max(hBot.x, bTops[c].x);
 	  hBot.y = max(hBot.y, bTops[c].y);
 
-	  if ((hBot.x-hTop.x < rbMinWidth) || (hBot.y-hTop.y < rbMinWidth))
+	  if ((hBot.x-hTop.x < rbMinWidth) || (hBot.y-hTop.y < rbMinWidth)) {
+cout << "REJECTED class: " << thisClass << " bb: " << c << hTop << hBot << " prop: " << proposals << endl;
 	    continue;
+	  }
 	}
 	
 	int ix = min(hTop.x + thisRedBox->bot.x + rbDelta.x, hBot.x);
@@ -2115,12 +2331,12 @@ cout << " thisJ: " << thisJ << " slide: " << slideOrNot << " redR: " << redR << 
 cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.size() << " " 
   << itBot << itTop << "  " << hTop << hBot << " prop: " << proposals << endl;
 
-	    /*4*/itTop.y += redStride;
-	    /*4*/itBot.y += redStride;
+	    /*4*/itTop.y += thisRedStride;
+	    /*4*/itBot.y += thisRedStride;
 	  }
 
-	  /*2*/itTop.x += redStride;
-	  /*2*/itBot.x += redStride;
+	  /*2*/itTop.x += thisRedStride;
+	  /*2*/itBot.x += thisRedStride;
 	}
       }
       
@@ -2151,8 +2367,13 @@ cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.
     // always decay persistence but only add it if we got a hit
     thisRedBox->persistence = redDecay*thisRedBox->persistence;
     if (winD < 1e6) {
-      thisRedBox->anchor.x = redDecay*thisRedBox->anchor.x + (1.0-redDecay)*winTop.x;
-      thisRedBox->anchor.y = redDecay*thisRedBox->anchor.y + (1.0-redDecay)*winTop.y;
+      if (thisRedBox->persistence > persistenceThresh) {
+	thisRedBox->anchor.x = redDecay*thisRedBox->anchor.x + (1.0-redDecay)*winTop.x;
+	thisRedBox->anchor.y = redDecay*thisRedBox->anchor.y + (1.0-redDecay)*winTop.y;
+      } else {
+	thisRedBox->anchor.x = winTop.x;
+	thisRedBox->anchor.y = winTop.y;
+      }
       thisRedBox->persistence = thisRedBox->persistence + (1.0-redDecay)*1.0;
     
       thisRedBox->poseIndex = poseIndex;
@@ -2611,76 +2832,9 @@ int main(int argc, char **argv) {
   // manually definining spoon filters
   orientedFilters = new Mat[ORIENTATIONS];
   orientedFilters[0].create(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F);
-  for (int x = 0; x < O_FILTER_WIDTH; x++) {
-    for (int y = 0; y < O_FILTER_WIDTH; y++) {
-      orientedFilters[0].at<double>(y,x) = 0.0;
-    }
-  }
 
-  // Spoon filters are used to estimate the orientation of spoon-like objects
-  // based on their green maps. Hard coded for convenience. 
-  // This approach is pretty flexible and could work for other types of objects.
-  // A map could be estimated by some other process and loaded here, or just represented
-  // as bitmap and converted here.
-  // TODO make this comparison based based on an affine transformation, it will be more accurate.
-/*
-  // Diagonal Spoon Filter
-  for (int x = 0; x < O_FILTER_SPOON_HEAD_WIDTH; x++) {
-    for (int y = 0; y < O_FILTER_SPOON_HEAD_WIDTH; y++) {
-      orientedFilters[0].at<double>(y,x) = 1.0;
-    }
-  }
-  for (int x = 0; x < O_FILTER_WIDTH; x++) {
-    for (int y = max(0,x-O_FILTER_SPOON_SHAFT_WIDTH); y < min(O_FILTER_WIDTH, x+O_FILTER_SPOON_SHAFT_WIDTH); y++) {
-      orientedFilters[0].at<double>(y,x) = 1.0;
-    }
-  }
-*/
-  // Vertical Spoon Filter
-  int center = (O_FILTER_WIDTH-1)/2;
-  for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH; x <= center+O_FILTER_SPOON_SHAFT_WIDTH; x++) {
-    for (int y = 0; y < O_FILTER_WIDTH; y++) {
-      orientedFilters[0].at<double>(y,x) = 1.0;
-    }
-  }
-  for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH-1; x <= center+O_FILTER_SPOON_SHAFT_WIDTH+1; x++) {
-    for (int y = 1; y < 3+O_FILTER_SPOON_HEAD_WIDTH; y++) {
-      orientedFilters[0].at<double>(y,x) = 1.0;
-    }
-  }
-  for (int x = center-O_FILTER_SPOON_HEAD_WIDTH; x <= center+O_FILTER_SPOON_HEAD_WIDTH; x++) {
-    for (int y = 2; y < 2+O_FILTER_SPOON_HEAD_WIDTH; y++) {
-      orientedFilters[0].at<double>(y,x) = 1.0;
-    }
-  }
-
-  // it is important to L1 normalize the filters so that comparing dot products makes sense.
-  // that is, they should all respond equally to a constant image.
-  double l1norm = orientedFilters[0].dot(Mat::ones(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F));
-  biggestL1 = l1norm;
-
-  for (int o = 1; o < ORIENTATIONS; o++) {
-    // Compute a rotation matrix with respect to the center of the image
-    Point center = Point(O_FILTER_WIDTH/2, O_FILTER_WIDTH/2);
-    double angle = o*360.0/ORIENTATIONS;
-    double scale = 1.0;
-
-    // Get the rotation matrix with the specifications above
-    Mat rot_mat = getRotationMatrix2D( center, angle, scale );
-
-    // Rotate the warped image
-    warpAffine(orientedFilters[0], orientedFilters[o], rot_mat, orientedFilters[o].size());
-
-    double l1norm = orientedFilters[o].dot(Mat::ones(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F));
-    orientedFilters[o] = orientedFilters[o] / l1norm;
-    
-    if (l1norm > biggestL1)
-      biggestL1 = l1norm;
-  }
-
-  l1norm = orientedFilters[0].dot(Mat::ones(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F));
-  orientedFilters[0] = orientedFilters[0] / l1norm;
-
+  tablePerspective = Mat::eye(3,3,CV_32F);
+  init_oriented_filters();
 
 #ifdef RUN_TRACKING
   // initialize the redBoxes
@@ -2709,7 +2863,7 @@ int main(int argc, char **argv) {
       redBoxes[r].numGreenBoxes;
       redBoxes[r].anchor = cv::Point(0,0);
       redBoxes[r].persistence = 0;
-      redBoxes[r].lastDistance = 0;
+      redBoxes[r].lastDistance = FLT_MAX;
       redBoxes[r].poseIndex = 0;
       redBoxes[r].winningO = 0;
     } else {
