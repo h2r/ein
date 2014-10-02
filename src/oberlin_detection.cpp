@@ -232,13 +232,13 @@ int numRedBoxes = 0;
 double persistenceThresh = 0.5;
 int max_red_proposals = 1000;
 double slidesPerFrame = 0.0;
-int rbMinWidth = 10;
+int rbMinWidth = 50;
 int rbMaxWidth = 400;
 
 int redRounds = 10;
 int redStride = 5;
 int redPeriod = 4;
-int redDigitsWSRN = 5; 
+int redDigitsWSRN = 6; 
 
 // the brownBox
 cv::Point brTop;
@@ -255,7 +255,11 @@ Eigen::Vector3d tablePosition;
 double tableBias;
 double tableBiasMargin = -5.001;
 geometry_msgs::Pose tablePose;
+Eigen::Quaternionf tableQuaternion;
 Mat tablePerspective;
+Eigen::Quaternionf tableLabelQuaternion;
+string table_label_class_name = "";
+
 
 double *gBoxIndicator;
 int gBoxW = 10;
@@ -795,6 +799,8 @@ void loadROSParams()
   nh.getParam("image_topic", image_topic);
   nh.getParam("pc_topic", pc_topic);
 
+  nh.getParam("table_label_class_name", table_label_class_name);
+
 
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
@@ -851,13 +857,7 @@ cout << "hit a publishable object " << label << " " << classLabels[label]
 
   geometry_msgs::Pose object_pose;
 
-  // XXX obtain the quaternion pose for the table
-  Eigen::Quaternionf tableQuaternion;
-  tableQuaternion.x() = tablePose.orientation.x;
-  tableQuaternion.y() = tablePose.orientation.y;
-  tableQuaternion.z() = tablePose.orientation.z;
-  tableQuaternion.w() = tablePose.orientation.w;
-
+  // XXX calculate orientation elsewhere
   cv::Matx33f R;
   R(0,0) = 1; R(0,1) = 0; R(0,2) = 0;
   R(1,0) = 0; R(1,1) = 1; R(1,2) = 0;
@@ -1074,6 +1074,35 @@ cout << top << " " << bot << " "; cout.flush();
 	}
       }
 
+      cv::Matx33f R;
+      R(0,0) = 1; R(0,1) = 0; R(0,2) = 0;
+      R(1,0) = 0; R(1,1) = 1; R(1,2) = 0;
+      R(2,0) = 0; R(2,1) = 0; R(2,2) = 1;
+
+      // handle the rotation differently depending on the class
+      // if we have a spoon
+      if (0 == classPoseModels[label].compare("S")) {
+	double theta = (M_PI / 2.0) + (winningO*2*M_PI/ORIENTATIONS);
+	R(0,0) = cos(theta); R(0,1) = -sin(theta); R(0,2) = 0;
+	R(1,0) = sin(theta); R(1,1) =  cos(theta); R(1,2) = 0;
+	R(2,0) = 0;          R(2,1) = 0;           R(2,2) = 1;
+      }
+
+cout << "constructing rotation matrix" << endl;
+
+      Eigen::Matrix3f rotation;
+      rotation << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
+      Eigen::Quaternionf objectQuaternion(rotation);
+
+      objectQuaternion = tableQuaternion * objectQuaternion;
+
+      if (0 == classLabels[label].compare(table_label_class_name)) {
+	tableLabelQuaternion = objectQuaternion;
+      }
+
+cout << "table label x: " << tableLabelQuaternion.x() << " y: " << 
+  tableLabelQuaternion.y() << " z: " << tableLabelQuaternion.z() << " w: " << tableLabelQuaternion.w() << " " << endl;
+
       #ifdef DRAW_ORIENTOR
       Mat vCrop = cv_ptr->image(cv::Rect(top.x, top.y, bot.x-top.x, bot.y-top.y));
       vCrop = vCrop.mul(0.5);
@@ -1082,6 +1111,7 @@ cout << top << " " << bot << " "; cout.flush();
       // XXX
       cv::resize(orientedFilters[winningO], scaledFilter, vCrop.size());
       //cv::resize(orientedFilters[fc % ORIENTATIONS], scaledFilter, vCrop.size());
+      //fc = fc++;
 cout << "FILTERS: " << fc << " " << orientedFilters[fc % ORIENTATIONS].size() << endl;
       scaledFilter = biggestL1*scaledFilter;
        
@@ -1263,7 +1293,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   //fc = (fc + 1) % fcRange;
   // XXX
-  fc = fc++;
+  //fc = fc++;
 
   Size sz = img_cvt.size();
   int imW = sz.width;
@@ -1774,6 +1804,14 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 	      tablePose.position.x = tablePosition.x();
 	      tablePose.position.y = tablePosition.y();
 	      tablePose.position.z = tablePosition.z();
+
+	      // obtain the quaternion pose for the table
+	      tableQuaternion.x() = tablePose.orientation.x;
+	      tableQuaternion.y() = tablePose.orientation.y;
+	      tableQuaternion.z() = tablePose.orientation.z;
+	      tableQuaternion.w() = tablePose.orientation.w;
+
+
 
 	      cv::Point2f srcQuad[4]; 
 	      cv::Point2f dstQuad[4]; 
@@ -2373,6 +2411,7 @@ cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.
       } else {
 	thisRedBox->anchor.x = winTop.x;
 	thisRedBox->anchor.y = winTop.y;
+	thisRedBox->persistence = persistenceThresh+.001;
       }
       thisRedBox->persistence = thisRedBox->persistence + (1.0-redDecay)*1.0;
     
@@ -2580,6 +2619,11 @@ void clusterCallback(const visualization_msgs::MarkerArray& msg){
 
 int main(int argc, char **argv) {
   srand(time(NULL));
+
+  tableLabelQuaternion.x() = 0;
+  tableLabelQuaternion.y() = 0;
+  tableLabelQuaternion.z() = 0;
+  tableLabelQuaternion.w() = 1;
 
   gBoxStrideX = gBoxW / 2.0;
   gBoxStrideY = gBoxH / 2.0;
