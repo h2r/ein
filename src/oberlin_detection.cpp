@@ -23,6 +23,14 @@
 #define DRAW_RED_KEYPOINTS
 
 
+#include <ctime>
+double aveTime = 0.0;
+double aveFrequency = 0.0;
+double timeMass = 0.0;
+double timeInterval = 15;
+time_t thisTime = 0;
+time_t firstTime = 0;
+
 double densityDecay = 0.7;
 double depthDecay = 0.7;
 double redDecay = 0.9;
@@ -48,14 +56,16 @@ double pcgc22 = 1;//1.0+(12.0 / 480.0);
 // if you add an immense number of examples or some new classes and
 //   you begin having discriminative problems (confusion), you can
 //   increase the number of words.
-const double bowSubSampleFactor = 0.5;
+// XXX
+const double bowSubSampleFactor = 0.1;
 const int bowOverSampleFactor = 1;
-const int kNNOverSampleFactor = 5;
-const int poseOverSampleFactor = 5;
+const int kNNOverSampleFactor = 1;
+const int poseOverSampleFactor = 1;
 
 const int keypointPeriod = 1;
-const double kpGreenThresh = 0;
-const double kpProb = 0.2;
+const double kpGreenThresh = 3;
+//const double kpProb = 0.2;
+const double kpProb = 1.0;
 
 const int vocabNumWords = 1000;
 const double grayBlur = 1.0;
@@ -71,7 +81,8 @@ int rewrite_labels = 0;
 // paramaters for the color histogram feature
 const double colorHistNumBins = 8;
 const double colorHistBinWidth = 256/colorHistNumBins;
-const double colorHistLambda = 1.0;
+// XXX
+const double colorHistLambda = 0.25;
 const double colorHistThresh = 0.1;
 const int colorHistBoxHalfWidth = 1;
 
@@ -302,15 +313,21 @@ cv::Point armBot;
 void gridKeypoints(int gImW, int gImH, cv::Point top, cv::Point bot, int strideX, int strideY, vector<KeyPoint>& keypoints, int period) {
   keypoints.resize(0);
 
-  cv::Point sTop(strideX*1, strideY*1);
-  cv::Point sBot(strideX*(((bot.x-top.x)/strideX)-1), strideY*(((bot.y-top.y)/strideY)-1));
+  // make sure feature pad is a multiple of the stride
+  int featurePadX = strideX;
+  int featurePadY = strideY;
+
+  cv::Point sTop(featurePadX, featurePadY);
+  cv::Point sBot(strideX*(((bot.x-top.x-featurePadX)/strideX)-2), strideY*(((bot.y-top.y-featurePadY)/strideY)-2));
 
   int responseIndex = 1;
   
   int mX = gBoxW / 2;
   int mY = gBoxH / 2;
 
+#ifdef DEBUG
 cout << sTop << sBot << endl;
+#endif
 
   for (int y = sTop.y; y <= sBot.y; y+=strideX*period) {
     for (int x = sTop.x; x <= sBot.x; x+=strideY*period) {
@@ -461,8 +478,10 @@ void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descrip
   for (int i = 0; i < descriptors.size().width; i++) 
     descriptors2.at<float>(i) = descriptors.at<float>(i);
   for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) {
-    //if ( colorHist.at<float>(i) > 0.1 )
-      //cout << i << ":" << colorHist.at<float>(i) << " ";
+#ifdef DEBUG
+//if ( colorHist.at<float>(i) > 0.1 )
+  //cout << i << ":" << colorHist.at<float>(i) << " ";
+#endif
     colorHist.at<float>(i) = min(colorHist.at<float>(i), float(colorHistThresh));
     descriptors2.at<float>(i+descriptors.size().width) = colorHistLambda * colorHist.at<float>(i);
   }
@@ -669,14 +688,18 @@ void depthCallback(const sensor_msgs::ImageConstPtr& msg){
       maxDepth = max(maxDepth, tDepth);
       if (tDepth > 0)
 	minDepth = min(minDepth, tDepth);
-      //cout << " " << float(depth_img.at<uint>(y,x));
+#ifdef DEBUG
+//cout << " " << float(depth_img.at<uint>(y,x));
+#endif
     }
   }
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
       uint tDepth = depth_img.at<unsigned short>(y,x);
       temporalDepth[y*imW+x] = depthDecay*temporalDepth[y*imW+x] + (1.0-depthDecay)*float(tDepth);
-      //cout << " " << float(depth_img.at<uint>(y,x));
+#ifdef DEBUG
+//cout << " " << float(depth_img.at<uint>(y,x));
+#endif
       if (tDepth <= minDepth)
 	depth_img.at<short>(y,x) = 0;
       //else
@@ -687,7 +710,9 @@ void depthCallback(const sensor_msgs::ImageConstPtr& msg){
   maxDepth = max(maxDepth,uint(1));
 
   cv::imshow("Depth Viewer", depth_img*20);
-  cout << depth_img.size() << " " << depth_img.type() << " " << maxDepth << " " << minDepth << endl;
+#ifdef DEBUG
+cout << depth_img.size() << " " << depth_img.type() << " " << maxDepth << " " << minDepth << endl;
+#endif
 */
 }
 
@@ -851,9 +876,11 @@ void saveROSParams()
 void fill_RO_and_M_arrays(object_recognition_msgs::RecognizedObjectArray& roa_to_send, 
   visualization_msgs::MarkerArray& ma_to_send, vector<cv::Point>& pointCloudPoints, int aI, int label, int winningO) {
 
+#ifdef DEBUG
 cout << "check" << endl;
 cout << "hit a publishable object " << label << " " << classLabels[label] 
 << " " << classPoseModels[label] << aI << " of total objects" << bTops.size() << endl;
+#endif
 
   geometry_msgs::Pose object_pose;
 
@@ -872,7 +899,9 @@ cout << "hit a publishable object " << label << " " << classLabels[label]
     R(2,0) = 0;          R(2,1) = 0;           R(2,2) = 1;
   }
 
+#ifdef DEBUG
 cout << "constructing rotation matrix" << endl;
+#endif
 
   Eigen::Matrix3f rotation;
   rotation << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
@@ -885,7 +914,9 @@ cout << "constructing rotation matrix" << endl;
   roa_to_send.objects[aI].pose.pose.pose.orientation.z = objectQuaternion.z();
   roa_to_send.objects[aI].pose.pose.pose.orientation.w = objectQuaternion.w();
 
+#ifdef DEBUG
 cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
+#endif
 
   // determine the x,y,z coordinates of the object from the point cloud
   // this bounding box has top left  bTops[x] and bBots[aI]
@@ -1011,7 +1042,9 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
   ma_to_send.markers[aI].id = aI;
   ma_to_send.markers[aI].lifetime = ros::Duration(1.0);
 
+#ifdef DEBUG
 cout << "  finished a publishable object " << label << " " << classLabels[label] << " " << classPoseModels[label] << endl;
+#endif
 }
 
 void getOrientation(cv_bridge::CvImagePtr cv_ptr, Mat& img_cvt, 
@@ -1034,8 +1067,10 @@ void getOrientation(cv_bridge::CvImagePtr cv_ptr, Mat& img_cvt,
 
     if (0 == classPoseModels[label].compare("S")) {
 
+#ifdef DEBUG
 fprintf(stderr, " object checkS"); fflush(stderr);
 cout << top << " " << bot << " "; cout.flush();
+#endif
 
       Mat gCrop1 = img_cvt(cv::Rect(top.x, top.y, bot.x-top.x, bot.y-top.y));
 
@@ -1057,7 +1092,9 @@ cout << top << " " << bot << " "; cout.flush();
 	    gCrop.at<cv::Vec3b>(y, x) = cv::Vec<uchar, 3>(0,0,0);
 	}
       }
+#ifdef DEBUG
 //cout << endl << gCrop1 << endl << endl << endl << endl << gCrop << endl;
+#endif
 
       cv::resize(gCrop, gCrop, orientedFilters[0].size());
       gCrop.convertTo(gCrop, orientedFilters[0].type());
@@ -1088,7 +1125,9 @@ cout << top << " " << bot << " "; cout.flush();
 	R(2,0) = 0;          R(2,1) = 0;           R(2,2) = 1;
       }
 
+#ifdef DEBUG
 cout << "constructing rotation matrix" << endl;
+#endif
 
       Eigen::Matrix3f rotation;
       rotation << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
@@ -1100,8 +1139,10 @@ cout << "constructing rotation matrix" << endl;
 	tableLabelQuaternion = objectQuaternion;
       }
 
+#ifdef DEBUG
 cout << "table label x: " << tableLabelQuaternion.x() << " y: " << 
   tableLabelQuaternion.y() << " z: " << tableLabelQuaternion.z() << " w: " << tableLabelQuaternion.w() << " " << endl;
+#endif
 
       #ifdef DRAW_ORIENTOR
       Mat vCrop = cv_ptr->image(cv::Rect(top.x, top.y, bot.x-top.x, bot.y-top.y));
@@ -1112,7 +1153,9 @@ cout << "table label x: " << tableLabelQuaternion.x() << " y: " <<
       cv::resize(orientedFilters[winningO], scaledFilter, vCrop.size());
       //cv::resize(orientedFilters[fc % ORIENTATIONS], scaledFilter, vCrop.size());
       //fc = fc++;
+#ifdef DEBUG
 cout << "FILTERS: " << fc << " " << orientedFilters[fc % ORIENTATIONS].size() << endl;
+#endif
       scaledFilter = biggestL1*scaledFilter;
        
       vector<Mat> channels;
@@ -1126,7 +1169,9 @@ cout << "FILTERS: " << fc << " " << orientedFilters[fc % ORIENTATIONS].size() <<
       #endif
     }
 
+#ifdef DEBUG
 fprintf(stderr, " object check4"); fflush(stderr);
+#endif
 
     if (0 == classPoseModels[label].compare("G")) {
       string result;
@@ -1220,8 +1265,10 @@ void init_oriented_filters() {
 
   tmp = orientedFilters[0].clone();
   warpPerspective(tmp, orientedFilters[0], tablePerspective, orientedFilters[0].size(), INTER_NEAREST);
+#ifdef DEBUG
 cout << endl << tablePerspective << endl;
 cout << endl << orientedFilters[0] << endl;
+#endif
 
   double l1norm = orientedFilters[0].dot(Mat::ones(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F));
   orientedFilters[0] = orientedFilters[0] / l1norm;
@@ -1231,6 +1278,27 @@ cout << endl << orientedFilters[0] << endl;
 
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg){
+
+  time(&thisTime);
+  double deltaTime = difftime(thisTime, firstTime);
+  timeMass = timeMass + 1;
+
+  if (deltaTime > timeInterval) {
+    deltaTime = 0;
+    timeMass = 0;
+    time(&firstTime);
+  }
+
+  if (timeMass > 0.0)
+    aveTime = deltaTime / timeMass;
+
+  if (deltaTime > 0.0)
+    aveFrequency = timeMass / deltaTime;
+
+cout << "Average time between frames: " << aveTime << 
+  " Average Frequency: " << aveFrequency << " Hz " << deltaTime << " " << timeMass << endl; 
+
+  int lastTime = thisTime; 
 
   gBoxStrideX = gBoxW / 2.0;
   gBoxStrideY = gBoxH / 2.0;
@@ -1284,7 +1352,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   int numBoxes = boxes.size();
   // box[0] minx box[1] miny box[2] maxx box[3] maxy
-  cout << numBoxes << "    " << fc <<  endl;
+#ifdef DEBUG
+cout << numBoxes << "    " << fc <<  endl;
+#endif
 
   nTop.resize(numBoxes);
   nBot.resize(numBoxes);
@@ -1673,7 +1743,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
       int reject = 0;
       for (int c = 0; c < bTops.size(); c++) {
-	//cout << "brBox   " << c << " / " << bTops.size() << " " << fabs(bCens[c].x - thisCen.x) << endl;
+#ifdef DEBUG
+//cout << "brBox   " << c << " / " << bTops.size() << " " << fabs(bCens[c].x - thisCen.x) << endl;
+#endif
 	if ( fabs(bCens[c].x - thisCen.x) < ((fabs(bBots[c].x-bTops[c].x)+brownBoxWidth)/2)-1 && 
 	      fabs(bCens[c].y - thisCen.y) < ((fabs(bBots[c].y-bTops[c].y)+brownBoxWidth)/2)-1 ) {
 	  reject = 1;
@@ -1705,14 +1777,18 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   #endif
 	  }
 
+#ifdef DEBUG
 //cout << thisBrTop << thisBrBot << "p0, p1, p2:  " << p0 << p1 << p2 << endl;
 //cout << "p0, p1, p2:  " << p0 << p1 << p2 << endl;
+#endif
 
 	  if (!reject) {
 	    cv::Point tranTop = pcCorrection(thisBrTop.x, thisBrTop.y, imW, imH);
 	    cv::Point tranBot = pcCorrection(thisBrBot.x, thisBrBot.y, imW, imH);
 
+#ifdef DEBUG
 //cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << endl;
+#endif
 
 	    //pcl::PointXYZRGB p0 = pointCloud.at(thisBrTop.x, thisBrBot.y);
 	    //pcl::PointXYZRGB p1 = pointCloud.at(thisBrTop.x, thisBrTop.y);
@@ -1783,7 +1859,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
 	      tableNormal = tableTangent2.cross(tableTangent1);
 
+#ifdef DEBUG
 //cout << tableNormal << endl;
+#endif
 
 	      tableBiasSum = tableBiasSum + tableNormal.dot(localTablePosition);
 	      tableBias = tableBiasSum / acceptedBrBoxes;
@@ -1886,9 +1964,11 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
 	      tablePerspective = getPerspectiveTransform(srcQuad, dstQuad);
 
+#ifdef DEBUG
 //cout << endl << "tablePerspective, R: " << tablePerspective << R << endl;
 //cout << srcQuad[0] << srcQuad[1] << srcQuad[2] << srcQuad[3] << endl; 
 //cout << dstQuad[0] << dstQuad[1] << dstQuad[2] << dstQuad[3] << endl; 
+#endif
 
 	      rejectAll = 0;
 	    }
@@ -1926,13 +2006,17 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   bYCrCb.resize(bTops.size());
   bLabels.resize(bTops.size());
   for (int c = 0; c < bTops.size(); c++) {
+#ifdef DEBUG
 fprintf(stderr, " object check1"); fflush(stderr);
+#endif
     vector<KeyPoint>& keypoints = bKeypoints[c];
     Mat descriptors;
     Mat descriptors2;
 
+#ifdef DEBUG
 fprintf(stderr, " a"); fflush(stderr);
 cout << bTops[c] << bBots[c] << " "; cout.flush();
+#endif
 
     Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
     Mat gray_image;
@@ -1943,23 +2027,29 @@ cout << bTops[c] << bBots[c] << " "; cout.flush();
     gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
 
     for (int kp = 0; kp < keypoints.size(); kp++) {
+#ifdef DEBUG
 //cout << keypoints[kp].angle << " " << keypoints[kp].class_id << " " << 
   //keypoints[kp].octave << " " << keypoints[kp].pt << " " <<
   //keypoints[kp].response << " " << keypoints[kp].size << endl;
+#endif
     }
 
     bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
 
     // save the word assignments for the keypoints so we can use them for red boxes
+#ifdef DEBUG
 fprintf(stderr, "e "); fflush(stderr);
-cout << "pIoCbuffer: " << pIoCbuffer.size() < " "; cout.flush();
-cout << "kpSize: " << keypoints.size() < " "; cout.flush();
+cout << "pIoCbuffer: " << pIoCbuffer.size() << " "; cout.flush();
+cout << "kpSize: " << keypoints.size() << " "; cout.flush();
+#endif
     bWords[c].resize(keypoints.size());
     if ((pIoCbuffer.size() > 0) && (keypoints.size() > 0)) {
       for (int w = 0; w < vocabNumWords; w++) {
 	int numDescrOfWord = pIoCbuffer[w].size();
+#ifdef DEBUG
 if (numDescrOfWord > 0)
-cout << "[" << w << "]: " << numDescrOfWord << " ";
+  cout << "[" << w << "]: " << numDescrOfWord << " ";
+#endif
 	for (int w2 = 0; w2 < numDescrOfWord; w2++) {
 	  bWords[c][pIoCbuffer[w][w2]] = w;
 	}
@@ -1984,7 +2074,9 @@ cout << "[" << w << "]: " << numDescrOfWord << " ";
 
     }
     
+#ifdef DEBUG
 fprintf(stderr, " object check2"); fflush(stderr);
+#endif
     double label = -1;
     if (!descriptors.empty() && !keypoints.empty()) {
     
@@ -1994,7 +2086,9 @@ fprintf(stderr, " object check2"); fflush(stderr);
       bLabels[c] = label;
     }
 
+#ifdef DEBUG
 fprintf(stderr, " object check3 label %f", label); fflush(stderr);
+#endif
 
     char labelName[256]; 
     string augmentedLabelName;
@@ -2037,13 +2131,17 @@ fprintf(stderr, " object check3 label %f", label); fflush(stderr);
       thisThresh = psPBT;
     */
 
+#ifdef DEBUG
 fprintf(stderr, " object check5"); fflush(stderr);
+#endif
 
     vector<cv::Point> pointCloudPoints;
     getPointCloudPoints(cv_ptr, pointCloudPoints, pBoxIndicator, thisThresh, 
       bTops[c], bBots[c], imW, imH, gBoxStrideX, gBoxStrideY, gBoxW, gBoxH);
 
+#ifdef DEBUG
 fprintf(stderr, " object check6"); fflush(stderr);
+#endif
 
   #ifdef PUBLISH_OBJECTS
     if (label >= 0) {
@@ -2055,7 +2153,9 @@ fprintf(stderr, " object check6"); fflush(stderr);
 
   // publish the table
   {
+#ifdef DEBUG
 cout << "table check 1" << endl;
+#endif
     int c = bTops.size();
     ma_to_send_blue.markers[c].pose = tablePose;
     ma_to_send_blue.markers[c].type =  visualization_msgs::Marker::CUBE;
@@ -2071,16 +2171,22 @@ cout << "table check 1" << endl;
     ma_to_send_blue.markers[c].action = visualization_msgs::Marker::ADD;
     ma_to_send_blue.markers[c].id = c;
     ma_to_send_blue.markers[c].lifetime = ros::Duration(1.0);
+#ifdef DEBUG
 cout << "table check 2" << endl;
+#endif
   }
 
   #ifdef PUBLISH_OBJECTS
+#ifdef DEBUG
 cout << "about to publish" << endl;
+#endif
   if (bTops.size() > 0) {
     rec_objs_blue.publish(roa_to_send_blue);
   }
   markers_blue.publish(ma_to_send_blue);
+#ifdef DEBUG
 cout << "published" << endl;
+#endif
   #endif
 
   #ifdef RUN_TRACKING 
@@ -2090,7 +2196,9 @@ cout << "published" << endl;
   ma_to_send_red.markers.resize(0);
   for (int r = 0; r < numRedBoxes; r++) {
 
+#ifdef DEBUG
 cout << "dealing with redBox[" << r << "]" << endl;
+#endif
 
     redBox *thisRedBox = &(redBoxes[r]);
     int thisClass = thisRedBox->classLabel;
@@ -2245,7 +2353,9 @@ cout << "dealing with redBox[" << r << "]" << endl;
 	  hBot.y = max(hBot.y, bTops[c].y);
 
 	  if ((hBot.x-hTop.x < rbMinWidth) || (hBot.y-hTop.y < rbMinWidth)) {
+#ifdef DEBUG
 cout << "REJECTED class: " << thisClass << " bb: " << c << hTop << hBot << " prop: " << proposals << endl;
+#endif
 	    continue;
 	  }
 	}
@@ -2265,26 +2375,34 @@ cout << "REJECTED class: " << thisClass << " bb: " << c << hTop << hBot << " pro
 	    Mat descriptors2;
 
 	    Mat& yCrCb_image = bYCrCb[c];
+#ifdef DEBUG
 //cout << &(bYCrCb[c]) << endl;
+#endif
 
 	    cv::Point lItTop(itTop.x-bTops[c].x, itTop.y-bTops[c].y);
 	    cv::Point lItBot(itBot.x-bTops[c].x, itBot.y-bTops[c].y);
 
 	    float totalWords = bWords[c].size();
 	    float countedWords = 0;
+#ifdef DEBUG
 //cout << "totalWords: " << totalWords;
+#endif
 	    for (int w = 0; w < totalWords; w++) {
 	      int tX = bKeypoints[c][w].pt.x;
 	      int tY = bKeypoints[c][w].pt.y;
 	      // check for containment in this box
+#ifdef DEBUG
 //cout << " tX tY:" << tX << " " << tY << " " << itTop << itBot << lItTop << lItBot << hTop << hBot << endl;
+#endif
 	      if(
 		(tX >= lItTop.x) &&
 		(tX <= lItBot.x) &&
 		(tY >= lItTop.y) &&
 		(tY <= lItBot.y) 
 		) {
+#ifdef DEBUG
 //cout << " w:" << w << " " << endl;
+#endif
 		descriptors.at<float>(bWords[c][w])++;
 		keypoints.push_back(bKeypoints[c][w]);
 		countedWords++;		
@@ -2319,13 +2437,17 @@ cout << "REJECTED class: " << thisClass << " bb: " << c << hTop << hBot << " pro
 	      int thisJ = 0;
 	      float thisD = 1e6;
 	      for (int n = 0; n < redK; n++) {
+#ifdef DEBUG
 cout << "  neighbors[" << n <<"] is " << (neighbors.at<float>(n));
+#endif
 		if (neighbors.at<float>(n) == float(thisClass)) {
 		  thisJ++;
 		  thisD = min(dist.at<float>(n), winD);
 		}
 	      }
+#ifdef DEBUG
 cout << " thisJ: " << thisJ << " slide: " << slideOrNot << " redR: " << redR << endl;
+#endif
 	      if (thisJ > 0 && thisD < winD) {
 		winJ = thisJ;
 		winD = thisD;
@@ -2366,8 +2488,10 @@ cout << " thisJ: " << thisJ << " slide: " << slideOrNot << " redR: " << redR << 
 
 	    }
 
+#ifdef DEBUG
 cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.size() << " " 
   << itBot << itTop << "  " << hTop << hBot << " prop: " << proposals << endl;
+#endif
 
 	    /*4*/itTop.y += thisRedStride;
 	    /*4*/itBot.y += thisRedStride;
@@ -2493,7 +2617,9 @@ cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.
       sprintf(buf, "%s%s%s_%d.ppm", saved_crops_path.c_str(), class_name.c_str(), run_prefix.c_str(), cropCounter);
       // uncomment if statement for hard negative mining
       //if(bLabels[c] != 7) {
-	cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
+#ifdef DEBUG
+cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
+#endif
 	imwrite(buf, crop);
 	cropCounter++;
       //}
@@ -2535,7 +2661,9 @@ cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.
 /*
 void tableCallback(const object_recognition_msgs::Table& msg)
 {
+#ifdef DEBUG
   cout << "Hit tableCloudCallback" << endl;
+#endif
   tablePose = msg.pose;
 }
 */
@@ -2543,7 +2671,9 @@ void tableCallback(const object_recognition_msgs::Table& msg)
 void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
 {
   pcl::fromROSMsg(*msg, pointCloud);
+#ifdef DEBUG
 cout << "Hit pointCloudCallback" <<  "  " << pointCloud.size() << endl;
+#endif
 }
 
 void clusterCallback(const visualization_msgs::MarkerArray& msg){
@@ -2619,6 +2749,7 @@ void clusterCallback(const visualization_msgs::MarkerArray& msg){
 
 int main(int argc, char **argv) {
   srand(time(NULL));
+  time(&firstTime);
 
   tableLabelQuaternion.x() = 0;
   tableLabelQuaternion.y() = 0;
@@ -2725,8 +2856,8 @@ int main(int argc, char **argv) {
   while (ss_cpm >> bufstr)
     classPoseModels.push_back(bufstr);
 
-  cout << classLabels.size() << endl;
-  cout << classPoseModels.size() << endl;
+  cout << "Num labels: " << classLabels.size() << endl;
+  cout << "Num pose models: " << classPoseModels.size() << endl;
 
   if ((classLabels.size() != classPoseModels.size()) || (classLabels.size() < 1)) {
     cout << "label or pose model problem. exiting." << endl;
