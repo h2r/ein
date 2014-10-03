@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.4-1.40.13 (TeX Live 2012/Debian) (format=pdflatex 2014.6.18)  23 SEP 2014 13:40
+This is pdfTeX, Version 3.1415926-2.4-1.40.13 (TeX Live 2012/Debian) (format=pdflatex 2014.6.18)  2 OCT 2014 16:18
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -240,7 +240,7 @@ e
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2]
 No file proposal.bbl.
-[3] (./proposal.aux) ) 
+[3] [4] [5] [6] (./proposal.aux) ) 
 Here is how much of TeX's memory you used:
  2619 strings out of 495059
  34287 string characters out of 3182030
@@ -249,14 +249,15 @@ Here is how much of TeX's memory you used:
  6064 words of font info for 22 fonts, out of 3000000 for 9000
  14 hyphenation exceptions out of 8191
  38i,5n,24p,260b,522s stack positions out of 5000i,500n,10000p,200000b,50000s
-</usr/share/texlive/texmf-dist/fonts/type1/public/amsfont
-s/cm/cmbx10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/c
-mbx12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.p
-fb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb>
-Output written on proposal.pdf (3 pages, 66540 bytes).
+</usr/share/texlive/texmf-dist/fonts/type1/pu
+blic/amsfonts/cm/cmbx10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/a
+msfonts/cm/cmbx12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfont
+s/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cm
+r12.pfb>
+Output written on proposal.pdf (6 pages, 72035 bytes).
 PDF statistics:
- 30 PDF objects out of 1000 (max. 8388607)
- 20 compressed objects within 1 object stream
+ 39 PDF objects out of 1000 (max. 8388607)
+ 26 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 

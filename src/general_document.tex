@@ -1,0 +1,264 @@
+\documentclass[12pt]{article}
+\usepackage{latexsym,amssymb,amsmath} % for \Box, \mathbb, split, etc.
+% \usepackage[]{showkeys} % shows label names
+\usepackage{cite} % sorts citation numbers appropriately
+\usepackage{path}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage[pdftex]{graphicx}
+\usepackage{color}
+
+% horizontal margins: 1.0 + 6.5 + 1.0 = 8.5
+\setlength{\oddsidemargin}{0.0in}
+\setlength{\textwidth}{6.5in}
+% vertical margins: 1.0 + 9.0 + 1.0 = 11.0
+\setlength{\topmargin}{0.0in}
+\setlength{\headheight}{12pt}
+\setlength{\headsep}{13pt}
+\setlength{\textheight}{625pt}
+\setlength{\footskip}{24pt}
+
+\renewcommand{\textfraction}{0.10}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.85}
+\renewcommand{\floatpagefraction}{0.90}
+
+\makeatletter
+\setlength{\arraycolsep}{2\p@} % make spaces around "=" in eqnarray smaller
+\makeatother
+
+% change equation, table, figure numbers to be counted inside a section:
+\numberwithin{equation}{section}
+\numberwithin{table}{section}
+\numberwithin{figure}{section}
+
+% begin of personal macros
+\newcommand{\half}{{\textstyle \frac{1}{2}}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\myth}{\vartheta}
+\newcommand{\myphi}{\varphi}
+
+\newcommand{\IN}{\mathbb{N}}
+\newcommand{\IZ}{\mathbb{Z}}
+\newcommand{\IQ}{\mathbb{Q}}
+\newcommand{\IR}{\mathbb{R}}
+\newcommand{\IC}{\mathbb{C}}
+\newcommand{\Real}[1]{\mathrm{Re}\left({#1}\right)}
+\newcommand{\Imag}[1]{\mathrm{Im}\left({#1}\right)}
+
+\newcommand{\norm}[2]{\|{#1}\|_{{}_{#2}}}
+\newcommand{\abs}[1]{\left|{#1}\right|}
+\newcommand{\ip}[2]{\left\langle {#1}, {#2} \right\rangle}
+\newcommand{\der}[2]{\frac{\partial {#1}}{\partial {#2}}}
+\newcommand{\dder}[2]{\frac{\partial^2 {#1}}{\partial {#2}^2}}
+
+\newcommand{\nn}{\mathbf{n}}
+\newcommand{\xx}{\mathbf{x}}
+\newcommand{\uu}{\mathbf{u}}
+
+\newcommand{\junk}[1]{{}}
+
+% set two lengths for the includegraphics commands used to import the plots:
+\newlength{\fwtwo} \setlength{\fwtwo}{0.45\textwidth}
+
+
+\renewcommand{\labelitemi}{}
+\renewcommand{\labelitemii}{}
+\renewcommand{\labelitemiii}{}
+
+
+% end of personal macros
+% \input{inputFile.tex}
+
+
+\begin{document}
+\DeclareGraphicsExtensions{.jpg}
+
+
+
+\begin{center}
+\textbf{\Large }The Eyes of Iorek Byrnison\\[6pt] 
+%\textbf{\Large } \\[6pt]
+%\textbf{\Large } \\[6pt]
+John Oberlin\\
+Brown University, 2014\\
+\end{center}
+
+
+
+\begin{abstract}
+State of the art techniques in object detection and pose estimation
+are powerful and general but usually run at a rate less than 1 Hz. This makes
+it difficult to employ such techniques in real-time human-computer interaction.
+This document outlines a simple, robust framework for object detection which 
+trades a large memory overhead for improvements in latency and total throughput 
+of detections. Included is a workflow for that framework which makes training
+and calibration first intuitive and then automatic.
+\end{abstract}
+
+
+
+\section{Introduction}
+%\cite{FooBar}
+Our overall pipeline can be described as:
+
+\begin{enumerate}
+  \item Collect RGB-D data for objects.
+  \item Train BoW model and kNN classifiers for objects.
+  \item Use the classifiers and additional logic to provide 3D detections pose estimates of objects.
+\end{enumerate}
+
+\section{Basic Techniques}
+\paragraph{Objectness} try clustering the proposals for blueboxes.
+\paragraph{Fast Keypoints}
+\paragraph{SIFT descriptors}
+\paragraph{KMeans}
+\paragraph{BoW}
+\paragraph{Color Histogram}
+\paragraph{Depth Histogram}yet to implement
+\paragraph{kNN}
+
+\section{Detector Structure}
+\paragraph{Green Boxes}
+\paragraph{Blue Boxes}
+\paragraph{Red Boxes}
+
+\section{Teaching the System}
+This is teaching not training because it is an interaction used to collect
+data not a script used to optimize a function.
+
+\subsection{Background Filtering}
+Teaching is carried out on a flat surface of uniform color. The background plane
+and color model are inferred by looking at parts of the image not contained in
+the blue boxes. These are used to keep with high probability only keypoints which
+are on the object. During inference (employment), background contributions will
+contribute to all examples approximately equally, and any confusion is likely to
+be understandable.
+
+\subsection{Manual Teaching}
+Teaching the system about an object involves showing it many different views of
+the object in a controlled environment. Once a session is initiated, the following
+process should be performed:
+
+\begin{enumerate}
+  \item Repeat k times:
+  \begin{enumerate}
+    \item Adjust the object to expose a novel viewpoint and record pose data.
+    \item Remove extraneous objects in the scene to ensure a unique blue box is present.
+    \item Collect the view, which saves RGB-D data and the background data.
+  \end{enumerate}
+\end{enumerate}
+
+Where k might be around 100. Now the collected data can be used to train object class
+and pose classifiers.
+
+\subsection{Self Filtering}
+Suppose that we want to gather data while a robot is holding the object. It is possible
+to impose geomentric constraints on kept data to ensure that captured keypoints
+belong to the object being examined and not to our manipulating robot. This is
+called self filtering.
+
+\subsection{Semi-Automatic Teaching}
+
+\begin{enumerate}
+  \item Repeat k times:
+  \begin{enumerate}
+    \item The object is placed in a robot's manipulator in a known grasp.
+    \item A base pose for the grasp is provided.
+    \item The robot collects view from many different precisely known poses, together with models for self and background filtering.
+  \end{enumerate}
+\end{enumerate}
+
+Where k might be around 3.
+
+\subsection{Automatic Teaching}
+
+\begin{enumerate}
+  \item Place an object in front of the robot.
+  \item Robot repeats k times:
+  \begin{enumerate}
+    \item Infer a stateless grasp on the object.
+    \item \textbf{if} a pose model exists, infer the base pose for the grasp. \\
+	  \textbf{else}, start a new pose model.
+    \item Perform semi-automatic teaching with the object.
+    \item Replace the object.
+  \end{enumerate}
+\end{enumerate}
+
+Where k might be around 3.
+
+\section{Employing the System}
+\paragraph{Object Poses on Table or Floor}
+\paragraph{Single Target Tracking}
+
+\section{Yet To Be Implemented}
+
+\begin{itemize}
+  \item Background Filtering
+  \item Depth Models
+  \item Train feature weights to minimize the leave-one-out error rate on training data.
+\end{itemize}
+
+\bibliographystyle{siam}
+\bibliography{proposal}
+
+\newpage
+
+\section{Attendance Statement}
+  I have been paying attention to AI, Machine Learning, and Computer Vision since 2004. 
+Regarding Computer Vision, I saw the progress of Neural Nets in the 90's swept under 
+the rug by SIFT, HoG, and SVMs in the mid 2000's, only for neural nets to reclaim the throne in the 2010's.
+At one time it was said that AI was "vision hard" and that solving Vision would
+effectively solve AI. While that belief sweeps a bit under the rug, it is certainly true
+that in the past Computer Vision has been a strong bottleneck in the development of AI and 
+Robotics. 
+  Recent advances in object detection on large data sets suggest that we are ready
+to move beyond attacking vision in an isolated setting and begin integrating it in a
+larger framework for planning in an interactive environment. I have training in state
+of the art computer vision techniques and have been tracking the literature for a few
+years now. Although I have attended CVPR twice, I have not attended any conferences in
+AI or Robotics.  I recently started to focus on Real Time Vision systems, and attending AAAI
+will help me rapidly learn about the community and hit the ground running.
+  One of my goals is to make a real time vision system with a capacity of 50 objects. It should be
+capable of giving accurate 3D pose estimates that enable the objects to be identified and manipulated
+by robots. It should be able to learn a new object in less than a minute, and should be simple enough
+that a non-expert can easily train the system. Yet it should remain versatile enough that state of
+the art detectors running on special hardware can be swapped in by experts.
+  I have made good progress towards this goal so far. By attending AAAI, I will be able to
+better understand the motivations, needs, and desires of AI and Robotics concentrators with regards
+to Computer Vision, which will enable me to complete my dissertation in a way that aligns with
+these communities' values.
+
+\newpage
+
+\section{Curriculum Vitae}
+Education
+Florida State University, 2003-2006
+UC Berkeley, 2006-2008
+U Chicago, 2010-2011
+Brown University, 2011-Present
+
+Employment
+Havok, 2008-2009
+
+Conference Papers
+CVPR
+NIPS
+
+Conferences Attended
+CVPR colorado springs
+CVPR providence
+
+Misc
+REU at OSU
+
+
+\newpage
+
+\section{Letter From Supervisor}
+
+\newpage
+
+
+\end{document}
+
