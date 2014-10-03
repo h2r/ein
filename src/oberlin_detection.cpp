@@ -152,6 +152,7 @@ vector<string> classPoseModels;
 vector<CvKNearest*> classPosekNNs;
 vector<Mat> classPosekNNfeatures;
 vector<Mat> classPosekNNlabels;
+vector< vector<Eigen::Quaternionf> > classQuaternions;
 
 DescriptorMatcher *matcher;
 FeatureDetector *detector;
@@ -244,7 +245,7 @@ double persistenceThresh = 0.5;
 int max_red_proposals = 1000;
 double slidesPerFrame = 0.0;
 int rbMinWidth = 50;
-int rbMaxWidth = 400;
+int rbMaxWidth = 200;
 
 int redRounds = 10;
 int redStride = 5;
@@ -362,6 +363,10 @@ void CallBackFunc(int event, int x, int y, int flags, void* userdata) {
 #ifdef CAPTURE_ONLY
     fc = 0;
 #endif
+#ifdef SAVE_ANNOTATED_BOXES
+    fc = 0;
+#endif
+ 
     //cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
   } else if ( event == EVENT_RBUTTONDOWN ) {
     //cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
@@ -594,11 +599,14 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
   }
 }
 
-void posekNNGetFeatures(std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels) {
+void posekNNGetFeatures(std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
+  vector<Eigen::Quaternionf>& classQuaternions, int lIndexStart = 0) {
 
   string sClassName(className);
 
   int label = 0;
+
+  int lIndex = lIndexStart;
 
   DIR *dpdf;
   struct dirent *epdf;
@@ -613,9 +621,27 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
       if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
 	string fileName(epdf->d_name);
 
-	string poseIndex = fileName.substr(sClassName.size()+1, string::npos);
-	poseIndex = poseIndex.substr(0,  poseIndex.length()-4);
-	label = std::atoi(poseIndex.c_str());
+
+	//string poseIndex = fileName.substr(sClassName.size()+1, string::npos);
+	//poseIndex = poseIndex.substr(0,  poseIndex.length()-4);
+	//label = std::atoi(poseIndex.c_str());
+
+	// remove .ppm to form key
+	string thisCropLabel = fileName.substr(0,fileName.size()-4);
+	string poseLabelsPath =  classDir + className + "/poseLabels.yml";
+
+	cv::Vec <double,4>tLQ;
+
+	FileStorage fsfI;
+	fsfI.open(poseLabelsPath, FileStorage::READ);
+	fsfI[thisCropLabel] >> tLQ; 
+	fsfI.release();
+
+	Eigen::Quaternionf thisLabelQuaternion;
+	thisLabelQuaternion.x() = tLQ[0];
+	thisLabelQuaternion.y() = tLQ[1];
+	thisLabelQuaternion.z() = tLQ[2];
+	thisLabelQuaternion.w() = tLQ[3];
 
         vector<KeyPoint> keypoints;
         Mat descriptors;
@@ -645,7 +671,10 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
 	  if (!descriptors.empty() && !keypoints.empty()) {
 	    appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
 	    kNNfeatures.push_back(descriptors);
-	    kNNlabels.push_back(label);
+	    //kNNlabels.push_back(label);
+	    kNNlabels.push_back(lIndex);
+	    classQuaternions.push_back(thisLabelQuaternion);
+	    lIndex++;
 	  }
 	}
       }
@@ -874,7 +903,8 @@ void saveROSParams()
 
 // for publishing
 void fill_RO_and_M_arrays(object_recognition_msgs::RecognizedObjectArray& roa_to_send, 
-  visualization_msgs::MarkerArray& ma_to_send, vector<cv::Point>& pointCloudPoints, int aI, int label, int winningO) {
+  visualization_msgs::MarkerArray& ma_to_send, vector<cv::Point>& pointCloudPoints, 
+  int aI, int label, int winningO, int poseIndex) {
 
 #ifdef DEBUG
 cout << "check" << endl;
@@ -908,6 +938,10 @@ cout << "constructing rotation matrix" << endl;
   Eigen::Quaternionf objectQuaternion(rotation);
 
   objectQuaternion = tableQuaternion * objectQuaternion;
+
+  if (0 == classPoseModels[label].compare("G")) {
+    objectQuaternion = classQuaternions[label][poseIndex];
+  }
 
   roa_to_send.objects[aI].pose.pose.pose.orientation.x = objectQuaternion.x();
   roa_to_send.objects[aI].pose.pose.pose.orientation.y = objectQuaternion.y();
@@ -1296,7 +1330,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     aveFrequency = timeMass / deltaTime;
 
 cout << "Average time between frames: " << aveTime << 
-  " Average Frequency: " << aveFrequency << " Hz " << deltaTime << " " << timeMass << endl; 
+  "   Average Frequency: " << aveFrequency << " Hz   Duration of sampling: " << 
+  deltaTime << "   Frames since sampling: " << timeMass << endl; 
 
   int lastTime = thisTime; 
 
@@ -2102,19 +2137,37 @@ fprintf(stderr, " object check3 label %f", label); fflush(stderr);
   #ifdef SAVE_ANNOTATED_BOXES
     // save the crops
     if (fc == 0) {
-      fc = 1;
       Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
       char buf[1000];
-      sprintf(buf, class_crops_path + "/%s_toAudit/%s%s_%d.ppm", 
-	labelName, labelName, run_prefix, cropCounter);
+      string this_crops_path = data_directory + "/" + labelName + "Poses/";
+      sprintf(buf, "%s%sPoses%s_%d.ppm", this_crops_path.c_str(), labelName, run_prefix.c_str(), cropCounter);
+      //sprintf(buf, class_crops_path + "/%s_toAudit/%s%s_%d.ppm", 
+	//labelName, labelName, run_prefix, cropCounter);
       imwrite(buf, crop);
       cropCounter++;
+
+      string poseLabelsPath = this_crops_path + "poseLabels.yml";
+      char thisCropLabel[1000];
+      sprintf(thisCropLabel, "%sPoses%s_%d", labelName, run_prefix.c_str(), cropCounter); 
+
+      cv::Vec <double,4>tLQ;
+      tLQ[0] = tableLabelQuaternion.x();
+      tLQ[1] = tableLabelQuaternion.y();
+      tLQ[2] = tableLabelQuaternion.z();
+      tLQ[3] = tableLabelQuaternion.w();
+
+      FileStorage fsfO;
+      fsfO.open(poseLabelsPath, FileStorage::APPEND);
+      fsfO << thisCropLabel << tLQ; 
+      fsfO.release();
+
+cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
     }
   #endif
 
   #ifdef DRAW_LABEL
     cv::Point text_anchor(bTops[c].x+1, bBots[c].y-2);
-    cv::Point text_anchor2(bTops[c].x+2, bBots[c].y-2);
+    cv::Point text_anchor2(bTops[c].x+1, bBots[c].y-2);
     putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(255,192,192), 2.0);
     putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(255,0,0), 1.0);
   #endif
@@ -2146,7 +2199,7 @@ fprintf(stderr, " object check6"); fflush(stderr);
   #ifdef PUBLISH_OBJECTS
     if (label >= 0) {
       fill_RO_and_M_arrays(roa_to_send_blue, 
-	ma_to_send_blue, pointCloudPoints, c, label, winningO);
+	ma_to_send_blue, pointCloudPoints, c, label, winningO, poseIndex);
     }
   #endif
   }
@@ -2187,6 +2240,11 @@ cout << "about to publish" << endl;
 #ifdef DEBUG
 cout << "published" << endl;
 #endif
+  #endif
+
+
+  #ifdef SAVE_ANNOTATED_BOXES
+  fc = 1;
   #endif
 
   #ifdef RUN_TRACKING 
@@ -2555,7 +2613,7 @@ cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.
 
       #ifdef DRAW_LABEL
       cv::Point text_anchor(dTop.x+1, dBot.y-2);
-      cv::Point text_anchor2(dTop.x+2, dBot.y-2);
+      cv::Point text_anchor2(dTop.x+1, dBot.y-2);
       putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(160,160,224), 2.0);
       putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(64,64,192), 1.0);
       #endif
@@ -2571,7 +2629,7 @@ cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.
 
       #ifdef DRAW_LABEL
       cv::Point text_anchor(winTop.x+1, winBot.y-2);
-      cv::Point text_anchor2(winTop.x+2, winBot.y-2);
+      cv::Point text_anchor2(winTop.x+1, winBot.y-2);
       putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(192,192,255), 2.0);
       putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(0,0,255), 1.0);
       #endif
@@ -2590,7 +2648,7 @@ cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.
       ma_to_send_red.markers.resize(ma_to_send_red.markers.size()+1);
 
       fill_RO_and_M_arrays(roa_to_send_red, 
-	ma_to_send_red, pointCloudPoints, roa_to_send_red.objects.size()-1, thisClass, thisRedBox->winningO);
+	ma_to_send_red, pointCloudPoints, roa_to_send_red.objects.size()-1, thisClass, thisRedBox->winningO, thisRedBox->poseIndex);
     }
     #endif
 
@@ -2617,9 +2675,7 @@ cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.
       sprintf(buf, "%s%s%s_%d.ppm", saved_crops_path.c_str(), class_name.c_str(), run_prefix.c_str(), cropCounter);
       // uncomment if statement for hard negative mining
       //if(bLabels[c] != 7) {
-#ifdef DEBUG
 cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
-#endif
 	imwrite(buf, crop);
 	cropCounter++;
       //}
@@ -2935,6 +2991,7 @@ int main(int argc, char **argv) {
   classPosekNNs.resize(numClasses);
   classPosekNNfeatures.resize(numClasses);
   classPosekNNlabels.resize(numClasses);
+  classQuaternions.resize(numClasses);
 
 #ifdef RELOAD_DATA
   reextract_knn = 1;
@@ -2946,7 +3003,8 @@ int main(int argc, char **argv) {
       kNNGetFeatures(class_crops_path, classLabels[i].c_str(), i, grayBlur, kNNfeatures, kNNlabels);
       if (classPoseModels[i].compare("G") == 0) {
 	string thisPoseLabel = classLabels[i] + "Poses";
-	posekNNGetFeatures(class_crops_path, thisPoseLabel.c_str(), grayBlur, classPosekNNfeatures[i], classPosekNNlabels[i]);
+	posekNNGetFeatures(class_crops_path, thisPoseLabel.c_str(), grayBlur, classPosekNNfeatures[i], classPosekNNlabels[i],
+	  classQuaternions[i], 0);
       }
     }
 

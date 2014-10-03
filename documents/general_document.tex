@@ -77,16 +77,16 @@
 
 
 \begin{center}
-\textbf{\Large }AAAI Fellowship Application\\[6pt] 
+\textbf{\Large }The Eyes of Iorek Byrnison\\[6pt] 
 %\textbf{\Large } \\[6pt]
 %\textbf{\Large } \\[6pt]
 John Oberlin\\
 Brown University, 2014\\
 \end{center}
 
-\section{Introduction}
-%\cite{FooBar}
 
+
+\begin{abstract}
 State of the art techniques in object detection and pose estimation
 are powerful and general but usually run at a rate less than 1 Hz. This makes
 it difficult to employ such techniques in real-time human-computer interaction.
@@ -94,7 +94,12 @@ This document outlines a simple, robust framework for object detection which
 trades a large memory overhead for improvements in latency and total throughput 
 of detections. Included is a workflow for that framework which makes training
 and calibration first intuitive and then automatic.
+\end{abstract}
 
+
+
+\section{Introduction}
+%\cite{FooBar}
 Our overall pipeline can be described as:
 
 \begin{enumerate}
@@ -103,26 +108,26 @@ Our overall pipeline can be described as:
   \item Use the classifiers and additional logic to provide 3D detections pose estimates of objects.
 \end{enumerate}
 
-\section{Basic Techniques and Detector Structure}
+\section{Basic Techniques}
+\paragraph{Objectness} try clustering the proposals for blueboxes.
+\paragraph{Fast Keypoints}
+\paragraph{SIFT descriptors}
+\paragraph{KMeans}
+\paragraph{BoW}
+\paragraph{Color Histogram}
+\paragraph{Depth Histogram}yet to implement
+\paragraph{kNN}
 
-Objectness
-Fast Keypoints
-SIFT descriptors
-KMeans
-BoW
-Color Histogram
-Depth Histogram
-kNN
-MDP
+\section{Detector Structure}
+\paragraph{Green Boxes}
+\paragraph{Blue Boxes}
+\paragraph{Red Boxes}
 
-Green Boxes
-Blue Boxes
-Red Boxes
-
-\section{Teaching and Employing the System}
+\section{Teaching the System}
 This is teaching not training because it is an interaction used to collect
 data not a script used to optimize a function.
 
+\subsection{Background Filtering}
 Teaching is carried out on a flat surface of uniform color. The background plane
 and color model are inferred by looking at parts of the image not contained in
 the blue boxes. These are used to keep with high probability only keypoints which
@@ -130,7 +135,7 @@ are on the object. During inference (employment), background contributions will
 contribute to all examples approximately equally, and any confusion is likely to
 be understandable.
 
-\paragraph{Manual Teaching}
+\subsection{Manual Teaching}
 Teaching the system about an object involves showing it many different views of
 the object in a controlled environment. Once a session is initiated, the following
 process should be performed:
@@ -147,13 +152,13 @@ process should be performed:
 Where k might be around 100. Now the collected data can be used to train object class
 and pose classifiers.
 
-\paragraph{Semi-Automatic Teaching}
-
+\subsection{Self Filtering}
 Suppose that we want to gather data while a robot is holding the object. It is possible
 to impose geomentric constraints on kept data to ensure that captured keypoints
 belong to the object being examined and not to our manipulating robot. This is
 called self filtering.
 
+\subsection{Semi-Automatic Teaching}
 
 \begin{enumerate}
   \item Repeat k times:
@@ -164,24 +169,38 @@ called self filtering.
   \end{enumerate}
 \end{enumerate}
 
-Where k might be around 3. Eventually we would like to have fully automatic training, where the
-robot grabs objects and coordinates base poses itself.
+Where k might be around 3.
 
-\paragraph{Employing the System}
-Object Poses on Table or Floor
-Single Target Tracking
+\subsection{Automatic Teaching}
 
-\section{Work to be Completed}
-Semi-automatic training
-Automatic training
-More geometric work
+\begin{enumerate}
+  \item Place an object in front of the robot.
+  \item Robot repeats k times:
+  \begin{enumerate}
+    \item Infer a stateless grasp on the object.
+    \item \textbf{if} a pose model exists, infer the base pose for the grasp. \\
+	  \textbf{else}, start a new pose model.
+    \item Perform semi-automatic teaching with the object.
+    \item Replace the object.
+  \end{enumerate}
+\end{enumerate}
 
-working MDP's into the red box exploration and data collection so that we can interact with
-large scale planners for tasks.
+Where k might be around 3.
 
+\section{Employing the System}
+\paragraph{Object Poses on Table or Floor}
+\paragraph{Single Target Tracking}
 
-%\bibliographystyle{siam}
-%\bibliography{proposal}
+\section{Yet To Be Implemented}
+
+\begin{itemize}
+  \item Background Filtering
+  \item Depth Models
+  \item Train feature weights to minimize the leave-one-out error rate on training data.
+\end{itemize}
+
+\bibliographystyle{siam}
+\bibliography{proposal}
 
 \newpage
 
@@ -193,23 +212,18 @@ At one time it was said that AI was "vision hard" and that solving Vision would
 effectively solve AI. While that belief sweeps a bit under the rug, it is certainly true
 that in the past Computer Vision has been a strong bottleneck in the development of AI and 
 Robotics. 
-  
   Recent advances in object detection on large data sets suggest that we are ready
 to move beyond attacking vision in an isolated setting and begin integrating it in a
 larger framework for planning in an interactive environment. I have training in state
-of the art Computer Vision techniques and have been tracking the literature for a few
+of the art computer vision techniques and have been tracking the literature for a few
 years now. Although I have attended CVPR twice, I have not attended any conferences in
 AI or Robotics.  I recently started to focus on Real Time Vision systems, and attending AAAI
-will help me rapidly learn about the community and hit the ground running. As my 
-concentration shifts and I begin working in AI and Robotics, my assimilation of the literature
-will be enchanced by having attended AAAI.
-  
+will help me rapidly learn about the community and hit the ground running.
   One of my goals is to make a real time vision system with a capacity of 50 objects. It should be
 capable of giving accurate 3D pose estimates that enable the objects to be identified and manipulated
 by robots. It should be able to learn a new object in less than a minute, and should be simple enough
 that a non-expert can easily train the system. Yet it should remain versatile enough that state of
 the art detectors running on special hardware can be swapped in by experts.
-  
   I have made good progress towards this goal so far. By attending AAAI, I will be able to
 better understand the motivations, needs, and desires of AI and Robotics concentrators with regards
 to Computer Vision, which will enable me to complete my dissertation in a way that aligns with
@@ -218,31 +232,25 @@ these communities' values.
 \newpage
 
 \section{Curriculum Vitae}
-\textbf{\emph{Education}}\\
- \\
-BS in Math, Florida State University, 2003-2006 \\
-MA in Math, UC Berkeley, 2006-2008 \\
-PhD program in Computer Science at U Chicago, 2010-2011 \\
-PhD program in Computer Science at Brown University, 2011-Present \\
- \\ 
-\textbf{\emph{Employment}}\\
-\\
-Developer Support Engineer, Havok, 2008-2009 \\
- \\
-\textbf{\emph{Conference Papers}}\\
- \\
-S. Naderi Parizi, J. Oberlin, P. Felzenszwalb.\\
-\emph{Reconfigurable Models for Scene Recognition.}\\
-IEEE Conference on Computer Vision and Pattern Recognition (CVPR), 2012\\
- \\
-P. Felzenszwalb, J. Oberlin.  \\
-\emph{Multiscale Fields of Patterns.}\\
-To Appear, 2014 \\
- \\
-\textbf{\emph{Conferences Attended}}\\
-CVPR 2011\\
-CVPR 2012 \\
+Education
+Florida State University, 2003-2006
+UC Berkeley, 2006-2008
+U Chicago, 2010-2011
+Brown University, 2011-Present
 
+Employment
+Havok, 2008-2009
+
+Conference Papers
+CVPR
+NIPS
+
+Conferences Attended
+CVPR colorado springs
+CVPR providence
+
+Misc
+REU at OSU
 
 
 \newpage
