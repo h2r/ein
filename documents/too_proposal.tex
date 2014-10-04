@@ -90,26 +90,45 @@ Brown University, 2014\\
 State of the art techniques in object detection and pose estimation
 are powerful and general but usually run at a rate less than 1 Hz. This makes
 it difficult to employ such techniques in real-time human-computer interaction.
-
-Pitch the grocery video.
+This document outlines a simple, robust framework for object detection which 
+trades a large memory overhead for improvements in latency and total throughput 
+of detections. Included is a workflow for that framework which makes training
+and calibration first intuitive and then automatic.
 
 Our overall pipeline can be described as:
 
 \begin{enumerate}
   \item Collect RGB-D data for objects.
-  \item (Automatically) Train BoW model and kNN classifiers for objects.
+  \item Train BoW model and kNN classifiers for objects.
   \item Use the classifiers and additional logic to provide 3D detections pose estimates of objects.
 \end{enumerate}
 
-Related work.
+\section{Basic Techniques and Detector Structure}
 
-\section{Coordinating AI with Computer Vision}
-MDPs, OO-MDPs, and POMDBs. How to create a perceptual system that plays well with planning.
+Objectness
+Fast Keypoints
+SIFT descriptors
+KMeans
+BoW
+Color Histogram
+Depth Histogram
+kNN
+MDP
 
+Green Boxes
+Blue Boxes
+Red Boxes
 
-\section{Teaching the System}
+\section{Teaching and Employing the System}
 This is teaching not training because it is an interaction used to collect
 data not a script used to optimize a function.
+
+Teaching is carried out on a flat surface of uniform color. The background plane
+and color model are inferred by looking at parts of the image not contained in
+the blue boxes. These are used to keep with high probability only keypoints which
+are on the object. During inference (employment), background contributions will
+contribute to all examples approximately equally, and any confusion is likely to
+be understandable.
 
 \paragraph{Manual Teaching}
 Teaching the system about an object involves showing it many different views of
@@ -130,6 +149,12 @@ and pose classifiers.
 
 \paragraph{Semi-Automatic Teaching}
 
+Suppose that we want to gather data while a robot is holding the object. It is possible
+to impose geomentric constraints on kept data to ensure that captured keypoints
+belong to the object being examined and not to our manipulating robot. This is
+called self filtering.
+
+
 \begin{enumerate}
   \item Repeat k times:
   \begin{enumerate}
@@ -142,31 +167,15 @@ and pose classifiers.
 Where k might be around 3. Eventually we would like to have fully automatic training, where the
 robot grabs objects and coordinates base poses itself.
 
+\paragraph{Employing the System}
+Object Poses on Table or Floor
+Single Target Tracking
 
-\section{Work Forcast}
-
-\paragraph{Existing Software}
-Manual training, robust pose estimation under good conditions.
-Objectness
-Fast Keypoints
-SIFT descriptors
-KMeans
-BoW
-Color Histogram
-Depth Histogram
-kNN
-MDP
-
-Green Boxes
-Blue Boxes
-Red Boxes
-
-\paragraph{Current Directions}
+\section{Work to be Completed}
 Semi-automatic training
 Automatic training
 More geometric work
 
-\paragraph{Broader Impact and Future Work}
 working MDP's into the red box exploration and data collection so that we can interact with
 large scale planners for tasks.
 
