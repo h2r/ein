@@ -87,8 +87,6 @@ Brown University, 2014\\
 \end{center}
 
 \section{Introduction}
-%\cite{FooBar}
-
 State of the art techniques in object detection and pose estimation
 are powerful and general but usually run at a rate much less than 1 Hz and require
 time and expertise to build, maintain, and operate. The high demands of modern systems
@@ -110,7 +108,11 @@ It is possible to execute this workflow for 5 objects in 15 minutes, producing m
 viable for tabletop object detection. Generating models robust enough for general detection might
 take three times as long.
 
-***Related work***
+Popular techniques for real-time detection use modified DPMs \cite{kostas1} \cite{forsyth1},
+and sometimes exploit different channels of data \cite{dietr1} \cite{sliding1}.  
+These approaches have seen success in their target domains, but are too technical for general
+application and need to be integrated with interactive systems. I want to create a Computer 
+Vision system that is simple, reliable, and easy to use with ROS (Robot Operating System).
 
 \section{Coordinating AI with Computer Vision and Teaching the System}
 My current framework for detection uses a box metaphor to talk about space in a way that 
@@ -121,8 +123,8 @@ one frame of video input, Red Boxes denote more precise clusters of Green Boxes 
 and account for occlusion.
 
 Right now, detections and pose estimates are provided for Blue and Red Boxes. I want to allow the system
-to provide information about tokenization, affordances, and other properties that are useful for higher level
-MDPs, OO-MDPs, and POMDPs.
+to provide information about tokenization, affordances, and other properties that are useful for applying
+MDPs\cite{MDP}, OO-MDPs\cite{OOMDP}, and POMDPs\cite{POMDP} to the real world.
 
 The Red Box optimization process can be framed as an MDP. I would like to use more sophisticated planning
 that incorporates feedback with the robot's movement planner in order to collect additional, specific data 

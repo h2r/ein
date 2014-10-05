@@ -1,0 +1,34 @@
+\begin{thebibliography}{1}
+
+\bibitem{MDP}
+{\sc R.~Bellman}, {\em A markovian decision process}, Indiana Univ. Math. J., 6
+  (1957), pp.~679--684.
+
+\bibitem{OOMDP}
+{\sc C.~Diuk, A.~Cohen, and M.~L. Littman}, {\em An object-oriented
+  representation for efficient reinforcement learning}, in Proceedings of the
+  25th international conference on Machine learning, ACM, 2008, pp.~240--247.
+
+\bibitem{POMDP}
+{\sc L.~P. Kaelbling, M.~L. Littman, and A.~R. Cassandra}, {\em Planning and
+  acting in partially observable stochastic domains}, Artificial intelligence,
+  101 (1998), pp.~99--134.
+
+\bibitem{forsyth1}
+{\sc M.~A. Sadeghi and D.~Forsyth}, {\em 30hz object detection with dpm v5}, in
+  Computer Vision--ECCV 2014, Springer, 2014, pp.~65--79.
+
+\bibitem{dietr1}
+{\sc Y.~Sun, L.~Bo, and D.~Fox}, {\em Learning to identify new objects}, ICRA,
+  (2014).
+
+\bibitem{sliding1}
+{\sc S.~S.~J. Xiao}, {\em Sliding shapes for 3d object detection in depth
+  images}, ECCV,  (2014).
+
+\bibitem{kostas1}
+{\sc M.~Zhu, N.~Atanasov, G.~J. Pappas, and K.~Daniilidis}, {\em Active
+  deformable part models inference}, in Computer Vision--ECCV 2014, Springer,
+  2014, pp.~281--296.
+
+\end{thebibliography}
