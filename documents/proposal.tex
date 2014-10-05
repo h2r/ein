@@ -90,28 +90,48 @@ Brown University, 2014\\
 %\cite{FooBar}
 
 State of the art techniques in object detection and pose estimation
-are powerful and general but usually run at a rate less than 1 Hz. Such a slow
-rate makes it difficult to employ such techniques in real-time human-computer interaction.
+are powerful and general but usually run at a rate much less than 1 Hz and require
+time and expertise to build, maintain, and operate. The high demands of modern systems
+can make it difficult to employ such techniques in real-time human-computer interaction.
 
-Pitch the grocery video.
+During the completion of my PhD thesis at Brown, I will make it possible for a robot
+to autonomously scan 10 novel objects in order to construct robust models for detection,
+pose estimation, grasping, and manipulation of those objects during collaborations with
+a human operator. A high level description of the workflow that I use at the moment is:
 
-Our overall pipeline can be described as:
-
+\paragraph{The Workflow}
 \begin{enumerate}
-  \item Collect RGB-D data for objects.
-  \item (Automatically) Train BoW model and kNN classifiers for objects.
-  \item Use the classifiers and additional logic to provide 3D detections pose estimates of objects.
+  \item Collect RGB-D data for objects from many different perspectives.
+  \item Train BoW model and kNN classifiers for objects.
+  \item Use the classifiers and additional logic to provide 3D detections and pose estimates of objects.
 \end{enumerate}
 
-Related work.
+It is possible to execute this workflow for 5 objects in 15 minutes, producing models which are
+viable for tabletop object detection. Generating models robust enough for general detection might
+take three times as long.
 
-\section{Coordinating AI with Computer Vision}
-MDPs, OO-MDPs, and POMDBs. How to create a perceptual system that plays well with planning.
+***Related work***
 
+\section{Coordinating AI with Computer Vision and Teaching the System}
+My current framework for detection uses a box metaphor to talk about space in a way that 
+is amenable to planning and reasoning. The system uses RGB-D video from a Kinect as input.
+Green Boxes denote areas in the image that probably belong to an object. Each Blue Box denotes
+a cluster of green boxes that probably belong to the same object. Whereas Blue Boxes exist only for
+one frame of video input, Red Boxes denote more precise clusters of Green Boxes which are tracked over time 
+and account for occlusion.
 
-\section{Teaching the System}
-We call this process teaching and not training because it is an interaction used to collect
-data not a program used to optimize a function.
+Right now, detections and pose estimates are provided for Blue and Red Boxes. I want to allow the system
+to provide information about tokenization, affordances, and other properties that are useful for higher level
+MDPs, OO-MDPs, and POMDPs.
+
+The Red Box optimization process can be framed as an MDP. I would like to use more sophisticated planning
+that incorporates feedback with the robot's movement planner in order to collect additional, specific data 
+as it is needed.
+
+Finally, consider the following automatic object registration technique.  
+The logic in Step 3 of The Workflow might utilize Amazon Mechanical Turk 
+or an existing, more general classifier to automatically label and retrieve meta information for learned 
+objects, meaning that the operator only needs to annotate data if the automatic registration step fails.
 
 \begin{figure}
   \begin{center}
@@ -124,54 +144,30 @@ data not a program used to optimize a function.
 	    a bag of groceries.}
 \end{figure}
 
-\paragraph{Semi-Automatic Teaching}
+%\paragraph{Semi-Automatic Training}
+%\begin{enumerate}
+  %\item A human operator places the object in a robot's manipulator.
+  %\item The operator provides a base pose for the given grasp.
+  %\item The robot collects views of many different precisely known poses, together with models for self and background filtering.
+%\end{enumerate}
 
-\begin{enumerate}
-  \item Repeat k times:
-  \begin{enumerate}
-    \item A human operator places the object in a robot's manipulator.
-    \item The operator provides a base pose for the given grasp.
-    \item The robot collects views of many different precisely known poses, together with models for self and background filtering.
-  \end{enumerate}
-\end{enumerate}
+\section{Current Work, Future Progress and Broader Impact}
+At the moment, a human operator trains the system without a robot by manually adjusting the pose of the object, 
+achieving robust detection and pose estimation under good conditions. Eventually we would like to have 
+fully automatic training, where the robot grabs objects and coordinates base poses itself.
 
-Where k might be around 3. 
-
-Currently we train the system without a robot by manually adjusting the pose of the object and manually
-annotating grasps. Eventually we would like to have fully automatic training, where the
-robot grabs objects and coordinates base poses itself.
-
-
-\section{Work Forecast}
-
-\paragraph{Existing Software}
-Manual training, robust pose estimation under good conditions.
-Objectness
-Fast Keypoints
-SIFT descriptors
-KMeans
-BoW
-Color Histogram
-Depth Histogram
-kNN
-MDP
-
-Green Boxes
-Blue Boxes
-Red Boxes
-
-\paragraph{Current Directions}
-Semi-automatic training
-Automatic training
-More geometric work
-
-\paragraph{Broader Impact and Future Work}
-working MDP's into the red box exploration and data collection so that we can interact with
-large scale planners for tasks.
+The system we have outlined abstracts the detector from the classifier, taking the notion of Objectness and
+extending it. As more sophisticated Computer Vision algorithms become real-time tractable or new data becomes
+available, they might be smoothly incorporated into the system even as it is running. 
+Automatic model validation can ensure that a new model outperforms the current model before the system switches 
+it out with no interruption of service. This is important if robots are
+to become effortless for non-technical operators.
 
 
-%\bibliographystyle{siam}
-%\bibliography{proposal}
+\newpage
+
+\bibliographystyle{siam}
+\bibliography{proposal}
 
 \newpage
 
