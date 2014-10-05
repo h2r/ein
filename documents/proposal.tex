@@ -8,6 +8,8 @@
 \usepackage[pdftex]{graphicx}
 \usepackage{color}
 
+\usepackage{multicol}
+
 % horizontal margins: 1.0 + 6.5 + 1.0 = 8.5
 \setlength{\oddsidemargin}{0.0in}
 \setlength{\textwidth}{6.5in}
@@ -77,7 +79,7 @@
 
 
 \begin{center}
-\textbf{\Large }AAAI Fellowship Application\\[6pt] 
+\textbf{\Large AAAI Fellowship Application}\\[12pt] 
 %\textbf{\Large } \\[6pt]
 %\textbf{\Large } \\[6pt]
 John Oberlin\\
@@ -88,8 +90,8 @@ Brown University, 2014\\
 %\cite{FooBar}
 
 State of the art techniques in object detection and pose estimation
-are powerful and general but usually run at a rate less than 1 Hz. This makes
-it difficult to employ such techniques in real-time human-computer interaction.
+are powerful and general but usually run at a rate less than 1 Hz. Such a slow
+rate makes it difficult to employ such techniques in real-time human-computer interaction.
 
 Pitch the grocery video.
 
@@ -108,42 +110,39 @@ MDPs, OO-MDPs, and POMDBs. How to create a perceptual system that plays well wit
 
 
 \section{Teaching the System}
-This is teaching not training because it is an interaction used to collect
-data not a script used to optimize a function.
+We call this process teaching and not training because it is an interaction used to collect
+data not a program used to optimize a function.
 
-\paragraph{Manual Teaching}
-Teaching the system about an object involves showing it many different views of
-the object in a controlled environment. Once a session is initiated, the following
-process should be performed:
-
-\begin{enumerate}
-  \item Repeat k times:
-  \begin{enumerate}
-    \item Adjust the object to expose a novel viewpoint and record pose data.
-    \item Remove extraneous objects in the scene to ensure a unique blue box is present.
-    \item Collect the view, which saves RGB-D data and the background data.
-  \end{enumerate}
-\end{enumerate}
-
-Where k might be around 100. Now the collected data can be used to train object class
-and pose classifiers.
+\begin{figure}
+  \begin{center}
+    \begin{tabular}{l c}
+      \includegraphics[width=200px, height=150px]{detect.png} &
+      \includegraphics[width=200px, height=150px]{detect.png} \\
+    \end{tabular}
+  \end{center}
+  \caption{Teaching a robot to identify and manipulate objects can be as easy as bringing home
+	    a bag of groceries.}
+\end{figure}
 
 \paragraph{Semi-Automatic Teaching}
 
 \begin{enumerate}
   \item Repeat k times:
   \begin{enumerate}
-    \item The object is placed in a robot's manipulator in a known grasp.
-    \item A base pose for the grasp is provided.
-    \item The robot collects view from many different precisely known poses, together with models for self and background filtering.
+    \item A human operator places the object in a robot's manipulator.
+    \item The operator provides a base pose for the given grasp.
+    \item The robot collects views of many different precisely known poses, together with models for self and background filtering.
   \end{enumerate}
 \end{enumerate}
 
-Where k might be around 3. Eventually we would like to have fully automatic training, where the
+Where k might be around 3. 
+
+Currently we train the system without a robot by manually adjusting the pose of the object and manually
+annotating grasps. Eventually we would like to have fully automatic training, where the
 robot grabs objects and coordinates base poses itself.
 
 
-\section{Work Forcast}
+\section{Work Forecast}
 
 \paragraph{Existing Software}
 Manual training, robust pose estimation under good conditions.
@@ -177,6 +176,7 @@ large scale planners for tasks.
 \newpage
 
 \section{Attendance Statement}
+
   I have been paying attention to AI, Machine Learning, and Computer Vision since 2004. 
 Regarding Computer Vision, I saw the progress of Neural Nets in the 90's swept under 
 the rug by SIFT, HoG, and SVMs in the mid 2000's, only for neural nets to reclaim the throne in the 2010's.
@@ -189,22 +189,33 @@ Robotics.
 to move beyond attacking vision in an isolated setting and begin integrating it in a
 larger framework for planning in an interactive environment. I have training in state
 of the art Computer Vision techniques and have been tracking the literature for a few
-years now. Although I have attended CVPR twice, I have not attended any conferences in
-AI or Robotics.  I recently started to focus on Real Time Vision systems, and attending AAAI
-will help me rapidly learn about the community and hit the ground running. As my 
-concentration shifts and I begin working in AI and Robotics, my assimilation of the literature
-will be enchanced by having attended AAAI.
-  
-  One of my goals is to make a real time vision system with a capacity of 50 objects. It should be
-capable of giving accurate 3D pose estimates that enable the objects to be identified and manipulated
-by robots. It should be able to learn a new object in less than a minute, and should be simple enough
-that a non-expert can easily train the system. Yet it should remain versatile enough that state of
-the art detectors running on special hardware can be swapped in by experts.
-  
-  I have made good progress towards this goal so far. By attending AAAI, I will be able to
-better understand the motivations, needs, and desires of AI and Robotics concentrators with regards
-to Computer Vision, which will enable me to complete my dissertation in a way that aligns with
-these communities' values.
+years now. 
+
+  Work in Computer Vision has largely centered around hyperspecific problems concerning
+single images. This focus has resulted in significant progress on such tasks, but the challenges of 
+engineering real time systems has so far prevented interesting real world applications
+or substantial spread of techniques to other communities. 
+
+Two things have resulted from this dam in the flow of information. 
+First, there are now many techniques in Computer Vision which are suited
+to fast and effective partial solutions of problems such as object detection
+but have been ignored in favor of much slower but slightly more effective state of the art
+approaches.  Second, such techniques may be combined with the information available from
+extra sensors and the ability of real time systems to capture additional images of the same scene
+to form full solutions to multiple related problems (such as detection, segmentation, and pose estimation). 
+ 
+I have seen already that combining elements of probabilistic planning and reasoning can boost
+the performance of traditional Computer Vision and Machine Learning algorithms.  I want to
+continue this approach to research, and attending AAAI will help me to fill in gaps in my
+background that are necessary to carve out a career in multi-disciplinary AI.  
+Planning and Markov Decision Processes are key elements that I want to master. Additionally,
+I would like to explore topics such as Interactive Entertainment, Scheduling, Knowledge
+Representation and Reasoning, and Reasoning Under Uncertainty in order to further my
+understanding of Human-AI Interactions.
+
+Finally, by attending AAAI I will be able to better understand the motivations, needs, and desires 
+of AI and Robotics concentrators with regards to Computer Vision, which will enable me 
+to complete my dissertation in a way that aligns with these communities' values.
 
 \newpage
 

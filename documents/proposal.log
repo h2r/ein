@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.4-1.40.13 (TeX Live 2012/Debian) (format=pdflatex 2014.6.18)  4 OCT 2014 14:53
+This is pdfTeX, Version 3.1415926-2.4-1.40.13 (TeX Live 2012/Debian) (format=pdflatex 2014.6.18)  4 OCT 2014 20:01
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -158,35 +158,83 @@ File: color.cfg 2007/01/18 v1.5 color configuration of teTeX/TeXLive
 )
 Package color Info: Driver file: pdftex.def on input line 130.
 )
-\fwtwo=\skip46
-
-(./proposal.aux)
+(/usr/share/texlive/texmf-dist/tex/latex/tools/multicol.sty
+Package: multicol 2011/06/27 v1.7a multicolumn formatting (FMi)
+\c@tracingmulticols=\count102
+\mult@box=\box28
+\multicol@leftmargin=\dimen114
+\c@unbalance=\count103
+\c@collectmore=\count104
+\doublecol@number=\count105
+\multicoltolerance=\count106
+\multicolpretolerance=\count107
+\full@width=\dimen115
+\page@free=\dimen116
+\premulticols=\dimen117
+\postmulticols=\dimen118
+\multicolsep=\skip46
+\multicolbaselineskip=\skip47
+\partial@page=\box29
+\last@line=\box30
+\mult@rightbox=\box31
+\mult@grightbox=\box32
+\mult@gfirstbox=\box33
+\mult@firstbox=\box34
+\@tempa=\box35
+\@tempa=\box36
+\@tempa=\box37
+\@tempa=\box38
+\@tempa=\box39
+\@tempa=\box40
+\@tempa=\box41
+\@tempa=\box42
+\@tempa=\box43
+\@tempa=\box44
+\@tempa=\box45
+\@tempa=\box46
+\@tempa=\box47
+\@tempa=\box48
+\@tempa=\box49
+\@tempa=\box50
+\@tempa=\box51
+\c@columnbadness=\count108
+\c@finalcolumnbadness=\count109
+\last@try=\dimen119
+\multicolovershoot=\dimen120
+\multicolundershoot=\dimen121
+\mult@nat@firstbox=\box52
+\colbreak@box=\box53
+\multicol@sort@counter=\count110
+)
+\fwtwo=\skip48
+ (./proposal.aux)
 \openout1 = `proposal.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 74.
-LaTeX Font Info:    ... okay on input line 74.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 74.
-LaTeX Font Info:    ... okay on input line 74.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 74.
-LaTeX Font Info:    ... okay on input line 74.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 74.
-LaTeX Font Info:    ... okay on input line 74.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 74.
-LaTeX Font Info:    ... okay on input line 74.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 74.
-LaTeX Font Info:    ... okay on input line 74.
- (/usr/share/texlive/texmf-dist/tex/context/base/supp-pdf.mkii
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 76.
+LaTeX Font Info:    ... okay on input line 76.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 76.
+LaTeX Font Info:    ... okay on input line 76.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 76.
+LaTeX Font Info:    ... okay on input line 76.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 76.
+LaTeX Font Info:    ... okay on input line 76.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 76.
+LaTeX Font Info:    ... okay on input line 76.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 76.
+LaTeX Font Info:    ... okay on input line 76.
+
+(/usr/share/texlive/texmf-dist/tex/context/base/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count102
-\scratchdimen=\dimen114
-\scratchbox=\box28
-\nofMPsegments=\count103
-\nofMParguments=\count104
+\scratchcounter=\count111
+\scratchdimen=\dimen122
+\scratchbox=\box54
+\nofMPsegments=\count112
+\nofMParguments=\count113
 \everyMPshowfont=\toks23
-\MPscratchCnt=\count105
-\MPscratchDim=\dimen115
-\MPnumerator=\count106
-\makeMPintoPDFobject=\count107
+\MPscratchCnt=\count114
+\MPscratchDim=\dimen123
+\MPnumerator=\count115
+\makeMPintoPDFobject=\count116
 \everyMPtoPDFconversion=\toks24
 ) (/usr/share/texlive/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty
 Package: pdftexcmds 2011/11/29 v0.20 Utility functions of pdfTeX for LuaTeX (HO
@@ -236,161 +284,187 @@ G,.JBIG2,.JB2,.eps]
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
+LaTeX Font Info:    Try loading font information for U+lasy on input line 118.
+
+(/usr/share/texlive/texmf-dist/tex/latex/base/ulasy.fd
+File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
+)
+LaTeX Font Info:    Try loading font information for U+msa on input line 118.
+
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2009/06/22 v3.00 AMS symbols A
+)
+LaTeX Font Info:    Try loading font information for U+msb on input line 118.
+
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
+File: umsb.fd 2009/06/22 v3.00 AMS symbols B
+)
+<detect.png, id=1, 642.4pt x 401.5pt>
+File: detect.png Graphic file (type png)
+ <use detect.png>
+Package pdftex.def Info: detect.png used on input line 119.
+(pdftex.def)             Requested size: 200.74951pt x 150.56825pt.
+File: detect.png Graphic file (type png)
+ <use detect.png>
+Package pdftex.def Info: detect.png used on input line 120.
+(pdftex.def)             Requested size: 200.74951pt x 150.56825pt.
+
 [1
 
-{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2] [3]
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2 <./detect.png>]
+[3]
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 212--292
+Underfull \hbox (badness 10000) in paragraph at lines 223--303
 
  []
 
 [4] [5] [6] (./proposal.aux) ) 
 Here is how much of TeX's memory you used:
- 2617 strings out of 495059
- 34254 string characters out of 3182030
- 92058 words of memory out of 3000000
- 5772 multiletter control sequences out of 15000+200000
- 5557 words of font info for 20 fonts, out of 3000000 for 9000
+ 2771 strings out of 495059
+ 36644 string characters out of 3182030
+ 95963 words of memory out of 3000000
+ 5896 multiletter control sequences out of 15000+200000
+ 10222 words of font info for 40 fonts, out of 3000000 for 9000
  14 hyphenation exceptions out of 8191
- 38i,5n,24p,260b,522s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 38i,12n,24p,260b,522s stack positions out of 5000i,500n,10000p,200000b,50000s
 </usr/share/texlive/texmf-dist/fonts/type1/public
 /amsfonts/cm/cmbx12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfo
 nts/cm/cmbxti10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/
 cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti
 12.pfb>
-Output written on proposal.pdf (6 pages, 69966 bytes).
+Output written on proposal.pdf (6 pages, 625137 bytes).
 PDF statistics:
- 39 PDF objects out of 1000 (max. 8388607)
- 26 compressed objects within 1 object stream
+ 42 PDF objects out of 1000 (max. 8388607)
+ 27 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 6 words of extra memory for PDF output out of 10000 (max. 10000000)
 
