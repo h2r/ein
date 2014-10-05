@@ -4,6 +4,10 @@
 {\sc R.~Bellman}, {\em A markovian decision process}, Indiana Univ. Math. J., 6
   (1957), pp.~679--684.
 
+\bibitem{bing}
+{\sc M.-M. Cheng, Z.~Zhang, W.-Y. Lin, and P.~Torr}, {\em Bing: Binarized
+  normed gradients for objectness estimation at 300fps}, in IEEE CVPR, 2014.
+
 \bibitem{OOMDP}
 {\sc C.~Diuk, A.~Cohen, and M.~L. Littman}, {\em An object-oriented
   representation for efficient reinforcement learning}, in Proceedings of the
@@ -13,6 +17,10 @@
 {\sc L.~P. Kaelbling, M.~L. Littman, and A.~R. Cassandra}, {\em Planning and
   acting in partially observable stochastic domains}, Artificial intelligence,
   101 (1998), pp.~99--134.
+
+\bibitem{sift}
+{\sc D.~G. Lowe}, {\em Distinctive image features from scale-invariant
+  keypoints}, International journal of computer vision, 60 (2004), pp.~91--110.
 
 \bibitem{forsyth1}
 {\sc M.~A. Sadeghi and D.~Forsyth}, {\em 30hz object detection with dpm v5}, in

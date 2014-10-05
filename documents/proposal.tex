@@ -87,53 +87,56 @@ Brown University, 2014\\
 \end{center}
 
 \section{Introduction}
+Imagine handing ten everyday objects to your robot assistant, who then proceeds to
+scan them and put them where they belong. Now think of a situation where a capable
+robot might improve someone's life by helping a disabled person prepare a meal,
+fetching a purse or storing a book for a bedridden patient, or handing ointment
+to a busy parent whose hands are full taking care of their child.
+
 State of the art techniques in object detection and pose estimation
 are powerful and general but usually run at a rate much less than 1 Hz and require
 time and expertise to build, maintain, and operate. The high demands of modern systems
-can make it difficult to employ such techniques in real-time human-computer interaction.
+can make it difficult to employ such techniques in real time human-computer interaction.
+Additionally, although effective solutions exist for category level recognition, there is no
+decisive framework for handling instance level recognition.
 
-During the completion of my PhD thesis at Brown, I will make it possible for a robot
+The aim of my dissertation at Brown is to enable a robot
 to autonomously scan 10 novel objects in order to construct robust models for detection,
 pose estimation, grasping, and manipulation of those objects during collaborations with
-a human operator. A high level description of the workflow that I use at the moment is:
+a human operator. An effective workflow for this task would be 1.) A human operator provides
+the robot with a box of objects. 2.) The robot picks up each object and scans it from many different
+perspectives to collect appearance data. 3.) The robot trains classifiers to recognize each object. 
+4.) The robot collects labels and metadata for the objects from Amazon Mechanical Turk. 5.) The
+robot can detect the objects in the environment and accurately respond to an operator's request
+to fetch an object or put it away.
 
-\paragraph{The Workflow}
-\begin{enumerate}
-  \item Collect RGB-D data for objects from many different perspectives.
-  \item Train BoW model and kNN classifiers for objects.
-  \item Use the classifiers and additional logic to provide 3D detections and pose estimates of objects.
-\end{enumerate}
-
-It is possible to execute this workflow for 5 objects in 15 minutes, producing models which are
-viable for tabletop object detection. Generating models robust enough for general detection might
-take three times as long.
-
-Popular techniques for real-time detection use modified DPMs \cite{kostas1} \cite{forsyth1},
+Popular techniques for real time detection use modified DPMs \cite{kostas1} \cite{forsyth1},
 and sometimes exploit different channels of data \cite{dietr1} \cite{sliding1}.  
 These approaches have seen success in their target domains, but are too technical for general
-application and need to be integrated with interactive systems. I want to create a Computer 
-Vision system that is simple, reliable, and easy to use with ROS (Robot Operating System).
+application and need to be integrated with interactive systems. A computer 
+vision system that is simple, reliable, and easy to use with ROS (Robot Operating System)
+would benefit many researchers.
 
-\section{Coordinating AI with Computer Vision and Teaching the System}
-My current framework for detection uses a box metaphor to talk about space in a way that 
+\section{Current Work, Future Progress and Broader Impact}
+Our current framework for detection uses a box metaphor to talk about space in a way that 
 is amenable to planning and reasoning. The system uses RGB-D video from a Kinect as input.
 Green Boxes denote areas in the image that probably belong to an object. Each Blue Box denotes
 a cluster of green boxes that probably belong to the same object. Whereas Blue Boxes exist only for
 one frame of video input, Red Boxes denote more precise clusters of Green Boxes which are tracked over time 
 and account for occlusion.
 
-Right now, detections and pose estimates are provided for Blue and Red Boxes. I want to allow the system
-to provide information about tokenization, affordances, and other properties that are useful for applying
-MDPs\cite{MDP}, OO-MDPs\cite{OOMDP}, and POMDPs\cite{POMDP} to the real world.
+We determine Green Boxes using an Objectness measure \cite{bing}, extract features with SIFT \cite{sift} 
+and k-means, and perform classification on blue and red boxes using k-nearest neighbors.
 
-The Red Box optimization process can be framed as an MDP. I would like to use more sophisticated planning
-that incorporates feedback with the robot's movement planner in order to collect additional, specific data 
-as it is needed.
+Right now, detections and pose estimates are published in ROS for Blue and Red Boxes. To provide accurate help
+to a human partner, the robot needs to know how to manipulate objects and understand their typical uses.
+Our system will address this issue by inferring object affordances and inducing an OO-MDP \cite{OOMDP} that the robot
+can use for robust planning and object manipulation.
 
-Finally, consider the following automatic object registration technique.  
-The logic in Step 3 of The Workflow might utilize Amazon Mechanical Turk 
-or an existing, more general classifier to automatically label and retrieve meta information for learned 
-objects, meaning that the operator only needs to annotate data if the automatic registration step fails.
+The Red Box optimization process can be framed as an MDP \cite{MDP}. We might achieve better performance
+by using more sophisticated techniques that incorporate feedback with the robot's movement planner in 
+order to collect additional, specific data as it is needed.  
+Using a POMDP \cite{POMDP} instead of an MDP is a natural approach to investigate.
 
 \begin{figure}
   \begin{center}
@@ -153,18 +156,16 @@ objects, meaning that the operator only needs to annotate data if the automatic 
   %\item The robot collects views of many different precisely known poses, together with models for self and background filtering.
 %\end{enumerate}
 
-\section{Current Work, Future Progress and Broader Impact}
-At the moment, a human operator trains the system without a robot by manually adjusting the pose of the object, 
-achieving robust detection and pose estimation under good conditions. Eventually we would like to have 
-fully automatic training, where the robot grabs objects and coordinates base poses itself.
+Using our prototype system, a computer vision researcher can train accurate models for 5
+objects in 15 minutes. Our aim is to integrate a robot into the workflow so that a novice
+user can train 10 objects with 5 minutes of human input.
 
 The system we have outlined abstracts the detector from the classifier, taking the notion of Objectness and
-extending it. As more sophisticated Computer Vision algorithms become real-time tractable or new data becomes
+extending it. As more sophisticated computer vision algorithms become tractable in real time or new data becomes
 available, they might be smoothly incorporated into the system even as it is running. 
 Automatic model validation can ensure that a new model outperforms the current model before the system switches 
-it out with no interruption of service. This is important if robots are
-to become effortless for non-technical operators.
-
+it out with no interruption of service. This technology will enable robots to help people by robustly sensing and
+manipulating the objects that people value most.
 
 \newpage
 
@@ -174,26 +175,18 @@ to become effortless for non-technical operators.
 \newpage
 
 \section{Attendance Statement}
-
-  I have been paying attention to AI, Machine Learning, and Computer Vision since 2004. 
-Regarding Computer Vision, I saw the progress of Neural Nets in the 90's swept under 
-the rug by SIFT, HoG, and SVMs in the mid 2000's, only for neural nets to reclaim the throne in the 2010's.
-At one time it was said that AI was "vision hard" and that solving Vision would
-effectively solve AI. While that belief sweeps a bit under the rug, it is certainly true
-that in the past Computer Vision has been a strong bottleneck in the development of AI and 
-Robotics. 
-
-  I have training in state of the art Computer Vision techniques and have been tracking the literature for a few
-years now. Work in Computer Vision has largely centered around hyperspecific problems concerning
+   Work in computer vision has largely centered around hyperspecific problems concerning
 single images. This focus has resulted in significant progress on such tasks, but the challenges of 
-engineering real time systems has so far prevented interesting real world applications
-or substantial spread of techniques to other communities. 
+engineering real time systems has so far prevented all but a handful of methods from spreading 
+to other communities. At one time it was said that AI was ``vision hard" and that solving vision would
+effectively solve AI. While that belief sweeps a bit under the rug, it is certainly true
+that in the past computer vision has been a strong bottleneck in the development of AI and 
+robotics. 
 
-Two things have resulted from this dam in the flow of information. 
-First, there are now many techniques in Computer Vision which are suited
+There are now many techniques in computer vision which are suited
 to fast and effective partial solutions of problems such as object detection
 but have been ignored in favor of much slower but slightly more effective state of the art
-approaches.  Second, such techniques may be combined with the information available from
+approaches.  Such techniques may be combined with the information available from
 extra sensors and the ability of real time systems to capture additional images of the same scene
 to form full solutions to multiple related problems (such as detection, segmentation, and pose estimation). 
 
@@ -201,18 +194,10 @@ Recent advances in object detection on large data sets suggest that we are ready
 to move beyond attacking vision in an isolated setting and begin integrating it in a
 larger framework for planning in an interactive environment. 
  
-I have already seen that combining elements of probabilistic planning and reasoning can boost
-the performance of traditional Computer Vision and Machine Learning algorithms.  I want to
-continue this approach to research, and attending AAAI will help me to fill in gaps in my
-background that are necessary to carve out a career in multi-disciplinary AI.  
-Planning and Markov Decision Processes are key elements that I want to master. Additionally,
-I would like to explore topics such as Interactive Entertainment, Scheduling, Knowledge
-Representation and Reasoning, and Reasoning Under Uncertainty in order to further my
-understanding of Human-AI Interactions.
-
-Finally, by attending AAAI I will be able to better understand the motivations, needs, and desires 
-of AI and Robotics concentrators with regards to Computer Vision, which will enable me 
-to complete my dissertation in a way that aligns with these communities' values.
+I recently joined a robotics lab, so despite my strong training in computer vision,
+there are still a few gaps in my background that I would like to fill.
+By attending AAAI I will be able to better provide computer vision capabilities in a
+way that is compatible with AI formalisms, researchers, and systems.
 
 \newpage
 
