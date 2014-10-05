@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.4-1.40.13 (TeX Live 2012/Debian) (format=pdflatex 2014.6.18)  5 OCT 2014 14:04
+This is pdfTeX, Version 3.1415926-2.4-1.40.13 (TeX Live 2012/Debian) (format=pdflatex 2014.6.18)  5 OCT 2014 19:46
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -287,17 +287,17 @@ e
 [1
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
-LaTeX Font Info:    Try loading font information for U+lasy on input line 140.
+LaTeX Font Info:    Try loading font information for U+lasy on input line 143.
 
 (/usr/share/texlive/texmf-dist/tex/latex/base/ulasy.fd
 File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
 )
-LaTeX Font Info:    Try loading font information for U+msa on input line 140.
+LaTeX Font Info:    Try loading font information for U+msa on input line 143.
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2009/06/22 v3.00 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 140.
+LaTeX Font Info:    Try loading font information for U+msb on input line 143.
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2009/06/22 v3.00 AMS symbols B
@@ -305,155 +305,155 @@ File: umsb.fd 2009/06/22 v3.00 AMS symbols B
 <robo2.png, id=8, 2023.56pt x 1505.625pt>
 File: robo2.png Graphic file (type png)
  <use robo2.png>
-Package pdftex.def Info: robo2.png used on input line 141.
+Package pdftex.def Info: robo2.png used on input line 144.
 (pdftex.def)             Requested size: 200.73137pt x 150.54834pt.
 
 <screen2.png, id=10, 642.4pt x 481.8pt>
 File: screen2.png Graphic file (type png)
  <use screen2.png>
-Package pdftex.def Info: screen2.png used on input line 142.
+Package pdftex.def Info: screen2.png used on input line 145.
 (pdftex.def)             Requested size: 200.74951pt x 150.56212pt.
  [2 <./robo2.png> <./screen2.png>] (./proposal.bbl) [3] [4]
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--300
+Underfull \hbox (badness 10000) in paragraph at lines 205--285
 
  []
 
 [5] [6] [7] (./proposal.aux) ) 
 Here is how much of TeX's memory you used:
- 2788 strings out of 495059
- 36821 string characters out of 3182030
- 95984 words of memory out of 3000000
- 5908 multiletter control sequences out of 15000+200000
+ 2790 strings out of 495059
+ 36833 string characters out of 3182030
+ 95990 words of memory out of 3000000
+ 5910 multiletter control sequences out of 15000+200000
  10523 words of font info for 41 fonts, out of 3000000 for 9000
  14 hyphenation exceptions out of 8191
  38i,12n,24p,260b,522s stack positions out of 5000i,500n,10000p,200000b,50000s
@@ -463,7 +463,7 @@ nts/cm/cmbxti10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/
 cm/cmcsc10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cm
 r12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pf
 b>
-Output written on proposal.pdf (7 pages, 4885908 bytes).
+Output written on proposal.pdf (7 pages, 4886096 bytes).
 PDF statistics:
  53 PDF objects out of 1000 (max. 8388607)
  34 compressed objects within 1 object stream
