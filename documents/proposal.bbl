@@ -1,8 +1,4 @@
-\begin{thebibliography}{1}
-
-\bibitem{MDP}
-{\sc R.~Bellman}, {\em A markovian decision process}, Indiana Univ. Math. J., 6
-  (1957), pp.~679--684.
+\begin{thebibliography}{10}
 
 \bibitem{bing}
 {\sc M.-M. Cheng, Z.~Zhang, W.-Y. Lin, and P.~Torr}, {\em Bing: Binarized
@@ -29,6 +25,16 @@
 \bibitem{dietr1}
 {\sc Y.~Sun, L.~Bo, and D.~Fox}, {\em Learning to identify new objects}, ICRA,
   (2014).
+
+\bibitem{wsrn}
+{\sc P.~Valiant}, {\em Distribution free evolvability of polynomial functions
+  over all convex loss functions}, in Proceedings of the 3rd Innovations in
+  Theoretical Computer Science Conference, ACM, 2012, pp.~142--148.
+
+\bibitem{herding}
+{\sc M.~Welling}, {\em Herding dynamical weights to learn}, in Proceedings of
+  the 26th Annual International Conference on Machine Learning, ACM, 2009,
+  pp.~1121--1128.
 
 \bibitem{sliding1}
 {\sc S.~S.~J. Xiao}, {\em Sliding shapes for 3d object detection in depth

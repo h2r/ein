@@ -110,7 +110,7 @@ perspectives to collect appearance data. 3.) The robot trains classifiers to rec
 robot can detect the objects in the environment and accurately respond to an operator's request
 to fetch an object or put it away.
 
-Popular techniques for real time detection use modified DPMs \cite{kostas1} \cite{forsyth1},
+Popular techniques for real time detection use modified deformable part models (DPMs) \cite{kostas1} \cite{forsyth1},
 and sometimes exploit different channels of data \cite{dietr1} \cite{sliding1}.  
 These approaches have seen success in their target domains, but are too technical for general
 application and need to be integrated with interactive systems. A computer 
@@ -118,25 +118,38 @@ vision system that is simple, reliable, and easy to use with ROS (Robot Operatin
 would benefit many researchers.
 
 \section{Current Work, Future Progress and Broader Impact}
-Our current framework for detection uses a box metaphor to talk about space in a way that 
-is amenable to planning and reasoning. The system uses RGB-D video from a Kinect as input.
-Green Boxes denote areas in the image that probably belong to an object. Each Blue Box denotes
-a cluster of green boxes that probably belong to the same object. Whereas Blue Boxes exist only for
-one frame of video input, Red Boxes denote more precise clusters of Green Boxes which are tracked over time 
-and account for occlusion.
+Our prototype system detects and estimates poses of objects in RGB-D video taken with a Kinect and
+runs at a frequency of 2 Hz. Our detection framework
+% uses a box metaphor to talk about space in a way that is amenable to 
+calculates three quantities each frame $f$ which facilitate
+planning and reasoning. 
 
-We determine Green Boxes using an Objectness measure \cite{bing}, extract features with SIFT \cite{sift} 
-and k-means, and perform classification on blue and red boxes using k-nearest neighbors.
+The first quantity is a subset $\mathcal{G}_f$ of pixel locations, which induces a grid graph whose nodes
+correspond to locations spaced 5 pixels apart in the input image $f$ and whose edges connect each pixel to its
+four cardinal neighbors in the grid. A pixel $g$ is included in $\mathcal{G}_f$ if the local average Objectness (see below)
+exceeds a threshold. We manually tune the threshold at the moment, but it would be natural to use a
+max-entropy approach such as herding \cite{herding} to adaptively control it.
+The second quantity is $\mathcal{B}_f$, a list of the connected components of the graph induced by $\mathcal{G}_f$.
+The third quantity is $\mathcal{R}_f$, a labeling which associates with each point $g \in \mathcal{G}_f$ a token
+corresponding to the object instance in the image to which the point belongs.
 
-Right now, detections and pose estimates are published in ROS for Blue and Red Boxes. To provide accurate help
+In other words, $\mathcal{G}_f$ denotes areas in the image that probably belong to an object, 
+$\mathcal{B}_f$ describes clusters of pixels that probably belong to the same object, and $\mathcal{R}_f$
+segments $\mathcal{G}_f$ into object instances, which may involve breaking apart the clusters in $\mathcal{B}_f$.
+
+We determine $\mathcal{G}_f$ using an Objectness measure \cite{bing}, extract features with SIFT \cite{sift} 
+and k-means, and perform classification on crops $C_B$ and $C_R$ induced by $\mathcal{B}_f$ and $\mathcal{R}_f$ using k-nearest neighbors. 
+We currently optimize the objective function for $\mathcal{R}_f$ using a variant of the wide-scale random noise algorithm \cite{wsrn}.
+
+Right now, detections and pose estimates are published in ROS for the $C_B$ and $C_R$. To provide accurate help
 to a human partner, the robot needs to know how to manipulate objects and understand their typical uses.
 Our system will address this issue by inferring object affordances and inducing an OO-MDP \cite{OOMDP} that the robot
 can use for robust planning and object manipulation.
 
-The Red Box optimization process can be framed as an MDP \cite{MDP}. We might achieve better performance
-by using more sophisticated techniques that incorporate feedback with the robot's movement planner in 
+We might achieve better performance with the the Red Box optimization process
+by using more sophisticated techniques that incorporate feedback with the robot's OO-MDP planner in 
 order to collect additional, specific data as it is needed.  
-Using a POMDP \cite{POMDP} instead of an MDP is a natural approach to investigate.
+Using a POMDP \cite{POMDP} to explore the space of bounding boxes is a natural approach to investigate.
 
 \begin{figure}
   \begin{center}
@@ -175,7 +188,7 @@ manipulating the objects that people value most.
 \newpage
 
 \section{Attendance Statement}
-   Work in computer vision has largely centered around hyperspecific problems concerning
+   Work in computer vision has largely centered around specific problems concerning
 single images. This focus has resulted in significant progress on such tasks, but the challenges of 
 engineering real time systems has so far prevented all but a handful of methods from spreading 
 to other communities. At one time it was said that AI was ``vision hard" and that solving vision would
