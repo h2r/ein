@@ -9,6 +9,7 @@
 \usepackage{color}
 
 \usepackage{multicol}
+\usepackage{fullpage}
 
 % horizontal margins: 1.0 + 6.5 + 1.0 = 8.5
 \setlength{\oddsidemargin}{0.0in}
@@ -86,7 +87,7 @@ John Oberlin\\
 Brown University, 2014\\
 \end{center}
 
-\section{Introduction}
+\section{Dissertation Abstract}
 Imagine handing ten everyday objects to your robot assistant, who then proceeds to
 scan them and put them where they belong. Now think of a situation where a capable
 robot might improve someone's life by helping a disabled person prepare a meal,
@@ -96,14 +97,15 @@ to a busy parent whose hands are full taking care of their child.
 State of the art techniques in object detection and pose estimation
 are powerful and general but usually run at a rate much less than 1 Hz and require
 time and expertise to build, maintain, and operate. The high demands of modern systems
-can make it difficult to employ such techniques in real time human-computer interaction.
-Additionally, although effective solutions exist for category level recognition, there is no
-decisive framework for handling instance level recognition.
+can make it difficult to employ such techniques in real-time human-robot interaction.
+Although effective solutions exist for category recognition, there is no off-the-shelf
+framework for object detection, segmentation and pose estimation that allows new objects
+to be quickly and easily added by non-experts.
 
 The aim of my dissertation at Brown is to enable a robot
 to autonomously scan 10 novel objects in order to construct robust models for detection,
 pose estimation, grasping, and manipulation of those objects during collaborations with
-a human operator. An effective workflow for this task would be 1.) A human operator provides
+a human operator. We propose the following workflow for this task: 1.) A human operator provides
 the robot with a box of objects. 2.) The robot picks up each object and scans it from many different
 perspectives to collect appearance data. 3.) The robot trains classifiers to recognize each object. 
 4.) The robot collects labels and metadata for the objects from Amazon Mechanical Turk. 5.) The
@@ -117,11 +119,10 @@ application and need to be integrated with interactive systems. A computer
 vision system that is simple, reliable, and easy to use with ROS (Robot Operating System)
 would benefit many researchers.
 
-\section{Current Work, Future Progress and Broader Impact}
 Our prototype system detects and estimates poses of objects in RGB-D video taken with a Kinect and
 runs at a frequency of 2 Hz. Our detection framework
 % uses a box metaphor to talk about space in a way that is amenable to 
-calculates three quantities each frame $f$ which facilitate
+calculates three quantities for each frame $f$ which facilitate
 planning and reasoning. 
 
 The first quantity is a subset $\mathcal{G}_f$ of pixel locations, which induces a grid graph whose nodes
@@ -131,25 +132,27 @@ exceeds a threshold. We manually tune the threshold at the moment, but it would 
 max-entropy approach such as herding \cite{herding} to adaptively control it.
 The second quantity is $\mathcal{B}_f$, a list of the connected components of the graph induced by $\mathcal{G}_f$.
 The third quantity is $\mathcal{R}_f$, a labeling which associates with each point $g \in \mathcal{G}_f$ a token
-corresponding to the object instance in the image to which the point belongs.
+corresponding to the object instance depicted at that pixel location.
 
 In other words, $\mathcal{G}_f$ denotes areas in the image that probably belong to an object, 
-$\mathcal{B}_f$ describes clusters of pixels that probably belong to the same object, and $\mathcal{R}_f$
+$\mathcal{B}_f$ describes clusters of pixels which likely correspond to individual objects, and $\mathcal{R}_f$
 segments $\mathcal{G}_f$ into object instances, which may involve breaking apart the clusters in $\mathcal{B}_f$.
 
 We determine $\mathcal{G}_f$ using an Objectness measure \cite{bing}, extract features with SIFT \cite{sift} 
-and k-means, and perform classification on crops $C_B$ and $C_R$ induced by $\mathcal{B}_f$ and $\mathcal{R}_f$ using k-nearest neighbors. 
+and k-means, and perform k-nearest neighbors classification on crops $C_B$ and $C_R$ induced by 
+$\mathcal{B}_f$ and $\mathcal{R}_f$. 
 We currently optimize the objective function for $\mathcal{R}_f$ using a variant of the wide-scale random noise algorithm \cite{wsrn}.
+We publish detections and pose estimates in ROS for the crops $C_B$ and $C_R$. 
 
-Right now, detections and pose estimates are published in ROS for the $C_B$ and $C_R$. To provide accurate help
+To provide accurate help
 to a human partner, the robot needs to know how to manipulate objects and understand their typical uses.
 Our system will address this issue by inferring object affordances and inducing an OO-MDP \cite{OOMDP} that the robot
 can use for robust planning and object manipulation.
 
-We might achieve better performance with the the Red Box optimization process
+We might achieve better performance when determining $\mathcal{R}_f$
 by using more sophisticated techniques that incorporate feedback with the robot's OO-MDP planner in 
 order to collect additional, specific data as it is needed.  
-Using a POMDP \cite{POMDP} to explore the space of bounding boxes is a natural approach to investigate.
+Employing a POMDP \cite{POMDP} to explore the space of bounding boxes is a natural approach to investigate.
 
 \begin{figure}
   \begin{center}
@@ -169,7 +172,7 @@ Using a POMDP \cite{POMDP} to explore the space of bounding boxes is a natural a
   %\item The robot collects views of many different precisely known poses, together with models for self and background filtering.
 %\end{enumerate}
 
-Using our prototype system, a computer vision researcher can train accurate models for 5
+With our prototype system, a computer vision researcher can train accurate models for 5
 objects in 15 minutes. Our aim is to integrate a robot into the workflow so that a novice
 user can train 10 objects with 5 minutes of human input.
 
@@ -295,12 +298,6 @@ Martial Arts\\
 Blacksmithing\\
 3D Printing\\
  \\
-\newpage
-
-\section{Letter From Supervisor}
-
-\newpage
-
 
 \end{document}
 
