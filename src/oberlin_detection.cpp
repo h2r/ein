@@ -311,6 +311,13 @@ int rARM = 150;
 cv::Point armTop;
 cv::Point armBot;
 
+int rejectRedBox() {
+  // check that the redBox has probable dimensions
+
+  // check that the redBox is tight on green boxes 
+
+}
+
 void gridKeypoints(int gImW, int gImH, cv::Point top, cv::Point bot, int strideX, int strideY, vector<KeyPoint>& keypoints, int period) {
   keypoints.resize(0);
 

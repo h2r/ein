@@ -98,7 +98,7 @@ Robots have the potential to help people by making changes to the physical world
 A robot assistant could improve someone's life by helping a disabled person prepare a meal,
 fetching a purse for a bedridden patient, or handing ointment
 to a busy parent whose hands are full taking care of their child. As a matter of course,
-if a robot is going to affect the world it must have an understanding of the posisitions
+if a robot is going to affect the world it must have an understanding of the positions
 of objects. Computer vision is an appealing route for obtaining this understanding, as RGB-D
 sensors are cheaper and more familiar than most alternatives.
 
@@ -147,9 +147,9 @@ $\mathcal{B}_f$ encodes clusters of pixels which likely correspond to individual
 segments $\mathcal{G}_f$ into object instances, which may involve breaking apart the clusters in $\mathcal{B}_f$.
 
 We determine $\mathcal{G}_f$ using an Objectness measure \cite{bing}, extract features with SIFT \cite{sift} 
-and k-means, and perform k-nearest neighbors classification on crops $C_B$ and $C_R$ induced by 
-$\mathcal{B}_f$ and $\mathcal{R}_f$. 
-We currently optimize the objective function for $\mathcal{R}_f$ using a variant of the wide-scale random noise algorithm \cite{wsrn}.
+and k-means, and perform k-nearest neighbors classification on crops $C_B$ and $C_R$ induced by the
+bounding boxes of components in $\mathcal{B}_f$ and $\mathcal{R}_f$.
+We currently optimize the objective function for $\mathcal{R}_f$ using a variant of the wide-scale random noise algorithm in \cite{wsrn}.
 Our system publishes detections and pose estimates for the crops $C_B$ and $C_R$ on separate topics in ROS. 
 
 To provide accurate help
@@ -160,7 +160,7 @@ can use for robust planning and object manipulation.
 We might achieve better performance when determining $\mathcal{R}_f$
 by using more sophisticated techniques that incorporate feedback with the robot's OO-MDP planner in 
 order to collect additional, specific data as it is needed.  
-Employing a POMDP \cite{POMDP} to explore the space of bounding boxes is a natural approach to investigate.
+Employing a POMDP \cite{POMDP} to explore the space of bounding boxes in an image is a natural approach to investigate.
 
 \begin{figure}
   \begin{center}
@@ -184,10 +184,10 @@ With our prototype system, a computer vision researcher can train accurate model
 objects in 15 minutes. Our aim is to integrate a robot into the workflow so that a novice
 user can train 10 objects with 5 minutes of human input.
 
-The system we have outlined abstracts the detector from the classifier by taking the notion 
-of Objectness and extending it to a global framework in a way that allows new detectors 
+The framework we have outlined abstracts the detector from the classifier by taking a local notion 
+of Objectness and extending it to a global model in a way that allows new detectors 
 for local properties to be incorporated seamlessly and without down time.  Our technology 
-will enable robots to help people by robustly sensing and manipulating the objects that people value most.
+will enable robots to help humans by robustly sensing and manipulating the objects that people value most.
 
 \newpage
 
@@ -212,7 +212,7 @@ By attending AAAI I will be able to better provide computer vision capabilities 
 way that is compatible with AI formalisms, researchers, and systems.
 
 Recent advances in object detection on large data sets suggest that we are ready
-to move beyond attacking vision in an isolated setting and begin integrating it in a
+to move beyond attacking vision in an isolated setting and begin integrating it with a
 larger framework for planning in an interactive environment. The information available from
 extra sensors and the ability of real-time systems to capture additional images of the same scene
 will faciliate efficient, joint solutions to multiple related problems (such as detection, segmentation, and pose estimation). 
@@ -223,7 +223,7 @@ and probabilistic reasoning. In particular, it is natural to apply planning tech
 the tasks of searching within an image and searching within a physical space.
 
 Finally, a system which can maintain the attention of the operator stands a better chance of 
-useful employment. I would like to pursue that goal by better understanding game playing, 
+useful employment. I will pursue that goal by better understanding game playing, 
 interactive entertainment, and general human-robot interactions.
 
 
