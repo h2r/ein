@@ -120,10 +120,10 @@ would benefit many researchers.
 The aim of my dissertation at Brown is to enable a robot
 to autonomously scan 10 novel objects in order to construct robust models for detection,
 pose estimation, grasping, and manipulation of those objects during collaborations with
-a human operator. We propose the following workflow for this task: 1.) A human operator provides
+a human operator. We propose the following work-flow for this task: 1.) A human operator provides
 the robot with a box of objects. 2.) The robot picks up each object and scans it from many different
 perspectives to collect appearance data. 3.) The robot trains classifiers to recognize each object. 
-4.) The robot collects labels and metadata for the objects from Amazon Mechanical Turk. 5.) The
+4.) The robot collects labels and meta data for the objects from Amazon Mechanical Turk. 5.) The
 robot can detect the objects in the environment and accurately respond to an operator's request
 to fetch an object or put it away.
 
@@ -136,8 +136,9 @@ planning and reasoning.
 The first quantity is a subset $\mathcal{G}_f$ of pixel locations, which induces a grid graph whose nodes
 correspond to points spaced $s=5$ pixels apart in the input image $f$ and whose edges connect each pixel to its
 four cardinal neighbors in the grid. A pixel $g$ is included in $\mathcal{G}_f$ if the local average Objectness (see below)
-exceeds a threshold. We manually tune the threshold at the moment, but it would be natural to use a
-max-entropy approach such as herding \cite{herding} to adaptively control it.
+exceeds a threshold. 
+%We manually tune the threshold at the moment, but it would be natural to use a
+%max-entropy approach such as herding \cite{herding} to adaptively control it.
 The second quantity is $\mathcal{B}_f$, a list of the connected components of the graph induced by $\mathcal{G}_f$.
 The third quantity is $\mathcal{R}_f$, a labeling which associates with each point $g \in \mathcal{G}_f$ a token
 corresponding to the object instance depicted at that pixel location.
@@ -159,7 +160,7 @@ can use for robust planning and object manipulation.
 
 We might achieve better performance when determining $\mathcal{R}_f$
 by using more sophisticated techniques that incorporate feedback with the robot's OO-MDP planner in 
-order to collect additional, specific data as it is needed.  
+order to collect additional data such as viewpoints, grasp information, bounding boxes, or descriptive labels.  
 Employing a POMDP \cite{POMDP} to explore the space of bounding boxes in an image is a natural approach to investigate.
 
 \begin{figure}
@@ -181,7 +182,7 @@ Employing a POMDP \cite{POMDP} to explore the space of bounding boxes in an imag
 %\end{enumerate}
 
 With our prototype system, a computer vision researcher can train accurate models for 5
-objects in 15 minutes. Our aim is to integrate a robot into the workflow so that a novice
+objects in 15 minutes. Our aim is to integrate a robot into the work-flow so that a novice
 user can train 10 objects with 5 minutes of human input.
 
 The framework we have outlined abstracts the detector from the classifier by taking a local notion 
@@ -215,7 +216,7 @@ Recent advances in object detection on large data sets suggest that we are ready
 to move beyond attacking vision in an isolated setting and begin integrating it with a
 larger framework for planning in an interactive environment. The information available from
 extra sensors and the ability of real-time systems to capture additional images of the same scene
-will faciliate efficient, joint solutions to multiple related problems (such as detection, segmentation, and pose estimation). 
+will facilitate efficient, joint solutions to multiple related problems (such as detection, segmentation, and pose estimation). 
 
 When combining techniques and information, a well organized framework will help keep a system
 simple, efficient, and growing. To those ends I would learn more about knowledge representation
@@ -258,7 +259,7 @@ CVPR 2012 \\
  \\
 \textbf{\emph{Teaching Experience}}\\
  \\
-Being a TA in the UCB Math Deparment can be close to a full time teaching position, including
+Being a TA in the UCB Math Department can be close to a full time teaching position, including
 quiz design, office hours, and grading in addition to the intense recitation sections (which more closely resembled lectures). \\
 \\
 Calculus 1 TA\\
