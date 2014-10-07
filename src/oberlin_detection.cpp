@@ -63,7 +63,7 @@ const int kNNOverSampleFactor = 1;
 const int poseOverSampleFactor = 1;
 
 const int keypointPeriod = 1;
-const double kpGreenThresh = 3;
+const double kpGreenThresh = 0;
 //const double kpProb = 0.2;
 const double kpProb = 1.0;
 
@@ -186,12 +186,13 @@ pcl::PointCloud<pcl::PointXYZRGB> pointCloud;
 
 #define MY_FONT FONT_HERSHEY_PLAIN
 
-#define ORIENTATIONS 72//36 
-#define O_FILTER_WIDTH 25
+#define ORIENTATIONS 180//12 
+#define O_FILTER_WIDTH 25//25
 #define O_FILTER_SPOON_HEAD_WIDTH 6 
-#define O_FILTER_SPOON_SHAFT_WIDTH 1
+#define O_FILTER_SPOON_SHAFT_WIDTH 2
 Mat *orientedFilters;
 int biggestL1 = 0;
+int oSearchWidth = 5;
 
 
 // Top variables are top left corners of bounding boxes (smallest coordinates)
@@ -271,6 +272,7 @@ Eigen::Quaternionf tableQuaternion;
 Mat tablePerspective;
 Eigen::Quaternionf tableLabelQuaternion;
 string table_label_class_name = "";
+string background_class_name = "";
 
 
 double *gBoxIndicator;
@@ -861,7 +863,9 @@ void loadROSParams()
   nh.getParam("pc_topic", pc_topic);
 
   nh.getParam("table_label_class_name", table_label_class_name);
+  nh.getParam("background_class_name", background_class_name);
 
+  nh.getParam("orientation_search_width", oSearchWidth);
 
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
@@ -905,6 +909,8 @@ void saveROSParams()
 
   nh.setParam("image_topic", image_topic);
   nh.setParam("pc_topic", pc_topic);
+
+  nh.setParam("orientation_search_width", oSearchWidth);
 
 }
 
@@ -1113,44 +1119,75 @@ fprintf(stderr, " object checkS"); fflush(stderr);
 cout << top << " " << bot << " "; cout.flush();
 #endif
 
-      Mat gCrop1 = img_cvt(cv::Rect(top.x, top.y, bot.x-top.x, bot.y-top.y));
+      int boxWidth  = bot.x-top.x;
+      int boxHeight = bot.y-top.y;
 
-      // grow to the max dimension to avoid distortion
-      int crows = gCrop1.rows;
-      int ccols = gCrop1.cols;
-      int maxDim = max(crows, ccols);
-      Mat gCrop(maxDim, maxDim, gCrop1.type());
-      int tRy = (maxDim-crows)/2;
-      int tRx = (maxDim-ccols)/2;
+      int xxs = max(0, top.x - oSearchWidth*gBoxStrideX);
+      int xxf = min(gBoxStrideX*((img_cvt.size().width-1-boxWidth)/gBoxStrideX), top.x + oSearchWidth*gBoxStrideX);
+      int yys = max(0, top.y - oSearchWidth*gBoxStrideY);
+      int yyf = min(gBoxStrideY*((img_cvt.size().height-1-boxHeight)/gBoxStrideY), top.y + oSearchWidth*gBoxStrideY);
 
-      for (int x = 0; x < maxDim; x++) {
-	for (int y = 0; y < maxDim; y++) {
-	  int tx = x - tRx;
-	  int ty = y - tRy;
-	  if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols)
-	    gCrop.at<cv::Vec3b>(y, x) = gCrop1.at<cv::Vec3b>(ty, tx);
-	  else
-	    gCrop.at<cv::Vec3b>(y, x) = cv::Vec<uchar, 3>(0,0,0);
-	}
-      }
+//xxs = top.x;
+//xxf = top.x;
+//yys = top.y;
+//yyf = top.y;
+
+
+      double winningScore = -1;
+      int winningX = -1;
+      int winningY = -1;
+      for (int yy = yys; yy <= yyf; yy+=gBoxStrideY) {
+	for (int xx = xxs; xx <= xxf; xx+=gBoxStrideX) {
+	  //Mat gCrop1 = img_cvt(cv::Rect(top.x, top.y, bot.x-top.x, bot.y-top.y));
+	  Mat gCrop1 = img_cvt(cv::Rect(xx, yy, bot.x-top.x, bot.y-top.y));
+
+	  // grow to the max dimension to avoid distortion
+	  int crows = gCrop1.rows;
+	  int ccols = gCrop1.cols;
+	  int maxDim = max(crows, ccols);
+	  Mat gCrop(maxDim, maxDim, gCrop1.type());
+	  int tRy = (maxDim-crows)/2;
+	  int tRx = (maxDim-ccols)/2;
+
+	  for (int x = 0; x < maxDim; x++) {
+	    for (int y = 0; y < maxDim; y++) {
+	      int tx = x - tRx;
+	      int ty = y - tRy;
+	      if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols)
+		gCrop.at<cv::Vec3b>(y, x) = gCrop1.at<cv::Vec3b>(ty, tx);
+	      else
+		gCrop.at<cv::Vec3b>(y, x) = cv::Vec<uchar, 3>(0,0,0);
+	    }
+	  }
 #ifdef DEBUG
 //cout << endl << gCrop1 << endl << endl << endl << endl << gCrop << endl;
 #endif
 
-      cv::resize(gCrop, gCrop, orientedFilters[0].size());
-      gCrop.convertTo(gCrop, orientedFilters[0].type());
+	  cv::resize(gCrop, gCrop, orientedFilters[0].size());
+	  gCrop.convertTo(gCrop, orientedFilters[0].type());
 
-      Mat gcChannels[3];
-      split(gCrop, gcChannels);
+	  Mat gcChannels[3];
+	  split(gCrop, gcChannels);
 
-      double winningScore = -1;
-      for (int o = 0; o < ORIENTATIONS; o++) {
-	double thisScore = gcChannels[1].dot(orientedFilters[o]);
-	if (thisScore > winningScore) {
-	  winningScore = thisScore;
-	  winningO = o;
+	  //double norm = gcChannels[1].dot(Mat::ones(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F));
+	  double norm = sqrt(gcChannels[1].dot(gcChannels[1]));
+
+	  for (int o = 0; o < ORIENTATIONS; o++) {
+	    //double thisScore = gcChannels[1].dot(orientedFilters[o]);
+	    double thisScore = gcChannels[1].dot(orientedFilters[o]) / norm;
+	    if (thisScore > winningScore) {
+	      winningScore = thisScore;
+	      winningO = o;
+	      winningX = xx;
+	      winningY = yy;
+	    }
+	  }
 	}
       }
+cout << winningX << " " << winningY << " " << xxs << " " << yys  << endl;
+#ifdef DEBUG
+#endif
+
 
       cv::Matx33f R;
       R(0,0) = 1; R(0,1) = 0; R(0,2) = 0;
@@ -1193,7 +1230,7 @@ cout << "table label x: " << tableLabelQuaternion.x() << " y: " <<
       // XXX
       cv::resize(orientedFilters[winningO], scaledFilter, vCrop.size());
       //cv::resize(orientedFilters[fc % ORIENTATIONS], scaledFilter, vCrop.size());
-      //fc = fc++;
+      //fc++;
 #ifdef DEBUG
 cout << "FILTERS: " << fc << " " << orientedFilters[fc % ORIENTATIONS].size() << endl;
 #endif
@@ -1269,6 +1306,7 @@ void init_oriented_filters() {
     }
   }
 */
+/*
   // Vertical Knife Filter
   int center = (O_FILTER_WIDTH-1)/2;
   for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH; x <= center+O_FILTER_SPOON_SHAFT_WIDTH; x++) {
@@ -1276,8 +1314,26 @@ void init_oriented_filters() {
       orientedFilters[0].at<double>(y,x) = 1.0;
     }
   }
+*/
+  // mrT Filter
+  int center = (O_FILTER_WIDTH-1)/2;
+  for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH; x <= center+O_FILTER_SPOON_SHAFT_WIDTH; x++) {
+    for (int y = 0; y < O_FILTER_WIDTH; y++) {
+      orientedFilters[0].at<double>(y,x) = 1.0;
+    }
+  }
+  for (int x = center-5*O_FILTER_SPOON_SHAFT_WIDTH; x <= center+5*O_FILTER_SPOON_SHAFT_WIDTH; x++) 
+  //for (int x = 2*O_; x < O_FILTER_WIDTH; x++)
+  //for (int x = O_FILTER_WIDTH/2-4; x < O_FILTER_WIDTH/2+4; x++)
+  {
+    for (int y = 0; y < 2*O_FILTER_SPOON_SHAFT_WIDTH-1; y++) {
+      orientedFilters[0].at<double>(y,x) = 1.0;
+    }
+  }
 
   Mat tmp; 
+  Mat tmp2;
+  Mat tmp3;
 
   // it is important to L1 normalize the filters so that comparing dot products makes sense.
   // that is, they should all respond equally to a constant image.
@@ -1285,17 +1341,95 @@ void init_oriented_filters() {
 
   for (int o = 1; o < ORIENTATIONS; o++) {
     // Compute a rotation matrix with respect to the center of the image
-    Point center = Point(O_FILTER_WIDTH/2, O_FILTER_WIDTH/2);
+    //Point center = Point(O_FILTER_WIDTH/2, O_FILTER_WIDTH/2);
+    Point center = Point(O_FILTER_WIDTH, O_FILTER_WIDTH);
     double angle = o*360.0/ORIENTATIONS;
     double scale = 1.0;
 
     // Get the rotation matrix with the specifications above
     Mat rot_mat = getRotationMatrix2D( center, angle, scale );
 
+    cv::Point2f srcTri[3]; 
+    cv::Point2f dstTri[3]; 
+
+    srcTri[0].x = 0;
+    srcTri[0].y = 0;
+    srcTri[1].x = 1;
+    srcTri[1].y = 0;
+    srcTri[2].x = 0;
+    srcTri[2].y = 1;
+    dstTri[0].x = 0+O_FILTER_WIDTH/2;
+    dstTri[0].y = 0+O_FILTER_WIDTH/2;
+    dstTri[1].x = 1+O_FILTER_WIDTH/2;
+    dstTri[1].y = 0+O_FILTER_WIDTH/2;
+    dstTri[2].x = 0+O_FILTER_WIDTH/2;
+    dstTri[2].y = 1+O_FILTER_WIDTH/2;
+
+    Mat trans_mat = getAffineTransform(srcTri, dstTri);
+
+    cv::Size rangeSize = orientedFilters[0].size();
+    rangeSize.width *= 2;
+    rangeSize.height *= 2;
+//cout << rangeSize;
+
     // Rotate the warped image
     //warpAffine(orientedFilters[0], orientedFilters[o], rot_mat, orientedFilters[o].size());
-    warpAffine(orientedFilters[0], tmp, rot_mat, orientedFilters[o].size());
-    warpPerspective(tmp, orientedFilters[o], tablePerspective, orientedFilters[o].size(), INTER_NEAREST);
+    warpAffine(orientedFilters[0], tmp, trans_mat, rangeSize);
+    warpAffine(tmp, tmp2, rot_mat, rangeSize);
+    warpPerspective(tmp2, tmp3, tablePerspective, rangeSize, INTER_NEAREST);
+
+    //int topOne = O_FILTER_WIDTH/3;
+    //int botOne = 2*O_FILTER_WIDTH-topOne;
+    //int leftOne = O_FILTER_WIDTH/3;
+    //int rightOne = 2*O_FILTER_WIDTH-leftOne;
+
+    int topOne = 4*O_FILTER_WIDTH;
+    int botOne = -1;
+    int leftOne = 4*O_FILTER_WIDTH;
+    int rightOne = -1;
+
+    for (int y = 0; y < 2*O_FILTER_WIDTH; y++) {
+      for (int x = 0; x < 2*O_FILTER_WIDTH; x++) {
+	if(tmp3.at<double>(y,x) > 0) {
+	  if (y < topOne) 
+	    topOne = y;
+	  if (x < leftOne)
+	    leftOne = x;
+	  if (y > botOne)
+	    botOne = y;
+	  if (x > rightOne)
+	    rightOne = x;
+	}
+      }
+    }
+
+//cout << orientedFilters[0].size() << rangeSize << tmp.size() << tmp2.size() << tmp3.size() << endl;
+
+    Mat validCrop = tmp3(cv::Rect(leftOne, topOne, rightOne-leftOne, botOne-topOne));
+
+
+    // grow to the max dimension to avoid distortion
+    int crows = validCrop.rows;
+    int ccols = validCrop.cols;
+    int maxDim = max(crows, ccols);
+    Mat vCrop(maxDim, maxDim, validCrop.type());
+    int tRy = (maxDim-crows)/2;
+    int tRx = (maxDim-ccols)/2;
+
+    for (int x = 0; x < maxDim; x++) {
+      for (int y = 0; y < maxDim; y++) {
+	int tx = x - tRx;
+	int ty = y - tRy;
+	if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols)
+	  vCrop.at<double>(y, x) = validCrop.at<double>(ty, tx);
+	else
+	  vCrop.at<double>(y, x) = 0.0;
+      }
+    }
+
+
+    cv::resize(vCrop, orientedFilters[o], orientedFilters[0].size());
+    //cv::resize(tmp3, orientedFilters[o], orientedFilters[0].size());
 
     double l1norm = orientedFilters[o].dot(Mat::ones(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F));
     orientedFilters[o] = orientedFilters[o] / l1norm;
@@ -1405,7 +1539,7 @@ cout << numBoxes << "    " << fc <<  endl;
 
   //fc = (fc + 1) % fcRange;
   // XXX
-  //fc = fc++;
+  //fc++;
 
   Size sz = img_cvt.size();
   int imW = sz.width;
@@ -2004,6 +2138,14 @@ cout << numBoxes << "    " << fc <<  endl;
 	      dstQuad[3].x = -tableTangent1.x() + tableTangent2.x();
 	      dstQuad[3].y = -tableTangent1.y() + tableTangent2.y();
 
+	      double toCenterX = (dstQuad[3].x-1.0)/2.0;
+	      double toCenterY = (dstQuad[3].y-1.0)/2.0;
+
+	      for (int dd = 0; dd < 4; dd++) {
+		dstQuad[dd].x -= toCenterX;
+		dstQuad[dd].y -= toCenterY;
+	      }
+
 	      tablePerspective = getPerspectiveTransform(srcQuad, dstQuad);
 
 #ifdef DEBUG
@@ -2144,31 +2286,40 @@ fprintf(stderr, " object check3 label %f", label); fflush(stderr);
   #ifdef SAVE_ANNOTATED_BOXES
     // save the crops
     if (fc == 0) {
-      Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
-      char buf[1000];
-      string this_crops_path = data_directory + "/" + labelName + "Poses/";
-      sprintf(buf, "%s%sPoses%s_%d.ppm", this_crops_path.c_str(), labelName, run_prefix.c_str(), cropCounter);
-      //sprintf(buf, class_crops_path + "/%s_toAudit/%s%s_%d.ppm", 
-	//labelName, labelName, run_prefix, cropCounter);
-      imwrite(buf, crop);
-      cropCounter++;
 
-      string poseLabelsPath = this_crops_path + "poseLabels.yml";
-      char thisCropLabel[1000];
-      sprintf(thisCropLabel, "%sPoses%s_%d", labelName, run_prefix.c_str(), cropCounter); 
+      if ((0 != labelName.compare(table_label_class_name)) &&
+	  (0 != labelName.compare(background_class_name) ) ) {
 
-      cv::Vec <double,4>tLQ;
-      tLQ[0] = tableLabelQuaternion.x();
-      tLQ[1] = tableLabelQuaternion.y();
-      tLQ[2] = tableLabelQuaternion.z();
-      tLQ[3] = tableLabelQuaternion.w();
+	Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
+	char buf[1000];
+	string this_crops_path = data_directory + "/" + labelName + "Poses/";
+	sprintf(buf, "%s%sPoses%s_%d.ppm", this_crops_path.c_str(), labelName, run_prefix.c_str(), cropCounter);
+	//sprintf(buf, class_crops_path + "/%s_toAudit/%s%s_%d.ppm", 
+	  //labelName, labelName, run_prefix, cropCounter);
+	imwrite(buf, crop);
+	cropCounter++;
 
-      FileStorage fsfO;
-      fsfO.open(poseLabelsPath, FileStorage::APPEND);
-      fsfO << thisCropLabel << tLQ; 
-      fsfO.release();
+	string poseLabelsPath = this_crops_path + "poseLabels.yml";
+	char thisCropLabel[1000];
+	sprintf(thisCropLabel, "%sPoses%s_%d", labelName, run_prefix.c_str(), cropCounter); 
+
+	cv::Vec <double,4>tLQ;
+	tLQ[0] = tableLabelQuaternion.x();
+	tLQ[1] = tableLabelQuaternion.y();
+	tLQ[2] = tableLabelQuaternion.z();
+	tLQ[3] = tableLabelQuaternion.w();
+
+	FileStorage fsfO;
+	fsfO.open(poseLabelsPath, FileStorage::APPEND);
+	fsfO << thisCropLabel << tLQ; 
+	fsfO.release();
 
 cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
+      } else {
+cout << "Rejecting class " << labelName << endl;
+      }
+
+
     }
   #endif
 
