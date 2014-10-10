@@ -1,4 +1,4 @@
-#define PROGRAM_NAME "publish_detections"
+#define PROGRAM_NAME "capture_hard_class"
 
 #define RUN_INFERENCE 
 #define PUBLISH_OBJECTS 
@@ -8,8 +8,8 @@
 
 
 
-
-
+#define SAVE_ANNOTATED_BOXES
+#define CAPTURE_HARD_CLASS
 
 
 #include "oberlin_detection.cpp"

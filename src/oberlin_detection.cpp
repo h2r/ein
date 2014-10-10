@@ -1,3 +1,6 @@
+#ifndef PROGRAM_NAME
+  #define PROGRAM_NAME "DAVE"
+#endif
 //// these macros below were moved to other files
 //#define RUN_INFERENCE // generates the blue boxes
 //#define PUBLISH_OBJECTS // requires blue, brown, and gray boxes, and inference
@@ -31,7 +34,7 @@ double timeInterval = 15;
 time_t thisTime = 0;
 time_t firstTime = 0;
 
-double densityDecay = 0.7;
+double densityDecay = 0.3;//0.7;
 double depthDecay = 0.7;
 double redDecay = 0.9;
 
@@ -85,8 +88,6 @@ const double colorHistBinWidth = 256/colorHistNumBins;
 const double colorHistLambda = 0.25;
 const double colorHistThresh = 0.1;
 const int colorHistBoxHalfWidth = 1;
-
-int fcRange = 10;
 
 #include <dirent.h>
 
@@ -176,7 +177,9 @@ ros::Publisher markers_red;
 bool real_img = false;
 
 Objectness *glObjectness;
-int fc;
+int fc = 1;
+int fcRange = 10;
+int frames_per_click = 5;
 int cropCounter;
 
 double *temporalDensity = NULL;
@@ -224,7 +227,7 @@ vector<int> bLabels;
 
 // adjust these to reject blue boxes
 double rejectScale = 2.0;
-double rejectAreaScale = 6*6;
+double rejectAreaScale = 16;//6*6;
 
 
 typedef struct {
@@ -244,7 +247,7 @@ redBox *redBoxes;
 int numRedBoxes = 0;
 double persistenceThresh = 0.5;
 int max_red_proposals = 1000;
-double slidesPerFrame = 0.0;
+double slidesPerFrame = 0.2;
 int rbMinWidth = 50;
 int rbMaxWidth = 200;
 
@@ -273,13 +276,15 @@ Mat tablePerspective;
 Eigen::Quaternionf tableLabelQuaternion;
 string table_label_class_name = "";
 string background_class_name = "";
+int invertQuaternionLabel = 0;
+string invert_sign_name = "";
 
 
 double *gBoxIndicator;
 int gBoxW = 10;
 int gBoxH = 10;
 //int gBoxThreshMultiplier = 1.1;
-double gBoxThresh = 3;
+double gBoxThresh = 5;//3;
 double threshFraction = 0.35;
 
 int gBoxStrideX;
@@ -370,10 +375,13 @@ cout << sTop << sBot << endl;
 void CallBackFunc(int event, int x, int y, int flags, void* userdata) {
   if ( event == EVENT_LBUTTONDOWN ) {
 #ifdef CAPTURE_ONLY
-    fc = 0;
+    fc = frames_per_click;
 #endif
 #ifdef SAVE_ANNOTATED_BOXES
-    fc = 0;
+    fc = frames_per_click;
+#endif
+#ifdef CAPTURE_HARD_CLASS
+    fc = frames_per_click;
 #endif
  
     //cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
@@ -791,6 +799,8 @@ void loadROSParamsFromArgs()
 {
   ros::NodeHandle nh("~");
 
+  nh.getParam("frames_per_click", frames_per_click);
+
   nh.getParam("vocab_file", vocab_file);
   nh.getParam("knn_file", knn_file);
   nh.getParam("label_file", label_file);
@@ -818,6 +828,11 @@ void loadROSParamsFromArgs()
   nh.getParam("image_topic", image_topic);
   nh.getParam("pc_topic", pc_topic);
 
+  nh.getParam("invert_sign_name", invert_sign_name);
+
+  nh.getParam("retrain_vocab", retrain_vocab);
+  nh.getParam("reextract_knn", reextract_knn);
+  nh.getParam("rewrite_labels", rewrite_labels);
 
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
@@ -826,7 +841,6 @@ void loadROSParams()
 {
   ros::NodeHandle nh("~");
 
-  nh.getParam("number_red_boxes", numRedBoxes);
   nh.getParam("green_box_threshold", gBoxThresh);
   nh.getParam("pink_box_threshold", pBoxThresh);
   nh.getParam("threshold_fraction", threshFraction);
@@ -837,7 +851,7 @@ void loadROSParams()
   nh.getParam("mixing_bowl_normalizer", mbPBT);
   nh.getParam("reject_scale", rejectScale);
   nh.getParam("reject_area_scale", rejectAreaScale);
-  nh.getParam("frame_count_range", fcRange);
+  nh.getParam("frames_per_click", frames_per_click);
   nh.getParam("density_decay", densityDecay);
   nh.getParam("depth_decay", depthDecay);
   nh.getParam("red_decay", redDecay);
@@ -867,6 +881,12 @@ void loadROSParams()
 
   nh.getParam("orientation_search_width", oSearchWidth);
 
+  nh.getParam("invert_sign_name", invert_sign_name);
+
+  nh.getParam("retrain_vocab", retrain_vocab);
+  nh.getParam("reextract_knn", reextract_knn);
+  nh.getParam("rewrite_labels", rewrite_labels);
+
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
 
@@ -874,7 +894,6 @@ void saveROSParams()
 {
   ros::NodeHandle nh("~");
 
-  nh.setParam("number_red_boxes", numRedBoxes);
   nh.setParam("green_box_threshold", gBoxThresh);
   nh.setParam("pink_box_threshold", pBoxThresh);
   nh.setParam("threshold_fraction", threshFraction);
@@ -885,7 +904,7 @@ void saveROSParams()
   nh.setParam("mixing_bowl_normalizer", mbPBT);
   nh.setParam("reject_scale", rejectScale);
   nh.setParam("reject_area_scale", rejectAreaScale);
-  nh.setParam("frame_count_range", fcRange);
+  nh.setParam("frames_per_click", frames_per_click);
   nh.setParam("density_decay", densityDecay);
   nh.setParam("depth_decay", depthDecay);
   nh.setParam("red_decay", redDecay);
@@ -912,6 +931,11 @@ void saveROSParams()
 
   nh.setParam("orientation_search_width", oSearchWidth);
 
+  nh.setParam("invert_sign_name", invert_sign_name);
+
+  nh.setParam("retrain_vocab", retrain_vocab);
+  nh.setParam("reextract_knn", reextract_knn);
+  nh.setParam("rewrite_labels", rewrite_labels);
 }
 
 // for publishing
@@ -1096,12 +1120,12 @@ cout << "  finished a publishable object " << label << " " << classLabels[label]
 
 void getOrientation(cv_bridge::CvImagePtr cv_ptr, Mat& img_cvt, 
   vector<KeyPoint>& keypoints, Mat& descriptors, cv::Point top, cv::Point bot, 
-  int label, char *labelName, string& augmentedLabelName, double& poseIndex, int& winningO) {
+  int label, string& labelName, string& augmentedLabelName, double& poseIndex, int& winningO) {
 
   if (label == -1)
-    sprintf(labelName, "VOID");
+    labelName = "VOID";
   else
-    sprintf(labelName, "%s", classLabels[label].c_str());
+    labelName = classLabels[label];
 
   augmentedLabelName = labelName;
 
@@ -1454,6 +1478,8 @@ cout << endl << orientedFilters[0] << endl;
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
+  invertQuaternionLabel = 0;
+
   time(&thisTime);
   double deltaTime = difftime(thisTime, firstTime);
   timeMass = timeMass + 1;
@@ -1529,7 +1555,7 @@ cout << "Average time between frames: " << aveTime <<
   int numBoxes = boxes.size();
   // box[0] minx box[1] miny box[2] maxx box[3] maxy
 #ifdef DEBUG
-cout << numBoxes << "    " << fc <<  endl;
+cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
 #endif
 
   nTop.resize(numBoxes);
@@ -2268,13 +2294,16 @@ fprintf(stderr, " object check2"); fflush(stderr);
 
       label = kNN->find_nearest(descriptors2,k);
       bLabels[c] = label;
+
+      if (classLabels[label].compare(invert_sign_name) == 0)
+	invertQuaternionLabel = 1;
     }
 
 #ifdef DEBUG
 fprintf(stderr, " object check3 label %f", label); fflush(stderr);
 #endif
 
-    char labelName[256]; 
+    string labelName; 
     string augmentedLabelName;
     double poseIndex = -1;
     int winningO = -1;
@@ -2285,29 +2314,58 @@ fprintf(stderr, " object check3 label %f", label); fflush(stderr);
     
   #ifdef SAVE_ANNOTATED_BOXES
     // save the crops
-    if (fc == 0) {
+    if (fc > 0) {
 
       if ((0 != labelName.compare(table_label_class_name)) &&
 	  (0 != labelName.compare(background_class_name) ) ) {
 
+	string thisLabelName = labelName;
+
+    #ifdef CAPTURE_HARD_CLASS
+	thisLabelName = class_name;
+    #endif
+
+
+	{
+	  string another_crops_path = data_directory + "/" + thisLabelName + "/";
+	  char buf[1000];
+	  sprintf(buf, "%s%s%s_%d.ppm", another_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
+cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
+	  imwrite(buf, crop);
+	}
+
 	Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
 	char buf[1000];
-	string this_crops_path = data_directory + "/" + labelName + "Poses/";
-	sprintf(buf, "%s%sPoses%s_%d.ppm", this_crops_path.c_str(), labelName, run_prefix.c_str(), cropCounter);
+	string this_crops_path = data_directory + "/" + thisLabelName + "Poses/";
+	sprintf(buf, "%s%sPoses%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
 	//sprintf(buf, class_crops_path + "/%s_toAudit/%s%s_%d.ppm", 
-	  //labelName, labelName, run_prefix, cropCounter);
+	  //thisLabelName, thisLabelName, run_prefix, cropCounter);
 	imwrite(buf, crop);
 	cropCounter++;
 
 	string poseLabelsPath = this_crops_path + "poseLabels.yml";
 	char thisCropLabel[1000];
-	sprintf(thisCropLabel, "%sPoses%s_%d", labelName, run_prefix.c_str(), cropCounter); 
+	sprintf(thisCropLabel, "%sPoses%s_%d", thisLabelName.c_str(), run_prefix.c_str(), cropCounter); 
+
+	Eigen::Quaternionf quaternionToWrite = tableLabelQuaternion;
+	if (invertQuaternionLabel) {
+	  cv::Matx33f R;
+	  R(0,0) = 1; R(0,1) =  0; R(0,2) = 0;
+	  R(1,0) = 0; R(1,1) =  0; R(1,2) = 1;
+	  R(2,0) = 0; R(2,1) = -1; R(2,2) = 0;
+
+	  Eigen::Matrix3f rotation;
+	  rotation << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
+	  Eigen::Quaternionf tempQuaternion(rotation);
+  
+	  quaternionToWrite = tableLabelQuaternion * tempQuaternion;
+	}
 
 	cv::Vec <double,4>tLQ;
-	tLQ[0] = tableLabelQuaternion.x();
-	tLQ[1] = tableLabelQuaternion.y();
-	tLQ[2] = tableLabelQuaternion.z();
-	tLQ[3] = tableLabelQuaternion.w();
+	tLQ[0] = quaternionToWrite.x();
+	tLQ[1] = quaternionToWrite.y();
+	tLQ[2] = quaternionToWrite.z();
+	tLQ[3] = quaternionToWrite.w();
 
 	FileStorage fsfO;
 	fsfO.open(poseLabelsPath, FileStorage::APPEND);
@@ -2402,7 +2460,8 @@ cout << "published" << endl;
 
 
   #ifdef SAVE_ANNOTATED_BOXES
-  fc = 1;
+  if (fc > 0)
+    fc--;
   #endif
 
   #ifdef RUN_TRACKING 
@@ -2733,7 +2792,7 @@ cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.
 
 
 
-    char labelName[256]; 
+    string labelName; 
     string augmentedLabelName;
     double poseIndex = -1;
     int winningO = -1;
@@ -2825,8 +2884,8 @@ cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.
 
 #ifdef SAVE_BOXES
   // save the crops
-  if (fc == 0) {
-    fc = 1;
+  if (fc > 0) {
+    fc--;
     for (int c = bTops.size()-1; c >= 0; c--) {
       Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
       char buf[1000];
@@ -2962,6 +3021,17 @@ void clusterCallback(const visualization_msgs::MarkerArray& msg){
 }
 
 int main(int argc, char **argv) {
+
+#ifdef RELEARN_VOCAB
+  retrain_vocab = 1;
+#endif 
+#ifdef RELOAD_DATA
+  reextract_knn = 1;
+#endif
+#ifdef REWRITE_LABELS
+  rewrite_labels = 1;
+#endif 
+
   srand(time(NULL));
   time(&firstTime);
 
@@ -2975,7 +3045,7 @@ int main(int argc, char **argv) {
 
   string bufstr; // Have a buffer string
 
-  ros::init(argc, argv, "oberlin_detection");
+  ros::init(argc, argv, PROGRAM_NAME);
   ros::NodeHandle n("~");
   std::string s;
 
@@ -3079,9 +3149,6 @@ int main(int argc, char **argv) {
   }
 #endif
 
-#ifdef REWRITE_LABELS
-  rewrite_labels = 1;
-#endif 
   if (rewrite_labels) {
     FileStorage fsvO;
     cout<<"Writing labels and pose models..."<< endl << labelsPath << endl << "...";
@@ -3107,9 +3174,6 @@ int main(int argc, char **argv) {
 
   Mat vocabulary;
 
-#ifdef RELEARN_VOCAB
-  retrain_vocab = 1;
-#endif 
   if (retrain_vocab) {
     for (int i = 0; i < numClasses; i++) {
       cout << "Getting BOW features for class " << classLabels[i] 
@@ -3151,9 +3215,6 @@ int main(int argc, char **argv) {
   classPosekNNlabels.resize(numClasses);
   classQuaternions.resize(numClasses);
 
-#ifdef RELOAD_DATA
-  reextract_knn = 1;
-#endif
   if (reextract_knn) {
     for (int i = 0; i < numClasses; i++) {
       cout << "Getting kNN features for class " << classLabels[i] 

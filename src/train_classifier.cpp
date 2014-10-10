@@ -1,5 +1,8 @@
+#define PROGRAM_NAME "train_classifier"
+
 #define TRAIN_ONLY
 #define RUN_INFERENCE
+
 // if you add more examples, you must reload the data for them to 
 //   be taken into account.
 #define RELOAD_DATA
