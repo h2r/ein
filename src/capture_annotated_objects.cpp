@@ -1,4 +1,4 @@
-#define PROGRAM_NAME "publish_detections"
+#define PROGRAM_NAME "capture_annotated_objects"
 
 #define RUN_INFERENCE 
 #define PUBLISH_OBJECTS 
@@ -8,7 +8,7 @@
 
 
 
-
+#define SAVE_ANNOTATED_BOXES
 
 
 

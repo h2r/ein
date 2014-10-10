@@ -31,10 +31,17 @@ include_directories(include
   ${PCL_INCLUDE_DIRS}
 )
 
+
+set(OPENMP_FLAG "-fopenmp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -O3")
+
+
 add_executable(oberlin_detector src/oberlin_detection.cpp)
 add_executable(capture_object src/capture_object.cpp)
 add_executable(train_classifier src/train_classifier.cpp)
 add_executable(publish_detections src/publish_detections.cpp)
+add_executable(capture_annotated_objects src/capture_annotated_objects.cpp)
+add_executable(capture_hard_class src/capture_hard_class.cpp)
 add_executable(filter_time src/filter_time.cpp)
 
 target_link_libraries(oberlin_detector
@@ -53,6 +60,16 @@ target_link_libraries(train_classifier
 	BINGLIB ###
 )
 target_link_libraries(publish_detections
+	${catkin_LIBRARIES}
+	${OpenCV_LIBS}
+	BINGLIB ###
+)
+target_link_libraries(capture_annotated_objects
+	${catkin_LIBRARIES}
+	${OpenCV_LIBS}
+	BINGLIB ###
+)
+target_link_libraries(capture_hard_class
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
 	BINGLIB ###
