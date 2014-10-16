@@ -85,7 +85,7 @@ int rewrite_labels = 0;
 const double colorHistNumBins = 8;
 const double colorHistBinWidth = 256/colorHistNumBins;
 // XXX
-const double colorHistLambda = 0.25;
+const double colorHistLambda = 0.5;
 const double colorHistThresh = 0.1;
 const int colorHistBoxHalfWidth = 1;
 
@@ -147,13 +147,15 @@ std::string red_box_list = "";
 std::string image_topic = "/camera/rgb/image_raw"; // "/filter_time/filtered_image"
 std::string pc_topic = "/camera/depth_registered/points";
 
+std::string cache_prefix = "";
+
 vector<string> redBoxLabels;
 vector<string> classLabels; 
 vector<string> classPoseModels;
 vector<CvKNearest*> classPosekNNs;
 vector<Mat> classPosekNNfeatures;
 vector<Mat> classPosekNNlabels;
-vector< vector<Eigen::Quaternionf> > classQuaternions;
+vector< vector< cv::Vec<double,4> > > classQuaternions;
 
 DescriptorMatcher *matcher;
 FeatureDetector *detector;
@@ -602,7 +604,7 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 	  gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
 	  bowExtractor->compute(gray_image, keypoints, descriptors);
 
-	  cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " type: " << descriptors.type() << endl;
+	  cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " type: " << descriptors.type() << " tot: " << kNNfeatures.size() << endl;
 
 	  if (!descriptors.empty() && !keypoints.empty()) {
 	    appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
@@ -617,7 +619,7 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 }
 
 void posekNNGetFeatures(std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
-  vector<Eigen::Quaternionf>& classQuaternions, int lIndexStart = 0) {
+  vector< cv::Vec<double,4> >& classQuaternions, int lIndexStart = 0) {
 
   string sClassName(className);
 
@@ -629,15 +631,21 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
   struct dirent *epdf;
   string dot(".");
   string dotdot("..");
+  string ppm(".ppm");
+  
 
   char buf[1024];
   sprintf(buf, "%s%s", classDir.c_str(), className);
   dpdf = opendir(buf);
   if (dpdf != NULL){
     while (epdf = readdir(dpdf)){
+      string fileName(epdf->d_name);
+      cout << fileName << " " << endl;
       if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
-	string fileName(epdf->d_name);
 
+	string fext = fileName.substr(fileName.size()-4, 4);
+	if (fext.compare(ppm))
+	  continue;
 
 	//string poseIndex = fileName.substr(sClassName.size()+1, string::npos);
 	//poseIndex = poseIndex.substr(0,  poseIndex.length()-4);
@@ -647,18 +655,12 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
 	string thisCropLabel = fileName.substr(0,fileName.size()-4);
 	string poseLabelsPath =  classDir + className + "/poseLabels.yml";
 
-	cv::Vec <double,4>tLQ;
+	cv::Vec<double,4> tLQ;
 
 	FileStorage fsfI;
 	fsfI.open(poseLabelsPath, FileStorage::READ);
 	fsfI[thisCropLabel] >> tLQ; 
 	fsfI.release();
-
-	Eigen::Quaternionf thisLabelQuaternion;
-	thisLabelQuaternion.x() = tLQ[0];
-	thisLabelQuaternion.y() = tLQ[1];
-	thisLabelQuaternion.z() = tLQ[2];
-	thisLabelQuaternion.w() = tLQ[3];
 
         vector<KeyPoint> keypoints;
         Mat descriptors;
@@ -690,7 +692,7 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
 	    kNNfeatures.push_back(descriptors);
 	    //kNNlabels.push_back(label);
 	    kNNlabels.push_back(lIndex);
-	    classQuaternions.push_back(thisLabelQuaternion);
+	    classQuaternions.push_back(tLQ);
 	    lIndex++;
 	  }
 	}
@@ -833,6 +835,8 @@ void loadROSParamsFromArgs()
   nh.getParam("retrain_vocab", retrain_vocab);
   nh.getParam("reextract_knn", reextract_knn);
   nh.getParam("rewrite_labels", rewrite_labels);
+
+  nh.getParam("cache_prefix", cache_prefix);
 
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
@@ -977,7 +981,18 @@ cout << "constructing rotation matrix" << endl;
   objectQuaternion = tableQuaternion * objectQuaternion;
 
   if (0 == classPoseModels[label].compare("G")) {
-    objectQuaternion = classQuaternions[label][poseIndex];
+
+    cv::Vec<double,4> tLQ = classQuaternions[label][poseIndex];
+
+    Eigen::Quaternionf thisLabelQuaternion;
+    thisLabelQuaternion.x() = tLQ[0];
+    thisLabelQuaternion.y() = tLQ[1];
+    thisLabelQuaternion.z() = tLQ[2];
+    thisLabelQuaternion.w() = tLQ[3];
+    objectQuaternion = thisLabelQuaternion;
+
+    //XXX objectQuaternion = classQuaternions[label][poseIndex];
+    // TODO fix the quaternion saving so that we can save this table and perform this dereference
   }
 
   roa_to_send.objects[aI].pose.pose.pose.orientation.x = objectQuaternion.x();
@@ -2316,8 +2331,13 @@ fprintf(stderr, " object check3 label %f", label); fflush(stderr);
     // save the crops
     if (fc > 0) {
 
+    #ifdef CAPTURE_HARD_CLASS
       if ((0 != labelName.compare(table_label_class_name)) &&
-	  (0 != labelName.compare(background_class_name) ) ) {
+	  (0 != labelName.compare(background_class_name) ) ) 
+    #else
+      if (0 == labelName.compare(class_name))
+    #endif
+      {
 
 	string thisLabelName = labelName;
 
@@ -3149,7 +3169,33 @@ int main(int argc, char **argv) {
   }
 #endif
 
+  int numNewClasses = classLabels.size();
+  int numCachedClasses = 0;
+
   if (rewrite_labels) {
+    // load cached labels 
+    vector<string> classCacheLabels;
+    vector<string> classCachePoseModels;
+    if (cache_prefix.size() > 0) {
+      string labelsCacheFile = data_directory + "/" + cache_prefix + "labels.yml";
+
+      FileStorage fsvI;
+      cout<<"Reading CACHED labels and pose models..."<< endl << labelsCacheFile << endl << "...";
+      fsvI.open(labelsCacheFile, FileStorage::READ);
+      fsvI["labels"] >> classCacheLabels;
+      fsvI["poseModels"] >> classCachePoseModels;
+      //classLabels.insert(classLabels.end(), classCacheLabels.begin(), classCacheLabels.end());
+      //classPoseModels.insert(classPoseModels.end(), classCachePoseModels.begin(), classCachePoseModels.end());
+      cout << "done. Cache : " << classCacheLabels.size() << " " << classCachePoseModels.size() << " total: " ;
+      numCachedClasses = classCacheLabels.size();
+
+      classCacheLabels.insert(classCacheLabels.end(), classLabels.begin(), classLabels.end());
+      classCachePoseModels.insert(classCachePoseModels.end(), classPoseModels.begin(), classPoseModels.end());
+      classLabels = classCacheLabels;
+      classPoseModels = classCachePoseModels;
+      cout << classLabels.size() << " " << classPoseModels.size() << endl;
+    }
+
     FileStorage fsvO;
     cout<<"Writing labels and pose models..."<< endl << labelsPath << endl << "...";
     fsvO.open(labelsPath, FileStorage::WRITE);
@@ -3166,16 +3212,17 @@ int main(int argc, char **argv) {
     cout << "done. " << classLabels.size() << " " << classPoseModels.size() << endl;
   }
 
-  numClasses = classLabels.size();
-  
-  for (int i = 0; i < numClasses; i++) {
+  for (int i = 0; i < classLabels.size(); i++) {
     cout << classLabels[i] << " " << classPoseModels[i] << endl;
   }
+
+  // this is the total number of classes, so it is counted after the cache is dealt with
+  numClasses = classLabels.size();
 
   Mat vocabulary;
 
   if (retrain_vocab) {
-    for (int i = 0; i < numClasses; i++) {
+    for (int i = 0; i < classLabels.size(); i++) {
       cout << "Getting BOW features for class " << classLabels[i] 
 	   << " with pose model " << classPoseModels[i] << " index " << i << endl;
       bowGetFeatures(class_crops_path, classLabels[i].c_str(), grayBlur);
@@ -3216,7 +3263,9 @@ int main(int argc, char **argv) {
   classQuaternions.resize(numClasses);
 
   if (reextract_knn) {
-    for (int i = 0; i < numClasses; i++) {
+    //for (int i = 0; i < numNewClasses; i++) 
+    for (int i = numCachedClasses; i < numClasses; i++) 
+    {
       cout << "Getting kNN features for class " << classLabels[i] 
 	   << " with pose model " << classPoseModels[i] << " index " << i << endl;
       kNNGetFeatures(class_crops_path, classLabels[i].c_str(), i, grayBlur, kNNfeatures, kNNlabels);
@@ -3226,19 +3275,42 @@ int main(int argc, char **argv) {
 	  classQuaternions[i], 0);
       }
     }
+    // XXX TODO warning, classQuaternions are not loaded as they should be
+
+    // load cached kNN features 
+    // XXX does not handle G pose models
+    Mat kNNCachefeatures;
+    Mat kNNCachelabels;
+    if (cache_prefix.size() > 0) {
+      string knnCacheFile = data_directory + "/" + cache_prefix + "knn.yml";
+
+      FileStorage fsfI;
+      cout<<"Reading CACHED features..."<< endl << knnCacheFile << endl << "...";
+      fsfI.open(knnCacheFile, FileStorage::READ);
+      fsfI["features"] >> kNNCachefeatures;
+      fsfI["labels"] >> kNNCachelabels;
+      kNNfeatures.push_back(kNNCachefeatures);
+      kNNlabels.push_back(kNNCachelabels);
+      cout << "done." << kNNCachefeatures.size() << " " << kNNCachelabels.size() << endl;
+    }
 
     FileStorage fsfO;
     cout<<"Writing features and labels..."<< endl << featuresPath << endl << "...";
     fsfO.open(featuresPath, FileStorage::WRITE);
     fsfO << "features" << kNNfeatures;
     fsfO << "labels" << kNNlabels;
+
+    // TODO should also cache the features for the pose models
+
     for (int i = 0; i < numClasses; i++) {
       if (classPoseModels[i].compare("G") == 0) {
 	string fnOut = "features" + classLabels[i];
 	string lnOut = "labels" + classLabels[i];
+	string qnOut = "quaternions" + classLabels[i];
 	cout << "G: " << classLabels[i] << " " << fnOut << " " << lnOut << endl;
 	fsfO << fnOut << classPosekNNfeatures[i];
 	fsfO << lnOut << classPosekNNlabels[i];
+	fsfO << qnOut << classQuaternions[i];
       }
     }
     fsfO.release();
@@ -3253,9 +3325,11 @@ int main(int argc, char **argv) {
       if (classPoseModels[i].compare("G") == 0) {
 	string fnIn = "features" + classLabels[i];
 	string lnIn = "labels" + classLabels[i];
+	string qnIn = "quaternions" + classLabels[i];
 	cout << "G: " << classLabels[i] << " " << fnIn << " " << lnIn << endl;
 	fsfI[fnIn] >> classPosekNNfeatures[i];
 	fsfI[lnIn] >> classPosekNNlabels[i];
+	fsfI[qnIn] >> classQuaternions[i];
       }
     }
     cout << "done." << kNNfeatures.size() << " " << kNNlabels.size() << endl;
