@@ -1,14 +1,35 @@
 # oberlin_detection
 
+If you are on Trusty 14.04 LTS with Indigo, you need the non-free functionality of opencv.
 
-Make sure you have the following standard components installed:
+Install the ppa at https://launchpad.net/~xqms/+archive/ubuntu/opencv-nonfree:
+```
+sudo add-apt-repository ppa:xqms/opencv-nonfree
+```
+Then run 
+```
+sudo apt-get install libopencv-nonfree-\*
+```
 
-opencv
-cv_bridge
-image_transport
-openni
+Make sure you clean your build and devel folders before running catkin_make.
 
-**Install** the non-standard package h2r/bing.
+Openni may not work for you, in which case you can try freenect.
+
+```
+sudo apt-get install libfreenect-bin
+freenect-glview
+```
+
+then 
+
+```
+sudo apt-get install ros-indigo-freenect-stack
+roslaunch freenect_launch freenect.launch depth_registration:=true
+```
+
+**Install** the non-standard package h2r/bing by going to catkin_ws/src and then cloning.
+**Install** the package h2r/oberlin_detection by going to catkin_ws/src and then cloning.
+
 
 To get up and running you will need to perform three steps.
 

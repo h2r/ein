@@ -10,7 +10,6 @@ find_package(catkin REQUIRED COMPONENTS
   visualization_msgs
   genmsg
   OpenCV
-  eigen
   cv_bridge
   image_transport
   message_generation
@@ -18,7 +17,9 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
 )
 
-catkin_package(CATKIN_DEPENDS message_runtime)
+catkin_package(CATKIN_DEPENDS 
+  eigen
+  message_runtime)
 
 link_directories(/opt/ros/hydro/lib ${PCL_LIBRARY_DIRS})
 
@@ -35,6 +36,7 @@ include_directories(include
 set(OPENMP_FLAG "-fopenmp")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -O3")
 
+#set(CMAKE_BUILD_TYPE Debug)
 
 add_executable(oberlin_detector src/oberlin_detection.cpp)
 add_executable(capture_object src/capture_object.cpp)

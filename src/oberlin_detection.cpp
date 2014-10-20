@@ -25,8 +25,20 @@
 #define DRAW_BLUE_KEYPOINTS
 #define DRAW_RED_KEYPOINTS
 
+//#define DEBUG
+
 
 #include <ctime>
+
+
+
+double sobel_sigma = 1.0;
+double sobel_scale_factor = 1e-12;
+double local_sobel_sigma = 1.0;
+double canny_hi_thresh = 10;
+double canny_lo_thresh = 0.5;
+
+
 double aveTime = 0.0;
 double aveFrequency = 0.0;
 double timeMass = 0.0;
@@ -67,7 +79,7 @@ const int poseOverSampleFactor = 1;
 
 const int keypointPeriod = 1;
 const double kpGreenThresh = 0;
-//const double kpProb = 0.2;
+//const double kpProb = 0.1;
 const double kpProb = 1.0;
 
 const int vocabNumWords = 1000;
@@ -286,8 +298,8 @@ double *gBoxIndicator;
 int gBoxW = 10;
 int gBoxH = 10;
 //int gBoxThreshMultiplier = 1.1;
-double gBoxThresh = 5;//3;
-double threshFraction = 0.35;
+double gBoxThresh = 30000;//5;//3;
+double threshFraction = 0;//0.35;
 
 int gBoxStrideX;
 int gBoxStrideY;
@@ -891,6 +903,12 @@ void loadROSParams()
   nh.getParam("reextract_knn", reextract_knn);
   nh.getParam("rewrite_labels", rewrite_labels);
 
+  nh.getParam("sobel_sigma", sobel_sigma);
+  nh.getParam("local_sobel_sigma", local_sobel_sigma);
+  nh.getParam("canny_hi_thresh",canny_hi_thresh);
+  nh.getParam("canny_lo_thresh",canny_lo_thresh);
+  nh.getParam("sobel_scale_factor",sobel_scale_factor);
+
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
 
@@ -940,6 +958,12 @@ void saveROSParams()
   nh.setParam("retrain_vocab", retrain_vocab);
   nh.setParam("reextract_knn", reextract_knn);
   nh.setParam("rewrite_labels", rewrite_labels);
+
+  nh.setParam("sobel_sigma", sobel_sigma);
+  nh.setParam("local_sobel_sigma", local_sobel_sigma);
+  nh.setParam("canny_hi_thresh",canny_hi_thresh);
+  nh.setParam("canny_lo_thresh",canny_lo_thresh);
+  nh.getParam("sobel_scale_factor",sobel_scale_factor);
 }
 
 // for publishing
@@ -1515,6 +1539,8 @@ cout << "Average time between frames: " << aveTime <<
   "   Average Frequency: " << aveFrequency << " Hz   Duration of sampling: " << 
   deltaTime << "   Frames since sampling: " << timeMass << endl; 
 
+//cout << "here 1" << endl;
+
   int lastTime = thisTime; 
 
   gBoxStrideX = gBoxW / 2.0;
@@ -1523,6 +1549,7 @@ cout << "Average time between frames: " << aveTime <<
   loadROSParams();
   cv::Rect bound;
   cv::Mat boxed;
+//cout << "here 2" << endl;
 
   cv_bridge::CvImagePtr cv_ptr;
   try{
@@ -1533,11 +1560,13 @@ cout << "Average time between frames: " << aveTime <<
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
+//cout << "here 3" << endl;
 
   object_recognition_msgs::RecognizedObjectArray roa_to_send_blue;
   visualization_msgs::MarkerArray ma_to_send_blue; 
 
-  int boxesPerSize = 800;
+  //int boxesPerSize = 800;
+  int boxesPerSize = 120;
   
   // XXX find best method and stop all this cloning, it might be relatively slow
   Mat original_cam_img = cam_img.clone();
@@ -1547,28 +1576,72 @@ cout << "Average time between frames: " << aveTime <<
   Mat img_cvtG = cam_img.clone();
   Mat img_cvtGtmp = cam_img.clone();
 
+//cout << "here 4" << endl;
   Mat img_cvt_blur = cam_img.clone();
-  //img_cvt.copyTo(cv_ptr->image);
+  Mat local_ave;
+  cvtColor(img_cvt_blur, img_cvt_blur, CV_RGB2GRAY );
+  GaussianBlur(img_cvt_blur, img_cvt_blur, Size(max(4*sobel_sigma+1, 17.0),max(4*sobel_sigma+1, 17.0)), sobel_sigma, sobel_sigma, BORDER_DEFAULT); 
+  Mat grad_x, grad_y;
+  int sobelScale = 1;
+  int sobelDelta = 0;
+  int sobelDepth = CV_32F;
+//cout << "here 5" << endl;
+  /// Gradient X
+  Sobel(img_cvt_blur, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+  /// Gradient Y
+  Sobel(img_cvt_blur, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+//cout << "here 6" << endl;
 
-  cvtColor(cam_img, img_cvtGtmp, CV_RGB2GRAY);
-  cvtColor(cam_img, img_cvtH, CV_RGB2HSV);
+  grad_x = grad_x.mul(grad_x);
+  grad_y = grad_y.mul(grad_y);
+  Mat totalSobel = grad_x + grad_y;
+  // now totalSobel is gradient magnitude squared
 
-  vector<Mat> channels;
-  channels.push_back(img_cvtGtmp);
-  channels.push_back(img_cvtGtmp);
-  channels.push_back(img_cvtGtmp);
-  merge(channels, img_cvtG);
+  // make it gradient magnitude to the fourth to spread the values a little
+  // this increases robustness and makes it easier to tune
+  pow(totalSobel, 2.0, totalSobel);
+  totalSobel = totalSobel * sobel_scale_factor;
+
+  //totalSobel = abs(totalSobel);
+  //cv::sqrt(totalSobel, totalSobel);
+  //cv::sqrt(totalSobel, totalSobel);
+
+  // try local contrast normalization
+  //GaussianBlur(totalSobel, local_ave, Size(max(4*local_sobel_sigma+1, 17.0),max(4*local_sobel_sigma+1, 17.0)), local_sobel_sigma, local_sobel_sigma, BORDER_DEFAULT); 
+  //local_ave = cv::max(local_ave,.000001);
+  //totalSobel = local_ave / totalSobel;
+
+  // try laplacian
+  //Laplacian(img_cvt_blur, totalSobel, sobelDepth, 1, sobelScale, sobelDelta, BORDER_DEFAULT);
+  //pow(totalSobel, 4.0, totalSobel);
+  //totalSobel = max(totalSobel, .001);
+  //totalSobel = 1 / totalSobel;
+
+//cout << "here 7" << endl;
+
+
+  //cvtColor(cam_img, img_cvtGtmp, CV_RGB2GRAY);
+  //cvtColor(cam_img, img_cvtH, CV_RGB2HSV);
+
+  //vector<Mat> channels;
+  //channels.push_back(img_cvtGtmp);
+  //channels.push_back(img_cvtGtmp);
+  //channels.push_back(img_cvtGtmp);
+  //merge(channels, img_cvtG);
 
   // input image is noisy so blurring is a good idea
   //GaussianBlur(img_cvt, img_cvt, cv::Size(0,0), 1.0);
+//cout << "here 4" << img_cvt.size() << endl;
 
   ValStructVec<float, Vec4i> boxes;
   //glObjectness->getObjBndBoxes(cam_img, boxes, boxesPerSize);
-  glObjectness->getObjBndBoxes(img_cvt, boxes, boxesPerSize);
+  //glObjectness->getObjBndBoxes(img_cvt, boxes, boxesPerSize);
 
+//cout << "here 5" << endl;
 
   int numBoxes = boxes.size();
   // box[0] minx box[1] miny box[2] maxx box[3] maxy
+//cout << "here 6" << endl;
 #ifdef DEBUG
 cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
 #endif
@@ -1646,6 +1719,7 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
 
 
   // integrate the differential density into the density
+  /*
   density[0] = differentialDensity[0];
   for (int x = 1; x < imW; x++) {
     int y = 0;
@@ -1659,6 +1733,13 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
     for (int y = 1; y < imH; y++) {
       density[y*imW+x] = 
 	density[(y-1)*imW+x]+density[y*imW+(x-1)]-density[(y-1)*imW+(x-1)]+differentialDensity[y*imW + x];
+    }
+  }
+  */
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      density[y*imW+x] = totalSobel.at<float>(y,x);
     }
   }
 
@@ -1809,8 +1890,22 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
       double thisIntegral = integralDensity[yb*imW+xb]-integralDensity[yb*imW+xt]-
 	integralDensity[yt*imW+xb]+integralDensity[yt*imW+xt];
 
-      if (thisIntegral > gBoxThresh) {
+//cout << thisIntegral << endl;
+
+      //if (thisIntegral > gBoxThresh) {
+	      //gBoxIndicator[y*imW+x] = 1;
+//#ifdef DRAW_GREEN
+	      //rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(0,255,0));
+//#endif
+      //}
+      if (thisIntegral > canny_lo_thresh) {
 	      gBoxIndicator[y*imW+x] = 1;
+#ifdef DRAW_GREEN
+	      rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(0,128,0));
+#endif
+      }
+      if (thisIntegral > canny_hi_thresh) {
+	      gBoxIndicator[y*imW+x] = 2;
 #ifdef DRAW_GREEN
 	      rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(0,255,0));
 #endif
@@ -1820,9 +1915,10 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
     }
   }
 
+  // canny will start on a hi and spread on a lo or hi.
   for (int x = 0; x < imW-gBoxW; x+=gBoxStrideX) {
     for (int y = 0; y < imH-gBoxH; y+=gBoxStrideY) {
-      if (gBoxIndicator[y*imW+x] == 1 && gBoxGrayNodes[y*imW+x] == 0) {
+      if (gBoxIndicator[y*imW+x] == 2 && gBoxGrayNodes[y*imW+x] == 0) {
 
       	gBoxGrayNodes[y*imW+x] = 1;
       	parentX.push_back(x);
@@ -1855,7 +1951,7 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
       	    parentD.pop_back();
       	  } 
       	  // if the next direction is valid, push it on to the stack and increment direction counter
-      	  else if(gBoxIndicator[nextY*imW+nextX] == 1 && gBoxGrayNodes[nextY*imW+nextX] == 0
+      	  else if(gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0
       		  && nextX > -1 && nextX < imW && nextY > -1 && nextY < imH) {
 
       	    gBoxGrayNodes[nextY*imW+nextX] = 1;
@@ -3091,12 +3187,17 @@ int main(int argc, char **argv) {
   objectness_matrix_path = bing_trained_models_path + "ObjNessB2W8I.idx.yml";
   objectness_path_prefix = bing_trained_models_path + "ObjNessB2W8MAXBGR";
 
-  DataSetVOC voc("../VOC2007/");
-  Objectness objNess(voc, 2, 8, 2);
-  glObjectness = &(objNess);
+
+  string vocPath = package_path + "/VOC2007/";
+  //DataSetVOC voc("../VOC2007/");
+  DataSetVOC voc(vocPath);
+  //Objectness objNess(voc, 2, 8, 2);
+  //glObjectness = &(objNess);
+  glObjectness = new Objectness(voc, 2, 8, 2);
 
   printf("objectness_path_prefix: %s\n", objectness_path_prefix.c_str());
-  int result = objNess.loadTrainedModel(objectness_path_prefix);
+  //int result = objNess.loadTrainedModel(objectness_path_prefix);
+  int result = glObjectness->loadTrainedModel(objectness_path_prefix);
   cout << "result: " << result << endl << endl;
 
   image_transport::Subscriber image_sub;
