@@ -31,7 +31,7 @@ roslaunch freenect_launch freenect.launch depth_registration:=true
 
 **Install** the non-standard package h2r/bing by going to catkin_ws/src and then cloning.
 
-**Install** the package h2r/oberlin_detection by going to catkin_ws/src and then cloning.
+**Install** the package h2r/node by going to catkin_ws/src and then cloning.
 
 **NOTE** that BING broke upon 14.04 migration so you might need to update your BING code.
 
@@ -43,7 +43,7 @@ To get up and running you will need to perform three steps.
 
 First **make a data directory**
 ```
-roscd oberlin_detection
+roscd node 
 mkdir -p data/object_class_1
 ```
 
@@ -52,7 +52,7 @@ mkdir -p data/object_class_1
 To gather data for your objects, point your kinect at your tabletop and run a command similar to:
 ```
 roslaunch openni_launch openni.launch depth_registration:=true
-rosrun oberlin_detection capture_object _data_directory:="$(rospack find oberlin_detection)/data" _class_name:="object_class_1" _run_prefix:="june2round1"
+rosrun node capture_object _data_directory:="$(rospack find node)/data" _class_name:="object_class_1" _run_prefix:="june2round1"
 ```
 Make sure that **data_directory/class_name** is the FULL PATH to an existing directory.
 
@@ -74,7 +74,7 @@ you want to train.
 
 Next, train the classifier. Run a command similar to:
 ```
-rosrun oberlin_detection train_classifier _data_directory:="$(rospack find oberlin_detection)/data" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml" _class_labels:="object_class_1" _class_pose_models:="B"
+rosrun node train_classifier _data_directory:="$(rospack find node)/data" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml" _class_labels:="object_class_1" _class_pose_models:="B"
 ```
 This will create three files (for vocab, knn, and labels) in the locations specified, paths relative to data_directory. The string
 class_labels should be a " "-delimited list of the subdirectories you gathered data in, relative to data_directory. The string
@@ -88,12 +88,12 @@ rotational estimates, its entry should be an "S".
 
 Finally, run something like:
 ```
-rosrun oberlin_detection publish_detections _data_directory:="$(rospack find oberlin_detection)/data" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml"
+rosrun node publish_detections _data_directory:="$(rospack find node)/data" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml"
 ```
 This should bring up two familiar windows. This time, blue boxes should be labeled and table detections should be shown as brown
 boxes.
 
-You can subscribe to /oberlin_detection/blue_labeled_objects and /oberlin_detection/blue_object_markers. 
+You can subscribe to /node/blue_labeled_objects and /node/blue_object_markers. 
 Open RViz and try viewing the markers. The table estimate should appear and should align well with 
 the point cloud. Markers should appear for the blue boxes.
 
@@ -124,7 +124,7 @@ when running publish_detections to generate red box pairs for class1 and class2.
 Each red box pair consists of a bright red box and a dark red box assigned to a single class. The bright red box is the
 current frame's red box detection. The dark red box is the average red box detection.
 
-You can also subscribe to /oberlin_detection/red_labeled_objects and /oberlin_detection/red_object_markers. The
+You can also subscribe to /node/red_labeled_objects and /node/red_object_markers. The
 table marker is not included in red_object_markers.
 
 ## Brown Boxes
@@ -178,7 +178,7 @@ There is another node provided called filter_time. It publishes to
 /filter_time/filtered_image
 /filter_time/filtered_pointcloud
 ```
-and now is a good time to mention that you can redirect input to oberlin_detection with
+and now is a good time to mention that you can redirect input to node with
 ```
 _image_topic:="/filter_time/filtered_image"
 _pc_topic:="/filter_time/filtered_pointcloud"
