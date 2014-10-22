@@ -30,6 +30,7 @@ roslaunch freenect_launch freenect.launch depth_registration:=true
 ```
 
 **Install** the non-standard package h2r/bing by going to catkin_ws/src and then cloning.
+
 **Install** the package h2r/oberlin_detection by going to catkin_ws/src and then cloning.
 
 **NOTE** that BING broke upon 14.04 migration so you might need to update your BING code.
