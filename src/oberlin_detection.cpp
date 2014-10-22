@@ -12,6 +12,7 @@
 //// these macros above were moved to other files
 
 #define RUN_TRACKING // calculates the red boxes
+#undef DRAW_ORIENTOR
 
 #define DRAW_WHITE
 #define DRAW_GREEN
@@ -20,10 +21,10 @@
 #define DRAW_RED_BETWEEN 
 #define DRAW_GRAY
 //#define DRAW_PINK // depends on blue boxes
-#define DRAW_BROWN // depends on blue and gray boxes, inference, and pointcloud configuration
+//#define DRAW_BROWN // depends on blue and gray boxes, inference, and pointcloud configuration
 
-#define DRAW_BLUE_KEYPOINTS
-#define DRAW_RED_KEYPOINTS
+//#define DRAW_BLUE_KEYPOINTS
+//#define DRAW_RED_KEYPOINTS
 
 //#define DEBUG
 
@@ -31,13 +32,16 @@
 #include <ctime>
 
 
+// for objectness
+double canny_hi_thresh = 7;
+double canny_lo_thresh = 4;
+// for sobel
+//double canny_hi_thresh = 10;
+//double canny_lo_thresh = 0.5;
 
 double sobel_sigma = 1.0;
 double sobel_scale_factor = 1e-12;
 double local_sobel_sigma = 1.0;
-double canny_hi_thresh = 10;
-double canny_lo_thresh = 0.5;
-
 
 double aveTime = 0.0;
 double aveFrequency = 0.0;
@@ -299,7 +303,8 @@ int gBoxW = 10;
 int gBoxH = 10;
 //int gBoxThreshMultiplier = 1.1;
 double gBoxThresh = 30000;//5;//3;
-double threshFraction = 0;//0.35;
+//double threshFraction = 0;//0.35;
+double threshFraction = 0.2;
 
 int gBoxStrideX;
 int gBoxStrideY;
@@ -1565,8 +1570,7 @@ cout << "Average time between frames: " << aveTime <<
   object_recognition_msgs::RecognizedObjectArray roa_to_send_blue;
   visualization_msgs::MarkerArray ma_to_send_blue; 
 
-  //int boxesPerSize = 800;
-  int boxesPerSize = 120;
+  int boxesPerSize = 800;
   
   // XXX find best method and stop all this cloning, it might be relatively slow
   Mat original_cam_img = cam_img.clone();
@@ -1578,6 +1582,9 @@ cout << "Average time between frames: " << aveTime <<
 
 //cout << "here 4" << endl;
   Mat img_cvt_blur = cam_img.clone();
+
+/*
+  // XXX Sobel business
   Mat local_ave;
   cvtColor(img_cvt_blur, img_cvt_blur, CV_RGB2GRAY );
   GaussianBlur(img_cvt_blur, img_cvt_blur, Size(max(4*sobel_sigma+1, 17.0),max(4*sobel_sigma+1, 17.0)), sobel_sigma, sobel_sigma, BORDER_DEFAULT); 
@@ -1612,16 +1619,19 @@ cout << "Average time between frames: " << aveTime <<
   //totalSobel = local_ave / totalSobel;
 
   // try laplacian
-  //Laplacian(img_cvt_blur, totalSobel, sobelDepth, 1, sobelScale, sobelDelta, BORDER_DEFAULT);
+  Mat lapl;
+  Laplacian(img_cvt_blur, lapl, sobelDepth, 1, sobelScale, sobelDelta, BORDER_DEFAULT);
   //pow(totalSobel, 4.0, totalSobel);
   //totalSobel = max(totalSobel, .001);
   //totalSobel = 1 / totalSobel;
+  totalSobel = lapl.mul(totalSobel);
+*/
 
 //cout << "here 7" << endl;
 
 
-  //cvtColor(cam_img, img_cvtGtmp, CV_RGB2GRAY);
-  //cvtColor(cam_img, img_cvtH, CV_RGB2HSV);
+  cvtColor(cam_img, img_cvtGtmp, CV_RGB2GRAY);
+  cvtColor(cam_img, img_cvtH, CV_RGB2HSV);
 
   //vector<Mat> channels;
   //channels.push_back(img_cvtGtmp);
@@ -1635,7 +1645,10 @@ cout << "Average time between frames: " << aveTime <<
 
   ValStructVec<float, Vec4i> boxes;
   //glObjectness->getObjBndBoxes(cam_img, boxes, boxesPerSize);
-  //glObjectness->getObjBndBoxes(img_cvt, boxes, boxesPerSize);
+  glObjectness->getObjBndBoxes(img_cvt, boxes, boxesPerSize);
+  //Mat test;
+  //img_cvt.convertTo(test, CV_16U);
+  //glObjectness->getObjBndBoxes(test, boxes, boxesPerSize);
 
 //cout << "here 5" << endl;
 
@@ -1719,7 +1732,6 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
 
 
   // integrate the differential density into the density
-  /*
   density[0] = differentialDensity[0];
   for (int x = 1; x < imW; x++) {
     int y = 0;
@@ -1735,13 +1747,14 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
 	density[(y-1)*imW+x]+density[y*imW+(x-1)]-density[(y-1)*imW+(x-1)]+differentialDensity[y*imW + x];
     }
   }
-  */
 
+  /*
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
       density[y*imW+x] = totalSobel.at<float>(y,x);
     }
   }
+  */
 
   // now update the exponential average of the density
   // and set the density to be a thresholded version of this
