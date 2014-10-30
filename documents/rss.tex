@@ -1,0 +1,189 @@
+\documentclass[12pt]{article}
+\usepackage{latexsym,amssymb,amsmath} % for \Box, \mathbb, split, etc.
+% \usepackage[]{showkeys} % shows label names
+\usepackage{cite} % sorts citation numbers appropriately
+\usepackage{path}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage[pdftex]{graphicx}
+\usepackage{color}
+
+% horizontal margins: 1.0 + 6.5 + 1.0 = 8.5
+\setlength{\oddsidemargin}{0.0in}
+\setlength{\textwidth}{6.5in}
+% vertical margins: 1.0 + 9.0 + 1.0 = 11.0
+\setlength{\topmargin}{0.0in}
+\setlength{\headheight}{12pt}
+\setlength{\headsep}{13pt}
+\setlength{\textheight}{625pt}
+\setlength{\footskip}{24pt}
+
+\renewcommand{\textfraction}{0.10}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.85}
+\renewcommand{\floatpagefraction}{0.90}
+
+\makeatletter
+\setlength{\arraycolsep}{2\p@} % make spaces around "=" in eqnarray smaller
+\makeatother
+
+% change equation, table, figure numbers to be counted inside a section:
+\numberwithin{equation}{section}
+\numberwithin{table}{section}
+\numberwithin{figure}{section}
+
+% begin of personal macros
+\newcommand{\half}{{\textstyle \frac{1}{2}}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\myth}{\vartheta}
+\newcommand{\myphi}{\varphi}
+
+\newcommand{\IN}{\mathbb{N}}
+\newcommand{\IZ}{\mathbb{Z}}
+\newcommand{\IQ}{\mathbb{Q}}
+\newcommand{\IR}{\mathbb{R}}
+\newcommand{\IC}{\mathbb{C}}
+\newcommand{\Real}[1]{\mathrm{Re}\left({#1}\right)}
+\newcommand{\Imag}[1]{\mathrm{Im}\left({#1}\right)}
+
+\newcommand{\norm}[2]{\|{#1}\|_{{}_{#2}}}
+\newcommand{\abs}[1]{\left|{#1}\right|}
+\newcommand{\ip}[2]{\left\langle {#1}, {#2} \right\rangle}
+\newcommand{\der}[2]{\frac{\partial {#1}}{\partial {#2}}}
+\newcommand{\dder}[2]{\frac{\partial^2 {#1}}{\partial {#2}^2}}
+
+\newcommand{\nn}{\mathbf{n}}
+\newcommand{\xx}{\mathbf{x}}
+\newcommand{\uu}{\mathbf{u}}
+
+\newcommand{\junk}[1]{{}}
+
+% set two lengths for the includegraphics commands used to import the plots:
+\newlength{\fwtwo} \setlength{\fwtwo}{0.45\textwidth}
+
+
+\renewcommand{\labelitemi}{}
+\renewcommand{\labelitemii}{}
+\renewcommand{\labelitemiii}{}
+
+
+% end of personal macros
+% \input{inputFile.tex}
+
+
+\begin{document}
+\DeclareGraphicsExtensions{.jpg}
+
+
+
+\begin{center}
+\textbf{\Large The Eyes of Iorek Byrnison}\\[6pt] 
+%\textbf{\Large } \\[6pt]
+%\textbf{\Large } \\[6pt]
+John Oberlin and Stefanie Tellex\\
+Draft for RSS 2015\\
+\end{center}
+
+
+
+\begin{abstract}
+\end{abstract}
+
+
+\section{Problem Setting}
+
+
+\section{Light-Weight Vision}
+
+
+\section{Structured Memory Facilitates Planning}
+
+Working Memory
+  What object tokens exist in the world? 
+  What are their categories and their names? 
+    (names map particular object instances I see now to instances that persist over
+     time, that is, for which I have a history)
+  Where are they in the scene?
+  
+Long Term Memory
+  Intrinsic (Autobiographical) Episodic Memory
+    This is the sensory data that we are collecting.
+    This information cannot be provided by external
+    sources, it comes from the perceptual capabilities of the system.
+    Traditionally this would be thought of as Training Data X.
+  Extrinsic Episodic Memory
+    Labels and names for categories and peristant instances.
+    This information can be provided by another source and will
+    eventually be provided by the entity itself.
+    Traditionally this would be thought of as Training Labels Y.
+  Implicit Memory
+    These are the models, such as SVM or kNN, that are involved in
+    mapping intrinsic memory to the extrinsic memory.
+  Semantic Memory
+    Facts about stuff that can be used to reason. Affordances
+  Procedural Memory
+    Grasps and collision free planning are procedural memory.
+
+Short Term Persistent Memory
+  Structurally identical to long term memory but restricted to the current context.
+  This is much like a cache for long term memory. Short term memories are incorporated 
+  into long term memory either online through the day or offline during a sleep phase.
+    
+
+
+\section{Online Learning With Humans in the Loop}
+
+
+\section{Evaluation}
+Our system can be evaluated in two important ways. Firstly, how effective is 
+the system at facilitating other actions? Secondly, how accessible to users is the system?
+
+Because this system is designed as a component in a complex system, raw recognition rates
+and pose estimation accuracy would not be very informative even if it were not impractical to
+obtain them.  Besides, we are not trying to extend the state-of-the-art on those tasks. Rather,
+we are trying to provide an interactive framework which will raise the maximum automated vision
+available to the average user.
+
+We therefore establish a baseline for performance by training the system in a representative domain
+specific setting, which tells us how well it can perform on laboratory objects when trained by an 
+expert. This represents the best that the system could be expected to perform.
+
+We then go on to compare the performance of the system when trained to various degrees by naive
+and technical non-expert users.
+
+\subsection{Baseline Domain Specific Pick and Place}
+We qualitatively evaluate the performance by picking and placing
+a respresentative set of objects and reporting the final success rate for each 
+object separately.
+
+We report the performance of the system as a function of user interactions.
+
+We report the performance of the system as a function of program lifetime.
+
+Our representative set consists of a block, a spoon,
+a bowl, a diaper, and a sippy cup. A \emph{single cut video} showing multiple grasps
+of all objects is available here.
+
+\subsection{Usability Experiments}
+We repeat the DSPP experiments with naive users in two settings. In the first, they train laboratory
+objects. In the second, they provide their own objects.
+
+
+\section{Extensions}
+
+
+\newpage
+
+\bibliographystyle{siam}
+\bibliography{proposal}
+
+
+\end{document}
+
+
+
+
+
+
+
+
