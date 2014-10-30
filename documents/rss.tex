@@ -87,16 +87,33 @@ Draft for RSS 2015\\
 
 
 \begin{abstract}
+Robots need to pick stuff up.
+%
+We feel that perception and planning will both benefit from eachother's feedback.
+%
+So we contribute a \emph{framework} which includes the structure of
+a \emph{memory network} and the \emph{algorithms} (methods) that we use
+to maintain the network.
+%
+Perception can structure data, structured data facilitates planning, planning allows more principled perception.
+%
+We form a closed loop through perception and planning, allowing them to interact by means of structured data.
+%
+Our system is supported by online, human-in-the-loop algorithms. Non-technical human participants can easily
+teach and collaborate with the system.
 \end{abstract}
 
 
 \section{Problem Setting}
 
-
-\section{Light-Weight Vision}
+\section{Some Standard Tools}
+Here we review the standard AI, vision, and ML algorithms we employ.
 
 
 \section{Structured Memory Facilitates Planning}
+Here we symbolically describe our memory network,
+which is the first contribution of the paper and
+the first half of our framework.
 
 Working Memory
   What object tokens exist in the world? 
@@ -132,6 +149,12 @@ Short Term Persistent Memory
 
 
 \section{Online Learning With Humans in the Loop}
+Here we describe the algorithms which we use to build and grow the memory network,
+which are the second contribution and second half of our framework.
+Note that performing inference with the framework is actually the same as growing the
+memory, since the results of inference are recorded in working and short term memory
+directly and strongly contribute to long term memory.
+
 
 
 \section{Evaluation}
