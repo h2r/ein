@@ -1,4 +1,4 @@
-#ifndef PROGRAM_NAME
+     #ifndef PROGRAM_NAME
   #define PROGRAM_NAME "DAVE"
 #endif
 //// these macros below were moved to other files
@@ -12,7 +12,8 @@
 //// these macros above were moved to other files
 
 #define RUN_TRACKING // calculates the red boxes
-#undef DRAW_ORIENTOR
+//#undef DRAW_ORIENTOR
+//#define DRAW_BING 
 
 #define DRAW_WHITE
 #define DRAW_GREEN
@@ -21,16 +22,69 @@
 #define DRAW_RED_BETWEEN 
 #define DRAW_GRAY
 //#define DRAW_PINK // depends on blue boxes
-//#define DRAW_BROWN // depends on blue and gray boxes, inference, and pointcloud configuration
+#define DRAW_BROWN // depends on blue and gray boxes, inference, and pointcloud configuration
 
-//#define DRAW_BLUE_KEYPOINTS
-//#define DRAW_RED_KEYPOINTS
+#define DRAW_BLUE_KEYPOINTS
+#define DRAW_RED_KEYPOINTS
 
 //#define DEBUG
 
+int mask_gripper = 0;
+
+int add_blinders = 0;
+int blinder_stride = 10;
+int blinder_columns = 5;
+
+#include <signal.h>
+
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
+boost::mutex ros_mutex;
+boost::mutex pcl_mutex;
+boost::mutex redbox_mutex;
+boost::thread *timercallback1_thread;
+int ikResult = 1;
+
+#include <tf/transform_listener.h>
+tf::TransformListener* tfListener;
+double tfPast = 10.0;
 
 #include <ctime>
+#include <sstream>
+#include <iostream>
+#include <math.h>
+#include <string>
 
+typedef struct {
+  double px;
+  double py;
+  double pz;
+
+  double ox;
+  double oy;
+  double oz;
+
+  double qx;
+  double qy;
+  double qz;
+  double qw;
+} eePose;
+
+eePose beeLHome = {.px = 0.657579481614, .py = 0.851981417433, .pz = 0.0388352386502,
+		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
+		   .qx = -0.366894936773, .qy = 0.885980397775, .qz = 0.108155782462, .qw = 0.262162481772};
+eePose beeRHome = {.px = 0.657579481614, .py = -0.168019, .pz = 0.0388352386502,
+		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
+		   .qx = -0.366894936773, .qy = 0.885980397775, .qz = 0.108155782462, .qw = 0.262162481772};
+
+eePose beeHome = beeRHome;
+
+
+int loTrackbarVariable = 70;
+int hiTrackbarVariable = 70;
+int redTrackbarVariable = 0;
+
+double drawBingProb = .1;
 
 // for objectness
 double canny_hi_thresh = 7;
@@ -105,6 +159,15 @@ const double colorHistLambda = 0.5;
 const double colorHistThresh = 0.1;
 const int colorHistBoxHalfWidth = 1;
 
+#include <baxter_core_msgs/EndpointState.h>
+#include <sensor_msgs/Range.h>
+#include <baxter_core_msgs/EndEffectorCommand.h>
+
+#include <actionlib/client/simple_action_client.h>
+#include <control_msgs/FollowJointTrajectoryAction.h>
+#include <baxter_core_msgs/SolvePositionIK.h>
+#include <baxter_core_msgs/JointCommand.h>
+
 #include <dirent.h>
 
 #include "ros/ros.h"
@@ -117,11 +180,6 @@ const int colorHistBoxHalfWidth = 1;
 #include "geometry_msgs/Pose.h"
 #include "object_recognition_msgs/RecognizedObjectArray.h"
 #include "object_recognition_msgs/RecognizedObject.h"
-
-#include <sstream>
-#include <iostream>
-#include <math.h>
-#include <string>
 
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
@@ -140,6 +198,9 @@ const int colorHistBoxHalfWidth = 1;
 #include "../../bing/Objectness/Objectness.h"
 #include "../../bing/Objectness/ValStructVec.h"
 #include "../../bing/Objectness/CmShow.h"
+
+Eigen::Vector3d eeForward;
+geometry_msgs::Pose trueEEPose;
 
 // you can mine hard negatives by modifying the box saving routine 
 //   to save examples not belonging to class C while only showint it
@@ -192,6 +253,9 @@ ros::Publisher rec_objs_blue;
 ros::Publisher rec_objs_red;
 ros::Publisher markers_blue;
 ros::Publisher markers_red;
+
+ros::Publisher ee_target_pub;
+
 bool real_img = false;
 
 Objectness *glObjectness;
@@ -259,6 +323,8 @@ typedef struct {
   double lastDistance;
   double poseIndex;
   int winningO;
+
+  eePose com; // center of mass
 } redBox;
 
 redBox *redBoxes;
@@ -273,6 +339,8 @@ int redRounds = 10;
 int redStride = 5;
 int redPeriod = 4;
 int redDigitsWSRN = 6; 
+
+int redInitialWidth = 50;
 
 // the brownBox
 cv::Point brTop;
@@ -344,6 +412,7 @@ int rejectRedBox() {
 
 }
 
+
 void gridKeypoints(int gImW, int gImH, cv::Point top, cv::Point bot, int strideX, int strideY, vector<KeyPoint>& keypoints, int period) {
   keypoints.resize(0);
 
@@ -391,7 +460,7 @@ cout << sTop << sBot << endl;
 
 }
 
-void CallBackFunc(int event, int x, int y, int flags, void* userdata) {
+void CallbackFunc(int event, int x, int y, int flags, void* userdata) {
   if ( event == EVENT_LBUTTONDOWN ) {
 #ifdef CAPTURE_ONLY
     fc = frames_per_click;
@@ -855,6 +924,8 @@ void loadROSParamsFromArgs()
 
   nh.getParam("cache_prefix", cache_prefix);
 
+  nh.getParam("mask_gripper", mask_gripper);
+
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
 
@@ -914,6 +985,8 @@ void loadROSParams()
   nh.getParam("canny_lo_thresh",canny_lo_thresh);
   nh.getParam("sobel_scale_factor",sobel_scale_factor);
 
+  nh.getParam("mask_gripper", mask_gripper);
+
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
 
@@ -969,6 +1042,8 @@ void saveROSParams()
   nh.setParam("canny_hi_thresh",canny_hi_thresh);
   nh.setParam("canny_lo_thresh",canny_lo_thresh);
   nh.getParam("sobel_scale_factor",sobel_scale_factor);
+
+  nh.getParam("mask_gripper", mask_gripper);
 }
 
 // for publishing
@@ -1252,8 +1327,8 @@ cout << top << " " << bot << " "; cout.flush();
 	  }
 	}
       }
-cout << winningX << " " << winningY << " " << xxs << " " << yys  << endl;
 #ifdef DEBUG
+cout << winningX << " " << winningY << " " << xxs << " " << yys  << endl;
 #endif
 
 
@@ -1522,6 +1597,8 @@ cout << endl << orientedFilters[0] << endl;
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
+  ros::NodeHandle nh("~");
+
   invertQuaternionLabel = 0;
 
   time(&thisTime);
@@ -1540,9 +1617,11 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   if (deltaTime > 0.0)
     aveFrequency = timeMass / deltaTime;
 
+/*
 cout << "Average time between frames: " << aveTime << 
   "   Average Frequency: " << aveFrequency << " Hz   Duration of sampling: " << 
   deltaTime << "   Frames since sampling: " << timeMass << endl; 
+*/
 
 //cout << "here 1" << endl;
 
@@ -1567,21 +1646,63 @@ cout << "Average time between frames: " << aveTime <<
   }
 //cout << "here 3" << endl;
 
+  Size sz = cv_ptr->image.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  if (add_blinders) {
+    int thisWidth = blinder_stride*blinder_columns;
+    for (int x = 0; x < thisWidth; x++) {
+      for (int y = 0; y < imH; y++) {
+	int bCol = x/blinder_stride;
+	int bRow = y/blinder_stride;
+	int blackOrWhite = ((bCol + bRow)%2)*255;
+	cv_ptr->image.at<cv::Vec3b>(y, x) = cv::Vec<uchar, 3>(blackOrWhite, blackOrWhite, blackOrWhite);
+      }
+    }
+    for (int x = imW-thisWidth; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	int bCol = x/blinder_stride;
+	int bRow = y/blinder_stride;
+	int blackOrWhite = ((bCol + bRow)%2)*255;
+	cv_ptr->image.at<cv::Vec3b>(y, x) = cv::Vec<uchar, 3>(blackOrWhite, blackOrWhite, blackOrWhite);
+      }
+    }
+
+  }
+
   object_recognition_msgs::RecognizedObjectArray roa_to_send_blue;
   visualization_msgs::MarkerArray ma_to_send_blue; 
 
   int boxesPerSize = 800;
+
+  Mat cam_img2;
+  cam_img2 = cam_img;
+/* If you want to snap to 640 x 480 now is the time.
+  if (cam_img.cols == 640 && cam_img.rows == 480) {
+    cam_img2 = cam_img;
+  } else {
+    cv::Size sffe;
+    sffe.width = 640;
+    sffe.height = 480;
+    cv::resize(cam_img, cam_img2, sffe);
+  }
+#ifdef DEBUG
+  cout << cam_img.size() << cam_img2.size() << endl;
+#endif
+*/
+
   
   // XXX find best method and stop all this cloning, it might be relatively slow
-  Mat original_cam_img = cam_img.clone();
+  Mat original_cam_img = cam_img2.clone();
 
-  Mat img_cvt = cam_img.clone();
-  Mat img_cvtH = cam_img.clone();
-  Mat img_cvtG = cam_img.clone();
-  Mat img_cvtGtmp = cam_img.clone();
+  Mat img_cvt = cam_img2.clone();
+  Mat img_cvtH = cam_img2.clone();
+  Mat img_cvtG = cam_img2.clone();
+  Mat img_cvtGtmp = cam_img2.clone();
 
 //cout << "here 4" << endl;
-  Mat img_cvt_blur = cam_img.clone();
+  Mat img_cvt_blur = cam_img2.clone();
 
 /*
   // XXX Sobel business
@@ -1630,8 +1751,8 @@ cout << "Average time between frames: " << aveTime <<
 //cout << "here 7" << endl;
 
 
-  cvtColor(cam_img, img_cvtGtmp, CV_RGB2GRAY);
-  cvtColor(cam_img, img_cvtH, CV_RGB2HSV);
+  cvtColor(cam_img2, img_cvtGtmp, CV_RGB2GRAY);
+  cvtColor(cam_img2, img_cvtH, CV_RGB2HSV);
 
   //vector<Mat> channels;
   //channels.push_back(img_cvtGtmp);
@@ -1644,7 +1765,7 @@ cout << "Average time between frames: " << aveTime <<
 //cout << "here 4" << img_cvt.size() << endl;
 
   ValStructVec<float, Vec4i> boxes;
-  //glObjectness->getObjBndBoxes(cam_img, boxes, boxesPerSize);
+  //glObjectness->getObjBndBoxes(cam_img2, boxes, boxesPerSize);
   glObjectness->getObjBndBoxes(img_cvt, boxes, boxesPerSize);
   //Mat test;
   //img_cvt.convertTo(test, CV_16U);
@@ -1668,9 +1789,6 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
   // XXX
   //fc++;
 
-  Size sz = img_cvt.size();
-  int imW = sz.width;
-  int imH = sz.height;
   double *integralDensity = new double[imW*imH];
   double *density = new double[imW*imH];
   double *differentialDensity = new double[imW*imH];
@@ -1711,7 +1829,16 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
     double area = width*height;
     double aspectThresh = 20.0;
     if (ratio < aspectThresh && ratio > 1.0/aspectThresh) {
-      //rectangle(cv_ptr->image, nTop[i], nBot[i], cv::Scalar(0,255,0));
+#ifdef DRAW_BING
+      if (drand48() < drawBingProb) {
+	cv::Point outTop = cv::Point(nTop[i].x, nTop[i].y);
+	cv::Point outBot = cv::Point(nBot[i].x, nBot[i].y);
+	cv::Point inTop = cv::Point(nTop[i].x+1,nTop[i].y+1);
+	cv::Point inBot = cv::Point(nBot[i].x-1,nBot[i].y-1);
+	rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(188,40,140));
+	rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(94,20,70));
+      }
+#endif
       
       double toAdd = 1.0 / area;
       //double toAdd = 1.0;
@@ -1804,6 +1931,7 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
     grayBot = armBot;
   }
 
+
 #ifdef DRAW_GRAY
   {
     cv::Point outTop = cv::Point(grayTop.x, grayTop.y);
@@ -1814,6 +1942,31 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
     rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(32,32,32));
   }
 #endif
+
+  if (mask_gripper) {
+    int xs = 200;
+    int xe = 295;
+    int ys = 0;
+    int ye = 75;
+    for (int x = xs; x < xe; x++) {
+      for (int y = ys; y < ye; y++) {
+	density[y*imW+x] = 0;
+      }
+    }
+    Mat vCrop = cv_ptr->image(cv::Rect(xs, ys, xe-xs, ye-ys));
+    vCrop = vCrop/2;
+    xs = 420;
+    xe = 560;
+    ys = 0;
+    ye = 75;
+    for (int x = xs; x < xe; x++) {
+      for (int y = ys; y < ye; y++) {
+	density[y*imW+x] = 0;
+      }
+    }
+    Mat vCrop2 = cv_ptr->image(cv::Rect(xs, ys, xe-xs, ye-ys));
+    vCrop2 = vCrop2/2;
+  }
 
   // truncate the density outside the gray box
   for (int x = 0; x < imW; x++) {
@@ -1885,6 +2038,9 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
   int yS = gBoxH*(grayTop.y/gBoxH);
   int yF = min(grayBot.y-gBoxH, imH-gBoxH);
 
+  double adjusted_canny_lo_thresh = canny_lo_thresh * (1.0 + (double(loTrackbarVariable-50) / 50.0));
+  double adjusted_canny_hi_thresh = canny_hi_thresh * (1.0 + (double(hiTrackbarVariable-50) / 50.0));
+
   for (int x = xS; x <= xF; x+=gBoxStrideX) {
     for (int y = yS; y <= yF; y+=gBoxStrideY) {
 
@@ -1911,13 +2067,13 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
 	      //rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(0,255,0));
 //#endif
       //}
-      if (thisIntegral > canny_lo_thresh) {
+      if (thisIntegral > adjusted_canny_lo_thresh) {
 	      gBoxIndicator[y*imW+x] = 1;
 #ifdef DRAW_GREEN
 	      rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(0,128,0));
 #endif
       }
-      if (thisIntegral > canny_hi_thresh) {
+      if (thisIntegral > adjusted_canny_hi_thresh) {
 	      gBoxIndicator[y*imW+x] = 2;
 #ifdef DRAW_GREEN
 	      rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(0,255,0));
@@ -2000,6 +2156,9 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
   armTop = cv::Point(lARM, tARM);
   armBot = cv::Point(imW-rARM, imH-bARM);
 
+  int biggestBB = -1;
+  int biggestBBArea = 0;
+
   if (!all_range_mode) {
     double rejectArea = rejectAreaScale*gBoxW*gBoxH;
     for (int c = 0; c < total_components; c++) {
@@ -2015,12 +2174,29 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
 	bBots.push_back(cBots[c]);
 	bCens.push_back(cv::Point((cTops[c].x+cBots[c].x)/2, (cTops[c].y+cBots[c].y)/2));
 	int t = bTops.size()-1;
+
+	int thisArea = (cBots[c].x - cTops[c].x)*(cBots[c].y - cTops[c].y);
+	if (thisArea > biggestBBArea) {
+	  biggestBBArea = thisArea;
+	  biggestBB = t;
+	}
+	
+	
       }
     }
   } else {
     bTops.push_back(armTop);
     bBots.push_back(armBot);
     bCens.push_back(cv::Point((armTop.x+armBot.x)/2, (armTop.y+armBot.y)/2));
+  }
+
+  if (bTops.size() > 0) {
+    geometry_msgs::Point p;
+    p.x = bCens[biggestBB].x;
+    p.y = bCens[biggestBB].y;
+    p.z = 0.0;
+  
+    ee_target_pub.publish(p);
   }
 
 
@@ -2598,6 +2774,7 @@ cout << "published" << endl;
   visualization_msgs::MarkerArray ma_to_send_red; 
   roa_to_send_red.objects.resize(0);
   ma_to_send_red.markers.resize(0);
+
   for (int r = 0; r < numRedBoxes; r++) {
 
 #ifdef DEBUG
@@ -2636,8 +2813,10 @@ cout << "dealing with redBox[" << r << "]" << endl;
     cv::Point dTop;
     cv::Point dBot;
 
-    if (thisRedBox->persistence < persistenceThresh)
+    if (thisRedBox->persistence < persistenceThresh) {
       redRounds = 1;
+      //thisRedBox->bot = cv::Point(redInitialWidth, redInitialWidth);
+    }
 
     for (int redR = 0; redR < redRounds; redR++) {
 
@@ -2995,9 +3174,20 @@ cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.
 
       fill_RO_and_M_arrays(roa_to_send_red, 
 	ma_to_send_red, pointCloudPoints, roa_to_send_red.objects.size()-1, thisClass, thisRedBox->winningO, thisRedBox->poseIndex);
+      
+      thisRedBox->com.px = roa_to_send_red.objects[roa_to_send_red.objects.size()-1].pose.pose.pose.position.x;
+      thisRedBox->com.py = roa_to_send_red.objects[roa_to_send_red.objects.size()-1].pose.pose.pose.position.y;
+      thisRedBox->com.pz = roa_to_send_red.objects[roa_to_send_red.objects.size()-1].pose.pose.pose.position.z;
+      thisRedBox->com.ox = 0.0;
+      thisRedBox->com.oy = 0.0; 
+      thisRedBox->com.oz = 0.0; 
+
+      if (!isFiniteNumber(thisRedBox->com.px) ||
+	  !isFiniteNumber(thisRedBox->com.py) ||
+	  !isFiniteNumber(thisRedBox->com.pz) )
+	thisRedBox->com = beeHome;
     }
     #endif
-
   }
 
     #ifdef PUBLISH_OBJECTS
@@ -3149,6 +3339,7 @@ void clusterCallback(const visualization_msgs::MarkerArray& msg){
 	ROS_INFO("Identification complete");
 }
 
+
 int main(int argc, char **argv) {
 
 #ifdef RELEARN_VOCAB
@@ -3225,9 +3416,15 @@ int main(int argc, char **argv) {
   markers_blue = n.advertise<visualization_msgs::MarkerArray>("blue_object_markers", 10);
   markers_red = n.advertise<visualization_msgs::MarkerArray>("red_object_markers", 10);
 
+  ee_target_pub = n.advertise<geometry_msgs::Point>("pilot_target", 10);
+
   cv::namedWindow("Density Viewer");
   cv::namedWindow("Object Viewer");
-  setMouseCallback("Object Viewer", CallBackFunc, NULL);
+  setMouseCallback("Object Viewer", CallbackFunc, NULL);
+
+  createTrackbar("canny_lo", "Density Viewer", &loTrackbarVariable, 100);
+  createTrackbar("canny_hi", "Density Viewer", &hiTrackbarVariable, 100);
+
 
   fc = 0;
   cropCounter = 0;
@@ -3498,7 +3695,7 @@ int main(int argc, char **argv) {
       cout << "accepting red box suggestion " << r << " \"" << redBoxLabels[r] << "\" as red box number " << numRedBoxes-1 << endl;
       redBoxes[r].classLabel = thisClassLabel;
       redBoxes[r].top = cv::Point(0,0);
-      redBoxes[r].bot = cv::Point(50, 50);
+      redBoxes[r].bot = cv::Point(redInitialWidth, redInitialWidth);
       redBoxes[r].rootBlueBox = 0;
       redBoxes[r].numGreenBoxes;
       redBoxes[r].anchor = cv::Point(0,0);
@@ -3513,16 +3710,27 @@ int main(int argc, char **argv) {
 
 #endif
 
+  if (numRedBoxes > 0)
+    createTrackbar("red target", "Object Viewer", &redTrackbarVariable, numRedBoxes);
+
   saveROSParams();
 
+
+
+
+  // don't be a fool... lock that spool
   ros::spin();
+
+  // multithreaded spinning causes what is probably a race condition...
+  //ros::MultiThreadedSpinner spinner(4); // Use 4 threads
+  //spinner.spin(); // spin() will not return until the node has been shutdown
+
+  //ros::AsyncSpinner spinner(4); // Use 4 threads
+  //spinner.start();
+  //ros::waitForShutdown();
+
   return 0;
 }
 
 
-/* Notes
-
-Eventually features should be calculated on at most the green boxes.
-
-*/
 

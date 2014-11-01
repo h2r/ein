@@ -15,6 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   #bing
   pcl_ros
+  baxter_core_msgs
+  control_msgs
 )
 
 catkin_package(CATKIN_DEPENDS 
@@ -45,6 +47,7 @@ add_executable(publish_detections src/publish_detections.cpp)
 add_executable(capture_annotated_objects src/capture_annotated_objects.cpp)
 add_executable(capture_hard_class src/capture_hard_class.cpp)
 add_executable(filter_time src/filter_time.cpp)
+add_executable(pilot_baxter src/pilot_baxter.cpp)
 
 target_link_libraries(oberlin_detector
 	${catkin_LIBRARIES}
@@ -77,6 +80,11 @@ target_link_libraries(capture_hard_class
 	BINGLIB ###
 )
 target_link_libraries(filter_time
+	${catkin_LIBRARIES}
+	${OpenCV_LIBS}
+	BINGLIB ###
+)
+target_link_libraries(pilot_baxter
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
 	BINGLIB ###
