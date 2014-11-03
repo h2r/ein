@@ -68,7 +68,7 @@
 \DeclareGraphicsExtensions{.jpg}
 
 
-\title{The Eyes of Iorek Byrnison}
+\title{NODE: A Robotic Process Virtual Machine}
 \author{Author Names Omitted for Anonymous Review. Paper-ID [add your ID here]}
 
 \maketitle
@@ -77,28 +77,158 @@
 \begin{abstract}
 Robots need to pick stuff up.
 %
-We feel that perception and planning will both benefit from eachother's feedback.
-%
-So we contribute a \emph{framework} which includes the structure of
-a \emph{memory network} and the \emph{algorithms} (methods) that we use
-to maintain the network.
-%
 Perception can structure data, structured data facilitates planning, planning allows more principled perception.
+%
+The tasks of robotic perception, planning, and control will all benefit from
+a design paradigm which allows them to be jointly programmed.
+%
+So we contribute a an implementation \emph{NODE} which facilitates the design and 
+execution of versatile and scalable MDPs structured in what we call a
+Von Neumann MDP pattern. 
 %
 We form a closed loop through perception and planning, allowing them to interact by means of structured data.
 %
-Our system is supported by online, human-in-the-loop algorithms. Non-technical human participants can easily
+Our system incorporates online, human-in-the-loop algorithms. Non-technical human participants can easily
 teach and collaborate with the system.
 \end{abstract}
 
 
-\section{Problem Setting}
+\section{Introduction}
+% First paragraph: What is the problem we are trying to solve? I
+% think it's something about enabling a robot to robustly perceive and
+% manipulate native objects, so that it can carry out tasks such as
+% assisting at childcare, cooking, or in hospitals.
+% Second paragraph: Why hasn't previous work addressed this problem?
+% I think it's something about the focus on category recognition, not
+% doing pose estimation, and training methods that require an expert
+% user and an annotated corpus.
+% Third paragraph: What do we propose to do to address this problem?
+% Fourth paragraph: Our high-level technical approach
+% Fifth paragraph: How do we know it works? Why is it cool?
+% Something about an evaluation and something about a robotic
+% demonstration.
 
-\section{Some Standard Tools}
+
+There are now many types of robots. A common configuration is one that mimics
+the human arm and hand system (AHS).  Most tasks utilizing an AHS focus on controlling the
+pose of the end effector, which is determined by 6 degrees of freedom.  Thus a hand should have 
+at least 6 degrees of freedom, and typical AH systems have at least 7.
+
+A major problem in robotics research is that, while the basic form of AHS bots has remained
+similar over time, the systems architectures for controlling those bots tend to be built 
+anew. Therefore, when a lab acquires a new robot, a lot of engineering overhead must be paid
+in order to get old procedures running on the new bot.
+
+We dramatically increase the portability of robotic procedures by demonstrating a powerful
+abstraction framework (NODE) which depends only at a very low level upon the robotic platform
+of execution. Porting code to a new AHS is exactly the act of reconciling a simple programmatic
+interface with hardware drivers.
+
+Furthermore, NODE is a framework whose structure jointly facilitates perception of 
+and planning in the robot's environment. This allows powerful algorithms to be implemented in a
+generic, portable environment.
+
+That is to say, NODE is a platform on which we can execute MDPs and related processes.
+
+A Markov decicion process is essentially a Turing machine with some stochastic planning (reward)
+sugar on top. It is no surprise, then, that we address the construction of MDPs with a mindset similar
+to that which we use in the construction of computer programs. Take, for instance, object-oriented MDPs. But there
+is something between the Turing machine and an object oriented programming language, and that
+something is the Von Neumann computer architecture and its accompanying execution model.
+
+A key point of this architecture is that RAM holds not only program data but also program instructions.
+Modern implementations also include convenient hierachical cache structures to facilitate fast,
+"real time" access to many more times data than fits in RAM.
+
+In order to quickly construct MDPs that scale and port like modern software, we provide an
+archetype system that is to an MDP as a Von Neumann computer is to a Turing machine.
+In particular, the state of the MDP includes a stack of instructions which the MDP
+can modify, as well as data pertaining to various machine learning algorithms which it employs.
+
+We used the archetype to construct an MDP over the Baxter robot. This MDP learns to recognize and manipulate
+objects which are presented to the bot. We achieve good recognition rates and can learn parameters 
+for complex behaviors such as grasping and throwing. Since its instructions are stored in its main memory, 
+it has the additional ability to learn actions by writing its own code.
+
+
+
+\section{Related Work}
 Here we review the standard AI, vision, and ML algorithms we employ.
+We use the language of ensemble learning to speak about obtaining strong solutions to 
+general problems from weak solutions to specific cases of those problems. 
+
+we are bootstrapping proverbially. our philosophy espouses solving weak instances of 
+problems in constrained spaces and using those solutions to create strong solutions 
+in unconstrained spaces.  Thereby, we bootstrap the detection process. (To truly be 
+faithful to this approach, we must replace the objectness detector, as it uses an 
+externally trained model. Something like a high sigma DoG or gradient magnitude should 
+do the trick, and it harkens back to Canny.)  
+
+We are not stacking our classifiers in the strictest of senses, but k-means could be 
+considered a subordinate classifier so in that sense we are.  Logistic regression is 
+a likely candidate for a fusion method when classifying windows of states, and so then 
+we might start to truly stack.
+
+We are using bootstrapping to estimate properties such as table orientation and background 
+color. as it turns out, it may be worth investigating bagged nearest neighbors because 
+we approximating it by resampling the data.
+
+We make heavy use of cascades.
+
+Our training method can be viewed as boosting-motivated because we detect places where
+the classifier fails and train a sub-nearest neighbors classifier in that neighborhood.
+Mining hard negatives for kNN is the same as boosting a kNN classifier.
+
+relevant actions are proposed, and activities can then be classified in their 
+own arc. there might be an action happening at these objects.
+
+the notion of rapids (knn -> svm -> fit) can be naturally motivated by the 
+visual system, as has been noted before with BoW and SBoW 
+%(http://www.cs.unc.edu/~lazebnik/publications/pyramid_chapter.pdf).
+
+affordances facilitate cascade arrangement. make sure to talk about viola-jones.
+
+%need to switch to a threadpool model which can then swap resources such as CPUs and GPUs 
+%as they become available.
+
+%objectness, gradients, and laplacians. consider running objectness on a contrast normalized 
+%image. then, consider using gradient and laplacian information as fine grain evidence for 
+%the pose rapid. this approach might allow for a principled solution to occlusion.
+
+don’t forget that k-means here is actually a classifier and so we are technically stacking. 
+introducing the background shunt will make that cascade-like. a shunt is a special kind of 
+cascade step which produces something like a mask.
+
+one approach to teaching the robot to move is to teach it a form for each task. 
+each movement in the form should have parameters corresponding to target points, 
+known obstacles, etc.  It should be similar to dealing with character animations in video games. 
 
 
-\section{Structured Memory Facilitates Planning}
+\section{NODE Architecture}
+Our system, NODE, can be thought of as an emulator for a Von Neumann computer whose CPU 
+instruction set operates natively on robot pose data. Thus in order to employ our system 
+on a new host robot, one need only robustly implement a few atomic robotic operations. 
+This computer is not implemented in hardware and so we say that NODE is a virtual emulator.
+
+The NODE CPU (nCPU) consists of a pushdown automaton which utilizes a call stack and many state variables (registers).
+
+The NODE Atomic Robot Unit (nARU) implements a set of atomic robotic operations and can be 
+thought of as the “hooks” connecting NODE to its host robot. It is a component of the nCPU.
+
+The NODE RAM (nRAM) consists of object models and procedural data that is relevant to the 
+executing program. Its construction and maintenance are described by the NODE Short Term Memory 
+Model (nSTMM).
+
+The NODE Disk (nDISK) consists of all previously stored memories which have not yet been 
+forgotten. It is described by the NODE Long Term Memory Model (nLTMM) and is structurally 
+isomorphic to the nSTMM but procedurally different.
+
+The NODE GPU (nGPU) consists of a set of computer vision algorithms which run asynchronously 
+from the nCPU.
+
+
+\section{Memory Model: nRAM and nDISK}
+Structured Memory Facilitates Planning.
 Here we symbolically describe our memory network,
 which is the first contribution of the paper and
 the first half of our framework.
@@ -133,6 +263,77 @@ Short Term Persistent Memory
   Structurally identical to long term memory but restricted to the current context.
   This is much like a cache for long term memory. Short term memories are incorporated 
   into long term memory either online through the day or offline during a sleep phase.
+
+
+each degree of cascade is appropriate for particular regimes. you can switch regimes in 
+real time to accommodate changing environment complexity or resource availability.
+
+at each application, planning includes operator input / real time parameter locking.
+
+a detector cache hierarchy emerges with policies. this immediately induces a dual data hierarchy.
+
+system resources can be bounded by the number of red boxes, which conveniently bounds 
+the number of pose detectors (PDs) necessary to keep around at one time. this is a 
+fixed length PD cache. but if PDs act to break a tie, than PD-cache inherits structure from CD-cache
+
+class detectors can be regenerated based on context. there is a CD-cache from red 
+boxes, a CD-cache from context, and a CD-cache from “hard negative” classes.
+
+time is segmented into phrases with relative frames (such as boundary frames) saved 
+as observations. most observations are incomplete, but we can tell which examples we 
+can use for which training tasks.  it is an affordance.
+
+
+\section{Core Model: nCPU}
+We use a pushdown automaton with a call stack (CS), several 
+integer state variables ($S_i$), and an end effector pose cache (EEPC).
+
+
+\section{Robot Model: nARU}
+The nARU translates Atomic Robotic Instructions invoked by the nCPU 
+into robot driving commands.
+
+
+\section{Vision Model: nGPU}
+an appealing approach is to train the SVM only on the examples proposed by the kNN models.
+
+a simpler cascade
+sliding window on class
+mesh based pose estimator such as ICP
+
+current cascade
+objectness
+knn-bow class label
+knn pose label
+
+
+proposed 1.0 cascade
+objectness
+class rapids
+knn-bow class candidates
+discriminative classifier
+pose rapids
+knn pose label candidates
+discriminative pose estimator
+
+a deep cascade
+objectness provides evidence; point cloud and other hooks feed in here
+knn-bow class suggestions form blue labels for blue boxes; planning can 
+place contextual clues here by providing suggestions
+restricted discriminative classifier (svm or other) forms red label for 
+red boxes; planning can, for instance, fix a red label 
+generative model with volumetric representation classifies pose and accounts 
+objectness evidence, depth information and object labels (in the case of parts 
+and compound objects, this includes dynamics information like constraints)
+
+break the observed space into a block representation, possibly with octree encoding weighted 
+according to scale, and use kNN or hashing to search the space for a similar landscape. then 
+use the navigation schemes learned for the closest neighbors. 
+
+then we can begin volumetric modeling of objects. each block has an rgb-a value associated 
+with it, alpha representing the frequency with which depth is observed at that point.
+we can apply markov methods to regularize these models. then it would be fast to move to 
+modeling the faces of the blocks with independent filters, treating the faces as patches, to capture texture.
     
 
 
@@ -146,7 +347,20 @@ directly and strongly contribute to long term memory.
 We learn the affordance "can be grasped" through RL or just trial and error.
 We can report the success rate over time.
 
+there are certain facets of the world which afford actions that are useful to us during 
+training. the table and the pointer afford labeling the objects with orientations. 
+tables and grounds afford orienting yourself with the world. you could drop an object to 
+find “down”. the image background affords object segmentation.
 
+our teaching framework incorporates signs with affordances to streamline the process 
+of data collection.
+
+we teach the system by finding its weaknesses and training it to overcome these 
+weaknesses. we provide a framework for structuring that training in an affordable, 
+scalable way.  we structure the training, the training structures the models.
+
+“I see you’re having trouble picking up gyroBowls. Let’s think about it differently 
+(initialize generic pose model) and practice gazing a bit (train the pose model).”
 
 
 \section{Evaluation}
@@ -188,6 +402,7 @@ objects. In the second, they provide their own objects.
 
 
 \section{Extensions}
+Right now, NODE runs on Baxter. We will port NODE to PR2 and other AH systems.
 
 
 
