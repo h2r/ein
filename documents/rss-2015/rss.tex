@@ -145,7 +145,7 @@ archetype system that is to an MDP as a Von Neumann computer is to a Turing mach
 In particular, the state of the MDP includes a stack of instructions which the MDP
 can modify, as well as data pertaining to various machine learning algorithms which it employs.
 
-We used the archetype to construct an MDP over the Baxter robot. This MDP learns to recognize and manipulate
+We used the archetype to construct several MDPs over the Baxter robot. This MDP learns to recognize and manipulate
 objects which are presented to the bot. We achieve good recognition rates and can learn parameters 
 for complex behaviors such as grasping and throwing. Since its instructions are stored in its main memory, 
 it has the additional ability to learn actions by writing its own code.
@@ -205,15 +205,42 @@ known obstacles, etc.  It should be similar to dealing with character animations
 
 
 \section{NODE Architecture}
-Our system, NODE, can be thought of as an emulator for a Von Neumann computer whose CPU 
-instruction set operates natively on robot pose data. Thus in order to employ our system 
-on a new host robot, one need only robustly implement a few atomic robotic operations. 
-This computer is not implemented in hardware and so we say that NODE is a virtual emulator.
+%Our system, NODE, can be thought of as an emulator for a Von Neumann computer whose CPU 
+%instruction set operates natively on robot pose and planning data. Thus in order to employ our system 
+%on a new host robot, one need only robustly implement a few atomic robotic operations. 
 
-The NODE CPU (nCPU) consists of a pushdown automaton which utilizes a call stack and many state variables (registers).
+NODE is a process virtual machine which implements an MDP with a design patterned
+after the Von Neumann computer architecture. 
+
+One reason to choose this pattern is that it facilitates the organization of states
+and transitions so that we can build MDPs as easily as we build traditional computer programs.
+
+Another reason to choose the VNMDP design pattern is that the majority of execution platforms
+(i.e. computers) are modeled after Von Neumann Machines. By sharing that pattern,
+we can scale MDPs by taking advantage of the natural, efficiently engineered architecture
+which allows computer programs to operate in real time.
+
+A key property of the Von Neumann computer is that it is a stored instruction computer,
+meaning that program instructions are stored in its main memory and can be modified
+by the computer.  This pattern yields a direct means for our MDP to learn and describe new
+behaviours: its instruction set, a language that it interprets during execution.
+
+The NODE CPU (nCPU) consists of a pushdown automaton which utilizes a call stack and a fixed capacity
+bank of registers which hold data retrieved from the nCACHE.
+The nCPU has an instruction set, which is the set of atomic operations that we want the MDP to be able
+to plan with. The instruction set encodes part of the MDP's transition function, is dependent 
+totally upon state, and is invariant to actions taken.
+The nCPU instructions consist of atomic motor commands (which are passed to and handled by the nARU),
+basic linear algebra operations to manipulate vector and pose data, synchronization commands to keep
+subsystems in step and coordinated, sensory monitoring commands (resource control is essential), 
+planning and policy execution, and any other basic calculation or manipulation that we want the 
+MDP to be able to use in its plans.
 
 The NODE Atomic Robot Unit (nARU) implements a set of atomic robotic operations and can be 
 thought of as the “hooks” connecting NODE to its host robot. It is a component of the nCPU.
+
+The NODE Cache (nCACHE) is local memory associated with the nCPU and nCACHE. It is the medium
+between the nCPU and the main memory hierarchy.
 
 The NODE RAM (nRAM) consists of object models and procedural data that is relevant to the 
 executing program. Its construction and maintenance are described by the NODE Short Term Memory 
@@ -223,24 +250,35 @@ The NODE Disk (nDISK) consists of all previously stored memories which have not 
 forgotten. It is described by the NODE Long Term Memory Model (nLTMM) and is structurally 
 isomorphic to the nSTMM but procedurally different.
 
-The NODE GPU (nGPU) consists of a set of computer vision algorithms which run asynchronously 
-from the nCPU.
+The NODE GPU (nGPU) consists of a processor structure analogous to the nCPU but asynchronous from
+it, with instructions suited to the implementation of a set of computer vision algorithms.
+
+%The NODE SPU (nSPU) consists of a processor structure analogous to the nCPU but asynchronous from
+%it, with instructions suited to the implementation of a set of speech algorithms.
 
 
-\section{Memory Model: nRAM and nDISK}
-Structured Memory Facilitates Planning.
-Here we symbolically describe our memory network,
-which is the first contribution of the paper and
-the first half of our framework.
 
-Working Memory
+
+$********$ diagram of pattern $********$
+
+
+\section{Memory Model: nCACHE, nRAM and nDISK}
+Structured memory facilitates planning and the ability to scale while maintaining
+high frequency.
+
+Working Memory (nCACHE)
   What object tokens exist in the world? 
   What are their categories and their names? 
     (names map particular object instances I see now to instances that persist over
      time, that is, for which I have a history)
   Where are they in the scene?
+
+Short Term Persistent Memory (nRAM)
+  Structurally identical to long term memory but restricted to the current context.
+  This is much like a cache for long term memory. Short term memories are incorporated 
+  into long term memory either online through the day or offline during a sleep phase.
   
-Long Term Memory
+Long Term Memory (nDISK)
   Intrinsic (Autobiographical) Episodic Memory
     This is the sensory data that we are collecting.
     This information cannot be provided by external
@@ -258,11 +296,6 @@ Long Term Memory
     Facts about stuff that can be used to reason. Affordances
   Procedural Memory
     Grasps and collision free planning are procedural memory.
-
-Short Term Persistent Memory
-  Structurally identical to long term memory but restricted to the current context.
-  This is much like a cache for long term memory. Short term memories are incorporated 
-  into long term memory either online through the day or offline during a sleep phase.
 
 
 each degree of cascade is appropriate for particular regimes. you can switch regimes in 
@@ -288,6 +321,17 @@ can use for which training tasks.  it is an affordance.
 We use a pushdown automaton with a call stack (CS), several 
 integer state variables ($S_i$), and an end effector pose cache (EEPC).
 
+$********$ A subset of the instruction set $********$
+
+Description of mapping of registers to MDP state variables.
+
+Examples of how instructions change the state, i.e. how they
+contribute to the transition function.
+
+In addition to being probabilistically entwined with the external environment, 
+actions of the MDP operate on the internal environment by modifying the program
+running on the virtual machine. 
+
 
 \section{Robot Model: nARU}
 The nARU translates Atomic Robotic Instructions invoked by the nCPU 
@@ -295,6 +339,9 @@ into robot driving commands.
 
 
 \section{Vision Model: nGPU}
+This should probably be thought of as some number of CPU cores working
+in conjunction with a GPU.
+
 an appealing approach is to train the SVM only on the examples proposed by the kNN models.
 
 a simpler cascade
@@ -334,6 +381,8 @@ then we can begin volumetric modeling of objects. each block has an rgb-a value 
 with it, alpha representing the frequency with which depth is observed at that point.
 we can apply markov methods to regularize these models. then it would be fast to move to 
 modeling the faces of the blocks with independent filters, treating the faces as patches, to capture texture.
+
+actually, red boxes are likely to become "target patches" rather than objects themselves.
     
 
 
@@ -362,8 +411,15 @@ scalable way.  we structure the training, the training structures the models.
 “I see you’re having trouble picking up gyroBowls. Let’s think about it differently 
 (initialize generic pose model) and practice gazing a bit (train the pose model).”
 
+Also, grounding ambiguous object examples to the right class, retraining the models online.
 
-\section{Evaluation}
+\subsection{Learning Parameters for Fixed MDP Programs}
+
+
+\subsection{Learning New MDP Programs}
+
+
+\section{Utility Evaluation}
 Our system can be evaluated in two important ways. Firstly, how effective is 
 the system at facilitating other actions? Secondly, how accessible to users is the system?
 
@@ -396,6 +452,15 @@ of all objects is available here.
 \subsection{Usability Experiments}
 We repeat the DSPP experiments with naive users in two settings. In the first, they train laboratory
 objects. In the second, they provide their own objects.
+
+\section{Ludi Metric}
+Training and evaluating with games.
+
+\subsection{Competitive Pick and Place}
+Take turns trying to move the object to your opponent's goal while they try to get in your way.
+
+\subsection{Basketball}
+Toss your projectiles through your opponent's hoop while guarding your own.
 
 
 \citep{tellex11}
