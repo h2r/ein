@@ -130,11 +130,12 @@ generic, portable environment.
 
 That is to say, NODE is a platform on which we can execute MDPs and related processes.
 
-A Markov decicion process is essentially a Turing machine with some stochastic planning (reward)
+A Markov decicion process is essentially a state machine with some stochastic planning (reward)
 sugar on top. It is no surprise, then, that we address the construction of MDPs with a mindset similar
 to that which we use in the construction of computer programs. Take, for instance, object-oriented MDPs. But there
-is something between the Turing machine and an object oriented programming language, and that
-something is the Von Neumann computer architecture and its accompanying execution model.
+are some things between the state machine of a computer and an object oriented programming language:
+machine language (pushing the state machine closer to being a true Turing machine), the Von Neumann computer 
+architecture, and its accompanying execution model.
 
 A key point of this architecture is that RAM holds not only program data but also program instructions.
 Modern implementations also include convenient hierachical cache structures to facilitate fast,
@@ -142,8 +143,10 @@ Modern implementations also include convenient hierachical cache structures to f
 
 In order to quickly construct MDPs that scale and port like modern software, we provide an
 archetype system that is to an MDP as a Von Neumann computer is to a Turing machine.
-In particular, the state of the MDP includes a stack of instructions which the MDP
+In particular, the state of the MDP includes a call stack of instructions which the MDP
 can modify, as well as data pertaining to various machine learning algorithms which it employs.
+
+Actions in a VNMDP are defined in terms of a basic "machine language".
 
 We used the archetype to construct several MDPs over the Baxter robot. This MDP learns to recognize and manipulate
 objects which are presented to the bot. We achieve good recognition rates and can learn parameters 
