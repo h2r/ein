@@ -75,21 +75,48 @@
 
 
 \begin{abstract}
-Robots need to pick stuff up.
-%
-Perception can structure data, structured data facilitates planning, planning allows more principled perception.
-%
-The tasks of robotic perception, planning, and control will all benefit from
-a design paradigm which allows them to be jointly programmed.
-%
-So we contribute an implementation \emph{NODE} which facilitates the design and 
-execution of versatile and scalable MDPs structured in what we call a
-Von Neumann MDP pattern. 
-%
-We form a closed loop through perception and planning, allowing them to interact by means of structured data.
-%
-Our system incorporates online, human-in-the-loop algorithms. Non-technical human participants can easily
-teach and collaborate with the system.
+Manipulating objects is an important task for robots that help people
+in the home, in factories, and in hospitals.  General-purpose
+pick-and-place requires object recognition, pose estimation, and grasp
+planning; existing solutions cannot reliably recognize or pick up an
+object the robot has never encountered before~\citep{}.  However in
+many applications, general-purpose pick-and-place is not required: the
+robot would be useful if it could recognize and manipulate the small
+set of objects most important in that application, but do so with high
+reliability.  To address this issue, we propose an architecture for
+perception and actuation that enables a robot to quickly and easily
+acquire instance-level descriptions of novel objects.  The robot
+learns to recognize, estimate the pose, and grasp the object through
+active data collection as well as by asking a human annotator for
+specific supervision.  Our approach conversts the task of {\em
+  category recognition} (pick up any mug) to {\em instance
+  recognition} (pick up this mug), a much easier problem that can be
+tractacbly solved today with the right training data.  By leveraging
+this first-hand experience with the object, we create a system that
+can quickly be trained to reliably localize and grasp the specific
+objects that a person cares about for their particular application.
+As a byproduct, our approach collects data on grasping and
+manipulation that could be used to train general-purpose models. Using
+our approach, a robot can interact with an object for ten minutes, and
+then reliably localize (90\%) and manipulate it (90\% successful
+grasps).
+
+
+%% Robots need to pick stuff up.
+%% %
+%% Perception can structure data, structured data facilitates planning, planning allows more principled perception.
+%% %
+%% The tasks of robotic perception, planning, and control will all benefit from
+%% a design paradigm which allows them to be jointly programmed.
+%% %
+%% So we contribute an implementation \emph{NODE} which facilitates the design and 
+%% execution of versatile and scalable MDPs structured in what we call a
+%% Von Neumann MDP pattern. 
+%% %
+%% We form a closed loop through perception and planning, allowing them to interact by means of structured data.
+%% %
+%% Our system incorporates online, human-in-the-loop algorithms. Non-technical human participants can easily
+%% teach and collaborate with the system.
 \end{abstract}
 
 
@@ -107,6 +134,7 @@ teach and collaborate with the system.
 % Fifth paragraph: How do we know it works? Why is it cool?
 % Something about an evaluation and something about a robotic
 % demonstration.
+
 
 
 There are now many types of robots. A common configuration is one that mimics
