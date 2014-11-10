@@ -68,7 +68,7 @@
 \DeclareGraphicsExtensions{.jpg}
 
 
-\title{NODE: A Robotic Process Virtual Machine}
+\title{A Robot in the First Person}
 \author{Author Names Omitted for Anonymous Review. Paper-ID [add your ID here]}
 
 \maketitle
@@ -464,6 +464,48 @@ Take turns trying to move the object to your opponent's goal while they try to g
 
 \subsection{Basketball}
 Toss your projectiles through your opponent's hoop while guarding your own.
+
+
+\section{Learning About Objects I Encounter}
+I patrol the world, 
+of this there is no doubt,
+so we speak only of objects-
+I encounter en route.
+
+(Look, there's an object.
+Fortunatelly I have a nifty confidence measure, either a distance in kNN or a probability in
+log reg land)
+
+If there is something I don't recognize, 
+I look at it some more,
+and keep only examples which I do not find a bore.
+
+once this object I discern,
+there's some more that I must learn,
+to swat and grab, to pick and place,
+for this is what I yearn.
+
+\subsection{Recognition Models}
+Save the crops, maybe save the whole image so that we can compute global quantities later too.
+Save featues for kNN and train models for logistic regression.
+
+
+\subsection{Grasp Models}
+This Grasp Rectangle business fits in nicely with the reticle.
+
+0. Estimate the depth of the table by inspecting non-object locations. This helps decide when to close the gripper.
+
+1. Servo orientation to the '0' orientation, or one of a few sparsely sampled keypoint orientations.
+Each viewing orientation (from the wrist) is tied to a grasping orientation.
+
+2. Servo to a 'normal' scale. This is fixed, we don't want multiple scales running around.
+
+3. Now instead of aiming at the center, aim at a proposed target offset from the center.
+
+4. Once aiming is complete, save the image in the reticle, try to grasp, and save whether that grasp completed.
+This can be ascertained by the gripper position.
+
+5. Calculate a density map for this 
 
 
 \citep{tellex11}
