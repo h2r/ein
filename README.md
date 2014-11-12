@@ -213,7 +213,8 @@ When running a node, pass the following
 ``` 
 _image_topic:="/cameras/"$chirality"_hand_camera/image" _left_or_right_arm:="$chirality" $chirality
 ```
-Note that you can think of all previous examples as using chirality="center" without remapping image_topic.
+Note that you can think of all previous examples as using chirality="center" without remapping image_topic,
+and that the detection topics will be /publish_detections_$chirality/*.
 Since you will not get a point cloud, you cannot train generic pose models and spoon pose models will assume
 the table is flat relative to the camera (check this, you may need to change a default value and recompile).
 You can, interestingly enough, still get detections for generic pose models.
@@ -253,6 +254,4 @@ _pc_topic:="/filter_time/filtered_pointcloud"
 
 ## Thanks :metal:
 Thanks for reading. :japanese_goblin:
-
-
 
