@@ -7,9 +7,11 @@
 \usepackage{url}
 \usepackage{verbatim}
 \usepackage[pdftex]{graphicx}
-\usepackage{color}
 \usepackage[numbers]{natbib}
+\usepackage{amsfonts, amssymb, amsmath}
+\usepackage[usenames,dvipsnames]{color}
 
+\newcommand{\stnote}[1]{\textcolor{Blue}{\textbf{ST: #1}}}
 
 \pdfinfo{
    /Author (Homer Simpson)
@@ -141,23 +143,25 @@ robustly perceive and manipulate objects. We consider a setting where a robotic 
 with 7 degrees of freedom grasps objects with a parallel plate gripper which adds
 an additional degree of freedom, but much of what we discuss could be extended to other
 arms and grippers, for instance the universal jamming gripper ~\citep{}.
+\stnote{I would cut the previous two sentences, to avoid getting so specific about the robot so quickly.  }
 
 Conventional systems are capable of perception and manipulation in a limited sense.
 Some systems require training by a human operator on an object to object basis, which 
-is time consuming and can be difficult for a non-expert to perform ~\citep{}. There 
+is time consuming and can be difficult for a non-expert to perform ~\citep{ork14, lai11, lai11a}. There 
 do exist some systems which
 do not require training on a per object basis, but they are computationally expensive and do not enjoy the
-highest accuracy or precision ~\citep{}.
+highest accuracy or precision and have not been demonstrated for grasping~\citep{guadarrama14}.
 
 To obtain the benefits of both approaches, we propose a system which trains itself 
 to recognize and manipulate the specific objects it will need to use during future
 collaborations with humans. It is powerful because it learns to identify and grasp on 
-a per object basis. It is portable, convenient, and general because the expert knowledge it employs
+a per object basis. \stnote{s/It is powerful because it/Our system} It is portable, convenient, and general because the expert knowledge it employs
 is built into the algorithms which it uses to train itself, requiring only basic
 interaction from a non-technical human collaborator.
 
+\stnote{This paragraph feels a little misleading because we end by saying that these three parts are not new.  I think it's important to headline and emphasize the part that is new.  It might help to move the ``Our contribution'' sentence from the next paragraph up hear, and then discuss the three parts.}
 There are three parts to our approach. The first part is recognizing the category of an
-object and the the second part is estimating the pose of the object, both of which we 
+object and the second part is estimating the pose of the object, both of which we 
 accomplish with simple and robust computer vision algorithms. The third
 part is grasping the object, which we accomplish with visual servoing techniques. Each 
 of these components is well understood in its own right, and existing methods allow 
@@ -184,7 +188,7 @@ over un-annotated systems (cite success rates, the ability to generalize, and th
 computational overhead since we don't crunch expensive features or do heavy classification
 at run time).
 
-\section{Related Works}
+\section{Related Work}
 Talk about each task, both at the level of sophistication we are using and at the
 state of the art. Address typical expert training and automated approaches that exist, 
 together with usability concerns.
