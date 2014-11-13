@@ -341,8 +341,76 @@ $(rospack find node)/util/publishDetections.sh
 You should think of refreshCache.sh as a real world example of invoking train_classifier. The script
 trainWithCache.sh shows an advanced technique and you can certainly get away with never using it.
 
-
-
 ## Thanks :metal:
 Thanks for reading. :japanese_goblin:
+
+## TODO XXX 
+### General
+Reconsider window layouts and how to manage controls
+
+Factor bounding box drawing
+
+### Object Detection Suite
+Use blue screen during training
+
+Add slider for blinder width
+
+Augment image with blinders so you don't lose real-estate
+
+Blinders on all four sides instead of just two
+
+Try including color information in the BoW model 
+
+Try SVM instead of kNN
+
+Add a sign during training that says "this object is on its side or upside down"
+so that generic pose models are more complete
+
+Scripts or code should switch video channels automagically based on chirality
+
+Consider adding McAllester's HOG feature
+
+Investigate offloading feature computation to the GPU or multithread on the CPU
+
+Add a global feature map that refreshes each keypoint only when it is needed and with
+a certain probability so that frames are faster but new information trickles in at 
+about the same rate
+
+Consider run-time background shunting
+
+
+
+### Pilot Baxter Suite
+Listen to recognized object arrays instead of dedicated pilot target channel
+
+PID controls should be from within the end effector reference frame rather than the global frame
+
+Add object class awareness and per-object grasp offset
+
+Add orientation awareness and servoing
+
+Add scale servoing and grasp depth inference instead of relying on the range sensor
+
+Add intelligent depth-to-table scan
+
+Add wait-until-destination-reached no-op instruction
+
+Add a facility for extending PDA instruction set
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
