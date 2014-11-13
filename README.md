@@ -42,17 +42,25 @@ are using an old install.
 The basic workflow consists of three steps:
 
 1. Gather data for your objects.
-2. Train a BoW-kNN classifier.
+2. Train your classifiers.
 3. Publish detections.
 
-First **make a data directory**
-```
-roscd node 
-mkdir -p data/object_class_1
-```
+This document will walk you through each of these steps.
 
 ## Gather Data
-To gather data for your objects, point your kinect at your tabletop and run a command similar to:
+First **make a data directory**, which will contain all of the data you collect and models you train.
+Consider backing this up. If you change the source and want to check something in, please
+tell git to ignore your data directories.
+```
+roscd node 
+mkdir data
+```
+Next, make a subdirectory which will contain example images for an object you wish to detect.
+You will need to create a new subdirectory for each new object.
+```
+mkdir -p data/object_class_1
+```
+To gather data for your objects, point your Kinect at your tabletop and run a command similar to:
 ```
 roslaunch openni_launch openni.launch depth_registration:=true
 rosrun node capture_object _data_directory:="$(rospack find node)/data" _class_name:="object_class_1" _run_prefix:="june2round1" _left_or_right_arm:="center" center
@@ -62,7 +70,7 @@ That last "center" **MUST** come last but the rest are ROS params and can be per
 
 Make sure that **data_directory/class_name** is the FULL PATH to an existing directory.
 
-This should open two windows. The first is the view through your kinect, augmented with information, called "Object Viewer". 
+This should open two windows. The first is the view through your Kinect, augmented with information, called "Object Viewer". 
 The second is an eerie green interpretation of the view called "Density Viewer". 
 
 Look at the Object Viewer.
@@ -84,12 +92,12 @@ MAKE SURE to **change the run_prefix** so you don't overwrite your data.
 Run capture_object for every object you want to train, using a different subdirectory of data_directory for each class
 you want to train.
 
-## Train
+## Train Classifiers
 Next, train the classifier. Run a command similar to:
 ```
 rosrun node train_classifier _data_directory:="$(rospack find node)/data" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml" _class_labels:="object_class_1 object_class_2" _class_pose_models:="S B" _left_or_right_arm:="center" center
 ```
-This will create three files (for vocab, knn, and labels) in the locations specified, paths relative to data_directory. The string
+This will create three files (for vocab, kNN, and labels) in the locations specified, paths relative to data_directory. The string
 class_labels should be a " "-delimited list of the subdirectories you gathered data in, relative to data_directory. The string
 class_pose_models is a " "-delimited list of the pose models for your classes. If your object is most like a bowl (i.e. you don't
 care about its rotation in the plane of the table) its entry should be a "B", but if it is most like a spoon and you want
@@ -103,7 +111,7 @@ class starts interfering with your real classes.
 
 **Make sure your files were written** and they look sensible.
 
-## Detect
+## Publish Detections
 Finally, run something like:
 ```
 rosrun node publish_detections _data_directory:="$(rospack find node)/data" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml" _left_or_right_arm:="center" center
@@ -125,7 +133,7 @@ can open and read it. Create a folder "bookPoses" and run something along the li
 rosrun oberlin_detection capture_annotated_objects _data_directory:="$(rospack find oberlin_detection)/$givenDataSubdir" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml" _run_prefix:="$givenRunPrefix" _class_name:="book" _table_label_class_name:="mrT" _background_class_name:="background" _left_or_right_arm:="center" center
 ```
 This training process is slightly different. Notice that we denote a table label class and a background class. You will need to have trained models for "book", "mrT", and
-"background" and they should be included in the specified vocab, label, and knn files. "mrT" is a marker whose orientation can be determined efficiently. 
+"background" and they should be included in the specified vocab, label, and kNN files. "mrT" is a marker whose orientation can be determined efficiently. 
 Clicking the Object Viewer window will collect examples only for blue boxes labeled as "book", and this time the orientation calculated for "mrT" will be saved and associated with the crop for "book" 
 in the same frame. This time examples and associated poses will be saved to the folder "bookPoses"
 instead of "book". Take images of the book from all points of view which you are interested in identifying in the future. 
@@ -251,6 +259,89 @@ and now is a good time to mention that you can redirect input to node with
 _image_topic:="/filter_time/filtered_image"
 _pc_topic:="/filter_time/filtered_pointcloud"
 ```
+
+## Cached Training
+If you have a reasonable number of training examples, it can take a long time (>30 minutes) to cluster
+the BoW vocabulary. If you are only adding more examples to existing categories (or if you are adding a
+simple object to an already diverse set of objects), you may want to use an a previously trained vocabulary
+during rapid model prototyping. Setting 
+```
+_retrain_vocab:="0"
+```
+during training will cause the passed vocab file to be loaded rather than overwritten. If later you want to 
+retrain the vocab, simply omitting this term will not cause the vocab to retrain since ROS params persist.
+You need to set
+```
+_retrain_vocab:="1"
+```
+to make sure it retrains.
+
+You should always go back and train using all of your classes (possibly changing the subsampling factor
+to make it finish in a reasonable amount of time, possibly training overnight) because you will almost 
+certainly get a performance gain.
+
+A good strategy to adjusting the subsampling factor is to make it so small that training finishes instantly.
+Then increase it by a constant factor (pick your favorite number between 2 and 10) until it takes 5 minutes
+to finish, then increase it once or twice more. To change the sampling factor, go to the main .cpp file,
+set bowSubSampleFactor to a number in the interval (0,1], and recompile. Similary, if you have more than 10
+classes, you may want to adjust the number of visual words. Something between 1000 and 10000 is good, but
+increase it slowly (500 or 1000 at a time). More is not necessarily better. The parameter to change is
+vocabNumWords.
+
+Additionally, it is possible to cache the extracted kNN feature vectors by specifying a cache_prefix during
+training, such as:
+```
+_cache_prefix:="cache27"
+```
+If you do
+this you will need to make copies of your kNN and label files and prepend the cache_prefix to
+the root file names "knn.yml" and "labels.yml". Having done so, during training you need only specify classes which you wish to 
+add to the kNN and label files. If this is confusing, please refer to the main .cpp file. For an
+example usage, please see 
+```
+$(rospack find node)/util/trainWithCache.sh
+```
+
+## Utility Scripts
+It can feel clunky passing so many parameters when running nodes.  You can find some handy utility scripts
+in 
+```
+$(rospack find node)/util
+```
+for collecting data, training classifiers, and publishing detections.  Instead of setting ROS params, you
+can pass arguments to the scripts and they will invoke the ROS nodes with the appropriate parameters.
+Since most people will have separate lists of objects, it is recommended that you create your own utility 
+scripts using these as templates. Again, if you plan on checking in code changes, please tell git to
+ignore your personal utility scripts.
+
+For example, I have many root data directories. One of them is called "data4". If I want to train a new
+object called "gyroBowl" (or add examples if it already exists) with run_prefix "run1" using the Kinect
+(as opposed to a wrist camera), I can call
+```
+$(rospack find node)/util/newObject.sh data4 gyroBowl run1 center
+```
+which will create the necessary folders if they do not exist and launch capture_object with the appropriate
+parameters.
+
+Perhaps the grey box is too big. So I can run
+```
+$(rospack find node)/util/dave_capture_small.sh publish_detections_center
+```
+and the grey box will be adjusted. Check out the dave scripts as they do different things.
+
+After inspecting how newObject.sh works, you can take a look at some of the other scripts, it should
+be clear how they work.  A complete workflow can be had with
+```
+$(rospack find node)/util/newObject.sh
+$(rospack find node)/util/refreshCache.sh
+$(rospack find node)/util/collectPoses.sh
+$(rospack find node)/util/trainWithCache.sh
+$(rospack find node)/util/publishDetections.sh
+```
+You should think of refreshCache.sh as a real world example of invoking train_classifier. The script
+trainWithCache.sh shows an advanced technique and you can certainly get away with never using it.
+
+
 
 ## Thanks :metal:
 Thanks for reading. :japanese_goblin:
