@@ -20,3 +20,25 @@ do
 done
 
 
+for i in {0..3}
+do
+  echo ${array[i]}
+  rosparam set /${array[i]}_left/gray_box_left 150
+  rosparam set /${array[i]}_left/gray_box_right 150
+  rosparam set /${array[i]}_left/gray_box_top 10
+  rosparam set /${array[i]}_left/gray_box_bot 60
+  rosparam set /${array[i]}_left/threshold_fraction .5
+  rosparam set /${array[i]}_left/density_decay .3
+done
+
+
+for i in {0..3}
+do
+  echo ${array[i]}
+  rosparam set /${array[i]}_right/gray_box_left 150
+  rosparam set /${array[i]}_right/gray_box_right 150
+  rosparam set /${array[i]}_right/gray_box_top 10
+  rosparam set /${array[i]}_right/gray_box_bot 60
+  rosparam set /${array[i]}_right/threshold_fraction .5
+  rosparam set /${array[i]}_right/density_decay .3
+done
