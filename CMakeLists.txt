@@ -9,7 +9,6 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   visualization_msgs
   genmsg
-  OpenCV
   cv_bridge
   image_transport
   message_generation
@@ -52,31 +51,37 @@ add_executable(pilot_baxter src/pilot_baxter.cpp)
 target_link_libraries(oberlin_detector
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
+	opencv_nonfree
 	BINGLIB ###
 )
 target_link_libraries(capture_object
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
+	opencv_nonfree
 	BINGLIB ###
 )
 target_link_libraries(train_classifier
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
+	opencv_nonfree
 	BINGLIB ###
 )
 target_link_libraries(publish_detections
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
+	opencv_nonfree
 	BINGLIB ###
 )
 target_link_libraries(capture_annotated_objects
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
+	opencv_nonfree
 	BINGLIB ###
 )
 target_link_libraries(capture_hard_class
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
+	opencv_nonfree
 	BINGLIB ###
 )
 target_link_libraries(filter_time

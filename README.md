@@ -11,7 +11,11 @@ Install the ppa at https://launchpad.net/~xqms/+archive/ubuntu/opencv-nonfree:
 ```
 sudo add-apt-repository ppa:xqms/opencv-nonfree
 ```
-Then run 
+Then update apt-get 
+```
+sudo apt-get update
+```
+Then run
 ```
 sudo apt-get install libopencv-nonfree-\*
 ```
@@ -61,6 +65,7 @@ You will need to create a new subdirectory for each new object.
 mkdir -p data/object_class_1
 ```
 To gather data for your objects, point your Kinect at your tabletop and run a command similar to:
+(NOTE: you may need to run freenect instead of openni)
 ```
 roslaunch openni_launch openni.launch depth_registration:=true
 rosrun node capture_object _data_directory:="$(rospack find node)/data" _class_name:="object_class_1" _run_prefix:="june2round1" _left_or_right_arm:="center" center
