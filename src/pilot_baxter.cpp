@@ -1,55 +1,3 @@
-#define MY_FONT FONT_HERSHEY_SIMPLEX
-
-int current_instruction = 'C';
-double tap_factor = 0.1;
-#include <vector>
-int execute_stack = 0;
-std::vector<int> pilot_call_stack;
-
-int go_on_lock = 0;
-int slf_thresh = 5;
-int successive_lock_frames = 0;
-
-int lock_status = 0; // TODO enum
-
-double slow_aim_factor = 0.5;
-int aim_thresh = 20;
-int lock_thresh = 5;
-
-int timerCounter = 0;
-int timerThresh = 16;
-
-double prevPx = 0;
-double prevPy = 0;
-
-//double Kd = 0.00001; // for P only
-double Kd = 0.002;
-double Kp = 0.0004;
-
-double cCutoff = 20.0;
-
-double a_thresh_close = .11;
-double a_thresh_far = .3;
-
-double bDelta = .01;
-double approachStep = .0005;
-double hoverMultiplier = 0.5;
-double eeRange = 0.0;
-int zero_g_toggle = 0;
-int holding_pattern = 0; // TODO enum
-int auto_pilot = 0;
-
-#include <tf/transform_listener.h>
-tf::TransformListener* tfListener;
-double tfPast = 10.0;
-
-#include <ctime>
-#include <sstream>
-#include <iostream>
-#include <math.h>
-#include <string>
-
-
 typedef struct {
   double px;
   double py;
@@ -65,13 +13,98 @@ typedef struct {
   double qw;
 } eePose;
 
+// TODO patch targetting
+// TODO redo cartesian autopilot to account for ee coordinate frame
+// TODO make sure chirality is accounted for properly in autopilot
+
+#define PROGRAM_NAME "pilot_baxter"
+#define MY_FONT FONT_HERSHEY_SIMPLEX
+
+// if autopilot takes too long, it gets angry and takes a shot on a yellow frame
+int take_yellow_thresh = 3600;
+int autoPilotFrameCounter = 0;
+
+int ik_reset_thresh = 3600;
+int ik_reset_counter = 0;
+int ikInitialized = 0.0;
+double ikShare = 1.0;
+double oscillating_ikShare = .1;
+double default_ikShare = 1.0;
+int oscillatingPeriod = 3200;
+//double oscillatingInvAmplitude = 3.0;
+double oscillatingInvAmplitude = 4.0;
+double oscillatingBias = 0.4;
+
+int oscillating = 0;
+int oscillatingSign = 1;
+int oscillatorTimerThresh = 600;
+
+int current_instruction = 'C';
+double tap_factor = 0.1;
+#include <vector>
+int execute_stack = 0;
+std::vector<int> pilot_call_stack;
+
+int go_on_lock = 0;
+int slf_thresh = 5;
+int successive_lock_frames = 0;
+
+int lock_reset_thresh = 1800;
+int lock_status = 0; // TODO enum
+
+//double slow_aim_factor = 0.5;
+double slow_aim_factor = 0.75;
+int aim_thresh = 20;
+int lock_thresh = 5;
+
+int timerCounter = 0;
+int timerThresh = 16;
+
+int timesTimerCounted = 0;
+
+double prevPx = 0;
+double prevPy = 0;
+//double Kd = 0.00001; // for P only
+double Kd = 0.002;
+double Kp = 0.0004;
+double cCutoff = 20.0;
+
+
+double a_thresh_close = .11;
+double a_thresh_far = .3;
+double eeRange = 0.0;
+
+double bDelta = .01;
+double approachStep = .0005;
+double hoverMultiplier = 0.5;
+
+
+int zero_g_toggle = 0;
+int holding_pattern = 0; // TODO enum
+int auto_pilot = 0;
+
+#include <tf/transform_listener.h>
+tf::TransformListener* tfListener;
+double tfPast = 10.0;
+
+#include <ctime>
+#include <sstream>
+#include <iostream>
+#include <math.h>
+#include <string>
+
+
 int reticleHalfWidth = 30;
 int pilotTargetHalfWidth = 15;
 
-eePose defaultReticle = {.px = 321, .py = 154, .pz = 0.0,
+eePose defaultRightReticle = {.px = 321, .py = 154, .pz = 0.0,
+		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
+		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
+eePose defaultLeftReticle = {.px = 328, .py = 113, .pz = 0.0,
 		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
 		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
 
+eePose defaultReticle = defaultRightReticle;
 eePose reticle = defaultReticle;
 
 eePose beeLHome = {.px = 0.657579481614, .py = 0.851981417433, .pz = 0.0388352386502,
@@ -87,7 +120,7 @@ eePose workCenter = {.px = 0.686428, .py = -0.509836, .pz = 0.0883011,
 
 eePose beeHome = beeRHome;
 
-eePose pilotTarget = beeRHome;
+eePose pilotTarget = beeHome;
 
 eePose lastGoodEEPose = beeHome;
 eePose currentEEPose = beeHome;
@@ -97,7 +130,28 @@ eePose eepReg2 = beeHome;
 eePose eepReg3 = beeHome;
 eePose eepReg4 = beeHome;
 
-std::string leftOrRightArm = "right";
+eePose crane1right = {.px = 0.0448714, .py = -1.04476, .pz = 0.698522,
+		     .ox = 0, .oy = 0, .oz = 0,
+		     .qx = 0.631511, .qy = 0.68929, .qz = -0.25435, .qw = 0.247748};
+eePose crane2right = {.px = 0.617214, .py = -0.301658, .pz = 0.0533165,
+		     .ox = 0, .oy = 0, .oz = 0,
+		     .qx = 0.0328281, .qy = 0.999139, .qz = 0.00170545, .qw = 0.0253245};
+eePose crane3right = {.px = 0.668384, .py = 0.166692, .pz = -0.120018,
+		     .ox = 0, .oy = 0, .oz = 0,
+		     .qx = 0.0328281, .qy = 0.999139, .qz = 0.00170545, .qw = 0.0253245};
+eePose crane1left = {.px = -0.0155901, .py = 0.981296, .pz = 0.71078,
+		     .ox = 0, .oy = 0, .oz = 0,
+		     .qx = 0.709046, .qy = -0.631526, .qz = -0.226613, .qw = -0.216967};
+eePose crane2left = {.px = 0.646069, .py = 0.253621, .pz = 0.0570906,
+		     .ox = 0, .oy = 0, .oz = 0,
+		     .qx = 0.999605, .qy = -0.0120443, .qz = 0.0253545, .qw = -0.00117847};
+eePose crane3left = {.px = 0.652866, .py = -0.206966, .pz = -0.130561,
+		     .ox = 0, .oy = 0, .oz = 0,
+		     .qx = 0.999605, .qy = -0.0120443, .qz = 0.0253545, .qw = -0.00117847};
+
+std::string left_or_right_arm = "right";
+
+eePose ik_reset_eePose = beeHome;
 
 #include <baxter_core_msgs/EndpointState.h>
 #include <sensor_msgs/Range.h>
@@ -261,28 +315,39 @@ void update_baxter(ros::NodeHandle &n) {
 
   int ikResult = 0;
 
-  ikResult = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
 
-/*
-  if ( ikClient.waitForExistence(ros::Duration(1, 0)) ) {
-//cout << "block6.1" << endl;
+  // do not start in a state with ikShare 
+  if ((drand48() <= ikShare) || !ikInitialized) {
     ikResult = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
-  } else {
-    cout << "waitForExistence timed out" << endl;
-    ikResult = 1;
+
+  /*
+    if ( ikClient.waitForExistence(ros::Duration(1, 0)) ) {
+  //cout << "block6.1" << endl;
+      ikResult = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
+    } else {
+      cout << "waitForExistence timed out" << endl;
+      ikResult = 1;
+    }
+  */
+
+    if (ikResult) 
+    {
+      ROS_ERROR_STREAM("ikClient says pose request is invalid.");
+      ik_reset_counter++;
+
+      if (ik_reset_counter > ik_reset_thresh)
+	currentEEPose = ik_reset_eePose;
+      else
+	currentEEPose = lastGoodEEPose;
+
+      return;
+    }
+    ik_reset_counter = 0;
+
+    lastGoodEEPose = currentEEPose;
+    ikRequest = thisIkRequest;
+    ikInitialized = 1;
   }
-*/
-
-  if (ikResult) 
-  {
-    ROS_ERROR_STREAM("ikClient says pose request is invalid.");
-
-    currentEEPose = lastGoodEEPose;
-    return;
-  }
-
-  lastGoodEEPose = currentEEPose;
-  ikRequest = thisIkRequest;
   
 //cout << "block7" << endl;
 
@@ -411,10 +476,12 @@ void timercallback1(const ros::TimerEvent&) {
 //cout << "block3" << endl;
 
 
+  
+  if (!auto_pilot)
+    autoPilotFrameCounter = 0;
   // both of these could be moved into the symbolic logic
-
   // if we have a lock, proceed to grab 
-  if (auto_pilot && go_on_lock && (successive_lock_frames >= slf_thresh)) {
+  if ((auto_pilot && go_on_lock && (successive_lock_frames >= slf_thresh)) || ((autoPilotFrameCounter > take_yellow_thresh) && (lock_status == 1))) {
     lock_status = 0;
     successive_lock_frames = 0;
     auto_pilot = 0;
@@ -422,6 +489,7 @@ void timercallback1(const ros::TimerEvent&) {
     c = -1;
     zero_g_toggle = 0;
     holding_pattern = 1;
+    autoPilotFrameCounter = 0;
   }
   
   // deal with the stack
@@ -434,10 +502,35 @@ void timercallback1(const ros::TimerEvent&) {
       execute_stack = 0;
     }
   }
+
+  if (oscillating && (lock_status == 0) && (holding_pattern == 0) && (timerCounter >= oscillatorTimerThresh)) {
+    currentEEPose.py = eepReg2.py + oscillatingSign*(oscillatingBias + sin( 2.0 * 3.1415926 * double(timesTimerCounted % oscillatingPeriod) / oscillatingPeriod)) / oscillatingInvAmplitude;
+    currentEEPose.px = eepReg2.px;
+    currentEEPose.pz = eepReg2.pz;
+    ikShare = oscillating_ikShare;
+  } else {
+    ikShare = default_ikShare;
+  }
+
+  if (timerCounter >= lock_reset_thresh) {
+    lock_status = 0;
+  }
   
 
   switch (c) {
     case 30: // up arrow
+      break;
+    case 'k':
+      {
+	baxter_core_msgs::EndEffectorCommand command;
+	command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
+	command.args = "{\"position\": 100.0}";
+	command.id = 65538;
+	gripperPub.publish(command);
+      }
+      break;
+    case 'l':
+      oscillating = !oscillating;
       break;
     case 'r':
       pilot_call_stack.resize(0);
@@ -445,14 +538,18 @@ void timercallback1(const ros::TimerEvent&) {
     case 't':
       currentEEPose.pz += bDelta * tap_factor;
       break;
-    case '8': // load program 8
+    case '7':
       {
-	double deltaX = workCenter.px - currentEEPose.px;
-	double deltaY = workCenter.py - currentEEPose.py;
+	//double deltaX = workCenter.px - currentEEPose.px;
+	//double deltaY = workCenter.py - currentEEPose.py;
+	double deltaX = eepReg2.px - currentEEPose.px;
+	double deltaY = eepReg2.py - currentEEPose.py;
 	double xTimes = fabs(floor(deltaX / bDelta)); 
 	double yTimes = fabs(floor(deltaY / bDelta)); 
 
-	int numNoOps = 60;
+	int tapTimes = 30;
+
+	int numNoOps = 6*(yTimes + xTimes + floor(2 * tapTimes * tap_factor));
 	for (int cc = 0; cc < numNoOps; cc++) {
 	  pilot_call_stack.push_back('C');
 	}
@@ -470,7 +567,42 @@ void timercallback1(const ros::TimerEvent&) {
 	  for (int yc = 0; yc < yTimes; yc++)
 	    pilot_call_stack.push_back('a');
       
+
+	for (int tc = 0; tc < tapTimes; tc++) {
+	  pilot_call_stack.push_back('t');
+	}
+      }
+      break;
+    case '8': // load program 8
+      {
+	//double deltaX = workCenter.px - currentEEPose.px;
+	//double deltaY = workCenter.py - currentEEPose.py;
+	double deltaX = eepReg3.px - currentEEPose.px;
+	double deltaY = eepReg3.py - currentEEPose.py;
+	double xTimes = fabs(floor(deltaX / bDelta)); 
+	double yTimes = fabs(floor(deltaY / bDelta)); 
+
 	int tapTimes = 30;
+
+	int numNoOps = 6*(yTimes + xTimes + floor(2 * tapTimes * tap_factor));
+	for (int cc = 0; cc < numNoOps; cc++) {
+	  pilot_call_stack.push_back('C');
+	}
+
+	if (deltaX > 0)
+	  for (int xc = 0; xc < xTimes; xc++)
+	    pilot_call_stack.push_back('e');
+	if (deltaX < 0)
+	  for (int xc = 0; xc < xTimes; xc++)
+	    pilot_call_stack.push_back('q');
+	if (deltaY > 0)
+	  for (int yc = 0; yc < yTimes; yc++)
+	    pilot_call_stack.push_back('d');
+	if (deltaY < 0)
+	  for (int yc = 0; yc < yTimes; yc++)
+	    pilot_call_stack.push_back('a');
+      
+
 	for (int tc = 0; tc < tapTimes; tc++) {
 	  pilot_call_stack.push_back('t');
 	}
@@ -481,6 +613,8 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back('9');
 	pilot_call_stack.push_back('x');
 
+	pilot_call_stack.push_back('7');
+	pilot_call_stack.push_back('k');
 	pilot_call_stack.push_back('8');
 
 	pilot_call_stack.push_back('C');
@@ -506,7 +640,7 @@ void timercallback1(const ros::TimerEvent&) {
       break;
     case 'u':
       cout << "Current EE Position (x,y,z): " << currentEEPose.px << " " << currentEEPose.py << " " << currentEEPose.pz << endl;
-      cout << "Current EE Orientation (w,x,y,z): " << currentEEPose.qx << " " << currentEEPose.qy << " " << currentEEPose.qz << " " << currentEEPose.qw << endl;
+      cout << "Current EE Orientation (x,y,z,w): " << currentEEPose.qx << " " << currentEEPose.qy << " " << currentEEPose.qz << " " << currentEEPose.qw << endl;
       break;
     case 'i':
       {
@@ -675,6 +809,9 @@ void timercallback1(const ros::TimerEvent&) {
     eeForward.z() = qout.z();
 
     // autopilot update
+    // XXX TODO this really needs to be in the coordinate frame of the
+    //  end effector to be general enough to use. now we are assuming that
+    //  we are aligned with the table.
     if (auto_pilot && (timerCounter < timerThresh)) {
       currentEEPose.ox = 0.0;
       currentEEPose.oy = 0.0;
@@ -730,7 +867,10 @@ void timercallback1(const ros::TimerEvent&) {
       currentEEPose.px -= pTermX + dTermX;
       currentEEPose.py += pTermY + dTermY;
 
-      cout << "Px: " << Px << " Py: " << Py << "      Dx: " << Dx << " Dy: " << Dy << "      lock_status: " << lock_status << " slf: " << successive_lock_frames << " slf_t: " << slf_thresh << endl;
+      autoPilotFrameCounter++;
+
+
+      cout << "ikShare: " << ikShare << " Px: " << Px << " Py: " << Py << "      Dx: " << Dx << " Dy: " << Dy << "      lock_status: " << lock_status << " slf: " << successive_lock_frames << " slf_t: " << slf_thresh << endl;
     }
 
     // holding pattern update
@@ -817,6 +957,7 @@ void timercallback1(const ros::TimerEvent&) {
 
   //cv::waitKey(1);
   timerCounter++;
+  timesTimerCounted++;
 }
 
 
@@ -872,7 +1013,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   cv::imshow("Wrist View", cv_ptr->image);
 
-  Mat coreImage = cv_ptr->image.clone();
+  //Mat coreImage = cv_ptr->image.clone();
+  Mat coreImage(2*cv_ptr->image.rows, cv_ptr->image.cols, cv_ptr->image.type());
   coreImage = 0.0*coreImage;
 
   cv::Scalar dataColor(192,192,192);
@@ -895,7 +1037,11 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   lText += "  AP: ";
   sprintf(buf, "%d", auto_pilot);
   lText += buf;
-  lText += "  LS: ";
+  putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
+
+  lAnchor.y += 20;
+  lText = "";
+  lText += "LS: ";
   sprintf(buf, "%d", lock_status);
   lText += buf;
   lText += "  GOL: ";
@@ -904,15 +1050,28 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   lText += "  SLF: ";
   sprintf(buf, "%d", successive_lock_frames);
   lText += buf;
-
+  lText += "  O: ";
+  sprintf(buf, "%d", oscillating);
+  lText += buf;
   putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
 
-  cv::Point csAnchor(10,100);
+  lAnchor.y += 20;
+  lText = "";
+  lText += "TYT: ";
+  sprintf(buf, "%d", take_yellow_thresh);
+  lText += buf;
+  lText += " APFC: ";
+  sprintf(buf, "%d", autoPilotFrameCounter);
+  lText += buf;
+  putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
+
+  int stackRowY = 120;
+  cv::Point csAnchor(10,stackRowY);
   putText(coreImage, "Call Stack: ", csAnchor, MY_FONT, 0.5, labelColor, 1.0);
   
   int instructionsPerRow = 25;
   int rowAnchorStep = 25;
-  cv::Point rowAnchor(120,100);
+  cv::Point rowAnchor(120,stackRowY);
   int insCount = 0; 
   while (insCount < pilot_call_stack.size()) {
     string outRowText;
@@ -962,25 +1121,80 @@ void CallbackFunc(int event, int x, int y, int flags, void* userdata) {
   }
 }
 
+void loadROSParamsFromArgs()
+{
+  ros::NodeHandle nh("~");
+  nh.getParam("left_or_right_arm", left_or_right_arm);
+  nh.getParam("default_ikShare", default_ikShare);
+}
+
+
 int main(int argc, char **argv) {
 
   // initialize non-ROS
   srand(time(NULL));
   eeForward = Eigen::Vector3d(1,0,0);
 
+  cout << "argc: " << argc << endl;
+  for (int ccc = 0; ccc < argc; ccc++) {
+    cout << argv[ccc] << endl;
+  }
+  cout << "argc: " << argc << endl;
+
+  string programName;
+  if (argc > 1) {
+    programName = string(PROGRAM_NAME) + argv[argc-1];
+    cout << programName << endl;
+  }
+  else
+    programName = string(PROGRAM_NAME);
+
+
   // initialize ROS
-  ros::init(argc, argv, "pilot_baxter");
+  ros::init(argc, argv, programName);
   ros::NodeHandle n("~");
 
-  ros::Subscriber epState = n.subscribe("/robot/limb/" + leftOrRightArm + "/endpoint_state", 1, endpointCallback);
-  ros::Subscriber eeRanger = n.subscribe("/robot/range/" + leftOrRightArm + "_hand_range/state", 1, rangeCallback);
-  ros::Subscriber eeTarget = n.subscribe("/publish_detections/pilot_target", 1, targetCallback);
+  loadROSParamsFromArgs();
+
+  if (0 == left_or_right_arm.compare("left")) {
+    cout << "Possessing left arm..." << endl;
+    beeHome = crane1left;
+    eepReg1 = crane1left;
+    eepReg2 = crane2left;
+    eepReg3 = crane3left;
+    eepReg4 = beeLHome;
+    oscillatingSign = 1;
+    defaultReticle = defaultLeftReticle;
+    reticle = defaultReticle;
+  } else if (0 == left_or_right_arm.compare("right")) {
+    cout << "Possessing right arm..." << endl;
+    beeHome = crane1right;
+    eepReg1 = crane1right;
+    eepReg2 = crane2right;
+    eepReg3 = crane3right;
+    eepReg4 = beeRHome;
+    oscillatingSign = -1;
+    defaultReticle = defaultRightReticle;
+    reticle = defaultReticle;
+  } else {
+    cout << "Invalid chirality. Exiting." << endl;
+    exit(0);
+  }
+  pilotTarget = beeHome;
+  lastGoodEEPose = beeHome;
+  currentEEPose = beeHome;
+
+  ik_reset_eePose = eepReg2;
+
+  ros::Subscriber epState = n.subscribe("/robot/limb/" + left_or_right_arm + "/endpoint_state", 1, endpointCallback);
+  ros::Subscriber eeRanger = n.subscribe("/robot/range/" + left_or_right_arm + "_hand_range/state", 1, rangeCallback);
+  ros::Subscriber eeTarget = n.subscribe("/publish_detections_" + left_or_right_arm + "/pilot_target_" + left_or_right_arm, 1, targetCallback);
 
   cv::namedWindow("Wrist View");
   cv::setMouseCallback("Wrist View", CallbackFunc, NULL);
   image_transport::ImageTransport it(n);
   image_transport::Subscriber image_sub;
-  std::string image_topic = "/cameras/" + leftOrRightArm + "_hand_camera/image";
+  std::string image_topic = "/cameras/" + left_or_right_arm + "_hand_camera/image";
   image_sub = it.subscribe(image_topic, 1, imageCallback);
 
   cv::namedWindow("Core View");
@@ -989,9 +1203,16 @@ int main(int argc, char **argv) {
 
   tfListener = new tf::TransformListener();
 
-  ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + leftOrRightArm + "/PositionKinematicsNode/IKService");
-  joint_mover = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/" + leftOrRightArm + "/joint_command", 10);
-  gripperPub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + leftOrRightArm + "_gripper/command",10);
+  ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + left_or_right_arm + "/PositionKinematicsNode/IKService");
+  joint_mover = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/" + left_or_right_arm + "/joint_command", 10);
+  gripperPub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + left_or_right_arm + "_gripper/command",10);
+
+  {
+    baxter_core_msgs::EndEffectorCommand command;
+    command.command = baxter_core_msgs::EndEffectorCommand::CMD_CALIBRATE;
+    command.id = 65538;
+    gripperPub.publish(command);
+  }
 
   ros::spin();
 

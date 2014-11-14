@@ -1,4 +1,4 @@
-     #ifndef PROGRAM_NAME
+#ifndef PROGRAM_NAME
   #define PROGRAM_NAME "DAVE"
 #endif
 //// these macros below were moved to other files
@@ -54,6 +54,7 @@ double tfPast = 10.0;
 #include <iostream>
 #include <math.h>
 #include <string>
+std::string left_or_right_arm = "";
 
 typedef struct {
   double px;
@@ -80,8 +81,8 @@ eePose beeRHome = {.px = 0.657579481614, .py = -0.168019, .pz = 0.0388352386502,
 eePose beeHome = beeRHome;
 
 
-int loTrackbarVariable = 70;
-int hiTrackbarVariable = 70;
+int loTrackbarVariable = 55;
+int hiTrackbarVariable = 50;
 int redTrackbarVariable = 0;
 
 double drawBingProb = .1;
@@ -356,6 +357,7 @@ Eigen::Vector3d tableTangent2;
 Eigen::Vector3d tablePosition;
 double tableBias;
 double tableBiasMargin = -5.001;
+//double tableBiasMargin = .01;
 geometry_msgs::Pose tablePose;
 Eigen::Quaternionf tableQuaternion;
 Mat tablePerspective;
@@ -385,7 +387,7 @@ double wsPBT = 0.0;//6.5;
 double gbPBT = 0.0;//6.0;
 double mbPBT = 0.0;//7.0;
 
-double pBoxThresh = 5;
+double pBoxThresh = 0;
 double densityPower = 1.0;//1.0/4.0;
 
 // gray box offset from the top and bottom of the screen
@@ -887,6 +889,8 @@ void loadROSParamsFromArgs()
 {
   ros::NodeHandle nh("~");
 
+  cout << "nh namespace: " << nh.getNamespace() << endl;
+
   nh.getParam("frames_per_click", frames_per_click);
 
   nh.getParam("vocab_file", vocab_file);
@@ -925,6 +929,9 @@ void loadROSParamsFromArgs()
   nh.getParam("cache_prefix", cache_prefix);
 
   nh.getParam("mask_gripper", mask_gripper);
+  nh.getParam("add_blinders", add_blinders);
+
+  nh.getParam("left_or_right_arm", left_or_right_arm);
 
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
@@ -986,6 +993,9 @@ void loadROSParams()
   nh.getParam("sobel_scale_factor",sobel_scale_factor);
 
   nh.getParam("mask_gripper", mask_gripper);
+  nh.getParam("add_blinders", add_blinders);
+
+  nh.getParam("left_or_right_arm", left_or_right_arm);
 
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
@@ -1041,9 +1051,12 @@ void saveROSParams()
   nh.setParam("local_sobel_sigma", local_sobel_sigma);
   nh.setParam("canny_hi_thresh",canny_hi_thresh);
   nh.setParam("canny_lo_thresh",canny_lo_thresh);
-  nh.getParam("sobel_scale_factor",sobel_scale_factor);
+  nh.setParam("sobel_scale_factor",sobel_scale_factor);
 
-  nh.getParam("mask_gripper", mask_gripper);
+  nh.setParam("mask_gripper", mask_gripper);
+  nh.setParam("add_blinders", add_blinders);
+
+  nh.setParam("left_or_right_arm", left_or_right_arm);
 }
 
 // for publishing
@@ -1128,7 +1141,7 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
 
   roa_to_send.objects[aI].header = roa_to_send.header;
   //roa_to_send.objects[aI].point_clouds[0].header = roa_to_send.header;
-  //roa_to_send.objects[aI].pose.header = roa_to_send.header;
+  roa_to_send.objects[aI].pose.header = roa_to_send.header;
 
   if (0 == classPoseModels[label].compare("B")) {
     ma_to_send.markers[aI].type =  visualization_msgs::Marker::SPHERE;
@@ -1617,11 +1630,11 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   if (deltaTime > 0.0)
     aveFrequency = timeMass / deltaTime;
 
-/*
+
 cout << "Average time between frames: " << aveTime << 
   "   Average Frequency: " << aveFrequency << " Hz   Duration of sampling: " << 
   deltaTime << "   Frames since sampling: " << timeMass << endl; 
-*/
+
 
 //cout << "here 1" << endl;
 
@@ -3365,12 +3378,31 @@ int main(int argc, char **argv) {
 
   string bufstr; // Have a buffer string
 
-  ros::init(argc, argv, PROGRAM_NAME);
+  cout << "argc: " << argc << endl;
+  for (int ccc = 0; ccc < argc; ccc++) {
+    cout << argv[ccc] << endl;
+  }
+  cout << "argc: " << argc << endl;
+
+  string programName;
+  if (argc > 1) {
+    programName = string(PROGRAM_NAME) + "_" + argv[argc-1];
+    cout << programName << endl;
+    //argc = argc-1;
+    //argv[argc-1] = argv[argc-2];
+  }
+  else
+    programName = string(PROGRAM_NAME);
+
+  ros::init(argc, argv, programName);
   ros::NodeHandle n("~");
   std::string s;
 
+  cout << "n namespace: " << n.getNamespace() << endl;
+
   cout << "all_range_mode: " << all_range_mode << endl;
   loadROSParamsFromArgs();
+  cout << "mask_gripper: " << mask_gripper << " add_blinders: " << add_blinders << endl;
   cout << "all_range_mode: " << all_range_mode << endl;
   cout << endl << "numRedBoxes: " << numRedBoxes << endl;
   cout << "data_directory: " << data_directory << endl << "class_name: " << class_name << endl 
@@ -3416,7 +3448,7 @@ int main(int argc, char **argv) {
   markers_blue = n.advertise<visualization_msgs::MarkerArray>("blue_object_markers", 10);
   markers_red = n.advertise<visualization_msgs::MarkerArray>("red_object_markers", 10);
 
-  ee_target_pub = n.advertise<geometry_msgs::Point>("pilot_target", 10);
+  ee_target_pub = n.advertise<geometry_msgs::Point>("pilot_target_" + left_or_right_arm, 10);
 
   cv::namedWindow("Density Viewer");
   cv::namedWindow("Object Viewer");
