@@ -192,18 +192,6 @@ usability results), and is an improvement over un-annotated systems
 computational overhead since we don't crunch expensive features or do
 heavy classification at run time).
 
-\section{Related Work}
-In this section we discuss each of the tasks our system tackles, both at the level of sophistication 
-we are using and at the state of the art. We address typical expert training and automated approaches that exist, 
-together with usability concerns.
-
-\citet{velez11} created a mobile robot that explores the environment
-and actively plans paths to acquire views of objects such as doors.
-However it uses a fixed model of the object being detected rather than
-updating its model based on the data it has acquired from the
-environment.
-\citet{atanasov13} 
-
 
 
 \section{Object Detection and Pose Estimation}
@@ -287,6 +275,11 @@ Our system is distributed and thus at times there is an appreciable amount of la
 communicating components. Care is taken to synchronize robot movement with object detection
 reports, allowing only a fixed amount of movement per report.
 
+\stnote{Cite the visual servoing tutorial paper and talk about the
+  connection to grasping rectangles.}
+
+\stnote{Find someone to learn PID coefficients.}
+
 \section{General Autonomous Training Algorithm}
 \label{sec:training}
 we teach the system by finding its weaknesses and training it to overcome these 
@@ -298,9 +291,10 @@ scalable way.  we structure the training, the training structures the models.
 
 Also, grounding ambiguous object examples to the right class, retraining the models online.
 
-\section{Applications of GATA}
+\stnote{Algorithm block.}
 
-\stnote{I think this should be merged with the experiments?}
+
+\section{Applications of GATA}
 
 \subsection{Recognition Training}
 
@@ -475,7 +469,16 @@ expert. This represents the best that the system could be expected to perform.
 %objects. In the second, they provide their own objects.
 
 
-\citep{tellex11}
+
+
+\citet{velez11} created a mobile robot that explores the environment
+and actively plans paths to acquire views of objects such as doors.
+However it uses a fixed model of the object being detected rather than
+updating its model based on the data it has acquired from the
+environment.
+\citet{atanasov13} 
+
+
 
 
 \section{Conclusion}
