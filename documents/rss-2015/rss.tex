@@ -14,13 +14,17 @@
 \newcommand{\stnote}[1]{\textcolor{Blue}{\textbf{ST: #1}}}
 \newcommand{\jgonote}[1]{\textcolor{Green}{\textbf{JGO: #1}}}
 
+\newcommand{\mytitle}[0]{Autonomously Acquiring Models of Objects for Instance-Based
+  Recognition, Pose Estimation, and Grasping}
+
 \pdfinfo{
-   /Author (Homer Simpson)
-   /Title  (Robots: Our new overlords)
+   /Author ()
+   /Title  (\mytitle)
    /CreationDate (D:20101201120000)
    /Subject (Robots)
-   /Keywords (Robots;Overlords)
+   /Keywords ()
 }
+
 
 
 \makeatletter
@@ -71,7 +75,8 @@
 \DeclareGraphicsExtensions{.jpg}
 
 
-\title{A Robot in the First Person}
+\title{\mytitle{}}
+
 \author{Author Names Omitted for Anonymous Review. Paper-ID [add your ID here]}
 
 \maketitle
@@ -141,9 +146,6 @@ grasps).
 Robotic assistants will assist us at childcare, help us cook, and provide service to
 doctors, nurses, and patients in hospitals. Many such tasks require a robot to
 robustly perceive and manipulate objects. 
-\stnote{I would cut the previous two sentences, to avoid getting so specific about the robot so quickly.  }
-\jgonote{Rather than cut I decided to move it.}
-
 Conventional systems are capable of perception and manipulation in a limited sense.
 Some systems require training by a human operator on an object to object basis, which 
 is time consuming and can be difficult for a non-expert to perform ~\citep{ork14, lai11, lai11a}. There 
@@ -153,49 +155,58 @@ highest accuracy or precision and have not been demonstrated for grasping~\citep
 
 To obtain the benefits of both approaches, we propose a system which trains itself 
 to recognize and manipulate the specific objects it will need to use during future
-collaborations with humans. \stnote{s/It is powerful because it/Our system} \jgonote{ACK}
+collaborations with humans. 
 Our system is powerful because it learns to identify and grasp on 
 a per object basis. Our system is portable, convenient, and general because the expert knowledge it employs
 is built into the algorithms which it uses to train itself, requiring only basic
 interaction from a non-technical human collaborator.
 
-\stnote{This paragraph feels a little misleading because we end by saying that these three parts are not new.  I think it's important to headline and emphasize the part that is new.  It might help to move the ``Our contribution'' sentence from the next paragraph up hear, and then discuss the three parts.}
-\jgonote{ACK}
+Our contribution is an algorithm which allows a robot to autonomously
+train its subsystems, together with three applications of the
+algorithm to the tasks mentioned above.  The first application is
+recognizing the category of an object and the second application is
+estimating the pose of the object, both of which we accomplish with
+simple and robust computer vision algorithms \stnote{combined with our
+  proposed algorithm for autonomous collection of training data}. The
+third application is grasping the object, which we accomplish with
+visual servoing techniques. Each of these components is well
+understood in its own right, and existing methods allow expert users
+to train systems to accomplish these tasks satisfactorily.
 
-Our contribution
-is an algorithm which allows a robot to autonomously train its subsystems, together with three
-applications of the algorithm to the tasks mentioned above.
-The first application is recognizing the category of an
-object and the second application is estimating the pose of the object, both of which we 
-accomplish with simple and robust computer vision algorithms. The third
-application is grasping the object, which we accomplish with visual servoing techniques. Each 
-of these components is well understood in its own right, and existing methods allow 
-expert users to train systems to accomplish these tasks satisfactorily. 
-
-When we apply 
-the algorithm to the recognition task, the robot trains the recognition system to discriminate
-between object instance categories. When we apply the algorithm to the pose estimation task,
-the robot trains the pose estimation system to determine which pose an identified object holds. 
-When we apply the algorithm to the grasping task, the robot trains the grasping system to 
-successfully and quickly pick and place the target object.  \jgonote{Quickly because
-perhaps the robot will tune its own PID controller. I will write under the assumption
-that it will and we can cut it if we don't get around to it.}
-
-Crucially, our algorithm can recognize when it is doing a poor job at learning and
-asks a human collaborator to manually annotate information in those cases.
+When we apply the algorithm to the recognition task, the robot trains
+the recognition system to discriminate between object instance
+categories. When we apply the algorithm to the pose estimation task,
+the robot trains the pose estimation system to determine which pose an
+identified object holds.  When we apply the algorithm to the grasping
+task, the robot trains the grasping system to successfully and quickly
+pick and place the target object.  Crucially, our algorithm can
+recognize when it is doing a poor job at learning and asks a human
+collaborator to manually annotate information in those cases.
 
 
 
-It works because our experiments tell us so. This is how well they work: .  Thus we see an
-improvement over expert trained systems (cite usability results), and is an improvement
-over un-annotated systems (cite success rates, the ability to generalize, and the low
-computational overhead since we don't crunch expensive features or do heavy classification
-at run time).
+It works because our experiments tell us so. This is how well they
+work: .  Thus we see an improvement over expert trained systems (cite
+usability results), and is an improvement over un-annotated systems
+(cite success rates, the ability to generalize, and the low
+computational overhead since we don't crunch expensive features or do
+heavy classification at run time).
 
 \section{Related Work}
 In this section we discuss each of the tasks our system tackles, both at the level of sophistication 
 we are using and at the state of the art. We address typical expert training and automated approaches that exist, 
 together with usability concerns.
+
+\citet{velez11} created a mobile robot that explores the environment
+and actively plans paths to acquire views of objects such as doors.
+However it uses a fixed model of the object being detected rather than
+updating its model based on the data it has acquired from the
+environment.
+\citet{atanasov13} 
+
+
+
+\section{Technical Approach}
 
 \subsection{Object Recognition}
 \jgonote{Cover BING, SIFT, BoW, typical training pipelines, and RGB-D approaches popular in the robotics
@@ -387,7 +398,13 @@ objects. In the second, they provide their own objects.
 \citep{tellex11}
 
 
-\section{Extensions}
+\section{Conclusion}
+
+\stnote{First paragraph:  contributions.  What are the things this paper has done to advance the state of the art?}
+
+\stnote{Next paragraphs: future work, spiraling upward to more and
+  more ambitiuos extensions.}
+
 Right now, NODE runs on Baxter. We will port NODE to PR2 and other AH systems.
 GATA could be applied in other domains as well.  What are some examples?
 
