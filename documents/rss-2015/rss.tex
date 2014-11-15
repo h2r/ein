@@ -140,11 +140,9 @@ grasps).
 \section{Introduction}
 Robotic assistants will assist us at childcare, help us cook, and provide service to
 doctors, nurses, and patients in hospitals. Many such tasks require a robot to
-robustly perceive and manipulate objects. We consider a setting where a robotic arm
-with 7 degrees of freedom grasps objects with a parallel plate gripper which adds
-an additional degree of freedom, but much of what we discuss could be extended to other
-arms and grippers, for instance the universal jamming gripper ~\citep{}.
+robustly perceive and manipulate objects. 
 \stnote{I would cut the previous two sentences, to avoid getting so specific about the robot so quickly.  }
+\jgonote{Rather than cut I decided to move it.}
 
 Conventional systems are capable of perception and manipulation in a limited sense.
 Some systems require training by a human operator on an object to object basis, which 
@@ -155,33 +153,38 @@ highest accuracy or precision and have not been demonstrated for grasping~\citep
 
 To obtain the benefits of both approaches, we propose a system which trains itself 
 to recognize and manipulate the specific objects it will need to use during future
-collaborations with humans. It is powerful because it learns to identify and grasp on 
-a per object basis. \stnote{s/It is powerful because it/Our system} It is portable, convenient, and general because the expert knowledge it employs
+collaborations with humans. \stnote{s/It is powerful because it/Our system} \jgonote{ACK}
+Our system is powerful because it learns to identify and grasp on 
+a per object basis. Our system is portable, convenient, and general because the expert knowledge it employs
 is built into the algorithms which it uses to train itself, requiring only basic
 interaction from a non-technical human collaborator.
 
 \stnote{This paragraph feels a little misleading because we end by saying that these three parts are not new.  I think it's important to headline and emphasize the part that is new.  It might help to move the ``Our contribution'' sentence from the next paragraph up hear, and then discuss the three parts.}
-There are three parts to our approach. The first part is recognizing the category of an
-object and the second part is estimating the pose of the object, both of which we 
-accomplish with simple and robust computer vision algorithms. The third
-part is grasping the object, which we accomplish with visual servoing techniques. Each 
-of these components is well understood in its own right, and existing methods allow 
-expert users to train systems to accomplish these tasks satisfactorily. 
+\jgonote{ACK}
 
 Our contribution
 is an algorithm which allows a robot to autonomously train its subsystems, together with three
-applications of the algorithm to the tasks mentioned above. When we apply 
+applications of the algorithm to the tasks mentioned above.
+The first application is recognizing the category of an
+object and the second application is estimating the pose of the object, both of which we 
+accomplish with simple and robust computer vision algorithms. The third
+application is grasping the object, which we accomplish with visual servoing techniques. Each 
+of these components is well understood in its own right, and existing methods allow 
+expert users to train systems to accomplish these tasks satisfactorily. 
+
+When we apply 
 the algorithm to the recognition task, the robot trains the recognition system to discriminate
 between object instance categories. When we apply the algorithm to the pose estimation task,
 the robot trains the pose estimation system to determine which pose an identified object holds. 
 When we apply the algorithm to the grasping task, the robot trains the grasping system to 
-successfully pick and place the target object.  
+successfully and quickly pick and place the target object.  \jgonote{Quickly because
+perhaps the robot will tune its own PID controller. I will write under the assumption
+that it will and we can cut it if we don't get around to it.}
 
-Additionally, our algorithm can recognize when it is doing a poor job at learning and
+Crucially, our algorithm can recognize when it is doing a poor job at learning and
 asks a human collaborator to manually annotate information in those cases.
 
-Do we also want to train the parameters of the PID controller? That is non-trivially cool
-as well.
+
 
 It works because our experiments tell us so. This is how well they work: .  Thus we see an
 improvement over expert trained systems (cite usability results), and is an improvement
@@ -190,22 +193,71 @@ computational overhead since we don't crunch expensive features or do heavy clas
 at run time).
 
 \section{Related Work}
-Talk about each task, both at the level of sophistication we are using and at the
-state of the art. Address typical expert training and automated approaches that exist, 
+In this section we discuss each of the tasks our system tackles, both at the level of sophistication 
+we are using and at the state of the art. We address typical expert training and automated approaches that exist, 
 together with usability concerns.
 
 \subsection{Object Recognition}
-SIFT, BoW, typical training pipelines, and RGB-D approaches popular in the robotics
-community. 
+\jgonote{Cover BING, SIFT, BoW, typical training pipelines, and RGB-D approaches popular in the robotics
+community.} Our recognition pipeline takes RGB-D video from the robot, proposes a small number of candidate 
+object bounding boxes in each frame, and classifies each candidate bounding box as belonging to a previously
+encountered object class. Our object classes consist of object instances rather than pure object categories.
+
+To generate condidate bounding boxes, we first apply the BING objectness detector ~\citep{} to the image, which
+returns a set $\{B_i\}$ of thousands of approximate object bounding boxes in the image. This is a
+substantial reduction from the set of all bounding boxes in the image, but is still too large for
+us to process in real time. Besides, even good bounding boxes from BING are typically not aligned to
+the degree that we require. Therefore, we use integral images to efficiently compute the per-pixel map
+$$O(p) = \sum_{B \in \{B_i\} s.t. p \in B} \frac{1}{Area(B)}.$$
+We then apply the Canny edge detector with hysteresis ~\citep{} to find the connected components of bright
+regions in the map $O(p)$, which correspond with high probability to objects in the image. We then form
+our candidate object bounding boxes by taking the smallest bounding box which surrounds each connected component.
+These bounding boxes make it easy to gather training data and to perform inference in real time, but at
+the expense of poorly handing occulusion as overlapping objects are fused into the same bounding box.
+It is possible to search within the proposed bounding boxes to better handle occlusion.
+
+For each object $c$ we wish to classify, we gather a set of example crops $E_c$ which are candidate
+bounding boxes (derived as above) which contain $c$. We extract dense SIFT features ~\citep{} from all boxes of
+all classes and use k-means to extract a visual vocabulary of SIFT features ~\citep{}. We then construct a
+BoW feature vector for each image and augment it with a histogram of colors which appear in that image.
+The augmented feature vector is incorporated into a k-nearest-neighbors model which we use to classify
+objects at inference ~\citep{}.
+
+The use of SIFT features is motivated by the instance level nature of our task. State-of-the-art vision
+methods typically use HOG ~\citep{} or CNN ~\citep{} features, but that choice is motivated by category
+level recognition.
+
+We use kNN because it is easy to rebuild online, which is a key property a classifier should enjoy
+if it is to interact with our framework in real time. State-of-the-art computer vision classifiers
+currently employ SVM's ~\citep{} or other models which require expensive training. Using such a model would
+introduce a training step in the inside loop of our data collection process, which would be costly
+in either engineering or time.  It is possible to use kNN during the online collection process and then
+train a stronger classifier in the background at higher latency, essentially introducing a cascading step
+in the data collection process.
  
 \subsection{Pose Estimation}
-Computer vision approaches, geometry and point cloud based approaches. Dieter Fox's automatic
+\jgonote{Computer vision approaches, geometry and point cloud based approaches. Dieter Fox's automatic
 training pipeline (how well developed is it? we may need to sell our approach as being a 
 general algorithm for allowing a robot to train arbitrary subsystems in order to differentiate 
-ourselves.)
+ourselves.)}
+We tackle the pose estimation problem using the same classification pipeline that we use for
+object recognition. We train a separate pose classifier for each object class. This time, the class
+assigned to each training example is the orientation from which the object is viewed in that example.
+During inference, we first determine the object class of a candidate bounding box, and once the class
+is known we apply the corresponding pose classifier to determine the orientation from which we
+are viewing the object. We combine this orientation with position information from the point cloud
+information derived from the D channel of the RGB-D video to form a full pose estimate.
 
 \subsection{Object Grasping}
-Including open and closed loop paradigms, learning specific and generic grasp models.
+\jgonote{Including open and closed loop paradigms, learning specific and generic grasp models.}
+
+We use a dual rate PID controller in the sense that we use two sets of PID coefficients. The
+first set is for making large adjustments when the aim if off by a significant amount. The
+second set is for making small adjustments when aim is close to the target.
+
+Our system is distributed and thus at times there is an appreciable amount of latency between
+communicating components. Care is taken to synchronize robot movement with object detection
+reports, allowing only a fixed amount of movement per report.
 
 \section{General Autonomous Training Algorithm}
 we teach the system by finding its weaknesses and training it to overcome these 
@@ -224,6 +276,12 @@ Also, grounding ambiguous object examples to the right class, retraining the mod
 \subsection{Pose Estimation Training}
 
 \subsection{Grasp Training}
+We consider a setting where a robotic arm
+with 7 degrees of freedom grasps objects with a parallel plate gripper which adds
+an additional degree of freedom, but much of what we discuss could be extended to other
+arms and grippers, for instance the universal jamming gripper ~\citep{}.
+\jgonote{Moved this here from the first paragraph.}
+
 This Grasp Rectangle business fits in nicely with the reticle.
 
 0. Estimate the depth of the table by inspecting non-object locations. This helps decide when to close the gripper.
@@ -241,12 +299,43 @@ This can be ascertained by the gripper position.
 5. Calculate a density map for this 
 
 \subsection{PID Parameter Training}
-Maybe a coordinate descent algorithm or wide-scale random noise search.
+\jgonote{Maybe a coordinate descent algorithm or wide-scale random noise search.}
+Since we use a dual-rate controller, there are two separate sets of coefficients that we must train.
+We train the high-rate coefficients with the objective of getting the aim within the 'close' threshold.
+We train the low-rate coefficients with the objective of getting the aim within the 'hit' threshold.
+The training for the high and low-rate coefficients is analogous and happens independently, so
+without loss of generality we describe the training process for an arbitrary set of coefficients.
+
+\jgonote{I imagine this has been done before so it would be good to find who did this.}
+A single set of PID coefficients consists of $K_P$, $K_I$, $K_D$. In the inside loop of EM-like training, we
+randomly pick a coefficient $K$ to train, fix the other two coefficients,  and use a local search 
+algorithm ~\citep{} to find the optimal value of $K$ conditioned on the fixed values of the other two
+parameters. This problem is not necessarily convex and so we run the inside loop of our algorithm
+until we have converged to a local minimum.
 
 
 \section{Experimental Setup}
+\jgonote{This is where we describe the experiments we performed.}
+We are not trying to extend the state-of-the-art on our individual tasks. Rather,
+we are providing an interactive framework which will raise the maximum automated vision
+available to the average user.
 
-\subsection{Object Categorization}
+Our system can be evaluated in two important ways. Firstly, how effective is 
+the system at the tasks for which it is trained? Secondly, how accessible to users is the system?
+For now we evaluate system performance, and leave user studies for future work.
+
+\subsection{Object Categorization and Pose Estimation}
+For object categorization and pose estimation, we constructed data
+sets on which we could evaluate our models. This involved hand
+annotating the ground truth for the images in the sets, which is a
+costly procedure which we are attempting to eliminate for future tasks.
+However, we cannot evaluate our system in a principled fashion without such
+a data set.
+
+We demonstrate our method's success in this setting where we pay the cost
+to acquire the data so that we can trust our method and that cost need not be 
+payed during future applications. 
+
 Probably uses confusion rates as the objective function.
 
 Expert viewpoint collection (uses at least hard negatives)
@@ -255,11 +344,8 @@ Super dense sampling
 
 uniform hard negative sampling with stopping criterion
 
-\subsection{Pose Estimation}
-This should be analogous to categorization where the classes
-are now the poses.
-
 \subsection{Grasp Experiments}
+For grasp experiments, we conducted online trials in order to compute success rates.
 This uses grasp success rate as an objective function.
 
 Expert annotation of grasps
@@ -269,20 +355,11 @@ Uniform grasp sampling
 Thompson sampling
 
 \subsection{PID Experiments}
-We probably use the time to convergence as the objective function
+For PID experiments, we conducted online trials in order to compute success rates.
+We use the time to convergence as the objective function
 
 
-
-\section{Evaluation}
-Our system can be evaluated in two important ways. Firstly, how effective is 
-the system at the tasks for which it is trained? Secondly, how accessible to users is the system?
-
-Because this system is designed as a component in a complex system, raw recognition rates
-and pose estimation accuracy would not be very informative even if it were not impractical to
-obtain them.  Besides, we are not trying to extend the state-of-the-art on those tasks. Rather,
-we are trying to provide an interactive framework which will raise the maximum automated vision
-available to the average user.
-
+\section{Evaluation and Discussion}
 We could report the performance of the system as a function of user interactions.
 
 We could report the performance of the system as a function of program lifetime.
@@ -314,7 +391,18 @@ objects. In the second, they provide their own objects.
 Right now, NODE runs on Baxter. We will port NODE to PR2 and other AH systems.
 GATA could be applied in other domains as well.  What are some examples?
 
-
+% 1. Experimental
+%  a. Contribution (is it new?)
+%  b. Execution (does it work?)
+%  c. Demonstration (is it well understood?)
+% 2. Bureaucratic
+%  a. Do we know what we are talking about?
+%  b. Are we polite about it? (or are we accidently claiming false novelty?)
+%  c. Can they understand it? (no algebraic geometry plz k thnx)
+% 3. Aesthetic
+%  a. The dual of 2c.
+%  b. Are spelling, grammar, and figure placement acceptable?
+%  c. Does it scan? (how is the meter?)
 
 \bibliographystyle{plainnat}
 \bibliography{main,references}
