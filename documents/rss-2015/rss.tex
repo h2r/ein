@@ -324,8 +324,8 @@ Our system can be evaluated in two important ways. Firstly, how effective is
 the system at the tasks for which it is trained? Secondly, how accessible to users is the system?
 For now we evaluate system performance, and leave user studies for future work.
 
-\subsection{Object Categorization and Pose Estimation}
-For object categorization and pose estimation, we constructed data
+\subsection{Object Detection and Pose Estimation}
+For object Detection and pose estimation, we constructed data
 sets on which we could evaluate our models. This involved hand
 annotating the ground truth for the images in the sets, which is a
 costly procedure which we are attempting to eliminate for future tasks.
@@ -354,9 +354,11 @@ Uniform grasp sampling
 
 Thompson sampling
 
-\subsection{PID Experiments}
+\subsection{PID Control Experiments}
 For PID experiments, we conducted online trials in order to compute success rates.
 We use the time to convergence as the objective function
+
+
 
 
 \section{Evaluation and Discussion}
@@ -368,20 +370,78 @@ Our representative set could consist of a block, a spoon,
 a bowl, a diaper, and a sippy cup. A \emph{single cut video} showing multiple grasps
 of all objects is available here.
 
-\subsection{Expert Manual Training}
-We therefore establish a baseline for performance by training the system in a representative domain
+\subsection{Object Detection}
+We establish a baseline for performance by training the system in a representative domain
 specific setting, which tells us how well it can perform on laboratory objects when trained by an 
 expert. This represents the best that the system could be expected to perform.
 
-\subsection{Laboratory Automatic Training}
-How well does the automatic training system perform when trained in laboratory conditions?
+\begin{figure}
+  \begin{center}
+  \begin{tabular}{|l|r|}
+  \hline
+  Data Collection Method & Success Rate \\ \hline
+  Expert Annotation & 0.0 \\ \hline
+  Dense Sampling & 0.0 \\ \hline
+  Hard Negatives Auto-Stopping & 0.0 \\ \hline
+  \end{tabular}
+  \caption{Performance of our system on the object detection task.}
+  \end{center}
+\end{figure}
 
-\subsection{Non-Expert In-The-Wild Training}
-We then go on to compare the performance of the system when trained to various degrees by naive
-and technical non-expert users.
+\subsection{Pose Estimation}
 
-We repeat the experiments with naive users in two settings. In the first, they train laboratory
-objects. In the second, they provide their own objects.
+\begin{figure}
+  \begin{center}
+  \begin{tabular}{|l|r|}
+  \hline
+  Data Collection Method & Success Rate \\ \hline
+  Expert Annotation & 0.0 \\ \hline
+  Dense Sampling & 0.0 \\ \hline
+  Hard Negatives Auto-Stopping & 0.0 \\ \hline
+  \end{tabular}
+  \caption{Performance of our system on the pose estimation task.}
+  \end{center}
+\end{figure}
+
+\subsection{Grasping}
+
+\begin{figure}
+  \begin{center}
+  \begin{tabular}{|l|r|}
+  \hline
+  Grasp Sampling Method & Success Rate \\ \hline
+  Expert Annotation & 0.0 \\ \hline
+  Uniform Sampling & 0.0 \\ \hline
+  Thompson Sampling & 0.0 \\ \hline
+  \end{tabular}
+  \caption{Performance of our system on the grasping task.}
+  \end{center}
+\end{figure}
+
+\subsection{PID Control}
+
+\begin{figure}
+  \begin{center}
+  \begin{tabular}{|l|r|}
+  \hline
+  Parameter Learning Method & Average Convergence Time \\ \hline
+  Expert Annotation & 0.0 \\ \hline
+  Constant Learning Rate & 0.0 \\ \hline
+  Decaying Learning Rate & 0.0 \\ \hline
+  Wide Scale Random Noise & 0.0 \\ \hline
+  \end{tabular}
+  \caption{Performance of our system on the PID control task.}
+  \end{center}
+\end{figure}
+
+%\subsection{Laboratory Automatic Training}
+%How well does the automatic training system perform when trained in laboratory conditions?
+
+%\subsection{Non-Expert In-The-Wild Training}
+%We then go on to compare the performance of the system when trained to various degrees by naive
+%and technical non-expert users.
+%We repeat the experiments with naive users in two settings. In the first, they train laboratory
+%objects. In the second, they provide their own objects.
 
 
 \citep{tellex11}
