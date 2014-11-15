@@ -12,4 +12,4 @@
 // similarly you must rewrite the labels.
 #define REWRITE_LABELS
 
-#include "oberlin_detection.cpp"
+#include "node_main.cpp"

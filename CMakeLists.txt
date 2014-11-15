@@ -39,7 +39,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -O3")
 
 #set(CMAKE_BUILD_TYPE Debug)
 
-add_executable(oberlin_detector src/oberlin_detection.cpp)
 add_executable(capture_object src/capture_object.cpp)
 add_executable(train_classifier src/train_classifier.cpp)
 add_executable(publish_detections src/publish_detections.cpp)
@@ -48,12 +47,6 @@ add_executable(capture_hard_class src/capture_hard_class.cpp)
 add_executable(filter_time src/filter_time.cpp)
 add_executable(pilot_baxter src/pilot_baxter.cpp)
 
-target_link_libraries(oberlin_detector
-	${catkin_LIBRARIES}
-	${OpenCV_LIBS}
-	opencv_nonfree
-	BINGLIB ###
-)
 target_link_libraries(capture_object
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
