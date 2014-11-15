@@ -206,22 +206,39 @@ environment.
 
 
 
-\section{Technical Approach}
+\section{Object Detection and Pose Estimation}
+
+We first describe our instance-based object detection and pose
+estimation pipeline, which uses standard computer vision algorithms
+combined to achieve a simple software architecture, a high frame rate,
+and high accuracy at recognition and pose estimation.  This pipeline
+can be manually trained by an expert to reliably detect and grasp
+objects.  Additionally, section~\ref{sec:training} describes our
+approach to enabling a robot to autonomously train this pipeline by
+actively collecting images and training data from the environment.
 
 \subsection{Object Recognition}
-\jgonote{Cover BING, SIFT, BoW, typical training pipelines, and RGB-D approaches popular in the robotics
-community.} Our recognition pipeline takes RGB-D video from the robot, proposes a small number of candidate 
-object bounding boxes in each frame, and classifies each candidate bounding box as belonging to a previously
-encountered object class. Our object classes consist of object instances rather than pure object categories.
+\jgonote{Cover BING, SIFT, BoW, typical training pipelines, and RGB-D
+  approaches popular in the robotics community.} 
 
-To generate condidate bounding boxes, we first apply the BING objectness detector ~\citep{} to the image, which
+Our recognition pipeline takes RGB-D video from the robot, proposes a
+small number of candidate object bounding boxes in each frame, and
+classifies each candidate bounding box as belonging to a previously
+encountered object class. Our object classes consist of object
+instances rather than pure object categories.  Using instance
+recognition means we cannot reliably detect categories, such as
+``mugs,'' but the system will be able to detect, localize, and grasp
+the specific instances for which it has models with much higher speed
+and accuracy.
+
+To generate condidate bounding boxes, we first apply the BING objectness detector~\citep{cheng14} to the image, which
 returns a set $\{B_i\}$ of thousands of approximate object bounding boxes in the image. This is a
 substantial reduction from the set of all bounding boxes in the image, but is still too large for
 us to process in real time. Besides, even good bounding boxes from BING are typically not aligned to
 the degree that we require. Therefore, we use integral images to efficiently compute the per-pixel map
 $$O(p) = \sum_{B \in \{B_i\} s.t. p \in B} \frac{1}{Area(B)}.$$
 We then apply the Canny edge detector with hysteresis ~\citep{} to find the connected components of bright
-regions in the map $O(p)$, which correspond with high probability to objects in the image. We then form
+regions in the map $O(p)$, which correspond with high probability to objects in the image. We form
 our candidate object bounding boxes by taking the smallest bounding box which surrounds each connected component.
 These bounding boxes make it easy to gather training data and to perform inference in real time, but at
 the expense of poorly handing occulusion as overlapping objects are fused into the same bounding box.
@@ -271,6 +288,7 @@ communicating components. Care is taken to synchronize robot movement with objec
 reports, allowing only a fixed amount of movement per report.
 
 \section{General Autonomous Training Algorithm}
+\label{sec:training}
 we teach the system by finding its weaknesses and training it to overcome these 
 weaknesses. We provide a framework for structuring that training in an affordable, 
 scalable way.  we structure the training, the training structures the models.
@@ -281,6 +299,8 @@ scalable way.  we structure the training, the training structures the models.
 Also, grounding ambiguous object examples to the right class, retraining the models online.
 
 \section{Applications of GATA}
+
+\stnote{I think this should be merged with the experiments?}
 
 \subsection{Recognition Training}
 
