@@ -14,8 +14,8 @@
 \newcommand{\stnote}[1]{\textcolor{Blue}{\textbf{ST: #1}}}
 \newcommand{\jgonote}[1]{\textcolor{Green}{\textbf{JGO: #1}}}
 
-\newcommand{\mytitle}[0]{Autonomously Acquiring Models of Objects for Instance-Based
-  Recognition, Pose Estimation, and Grasping}
+\newcommand{\mytitle}[0]{Autonomously Acquiring Models of Objects for
+  Instance-Based Grasping}
 
 \pdfinfo{
    /Author ()
@@ -469,16 +469,59 @@ expert. This represents the best that the system could be expected to perform.
 %objects. In the second, they provide their own objects.
 
 
-
+\section{Related Work}
 
 \citet{velez11} created a mobile robot that explores the environment
 and actively plans paths to acquire views of objects such as doors.
 However it uses a fixed model of the object being detected rather than
 updating its model based on the data it has acquired from the
 environment.
-\citet{atanasov13} 
+
+Methods for planning in information space \citep{he08, atanasov13,
+  prentice09} have been applied to enable mobile robots to plan
+trajectories that avoid failures due to inability to accurately
+estimate positions.  Our approach approach is focused instead on
+object detection and manipulation, actively acquiring data for use
+later in localizing and picking up objects.
 
 
+Early models for pick-and-place rely on has been studied since the
+early days of robotics~\citep{brooks83, lozano89}.  These systems
+relied on models of object pose and end effector pose provided to the
+algorithm, and simply planned a motion for the arm to grasp.  Modern
+approaches use object recognition systems to estimate pose and object
+type, then libraries of grasps either annotated or learned from
+data~\citep{saxena08, goldfeder09, morales03}.  These approaches
+attempt to create systems that can grasp arbitrary objects based on
+learned visual features or known 3d configuration.  The training sets
+are typically collected at considerable expense (not accessible to the
+average user in a non-robotics setting).  If the system does not work
+for the user's particular application, there is no easy way for it to
+adapt or relearn.  Our approach, instead, enables the robot to
+autonomously acquire more information to increase robustness at
+detecting and manipulating the specific object that is important to
+the user at the current moment.
+
+Visual-servoing based methods \citet{chaumette06}
+
+\citet{ciocarlie14}
+
+Our approach is similar to the philosphy adoptied by Rethink Robotic's
+Baxte robot, and indeed, we use Baxter as our test
+platform~\citep{fitzgerald13}.  Baxter's manufacturing platform is
+designed to be easily learned and trained by workers on the factory
+floor.  The difference between this system and our approach is we rely
+on the robot to autonomously collect the training information it needs
+to grasp the object, rather than requiring this training information
+to be provided by the user.   
+
+
+Robot systems for cooking~\citep{bollini12, beetz11} or furniture
+assembly~\citep{knepper13} use many simplifying assumptions, including
+pre-trained object locations or using VICON to solve the perceptual
+system.  We envision vision or RGB-D based sensors mounted on the
+robot, so that a person can train a robot to recognize and manipulate
+objects wherever the robot finds itself.
 
 
 \section{Conclusion}
