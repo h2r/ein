@@ -4,28 +4,29 @@
 //// these macros below were moved to other files
 //#define RUN_INFERENCE // generates the blue boxes
 //#define PUBLISH_OBJECTS // requires blue, brown, and gray boxes, and inference
-//#define DRAW_LABEL
-//#define DRAW_ORIENTOR
 //#define RELOAD_DATA
 //#define RELEARN_VOCAB
 //#define LEARN_ONLY
 //// these macros above were moved to other files
 
 #define RUN_TRACKING // calculates the red boxes
-//#undef DRAW_ORIENTOR
-//#define DRAW_BING 
-
-#define DRAW_WHITE
-#define DRAW_GREEN
-#define DRAW_BLUE // depends on green boxes
-#define DRAW_RED // depends on blue boxes
-#define DRAW_RED_BETWEEN 
-#define DRAW_GRAY
-//#define DRAW_PINK // depends on blue boxes
-#define DRAW_BROWN // depends on blue and gray boxes, inference, and pointcloud configuration
 
 #define DRAW_BLUE_KEYPOINTS
 #define DRAW_RED_KEYPOINTS
+
+int drawOrientor = 1;
+int drawLabels = 1;
+int drawPurple = 0;
+int drawWhite = 0;
+int drawGreen = 1;
+int drawBlue = 1;
+int drawRed = 1;
+int drawRB = 0;
+int drawGray = 1;
+int drawPink = 0;
+int drawBrown = 1;
+int drawBlueKP = 1;
+int drawRedKP = 1;
 
 //#define DEBUG
 
@@ -55,6 +56,8 @@ double tfPast = 10.0;
 #include <math.h>
 #include <string>
 std::string left_or_right_arm = "";
+std::string densityViewerName = "Density Viewer";
+std::string objectViewerName = "Object Viewer";
 
 typedef struct {
   double px;
@@ -542,9 +545,8 @@ void getPointCloudPoints(cv_bridge::CvImagePtr cv_ptr, vector<cv::Point>& pointC
       }
 
       if (!reject) {
-  #ifdef DRAW_PINK
-	rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(100,100,255));
-  #endif
+	if (drawPink)
+	  rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(100,100,255));
 	pointCloudPoints.push_back(cv::Point(x,y));
       }
     }
@@ -1378,29 +1380,29 @@ cout << "table label x: " << tableLabelQuaternion.x() << " y: " <<
   tableLabelQuaternion.y() << " z: " << tableLabelQuaternion.z() << " w: " << tableLabelQuaternion.w() << " " << endl;
 #endif
 
-      #ifdef DRAW_ORIENTOR
-      Mat vCrop = cv_ptr->image(cv::Rect(top.x, top.y, bot.x-top.x, bot.y-top.y));
-      vCrop = vCrop.mul(0.5);
+      if (drawOrientor) {
+	Mat vCrop = cv_ptr->image(cv::Rect(top.x, top.y, bot.x-top.x, bot.y-top.y));
+	vCrop = vCrop.mul(0.5);
 
-      Mat scaledFilter;
-      // XXX
-      cv::resize(orientedFilters[winningO], scaledFilter, vCrop.size());
-      //cv::resize(orientedFilters[fc % ORIENTATIONS], scaledFilter, vCrop.size());
-      //fc++;
-#ifdef DEBUG
-cout << "FILTERS: " << fc << " " << orientedFilters[fc % ORIENTATIONS].size() << endl;
-#endif
-      scaledFilter = biggestL1*scaledFilter;
-       
-      vector<Mat> channels;
-      channels.push_back(Mat::zeros(scaledFilter.size(), scaledFilter.type()));
-      channels.push_back(Mat::zeros(scaledFilter.size(), scaledFilter.type()));
-      channels.push_back(scaledFilter);
-      merge(channels, scaledFilter);
+	Mat scaledFilter;
+	// XXX
+	cv::resize(orientedFilters[winningO], scaledFilter, vCrop.size());
+	//cv::resize(orientedFilters[fc % ORIENTATIONS], scaledFilter, vCrop.size());
+	//fc++;
+  #ifdef DEBUG
+  cout << "FILTERS: " << fc << " " << orientedFilters[fc % ORIENTATIONS].size() << endl;
+  #endif
+	scaledFilter = biggestL1*scaledFilter;
+	 
+	vector<Mat> channels;
+	channels.push_back(Mat::zeros(scaledFilter.size(), scaledFilter.type()));
+	channels.push_back(Mat::zeros(scaledFilter.size(), scaledFilter.type()));
+	channels.push_back(scaledFilter);
+	merge(channels, scaledFilter);
 
-      scaledFilter.convertTo(scaledFilter, vCrop.type());
-      vCrop = vCrop + 128*scaledFilter;
-      #endif
+	scaledFilter.convertTo(scaledFilter, vCrop.type());
+	vCrop = vCrop + 128*scaledFilter;
+      }
     }
 
 #ifdef DEBUG
@@ -1607,6 +1609,62 @@ cout << endl << orientedFilters[0] << endl;
     biggestL1 = l1norm;
 }
 
+void handleKeyboardInput(int c) {
+
+  switch (c) {
+    case 'q':
+      drawOrientor = !drawOrientor;
+      break;
+    case 'w':
+      drawLabels = !drawLabels;
+      break;
+    case 'e':
+      add_blinders = !add_blinders;
+      break;
+    case 'r':
+      mask_gripper = !mask_gripper;
+      break;
+
+    case 'a':
+      drawPurple= !drawPurple;
+      break;
+    case 's':
+      drawWhite = !drawWhite;
+      break;
+    case 'd':
+      drawGreen = !drawGreen;
+      break;
+    case 'f':
+      drawBlue = !drawBlue;
+      break;
+    case 'g':
+      drawRed = !drawRed;
+      break;
+    case 'h':
+      drawRB = !drawRB;
+      break;
+    case 'j':
+      drawGray = !drawGray;
+      break;
+    case 'k':
+      drawPink = !drawPink;
+      break;
+    case 'l':
+      drawBrown = !drawBrown;
+      break;
+
+    case 'z':
+      drawBlueKP = !drawBlueKP;
+      break;
+    case 'x':
+      drawRedKP = !drawRedKP;
+      break;
+
+    default:
+      break;
+  }
+
+}
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
@@ -1821,12 +1879,12 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
     }
   }
 
-#ifdef DRAW_WHITE
-  // draw the ork bounding boxes
-  for(int i =0; i<wTop.size(); i++){
-    rectangle(cv_ptr->image, wTop[i], wBot[i], cv::Scalar(255,255,255));
+  if (drawWhite) {
+    // draw the ork bounding boxes
+    for(int i =0; i<wTop.size(); i++){
+      rectangle(cv_ptr->image, wTop[i], wBot[i], cv::Scalar(255,255,255));
+    }
   }
-#endif
 
   // XXX make this prettier
   for(int i =0; i < min(numBoxes, boxesToConsider); i++){
@@ -1842,16 +1900,16 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
     double area = width*height;
     double aspectThresh = 20.0;
     if (ratio < aspectThresh && ratio > 1.0/aspectThresh) {
-#ifdef DRAW_BING
-      if (drand48() < drawBingProb) {
-	cv::Point outTop = cv::Point(nTop[i].x, nTop[i].y);
-	cv::Point outBot = cv::Point(nBot[i].x, nBot[i].y);
-	cv::Point inTop = cv::Point(nTop[i].x+1,nTop[i].y+1);
-	cv::Point inBot = cv::Point(nBot[i].x-1,nBot[i].y-1);
-	rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(188,40,140));
-	rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(94,20,70));
+      if (drawPurple) {
+	if (drand48() < drawBingProb) {
+	  cv::Point outTop = cv::Point(nTop[i].x, nTop[i].y);
+	  cv::Point outBot = cv::Point(nBot[i].x, nBot[i].y);
+	  cv::Point inTop = cv::Point(nTop[i].x+1,nTop[i].y+1);
+	  cv::Point inBot = cv::Point(nBot[i].x-1,nBot[i].y-1);
+	  rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(188,40,140));
+	  rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(94,20,70));
+	}
       }
-#endif
       
       double toAdd = 1.0 / area;
       //double toAdd = 1.0;
@@ -1945,8 +2003,7 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
   }
 
 
-#ifdef DRAW_GRAY
-  {
+  if (drawGray) {
     cv::Point outTop = cv::Point(grayTop.x, grayTop.y);
     cv::Point outBot = cv::Point(grayBot.x, grayBot.y);
     cv::Point inTop = cv::Point(grayTop.x+1,grayTop.y+1);
@@ -1954,7 +2011,6 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
     rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(128,128,128));
     rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(32,32,32));
   }
-#endif
 
   if (mask_gripper) {
     int xs = 200;
@@ -2072,25 +2128,15 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
       double thisIntegral = integralDensity[yb*imW+xb]-integralDensity[yb*imW+xt]-
 	integralDensity[yt*imW+xb]+integralDensity[yt*imW+xt];
 
-//cout << thisIntegral << endl;
-
-      //if (thisIntegral > gBoxThresh) {
-	      //gBoxIndicator[y*imW+x] = 1;
-//#ifdef DRAW_GREEN
-	      //rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(0,255,0));
-//#endif
-      //}
       if (thisIntegral > adjusted_canny_lo_thresh) {
 	      gBoxIndicator[y*imW+x] = 1;
-#ifdef DRAW_GREEN
-	      rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(0,128,0));
-#endif
+	      if (drawGreen)
+		rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(0,128,0));
       }
       if (thisIntegral > adjusted_canny_hi_thresh) {
 	      gBoxIndicator[y*imW+x] = 2;
-#ifdef DRAW_GREEN
-	      rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(0,255,0));
-#endif
+	      if (drawGreen)
+		rectangle(cv_ptr->image, thisTop, thisBot, cv::Scalar(0,255,0));
       }
       pBoxIndicator[y*imW+x] = thisIntegral;
 
@@ -2288,7 +2334,8 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
 	    reject = 1;
 
   #ifdef DRAW_BROWN
-	    rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,102,204));
+	    if (drawBrown)
+	      rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,102,204));
   #endif
 	  }
 
@@ -2342,16 +2389,14 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
 		!isFiniteNumber(p03.z()) ) {
 	      reject = 1;
 
-  #ifdef DRAW_BROWN
-	      rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,76,153));
-  #endif
+	      if (drawBrown)
+		rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,76,153));
 	    }
 
 	    if (!reject) {
 	      acceptedBrBoxes++;
-  #ifdef DRAW_BROWN
-	      rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,51,102));
-  #endif
+	      if (drawBrown)
+		rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,51,102));
 
 	      tablePositionSum.x() = tablePositionSum.x() + p0.x + p1.x + p2.x;
 	      tablePositionSum.y() = tablePositionSum.y() + p0.y + p1.y + p2.y;
@@ -2508,8 +2553,7 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
   init_oriented_filters();
 
   // draw it again to go over the brown boxes
-#ifdef DRAW_GRAY
-  {
+  if (drawGray) {
     cv::Point outTop = cv::Point(grayTop.x, grayTop.y);
     cv::Point outBot = cv::Point(grayBot.x, grayBot.y);
     cv::Point inTop = cv::Point(grayTop.x+1,grayTop.y+1);
@@ -2517,7 +2561,6 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
     rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(128,128,128));
     rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(32,32,32));
   }
-#endif
 
   vector< vector<int> > pIoCbuffer;
 
@@ -2579,18 +2622,20 @@ if (numDescrOfWord > 0)
       }
   
   #ifdef DRAW_BLUE_KEYPOINTS
-      for (int kp = 0; kp < keypoints.size(); kp++) {
-	int tX = keypoints[kp].pt.x;
-	int tY = keypoints[kp].pt.y;
-	cv::Point kpTop = cv::Point(bTops[c].x+tX-1,bTops[c].y+tY-1);
-	cv::Point kpBot = cv::Point(bTops[c].x+tX,bTops[c].y+tY);
-	if(
-	  (kpTop.x >= 1) &&
-	  (kpBot.x <= imW-2) &&
-	  (kpTop.y >= 1) &&
-	  (kpBot.y <= imH-2) 
-	  ) {
-	  rectangle(cv_ptr->image, kpTop, kpBot, cv::Scalar(255,0,0));
+      if (drawBlueKP) {
+	for (int kp = 0; kp < keypoints.size(); kp++) {
+	  int tX = keypoints[kp].pt.x;
+	  int tY = keypoints[kp].pt.y;
+	  cv::Point kpTop = cv::Point(bTops[c].x+tX-1,bTops[c].y+tY-1);
+	  cv::Point kpBot = cv::Point(bTops[c].x+tX,bTops[c].y+tY);
+	  if(
+	    (kpTop.x >= 1) &&
+	    (kpBot.x <= imW-2) &&
+	    (kpTop.y >= 1) &&
+	    (kpBot.y <= imH-2) 
+	    ) {
+	    rectangle(cv_ptr->image, kpTop, kpBot, cv::Scalar(255,0,0));
+	  }
 	}
       }
   #endif 
@@ -2699,12 +2744,12 @@ cout << "Rejecting class " << labelName << endl;
     }
   #endif
 
-  #ifdef DRAW_LABEL
-    cv::Point text_anchor(bTops[c].x+1, bBots[c].y-2);
-    cv::Point text_anchor2(bTops[c].x+1, bBots[c].y-2);
-    putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(255,192,192), 2.0);
-    putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(255,0,0), 1.0);
-  #endif
+    if (drawLabels) {
+      cv::Point text_anchor(bTops[c].x+1, bBots[c].y-2);
+      cv::Point text_anchor2(bTops[c].x+1, bBots[c].y-2);
+      putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(255,192,192), 2.0);
+      putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(255,0,0), 1.0);
+    }
 
     double thisThresh = pBoxThresh;
     /*
@@ -3003,15 +3048,17 @@ cout << "REJECTED class: " << thisClass << " bb: " << c << hTop << hBot << " pro
 		keypoints.push_back(bKeypoints[c][w]);
 		countedWords++;		
 	#ifdef DRAW_RED_KEYPOINTS
-		cv::Point kpTop = cv::Point(bTops[c].x+tX,bTops[c].y+tY);
-		cv::Point kpBot = cv::Point(bTops[c].x+tX+1,bTops[c].y+tY+1);
-		if(
-		  (kpTop.x >= 1) &&
-		  (kpBot.x <= imW-2) &&
-		  (kpTop.y >= 1) &&
-		  (kpBot.y <= imH-2) 
-		  ) {
-		  rectangle(cv_ptr->image, kpTop, kpBot, cv::Scalar(0,0,255));
+		if (drawBlueKP) {
+		  cv::Point kpTop = cv::Point(bTops[c].x+tX,bTops[c].y+tY);
+		  cv::Point kpBot = cv::Point(bTops[c].x+tX+1,bTops[c].y+tY+1);
+		  if(
+		    (kpTop.x >= 1) &&
+		    (kpBot.x <= imW-2) &&
+		    (kpTop.y >= 1) &&
+		    (kpBot.y <= imH-2) 
+		    ) {
+		    rectangle(cv_ptr->image, kpTop, kpBot, cv::Scalar(0,0,255));
+		  }
 		}
 	#endif
 	      }
@@ -3053,34 +3100,34 @@ cout << " thisJ: " << thisJ << " slide: " << slideOrNot << " redR: " << redR << 
 		winKeypoints = keypoints;
 	      }
 
-    #ifdef DRAW_RED_BETWEEN
-	      {
-		cv::Point outTop = cv::Point(dTop.x, dTop.y);
-		cv::Point outBot = cv::Point(dBot.x, dBot.y);
-		cv::Point inTop = cv::Point(dTop.x+1,dTop.y+1);
-		cv::Point inBot = cv::Point(dBot.x-1,dBot.y-1);
-		rectangle(cv_ptr->image, outTop, outBot, 0.5*cv::Scalar(64,64,192));
-		rectangle(cv_ptr->image, inTop, inBot, 0.5*cv::Scalar(160,160,224));
-	      }
+	      if (drawRB) {
+		{
+		  cv::Point outTop = cv::Point(dTop.x, dTop.y);
+		  cv::Point outBot = cv::Point(dBot.x, dBot.y);
+		  cv::Point inTop = cv::Point(dTop.x+1,dTop.y+1);
+		  cv::Point inBot = cv::Point(dBot.x-1,dBot.y-1);
+		  rectangle(cv_ptr->image, outTop, outBot, 0.5*cv::Scalar(64,64,192));
+		  rectangle(cv_ptr->image, inTop, inBot, 0.5*cv::Scalar(160,160,224));
+		}
 
-	      {
-		cv::Point outTop = cv::Point(itTop.x, itTop.y);
-		cv::Point outBot = cv::Point(itBot.x, itBot.y);
-		cv::Point inTop = cv::Point(winTop.x+1,winTop.y+1);
-		cv::Point inBot = cv::Point(winBot.x-1,winBot.y-1);
-		rectangle(cv_ptr->image, outTop, outBot, 0.5*cv::Scalar(0,0,255));
-		rectangle(cv_ptr->image, inTop, inBot, 0.5*cv::Scalar(192,192,255));
-	      }
+		{
+		  cv::Point outTop = cv::Point(itTop.x, itTop.y);
+		  cv::Point outBot = cv::Point(itBot.x, itBot.y);
+		  cv::Point inTop = cv::Point(winTop.x+1,winTop.y+1);
+		  cv::Point inBot = cv::Point(winBot.x-1,winBot.y-1);
+		  rectangle(cv_ptr->image, outTop, outBot, 0.5*cv::Scalar(0,0,255));
+		  rectangle(cv_ptr->image, inTop, inBot, 0.5*cv::Scalar(192,192,255));
+		}
 
-	      //{
-		//cv::Point outTop = cv::Point(winTop.x, winTop.y);
-		//cv::Point outBot = cv::Point(winBot.x, winBot.y);
-		//cv::Point inTop = cv::Point(winTop.x+1,winTop.y+1);
-		//cv::Point inBot = cv::Point(winBot.x-1,winBot.y-1);
-		//rectangle(cv_ptr->image, outTop, outBot, 0.5*cv::Scalar(0,0,255));
-		//rectangle(cv_ptr->image, inTop, inBot, 0.5*cv::Scalar(192,192,255));
-	      //}
-    #endif
+		//{
+		  //cv::Point outTop = cv::Point(winTop.x, winTop.y);
+		  //cv::Point outBot = cv::Point(winBot.x, winBot.y);
+		  //cv::Point inTop = cv::Point(winTop.x+1,winTop.y+1);
+		  //cv::Point inBot = cv::Point(winBot.x-1,winBot.y-1);
+		  //rectangle(cv_ptr->image, outTop, outBot, 0.5*cv::Scalar(0,0,255));
+		  //rectangle(cv_ptr->image, inTop, inBot, 0.5*cv::Scalar(192,192,255));
+		//}
+	      }
 
 	    }
 
@@ -3139,40 +3186,40 @@ cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.
       thisRedBox->winningO = winningO;
     }
 
-    #ifdef DRAW_RED
-    //if (thisRedBox->persistence > 0.0) 
-    {
-      cv::Point outTop = cv::Point(dTop.x, dTop.y);
-      cv::Point outBot = cv::Point(dBot.x, dBot.y);
-      cv::Point inTop = cv::Point(dTop.x+1,dTop.y+1);
-      cv::Point inBot = cv::Point(dBot.x-1,dBot.y-1);
-      rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(64,64,192));
-      rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(160,160,224));
+    if (drawRed) {
+      //if (thisRedBox->persistence > 0.0) 
+      {
+	cv::Point outTop = cv::Point(dTop.x, dTop.y);
+	cv::Point outBot = cv::Point(dBot.x, dBot.y);
+	cv::Point inTop = cv::Point(dTop.x+1,dTop.y+1);
+	cv::Point inBot = cv::Point(dBot.x-1,dBot.y-1);
+	rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(64,64,192));
+	rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(160,160,224));
 
-      #ifdef DRAW_LABEL
-      cv::Point text_anchor(dTop.x+1, dBot.y-2);
-      cv::Point text_anchor2(dTop.x+1, dBot.y-2);
-      putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(160,160,224), 2.0);
-      putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(64,64,192), 1.0);
-      #endif
+	if (drawLabels) {
+	  cv::Point text_anchor(dTop.x+1, dBot.y-2);
+	  cv::Point text_anchor2(dTop.x+1, dBot.y-2);
+	  putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(160,160,224), 2.0);
+	  putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(64,64,192), 1.0);
+	}
+      }
+
+      {
+	cv::Point outTop = cv::Point(winTop.x, winTop.y);
+	cv::Point outBot = cv::Point(winBot.x, winBot.y);
+	cv::Point inTop = cv::Point(winTop.x+1,winTop.y+1);
+	cv::Point inBot = cv::Point(winBot.x-1,winBot.y-1);
+	rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(0,0,255));
+	rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(192,192,255));
+
+	if (drawLabels) {
+	  cv::Point text_anchor(winTop.x+1, winBot.y-2);
+	  cv::Point text_anchor2(winTop.x+1, winBot.y-2);
+	  putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(192,192,255), 2.0);
+	  putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(0,0,255), 1.0);
+	}
+      }
     }
-
-    {
-      cv::Point outTop = cv::Point(winTop.x, winTop.y);
-      cv::Point outBot = cv::Point(winBot.x, winBot.y);
-      cv::Point inTop = cv::Point(winTop.x+1,winTop.y+1);
-      cv::Point inBot = cv::Point(winBot.x-1,winBot.y-1);
-      rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(0,0,255));
-      rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(192,192,255));
-
-      #ifdef DRAW_LABEL
-      cv::Point text_anchor(winTop.x+1, winBot.y-2);
-      cv::Point text_anchor2(winTop.x+1, winBot.y-2);
-      putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(192,192,255), 2.0);
-      putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(0,0,255), 1.0);
-      #endif
-    }
-    #endif
 
     double thisThresh = pBoxThresh;
 
@@ -3232,19 +3279,19 @@ cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.si
   }
 #endif
 
-#ifdef DRAW_BLUE
-  for (int c = bTops.size()-1; c >= 0; c--) {
-    cv::Point outTop = cv::Point(bTops[c].x, bTops[c].y);
-    cv::Point outBot = cv::Point(bBots[c].x, bBots[c].y);
-    cv::Point inTop = cv::Point(bTops[c].x+1,bTops[c].y+1);
-    cv::Point inBot = cv::Point(bBots[c].x-1,bBots[c].y-1);
-    rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(255,0,0));
-    rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(255,192,192));
+  if (drawBlue) {
+    for (int c = bTops.size()-1; c >= 0; c--) {
+      cv::Point outTop = cv::Point(bTops[c].x, bTops[c].y);
+      cv::Point outBot = cv::Point(bBots[c].x, bBots[c].y);
+      cv::Point inTop = cv::Point(bTops[c].x+1,bTops[c].y+1);
+      cv::Point inBot = cv::Point(bBots[c].x-1,bBots[c].y-1);
+      rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(255,0,0));
+      rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(255,192,192));
+    }
   }
-#endif
 
-  cv::imshow("Object Viewer", cv_ptr->image);
-  cv::imshow("Density Viewer", img_cvt);
+  cv::imshow(objectViewerName, cv_ptr->image);
+  cv::imshow(densityViewerName, img_cvt);
 
   delete pBoxIndicator;
   delete gBoxIndicator;
@@ -3260,7 +3307,9 @@ cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.si
   img_cvtGtmp.release();
   img_cvtH.release();
 
-  cv::waitKey(1);
+  int kc = cv::waitKey(1);
+  handleKeyboardInput(kc);
+  saveROSParams();
 }
 
 /*
@@ -3450,13 +3499,17 @@ int main(int argc, char **argv) {
 
   ee_target_pub = n.advertise<geometry_msgs::Point>("pilot_target_" + left_or_right_arm, 10);
 
-  cv::namedWindow("Density Viewer");
-  cv::namedWindow("Object Viewer");
-  setMouseCallback("Object Viewer", CallbackFunc, NULL);
+  densityViewerName = "Density Viewer " + left_or_right_arm;
+  objectViewerName = "Object Viewer " + left_or_right_arm;
 
-  createTrackbar("canny_lo", "Density Viewer", &loTrackbarVariable, 100);
-  createTrackbar("canny_hi", "Density Viewer", &hiTrackbarVariable, 100);
+  cv::namedWindow(densityViewerName);
+  cv::namedWindow(objectViewerName);
+  setMouseCallback(objectViewerName, CallbackFunc, NULL);
 
+  createTrackbar("canny_lo", densityViewerName, &loTrackbarVariable, 100);
+  createTrackbar("canny_hi", densityViewerName, &hiTrackbarVariable, 100);
+  createTrackbar("blinder_columns", densityViewerName, &blinder_columns, 20);
+  createTrackbar("blinder_stride", densityViewerName, &blinder_stride, 50);
 
   fc = 0;
   cropCounter = 0;

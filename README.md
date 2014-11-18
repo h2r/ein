@@ -358,8 +358,6 @@ Factor bounding box drawing
 ### Object Detection Suite
 Use blue screen during training
 
-Add slider for blinder width
-
 Augment image with blinders so you don't lose real-estate
 
 Blinders on all four sides instead of just two
