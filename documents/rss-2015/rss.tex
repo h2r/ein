@@ -481,14 +481,16 @@ expert. This represents the best that the system could be expected to perform.
 
 \begin{table}
   \begin{center}
-  \begin{tabular}{|l|r|}
-  \hline
-  Data Collection Method & Success Rate \\ \hline
-  Expert Annotation & 0.0 \\ \hline
-  Dense Sampling & 0.0 \\ \hline
-  Hard Negatives Auto-Stopping & 0.0 \\ \hline
-  \end{tabular}
   \caption{Performance of our system on the object detection task.}
+  \begin{tabular}{lr}
+    \toprule
+  Data Collection Method & Success Rate \\ 
+  \midrule
+  Expert Annotation & 0.0 \\ 
+  Dense Sampling & 0.0 \\ 
+  Hard Negatives Auto-Stopping & 0.0 \\ 
+  \bottomrule
+  \end{tabular}
   \end{center}
 \end{table}
 
@@ -504,31 +506,26 @@ expert. This represents the best that the system could be expected to perform.
   Expert Curated      & 0.0 \\ 
   Expert (noisy)      & 0.0 \\ 
   Automatic (curated) & 0.0 \\ 
-  Automatic (noisy)   & 0.0 \\ 
+  Automatic (noisy)   & 0.0\\
 \bottomrule
   \end{tabular}
 
   \end{center}
 \end{table}
 
-\begin{table}
-\centering
-\begin{tabular}{|l|r|}
-\end{tabular}
-\end{table}
-
-
 
 \subsection{Grasping}
 
 \begin{figure}
   \begin{center}
-  \begin{tabular}{|l|r|}
-  \hline
-  Grasp Sampling Method & Success Rate \\ \hline
-  Expert Annotation & 0.0 \\ \hline
-  Uniform Sampling & 0.0 \\ \hline
-  Thompson Sampling & 0.0 \\ \hline
+  \begin{tabular}{lr}
+  \toprule
+  Grasp Sampling Method & Success Rate \\ 
+  \midrule
+  Expert Annotation & 0.0 \\ 
+  Uniform Sampling & 0.0 \\ 
+  Thompson Sampling & 0.0 \\
+  \bottomrule
   \end{tabular}
   \caption{Performance of our system on the grasping task.}
   \end{center}
@@ -538,13 +535,15 @@ expert. This represents the best that the system could be expected to perform.
 
 \begin{figure}
   \begin{center}
-  \begin{tabular}{|l|r|}
-  \hline
-  Parameter Learning Method & Average Convergence Time \\ \hline
-  Expert Annotation & 0.0 \\ \hline
-  Constant Learning Rate & 0.0 \\ \hline
-  Decaying Learning Rate & 0.0 \\ \hline
-  Wide Scale Random Noise & 0.0 \\ \hline
+  \begin{tabular}{lr}
+    \toprule
+  Parameter Learning Method & Average Convergence Time \\ 
+  \midrule
+  Expert Annotation & 0.0 \\ 
+  Constant Learning Rate & 0.0 \\
+  Decaying Learning Rate & 0.0 \\
+  Wide Scale Random Noise & 0.0 \\
+  \bottomrule
   \end{tabular}
   \caption{Performance of our system on the PID control task.}
   \end{center}
