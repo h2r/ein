@@ -1,5 +1,6 @@
 \documentclass[conference]{IEEEtran}
 \usepackage{times}
+\usepackage{booktabs}
 \usepackage{latexsym,amssymb,amsmath} % for \Box, \mathbb, split, etc.
 % \usepackage[]{showkeys} % shows label names
 \usepackage{cite} % sorts citation numbers appropriately
@@ -194,6 +195,8 @@ usability results), and is an improvement over un-annotated systems
 computational overhead since we don't crunch expensive features or do
 heavy classification at run time).
 
+\stnote{We have to say the right things about ORK.  Why does ORK suck?
+  Why doesn't it already solve the problem?}
 
 
 \section{Object Detection and Pose Estimation}
@@ -221,12 +224,17 @@ recognition means we cannot reliably detect categories, such as
 the specific instances for which it has models with much higher speed
 and accuracy.
 
-To generate condidate bounding boxes, we first apply the BING objectness detector~\citep{cheng14} to the image, which
-returns a set $\{B_i\}$ of thousands of approximate object bounding boxes in the image. This is a
-substantial reduction from the set of all bounding boxes in the image, but is still too large for
-us to process in real time. Besides, even good bounding boxes from BING are typically not aligned to
-the degree that we require. Therefore, we use integral images to efficiently compute the per-pixel map
-$$J(p) = \sum_{B \in \{B_i\} s.t. p \in B} \frac{1}{Area(B)}.$$
+To generate candidate bounding boxes, we first apply the BING
+objectness detector~\citep{cheng14} to the image, which returns a set
+$\{B_i\}$ of thousands of approximate object bounding boxes in the
+image. This process substantially reduces the number of bounding boxes
+we need to consider but is still too large for us to process in real
+time. Besides, even good bounding boxes from BING are typically not
+aligned to the degree that we require. Therefore, we use integral
+images to efficiently compute the per-pixel map:
+\begin{align}
+J(p) = \sum_{B \in \{B_i\} s.t. p \in B} \frac{1}{Area(B)}.
+\end{align}
 We then apply the Canny edge detector with hysteresis ~\citep{} to find the connected components of bright
 regions in the map $J(p)$, which correspond with high probability to objects in the image. We form
 our candidate object bounding boxes by taking the smallest bounding box which surrounds each connected component.
@@ -243,7 +251,7 @@ objects at inference ~\citep{}.
 
 The use of SIFT features is motivated by the instance level nature of our task. State-of-the-art vision
 methods typically use HOG ~\citep{} or CNN ~\citep{} features, but that choice is motivated by category
-level recognition.
+level recognition. \stnote{What about category level recognition motivates HOG or CNN?  Can you be more specific?}
 
 We use kNN because it is easy to rebuild online, which is a key property a classifier should enjoy
 if it is to interact with our framework in real time. State-of-the-art computer vision classifiers
@@ -262,7 +270,7 @@ in the data collection process.
     \end{tabular}
   \end{center}
   \caption{The Object Detection Pipeline. Left: The raw image as viewed through the kinect. 
-    Center: The computed objectness map J. Right: Labeled object detections.}
+    Center: The computed objectness map J. Right: Labeled object detections. \stnote{Use subfigure}}
 \end{figure*}
 
  
@@ -326,7 +334,7 @@ Each viewing orientation (from the wrist) is tied to a grasping orientation.
 \subsection{PID Controller}
 \jgonote{Maybe a coordinate descent algorithm or wide-scale random noise search.}
 Since we use a dual-rate controller, there are two separate sets of coefficients that we must train.
-We train the high-rate coefficients with the objective of getting the aim within the 'close' threshold.
+We train the high-rate coefficients with the objective of getting the aim within the ``close'' threshold.
 We train the low-rate coefficients with the objective of getting the aim within the 'hit' threshold.
 The training for the high and low-rate coefficients is analogous and happens independently, so
 without loss of generality we describe the training process for an arbitrary set of coefficients.
@@ -471,7 +479,7 @@ We establish a baseline for performance by training the system in a representati
 specific setting, which tells us how well it can perform on laboratory objects when trained by an 
 expert. This represents the best that the system could be expected to perform.
 
-\begin{figure}
+\begin{table}
   \begin{center}
   \begin{tabular}{|l|r|}
   \hline
@@ -482,22 +490,34 @@ expert. This represents the best that the system could be expected to perform.
   \end{tabular}
   \caption{Performance of our system on the object detection task.}
   \end{center}
-\end{figure}
+\end{table}
 
 \subsection{Pose Estimation}
 
-\begin{figure}
+\begin{table}
+  \caption{Performance of our system on offline data.}
   \begin{center}
-  \begin{tabular}{|l|r|}
-  \hline
-  Data Collection Method & Success Rate \\ \hline
-  Expert Annotation & 0.0 \\ \hline
-  Dense Sampling & 0.0 \\ \hline
-  Hard Negatives Auto-Stopping & 0.0 \\ \hline
+  \begin{tabular}{lr}
+\toprule
+  Data Set            &  \\ 
+\midrule
+  Expert Curated      & 0.0 \\ 
+  Expert (noisy)      & 0.0 \\ 
+  Automatic (curated) & 0.0 \\ 
+  Automatic (noisy)   & 0.0 \\ 
+\bottomrule
   \end{tabular}
-  \caption{Performance of our system on the pose estimation task.}
+
   \end{center}
-\end{figure}
+\end{table}
+
+\begin{table}
+\centering
+\begin{tabular}{|l|r|}
+\end{tabular}
+\end{table}
+
+
 
 \subsection{Grasping}
 
