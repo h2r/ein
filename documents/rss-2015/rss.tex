@@ -347,7 +347,7 @@ algorithm ~\citep{} to find the optimal value of $K$ conditioned on the fixed va
 parameters. This problem is not necessarily convex and so we run the inside loop of our algorithm
 until we have converged to a local minimum.
 
-\section{General Autonomous Training Algorithm}
+\section{General Robotic Autonomous Training Algorithm}
 \label{sec:training}
 We teach the system by finding its weaknesses and training it to overcome them.
 
@@ -356,6 +356,7 @@ Our framework structures the training in a way that scales.
 When the robot asks for help, we can ground ambiguous object examples to the right class
 and retrain the models online.
 
+\subsection{GRATA Definition}
 
 In the following algorithm design pattern, 
 $X$ is the set of ground truth labels for the specified problem,
@@ -364,7 +365,7 @@ $Y$ is the set of all possible observations for the specified problem,
 \mbox{$\{T_i\}_{i \in \mathbb{N}}$} is a sequence of curated sets of training examples (where \mbox{$\forall i \in \mathbb{N}, T_i \subset D$}),  
 $\mathcal{T}$ is the power set of $D$,
 \mbox{$O: \mathcal{T} \to \mathbb{R}$} is the objective function that we are trying to optimize 
-(which includes the execution of the physical actions the robot must take to evaluate it),
+(which includes the implementation of the physical actions the robot must take to evaluate it),
 \mbox{$S: \mathbb{N} \to \mathbb{R}$} is the objective function history (i.e. \mbox{$S(i) = O(T_i)$}),
 $\mathcal{S}$ is the set of all possible objective function histories,
 \mbox{$H: \mathcal{S} \times \mathbb{N} \to \{0,1\}$} is a function which decides whether to ask for help at
@@ -372,15 +373,42 @@ a specified time step,
 \mbox{$\mathcal{C} = \mathcal{T} \times \mathcal{S} \times \mathbb{N}$} is the complete training state,
 \mbox{$G: \mathcal{C}$} is a function which implements asking for and receiving help (e.g. auditing and grounding data under bad conditions
 or asking for a new collections strategy or a crucial example),
-\mbox{$P: \mathcal{C} \to \{0,1\}$} is a function that implements a stopping criterion and decides whether to continue training,
+\mbox{$P: \mathcal{C} \to \{0,1\}$} is a function that evaluates a stopping criterion and decides whether to continue training,
 and \mbox{$L: \mathcal{C} \to D$} a function that proposes a new ground truth $x \in X$ and collects a corresponding observation $y \in Y$ to form
 a new training example \mbox{$(x,y) = d \in D$}. 
 
-Applying GATA to a problem involves defining the above quantities and implementing the high level algorithm
+\begin{table}
+  \begin{center}
+  \caption{The list of symbols we use in the definition of GRATA.}
+  \begin{tabular}{lr}
+    \toprule
+    Symbol & Meaning \\ 
+    \midrule
+    $X$  & Ground Truth Labels \\
+    $Y$  & Observations \\
+    $D \subset X \times Y$  & Universe of Observations \\
+    \mbox{$\{T_i\}_{i \in \mathbb{N}}$}  & Sequence of Training Sets \\
+    $\mathcal{T}$ is the power set of $D$  & All Possible Training Sets \\
+    \mbox{$O: \mathcal{T} \to \mathbb{R}$} & Objective Function \\
+    \mbox{$S: \mathbb{N} \to \mathbb{R}$}  & Objective Function History \\
+    $\mathcal{S}$  & All Possible Objective Function Histories \\
+    \mbox{$H: \mathcal{S} \times \mathbb{N} \to \{0,1\}$}  & Help Criterion \\
+    \mbox{$\mathcal{C} = \mathcal{T} \times \mathcal{S} \times \mathbb{N}$}  & Complete Training Set \\
+    \mbox{$G: \mathcal{C}$}  & Help Request \\
+    \mbox{$P: \mathcal{C} \to \{0,1\}$}  & Stopping Criterion \\
+    \mbox{$L: \mathcal{C} \to D$}  & Sample Proposal \\
+  \bottomrule
+  \end{tabular}
+  \end{center}
+\end{table}
+
+
+
+Applying GRATA to a problem involves defining the above quantities and implementing the high level algorithm
 in the figure ~\citep{}.
 
 \begin{figure}
-  \textbf{GATA}
+  \textbf{GRATA}
   \begin{algorithmic}
   \STATE $t\gets 1$
   \STATE $c\gets 1$
@@ -399,11 +427,21 @@ in the figure ~\citep{}.
     \STATE $c\gets P(T_i, S, i)$
   \ENDWHILE
   \end{algorithmic}
-  \caption{The high-level generalized automatic training algorithm (GATA) which we employ.}
+  \caption{The high-level generalized robotic automatic training algorithm (GRATA) which we employ.}
 \end{figure}
 
+\subsection{GRATA Simulation}
+Understanding the behavior of GRATA requires running the system many times. This would be impractical
+to do on the actual robot. It is necessary use a simulator for the process so that we can dramatically shorten the
+experimental iteration time. A dense sampling strategy is a good baseline and the data collected can
+be queried by an active learning technique to simulate the process of data collection.
 
-\section{Applications of GATA}
+Using a dense sampling strategy, we approximate the set $D$ and can then run offline experiments using other
+sampling strategies. However, the numbers we report are on actual executions of the system where
+the robot gathers the data online.
+
+
+\section{Applications of GRATA}
 
 \subsection{Recognition Training}
 
@@ -573,7 +611,7 @@ trajectories that avoid failures due to inability to accurately
 estimate positions.  Our approach is focused instead on
 object detection and manipulation, actively acquiring data for use
 later in localizing and picking up objects. \stnote{May need to say
-  more here depending on what GATA actually is.}
+  more here depending on what GRATA actually is.}
 
 
 Early models for pick-and-place rely on has been studied since the
@@ -627,7 +665,7 @@ objects wherever the robot finds itself.
   more ambitiuos extensions.}
 
 Right now, NODE runs on Baxter. We will port NODE to PR2 and other AH systems.
-GATA could be applied in other domains as well.  What are some examples?
+GRATA could be applied in other domains as well.  What are some examples?
 
 % 1. Experimental
 %  a. Contribution (is it new?)
