@@ -1388,9 +1388,9 @@ cout << "table label x: " << tableLabelQuaternion.x() << " y: " <<
 	cv::resize(orientedFilters[winningO], scaledFilter, vCrop.size());
 	//cv::resize(orientedFilters[fc % ORIENTATIONS], scaledFilter, vCrop.size());
 	//fc++;
-  #ifdef DEBUG
-  cout << "FILTERS: " << fc << " " << orientedFilters[fc % ORIENTATIONS].size() << endl;
-  #endif
+#ifdef DEBUG
+cout << "FILTERS: " << fc << " " << orientedFilters[fc % ORIENTATIONS].size() << endl;
+#endif
 	scaledFilter = biggestL1*scaledFilter;
 	 
 	vector<Mat> channels;
@@ -2332,10 +2332,8 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
 	      !isFiniteNumber(p2.z) ) {
 	    reject = 1;
 
-  #ifdef DRAW_BROWN
 	    if (drawBrown)
 	      rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,102,204));
-  #endif
 	  }
 
 #ifdef DEBUG
@@ -3542,7 +3540,7 @@ int main(int argc, char **argv) {
   cout << "labelsPath: " << labelsPath << endl;
 
 
-#ifdef TRAIN_ONLY
+  #ifdef TRAIN_ONLY
   stringstream ss_cl(class_labels); 
   while (ss_cl >> bufstr)
     classLabels.push_back(bufstr);
@@ -3558,7 +3556,7 @@ int main(int argc, char **argv) {
     cout << "label or pose model problem. exiting." << endl;
     exit(0);
   }
-#endif
+  #endif
 
   int numNewClasses = classLabels.size();
   int numCachedClasses = 0;
