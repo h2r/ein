@@ -93,6 +93,9 @@ double tfPast = 10.0;
 #include <math.h>
 #include <string>
 
+std::string wristViewName = "Wrist View";
+std::string coreViewName = "Core View";
+
 
 int reticleHalfWidth = 30;
 int pilotTargetHalfWidth = 15;
@@ -789,6 +792,8 @@ void timercallback1(const ros::TimerEvent&) {
     case 4+262192:
       eepReg4 = redTargetEEPose;
       break;
+    default:
+      break;
   }
 
 //cout << "block4" << endl;
@@ -1011,7 +1016,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(142,31,255)); // RGB: 255 31 142
   }
 
-  cv::imshow("Wrist View", cv_ptr->image);
+  cv::imshow(wristViewName, cv_ptr->image);
 
   //Mat coreImage = cv_ptr->image.clone();
   Mat coreImage(2*cv_ptr->image.rows, cv_ptr->image.cols, cv_ptr->image.type());
@@ -1085,7 +1090,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     rowAnchor.y += rowAnchorStep;
   }
 
-  cv::imshow("Core View", coreImage);
+  cv::imshow(coreViewName, coreImage);
 }
 
 void targetCallback(const geometry_msgs::Point& point) {
@@ -1143,7 +1148,7 @@ int main(int argc, char **argv) {
 
   string programName;
   if (argc > 1) {
-    programName = string(PROGRAM_NAME) + argv[argc-1];
+    programName = string(PROGRAM_NAME) + "_" + argv[argc-1];
     cout << programName << endl;
   }
   else
@@ -1190,14 +1195,17 @@ int main(int argc, char **argv) {
   ros::Subscriber eeRanger = n.subscribe("/robot/range/" + left_or_right_arm + "_hand_range/state", 1, rangeCallback);
   ros::Subscriber eeTarget = n.subscribe("/publish_detections_" + left_or_right_arm + "/pilot_target_" + left_or_right_arm, 1, targetCallback);
 
-  cv::namedWindow("Wrist View");
-  cv::setMouseCallback("Wrist View", CallbackFunc, NULL);
+  wristViewName = "Wrist View " + left_or_right_arm;
+  coreViewName = "Core View " + left_or_right_arm;
+
+  cv::namedWindow(wristViewName);
+  cv::setMouseCallback(wristViewName, CallbackFunc, NULL);
   image_transport::ImageTransport it(n);
   image_transport::Subscriber image_sub;
   std::string image_topic = "/cameras/" + left_or_right_arm + "_hand_camera/image";
   image_sub = it.subscribe(image_topic, 1, imageCallback);
 
-  cv::namedWindow("Core View");
+  cv::namedWindow(coreViewName);
 
   ros::Timer timer1 = n.createTimer(ros::Duration(0.01), timercallback1);
 
