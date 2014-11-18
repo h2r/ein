@@ -1,18 +1,17 @@
 #ifndef PROGRAM_NAME
   #define PROGRAM_NAME "DAVE"
 #endif
-//// these macros below were moved to other files
+
+// XXX TODO there is probably no longer any reason to use the ifdefs
+// the best way to deal with that is to define the corresponding global variables in each executable
+//// the macros below were moved to other files
 //#define RUN_INFERENCE // generates the blue boxes
 //#define PUBLISH_OBJECTS // requires blue, brown, and gray boxes, and inference
 //#define RELOAD_DATA
 //#define RELEARN_VOCAB
-//#define LEARN_ONLY
-//// these macros above were moved to other files
-
+//#define TRAIN_ONLY
+//// the macros above were moved to other files
 #define RUN_TRACKING // calculates the red boxes
-
-#define DRAW_BLUE_KEYPOINTS
-#define DRAW_RED_KEYPOINTS
 
 int drawOrientor = 1;
 int drawLabels = 1;
@@ -2621,7 +2620,6 @@ if (numDescrOfWord > 0)
 	}
       }
   
-  #ifdef DRAW_BLUE_KEYPOINTS
       if (drawBlueKP) {
 	for (int kp = 0; kp < keypoints.size(); kp++) {
 	  int tX = keypoints[kp].pt.x;
@@ -2638,7 +2636,6 @@ if (numDescrOfWord > 0)
 	  }
 	}
       }
-  #endif 
 
     }
     
@@ -3047,7 +3044,6 @@ cout << "REJECTED class: " << thisClass << " bb: " << c << hTop << hBot << " pro
 		descriptors.at<float>(bWords[c][w])++;
 		keypoints.push_back(bKeypoints[c][w]);
 		countedWords++;		
-	#ifdef DRAW_RED_KEYPOINTS
 		if (drawBlueKP) {
 		  cv::Point kpTop = cv::Point(bTops[c].x+tX,bTops[c].y+tY);
 		  cv::Point kpBot = cv::Point(bTops[c].x+tX+1,bTops[c].y+tY+1);
@@ -3060,7 +3056,6 @@ cout << "REJECTED class: " << thisClass << " bb: " << c << hTop << hBot << " pro
 		    rectangle(cv_ptr->image, kpTop, kpBot, cv::Scalar(0,0,255));
 		  }
 		}
-	#endif
 	      }
 	    }
 
