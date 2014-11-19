@@ -1,6 +1,26 @@
+// XXX TODO need to go through all of the double loops and make sure they
+//  are called in the optimal order. I.e. iterating through x on the outside
+//  and y on the inside is different from y outside and x inside. this has
+//  to do with cache coherency and how the matrices are stored in memory.
+
 #ifndef PROGRAM_NAME
   #define PROGRAM_NAME "DAVE"
 #endif
+
+typedef enum {
+  SIFTBOW_GLOBALCOLOR_HIST,
+  SIFTCOLORBOW_HIST
+} featureType;
+featureType chosenFeature = SIFTBOW_GLOBALCOLOR_HIST;
+
+typedef enum {
+  MRT,
+  SPOON,
+  KNIFE,
+  OFT_INVALID
+} orientedFilterType;
+
+  
 
 // XXX TODO there is probably no longer any reason to use the ifdefs
 // the best way to deal with that is to define the corresponding global variables in each executable
@@ -246,7 +266,6 @@ CvKNearest *kNN;
 std::string package_path;
 std::string class_crops_path;
 std::string bing_trained_models_path;
-std::string objectness_matrix_path;
 std::string objectness_path_prefix;
 std::string saved_crops_path;
 
@@ -278,9 +297,13 @@ pcl::PointCloud<pcl::PointXYZRGB> pointCloud;
 #define O_FILTER_WIDTH 25//25
 #define O_FILTER_SPOON_HEAD_WIDTH 6 
 #define O_FILTER_SPOON_SHAFT_WIDTH 2
-Mat *orientedFilters;
 int biggestL1 = 0;
 int oSearchWidth = 5;
+
+Mat *orientedFiltersT;
+Mat *orientedFiltersS;
+Mat *orientedFiltersK;
+
 
 
 // Top variables are top left corners of bounding boxes (smallest coordinates)
@@ -1060,6 +1083,23 @@ void saveROSParams()
   nh.setParam("left_or_right_arm", left_or_right_arm);
 }
 
+int isOrientedFilterPoseModel(string toCompare) {
+  return ((0 == toCompare.compare("S")) || 
+	  (0 == toCompare.compare("T")) || 
+	  (0 == toCompare.compare("K")) );
+}
+
+orientedFilterType getOrientedFilterType(string toCompare) {
+  if (0 == toCompare.compare("T"))
+    return MRT;
+  if (0 == toCompare.compare("S"))
+    return SPOON;
+  if (0 == toCompare.compare("K"))
+    return KNIFE;
+  else
+    return OFT_INVALID;
+}
+
 // for publishing
 void fill_RO_and_M_arrays(object_recognition_msgs::RecognizedObjectArray& roa_to_send, 
   visualization_msgs::MarkerArray& ma_to_send, vector<cv::Point>& pointCloudPoints, 
@@ -1081,7 +1121,7 @@ cout << "hit a publishable object " << label << " " << classLabels[label]
 
   // handle the rotation differently depending on the class
   // if we have a spoon
-  if (0 == classPoseModels[label].compare("S")) {
+  if (isOrientedFilterPoseModel(classPoseModels[label])) {
     double theta = (M_PI / 2.0) + (winningO*2*M_PI/ORIENTATIONS);
     R(0,0) = cos(theta); R(0,1) = -sin(theta); R(0,2) = 0;
     R(1,0) = sin(theta); R(1,1) =  cos(theta); R(1,2) = 0;
@@ -1109,8 +1149,6 @@ cout << "constructing rotation matrix" << endl;
     thisLabelQuaternion.w() = tLQ[3];
     objectQuaternion = thisLabelQuaternion;
 
-    //XXX objectQuaternion = classQuaternions[label][poseIndex];
-    // TODO fix the quaternion saving so that we can save this table and perform this dereference
   }
 
   roa_to_send.objects[aI].pose.pose.pose.orientation.x = objectQuaternion.x();
@@ -1153,7 +1191,7 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
     ma_to_send.markers[aI].color.r = 0.9;
     ma_to_send.markers[aI].color.g = 0.9;
     ma_to_send.markers[aI].color.b = 0.0;
-  } else if (0 == classPoseModels[label].compare("S")) {
+  } else if (isOrientedFilterPoseModel(classPoseModels[label])) {
     ma_to_send.markers[aI].type =  visualization_msgs::Marker::CUBE;
     ma_to_send.markers[aI].scale.x = 0.2;
     ma_to_send.markers[aI].scale.y = 0.02;
@@ -1269,7 +1307,21 @@ void getOrientation(cv_bridge::CvImagePtr cv_ptr, Mat& img_cvt,
       }
     }
 
-    if (0 == classPoseModels[label].compare("S")) {
+    if (isOrientedFilterPoseModel(classPoseModels[label])) {
+      Mat *orientedFilters;
+
+      orientedFilterType thisType = getOrientedFilterType(classPoseModels[label]);
+
+      if (thisType == MRT)
+	orientedFilters = orientedFiltersT;
+      else if (thisType == SPOON)
+	orientedFilters = orientedFiltersS;
+      else if (thisType == KNIFE)
+	orientedFilters = orientedFiltersK;
+      else {
+	cout << "Invalid oriented filter type. Exiting." << endl;
+	exit(EXIT_FAILURE);
+      }
 
 #ifdef DEBUG
 fprintf(stderr, " object checkS"); fflush(stderr);
@@ -1353,7 +1405,7 @@ cout << winningX << " " << winningY << " " << xxs << " " << yys  << endl;
 
       // handle the rotation differently depending on the class
       // if we have a spoon
-      if (0 == classPoseModels[label].compare("S")) {
+      if (isOrientedFilterPoseModel(classPoseModels[label])) {
 	double theta = (M_PI / 2.0) + (winningO*2*M_PI/ORIENTATIONS);
 	R(0,0) = cos(theta); R(0,1) = -sin(theta); R(0,2) = 0;
 	R(1,0) = sin(theta); R(1,1) =  cos(theta); R(1,2) = 0;
@@ -1418,7 +1470,18 @@ fprintf(stderr, " object check4"); fflush(stderr);
   }
 }
 
-void init_oriented_filters() {
+void init_oriented_filters(orientedFilterType thisType) {
+  Mat *orientedFilters; 
+  if (thisType == MRT)
+    orientedFilters = orientedFiltersT;
+  else if (thisType == SPOON)
+    orientedFilters = orientedFiltersS;
+  else if (thisType == KNIFE)
+    orientedFilters = orientedFiltersK;
+  else {
+    cout << "Invalid oriented filter type. Exiting." << endl;
+    exit(EXIT_FAILURE);
+  }
 
   for (int x = 0; x < O_FILTER_WIDTH; x++) {
     for (int y = 0; y < O_FILTER_WIDTH; y++) {
@@ -1427,10 +1490,11 @@ void init_oriented_filters() {
   }
   // Spoon filters are used to estimate the orientation of spoon-like objects
   // based on their green maps. Hard coded for convenience. 
-  // This approach is pretty flexible and could work for other types of objects.
+  // This approach is pretty flexible and works for other types of objects.
+  // E.g., mrT and knives.
   // A map could be estimated by some other process and loaded here, or just represented
   // as bitmap and converted here.
-  // TODO make this comparison based based on an affine transformation, it will be more accurate.
+  // We go on to make this comparison based based on an affine transformation, it is more accurate.
 /*
   // Diagonal Spoon Filter
   for (int x = 0; x < O_FILTER_SPOON_HEAD_WIDTH; x++) {
@@ -1444,48 +1508,49 @@ void init_oriented_filters() {
     }
   }
 */
-/*
-  // Vertical Spoon Filter
-  int center = (O_FILTER_WIDTH-1)/2;
-  for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH; x <= center+O_FILTER_SPOON_SHAFT_WIDTH; x++) {
-    for (int y = 0; y < O_FILTER_WIDTH; y++) {
-      orientedFilters[0].at<double>(y,x) = 1.0;
+
+  if (thisType == MRT) {
+    // mrT Filter
+    int center = (O_FILTER_WIDTH-1)/2;
+    for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH; x <= center+O_FILTER_SPOON_SHAFT_WIDTH; x++) {
+      for (int y = 0; y < O_FILTER_WIDTH; y++) {
+	orientedFilters[0].at<double>(y,x) = 1.0;
+      }
     }
-  }
-  for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH-1; x <= center+O_FILTER_SPOON_SHAFT_WIDTH+1; x++) {
-    for (int y = 1; y < 3+O_FILTER_SPOON_HEAD_WIDTH; y++) {
-      orientedFilters[0].at<double>(y,x) = 1.0;
+    for (int x = center-5*O_FILTER_SPOON_SHAFT_WIDTH; x <= center+5*O_FILTER_SPOON_SHAFT_WIDTH; x++) {
+      for (int y = 0; y < 2*O_FILTER_SPOON_SHAFT_WIDTH-1; y++) {
+	orientedFilters[0].at<double>(y,x) = 1.0;
+      }
     }
-  }
-  for (int x = center-O_FILTER_SPOON_HEAD_WIDTH; x <= center+O_FILTER_SPOON_HEAD_WIDTH; x++) {
-    for (int y = 2; y < 2+O_FILTER_SPOON_HEAD_WIDTH; y++) {
-      orientedFilters[0].at<double>(y,x) = 1.0;
+  } else if (thisType == SPOON) {
+    // Vertical Spoon Filter
+    int center = (O_FILTER_WIDTH-1)/2;
+    for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH; x <= center+O_FILTER_SPOON_SHAFT_WIDTH; x++) {
+      for (int y = 0; y < O_FILTER_WIDTH; y++) {
+	orientedFilters[0].at<double>(y,x) = 1.0;
+      }
     }
-  }
-*/
-/*
-  // Vertical Knife Filter
-  int center = (O_FILTER_WIDTH-1)/2;
-  for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH; x <= center+O_FILTER_SPOON_SHAFT_WIDTH; x++) {
-    for (int y = 0; y < O_FILTER_WIDTH; y++) {
-      orientedFilters[0].at<double>(y,x) = 1.0;
+    for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH-1; x <= center+O_FILTER_SPOON_SHAFT_WIDTH+1; x++) {
+      for (int y = 1; y < 3+O_FILTER_SPOON_HEAD_WIDTH; y++) {
+	orientedFilters[0].at<double>(y,x) = 1.0;
+      }
     }
-  }
-*/
-  // mrT Filter
-  int center = (O_FILTER_WIDTH-1)/2;
-  for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH; x <= center+O_FILTER_SPOON_SHAFT_WIDTH; x++) {
-    for (int y = 0; y < O_FILTER_WIDTH; y++) {
-      orientedFilters[0].at<double>(y,x) = 1.0;
+    for (int x = center-O_FILTER_SPOON_HEAD_WIDTH; x <= center+O_FILTER_SPOON_HEAD_WIDTH; x++) {
+      for (int y = 2; y < 2+O_FILTER_SPOON_HEAD_WIDTH; y++) {
+	orientedFilters[0].at<double>(y,x) = 1.0;
+      }
     }
-  }
-  for (int x = center-5*O_FILTER_SPOON_SHAFT_WIDTH; x <= center+5*O_FILTER_SPOON_SHAFT_WIDTH; x++) 
-  //for (int x = 2*O_; x < O_FILTER_WIDTH; x++)
-  //for (int x = O_FILTER_WIDTH/2-4; x < O_FILTER_WIDTH/2+4; x++)
-  {
-    for (int y = 0; y < 2*O_FILTER_SPOON_SHAFT_WIDTH-1; y++) {
-      orientedFilters[0].at<double>(y,x) = 1.0;
+  } else if (thisType == KNIFE) {
+    // Vertical Knife Filter
+    int center = (O_FILTER_WIDTH-1)/2;
+    for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH; x <= center+O_FILTER_SPOON_SHAFT_WIDTH; x++) {
+      for (int y = 0; y < O_FILTER_WIDTH; y++) {
+	orientedFilters[0].at<double>(y,x) = 1.0;
+      }
     }
+  } else {
+    cout << "Invalid oriented filter type. Exiting." << endl;
+    exit(EXIT_FAILURE);
   }
 
   Mat tmp; 
@@ -1527,7 +1592,6 @@ void init_oriented_filters() {
     cv::Size rangeSize = orientedFilters[0].size();
     rangeSize.width *= 2;
     rangeSize.height *= 2;
-//cout << rangeSize;
 
     // Rotate the warped image
     //warpAffine(orientedFilters[0], orientedFilters[o], rot_mat, orientedFilters[o].size());
@@ -1607,6 +1671,13 @@ cout << endl << orientedFilters[0] << endl;
   if (l1norm > biggestL1)
     biggestL1 = l1norm;
 }
+
+void init_oriented_filters_all() {
+  init_oriented_filters(MRT);
+  init_oriented_filters(SPOON);
+  init_oriented_filters(KNIFE);
+}
+
 
 void handleKeyboardInput(int c) {
 
@@ -1738,6 +1809,24 @@ cout << "Average time between frames: " << aveTime <<
 	cv_ptr->image.at<cv::Vec3b>(y, x) = cv::Vec<uchar, 3>(blackOrWhite, blackOrWhite, blackOrWhite);
       }
     }
+    /*
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < thisWidth; y++) {
+	int bCol = x/blinder_stride;
+	int bRow = y/blinder_stride;
+	int blackOrWhite = ((bCol + bRow)%2)*255;
+	cv_ptr->image.at<cv::Vec3b>(y, x) = cv::Vec<uchar, 3>(blackOrWhite, blackOrWhite, blackOrWhite);
+      }
+    }
+    for (int x = 0; x < imW; x++) {
+      for (int y = imH-thisWidth; y < imH; y++) {
+	int bCol = x/blinder_stride;
+	int bRow = y/blinder_stride;
+	int blackOrWhite = ((bCol + bRow)%2)*255;
+	cv_ptr->image.at<cv::Vec3b>(y, x) = cv::Vec<uchar, 3>(blackOrWhite, blackOrWhite, blackOrWhite);
+      }
+    }
+    */
 
   }
 
@@ -1763,16 +1852,16 @@ cout << "Average time between frames: " << aveTime <<
 */
 
   
-  // XXX find best method and stop all this cloning, it might be relatively slow
+  // XXX find best method and clean up all this mess
   Mat original_cam_img = cam_img2.clone();
-
   Mat img_cvt = cam_img2.clone();
-  Mat img_cvtH = cam_img2.clone();
-  Mat img_cvtG = cam_img2.clone();
-  Mat img_cvtGtmp = cam_img2.clone();
+
+  //Mat img_cvtH = cam_img2.clone();
+  //Mat img_cvtG = cam_img2.clone();
+  //Mat img_cvtGtmp = cam_img2.clone();
 
 //cout << "here 4" << endl;
-  Mat img_cvt_blur = cam_img2.clone();
+  //Mat img_cvt_blur = cam_img2.clone();
 
 /*
   // XXX Sobel business
@@ -1821,8 +1910,8 @@ cout << "Average time between frames: " << aveTime <<
 //cout << "here 7" << endl;
 
 
-  cvtColor(cam_img2, img_cvtGtmp, CV_RGB2GRAY);
-  cvtColor(cam_img2, img_cvtH, CV_RGB2HSV);
+  //cvtColor(cam_img2, img_cvtGtmp, CV_RGB2GRAY);
+  //cvtColor(cam_img2, img_cvtH, CV_RGB2HSV);
 
   //vector<Mat> channels;
   //channels.push_back(img_cvtGtmp);
@@ -2547,7 +2636,7 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
       //break;
   }
   
-  init_oriented_filters();
+  init_oriented_filters_all();
 
   // draw it again to go over the brown boxes
   if (drawGray) {
@@ -3295,10 +3384,10 @@ cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.si
   delete differentialDensity;
 
   img_cvt.release();
-  img_cvt_blur.release();
-  img_cvtG.release();
-  img_cvtGtmp.release();
-  img_cvtH.release();
+  //img_cvt_blur.release();
+  //img_cvtG.release();
+  //img_cvtGtmp.release();
+  //img_cvtH.release();
 
   int kc = cv::waitKey(1);
   handleKeyboardInput(kc);
@@ -3424,12 +3513,11 @@ int main(int argc, char **argv) {
   for (int ccc = 0; ccc < argc; ccc++) {
     cout << argv[ccc] << endl;
   }
-  cout << "argc: " << argc << endl;
 
   string programName;
   if (argc > 1) {
     programName = string(PROGRAM_NAME) + "_" + argv[argc-1];
-    cout << programName << endl;
+    cout << "programName: " << programName << endl;
     //argc = argc-1;
     //argv[argc-1] = argv[argc-2];
   }
@@ -3442,7 +3530,6 @@ int main(int argc, char **argv) {
 
   cout << "n namespace: " << n.getNamespace() << endl;
 
-  cout << "all_range_mode: " << all_range_mode << endl;
   loadROSParamsFromArgs();
   cout << "mask_gripper: " << mask_gripper << " add_blinders: " << add_blinders << endl;
   cout << "all_range_mode: " << all_range_mode << endl;
@@ -3452,7 +3539,6 @@ int main(int argc, char **argv) {
        << "class_labels: " << class_labels << endl << "vocab_file: " << vocab_file << endl 
        << "knn_file: " << knn_file << endl << "label_file: " << label_file << endl
        << endl;
-//exit(0);
 
   package_path = ros::package::getPath("node");
   class_crops_path = data_directory + "/";
@@ -3462,21 +3548,20 @@ int main(int argc, char **argv) {
   //ObjNessB2W8I
   //ObjNessB2W8HSV
   bing_trained_models_path = package_path + "/bing_trained_models/";
-  objectness_matrix_path = bing_trained_models_path + "ObjNessB2W8I.idx.yml";
   objectness_path_prefix = bing_trained_models_path + "ObjNessB2W8MAXBGR";
 
-
   string vocPath = package_path + "/VOC2007/";
-  //DataSetVOC voc("../VOC2007/");
   DataSetVOC voc(vocPath);
-  //Objectness objNess(voc, 2, 8, 2);
-  //glObjectness = &(objNess);
   glObjectness = new Objectness(voc, 2, 8, 2);
 
-  printf("objectness_path_prefix: %s\n", objectness_path_prefix.c_str());
-  //int result = objNess.loadTrainedModel(objectness_path_prefix);
+  cout << "objectness_path_prefix: " << objectness_path_prefix << endl;
   int result = glObjectness->loadTrainedModel(objectness_path_prefix);
   cout << "result: " << result << endl << endl;
+
+  if (result != 1) {
+    cout << "ERROR: failed to load BING objectness model. Check the path prefix above. Exiting." << endl;
+    exit(EXIT_FAILURE);
+  }
 
   image_transport::Subscriber image_sub;
   image_transport::ImageTransport it(n);
@@ -3553,8 +3638,8 @@ int main(int argc, char **argv) {
   cout << "Num pose models: " << classPoseModels.size() << endl;
 
   if ((classLabels.size() != classPoseModels.size()) || (classLabels.size() < 1)) {
-    cout << "label or pose model problem. exiting." << endl;
-    exit(0);
+    cout << "Label and pose model list size problem. Exiting." << endl;
+    exit(EXIT_FAILURE);
   }
   #endif
 
@@ -3569,24 +3654,24 @@ int main(int argc, char **argv) {
       string labelsCacheFile = data_directory + "/" + cache_prefix + "labels.yml";
 
       FileStorage fsvI;
-      cout<<"Reading CACHED labels and pose models..."<< endl << labelsCacheFile << endl << "...";
+      cout<<"Reading CACHED labels and pose models from " << labelsCacheFile << " ...";
       fsvI.open(labelsCacheFile, FileStorage::READ);
       fsvI["labels"] >> classCacheLabels;
       fsvI["poseModels"] >> classCachePoseModels;
       //classLabels.insert(classLabels.end(), classCacheLabels.begin(), classCacheLabels.end());
       //classPoseModels.insert(classPoseModels.end(), classCachePoseModels.begin(), classCachePoseModels.end());
-      cout << "done. Cache : " << classCacheLabels.size() << " " << classCachePoseModels.size() << " total: " ;
+      cout << "done." << endl << "classCacheLabels size: " << classCacheLabels.size() << " classCachePoseModels size: " << classCachePoseModels.size() << endl;
       numCachedClasses = classCacheLabels.size();
 
       classCacheLabels.insert(classCacheLabels.end(), classLabels.begin(), classLabels.end());
       classCachePoseModels.insert(classCachePoseModels.end(), classPoseModels.begin(), classPoseModels.end());
       classLabels = classCacheLabels;
       classPoseModels = classCachePoseModels;
-      cout << classLabels.size() << " " << classPoseModels.size() << endl;
+      cout << "classLabels size: " << classLabels.size() << " classPoseModels size: " << classPoseModels.size() << endl;
     }
 
     FileStorage fsvO;
-    cout<<"Writing labels and pose models..."<< endl << labelsPath << endl << "...";
+    cout<<"Writing labels and pose models... " << labelsPath << " ...";
     fsvO.open(labelsPath, FileStorage::WRITE);
     fsvO << "labels" << classLabels;
     fsvO << "poseModels" << classPoseModels;
@@ -3594,11 +3679,11 @@ int main(int argc, char **argv) {
     cout << "done." << endl;
   } else {
     FileStorage fsvI;
-    cout<<"Reading labels and pose models..."<< endl << labelsPath << endl << "...";
+    cout<<"Reading labels and pose models... "<< labelsPath << " ...";
     fsvI.open(labelsPath, FileStorage::READ);
     fsvI["labels"] >> classLabels;
     fsvI["poseModels"] >> classPoseModels;
-    cout << "done. " << classLabels.size() << " " << classPoseModels.size() << endl;
+    cout << "done. classLabels size: " << classLabels.size() << " classPoseModels size: " << classPoseModels.size() << endl;
   }
 
   for (int i = 0; i < classLabels.size(); i++) {
@@ -3621,22 +3706,22 @@ int main(int argc, char **argv) {
       }
     }
 
-    cout << "Clustering features..." << endl;
+    cout << "Clustering features...";
     vocabulary = bowtrainer->cluster();
     cout << "done." << endl;
 
     FileStorage fsvO;
-    cout<<"Writing vocab..."<< endl << vocabularyPath << endl << "...";
+    cout << "Writing vocab... " << vocabularyPath << " ...";
     fsvO.open(vocabularyPath, FileStorage::WRITE);
     fsvO << "vocab" << vocabulary;
     fsvO.release();
     cout << "done." << endl;
   } else {
     FileStorage fsvI;
-    cout<<"Reading vocab..."<< endl << vocabularyPath << endl << "...";
+    cout << "Reading vocab... " << vocabularyPath << " ...";
     fsvI.open(vocabularyPath, FileStorage::READ);
     fsvI["vocab"] >> vocabulary;
-    cout << "done." << vocabulary.size() << endl;
+    cout << "done. vocabulary size: " << vocabulary.size() << endl;
   }
 
   matcher = new BFMatcher(NORM_L2);
@@ -3664,10 +3749,9 @@ int main(int argc, char **argv) {
 	  classQuaternions[i], 0);
       }
     }
-    // XXX TODO warning, classQuaternions are not loaded as they should be
 
     // load cached kNN features 
-    // XXX does not handle G pose models
+    // XXX experimental handling of G pose models
     Mat kNNCachefeatures;
     Mat kNNCachelabels;
     if (cache_prefix.size() > 0) {
@@ -3680,6 +3764,19 @@ int main(int argc, char **argv) {
       fsfI["labels"] >> kNNCachelabels;
       kNNfeatures.push_back(kNNCachefeatures);
       kNNlabels.push_back(kNNCachelabels);
+
+      for (int i = 0; i < numClasses; i++) {
+	if (classPoseModels[i].compare("G") == 0) {
+	  string fnIn = "features" + classLabels[i];
+	  string lnIn = "labels" + classLabels[i];
+	  string qnIn = "quaternions" + classLabels[i];
+	  cout << "G: " << classLabels[i] << " " << fnIn << " " << lnIn << endl;
+	  fsfI[fnIn] >> classPosekNNfeatures[i];
+	  fsfI[lnIn] >> classPosekNNlabels[i];
+	  fsfI[qnIn] >> classQuaternions[i];
+	}
+      }
+
       cout << "done." << kNNCachefeatures.size() << " " << kNNCachelabels.size() << endl;
     }
 
@@ -3689,7 +3786,7 @@ int main(int argc, char **argv) {
     fsfO << "features" << kNNfeatures;
     fsfO << "labels" << kNNlabels;
 
-    // TODO should also cache the features for the pose models
+    // TODO also cache the features for the pose models
 
     for (int i = 0; i < numClasses; i++) {
       if (classPoseModels[i].compare("G") == 0) {
@@ -3741,15 +3838,19 @@ int main(int argc, char **argv) {
 #endif
 
 #ifdef TRAIN_ONLY
-  exit(0);
+  exit(EXIT_SUCCESS);
 #endif
 
   // manually definining spoon filters
-  orientedFilters = new Mat[ORIENTATIONS];
-  orientedFilters[0].create(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F);
+  orientedFiltersT = new Mat[ORIENTATIONS];
+  orientedFiltersT[0].create(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F);
+  orientedFiltersS = new Mat[ORIENTATIONS];
+  orientedFiltersS[0].create(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F);
+  orientedFiltersK = new Mat[ORIENTATIONS];
+  orientedFiltersK[0].create(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F);
 
   tablePerspective = Mat::eye(3,3,CV_32F);
-  init_oriented_filters();
+  init_oriented_filters_all();
 
 #ifdef RUN_TRACKING
   // initialize the redBoxes
@@ -3770,7 +3871,7 @@ int main(int argc, char **argv) {
 
     if (thisClassLabel > -1) {
       numRedBoxes++;
-      cout << "accepting red box suggestion " << r << " \"" << redBoxLabels[r] << "\" as red box number " << numRedBoxes-1 << endl;
+      cout << "Accepting red box suggestion " << r << " \"" << redBoxLabels[r] << "\" as red box number " << numRedBoxes-1 << endl;
       redBoxes[r].classLabel = thisClassLabel;
       redBoxes[r].top = cv::Point(0,0);
       redBoxes[r].bot = cv::Point(redInitialWidth, redInitialWidth);
@@ -3782,7 +3883,7 @@ int main(int argc, char **argv) {
       redBoxes[r].poseIndex = 0;
       redBoxes[r].winningO = 0;
     } else {
-      cout << "rejecting red box suggestion " << r << " \"" << redBoxLabels[r] << "\"" << endl;
+      cout << "Rejecting red box suggestion " << r << " \"" << redBoxLabels[r] << "\"" << endl;
     }
   }
 
