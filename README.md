@@ -362,22 +362,22 @@ since there were no known problems before items were emboldened.
 ### General
 **Reconsider window layouts and how to manage controls**
 
-Factor bounding box drawing
+Factor bounding box drawing**
 
 ### Object Detection Suite
-**Caching doesn't handle G pose models
+**Caching doesn't handle G pose models**
 
-update oriented filter pose models
+**update oriented filter pose models**
 
-  add T pose model for mrT pose marker
+  **add T pose model for mrT pose marker**
 
-  add l pose model for mirror symmetric line utensils
+  **add l pose model for mirror symmetric line utensils**
 
-  change S pose model back to spoon model
+  **change S pose model back to spoon model**
 
-  add "is oriented filter" check function
+  **add "is oriented filter" check function**
   
-  add "set orientedfilter" function after that**
+  **add "set orientedfilter" function after that**
   
 
 Use blue screen during training
