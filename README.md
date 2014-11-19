@@ -356,7 +356,7 @@ say, if there is a problem in the code, bold items are a good place to start loo
 since there were no known problems before items were emboldened.
 
 ### General
-+**Reconsider window layouts and how to manage controls**
++ **Reconsider window layouts and how to manage controls**
 + Factor bounding box drawing
 
 ### Object Detection Suite
