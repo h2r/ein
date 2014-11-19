@@ -362,7 +362,7 @@ since there were no known problems before items were emboldened.
 ### General
 **Reconsider window layouts and how to manage controls**
 
-Factor bounding box drawing**
+Factor bounding box drawing
 
 ### Object Detection Suite
 **Caching doesn't handle G pose models**
