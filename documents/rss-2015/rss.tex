@@ -637,6 +637,14 @@ Visual-servoing based methods~\citep{chaumette06} \stnote{Need a whole
 \stnote{\citet{ciocarlie14} seems highly relevant, could not read from
   the train's wifi.}
 
+\citet{collect14} describes an approach for lifelong robotic object
+discovery, which infers object candidates from the robot's perceptual
+data.  This system does not learn grasping models and does not
+actively acquire more data to recognize, localize, and grasp the
+object with high reliabilitiy.  It could be used as a first-pass to
+our system, after which the robot uses an active method to acquire
+additional data enablign it to grasp the object.
+
 Our approach is similar to the philosphy adopted by Rethink Robotic's
 Baxter robot, and indeed, we use Baxter as our test
 platform~\citep{fitzgerald13}.  \stnote{Haven't actually read this
