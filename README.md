@@ -266,9 +266,6 @@ _pc_topic:="/filter_time/filtered_pointcloud"
 ```
 
 ## Cached Training
-Warning: at the moment you cannot cache G pose models. So make sure that if you are using G pose models
-you are always adding them to cache rather than including them in the cache.
-
 If you have a reasonable number of training examples, it can take a long time (>30 minutes) to cluster
 the BoW vocabulary. If you are only adding more examples to existing categories (or if you are adding a
 simple object to an already diverse set of objects), you may want to use an a previously trained vocabulary
@@ -365,64 +362,66 @@ since there were no known problems before items were emboldened.
 Factor bounding box drawing
 
 ### Object Detection Suite
-**Caching doesn't handle G pose models**
 
-**update oriented filter pose models**
++ **Caching doesn't handle G pose models**
 
-  **add T pose model for mrT pose marker**
++ **update oriented filter pose models**
 
-  **add l pose model for mirror symmetric line utensils**
+  - **add T pose model for mrT pose marker**
 
-  **change S pose model back to spoon model**
+  - **add l pose model for mirror symmetric line utensils**
 
-  **add "is oriented filter" check function**
+  - **change S pose model back to spoon model**
+
+  - **add "is oriented filter" check function**
   
-  **add "set orientedfilter" function after that**
+  - **add "set orientedfilter" function after that**
   
 
-Use blue screen during training
++ Use blue screen during training
 
-Augment image with blinders so you don't lose real-estate
++ Augment image with blinders so you don't lose real-estate
 
-Blinders on all four sides instead of just two
++ Blinders on all four sides instead of just two
 
-Try including color information in the BoW model 
++ Try including color information in the BoW model 
 
-Try SVM instead of kNN
++ Try SVM instead of kNN
 
-Add a sign during training that says "this object is on its side or upside down"
++ Add a sign during training that says "this object is on its side or upside down"
 so that generic pose models are more complete
 
-Scripts or code should switch video channels automagically based on chirality
++ Scripts or code should switch video channels automagically based on chirality
 
-Consider adding McAllester's HOG feature
++ Consider adding McAllester's HOG feature
 
-Investigate offloading feature computation to the GPU or multithread on the CPU
++ Investigate offloading feature computation to the GPU or multithread on the CPU
 
-Add a global feature map that refreshes each keypoint only when it is needed and with
++ Add a global feature map that refreshes each keypoint only when it is needed and with
 a certain probability so that frames are faster but new information trickles in at 
 about the same rate
 
-Consider run-time background shunting
++ Consider run-time background shunting
+
++ make sure double loops over x,y indeces happen in the optimal order (i.e. determine
+that order and enforce it in the code)
 
 
 
 ### Pilot Baxter Suite
-Listen to recognized object arrays instead of dedicated pilot target channel
++ Listen to recognized object arrays instead of dedicated pilot target channel
 
-PID controls should be from within the end effector reference frame rather than the global frame
++ PID controls should be from within the end effector reference frame rather than the global frame
 
-Add object class awareness and per-object grasp offset
++ Add object class awareness and per-object grasp offset
 
-Add orientation awareness and servoing
++ Add orientation awareness and servoing
 
-Add scale servoing and grasp depth inference instead of relying on the range sensor
++ Add scale servoing and grasp depth inference instead of relying on the range sensor
 
-Add intelligent depth-to-table scan
-
-Add wait-until-destination-reached no-op instruction
-
-Add a facility for extending PDA instruction set
++ Add intelligent depth-to-table scan
++ Add wait-until-destination-reached no-op instruction
++ Add a facility for extending PDA instruction set
 
 
 
