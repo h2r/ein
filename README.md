@@ -266,6 +266,9 @@ _pc_topic:="/filter_time/filtered_pointcloud"
 ```
 
 ## Cached Training
+Warning: at the moment you cannot cache G pose models. So make sure that if you are using G pose models
+you are always adding them to cache rather than including them in the cache.
+
 If you have a reasonable number of training examples, it can take a long time (>30 minutes) to cluster
 the BoW vocabulary. If you are only adding more examples to existing categories (or if you are adding a
 simple object to an already diverse set of objects), you may want to use an a previously trained vocabulary
@@ -350,12 +353,33 @@ trainWithCache.sh shows an advanced technique and you can certainly get away wit
 Thanks for reading. :japanese_goblin:
 
 ## TODO XXX 
+
+This is a list of stuff that needs to be done. Items in bold are either in the process
+of being done or have been done recently SINCE a stability check was issued. That is to
+say, if there is a problem in the code, bold items are a good place to start looking
+since there were no known problems before items were emboldened.
+
 ### General
-Reconsider window layouts and how to manage controls
+**Reconsider window layouts and how to manage controls**
 
 Factor bounding box drawing
 
 ### Object Detection Suite
+**Caching doesn't handle G pose models
+
+update oriented filter pose models
+
+  add T pose model for mrT pose marker
+
+  add l pose model for mirror symmetric line utensils
+
+  change S pose model back to spoon model
+
+  add "is oriented filter" check function
+  
+  add "set orientedfilter" function after that**
+  
+
 Use blue screen during training
 
 Augment image with blinders so you don't lose real-estate
