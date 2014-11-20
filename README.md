@@ -363,7 +363,7 @@ since there were no known problems before items were emboldened.
 + **Caching doesn't handle G pose models**
 + **update oriented filter pose models**
   - **add T pose model for mrT pose marker**
-  - **add l pose model for mirror symmetric line utensils**
+  - **add K pose model for mirror symmetric line utensils**
   - **change S pose model back to spoon model**
   - **add "is oriented filter" check function**
   - **add "set orientedfilter" function after that**

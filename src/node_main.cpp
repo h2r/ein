@@ -1,17 +1,51 @@
-// XXX TODO need to go through all of the double loops and make sure they
+// WARNING: Introns are there for a reason.  Leave commented code intact unless instructed otherwise.
+
+// XXX Code Only Task List
+//
+// XXX Sobel Business: add a switch to decide whether to use objectness or Sobel.
+//       Consider trying non-max suppression.
+//
+// TODO tune parameters. this hasn't been done in a while.
+// 
+// TODO figure out what to do about pointCloudCorrection.
+//
+// TODO go through all of the double loops and make sure they
 //  are called in the optimal order. I.e. iterating through x on the outside
-//  and y on the inside is different from y outside and x inside. this has
+//  and y on the inside is different from y outside and x inside. This has
 //  to do with cache coherency and how the matrices are stored in memory.
+//
+// TODO standardize types that are declared differently.
+//
+// TODO do a pass for obsolete introns.
+
+//// the global variables below must be defined in each executable's .cpp file
+//int trainOnly;
+//
+//int retrain_vocab;
+//int rewrite_labels;
+//int reextract_knn;
+//
+//int runInference;
+//int publishObjects; // requires blue, brown, and gray boxes, and inference
+//
+//int saveAnnotatedBoxes;
+//int captureHardClass;
+//int captureOnly;
+//int saveBoxes;
+//// the global variables above must be defined in each executable's .cpp file
 
 #ifndef PROGRAM_NAME
   #define PROGRAM_NAME "DAVE"
 #endif
 
+//#define DEBUG // this will print debug messages which are useful if you don't want to use GDB
+
 typedef enum {
-  SIFTBOW_GLOBALCOLOR_HIST,
-  SIFTCOLORBOW_HIST
+  SIFTBOW_GLOBALCOLOR_HIST = 1,
+  OPPONENTSIFTBOW_GLOBALCOLOR_HIST = 2,
+  SIFTCOLORBOW_HIST = 3 // unimplemented, calculate color histograms at each keypoint and augment each SIFT feature before clustering
 } featureType;
-featureType chosenFeature = SIFTBOW_GLOBALCOLOR_HIST;
+featureType chosen_feature = SIFTBOW_GLOBALCOLOR_HIST;
 
 typedef enum {
   MRT,
@@ -20,18 +54,7 @@ typedef enum {
   OFT_INVALID
 } orientedFilterType;
 
-  
-
-// XXX TODO there is probably no longer any reason to use the ifdefs
-// the best way to deal with that is to define the corresponding global variables in each executable
-//// the macros below were moved to other files
-//#define RUN_INFERENCE // generates the blue boxes
-//#define PUBLISH_OBJECTS // requires blue, brown, and gray boxes, and inference
-//#define RELOAD_DATA
-//#define RELEARN_VOCAB
-//#define TRAIN_ONLY
-//// the macros above were moved to other files
-#define RUN_TRACKING // calculates the red boxes
+int runTracking = 1; // calculates the red boxes
 
 int drawOrientor = 1;
 int drawLabels = 1;
@@ -46,8 +69,6 @@ int drawPink = 0;
 int drawBrown = 1;
 int drawBlueKP = 1;
 int drawRedKP = 1;
-
-//#define DEBUG
 
 int mask_gripper = 0;
 
@@ -152,8 +173,7 @@ double pcgc22 = 1;//1.0+(12.0 / 480.0);
 // if you add an immense number of examples or some new classes and
 //   you begin having discriminative problems (confusion), you can
 //   increase the number of words.
-// XXX
-const double bowSubSampleFactor = 0.1;
+const double bowSubSampleFactor = 0.01;
 const int bowOverSampleFactor = 1;
 const int kNNOverSampleFactor = 1;
 const int poseOverSampleFactor = 1;
@@ -169,15 +189,9 @@ const double grayBlur = 1.0;
 const int k = 4;
 int redK = 1;
 
-int retrain_vocab = 0;
-int reextract_knn = 0;
-int rewrite_labels = 0;
-
-
 // paramaters for the color histogram feature
 const double colorHistNumBins = 8;
 const double colorHistBinWidth = 256/colorHistNumBins;
-// XXX
 const double colorHistLambda = 0.5;
 const double colorHistThresh = 0.1;
 const int colorHistBoxHalfWidth = 1;
@@ -226,9 +240,8 @@ Eigen::Vector3d eeForward;
 geometry_msgs::Pose trueEEPose;
 
 // you can mine hard negatives by modifying the box saving routine 
-//   to save examples not belonging to class C while only showint it
+//   to save examples not belonging to class C while only showing it
 //   class C objects
-//#define SAVE_ANNOTATED_BOXES
 // always increment the prefix so that the next person doesn't overwrite
 //   your examples.  
 std::string data_directory = "unspecified_dd";
@@ -337,6 +350,8 @@ vector<int> bLabels;
 double rejectScale = 2.0;
 double rejectAreaScale = 16;//6*6;
 
+// your code here
+int findYellowBoxes = 0;
 
 typedef struct {
   int classLabel;
@@ -439,7 +454,6 @@ int rejectRedBox() {
 
 }
 
-
 void gridKeypoints(int gImW, int gImH, cv::Point top, cv::Point bot, int strideX, int strideY, vector<KeyPoint>& keypoints, int period) {
   keypoints.resize(0);
 
@@ -489,15 +503,12 @@ cout << sTop << sBot << endl;
 
 void CallbackFunc(int event, int x, int y, int flags, void* userdata) {
   if ( event == EVENT_LBUTTONDOWN ) {
-#ifdef CAPTURE_ONLY
-    fc = frames_per_click;
-#endif
-#ifdef SAVE_ANNOTATED_BOXES
-    fc = frames_per_click;
-#endif
-#ifdef CAPTURE_HARD_CLASS
-    fc = frames_per_click;
-#endif
+    if (captureOnly) 
+      fc = frames_per_click;
+    if (saveAnnotatedBoxes)
+      fc = frames_per_click;
+    if (captureHardClass)
+      fc = frames_per_click;
  
     //cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
   } else if ( event == EVENT_RBUTTONDOWN ) {
@@ -523,8 +534,7 @@ cv::Point pcCorrection(double x, double y, double imW, double imH) {
   return output;
 }
 
-bool isFiniteNumber(double x) 
-{
+bool isFiniteNumber(double x) {
     return (x <= DBL_MAX && x >= -DBL_MAX); 
 } 
 
@@ -744,7 +754,6 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
   string dot(".");
   string dotdot("..");
   string ppm(".ppm");
-  
 
   char buf[1024];
   sprintf(buf, "%s%s", classDir.c_str(), className);
@@ -813,8 +822,8 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
   }
 }
 
-void depthCallback(const sensor_msgs::ImageConstPtr& msg){
 /*
+void depthCallback(const sensor_msgs::ImageConstPtr& msg) {
 
   cv_bridge::CvImagePtr cv_ptr;
   try {
@@ -873,11 +882,10 @@ void depthCallback(const sensor_msgs::ImageConstPtr& msg){
 #ifdef DEBUG
 cout << depth_img.size() << " " << depth_img.type() << " " << maxDepth << " " << minDepth << endl;
 #endif
-*/
 }
+*/
 
-void getCluster(pcl::PointCloud<pcl::PointXYZRGB> &cluster, pcl::PointCloud<pcl::PointXYZRGB> &cloud, std::vector<cv::Point> &points)
-{
+void getCluster(pcl::PointCloud<pcl::PointXYZRGB> &cluster, pcl::PointCloud<pcl::PointXYZRGB> &cloud, std::vector<cv::Point> &points) {
   cv::Point point;
   for (int i = 0; i < points.size(); i++)
   {
@@ -890,8 +898,7 @@ void getCluster(pcl::PointCloud<pcl::PointXYZRGB> &cluster, pcl::PointCloud<pcl:
   }
 }
 
-geometry_msgs::Pose getPose(pcl::PointCloud<pcl::PointXYZRGB> &cluster)
-{
+geometry_msgs::Pose getPose(pcl::PointCloud<pcl::PointXYZRGB> &cluster) {
   geometry_msgs::Pose pose;
   double sum_x = 0, sum_y = 0, sum_z = 0;
   for (int i = 0; i < cluster.size(); i++)
@@ -909,8 +916,7 @@ geometry_msgs::Pose getPose(pcl::PointCloud<pcl::PointXYZRGB> &cluster)
 }
 
 // TODO probably don't need two separate functions for this
-void loadROSParamsFromArgs()
-{
+void loadROSParamsFromArgs() {
   ros::NodeHandle nh("~");
 
   cout << "nh namespace: " << nh.getNamespace() << endl;
@@ -957,11 +963,12 @@ void loadROSParamsFromArgs()
 
   nh.getParam("left_or_right_arm", left_or_right_arm);
 
+  nh.getParam("chosen_feature", left_or_right_arm);
+
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
 
-void loadROSParams()
-{
+void loadROSParams() {
   ros::NodeHandle nh("~");
 
   nh.getParam("green_box_threshold", gBoxThresh);
@@ -1024,8 +1031,7 @@ void loadROSParams()
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
 
-void saveROSParams()
-{
+void saveROSParams() {
   ros::NodeHandle nh("~");
 
   nh.setParam("green_box_threshold", gBoxThresh);
@@ -1081,6 +1087,8 @@ void saveROSParams()
   nh.setParam("add_blinders", add_blinders);
 
   nh.setParam("left_or_right_arm", left_or_right_arm);
+
+  nh.setParam("chosen_feature", left_or_right_arm);
 }
 
 int isOrientedFilterPoseModel(string toCompare) {
@@ -1341,7 +1349,6 @@ cout << top << " " << bot << " "; cout.flush();
 //yys = top.y;
 //yyf = top.y;
 
-
       double winningScore = -1;
       int winningX = -1;
       int winningY = -1;
@@ -1371,7 +1378,6 @@ cout << top << " " << bot << " "; cout.flush();
 #ifdef DEBUG
 //cout << endl << gCrop1 << endl << endl << endl << endl << gCrop << endl;
 #endif
-
 	  cv::resize(gCrop, gCrop, orientedFilters[0].size());
 	  gCrop.convertTo(gCrop, orientedFilters[0].type());
 
@@ -1396,7 +1402,6 @@ cout << top << " " << bot << " "; cout.flush();
 #ifdef DEBUG
 cout << winningX << " " << winningY << " " << xxs << " " << yys  << endl;
 #endif
-
 
       cv::Matx33f R;
       R(0,0) = 1; R(0,1) = 0; R(0,2) = 0;
@@ -1628,7 +1633,6 @@ void init_oriented_filters(orientedFilterType thisType) {
 
     Mat validCrop = tmp3(cv::Rect(leftOne, topOne, rightOne-leftOne, botOne-topOne));
 
-
     // grow to the max dimension to avoid distortion
     int crows = validCrop.rows;
     int ccols = validCrop.cols;
@@ -1647,7 +1651,6 @@ void init_oriented_filters(orientedFilterType thisType) {
 	  vCrop.at<double>(y, x) = 0.0;
       }
     }
-
 
     cv::resize(vCrop, orientedFilters[o], orientedFilters[0].size());
     //cv::resize(tmp3, orientedFilters[o], orientedFilters[0].size());
@@ -1736,7 +1739,7 @@ void handleKeyboardInput(int c) {
 
 }
 
-void imageCallback(const sensor_msgs::ImageConstPtr& msg){
+void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
   ros::NodeHandle nh("~");
 
@@ -1758,11 +1761,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   if (deltaTime > 0.0)
     aveFrequency = timeMass / deltaTime;
 
-
 cout << "Average time between frames: " << aveTime << 
   "   Average Frequency: " << aveFrequency << " Hz   Duration of sampling: " << 
   deltaTime << "   Frames since sampling: " << timeMass << endl; 
-
 
 //cout << "here 1" << endl;
 
@@ -2016,7 +2017,6 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
     }
   }
 
-
   // integrate the differential density into the density
   density[0] = differentialDensity[0];
   for (int x = 1; x < imW; x++) {
@@ -2059,7 +2059,6 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
     }
   }
 
-
   // integrate density into the integral density
   integralDensity[0] = density[0];
   for (int x = 1; x < imW; x++) {
@@ -2089,7 +2088,6 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
     grayTop = armTop;
     grayBot = armBot;
   }
-
 
   if (drawGray) {
     cv::Point outTop = cv::Point(grayTop.x, grayTop.y);
@@ -2328,7 +2326,6 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
 	  biggestBB = t;
 	}
 	
-	
       }
     }
   } else {
@@ -2346,7 +2343,6 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
     ee_target_pub.publish(p);
   }
 
-
   // copy the density map to the rendered image
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
@@ -2356,267 +2352,260 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
     }
   }
 
+  if (runInference) {
+    // the brown box is a box representing the location of the dominant table in the scene.
+    // locate a good choice for the brown box.
+    int brownBoxWidth = gBoxW;//50;
+    int brownPadding = 0;
+    brTop = cv::Point(0,0);
+    brBot = cv::Point(brownBoxWidth,brownBoxWidth);
 
-#ifdef RUN_INFERENCE
+    cv::Point thisBrTop(0,0);
+    cv::Point thisBrBot(0,0);
 
-  // the brown box is a box representing the location of the dominant table in the scene.
-  // locate a good choice for the brown box.
-  int brownBoxWidth = gBoxW;//50;
-  int brownPadding = 0;
-  brTop = cv::Point(0,0);
-  brBot = cv::Point(brownBoxWidth,brownBoxWidth);
+    // raster scan the image looking for a box that doesn't intersect with blueBoxes
+    int rejectAll = 1;
+    int acceptedBrBoxes = 0;
+    int reject = 0;
+    tableNormalSum = Eigen::Vector3d(0,0,0);
+    tableTangent1Sum = Eigen::Vector3d(0,0,0);
+    tableTangent2Sum = Eigen::Vector3d(0,0,0);
+    tablePositionSum = Eigen::Vector3d(0,0,0);
+    tableBiasSum = 0;
 
-  cv::Point thisBrTop(0,0);
-  cv::Point thisBrBot(0,0);
+    for (int bY = grayTop.y + brownPadding; 
+	  bY <= grayBot.y - brownBoxWidth-brownPadding; bY=bY+(brownBoxWidth/2)) {
+      for (int bX = grayTop.x + brownPadding; 
+	  bX <= grayBot.x - brownBoxWidth-brownPadding; bX = bX+(brownBoxWidth/2)) {
+	cv::Point thisCen = cv::Point(bX+brownBoxWidth/2, bY+brownBoxWidth/2);
 
-  // raster scan the image looking for a box that doesn't intersect with blueBoxes
-  int rejectAll = 1;
-  int acceptedBrBoxes = 0;
-  int reject = 0;
-  tableNormalSum = Eigen::Vector3d(0,0,0);
-  tableTangent1Sum = Eigen::Vector3d(0,0,0);
-  tableTangent2Sum = Eigen::Vector3d(0,0,0);
-  tablePositionSum = Eigen::Vector3d(0,0,0);
-  tableBiasSum = 0;
+	thisBrTop.x = bX;
+	thisBrTop.y = bY;
+	thisBrBot.x = bX+brownBoxWidth;
+	thisBrBot.y = bY+brownBoxWidth;
 
-  for (int bY = grayTop.y + brownPadding; 
-	bY <= grayBot.y - brownBoxWidth-brownPadding; bY=bY+(brownBoxWidth/2)) {
-    for (int bX = grayTop.x + brownPadding; 
-	bX <= grayBot.x - brownBoxWidth-brownPadding; bX = bX+(brownBoxWidth/2)) {
-      cv::Point thisCen = cv::Point(bX+brownBoxWidth/2, bY+brownBoxWidth/2);
-
-      thisBrTop.x = bX;
-      thisBrTop.y = bY;
-      thisBrBot.x = bX+brownBoxWidth;
-      thisBrBot.y = bY+brownBoxWidth;
-
-      int reject = 0;
-      for (int c = 0; c < bTops.size(); c++) {
+	int reject = 0;
+	for (int c = 0; c < bTops.size(); c++) {
 #ifdef DEBUG
 //cout << "brBox   " << c << " / " << bTops.size() << " " << fabs(bCens[c].x - thisCen.x) << endl;
 #endif
-	if ( fabs(bCens[c].x - thisCen.x) < ((fabs(bBots[c].x-bTops[c].x)+brownBoxWidth)/2)-1 && 
-	      fabs(bCens[c].y - thisCen.y) < ((fabs(bBots[c].y-bTops[c].y)+brownBoxWidth)/2)-1 ) {
-	  reject = 1;
-	  break;
-	} 
-      }
-
-      if (!reject) {
-
-
-	if (pointCloud.size() > 0) {
-	  pcl::PointXYZRGB p0 = pointCloud.at(thisBrTop.x, thisBrBot.y);
-	  pcl::PointXYZRGB p1 = pointCloud.at(thisBrTop.x, thisBrTop.y);
-	  pcl::PointXYZRGB p2 = pointCloud.at(thisBrBot.x, thisBrBot.y);
-  
-	  if (!isFiniteNumber(p0.x) ||
-	      !isFiniteNumber(p0.y) ||
-	      !isFiniteNumber(p0.z) ||
-	      !isFiniteNumber(p1.x) ||
-	      !isFiniteNumber(p1.y) ||
-	      !isFiniteNumber(p1.z) ||
-	      !isFiniteNumber(p2.x) ||
-	      !isFiniteNumber(p2.y) ||
-	      !isFiniteNumber(p2.z) ) {
+	  if ( fabs(bCens[c].x - thisCen.x) < ((fabs(bBots[c].x-bTops[c].x)+brownBoxWidth)/2)-1 && 
+		fabs(bCens[c].y - thisCen.y) < ((fabs(bBots[c].y-bTops[c].y)+brownBoxWidth)/2)-1 ) {
 	    reject = 1;
+	    break;
+	  } 
+	}
 
-	    if (drawBrown)
-	      rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,102,204));
-	  }
+	if (!reject) {
+
+	  if (pointCloud.size() > 0) {
+	    pcl::PointXYZRGB p0 = pointCloud.at(thisBrTop.x, thisBrBot.y);
+	    pcl::PointXYZRGB p1 = pointCloud.at(thisBrTop.x, thisBrTop.y);
+	    pcl::PointXYZRGB p2 = pointCloud.at(thisBrBot.x, thisBrBot.y);
+    
+	    if (!isFiniteNumber(p0.x) ||
+		!isFiniteNumber(p0.y) ||
+		!isFiniteNumber(p0.z) ||
+		!isFiniteNumber(p1.x) ||
+		!isFiniteNumber(p1.y) ||
+		!isFiniteNumber(p1.z) ||
+		!isFiniteNumber(p2.x) ||
+		!isFiniteNumber(p2.y) ||
+		!isFiniteNumber(p2.z) ) {
+	      reject = 1;
+
+	      if (drawBrown)
+		rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,102,204));
+	    }
 
 #ifdef DEBUG
 //cout << thisBrTop << thisBrBot << "p0, p1, p2:  " << p0 << p1 << p2 << endl;
 //cout << "p0, p1, p2:  " << p0 << p1 << p2 << endl;
 #endif
 
-	  if (!reject) {
-	    cv::Point tranTop = pcCorrection(thisBrTop.x, thisBrTop.y, imW, imH);
-	    cv::Point tranBot = pcCorrection(thisBrBot.x, thisBrBot.y, imW, imH);
+	    if (!reject) {
+	      cv::Point tranTop = pcCorrection(thisBrTop.x, thisBrTop.y, imW, imH);
+	      cv::Point tranBot = pcCorrection(thisBrBot.x, thisBrBot.y, imW, imH);
 
 #ifdef DEBUG
 //cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << endl;
 #endif
 
-	    //pcl::PointXYZRGB p0 = pointCloud.at(thisBrTop.x, thisBrBot.y);
-	    //pcl::PointXYZRGB p1 = pointCloud.at(thisBrTop.x, thisBrTop.y);
-	    //pcl::PointXYZRGB p2 = pointCloud.at(thisBrBot.x, thisBrBot.y);
+	      //pcl::PointXYZRGB p0 = pointCloud.at(thisBrTop.x, thisBrBot.y);
+	      //pcl::PointXYZRGB p1 = pointCloud.at(thisBrTop.x, thisBrTop.y);
+	      //pcl::PointXYZRGB p2 = pointCloud.at(thisBrBot.x, thisBrBot.y);
 
-	    pcl::PointXYZRGB p0 = pointCloud.at(tranTop.x, tranBot.y);
-	    pcl::PointXYZRGB p1 = pointCloud.at(tranTop.x, tranTop.y);
-	    pcl::PointXYZRGB p2 = pointCloud.at(tranBot.x, tranBot.y);
+	      pcl::PointXYZRGB p0 = pointCloud.at(tranTop.x, tranBot.y);
+	      pcl::PointXYZRGB p1 = pointCloud.at(tranTop.x, tranTop.y);
+	      pcl::PointXYZRGB p2 = pointCloud.at(tranBot.x, tranBot.y);
 
-	    Eigen::Vector3d localTablePosition(p0.x,p0.y,p0.z);
+	      Eigen::Vector3d localTablePosition(p0.x,p0.y,p0.z);
 
-	    // a little gram-schmidt...
-	    Eigen::Vector3d p01(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
-	    Eigen::Vector3d p02(p2.x - p0.x, p2.y - p0.y, p2.z - p0.z);
+	      // a little gram-schmidt...
+	      Eigen::Vector3d p01(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
+	      Eigen::Vector3d p02(p2.x - p0.x, p2.y - p0.y, p2.z - p0.z);
 
-	    double p02norm = sqrt(p02.dot(p02));
-	    if (p02norm > 0) {
-	      p02 = p02 / p02norm;
-	    }
+	      double p02norm = sqrt(p02.dot(p02));
+	      if (p02norm > 0) {
+		p02 = p02 / p02norm;
+	      }
 
-	    double p01p02dot = p01.dot(p02);
-	    p01 = p01 - p01p02dot * p02;
+	      double p01p02dot = p01.dot(p02);
+	      p01 = p01 - p01p02dot * p02;
 
-	    double p01norm = sqrt(p01.dot(p01));
-	    if (p01norm > 0) {
-	      p01 = p01 / p01norm;
-	    }
+	      double p01norm = sqrt(p01.dot(p01));
+	      if (p01norm > 0) {
+		p01 = p01 / p01norm;
+	      }
 
-	    // ... and now p01 and p02 are orthonormal
+	      // ... and now p01 and p02 are orthonormal
 
-	    // using the right hand rule for cross product order
-	    Eigen::Vector3d p03 = p02.cross(p01);
+	      // using the right hand rule for cross product order
+	      Eigen::Vector3d p03 = p02.cross(p01);
 
-	    if (!isFiniteNumber(p03.x()) ||
-		!isFiniteNumber(p03.y()) ||
-		!isFiniteNumber(p03.z()) ) {
-	      reject = 1;
+	      if (!isFiniteNumber(p03.x()) ||
+		  !isFiniteNumber(p03.y()) ||
+		  !isFiniteNumber(p03.z()) ) {
+		reject = 1;
 
-	      if (drawBrown)
-		rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,76,153));
-	    }
+		if (drawBrown)
+		  rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,76,153));
+	      }
 
-	    if (!reject) {
-	      acceptedBrBoxes++;
-	      if (drawBrown)
-		rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,51,102));
+	      if (!reject) {
+		acceptedBrBoxes++;
+		if (drawBrown)
+		  rectangle(cv_ptr->image, thisBrTop, thisBrBot, cv::Scalar(0,51,102));
 
-	      tablePositionSum.x() = tablePositionSum.x() + p0.x + p1.x + p2.x;
-	      tablePositionSum.y() = tablePositionSum.y() + p0.y + p1.y + p2.y;
-	      tablePositionSum.z() = tablePositionSum.z() + p0.z + p1.z + p2.z;
-	      tablePosition = tablePositionSum / (3*acceptedBrBoxes);
+		tablePositionSum.x() = tablePositionSum.x() + p0.x + p1.x + p2.x;
+		tablePositionSum.y() = tablePositionSum.y() + p0.y + p1.y + p2.y;
+		tablePositionSum.z() = tablePositionSum.z() + p0.z + p1.z + p2.z;
+		tablePosition = tablePositionSum / (3*acceptedBrBoxes);
 
-	      tableNormalSum = tableNormalSum + p03;
-	      tableNormal = tableNormalSum;
-	      tableNormal.normalize(); 
+		tableNormalSum = tableNormalSum + p03;
+		tableNormal = tableNormalSum;
+		tableNormal.normalize(); 
 
-	      tableTangent1Sum = tableTangent1Sum + p01;
-	      tableTangent2Sum = tableTangent2Sum + p02;
-	      tableTangent1 = tableTangent1Sum;
-	      tableTangent2 = tableTangent2Sum;
-	      tableTangent1.normalize();
-	      tableTangent2.normalize();
+		tableTangent1Sum = tableTangent1Sum + p01;
+		tableTangent2Sum = tableTangent2Sum + p02;
+		tableTangent1 = tableTangent1Sum;
+		tableTangent2 = tableTangent2Sum;
+		tableTangent1.normalize();
+		tableTangent2.normalize();
 
-	      tableTangent1 = tableTangent1 - (tableTangent2.dot(tableTangent1) * tableTangent2);
-	      tableTangent1.normalize();
+		tableTangent1 = tableTangent1 - (tableTangent2.dot(tableTangent1) * tableTangent2);
+		tableTangent1.normalize();
 
-	      tableNormal = tableTangent2.cross(tableTangent1);
+		tableNormal = tableTangent2.cross(tableTangent1);
 
 #ifdef DEBUG
 //cout << tableNormal << endl;
 #endif
 
-	      tableBiasSum = tableBiasSum + tableNormal.dot(localTablePosition);
-	      tableBias = tableBiasSum / acceptedBrBoxes;
+		tableBiasSum = tableBiasSum + tableNormal.dot(localTablePosition);
+		tableBias = tableBiasSum / acceptedBrBoxes;
 
-	      cv::Matx33f R;
-	      R(0,0) = tableTangent2.x(); R(0,1) = tableTangent1.x(); R(0,2) = tableNormal.x();
-	      R(1,0) = tableTangent2.y(); R(1,1) = tableTangent1.y(); R(1,2) = tableNormal.y();
-	      R(2,0) = tableTangent2.z(); R(2,1) = tableTangent1.z(); R(2,2) = tableNormal.z();
+		cv::Matx33f R;
+		R(0,0) = tableTangent2.x(); R(0,1) = tableTangent1.x(); R(0,2) = tableNormal.x();
+		R(1,0) = tableTangent2.y(); R(1,1) = tableTangent1.y(); R(1,2) = tableNormal.y();
+		R(2,0) = tableTangent2.z(); R(2,1) = tableTangent1.z(); R(2,2) = tableNormal.z();
 
-	      Eigen::Matrix3f rotation;
-	      rotation << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
-	      Eigen::Quaternionf patchQuaternion(rotation);
-	      tablePose.orientation.x = patchQuaternion.x();
-	      tablePose.orientation.y = patchQuaternion.y();
-	      tablePose.orientation.z = patchQuaternion.z();
-	      tablePose.orientation.w = patchQuaternion.w();
+		Eigen::Matrix3f rotation;
+		rotation << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
+		Eigen::Quaternionf patchQuaternion(rotation);
+		tablePose.orientation.x = patchQuaternion.x();
+		tablePose.orientation.y = patchQuaternion.y();
+		tablePose.orientation.z = patchQuaternion.z();
+		tablePose.orientation.w = patchQuaternion.w();
 
-	      tablePose.position.x = tablePosition.x();
-	      tablePose.position.y = tablePosition.y();
-	      tablePose.position.z = tablePosition.z();
+		tablePose.position.x = tablePosition.x();
+		tablePose.position.y = tablePosition.y();
+		tablePose.position.z = tablePosition.z();
 
-	      // obtain the quaternion pose for the table
-	      tableQuaternion.x() = tablePose.orientation.x;
-	      tableQuaternion.y() = tablePose.orientation.y;
-	      tableQuaternion.z() = tablePose.orientation.z;
-	      tableQuaternion.w() = tablePose.orientation.w;
+		// obtain the quaternion pose for the table
+		tableQuaternion.x() = tablePose.orientation.x;
+		tableQuaternion.y() = tablePose.orientation.y;
+		tableQuaternion.z() = tablePose.orientation.z;
+		tableQuaternion.w() = tablePose.orientation.w;
 
+		cv::Point2f srcQuad[4]; 
+		cv::Point2f dstQuad[4]; 
 
+		double normalizer = 1.0;
 
-	      cv::Point2f srcQuad[4]; 
-	      cv::Point2f dstQuad[4]; 
+		double scale = 1;
+		srcQuad[0].x = 0;
+		srcQuad[0].y = 0;
 
-	      double normalizer = 1.0;
+		srcQuad[1].x = scale;
+		srcQuad[1].y = 0;
 
-	      double scale = 1;
-	      srcQuad[0].x = 0;
-	      srcQuad[0].y = 0;
+		srcQuad[2].x = 0;
+		srcQuad[2].y = scale;
 
-	      srcQuad[1].x = scale;
-	      srcQuad[1].y = 0;
+		srcQuad[3].x = scale;
+		srcQuad[3].y = scale;
 
-	      srcQuad[2].x = 0;
-	      srcQuad[2].y = scale;
+		//dstQuad[0].x = 0;
+		//dstQuad[0].y = 0;
 
-	      srcQuad[3].x = scale;
-	      srcQuad[3].y = scale;
+  /*
+		tableNormal = -tableNormal;
 
-	      //dstQuad[0].x = 0;
-	      //dstQuad[0].y = 0;
+		normalizer = tableNormal.z();
+		if (fabs(normalizer) < 1e-6)
+		  normalizer = 1.0;
+		dstQuad[0].x = (tableNormal.x()) / normalizer;
+		dstQuad[0].y = (tableNormal.y()) / normalizer;
 
-/*
-	      tableNormal = -tableNormal;
+		normalizer = tableTangent2.z() + tableNormal.z();
+		if (fabs(normalizer) < 1e-6)
+		  normalizer = 1.0;
+		dstQuad[1].x = (tableTangent2.x() + tableNormal.x()) / normalizer;
+		dstQuad[1].y = (tableTangent2.y() + tableNormal.y()) / normalizer;
 
-	      normalizer = tableNormal.z();
-	      if (fabs(normalizer) < 1e-6)
-		normalizer = 1.0;
-	      dstQuad[0].x = (tableNormal.x()) / normalizer;
-	      dstQuad[0].y = (tableNormal.y()) / normalizer;
+		normalizer = tableTangent1.z() + tableNormal.z();
+		if (fabs(normalizer) < 1e-6)
+		  normalizer = 1.0;
+		dstQuad[2].x = (-tableTangent1.x() + tableNormal.x()) / normalizer;
+		dstQuad[2].y = (-tableTangent1.y() + tableNormal.y()) / normalizer;
 
-	      normalizer = tableTangent2.z() + tableNormal.z();
-	      if (fabs(normalizer) < 1e-6)
-		normalizer = 1.0;
-	      dstQuad[1].x = (tableTangent2.x() + tableNormal.x()) / normalizer;
-	      dstQuad[1].y = (tableTangent2.y() + tableNormal.y()) / normalizer;
+		normalizer = tableTangent1.z() + tableTangent2.z() + tableNormal.z();
+		if (fabs(normalizer) < 1e-6)
+		  normalizer = 1.0;
+		dstQuad[3].x = (tableTangent2.x() + -tableTangent1.x() + tableNormal.x()) / normalizer;
+		dstQuad[3].y = (tableTangent2.y() + -tableTangent1.y() + tableNormal.y()) / normalizer;
 
-	      normalizer = tableTangent1.z() + tableNormal.z();
-	      if (fabs(normalizer) < 1e-6)
-		normalizer = 1.0;
-	      dstQuad[2].x = (-tableTangent1.x() + tableNormal.x()) / normalizer;
-	      dstQuad[2].y = (-tableTangent1.y() + tableNormal.y()) / normalizer;
+		tableNormal = -tableNormal;
 
-	      normalizer = tableTangent1.z() + tableTangent2.z() + tableNormal.z();
-	      if (fabs(normalizer) < 1e-6)
-		normalizer = 1.0;
-	      dstQuad[3].x = (tableTangent2.x() + -tableTangent1.x() + tableNormal.x()) / normalizer;
-	      dstQuad[3].y = (tableTangent2.y() + -tableTangent1.y() + tableNormal.y()) / normalizer;
+		dstQuad[0].x -= dstQuad[0].x;
+		dstQuad[0].y -= dstQuad[0].y;
+		dstQuad[1].x -= dstQuad[0].x;
+		dstQuad[1].y -= dstQuad[0].y;
+		dstQuad[2].x -= dstQuad[0].x;
+		dstQuad[2].y -= dstQuad[0].y;
+		dstQuad[3].x -= dstQuad[0].x;
+		dstQuad[3].y -= dstQuad[0].y;
+  */
 
-	      tableNormal = -tableNormal;
+		dstQuad[0].x = 0;
+		dstQuad[0].y = 0;
+		dstQuad[1].x = tableTangent2.x();
+		dstQuad[1].y = tableTangent2.y();
+		dstQuad[2].x = -tableTangent1.x();
+		dstQuad[2].y = -tableTangent1.y();
+		dstQuad[3].x = -tableTangent1.x() + tableTangent2.x();
+		dstQuad[3].y = -tableTangent1.y() + tableTangent2.y();
 
-	      dstQuad[0].x -= dstQuad[0].x;
-	      dstQuad[0].y -= dstQuad[0].y;
-	      dstQuad[1].x -= dstQuad[0].x;
-	      dstQuad[1].y -= dstQuad[0].y;
-	      dstQuad[2].x -= dstQuad[0].x;
-	      dstQuad[2].y -= dstQuad[0].y;
-	      dstQuad[3].x -= dstQuad[0].x;
-	      dstQuad[3].y -= dstQuad[0].y;
-*/
+		double toCenterX = (dstQuad[3].x-1.0)/2.0;
+		double toCenterY = (dstQuad[3].y-1.0)/2.0;
 
+		for (int dd = 0; dd < 4; dd++) {
+		  dstQuad[dd].x -= toCenterX;
+		  dstQuad[dd].y -= toCenterY;
+		}
 
-
-	      dstQuad[0].x = 0;
-	      dstQuad[0].y = 0;
-	      dstQuad[1].x = tableTangent2.x();
-	      dstQuad[1].y = tableTangent2.y();
-	      dstQuad[2].x = -tableTangent1.x();
-	      dstQuad[2].y = -tableTangent1.y();
-	      dstQuad[3].x = -tableTangent1.x() + tableTangent2.x();
-	      dstQuad[3].y = -tableTangent1.y() + tableTangent2.y();
-
-	      double toCenterX = (dstQuad[3].x-1.0)/2.0;
-	      double toCenterY = (dstQuad[3].y-1.0)/2.0;
-
-	      for (int dd = 0; dd < 4; dd++) {
-		dstQuad[dd].x -= toCenterX;
-		dstQuad[dd].y -= toCenterY;
-	      }
-
-	      tablePerspective = getPerspectiveTransform(srcQuad, dstQuad);
+		tablePerspective = getPerspectiveTransform(srcQuad, dstQuad);
 
 #ifdef DEBUG
 //cout << endl << "tablePerspective, R: " << tablePerspective << R << endl;
@@ -2624,742 +2613,733 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
 //cout << dstQuad[0] << dstQuad[1] << dstQuad[2] << dstQuad[3] << endl; 
 #endif
 
-	      rejectAll = 0;
+		rejectAll = 0;
+	      }
 	    }
 	  }
+
+	  //break;
 	}
-
-	//break;
       }
+      //if (!reject)
+	//break;
     }
-    //if (!reject)
-      //break;
-  }
-  
-  init_oriented_filters_all();
+    
+    init_oriented_filters_all();
 
-  // draw it again to go over the brown boxes
-  if (drawGray) {
-    cv::Point outTop = cv::Point(grayTop.x, grayTop.y);
-    cv::Point outBot = cv::Point(grayBot.x, grayBot.y);
-    cv::Point inTop = cv::Point(grayTop.x+1,grayTop.y+1);
-    cv::Point inBot = cv::Point(grayBot.x-1,grayBot.y-1);
-    rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(128,128,128));
-    rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(32,32,32));
-  }
+    // draw it again to go over the brown boxes
+    if (drawGray) {
+      cv::Point outTop = cv::Point(grayTop.x, grayTop.y);
+      cv::Point outBot = cv::Point(grayBot.x, grayBot.y);
+      cv::Point inTop = cv::Point(grayTop.x+1,grayTop.y+1);
+      cv::Point inBot = cv::Point(grayBot.x-1,grayBot.y-1);
+      rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(128,128,128));
+      rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(32,32,32));
+    }
 
-  vector< vector<int> > pIoCbuffer;
+    vector< vector<int> > pIoCbuffer;
 
-  // classify the crops
-  roa_to_send_blue.objects.resize(bTops.size());
-  ma_to_send_blue.markers.resize(bTops.size()+1);
-  bKeypoints.resize(bTops.size());
-  bWords.resize(bTops.size());
-  bYCrCb.resize(bTops.size());
-  bLabels.resize(bTops.size());
-  for (int c = 0; c < bTops.size(); c++) {
+    // classify the crops
+    roa_to_send_blue.objects.resize(bTops.size());
+    ma_to_send_blue.markers.resize(bTops.size()+1);
+    bKeypoints.resize(bTops.size());
+    bWords.resize(bTops.size());
+    bYCrCb.resize(bTops.size());
+    bLabels.resize(bTops.size());
+    for (int c = 0; c < bTops.size(); c++) {
 #ifdef DEBUG
 fprintf(stderr, " object check1"); fflush(stderr);
 #endif
-    vector<KeyPoint>& keypoints = bKeypoints[c];
-    Mat descriptors;
-    Mat descriptors2;
+      vector<KeyPoint>& keypoints = bKeypoints[c];
+      Mat descriptors;
+      Mat descriptors2;
 
 #ifdef DEBUG
 fprintf(stderr, " a"); fflush(stderr);
 cout << bTops[c] << bBots[c] << " "; cout.flush();
 #endif
 
-    Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
-    Mat gray_image;
-    Mat& yCrCb_image = bYCrCb[c];
-    processImage(crop, gray_image, yCrCb_image, grayBlur);
+      Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
+      Mat gray_image;
+      Mat& yCrCb_image = bYCrCb[c];
+      processImage(crop, gray_image, yCrCb_image, grayBlur);
 
-    //detector->detect(gray_image, keypoints);
-    gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
+      //detector->detect(gray_image, keypoints);
+      gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
 
-    for (int kp = 0; kp < keypoints.size(); kp++) {
+      for (int kp = 0; kp < keypoints.size(); kp++) {
 #ifdef DEBUG
 //cout << keypoints[kp].angle << " " << keypoints[kp].class_id << " " << 
   //keypoints[kp].octave << " " << keypoints[kp].pt << " " <<
   //keypoints[kp].response << " " << keypoints[kp].size << endl;
 #endif
-    }
+      }
 
-    bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
+      bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
 
-    // save the word assignments for the keypoints so we can use them for red boxes
+      // save the word assignments for the keypoints so we can use them for red boxes
 #ifdef DEBUG
 fprintf(stderr, "e "); fflush(stderr);
 cout << "pIoCbuffer: " << pIoCbuffer.size() << " "; cout.flush();
 cout << "kpSize: " << keypoints.size() << " "; cout.flush();
 #endif
-    bWords[c].resize(keypoints.size());
-    if ((pIoCbuffer.size() > 0) && (keypoints.size() > 0)) {
-      for (int w = 0; w < vocabNumWords; w++) {
-	int numDescrOfWord = pIoCbuffer[w].size();
+      bWords[c].resize(keypoints.size());
+      if ((pIoCbuffer.size() > 0) && (keypoints.size() > 0)) {
+	for (int w = 0; w < vocabNumWords; w++) {
+	  int numDescrOfWord = pIoCbuffer[w].size();
 #ifdef DEBUG
 if (numDescrOfWord > 0)
   cout << "[" << w << "]: " << numDescrOfWord << " ";
 #endif
-	for (int w2 = 0; w2 < numDescrOfWord; w2++) {
-	  bWords[c][pIoCbuffer[w][w2]] = w;
-	}
-      }
-  
-      if (drawBlueKP) {
-	for (int kp = 0; kp < keypoints.size(); kp++) {
-	  int tX = keypoints[kp].pt.x;
-	  int tY = keypoints[kp].pt.y;
-	  cv::Point kpTop = cv::Point(bTops[c].x+tX-1,bTops[c].y+tY-1);
-	  cv::Point kpBot = cv::Point(bTops[c].x+tX,bTops[c].y+tY);
-	  if(
-	    (kpTop.x >= 1) &&
-	    (kpBot.x <= imW-2) &&
-	    (kpTop.y >= 1) &&
-	    (kpBot.y <= imH-2) 
-	    ) {
-	    rectangle(cv_ptr->image, kpTop, kpBot, cv::Scalar(255,0,0));
+	  for (int w2 = 0; w2 < numDescrOfWord; w2++) {
+	    bWords[c][pIoCbuffer[w][w2]] = w;
 	  }
 	}
-      }
-
-    }
     
+	if (drawBlueKP) {
+	  for (int kp = 0; kp < keypoints.size(); kp++) {
+	    int tX = keypoints[kp].pt.x;
+	    int tY = keypoints[kp].pt.y;
+	    cv::Point kpTop = cv::Point(bTops[c].x+tX-1,bTops[c].y+tY-1);
+	    cv::Point kpBot = cv::Point(bTops[c].x+tX,bTops[c].y+tY);
+	    if(
+	      (kpTop.x >= 1) &&
+	      (kpBot.x <= imW-2) &&
+	      (kpTop.y >= 1) &&
+	      (kpBot.y <= imH-2) 
+	      ) {
+	      rectangle(cv_ptr->image, kpTop, kpBot, cv::Scalar(255,0,0));
+	    }
+	  }
+	}
+
+      }
+      
 #ifdef DEBUG
 fprintf(stderr, " object check2"); fflush(stderr);
 #endif
-    double label = -1;
-    if (!descriptors.empty() && !keypoints.empty()) {
-    
-      appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
+      double label = -1;
+      if (!descriptors.empty() && !keypoints.empty()) {
+      
+	appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
 
-      label = kNN->find_nearest(descriptors2,k);
-      bLabels[c] = label;
+	label = kNN->find_nearest(descriptors2,k);
+	bLabels[c] = label;
 
-      if (classLabels[label].compare(invert_sign_name) == 0)
-	invertQuaternionLabel = 1;
-    }
+	if (classLabels[label].compare(invert_sign_name) == 0)
+	  invertQuaternionLabel = 1;
+      }
 
 #ifdef DEBUG
 fprintf(stderr, " object check3 label %f", label); fflush(stderr);
 #endif
 
-    string labelName; 
-    string augmentedLabelName;
-    double poseIndex = -1;
-    int winningO = -1;
+      string labelName; 
+      string augmentedLabelName;
+      double poseIndex = -1;
+      int winningO = -1;
 
-    getOrientation(cv_ptr, img_cvt, 
-      keypoints, descriptors, bTops[c], bBots[c], 
-      label, labelName, augmentedLabelName, poseIndex, winningO);
-    
-  #ifdef SAVE_ANNOTATED_BOXES
-    // save the crops
-    if (fc > 0) {
+      getOrientation(cv_ptr, img_cvt, 
+	keypoints, descriptors, bTops[c], bBots[c], 
+	label, labelName, augmentedLabelName, poseIndex, winningO);
+      
+      if (saveAnnotatedBoxes) {
+	// save the crops
+	if (fc > 0) {
 
-    #ifdef CAPTURE_HARD_CLASS
-      if ((0 != labelName.compare(table_label_class_name)) &&
-	  (0 != labelName.compare(background_class_name) ) ) 
-    #else
-      if (0 == labelName.compare(class_name))
-    #endif
-      {
+	  int conditionFulfilled = false;
+	  if (captureHardClass)
+	    conditionFulfilled = ( (0 != labelName.compare(table_label_class_name)) &&
+				   (0 != labelName.compare(background_class_name) ) );
+	  else
+	    conditionFulfilled = ( 0 == labelName.compare(class_name) );
 
-	string thisLabelName = labelName;
+	  if (conditionFulfilled) {
 
-    #ifdef CAPTURE_HARD_CLASS
-	thisLabelName = class_name;
-    #endif
+	    string thisLabelName = labelName;
+	    if (captureHardClass)
+	      thisLabelName = class_name;
 
+	    {
+	      string another_crops_path = data_directory + "/" + thisLabelName + "/";
+	      char buf[1000];
+	      sprintf(buf, "%s%s%s_%d.ppm", another_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
+    cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
+	      imwrite(buf, crop);
+	    }
 
-	{
-	  string another_crops_path = data_directory + "/" + thisLabelName + "/";
-	  char buf[1000];
-	  sprintf(buf, "%s%s%s_%d.ppm", another_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
-cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
-	  imwrite(buf, crop);
+	    Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
+	    char buf[1000];
+	    string this_crops_path = data_directory + "/" + thisLabelName + "Poses/";
+	    sprintf(buf, "%s%sPoses%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
+	    //sprintf(buf, class_crops_path + "/%s_toAudit/%s%s_%d.ppm", 
+	      //thisLabelName, thisLabelName, run_prefix, cropCounter);
+	    imwrite(buf, crop);
+	    cropCounter++;
+
+	    string poseLabelsPath = this_crops_path + "poseLabels.yml";
+	    char thisCropLabel[1000];
+	    sprintf(thisCropLabel, "%sPoses%s_%d", thisLabelName.c_str(), run_prefix.c_str(), cropCounter); 
+
+	    Eigen::Quaternionf quaternionToWrite = tableLabelQuaternion;
+	    if (invertQuaternionLabel) {
+	      cv::Matx33f R;
+	      R(0,0) = 1; R(0,1) =  0; R(0,2) = 0;
+	      R(1,0) = 0; R(1,1) =  0; R(1,2) = 1;
+	      R(2,0) = 0; R(2,1) = -1; R(2,2) = 0;
+
+	      Eigen::Matrix3f rotation;
+	      rotation << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
+	      Eigen::Quaternionf tempQuaternion(rotation);
+      
+	      quaternionToWrite = tableLabelQuaternion * tempQuaternion;
+	    }
+
+	    cv::Vec <double,4>tLQ;
+	    tLQ[0] = quaternionToWrite.x();
+	    tLQ[1] = quaternionToWrite.y();
+	    tLQ[2] = quaternionToWrite.z();
+	    tLQ[3] = quaternionToWrite.w();
+
+	    FileStorage fsfO;
+	    fsfO.open(poseLabelsPath, FileStorage::APPEND);
+	    fsfO << thisCropLabel << tLQ; 
+	    fsfO.release();
+
+    cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
+	  } else {
+    cout << "Rejecting class " << labelName << endl;
+	  }
+
 	}
-
-	Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
-	char buf[1000];
-	string this_crops_path = data_directory + "/" + thisLabelName + "Poses/";
-	sprintf(buf, "%s%sPoses%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
-	//sprintf(buf, class_crops_path + "/%s_toAudit/%s%s_%d.ppm", 
-	  //thisLabelName, thisLabelName, run_prefix, cropCounter);
-	imwrite(buf, crop);
-	cropCounter++;
-
-	string poseLabelsPath = this_crops_path + "poseLabels.yml";
-	char thisCropLabel[1000];
-	sprintf(thisCropLabel, "%sPoses%s_%d", thisLabelName.c_str(), run_prefix.c_str(), cropCounter); 
-
-	Eigen::Quaternionf quaternionToWrite = tableLabelQuaternion;
-	if (invertQuaternionLabel) {
-	  cv::Matx33f R;
-	  R(0,0) = 1; R(0,1) =  0; R(0,2) = 0;
-	  R(1,0) = 0; R(1,1) =  0; R(1,2) = 1;
-	  R(2,0) = 0; R(2,1) = -1; R(2,2) = 0;
-
-	  Eigen::Matrix3f rotation;
-	  rotation << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
-	  Eigen::Quaternionf tempQuaternion(rotation);
-  
-	  quaternionToWrite = tableLabelQuaternion * tempQuaternion;
-	}
-
-	cv::Vec <double,4>tLQ;
-	tLQ[0] = quaternionToWrite.x();
-	tLQ[1] = quaternionToWrite.y();
-	tLQ[2] = quaternionToWrite.z();
-	tLQ[3] = quaternionToWrite.w();
-
-	FileStorage fsfO;
-	fsfO.open(poseLabelsPath, FileStorage::APPEND);
-	fsfO << thisCropLabel << tLQ; 
-	fsfO.release();
-
-cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
-      } else {
-cout << "Rejecting class " << labelName << endl;
       }
 
+      if (drawLabels) {
+	cv::Point text_anchor(bTops[c].x+1, bBots[c].y-2);
+	cv::Point text_anchor2(bTops[c].x+1, bBots[c].y-2);
+	putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(255,192,192), 2.0);
+	putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(255,0,0), 1.0);
+      }
 
-    }
-  #endif
-
-    if (drawLabels) {
-      cv::Point text_anchor(bTops[c].x+1, bBots[c].y-2);
-      cv::Point text_anchor2(bTops[c].x+1, bBots[c].y-2);
-      putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(255,192,192), 2.0);
-      putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(255,0,0), 1.0);
-    }
-
-    double thisThresh = pBoxThresh;
-    /*
-    if (label == 1)
-      thisThresh = gbPBT;
-    if (label == 2)
-      thisThresh = mbPBT;
-    if (label == 3)
-      thisThresh = wsPBT;
-    if (label == 4)
-      thisThresh = psPBT;
-    */
+      double thisThresh = pBoxThresh;
+      /*
+      if (label == 1)
+	thisThresh = gbPBT;
+      if (label == 2)
+	thisThresh = mbPBT;
+      if (label == 3)
+	thisThresh = wsPBT;
+      if (label == 4)
+	thisThresh = psPBT;
+      */
 
 #ifdef DEBUG
 fprintf(stderr, " object check5"); fflush(stderr);
 #endif
 
-    vector<cv::Point> pointCloudPoints;
-    getPointCloudPoints(cv_ptr, pointCloudPoints, pBoxIndicator, thisThresh, 
-      bTops[c], bBots[c], imW, imH, gBoxStrideX, gBoxStrideY, gBoxW, gBoxH);
+      vector<cv::Point> pointCloudPoints;
+      getPointCloudPoints(cv_ptr, pointCloudPoints, pBoxIndicator, thisThresh, 
+	bTops[c], bBots[c], imW, imH, gBoxStrideX, gBoxStrideY, gBoxW, gBoxH);
 
 #ifdef DEBUG
 fprintf(stderr, " object check6"); fflush(stderr);
 #endif
 
-  #ifdef PUBLISH_OBJECTS
-    if (label >= 0) {
-      fill_RO_and_M_arrays(roa_to_send_blue, 
-	ma_to_send_blue, pointCloudPoints, c, label, winningO, poseIndex);
+      if (publishObjects) {
+	if (label >= 0) {
+	  fill_RO_and_M_arrays(roa_to_send_blue, 
+	    ma_to_send_blue, pointCloudPoints, c, label, winningO, poseIndex);
+	}
+      }
     }
-  #endif
-  }
 
-  // publish the table
-  {
+    // publish the table
+    {
 #ifdef DEBUG
 cout << "table check 1" << endl;
 #endif
-    int c = bTops.size();
-    ma_to_send_blue.markers[c].pose = tablePose;
-    ma_to_send_blue.markers[c].type =  visualization_msgs::Marker::CUBE;
-    ma_to_send_blue.markers[c].scale.x = 1.0;
-    ma_to_send_blue.markers[c].scale.y = 1.0;
-    ma_to_send_blue.markers[c].scale.z = 0.002;
-    ma_to_send_blue.markers[c].color.a = 0.5;
-    ma_to_send_blue.markers[c].color.r = 176/255.0;
-    ma_to_send_blue.markers[c].color.g = 133/255.0;
-    ma_to_send_blue.markers[c].color.b = 14/255.0;
+      int c = bTops.size();
+      ma_to_send_blue.markers[c].pose = tablePose;
+      ma_to_send_blue.markers[c].type =  visualization_msgs::Marker::CUBE;
+      ma_to_send_blue.markers[c].scale.x = 1.0;
+      ma_to_send_blue.markers[c].scale.y = 1.0;
+      ma_to_send_blue.markers[c].scale.z = 0.002;
+      ma_to_send_blue.markers[c].color.a = 0.5;
+      ma_to_send_blue.markers[c].color.r = 176/255.0;
+      ma_to_send_blue.markers[c].color.g = 133/255.0;
+      ma_to_send_blue.markers[c].color.b = 14/255.0;
 
-    ma_to_send_blue.markers[c].header =  roa_to_send_blue.header;
-    ma_to_send_blue.markers[c].action = visualization_msgs::Marker::ADD;
-    ma_to_send_blue.markers[c].id = c;
-    ma_to_send_blue.markers[c].lifetime = ros::Duration(1.0);
+      ma_to_send_blue.markers[c].header =  roa_to_send_blue.header;
+      ma_to_send_blue.markers[c].action = visualization_msgs::Marker::ADD;
+      ma_to_send_blue.markers[c].id = c;
+      ma_to_send_blue.markers[c].lifetime = ros::Duration(1.0);
 #ifdef DEBUG
 cout << "table check 2" << endl;
 #endif
-  }
+    }
 
-  #ifdef PUBLISH_OBJECTS
+    if (publishObjects) {
 #ifdef DEBUG
 cout << "about to publish" << endl;
 #endif
-  if (bTops.size() > 0) {
-    rec_objs_blue.publish(roa_to_send_blue);
-  }
-  markers_blue.publish(ma_to_send_blue);
+      if (bTops.size() > 0) {
+	rec_objs_blue.publish(roa_to_send_blue);
+      }
+      markers_blue.publish(ma_to_send_blue);
 #ifdef DEBUG
 cout << "published" << endl;
 #endif
-  #endif
+    }
 
+    if (saveAnnotatedBoxes)
+      if (fc > 0)
+	fc--;
 
-  #ifdef SAVE_ANNOTATED_BOXES
-  if (fc > 0)
-    fc--;
-  #endif
+    if(findYellowBoxes) {
+// your code here
+    }
 
-  #ifdef RUN_TRACKING 
-  object_recognition_msgs::RecognizedObjectArray roa_to_send_red;
-  visualization_msgs::MarkerArray ma_to_send_red; 
-  roa_to_send_red.objects.resize(0);
-  ma_to_send_red.markers.resize(0);
+    if (runTracking) {
+      object_recognition_msgs::RecognizedObjectArray roa_to_send_red;
+      visualization_msgs::MarkerArray ma_to_send_red; 
+      roa_to_send_red.objects.resize(0);
+      ma_to_send_red.markers.resize(0);
 
-  for (int r = 0; r < numRedBoxes; r++) {
+      for (int r = 0; r < numRedBoxes; r++) {
 
 #ifdef DEBUG
 cout << "dealing with redBox[" << r << "]" << endl;
 #endif
 
-    redBox *thisRedBox = &(redBoxes[r]);
-    int thisClass = thisRedBox->classLabel;
+	redBox *thisRedBox = &(redBoxes[r]);
+	int thisClass = thisRedBox->classLabel;
 
-    int accepted = 0;
-    // check to see if there is a class who wants this red box
-    //   if so, scan it, if not, scan all
-    for (int c = 0; c < bTops.size(); c++) {
-      if (bLabels[c] == thisClass) {
-	accepted = 1;
-	thisRedBox->rootBlueBox = c;
-      }
-    }
-
-
-
-// XXX
-// check the old position of the redbox, keep its distance
-// randomly alter the size of the test boxes, save the new size in that red box
-// make feature computation efficient
-// this should give interesting behavior
-
-    int thisRedStride = redStride*redPeriod;
-    int winJ = -1;
-    float winD = 1e6;
-    cv::Point winTop(0,0);
-    cv::Point winBot(thisRedBox->bot.x, thisRedBox->bot.y);
-    vector<KeyPoint> winKeypoints;
-    Mat winDescriptors;
-
-    cv::Point dTop;
-    cv::Point dBot;
-
-    if (thisRedBox->persistence < persistenceThresh) {
-      redRounds = 1;
-      //thisRedBox->bot = cv::Point(redInitialWidth, redInitialWidth);
-    }
-
-    for (int redR = 0; redR < redRounds; redR++) {
-
-      int proposalValid = 0;
-      int proposals = 0;
-
-      //int deltaAmplitude = ((lrand48() % 3)*10);
-      // "wide-scale random noise"
-      int dmax = redDigitsWSRN;
-      int digits = 1 + (lrand48() % (dmax));
-      int deltaAmplitude = (1 << (digits-1)) + (lrand48() % (1 << (digits-1)));
-      
-      //int dmax = 5;
-      //int digits = (lrand48() % dmax);
-      //int deltaAmplitude = (1 << digits);
-      //for (int d = 0; d < digits; d++)
-	//deltaAmplitude += ((lrand48() % 2) << d);
-
-      cv::Point rbDelta(0,0);
-      cv::Point cornerDelta(0,0);
-
-      double slideProb = slidesPerFrame / double(redRounds);
-      int slideOrNot = (drand48() < slideProb);
-      if (thisRedBox->persistence < persistenceThresh)
-	slideOrNot = 1;
-
-      while (!proposalValid && proposals < max_red_proposals) {
-	proposals++;
-	int deltaRnd = lrand48() % 6;
-	int cornerRnd = lrand48() % 4;
-	if (deltaRnd == 0) {
-	  if (thisRedBox->bot.x+deltaAmplitude <= rbMaxWidth) {
-	    rbDelta.x = deltaAmplitude;
-	    proposalValid = 1;
-	  }
-	} else if (deltaRnd == 1) {
-	  if (thisRedBox->bot.x-deltaAmplitude >= rbMinWidth) {
-	    rbDelta.x = -deltaAmplitude;
-	    proposalValid = 1;
-	  }
-	} else if (deltaRnd == 2) {
-	  if (thisRedBox->bot.y+deltaAmplitude <= rbMaxWidth) {
-	    rbDelta.y = deltaAmplitude;
-	    proposalValid = 1;
-	  }
-	} else if (deltaRnd == 3) {
-	  if (thisRedBox->bot.y-deltaAmplitude >= rbMinWidth) {
-	    rbDelta.y = -deltaAmplitude;
-	    proposalValid = 1;
-	  }
-	} else if (deltaRnd == 4) {
-	  if ((thisRedBox->bot.y-deltaAmplitude >= rbMinWidth) &&
-	      (thisRedBox->bot.x-deltaAmplitude >= rbMinWidth) ) {
-	    rbDelta.y = -deltaAmplitude;
-	    rbDelta.x = -deltaAmplitude;
-	    proposalValid = 1;
-	  }
-	} else if (deltaRnd == 5) {
-	  if ((thisRedBox->bot.y+deltaAmplitude <= rbMaxWidth) &&
-	      (thisRedBox->bot.x+deltaAmplitude <= rbMaxWidth) ) {
-	    rbDelta.y = deltaAmplitude;
-	    rbDelta.x = deltaAmplitude;
-	    proposalValid = 1;
+	int accepted = 0;
+	// check to see if there is a class who wants this red box
+	//   if so, scan it, if not, scan all
+	for (int c = 0; c < bTops.size(); c++) {
+	  if (bLabels[c] == thisClass) {
+	    accepted = 1;
+	    thisRedBox->rootBlueBox = c;
 	  }
 	}
 
-	if (cornerRnd == 0) {
-	} else if (cornerRnd == 1) {
-	  cornerDelta.x = -rbDelta.x;
-	  cornerDelta.y = -rbDelta.y;
-	} else if (cornerRnd == 2) {
-	  cornerDelta.y = -rbDelta.y;
-	} else if (cornerRnd == 3) {
-	  cornerDelta.x = -rbDelta.x;
-	}
-      }
-      
-      vector<int> theseBlueBoxes;
+    // XXX
+    // check the old position of the redbox, keep its distance
+    // randomly alter the size of the test boxes, save the new size in that red box
+    // make feature computation efficient
+    // this should give interesting behavior
 
-      if (accepted) {
-	theseBlueBoxes.push_back(thisRedBox->rootBlueBox);
-      } else {
-	int root_search = 0;
-	if (root_search == 0) {
-	  // search every box
-	  for (int bb = 0; bb < bTops.size(); bb++) {
-	    theseBlueBoxes.push_back(bb);
+	int thisRedStride = redStride*redPeriod;
+	int winJ = -1;
+	float winD = 1e6;
+	cv::Point winTop(0,0);
+	cv::Point winBot(thisRedBox->bot.x, thisRedBox->bot.y);
+	vector<KeyPoint> winKeypoints;
+	Mat winDescriptors;
+
+	cv::Point dTop;
+	cv::Point dBot;
+
+	if (thisRedBox->persistence < persistenceThresh) {
+	  redRounds = 1;
+	  //thisRedBox->bot = cv::Point(redInitialWidth, redInitialWidth);
+	}
+
+	for (int redR = 0; redR < redRounds; redR++) {
+
+	  int proposalValid = 0;
+	  int proposals = 0;
+
+	  //int deltaAmplitude = ((lrand48() % 3)*10);
+	  // "wide-scale random noise"
+	  int dmax = redDigitsWSRN;
+	  int digits = 1 + (lrand48() % (dmax));
+	  int deltaAmplitude = (1 << (digits-1)) + (lrand48() % (1 << (digits-1)));
+	  
+	  //int dmax = 5;
+	  //int digits = (lrand48() % dmax);
+	  //int deltaAmplitude = (1 << digits);
+	  //for (int d = 0; d < digits; d++)
+	    //deltaAmplitude += ((lrand48() % 2) << d);
+
+	  cv::Point rbDelta(0,0);
+	  cv::Point cornerDelta(0,0);
+
+	  double slideProb = slidesPerFrame / double(redRounds);
+	  int slideOrNot = (drand48() < slideProb);
+	  if (thisRedBox->persistence < persistenceThresh)
+	    slideOrNot = 1;
+
+	  while (!proposalValid && proposals < max_red_proposals) {
+	    proposals++;
+	    int deltaRnd = lrand48() % 6;
+	    int cornerRnd = lrand48() % 4;
+	    if (deltaRnd == 0) {
+	      if (thisRedBox->bot.x+deltaAmplitude <= rbMaxWidth) {
+		rbDelta.x = deltaAmplitude;
+		proposalValid = 1;
+	      }
+	    } else if (deltaRnd == 1) {
+	      if (thisRedBox->bot.x-deltaAmplitude >= rbMinWidth) {
+		rbDelta.x = -deltaAmplitude;
+		proposalValid = 1;
+	      }
+	    } else if (deltaRnd == 2) {
+	      if (thisRedBox->bot.y+deltaAmplitude <= rbMaxWidth) {
+		rbDelta.y = deltaAmplitude;
+		proposalValid = 1;
+	      }
+	    } else if (deltaRnd == 3) {
+	      if (thisRedBox->bot.y-deltaAmplitude >= rbMinWidth) {
+		rbDelta.y = -deltaAmplitude;
+		proposalValid = 1;
+	      }
+	    } else if (deltaRnd == 4) {
+	      if ((thisRedBox->bot.y-deltaAmplitude >= rbMinWidth) &&
+		  (thisRedBox->bot.x-deltaAmplitude >= rbMinWidth) ) {
+		rbDelta.y = -deltaAmplitude;
+		rbDelta.x = -deltaAmplitude;
+		proposalValid = 1;
+	      }
+	    } else if (deltaRnd == 5) {
+	      if ((thisRedBox->bot.y+deltaAmplitude <= rbMaxWidth) &&
+		  (thisRedBox->bot.x+deltaAmplitude <= rbMaxWidth) ) {
+		rbDelta.y = deltaAmplitude;
+		rbDelta.x = deltaAmplitude;
+		proposalValid = 1;
+	      }
+	    }
+
+	    if (cornerRnd == 0) {
+	    } else if (cornerRnd == 1) {
+	      cornerDelta.x = -rbDelta.x;
+	      cornerDelta.y = -rbDelta.y;
+	    } else if (cornerRnd == 2) {
+	      cornerDelta.y = -rbDelta.y;
+	    } else if (cornerRnd == 3) {
+	      cornerDelta.x = -rbDelta.x;
+	    }
 	  }
-	} else if (root_search == 1) {
-	  // search a random box
-	  // consider removing
-	  if (bTops.size() > 0)
-	    theseBlueBoxes.push_back(lrand48() % bTops.size());
-	}
-      }
+	  
+	  vector<int> theseBlueBoxes;
 
-      for (int cc = 0; cc < theseBlueBoxes.size(); cc++) {
-	int c = theseBlueBoxes[cc];
-	cv::Point hTop = bTops[c];
-	cv::Point hBot = bBots[c];
+	  if (accepted) {
+	    theseBlueBoxes.push_back(thisRedBox->rootBlueBox);
+	  } else {
+	    int root_search = 0;
+	    if (root_search == 0) {
+	      // search every box
+	      for (int bb = 0; bb < bTops.size(); bb++) {
+		theseBlueBoxes.push_back(bb);
+	      }
+	    } else if (root_search == 1) {
+	      // search a random box
+	      // consider removing
+	      if (bTops.size() > 0)
+		theseBlueBoxes.push_back(lrand48() % bTops.size());
+	    }
+	  }
 
-	if (!slideOrNot) {
-	  hTop.x = thisRedBox->anchor.x + cornerDelta.x;
-	  hTop.y = thisRedBox->anchor.y + cornerDelta.y;
+	  for (int cc = 0; cc < theseBlueBoxes.size(); cc++) {
+	    int c = theseBlueBoxes[cc];
+	    cv::Point hTop = bTops[c];
+	    cv::Point hBot = bBots[c];
 
-	  hBot.x = thisRedBox->anchor.x + cornerDelta.x + thisRedBox->bot.x + rbDelta.x;
-	  hBot.y = thisRedBox->anchor.y + cornerDelta.y + thisRedBox->bot.y + rbDelta.y;
+	    if (!slideOrNot) {
+	      hTop.x = thisRedBox->anchor.x + cornerDelta.x;
+	      hTop.y = thisRedBox->anchor.y + cornerDelta.y;
 
-	  hTop.x = min(hTop.x, bBots[c].x);
-	  hTop.y = min(hTop.y, bBots[c].y);
-	  hTop.x = max(hTop.x, bTops[c].x);
-	  hTop.y = max(hTop.y, bTops[c].y);
+	      hBot.x = thisRedBox->anchor.x + cornerDelta.x + thisRedBox->bot.x + rbDelta.x;
+	      hBot.y = thisRedBox->anchor.y + cornerDelta.y + thisRedBox->bot.y + rbDelta.y;
 
-	  hBot.x = min(hBot.x, bBots[c].x);
-	  hBot.y = min(hBot.y, bBots[c].y);
-	  hBot.x = max(hBot.x, bTops[c].x);
-	  hBot.y = max(hBot.y, bTops[c].y);
+	      hTop.x = min(hTop.x, bBots[c].x);
+	      hTop.y = min(hTop.y, bBots[c].y);
+	      hTop.x = max(hTop.x, bTops[c].x);
+	      hTop.y = max(hTop.y, bTops[c].y);
 
-	  if ((hBot.x-hTop.x < rbMinWidth) || (hBot.y-hTop.y < rbMinWidth)) {
+	      hBot.x = min(hBot.x, bBots[c].x);
+	      hBot.y = min(hBot.y, bBots[c].y);
+	      hBot.x = max(hBot.x, bTops[c].x);
+	      hBot.y = max(hBot.y, bTops[c].y);
+
+	      if ((hBot.x-hTop.x < rbMinWidth) || (hBot.y-hTop.y < rbMinWidth)) {
 #ifdef DEBUG
 cout << "REJECTED class: " << thisClass << " bb: " << c << hTop << hBot << " prop: " << proposals << endl;
 #endif
-	    continue;
-	  }
-	}
-	
-	int ix = min(hTop.x + thisRedBox->bot.x + rbDelta.x, hBot.x);
-	int iy = min(hTop.y + thisRedBox->bot.y + rbDelta.y, hBot.y);
-	/*1*/cv::Point itTop(hTop.x,0);
-	/*1*/cv::Point itBot(ix , 0);
-	for (/*1*/; itBot.x <= hBot.x; /*2*/) {
-	  
-	  /*3*/itTop.y = hTop.y;
-	  /*3*/itBot.y = iy;
-	  for (/*3*/; itBot.y <= hBot.y; /*4*/) {
-	    // score this crop
-	    vector<KeyPoint> keypoints;
-	    Mat descriptors(1,vocabNumWords, CV_32F);
-	    Mat descriptors2;
+		continue;
+	      }
+	    }
+	    
+	    int ix = min(hTop.x + thisRedBox->bot.x + rbDelta.x, hBot.x);
+	    int iy = min(hTop.y + thisRedBox->bot.y + rbDelta.y, hBot.y);
+	    /*1*/cv::Point itTop(hTop.x,0);
+	    /*1*/cv::Point itBot(ix , 0);
+	    for (/*1*/; itBot.x <= hBot.x; /*2*/) {
+	      
+	      /*3*/itTop.y = hTop.y;
+	      /*3*/itBot.y = iy;
+	      for (/*3*/; itBot.y <= hBot.y; /*4*/) {
+		// score this crop
+		vector<KeyPoint> keypoints;
+		Mat descriptors(1,vocabNumWords, CV_32F);
+		Mat descriptors2;
 
-	    Mat& yCrCb_image = bYCrCb[c];
+		Mat& yCrCb_image = bYCrCb[c];
 #ifdef DEBUG
 //cout << &(bYCrCb[c]) << endl;
 #endif
 
-	    cv::Point lItTop(itTop.x-bTops[c].x, itTop.y-bTops[c].y);
-	    cv::Point lItBot(itBot.x-bTops[c].x, itBot.y-bTops[c].y);
+		cv::Point lItTop(itTop.x-bTops[c].x, itTop.y-bTops[c].y);
+		cv::Point lItBot(itBot.x-bTops[c].x, itBot.y-bTops[c].y);
 
-	    float totalWords = bWords[c].size();
-	    float countedWords = 0;
+		float totalWords = bWords[c].size();
+		float countedWords = 0;
 #ifdef DEBUG
 //cout << "totalWords: " << totalWords;
 #endif
-	    for (int w = 0; w < totalWords; w++) {
-	      int tX = bKeypoints[c][w].pt.x;
-	      int tY = bKeypoints[c][w].pt.y;
-	      // check for containment in this box
+		for (int w = 0; w < totalWords; w++) {
+		  int tX = bKeypoints[c][w].pt.x;
+		  int tY = bKeypoints[c][w].pt.y;
+		  // check for containment in this box
 #ifdef DEBUG
 //cout << " tX tY:" << tX << " " << tY << " " << itTop << itBot << lItTop << lItBot << hTop << hBot << endl;
 #endif
-	      if(
-		(tX >= lItTop.x) &&
-		(tX <= lItBot.x) &&
-		(tY >= lItTop.y) &&
-		(tY <= lItBot.y) 
-		) {
+		  if(
+		    (tX >= lItTop.x) &&
+		    (tX <= lItBot.x) &&
+		    (tY >= lItTop.y) &&
+		    (tY <= lItBot.y) 
+		    ) {
 #ifdef DEBUG
 //cout << " w:" << w << " " << endl;
 #endif
-		descriptors.at<float>(bWords[c][w])++;
-		keypoints.push_back(bKeypoints[c][w]);
-		countedWords++;		
-		if (drawBlueKP) {
-		  cv::Point kpTop = cv::Point(bTops[c].x+tX,bTops[c].y+tY);
-		  cv::Point kpBot = cv::Point(bTops[c].x+tX+1,bTops[c].y+tY+1);
-		  if(
-		    (kpTop.x >= 1) &&
-		    (kpBot.x <= imW-2) &&
-		    (kpTop.y >= 1) &&
-		    (kpBot.y <= imH-2) 
-		    ) {
-		    rectangle(cv_ptr->image, kpTop, kpBot, cv::Scalar(0,0,255));
+		    descriptors.at<float>(bWords[c][w])++;
+		    keypoints.push_back(bKeypoints[c][w]);
+		    countedWords++;		
+		    if (drawBlueKP) {
+		      cv::Point kpTop = cv::Point(bTops[c].x+tX,bTops[c].y+tY);
+		      cv::Point kpBot = cv::Point(bTops[c].x+tX+1,bTops[c].y+tY+1);
+		      if(
+			(kpTop.x >= 1) &&
+			(kpBot.x <= imW-2) &&
+			(kpTop.y >= 1) &&
+			(kpBot.y <= imH-2) 
+			) {
+			rectangle(cv_ptr->image, kpTop, kpBot, cv::Scalar(0,0,255));
+		      }
+		    }
 		  }
 		}
-	      }
-	    }
 
-	    Mat neighbors(1, redK, CV_32F);
-	    Mat dist;
-	    if (countedWords > 0) {
-	      // normalize the BoW
-	      for (int w = 0; w < vocabNumWords; w++) {
-		descriptors.at<float>(w) = descriptors.at<float>(w) / countedWords;
-	      }
+		Mat neighbors(1, redK, CV_32F);
+		Mat dist;
+		if (countedWords > 0) {
+		  // normalize the BoW
+		  for (int w = 0; w < vocabNumWords; w++) {
+		    descriptors.at<float>(w) = descriptors.at<float>(w) / countedWords;
+		  }
 
-	      appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
+		  appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
 
-	      //kNN->find_nearest(descriptors, redK, 0, 0, &neighbors, &dist);
-	      kNN->find_nearest(descriptors2, redK, 0, 0, &neighbors, &dist);
+		  //kNN->find_nearest(descriptors, redK, 0, 0, &neighbors, &dist);
+		  kNN->find_nearest(descriptors2, redK, 0, 0, &neighbors, &dist);
 
-	      int thisJ = 0;
-	      float thisD = 1e6;
-	      for (int n = 0; n < redK; n++) {
+		  int thisJ = 0;
+		  float thisD = 1e6;
+		  for (int n = 0; n < redK; n++) {
 #ifdef DEBUG
 cout << "  neighbors[" << n <<"] is " << (neighbors.at<float>(n));
 #endif
-		if (neighbors.at<float>(n) == float(thisClass)) {
-		  thisJ++;
-		  thisD = min(dist.at<float>(n), winD);
-		}
-	      }
+		    if (neighbors.at<float>(n) == float(thisClass)) {
+		      thisJ++;
+		      thisD = min(dist.at<float>(n), winD);
+		    }
+		  }
 #ifdef DEBUG
 cout << " thisJ: " << thisJ << " slide: " << slideOrNot << " redR: " << redR << endl;
 #endif
-	      if (thisJ > 0 && thisD < winD) {
-		winJ = thisJ;
-		winD = thisD;
-		winTop = itTop;
-		winBot = itBot;
-		winDescriptors = descriptors;
-		winKeypoints = keypoints;
-	      }
+		  if (thisJ > 0 && thisD < winD) {
+		    winJ = thisJ;
+		    winD = thisD;
+		    winTop = itTop;
+		    winBot = itBot;
+		    winDescriptors = descriptors;
+		    winKeypoints = keypoints;
+		  }
 
-	      if (drawRB) {
-		{
-		  cv::Point outTop = cv::Point(dTop.x, dTop.y);
-		  cv::Point outBot = cv::Point(dBot.x, dBot.y);
-		  cv::Point inTop = cv::Point(dTop.x+1,dTop.y+1);
-		  cv::Point inBot = cv::Point(dBot.x-1,dBot.y-1);
-		  rectangle(cv_ptr->image, outTop, outBot, 0.5*cv::Scalar(64,64,192));
-		  rectangle(cv_ptr->image, inTop, inBot, 0.5*cv::Scalar(160,160,224));
+		  if (drawRB) {
+		    {
+		      cv::Point outTop = cv::Point(dTop.x, dTop.y);
+		      cv::Point outBot = cv::Point(dBot.x, dBot.y);
+		      cv::Point inTop = cv::Point(dTop.x+1,dTop.y+1);
+		      cv::Point inBot = cv::Point(dBot.x-1,dBot.y-1);
+		      rectangle(cv_ptr->image, outTop, outBot, 0.5*cv::Scalar(64,64,192));
+		      rectangle(cv_ptr->image, inTop, inBot, 0.5*cv::Scalar(160,160,224));
+		    }
+
+		    {
+		      cv::Point outTop = cv::Point(itTop.x, itTop.y);
+		      cv::Point outBot = cv::Point(itBot.x, itBot.y);
+		      cv::Point inTop = cv::Point(winTop.x+1,winTop.y+1);
+		      cv::Point inBot = cv::Point(winBot.x-1,winBot.y-1);
+		      rectangle(cv_ptr->image, outTop, outBot, 0.5*cv::Scalar(0,0,255));
+		      rectangle(cv_ptr->image, inTop, inBot, 0.5*cv::Scalar(192,192,255));
+		    }
+
+		    //{
+		      //cv::Point outTop = cv::Point(winTop.x, winTop.y);
+		      //cv::Point outBot = cv::Point(winBot.x, winBot.y);
+		      //cv::Point inTop = cv::Point(winTop.x+1,winTop.y+1);
+		      //cv::Point inBot = cv::Point(winBot.x-1,winBot.y-1);
+		      //rectangle(cv_ptr->image, outTop, outBot, 0.5*cv::Scalar(0,0,255));
+		      //rectangle(cv_ptr->image, inTop, inBot, 0.5*cv::Scalar(192,192,255));
+		    //}
+		  }
+
 		}
-
-		{
-		  cv::Point outTop = cv::Point(itTop.x, itTop.y);
-		  cv::Point outBot = cv::Point(itBot.x, itBot.y);
-		  cv::Point inTop = cv::Point(winTop.x+1,winTop.y+1);
-		  cv::Point inBot = cv::Point(winBot.x-1,winBot.y-1);
-		  rectangle(cv_ptr->image, outTop, outBot, 0.5*cv::Scalar(0,0,255));
-		  rectangle(cv_ptr->image, inTop, inBot, 0.5*cv::Scalar(192,192,255));
-		}
-
-		//{
-		  //cv::Point outTop = cv::Point(winTop.x, winTop.y);
-		  //cv::Point outBot = cv::Point(winBot.x, winBot.y);
-		  //cv::Point inTop = cv::Point(winTop.x+1,winTop.y+1);
-		  //cv::Point inBot = cv::Point(winBot.x-1,winBot.y-1);
-		  //rectangle(cv_ptr->image, outTop, outBot, 0.5*cv::Scalar(0,0,255));
-		  //rectangle(cv_ptr->image, inTop, inBot, 0.5*cv::Scalar(192,192,255));
-		//}
-	      }
-
-	    }
 
 #ifdef DEBUG
 cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.size() << " " 
-  << itBot << itTop << "  " << hTop << hBot << " prop: " << proposals << endl;
+<< itBot << itTop << "  " << hTop << hBot << " prop: " << proposals << endl;
 #endif
 
-	    /*4*/itTop.y += thisRedStride;
-	    /*4*/itBot.y += thisRedStride;
+		/*4*/itTop.y += thisRedStride;
+		/*4*/itBot.y += thisRedStride;
+	      }
+
+	      /*2*/itTop.x += thisRedStride;
+	      /*2*/itBot.x += thisRedStride;
+	    }
+	  }
+	  
+	  if (winD < thisRedBox->lastDistance) {
+	    if (thisRedBox->persistence > persistenceThresh)
+	      thisRedBox->bot = cv::Point(redDecay*thisRedBox->bot.x + (1.0-redDecay)*(winBot.x - winTop.x), 
+					  redDecay*thisRedBox->bot.y + (1.0-redDecay)*(winBot.y - winTop.y) );
+	    else
+	      thisRedBox->bot = cv::Point((winBot.x - winTop.x), (winBot.y - winTop.y));
+	  }
+	  thisRedBox->lastDistance = winD;
+
+	  dTop = cv::Point(thisRedBox->anchor.x, thisRedBox->anchor.y);
+	  dBot = cv::Point(thisRedBox->anchor.x + thisRedBox->bot.x, thisRedBox->anchor.y + thisRedBox->bot.y);
+	}
+
+	string labelName; 
+	string augmentedLabelName;
+	double poseIndex = -1;
+	int winningO = -1;
+
+	getOrientation(cv_ptr, img_cvt, 
+	  winKeypoints, winDescriptors, winTop, winBot, 
+	  thisClass, labelName, augmentedLabelName, poseIndex, winningO);
+	
+	// always decay persistence but only add it if we got a hit
+	thisRedBox->persistence = redDecay*thisRedBox->persistence;
+	if (winD < 1e6) {
+	  if (thisRedBox->persistence > persistenceThresh) {
+	    thisRedBox->anchor.x = redDecay*thisRedBox->anchor.x + (1.0-redDecay)*winTop.x;
+	    thisRedBox->anchor.y = redDecay*thisRedBox->anchor.y + (1.0-redDecay)*winTop.y;
+	  } else {
+	    thisRedBox->anchor.x = winTop.x;
+	    thisRedBox->anchor.y = winTop.y;
+	    thisRedBox->persistence = persistenceThresh+.001;
+	  }
+	  thisRedBox->persistence = thisRedBox->persistence + (1.0-redDecay)*1.0;
+	
+	  thisRedBox->poseIndex = poseIndex;
+	  thisRedBox->winningO = winningO;
+	}
+
+	if (drawRed) {
+	  //if (thisRedBox->persistence > 0.0) 
+	  {
+	    cv::Point outTop = cv::Point(dTop.x, dTop.y);
+	    cv::Point outBot = cv::Point(dBot.x, dBot.y);
+	    cv::Point inTop = cv::Point(dTop.x+1,dTop.y+1);
+	    cv::Point inBot = cv::Point(dBot.x-1,dBot.y-1);
+	    rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(64,64,192));
+	    rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(160,160,224));
+
+	    if (drawLabels) {
+	      cv::Point text_anchor(dTop.x+1, dBot.y-2);
+	      cv::Point text_anchor2(dTop.x+1, dBot.y-2);
+	      putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(160,160,224), 2.0);
+	      putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(64,64,192), 1.0);
+	    }
 	  }
 
-	  /*2*/itTop.x += thisRedStride;
-	  /*2*/itBot.x += thisRedStride;
+	  {
+	    cv::Point outTop = cv::Point(winTop.x, winTop.y);
+	    cv::Point outBot = cv::Point(winBot.x, winBot.y);
+	    cv::Point inTop = cv::Point(winTop.x+1,winTop.y+1);
+	    cv::Point inBot = cv::Point(winBot.x-1,winBot.y-1);
+	    rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(0,0,255));
+	    rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(192,192,255));
+
+	    if (drawLabels) {
+	      cv::Point text_anchor(winTop.x+1, winBot.y-2);
+	      cv::Point text_anchor2(winTop.x+1, winBot.y-2);
+	      putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(192,192,255), 2.0);
+	      putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(0,0,255), 1.0);
+	    }
+	  }
 	}
-      }
-      
-      if (winD < thisRedBox->lastDistance) {
-	if (thisRedBox->persistence > persistenceThresh)
-	  thisRedBox->bot = cv::Point(redDecay*thisRedBox->bot.x + (1.0-redDecay)*(winBot.x - winTop.x), 
-				      redDecay*thisRedBox->bot.y + (1.0-redDecay)*(winBot.y - winTop.y) );
-	else
-	  thisRedBox->bot = cv::Point((winBot.x - winTop.x), (winBot.y - winTop.y));
-      }
-      thisRedBox->lastDistance = winD;
 
-      dTop = cv::Point(thisRedBox->anchor.x, thisRedBox->anchor.y);
-      dBot = cv::Point(thisRedBox->anchor.x + thisRedBox->bot.x, thisRedBox->anchor.y + thisRedBox->bot.y);
-    }
+	double thisThresh = pBoxThresh;
 
+	if (publishObjects) {
+	  vector<cv::Point> pointCloudPoints;
+	  getPointCloudPoints(cv_ptr, pointCloudPoints, pBoxIndicator, thisThresh, 
+	    dTop    , dBot    , imW, imH, gBoxStrideX, gBoxStrideY, gBoxW, gBoxH);
 
+	  if (thisClass >= 0) {
+	    roa_to_send_red.objects.resize(roa_to_send_red.objects.size()+1);
+	    ma_to_send_red.markers.resize(ma_to_send_red.markers.size()+1);
 
-    string labelName; 
-    string augmentedLabelName;
-    double poseIndex = -1;
-    int winningO = -1;
+	    fill_RO_and_M_arrays(roa_to_send_red, 
+	      ma_to_send_red, pointCloudPoints, roa_to_send_red.objects.size()-1, thisClass, thisRedBox->winningO, thisRedBox->poseIndex);
+	    
+	    thisRedBox->com.px = roa_to_send_red.objects[roa_to_send_red.objects.size()-1].pose.pose.pose.position.x;
+	    thisRedBox->com.py = roa_to_send_red.objects[roa_to_send_red.objects.size()-1].pose.pose.pose.position.y;
+	    thisRedBox->com.pz = roa_to_send_red.objects[roa_to_send_red.objects.size()-1].pose.pose.pose.position.z;
+	    thisRedBox->com.ox = 0.0;
+	    thisRedBox->com.oy = 0.0; 
+	    thisRedBox->com.oz = 0.0; 
 
-    getOrientation(cv_ptr, img_cvt, 
-      winKeypoints, winDescriptors, winTop, winBot, 
-      thisClass, labelName, augmentedLabelName, poseIndex, winningO);
-    
-    // always decay persistence but only add it if we got a hit
-    thisRedBox->persistence = redDecay*thisRedBox->persistence;
-    if (winD < 1e6) {
-      if (thisRedBox->persistence > persistenceThresh) {
-	thisRedBox->anchor.x = redDecay*thisRedBox->anchor.x + (1.0-redDecay)*winTop.x;
-	thisRedBox->anchor.y = redDecay*thisRedBox->anchor.y + (1.0-redDecay)*winTop.y;
-      } else {
-	thisRedBox->anchor.x = winTop.x;
-	thisRedBox->anchor.y = winTop.y;
-	thisRedBox->persistence = persistenceThresh+.001;
-      }
-      thisRedBox->persistence = thisRedBox->persistence + (1.0-redDecay)*1.0;
-    
-      thisRedBox->poseIndex = poseIndex;
-      thisRedBox->winningO = winningO;
-    }
-
-    if (drawRed) {
-      //if (thisRedBox->persistence > 0.0) 
-      {
-	cv::Point outTop = cv::Point(dTop.x, dTop.y);
-	cv::Point outBot = cv::Point(dBot.x, dBot.y);
-	cv::Point inTop = cv::Point(dTop.x+1,dTop.y+1);
-	cv::Point inBot = cv::Point(dBot.x-1,dBot.y-1);
-	rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(64,64,192));
-	rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(160,160,224));
-
-	if (drawLabels) {
-	  cv::Point text_anchor(dTop.x+1, dBot.y-2);
-	  cv::Point text_anchor2(dTop.x+1, dBot.y-2);
-	  putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(160,160,224), 2.0);
-	  putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(64,64,192), 1.0);
+	    if (!isFiniteNumber(thisRedBox->com.px) ||
+		!isFiniteNumber(thisRedBox->com.py) ||
+		!isFiniteNumber(thisRedBox->com.pz) )
+	      thisRedBox->com = beeHome;
+	  }
 	}
       }
 
-      {
-	cv::Point outTop = cv::Point(winTop.x, winTop.y);
-	cv::Point outBot = cv::Point(winBot.x, winBot.y);
-	cv::Point inTop = cv::Point(winTop.x+1,winTop.y+1);
-	cv::Point inBot = cv::Point(winBot.x-1,winBot.y-1);
-	rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(0,0,255));
-	rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(192,192,255));
-
-	if (drawLabels) {
-	  cv::Point text_anchor(winTop.x+1, winBot.y-2);
-	  cv::Point text_anchor2(winTop.x+1, winBot.y-2);
-	  putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(192,192,255), 2.0);
-	  putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(0,0,255), 1.0);
+      if (publishObjects) {
+	if (numRedBoxes > 0) {
+	  rec_objs_red.publish(roa_to_send_red);
+	  markers_red.publish(ma_to_send_red);
 	}
       }
     }
-
-    double thisThresh = pBoxThresh;
-
-    #ifdef PUBLISH_OBJECTS
-    vector<cv::Point> pointCloudPoints;
-    getPointCloudPoints(cv_ptr, pointCloudPoints, pBoxIndicator, thisThresh, 
-      dTop    , dBot    , imW, imH, gBoxStrideX, gBoxStrideY, gBoxW, gBoxH);
-
-    if (thisClass >= 0) {
-      roa_to_send_red.objects.resize(roa_to_send_red.objects.size()+1);
-      ma_to_send_red.markers.resize(ma_to_send_red.markers.size()+1);
-
-      fill_RO_and_M_arrays(roa_to_send_red, 
-	ma_to_send_red, pointCloudPoints, roa_to_send_red.objects.size()-1, thisClass, thisRedBox->winningO, thisRedBox->poseIndex);
-      
-      thisRedBox->com.px = roa_to_send_red.objects[roa_to_send_red.objects.size()-1].pose.pose.pose.position.x;
-      thisRedBox->com.py = roa_to_send_red.objects[roa_to_send_red.objects.size()-1].pose.pose.pose.position.y;
-      thisRedBox->com.pz = roa_to_send_red.objects[roa_to_send_red.objects.size()-1].pose.pose.pose.position.z;
-      thisRedBox->com.ox = 0.0;
-      thisRedBox->com.oy = 0.0; 
-      thisRedBox->com.oz = 0.0; 
-
-      if (!isFiniteNumber(thisRedBox->com.px) ||
-	  !isFiniteNumber(thisRedBox->com.py) ||
-	  !isFiniteNumber(thisRedBox->com.pz) )
-	thisRedBox->com = beeHome;
-    }
-    #endif
   }
 
-    #ifdef PUBLISH_OBJECTS
-  if (numRedBoxes > 0) {
-    rec_objs_red.publish(roa_to_send_red);
-    markers_red.publish(ma_to_send_red);
-  }
-    #endif
 
-  #endif
-
-#endif
-
-#ifdef SAVE_BOXES
-  // save the crops
-  if (fc > 0) {
-    fc--;
-    for (int c = bTops.size()-1; c >= 0; c--) {
-      Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
-      char buf[1000];
-      sprintf(buf, "%s%s%s_%d.ppm", saved_crops_path.c_str(), class_name.c_str(), run_prefix.c_str(), cropCounter);
-      // uncomment if statement for hard negative mining
-      //if(bLabels[c] != 7) {
-cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
+  if (saveBoxes) {
+    // save the crops
+    if (fc > 0) {
+      fc--;
+      for (int c = bTops.size()-1; c >= 0; c--) {
+	Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
+	char buf[1000];
+	sprintf(buf, "%s%s%s_%d.ppm", saved_crops_path.c_str(), class_name.c_str(), run_prefix.c_str(), cropCounter);
+	cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
 	imwrite(buf, crop);
 	cropCounter++;
-      //}
+      }
     }
   }
-#endif
 
   if (drawBlue) {
     for (int c = bTops.size()-1; c >= 0; c--) {
@@ -3486,15 +3466,7 @@ void clusterCallback(const visualization_msgs::MarkerArray& msg){
 
 int main(int argc, char **argv) {
 
-#ifdef RELEARN_VOCAB
-  retrain_vocab = 1;
-#endif 
-#ifdef RELOAD_DATA
-  reextract_knn = 1;
-#endif
-#ifdef REWRITE_LABELS
-  rewrite_labels = 1;
-#endif 
+  cout << endl << endl << endl;
 
   srand(time(NULL));
   time(&firstTime);
@@ -3513,13 +3485,12 @@ int main(int argc, char **argv) {
   for (int ccc = 0; ccc < argc; ccc++) {
     cout << argv[ccc] << endl;
   }
+  cout << endl << endl;
 
   string programName;
   if (argc > 1) {
     programName = string(PROGRAM_NAME) + "_" + argv[argc-1];
     cout << "programName: " << programName << endl;
-    //argc = argc-1;
-    //argv[argc-1] = argv[argc-2];
   }
   else
     programName = string(PROGRAM_NAME);
@@ -3596,175 +3567,221 @@ int main(int argc, char **argv) {
 
   int numClasses = 0;
 
-#ifdef RUN_INFERENCE
+  if (runInference) {
+    // SIFT 
+    //detector = new SiftFeatureDetector(0, 3, 0.04, 10, 1.6);
+    cout << "chosen_feature: " << chosen_feature << endl;
+    detector = new FastFeatureDetector(4);
+    if (chosen_feature == SIFTBOW_GLOBALCOLOR_HIST)
+      extractor = new SiftDescriptorExtractor();
+    else if (chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST)
+      extractor = DescriptorExtractor::create("OpponentSIFT");
 
-  // SIFT 
-  //detector = new SiftFeatureDetector(0, 3, 0.04, 10, 1.6);
-  detector = new FastFeatureDetector(4);
-  extractor = new SiftDescriptorExtractor();
+    // BOW time
+    bowtrainer = new BOWKMeansTrainer(vocabNumWords);
 
-  // BOW time
-  bowtrainer = new BOWKMeansTrainer(vocabNumWords);
+    // read the class image data
+    DIR *dpdf;
+    struct dirent *epdf;
+    string dot(".");
+    string dotdot("..");
 
-  // read the class image data
-  DIR *dpdf;
-  struct dirent *epdf;
-  string dot(".");
-  string dotdot("..");
+    char buf[1024];
 
-  char buf[1024];
-
-  char vocabularyPath[1024];
-  char featuresPath[1024];
-  char labelsPath[1024];
-  sprintf(vocabularyPath, "%s/%s", data_directory.c_str(), vocab_file.c_str());
-  sprintf(featuresPath, "%s/%s", data_directory.c_str(), knn_file.c_str());
-  sprintf(labelsPath, "%s/%s", data_directory.c_str(), label_file.c_str());
-  cout << "vocabularyPath: " << vocabularyPath << endl;
-  cout << "featuresPath: " << featuresPath << endl;
-  cout << "labelsPath: " << labelsPath << endl;
+    char vocabularyPath[1024];
+    char featuresPath[1024];
+    char labelsPath[1024];
+    sprintf(vocabularyPath, "%s/%s", data_directory.c_str(), vocab_file.c_str());
+    sprintf(featuresPath, "%s/%s", data_directory.c_str(), knn_file.c_str());
+    sprintf(labelsPath, "%s/%s", data_directory.c_str(), label_file.c_str());
+    cout << "vocabularyPath: " << vocabularyPath << endl;
+    cout << "featuresPath: " << featuresPath << endl;
+    cout << "labelsPath: " << labelsPath << endl;
 
 
-  #ifdef TRAIN_ONLY
-  stringstream ss_cl(class_labels); 
-  while (ss_cl >> bufstr)
-    classLabels.push_back(bufstr);
+    if (trainOnly) {
+      stringstream ss_cl(class_labels); 
+      while (ss_cl >> bufstr)
+	classLabels.push_back(bufstr);
 
-  stringstream ss_cpm(class_pose_models); 
-  while (ss_cpm >> bufstr)
-    classPoseModels.push_back(bufstr);
+      stringstream ss_cpm(class_pose_models); 
+      while (ss_cpm >> bufstr)
+	classPoseModels.push_back(bufstr);
 
-  cout << "Num labels: " << classLabels.size() << endl;
-  cout << "Num pose models: " << classPoseModels.size() << endl;
+      cout << "Num labels: " << classLabels.size() << endl;
+      cout << "Num pose models: " << classPoseModels.size() << endl;
 
-  if ((classLabels.size() != classPoseModels.size()) || (classLabels.size() < 1)) {
-    cout << "Label and pose model list size problem. Exiting." << endl;
-    exit(EXIT_FAILURE);
-  }
-  #endif
+      if ((classLabels.size() != classPoseModels.size()) || (classLabels.size() < 1)) {
+	cout << "Label and pose model list size problem. Exiting." << endl;
+	exit(EXIT_FAILURE);
+      }
+    }
 
-  int numNewClasses = classLabels.size();
-  int numCachedClasses = 0;
+    int numNewClasses = classLabels.size();
+    int numCachedClasses = 0;
 
-  if (rewrite_labels) {
-    // load cached labels 
-    vector<string> classCacheLabels;
-    vector<string> classCachePoseModels;
-    if (cache_prefix.size() > 0) {
-      string labelsCacheFile = data_directory + "/" + cache_prefix + "labels.yml";
+    if (rewrite_labels) {
+      // load cached labels 
+      vector<string> classCacheLabels;
+      vector<string> classCachePoseModels;
+      if (cache_prefix.size() > 0) {
+	string labelsCacheFile = data_directory + "/" + cache_prefix + "labels.yml";
 
+	FileStorage fsvI;
+	cout<<"Reading CACHED labels and pose models from " << labelsCacheFile << " ...";
+	fsvI.open(labelsCacheFile, FileStorage::READ);
+	fsvI["labels"] >> classCacheLabels;
+	fsvI["poseModels"] >> classCachePoseModels;
+	//classLabels.insert(classLabels.end(), classCacheLabels.begin(), classCacheLabels.end());
+	//classPoseModels.insert(classPoseModels.end(), classCachePoseModels.begin(), classCachePoseModels.end());
+	cout << "done." << endl << "classCacheLabels size: " << classCacheLabels.size() << " classCachePoseModels size: " << classCachePoseModels.size() << endl;
+	numCachedClasses = classCacheLabels.size();
+
+	classCacheLabels.insert(classCacheLabels.end(), classLabels.begin(), classLabels.end());
+	classCachePoseModels.insert(classCachePoseModels.end(), classPoseModels.begin(), classPoseModels.end());
+	classLabels = classCacheLabels;
+	classPoseModels = classCachePoseModels;
+	cout << "classLabels size: " << classLabels.size() << " classPoseModels size: " << classPoseModels.size() << endl;
+      }
+
+      FileStorage fsvO;
+      cout<<"Writing labels and pose models... " << labelsPath << " ...";
+      fsvO.open(labelsPath, FileStorage::WRITE);
+      fsvO << "labels" << classLabels;
+      fsvO << "poseModels" << classPoseModels;
+      fsvO.release();
+      cout << "done." << endl;
+    } else {
       FileStorage fsvI;
-      cout<<"Reading CACHED labels and pose models from " << labelsCacheFile << " ...";
-      fsvI.open(labelsCacheFile, FileStorage::READ);
-      fsvI["labels"] >> classCacheLabels;
-      fsvI["poseModels"] >> classCachePoseModels;
-      //classLabels.insert(classLabels.end(), classCacheLabels.begin(), classCacheLabels.end());
-      //classPoseModels.insert(classPoseModels.end(), classCachePoseModels.begin(), classCachePoseModels.end());
-      cout << "done." << endl << "classCacheLabels size: " << classCacheLabels.size() << " classCachePoseModels size: " << classCachePoseModels.size() << endl;
-      numCachedClasses = classCacheLabels.size();
-
-      classCacheLabels.insert(classCacheLabels.end(), classLabels.begin(), classLabels.end());
-      classCachePoseModels.insert(classCachePoseModels.end(), classPoseModels.begin(), classPoseModels.end());
-      classLabels = classCacheLabels;
-      classPoseModels = classCachePoseModels;
-      cout << "classLabels size: " << classLabels.size() << " classPoseModels size: " << classPoseModels.size() << endl;
+      cout<<"Reading labels and pose models... "<< labelsPath << " ...";
+      fsvI.open(labelsPath, FileStorage::READ);
+      fsvI["labels"] >> classLabels;
+      fsvI["poseModels"] >> classPoseModels;
+      cout << "done. classLabels size: " << classLabels.size() << " classPoseModels size: " << classPoseModels.size() << endl;
     }
 
-    FileStorage fsvO;
-    cout<<"Writing labels and pose models... " << labelsPath << " ...";
-    fsvO.open(labelsPath, FileStorage::WRITE);
-    fsvO << "labels" << classLabels;
-    fsvO << "poseModels" << classPoseModels;
-    fsvO.release();
-    cout << "done." << endl;
-  } else {
-    FileStorage fsvI;
-    cout<<"Reading labels and pose models... "<< labelsPath << " ...";
-    fsvI.open(labelsPath, FileStorage::READ);
-    fsvI["labels"] >> classLabels;
-    fsvI["poseModels"] >> classPoseModels;
-    cout << "done. classLabels size: " << classLabels.size() << " classPoseModels size: " << classPoseModels.size() << endl;
-  }
-
-  for (int i = 0; i < classLabels.size(); i++) {
-    cout << classLabels[i] << " " << classPoseModels[i] << endl;
-  }
-
-  // this is the total number of classes, so it is counted after the cache is dealt with
-  numClasses = classLabels.size();
-
-  Mat vocabulary;
-
-  if (retrain_vocab) {
     for (int i = 0; i < classLabels.size(); i++) {
-      cout << "Getting BOW features for class " << classLabels[i] 
-	   << " with pose model " << classPoseModels[i] << " index " << i << endl;
-      bowGetFeatures(class_crops_path, classLabels[i].c_str(), grayBlur);
-      if (classPoseModels[i].compare("G") == 0) {
-	string thisPoseLabel = classLabels[i] + "Poses";
-	bowGetFeatures(class_crops_path, thisPoseLabel.c_str(), grayBlur);
-      }
+      cout << classLabels[i] << " " << classPoseModels[i] << endl;
     }
 
-    cout << "Clustering features...";
-    vocabulary = bowtrainer->cluster();
-    cout << "done." << endl;
+    // this is the total number of classes, so it is counted after the cache is dealt with
+    numClasses = classLabels.size();
 
-    FileStorage fsvO;
-    cout << "Writing vocab... " << vocabularyPath << " ...";
-    fsvO.open(vocabularyPath, FileStorage::WRITE);
-    fsvO << "vocab" << vocabulary;
-    fsvO.release();
-    cout << "done." << endl;
-  } else {
-    FileStorage fsvI;
-    cout << "Reading vocab... " << vocabularyPath << " ...";
-    fsvI.open(vocabularyPath, FileStorage::READ);
-    fsvI["vocab"] >> vocabulary;
-    cout << "done. vocabulary size: " << vocabulary.size() << endl;
-  }
+    Mat vocabulary;
 
-  matcher = new BFMatcher(NORM_L2);
-  bowExtractor = new BOWImgDescriptorExtractor(extractor,matcher);
-  bowExtractor->setVocabulary(vocabulary);
-
-  Mat kNNfeatures;
-  Mat kNNlabels;
-
-  classPosekNNs.resize(numClasses);
-  classPosekNNfeatures.resize(numClasses);
-  classPosekNNlabels.resize(numClasses);
-  classQuaternions.resize(numClasses);
-
-  if (reextract_knn) {
-    //for (int i = 0; i < numNewClasses; i++) 
-    for (int i = numCachedClasses; i < numClasses; i++) 
-    {
-      cout << "Getting kNN features for class " << classLabels[i] 
-	   << " with pose model " << classPoseModels[i] << " index " << i << endl;
-      kNNGetFeatures(class_crops_path, classLabels[i].c_str(), i, grayBlur, kNNfeatures, kNNlabels);
-      if (classPoseModels[i].compare("G") == 0) {
-	string thisPoseLabel = classLabels[i] + "Poses";
-	posekNNGetFeatures(class_crops_path, thisPoseLabel.c_str(), grayBlur, classPosekNNfeatures[i], classPosekNNlabels[i],
-	  classQuaternions[i], 0);
+    if (retrain_vocab) {
+      for (int i = 0; i < classLabels.size(); i++) {
+	cout << "Getting BOW features for class " << classLabels[i] 
+	     << " with pose model " << classPoseModels[i] << " index " << i << endl;
+	bowGetFeatures(class_crops_path, classLabels[i].c_str(), grayBlur);
+	if (classPoseModels[i].compare("G") == 0) {
+	  string thisPoseLabel = classLabels[i] + "Poses";
+	  bowGetFeatures(class_crops_path, thisPoseLabel.c_str(), grayBlur);
+	}
       }
+
+      cout << "Clustering features...";
+      cout.flush();
+      vocabulary = bowtrainer->cluster();
+      cout << "done." << endl;
+
+      FileStorage fsvO;
+      cout << "Writing vocab... " << vocabularyPath << " ...";
+      fsvO.open(vocabularyPath, FileStorage::WRITE);
+      fsvO << "vocab" << vocabulary;
+      fsvO.release();
+      cout << "done." << endl;
+    } else {
+      FileStorage fsvI;
+      cout << "Reading vocab... " << vocabularyPath << " ...";
+      fsvI.open(vocabularyPath, FileStorage::READ);
+      fsvI["vocab"] >> vocabulary;
+      cout << "done. vocabulary size: " << vocabulary.size() << endl;
     }
 
-    // load cached kNN features 
-    // XXX experimental handling of G pose models
-    Mat kNNCachefeatures;
-    Mat kNNCachelabels;
-    if (cache_prefix.size() > 0) {
-      string knnCacheFile = data_directory + "/" + cache_prefix + "knn.yml";
+    matcher = new BFMatcher(NORM_L2);
+    bowExtractor = new BOWImgDescriptorExtractor(extractor,matcher);
+    bowExtractor->setVocabulary(vocabulary);
 
+    Mat kNNfeatures;
+    Mat kNNlabels;
+
+    classPosekNNs.resize(numClasses);
+    classPosekNNfeatures.resize(numClasses);
+    classPosekNNlabels.resize(numClasses);
+    classQuaternions.resize(numClasses);
+
+    if (reextract_knn) {
+      //for (int i = 0; i < numNewClasses; i++) 
+      for (int i = numCachedClasses; i < numClasses; i++) 
+      {
+	cout << "Getting kNN features for class " << classLabels[i] 
+	     << " with pose model " << classPoseModels[i] << " index " << i << endl;
+	kNNGetFeatures(class_crops_path, classLabels[i].c_str(), i, grayBlur, kNNfeatures, kNNlabels);
+	if (classPoseModels[i].compare("G") == 0) {
+	  string thisPoseLabel = classLabels[i] + "Poses";
+	  posekNNGetFeatures(class_crops_path, thisPoseLabel.c_str(), grayBlur, classPosekNNfeatures[i], classPosekNNlabels[i],
+	    classQuaternions[i], 0);
+	}
+      }
+
+      // load cached kNN features 
+      // XXX experimental handling of G pose models
+      Mat kNNCachefeatures;
+      Mat kNNCachelabels;
+      if (cache_prefix.size() > 0) {
+	string knnCacheFile = data_directory + "/" + cache_prefix + "knn.yml";
+
+	FileStorage fsfI;
+	cout<<"Reading CACHED features... " << knnCacheFile << " ..." << endl;
+	fsfI.open(knnCacheFile, FileStorage::READ);
+	fsfI["features"] >> kNNCachefeatures;
+	fsfI["labels"] >> kNNCachelabels;
+	kNNfeatures.push_back(kNNCachefeatures);
+	kNNlabels.push_back(kNNCachelabels);
+
+	for (int i = 0; i < numClasses; i++) {
+	  if (classPoseModels[i].compare("G") == 0) {
+	    string fnIn = "features" + classLabels[i];
+	    string lnIn = "labels" + classLabels[i];
+	    string qnIn = "quaternions" + classLabels[i];
+	    cout << "G: " << classLabels[i] << " " << fnIn << " " << lnIn << endl;
+	    fsfI[fnIn] >> classPosekNNfeatures[i];
+	    fsfI[lnIn] >> classPosekNNlabels[i];
+	    fsfI[qnIn] >> classQuaternions[i];
+	  }
+	}
+
+	cout << "done." << kNNCachefeatures.size() << " " << kNNCachelabels.size() << endl;
+      }
+
+      FileStorage fsfO;
+      cout<<"Writing features and labels... " << featuresPath << " ..." << endl;
+      fsfO.open(featuresPath, FileStorage::WRITE);
+      fsfO << "features" << kNNfeatures;
+      fsfO << "labels" << kNNlabels;
+
+      // TODO also cache the features for the pose models
+
+      for (int i = 0; i < numClasses; i++) {
+	if (classPoseModels[i].compare("G") == 0) {
+	  string fnOut = "features" + classLabels[i];
+	  string lnOut = "labels" + classLabels[i];
+	  string qnOut = "quaternions" + classLabels[i];
+	  cout << "G: " << classLabels[i] << " " << fnOut << " " << lnOut << endl;
+	  fsfO << fnOut << classPosekNNfeatures[i];
+	  fsfO << lnOut << classPosekNNlabels[i];
+	  fsfO << qnOut << classQuaternions[i];
+	}
+      }
+      fsfO.release();
+      cout << "done." << endl;
+    } else { 
       FileStorage fsfI;
-      cout<<"Reading CACHED features..."<< endl << knnCacheFile << endl << "...";
-      fsfI.open(knnCacheFile, FileStorage::READ);
-      fsfI["features"] >> kNNCachefeatures;
-      fsfI["labels"] >> kNNCachelabels;
-      kNNfeatures.push_back(kNNCachefeatures);
-      kNNlabels.push_back(kNNCachelabels);
-
+      cout<<"Reading features and labels... " << featuresPath << " ..." << endl;
+      fsfI.open(featuresPath, FileStorage::READ);
+      fsfI["features"] >> kNNfeatures;
+      fsfI["labels"] >> kNNlabels;
       for (int i = 0; i < numClasses; i++) {
 	if (classPoseModels[i].compare("G") == 0) {
 	  string fnIn = "features" + classLabels[i];
@@ -3776,70 +3793,26 @@ int main(int argc, char **argv) {
 	  fsfI[qnIn] >> classQuaternions[i];
 	}
       }
-
-      cout << "done." << kNNCachefeatures.size() << " " << kNNCachelabels.size() << endl;
+      cout << "done. knnFeatures size: " << kNNfeatures.size() << " kNNlabels size: " << kNNlabels.size() << endl;
     }
 
-    FileStorage fsfO;
-    cout<<"Writing features and labels..."<< endl << featuresPath << endl << "...";
-    fsfO.open(featuresPath, FileStorage::WRITE);
-    fsfO << "features" << kNNfeatures;
-    fsfO << "labels" << kNNlabels;
+    cout << "kNNlabels dimensions: " << kNNlabels.size().height << " by " << kNNlabels.size().width << endl;
+    cout << "kNNfeatures dimensions: " << kNNfeatures.size().height << " by " << kNNfeatures.size().width << endl;
 
-    // TODO also cache the features for the pose models
-
-    for (int i = 0; i < numClasses; i++) {
-      if (classPoseModels[i].compare("G") == 0) {
-	string fnOut = "features" + classLabels[i];
-	string lnOut = "labels" + classLabels[i];
-	string qnOut = "quaternions" + classLabels[i];
-	cout << "G: " << classLabels[i] << " " << fnOut << " " << lnOut << endl;
-	fsfO << fnOut << classPosekNNfeatures[i];
-	fsfO << lnOut << classPosekNNlabels[i];
-	fsfO << qnOut << classQuaternions[i];
-      }
-    }
-    fsfO.release();
+    cout << "Main kNN...";
+    kNN = new CvKNearest(kNNfeatures, kNNlabels);
     cout << "done." << endl;
-  } else { 
-    FileStorage fsfI;
-    cout<<"Reading features and labels..."<< endl << featuresPath << endl << "...";
-    fsfI.open(featuresPath, FileStorage::READ);
-    fsfI["features"] >> kNNfeatures;
-    fsfI["labels"] >> kNNlabels;
     for (int i = 0; i < numClasses; i++) {
       if (classPoseModels[i].compare("G") == 0) {
-	string fnIn = "features" + classLabels[i];
-	string lnIn = "labels" + classLabels[i];
-	string qnIn = "quaternions" + classLabels[i];
-	cout << "G: " << classLabels[i] << " " << fnIn << " " << lnIn << endl;
-	fsfI[fnIn] >> classPosekNNfeatures[i];
-	fsfI[lnIn] >> classPosekNNlabels[i];
-	fsfI[qnIn] >> classQuaternions[i];
+	cout << "Class " << i << " kNN..." << classPosekNNfeatures[i].size() << classPosekNNlabels[i].size() << endl;
+	classPosekNNs[i] = new CvKNearest(classPosekNNfeatures[i], classPosekNNlabels[i]);
+	cout << "Done" << endl;
       }
     }
-    cout << "done." << kNNfeatures.size() << " " << kNNlabels.size() << endl;
   }
 
-  cout << kNNlabels.size().height << " " << kNNlabels.size().width << endl;
-  cout << kNNfeatures.size().height << " " << kNNfeatures.size().width << endl;
-
-  cout << "Main kNN..." << endl;
-  kNN = new CvKNearest(kNNfeatures, kNNlabels);
-  cout << "Done" << endl;
-  for (int i = 0; i < numClasses; i++) {
-    if (classPoseModels[i].compare("G") == 0) {
-      cout << "Class " << i << " kNN..." << classPosekNNfeatures[i].size() << classPosekNNlabels[i].size() << endl;
-      classPosekNNs[i] = new CvKNearest(classPosekNNfeatures[i], classPosekNNlabels[i]);
-      cout << "Done" << endl;
-    }
-  }
-
-#endif
-
-#ifdef TRAIN_ONLY
-  exit(EXIT_SUCCESS);
-#endif
+  if (trainOnly)
+    exit(EXIT_SUCCESS);
 
   // manually definining spoon filters
   orientedFiltersT = new Mat[ORIENTATIONS];
@@ -3852,50 +3825,50 @@ int main(int argc, char **argv) {
   tablePerspective = Mat::eye(3,3,CV_32F);
   init_oriented_filters_all();
 
-#ifdef RUN_TRACKING
-  // initialize the redBoxes
-  stringstream ss_rb(red_box_list); 
-  while (ss_rb >> bufstr)
-    redBoxLabels.push_back(bufstr);
-
-  int redBoxProposals = redBoxLabels.size();
-  redBoxes = new redBox[redBoxProposals];
-
-  for (int r = 0; r < redBoxProposals; r++) {
-    int thisClassLabel = -1;
-    for (int i = 0; i < numClasses; i++) {
-      if (!classLabels[i].compare(redBoxLabels[r])) {
-	thisClassLabel = i;
-      }
-    }
-
-    if (thisClassLabel > -1) {
-      numRedBoxes++;
-      cout << "Accepting red box suggestion " << r << " \"" << redBoxLabels[r] << "\" as red box number " << numRedBoxes-1 << endl;
-      redBoxes[r].classLabel = thisClassLabel;
-      redBoxes[r].top = cv::Point(0,0);
-      redBoxes[r].bot = cv::Point(redInitialWidth, redInitialWidth);
-      redBoxes[r].rootBlueBox = 0;
-      redBoxes[r].numGreenBoxes;
-      redBoxes[r].anchor = cv::Point(0,0);
-      redBoxes[r].persistence = 0;
-      redBoxes[r].lastDistance = FLT_MAX;
-      redBoxes[r].poseIndex = 0;
-      redBoxes[r].winningO = 0;
-    } else {
-      cout << "Rejecting red box suggestion " << r << " \"" << redBoxLabels[r] << "\"" << endl;
-    }
+  if(findYellowBoxes) {
+// your code here
   }
 
-#endif
+  if (runTracking) {
+    // initialize the redBoxes
+    stringstream ss_rb(red_box_list); 
+    while (ss_rb >> bufstr)
+      redBoxLabels.push_back(bufstr);
+
+    int redBoxProposals = redBoxLabels.size();
+    redBoxes = new redBox[redBoxProposals];
+
+    for (int r = 0; r < redBoxProposals; r++) {
+      int thisClassLabel = -1;
+      for (int i = 0; i < numClasses; i++) {
+	if (!classLabels[i].compare(redBoxLabels[r])) {
+	  thisClassLabel = i;
+	}
+      }
+
+      if (thisClassLabel > -1) {
+	numRedBoxes++;
+	cout << "Accepting red box suggestion " << r << " \"" << redBoxLabels[r] << "\" as red box number " << numRedBoxes-1 << endl;
+	redBoxes[r].classLabel = thisClassLabel;
+	redBoxes[r].top = cv::Point(0,0);
+	redBoxes[r].bot = cv::Point(redInitialWidth, redInitialWidth);
+	redBoxes[r].rootBlueBox = 0;
+	redBoxes[r].numGreenBoxes;
+	redBoxes[r].anchor = cv::Point(0,0);
+	redBoxes[r].persistence = 0;
+	redBoxes[r].lastDistance = FLT_MAX;
+	redBoxes[r].poseIndex = 0;
+	redBoxes[r].winningO = 0;
+      } else {
+	cout << "Rejecting red box suggestion " << r << " \"" << redBoxLabels[r] << "\"" << endl;
+      }
+    }
+  }
 
   if (numRedBoxes > 0)
     createTrackbar("red target", "Object Viewer", &redTrackbarVariable, numRedBoxes);
 
   saveROSParams();
-
-
-
 
   // don't be a fool... lock that spool
   ros::spin();
@@ -3910,6 +3883,4 @@ int main(int argc, char **argv) {
 
   return 0;
 }
-
-
 
