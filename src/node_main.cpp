@@ -173,7 +173,7 @@ double pcgc22 = 1;//1.0+(12.0 / 480.0);
 // if you add an immense number of examples or some new classes and
 //   you begin having discriminative problems (confusion), you can
 //   increase the number of words.
-const double bowSubSampleFactor = 0.01;
+const double bowSubSampleFactor = 0.1;
 const int bowOverSampleFactor = 1;
 const int kNNOverSampleFactor = 1;
 const int poseOverSampleFactor = 1;
