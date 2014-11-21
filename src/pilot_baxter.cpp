@@ -95,6 +95,8 @@ double tfPast = 10.0;
 
 std::string wristViewName = "Wrist View";
 std::string coreViewName = "Core View";
+std::string rangeogramViewName = "Rangeogram View";
+std::string rangemapViewName = "Range Map View";
 
 
 int reticleHalfWidth = 30;
@@ -212,9 +214,133 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
   trueEEPose = eps.pose;
 }
 
+Mat rangeogramImage;
+Mat rangemapImage;
+const int totalRangeHistoryLength = 100;
+double rangeHistory[totalRangeHistoryLength];
+int currentRangeHistoryIndex = 0;
+
+int rggScale = 3;  
+int rggStride = 5*rggScale;
+int rggHeight = 300*rggScale;
+int rggWidth = totalRangeHistoryLength*rggStride;
+
+const int rmWidth = 21; // must be odd
+const int rmHalfWidth = (rmWidth-1)/2; // must be odd
+const double rmDelta = 0.01;
+double rangeMap[rmWidth*rmWidth];
+double rangeMapAccumulator[rmWidth*rmWidth];
+double rangeMapMass[rmWidth*rmWidth];
+// range map center
+double rmcX;
+double rmcY;
+
+int rmiCellWidth = 20;
+int rmiHeight = rmiCellWidth*rmWidth;
+int rmiWidth = rmiCellWidth*rmWidth;
+
 void rangeCallback(const sensor_msgs::Range& range) {
   eeRange = range.range;
   //cout << eeRange << endl;
+  rangeHistory[currentRangeHistoryIndex] = eeRange;
+  currentRangeHistoryIndex++;
+  currentRangeHistoryIndex = currentRangeHistoryIndex % totalRangeHistoryLength;
+
+  
+
+  //rectangle(rangeogramImage, outTop, outBot, cv::Scalar(0,0,0)); 
+
+  //cv::Scalar fillColor(0,0,0);
+  //cv::Point outTop = cv::Point(0, 0);
+  //cv::Point outBot = cv::Point(rggWidth, rggHeight);
+  //Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+  //vCrop = fillColor;
+
+
+  for (int rr = currentRangeHistoryIndex-1; rr <= currentRangeHistoryIndex; rr++) {
+    int r = 0;
+    if (rr == -1)
+      r = totalRangeHistoryLength-1;
+    else
+      r = rr;
+
+    cv::Scalar fillColor(0,0,0);
+    cv::Scalar backColor(0,0,0);
+    int topY = 0;
+    if (r == currentRangeHistoryIndex) {
+      fillColor = cv::Scalar(0,0,255);
+      topY = 0;
+    } else {
+      fillColor = cv::Scalar(0,64,0);
+      double thisHeight = floor(rangeHistory[r]*rggHeight);
+      thisHeight = min(thisHeight,double(rggHeight));
+      topY = thisHeight;
+      //cout << " " << rangeHistory[r] << " " << thisHeight << " " << rggHeight << " " << topY << endl;
+    }
+    int truH = rggHeight-topY;
+    {
+      cv::Point outTop = cv::Point(r*rggStride, 0);
+      cv::Point outBot = cv::Point((r+1)*rggStride, rggHeight);
+      Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+      vCrop = backColor;
+    }{
+      cv::Point outTop = cv::Point(r*rggStride, topY);
+      cv::Point outBot = cv::Point((r+1)*rggStride, rggHeight);
+      Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+      vCrop += fillColor;
+    }
+    if (r != currentRangeHistoryIndex) {
+      {
+	cv::Point outTop = cv::Point(r*rggStride, topY);
+	cv::Point outBot = cv::Point((r+1)*rggStride, topY+truH/8);
+	Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	vCrop += fillColor;
+      }{
+	cv::Point outTop = cv::Point(r*rggStride, topY);
+	cv::Point outBot = cv::Point((r+1)*rggStride, topY+truH/16);
+	Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	vCrop += fillColor;
+      }
+    }
+  }
+
+  // find current rangemap slot
+  // check to see if it falls in our mapped region
+  // if so, update the arrays and draw the slot
+  double dX = trueEEPose.position.x - rmcX;
+  double dY = trueEEPose.position.y - rmcY;
+  double iX = dX / rmDelta;
+  double iY = dY / rmDelta;
+
+//cout << rmcX << " " << trueEEPose.position.x << " " << dX << " " << iX << " " << rmHalfWidth << endl;
+
+  if ((fabs(iX) <= rmHalfWidth) && (fabs(iY) <= rmHalfWidth)) {
+    int iiX = (int)round(iX + rmHalfWidth);
+    int iiY = (int)round(iY + rmHalfWidth);
+
+    rangeMapMass[iiX + iiY*rmWidth] += 1;
+    rangeMapAccumulator[iiX + iiY*rmWidth] += eeRange;
+    double denom = max(rangeMapMass[iiX + iiY*rmWidth], 1.0);
+    rangeMap[iiX + iiY*rmWidth] = rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
+    
+    double minDepth = 1e6;
+    double maxDepth = 0;
+    for (int rx = 0; rx < rmWidth; rx++) {
+      for (int ry = 0; ry < rmWidth; ry++) {
+	minDepth = min(minDepth, rangeMap[rx + ry*rmWidth]);
+	maxDepth = max(maxDepth, rangeMap[rx + ry*rmWidth]);
+      }
+    }
+    double intensity = 512 * (maxDepth - rangeMap[iiX + iiY*rmWidth]) / (maxDepth - minDepth);
+    cv::Scalar backColor(0,0,ceil(intensity));
+    cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
+    cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
+    Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+    vCrop = backColor;
+  }
+
+  cv::imshow(rangeogramViewName, rangeogramImage);
+  cv::imshow(rangemapViewName, rangemapImage);
 }
 
 
@@ -792,6 +918,75 @@ void timercallback1(const ros::TimerEvent&) {
     case 4+262192:
       eepReg4 = redTargetEEPose;
       break;
+
+    case 1048689: // numlock + q
+      // future program:
+      // execute a grab
+      // estimate proper grasp depth and stow in a register
+      // move back to the center of the grid      
+      // snake around the grid
+	// at each point, increment grid counters
+	//  and store the current range
+      // move to beginning of grid
+      {
+	for (int g = 0; g < rmHalfWidth+1; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('q');
+	}
+	for (int g = 0; g < rmHalfWidth; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('d');
+	}
+	for (int g = 0; g < rmWidth; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('e');
+	  for (int gg = 0; gg < rmWidth; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('a');
+	  }
+	  for (int gg = 0; gg < rmWidth; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('d');
+	  }
+	}
+	for (int g = 0; g < rmHalfWidth; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('q');
+	}
+	for (int g = 0; g < rmHalfWidth; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('a');
+	}
+      }
+      break;
+    case 1048695: // numlock + w
+      {
+	cout << "Set rmcX and rmcY. Resetting maps." << rmcX << " " << trueEEPose.position.x << endl;
+        rmcX = trueEEPose.position.x;
+	rmcY = trueEEPose.position.y;
+	for (int rx = 0; rx < rmWidth; rx++) {
+	  for (int ry = 0; ry < rmWidth; ry++) {
+	    rangeMap[rx + ry*rmWidth] = 0;
+	    rangeMapMass[rx + ry*rmWidth] = 0;
+	    rangeMapAccumulator[rx + ry*rmWidth] = 0;
+	  }
+	}
+	cv::Scalar backColor(128,0,0);
+	cv::Point outTop = cv::Point(0,0);
+	cv::Point outBot = cv::Point(rmiWidth,rmiHeight);
+	Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	vCrop = backColor;
+      }
+      break;
+    case 1048677: // numlock + e
+      {
+	pilot_call_stack.push_back('C');
+	pilot_call_stack.push_back('C');
+	pilot_call_stack.push_back('C');
+	pilot_call_stack.push_back('C');
+	pilot_call_stack.push_back('C');
+      }
+      break;
     default:
       break;
   }
@@ -1197,6 +1392,8 @@ int main(int argc, char **argv) {
 
   wristViewName = "Wrist View " + left_or_right_arm;
   coreViewName = "Core View " + left_or_right_arm;
+  rangeogramViewName = "Rangeogram View " + left_or_right_arm;
+  rangemapViewName = "Range Map View " + left_or_right_arm;
 
   cv::namedWindow(wristViewName);
   cv::setMouseCallback(wristViewName, CallbackFunc, NULL);
@@ -1206,6 +1403,8 @@ int main(int argc, char **argv) {
   image_sub = it.subscribe(image_topic, 1, imageCallback);
 
   cv::namedWindow(coreViewName);
+
+  cv::namedWindow(rangeogramViewName);
 
   ros::Timer timer1 = n.createTimer(ros::Duration(0.01), timercallback1);
 
@@ -1221,6 +1420,24 @@ int main(int argc, char **argv) {
     command.id = 65538;
     gripperPub.publish(command);
   }
+
+  for (int r = 0; r < totalRangeHistoryLength; r++) {
+    rangeHistory[r] = 0;
+  }
+
+  for (int rx = 0; rx < rmWidth; rx++) {
+    for (int ry = 0; ry < rmWidth; ry++) {
+      rangeMap[rx + ry*rmWidth] = 0;
+      rangeMapMass[rx + ry*rmWidth] = 0;
+      rangeMapAccumulator[rx + ry*rmWidth] = 0;
+    }
+  }
+
+  rangeogramImage = Mat(rggHeight, rggWidth, CV_8UC3);
+  rangemapImage = Mat(rmiHeight, rmiWidth, CV_8UC3);
+
+  rmcX = 0;
+  rmcY = 0;
 
   ros::spin();
 
