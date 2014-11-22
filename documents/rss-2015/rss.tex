@@ -599,6 +599,15 @@ expert. This represents the best that the system could be expected to perform.
 
 \section{Related Work}
 
+
+Crowd-sourced and web robotics have created large databases of objects
+and grasps using human supervision on the web~\citep{kent14a, kent14}.
+These approaches outperform automatically inferred grasps but still
+require humans in the loop.  Our approach enables a robot to acquire a
+model fully autonomously, once the object has been placed on the
+table.
+
+
 \citet{velez11} created a mobile robot that explores the environment
 and actively plans paths to acquire views of objects such as doors.
 However it uses a fixed model of the object being detected rather than
@@ -635,7 +644,13 @@ Visual-servoing based methods~\citep{chaumette06} \stnote{Need a whole
   paragraph about that. }
 
 \stnote{\citet{ciocarlie14} seems highly relevant, could not read from
-  the train's wifi.}
+  the train's wifi.}  Existing work has collected large database of
+object models for pose estimation, typically curated by an
+expert~\citep{lai11}.  \citet{kasper12} created a semiautomatic system
+that fuses 2d and 3d data, but the setup requires a special rig
+including a turntable and a pair of cameras.  Our approach requires an
+active camera mounted on a robot arm, but no additional equipment, so
+that a robot in the home can autonomoulsy acquire new models.
 
 \citet{collect14} describes an approach for lifelong robotic object
 discovery, which infers object candidates from the robot's perceptual
