@@ -607,6 +607,22 @@ require humans in the loop.  Our approach enables a robot to acquire a
 model fully autonomously, once the object has been placed on the
 table.
 
+\citet{zhu14} created a system for detecting objects and estimating
+pose from single images of cluttered objects.  They use KinectFusion
+to construct 3d object models from depth measurements with a
+turn-table rather than automatically acquiring models.
+
+
+\citet{banta00} constructs a prototype 3d model from a minimum number
+of range images of the object.  It terminates reconstruction when it
+reaches a minimum threshold of accuracy.  It uses methods based on the
+occluded regions of the reconstructed surfice to decide where to place
+the camera and evaluates based on the reconstruction rather than pick
+up success.  \citet{krainin11} present an approach for autonomous
+object modeling using a depth camera observing the robot's hand as it
+moves the object.  This system provides a 3d construction of the
+object autonomously.  Our approach uses vision-based features and
+evaluates based on grasp success.
 
 \citet{velez11} created a mobile robot that explores the environment
 and actively plans paths to acquire views of objects such as doors.
