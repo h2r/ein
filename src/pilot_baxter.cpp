@@ -226,11 +226,21 @@ int rggHeight = 300*rggScale;
 int rggWidth = totalRangeHistoryLength*rggStride;
 
 const int rmWidth = 21; // must be odd
+//const int rmWidth = 41; // must be odd
 const int rmHalfWidth = (rmWidth-1)/2; // must be odd
 const double rmDelta = 0.01;
+//const double rmDelta = 0.005;
 double rangeMap[rmWidth*rmWidth];
 double rangeMapAccumulator[rmWidth*rmWidth];
 double rangeMapMass[rmWidth*rmWidth];
+
+double rangeMapReg1[rmWidth*rmWidth];
+double rangeMapReg2[rmWidth*rmWidth];
+
+double filter[9] = {1.0/16.0, 1.0/8.0, 1.0/16.0, 
+		    1.0/8.0, 1.0/4.0, 1.0/8.0, 
+		    1.0/16.0, 1.0/8.0, 1.0/16.0};;
+
 // range map center
 double rmcX;
 double rmcY;
@@ -929,31 +939,33 @@ void timercallback1(const ros::TimerEvent&) {
 	//  and store the current range
       // move to beginning of grid
       {
-	for (int g = 0; g < rmHalfWidth+1; g++) {
+	double rmbGain = rmDelta / bDelta;
+	pilot_call_stack.push_back(1048689);
+	for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain)); g++) {
 	  pilot_call_stack.push_back(1048677);
 	  pilot_call_stack.push_back('q');
 	}
-	for (int g = 0; g < rmHalfWidth; g++) {
+	for (int g = 0; g < rmHalfWidth*rmbGain; g++) {
 	  pilot_call_stack.push_back(1048677);
 	  pilot_call_stack.push_back('d');
 	}
-	for (int g = 0; g < rmWidth; g++) {
+	for (int g = 0; g < rmWidth*rmbGain; g++) {
 	  pilot_call_stack.push_back(1048677);
 	  pilot_call_stack.push_back('e');
-	  for (int gg = 0; gg < rmWidth; gg++) {
+	  for (int gg = 0; gg < rmWidth*rmbGain; gg++) {
 	    pilot_call_stack.push_back(1048677);
 	    pilot_call_stack.push_back('a');
 	  }
-	  for (int gg = 0; gg < rmWidth; gg++) {
+	  for (int gg = 0; gg < rmWidth*rmbGain; gg++) {
 	    pilot_call_stack.push_back(1048677);
 	    pilot_call_stack.push_back('d');
 	  }
 	}
-	for (int g = 0; g < rmHalfWidth; g++) {
+	for (int g = 0; g < rmHalfWidth*rmbGain; g++) {
 	  pilot_call_stack.push_back(1048677);
 	  pilot_call_stack.push_back('q');
 	}
-	for (int g = 0; g < rmHalfWidth; g++) {
+	for (int g = 0; g < rmHalfWidth*rmbGain; g++) {
 	  pilot_call_stack.push_back(1048677);
 	  pilot_call_stack.push_back('a');
 	}
@@ -967,6 +979,8 @@ void timercallback1(const ros::TimerEvent&) {
 	for (int rx = 0; rx < rmWidth; rx++) {
 	  for (int ry = 0; ry < rmWidth; ry++) {
 	    rangeMap[rx + ry*rmWidth] = 0;
+	    rangeMapReg1[rx + ry*rmWidth] = 0;
+	    rangeMapReg2[rx + ry*rmWidth] = 0;
 	    rangeMapMass[rx + ry*rmWidth] = 0;
 	    rangeMapAccumulator[rx + ry*rmWidth] = 0;
 	  }
@@ -987,7 +1001,131 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back('C');
       }
       break;
+    case 1048690: // numlock + r
+      {
+	for (int rx = 0; rx < rmWidth; rx++) {
+	  for (int ry = 0; ry < rmWidth; ry++) {
+	    rangeMapReg1[rx + ry*rmWidth] = rangeMap[rx + ry*rmWidth];
+	  }
+	}
+      }
+    case 1048692: // numlock + t
+      {
+	int dx[9] = { -1,  0,  1, 
+		      -1,  0,  1, 
+		      -1,  0,  1};
+	int dy[9] = { -1, -1, -1, 
+		       0,  0,  0, 
+		       1,  1,  1};
+
+	for (int rx = 1; rx < rmWidth-1; rx++) {
+	  for (int ry = 1; ry < rmWidth-1; ry++) {
+	    rangeMapReg2[rx + ry*rmWidth] = 0.0;
+	    for (int fx = 0; fx < 9; fx++)
+	      rangeMapReg2[rx + ry*rmWidth] += filter[fx] * rangeMapReg1[(rx+dx[fx]) + (ry+dy[fx])*rmWidth];
+	  }
+	}
+	for (int rx = 0; rx < rmWidth; rx++) {
+	  for (int ry = 0; ry < rmWidth; ry++) {
+	    rangeMapReg1[rx + ry*rmWidth] = rangeMapReg2[rx + ry*rmWidth];
+	  }
+	}
+      }
+    case 1048697: // numlock + y
+      {
+	double tfilter[9] = { 1.0/16.0, 1.0/8.0, 1.0/16.0, 
+			      1.0/8.0, 1.0/4.0, 1.0/8.0, 
+			      1.0/16.0, 1.0/8.0, 1.0/16.0};
+	for (int fx = 0; fx < 9; fx++)
+	  filter[fx] = tfilter[fx];
+      }
+    case 1048693: // numlock + u
+      {
+	double tfilter[9]    = {   0,  0,  0, 
+				  -1,  2, -1, 
+				   0,  0,  0};
+	for (int fx = 0; fx < 9; fx++)
+	  filter[fx] = tfilter[fx];
+      }
+    case 1048681: // numlock + i
+      {
+	double tfilter[9]    = {   0, -1,  0, 
+				   0,  2,  0, 
+				   0, -1,  0};
+	for (int fx = 0; fx < 9; fx++)
+	  filter[fx] = tfilter[fx];
+      }
+    case 1048687: // numlock + o
+      {
+	double tfilter[9]    = {  -1,  0,  0, 
+				   0,  2,  0, 
+				   0,  0, -1};
+	for (int fx = 0; fx < 9; fx++)
+	  filter[fx] = tfilter[fx];
+      }
+    case 1048688: // numlock + p
+      {
+	double tfilter[9]    = {   0,  0, -1, 
+				   0,  2,  0, 
+				  -1,  0,  0};
+	for (int fx = 0; fx < 9; fx++)
+	  filter[fx] = tfilter[fx];
+      }
+      break;
+    // drawMapRegisters
+    // numlock + a 
+    case 1048673:
+      {
+	{
+	  double minDepth = 1e6;
+	  double maxDepth = 0;
+	  for (int rx = 0; rx < rmWidth; rx++) {
+	    for (int ry = 0; ry < rmWidth; ry++) {
+	      minDepth = min(minDepth, rangeMap[rx + ry*rmWidth]);
+	      maxDepth = max(maxDepth, rangeMap[rx + ry*rmWidth]);
+	    }
+	  }
+	  for (int rx = 0; rx < rmWidth; rx++) {
+	    for (int ry = 0; ry < rmWidth; ry++) {
+	      double denom = max(1e-6,maxDepth-minDepth);
+	      double intensity = 512 * (maxDepth - rangeMapReg2[rx + ry*rmWidth]) / denom;
+	      cv::Scalar backColor(0,0,ceil(intensity));
+	      cv::Point outTop = cv::Point((ry+rmWidth)*rmiCellWidth,rx*rmiCellWidth);
+	      cv::Point outBot = cv::Point(((ry+rmWidth)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
+	      Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	      vCrop = backColor;
+	    }
+	  }
+	}
+	{
+	  double minDepth = 1e6;
+	  double maxDepth = 0;
+	  for (int rx = 0; rx < rmWidth; rx++) {
+	    for (int ry = 0; ry < rmWidth; ry++) {
+	      minDepth = min(minDepth, rangeMap[rx + ry*rmWidth]);
+	      maxDepth = max(maxDepth, rangeMap[rx + ry*rmWidth]);
+	    }
+	  }
+	  for (int rx = 0; rx < rmWidth; rx++) {
+	    for (int ry = 0; ry < rmWidth; ry++) {
+	      double denom = max(1e-6,maxDepth-minDepth);
+	      double intensity = 512 * (maxDepth - rangeMapReg2[rx + ry*rmWidth]) / denom;
+	      cv::Scalar backColor(0,0,ceil(intensity));
+	      cv::Point outTop = cv::Point((ry+2*rmWidth)*rmiCellWidth,rx*rmiCellWidth);
+	      cv::Point outBot = cv::Point(((ry+2*rmWidth)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
+	      Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	      vCrop = backColor;
+	    }
+	  }
+	}
+      }
+      break;
+      // stow the max coordinate and grasp angle of MapReg1
+      // calculate z coordinate to grab at and assume the max grasp angle orientation
+      // move to z coordinate and grab
     default:
+      {
+      }
       break;
   }
 
@@ -1428,13 +1566,15 @@ int main(int argc, char **argv) {
   for (int rx = 0; rx < rmWidth; rx++) {
     for (int ry = 0; ry < rmWidth; ry++) {
       rangeMap[rx + ry*rmWidth] = 0;
+      rangeMapReg1[rx + ry*rmWidth] = 0;
+      rangeMapReg2[rx + ry*rmWidth] = 0;
       rangeMapMass[rx + ry*rmWidth] = 0;
       rangeMapAccumulator[rx + ry*rmWidth] = 0;
     }
   }
 
   rangeogramImage = Mat(rggHeight, rggWidth, CV_8UC3);
-  rangemapImage = Mat(rmiHeight, rmiWidth, CV_8UC3);
+  rangemapImage = Mat(rmiHeight, 3*rmiWidth, CV_8UC3);
 
   rmcX = 0;
   rmcY = 0;
