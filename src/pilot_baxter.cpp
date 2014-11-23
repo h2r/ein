@@ -1,3 +1,5 @@
+#define DEBUG
+
 typedef struct {
   double px;
   double py;
@@ -220,7 +222,7 @@ const int totalRangeHistoryLength = 100;
 double rangeHistory[totalRangeHistoryLength];
 int currentRangeHistoryIndex = 0;
 
-int rggScale = 3;  
+int rggScale = 1;  
 int rggStride = 5*rggScale;
 int rggHeight = 300*rggScale;
 int rggWidth = totalRangeHistoryLength*rggStride;
@@ -244,6 +246,11 @@ double filter[9] = {1.0/16.0, 1.0/8.0, 1.0/16.0,
 // range map center
 double rmcX;
 double rmcY;
+
+double lastiX = 0;
+double lastiY = 0;
+double thisiX = 0;
+double thisiY = 0;
 
 int rmiCellWidth = 20;
 int rmiHeight = rmiCellWidth*rmWidth;
@@ -322,11 +329,16 @@ void rangeCallback(const sensor_msgs::Range& range) {
   double iX = dX / rmDelta;
   double iY = dY / rmDelta;
 
+  lastiX = thisiX;
+  lastiY = thisiY;
+  thisiX = iX;
+  thisiY = iY;
 //cout << rmcX << " " << trueEEPose.position.x << " " << dX << " " << iX << " " << rmHalfWidth << endl;
 
-  if ((fabs(iX) <= rmHalfWidth) && (fabs(iY) <= rmHalfWidth)) {
-    int iiX = (int)round(iX + rmHalfWidth);
-    int iiY = (int)round(iY + rmHalfWidth);
+  // erase old cell
+  if ((fabs(lastiX) <= rmHalfWidth) && (fabs(lastiY) <= rmHalfWidth)) {
+    int iiX = (int)round(lastiX + rmHalfWidth);
+    int iiY = (int)round(lastiY + rmHalfWidth);
 
     rangeMapMass[iiX + iiY*rmWidth] += 1;
     rangeMapAccumulator[iiX + iiY*rmWidth] += eeRange;
@@ -341,13 +353,65 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	maxDepth = max(maxDepth, rangeMap[rx + ry*rmWidth]);
       }
     }
-    double intensity = 512 * (maxDepth - rangeMap[iiX + iiY*rmWidth]) / (maxDepth - minDepth);
+    double denom2 = max(1e-6,maxDepth-minDepth);
+    if (denom2 <= 1e-6)
+      denom2 = 1e6;
+    double intensity = 255 * (maxDepth - rangeMap[iiX + iiY*rmWidth]) / denom2;
     cv::Scalar backColor(0,0,ceil(intensity));
     cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
     cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
     Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
     vCrop = backColor;
   }
+
+  // draw new cell
+  if ((fabs(thisiX) <= rmHalfWidth) && (fabs(thisiY) <= rmHalfWidth)) {
+    int iiX = (int)round(thisiX + rmHalfWidth);
+    int iiY = (int)round(thisiY + rmHalfWidth);
+
+    rangeMapMass[iiX + iiY*rmWidth] += 1;
+    rangeMapAccumulator[iiX + iiY*rmWidth] += eeRange;
+    double denom = max(rangeMapMass[iiX + iiY*rmWidth], 1.0);
+    rangeMap[iiX + iiY*rmWidth] = rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
+    
+    double minDepth = 1e6;
+    double maxDepth = 0;
+    for (int rx = 0; rx < rmWidth; rx++) {
+      for (int ry = 0; ry < rmWidth; ry++) {
+	minDepth = min(minDepth, rangeMap[rx + ry*rmWidth]);
+	maxDepth = max(maxDepth, rangeMap[rx + ry*rmWidth]);
+      }
+    }
+    double denom2 = max(1e-6,maxDepth-minDepth);
+    if (denom2 <= 1e-6)
+      denom2 = 1e6;
+    double intensity = 255 * (maxDepth - rangeMap[iiX + iiY*rmWidth]) / denom2;
+    cv::Scalar backColor(0,0,ceil(intensity));
+    cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
+    cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
+    Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+    vCrop = backColor;
+    // draw border
+    {
+      cv::Point outTop = cv::Point(iiY*rmiCellWidth+1,iiX*rmiCellWidth+1);
+      cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth-1,(iiX+1)*rmiCellWidth-1);
+      cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
+      cv::Point inBot = cv::Point(outTop.x-1, outTop.y-1);
+      rectangle(rangemapImage, outTop, outBot, cv::Scalar(0,192,0)); 
+      rectangle(rangemapImage, inTop, inBot, cv::Scalar(0,64,0)); 
+    }
+  }
+
+  #ifdef DEBUG
+  cout << "rangeMap: [" << endl;
+  for (int rx = 0; rx < rmWidth; rx++) {
+    for (int ry = 0; ry < rmWidth; ry++) {
+      cout << rangeMap[rx + ry*rmWidth] << " ";
+    }
+    cout << endl;
+  }
+  cout << "]" << endl;
+  #endif
 
   cv::imshow(rangeogramViewName, rangeogramImage);
   cv::imshow(rangemapViewName, rangemapImage);
@@ -928,7 +992,6 @@ void timercallback1(const ros::TimerEvent&) {
     case 4+262192:
       eepReg4 = redTargetEEPose;
       break;
-
     case 1048689: // numlock + q
       // future program:
       // execute a grab
@@ -939,33 +1002,34 @@ void timercallback1(const ros::TimerEvent&) {
 	//  and store the current range
       // move to beginning of grid
       {
+	int scanPadding = 0;
 	double rmbGain = rmDelta / bDelta;
 	pilot_call_stack.push_back(1048689);
-	for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain)); g++) {
+	for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
 	  pilot_call_stack.push_back(1048677);
 	  pilot_call_stack.push_back('q');
 	}
-	for (int g = 0; g < rmHalfWidth*rmbGain; g++) {
+	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
 	  pilot_call_stack.push_back(1048677);
 	  pilot_call_stack.push_back('d');
 	}
-	for (int g = 0; g < rmWidth*rmbGain; g++) {
+	for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
 	  pilot_call_stack.push_back(1048677);
 	  pilot_call_stack.push_back('e');
-	  for (int gg = 0; gg < rmWidth*rmbGain; gg++) {
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
 	    pilot_call_stack.push_back(1048677);
 	    pilot_call_stack.push_back('a');
 	  }
-	  for (int gg = 0; gg < rmWidth*rmbGain; gg++) {
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
 	    pilot_call_stack.push_back(1048677);
 	    pilot_call_stack.push_back('d');
 	  }
 	}
-	for (int g = 0; g < rmHalfWidth*rmbGain; g++) {
+	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
 	  pilot_call_stack.push_back(1048677);
 	  pilot_call_stack.push_back('q');
 	}
-	for (int g = 0; g < rmHalfWidth*rmbGain; g++) {
+	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
 	  pilot_call_stack.push_back(1048677);
 	  pilot_call_stack.push_back('a');
 	}
@@ -1009,8 +1073,10 @@ void timercallback1(const ros::TimerEvent&) {
 	  }
 	}
       }
+      break;
     case 1048692: // numlock + t
       {
+	cout << "Applying filter to rangeMapReg1 and storing result in rangeMapReg1." << endl;
 	int dx[9] = { -1,  0,  1, 
 		      -1,  0,  1, 
 		      -1,  0,  1};
@@ -1018,9 +1084,15 @@ void timercallback1(const ros::TimerEvent&) {
 		       0,  0,  0, 
 		       1,  1,  1};
 
-	for (int rx = 1; rx < rmWidth-1; rx++) {
-	  for (int ry = 1; ry < rmWidth-1; ry++) {
+	int transformPadding = 2;
+
+	for (int rx = 0; rx < rmWidth; rx++) {
+	  for (int ry = 0; ry < rmWidth; ry++) {
 	    rangeMapReg2[rx + ry*rmWidth] = 0.0;
+	  }
+	}
+	for (int rx = transformPadding; rx < rmWidth-transformPadding; rx++) {
+	  for (int ry = transformPadding; ry < rmWidth-transformPadding; ry++) {
 	    for (int fx = 0; fx < 9; fx++)
 	      rangeMapReg2[rx + ry*rmWidth] += filter[fx] * rangeMapReg1[(rx+dx[fx]) + (ry+dy[fx])*rmWidth];
 	  }
@@ -1030,7 +1102,31 @@ void timercallback1(const ros::TimerEvent&) {
 	    rangeMapReg1[rx + ry*rmWidth] = rangeMapReg2[rx + ry*rmWidth];
 	  }
 	}
+
+	// XXX TODO Consider: 
+	// Push boundary to deepest point...
+	double minDepth = 1e6;
+	double maxDepth = 0;
+	for (int rx = 0; rx < rmWidth; rx++) {
+	  for (int ry = 0; ry < rmWidth; ry++) {
+	    minDepth = min(minDepth, rangeMapReg1[rx + ry*rmWidth]);
+	    maxDepth = max(maxDepth, rangeMapReg1[rx + ry*rmWidth]);
+	  }
+	}
+	for (int rx = 0; rx < rmWidth; rx++) {
+	  rangeMapReg1[rx + 0*rmWidth] = maxDepth;
+	  rangeMapReg1[rx + (rmWidth-1)*rmWidth] = maxDepth;
+	  rangeMapReg2[rx + 0*rmWidth] = maxDepth;
+	  rangeMapReg2[rx + (rmWidth-1)*rmWidth] = maxDepth;
+	}
+	for (int ry = 0; ry < rmWidth; ry++) {
+	  rangeMapReg1[0 + ry*rmWidth] = maxDepth;
+	  rangeMapReg1[(rmWidth-1) + ry*rmWidth] = maxDepth;
+	  rangeMapReg2[0 + ry*rmWidth] = maxDepth;
+	  rangeMapReg2[(rmWidth-1) + ry*rmWidth] = maxDepth;
+	}
       }
+      break;
     case 1048697: // numlock + y
       {
 	double tfilter[9] = { 1.0/16.0, 1.0/8.0, 1.0/16.0, 
@@ -1039,6 +1135,7 @@ void timercallback1(const ros::TimerEvent&) {
 	for (int fx = 0; fx < 9; fx++)
 	  filter[fx] = tfilter[fx];
       }
+      break;
     case 1048693: // numlock + u
       {
 	double tfilter[9]    = {   0,  0,  0, 
@@ -1047,6 +1144,7 @@ void timercallback1(const ros::TimerEvent&) {
 	for (int fx = 0; fx < 9; fx++)
 	  filter[fx] = tfilter[fx];
       }
+      break;
     case 1048681: // numlock + i
       {
 	double tfilter[9]    = {   0, -1,  0, 
@@ -1055,6 +1153,7 @@ void timercallback1(const ros::TimerEvent&) {
 	for (int fx = 0; fx < 9; fx++)
 	  filter[fx] = tfilter[fx];
       }
+      break;
     case 1048687: // numlock + o
       {
 	double tfilter[9]    = {  -1,  0,  0, 
@@ -1063,6 +1162,7 @@ void timercallback1(const ros::TimerEvent&) {
 	for (int fx = 0; fx < 9; fx++)
 	  filter[fx] = tfilter[fx];
       }
+      break;
     case 1048688: // numlock + p
       {
 	double tfilter[9]    = {   0,  0, -1, 
@@ -1081,14 +1181,17 @@ void timercallback1(const ros::TimerEvent&) {
 	  double maxDepth = 0;
 	  for (int rx = 0; rx < rmWidth; rx++) {
 	    for (int ry = 0; ry < rmWidth; ry++) {
-	      minDepth = min(minDepth, rangeMap[rx + ry*rmWidth]);
-	      maxDepth = max(maxDepth, rangeMap[rx + ry*rmWidth]);
+	      minDepth = min(minDepth, rangeMapReg1[rx + ry*rmWidth]);
+	      maxDepth = max(maxDepth, rangeMapReg1[rx + ry*rmWidth]);
 	    }
 	  }
 	  for (int rx = 0; rx < rmWidth; rx++) {
 	    for (int ry = 0; ry < rmWidth; ry++) {
 	      double denom = max(1e-6,maxDepth-minDepth);
-	      double intensity = 512 * (maxDepth - rangeMapReg2[rx + ry*rmWidth]) / denom;
+	      if (denom <= 1e-6)
+		denom = 1e6;
+	      double intensity = 255 * (maxDepth - rangeMapReg1[rx + ry*rmWidth]) / denom;
+//cout << denom << " " << maxDepth << " " << rangeMapReg1[rx + ry*rmWidth] << " " << (maxDepth - rangeMapReg1[rx + ry*rmWidth]) << " " << endl;
 	      cv::Scalar backColor(0,0,ceil(intensity));
 	      cv::Point outTop = cv::Point((ry+rmWidth)*rmiCellWidth,rx*rmiCellWidth);
 	      cv::Point outBot = cv::Point(((ry+rmWidth)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
@@ -1102,14 +1205,16 @@ void timercallback1(const ros::TimerEvent&) {
 	  double maxDepth = 0;
 	  for (int rx = 0; rx < rmWidth; rx++) {
 	    for (int ry = 0; ry < rmWidth; ry++) {
-	      minDepth = min(minDepth, rangeMap[rx + ry*rmWidth]);
-	      maxDepth = max(maxDepth, rangeMap[rx + ry*rmWidth]);
+	      minDepth = min(minDepth, rangeMapReg2[rx + ry*rmWidth]);
+	      maxDepth = max(maxDepth, rangeMapReg2[rx + ry*rmWidth]);
 	    }
 	  }
 	  for (int rx = 0; rx < rmWidth; rx++) {
 	    for (int ry = 0; ry < rmWidth; ry++) {
 	      double denom = max(1e-6,maxDepth-minDepth);
-	      double intensity = 512 * (maxDepth - rangeMapReg2[rx + ry*rmWidth]) / denom;
+	      if (denom <= 1e-6)
+		denom = 1e6;
+	      double intensity = 255 * (maxDepth - rangeMapReg2[rx + ry*rmWidth]) / denom;
 	      cv::Scalar backColor(0,0,ceil(intensity));
 	      cv::Point outTop = cv::Point((ry+2*rmWidth)*rmiCellWidth,rx*rmiCellWidth);
 	      cv::Point outBot = cv::Point(((ry+2*rmWidth)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
@@ -1123,6 +1228,45 @@ void timercallback1(const ros::TimerEvent&) {
       // stow the max coordinate and grasp angle of MapReg1
       // calculate z coordinate to grab at and assume the max grasp angle orientation
       // move to z coordinate and grab
+    // reset window positions
+    // numlock + z
+    case 1048698:
+      {
+	int sideOffset = 0;
+	int coreWidth = 640;
+	int toolbarWidth = 65+1;
+	int menuHeight = 28+38;
+	int uiOffsetX = toolbarWidth + sideOffset;
+	int uiOffsetY = 0;
+
+	cv::moveWindow(rangemapViewName, uiOffsetX, uiOffsetY);
+	uiOffsetY += rmiHeight + menuHeight;
+	cv::moveWindow(coreViewName, uiOffsetX, uiOffsetY);
+	uiOffsetX += coreWidth;
+	cv::moveWindow(wristViewName, uiOffsetX, uiOffsetY);
+	uiOffsetX += coreWidth;
+	cv::moveWindow(rangeogramViewName, uiOffsetX, uiOffsetY);
+      }
+      break;
+    // numlock + x
+    case 1048696:
+      {
+	int sideOffset = 1920+30;
+	int coreWidth = 640;
+	int toolbarWidth = 65+1;
+	int menuHeight = 28+36;
+	int uiOffsetX = toolbarWidth + sideOffset;
+	int uiOffsetY = 0;
+
+	cv::moveWindow(rangemapViewName, uiOffsetX, uiOffsetY);
+	uiOffsetY += rmiHeight + menuHeight;
+	cv::moveWindow(coreViewName, uiOffsetX, uiOffsetY);
+	uiOffsetX += coreWidth;
+	cv::moveWindow(wristViewName, uiOffsetX, uiOffsetY);
+	uiOffsetX += coreWidth;
+	cv::moveWindow(rangeogramViewName, uiOffsetX, uiOffsetY);
+      }
+      break;
     default:
       {
       }
@@ -1533,6 +1677,7 @@ int main(int argc, char **argv) {
   rangeogramViewName = "Rangeogram View " + left_or_right_arm;
   rangemapViewName = "Range Map View " + left_or_right_arm;
 
+
   cv::namedWindow(wristViewName);
   cv::setMouseCallback(wristViewName, CallbackFunc, NULL);
   image_transport::ImageTransport it(n);
@@ -1580,7 +1725,7 @@ int main(int argc, char **argv) {
   rmcY = 0;
 
   ros::spin();
-
+  
   // multithreaded spinning causes what is probably a race condition...
   //ros::MultiThreadedSpinner spinner(4); // Use 4 threads
   //spinner.spin(); // spin() will not return until the node has been shutdown
