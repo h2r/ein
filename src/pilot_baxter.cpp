@@ -1,4 +1,4 @@
-#define DEBUG
+//#define DEBUG
 
 typedef struct {
   double px;
@@ -73,7 +73,11 @@ double cCutoff = 20.0;
 
 
 double a_thresh_close = .11;
-double a_thresh_far = .3;
+// XXX TODO 
+// make more general interface, i.e. have depth target register.
+// add 'speeds' so that we can adjust movement resulution
+//double a_thresh_far = .3; // for visual servoing
+double a_thresh_far = .2; // for depth scanning
 double eeRange = 0.0;
 
 double bDelta = .01;
@@ -256,6 +260,21 @@ int rmiCellWidth = 20;
 int rmiHeight = rmiCellWidth*rmWidth;
 int rmiWidth = rmiCellWidth*rmWidth;
 
+// depth reticle
+double drX = .01;
+double drY = .02;
+
+// target reticle
+double trX = 0;
+double trY = 0;
+
+int maxX = 0;
+int maxY = 0;
+double maxD = 0;
+
+double graspDepth = .02;
+
+
 void rangeCallback(const sensor_msgs::Range& range) {
   eeRange = range.range;
   //cout << eeRange << endl;
@@ -340,11 +359,6 @@ void rangeCallback(const sensor_msgs::Range& range) {
     int iiX = (int)round(lastiX + rmHalfWidth);
     int iiY = (int)round(lastiY + rmHalfWidth);
 
-    rangeMapMass[iiX + iiY*rmWidth] += 1;
-    rangeMapAccumulator[iiX + iiY*rmWidth] += eeRange;
-    double denom = max(rangeMapMass[iiX + iiY*rmWidth], 1.0);
-    rangeMap[iiX + iiY*rmWidth] = rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
-    
     double minDepth = 1e6;
     double maxDepth = 0;
     for (int rx = 0; rx < rmWidth; rx++) {
@@ -722,6 +736,15 @@ void timercallback1(const ros::TimerEvent&) {
 
   switch (c) {
     case 30: // up arrow
+      break;
+    case 'j':
+      {
+	baxter_core_msgs::EndEffectorCommand command;
+	command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
+	command.args = "{\"position\": 0.0}";
+	command.id = 65538;
+	gripperPub.publish(command);
+      }
       break;
     case 'k':
       {
@@ -1114,16 +1137,24 @@ void timercallback1(const ros::TimerEvent&) {
 	  }
 	}
 	for (int rx = 0; rx < rmWidth; rx++) {
-	  rangeMapReg1[rx + 0*rmWidth] = maxDepth;
-	  rangeMapReg1[rx + (rmWidth-1)*rmWidth] = maxDepth;
-	  rangeMapReg2[rx + 0*rmWidth] = maxDepth;
-	  rangeMapReg2[rx + (rmWidth-1)*rmWidth] = maxDepth;
+	  for (int ry = 0; ry < transformPadding; ry++) {
+	    rangeMapReg1[rx + ry*rmWidth] = maxDepth;
+	    rangeMapReg2[rx + ry*rmWidth] = maxDepth;
+	  }
+	  for (int ry = rmWidth-transformPadding; ry < rmWidth; ry++) {
+	    rangeMapReg1[rx + ry*rmWidth] = maxDepth;
+	    rangeMapReg2[rx + ry*rmWidth] = maxDepth;
+	  }
 	}
 	for (int ry = 0; ry < rmWidth; ry++) {
-	  rangeMapReg1[0 + ry*rmWidth] = maxDepth;
-	  rangeMapReg1[(rmWidth-1) + ry*rmWidth] = maxDepth;
-	  rangeMapReg2[0 + ry*rmWidth] = maxDepth;
-	  rangeMapReg2[(rmWidth-1) + ry*rmWidth] = maxDepth;
+	  for (int rx = 0; rx < transformPadding; rx++) {
+	    rangeMapReg1[rx + ry*rmWidth] = maxDepth;
+	    rangeMapReg2[rx + ry*rmWidth] = maxDepth;
+	  }
+	  for (int rx = rmWidth-transformPadding; rx < rmWidth; rx++) {
+	    rangeMapReg1[rx + ry*rmWidth] = maxDepth;
+	    rangeMapReg2[rx + ry*rmWidth] = maxDepth;
+	  }
 	}
       }
       break;
@@ -1265,6 +1296,146 @@ void timercallback1(const ros::TimerEvent&) {
 	cv::moveWindow(wristViewName, uiOffsetX, uiOffsetY);
 	uiOffsetX += coreWidth;
 	cv::moveWindow(rangeogramViewName, uiOffsetX, uiOffsetY);
+      }
+      break;
+    // find maxGrasp and save
+    // numlock + s
+    case 1048691:
+      {
+	int maxSearchPadding = 3;
+	double minDepth = 1e6;
+	for (int rx = maxSearchPadding; rx < rmWidth-maxSearchPadding; rx++) {
+	  for (int ry = maxSearchPadding; ry < rmWidth-maxSearchPadding; ry++) {
+	    if (rangeMapReg1[rx + ry*rmWidth] < minDepth) {
+	      minDepth = rangeMapReg1[rx + ry*rmWidth];
+	      maxX = rx;
+	      maxY = ry;
+	      maxD = rangeMap[rx + ry*rmWidth];
+	    }
+	  }
+	}
+	cout << "maxX: " << maxX << " maxY: " << maxY << endl;
+      }
+      break;
+    // set depth reticle to the max mapped position
+    // numlock + d
+    case 1048676:
+      {
+	drX = rmDelta*(maxX-rmHalfWidth);
+	drY = rmDelta*(maxY-rmHalfWidth);
+	cout << "drX: " << drX << " drY: " << drY << endl;
+      }
+      break;
+    // set target reticle to the max mapped position
+    // numlock + f
+    case 1048678:
+      {
+	trX = rmcX + rmDelta*(maxX-rmHalfWidth);
+	trY = rmcY + rmDelta*(maxY-rmHalfWidth);
+	cout << "trX: " << trX << " trY: " << trY << endl;
+      }
+      break;
+    // paint reticles
+    // numlock + g
+    case 1048679:
+      {
+	double ddrX = (drX)/rmDelta;
+	double ddrY = (drY)/rmDelta;
+	double ttrX = (trX-rmcX)/rmDelta;
+	double ttrY = (trY-rmcY)/rmDelta;
+	if ((fabs(ddrX) <= rmHalfWidth) && (fabs(ddrY) <= rmHalfWidth)) {
+	  int iiX = (int)round(ddrX + rmHalfWidth);
+	  int iiY = (int)round(ddrY + rmHalfWidth);
+
+	  double intensity = 128;
+	  cv::Scalar backColor(ceil(intensity),0,0);
+	  cv::Point outTop = cv::Point((iiY+rmWidth)*rmiCellWidth,iiX*rmiCellWidth);
+	  cv::Point outBot = cv::Point(((iiY+rmWidth)+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
+	  Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	  vCrop += backColor;
+	}
+	if ((fabs(ttrX) <= rmHalfWidth) && (fabs(ttrY) <= rmHalfWidth)) {
+	  int iiX = (int)round(ttrX + rmHalfWidth);
+	  int iiY = (int)round(ttrY + rmHalfWidth);
+
+	  double intensity = 128;
+	  cv::Scalar backColor(0,ceil(intensity),0);
+	  cv::Point outTop = cv::Point((iiY+rmWidth)*rmiCellWidth,iiX*rmiCellWidth);
+	  cv::Point outBot = cv::Point(((iiY+rmWidth)+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
+	  Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	  vCrop += backColor;
+	}
+      }
+      break;
+    // move to target x,y 
+    // numlock + h
+    case 1048680:
+      {
+	double targetX = trX - (drX);
+	double targetY = trY - (drY);
+
+	double deltaX = targetX - currentEEPose.px;
+	double deltaY = targetY - currentEEPose.py;
+	double xTimes = fabs(floor(deltaX / bDelta)); 
+	double yTimes = fabs(floor(deltaY / bDelta)); 
+
+	int tapTimes = 30;
+
+	int numNoOps = 6*(yTimes + xTimes + floor(2 * tapTimes * tap_factor));
+	for (int cc = 0; cc < numNoOps; cc++) {
+	  pilot_call_stack.push_back('C');
+	}
+
+	if (deltaX > 0)
+	  for (int xc = 0; xc < xTimes; xc++)
+	    pilot_call_stack.push_back('e');
+	if (deltaX < 0)
+	  for (int xc = 0; xc < xTimes; xc++)
+	    pilot_call_stack.push_back('q');
+	if (deltaY > 0)
+	  for (int yc = 0; yc < yTimes; yc++)
+	    pilot_call_stack.push_back('d');
+	if (deltaY < 0)
+	  for (int yc = 0; yc < yTimes; yc++)
+	    pilot_call_stack.push_back('a');
+      
+
+	for (int tc = 0; tc < tapTimes; tc++) {
+	  pilot_call_stack.push_back('t');
+	}
+	cout << "Move to target x,y. deltaX: " << deltaX << " xTimes: " << xTimes << endl;
+      }
+      break;
+    // move to target z and grasp
+    // numlock + j
+    case 1048682:
+      {
+	pilot_call_stack.push_back('j');
+
+	double deltaZ = -maxD - graspDepth;
+	double zTimes = fabs(floor(deltaZ / bDelta)); 
+
+	int numNoOps = 4;
+	if (deltaZ > 0)
+	  for (int zc = 0; zc < zTimes; zc++) {
+	    for (int cc = 0; cc < numNoOps; cc++) {
+	      pilot_call_stack.push_back('C');
+	    }
+	    pilot_call_stack.push_back('w');
+	  }
+	if (deltaZ < 0)
+	  for (int zc = 0; zc < zTimes; zc++) {
+	    for (int cc = 0; cc < numNoOps; cc++) {
+	      pilot_call_stack.push_back('C');
+	    }
+	    pilot_call_stack.push_back('s');
+	  }
+	cout << "Move to target z and grasp. deltaZ: " << deltaZ << " zTimes: " << zTimes << endl;
+      }
+      break;
+    // add switch disable recording
+    case 1:
+      {
       }
       break;
     default:
