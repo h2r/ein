@@ -150,6 +150,9 @@ eePose crane2right = {.px = 0.617214, .py = -0.301658, .pz = 0.0533165,
 eePose crane3right = {.px = 0.668384, .py = 0.166692, .pz = -0.120018,
 		     .ox = 0, .oy = 0, .oz = 0,
 		     .qx = 0.0328281, .qy = 0.999139, .qz = 0.00170545, .qw = 0.0253245};
+eePose crane4right = {.px = 0.642291, .py = -0.659793, .pz = 0.244186,
+		     .ox = 0, .oy = 0, .oz = 0,
+		     .qx = 0.825064, .qy = 0.503489, .qz = 0.12954, .qw = 0.221331};
 eePose crane1left = {.px = -0.0155901, .py = 0.981296, .pz = 0.71078,
 		     .ox = 0, .oy = 0, .oz = 0,
 		     .qx = 0.709046, .qy = -0.631526, .qz = -0.226613, .qw = -0.216967};
@@ -260,8 +263,8 @@ int rmiCellWidth = 20;
 int rmiHeight = rmiCellWidth*rmWidth;
 int rmiWidth = rmiCellWidth*rmWidth;
 
-// depth reticle
-double drX = .01;
+// the currently equipped depth reticle
+double drX = .02; //.01;
 double drY = .02;
 
 // target reticle
@@ -272,7 +275,17 @@ int maxX = 0;
 int maxY = 0;
 double maxD = 0;
 
-double graspDepth = .02;
+double graspDepth = -.02;
+
+// grasp gear 
+const int totalGraspGears = 4;
+int currentGraspGear = -1;
+//// reticles
+double ggX[totalGraspGears];
+double ggY[totalGraspGears];
+double ggT[totalGraspGears];
+
+int recordRangeMap = 1;
 
 
 void rangeCallback(const sensor_msgs::Range& range) {
@@ -340,92 +353,94 @@ void rangeCallback(const sensor_msgs::Range& range) {
     }
   }
 
-  // find current rangemap slot
-  // check to see if it falls in our mapped region
-  // if so, update the arrays and draw the slot
-  double dX = trueEEPose.position.x - rmcX;
-  double dY = trueEEPose.position.y - rmcY;
-  double iX = dX / rmDelta;
-  double iY = dY / rmDelta;
+  if (recordRangeMap) {
+    // find current rangemap slot
+    // check to see if it falls in our mapped region
+    // if so, update the arrays and draw the slot
+    double dX = trueEEPose.position.x - rmcX;
+    double dY = trueEEPose.position.y - rmcY;
+    double iX = dX / rmDelta;
+    double iY = dY / rmDelta;
 
-  lastiX = thisiX;
-  lastiY = thisiY;
-  thisiX = iX;
-  thisiY = iY;
-//cout << rmcX << " " << trueEEPose.position.x << " " << dX << " " << iX << " " << rmHalfWidth << endl;
+    lastiX = thisiX;
+    lastiY = thisiY;
+    thisiX = iX;
+    thisiY = iY;
+  //cout << rmcX << " " << trueEEPose.position.x << " " << dX << " " << iX << " " << rmHalfWidth << endl;
 
-  // erase old cell
-  if ((fabs(lastiX) <= rmHalfWidth) && (fabs(lastiY) <= rmHalfWidth)) {
-    int iiX = (int)round(lastiX + rmHalfWidth);
-    int iiY = (int)round(lastiY + rmHalfWidth);
+    // erase old cell
+    if ((fabs(lastiX) <= rmHalfWidth) && (fabs(lastiY) <= rmHalfWidth)) {
+      int iiX = (int)round(lastiX + rmHalfWidth);
+      int iiY = (int)round(lastiY + rmHalfWidth);
 
-    double minDepth = 1e6;
-    double maxDepth = 0;
-    for (int rx = 0; rx < rmWidth; rx++) {
-      for (int ry = 0; ry < rmWidth; ry++) {
-	minDepth = min(minDepth, rangeMap[rx + ry*rmWidth]);
-	maxDepth = max(maxDepth, rangeMap[rx + ry*rmWidth]);
+      double minDepth = 1e6;
+      double maxDepth = 0;
+      for (int rx = 0; rx < rmWidth; rx++) {
+	for (int ry = 0; ry < rmWidth; ry++) {
+	  minDepth = min(minDepth, rangeMap[rx + ry*rmWidth]);
+	  maxDepth = max(maxDepth, rangeMap[rx + ry*rmWidth]);
+	}
+      }
+      double denom2 = max(1e-6,maxDepth-minDepth);
+      if (denom2 <= 1e-6)
+	denom2 = 1e6;
+      double intensity = 255 * (maxDepth - rangeMap[iiX + iiY*rmWidth]) / denom2;
+      cv::Scalar backColor(0,0,ceil(intensity));
+      cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
+      cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
+      Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+      vCrop = backColor;
+    }
+
+    // draw new cell
+    if ((fabs(thisiX) <= rmHalfWidth) && (fabs(thisiY) <= rmHalfWidth)) {
+      int iiX = (int)round(thisiX + rmHalfWidth);
+      int iiY = (int)round(thisiY + rmHalfWidth);
+
+      rangeMapMass[iiX + iiY*rmWidth] += 1;
+      rangeMapAccumulator[iiX + iiY*rmWidth] += eeRange;
+      double denom = max(rangeMapMass[iiX + iiY*rmWidth], 1.0);
+      rangeMap[iiX + iiY*rmWidth] = rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
+      
+      double minDepth = 1e6;
+      double maxDepth = 0;
+      for (int rx = 0; rx < rmWidth; rx++) {
+	for (int ry = 0; ry < rmWidth; ry++) {
+	  minDepth = min(minDepth, rangeMap[rx + ry*rmWidth]);
+	  maxDepth = max(maxDepth, rangeMap[rx + ry*rmWidth]);
+	}
+      }
+      double denom2 = max(1e-6,maxDepth-minDepth);
+      if (denom2 <= 1e-6)
+	denom2 = 1e6;
+      double intensity = 255 * (maxDepth - rangeMap[iiX + iiY*rmWidth]) / denom2;
+      cv::Scalar backColor(0,0,ceil(intensity));
+      cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
+      cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
+      Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+      vCrop = backColor;
+      // draw border
+      {
+	cv::Point outTop = cv::Point(iiY*rmiCellWidth+1,iiX*rmiCellWidth+1);
+	cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth-1,(iiX+1)*rmiCellWidth-1);
+	cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
+	cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
+	rectangle(rangemapImage, outTop, outBot, cv::Scalar(0,192,0)); 
+	rectangle(rangemapImage, inTop, inBot, cv::Scalar(0,64,0)); 
       }
     }
-    double denom2 = max(1e-6,maxDepth-minDepth);
-    if (denom2 <= 1e-6)
-      denom2 = 1e6;
-    double intensity = 255 * (maxDepth - rangeMap[iiX + iiY*rmWidth]) / denom2;
-    cv::Scalar backColor(0,0,ceil(intensity));
-    cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
-    cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
-    Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-    vCrop = backColor;
-  }
 
-  // draw new cell
-  if ((fabs(thisiX) <= rmHalfWidth) && (fabs(thisiY) <= rmHalfWidth)) {
-    int iiX = (int)round(thisiX + rmHalfWidth);
-    int iiY = (int)round(thisiY + rmHalfWidth);
-
-    rangeMapMass[iiX + iiY*rmWidth] += 1;
-    rangeMapAccumulator[iiX + iiY*rmWidth] += eeRange;
-    double denom = max(rangeMapMass[iiX + iiY*rmWidth], 1.0);
-    rangeMap[iiX + iiY*rmWidth] = rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
-    
-    double minDepth = 1e6;
-    double maxDepth = 0;
+    #ifdef DEBUG
+    cout << "rangeMap: [" << endl;
     for (int rx = 0; rx < rmWidth; rx++) {
       for (int ry = 0; ry < rmWidth; ry++) {
-	minDepth = min(minDepth, rangeMap[rx + ry*rmWidth]);
-	maxDepth = max(maxDepth, rangeMap[rx + ry*rmWidth]);
+	cout << rangeMap[rx + ry*rmWidth] << " ";
       }
+      cout << endl;
     }
-    double denom2 = max(1e-6,maxDepth-minDepth);
-    if (denom2 <= 1e-6)
-      denom2 = 1e6;
-    double intensity = 255 * (maxDepth - rangeMap[iiX + iiY*rmWidth]) / denom2;
-    cv::Scalar backColor(0,0,ceil(intensity));
-    cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
-    cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
-    Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-    vCrop = backColor;
-    // draw border
-    {
-      cv::Point outTop = cv::Point(iiY*rmiCellWidth+1,iiX*rmiCellWidth+1);
-      cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth-1,(iiX+1)*rmiCellWidth-1);
-      cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
-      cv::Point inBot = cv::Point(outTop.x-1, outTop.y-1);
-      rectangle(rangemapImage, outTop, outBot, cv::Scalar(0,192,0)); 
-      rectangle(rangemapImage, inTop, inBot, cv::Scalar(0,64,0)); 
-    }
+    cout << "]" << endl;
+    #endif
   }
-
-  #ifdef DEBUG
-  cout << "rangeMap: [" << endl;
-  for (int rx = 0; rx < rmWidth; rx++) {
-    for (int ry = 0; ry < rmWidth; ry++) {
-      cout << rangeMap[rx + ry*rmWidth] << " ";
-    }
-    cout << endl;
-  }
-  cout << "]" << endl;
-  #endif
 
   cv::imshow(rangeogramViewName, rangeogramImage);
   cv::imshow(rangemapViewName, rangemapImage);
@@ -629,6 +644,62 @@ void update_baxter(ros::NodeHandle &n) {
 //cout << "block9" << endl;
 }
 
+void setGGRotation(int thisGraspGear) {
+  Eigen::Vector3f localUnitX;
+  {
+    Eigen::Quaternionf qin(0, 1, 0, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitX.x() = qout.x();
+    localUnitX.y() = qout.y();
+    localUnitX.z() = qout.z();
+  }
+
+  Eigen::Vector3f localUnitY;
+  {
+    Eigen::Quaternionf qin(0, 0, 1, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitY.x() = qout.x();
+    localUnitY.y() = qout.y();
+    localUnitY.z() = qout.z();
+  }
+
+  Eigen::Vector3f localUnitZ;
+  {
+    Eigen::Quaternionf qin(0, 0, 0, 1);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitZ.x() = qout.x();
+    localUnitZ.y() = qout.y();
+    localUnitZ.z() = qout.z();
+  }
+
+  double deltaTheta = thisGraspGear*3.1415926/double(totalGraspGears);
+  double sinBuff = 0.0;
+  double angleRate = 1.0;
+  Eigen::Quaternionf eeBaseQuat(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+  sinBuff = sin(angleRate*0.0/2.0);
+  Eigen::Quaternionf eeRotatorX(cos(angleRate*0.0/2.0), localUnitX.x()*sinBuff, localUnitX.y()*sinBuff, localUnitX.z()*sinBuff);
+  sinBuff = sin(angleRate*0.0/2.0);
+  Eigen::Quaternionf eeRotatorY(cos(angleRate*0.0/2.0), localUnitY.x()*sinBuff, localUnitY.y()*sinBuff, localUnitY.z()*sinBuff);
+  sinBuff = sin(angleRate*deltaTheta/2.0);
+  Eigen::Quaternionf eeRotatorZ(cos(angleRate*deltaTheta/2.0), localUnitZ.x()*sinBuff, localUnitZ.y()*sinBuff, localUnitZ.z()*sinBuff);
+  eeRotatorX.normalize();
+  eeRotatorY.normalize();
+  eeRotatorZ.normalize();
+
+  eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * eeBaseQuat;
+  eeBaseQuat.normalize();
+
+  currentEEPose.qx = eeBaseQuat.x();
+  currentEEPose.qy = eeBaseQuat.y();
+  currentEEPose.qz = eeBaseQuat.z();
+  currentEEPose.qw = eeBaseQuat.w();
+}
 
 void timercallback1(const ros::TimerEvent&) {
 
@@ -1365,6 +1436,27 @@ void timercallback1(const ros::TimerEvent&) {
 	  Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
 	  vCrop += backColor;
 	}
+	for (int gg = 0; gg < totalGraspGears; gg++){
+	  double gggX = (ggX[gg])/rmDelta;
+	  double gggY = (ggY[gg])/rmDelta;
+	  if ((fabs(gggX) <= rmHalfWidth) && (fabs(gggY) <= rmHalfWidth)) {
+	    int iiX = (int)round(gggX + rmHalfWidth);
+	    int iiY = (int)round(gggY + rmHalfWidth);
+
+	    cv::Point outTop = cv::Point((iiY+rmWidth)*rmiCellWidth,iiX*rmiCellWidth);
+	    cv::Point outBot = cv::Point(((iiY+rmWidth)+1)*rmiCellWidth-1,(iiX+1)*rmiCellWidth-1);
+	    cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
+	    cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
+	    rectangle(rangemapImage, outTop, outBot, cv::Scalar(192,0,0)); 
+	    rectangle(rangemapImage, inTop, inBot, cv::Scalar(64,0,0)); 
+
+	    cv::Point text_anchor = cv::Point(outTop.x+4, outBot.y-4);
+	    char buff[256];
+	    sprintf(buff, "%d", gg+1);
+	    string reticleLabel(buff);
+	    putText(rangemapImage, reticleLabel, text_anchor, MY_FONT, 0.5, Scalar(192,192,192), 1.0);
+	  }
+	}
       }
       break;
     // move to target x,y 
@@ -1415,7 +1507,7 @@ void timercallback1(const ros::TimerEvent&) {
 	double deltaZ = -maxD - graspDepth;
 	double zTimes = fabs(floor(deltaZ / bDelta)); 
 
-	int numNoOps = 4;
+	int numNoOps = 16;
 	if (deltaZ > 0)
 	  for (int zc = 0; zc < zTimes; zc++) {
 	    for (int cc = 0; cc < numNoOps; cc++) {
@@ -1433,7 +1525,129 @@ void timercallback1(const ros::TimerEvent&) {
 	cout << "Move to target z and grasp. deltaZ: " << deltaZ << " zTimes: " << zTimes << endl;
       }
       break;
-    // add switch disable recording
+    // add switches disable recording
+    // numlock + k
+    case 1048683:
+      {
+	recordRangeMap = 1;
+      }
+      break;
+    // numlock + l
+    case 1048684:
+      {
+	recordRangeMap = 0;
+      }
+      break;
+    // set gg reticles
+    // numlock + shift + 1
+    case 1114145:
+      {
+	ggX[0] = rmDelta*(maxX-rmHalfWidth);
+	ggY[0] = rmDelta*(maxY-rmHalfWidth);
+	cout << "ggX[0]: " << ggX[0] << " ggY[0]: " << ggY[0] << endl;
+      }
+      break;
+    // numlock + shift + 2
+    case 1114176:
+      {
+	ggX[1] = rmDelta*(maxX-rmHalfWidth);
+	ggY[1] = rmDelta*(maxY-rmHalfWidth);
+	cout << "ggX[1]: " << ggX[1] << " ggY[1]: " << ggY[1] << endl;
+      }
+      break;
+    // numlock + shift + 3
+    case 1114147:
+      {
+	ggX[2] = rmDelta*(maxX-rmHalfWidth);
+	ggY[2] = rmDelta*(maxY-rmHalfWidth);
+	cout << "ggX[2]: " << ggX[2] << " ggY[2]: " << ggY[2] << endl;
+      }
+      break;
+    // numlock + shift + 4
+    case 1114148:
+      {
+	ggX[3] = rmDelta*(maxX-rmHalfWidth);
+	ggY[3] = rmDelta*(maxY-rmHalfWidth);
+	cout << "ggX[3]: " << ggX[3] << " ggY[3]: " << ggY[3] << endl;
+      }
+      break;
+    // shift into grasp gear
+    // numlock + 1
+    case 1048625:
+      {
+	int thisGraspGear = 0;
+
+	//   set drX
+	drX = ggX[thisGraspGear];
+	drY = ggY[thisGraspGear];
+
+	//   rotate
+	setGGRotation(thisGraspGear);
+
+	//   set currentGraspGear;
+	currentGraspGear = thisGraspGear;
+      }
+      break;
+    // numlock + 2
+    case 1048626:
+      {
+	int thisGraspGear = 1;
+
+	//   set drX
+	drX = ggX[thisGraspGear];
+	drY = ggY[thisGraspGear];
+
+	//   rotate
+	setGGRotation(thisGraspGear);
+
+	//   set currentGraspGear;
+	currentGraspGear = thisGraspGear;
+      }
+      break;
+    // numlock + 3
+    case 1048627:
+      {
+	int thisGraspGear = 2;
+
+	//   set drX
+	drX = ggX[thisGraspGear];
+	drY = ggY[thisGraspGear];
+
+	//   rotate
+	setGGRotation(thisGraspGear);
+
+	//   set currentGraspGear;
+	currentGraspGear = thisGraspGear;
+      }
+      break;
+    // numlock + 4
+    case 1048628:
+      {
+	int thisGraspGear = 3;
+
+	//   set drX
+	drX = ggX[thisGraspGear];
+	drY = ggY[thisGraspGear];
+
+	//   rotate
+	setGGRotation(thisGraspGear);
+
+	//   set currentGraspGear;
+	currentGraspGear = thisGraspGear;
+      }
+      break;
+    // reset drX and drY to 0 and invalidate graspGear
+    // numlock + 5
+    case 1048629:
+      {
+	//   set drX
+	drX = 0.0;
+	drY = 0.0;
+	currentGraspGear = -1;
+      }
+      break;
+    // XXX change the slot that you record to according to your drX and drY
+    //////////
     case 1:
       {
       }
@@ -1716,6 +1930,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   lText += " APFC: ";
   sprintf(buf, "%d", autoPilotFrameCounter);
   lText += buf;
+  lText += " GG: ";
+  sprintf(buf, "%d", currentGraspGear);
+  lText += buf;
   putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
 
   int stackRowY = 120;
@@ -1894,6 +2111,24 @@ int main(int argc, char **argv) {
 
   rmcX = 0;
   rmcY = 0;
+
+  for (int g = 0; g < totalGraspGears; g++) {
+    ggX[g] = 0;
+    ggY[g] = 0;
+    ggT[g] = g*3.1415926/double(totalGraspGears);
+  }
+  ggX[0] =  0.03;
+  ggY[0] =  0.02;
+  ggX[1] =  0.04;
+  ggY[1] =  0.00;
+  ggX[2] =  0.03;
+  ggY[2] = -0.02;
+  ggX[3] =  0.00;
+  ggY[3] = -0.03; //-0.04
+
+  // XXX set this to be arm-generic
+  // XXX add symbols to change register sets
+  eepReg3 = crane4right;
 
   ros::spin();
   
