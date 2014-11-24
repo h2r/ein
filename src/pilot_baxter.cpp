@@ -1394,7 +1394,7 @@ void timercallback1(const ros::TimerEvent&) {
 	    }
 	  }
 	}
-	cout << "maxX: " << maxX << " maxY: " << maxY << endl;
+	cout << "non-cumulative maxX: " << maxX << " maxY: " << maxY <<  " maxD: " << maxD << " maxGG: " << maxGG << endl;
       }
       break;
     // cumulative min
@@ -1411,10 +1411,10 @@ void timercallback1(const ros::TimerEvent&) {
 	      maxY = ry;
 	      maxD = rangeMap[rx + ry*rmWidth];
 	      maxGG = currentGraspGear;
+	      cout << "cumulative update maxX: " << maxX << " maxY: " << maxY << " maxD: " << maxD << " maxGG: " << maxGG << endl;
 	    }
 	  }
 	}
-	cout << "maxX: " << maxX << " maxY: " << maxY << endl;
       }
       break;
     // set depth reticle to the max mapped position
@@ -1676,6 +1676,97 @@ void timercallback1(const ros::TimerEvent&) {
 	drX = 0.0;
 	drY = 0.0;
 	currentGraspGear = -1;
+      }
+      break;
+    // select best available grasp
+    // numlock + 6
+    case 1048630:
+      {
+	// select max target cumulative
+	pilot_call_stack.push_back(1114195);
+	// apply grasp filter for 4
+	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048692);
+	pilot_call_stack.push_back(1048688);
+	// blur
+	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048692);
+	pilot_call_stack.push_back(1048697);
+	// load reg1
+	pilot_call_stack.push_back(1048690);
+	// change gear to 4
+	pilot_call_stack.push_back(1048628);
+
+	// select max target cumulative
+	pilot_call_stack.push_back(1114195	);
+	// apply grasp filter for 3
+	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048692);
+	pilot_call_stack.push_back(1048693);
+	// blur
+	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048692);
+	pilot_call_stack.push_back(1048697);
+	// load reg1
+	pilot_call_stack.push_back(1048690);
+	// change gear to 3
+	pilot_call_stack.push_back(1048627);
+
+	// select max target cumulative
+	pilot_call_stack.push_back(1114195);
+	// apply grasp filter for 2
+	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048692);
+	pilot_call_stack.push_back(1048687);
+	// blur
+	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048692);
+	pilot_call_stack.push_back(1048697);
+	// load reg1
+	pilot_call_stack.push_back(1048690);
+	// change gear to 2
+	pilot_call_stack.push_back(1048626);
+
+	// select max target NOT cumulative
+	pilot_call_stack.push_back(1048691);
+	// apply grasp filter for 1
+	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048692);
+	pilot_call_stack.push_back(1048681);
+	// blur
+	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048692);
+	pilot_call_stack.push_back(1048697);
+	// load reg1
+	pilot_call_stack.push_back(1048690);
+	// change gear to 1
+	pilot_call_stack.push_back(1048625);
+
+	// turn off recording
+	pilot_call_stack.push_back(1048684);
+      }
+      break;
+    // assume winning gg
+    // numlock + 7
+    case 1048631:
+      {
+	if (maxGG == 0)
+	  pilot_call_stack.push_back(1048625);
+	if (maxGG == 1)
+	  pilot_call_stack.push_back(1048626);
+	if (maxGG == 2)
+	  pilot_call_stack.push_back(1048627);
+	if (maxGG == 3)
+	  pilot_call_stack.push_back(1048628);
+      }
+      break;
+    // XXX
+    // try damping the diagonal by the value it's supposed to have
+    //  according to gaussian
+    // scan, grab, put in the box
+    // numlock + 8
+    case 1048632:
+      {
       }
       break;
     //////////
