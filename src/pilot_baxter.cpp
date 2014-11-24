@@ -274,6 +274,7 @@ double trY = 0;
 int maxX = 0;
 int maxY = 0;
 double maxD = 0;
+int maxGG = 0;
 
 double graspDepth = -.02;
 
@@ -357,8 +358,11 @@ void rangeCallback(const sensor_msgs::Range& range) {
     // find current rangemap slot
     // check to see if it falls in our mapped region
     // if so, update the arrays and draw the slot
-    double dX = trueEEPose.position.x - rmcX;
-    double dY = trueEEPose.position.y - rmcY;
+    // XXX
+    //double dX = trueEEPose.position.x - rmcX;
+    //double dY = trueEEPose.position.y - rmcY;
+    double dX = (trueEEPose.position.x - drX) - rmcX;
+    double dY = (trueEEPose.position.y - drY) - rmcY;
     double iX = dX / rmDelta;
     double iY = dY / rmDelta;
 
@@ -1096,6 +1100,9 @@ void timercallback1(const ros::TimerEvent&) {
 	//  and store the current range
       // move to beginning of grid
       {
+	currentEEPose.px = rmcX + drX;
+	currentEEPose.py = rmcY + drY;
+
 	int scanPadding = 0;
 	double rmbGain = rmDelta / bDelta;
 	pilot_call_stack.push_back(1048689);
@@ -1370,6 +1377,7 @@ void timercallback1(const ros::TimerEvent&) {
       }
       break;
     // find maxGrasp and save
+    // reset min
     // numlock + s
     case 1048691:
       {
@@ -1382,6 +1390,27 @@ void timercallback1(const ros::TimerEvent&) {
 	      maxX = rx;
 	      maxY = ry;
 	      maxD = rangeMap[rx + ry*rmWidth];
+	      maxGG = currentGraspGear;
+	    }
+	  }
+	}
+	cout << "maxX: " << maxX << " maxY: " << maxY << endl;
+      }
+      break;
+    // cumulative min
+    // numlock + shift + S
+    case 1114195:
+      {
+	int maxSearchPadding = 3;
+	double minDepth = maxD;
+	for (int rx = maxSearchPadding; rx < rmWidth-maxSearchPadding; rx++) {
+	  for (int ry = maxSearchPadding; ry < rmWidth-maxSearchPadding; ry++) {
+	    if (rangeMapReg1[rx + ry*rmWidth] < minDepth) {
+	      minDepth = rangeMapReg1[rx + ry*rmWidth];
+	      maxX = rx;
+	      maxY = ry;
+	      maxD = rangeMap[rx + ry*rmWidth];
+	      maxGG = currentGraspGear;
 	    }
 	  }
 	}
@@ -1463,8 +1492,11 @@ void timercallback1(const ros::TimerEvent&) {
     // numlock + h
     case 1048680:
       {
-	double targetX = trX - (drX);
-	double targetY = trY - (drY);
+	// XXX
+	//double targetX = trX - (drX);
+	//double targetY = trY - (drY);
+	double targetX = trX;
+	double targetY = trY;
 
 	double deltaX = targetX - currentEEPose.px;
 	double deltaY = targetY - currentEEPose.py;
@@ -1646,7 +1678,6 @@ void timercallback1(const ros::TimerEvent&) {
 	currentGraspGear = -1;
       }
       break;
-    // XXX change the slot that you record to according to your drX and drY
     //////////
     case 1:
       {
