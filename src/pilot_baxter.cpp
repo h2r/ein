@@ -146,7 +146,7 @@ eePose crane1right = {.px = 0.0448714, .py = -1.04476, .pz = 0.698522,
 		     .qx = 0.631511, .qy = 0.68929, .qz = -0.25435, .qw = 0.247748};
 eePose crane2right = {.px = 0.617214, .py = -0.301658, .pz = 0.0533165,
 		     .ox = 0, .oy = 0, .oz = 0,
-		     .qx = 0.0328281, .qy = 0.999139, .qz = 0.00170545, .qw = 0.0253245};
+		     .qx = -0.0139279, .qy = 0.999439, .qz = -0.00107611, .qw = 0.0304367};
 eePose crane3right = {.px = 0.668384, .py = 0.166692, .pz = -0.120018,
 		     .ox = 0, .oy = 0, .oz = 0,
 		     .qx = 0.0328281, .qy = 0.999139, .qz = 0.00170545, .qw = 0.0253245};
@@ -249,6 +249,25 @@ double rangeMapReg2[rmWidth*rmWidth];
 double filter[9] = {1.0/16.0, 1.0/8.0, 1.0/16.0, 
 		    1.0/8.0, 1.0/4.0, 1.0/8.0, 
 		    1.0/16.0, 1.0/8.0, 1.0/16.0};;
+
+// diagonalKappa: 0.72 deltaDiagonalKappa: 0.01
+// below .72, the horizontal won when it should have. Set to .67 to be safe.
+// .67 was a little unreliable, trimming a bit more.
+double diagonalKappa = 0.60;
+double deltaDiagonalKappa = 0.01;
+
+double fEpsilon = 1e-6;
+void l2NormalizeFilter() {
+  double norm = 0;
+  for (int fx = 0; fx < 9; fx++) {
+    norm += filter[fx]*filter[fx];
+  }
+  if (fabs(norm) < fEpsilon)
+    norm = 1;
+  for (int fx = 0; fx < 9; fx++) {
+    filter[fx] /= norm;
+  }
+}
 
 // range map center
 double rmcX;
@@ -1252,6 +1271,10 @@ void timercallback1(const ros::TimerEvent&) {
 				   0,  0,  0};
 	for (int fx = 0; fx < 9; fx++)
 	  filter[fx] = tfilter[fx];
+	l2NormalizeFilter();
+	for (int fx = 0; fx < 9; fx++) {
+	  cout << filter[fx] << endl;
+	}
       }
       break;
     case 1048681: // numlock + i
@@ -1261,6 +1284,10 @@ void timercallback1(const ros::TimerEvent&) {
 				   0, -1,  0};
 	for (int fx = 0; fx < 9; fx++)
 	  filter[fx] = tfilter[fx];
+	l2NormalizeFilter();
+	for (int fx = 0; fx < 9; fx++) {
+	  cout << filter[fx] << endl;
+	}
       }
       break;
     case 1048687: // numlock + o
@@ -1268,8 +1295,17 @@ void timercallback1(const ros::TimerEvent&) {
 	double tfilter[9]    = {  -1,  0,  0, 
 				   0,  2,  0, 
 				   0,  0, -1};
+	//double tfilter[9]    = {  -1,  0,  0, 
+				   //0,  2-diagonalKappa,  0, 
+				   //0,  0, -1};
 	for (int fx = 0; fx < 9; fx++)
 	  filter[fx] = tfilter[fx];
+	l2NormalizeFilter();
+	for (int fx = 0; fx < 9; fx++) {
+	  cout << filter[fx] << " ";
+	  filter[fx] *= diagonalKappa;
+	  cout << filter[fx] << endl;
+	}
       }
       break;
     case 1048688: // numlock + p
@@ -1277,8 +1313,17 @@ void timercallback1(const ros::TimerEvent&) {
 	double tfilter[9]    = {   0,  0, -1, 
 				   0,  2,  0, 
 				  -1,  0,  0};
+	//double tfilter[9]    = {   0,  0, -1, 
+				   //0,  2-diagonalKappa,  0, 
+				  //-1,  0,  0};
 	for (int fx = 0; fx < 9; fx++)
 	  filter[fx] = tfilter[fx];
+	l2NormalizeFilter();
+	for (int fx = 0; fx < 9; fx++) {
+	  cout << filter[fx] << " ";
+	  filter[fx] *= diagonalKappa;
+	  cout << filter[fx] << endl;
+	}
       }
       break;
     // drawMapRegisters
@@ -1389,7 +1434,7 @@ void timercallback1(const ros::TimerEvent&) {
 	      minDepth = rangeMapReg1[rx + ry*rmWidth];
 	      maxX = rx;
 	      maxY = ry;
-	      maxD = rangeMap[rx + ry*rmWidth];
+	      maxD = rangeMapReg1[rx + ry*rmWidth];
 	      maxGG = currentGraspGear;
 	    }
 	  }
@@ -1409,7 +1454,7 @@ void timercallback1(const ros::TimerEvent&) {
 	      minDepth = rangeMapReg1[rx + ry*rmWidth];
 	      maxX = rx;
 	      maxY = ry;
-	      maxD = rangeMap[rx + ry*rmWidth];
+	      maxD = rangeMapReg1[rx + ry*rmWidth];
 	      maxGG = currentGraspGear;
 	      cout << "cumulative update maxX: " << maxX << " maxY: " << maxY << " maxD: " << maxD << " maxGG: " << maxGG << endl;
 	    }
@@ -1503,9 +1548,7 @@ void timercallback1(const ros::TimerEvent&) {
 	double xTimes = fabs(floor(deltaX / bDelta)); 
 	double yTimes = fabs(floor(deltaY / bDelta)); 
 
-	int tapTimes = 30;
-
-	int numNoOps = 6*(yTimes + xTimes + floor(2 * tapTimes * tap_factor));
+	int numNoOps = 6*(yTimes + xTimes);
 	for (int cc = 0; cc < numNoOps; cc++) {
 	  pilot_call_stack.push_back('C');
 	}
@@ -1523,10 +1566,6 @@ void timercallback1(const ros::TimerEvent&) {
 	  for (int yc = 0; yc < yTimes; yc++)
 	    pilot_call_stack.push_back('a');
       
-
-	for (int tc = 0; tc < tapTimes; tc++) {
-	  pilot_call_stack.push_back('t');
-	}
 	cout << "Move to target x,y. deltaX: " << deltaX << " xTimes: " << xTimes << endl;
       }
       break;
@@ -1682,6 +1721,7 @@ void timercallback1(const ros::TimerEvent&) {
     // numlock + 6
     case 1048630:
       {
+	cout << "Selecting best of 4 grasps..." << endl;
 	// select max target cumulative
 	pilot_call_stack.push_back(1114195);
 	// apply grasp filter for 4
@@ -1750,6 +1790,7 @@ void timercallback1(const ros::TimerEvent&) {
     // numlock + 7
     case 1048631:
       {
+	cout << "Assuming maxGG: " << maxGG << endl;
 	if (maxGG == 0)
 	  pilot_call_stack.push_back(1048625);
 	if (maxGG == 1)
@@ -1758,6 +1799,21 @@ void timercallback1(const ros::TimerEvent&) {
 	  pilot_call_stack.push_back(1048627);
 	if (maxGG == 3)
 	  pilot_call_stack.push_back(1048628);
+      }
+      break;
+    // change diagonal filter balance
+    // numlock + c
+    case 1048675:
+      {
+	diagonalKappa += deltaDiagonalKappa;
+	cout << "diagonalKappa: " << diagonalKappa << " deltaDiagonalKappa: " << deltaDiagonalKappa << endl;
+      }
+      break;
+    // numlock + v
+    case 1048694:
+      {
+	diagonalKappa -= deltaDiagonalKappa;
+	cout << "diagonalKappa: " << diagonalKappa << " deltaDiagonalKappa: " << deltaDiagonalKappa << endl;
       }
       break;
     // XXX
@@ -2239,14 +2295,26 @@ int main(int argc, char **argv) {
     ggY[g] = 0;
     ggT[g] = g*3.1415926/double(totalGraspGears);
   }
-  ggX[0] =  0.03;
+  // old orientation
+  //ggX[0] =  0.03;
+  //ggY[0] =  0.02;
+  //ggX[1] =  0.04;
+  //ggY[1] =  0.00;
+  //ggX[2] =  0.03;
+  //ggY[2] = -0.02;
+  //ggX[3] =  0.00;
+  //ggY[3] = -0.03; //-0.04
+
+  // new orientation
+  // verticle calibration
+  ggX[0] =  0.02;
   ggY[0] =  0.02;
-  ggX[1] =  0.04;
+  ggX[1] =  0.03;
   ggY[1] =  0.00;
-  ggX[2] =  0.03;
+  ggX[2] =  0.02;
   ggY[2] = -0.02;
   ggX[3] =  0.00;
-  ggY[3] = -0.03; //-0.04
+  ggY[3] = -0.03;//-0.03; //-0.04
 
   // XXX set this to be arm-generic
   // XXX add symbols to change register sets
