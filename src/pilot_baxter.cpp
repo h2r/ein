@@ -1109,7 +1109,8 @@ void timercallback1(const ros::TimerEvent&) {
     case 4+262192:
       eepReg4 = redTargetEEPose;
       break;
-    case 1048689: // numlock + q
+    case 1048689: 
+      // numlock + q
       // future program:
       // execute a grab
       // estimate proper grasp depth and stow in a register
@@ -1124,7 +1125,7 @@ void timercallback1(const ros::TimerEvent&) {
 
 	int scanPadding = 0;
 	double rmbGain = rmDelta / bDelta;
-	pilot_call_stack.push_back(1048689);
+	//pilot_call_stack.push_back(1048689);
 	for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
 	  pilot_call_stack.push_back(1048677);
 	  pilot_call_stack.push_back('q');
@@ -1823,6 +1824,239 @@ void timercallback1(const ros::TimerEvent&) {
     // numlock + 8
     case 1048632:
       {
+	//pilot_call_stack.push_back(1048632); // push this program
+	pilot_call_stack.push_back('2'); // assume pose at register 2
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('k'); // open gripper
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back('3'); // assume pose at register 3
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048680); // assume x,y of target 
+	pilot_call_stack.push_back(1048679); // render reticle
+	pilot_call_stack.push_back(1048691); // find max on register 1
+	pilot_call_stack.push_back(1048673); // render register 1
+	pilot_call_stack.push_back(1048690); // load map to register 1
+	pilot_call_stack.push_back(1048631); // assume best gear
+	pilot_call_stack.push_back(1048678); // target best grasp
+	pilot_call_stack.push_back(1048630); // find best grasp
+	pilot_call_stack.push_back(1048689); // load scan program
+	pilot_call_stack.push_back(1048683); // turn on scanning
+	pilot_call_stack.push_back(1048679); // render reticle
+	pilot_call_stack.push_back(1048625); // change to first gear
+	pilot_call_stack.push_back(1048673); // render register 1
+	pilot_call_stack.push_back(1048690); // load map to register 1
+	pilot_call_stack.push_back(1048678); // target best grasp
+	pilot_call_stack.push_back(1048630); // find best grasp
+	pilot_call_stack.push_back(1048689); // load scan program
+	pilot_call_stack.push_back(1048695); // clear scan history
+	pilot_call_stack.push_back(1048683); // turn on scanning
+	pilot_call_stack.push_back(1048625); // change to first gear
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back('x'); // retract
+	pilot_call_stack.push_back(1048677); // wait
+	pilot_call_stack.push_back('v'); // advance until closed
+	pilot_call_stack.push_back('2'); // assume pose at register 2
+	pilot_call_stack.push_back('k'); // open gripper
+	pilot_call_stack.push_back('i'); // initialize gripper
+      }
+      break;
+    // for current gear, find best grasp and move to x,y 
+    // numlock + 9
+    case 1048633:
+      {
+	pilot_call_stack.push_back(1048679); // render reticle
+	pilot_call_stack.push_back(1048678); // target best grasp
+	pilot_call_stack.push_back(1048691); // find max on register 1
+	pilot_call_stack.push_back(1048673); // render register 1
+
+	// apply grasp filter 
+	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048692);
+
+	if (currentGraspGear == 1)
+	  pilot_call_stack.push_back(1048681);
+	if (currentGraspGear == 2)
+	  pilot_call_stack.push_back(1048687);
+	if (currentGraspGear == 3)
+	  pilot_call_stack.push_back(1048693);
+	if (currentGraspGear == 4)
+	  pilot_call_stack.push_back(1048688);
+
+	// blur
+	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048692);
+	pilot_call_stack.push_back(1048697);
+	// load reg1
+	pilot_call_stack.push_back(1048690);
+      }
+      break;
+    // prepare for and execute a grab at the current location and target
+    // numlock + 0
+    case 1048624:
+      {
+	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048680); // assume x,y of target 
+	pilot_call_stack.push_back(1048679); // render reticle
+	pilot_call_stack.push_back(1048691); // find max on register 1
+	pilot_call_stack.push_back(1048673); // render register 1
+	pilot_call_stack.push_back(1048690); // load map to register 1
       }
       break;
     //////////
