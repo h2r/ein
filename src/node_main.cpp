@@ -1767,8 +1767,6 @@ cout << "Average time between frames: " << aveTime <<
 
 //cout << "here 1" << endl;
 
-  int lastTime = thisTime; 
-
   gBoxStrideX = gBoxW / 2.0;
   gBoxStrideY = gBoxH / 2.0;
 

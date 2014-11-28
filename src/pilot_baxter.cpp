@@ -14,6 +14,18 @@ typedef struct {
   double qz;
   double qw;
 } eePose;
+ 
+#include <ctime>
+
+double aveTime = 0.0;
+double aveFrequency = 0.0;
+double timeMass = 0.0;
+//double timeInterval = 15;
+double timeInterval = 30;
+time_t thisTime = 0;
+time_t firstTime = 0;
+
+int shouldIRender = 1;
 
 // TODO patch targetting
 // TODO redo cartesian autopilot to account for ee coordinate frame
@@ -80,7 +92,12 @@ double a_thresh_close = .11;
 double a_thresh_far = .2; // for depth scanning
 double eeRange = 0.0;
 
-double bDelta = .01;
+
+#define MOVE_FAST 0.01
+#define MOVE_MEDIUM 0.0025 //.005
+#define MOVE_SLOW 0.001
+
+double bDelta = MOVE_FAST;
 double approachStep = .0005;
 double hoverMultiplier = 0.5;
 
@@ -93,7 +110,6 @@ int auto_pilot = 0;
 tf::TransformListener* tfListener;
 double tfPast = 10.0;
 
-#include <ctime>
 #include <sstream>
 #include <iostream>
 #include <math.h>
@@ -103,6 +119,7 @@ std::string wristViewName = "Wrist View";
 std::string coreViewName = "Core View";
 std::string rangeogramViewName = "Rangeogram View";
 std::string rangemapViewName = "Range Map View";
+std::string hiRangemapViewName = "Hi Range Map View";
 
 
 int reticleHalfWidth = 30;
@@ -225,6 +242,7 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
 
 Mat rangeogramImage;
 Mat rangemapImage;
+Mat hiRangemapImage;
 const int totalRangeHistoryLength = 100;
 double rangeHistory[totalRangeHistoryLength];
 int currentRangeHistoryIndex = 0;
@@ -235,16 +253,29 @@ int rggHeight = 300*rggScale;
 int rggWidth = totalRangeHistoryLength*rggStride;
 
 const int rmWidth = 21; // must be odd
-//const int rmWidth = 41; // must be odd
 const int rmHalfWidth = (rmWidth-1)/2; // must be odd
 const double rmDelta = 0.01;
-//const double rmDelta = 0.005;
 double rangeMap[rmWidth*rmWidth];
 double rangeMapAccumulator[rmWidth*rmWidth];
 double rangeMapMass[rmWidth*rmWidth];
 
 double rangeMapReg1[rmWidth*rmWidth];
 double rangeMapReg2[rmWidth*rmWidth];
+
+const int hrmWidth = 201; // must be odd
+const int hrmHalfWidth = (hrmWidth-1)/2; // must be odd
+const double hrmDelta = 0.001;
+double hiRangeMap[hrmWidth*hrmWidth];
+double hiRangeMapAccumulator[hrmWidth*hrmWidth];
+double hiRangeMapMass[hrmWidth*hrmWidth];
+
+double hiRangeMapReg1[hrmWidth*hrmWidth];
+double hiRangeMapReg2[hrmWidth*hrmWidth];
+
+// hi separable filter width / half width
+const int hsfHw = 10;
+const int hsfW = 2*hsfHw+1;
+double hsFilter[hsfW];
 
 double filter[9] = {1.0/16.0, 1.0/8.0, 1.0/16.0, 
 		    1.0/8.0, 1.0/4.0, 1.0/8.0, 
@@ -256,7 +287,46 @@ double filter[9] = {1.0/16.0, 1.0/8.0, 1.0/16.0,
 double diagonalKappa = 0.60;
 double deltaDiagonalKappa = 0.01;
 
+const int parzenKernelHalfWidth = 15;
+const int parzenKernelWidth = 2*parzenKernelHalfWidth+1;
+double parzenKernel[parzenKernelWidth*parzenKernelWidth];
+double parzenKernelSigma = 2.0;
+
+int doParzen = 0;
+
+void initializeParzen() {
+  for (int kx = 0; kx < parzenKernelWidth; kx++) {
+    for (int ky = 0; ky < parzenKernelWidth; ky++) {
+      double pkx = kx - parzenKernelHalfWidth;
+      double pky = ky - parzenKernelHalfWidth;
+      parzenKernel[kx + ky*parzenKernelWidth] = exp(-(pkx*pkx + pky*pky)/(2.0*parzenKernelSigma*parzenKernelSigma));
+    }
+  }
+}
+
 double fEpsilon = 1e-6;
+
+void l2NormalizeParzen() {
+  double norm = 0;
+  for (int kx = 0; kx < parzenKernelWidth; kx++) {
+    for (int ky = 0; ky < parzenKernelWidth; ky++) {
+      double pkx = kx - parzenKernelHalfWidth;
+      double pky = ky - parzenKernelHalfWidth;
+      norm += parzenKernel[kx + ky*parzenKernelWidth];
+    }
+  }
+  if (fabs(norm) < fEpsilon)
+    norm = 1;
+  for (int kx = 0; kx < parzenKernelWidth; kx++) {
+    for (int ky = 0; ky < parzenKernelWidth; ky++) {
+      double pkx = kx - parzenKernelHalfWidth;
+      double pky = ky - parzenKernelHalfWidth;
+      parzenKernel[kx + ky*parzenKernelWidth] /= norm;
+      cout << "Parzen: " << parzenKernel[kx + ky*parzenKernelWidth] << endl;
+    }
+  }
+}
+
 void l2NormalizeFilter() {
   double norm = 0;
   for (int fx = 0; fx < 9; fx++) {
@@ -279,8 +349,12 @@ double thisiX = 0;
 double thisiY = 0;
 
 int rmiCellWidth = 20;
+//int rmiCellWidth = 10;
 int rmiHeight = rmiCellWidth*rmWidth;
 int rmiWidth = rmiCellWidth*rmWidth;
+
+int hrmiHeight = hrmWidth;
+int hrmiWidth = hrmWidth;
 
 // the currently equipped depth reticle
 double drX = .02; //.01;
@@ -309,6 +383,28 @@ int recordRangeMap = 1;
 
 
 void rangeCallback(const sensor_msgs::Range& range) {
+
+  time(&thisTime);
+  double deltaTime = difftime(thisTime, firstTime);
+  timeMass = timeMass + 1;
+
+  if (deltaTime > timeInterval) {
+    deltaTime = 0;
+    timeMass = 0;
+    time(&firstTime);
+  }
+
+  if (timeMass > 0.0)
+    aveTime = deltaTime / timeMass;
+
+  if (deltaTime > 0.0)
+    aveFrequency = timeMass / deltaTime;
+
+//cout << "Average time between frames: " << aveTime << 
+  //"   Average Frequency: " << aveFrequency << " Hz   Duration of sampling: " << 
+  //deltaTime << "   Frames since sampling: " << timeMass << endl; 
+
+
   eeRange = range.range;
   //cout << eeRange << endl;
   rangeHistory[currentRangeHistoryIndex] = eeRange;
@@ -385,10 +481,15 @@ void rangeCallback(const sensor_msgs::Range& range) {
     double iX = dX / rmDelta;
     double iY = dY / rmDelta;
 
+    double hiX = dX / hrmDelta;
+    double hiY = dY / hrmDelta;
+
     lastiX = thisiX;
     lastiY = thisiY;
     thisiX = iX;
     thisiY = iY;
+
+    
   //cout << rmcX << " " << trueEEPose.position.x << " " << dX << " " << iX << " " << rmHalfWidth << endl;
 
     // erase old cell
@@ -416,14 +517,36 @@ void rangeCallback(const sensor_msgs::Range& range) {
     }
 
     // draw new cell
+    if ((fabs(hiX) <= hrmHalfWidth) && (fabs(hiY) <= hrmHalfWidth)) {
+      int hiiX = (int)round(hiX + hrmHalfWidth);
+      int hiiY = (int)round(hiY + hrmHalfWidth);
+
+      int pxMin = max(0, hiiX-parzenKernelHalfWidth);
+      int pxMax = min(hrmWidth-1, hiiX+parzenKernelHalfWidth);
+      int pyMin = max(0, hiiY-parzenKernelHalfWidth);
+      int pyMax = min(hrmWidth-1, hiiY+parzenKernelHalfWidth);
+      for (int px = pxMin; px <= pxMax; px++) {
+	for (int py = pyMin; py <= pyMax; py++) {
+	  int kpx = px - (hiiX - parzenKernelHalfWidth);
+	  int kpy = py - (hiiY - parzenKernelHalfWidth);
+
+	  hiRangeMapAccumulator[px + py*hrmWidth] += eeRange*parzenKernel[kpx + kpy*parzenKernelWidth];
+	  hiRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
+	  double denom = max(hiRangeMapMass[px + py*hrmWidth], 1.0);
+	  hiRangeMap[px + py*hrmWidth] = hiRangeMapAccumulator[px + py*hrmWidth] / denom;
+	}
+      }
+    }
     if ((fabs(thisiX) <= rmHalfWidth) && (fabs(thisiY) <= rmHalfWidth)) {
       int iiX = (int)round(thisiX + rmHalfWidth);
       int iiY = (int)round(thisiY + rmHalfWidth);
-
-      rangeMapMass[iiX + iiY*rmWidth] += 1;
-      rangeMapAccumulator[iiX + iiY*rmWidth] += eeRange;
-      double denom = max(rangeMapMass[iiX + iiY*rmWidth], 1.0);
-      rangeMap[iiX + iiY*rmWidth] = rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
+      
+      {
+	rangeMapMass[iiX + iiY*rmWidth] += 1;
+	rangeMapAccumulator[iiX + iiY*rmWidth] += eeRange;
+	double denom = max(rangeMapMass[iiX + iiY*rmWidth], 1.0);
+	rangeMap[iiX + iiY*rmWidth] = rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
+      }
       
       double minDepth = 1e6;
       double maxDepth = 0;
@@ -465,8 +588,28 @@ void rangeCallback(const sensor_msgs::Range& range) {
     #endif
   }
 
+  if (shouldIRender) {
+    cv::imshow(rangemapViewName, rangemapImage);
+    //cv::imshow(hiRangemapViewName, hiRangemapImage);
+    Mat hRIT;
+    cv::resize(hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
+    cv::imshow(hiRangemapViewName, hRIT);
+  }
+  {
+    cv::Point text_anchor = cv::Point(0,rangeogramImage.rows-1);
+    {
+      cv::Scalar backColor(0,0,0);
+      cv::Point outTop = cv::Point(text_anchor.x,text_anchor.y+1-35);
+      cv::Point outBot = cv::Point(text_anchor.x+200,text_anchor.y+1);
+      Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+      vCrop = backColor;
+    }
+    char buff[256];
+    sprintf(buff, "FPS: %.2f", aveFrequency);
+    string fpslabel(buff);
+    putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
+  }
   cv::imshow(rangeogramViewName, rangeogramImage);
-  cv::imshow(rangemapViewName, rangemapImage);
 }
 
 
@@ -1123,6 +1266,7 @@ void timercallback1(const ros::TimerEvent&) {
 	currentEEPose.px = rmcX + drX;
 	currentEEPose.py = rmcY + drY;
 
+	/*
 	int scanPadding = 0;
 	double rmbGain = rmDelta / bDelta;
 	//pilot_call_stack.push_back(1048689);
@@ -1154,6 +1298,58 @@ void timercallback1(const ros::TimerEvent&) {
 	  pilot_call_stack.push_back(1048677);
 	  pilot_call_stack.push_back('a');
 	}
+	*/
+	int scanPadding = 0;
+	double rmbGain = rmDelta / bDelta;
+	//pilot_call_stack.push_back(1048689);
+	for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('q');
+	}
+	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('d');
+	}
+	for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('a');
+	  }
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('d');
+	  }
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('a');
+	  }
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('d');
+	  }
+	}
+	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('q');
+	}
+	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('a');
+	}
+	pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
       }
       break;
     case 1048695: // numlock + w
@@ -1170,11 +1366,29 @@ void timercallback1(const ros::TimerEvent&) {
 	    rangeMapAccumulator[rx + ry*rmWidth] = 0;
 	  }
 	}
-	cv::Scalar backColor(128,0,0);
-	cv::Point outTop = cv::Point(0,0);
-	cv::Point outBot = cv::Point(rmiWidth,rmiHeight);
-	Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-	vCrop = backColor;
+	{
+	  cv::Scalar backColor(128,0,0);
+	  cv::Point outTop = cv::Point(0,0);
+	  cv::Point outBot = cv::Point(rmiWidth,rmiHeight);
+	  Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	  vCrop = backColor;
+	}
+	for (int rx = 0; rx < hrmWidth; rx++) {
+	  for (int ry = 0; ry < hrmWidth; ry++) {
+	    hiRangeMap[rx + ry*hrmWidth] = 0;
+	    hiRangeMapReg1[rx + ry*hrmWidth] = 0;
+	    hiRangeMapReg2[rx + ry*hrmWidth] = 0;
+	    hiRangeMapMass[rx + ry*hrmWidth] = 0;
+	    hiRangeMapAccumulator[rx + ry*hrmWidth] = 0;
+	  }
+	}
+	{
+	  cv::Scalar backColor(128,0,0);
+	  cv::Point outTop = cv::Point(0,0);
+	  cv::Point outBot = cv::Point(hrmiWidth,hrmiHeight);
+	  Mat vCrop = hiRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	  vCrop = backColor;
+	}
       }
       break;
     case 1048677: // numlock + e
@@ -1378,6 +1592,63 @@ void timercallback1(const ros::TimerEvent&) {
 	    }
 	  }
 	}
+	{
+	  double minDepth = 1e6;
+	  double maxDepth = 0;
+	  for (int rx = 0; rx < hrmWidth; rx++) {
+	    for (int ry = 0; ry < hrmWidth; ry++) {
+	      minDepth = min(minDepth, hiRangeMap[rx + ry*hrmWidth]);
+	      maxDepth = max(maxDepth, hiRangeMap[rx + ry*hrmWidth]);
+	    }
+	  }
+	  for (int rx = 0; rx < hrmWidth; rx++) {
+	    for (int ry = 0; ry < hrmWidth; ry++) {
+	      double denom = max(1e-6,maxDepth-minDepth);
+	      if (denom <= 1e-6)
+		denom = 1e6;
+	      double intensity = 255 * (maxDepth - hiRangeMap[rx + ry*hrmWidth]) / denom;
+	      hiRangemapImage.at<cv::Vec3b>(rx,ry) = cv::Vec3b(0,0,ceil(intensity));
+	    }
+	  }
+	}
+	{
+	  double minDepth = 1e6;
+	  double maxDepth = 0;
+	  for (int rx = 0; rx < hrmWidth; rx++) {
+	    for (int ry = 0; ry < hrmWidth; ry++) {
+	      minDepth = min(minDepth, hiRangeMapReg1[rx + ry*hrmWidth]);
+	      maxDepth = max(maxDepth, hiRangeMapReg1[rx + ry*hrmWidth]);
+	    }
+	  }
+	  for (int rx = 0; rx < hrmWidth; rx++) {
+	    for (int ry = 0; ry < hrmWidth; ry++) {
+	      double denom = max(1e-6,maxDepth-minDepth);
+	      if (denom <= 1e-6)
+		denom = 1e6;
+	      double intensity = 255 * (maxDepth - hiRangeMapReg1[rx + ry*hrmWidth]) / denom;
+	      hiRangemapImage.at<cv::Vec3b>(rx,ry+hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
+	    }
+	  }
+	}
+	{
+	  double minDepth = 1e6;
+	  double maxDepth = 0;
+	  for (int rx = 0; rx < hrmWidth; rx++) {
+	    for (int ry = 0; ry < hrmWidth; ry++) {
+	      minDepth = min(minDepth, hiRangeMapReg2[rx + ry*hrmWidth]);
+	      maxDepth = max(maxDepth, hiRangeMapReg2[rx + ry*hrmWidth]);
+	    }
+	  }
+	  for (int rx = 0; rx < hrmWidth; rx++) {
+	    for (int ry = 0; ry < hrmWidth; ry++) {
+	      double denom = max(1e-6,maxDepth-minDepth);
+	      if (denom <= 1e-6)
+		denom = 1e6;
+	      double intensity = 255 * (maxDepth - hiRangeMapReg2[rx + ry*hrmWidth]) / denom;
+	      hiRangemapImage.at<cv::Vec3b>(rx,ry+2*hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
+	    }
+	  }
+	}
       }
       break;
       // stow the max coordinate and grasp angle of MapReg1
@@ -1395,6 +1666,7 @@ void timercallback1(const ros::TimerEvent&) {
 	int uiOffsetY = 0;
 
 	cv::moveWindow(rangemapViewName, uiOffsetX, uiOffsetY);
+	cv::moveWindow(hiRangemapViewName, uiOffsetX+coreWidth, uiOffsetY);
 	uiOffsetY += rmiHeight + menuHeight;
 	cv::moveWindow(coreViewName, uiOffsetX, uiOffsetY);
 	uiOffsetX += coreWidth;
@@ -1414,6 +1686,7 @@ void timercallback1(const ros::TimerEvent&) {
 	int uiOffsetY = 0;
 
 	cv::moveWindow(rangemapViewName, uiOffsetX, uiOffsetY);
+	cv::moveWindow(hiRangemapViewName, uiOffsetX+coreWidth, uiOffsetY);
 	uiOffsetY += rmiHeight + menuHeight;
 	cv::moveWindow(coreViewName, uiOffsetX, uiOffsetY);
 	uiOffsetX += coreWidth;
@@ -1510,6 +1783,12 @@ void timercallback1(const ros::TimerEvent&) {
 	  cv::Point outBot = cv::Point(((iiY+rmWidth)+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
 	  Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
 	  vCrop += backColor;
+
+	  cv::Point text_anchor = cv::Point(outTop.x+4, outBot.y-4);
+	  char buff[256];
+	  sprintf(buff, "%d", maxGG+1);
+	  string reticleLabel(buff);
+	  putText(rangemapImage, reticleLabel, text_anchor, MY_FONT, 0.5, Scalar(192,192,192), 1.0);
 	}
 	for (int gg = 0; gg < totalGraspGears; gg++){
 	  double gggX = (ggX[gg])/rmDelta;
@@ -2059,6 +2338,32 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048690); // load map to register 1
       }
       break;
+    // set movement speed
+    // numlock + b
+    case 1048674:
+      {
+	bDelta = MOVE_FAST;
+      }
+      break;
+    // numlock + n
+    case 1048686:
+      {
+	bDelta = MOVE_MEDIUM;
+      }
+      break;
+    // enable / disable rendering
+    // numlock + m
+    case 1048685:
+      {
+	shouldIRender = 1;
+      }
+      break;
+    // numlock + M
+    case 1114189:
+      {
+	shouldIRender = 0;
+      }
+      break;
     //////////
     case 1:
       {
@@ -2290,7 +2595,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(142,31,255)); // RGB: 255 31 142
   }
 
-  cv::imshow(wristViewName, cv_ptr->image);
+  if (shouldIRender) {
+    cv::imshow(wristViewName, cv_ptr->image);
+  }
 
   //Mat coreImage = cv_ptr->image.clone();
   Mat coreImage(2*cv_ptr->image.rows, cv_ptr->image.cols, cv_ptr->image.type());
@@ -2367,7 +2674,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     rowAnchor.y += rowAnchorStep;
   }
 
-  cv::imshow(coreViewName, coreImage);
+  if (shouldIRender) {
+    cv::imshow(coreViewName, coreImage);
+  }
 }
 
 void targetCallback(const geometry_msgs::Point& point) {
@@ -2415,6 +2724,8 @@ int main(int argc, char **argv) {
 
   // initialize non-ROS
   srand(time(NULL));
+  time(&firstTime);
+
   eeForward = Eigen::Vector3d(1,0,0);
 
   cout << "argc: " << argc << endl;
@@ -2476,6 +2787,7 @@ int main(int argc, char **argv) {
   coreViewName = "Core View " + left_or_right_arm;
   rangeogramViewName = "Rangeogram View " + left_or_right_arm;
   rangemapViewName = "Range Map View " + left_or_right_arm;
+  hiRangemapViewName = "Hi Range Map View " + left_or_right_arm;
 
 
   cv::namedWindow(wristViewName);
@@ -2517,9 +2829,20 @@ int main(int argc, char **argv) {
       rangeMapAccumulator[rx + ry*rmWidth] = 0;
     }
   }
+  rangemapImage = Mat(rmiHeight, 3*rmiWidth, CV_8UC3);
+
+  for (int rx = 0; rx < hrmWidth; rx++) {
+    for (int ry = 0; ry < hrmWidth; ry++) {
+      hiRangeMap[rx + ry*hrmWidth] = 0;
+      hiRangeMapReg1[rx + ry*hrmWidth] = 0;
+      hiRangeMapReg2[rx + ry*hrmWidth] = 0;
+      hiRangeMapMass[rx + ry*hrmWidth] = 0;
+      hiRangeMapAccumulator[rx + ry*hrmWidth] = 0;
+    }
+  }
+  hiRangemapImage = Mat(hrmiHeight, 3*hrmiWidth, CV_8UC3);
 
   rangeogramImage = Mat(rggHeight, rggWidth, CV_8UC3);
-  rangemapImage = Mat(rmiHeight, 3*rmiWidth, CV_8UC3);
 
   rmcX = 0;
   rmcY = 0;
@@ -2553,6 +2876,9 @@ int main(int argc, char **argv) {
   // XXX set this to be arm-generic
   // XXX add symbols to change register sets
   eepReg3 = crane4right;
+
+  initializeParzen();
+  //l2NormalizeParzen();
 
   ros::spin();
   
