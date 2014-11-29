@@ -163,7 +163,15 @@ eePose crane1right = {.px = 0.0448714, .py = -1.04476, .pz = 0.698522,
 		     .qx = 0.631511, .qy = 0.68929, .qz = -0.25435, .qw = 0.247748};
 eePose crane2right = {.px = 0.617214, .py = -0.301658, .pz = 0.0533165,
 		     .ox = 0, .oy = 0, .oz = 0,
-		     .qx = -0.0139279, .qy = 0.999439, .qz = -0.00107611, .qw = 0.0304367};
+		     //.qx = -0.0174863, .qy = 0.998142, .qz = 0.0583579, .qw = -0.000393204}; // 12A6S corrected *
+		     //.qx = -0.0148346, .qy = 0.999022, .qz = 0.0289031, .qw = 0.0300052}; // 9A6S corrected
+		     //.qx = -0.0165925, .qy = 0.99892, .qz = 0.0434064, .qw = -0.000183836}; // 6A corrected
+		     //.qx = -0.01459, .qy = 0.999684, .qz = 0.0136977, .qw = 0.0152314}; // 3A3S corrected
+		     .qx = -0.0139279, .qy = 0.999439, .qz = -0.00107611, .qw = 0.0304367}; // original
+		     //.qx = -0.0130087, .qy = 0.998957, .qz = -0.0310543, .qw = 0.0308408}; // 6D corrected 
+		     //.qx = -0.0120778, .qy = 0.997576, .qz = -0.0610046, .qw = 0.0312171}; // 12D corrected 
+
+
 eePose crane3right = {.px = 0.668384, .py = 0.166692, .pz = -0.120018,
 		     .ox = 0, .oy = 0, .oz = 0,
 		     .qx = 0.0328281, .qy = 0.999139, .qz = 0.00170545, .qw = 0.0253245};
@@ -364,6 +372,9 @@ double drY = .02;
 double trX = 0;
 double trY = 0;
 
+double htrX = 0;
+double htrY = 0;
+
 int maxX = 0;
 int maxY = 0;
 double maxD = 0;
@@ -520,6 +531,8 @@ void rangeCallback(const sensor_msgs::Range& range) {
     if ((fabs(hiX) <= hrmHalfWidth) && (fabs(hiY) <= hrmHalfWidth)) {
       int hiiX = (int)round(hiX + hrmHalfWidth);
       int hiiY = (int)round(hiY + hrmHalfWidth);
+
+      hiRangemapImage.at<cv::Vec3b>(hiiX,hiiY) += cv::Vec3b(0,128,0);
 
       int pxMin = max(0, hiiX-parzenKernelHalfWidth);
       int pxMax = min(hrmWidth-1, hiiX+parzenKernelHalfWidth);
@@ -1311,6 +1324,7 @@ void timercallback1(const ros::TimerEvent&) {
 	  pilot_call_stack.push_back('d');
 	}
 	for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
+	  pilot_call_stack.push_back(1114183); // full render
 	  pilot_call_stack.push_back(1048677);
 	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
 	  pilot_call_stack.push_back('e');
@@ -1405,6 +1419,11 @@ void timercallback1(const ros::TimerEvent&) {
 	for (int rx = 0; rx < rmWidth; rx++) {
 	  for (int ry = 0; ry < rmWidth; ry++) {
 	    rangeMapReg1[rx + ry*rmWidth] = rangeMap[rx + ry*rmWidth];
+	  }
+	}
+	for (int rx = 0; rx < hrmWidth; rx++) {
+	  for (int ry = 0; ry < hrmWidth; ry++) {
+	    hiRangeMapReg1[rx + ry*hrmWidth] = hiRangeMap[rx + ry*hrmWidth];
 	  }
 	}
       }
@@ -1651,6 +1670,28 @@ void timercallback1(const ros::TimerEvent&) {
 	}
       }
       break;
+    // manual render
+    // numlock + A 
+    case 1114177:
+      {
+	pilot_call_stack.push_back(1114189); // rendering off 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048677); // wait 
+	pilot_call_stack.push_back(1048685); // rendering on
+      }
+      break;
+    // full render
+    // numlock + G 
+    case 1114183:
+      {
+	if (!shouldIRender) {
+	  pilot_call_stack.push_back(1114177); // manual render
+	}
+	pilot_call_stack.push_back(1048679); // render reticle
+	pilot_call_stack.push_back(1048673); // render register 1
+	pilot_call_stack.push_back(1048690); // load map to register 1
+      }
+      break;
       // stow the max coordinate and grasp angle of MapReg1
       // calculate z coordinate to grab at and assume the max grasp angle orientation
       // move to z coordinate and grab
@@ -1717,7 +1758,7 @@ void timercallback1(const ros::TimerEvent&) {
       }
       break;
     // cumulative min
-    // numlock + shift + S
+    // numlock + S
     case 1114195:
       {
 	int maxSearchPadding = 3;
@@ -1752,6 +1793,50 @@ void timercallback1(const ros::TimerEvent&) {
 	trX = rmcX + rmDelta*(maxX-rmHalfWidth);
 	trY = rmcY + rmDelta*(maxY-rmHalfWidth);
 	cout << "trX: " << trX << " trY: " << trY << endl;
+      }
+      break;
+    // set hi target reticle by searching
+    // numlock + F
+    case 1114182:
+      {
+	double weights[7] = 
+	    {-1.0/7.0, -1.0/7.0, 
+	      1.0/7.0,  1.0/7.0, 1.0/7.0, 
+	     -1.0/7.0, -1.0/7.0}
+
+	int rootBuffer = 40;
+	
+	int searchWidth = 20;
+
+	double httrX = (trX-rmcX)/hrmDelta;
+	double httrY = (trY-rmcY)/hrmDelta;
+	int hiiX = (int)round(httrX + hrmHalfWidth);
+	int hiiY = (int)round(httrY + hrmHalfWidth);
+	if ((fabs(httrX) <= hrmHalfWidth-hiCellWidth) && (fabs(httrY) <= hrmHalfWidth-hiCellWidth)) {
+
+	int rootX = min(hrmWidth - rootBuffer, hiiX);
+	rootX = max(rootBuffer, rootX);
+	int rootY = min(hrmWidth - rootBuffer, hiiY);
+	rootY = max(rootBuffer, rootY);
+
+	double maxScore = -1e6;
+	int hMaxX = 0;
+	int hMaxY = 0;
+
+	for (int rx = rootX - searchWidth; rx <= rootX + searchWidth; rx++) {
+	  for (int ry = rootY - searchWidth; ry <= rootY + searchWidth; ry++) {
+
+	    // double thisScore = TODO XXX;
+
+	    if (thisScore > maxScore) {
+	      hMaxX = rx;
+	      hMaxY = ry;
+	    }
+	  }
+	}
+
+	//htrX = TODO XXX;
+	//htrY = TODO XXX;
       }
       break;
     // paint reticles
@@ -1810,6 +1895,29 @@ void timercallback1(const ros::TimerEvent&) {
 	    string reticleLabel(buff);
 	    putText(rangemapImage, reticleLabel, text_anchor, MY_FONT, 0.5, Scalar(192,192,192), 1.0);
 	  }
+	}
+//circle(Mat& img, Point center, int radius, const Scalar& color, int thickness=1, int lineType=8, int shift=0)
+//line(Mat& img, Point pt1, Point pt2, const Scalar& color, int thickness=1, int lineType=8, int shift=0)
+	double httrX = (trX-rmcX)/hrmDelta;
+	double httrY = (trY-rmcY)/hrmDelta;
+	int hiCellWidth = 5;
+	if ((fabs(httrX) <= hrmHalfWidth-hiCellWidth) && (fabs(httrY) <= hrmHalfWidth-hiCellWidth)) {
+	  int hiiX = (int)round(httrX + hrmHalfWidth);
+	  int hiiY = (int)round(httrY + hrmHalfWidth);
+
+	  double intensity = 128;
+	  cv::Scalar backColor(0,ceil(intensity),0);
+	  cv::Point l1p1 = cv::Point(hiiY+hrmWidth-hiCellWidth,hiiX);
+	  cv::Point l1p2 = cv::Point((hiiY+hrmWidth)+hiCellWidth,hiiX);
+	  cv::Point l2p1 = cv::Point(hiiY+hrmWidth,hiiX-hiCellWidth);
+	  cv::Point l2p2 = cv::Point((hiiY+hrmWidth),hiiX+hiCellWidth);
+	  line(hiRangemapImage, l1p1, l1p2, backColor);
+	  line(hiRangemapImage, l2p1, l2p2, backColor);
+	}
+	{
+	  double intensity = 128;
+	  cv::Scalar backColor(0,ceil(intensity),0);
+	  circle(hiRangemapImage, cv::Point(hrmHalfWidth+hrmWidth, hrmHalfWidth), hiCellWidth, backColor);
 	}
       }
       break;
@@ -2238,6 +2346,7 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048630); // find best grasp
 	pilot_call_stack.push_back(1048689); // load scan program
 	pilot_call_stack.push_back(1048683); // turn on scanning
+	pilot_call_stack.push_back(1114183); // full render
 	pilot_call_stack.push_back(1048679); // render reticle
 	pilot_call_stack.push_back(1048625); // change to first gear
 	pilot_call_stack.push_back(1048673); // render register 1
