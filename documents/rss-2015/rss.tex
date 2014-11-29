@@ -600,6 +600,17 @@ expert. This represents the best that the system could be expected to perform.
 \section{Related Work}
 
 
+Summary: 
+\begin{itemize}
+\item People doing SLAM.  \citet{wang07, gallagher09}, 
+\item People doing 3d reconstruction.   \citet{krainin11, banta00}
+\item People doing big databases for category recognition.  \citet{kent14a, kent14, lai11a, goldfeder09}
+\item Object tracking in vision (typically surveillance).
+\item POMDPs for grasping.  \citet{platt11, hsiao10}
+\item People doing systems.  \citet{hudson12, ciocarlie14}
+\end{itemize}
+
+
 Crowd-sourced and web robotics have created large databases of objects
 and grasps using human supervision on the web~\citep{kent14a, kent14}.
 These approaches outperform automatically inferred grasps but still
@@ -677,7 +688,10 @@ data.  This system does not learn grasping models and does not
 actively acquire more data to recognize, localize, and grasp the
 object with high reliabilitiy.  It could be used as a first-pass to
 our system, after which the robot uses an active method to acquire
-additional data enablign it to grasp the object.
+additional data enablign it to grasp the object.  Approaches that
+integrate SLAM and moving object tracking estimate pose of objects
+over time but have not been extended to manipulation~\citep{wang07,
+  gallagher09}.
 
 Our approach is similar to the philosphy adopted by Rethink Robotic's
 Baxter robot, and indeed, we use Baxter as our test
@@ -697,6 +711,19 @@ pre-trained object locations or using VICON to solve the perceptual
 system.  We envision vision or RGB-D based sensors mounted on the
 robot, so that a person can train a robot to recognize and manipulate
 objects wherever the robot finds itself.
+
+Approaches to plan grasps under pose uncertainty~\citep{stulp11} or
+collect information from tacticle sensors~\citep{hsiao10} using
+POMDPs.  \citet{plat11} describe new algorithms for solving POMDPs by
+tracking belief state with a high-fidelity particle filter, but using
+a lower-fidelity representation of belief for planning, and tracking
+the KL divergence.
+
+\citet{hudson12} used active perception to create a grasping system
+capable of carrying out a variety of complex tasks.  Using feedback is
+critical for good performance, but the model cannot adapt itself to
+new objects.
+
 
 
 \section{Conclusion}
