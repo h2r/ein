@@ -1,4 +1,6 @@
 //#define DEBUG
+#define EPSILON 1.0e-9
+#define INFINITY 1e6
 
 typedef struct {
   double px;
@@ -94,8 +96,8 @@ double eeRange = 0.0;
 
 
 #define MOVE_FAST 0.01
-#define MOVE_MEDIUM 0.0025 //.005
-#define MOVE_SLOW 0.001
+#define MOVE_MEDIUM 0.005 //.005
+#define MOVE_SLOW 0.0025
 
 double bDelta = MOVE_FAST;
 double approachStep = .0005;
@@ -302,6 +304,12 @@ double parzenKernelSigma = 2.0;
 
 int doParzen = 0;
 
+
+void pushNoOps(int n) {
+  for (int i = 0; i < n; i++)
+    pilot_call_stack.push_back('C'); 
+}
+
 void initializeParzen() {
   for (int kx = 0; kx < parzenKernelWidth; kx++) {
     for (int ky = 0; ky < parzenKernelWidth; ky++) {
@@ -312,7 +320,7 @@ void initializeParzen() {
   }
 }
 
-double fEpsilon = 1e-6;
+double fEpsilon = EPSILON;
 
 void l2NormalizeParzen() {
   double norm = 0;
@@ -383,7 +391,7 @@ int maxGG = 0;
 double graspDepth = -.02;
 
 // grasp gear 
-const int totalGraspGears = 4;
+const int totalGraspGears = 8;
 int currentGraspGear = -1;
 //// reticles
 double ggX[totalGraspGears];
@@ -508,7 +516,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
       int iiX = (int)round(lastiX + rmHalfWidth);
       int iiY = (int)round(lastiY + rmHalfWidth);
 
-      double minDepth = 1e6;
+      double minDepth = INFINITY;
       double maxDepth = 0;
       for (int rx = 0; rx < rmWidth; rx++) {
 	for (int ry = 0; ry < rmWidth; ry++) {
@@ -516,9 +524,9 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  maxDepth = max(maxDepth, rangeMap[rx + ry*rmWidth]);
 	}
       }
-      double denom2 = max(1e-6,maxDepth-minDepth);
-      if (denom2 <= 1e-6)
-	denom2 = 1e6;
+      double denom2 = max(EPSILON,maxDepth-minDepth);
+      if (denom2 <= EPSILON)
+	denom2 = INFINITY;
       double intensity = 255 * (maxDepth - rangeMap[iiX + iiY*rmWidth]) / denom2;
       cv::Scalar backColor(0,0,ceil(intensity));
       cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
@@ -545,7 +553,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 
 	  hiRangeMapAccumulator[px + py*hrmWidth] += eeRange*parzenKernel[kpx + kpy*parzenKernelWidth];
 	  hiRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
-	  double denom = max(hiRangeMapMass[px + py*hrmWidth], 1.0);
+	  double denom = max(hiRangeMapMass[px + py*hrmWidth], EPSILON);
 	  hiRangeMap[px + py*hrmWidth] = hiRangeMapAccumulator[px + py*hrmWidth] / denom;
 	}
       }
@@ -557,11 +565,11 @@ void rangeCallback(const sensor_msgs::Range& range) {
       {
 	rangeMapMass[iiX + iiY*rmWidth] += 1;
 	rangeMapAccumulator[iiX + iiY*rmWidth] += eeRange;
-	double denom = max(rangeMapMass[iiX + iiY*rmWidth], 1.0);
+	double denom = max(rangeMapMass[iiX + iiY*rmWidth], EPSILON);
 	rangeMap[iiX + iiY*rmWidth] = rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
       }
       
-      double minDepth = 1e6;
+      double minDepth = INFINITY;
       double maxDepth = 0;
       for (int rx = 0; rx < rmWidth; rx++) {
 	for (int ry = 0; ry < rmWidth; ry++) {
@@ -569,9 +577,9 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  maxDepth = max(maxDepth, rangeMap[rx + ry*rmWidth]);
 	}
       }
-      double denom2 = max(1e-6,maxDepth-minDepth);
-      if (denom2 <= 1e-6)
-	denom2 = 1e6;
+      double denom2 = max(EPSILON,maxDepth-minDepth);
+      if (denom2 <= EPSILON)
+	denom2 = INFINITY;
       double intensity = 255 * (maxDepth - rangeMap[iiX + iiY*rmWidth]) / denom2;
       cv::Scalar backColor(0,0,ceil(intensity));
       cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
@@ -857,7 +865,7 @@ void setGGRotation(int thisGraspGear) {
     localUnitZ.z() = qout.z();
   }
 
-  double deltaTheta = thisGraspGear*3.1415926/double(totalGraspGears);
+  double deltaTheta = double(thisGraspGear)*2.0*3.1415926/double(totalGraspGears);
   double sinBuff = 0.0;
   double angleRate = 1.0;
   Eigen::Quaternionf eeBaseQuat(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
@@ -1312,6 +1320,7 @@ void timercallback1(const ros::TimerEvent&) {
 	  pilot_call_stack.push_back('a');
 	}
 	*/
+	/*
 	int scanPadding = 0;
 	double rmbGain = rmDelta / bDelta;
 	//pilot_call_stack.push_back(1048689);
@@ -1364,6 +1373,140 @@ void timercallback1(const ros::TimerEvent&) {
 	  pilot_call_stack.push_back('a');
 	}
 	pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	*/
+
+	int scanPadding = 0;
+	double rmbGain = rmDelta / bDelta;
+	//pilot_call_stack.push_back(1048689);
+	for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('q');
+	}
+	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('d');
+	}
+	for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
+	  pilot_call_stack.push_back(1114183); // full render
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('a');
+	  }
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('d');
+	  }
+
+	  /*
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('a');
+	  }
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('d');
+	  }
+	  */
+	}
+	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('q');
+	}
+	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('a');
+	}
+	pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	pilot_call_stack.push_back(1048621); // change offset of position based on current gear 
+
+
+	/*
+	int scanPadding = 0;
+	double rmbGain = rmDelta / bDelta;
+	//pilot_call_stack.push_back(1048689);
+	for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('q');
+	}
+	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('d');
+	}
+	for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
+	  pilot_call_stack.push_back(1114183); // full render
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+	  pilot_call_stack.push_back(1114155); // rotate gear
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('a');
+	  }
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('d');
+	  }
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+	  pilot_call_stack.push_back(1114155); // rotate gear
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('a');
+	  }
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('d');
+	  }
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+	  pilot_call_stack.push_back(1114155); // rotate gear
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('a');
+	  }
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('d');
+	  }
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+	  pilot_call_stack.push_back(1114155); // rotate gear
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('a');
+	  }
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('d');
+	  }
+	}
+	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('q');
+	}
+	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('a');
+	}
+	pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	*/
       }
       break;
     case 1048695: // numlock + w
@@ -1459,7 +1602,7 @@ void timercallback1(const ros::TimerEvent&) {
 
 	// XXX TODO Consider: 
 	// Push boundary to deepest point...
-	double minDepth = 1e6;
+	double minDepth = INFINITY;
 	double maxDepth = 0;
 	for (int rx = 0; rx < rmWidth; rx++) {
 	  for (int ry = 0; ry < rmWidth; ry++) {
@@ -1565,7 +1708,7 @@ void timercallback1(const ros::TimerEvent&) {
     case 1048673:
       {
 	{
-	  double minDepth = 1e6;
+	  double minDepth = INFINITY;
 	  double maxDepth = 0;
 	  for (int rx = 0; rx < rmWidth; rx++) {
 	    for (int ry = 0; ry < rmWidth; ry++) {
@@ -1575,9 +1718,9 @@ void timercallback1(const ros::TimerEvent&) {
 	  }
 	  for (int rx = 0; rx < rmWidth; rx++) {
 	    for (int ry = 0; ry < rmWidth; ry++) {
-	      double denom = max(1e-6,maxDepth-minDepth);
-	      if (denom <= 1e-6)
-		denom = 1e6;
+	      double denom = max(EPSILON,maxDepth-minDepth);
+	      if (denom <= EPSILON)
+		denom = INFINITY;
 	      double intensity = 255 * (maxDepth - rangeMapReg1[rx + ry*rmWidth]) / denom;
 //cout << denom << " " << maxDepth << " " << rangeMapReg1[rx + ry*rmWidth] << " " << (maxDepth - rangeMapReg1[rx + ry*rmWidth]) << " " << endl;
 	      cv::Scalar backColor(0,0,ceil(intensity));
@@ -1589,7 +1732,7 @@ void timercallback1(const ros::TimerEvent&) {
 	  }
 	}
 	{
-	  double minDepth = 1e6;
+	  double minDepth = INFINITY;
 	  double maxDepth = 0;
 	  for (int rx = 0; rx < rmWidth; rx++) {
 	    for (int ry = 0; ry < rmWidth; ry++) {
@@ -1599,9 +1742,9 @@ void timercallback1(const ros::TimerEvent&) {
 	  }
 	  for (int rx = 0; rx < rmWidth; rx++) {
 	    for (int ry = 0; ry < rmWidth; ry++) {
-	      double denom = max(1e-6,maxDepth-minDepth);
-	      if (denom <= 1e-6)
-		denom = 1e6;
+	      double denom = max(EPSILON,maxDepth-minDepth);
+	      if (denom <= EPSILON)
+		denom = INFINITY;
 	      double intensity = 255 * (maxDepth - rangeMapReg2[rx + ry*rmWidth]) / denom;
 	      cv::Scalar backColor(0,0,ceil(intensity));
 	      cv::Point outTop = cv::Point((ry+2*rmWidth)*rmiCellWidth,rx*rmiCellWidth);
@@ -1612,7 +1755,7 @@ void timercallback1(const ros::TimerEvent&) {
 	  }
 	}
 	{
-	  double minDepth = 1e6;
+	  double minDepth = INFINITY;
 	  double maxDepth = 0;
 	  for (int rx = 0; rx < hrmWidth; rx++) {
 	    for (int ry = 0; ry < hrmWidth; ry++) {
@@ -1622,16 +1765,16 @@ void timercallback1(const ros::TimerEvent&) {
 	  }
 	  for (int rx = 0; rx < hrmWidth; rx++) {
 	    for (int ry = 0; ry < hrmWidth; ry++) {
-	      double denom = max(1e-6,maxDepth-minDepth);
-	      if (denom <= 1e-6)
-		denom = 1e6;
+	      double denom = max(EPSILON,maxDepth-minDepth);
+	      if (denom <= EPSILON)
+		denom = INFINITY;
 	      double intensity = 255 * (maxDepth - hiRangeMap[rx + ry*hrmWidth]) / denom;
 	      hiRangemapImage.at<cv::Vec3b>(rx,ry) = cv::Vec3b(0,0,ceil(intensity));
 	    }
 	  }
 	}
 	{
-	  double minDepth = 1e6;
+	  double minDepth = INFINITY;
 	  double maxDepth = 0;
 	  for (int rx = 0; rx < hrmWidth; rx++) {
 	    for (int ry = 0; ry < hrmWidth; ry++) {
@@ -1641,16 +1784,16 @@ void timercallback1(const ros::TimerEvent&) {
 	  }
 	  for (int rx = 0; rx < hrmWidth; rx++) {
 	    for (int ry = 0; ry < hrmWidth; ry++) {
-	      double denom = max(1e-6,maxDepth-minDepth);
-	      if (denom <= 1e-6)
-		denom = 1e6;
+	      double denom = max(EPSILON,maxDepth-minDepth);
+	      if (denom <= EPSILON)
+		denom = INFINITY;
 	      double intensity = 255 * (maxDepth - hiRangeMapReg1[rx + ry*hrmWidth]) / denom;
 	      hiRangemapImage.at<cv::Vec3b>(rx,ry+hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
 	    }
 	  }
 	}
 	{
-	  double minDepth = 1e6;
+	  double minDepth = INFINITY;
 	  double maxDepth = 0;
 	  for (int rx = 0; rx < hrmWidth; rx++) {
 	    for (int ry = 0; ry < hrmWidth; ry++) {
@@ -1660,9 +1803,9 @@ void timercallback1(const ros::TimerEvent&) {
 	  }
 	  for (int rx = 0; rx < hrmWidth; rx++) {
 	    for (int ry = 0; ry < hrmWidth; ry++) {
-	      double denom = max(1e-6,maxDepth-minDepth);
-	      if (denom <= 1e-6)
-		denom = 1e6;
+	      double denom = max(EPSILON,maxDepth-minDepth);
+	      if (denom <= EPSILON)
+		denom = INFINITY;
 	      double intensity = 255 * (maxDepth - hiRangeMapReg2[rx + ry*hrmWidth]) / denom;
 	      hiRangemapImage.at<cv::Vec3b>(rx,ry+2*hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
 	    }
@@ -1742,7 +1885,7 @@ void timercallback1(const ros::TimerEvent&) {
     case 1048691:
       {
 	int maxSearchPadding = 3;
-	double minDepth = 1e6;
+	double minDepth = INFINITY;
 	for (int rx = maxSearchPadding; rx < rmWidth-maxSearchPadding; rx++) {
 	  for (int ry = maxSearchPadding; ry < rmWidth-maxSearchPadding; ry++) {
 	    if (rangeMapReg1[rx + ry*rmWidth] < minDepth) {
@@ -1802,7 +1945,7 @@ void timercallback1(const ros::TimerEvent&) {
 	double weights[7] = 
 	    {-1.0/7.0, -1.0/7.0, 
 	      1.0/7.0,  1.0/7.0, 1.0/7.0, 
-	     -1.0/7.0, -1.0/7.0}
+	     -1.0/7.0, -1.0/7.0};
 
 	int rootBuffer = 40;
 	
@@ -1812,31 +1955,34 @@ void timercallback1(const ros::TimerEvent&) {
 	double httrY = (trY-rmcY)/hrmDelta;
 	int hiiX = (int)round(httrX + hrmHalfWidth);
 	int hiiY = (int)round(httrY + hrmHalfWidth);
+	int hiCellWidth = 5;
 	if ((fabs(httrX) <= hrmHalfWidth-hiCellWidth) && (fabs(httrY) <= hrmHalfWidth-hiCellWidth)) {
 
-	int rootX = min(hrmWidth - rootBuffer, hiiX);
-	rootX = max(rootBuffer, rootX);
-	int rootY = min(hrmWidth - rootBuffer, hiiY);
-	rootY = max(rootBuffer, rootY);
+	  int rootX = min(hrmWidth - rootBuffer, hiiX);
+	  rootX = max(rootBuffer, rootX);
+	  int rootY = min(hrmWidth - rootBuffer, hiiY);
+	  rootY = max(rootBuffer, rootY);
 
-	double maxScore = -1e6;
-	int hMaxX = 0;
-	int hMaxY = 0;
+	  double maxScore = -INFINITY;
+	  int hMaxX = 0;
+	  int hMaxY = 0;
 
-	for (int rx = rootX - searchWidth; rx <= rootX + searchWidth; rx++) {
-	  for (int ry = rootY - searchWidth; ry <= rootY + searchWidth; ry++) {
+	  for (int rx = rootX - searchWidth; rx <= rootX + searchWidth; rx++) {
+	    for (int ry = rootY - searchWidth; ry <= rootY + searchWidth; ry++) {
 
-	    // double thisScore = TODO XXX;
+	      // double thisScore = TODO XXX;
+	      double thisScore = 0.0;
 
-	    if (thisScore > maxScore) {
-	      hMaxX = rx;
-	      hMaxY = ry;
+	      if (thisScore > maxScore) {
+		hMaxX = rx;
+		hMaxY = ry;
+	      }
 	    }
 	  }
-	}
 
-	//htrX = TODO XXX;
-	//htrY = TODO XXX;
+	  //htrX = TODO XXX;
+	  //htrY = TODO XXX;
+	}
       }
       break;
     // paint reticles
@@ -2213,26 +2359,7 @@ void timercallback1(const ros::TimerEvent&) {
       {
 	//pilot_call_stack.push_back(1048632); // push this program
 	pilot_call_stack.push_back('2'); // assume pose at register 2
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
+	pushNoOps(200);
 	pilot_call_stack.push_back('d'); // move away
 	pilot_call_stack.push_back('d'); // move away
 	pilot_call_stack.push_back('d'); // move away
@@ -2254,47 +2381,9 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back('d'); // move away
 	pilot_call_stack.push_back('d'); // move away
 	pilot_call_stack.push_back('k'); // open gripper
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
+	pushNoOps(200);
 	pilot_call_stack.push_back('3'); // assume pose at register 3
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
+	pushNoOps(200);
 	pilot_call_stack.push_back('w'); // raise arm
 	pilot_call_stack.push_back('w'); // raise arm
 	pilot_call_stack.push_back('w'); // raise arm
@@ -2316,26 +2405,7 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back('w'); // raise arm
 	pilot_call_stack.push_back('w'); // raise arm
 	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
+	pushNoOps(200);
 	pilot_call_stack.push_back(1048680); // assume x,y of target 
 	pilot_call_stack.push_back(1048679); // render reticle
 	pilot_call_stack.push_back(1048691); // find max on register 1
@@ -2346,6 +2416,7 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048630); // find best grasp
 	pilot_call_stack.push_back(1048689); // load scan program
 	pilot_call_stack.push_back(1048683); // turn on scanning
+	pilot_call_stack.push_back(1114155); // rotate gear
 	pilot_call_stack.push_back(1114183); // full render
 	pilot_call_stack.push_back(1048679); // render reticle
 	pilot_call_stack.push_back(1048625); // change to first gear
@@ -2357,26 +2428,7 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048695); // clear scan history
 	pilot_call_stack.push_back(1048683); // turn on scanning
 	pilot_call_stack.push_back(1048625); // change to first gear
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
+	pushNoOps(200);
 	pilot_call_stack.push_back('x'); // retract
 	pilot_call_stack.push_back(1048677); // wait
 	pilot_call_stack.push_back('v'); // advance until closed
@@ -2420,26 +2472,7 @@ void timercallback1(const ros::TimerEvent&) {
     case 1048624:
       {
 	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
-	pilot_call_stack.push_back(1048677); // wait 
+	pushNoOps(200);
 	pilot_call_stack.push_back(1048680); // assume x,y of target 
 	pilot_call_stack.push_back(1048679); // render reticle
 	pilot_call_stack.push_back(1048691); // find max on register 1
@@ -2471,6 +2504,32 @@ void timercallback1(const ros::TimerEvent&) {
     case 1114189:
       {
 	shouldIRender = 0;
+      }
+      break;
+    // shift up / down
+    // numlock + +
+    case 1114155:
+      {
+	pushNoOps(480);
+	int thisGraspGear = (currentGraspGear+4) % totalGraspGears;
+
+	//   set drX
+	drX = ggX[thisGraspGear];
+	drY = ggY[thisGraspGear];
+
+	//   rotate
+	setGGRotation(thisGraspGear);
+
+	//   set currentGraspGear;
+	currentGraspGear = thisGraspGear;
+      }
+      break;
+    // set offset based on selected gear
+    // numlock + -
+    case 1048621:
+      {
+	if (currentGraspGear >= 4)
+	  currentEEPose.py += 0.025;
       }
       break;
     //////////
@@ -2959,7 +3018,7 @@ int main(int argc, char **argv) {
   for (int g = 0; g < totalGraspGears; g++) {
     ggX[g] = 0;
     ggY[g] = 0;
-    ggT[g] = g*3.1415926/double(totalGraspGears);
+    ggT[g] = double(g)*2.0*3.1415926/double(totalGraspGears);
   }
   // old orientation
   //ggX[0] =  0.03;
@@ -2981,6 +3040,15 @@ int main(int argc, char **argv) {
   ggY[2] = -0.02;
   ggX[3] =  0.00;
   ggY[3] = -0.03;//-0.03; //-0.04
+
+  ggX[4] = -0.02;
+  ggY[4] = -0.02;
+  ggX[5] = -0.03;
+  ggY[5] = -0.00;
+  ggX[6] = -0.02;
+  ggY[6] =  0.02;
+  ggX[7] = -0.00;
+  ggY[7] =  0.03;//-0.03; //-0.04
 
   // XXX set this to be arm-generic
   // XXX add symbols to change register sets
