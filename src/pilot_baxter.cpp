@@ -98,6 +98,7 @@ double eeRange = 0.0;
 #define MOVE_FAST 0.01
 #define MOVE_MEDIUM 0.005 //.005
 #define MOVE_SLOW 0.0025
+#define MOVE_VERY_SLOW 0.00125
 
 double bDelta = MOVE_FAST;
 double approachStep = .0005;
@@ -169,9 +170,10 @@ eePose crane2right = {.px = 0.617214, .py = -0.301658, .pz = 0.0533165,
 		     //.qx = -0.0148346, .qy = 0.999022, .qz = 0.0289031, .qw = 0.0300052}; // 9A6S corrected
 		     //.qx = -0.0165925, .qy = 0.99892, .qz = 0.0434064, .qw = -0.000183836}; // 6A corrected
 		     //.qx = -0.01459, .qy = 0.999684, .qz = 0.0136977, .qw = 0.0152314}; // 3A3S corrected
-		     .qx = -0.0139279, .qy = 0.999439, .qz = -0.00107611, .qw = 0.0304367}; // original
+		     //.qx = -0.0139279, .qy = 0.999439, .qz = -0.00107611, .qw = 0.0304367}; // original
 		     //.qx = -0.0130087, .qy = 0.998957, .qz = -0.0310543, .qw = 0.0308408}; // 6D corrected 
 		     //.qx = -0.0120778, .qy = 0.997576, .qz = -0.0610046, .qw = 0.0312171}; // 12D corrected 
+		     .qx = -0.0138943, .qy = 0.999903, .qz = -0.000868458, .qw = 0.000435656}; // ray calibrated
 
 
 eePose crane3right = {.px = 0.668384, .py = 0.166692, .pz = -0.120018,
@@ -309,10 +311,39 @@ double parzenKernelSigma = 1.0; // this is approximately what it should be at 20
 
 int doParzen = 0;
 
+const int vmWidth = hrmWidth;
+const int vmHalfWidth = hrmHalfWidth;
+const double vmDelta = hrmDelta;
+double volumeMap[vmWidth*vmWidth*vmWidth];
+double volumeMapAccumulator[vmWidth*vmWidth*vmWidth];
+double volumeMapMass[vmWidth*vmWidth*vmWidth];
+
+const int parzen3DKernelHalfWidth = 15;
+const int parzen3DKernelWidth = 2*parzen3DKernelHalfWidth+1;
+double parzen3DKernel[parzen3DKernelWidth*parzen3DKernelWidth];
+double parzen3DKernelSigma = 1.0; // this is approximately what it should be at 20 cm height
+
+
+
 
 void pushNoOps(int n) {
   for (int i = 0; i < n; i++)
     pilot_call_stack.push_back('C'); 
+}
+
+
+
+void initialize3DParzen() {
+  for (int kx = 0; kx < parzen3DKernelWidth; kx++) {
+    for (int ky = 0; ky < parzen3DKernelWidth; ky++) {
+      for (int kz = 0; kz < parzen3DKernelWidth; kz++) {
+	double pkx = kx - parzen3DKernelHalfWidth;
+	double pky = ky - parzen3DKernelHalfWidth;
+	double pkz = ky - parzen3DKernelHalfWidth;
+	parzen3DKernel[kx + ky*parzen3DKernelWidth + kz*parzen3DKernelWidth] = exp(-(pkx*pkx + pky*pky + pkz*pkz)/(2.0*parzen3DKernelSigma*parzen3DKernelSigma));
+      }
+    }
+  }
 }
 
 void initializeParzen() {
@@ -406,6 +437,175 @@ double ggT[totalGraspGears];
 int recordRangeMap = 1;
 
 Eigen::Quaternionf irGlobalPositionEEFrame;
+
+void scanYdirection(double speedOnLines, double speedBetweenLines) {
+  // VERY SLOW progressive scan
+  int scanPadding = 0;
+  double rmbGain = rmDelta / bDelta;
+  //pilot_call_stack.push_back(1048689);
+  for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('q');
+  }
+  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('d');
+  }
+  for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
+    pilot_call_stack.push_back(1114183); // full render
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('e');
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('a');
+    }
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('e');
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('d');
+    }
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('e');
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('a');
+    }
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('e');
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('d');
+    }
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('e');
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('a');
+    }
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('e');
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('d');
+    }
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('e');
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('a');
+    }
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('e');
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('d');
+    }
+  }
+  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('q');
+  }
+  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('a');
+  }
+  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+}
+
+void scanXdirection(double speedOnLines, double speedBetweenLines) {
+  // VERY SLOW progressive scan
+  int scanPadding = 0;
+  double rmbGain = rmDelta / bDelta;
+  //pilot_call_stack.push_back(1048689);
+  for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('a');
+  }
+  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('e');
+  }
+  for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
+    pilot_call_stack.push_back(1114183); // full render
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('d');
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('q');
+    }
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('d');
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('e');
+    }
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('d');
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('q');
+    }
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('d');
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('e');
+    }
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('d');
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('q');
+    }
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('d');
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('e');
+    }
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('d');
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('q');
+    }
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('d');
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('e');
+    }
+  }
+  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('q');
+  }
+  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('a');
+  }
+  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+
+}
 
 
 void rangeCallback(const sensor_msgs::Range& range) {
@@ -571,11 +771,13 @@ void rangeCallback(const sensor_msgs::Range& range) {
       int eeX = (int)round(eX + hrmHalfWidth);
       int eeY = (int)round(eY + hrmHalfWidth);
 
+#ifdef DEBUG
     cout << "irSensorEnd w x y z: " << irSensorEnd.w() << " " << 
       irSensorEnd.x() << " " << irSensorEnd.y() << " " << irSensorEnd.z() << endl;
     cout << "irSensorStartGlobal w x y z: " << irSensorStartGlobal.w() << " " << 
       irSensorStartGlobal.x() << " " << irSensorStartGlobal.y() << " " << irSensorStartGlobal.z() << endl;
     cout << "Corrected x y: " << (trueEEPose.position.x - drX) << " " << (trueEEPose.position.y - drY) << endl;
+#endif
 
       if ((fabs(eX) <= hrmHalfWidth) && (fabs(eY) <= hrmHalfWidth))
 	hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(128,0,0);
@@ -1342,6 +1544,7 @@ void timercallback1(const ros::TimerEvent&) {
 	currentEEPose.py = rmcY + drY;
 
 	/*
+	// constant speed
 	int scanPadding = 0;
 	double rmbGain = rmDelta / bDelta;
 	//pilot_call_stack.push_back(1048689);
@@ -1374,7 +1577,10 @@ void timercallback1(const ros::TimerEvent&) {
 	  pilot_call_stack.push_back('a');
 	}
 	*/
+
 	/*
+	*/
+	// VERY SLOW progressive scan
 	int scanPadding = 0;
 	double rmbGain = rmDelta / bDelta;
 	//pilot_call_stack.push_back(1048689);
@@ -1391,28 +1597,111 @@ void timercallback1(const ros::TimerEvent&) {
 	  pilot_call_stack.push_back(1048677);
 	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
 	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+	  pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
 	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
 	    pilot_call_stack.push_back(1048677);
 	    pilot_call_stack.push_back('a');
 	  }
 	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
 	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+	  pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
 	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
 	    pilot_call_stack.push_back(1048677);
 	    pilot_call_stack.push_back('d');
 	  }
 	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
 	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+	  pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
 	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
 	    pilot_call_stack.push_back(1048677);
 	    pilot_call_stack.push_back('a');
 	  }
 	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
 	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+	  pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('d');
+	  }
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('a');
+	  }
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('d');
+	  }
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('a');
+	  }
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('d');
+	  }
+	}
+	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('q');
+	}
+	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('a');
+	}
+	pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+
+	/*
+	// SLOW progressive scan
+	int scanPadding = 0;
+	double rmbGain = rmDelta / bDelta;
+	//pilot_call_stack.push_back(1048689);
+	for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('q');
+	}
+	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back('d');
+	}
+	for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
+	  pilot_call_stack.push_back(1114183); // full render
+	  pilot_call_stack.push_back(1048677);
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1114190); // set speed to MOVE_SLOW
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('a');
+	  }
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1114190); // set speed to MOVE_SLOW
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('d');
+	  }
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1114190); // set speed to MOVE_SLOW
+	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+	    pilot_call_stack.push_back(1048677);
+	    pilot_call_stack.push_back('a');
+	  }
+	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+	  pilot_call_stack.push_back('e');
+	  pilot_call_stack.push_back(1114190); // set speed to MOVE_SLOW
 	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
 	    pilot_call_stack.push_back(1048677);
 	    pilot_call_stack.push_back('d');
@@ -1429,6 +1718,8 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
 	*/
 
+	/*
+	// interlaced scan
 	int scanPadding = 0;
 	double rmbGain = rmDelta / bDelta;
 	//pilot_call_stack.push_back(1048689);
@@ -1458,22 +1749,21 @@ void timercallback1(const ros::TimerEvent&) {
 	    pilot_call_stack.push_back('d');
 	  }
 
-	  /*
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('a');
-	  }
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('d');
-	  }
-	  */
+//	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+//	  pilot_call_stack.push_back('e');
+//	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+//	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+//	    pilot_call_stack.push_back(1048677);
+//	    pilot_call_stack.push_back('a');
+//	  }
+//	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+//	  pilot_call_stack.push_back('e');
+//	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+//	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+//	    pilot_call_stack.push_back(1048677);
+//	    pilot_call_stack.push_back('d');
+//	  }
+	  
 	}
 	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
 	  pilot_call_stack.push_back(1048677);
@@ -1485,9 +1775,11 @@ void timercallback1(const ros::TimerEvent&) {
 	}
 	pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
 	pilot_call_stack.push_back(1048621); // change offset of position based on current gear 
+	*/
 
 
 	/*
+	// progressive with interleaved gear changes...
 	int scanPadding = 0;
 	double rmbGain = rmDelta / bDelta;
 	//pilot_call_stack.push_back(1048689);
@@ -2410,6 +2702,124 @@ void timercallback1(const ros::TimerEvent&) {
     // try damping the diagonal by the value it's supposed to have
     //  according to gaussian
     // scan, grab, put in the box
+    // numlock + &
+    case 1114150:
+      {
+	currentEEPose.px = rmcX + drX;
+	currentEEPose.py = rmcY + drY;
+      }
+      break;
+    // numlock + *
+    case 1114154:
+      {
+	pilot_call_stack.push_back('2'); // assume pose at register 2
+	pushNoOps(200);
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('d'); // move away
+	pilot_call_stack.push_back('k'); // open gripper
+	pushNoOps(200);
+	pilot_call_stack.push_back('3'); // assume pose at register 3
+	pushNoOps(200);
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back('w'); // raise arm
+	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
+	pushNoOps(200);
+
+	pilot_call_stack.push_back(1048680); // assume x,y of target 
+	pilot_call_stack.push_back(1114183); // full render
+	pilot_call_stack.push_back(1048679); // render reticle
+	pilot_call_stack.push_back(1048691); // find max on register 1
+	pilot_call_stack.push_back(1048673); // render register 1
+	pilot_call_stack.push_back(1048690); // load map to register 1
+	pilot_call_stack.push_back(1048631); // assume best gear
+	pilot_call_stack.push_back(1048678); // target best grasp
+	pilot_call_stack.push_back(1048630); // find best grasp
+	scanYdirection(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	pilot_call_stack.push_back(1114150); // prepare for search
+
+	pilot_call_stack.push_back(1048683); // turn on scanning
+	pilot_call_stack.push_back(1114183); // full render
+	pilot_call_stack.push_back(1048679); // render reticle
+	pilot_call_stack.push_back(1114155); // rotate gear
+	pilot_call_stack.push_back(1048627); // change gear to 3
+	pilot_call_stack.push_back(1048673); // render register 1
+	pilot_call_stack.push_back(1048690); // load map to register 1
+	pilot_call_stack.push_back(1048678); // target best grasp
+	pilot_call_stack.push_back(1048630); // find best grasp
+	scanYdirection(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	pilot_call_stack.push_back(1114150); // prepare for search
+
+	pilot_call_stack.push_back(1048683); // turn on scanning
+	pilot_call_stack.push_back(1114183); // full render
+	pilot_call_stack.push_back(1048679); // render reticle
+	pilot_call_stack.push_back(1048627); // change gear to 3
+	pilot_call_stack.push_back(1048673); // render register 1
+	pilot_call_stack.push_back(1048690); // load map to register 1
+	pilot_call_stack.push_back(1048678); // target best grasp
+	pilot_call_stack.push_back(1048630); // find best grasp
+	scanXdirection(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	pilot_call_stack.push_back(1114150); // prepare for search
+
+	pilot_call_stack.push_back(1048683); // turn on scanning
+	pilot_call_stack.push_back(1114183); // full render
+	pilot_call_stack.push_back(1048679); // render reticle
+	pilot_call_stack.push_back(1114155); // rotate gear
+	pilot_call_stack.push_back(1048625); // change to first gear
+	pilot_call_stack.push_back(1048673); // render register 1
+	pilot_call_stack.push_back(1048690); // load map to register 1
+	pilot_call_stack.push_back(1048678); // target best grasp
+	pilot_call_stack.push_back(1048630); // find best grasp
+	scanXdirection(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	pilot_call_stack.push_back(1114150); // prepare for search
+
+	pilot_call_stack.push_back(1048695); // clear scan history
+	pilot_call_stack.push_back(1048683); // turn on scanning
+	pilot_call_stack.push_back(1048625); // change to first gear
+	pushNoOps(200);
+	pilot_call_stack.push_back('x'); // retract
+	pilot_call_stack.push_back(1048677); // wait
+	pilot_call_stack.push_back('v'); // advance until closed
+	pilot_call_stack.push_back('2'); // assume pose at register 2
+	pilot_call_stack.push_back('k'); // open gripper
+	pilot_call_stack.push_back('i'); // initialize gripper
+      }
+      break;
     // numlock + 8
     case 1048632:
       {
@@ -2549,6 +2959,18 @@ void timercallback1(const ros::TimerEvent&) {
 	bDelta = MOVE_MEDIUM;
       }
       break;
+    // numlock + N
+    case 1114190:
+      {
+	bDelta = MOVE_SLOW;
+      }
+      break;
+    // numlock + B
+    case 1114178:
+      {
+	bDelta = MOVE_VERY_SLOW;
+      }
+      break;
     // enable / disable rendering
     // numlock + m
     case 1048685:
@@ -2585,7 +3007,7 @@ void timercallback1(const ros::TimerEvent&) {
     case 1048621:
       {
 	if (currentGraspGear >= 4)
-	  currentEEPose.py += 0.025;
+	  currentEEPose.py += 0.0125;
       }
       break;
     //////////
@@ -2886,11 +3308,16 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   int rowAnchorStep = 25;
   cv::Point rowAnchor(120,stackRowY);
   int insCount = 0; 
+
+  int numCommandsToShow = 400;
+  int lowerBound = max(int(pilot_call_stack.size() - numCommandsToShow), 0);
+  insCount = lowerBound;
+
   while (insCount < pilot_call_stack.size()) {
     string outRowText;
 
     for (int rowCount = 0; (insCount < pilot_call_stack.size()) && (rowCount < instructionsPerRow); insCount++, rowCount++) {
-      outRowText += pilot_call_stack[insCount];
+      outRowText += pilot_call_stack[pilot_call_stack.size() - (insCount - lowerBound)];
       outRowText += " ";
     }
 
@@ -3112,6 +3539,7 @@ int main(int argc, char **argv) {
 
   initializeParzen();
   //l2NormalizeParzen();
+  initialize3DParzen();
 
 #ifdef DEBUG
 #endif
