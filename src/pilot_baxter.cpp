@@ -29,7 +29,7 @@ time_t firstTime = 0;
 
 int shouldIRender = 1;
 
-// TODO patch targetting
+// TODO patch targeting
 // TODO redo cartesian autopilot to account for ee coordinate frame
 // TODO make sure chirality is accounted for properly in autopilot
 
@@ -300,7 +300,12 @@ double deltaDiagonalKappa = 0.01;
 const int parzenKernelHalfWidth = 15;
 const int parzenKernelWidth = 2*parzenKernelHalfWidth+1;
 double parzenKernel[parzenKernelWidth*parzenKernelWidth];
-double parzenKernelSigma = 2.0;
+//double parzenKernelSigma = 2.0;
+double parzenKernelSigma = 1.0; // this is approximately what it should be at 20 cm height
+// 13.8 cm high -> 2.2 cm gap
+// 23.8 cm high -> 3.8 cm gap
+// 4 sigma (centered at 0) should be the gap
+// TODO can 'adjust' and bounds on the fly during lookup in proportion to the measured depth
 
 int doParzen = 0;
 
@@ -399,6 +404,8 @@ double ggY[totalGraspGears];
 double ggT[totalGraspGears];
 
 int recordRangeMap = 1;
+
+Eigen::Quaternionf irGlobalPositionEEFrame;
 
 
 void rangeCallback(const sensor_msgs::Range& range) {
@@ -535,6 +542,49 @@ void rangeCallback(const sensor_msgs::Range& range) {
       vCrop = backColor;
     }
 
+    // actually storing the negative z for backwards compatibility
+    //double thisZmeasurement = -(currentEEPose.pz - eeRange);
+    double thisZmeasurement = -(trueEEPose.position.z - eeRange);
+
+    {
+      Eigen::Quaternionf ceeQuat(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+      Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
+      Eigen::Quaternionf irSensorStartGlobal(
+					      0.0,
+					     (trueEEPose.position.x - irSensorStartLocal.x()),
+					     (trueEEPose.position.y - irSensorStartLocal.y()),
+					     (trueEEPose.position.z - irSensorStartLocal.z())
+					    );
+
+      Eigen::Quaternionf globalUnitZ(0, 0, 0, 1);
+      Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
+
+      //Eigen::Quaternionf irSensorEnd = irSensorStartLocal + (eeRange * localUnitZ);
+      Eigen::Vector3d irSensorEnd(
+				   (trueEEPose.position.x - irSensorStartLocal.x()) + eeRange*localUnitZ.x(),
+				   (trueEEPose.position.y - irSensorStartLocal.y()) + eeRange*localUnitZ.y(),
+				   (trueEEPose.position.z - irSensorStartLocal.z()) + eeRange*localUnitZ.z()
+				  );
+
+      double eX = (irSensorEnd.x() - rmcX) / hrmDelta;
+      double eY = (irSensorEnd.y() - rmcY) / hrmDelta;
+      int eeX = (int)round(eX + hrmHalfWidth);
+      int eeY = (int)round(eY + hrmHalfWidth);
+
+    cout << "irSensorEnd w x y z: " << irSensorEnd.w() << " " << 
+      irSensorEnd.x() << " " << irSensorEnd.y() << " " << irSensorEnd.z() << endl;
+    cout << "irSensorStartGlobal w x y z: " << irSensorStartGlobal.w() << " " << 
+      irSensorStartGlobal.x() << " " << irSensorStartGlobal.y() << " " << irSensorStartGlobal.z() << endl;
+    cout << "Corrected x y: " << (trueEEPose.position.x - drX) << " " << (trueEEPose.position.y - drY) << endl;
+
+      if ((fabs(eX) <= hrmHalfWidth) && (fabs(eY) <= hrmHalfWidth))
+	hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(128,0,0);
+      // XXX
+      thisZmeasurement = -irSensorEnd.z();
+    }
+
+
+
     // draw new cell
     if ((fabs(hiX) <= hrmHalfWidth) && (fabs(hiY) <= hrmHalfWidth)) {
       int hiiX = (int)round(hiX + hrmHalfWidth);
@@ -551,7 +601,8 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  int kpx = px - (hiiX - parzenKernelHalfWidth);
 	  int kpy = py - (hiiY - parzenKernelHalfWidth);
 
-	  hiRangeMapAccumulator[px + py*hrmWidth] += eeRange*parzenKernel[kpx + kpy*parzenKernelWidth];
+	  //hiRangeMapAccumulator[px + py*hrmWidth] += eeRange*parzenKernel[kpx + kpy*parzenKernelWidth];
+	  hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
 	  hiRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
 	  double denom = max(hiRangeMapMass[px + py*hrmWidth], EPSILON);
 	  hiRangeMap[px + py*hrmWidth] = hiRangeMapAccumulator[px + py*hrmWidth] / denom;
@@ -564,7 +615,8 @@ void rangeCallback(const sensor_msgs::Range& range) {
       
       {
 	rangeMapMass[iiX + iiY*rmWidth] += 1;
-	rangeMapAccumulator[iiX + iiY*rmWidth] += eeRange;
+	//rangeMapAccumulator[iiX + iiY*rmWidth] += eeRange;
+	rangeMapAccumulator[iiX + iiY*rmWidth] += thisZmeasurement;
 	double denom = max(rangeMapMass[iiX + iiY*rmWidth], EPSILON);
 	rangeMap[iiX + iiY*rmWidth] = rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
       }
@@ -1125,6 +1177,8 @@ void timercallback1(const ros::TimerEvent&) {
     case 'u':
       cout << "Current EE Position (x,y,z): " << currentEEPose.px << " " << currentEEPose.py << " " << currentEEPose.pz << endl;
       cout << "Current EE Orientation (x,y,z,w): " << currentEEPose.qx << " " << currentEEPose.qy << " " << currentEEPose.qz << " " << currentEEPose.qw << endl;
+      cout << "True EE Position (x,y,z): " << trueEEPose.position.x << " " << trueEEPose.position.y << " " << trueEEPose.position.z << endl;
+      cout << "True EE Orientation (x,y,z,w): " << trueEEPose.orientation.x << " " << trueEEPose.orientation.y << " " << trueEEPose.orientation.z << " " << trueEEPose.orientation.w << endl;
       break;
     case 'i':
       {
@@ -1938,7 +1992,7 @@ void timercallback1(const ros::TimerEvent&) {
 	cout << "trX: " << trX << " trY: " << trY << endl;
       }
       break;
-    // set hi target reticle by searching
+    // set hi target reticle by searching over all pixels and all acceptable grasps
     // numlock + F
     case 1114182:
       {
@@ -2109,7 +2163,9 @@ void timercallback1(const ros::TimerEvent&) {
       {
 	pilot_call_stack.push_back('j');
 
-	double deltaZ = -maxD - graspDepth;
+	//double deltaZ = -maxD - graspDepth;
+	double deltaZ = (-maxD -graspDepth) - currentEEPose.pz;
+
 	double zTimes = fabs(floor(deltaZ / bDelta)); 
 
 	int numNoOps = 16;
@@ -3056,6 +3112,21 @@ int main(int argc, char **argv) {
 
   initializeParzen();
   //l2NormalizeParzen();
+
+#ifdef DEBUG
+#endif
+  {
+    Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
+    Eigen::Quaternionf gear0offset(0.0, ggX[0], ggY[0], 0.0);
+
+    // invert the transformation
+    //irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+    // irGlobalPositionEEFrame w x y z: 1.62094e-11 -0.0205133 0.0194367 0.00119132
+    irGlobalPositionEEFrame = Eigen::Quaternionf(1.62094e-11,-0.0205133,0.0194367,0.00119132);
+
+    cout << "irGlobalPositionEEFrame w x y z: " << irGlobalPositionEEFrame.w() << " " << 
+      irGlobalPositionEEFrame.x() << " " << irGlobalPositionEEFrame.y() << " " << irGlobalPositionEEFrame.z() << endl;
+  }
 
   ros::spin();
   
