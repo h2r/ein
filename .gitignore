@@ -15,3 +15,6 @@ data30weak/
 
 .*.swp
 *.sw*
+CMakeCache.txt
+CMakeFiles/
+.~lock*
