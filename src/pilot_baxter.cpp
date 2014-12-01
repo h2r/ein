@@ -725,6 +725,11 @@ void scanXdirectionVerySlow(double speedOnLines, double speedBetweenLines) {
 
 void rangeCallback(const sensor_msgs::Range& range) {
 
+  #ifdef DEBUG
+  cout << "debug 3" << endl;
+  cout.flush();
+  #endif
+
   time(&thisTime);
   double deltaTime = difftime(thisTime, firstTime);
   timeMass = timeMass + 1;
@@ -762,6 +767,10 @@ void rangeCallback(const sensor_msgs::Range& range) {
   //Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
   //vCrop = fillColor;
 
+  #ifdef DEBUG
+  cout << "debug 4" << endl;
+  cout.flush();
+  #endif
 
   for (int rr = currentRangeHistoryIndex-1; rr <= currentRangeHistoryIndex; rr++) {
     int r = 0;
@@ -810,6 +819,11 @@ void rangeCallback(const sensor_msgs::Range& range) {
     }
   }
 
+  #ifdef DEBUG
+  cout << "debug 5" << endl;
+  cout.flush();
+  #endif
+
   if (recordRangeMap) {
 
     // actually storing the negative z for backwards compatibility
@@ -846,13 +860,14 @@ void rangeCallback(const sensor_msgs::Range& range) {
       int eeX = (int)round(eX + hrmHalfWidth);
       int eeY = (int)round(eY + hrmHalfWidth);
 
-#ifdef DEBUG
-    cout << "irSensorEnd w x y z: " << irSensorEnd.w() << " " << 
-      irSensorEnd.x() << " " << irSensorEnd.y() << " " << irSensorEnd.z() << endl;
-    cout << "irSensorStartGlobal w x y z: " << irSensorStartGlobal.w() << " " << 
-      irSensorStartGlobal.x() << " " << irSensorStartGlobal.y() << " " << irSensorStartGlobal.z() << endl;
-    cout << "Corrected x y: " << (trueEEPose.position.x - drX) << " " << (trueEEPose.position.y - drY) << endl;
-#endif
+      #ifdef DEBUG
+      cout << "irSensorEnd w x y z: " << irSensorEnd.w() << " " << 
+	irSensorEnd.x() << " " << irSensorEnd.y() << " " << irSensorEnd.z() << endl;
+      cout << "irSensorStartGlobal w x y z: " << irSensorStartGlobal.w() << " " << 
+	irSensorStartGlobal.x() << " " << irSensorStartGlobal.y() << " " << irSensorStartGlobal.z() << endl;
+      cout << "Corrected x y: " << (trueEEPose.position.x - drX) << " " << (trueEEPose.position.y - drY) << endl;
+      cout.flush();
+      #endif
 
       if ((fabs(eX) <= hrmHalfWidth) && (fabs(eY) <= hrmHalfWidth))
 	hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(128,0,0);
@@ -866,6 +881,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
     // XXX
     //double dX = (trueEEPose.position.x - drX) - rmcX;
     //double dY = (trueEEPose.position.y - drY) - rmcY;
+
     double iX = dX / rmDelta;
     double iY = dY / rmDelta;
 
@@ -911,7 +927,13 @@ void rangeCallback(const sensor_msgs::Range& range) {
       int hiiX = (int)round(hiX + hrmHalfWidth);
       int hiiY = (int)round(hiY + hrmHalfWidth);
 
-      hiRangemapImage.at<cv::Vec3b>(hiiX,hiiY) += cv::Vec3b(0,128,0);
+      // the wrong point without pose correction
+      double upX = ((trueEEPose.position.x - drX) - rmcX)/hrmDelta;
+      double upY = ((trueEEPose.position.y - drY) - rmcY)/hrmDelta;
+      int iupX = (int)round(upX + hrmHalfWidth);
+      int iupY = (int)round(upY + hrmHalfWidth);
+      if ((fabs(upX) <= hrmHalfWidth) && (fabs(upY) <= hrmHalfWidth)) 
+	hiRangemapImage.at<cv::Vec3b>(iupX,iupY) += cv::Vec3b(0,128,0);
 
       int pxMin = max(0, hiiX-parzenKernelHalfWidth);
       int pxMax = min(hrmWidth-1, hiiX+parzenKernelHalfWidth);
@@ -979,6 +1001,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
       cout << endl;
     }
     cout << "]" << endl;
+    cout.flush();
     #endif
   }
 
@@ -989,6 +1012,10 @@ void rangeCallback(const sensor_msgs::Range& range) {
     cv::resize(hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
     cv::imshow(hiRangemapViewName, hRIT);
   }
+  #ifdef DEBUG
+  cout << "debug 1" << endl;
+  cout.flush();
+  #endif
   {
     cv::Point text_anchor = cv::Point(0,rangeogramImage.rows-1);
     {
@@ -1004,6 +1031,10 @@ void rangeCallback(const sensor_msgs::Range& range) {
     putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
   }
   cv::imshow(rangeogramViewName, rangeogramImage);
+  #ifdef DEBUG
+  cout << "debug 2" << endl;
+  cout.flush();
+  #endif
 }
 
 
@@ -1263,6 +1294,10 @@ void setGGRotation(int thisGraspGear) {
 
 void timercallback1(const ros::TimerEvent&) {
 
+  #ifdef DEBUG
+  cout << "debug 6" << endl;
+  cout.flush();
+  #endif
 
 //cout << "block1" << endl;
   //eePose redTargetEEPose;
@@ -1324,6 +1359,10 @@ void timercallback1(const ros::TimerEvent&) {
 //cout << "block3" << endl;
 
 
+  #ifdef DEBUG
+  cout << "debug 7" << endl;
+  cout.flush();
+  #endif
   
   if (!auto_pilot)
     autoPilotFrameCounter = 0;
@@ -1364,6 +1403,10 @@ void timercallback1(const ros::TimerEvent&) {
     lock_status = 0;
   }
   
+  #ifdef DEBUG
+  cout << "debug 8 c: " << c << endl;
+  cout.flush();
+  #endif
 
   switch (c) {
     case 30: // up arrow
@@ -3149,6 +3192,11 @@ void timercallback1(const ros::TimerEvent&) {
       break;
   }
 
+  #ifdef DEBUG
+  cout << "debug 9" << endl;
+  cout.flush();
+  #endif
+
 //cout << "block4" << endl;
 
 
@@ -3675,12 +3723,19 @@ int main(int argc, char **argv) {
 #endif
   {
     Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
-    Eigen::Quaternionf gear0offset(0.0, ggX[0], ggY[0], 0.0);
+    //Eigen::Quaternionf gear0offset(0.0, 0.0, 0.0, 0.0); // for calibration
+    //Eigen::Quaternionf gear0offset(0.0, ggX[0], ggY[0], 0.0); // for initial calibration
+    Eigen::Quaternionf gear0offset(0.0, .02, .025, 0.0); // for latest ray calibration
 
     // invert the transformation
     //irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+
+    // initial calibration
     // irGlobalPositionEEFrame w x y z: 1.62094e-11 -0.0205133 0.0194367 0.00119132
-    irGlobalPositionEEFrame = Eigen::Quaternionf(1.62094e-11,-0.0205133,0.0194367,0.00119132);
+    //irGlobalPositionEEFrame = Eigen::Quaternionf(1.62094e-11,-0.0205133,0.0194367,0.00119132);
+    // ray calibration
+    // irGlobalPositionEEFrame w x y z: -3.73708e-14 -0.0206869 0.0244346 -2.52088e-05
+    //irGlobalPositionEEFrame = Eigen::Quaternionf(,,,);
 
     cout << "irGlobalPositionEEFrame w x y z: " << irGlobalPositionEEFrame.w() << " " << 
       irGlobalPositionEEFrame.x() << " " << irGlobalPositionEEFrame.y() << " " << irGlobalPositionEEFrame.z() << endl;
