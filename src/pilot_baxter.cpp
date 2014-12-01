@@ -92,6 +92,7 @@ double a_thresh_close = .11;
 // add 'speeds' so that we can adjust movement resulution
 //double a_thresh_far = .3; // for visual servoing
 double a_thresh_far = .2; // for depth scanning
+//double a_thresh_far = .13; // for close depth scanning
 double eeRange = 0.0;
 
 
@@ -304,6 +305,7 @@ const int parzenKernelWidth = 2*parzenKernelHalfWidth+1;
 double parzenKernel[parzenKernelWidth*parzenKernelWidth];
 //double parzenKernelSigma = 2.0;
 double parzenKernelSigma = 1.0; // this is approximately what it should be at 20 cm height
+//double parzenKernelSigma = 0.5; // 
 // 13.8 cm high -> 2.2 cm gap
 // 23.8 cm high -> 3.8 cm gap
 // 4 sigma (centered at 0) should be the gap
@@ -438,7 +440,120 @@ int recordRangeMap = 1;
 
 Eigen::Quaternionf irGlobalPositionEEFrame;
 
-void scanYdirection(double speedOnLines, double speedBetweenLines) {
+Mat wristCamImage;
+int wristCamInit = 0;
+
+// reticle indeces
+const int numCReticleIndeces = 10;
+const double cReticleIndexDelta = .01;
+const double firstCReticleIndexDepth = 10.0;
+int xCR[numCReticleIndeces];
+int yCR[numCReticleIndeces];
+
+int getColorReticleX() {
+}
+
+int getColorReticleY() {
+}
+
+cv::Vec3b getCRColor() {
+  cv::Vec3b toReturn(0,0,0);
+  if (wristCamInit) {
+    int crX = getColorReticleX();
+    int crY = getColorReticleY();
+
+    if ((crX < wristCamImage.cols) && (crY < wristCamImage.rows))
+      toReturn = wristCamImage.at<cv::Vec3b>(crY,crX); 
+  }
+  return toReturn;
+}
+
+void scanYdirectionMedium(double speedOnLines, double speedBetweenLines) {
+  // VERY SLOW progressive scan
+  int scanPadding = 0;
+  double rmbGain = rmDelta / bDelta;
+  //pilot_call_stack.push_back(1048689);
+  for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('q');
+  }
+  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('d');
+  }
+  for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
+    pilot_call_stack.push_back(1114183); // full render
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('e');
+    pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('a');
+    }
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('e');
+    pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('d');
+    }
+  }
+  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('q');
+  }
+  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('a');
+  }
+  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+}
+
+void scanXdirectionMedium(double speedOnLines, double speedBetweenLines) {
+  // VERY SLOW progressive scan
+  int scanPadding = 0;
+  double rmbGain = rmDelta / bDelta;
+  //pilot_call_stack.push_back(1048689);
+  for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('a');
+  }
+  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('e');
+  }
+  for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
+    pilot_call_stack.push_back(1114183); // full render
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('d');
+    pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('q');
+    }
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pilot_call_stack.push_back('d');
+    pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('e');
+    }
+  }
+  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('q');
+  }
+  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('a');
+  }
+  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+
+}
+
+void scanYdirectionVerySlow(double speedOnLines, double speedBetweenLines) {
   // VERY SLOW progressive scan
   int scanPadding = 0;
   double rmbGain = rmDelta / bDelta;
@@ -522,7 +637,7 @@ void scanYdirection(double speedOnLines, double speedBetweenLines) {
   pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
 }
 
-void scanXdirection(double speedOnLines, double speedBetweenLines) {
+void scanXdirectionVerySlow(double speedOnLines, double speedBetweenLines) {
   // VERY SLOW progressive scan
   int scanPadding = 0;
   double rmbGain = rmDelta / bDelta;
@@ -696,14 +811,61 @@ void rangeCallback(const sensor_msgs::Range& range) {
   }
 
   if (recordRangeMap) {
+
+    // actually storing the negative z for backwards compatibility
+    //double thisZmeasurement = -(currentEEPose.pz - eeRange);
+    double thisZmeasurement = -(trueEEPose.position.z - eeRange);
+    double dX = 0;
+    double dY = 0;
+
+    {
+      Eigen::Quaternionf ceeQuat(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+      Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
+      Eigen::Quaternionf irSensorStartGlobal(
+					      0.0,
+					     (trueEEPose.position.x - irSensorStartLocal.x()),
+					     (trueEEPose.position.y - irSensorStartLocal.y()),
+					     (trueEEPose.position.z - irSensorStartLocal.z())
+					    );
+
+      Eigen::Quaternionf globalUnitZ(0, 0, 0, 1);
+      Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
+
+      //Eigen::Quaternionf irSensorEnd = irSensorStartLocal + (eeRange * localUnitZ);
+      Eigen::Vector3d irSensorEnd(
+				   (trueEEPose.position.x - irSensorStartLocal.x()) + eeRange*localUnitZ.x(),
+				   (trueEEPose.position.y - irSensorStartLocal.y()) + eeRange*localUnitZ.y(),
+				   (trueEEPose.position.z - irSensorStartLocal.z()) + eeRange*localUnitZ.z()
+				  );
+
+      dX = (irSensorEnd.x() - rmcX); //(trueEEPose.position.x - drX) - rmcX;
+      dY = (irSensorEnd.y() - rmcY); //(trueEEPose.position.y - drY) - rmcY;
+
+      double eX = (irSensorEnd.x() - rmcX) / hrmDelta;
+      double eY = (irSensorEnd.y() - rmcY) / hrmDelta;
+      int eeX = (int)round(eX + hrmHalfWidth);
+      int eeY = (int)round(eY + hrmHalfWidth);
+
+#ifdef DEBUG
+    cout << "irSensorEnd w x y z: " << irSensorEnd.w() << " " << 
+      irSensorEnd.x() << " " << irSensorEnd.y() << " " << irSensorEnd.z() << endl;
+    cout << "irSensorStartGlobal w x y z: " << irSensorStartGlobal.w() << " " << 
+      irSensorStartGlobal.x() << " " << irSensorStartGlobal.y() << " " << irSensorStartGlobal.z() << endl;
+    cout << "Corrected x y: " << (trueEEPose.position.x - drX) << " " << (trueEEPose.position.y - drY) << endl;
+#endif
+
+      if ((fabs(eX) <= hrmHalfWidth) && (fabs(eY) <= hrmHalfWidth))
+	hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(128,0,0);
+      // XXX
+      thisZmeasurement = -irSensorEnd.z();
+    }
+
     // find current rangemap slot
     // check to see if it falls in our mapped region
     // if so, update the arrays and draw the slot
     // XXX
-    //double dX = trueEEPose.position.x - rmcX;
-    //double dY = trueEEPose.position.y - rmcY;
-    double dX = (trueEEPose.position.x - drX) - rmcX;
-    double dY = (trueEEPose.position.y - drY) - rmcY;
+    //double dX = (trueEEPose.position.x - drX) - rmcX;
+    //double dY = (trueEEPose.position.y - drY) - rmcY;
     double iX = dX / rmDelta;
     double iY = dY / rmDelta;
 
@@ -740,49 +902,6 @@ void rangeCallback(const sensor_msgs::Range& range) {
       cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
       Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
       vCrop = backColor;
-    }
-
-    // actually storing the negative z for backwards compatibility
-    //double thisZmeasurement = -(currentEEPose.pz - eeRange);
-    double thisZmeasurement = -(trueEEPose.position.z - eeRange);
-
-    {
-      Eigen::Quaternionf ceeQuat(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
-      Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
-      Eigen::Quaternionf irSensorStartGlobal(
-					      0.0,
-					     (trueEEPose.position.x - irSensorStartLocal.x()),
-					     (trueEEPose.position.y - irSensorStartLocal.y()),
-					     (trueEEPose.position.z - irSensorStartLocal.z())
-					    );
-
-      Eigen::Quaternionf globalUnitZ(0, 0, 0, 1);
-      Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
-
-      //Eigen::Quaternionf irSensorEnd = irSensorStartLocal + (eeRange * localUnitZ);
-      Eigen::Vector3d irSensorEnd(
-				   (trueEEPose.position.x - irSensorStartLocal.x()) + eeRange*localUnitZ.x(),
-				   (trueEEPose.position.y - irSensorStartLocal.y()) + eeRange*localUnitZ.y(),
-				   (trueEEPose.position.z - irSensorStartLocal.z()) + eeRange*localUnitZ.z()
-				  );
-
-      double eX = (irSensorEnd.x() - rmcX) / hrmDelta;
-      double eY = (irSensorEnd.y() - rmcY) / hrmDelta;
-      int eeX = (int)round(eX + hrmHalfWidth);
-      int eeY = (int)round(eY + hrmHalfWidth);
-
-#ifdef DEBUG
-    cout << "irSensorEnd w x y z: " << irSensorEnd.w() << " " << 
-      irSensorEnd.x() << " " << irSensorEnd.y() << " " << irSensorEnd.z() << endl;
-    cout << "irSensorStartGlobal w x y z: " << irSensorStartGlobal.w() << " " << 
-      irSensorStartGlobal.x() << " " << irSensorStartGlobal.y() << " " << irSensorStartGlobal.z() << endl;
-    cout << "Corrected x y: " << (trueEEPose.position.x - drX) << " " << (trueEEPose.position.y - drY) << endl;
-#endif
-
-      if ((fabs(eX) <= hrmHalfWidth) && (fabs(eY) <= hrmHalfWidth))
-	hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(128,0,0);
-      // XXX
-      thisZmeasurement = -irSensorEnd.z();
     }
 
 
@@ -880,7 +999,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
       vCrop = backColor;
     }
     char buff[256];
-    sprintf(buff, "FPS: %.2f", aveFrequency);
+    sprintf(buff, "Hz: %.2f", aveFrequency);
     string fpslabel(buff);
     putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
   }
@@ -2770,7 +2889,7 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048631); // assume best gear
 	pilot_call_stack.push_back(1048678); // target best grasp
 	pilot_call_stack.push_back(1048630); // find best grasp
-	scanYdirection(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	scanYdirectionVerySlow(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
 	pilot_call_stack.push_back(1114150); // prepare for search
 
 	pilot_call_stack.push_back(1048683); // turn on scanning
@@ -2782,7 +2901,7 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048690); // load map to register 1
 	pilot_call_stack.push_back(1048678); // target best grasp
 	pilot_call_stack.push_back(1048630); // find best grasp
-	scanYdirection(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	scanYdirectionVerySlow(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
 	pilot_call_stack.push_back(1114150); // prepare for search
 
 	pilot_call_stack.push_back(1048683); // turn on scanning
@@ -2793,7 +2912,7 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048690); // load map to register 1
 	pilot_call_stack.push_back(1048678); // target best grasp
 	pilot_call_stack.push_back(1048630); // find best grasp
-	scanXdirection(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	scanXdirectionVerySlow(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
 	pilot_call_stack.push_back(1114150); // prepare for search
 
 	pilot_call_stack.push_back(1048683); // turn on scanning
@@ -2805,7 +2924,7 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048690); // load map to register 1
 	pilot_call_stack.push_back(1048678); // target best grasp
 	pilot_call_stack.push_back(1048630); // find best grasp
-	scanXdirection(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	scanXdirectionVerySlow(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
 	pilot_call_stack.push_back(1114150); // prepare for search
 
 	pilot_call_stack.push_back(1048695); // clear scan history
@@ -2880,7 +2999,12 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048631); // assume best gear
 	pilot_call_stack.push_back(1048678); // target best grasp
 	pilot_call_stack.push_back(1048630); // find best grasp
-	pilot_call_stack.push_back(1048689); // load scan program
+
+	//pilot_call_stack.push_back(1048689); // load scan program
+	scanXdirectionMedium(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	pilot_call_stack.push_back(1048621); // change offset of position based on current gear 
+	pilot_call_stack.push_back(1114150); // prepare for search
+
 	pilot_call_stack.push_back(1048683); // turn on scanning
 	pilot_call_stack.push_back(1114155); // rotate gear
 	pilot_call_stack.push_back(1114183); // full render
@@ -2890,7 +3014,11 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048690); // load map to register 1
 	pilot_call_stack.push_back(1048678); // target best grasp
 	pilot_call_stack.push_back(1048630); // find best grasp
-	pilot_call_stack.push_back(1048689); // load scan program
+
+	//pilot_call_stack.push_back(1048689); // load scan program
+	scanXdirectionMedium(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	pilot_call_stack.push_back(1114150); // prepare for search
+
 	pilot_call_stack.push_back(1048695); // clear scan history
 	pilot_call_stack.push_back(1048683); // turn on scanning
 	pilot_call_stack.push_back(1048625); // change to first gear
@@ -3007,7 +3135,7 @@ void timercallback1(const ros::TimerEvent&) {
     case 1048621:
       {
 	if (currentGraspGear >= 4)
-	  currentEEPose.py += 0.0125;
+	  currentEEPose.py += 0.0025;
       }
       break;
     //////////
@@ -3202,6 +3330,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     return;
   }
 
+  wristCamImage = cv_ptr->image.clone();
+  wristCamInit = 1;
 
   {
     cv::Point outTop = cv::Point(reticle.px-reticleHalfWidth, reticle.py-reticleHalfWidth);
@@ -3353,7 +3483,7 @@ void CallbackFunc(int event, int x, int y, int flags, void* userdata) {
     //cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
     reticle.px = x;
     reticle.py = y;
-    cout << "x: " << x << " y: " << y << endl;
+    cout << "x: " << x << " y: " << y << " eeRange: " << eeRange << endl;
   } else if ( event == EVENT_RBUTTONDOWN ) {
     //cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
   } else if  ( event == EVENT_MBUTTONDOWN ) {
