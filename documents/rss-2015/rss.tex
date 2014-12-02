@@ -95,16 +95,17 @@ many applications, general-purpose pick-and-place is not required: the
 robot would be useful if it could recognize and manipulate the small
 set of objects most important in that application, but do so with high
 reliability.  To address this problem, we define a SLAM-based approach
-where actively acquires visual and grasp models of novel objects by
-moving its sensor and trying grasps, integrating information over
-time.  Unlike conventional SLAM, in our model the hidden state is the
-object pose, and the map consists of invariant features of the objet
-such as appearnance information and grasp points.  Our approach
-converts the task of {\em category recognition} (pick up any mug) to
-{\em instance recognition} (pick up this mug), enabling models to be
-autonomously acquired for specific objects.  Using our approach, a
-robot can interact with an object for ten minutes, and then reliably
-localize (90\%) and manipulate it (90\% successful grasps).
+which enables the robot to actively acquire visual and grasp models of
+novel objects by moving its sensor and trying grasps, integrating
+information over time.  Unlike conventional SLAM, in our model the
+hidden state is the object pose, and the map consists of invariant
+features of the object such as appearance information and grasp
+points.  Our approach converts the task of {\em category recognition}
+(pick up any mug) to {\em instance recognition} (pick up this mug),
+enabling models to be autonomously acquired for specific objects.
+Using our approach, a robot can interact with an object for ten
+minutes, and then reliably localize (90\%) and manipulate it (90\%
+successful grasps).
 
 
 %% Robots need to pick stuff up.
