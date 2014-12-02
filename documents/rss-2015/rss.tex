@@ -94,23 +94,23 @@ object the robot has never encountered before~\citep{}.  However in
 many applications, general-purpose pick-and-place is not required: the
 robot would be useful if it could recognize and manipulate the small
 set of objects most important in that application, but do so with high
-reliability.  To address this issue, we propose an architecture for
-perception and actuation that enables a robot to quickly and easily
-acquire instance-level descriptions of novel objects.  The robot
-learns to recognize, estimate the pose, and grasp the object through
-active data collection as well as by asking a human annotator for
-specific supervision.  Our approach converts the task of {\em
-  category recognition} (pick up any mug) to {\em instance
-  recognition} (pick up this mug), a much easier problem that conventional
-methods can solve with the right training data.  By leveraging
-this first-hand experience with the object, naive users can
-quickly train our system to reliably localize and grasp the specific
-objects that they care about for their particular application.
-As a byproduct, our approach collects data on grasping and
-manipulation that we can use to train general-purpose models. Using
-our approach, a robot can interact with an object for ten minutes, and
-then reliably localize (90\%) and manipulate it (90\% successful
-grasps).
+reliability.  To address this issue, we define a SLAM-based approach
+where the robot moves its end effector (equipped with a camera) to
+actively acquire visual and grasp models of novel objects, integrating
+information over time.  Unlike conventional SLAM, in our model the
+hidden state is the object pose, and the map consists of invariant
+features of the objet such as appearnance information and grasp
+points.  Our approach converts the task of {\em category recognition}
+(pick up any mug) to {\em instance recognition} (pick up this mug), a
+much easier problem that conventional methods can solve with the right
+training data.  By leveraging this first-hand experience with the
+object, naive users can quickly train our system to reliably localize
+and grasp the specific objects that they care about for their
+particular application.  As a byproduct, our approach collects data on
+grasping and manipulation that we can use to train general-purpose
+models. Using our approach, a robot can interact with an object for
+ten minutes, and then reliably localize (90\%) and manipulate it (90\%
+successful grasps).
 
 
 %% Robots need to pick stuff up.
