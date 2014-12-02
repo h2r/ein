@@ -124,6 +124,7 @@ std::string coreViewName = "Core View";
 std::string rangeogramViewName = "Rangeogram View";
 std::string rangemapViewName = "Range Map View";
 std::string hiRangemapViewName = "Hi Range Map View";
+std::string hiColorRangemapViewName = "Hi Color Range Map View";
 
 
 int reticleHalfWidth = 30;
@@ -256,6 +257,7 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
 Mat rangeogramImage;
 Mat rangemapImage;
 Mat hiRangemapImage;
+Mat hiColorRangemapImage;
 const int totalRangeHistoryLength = 100;
 double rangeHistory[totalRangeHistoryLength];
 int currentRangeHistoryIndex = 0;
@@ -282,6 +284,9 @@ double hiRangeMap[hrmWidth*hrmWidth];
 double hiRangeMapAccumulator[hrmWidth*hrmWidth];
 double hiRangeMapMass[hrmWidth*hrmWidth];
 
+double hiColorRangeMapAccumulator[3*hrmWidth*hrmWidth];
+double hiColorRangeMapMass[hrmWidth*hrmWidth];
+
 double hiRangeMapReg1[hrmWidth*hrmWidth];
 double hiRangeMapReg2[hrmWidth*hrmWidth];
 
@@ -304,8 +309,8 @@ const int parzenKernelHalfWidth = 15;
 const int parzenKernelWidth = 2*parzenKernelHalfWidth+1;
 double parzenKernel[parzenKernelWidth*parzenKernelWidth];
 //double parzenKernelSigma = 2.0;
-double parzenKernelSigma = 1.0; // this is approximately what it should be at 20 cm height
-//double parzenKernelSigma = 0.5; // 
+//double parzenKernelSigma = 1.0; // this is approximately what it should be at 20 cm height
+double parzenKernelSigma = 0.5; // 
 // 13.8 cm high -> 2.2 cm gap
 // 23.8 cm high -> 3.8 cm gap
 // 4 sigma (centered at 0) should be the gap
@@ -444,16 +449,75 @@ Mat wristCamImage;
 int wristCamInit = 0;
 
 // reticle indeces
-const int numCReticleIndeces = 10;
+//x: 439 y: 153 eeRange: 0.102
+//x: 428 y: 153 eeRange: 0.111
+//x: 428 y: 153 eeRange: 0.111
+//x: 418 y: 152 eeRange: 0.12
+//x: 420 y: 152 eeRange: 0.12
+//x: 410 y: 155 eeRange: 0.131
+//x: 411 y: 156 eeRange: 0.131
+//
+//x: 405 y: 153 eeRange: 0.142
+//x: 396 y: 152 eeRange: 0.149
+//x: 394 y: 160 eeRange: 0.16
+//x: 389 y: 154 eeRange: 0.169
+//
+//eeRange: 0.179
+//x: 383 y: 155 eeRange: 0.183
+//x: 383 y: 155 eeRange: 0.191
 const double cReticleIndexDelta = .01;
-const double firstCReticleIndexDepth = 10.0;
-int xCR[numCReticleIndeces];
-int yCR[numCReticleIndeces];
+//const int numCReticleIndeces = 10;
+//const double firstCReticleIndexDepth = .10;
+//const int xCR[numCReticleIndeces] = {439, 428, 419, 410, 405, 396, 394, 389, 383, 383};
+//const int yCR[numCReticleIndeces] = {153, 153, 153, 152, 155, 153, 152, 160, 154, 155};
+const int numCReticleIndeces = 14;
+const double firstCReticleIndexDepth = .08;
+//const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
+//const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 153, 153, 153, 153, 153, 153, 153, 153, 153};
+const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
+const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
+
 
 int getColorReticleX() {
+  // rounding
+  //int tcri = int(round((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
+  //tcri = min(max(tcri,0),numCReticleIndeces-1);
+  //return xCR[tcri];
+
+  // interpolating
+  int tcriL = int(floor((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
+  int tcriH = int(ceil((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
+  tcriL = min(max(tcriL,0),numCReticleIndeces-1);
+  tcriH = min(max(tcriH,0),numCReticleIndeces-1);
+
+  double tcrwL = ((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta) - floor((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta);
+  double tcrwH = ceil((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta) - ((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta);
+
+  if (tcriL == tcriH)
+    return xCR[tcriL];
+  else
+    return int(round(tcrwL*double(xCR[tcriL]) + tcrwH*double(xCR[tcriH])));
 }
 
 int getColorReticleY() {
+  // rounding
+  //int tcri = int(round((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
+  //tcri = min(max(tcri,0),numCReticleIndeces-1);
+  //return yCR[tcri];
+
+  // interpolating
+  int tcriL = int(floor((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
+  int tcriH = int(ceil((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
+  tcriL = min(max(tcriL,0),numCReticleIndeces-1);
+  tcriH = min(max(tcriH,0),numCReticleIndeces-1);
+
+  double tcrwL = ((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta) - floor((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta);
+  double tcrwH = ceil((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta) - ((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta);
+
+  if (tcriL == tcriH)
+    return yCR[tcriL];
+  else
+    return int(round(tcrwL*double(yCR[tcriL]) + tcrwH*double(yCR[tcriH])));
 }
 
 cv::Vec3b getCRColor() {
@@ -466,6 +530,113 @@ cv::Vec3b getCRColor() {
       toReturn = wristCamImage.at<cv::Vec3b>(crY,crX); 
   }
   return toReturn;
+}
+
+void pushSpeedSign(double speed) {
+
+  if (speed == MOVE_FAST)
+    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+  if (speed == MOVE_MEDIUM)
+    pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+  if (speed == MOVE_SLOW)
+    pilot_call_stack.push_back(1114190); // set speed to MOVE_SLOW
+  if (speed == MOVE_VERY_SLOW)
+    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+
+}
+void scanXdirection(double speedOnLines, double speedBetweenLines) {
+
+  int scanPadding = 0;
+  double onLineGain = rmDelta / speedOnLines;
+  double betweenLineGain = rmDelta / speedBetweenLines;
+
+  for (int g = 0; g < ((rmWidth*onLineGain)-(rmHalfWidth*onLineGain))+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('a');
+  }
+  for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('e');
+  }
+  pushSpeedSign(speedOnLines);
+
+  //int gLimit = 1+((rmWidth*betweenLineGain+2*scanPadding)/2);
+  int gLimit = ((rmWidth*betweenLineGain+2*scanPadding));
+  for (int g = 0; g < gLimit; g++) {
+    pilot_call_stack.push_back(1114183); // full render
+    pilot_call_stack.push_back(1048677);
+    pushSpeedSign(speedOnLines);
+    pilot_call_stack.push_back('d');
+    pushSpeedSign(speedBetweenLines);
+    for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('q');
+    }
+    //pushSpeedSign(speedOnLines);
+    //pilot_call_stack.push_back('d');
+    //pushSpeedSign(speedBetweenLines);
+    for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('e');
+    }
+  }
+  for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('q');
+  }
+  for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('a');
+  }
+  pushSpeedSign(speedOnLines);
+
+}
+
+void scanYdirection(double speedOnLines, double speedBetweenLines) {
+
+  int scanPadding = 0;
+  double onLineGain = rmDelta / speedOnLines;
+  double betweenLineGain = rmDelta / speedBetweenLines;
+
+  for (int g = 0; g < ((rmWidth*onLineGain)-(rmHalfWidth*onLineGain))+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('q');
+  }
+  for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('d');
+  }
+  pushSpeedSign(speedOnLines);
+
+  int gLimit = 1+((rmWidth*betweenLineGain+2*scanPadding)/2);
+  for (int g = 0; g < gLimit; g++) {
+    pilot_call_stack.push_back(1114183); // full render
+    pilot_call_stack.push_back(1048677);
+    pushSpeedSign(speedOnLines);
+    pilot_call_stack.push_back('e');
+    pushSpeedSign(speedBetweenLines);
+    for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('a');
+    }
+    pushSpeedSign(speedOnLines);
+    pilot_call_stack.push_back('e');
+    pushSpeedSign(speedBetweenLines);
+    for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
+      pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back('d');
+    }
+  }
+
+  for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('q');
+  }
+  for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
+    pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back('a');
+  }
+  pushSpeedSign(speedOnLines);
 }
 
 void scanYdirectionMedium(double speedOnLines, double speedBetweenLines) {
@@ -722,6 +893,69 @@ void scanXdirectionVerySlow(double speedOnLines, double speedBetweenLines) {
 
 }
 
+Eigen::Quaternionf getGGRotation(int givenGraspGear) {
+  Eigen::Vector3f localUnitX;
+  {
+    Eigen::Quaternionf qin(0, 1, 0, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitX.x() = qout.x();
+    localUnitX.y() = qout.y();
+    localUnitX.z() = qout.z();
+  }
+
+  Eigen::Vector3f localUnitY;
+  {
+    Eigen::Quaternionf qin(0, 0, 1, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitY.x() = qout.x();
+    localUnitY.y() = qout.y();
+    localUnitY.z() = qout.z();
+  }
+
+  Eigen::Vector3f localUnitZ;
+  {
+    Eigen::Quaternionf qin(0, 0, 0, 1);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitZ.x() = qout.x();
+    localUnitZ.y() = qout.y();
+    localUnitZ.z() = qout.z();
+  }
+
+  double deltaTheta = double(givenGraspGear)*2.0*3.1415926/double(totalGraspGears);
+  double sinBuff = 0.0;
+  double angleRate = 1.0;
+  Eigen::Quaternionf eeBaseQuat(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+  sinBuff = sin(angleRate*0.0/2.0);
+  Eigen::Quaternionf eeRotatorX(cos(angleRate*0.0/2.0), localUnitX.x()*sinBuff, localUnitX.y()*sinBuff, localUnitX.z()*sinBuff);
+  sinBuff = sin(angleRate*0.0/2.0);
+  Eigen::Quaternionf eeRotatorY(cos(angleRate*0.0/2.0), localUnitY.x()*sinBuff, localUnitY.y()*sinBuff, localUnitY.z()*sinBuff);
+  sinBuff = sin(angleRate*deltaTheta/2.0);
+  Eigen::Quaternionf eeRotatorZ(cos(angleRate*deltaTheta/2.0), localUnitZ.x()*sinBuff, localUnitZ.y()*sinBuff, localUnitZ.z()*sinBuff);
+  eeRotatorX.normalize();
+  eeRotatorY.normalize();
+  eeRotatorZ.normalize();
+
+  eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * eeBaseQuat;
+  eeBaseQuat.normalize();
+
+  return eeBaseQuat;
+}
+
+void setGGRotation(int thisGraspGear) {
+  Eigen::Quaternionf eeBaseQuat = getGGRotation(thisGraspGear);
+
+  currentEEPose.qx = eeBaseQuat.x();
+  currentEEPose.qy = eeBaseQuat.y();
+  currentEEPose.qz = eeBaseQuat.z();
+  currentEEPose.qw = eeBaseQuat.w();
+}
+
 
 void rangeCallback(const sensor_msgs::Range& range) {
 
@@ -833,6 +1067,15 @@ void rangeCallback(const sensor_msgs::Range& range) {
     double dY = 0;
 
     {
+      // XXX 
+      //Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
+      //Eigen::Quaternionf crane2quat(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+
+      //Eigen::Quaternionf crane2quat = getGGRotation(currentGraspGear);
+      //Eigen::Quaternionf gear0offset(0.0, ggX[currentGraspGear], ggY[currentGraspGear], 0.0); // for initial calibration
+      //irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+
+
       Eigen::Quaternionf ceeQuat(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
       Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
       Eigen::Quaternionf irSensorStartGlobal(
@@ -944,6 +1187,19 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  int kpx = px - (hiiX - parzenKernelHalfWidth);
 	  int kpy = py - (hiiY - parzenKernelHalfWidth);
 
+	  cv::Vec3b thisSample = getCRColor(); 
+	  hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] += thisSample[0]*parzenKernel[kpx + kpy*parzenKernelWidth];
+	  hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] += thisSample[1]*parzenKernel[kpx + kpy*parzenKernelWidth];
+	  hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] += thisSample[2]*parzenKernel[kpx + kpy*parzenKernelWidth];
+	  hiColorRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
+
+	  double denomC = max(hiColorRangeMapMass[px + py*hrmWidth], EPSILON);
+	  int tRed = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] / denomC))));
+	  int tGreen = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] / denomC))));
+	  int tBlue = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] / denomC))));
+
+	  hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
+
 	  //hiRangeMapAccumulator[px + py*hrmWidth] += eeRange*parzenKernel[kpx + kpy*parzenKernelWidth];
 	  hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
 	  hiRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
@@ -1011,6 +1267,9 @@ void rangeCallback(const sensor_msgs::Range& range) {
     Mat hRIT;
     cv::resize(hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
     cv::imshow(hiRangemapViewName, hRIT);
+    Mat hCRIT;
+    cv::resize(hiColorRangemapImage, hCRIT, cv::Size(0,0), 2, 2);
+    cv::imshow(hiColorRangemapViewName, hCRIT);
   }
   #ifdef DEBUG
   cout << "debug 1" << endl;
@@ -1233,63 +1492,6 @@ void update_baxter(ros::NodeHandle &n) {
 
   bfc++;
 //cout << "block9" << endl;
-}
-
-void setGGRotation(int thisGraspGear) {
-  Eigen::Vector3f localUnitX;
-  {
-    Eigen::Quaternionf qin(0, 1, 0, 0);
-    Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
-    qout = eeqform * qin * eeqform.conjugate();
-    localUnitX.x() = qout.x();
-    localUnitX.y() = qout.y();
-    localUnitX.z() = qout.z();
-  }
-
-  Eigen::Vector3f localUnitY;
-  {
-    Eigen::Quaternionf qin(0, 0, 1, 0);
-    Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
-    qout = eeqform * qin * eeqform.conjugate();
-    localUnitY.x() = qout.x();
-    localUnitY.y() = qout.y();
-    localUnitY.z() = qout.z();
-  }
-
-  Eigen::Vector3f localUnitZ;
-  {
-    Eigen::Quaternionf qin(0, 0, 0, 1);
-    Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
-    qout = eeqform * qin * eeqform.conjugate();
-    localUnitZ.x() = qout.x();
-    localUnitZ.y() = qout.y();
-    localUnitZ.z() = qout.z();
-  }
-
-  double deltaTheta = double(thisGraspGear)*2.0*3.1415926/double(totalGraspGears);
-  double sinBuff = 0.0;
-  double angleRate = 1.0;
-  Eigen::Quaternionf eeBaseQuat(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
-  sinBuff = sin(angleRate*0.0/2.0);
-  Eigen::Quaternionf eeRotatorX(cos(angleRate*0.0/2.0), localUnitX.x()*sinBuff, localUnitX.y()*sinBuff, localUnitX.z()*sinBuff);
-  sinBuff = sin(angleRate*0.0/2.0);
-  Eigen::Quaternionf eeRotatorY(cos(angleRate*0.0/2.0), localUnitY.x()*sinBuff, localUnitY.y()*sinBuff, localUnitY.z()*sinBuff);
-  sinBuff = sin(angleRate*deltaTheta/2.0);
-  Eigen::Quaternionf eeRotatorZ(cos(angleRate*deltaTheta/2.0), localUnitZ.x()*sinBuff, localUnitZ.y()*sinBuff, localUnitZ.z()*sinBuff);
-  eeRotatorX.normalize();
-  eeRotatorY.normalize();
-  eeRotatorZ.normalize();
-
-  eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * eeBaseQuat;
-  eeBaseQuat.normalize();
-
-  currentEEPose.qx = eeBaseQuat.x();
-  currentEEPose.qy = eeBaseQuat.y();
-  currentEEPose.qz = eeBaseQuat.z();
-  currentEEPose.qw = eeBaseQuat.w();
 }
 
 void timercallback1(const ros::TimerEvent&) {
@@ -2054,6 +2256,14 @@ void timercallback1(const ros::TimerEvent&) {
 	  Mat vCrop = hiRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
 	  vCrop = backColor;
 	}
+	for (int h = 0; h < hrmWidth; h++) {
+	  for (int i = 0; i < hrmWidth; i++) {
+	    hiColorRangeMapMass[h + i*hrmWidth] = 0;
+	    for (int j = 0; j < 3; j++) {
+	      hiColorRangeMapAccumulator[h + i*hrmWidth + j*hrmWidth*hrmWidth] = 0;
+	    }
+	  }
+	}
       }
       break;
     case 1048677: // numlock + e
@@ -2381,6 +2591,7 @@ void timercallback1(const ros::TimerEvent&) {
 	cv::moveWindow(hiRangemapViewName, uiOffsetX+coreWidth, uiOffsetY);
 	uiOffsetY += rmiHeight + menuHeight;
 	cv::moveWindow(coreViewName, uiOffsetX, uiOffsetY);
+	cv::moveWindow(hiColorRangemapViewName, uiOffsetX, uiOffsetY);
 	uiOffsetX += coreWidth;
 	cv::moveWindow(wristViewName, uiOffsetX, uiOffsetY);
 	uiOffsetX += coreWidth;
@@ -3044,7 +3255,10 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048630); // find best grasp
 
 	//pilot_call_stack.push_back(1048689); // load scan program
-	scanXdirectionMedium(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	//scanXdirectionMedium(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	//scanXdirection(MOVE_SLOW, MOVE_SLOW); // load scan program
+	//scanXdirection(MOVE_MEDIUM, MOVE_MEDIUM); // load scan program
+	scanXdirection(MOVE_FAST, MOVE_FAST); // load scan program
 	pilot_call_stack.push_back(1048621); // change offset of position based on current gear 
 	pilot_call_stack.push_back(1114150); // prepare for search
 
@@ -3059,7 +3273,10 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048630); // find best grasp
 
 	//pilot_call_stack.push_back(1048689); // load scan program
-	scanXdirectionMedium(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	//scanXdirectionMedium(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	//scanXdirection(MOVE_SLOW, MOVE_SLOW); // load scan program
+	//scanXdirection(MOVE_MEDIUM, MOVE_MEDIUM); // load scan program
+	scanXdirection(MOVE_FAST, MOVE_FAST); // load scan program
 	pilot_call_stack.push_back(1114150); // prepare for search
 
 	pilot_call_stack.push_back(1048695); // clear scan history
@@ -3381,6 +3598,28 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   wristCamImage = cv_ptr->image.clone();
   wristCamInit = 1;
 
+  // draw color reticle
+  {
+    for (int cr = 0; cr < numCReticleIndeces; cr++) {
+      cv::Point outTop = cv::Point(xCR[cr]-3, yCR[cr]-3);
+      cv::Point outBot = cv::Point(xCR[cr]+3, yCR[cr]+3);
+      cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
+      cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
+      rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(0,192,0)); 
+      rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(0,64,0)); 
+    }
+    {
+      int tcrx = getColorReticleX();
+      int tcry = getColorReticleY();
+      cv::Point outTop = cv::Point(tcrx-5, tcry-5);
+      cv::Point outBot = cv::Point(tcrx+5, tcry+5);
+      cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
+      cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
+      rectangle(cv_ptr->image, outTop, outBot, cv::Scalar(227,104,193)); 
+      rectangle(cv_ptr->image, inTop, inBot, cv::Scalar(133,104,109)); 
+    }
+  }
+
   {
     cv::Point outTop = cv::Point(reticle.px-reticleHalfWidth, reticle.py-reticleHalfWidth);
     cv::Point outBot = cv::Point(reticle.px+reticleHalfWidth, reticle.py+reticleHalfWidth);
@@ -3617,6 +3856,7 @@ int main(int argc, char **argv) {
   rangeogramViewName = "Rangeogram View " + left_or_right_arm;
   rangemapViewName = "Range Map View " + left_or_right_arm;
   hiRangemapViewName = "Hi Range Map View " + left_or_right_arm;
+  hiColorRangemapViewName = "Hi Color Range Map View " + left_or_right_arm;
 
 
   cv::namedWindow(wristViewName);
@@ -3671,6 +3911,8 @@ int main(int argc, char **argv) {
   }
   hiRangemapImage = Mat(hrmiHeight, 3*hrmiWidth, CV_8UC3);
 
+  hiColorRangemapImage = Mat(hrmiHeight, hrmiWidth, CV_8UC3);
+
   rangeogramImage = Mat(rggHeight, rggWidth, CV_8UC3);
 
   rmcX = 0;
@@ -3724,11 +3966,11 @@ int main(int argc, char **argv) {
   {
     Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
     //Eigen::Quaternionf gear0offset(0.0, 0.0, 0.0, 0.0); // for calibration
-    //Eigen::Quaternionf gear0offset(0.0, ggX[0], ggY[0], 0.0); // for initial calibration
-    Eigen::Quaternionf gear0offset(0.0, .02, .025, 0.0); // for latest ray calibration
+    Eigen::Quaternionf gear0offset(0.0, ggX[0], ggY[0], 0.0); // for initial calibration
+    //Eigen::Quaternionf gear0offset(0.0, .02, .025, 0.0); // for latest ray calibration
 
     // invert the transformation
-    //irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+    irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
 
     // initial calibration
     // irGlobalPositionEEFrame w x y z: 1.62094e-11 -0.0205133 0.0194367 0.00119132
@@ -3740,6 +3982,18 @@ int main(int argc, char **argv) {
     cout << "irGlobalPositionEEFrame w x y z: " << irGlobalPositionEEFrame.w() << " " << 
       irGlobalPositionEEFrame.x() << " " << irGlobalPositionEEFrame.y() << " " << irGlobalPositionEEFrame.z() << endl;
   }
+
+  for (int h = 0; h < hrmWidth; h++) {
+    for (int i = 0; i < hrmWidth; i++) {
+      hiColorRangeMapMass[h + i*hrmWidth] = 0;
+      for (int j = 0; j < 3; j++) {
+	hiColorRangeMapAccumulator[h + i*hrmWidth + j*hrmWidth*hrmWidth] = 0;
+      }
+    }
+  }
+  
+
+
 
   ros::spin();
   
