@@ -175,7 +175,8 @@ eePose crane2right = {.px = 0.617214, .py = -0.301658, .pz = 0.0533165,
 		     //.qx = -0.0139279, .qy = 0.999439, .qz = -0.00107611, .qw = 0.0304367}; // original
 		     //.qx = -0.0130087, .qy = 0.998957, .qz = -0.0310543, .qw = 0.0308408}; // 6D corrected 
 		     //.qx = -0.0120778, .qy = 0.997576, .qz = -0.0610046, .qw = 0.0312171}; // 12D corrected 
-		     .qx = -0.0138943, .qy = 0.999903, .qz = -0.000868458, .qw = 0.000435656}; // ray calibrated
+		     //.qx = -0.0138943, .qy = 0.999903, .qz = -0.000868458, .qw = 0.000435656}; // ray calibrated
+		     .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 
 
 eePose crane3right = {.px = 0.668384, .py = 0.166692, .pz = -0.120018,
@@ -248,6 +249,201 @@ baxter_core_msgs::SolvePositionIK ikRequest;
 ros::ServiceClient ikClient;
 ros::Publisher joint_mover;
 ros::Publisher gripperPub;
+
+
+
+
+const int imRingBufferSize = 100;
+const int epRingBufferSize = 500;
+const int rgRingBufferSize = 500;
+
+int imRingBufferPos = 0;
+int epRingBufferPos = 0;
+int rgRingBufferPos = 0;
+
+std::vector<Mat> imRingBuffer;
+std::vector<geometry_msgs::Pose> epRingBuffer;
+std::vector<double> rgRingBuffer;
+
+std::vector<ros::Time> imRBTimes;
+std::vector<ros::Time> epRBTimes;
+std::vector<ros::Time> rgRBTimes;
+
+Vec3b getRingPixelAtTime(ros::Time t) {
+
+}
+double getRingRangeAtTime(ros::Time t) {
+  if (rgRingBufferPos <= 0) {
+    return -1.0;
+  } else if (rgRingBufferPos <= rgRingBufferSize-1) {
+    int earliestSlot = 0;
+    ros::Duration deltaTdur = t - rgRBTimes[earliestSlot];
+    // if the request comes before our earliest record, deny
+    if (deltaTdur.toSec() <= 0.0) {
+      cout << "Denied out of order range value in getRingRangeAtTime(): Too small." << endl;
+      return -1.0;
+    } else {
+      // we only want to respond to the request if it lies within two known points
+      for (int s = earliestSlot; s < rgRingBufferPos-1; s++) {
+	ros::Duration deltaTdurPre = t - rgRBTimes[s];
+	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
+	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	  double r1 = rgRingBuffer[s];
+	  double r2 = rgRingBuffer[s+1];
+	  double w1 = deltaTdurPre.toSec();
+	  double w2 = -deltaTdurPre.toSec();
+	  double totalWeight = w1 + w2;
+	  w1 = w1 / totalWeight;
+	  w2 = w2 / totalWeight;
+	  double value = w1*r1 + w2*r2;
+	  return value;
+	}
+      }
+      // if we didn't find it we should return failure
+      cout << "Denied out of order range value in getRingRangeAtTime(): Too large." << endl;
+      return -1.0;
+    }
+  } else if (rgRingBufferPos == rgRingBufferSize) {
+    int earliestSlot = 1;
+    ros::Duration deltaTdur = t - rgRBTimes[earliestSlot];
+    // if the request comes before our earliest record, deny
+    if (deltaTdur.toSec() <= 0.0) {
+      cout << "Denied out of order range value in getRingRangeAtTime(): Too small." << endl;
+      return -1.0;
+    } else {
+      // we only want to respond to the request if it lies within two known points
+      for (int s = earliestSlot; s < rgRingBufferPos-1; s++) {
+	ros::Duration deltaTdurPre = t - rgRBTimes[s];
+	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
+	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	  double r1 = rgRingBuffer[s];
+	  double r2 = rgRingBuffer[s+1];
+	  double w1 = deltaTdurPre.toSec();
+	  double w2 = -deltaTdurPre.toSec();
+	  double totalWeight = w1 + w2;
+	  w1 = w1 / totalWeight;
+	  w2 = w2 / totalWeight;
+	  double value = w1*r1 + w2*r2;
+	  return value;
+	}
+      }
+      // if we didn't find it we should return failure
+      cout << "Denied out of order range value in getRingRangeAtTime(): Too large." << endl;
+      return -1.0;
+    }
+  } else if (rgRingBufferPos <= 2*rgRingBufferSize-1) {
+    int earliestSlot = rgRingBufferPos % rgRingBufferSize;
+    ros::Duration deltaTdur = t - rgRBTimes[earliestSlot];
+    // if the request comes before our earliest record, deny
+    if (deltaTdur.toSec() <= 0.0) {
+      cout << "Denied out of order range value in getRingRangeAtTime(): Too small." << endl;
+      return -1.0;
+    } else {
+      // we only want to respond to the request if it lies within two known points
+      for (int s = earliestSlot; s < rgRingBufferPos-1; s++) {
+	ros::Duration deltaTdurPre = t - rgRBTimes[s];
+	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
+	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	  double r1 = rgRingBuffer[s];
+	  double r2 = rgRingBuffer[s+1];
+	  double w1 = deltaTdurPre.toSec();
+	  double w2 = -deltaTdurPre.toSec();
+	  double totalWeight = w1 + w2;
+	  w1 = w1 / totalWeight;
+	  w2 = w2 / totalWeight;
+	  double value = w1*r1 + w2*r2;
+	  return value;
+	}
+      }
+      for (int s = 0; s < earliestSlot-1; s++) {
+	ros::Duration deltaTdurPre = t - rgRBTimes[s];
+	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
+	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	  double r1 = rgRingBuffer[s];
+	  double r2 = rgRingBuffer[s+1];
+	  double w1 = deltaTdurPre.toSec();
+	  double w2 = -deltaTdurPre.toSec();
+	  double totalWeight = w1 + w2;
+	  w1 = w1 / totalWeight;
+	  w2 = w2 / totalWeight;
+	  double value = w1*r1 + w2*r2;
+	  return value;
+	}
+      }
+      // if we didn't find it we should return failure
+      cout << "Denied out of order range value in getRingRangeAtTime(): Too large." << endl;
+      return -1.0;
+    }
+  } else {
+    cout << "WARNING: rgRingBuffer has reached an invalid state." << endl;
+  }
+}
+geometry_msgs::Pose getRingPoseAtTime(ros::Time t) {
+
+  // XXX TODO for now we don't interpolate the quaternion. the right thing to do is slerp.
+
+}
+
+void setRingImageAtTime(ros::Time t, Mat& imToSet) {
+
+}
+void setRingRangeAtTime(ros::Time t, double rangeToSet) {
+  int slot = rgRingBufferPos % rgRingBufferSize;
+  if (rgRingBufferPos <= 0) {
+    rgRingBuffer[0] = rangeToSet;
+    rgRBTimes[0] = t;
+    rgRingBufferPos = 1;
+  } else if (rgRingBufferPos <= rgRingBufferSize-1) { // pattern A
+    ros::Duration deltaTdur = rgRBTimes[slot-1] - t;
+    if (deltaTdur.toSec() <= 0.0) {
+      cout << "Dropped out of order range value in setRingRangeAtTime()." << endl;
+    } else {
+      rgRingBuffer[slot] = rangeToSet;
+      rgRBTimes[slot] = t;
+      rgRingBufferPos++;
+    }
+  } else if (rgRingBufferPos == rgRingBufferSize) { // pattern B
+    ros::Duration deltaTdur = rgRBTimes[rgRingBufferSize-1] - t;
+    if (deltaTdur.toSec() <= 0.0) {
+      cout << "Dropped out of order range value in setRingRangeAtTime()." << endl;
+    } else {
+      rgRingBuffer[slot] = rangeToSet;
+      rgRBTimes[slot] = t;
+      rgRingBufferPos++;
+    }
+  } else if (rgRingBufferPos < 2*rgRingBufferSize-1) { // pattern A
+    ros::Duration deltaTdur = rgRBTimes[slot-1] - t;
+    if (deltaTdur.toSec() <= 0.0) {
+      cout << "Dropped out of order range value in setRingRangeAtTime()." << endl;
+    } else {
+      rgRingBuffer[slot] = rangeToSet;
+      rgRBTimes[slot] = t;
+      rgRingBufferPos++;
+    }
+  } else if (rgRingBufferPos >= 2*rgRingBufferSize-1) { // pattern B
+    ros::Duration deltaTdur = rgRBTimes[rgRingBufferSize-1] - t;
+    if (deltaTdur.toSec() <= 0.0) {
+      cout << "Dropped out of order range value in setRingRangeAtTime()." << endl;
+    } else {
+      rgRingBuffer[slot] = rangeToSet;
+      rgRBTimes[slot] = t;
+      rgRingBufferPos = rgRingBufferSize;
+    }
+  }
+}
+void setRingPoseAtTime(ros::Time t, geometry_msgs::Pose poseToSet) {
+
+}
+
+// we make use of a monotonicity assumption
+int lastRecordedRangeIndex = -1;
+int lastUsedPoseIndex = -1;
+int lastUsedImIndex = -1;
+// if the current index passes the last recorded index, then we just proceed
+//  and lose the ranges we skipped over. alert when this happens
+void recordReadyRangeReadings() {
+
+}
 
 
 void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
@@ -898,7 +1094,8 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
   {
     Eigen::Quaternionf qin(0, 1, 0, 0);
     Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitX.x() = qout.x();
     localUnitX.y() = qout.y();
@@ -909,7 +1106,8 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
   {
     Eigen::Quaternionf qin(0, 0, 1, 0);
     Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitY.x() = qout.x();
     localUnitY.y() = qout.y();
@@ -920,7 +1118,8 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
   {
     Eigen::Quaternionf qin(0, 0, 0, 1);
     Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitZ.x() = qout.x();
     localUnitZ.y() = qout.y();
@@ -930,7 +1129,8 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
   double deltaTheta = double(givenGraspGear)*2.0*3.1415926/double(totalGraspGears);
   double sinBuff = 0.0;
   double angleRate = 1.0;
-  Eigen::Quaternionf eeBaseQuat(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+  //Eigen::Quaternionf eeBaseQuat(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+  Eigen::Quaternionf eeBaseQuat(0, 0, 1, 0);
   sinBuff = sin(angleRate*0.0/2.0);
   Eigen::Quaternionf eeRotatorX(cos(angleRate*0.0/2.0), localUnitX.x()*sinBuff, localUnitX.y()*sinBuff, localUnitX.z()*sinBuff);
   sinBuff = sin(angleRate*0.0/2.0);
@@ -956,6 +1156,8 @@ void setGGRotation(int thisGraspGear) {
   currentEEPose.qw = eeBaseQuat.w();
 }
 
+int curseReticleX = 0;
+int curseReticleY = 0;
 
 void rangeCallback(const sensor_msgs::Range& range) {
 
@@ -2221,7 +2423,7 @@ void timercallback1(const ros::TimerEvent&) {
       break;
     case 1048695: // numlock + w
       {
-	cout << "Set rmcX and rmcY. Resetting maps." << rmcX << " " << trueEEPose.position.x << endl;
+	cout << "Set rmcX and rmcY. Resetting maps. " << rmcX << " " << trueEEPose.position.x << endl;
         rmcX = trueEEPose.position.x;
 	rmcY = trueEEPose.position.y;
 	for (int rx = 0; rx < rmWidth; rx++) {
@@ -2779,6 +2981,22 @@ void timercallback1(const ros::TimerEvent&) {
 	  line(hiRangemapImage, l1p1, l1p2, backColor);
 	  line(hiRangemapImage, l2p1, l2p2, backColor);
 	}
+	double cttrX = curseReticleX - hrmHalfWidth;
+	double cttrY = curseReticleY - hrmHalfWidth;
+	if ((fabs(cttrX) <= hrmHalfWidth-hiCellWidth) && (fabs(cttrY) <= hrmHalfWidth-hiCellWidth)) {
+	  int ciiX = (int)round(cttrX + hrmHalfWidth);
+	  int ciiY = (int)round(cttrY + hrmHalfWidth);
+
+	  double intensity = 128;
+	  cv::Scalar backColor(0,ceil(intensity),ceil(intensity));
+	  cv::Point l1p1 = cv::Point(ciiY+hrmWidth-hiCellWidth,ciiX);
+	  cv::Point l1p2 = cv::Point((ciiY+hrmWidth)+hiCellWidth,ciiX);
+	  cv::Point l2p1 = cv::Point(ciiY+hrmWidth,ciiX-hiCellWidth);
+	  cv::Point l2p2 = cv::Point((ciiY+hrmWidth),ciiX+hiCellWidth);
+	  line(hiRangemapImage, l1p1, l1p2, backColor);
+	  line(hiRangemapImage, l2p1, l2p2, backColor);
+	  cout << "printing curseReticle xy: " << curseReticleX << " " << curseReticleY << endl;
+	}
 	{
 	  double intensity = 128;
 	  cv::Scalar backColor(0,ceil(intensity),0);
@@ -3085,6 +3303,8 @@ void timercallback1(const ros::TimerEvent&) {
     // numlock + *
     case 1114154:
       {
+	double lineSpeed = MOVE_MEDIUM;
+	double betweenSpeed = MOVE_MEDIUM;
 	pilot_call_stack.push_back('2'); // assume pose at register 2
 	pushNoOps(200);
 	pilot_call_stack.push_back('d'); // move away
@@ -3143,8 +3363,9 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048631); // assume best gear
 	pilot_call_stack.push_back(1048678); // target best grasp
 	pilot_call_stack.push_back(1048630); // find best grasp
-	scanYdirectionVerySlow(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	scanYdirection(lineSpeed, betweenSpeed); // load scan program
 	pilot_call_stack.push_back(1114150); // prepare for search
+	//pilot_call_stack.push_back(1048621); // change offset of position based on current gear 
 
 	pilot_call_stack.push_back(1048683); // turn on scanning
 	pilot_call_stack.push_back(1114183); // full render
@@ -3155,7 +3376,7 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048690); // load map to register 1
 	pilot_call_stack.push_back(1048678); // target best grasp
 	pilot_call_stack.push_back(1048630); // find best grasp
-	scanYdirectionVerySlow(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	scanYdirection(lineSpeed, betweenSpeed); // load scan program
 	pilot_call_stack.push_back(1114150); // prepare for search
 
 	pilot_call_stack.push_back(1048683); // turn on scanning
@@ -3166,8 +3387,9 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048690); // load map to register 1
 	pilot_call_stack.push_back(1048678); // target best grasp
 	pilot_call_stack.push_back(1048630); // find best grasp
-	scanXdirectionVerySlow(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	scanXdirection(lineSpeed, betweenSpeed); // load scan program
 	pilot_call_stack.push_back(1114150); // prepare for search
+	//pilot_call_stack.push_back(1048621); // change offset of position based on current gear 
 
 	pilot_call_stack.push_back(1048683); // turn on scanning
 	pilot_call_stack.push_back(1114183); // full render
@@ -3178,7 +3400,7 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048690); // load map to register 1
 	pilot_call_stack.push_back(1048678); // target best grasp
 	pilot_call_stack.push_back(1048630); // find best grasp
-	scanXdirectionVerySlow(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
+	scanXdirection(lineSpeed, betweenSpeed); // load scan program
 	pilot_call_stack.push_back(1114150); // prepare for search
 
 	pilot_call_stack.push_back(1048695); // clear scan history
@@ -3259,7 +3481,7 @@ void timercallback1(const ros::TimerEvent&) {
 	//scanXdirection(MOVE_SLOW, MOVE_SLOW); // load scan program
 	//scanXdirection(MOVE_MEDIUM, MOVE_MEDIUM); // load scan program
 	scanXdirection(MOVE_FAST, MOVE_FAST); // load scan program
-	pilot_call_stack.push_back(1048621); // change offset of position based on current gear 
+	//pilot_call_stack.push_back(1048621); // change offset of position based on current gear 
 	pilot_call_stack.push_back(1114150); // prepare for search
 
 	pilot_call_stack.push_back(1048683); // turn on scanning
@@ -3396,6 +3618,34 @@ void timercallback1(const ros::TimerEvent&) {
       {
 	if (currentGraspGear >= 4)
 	  currentEEPose.py += 0.0025;
+      }
+      break;
+    // numlock + uparrow
+    case 1113938:
+      {
+	curseReticleY = max(curseReticleY - 1, 0);
+	cout << "curseReticle xy: " << curseReticleX << " " << curseReticleY << endl;
+      }
+      break;
+    // numlock + leftarrow 
+    case 1113937:
+      {
+	curseReticleX = max(curseReticleX - 1, 0);
+	cout << "curseReticle xy: " << curseReticleX << " " << curseReticleY << endl;
+      }
+      break;
+    // numlock + downarrow 
+    case 1113940:
+      {
+	curseReticleY = min(curseReticleY + 1, hrmWidth-1);
+	cout << "curseReticle xy: " << curseReticleX << " " << curseReticleY << endl;
+      }
+      break;
+    // numlock + rightarrow
+    case 1113939:
+      {
+	curseReticleX = min(curseReticleX + 1, hrmWidth-1);
+	cout << "curseReticle xy: " << curseReticleX << " " << curseReticleY << endl;
       }
       break;
     //////////
@@ -3966,8 +4216,9 @@ int main(int argc, char **argv) {
   {
     Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
     //Eigen::Quaternionf gear0offset(0.0, 0.0, 0.0, 0.0); // for calibration
-    Eigen::Quaternionf gear0offset(0.0, ggX[0], ggY[0], 0.0); // for initial calibration
-    //Eigen::Quaternionf gear0offset(0.0, .02, .025, 0.0); // for latest ray calibration
+    //Eigen::Quaternionf gear0offset(0.0, ggX[0], ggY[0], 0.0); // for initial calibration
+    Eigen::Quaternionf gear0offset(0.0, .023, .022, 0.0); // for latest ray calibration
+    //Eigen::Quaternionf gear0offset(0.0, .023, .023, 0.0); // eyeball correction
 
     // invert the transformation
     irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
@@ -3992,8 +4243,13 @@ int main(int argc, char **argv) {
     }
   }
   
+  imRingBuffer.resize(imRingBufferSize);
+  epRingBuffer.resize(epRingBufferSize);
+  rgRingBuffer.resize(rgRingBufferSize);
 
-
+  imRBTimes.resize(imRingBufferSize);
+  epRBTimes.resize(epRingBufferSize);
+  rgRBTimes.resize(rgRingBufferSize);
 
   ros::spin();
   
