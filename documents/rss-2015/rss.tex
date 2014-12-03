@@ -1,19 +1,17 @@
 \documentclass[conference]{IEEEtran}
 \usepackage{times}
+\usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{latexsym,amssymb,amsmath} % for \Box, \mathbb, split, etc.
-% \usepackage[]{showkeys} % shows label names
-\usepackage{cite} % sorts citation numbers appropriately
-\usepackage{path}
+%\usepackage{path}
 \usepackage{url}
 \usepackage{verbatim}
-\usepackage[pdftex]{graphicx}
 \usepackage[numbers]{natbib}
-\usepackage{amsfonts, amssymb, amsmath}
-\usepackage[usenames,dvipsnames]{color}
+\usepackage{amsfonts}
+\usepackage{color}
 
-\newcommand{\stnote}[1]{\textcolor{Blue}{\textbf{ST: #1}}}
-\newcommand{\jgonote}[1]{\textcolor{Green}{\textbf{JGO: #1}}}
+\newcommand{\stnote}[1]{\textcolor{blue}{\textbf{ST: #1}}}
+\newcommand{\jgonote}[1]{\textcolor{green}{\textbf{JGO: #1}}}
 
 \usepackage{algorithmic}
 
@@ -75,7 +73,7 @@
 
 
 \begin{document}
-\DeclareGraphicsExtensions{.jpg}
+%\DeclareGraphicsExtensions{.jpg}
 
 
 \title{\mytitle{}}
@@ -342,113 +340,133 @@ algorithm ~\citep{} to find the optimal value of $K$ conditioned on the fixed va
 parameters. This problem is not necessarily convex and so we run the inside loop of our algorithm
 until we have converged to a local minimum.
 
-\section{General Robotic Autonomous Training Algorithm}
-\label{sec:training}
-We teach the system by finding its weaknesses and training it to overcome them.
 
-Our framework structures the training in a way that scales. 
+\section{Simultaneous Localization and Mapping of Tabletop Objects}
 
-When the robot asks for help, we can ground ambiguous object examples to the right class
-and retrain the models online.
-
-\subsection{GRATA Definition}
-
-In the following algorithm design pattern, 
-$X$ is the set of ground truth labels for the specified problem,
-$Y$ is the set of all possible observations for the specified problem,
-\mbox{$D \subset X \times Y$} is the set of all possible training pairs observable in our problem instance,
-\mbox{$\{T_i\}_{i \in \mathbb{N}}$} is a sequence of curated sets of training examples (where \mbox{$\forall i \in \mathbb{N}, T_i \subset D$}),  
-$\mathcal{T}$ is the power set of $D$,
-\mbox{$O: \mathcal{T} \to \mathbb{R}$} is the objective function that we are trying to optimize 
-(which includes the implementation of the physical actions the robot must take to evaluate it),
-\mbox{$S: \mathbb{N} \to \mathbb{R}$} is the objective function history (i.e. \mbox{$S(i) = O(T_i)$}),
-$\mathcal{S}$ is the set of all possible objective function histories,
-\mbox{$H: \mathcal{S} \times \mathbb{N} \to \{0,1\}$} is a function which decides whether to ask for help at
-a specified time step,
-\mbox{$\mathcal{C} = \mathcal{T} \times \mathcal{S} \times \mathbb{N}$} is the complete training state,
-\mbox{$G: \mathcal{C}$} is a function which implements asking for and receiving help (e.g. auditing and grounding data under bad conditions
-or asking for a new collections strategy or a crucial example),
-\mbox{$P: \mathcal{C} \to \{0,1\}$} is a function that evaluates a stopping criterion and decides whether to continue training,
-and \mbox{$L: \mathcal{C} \to D$} a function that proposes a new ground truth $x \in X$ and collects a corresponding observation $y \in Y$ to form
-a new training example \mbox{$(x,y) = d \in D$}. 
-
-\begin{table}
-  \begin{center}
-  \caption{The list of symbols we use in the definition of GRATA.}
-  \begin{tabular}{lr}
-    \toprule
-    Symbol & Meaning \\ 
-    \midrule
-    $X$  & Ground Truth Labels \\
-    $Y$  & Observations \\
-    $D \subset X \times Y$  & Universe of Observable Data \\
-    $\{T_i\}_{i \in \mathbb{N}}$  & Sequence of Training Sets \\
-    $\mathcal{T} = 2^D$ & All Possible Training Sets \\
-    $O: \mathcal{T} \to \mathbb{R}$ & Objective Function \\
-    $S: \mathbb{N} \to \mathbb{R}$  & Objective Function History \\
-    $\mathcal{S} = \{S: \mathbb{N} \to \mathbb{R}\}$  & All Possible Objective Function Histories \\
-    $H: \mathcal{S} \times \mathbb{N} \to \{0,1\}$  & Help Criterion \\
-    $\mathcal{C} = \mathcal{T} \times \mathcal{S} \times \mathbb{N}$  & Complete Training Set \\
-    $G: \mathcal{C}$  & Help Request \\
-    $P: \mathcal{C} \to \{0,1\}$  & Stopping Criterion \\
-    $L: \mathcal{C} \to D$  & Sample Proposal \\
-  \bottomrule
-  \end{tabular}
-  \end{center}
-\end{table}
-
-
-
-Applying GRATA to a problem involves defining the above quantities and implementing the high level algorithm
-in the figure ~\citep{}.
+We aim to autonomously acquire instance-based models of objects based
+on exploration.  To carry out this inference, we follow approaches
+based on recursive state estimation~\citep{thrun08} and
+SLAM~\citep{durrant06}.  In our approach, the map that the robot is
+acquiring is not an occupancy grid or landmark locations, as in
+conventional SLAM, but rather knowledge of the appearance and grasp
+points of the objects being mapped.  The localization problem is
+estimating the pose of these objects at each time step.  We can also
+jointly estimate the pose of the robot's end effector, but this pose
+is often known with high accuracy in the local coordinate system.  The
+graphical model for our approach appears in Figure~\ref{fig:model}.
 
 \begin{figure}
-  \textbf{GRATA}
-  \begin{algorithmic}
-  \STATE $t\gets 1$
-  \STATE $c\gets 1$
-  \STATE $T_1 = \emptyset$
-  \STATE $S(1)\gets 0$
-  \STATE $i\gets 1$
-  \WHILE{$c$}
-    \IF {$H(S,i) == 1$}
-      \STATE $G(T_i, S,i)$
-    \ELSE
-      \STATE $d\gets L(T_i, S, i)$
-      \STATE $T_{i+1}\gets T_i \cup \{d\}$
-    \ENDIF
-    \STATE $i\gets i+1$
-    \STATE $S(i)\gets O(T_i)$
-    \STATE $c\gets P(T_i, S, i)$
-  \ENDWHILE
-  \end{algorithmic}
-  \caption{The high-level generalized robotic automatic training algorithm (GRATA) which we employ.}
+\centering
+\includegraphics{model-crop.pdf}
+\caption{Graphical model for our proposed approach.\label{fig:model}}
 \end{figure}
 
-\subsection{GRATA Simulation}
-Understanding the behavior of GRATA requires running the system many times. This would be impractical
-to do on the actual robot. It is necessary use a simulator for the process so that we can dramatically shorten the
-experimental iteration time. A dense sampling strategy is a good baseline and the data collected can
-be queried by an active learning technique to simulate the process of data collection.
+We define the following variables:
+\begin{itemize}
+\item $x_t = \left< r_t, o_1 \dots o_k \right>$.  Our state consists of
+  the pose of the robot's end effector, $r_t$, along with the pose and
+  category of all the objects currently being tracked, $o_1 \dots o_k$.
+\item $z_t = \left<r, g, b, d\right>$.  Our observation consists of
+  the pixel values and depth generated from a sensor on the robot's
+  end effector.  This sensor could be a depth camera from the Kinect;
+  in our experiments we use a one-pixel depth camera created from
+  Baxter's IR sensor and wrist camera.
+\item $u_t = \left\{\left<x, y, z, r, p, y\right>\right.$ Alternately,
+  the robot could attempt to grasp the object, leading to a new
+  configuration of objects in the workspace.
+\item $m$ The map consists of a colored voxel map for each object. 
+\end{itemize}
 
-Using a dense sampling strategy, we approximate the set $D$ and can then run offline experiments using other
-sampling strategies. However, the numbers we report are on actual executions of the system where
-the robot gathers the data online.
+We aim to jointly estimate a distribution over object poses along with
+the map, $m$:
+\begin{align}
+p(x_t, m |  z_0 \dots z_t, u_0 \dots u_t)
+\end{align}
 
+We formulate this problem as a Bayes' filter with a time update:
+\begin{align}
+p&(x_t, m | z_0 \dots z_{t-1}, u_0 \dots u_t) = \notag\\
+&\int p(x_t | x_{t-1}, u_t) \times p(x_{t-1}, m | z_{0} \dots z_{t-1}, u_{0} \dots u_{t-1}) dx_{t-1}
+\end{align}
 
-\section{Applications of GRATA}
+and a measurement update: 
+\begin{align}
+p(&x_t, m | z_0 \dots z_t, u_0 \dots u_t) = \notag\\
+&\frac{p(z_t | x_t, m) P(x_t, m | z_0 \dots z_{t-1}, u_0 \dots u_t)}
+{p(z_t | z_{0} \dots z_{t-1}, u_0 \dots u_t)}
+\end{align}
 
-\subsection{Recognition Training}
+\subsection{Transition Model}
 
-\subsection{Pose Estimation Training}
+Our transition model incorporates the effect of the control input on
+the robot's end effector as well as on all the objects:
+\begin{align}
+p(x_t | x_{t-1}, u_t) &= p(r_t, o^1_t \dots o^k_t | r_{t-1}, o^1_{t-1} \dots o^k_{t-1}, u_t) \\
+\intertext{We assume that the robot's end effector pose and the object poses are independent:}
+                     &= p(r_t | u_t) \times p(o^1_t \dots o^k_t | o^1_{t-1} \dots o^k_{t-1}, u_t)
+\intertext{
+We also assume that each object is independent of the
+others; although in general we would like the robot to predict the
+effects of its grasps, in practice other objects can be moved by
+mistake.  Therefore our transition model will have high uncertainty
+over all objects when the robot moves any object.}
+                    &\approx p(r_t | u_t) \times \prod_k p(o^k_t | o^k_{t-1}, r_t)
+\end{align}
 
-\subsection{Grasp Training}
-4. Once aiming is complete, save the image in the reticle, try to grasp, and save whether that grasp completed.
-This can be ascertained by the gripper position.
+We endow the robot with two types of control actions.  In the first
+type, the robot plans collision free motions with conservative models
+of the boundaries of possible objects; these types of transitions move
+the robot's end effector but leave all the object poses unchanged.
+The second type is when the robot grasps an object.  After an
+attempted grasp we assume the pose of all the objects have moved and
+need to be reestimated (in case the robot knocked an object during its
+attempted grasp)
 
-5. Calculate a density map for this 
+\subsection{Measurement Model}
 
-\subsection{PID Parameter Training}
+Our sensor consists of a depth camera; for simplicity we update one
+pixel at a time, although a sensor such as the Kinect would consist of
+many updates at once.
+\begin{align}
+p(z_t | x_t, m) = p(z_t | r_t, o_t^1 \dots o_t^k, m)
+%
+\intertext{When the object pose and map is known, we can identify the
+  one object penetrated by the sensor:}
+%
+p(z_t | x_t, m) = p(z_t | r_t, o_t^i, m^i)
+\end{align}
+
+We assume a sensor model with Gaussian noise on pixel values and depth
+values.
+
+\subsection{Inference}
+
+We carry out inference in the model using a Rao-Blackwellized Particle
+Filter~\citep{durrant06}.  In particular we partition our state space
+according to the product rule:
+
+\begin{align}
+p(&x_0 \dots x_t, m | z_0 \dots z_t, u_0 \dots u_t) = \notag\\
+& p(m | x_0 \dots x_t, z_0 \dots z_t) \times p(x_0 \dots x_t | z_0 \dots z_t, u_0 \dots u_t)
+\end{align}
+
+Thus each particle is represented by the set:
+\begin{align}
+\left\{ w_t^{(i)}, x_0^{(i)} \dots x_t^{(i)}, p(m | x_0^{(i)} \dots x_t^{(i)}, z_0 \dots z_t)\right\}
+\end{align}
+
+In a simplified model, we can compute a maximum likelihood map
+analytically from the pose and observation history, rather than
+representing a distribution over it.
+
+Our proposal distribution is the motion model, as in Fast Slam
+1.0~\citep{montemerlo02}:
+\begin{align}
+x_t^{(i)} \sim  p(x_t | x_{t-1}^{(i)}, u_t)
+\end{align}
+
+That is, when objects do not move, we assume a fixed pose, together
+with small random movement to correct initial pose estimation error.
 
 
 \section{Experimental Setup}
@@ -757,11 +775,3 @@ GRATA could be applied in other domains as well.  What are some examples?
 
 
 \end{document}
-
-
-
-
-
-
-
-
