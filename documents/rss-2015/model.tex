@@ -1,0 +1,77 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{graphicx}
+\usepackage{auto-pst-pdf}
+\usepackage{pstricks}
+\usepackage{com.braju.graphicalmodels}
+\catcode`\@=11%
+\usepackage{times}
+\usepackage{latexsym,amssymb,amsmath} % for \Box, \mathbb, split, etc.
+\begin{document}
+
+
+\begin{pspicture}(0.5,-1)(5, 3.5) 
+%\showgrid
+\SpecialCoor
+
+\rput(1,3){\GM@node[observed=true, nodeSize=5mm]{utm1}}
+\GM@label[offset=0.6\GM@nodeSize, angle=-10]{utm1}{$u_{t-1}$}
+
+\rput(1,2){\GM@node[observed=false, nodeSize=5mm]{xtm1}}
+\GM@label[offset=0.6\GM@nodeSize, angle=-30]{xtm1}{$x_{t-1}$}
+
+\rput(1,1){\GM@node[observed=true, nodeSize=5mm]{ztm1}}
+\GM@label[offset=0.6\GM@nodeSize, angle=-10]{ztm1}{$z_{t-1}$}
+
+\ncline[arrows=->]{utm1}{xtm1}
+\ncline[arrows=->]{xtm1}{ztm1}
+
+
+\rput(3,3){\GM@node[observed=true, nodeSize=5mm]{ut}}
+\GM@label[offset=0.6\GM@nodeSize, angle=-10]{ut}{$u_{t}$}
+
+\rput(3,2){\GM@node[observed=false, nodeSize=5mm]{xt}}
+\GM@label[offset=0.6\GM@nodeSize, angle=-30]{xt}{$x_{t}$}
+
+\rput(3,1){\GM@node[observed=true, nodeSize=5mm]{zt}}
+\GM@label[offset=0.6\GM@nodeSize, angle=-10]{zt}{$z_{t}$}
+
+\ncline[arrows=->]{ut}{xt}
+\ncline[arrows=->]{xt}{zt}
+
+
+
+
+
+\rput(5,3){\GM@node[observed=true, nodeSize=5mm]{utp1}}
+\GM@label[offset=0.6\GM@nodeSize, angle=-10]{utp1}{$u_{t+1}$}
+
+\rput(5,2){\GM@node[observed=false, nodeSize=5mm]{xtp1}}
+\GM@label[offset=0.6\GM@nodeSize, angle=-30]{xtp1}{$x_{t+1}$}
+
+\rput(5,1){\GM@node[observed=true, nodeSize=5mm]{ztp1}}
+\GM@label[offset=0.6\GM@nodeSize, angle=-10]{ztp1}{$z_{t+1}$}
+
+\ncline[arrows=->]{utp1}{xtp1}
+\ncline[arrows=->]{xtp1}{ztp1}
+
+
+\ncline[arrows=->]{xtm1}{xt}
+\ncline[arrows=->]{xt}{xtp1}
+
+
+
+\rput(3,0){\GM@node[observed=false, nodeSize=5mm]{m}}
+\GM@label[offset=0.6\GM@nodeSize, angle=-10]{m}{$m$}
+
+\ncline[arrows=->]{m}{ztm1}
+\ncline[arrows=->]{m}{zt}
+\ncline[arrows=->]{m}{ztp1}
+
+
+
+\end{pspicture}
+
+
+
+
+\end{document}

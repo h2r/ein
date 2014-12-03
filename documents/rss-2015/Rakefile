@@ -1,10 +1,9 @@
 desc "build the pdf"
 task :default => [] do
-  sh "pdflatex rss.tex"
+  sh "pdflatex -shell-escape model.tex"
+  sh "pdfcrop model.pdf"
   sh "pdflatex rss.tex"
   sh "bibtex rss"
-  sh "bibtex rss"
-  sh "pdflatex rss.tex"
   sh "pdflatex rss.tex"
 end
 
