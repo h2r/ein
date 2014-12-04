@@ -237,6 +237,8 @@ eePose ik_reset_eePose = beeHome;
 using namespace std;
 using namespace cv;
 
+using namespace Eigen;
+
 Eigen::Vector3d eeForward;
 geometry_msgs::Pose trueEEPose;
 
@@ -253,13 +255,22 @@ ros::Publisher gripperPub;
 
 
 
-const int imRingBufferSize = 100;
-const int epRingBufferSize = 500;
-const int rgRingBufferSize = 500;
+const int imRingBufferSize = 20;
+const int epRingBufferSize = 100;
+const int rgRingBufferSize = 100;
 
-int imRingBufferPos = 0;
-int epRingBufferPos = 0;
-int rgRingBufferPos = 0;
+// we make use of a monotonicity assumption
+// if the current index passes the last recorded index, then we just proceed
+//  and lose the ranges we skipped over. alert when this happens
+// first valid entries
+int imRingBufferStart = 0;
+int epRingBufferStart = 0;
+int rgRingBufferStart = 0;
+
+// first free entries
+int imRingBufferEnd = 0;
+int epRingBufferEnd = 0;
+int rgRingBufferEnd = 0;
 
 std::vector<Mat> imRingBuffer;
 std::vector<geometry_msgs::Pose> epRingBuffer;
@@ -268,187 +279,6 @@ std::vector<double> rgRingBuffer;
 std::vector<ros::Time> imRBTimes;
 std::vector<ros::Time> epRBTimes;
 std::vector<ros::Time> rgRBTimes;
-
-Vec3b getRingPixelAtTime(ros::Time t) {
-
-}
-double getRingRangeAtTime(ros::Time t) {
-  if (rgRingBufferPos <= 0) {
-    return -1.0;
-  } else if (rgRingBufferPos <= rgRingBufferSize-1) {
-    int earliestSlot = 0;
-    ros::Duration deltaTdur = t - rgRBTimes[earliestSlot];
-    // if the request comes before our earliest record, deny
-    if (deltaTdur.toSec() <= 0.0) {
-      cout << "Denied out of order range value in getRingRangeAtTime(): Too small." << endl;
-      return -1.0;
-    } else {
-      // we only want to respond to the request if it lies within two known points
-      for (int s = earliestSlot; s < rgRingBufferPos-1; s++) {
-	ros::Duration deltaTdurPre = t - rgRBTimes[s];
-	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
-	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  double r1 = rgRingBuffer[s];
-	  double r2 = rgRingBuffer[s+1];
-	  double w1 = deltaTdurPre.toSec();
-	  double w2 = -deltaTdurPre.toSec();
-	  double totalWeight = w1 + w2;
-	  w1 = w1 / totalWeight;
-	  w2 = w2 / totalWeight;
-	  double value = w1*r1 + w2*r2;
-	  return value;
-	}
-      }
-      // if we didn't find it we should return failure
-      cout << "Denied out of order range value in getRingRangeAtTime(): Too large." << endl;
-      return -1.0;
-    }
-  } else if (rgRingBufferPos == rgRingBufferSize) {
-    int earliestSlot = 1;
-    ros::Duration deltaTdur = t - rgRBTimes[earliestSlot];
-    // if the request comes before our earliest record, deny
-    if (deltaTdur.toSec() <= 0.0) {
-      cout << "Denied out of order range value in getRingRangeAtTime(): Too small." << endl;
-      return -1.0;
-    } else {
-      // we only want to respond to the request if it lies within two known points
-      for (int s = earliestSlot; s < rgRingBufferPos-1; s++) {
-	ros::Duration deltaTdurPre = t - rgRBTimes[s];
-	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
-	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  double r1 = rgRingBuffer[s];
-	  double r2 = rgRingBuffer[s+1];
-	  double w1 = deltaTdurPre.toSec();
-	  double w2 = -deltaTdurPre.toSec();
-	  double totalWeight = w1 + w2;
-	  w1 = w1 / totalWeight;
-	  w2 = w2 / totalWeight;
-	  double value = w1*r1 + w2*r2;
-	  return value;
-	}
-      }
-      // if we didn't find it we should return failure
-      cout << "Denied out of order range value in getRingRangeAtTime(): Too large." << endl;
-      return -1.0;
-    }
-  } else if (rgRingBufferPos <= 2*rgRingBufferSize-1) {
-    int earliestSlot = rgRingBufferPos % rgRingBufferSize;
-    ros::Duration deltaTdur = t - rgRBTimes[earliestSlot];
-    // if the request comes before our earliest record, deny
-    if (deltaTdur.toSec() <= 0.0) {
-      cout << "Denied out of order range value in getRingRangeAtTime(): Too small." << endl;
-      return -1.0;
-    } else {
-      // we only want to respond to the request if it lies within two known points
-      for (int s = earliestSlot; s < rgRingBufferPos-1; s++) {
-	ros::Duration deltaTdurPre = t - rgRBTimes[s];
-	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
-	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  double r1 = rgRingBuffer[s];
-	  double r2 = rgRingBuffer[s+1];
-	  double w1 = deltaTdurPre.toSec();
-	  double w2 = -deltaTdurPre.toSec();
-	  double totalWeight = w1 + w2;
-	  w1 = w1 / totalWeight;
-	  w2 = w2 / totalWeight;
-	  double value = w1*r1 + w2*r2;
-	  return value;
-	}
-      }
-      for (int s = 0; s < earliestSlot-1; s++) {
-	ros::Duration deltaTdurPre = t - rgRBTimes[s];
-	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
-	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  double r1 = rgRingBuffer[s];
-	  double r2 = rgRingBuffer[s+1];
-	  double w1 = deltaTdurPre.toSec();
-	  double w2 = -deltaTdurPre.toSec();
-	  double totalWeight = w1 + w2;
-	  w1 = w1 / totalWeight;
-	  w2 = w2 / totalWeight;
-	  double value = w1*r1 + w2*r2;
-	  return value;
-	}
-      }
-      // if we didn't find it we should return failure
-      cout << "Denied out of order range value in getRingRangeAtTime(): Too large." << endl;
-      return -1.0;
-    }
-  } else {
-    cout << "WARNING: rgRingBuffer has reached an invalid state." << endl;
-  }
-}
-geometry_msgs::Pose getRingPoseAtTime(ros::Time t) {
-
-  // XXX TODO for now we don't interpolate the quaternion. the right thing to do is slerp.
-
-}
-
-void setRingImageAtTime(ros::Time t, Mat& imToSet) {
-
-}
-void setRingRangeAtTime(ros::Time t, double rangeToSet) {
-  int slot = rgRingBufferPos % rgRingBufferSize;
-  if (rgRingBufferPos <= 0) {
-    rgRingBuffer[0] = rangeToSet;
-    rgRBTimes[0] = t;
-    rgRingBufferPos = 1;
-  } else if (rgRingBufferPos <= rgRingBufferSize-1) { // pattern A
-    ros::Duration deltaTdur = rgRBTimes[slot-1] - t;
-    if (deltaTdur.toSec() <= 0.0) {
-      cout << "Dropped out of order range value in setRingRangeAtTime()." << endl;
-    } else {
-      rgRingBuffer[slot] = rangeToSet;
-      rgRBTimes[slot] = t;
-      rgRingBufferPos++;
-    }
-  } else if (rgRingBufferPos == rgRingBufferSize) { // pattern B
-    ros::Duration deltaTdur = rgRBTimes[rgRingBufferSize-1] - t;
-    if (deltaTdur.toSec() <= 0.0) {
-      cout << "Dropped out of order range value in setRingRangeAtTime()." << endl;
-    } else {
-      rgRingBuffer[slot] = rangeToSet;
-      rgRBTimes[slot] = t;
-      rgRingBufferPos++;
-    }
-  } else if (rgRingBufferPos < 2*rgRingBufferSize-1) { // pattern A
-    ros::Duration deltaTdur = rgRBTimes[slot-1] - t;
-    if (deltaTdur.toSec() <= 0.0) {
-      cout << "Dropped out of order range value in setRingRangeAtTime()." << endl;
-    } else {
-      rgRingBuffer[slot] = rangeToSet;
-      rgRBTimes[slot] = t;
-      rgRingBufferPos++;
-    }
-  } else if (rgRingBufferPos >= 2*rgRingBufferSize-1) { // pattern B
-    ros::Duration deltaTdur = rgRBTimes[rgRingBufferSize-1] - t;
-    if (deltaTdur.toSec() <= 0.0) {
-      cout << "Dropped out of order range value in setRingRangeAtTime()." << endl;
-    } else {
-      rgRingBuffer[slot] = rangeToSet;
-      rgRBTimes[slot] = t;
-      rgRingBufferPos = rgRingBufferSize;
-    }
-  }
-}
-void setRingPoseAtTime(ros::Time t, geometry_msgs::Pose poseToSet) {
-
-}
-
-// we make use of a monotonicity assumption
-int lastRecordedRangeIndex = -1;
-int lastUsedPoseIndex = -1;
-int lastUsedImIndex = -1;
-// if the current index passes the last recorded index, then we just proceed
-//  and lose the ranges we skipped over. alert when this happens
-void recordReadyRangeReadings() {
-
-}
-
-
-void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
-  trueEEPose = eps.pose;
-}
 
 Mat rangeogramImage;
 Mat rangemapImage;
@@ -525,74 +355,6 @@ const int parzen3DKernelHalfWidth = 15;
 const int parzen3DKernelWidth = 2*parzen3DKernelHalfWidth+1;
 double parzen3DKernel[parzen3DKernelWidth*parzen3DKernelWidth];
 double parzen3DKernelSigma = 1.0; // this is approximately what it should be at 20 cm height
-
-
-
-
-void pushNoOps(int n) {
-  for (int i = 0; i < n; i++)
-    pilot_call_stack.push_back('C'); 
-}
-
-
-
-void initialize3DParzen() {
-  for (int kx = 0; kx < parzen3DKernelWidth; kx++) {
-    for (int ky = 0; ky < parzen3DKernelWidth; ky++) {
-      for (int kz = 0; kz < parzen3DKernelWidth; kz++) {
-	double pkx = kx - parzen3DKernelHalfWidth;
-	double pky = ky - parzen3DKernelHalfWidth;
-	double pkz = ky - parzen3DKernelHalfWidth;
-	parzen3DKernel[kx + ky*parzen3DKernelWidth + kz*parzen3DKernelWidth] = exp(-(pkx*pkx + pky*pky + pkz*pkz)/(2.0*parzen3DKernelSigma*parzen3DKernelSigma));
-      }
-    }
-  }
-}
-
-void initializeParzen() {
-  for (int kx = 0; kx < parzenKernelWidth; kx++) {
-    for (int ky = 0; ky < parzenKernelWidth; ky++) {
-      double pkx = kx - parzenKernelHalfWidth;
-      double pky = ky - parzenKernelHalfWidth;
-      parzenKernel[kx + ky*parzenKernelWidth] = exp(-(pkx*pkx + pky*pky)/(2.0*parzenKernelSigma*parzenKernelSigma));
-    }
-  }
-}
-
-double fEpsilon = EPSILON;
-
-void l2NormalizeParzen() {
-  double norm = 0;
-  for (int kx = 0; kx < parzenKernelWidth; kx++) {
-    for (int ky = 0; ky < parzenKernelWidth; ky++) {
-      double pkx = kx - parzenKernelHalfWidth;
-      double pky = ky - parzenKernelHalfWidth;
-      norm += parzenKernel[kx + ky*parzenKernelWidth];
-    }
-  }
-  if (fabs(norm) < fEpsilon)
-    norm = 1;
-  for (int kx = 0; kx < parzenKernelWidth; kx++) {
-    for (int ky = 0; ky < parzenKernelWidth; ky++) {
-      double pkx = kx - parzenKernelHalfWidth;
-      double pky = ky - parzenKernelHalfWidth;
-      parzenKernel[kx + ky*parzenKernelWidth] /= norm;
-      cout << "Parzen: " << parzenKernel[kx + ky*parzenKernelWidth] << endl;
-    }
-  }
-}
-
-void l2NormalizeFilter() {
-  double norm = 0;
-  for (int fx = 0; fx < 9; fx++) {
-    norm += filter[fx]*filter[fx];
-  }
-  if (fabs(norm) < fEpsilon)
-    norm = 1;
-  for (int fx = 0; fx < 9; fx++) {
-    filter[fx] /= norm;
-  }
-}
 
 // range map center
 double rmcX;
@@ -674,6 +436,722 @@ const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394
 const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
 
 
+int getColorReticleX();
+int getColorReticleY();
+
+cv::Vec3b getCRColor() {
+  cv::Vec3b toReturn(0,0,0);
+  if (wristCamInit) {
+    int crX = getColorReticleX();
+    int crY = getColorReticleY();
+
+    if ((crX < wristCamImage.cols) && (crY < wristCamImage.rows))
+      toReturn = wristCamImage.at<cv::Vec3b>(crY,crX); 
+  }
+  return toReturn;
+}
+
+cv::Vec3b getCRColor(Mat im) {
+  cv::Vec3b toReturn(0,0,0);
+
+  int crX = getColorReticleX();
+  int crY = getColorReticleY();
+
+  if ((crX < im.cols) && (crY < im.rows))
+    toReturn = im.at<cv::Vec3b>(crY,crX); 
+
+  return toReturn;
+}
+
+Quaternionf extractQuatFromPose(geometry_msgs::Pose poseIn) {
+  return Quaternionf(poseIn.orientation.w, poseIn.orientation.x, poseIn.orientation.y, poseIn.orientation.z);
+}
+
+int getRingImageAtTime(ros::Time t, Mat& value) {
+  if (imRingBufferStart == imRingBufferEnd) {
+    cout << "Denied request in getRingImageAtTime(): Buffer empty." << endl;
+    return 0;
+  } else {
+    int earliestSlot = imRingBufferStart;
+    ros::Duration deltaTdur = t - imRBTimes[earliestSlot];
+    // if the request comes before our earliest record, deny
+    if (deltaTdur.toSec() <= 0.0) {
+      cout << "Denied out of order range value in getRingImageAtTime(): Too small." << endl;
+      cout << "  getRingImageAtTime() imRingBufferStart imRingBufferEnd t imRBTimes[earliestSlot]: " << 
+	imRingBufferStart << " " << imRingBufferEnd << " " << t << " " << imRBTimes[earliestSlot] << endl;
+      return -1;
+    } else if (imRingBufferStart < imRingBufferEnd) {
+      for (int s = imRingBufferStart; s < imRingBufferEnd; s++) {
+	ros::Duration deltaTdurPre = t - imRBTimes[s];
+	ros::Duration deltaTdurPost = t - imRBTimes[s+1];
+	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	  Mat m1 = imRingBuffer[s];
+	  Mat m2 = imRingBuffer[s+1];
+	  double w1 = deltaTdurPre.toSec();
+	  double w2 = -deltaTdurPost.toSec();
+	  double totalWeight = w1 + w2;
+	  w1 = w1 / totalWeight;
+	  w2 = w2 / totalWeight;
+	  if (w1 >= w2)
+	    value = m1;
+	  else
+	    value = m2;
+	  return 1;
+	}
+      }
+      // if we didn't find it we should return failure
+      //cout << "Denied out of order range value in getRingImageAtTime(): Too large." << endl;
+      return -2;
+    } else {
+      for (int s = imRingBufferStart; s < imRingBufferSize-1; s++) {
+	ros::Duration deltaTdurPre = t - imRBTimes[s];
+	ros::Duration deltaTdurPost = t - imRBTimes[s+1];
+	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	  Mat m1 = imRingBuffer[s];
+	  Mat m2 = imRingBuffer[s+1];
+	  double w1 = deltaTdurPre.toSec();
+	  double w2 = -deltaTdurPost.toSec();
+	  double totalWeight = w1 + w2;
+	  w1 = w1 / totalWeight;
+	  w2 = w2 / totalWeight;
+	  if (w1 >= w2)
+	    value = m1;
+	  else
+	    value = m2;
+	  return 1;
+	}
+      } {
+	ros::Duration deltaTdurPre = t - imRBTimes[imRingBufferSize-1];
+	ros::Duration deltaTdurPost = t - imRBTimes[0];
+	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	  Mat m1 = imRingBuffer[imRingBufferSize-1];
+	  Mat m2 = imRingBuffer[0];
+	  double w1 = deltaTdurPre.toSec();
+	  double w2 = -deltaTdurPost.toSec();
+	  double totalWeight = w1 + w2;
+	  w1 = w1 / totalWeight;
+	  w2 = w2 / totalWeight;
+	  if (w1 >= w2)
+	    value = m1;
+	  else
+	    value = m2;
+	  return 1;
+	}
+      } for (int s = 0; s < imRingBufferEnd; s++) {
+	ros::Duration deltaTdurPre = t - imRBTimes[s];
+	ros::Duration deltaTdurPost = t - imRBTimes[s+1];
+	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	  Mat m1 = imRingBuffer[s];
+	  Mat m2 = imRingBuffer[s+1];
+	  double w1 = deltaTdurPre.toSec();
+	  double w2 = -deltaTdurPost.toSec();
+	  double totalWeight = w1 + w2;
+	  w1 = w1 / totalWeight;
+	  w2 = w2 / totalWeight;
+	  if (w1 >= w2)
+	    value = m1;
+	  else
+	    value = m2;
+	  return 1;
+	}
+      }
+      // if we didn't find it we should return failure
+      //cout << "Denied out of order range value in getRingImageAtTime(): Too large." << endl;
+      return -2;
+    }
+  }
+}
+int getRingRangeAtTime(ros::Time t, double &value) {
+  if (rgRingBufferStart == rgRingBufferEnd) {
+    cout << "Denied request in getRingRangeAtTime(): Buffer empty." << endl;
+    return 0;
+  } else {
+    int earliestSlot = rgRingBufferStart;
+    ros::Duration deltaTdur = t - rgRBTimes[earliestSlot];
+    // if the request comes before our earliest record, deny
+    if (deltaTdur.toSec() <= 0.0) {
+      cout << "Denied out of order range value in getRingRangeAtTime(): Too small." << endl;
+      return -1;
+    } else if (rgRingBufferStart < rgRingBufferEnd) {
+      for (int s = rgRingBufferStart; s < rgRingBufferEnd; s++) {
+	ros::Duration deltaTdurPre = t - rgRBTimes[s];
+	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
+	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	  double r1 = rgRingBuffer[s];
+	  double r2 = rgRingBuffer[s+1];
+	  double w1 = deltaTdurPre.toSec();
+	  double w2 = -deltaTdurPost.toSec();
+	  double totalWeight = w1 + w2;
+	  w1 = w1 / totalWeight;
+	  w2 = w2 / totalWeight;
+	  value = w1*r1 + w2*r2;
+	  return 1;
+	}
+      }
+      // if we didn't find it we should return failure
+      cout << "Denied out of order range value in getRingRangeAtTime(): Too large." << endl;
+      return -2;
+    } else {
+      for (int s = rgRingBufferStart; s < rgRingBufferSize-1; s++) {
+	ros::Duration deltaTdurPre = t - rgRBTimes[s];
+	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
+	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	  double r1 = rgRingBuffer[s];
+	  double r2 = rgRingBuffer[s+1];
+	  double w1 = deltaTdurPre.toSec();
+	  double w2 = -deltaTdurPost.toSec();
+	  double totalWeight = w1 + w2;
+	  w1 = w1 / totalWeight;
+	  w2 = w2 / totalWeight;
+	  value = w1*r1 + w2*r2;
+	  return 1;
+	}
+      } {
+	ros::Duration deltaTdurPre = t - rgRBTimes[rgRingBufferSize-1];
+	ros::Duration deltaTdurPost = t - rgRBTimes[0];
+	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	  double r1 = rgRingBuffer[rgRingBufferSize-1];
+	  double r2 = rgRingBuffer[0];
+	  double w1 = deltaTdurPre.toSec();
+	  double w2 = -deltaTdurPost.toSec();
+	  double totalWeight = w1 + w2;
+	  w1 = w1 / totalWeight;
+	  w2 = w2 / totalWeight;
+	  value = w1*r1 + w2*r2;
+	  return 1;
+	}
+      } for (int s = 0; s < rgRingBufferEnd; s++) {
+	ros::Duration deltaTdurPre = t - rgRBTimes[s];
+	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
+	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	  double r1 = rgRingBuffer[s];
+	  double r2 = rgRingBuffer[s+1];
+	  double w1 = deltaTdurPre.toSec();
+	  double w2 = -deltaTdurPost.toSec();
+	  double totalWeight = w1 + w2;
+	  w1 = w1 / totalWeight;
+	  w2 = w2 / totalWeight;
+	  value = w1*r1 + w2*r2;
+	  return 1;
+	}
+      }
+      // if we didn't find it we should return failure
+      cout << "Denied out of order range value in getRingRangeAtTime(): Too large." << endl;
+      return -2;
+    }
+  }
+}
+int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value) {
+  if (epRingBufferStart == epRingBufferEnd) {
+    cout << "Denied request in getRingPoseAtTime(): Buffer empty." << endl;
+    return 0;
+  } else {
+    int earliestSlot = epRingBufferStart;
+    ros::Duration deltaTdur = t - epRBTimes[earliestSlot];
+    // if the request comes before our earliest record, deny
+    if (deltaTdur.toSec() <= 0.0) {
+      cout << "Denied out of order range value in getRingPoseAtTime(): Too small." << endl;
+      return -1;
+    } else if (epRingBufferStart < epRingBufferEnd) {
+      for (int s = epRingBufferStart; s < epRingBufferEnd; s++) {
+	ros::Duration deltaTdurPre = t - epRBTimes[s];
+	ros::Duration deltaTdurPost = t - epRBTimes[s+1];
+	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	  Quaternionf q1 = extractQuatFromPose(epRingBuffer[s]);
+	  Quaternionf q2 = extractQuatFromPose(epRingBuffer[s+1]);
+	  double w1 = deltaTdurPre.toSec();
+	  double w2 = -deltaTdurPost.toSec();
+	  double totalWeight = w1 + w2;
+	  w1 = w1 / totalWeight;
+	  w2 = w2 / totalWeight;
+
+	  Quaternionf tTerp = q1.slerp(w2, q2);
+	  value.orientation.w = tTerp.w();
+	  value.orientation.x = tTerp.x();
+	  value.orientation.y = tTerp.y();
+	  value.orientation.z = tTerp.z();
+	  value.position.x = epRingBuffer[s].position.x*w1 + epRingBuffer[s+1].position.x*w2;
+	  value.position.y = epRingBuffer[s].position.y*w1 + epRingBuffer[s+1].position.y*w2;
+	  value.position.z = epRingBuffer[s].position.z*w1 + epRingBuffer[s+1].position.z*w2;
+//cout << value << endl;
+//cout << "33333c " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+//cout << "44444c " << epRingBuffer[s+1] << endl;
+	  return 1;
+	}
+      }
+      // if we didn't find it we should return failure
+      cout << "Denied out of order range value in getRingPoseAtTime(): Too large." << endl;
+      return -2;
+    } else {
+      for (int s = epRingBufferStart; s < epRingBufferSize-1; s++) {
+	ros::Duration deltaTdurPre = t - epRBTimes[s];
+	ros::Duration deltaTdurPost = t - epRBTimes[s+1];
+	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	  Quaternionf q1 = extractQuatFromPose(epRingBuffer[s]);
+	  Quaternionf q2 = extractQuatFromPose(epRingBuffer[s+1]);
+	  double w1 = deltaTdurPre.toSec();
+	  double w2 = -deltaTdurPost.toSec();
+	  double totalWeight = w1 + w2;
+	  w1 = w1 / totalWeight;
+	  w2 = w2 / totalWeight;
+
+	  Quaternionf tTerp = q1.slerp(w2, q2);
+	  value.orientation.w = tTerp.w();
+	  value.orientation.x = tTerp.x();
+	  value.orientation.y = tTerp.y();
+	  value.orientation.z = tTerp.z();
+	  value.position.x = epRingBuffer[s].position.x*w1 + epRingBuffer[s+1].position.x*w2;
+	  value.position.y = epRingBuffer[s].position.y*w1 + epRingBuffer[s+1].position.y*w2;
+	  value.position.z = epRingBuffer[s].position.z*w1 + epRingBuffer[s+1].position.z*w2;
+//cout << value << endl;
+//cout << "33333b " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+//cout << "44444b " << epRingBuffer[s+1] << endl;
+	  return 1;
+	}
+      } {
+	ros::Duration deltaTdurPre = t - epRBTimes[epRingBufferSize-1];
+	ros::Duration deltaTdurPost = t - epRBTimes[0];
+	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	  Quaternionf q1 = extractQuatFromPose(epRingBuffer[epRingBufferSize-1]);
+	  Quaternionf q2 = extractQuatFromPose(epRingBuffer[0]);
+	  double w1 = deltaTdurPre.toSec();
+	  double w2 = -deltaTdurPost.toSec();
+	  double totalWeight = w1 + w2;
+	  w1 = w1 / totalWeight;
+	  w2 = w2 / totalWeight;
+
+	  Quaternionf tTerp = q1.slerp(w2, q2);
+	  value.orientation.w = tTerp.w();
+	  value.orientation.x = tTerp.x();
+	  value.orientation.y = tTerp.y();
+	  value.orientation.z = tTerp.z();
+	  value.position.x = epRingBuffer[epRingBufferSize-1].position.x*w1 + epRingBuffer[0].position.x*w2;
+	  value.position.y = epRingBuffer[epRingBufferSize-1].position.y*w1 + epRingBuffer[0].position.y*w2;
+	  value.position.z = epRingBuffer[epRingBufferSize-1].position.z*w1 + epRingBuffer[0].position.z*w2;
+//cout << value << endl;
+//cout << "33333a " << epRingBuffer[epRingBufferSize-1] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+//cout << "44444a " << epRingBuffer[0] << endl;
+	  return 1;
+	}
+      } for (int s = 0; s < epRingBufferEnd; s++) {
+	ros::Duration deltaTdurPre = t - epRBTimes[s];
+	ros::Duration deltaTdurPost = t - epRBTimes[s+1];
+	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	  Quaternionf q1 = extractQuatFromPose(epRingBuffer[s]);
+	  Quaternionf q2 = extractQuatFromPose(epRingBuffer[s+1]);
+	  double w1 = deltaTdurPre.toSec();
+	  double w2 = -deltaTdurPost.toSec();
+	  double totalWeight = w1 + w2;
+	  w1 = w1 / totalWeight;
+	  w2 = w2 / totalWeight;
+
+	  Quaternionf tTerp = q1.slerp(w2, q2);
+	  value.orientation.w = tTerp.w();
+	  value.orientation.x = tTerp.x();
+	  value.orientation.y = tTerp.y();
+	  value.orientation.z = tTerp.z();
+	  value.position.x = epRingBuffer[s].position.x*w1 + epRingBuffer[s+1].position.x*w2;
+	  value.position.y = epRingBuffer[s].position.y*w1 + epRingBuffer[s+1].position.y*w2;
+	  value.position.z = epRingBuffer[s].position.z*w1 + epRingBuffer[s+1].position.z*w2;
+//cout << value << endl;
+//cout << "33333d " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+//cout << "44444d " << epRingBuffer[s+1] << endl;
+	  return 1;
+	}
+      }
+      // if we didn't find it we should return failure
+      cout << "Denied out of order range value in getRingPoseAtTime(): Too large." << endl;
+      return -2;
+    }
+  }
+}
+
+void setRingImageAtTime(ros::Time t, Mat& imToSet) {
+  #ifdef DEBUG2
+  cout << "setRingImageAtTime() start end size: " << imRingBufferStart << " " << imRingBufferEnd << " " << imRingBufferSize << endl;
+  #endif
+
+  // if the ring buffer is empty, always re-initialize
+  if (imRingBufferStart == imRingBufferEnd) {
+    imRingBufferStart = 0;
+    imRingBufferEnd = 1;
+    imRingBuffer[0] = imToSet;
+    imRBTimes[0] = t;
+  } else {
+    ros::Duration deltaTdur = t - imRBTimes[imRingBufferStart];
+    if (deltaTdur.toSec() <= 0.0) {
+      cout << "Dropped out of order range value in setRingImageAtTime(). " << imRBTimes[imRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+    } else {
+      int slot = imRingBufferEnd;
+      imRingBuffer[slot] = imToSet;
+      imRBTimes[slot] = t;
+
+      if (imRingBufferEnd >= (imRingBufferSize-1)) {
+	imRingBufferEnd = 0;
+      } else {
+	imRingBufferEnd++;
+      }
+
+      if (imRingBufferEnd == imRingBufferStart) {
+	if (imRingBufferStart >= (imRingBufferSize-1)) {
+	  imRingBufferStart = 0;
+	} else {
+	  imRingBufferStart++;
+	}
+      }
+    }
+  }
+}
+void setRingRangeAtTime(ros::Time t, double rgToSet) {
+  #ifdef DEBUG2
+  cout << "setRingRangeAtTime() start end size: " << rgRingBufferStart << " " << rgRingBufferEnd << " " << rgRingBufferSize << endl;
+  #endif
+
+  // if the ring buffer is empty, always re-initialize
+  if (rgRingBufferStart == rgRingBufferEnd) {
+    rgRingBufferStart = 0;
+    rgRingBufferEnd = 1;
+    rgRingBuffer[0] = rgToSet;
+    rgRBTimes[0] = t;
+  } else {
+    ros::Duration deltaTdur = t - rgRBTimes[rgRingBufferStart];
+    if (deltaTdur.toSec() <= 0.0) {
+      cout << "Dropped out of order range value in setRingRangeAtTime(). " << rgRBTimes[rgRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+    } else {
+      int slot = rgRingBufferEnd;
+      rgRingBuffer[slot] = rgToSet;
+      rgRBTimes[slot] = t;
+
+      if (rgRingBufferEnd >= (rgRingBufferSize-1)) {
+	rgRingBufferEnd = 0;
+      } else {
+	rgRingBufferEnd++;
+      }
+
+      if (rgRingBufferEnd == rgRingBufferStart) {
+	if (rgRingBufferStart >= (rgRingBufferSize-1)) {
+	  rgRingBufferStart = 0;
+	} else {
+	  rgRingBufferStart++;
+	}
+      }
+    }
+  }
+}
+void setRingPoseAtTime(ros::Time t, geometry_msgs::Pose epToSet) {
+  #ifdef DEBUG2
+  cout << "setRingPoseAtTime() start end size: " << epRingBufferStart << " " << epRingBufferEnd << " " << epRingBufferSize << endl;
+  #endif
+
+  // if the ring buffer is empty, always re-initialize
+  if (epRingBufferStart == epRingBufferEnd) {
+    epRingBufferStart = 0;
+    epRingBufferEnd = 1;
+    epRingBuffer[0] = epToSet;
+//cout << epToSet << endl;
+//cout << "11111 " << epRingBuffer[0] << endl;
+    epRBTimes[0] = t;
+  } else {
+    ros::Duration deltaTdur = t - epRBTimes[epRingBufferStart];
+    if (deltaTdur.toSec() <= 0.0) {
+      cout << "Dropped out of order range value in setRingPoseAtTime(). " << epRBTimes[epRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+    } else {
+      int slot = epRingBufferEnd;
+      epRingBuffer[slot] = epToSet;
+//cout << epToSet << endl;
+//cout << "22222" << epRingBuffer[slot] << endl;
+      epRBTimes[slot] = t;
+
+      if (epRingBufferEnd >= (epRingBufferSize-1)) {
+	epRingBufferEnd = 0;
+      } else {
+	epRingBufferEnd++;
+      }
+
+      if (epRingBufferEnd == epRingBufferStart) {
+	if (epRingBufferStart >= (epRingBufferSize-1)) {
+	  epRingBufferStart = 0;
+	} else {
+	  epRingBufferStart++;
+	}
+      }
+    }
+  }
+}
+
+void imRingBufferAdvance() {
+  if (imRingBufferEnd != imRingBufferStart) {
+    if (imRingBufferStart >= (imRingBufferSize-1)) {
+      imRingBufferStart = 0;
+    } else {
+      imRingBufferStart++;
+    }
+  }
+}
+void rgRingBufferAdvance() {
+  if (rgRingBufferEnd != rgRingBufferStart) {
+    if (rgRingBufferStart >= (rgRingBufferSize-1)) {
+      rgRingBufferStart = 0;
+    } else {
+      rgRingBufferStart++;
+    }
+  }
+}
+void epRingBufferAdvance() {
+  if (epRingBufferEnd != epRingBufferStart) {
+    if (epRingBufferStart >= (epRingBufferSize-1)) {
+      epRingBufferStart = 0;
+    } else {
+      epRingBufferStart++;
+    }
+  }
+}
+
+void recordReadyRangeReadings() {
+  // if we have some range readings to process
+  if (rgRingBufferEnd != rgRingBufferStart) {
+
+    // continue until it is empty or we don't have data for a point yet
+    int IShouldContinue = 1;
+    while (IShouldContinue) {
+      if (rgRingBufferEnd == rgRingBufferStart) {
+	IShouldContinue = 0; // not strictly necessary
+	break; 
+      }
+	
+      double thisRange = rgRingBuffer[rgRingBufferStart];
+      ros::Time thisTime = rgRBTimes[rgRingBufferStart];
+    
+      geometry_msgs::Pose thisPose;
+      Mat thisImage;
+      int weHavePoseData = getRingPoseAtTime(thisTime, thisPose);
+      int weHaveImData = getRingImageAtTime(thisTime, thisImage);
+
+      #ifdef DEBUG2
+      cout << "  recordReadyRangeReadings()  weHavePoseData weHaveImData: " << weHavePoseData << " " << weHaveImData << endl;
+      #endif
+
+      // if this request will never be serviceable then forget about it
+      if (weHavePoseData == -1) {
+	rgRingBufferAdvance();
+	IShouldContinue = 1; // not strictly necessary
+	#ifdef DEBUG2
+	#endif
+	cout << "  recordReadyRangeReadings(): dropping stale packet due to epRing. consider increasing buffer size." << endl;
+      }
+      if (weHaveImData == -1) {
+	rgRingBufferAdvance();
+	IShouldContinue = 1; // not strictly necessary
+	#ifdef DEBUG2
+	#endif
+	cout << "  recordReadyRangeReadings(): dropping stale packet due to imRing. consider increasing buffer size." << endl;
+      } 
+      if ((weHavePoseData == 1) && (weHaveImData == 1)) {
+
+	// XXX TODO throw out the reading if it is outside of valid range bounds
+
+	// actually storing the negative z for backwards compatibility
+	double thisZmeasurement = -(thisPose.position.z - thisRange);
+	double dX = 0;
+	double dY = 0;
+
+	{
+	  // XXX 
+	  //Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
+	  //Eigen::Quaternionf crane2quat(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+
+	  //Eigen::Quaternionf crane2quat = getGGRotation(currentGraspGear);
+	  //Eigen::Quaternionf gear0offset(0.0, ggX[currentGraspGear], ggY[currentGraspGear], 0.0); // for initial calibration
+	  //irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+
+
+	  Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
+	  Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
+	  Eigen::Quaternionf irSensorStartGlobal(
+						  0.0,
+						 (thisPose.position.x - irSensorStartLocal.x()),
+						 (thisPose.position.y - irSensorStartLocal.y()),
+						 (thisPose.position.z - irSensorStartLocal.z())
+						);
+
+	  Eigen::Quaternionf globalUnitZ(0, 0, 0, 1);
+	  Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
+
+	  //Eigen::Quaternionf irSensorEnd = irSensorStartLocal + (thisRange * localUnitZ);
+	  Eigen::Vector3d irSensorEnd(
+				       (thisPose.position.x - irSensorStartLocal.x()) + thisRange*localUnitZ.x(),
+				       (thisPose.position.y - irSensorStartLocal.y()) + thisRange*localUnitZ.y(),
+				       (thisPose.position.z - irSensorStartLocal.z()) + thisRange*localUnitZ.z()
+				      );
+
+	  dX = (irSensorEnd.x() - rmcX); //(thisPose.position.x - drX) - rmcX;
+	  dY = (irSensorEnd.y() - rmcY); //(thisPose.position.y - drY) - rmcY;
+
+	  double eX = (irSensorEnd.x() - rmcX) / hrmDelta;
+	  double eY = (irSensorEnd.y() - rmcY) / hrmDelta;
+	  int eeX = (int)round(eX + hrmHalfWidth);
+	  int eeY = (int)round(eY + hrmHalfWidth);
+
+	  #ifdef DEBUG
+	  cout << "irSensorEnd w x y z: " << irSensorEnd.w() << " " << 
+	    irSensorEnd.x() << " " << irSensorEnd.y() << " " << irSensorEnd.z() << endl;
+	  cout << "irSensorStartGlobal w x y z: " << irSensorStartGlobal.w() << " " << 
+	    irSensorStartGlobal.x() << " " << irSensorStartGlobal.y() << " " << irSensorStartGlobal.z() << endl;
+	  cout << "Corrected x y: " << (thisPose.position.x - drX) << " " << (thisPose.position.y - drY) << endl;
+	  cout.flush();
+	  #endif
+
+//cout << thisPose.orientation << thisPose.position << " " << eX << " " << eY << " " << thisRange << endl;
+	  if ((fabs(eX) <= hrmHalfWidth) && (fabs(eY) <= hrmHalfWidth))
+	    hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(0,0,128);
+	  // XXX
+	  thisZmeasurement = -irSensorEnd.z();
+	}
+
+	double iX = dX / rmDelta;
+	double iY = dY / rmDelta;
+
+	double hiX = dX / hrmDelta;
+	double hiY = dY / hrmDelta;
+
+	// draw new cell
+	if ((fabs(hiX) <= hrmHalfWidth) && (fabs(hiY) <= hrmHalfWidth)) {
+	  int hiiX = (int)round(hiX + hrmHalfWidth);
+	  int hiiY = (int)round(hiY + hrmHalfWidth);
+
+	  // the wrong point without pose correction
+	  //double upX = ((trueEEPose.position.x - drX) - rmcX)/hrmDelta;
+	  //double upY = ((trueEEPose.position.y - drY) - rmcY)/hrmDelta;
+	  //int iupX = (int)round(upX + hrmHalfWidth);
+	  //int iupY = (int)round(upY + hrmHalfWidth);
+	  //if ((fabs(upX) <= hrmHalfWidth) && (fabs(upY) <= hrmHalfWidth)) 
+	    //hiRangemapImage.at<cv::Vec3b>(iupX,iupY) += cv::Vec3b(0,128,0);
+
+	  int pxMin = max(0, hiiX-parzenKernelHalfWidth);
+	  int pxMax = min(hrmWidth-1, hiiX+parzenKernelHalfWidth);
+	  int pyMin = max(0, hiiY-parzenKernelHalfWidth);
+	  int pyMax = min(hrmWidth-1, hiiY+parzenKernelHalfWidth);
+	  for (int px = pxMin; px <= pxMax; px++) {
+	    for (int py = pyMin; py <= pyMax; py++) {
+	      int kpx = px - (hiiX - parzenKernelHalfWidth);
+	      int kpy = py - (hiiY - parzenKernelHalfWidth);
+
+	      cv::Vec3b thisSample = getCRColor(thisImage); 
+	      hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] += thisSample[0]*parzenKernel[kpx + kpy*parzenKernelWidth];
+	      hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] += thisSample[1]*parzenKernel[kpx + kpy*parzenKernelWidth];
+	      hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] += thisSample[2]*parzenKernel[kpx + kpy*parzenKernelWidth];
+	      hiColorRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
+
+	      double denomC = max(hiColorRangeMapMass[px + py*hrmWidth], EPSILON);
+	      int tRed = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] / denomC))));
+	      int tGreen = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] / denomC))));
+	      int tBlue = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] / denomC))));
+
+	      hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
+
+	      //hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
+	      //hiRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
+	      //double denom = max(hiRangeMapMass[px + py*hrmWidth], EPSILON);
+	      //hiRangeMap[px + py*hrmWidth] = hiRangeMapAccumulator[px + py*hrmWidth] / denom;
+	    }
+	  }
+	}
+
+
+
+	// XXX TODO actually record the point
+    
+	rgRingBufferAdvance();
+	epRingBufferAdvance();
+	IShouldContinue = 1; // not strictly necessary
+      } else {
+	IShouldContinue = 0;
+	break;
+      }
+    }
+  }
+  #ifdef DEBUG2
+  cout << "recordReadyRangeReadings()  rgRingBufferStart rgRingBufferEnd: " << rgRingBufferStart << " " << rgRingBufferEnd << endl;
+  #endif
+}
+
+
+void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
+  trueEEPose = eps.pose;
+
+  setRingPoseAtTime(eps.header.stamp, eps.pose);
+
+  geometry_msgs::Pose thisPose;
+  int weHavePoseData = getRingPoseAtTime(eps.header.stamp, thisPose);
+}
+
+
+void pushNoOps(int n) {
+  for (int i = 0; i < n; i++)
+    pilot_call_stack.push_back('C'); 
+}
+
+
+
+void initialize3DParzen() {
+  for (int kx = 0; kx < parzen3DKernelWidth; kx++) {
+    for (int ky = 0; ky < parzen3DKernelWidth; ky++) {
+      for (int kz = 0; kz < parzen3DKernelWidth; kz++) {
+	double pkx = kx - parzen3DKernelHalfWidth;
+	double pky = ky - parzen3DKernelHalfWidth;
+	double pkz = ky - parzen3DKernelHalfWidth;
+	parzen3DKernel[kx + ky*parzen3DKernelWidth + kz*parzen3DKernelWidth] = exp(-(pkx*pkx + pky*pky + pkz*pkz)/(2.0*parzen3DKernelSigma*parzen3DKernelSigma));
+      }
+    }
+  }
+}
+
+void initializeParzen() {
+  for (int kx = 0; kx < parzenKernelWidth; kx++) {
+    for (int ky = 0; ky < parzenKernelWidth; ky++) {
+      double pkx = kx - parzenKernelHalfWidth;
+      double pky = ky - parzenKernelHalfWidth;
+      parzenKernel[kx + ky*parzenKernelWidth] = exp(-(pkx*pkx + pky*pky)/(2.0*parzenKernelSigma*parzenKernelSigma));
+    }
+  }
+}
+
+double fEpsilon = EPSILON;
+
+void l2NormalizeParzen() {
+  double norm = 0;
+  for (int kx = 0; kx < parzenKernelWidth; kx++) {
+    for (int ky = 0; ky < parzenKernelWidth; ky++) {
+      double pkx = kx - parzenKernelHalfWidth;
+      double pky = ky - parzenKernelHalfWidth;
+      norm += parzenKernel[kx + ky*parzenKernelWidth];
+    }
+  }
+  if (fabs(norm) < fEpsilon)
+    norm = 1;
+  for (int kx = 0; kx < parzenKernelWidth; kx++) {
+    for (int ky = 0; ky < parzenKernelWidth; ky++) {
+      double pkx = kx - parzenKernelHalfWidth;
+      double pky = ky - parzenKernelHalfWidth;
+      parzenKernel[kx + ky*parzenKernelWidth] /= norm;
+      cout << "Parzen: " << parzenKernel[kx + ky*parzenKernelWidth] << endl;
+    }
+  }
+}
+
+void l2NormalizeFilter() {
+  double norm = 0;
+  for (int fx = 0; fx < 9; fx++) {
+    norm += filter[fx]*filter[fx];
+  }
+  if (fabs(norm) < fEpsilon)
+    norm = 1;
+  for (int fx = 0; fx < 9; fx++) {
+    filter[fx] /= norm;
+  }
+}
+
+
 int getColorReticleX() {
   // rounding
   //int tcri = int(round((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
@@ -714,18 +1192,6 @@ int getColorReticleY() {
     return yCR[tcriL];
   else
     return int(round(tcrwL*double(yCR[tcriL]) + tcrwH*double(yCR[tcriH])));
-}
-
-cv::Vec3b getCRColor() {
-  cv::Vec3b toReturn(0,0,0);
-  if (wristCamInit) {
-    int crX = getColorReticleX();
-    int crY = getColorReticleY();
-
-    if ((crX < wristCamImage.cols) && (crY < wristCamImage.rows))
-      toReturn = wristCamImage.at<cv::Vec3b>(crY,crX); 
-  }
-  return toReturn;
 }
 
 void pushSpeedSign(double speed) {
@@ -1161,6 +1627,11 @@ int curseReticleY = 0;
 
 void rangeCallback(const sensor_msgs::Range& range) {
 
+
+  setRingRangeAtTime(range.header.stamp, range.range);
+  //double thisRange;
+  //int weHaveRangeData = getRingRangeAtTime(range.header.stamp, thisRange);
+
   #ifdef DEBUG
   cout << "debug 3" << endl;
   cout.flush();
@@ -1390,17 +1861,17 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  int kpy = py - (hiiY - parzenKernelHalfWidth);
 
 	  cv::Vec3b thisSample = getCRColor(); 
-	  hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] += thisSample[0]*parzenKernel[kpx + kpy*parzenKernelWidth];
-	  hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] += thisSample[1]*parzenKernel[kpx + kpy*parzenKernelWidth];
-	  hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] += thisSample[2]*parzenKernel[kpx + kpy*parzenKernelWidth];
-	  hiColorRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
+	  //hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] += thisSample[0]*parzenKernel[kpx + kpy*parzenKernelWidth];
+	  //hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] += thisSample[1]*parzenKernel[kpx + kpy*parzenKernelWidth];
+	  //hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] += thisSample[2]*parzenKernel[kpx + kpy*parzenKernelWidth];
+	  //hiColorRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
 
-	  double denomC = max(hiColorRangeMapMass[px + py*hrmWidth], EPSILON);
-	  int tRed = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] / denomC))));
-	  int tGreen = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] / denomC))));
-	  int tBlue = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] / denomC))));
+	  //double denomC = max(hiColorRangeMapMass[px + py*hrmWidth], EPSILON);
+	  //int tRed = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] / denomC))));
+	  //int tGreen = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] / denomC))));
+	  //int tBlue = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] / denomC))));
 
-	  hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
+	  //hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
 
 	  //hiRangeMapAccumulator[px + py*hrmWidth] += eeRange*parzenKernel[kpx + kpy*parzenKernelWidth];
 	  hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
@@ -3847,6 +4318,12 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   wristCamImage = cv_ptr->image.clone();
   wristCamInit = 1;
+
+  setRingImageAtTime(msg->header.stamp, wristCamImage);
+  Mat thisImage;
+  int weHaveImData = getRingImageAtTime(msg->header.stamp, thisImage);
+
+  recordReadyRangeReadings();
 
   // draw color reticle
   {
