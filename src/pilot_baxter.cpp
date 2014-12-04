@@ -1049,11 +1049,50 @@ void recordReadyRangeReadings() {
 
 	      hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
 
-	      //hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
-	      //hiRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
-	      //double denom = max(hiRangeMapMass[px + py*hrmWidth], EPSILON);
-	      //hiRangeMap[px + py*hrmWidth] = hiRangeMapAccumulator[px + py*hrmWidth] / denom;
+	      hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
+	      hiRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
+	      double denom = max(hiRangeMapMass[px + py*hrmWidth], EPSILON);
+	      hiRangeMap[px + py*hrmWidth] = hiRangeMapAccumulator[px + py*hrmWidth] / denom;
 	    }
+	  }
+	}
+	if ((fabs(thisiX) <= rmHalfWidth) && (fabs(thisiY) <= rmHalfWidth)) {
+	  int iiX = (int)round(thisiX + rmHalfWidth);
+	  int iiY = (int)round(thisiY + rmHalfWidth);
+	  
+	  {
+	    rangeMapMass[iiX + iiY*rmWidth] += 1;
+	    //rangeMapAccumulator[iiX + iiY*rmWidth] += eeRange;
+	    rangeMapAccumulator[iiX + iiY*rmWidth] += thisZmeasurement;
+	    double denom = max(rangeMapMass[iiX + iiY*rmWidth], EPSILON);
+	    rangeMap[iiX + iiY*rmWidth] = rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
+	  }
+	  
+	  double minDepth = INFINITY;
+	  double maxDepth = 0;
+	  for (int rx = 0; rx < rmWidth; rx++) {
+	    for (int ry = 0; ry < rmWidth; ry++) {
+	      minDepth = min(minDepth, rangeMap[rx + ry*rmWidth]);
+	      maxDepth = max(maxDepth, rangeMap[rx + ry*rmWidth]);
+	    }
+	  }
+	  double denom2 = max(EPSILON,maxDepth-minDepth);
+	  if (denom2 <= EPSILON)
+	    denom2 = INFINITY;
+	  double intensity = 255 * (maxDepth - rangeMap[iiX + iiY*rmWidth]) / denom2;
+	  cv::Scalar backColor(0,0,ceil(intensity));
+	  cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
+	  cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
+	  Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	  vCrop = backColor;
+	  // draw border
+	  {
+	    cv::Point outTop = cv::Point(iiY*rmiCellWidth+1,iiX*rmiCellWidth+1);
+	    cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth-1,(iiX+1)*rmiCellWidth-1);
+	    cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
+	    cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
+	    rectangle(rangemapImage, outTop, outBot, cv::Scalar(0,192,0)); 
+	    rectangle(rangemapImage, inTop, inBot, cv::Scalar(0,64,0)); 
 	  }
 	}
 
@@ -1077,6 +1116,8 @@ void recordReadyRangeReadings() {
 
 
 void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
+  //cout << "endpoint frame_id: " << eps.header.frame_id << endl;
+
   trueEEPose = eps.pose;
 
   setRingPoseAtTime(eps.header.stamp, eps.pose);
@@ -1627,6 +1668,8 @@ int curseReticleY = 0;
 
 void rangeCallback(const sensor_msgs::Range& range) {
 
+  //cout << "range frame_id: " << range.header.frame_id << endl;
+
 
   setRingRangeAtTime(range.header.stamp, range.range);
   //double thisRange;
@@ -1844,12 +1887,12 @@ void rangeCallback(const sensor_msgs::Range& range) {
       int hiiY = (int)round(hiY + hrmHalfWidth);
 
       // the wrong point without pose correction
-      double upX = ((trueEEPose.position.x - drX) - rmcX)/hrmDelta;
-      double upY = ((trueEEPose.position.y - drY) - rmcY)/hrmDelta;
-      int iupX = (int)round(upX + hrmHalfWidth);
-      int iupY = (int)round(upY + hrmHalfWidth);
-      if ((fabs(upX) <= hrmHalfWidth) && (fabs(upY) <= hrmHalfWidth)) 
-	hiRangemapImage.at<cv::Vec3b>(iupX,iupY) += cv::Vec3b(0,128,0);
+      //double upX = ((trueEEPose.position.x - drX) - rmcX)/hrmDelta;
+      //double upY = ((trueEEPose.position.y - drY) - rmcY)/hrmDelta;
+      //int iupX = (int)round(upX + hrmHalfWidth);
+      //int iupY = (int)round(upY + hrmHalfWidth);
+      //if ((fabs(upX) <= hrmHalfWidth) && (fabs(upY) <= hrmHalfWidth)) 
+	//hiRangemapImage.at<cv::Vec3b>(iupX,iupY) += cv::Vec3b(0,128,0);
 
       int pxMin = max(0, hiiX-parzenKernelHalfWidth);
       int pxMax = min(hrmWidth-1, hiiX+parzenKernelHalfWidth);
@@ -1874,10 +1917,10 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  //hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
 
 	  //hiRangeMapAccumulator[px + py*hrmWidth] += eeRange*parzenKernel[kpx + kpy*parzenKernelWidth];
-	  hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
-	  hiRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
-	  double denom = max(hiRangeMapMass[px + py*hrmWidth], EPSILON);
-	  hiRangeMap[px + py*hrmWidth] = hiRangeMapAccumulator[px + py*hrmWidth] / denom;
+	  //hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
+	  //hiRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
+	  //double denom = max(hiRangeMapMass[px + py*hrmWidth], EPSILON);
+	  //hiRangeMap[px + py*hrmWidth] = hiRangeMapAccumulator[px + py*hrmWidth] / denom;
 	}
       }
     }
@@ -1886,11 +1929,10 @@ void rangeCallback(const sensor_msgs::Range& range) {
       int iiY = (int)round(thisiY + rmHalfWidth);
       
       {
-	rangeMapMass[iiX + iiY*rmWidth] += 1;
-	//rangeMapAccumulator[iiX + iiY*rmWidth] += eeRange;
-	rangeMapAccumulator[iiX + iiY*rmWidth] += thisZmeasurement;
-	double denom = max(rangeMapMass[iiX + iiY*rmWidth], EPSILON);
-	rangeMap[iiX + iiY*rmWidth] = rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
+	//rangeMapMass[iiX + iiY*rmWidth] += 1;
+	//rangeMapAccumulator[iiX + iiY*rmWidth] += thisZmeasurement;
+	//double denom = max(rangeMapMass[iiX + iiY*rmWidth], EPSILON);
+	//rangeMap[iiX + iiY*rmWidth] = rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
       }
       
       double minDepth = INFINITY;
@@ -3466,7 +3508,7 @@ void timercallback1(const ros::TimerEvent&) {
 	  cv::Point l2p2 = cv::Point((ciiY+hrmWidth),ciiX+hiCellWidth);
 	  line(hiRangemapImage, l1p1, l1p2, backColor);
 	  line(hiRangemapImage, l2p1, l2p2, backColor);
-	  cout << "printing curseReticle xy: " << curseReticleX << " " << curseReticleY << endl;
+	  cout << "printing curseReticle xy globalz: " << curseReticleX << " " << curseReticleY << " " << hiRangeMap[ciiX + ciiY*hrmWidth] << endl;
 	}
 	{
 	  double intensity = 128;
@@ -4694,8 +4736,22 @@ int main(int argc, char **argv) {
     Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
     //Eigen::Quaternionf gear0offset(0.0, 0.0, 0.0, 0.0); // for calibration
     //Eigen::Quaternionf gear0offset(0.0, ggX[0], ggY[0], 0.0); // for initial calibration
-    Eigen::Quaternionf gear0offset(0.0, .023, .022, 0.0); // for latest ray calibration
+    //Eigen::Quaternionf gear0offset(0.0, .023, .022, 0.0); // for latest ray calibration
     //Eigen::Quaternionf gear0offset(0.0, .023, .023, 0.0); // eyeball correction
+
+    // gripper x y z
+    // 0.617956
+    // -0.301304
+    // 0.0527889
+    // right range x y z
+    // 0.585962
+    // -0.321487
+    // 0.0695117
+    // 
+    // 0.037829849
+    //Eigen::Quaternionf gear0offset(0.0, 0.031996, 0.020183, 0.0167228); // from TF, accounts for upside down rotation of crane2
+    Eigen::Quaternionf gear0offset(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    //Eigen::Quaternionf gear0offset(0.0, 0.020183, 0.031996, 0.0167228); // from TF, accounts for upside down rotation of crane2
 
     // invert the transformation
     irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
