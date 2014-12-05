@@ -335,8 +335,8 @@ const int parzenKernelHalfWidth = 15;
 const int parzenKernelWidth = 2*parzenKernelHalfWidth+1;
 double parzenKernel[parzenKernelWidth*parzenKernelWidth];
 //double parzenKernelSigma = 2.0;
-//double parzenKernelSigma = 1.0; // this is approximately what it should be at 20 cm height
-double parzenKernelSigma = 0.5; // 
+double parzenKernelSigma = 1.0; // this is approximately what it should be at 20 cm height
+//double parzenKernelSigma = 0.5; // 
 // 13.8 cm high -> 2.2 cm gap
 // 23.8 cm high -> 3.8 cm gap
 // 4 sigma (centered at 0) should be the gap
@@ -467,7 +467,7 @@ Quaternionf extractQuatFromPose(geometry_msgs::Pose poseIn) {
   return Quaternionf(poseIn.orientation.w, poseIn.orientation.x, poseIn.orientation.y, poseIn.orientation.z);
 }
 
-int getRingImageAtTime(ros::Time t, Mat& value) {
+int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack = 0) {
   if (imRingBufferStart == imRingBufferEnd) {
     cout << "Denied request in getRingImageAtTime(): Buffer empty." << endl;
     return 0;
@@ -496,6 +496,11 @@ int getRingImageAtTime(ros::Time t, Mat& value) {
 	    value = m1;
 	  else
 	    value = m2;
+
+	  int newStart = s;
+	  if(drawSlack) {
+	    imRingBufferStart = newStart;
+	  }
 	  return 1;
 	}
       }
@@ -518,6 +523,11 @@ int getRingImageAtTime(ros::Time t, Mat& value) {
 	    value = m1;
 	  else
 	    value = m2;
+
+	  int newStart = s;
+	  if(drawSlack) {
+	    imRingBufferStart = newStart;
+	  }
 	  return 1;
 	}
       } {
@@ -535,6 +545,11 @@ int getRingImageAtTime(ros::Time t, Mat& value) {
 	    value = m1;
 	  else
 	    value = m2;
+
+	  int newStart = imRingBufferSize-1;
+	  if(drawSlack) {
+	    imRingBufferStart = newStart;
+	  }
 	  return 1;
 	}
       } for (int s = 0; s < imRingBufferEnd; s++) {
@@ -552,6 +567,11 @@ int getRingImageAtTime(ros::Time t, Mat& value) {
 	    value = m1;
 	  else
 	    value = m2;
+
+	  int newStart = s;
+	  if(drawSlack) {
+	    imRingBufferStart = newStart;
+	  }
 	  return 1;
 	}
       }
@@ -561,7 +581,7 @@ int getRingImageAtTime(ros::Time t, Mat& value) {
     }
   }
 }
-int getRingRangeAtTime(ros::Time t, double &value) {
+int getRingRangeAtTime(ros::Time t, double &value, int drawSlack = 0) {
   if (rgRingBufferStart == rgRingBufferEnd) {
     cout << "Denied request in getRingRangeAtTime(): Buffer empty." << endl;
     return 0;
@@ -585,6 +605,11 @@ int getRingRangeAtTime(ros::Time t, double &value) {
 	  w1 = w1 / totalWeight;
 	  w2 = w2 / totalWeight;
 	  value = w1*r1 + w2*r2;
+
+	  int newStart = s;
+	  if(drawSlack) {
+	    rgRingBufferStart = newStart;
+	  }
 	  return 1;
 	}
       }
@@ -604,6 +629,11 @@ int getRingRangeAtTime(ros::Time t, double &value) {
 	  w1 = w1 / totalWeight;
 	  w2 = w2 / totalWeight;
 	  value = w1*r1 + w2*r2;
+
+	  int newStart = s;
+	  if(drawSlack) {
+	    rgRingBufferStart = newStart;
+	  }
 	  return 1;
 	}
       } {
@@ -618,6 +648,11 @@ int getRingRangeAtTime(ros::Time t, double &value) {
 	  w1 = w1 / totalWeight;
 	  w2 = w2 / totalWeight;
 	  value = w1*r1 + w2*r2;
+
+	  int newStart = rgRingBufferSize-1;
+	  if(drawSlack) {
+	    rgRingBufferStart = newStart;
+	  }
 	  return 1;
 	}
       } for (int s = 0; s < rgRingBufferEnd; s++) {
@@ -632,6 +667,11 @@ int getRingRangeAtTime(ros::Time t, double &value) {
 	  w1 = w1 / totalWeight;
 	  w2 = w2 / totalWeight;
 	  value = w1*r1 + w2*r2;
+
+	  int newStart = s;
+	  if(drawSlack) {
+	    rgRingBufferStart = newStart;
+	  }
 	  return 1;
 	}
       }
@@ -641,7 +681,7 @@ int getRingRangeAtTime(ros::Time t, double &value) {
     }
   }
 }
-int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value) {
+int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack = 0) {
   if (epRingBufferStart == epRingBufferEnd) {
     cout << "Denied request in getRingPoseAtTime(): Buffer empty." << endl;
     return 0;
@@ -676,6 +716,11 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value) {
 //cout << value << endl;
 //cout << "33333c " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
 //cout << "44444c " << epRingBuffer[s+1] << endl;
+
+	  int newStart = s;
+	  if(drawSlack) {
+	    epRingBufferStart = newStart;
+	  }
 	  return 1;
 	}
       }
@@ -706,6 +751,11 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value) {
 //cout << value << endl;
 //cout << "33333b " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
 //cout << "44444b " << epRingBuffer[s+1] << endl;
+
+	  int newStart = s;
+	  if(drawSlack) {
+	    epRingBufferStart = newStart;
+	  }
 	  return 1;
 	}
       } {
@@ -731,6 +781,11 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value) {
 //cout << value << endl;
 //cout << "33333a " << epRingBuffer[epRingBufferSize-1] << " " << w1 << " " << w2 << " " << totalWeight << endl;
 //cout << "44444a " << epRingBuffer[0] << endl;
+
+	  int newStart = epRingBufferSize-1;
+	  if(drawSlack) {
+	    epRingBufferStart = newStart;
+	  }
 	  return 1;
 	}
       } for (int s = 0; s < epRingBufferEnd; s++) {
@@ -756,6 +811,11 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value) {
 //cout << value << endl;
 //cout << "33333d " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
 //cout << "44444d " << epRingBuffer[s+1] << endl;
+
+	  int newStart = s;
+	  if(drawSlack) {
+	    epRingBufferStart = newStart;
+	  }
 	  return 1;
 	}
       }
@@ -907,6 +967,20 @@ void epRingBufferAdvance() {
   }
 }
 
+// advance the buffers until we have only enough
+//  data to account back to time t
+void allRingBuffersAdvance(ros::Time t) {
+
+// TODO XXX make sure that the drawslack parameter is implemented
+  double thisRange;
+  Mat thisIm;
+  geometry_msgs::Pose thisPose;
+
+  getRingPoseAtTime(t, thisPose, 1);
+  getRingImageAtTime(t, thisIm, 1);
+  //getRingRangeAtTime(t, thisRange, 1);
+}
+
 void recordReadyRangeReadings() {
   // if we have some range readings to process
   if (rgRingBufferEnd != rgRingBufferStart) {
@@ -934,6 +1008,7 @@ void recordReadyRangeReadings() {
       // if this request will never be serviceable then forget about it
       if (weHavePoseData == -1) {
 	rgRingBufferAdvance();
+	//allRingBuffersAdvance(thisTime);
 	IShouldContinue = 1; // not strictly necessary
 	#ifdef DEBUG2
 	#endif
@@ -941,6 +1016,7 @@ void recordReadyRangeReadings() {
       }
       if (weHaveImData == -1) {
 	rgRingBufferAdvance();
+	//allRingBuffersAdvance(thisTime);
 	IShouldContinue = 1; // not strictly necessary
 	#ifdef DEBUG2
 	#endif
@@ -1101,7 +1177,7 @@ void recordReadyRangeReadings() {
 	// XXX TODO actually record the point
     
 	rgRingBufferAdvance();
-	epRingBufferAdvance();
+	allRingBuffersAdvance(thisTime);
 	IShouldContinue = 1; // not strictly necessary
       } else {
 	IShouldContinue = 0;
@@ -1904,17 +1980,17 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  int kpy = py - (hiiY - parzenKernelHalfWidth);
 
 	  cv::Vec3b thisSample = getCRColor(); 
-	  //hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] += thisSample[0]*parzenKernel[kpx + kpy*parzenKernelWidth];
-	  //hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] += thisSample[1]*parzenKernel[kpx + kpy*parzenKernelWidth];
-	  //hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] += thisSample[2]*parzenKernel[kpx + kpy*parzenKernelWidth];
-	  //hiColorRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
-
-	  //double denomC = max(hiColorRangeMapMass[px + py*hrmWidth], EPSILON);
-	  //int tRed = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] / denomC))));
-	  //int tGreen = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] / denomC))));
-	  //int tBlue = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] / denomC))));
-
-	  //hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
+//	  hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] += thisSample[0]*parzenKernel[kpx + kpy*parzenKernelWidth];
+//	  hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] += thisSample[1]*parzenKernel[kpx + kpy*parzenKernelWidth];
+//	  hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] += thisSample[2]*parzenKernel[kpx + kpy*parzenKernelWidth];
+//	  hiColorRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
+//
+//	  double denomC = max(hiColorRangeMapMass[px + py*hrmWidth], EPSILON);
+//	  int tRed = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] / denomC))));
+//	  int tGreen = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] / denomC))));
+//	  int tBlue = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] / denomC))));
+//
+//	  hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
 
 	  //hiRangeMapAccumulator[px + py*hrmWidth] += eeRange*parzenKernel[kpx + kpy*parzenKernelWidth];
 	  //hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
@@ -3816,8 +3892,8 @@ void timercallback1(const ros::TimerEvent&) {
     // numlock + *
     case 1114154:
       {
-	double lineSpeed = MOVE_MEDIUM;
-	double betweenSpeed = MOVE_MEDIUM;
+	double lineSpeed = MOVE_VERY_SLOW;
+	double betweenSpeed = MOVE_VERY_SLOW;
 	pilot_call_stack.push_back('2'); // assume pose at register 2
 	pushNoOps(200);
 	pilot_call_stack.push_back('d'); // move away
@@ -4486,7 +4562,20 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   lText += buf;
   putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
 
-  int stackRowY = 120;
+  lAnchor.y += 20;
+  lText = "";
+  lText += "rgRB: ";
+  sprintf(buf, "%+.02d/%d", rgRingBufferEnd-rgRingBufferStart, rgRingBufferSize);
+  lText += buf;
+  lText += " epRB: ";
+  sprintf(buf, "%+.02d/%d", epRingBufferEnd-epRingBufferStart, epRingBufferSize);
+  lText += buf;
+  lText += " imRB: ";
+  sprintf(buf, "%+.02d/%d", imRingBufferEnd-imRingBufferStart, imRingBufferSize);
+  lText += buf;
+  putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
+
+  int stackRowY = 140; //remember to increment
   cv::Point csAnchor(10,stackRowY);
   putText(coreImage, "Call Stack: ", csAnchor, MY_FONT, 0.5, labelColor, 1.0);
   
