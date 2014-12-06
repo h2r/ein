@@ -2,6 +2,19 @@
 #define EPSILON 1.0e-9
 #define INFINITY 1e6
 
+#include "ros/ros.h"
+#include "ros/package.h"
+#include "ros/time.h"
+
+double rapidAmp = 1.0;
+
+const int numJoints = 7;
+double rapidJointVelocities[numJoints] = {0, 0, 0, 0, 0, 0, 0};
+int rapidJointMask[numJoints] = {0, 0, 0, 1, 1, 0, 0};
+int driveVelocities = 0;
+int testJoint = 3;
+ros::Time oscilStart;
+
 typedef struct {
   double px;
   double py;
@@ -210,9 +223,6 @@ eePose ik_reset_eePose = beeHome;
 
 #include <dirent.h>
 
-#include "ros/ros.h"
-#include "ros/package.h"
-#include "ros/time.h"
 
 #include "std_msgs/String.h"
 #include "visualization_msgs/MarkerArray.h"
@@ -360,10 +370,10 @@ double vmColorRangeMapAccumulator[3*vmWidth*vmWidth*vmWidth];
 double vmColorRangeMapMass[vmWidth*vmWidth*vmWidth];
 
 
-const int parzen3DKernelHalfWidth = 15;
+const int parzen3DKernelHalfWidth = 9;
 const int parzen3DKernelWidth = 2*parzen3DKernelHalfWidth+1;
 double parzen3DKernel[parzen3DKernelWidth*parzen3DKernelWidth*parzen3DKernelWidth];
-double parzen3DKernelSigma = 10.0; // this is approximately what it should be at 20 cm height
+double parzen3DKernelSigma = 2.0; 
 
 // range map center
 double rmcX;
@@ -1045,6 +1055,8 @@ void recordReadyRangeReadings() {
 	double dY = 0;
 	double dZ = 0;
 
+	Eigen::Vector3d rayDirection;
+
 	{
 	  // XXX 
 	  //Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
@@ -1097,6 +1109,8 @@ void recordReadyRangeReadings() {
 	    hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(0,0,128);
 	  // XXX
 	  thisZmeasurement = -irSensorEnd.z();
+
+	  rayDirection = Eigen::Vector3d(localUnitZ.x(), localUnitZ.y(), localUnitZ.z());
 	}
 
 	double iX = dX / rmDelta;
@@ -1153,6 +1167,7 @@ void recordReadyRangeReadings() {
 	    }
 	  }
 	  // record the point in the 3D maps
+	  // positive surface observation
 	  {
 	    int pxMin = max(0, hiiX-parzen3DKernelHalfWidth);
 	    int pxMax = min(vmWidth-1, hiiX+parzen3DKernelHalfWidth);
@@ -1181,9 +1196,59 @@ void recordReadyRangeReadings() {
 
 		  // slightly different than 2D
 		  volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-		  volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += 1.0;
+		  //volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += 1.0;
+		  volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
 
-		  double denom = max(volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], EPSILON);
+		  double denom = max(volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], 1e-99); // XXX should be epsilon but there is clipping...
+		  volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth] = volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] / denom;
+		}
+	      }
+	    }
+	  }
+	  double negativeSpacing = 1.0*parzen3DKernelSigma*vmDelta;
+	  //int numCastPoints = int(ceil(thisRange / negativeSpacing));
+	  int numCastPoints = 10;
+	  // negative surface observations
+	  for (int castPoint = 1; castPoint <= numCastPoints; castPoint++) {
+	    double piX = (dX - negativeSpacing*castPoint*rayDirection.x())/ hrmDelta;
+	    double piY = (dY - negativeSpacing*castPoint*rayDirection.y()) / hrmDelta;
+	    double piZ = (dZ - negativeSpacing*castPoint*rayDirection.z()) / hrmDelta;
+
+	    int piiX = (int)round(piX + hrmHalfWidth);
+	    int piiY = (int)round(piY + hrmHalfWidth);
+	    int piiZ = (int)round(piZ + hrmHalfWidth);
+	    
+
+	    int pxMin = max(0, piiX-parzen3DKernelHalfWidth);
+	    int pxMax = min(vmWidth-1, piiX+parzen3DKernelHalfWidth);
+	    int pyMin = max(0, piiY-parzen3DKernelHalfWidth);
+	    int pyMax = min(vmWidth-1, piiY+parzen3DKernelHalfWidth);
+	    int pzMin = max(0, piiZ-parzen3DKernelHalfWidth);
+	    int pzMax = min(vmWidth-1, piiZ+parzen3DKernelHalfWidth);
+	    // correct loop order for cache coherency
+	    for (int pz = pzMin; pz <= pzMax; pz++) {
+	      for (int py = pyMin; py <= pyMax; py++) {
+		for (int px = pxMin; px <= pxMax; px++) {
+		  int kpx = px - (piiX - parzen3DKernelHalfWidth);
+		  int kpy = py - (piiY - parzen3DKernelHalfWidth);
+		  int kpz = pz - (piiZ - parzen3DKernelHalfWidth);
+
+		  cv::Vec3b thisSample = getCRColor(thisImage); 
+		  vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] += thisSample[0]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+		  vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] += thisSample[1]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+		  vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] += thisSample[2]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+		  vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+
+		  //double denomC = max(vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], EPSILON);
+		  //int tRed = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] / denomC))));
+		  //int tGreen = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] / denomC))));
+		  //int tBlue = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] / denomC))));
+
+		  // slightly different than 2D
+		  //volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] += 0.0;
+		  volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+
+		  double denom = max(volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], 1e-99); // XXX should be epsilon but there is clipping...
 		  volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth] = volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] / denom;
 		}
 	      }
@@ -2312,7 +2377,6 @@ void update_baxter(ros::NodeHandle &n) {
   
 //cout << "block7" << endl;
 
-  int numJoints = 7;
 
   /*
   // using the joint controllers
@@ -2355,13 +2419,36 @@ void update_baxter(ros::NodeHandle &n) {
 
   baxter_core_msgs::JointCommand myCommand;
 
-  myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
-  myCommand.command.resize(numJoints);
-  myCommand.names.resize(numJoints);
+  if (driveVelocities) {
 
-  for (int j = 0; j < numJoints; j++) {
-    myCommand.names[j] = ikRequest.response.joints[0].name[j];
-    myCommand.command[j] = ikRequest.response.joints[0].position[j];
+    double l2Gravity = 0.0;
+
+    myCommand.mode = baxter_core_msgs::JointCommand::VELOCITY_MODE;
+    myCommand.command.resize(numJoints);
+    myCommand.names.resize(numJoints);
+
+    ros::Time theNow = ros::Time::now();
+    ros::Duration howLong = theNow - oscilStart;
+
+    for (int j = 0; j < numJoints; j++) {
+      myCommand.names[j] = ikRequest.response.joints[0].name[j];
+      myCommand.command[j] = 0.0;
+      //myCommand.command[j] = sin(rapidJointVelocities[j]*howLong.toSec());
+    }
+    {
+      myCommand.command[4] = -rapidAmp*sin((rapidJointVelocities[4]*howLong.toSec()));
+      myCommand.command[3] =  rapidAmp*cos((rapidJointVelocities[3]*howLong.toSec()));
+    }
+  } else {
+    myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
+    myCommand.command.resize(numJoints);
+    myCommand.names.resize(numJoints);
+
+    for (int j = 0; j < numJoints; j++) {
+      myCommand.names[j] = ikRequest.response.joints[0].name[j];
+      //myCommand.command[j] = ikRequest.response.joints[0].position[j] + rapidJointVelocities[j];
+      myCommand.command[j] = ikRequest.response.joints[0].position[j];
+    }
   }
 //cout << "block8" << endl;
 
@@ -3141,6 +3228,19 @@ void timercallback1(const ros::TimerEvent&) {
 	    hiColorRangeMapMass[h + i*hrmWidth] = 0;
 	    for (int j = 0; j < 3; j++) {
 	      hiColorRangeMapAccumulator[h + i*hrmWidth + j*hrmWidth*hrmWidth] = 0;
+	    }
+	  }
+	}
+	for (int pz = 0; pz < vmWidth; pz++) {
+	  for (int py = 0; py < vmWidth; py++) {
+	    for (int px = 0; px < vmWidth; px++) {
+	      volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth] = 0;
+	      volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] = 0;
+	      volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] = 0;
+	      vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] = 0;
+	      for (int pc = 0; pc < 3; pc++) {
+		vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + pc*vmWidth*vmWidth*vmWidth] = 0;
+	      }
 	    }
 	  }
 	}
@@ -4001,8 +4101,8 @@ void timercallback1(const ros::TimerEvent&) {
     // numlock + *
     case 1114154:
       {
-	double lineSpeed = MOVE_VERY_SLOW;
-	double betweenSpeed = MOVE_VERY_SLOW;
+	double lineSpeed = MOVE_MEDIUM;
+	double betweenSpeed = MOVE_MEDIUM;
 	pilot_call_stack.push_back('2'); // assume pose at register 2
 	pushNoOps(200);
 	pilot_call_stack.push_back('d'); // move away
@@ -4116,6 +4216,8 @@ void timercallback1(const ros::TimerEvent&) {
     // numlock + 8
     case 1048632:
       {
+	double lineSpeed = MOVE_FAST;
+	double betweenSpeed = MOVE_FAST;
 	//pilot_call_stack.push_back(1048632); // push this program
 	pilot_call_stack.push_back('2'); // assume pose at register 2
 	pushNoOps(200);
@@ -4178,7 +4280,8 @@ void timercallback1(const ros::TimerEvent&) {
 	//scanXdirectionMedium(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
 	//scanXdirection(MOVE_SLOW, MOVE_SLOW); // load scan program
 	//scanXdirection(MOVE_MEDIUM, MOVE_MEDIUM); // load scan program
-	scanXdirection(MOVE_FAST, MOVE_FAST); // load scan program
+	//scanXdirection(MOVE_FAST, MOVE_FAST); // load scan program
+	scanXdirection(lineSpeed, betweenSpeed); // load scan program
 	//pilot_call_stack.push_back(1048621); // change offset of position based on current gear 
 	pilot_call_stack.push_back(1114150); // prepare for search
 
@@ -4196,7 +4299,8 @@ void timercallback1(const ros::TimerEvent&) {
 	//scanXdirectionMedium(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
 	//scanXdirection(MOVE_SLOW, MOVE_SLOW); // load scan program
 	//scanXdirection(MOVE_MEDIUM, MOVE_MEDIUM); // load scan program
-	scanXdirection(MOVE_FAST, MOVE_FAST); // load scan program
+	//scanXdirection(MOVE_FAST, MOVE_FAST); // load scan program
+	scanXdirection(lineSpeed, betweenSpeed); // load scan program
 	pilot_call_stack.push_back(1114150); // prepare for search
 
 	pilot_call_stack.push_back(1048695); // clear scan history
@@ -4344,6 +4448,72 @@ void timercallback1(const ros::TimerEvent&) {
       {
 	curseReticleX = min(curseReticleX + 1, hrmWidth-1);
 	cout << "curseReticle xy: " << curseReticleX << " " << curseReticleY << endl;
+      }
+      break;
+    // numlock + pageup
+    case 1113941:
+      {
+	//rapidJointVelocities[5] += 3.14159/8.0;
+	//cout << "rapidJointVelocities 5: " << rapidJointVelocities << endl;
+	//rapidJointVelocities[testJoint] += .1;
+	//cout << "rapidJointVelocities testJoint: " << rapidJointVelocities[testJoint] << endl;
+	for (int j = 0; j < numJoints; j++) {
+	  rapidJointVelocities[j] += .1*rapidJointMask[j];
+	  cout << "rapidJointVelocities " << j << ": " << rapidJointVelocities[j] << endl;
+	}
+      }
+      break;
+    // numlock + pagedown
+    case 1113942:
+      {
+	//rapidJointVelocities[5] -= 3.14159/8.0;
+	//cout << "rapidJointVelocities 5: " << rapidJointVelocities << endl;
+	//rapidJointVelocities[testJoint] -= .1;
+	//cout << "rapidJointVelocities testJoint: " << rapidJointVelocities[testJoint] << endl;
+	for (int j = 0; j < numJoints; j++) {
+	  rapidJointVelocities[j] -= .1*rapidJointMask[j];
+	  cout << "rapidJointVelocities " << j << ": " << rapidJointVelocities[j] << endl;
+	}
+      }
+      break;
+    // numlock + home
+    case 1113936:
+      {
+	driveVelocities = 1;
+	oscilStart = ros::Time::now();
+	cout << "driveVelocities: " << driveVelocities << endl;
+      }
+      break;
+    // numlock + end 
+    case 1113943:
+      {
+	driveVelocities = 0;
+	cout << "driveVelocities: " << driveVelocities << endl;
+      }
+      break;
+    // numlock + insert
+    case 1113955:
+      {
+	//rapidJointVelocities[testJoint] *= -1;
+	//cout << "rapidJointVelocities testJoint: " << rapidJointVelocities[testJoint] << endl;
+	for (int j = 0; j < numJoints; j++) {
+	  rapidJointVelocities[j] *= -1*rapidJointMask[j];
+	  cout << "rapidJointVelocities " << j << ": " << rapidJointVelocities[j] << endl;
+	}
+      }
+      break;
+    // numlock + shift + pageup 
+    case 1179477:
+      {
+	rapidAmp += .01;
+	cout << "rapidAmp: " << rapidAmp << endl;
+      }
+      break;
+    // numlock + shift + pagedown 
+    case 1179478:
+      {
+	rapidAmp -= .01;
+	cout << "rapidAmp " << rapidAmp << endl;
       }
       break;
     //////////
@@ -4566,6 +4736,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 	}
       }
     }
+    int numCubesToShow = aI;
+
+    /*
     ma_to_send.markers.resize(aI);
     aI = 0;
     for (int pz = 0; pz < vmWidth; pz+=vmSubsampleStride) {
@@ -4601,6 +4774,51 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 	    ma_to_send.markers[aI].lifetime = ros::Duration(1.0);
 
 	    aI++;
+	  }
+	}
+      }
+    }
+    */
+
+    ma_to_send.markers.resize(1);
+
+    ma_to_send.markers[0].pose.orientation.w = 1.0;
+    ma_to_send.markers[0].pose.orientation.x = 0.0;
+    ma_to_send.markers[0].pose.orientation.y = 0.0;
+    ma_to_send.markers[0].pose.orientation.z = 0.0;
+    ma_to_send.markers[0].type =  visualization_msgs::Marker::CUBE_LIST;
+    ma_to_send.markers[0].scale.x = vmDelta*vmSubsampleStride;
+    ma_to_send.markers[0].scale.y = vmDelta*vmSubsampleStride;
+    ma_to_send.markers[0].scale.z = vmDelta*vmSubsampleStride;
+
+    ma_to_send.markers[0].header.stamp = ros::Time::now();
+    ma_to_send.markers[0].header.frame_id = "/base";
+    ma_to_send.markers[0].action = visualization_msgs::Marker::ADD;
+    ma_to_send.markers[0].id = 0;
+    ma_to_send.markers[0].lifetime = ros::Duration(1.0);
+
+    for (int pz = 0; pz < vmWidth; pz+=vmSubsampleStride) {
+      for (int py = 0; py < vmWidth; py+=vmSubsampleStride) {
+	for (int px = 0; px < vmWidth; px+=vmSubsampleStride) {
+	  if (volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] > 0) {
+	    double denomC = max(vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], EPSILON);
+	    int tRed = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] / denomC))));
+	    int tGreen = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] / denomC))));
+	    int tBlue = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] / denomC))));
+
+	    std_msgs::ColorRGBA p;
+	    //p.a = volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth] > 0;
+	    p.a = 4.0*volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth];
+	    p.r = double(tRed)/255.0;
+	    p.g = double(tGreen)/255.0;
+	    p.b = double(tBlue)/255.0;
+	    ma_to_send.markers[0].colors.push_back(p);
+
+	    geometry_msgs::Point temp;
+	    temp.x = rmcX + (px - vmHalfWidth)*vmDelta;
+	    temp.y = rmcY + (py - vmHalfWidth)*vmDelta;
+	    temp.z = rmcZ + (pz - vmHalfWidth)*vmDelta;
+	    ma_to_send.markers[0].points.push_back(temp);
 	  }
 	}
       }
