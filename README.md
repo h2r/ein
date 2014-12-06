@@ -216,9 +216,9 @@ in rail mode the area outside of the grey box is ignored.
 
 Similarly to the ARM box, one can adjust the gray box by passing
 ```
-_gray_box_right:="10" _gray_box_right:="20" _gray_box_right:="30" _gray_box_right:="40" 
+ _gray_box_right:="100" _gray_box_left:="40" _gray_box_top:="100" _gray_box_bot:="150" 
 ```
-which sets the top left corner of the gray box to (10,20) and the bottom right to (640-30,480-40).
+which sets the top left corner of the gray box to (100,40) and the bottom right to (640-40,480-150).
 
 ## Wrist Cameras
 Suppose you want to use the wrist cameras on baxter and you have set chirality="left" or chirality="right".
