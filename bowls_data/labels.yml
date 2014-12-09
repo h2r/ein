@@ -1,0 +1,11 @@
+%YAML:1.0
+labels:
+   - green_bowl
+   - light_green_bowl
+   - pink_bowl
+   - yellow_bowl
+poseModels:
+   - B
+   - B
+   - B
+   - B
