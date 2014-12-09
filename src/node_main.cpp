@@ -965,7 +965,7 @@ void loadROSParamsFromArgs() {
 
   nh.getParam("left_or_right_arm", left_or_right_arm);
 
-  nh.getParam("chosen_feature", left_or_right_arm);
+  nh.getParam("chosen_feature", chosen_feature);
 
   //nh.getParam("reject_area_scale", rejectAreaScale);
 
@@ -1093,7 +1093,7 @@ void saveROSParams() {
 
   nh.setParam("left_or_right_arm", left_or_right_arm);
 
-  nh.setParam("chosen_feature", left_or_right_arm);
+  nh.setParam("chosen_feature", chosen_feature);
 }
 
 int isOrientedFilterPoseModel(string toCompare) {
@@ -3872,7 +3872,7 @@ int main(int argc, char **argv) {
   }
 
   if (numRedBoxes > 0)
-    createTrackbar("red target", "Object Viewer", &redTrackbarVariable, numRedBoxes);
+    createTrackbar("red target", objectViewerName, &redTrackbarVariable, numRedBoxes);
 
   saveROSParams();
 
