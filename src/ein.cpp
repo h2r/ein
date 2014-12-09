@@ -5308,6 +5308,7 @@ void timercallback1(const ros::TimerEvent&) {
     case 131122:
       {
 	cout << "Finding blue boxes..." << endl;
+	goFindBlueBoxes();
       }
       break;
     // classify
@@ -5574,6 +5575,11 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
+
+  if (densityViewerImage.rows <= 0 || densityViewerImage.rows <= 0)
+    densityViewerImage = cv_ptr->image.clone();
+  if (objectViewerImage.rows <= 0 || objectViewerImage.rows <= 0)
+    objectViewerImage = cv_ptr->image.clone();
 
 
   wristCamImage = cv_ptr->image.clone();
@@ -7195,13 +7201,6 @@ void goCalculateDensity() {
 
   int boxesPerSize = 800;
 
-  //Mat cam_img2;
-  //cam_img2 = cam_img;
-  
-  // XXX find best method and clean up all this mess
-  //Mat original_cam_img = cam_img2.clone();
-  //densityViewerImage = cam_img2.clone();
-
 //  // XXX Sobel business
 //  Mat local_ave;
 //  cvtColor(densityViewerImage_blur, densityViewerImage_blur, CV_RGB2GRAY );
@@ -7487,6 +7486,17 @@ void goCalculateDensity() {
     }
   }
 
+  // copy the density map to the rendered image
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      uchar val = uchar(min( 255.0 * density[y*imW+x] / maxDensity, 255.0));
+      densityViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
+    }
+  }
+
+  if (shouldIRender)
+    cv::imshow(densityViewerName, densityViewerImage);
+
   delete differentialDensity;
 }
 
@@ -7523,6 +7533,7 @@ void goFindBlueBoxes() {
   double adjusted_canny_lo_thresh = canny_lo_thresh * (1.0 + (double(loTrackbarVariable-50) / 50.0));
   double adjusted_canny_hi_thresh = canny_hi_thresh * (1.0 + (double(hiTrackbarVariable-50) / 50.0));
 
+cout << "Here 1" << endl;
   for (int x = xS; x <= xF; x+=gBoxStrideX) {
     for (int y = yS; y <= yF; y+=gBoxStrideY) {
 
@@ -7555,6 +7566,7 @@ void goFindBlueBoxes() {
 
     }
   }
+cout << "Here 2" << endl;
 
   // canny will start on a hi and spread on a lo or hi.
   for (int x = 0; x < imW-gBoxW; x+=gBoxStrideX) {
@@ -7616,6 +7628,7 @@ void goFindBlueBoxes() {
       }
     }
   }
+cout << "Here 3" << endl;
 
   bTops.resize(0);
   bBots.resize(0);
@@ -7670,14 +7683,6 @@ void goFindBlueBoxes() {
     ee_target_pub.publish(p);
   }
 
-  // copy the density map to the rendered image
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      uchar val = uchar(min( 255.0 * density[y*imW+x] / maxDensity, 255.0));
-      densityViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
-    }
-  }
-
   if (drawBlue) {
     for (int c = bTops.size()-1; c >= 0; c--) {
       cv::Point outTop = cv::Point(bTops[c].x, bTops[c].y);
@@ -7689,10 +7694,10 @@ void goFindBlueBoxes() {
     }
   }
 
+cout << "Here 4" << endl;
+
   if (shouldIRender)
     cv::imshow(objectViewerName, objectViewerImage);
-  if (shouldIRender)
-    cv::imshow(densityViewerName, densityViewerImage);
 
   delete gBoxIndicator;
   delete gBoxGrayNodes;
@@ -9056,9 +9061,9 @@ void nodeInit() {
   orientedFiltersK[0].create(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F);
 
   tablePerspective = Mat::eye(3,3,CV_32F);
-  init_oriented_filters_all();
+  //init_oriented_filters_all();
 
-  initRedBoxes();
+  //initRedBoxes();
 }
 
 void detectorsInit() {
@@ -9477,6 +9482,7 @@ int main(int argc, char **argv) {
   }
 
   //spinlessNodeMain();
+  nodeInit();
   spinlessPilotMain();
 
   saveROSParams();
