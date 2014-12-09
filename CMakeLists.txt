@@ -46,6 +46,7 @@ add_executable(capture_annotated_objects src/capture_annotated_objects.cpp)
 add_executable(capture_hard_class src/capture_hard_class.cpp)
 add_executable(filter_time src/filter_time.cpp)
 add_executable(pilot_baxter src/pilot_baxter.cpp)
+add_executable(ein src/ein.cpp)
 
 target_link_libraries(capture_object
 	${catkin_LIBRARIES}
@@ -83,6 +84,11 @@ target_link_libraries(filter_time
 	BINGLIB ###
 )
 target_link_libraries(pilot_baxter
+	${catkin_LIBRARIES}
+	${OpenCV_LIBS}
+	BINGLIB ###
+)
+target_link_libraries(ein
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
 	BINGLIB ###
