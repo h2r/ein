@@ -348,7 +348,8 @@ vector<int> bLabels;
 
 // adjust these to reject blue boxes
 double rejectScale = 2.0;
-double rejectAreaScale = 16;//6*6;
+//double rejectAreaScale = 150;
+double rejectAreaScale = 100;
 
 // your code here
 int findYellowBoxes = 0;
@@ -952,6 +953,7 @@ void loadROSParamsFromArgs() {
 
   nh.getParam("invert_sign_name", invert_sign_name);
 
+
   nh.getParam("retrain_vocab", retrain_vocab);
   nh.getParam("reextract_knn", reextract_knn);
   nh.getParam("rewrite_labels", rewrite_labels);
@@ -964,6 +966,9 @@ void loadROSParamsFromArgs() {
   nh.getParam("left_or_right_arm", left_or_right_arm);
 
   nh.getParam("chosen_feature", left_or_right_arm);
+
+  //nh.getParam("reject_area_scale", rejectAreaScale);
+
 
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
@@ -980,7 +985,7 @@ void loadROSParams() {
   nh.getParam("gyrobowl_normalizer", gbPBT);
   nh.getParam("mixing_bowl_normalizer", mbPBT);
   nh.getParam("reject_scale", rejectScale);
-  nh.getParam("reject_area_scale", rejectAreaScale);
+  //nh.getParam("reject_area_scale", rejectAreaScale);
   nh.getParam("frames_per_click", frames_per_click);
   nh.getParam("density_decay", densityDecay);
   nh.getParam("depth_decay", depthDecay);
@@ -1043,7 +1048,7 @@ void saveROSParams() {
   nh.setParam("gyrobowl_normalizer", gbPBT);
   nh.setParam("mixing_bowl_normalizer", mbPBT);
   nh.setParam("reject_scale", rejectScale);
-  nh.setParam("reject_area_scale", rejectAreaScale);
+  //nh.setParam("reject_area_scale", rejectAreaScale);
   nh.setParam("frames_per_click", frames_per_click);
   nh.setParam("density_decay", densityDecay);
   nh.setParam("depth_decay", depthDecay);
@@ -2303,13 +2308,16 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
   int biggestBBArea = 0;
 
   if (!all_range_mode) {
+
     double rejectArea = rejectAreaScale*gBoxW*gBoxH;
     for (int c = 0; c < total_components; c++) {
       int allow = 1;
-      if (cBots[c].x - cTops[c].x < rejectScale*gBoxW || cBots[c].y - cTops[c].y < rejectScale*gBoxH)
+      if (cBots[c].x - cTops[c].x < rejectScale*gBoxW || cBots[c].y - cTops[c].y < rejectScale*gBoxH) {
 	allow = 0;
-      if ((cBots[c].x - cTops[c].x)*(cBots[c].y - cTops[c].y) < rejectArea)
+      }
+      if ((cBots[c].x - cTops[c].x)*(cBots[c].y - cTops[c].y) < rejectArea) {
 	allow = 0;
+      }
       //if (cTops[c].y > rejectLow || cBots[c].y < rejectHigh)
 	//allow = 0;
       if (allow == 1) {
