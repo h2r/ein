@@ -72,7 +72,7 @@ int drawRedKP = 1;
 
 int mask_gripper = 0;
 
-int add_blinders = 0;
+int add_blinders = 1;
 int blinder_stride = 10;
 int blinder_columns = 5;
 
@@ -124,8 +124,8 @@ eePose beeRHome = {.px = 0.657579481614, .py = -0.168019, .pz = 0.0388352386502,
 eePose beeHome = beeRHome;
 
 
-int loTrackbarVariable = 55;
-int hiTrackbarVariable = 50;
+int loTrackbarVariable = 62;
+int hiTrackbarVariable = 43;
 int redTrackbarVariable = 0;
 
 double drawBingProb = .1;
@@ -965,7 +965,7 @@ void loadROSParamsFromArgs() {
 
   nh.getParam("left_or_right_arm", left_or_right_arm);
 
-  nh.getParam("chosen_feature", chosen_feature);
+  //nh.getParam("chosen_feature", chosen_feature);
 
   //nh.getParam("reject_area_scale", rejectAreaScale);
 
@@ -1093,7 +1093,7 @@ void saveROSParams() {
 
   nh.setParam("left_or_right_arm", left_or_right_arm);
 
-  nh.setParam("chosen_feature", chosen_feature);
+  //nh.setParam("chosen_feature", chosen_feature);
 }
 
 int isOrientedFilterPoseModel(string toCompare) {
