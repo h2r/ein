@@ -91,5 +91,6 @@ target_link_libraries(pilot_baxter
 target_link_libraries(ein
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
+	opencv_nonfree
 	BINGLIB ###
 )
