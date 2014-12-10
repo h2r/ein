@@ -592,7 +592,7 @@ int curseReticleY = 0;
 int retrain_vocab = 0;
 int rewrite_labels = 0;
 int reextract_knn = 0;
-int runInference = 0;
+int runInference = 1;
 int publishObjects = 0;
 int saveAnnotatedBoxes = 0;
 int captureHardClass = 0;
@@ -883,10 +883,10 @@ double pBoxThresh = 0;
 double densityPower = 1.0;//1.0/4.0;
 
 // gray box offset from the top and bottom of the screen
-int tGO = 40;
-int bGO = 140;
-int lGO = 10;
-int rGO = 10;
+int tGO = 30;
+int bGO = 30;
+int lGO = 60;
+int rGO = 60;
 cv::Point grayTop;
 cv::Point grayBot;
 
@@ -1399,7 +1399,9 @@ void setRingImageAtTime(ros::Time t, Mat& imToSet) {
   } else {
     ros::Duration deltaTdur = t - imRBTimes[imRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
+      #ifdef DEBUG2 
       cout << "Dropped out of order range value in setRingImageAtTime(). " << imRBTimes[imRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+      #endif
     } else {
       int slot = imRingBufferEnd;
       imRingBuffer[slot] = imToSet;
@@ -1435,7 +1437,9 @@ void setRingRangeAtTime(ros::Time t, double rgToSet) {
   } else {
     ros::Duration deltaTdur = t - rgRBTimes[rgRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
+      #ifdef DEBUG2 
       cout << "Dropped out of order range value in setRingRangeAtTime(). " << rgRBTimes[rgRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+      #endif
     } else {
       int slot = rgRingBufferEnd;
       rgRingBuffer[slot] = rgToSet;
@@ -1473,7 +1477,9 @@ void setRingPoseAtTime(ros::Time t, geometry_msgs::Pose epToSet) {
   } else {
     ros::Duration deltaTdur = t - epRBTimes[epRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
+      #ifdef DEBUG2 
       cout << "Dropped out of order range value in setRingPoseAtTime(). " << epRBTimes[epRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+      #endif
     } else {
       int slot = epRingBufferEnd;
       epRingBuffer[slot] = epToSet;
@@ -4209,6 +4215,22 @@ void timercallback1(const ros::TimerEvent&) {
 	cv::moveWindow(rangeogramViewName, uiOffsetX, uiOffsetY);
       }
       break;
+    // numlock + X
+    case 1114200:
+      {
+	cv::moveWindow(rangemapViewName, 100, 40);
+	cv::moveWindow(hiColorRangemapViewName, 1400, 40);
+
+	cv::moveWindow(hiRangemapViewName, 100, 600);
+	cv::moveWindow(rangeogramViewName, 1400, 600);
+
+	cv::moveWindow(objectViewerName, 100+1920, 40);
+	cv::moveWindow(coreViewName, 1000+1920, 40);
+
+	cv::moveWindow(densityViewerName, 100+1920, 700);
+	cv::moveWindow(wristViewName, 800+1920, 600);
+      }
+      break;
     // find maxGrasp and save
     // reset min
     // numlock + s
@@ -5316,6 +5338,7 @@ void timercallback1(const ros::TimerEvent&) {
     case 131123:
       {
 	cout << "Classifying blue boxes..." << endl;
+	goClassifyBlueBoxes();
       }
       break;
     // capslock + q
@@ -5576,8 +5599,10 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     return;
   }
 
-  if (densityViewerImage.rows <= 0 || densityViewerImage.rows <= 0)
+  if (densityViewerImage.rows <= 0 || densityViewerImage.rows <= 0) {
     densityViewerImage = cv_ptr->image.clone();
+    densityViewerImage *= 0;
+  }
   if (objectViewerImage.rows <= 0 || objectViewerImage.rows <= 0)
     objectViewerImage = cv_ptr->image.clone();
 
@@ -7141,14 +7166,6 @@ void nodeCallbackFunc(int event, int x, int y, int flags, void* userdata) {
   }
 }
 
-
-
-
-
-
-
-
-
 void goAddBlinders() {
   Size sz = objectViewerImage.size();
   int imW = sz.width;
@@ -7197,7 +7214,12 @@ void goCalculateDensity() {
   int imH = sz.height;
 
   objectViewerImage = cv_ptr->image.clone();
-  densityViewerImage = cv_ptr->image.clone();
+
+  if (add_blinders) {
+    goAddBlinders();
+  }
+
+  densityViewerImage = objectViewerImage.clone();
 
   int boxesPerSize = 800;
 
@@ -7405,6 +7427,8 @@ void goCalculateDensity() {
     grayTop = armTop;
     grayBot = armBot;
   }
+
+  cout << lGO << " " << rGO << " " << tGO << " " << bGO << endl;
 
   if (drawGray) {
     cv::Point outTop = cv::Point(grayTop.x, grayTop.y);
@@ -8032,29 +8056,32 @@ void goClassifyBlueBoxes() {
     gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
 
     for (int kp = 0; kp < keypoints.size(); kp++) {
-#ifdef DEBUG
-//cout << keypoints[kp].angle << " " << keypoints[kp].class_id << " " << 
-//keypoints[kp].octave << " " << keypoints[kp].pt << " " <<
-//keypoints[kp].response << " " << keypoints[kp].size << endl;
-#endif
+    #ifdef DEBUG
+    //cout << keypoints[kp].angle << " " << keypoints[kp].class_id << " " << 
+    //keypoints[kp].octave << " " << keypoints[kp].pt << " " <<
+    //keypoints[kp].response << " " << keypoints[kp].size << endl;
+    #endif
     }
 
     bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
 
     // save the word assignments for the keypoints so we can use them for red boxes
-#ifdef DEBUG
-fprintf(stderr, "e "); fflush(stderr);
-cout << "pIoCbuffer: " << pIoCbuffer.size() << " "; cout.flush();
-cout << "kpSize: " << keypoints.size() << " "; cout.flush();
-#endif
+    #ifdef DEBUG
+    fprintf(stderr, "e "); fflush(stderr);
+    cout << "pIoCbuffer: " << pIoCbuffer.size() << " "; cout.flush();
+    cout << "kpSize: " << keypoints.size() << " "; cout.flush();
+    #endif
+
     bWords[c].resize(keypoints.size());
     if ((pIoCbuffer.size() > 0) && (keypoints.size() > 0)) {
       for (int w = 0; w < vocabNumWords; w++) {
 	int numDescrOfWord = pIoCbuffer[w].size();
-#ifdef DEBUG
-if (numDescrOfWord > 0)
-cout << "[" << w << "]: " << numDescrOfWord << " ";
-#endif
+
+	#ifdef DEBUG
+	if (numDescrOfWord > 0)
+	cout << "[" << w << "]: " << numDescrOfWord << " ";
+	#endif
+
 	for (int w2 = 0; w2 < numDescrOfWord; w2++) {
 	  bWords[c][pIoCbuffer[w][w2]] = w;
 	}
@@ -8179,6 +8206,12 @@ cout << "[" << w << "]: " << numDescrOfWord << " ";
       }
     }
 
+    if (label == -1)
+      labelName = "VOID";
+    else
+      labelName = classLabels[label];
+    augmentedLabelName = labelName;
+
     if (drawLabels) {
       cv::Point text_anchor(bTops[c].x+1, bBots[c].y-2);
       cv::Point text_anchor2(bTops[c].x+1, bBots[c].y-2);
@@ -8203,8 +8236,8 @@ cout << "[" << w << "]: " << numDescrOfWord << " ";
     #endif
 
     vector<cv::Point> pointCloudPoints;
-    getPointCloudPoints(pointCloudPoints, pBoxIndicator, thisThresh, 
-      bTops[c], bBots[c], imW, imH, gBoxStrideX, gBoxStrideY, gBoxW, gBoxH);
+//    getPointCloudPoints(pointCloudPoints, pBoxIndicator, thisThresh, 
+//      bTops[c], bBots[c], imW, imH, gBoxStrideX, gBoxStrideY, gBoxW, gBoxH);
 
     #ifdef DEBUG
     fprintf(stderr, " object check6"); fflush(stderr);
@@ -8220,8 +8253,6 @@ cout << "[" << w << "]: " << numDescrOfWord << " ";
 
   if (shouldIRender)
     cv::imshow(objectViewerName, objectViewerImage);
-  if (shouldIRender)
-    cv::imshow(densityViewerName, densityViewerImage);
 }
 
 void goFindRedBoxes() {
@@ -8619,8 +8650,8 @@ void goFindRedBoxes() {
 
     if (publishObjects) {
       vector<cv::Point> pointCloudPoints;
-      getPointCloudPoints(pointCloudPoints, pBoxIndicator, thisThresh, 
-	dTop    , dBot    , imW, imH, gBoxStrideX, gBoxStrideY, gBoxW, gBoxH);
+//      getPointCloudPoints(pointCloudPoints, pBoxIndicator, thisThresh, 
+//	dTop    , dBot    , imW, imH, gBoxStrideX, gBoxStrideY, gBoxW, gBoxH);
 
       if (thisClass >= 0) {
 	roa_to_send_red.objects.resize(roa_to_send_red.objects.size()+1);
@@ -9067,8 +9098,8 @@ void nodeInit() {
 }
 
 void detectorsInit() {
-  // XXX TODO this function should check for the existence of and destroy 
-  //  old copies of the structures if this function is to be called multiple times
+
+  // XXX TODO this function should reinit the structures if this function is to be called multiple times
 
   // SIFT 
   //detector = new SiftFeatureDetector(0, 3, 0.04, 10, 1.6);
@@ -9481,8 +9512,8 @@ int main(int argc, char **argv) {
     gripperPub.publish(command);
   }
 
-  //spinlessNodeMain();
-  nodeInit();
+  //nodeInit();
+  spinlessNodeMain();
   spinlessPilotMain();
 
   saveROSParams();
