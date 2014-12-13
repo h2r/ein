@@ -90,7 +90,6 @@
 #include <math.h>
 
 #include <baxter_core_msgs/EndpointState.h>
-#include <baxter_core_msgs/EndEffectorState.h>
 #include <sensor_msgs/Range.h>
 #include <baxter_core_msgs/EndEffectorCommand.h>
 
