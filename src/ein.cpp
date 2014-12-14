@@ -1,4 +1,4 @@
-#define DEBUG3
+//#define DEBUG3
 // start Header
 //
 //  // start TODO XXX
@@ -345,7 +345,7 @@ eePose crane2right = {.px = 0.617214, .py = -0.301658, .pz = 0.0533165,
 eePose crane3right = {.px = 0.668384, .py = 0.166692, .pz = -0.120018,
 		     .ox = 0, .oy = 0, .oz = 0,
 		     .qx = 0.0328281, .qy = 0.999139, .qz = 0.00170545, .qw = 0.0253245};
-eePose crane4right = {.px = 0.642291, .py = -0.659793, .pz = 0.244186,
+eePose crane4right = {.px = 0.642291, .py = -0.659793, .pz = 0.144186,
 		     .ox = 0, .oy = 0, .oz = 0,
 		     .qx = 0.825064, .qy = 0.503489, .qz = 0.12954, .qw = 0.221331};
 
@@ -641,8 +641,9 @@ int histogramDuringClassification = 0;
 double surveyNoiseScale = 0.7;
 
 int gripperMoving = 0;
-int gripperPosition = 0;
+double gripperPosition = 0;
 int gripperGripping = 0;
+double gripperThresh = 5.0;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -703,7 +704,7 @@ std::string densityViewerName = "Density Viewer";
 std::string objectViewerName = "Object Viewer";
 
 int loTrackbarVariable = 55;
-int hiTrackbarVariable = 50;
+int hiTrackbarVariable = 40;
 int redTrackbarVariable = 0;
 
 double drawBingProb = .1;
@@ -1774,7 +1775,12 @@ void recordReadyRangeReadings() {
 
 		hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
 		hiRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
-		double denom = max(hiRangeMapMass[px + py*hrmWidth], EPSILON);
+		// nonexperimental
+		//double denom = max(hiRangeMapMass[px + py*hrmWidth], EPSILON);
+		// XXX experimental
+		double denom = 1.0;
+		if (hiRangeMapMass[px + py*hrmWidth] > 0)
+		  denom = hiRangeMapMass[px + py*hrmWidth];
 		hiRangeMap[px + py*hrmWidth] = hiRangeMapAccumulator[px + py*hrmWidth] / denom;
 	      }
 	    }
@@ -3945,21 +3951,44 @@ void timercallback1(const ros::TimerEvent&) {
     case 1048690: // numlock + r
       {
 	// XXX warning: trying resampling here
+
+	// replace unsampled regions with the lowest z reading, highest reading in those maps because they are inverted
+	// 
+	double highestReading = -INFINITY;
+	double readingFloor = -1;
 	for (int rx = 0; rx < rmWidth; rx++) {
 	  for (int ry = 0; ry < rmWidth; ry++) {
-
+	    for (int rrx = rx*10; rrx < (rx+1)*10; rrx++) {
+	      for (int rry = ry*10; rry < (ry+1)*10; rry++) {
+		if (hiRangeMapMass[rrx + rry*hrmWidth] > 0.0) {
+		  if ((hiRangeMap[rrx + rry*hrmWidth] > highestReading) && (hiRangeMap[rrx + rry*hrmWidth] >= readingFloor))
+		    highestReading = hiRangeMap[rrx + rry*hrmWidth];
+		}
+	      }
+	    }
+	  }
+	}
+	
+	for (int rx = 0; rx < rmWidth; rx++) {
+	  for (int ry = 0; ry < rmWidth; ry++) {
 	    double thisSum = 0;
 	    double numSamples = 0;
 	    for (int rrx = rx*10; rrx < (rx+1)*10; rrx++) {
 	      for (int rry = ry*10; rry < (ry+1)*10; rry++) {
-		thisSum += hiRangeMap[rrx + rry*hrmWidth];
 		numSamples += 1.0;
+		if (hiRangeMapMass[rrx + rry*hrmWidth] > 0.0) {
+		  thisSum += hiRangeMap[rrx + rry*hrmWidth];
+		} else {
+		  thisSum += highestReading;
+		}
+		//cout << highestReading << " " << hiRangeMap[rrx + rry*hrmWidth] << endl;
 	      }
 	    }
 
 	    rangeMapReg1[rx + ry*rmWidth] = thisSum/numSamples;
 	  }
 	}
+
 	// XXX no register load for hi map
 	// this is a direct read from the maps
 //	for (int rx = 0; rx < rmWidth; rx++) {
@@ -5901,7 +5930,7 @@ void timercallback1(const ros::TimerEvent&) {
 	  Py += surveyNoiseScale * ((drand48() - 0.5) * 2.0);
 
 	  double histDenom = max(surveyTotalCounts, 1.0);
-	  double histClassProbs = new double[numClasses];
+	  double *histClassProbs = new double[numClasses];
 	  cout << "  histogram scores during servoing: " << endl;
 	  for (int cl = 0; cl < numClasses; cl++) {
 	    histClassProbs[cl] = surveyHistogram[cl] / histDenom;
@@ -5925,7 +5954,9 @@ void timercallback1(const ros::TimerEvent&) {
 	  if ((fabs(Px) < synServoPixelThresh) && (fabs(Py) < synServoPixelThresh)) {
 	    //cout << "got within thresh, returning." << endl;
 	    cout << "got within thresh, fetching." << endl;
-	    pilot_call_stack.push_back(131161); // fetch
+	    //pilot_call_stack.push_back(131161); // fetch
+
+	    pilot_call_stack.push_back(196729); // quick fetch
 	    break;	
 	  } else {
 	    cout << "executing P controller update." << endl;
@@ -6236,6 +6267,71 @@ void timercallback1(const ros::TimerEvent&) {
 	pushSpeedSign(MOVE_FAST);
       }
       break;
+    // quick fetch targetClass
+    // capslock + Y
+    case 196729:
+      {
+	pilot_call_stack.push_back(131141); // 2D patrol continue
+	pilot_call_stack.push_back(131153); // vision cycle
+
+	pilot_call_stack.push_back('k'); // open gripper
+        pilot_call_stack.push_back(131151); // shake it off
+        pilot_call_stack.push_back(196649); // assert no grasp
+
+	pushNoOps(30);
+	pilot_call_stack.push_back('j'); // close gripper
+	pushNoOps(30);
+	pilot_call_stack.push_back('k'); // open gripper
+
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back('2'); // assume pose at register 2
+	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(1048680); // assume x,y of target 
+	pilot_call_stack.push_back(1048679); // render reticle
+	pilot_call_stack.push_back(1048691); // find max on register 1
+	pilot_call_stack.push_back(1048673); // render register 1
+	pilot_call_stack.push_back(1048690); // load map to register 1
+	pilot_call_stack.push_back(1048631); // assume best gear
+	pilot_call_stack.push_back(1048678); // target best grasp
+	pilot_call_stack.push_back(1048630); // find best grasp
+
+
+	//pilot_call_stack.push_back(1114206); // spiral scan 3
+
+	//pilot_call_stack.push_back(1048683); // turn on scanning
+	//pushNoOps(60);
+	//pilot_call_stack.push_back(1114155); // rotate gear
+
+
+
+	//pilot_call_stack.push_back(1114183); // full render
+	//pilot_call_stack.push_back(1048679); // render reticle
+	//pilot_call_stack.push_back(1048625); // change to first gear
+	//pilot_call_stack.push_back(1048673); // render register 1
+	//pilot_call_stack.push_back(1048690); // load map to register 1
+	//pilot_call_stack.push_back(1048678); // target best grasp
+	//pilot_call_stack.push_back(1048630); // find best grasp
+
+	pilot_call_stack.push_back(1114206); // spiral scan 3
+
+	pushCopies('a', 3);
+	pushCopies('q', 3);
+
+	pilot_call_stack.push_back(1048683); // turn on scanning
+	pilot_call_stack.push_back(1114150); // prepare for search
+	pilot_call_stack.push_back(1048695); // clear scan history
+	pilot_call_stack.push_back(1048625); // change to first gear
+	pushNoOps(60);
+
+	pilot_call_stack.push_back('x'); 
+	pushCopies('s', 17); 
+
+	pilot_call_stack.push_back('k'); // open gripper
+	pilot_call_stack.push_back('i'); // initialize gripper
+	pushSpeedSign(MOVE_FAST);
+      }
+      break;
     // constant speed scan
     //////////
     case 1:
@@ -6399,22 +6495,82 @@ void timercallback1(const ros::TimerEvent&) {
 	histogramDuringClassification = 0;
       }
       break;
+    // if gripper is empty, pop next instruction and return. if not, just return
+    // pull from bag will push itself and assert yes grasp
     // assert yes grasp
-    case 38:
+    // capslock + u
+    case 131157:
       {
-	//if ()
-	//pilot_call_stack.pop_back();
-	// if gripper is empty, pop next instruction and return. if not, just return
-	// pull from bag will push itself and assert yes grasp
+	// TODO push this and then a calibration message if uncalibrated
 	// push this again if moving
-	// push this and then a calibration message if uncalibrated
+	if (gripperMoving) {
+	  pilot_call_stack.push_back(131157); // assert yes grasp
+	} else {
+	  //if (gripperGripping)
+	  if (gripperPosition >= gripperThresh)
+	    pilot_call_stack.pop_back();
+	}
       }
       break;
     // assert no grasp
-    case 39:
+    // if gripper is full, pop next instruction and return. if not, just return
+    // shake it off will push itself and then assert no grasp
+    // capslock + u
+    case 196649:
       {
-	// if gripper is full, pop next instruction and return. if not, just return
-	// shake it off will push itself and then assert no grasp
+	// TODO push this and then a calibration message if uncalibrated
+	// push this again if moving
+
+	cout << "assert no grasp: " << gripperMoving << " " << gripperGripping << " " << gripperPosition << endl;
+
+	if (gripperMoving) {
+	  pilot_call_stack.push_back(196649); // assert no grasp
+	} else {
+	  if (gripperPosition < gripperThresh) 
+	  //if (!gripperGripping)
+	  {
+	    pilot_call_stack.pop_back();
+	  }
+	}
+      }
+      break;
+    // shake it off
+    // capslock + i
+    case 131151:
+      {
+	int depthToPlunge = 24;
+	int flexThisFar = 80;
+	cout << "SHAKING IT OFF!!!" << endl;
+	pilot_call_stack.push_back('k'); // open gripper
+	pilot_call_stack.push_back(131151); // shake it off
+	pilot_call_stack.push_back(196649); // assert no grasp
+
+	pushNoOps(10);
+	pilot_call_stack.push_back('2'); // assume pose at register 2
+	pilot_call_stack.push_back('j'); // close gripper
+	pushNoOps(20);
+	pilot_call_stack.push_back('k'); // open gripper
+	pilot_call_stack.push_back('j'); // close gripper
+	pushNoOps(20);
+	pushCopies('w', depthToPlunge); // move up 
+	pilot_call_stack.push_back('k'); // open gripper
+	pilot_call_stack.push_back('j'); // close gripper
+	pushNoOps(20);
+	pushCopies('s', depthToPlunge); // move down
+	pushNoOps(30);
+	pushCopies('s'+65504, 2*flexThisFar); // rotate backward
+	pilot_call_stack.push_back('k'); // open gripper
+	pilot_call_stack.push_back('j'); // close gripper
+	pushNoOps(20);
+	pushCopies('w', depthToPlunge); // move up 
+	pilot_call_stack.push_back('k'); // open gripper
+	pilot_call_stack.push_back('j'); // close gripper
+	pushNoOps(20);
+	pushCopies('s', depthToPlunge); // move down
+	pushNoOps(30);
+	pushCopies('w'+65504, flexThisFar); // rotate forward
+	pilot_call_stack.push_back('2'); // assume pose at register 2
+	pushSpeedSign(MOVE_FAST);
       }
       break;
     //
@@ -7236,9 +7392,11 @@ int shouldIPick(int classToPick) {
 
   int toReturn = 0;
 
+  // 2 is greenPepper 
   // 9 is chile
   // 10 is cucumber
   if (
+      (classToPick == 2) ||
       (classToPick == 9) ||
       (classToPick == 10)
     ) {
