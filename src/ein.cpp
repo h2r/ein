@@ -480,7 +480,8 @@ double deltaGibbsIota= 0.01;
 const int parzenKernelHalfWidth = 15;
 const int parzenKernelWidth = 2*parzenKernelHalfWidth+1;
 double parzenKernel[parzenKernelWidth*parzenKernelWidth];
-double parzenKernelSigma = 2.0;
+double parzenKernelSigma = 4.0;
+//double parzenKernelSigma = 2.0;
 //double parzenKernelSigma = 1.0; // this is approximately what it should be at 20 cm height
 //double parzenKernelSigma = 0.5; // 
 // 13.8 cm high -> 2.2 cm gap
@@ -541,7 +542,7 @@ int maxY = 0;
 double maxD = 0;
 int maxGG = 0;
 
-double graspDepth = -.02;
+double graspDepth = -.06;//-.04;//-.02;
 
 // grasp gear 
 const int totalGraspGears = 8;
@@ -635,7 +636,7 @@ int collectBackgroundInstances = 0;
 vector<double> surveyHistogram;
 int surveyWinningClass = -1;
 double surveyTotalCounts = 0;
-int viewsWithNoise = 7;
+int viewsWithNoise = 1;
 
 int surveyDuringServo = 0;
 int histogramDuringClassification = 0;
@@ -6351,7 +6352,8 @@ void timercallback1(const ros::TimerEvent&) {
 	//pilot_call_stack.push_back(1048678); // target best grasp
 	//pilot_call_stack.push_back(1048630); // find best grasp
 
-	pilot_call_stack.push_back(1114206); // spiral scan 3
+	//pilot_call_stack.push_back(1114206); // spiral scan 3
+	pilot_call_stack.push_back(131144); // quick orientation scan
 
 	//pushCopies('a', 3);
 	//pushCopies('q', 3);
@@ -6739,8 +6741,132 @@ void timercallback1(const ros::TimerEvent&) {
       }
       break;
     // quick orientation scan
-    case 32:
+    // capslock + h
+    case 131144:
       {
+	int numRepeats = 10;
+	int maxWidth = 4;
+
+//	int ciMax = 0;
+//	for (int curintWidth = 0; (curintWidth+1) < maxWidth; curintWidth+=2) {
+//	  for (int curintRepeat = 0; curintRepeat < numRepeats-1; curintRepeat++) {
+//	    pushCopies('a',curintWidth+1);
+//	    pushCopies('q',curintWidth+1);
+//	    pushCopies('d',curintWidth+1);
+//	    pushCopies('e',curintWidth+1);
+//	  }
+//	  pushCopies('a',curintWidth);
+//	  pushCopies('q',curintWidth);
+//	  pushCopies('d',curintWidth+1);
+//	  pushCopies('e',curintWidth+1);
+//	  ciMax = curintWidth;
+//	}
+//	for (int curintWidth = ciMax; (curintWidth-1) >= 0; curintWidth-=2) {
+//	  for (int curintRepeat = 0; curintRepeat < numRepeats-1; curintRepeat++) {
+//	    pushCopies('e',curintWidth);
+//	    pushCopies('d',curintWidth);
+//	    pushCopies('q',curintWidth);
+//	    pushCopies('a',curintWidth);
+//	  }
+//	  pushCopies('e',curintWidth);
+//	  pushCopies('d',curintWidth);
+//	  pushCopies('q',curintWidth+1);
+//	  pushCopies('a',curintWidth+1);
+//	}
+
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('q',5);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('d',5);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('e',10);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('a',10);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('q',10);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('d',10);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('e',10);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('a',5);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('q',5);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+    
+	int crossWidth = 11;
+	int numCrosses = 1;
+	for (int crossCounter = 0; crossCounter < numCrosses; crossCounter++) {
+	  for (int twCounter = 0; twCounter < crossWidth; twCounter++) {
+	    pushCopies('q',1);
+	    pushCopies('a',1);
+	  }
+	  for (int twCounter = 0; twCounter < crossWidth; twCounter++) {
+	    pushCopies('e',1);
+	    pushCopies('d',1);
+	  }
+	  for (int twCounter = 0; twCounter < crossWidth; twCounter++) {
+	    pushCopies('q',1);
+	    pushCopies('d',1);
+	  }
+	  for (int twCounter = 0; twCounter < crossWidth; twCounter++) {
+	    pushCopies('e',1);
+	    pushCopies('a',1);
+	  }
+	  for (int twCounter = 0; twCounter < crossWidth; twCounter++) {
+	    pushCopies('e',1);
+	    pushCopies('d',1);
+	  }
+	  for (int twCounter = 0; twCounter < crossWidth; twCounter++) {
+	    pushCopies('q',1);
+	    pushCopies('a',1);
+	  }
+	  for (int twCounter = 0; twCounter < crossWidth; twCounter++) {
+	    pushCopies('e',1);
+	    pushCopies('a',1);
+	  }
+	  for (int twCounter = 0; twCounter < crossWidth; twCounter++) {
+	    pushCopies('q',1);
+	    pushCopies('d',1);
+	  }
+	}
+
+//	for (int crossCounter = 0; crossCounter < numCrosses; crossCounter++) {
+//	  pushCopies('q',crossWidth);
+//	  pushCopies('e',crossWidth);
+//	  pushCopies('d',crossWidth);
+//	  pushCopies('a',crossWidth);
+//	  pushCopies('e',crossWidth);
+//	  pushCopies('q',crossWidth);
+//	  pushCopies('a',crossWidth);
+//	  pushCopies('d',crossWidth);
+//	}
+	for (int crossCounter = 0; crossCounter < numCrosses; crossCounter++) {
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pushCopies('e',crossWidth);
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pushCopies('q',2*crossWidth);
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pushCopies('e',crossWidth);
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pushCopies('d',crossWidth);
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pushCopies('a',2*crossWidth);
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pushCopies('d',crossWidth);
+	}
+
+//	for (int crossCounter = 0; crossCounter < numCrosses; crossCounter++) {
+//	  pushCopies('d',crossWidth);
+//	  pushCopies('a',crossWidth);
+//	  pushCopies('q',crossWidth);
+//	  pushCopies('e',crossWidth);
+//	  pushCopies('a',crossWidth);
+//	  pushCopies('d',crossWidth);
+//	  pushCopies('e',crossWidth);
+//	  pushCopies('q',crossWidth);
+//	}
+
       }
       break;
     // find optimal orientation and calculate target from saved map(s)
@@ -9093,6 +9219,12 @@ void goFindBlueBoxes() {
   if (!all_range_mode) {
     double rejectArea = rejectAreaScale*gBoxW*gBoxH;
     for (int c = 0; c < total_components; c++) {
+
+      cTops[c].x = max(0,min(imW-1, cTops[c].x));
+      cTops[c].y = max(0,min(imH-1, cTops[c].y));
+      cBots[c].x = max(0,min(imW-1, cBots[c].x));
+      cBots[c].y = max(0,min(imH-1, cBots[c].y));
+
       int allow = 1;
       if (cBots[c].x - cTops[c].x < rejectScale*gBoxW || cBots[c].y - cTops[c].y < rejectScale*gBoxH)
 	allow = 0;
@@ -9650,8 +9782,8 @@ void goClassifyBlueBoxes() {
     if (drawLabels) {
       cv::Point text_anchor(bTops[c].x+1, bBots[c].y-2);
       cv::Point text_anchor2(bTops[c].x+1, bBots[c].y-2);
-      putText(objectViewerImage, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(255,192,192), 2.0);
-      putText(objectViewerImage, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(255,0,0), 1.0);
+      putText(objectViewerImage, augmentedLabelName, text_anchor, MY_FONT, 0.5, Scalar(255,192,192), 2.0);
+      putText(objectViewerImage, augmentedLabelName, text_anchor2, MY_FONT, 0.5, Scalar(255,0,0), 1.0);
     }
 
     double thisThresh = pBoxThresh;
@@ -10107,8 +10239,8 @@ void goFindRedBoxes() {
 	if (drawLabels) {
 	  cv::Point text_anchor(dTop.x+1, dBot.y-2);
 	  cv::Point text_anchor2(dTop.x+1, dBot.y-2);
-	  putText(objectViewerImage, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(160,160,224), 2.0);
-	  putText(objectViewerImage, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(64,64,192), 1.0);
+	  putText(objectViewerImage, augmentedLabelName, text_anchor, MY_FONT, 0.5, Scalar(160,160,224), 2.0);
+	  putText(objectViewerImage, augmentedLabelName, text_anchor2, MY_FONT, 0.5, Scalar(64,64,192), 1.0);
 	}
       }
 
@@ -10123,8 +10255,8 @@ void goFindRedBoxes() {
 	if (drawLabels) {
 	  cv::Point text_anchor(winTop.x+1, winBot.y-2);
 	  cv::Point text_anchor2(winTop.x+1, winBot.y-2);
-	  putText(objectViewerImage, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(192,192,255), 2.0);
-	  putText(objectViewerImage, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(0,0,255), 1.0);
+	  putText(objectViewerImage, augmentedLabelName, text_anchor, MY_FONT, 0.5, Scalar(192,192,255), 2.0);
+	  putText(objectViewerImage, augmentedLabelName, text_anchor2, MY_FONT, 0.5, Scalar(0,0,255), 1.0);
 	}
       }
     }
