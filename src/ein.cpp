@@ -1,4 +1,4 @@
-//#define DEBUG3
+#define DEBUG3
 // start Header
 //
 //  // start TODO XXX
@@ -67,7 +67,7 @@
 
 //#define DEBUG
 #define EPSILON 1.0e-9
-#define INFINITY 1e6
+#define VERYBIGNUMBER 1e6
 
 #define PROGRAM_NAME "ein"
 #define MY_FONT FONT_HERSHEY_SIMPLEX
@@ -613,7 +613,7 @@ ros::Time oscilStart;
  double oscCenX = 0.0;
  double oscCenY = 0.0;
  double oscCenZ = 0.0;
-double oscAmpX = 0.08;//0.1;
+double oscAmpX = 0.16;//0.08;//0.1;
 double oscAmpY = 0.16;//0.2;
 double oscAmpZ = 0.0;
 
@@ -633,12 +633,13 @@ int collectBackgroundInstances = 0;
 
 // variables for survey during servoing
 vector<double> surveyHistogram;
+int surveyWinningClass = -1;
 double surveyTotalCounts = 0;
 int viewsWithNoise = 7;
 
 int surveyDuringServo = 0;
 int histogramDuringClassification = 0;
-double surveyNoiseScale = 0.7;
+double surveyNoiseScale = 50;
 
 int gripperMoving = 0;
 double gripperPosition = 0;
@@ -1886,7 +1887,7 @@ void recordReadyRangeReadings() {
 	    rangeMap[iiX + iiY*rmWidth] = rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
 	  }
 	  
-	  double minDepth = INFINITY;
+	  double minDepth = VERYBIGNUMBER;
 	  double maxDepth = 0;
 	  for (int rx = 0; rx < rmWidth; rx++) {
 	    for (int ry = 0; ry < rmWidth; ry++) {
@@ -1896,7 +1897,7 @@ void recordReadyRangeReadings() {
 	  }
 	  double denom2 = max(EPSILON,maxDepth-minDepth);
 	  if (denom2 <= EPSILON)
-	    denom2 = INFINITY;
+	    denom2 = VERYBIGNUMBER;
 	  double intensity = 255 * (maxDepth - rangeMap[iiX + iiY*rmWidth]) / denom2;
 	  cv::Scalar backColor(0,0,ceil(intensity));
 	  cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
@@ -2754,7 +2755,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
       int iiX = (int)round(lastiX + rmHalfWidth);
       int iiY = (int)round(lastiY + rmHalfWidth);
 
-      double minDepth = INFINITY;
+      double minDepth = VERYBIGNUMBER;
       double maxDepth = 0;
       for (int rx = 0; rx < rmWidth; rx++) {
 	for (int ry = 0; ry < rmWidth; ry++) {
@@ -2764,7 +2765,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
       }
       double denom2 = max(EPSILON,maxDepth-minDepth);
       if (denom2 <= EPSILON)
-	denom2 = INFINITY;
+	denom2 = VERYBIGNUMBER;
       double intensity = 255 * (maxDepth - rangeMap[iiX + iiY*rmWidth]) / denom2;
       cv::Scalar backColor(0,0,ceil(intensity));
       cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
@@ -2829,7 +2830,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	//rangeMap[iiX + iiY*rmWidth] = rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
       }
       
-      double minDepth = INFINITY;
+      double minDepth = VERYBIGNUMBER;
       double maxDepth = 0;
       for (int rx = 0; rx < rmWidth; rx++) {
 	for (int ry = 0; ry < rmWidth; ry++) {
@@ -2839,7 +2840,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
       }
       double denom2 = max(EPSILON,maxDepth-minDepth);
       if (denom2 <= EPSILON)
-	denom2 = INFINITY;
+	denom2 = VERYBIGNUMBER;
       double intensity = 255 * (maxDepth - rangeMap[iiX + iiY*rmWidth]) / denom2;
       cv::Scalar backColor(0,0,ceil(intensity));
       cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
@@ -3272,6 +3273,7 @@ void timercallback1(const ros::TimerEvent&) {
 	command.args = "{\"position\": 0.0}";
 	command.id = 65538;
 	gripperPub.publish(command);
+	cout << "close gripper: " << gripperMoving << " " << gripperGripping << " " << gripperPosition << endl;
       }
       break;
     case 'k':
@@ -3281,6 +3283,7 @@ void timercallback1(const ros::TimerEvent&) {
 	command.args = "{\"position\": 100.0}";
 	command.id = 65538;
 	gripperPub.publish(command);
+	cout << "open gripper: " << gripperMoving << " " << gripperGripping << " " << gripperPosition << endl;
       }
       break;
     case 'l':
@@ -3954,20 +3957,31 @@ void timercallback1(const ros::TimerEvent&) {
 
 	// replace unsampled regions with the lowest z reading, highest reading in those maps because they are inverted
 	// 
-	double highestReading = -INFINITY;
+	double highestReading = -VERYBIGNUMBER;
+	double highestEpsilonMassReading = -VERYBIGNUMBER;
 	double readingFloor = -1;
 	for (int rx = 0; rx < rmWidth; rx++) {
 	  for (int ry = 0; ry < rmWidth; ry++) {
 	    for (int rrx = rx*10; rrx < (rx+1)*10; rrx++) {
 	      for (int rry = ry*10; rry < (ry+1)*10; rry++) {
 		if (hiRangeMapMass[rrx + rry*hrmWidth] > 0.0) {
-		  if ((hiRangeMap[rrx + rry*hrmWidth] > highestReading) && (hiRangeMap[rrx + rry*hrmWidth] >= readingFloor))
+		  //if ((hiRangeMap[rrx + rry*hrmWidth] > highestReading) && (hiRangeMap[rrx + rry*hrmWidth] >= readingFloor))
+		  if ((hiRangeMap[rrx + rry*hrmWidth] > highestEpsilonMassReading) && (hiRangeMapMass[rrx + rry*hrmWidth] > EPSILON))
+		    highestEpsilonMassReading = hiRangeMap[rrx + rry*hrmWidth];
+
+		  if ((hiRangeMap[rrx + rry*hrmWidth] > highestReading) && (hiRangeMapMass[rrx + rry*hrmWidth] > 0))
 		    highestReading = hiRangeMap[rrx + rry*hrmWidth];
 		}
 	      }
 	    }
 	  }
 	}
+
+	cout << "Resampling (by mass   experimental): " << highestReading << " " << highestEpsilonMassReading << endl;
+	if (highestReading <= -VERYBIGNUMBER)
+	  highestReading = 0;
+	cout << "  ++Resampling (by mass   experimental): " << highestReading << " " << highestEpsilonMassReading << endl;
+
 	
 	for (int rx = 0; rx < rmWidth; rx++) {
 	  for (int ry = 0; ry < rmWidth; ry++) {
@@ -3976,7 +3990,9 @@ void timercallback1(const ros::TimerEvent&) {
 	    for (int rrx = rx*10; rrx < (rx+1)*10; rrx++) {
 	      for (int rry = ry*10; rry < (ry+1)*10; rry++) {
 		numSamples += 1.0;
-		if (hiRangeMapMass[rrx + rry*hrmWidth] > 0.0) {
+		if (hiRangeMapMass[rrx + rry*hrmWidth] > 0.0) 
+		//if (hiRangeMapMass[rrx + rry*hrmWidth] > EPSILON) 
+		{
 		  thisSum += hiRangeMap[rrx + rry*hrmWidth];
 		} else {
 		  thisSum += highestReading;
@@ -3984,7 +4000,6 @@ void timercallback1(const ros::TimerEvent&) {
 		//cout << highestReading << " " << hiRangeMap[rrx + rry*hrmWidth] << endl;
 	      }
 	    }
-
 	    rangeMapReg1[rx + ry*rmWidth] = thisSum/numSamples;
 	  }
 	}
@@ -4034,7 +4049,7 @@ void timercallback1(const ros::TimerEvent&) {
 
 	// XXX TODO Consider: 
 	// Push boundary to deepest point...
-	double minDepth = INFINITY;
+	double minDepth = VERYBIGNUMBER;
 	double maxDepth = 0;
 	for (int rx = 0; rx < rmWidth; rx++) {
 	  for (int ry = 0; ry < rmWidth; ry++) {
@@ -4160,7 +4175,7 @@ void timercallback1(const ros::TimerEvent&) {
     case 1048673:
       {
 	{
-	  double minDepth = INFINITY;
+	  double minDepth = VERYBIGNUMBER;
 	  double maxDepth = 0;
 	  for (int rx = 0; rx < rmWidth; rx++) {
 	    for (int ry = 0; ry < rmWidth; ry++) {
@@ -4172,7 +4187,7 @@ void timercallback1(const ros::TimerEvent&) {
 	    for (int ry = 0; ry < rmWidth; ry++) {
 	      double denom = max(EPSILON,maxDepth-minDepth);
 	      if (denom <= EPSILON)
-		denom = INFINITY;
+		denom = VERYBIGNUMBER;
 	      double intensity = 255 * (maxDepth - rangeMapReg1[rx + ry*rmWidth]) / denom;
 //cout << denom << " " << maxDepth << " " << rangeMapReg1[rx + ry*rmWidth] << " " << (maxDepth - rangeMapReg1[rx + ry*rmWidth]) << " " << endl;
 	      cv::Scalar backColor(0,0,ceil(intensity));
@@ -4184,7 +4199,7 @@ void timercallback1(const ros::TimerEvent&) {
 	  }
 	}
 	{
-	  double minDepth = INFINITY;
+	  double minDepth = VERYBIGNUMBER;
 	  double maxDepth = 0;
 	  for (int rx = 0; rx < rmWidth; rx++) {
 	    for (int ry = 0; ry < rmWidth; ry++) {
@@ -4196,7 +4211,7 @@ void timercallback1(const ros::TimerEvent&) {
 	    for (int ry = 0; ry < rmWidth; ry++) {
 	      double denom = max(EPSILON,maxDepth-minDepth);
 	      if (denom <= EPSILON)
-		denom = INFINITY;
+		denom = VERYBIGNUMBER;
 	      double intensity = 255 * (maxDepth - rangeMapReg2[rx + ry*rmWidth]) / denom;
 	      cv::Scalar backColor(0,0,ceil(intensity));
 	      cv::Point outTop = cv::Point((ry+2*rmWidth)*rmiCellWidth,rx*rmiCellWidth);
@@ -4207,7 +4222,7 @@ void timercallback1(const ros::TimerEvent&) {
 	  }
 	}
 	{
-	  double minDepth = INFINITY;
+	  double minDepth = VERYBIGNUMBER;
 	  double maxDepth = 0;
 	  for (int rx = 0; rx < hrmWidth; rx++) {
 	    for (int ry = 0; ry < hrmWidth; ry++) {
@@ -4219,14 +4234,14 @@ void timercallback1(const ros::TimerEvent&) {
 	    for (int ry = 0; ry < hrmWidth; ry++) {
 	      double denom = max(EPSILON,maxDepth-minDepth);
 	      if (denom <= EPSILON)
-		denom = INFINITY;
+		denom = VERYBIGNUMBER;
 	      double intensity = 255 * (maxDepth - hiRangeMap[rx + ry*hrmWidth]) / denom;
 	      hiRangemapImage.at<cv::Vec3b>(rx,ry) = cv::Vec3b(0,0,ceil(intensity));
 	    }
 	  }
 	}
 	{
-	  double minDepth = INFINITY;
+	  double minDepth = VERYBIGNUMBER;
 	  double maxDepth = 0;
 	  for (int rx = 0; rx < hrmWidth; rx++) {
 	    for (int ry = 0; ry < hrmWidth; ry++) {
@@ -4238,14 +4253,14 @@ void timercallback1(const ros::TimerEvent&) {
 	    for (int ry = 0; ry < hrmWidth; ry++) {
 	      double denom = max(EPSILON,maxDepth-minDepth);
 	      if (denom <= EPSILON)
-		denom = INFINITY;
+		denom = VERYBIGNUMBER;
 	      double intensity = 255 * (maxDepth - hiRangeMapReg1[rx + ry*hrmWidth]) / denom;
 	      hiRangemapImage.at<cv::Vec3b>(rx,ry+hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
 	    }
 	  }
 	}
 	{
-	  double minDepth = INFINITY;
+	  double minDepth = VERYBIGNUMBER;
 	  double maxDepth = 0;
 	  for (int rx = 0; rx < hrmWidth; rx++) {
 	    for (int ry = 0; ry < hrmWidth; ry++) {
@@ -4257,7 +4272,7 @@ void timercallback1(const ros::TimerEvent&) {
 	    for (int ry = 0; ry < hrmWidth; ry++) {
 	      double denom = max(EPSILON,maxDepth-minDepth);
 	      if (denom <= EPSILON)
-		denom = INFINITY;
+		denom = VERYBIGNUMBER;
 	      double intensity = 255 * (maxDepth - hiRangeMapReg2[rx + ry*hrmWidth]) / denom;
 	      hiRangemapImage.at<cv::Vec3b>(rx,ry+2*hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
 	    }
@@ -4367,7 +4382,7 @@ void timercallback1(const ros::TimerEvent&) {
     case 1048691:
       {
 	int maxSearchPadding = 3;
-	double minDepth = INFINITY;
+	double minDepth = VERYBIGNUMBER;
 	for (int rx = maxSearchPadding; rx < rmWidth-maxSearchPadding; rx++) {
 	  for (int ry = maxSearchPadding; ry < rmWidth-maxSearchPadding; ry++) {
 	    if (rangeMapReg1[rx + ry*rmWidth] < minDepth) {
@@ -4445,7 +4460,7 @@ void timercallback1(const ros::TimerEvent&) {
 	  int rootY = min(hrmWidth - rootBuffer, hiiY);
 	  rootY = max(rootBuffer, rootY);
 
-	  double maxScore = -INFINITY;
+	  double maxScore = -VERYBIGNUMBER;
 	  int hMaxX = 0;
 	  int hMaxY = 0;
 
@@ -4607,10 +4622,14 @@ void timercallback1(const ros::TimerEvent&) {
       {
 	pilot_call_stack.push_back('j');
 
+	cout << " ++Move to target z: " << maxD << " " << graspDepth << " " << currentEEPose.pz << endl; cout.flush();
+
 	//double deltaZ = -maxD - graspDepth;
 	double deltaZ = (-maxD -graspDepth) - currentEEPose.pz;
 
 	double zTimes = fabs(floor(deltaZ / bDelta)); 
+
+	cout << " ++Move to target z: " << deltaZ << " " << zTimes << " " << endl; cout.flush();
 
 	int numNoOps = 16;
 	if (deltaZ > 0)
@@ -4631,6 +4650,7 @@ void timercallback1(const ros::TimerEvent&) {
       }
       break;
     // add switches disable recording
+    // turn on scanning
     // numlock + k
     case 1048683:
       {
@@ -4638,6 +4658,7 @@ void timercallback1(const ros::TimerEvent&) {
       }
       break;
     // numlock + l
+    // turn off scanning
     case 1048684:
       {
 	recordRangeMap = 0;
@@ -4816,8 +4837,7 @@ void timercallback1(const ros::TimerEvent&) {
 	// change gear to 1
 	pilot_call_stack.push_back(1048625);
 
-	// turn off recording
-	pilot_call_stack.push_back(1048684);
+	pilot_call_stack.push_back(1048684); // turn off scanning
       }
       break;
     // assume winning gg
@@ -5878,6 +5898,7 @@ void timercallback1(const ros::TimerEvent&) {
 	if ((pilotTarget.px != -1) && (pilotTarget.py != -1)) {
 	  // if so, push servoing command and set lock frames to 0
 	  pilot_call_stack.push_back(131156); // synchronic servo
+	  pilot_call_stack.push_back(131146); // turn survey on
 	  synServoLockFrames = 0;
 
 	  cout << "Found the target " << classLabels[targetClass] << ". " << endl;
@@ -5890,7 +5911,7 @@ void timercallback1(const ros::TimerEvent&) {
 	  ros::Duration timeSinceLast = ros::Time::now() - lastVisionCycle;
 	  if (timeSinceLast.toSec() > visionCycleInterval) {
 	    if (collectBackgroundInstances) {
-	      pilot_call_stack.push_back(40); // save all blue boxes as focused class
+	      pilot_call_stack.push_back(131152); // save all blue boxes as focused class
 	    }
 	    pilot_call_stack.push_back(131153); // vision cycle
 	    // grab the last bit of accumulated time
@@ -5925,18 +5946,17 @@ void timercallback1(const ros::TimerEvent&) {
 	double Px = reticle.px - pilotTarget.px;
 	double Py = reticle.py - pilotTarget.py;
 
-	if (surveyDuringServo) {
+	if ((surveyDuringServo) && (surveyTotalCounts < viewsWithNoise)) {
 	  Px += surveyNoiseScale * ((drand48() - 0.5) * 2.0);
 	  Py += surveyNoiseScale * ((drand48() - 0.5) * 2.0);
 
 	  double histDenom = max(surveyTotalCounts, 1.0);
 	  double *histClassProbs = new double[numClasses];
-	  cout << "  histogram scores during servoing: " << endl;
+	  //cout << "  histogram scores during servoing: " << endl;
 	  for (int cl = 0; cl < numClasses; cl++) {
 	    histClassProbs[cl] = surveyHistogram[cl] / histDenom;
-	    cout << "   class " << cl << " " << classLabels[cl] << " score: " << histClassProbs << endl;
+	    //cout << "   class " << cl << " " << classLabels[cl] << " score: " << histClassProbs[cl] << endl;
 	  }
-
 	  delete histClassProbs;
 	}
 
@@ -5951,9 +5971,26 @@ void timercallback1(const ros::TimerEvent&) {
 	  cout << "waiting to arrive at current position." << endl;
 	  pilot_call_stack.push_back(131156); // synchronic servo
 	} else {
-	  if ((fabs(Px) < synServoPixelThresh) && (fabs(Py) < synServoPixelThresh)) {
+	  //if ((fabs(Px) < synServoPixelThresh) && (fabs(Py) < synServoPixelThresh)) 
+	  if (   (fabs(Px) < synServoPixelThresh) && (fabs(Py) < synServoPixelThresh) &&
+	       !( (surveyDuringServo) && (surveyTotalCounts < viewsWithNoise) )   )
+	  {
 	    //cout << "got within thresh, returning." << endl;
 	    cout << "got within thresh, fetching." << endl;
+	    if (surveyDuringServo) {
+	      cout << "Survey results: " << endl;
+	      int winningClass = -1;
+	      int winningClassCounts = -1;
+	      for (int clc = 0; clc < numClasses; clc++) {
+		if (surveyHistogram[clc] > winningClassCounts) {
+		  winningClass = clc;
+		  winningClassCounts = surveyHistogram[clc];
+		}
+		cout << "    class " << classLabels[clc] << " counts: " << surveyHistogram[clc] << endl;
+	      }
+	      cout << "  Winning Class: " << classLabels[winningClass] << " counts: " << surveyHistogram[winningClass] << endl;
+	      surveyWinningClass = winningClass;
+	    }
 	    //pilot_call_stack.push_back(131161); // fetch
 
 	    pilot_call_stack.push_back(196729); // quick fetch
@@ -6275,10 +6312,10 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(131153); // vision cycle
 
 	pilot_call_stack.push_back('k'); // open gripper
-        pilot_call_stack.push_back(131151); // shake it off
+        pilot_call_stack.push_back(131151); // shake it off 1
         pilot_call_stack.push_back(196649); // assert no grasp
 
-	pushNoOps(30);
+	pushNoOps(60);
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(30);
 	pilot_call_stack.push_back('k'); // open gripper
@@ -6296,6 +6333,7 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1048678); // target best grasp
 	pilot_call_stack.push_back(1048630); // find best grasp
 
+	pilot_call_stack.push_back(1048684); // turn off scanning
 
 	//pilot_call_stack.push_back(1114206); // spiral scan 3
 
@@ -6315,8 +6353,8 @@ void timercallback1(const ros::TimerEvent&) {
 
 	pilot_call_stack.push_back(1114206); // spiral scan 3
 
-	pushCopies('a', 3);
-	pushCopies('q', 3);
+	//pushCopies('a', 3);
+	//pushCopies('q', 3);
 
 	pilot_call_stack.push_back(1048683); // turn on scanning
 	pilot_call_stack.push_back(1114150); // prepare for search
@@ -6369,7 +6407,8 @@ void timercallback1(const ros::TimerEvent&) {
       }
       break;
     // record example as focused class if there is only one blue box in frame
-    case 17:
+    // capslock + l
+    case 196652:
       {
 	if ((focusedClass > -1) && (bTops.size() == 1)) {
 	  string thisLabelName = focusedClassLabel;
@@ -6383,7 +6422,8 @@ void timercallback1(const ros::TimerEvent&) {
       }
       break;
     // record labeled example of focused class regardless of number of blue boxes
-    case 18:
+    // capslock + L
+    case 262220:
       {
 	for (int c = 0; c < bTops.size(); c++) {
 	  if (bLabels[c] == focusedClass) {
@@ -6400,7 +6440,8 @@ void timercallback1(const ros::TimerEvent&) {
       break;
     // record all blue boxes as focused class regardless of number of blue boxes and true identity
     //  do not need to classify to use this
-    case 40:
+    // capslock + p
+    case 131152:
       {
 	for (int c = 0; c < bTops.size(); c++) {
 	  string thisLabelName = focusedClassLabel;
@@ -6414,7 +6455,8 @@ void timercallback1(const ros::TimerEvent&) {
       }
       break;
     // initialize and focus on a new class
-    case 19:
+    // capslock + P
+    case 196720:
       {
 	focusedClass = numClasses+newClassCounter;
 	char buf[1024];
@@ -6428,7 +6470,8 @@ void timercallback1(const ros::TimerEvent&) {
       }
       break;
     // increment focused class 
-    case 20:
+    // capslock + ]
+    case 131165:
       {
 	int numIncludingNewClasses = numClasses+newClassCounter;
 	cout << "focusedClass++: ";
@@ -6437,12 +6480,17 @@ void timercallback1(const ros::TimerEvent&) {
 	  focusedClass = (numIncludingNewClasses+focusedClass) % numIncludingNewClasses;
 	  cout << "class " << classLabels[focusedClass] << " number ";
 	  focusedClassLabel = classLabels[focusedClass];
+
+	  string thisLabelName = focusedClassLabel;
+	  string dirToMakePath = data_directory + "/" + thisLabelName + "/";
+	  mkdir(dirToMakePath.c_str(), 0777);
 	}
 	cout << focusedClass << endl;
       }
       break;
     // decrement focused class 
-    case 21:
+    // capslock + [
+    case 131163:
       {
 	int numIncludingNewClasses = numClasses+newClassCounter;
 	cout << "focusedClass--: ";
@@ -6451,6 +6499,10 @@ void timercallback1(const ros::TimerEvent&) {
 	  focusedClass = (numIncludingNewClasses+focusedClass) % numIncludingNewClasses;
 	  cout << "class " << classLabels[focusedClass] << " number ";
 	  focusedClassLabel = classLabels[focusedClass];
+
+	  string thisLabelName = focusedClassLabel;
+	  string dirToMakePath = data_directory + "/" + thisLabelName + "/";
+	  mkdir(dirToMakePath.c_str(), 0777);
 	}
 	cout << focusedClass << endl;
       }
@@ -6459,13 +6511,15 @@ void timercallback1(const ros::TimerEvent&) {
     // collect background instances on
     // before using: turn target class to background class 
     // actual collection code happens in patrol
-    case 34:
+    // capslock + k
+    case 131147:
       {
 	collectBackgroundInstances = 1;
       }
       break;
     // collect background instances off
-    case 36:
+    // capslock + K
+    case 196715:
       {
 	collectBackgroundInstances = 0;
       }
@@ -6476,7 +6530,8 @@ void timercallback1(const ros::TimerEvent&) {
     // we add some noise to target location so that we take longer to converge and so 
     //  get a better understanding of what's there
     // TODO tell the servo not to pick it up if it isn't correct
-    case 35:
+    // capslock + j
+    case 131146:
       {
 	// reset histograms
 	surveyHistogram.resize(numClasses);
@@ -6489,7 +6544,8 @@ void timercallback1(const ros::TimerEvent&) {
       }
       break;
     // turn histogramming during servoing off 
-    case 37:
+    // capslock + J
+    case 196714:
       {
 	surveyDuringServo = 0;
 	histogramDuringClassification = 0;
@@ -6515,7 +6571,7 @@ void timercallback1(const ros::TimerEvent&) {
     // assert no grasp
     // if gripper is full, pop next instruction and return. if not, just return
     // shake it off will push itself and then assert no grasp
-    // capslock + u
+    // capslock + i
     case 196649:
       {
 	// TODO push this and then a calibration message if uncalibrated
@@ -6530,22 +6586,23 @@ void timercallback1(const ros::TimerEvent&) {
 	  //if (!gripperGripping)
 	  {
 	    pilot_call_stack.pop_back();
+	    // leave gripper in released state
+	    pilot_call_stack.push_back('k'); // open gripper
 	  }
 	}
       }
       break;
-    // shake it off
-    // capslock + i
-    case 131151:
+    // shake it off2
+    // capslock + O
+    case 196719:
       {
 	int depthToPlunge = 24;
 	int flexThisFar = 80;
 	cout << "SHAKING IT OFF!!!" << endl;
-	pilot_call_stack.push_back('k'); // open gripper
-	pilot_call_stack.push_back(131151); // shake it off
+	pilot_call_stack.push_back(131151); // shake it off 1
 	pilot_call_stack.push_back(196649); // assert no grasp
 
-	pushNoOps(10);
+	pushNoOps(60);
 	pilot_call_stack.push_back('2'); // assume pose at register 2
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(20);
@@ -6557,8 +6614,62 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(20);
 	pushCopies('s', depthToPlunge); // move down
+	pilot_call_stack.push_back('k'); // open gripper
 	pushNoOps(30);
-	pushCopies('s'+65504, 2*flexThisFar); // rotate backward
+	pushCopies('s'+65504, flexThisFar); // rotate backward
+
+	pilot_call_stack.push_back('2'); // assume pose at register 2
+	pushSpeedSign(MOVE_FAST);
+      }
+      break;
+    // shake it off1
+    // capslock + o
+    case 131151:
+      {
+//	int depthToPlunge = 24;
+//	int flexThisFar = 80;
+//	cout << "SHAKING IT OFF!!!" << endl;
+//	pilot_call_stack.push_back('k'); // open gripper
+//	pilot_call_stack.push_back(131151); // shake it off 1
+//	pilot_call_stack.push_back(196649); // assert no grasp
+//
+//	pushNoOps(60);
+//	pilot_call_stack.push_back('2'); // assume pose at register 2
+//	pilot_call_stack.push_back('j'); // close gripper
+//	pushNoOps(20);
+//	pilot_call_stack.push_back('k'); // open gripper
+//	pilot_call_stack.push_back('j'); // close gripper
+//	pushNoOps(20);
+//	pushCopies('w', depthToPlunge); // move up 
+//	pilot_call_stack.push_back('k'); // open gripper
+//	pilot_call_stack.push_back('j'); // close gripper
+//	pushNoOps(20);
+//	pushCopies('s', depthToPlunge); // move down
+//	pushNoOps(30);
+//	pushCopies('s'+65504, 2*flexThisFar); // rotate backward
+//	pilot_call_stack.push_back('k'); // open gripper
+//	pilot_call_stack.push_back('j'); // close gripper
+//	pushNoOps(20);
+//	pushCopies('w', depthToPlunge); // move up 
+//	pilot_call_stack.push_back('k'); // open gripper
+//	pilot_call_stack.push_back('j'); // close gripper
+//	pushNoOps(20);
+//	pushCopies('s', depthToPlunge); // move down
+//	pilot_call_stack.push_back('k'); // open gripper
+//	pushNoOps(30);
+//	pushCopies('w'+65504, flexThisFar); // rotate forward
+//	pilot_call_stack.push_back('2'); // assume pose at register 2
+//	pushSpeedSign(MOVE_FAST);
+	int depthToPlunge = 24;
+	int flexThisFar = 80;
+	cout << "SHAKING IT OFF!!!" << endl;
+	pilot_call_stack.push_back(196719); // shake it off 2
+	pilot_call_stack.push_back(196649); // assert no grasp
+
+	pushNoOps(60);
+	pilot_call_stack.push_back('2'); // assume pose at register 2
+	pilot_call_stack.push_back('j'); // close gripper
+	pushNoOps(20);
 	pilot_call_stack.push_back('k'); // open gripper
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(20);
@@ -6567,8 +6678,10 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(20);
 	pushCopies('s', depthToPlunge); // move down
+	pilot_call_stack.push_back('k'); // open gripper
 	pushNoOps(30);
 	pushCopies('w'+65504, flexThisFar); // rotate forward
+
 	pilot_call_stack.push_back('2'); // assume pose at register 2
 	pushSpeedSign(MOVE_FAST);
       }
@@ -9338,6 +9451,7 @@ void goClassifyBlueBoxes() {
   Size sz = objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
+  cout << imW << " " << imH << endl; cout.flush();
 
   vector< vector<int> > pIoCbuffer;
 
@@ -9351,7 +9465,7 @@ void goClassifyBlueBoxes() {
   int biggestBBArea = 0;
 
   int closestBBToReticle = -1;
-  int closestBBDistance = INFINITY;
+  int closestBBDistance = VERYBIGNUMBER;
 
   for (int c = 0; c < bTops.size(); c++) {
     cout << "  gCBB() c = " << c << endl; cout.flush();
@@ -9579,6 +9693,7 @@ void goClassifyBlueBoxes() {
       }
 
       int thisDistance = int(fabs(bCens[c].x-reticle.px) + fabs(bCens[c].y-reticle.py));
+      cout << "   Distance for box " << c << " : " << thisDistance << endl;
       if (thisDistance < closestBBDistance) {
 	closestBBDistance = thisDistance;
 	closestBBToReticle = c;
@@ -9586,12 +9701,13 @@ void goClassifyBlueBoxes() {
     }
   }
 
-  if (histogramDuringClassification) {
-    surveyHistogram[closestBBToReticle]++;
-    surveyTotalCounts++;
-  }
-
   if ((bTops.size() > 0) && (biggestBB > -1)) {
+    if (histogramDuringClassification) {
+      int labelOfClosest = bLabels[closestBBToReticle];
+      surveyHistogram[labelOfClosest]++;
+      surveyTotalCounts++;
+      cout << "   HIST ADDED box# class# class " << closestBBToReticle << " " << labelOfClosest << " " << classLabels[labelOfClosest] << endl;
+    }
     {
       geometry_msgs::Point p;
       p.x = bCens[biggestBB].x;
