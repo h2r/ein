@@ -2313,6 +2313,12 @@ cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
 
     double rejectArea = rejectAreaScale*gBoxW*gBoxH;
     for (int c = 0; c < total_components; c++) {
+
+      cTops[c].x = max(0,min(imW-1, cTops[c].x));
+      cTops[c].y = max(0,min(imH-1, cTops[c].y));
+      cBots[c].x = max(0,min(imW-1, cBots[c].x));
+      cBots[c].y = max(0,min(imH-1, cBots[c].y));
+
       int allow = 1;
       if (cBots[c].x - cTops[c].x < rejectScale*gBoxW || cBots[c].y - cTops[c].y < rejectScale*gBoxH) {
 	allow = 0;
@@ -2825,8 +2831,8 @@ fprintf(stderr, " object check3 label %f", label); fflush(stderr);
       if (drawLabels) {
 	cv::Point text_anchor(bTops[c].x+1, bBots[c].y-2);
 	cv::Point text_anchor2(bTops[c].x+1, bBots[c].y-2);
-	putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(255,192,192), 2.0);
-	putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(255,0,0), 1.0);
+	putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 0.5, Scalar(255,192,192), 2.0);
+	putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 0.5, Scalar(255,0,0), 1.0);
       }
 
       double thisThresh = pBoxThresh;
@@ -3273,8 +3279,8 @@ cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.
 	    if (drawLabels) {
 	      cv::Point text_anchor(dTop.x+1, dBot.y-2);
 	      cv::Point text_anchor2(dTop.x+1, dBot.y-2);
-	      putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(160,160,224), 2.0);
-	      putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(64,64,192), 1.0);
+	      putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 0.5, Scalar(160,160,224), 2.0);
+	      putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 0.5, Scalar(64,64,192), 1.0);
 	    }
 	  }
 
@@ -3289,8 +3295,8 @@ cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.
 	    if (drawLabels) {
 	      cv::Point text_anchor(winTop.x+1, winBot.y-2);
 	      cv::Point text_anchor2(winTop.x+1, winBot.y-2);
-	      putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 1.5, Scalar(192,192,255), 2.0);
-	      putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 1.5, Scalar(0,0,255), 1.0);
+	      putText(cv_ptr->image, augmentedLabelName, text_anchor, MY_FONT, 0.5, Scalar(192,192,255), 2.0);
+	      putText(cv_ptr->image, augmentedLabelName, text_anchor2, MY_FONT, 0.5, Scalar(0,0,255), 1.0);
 	    }
 	  }
 	}

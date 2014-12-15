@@ -2,7 +2,7 @@
 <package>
   <name>node</name>
   <version>0.0.0</version>
-  <description>The oberlin_detection package.</description>
+  <description>The brown H2R robot virtual machine package.</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
@@ -13,7 +13,7 @@
   <!-- One license tag required, multiple allowed, one license per tag -->
   <!-- Commonly used license strings: -->
   <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
-  <license>The Oberlin License</license>
+  <license>The Brown Software Distribution License</license>
 
 
   <!-- Url tags are optional, but mutiple are allowed, one per tag -->
