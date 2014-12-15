@@ -37,7 +37,7 @@ include_directories(include
 set(OPENMP_FLAG "-fopenmp")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -O3")
 
-#set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Debug)
 
 add_executable(capture_object src/capture_object.cpp)
 add_executable(train_classifier src/train_classifier.cpp)
@@ -91,5 +91,6 @@ target_link_libraries(pilot_baxter
 target_link_libraries(ein
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
+	opencv_nonfree
 	BINGLIB ###
 )
