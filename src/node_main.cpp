@@ -1179,6 +1179,8 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
     pcl::PointCloud<pcl::PointXYZRGB> object_cloud;
     getCluster(object_cloud, pointCloud, pointCloudPoints);
     geometry_msgs::Pose pose = getPose(object_cloud);
+    
+    pose.position.z = (tableBias - pose.position.x * tableNormal.x() - pose.position.y * tableNormal.y()) / tableNormal.z(); // set to table height;
     roa_to_send.objects[aI].point_clouds.resize(1);
     pcl::toROSMsg(object_cloud, roa_to_send.objects[aI].point_clouds[0]);
     roa_to_send.objects[aI].pose.pose.pose.position = pose.position;
