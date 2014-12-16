@@ -1179,6 +1179,8 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
     pcl::PointCloud<pcl::PointXYZRGB> object_cloud;
     getCluster(object_cloud, pointCloud, pointCloudPoints);
     geometry_msgs::Pose pose = getPose(object_cloud);
+    
+    pose.position.z = (tableBias - pose.position.x * tableNormal.x() - pose.position.y * tableNormal.y()) / tableNormal.z(); // set to table height;
     roa_to_send.objects[aI].point_clouds.resize(1);
     pcl::toROSMsg(object_cloud, roa_to_send.objects[aI].point_clouds[0]);
     roa_to_send.objects[aI].pose.pose.pose.position = pose.position;
@@ -2894,9 +2896,7 @@ cout << "table check 2" << endl;
 #ifdef DEBUG
 cout << "about to publish" << endl;
 #endif
-      if (bTops.size() > 0) {
-	rec_objs_blue.publish(roa_to_send_blue);
-      }
+      rec_objs_blue.publish(roa_to_send_blue);
       markers_blue.publish(ma_to_send_blue);
 #ifdef DEBUG
 cout << "published" << endl;
@@ -3329,10 +3329,8 @@ cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.
       }
 
       if (publishObjects) {
-	if (numRedBoxes > 0) {
-	  rec_objs_red.publish(roa_to_send_red);
-	  markers_red.publish(ma_to_send_red);
-	}
+        rec_objs_red.publish(roa_to_send_red);
+        markers_red.publish(ma_to_send_red);
       }
     }
   }
