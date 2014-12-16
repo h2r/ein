@@ -6447,7 +6447,7 @@ cout <<
 	pushNoOps(20);
 
 	pilot_call_stack.push_back('x'); 
-	pushCopies('s', 7); 
+	pushCopies('s', 5); 
 
 	pilot_call_stack.push_back('k'); // open gripper
 	pilot_call_stack.push_back('i'); // initialize gripper
@@ -6870,7 +6870,7 @@ cout <<
 	pushNoOps(60);
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(30);
-	pushCopies('w', 5);
+	pushCopies('w', 10);
 	pilot_call_stack.push_back('k'); // open gripper
 
 	// go to counter waypoint, setting object down
@@ -6880,12 +6880,12 @@ cout <<
 
 	// goto counter waypoint and rise 30 cm, which keeps the object raised
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('w', 5);
+	pushCopies('w', 10);
 	pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
 
 	// climb 30 cm to raise the object
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('w', 5);
+	pushCopies('w', 10);
 
 	// assert grip fetch
 	pilot_call_stack.push_back(131155); // quick fetch bag
@@ -6896,7 +6896,7 @@ cout <<
 
 	// go to grocery bag waypoint and back up
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('w', 5);
+	pushCopies('w', 10);
 	pilot_call_stack.push_back(196641); // go to wholeFoodsBag1
       }
       break;
@@ -6971,7 +6971,7 @@ cout <<
 	pushNoOps(60);
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(30);
-	pushCopies('w', 5);
+	pushCopies('w', 10);
 	pilot_call_stack.push_back('k'); // open gripper
 
 	// go to counter waypoint, setting object down
@@ -6981,12 +6981,12 @@ cout <<
 
 	// goto counter waypoint and rise 30 cm, which keeps the object raised
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('w', 5);
+	pushCopies('w', 10);
 	pilot_call_stack.push_back(196643); // go to wholeFoodsPantry1
 
 	// climb 30 cm to raise the object
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('w', 5);
+	pushCopies('w', 10);
 
 	// assert grip fetch
 	pilot_call_stack.push_back(196723); // quick fetch counter
@@ -6997,7 +6997,7 @@ cout <<
 
 	// go to counter waypoint and back up
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('w', 5);
+	pushCopies('w', 10);
 	pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
       }
       break;
