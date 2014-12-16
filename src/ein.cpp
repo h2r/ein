@@ -364,6 +364,19 @@ eePose crane3left = {.px = 0.652866, .py = -0.206966, .pz = -0.130561,
 		     .ox = 0, .oy = 0, .oz = 0,
 		     .qx = 0.999605, .qy = -0.0120443, .qz = 0.0253545, .qw = -0.00117847};
 
+
+eePose wholeFoodsBag1 = {.px = 0.618641, .py = -0.502567, .pz = 0.054811,
+			 .ox = 0, .oy = 0, .oz = 0,
+			 .qx = 4.5204e-05, .qy = 0.999996, .qz = -0.00122689, .qw = 0.00245115};
+
+eePose wholeFoodsPantry1 = {.px = 0.616353, .py = -0.182223, .pz = 0.0528802,
+                      .ox = 0, .oy = 0, .oz = 0,
+                      .qx = 0.000817634, .qy = 1, .qz = 0.0002565, .qw = -0.000372829};
+
+eePose wholeFoodsCounter1 = {.px = -0.114591, .py = -0.771545, .pz = 0.0365494,
+                      .ox = 0, .oy = 0, .oz = 0,
+                      .qx = 0.00145314, .qy = 0.999999, .qz = 0.000204923, .qw = -0.000812254};
+
 //eePose defaultReticle = defaultRightReticle;
 eePose defaultReticle = centerReticle;
 
@@ -542,7 +555,7 @@ int maxY = 0;
 double maxD = 0;
 int maxGG = 0;
 
-double graspDepth = -.06;//-.04;//-.02;
+double graspDepth = -.03;//-.04;//-.02;
 
 // grasp gear 
 const int totalGraspGears = 8;
@@ -598,7 +611,7 @@ double fEpsilon = EPSILON;
 int curseReticleX = 0;
 int curseReticleY = 0;
 
-int targetClass = 9;
+int targetClass = 2;
 
 ros::Time lastVisionCycle;
 ros::Duration accumulatedTime;
@@ -646,7 +659,7 @@ double surveyNoiseScale = 50;
 int gripperMoving = 0;
 double gripperPosition = 0;
 int gripperGripping = 0;
-double gripperThresh = 10.0;
+double gripperThresh = 7.0;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -748,7 +761,7 @@ double pcgc22 = 1;//1.0+(12.0 / 480.0);
 // if you add an immense number of examples or some new classes and
 //   you begin having discriminative problems (confusion), you can
 //   increase the number of words.
-const double bowSubSampleFactor = 0.05;//0.01;
+const double bowSubSampleFactor = 0.02;//0.01;
 const int bowOverSampleFactor = 1;
 const int kNNOverSampleFactor = 1;
 const int poseOverSampleFactor = 1;
@@ -767,7 +780,7 @@ int redK = 1;
 // paramaters for the color histogram feature
 const double colorHistNumBins = 8;
 const double colorHistBinWidth = 256/colorHistNumBins;
-const double colorHistLambda = 0.5;
+const double colorHistLambda = 1.0;//0.5;
 const double colorHistThresh = 0.1;
 const int colorHistBoxHalfWidth = 1;
 
@@ -3399,6 +3412,10 @@ void timercallback1(const ros::TimerEvent&) {
       cout << "Current EE Orientation (x,y,z,w): " << currentEEPose.qx << " " << currentEEPose.qy << " " << currentEEPose.qz << " " << currentEEPose.qw << endl;
       cout << "True EE Position (x,y,z): " << trueEEPose.position.x << " " << trueEEPose.position.y << " " << trueEEPose.position.z << endl;
       cout << "True EE Orientation (x,y,z,w): " << trueEEPose.orientation.x << " " << trueEEPose.orientation.y << " " << trueEEPose.orientation.z << " " << trueEEPose.orientation.w << endl;
+cout <<
+"eePose = {.px = " << trueEEPose.position.x << ", .py = " << trueEEPose.position.y << ", .pz = " << trueEEPose.position.z << "," << endl <<
+"		      .ox = 0, .oy = 0, .oz = 0," << endl <<
+"		      .qx = " << trueEEPose.orientation.x << ", .qy = " << trueEEPose.orientation.y << ", .qz = " << trueEEPose.orientation.z << ", .qw = " << trueEEPose.orientation.w << "};" << endl;
       break;
     case 'i':
       {
@@ -6386,6 +6403,108 @@ void timercallback1(const ros::TimerEvent&) {
 	pushSpeedSign(MOVE_FAST);
       }
       break;
+    // quick fetch bag
+    // capslock + s
+    case 131155:
+      {
+	pilot_call_stack.push_back(131155); // quick fetch bag
+	pilot_call_stack.push_back(131157); // assert yes grasp
+	pushNoOps(60);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(196641); // go to wholeFoodsBag1
+	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(1048680); // assume x,y of target 
+	pilot_call_stack.push_back(1048679); // render reticle
+	pilot_call_stack.push_back(1048691); // find max on register 1
+	pilot_call_stack.push_back(1048673); // render register 1
+	pilot_call_stack.push_back(1048690); // load map to register 1
+	pilot_call_stack.push_back(1048631); // assume best gear
+	pilot_call_stack.push_back(1048678); // target best grasp
+	pilot_call_stack.push_back(1048630); // find best grasp
+
+	pilot_call_stack.push_back(1048684); // turn off scanning
+
+	pilot_call_stack.push_back(131144); // quick orientation scan
+	pilot_call_stack.push_back(1048683); // turn on scanning
+	pushNoOps(60);
+	pilot_call_stack.push_back(1114155); // rotate gear
+
+	pilot_call_stack.push_back(1114183); // full render
+	pilot_call_stack.push_back(1048679); // render reticle
+	pilot_call_stack.push_back(1048625); // change to first gear
+	pilot_call_stack.push_back(1048673); // render register 1
+	pilot_call_stack.push_back(1048690); // load map to register 1
+	pilot_call_stack.push_back(1048678); // target best grasp
+	pilot_call_stack.push_back(1048630); // find best grasp
+
+	pilot_call_stack.push_back(131144); // quick orientation scan
+
+	pilot_call_stack.push_back(1048683); // turn on scanning
+	pilot_call_stack.push_back(1114150); // prepare for search
+	pilot_call_stack.push_back(1048695); // clear scan history
+	pilot_call_stack.push_back(1048625); // change to first gear
+	pushNoOps(20);
+
+	pilot_call_stack.push_back('x'); 
+	pushCopies('s', 7); 
+
+	pilot_call_stack.push_back('k'); // open gripper
+	pilot_call_stack.push_back('i'); // initialize gripper
+	pushSpeedSign(MOVE_FAST);
+      }
+      break;
+    // quick fetch counter
+    // capslock + S
+    case 196723:
+      {
+	pilot_call_stack.push_back(196723); // quick fetch counter
+	pilot_call_stack.push_back(131157); // assert yes grasp
+	pushNoOps(60);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
+	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(1048680); // assume x,y of target 
+	pilot_call_stack.push_back(1048679); // render reticle
+	pilot_call_stack.push_back(1048691); // find max on register 1
+	pilot_call_stack.push_back(1048673); // render register 1
+	pilot_call_stack.push_back(1048690); // load map to register 1
+	pilot_call_stack.push_back(1048631); // assume best gear
+	pilot_call_stack.push_back(1048678); // target best grasp
+	pilot_call_stack.push_back(1048630); // find best grasp
+
+	pilot_call_stack.push_back(1048684); // turn off scanning
+
+	pilot_call_stack.push_back(131144); // quick orientation scan
+	pilot_call_stack.push_back(1048683); // turn on scanning
+	pushNoOps(60);
+	pilot_call_stack.push_back(1114155); // rotate gear
+
+	pilot_call_stack.push_back(1114183); // full render
+	pilot_call_stack.push_back(1048679); // render reticle
+	pilot_call_stack.push_back(1048625); // change to first gear
+	pilot_call_stack.push_back(1048673); // render register 1
+	pilot_call_stack.push_back(1048690); // load map to register 1
+	pilot_call_stack.push_back(1048678); // target best grasp
+	pilot_call_stack.push_back(1048630); // find best grasp
+
+	pilot_call_stack.push_back(131144); // quick orientation scan
+
+	pilot_call_stack.push_back(1048683); // turn on scanning
+	pilot_call_stack.push_back(1114150); // prepare for search
+	pilot_call_stack.push_back(1048695); // clear scan history
+	pilot_call_stack.push_back(1048625); // change to first gear
+	pushNoOps(20);
+
+	pilot_call_stack.push_back('x'); 
+	pushCopies('s', 7); 
+
+	pilot_call_stack.push_back('k'); // open gripper
+	pilot_call_stack.push_back('i'); // initialize gripper
+	pushSpeedSign(MOVE_FAST);
+      }
+      break;
     // constant speed scan
     //////////
     case 1:
@@ -6420,6 +6539,27 @@ void timercallback1(const ros::TimerEvent&) {
 	oscilStart = ros::Time::now();
 	cout << "Classifying blue boxes..." << endl;
 	goClassifyBlueBoxes();
+      }
+      break;
+    // assume wholeFoodsBag1
+    // capslock + !
+    case 196641:
+      {
+	currentEEPose = wholeFoodsBag1;
+      }
+      break;
+    // assume wholeFoodsCounter1
+    // capslock + @
+    case 196672:
+      {
+	currentEEPose = wholeFoodsCounter1;
+      }
+      break;
+    // assume wholeFoodsPantry1
+    // capslock + #
+    case 196643:
+      {
+	currentEEPose = wholeFoodsPantry1;
       }
       break;
     // record example as focused class if there is only one blue box in frame
@@ -6573,6 +6713,7 @@ void timercallback1(const ros::TimerEvent&) {
     // capslock + u
     case 131157:
       {
+	cout << "assert yes grasp: " << gripperMoving << " " << gripperGripping << " " << gripperPosition << endl;
 	// TODO push this and then a calibration message if uncalibrated
 	// push this again if moving
 	if (gripperMoving) {
@@ -6580,7 +6721,13 @@ void timercallback1(const ros::TimerEvent&) {
 	} else {
 	  //if (gripperGripping)
 	  if (gripperPosition >= gripperThresh)
+	  {
 	    pilot_call_stack.pop_back();
+	    // leave gripper in released state
+	    cout << "  assert yes pops back instruction." << endl;
+	  } else {
+	    cout << "  assert yes merely returns." << endl;
+	  }
 	}
       }
       break;
@@ -6612,14 +6759,14 @@ void timercallback1(const ros::TimerEvent&) {
     // capslock + O
     case 196719:
       {
-	int depthToPlunge = 24;
-	int flexThisFar = 80;
+	int depthToPlunge = 32;
+	int flexThisFar = 90;
 	cout << "SHAKING IT OFF!!!" << endl;
 	pilot_call_stack.push_back(131151); // shake it off 1
 	pilot_call_stack.push_back(196649); // assert no grasp
 
 	pushNoOps(60);
-	pilot_call_stack.push_back('2'); // assume pose at register 2
+	//pilot_call_stack.push_back('2'); // assume pose at register 2
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(20);
 	pilot_call_stack.push_back('k'); // open gripper
@@ -6629,13 +6776,15 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back('k'); // open gripper
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(20);
-	pushCopies('q', 5); // move down
+	pushCopies('w'+65504, flexThisFar); // rotate forward
+	pushCopies('e', 10); // move forward
 	pushCopies('s', depthToPlunge); // move down
 	pilot_call_stack.push_back('k'); // open gripper
 	pushNoOps(30);
+	pushCopies('q', 5); // move back 
 	pushCopies('s'+65504, flexThisFar); // rotate backward
 
-	pilot_call_stack.push_back('2'); // assume pose at register 2
+	//pilot_call_stack.push_back('2'); // assume pose at register 2
 	pushSpeedSign(MOVE_FAST);
       }
       break;
@@ -6684,7 +6833,7 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(196649); // assert no grasp
 
 	pushNoOps(60);
-	pilot_call_stack.push_back('2'); // assume pose at register 2
+	//pilot_call_stack.push_back('2'); // assume pose at register 2
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(20);
 	pilot_call_stack.push_back('k'); // open gripper
@@ -6694,13 +6843,14 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back('k'); // open gripper
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(20);
-	pushCopies('e', 5); // move down
+	pushCopies('s'+65504, flexThisFar); // rotate forward
+	pushCopies('e', 5); // move forward
 	pushCopies('s', depthToPlunge); // move down
 	pilot_call_stack.push_back('k'); // open gripper
 	pushNoOps(30);
 	pushCopies('w'+65504, flexThisFar); // rotate forward
 
-	pilot_call_stack.push_back('2'); // assume pose at register 2
+	//pilot_call_stack.push_back('2'); // assume pose at register 2
 	pushSpeedSign(MOVE_FAST);
       }
       break;
@@ -6708,8 +6858,46 @@ void timercallback1(const ros::TimerEvent&) {
     /////
     //
     // take something from grocery bag and put it on the counter
-    case 22:
+    // capslock + F
+    case 196710:
       {
+	// assert no grip shake it off
+	// rise
+	pilot_call_stack.push_back('k'); // open gripper
+        pilot_call_stack.push_back(131151); // shake it off 1
+        pilot_call_stack.push_back(196649); // assert no grasp
+
+	pushNoOps(60);
+	pilot_call_stack.push_back('j'); // close gripper
+	pushNoOps(30);
+	pushCopies('w', 5);
+	pilot_call_stack.push_back('k'); // open gripper
+
+	// go to counter waypoint, setting object down
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('s', 10);
+	pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
+
+	// goto counter waypoint and rise 30 cm, which keeps the object raised
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('w', 5);
+	pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
+
+	// climb 30 cm to raise the object
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('w', 5);
+
+	// assert grip fetch
+	pilot_call_stack.push_back(131155); // quick fetch bag
+
+	// descend
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(196641); // go to wholeFoodsBag1
+
+	// go to grocery bag waypoint and back up
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('w', 5);
+	pilot_call_stack.push_back(196641); // go to wholeFoodsBag1
       }
       break;
     // collect scan of 81 training examples for the focused object
@@ -6772,25 +6960,64 @@ void timercallback1(const ros::TimerEvent&) {
       }
       break;
     // move the scanned object from the counter to the pantry
-    case 25:
+    // capslock + d
+    case 131140:
       {
-	  // reinitialize and retrain everything
-	  // capslock + f
-	  //case 131142:
+	// assert no grip shake it off
+	pilot_call_stack.push_back('k'); // open gripper
+        pilot_call_stack.push_back(131151); // shake it off 1
+        pilot_call_stack.push_back(196649); // assert no grasp
 
-	  // collect scan of 81 training examples for the focused object
-	  //  or 8 orientations * 9 gridpoints  = 72
-	  // capslock + g
-	  //case 131143:
+	pushNoOps(60);
+	pilot_call_stack.push_back('j'); // close gripper
+	pushNoOps(30);
+	pushCopies('w', 5);
+	pilot_call_stack.push_back('k'); // open gripper
 
-	  // move to position and rise to a good height
+	// go to counter waypoint, setting object down
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('s', 10);
+	pilot_call_stack.push_back(196643); // go to wholeFoodsPantry1
 
-	  
+	// goto counter waypoint and rise 30 cm, which keeps the object raised
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('w', 5);
+	pilot_call_stack.push_back(196643); // go to wholeFoodsPantry1
+
+	// climb 30 cm to raise the object
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('w', 5);
+
+	// assert grip fetch
+	pilot_call_stack.push_back(196723); // quick fetch counter
+
+	// descend
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
+
+	// go to counter waypoint and back up
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('w', 5);
+	pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
       }
       break;
     // remove and scan the items in the grocery bag until it is empty
-    case 26:
+    // capslock + D
+    case 196708:
       {
+	  pilot_call_stack.push_back(196708); // remove and scan the items in the grocery bag until it is empty
+
+	  pilot_call_stack.push_back(131142); // reinitialize and retrain everything
+
+	  pilot_call_stack.push_back(131140); // move the scanned object from the counter to the pantry
+
+	  pilot_call_stack.push_back(131143); // 72 way scan
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pushCopies('w', 10);
+
+	  pilot_call_stack.push_back(196720); //  make a new class
+
+	  pilot_call_stack.push_back(196710); //  take something from grocery bag and put it on the counter
       }
       break;
     //
@@ -7817,6 +8044,8 @@ int shouldIPick(int classToPick) {
   
   toReturn = (classToPick == targetClass);
 
+  cout << classToPick << " " << targetClass << " " << toReturn;
+
   return toReturn;
 }
 
@@ -7994,7 +8223,7 @@ void bowGetFeatures(std::string classDir, const char *className, double sigma) {
 	  }
 	  extractor->compute(gray_image, keypoints2, descriptors);
 
-	  totalDescriptors += int(descriptors.cols);
+	  totalDescriptors += int(descriptors.rows);
 	  cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " total descriptors: " << totalDescriptors << endl;
 
 	  if (!descriptors.empty() && !keypoints2.empty())
@@ -9994,8 +10223,8 @@ void goClassifyBlueBoxes() {
       }
 
       int thisArea = (bBots[c].x - bTops[c].x)*(bBots[c].y - bTops[c].y);
-      //if ((thisArea > biggestBBArea) && (label == targetClass)) 
-      if ((thisArea > biggestBBArea) && (shouldIPick(label))) 
+      if ((thisArea > biggestBBArea) && (label == targetClass)) 
+      //if ((thisArea > biggestBBArea) && (shouldIPick(label))) 
       {
 	biggestBBArea = thisArea;
 	biggestBB = c;
