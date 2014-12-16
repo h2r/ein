@@ -2896,9 +2896,7 @@ cout << "table check 2" << endl;
 #ifdef DEBUG
 cout << "about to publish" << endl;
 #endif
-      if (bTops.size() > 0) {
-	rec_objs_blue.publish(roa_to_send_blue);
-      }
+      rec_objs_blue.publish(roa_to_send_blue);
       markers_blue.publish(ma_to_send_blue);
 #ifdef DEBUG
 cout << "published" << endl;
@@ -3331,10 +3329,8 @@ cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.
       }
 
       if (publishObjects) {
-	if (numRedBoxes > 0) {
-	  rec_objs_red.publish(roa_to_send_red);
-	  markers_red.publish(ma_to_send_red);
-	}
+        rec_objs_red.publish(roa_to_send_red);
+        markers_red.publish(ma_to_send_red);
       }
     }
   }
