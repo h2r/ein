@@ -604,6 +604,7 @@ ros::Time lastVisionCycle;
 ros::Duration accumulatedTime;
 
 double w1GoThresh = 0.02;
+double w1AngleThresh = 0.02; 
 double synKp = 0.0005;
 
 int synServoPixelThresh = 10;
@@ -645,7 +646,7 @@ double surveyNoiseScale = 50;
 int gripperMoving = 0;
 double gripperPosition = 0;
 int gripperGripping = 0;
-double gripperThresh = 5.0;
+double gripperThresh = 10.0;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -1736,190 +1737,187 @@ void recordReadyRangeReadings() {
 	double hiY = dY / hrmDelta;
 	double hiZ = dZ / hrmDelta;
 
-	// draw new cell
-	if ((fabs(hiX) <= hrmHalfWidth) && (fabs(hiY) <= hrmHalfWidth)) {
-	  int hiiX = (int)round(hiX + hrmHalfWidth);
-	  int hiiY = (int)round(hiY + hrmHalfWidth);
-	  int hiiZ = (int)round(hiZ + hrmHalfWidth);
+	if (recordRangeMap) {
+	  // draw new cell
+	  if ((fabs(hiX) <= hrmHalfWidth) && (fabs(hiY) <= hrmHalfWidth)) {
+	    int hiiX = (int)round(hiX + hrmHalfWidth);
+	    int hiiY = (int)round(hiY + hrmHalfWidth);
+	    int hiiZ = (int)round(hiZ + hrmHalfWidth);
 
-	  // the wrong point without pose correction
-	  //double upX = ((trueEEPose.position.x - drX) - rmcX)/hrmDelta;
-	  //double upY = ((trueEEPose.position.y - drY) - rmcY)/hrmDelta;
-	  //int iupX = (int)round(upX + hrmHalfWidth);
-	  //int iupY = (int)round(upY + hrmHalfWidth);
-	  //if ((fabs(upX) <= hrmHalfWidth) && (fabs(upY) <= hrmHalfWidth)) 
-	    //hiRangemapImage.at<cv::Vec3b>(iupX,iupY) += cv::Vec3b(0,128,0);
+	    // the wrong point without pose correction
+	    //double upX = ((trueEEPose.position.x - drX) - rmcX)/hrmDelta;
+	    //double upY = ((trueEEPose.position.y - drY) - rmcY)/hrmDelta;
+	    //int iupX = (int)round(upX + hrmHalfWidth);
+	    //int iupY = (int)round(upY + hrmHalfWidth);
+	    //if ((fabs(upX) <= hrmHalfWidth) && (fabs(upY) <= hrmHalfWidth)) 
+	      //hiRangemapImage.at<cv::Vec3b>(iupX,iupY) += cv::Vec3b(0,128,0);
 
-	  // 2D map
-	  {
-	    int pxMin = max(0, hiiX-parzenKernelHalfWidth);
-	    int pxMax = min(hrmWidth-1, hiiX+parzenKernelHalfWidth);
-	    int pyMin = max(0, hiiY-parzenKernelHalfWidth);
-	    int pyMax = min(hrmWidth-1, hiiY+parzenKernelHalfWidth);
-	    // correct loop order for cache coherency
-	    for (int py = pyMin; py <= pyMax; py++) {
-	      for (int px = pxMin; px <= pxMax; px++) {
-		int kpx = px - (hiiX - parzenKernelHalfWidth);
-		int kpy = py - (hiiY - parzenKernelHalfWidth);
-
-		cv::Vec3b thisSample = getCRColor(thisImage); 
-		hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] += thisSample[0]*parzenKernel[kpx + kpy*parzenKernelWidth];
-		hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] += thisSample[1]*parzenKernel[kpx + kpy*parzenKernelWidth];
-		hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] += thisSample[2]*parzenKernel[kpx + kpy*parzenKernelWidth];
-		hiColorRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
-
-		double denomC = max(hiColorRangeMapMass[px + py*hrmWidth], EPSILON);
-		int tRed = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] / denomC))));
-		int tGreen = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] / denomC))));
-		int tBlue = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] / denomC))));
-
-		hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
-
-		hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
-		hiRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
-		// nonexperimental
-		//double denom = max(hiRangeMapMass[px + py*hrmWidth], EPSILON);
-		// XXX experimental
-		double denom = 1.0;
-		if (hiRangeMapMass[px + py*hrmWidth] > 0)
-		  denom = hiRangeMapMass[px + py*hrmWidth];
-		hiRangeMap[px + py*hrmWidth] = hiRangeMapAccumulator[px + py*hrmWidth] / denom;
-	      }
-	    }
-	  }
-	  // record the point in the 3D maps
-	  // positive surface observation
-	  {
-	    int pxMin = max(0, hiiX-parzen3DKernelHalfWidth);
-	    int pxMax = min(vmWidth-1, hiiX+parzen3DKernelHalfWidth);
-	    int pyMin = max(0, hiiY-parzen3DKernelHalfWidth);
-	    int pyMax = min(vmWidth-1, hiiY+parzen3DKernelHalfWidth);
-	    int pzMin = max(0, hiiZ-parzen3DKernelHalfWidth);
-	    int pzMax = min(vmWidth-1, hiiZ+parzen3DKernelHalfWidth);
-	    // correct loop order for cache coherency
-	    for (int pz = pzMin; pz <= pzMax; pz++) {
+	    // 2D map
+	    {
+	      int pxMin = max(0, hiiX-parzenKernelHalfWidth);
+	      int pxMax = min(hrmWidth-1, hiiX+parzenKernelHalfWidth);
+	      int pyMin = max(0, hiiY-parzenKernelHalfWidth);
+	      int pyMax = min(hrmWidth-1, hiiY+parzenKernelHalfWidth);
+	      // correct loop order for cache coherency
 	      for (int py = pyMin; py <= pyMax; py++) {
 		for (int px = pxMin; px <= pxMax; px++) {
-		  int kpx = px - (hiiX - parzen3DKernelHalfWidth);
-		  int kpy = py - (hiiY - parzen3DKernelHalfWidth);
-		  int kpz = pz - (hiiZ - parzen3DKernelHalfWidth);
+		  int kpx = px - (hiiX - parzenKernelHalfWidth);
+		  int kpy = py - (hiiY - parzenKernelHalfWidth);
 
 		  cv::Vec3b thisSample = getCRColor(thisImage); 
-		  vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] += thisSample[0]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-		  vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] += thisSample[1]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-		  vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] += thisSample[2]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-		  vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+		  hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] += thisSample[0]*parzenKernel[kpx + kpy*parzenKernelWidth];
+		  hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] += thisSample[1]*parzenKernel[kpx + kpy*parzenKernelWidth];
+		  hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] += thisSample[2]*parzenKernel[kpx + kpy*parzenKernelWidth];
+		  hiColorRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
 
-		  //double denomC = max(vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], EPSILON);
-		  //int tRed = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] / denomC))));
-		  //int tGreen = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] / denomC))));
-		  //int tBlue = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] / denomC))));
+		  double denomC = max(hiColorRangeMapMass[px + py*hrmWidth], EPSILON);
+		  int tRed = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] / denomC))));
+		  int tGreen = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] / denomC))));
+		  int tBlue = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] / denomC))));
 
-		  // slightly different than 2D
-		  volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-		  //volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += 1.0;
-		  volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+		  hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
 
-		  double denom = max(volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], 1e-99); // XXX should be epsilon but there is clipping...
-		  volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth] = volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] / denom;
+		  hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
+		  hiRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
+		  // nonexperimental
+		  //double denom = max(hiRangeMapMass[px + py*hrmWidth], EPSILON);
+		  // XXX experimental
+		  double denom = 1.0;
+		  if (hiRangeMapMass[px + py*hrmWidth] > 0)
+		    denom = hiRangeMapMass[px + py*hrmWidth];
+		  hiRangeMap[px + py*hrmWidth] = hiRangeMapAccumulator[px + py*hrmWidth] / denom;
+		}
+	      }
+	    }
+	    // record the point in the 3D maps
+	    // positive surface observation
+	    {
+	      int pxMin = max(0, hiiX-parzen3DKernelHalfWidth);
+	      int pxMax = min(vmWidth-1, hiiX+parzen3DKernelHalfWidth);
+	      int pyMin = max(0, hiiY-parzen3DKernelHalfWidth);
+	      int pyMax = min(vmWidth-1, hiiY+parzen3DKernelHalfWidth);
+	      int pzMin = max(0, hiiZ-parzen3DKernelHalfWidth);
+	      int pzMax = min(vmWidth-1, hiiZ+parzen3DKernelHalfWidth);
+	      // correct loop order for cache coherency
+	      for (int pz = pzMin; pz <= pzMax; pz++) {
+		for (int py = pyMin; py <= pyMax; py++) {
+		  for (int px = pxMin; px <= pxMax; px++) {
+		    int kpx = px - (hiiX - parzen3DKernelHalfWidth);
+		    int kpy = py - (hiiY - parzen3DKernelHalfWidth);
+		    int kpz = pz - (hiiZ - parzen3DKernelHalfWidth);
+
+		    cv::Vec3b thisSample = getCRColor(thisImage); 
+		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] += thisSample[0]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] += thisSample[1]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] += thisSample[2]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+		    vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+
+		    //double denomC = max(vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], EPSILON);
+		    //int tRed = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] / denomC))));
+		    //int tGreen = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] / denomC))));
+		    //int tBlue = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] / denomC))));
+
+		    // slightly different than 2D
+		    volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+		    //volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += 1.0;
+		    volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+
+		    double denom = max(volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], 1e-99); // XXX should be epsilon but there is clipping...
+		    volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth] = volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] / denom;
+		  }
+		}
+	      }
+	    }
+	    double negativeSpacing = 1.0*parzen3DKernelSigma*vmDelta;
+	    //int numCastPoints = int(ceil(thisRange / negativeSpacing));
+	    int numCastPoints = 10;
+	    // negative surface observations
+	    for (int castPoint = 1; castPoint <= numCastPoints; castPoint++) {
+	      double piX = (dX - negativeSpacing*castPoint*rayDirection.x())/ hrmDelta;
+	      double piY = (dY - negativeSpacing*castPoint*rayDirection.y()) / hrmDelta;
+	      double piZ = (dZ - negativeSpacing*castPoint*rayDirection.z()) / hrmDelta;
+
+	      int piiX = (int)round(piX + hrmHalfWidth);
+	      int piiY = (int)round(piY + hrmHalfWidth);
+	      int piiZ = (int)round(piZ + hrmHalfWidth);
+	      
+
+	      int pxMin = max(0, piiX-parzen3DKernelHalfWidth);
+	      int pxMax = min(vmWidth-1, piiX+parzen3DKernelHalfWidth);
+	      int pyMin = max(0, piiY-parzen3DKernelHalfWidth);
+	      int pyMax = min(vmWidth-1, piiY+parzen3DKernelHalfWidth);
+	      int pzMin = max(0, piiZ-parzen3DKernelHalfWidth);
+	      int pzMax = min(vmWidth-1, piiZ+parzen3DKernelHalfWidth);
+	      // correct loop order for cache coherency
+	      for (int pz = pzMin; pz <= pzMax; pz++) {
+		for (int py = pyMin; py <= pyMax; py++) {
+		  for (int px = pxMin; px <= pxMax; px++) {
+		    int kpx = px - (piiX - parzen3DKernelHalfWidth);
+		    int kpy = py - (piiY - parzen3DKernelHalfWidth);
+		    int kpz = pz - (piiZ - parzen3DKernelHalfWidth);
+
+		    cv::Vec3b thisSample = getCRColor(thisImage); 
+		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] += thisSample[0]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] += thisSample[1]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] += thisSample[2]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+		    vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+
+		    //double denomC = max(vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], EPSILON);
+		    //int tRed = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] / denomC))));
+		    //int tGreen = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] / denomC))));
+		    //int tBlue = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] / denomC))));
+
+		    // slightly different than 2D
+		    //volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] += 0.0;
+		    volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+
+		    double denom = max(volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], 1e-99); // XXX should be epsilon but there is clipping...
+		    volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth] = volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] / denom;
+		  }
 		}
 	      }
 	    }
 	  }
-	  double negativeSpacing = 1.0*parzen3DKernelSigma*vmDelta;
-	  //int numCastPoints = int(ceil(thisRange / negativeSpacing));
-	  int numCastPoints = 10;
-	  // negative surface observations
-	  for (int castPoint = 1; castPoint <= numCastPoints; castPoint++) {
-	    double piX = (dX - negativeSpacing*castPoint*rayDirection.x())/ hrmDelta;
-	    double piY = (dY - negativeSpacing*castPoint*rayDirection.y()) / hrmDelta;
-	    double piZ = (dZ - negativeSpacing*castPoint*rayDirection.z()) / hrmDelta;
-
-	    int piiX = (int)round(piX + hrmHalfWidth);
-	    int piiY = (int)round(piY + hrmHalfWidth);
-	    int piiZ = (int)round(piZ + hrmHalfWidth);
+	  if ((fabs(thisiX) <= rmHalfWidth) && (fabs(thisiY) <= rmHalfWidth)) {
+	    int iiX = (int)round(thisiX + rmHalfWidth);
+	    int iiY = (int)round(thisiY + rmHalfWidth);
 	    
-
-	    int pxMin = max(0, piiX-parzen3DKernelHalfWidth);
-	    int pxMax = min(vmWidth-1, piiX+parzen3DKernelHalfWidth);
-	    int pyMin = max(0, piiY-parzen3DKernelHalfWidth);
-	    int pyMax = min(vmWidth-1, piiY+parzen3DKernelHalfWidth);
-	    int pzMin = max(0, piiZ-parzen3DKernelHalfWidth);
-	    int pzMax = min(vmWidth-1, piiZ+parzen3DKernelHalfWidth);
-	    // correct loop order for cache coherency
-	    for (int pz = pzMin; pz <= pzMax; pz++) {
-	      for (int py = pyMin; py <= pyMax; py++) {
-		for (int px = pxMin; px <= pxMax; px++) {
-		  int kpx = px - (piiX - parzen3DKernelHalfWidth);
-		  int kpy = py - (piiY - parzen3DKernelHalfWidth);
-		  int kpz = pz - (piiZ - parzen3DKernelHalfWidth);
-
-		  cv::Vec3b thisSample = getCRColor(thisImage); 
-		  vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] += thisSample[0]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-		  vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] += thisSample[1]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-		  vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] += thisSample[2]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-		  vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-
-		  //double denomC = max(vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], EPSILON);
-		  //int tRed = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] / denomC))));
-		  //int tGreen = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] / denomC))));
-		  //int tBlue = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] / denomC))));
-
-		  // slightly different than 2D
-		  //volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] += 0.0;
-		  volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-
-		  double denom = max(volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], 1e-99); // XXX should be epsilon but there is clipping...
-		  volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth] = volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] / denom;
-		}
+	    {
+	      rangeMapMass[iiX + iiY*rmWidth] += 1;
+	      //rangeMapAccumulator[iiX + iiY*rmWidth] += eeRange;
+	      rangeMapAccumulator[iiX + iiY*rmWidth] += thisZmeasurement;
+	      double denom = max(rangeMapMass[iiX + iiY*rmWidth], EPSILON);
+	      rangeMap[iiX + iiY*rmWidth] = rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
+	    }
+	    
+	    double minDepth = VERYBIGNUMBER;
+	    double maxDepth = 0;
+	    for (int rx = 0; rx < rmWidth; rx++) {
+	      for (int ry = 0; ry < rmWidth; ry++) {
+		minDepth = min(minDepth, rangeMap[rx + ry*rmWidth]);
+		maxDepth = max(maxDepth, rangeMap[rx + ry*rmWidth]);
 	      }
 	    }
-	  }
-	}
-	if ((fabs(thisiX) <= rmHalfWidth) && (fabs(thisiY) <= rmHalfWidth)) {
-	  int iiX = (int)round(thisiX + rmHalfWidth);
-	  int iiY = (int)round(thisiY + rmHalfWidth);
-	  
-	  {
-	    rangeMapMass[iiX + iiY*rmWidth] += 1;
-	    //rangeMapAccumulator[iiX + iiY*rmWidth] += eeRange;
-	    rangeMapAccumulator[iiX + iiY*rmWidth] += thisZmeasurement;
-	    double denom = max(rangeMapMass[iiX + iiY*rmWidth], EPSILON);
-	    rangeMap[iiX + iiY*rmWidth] = rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
-	  }
-	  
-	  double minDepth = VERYBIGNUMBER;
-	  double maxDepth = 0;
-	  for (int rx = 0; rx < rmWidth; rx++) {
-	    for (int ry = 0; ry < rmWidth; ry++) {
-	      minDepth = min(minDepth, rangeMap[rx + ry*rmWidth]);
-	      maxDepth = max(maxDepth, rangeMap[rx + ry*rmWidth]);
+	    double denom2 = max(EPSILON,maxDepth-minDepth);
+	    if (denom2 <= EPSILON)
+	      denom2 = VERYBIGNUMBER;
+	    double intensity = 255 * (maxDepth - rangeMap[iiX + iiY*rmWidth]) / denom2;
+	    cv::Scalar backColor(0,0,ceil(intensity));
+	    cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
+	    cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
+	    Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	    vCrop = backColor;
+	    // draw border
+	    {
+	      cv::Point outTop = cv::Point(iiY*rmiCellWidth+1,iiX*rmiCellWidth+1);
+	      cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth-1,(iiX+1)*rmiCellWidth-1);
+	      cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
+	      cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
+	      rectangle(rangemapImage, outTop, outBot, cv::Scalar(0,192,0)); 
+	      rectangle(rangemapImage, inTop, inBot, cv::Scalar(0,64,0)); 
 	    }
 	  }
-	  double denom2 = max(EPSILON,maxDepth-minDepth);
-	  if (denom2 <= EPSILON)
-	    denom2 = VERYBIGNUMBER;
-	  double intensity = 255 * (maxDepth - rangeMap[iiX + iiY*rmWidth]) / denom2;
-	  cv::Scalar backColor(0,0,ceil(intensity));
-	  cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
-	  cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
-	  Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-	  vCrop = backColor;
-	  // draw border
-	  {
-	    cv::Point outTop = cv::Point(iiY*rmiCellWidth+1,iiX*rmiCellWidth+1);
-	    cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth-1,(iiX+1)*rmiCellWidth-1);
-	    cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
-	    cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
-	    rectangle(rangemapImage, outTop, outBot, cv::Scalar(0,192,0)); 
-	    rectangle(rangemapImage, inTop, inBot, cv::Scalar(0,64,0)); 
-	  }
 	}
-
-
-
-
-	// XXX TODO actually record the point
     
 	rgRingBufferAdvance();
 	allRingBuffersAdvance(thisTime);
@@ -4632,7 +4630,7 @@ void timercallback1(const ros::TimerEvent&) {
 
 	cout << " ++Move to target z: " << deltaZ << " " << zTimes << " " << endl; cout.flush();
 
-	int numNoOps = 16;
+	int numNoOps = 5;
 	if (deltaZ > 0)
 	  for (int zc = 0; zc < zTimes; zc++) {
 	    for (int cc = 0; cc < numNoOps; cc++) {
@@ -5826,7 +5824,14 @@ void timercallback1(const ros::TimerEvent&) {
 	double dy = (currentEEPose.py - trueEEPose.position.y);
 	double dz = (currentEEPose.pz - trueEEPose.position.z);
 	double distance = dx*dx + dy*dy + dz*dz;
-	if (distance > w1GoThresh*w1GoThresh)
+
+	double qx = (fabs(currentEEPose.qx) - fabs(trueEEPose.orientation.x));
+	double qy = (fabs(currentEEPose.qy) - fabs(trueEEPose.orientation.y));
+	double qz = (fabs(currentEEPose.qz) - fabs(trueEEPose.orientation.z));
+	double qw = (fabs(currentEEPose.qw) - fabs(trueEEPose.orientation.w));
+	double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
+
+	if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh))
 	  pilot_call_stack.push_back(131154); // w1 wait until at current position
       }
       break;
@@ -6322,6 +6327,7 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back('k'); // open gripper
 
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('s', 10);
 	pilot_call_stack.push_back('2'); // assume pose at register 2
 	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
@@ -6362,7 +6368,7 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back(1114150); // prepare for search
 	pilot_call_stack.push_back(1048695); // clear scan history
 	pilot_call_stack.push_back(1048625); // change to first gear
-	pushNoOps(60);
+	pushNoOps(20);
 
 	pilot_call_stack.push_back('x'); 
 	pushCopies('s', 17); 
@@ -6615,6 +6621,7 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back('k'); // open gripper
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(20);
+	pushCopies('q', 5); // move down
 	pushCopies('s', depthToPlunge); // move down
 	pilot_call_stack.push_back('k'); // open gripper
 	pushNoOps(30);
@@ -6679,6 +6686,7 @@ void timercallback1(const ros::TimerEvent&) {
 	pilot_call_stack.push_back('k'); // open gripper
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(20);
+	pushCopies('e', 5); // move down
 	pushCopies('s', depthToPlunge); // move down
 	pilot_call_stack.push_back('k'); // open gripper
 	pushNoOps(30);
@@ -6698,13 +6706,77 @@ void timercallback1(const ros::TimerEvent&) {
       break;
     // collect scan of 81 training examples for the focused object
     //  or 8 orientations * 9 gridpoints  = 72
-    case 24:
+    // capslock + g
+    case 131143:
       {
+	pushCopies('e', 5);
+	pushCopies('a', 5);
+	pilot_call_stack.push_back(196711); // photospin
+	pushCopies('q', 5);
+	pilot_call_stack.push_back(196711); // photospin
+	pushCopies('q', 5);
+	pilot_call_stack.push_back(196711); // photospin
+	pushCopies('d', 5);
+	pilot_call_stack.push_back(196711); // photospin
+	pushCopies('d', 5);
+	pilot_call_stack.push_back(196711); // photospin
+	pushCopies('e', 5);
+	pilot_call_stack.push_back(196711); // photospin
+	pushCopies('e', 5);
+	pilot_call_stack.push_back(196711); // photospin
+	pushCopies('a', 5);
+	pilot_call_stack.push_back(196711); // photospin
+	pushCopies('q', 5);
+	pilot_call_stack.push_back(196711); // photospin
+
+	pushSpeedSign(MOVE_FAST);
+      }
+      break;
+    // photospin
+    // capslock + G
+    case 196711:
+      {
+	for (int angleCounter = 0; angleCounter < totalGraspGears; angleCounter++) {
+	  pilot_call_stack.push_back(196652); // save crop as focused class if there is only one
+	  pilot_call_stack.push_back(131153); // vision cycle
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pilot_call_stack.push_back(196712); // increment grasp gear
+	}
+	pilot_call_stack.push_back(1048625); // change gear to 1
+      }
+      break;
+    // increment grasp gear
+    // capslock + H
+    case 196712:
+      {
+	cout << "increment currentGraspGear was is: " << currentGraspGear << " ";
+	int thisGraspGear = (currentGraspGear + 1) % totalGraspGears;
+
+	//   set drX
+	drX = ggX[thisGraspGear];
+	drY = ggY[thisGraspGear];
+
+	//   rotate
+	setGGRotation(thisGraspGear);
+	currentGraspGear = thisGraspGear;
+
+        cout << currentGraspGear << endl;
       }
       break;
     // move the scanned object from the counter to the pantry
     case 25:
       {
+
+	  // reinitialize and retrain everything
+	  // capslock + f
+	  //case 131142:
+
+	  // collect scan of 81 training examples for the focused object
+	  //  or 8 orientations * 9 gridpoints  = 72
+	  // capslock + g
+	  //case 131143:
+
+	  
       }
       break;
     // remove and scan the items in the grocery bag until it is empty
@@ -6714,7 +6786,8 @@ void timercallback1(const ros::TimerEvent&) {
       break;
     //
     // reinitialize and retrain everything
-    case 27:
+    // capslock + f
+    case 131142:
       {
 	// snoop folders
 	// reset numNewClasses
@@ -6774,24 +6847,49 @@ void timercallback1(const ros::TimerEvent&) {
 //	  pushCopies('a',curintWidth+1);
 //	}
 
+	pushCopies('e',6);
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('q',5);
+	pushCopies('a',6);
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('d',5);
+	pushCopies('q',12);
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('e',10);
+	pushCopies('d',12);
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('a',10);
+	pushCopies('e',12);
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('q',10);
+	pushCopies('a',6);
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('d',10);
+	pushCopies('q',6);
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('e',10);
+
+	pushCopies('q',4);
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('a',5);
+	pushCopies('d',4);
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('q',5);
+	pushCopies('e',8);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('a',8);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('q',8);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('d',4);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('e',4);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+
+	pushCopies('e',2);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('a',2);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('q',4);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('d',4);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('e',4);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('a',2);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('q',2);
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
     
 	int crossWidth = 11;
@@ -7136,8 +7234,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   Mat thisImage;
   int weHaveImData = getRingImageAtTime(msg->header.stamp, thisImage);
 
-  if (recordRangeMap) 
-    recordReadyRangeReadings();
+  //if (recordRangeMap) 
+  recordReadyRangeReadings();
 
   // publish volumetric representation to a marker array
   {
@@ -7631,13 +7729,17 @@ int shouldIPick(int classToPick) {
 
   int toReturn = 0;
 
+  // 6 is black tape
+  // 12 is green block
   // 2 is greenPepper 
   // 9 is chile
   // 10 is cucumber
   if (
       (classToPick == 2) ||
       (classToPick == 9) ||
-      (classToPick == 10)
+      (classToPick == 10)||
+      (classToPick == 12)||
+      (classToPick == 6)
     ) {
     toReturn = 1;
   }
