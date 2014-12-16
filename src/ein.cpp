@@ -748,7 +748,7 @@ double pcgc22 = 1;//1.0+(12.0 / 480.0);
 // if you add an immense number of examples or some new classes and
 //   you begin having discriminative problems (confusion), you can
 //   increase the number of words.
-const double bowSubSampleFactor = 0.1;
+const double bowSubSampleFactor = 0.05;//0.01;
 const int bowOverSampleFactor = 1;
 const int kNNOverSampleFactor = 1;
 const int poseOverSampleFactor = 1;
@@ -799,12 +799,12 @@ vector<Mat> classPosekNNfeatures;
 vector<Mat> classPosekNNlabels;
 vector< vector< cv::Vec<double,4> > > classQuaternions;
 
-DescriptorMatcher *matcher;
-FeatureDetector *detector;
-DescriptorExtractor *extractor;
-BOWKMeansTrainer *bowtrainer; 
-BOWImgDescriptorExtractor *bowExtractor;
-CvKNearest *kNN;
+DescriptorMatcher *matcher = NULL;
+FeatureDetector *detector = NULL;
+DescriptorExtractor *extractor = NULL;
+BOWKMeansTrainer *bowtrainer = NULL; 
+BOWImgDescriptorExtractor *bowExtractor = NULL;
+CvKNearest *kNN = NULL;
 std::string package_path;
 std::string class_crops_path;
 std::string bing_trained_models_path;
@@ -5841,7 +5841,15 @@ void timercallback1(const ros::TimerEvent&) {
       {
 	pilot_call_stack.push_back(131123); // classify
 	pilot_call_stack.push_back(131122); // blue boxes
-	pushCopies(131121, 10); // density
+	pushCopies(131121, 5); // density
+      }
+      break;
+    // vision cycle no classify
+    // capslock + Q
+    case 196721:
+      {
+	pilot_call_stack.push_back(131122); // blue boxes
+	pushCopies(131121, 5); // density
       }
       break;
     // increment target class
@@ -6738,7 +6746,7 @@ void timercallback1(const ros::TimerEvent&) {
       {
 	for (int angleCounter = 0; angleCounter < totalGraspGears; angleCounter++) {
 	  pilot_call_stack.push_back(196652); // save crop as focused class if there is only one
-	  pilot_call_stack.push_back(131153); // vision cycle
+	  pilot_call_stack.push_back(196721); // vision cycle no classify
 	  pilot_call_stack.push_back(131154); // w1 wait until at current position
 	  pilot_call_stack.push_back(196712); // increment grasp gear
 	}
@@ -6766,7 +6774,6 @@ void timercallback1(const ros::TimerEvent&) {
     // move the scanned object from the counter to the pantry
     case 25:
       {
-
 	  // reinitialize and retrain everything
 	  // capslock + f
 	  //case 131142:
@@ -6775,6 +6782,8 @@ void timercallback1(const ros::TimerEvent&) {
 	  //  or 8 orientations * 9 gridpoints  = 72
 	  // capslock + g
 	  //case 131143:
+
+	  // move to position and rise to a good height
 
 	  
       }
@@ -6789,8 +6798,70 @@ void timercallback1(const ros::TimerEvent&) {
     // capslock + f
     case 131142:
       {
+	classLabels.resize(0);
+	classPoseModels.resize(0);
+
 	// snoop folders
+	DIR *dpdf;
+	struct dirent *epdf;
+	string dot(".");
+	string dotdot("..");
+
+	char buf[1024];
+	sprintf(buf, "%s", data_directory.c_str());
+	dpdf = opendir(buf);
+	if (dpdf != NULL){
+	  while (epdf = readdir(dpdf)){
+	    string thisFileName(epdf->d_name);
+
+	    string thisFullFileName(buf);
+	    thisFullFileName = thisFullFileName + "/" + thisFileName;
+
+	    struct stat buf2;
+	    stat(thisFullFileName.c_str(), &buf2);
+
+	    int itIsADir = S_ISDIR(buf2.st_mode);
+	    if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+	      classLabels.push_back(thisFileName);
+	      classPoseModels.push_back("B");
+	    }
+	  }
+	}
+
+	if ((classLabels.size() != classPoseModels.size()) || (classLabels.size() < 1)) {
+	  cout << "Label and pose model list size problem. Not proceeding to train." << endl;
+	  break;
+	}
+
+	cout << "Reinitializing and retraining. " << endl;
+	for (int i = 0; i < classLabels.size(); i++) {
+	  cout << classLabels[i] << " " << classPoseModels[i] << endl;
+	}
+
+	rewrite_labels = 1;
+	retrain_vocab = 1;
+	reextract_knn = 1;
+	trainOnly = 0;
+
+
+	// delete things that will be reallocated
+	if (bowtrainer)
+	  delete bowtrainer;
+	if (kNN)
+	  delete kNN;
+
+	for (int i = 0; i < classPosekNNs.size(); i++) {
+	  if (classPosekNNs[i])
+	    delete classPosekNNs[i];
+	}
+
+	//  detectorsInit() will reset numClasses
+	detectorsInit();
+
 	// reset numNewClasses
+	newClassCounter = 0;
+
+	// XXX reset anything else
       }
       break;
     // move first confirmed thing from the counter to the pantry
@@ -7734,15 +7805,17 @@ int shouldIPick(int classToPick) {
   // 2 is greenPepper 
   // 9 is chile
   // 10 is cucumber
-  if (
-      (classToPick == 2) ||
-      (classToPick == 9) ||
-      (classToPick == 10)||
-      (classToPick == 12)||
-      (classToPick == 6)
-    ) {
-    toReturn = 1;
-  }
+//  if (
+//      (classToPick == 2) ||
+//      (classToPick == 9) ||
+//      (classToPick == 10)||
+//      (classToPick == 12)||
+//      (classToPick == 6)
+//    ) {
+//    toReturn = 1;
+//  }
+  
+  toReturn = (classToPick == targetClass);
 
   return toReturn;
 }
@@ -7882,6 +7955,7 @@ void processImage(Mat &image, Mat& gray_image, Mat& yCrCb_image, double sigma) {
 
 void bowGetFeatures(std::string classDir, const char *className, double sigma) {
 
+  int totalDescriptors = 0;
   DIR *dpdf;
   struct dirent *epdf;
   string dot(".");
@@ -7920,7 +7994,8 @@ void bowGetFeatures(std::string classDir, const char *className, double sigma) {
 	  }
 	  extractor->compute(gray_image, keypoints2, descriptors);
 
-	  cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " " << endl;
+	  totalDescriptors += int(descriptors.cols);
+	  cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " total descriptors: " << totalDescriptors << endl;
 
 	  if (!descriptors.empty() && !keypoints2.empty())
 	    bowtrainer->add(descriptors);
@@ -10821,11 +10896,15 @@ void detectorsInit() {
   // SIFT 
   //detector = new SiftFeatureDetector(0, 3, 0.04, 10, 1.6);
   cout << "chosen_feature: " << chosen_feature << endl;
-  detector = new FastFeatureDetector(4);
-  if (chosen_feature == SIFTBOW_GLOBALCOLOR_HIST)
-    extractor = new SiftDescriptorExtractor();
-  else if (chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST)
-    extractor = DescriptorExtractor::create("OpponentSIFT");
+  if (detector == NULL)
+    detector = new FastFeatureDetector(4);
+
+  if (extractor == NULL) {
+    if (chosen_feature == SIFTBOW_GLOBALCOLOR_HIST)
+      extractor = new SiftDescriptorExtractor();
+    else if (chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST)
+      extractor = DescriptorExtractor::create("OpponentSIFT");
+  }
 
   // BOW time
   bowtrainer = new BOWKMeansTrainer(vocabNumWords);
@@ -10931,7 +11010,7 @@ void detectorsInit() {
       }
     }
 
-    cout << "Clustering features...";
+    cout << "Clustering features... ";
     cout.flush();
     vocabulary = bowtrainer->cluster();
     cout << "done." << endl;
@@ -10950,8 +11029,10 @@ void detectorsInit() {
     cout << "done. vocabulary size: " << vocabulary.size() << endl;
   }
 
-  matcher = new BFMatcher(NORM_L2);
-  bowExtractor = new BOWImgDescriptorExtractor(extractor,matcher);
+  if (matcher == NULL)
+    matcher = new BFMatcher(NORM_L2);
+  if (bowExtractor == NULL)
+    bowExtractor = new BOWImgDescriptorExtractor(extractor,matcher);
   bowExtractor->setVocabulary(vocabulary);
 
   Mat kNNfeatures;
