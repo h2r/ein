@@ -167,10 +167,17 @@ typedef struct {
 typedef enum {
   SIFTBOW_GLOBALCOLOR_HIST = 1,
   OPPONENTSIFTBOW_GLOBALCOLOR_HIST = 2, // this has not been sufficiently tested
-  SIFTCOLORBOW_HIST = 3 // unimplemented, calculate color histograms at each keypoint and augment each SIFT feature before clustering
+  SIFTCOLORBOW_HIST = 3, // unimplemented, calculate color histograms at each keypoint and augment each SIFT feature before clustering
+  GRADIENT = 4,
+  OPPONENT_COLOR_GRADIENT = 5
 } featureType;
-featureType chosen_feature = SIFTBOW_GLOBALCOLOR_HIST;
+//featureType chosen_feature = SIFTBOW_GLOBALCOLOR_HIST;
+//featureType chosen_feature = GRADIENT;
+featureType chosen_feature = OPPONENT_COLOR_GRADIENT;
 int cfi = 1;
+
+int gradientFeatureWidth = 50;
+
 
 typedef enum {
   MRT,
@@ -391,6 +398,9 @@ eePose eepReg1 = workCenter;
 eePose eepReg2 = beeHome;
 eePose eepReg3 = beeHome;
 eePose eepReg4 = beeHome;
+
+int pilotTargetBlueBoxNumber = -1;
+int pilotClosestBlueBoxNumber = -1;
 
 string left_or_right_arm = "right";
 
@@ -703,6 +713,7 @@ cv_bridge::CvImagePtr cv_ptr;
 Mat objectViewerImage;
 Mat densityViewerImage;
 Mat wristViewImage;
+Mat gradientViewerImage;
 
 int mask_gripper = 0;
 
@@ -718,9 +729,10 @@ int ikResult = 1;
 
 std::string densityViewerName = "Density Viewer";
 std::string objectViewerName = "Object Viewer";
+std::string gradientViewerName = "Gradient Viewer";
 
-int loTrackbarVariable = 55;
-int hiTrackbarVariable = 40;
+int loTrackbarVariable = 75;
+int hiTrackbarVariable = 50;
 int redTrackbarVariable = 0;
 
 double drawBingProb = .1;
@@ -732,7 +744,7 @@ double canny_lo_thresh = 4;
 //double canny_hi_thresh = 10;
 //double canny_lo_thresh = 0.5;
 
-double sobel_sigma = 1.0;
+double sobel_sigma = 4.0;
 double sobel_scale_factor = 1e-12;
 double local_sobel_sigma = 1.0;
 
@@ -978,6 +990,14 @@ int rARM = 150;
 cv::Point armTop;
 cv::Point armBot;
 
+int loadRange = 1;
+vector<Mat> classRangeMaps;
+vector<Mat> classAerialGradients;
+
+
+Mat frameGraySobel;
+int aerialGradientWidth = 100;
+
 ////////////////////////////////////////////////
 // end node variables 
 //
@@ -1099,6 +1119,8 @@ void spinlessNodeMain();
 void nodeInit();
 void detectorsInit();
 void initRedBoxes();
+
+void tryToLoadRangeMap(std::string classDir, const char *className, int i);
 
 ////////////////////////////////////////////////
 // end node prototypes 
@@ -2895,6 +2917,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 
     cv::imshow(objectViewerName, objectViewerImage);
     cv::imshow(densityViewerName, densityViewerImage);
+    cv::imshow(gradientViewerName, gradientViewerImage);
   }
   #ifdef DEBUG
   cout << "debug 1" << endl;
@@ -4338,6 +4361,7 @@ cout <<
 	cv::moveWindow(hiRangemapViewName, uiOffsetX, uiOffsetY);
 	uiOffsetX += 320;
 	cv::moveWindow(densityViewerName, uiOffsetX, uiOffsetY);
+	cv::moveWindow(gradientViewerName, uiOffsetX, uiOffsetY);
 	uiOffsetX += 320;
 	cv::moveWindow(objectViewerName, uiOffsetX, uiOffsetY);
 	uiOffsetX = toolbarWidth + sideOffset;
@@ -4364,6 +4388,7 @@ cout <<
 	cv::moveWindow(hiRangemapViewName, uiOffsetX, uiOffsetY);
 	uiOffsetX += 320;
 	cv::moveWindow(densityViewerName, uiOffsetX, uiOffsetY);
+	cv::moveWindow(gradientViewerName, uiOffsetX, uiOffsetY);
 	uiOffsetX += 320;
 	cv::moveWindow(objectViewerName, uiOffsetX, uiOffsetY);
 	uiOffsetX = toolbarWidth + sideOffset;
@@ -4389,6 +4414,7 @@ cout <<
 	cv::moveWindow(coreViewName, 1000+1920, 40);
 
 	cv::moveWindow(densityViewerName, 100+1920, 700);
+	cv::moveWindow(gradientViewerName, 100+1920, 700);
 	cv::moveWindow(wristViewName, 800+1920, 600);
       }
       break;
@@ -4647,7 +4673,7 @@ cout <<
 
 	cout << " ++Move to target z: " << deltaZ << " " << zTimes << " " << endl; cout.flush();
 
-	int numNoOps = 5;
+	int numNoOps = 2;
 	if (deltaZ > 0)
 	  for (int zc = 0; zc < zTimes; zc++) {
 	    for (int cc = 0; cc < numNoOps; cc++) {
@@ -5114,10 +5140,29 @@ cout <<
 	pilot_call_stack.push_back('i'); // initialize gripper
       }
       break;
-    // for current gear, find best grasp and move to x,y 
+    // for current gear, execute best grasp in current gear from memory and continue patrol
     // numlock + 9
     case 1048633:
       {
+	pilot_call_stack.push_back(131141); // 2D patrol continue
+	pilot_call_stack.push_back(131153); // vision cycle
+
+	pilot_call_stack.push_back('k'); // open gripper
+        pilot_call_stack.push_back(131151); // shake it off 1
+        pilot_call_stack.push_back(196649); // assert no grasp
+
+	pushNoOps(60);
+	pilot_call_stack.push_back('j'); // close gripper
+	pushNoOps(30);
+	pilot_call_stack.push_back('k'); // open gripper
+
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('s', 10);
+	pilot_call_stack.push_back('2'); // assume pose at register 2
+	pushNoOps(20);
+	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(1048680); // assume x,y of target 
 	pilot_call_stack.push_back(1048679); // render reticle
 	pilot_call_stack.push_back(1048678); // target best grasp
 	pilot_call_stack.push_back(1048691); // find max on register 1
@@ -5135,26 +5180,145 @@ cout <<
 	  pilot_call_stack.push_back(1048693);
 	if (currentGraspGear == 4)
 	  pilot_call_stack.push_back(1048688);
+	if (currentGraspGear == 5)
+	  pilot_call_stack.push_back(1048681);
+	if (currentGraspGear == 6)
+	  pilot_call_stack.push_back(1048687);
+	if (currentGraspGear == 7)
+	  pilot_call_stack.push_back(1048693);
+	if (currentGraspGear == 8)
+	  pilot_call_stack.push_back(1048688);
 
 	// blur
-	pilot_call_stack.push_back(1048673);
-	pilot_call_stack.push_back(1048692);
-	pilot_call_stack.push_back(1048697);
+	//pilot_call_stack.push_back(1048673);
+	//pilot_call_stack.push_back(1048692);
+	//pilot_call_stack.push_back(1048697);
 	// load reg1
-	pilot_call_stack.push_back(1048690);
+	//pilot_call_stack.push_back(1048690);
+	pilot_call_stack.push_back(131162); // load target classRangeMap
+	pilot_call_stack.push_back(1048695); // clear scan history
+	pilot_call_stack.push_back(1048684); // turn off scanning
       }
       break;
-    // prepare for and execute a grab at the current location and target
+    // numlock + .
+    case 1048622:
+      {
+	double lineSpeed = MOVE_FAST;
+	double betweenSpeed = MOVE_FAST;
+	scanXdirection(lineSpeed, betweenSpeed); // load scan program
+	pilot_call_stack.push_back(1114150); // prepare for search
+	pilot_call_stack.push_back(1048683); // turn on scanning
+	pilot_call_stack.push_back(1048695); // clear scan history
+      }
+      break;
+    // find best of 4 grasps using memory
+    // numlock + ,
+    case 1048620:
+      {
+	cout << "Selecting best of 4 grasps..." << endl;
+	// select max target cumulative
+	pilot_call_stack.push_back(1114195);
+	// apply grasp filter for 4
+	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048692);
+	pilot_call_stack.push_back(1048688);
+	// load reg1
+	pilot_call_stack.push_back(131162); // load target classRangeMap
+	// change gear to 4
+	pilot_call_stack.push_back(1048628);
+
+	// select max target cumulative
+	pilot_call_stack.push_back(1114195	);
+	// apply grasp filter for 3
+	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048692);
+	pilot_call_stack.push_back(1048693);
+	// load reg1
+	pilot_call_stack.push_back(131162); // load target classRangeMap
+	// change gear to 3
+	pilot_call_stack.push_back(1048627);
+
+	// select max target cumulative
+	pilot_call_stack.push_back(1114195);
+	// apply grasp filter for 2
+	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048692);
+	pilot_call_stack.push_back(1048687);
+	// load reg1
+	pilot_call_stack.push_back(131162); // load target classRangeMap
+	// change gear to 2
+	pilot_call_stack.push_back(1048626);
+
+	// select max target NOT cumulative
+	pilot_call_stack.push_back(1048691);
+	// apply grasp filter for 1
+	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048692);
+	pilot_call_stack.push_back(1048681);
+	// load reg1
+	pilot_call_stack.push_back(131162); // load target classRangeMap
+
+	// change gear to 1
+	pilot_call_stack.push_back(1048625);
+
+	pilot_call_stack.push_back(1048684); // turn off scanning
+      }
+      break;
+    // prepare for and execute a grasp from memory at the current location and target
     // numlock + 0
     case 1048624:
       {
+	pilot_call_stack.push_back(131141); // 2D patrol continue
+	pilot_call_stack.push_back(131153); // vision cycle
+
+	pilot_call_stack.push_back('k'); // open gripper
+        pilot_call_stack.push_back(131151); // shake it off 1
+        pilot_call_stack.push_back(196649); // assert no grasp
+
+	pushNoOps(30);
+	pilot_call_stack.push_back('j'); // close gripper
+	pushNoOps(30);
+	pilot_call_stack.push_back('k'); // open gripper
+
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(1048623); // numlock + /
+
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('s', 10);
+	pilot_call_stack.push_back('2'); // assume pose at register 2
+	pushNoOps(10);
+
 	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
-	pushNoOps(200);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	pilot_call_stack.push_back(1048680); // assume x,y of target 
 	pilot_call_stack.push_back(1048679); // render reticle
 	pilot_call_stack.push_back(1048691); // find max on register 1
 	pilot_call_stack.push_back(1048673); // render register 1
-	pilot_call_stack.push_back(1048690); // load map to register 1
+
+	pilot_call_stack.push_back(131162); // load target classRangeMap
+
+	pilot_call_stack.push_back(1048631); // assume best gear
+	pilot_call_stack.push_back(1048678); // target best grasp
+	pilot_call_stack.push_back(1048620); // find best grasp from memory
+
+	pilot_call_stack.push_back(131162); // load target classRangeMap
+	pilot_call_stack.push_back(1048695); // clear scan history
+	pilot_call_stack.push_back(1048684); // turn off scanning
+
+	pilot_call_stack.push_back('k'); // open gripper
+	pilot_call_stack.push_back('i'); // initialize gripper
+      }
+      break;
+    // perturb position by a random amount
+    // numlock + /
+    case 1048623:
+      {
+	  double perturbScale = 0.1;
+	  double noX = perturbScale * ((drand48() - 0.5) * 2.0);
+	  double noY = perturbScale * ((drand48() - 0.5) * 2.0);
+    
+	  currentEEPose.px += noX;
+	  currentEEPose.py += noY;
       }
       break;
     // set movement speed
@@ -5963,6 +6127,7 @@ cout <<
 	    pilotTarget.px = pilotClosestTarget.px;
 	    pilotTarget.py = pilotClosestTarget.py;
 	    pilotTarget.pz = pilotClosestTarget.pz;
+	    pilotTargetBlueBoxNumber = pilotClosestBlueBoxNumber;
 	  } else {
 	    pilot_call_stack.push_back(131141); // 2D patrol continue
 	    // set oscilStart to now
@@ -6023,8 +6188,15 @@ cout <<
 	      surveyWinningClass = winningClass;
 	    }
 	    //pilot_call_stack.push_back(131161); // fetch
+	    //pilot_call_stack.push_back(196729); // quick fetch
+	    // XXX
+	    //pilot_call_stack.push_back(1048624); // load target classRangeMap and grasp
+	    //pilot_call_stack.push_back(1048633); // load target classRangeMap and grasp
+	    if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
+	      pilot_call_stack.push_back(1048624); // prepare for and execute the best grasp from memory at the current location and target
+	    else
+	      pilot_call_stack.push_back(196729); // quick fetch
 
-	    pilot_call_stack.push_back(196729); // quick fetch
 	    break;	
 	  } else {
 	    cout << "executing P controller update." << endl;
@@ -6354,6 +6526,7 @@ cout <<
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	pushCopies('s', 10);
 	pilot_call_stack.push_back('2'); // assume pose at register 2
+	pushNoOps(20);
 	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	pilot_call_stack.push_back(1048680); // assume x,y of target 
@@ -6412,6 +6585,7 @@ cout <<
 	pushNoOps(60);
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	pilot_call_stack.push_back(196641); // go to wholeFoodsBag1
+	pushNoOps(20);
 	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	pilot_call_stack.push_back(1048680); // assume x,y of target 
@@ -6463,6 +6637,7 @@ cout <<
 	pushNoOps(60);
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
+	pushNoOps(20);
 	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	pilot_call_stack.push_back(1048680); // assume x,y of target 
@@ -6523,6 +6698,14 @@ cout <<
 	goCalculateDensity();
       }
       break;
+    // capslock + a
+    case 131137:
+      {
+	cout << "Continuously Updating density estimate..." << endl;
+	goCalculateDensity();
+	pilot_call_stack.push_back(131137);
+      }
+      break;
     // blue boxes
     // capslock + 2
     case 131122:
@@ -6562,6 +6745,96 @@ cout <<
 	currentEEPose = wholeFoodsPantry1;
       }
       break;
+    // save aerial gradient map
+    // capslock + Z
+    case 196730:
+      {
+	if ((focusedClass > -1) && (frameGraySobel.rows >1) && (frameGraySobel.cols > 1)) {
+	  string thisLabelName = focusedClassLabel;
+
+	  char buf[1000];
+	  string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
+	  string this_range_path = dirToMakePath + "aerialGradient.yml";
+
+	  mkdir(dirToMakePath.c_str(), 0777);
+
+	  int hbb = pilotTargetBlueBoxNumber;
+
+	  bTops[hbb];
+	  bBots[hbb];
+  
+	  int crows = bBots[hbb].y - bTops[hbb].y;
+	  int ccols = bBots[hbb].x - bTops[hbb].x;
+	  int maxDim = max(crows, ccols);
+	  int tRy = (maxDim-crows)/2;
+	  int tRx = (maxDim-ccols)/2;
+	  Mat gCrop(maxDim, maxDim, frameGraySobel.type());
+
+	  float totalMass = 0.0;
+
+	  for (int x = 0; x < maxDim; x++) {
+	    for (int y = 0; y < maxDim; y++) {
+	      int tx = x - tRx;
+	      int ty = y - tRy;
+	      if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+		gCrop.at<float>(y, x) = frameGraySobel.at<float>(ty, tx);
+	      } else {
+		gCrop.at<float>(y, x) = 0.0;
+	      }
+	    }
+	  }
+
+	  Size toBecome(aerialGradientWidth, aerialGradientWidth);
+	  cv::resize(gCrop, gCrop, toBecome);
+
+	  FileStorage fsvO;
+	  fsvO.open(this_range_path, FileStorage::WRITE);
+	  fsvO << "aerialGradient" << gCrop;
+	  fsvO.release();
+	} 
+      }
+      break;
+    // load target class range map into register 1 
+    // capslock + z
+    case 131162:
+      {
+	if ((targetClass < numClasses) && (targetClass >= 0)) {
+	  for (int y = 0; y < rmWidth; y++) {
+	    for (int x = 0; x < rmWidth; x++) {
+	      rangeMap[x + y*rmWidth] = classRangeMaps[targetClass].at<double>(y,x);
+	      rangeMapReg1[x + y*rmWidth] = classRangeMaps[targetClass].at<double>(y,x);
+	    } 
+	  } 
+	} 
+      }
+      break;
+    // save current depth map to current class
+    // capslock + A
+    case 196705:
+      {
+	if (focusedClass > -1) {
+	  string thisLabelName = focusedClassLabel;
+
+	  char buf[1000];
+	  string dirToMakePath = data_directory + "/" + thisLabelName + "/ir2D/";
+	  string this_range_path = dirToMakePath + "xyzRange.yml";
+
+	  Mat rangeMapTemp(rmWidth, rmWidth, CV_64F);
+	  for (int y = 0; y < rmWidth; y++) {
+	    for (int x = 0; x < rmWidth; x++) {
+	      rangeMapTemp.at<double>(y,x) = rangeMapReg1[x + y*rmWidth];
+	    } 
+	  } 
+
+	  mkdir(dirToMakePath.c_str(), 0777);
+
+	  FileStorage fsvO;
+	  fsvO.open(this_range_path, FileStorage::WRITE);
+	  fsvO << "rangeMap" << rangeMapTemp;
+	  fsvO.release();
+	} 
+      }
+      break;
     // record example as focused class if there is only one blue box in frame
     // capslock + l
     case 196652:
@@ -6570,7 +6843,8 @@ cout <<
 	  string thisLabelName = focusedClassLabel;
 	  Mat crop = cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
 	  char buf[1000];
-	  string this_crops_path = data_directory + "/" + thisLabelName + "/";
+	  //string this_crops_path = data_directory + "/" + thisLabelName + "/";
+	  string this_crops_path = data_directory + "/" + thisLabelName + "/rgb/";
 	  sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
 	  imwrite(buf, crop);
 	  cropCounter++;
@@ -6586,7 +6860,8 @@ cout <<
 	    string thisLabelName = focusedClassLabel;
 	    Mat crop = cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
 	    char buf[1000];
-	    string this_crops_path = data_directory + "/" + thisLabelName + "/";
+	    //string this_crops_path = data_directory + "/" + thisLabelName + "/";
+	    string this_crops_path = data_directory + "/" + thisLabelName + "/rgb/";
 	    sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
 	    imwrite(buf, crop);
 	    cropCounter++;
@@ -6603,7 +6878,8 @@ cout <<
 	  string thisLabelName = focusedClassLabel;
 	  Mat crop = cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
 	  char buf[1000];
-	  string this_crops_path = data_directory + "/" + thisLabelName + "/";
+	  //string this_crops_path = data_directory + "/" + thisLabelName + "/";
+	  string this_crops_path = data_directory + "/" + thisLabelName + "/rgb/";
 	  sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
 	  imwrite(buf, crop);
 	  cropCounter++;
@@ -6622,6 +6898,8 @@ cout <<
 	classLabels.push_back(thisLabelName);
 	string dirToMakePath = data_directory + "/" + thisLabelName + "/";
 	mkdir(dirToMakePath.c_str(), 0777);
+	string rgbDirToMakePath = data_directory + "/" + thisLabelName + "/rgb";
+	mkdir(rgbDirToMakePath.c_str(), 0777);
 	newClassCounter++;
       }
       break;
@@ -6640,6 +6918,8 @@ cout <<
 	  string thisLabelName = focusedClassLabel;
 	  string dirToMakePath = data_directory + "/" + thisLabelName + "/";
 	  mkdir(dirToMakePath.c_str(), 0777);
+	  string rgbDirToMakePath = data_directory + "/" + thisLabelName + "/rgb";
+	  mkdir(rgbDirToMakePath.c_str(), 0777);
 	}
 	cout << focusedClass << endl;
       }
@@ -6659,6 +6939,8 @@ cout <<
 	  string thisLabelName = focusedClassLabel;
 	  string dirToMakePath = data_directory + "/" + thisLabelName + "/";
 	  mkdir(dirToMakePath.c_str(), 0777);
+	  string rgbDirToMakePath = data_directory + "/" + thisLabelName + "/rgb";
+	  mkdir(rgbDirToMakePath.c_str(), 0777);
 	}
 	cout << focusedClass << endl;
       }
@@ -7007,7 +7289,7 @@ cout <<
       {
 	  pilot_call_stack.push_back(196708); // remove and scan the items in the grocery bag until it is empty
 
-	  pilot_call_stack.push_back(131142); // reinitialize and retrain everything
+	  //pilot_call_stack.push_back(131142); // reinitialize and retrain everything
 
 	  pilot_call_stack.push_back(131140); // move the scanned object from the counter to the pantry
 
@@ -7518,6 +7800,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   if (densityViewerImage.rows <= 0 || densityViewerImage.rows <= 0) {
     densityViewerImage = cv_ptr->image.clone();
     densityViewerImage *= 0;
+    gradientViewerImage = Mat(2*cv_ptr->image.rows, cv_ptr->image.cols, cv_ptr->image.type());
+    gradientViewerImage *= 0;
   }
   if (objectViewerImage.rows <= 0 || objectViewerImage.rows <= 0)
     objectViewerImage = cv_ptr->image.clone();
@@ -8191,7 +8475,7 @@ void bowGetFeatures(std::string classDir, const char *className, double sigma) {
   string dotdot("..");
 
   char buf[1024];
-  sprintf(buf, "%s%s", classDir.c_str(), className);
+  sprintf(buf, "%s%s/rgb", classDir.c_str(), className);
   dpdf = opendir(buf);
   if (dpdf != NULL){
     while (epdf = readdir(dpdf)){
@@ -8202,7 +8486,7 @@ void bowGetFeatures(std::string classDir, const char *className, double sigma) {
         Mat descriptors;
 
         char filename[1024];
-        sprintf(filename, "%s%s/%s", classDir.c_str(), className, epdf->d_name);
+        sprintf(filename, "%s%s/rgb/%s", classDir.c_str(), className, epdf->d_name);
         Mat image;
         image = imread(filename);
 	Size sz = image.size();
@@ -8242,7 +8526,7 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
   string dotdot("..");
 
   char buf[1024];
-  sprintf(buf, "%s%s", classDir.c_str(), className);
+  sprintf(buf, "%s%s/rgb", classDir.c_str(), className);
   dpdf = opendir(buf);
   if (dpdf != NULL){
     while (epdf = readdir(dpdf)){
@@ -8253,7 +8537,7 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
         Mat descriptors2;
 
         char filename[1024];
-        sprintf(filename, "%s%s/%s", classDir.c_str(), className, epdf->d_name);
+        sprintf(filename, "%s%s/rgb/%s", classDir.c_str(), className, epdf->d_name);
         Mat image;
         image = imread(filename);
 	Size sz = image.size();
@@ -8263,21 +8547,216 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 
         Mat gray_image;
         Mat yCrCb_image;
-	processImage(image, gray_image, yCrCb_image, sigma);
 
-	for (int i = 0; i < kNNOverSampleFactor; i++) {
-	  //detector->detect(gray_image, keypoints);
-	  gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
-	  bowExtractor->compute(gray_image, keypoints, descriptors);
+	//if ((chosen_feature == SIFTBOW_GLOBALCOLOR_HIST) || (chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST))
+	if (chosen_feature == SIFTBOW_GLOBALCOLOR_HIST) 
+	{
+	  processImage(image, gray_image, yCrCb_image, sigma);
+	  for (int i = 0; i < kNNOverSampleFactor; i++) {
+	    //detector->detect(gray_image, keypoints);
+	    gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
+	    bowExtractor->compute(gray_image, keypoints, descriptors);
 
-	  cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " type: " << descriptors.type() << " tot: " << kNNfeatures.size() << endl;
+	    cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " type: " << descriptors.type() << " tot: " << kNNfeatures.size() << endl;
 
-	  if (!descriptors.empty() && !keypoints.empty()) {
-	    appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
+	    if (!descriptors.empty() && !keypoints.empty()) {
+	      appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
 
-	    kNNfeatures.push_back(descriptors2);
-	    kNNlabels.push_back(label);
+	      kNNfeatures.push_back(descriptors2);
+	      kNNlabels.push_back(label);
+	    }
 	  }
+	} else if (chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST) {
+	  processImage(image, gray_image, yCrCb_image, sigma);
+	  for (int i = 0; i < kNNOverSampleFactor; i++) {
+	    //detector->detect(gray_image, keypoints);
+	    gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
+	    //bowExtractor->compute(gray_image, keypoints, descriptors);
+
+	    Mat tmpC;
+	    image.convertTo(tmpC, CV_32FC3);
+	    bowExtractor->compute(tmpC, keypoints, descriptors);
+
+	    cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " type: " << descriptors.type() << " tot: " << kNNfeatures.size() << endl;
+
+	    if (!descriptors.empty() && !keypoints.empty()) {
+	      appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
+
+	      kNNfeatures.push_back(descriptors2);
+	      kNNlabels.push_back(label);
+	    }
+	  }
+	} else if (chosen_feature == GRADIENT) {
+	  processImage(image, gray_image, yCrCb_image, sobel_sigma);
+
+	  Mat totalGraySobel;
+	  {
+	    Mat grad_x, grad_y;
+	    int sobelScale = 1;
+	    int sobelDelta = 0;
+	    int sobelDepth = CV_32F;
+	    /// Gradient X
+	    Sobel(gray_image, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+	    /// Gradient Y
+	    Sobel(gray_image, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+	    grad_x = grad_x.mul(grad_x);
+	    grad_y = grad_y.mul(grad_y);
+	    totalGraySobel = grad_x + grad_y;
+	    // now totalGraySobel is gradient magnitude squared
+	  }
+
+	  // grow to the max dimension to avoid distortion
+	  // find the dimensions that pad the sobel image up to a square
+	  // raster scan a 'virtual image' to generate the 1D vector, adding 0's when on the pad
+
+	  int crows = totalGraySobel.rows;
+	  int ccols = totalGraySobel.cols;
+	  int maxDim = max(crows, ccols);
+	  int tRy = (maxDim-crows)/2;
+	  int tRx = (maxDim-ccols)/2;
+	  Mat gCrop(maxDim, maxDim, totalGraySobel.type());
+
+	  float totalMass = 0.0;
+
+	  for (int x = 0; x < maxDim; x++) {
+	    for (int y = 0; y < maxDim; y++) {
+	      int tx = x - tRx;
+	      int ty = y - tRy;
+	      if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+		gCrop.at<float>(y, x) = totalGraySobel.at<float>(ty, tx);
+		//totalMass += gCrop.at<float>(y, x);
+		totalMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+	      } else {
+		gCrop.at<float>(y, x) = 0.0;
+	      }
+	    }
+	  }
+	  totalMass = sqrt(totalMass);
+	  Mat descriptorsG = Mat(1, gradientFeatureWidth*gradientFeatureWidth, CV_32F);
+	  for (int y = 0; y < gradientFeatureWidth; y++) {
+	    for (int x = 0; x < gradientFeatureWidth; x++) {
+	      int tranX = floor(float(x)*float(maxDim)/float(gradientFeatureWidth));
+	      int tranY = floor(float(y)*float(maxDim)/float(gradientFeatureWidth));
+	      //descriptorsG.at<float>(x + y*gradientFeatureWidth) = gCrop.at<float>(y,x);
+	      descriptorsG.at<float>(x + y*gradientFeatureWidth) = gCrop.at<float>(y,x)/totalMass;
+	    }
+	  }
+	  kNNfeatures.push_back(descriptorsG);
+	  kNNlabels.push_back(label);
+	} else if (chosen_feature == OPPONENT_COLOR_GRADIENT) {
+	  processImage(image, gray_image, yCrCb_image, sobel_sigma);
+
+	  Mat totalGraySobel;
+	  {
+	    Mat grad_x, grad_y;
+	    int sobelScale = 1;
+	    int sobelDelta = 0;
+	    int sobelDepth = CV_32F;
+	    /// Gradient X
+	    Sobel(gray_image, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+	    /// Gradient Y
+	    Sobel(gray_image, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+	    grad_x = grad_x.mul(grad_x);
+	    grad_y = grad_y.mul(grad_y);
+	    totalGraySobel = grad_x + grad_y;
+	    // now totalGraySobel is gradient magnitude squared
+	  }
+	  Mat totalCrSobel = totalGraySobel.clone();
+	  {
+	    for (int y = 0; y < image.rows; y++) {
+	      for (int x = 0; x < image.cols; x++) {
+		cv::Vec3b thisColor = yCrCb_image.at<cv::Vec3b>(y,x);
+		totalCrSobel.at<float>(y,x) = thisColor[1];
+	      }
+	    }
+	    Mat grad_x, grad_y;
+	    int sobelScale = 1;
+	    int sobelDelta = 0;
+	    int sobelDepth = CV_32F;
+	    /// Gradient X
+	    Sobel(totalCrSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+	    /// Gradient Y
+	    Sobel(totalCrSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+	    //grad_x = grad_x.mul(grad_x);
+	    //grad_y = grad_y.mul(grad_y);
+	    totalCrSobel = grad_x + grad_y;
+	  }
+	  Mat totalCbSobel = totalGraySobel.clone();
+	  {
+	    for (int y = 0; y < image.rows; y++) {
+	      for (int x = 0; x < image.cols; x++) {
+		cv::Vec3b thisColor = yCrCb_image.at<cv::Vec3b>(y,x);
+		totalCbSobel.at<float>(y,x) = thisColor[2];
+	      }
+	    }
+	    Mat grad_x, grad_y;
+	    int sobelScale = 1;
+	    int sobelDelta = 0;
+	    int sobelDepth = CV_32F;
+	    /// Gradient X
+	    Sobel(totalCbSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+	    /// Gradient Y
+	    Sobel(totalCbSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+	    //grad_x = grad_x.mul(grad_x);
+	    //grad_y = grad_y.mul(grad_y);
+	    totalCbSobel = grad_x + grad_y;
+	  }
+
+	  // grow to the max dimension to avoid distortion
+	  // find the dimensions that pad the sobel image up to a square
+	  // raster scan a 'virtual image' to generate the 1D vector, adding 0's when on the pad
+
+	  int crows = totalGraySobel.rows;
+	  int ccols = totalGraySobel.cols;
+	  int maxDim = max(crows, ccols);
+	  int tRy = (maxDim-crows)/2;
+	  int tRx = (maxDim-ccols)/2;
+	  Mat gCrop(maxDim, maxDim, totalGraySobel.type());
+	  Mat crCrop(maxDim, maxDim, totalGraySobel.type());
+	  Mat cbCrop(maxDim, maxDim, totalGraySobel.type());
+
+	  float totalGMass = 0.0;
+	  float totalCrMass = 0.0;
+	  float totalCbMass = 0.0;
+
+	  for (int x = 0; x < maxDim; x++) {
+	    for (int y = 0; y < maxDim; y++) {
+	      int tx = x - tRx;
+	      int ty = y - tRy;
+	      if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+		gCrop.at<float>(y, x) = totalGraySobel.at<float>(ty, tx);
+		crCrop.at<float>(y, x) = totalCrSobel.at<float>(ty, tx);
+		cbCrop.at<float>(y, x) = totalCbSobel.at<float>(ty, tx);
+		//totalGMass += gCrop.at<float>(y, x);
+		totalGMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+		totalCrMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+		totalCbMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+	      } else {
+		gCrop.at<float>(y, x) = 0.0;
+	      }
+	    }
+	  }
+	  totalGMass = sqrt(totalGMass);
+	  totalCrMass = sqrt(totalCrMass);
+	  totalCbMass = sqrt(totalCbMass);
+	  //Mat descriptorsG = Mat(1, gradientFeatureWidth*gradientFeatureWidth, CV_32F);
+	  Mat descriptorsCbCr = Mat(1, 2*gradientFeatureWidth*gradientFeatureWidth, CV_32F);
+	  for (int y = 0; y < gradientFeatureWidth; y++) {
+	    for (int x = 0; x < gradientFeatureWidth; x++) {
+	      int tranX = floor(float(x)*float(maxDim)/float(gradientFeatureWidth));
+	      int tranY = floor(float(y)*float(maxDim)/float(gradientFeatureWidth));
+	      //descriptorsG.at<float>(x + y*gradientFeatureWidth) = gCrop.at<float>(y,x);
+	      descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x)/totalCrMass;
+	      descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalCbMass;
+	    }
+	  }
+
+	  kNNfeatures.push_back(descriptorsCbCr);
+	  kNNlabels.push_back(label);
 	}
       }
     }
@@ -8300,7 +8779,7 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
   string ppm(".ppm");
 
   char buf[1024];
-  sprintf(buf, "%s%s", classDir.c_str(), className);
+  sprintf(buf, "%s%s/rgbPose", classDir.c_str(), className);
   dpdf = opendir(buf);
   if (dpdf != NULL){
     while (epdf = readdir(dpdf)){
@@ -8332,7 +8811,7 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
 	Mat descriptors2;
 
         char filename[1024];
-        sprintf(filename, "%s%s/%s", classDir.c_str(), className, epdf->d_name);
+        sprintf(filename, "%s%s/rgbPose/%s", classDir.c_str(), className, epdf->d_name);
         Mat image;
         image = imread(filename);
 	Size sz = image.size();
@@ -9163,32 +9642,234 @@ void goCalculateDensity() {
 
   objectViewerImage = cv_ptr->image.clone();
 
+  densityViewerImage = cv_ptr->image.clone();
+  Mat tmpImage = cv_ptr->image.clone();
+
+  Mat yCbCrGradientImage = cv_ptr->image.clone();
+
   if (add_blinders) {
     goAddBlinders();
   }
 
-  densityViewerImage = objectViewerImage.clone();
+  // determine table edges, i.e. the gray boxes
+  lGO = gBoxW*(lGO/gBoxW);
+  rGO = gBoxW*(rGO/gBoxW);
+  tGO = gBoxH*(tGO/gBoxH);
+  bGO = gBoxH*(bGO/gBoxH);
+  grayTop = cv::Point(lGO, tGO);
+  grayBot = cv::Point(imW-rGO, imH-bGO);
 
-  int boxesPerSize = 800;
+  if (all_range_mode) {
+    grayTop = armTop;
+    grayBot = armBot;
+  }
 
-//  // XXX Sobel business
-//  Mat local_ave;
-//  cvtColor(densityViewerImage_blur, densityViewerImage_blur, CV_RGB2GRAY );
-//  GaussianBlur(densityViewerImage_blur, densityViewerImage_blur, Size(max(4*sobel_sigma+1, 17.0),max(4*sobel_sigma+1, 17.0)), sobel_sigma, sobel_sigma, BORDER_DEFAULT); 
-//  Mat grad_x, grad_y;
-//  int sobelScale = 1;
-//  int sobelDelta = 0;
-//  int sobelDepth = CV_32F;
-//  /// Gradient X
-//  Sobel(densityViewerImage_blur, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-//  /// Gradient Y
-//  Sobel(densityViewerImage_blur, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-//
-//  grad_x = grad_x.mul(grad_x);
-//  grad_y = grad_y.mul(grad_y);
-//  Mat totalSobel = grad_x + grad_y;
-//  // now totalSobel is gradient magnitude squared
-//
+
+
+  // Sobel business
+  Mat sobelGrayBlur;
+  Mat sobelYCrCbBlur;
+  processImage(tmpImage, sobelGrayBlur, sobelYCrCbBlur, sobel_sigma);
+  
+  Mat totalGraySobel;
+  {
+    Mat grad_x, grad_y;
+    int sobelScale = 1;
+    int sobelDelta = 0;
+    int sobelDepth = CV_64F;
+    /// Gradient X
+    Sobel(sobelGrayBlur, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+    /// Gradient Y
+    Sobel(sobelGrayBlur, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+    grad_x = grad_x.mul(grad_x);
+    grad_y = grad_y.mul(grad_y);
+    totalGraySobel = grad_x + grad_y;
+    // now totalGraySobel is gradient magnitude squared
+  }
+
+  Mat totalCrSobel = totalGraySobel.clone();
+  {
+    for (int y = 0; y < imH; y++) {
+      for (int x = 0; x < imW; x++) {
+	cv::Vec3b thisColor = sobelYCrCbBlur.at<cv::Vec3b>(y,x);
+	totalCrSobel.at<double>(y,x) = thisColor[1];
+      }
+    }
+    Mat grad_x, grad_y;
+    int sobelScale = 1;
+    int sobelDelta = 0;
+    int sobelDepth = CV_64F;
+    /// Gradient X
+    Sobel(totalCrSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+    /// Gradient Y
+    Sobel(totalCrSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+    //grad_x = grad_x.mul(grad_x);
+    //grad_y = grad_y.mul(grad_y);
+    totalCrSobel = grad_x + grad_y;
+  }
+
+  Mat totalCbSobel = totalGraySobel.clone();
+  {
+    for (int y = 0; y < imH; y++) {
+      for (int x = 0; x < imW; x++) {
+	cv::Vec3b thisColor = sobelYCrCbBlur.at<cv::Vec3b>(y,x);
+	totalCbSobel.at<double>(y,x) = thisColor[2];
+      }
+    }
+    Mat grad_x, grad_y;
+    int sobelScale = 1;
+    int sobelDelta = 0;
+    int sobelDepth = CV_64F;
+    /// Gradient X
+    Sobel(totalCbSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+    /// Gradient Y
+    Sobel(totalCbSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+    //grad_x = grad_x.mul(grad_x);
+    //grad_y = grad_y.mul(grad_y);
+    totalCbSobel = grad_x + grad_y;
+  }
+
+  Mat totalYSobel = totalGraySobel.clone();
+  {
+    for (int y = 0; y < imH; y++) {
+      for (int x = 0; x < imW; x++) {
+	cv::Vec3b thisColor = sobelYCrCbBlur.at<cv::Vec3b>(y,x);
+	totalYSobel.at<double>(y,x) = thisColor[0];
+      }
+    }
+    Mat grad_x, grad_y;
+    int sobelScale = 1;
+    int sobelDelta = 0;
+    int sobelDepth = CV_64F;
+    /// Gradient X
+    Sobel(totalYSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+    /// Gradient Y
+    Sobel(totalYSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+    //grad_x = grad_x.mul(grad_x);
+    //grad_y = grad_y.mul(grad_y);
+    totalYSobel = grad_x + grad_y;
+  }
+
+
+
+  // truncate the Sobel image outside the gray box
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < grayTop.y; y++) {
+      totalGraySobel.at<double>(y,x) = 0;
+      totalCrSobel.at<double>(y,x) = 0;
+      totalCbSobel.at<double>(y,x) = 0;
+      totalYSobel.at<double>(y,x) = 0;
+    }
+  }
+
+  for (int x = 0; x < grayTop.x; x++) {
+    for (int y = grayTop.y; y < grayBot.y; y++) {
+      totalGraySobel.at<double>(y,x) = 0;
+      totalCrSobel.at<double>(y,x) = 0;
+      totalCbSobel.at<double>(y,x) = 0;
+      totalYSobel.at<double>(y,x) = 0;
+    }
+  }
+
+  for (int x = grayBot.x; x < imW; x++) {
+    for (int y = grayTop.y; y < grayBot.y; y++) {
+      totalGraySobel.at<double>(y,x) = 0;
+      totalCrSobel.at<double>(y,x) = 0;
+      totalCbSobel.at<double>(y,x) = 0;
+      totalYSobel.at<double>(y,x) = 0;
+    }
+  }
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = grayBot.y; y < imH; y++) {
+      totalGraySobel.at<double>(y,x) = 0;
+      totalCrSobel.at<double>(y,x) = 0;
+      totalCbSobel.at<double>(y,x) = 0;
+      totalYSobel.at<double>(y,x) = 0;
+    }
+  }
+
+  frameGraySobel = totalGraySobel.clone();
+
+  double minGraySob = INFINITY;
+  double maxGraySob = -INFINITY;
+  double minCrSob = INFINITY;
+  double maxCrSob = -INFINITY;
+  double minCbSob = INFINITY;
+  double maxCbSob = -INFINITY;
+  double minYSob = INFINITY;
+  double maxYSob = -INFINITY;
+  for (int y = 0; y < imH; y++) {
+    for (int x = 0; x < imW; x++) {
+      minGraySob = min(minGraySob, double(totalGraySobel.at<double>(y,x)));
+      maxGraySob = max(maxGraySob, double(totalGraySobel.at<double>(y,x)));
+
+      minCrSob = min(minCrSob, double(totalCrSobel.at<double>(y,x)));
+      maxCrSob = max(maxCrSob, double(totalCrSobel.at<double>(y,x)));
+
+      minCbSob = min(minCbSob, double(totalCbSobel.at<double>(y,x)));
+      maxCbSob = max(maxCbSob, double(totalCbSobel.at<double>(y,x)));
+
+      minYSob = min(minYSob, double(totalYSobel.at<double>(y,x)));
+      maxYSob = max(maxYSob, double(totalYSobel.at<double>(y,x)));
+    }
+  }
+
+  double sobGrayRange = maxGraySob - minGraySob;
+  double sobCrRange = maxCrSob - minCrSob;
+  double sobCbRange = maxCbSob - minCbSob;
+  double sobYRange = maxYSob - minYSob;
+
+  // ignore normalization
+  //maxCrSob = 255;
+  //minCrSob = 0;
+  //sobCrRange = 1;
+  //maxCbSob = 255;
+  //minCbSob = 0;
+  //sobCbRange = 1;
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      yCbCrGradientImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(
+	//uchar(max(0.0, min((128+255.0*(totalGraySobel.at<double>(y,x) - minGraySob - (sobGrayRange/2.0)) / sobGrayRange), 255.0))) ,
+	//128,
+
+	uchar(max(0.0, min((128+255.0*(totalYSobel.at<double>(y,x) - minYSob - (sobYRange/2.0)) / sobYRange), 255.0))) ,
+	//uchar(max(0.0, min((255.0*(totalYSobel.at<double>(y,x) - minYSob) / sobYRange), 255.0))) ,
+	uchar(max(0.0, min((128+255.0*(totalCrSobel.at<double>(y,x) - minCrSob - (sobCrRange/2.0)) / sobCrRange), 255.0))) ,
+	uchar(max(0.0, min((128+255.0*(totalCbSobel.at<double>(y,x) - minCbSob - (sobCbRange/2.0)) / sobCbRange), 255.0))) );
+
+	//uchar(max(0.0, min((128+255.0*fabs(totalCrSobel.at<double>(y,x) - minCrSob - (sobCrRange/2.0)) / sobCrRange), 255.0))) ,
+	//uchar(max(0.0, min((128+255.0*fabs(totalCbSobel.at<double>(y,x) - minCbSob - (sobCbRange/2.0)) / sobCbRange), 255.0))) );
+    }
+  }
+  Mat convertedYCbCrGradientImage;
+  cvtColor(yCbCrGradientImage, convertedYCbCrGradientImage, CV_YCrCb2BGR);
+
+  // copy the density map to the rendered image
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      //uchar val = uchar(min( 255.0 * density[y*imW+x] / maxDensity, 255.0));
+      //densityViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
+      // XXX TODO
+      //uchar val = uchar(min( 255.0 *  (totalGraySobel.at<float>(y,x) - minGraySob) / sobGrayRange, 255.0));
+
+      uchar val = uchar(min( 3*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
+      gradientViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
+      gradientViewerImage.at<cv::Vec3b>(y+imH,x) = convertedYCbCrGradientImage.at<cv::Vec3b>(y,x);
+
+      //cout << yCbCrGradientImage.at<cv::Vec3b>(y,x) << " ";
+    }
+  }
+
+  cout << "SobelGray: " << sobGrayRange << " " << maxGraySob << " " << minGraySob << endl;
+  cout << "SobelCr: " << sobCrRange << " " << maxCrSob << " " << minCrSob << endl;
+  cout << "SobelCb: " << sobCbRange << " " << maxCbSob << " " << minCbSob << endl;
+
 //  // make it gradient magnitude to the fourth to spread the values a little
 //  // this increases robustness and makes it easier to tune
 //  pow(totalSobel, 2.0, totalSobel);
@@ -9220,6 +9901,7 @@ void goCalculateDensity() {
   // input image is noisy so blurring is a good idea
   //GaussianBlur(densityViewerImage, densityViewerImage, cv::Size(0,0), 1.0);
 
+  int boxesPerSize = 800;
   ValStructVec<float, Vec4i> boxes;
   glObjectness->getObjBndBoxes(densityViewerImage, boxes, boxesPerSize);
 
@@ -9363,19 +10045,6 @@ void goCalculateDensity() {
     }
   }
 
-  // determine table edges, i.e. the gray boxes
-  lGO = gBoxW*(lGO/gBoxW);
-  rGO = gBoxW*(rGO/gBoxW);
-  tGO = gBoxH*(tGO/gBoxH);
-  bGO = gBoxH*(bGO/gBoxH);
-  grayTop = cv::Point(lGO, tGO);
-  grayBot = cv::Point(imW-rGO, imH-bGO);
-
-  if (all_range_mode) {
-    grayTop = armTop;
-    grayBot = armBot;
-  }
-
 //cout << lGO << " " << rGO << " " << tGO << " " << bGO << endl;
 
   if (drawGray) {
@@ -9466,8 +10135,10 @@ void goCalculateDensity() {
     }
   }
 
-  if (shouldIRender)
+  if (shouldIRender) {
     cv::imshow(densityViewerName, densityViewerImage);
+    cv::imshow(gradientViewerName, gradientViewerImage);
+  }
 
   delete differentialDensity;
 }
@@ -10005,6 +10676,7 @@ void goClassifyBlueBoxes() {
   int closestBBToReticle = -1;
   int closestBBDistance = VERYBIGNUMBER;
 
+  double label = -1;
   for (int c = 0; c < bTops.size(); c++) {
     cout << "  gCBB() c = " << c << endl; cout.flush();
     #ifdef DEBUG3
@@ -10023,77 +10695,325 @@ void goClassifyBlueBoxes() {
     Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
     Mat gray_image;
     Mat& yCrCb_image = bYCrCb[c];
-    processImage(crop, gray_image, yCrCb_image, grayBlur);
 
-    //detector->detect(gray_image, keypoints);
-    gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
+    //if ((chosen_feature == SIFTBOW_GLOBALCOLOR_HIST) || (chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST))
+    if (chosen_feature == SIFTBOW_GLOBALCOLOR_HIST) 
+    {
+      processImage(crop, gray_image, yCrCb_image, grayBlur);
 
-    for (int kp = 0; kp < keypoints.size(); kp++) {
-    #ifdef DEBUG3
-    //cout << keypoints[kp].angle << " " << keypoints[kp].class_id << " " << 
-    //keypoints[kp].octave << " " << keypoints[kp].pt << " " <<
-    //keypoints[kp].response << " " << keypoints[kp].size << endl;
-    #endif
-    }
+      //detector->detect(gray_image, keypoints);
+      gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
 
-    bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
-
-    // save the word assignments for the keypoints so we can use them for red boxes
-    #ifdef DEBUG3
-    fprintf(stderr, "e "); fflush(stderr);
-    cout << "pIoCbuffer: " << pIoCbuffer.size() << " "; cout.flush();
-    cout << "kpSize: " << keypoints.size() << " "; cout.flush();
-    #endif
-
-    bWords[c].resize(keypoints.size());
-    if ((pIoCbuffer.size() > 0) && (keypoints.size() > 0)) {
-      for (int w = 0; w < vocabNumWords; w++) {
-	int numDescrOfWord = pIoCbuffer[w].size();
-
-	#ifdef DEBUG3
-	if (numDescrOfWord > 0)
-	cout << "[" << w << "]: " << numDescrOfWord << " ";
-	#endif
-
-	for (int w2 = 0; w2 < numDescrOfWord; w2++) {
-	  bWords[c][pIoCbuffer[w][w2]] = w;
-	}
+      for (int kp = 0; kp < keypoints.size(); kp++) {
+      #ifdef DEBUG3
+      //cout << keypoints[kp].angle << " " << keypoints[kp].class_id << " " << 
+      //keypoints[kp].octave << " " << keypoints[kp].pt << " " <<
+      //keypoints[kp].response << " " << keypoints[kp].size << endl;
+      #endif
       }
-  
-      if (drawBlueKP) {
-	for (int kp = 0; kp < keypoints.size(); kp++) {
-	  int tX = keypoints[kp].pt.x;
-	  int tY = keypoints[kp].pt.y;
-	  cv::Point kpTop = cv::Point(bTops[c].x+tX-1,bTops[c].y+tY-1);
-	  cv::Point kpBot = cv::Point(bTops[c].x+tX,bTops[c].y+tY);
-	  if(
-	    (kpTop.x >= 1) &&
-	    (kpBot.x <= imW-2) &&
-	    (kpTop.y >= 1) &&
-	    (kpBot.y <= imH-2) 
-	    ) {
-	    rectangle(objectViewerImage, kpTop, kpBot, cv::Scalar(255,0,0));
+
+      bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
+
+      // save the word assignments for the keypoints so we can use them for red boxes
+      #ifdef DEBUG3
+      fprintf(stderr, "e "); fflush(stderr);
+      cout << "pIoCbuffer: " << pIoCbuffer.size() << " "; cout.flush();
+      cout << "kpSize: " << keypoints.size() << " "; cout.flush();
+      #endif
+
+      bWords[c].resize(keypoints.size());
+      if ((pIoCbuffer.size() > 0) && (keypoints.size() > 0)) {
+	for (int w = 0; w < vocabNumWords; w++) {
+	  int numDescrOfWord = pIoCbuffer[w].size();
+
+	  #ifdef DEBUG3
+	  if (numDescrOfWord > 0)
+	  cout << "[" << w << "]: " << numDescrOfWord << " ";
+	  #endif
+
+	  for (int w2 = 0; w2 < numDescrOfWord; w2++) {
+	    bWords[c][pIoCbuffer[w][w2]] = w;
+	  }
+	}
+    
+	if (drawBlueKP) {
+	  for (int kp = 0; kp < keypoints.size(); kp++) {
+	    int tX = keypoints[kp].pt.x;
+	    int tY = keypoints[kp].pt.y;
+	    cv::Point kpTop = cv::Point(bTops[c].x+tX-1,bTops[c].y+tY-1);
+	    cv::Point kpBot = cv::Point(bTops[c].x+tX,bTops[c].y+tY);
+	    if(
+	      (kpTop.x >= 1) &&
+	      (kpBot.x <= imW-2) &&
+	      (kpTop.y >= 1) &&
+	      (kpBot.y <= imH-2) 
+	      ) {
+	      rectangle(objectViewerImage, kpTop, kpBot, cv::Scalar(255,0,0));
+	    }
+	  }
+	}
+
+      }
+      
+      #ifdef DEBUG3
+      fprintf(stderr, " object check2"); fflush(stderr);
+      #endif
+
+      if (!descriptors.empty() && !keypoints.empty()) {
+      
+	appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
+	label = kNN->find_nearest(descriptors2,k);
+	bLabels[c] = label;
+      }
+    } else if (chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST) {
+      processImage(crop, gray_image, yCrCb_image, grayBlur);
+
+      //detector->detect(gray_image, keypoints);
+      gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
+
+      for (int kp = 0; kp < keypoints.size(); kp++) {
+      #ifdef DEBUG3
+      //cout << keypoints[kp].angle << " " << keypoints[kp].class_id << " " << 
+      //keypoints[kp].octave << " " << keypoints[kp].pt << " " <<
+      //keypoints[kp].response << " " << keypoints[kp].size << endl;
+      #endif
+      }
+
+      //bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
+
+      Mat tmpC;
+      crop.convertTo(tmpC, CV_32FC3);
+      bowExtractor->compute(tmpC, keypoints, descriptors);
+
+      // save the word assignments for the keypoints so we can use them for red boxes
+      #ifdef DEBUG3
+      fprintf(stderr, "e "); fflush(stderr);
+      cout << "pIoCbuffer: " << pIoCbuffer.size() << " "; cout.flush();
+      cout << "kpSize: " << keypoints.size() << " "; cout.flush();
+      #endif
+
+      bWords[c].resize(keypoints.size());
+      if ((pIoCbuffer.size() > 0) && (keypoints.size() > 0)) {
+	for (int w = 0; w < vocabNumWords; w++) {
+	  int numDescrOfWord = pIoCbuffer[w].size();
+
+	  #ifdef DEBUG3
+	  if (numDescrOfWord > 0)
+	  cout << "[" << w << "]: " << numDescrOfWord << " ";
+	  #endif
+
+	  for (int w2 = 0; w2 < numDescrOfWord; w2++) {
+	    bWords[c][pIoCbuffer[w][w2]] = w;
+	  }
+	}
+    
+	if (drawBlueKP) {
+	  for (int kp = 0; kp < keypoints.size(); kp++) {
+	    int tX = keypoints[kp].pt.x;
+	    int tY = keypoints[kp].pt.y;
+	    cv::Point kpTop = cv::Point(bTops[c].x+tX-1,bTops[c].y+tY-1);
+	    cv::Point kpBot = cv::Point(bTops[c].x+tX,bTops[c].y+tY);
+	    if(
+	      (kpTop.x >= 1) &&
+	      (kpBot.x <= imW-2) &&
+	      (kpTop.y >= 1) &&
+	      (kpBot.y <= imH-2) 
+	      ) {
+	      rectangle(objectViewerImage, kpTop, kpBot, cv::Scalar(255,0,0));
+	    }
+	  }
+	}
+
+      }
+      
+      #ifdef DEBUG3
+      fprintf(stderr, " object check2"); fflush(stderr);
+      #endif
+
+      if (!descriptors.empty() && !keypoints.empty()) {
+      
+	//appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
+	//label = kNN->find_nearest(descriptors2,k);
+	label = kNN->find_nearest(descriptors,k);
+	bLabels[c] = label;
+      }
+    } else if (chosen_feature == GRADIENT) {
+      processImage(crop, gray_image, yCrCb_image, sobel_sigma);
+
+      Mat totalGraySobel;
+      {
+	Mat grad_x, grad_y;
+	int sobelScale = 1;
+	int sobelDelta = 0;
+	int sobelDepth = CV_32F;
+	/// Gradient X
+	Sobel(gray_image, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+	/// Gradient Y
+	Sobel(gray_image, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+	grad_x = grad_x.mul(grad_x);
+	grad_y = grad_y.mul(grad_y);
+	totalGraySobel = grad_x + grad_y;
+	// now totalGraySobel is gradient magnitude squared
+      }
+
+      // grow to the max dimension to avoid distortion
+      // find the dimensions that pad the sobel image up to a square
+      // raster scan a 'virtual image' to generate the 1D vector, adding 0's when on the pad
+
+      int crows = totalGraySobel.rows;
+      int ccols = totalGraySobel.cols;
+      int maxDim = max(crows, ccols);
+      int tRy = (maxDim-crows)/2;
+      int tRx = (maxDim-ccols)/2;
+      Mat gCrop(maxDim, maxDim, totalGraySobel.type());
+
+      float totalMass = 0.0;
+
+      for (int x = 0; x < maxDim; x++) {
+	for (int y = 0; y < maxDim; y++) {
+	  int tx = x - tRx;
+	  int ty = y - tRy;
+	  if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+	    gCrop.at<float>(y, x) = totalGraySobel.at<float>(ty, tx);
+	    //totalMass += gCrop.at<float>(y, x);
+	    totalMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+	  } else {
+	    gCrop.at<float>(y, x) = 0.0;
 	  }
 	}
       }
+      totalMass = sqrt(totalMass);
+      Mat descriptorsG = Mat(1, gradientFeatureWidth*gradientFeatureWidth, CV_32F);
+      for (int y = 0; y < gradientFeatureWidth; y++) {
+	for (int x = 0; x < gradientFeatureWidth; x++) {
+	  int tranX = floor(float(x)*float(maxDim)/float(gradientFeatureWidth));
+	  int tranY = floor(float(y)*float(maxDim)/float(gradientFeatureWidth));
+	  //descriptorsG.at<float>(x + y*gradientFeatureWidth) = gCrop.at<float>(y,x);
+	  descriptorsG.at<float>(x + y*gradientFeatureWidth) = gCrop.at<float>(y,x)/totalMass;
+	}
+      }
 
-    }
-    
-    #ifdef DEBUG3
-    fprintf(stderr, " object check2"); fflush(stderr);
-    #endif
-
-    double label = -1;
-    if (!descriptors.empty() && !keypoints.empty()) {
-    
-      appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
-
-      label = kNN->find_nearest(descriptors2,k);
+      label = kNN->find_nearest(descriptorsG,k);
       bLabels[c] = label;
+    } else if (chosen_feature == OPPONENT_COLOR_GRADIENT) {
+      processImage(crop, gray_image, yCrCb_image, sobel_sigma);
 
-      if (classLabels[label].compare(invert_sign_name) == 0)
-	invertQuaternionLabel = 1;
+      Mat totalGraySobel;
+      {
+	Mat grad_x, grad_y;
+	int sobelScale = 1;
+	int sobelDelta = 0;
+	int sobelDepth = CV_32F;
+	/// Gradient X
+	Sobel(gray_image, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+	/// Gradient Y
+	Sobel(gray_image, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+	grad_x = grad_x.mul(grad_x);
+	grad_y = grad_y.mul(grad_y);
+	totalGraySobel = grad_x + grad_y;
+	// now totalGraySobel is gradient magnitude squared
+      }
+      Mat totalCrSobel = totalGraySobel.clone();
+      {
+	for (int y = 0; y < crop.rows; y++) {
+	  for (int x = 0; x < crop.cols; x++) {
+	    cv::Vec3b thisColor = yCrCb_image.at<cv::Vec3b>(y,x);
+	    totalCrSobel.at<float>(y,x) = thisColor[1];
+	  }
+	}
+	Mat grad_x, grad_y;
+	int sobelScale = 1;
+	int sobelDelta = 0;
+	int sobelDepth = CV_32F;
+	/// Gradient X
+	Sobel(totalCrSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+	/// Gradient Y
+	Sobel(totalCrSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+	//grad_x = grad_x.mul(grad_x);
+	//grad_y = grad_y.mul(grad_y);
+	totalCrSobel = grad_x + grad_y;
+      }
+      Mat totalCbSobel = totalGraySobel.clone();
+      {
+	for (int y = 0; y < crop.rows; y++) {
+	  for (int x = 0; x < crop.cols; x++) {
+	    cv::Vec3b thisColor = yCrCb_image.at<cv::Vec3b>(y,x);
+	    totalCbSobel.at<float>(y,x) = thisColor[2];
+	  }
+	}
+	Mat grad_x, grad_y;
+	int sobelScale = 1;
+	int sobelDelta = 0;
+	int sobelDepth = CV_32F;
+	/// Gradient X
+	Sobel(totalCbSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+	/// Gradient Y
+	Sobel(totalCbSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+	//grad_x = grad_x.mul(grad_x);
+	//grad_y = grad_y.mul(grad_y);
+	totalCbSobel = grad_x + grad_y;
+      }
+
+      // grow to the max dimension to avoid distortion
+      // find the dimensions that pad the sobel image up to a square
+      // raster scan a 'virtual image' to generate the 1D vector, adding 0's when on the pad
+
+      int crows = totalGraySobel.rows;
+      int ccols = totalGraySobel.cols;
+      int maxDim = max(crows, ccols);
+      int tRy = (maxDim-crows)/2;
+      int tRx = (maxDim-ccols)/2;
+      Mat gCrop(maxDim, maxDim, totalGraySobel.type());
+      Mat crCrop(maxDim, maxDim, totalGraySobel.type());
+      Mat cbCrop(maxDim, maxDim, totalGraySobel.type());
+
+      float totalGMass = 0.0;
+      float totalCrMass = 0.0;
+      float totalCbMass = 0.0;
+
+      for (int x = 0; x < maxDim; x++) {
+	for (int y = 0; y < maxDim; y++) {
+	  int tx = x - tRx;
+	  int ty = y - tRy;
+	  if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+	    gCrop.at<float>(y, x) = totalGraySobel.at<float>(ty, tx);
+	    crCrop.at<float>(y, x) = totalCrSobel.at<float>(ty, tx);
+	    cbCrop.at<float>(y, x) = totalCbSobel.at<float>(ty, tx);
+	    //totalGMass += gCrop.at<float>(y, x);
+	    totalGMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+	    totalCrMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+	    totalCbMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+	  } else {
+	    gCrop.at<float>(y, x) = 0.0;
+	  }
+	}
+      }
+      totalGMass = sqrt(totalGMass);
+      totalCrMass = sqrt(totalCrMass);
+      totalCbMass = sqrt(totalCbMass);
+      //Mat descriptorsG = Mat(1, gradientFeatureWidth*gradientFeatureWidth, CV_32F);
+      Mat descriptorsCbCr = Mat(1, 2*gradientFeatureWidth*gradientFeatureWidth, CV_32F);
+      for (int y = 0; y < gradientFeatureWidth; y++) {
+	for (int x = 0; x < gradientFeatureWidth; x++) {
+	  int tranX = floor(float(x)*float(maxDim)/float(gradientFeatureWidth));
+	  int tranY = floor(float(y)*float(maxDim)/float(gradientFeatureWidth));
+	  //descriptorsG.at<float>(x + y*gradientFeatureWidth) = gCrop.at<float>(y,x);
+	  descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x)/totalCrMass;
+	  descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalCbMass;
+	}
+      }
+
+      label = kNN->find_nearest(descriptorsCbCr,k);
+      bLabels[c] = label;
     }
+
+    if (classLabels[label].compare(invert_sign_name) == 0)
+      invertQuaternionLabel = 1;
+
 
     #ifdef DEBUG3
     fprintf(stderr, " object check3 label %f", label); fflush(stderr);
@@ -10256,6 +11176,8 @@ void goClassifyBlueBoxes() {
       pilotTarget.px = p.x;
       pilotTarget.py = p.y;
       pilotTarget.pz = p.z;
+  
+      pilotTargetBlueBoxNumber = biggestBB;
     }
     {
       geometry_msgs::Point p;
@@ -10267,6 +11189,8 @@ void goClassifyBlueBoxes() {
       pilotClosestTarget.px = p.x;
       pilotClosestTarget.py = p.y;
       pilotClosestTarget.pz = p.z;
+
+      pilotClosestBlueBoxNumber = closestBBToReticle;
     }
   }
 
@@ -10805,6 +11729,7 @@ void nodeImageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
   cv::imshow(objectViewerName, objectViewerImage);
   cv::imshow(densityViewerName, densityViewerImage);
+  cv::imshow(gradientViewerName, gradientViewerImage);
 
   int kc = cv::waitKey(1);
   saveROSParams();
@@ -11133,6 +12058,13 @@ void detectorsInit() {
       extractor = new SiftDescriptorExtractor();
     else if (chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST)
       extractor = DescriptorExtractor::create("OpponentSIFT");
+    else {
+      extractor = new SiftDescriptorExtractor();
+    }
+  }
+  
+  if ((chosen_feature == GRADIENT) || (chosen_feature == OPPONENT_COLOR_GRADIENT)){
+    retrain_vocab = 0;
   }
 
   // BOW time
@@ -11225,6 +12157,14 @@ void detectorsInit() {
 
   // this is the total number of classes, so it is counted after the cache is dealt with
   numClasses = classLabels.size();
+
+  if (loadRange) {
+    classRangeMaps.resize(numClasses);
+    classAerialGradients.resize(numClasses);
+    for (int i = 0; i < classLabels.size(); i++) {
+      tryToLoadRangeMap(class_crops_path, classLabels[i].c_str(), i);
+    }
+  }
 
   Mat vocabulary;
 
@@ -11414,6 +12354,45 @@ void initRedBoxes() {
     createTrackbar("red target", objectViewerName, &redTrackbarVariable, numRedBoxes);
 }
 
+void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
+  {
+    string thisLabelName(className);
+
+    char buf[1000];
+    string dirToMakePath = data_directory + "/" + thisLabelName + "/ir2D/";
+    string this_range_path = dirToMakePath + "xyzRange.yml";
+
+    FileStorage fsfI;
+    fsfI.open(this_range_path, FileStorage::READ);
+    if (fsfI.isOpened()) {
+      fsfI["rangeMap"] >> classRangeMaps[i]; 
+      fsfI.release();
+      cout << "Loaded rangeMap from " << this_range_path << classRangeMaps[i].size() << classRangeMaps[i] << endl; 
+    } else {
+      classRangeMaps[i] = Mat(1, 1, CV_64F);
+      cout << "Failed to load rangeMap from " << this_range_path << endl; 
+    }
+  }
+  {
+    string thisLabelName(className);
+
+    char buf[1000];
+    string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
+    string this_ag_path = dirToMakePath + "aerialGradient.yml";
+
+    FileStorage fsfI;
+    fsfI.open(this_ag_path, FileStorage::READ);
+    if (fsfI.isOpened()) {
+      fsfI["aerialGradient"] >> classAerialGradients[i]; 
+      fsfI.release();
+      cout << "Loaded aerial gradient from " << this_ag_path << classAerialGradients[i].size() << classAerialGradients[i] << endl; 
+    } else {
+      classAerialGradients[i] = Mat(1, 1, CV_64F);
+      cout << "Failed to load rangeMap from " << this_ag_path << endl; 
+    }
+  }
+}
+
 ////////////////////////////////////////////////
 // end node definitions 
 //
@@ -11495,7 +12474,9 @@ int main(int argc, char **argv) {
 
   densityViewerName = "Density Viewer " + left_or_right_arm;
   objectViewerName = "Object Viewer " + left_or_right_arm;
+  gradientViewerName = "Gradient Viewer " + left_or_right_arm;
 
+  cv::namedWindow(gradientViewerName);
   cv::namedWindow(densityViewerName);
   cv::namedWindow(objectViewerName);
   setMouseCallback(objectViewerName, nodeCallbackFunc, NULL);
@@ -11539,6 +12520,8 @@ int main(int argc, char **argv) {
     command.id = 65538;
     gripperPub.publish(command);
   }
+
+  frameGraySobel = Mat(1,1,CV_32F);
 
   //nodeInit();
   spinlessNodeMain();
