@@ -204,11 +204,12 @@ pose estimation and closed-loop grasping using visual servoing.
 Because our camera can move with seven degrees of freedom, the robot
 can collect large quantities of data leading to very simple visual
 models that perform with very high accuracy under occlusion.  Our
-approach is enabled by two innovations: a simple and robust method for
-determining candidate grasps using a depth sensor mounted on a
-seven-degree-of-freedom arm, along with an approach for autonomously
-and reliably finding object bounding boxes once the object is on a
-clean background.
+approach is enabled by three innovations: our end-to-end algorithm for
+collecting view-based training data, which is supported by a simple
+and robust method for determining candidate grasps using a depth
+sensor mounted on a seven-degree-of-freedom arm, along with an
+approach for autonomously and reliably finding object bounding boxes
+once the object is on a clean background.
 
 Our evaluation demonstrates that a Baxter robot can autonomously learn
 robust models for detection and grasping, using its IR sensor and arm
