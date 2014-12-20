@@ -203,27 +203,28 @@ training using a depth sensor, then actively collects view-based
 visual templates to perform robust instance-based object detection,
 pose estimation and closed-loop grasping using visual servoing.
 Because our camera can move with seven degrees of freedom, the robot
-can collect large quantities of data leading to very simple visual
-models that perform with very high accuracy under occlusion.  Our
-approach is enabled by three innovations: our end-to-end algorithm for
-collecting view-based training data, which is supported by a simple
-and robust method for determining candidate grasps using a depth
-sensor mounted on a seven-degree-of-freedom arm, along with an
-approach for autonomously and reliably finding object bounding boxes
-once the object is on a clean background.
+can collect large quantities of data leading to simple visual models
+that perform with high accuracy even under occlusion.  Our approach is
+enabled by three innovations: our end-to-end algorithm for collecting
+view-based training data with supervision obtained from a
+higher-reliability depth sensor, which is supported by a simple and
+robust method for determining candidate grasps using a depth sensor
+mounted on a seven-degree-of-freedom arm, along with an approach for
+autonomously and reliably finding object bounding boxes once the
+object is on a background such as a floor or table.
 
 Our evaluation demonstrates that a Baxter robot can autonomously learn
 robust models for detection and grasping, using its IR sensor and arm
 camera as a seven-degree of freedom one-pixel RGB-D camera.  After
 training, Baxter can quickly and reliably grasp objects anywhere in
 its work space using closed-loop visual servoing in response to a
-person's requests.  Additionally we demonstrate that our models can be
-used by a mobile robot for object detection and semantic mapping in
-cluttered environments.
+person's requests.  We demonstrate that our models can be used by a
+mobile robot for object detection and semantic mapping in cluttered
+environments.
 
 Our software is compatible with ROS and the Baxter SDK version 1.0.0,
 and we intend to release it as free software should our paper be
-accepted.  Additionally our software includes the capability to upload
+accepted.  Our software includes the capability to upload
 instance-based models to the RoboBrain database~\citep{x}; as more and
 more instance-based models are collected, this corpus will form a
 unique training set for category-based models for detecting and
@@ -239,9 +240,9 @@ estimation pipeline, which uses standard computer vision algorithms
 combined to achieve a simple software architecture, a high frame rate,
 and high accuracy at recognition and pose estimation.  This pipeline
 can be manually trained by an expert to reliably detect and grasp
-objects.  Additionally, Section~\ref{sec:training} describes our
-approach to enabling a robot to autonomously train this pipeline by
-actively collecting images and training data from the environment.
+objects.  Section~\ref{sec:training} describes our approach to
+enabling a robot to autonomously train this pipeline by actively
+collecting images and training data from the environment.
 
 Our recognition pipeline takes video from the robot, proposes a small
 number of candidate object bounding boxes in each frame, and
@@ -254,94 +255,141 @@ the specific instances for which it has models with much higher speed
 and accuracy.
 
 \subsection{Object Detection}
-
+\label{sec:detection}
 To detect candidate objects, we first apply the BING objectness
 detector~\citep{cheng14} to the image, which returns a set $\{B_i\}$
-of thousands of approximate object bounding boxes in the image. This
-process substantially reduces the number of bounding boxes we need to
-consider but is still too large for us to process in real
-time. Besides, even good bounding boxes from BING are typically not
-aligned to the degree that we require. Therefore, we use integral
-images to efficiently compute the per-pixel map:
+of thousands of approximate object bounding boxes in the image, shown
+in Figure~\ref{fig:bing}. This process substantially reduces the
+number of bounding boxes we need to consider but is still too large to
+process in real time. Besides, even good bounding boxes from BING are
+typically not aligned to the degree that we require. Therefore, we use
+integral images to efficiently compute the per-pixel map:
 \begin{align}
 J(p) = \sum_{B \in \{B_i\} s.t. p \in B} \frac{1}{Area(B)}.
 \end{align}
-We then apply the Canny edge detector with hysteresis ~\citep{canny86}
-to find the connected components of bright regions in the map $J(p)$,
-which correspond with high probability to objects in the image. We
-form our candidate object bounding boxes by taking the smallest
-bounding box which surrounds each connected component.  These bounding
-boxes make it easy to gather training data and to perform inference in
-real time, but at the expense of poorly handing occulusion as
-overlapping objects are fused into the same bounding box.  It is
-possible to search within the proposed bounding boxes to better handle
-occlusion.  Figure~\ref{fig:object_detection} shows images from each
-step in this pipeline, ending with just a few candidate bounding boxes
-for objects on the table.  Note that we designed this pipeline to
-quickly and accurately provide bounding boxes in the presence of
-relatively unobstructed backgrounds to support the training process;
+
+This map appears in Figure~\ref{fig:objectness}.  We then apply the
+Canny edge detector with hysteresis ~\citep{canny86} to find the
+connected components of bright regions in the map $J(p)$, which
+correspond with high probability to objects in the image. We form our
+candidate object bounding boxes by taking the smallest bounding box
+which surrounds each connected component, shown in
+Figure~\ref{fig:bounding_boxes}.  These bounding boxes make it easy to
+gather training data and to perform inference in real time, but at the
+expense of poorly handing occulusion as overlapping objects are fused
+into the same bounding box.  It is possible to search within the
+proposed bounding boxes to better handle occlusion.
+Figure~\ref{fig:object_detection} shows images from each step in this
+pipeline, ending with just one candidate bounding boxes for an objects
+on an empty table.  Note that we designed this pipeline to quickly and
+accurately provide bounding boxes in the presence of relatively
+unobstructed backgrounds to support the training process;
 Section~\ref{sec:mapping} describes our approach to recognition under
 clutter and occlusion.
 
 \subsection{Object Recognition}
+\label{sec:recognition}
 
 For each object $c$ we wish to classify, we gather a set of example
 crops $E_c$ which are candidate bounding boxes (derived as above)
-which contain $c$. We extract dense SIFT features ~\citep{} from all
-boxes of all classes and use k-means to extract a visual vocabulary of
-SIFT features ~\citep{}. We then construct a BoW feature vector for
-each image and augment it with a histogram of colors which appear in
-that image.  The augmented feature vector is incorporated into a
-k-nearest-neighbors model which we use to classify objects at
-inference ~\citep{}.
+which contain $c$. We extract dense SIFT features ~\citep{lowe99} from
+all boxes of all classes and use k-means to extract a visual
+vocabulary of SIFT features ~\citep{szeliski10}. We then construct a
+BoW feature vector for each image and augment it with a histogram of
+colors which appear in that image.  The augmented feature vector is
+incorporated into a k-nearest-neighbors model which we use to classify
+objects at inference~\citep{szeliski10}. We use kNN because our
+automated training process allows us to acquire as much high-quality
+data as necessary to make the model work well, and kNN supports direct
+matching to this large dataset.
 
-The use of SIFT features is motivated by the instance level nature of
-our task. State-of-the-art vision methods typically use HOG ~\citep{}
-or CNN ~\citep{} features, but that choice is motivated by category
-level recognition. \stnote{What about category level recognition
-  motivates HOG or CNN?  Can you be more specific?}
 
-We use kNN because it is easy to rebuild online, which is a key
-property a classifier should enjoy if it is to interact with our
-framework in real time. State-of-the-art computer vision classifiers
-currently employ SVM's ~\citep{} or other models which require
-expensive training. Using such a model would introduce a training step
-in the inside loop of our data collection process, which would be
-costly in either engineering or time.  It is possible to use kNN
-during the online collection process and then train a stronger
-classifier in the background at higher latency, essentially
-introducing a cascading step in the data collection process.
+%% The use of SIFT features is motivated by the instance level nature of
+%% our task. State-of-the-art vision methods typically use
+%% HOG~\citep{dalal05} features, but that choice is motivated by category
+%% level recognition. \stnote{What about category level recognition
+%%   motivates HOG or CNN?  Can you be more specific?}
+
+
+%% is easy to rebuild online, which is a key
+%% property a classifier should enjoy if it is to interact with our
+%% framework in real time. State-of-the-art computer vision classifiers
+%% currently employ SVM's ~\citep{} or other models which require
+%% expensive training. Using such a model would introduce a training step
+%% in the inside loop of our data collection process, which would be
+%% costly in either engineering or time.  It is possible to use kNN
+%% during the online collection process and then train a stronger
+%% classifier in the background at higher latency, essentially
+%% introducing a cascading step in the data collection process.
 
 \begin{figure*}
-\subfigure[Raw image from the camera]{
-      \includegraphics[width=0.25\linewidth]{figures/objectness_raw.png}}%
-\subfigure[Initial candidate objects from Bing]{
-      \includegraphics[width=0.25\linewidth]{figures/objectness_purple.png}}%
-\subfigure[Integral image objectness map]{
-      \includegraphics[width=0.25\linewidth]{figures/objectness_map.png}}%
-\subfigure[Candidate bounding boxes]{
-      \includegraphics[width=0.25\linewidth]{figures/objectness_boxes1.png}}
+\subfigure[Raw image from the camera.]{
+  \includegraphics[width=0.25\linewidth]{figures/objectness_raw.png}}%
+\subfigure[Initial candidate objects from Bing.\label{fig:bing}]{
+  \includegraphics[width=0.25\linewidth]{figures/objectness_purple.png}}%
+\subfigure[Integral image objectness map.\label{fig:objectness}]{
+  \includegraphics[width=0.25\linewidth]{figures/objectness_map.png}}%
+\subfigure[Candidate bounding boxes.\label{fig:bounding_boxes}]{
+  \includegraphics[width=0.25\linewidth]{figures/objectness_boxes1.png}}
 \caption{The object detection pipeline, showing a raw image from the
   camera, the integral image computed using objectness, and candidate
   bounding boxes.\label{fig:object_detection}}
 \end{figure*}
 
+
+
  
 \subsection{Pose Estimation}
-\jgonote{Computer vision approaches, geometry and point cloud based approaches. Dieter Fox's automatic
-training pipeline (how well developed is it? we may need to sell our approach as being a 
-general algorithm for allowing a robot to train arbitrary subsystems in order to differentiate 
-ourselves.)}
-We tackle the pose estimation problem using the same classification pipeline that we use for
-object recognition. We train a separate pose classifier for each object class. This time, the class
-assigned to each training example is the orientation from which the object is viewed in that example.
-During inference, we first determine the object class of a candidate bounding box, and once the class
-is known we apply the corresponding pose classifier to determine the orientation from which we
-are viewing the object. We combine this orientation with position information from the point cloud
-information derived from the D channel of the RGB-D video to form a full pose estimate.
+
+To perform pose estimation, we require an image gradient of the object
+at a specific, known pose:
+
+\begin{align}
+\Delta I = \left( \frac{\partial I}{\partial x}, \frac{\partial I}{\partial y} \right)
+\end{align}
+
+We approximate the gradiant using differences after smoothing the
+training image:
+\begin{align}
+\frac{\partial I(x, y)}{\partial x} \approx \frac{I(x + 1, y) - I(x - 1, y)}{2}\\
+\frac{\partial I(x, y)}{\partial y} \approx \frac{I(x, y + 1) - I(x, y - 1)}{2}
+\end{align}
+
+To estimate pose, we perform data augmentation by rotating our
+training image and finding the closest match to the image currently
+recorded from the camera, as detected and localized via the pipeline
+in Section~\ref{sec:detection} and~\ref{sec:recognition}.
+
+\subsection{Identifying Grasp Points}
+
+To identify a grasp points, we combine a depth map of the object with
+a model of the gripper.  The depth map appears in
+Figure~\ref{fig:depth_map}.
+
+\subsection{Closed-Loop Grasping}
+
+To grasp an object, we first scan the work area by moving the camera
+until the object is detected an recognized.  Then we perform active
+visual servoign to move the arm directly above the object.  Next, we
+perform orientation servoing using the pose estimation
+algorithm. Because these components are instance-based, they report
+position and orientation with high accuracy, enabling us to use a
+proportional controller (with no derivative or integral terms) to move
+the arm into
+
+
+
+
 
 \section{Autonomous Training}
 \label{sec:training}
+
+An object model in our framework consists of the following elements:
+\begin{itemize}
+\item cropped object templates (roughly 200), $t_1 ... t_k$
+\item depth map, $D$
+\item cropped gradient template, $t_0$
+\end{itemize}
 
 To train our model, the robot must first move the object to a known
 pose, then acquire images that are annotated with a pose as well as a
@@ -699,6 +747,20 @@ new objects.
 Right now, NODE runs on Baxter. We will port NODE to PR2 and other AH systems.
 GRATA could be applied in other domains as well.  What are some examples?
 
+Ideas for doing for the paper, otherwise future work: 
+\begin{itemize}
+\item Semantic mapping. 
+\item Detection and manipulation in clutter and occlusion.
+\item Amazon mechanical turk for labels, so we can follow commands and gesture.
+\item Object tracking over time so we can answer questions about what
+  happened to the object.
+\item Object oriented SLAM so we can handle joint localization and mapping.
+\item Semantic mapping of objects over time.  Deciding when to go look
+  again, maintaining history, etc. 
+\item Scaling to lots and lots of objects.
+\item Using the database of lots and lots of objects to do category recognition.
+\item 
+\end{itemize}
 
 % Intro structure
 % First paragraph: What is the problem we are trying to solve? 

@@ -312,3 +312,23 @@ in the figure ~\citep{}.
   \caption{The high-level generalized robotic automatic training algorithm (GRATA) which we employ.}
 \end{figure}
 
+
+
+\jgonote{Computer vision approaches, geometry and point cloud based approaches. Dieter Fox's automatic
+training pipeline (how well developed is it? we may need to sell our approach as being a 
+general algorithm for allowing a robot to train arbitrary subsystems in order to differentiate 
+ourselves.)}
+
+
+
+%% We tackle the pose estimation problem using the same
+%% classification pipeline that we use for object recognition. We train a
+%% separate pose classifier for each object class. This time, the class
+%% assigned to each training example is the orientation from which the
+%% object is viewed in that example.  During inference, we first
+%% determine the object class of a candidate bounding box, and once the
+%% class is known we apply the corresponding pose classifier to determine
+%% the orientation from which we are viewing the object. We combine this
+%% orientation with position information from the point cloud information
+%% derived from the D channel of the RGB-D video to form a full pose
+%% estimate.
