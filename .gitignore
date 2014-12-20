@@ -21,3 +21,5 @@ CMakeFiles/
 *-crop.pdf
 *-pics.pdf
 model.pdf
+
+*.out

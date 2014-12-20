@@ -9,6 +9,17 @@
 \usepackage[numbers]{natbib}
 \usepackage{amsfonts}
 \usepackage{color}
+\usepackage{hyperref}
+\hypersetup{letterpaper,bookmarksopen,bookmarksnumbered,
+pdfpagemode=UseOutlines,
+colorlinks=true,
+linkcolor=blue,
+anchorcolor=blue,
+citecolor=blue,
+filecolor=blue,
+menucolor=blue,
+urlcolor=blue
+}
 
 \newcommand{\stnote}[1]{\textcolor{blue}{\textbf{ST: #1}}}
 \newcommand{\jgonote}[1]{\textcolor{green}{\textbf{JGO: #1}}}
@@ -161,27 +172,36 @@ they are computationally expensive and do not enjoy the highest
 accuracy or precision and have not been demonstrated for
 grasping~\citep{saxena08}.  Existing approaches to learn 3d object
 models still require expensive ICP-based methods to localize objects,
-which are suceptable to local minima.  
+which are suceptable to local minima and take time to converge.
 
 To address these issues, we present an approach for enabling a robot
-to trains itself to recognize and manipulate the specific objects it
-will need to use during future collaborations with humans.  Our system
-is powerful because it learns to identify and grasp on a per object
-basis. Our system is portable, convenient, and general because the
-expert knowledge it employs is built into the algorithms which it uses
-to train itself, requiring only basic interaction from a non-technical
-human collaborator.  Our contribution is an algorithm which allows a
-robot to autonomously train its subsystems by using slower, more
-expensive sensing approaches to provide supervision for faster,
-simpler methods that excel with large amounts of training data.
+to train its own view-based method to recognize and manipulate the
+specific objects it will need to use during future collaborations with
+humans.  View-based methods have many advantages over model-based
+methods, because they directly capture the appearance of the object,
+directly operate on low-level features, and are relatively simple and
+efficient to implement~\citep{hsiao13}.  However these systems require
+large amounts of training data for robust performance, for example
+more than 2000 objects as reported in \citet{hsiao13}.  We address
+this problem by enabling a robot to learn to identify and grasp on a
+per object basis by autonomously collecting large amounts of
+supervised training data for instance-based visual detection and pose
+estimation.  Our contribution is an algorithm which allows a robot to
+autonomously train its subsystems by using slower, more expensive
+sensing approaches to provide supervision for faster, simpler methods
+that excel with large amounts of training data.
 
+Our evaluation demonstrates that a Baxter robot can autonomously learn
+robust models for detection and grasping, using its IR sensor and arm
+camera as a seven-degree of freedom one-pixel RGB-D camera.  Our
+approach simultaneously acquires a 3d model of the object, traings
+visual detectors and pose estimation models that can be used for
+active visual servoing for grasping, as well as for semantic mapping
+on a mobile robot.  Because our camera can move with seven degrees of
+freedom, the robot can collect large quantities of data leading to
+very simple visual models that perform with very high accuracy under
+occlusion.
 
-It works because our experiments tell us so. This is how well they
-work: .  Thus we see an improvement over expert trained systems (cite
-usability results), and is an improvement over un-annotated systems
-(cite success rates, the ability to generalize, and the low
-computational overhead since we don't crunch expensive features or do
-heavy classification at run time).
 
 \section{Object Detection and Pose Estimation}
 
@@ -271,111 +291,46 @@ is known we apply the corresponding pose classifier to determine the orientation
 are viewing the object. We combine this orientation with position information from the point cloud
 information derived from the D channel of the RGB-D video to form a full pose estimate.
 
-\section{General Robotic Autonomous Training Algorithm}
-\label{sec:training}
-We teach the system by finding its weaknesses and training it to overcome them.
+\section{Autonomous Training}
 
-Our framework structures the training in a way that scales. 
-
-When the robot asks for help, we can ground ambiguous object examples to the right class
-and retrain the models online.
-
-\subsection{GRATA Definition}
-
-In the following algorithm design pattern, 
-$X$ is the set of ground truth labels for the specified problem,
-$Y$ is the set of all possible observations for the specified problem,
-\mbox{$D \subset X \times Y$} is the set of all possible training pairs observable in our problem instance,
-\mbox{$\{T_i\}_{i \in \mathbb{N}}$} is a sequence of curated sets of training examples (where \mbox{$\forall i \in \mathbb{N}, T_i \subset D$}),  
-$\mathcal{T}$ is the power set of $D$,
-\mbox{$O: \mathcal{T} \to \mathbb{R}$} is the objective function that we are trying to optimize 
-(which includes the implementation of the physical actions the robot must take to evaluate it),
-\mbox{$S: \mathbb{N} \to \mathbb{R}$} is the objective function history (i.e. \mbox{$S(i) = O(T_i)$}),
-$\mathcal{S}$ is the set of all possible objective function histories,
-\mbox{$H: \mathcal{S} \times \mathbb{N} \to \{0,1\}$} is a function which decides whether to ask for help at
-a specified time step,
-\mbox{$\mathcal{C} = \mathcal{T} \times \mathcal{S} \times \mathbb{N}$} is the complete training state,
-\mbox{$G: \mathcal{C}$} is a function which implements asking for and receiving help (e.g. auditing and grounding data under bad conditions
-or asking for a new collections strategy or a crucial example),
-\mbox{$P: \mathcal{C} \to \{0,1\}$} is a function that evaluates a stopping criterion and decides whether to continue training,
-and \mbox{$L: \mathcal{C} \to D$} a function that proposes a new ground truth $x \in X$ and collects a corresponding observation $y \in Y$ to form
-a new training example \mbox{$(x,y) = d \in D$}. 
-
-\begin{table}
-  \begin{center}
-  \caption{The list of symbols we use in the definition of GRATA.}
-  \begin{tabular}{lr}
-    \toprule
-    Symbol & Meaning \\ 
-    \midrule
-    $X$  & Ground Truth Labels \\
-    $Y$  & Observations \\
-    $D \subset X \times Y$  & Universe of Observable Data \\
-    $\{T_i\}_{i \in \mathbb{N}}$  & Sequence of Training Sets \\
-    $\mathcal{T} = 2^D$ & All Possible Training Sets \\
-    $O: \mathcal{T} \to \mathbb{R}$ & Objective Function \\
-    $S: \mathbb{N} \to \mathbb{R}$  & Objective Function History \\
-    $\mathcal{S} = \{S: \mathbb{N} \to \mathbb{R}\}$  & All Possible Objective Function Histories \\
-    $H: \mathcal{S} \times \mathbb{N} \to \{0,1\}$  & Help Criterion \\
-    $\mathcal{C} = \mathcal{T} \times \mathcal{S} \times \mathbb{N}$  & Complete Training Set \\
-    $G: \mathcal{C}$  & Help Request \\
-    $P: \mathcal{C} \to \{0,1\}$  & Stopping Criterion \\
-    $L: \mathcal{C} \to D$  & Sample Proposal \\
-  \bottomrule
-  \end{tabular}
-  \end{center}
-\end{table}
-
-
-
-Applying GRATA to a problem involves defining the above quantities and implementing the high level algorithm
-in the figure ~\citep{}.
+To train our model, the robot must first move the object to a known
+pose, then acquire images that are annotated with a pose as well as a
+cropped bounding box for training.  As typical in machine learning
+applications, the more images we can acquire, from the more
+viewpoints, the more accurate our detection, pose estimation, and
+grasping.  Existing approaches for instance-based grasping use on the
+order of $25$ images~\citep{hsiao13}
 
 \begin{figure}
-  \textbf{GRATA}
+  \textbf{Learn}
   \begin{algorithmic}
-  \STATE $t\gets 1$
-  \STATE $c\gets 1$
-  \STATE $T_1 = \emptyset$
-  \STATE $S(1)\gets 0$
-  \STATE $i\gets 1$
-  \WHILE{$c$}
-    \IF {$H(S,i) == 1$}
-      \STATE $G(T_i, S,i)$
-    \ELSE
-      \STATE $d\gets L(T_i, S, i)$
-      \STATE $T_{i+1}\gets T_i \cup \{d\}$
-    \ENDIF
-    \STATE $i\gets i+1$
-    \STATE $S(i)\gets O(T_i)$
-    \STATE $c\gets P(T_i, S, i)$
-  \ENDWHILE
+    \WHILE {true}
+      \STATE IR scan for grasp points.
+      \STATE Attempt a grasp.
+      \IF {grasp is successful}
+        \STATE Move object to training area.
+        \STATE Map(object).
+      \ENDIF
+    \ENDWHILE
   \end{algorithmic}
-  \caption{The high-level generalized robotic automatic training algorithm (GRATA) which we employ.}
+  \caption{The high-level object-learning algorithm.}
 \end{figure}
 
-\subsection{GRATA Simulation}
-Understanding the behavior of GRATA requires running the system many times. This would be impractical
-to do on the actual robot. It is necessary use a simulator for the process so that we can dramatically shorten the
-experimental iteration time. A dense sampling strategy is a good baseline and the data collected can
-be queried by an active learning technique to simulate the process of data collection.
 
-Using a dense sampling strategy, we approximate the set $D$ and can then run offline experiments using other
-sampling strategies. However, the numbers we report are on actual executions of the system where
-the robot gathers the data online.
+\begin{figure}
+  \textbf{Map}
+  \begin{algorithmic}
+    \FOR {$(x^t, y^t, z^t) \in scan$}
+    \STATE $z^t \gets ImageAt (x^t, y^t, z^t)$
+    \STATE $z_c^t \gets Crop(z)$
+    \STATE Do magical gradient stuff. 
+    \ENDFOR
+  \end{algorithmic}
+  \caption{The high-level algorithm for acquiring visual and grasping
+    models of objects.}
+\end{figure}
 
 
-\section{Applications of GRATA}
-
-\subsection{Recognition Training}
-
-\subsection{Pose Estimation Training}
-
-\subsection{Grasp Training}
-4. Once aiming is complete, save the image in the reticle, try to grasp, and save whether that grasp completed.
-This can be ascertained by the gripper position.
-
-5. Calculate a density map for this 
 
 
 \section{Experimental Setup}
