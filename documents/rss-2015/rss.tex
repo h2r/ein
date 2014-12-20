@@ -127,7 +127,7 @@ grasping.  Using our algorithm, a robot can interact with an object
 for ten minutes, and then reliably and quickly localize it with vision
 and pick it up with closed-loop visual servoing. We demonstrate our
 learned model can enable efficient closed-loop grasping with high
-reliabilty, follow natural languag pick-and-place commands, and enable
+reliability, follow natural language pick-and-place commands, and enable
 vision-based semantic mapping using learned detectors.
 
 
@@ -175,7 +175,7 @@ expensive and do not enjoy the highest accuracy compared to
 instance-based approaches and have not been demonstrated for
 grasping~\citep{saxena08}.  Existing approaches to learn 3d object
 models still require expensive ICP-based methods to localize objects,
-which are suceptable to local minima and take time to
+which are susceptible to local minima and take time to
 converge~\citep{krainin11}.
 
 View-based methods for instance detection have many advantages over
@@ -215,19 +215,20 @@ Our evaluation demonstrates that a Baxter robot can autonomously learn
 robust models for detection and grasping, using its IR sensor and arm
 camera as a seven-degree of freedom one-pixel RGB-D camera.  After
 training, Baxter can quickly and reliably grasp objects anywhere in
-its workspace using closed-loop visual servoing in response to a
+its work space using closed-loop visual servoing in response to a
 person's requests.  Additionally we demonstrate that our models can be
 used by a mobile robot for object detection and semantic mapping in
 cluttered environments.
 
-Our software is compatabile with ROS and the Baxter SDK version and
-will be released as free software when this paper is accepted.
-Additionally our software includes the capability to upload
-instance-based models to the RoboBrain database; as more and more
-instance-based models are collected, this corpus will form a unique
-training set for category-based models of grasping, since the robot
-will have a very large number of views of a large set of objects as
-well as storing depth information and grasping success.
+Our software is compatible with ROS and the Baxter SDK version 1.0.0,
+and we intend to release it as free software should our paper be
+accepted.  Additionally our software includes the capability to upload
+instance-based models to the RoboBrain database~\citep{x}; as more and
+more instance-based models are collected, this corpus will form a
+unique training set for category-based models for detecting and
+grasping novel objects, since the robot will have a very large number
+of views of a large set of objects as well as storing depth
+information and grasping success.
 
 
 \section{Object Detection and Pose Estimation}
