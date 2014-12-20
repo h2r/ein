@@ -16,7 +16,7 @@
 \usepackage{algorithmic}
 
 \newcommand{\mytitle}[0]{Autonomously Acquiring Models of Objects for
-  Instance-Based Grasping}
+  Instance-Based Manipulation and Mapping}
 
 \pdfinfo{
    /Author ()
@@ -83,27 +83,38 @@
 \maketitle
 
 
+%% To address this problem, we define a SLAM-based approach
+%% which enables the robot to actively acquire visual and grasp models of
+%% novel objects by moving its sensor and trying grasps, integrating
+%% information over time.  Unlike conventional SLAM, in our model the
+%% hidden state is the object pose, and the map consists of invariant
+%% features of the object such as appearance information and grasp
+%% points.  
+
 \begin{abstract}
-Manipulating objects is an important task for robots that help people
-in the home, in factories, and in hospitals.  General-purpose
-pick-and-place requires object recognition, pose estimation, and grasp
-planning; existing solutions cannot reliably recognize or pick up an
-object the robot has never encountered before~\citep{}.  However in
-many applications, general-purpose pick-and-place is not required: the
-robot would be useful if it could recognize and manipulate the small
-set of objects most important in that application, but do so with high
-reliability.  To address this problem, we define a SLAM-based approach
-which enables the robot to actively acquire visual and grasp models of
-novel objects by moving its sensor and trying grasps, integrating
-information over time.  Unlike conventional SLAM, in our model the
-hidden state is the object pose, and the map consists of invariant
-features of the object such as appearance information and grasp
-points.  Our approach converts the task of {\em category recognition}
-(pick up any mug) to {\em instance recognition} (pick up this mug),
-enabling models to be autonomously acquired for specific objects.
-Using our approach, a robot can interact with an object for ten
-minutes, and then reliably localize (90\%) and manipulate it (90\%
-successful grasps).
+Manipulating and reasoning about objects is an important task for
+robots that help people in the home, in factories, and in hospitals.
+General-purpose object manipulation requires object recognition, pose
+estimation, and grasp planning; existing solutions cannot reliably
+recognize or pick up an object the robot has never encountered before,
+while existing category-based computer vision approaches run much
+slower than real time and encounter many false positives and
+negatives.  However in many applications, general-purpose object
+detection or manipulation is not required: the robot would be useful
+if it could adapt itself to recognize, localize, and manipulate the
+small set of objects most important in that application, but do so
+with very high reliability.  To address this problem, we convert the
+task of {\em category recognition} (pick up any mug) to {\em instance
+  recognition} (pick up this mug) by autonomously acquiring visual
+models for specific objects by using a range scan (which is slow) to
+provide supervision for a simple and efficient vision-based system for
+detection and servoing.  Using our algorithm, a robot can interact
+with an object for ten minutes, and then reliably localize it with
+vision and robustly manipulate it with closed-loop visual servoing.
+We demonstrate our learned model can enable efficient closed-loop
+grasping with high reliabilty, follow natural languag pick-and-place
+commands, and enable vision-based semantic mapping using learned
+detectors.
 
 
 %% Robots need to pick stuff up.
@@ -139,46 +150,30 @@ successful grasps).
 % demonstration.
 
 \section{Introduction}
-Robotic assistants will assist us at childcare, help us cook, and provide service to
-doctors, nurses, and patients in hospitals. Many such tasks require a robot to
-robustly perceive and manipulate objects. 
-Conventional systems are capable of perception and manipulation in a limited sense.
-Some systems require training by a human operator on an object to object basis, which 
-is time consuming and can be difficult for a non-expert to perform ~\citep{ork14, lai11, lai11a}. There 
-do exist some systems which
-do not require training on a per object basis, but they are computationally expensive and do not enjoy the
-highest accuracy or precision and have not been demonstrated for grasping~\citep{guadarrama14}.
+Robotic assistants will assist us at childcare, help us cook, and
+provide service to doctors, nurses, and patients in hospitals. Many
+tasks require a robot to robustly perceive and manipulate objects.
+Some systems require training by a human operator on an object to
+object basis, which is time consuming and can be difficult for a
+non-expert to perform ~\citep{ork14, lai11, lai11a}. There do exist
+some systems which do not require training on a per object basis, but
+they are computationally expensive and do not enjoy the highest
+accuracy or precision and have not been demonstrated for
+grasping~\citep{saxena08}.  Existing approaches to learn 3d object
+models still require expensive ICP-based methods to localize objects,
+which are suceptable to local minima.  
 
-To obtain the benefits of both approaches, we propose a system which trains itself 
-to recognize and manipulate the specific objects it will need to use during future
-collaborations with humans. 
-Our system is powerful because it learns to identify and grasp on 
-a per object basis. Our system is portable, convenient, and general because the expert knowledge it employs
-is built into the algorithms which it uses to train itself, requiring only basic
-interaction from a non-technical human collaborator.
-
-Our contribution is an algorithm which allows a robot to autonomously
-train its subsystems, together with three applications of the
-algorithm to the tasks mentioned above.  The first application is
-recognizing the category of an object and the second application is
-estimating the pose of the object, both of which we accomplish with
-simple and robust computer vision algorithms combined with our
-  proposed algorithm for autonomous collection of training data. The
-third application is grasping the object, which we accomplish with
-visual servoing techniques. Each of these components is well
-understood in its own right, and existing methods allow expert users
-to train systems to accomplish these tasks satisfactorily.
-
-When we apply the algorithm to the recognition task, the robot trains
-the recognition system to discriminate between object instance
-categories. When we apply the algorithm to the pose estimation task,
-the robot trains the pose estimation system to determine which pose an
-identified object holds.  When we apply the algorithm to the grasping
-task, the robot trains the grasping system to successfully and quickly
-pick and place the target object.  Crucially, our algorithm can
-recognize when it is doing a poor job at learning and asks a human
-collaborator to manually annotate information in those cases.
-
+To address these issues, we present an approach for enabling a robot
+to trains itself to recognize and manipulate the specific objects it
+will need to use during future collaborations with humans.  Our system
+is powerful because it learns to identify and grasp on a per object
+basis. Our system is portable, convenient, and general because the
+expert knowledge it employs is built into the algorithms which it uses
+to train itself, requiring only basic interaction from a non-technical
+human collaborator.  Our contribution is an algorithm which allows a
+robot to autonomously train its subsystems by using slower, more
+expensive sensing approaches to provide supervision for faster,
+simpler methods that excel with large amounts of training data.
 
 
 It works because our experiments tell us so. This is how well they
@@ -187,10 +182,6 @@ usability results), and is an improvement over un-annotated systems
 (cite success rates, the ability to generalize, and the low
 computational overhead since we don't crunch expensive features or do
 heavy classification at run time).
-
-\stnote{We have to say the right things about ORK.  Why does ORK suck?
-  Why doesn't it already solve the problem?}
-
 
 \section{Object Detection and Pose Estimation}
 
