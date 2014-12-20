@@ -2,6 +2,7 @@
 \usepackage{times}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{subfigure}
 \usepackage{latexsym,amssymb,amsmath} % for \Box, \mathbb, split, etc.
 %\usepackage{path}
 \usepackage{url}
@@ -265,8 +266,8 @@ images to efficiently compute the per-pixel map:
 \begin{align}
 J(p) = \sum_{B \in \{B_i\} s.t. p \in B} \frac{1}{Area(B)}.
 \end{align}
-We then apply the Canny edge detector with hysteresis ~\citep{} to
-find the connected components of bright regions in the map $J(p)$,
+We then apply the Canny edge detector with hysteresis ~\citep{canny86}
+to find the connected components of bright regions in the map $J(p)$,
 which correspond with high probability to objects in the image. We
 form our candidate object bounding boxes by taking the smallest
 bounding box which surrounds each connected component.  These bounding
@@ -274,7 +275,15 @@ boxes make it easy to gather training data and to perform inference in
 real time, but at the expense of poorly handing occulusion as
 overlapping objects are fused into the same bounding box.  It is
 possible to search within the proposed bounding boxes to better handle
-occlusion.
+occlusion.  Figure~\ref{fig:object_detection} shows images from each
+step in this pipeline, ending with just a few candidate bounding boxes
+for objects on the table.  Note that we designed this pipeline to
+quickly and accurately provide bounding boxes in the presence of
+relatively unobstructed backgrounds to support the training process;
+Section~\ref{sec:mapping} describes our approach to recognition under
+clutter and occlusion.
+
+\subsection{Object Recognition}
 
 For each object $c$ we wish to classify, we gather a set of example
 crops $E_c$ which are candidate bounding boxes (derived as above)
@@ -304,15 +313,17 @@ classifier in the background at higher latency, essentially
 introducing a cascading step in the data collection process.
 
 \begin{figure*}
-  \begin{center}
-    \begin{tabular}{l c r}
-      \includegraphics[width=160px, height=120px]{kinect.png} &
-      \includegraphics[width=160px, height=120px]{objectness.png} &
-      \includegraphics[width=160px, height=120px]{blueBoxes.png} \\
-    \end{tabular}
-  \end{center}
-  \caption{The Object Detection Pipeline. Left: The raw image as viewed through the kinect. 
-    Center: The computed objectness map J. Right: Labeled object detections. \stnote{Use subfigure}}
+\subfigure[Raw image from the camera]{
+      \includegraphics[width=0.25\linewidth]{figures/objectness_raw.png}}%
+\subfigure[Initial candidate objects from Bing]{
+      \includegraphics[width=0.25\linewidth]{figures/objectness_purple.png}}%
+\subfigure[Integral image objectness map]{
+      \includegraphics[width=0.25\linewidth]{figures/objectness_map.png}}%
+\subfigure[Candidate bounding boxes]{
+      \includegraphics[width=0.25\linewidth]{figures/objectness_boxes1.png}}
+\caption{The object detection pipeline, showing a raw image from the
+  camera, the integral image computed using objectness, and candidate
+  bounding boxes.\label{fig:object_detection}}
 \end{figure*}
 
  
@@ -383,8 +394,9 @@ detector.
 \end{figure}
 
 
-
-
+\section{Object Detection for Semantic Mapping}
+\label{sec:mapping}
+ 
 \section{Experimental Setup}
 \jgonote{This is where we describe the experiments we performed.}
 We are not trying to extend the state-of-the-art on our individual tasks. Rather,
