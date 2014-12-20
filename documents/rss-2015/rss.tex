@@ -301,7 +301,10 @@ incorporated into a k-nearest-neighbors model which we use to classify
 objects at inference~\citep{szeliski10}. We use kNN because our
 automated training process allows us to acquire as much high-quality
 data as necessary to make the model work well, and kNN supports direct
-matching to this large dataset.
+matching to this large dataset.  Existing approaches for
+instance-based grasping such as LINE-2D require the order of $2000$
+whereas our SIFT-based approach performs well with only $200$
+examples~\citep{hinterstoisser12}.
 
 
 %% The use of SIFT features is motivated by the instance level nature of
@@ -325,7 +328,7 @@ matching to this large dataset.
 \begin{figure*}
 \subfigure[Raw image from the camera.]{
   \includegraphics[width=0.25\linewidth]{figures/objectness_raw.png}}%
-\subfigure[Initial candidate objects from Bing.\label{fig:bing}]{
+\subfigure[Candidate bounding boxes from Bing.\label{fig:bing}]{
   \includegraphics[width=0.25\linewidth]{figures/objectness_purple.png}}%
 \subfigure[Integral image objectness map.\label{fig:objectness}]{
   \includegraphics[width=0.25\linewidth]{figures/objectness_map.png}}%
@@ -391,15 +394,15 @@ An object model in our framework consists of the following elements:
 \item cropped gradient template, $t_0$
 \end{itemize}
 
+Additionally, the model can be augmented with words, $w_1... w_n$
+which people might use to describe the object.
+
 To train our model, the robot must first move the object to a known
 pose, then acquire images that are annotated with a pose as well as a
 cropped bounding box for training.  As typical in machine learning
 applications, the more images we can acquire, from the more
 viewpoints, the more accurate our detection, pose estimation, and
-grasping.  Existing approaches for instance-based grasping such as
-LINE-2D require the order of $2000$ templates which must be annotated
-with the ground-truth location of the object (for example with a
-calibration patch)~\citep{hinterstoisser12} Instead, our robot
+grasping.   Instead, our robot
 autonomously collects this information by using a depth sensor to
 acquire an initial grasp, move the object to a standard known pose,
 and then actively collect data for view-based methods.  Our learning
@@ -759,7 +762,8 @@ Ideas for doing for the paper, otherwise future work:
   again, maintaining history, etc. 
 \item Scaling to lots and lots of objects.
 \item Using the database of lots and lots of objects to do category recognition.
-\item 
+\item Multiple poses during training (e.g., what happens when you drop
+  the object?)
 \end{itemize}
 
 % Intro structure
