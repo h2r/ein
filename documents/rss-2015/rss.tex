@@ -9,14 +9,26 @@
 \usepackage[numbers]{natbib}
 \usepackage{amsfonts}
 \usepackage{color}
+\usepackage{hyperref}
+\hypersetup{letterpaper,bookmarksopen,bookmarksnumbered,
+pdfpagemode=UseOutlines,
+colorlinks=true,
+linkcolor=blue,
+anchorcolor=blue,
+citecolor=blue,
+filecolor=blue,
+menucolor=blue,
+urlcolor=blue
+}
 
 \newcommand{\stnote}[1]{\textcolor{blue}{\textbf{ST: #1}}}
 \newcommand{\jgonote}[1]{\textcolor{green}{\textbf{JGO: #1}}}
 
 \usepackage{algorithmic}
 
+
 \newcommand{\mytitle}[0]{Autonomously Acquiring Models of Objects for
-  Instance-Based Grasping}
+  Instance-Based Manipulation and Mapping}
 
 \pdfinfo{
    /Author ()
@@ -83,27 +95,40 @@
 \maketitle
 
 
+%% To address this problem, we define a SLAM-based approach
+%% which enables the robot to actively acquire visual and grasp models of
+%% novel objects by moving its sensor and trying grasps, integrating
+%% information over time.  Unlike conventional SLAM, in our model the
+%% hidden state is the object pose, and the map consists of invariant
+%% features of the object such as appearance information and grasp
+%% points.  
+
 \begin{abstract}
-Manipulating objects is an important task for robots that help people
-in the home, in factories, and in hospitals.  General-purpose
-pick-and-place requires object recognition, pose estimation, and grasp
-planning; existing solutions cannot reliably recognize or pick up an
-object the robot has never encountered before~\citep{}.  However in
-many applications, general-purpose pick-and-place is not required: the
-robot would be useful if it could recognize and manipulate the small
-set of objects most important in that application, but do so with high
-reliability.  To address this problem, we define a SLAM-based approach
-which enables the robot to actively acquire visual and grasp models of
-novel objects by moving its sensor and trying grasps, integrating
-information over time.  Unlike conventional SLAM, in our model the
-hidden state is the object pose, and the map consists of invariant
-features of the object such as appearance information and grasp
-points.  Our approach converts the task of {\em category recognition}
-(pick up any mug) to {\em instance recognition} (pick up this mug),
-enabling models to be autonomously acquired for specific objects.
-Using our approach, a robot can interact with an object for ten
-minutes, and then reliably localize (90\%) and manipulate it (90\%
-successful grasps).
+Manipulating and reasoning about objects is an important task for
+robots that help people in the home, in factories, and in hospitals.
+General-purpose object manipulation requires object recognition, pose
+estimation, and grasp planning; existing solutions cannot reliably
+recognize or pick up an object the robot has never encountered before,
+while existing category-based computer vision approaches run much
+slower than real time and encounter many false positives and
+negatives.  However in many applications, general-purpose object
+detection or manipulation is not required: the robot would be useful
+if it could adapt itself to recognize, localize, and manipulate the
+small set of objects most important in that application, but do so
+with very high reliability.  To address this problem, we focus not on
+{\em category recognition} (pick up any mug) but rather {\em instance
+  recognition} (pick up this mug).  Instance recognition can be highly
+accurate but requires collecting training examples of each object we
+would like the robot to manipulate, which can be expensive, tedious,
+and error-prone.  The contribution of this paper is an algorithm that
+enables a robot to autonomously collect training data for
+instance-based detection, localization, and active visual servoing for
+grasping.  Using our algorithm, a robot can interact with an object
+for ten minutes, and then reliably and quickly localize it with vision
+and pick it up with closed-loop visual servoing. We demonstrate our
+learned model can enable efficient closed-loop grasping with high
+reliability, follow natural language pick-and-place commands, and enable
+vision-based semantic mapping using learned detectors.
 
 
 %% Robots need to pick stuff up.
@@ -139,57 +164,71 @@ successful grasps).
 % demonstration.
 
 \section{Introduction}
-Robotic assistants will assist us at childcare, help us cook, and provide service to
-doctors, nurses, and patients in hospitals. Many such tasks require a robot to
-robustly perceive and manipulate objects. 
-Conventional systems are capable of perception and manipulation in a limited sense.
-Some systems require training by a human operator on an object to object basis, which 
-is time consuming and can be difficult for a non-expert to perform ~\citep{ork14, lai11, lai11a}. There 
-do exist some systems which
-do not require training on a per object basis, but they are computationally expensive and do not enjoy the
-highest accuracy or precision and have not been demonstrated for grasping~\citep{guadarrama14}.
+Robotic assistants will assist us at childcare, help us cook, and
+provide service to doctors, nurses, and patients in hospitals. Many
+tasks require a robot to robustly perceive and manipulate objects.
+Some systems require training by a human operator on an object to
+object basis, which is time consuming and can be difficult for a
+non-expert to perform ~\citep{ork14, lai11, lai11a}. Systems which do
+not require training on a per object basis are computationally
+expensive and do not enjoy the highest accuracy compared to
+instance-based approaches and have not been demonstrated for
+grasping~\citep{saxena08}.  Existing approaches to learn 3d object
+models still require expensive ICP-based methods to localize objects,
+which are susceptible to local minima and take time to
+converge~\citep{krainin11}.
 
-To obtain the benefits of both approaches, we propose a system which trains itself 
-to recognize and manipulate the specific objects it will need to use during future
-collaborations with humans. 
-Our system is powerful because it learns to identify and grasp on 
-a per object basis. Our system is portable, convenient, and general because the expert knowledge it employs
-is built into the algorithms which it uses to train itself, requiring only basic
-interaction from a non-technical human collaborator.
-
+View-based methods for instance detection have many advantages over
+model-based methods, because they directly capture the visual
+appearance of the object, and are relatively simple and efficient to
+implement because they operate on low-level features~\citep{hsiao13}.
+However these systems require large amounts of training data for
+robust performance, for example more than 2000 images which must be
+manually collected and annotated with bounding boxes for the state of
+the art LINE2D method~\citep{hinterstoisser12}.  We address this
+problem by enabling a robot to learn to identify and grasp on a per
+object basis by autonomously collecting large amounts of supervised
+training data for instance-based visual detection and pose estimation.
 Our contribution is an algorithm which allows a robot to autonomously
-train its subsystems, together with three applications of the
-algorithm to the tasks mentioned above.  The first application is
-recognizing the category of an object and the second application is
-estimating the pose of the object, both of which we accomplish with
-simple and robust computer vision algorithms combined with our
-  proposed algorithm for autonomous collection of training data. The
-third application is grasping the object, which we accomplish with
-visual servoing techniques. Each of these components is well
-understood in its own right, and existing methods allow expert users
-to train systems to accomplish these tasks satisfactorily.
+train its subsystems by using slower, more expensive sensing
+approaches to provide supervision for faster, simpler methods that
+excel with large amounts of training data.
 
-When we apply the algorithm to the recognition task, the robot trains
-the recognition system to discriminate between object instance
-categories. When we apply the algorithm to the pose estimation task,
-the robot trains the pose estimation system to determine which pose an
-identified object holds.  When we apply the algorithm to the grasping
-task, the robot trains the grasping system to successfully and quickly
-pick and place the target object.  Crucially, our algorithm can
-recognize when it is doing a poor job at learning and asks a human
-collaborator to manually annotate information in those cases.
+To address these issues, we present an approach for enabling a robot
+to train its own view-based model to recognize and manipulate the
+specific objects it will need to use during collaborations with
+humans.  Using our algorithm, the robot detects candidate objects for
+training using a depth sensor, then actively collects view-based
+visual templates to perform robust instance-based object detection,
+pose estimation and closed-loop grasping using visual servoing.
+Because our camera can move with seven degrees of freedom, the robot
+can collect large quantities of data leading to very simple visual
+models that perform with very high accuracy under occlusion.  Our
+approach is enabled by three innovations: our end-to-end algorithm for
+collecting view-based training data, which is supported by a simple
+and robust method for determining candidate grasps using a depth
+sensor mounted on a seven-degree-of-freedom arm, along with an
+approach for autonomously and reliably finding object bounding boxes
+once the object is on a clean background.
 
+Our evaluation demonstrates that a Baxter robot can autonomously learn
+robust models for detection and grasping, using its IR sensor and arm
+camera as a seven-degree of freedom one-pixel RGB-D camera.  After
+training, Baxter can quickly and reliably grasp objects anywhere in
+its work space using closed-loop visual servoing in response to a
+person's requests.  Additionally we demonstrate that our models can be
+used by a mobile robot for object detection and semantic mapping in
+cluttered environments.
 
-
-It works because our experiments tell us so. This is how well they
-work: .  Thus we see an improvement over expert trained systems (cite
-usability results), and is an improvement over un-annotated systems
-(cite success rates, the ability to generalize, and the low
-computational overhead since we don't crunch expensive features or do
-heavy classification at run time).
-
-\stnote{We have to say the right things about ORK.  Why does ORK suck?
-  Why doesn't it already solve the problem?}
+Our software is compatible with ROS and the Baxter SDK version 1.0.0,
+and we intend to release it as free software should our paper be
+accepted.  Additionally our software includes the capability to upload
+instance-based models to the RoboBrain database~\citep{x}; as more and
+more instance-based models are collected, this corpus will form a
+unique training set for category-based models for detecting and
+grasping novel objects, since the robot will have a very large number
+of views of a large set of objects as well as storing depth
+information and grasping success.
 
 
 \section{Object Detection and Pose Estimation}
@@ -199,16 +238,12 @@ estimation pipeline, which uses standard computer vision algorithms
 combined to achieve a simple software architecture, a high frame rate,
 and high accuracy at recognition and pose estimation.  This pipeline
 can be manually trained by an expert to reliably detect and grasp
-objects.  Additionally, section~\ref{sec:training} describes our
+objects.  Additionally, Section~\ref{sec:training} describes our
 approach to enabling a robot to autonomously train this pipeline by
 actively collecting images and training data from the environment.
 
-\subsection{Object Recognition}
-\jgonote{Cover BING, SIFT, BoW, typical training pipelines, and RGB-D
-  approaches popular in the robotics community.} 
-
-Our recognition pipeline takes RGB-D video from the robot, proposes a
-small number of candidate object bounding boxes in each frame, and
+Our recognition pipeline takes video from the robot, proposes a small
+number of candidate object bounding boxes in each frame, and
 classifies each candidate bounding box as belonging to a previously
 encountered object class. Our object classes consist of object
 instances rather than pure object categories.  Using instance
@@ -217,42 +252,56 @@ recognition means we cannot reliably detect categories, such as
 the specific instances for which it has models with much higher speed
 and accuracy.
 
-To generate candidate bounding boxes, we first apply the BING
-objectness detector~\citep{cheng14} to the image, which returns a set
-$\{B_i\}$ of thousands of approximate object bounding boxes in the
-image. This process substantially reduces the number of bounding boxes
-we need to consider but is still too large for us to process in real
+\subsection{Object Detection}
+
+To detect candidate objects, we first apply the BING objectness
+detector~\citep{cheng14} to the image, which returns a set $\{B_i\}$
+of thousands of approximate object bounding boxes in the image. This
+process substantially reduces the number of bounding boxes we need to
+consider but is still too large for us to process in real
 time. Besides, even good bounding boxes from BING are typically not
 aligned to the degree that we require. Therefore, we use integral
 images to efficiently compute the per-pixel map:
 \begin{align}
 J(p) = \sum_{B \in \{B_i\} s.t. p \in B} \frac{1}{Area(B)}.
 \end{align}
-We then apply the Canny edge detector with hysteresis ~\citep{} to find the connected components of bright
-regions in the map $J(p)$, which correspond with high probability to objects in the image. We form
-our candidate object bounding boxes by taking the smallest bounding box which surrounds each connected component.
-These bounding boxes make it easy to gather training data and to perform inference in real time, but at
-the expense of poorly handing occulusion as overlapping objects are fused into the same bounding box.
-It is possible to search within the proposed bounding boxes to better handle occlusion.
+We then apply the Canny edge detector with hysteresis ~\citep{} to
+find the connected components of bright regions in the map $J(p)$,
+which correspond with high probability to objects in the image. We
+form our candidate object bounding boxes by taking the smallest
+bounding box which surrounds each connected component.  These bounding
+boxes make it easy to gather training data and to perform inference in
+real time, but at the expense of poorly handing occulusion as
+overlapping objects are fused into the same bounding box.  It is
+possible to search within the proposed bounding boxes to better handle
+occlusion.
 
-For each object $c$ we wish to classify, we gather a set of example crops $E_c$ which are candidate
-bounding boxes (derived as above) which contain $c$. We extract dense SIFT features ~\citep{} from all boxes of
-all classes and use k-means to extract a visual vocabulary of SIFT features ~\citep{}. We then construct a
-BoW feature vector for each image and augment it with a histogram of colors which appear in that image.
-The augmented feature vector is incorporated into a k-nearest-neighbors model which we use to classify
-objects at inference ~\citep{}.
+For each object $c$ we wish to classify, we gather a set of example
+crops $E_c$ which are candidate bounding boxes (derived as above)
+which contain $c$. We extract dense SIFT features ~\citep{} from all
+boxes of all classes and use k-means to extract a visual vocabulary of
+SIFT features ~\citep{}. We then construct a BoW feature vector for
+each image and augment it with a histogram of colors which appear in
+that image.  The augmented feature vector is incorporated into a
+k-nearest-neighbors model which we use to classify objects at
+inference ~\citep{}.
 
-The use of SIFT features is motivated by the instance level nature of our task. State-of-the-art vision
-methods typically use HOG ~\citep{} or CNN ~\citep{} features, but that choice is motivated by category
-level recognition. \stnote{What about category level recognition motivates HOG or CNN?  Can you be more specific?}
+The use of SIFT features is motivated by the instance level nature of
+our task. State-of-the-art vision methods typically use HOG ~\citep{}
+or CNN ~\citep{} features, but that choice is motivated by category
+level recognition. \stnote{What about category level recognition
+  motivates HOG or CNN?  Can you be more specific?}
 
-We use kNN because it is easy to rebuild online, which is a key property a classifier should enjoy
-if it is to interact with our framework in real time. State-of-the-art computer vision classifiers
-currently employ SVM's ~\citep{} or other models which require expensive training. Using such a model would
-introduce a training step in the inside loop of our data collection process, which would be costly
-in either engineering or time.  It is possible to use kNN during the online collection process and then
-train a stronger classifier in the background at higher latency, essentially introducing a cascading step
-in the data collection process.
+We use kNN because it is easy to rebuild online, which is a key
+property a classifier should enjoy if it is to interact with our
+framework in real time. State-of-the-art computer vision classifiers
+currently employ SVM's ~\citep{} or other models which require
+expensive training. Using such a model would introduce a training step
+in the inside loop of our data collection process, which would be
+costly in either engineering or time.  It is possible to use kNN
+during the online collection process and then train a stronger
+classifier in the background at higher latency, essentially
+introducing a cascading step in the data collection process.
 
 \begin{figure*}
   \begin{center}
@@ -280,111 +329,60 @@ is known we apply the corresponding pose classifier to determine the orientation
 are viewing the object. We combine this orientation with position information from the point cloud
 information derived from the D channel of the RGB-D video to form a full pose estimate.
 
-\section{General Robotic Autonomous Training Algorithm}
+\section{Autonomous Training}
 \label{sec:training}
-We teach the system by finding its weaknesses and training it to overcome them.
 
-Our framework structures the training in a way that scales. 
+To train our model, the robot must first move the object to a known
+pose, then acquire images that are annotated with a pose as well as a
+cropped bounding box for training.  As typical in machine learning
+applications, the more images we can acquire, from the more
+viewpoints, the more accurate our detection, pose estimation, and
+grasping.  Existing approaches for instance-based grasping such as
+LINE-2D require the order of $2000$ templates which must be annotated
+with the ground-truth location of the object (for example with a
+calibration patch)~\citep{hinterstoisser12} Instead, our robot
+autonomously collects this information by using a depth sensor to
+acquire an initial grasp, move the object to a standard known pose,
+and then actively collect data for view-based methods.  Our learning
+algorithm appears in Algorithm~\ref{alg:learning}.
 
-When the robot asks for help, we can ground ambiguous object examples to the right class
-and retrain the models online.
+Once the object has been moved to a known pose, we acquire data
+templates by moving the camera to a sequence of prespecified
+orientations.  We automatically crop the image using integral images
+computed over the bounding boxes inferred by the Bing objectness
+detector. 
 
-\subsection{GRATA Definition}
-
-In the following algorithm design pattern, 
-$X$ is the set of ground truth labels for the specified problem,
-$Y$ is the set of all possible observations for the specified problem,
-\mbox{$D \subset X \times Y$} is the set of all possible training pairs observable in our problem instance,
-\mbox{$\{T_i\}_{i \in \mathbb{N}}$} is a sequence of curated sets of training examples (where \mbox{$\forall i \in \mathbb{N}, T_i \subset D$}),  
-$\mathcal{T}$ is the power set of $D$,
-\mbox{$O: \mathcal{T} \to \mathbb{R}$} is the objective function that we are trying to optimize 
-(which includes the implementation of the physical actions the robot must take to evaluate it),
-\mbox{$S: \mathbb{N} \to \mathbb{R}$} is the objective function history (i.e. \mbox{$S(i) = O(T_i)$}),
-$\mathcal{S}$ is the set of all possible objective function histories,
-\mbox{$H: \mathcal{S} \times \mathbb{N} \to \{0,1\}$} is a function which decides whether to ask for help at
-a specified time step,
-\mbox{$\mathcal{C} = \mathcal{T} \times \mathcal{S} \times \mathbb{N}$} is the complete training state,
-\mbox{$G: \mathcal{C}$} is a function which implements asking for and receiving help (e.g. auditing and grounding data under bad conditions
-or asking for a new collections strategy or a crucial example),
-\mbox{$P: \mathcal{C} \to \{0,1\}$} is a function that evaluates a stopping criterion and decides whether to continue training,
-and \mbox{$L: \mathcal{C} \to D$} a function that proposes a new ground truth $x \in X$ and collects a corresponding observation $y \in Y$ to form
-a new training example \mbox{$(x,y) = d \in D$}. 
-
-\begin{table}
-  \begin{center}
-  \caption{The list of symbols we use in the definition of GRATA.}
-  \begin{tabular}{lr}
-    \toprule
-    Symbol & Meaning \\ 
-    \midrule
-    $X$  & Ground Truth Labels \\
-    $Y$  & Observations \\
-    $D \subset X \times Y$  & Universe of Observable Data \\
-    $\{T_i\}_{i \in \mathbb{N}}$  & Sequence of Training Sets \\
-    $\mathcal{T} = 2^D$ & All Possible Training Sets \\
-    $O: \mathcal{T} \to \mathbb{R}$ & Objective Function \\
-    $S: \mathbb{N} \to \mathbb{R}$  & Objective Function History \\
-    $\mathcal{S} = \{S: \mathbb{N} \to \mathbb{R}\}$  & All Possible Objective Function Histories \\
-    $H: \mathcal{S} \times \mathbb{N} \to \{0,1\}$  & Help Criterion \\
-    $\mathcal{C} = \mathcal{T} \times \mathcal{S} \times \mathbb{N}$  & Complete Training Set \\
-    $G: \mathcal{C}$  & Help Request \\
-    $P: \mathcal{C} \to \{0,1\}$  & Stopping Criterion \\
-    $L: \mathcal{C} \to D$  & Sample Proposal \\
-  \bottomrule
-  \end{tabular}
-  \end{center}
-\end{table}
-
-
-
-Applying GRATA to a problem involves defining the above quantities and implementing the high level algorithm
-in the figure ~\citep{}.
 
 \begin{figure}
-  \textbf{GRATA}
+  \textbf{Learn}
   \begin{algorithmic}
-  \STATE $t\gets 1$
-  \STATE $c\gets 1$
-  \STATE $T_1 = \emptyset$
-  \STATE $S(1)\gets 0$
-  \STATE $i\gets 1$
-  \WHILE{$c$}
-    \IF {$H(S,i) == 1$}
-      \STATE $G(T_i, S,i)$
-    \ELSE
-      \STATE $d\gets L(T_i, S, i)$
-      \STATE $T_{i+1}\gets T_i \cup \{d\}$
-    \ENDIF
-    \STATE $i\gets i+1$
-    \STATE $S(i)\gets O(T_i)$
-    \STATE $c\gets P(T_i, S, i)$
-  \ENDWHILE
+    \WHILE {true}
+      \STATE IR scan for grasp points.
+      \STATE Attempt a grasp.
+      \IF {grasp is successful}
+        \STATE Move object to training area.
+        \STATE Map(object).
+      \ENDIF
+    \ENDWHILE
   \end{algorithmic}
-  \caption{The high-level generalized robotic automatic training algorithm (GRATA) which we employ.}
+  \caption{The high-level object-learning algorithm.\label{alg:learning}}
 \end{figure}
 
-\subsection{GRATA Simulation}
-Understanding the behavior of GRATA requires running the system many times. This would be impractical
-to do on the actual robot. It is necessary use a simulator for the process so that we can dramatically shorten the
-experimental iteration time. A dense sampling strategy is a good baseline and the data collected can
-be queried by an active learning technique to simulate the process of data collection.
 
-Using a dense sampling strategy, we approximate the set $D$ and can then run offline experiments using other
-sampling strategies. However, the numbers we report are on actual executions of the system where
-the robot gathers the data online.
+\begin{figure}
+  \textbf{Map}
+  \begin{algorithmic}
+    \FOR {$(x^t, y^t, z^t) \in scan$}
+    \STATE $z^t \gets ImageAt (x^t, y^t, z^t)$
+    \STATE $z_c^t \gets Crop(z)$
+    \STATE Do magical gradient stuff. 
+    \ENDFOR
+  \end{algorithmic}
+  \caption{The high-level algorithm for acquiring visual and grasping
+    models of objects.}
+\end{figure}
 
 
-\section{Applications of GRATA}
-
-\subsection{Recognition Training}
-
-\subsection{Pose Estimation Training}
-
-\subsection{Grasp Training}
-4. Once aiming is complete, save the image in the reticle, try to grasp, and save whether that grasp completed.
-This can be ascertained by the gripper position.
-
-5. Calculate a density map for this 
 
 
 \section{Experimental Setup}
