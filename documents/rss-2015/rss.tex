@@ -26,6 +26,7 @@ urlcolor=blue
 
 \usepackage{algorithmic}
 
+
 \newcommand{\mytitle}[0]{Autonomously Acquiring Models of Objects for
   Instance-Based Manipulation and Mapping}
 
@@ -298,8 +299,21 @@ pose, then acquire images that are annotated with a pose as well as a
 cropped bounding box for training.  As typical in machine learning
 applications, the more images we can acquire, from the more
 viewpoints, the more accurate our detection, pose estimation, and
-grasping.  Existing approaches for instance-based grasping use on the
-order of $25$ images~\citep{hsiao13}
+grasping.  Existing approaches for instance-based grasping such as
+LINE-2D require the order of $2000$ templates which must be annotated
+with the ground-truth location of the object (for example with a
+calibration patch)~\citep{hinterstoisser12} Instead, our robot
+autonomously collects this information by using a depth sensor to
+acquire an initial grasp, move the object to a standard known pose,
+and then actively collect data for view-based methods.  Our learning
+algorithm appears in Algorithm~\ref{alg:learning}.
+
+Once the object has been moved to a known pose, we acquire data
+templates by moving the camera to a sequence of prespecified
+orientations.  We automatically crop the image using integral images
+computed over the bounding boxes inferred by the Bing objectness
+detector. 
+
 
 \begin{figure}
   \textbf{Learn}
@@ -313,7 +327,7 @@ order of $25$ images~\citep{hsiao13}
       \ENDIF
     \ENDWHILE
   \end{algorithmic}
-  \caption{The high-level object-learning algorithm.}
+  \caption{The high-level object-learning algorithm.\label{alg:learning}}
 \end{figure}
 
 
