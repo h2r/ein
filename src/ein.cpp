@@ -629,10 +629,15 @@ ros::Duration accumulatedTime;
 double w1GoThresh = 0.02;
 double w1AngleThresh = 0.02; 
 double synKp = 0.0005;
+double gradKp = 0.0005;
 
 int synServoPixelThresh = 10;
 int synServoLockFrames = 0;
+// XXX
 int synServoLockThresh = 3;
+
+int gradServoPixelThresh = 5;
+int gradServoThetaThresh = 1;
 
 ros::Time oscilStart;
  double oscCenX = 0.0;
@@ -665,6 +670,7 @@ int viewsWithNoise = 1;
 int surveyDuringServo = 0;
 int histogramDuringClassification = 0;
 double surveyNoiseScale = 50;
+int synchronicTakeClosest = 0;
 
 int gripperMoving = 0;
 double gripperPosition = 0;
@@ -997,6 +1003,10 @@ vector<Mat> classAerialGradients;
 
 Mat frameGraySobel;
 int aerialGradientWidth = 100;
+int aerialGradientReticleWidth = 200;
+
+int maxGradientServoIterations = 3;
+int currentGradientServoIterations = 0;
 
 ////////////////////////////////////////////////
 // end node variables 
@@ -2534,7 +2544,9 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
     Eigen::Quaternionf qin(0, 1, 0, 0);
     Eigen::Quaternionf qout(0, 1, 0, 0);
     //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
-    Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
+    //Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
+    // XXX now in local coordinates
+    Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitX.x() = qout.x();
     localUnitX.y() = qout.y();
@@ -2546,7 +2558,8 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
     Eigen::Quaternionf qin(0, 0, 1, 0);
     Eigen::Quaternionf qout(0, 1, 0, 0);
     //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
-    Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
+    //Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
+    Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitY.x() = qout.x();
     localUnitY.y() = qout.y();
@@ -2558,7 +2571,8 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
     Eigen::Quaternionf qin(0, 0, 0, 1);
     Eigen::Quaternionf qout(0, 1, 0, 0);
     //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
-    Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
+    //Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
+    Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitZ.x() = qout.x();
     localUnitZ.y() = qout.y();
@@ -4472,8 +4486,38 @@ cout <<
     // numlock + f
     case 1048678:
       {
-	trX = rmcX + rmDelta*(maxX-rmHalfWidth);
-	trY = rmcY + rmDelta*(maxY-rmHalfWidth);
+	//trX = rmcX + rmDelta*(maxX-rmHalfWidth);
+	//trY = rmcY + rmDelta*(maxY-rmHalfWidth);
+
+	// XXX now in local coordinates
+	Eigen::Vector3f localUnitX;
+	{
+	  Eigen::Quaternionf qin(0, 1, 0, 0);
+	  Eigen::Quaternionf qout(0, 1, 0, 0);
+	  Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+	  qout = eeqform * qin * eeqform.conjugate();
+	  localUnitX.x() = qout.x();
+	  localUnitX.y() = qout.y();
+	  localUnitX.z() = qout.z();
+	}
+
+	Eigen::Vector3f localUnitY;
+	{
+	  Eigen::Quaternionf qin(0, 0, 1, 0);
+	  Eigen::Quaternionf qout(0, 1, 0, 0);
+	  Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+	  qout = eeqform * qin * eeqform.conjugate();
+	  localUnitY.x() = qout.x();
+	  localUnitY.y() = qout.y();
+	  localUnitY.z() = qout.z();
+	}
+
+	double cTermX = rmDelta*(maxX-rmHalfWidth);
+	double cTermY = rmDelta*(maxY-rmHalfWidth);
+
+	trY = rmcY + cTermX*localUnitY.y() - cTermY*localUnitX.y();
+	trX = rmcX + cTermX*localUnitY.x() - cTermY*localUnitX.x();
+
 	cout << "trX: " << trX << " trY: " << trY << endl;
       }
       break;
@@ -4895,6 +4939,22 @@ cout <<
 	  pilot_call_stack.push_back(1048627);
 	if (maxGG == 3)
 	  pilot_call_stack.push_back(1048628);
+      }
+      break;
+    // assume winning gg and xy in local pose
+    // numlock + ?
+    case 1114175:
+      {
+	double targetX = trX;
+	double targetY = trY;
+
+	currentEEPose.px = targetX;
+	currentEEPose.py = targetX;
+      
+	cout << "Assuming x,y,gear: " << targetX << " " << targetY << " " << maxGG << endl;
+
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(1048631); // assume best gear
       }
       break;
     // change diagonal filter balance
@@ -6083,6 +6143,8 @@ cout <<
     // capslock + e
     case 131141:
       {
+	currentGradientServoIterations = 0;
+
 	ros::Duration delta = (ros::Time::now() - oscilStart) + accumulatedTime;
   
 	currentEEPose.px = oscCenX + oscAmpX*sin(2.0*3.1415926*oscFreqX*delta.toSec());
@@ -6115,13 +6177,33 @@ cout <<
 	}
       }
       break;
+    // capslock + c
+    case 131139:
+      {
+	synchronicTakeClosest = 0;
+      }
+      break;
+    // capslock + C
+    case 196707:
+      {
+	synchronicTakeClosest = 1;
+      }
+      break;
     // synchronic servo
     // capslock + t
     case 131156:
       {
 	synServoLockFrames++;
 
-	if ((pilotTarget.px == -1) || (pilotTarget.py == -1)) {
+	if (synchronicTakeClosest) {
+	  if ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1)) {
+	    cout << ">> Synchronic set to take closest box... pilotTarget = pilotClosestTarget << ";
+	    pilotTarget.px = pilotClosestTarget.px;
+	    pilotTarget.py = pilotClosestTarget.py;
+	    pilotTarget.pz = pilotClosestTarget.pz;
+	    pilotTargetBlueBoxNumber = pilotClosestBlueBoxNumber;
+	  }
+	} else if ((pilotTarget.px == -1) || (pilotTarget.py == -1)) {
 	  if ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1) && (synServoLockFrames >= synServoLockThresh)) {
 	    cout << ">> Lost Target But Taking Closest Box For Continuity... pilotTarget = pilotClosestTarget << ";
 	    pilotTarget.px = pilotClosestTarget.px;
@@ -6189,13 +6271,17 @@ cout <<
 	    }
 	    //pilot_call_stack.push_back(131161); // fetch
 	    //pilot_call_stack.push_back(196729); // quick fetch
-	    // XXX
 	    //pilot_call_stack.push_back(1048624); // load target classRangeMap and grasp
 	    //pilot_call_stack.push_back(1048633); // load target classRangeMap and grasp
-	    if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
-	      pilot_call_stack.push_back(1048624); // prepare for and execute the best grasp from memory at the current location and target
-	    else
-	      pilot_call_stack.push_back(196729); // quick fetch
+	    if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
+	      pilot_call_stack.push_back(196728); // gradient servo
+	      cout << "resettingGradientServo" << endl;
+	    } else {
+	      if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
+		pilot_call_stack.push_back(1048624); // prepare for and execute the best grasp from memory at the current location and target
+	      else
+		pilot_call_stack.push_back(196729); // quick fetch
+	    }
 
 	    break;	
 	  } else {
@@ -6204,11 +6290,242 @@ cout <<
 	    // simple servo code because there is no hysteresis to be found
 	    double pTermX = synKp*Px;
 	    double pTermY = synKp*Py;
-	    // XXX TODO invert the current eePose orientation to decide which direction to move from POV
-	    //currentEEPose.px -= pTermX;
-	    //currentEEPose.py += pTermY;
-	    currentEEPose.py += pTermX;
-	    currentEEPose.px += pTermY;
+	    //currentEEPose.py += pTermX;
+	    //currentEEPose.px += pTermY;
+
+	    // invert the current eePose orientation to decide which direction to move from POV
+	    Eigen::Vector3f localUnitX;
+	    {
+	      Eigen::Quaternionf qin(0, 1, 0, 0);
+	      Eigen::Quaternionf qout(0, 1, 0, 0);
+	      Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+	      qout = eeqform * qin * eeqform.conjugate();
+	      localUnitX.x() = qout.x();
+	      localUnitX.y() = qout.y();
+	      localUnitX.z() = qout.z();
+	    }
+
+	    Eigen::Vector3f localUnitY;
+	    {
+	      Eigen::Quaternionf qin(0, 0, 1, 0);
+	      Eigen::Quaternionf qout(0, 1, 0, 0);
+	      Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+	      qout = eeqform * qin * eeqform.conjugate();
+	      localUnitY.x() = qout.x();
+	      localUnitY.y() = qout.y();
+	      localUnitY.z() = qout.z();
+	    }
+
+	    currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
+	    currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
+
+	    pilot_call_stack.push_back(131153); // vision cycle
+	    pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  }
+	}
+      }
+      break;
+    // gradient servo
+    // capslock + X
+    case 196728:
+      {
+	cout << "entered gradient servo... iteration " << currentGradientServoIterations << endl;
+	if (targetClass < 0 || targetClass >= numClasses) {
+	  cout << "bad target class, not servoing." << endl;
+	  break;
+	}
+	if ((classAerialGradients[targetClass].rows <= 1) && (classAerialGradients[targetClass].cols <= 1)) {
+	  cout << "no aerial gradients for this class, not servoing." << endl;
+	  break;
+	}
+
+	double Px = 0;
+	double Py = 0;
+
+	cout << "computing scores... ";
+
+	Size toBecome(aerialGradientWidth, aerialGradientWidth);
+
+	int numOrientations = 37;
+	vector<Mat> rotatedAerialGrads;
+	rotatedAerialGrads.resize(numOrientations);
+	for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
+	  // rotate the template and L1 normalize it
+	  Point center = Point(aerialGradientWidth/2, aerialGradientWidth/2);
+	  double angle = thisOrient*360.0/numOrientations;
+	  double scale = 1.0;
+
+	  // Get the rotation matrix with the specifications above
+	  Mat rot_mat = getRotationMatrix2D(center, angle, scale);
+	  warpAffine(classAerialGradients[targetClass], rotatedAerialGrads[thisOrient], rot_mat, toBecome);
+
+	  double l1norm = rotatedAerialGrads[thisOrient].dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, rotatedAerialGrads[thisOrient].type()));
+	  if (l1norm <= EPSILON)
+	    l1norm = 1.0;
+	  rotatedAerialGrads[thisOrient] = rotatedAerialGrads[thisOrient] / l1norm;
+	  //cout << "classOrientedGradients[targetClass]: " << classAerialGradients[targetClass] << "rotatedAerialGrads[thisOrient] " << rotatedAerialGrads[thisOrient] << endl;
+	}
+
+	int bestOrientation = -1;
+	double bestOrientationScore = -INFINITY;
+	int bestX = -1;
+	int bestY = -1;
+
+	int crows = aerialGradientReticleWidth;
+	int ccols = aerialGradientReticleWidth;
+	int maxDim = max(crows, ccols);
+	int tRy = (maxDim-crows)/2;
+	int tRx = (maxDim-ccols)/2;
+	int gradientServoTranslation = 10;
+	for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY++) {
+	  for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX++) {
+	    // get the patch
+	    // XXX TODO warning not checking bounds
+	    int topCornerX = etaX + reticle.px - (aerialGradientReticleWidth/2);
+	    int topCornerY = etaY + reticle.py - (aerialGradientReticleWidth/2);
+	    Mat gCrop(maxDim, maxDim, CV_64F);
+
+	    for (int x = 0; x < maxDim; x++) {
+	      for (int y = 0; y < maxDim; y++) {
+		int tx = x - tRx;
+		int ty = y - tRy;
+		if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+		  gCrop.at<double>(y, x) = frameGraySobel.at<double>(topCornerY + ty, topCornerX + tx);
+		} else {
+		  gCrop.at<double>(y, x) = 0.0;
+		}
+	      }
+	    }
+
+	    cv::resize(gCrop, gCrop, toBecome);
+
+	    for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
+	      // compute the score
+	      double thisScore = 0;
+	      thisScore = rotatedAerialGrads[thisOrient].dot(gCrop);
+
+	      if (thisScore > bestOrientationScore) {
+		bestOrientation = thisOrient;
+		bestOrientationScore = thisScore;
+		bestX = etaX;
+		bestY = etaY;
+	      }
+	      cout << " this best: " << thisScore << " " << bestOrientationScore << " " << bestX << " " << bestY << endl;
+	    }
+	  }
+	}
+
+	int oneToDraw = bestOrientation;
+	Px = -bestX;
+	Py = -bestY;
+
+	Mat toShow;
+	Size toUnBecome(maxDim, maxDim);
+	//cv::resize(classAerialGradients[targetClass], toShow, toUnBecome);
+	cv::resize(rotatedAerialGrads[oneToDraw], toShow, toUnBecome);
+	//cout << rotatedAerialGrads[oneToDraw];
+
+	// draw the winning score in place
+	for (int x = 0; x < maxDim; x++) {
+	  for (int y = 0; y < maxDim; y++) {
+	    int tx = x - tRx;
+	    int ty = y - tRy;
+	    if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+	      Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
+	      //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
+	      //cout << thisColor;
+	      int thisTopCornerX = bestX + reticle.px - (aerialGradientReticleWidth/2);
+	      int thisTopCornerY = bestY + reticle.py - (aerialGradientReticleWidth/2);
+	      gradientViewerImage.at<Vec3b>(thisTopCornerY + ty, thisTopCornerX + tx) += thisColor;
+	    }
+	  }
+	}
+
+	oneToDraw = oneToDraw % numOrientations;
+
+	// change orientation according to winning rotation
+	//currentEEPose.oz -= bestOrientation*2.0*3.1415926/double(numOrientations);
+
+	double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
+
+	cout << "gradient servo Px Py: " << Px << " " << Py << " : " << reticle.px << " " << pilotTarget.px << " " << reticle.py << " " << pilotTarget.py << " ";
+
+	double dx = (currentEEPose.px - trueEEPose.position.x);
+	double dy = (currentEEPose.py - trueEEPose.position.y);
+	double dz = (currentEEPose.pz - trueEEPose.position.z);
+	double distance = dx*dx + dy*dy + dz*dz;
+
+	currentGradientServoIterations++;
+	// if we are not there yet, continue
+	if (distance > w1GoThresh*w1GoThresh) {
+	  cout << "waiting to arrive at current position." << endl;
+	  pilot_call_stack.push_back(196728); // gradient servo
+	} else {
+	  if (((fabs(Px) < gradServoPixelThresh) && (fabs(Py) < gradServoPixelThresh) && (fabs(Ptheta) < gradServoThetaThresh)) ||
+	      (currentGradientServoIterations > maxGradientServoIterations))
+	  {
+	    //cout << "got within thresh, returning." << endl;
+	    cout << "got within thresh, fetching." << endl;
+	    if (surveyDuringServo) {
+	      cout << "Survey results: " << endl;
+	      int winningClass = -1;
+	      int winningClassCounts = -1;
+	      for (int clc = 0; clc < numClasses; clc++) {
+		if (surveyHistogram[clc] > winningClassCounts) {
+		  winningClass = clc;
+		  winningClassCounts = surveyHistogram[clc];
+		}
+		cout << "    class " << classLabels[clc] << " counts: " << surveyHistogram[clc] << endl;
+	      }
+	      cout << "  Winning Class: " << classLabels[winningClass] << " counts: " << surveyHistogram[winningClass] << endl;
+	      surveyWinningClass = winningClass;
+	    }
+	    //pilot_call_stack.push_back(131161); // fetch
+	    //pilot_call_stack.push_back(196729); // quick fetch
+	    // XXX
+	    // perform best grasp from memory in local space
+
+	    if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
+	      pilot_call_stack.push_back(1048624); // prepare for and execute the best grasp from memory at the current location and target
+	    else
+	      pilot_call_stack.push_back(196729); // quick fetch
+
+	    break;	
+	  } else {
+	    cout << "executing P controller update." << endl;
+	    pilot_call_stack.push_back(196728); // gradient servo
+	    // simple servo code because there is no hysteresis to be found
+	    double pTermX = gradKp*Px;
+	    double pTermY = gradKp*Py;
+
+	    //currentEEPose.py += pTermX;
+	    //currentEEPose.px += pTermY;
+
+	    // invert the current eePose orientation to decide which direction to move from POV
+	    Eigen::Vector3f localUnitX;
+	    {
+	      Eigen::Quaternionf qin(0, 1, 0, 0);
+	      Eigen::Quaternionf qout(0, 1, 0, 0);
+	      Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+	      qout = eeqform * qin * eeqform.conjugate();
+	      localUnitX.x() = qout.x();
+	      localUnitX.y() = qout.y();
+	      localUnitX.z() = qout.z();
+	    }
+
+	    Eigen::Vector3f localUnitY;
+	    {
+	      Eigen::Quaternionf qin(0, 0, 1, 0);
+	      Eigen::Quaternionf qout(0, 1, 0, 0);
+	      Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+	      qout = eeqform * qin * eeqform.conjugate();
+	      localUnitY.x() = qout.x();
+	      localUnitY.y() = qout.y();
+	      localUnitY.z() = qout.z();
+	    }
+
+	    currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
+	    currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
 
 	    pilot_call_stack.push_back(131153); // vision cycle
 	    pilot_call_stack.push_back(131154); // w1 wait until at current position
@@ -6745,10 +7062,11 @@ cout <<
 	currentEEPose = wholeFoodsPantry1;
       }
       break;
-    // save aerial gradient map
+    // save aerial gradient map if there is only one blue box 
     // capslock + Z
     case 196730:
       {
+	cout << "save aerial gradient ";
 	if ((focusedClass > -1) && (frameGraySobel.rows >1) && (frameGraySobel.cols > 1)) {
 	  string thisLabelName = focusedClassLabel;
 
@@ -6758,31 +7076,37 @@ cout <<
 
 	  mkdir(dirToMakePath.c_str(), 0777);
 
-	  int hbb = pilotTargetBlueBoxNumber;
+	  //int hbb = pilotTargetBlueBoxNumber;
+	  //int hbb = 0;
 
-	  bTops[hbb];
-	  bBots[hbb];
-  
-	  int crows = bBots[hbb].y - bTops[hbb].y;
-	  int ccols = bBots[hbb].x - bTops[hbb].x;
+	int topCornerX = reticle.px - (aerialGradientReticleWidth/2);
+	int topCornerY = reticle.py - (aerialGradientReticleWidth/2);
+	int crows = aerialGradientReticleWidth;
+	int ccols = aerialGradientReticleWidth;
+
+	  //int crows = bBots[hbb].y - bTops[hbb].y;
+	  //int ccols = bBots[hbb].x - bTops[hbb].x;
 	  int maxDim = max(crows, ccols);
 	  int tRy = (maxDim-crows)/2;
 	  int tRx = (maxDim-ccols)/2;
 	  Mat gCrop(maxDim, maxDim, frameGraySobel.type());
 
-	  float totalMass = 0.0;
+	  cout << "crows ccols: " << crows << " " << ccols << " ";
 
 	  for (int x = 0; x < maxDim; x++) {
 	    for (int y = 0; y < maxDim; y++) {
 	      int tx = x - tRx;
 	      int ty = y - tRy;
 	      if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
-		gCrop.at<float>(y, x) = frameGraySobel.at<float>(ty, tx);
+		//gCrop.at<double>(y, x) = frameGraySobel.at<double>(bTops[hbb].y + ty, bTops[hbb].x + tx);
+		gCrop.at<double>(y, x) = frameGraySobel.at<double>(topCornerY + ty, topCornerX + tx);
 	      } else {
-		gCrop.at<float>(y, x) = 0.0;
+		gCrop.at<double>(y, x) = 0.0;
 	      }
 	    }
 	  }
+  
+	  cout << "about to resize" << endl;
 
 	  Size toBecome(aerialGradientWidth, aerialGradientWidth);
 	  cv::resize(gCrop, gCrop, toBecome);
@@ -9440,6 +9764,8 @@ void init_oriented_filters(orientedFilterType thisType) {
 
   // it is important to L1 normalize the filters so that comparing dot products makes sense.
   // that is, they should all respond equally to a constant image.
+  // Actually some might say its better to make them mean 0 and L2 unit norm.  But L1 works
+  // for now.
   biggestL1 = -1;
 
   for (int o = 1; o < ORIENTATIONS; o++) {
@@ -9793,8 +10119,6 @@ void goCalculateDensity() {
     }
   }
 
-  frameGraySobel = totalGraySobel.clone();
-
   double minGraySob = INFINITY;
   double maxGraySob = -INFINITY;
   double minCrSob = INFINITY;
@@ -10064,6 +10388,7 @@ void goCalculateDensity() {
     for (int x = xs; x < xe; x++) {
       for (int y = ys; y < ye; y++) {
 	density[y*imW+x] = 0;
+	totalGraySobel.at<double>(y,x) = 0;
       }
     }
     Mat vCrop = objectViewerImage(cv::Rect(xs, ys, xe-xs, ye-ys));
@@ -10075,11 +10400,15 @@ void goCalculateDensity() {
     for (int x = xs; x < xe; x++) {
       for (int y = ys; y < ye; y++) {
 	density[y*imW+x] = 0;
+	totalGraySobel.at<double>(y,x) = 0;
       }
     }
     Mat vCrop2 = objectViewerImage(cv::Rect(xs, ys, xe-xs, ye-ys));
     vCrop2 = vCrop2/2;
   }
+
+  // masked this too
+  frameGraySobel = totalGraySobel.clone();
 
   // truncate the density outside the gray box
   for (int x = 0; x < imW; x++) {
@@ -12521,7 +12850,7 @@ int main(int argc, char **argv) {
     gripperPub.publish(command);
   }
 
-  frameGraySobel = Mat(1,1,CV_32F);
+  frameGraySobel = Mat(1,1,CV_64F);
 
   //nodeInit();
   spinlessNodeMain();
