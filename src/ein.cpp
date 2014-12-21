@@ -565,7 +565,7 @@ int maxY = 0;
 double maxD = 0;
 int maxGG = 0;
 
-double graspDepth = -.03;//-.04;//-.02;
+double graspDepth = -.01;//-.03;//-.04;//-.02;
 
 // grasp gear 
 const int totalGraspGears = 8;
@@ -1005,7 +1005,7 @@ Mat frameGraySobel;
 int aerialGradientWidth = 100;
 int aerialGradientReticleWidth = 200;
 
-int maxGradientServoIterations = 3;
+int maxGradientServoIterations = 7;
 int currentGradientServoIterations = 0;
 
 ////////////////////////////////////////////////
@@ -4735,6 +4735,39 @@ cout <<
 	cout << "Move to target z and grasp. deltaZ: " << deltaZ << " zTimes: " << zTimes << endl;
       }
       break;
+    // use current range as target z and grasp
+    // numlock + J
+    case 1114186:
+      {
+	pilot_call_stack.push_back('j');
+
+	cout << " ++Move to target z: " << maxD << " " << graspDepth << " " << currentEEPose.pz << endl; cout.flush();
+
+	//double deltaZ = -maxD - graspDepth;
+	double deltaZ = -eeRange + graspDepth;
+
+	double zTimes = fabs(floor(deltaZ / bDelta)); 
+
+	cout << " ++Move to target z: " << deltaZ << " " << zTimes << " " << endl; cout.flush();
+
+	int numNoOps = 2;
+	if (deltaZ > 0)
+	  for (int zc = 0; zc < zTimes; zc++) {
+	    for (int cc = 0; cc < numNoOps; cc++) {
+	      pilot_call_stack.push_back('C');
+	    }
+	    pilot_call_stack.push_back('w');
+	  }
+	if (deltaZ < 0)
+	  for (int zc = 0; zc < zTimes; zc++) {
+	    for (int cc = 0; cc < numNoOps; cc++) {
+	      pilot_call_stack.push_back('C');
+	    }
+	    pilot_call_stack.push_back('s');
+	  }
+	cout << "Move to target z and grasp. deltaZ: " << deltaZ << " zTimes: " << zTimes << endl;
+      }
+      break;
     // add switches disable recording
     // turn on scanning
     // numlock + k
@@ -5348,8 +5381,11 @@ cout <<
 	pilot_call_stack.push_back('2'); // assume pose at register 2
 	pushNoOps(10);
 
-	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
+	// XXX TODO this is broken because we no longer know the height in the transformed space
+	//pilot_call_stack.push_back(1048682); // grasp at z inferred from target
+	pilot_call_stack.push_back(1114186); // use current range as target z and grasp
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(1048680); // assume x,y of target 
 	pilot_call_stack.push_back(1048680); // assume x,y of target 
 	pilot_call_stack.push_back(1048679); // render reticle
 	pilot_call_stack.push_back(1048691); // find max on register 1
@@ -6181,12 +6217,14 @@ cout <<
     case 131139:
       {
 	synchronicTakeClosest = 0;
+	cout << "synchronicTakeClosest = 0" << endl;
       }
       break;
     // capslock + C
     case 196707:
       {
 	synchronicTakeClosest = 1;
+	cout << "synchronicTakeClosest = 1" << endl;
       }
       break;
     // synchronic servo
@@ -6202,6 +6240,10 @@ cout <<
 	    pilotTarget.py = pilotClosestTarget.py;
 	    pilotTarget.pz = pilotClosestTarget.pz;
 	    pilotTargetBlueBoxNumber = pilotClosestBlueBoxNumber;
+	  } else {
+	    cout << ">> Synchronic set to take closest but closest is invalid. Halting servo. << " << endl;
+	    cout << "synchronic servo: " << reticle.px << " " << pilotClosestTarget.px << " " << reticle.py << " " << pilotClosestTarget.py << " ";
+	    break;
 	  }
 	} else if ((pilotTarget.px == -1) || (pilotTarget.py == -1)) {
 	  if ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1) && (synServoLockFrames >= synServoLockThresh)) {
@@ -6249,12 +6291,10 @@ cout <<
 	  cout << "waiting to arrive at current position." << endl;
 	  pilot_call_stack.push_back(131156); // synchronic servo
 	} else {
-	  //if ((fabs(Px) < synServoPixelThresh) && (fabs(Py) < synServoPixelThresh)) 
 	  if (   (fabs(Px) < synServoPixelThresh) && (fabs(Py) < synServoPixelThresh) &&
 	       !( (surveyDuringServo) && (surveyTotalCounts < viewsWithNoise) )   )
 	  {
-	    //cout << "got within thresh, returning." << endl;
-	    cout << "got within thresh, fetching." << endl;
+	    cout << "got within thresh. ";
 	    if (surveyDuringServo) {
 	      cout << "Survey results: " << endl;
 	      int winningClass = -1;
@@ -6269,18 +6309,20 @@ cout <<
 	      cout << "  Winning Class: " << classLabels[winningClass] << " counts: " << surveyHistogram[winningClass] << endl;
 	      surveyWinningClass = winningClass;
 	    }
-	    //pilot_call_stack.push_back(131161); // fetch
-	    //pilot_call_stack.push_back(196729); // quick fetch
-	    //pilot_call_stack.push_back(1048624); // load target classRangeMap and grasp
-	    //pilot_call_stack.push_back(1048633); // load target classRangeMap and grasp
-	    if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
+	    if (synchronicTakeClosest) {
+	      // do nothing, just proceed
+	      cout << "Returning." << endl;
+	    } else if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
 	      pilot_call_stack.push_back(196728); // gradient servo
-	      cout << "resettingGradientServo" << endl;
+	      cout << "Queuing gradient servo." << endl;
 	    } else {
-	      if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
+	      if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
 		pilot_call_stack.push_back(1048624); // prepare for and execute the best grasp from memory at the current location and target
-	      else
+		cout << "Recalling range map and calculating grasp..." << endl;
+	      } else {
 		pilot_call_stack.push_back(196729); // quick fetch
+		cout << "No range map recalled so performing a quick fetch..." << endl;
+	      }
 	    }
 
 	    break;	
@@ -6376,7 +6418,7 @@ cout <<
 	int maxDim = max(crows, ccols);
 	int tRy = (maxDim-crows)/2;
 	int tRx = (maxDim-ccols)/2;
-	int gradientServoTranslation = 10;
+	int gradientServoTranslation = 2;
 	for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY++) {
 	  for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX++) {
 	    // get the patch
@@ -6416,8 +6458,8 @@ cout <<
 	}
 
 	int oneToDraw = bestOrientation;
-	Px = -bestX;
-	Py = -bestY;
+	//Px = -bestX;
+	//Py = -bestY;
 
 	Mat toShow;
 	Size toUnBecome(maxDim, maxDim);
@@ -6444,7 +6486,7 @@ cout <<
 	oneToDraw = oneToDraw % numOrientations;
 
 	// change orientation according to winning rotation
-	//currentEEPose.oz -= bestOrientation*2.0*3.1415926/double(numOrientations);
+	currentEEPose.oz -= bestOrientation*2.0*3.1415926/double(numOrientations);
 
 	double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
 
@@ -7616,10 +7658,18 @@ cout <<
 	  //pilot_call_stack.push_back(131142); // reinitialize and retrain everything
 
 	  pilot_call_stack.push_back(131140); // move the scanned object from the counter to the pantry
-
 	  pilot_call_stack.push_back(131143); // 72 way scan
-	  pilot_call_stack.push_back(131154); // w1 wait until at current position
-	  pushCopies('w', 10);
+
+	  // XXX TODO vision cycle, save gradient, do medium scan in two directions, save range map
+
+	  { // 
+	    pilot_call_stack.push_back(131139); // synchronic servo don't take closest
+	    pilot_call_stack.push_back(131156); // synchronic servo
+	    pilot_call_stack.push_back(196707); // synchronic servo take closest
+	    pushCopies('w', 10);
+	    pilot_call_stack.push_back('x'); // back up 
+	    pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  }
 
 	  pilot_call_stack.push_back(196720); //  make a new class
 
@@ -11508,19 +11558,19 @@ void goClassifyBlueBoxes() {
   
       pilotTargetBlueBoxNumber = biggestBB;
     }
-    {
-      geometry_msgs::Point p;
-      p.x = bCens[closestBBToReticle].x;
-      p.y = bCens[closestBBToReticle].y;
-      p.z = 0.0;
-    
-      //ee_target_pub.publish(p);
-      pilotClosestTarget.px = p.x;
-      pilotClosestTarget.py = p.y;
-      pilotClosestTarget.pz = p.z;
+  }
+  if (closestBBToReticle > -1) {
+    geometry_msgs::Point p;
+    p.x = bCens[closestBBToReticle].x;
+    p.y = bCens[closestBBToReticle].y;
+    p.z = 0.0;
+  
+    //ee_target_pub.publish(p);
+    pilotClosestTarget.px = p.x;
+    pilotClosestTarget.py = p.y;
+    pilotClosestTarget.pz = p.z;
 
-      pilotClosestBlueBoxNumber = closestBBToReticle;
-    }
+    pilotClosestBlueBoxNumber = closestBBToReticle;
   }
 
   if (shouldIRender)
