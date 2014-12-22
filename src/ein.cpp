@@ -138,6 +138,7 @@ typedef struct {
   double qw;
 } eePose;
 
+#define MOVE_FASTER 0.02
 #define MOVE_FAST 0.01
 #define MOVE_MEDIUM 0.005 //.005
 #define MOVE_SLOW 0.0025
@@ -677,6 +678,12 @@ double gripperPosition = 0;
 int gripperGripping = 0;
 double gripperThresh = 7.0;
 
+double graspAttemptCounter = 0;
+double graspFailCounter = 0;
+double graspSuccessCounter = 0;
+double graspSuccessRate = 0;
+ros::Time graspTrialStart;
+
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -1005,7 +1012,7 @@ Mat frameGraySobel;
 int aerialGradientWidth = 100;
 int aerialGradientReticleWidth = 200;
 
-int maxGradientServoIterations = 7;
+int maxGradientServoIterations = 3;
 int currentGradientServoIterations = 0;
 
 ////////////////////////////////////////////////
@@ -2264,9 +2271,9 @@ void scanYdirection(double speedOnLines, double speedBetweenLines) {
       pilot_call_stack.push_back(1048677);
       pilot_call_stack.push_back('a');
     }
-    pushSpeedSign(speedOnLines);
-    pilot_call_stack.push_back('e');
-    pushSpeedSign(speedBetweenLines);
+    //pushSpeedSign(speedOnLines);
+    //pilot_call_stack.push_back('e');
+    //pushSpeedSign(speedBetweenLines);
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
       pilot_call_stack.push_back(1048677);
       pilot_call_stack.push_back('d');
@@ -4483,6 +4490,8 @@ cout <<
       }
       break;
     // set target reticle to the max mapped position
+    // unfortunately the way this does local coordinates demands that you be in gear 1 when you 
+    // make this calculation.  So make sure you are or your target will be wrong...
     // numlock + f
     case 1048678:
       {
@@ -4515,8 +4524,10 @@ cout <<
 	double cTermX = rmDelta*(maxX-rmHalfWidth);
 	double cTermY = rmDelta*(maxY-rmHalfWidth);
 
-	trY = rmcY + cTermX*localUnitY.y() - cTermY*localUnitX.y();
-	trX = rmcX + cTermX*localUnitY.x() - cTermY*localUnitX.x();
+	//trY = rmcY + cTermX*localUnitY.y() - cTermY*localUnitX.y();
+	//trX = rmcX + cTermX*localUnitY.x() - cTermY*localUnitX.x();
+	trY = rmcY - cTermX*localUnitY.y() + cTermY*localUnitX.y();
+	trX = rmcX - cTermX*localUnitY.x() + cTermY*localUnitX.x();
 
 	cout << "trX: " << trX << " trY: " << trY << endl;
       }
@@ -4982,7 +4993,7 @@ cout <<
 	double targetY = trY;
 
 	currentEEPose.px = targetX;
-	currentEEPose.py = targetX;
+	currentEEPose.py = targetY;
       
 	cout << "Assuming x,y,gear: " << targetX << " " << targetY << " " << maxGG << endl;
 
@@ -5294,14 +5305,93 @@ cout <<
       }
       break;
     // numlock + .
+    // neutral scan
     case 1048622:
       {
 	double lineSpeed = MOVE_FAST;
 	double betweenSpeed = MOVE_FAST;
 	scanXdirection(lineSpeed, betweenSpeed); // load scan program
+	pushCopies('e', 3);
+	scanYdirection(lineSpeed, betweenSpeed); // load scan program
+	pushCopies('q', 3);
 	pilot_call_stack.push_back(1114150); // prepare for search
 	pilot_call_stack.push_back(1048683); // turn on scanning
 	pilot_call_stack.push_back(1048695); // clear scan history
+      }
+      break;
+    // numlock + >
+    // min scan
+    case 1114174:
+      {
+	double lineSpeed = MOVE_FASTER;
+	double betweenSpeed = MOVE_FASTER;
+	// XXX TODO assign to map the pixelwise minimally deviant of reg1 and reg2
+	// XXX TODO save map to hi register 2
+	scanXdirection(lineSpeed, betweenSpeed); // load scan program
+	// XXX TODO clear map
+	// XXX TODO save map to hi register 1
+	pushCopies('e', 3);
+	scanYdirection(lineSpeed, betweenSpeed); // load scan program
+	pushCopies('q', 3);
+	pilot_call_stack.push_back(1114150); // prepare for search
+	pilot_call_stack.push_back(1048683); // turn on scanning
+	pilot_call_stack.push_back(1048695); // clear scan history
+      }
+      break;
+    // save map to hi register 1
+    // numlock + F1
+    case -5:
+      {
+	for (int rx = 0; rx < hrmWidth; rx++) {
+	  for (int ry = 0; ry < hrmWidth; ry++) {
+	    hiRangeMapReg1[rx + ry*hrmWidth] = hiRangeMap[rx + ry*hrmWidth];
+	  }
+	}
+      }
+      break;
+    // save map to hi register 2
+    // numlock + F2
+    case -4:
+      {
+	for (int rx = 0; rx < hrmWidth; rx++) {
+	  for (int ry = 0; ry < hrmWidth; ry++) {
+	    hiRangeMapReg2[rx + ry*hrmWidth] = hiRangeMap[rx + ry*hrmWidth];
+	  }
+	}
+      }
+      break;
+    // clear range map only
+    // numlock + F3
+    case -3:
+      {
+	for (int rx = 0; rx < hrmWidth; rx++) {
+	  for (int ry = 0; ry < hrmWidth; ry++) {
+	    hiRangeMap[rx + ry*hrmWidth] = 0;
+	    hiRangeMapMass[rx + ry*hrmWidth] = 0;
+	    hiRangeMapAccumulator[rx + ry*hrmWidth] = 0;
+	  }
+	}
+	{
+	  cv::Scalar backColor(128,0,0);
+	  cv::Point outTop = cv::Point(0,0);
+	  cv::Point outBot = cv::Point(hrmiWidth,hrmiHeight);
+	  Mat vCrop = hiRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	  vCrop = backColor;
+	}
+      }
+      break;
+    // XXX TODO assign to map the pixelwise minimally deviant of reg1 and reg2
+    // numlock + F4
+    case -2:
+      {
+	for (int rx = 0; rx < hrmWidth; rx++) {
+	  for (int ry = 0; ry < hrmWidth; ry++) {
+	    if (0)
+	      hiRangeMap[rx + ry*hrmWidth] = hiRangeMapReg1[rx + ry*hrmWidth];
+	    else
+	      hiRangeMap[rx + ry*hrmWidth] = hiRangeMapReg2[rx + ry*hrmWidth];
+	  }
+	}
       }
       break;
     // find best of 4 grasps using memory
@@ -5382,11 +5472,13 @@ cout <<
 	pushNoOps(10);
 
 	// XXX TODO this is broken because we no longer know the height in the transformed space
-	//pilot_call_stack.push_back(1048682); // grasp at z inferred from target
-	pilot_call_stack.push_back(1114186); // use current range as target z and grasp
+	// need to translate to current table height
+	pilot_call_stack.push_back(196713); // count grasp
+	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
+	//pilot_call_stack.push_back(1114186); // use current range as target z and grasp
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pilot_call_stack.push_back(1048680); // assume x,y of target 
-	pilot_call_stack.push_back(1048680); // assume x,y of target 
+	//pilot_call_stack.push_back(1048680); // assume x,y of target 
+	pilot_call_stack.push_back(1114175); // assume x,y of target in local space
 	pilot_call_stack.push_back(1048679); // render reticle
 	pilot_call_stack.push_back(1048691); // find max on register 1
 	pilot_call_stack.push_back(1048673); // render register 1
@@ -6159,6 +6251,10 @@ cout <<
     // capslock + w
     case 131159:
       {
+	graspAttemptCounter = 0;
+	graspFailCounter = 0;
+	graspSuccessCounter = 0;
+	graspTrialStart = ros::Time::now();
 	pilotTarget.px = -1;
 	pilotTarget.py = -1;
 	pilotClosestTarget.px = -1;
@@ -6458,8 +6554,8 @@ cout <<
 	}
 
 	int oneToDraw = bestOrientation;
-	//Px = -bestX;
-	//Py = -bestY;
+	Px = -bestX;
+	Py = -bestY;
 
 	Mat toShow;
 	Size toUnBecome(maxDim, maxDim);
@@ -6487,6 +6583,7 @@ cout <<
 
 	// change orientation according to winning rotation
 	currentEEPose.oz -= bestOrientation*2.0*3.1415926/double(numOrientations);
+	//currentEEPose.oz += bestOrientation*2.0*3.1415926/double(numOrientations);
 
 	double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
 
@@ -6894,7 +6991,11 @@ cout <<
 	pilot_call_stack.push_back(1048673); // render register 1
 	pilot_call_stack.push_back(1048690); // load map to register 1
 	pilot_call_stack.push_back(1048631); // assume best gear
-	pilot_call_stack.push_back(1048678); // target best grasp
+	{
+	  pilot_call_stack.push_back(1048678); // target best grasp
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pilot_call_stack.push_back(1048625); // change to first gear
+	}
 	pilot_call_stack.push_back(1048630); // find best grasp
 
 	pilot_call_stack.push_back(1048684); // turn off scanning
@@ -6912,7 +7013,11 @@ cout <<
 	//pilot_call_stack.push_back(1048625); // change to first gear
 	//pilot_call_stack.push_back(1048673); // render register 1
 	//pilot_call_stack.push_back(1048690); // load map to register 1
-	//pilot_call_stack.push_back(1048678); // target best grasp
+	//{
+	  //pilot_call_stack.push_back(1048678); // target best grasp
+	  //pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  //pilot_call_stack.push_back(1048625); // change to first gear
+	//}
 	//pilot_call_stack.push_back(1048630); // find best grasp
 
 	//pilot_call_stack.push_back(1114206); // spiral scan 3
@@ -6927,6 +7032,7 @@ cout <<
 	pilot_call_stack.push_back(1048625); // change to first gear
 	pushNoOps(20);
 
+	pushNoOps(60); 
 	pilot_call_stack.push_back('x'); 
 	pushCopies('s', 17); 
 
@@ -6953,7 +7059,11 @@ cout <<
 	pilot_call_stack.push_back(1048673); // render register 1
 	pilot_call_stack.push_back(1048690); // load map to register 1
 	pilot_call_stack.push_back(1048631); // assume best gear
-	pilot_call_stack.push_back(1048678); // target best grasp
+	{
+	  pilot_call_stack.push_back(1048678); // target best grasp
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pilot_call_stack.push_back(1048625); // change to first gear
+	}
 	pilot_call_stack.push_back(1048630); // find best grasp
 
 	pilot_call_stack.push_back(1048684); // turn off scanning
@@ -6968,7 +7078,11 @@ cout <<
 	pilot_call_stack.push_back(1048625); // change to first gear
 	pilot_call_stack.push_back(1048673); // render register 1
 	pilot_call_stack.push_back(1048690); // load map to register 1
-	pilot_call_stack.push_back(1048678); // target best grasp
+	{
+	  pilot_call_stack.push_back(1048678); // target best grasp
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pilot_call_stack.push_back(1048625); // change to first gear
+	}
 	pilot_call_stack.push_back(1048630); // find best grasp
 
 	pilot_call_stack.push_back(131144); // quick orientation scan
@@ -6979,12 +7093,25 @@ cout <<
 	pilot_call_stack.push_back(1048625); // change to first gear
 	pushNoOps(20);
 
+	pushCopies('s', 10); 
+	pilot_call_stack.push_back(131139); // synchronic servo don't take closest
+	pilot_call_stack.push_back(131156); // synchronic servo
+	pilot_call_stack.push_back(196707); // synchronic servo take closest
+	pilot_call_stack.push_back(131153); // vision cycle
+	pushCopies(131121, 5); // density
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('w', 10); 
+
+	pushNoOps(60); 
 	pilot_call_stack.push_back('x'); 
 	pushCopies('s', 5); 
 
 	pilot_call_stack.push_back('k'); // open gripper
 	pilot_call_stack.push_back('i'); // initialize gripper
 	pushSpeedSign(MOVE_FAST);
+
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(196641); // go to wholeFoodsBag1
       }
       break;
     // quick fetch counter
@@ -7005,7 +7132,11 @@ cout <<
 	pilot_call_stack.push_back(1048673); // render register 1
 	pilot_call_stack.push_back(1048690); // load map to register 1
 	pilot_call_stack.push_back(1048631); // assume best gear
-	pilot_call_stack.push_back(1048678); // target best grasp
+	{
+	  pilot_call_stack.push_back(1048678); // target best grasp
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pilot_call_stack.push_back(1048625); // change to first gear
+	}
 	pilot_call_stack.push_back(1048630); // find best grasp
 
 	pilot_call_stack.push_back(1048684); // turn off scanning
@@ -7020,7 +7151,11 @@ cout <<
 	pilot_call_stack.push_back(1048625); // change to first gear
 	pilot_call_stack.push_back(1048673); // render register 1
 	pilot_call_stack.push_back(1048690); // load map to register 1
-	pilot_call_stack.push_back(1048678); // target best grasp
+	{
+	  pilot_call_stack.push_back(1048678); // target best grasp
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pilot_call_stack.push_back(1048625); // change to first gear
+	}
 	pilot_call_stack.push_back(1048630); // find best grasp
 
 	pilot_call_stack.push_back(131144); // quick orientation scan
@@ -7031,12 +7166,25 @@ cout <<
 	pilot_call_stack.push_back(1048625); // change to first gear
 	pushNoOps(20);
 
+	pushCopies('s', 10); 
+	pilot_call_stack.push_back(131139); // synchronic servo don't take closest
+	pilot_call_stack.push_back(131156); // synchronic servo
+	pilot_call_stack.push_back(196707); // synchronic servo take closest
+	pilot_call_stack.push_back(131153); // vision cycle
+	pushCopies(131121, 5); // density
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('w', 10); 
+
+	pushNoOps(60); 
 	pilot_call_stack.push_back('x'); 
 	pushCopies('s', 7); 
 
 	pilot_call_stack.push_back('k'); // open gripper
 	pilot_call_stack.push_back('i'); // initialize gripper
 	pushSpeedSign(MOVE_FAST);
+
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
       }
       break;
     // constant speed scan
@@ -7403,6 +7551,26 @@ cout <<
 	}
       }
       break;
+    // count grasp
+    // capslock + I
+    case 196713:
+      {
+	if (gripperMoving) {
+	  pilot_call_stack.push_back(196713); // count grasp
+	} else {
+	  graspAttemptCounter++;
+	  if (gripperPosition < gripperThresh) {
+	    graspFailCounter++;
+	  } else {
+	    graspSuccessCounter++;
+	  }
+	  graspSuccessRate = graspSuccessCounter / graspAttemptCounter;
+	  ros::Time thisTime = ros::Time::now();
+	  ros::Duration sinceStartOfTrial = thisTime - graspTrialStart;
+	  cout << "<><><><> Grasp attempts rate time: " << graspAttemptCounter << " " << graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds" << endl;
+	}
+      }
+      break;
     // shake it off2
     // capslock + O
     case 196719:
@@ -7658,11 +7826,18 @@ cout <<
 	  //pilot_call_stack.push_back(131142); // reinitialize and retrain everything
 
 	  pilot_call_stack.push_back(131140); // move the scanned object from the counter to the pantry
+
 	  pilot_call_stack.push_back(131143); // 72 way scan
+	  
+	  { // do density and gradient, save gradient, do medium scan in two directions, save range map
+	    pilot_call_stack.push_back(196705); // save current depth map to current class
+	    pilot_call_stack.push_back(1048622); // nuetral scan 
+	    pushCopies('s', 10);
+	    pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
+	    pushCopies(131121, 10); // density
+	  }
 
-	  // XXX TODO vision cycle, save gradient, do medium scan in two directions, save range map
-
-	  { // 
+	  { // deposit and center 
 	    pilot_call_stack.push_back(131139); // synchronic servo don't take closest
 	    pilot_call_stack.push_back(131156); // synchronic servo
 	    pilot_call_stack.push_back(196707); // synchronic servo take closest
@@ -7674,6 +7849,10 @@ cout <<
 	  pilot_call_stack.push_back(196720); //  make a new class
 
 	  pilot_call_stack.push_back(196710); //  take something from grocery bag and put it on the counter
+
+	  pilot_call_stack.push_back(1048625); // change to first gear
+	  pilot_call_stack.push_back('k'); // open gripper
+	  pilot_call_stack.push_back('i'); // initialize gripper
       }
       break;
     //
