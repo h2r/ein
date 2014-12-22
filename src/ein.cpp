@@ -6582,8 +6582,8 @@ cout <<
 	oneToDraw = oneToDraw % numOrientations;
 
 	// change orientation according to winning rotation
-	currentEEPose.oz -= bestOrientation*2.0*3.1415926/double(numOrientations);
-	//currentEEPose.oz += bestOrientation*2.0*3.1415926/double(numOrientations);
+	//currentEEPose.oz -= bestOrientation*2.0*3.1415926/double(numOrientations);
+	currentEEPose.oz += bestOrientation*2.0*3.1415926/double(numOrientations);
 
 	double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
 
