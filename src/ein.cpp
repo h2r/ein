@@ -144,7 +144,8 @@ typedef struct {
 #define MOVE_SLOW 0.0025
 #define MOVE_VERY_SLOW 0.00125
 
-#define RANGE_INVALID 0.3
+#define RANGE_UPPER_INVALID 0.3
+#define RANGE_LOWER_INVALID 0.08
 
 ////////////////////////////////////////////////
 // end pilot includes, usings, and defines 
@@ -507,7 +508,7 @@ double parzenKernel[parzenKernelWidth*parzenKernelWidth];
 double parzenKernelSigma = 4.0;
 //double parzenKernelSigma = 2.0;
 //double parzenKernelSigma = 1.0; // this is approximately what it should be at 20 cm height
-//double parzenKernelSigma = 0.5; // 
+//double parzenKernelSigma = 0.5;  
 // 13.8 cm high -> 2.2 cm gap
 // 23.8 cm high -> 3.8 cm gap
 // 4 sigma (centered at 0) should be the gap
@@ -683,6 +684,15 @@ double graspFailCounter = 0;
 double graspSuccessCounter = 0;
 double graspSuccessRate = 0;
 ros::Time graspTrialStart;
+
+double bagTableZ = 0.22;
+double counterTableZ = 0.18;
+double shelfTableZ = 0.24;
+
+double currentTableZ = bagTableZ;
+
+double mostRecentUntabledZ = 0.0;
+eePose bestOrientationEEPose;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -1657,7 +1667,6 @@ void epRingBufferAdvance() {
 //  data to account back to time t
 void allRingBuffersAdvance(ros::Time t) {
 
-// TODO XXX make sure that the drawslack parameter is implemented
   double thisRange;
   Mat thisIm;
   geometry_msgs::Pose thisPose;
@@ -1708,11 +1717,14 @@ void recordReadyRangeReadings() {
       } 
       if ((weHavePoseData == 1) && (weHaveImData == 1)) {
 
-	// XXX TODO throw out the reading if it is outside of valid range bounds
-
-	
-	if (thisRange >= RANGE_INVALID) {
+	if (thisRange >= RANGE_UPPER_INVALID) {
 	  //cout << "DISCARDED large range reading." << endl;
+	  IShouldContinue = 1;
+	  rgRingBufferAdvance();
+	  continue;
+	}
+	if (thisRange <= RANGE_LOWER_INVALID) {
+	  //cout << "DISCARDED small range reading." << endl;
 	  IShouldContinue = 1;
 	  rgRingBufferAdvance();
 	  continue;
@@ -1773,11 +1785,14 @@ void recordReadyRangeReadings() {
 	  cout.flush();
 	  #endif
 
-//cout << thisPose.orientation << thisPose.position << " " << eX << " " << eY << " " << thisRange << endl;
+	  //cout << thisPose.orientation << thisPose.position << " " << eX << " " << eY << " " << thisRange << endl;
 	  if ((fabs(eX) <= hrmHalfWidth) && (fabs(eY) <= hrmHalfWidth))
 	    hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(0,0,128);
-	  // XXX
+	  // ATTN 0 this is negative because it used to be range and not Z but we have to chase the min / max switches to correct it
 	  thisZmeasurement = -irSensorEnd.z();
+	  mostRecentUntabledZ = thisZmeasurement;
+	  // ATTN 1 currently accounting for table models
+	  thisZmeasurement = thisZmeasurement - currentTableZ;
 
 	  rayDirection = Eigen::Vector3d(localUnitZ.x(), localUnitZ.y(), localUnitZ.z());
 	}
@@ -2260,7 +2275,8 @@ void scanYdirection(double speedOnLines, double speedBetweenLines) {
   }
   pushSpeedSign(speedOnLines);
 
-  int gLimit = 1+((rmWidth*betweenLineGain+2*scanPadding)/2);
+  //int gLimit = 1+((rmWidth*betweenLineGain+2*scanPadding)/2);
+  int gLimit = ((rmWidth*betweenLineGain+2*scanPadding));
   for (int g = 0; g < gLimit; g++) {
     pilot_call_stack.push_back(1114183); // full render
     pilot_call_stack.push_back(1048677);
@@ -2551,9 +2567,8 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
     Eigen::Quaternionf qin(0, 1, 0, 0);
     Eigen::Quaternionf qout(0, 1, 0, 0);
     //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
-    //Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
-    // XXX now in local coordinates
-    Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+    Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
+    //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitX.x() = qout.x();
     localUnitX.y() = qout.y();
@@ -2565,8 +2580,8 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
     Eigen::Quaternionf qin(0, 0, 1, 0);
     Eigen::Quaternionf qout(0, 1, 0, 0);
     //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
-    //Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
-    Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+    Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
+    //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitY.x() = qout.x();
     localUnitY.y() = qout.y();
@@ -2578,8 +2593,8 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
     Eigen::Quaternionf qin(0, 0, 0, 1);
     Eigen::Quaternionf qout(0, 1, 0, 0);
     //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
-    //Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
-    Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+    Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
+    //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitZ.x() = qout.x();
     localUnitZ.y() = qout.y();
@@ -3460,6 +3475,7 @@ cout <<
 "eePose = {.px = " << trueEEPose.position.x << ", .py = " << trueEEPose.position.y << ", .pz = " << trueEEPose.position.z << "," << endl <<
 "		      .ox = 0, .oy = 0, .oz = 0," << endl <<
 "		      .qx = " << trueEEPose.orientation.x << ", .qy = " << trueEEPose.orientation.y << ", .qz = " << trueEEPose.orientation.z << ", .qw = " << trueEEPose.orientation.w << "};" << endl;
+      cout << "mostRecentUntabledZ: " << mostRecentUntabledZ << endl;
       break;
     case 'i':
       {
@@ -4495,39 +4511,8 @@ cout <<
     // numlock + f
     case 1048678:
       {
-	//trX = rmcX + rmDelta*(maxX-rmHalfWidth);
-	//trY = rmcY + rmDelta*(maxY-rmHalfWidth);
-
-	// XXX now in local coordinates
-	Eigen::Vector3f localUnitX;
-	{
-	  Eigen::Quaternionf qin(0, 1, 0, 0);
-	  Eigen::Quaternionf qout(0, 1, 0, 0);
-	  Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
-	  qout = eeqform * qin * eeqform.conjugate();
-	  localUnitX.x() = qout.x();
-	  localUnitX.y() = qout.y();
-	  localUnitX.z() = qout.z();
-	}
-
-	Eigen::Vector3f localUnitY;
-	{
-	  Eigen::Quaternionf qin(0, 0, 1, 0);
-	  Eigen::Quaternionf qout(0, 1, 0, 0);
-	  Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
-	  qout = eeqform * qin * eeqform.conjugate();
-	  localUnitY.x() = qout.x();
-	  localUnitY.y() = qout.y();
-	  localUnitY.z() = qout.z();
-	}
-
-	double cTermX = rmDelta*(maxX-rmHalfWidth);
-	double cTermY = rmDelta*(maxY-rmHalfWidth);
-
-	//trY = rmcY + cTermX*localUnitY.y() - cTermY*localUnitX.y();
-	//trX = rmcX + cTermX*localUnitY.x() - cTermY*localUnitX.x();
-	trY = rmcY - cTermX*localUnitY.y() + cTermY*localUnitX.y();
-	trX = rmcX - cTermX*localUnitY.x() + cTermY*localUnitX.x();
+	trX = rmcX + rmDelta*(maxX-rmHalfWidth);
+	trY = rmcY + rmDelta*(maxY-rmHalfWidth);
 
 	cout << "trX: " << trX << " trY: " << trY << endl;
       }
@@ -4722,7 +4707,9 @@ cout <<
 	cout << " ++Move to target z: " << maxD << " " << graspDepth << " " << currentEEPose.pz << endl; cout.flush();
 
 	//double deltaZ = -maxD - graspDepth;
-	double deltaZ = (-maxD -graspDepth) - currentEEPose.pz;
+	//double deltaZ = (-maxD -graspDepth) - currentEEPose.pz;
+	// ATTN 1 currently accounting for table models
+	double deltaZ = (-(maxD + currentTableZ) - graspDepth) - currentEEPose.pz;
 
 	double zTimes = fabs(floor(deltaZ / bDelta)); 
 
@@ -5310,10 +5297,12 @@ cout <<
       {
 	double lineSpeed = MOVE_FAST;
 	double betweenSpeed = MOVE_FAST;
-	scanXdirection(lineSpeed, betweenSpeed); // load scan program
-	pushCopies('e', 3);
+	//pushCopies('e', 3);
+	//pushCopies('q', 10);
 	scanYdirection(lineSpeed, betweenSpeed); // load scan program
-	pushCopies('q', 3);
+	scanXdirection(lineSpeed, betweenSpeed); // load scan program
+	//pushCopies('q', 3);
+	//pushCopies('e', 10);
 	pilot_call_stack.push_back(1114150); // prepare for search
 	pilot_call_stack.push_back(1048683); // turn on scanning
 	pilot_call_stack.push_back(1048695); // clear scan history
@@ -5323,8 +5312,8 @@ cout <<
     // min scan
     case 1114174:
       {
-	double lineSpeed = MOVE_FASTER;
-	double betweenSpeed = MOVE_FASTER;
+	double lineSpeed = MOVE_FAST;
+	double betweenSpeed = MOVE_FAST;
 	// XXX TODO assign to map the pixelwise minimally deviant of reg1 and reg2
 	// XXX TODO save map to hi register 2
 	scanXdirection(lineSpeed, betweenSpeed); // load scan program
@@ -6554,6 +6543,7 @@ cout <<
 	}
 
 	int oneToDraw = bestOrientation;
+	bestOrientationEEPose = currentEEPose;
 	Px = -bestX;
 	Py = -bestY;
 
@@ -6566,6 +6556,8 @@ cout <<
 	// draw the winning score in place
 	for (int x = 0; x < maxDim; x++) {
 	  for (int y = 0; y < maxDim; y++) {
+	    //int tx = x - tRx;
+	    //int ty = y - tRy;
 	    int tx = x - tRx;
 	    int ty = y - tRy;
 	    if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
@@ -7312,11 +7304,37 @@ cout <<
     // capslock + z
     case 131162:
       {
+	//Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+	Quaternionf eeqform(bestOrientationEEPose.qw, bestOrientationEEPose.qx, bestOrientationEEPose.qy, bestOrientationEEPose.qz);
+	Quaternionf crane2Orient(0, 1, 0, 0);
+	Quaternionf rel = eeqform * crane2Orient.inverse();
+	Quaternionf ex(0,1,0,0);
+    
+	Quaternionf result = rel * ex * rel.conjugate();
+	double aY = result.y();
+	double aX = result.x();
+
+	double angle = atan2(aY, aX)*180.0/3.1415926;
+	double scale = 1.0;
+	Point center = Point(rmWidth/2, rmWidth/2);
+	Size toBecome(rmWidth, rmWidth);
+
+	cout << "load target class range map angle result eeqform: " << angle << " " << result.x() << " "  << result.y() << " "  << result.z() << " "  << result.w() << " " << eeqform.x() << " "  << eeqform.y() << " "  << eeqform.z() << " "  << eeqform.w() << " " << endl;
+
+	// Get the rotation matrix with the specifications above
+	Mat rotatedClassRangeMap;
+	Mat rot_mat = getRotationMatrix2D(center, angle, scale);
+	warpAffine(classRangeMaps[targetClass], rotatedClassRangeMap, rot_mat, toBecome, INTER_LINEAR, BORDER_REPLICATE);
+
 	if ((targetClass < numClasses) && (targetClass >= 0)) {
 	  for (int y = 0; y < rmWidth; y++) {
 	    for (int x = 0; x < rmWidth; x++) {
-	      rangeMap[x + y*rmWidth] = classRangeMaps[targetClass].at<double>(y,x);
-	      rangeMapReg1[x + y*rmWidth] = classRangeMaps[targetClass].at<double>(y,x);
+	      // unrotated
+	      //rangeMap[x + y*rmWidth] = classRangeMaps[targetClass].at<double>(y,x);
+	      //rangeMapReg1[x + y*rmWidth] = classRangeMaps[targetClass].at<double>(y,x);
+	      // rotated
+	      rangeMap[x + y*rmWidth] = rotatedClassRangeMap.at<double>(y,x);
+	      rangeMapReg1[x + y*rmWidth] = rotatedClassRangeMap.at<double>(y,x);
 	    } 
 	  } 
 	} 
