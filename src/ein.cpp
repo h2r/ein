@@ -738,9 +738,9 @@ Mat densityViewerImage;
 Mat wristViewImage;
 Mat gradientViewerImage;
 
-int mask_gripper = 0;
+int mask_gripper = 1;
 
-int add_blinders = 0;
+int add_blinders = 1;
 int blinder_stride = 10;
 int blinder_columns = 5;
 
@@ -8717,7 +8717,7 @@ void pilotInit() {
     defaultReticle = defaultRightReticle;
     reticle = defaultReticle;
   } else {
-    cout << "Invalid chirality. Exiting." << endl;
+    cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
     exit(0);
   }
   pilotTarget = beeHome;
