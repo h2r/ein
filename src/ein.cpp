@@ -2213,7 +2213,7 @@ void pushSpeedSign(double speed) {
 }
 void scanXdirection(double speedOnLines, double speedBetweenLines) {
 
-  int scanPadding = 0;
+  int scanPadding = 3;
   double onLineGain = rmDelta / speedOnLines;
   double betweenLineGain = rmDelta / speedBetweenLines;
 
@@ -2261,7 +2261,7 @@ void scanXdirection(double speedOnLines, double speedBetweenLines) {
 
 void scanYdirection(double speedOnLines, double speedBetweenLines) {
 
-  int scanPadding = 0;
+  int scanPadding = 3;
   double onLineGain = rmDelta / speedOnLines;
   double betweenLineGain = rmDelta / speedBetweenLines;
 
@@ -6486,11 +6486,21 @@ cout <<
 	  Mat rot_mat = getRotationMatrix2D(center, angle, scale);
 	  warpAffine(classAerialGradients[targetClass], rotatedAerialGrads[thisOrient], rot_mat, toBecome);
 
-	  double l1norm = rotatedAerialGrads[thisOrient].dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, rotatedAerialGrads[thisOrient].type()));
-	  if (l1norm <= EPSILON)
-	    l1norm = 1.0;
-	  rotatedAerialGrads[thisOrient] = rotatedAerialGrads[thisOrient] / l1norm;
+	  //double l1norm = rotatedAerialGrads[thisOrient].dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, rotatedAerialGrads[thisOrient].type()));
+	  //if (l1norm <= EPSILON)
+	    //l1norm = 1.0;
+	  //rotatedAerialGrads[thisOrient] = rotatedAerialGrads[thisOrient] / l1norm;
 	  //cout << "classOrientedGradients[targetClass]: " << classAerialGradients[targetClass] << "rotatedAerialGrads[thisOrient] " << rotatedAerialGrads[thisOrient] << endl;
+
+	  double mean = rotatedAerialGrads[thisOrient].dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, rotatedAerialGrads[thisOrient].type())) / double(aerialGradientWidth*aerialGradientWidth);
+	  rotatedAerialGrads[thisOrient] = rotatedAerialGrads[thisOrient] - mean;
+	  double l2norm = rotatedAerialGrads[thisOrient].dot(rotatedAerialGrads[thisOrient]);
+	  rotatedAerialGrads[thisOrient] = rotatedAerialGrads[thisOrient] - mean;
+	  if (l2norm <= EPSILON)
+	    l2norm = 1.0;
+	  rotatedAerialGrads[thisOrient] = rotatedAerialGrads[thisOrient] / l2norm;
+
+
 	}
 
 	int bestOrientation = -1;
@@ -6503,7 +6513,7 @@ cout <<
 	int maxDim = max(crows, ccols);
 	int tRy = (maxDim-crows)/2;
 	int tRx = (maxDim-ccols)/2;
-	int gradientServoTranslation = 2;
+	int gradientServoTranslation = 10;
 	for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY++) {
 	  for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX++) {
 	    // get the patch
@@ -6525,6 +6535,15 @@ cout <<
 	    }
 
 	    cv::resize(gCrop, gCrop, toBecome);
+	    {
+	      double mean = gCrop.dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, gCrop.type())) / double(aerialGradientWidth*aerialGradientWidth);
+	      gCrop = gCrop - mean;
+	      double l2norm = gCrop.dot(gCrop);
+	      gCrop = gCrop - mean;
+	      if (l2norm <= EPSILON)
+		l2norm = 1.0;
+	      gCrop = gCrop / l2norm;
+	    }
 
 	    for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
 	      // compute the score
@@ -6574,8 +6593,8 @@ cout <<
 	oneToDraw = oneToDraw % numOrientations;
 
 	// change orientation according to winning rotation
-	//currentEEPose.oz -= bestOrientation*2.0*3.1415926/double(numOrientations);
-	currentEEPose.oz += bestOrientation*2.0*3.1415926/double(numOrientations);
+	currentEEPose.oz -= bestOrientation*2.0*3.1415926/double(numOrientations);
+	//currentEEPose.oz += bestOrientation*2.0*3.1415926/double(numOrientations);
 
 	double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
 
@@ -7313,6 +7332,10 @@ cout <<
 	Quaternionf result = rel * ex * rel.conjugate();
 	double aY = result.y();
 	double aX = result.x();
+
+	// ATTN 1
+	// this is here to get the signs right
+	aX = -aX;
 
 	double angle = atan2(aY, aX)*180.0/3.1415926;
 	double scale = 1.0;
