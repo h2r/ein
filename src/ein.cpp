@@ -138,6 +138,8 @@ typedef struct {
   double qw;
 } eePose;
 
+#define NOW_THATS_FAST 0.08
+#define MOVE_EVEN_FASTER 0.04
 #define MOVE_FASTER 0.02
 #define MOVE_FAST 0.01
 #define MOVE_MEDIUM 0.005 //.005
@@ -146,6 +148,10 @@ typedef struct {
 
 #define RANGE_UPPER_INVALID 0.3
 #define RANGE_LOWER_INVALID 0.08
+
+#define STAR_SCAN 131144
+#define CART_SCAN 131118
+#define QUICK_RANGE_MAP CART_SCAN
 
 ////////////////////////////////////////////////
 // end pilot includes, usings, and defines 
@@ -567,7 +573,7 @@ int maxY = 0;
 double maxD = 0;
 int maxGG = 0;
 
-double graspDepth = -.01;//-.03;//-.04;//-.02;
+double graspDepth = -.03;//-.01;//-.03;//-.04;//-.02;
 
 // grasp gear 
 const int totalGraspGears = 8;
@@ -2214,15 +2220,21 @@ void pushSpeedSign(double speed) {
 void scanXdirection(double speedOnLines, double speedBetweenLines) {
 
   int scanPadding = 3;
+
+  scanPadding += floor(4*speedOnLines/MOVE_EVEN_FASTER);
+
   double onLineGain = rmDelta / speedOnLines;
   double betweenLineGain = rmDelta / speedBetweenLines;
 
   for (int g = 0; g < ((rmWidth*onLineGain)-(rmHalfWidth*onLineGain))+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
+    // ATTN 2
+    //pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back(131154); // w1 wait until at current position
     pilot_call_stack.push_back('a');
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
+    //pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back(131154); // w1 wait until at current position
     pilot_call_stack.push_back('e');
   }
   pushSpeedSign(speedOnLines);
@@ -2231,28 +2243,33 @@ void scanXdirection(double speedOnLines, double speedBetweenLines) {
   int gLimit = ((rmWidth*betweenLineGain+2*scanPadding));
   for (int g = 0; g < gLimit; g++) {
     pilot_call_stack.push_back(1114183); // full render
-    pilot_call_stack.push_back(1048677);
+    //pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back(131154); // w1 wait until at current position
     pushSpeedSign(speedOnLines);
     pilot_call_stack.push_back('d');
     pushSpeedSign(speedBetweenLines);
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
+      //pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back(131154); // w1 wait until at current position
       pilot_call_stack.push_back('q');
     }
     //pushSpeedSign(speedOnLines);
     //pilot_call_stack.push_back('d');
     //pushSpeedSign(speedBetweenLines);
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
+      //pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back(131154); // w1 wait until at current position
       pilot_call_stack.push_back('e');
     }
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
+    //pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back(131154); // w1 wait until at current position
     pilot_call_stack.push_back('q');
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
+    //pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back(131154); // w1 wait until at current position
     pilot_call_stack.push_back('a');
   }
   pushSpeedSign(speedOnLines);
@@ -2262,15 +2279,21 @@ void scanXdirection(double speedOnLines, double speedBetweenLines) {
 void scanYdirection(double speedOnLines, double speedBetweenLines) {
 
   int scanPadding = 3;
+
+  scanPadding += floor(4*speedOnLines/MOVE_EVEN_FASTER);
+
   double onLineGain = rmDelta / speedOnLines;
   double betweenLineGain = rmDelta / speedBetweenLines;
 
   for (int g = 0; g < ((rmWidth*onLineGain)-(rmHalfWidth*onLineGain))+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
+    // ATTN 2
+    //pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back(131154); // w1 wait until at current position
     pilot_call_stack.push_back('q');
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
+    //pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back(131154); // w1 wait until at current position
     pilot_call_stack.push_back('d');
   }
   pushSpeedSign(speedOnLines);
@@ -2279,29 +2302,34 @@ void scanYdirection(double speedOnLines, double speedBetweenLines) {
   int gLimit = ((rmWidth*betweenLineGain+2*scanPadding));
   for (int g = 0; g < gLimit; g++) {
     pilot_call_stack.push_back(1114183); // full render
-    pilot_call_stack.push_back(1048677);
+    //pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back(131154); // w1 wait until at current position
     pushSpeedSign(speedOnLines);
     pilot_call_stack.push_back('e');
     pushSpeedSign(speedBetweenLines);
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
+      //pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back(131154); // w1 wait until at current position
       pilot_call_stack.push_back('a');
     }
     //pushSpeedSign(speedOnLines);
     //pilot_call_stack.push_back('e');
     //pushSpeedSign(speedBetweenLines);
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
+      //pilot_call_stack.push_back(1048677);
+      pilot_call_stack.push_back(131154); // w1 wait until at current position
       pilot_call_stack.push_back('d');
     }
   }
 
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
+    //pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back(131154); // w1 wait until at current position
     pilot_call_stack.push_back('q');
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
+    //pilot_call_stack.push_back(1048677);
+    pilot_call_stack.push_back(131154); // w1 wait until at current position
     pilot_call_stack.push_back('a');
   }
   pushSpeedSign(speedOnLines);
@@ -4097,14 +4125,23 @@ cout <<
     case 1048692: // numlock + t
       {
 	cout << "Applying filter to rangeMapReg1 and storing result in rangeMapReg1." << endl;
+
+	// ATTN 2
 	int dx[9] = { -1,  0,  1, 
 		      -1,  0,  1, 
 		      -1,  0,  1};
 	int dy[9] = { -1, -1, -1, 
 		       0,  0,  0, 
 		       1,  1,  1};
-
+//	int dx[9] = { -2,  0,  2, 
+//		      -2,  0,  2, 
+//		      -2,  0,  2};
+//	int dy[9] = { -2, -2, -2, 
+//		       0,  0,  0, 
+//		       2,  2,  2};
+	// ATTN 2
 	int transformPadding = 2;
+	//int transformPadding = 4;
 
 	for (int rx = 0; rx < rmWidth; rx++) {
 	  for (int ry = 0; ry < rmWidth; ry++) {
@@ -4460,7 +4497,9 @@ cout <<
     // numlock + s
     case 1048691:
       {
+	// ATTN 2
 	int maxSearchPadding = 3;
+	//int maxSearchPadding = 4;
 	double minDepth = VERYBIGNUMBER;
 	for (int rx = maxSearchPadding; rx < rmWidth-maxSearchPadding; rx++) {
 	  for (int ry = maxSearchPadding; ry < rmWidth-maxSearchPadding; ry++) {
@@ -4480,7 +4519,9 @@ cout <<
     // numlock + S
     case 1114195:
       {
+	// ATTN 2
 	int maxSearchPadding = 3;
+	//int maxSearchPadding = 4;
 	double minDepth = maxD;
 	for (int rx = maxSearchPadding; rx < rmWidth-maxSearchPadding; rx++) {
 	  for (int ry = maxSearchPadding; ry < rmWidth-maxSearchPadding; ry++) {
@@ -5295,17 +5336,61 @@ cout <<
     // neutral scan
     case 1048622:
       {
-	double lineSpeed = MOVE_FAST;
-	double betweenSpeed = MOVE_FAST;
+	double lineSpeed = MOVE_FASTER;
+	double betweenSpeed = MOVE_FASTER;
+	////pushCopies('e', 3);
+	////pushCopies('q', 10);
+	////scanYdirection(lineSpeed, betweenSpeed); // load scan program
+	//scanXdirection(lineSpeed, betweenSpeed); // load scan program
+	////pushCopies('q', 3);
+	////pushCopies('e', 10);
+
+	//pilot_call_stack.push_back(1048684); // turn off scanning
+
+	scanXdirection(lineSpeed, betweenSpeed); // load scan program
+	pilot_call_stack.push_back(1114150); // prepare for search
+
+	pushCopies('q',4);
+	pushCopies('a',6);
+
+	pilot_call_stack.push_back(1048683); // turn on scanning
+	pushNoOps(60);
+	pilot_call_stack.push_back(1114155); // rotate gear
+
+	pilot_call_stack.push_back(1114183); // full render
+	pilot_call_stack.push_back(1048679); // render reticle
+	pilot_call_stack.push_back(1048625); // change to first gear
+	pilot_call_stack.push_back(1048673); // render register 1
+	pilot_call_stack.push_back(1048690); // load map to register 1
+	{
+	  pilot_call_stack.push_back(1048678); // target best grasp
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pilot_call_stack.push_back(1048625); // change to first gear
+	}
+	pilot_call_stack.push_back(1048630); // find best grasp
+
+	scanXdirection(lineSpeed, betweenSpeed); // load scan program
+	pilot_call_stack.push_back(1114150); // prepare for search
+
+	pilot_call_stack.push_back(1048683); // turn on scanning
+	pilot_call_stack.push_back(1048695); // clear scan history
+      }
+      break;
+    // capslock + .
+    // neutral scan
+    case 131118:
+      {
+	double lineSpeed = NOW_THATS_FAST;
+	double betweenSpeed = NOW_THATS_FAST;
 	//pushCopies('e', 3);
 	//pushCopies('q', 10);
-	scanYdirection(lineSpeed, betweenSpeed); // load scan program
+	//scanYdirection(lineSpeed, betweenSpeed); // load scan program
 	scanXdirection(lineSpeed, betweenSpeed); // load scan program
 	//pushCopies('q', 3);
 	//pushCopies('e', 10);
 	pilot_call_stack.push_back(1114150); // prepare for search
 	pilot_call_stack.push_back(1048683); // turn on scanning
-	pilot_call_stack.push_back(1048695); // clear scan history
+	//pilot_call_stack.push_back(1048695); // clear scan history
       }
       break;
     // numlock + >
@@ -6572,6 +6657,15 @@ cout <<
 	cv::resize(rotatedAerialGrads[oneToDraw], toShow, toUnBecome);
 	//cout << rotatedAerialGrads[oneToDraw];
 
+	double maxTS = -INFINITY;
+	double minTS = INFINITY;
+	for (int x = 0; x < maxDim; x++) {
+	  for (int y = 0; y < maxDim; y++) {
+	    maxTS = max(maxTS, toShow.at<double>(y, x));
+	    minTS = min(minTS, toShow.at<double>(y, x));
+	  }
+	}
+
 	// draw the winning score in place
 	for (int x = 0; x < maxDim; x++) {
 	  for (int y = 0; y < maxDim; y++) {
@@ -6580,7 +6674,8 @@ cout <<
 	    int tx = x - tRx;
 	    int ty = y - tRy;
 	    if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
-	      Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
+	      Vec3b thisColor = Vec3b(0,0,min(255, int(floor(255.0*8*(toShow.at<double>(y, x)-minTS)/(maxTS-minTS)))));
+	      //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
 	      //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
 	      //cout << thisColor;
 	      int thisTopCornerX = bestX + reticle.px - (aerialGradientReticleWidth/2);
@@ -7079,7 +7174,10 @@ cout <<
 
 	pilot_call_stack.push_back(1048684); // turn off scanning
 
-	pilot_call_stack.push_back(131144); // quick orientation scan
+	pilot_call_stack.push_back(QUICK_RANGE_MAP); // quick orientation scan
+	pushCopies('q',4);
+	pushCopies('a',6);
+
 	pilot_call_stack.push_back(1048683); // turn on scanning
 	pushNoOps(60);
 	pilot_call_stack.push_back(1114155); // rotate gear
@@ -7096,7 +7194,7 @@ cout <<
 	}
 	pilot_call_stack.push_back(1048630); // find best grasp
 
-	pilot_call_stack.push_back(131144); // quick orientation scan
+	pilot_call_stack.push_back(QUICK_RANGE_MAP); // quick orientation scan
 
 	pilot_call_stack.push_back(1048683); // turn on scanning
 	pilot_call_stack.push_back(1114150); // prepare for search
@@ -7115,7 +7213,7 @@ cout <<
 
 	pushNoOps(60); 
 	pilot_call_stack.push_back('x'); 
-	pushCopies('s', 5); 
+	pushCopies('s', 3); 
 
 	pilot_call_stack.push_back('k'); // open gripper
 	pilot_call_stack.push_back('i'); // initialize gripper
@@ -7152,7 +7250,10 @@ cout <<
 
 	pilot_call_stack.push_back(1048684); // turn off scanning
 
-	pilot_call_stack.push_back(131144); // quick orientation scan
+	pilot_call_stack.push_back(QUICK_RANGE_MAP); // quick orientation scan
+	pushCopies('q',4);
+	pushCopies('a',6);
+
 	pilot_call_stack.push_back(1048683); // turn on scanning
 	pushNoOps(60);
 	pilot_call_stack.push_back(1114155); // rotate gear
@@ -7169,7 +7270,7 @@ cout <<
 	}
 	pilot_call_stack.push_back(1048630); // find best grasp
 
-	pilot_call_stack.push_back(131144); // quick orientation scan
+	pilot_call_stack.push_back(QUICK_RANGE_MAP); // quick orientation scan
 
 	pilot_call_stack.push_back(1048683); // turn on scanning
 	pilot_call_stack.push_back(1114150); // prepare for search
@@ -7188,7 +7289,7 @@ cout <<
 
 	pushNoOps(60); 
 	pilot_call_stack.push_back('x'); 
-	pushCopies('s', 7); 
+	pushCopies('s', 3); 
 
 	pilot_call_stack.push_back('k'); // open gripper
 	pilot_call_stack.push_back('i'); // initialize gripper
@@ -7564,6 +7665,8 @@ cout <<
 	    cout << "  assert yes pops back instruction." << endl;
 	  } else {
 	    cout << "  assert yes merely returns." << endl;
+	    // resets the gripper server
+	    int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
 	  }
 	}
       }
@@ -7588,6 +7691,9 @@ cout <<
 	    pilot_call_stack.pop_back();
 	    // leave gripper in released state
 	    pilot_call_stack.push_back('k'); // open gripper
+	  } else {
+	    // resets the gripper server
+	    int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
 	  }
 	}
       }
@@ -7629,20 +7735,23 @@ cout <<
 	pilot_call_stack.push_back('k'); // open gripper
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(20);
-	pushCopies('w', depthToPlunge); // move up 
+	//pushCopies('w', depthToPlunge); // move up 
 	pilot_call_stack.push_back('k'); // open gripper
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(20);
 	pushCopies('w'+65504, flexThisFar); // rotate forward
-	pushCopies('e', 10); // move forward
-	pushCopies('s', depthToPlunge); // move down
+	//pushCopies('e', 10); // move forward
+	//pushCopies('s', depthToPlunge); // move down
 	pilot_call_stack.push_back('k'); // open gripper
 	pushNoOps(30);
-	pushCopies('q', 5); // move back 
+	//pushCopies('q', 5); // move back 
 	pushCopies('s'+65504, flexThisFar); // rotate backward
 
 	//pilot_call_stack.push_back('2'); // assume pose at register 2
 	pushSpeedSign(MOVE_FAST);
+
+	// resets the gripper server
+	int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
       }
       break;
     // shake it off1
@@ -7683,6 +7792,7 @@ cout <<
 //	pushCopies('w'+65504, flexThisFar); // rotate forward
 //	pilot_call_stack.push_back('2'); // assume pose at register 2
 //	pushSpeedSign(MOVE_FAST);
+
 	int depthToPlunge = 24;
 	int flexThisFar = 80;
 	cout << "SHAKING IT OFF!!!" << endl;
@@ -7696,19 +7806,22 @@ cout <<
 	pilot_call_stack.push_back('k'); // open gripper
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(20);
-	pushCopies('w', depthToPlunge); // move up 
+	//pushCopies('w', depthToPlunge); // move up 
 	pilot_call_stack.push_back('k'); // open gripper
 	pilot_call_stack.push_back('j'); // close gripper
 	pushNoOps(20);
 	pushCopies('s'+65504, flexThisFar); // rotate forward
-	pushCopies('e', 5); // move forward
-	pushCopies('s', depthToPlunge); // move down
+	//pushCopies('e', 5); // move forward
+	//pushCopies('s', depthToPlunge); // move down
 	pilot_call_stack.push_back('k'); // open gripper
 	pushNoOps(30);
 	pushCopies('w'+65504, flexThisFar); // rotate forward
 
 	//pilot_call_stack.push_back('2'); // assume pose at register 2
 	pushSpeedSign(MOVE_FAST);
+
+	// resets the gripper server
+	int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
       }
       break;
     //
@@ -7871,6 +7984,7 @@ cout <<
 	  pilot_call_stack.push_back(131143); // 72 way scan
 	  
 	  { // do density and gradient, save gradient, do medium scan in two directions, save range map
+	    pushCopies('w', 10);
 	    pilot_call_stack.push_back(196705); // save current depth map to current class
 	    pilot_call_stack.push_back(1048622); // nuetral scan 
 	    pushCopies('s', 10);
@@ -7882,6 +7996,7 @@ cout <<
 	    pilot_call_stack.push_back(131139); // synchronic servo don't take closest
 	    pilot_call_stack.push_back(131156); // synchronic servo
 	    pilot_call_stack.push_back(196707); // synchronic servo take closest
+	    pilot_call_stack.push_back(131153); // vision cycle
 	    pushCopies('w', 10);
 	    pilot_call_stack.push_back('x'); // back up 
 	    pilot_call_stack.push_back(131154); // w1 wait until at current position
