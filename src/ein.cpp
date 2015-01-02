@@ -573,7 +573,7 @@ int maxY = 0;
 double maxD = 0;
 int maxGG = 0;
 
-double graspDepth = -.03;//-.01;//-.03;//-.04;//-.02;
+double graspDepth = -.04;//-.03;//-.01;//-.03;//-.04;//-.02;
 
 // grasp gear 
 const int totalGraspGears = 8;
@@ -2207,6 +2207,12 @@ void pushCopies(int symbol, int times) {
 
 void pushSpeedSign(double speed) {
 
+  if (speed == NOW_THATS_FAST)
+    pilot_call_stack.push_back(1114193); // set speed to NOW_THATS_FAST
+  if (speed == MOVE_EVEN_FASTER)
+    pilot_call_stack.push_back(1114199); // set speed to MOVE_EVEN_FASTER 
+  if (speed == MOVE_FASTER)
+    pilot_call_stack.push_back(1114181); // set speed to MOVE_FASTER
   if (speed == MOVE_FAST)
     pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
   if (speed == MOVE_MEDIUM)
@@ -2219,12 +2225,10 @@ void pushSpeedSign(double speed) {
 }
 void scanXdirection(double speedOnLines, double speedBetweenLines) {
 
-  int scanPadding = 3;
-
-  scanPadding += floor(4*speedOnLines/MOVE_EVEN_FASTER);
-
   double onLineGain = rmDelta / speedOnLines;
   double betweenLineGain = rmDelta / speedBetweenLines;
+
+  int scanPadding = int(floor(1 * onLineGain));
 
   for (int g = 0; g < ((rmWidth*onLineGain)-(rmHalfWidth*onLineGain))+scanPadding; g++) {
     // ATTN 2
@@ -2278,12 +2282,10 @@ void scanXdirection(double speedOnLines, double speedBetweenLines) {
 
 void scanYdirection(double speedOnLines, double speedBetweenLines) {
 
-  int scanPadding = 3;
-
-  scanPadding += floor(4*speedOnLines/MOVE_EVEN_FASTER);
-
   double onLineGain = rmDelta / speedOnLines;
   double betweenLineGain = rmDelta / speedBetweenLines;
+
+  int scanPadding = int(floor(1 * onLineGain));
 
   for (int g = 0; g < ((rmWidth*onLineGain)-(rmHalfWidth*onLineGain))+scanPadding; g++) {
     // ATTN 2
@@ -5336,8 +5338,8 @@ cout <<
     // neutral scan
     case 1048622:
       {
-	double lineSpeed = MOVE_FASTER;
-	double betweenSpeed = MOVE_FASTER;
+	double lineSpeed = MOVE_FAST;
+	double betweenSpeed = MOVE_FAST;
 	////pushCopies('e', 3);
 	////pushCopies('q', 10);
 	////scanYdirection(lineSpeed, betweenSpeed); // load scan program
@@ -5380,8 +5382,10 @@ cout <<
     // neutral scan
     case 131118:
       {
-	double lineSpeed = NOW_THATS_FAST;
-	double betweenSpeed = NOW_THATS_FAST;
+	pushSpeedSign(MOVE_FAST);
+
+	double lineSpeed = MOVE_EVEN_FASTER;
+	double betweenSpeed = MOVE_FASTER;
 	//pushCopies('e', 3);
 	//pushCopies('q', 10);
 	//scanYdirection(lineSpeed, betweenSpeed); // load scan program
@@ -5581,6 +5585,27 @@ cout <<
     
 	  currentEEPose.px += noX;
 	  currentEEPose.py += noY;
+      }
+      break;
+    // set movement speed
+    // numlock + Q
+    case 1114193:
+      {
+	bDelta = NOW_THATS_FAST;
+      }
+      break;
+    // set movement speed
+    // numlock + W
+    case 1114199:
+      {
+	bDelta = MOVE_EVEN_FASTER;
+      }
+      break;
+    // set movement speed
+    // numlock + E
+    case 1114181:
+      {
+	bDelta = MOVE_FASTER;
       }
       break;
     // set movement speed
