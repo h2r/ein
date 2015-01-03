@@ -3546,6 +3546,7 @@ int main(int argc, char **argv) {
 
   image_transport::Subscriber image_sub;
   image_transport::ImageTransport it(n);
+  ROS_INFO_STREAM("Image topic: " << image_topic);
   image_sub = it.subscribe(image_topic, 1, imageCallback);
   ros::Subscriber points = n.subscribe(pc_topic, 1, pointCloudCallback);
 
