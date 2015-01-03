@@ -259,6 +259,7 @@ std::string red_box_list = "";
 
 std::string image_topic = "/camera/rgb/image_raw"; // "/filter_time/filtered_image"
 std::string pc_topic = "/camera/depth_registered/points";
+std::string image_frame_id = "";
 
 std::string cache_prefix = "";
 
@@ -965,6 +966,10 @@ void loadROSParamsFromArgs() {
 
   nh.getParam("left_or_right_arm", left_or_right_arm);
 
+  nh.getParam("canny_hi",hiTrackbarVariable);
+  nh.getParam("canny_lo",loTrackbarVariable);
+
+
   //nh.getParam("chosen_feature", chosen_feature);
 
   //nh.getParam("reject_area_scale", rejectAreaScale);
@@ -1026,6 +1031,8 @@ void loadROSParams() {
   nh.getParam("local_sobel_sigma", local_sobel_sigma);
   nh.getParam("canny_hi_thresh",canny_hi_thresh);
   nh.getParam("canny_lo_thresh",canny_lo_thresh);
+  nh.getParam("canny_hi",hiTrackbarVariable);
+  nh.getParam("canny_lo",loTrackbarVariable);
   nh.getParam("sobel_scale_factor",sobel_scale_factor);
 
   nh.getParam("mask_gripper", mask_gripper);
@@ -1086,6 +1093,8 @@ void saveROSParams() {
   nh.setParam("local_sobel_sigma", local_sobel_sigma);
   nh.setParam("canny_hi_thresh",canny_hi_thresh);
   nh.setParam("canny_lo_thresh",canny_lo_thresh);
+  nh.setParam("canny_hi",hiTrackbarVariable);
+  nh.setParam("canny_lo",loTrackbarVariable);
   nh.setParam("sobel_scale_factor",sobel_scale_factor);
 
   nh.setParam("mask_gripper", mask_gripper);
@@ -1191,7 +1200,8 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
   ma_to_send.markers[aI].pose = roa_to_send.objects[aI].pose.pose.pose;
 
   roa_to_send.header.stamp = ros::Time::now();
-  roa_to_send.header.frame_id = "/camera_rgb_optical_frame";
+  //roa_to_send.header.frame_id = "/camera_rgb_optical_frame";
+  roa_to_send.header.frame_id = image_frame_id;
 
   roa_to_send.objects[aI].header = roa_to_send.header;
   //roa_to_send.objects[aI].point_clouds[0].header = roa_to_send.header;
@@ -1749,7 +1759,7 @@ void handleKeyboardInput(int c) {
 void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
   ros::NodeHandle nh("~");
-
+  image_frame_id = msg->header.frame_id;
   invertQuaternionLabel = 0;
 
   time(&thisTime);
@@ -3546,7 +3556,9 @@ int main(int argc, char **argv) {
 
   image_transport::Subscriber image_sub;
   image_transport::ImageTransport it(n);
+  ROS_INFO_STREAM("Image topic: " << image_topic);
   image_sub = it.subscribe(image_topic, 1, imageCallback);
+  ROS_INFO_STREAM("Point Cloud topic: " << pc_topic);
   ros::Subscriber points = n.subscribe(pc_topic, 1, pointCloudCallback);
 
   ros::Subscriber clusters = n.subscribe("/tabletop/clusters", 1, clusterCallback);
