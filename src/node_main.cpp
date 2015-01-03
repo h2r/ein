@@ -259,6 +259,7 @@ std::string red_box_list = "";
 
 std::string image_topic = "/camera/rgb/image_raw"; // "/filter_time/filtered_image"
 std::string pc_topic = "/camera/depth_registered/points";
+std::string image_frame_id = "";
 
 std::string cache_prefix = "";
 
@@ -1199,7 +1200,8 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
   ma_to_send.markers[aI].pose = roa_to_send.objects[aI].pose.pose.pose;
 
   roa_to_send.header.stamp = ros::Time::now();
-  roa_to_send.header.frame_id = "/camera_rgb_optical_frame";
+  //roa_to_send.header.frame_id = "/camera_rgb_optical_frame";
+  roa_to_send.header.frame_id = image_frame_id;
 
   roa_to_send.objects[aI].header = roa_to_send.header;
   //roa_to_send.objects[aI].point_clouds[0].header = roa_to_send.header;
@@ -1757,7 +1759,7 @@ void handleKeyboardInput(int c) {
 void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
   ros::NodeHandle nh("~");
-
+  image_frame_id = msg->header.frame_id;
   invertQuaternionLabel = 0;
 
   time(&thisTime);
@@ -3556,6 +3558,7 @@ int main(int argc, char **argv) {
   image_transport::ImageTransport it(n);
   ROS_INFO_STREAM("Image topic: " << image_topic);
   image_sub = it.subscribe(image_topic, 1, imageCallback);
+  ROS_INFO_STREAM("Point Cloud topic: " << pc_topic);
   ros::Subscriber points = n.subscribe(pc_topic, 1, pointCloudCallback);
 
   ros::Subscriber clusters = n.subscribe("/tabletop/clusters", 1, clusterCallback);
