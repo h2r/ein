@@ -965,6 +965,10 @@ void loadROSParamsFromArgs() {
 
   nh.getParam("left_or_right_arm", left_or_right_arm);
 
+  nh.getParam("canny_hi",hiTrackbarVariable);
+  nh.getParam("canny_lo",loTrackbarVariable);
+
+
   //nh.getParam("chosen_feature", chosen_feature);
 
   //nh.getParam("reject_area_scale", rejectAreaScale);
@@ -1026,6 +1030,8 @@ void loadROSParams() {
   nh.getParam("local_sobel_sigma", local_sobel_sigma);
   nh.getParam("canny_hi_thresh",canny_hi_thresh);
   nh.getParam("canny_lo_thresh",canny_lo_thresh);
+  nh.getParam("canny_hi",hiTrackbarVariable);
+  nh.getParam("canny_lo",loTrackbarVariable);
   nh.getParam("sobel_scale_factor",sobel_scale_factor);
 
   nh.getParam("mask_gripper", mask_gripper);
@@ -1086,6 +1092,8 @@ void saveROSParams() {
   nh.setParam("local_sobel_sigma", local_sobel_sigma);
   nh.setParam("canny_hi_thresh",canny_hi_thresh);
   nh.setParam("canny_lo_thresh",canny_lo_thresh);
+  nh.setParam("canny_hi",hiTrackbarVariable);
+  nh.setParam("canny_lo",loTrackbarVariable);
   nh.setParam("sobel_scale_factor",sobel_scale_factor);
 
   nh.setParam("mask_gripper", mask_gripper);
