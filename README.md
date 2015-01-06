@@ -396,19 +396,11 @@ that order and enforce it in the code)
 + Add a facility for extending PDA instruction set
 
 
+Ein
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+2: Shift to ready position on the front table.
+c r c: clear call stack
+capslock, shift d: queues scan program
+y: execute what is in the queue
+capslock, w: queues pick program
+u:  display where the end effector is located
