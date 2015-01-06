@@ -1,4 +1,4 @@
-#define DEBUG3
+  #define DEBUG3
 // start Header
 //
 //  // start TODO XXX
@@ -629,7 +629,7 @@ double fEpsilon = EPSILON;
 int curseReticleX = 0;
 int curseReticleY = 0;
 
-int targetClass = 2;
+int targetClass = -1;
 
 ros::Time lastVisionCycle;
 ros::Duration accumulatedTime;
@@ -639,10 +639,14 @@ double w1AngleThresh = 0.02;
 double synKp = 0.0005;
 double gradKp = 0.0005;
 
-int synServoPixelThresh = 10;
+// ATTN 4
+int synServoPixelThresh = 15;//10;
 int synServoLockFrames = 0;
 // XXX
 int synServoLockThresh = 3;
+
+double synServoMinKp = synKp/20.0;
+double synServoKDecay = .95;
 
 int gradServoPixelThresh = 5;
 int gradServoThetaThresh = 1;
@@ -651,8 +655,8 @@ ros::Time oscilStart;
  double oscCenX = 0.0;
  double oscCenY = 0.0;
  double oscCenZ = 0.0;
-double oscAmpX = 0.16;//0.08;//0.1;
-double oscAmpY = 0.16;//0.2;
+double oscAmpX = 0.0;//.0.16;//0.08;//0.1;
+double oscAmpY = 0.0;//0.16;//0.2;
 double oscAmpZ = 0.0;
 
  const double commonFreq = 1.0;//1.0/2.0;
@@ -683,7 +687,7 @@ int synchronicTakeClosest = 0;
 int gripperMoving = 0;
 double gripperPosition = 0;
 int gripperGripping = 0;
-double gripperThresh = 7.0;
+double gripperThresh = 6.0;//7.0;
 
 double graspAttemptCounter = 0;
 double graspFailCounter = 0;
@@ -691,14 +695,21 @@ double graspSuccessCounter = 0;
 double graspSuccessRate = 0;
 ros::Time graspTrialStart;
 
-double bagTableZ = 0.22;
-double counterTableZ = 0.18;
-double shelfTableZ = 0.24;
+double bagTableZ = 0.195;//0.22;
+double counterTableZ = 0.20;//0.18;
+double pantryTableZ = 0.195;
 
 double currentTableZ = bagTableZ;
 
 double mostRecentUntabledZ = 0.0;
 eePose bestOrientationEEPose;
+
+Mat lastAerialGradient;
+Mat lastRangeMap;
+string lastLabelLearned;
+
+double perturbScale = 0.1;
+
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -5338,8 +5349,8 @@ cout <<
     // neutral scan
     case 1048622:
       {
-	double lineSpeed = MOVE_FAST;
-	double betweenSpeed = MOVE_FAST;
+	double lineSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
+	double betweenSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
 	////pushCopies('e', 3);
 	////pushCopies('q', 10);
 	////scanYdirection(lineSpeed, betweenSpeed); // load scan program
@@ -5579,7 +5590,6 @@ cout <<
     // numlock + /
     case 1048623:
       {
-	  double perturbScale = 0.1;
 	  double noX = perturbScale * ((drand48() - 0.5) * 2.0);
 	  double noY = perturbScale * ((drand48() - 0.5) * 2.0);
     
@@ -6368,12 +6378,14 @@ cout <<
 	// we want to move to a higher holding position for visual patrol
 	// so we assume that we are at 20 cm = IR scan height and move to 30 cm
 	pushSpeedSign(MOVE_FAST);
+	pilot_call_stack.push_back(1179717); // change to pantry table
       }
       break;
     // 2D patrol continue
     // capslock + e
     case 131141:
       {
+	synServoLockFrames = 0;
 	currentGradientServoIterations = 0;
 
 	ros::Duration delta = (ros::Time::now() - oscilStart) + accumulatedTime;
@@ -6387,7 +6399,6 @@ cout <<
 	  // if so, push servoing command and set lock frames to 0
 	  pilot_call_stack.push_back(131156); // synchronic servo
 	  pilot_call_stack.push_back(131146); // turn survey on
-	  synServoLockFrames = 0;
 
 	  cout << "Found the target " << classLabels[targetClass] << ". " << endl;
 	  // grab the last bit of accumulated time
@@ -6420,6 +6431,7 @@ cout <<
       {
 	synchronicTakeClosest = 1;
 	cout << "synchronicTakeClosest = 1" << endl;
+	synServoLockFrames = 0;
       }
       break;
     // synchronic servo
@@ -6484,6 +6496,7 @@ cout <<
 	// if we are not there yet, continue
 	if (distance > w1GoThresh*w1GoThresh) {
 	  cout << "waiting to arrive at current position." << endl;
+	  synServoLockFrames = 0;
 	  pilot_call_stack.push_back(131156); // synchronic servo
 	} else {
 	  if (   (fabs(Px) < synServoPixelThresh) && (fabs(Py) < synServoPixelThresh) &&
@@ -6505,8 +6518,13 @@ cout <<
 	      surveyWinningClass = winningClass;
 	    }
 	    if (synchronicTakeClosest) {
-	      // do nothing, just proceed
-	      cout << "Returning." << endl;
+	      if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
+		pilot_call_stack.push_back(196728); // gradient servo
+		cout << "Queuing gradient servo." << endl;
+	      } else {
+		// do nothing, just proceed
+		cout << "Returning." << endl;
+	      }
 	    } else if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
 	      pilot_call_stack.push_back(196728); // gradient servo
 	      cout << "Queuing gradient servo." << endl;
@@ -6525,8 +6543,17 @@ cout <<
 	    cout << "executing P controller update." << endl;
 	    pilot_call_stack.push_back(131156); // synchronic servo
 	    // simple servo code because there is no hysteresis to be found
-	    double pTermX = synKp*Px;
-	    double pTermY = synKp*Py;
+
+      
+	    // ATTN 3
+	    double thisKp = max(synServoMinKp, synKp * pow(synServoKDecay, double(synServoLockFrames)));
+	    double pTermX = thisKp*Px;
+	    double pTermY = thisKp*Py;
+	    cout << " synKp synServoLockFrames synServoKDecay thisKp: " << synKp << " " << synServoLockFrames << " " << synServoKDecay << " " << thisKp << endl;
+	    //double pTermX = synKp*Px;
+	    //double pTermY = synKp*Py;
+
+
 	    //currentEEPose.py += pTermX;
 	    //currentEEPose.px += pTermY;
 
@@ -6579,44 +6606,58 @@ cout <<
 	double Px = 0;
 	double Py = 0;
 
+	double Ps = 0;
+
 	cout << "computing scores... ";
 
 	Size toBecome(aerialGradientWidth, aerialGradientWidth);
 
 	int numOrientations = 37;
 	vector<Mat> rotatedAerialGrads;
-	rotatedAerialGrads.resize(numOrientations);
-	for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-	  // rotate the template and L1 normalize it
-	  Point center = Point(aerialGradientWidth/2, aerialGradientWidth/2);
-	  double angle = thisOrient*360.0/numOrientations;
-	  double scale = 1.0;
 
-	  // Get the rotation matrix with the specifications above
-	  Mat rot_mat = getRotationMatrix2D(center, angle, scale);
-	  warpAffine(classAerialGradients[targetClass], rotatedAerialGrads[thisOrient], rot_mat, toBecome);
+	// ATTN 3
+	int gradientServoScale = 11;
+	double gradientServoScaleStep = 1.02;
+	double startScale = pow(gradientServoScaleStep, -(gradientServoScale-1)/2);
 
-	  //double l1norm = rotatedAerialGrads[thisOrient].dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, rotatedAerialGrads[thisOrient].type()));
-	  //if (l1norm <= EPSILON)
-	    //l1norm = 1.0;
-	  //rotatedAerialGrads[thisOrient] = rotatedAerialGrads[thisOrient] / l1norm;
-	  //cout << "classOrientedGradients[targetClass]: " << classAerialGradients[targetClass] << "rotatedAerialGrads[thisOrient] " << rotatedAerialGrads[thisOrient] << endl;
+	//rotatedAerialGrads.resize(numOrientations);
+	rotatedAerialGrads.resize(gradientServoScale*numOrientations);
 
-	  double mean = rotatedAerialGrads[thisOrient].dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, rotatedAerialGrads[thisOrient].type())) / double(aerialGradientWidth*aerialGradientWidth);
-	  rotatedAerialGrads[thisOrient] = rotatedAerialGrads[thisOrient] - mean;
-	  double l2norm = rotatedAerialGrads[thisOrient].dot(rotatedAerialGrads[thisOrient]);
-	  rotatedAerialGrads[thisOrient] = rotatedAerialGrads[thisOrient] - mean;
-	  if (l2norm <= EPSILON)
-	    l2norm = 1.0;
-	  rotatedAerialGrads[thisOrient] = rotatedAerialGrads[thisOrient] / l2norm;
+	for (int etaS = 0; etaS < gradientServoScale; etaS++) {
+	  double thisScale = startScale * pow(gradientServoScaleStep, etaS);
+	  for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
+	    // rotate the template and L1 normalize it
+	    Point center = Point(aerialGradientWidth/2, aerialGradientWidth/2);
+	    double angle = thisOrient*360.0/numOrientations;
 
+	    //double scale = 1.0;
+	    double scale = thisScale;
 
+	    // Get the rotation matrix with the specifications above
+	    Mat rot_mat = getRotationMatrix2D(center, angle, scale);
+	    warpAffine(classAerialGradients[targetClass], rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
+
+	    //double l1norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type()));
+	    //if (l1norm <= EPSILON)
+	      //l1norm = 1.0;
+	    //rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l1norm;
+	    //cout << "classOrientedGradients[targetClass]: " << classAerialGradients[targetClass] << "rotatedAerialGrads[thisOrient + etaS*numOrientations] " << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
+
+	    double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(aerialGradientWidth*aerialGradientWidth);
+	    rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
+	    double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations]);
+	    rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
+	    if (l2norm <= EPSILON)
+	      l2norm = 1.0;
+	    rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l2norm;
+	  }
 	}
 
 	int bestOrientation = -1;
 	double bestOrientationScore = -INFINITY;
 	int bestX = -1;
 	int bestY = -1;
+	int bestS = -1;
 
 	int crows = aerialGradientReticleWidth;
 	int ccols = aerialGradientReticleWidth;
@@ -6624,49 +6665,52 @@ cout <<
 	int tRy = (maxDim-crows)/2;
 	int tRx = (maxDim-ccols)/2;
 	int gradientServoTranslation = 10;
-	for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY++) {
-	  for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX++) {
-	    // get the patch
-	    // XXX TODO warning not checking bounds
-	    int topCornerX = etaX + reticle.px - (aerialGradientReticleWidth/2);
-	    int topCornerY = etaY + reticle.py - (aerialGradientReticleWidth/2);
-	    Mat gCrop(maxDim, maxDim, CV_64F);
+	for (int etaS = 0; etaS < gradientServoScale; etaS++) {
+	  for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY++) {
+	    for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX++) {
+	      // get the patch
+	      // XXX TODO warning not checking bounds
+	      int topCornerX = etaX + reticle.px - (aerialGradientReticleWidth/2);
+	      int topCornerY = etaY + reticle.py - (aerialGradientReticleWidth/2);
+	      Mat gCrop(maxDim, maxDim, CV_64F);
 
-	    for (int x = 0; x < maxDim; x++) {
-	      for (int y = 0; y < maxDim; y++) {
-		int tx = x - tRx;
-		int ty = y - tRy;
-		if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
-		  gCrop.at<double>(y, x) = frameGraySobel.at<double>(topCornerY + ty, topCornerX + tx);
-		} else {
-		  gCrop.at<double>(y, x) = 0.0;
+	      for (int x = 0; x < maxDim; x++) {
+		for (int y = 0; y < maxDim; y++) {
+		  int tx = x - tRx;
+		  int ty = y - tRy;
+		  if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+		    gCrop.at<double>(y, x) = frameGraySobel.at<double>(topCornerY + ty, topCornerX + tx);
+		  } else {
+		    gCrop.at<double>(y, x) = 0.0;
+		  }
 		}
 	      }
-	    }
 
-	    cv::resize(gCrop, gCrop, toBecome);
-	    {
-	      double mean = gCrop.dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, gCrop.type())) / double(aerialGradientWidth*aerialGradientWidth);
-	      gCrop = gCrop - mean;
-	      double l2norm = gCrop.dot(gCrop);
-	      gCrop = gCrop - mean;
-	      if (l2norm <= EPSILON)
-		l2norm = 1.0;
-	      gCrop = gCrop / l2norm;
-	    }
-
-	    for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-	      // compute the score
-	      double thisScore = 0;
-	      thisScore = rotatedAerialGrads[thisOrient].dot(gCrop);
-
-	      if (thisScore > bestOrientationScore) {
-		bestOrientation = thisOrient;
-		bestOrientationScore = thisScore;
-		bestX = etaX;
-		bestY = etaY;
+	      cv::resize(gCrop, gCrop, toBecome);
+	      {
+		double mean = gCrop.dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, gCrop.type())) / double(aerialGradientWidth*aerialGradientWidth);
+		gCrop = gCrop - mean;
+		double l2norm = gCrop.dot(gCrop);
+		gCrop = gCrop - mean;
+		if (l2norm <= EPSILON)
+		  l2norm = 1.0;
+		gCrop = gCrop / l2norm;
 	      }
-	      cout << " this best: " << thisScore << " " << bestOrientationScore << " " << bestX << " " << bestY << endl;
+
+	      for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
+		// compute the score
+		double thisScore = 0;
+		thisScore = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(gCrop);
+
+		if (thisScore > bestOrientationScore) {
+		  bestOrientation = thisOrient;
+		  bestOrientationScore = thisScore;
+		  bestX = etaX;
+		  bestY = etaY;
+		  bestS = etaS;
+		}
+		//cout << " this best: " << thisScore << " " << bestOrientationScore << " " << bestX << " " << bestY << endl;
+	      }
 	    }
 	  }
 	}
@@ -6676,10 +6720,13 @@ cout <<
 	Px = -bestX;
 	Py = -bestY;
 
+	Ps = bestS - ((gradientServoScale-1)/2);
+
 	Mat toShow;
 	Size toUnBecome(maxDim, maxDim);
 	//cv::resize(classAerialGradients[targetClass], toShow, toUnBecome);
-	cv::resize(rotatedAerialGrads[oneToDraw], toShow, toUnBecome);
+	//cv::resize(rotatedAerialGrads[oneToDraw], toShow, toUnBecome);
+	cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations], toShow, toUnBecome);
 	//cout << rotatedAerialGrads[oneToDraw];
 
 	double maxTS = -INFINITY;
@@ -6718,7 +6765,7 @@ cout <<
 
 	double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
 
-	cout << "gradient servo Px Py: " << Px << " " << Py << " : " << reticle.px << " " << pilotTarget.px << " " << reticle.py << " " << pilotTarget.py << " ";
+	cout << "gradient servo Px Py Ps: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << pilotTarget.px << " " << reticle.py << " " << pilotTarget.py << " ";
 
 	double dx = (currentEEPose.px - trueEEPose.position.x);
 	double dy = (currentEEPose.py - trueEEPose.position.y);
@@ -6755,10 +6802,14 @@ cout <<
 	    // XXX
 	    // perform best grasp from memory in local space
 
-	    if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
-	      pilot_call_stack.push_back(1048624); // prepare for and execute the best grasp from memory at the current location and target
-	    else
-	      pilot_call_stack.push_back(196729); // quick fetch
+	    if (synchronicTakeClosest) {
+	      break;
+	    } else {
+	      if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
+		pilot_call_stack.push_back(1048624); // prepare for and execute the best grasp from memory at the current location and target
+	      else
+		pilot_call_stack.push_back(196729); // quick fetch
+	    }
 
 	    break;	
 	  } else {
@@ -6767,6 +6818,9 @@ cout <<
 	    // simple servo code because there is no hysteresis to be found
 	    double pTermX = gradKp*Px;
 	    double pTermY = gradKp*Py;
+
+	    double pTermS = Ps * .005;
+	    currentEEPose.pz += pTermS;
 
 	    //currentEEPose.py += pTermX;
 	    //currentEEPose.px += pTermY;
@@ -7176,6 +7230,7 @@ cout <<
     // capslock + s
     case 131155:
       {
+	synServoLockFrames = 0;
 	pilot_call_stack.push_back(131155); // quick fetch bag
 	pilot_call_stack.push_back(131157); // assert yes grasp
 	pushNoOps(60);
@@ -7252,58 +7307,35 @@ cout <<
     // capslock + S
     case 196723:
       {
+	synServoLockFrames = 0;
 	pilot_call_stack.push_back(196723); // quick fetch counter
 	pilot_call_stack.push_back(131157); // assert yes grasp
 	pushNoOps(60);
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
 	pushNoOps(20);
+
+	// ATTN 3
+	// start with memory scan
 	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
+	//pilot_call_stack.push_back(1114186); // use current range as target z and grasp
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pilot_call_stack.push_back(1048680); // assume x,y of target 
+	//pilot_call_stack.push_back(1048680); // assume x,y of target 
+	pilot_call_stack.push_back(1114175); // assume x,y of target in local space
 	pilot_call_stack.push_back(1048679); // render reticle
 	pilot_call_stack.push_back(1048691); // find max on register 1
 	pilot_call_stack.push_back(1048673); // render register 1
-	pilot_call_stack.push_back(1048690); // load map to register 1
-	pilot_call_stack.push_back(1048631); // assume best gear
-	{
-	  pilot_call_stack.push_back(1048678); // target best grasp
-	  pilot_call_stack.push_back(131154); // w1 wait until at current position
-	  pilot_call_stack.push_back(1048625); // change to first gear
-	}
-	pilot_call_stack.push_back(1048630); // find best grasp
 
+	pilot_call_stack.push_back(131162); // load target classRangeMap
+
+	pilot_call_stack.push_back(1048631); // assume best gear
+	pilot_call_stack.push_back(1048678); // target best grasp
+	pilot_call_stack.push_back(1048620); // find best grasp from memory
+
+	pilot_call_stack.push_back(131162); // load target classRangeMap
+	pilot_call_stack.push_back(1048695); // clear scan history
 	pilot_call_stack.push_back(1048684); // turn off scanning
 
-	pilot_call_stack.push_back(QUICK_RANGE_MAP); // quick orientation scan
-	pushCopies('q',4);
-	pushCopies('a',6);
-
-	pilot_call_stack.push_back(1048683); // turn on scanning
-	pushNoOps(60);
-	pilot_call_stack.push_back(1114155); // rotate gear
-
-	pilot_call_stack.push_back(1114183); // full render
-	pilot_call_stack.push_back(1048679); // render reticle
-	pilot_call_stack.push_back(1048625); // change to first gear
-	pilot_call_stack.push_back(1048673); // render register 1
-	pilot_call_stack.push_back(1048690); // load map to register 1
-	{
-	  pilot_call_stack.push_back(1048678); // target best grasp
-	  pilot_call_stack.push_back(131154); // w1 wait until at current position
-	  pilot_call_stack.push_back(1048625); // change to first gear
-	}
-	pilot_call_stack.push_back(1048630); // find best grasp
-
-	pilot_call_stack.push_back(QUICK_RANGE_MAP); // quick orientation scan
-
-	pilot_call_stack.push_back(1048683); // turn on scanning
-	pilot_call_stack.push_back(1114150); // prepare for search
-	pilot_call_stack.push_back(1048695); // clear scan history
-	pilot_call_stack.push_back(1048625); // change to first gear
-	pushNoOps(20);
-
-	pushCopies('s', 10); 
 	pilot_call_stack.push_back(131139); // synchronic servo don't take closest
 	pilot_call_stack.push_back(131156); // synchronic servo
 	pilot_call_stack.push_back(196707); // synchronic servo take closest
@@ -7312,16 +7344,82 @@ cout <<
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	pushCopies('w', 10); 
 
+	pilot_call_stack.push_back('k'); // open gripper
+	pilot_call_stack.push_back('i'); // initialize gripper
 	pushNoOps(60); 
 	pilot_call_stack.push_back('x'); 
 	pushCopies('s', 3); 
 
-	pilot_call_stack.push_back('k'); // open gripper
-	pilot_call_stack.push_back('i'); // initialize gripper
-	pushSpeedSign(MOVE_FAST);
-
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
+	// end with memory scan
+
+	// start with quick scan
+//	pilot_call_stack.push_back(1048682); // grasp at z inferred from target
+//	pilot_call_stack.push_back(131154); // w1 wait until at current position
+//	pilot_call_stack.push_back(1048680); // assume x,y of target 
+//	pilot_call_stack.push_back(1048679); // render reticle
+//	pilot_call_stack.push_back(1048691); // find max on register 1
+//	pilot_call_stack.push_back(1048673); // render register 1
+//	pilot_call_stack.push_back(1048690); // load map to register 1
+//	pilot_call_stack.push_back(1048631); // assume best gear
+//	{
+//	  pilot_call_stack.push_back(1048678); // target best grasp
+//	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+//	  pilot_call_stack.push_back(1048625); // change to first gear
+//	}
+//	pilot_call_stack.push_back(1048630); // find best grasp
+//
+//	pilot_call_stack.push_back(1048684); // turn off scanning
+//
+//	pilot_call_stack.push_back(QUICK_RANGE_MAP); // quick orientation scan
+//	pushCopies('q',4);
+//	pushCopies('a',6);
+//
+//	pilot_call_stack.push_back(1048683); // turn on scanning
+//	pushNoOps(60);
+//	pilot_call_stack.push_back(1114155); // rotate gear
+//
+//	pilot_call_stack.push_back(1114183); // full render
+//	pilot_call_stack.push_back(1048679); // render reticle
+//	pilot_call_stack.push_back(1048625); // change to first gear
+//	pilot_call_stack.push_back(1048673); // render register 1
+//	pilot_call_stack.push_back(1048690); // load map to register 1
+//	{
+//	  pilot_call_stack.push_back(1048678); // target best grasp
+//	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+//	  pilot_call_stack.push_back(1048625); // change to first gear
+//	}
+//	pilot_call_stack.push_back(1048630); // find best grasp
+//
+//	pilot_call_stack.push_back(QUICK_RANGE_MAP); // quick orientation scan
+//
+//	pilot_call_stack.push_back(1048683); // turn on scanning
+//	pilot_call_stack.push_back(1114150); // prepare for search
+//	pilot_call_stack.push_back(1048695); // clear scan history
+//	pilot_call_stack.push_back(1048625); // change to first gear
+//	pushNoOps(20);
+//
+//	pushCopies('s', 10); 
+//	pilot_call_stack.push_back(131139); // synchronic servo don't take closest
+//	pilot_call_stack.push_back(131156); // synchronic servo
+//	pilot_call_stack.push_back(196707); // synchronic servo take closest
+//	pilot_call_stack.push_back(131153); // vision cycle
+//	pushCopies(131121, 5); // density
+//	pilot_call_stack.push_back(131154); // w1 wait until at current position
+//	pushCopies('w', 10); 
+//
+//	pushNoOps(60); 
+//	pilot_call_stack.push_back('x'); 
+//	pushCopies('s', 3); 
+//
+//	pilot_call_stack.push_back('k'); // open gripper
+//	pilot_call_stack.push_back('i'); // initialize gripper
+//	pushSpeedSign(MOVE_FAST);
+//
+//	pilot_call_stack.push_back(131154); // w1 wait until at current position
+//	pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
+	// end with quick scan
       }
       break;
     // constant speed scan
@@ -7438,9 +7536,11 @@ cout <<
 	  Size toBecome(aerialGradientWidth, aerialGradientWidth);
 	  cv::resize(gCrop, gCrop, toBecome);
 
+
 	  FileStorage fsvO;
 	  fsvO.open(this_range_path, FileStorage::WRITE);
 	  fsvO << "aerialGradient" << gCrop;
+	  lastAerialGradient = gCrop;
 	  fsvO.release();
 	} 
       }
@@ -7512,6 +7612,7 @@ cout <<
 	  FileStorage fsvO;
 	  fsvO.open(this_range_path, FileStorage::WRITE);
 	  fsvO << "rangeMap" << rangeMapTemp;
+	  lastRangeMap = rangeMapTemp;
 	  fsvO.release();
 	} 
       }
@@ -7716,7 +7817,9 @@ cout <<
 	    pilot_call_stack.pop_back();
 	    // leave gripper in released state
 	    pilot_call_stack.push_back('k'); // open gripper
+	    cout << "  assert no pops back instruction." << endl;
 	  } else {
+	    cout << "  assert no merely returns." << endl;
 	    // resets the gripper server
 	    int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
 	  }
@@ -8000,11 +8103,24 @@ cout <<
     // capslock + D
     case 196708:
       {
-	  pilot_call_stack.push_back(196708); // remove and scan the items in the grocery bag until it is empty
+	  cout << "BEGINNING WHOLE FOODS VIDEO MAIN" << endl;
 
-	  //pilot_call_stack.push_back(131142); // reinitialize and retrain everything
+	  // so that closest servoing doesn't go into gradient servoing.
+	  targetClass = -1;
+
+	  //pilot_call_stack.push_back(196708); // remove and scan the items in the grocery bag until it is empty
+	  pilot_call_stack.push_back(131159); // 2D patrol start
+
 
 	  pilot_call_stack.push_back(131140); // move the scanned object from the counter to the pantry
+
+	  // set target class to the lastLabelLearned 
+	  pilot_call_stack.push_back(1179730);
+
+	  pilot_call_stack.push_back(131142); // reinitialize and retrain everything
+
+	  // set lastLabelLearned
+	  pilot_call_stack.push_back(1179732);
 
 	  pilot_call_stack.push_back(131143); // 72 way scan
 	  
@@ -8017,23 +8133,46 @@ cout <<
 	    pushCopies(131121, 10); // density
 	  }
 
-	  { // deposit and center 
-	    pilot_call_stack.push_back(131139); // synchronic servo don't take closest
-	    pilot_call_stack.push_back(131156); // synchronic servo
-	    pilot_call_stack.push_back(196707); // synchronic servo take closest
-	    pilot_call_stack.push_back(131153); // vision cycle
-	    pushCopies('w', 10);
-	    pilot_call_stack.push_back('x'); // back up 
-	    pilot_call_stack.push_back(131154); // w1 wait until at current position
-	  }
-
+	  // ATTN 3
+	  // start NO bag routine
 	  pilot_call_stack.push_back(196720); //  make a new class
 
-	  pilot_call_stack.push_back(196710); //  take something from grocery bag and put it on the counter
+	  pilot_call_stack.push_back(131139); // synchronic servo don't take closest
+	  pilot_call_stack.push_back(131156); // synchronic servo
+	  pilot_call_stack.push_back(196707); // synchronic servo take closest
+	  pilot_call_stack.push_back(131153); // vision cycle
 
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pushCopies('w', 10);
+	  pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
+
+	  pilot_call_stack.push_back(1179735); // change to counter table
 	  pilot_call_stack.push_back(1048625); // change to first gear
 	  pilot_call_stack.push_back('k'); // open gripper
 	  pilot_call_stack.push_back('i'); // initialize gripper
+	  // end NO bag routine
+
+	  // start bag routine
+//	  { // deposit and center 
+//	    pilot_call_stack.push_back(131139); // synchronic servo don't take closest
+//	    pilot_call_stack.push_back(131156); // synchronic servo
+//	    pilot_call_stack.push_back(196707); // synchronic servo take closest
+//	    pilot_call_stack.push_back(131153); // vision cycle
+//	    pushCopies('w', 10);
+//	    pushNoOps(30);
+//	    pilot_call_stack.push_back('x'); // back up 
+//	    pilot_call_stack.push_back(131154); // w1 wait until at current position
+//	  }
+//	  pilot_call_stack.push_back(1179735); // change to counter table
+//	  pilot_call_stack.push_back(196720); //  make a new class
+//
+//	  pilot_call_stack.push_back(196710); //  take something from grocery bag and put it on the counter
+//	  pilot_call_stack.push_back(1179729); // change to bag table
+//
+//	  pilot_call_stack.push_back(1048625); // change to first gear
+//	  pilot_call_stack.push_back('k'); // open gripper
+//	  pilot_call_stack.push_back('i'); // initialize gripper
+	  // end bag routine
       }
       break;
     //
@@ -8288,6 +8427,47 @@ cout <<
       }
       break;
     //
+    // change to bag table
+    // capslock + numlock + q
+    case 1179729:
+      {
+	currentTableZ = bagTableZ;
+      }
+      break;
+    // change to counter table
+    // capslock + numlock + w
+    case 1179735:
+      {
+	currentTableZ = counterTableZ;
+      }
+      break;
+    // change to pantry table
+    // capslock + numlock + e
+    case 1179717:
+      {
+	currentTableZ = pantryTableZ;
+      }
+      break;
+    // set target class to the lastLabelLearned 
+    // capslock + numlock + r
+    case 1179730:
+      {
+	for (int i = 0; i < numClasses; i++) {
+	  if (lastLabelLearned.compare(classLabels[i]) == 0) {
+	    targetClass = i;
+	    cout << "lastLabelLearned classLabels[targetClass]: " << lastLabelLearned << " " << classLabels[targetClass] << endl;
+	  }
+	}
+      }
+      break;
+    // set lastLabelLearned
+    // capslock + numlock + t
+    case 1179732:
+      {
+	lastLabelLearned = focusedClassLabel;
+	cout << "lastLabelLearned: " << lastLabelLearned << endl;
+      }
+      break;
     case 2:
       drawOrientor = !drawOrientor;
       break;
