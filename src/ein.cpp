@@ -380,17 +380,31 @@ eePose crane3left = {.px = 0.652866, .py = -0.206966, .pz = -0.130561,
 		     .qx = 0.999605, .qy = -0.0120443, .qz = 0.0253545, .qw = -0.00117847};
 
 
-eePose wholeFoodsBag1 = {.px = 0.618641, .py = -0.502567, .pz = 0.054811,
+// whole foods waypoints 
+eePose wholeFoodsBagR = {.px = 0.618641, .py = -0.502567, .pz = 0.054811,
 			 .ox = 0, .oy = 0, .oz = 0,
 			 .qx = 4.5204e-05, .qy = 0.999996, .qz = -0.00122689, .qw = 0.00245115};
-
-eePose wholeFoodsPantry1 = {.px = 0.616353, .py = -0.182223, .pz = 0.0528802,
+eePose wholeFoodsPantryR = {.px = 0.616353, .py = -0.182223, .pz = 0.0528802,
                       .ox = 0, .oy = 0, .oz = 0,
                       .qx = 0.000817634, .qy = 1, .qz = 0.0002565, .qw = -0.000372829};
-
-eePose wholeFoodsCounter1 = {.px = -0.114591, .py = -0.771545, .pz = 0.0365494,
+eePose wholeFoodsCounterR = {.px = -0.114591, .py = -0.771545, .pz = 0.0365494,
                       .ox = 0, .oy = 0, .oz = 0,
                       .qx = 0.00145314, .qy = 0.999999, .qz = 0.000204923, .qw = -0.000812254};
+
+eePose wholeFoodsBagL = {.px = 0.64828, .py = 0.762787, .pz = 0.0592764,
+                      .ox = 0, .oy = 0, .oz = 0,
+                      .qx = 0.999548, .qy = -0.0125874, .qz = 0.0272376, .qw = -0.00164726};
+eePose wholeFoodsPantryL = {.px = 0.645494, .py = 0.4937, .pz = 0.0568737,
+                      .ox = 0, .oy = 0, .oz = 0,
+		      .qx = 0.999608, .qy = -0.0117407, .qz = 0.0254095, .qw = -0.00106723};
+eePose wholeFoodsCounterL = {.px = -0.114389, .py = 0.803518, .pz = 0.056705,
+                      .ox = 0, .oy = 0, .oz = 0,
+                      .qx = 0.999609, .qy = -0.0113411, .qz = 0.0255357, .qw = -0.00101996};
+
+eePose wholeFoodsBag1 = wholeFoodsBagR;
+eePose wholeFoodsPantry1 = wholeFoodsPantryR;
+eePose wholeFoodsCounter1 = wholeFoodsCounterR;
+
 
 //eePose defaultReticle = defaultRightReticle;
 eePose defaultReticle = centerReticle;
@@ -564,6 +578,7 @@ double drY = .02;
 // target reticle
 double trX = 0;
 double trY = 0;
+double trZ = 0;
 
 double htrX = 0;
 double htrY = 0;
@@ -573,7 +588,7 @@ int maxY = 0;
 double maxD = 0;
 int maxGG = 0;
 
-double graspDepth = -.04;//-.03;//-.01;//-.03;//-.04;//-.02;
+double graspDepth = -.09;//-.03;//-.01;//-.03;//-.04;//-.02;
 
 // grasp gear 
 const int totalGraspGears = 8;
@@ -4763,7 +4778,9 @@ cout <<
 	//double deltaZ = -maxD - graspDepth;
 	//double deltaZ = (-maxD -graspDepth) - currentEEPose.pz;
 	// ATTN 1 currently accounting for table models
-	double deltaZ = (-(maxD + currentTableZ) - graspDepth) - currentEEPose.pz;
+	//double deltaZ = (-(maxD + currentTableZ) - graspDepth) - currentEEPose.pz;
+	// ATTN 4
+	double deltaZ = (-(trZ + currentTableZ) - graspDepth) - currentEEPose.pz;
 
 	double zTimes = fabs(floor(deltaZ / bDelta)); 
 
@@ -5033,6 +5050,8 @@ cout <<
 	double targetX = trX;
 	double targetY = trY;
 
+	trZ = rangeMapReg1[maxX + maxY*rmWidth];
+
 	currentEEPose.px = targetX;
 	currentEEPose.py = targetY;
       
@@ -5298,7 +5317,8 @@ cout <<
 
 	pushNoOps(60);
 	pilot_call_stack.push_back('j'); // close gripper
-	pushNoOps(30);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('w', 10);
 	pilot_call_stack.push_back('k'); // open gripper
 
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
@@ -5569,7 +5589,7 @@ cout <<
 	//pilot_call_stack.push_back(1048680); // assume x,y of target 
 	pilot_call_stack.push_back(1114175); // assume x,y of target in local space
 	pilot_call_stack.push_back(1048679); // render reticle
-	pilot_call_stack.push_back(1048691); // find max on register 1
+	//pilot_call_stack.push_back(1048691); // find max on register 1
 	pilot_call_stack.push_back(1048673); // render register 1
 
 	pilot_call_stack.push_back(131162); // load target classRangeMap
@@ -7323,7 +7343,7 @@ cout <<
 	//pilot_call_stack.push_back(1048680); // assume x,y of target 
 	pilot_call_stack.push_back(1114175); // assume x,y of target in local space
 	pilot_call_stack.push_back(1048679); // render reticle
-	pilot_call_stack.push_back(1048691); // find max on register 1
+	//pilot_call_stack.push_back(1048691); // find max on register 1
 	pilot_call_stack.push_back(1048673); // render register 1
 
 	pilot_call_stack.push_back(131162); // load target classRangeMap
@@ -7866,14 +7886,14 @@ cout <<
 	//pushCopies('w', depthToPlunge); // move up 
 	pilot_call_stack.push_back('k'); // open gripper
 	pilot_call_stack.push_back('j'); // close gripper
-	pushNoOps(20);
-	pushCopies('w'+65504, flexThisFar); // rotate forward
+	//pushNoOps(20);
+	//pushCopies('w'+65504, flexThisFar); // rotate forward
 	//pushCopies('e', 10); // move forward
 	//pushCopies('s', depthToPlunge); // move down
 	pilot_call_stack.push_back('k'); // open gripper
 	pushNoOps(30);
 	//pushCopies('q', 5); // move back 
-	pushCopies('s'+65504, flexThisFar); // rotate backward
+	//pushCopies('s'+65504, flexThisFar); // rotate backward
 
 	//pilot_call_stack.push_back('2'); // assume pose at register 2
 	pushSpeedSign(MOVE_FAST);
@@ -7937,13 +7957,13 @@ cout <<
 	//pushCopies('w', depthToPlunge); // move up 
 	pilot_call_stack.push_back('k'); // open gripper
 	pilot_call_stack.push_back('j'); // close gripper
-	pushNoOps(20);
-	pushCopies('s'+65504, flexThisFar); // rotate forward
+	//pushNoOps(20);
+	//pushCopies('s'+65504, flexThisFar); // rotate forward
 	//pushCopies('e', 5); // move forward
 	//pushCopies('s', depthToPlunge); // move down
 	pilot_call_stack.push_back('k'); // open gripper
-	pushNoOps(30);
-	pushCopies('w'+65504, flexThisFar); // rotate forward
+	//pushNoOps(30);
+	//pushCopies('w'+65504, flexThisFar); // rotate forward
 
 	//pilot_call_stack.push_back('2'); // assume pose at register 2
 	pushSpeedSign(MOVE_FAST);
@@ -9042,23 +9062,39 @@ void pilotInit() {
   if (0 == left_or_right_arm.compare("left")) {
     cout << "Possessing left arm..." << endl;
     beeHome = crane1left;
-    eepReg1 = crane1left;
-    eepReg2 = crane2left;
-    eepReg3 = crane3left;
+    //eepReg1 = crane1left;
+    //eepReg2 = crane2left;
+    //eepReg3 = crane3left;
     eepReg4 = beeLHome;
     oscillatingSign = 1;
     defaultReticle = defaultLeftReticle;
     reticle = defaultReticle;
+
+    wholeFoodsBag1 = wholeFoodsBagL;
+    wholeFoodsPantry1 = wholeFoodsPantryL;
+    wholeFoodsCounter1 = wholeFoodsCounterL;
+
+    eepReg1 = wholeFoodsBagL;
+    eepReg2 = wholeFoodsPantryL;
+    eepReg3 = wholeFoodsCounterL;
   } else if (0 == left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
     beeHome = crane1right;
-    eepReg1 = crane1right;
-    eepReg2 = crane2right;
-    eepReg3 = crane3right;
+    //eepReg1 = crane1right;
+    //eepReg2 = crane2right;
+    //eepReg3 = crane3right;
     eepReg4 = beeRHome;
     oscillatingSign = -1;
     defaultReticle = defaultRightReticle;
     reticle = defaultReticle;
+
+    wholeFoodsBag1 = wholeFoodsBagR;
+    wholeFoodsPantry1 = wholeFoodsPantryR;
+    wholeFoodsCounter1 = wholeFoodsCounterR;
+
+    eepReg1 = wholeFoodsBagL;
+    eepReg2 = wholeFoodsPantryL;
+    eepReg3 = wholeFoodsCounterL;
   } else {
     cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
     exit(0);
