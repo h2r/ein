@@ -420,6 +420,8 @@ eePose eepReg1 = workCenter;
 eePose eepReg2 = beeHome;
 eePose eepReg3 = beeHome;
 eePose eepReg4 = beeHome;
+std::vector<eePose> warehousePoses;
+int currentWarehousePose = 0;
 
 int pilotTargetBlueBoxNumber = -1;
 int pilotClosestBlueBoxNumber = -1;
@@ -3669,6 +3671,10 @@ cout <<
       break;
     case '4':
       currentEEPose = eepReg4;
+      break;
+    case '5':
+      currentEEPose = warehousePoses[currentWarehousePose];
+      currentWarehousePose = (currentWarehousePose + 1) % warehousePoses.size();
       break;
     // begin register target acquisition calls
     case 1+262192:
@@ -9154,6 +9160,31 @@ void pilotInit() {
     //defaultReticle = defaultRightReticle;
     defaultReticle = centerReticle;
     reticle = defaultReticle;
+
+
+    
+    eePose pose1 = {.px = 0.233681, .py = -0.853305, .pz = 0.0536631,
+                    .ox = 0, .oy = 0, .oz = 0,
+                    .qx = 0.00408151, .qy = 0.999991, .qz = -0.00108426, .qw = 0.000678766};
+
+    eePose pose2 = {.px = 0.255665, .py = -0.661719, .pz = 0.0527955,
+                    .ox = 0, .oy = 0, .oz = 0,
+                    .qx = 0.00369431, .qy = 0.99999, .qz = 0.00231318, .qw = -0.00063272};
+
+    eePose pose3 = {.px = 0.00579471, .py = -0.642449, .pz = 0.0727708,
+                    .ox = 0, .oy = 0, .oz = 0,
+                    .qx = 0.00248598, .qy = 0.999995, .qz = 0.00201974, .qw = -0.000816647};
+
+    eePose pose4 = {.px = 0.0249181, .py = -0.850118, .pz = 0.0713887,
+                    .ox = 0, .oy = 0, .oz = 0,
+                    .qx = 0.00331993, .qy = 0.999982, .qz = 0.00477704, .qw = -0.00145784};
+
+    warehousePoses.push_back(pose1);
+    warehousePoses.push_back(pose2);
+    warehousePoses.push_back(pose3);
+    warehousePoses.push_back(pose4);
+
+
 
     wholeFoodsBag1 = wholeFoodsBagR;
     wholeFoodsPantry1 = wholeFoodsPantryR;
