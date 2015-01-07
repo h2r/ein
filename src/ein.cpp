@@ -321,7 +321,7 @@ std::string hiColorRangemapViewName = "Hi Color Range Map View";
 int reticleHalfWidth = 30;
 int pilotTargetHalfWidth = 15;
 
-eePose centerReticle = {.px = 320, .py = 240, .pz = 0.0,
+eePose centerReticle = {.px = 325, .py = 127, .pz = 0.0,
 		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
 		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
 
@@ -383,23 +383,23 @@ eePose crane3left = {.px = 0.652866, .py = -0.206966, .pz = -0.130561,
 // whole foods waypoints 
 eePose wholeFoodsBagR = {.px = 0.618641, .py = -0.502567, .pz = 0.054811,
 			 .ox = 0, .oy = 0, .oz = 0,
-			 .qx = 4.5204e-05, .qy = 0.999996, .qz = -0.00122689, .qw = 0.00245115};
+			 .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 eePose wholeFoodsPantryR = {.px = 0.616353, .py = -0.182223, .pz = 0.0528802,
                       .ox = 0, .oy = 0, .oz = 0,
-                      .qx = 0.000817634, .qy = 1, .qz = 0.0002565, .qw = -0.000372829};
+		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 eePose wholeFoodsCounterR = {.px = -0.114591, .py = -0.771545, .pz = 0.0365494,
                       .ox = 0, .oy = 0, .oz = 0,
-                      .qx = 0.00145314, .qy = 0.999999, .qz = 0.000204923, .qw = -0.000812254};
+		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 
 eePose wholeFoodsBagL = {.px = 0.64828, .py = 0.762787, .pz = 0.0592764,
                       .ox = 0, .oy = 0, .oz = 0,
-                      .qx = 0.999548, .qy = -0.0125874, .qz = 0.0272376, .qw = -0.00164726};
+		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 eePose wholeFoodsPantryL = {.px = 0.645494, .py = 0.4937, .pz = 0.0568737,
                       .ox = 0, .oy = 0, .oz = 0,
-		      .qx = 0.999608, .qy = -0.0117407, .qz = 0.0254095, .qw = -0.00106723};
+		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 eePose wholeFoodsCounterL = {.px = -0.114389, .py = 0.803518, .pz = 0.056705,
                       .ox = 0, .oy = 0, .oz = 0,
-                      .qx = 0.999609, .qy = -0.0113411, .qz = 0.0255357, .qw = -0.00101996};
+		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 
 eePose wholeFoodsBag1 = wholeFoodsBagR;
 eePose wholeFoodsPantry1 = wholeFoodsPantryR;
@@ -786,8 +786,8 @@ std::string densityViewerName = "Density Viewer";
 std::string objectViewerName = "Object Viewer";
 std::string gradientViewerName = "Gradient Viewer";
 
-int loTrackbarVariable = 75;
-int hiTrackbarVariable = 50;
+int loTrackbarVariable = 45;//75;
+int hiTrackbarVariable = 40;//50;
 int redTrackbarVariable = 0;
 
 double drawBingProb = .1;
@@ -803,7 +803,7 @@ double sobel_sigma = 4.0;
 double sobel_scale_factor = 1e-12;
 double local_sobel_sigma = 1.0;
 
-double densityDecay = 0.3;//0.7;
+double densityDecay = 0.5;//0.9;//0.3;//0.7;
 double depthDecay = 0.7;
 double redDecay = 0.9;
 
@@ -910,6 +910,7 @@ int cropCounter;
 
 double maxDensity = 0;
 double *density = NULL;
+double *predensity = NULL;
 double *integralDensity = NULL;
 double *temporalDensity = NULL;
 double *temporalDepth = NULL;
@@ -1011,8 +1012,6 @@ string invert_sign_name = "";
 double *gBoxIndicator;
 int gBoxW = 10;
 int gBoxH = 10;
-double gBoxThresh = 30000;//5;//3;
-//double threshFraction = 0;//0.35;
 double threshFraction = 0.2;
 
 int gBoxStrideX;
@@ -1026,7 +1025,7 @@ double gbPBT = 0.0;//6.0;
 double mbPBT = 0.0;//7.0;
 
 double pBoxThresh = 0;
-double densityPower = 1.0;//1.0/4.0;
+//double densityPower = 1.0;//1.0/4.0;
 
 // gray box offset from the top and bottom of the screen
 int tGO = 30;
@@ -1056,6 +1055,8 @@ int aerialGradientReticleWidth = 200;
 
 int maxGradientServoIterations = 3;
 int currentGradientServoIterations = 0;
+
+int fuseBlueBoxes = 1;
 
 ////////////////////////////////////////////////
 // end node variables 
@@ -1180,6 +1181,8 @@ void detectorsInit();
 void initRedBoxes();
 
 void tryToLoadRangeMap(std::string classDir, const char *className, int i);
+
+void processSaliency(Mat in, Mat out);
 
 ////////////////////////////////////////////////
 // end node prototypes 
@@ -5576,7 +5579,7 @@ cout <<
 	pilot_call_stack.push_back(1048623); // numlock + /
 
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('s', 10);
+	pushCopies('w', 10);
 	pilot_call_stack.push_back('2'); // assume pose at register 2
 	pushNoOps(10);
 
@@ -6339,7 +6342,22 @@ cout <<
       {
 	pilot_call_stack.push_back(131123); // classify
 	pilot_call_stack.push_back(131122); // blue boxes
-	pushCopies(131121, 5); // density
+	//pushCopies(131121, 5); // density
+	pushCopies(131121, 4); // density
+	pushCopies(1179737, 1); // reset temporal map
+	pushCopies(131121, 1); // density
+
+//	if (temporalDensity != NULL && predensity != NULL) {
+//	  cout << "predensity<<<<***" << endl;
+//	  Size sz = objectViewerImage.size();
+//	  int imW = sz.width;
+//	  int imH = sz.height;
+//	  for (int x = 0; x < imW; x++) {
+//	    for (int y = 0; y < imH; y++) {
+//	      temporalDensity[y*imW+x] = predensity[y*imW+x];
+//	    }
+//	  }
+//	}
       }
       break;
     // vision cycle no classify
@@ -6347,7 +6365,21 @@ cout <<
     case 196721:
       {
 	pilot_call_stack.push_back(131122); // blue boxes
-	pushCopies(131121, 5); // density
+	pushCopies(131121, 1); // density
+	pushCopies(1179737, 1); // reset temporal map
+	pushCopies(131121, 1); // density
+
+//	if (temporalDensity != NULL && predensity != NULL) {
+//	  cout << "predensity<<<<***" << endl;
+//	  Size sz = objectViewerImage.size();
+//	  int imW = sz.width;
+//	  int imH = sz.height;
+//	  for (int x = 0; x < imW; x++) {
+//	    for (int y = 0; y < imH; y++) {
+//	      temporalDensity[y*imW+x] = predensity[y*imW+x];
+//	    }
+//	  }
+//	}
       }
       break;
     // increment target class
@@ -6636,7 +6668,7 @@ cout <<
 	vector<Mat> rotatedAerialGrads;
 
 	// ATTN 3
-	int gradientServoScale = 11;
+	int gradientServoScale = 3;//11;
 	double gradientServoScaleStep = 1.02;
 	double startScale = pow(gradientServoScaleStep, -(gradientServoScale-1)/2);
 
@@ -6656,6 +6688,8 @@ cout <<
 	    // Get the rotation matrix with the specifications above
 	    Mat rot_mat = getRotationMatrix2D(center, angle, scale);
 	    warpAffine(classAerialGradients[targetClass], rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
+
+	    processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations], rotatedAerialGrads[thisOrient + etaS*numOrientations]);
 
 	    //double l1norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type()));
 	    //if (l1norm <= EPSILON)
@@ -6684,7 +6718,7 @@ cout <<
 	int maxDim = max(crows, ccols);
 	int tRy = (maxDim-crows)/2;
 	int tRx = (maxDim-ccols)/2;
-	int gradientServoTranslation = 10;
+	int gradientServoTranslation = 40;
 	for (int etaS = 0; etaS < gradientServoScale; etaS++) {
 	  for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY++) {
 	    for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX++) {
@@ -6693,6 +6727,14 @@ cout <<
 	      int topCornerX = etaX + reticle.px - (aerialGradientReticleWidth/2);
 	      int topCornerY = etaY + reticle.py - (aerialGradientReticleWidth/2);
 	      Mat gCrop(maxDim, maxDim, CV_64F);
+
+	      Size sz = objectViewerImage.size();
+	      int imW = sz.width;
+	      int imH = sz.height;
+	      if ( (topCornerX+aerialGradientWidth >= imW) || (topCornerY+aerialGradientWidth >= imH) )
+		continue;
+	      if ( (topCornerX < 0) || (topCornerY < 0) )
+		continue;
 
 	      for (int x = 0; x < maxDim; x++) {
 		for (int y = 0; y < maxDim; y++) {
@@ -6707,6 +6749,9 @@ cout <<
 	      }
 
 	      cv::resize(gCrop, gCrop, toBecome);
+
+	      processSaliency(gCrop, gCrop);
+
 	      {
 		double mean = gCrop.dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, gCrop.type())) / double(aerialGradientWidth*aerialGradientWidth);
 		gCrop = gCrop - mean;
@@ -6740,7 +6785,8 @@ cout <<
 	Px = -bestX;
 	Py = -bestY;
 
-	Ps = bestS - ((gradientServoScale-1)/2);
+	//Ps = bestS - ((gradientServoScale-1)/2);
+	Ps = 0;
 
 	Mat toShow;
 	Size toUnBecome(maxDim, maxDim);
@@ -8150,7 +8196,8 @@ cout <<
 	    pilot_call_stack.push_back(1048622); // nuetral scan 
 	    pushCopies('s', 10);
 	    pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
-	    pushCopies(131121, 10); // density
+	    pushCopies(131121, 20); // density
+	    pilot_call_stack.push_back(131153); // vision cycle
 	  }
 
 	  // ATTN 3
@@ -8163,6 +8210,7 @@ cout <<
 	  pilot_call_stack.push_back(131153); // vision cycle
 
 	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pilot_call_stack.push_back(1048625); // change to first gear
 	  pushCopies('w', 10);
 	  pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
 
@@ -8486,6 +8534,23 @@ cout <<
       {
 	lastLabelLearned = focusedClassLabel;
 	cout << "lastLabelLearned: " << lastLabelLearned << endl;
+      }
+      break;
+    // reset temporal map
+    // capslock + numlock + y
+    case 1179737:
+      {
+	if (temporalDensity != NULL && predensity != NULL) {
+	  cout << "predensity<<<<***" << endl;
+	  Size sz = objectViewerImage.size();
+	  int imW = sz.width;
+	  int imH = sz.height;
+	  for (int x = 0; x < imW; x++) {
+	    for (int y = 0; y < imH; y++) {
+	      temporalDensity[y*imW+x] = predensity[y*imW+x];
+	    }
+	  }
+	}
       }
       break;
     case 2:
@@ -9067,7 +9132,8 @@ void pilotInit() {
     //eepReg3 = crane3left;
     eepReg4 = beeLHome;
     oscillatingSign = 1;
-    defaultReticle = defaultLeftReticle;
+    //defaultReticle = defaultLeftReticle;
+    defaultReticle = centerReticle;
     reticle = defaultReticle;
 
     wholeFoodsBag1 = wholeFoodsBagL;
@@ -9085,16 +9151,17 @@ void pilotInit() {
     //eepReg3 = crane3right;
     eepReg4 = beeRHome;
     oscillatingSign = -1;
-    defaultReticle = defaultRightReticle;
+    //defaultReticle = defaultRightReticle;
+    defaultReticle = centerReticle;
     reticle = defaultReticle;
 
     wholeFoodsBag1 = wholeFoodsBagR;
     wholeFoodsPantry1 = wholeFoodsPantryR;
     wholeFoodsCounter1 = wholeFoodsCounterR;
 
-    eepReg1 = wholeFoodsBagL;
-    eepReg2 = wholeFoodsPantryL;
-    eepReg3 = wholeFoodsCounterL;
+    eepReg1 = wholeFoodsBagR;
+    eepReg2 = wholeFoodsPantryR;
+    eepReg3 = wholeFoodsCounterR;
   } else {
     cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
     exit(0);
@@ -10657,8 +10724,8 @@ void goCalculateDensity() {
     /// Gradient Y
     Sobel(totalCrSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
 
-    //grad_x = grad_x.mul(grad_x);
-    //grad_y = grad_y.mul(grad_y);
+    grad_x = grad_x.mul(grad_x);
+    grad_y = grad_y.mul(grad_y);
     totalCrSobel = grad_x + grad_y;
   }
 
@@ -10679,8 +10746,8 @@ void goCalculateDensity() {
     /// Gradient Y
     Sobel(totalCbSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
 
-    //grad_x = grad_x.mul(grad_x);
-    //grad_y = grad_y.mul(grad_y);
+    grad_x = grad_x.mul(grad_x);
+    grad_y = grad_y.mul(grad_y);
     totalCbSobel = grad_x + grad_y;
   }
 
@@ -10706,7 +10773,11 @@ void goCalculateDensity() {
     totalYSobel = grad_x + grad_y;
   }
 
-
+  // total becomes sum of Cr and Cb
+  int totalBecomes = 1;
+  if (totalBecomes) {
+    totalGraySobel = totalCrSobel + totalCbSobel;
+  }
 
   // truncate the Sobel image outside the gray box
   for (int x = 0; x < imW; x++) {
@@ -10744,82 +10815,6 @@ void goCalculateDensity() {
       totalYSobel.at<double>(y,x) = 0;
     }
   }
-
-  double minGraySob = INFINITY;
-  double maxGraySob = -INFINITY;
-  double minCrSob = INFINITY;
-  double maxCrSob = -INFINITY;
-  double minCbSob = INFINITY;
-  double maxCbSob = -INFINITY;
-  double minYSob = INFINITY;
-  double maxYSob = -INFINITY;
-  for (int y = 0; y < imH; y++) {
-    for (int x = 0; x < imW; x++) {
-      minGraySob = min(minGraySob, double(totalGraySobel.at<double>(y,x)));
-      maxGraySob = max(maxGraySob, double(totalGraySobel.at<double>(y,x)));
-
-      minCrSob = min(minCrSob, double(totalCrSobel.at<double>(y,x)));
-      maxCrSob = max(maxCrSob, double(totalCrSobel.at<double>(y,x)));
-
-      minCbSob = min(minCbSob, double(totalCbSobel.at<double>(y,x)));
-      maxCbSob = max(maxCbSob, double(totalCbSobel.at<double>(y,x)));
-
-      minYSob = min(minYSob, double(totalYSobel.at<double>(y,x)));
-      maxYSob = max(maxYSob, double(totalYSobel.at<double>(y,x)));
-    }
-  }
-
-  double sobGrayRange = maxGraySob - minGraySob;
-  double sobCrRange = maxCrSob - minCrSob;
-  double sobCbRange = maxCbSob - minCbSob;
-  double sobYRange = maxYSob - minYSob;
-
-  // ignore normalization
-  //maxCrSob = 255;
-  //minCrSob = 0;
-  //sobCrRange = 1;
-  //maxCbSob = 255;
-  //minCbSob = 0;
-  //sobCbRange = 1;
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      yCbCrGradientImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(
-	//uchar(max(0.0, min((128+255.0*(totalGraySobel.at<double>(y,x) - minGraySob - (sobGrayRange/2.0)) / sobGrayRange), 255.0))) ,
-	//128,
-
-	uchar(max(0.0, min((128+255.0*(totalYSobel.at<double>(y,x) - minYSob - (sobYRange/2.0)) / sobYRange), 255.0))) ,
-	//uchar(max(0.0, min((255.0*(totalYSobel.at<double>(y,x) - minYSob) / sobYRange), 255.0))) ,
-	uchar(max(0.0, min((128+255.0*(totalCrSobel.at<double>(y,x) - minCrSob - (sobCrRange/2.0)) / sobCrRange), 255.0))) ,
-	uchar(max(0.0, min((128+255.0*(totalCbSobel.at<double>(y,x) - minCbSob - (sobCbRange/2.0)) / sobCbRange), 255.0))) );
-
-	//uchar(max(0.0, min((128+255.0*fabs(totalCrSobel.at<double>(y,x) - minCrSob - (sobCrRange/2.0)) / sobCrRange), 255.0))) ,
-	//uchar(max(0.0, min((128+255.0*fabs(totalCbSobel.at<double>(y,x) - minCbSob - (sobCbRange/2.0)) / sobCbRange), 255.0))) );
-    }
-  }
-  Mat convertedYCbCrGradientImage;
-  cvtColor(yCbCrGradientImage, convertedYCbCrGradientImage, CV_YCrCb2BGR);
-
-  // copy the density map to the rendered image
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      //uchar val = uchar(min( 255.0 * density[y*imW+x] / maxDensity, 255.0));
-      //densityViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
-      // XXX TODO
-      //uchar val = uchar(min( 255.0 *  (totalGraySobel.at<float>(y,x) - minGraySob) / sobGrayRange, 255.0));
-
-      uchar val = uchar(min( 3*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
-      gradientViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
-      gradientViewerImage.at<cv::Vec3b>(y+imH,x) = convertedYCbCrGradientImage.at<cv::Vec3b>(y,x);
-
-      //cout << yCbCrGradientImage.at<cv::Vec3b>(y,x) << " ";
-    }
-  }
-
-  cout << "SobelGray: " << sobGrayRange << " " << maxGraySob << " " << minGraySob << endl;
-  cout << "SobelCr: " << sobCrRange << " " << maxCrSob << " " << minCrSob << endl;
-  cout << "SobelCb: " << sobCbRange << " " << maxCbSob << " " << minCbSob << endl;
-
 //  // make it gradient magnitude to the fourth to spread the values a little
 //  // this increases robustness and makes it easier to tune
 //  pow(totalSobel, 2.0, totalSobel);
@@ -10870,6 +10865,8 @@ void goCalculateDensity() {
     integralDensity = new double[imW*imH];
   if (density == NULL)
     density = new double[imW*imH];
+  if (predensity == NULL)
+    predensity = new double[imW*imH];
   double *differentialDensity = new double[imW*imH];
   if (temporalDensity == NULL) {
     temporalDensity = new double[imW*imH];
@@ -10960,6 +10957,20 @@ void goCalculateDensity() {
     }
   }
   */
+  int replaceDensityWithGrad = 1;
+  if (replaceDensityWithGrad) {
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	density[y*imW+x] = totalGraySobel.at<double>(y,x);
+      }
+    }
+  }
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      predensity[y*imW+x] = totalGraySobel.at<double>(y,x);
+    }
+  }
 
   // now update the exponential average of the density
   // and set the density to be a thresholded version of this
@@ -10967,7 +10978,13 @@ void goCalculateDensity() {
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
       temporalDensity[y*imW+x] = densityDecay*temporalDensity[y*imW+x] + (1.0-densityDecay)*density[y*imW+x];
-      density[y*imW+x] = pow(temporalDensity[y*imW+x], densityPower);
+      //density[y*imW+x] = pow(temporalDensity[y*imW+x], densityPower);
+      //maxDensity = max(maxDensity, density[y*imW+x]);
+    }
+  }
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
       maxDensity = max(maxDensity, density[y*imW+x]);
     }
   }
@@ -10975,8 +10992,32 @@ void goCalculateDensity() {
     for (int y = 0; y < imH; y++) {
       if (density[y*imW+x] < maxDensity* threshFraction)
 	density[y*imW+x] = 0;
+      //else
+	//density[y*imW+x] = maxDensity* threshFraction;
     }
   }
+
+  // smooth the density
+  int smoothDensity = 0;
+  double densitySigma = 3.0;
+  Mat denTemp = totalGraySobel.clone();
+  if (smoothDensity) {
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	denTemp.at<double>(y,x) = density[y*imW+x];
+      }
+    }
+
+    GaussianBlur(denTemp, denTemp, cv::Size(0,0), densitySigma);
+
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	density[y*imW+x] = denTemp.at<double>(y,x);
+      }
+    }
+  }
+
+
 
   // integrate density into the integral density
   integralDensity[0] = density[0];
@@ -11033,9 +11074,6 @@ void goCalculateDensity() {
     vCrop2 = vCrop2/2;
   }
 
-  // masked this too
-  frameGraySobel = totalGraySobel.clone();
-
   // truncate the density outside the gray box
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < grayTop.y; y++) {
@@ -11089,6 +11127,106 @@ void goCalculateDensity() {
       densityViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
     }
   }
+
+  // optionally feed it back in
+  int sobelBecomesDensity = 1;
+  if (sobelBecomesDensity) {
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	totalGraySobel.at<double>(y,x) = density[y*imW+x];
+      }
+    }
+
+//    for (int x = 0; x < imW; x++) {
+//      for (int y = 0; y < imH; y++) {
+//	if (totalGraySobel.at<double>(y,x) < maxDensity* threshFraction)
+//	   totalGraySobel.at<double>(y,x) = 0;
+//	else
+//	   totalGraySobel.at<double>(y,x) = maxDensity* threshFraction;
+//      }
+//    }
+  }
+
+  // masked this too
+  frameGraySobel = totalGraySobel.clone();
+
+  double minGraySob = INFINITY;
+  double maxGraySob = -INFINITY;
+  double minCrSob = INFINITY;
+  double maxCrSob = -INFINITY;
+  double minCbSob = INFINITY;
+  double maxCbSob = -INFINITY;
+  double minYSob = INFINITY;
+  double maxYSob = -INFINITY;
+  for (int y = 0; y < imH; y++) {
+    for (int x = 0; x < imW; x++) {
+      minGraySob = min(minGraySob, double(totalGraySobel.at<double>(y,x)));
+      maxGraySob = max(maxGraySob, double(totalGraySobel.at<double>(y,x)));
+
+      minCrSob = min(minCrSob, double(totalCrSobel.at<double>(y,x)));
+      maxCrSob = max(maxCrSob, double(totalCrSobel.at<double>(y,x)));
+
+      minCbSob = min(minCbSob, double(totalCbSobel.at<double>(y,x)));
+      maxCbSob = max(maxCbSob, double(totalCbSobel.at<double>(y,x)));
+
+      minYSob = min(minYSob, double(totalYSobel.at<double>(y,x)));
+      maxYSob = max(maxYSob, double(totalYSobel.at<double>(y,x)));
+    }
+  }
+
+  double sobGrayRange = maxGraySob - minGraySob;
+  double sobCrRange = maxCrSob - minCrSob;
+  double sobCbRange = maxCbSob - minCbSob;
+  double sobYRange = maxYSob - minYSob;
+
+  // ignore normalization
+  //maxCrSob = 255;
+  //minCrSob = 0;
+  //sobCrRange = 1;
+  //maxCbSob = 255;
+  //minCbSob = 0;
+  //sobCbRange = 1;
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      yCbCrGradientImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(
+	//uchar(max(0.0, min((128+255.0*(totalGraySobel.at<double>(y,x) - minGraySob - (sobGrayRange/2.0)) / sobGrayRange), 255.0))) ,
+	//128,
+
+	uchar(max(0.0, min((128+255.0*(totalYSobel.at<double>(y,x) - minYSob - (sobYRange/2.0)) / sobYRange), 255.0))) ,
+	//uchar(max(0.0, min((255.0*(totalYSobel.at<double>(y,x) - minYSob) / sobYRange), 255.0))) ,
+	uchar(max(0.0, min((128+255.0*(totalCrSobel.at<double>(y,x) - minCrSob - (sobCrRange/2.0)) / sobCrRange), 255.0))) ,
+	uchar(max(0.0, min((128+255.0*(totalCbSobel.at<double>(y,x) - minCbSob - (sobCbRange/2.0)) / sobCbRange), 255.0))) );
+
+	//uchar(max(0.0, min((128+255.0*fabs(totalCrSobel.at<double>(y,x) - minCrSob - (sobCrRange/2.0)) / sobCrRange), 255.0))) ,
+	//uchar(max(0.0, min((128+255.0*fabs(totalCbSobel.at<double>(y,x) - minCbSob - (sobCbRange/2.0)) / sobCbRange), 255.0))) );
+    }
+  }
+  Mat convertedYCbCrGradientImage;
+  cvtColor(yCbCrGradientImage, convertedYCbCrGradientImage, CV_YCrCb2BGR);
+
+  // copy the density map to the rendered image
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      //uchar val = uchar(min( 255.0 * density[y*imW+x] / maxDensity, 255.0));
+      //densityViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
+      // XXX TODO
+      //uchar val = uchar(min( 255.0 *  (totalGraySobel.at<float>(y,x) - minGraySob) / sobGrayRange, 255.0));
+
+      //uchar val = uchar(min( 3*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
+      uchar val = uchar(min( 1*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
+      gradientViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
+      gradientViewerImage.at<cv::Vec3b>(y+imH,x) = convertedYCbCrGradientImage.at<cv::Vec3b>(y,x);
+
+      //cout << yCbCrGradientImage.at<cv::Vec3b>(y,x) << " ";
+    }
+  }
+
+  cout << "SobelGray: " << sobGrayRange << " " << maxGraySob << " " << minGraySob << endl;
+  cout << "SobelCr: " << sobCrRange << " " << maxCrSob << " " << minCrSob << endl;
+  cout << "SobelCb: " << sobCbRange << " " << maxCbSob << " " << minCbSob << endl;
+
+
 
   if (shouldIRender) {
     cv::imshow(densityViewerName, densityViewerImage);
@@ -11264,10 +11402,26 @@ void goFindBlueBoxes() {
 	allow = 0;
       //if (cTops[c].y > rejectLow || cBots[c].y < rejectHigh)
 	//allow = 0;
+
+      // check for overlap and fuse
+      cv::Point thisCen = cv::Point((cTops[c].x+cBots[c].x)/2, (cTops[c].y+cBots[c].y)/2);
+      if (fuseBlueBoxes) {
+	for (int cbc = 0; cbc < bTops.size(); cbc++) {
+	  if ( fabs(thisCen.x - bCens[cbc].x) < fabs(bCens[cbc].x-bTops[cbc].x+thisCen.x-cTops[c].x)/2 && 
+	       fabs(thisCen.y - bCens[cbc].y) < fabs(bCens[cbc].y-bTops[cbc].y+thisCen.y-cTops[c].y)/2 ) {
+	    allow = 0;
+	    bTops[cbc].x = min(bTops[cbc].x, cTops[c].x);
+	    bTops[cbc].y = min(bTops[cbc].y, cTops[c].y);
+	    bBots[cbc].x = max(bBots[cbc].x, cBots[c].x);
+	    bBots[cbc].y = max(bBots[cbc].y, cBots[c].y);
+	  }
+	}
+      }
+
       if (allow == 1) {
 	bTops.push_back(cTops[c]);
 	bBots.push_back(cBots[c]);
-	bCens.push_back(cv::Point((cTops[c].x+cBots[c].x)/2, (cTops[c].y+cBots[c].y)/2));
+	bCens.push_back(thisCen);
 	int t = bTops.size()-1;
 
 	int thisArea = (cBots[c].x - cTops[c].x)*(cBots[c].y - cTops[c].y);
@@ -12836,10 +12990,9 @@ void loadROSParamsFromArgs() {
 void loadROSParams() {
   ros::NodeHandle nh("~");
 
-  nh.getParam("green_box_threshold", gBoxThresh);
   nh.getParam("pink_box_threshold", pBoxThresh);
   nh.getParam("threshold_fraction", threshFraction);
-  nh.getParam("density_power", densityPower);
+  //nh.getParam("density_power", densityPower);
   nh.getParam("plastic_spoon_normalizer", psPBT);
   nh.getParam("wooden_spoon_normalizer", wsPBT);
   nh.getParam("gyrobowl_normalizer", gbPBT);
@@ -12899,10 +13052,9 @@ void loadROSParams() {
 void saveROSParams() {
   ros::NodeHandle nh("~");
 
-  nh.setParam("green_box_threshold", gBoxThresh);
   nh.setParam("pink_box_threshold", pBoxThresh);
   nh.setParam("threshold_fraction", threshFraction);
-  nh.setParam("density_power", densityPower);
+  //nh.setParam("density_power", densityPower);
   nh.setParam("plastic_spoon_normalizer", psPBT);
   nh.setParam("wooden_spoon_normalizer", wsPBT);
   nh.setParam("gyrobowl_normalizer", gbPBT);
@@ -13346,6 +13498,32 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
       cout << "Failed to load rangeMap from " << this_ag_path << endl; 
     }
   }
+}
+
+void processSaliency(Mat in, Mat out) {
+  out = in.clone();
+  
+  double tMax = -INFINITY;
+  double tMin =  INFINITY;
+  for (int x = 0; x < in.cols; x++) {
+    for (int y = 0; y < in.rows; y++) {
+      tMax = max(tMax, out.at<double>(y,x));
+      tMin = min(tMin, out.at<double>(y,x));
+    }
+  }
+
+  double thresh = 0.1*(tMax-tMin) + tMin;
+  for (int x = 0; x < in.cols; x++) {
+    for (int y = 0; y < in.rows; y++) {
+      if (out.at<double>(y,x) >= thresh)
+	out.at<double>(y,x) = 1;
+      else
+	out.at<double>(y,x) = 0;
+    }
+  }
+
+  double saliencySigma = 2.0;
+  GaussianBlur(out, out, cv::Size(0,0), saliencySigma);
 }
 
 ////////////////////////////////////////////////
