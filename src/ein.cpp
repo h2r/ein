@@ -5378,8 +5378,8 @@ cout <<
     // neutral scan
     case 1048622:
       {
-	double lineSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
-	double betweenSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
+	double lineSpeed = MOVE_MEDIUM;//MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
+	double betweenSpeed = MOVE_MEDIUM;//MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
 	////pushCopies('e', 3);
 	////pushCopies('q', 10);
 	////scanYdirection(lineSpeed, betweenSpeed); // load scan program
@@ -5585,7 +5585,7 @@ cout <<
 	pilot_call_stack.push_back(1048623); // numlock + /
 
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pushCopies('w', 10);
+	//pushCopies('w', 5);
 	pilot_call_stack.push_back('2'); // assume pose at register 2
 	pushNoOps(10);
 
@@ -6725,9 +6725,10 @@ cout <<
 	int tRy = (maxDim-crows)/2;
 	int tRx = (maxDim-ccols)/2;
 	int gradientServoTranslation = 40;
+	int gsStride = 2;
 	for (int etaS = 0; etaS < gradientServoScale; etaS++) {
-	  for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY++) {
-	    for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX++) {
+	  for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
+	    for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
 	      // get the patch
 	      // XXX TODO warning not checking bounds
 	      int topCornerX = etaX + reticle.px - (aerialGradientReticleWidth/2);
@@ -7864,7 +7865,12 @@ cout <<
 	  } else {
 	    cout << "  assert yes merely returns." << endl;
 	    // resets the gripper server
-	    int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+	    //int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+	    if (0 == left_or_right_arm.compare("left")) {
+	      int sis = system("bash -c \"echo -e \'c\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+	    } else if (0 == left_or_right_arm.compare("right")) {
+	      int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+	    }
 	  }
 	}
       }
@@ -7893,7 +7899,12 @@ cout <<
 	  } else {
 	    cout << "  assert no merely returns." << endl;
 	    // resets the gripper server
-	    int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+	    //int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+	    if (0 == left_or_right_arm.compare("left")) {
+	      int sis = system("bash -c \"echo -e \'c\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+	    } else if (0 == left_or_right_arm.compare("right")) {
+	      int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+	    }
 	  }
 	}
       }
@@ -7951,7 +7962,12 @@ cout <<
 	pushSpeedSign(MOVE_FAST);
 
 	// resets the gripper server
-	int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+	//int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+	if (0 == left_or_right_arm.compare("left")) {
+	  int sis = system("bash -c \"echo -e \'c\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+	} else if (0 == left_or_right_arm.compare("right")) {
+	  int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+	}
       }
       break;
     // shake it off1
@@ -8021,7 +8037,12 @@ cout <<
 	pushSpeedSign(MOVE_FAST);
 
 	// resets the gripper server
-	int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+	//int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+	if (0 == left_or_right_arm.compare("left")) {
+	  int sis = system("bash -c \"echo -e \'c\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+	} else if (0 == left_or_right_arm.compare("right")) {
+	  int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+	}
       }
       break;
     //
@@ -10739,6 +10760,7 @@ void goCalculateDensity() {
   }
 
   Mat totalCrSobel = totalGraySobel.clone();
+  Mat totalCrSobelMag;
   {
     for (int y = 0; y < imH; y++) {
       for (int x = 0; x < imW; x++) {
@@ -10755,12 +10777,14 @@ void goCalculateDensity() {
     /// Gradient Y
     Sobel(totalCrSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
 
+    totalCrSobel = grad_x + grad_y;
     grad_x = grad_x.mul(grad_x);
     grad_y = grad_y.mul(grad_y);
-    totalCrSobel = grad_x + grad_y;
+    totalCrSobelMag = grad_x + grad_y;
   }
 
   Mat totalCbSobel = totalGraySobel.clone();
+  Mat totalCbSobelMag;
   {
     for (int y = 0; y < imH; y++) {
       for (int x = 0; x < imW; x++) {
@@ -10777,9 +10801,10 @@ void goCalculateDensity() {
     /// Gradient Y
     Sobel(totalCbSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
 
+    totalCbSobel = grad_x + grad_y;
     grad_x = grad_x.mul(grad_x);
     grad_y = grad_y.mul(grad_y);
-    totalCbSobel = grad_x + grad_y;
+    totalCbSobelMag = grad_x + grad_y;
   }
 
   Mat totalYSobel = totalGraySobel.clone();
@@ -10799,15 +10824,15 @@ void goCalculateDensity() {
     /// Gradient Y
     Sobel(totalYSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
 
-    //grad_x = grad_x.mul(grad_x);
-    //grad_y = grad_y.mul(grad_y);
+    grad_x = grad_x.mul(grad_x);
+    grad_y = grad_y.mul(grad_y);
     totalYSobel = grad_x + grad_y;
   }
 
   // total becomes sum of Cr and Cb
   int totalBecomes = 1;
   if (totalBecomes) {
-    totalGraySobel = totalCrSobel + totalCbSobel;
+    totalGraySobel = totalCrSobelMag + totalCbSobelMag;
   }
 
   // truncate the Sobel image outside the gray box
@@ -11048,7 +11073,43 @@ void goCalculateDensity() {
     }
   }
 
+  // optionally feed it back in
+  int sobelBecomesDensity = 1;
+  if (sobelBecomesDensity) {
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	totalGraySobel.at<double>(y,x) = density[y*imW+x];
+      }
+    }
+  }
 
+  // inject some of the Y gradient map back in AFTER feeding back to totalGraySobel
+  //   so that Y contributes to objectness to help catch objects with poor color contrast,
+  //   but not to pose since it is corrupted by shadows.
+  int injectYGrad = 1;
+  if (injectYGrad) {
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	density[y*imW+x] += totalYSobel.at<double>(y,x);
+      }
+    }
+
+    // truncate again after reinjection
+    maxDensity = 0;
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	maxDensity = max(maxDensity, density[y*imW+x]);
+      }
+    }
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	if (density[y*imW+x] < maxDensity* threshFraction)
+	  density[y*imW+x] = 0;
+	//else
+	  //density[y*imW+x] = maxDensity* threshFraction;
+      }
+    }
+  }
 
   // integrate density into the integral density
   integralDensity[0] = density[0];
@@ -11157,25 +11218,6 @@ void goCalculateDensity() {
       uchar val = uchar(min( 255.0 * density[y*imW+x] / maxDensity, 255.0));
       densityViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
     }
-  }
-
-  // optionally feed it back in
-  int sobelBecomesDensity = 1;
-  if (sobelBecomesDensity) {
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	totalGraySobel.at<double>(y,x) = density[y*imW+x];
-      }
-    }
-
-//    for (int x = 0; x < imW; x++) {
-//      for (int y = 0; y < imH; y++) {
-//	if (totalGraySobel.at<double>(y,x) < maxDensity* threshFraction)
-//	   totalGraySobel.at<double>(y,x) = 0;
-//	else
-//	   totalGraySobel.at<double>(y,x) = maxDensity* threshFraction;
-//      }
-//    }
   }
 
   // masked this too
@@ -11319,6 +11361,8 @@ void goFindBlueBoxes() {
       double thisIntegral = integralDensity[yb*imW+xb]-integralDensity[yb*imW+xt]-
 	integralDensity[yt*imW+xb]+integralDensity[yt*imW+xt];
 
+//cout << thisIntegral << " ";
+
       if (thisIntegral > adjusted_canny_lo_thresh) {
 	      gBoxIndicator[y*imW+x] = 1;
 	      if (drawGreen)
@@ -11434,12 +11478,13 @@ void goFindBlueBoxes() {
       //if (cTops[c].y > rejectLow || cBots[c].y < rejectHigh)
 	//allow = 0;
 
+      // ATTN 5
       // check for overlap and fuse
       cv::Point thisCen = cv::Point((cTops[c].x+cBots[c].x)/2, (cTops[c].y+cBots[c].y)/2);
       if (fuseBlueBoxes) {
 	for (int cbc = 0; cbc < bTops.size(); cbc++) {
-	  if ( fabs(thisCen.x - bCens[cbc].x) < fabs(bCens[cbc].x-bTops[cbc].x+thisCen.x-cTops[c].x)/2 && 
-	       fabs(thisCen.y - bCens[cbc].y) < fabs(bCens[cbc].y-bTops[cbc].y+thisCen.y-cTops[c].y)/2 ) {
+	  if ( fabs(thisCen.x - bCens[cbc].x) < fabs(bCens[cbc].x-bTops[cbc].x+thisCen.x-cTops[c].x) && 
+	       fabs(thisCen.y - bCens[cbc].y) < fabs(bCens[cbc].y-bTops[cbc].y+thisCen.y-cTops[c].y) ) {
 	    allow = 0;
 	    bTops[cbc].x = min(bTops[cbc].x, cTops[c].x);
 	    bTops[cbc].y = min(bTops[cbc].y, cTops[c].y);
