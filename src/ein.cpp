@@ -317,6 +317,7 @@ std::string rangeogramViewName = "Rangeogram View";
 std::string rangemapViewName = "Range Map View";
 std::string hiRangemapViewName = "Hi Range Map View";
 std::string hiColorRangemapViewName = "Hi Color Range Map View";
+std::string graspMemoryViewName = "Grasp Memory View";
 
 int reticleHalfWidth = 30;
 int pilotTargetHalfWidth = 15;
@@ -473,6 +474,7 @@ Mat rangeogramImage;
 Mat rangemapImage;
 Mat hiRangemapImage;
 Mat hiColorRangemapImage;
+Mat graspMemoryImage;
 const int totalRangeHistoryLength = 100;
 double rangeHistory[totalRangeHistoryLength];
 int currentRangeHistoryIndex = 0;
@@ -727,6 +729,8 @@ string lastLabelLearned;
 
 double perturbScale = 0.1;
 
+double graspMemoryTries[rmWidth*rmWidth];
+double graspMemoryPicks[rmWidth*rmWidth];
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -1049,6 +1053,8 @@ cv::Point armBot;
 int loadRange = 1;
 vector<Mat> classRangeMaps;
 vector<Mat> classAerialGradients;
+vector<Mat> classGraspMemoryTries;
+vector<Mat> classGraspMemoryPicks;
 
 
 Mat frameGraySobel;
@@ -3004,6 +3010,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 
   if (shouldIRender) {
     cv::imshow(rangemapViewName, rangemapImage);
+    cv::imshow(graspMemoryViewName, graspMemoryImage);
     //cv::imshow(hiRangemapViewName, hiRangemapImage);
     Mat hRIT;
     cv::resize(hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
@@ -4428,6 +4435,32 @@ cout <<
 	    }
 	  }
 	}
+
+	// draw grasp memory
+	{
+	  double minDepth = VERYBIGNUMBER;
+	  double maxDepth = 0;
+	  for (int rx = 0; rx < rmWidth; rx++) {
+	    for (int ry = 0; ry < rmWidth; ry++) {
+	      minDepth = min(minDepth, graspMemoryTries[rx + ry*rmWidth]);
+	      maxDepth = max(maxDepth, graspMemoryTries[rx + ry*rmWidth]);
+	    }
+	  }
+	  for (int rx = 0; rx < rmWidth; rx++) {
+	    for (int ry = 0; ry < rmWidth; ry++) {
+	      double denom = max(1.0,maxDepth);
+	      if (denom <= EPSILON)
+		denom = VERYBIGNUMBER;
+	      double blueIntensity = 255 * (graspMemoryPicks[rx + ry*rmWidth]) / denom;
+	      double redIntensity = 255 * (graspMemoryTries[rx + ry*rmWidth] - graspMemoryPicks[rx + ry*rmWidth]) / denom;
+	      cv::Scalar backColor(ceil(blueIntensity),0,ceil(redIntensity));
+	      cv::Point outTop = cv::Point((ry)*rmiCellWidth,rx*rmiCellWidth);
+	      cv::Point outBot = cv::Point(((ry)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
+	      Mat vCrop = graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	      vCrop = backColor;
+	    }
+	  }
+	}
       }
       break;
     // manual render
@@ -4468,6 +4501,7 @@ cout <<
 
 
 	cv::moveWindow(rangemapViewName, uiOffsetX, uiOffsetY);
+	cv::moveWindow(graspMemoryViewName, uiOffsetX, uiOffsetY);
 	uiOffsetX += coreWidth;
 	cv::moveWindow(hiRangemapViewName, uiOffsetX, uiOffsetY);
 	uiOffsetX += 320;
@@ -4478,6 +4512,7 @@ cout <<
 	uiOffsetX = toolbarWidth + sideOffset;
 	uiOffsetY += rmiHeight + menuHeight;
 	cv::moveWindow(coreViewName, uiOffsetX, uiOffsetY);
+	cv::moveWindow(hiColorRangemapViewName, uiOffsetX, uiOffsetY);
 	uiOffsetX += coreWidth;
 	cv::moveWindow(wristViewName, uiOffsetX, uiOffsetY);
 	uiOffsetX += coreWidth;
@@ -4495,6 +4530,7 @@ cout <<
 	int uiOffsetY = 0;
 
 	cv::moveWindow(rangemapViewName, uiOffsetX, uiOffsetY);
+	cv::moveWindow(graspMemoryViewName, uiOffsetX, uiOffsetY);
 	uiOffsetX += coreWidth;
 	cv::moveWindow(hiRangemapViewName, uiOffsetX, uiOffsetY);
 	uiOffsetX += 320;
@@ -4516,6 +4552,7 @@ cout <<
     case 1114200:
       {
 	cv::moveWindow(rangemapViewName, 100, 40);
+	cv::moveWindow(graspMemoryViewName, 100, 40);
 	cv::moveWindow(hiColorRangemapViewName, 1400, 40);
 
 	cv::moveWindow(hiRangemapViewName, 100, 600);
@@ -7680,11 +7717,29 @@ cout <<
 	    } 
 	  } 
 
+	  Mat triesTemp(rmWidth, rmWidth, CV_64F);
+	  for (int y = 0; y < rmWidth; y++) {
+	    for (int x = 0; x < rmWidth; x++) {
+	      triesTemp.at<double>(y,x) = graspMemoryTries[x + y*rmWidth];
+	    } 
+	  } 
+
+	  Mat picksTemp(rmWidth, rmWidth, CV_64F);
+	  for (int y = 0; y < rmWidth; y++) {
+	    for (int x = 0; x < rmWidth; x++) {
+	      picksTemp.at<double>(y,x) = graspMemoryPicks[x + y*rmWidth];
+	    } 
+	  } 
+
 	  mkdir(dirToMakePath.c_str(), 0777);
 
 	  FileStorage fsvO;
 	  fsvO.open(this_range_path, FileStorage::WRITE);
 	  fsvO << "rangeMap" << rangeMapTemp;
+	  //fsvO << "graspMemoryTries" << classGraspMemoryTries[i];
+	  //fsvO << "graspMemoryPicks" << classGraspMemoryPicks[i];
+	  fsvO << "graspMemoryTries" << triesTemp;
+	  fsvO << "graspMemoryPicks" << picksTemp;
 	  lastRangeMap = rangeMapTemp;
 	  fsvO.release();
 	} 
@@ -8580,6 +8635,39 @@ cout <<
 	}
       }
       break;
+    // resave range and grasp memory
+    // capslock + numlock + u
+    case 1179733:
+      {
+	if (focusedClass > -1) {
+	  string thisLabelName = focusedClassLabel;
+
+	  char buf[1000];
+	  string dirToMakePath = data_directory + "/" + thisLabelName + "/ir2D/";
+	  string this_range_path = dirToMakePath + "xyzRange.yml";
+
+	  // save this class's range map
+	  Mat rangeMapTemp(rmWidth, rmWidth, CV_64F);
+	  for (int y = 0; y < rmWidth; y++) {
+	    for (int x = 0; x < rmWidth; x++) {
+	      rangeMapTemp.at<double>(y,x) = classRangeMaps[focusedClass].at<double>(y,x);
+	    } 
+	  } 
+
+	  mkdir(dirToMakePath.c_str(), 0777);
+
+	  FileStorage fsvO;
+	  fsvO.open(this_range_path, FileStorage::WRITE);
+	  fsvO << "rangeMap" << rangeMapTemp;
+	  fsvO << "graspMemoryTries" << classGraspMemoryTries[focusedClass];
+	  fsvO << "graspMemoryPicks" << classGraspMemoryPicks[focusedClass];
+	
+	  // ATTN 5 what is last range map for?
+	  lastRangeMap = rangeMapTemp;
+	  fsvO.release();
+	}
+      }
+      break;
     case 2:
       drawOrientor = !drawOrientor;
       break;
@@ -9235,9 +9323,15 @@ void pilotInit() {
       rangeMapReg2[rx + ry*rmWidth] = 0;
       rangeMapMass[rx + ry*rmWidth] = 0;
       rangeMapAccumulator[rx + ry*rmWidth] = 0;
+
+      // ATTN 6 change initialization to determine speed of learning
+      graspMemoryTries[rx + ry*rmWidth] = 1;
+      graspMemoryPicks[rx + ry*rmWidth] = 1;
     }
   }
+
   rangemapImage = Mat(rmiHeight, 3*rmiWidth, CV_8UC3);
+  graspMemoryImage = Mat(rmiHeight, rmiWidth, CV_8UC3);
 
   for (int rx = 0; rx < hrmWidth; rx++) {
     for (int ry = 0; ry < hrmWidth; ry++) {
@@ -13343,6 +13437,8 @@ void detectorsInit() {
 
   if (loadRange) {
     classRangeMaps.resize(numClasses);
+    classGraspMemoryTries.resize(numClasses);
+    classGraspMemoryPicks.resize(numClasses);
     classAerialGradients.resize(numClasses);
     for (int i = 0; i < classLabels.size(); i++) {
       tryToLoadRangeMap(class_crops_path, classLabels[i].c_str(), i);
@@ -13549,10 +13645,16 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
     fsfI.open(this_range_path, FileStorage::READ);
     if (fsfI.isOpened()) {
       fsfI["rangeMap"] >> classRangeMaps[i]; 
+      fsfI["graspMemoryTries"] >> classGraspMemoryTries[i];
+      fsfI["graspMemoryPicks"] >> classGraspMemoryPicks[i];
       fsfI.release();
       cout << "Loaded rangeMap from " << this_range_path << classRangeMaps[i].size() << classRangeMaps[i] << endl; 
+      cout << "Loaded classGraspMemoryTries from " << this_range_path << classGraspMemoryTries[i].size() << classGraspMemoryTries[i] << endl; 
+      cout << "Loaded classGraspMemoryPicks from " << this_range_path << classGraspMemoryPicks[i].size() << classGraspMemoryPicks[i] << endl; 
     } else {
       classRangeMaps[i] = Mat(1, 1, CV_64F);
+      classGraspMemoryTries[i] = Mat(1, 1, CV_64F);
+      classGraspMemoryPicks[i] = Mat(1, 1, CV_64F);
       cout << "Failed to load rangeMap from " << this_range_path << endl; 
     }
   }
@@ -13706,6 +13808,7 @@ int main(int argc, char **argv) {
   coreViewName = "Core View " + left_or_right_arm;
   rangeogramViewName = "Rangeogram View " + left_or_right_arm;
   rangemapViewName = "Range Map View " + left_or_right_arm;
+  graspMemoryViewName = "Grasp Memory View " + left_or_right_arm;
   hiRangemapViewName = "Hi Range Map View " + left_or_right_arm;
   hiColorRangemapViewName = "Hi Color Range Map View " + left_or_right_arm;
 
