@@ -6514,8 +6514,8 @@ cout <<
       {
         publishObjects = ! publishObjects;
         ROS_INFO_STREAM("Publish objects: " << publishObjects);
-        break;
       }
+      break;
     // increment target class
     // capslock + pageup
     case 196437:
@@ -6540,6 +6540,31 @@ cout <<
 	  cout << "class " << classLabels[targetClass] << " number ";
 	}
 	cout << targetClass << endl;
+      }
+      break;
+    // listen for pick requests from fetch command
+    // capslock + n
+    case 131150:
+      {
+        int target_idx = -1;
+	for (int i = 0; i < classLabels.size(); i++) {
+          if (classLabels[i] == fetchCommand) {
+            target_idx = i;
+            break;
+          }
+	}
+        pilot_call_stack.push_back(131150);
+
+        if (target_idx == -1) {
+          ROS_INFO_STREAM("Could not find " << fetchCommand);
+          pilot_call_stack.push_back(131153);
+        } else {
+          ROS_INFO_STREAM("Picking: " << fetchCommand << " idx: " << target_idx);
+          targetClass = target_idx;
+          pilot_call_stack.push_back(131159); // fetch targetClass
+        }
+
+
       }
       break;
     // 2D patrol start
@@ -8073,6 +8098,7 @@ cout <<
 	    graspFailCounter++;
 	  } else {
 	    graspSuccessCounter++;
+            fetchCommand = "";
 	  }
 	  graspSuccessRate = graspSuccessCounter / graspAttemptCounter;
 	  ros::Time thisTime = ros::Time::now();
