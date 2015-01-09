@@ -1,4 +1,5 @@
-  #define DEBUG3
+//#define DEBUG3
+//#define DEBUG4
 // start Header
 //
 //  // start TODO XXX
@@ -727,7 +728,7 @@ Mat lastAerialGradient;
 Mat lastRangeMap;
 string lastLabelLearned;
 
-double perturbScale = 0.1;
+double perturbScale = 0.05;//0.1;
 
 double graspMemoryTries[rmWidth*rmWidth];
 double graspMemoryPicks[rmWidth*rmWidth];
@@ -1061,7 +1062,8 @@ Mat frameGraySobel;
 int aerialGradientWidth = 100;
 int aerialGradientReticleWidth = 200;
 
-int maxGradientServoIterations = 3;
+int softMaxGradientServoIterations = 3;
+int hardMaxGradientServoIterations = 10;
 int currentGradientServoIterations = 0;
 
 int fuseBlueBoxes = 1;
@@ -1200,16 +1202,21 @@ void processSaliency(Mat in, Mat out);
 
 int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
   if (imRingBufferStart == imRingBufferEnd) {
+    
+    #ifdef DEBUG4
     cout << "Denied request in getRingImageAtTime(): Buffer empty." << endl;
+    #endif
     return 0;
   } else {
     int earliestSlot = imRingBufferStart;
     ros::Duration deltaTdur = t - imRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
     if (deltaTdur.toSec() <= 0.0) {
+    #ifdef DEBUG4
       cout << "Denied out of order range value in getRingImageAtTime(): Too small." << endl;
       cout << "  getRingImageAtTime() imRingBufferStart imRingBufferEnd t imRBTimes[earliestSlot]: " << 
 	imRingBufferStart << " " << imRingBufferEnd << " " << t << " " << imRBTimes[earliestSlot] << endl;
+    #endif
       return -1;
     } else if (imRingBufferStart < imRingBufferEnd) {
       for (int s = imRingBufferStart; s < imRingBufferEnd; s++) {
@@ -1238,7 +1245,9 @@ int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
 	}
       }
       // if we didn't find it we should return failure
+    #ifdef DEBUG4
       //cout << "Denied out of order range value in getRingImageAtTime(): Too large." << endl;
+    #endif
       return -2;
     } else {
       for (int s = imRingBufferStart; s < imRingBufferSize-1; s++) {
@@ -1309,21 +1318,27 @@ int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
 	}
       }
       // if we didn't find it we should return failure
+    #ifdef DEBUG4
       //cout << "Denied out of order range value in getRingImageAtTime(): Too large." << endl;
+    #endif
       return -2;
     }
   }
 }
 int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
   if (rgRingBufferStart == rgRingBufferEnd) {
+    #ifdef DEBUG4
     cout << "Denied request in getRingRangeAtTime(): Buffer empty." << endl;
+    #endif
     return 0;
   } else {
     int earliestSlot = rgRingBufferStart;
     ros::Duration deltaTdur = t - rgRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
     if (deltaTdur.toSec() <= 0.0) {
+    #ifdef DEBUG4
       cout << "Denied out of order range value in getRingRangeAtTime(): Too small." << endl;
+    #endif
       return -1;
     } else if (rgRingBufferStart < rgRingBufferEnd) {
       for (int s = rgRingBufferStart; s < rgRingBufferEnd; s++) {
@@ -1347,7 +1362,9 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
 	}
       }
       // if we didn't find it we should return failure
+    #ifdef DEBUG4
       cout << "Denied out of order range value in getRingRangeAtTime(): Too large." << endl;
+    #endif
       return -2;
     } else {
       for (int s = rgRingBufferStart; s < rgRingBufferSize-1; s++) {
@@ -1409,21 +1426,27 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
 	}
       }
       // if we didn't find it we should return failure
+    #ifdef DEBUG4
       cout << "Denied out of order range value in getRingRangeAtTime(): Too large." << endl;
+    #endif
       return -2;
     }
   }
 }
 int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
   if (epRingBufferStart == epRingBufferEnd) {
+    #ifdef DEBUG4
     cout << "Denied request in getRingPoseAtTime(): Buffer empty." << endl;
+    #endif
     return 0;
   } else {
     int earliestSlot = epRingBufferStart;
     ros::Duration deltaTdur = t - epRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
     if (deltaTdur.toSec() <= 0.0) {
+    #ifdef DEBUG4
       cout << "Denied out of order range value in getRingPoseAtTime(): Too small." << endl;
+    #endif
       return -1;
     } else if (epRingBufferStart < epRingBufferEnd) {
       for (int s = epRingBufferStart; s < epRingBufferEnd; s++) {
@@ -1446,9 +1469,11 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	  value.position.x = epRingBuffer[s].position.x*w1 + epRingBuffer[s+1].position.x*w2;
 	  value.position.y = epRingBuffer[s].position.y*w1 + epRingBuffer[s+1].position.y*w2;
 	  value.position.z = epRingBuffer[s].position.z*w1 + epRingBuffer[s+1].position.z*w2;
+    #ifdef DEBUG4
 //cout << value << endl;
 //cout << "33333c " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
 //cout << "44444c " << epRingBuffer[s+1] << endl;
+    #endif
 
 	  int newStart = s;
 	  if(drawSlack) {
@@ -1458,7 +1483,9 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	}
       }
       // if we didn't find it we should return failure
+    #ifdef DEBUG4
       //cout << "Denied out of order range value in getRingPoseAtTime(): Too large." << endl;
+    #endif
       return -2;
     } else {
       for (int s = epRingBufferStart; s < epRingBufferSize-1; s++) {
@@ -1481,9 +1508,11 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	  value.position.x = epRingBuffer[s].position.x*w1 + epRingBuffer[s+1].position.x*w2;
 	  value.position.y = epRingBuffer[s].position.y*w1 + epRingBuffer[s+1].position.y*w2;
 	  value.position.z = epRingBuffer[s].position.z*w1 + epRingBuffer[s+1].position.z*w2;
+    #ifdef DEBUG4
 //cout << value << endl;
 //cout << "33333b " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
 //cout << "44444b " << epRingBuffer[s+1] << endl;
+    #endif
 
 	  int newStart = s;
 	  if(drawSlack) {
@@ -1511,9 +1540,11 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	  value.position.x = epRingBuffer[epRingBufferSize-1].position.x*w1 + epRingBuffer[0].position.x*w2;
 	  value.position.y = epRingBuffer[epRingBufferSize-1].position.y*w1 + epRingBuffer[0].position.y*w2;
 	  value.position.z = epRingBuffer[epRingBufferSize-1].position.z*w1 + epRingBuffer[0].position.z*w2;
+    #ifdef DEBUG4
 //cout << value << endl;
 //cout << "33333a " << epRingBuffer[epRingBufferSize-1] << " " << w1 << " " << w2 << " " << totalWeight << endl;
 //cout << "44444a " << epRingBuffer[0] << endl;
+    #endif
 
 	  int newStart = epRingBufferSize-1;
 	  if(drawSlack) {
@@ -1541,9 +1572,11 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	  value.position.x = epRingBuffer[s].position.x*w1 + epRingBuffer[s+1].position.x*w2;
 	  value.position.y = epRingBuffer[s].position.y*w1 + epRingBuffer[s+1].position.y*w2;
 	  value.position.z = epRingBuffer[s].position.z*w1 + epRingBuffer[s+1].position.z*w2;
+    #ifdef DEBUG4
 //cout << value << endl;
 //cout << "33333d " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
 //cout << "44444d " << epRingBuffer[s+1] << endl;
+    #endif
 
 	  int newStart = s;
 	  if(drawSlack) {
@@ -1553,7 +1586,9 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	}
       }
       // if we didn't find it we should return failure
+    #ifdef DEBUG4
       //cout << "Denied out of order range value in getRingPoseAtTime(): Too large." << endl;
+    #endif
       return -2;
     }
   }
@@ -1645,8 +1680,10 @@ void setRingPoseAtTime(ros::Time t, geometry_msgs::Pose epToSet) {
     epRingBufferStart = 0;
     epRingBufferEnd = 1;
     epRingBuffer[0] = epToSet;
+    #ifdef DEBUG4
 //cout << epToSet << endl;
 //cout << "11111 " << epRingBuffer[0] << endl;
+    #endif
     epRBTimes[0] = t;
   } else {
     ros::Duration deltaTdur = t - epRBTimes[epRingBufferStart];
@@ -1657,8 +1694,10 @@ void setRingPoseAtTime(ros::Time t, geometry_msgs::Pose epToSet) {
     } else {
       int slot = epRingBufferEnd;
       epRingBuffer[slot] = epToSet;
+    #ifdef DEBUG4
 //cout << epToSet << endl;
 //cout << "22222" << epRingBuffer[slot] << endl;
+    #endif
       epRBTimes[slot] = t;
 
       if (epRingBufferEnd >= (epRingBufferSize-1)) {
@@ -2110,7 +2149,9 @@ void l2Normalize3DParzen() {
 	double pkz = ky - parzen3DKernelHalfWidth;
 
 	parzen3DKernel[kx + ky*parzen3DKernelWidth + kz*parzen3DKernelWidth*parzen3DKernelWidth] /= norm;
+    #ifdef DEBUG4
 	cout << "Parzen3D: " << parzenKernel[kx + ky*parzenKernelWidth] << endl;
+    #endif
       }
     }
   }
@@ -2143,7 +2184,9 @@ void l2NormalizeParzen() {
       double pkx = kx - parzenKernelHalfWidth;
       double pky = ky - parzenKernelHalfWidth;
       parzenKernel[kx + ky*parzenKernelWidth] /= norm;
+    #ifdef DEBUG4
       cout << "Parzen: " << parzenKernel[kx + ky*parzenKernelWidth] << endl;
+    #endif
     }
   }
 }
@@ -4125,10 +4168,14 @@ cout <<
 	  }
 	}
 
+    #ifdef DEBUG4
 	cout << "Resampling (by mass   experimental): " << highestReading << " " << highestEpsilonMassReading << endl;
+    #endif
 	if (highestReading <= -VERYBIGNUMBER)
 	  highestReading = 0;
+    #ifdef DEBUG4
 	cout << "  ++Resampling (by mass   experimental): " << highestReading << " " << highestEpsilonMassReading << endl;
+    #endif
 
 	
 	for (int rx = 0; rx < rmWidth; rx++) {
@@ -4586,7 +4633,9 @@ cout <<
 	    }
 	  }
 	}
+    #ifdef DEBUG4
 	cout << "non-cumulative maxX: " << maxX << " maxY: " << maxY <<  " maxD: " << maxD << " maxGG: " << maxGG << endl;
+    #endif
       }
       break;
     // cumulative min
@@ -4605,7 +4654,9 @@ cout <<
 	      maxY = ry;
 	      maxD = rangeMapReg1[rx + ry*rmWidth];
 	      maxGG = currentGraspGear;
+    #ifdef DEBUG4
 	      cout << "cumulative update maxX: " << maxX << " maxY: " << maxY << " maxD: " << maxD << " maxGG: " << maxGG << endl;
+    #endif
 	    }
 	  }
 	}
@@ -4617,19 +4668,21 @@ cout <<
       {
 	drX = rmDelta*(maxX-rmHalfWidth);
 	drY = rmDelta*(maxY-rmHalfWidth);
+    #ifdef DEBUG4
 	cout << "drX: " << drX << " drY: " << drY << endl;
+    #endif
       }
       break;
     // set target reticle to the max mapped position
-    // unfortunately the way this does local coordinates demands that you be in gear 1 when you 
-    // make this calculation.  So make sure you are or your target will be wrong...
     // numlock + f
     case 1048678:
       {
 	trX = rmcX + rmDelta*(maxX-rmHalfWidth);
 	trY = rmcY + rmDelta*(maxY-rmHalfWidth);
 
+    #ifdef DEBUG4
 	cout << "trX: " << trX << " trY: " << trY << endl;
+    #endif
       }
       break;
     // set hi target reticle by searching over all pixels and all acceptable grasps
@@ -4768,7 +4821,9 @@ cout <<
 	  cv::Point l2p2 = cv::Point((ciiY+hrmWidth),ciiX+hiCellWidth);
 	  line(hiRangemapImage, l1p1, l1p2, backColor);
 	  line(hiRangemapImage, l2p1, l2p2, backColor);
+    #ifdef DEBUG4
 	  cout << "printing curseReticle xy globalz: " << curseReticleX << " " << curseReticleY << " " << hiRangeMap[ciiX + ciiY*hrmWidth] << endl;
+    #endif
 	}
 	{
 	  double intensity = 128;
@@ -4810,7 +4865,9 @@ cout <<
 	  for (int yc = 0; yc < yTimes; yc++)
 	    pilot_call_stack.push_back('a');
       
+    #ifdef DEBUG4
 	cout << "Move to target x,y. deltaX: " << deltaX << " xTimes: " << xTimes << endl;
+    #endif
       }
       break;
     // move to target z and grasp
@@ -4819,7 +4876,9 @@ cout <<
       {
 	pilot_call_stack.push_back('j');
 
+    #ifdef DEBUG4
 	cout << " ++Move to target z: " << maxD << " " << graspDepth << " " << currentEEPose.pz << endl; cout.flush();
+    #endif
 
 	//double deltaZ = -maxD - graspDepth;
 	//double deltaZ = (-maxD -graspDepth) - currentEEPose.pz;
@@ -4830,7 +4889,9 @@ cout <<
 
 	double zTimes = fabs(floor(deltaZ / bDelta)); 
 
+    #ifdef DEBUG4
 	cout << " ++Move to target z: " << deltaZ << " " << zTimes << " " << endl; cout.flush();
+    #endif
 
 	int numNoOps = 2;
 	if (deltaZ > 0)
@@ -4847,7 +4908,9 @@ cout <<
 	    }
 	    pilot_call_stack.push_back('s');
 	  }
+    #ifdef DEBUG4
 	cout << "Move to target z and grasp. deltaZ: " << deltaZ << " zTimes: " << zTimes << endl;
+    #endif
       }
       break;
     // use current range as target z and grasp
@@ -4856,14 +4919,18 @@ cout <<
       {
 	pilot_call_stack.push_back('j');
 
+    #ifdef DEBUG4
 	cout << " ++Move to target z: " << maxD << " " << graspDepth << " " << currentEEPose.pz << endl; cout.flush();
+    #endif
 
 	//double deltaZ = -maxD - graspDepth;
 	double deltaZ = -eeRange + graspDepth;
 
 	double zTimes = fabs(floor(deltaZ / bDelta)); 
 
+    #ifdef DEBUG4
 	cout << " ++Move to target z: " << deltaZ << " " << zTimes << " " << endl; cout.flush();
+    #endif
 
 	int numNoOps = 2;
 	if (deltaZ > 0)
@@ -4880,7 +4947,9 @@ cout <<
 	    }
 	    pilot_call_stack.push_back('s');
 	  }
+    #ifdef DEBUG4
 	cout << "Move to target z and grasp. deltaZ: " << deltaZ << " zTimes: " << zTimes << endl;
+    #endif
       }
       break;
     // add switches disable recording
@@ -6888,8 +6957,11 @@ cout <<
 	  cout << "waiting to arrive at current position." << endl;
 	  pilot_call_stack.push_back(196728); // gradient servo
 	} else {
+	  // ATTN 5
+	  // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
 	  if (((fabs(Px) < gradServoPixelThresh) && (fabs(Py) < gradServoPixelThresh) && (fabs(Ptheta) < gradServoThetaThresh)) ||
-	      (currentGradientServoIterations > maxGradientServoIterations))
+	      ((currentGradientServoIterations > softMaxGradientServoIterations) && (fabs(Ptheta) < gradServoThetaThresh)) || 
+	      (currentGradientServoIterations > hardMaxGradientServoIterations) )
 	  {
 	    //cout << "got within thresh, returning." << endl;
 	    cout << "got within thresh, fetching." << endl;
@@ -7664,8 +7736,11 @@ cout <<
 	Quaternionf crane2Orient(0, 1, 0, 0);
 	Quaternionf rel = eeqform * crane2Orient.inverse();
 	Quaternionf ex(0,1,0,0);
+	Quaternionf zee(0,0,0,1);
+	
     
 	Quaternionf result = rel * ex * rel.conjugate();
+	Quaternionf thumb = rel * zee * rel.conjugate();
 	double aY = result.y();
 	double aX = result.x();
 
@@ -7678,7 +7753,7 @@ cout <<
 	Point center = Point(rmWidth/2, rmWidth/2);
 	Size toBecome(rmWidth, rmWidth);
 
-	cout << "load target class range map angle result eeqform: " << angle << " " << result.x() << " "  << result.y() << " "  << result.z() << " "  << result.w() << " " << eeqform.x() << " "  << eeqform.y() << " "  << eeqform.z() << " "  << eeqform.w() << " " << endl;
+	cout << "load target class range map angle result eeqform thumb: " << angle << " | " << result.x() << " "  << result.y() << " "  << result.z() << " "  << result.w() << " | " << eeqform.x() << " "  << eeqform.y() << " "  << eeqform.z() << " "  << eeqform.w() << " | " << thumb.x() << " "  << thumb.y() << " "  << thumb.z() << " "  << thumb.w() << endl;
 
 	// Get the rotation matrix with the specifications above
 	Mat rotatedClassRangeMap;
