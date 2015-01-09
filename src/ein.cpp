@@ -434,6 +434,7 @@ eePose ik_reset_eePose = beeHome;
 
 Vector3d eeForward;
 geometry_msgs::Pose trueEEPose;
+std::string fetchCommand;
 
 int bfc = 0;
 int bfc_period = 3;
@@ -698,6 +699,8 @@ vector<double> surveyHistogram;
 int surveyWinningClass = -1;
 double surveyTotalCounts = 0;
 int viewsWithNoise = 1;
+int publishObjects = 1;
+
 
 int surveyDuringServo = 0;
 int histogramDuringClassification = 0;
@@ -744,7 +747,6 @@ int retrain_vocab = 0;
 int rewrite_labels = 0;
 int reextract_knn = 0;
 int runInference = 1;
-int publishObjects = 0;
 int saveAnnotatedBoxes = 0;
 int captureHardClass = 0;
 int captureOnly = 0;
@@ -1089,6 +1091,8 @@ void recordReadyRangeReadings();
 void jointCallback(const sensor_msgs::JointState& js);
 void endpointCallback(const baxter_core_msgs::EndpointState& eps);
 void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees);
+void fetchCommandCallback(const std_msgs::String::ConstPtr& msg);
+
 
 void initialize3DParzen();
 void l2Normalize3DParzen();
@@ -2093,6 +2097,12 @@ void jointCallback(const sensor_msgs::JointState& js) {
       }
     }
   }
+  
+}
+
+void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
+  fetchCommand = msg->data;
+  ROS_INFO_STREAM("Received " << fetchCommand << endl);
 }
 
 void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
@@ -6472,6 +6482,7 @@ cout <<
 //	}
       }
       break;
+
     // vision cycle no classify
     // capslock + Q
     case 196721:
@@ -6494,6 +6505,17 @@ cout <<
 //	}
       }
       break;
+
+      //
+      //
+    // toggle publish blue bloxes
+    // capslock + b
+    case 131138:
+      {
+        publishObjects = ! publishObjects;
+        ROS_INFO_STREAM("Publish objects: " << publishObjects);
+        break;
+      }
     // increment target class
     // capslock + pageup
     case 196437:
@@ -10228,11 +10250,11 @@ void fill_RO_and_M_arrays(object_recognition_msgs::RecognizedObjectArray& roa_to
   visualization_msgs::MarkerArray& ma_to_send, vector<cv::Point>& pointCloudPoints, 
   int aI, int label, int winningO, int poseIndex) {
 
-#ifdef DEBUG
+  //#ifdef DEBUG
 cout << "check" << endl;
 cout << "hit a publishable object " << label << " " << classLabels[label] 
-<< " " << classPoseModels[label] << aI << " of total objects" << bTops.size() << endl;
-#endif
+<< " " << classPoseModels[label] << aI << " of total objects " << bTops.size() << endl;
+//#endif
 
   geometry_msgs::Pose object_pose;
 
@@ -10273,6 +10295,8 @@ cout << "constructing rotation matrix" << endl;
     objectQuaternion = thisLabelQuaternion;
 
   }
+  ROS_INFO_STREAM("quaternion: " << objectQuaternion.x());
+  ROS_INFO_STREAM("roa: " << roa_to_send.objects[aI]);
 
   roa_to_send.objects[aI].pose.pose.pose.orientation.x = objectQuaternion.x();
   roa_to_send.objects[aI].pose.pose.pose.orientation.y = objectQuaternion.y();
@@ -12031,6 +12055,9 @@ void goClassifyBlueBoxes() {
   int closestBBDistance = VERYBIGNUMBER;
 
   double label = -1;
+  roa_to_send_blue.objects.resize(bTops.size());
+  ma_to_send_blue.markers.resize(bTops.size()+1);
+
   for (int c = 0; c < bTops.size(); c++) {
     cout << "  gCBB() c = " << c << endl; cout.flush();
     #ifdef DEBUG3
@@ -12492,6 +12519,7 @@ void goClassifyBlueBoxes() {
 
     if (label >= 0) {
       if (publishObjects) {
+
 	fill_RO_and_M_arrays(roa_to_send_blue, 
 	  ma_to_send_blue, pointCloudPoints, c, label, winningO, poseIndex);
       }
@@ -12550,6 +12578,11 @@ void goClassifyBlueBoxes() {
 
   if (shouldIRender)
     cv::imshow(objectViewerName, objectViewerImage);
+
+  if (publishObjects) {
+    rec_objs_blue.publish(roa_to_send_blue);
+    markers_blue.publish(ma_to_send_blue);
+  }
 
   cout << "leaving gCBB()" << endl; cout.flush();
 }
@@ -13893,7 +13926,8 @@ int main(int argc, char **argv) {
   cv::namedWindow(rangeogramViewName);
 
   ros::Subscriber fetchCommandSubscriber;
-  //fetchCommandSubscriber = n.subscribe("/fetch_commands", 1, fetchCallback);
+  fetchCommandSubscriber = n.subscribe("/fetch_commands", 1, 
+                                       fetchCommandCallback);
 
 
   ros::Timer timer1 = n.createTimer(ros::Duration(0.01), timercallback1);
