@@ -13892,6 +13892,10 @@ int main(int argc, char **argv) {
   cv::namedWindow(coreViewName);
   cv::namedWindow(rangeogramViewName);
 
+  ros::Subscriber fetchCommandSubscriber;
+  fetchCommandSubscriber = n.subscribe("/fetch_commands", 1, fetchCallback);
+
+
   ros::Timer timer1 = n.createTimer(ros::Duration(0.01), timercallback1);
 
   tfListener = new tf::TransformListener();
