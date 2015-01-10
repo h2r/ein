@@ -736,7 +736,7 @@ double pantryTableZ = 0.195;
 double currentTableZ = bagTableZ;
 
 double mostRecentUntabledZ = 0.0;
-eePose bestOrientationEEPose;
+eePose bestOrientationEEPose = crane2right;
 double bestOrientationAngle = 0;
 
 Mat lastAerialGradient;
@@ -4387,7 +4387,7 @@ cout <<
 	}
       }
       break;
-    // prepare grasp filter
+    // prepare to apply graps filter
     // numlock + p
     case 1048688: 
       {
@@ -5259,75 +5259,6 @@ cout <<
     // select best available grasp
     // numlock + 6
     case 1048630:
-      {
-	cout << "Selecting best of 4 grasps..." << endl;
-	// select max target cumulative
-	pilot_call_stack.push_back(1114195);
-	// apply grasp filter for 4
-	pilot_call_stack.push_back(1048673); // drawMapRegisters
-	pilot_call_stack.push_back(1048692);
-	pilot_call_stack.push_back(1048688);
-	// blur
-	pilot_call_stack.push_back(1048673); // drawMapRegisters
-	pilot_call_stack.push_back(1048692);
-	pilot_call_stack.push_back(1048697);
-	// load reg1
-	pilot_call_stack.push_back(1048690);
-	// change gear to 4
-	pilot_call_stack.push_back(1048628);
-
-	// select max target cumulative
-	pilot_call_stack.push_back(1114195);
-	// apply grasp filter for 3
-	pilot_call_stack.push_back(1048673); // drawMapRegisters
-	pilot_call_stack.push_back(1048692);
-	pilot_call_stack.push_back(1048693);
-	// blur
-	pilot_call_stack.push_back(1048673); // drawMapRegisters
-	pilot_call_stack.push_back(1048692);
-	pilot_call_stack.push_back(1048697);
-	// load reg1
-	pilot_call_stack.push_back(1048690);
-	// change gear to 3
-	pilot_call_stack.push_back(1048627);
-
-	// select max target cumulative
-	pilot_call_stack.push_back(1114195);
-	// apply grasp filter for 2
-	pilot_call_stack.push_back(1048673); // drawMapRegisters
-	pilot_call_stack.push_back(1048692);
-	pilot_call_stack.push_back(1048687);
-	// blur
-	pilot_call_stack.push_back(1048673); // drawMapRegisters
-	pilot_call_stack.push_back(1048692);
-	pilot_call_stack.push_back(1048697);
-	// load reg1
-	pilot_call_stack.push_back(1048690);
-	// change gear to 2
-	pilot_call_stack.push_back(1048626);
-
-	// select max target NOT cumulative
-	pilot_call_stack.push_back(1048691);
-	// apply grasp filter for 1
-	pilot_call_stack.push_back(1048673); // drawMapRegisters
-	pilot_call_stack.push_back(1048692);
-	pilot_call_stack.push_back(1048681);
-	// blur
-	pilot_call_stack.push_back(1048673); // drawMapRegisters
-	pilot_call_stack.push_back(1048692);
-	pilot_call_stack.push_back(1048697);
-	// load reg1
-	pilot_call_stack.push_back(1048690);
-	// change gear to 1
-	pilot_call_stack.push_back(1048625);
-
-	pilot_call_stack.push_back(1048684); // turn off scanning
-      }
-      break;
-
-    // Thompson (replaces numlock + 6 with Thompson results)
-    // capslock + 6
-    case 131126:
       {
 	cout << "Selecting best of 4 grasps..." << endl;
 	// select max target cumulative
