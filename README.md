@@ -409,3 +409,5 @@ capslock + q: vision cycle
 capslock + b: toggle publish objects
 capslock + f: reinitialize and retrain everything
 capslock + n: listen for pick requests from fetch command
+capslock + v: thompson sampling test
+capslock + I: count grasp
