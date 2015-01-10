@@ -4682,6 +4682,7 @@ cout <<
 
 	    // ATTN 5
 	    double graspMemoryWeight = 0.0;
+	    double graspMemoryBias = VERYBIGNUMBER;
 	    int localIntThX = -1; 
 	    int localIntThY = -1; 
 	    {
@@ -4706,6 +4707,7 @@ cout <<
 	      double mDenom = max(graspMemoryTries[rx + ry*rmWidth], 1.0);
 	      if ((localIntThX < rmWidth) && (localIntThY < rmWidth)) {
 		graspMemoryWeight = graspMemoryPicks[localIntThX + localIntThY*rmWidth] / mDenom;
+		graspMemoryBias = 0;
 	      } else {
 		graspMemoryWeight = 0;
 	      }
@@ -4716,7 +4718,7 @@ cout <<
 	    cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth] << endl;
 	    
 
-	    if (graspMemoryWeight * rangeMapReg1[rx + ry*rmWidth] < minDepth) {
+	    if (graspMemoryBias + graspMemoryWeight * rangeMapReg1[rx + ry*rmWidth] < minDepth) {
 	      minDepth = rangeMapReg1[rx + ry*rmWidth];
 	      maxX = rx;
 	      maxY = ry;
@@ -4743,6 +4745,7 @@ cout <<
 
 	    // ATTN 5
 	    double graspMemoryWeight = 0.0;
+	    double graspMemoryBias = VERYBIGNUMBER;
 	    int localIntThX = -1; 
 	    int localIntThY = -1; 
 	    {
@@ -4767,6 +4770,7 @@ cout <<
 	      double mDenom = max(graspMemoryTries[rx + ry*rmWidth], 1.0);
 	      if ((localIntThX < rmWidth) && (localIntThY < rmWidth)) {
 		graspMemoryWeight = graspMemoryPicks[localIntThX + localIntThY*rmWidth] / mDenom;
+		graspMemoryBias = 0;
 	      } else {
 		graspMemoryWeight = 0;
 	      }
@@ -4777,7 +4781,7 @@ cout <<
 	    cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth] << endl;
 	    
 
-	    if (graspMemoryWeight * rangeMapReg1[rx + ry*rmWidth] < minDepth) {
+	    if (graspMemoryBias + graspMemoryWeight * rangeMapReg1[rx + ry*rmWidth] < minDepth) {
 	      minDepth = rangeMapReg1[rx + ry*rmWidth];
 	      maxX = rx;
 	      maxY = ry;
@@ -5832,14 +5836,16 @@ cout <<
 
 	pushNoOps(30);
 	pilot_call_stack.push_back('j'); // close gripper
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pushCopies('w', 10);
 	pushNoOps(30);
 	pilot_call_stack.push_back('k'); // open gripper
 
-	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pilot_call_stack.push_back(1048623); // numlock + /
 
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	//pushCopies('w', 5);
+	pilot_call_stack.push_back(1048623); // numlock + /
+	pushCopies('s', 12);
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	pilot_call_stack.push_back('2'); // assume pose at register 2
 	pushNoOps(10);
 
@@ -5875,9 +5881,11 @@ cout <<
       {
 	  double noX = perturbScale * ((drand48() - 0.5) * 2.0);
 	  double noY = perturbScale * ((drand48() - 0.5) * 2.0);
+	  double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
     
 	  currentEEPose.px += noX;
 	  currentEEPose.py += noY;
+	  currentEEPose.oz += noTheta;
       }
       break;
     // set movement speed
@@ -11627,7 +11635,7 @@ void goCalculateDensity() {
   if (injectYGrad) {
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	density[y*imW+x] += totalYSobel.at<double>(y,x);
+	density[y*imW+x] += min(totalYSobel.at<double>(y,x), maxDensity);
       }
     }
 
