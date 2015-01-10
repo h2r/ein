@@ -1080,7 +1080,7 @@ int softMaxGradientServoIterations = 3;
 int hardMaxGradientServoIterations = 10;
 int currentGradientServoIterations = 0;
 
-int fuseBlueBoxes = 0;
+int fuseBlueBoxes = 1;
 int fusePasses = 5;
 
 ////////////////////////////////////////////////
@@ -4533,11 +4533,12 @@ cout <<
 	      }
 	    }
 	  }
-	  if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
+	  if ((targetClass > -1) && (classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
 	    double minDepth = VERYBIGNUMBER;
 	    double maxDepth = 0;
 	    for (int rx = 0; rx < rmWidth; rx++) {
 	      for (int ry = 0; ry < rmWidth; ry++) {
+
 		minDepth = min(minDepth, classRangeMaps[targetClass].at<double>(ry,rx));
 		maxDepth = max(maxDepth, classRangeMaps[targetClass].at<double>(ry,rx));
 	      }
@@ -5638,8 +5639,8 @@ cout <<
     // neutral scan
     case 1048622:
       {
-	double lineSpeed = MOVE_MEDIUM;//MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
-	double betweenSpeed = MOVE_MEDIUM;//MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
+	double lineSpeed = MOVE_FAST;//MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
+	double betweenSpeed = MOVE_FAST;//MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
 	////pushCopies('e', 3);
 	////pushCopies('q', 10);
 	////scanYdirection(lineSpeed, betweenSpeed); // load scan program
@@ -6755,6 +6756,72 @@ cout <<
 
     }
     break;
+    // 2D patrol start (Thompson)
+    // capslock + -
+    case 131117:
+      {
+	graspAttemptCounter = 0;
+	graspFailCounter = 0;
+	graspSuccessCounter = 0;
+	graspTrialStart = ros::Time::now();
+	pilotTarget.px = -1;
+	pilotTarget.py = -1;
+	pilotClosestTarget.px = -1;
+	pilotClosestTarget.py = -1;
+	oscilStart = ros::Time::now();
+	accumulatedTime = oscilStart - oscilStart;
+	oscCenX = currentEEPose.px;
+	oscCenY = currentEEPose.py;
+	oscCenZ = currentEEPose.pz+0.1;
+	pilot_call_stack.push_back(131133); // 2D patrol continue (Thompson)
+	pilot_call_stack.push_back(131153); // vision cycle
+	// we want to move to a higher holding position for visual patrol
+	// so we assume that we are at 20 cm = IR scan height and move to 30 cm
+	pushSpeedSign(MOVE_FAST);
+	pilot_call_stack.push_back(1179717); // change to pantry table
+      }
+      break;
+    // 2D patrol continue (Thompson)
+    // capslock + =
+    case 131133:
+      {
+	synServoLockFrames = 0;
+	currentGradientServoIterations = 0;
+
+	ros::Duration delta = (ros::Time::now() - oscilStart) + accumulatedTime;
+  
+	currentEEPose.px = oscCenX + oscAmpX*sin(2.0*3.1415926*oscFreqX*delta.toSec());
+	currentEEPose.py = oscCenY + oscAmpY*sin(2.0*3.1415926*oscFreqY*delta.toSec());
+	currentEEPose.pz = oscCenZ + oscAmpZ*sin(2.0*3.1415926*oscFreqZ*delta.toSec());
+
+	// check to see if the target class is around. 
+	if ((pilotTarget.px != -1) && (pilotTarget.py != -1)) {
+	  // if so, push servoing command and set lock frames to 0
+	  pilot_call_stack.push_back(131156); // synchronic servo
+	  pilot_call_stack.push_back(131146); // turn survey on
+
+	  cout << "Found the target " << classLabels[targetClass] << ". " << endl;
+	  // grab the last bit of accumulated time
+	  accumulatedTime = accumulatedTime + (ros::Time::now() - oscilStart);
+	} else {
+	  // if not, potentially do vision and continue the 2D patrol
+          
+	  pilot_call_stack.push_back(131133); // 2D patrol continue (Thompson)
+	  // check and push vision cycle 
+	  ros::Duration timeSinceLast = ros::Time::now() - lastVisionCycle;
+	  if (timeSinceLast.toSec() > visionCycleInterval) {
+	    if (collectBackgroundInstances) {
+	      pilot_call_stack.push_back(131152); // save all blue boxes as focused class
+	    }
+	    pilot_call_stack.push_back(131153); // vision cycle
+	    // grab the last bit of accumulated time
+	    accumulatedTime = accumulatedTime + (ros::Time::now() - oscilStart);
+	  }
+	}
+      }
+      break;
+
+
     // 2D patrol start
     // capslock + w
     case 131159:
@@ -6819,6 +6886,7 @@ cout <<
 	}
       }
       break;
+
     // capslock + c
     case 131139:
       {
@@ -8036,8 +8104,14 @@ cout <<
 	  // initialize this if we need to
 	  if (!((classGraspMemoryTries[focusedClass].rows > 1) && (classGraspMemoryTries[focusedClass].cols > 1) &&
 	      (classGraspMemoryPicks[focusedClass].rows > 1) && (classGraspMemoryPicks[focusedClass].cols > 1) )) {
+            if (classGraspMemoryTries.size() <= focusedClass) {
+              classGraspMemoryTries.resize(focusedClass + 1);
+            }
+            if (classGraspMemoryPicks.size() <= focusedClass) {
+              classGraspMemoryPicks.resize(focusedClass + 1);
+            }
 	    classGraspMemoryTries[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
-	    classGraspMemoryPicks[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
+            classGraspMemoryPicks[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
 	  }
 
 	  string thisLabelName = focusedClassLabel;
@@ -8092,6 +8166,12 @@ cout <<
 	  // initialize this if we need to
 	  if (!((classGraspMemoryTries[focusedClass].rows > 1) && (classGraspMemoryTries[focusedClass].cols > 1) &&
 	      (classGraspMemoryPicks[focusedClass].rows > 1) && (classGraspMemoryPicks[focusedClass].cols > 1) )) {
+            if (classGraspMemoryTries.size() <= focusedClass) {
+              classGraspMemoryTries.resize(focusedClass + 1);
+            }
+            if (classGraspMemoryPicks.size() <= focusedClass) {
+              classGraspMemoryPicks.resize(focusedClass + 1);
+            }
 	    classGraspMemoryTries[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
 	    classGraspMemoryPicks[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
 	  }
@@ -8366,11 +8446,13 @@ cout <<
 	  pilot_call_stack.push_back(196713); // count grasp
 	} else {
 	  graspAttemptCounter++;
+          graspMemoryTries[maxX + maxY * rmWidth]++;
 	  if (gripperPosition < gripperThresh) {
 	    graspFailCounter++;
+
 	  } else {
 	    graspSuccessCounter++;
-            fetchCommand = "";
+            graspMemoryPicks[maxX + maxY * rmWidth]++;
 	  }
 	  graspSuccessRate = graspSuccessCounter / graspAttemptCounter;
 	  ros::Time thisTime = ros::Time::now();
@@ -8670,7 +8752,7 @@ cout <<
 	  { // do density and gradient, save gradient, do medium scan in two directions, save range map
 	    pushCopies('w', 10);
 	    pilot_call_stack.push_back(196705); // save current depth map to current class
-	    pilot_call_stack.push_back(1048622); // nuetral scan 
+	    pilot_call_stack.push_back(1048622); // neutral scan 
 	    pushCopies('s', 10);
 	    pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
 	    pushCopies(131121, 20); // density
@@ -9038,6 +9120,12 @@ cout <<
 	  // initialize this if we need to
 	  if (!((classGraspMemoryTries[focusedClass].rows > 1) && (classGraspMemoryTries[focusedClass].cols > 1) &&
 	      (classGraspMemoryPicks[focusedClass].rows > 1) && (classGraspMemoryPicks[focusedClass].cols > 1) )) {
+            if (classGraspMemoryTries.size() <= focusedClass) {
+              classGraspMemoryTries.resize(focusedClass + 1);
+            }
+            if (classGraspMemoryPicks.size() <= focusedClass) {
+              classGraspMemoryPicks.resize(focusedClass + 1);
+            }
 	    classGraspMemoryTries[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
 	    classGraspMemoryPicks[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
 	  }
