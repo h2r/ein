@@ -322,6 +322,7 @@ std::string rangemapViewName = "Range Map View";
 std::string hiRangemapViewName = "Hi Range Map View";
 std::string hiColorRangemapViewName = "Hi Color Range Map View";
 std::string graspMemoryViewName = "Grasp Memory View";
+std::string graspMemorySampleViewName = "Grasp Memory Sample View";
 
 int reticleHalfWidth = 30;
 int pilotTargetHalfWidth = 15;
@@ -480,6 +481,8 @@ Mat rangemapImage;
 Mat hiRangemapImage;
 Mat hiColorRangemapImage;
 Mat graspMemoryImage;
+Mat graspMemorySampleImage;
+
 const int totalRangeHistoryLength = 100;
 double rangeHistory[totalRangeHistoryLength];
 int currentRangeHistoryIndex = 0;
@@ -744,6 +747,7 @@ double perturbScale = 0.05;//0.1;
 
 double graspMemoryTries[rmWidth*rmWidth];
 double graspMemoryPicks[rmWidth*rmWidth];
+double graspMemorySample[rmWidth*rmWidth];
 
 int gmTargetX = -1;
 int gmTargetY = -1;
@@ -3078,6 +3082,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
   if (shouldIRender) {
     cv::imshow(rangemapViewName, rangemapImage);
     cv::imshow(graspMemoryViewName, graspMemoryImage);
+    cv::imshow(graspMemorySampleViewName, graspMemorySampleImage);
     //cv::imshow(hiRangemapViewName, hiRangemapImage);
     Mat hRIT;
     cv::resize(hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
@@ -4567,6 +4572,22 @@ cout <<
 	    }
 	  }
 	}
+        // draw grasp memory sample window
+        {
+          for (int rx = 0; rx < rmWidth; rx++) {
+            for (int ry = 0; ry < rmWidth; ry++) {
+              int i = rx + ry*rmWidth;
+              double blueIntensity = 255 * graspMemorySample[i];
+              double greenIntensity = 255 * graspMemorySample[i];
+              double redIntensity = 255 * graspMemorySample[i];
+              cv::Scalar color(ceil(blueIntensity),ceil(greenIntensity),ceil(redIntensity));
+              cv::Point outTop = cv::Point((ry)*rmiCellWidth,rx*rmiCellWidth);
+              cv::Point outBot = cv::Point(((ry)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
+              Mat vCrop = graspMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+              vCrop = color;
+            }
+          }
+        }
       }
       break;
     // manual render
@@ -5790,7 +5811,7 @@ cout <<
 	pilot_call_stack.push_back(1048628);
 
 	// select max target cumulative
-	pilot_call_stack.push_back(1114195	);
+	pilot_call_stack.push_back(1114195);
 	// apply grasp filter for 3
 	pilot_call_stack.push_back(1048673);
 	pilot_call_stack.push_back(1048692);
@@ -6756,68 +6777,28 @@ cout <<
 
     }
     break;
-    // 2D patrol start (Thompson)
+    // (Thompson load)
     // capslock + -
     case 131117:
       {
-	graspAttemptCounter = 0;
-	graspFailCounter = 0;
-	graspSuccessCounter = 0;
-	graspTrialStart = ros::Time::now();
-	pilotTarget.px = -1;
-	pilotTarget.py = -1;
-	pilotClosestTarget.px = -1;
-	pilotClosestTarget.py = -1;
-	oscilStart = ros::Time::now();
-	accumulatedTime = oscilStart - oscilStart;
-	oscCenX = currentEEPose.px;
-	oscCenY = currentEEPose.py;
-	oscCenZ = currentEEPose.pz+0.1;
-	pilot_call_stack.push_back(131133); // 2D patrol continue (Thompson)
-	pilot_call_stack.push_back(131153); // vision cycle
-	// we want to move to a higher holding position for visual patrol
-	// so we assume that we are at 20 cm = IR scan height and move to 30 cm
-	pushSpeedSign(MOVE_FAST);
-	pilot_call_stack.push_back(1179717); // change to pantry table
+        ROS_INFO("Loading grasp memory sample.");
+        for (int rx = 0; rx < rmWidth; rx++) {
+          for (int ry = 0; ry < rmWidth; ry++) {
+            int i = rx + ry * rmWidth;
+            double nsuccess = graspMemoryPicks[i];
+            double nfailure = graspMemoryTries[i] - graspMemoryPicks[i];
+            graspMemorySample[i] = rk_beta(&random_state, 
+                                           nsuccess + 1, 
+                                           nfailure + 1);
+          }
+        }
       }
       break;
-    // 2D patrol continue (Thompson)
+    // (Thompson, undefined)
     // capslock + =
     case 131133:
       {
-	synServoLockFrames = 0;
-	currentGradientServoIterations = 0;
 
-	ros::Duration delta = (ros::Time::now() - oscilStart) + accumulatedTime;
-  
-	currentEEPose.px = oscCenX + oscAmpX*sin(2.0*3.1415926*oscFreqX*delta.toSec());
-	currentEEPose.py = oscCenY + oscAmpY*sin(2.0*3.1415926*oscFreqY*delta.toSec());
-	currentEEPose.pz = oscCenZ + oscAmpZ*sin(2.0*3.1415926*oscFreqZ*delta.toSec());
-
-	// check to see if the target class is around. 
-	if ((pilotTarget.px != -1) && (pilotTarget.py != -1)) {
-	  // if so, push servoing command and set lock frames to 0
-	  pilot_call_stack.push_back(131156); // synchronic servo
-	  pilot_call_stack.push_back(131146); // turn survey on
-
-	  cout << "Found the target " << classLabels[targetClass] << ". " << endl;
-	  // grab the last bit of accumulated time
-	  accumulatedTime = accumulatedTime + (ros::Time::now() - oscilStart);
-	} else {
-	  // if not, potentially do vision and continue the 2D patrol
-          
-	  pilot_call_stack.push_back(131133); // 2D patrol continue (Thompson)
-	  // check and push vision cycle 
-	  ros::Duration timeSinceLast = ros::Time::now() - lastVisionCycle;
-	  if (timeSinceLast.toSec() > visionCycleInterval) {
-	    if (collectBackgroundInstances) {
-	      pilot_call_stack.push_back(131152); // save all blue boxes as focused class
-	    }
-	    pilot_call_stack.push_back(131153); // vision cycle
-	    // grab the last bit of accumulated time
-	    accumulatedTime = accumulatedTime + (ros::Time::now() - oscilStart);
-	  }
-	}
       }
       break;
 
@@ -9912,6 +9893,7 @@ void pilotInit() {
 
   rangemapImage = Mat(rmiHeight, 3*rmiWidth, CV_8UC3);
   graspMemoryImage = Mat(rmiHeight, 2*rmiWidth, CV_8UC3);
+  graspMemorySampleImage = Mat(rmiHeight, rmiWidth, CV_8UC3);
 
   for (int rx = 0; rx < hrmWidth; rx++) {
     for (int ry = 0; ry < hrmWidth; ry++) {
@@ -14417,6 +14399,7 @@ int main(int argc, char **argv) {
   rangeogramViewName = "Rangeogram View " + left_or_right_arm;
   rangemapViewName = "Range Map View " + left_or_right_arm;
   graspMemoryViewName = "Grasp Memory View " + left_or_right_arm;
+  graspMemorySampleViewName = "Grasp Memory Sample View " + left_or_right_arm;
   hiRangemapViewName = "Hi Range Map View " + left_or_right_arm;
   hiColorRangemapViewName = "Hi Color Range Map View " + left_or_right_arm;
 
@@ -14458,6 +14441,7 @@ int main(int argc, char **argv) {
   saveROSParams();
   pilot_call_stack.push_back(1114200);
   execute_stack = 1;
+  targetClass = 1;
   ros::spin();
 
   return 0;
