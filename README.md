@@ -402,7 +402,6 @@ Ein
 c r c: clear call stack
 capslock + shift d: queues scan program
 y: execute what is in the queue
-capslock + w: queues pick program
 capslock + page up/page down: select target to pick
 u:  display where the end effector is located
 capslock + q: vision cycle
@@ -411,3 +410,10 @@ capslock + f: reinitialize and retrain everything
 capslock + n: listen for pick requests from fetch command
 capslock + v: thompson sampling test
 capslock + I: count grasp
+
+capslock + w: queues pick program
+
+capslock + -: queues pick program (Thompson)
+capslock + =: queues pick progam continue (Thompson)
+
+numlock + X: Organize windows
