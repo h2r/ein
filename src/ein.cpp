@@ -4675,6 +4675,7 @@ cout <<
 	cv::moveWindow(rangeogramViewName, uiOffsetX, uiOffsetY);
       }
       break;
+    // arrange windows
     // numlock + X
     case 1114200:
       {
@@ -6777,7 +6778,7 @@ cout <<
 
     }
     break;
-    // (Thompson load)
+    // Sample from grasp memory
     // capslock + -
     case 131117:
       {
@@ -9761,8 +9762,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
       // reset to uniform failure
       for (int rx = 0; rx < rmWidth; rx++) {
 	for (int ry = 0; ry < rmWidth; ry++) {
-	  graspMemoryTries[rx + ry*rmWidth] = 1;
-	  graspMemoryPicks[rx + ry*rmWidth] = 0;
+	  graspMemoryTries[rx + ry*rmWidth] += 1;
 	}
       }
     }
@@ -9779,8 +9779,8 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
       // reset to uniform success 
       for (int rx = 0; rx < rmWidth; rx++) {
 	for (int ry = 0; ry < rmWidth; ry++) {
-	  graspMemoryTries[rx + ry*rmWidth] = 1;
-	  graspMemoryPicks[rx + ry*rmWidth] = 1;
+	  graspMemoryTries[rx + ry*rmWidth] = 0;
+	  graspMemoryPicks[rx + ry*rmWidth] = 0;
 	}
       }
     }
@@ -14439,7 +14439,10 @@ int main(int argc, char **argv) {
   spinlessPilotMain();
 
   saveROSParams();
-  pilot_call_stack.push_back(1114200);
+  pilot_call_stack.push_back(1048673); // drawMapRegisters
+  pilot_call_stack.push_back(131117); // Sample from grasp memory
+  pilot_call_stack.push_back(131162);  // load target class range map
+  pilot_call_stack.push_back(1114200); // arrange windows
   execute_stack = 1;
   targetClass = 1;
   ros::spin();
