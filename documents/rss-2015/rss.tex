@@ -578,6 +578,17 @@ represents the best that the system could be expected to perform.
 
 \section{Related Work}
 
+\citet{bohg13} survey data-driven approaches to grasping.  Our
+approaches can be thought of as a pipeline for automatically building
+an experience database consisting of object models and known good
+grasps, using analytic approaches to grasping unknown objects to
+generate a grasp hypothesis space and bandit-based methods for trying
+grasps and learning instance-based distributions for the grasp
+experience database.  In this way our system achieves the best of both
+approaches: models for grasping unknown objects can be applied; when
+they do not fail, the system can automatically recover by trying
+grasps and adapting itself based on that specific object. 
+
 \citet{ude12} described an approach for detecting and manipulating
 objects to learn models.  It uses a bag of words model and learns to
 detect the objects.  It does not learn a model for grapsing.
