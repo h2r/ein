@@ -9745,8 +9745,8 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 //	  graspMemoryPicks[(gmTargetX+delX) + (gmTargetY+delY)*rmWidth] = 1;
 //	}
 //      }
-      graspMemoryTries[gmTargetX + gmTargetY*rmWidth] = 1;
-      graspMemoryPicks[gmTargetX + gmTargetY*rmWidth] = 1;
+      graspMemoryTries[gmTargetX + gmTargetY*rmWidth] += 1;
+      graspMemoryPicks[gmTargetX + gmTargetY*rmWidth] += 1;
     }
     pilot_call_stack.push_back(1048679); // render reticle
     pilot_call_stack.push_back(1048673); // render register 1
