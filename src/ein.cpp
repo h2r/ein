@@ -11678,7 +11678,7 @@ void goCalculateDensity() {
   if (injectYGrad) {
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	density[y*imW+x] += min(totalYSobel.at<double>(y,x), maxDensity);
+	density[y*imW+x] += min(totalYSobel.at<double>(y,x), 0.5*maxDensity);
       }
     }
 
