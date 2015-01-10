@@ -418,3 +418,7 @@ capslock + =: queues pick progam continue (Thompson)
 
 numlock + X: Organize windows
 capslock + z: load target class range map into register 1
+numlock + 6: select best available grasp
+capslock + t: synchronic servo
+capslock + Y: quick fetch targetClass
+numlock + a: drawMapRegisters
