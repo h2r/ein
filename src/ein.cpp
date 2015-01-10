@@ -14434,6 +14434,7 @@ int main(int argc, char **argv) {
 
   ros::Timer timer1 = n.createTimer(ros::Duration(0.01), timercallback1);
 
+
   tfListener = new tf::TransformListener();
 
   ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + left_or_right_arm + "/PositionKinematicsNode/IKService");
@@ -14455,6 +14456,8 @@ int main(int argc, char **argv) {
   spinlessPilotMain();
 
   saveROSParams();
+  pilot_call_stack.push_back(1114200);
+  execute_stack = 1;
   ros::spin();
 
   return 0;
