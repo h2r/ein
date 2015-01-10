@@ -417,3 +417,4 @@ capslock + -: queues pick program (Thompson)
 capslock + =: queues pick progam continue (Thompson)
 
 numlock + X: Organize windows
+capslock + z: load target class range map into register 1
