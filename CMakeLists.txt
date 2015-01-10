@@ -46,7 +46,7 @@ add_executable(capture_annotated_objects src/capture_annotated_objects.cpp)
 add_executable(capture_hard_class src/capture_hard_class.cpp)
 add_executable(filter_time src/filter_time.cpp)
 add_executable(pilot_baxter src/pilot_baxter.cpp)
-add_executable(ein src/ein.cpp)
+add_executable(ein src/ein.cpp src/distributions.c src/randomkit.c)
 
 target_link_libraries(capture_object
 	${catkin_LIBRARIES}
