@@ -1080,7 +1080,7 @@ int softMaxGradientServoIterations = 3;
 int hardMaxGradientServoIterations = 10;
 int currentGradientServoIterations = 0;
 
-int fuseBlueBoxes = 1;
+int fuseBlueBoxes = 0;
 int fusePasses = 5;
 
 ////////////////////////////////////////////////
@@ -11663,10 +11663,12 @@ void goCalculateDensity() {
 
   // optionally feed it back in
   int sobelBecomesDensity = 1;
+  double maxYsob = -INFINITY;
   if (sobelBecomesDensity) {
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
 	totalGraySobel.at<double>(y,x) = density[y*imW+x];
+	maxYsob = max(maxYsob, totalGraySobel.at<double>(y,x));
       }
     }
   }
@@ -11675,10 +11677,13 @@ void goCalculateDensity() {
   //   so that Y contributes to objectness to help catch objects with poor color contrast,
   //   but not to pose since it is corrupted by shadows.
   int injectYGrad = 1;
+  double yThresh = 0.5*maxYsob;
   if (injectYGrad) {
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	density[y*imW+x] += min(totalYSobel.at<double>(y,x), 0.5*maxDensity);
+	if (totalYSobel.at<double>(y,x) > yThresh) {
+	  density[y*imW+x] += 0.5*maxDensity;
+	}
       }
     }
 
