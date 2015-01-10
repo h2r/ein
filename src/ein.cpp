@@ -4520,8 +4520,8 @@ cout <<
 		double denom = max(1.0,maxDepth);
 		if (denom <= EPSILON)
 		  denom = VERYBIGNUMBER;
-		double blueIntensity = 255 * (graspMemoryPicks[rx + ry*rmWidth]) / denom;
-		double redIntensity = 255 * (graspMemoryTries[rx + ry*rmWidth] - graspMemoryPicks[rx + ry*rmWidth]) / denom;
+		double blueIntensity = 128 * (graspMemoryPicks[rx + ry*rmWidth]) / denom;
+		double redIntensity = 128 * (graspMemoryTries[rx + ry*rmWidth] - graspMemoryPicks[rx + ry*rmWidth]) / denom;
 		cv::Scalar backColor(ceil(blueIntensity),0,ceil(redIntensity));
 		cv::Point outTop = cv::Point((ry)*rmiCellWidth,rx*rmiCellWidth);
 		cv::Point outBot = cv::Point(((ry)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
