@@ -1144,6 +1144,7 @@ void pilotInit();
 void spinlessPilotMain();
 
 int shouldIPick(int classToPick);
+int getLocalGraspGear(int globalGraspGearIn);
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -9988,6 +9989,11 @@ int shouldIPick(int classToPick) {
   return toReturn;
 }
 
+int getLocalGraspGear(int globalGraspGearIn) {
+
+}
+
+
 ////////////////////////////////////////////////
 // end pilot definitions 
 //
@@ -11677,7 +11683,7 @@ void goCalculateDensity() {
   //   so that Y contributes to objectness to help catch objects with poor color contrast,
   //   but not to pose since it is corrupted by shadows.
   int injectYGrad = 1;
-  double yThresh = 0.5*maxYsob;
+  double yThresh = 0.9*maxYsob;
   if (injectYGrad) {
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
