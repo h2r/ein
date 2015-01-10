@@ -400,7 +400,12 @@ Ein
 
 2: Shift to ready position on the front table.
 c r c: clear call stack
-capslock, shift d: queues scan program
+capslock + shift d: queues scan program
 y: execute what is in the queue
-capslock, w: queues pick program
+capslock + w: queues pick program
+capslock + page up/page down: select target to pick
 u:  display where the end effector is located
+capslock + q: vision cycle
+capslock + b: toggle publish objects
+capslock + f: reinitialize and retrain everything
+capslock + n: listen for pick requests from fetch command
