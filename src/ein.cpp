@@ -322,6 +322,7 @@ std::string rangemapViewName = "Range Map View";
 std::string hiRangemapViewName = "Hi Range Map View";
 std::string hiColorRangemapViewName = "Hi Color Range Map View";
 std::string graspMemoryViewName = "Grasp Memory View";
+std::string graspMemorySampleViewName = "Grasp Memory Sample View";
 
 int reticleHalfWidth = 30;
 int pilotTargetHalfWidth = 15;
@@ -480,6 +481,8 @@ Mat rangemapImage;
 Mat hiRangemapImage;
 Mat hiColorRangemapImage;
 Mat graspMemoryImage;
+Mat graspMemorySampleImage;
+
 const int totalRangeHistoryLength = 100;
 double rangeHistory[totalRangeHistoryLength];
 int currentRangeHistoryIndex = 0;
@@ -733,7 +736,7 @@ double pantryTableZ = 0.195;
 double currentTableZ = bagTableZ;
 
 double mostRecentUntabledZ = 0.0;
-eePose bestOrientationEEPose;
+eePose bestOrientationEEPose = crane2right;
 double bestOrientationAngle = 0;
 
 Mat lastAerialGradient;
@@ -744,6 +747,7 @@ double perturbScale = 0.05;//0.1;
 
 double graspMemoryTries[rmWidth*rmWidth];
 double graspMemoryPicks[rmWidth*rmWidth];
+double graspMemorySample[rmWidth*rmWidth];
 
 int gmTargetX = -1;
 int gmTargetY = -1;
@@ -1080,7 +1084,7 @@ int softMaxGradientServoIterations = 3;
 int hardMaxGradientServoIterations = 10;
 int currentGradientServoIterations = 0;
 
-int fuseBlueBoxes = 0;
+int fuseBlueBoxes = 1;
 int fusePasses = 5;
 
 ////////////////////////////////////////////////
@@ -3079,6 +3083,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
   if (shouldIRender) {
     cv::imshow(rangemapViewName, rangemapImage);
     cv::imshow(graspMemoryViewName, graspMemoryImage);
+    cv::imshow(graspMemorySampleViewName, graspMemorySampleImage);
     //cv::imshow(hiRangemapViewName, hiRangemapImage);
     Mat hRIT;
     cv::resize(hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
@@ -4238,7 +4243,9 @@ cout <<
 //	}
       }
       break;
-    case 1048692: // numlock + t
+    // apply grasp filter
+    // numlock + t
+    case 1048692: 
       {
 	cout << "Applying filter to rangeMapReg1 and storing result in rangeMapReg1." << endl;
 
@@ -4381,7 +4388,9 @@ cout <<
 	}
       }
       break;
-    case 1048688: // numlock + p
+    // prepare to apply graps filter
+    // numlock + p
+    case 1048688: 
       {
 	double tfilter[9]    = {   0,  0, -1, 
 				   0,  2,  0, 
@@ -4534,11 +4543,12 @@ cout <<
 	      }
 	    }
 	  }
-	  if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
+	  if ((targetClass > -1) && (classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
 	    double minDepth = VERYBIGNUMBER;
 	    double maxDepth = 0;
 	    for (int rx = 0; rx < rmWidth; rx++) {
 	      for (int ry = 0; ry < rmWidth; ry++) {
+
 		minDepth = min(minDepth, classRangeMaps[targetClass].at<double>(ry,rx));
 		maxDepth = max(maxDepth, classRangeMaps[targetClass].at<double>(ry,rx));
 	      }
@@ -4567,6 +4577,22 @@ cout <<
 	    }
 	  }
 	}
+        // draw grasp memory sample window
+        {
+          for (int rx = 0; rx < rmWidth; rx++) {
+            for (int ry = 0; ry < rmWidth; ry++) {
+              int i = rx + ry*rmWidth;
+              double blueIntensity = 255 * graspMemorySample[i];
+              double greenIntensity = 255 * graspMemorySample[i];
+              double redIntensity = 255 * graspMemorySample[i];
+              cv::Scalar color(ceil(blueIntensity),ceil(greenIntensity),ceil(redIntensity));
+              cv::Point outTop = cv::Point((ry)*rmiCellWidth,rx*rmiCellWidth);
+              cv::Point outBot = cv::Point(((ry)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
+              Mat vCrop = graspMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+              vCrop = color;
+            }
+          }
+        }
       }
       break;
     // manual render
@@ -4654,6 +4680,7 @@ cout <<
 	cv::moveWindow(rangeogramViewName, uiOffsetX, uiOffsetY);
       }
       break;
+    // arrange windows
     // numlock + X
     case 1114200:
       {
@@ -5238,11 +5265,11 @@ cout <<
 	// select max target cumulative
 	pilot_call_stack.push_back(1114195);
 	// apply grasp filter for 4
-	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048673); // drawMapRegisters
 	pilot_call_stack.push_back(1048692);
 	pilot_call_stack.push_back(1048688);
 	// blur
-	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048673); // drawMapRegisters
 	pilot_call_stack.push_back(1048692);
 	pilot_call_stack.push_back(1048697);
 	// load reg1
@@ -5251,13 +5278,13 @@ cout <<
 	pilot_call_stack.push_back(1048628);
 
 	// select max target cumulative
-	pilot_call_stack.push_back(1114195	);
+	pilot_call_stack.push_back(1114195);
 	// apply grasp filter for 3
-	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048673); // drawMapRegisters
 	pilot_call_stack.push_back(1048692);
 	pilot_call_stack.push_back(1048693);
 	// blur
-	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048673); // drawMapRegisters
 	pilot_call_stack.push_back(1048692);
 	pilot_call_stack.push_back(1048697);
 	// load reg1
@@ -5268,11 +5295,11 @@ cout <<
 	// select max target cumulative
 	pilot_call_stack.push_back(1114195);
 	// apply grasp filter for 2
-	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048673); // drawMapRegisters
 	pilot_call_stack.push_back(1048692);
 	pilot_call_stack.push_back(1048687);
 	// blur
-	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048673); // drawMapRegisters
 	pilot_call_stack.push_back(1048692);
 	pilot_call_stack.push_back(1048697);
 	// load reg1
@@ -5283,11 +5310,11 @@ cout <<
 	// select max target NOT cumulative
 	pilot_call_stack.push_back(1048691);
 	// apply grasp filter for 1
-	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048673); // drawMapRegisters
 	pilot_call_stack.push_back(1048692);
 	pilot_call_stack.push_back(1048681);
 	// blur
-	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048673); // drawMapRegisters
 	pilot_call_stack.push_back(1048692);
 	pilot_call_stack.push_back(1048697);
 	// load reg1
@@ -5298,6 +5325,7 @@ cout <<
 	pilot_call_stack.push_back(1048684); // turn off scanning
       }
       break;
+
     // assume winning gg
     // numlock + 7
     case 1048631:
@@ -5639,8 +5667,8 @@ cout <<
     // neutral scan
     case 1048622:
       {
-	double lineSpeed = MOVE_MEDIUM;//MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
-	double betweenSpeed = MOVE_MEDIUM;//MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
+	double lineSpeed = MOVE_FAST;//MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
+	double betweenSpeed = MOVE_FAST;//MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
 	////pushCopies('e', 3);
 	////pushCopies('q', 10);
 	////scanYdirection(lineSpeed, betweenSpeed); // load scan program
@@ -5781,7 +5809,7 @@ cout <<
 	// select max target cumulative
 	pilot_call_stack.push_back(1114195);
 	// apply grasp filter for 4
-	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048673); // drawMapRegisters
 	pilot_call_stack.push_back(1048692);
 	pilot_call_stack.push_back(1048688);
 	// load reg1
@@ -5790,9 +5818,9 @@ cout <<
 	pilot_call_stack.push_back(1048628);
 
 	// select max target cumulative
-	pilot_call_stack.push_back(1114195	);
+	pilot_call_stack.push_back(1114195);
 	// apply grasp filter for 3
-	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048673); // drawMapRegisters    
 	pilot_call_stack.push_back(1048692);
 	pilot_call_stack.push_back(1048693);
 	// load reg1
@@ -5803,7 +5831,7 @@ cout <<
 	// select max target cumulative
 	pilot_call_stack.push_back(1114195);
 	// apply grasp filter for 2
-	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048673); // drawMapRegisters
 	pilot_call_stack.push_back(1048692);
 	pilot_call_stack.push_back(1048687);
 	// load reg1
@@ -5814,7 +5842,7 @@ cout <<
 	// select max target NOT cumulative
 	pilot_call_stack.push_back(1048691);
 	// apply grasp filter for 1
-	pilot_call_stack.push_back(1048673);
+	pilot_call_stack.push_back(1048673); // drawMapRegisters 
 	pilot_call_stack.push_back(1048692);
 	pilot_call_stack.push_back(1048681);
 	// load reg1
@@ -6756,6 +6784,32 @@ cout <<
 
     }
     break;
+    // Sample from grasp memory
+    // capslock + -
+    case 131117:
+      {
+        ROS_INFO("Loading grasp memory sample.");
+        for (int rx = 0; rx < rmWidth; rx++) {
+          for (int ry = 0; ry < rmWidth; ry++) {
+            int i = rx + ry * rmWidth;
+            double nsuccess = graspMemoryPicks[i];
+            double nfailure = graspMemoryTries[i] - graspMemoryPicks[i];
+            graspMemorySample[i] = rk_beta(&random_state, 
+                                           nsuccess + 1, 
+                                           nfailure + 1);
+          }
+        }
+      }
+      break;
+    // (Thompson, undefined)
+    // capslock + =
+    case 131133:
+      {
+
+      }
+      break;
+
+
     // 2D patrol start
     // capslock + w
     case 131159:
@@ -6820,6 +6874,7 @@ cout <<
 	}
       }
       break;
+
     // capslock + c
     case 131139:
       {
@@ -7592,7 +7647,7 @@ cout <<
 	pilot_call_stack.push_back(1048680); // assume x,y of target 
 	pilot_call_stack.push_back(1048679); // render reticle
 	pilot_call_stack.push_back(1048691); // find max on register 1
-	pilot_call_stack.push_back(1048673); // render register 1
+	pilot_call_stack.push_back(1048673); // drawMapRegisters
 	pilot_call_stack.push_back(1048690); // load map to register 1
 	pilot_call_stack.push_back(1048631); // assume best gear
 	{
@@ -8037,8 +8092,14 @@ cout <<
 	  // initialize this if we need to
 	  if (!((classGraspMemoryTries[focusedClass].rows > 1) && (classGraspMemoryTries[focusedClass].cols > 1) &&
 	      (classGraspMemoryPicks[focusedClass].rows > 1) && (classGraspMemoryPicks[focusedClass].cols > 1) )) {
+            if (classGraspMemoryTries.size() <= focusedClass) {
+              classGraspMemoryTries.resize(focusedClass + 1);
+            }
+            if (classGraspMemoryPicks.size() <= focusedClass) {
+              classGraspMemoryPicks.resize(focusedClass + 1);
+            }
 	    classGraspMemoryTries[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
-	    classGraspMemoryPicks[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
+            classGraspMemoryPicks[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
 	  }
 
 	  string thisLabelName = focusedClassLabel;
@@ -8093,6 +8154,12 @@ cout <<
 	  // initialize this if we need to
 	  if (!((classGraspMemoryTries[focusedClass].rows > 1) && (classGraspMemoryTries[focusedClass].cols > 1) &&
 	      (classGraspMemoryPicks[focusedClass].rows > 1) && (classGraspMemoryPicks[focusedClass].cols > 1) )) {
+            if (classGraspMemoryTries.size() <= focusedClass) {
+              classGraspMemoryTries.resize(focusedClass + 1);
+            }
+            if (classGraspMemoryPicks.size() <= focusedClass) {
+              classGraspMemoryPicks.resize(focusedClass + 1);
+            }
 	    classGraspMemoryTries[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
 	    classGraspMemoryPicks[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
 	  }
@@ -8367,11 +8434,13 @@ cout <<
 	  pilot_call_stack.push_back(196713); // count grasp
 	} else {
 	  graspAttemptCounter++;
+          graspMemoryTries[maxX + maxY * rmWidth]++;
 	  if (gripperPosition < gripperThresh) {
 	    graspFailCounter++;
+
 	  } else {
 	    graspSuccessCounter++;
-            fetchCommand = "";
+            graspMemoryPicks[maxX + maxY * rmWidth]++;
 	  }
 	  graspSuccessRate = graspSuccessCounter / graspAttemptCounter;
 	  ros::Time thisTime = ros::Time::now();
@@ -8671,7 +8740,7 @@ cout <<
 	  { // do density and gradient, save gradient, do medium scan in two directions, save range map
 	    pushCopies('w', 10);
 	    pilot_call_stack.push_back(196705); // save current depth map to current class
-	    pilot_call_stack.push_back(1048622); // nuetral scan 
+	    pilot_call_stack.push_back(1048622); // neutral scan 
 	    pushCopies('s', 10);
 	    pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
 	    pushCopies(131121, 20); // density
@@ -9039,6 +9108,12 @@ cout <<
 	  // initialize this if we need to
 	  if (!((classGraspMemoryTries[focusedClass].rows > 1) && (classGraspMemoryTries[focusedClass].cols > 1) &&
 	      (classGraspMemoryPicks[focusedClass].rows > 1) && (classGraspMemoryPicks[focusedClass].cols > 1) )) {
+            if (classGraspMemoryTries.size() <= focusedClass) {
+              classGraspMemoryTries.resize(focusedClass + 1);
+            }
+            if (classGraspMemoryPicks.size() <= focusedClass) {
+              classGraspMemoryPicks.resize(focusedClass + 1);
+            }
 	    classGraspMemoryTries[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
 	    classGraspMemoryPicks[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
 	  }
@@ -9677,8 +9752,8 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 //	  graspMemoryPicks[(gmTargetX+delX) + (gmTargetY+delY)*rmWidth] = 1;
 //	}
 //      }
-      graspMemoryTries[gmTargetX + gmTargetY*rmWidth] = 1;
-      graspMemoryPicks[gmTargetX + gmTargetY*rmWidth] = 1;
+      graspMemoryTries[gmTargetX + gmTargetY*rmWidth] += 1;
+      graspMemoryPicks[gmTargetX + gmTargetY*rmWidth] += 1;
     }
     pilot_call_stack.push_back(1048679); // render reticle
     pilot_call_stack.push_back(1048673); // render register 1
@@ -9693,8 +9768,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
       // reset to uniform failure
       for (int rx = 0; rx < rmWidth; rx++) {
 	for (int ry = 0; ry < rmWidth; ry++) {
-	  graspMemoryTries[rx + ry*rmWidth] = 1;
-	  graspMemoryPicks[rx + ry*rmWidth] = 0;
+	  graspMemoryTries[rx + ry*rmWidth] += 1;
 	}
       }
     }
@@ -9711,8 +9785,8 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
       // reset to uniform success 
       for (int rx = 0; rx < rmWidth; rx++) {
 	for (int ry = 0; ry < rmWidth; ry++) {
-	  graspMemoryTries[rx + ry*rmWidth] = 1;
-	  graspMemoryPicks[rx + ry*rmWidth] = 1;
+	  graspMemoryTries[rx + ry*rmWidth] = 10;
+	  graspMemoryPicks[rx + ry*rmWidth] = 0;
 	}
       }
     }
@@ -9825,6 +9899,7 @@ void pilotInit() {
 
   rangemapImage = Mat(rmiHeight, 3*rmiWidth, CV_8UC3);
   graspMemoryImage = Mat(rmiHeight, 2*rmiWidth, CV_8UC3);
+  graspMemorySampleImage = Mat(rmiHeight, rmiWidth, CV_8UC3);
 
   for (int rx = 0; rx < hrmWidth; rx++) {
     for (int ry = 0; ry < hrmWidth; ry++) {
@@ -14335,6 +14410,7 @@ int main(int argc, char **argv) {
   rangeogramViewName = "Rangeogram View " + left_or_right_arm;
   rangemapViewName = "Range Map View " + left_or_right_arm;
   graspMemoryViewName = "Grasp Memory View " + left_or_right_arm;
+  graspMemorySampleViewName = "Grasp Memory Sample View " + left_or_right_arm;
   hiRangemapViewName = "Hi Range Map View " + left_or_right_arm;
   hiColorRangemapViewName = "Hi Color Range Map View " + left_or_right_arm;
 
@@ -14351,6 +14427,7 @@ int main(int argc, char **argv) {
 
 
   ros::Timer timer1 = n.createTimer(ros::Duration(0.01), timercallback1);
+
 
   tfListener = new tf::TransformListener();
 
@@ -14373,6 +14450,12 @@ int main(int argc, char **argv) {
   spinlessPilotMain();
 
   saveROSParams();
+  pilot_call_stack.push_back(1048673); // drawMapRegisters
+  pilot_call_stack.push_back(131117); // Sample from grasp memory
+  pilot_call_stack.push_back(131162);  // load target class range map
+  pilot_call_stack.push_back(1114200); // arrange windows
+  execute_stack = 1;
+  targetClass = 1;
   ros::spin();
 
   return 0;
