@@ -418,10 +418,17 @@ capslock + =: empty-a
 
 numlock + X: Organize windows
 capslock + z: load target class range map into register 1
-numlock + 6: select best available grasp
+numlock + 6: select best available grasp (not used)
+numlock + ,: select best available grasp (used by capslock + w)
 capslock + t: synchronic servo
 capslock + Y: quick fetch taragetClass
 numlock + a: drawMapRegisters
 numlock + +: shift grasp gear
 
 Grasp gear 2 on handle is a good grasp. 
+
+Saving candidates:
+capslock + A:
+capslock + numlock + u:
+capslock + numlock + A:  SAVE GRASP ME
+capslock + Z
