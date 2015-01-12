@@ -610,8 +610,9 @@ int localMaxGG = 0;
 
 double graspDepth = -.09;//-.03;//-.01;//-.03;//-.04;//-.02;
 
-// grasp gear 
+// grasp gear should always be even
 const int totalGraspGears = 8;
+// XXX maybe we should initialize this to a reasonable value
 int currentGraspGear = -1;
 //// reticles
 double ggX[totalGraspGears];
@@ -9334,6 +9335,13 @@ cout <<
 	}
       }
       break;
+    // test getLocalGraspGear
+    // capslock + numlock + o
+    case 1179727:
+      {
+	cout << "testing getLocalGraspGear on 0 1 2 3: " << getLocalGraspGear(0) << " " << getLocalGraspGear(1) << " " << getLocalGraspGear(2) << " " << getLocalGraspGear(3) << endl;
+      }
+      break;
     case 2:
       drawOrientor = !drawOrientor;
       break;
@@ -10234,11 +10242,11 @@ int shouldIPick(int classToPick) {
 }
 
 int getLocalGraspGear(int globalGraspGearIn) {
+  // ATTN 7
+  // diagnostic line
+  //Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+  // correct line
   Quaternionf eeqform(bestOrientationEEPose.qw, bestOrientationEEPose.qx, bestOrientationEEPose.qy, bestOrientationEEPose.qz);
-
-  // Pure folley 
-  //Eigen::Quaternionf globalGGQuat = getGGRotation(globalGraspGearIn);
-  //Quaternionf eeqform(globalGGQuat.w(), globalGGQuat.x(), globalGGQuat.y(), globalGGQuat.z());
 
   Quaternionf gear1Orient = getGGRotation(0);
   Quaternionf rel = eeqform * gear1Orient.inverse();
@@ -10258,10 +10266,11 @@ int getLocalGraspGear(int globalGraspGearIn) {
   //double angle = atan2(aY, aX)*180.0/3.1415926;
   // no degrees here
   double angle = atan2(aY, aX);
-  angle = -angle;
+  // no inversion necessary
+  //angle = -angle;
   
   double deltaGG = round(angle * totalGraspGears / (2.0 * 3.1415926));
-  int ggToReturn = (globalGraspGearIn + int(deltaGG)) % (totalGraspGears / 2);
+  int ggToReturn = ((totalGraspGears / 2) + globalGraspGearIn + int(deltaGG)) % (totalGraspGears / 2);
 
   cout << "getLocalGraspGear angle deltaGG ggToReturn: " << angle << " " << deltaGG << " " << ggToReturn << endl;
 
