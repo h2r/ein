@@ -4344,7 +4344,9 @@ cout <<
 	  filter[fx] = tfilter[fx];
       }
       break;
-    case 1048693: // numlock + u
+    // prepare to apply grasp filter for 3
+    // numlock + u
+    case 1048693: 
       {
 	double tfilter[9]    = {   0,  0,  0, 
 				  -1,  2, -1, 
@@ -4357,7 +4359,9 @@ cout <<
 	}
       }
       break;
-    case 1048681: // numlock + i
+    // prepare to apply grasp filter for 1
+    // numlock + i
+    case 1048681: 
       {
 	double tfilter[9]    = {   0, -1,  0, 
 				   0,  2,  0, 
@@ -4390,7 +4394,9 @@ cout <<
 	}
       }
       break;
-    case 1048687: // numlock + o
+    // prepare to apply grasp filter for 2
+    // numlock + o
+    case 1048687: 
       {
 	double tfilter[9]    = {  -1,  0,  0, 
 				   0,  2,  0, 
@@ -4408,7 +4414,7 @@ cout <<
 	}
       }
       break;
-    // prepare to apply graps filter
+    // prepare to apply graps filter for gear 4
     // numlock + p
     case 1048688: 
       {
@@ -5118,7 +5124,7 @@ cout <<
     // numlock + 6
     case 1048630:
       {
-	cout << "Selecting best of 4 grasps..." << endl;
+	cout << "Selecting best of 4 grasps... numlock + 6" << endl;
 	// select max target cumulative
 	pilot_call_stack.push_back(1114195);
 	// apply grasp filter for 4
@@ -5662,13 +5668,13 @@ cout <<
     // numlock + ,
     case 1048620:
       {
-	cout << "Selecting best of 4 grasps..." << endl;
+	cout << "Selecting best of 4 grasps...  numlock + ," << endl;
 	// select max target cumulative
 	pilot_call_stack.push_back(1114195);
 	// apply grasp filter for 4
 	pilot_call_stack.push_back(1048673); // drawMapRegisters
-	pilot_call_stack.push_back(1048692);
-	pilot_call_stack.push_back(1048688);
+	pilot_call_stack.push_back(1048692); // apply grasp filter
+	pilot_call_stack.push_back(1048688); // prepare grasp filter for 4
 	// load reg1
 	pilot_call_stack.push_back(131162); // load target classRangeMap
 	// change gear to 4
@@ -5678,8 +5684,8 @@ cout <<
 	pilot_call_stack.push_back(1114195);
 	// apply grasp filter for 3
 	pilot_call_stack.push_back(1048673); // drawMapRegisters    
-	pilot_call_stack.push_back(1048692);
-	pilot_call_stack.push_back(1048693);
+	pilot_call_stack.push_back(1048692); // apply grasp filter
+	pilot_call_stack.push_back(1048693); // prepare grasp filter for 3
 	// load reg1
 	pilot_call_stack.push_back(131162); // load target classRangeMap
 	// change gear to 3
@@ -5689,8 +5695,8 @@ cout <<
 	pilot_call_stack.push_back(1114195);
 	// apply grasp filter for 2
 	pilot_call_stack.push_back(1048673); // drawMapRegisters
-	pilot_call_stack.push_back(1048692);
-	pilot_call_stack.push_back(1048687);
+	pilot_call_stack.push_back(1048692); // apply grasp filter
+	pilot_call_stack.push_back(1048687); // prepare to apply grasp filter for 2
 	// load reg1
 	pilot_call_stack.push_back(131162); // load target classRangeMap
 	// change gear to 2
@@ -5700,8 +5706,8 @@ cout <<
 	pilot_call_stack.push_back(1048691);
 	// apply grasp filter for 1
 	pilot_call_stack.push_back(1048673); // drawMapRegisters 
-	pilot_call_stack.push_back(1048692);
-	pilot_call_stack.push_back(1048681);
+	pilot_call_stack.push_back(1048692); // apply grasp filter
+	pilot_call_stack.push_back(1048681); // prepare to apply grasp filter for 1
 	// load reg1
 	pilot_call_stack.push_back(131162); // load target classRangeMap
 
@@ -6843,7 +6849,7 @@ cout <<
 	      pilot_call_stack.push_back(196728); // gradient servo
 	      cout << "Queuing gradient servo." << endl;
 	    } else {
-	      if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
+              if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
 		pilot_call_stack.push_back(1048624); // prepare for and execute the best grasp from memory at the current location and target
 		cout << "Recalling range map and calculating grasp..." << endl;
 	      } else {
@@ -10111,7 +10117,7 @@ int getLocalGraspGear(int globalGraspGearIn) {
   double deltaGG = round(angle * totalGraspGears / (2.0 * 3.1415926));
   int ggToReturn = ((totalGraspGears / 2) + globalGraspGearIn + int(deltaGG)) % (totalGraspGears / 2);
 
-  cout << "getLocalGraspGear angle deltaGG ggToReturn: " << angle << " " << deltaGG << " " << ggToReturn << endl;
+  //cout << "getLocalGraspGear angle deltaGG ggToReturn: " << angle << " " << deltaGG << " " << ggToReturn << endl;
 
   return ggToReturn;
 }
@@ -10223,7 +10229,7 @@ void loadPriorGraspMemory() {
     for (int rx = 0; rx < rmWidth; rx++) {
       for (int ry = 0; ry < rmWidth; ry++) {
         int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
-        graspMemorySample[i] = rangeMapReg1[rx + ry*rmWidth];
+        graspMemorySample[i] = classRangeMaps[targetClass].at<double>(ry, rx);
         if (graspMemorySample[i] < min_range_value) {
           min_range_value = graspMemorySample[i];
         }
