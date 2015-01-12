@@ -1170,6 +1170,12 @@ void loadMarginalGraspMemory();
 void loadPriorGraspMemory();
 void drawMapRegisters();
 
+void applyGraspFilter();
+void prepareGraspFilter1();
+void prepareGraspFilter2();
+void prepareGraspFilter3();
+void prepareGraspFilter4();
+
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -4268,72 +4274,7 @@ cout <<
     // numlock + t
     case 1048692: 
       {
-	cout << "Applying filter to rangeMapReg1 and storing result in rangeMapReg1." << endl;
-
-	// ATTN 2
-	int dx[9] = { -1,  0,  1, 
-		      -1,  0,  1, 
-		      -1,  0,  1};
-	int dy[9] = { -1, -1, -1, 
-		       0,  0,  0, 
-		       1,  1,  1};
-//	int dx[9] = { -2,  0,  2, 
-//		      -2,  0,  2, 
-//		      -2,  0,  2};
-//	int dy[9] = { -2, -2, -2, 
-//		       0,  0,  0, 
-//		       2,  2,  2};
-	// ATTN 2
-	int transformPadding = 2;
-	//int transformPadding = 4;
-
-	for (int rx = 0; rx < rmWidth; rx++) {
-	  for (int ry = 0; ry < rmWidth; ry++) {
-	    rangeMapReg2[rx + ry*rmWidth] = 0.0;
-	  }
-	}
-	for (int rx = transformPadding; rx < rmWidth-transformPadding; rx++) {
-	  for (int ry = transformPadding; ry < rmWidth-transformPadding; ry++) {
-	    for (int fx = 0; fx < 9; fx++)
-	      rangeMapReg2[rx + ry*rmWidth] += filter[fx] * rangeMapReg1[(rx+dx[fx]) + (ry+dy[fx])*rmWidth];
-	  }
-	}
-	for (int rx = 0; rx < rmWidth; rx++) {
-	  for (int ry = 0; ry < rmWidth; ry++) {
-	    rangeMapReg1[rx + ry*rmWidth] = rangeMapReg2[rx + ry*rmWidth];
-	  }
-	}
-
-	// XXX TODO Consider: 
-	// Push boundary to deepest point...
-	double minDepth = VERYBIGNUMBER;
-	double maxDepth = 0;
-	for (int rx = 0; rx < rmWidth; rx++) {
-	  for (int ry = 0; ry < rmWidth; ry++) {
-	    minDepth = min(minDepth, rangeMapReg1[rx + ry*rmWidth]);
-	    maxDepth = max(maxDepth, rangeMapReg1[rx + ry*rmWidth]);
-	  }
-	}
-	for (int rx = 0; rx < rmWidth; rx++) {
-	  for (int ry = 0; ry < transformPadding; ry++) {
-	    rangeMapReg1[rx + ry*rmWidth] = maxDepth;
-	    rangeMapReg2[rx + ry*rmWidth] = maxDepth;
-	  }
-	  for (int ry = rmWidth-transformPadding; ry < rmWidth; ry++) {
-	    rangeMapReg1[rx + ry*rmWidth] = maxDepth;
-	    rangeMapReg2[rx + ry*rmWidth] = maxDepth;
-	  }
-	}
-	for (int ry = 0; ry < rmWidth; ry++) {
-	  for (int rx = 0; rx < transformPadding; rx++) {
-	    rangeMapReg1[rx + ry*rmWidth] = maxDepth;
-	    rangeMapReg2[rx + ry*rmWidth] = maxDepth;
-	  }
-	  for (int rx = rmWidth-transformPadding; rx < rmWidth; rx++) {
-	    rangeMapReg1[rx + ry*rmWidth] = maxDepth;
-	    rangeMapReg2[rx + ry*rmWidth] = maxDepth;
-	  }
-	}
+        applyGraspFilter();
       }
       break;
     case 1048697: // numlock + y
@@ -4349,30 +4290,14 @@ cout <<
     // numlock + u
     case 1048693: 
       {
-	double tfilter[9]    = {   0,  0,  0, 
-				  -1,  2, -1, 
-				   0,  0,  0};
-	for (int fx = 0; fx < 9; fx++)
-	  filter[fx] = tfilter[fx];
-	l2NormalizeFilter();
-	for (int fx = 0; fx < 9; fx++) {
-	  cout << filter[fx] << endl;
-	}
+        prepareGraspFilter3();
       }
       break;
     // prepare to apply grasp filter for 1
     // numlock + i
     case 1048681: 
       {
-	double tfilter[9]    = {   0, -1,  0, 
-				   0,  2,  0, 
-				   0, -1,  0};
-	for (int fx = 0; fx < 9; fx++)
-	  filter[fx] = tfilter[fx];
-	l2NormalizeFilter();
-	for (int fx = 0; fx < 9; fx++) {
-	  cout << filter[fx] << endl;
-	}
+        prepareGraspFilter1();
       }
       break;
     case 1114185: // numlock + I
@@ -4399,40 +4324,14 @@ cout <<
     // numlock + o
     case 1048687: 
       {
-	double tfilter[9]    = {  -1,  0,  0, 
-				   0,  2,  0, 
-				   0,  0, -1};
-	//double tfilter[9]    = {  -1,  0,  0, 
-				   //0,  2-diagonalKappa,  0, 
-				   //0,  0, -1};
-	for (int fx = 0; fx < 9; fx++)
-	  filter[fx] = tfilter[fx];
-	l2NormalizeFilter();
-	for (int fx = 0; fx < 9; fx++) {
-	  cout << filter[fx] << " ";
-	  filter[fx] *= diagonalKappa;
-	  cout << filter[fx] << endl;
-	}
+        prepareGraspFilter2();
       }
       break;
     // prepare to apply graps filter for gear 4
     // numlock + p
     case 1048688: 
       {
-	double tfilter[9]    = {   0,  0, -1, 
-				   0,  2,  0, 
-				  -1,  0,  0};
-	//double tfilter[9]    = {   0,  0, -1, 
-				   //0,  2-diagonalKappa,  0, 
-				  //-1,  0,  0};
-	for (int fx = 0; fx < 9; fx++)
-	  filter[fx] = tfilter[fx];
-	l2NormalizeFilter();
-	for (int fx = 0; fx < 9; fx++) {
-	  cout << filter[fx] << " ";
-	  filter[fx] *= diagonalKappa;
-	  cout << filter[fx] << endl;
-	}
+        prepareGraspFilter4();
       }
       break;
     // drawMapRegisters
@@ -4593,6 +4492,7 @@ cout <<
 		graspMemoryWeight = graspMemoryPicks[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] / mDenom;
 
                 graspMemoryWeight = graspMemorySample[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)];
+                graspMemoryWeight = 1;
 		graspMemoryBias = 0;
 	      } else {
 		graspMemoryWeight = 0;
@@ -4604,10 +4504,10 @@ cout <<
 	    cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] << endl;
 	    
             // 
-	    // if (graspMemoryBias + graspMemoryWeight * rangeMapReg1[rx + ry*rmWidth] < minDepth)  original
-	    if (graspMemoryBias + graspMemoryWeight < minDepth) 
+	    if (graspMemoryBias + graspMemoryWeight * rangeMapReg1[rx + ry*rmWidth] < minDepth)  // original
+	    //if (graspMemoryBias + graspMemoryWeight < minDepth)  // thompson
 
-	    {
+              {
 	      minDepth = rangeMapReg1[rx + ry*rmWidth];
 	      maxX = rx;
 	      maxY = ry;
@@ -5716,7 +5616,7 @@ cout <<
 	pilot_call_stack.push_back(1048625);
 
 	pilot_call_stack.push_back(1048684); // turn off scanning
-	pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+	//pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
       }
       break;
     // prepare for and execute a grasp from memory at the current location and target
@@ -8420,10 +8320,11 @@ cout <<
           graspMemoryTries[i]++;
 	  if (gripperPosition < gripperThresh) {
 	    graspFailCounter++;
-
+            cout << "Failed grasp." << endl;
 	  } else {
 	    graspSuccessCounter++;
             graspMemoryPicks[i]++;
+            cout << "Successful grasp." << endl;
 	  }
 	  graspSuccessRate = graspSuccessCounter / graspAttemptCounter;
 	  ros::Time thisTime = ros::Time::now();
@@ -10445,8 +10346,134 @@ void drawMapRegisters() {
       }
     }
   }
+}
+
+void applyGraspFilter() {
+  cout << "Applying filter to rangeMapReg1 and storing result in rangeMapReg1." << endl;
+
+  // ATTN 2
+  int dx[9] = { -1,  0,  1, 
+                -1,  0,  1, 
+                -1,  0,  1};
+  int dy[9] = { -1, -1, -1, 
+                0,  0,  0, 
+                1,  1,  1};
+  //	int dx[9] = { -2,  0,  2, 
+  //		      -2,  0,  2, 
+  //		      -2,  0,  2};
+  //	int dy[9] = { -2, -2, -2, 
+  //		       0,  0,  0, 
+  //		       2,  2,  2};
+  // ATTN 2
+  int transformPadding = 2;
+  //int transformPadding = 4;
+
+  for (int rx = 0; rx < rmWidth; rx++) {
+    for (int ry = 0; ry < rmWidth; ry++) {
+      rangeMapReg2[rx + ry*rmWidth] = 0.0;
+    }
+  }
+  for (int rx = transformPadding; rx < rmWidth-transformPadding; rx++) {
+    for (int ry = transformPadding; ry < rmWidth-transformPadding; ry++) {
+      for (int fx = 0; fx < 9; fx++)
+        rangeMapReg2[rx + ry*rmWidth] += filter[fx] * rangeMapReg1[(rx+dx[fx]) + (ry+dy[fx])*rmWidth];
+    }
+  }
+  for (int rx = 0; rx < rmWidth; rx++) {
+    for (int ry = 0; ry < rmWidth; ry++) {
+      rangeMapReg1[rx + ry*rmWidth] = rangeMapReg2[rx + ry*rmWidth];
+    }
+  }
+
+  // XXX TODO Consider: 
+  // Push boundary to deepest point...
+  double minDepth = VERYBIGNUMBER;
+  double maxDepth = 0;
+  for (int rx = 0; rx < rmWidth; rx++) {
+    for (int ry = 0; ry < rmWidth; ry++) {
+      minDepth = min(minDepth, rangeMapReg1[rx + ry*rmWidth]);
+      maxDepth = max(maxDepth, rangeMapReg1[rx + ry*rmWidth]);
+    }
+  }
+  for (int rx = 0; rx < rmWidth; rx++) {
+    for (int ry = 0; ry < transformPadding; ry++) {
+      rangeMapReg1[rx + ry*rmWidth] = maxDepth;
+      rangeMapReg2[rx + ry*rmWidth] = maxDepth;
+    }
+    for (int ry = rmWidth-transformPadding; ry < rmWidth; ry++) {
+      rangeMapReg1[rx + ry*rmWidth] = maxDepth;
+      rangeMapReg2[rx + ry*rmWidth] = maxDepth;
+    }
+  }
+  for (int ry = 0; ry < rmWidth; ry++) {
+    for (int rx = 0; rx < transformPadding; rx++) {
+      rangeMapReg1[rx + ry*rmWidth] = maxDepth;
+      rangeMapReg2[rx + ry*rmWidth] = maxDepth;
+    }
+    for (int rx = rmWidth-transformPadding; rx < rmWidth; rx++) {
+      rangeMapReg1[rx + ry*rmWidth] = maxDepth;
+      rangeMapReg2[rx + ry*rmWidth] = maxDepth;
+    }
+  }
+}
+void prepareGraspFilter1() {
+  double tfilter[9]    = {   0, -1,  0, 
+                             0,  2,  0, 
+                             0, -1,  0};
+  for (int fx = 0; fx < 9; fx++)
+    filter[fx] = tfilter[fx];
+  l2NormalizeFilter();
+  for (int fx = 0; fx < 9; fx++) {
+    cout << filter[fx] << endl;
+  }
 
 }
+
+void prepareGraspFilter2() {
+  double tfilter[9]    = {  -1,  0,  0, 
+                            0,  2,  0, 
+                            0,  0, -1};
+  //double tfilter[9]    = {  -1,  0,  0, 
+  //0,  2-diagonalKappa,  0, 
+  //0,  0, -1};
+  for (int fx = 0; fx < 9; fx++)
+    filter[fx] = tfilter[fx];
+  l2NormalizeFilter();
+  for (int fx = 0; fx < 9; fx++) {
+    cout << filter[fx] << " ";
+    filter[fx] *= diagonalKappa;
+    cout << filter[fx] << endl;
+  }
+}
+void prepareGraspFilter3() {
+  double tfilter[9]    = {   0,  0,  0, 
+                             -1,  2, -1, 
+                             0,  0,  0};
+  for (int fx = 0; fx < 9; fx++)
+    filter[fx] = tfilter[fx];
+  l2NormalizeFilter();
+  for (int fx = 0; fx < 9; fx++) {
+    cout << filter[fx] << endl;
+  }
+}
+void prepareGraspFilter4() {
+  double tfilter[9]    = {   0,  0, -1, 
+                             0,  2,  0, 
+                             -1,  0,  0};
+  //double tfilter[9]    = {   0,  0, -1, 
+  //0,  2-diagonalKappa,  0, 
+  //-1,  0,  0};
+  for (int fx = 0; fx < 9; fx++)
+    filter[fx] = tfilter[fx];
+  l2NormalizeFilter();
+  for (int fx = 0; fx < 9; fx++) {
+    cout << filter[fx] << " ";
+    filter[fx] *= diagonalKappa;
+    cout << filter[fx] << endl;
+  }
+
+}
+
 
 ////////////////////////////////////////////////
 // end pilot definitions 
@@ -14868,6 +14895,7 @@ int main(int argc, char **argv) {
   pilot_call_stack.push_back(131165); // increment focused class
   pilot_call_stack.push_back(131165); // increment focused class
   pilot_call_stack.push_back('k'); // open gripper
+  pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
   pilot_call_stack.push_back(1114200); // arrange windows
 
   execute_stack = 1;
