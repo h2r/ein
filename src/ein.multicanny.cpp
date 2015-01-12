@@ -673,7 +673,7 @@ ros::Duration accumulatedTime;
 double w1GoThresh = 0.02;
 double w1AngleThresh = 0.02; 
 double synKp = 0.0005;
-double gradKp = 0.0005;
+double gradKp = 0.00025;//0.0005;
 
 // ATTN 4
 int synServoPixelThresh = 15;//10;
@@ -818,6 +818,10 @@ std::string gradientViewerName = "Gradient Viewer";
 int loTrackbarVariable = 45;//75;
 int hiTrackbarVariable = 40;//50;
 int redTrackbarVariable = 0;
+int yLoTrackbarVariable = 50;
+int yHiTrackbarVariable = 75;
+int cLoTrackbarVariable = 50;
+int cHiTrackbarVariable = 75;
 
 double drawBingProb = .1;
 
@@ -12013,11 +12017,13 @@ void goCalculateDensity() {
   // optionally feed it back in
   int sobelBecomesDensity = 1;
   double maxYsob = -INFINITY;
+  double maxCsob = -INFINITY;
   if (sobelBecomesDensity) {
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
 	totalGraySobel.at<double>(y,x) = density[y*imW+x];
-	maxYsob = max(maxYsob, totalGraySobel.at<double>(y,x));
+	maxCsob = max(maxCsob, totalGraySobel.at<double>(y,x));
+	maxYsob = max(maxYsob, totalYSobel.at<double>(y,x));
       }
     }
   }
@@ -12028,31 +12034,70 @@ void goCalculateDensity() {
   int injectYGrad = 1;
   double yThresh = 0.9*maxYsob;
   if (injectYGrad) {
+
+    Mat tempSobelY = totalYSobel.clone();
+    Mat tempSobelC = totalYSobel.clone();
+    double cannyYLo = double(yLoTrackbarVariable)/100.0;//0.5;
+    double cannyYHi = double(yHiTrackbarVariable)/100.0;//0.75;
+    double cannyCLo = double(cLoTrackbarVariable)/100.0;//0.5;
+    double cannyCHi = double(cHiTrackbarVariable)/100.0;//0.75;
+
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	if (totalYSobel.at<double>(y,x) > yThresh) {
-	  density[y*imW+x] += 0.5*maxDensity;
+	tempSobelY.at<double>(y,x) = totalYSobel.at<double>(y,x);
+	tempSobelC.at<double>(y,x) = totalGraySobel.at<double>(y,x);
+      }
+    }
+
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	if (tempSobelY.at<double>(y,x) > cannyYLo*maxYsob) {
+	  tempSobelY.at<double>(y,x) = 1.0;
+	} else {
+	  tempSobelY.at<double>(y,x) = 0.0;
+	}
+	if (tempSobelY.at<double>(y,x) > cannyYHi*maxYsob) {
+	  tempSobelY.at<double>(y,x) = 4.0;
+	}
+
+	if (tempSobelC.at<double>(y,x) > cannyCLo*maxCsob) {
+	  tempSobelC.at<double>(y,x) = 1.0;
+	} else {
+	  tempSobelC.at<double>(y,x) = 0.0;
+	}
+	if (tempSobelC.at<double>(y,x) > cannyCHi*maxCsob) {
+	  tempSobelC.at<double>(y,x) = 4.0;
 	}
       }
     }
 
-    // truncate again after reinjection
-    maxDensity = 0;
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	maxDensity = max(maxDensity, density[y*imW+x]);
+	//if (totalYSobel.at<double>(y,x) > yThresh) {
+	  //density[y*imW+x] += 0.5*maxDensity;
+	//}
+	density[y*imW+x] = tempSobelC.at<double>(y,x) + tempSobelY.at<double>(y,x);
       }
     }
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	if (density[y*imW+x] < maxDensity* threshFraction)
-	  density[y*imW+x] = 0;
-	//else
-	  //density[y*imW+x] = maxDensity* threshFraction;
-      }
-    }
+
+//    // truncate again after reinjection
+//    maxDensity = 0;
+//    for (int x = 0; x < imW; x++) {
+//      for (int y = 0; y < imH; y++) {
+//	maxDensity = max(maxDensity, density[y*imW+x]);
+//      }
+//    }
+//    for (int x = 0; x < imW; x++) {
+//      for (int y = 0; y < imH; y++) {
+//	if (density[y*imW+x] < maxDensity* threshFraction)
+//	  density[y*imW+x] = 0;
+//	//else
+//	  //density[y*imW+x] = maxDensity* threshFraction;
+//      }
+//    }
   }
 
+  // XXX ATTN 7 why are we integrating here? doesn't look like we use it until after we integrate later
   // integrate density into the integral density
   integralDensity[0] = density[0];
   for (int x = 1; x < imW; x++) {
@@ -12154,6 +12199,14 @@ void goCalculateDensity() {
     }
   }
 
+
+  // get the max again
+  maxDensity = 0;
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      maxDensity = max(maxDensity, density[y*imW+x]);
+    }
+  }
   // copy the density map to the rendered image
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
@@ -12426,15 +12479,8 @@ void goFindBlueBoxes() {
       if (fuseBlueBoxes) {
 	for (int fuseIter = 0; fuseIter < fusePasses; fuseIter++) {
 	  for (int cbc = 0; cbc < bTops.size(); cbc++) {
-      int smallWidth = min(bCens[cbc].x-bTops[cbc].x, thisCen.x-cTops[c].x);
-      int bigWidth = max(bCens[cbc].x-bTops[cbc].x, thisCen.x-cTops[c].x);
-	    // this tests overlap
-	    //if ( fabs(thisCen.x - bCens[cbc].x) < fabs(bCens[cbc].x-bTops[cbc].x+thisCen.x-cTops[c].x) && 
-		 //fabs(thisCen.y - bCens[cbc].y) < fabs(bCens[cbc].y-bTops[cbc].y+thisCen.y-cTops[c].y) ) 
-	    //this tests containment
-	    if ( fabs(thisCen.x - bCens[cbc].x) < fabs(bigWidth - smallWidth) && 
-		 fabs(thisCen.y - bCens[cbc].y) < fabs(bigWidth - smallWidth) ) 
-	    {
+	    if ( fabs(thisCen.x - bCens[cbc].x) < fabs(bCens[cbc].x-bTops[cbc].x+thisCen.x-cTops[c].x) && 
+		 fabs(thisCen.y - bCens[cbc].y) < fabs(bCens[cbc].y-bTops[cbc].y+thisCen.y-cTops[c].y) ) {
 	      allow = 0;
 	      bTops[cbc].x = min(bTops[cbc].x, cTops[c].x);
 	      bTops[cbc].y = min(bTops[cbc].y, cTops[c].y);
@@ -14694,11 +14740,15 @@ int main(int argc, char **argv) {
   cv::namedWindow(objectViewerName);
   setMouseCallback(objectViewerName, nodeCallbackFunc, NULL);
 
-  createTrackbar("canny_lo", densityViewerName, &loTrackbarVariable, 100);
-  createTrackbar("canny_hi", densityViewerName, &hiTrackbarVariable, 100);
-  createTrackbar("blinder_columns", densityViewerName, &blinder_columns, 20);
-  createTrackbar("blinder_stride", densityViewerName, &blinder_stride, 50);
-  createTrackbar("add_blinders", densityViewerName, &add_blinders, 1);
+  createTrackbar("total canny_lo", densityViewerName, &loTrackbarVariable, 100);
+  createTrackbar("total canny_hi", densityViewerName, &hiTrackbarVariable, 100);
+  createTrackbar("Y canny_lo", densityViewerName, &yLoTrackbarVariable, 100);
+  createTrackbar("Y canny_hi", densityViewerName, &yHiTrackbarVariable, 100);
+  createTrackbar("C canny_lo", densityViewerName, &cLoTrackbarVariable, 100);
+  createTrackbar("C canny_hi", densityViewerName, &cHiTrackbarVariable, 100);
+  //createTrackbar("blinder_columns", densityViewerName, &blinder_columns, 20);
+  //createTrackbar("blinder_stride", densityViewerName, &blinder_stride, 50);
+  //createTrackbar("add_blinders", densityViewerName, &add_blinders, 1);
 
   ros::Subscriber epState =   n.subscribe("/robot/limb/" + left_or_right_arm + "/endpoint_state", 1, endpointCallback);
   ros::Subscriber gripState = n.subscribe("/robot/end_effector/" + left_or_right_arm + "_gripper/state", 1, gripStateCallback);
