@@ -413,12 +413,15 @@ capslock + I: count grasp
 
 capslock + w: queues pick program
 
-capslock + -: queues pick program (Thompson)
-capslock + =: queues pick progam continue (Thompson)
+capslock + -: samples from Thompson
+capslock + =: empty-a
 
 numlock + X: Organize windows
 capslock + z: load target class range map into register 1
 numlock + 6: select best available grasp
 capslock + t: synchronic servo
-capslock + Y: quick fetch targetClass
+capslock + Y: quick fetch taragetClass
 numlock + a: drawMapRegisters
+numlock + +: shift grasp gear
+
+Grasp gear 2 on handle is a good grasp. 
