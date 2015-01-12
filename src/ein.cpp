@@ -752,6 +752,7 @@ double perturbScale = 0.05;//0.1;
 double graspMemoryTries[4*rmWidth*rmWidth];
 double graspMemoryPicks[4*rmWidth*rmWidth];
 double graspMemorySample[4*rmWidth*rmWidth];
+bool graspLearning = true;
 
 int gmTargetX = -1;
 int gmTargetY = -1;
@@ -1160,8 +1161,15 @@ void spinlessPilotMain();
 
 int shouldIPick(int classToPick);
 int getLocalGraspGear(int globalGraspGearIn);
+void convertGlobalGraspIdxToLocal(const int rx, const int ry, 
+                                  int * localX, int * localY);
 
 void guardGraspMemory();
+void loadSampledGraspMemory();
+void loadMarginalGraspMemory();
+void loadPriorGraspMemory();
+void drawMapRegisters();
+
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -4425,187 +4433,7 @@ cout <<
     // numlock + a 
     case 1048673:
       {
-	{
-	  double minDepth = VERYBIGNUMBER;
-	  double maxDepth = 0;
-	  for (int rx = 0; rx < rmWidth; rx++) {
-	    for (int ry = 0; ry < rmWidth; ry++) {
-	      minDepth = min(minDepth, rangeMapReg1[rx + ry*rmWidth]);
-	      maxDepth = max(maxDepth, rangeMapReg1[rx + ry*rmWidth]);
-	    }
-	  }
-	  for (int rx = 0; rx < rmWidth; rx++) {
-	    for (int ry = 0; ry < rmWidth; ry++) {
-	      double denom = max(EPSILON,maxDepth-minDepth);
-	      if (denom <= EPSILON)
-		denom = VERYBIGNUMBER;
-	      double intensity = 255 * (maxDepth - rangeMapReg1[rx + ry*rmWidth]) / denom;
-//cout << denom << " " << maxDepth << " " << rangeMapReg1[rx + ry*rmWidth] << " " << (maxDepth - rangeMapReg1[rx + ry*rmWidth]) << " " << endl;
-	      cv::Scalar backColor(0,0,ceil(intensity));
-	      cv::Point outTop = cv::Point((ry+rmWidth)*rmiCellWidth,rx*rmiCellWidth);
-	      cv::Point outBot = cv::Point(((ry+rmWidth)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
-	      Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-	      vCrop = backColor;
-	    }
-	  }
-	}
-	{
-	  double minDepth = VERYBIGNUMBER;
-	  double maxDepth = 0;
-	  for (int rx = 0; rx < rmWidth; rx++) {
-	    for (int ry = 0; ry < rmWidth; ry++) {
-	      minDepth = min(minDepth, rangeMapReg2[rx + ry*rmWidth]);
-	      maxDepth = max(maxDepth, rangeMapReg2[rx + ry*rmWidth]);
-	    }
-	  }
-	  for (int rx = 0; rx < rmWidth; rx++) {
-	    for (int ry = 0; ry < rmWidth; ry++) {
-	      double denom = max(EPSILON,maxDepth-minDepth);
-	      if (denom <= EPSILON)
-		denom = VERYBIGNUMBER;
-	      double intensity = 255 * (maxDepth - rangeMapReg2[rx + ry*rmWidth]) / denom;
-	      cv::Scalar backColor(0,0,ceil(intensity));
-	      cv::Point outTop = cv::Point((ry+2*rmWidth)*rmiCellWidth,rx*rmiCellWidth);
-	      cv::Point outBot = cv::Point(((ry+2*rmWidth)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
-	      Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-	      vCrop = backColor;
-	    }
-	  }
-	}
-	{
-	  double minDepth = VERYBIGNUMBER;
-	  double maxDepth = 0;
-	  for (int rx = 0; rx < hrmWidth; rx++) {
-	    for (int ry = 0; ry < hrmWidth; ry++) {
-	      minDepth = min(minDepth, hiRangeMap[rx + ry*hrmWidth]);
-	      maxDepth = max(maxDepth, hiRangeMap[rx + ry*hrmWidth]);
-	    }
-	  }
-	  for (int rx = 0; rx < hrmWidth; rx++) {
-	    for (int ry = 0; ry < hrmWidth; ry++) {
-	      double denom = max(EPSILON,maxDepth-minDepth);
-	      if (denom <= EPSILON)
-		denom = VERYBIGNUMBER;
-	      double intensity = 255 * (maxDepth - hiRangeMap[rx + ry*hrmWidth]) / denom;
-	      hiRangemapImage.at<cv::Vec3b>(rx,ry) = cv::Vec3b(0,0,ceil(intensity));
-	    }
-	  }
-	}
-	{
-	  double minDepth = VERYBIGNUMBER;
-	  double maxDepth = 0;
-	  for (int rx = 0; rx < hrmWidth; rx++) {
-	    for (int ry = 0; ry < hrmWidth; ry++) {
-	      minDepth = min(minDepth, hiRangeMapReg1[rx + ry*hrmWidth]);
-	      maxDepth = max(maxDepth, hiRangeMapReg1[rx + ry*hrmWidth]);
-	    }
-	  }
-	  for (int rx = 0; rx < hrmWidth; rx++) {
-	    for (int ry = 0; ry < hrmWidth; ry++) {
-	      double denom = max(EPSILON,maxDepth-minDepth);
-	      if (denom <= EPSILON)
-		denom = VERYBIGNUMBER;
-	      double intensity = 255 * (maxDepth - hiRangeMapReg1[rx + ry*hrmWidth]) / denom;
-	      hiRangemapImage.at<cv::Vec3b>(rx,ry+hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
-	    }
-	  }
-	}
-	{
-	  double minDepth = VERYBIGNUMBER;
-	  double maxDepth = 0;
-	  for (int rx = 0; rx < hrmWidth; rx++) {
-	    for (int ry = 0; ry < hrmWidth; ry++) {
-	      minDepth = min(minDepth, hiRangeMapReg2[rx + ry*hrmWidth]);
-	      maxDepth = max(maxDepth, hiRangeMapReg2[rx + ry*hrmWidth]);
-	    }
-	  }
-	  for (int rx = 0; rx < hrmWidth; rx++) {
-	    for (int ry = 0; ry < hrmWidth; ry++) {
-	      double denom = max(EPSILON,maxDepth-minDepth);
-	      if (denom <= EPSILON)
-		denom = VERYBIGNUMBER;
-	      double intensity = 255 * (maxDepth - hiRangeMapReg2[rx + ry*hrmWidth]) / denom;
-	      hiRangemapImage.at<cv::Vec3b>(rx,ry+2*hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
-	    }
-	  }
-	}
-
-	// draw grasp memory window
-	{
-	  {
-	    double minDepth = VERYBIGNUMBER;
-	    double maxDepth = 0;
-	    for (int rx = 0; rx < rmWidth; rx++) {
-	      for (int ry = 0; ry < rmWidth; ry++) {
-		minDepth = min(minDepth, graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear]);
-		maxDepth = max(maxDepth, graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear]);
-	      }
-	    }
-	    for (int rx = 0; rx < rmWidth; rx++) {
-	      for (int ry = 0; ry < rmWidth; ry++) {
-		double denom = max(1.0,maxDepth);
-		if (denom <= EPSILON)
-		  denom = VERYBIGNUMBER;
-		double blueIntensity = 128 * (graspMemoryPicks[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear]) / denom;
-		double redIntensity = 128 * (graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear] - graspMemoryPicks[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear]) / denom;
-		cv::Scalar backColor(ceil(blueIntensity),0,ceil(redIntensity));
-		cv::Point outTop = cv::Point((ry)*rmiCellWidth,rx*rmiCellWidth);
-		cv::Point outBot = cv::Point(((ry)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
-		Mat vCrop = graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-		vCrop = backColor;
-	      }
-	    }
-	  }
-	  if ((targetClass > -1) && (classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
-	    double minDepth = VERYBIGNUMBER;
-	    double maxDepth = 0;
-	    for (int rx = 0; rx < rmWidth; rx++) {
-	      for (int ry = 0; ry < rmWidth; ry++) {
-
-		minDepth = min(minDepth, classRangeMaps[targetClass].at<double>(ry,rx));
-		maxDepth = max(maxDepth, classRangeMaps[targetClass].at<double>(ry,rx));
-	      }
-	    }
-	    for (int rx = 0; rx < rmWidth; rx++) {
-	      for (int ry = 0; ry < rmWidth; ry++) {
-		double denom = max(EPSILON,maxDepth-minDepth);
-		if (denom <= EPSILON)
-		  denom = VERYBIGNUMBER;
-		double greenIntensity = 255 * (maxDepth - classRangeMaps[targetClass].at<double>(ry,rx)) / denom;
-		{
-		  cv::Scalar backColor(0,ceil(greenIntensity),0);
-		  cv::Point outTop = cv::Point((ry+rmWidth)*rmiCellWidth,rx*rmiCellWidth);
-		  cv::Point outBot = cv::Point(((ry+rmWidth)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
-		  Mat vCrop = graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-		  vCrop = backColor;
-		}
-		{
-		  cv::Scalar backColor(0,ceil(greenIntensity/2),0);
-		  cv::Point outTop = cv::Point((ry)*rmiCellWidth,rx*rmiCellWidth);
-		  cv::Point outBot = cv::Point(((ry)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
-		  Mat vCrop = graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-		  vCrop = vCrop + backColor;
-		}
-	      }
-	    }
-	  }
-	}
-        // draw grasp memory sample window
-        {
-          for (int rx = 0; rx < rmWidth; rx++) {
-            for (int ry = 0; ry < rmWidth; ry++) {
-              int i = rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear;
-              double blueIntensity = 255 * graspMemorySample[i];
-              double greenIntensity = 255 * graspMemorySample[i];
-              double redIntensity = 255 * graspMemorySample[i];
-              cv::Scalar color(ceil(blueIntensity),ceil(greenIntensity),ceil(redIntensity));
-              cv::Point outTop = cv::Point((ry)*rmiCellWidth,rx*rmiCellWidth);
-              cv::Point outBot = cv::Point(((ry)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
-              Mat vCrop = graspMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-              vCrop = color;
-            }
-          }
-        }
+        drawMapRegisters();
       }
       break;
     // manual render
@@ -4721,6 +4549,12 @@ cout <<
 	int maxSearchPadding = 3;
 	//int maxSearchPadding = 4;
 	double minDepth = VERYBIGNUMBER;
+        if (graspLearning) {
+          loadSampledGraspMemory(); 
+        } else{
+          loadMarginalGraspMemory();
+        }
+        
 	for (int rx = maxSearchPadding; rx < rmWidth-maxSearchPadding; rx++) {
 	  for (int ry = maxSearchPadding; ry < rmWidth-maxSearchPadding; ry++) {
 
@@ -4751,6 +4585,8 @@ cout <<
 	      double mDenom = max(graspMemoryTries[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)], 1.0);
 	      if ((localIntThX < rmWidth) && (localIntThY < rmWidth)) {
 		graspMemoryWeight = graspMemoryPicks[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] / mDenom;
+
+                graspMemoryWeight = graspMemorySample[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)];
 		graspMemoryBias = 0;
 	      } else {
 		graspMemoryWeight = 0;
@@ -4761,9 +4597,10 @@ cout <<
 	    cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
 	    cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] << endl;
 	    
+            // 
+	    // if (graspMemoryBias + graspMemoryWeight * rangeMapReg1[rx + ry*rmWidth] < minDepth)  original
+	    if (graspMemoryBias + graspMemoryWeight < minDepth) 
 
-	    if (graspMemoryBias + graspMemoryWeight * rangeMapReg1[rx + ry*rmWidth] < minDepth) 
-	    //if (graspMemoryBias + graspMemoryWeight < minDepth) 
 	    {
 	      minDepth = rangeMapReg1[rx + ry*rmWidth];
 	      maxX = rx;
@@ -6807,34 +6644,31 @@ cout <<
 
     }
     break;
-    // Sample from grasp memory
+    // loadSampledGraspMemory
     // capslock + -
     case 131117:
       {
-        ROS_INFO("Loading grasp memory sample.");
-	for (int tGG = 0; tGG < totalGraspGears/2; tGG++) {
-	  for (int rx = 0; rx < rmWidth; rx++) {
-	    for (int ry = 0; ry < rmWidth; ry++) {
-	      int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
-	      double nsuccess = graspMemoryPicks[i];
-	      double nfailure = graspMemoryTries[i] - graspMemoryPicks[i];
-	      graspMemorySample[i] = rk_beta(&random_state, 
-					     nsuccess + 1, 
-					     nfailure + 1);
-	    }
-	  }
-	}
+        loadSampledGraspMemory();
+        drawMapRegisters();
       }
       break;
-    // (Thompson, undefined)
+    // loadMarginalGraspMemory
     // capslock + =
     case 131133:
       {
-
+        loadMarginalGraspMemory();
+        drawMapRegisters();
       }
       break;
 
-
+    // loadPriorGraspMemory
+    // capslock + backspace
+     case 196360:
+       {
+         loadPriorGraspMemory();
+         drawMapRegisters();
+       } 
+       break;
     // 2D patrol start
     // capslock + w
     case 131159:
@@ -8056,6 +7890,8 @@ cout <<
 
 
 	  FileStorage fsvO;
+          cout << "capslock + Z: Writing: " << this_range_path << endl;
+
 	  fsvO.open(this_range_path, FileStorage::WRITE);
 	  fsvO << "aerialGradient" << gCrop;
 	  lastAerialGradient = gCrop;
@@ -8152,6 +7988,7 @@ cout <<
 	  mkdir(dirToMakePath.c_str(), 0777);
 
 	  FileStorage fsvO;
+          cout << "capslock + A: Writing: " << this_range_path << endl;
 	  fsvO.open(this_range_path, FileStorage::WRITE);
 	  fsvO << "rangeMap" << rangeMapTemp;
 	  //fsvO << "graspMemoryTries" << classGraspMemoryTries[i];
@@ -8262,6 +8099,7 @@ cout <<
 	  mkdir(dirToMakePath.c_str(), 0777);
 
 	  FileStorage fsvO;
+          cout << "capslock + numlock + A: Writing: " << this_range_path << endl;
 	  fsvO.open(this_range_path, FileStorage::WRITE);
 	  fsvO << "rangeMap" << rangeMapTemp;
 
@@ -9264,6 +9102,7 @@ cout <<
 	  mkdir(dirToMakePath.c_str(), 0777);
 
 	  FileStorage fsvO;
+          cout << "capslock + numlock + u: Writing: " << this_range_path << endl;
 	  fsvO.open(this_range_path, FileStorage::WRITE);
 	  fsvO << "rangeMap" << rangeMapTemp;
 
@@ -10335,6 +10174,272 @@ void guardGraspMemory() {
     classGraspMemoryTries4[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
     classGraspMemoryPicks4[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
   }
+}
+void convertGlobalGraspIdxToLocal(const int rx, const int ry, 
+                                  int * localX, int * localY) {
+  // find global coordinate of current point
+  double thX = (rx-rmHalfWidth) * rmDelta;
+  double thY = (ry-rmHalfWidth) * rmDelta;
+  // transform it into local coordinates
+  double unangle = -bestOrientationAngle;
+  double unscale = 1.0;
+  Point uncenter = Point(0, 0);
+  Mat un_rot_mat = getRotationMatrix2D(uncenter, unangle, unscale);
+  Mat toUn(3,1,CV_64F);
+  toUn.at<double>(0,0)=thX;
+  toUn.at<double>(1,0)=thY;
+  toUn.at<double>(2,0)=1.0;
+  Mat didUn = un_rot_mat*toUn;
+  double localThX = didUn.at<double>(0,0);
+  double localThY = didUn.at<double>(1,0);
+  *localX = ((localThX)/rmDelta) + rmHalfWidth; 
+  *localY = ((localThY)/rmDelta) + rmHalfWidth; 
+
+}
+
+void loadSampledGraspMemory() {
+  ROS_INFO("Loading sampled grasp memory.");
+  for (int tGG = 0; tGG < totalGraspGears/2; tGG++) {
+    for (int rx = 0; rx < rmWidth; rx++) {
+      for (int ry = 0; ry < rmWidth; ry++) {
+        int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
+        double nsuccess = graspMemoryPicks[i];
+        double nfailure = graspMemoryTries[i] - graspMemoryPicks[i];
+        graspMemorySample[i] = rk_beta(&random_state, 
+                                       nsuccess + 1, 
+                                       nfailure + 1);
+      }
+    }
+  }
+}
+
+
+void loadMarginalGraspMemory() {
+  ROS_INFO("Loading marginal grasp memory.");
+  for (int tGG = 0; tGG < totalGraspGears/2; tGG++) {
+    for (int rx = 0; rx < rmWidth; rx++) {
+      for (int ry = 0; ry < rmWidth; ry++) {
+        int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
+        double nsuccess = graspMemoryPicks[i];
+        double nfailure = graspMemoryTries[i] - graspMemoryPicks[i];
+        graspMemorySample[i] = nsuccess / (nsuccess + nfailure);
+      }
+    }
+  }
+}
+
+void loadPriorGraspMemory() {
+  ROS_INFO("Loading prior grasp memory.");
+  double max_range_value = -VERYBIGNUMBER;
+  double min_range_value = VERYBIGNUMBER;
+  for (int tGG = 0; tGG < totalGraspGears/2; tGG++) {
+    for (int rx = 0; rx < rmWidth; rx++) {
+      for (int ry = 0; ry < rmWidth; ry++) {
+        int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
+        graspMemorySample[i] = rangeMapReg1[rx + ry*rmWidth];
+        if (graspMemorySample[i] < min_range_value) {
+          min_range_value = graspMemorySample[i];
+        }
+        if (graspMemorySample[i] > max_range_value) {
+          max_range_value = graspMemorySample[i];
+        }
+      }
+    }
+  }
+
+  for (int tGG = 0; tGG < totalGraspGears/2; tGG++) {
+    for (int rx = 0; rx < rmWidth; rx++) {
+      for (int ry = 0; ry < rmWidth; ry++) {
+        int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
+        graspMemorySample[i] = (max_range_value - graspMemorySample[i]) / (max_range_value - min_range_value);
+      }
+    }
+  }
+}
+
+void drawMapRegisters() {
+  {
+    double minDepth = VERYBIGNUMBER;
+    double maxDepth = 0;
+    for (int rx = 0; rx < rmWidth; rx++) {
+      for (int ry = 0; ry < rmWidth; ry++) {
+        minDepth = min(minDepth, rangeMapReg1[rx + ry*rmWidth]);
+        maxDepth = max(maxDepth, rangeMapReg1[rx + ry*rmWidth]);
+      }
+    }
+    for (int rx = 0; rx < rmWidth; rx++) {
+      for (int ry = 0; ry < rmWidth; ry++) {
+        double denom = max(EPSILON,maxDepth-minDepth);
+        if (denom <= EPSILON)
+          denom = VERYBIGNUMBER;
+        double intensity = 255 * (maxDepth - rangeMapReg1[rx + ry*rmWidth]) / denom;
+        //cout << denom << " " << maxDepth << " " << rangeMapReg1[rx + ry*rmWidth] << " " << (maxDepth - rangeMapReg1[rx + ry*rmWidth]) << " " << endl;
+        cv::Scalar backColor(0,0,ceil(intensity));
+        cv::Point outTop = cv::Point((ry+rmWidth)*rmiCellWidth,rx*rmiCellWidth);
+        cv::Point outBot = cv::Point(((ry+rmWidth)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
+        Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+        vCrop = backColor;
+      }
+    }
+  }
+  {
+    double minDepth = VERYBIGNUMBER;
+    double maxDepth = 0;
+    for (int rx = 0; rx < rmWidth; rx++) {
+      for (int ry = 0; ry < rmWidth; ry++) {
+        minDepth = min(minDepth, rangeMapReg2[rx + ry*rmWidth]);
+        maxDepth = max(maxDepth, rangeMapReg2[rx + ry*rmWidth]);
+      }
+    }
+    for (int rx = 0; rx < rmWidth; rx++) {
+      for (int ry = 0; ry < rmWidth; ry++) {
+        double denom = max(EPSILON,maxDepth-minDepth);
+        if (denom <= EPSILON)
+          denom = VERYBIGNUMBER;
+        double intensity = 255 * (maxDepth - rangeMapReg2[rx + ry*rmWidth]) / denom;
+        cv::Scalar backColor(0,0,ceil(intensity));
+        cv::Point outTop = cv::Point((ry+2*rmWidth)*rmiCellWidth,rx*rmiCellWidth);
+        cv::Point outBot = cv::Point(((ry+2*rmWidth)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
+        Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+        vCrop = backColor;
+      }
+    }
+  }
+  {
+    double minDepth = VERYBIGNUMBER;
+    double maxDepth = 0;
+    for (int rx = 0; rx < hrmWidth; rx++) {
+      for (int ry = 0; ry < hrmWidth; ry++) {
+        minDepth = min(minDepth, hiRangeMap[rx + ry*hrmWidth]);
+        maxDepth = max(maxDepth, hiRangeMap[rx + ry*hrmWidth]);
+      }
+    }
+    for (int rx = 0; rx < hrmWidth; rx++) {
+      for (int ry = 0; ry < hrmWidth; ry++) {
+        double denom = max(EPSILON,maxDepth-minDepth);
+        if (denom <= EPSILON)
+          denom = VERYBIGNUMBER;
+        double intensity = 255 * (maxDepth - hiRangeMap[rx + ry*hrmWidth]) / denom;
+        hiRangemapImage.at<cv::Vec3b>(rx,ry) = cv::Vec3b(0,0,ceil(intensity));
+      }
+    }
+  }
+  {
+    double minDepth = VERYBIGNUMBER;
+    double maxDepth = 0;
+    for (int rx = 0; rx < hrmWidth; rx++) {
+      for (int ry = 0; ry < hrmWidth; ry++) {
+        minDepth = min(minDepth, hiRangeMapReg1[rx + ry*hrmWidth]);
+        maxDepth = max(maxDepth, hiRangeMapReg1[rx + ry*hrmWidth]);
+      }
+    }
+    for (int rx = 0; rx < hrmWidth; rx++) {
+      for (int ry = 0; ry < hrmWidth; ry++) {
+        double denom = max(EPSILON,maxDepth-minDepth);
+        if (denom <= EPSILON)
+          denom = VERYBIGNUMBER;
+        double intensity = 255 * (maxDepth - hiRangeMapReg1[rx + ry*hrmWidth]) / denom;
+        hiRangemapImage.at<cv::Vec3b>(rx,ry+hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
+      }
+    }
+  }
+  {
+    double minDepth = VERYBIGNUMBER;
+    double maxDepth = 0;
+    for (int rx = 0; rx < hrmWidth; rx++) {
+      for (int ry = 0; ry < hrmWidth; ry++) {
+        minDepth = min(minDepth, hiRangeMapReg2[rx + ry*hrmWidth]);
+        maxDepth = max(maxDepth, hiRangeMapReg2[rx + ry*hrmWidth]);
+      }
+    }
+    for (int rx = 0; rx < hrmWidth; rx++) {
+      for (int ry = 0; ry < hrmWidth; ry++) {
+        double denom = max(EPSILON,maxDepth-minDepth);
+        if (denom <= EPSILON)
+          denom = VERYBIGNUMBER;
+        double intensity = 255 * (maxDepth - hiRangeMapReg2[rx + ry*hrmWidth]) / denom;
+        hiRangemapImage.at<cv::Vec3b>(rx,ry+2*hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
+      }
+    }
+  }
+
+  // draw grasp memory window
+  {
+    {
+      double minDepth = VERYBIGNUMBER;
+      double maxDepth = 0;
+      for (int rx = 0; rx < rmWidth; rx++) {
+        for (int ry = 0; ry < rmWidth; ry++) {
+          minDepth = min(minDepth, graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear]);
+          maxDepth = max(maxDepth, graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear]);
+        }
+      }
+      for (int rx = 0; rx < rmWidth; rx++) {
+        for (int ry = 0; ry < rmWidth; ry++) {
+          double denom = max(1.0,maxDepth);
+          if (denom <= EPSILON)
+            denom = VERYBIGNUMBER;
+          double blueIntensity = 128 * (graspMemoryPicks[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear]) / denom;
+          double redIntensity = 128 * (graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear] - graspMemoryPicks[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear]) / denom;
+          cv::Scalar backColor(ceil(blueIntensity),0,ceil(redIntensity));
+          cv::Point outTop = cv::Point((ry)*rmiCellWidth,rx*rmiCellWidth);
+          cv::Point outBot = cv::Point(((ry)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
+          Mat vCrop = graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+          vCrop = backColor;
+        }
+      }
+    }
+    if ((targetClass > -1) && (classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
+      double minDepth = VERYBIGNUMBER;
+      double maxDepth = 0;
+      for (int rx = 0; rx < rmWidth; rx++) {
+        for (int ry = 0; ry < rmWidth; ry++) {
+
+          minDepth = min(minDepth, classRangeMaps[targetClass].at<double>(ry,rx));
+          maxDepth = max(maxDepth, classRangeMaps[targetClass].at<double>(ry,rx));
+        }
+      }
+      for (int rx = 0; rx < rmWidth; rx++) {
+        for (int ry = 0; ry < rmWidth; ry++) {
+          double denom = max(EPSILON,maxDepth-minDepth);
+          if (denom <= EPSILON)
+            denom = VERYBIGNUMBER;
+          double greenIntensity = 255 * (maxDepth - classRangeMaps[targetClass].at<double>(ry,rx)) / denom;
+          {
+            cv::Scalar backColor(0,ceil(greenIntensity),0);
+            cv::Point outTop = cv::Point((ry+rmWidth)*rmiCellWidth,rx*rmiCellWidth);
+            cv::Point outBot = cv::Point(((ry+rmWidth)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
+            Mat vCrop = graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+            vCrop = backColor;
+          }
+          {
+            cv::Scalar backColor(0,ceil(greenIntensity/2),0);
+            cv::Point outTop = cv::Point((ry)*rmiCellWidth,rx*rmiCellWidth);
+            cv::Point outBot = cv::Point(((ry)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
+            Mat vCrop = graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+            vCrop = vCrop + backColor;
+          }
+        }
+      }
+    }
+  }
+  // draw grasp memory sample window
+  {
+    for (int rx = 0; rx < rmWidth; rx++) {
+      for (int ry = 0; ry < rmWidth; ry++) {
+        int i = rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear;
+        double blueIntensity = 255 * graspMemorySample[i];
+        double greenIntensity = 255 * graspMemorySample[i];
+        double redIntensity = 255 * graspMemorySample[i];
+        cv::Scalar color(ceil(blueIntensity),ceil(greenIntensity),ceil(redIntensity));
+        cv::Point outTop = cv::Point((ry)*rmiCellWidth,rx*rmiCellWidth);
+        cv::Point outBot = cv::Point(((ry)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
+        Mat vCrop = graspMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+        vCrop = color;
+      }
+    }
+  }
+
 }
 
 ////////////////////////////////////////////////
@@ -14754,9 +14859,14 @@ int main(int argc, char **argv) {
   //pilot_call_stack.push_back(1048673); // drawMapRegisters
   //pilot_call_stack.push_back(131117); // Sample from grasp memory
   //pilot_call_stack.push_back(131162);  // load target class range map
+  pilot_call_stack.push_back(131165); // increment focused class
+  pilot_call_stack.push_back(131165); // increment focused class
+  pilot_call_stack.push_back('k'); // open gripper
   pilot_call_stack.push_back(1114200); // arrange windows
+
   execute_stack = 1;
   targetClass = 1;
+
   ros::spin();
 
   return 0;
