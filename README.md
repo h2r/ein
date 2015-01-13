@@ -433,3 +433,6 @@ capslock + numlock + u:
 capslock + numlock + A:  SAVE GRASP ME
 capslock + Z
 capslock + numlock + i: set grasp memories from classGraspMemories
+
+numlock + s: select max target NOT cumulative
+numlock + S: select max target cumulative
