@@ -5506,6 +5506,7 @@ cout <<
 	pilot_call_stack.push_back(1048625);
 
         pilot_call_stack.push_back(131117); // loadSampledGraspMemory
+        //pilot_call_stack.push_back(131133); // loadMarginalGraspMemory
 
 	pilot_call_stack.push_back(1048684); // turn off scanning
 	pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
@@ -8040,7 +8041,11 @@ cout <<
 	  graspSuccessRate = graspSuccessCounter / graspAttemptCounter;
 	  ros::Time thisTime = ros::Time::now();
 	  ros::Duration sinceStartOfTrial = thisTime - graspTrialStart;
-	  cout << "<><><><> Grasp attempts rate time gripperPosition: " << graspAttemptCounter << " " << graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << gripperPosition << endl;
+	  cout << "<><><><> Grasp attempts rate time gripperPosition: " << graspSuccessCounter << "/" << graspAttemptCounter << " " << graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << gripperPosition << endl;
+          // run for 10 trials and stop
+          //if (graspAttemptCounter == 10) {
+            //   pilot_call_stack.resize(0);
+          //}
 	}
       }
       break;
@@ -9917,8 +9922,8 @@ void loadPriorGraspMemory() {
         int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
         double mu = graspMemoryReg1[i];
         double eccentricity = 5;
-        double nsuccess = eccentricity * mu;
-        double nfailure = eccentricity * (1 - mu);
+        double nsuccess = round(eccentricity * mu);
+        double nfailure = round(eccentricity * (1 - mu));
         graspMemoryPicks[i] = nsuccess;
         graspMemoryTries[i] = nsuccess + nfailure;
 
@@ -10417,8 +10422,8 @@ void copyGraspMemoryTriesToClassGraspMemoryTries() {
 }
 
 void selectMaxTarget(double minDepth) {
-  //selectMaxTargetLinearFilter(minDepth);
-  selectMaxTargetThompson(minDepth);
+  selectMaxTargetLinearFilter(minDepth);
+  //selectMaxTargetThompson(minDepth);
 }
 void selectMaxTargetLinearFilter(double minDepth) {
   // ATTN 2
