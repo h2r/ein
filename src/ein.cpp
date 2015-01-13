@@ -1162,6 +1162,7 @@ void spinlessPilotMain();
 
 int shouldIPick(int classToPick);
 int getLocalGraspGear(int globalGraspGearIn);
+int getGlobalGraspGear(int localGraspGearIn);
 void convertGlobalGraspIdxToLocal(const int rx, const int ry, 
                                   int * localX, int * localY);
 
@@ -1192,6 +1193,8 @@ void copyGraspMemoryTriesToClassGraspMemoryTries();
 void selectMaxTarget(double minDepth);
 void selectMaxTargetThompson(double minDepth);
 void selectMaxTargetThompsonRotated(double minDepth);
+void selectMaxTargetLinearFilter(double minDepth);
+
 void selectMaxTargetLinearFilter(double minDepth);
 
 ////////////////////////////////////////////////
@@ -8814,6 +8817,17 @@ cout <<
     case 1179727:
       {
 	cout << "testing getLocalGraspGear on 0 1 2 3: " << getLocalGraspGear(0) << " " << getLocalGraspGear(1) << " " << getLocalGraspGear(2) << " " << getLocalGraspGear(3) << endl;
+	cout << "testing getGlobalGraspGear on 0 1 2 3: " << getGlobalGraspGear(0) << " " << getGlobalGraspGear(1) << " " << getGlobalGraspGear(2) << " " << getGlobalGraspGear(3) << endl;
+        for (int globalGG = 0; globalGG < totalGraspGears/2; globalGG++) {
+          int localGG = getLocalGraspGear(globalGG);
+          int newGlobalGG = getGlobalGraspGear(localGG);
+          cout << "globalGG: " << globalGG << " newGlobalGG: " << newGlobalGG;
+          if (globalGG == newGlobalGG) {
+            cout << " correct" << endl;
+          } else {
+            cout << " incorrect" << endl;
+          }
+        }
       }
       break;
     case 2:
@@ -9739,12 +9753,52 @@ int getLocalGraspGear(int globalGraspGearIn) {
   //angle = -angle;
   
   double deltaGG = floor(angle * totalGraspGears / (2.0 * 3.1415926));
-  int ggToReturn = ((totalGraspGears / 2) + globalGraspGearIn + int(deltaGG)) % (totalGraspGears / 2);
+  int ggToReturn = (totalGraspGears + globalGraspGearIn + int(deltaGG)) % (totalGraspGears / 2);
 
   //cout << "getLocalGraspGear angle deltaGG ggToReturn: " << angle << " " << deltaGG << " " << ggToReturn << endl;
 
+  assert(getGlobalGraspGear(ggToReturn) == globalGraspGearIn);
+
   return ggToReturn;
 }
+
+int getGlobalGraspGear(int localGraspGearIn) {
+  // ATTN 7
+  // diagnostic line
+  //Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+  // correct line
+  Quaternionf eeqform(bestOrientationEEPose.qw, bestOrientationEEPose.qx, bestOrientationEEPose.qy, bestOrientationEEPose.qz);
+
+  Quaternionf gear1Orient = getGGRotation(0);
+  Quaternionf rel = eeqform * gear1Orient.inverse();
+  Quaternionf ex(0,1,0,0);
+  Quaternionf zee(0,0,0,1);
+  
+
+  Quaternionf result = rel * ex * rel.conjugate();
+  Quaternionf thumb = rel * zee * rel.conjugate();
+  double aY = result.y();
+  double aX = result.x();
+
+  // ATTN 1
+  // this is here to get the signs right
+  aX = -aX;
+
+  //double angle = atan2(aY, aX)*180.0/3.1415926;
+  // no degrees here
+  double angle = atan2(aY, aX);
+  // inversion to convert to global
+  angle = -angle;
+  
+  double deltaGG = floor(angle * totalGraspGears / (2.0 * 3.1415926));
+  // we are doing ceiling by taking the floor and then adding one, the inverse of getLocalGraspGear.
+  int ggToReturn = (totalGraspGears + localGraspGearIn + 1 + int(deltaGG)) % (totalGraspGears / 2);
+
+  //assert(getLocalGraspGear(ggToReturn) == localGraspGearIn);
+
+  return ggToReturn;
+}
+
 
 void guardGraspMemory() {
   if (!((classGraspMemoryTries1[focusedClass].rows > 1) && (classGraspMemoryTries1[focusedClass].cols > 1) &&
@@ -10421,9 +10475,9 @@ void copyGraspMemoryTriesToClassGraspMemoryTries() {
 }
 
 void selectMaxTarget(double minDepth) {
-  //selectMaxTargetLinearFilter(minDepth);
+  selectMaxTargetLinearFilter(minDepth);
   //selectMaxTargetThompson(minDepth);
-  selectMaxTargetThompsonRotated(minDepth);
+  //selectMaxTargetThompsonRotated(minDepth);
 }
 void selectMaxTargetLinearFilter(double minDepth) {
   // ATTN 2
