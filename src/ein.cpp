@@ -10427,14 +10427,14 @@ void selectMaxTarget(double minDepth) {
         if ((localIntThX < rmWidth) && (localIntThY < rmWidth)) {
 
           // Thompson
-          graspMemoryWeight = (graspMemorySample[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)]) * -1;  
+          //graspMemoryWeight = (graspMemorySample[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)]) * -1;  
 
           // Original
           //graspMemoryWeight = graspMemoryPicks[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] / mDenom;
           //graspMemoryWeight = graspMemoryWeight * rangeMapReg1[rx + ry*rmWidth]);  
            
           // No memory; just linear filter
-          // graspMemoryWeight = rangeMapReg1[rx + ry*rmWidth];
+          graspMemoryWeight = rangeMapReg1[rx + ry*rmWidth];
           graspMemoryBias = 0;
         } else {
           graspMemoryWeight = 0;
