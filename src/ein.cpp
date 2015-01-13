@@ -1165,6 +1165,11 @@ int getLocalGraspGear(int globalGraspGearIn);
 void convertGlobalGraspIdxToLocal(const int rx, const int ry, 
                                   int * localX, int * localY);
 
+void convertLocalGraspIdxToGlobal(const int localX, const int localY,
+                                  int * rx, int * ry);
+
+
+
 void guardGraspMemory();
 void loadSampledGraspMemory();
 void loadMarginalGraspMemory();
@@ -1184,8 +1189,9 @@ void loadGlobalTargetClassRangeMap(double * rangeMapRegA, double * rangeMapRegB)
 void loadLocalTargetClassRangeMap(double * rangeMapRegA, double * rangeMapRegB);
 void copyGraspMemoryTriesToClassGraspMemoryTries();
 
-
 void selectMaxTarget(double minDepth);
+void selectMaxTargetThompson(double minDepth);
+void selectMaxTargetLinearFilter(double minDepth);
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -8750,7 +8756,7 @@ cout <<
 	    } 
 	  } 
 	} else {
-	  cout << "Whoops, tried to set grasp memories 1 but they don't exist for this class." << endl;
+	  cout << "Whoops, tried to set grasp memories 1 but they don't exist for this class:"  << targetClass << endl;
 	}
 	if ((classGraspMemoryTries2[targetClass].rows > 1) && (classGraspMemoryTries2[targetClass].cols > 1) &&
 	    (classGraspMemoryPicks2[targetClass].rows > 1) && (classGraspMemoryPicks2[targetClass].cols > 1) ) {
@@ -8765,7 +8771,7 @@ cout <<
 	    } 
 	  } 
 	} else {
-	  cout << "Whoops, tried to set grasp memories 2 but they don't exist for this class." << endl;
+	  cout << "Whoops, tried to set grasp memories 2 but they don't exist for this class." << targetClass << endl;
 	}
 	if ((classGraspMemoryTries3[targetClass].rows > 1) && (classGraspMemoryTries3[targetClass].cols > 1) &&
 	    (classGraspMemoryPicks3[targetClass].rows > 1) && (classGraspMemoryPicks3[targetClass].cols > 1) ) {
@@ -8780,7 +8786,7 @@ cout <<
 	    } 
 	  } 
 	} else {
-	  cout << "Whoops, tried to set grasp memories 3 but they don't exist for this class." << endl;
+	  cout << "Whoops, tried to set grasp memories 3 but they don't exist for this class." << targetClass << endl;
 	}
 	if ((classGraspMemoryTries4[targetClass].rows > 1) && (classGraspMemoryTries4[targetClass].cols > 1) &&
 	    (classGraspMemoryPicks4[targetClass].rows > 1) && (classGraspMemoryPicks4[targetClass].cols > 1) ) {
@@ -8795,7 +8801,7 @@ cout <<
 	    } 
 	  } 
 	} else {
-	  cout << "Whoops, tried to set grasp memories 4 but they don't exist for this class." << endl;
+	  cout << "Whoops, tried to set grasp memories 4 but they don't exist for this class." << targetClass << endl;
 	}
       }
       break;
@@ -9404,11 +9410,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     int bigX = x / rmiCellWidth;
     int bigY = y / rmiCellWidth;
     if ((bigX >= rmWidth) && (bigX < 2*rmWidth) && (bigY < rmWidth)) {
-      for (int rx = 0; rx < rmWidth; rx++) {
-	for (int ry = 0; ry < rmWidth; ry++) {
-	  graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear] += 1;
-	}
-      }
+      graspMemoryTries[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*currentGraspGear] += 1;
     }
     pilot_call_stack.push_back(1048679); // render reticle
     pilot_call_stack.push_back(1048673); // render register 1
@@ -9420,7 +9422,6 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     int bigX = x / rmiCellWidth;
     int bigY = y / rmiCellWidth;
     if ((bigX >= rmWidth) && (bigX < 2*rmWidth) && (bigY < rmWidth)) {
-      // reset to uniform success 
       // reset to uniform failure
       for (int rx = 0; rx < rmWidth; rx++) {
 	for (int ry = 0; ry < rmWidth; ry++) {
@@ -9789,6 +9790,8 @@ void guardGraspMemory() {
 }
 void convertGlobalGraspIdxToLocal(const int rx, const int ry, 
                                   int * localX, int * localY) {
+  // COMPLETELY UNTESTED
+  assert(0);
   // find global coordinate of current point
   double thX = (rx-rmHalfWidth) * rmDelta;
   double thY = (ry-rmHalfWidth) * rmDelta;
@@ -9808,6 +9811,28 @@ void convertGlobalGraspIdxToLocal(const int rx, const int ry,
   *localY = ((localThY)/rmDelta) + rmHalfWidth; 
 
 }
+
+void convertLocalGraspIdxToGlobal(const int localX, const int localY,
+                                  int * rx, int * ry) {
+  // find local coordinate of current point
+  double thX = (localX-rmHalfWidth) * rmDelta;
+  double thY = (localY-rmHalfWidth) * rmDelta;
+  // transform it into local coordinates
+  double unangle = bestOrientationAngle;
+  double unscale = 1.0;
+  Point uncenter = Point(0, 0);
+  Mat un_rot_mat = getRotationMatrix2D(uncenter, unangle, unscale);
+  Mat toUn(3,1,CV_64F);
+  toUn.at<double>(0,0)=thX;
+  toUn.at<double>(1,0)=thY;
+  toUn.at<double>(2,0)=1.0;
+  Mat didUn = un_rot_mat*toUn;
+  double localThX = didUn.at<double>(0,0);
+  double localThY = didUn.at<double>(1,0);
+  *rx = (int) round(((localThX)/rmDelta) + rmHalfWidth); 
+  *ry = (int) round(((localThY)/rmDelta) + rmHalfWidth); 
+}
+
 
 void loadSampledGraspMemory() {
   ROS_INFO("Loading sampled grasp memory.");
@@ -9891,7 +9916,7 @@ void loadPriorGraspMemory() {
       for (int ry = 0; ry < rmWidth; ry++) {
         int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
         double mu = graspMemoryReg1[i];
-        double eccentricity = 2;
+        double eccentricity = 5;
         double nsuccess = eccentricity * mu;
         double nfailure = eccentricity * (1 - mu);
         graspMemoryPicks[i] = nsuccess;
@@ -10392,6 +10417,10 @@ void copyGraspMemoryTriesToClassGraspMemoryTries() {
 }
 
 void selectMaxTarget(double minDepth) {
+  //selectMaxTargetLinearFilter(minDepth);
+  selectMaxTargetThompson(minDepth);
+}
+void selectMaxTargetLinearFilter(double minDepth) {
   // ATTN 2
   int maxSearchPadding = 3;
   //int maxSearchPadding = 4;
@@ -10466,6 +10495,49 @@ void selectMaxTarget(double minDepth) {
 
   
 }
+
+
+
+void selectMaxTargetThompson(double minDepth) {
+  // ATTN 2
+  int maxSearchPadding = 3;
+  //int maxSearchPadding = 4;
+
+  for (int localX = 0; localX < rmWidth; localX++) {
+    for (int localY = 0; localY < rmWidth; localY++) {
+      // ATTN 5
+      double graspMemoryWeight = 0.0;
+      double graspMemoryBias = VERYBIGNUMBER;
+      int rx, ry;
+      convertLocalGraspIdxToGlobal(localX, localY, &rx, &ry);
+      if ((rx < rmWidth) && (ry < rmWidth)) {
+        
+        // Thompson
+        graspMemoryWeight = (graspMemorySample[localX + localY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)]) * -1;  
+        
+        graspMemoryBias = 0;
+      } else {
+        graspMemoryWeight = 0;
+      }
+      
+      cout << "graspMemory Thompson incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localX << " " << localY << " " << graspMemoryWeight << endl;
+      
+      if (graspMemoryBias + graspMemoryWeight < minDepth) 
+        {
+          minDepth = graspMemoryWeight;
+          maxX = rx;
+          maxY = ry;
+          localMaxX = localX;
+          localMaxY = localY;
+          localMaxGG = getLocalGraspGear(currentGraspGear);
+          maxD = graspMemoryWeight;
+          maxGG = currentGraspGear;
+        }
+    }
+  }
+  cout << "non-cumulative Thompson maxX: " << maxX << " maxY: " << maxY <<  " maxD: " << maxD << " maxGG: " << maxGG << endl;
+}
+
 
 ////////////////////////////////////////////////
 // end pilot definitions 
@@ -14701,7 +14773,7 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
       cout << "Loaded aerial gradient from " << this_ag_path << classAerialGradients[i].size() << classAerialGradients[i] << endl; 
     } else {
       classAerialGradients[i] = Mat(1, 1, CV_64F);
-      cout << "Failed to load rangeMap from " << this_ag_path << endl; 
+      cout << "Failed to load aerialGradients from " << this_ag_path << endl; 
     }
   }
 }
@@ -14881,14 +14953,17 @@ int main(int argc, char **argv) {
   spinlessPilotMain();
 
   saveROSParams();
+
   //pilot_call_stack.push_back(1048673); // drawMapRegisters
   //pilot_call_stack.push_back(131117); // Sample from grasp memory
-  //pilot_call_stack.push_back(131162);  // load target class range map
-  pilot_call_stack.push_back(196360);
+
+  //pilot_call_stack.push_back(196360); // loadPriorGraspMemory
   pilot_call_stack.push_back(131165); // increment focused class
   pilot_call_stack.push_back(131165); // increment focused class
   pilot_call_stack.push_back('k'); // open gripper
+  pilot_call_stack.push_back('2'); // move to pose 2
   pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+  pilot_call_stack.push_back(131162);  // load target class range map
   pilot_call_stack.push_back(1114200); // arrange windows
 
   execute_stack = 1;
