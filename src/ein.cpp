@@ -726,7 +726,7 @@ int synchronicTakeClosest = 0;
 int gripperMoving = 0;
 double gripperPosition = 0;
 int gripperGripping = 0;
-double gripperThresh = 6.0;//7.0;
+double gripperThresh = 3.5;//6.0;//7.0;
 
 double graspAttemptCounter = 0;
 double graspFailCounter = 0;
@@ -1094,7 +1094,7 @@ int aerialGradientWidth = 100;
 int aerialGradientReticleWidth = 200;
 
 int softMaxGradientServoIterations = 3;
-int hardMaxGradientServoIterations = 5;//10;
+int hardMaxGradientServoIterations = 3;//10;
 int currentGradientServoIterations = 0;
 
 int fuseBlueBoxes = 0;
@@ -5511,6 +5511,7 @@ cout <<
 	// change gear to 1
 	pilot_call_stack.push_back(1048625);
 
+	// ATTN 10
         // loadSampled gives proper Thompson
         // loadMarginal is MAP estimate
         //pilot_call_stack.push_back(131117); // loadSampledGraspMemory
@@ -6370,12 +6371,17 @@ cout <<
 	  targetClass++;
 	  targetClass = (numClasses+targetClass) % numClasses;
 	  focusedClass = targetClass;
+	  focusedClassLabel = classLabels[focusedClass];
 	  cout << "class " << classLabels[targetClass] << " number ";
 	}
 	cout << targetClass << endl;
 
 	execute_stack = 1;	
-	pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+	// ATTN 10
+	pilot_call_stack.push_back(1048673); // render register 1
+	//pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+	pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+	cout << "class " << classLabels[targetClass] << " number ";
       }
       break;
     // de-increment target class
@@ -6387,12 +6393,17 @@ cout <<
 	  targetClass--;
 	  targetClass = (numClasses + targetClass) % numClasses;
 	  focusedClass = targetClass;
+	  focusedClassLabel = classLabels[focusedClass];
 	  cout << "class " << classLabels[targetClass] << " number ";
 	}
 	cout << targetClass << endl;
 
 	execute_stack = 1;	
-	pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+	// ATTN 10
+	pilot_call_stack.push_back(1048673); // render register 1
+	//pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+	pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+	cout << "class " << classLabels[targetClass] << " number ";
       }
       break;
     // listen for pick requests from fetch command
@@ -6653,6 +6664,10 @@ cout <<
 	      if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
 		pilot_call_stack.push_back(196728); // gradient servo
 		cout << "Queuing gradient servo." << endl;
+		// ATTN 8
+		//pilot_call_stack.push_back(131153); // vision cycle
+		pilot_call_stack.push_back(196721); // vision cycle no classify
+		pushCopies(131154, 40); // w1 wait until at current position
 	      } else {
 		// do nothing, just proceed
 		cout << "Returning." << endl;
@@ -6660,6 +6675,10 @@ cout <<
 	    } else if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
 	      pilot_call_stack.push_back(196728); // gradient servo
 	      cout << "Queuing gradient servo." << endl;
+	      // ATTN 8
+	      //pilot_call_stack.push_back(131153); // vision cycle
+	      pilot_call_stack.push_back(196721); // vision cycle no classify
+	      pushCopies(131154, 40); // w1 wait until at current position
 	    } else {
               if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
 		pilot_call_stack.push_back(1048624); // prepare for and execute the best grasp from memory at the current location and target
@@ -6939,6 +6958,10 @@ cout <<
 	if (distance > w1GoThresh*w1GoThresh) {
 	  cout << "waiting to arrive at current position." << endl;
 	  pilot_call_stack.push_back(196728); // gradient servo
+	  // ATTN 8
+	  //pilot_call_stack.push_back(131153); // vision cycle
+	  pilot_call_stack.push_back(196721); // vision cycle no classify
+	  pushCopies(131154, 40); // w1 wait until at current position
 	} else {
 	  // ATTN 5
 	  // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
@@ -7016,8 +7039,11 @@ cout <<
 	    currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
 	    currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
 
-	    pilot_call_stack.push_back(131153); // vision cycle
+	    // ATTN 8
+	    //pilot_call_stack.push_back(131153); // vision cycle
+	    pilot_call_stack.push_back(196721); // vision cycle no classify
 	    //pilot_call_stack.push_back(131154); // w1 wait until at current position
+
 	    // ATTN 7
 	    // if you don't wait multiple times, it could get triggered early by weird ik or latency could cause a loop
 	    // this is a very aggressive choice and we should also be using the ring buffers for Ode calls
@@ -8037,6 +8063,7 @@ cout <<
     // capslock + I
     case 196713:
       {
+	// ATTN 10
 	//int i = maxX + maxY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear);
 	//int i = localMaxX + localMaxY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear);
 	int i = localMaxX + localMaxY * rmWidth + rmWidth*rmWidth*localMaxGG;
@@ -8683,6 +8710,7 @@ cout <<
 	  if (lastLabelLearned.compare(classLabels[i]) == 0) {
 	    targetClass = i;
 	    focusedClass = targetClass;
+	    focusedClassLabel = classLabels[focusedClass];
 	    cout << "lastLabelLearned classLabels[targetClass]: " << lastLabelLearned << " " << classLabels[targetClass] << endl;
 	  }
 	}
@@ -8764,6 +8792,9 @@ cout <<
       {
 	if ((classGraspMemoryTries1[targetClass].rows > 1) && (classGraspMemoryTries1[targetClass].cols > 1) &&
 	    (classGraspMemoryPicks1[targetClass].rows > 1) && (classGraspMemoryPicks1[targetClass].cols > 1) ) {
+	  cout << "graspMemoryTries[] = classGraspMemoryTries1" << endl;
+	  cout << "classGraspMemoryTries1 " << classGraspMemoryTries1[targetClass] << endl; 
+	  cout << "classGraspMemoryPicks1 " << classGraspMemoryPicks1[targetClass] << endl; 
 	  for (int y = 0; y < rmWidth; y++) {
 	    for (int x = 0; x < rmWidth; x++) {
 	      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*0] = classGraspMemoryTries1[targetClass].at<double>(y,x);
@@ -8779,6 +8810,9 @@ cout <<
 	}
 	if ((classGraspMemoryTries2[targetClass].rows > 1) && (classGraspMemoryTries2[targetClass].cols > 1) &&
 	    (classGraspMemoryPicks2[targetClass].rows > 1) && (classGraspMemoryPicks2[targetClass].cols > 1) ) {
+	  cout << "graspMemoryTries[] = classGraspMemoryTries2" << endl;
+	  cout << "classGraspMemoryTries2 " << classGraspMemoryTries2[targetClass] << endl; 
+	  cout << "classGraspMemoryPicks2 " << classGraspMemoryPicks2[targetClass] << endl; 
 	  for (int y = 0; y < rmWidth; y++) {
 	    for (int x = 0; x < rmWidth; x++) {
 	      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*1] = classGraspMemoryTries2[targetClass].at<double>(y,x);
@@ -8794,6 +8828,9 @@ cout <<
 	}
 	if ((classGraspMemoryTries3[targetClass].rows > 1) && (classGraspMemoryTries3[targetClass].cols > 1) &&
 	    (classGraspMemoryPicks3[targetClass].rows > 1) && (classGraspMemoryPicks3[targetClass].cols > 1) ) {
+	  cout << "graspMemoryTries[] = classGraspMemoryTries3" << endl;
+	  cout << "classGraspMemoryTries3 " << classGraspMemoryTries3[targetClass] << endl; 
+	  cout << "classGraspMemoryPicks3 " << classGraspMemoryPicks3[targetClass] << endl; 
 	  for (int y = 0; y < rmWidth; y++) {
 	    for (int x = 0; x < rmWidth; x++) {
 	      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*2] = classGraspMemoryTries3[targetClass].at<double>(y,x);
@@ -8809,6 +8846,9 @@ cout <<
 	}
 	if ((classGraspMemoryTries4[targetClass].rows > 1) && (classGraspMemoryTries4[targetClass].cols > 1) &&
 	    (classGraspMemoryPicks4[targetClass].rows > 1) && (classGraspMemoryPicks4[targetClass].cols > 1) ) {
+	  cout << "graspMemoryTries[] = classGraspMemoryTries4" << endl;
+	  cout << "classGraspMemoryTries4 " << classGraspMemoryTries4[targetClass] << endl; 
+	  cout << "classGraspMemoryPicks4 " << classGraspMemoryPicks4[targetClass] << endl; 
 	  for (int y = 0; y < rmWidth; y++) {
 	    for (int x = 0; x < rmWidth; x++) {
 	      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*3] = classGraspMemoryTries4[targetClass].at<double>(y,x);
@@ -10531,6 +10571,7 @@ void copyGraspMemoryTriesToClassGraspMemoryTries() {
 }
 
 void selectMaxTarget(double minDepth) {
+  // ATTN 10
   //selectMaxTargetLinearFilter(minDepth);
   selectMaxTargetThompson(minDepth);
   //selectMaxTargetThompsonRotated(minDepth);
@@ -15161,9 +15202,12 @@ int main(int argc, char **argv) {
     pilot_call_stack.push_back(131162);  // load target class range map
     pilot_call_stack.push_back(1114200); // arrange windows
 
-    execute_stack = 1;
     targetClass = 1;
   }
+
+  pilot_call_stack.push_back(131151); // shake it off 1
+
+  execute_stack = 1;
 
   ros::spin();
 
