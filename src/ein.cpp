@@ -1175,6 +1175,7 @@ void guardGraspMemory();
 void loadSampledGraspMemory();
 void loadMarginalGraspMemory();
 void loadPriorGraspMemory();
+void estimateGlobalGraspGear();
 void drawMapRegisters();
 
 void applyGraspFilter(double * rangeMapRegA, double * rangeMapRegB);
@@ -5460,6 +5461,7 @@ cout <<
     // numlock + ,
     case 1048620:
       {
+	pilot_call_stack.push_back(1179728); // estimateGlobalGraspGear
 	cout << "Selecting best of 4 grasps...  numlock + ," << endl;
 	// select max target cumulative
 	pilot_call_stack.push_back(1114195);
@@ -8830,6 +8832,13 @@ cout <<
         }
       }
       break;
+    // estimateGlobalGraspGear
+    // capslock + numlock + p
+    case 1179728:
+      {
+	estimateGlobalGraspGear();
+      }
+      break;
     case 2:
       drawOrientor = !drawOrientor;
       break;
@@ -9983,9 +9992,35 @@ void loadPriorGraspMemory() {
       }
     }
   }
+}
 
+void estimateGlobalGraspGear() {
+  ROS_INFO("Estimating global grasp gear.");
+  double max_range_value = -VERYBIGNUMBER;
+  double min_range_value = VERYBIGNUMBER;
+  int eMinGG = 0;
 
+  for (int tGG = 0; tGG < totalGraspGears/2; tGG++) {
+    prepareGraspFilter(tGG);
+    loadGlobalTargetClassRangeMap(rangeMapReg3, rangeMapReg4);
+    applyGraspFilter(rangeMapReg3, rangeMapReg4);
 
+    int rx = maxX;
+    int ry = maxY;
+
+    int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
+    graspMemoryReg1[i] = rangeMapReg3[rx + ry * rmWidth];
+    if (graspMemoryReg1[i] < min_range_value) {
+      min_range_value = graspMemoryReg1[i];
+      eMinGG = tGG;
+    }
+    if (graspMemoryReg1[i] > max_range_value) {
+      max_range_value = graspMemoryReg1[i];
+    }
+  }
+
+  maxGG = eMinGG;
+  localMaxGG = getLocalGraspGear(eMinGG);
 }
 
 void drawMapRegisters() {
@@ -10475,10 +10510,11 @@ void copyGraspMemoryTriesToClassGraspMemoryTries() {
 }
 
 void selectMaxTarget(double minDepth) {
-  selectMaxTargetLinearFilter(minDepth);
-  //selectMaxTargetThompson(minDepth);
+  //selectMaxTargetLinearFilter(minDepth);
+  selectMaxTargetThompson(minDepth);
   //selectMaxTargetThompsonRotated(minDepth);
 }
+
 void selectMaxTargetLinearFilter(double minDepth) {
   // ATTN 2
   int maxSearchPadding = 3;
@@ -10594,6 +10630,10 @@ void selectMaxTargetThompson(double minDepth) {
   }
   cout << "non-cumulative Thompson maxX: " << maxX << " maxY: " << maxY <<  " maxD: " << maxD << " maxGG: " << maxGG << endl;
 }
+
+
+
+
 
 
 void selectMaxTargetThompsonRotated(double minDepth) {
