@@ -9810,50 +9810,61 @@ int getGlobalGraspGear(int localGraspGearIn) {
 
 
 void guardGraspMemory() {
-  if (!((classGraspMemoryTries1[focusedClass].rows > 1) && (classGraspMemoryTries1[focusedClass].cols > 1) &&
-      (classGraspMemoryPicks1[focusedClass].rows > 1) && (classGraspMemoryPicks1[focusedClass].cols > 1) )) {
+
+  {
     if (classGraspMemoryTries1.size() <= focusedClass) {
       classGraspMemoryTries1.resize(focusedClass + 1);
     }
     if (classGraspMemoryPicks1.size() <= focusedClass) {
       classGraspMemoryPicks1.resize(focusedClass + 1);
     }
-    classGraspMemoryTries1[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
-    classGraspMemoryPicks1[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
-  }
-  if (!((classGraspMemoryTries2[focusedClass].rows > 1) && (classGraspMemoryTries2[focusedClass].cols > 1) &&
-      (classGraspMemoryPicks2[focusedClass].rows > 1) && (classGraspMemoryPicks2[focusedClass].cols > 1) )) {
+
     if (classGraspMemoryTries2.size() <= focusedClass) {
       classGraspMemoryTries2.resize(focusedClass + 1);
     }
     if (classGraspMemoryPicks2.size() <= focusedClass) {
       classGraspMemoryPicks2.resize(focusedClass + 1);
     }
-    classGraspMemoryTries2[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
-    classGraspMemoryPicks2[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
-  }
-  if (!((classGraspMemoryTries3[focusedClass].rows > 1) && (classGraspMemoryTries3[focusedClass].cols > 1) &&
-      (classGraspMemoryPicks3[focusedClass].rows > 1) && (classGraspMemoryPicks3[focusedClass].cols > 1) )) {
+
+
     if (classGraspMemoryTries3.size() <= focusedClass) {
       classGraspMemoryTries3.resize(focusedClass + 1);
     }
     if (classGraspMemoryPicks3.size() <= focusedClass) {
       classGraspMemoryPicks3.resize(focusedClass + 1);
     }
-    classGraspMemoryTries3[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
-    classGraspMemoryPicks3[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
-  }
-  if (!((classGraspMemoryTries4[focusedClass].rows > 1) && (classGraspMemoryTries4[focusedClass].cols > 1) &&
-      (classGraspMemoryPicks4[focusedClass].rows > 1) && (classGraspMemoryPicks4[focusedClass].cols > 1) )) {
+
     if (classGraspMemoryTries4.size() <= focusedClass) {
       classGraspMemoryTries4.resize(focusedClass + 1);
     }
     if (classGraspMemoryPicks4.size() <= focusedClass) {
       classGraspMemoryPicks4.resize(focusedClass + 1);
     }
-    classGraspMemoryTries4[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
-    classGraspMemoryPicks4[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
   }
+
+  {
+    if (!((classGraspMemoryTries1[focusedClass].rows > 1) && (classGraspMemoryTries1[focusedClass].cols > 1) &&
+	(classGraspMemoryPicks1[focusedClass].rows > 1) && (classGraspMemoryPicks1[focusedClass].cols > 1) )) {
+      classGraspMemoryTries1[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
+      classGraspMemoryPicks1[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
+    }
+    if (!((classGraspMemoryTries2[focusedClass].rows > 1) && (classGraspMemoryTries2[focusedClass].cols > 1) &&
+	(classGraspMemoryPicks2[focusedClass].rows > 1) && (classGraspMemoryPicks2[focusedClass].cols > 1) )) {
+      classGraspMemoryTries2[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
+      classGraspMemoryPicks2[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
+    }
+    if (!((classGraspMemoryTries3[focusedClass].rows > 1) && (classGraspMemoryTries3[focusedClass].cols > 1) &&
+	(classGraspMemoryPicks3[focusedClass].rows > 1) && (classGraspMemoryPicks3[focusedClass].cols > 1) )) {
+      classGraspMemoryTries3[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
+      classGraspMemoryPicks3[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
+    }
+    if (!((classGraspMemoryTries4[focusedClass].rows > 1) && (classGraspMemoryTries4[focusedClass].cols > 1) &&
+	(classGraspMemoryPicks4[focusedClass].rows > 1) && (classGraspMemoryPicks4[focusedClass].cols > 1) )) {
+      classGraspMemoryTries4[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
+      classGraspMemoryPicks4[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
+    }
+  }
+
 }
 void convertGlobalGraspIdxToLocal(const int rx, const int ry, 
                                   int * localX, int * localY) {
