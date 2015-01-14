@@ -15137,20 +15137,23 @@ int main(int argc, char **argv) {
 
   saveROSParams();
 
-  //pilot_call_stack.push_back(1048673); // drawMapRegisters
-  //pilot_call_stack.push_back(131117); // Sample from grasp memory
+  int devInit = 0;
+  if (devInit) {
+    //pilot_call_stack.push_back(1048673); // drawMapRegisters
+    //pilot_call_stack.push_back(131117); // Sample from grasp memory
 
-  //pilot_call_stack.push_back(196360); // loadPriorGraspMemory
-  pilot_call_stack.push_back(131165); // increment focused class
-  pilot_call_stack.push_back(131165); // increment focused class
-  pilot_call_stack.push_back('k'); // open gripper
-  pilot_call_stack.push_back('2'); // move to pose 2
-  pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
-  pilot_call_stack.push_back(131162);  // load target class range map
-  pilot_call_stack.push_back(1114200); // arrange windows
+    //pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+    pilot_call_stack.push_back(131165); // increment focused class
+    pilot_call_stack.push_back(131165); // increment focused class
+    pilot_call_stack.push_back('k'); // open gripper
+    pilot_call_stack.push_back('2'); // move to pose 2
+    pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+    pilot_call_stack.push_back(131162);  // load target class range map
+    pilot_call_stack.push_back(1114200); // arrange windows
 
-  execute_stack = 1;
-  targetClass = 1;
+    execute_stack = 1;
+    targetClass = 1;
+  }
 
   ros::spin();
 
