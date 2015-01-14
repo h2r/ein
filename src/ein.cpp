@@ -859,7 +859,7 @@ double pcgc22 = 1;//1.0+(12.0 / 480.0);
 // if you add an immense number of examples or some new classes and
 //   you begin having discriminative problems (confusion), you can
 //   increase the number of words.
-const double bowSubSampleFactor = 0.02;//0.01;
+const double bowSubSampleFactor = 0.05;//0.02;//0.01;
 const int bowOverSampleFactor = 1;
 const int kNNOverSampleFactor = 1;
 const int poseOverSampleFactor = 1;
@@ -6369,9 +6369,13 @@ cout <<
 	if (numClasses > 0) {
 	  targetClass++;
 	  targetClass = (numClasses+targetClass) % numClasses;
+	  focusedClass = targetClass;
 	  cout << "class " << classLabels[targetClass] << " number ";
 	}
 	cout << targetClass << endl;
+
+	execute_stack = 1;	
+	pilot_call_stack.push_back(196360); // loadPriorGraspMemory
       }
       break;
     // de-increment target class
@@ -6382,9 +6386,13 @@ cout <<
 	if (numClasses > 0) {
 	  targetClass--;
 	  targetClass = (numClasses + targetClass) % numClasses;
+	  focusedClass = targetClass;
 	  cout << "class " << classLabels[targetClass] << " number ";
 	}
 	cout << targetClass << endl;
+
+	execute_stack = 1;	
+	pilot_call_stack.push_back(196360); // loadPriorGraspMemory
       }
       break;
     // listen for pick requests from fetch command
@@ -8674,9 +8682,11 @@ cout <<
 	for (int i = 0; i < numClasses; i++) {
 	  if (lastLabelLearned.compare(classLabels[i]) == 0) {
 	    targetClass = i;
+	    focusedClass = targetClass;
 	    cout << "lastLabelLearned classLabels[targetClass]: " << lastLabelLearned << " " << classLabels[targetClass] << endl;
 	  }
 	}
+	pilot_call_stack.push_back(196360); // loadPriorGraspMemory
       }
       break;
     // set lastLabelLearned
@@ -9826,7 +9836,6 @@ void guardGraspMemory() {
       classGraspMemoryPicks2.resize(focusedClass + 1);
     }
 
-
     if (classGraspMemoryTries3.size() <= focusedClass) {
       classGraspMemoryTries3.resize(focusedClass + 1);
     }
@@ -10475,49 +10484,50 @@ void prepareGraspFilter4() {
 }
 
 void copyGraspMemoryTriesToClassGraspMemoryTries() {
-  {
-    for (int y = 0; y < rmWidth; y++) {
-      for (int x = 0; x < rmWidth; x++) {
-        classGraspMemoryTries1[focusedClass].at<double>(y,x) = graspMemoryTries[x + y*rmWidth + 0*rmWidth*rmWidth];
-      } 
-    }
-    
-    for (int y = 0; y < rmWidth; y++) {
-      for (int x = 0; x < rmWidth; x++) {
-        classGraspMemoryPicks1[focusedClass].at<double>(y,x) = graspMemoryPicks[x + y*rmWidth + 0*rmWidth*rmWidth];
-      } 
+  guardGraspMemory();
+  for (int y = 0; y < rmWidth; y++) {
+    for (int x = 0; x < rmWidth; x++) {
+      classGraspMemoryTries1[focusedClass].at<double>(y,x) = graspMemoryTries[x + y*rmWidth + 0*rmWidth*rmWidth];
     } 
-    for (int y = 0; y < rmWidth; y++) {
-      for (int x = 0; x < rmWidth; x++) {
-        classGraspMemoryTries2[focusedClass].at<double>(y,x) = graspMemoryTries[x + y*rmWidth + 1*rmWidth*rmWidth];
-      } 
+  }
+  for (int y = 0; y < rmWidth; y++) {
+    for (int x = 0; x < rmWidth; x++) {
+      classGraspMemoryPicks1[focusedClass].at<double>(y,x) = graspMemoryPicks[x + y*rmWidth + 0*rmWidth*rmWidth];
     } 
-    for (int y = 0; y < rmWidth; y++) {
-      for (int x = 0; x < rmWidth; x++) {
-        classGraspMemoryPicks2[focusedClass].at<double>(y,x) = graspMemoryPicks[x + y*rmWidth + 1*rmWidth*rmWidth];
-      } 
+  } 
+
+  for (int y = 0; y < rmWidth; y++) {
+    for (int x = 0; x < rmWidth; x++) {
+      classGraspMemoryTries2[focusedClass].at<double>(y,x) = graspMemoryTries[x + y*rmWidth + 1*rmWidth*rmWidth];
     } 
-    Mat triesTemp(rmWidth, rmWidth, CV_64F);
-    for (int y = 0; y < rmWidth; y++) {
-      for (int x = 0; x < rmWidth; x++) {
-        classGraspMemoryTries3[focusedClass].at<double>(y,x) = graspMemoryTries[x + y*rmWidth + 2*rmWidth*rmWidth];
-      } 
-    }
-    for (int y = 0; y < rmWidth; y++) {
-      for (int x = 0; x < rmWidth; x++) {
-        classGraspMemoryPicks3[focusedClass].at<double>(y,x) = graspMemoryPicks[x + y*rmWidth + 2*rmWidth*rmWidth];
-      } 
-    }}
-    for (int y = 0; y < rmWidth; y++) {
-      for (int x = 0; x < rmWidth; x++) {
-        classGraspMemoryTries4[focusedClass].at<double>(y,x) = graspMemoryTries[x + y*rmWidth + 3*rmWidth*rmWidth];
-      } 
+  } 
+  for (int y = 0; y < rmWidth; y++) {
+    for (int x = 0; x < rmWidth; x++) {
+      classGraspMemoryPicks2[focusedClass].at<double>(y,x) = graspMemoryPicks[x + y*rmWidth + 1*rmWidth*rmWidth];
     } 
-    for (int y = 0; y < rmWidth; y++) {
-      for (int x = 0; x < rmWidth; x++) {
-        classGraspMemoryPicks4[focusedClass].at<double>(y,x) = graspMemoryPicks[x + y*rmWidth + 3*rmWidth*rmWidth];
-      } 
-    }
+  } 
+
+  for (int y = 0; y < rmWidth; y++) {
+    for (int x = 0; x < rmWidth; x++) {
+      classGraspMemoryTries3[focusedClass].at<double>(y,x) = graspMemoryTries[x + y*rmWidth + 2*rmWidth*rmWidth];
+    } 
+  }
+  for (int y = 0; y < rmWidth; y++) {
+    for (int x = 0; x < rmWidth; x++) {
+      classGraspMemoryPicks3[focusedClass].at<double>(y,x) = graspMemoryPicks[x + y*rmWidth + 2*rmWidth*rmWidth];
+    } 
+  }
+
+  for (int y = 0; y < rmWidth; y++) {
+    for (int x = 0; x < rmWidth; x++) {
+      classGraspMemoryTries4[focusedClass].at<double>(y,x) = graspMemoryTries[x + y*rmWidth + 3*rmWidth*rmWidth];
+    } 
+  } 
+  for (int y = 0; y < rmWidth; y++) {
+    for (int x = 0; x < rmWidth; x++) {
+      classGraspMemoryPicks4[focusedClass].at<double>(y,x) = graspMemoryPicks[x + y*rmWidth + 3*rmWidth*rmWidth];
+    } 
+  }
 }
 
 void selectMaxTarget(double minDepth) {
