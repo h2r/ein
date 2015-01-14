@@ -5514,8 +5514,8 @@ cout <<
 	// ATTN 10
         // loadSampled gives proper Thompson
         // loadMarginal is MAP estimate
-        //pilot_call_stack.push_back(131117); // loadSampledGraspMemory
-        pilot_call_stack.push_back(131133); // loadMarginalGraspMemory
+        pilot_call_stack.push_back(131117); // loadSampledGraspMemory
+        //pilot_call_stack.push_back(131133); // loadMarginalGraspMemory
 
 	pilot_call_stack.push_back(1048684); // turn off scanning
 	pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
@@ -6379,9 +6379,8 @@ cout <<
 	execute_stack = 1;	
 	// ATTN 10
 	pilot_call_stack.push_back(1048673); // render register 1
-	//pilot_call_stack.push_back(196360); // loadPriorGraspMemory
-	pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
-	cout << "class " << classLabels[targetClass] << " number ";
+	pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+	//pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
       }
       break;
     // de-increment target class
@@ -6401,9 +6400,8 @@ cout <<
 	execute_stack = 1;	
 	// ATTN 10
 	pilot_call_stack.push_back(1048673); // render register 1
-	//pilot_call_stack.push_back(196360); // loadPriorGraspMemory
-	pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
-	cout << "class " << classLabels[targetClass] << " number ";
+	pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+	//pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
       }
       break;
     // listen for pick requests from fetch command
@@ -8071,13 +8069,13 @@ cout <<
 	  pilot_call_stack.push_back(196713); // count grasp
 	} else {
 	  graspAttemptCounter++;
-          //graspMemoryTries[i]++;
+          graspMemoryTries[i]++;
 	  if (gripperPosition < gripperThresh) {
 	    graspFailCounter++;
             cout << "Failed grasp." << endl;
 	  } else {
 	    graspSuccessCounter++;
-            //graspMemoryPicks[i]++;
+            graspMemoryPicks[i]++;
             cout << "Successful grasp." << endl;
 	  }
           copyGraspMemoryTriesToClassGraspMemoryTries();
