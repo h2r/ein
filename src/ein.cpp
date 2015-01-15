@@ -769,6 +769,21 @@ typedef enum {
 } pickMode;
 pickMode currentPickMode = STATIC_PRIOR;
 
+std::string pickModeToString(int mode) {
+  string result;
+  if (mode == STATIC_PRIOR) {
+    result = "static prior";
+  } else if (mode == LEARNING_SAMPLING) {
+    result = "learning sampling";
+  } else if (mode == STATIC_MARGINALS) {
+    result = "static marginals";
+  } else {
+    cout << "Invalid pick mode: " << mode << endl;
+    assert(0);
+  }
+  return result;
+}
+
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -8217,7 +8232,7 @@ cout <<
 	  graspSuccessRate = graspSuccessCounter / graspAttemptCounter;
 	  ros::Time thisTime = ros::Time::now();
 	  ros::Duration sinceStartOfTrial = thisTime - graspTrialStart;
-	  cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << graspSuccessCounter << "/" << graspAttemptCounter << " " << graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << gripperPosition << " " << currentPickMode << endl;
+	  cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << graspSuccessCounter << "/" << graspAttemptCounter << " " << graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << gripperPosition << " " << pickModeToString(currentPickMode) << endl;
 	}
       }
       break;
@@ -9037,7 +9052,7 @@ cout <<
     case 1179731:
       {
 	currentPickMode = STATIC_PRIOR;
-	cout << "currentPickMode = " << currentPickMode << endl;
+	cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
       }
       break;
     // set pickMode
@@ -9045,7 +9060,7 @@ cout <<
     case 1179716:
       {
 	currentPickMode = LEARNING_SAMPLING;
-	cout << "currentPickMode = " << currentPickMode << endl;
+	cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
       }
       break;
     // set pickMode
@@ -9053,7 +9068,7 @@ cout <<
     case 1179718:
       {
 	currentPickMode = STATIC_MARGINALS;
-	cout << "currentPickMode = " << currentPickMode << endl;
+	cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
       }
       break;
     case 2:
