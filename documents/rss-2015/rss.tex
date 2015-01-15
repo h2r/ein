@@ -29,7 +29,7 @@ urlcolor=blue
 
 
 \newcommand{\mytitle}[0]{Autonomously Acquiring Models of Objects for
-  Instance-Based Manipulation and Mapping}
+  Instance-Based Manipulation}
 
 \pdfinfo{
    /Author ()
@@ -107,29 +107,29 @@ urlcolor=blue
 \begin{abstract}
 Manipulating and reasoning about objects is an important task for
 robots that help people in the home, in factories, and in hospitals.
-General-purpose object manipulation requires object recognition, pose
-estimation, and grasp planning; existing solutions cannot reliably
-recognize or pick up an object the robot has never encountered before,
-while existing category-based computer vision approaches run much
-slower than real time and encounter many false positives and
-negatives.  However in many applications, general-purpose object
-detection or manipulation is not required: the robot would be useful
-if it could adapt itself to recognize, localize, and manipulate the
-small set of objects most important in that application, but do so
-with very high reliability.  To address this problem, we focus not on
-{\em category recognition} (pick up any mug) but rather {\em instance
-  recognition} (pick up this mug).  Instance recognition can be highly
-accurate but requires collecting training examples of each object we
-would like the robot to manipulate, which can be expensive, tedious,
-and error-prone.  The contribution of this paper is an algorithm that
-enables a robot to autonomously collect training data for
-instance-based detection, localization, and active visual servoing for
-grasping.  Using our algorithm, a robot can interact with an object
-for ten minutes, and then reliably and quickly localize it with vision
-and pick it up with closed-loop visual servoing. We demonstrate our
-learned model can enable efficient closed-loop grasping with high
-reliability, follow natural language pick-and-place commands, and enable
-vision-based semantic mapping using learned detectors.
+A key aim of current research is to create robots that can reliably
+manipulate generic objects in clutter.  However in many applications,
+general-purpose object detection or manipulation is not required: the
+robot would be useful if it could recognize, localize, and manipulate
+the relatively small set of specific objects most important in that
+application, but do so with very high reliability.  To address this
+problem, we focus not on {\em category-based} manipulation (pick up
+any mug) but rather {\em instance-based} manipulation (pick up this
+mug).  Instance-based recognition and pose estimation using vision can
+be highly accurate but requires adapting the system to the specific
+object being manipulated: the system designer must adapt the system to
+specific objects in the environment in large and small ways, ranging
+from collecting training data to choosing parameter values to
+selecting algorithms for tasks such as image segmentation or bounding
+box classification.  The contribution of this paper is to formalize
+this adaptation process as a hierarchy of bandit problems, enabling
+the robot to apply learning techniques such as Thompson sampling to
+learn to manipulate specific objects.  Our framework runs on an
+unmodified Baxter robot; using our algorithm, a robot can interact
+with an object for twenty minutes, and then reliably and quickly
+localize it with vision and pick it up with closed-loop visual
+servoing. We demonstrate that the adaptation step significantly
+improves accuracy over a non-adaptive system.
 
 
 %% Robots need to pick stuff up.
@@ -166,74 +166,89 @@ vision-based semantic mapping using learned detectors.
 
 \section{Introduction}
 Robotic assistants will assist us at childcare, help us cook, and
-provide service to doctors, nurses, and patients in hospitals. Many
-tasks require a robot to robustly perceive and manipulate objects.
-Some systems require training by a human operator on an object to
-object basis, which is time consuming and can be difficult for a
-non-expert to perform ~\citep{ork14, lai11, lai11a}. Systems which do
-not require training on a per object basis are computationally
-expensive and do not enjoy the highest accuracy compared to
-instance-based approaches and have not been demonstrated for
-grasping~\citep{saxena08}.  Existing approaches to learn 3d object
-models still require expensive ICP-based methods to localize objects,
-which are susceptible to local minima and take time to
+provide service to doctors, nurses, and patients in hospitals. Many of
+these tasks require a robot to robustly perceive and manipulate
+objects in its environment, yet robust object manipulation remains a
+challenging problem.  Systems for general-purpose manipulation are
+computationally expensive and do not enjoy high accuracy on novel
+objects~\citep{saxena08}.  Instance-based approaches that focus on
+specific instances of objects can have higher accuracy but require
+training by a human operator, which is time consuming and can be
+difficult for a non-expert to perform ~\citep{ork14, lai11, lai11a}.
+Existing approaches to autonomously learn 3d object models still
+require expensive ICP-based methods to localize objects, which are
+susceptible to local minima and take time to
 converge~\citep{krainin11}.
 
-View-based methods for instance detection have many advantages over
-model-based methods, because they directly capture the visual
-appearance of the object, and are relatively simple and efficient to
-implement because they operate on low-level features~\citep{hsiao13}.
-However these systems require large amounts of training data for
-robust performance, for example more than 2000 images which must be
-manually collected and annotated with bounding boxes for the state of
-the art LINE2D method~\citep{hinterstoisser12}.  We address this
-problem by enabling a robot to learn to identify and grasp on a per
-object basis by autonomously collecting large amounts of supervised
-training data for instance-based visual detection and pose estimation.
-Our contribution is an algorithm which allows a robot to autonomously
-train its subsystems by using slower, more expensive sensing
-approaches to provide supervision for faster, simpler methods that
-excel with large amounts of training data.
+Instead we propose an approach that enables a robot to autonomously
+learn a view-based model for closed-loop visual picking.  View-based
+methods for instance detection have many advantages over methods using
+3d models, because they directly capture the visual appearance of the
+object, and are relatively simple and efficient to implement because
+they operate on low-level features~\citep{hsiao13}.  However these
+systems require large amounts of training data for robust performance,
+for example more than 2000 images which must be manually collected and
+annotated with bounding boxes for the state of the art LINE2D
+method~\citep{hinterstoisser12}.  Moreover, for manipulation,
+view-based methods do not propose potential grasps, and autonomous
+methods for recognizing visual grasps are prone to error. 
 
-To address these issues, we present an approach for enabling a robot
-to train its own view-based model to recognize and manipulate the
-specific objects it will need to use during collaborations with
-humans.  Using our algorithm, the robot detects candidate objects for
-training using a depth sensor, then actively collects view-based
-visual templates to perform robust instance-based object detection,
-pose estimation and closed-loop grasping using visual servoing.
-Because our camera can move with seven degrees of freedom, the robot
-can collect large quantities of data leading to simple visual models
-that perform with high accuracy even under occlusion.  Our approach is
-enabled by three innovations: our end-to-end algorithm for collecting
-view-based training data with supervision obtained from a
-higher-reliability depth sensor, which is supported by a simple and
-robust method for determining candidate grasps using a depth sensor
-mounted on a seven-degree-of-freedom arm, along with an approach for
-autonomously and reliably finding object bounding boxes once the
-object is on a background such as a floor or table.
+We address this problem by enabling a robot to learn to identify and
+grasp on a per object basis by autonomously collecting large amounts
+of data for instance-based visual detection and pose estimation.  We
+formalize a general algorithm for closed-loop picking with active
+servoing.  This pipeline uses standard computer vision techniques and
+is not itself novel.  Our contribution is a formalization of this
+pipeline together with reward signals for each module. This
+formalization enables the robot to use a bandit-based algorithm to
+autonomously and actively train its subsystems for specific objects.
+We use slower, more accurate sensing approaches to provide supervision
+for faster, simpler methods that excel with large amounts of training
+data.  For example, to perform grasping we use an analytic model to
+select grasp points, but depending on the object, the best grasp
+according to the analytic model may not be optimal; the robot can
+learn better grasps for that object using the analytic model as a
+prior and actively collecting data for that object.
+
+%% To address these issues, we present an approach for enabling a robot
+%% to train its own view-based model to recognize and manipulate the
+%% specific objects it will need to use during collaborations with
+%% humans.  Using our algorithm, the robot detects candidate objects for
+%% training using a depth sensor, then actively collects view-based
+%% visual templates to perform robust instance-based object detection,
+%% pose estimation and closed-loop grasping using visual servoing.
+%% Because our camera can move with seven degrees of freedom, the robot
+%% can collect large quantities of data leading to simple visual models
+%% that perform with high accuracy even under occlusion.  Our approach is
+%% enabled by three innovations: our end-to-end algorithm for collecting
+%% view-based training data with supervision obtained from a
+%% higher-reliability depth sensor, which is supported by a simple and
+%% robust method for determining candidate grasps using a depth sensor
+%% mounted on a seven-degree-of-freedom arm, along with an approach for
+%% autonomously and reliably finding object bounding boxes once the
+%% object is on a background such as a floor or table.
 
 Our evaluation demonstrates that a Baxter robot can autonomously learn
 robust models for detection and grasping, using its IR sensor and arm
 camera as a seven-degree of freedom one-pixel RGB-D camera.  After
 training, Baxter can quickly and reliably grasp objects anywhere in
 its work space using closed-loop visual servoing in response to a
-person's requests.  We demonstrate that our models can be used by a
-mobile robot for object detection and semantic mapping in cluttered
-environments.
+person's requests.  We demonstrate that our baseline system can learn
+to pick up objects approximately 50\% of the time; augmenting this
+system with our self-training approach increases accuracy to XX\%.
 
-Our software is compatible with ROS and the Baxter SDK version 1.0.0,
-and we intend to release it as free software should our paper be
-accepted.  Our software includes the capability to upload
-instance-based models to the RoboBrain database~\citep{x}; as more and
-more instance-based models are collected, this corpus will form a
-unique training set for category-based models for detecting and
-grasping novel objects, since the robot will have a very large number
-of views of a large set of objects as well as storing depth
-information and grasping success.
+%% Our software is compatible with ROS and the Baxter SDK version 1.0.0,
+%% and we intend to release it as free software should our paper be
+%% accepted.  Our software includes the capability to upload
+%% instance-based models to the RoboBrain database~\citep{x}; as more and
+%% more instance-based models are collected, this corpus will form a
+%% unique training set for category-based models for detecting and
+%% grasping novel objects, since the robot will have a very large number
+%% of views of a large set of objects as well as storing depth
+%% information and grasping success.
 
 
-\section{Object Detection and Pose Estimation}
+\section{Grasping System}
 
 We first describe our instance-based object detection and pose
 estimation pipeline, which uses standard computer vision algorithms
@@ -242,7 +257,8 @@ and high accuracy at recognition and pose estimation.  This pipeline
 can be manually trained by an expert to reliably detect and grasp
 objects.  Section~\ref{sec:training} describes our approach to
 enabling a robot to autonomously train this pipeline by actively
-collecting images and training data from the environment.
+collecting images and training data from the environment using
+Thompson sampling.
 
 Our recognition pipeline takes video from the robot, proposes a small
 number of candidate object bounding boxes in each frame, and
@@ -252,10 +268,33 @@ instances rather than pure object categories.  Using instance
 recognition means we cannot reliably detect categories, such as
 ``mugs,'' but the system will be able to detect, localize, and grasp
 the specific instances for which it has models with much higher speed
-and accuracy.
+and accuracy.  A visualization of data flow in the pipeline appears in
+Figure~\ref{fig:system}.  For each module, we formalize its input,
+output, and reward function; each component can have multiple
+implementations which better for different objects.  The following
+sections describe how we can use this pipeline to learn which
+implementation to use for specific objects; this learning dramatically
+speeds up performance.
+
+\begin{figure}
+\includegraphics{system.pdf}
+\caption{Data flow in our grasping system.\label{fig:system}}
+\end{figure}
 
 \subsection{Object Detection}
 \label{sec:detection}
+
+The input of the object detection component is an image, $I$; the
+output is a set of candidate bounding boxes, $B$.  We validate this
+component during training using the 3d IR map of the object, which we
+back-project into the original image to obtain the true bounding box.
+We use two algorithms for object detection, one based on the BING
+objectness metric, which works well for objects that have distinct
+colors, and one based on gradients, which works well for objects that
+contrast well with the background. 
+
+\subsubsection{Detecting Objects Using BING and Integral Images}
+
 To detect candidate objects, we first apply the BING objectness
 detector~\citep{cheng14} to the image, which returns a set $\{B_i\}$
 of thousands of approximate object bounding boxes in the image, shown
@@ -287,8 +326,17 @@ unobstructed backgrounds to support the training process;
 Section~\ref{sec:mapping} describes our approach to recognition under
 clutter and occlusion.
 
+\subsubsection{Detecting Objects Using Image Gradients}
+
+\stnote{John -- please fill this part in.}
+
 \subsection{Object Recognition}
 \label{sec:recognition}
+
+The object recognition module takes as input a bonding box, $B$, and
+outputs a label for that object, $c$, based on the robot's memory.
+This label is used to identify the object and look up other
+information about the object for grasping further down the pipeline.
 
 For each object $c$ we wish to classify, we gather a set of example
 crops $E_c$ which are candidate bounding boxes (derived as above)
@@ -367,7 +415,16 @@ in Section~\ref{sec:detection} and~\ref{sec:recognition}.
 
 To identify a grasp points, we combine a depth map of the object with
 a model of the gripper.  The depth map appears in
-Figure~\ref{fig:depth_map}.
+Figure~\ref{fig:depth_map}.  The grasp model scores each potential
+grasp according to a linear model of the gripper to estimate grasp
+success.  A default algorithm picks the highest-scoring grasp point,
+but frequently this point is not actually a good grasp, because the
+object might slip out of the robot's gripper or part of the object may
+not be visible in IR.  The input to this module is the 3d pose of the
+object, and the output is a grasp point $(x, y)$; at this point we
+assume only crane grasps rather than full 3d grasping. 
+
+
 
 \subsection{Closed-Loop Grasping}
 
@@ -399,8 +456,8 @@ $w_1... w_n$ which people might use to describe the object, so the
 robot can respond to natural language commands such as ``Put the cup
 on the left table.''
 
-To train our model, the robot must first move the object to a known
-pose, then acquire images that are annotated with a pose as well as a
+To train our model, the robot first moves the object to a known pose,
+then acquires images that are annotated with a pose as well as a
 cropped bounding box for training.  As typical in machine learning
 applications, the more images we can acquire, from the more
 viewpoints, the more accurate our detection, pose estimation, and
@@ -417,11 +474,11 @@ the bounding boxes inferred by the Bing objectness detector.
 
 
 \begin{figure}
-  \textbf{Find Candidate Object}
+  \textbf{GraspObject()}
   \begin{algorithmic}
     \WHILE {true}
-      \STATE IR scan for grasp points.
-      \STATE Attempt a grasp.
+      \STATE $I \gets loadImage()$
+      \STATE $B \gets Attempt a grasp.$
       \IF {grasp is successful}
         \STATE Move object to training area.
         \STATE Map(object).
@@ -446,8 +503,8 @@ the bounding boxes inferred by the Bing objectness detector.
 \end{figure}
 
 
-\section{Object Detection for Semantic Mapping}
-\label{sec:mapping}
+\section{Bandit-based Adaptation}
+
  
 \section{Experimental Setup}
 
