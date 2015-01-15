@@ -6599,8 +6599,13 @@ cout <<
      case 196360:
        {
          loadPriorGraspMemory();
-         copyGraspMemoryRegister(graspMemoryReg1, graspMemorySample);
          copyGraspMemoryTriesToClassGraspMemoryTries();
+         loadMarginalGraspMemory();
+
+         // shows mus before we converted them to alphas and betas,
+         // smoothing the values based on eccentricity.  
+         //copyGraspMemoryRegister(graspMemoryReg1, graspMemorySample);
+
          drawMapRegisters();
 	 cout << "class " << classLabels[targetClass] << " number ";
        } 
@@ -10455,6 +10460,7 @@ void drawMapRegisters() {
             double blueIntensity = 255 * graspMemorySample[i];
             double greenIntensity = 255 * graspMemorySample[i];
             double redIntensity = 255 * graspMemorySample[i];
+            //cout << "Grasp Memory Sample: " << "rx: " << rx << " ry: " << ry << " tGG:" << tGG << "sample: " << graspMemorySample[i] << endl;
 
             cv::Scalar color(ceil(blueIntensity),ceil(greenIntensity),ceil(redIntensity));
 
