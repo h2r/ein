@@ -609,7 +609,7 @@ int localMaxX = 0;
 int localMaxY = 0;
 int localMaxGG = 0;
 
-double graspDepth = -.09;//-.03;//-.01;//-.03;//-.04;//-.02;
+double graspDepth = -0.105;//-.10;//-.09;//-.03;//-.01;//-.03;//-.04;//-.02;
 
 // grasp gear should always be even
 const int totalGraspGears = 8;
@@ -758,6 +758,17 @@ double graspMemoryReg1[4*rmWidth*rmWidth];
 int gmTargetX = -1;
 int gmTargetY = -1;
 
+// the last value the gripper was at when it began to open from a closed position
+double lastMeasuredBias = 2.0;
+double lastMeasuredClosed = 3.0;
+
+typedef enum {
+  STATIC_PRIOR = 1,
+  LEARNING_SAMPLING = 2,
+  STATIC_MARGINALS = 3
+} pickMode;
+pickMode currentPickMode = STATIC_PRIOR;
+
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -817,15 +828,16 @@ std::string densityViewerName = "Density Viewer";
 std::string objectViewerName = "Object Viewer";
 std::string gradientViewerName = "Gradient Viewer";
 
-int loTrackbarVariable = 45;//75;
-int hiTrackbarVariable = 40;//50;
+int loTrackbarVariable = 30;//45;//75;
+int hiTrackbarVariable = 35;//40;//50;
 int redTrackbarVariable = 0;
+int postDensitySigmaTrackbarVariable = 10.0;
 
 double drawBingProb = .1;
 
 // for objectness
-double canny_hi_thresh = 7;
-double canny_lo_thresh = 4;
+double canny_hi_thresh = 5e5;//7;
+double canny_lo_thresh = 5e5;//4;
 // for sobel
 //double canny_hi_thresh = 10;
 //double canny_lo_thresh = 0.5;
@@ -1097,7 +1109,7 @@ int softMaxGradientServoIterations = 3;
 int hardMaxGradientServoIterations = 3;//10;
 int currentGradientServoIterations = 0;
 
-int fuseBlueBoxes = 0;
+int fuseBlueBoxes = 1;
 int fusePasses = 5;
 
 ////////////////////////////////////////////////
@@ -3544,6 +3556,7 @@ void timercallback1(const ros::TimerEvent&) {
 	command.id = 65538;
 	gripperPub.publish(command);
 	cout << "open gripper: " << gripperMoving << " " << gripperGripping << " " << gripperPosition << endl;
+	lastMeasuredClosed = gripperPosition;
       }
       break;
     case 'l':
@@ -4723,7 +4736,11 @@ cout <<
 	// ATTN 1 currently accounting for table models
 	//double deltaZ = (-(maxD + currentTableZ) - graspDepth) - currentEEPose.pz;
 	// ATTN 4
-	double deltaZ = (-(trZ + currentTableZ) - graspDepth) - currentEEPose.pz;
+	//double deltaZ = (-(trZ + currentTableZ) - graspDepth) - currentEEPose.pz;
+	// ATTN 11
+	// recall that this business is in untabled coordinates
+	double threshedZ = min(trZ, 0.0);
+	double deltaZ = (-(threshedZ + currentTableZ) - graspDepth) - currentEEPose.pz;
 
 	double zTimes = fabs(floor(deltaZ / bDelta)); 
 
@@ -5514,8 +5531,30 @@ cout <<
 	// ATTN 10
         // loadSampled gives proper Thompson
         // loadMarginal is MAP estimate
-        pilot_call_stack.push_back(131117); // loadSampledGraspMemory
+        //pilot_call_stack.push_back(131117); // loadSampledGraspMemory
         //pilot_call_stack.push_back(131133); // loadMarginalGraspMemory
+	switch (currentPickMode) {
+	  case STATIC_PRIOR:
+	    {
+	      pilot_call_stack.push_back(131133); // loadMarginalGraspMemory
+	    }
+	    break;
+	  case LEARNING_SAMPLING:
+	    {
+	      pilot_call_stack.push_back(131117); // loadSampledGraspMemory
+	    }
+	    break;
+	  case STATIC_MARGINALS:
+	    {
+	      pilot_call_stack.push_back(131133); // loadMarginalGraspMemory
+	    }
+	    break;
+	  default:
+	    {
+	      assert(0);
+	    }
+	    break;
+	}
 
 	pilot_call_stack.push_back(1048684); // turn off scanning
 	pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
@@ -5527,6 +5566,8 @@ cout <<
       {
 	pilot_call_stack.push_back(131141); // 2D patrol continue
 	pilot_call_stack.push_back(131153); // vision cycle
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(1048625); // change to first gear
 
 	pilot_call_stack.push_back('k'); // open gripper
         pilot_call_stack.push_back(131151); // shake it off 1
@@ -5541,7 +5582,11 @@ cout <<
 
 
 	//count here so that if it drops it on the way it will count as a miss
-	pilot_call_stack.push_back(196713); // count grasp
+	{ // in case it fell out
+	  pilot_call_stack.push_back(196713); // count grasp
+	  pushNoOps(5);
+	  pilot_call_stack.push_back('j'); // close gripper
+	}
 
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	pilot_call_stack.push_back(1048623); // numlock + /
@@ -5571,8 +5616,13 @@ cout <<
 	pilot_call_stack.push_back(1048695); // clear scan history
 	pilot_call_stack.push_back(1048684); // turn off scanning
 
-	pilot_call_stack.push_back('k'); // open gripper
-	pilot_call_stack.push_back('i'); // initialize gripper
+	{ // this sets the gripper closed thresh appropriately
+	  pilot_call_stack.push_back(1179713); // set gripperThresh 
+	  pilot_call_stack.push_back('k'); // open gripper
+	  pushNoOps(15);
+	  pilot_call_stack.push_back('j'); // close gripper
+	  pilot_call_stack.push_back('i'); // initialize gripper
+	}
       }
       break;
     // perturb position by a random amount
@@ -6377,10 +6427,32 @@ cout <<
 	cout << targetClass << endl;
 
 	execute_stack = 1;	
-	// ATTN 10
 	pilot_call_stack.push_back(1048673); // render register 1
-	pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+	// ATTN 10
+	//pilot_call_stack.push_back(196360); // loadPriorGraspMemory
 	//pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+	switch (currentPickMode) {
+	  case STATIC_PRIOR:
+	    {
+	      pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+	    }
+	    break;
+	  case LEARNING_SAMPLING:
+	    {
+	      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+	    }
+	    break;
+	  case STATIC_MARGINALS:
+	    {
+	      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+	    }
+	    break;
+	  default:
+	    {
+	      assert(0);
+	    }
+	    break;
+	}
       }
       break;
     // de-increment target class
@@ -6398,10 +6470,32 @@ cout <<
 	cout << targetClass << endl;
 
 	execute_stack = 1;	
-	// ATTN 10
 	pilot_call_stack.push_back(1048673); // render register 1
-	pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+	// ATTN 10
+	//pilot_call_stack.push_back(196360); // loadPriorGraspMemory
 	//pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+	switch (currentPickMode) {
+	  case STATIC_PRIOR:
+	    {
+	      pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+	    }
+	    break;
+	  case LEARNING_SAMPLING:
+	    {
+	      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+	    }
+	    break;
+	  case STATIC_MARGINALS:
+	    {
+	      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+	    }
+	    break;
+	  default:
+	    {
+	      assert(0);
+	    }
+	    break;
+	}
       }
       break;
     // listen for pick requests from fetch command
@@ -6493,6 +6587,7 @@ cout <<
          copyGraspMemoryRegister(graspMemoryReg1, graspMemorySample);
          copyGraspMemoryTriesToClassGraspMemoryTries();
          drawMapRegisters();
+	 cout << "class " << classLabels[targetClass] << " number ";
        } 
        break;
     // 2D patrol start
@@ -8069,20 +8164,60 @@ cout <<
 	  pilot_call_stack.push_back(196713); // count grasp
 	} else {
 	  graspAttemptCounter++;
-          graspMemoryTries[i]++;
+          //graspMemoryTries[i]++;
+	  switch (currentPickMode) {
+	    case STATIC_PRIOR:
+	      {
+	      }
+	      break;
+	    case LEARNING_SAMPLING:
+	      {
+		graspMemoryTries[i]++;
+	      }
+	      break;
+	    case STATIC_MARGINALS:
+	      {
+	      }
+	      break;
+	    default:
+	      {
+		assert(0);
+	      }
+	      break;
+	  }
 	  if (gripperPosition < gripperThresh) {
 	    graspFailCounter++;
             cout << "Failed grasp." << endl;
 	  } else {
 	    graspSuccessCounter++;
-            graspMemoryPicks[i]++;
+            //graspMemoryPicks[i]++;
+	    switch (currentPickMode) {
+	      case STATIC_PRIOR:
+		{
+		}
+		break;
+	      case LEARNING_SAMPLING:
+		{
+		  graspMemoryPicks[i]++;
+		}
+		break;
+	      case STATIC_MARGINALS:
+		{
+		}
+		break;
+	      default:
+		{
+		  assert(0);
+		}
+		break;
+	    }
             cout << "Successful grasp." << endl;
 	  }
           copyGraspMemoryTriesToClassGraspMemoryTries();
 	  graspSuccessRate = graspSuccessCounter / graspAttemptCounter;
 	  ros::Time thisTime = ros::Time::now();
 	  ros::Duration sinceStartOfTrial = thisTime - graspTrialStart;
-	  cout << "<><><><> Grasp attempts rate time gripperPosition: " << graspSuccessCounter << "/" << graspAttemptCounter << " " << graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << gripperPosition << endl;
+	  cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << graspSuccessCounter << "/" << graspAttemptCounter << " " << graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << gripperPosition << " " << currentPickMode << endl;
 	}
       }
       break;
@@ -8111,7 +8246,7 @@ cout <<
 	//pushCopies('e', 10); // move forward
 	//pushCopies('s', depthToPlunge); // move down
 	pilot_call_stack.push_back('k'); // open gripper
-	pushNoOps(30);
+	pushNoOps(50);
 	//pushCopies('q', 5); // move back 
 	//pushCopies('s'+65504, flexThisFar); // rotate backward
 
@@ -8187,7 +8322,7 @@ cout <<
 	//pushCopies('e', 5); // move forward
 	//pushCopies('s', depthToPlunge); // move down
 	pilot_call_stack.push_back('k'); // open gripper
-	//pushNoOps(30);
+	pushNoOps(50);
 	//pushCopies('w'+65504, flexThisFar); // rotate forward
 
 	//pilot_call_stack.push_back('2'); // assume pose at register 2
@@ -8345,6 +8480,7 @@ cout <<
 
 	// go to counter waypoint and back up
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(1048625); // change to first gear
 	pushCopies('w', 10);
 	pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
       }
@@ -8860,6 +8996,7 @@ cout <<
 	} else {
 	  cout << "Whoops, tried to set grasp memories 4 but they don't exist for this class." << targetClass << endl;
 	}
+        cout << "class " << classLabels[targetClass] << " number ";
       }
       break;
     // test getLocalGraspGear
@@ -8885,6 +9022,38 @@ cout <<
     case 1179728:
       {
 	estimateGlobalGraspGear();
+      }
+      break;
+    // set gripperThresh 
+    // capslock + numlock + a
+    case 1179713:
+      {
+	gripperThresh = lastMeasuredClosed+lastMeasuredBias;
+	cout << "gripperThresh = " << gripperThresh << endl;
+      }
+      break;
+    // set pickMode
+    // capslock + numlock + s
+    case 1179731:
+      {
+	currentPickMode = STATIC_PRIOR;
+	cout << "currentPickMode = " << currentPickMode << endl;
+      }
+      break;
+    // set pickMode
+    // capslock + numlock + d
+    case 1179716:
+      {
+	currentPickMode = LEARNING_SAMPLING;
+	cout << "currentPickMode = " << currentPickMode << endl;
+      }
+      break;
+    // set pickMode
+    // capslock + numlock + f
+    case 1179718:
+      {
+	currentPickMode = STATIC_MARGINALS;
+	cout << "currentPickMode = " << currentPickMode << endl;
       }
       break;
     case 2:
@@ -12404,17 +12573,55 @@ void goCalculateDensity() {
   maxDensity = 0;
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
+      maxDensity = max(maxDensity, density[y*imW+x]);
+    }
+  }
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
       temporalDensity[y*imW+x] = densityDecay*temporalDensity[y*imW+x] + (1.0-densityDecay)*density[y*imW+x];
       //density[y*imW+x] = pow(temporalDensity[y*imW+x], densityPower);
       //maxDensity = max(maxDensity, density[y*imW+x]);
     }
   }
 
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      maxDensity = max(maxDensity, density[y*imW+x]);
+  // optionally feed it back in
+  int sobelBecomesDensity = 1;
+  double maxGsob = -INFINITY;
+  double maxYsob = -INFINITY;
+  if (sobelBecomesDensity) {
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	totalGraySobel.at<double>(y,x) = density[y*imW+x];
+	maxGsob = max(maxGsob, totalGraySobel.at<double>(y,x));
+	maxYsob = max(maxYsob, totalYSobel.at<double>(y,x));
+      }
     }
   }
+  
+  // ATTN 11
+// experimental
+  int combineYandGray = 1;
+  double yWeight = 1.0;
+  if (combineYandGray) {
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	//totalGraySobel.at<double>(y,x) += maxGsob * yWeight * totalYSobel.at<double>(y,x) * totalYSobel.at<double>(y,x) / (maxYsob * maxYsob);
+	double thisY2G = min(maxYsob, yWeight * totalYSobel.at<double>(y,x));
+	totalGraySobel.at<double>(y,x) += maxGsob * thisY2G * thisY2G / (maxYsob * maxYsob);
+      }
+    }
+  }
+// works
+//  int combineYandGray = 1;
+//  double yWeight = 1.0;
+//  if (combineYandGray) {
+//    for (int x = 0; x < imW; x++) {
+//      for (int y = 0; y < imH; y++) {
+//	totalGraySobel.at<double>(y,x) += maxGsob * yWeight * totalYSobel.at<double>(y,x) * totalYSobel.at<double>(y,x) / (maxYsob * maxYsob);
+//      }
+//    }
+//  }
+
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
       if (density[y*imW+x] < maxDensity* threshFraction)
@@ -12425,8 +12632,8 @@ void goCalculateDensity() {
   }
 
   // smooth the density
-  int smoothDensity = 0;
-  double densitySigma = 3.0;
+  int smoothDensity = 1;
+  double densitySigma = max(0.5, double(postDensitySigmaTrackbarVariable));//3.0;
   Mat denTemp = totalGraySobel.clone();
   if (smoothDensity) {
     for (int x = 0; x < imW; x++) {
@@ -12444,24 +12651,19 @@ void goCalculateDensity() {
     }
   }
 
-  // optionally feed it back in
-  int sobelBecomesDensity = 1;
-  double maxYsob = -INFINITY;
-  if (sobelBecomesDensity) {
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	totalGraySobel.at<double>(y,x) = density[y*imW+x];
-	maxYsob = max(maxYsob, totalGraySobel.at<double>(y,x));
-      }
-    }
-  }
-
   // inject some of the Y gradient map back in AFTER feeding back to totalGraySobel
   //   so that Y contributes to objectness to help catch objects with poor color contrast,
   //   but not to pose since it is corrupted by shadows.
   int injectYGrad = 1;
-  double yThresh = 0.9*maxYsob;
+  double yThresh = 0.9*maxGsob;
   if (injectYGrad) {
+    // truncate again after reinjection
+    maxDensity = 0;
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	maxDensity = max(maxDensity, density[y*imW+x]);
+      }
+    }
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
 	if (totalYSobel.at<double>(y,x) > yThresh) {
@@ -12715,8 +12917,12 @@ void goFindBlueBoxes() {
   int yS = gBoxH*(grayTop.y/gBoxH);
   int yF = min(grayBot.y-gBoxH, imH-gBoxH);
 
-  double adjusted_canny_lo_thresh = canny_lo_thresh * (1.0 + (double(loTrackbarVariable-50) / 50.0));
-  double adjusted_canny_hi_thresh = canny_hi_thresh * (1.0 + (double(hiTrackbarVariable-50) / 50.0));
+  // fine tune
+  //double adjusted_canny_lo_thresh = canny_lo_thresh * (1.0 + (double(loTrackbarVariable-50) / 50.0));
+  //double adjusted_canny_hi_thresh = canny_hi_thresh * (1.0 + (double(hiTrackbarVariable-50) / 50.0));
+  // broad tune
+  double adjusted_canny_lo_thresh = canny_lo_thresh * double(loTrackbarVariable)/100.0;
+  double adjusted_canny_hi_thresh = canny_hi_thresh * double(hiTrackbarVariable)/100.0;
 
 //cout << "Here 1" << endl;
   for (int x = xS; x <= xF; x+=gBoxStrideX) {
@@ -15012,6 +15218,9 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
 
 void processSaliency(Mat in, Mat out) {
   out = in.clone();
+
+  double saliencyPreSigma = 4.0;//0.5;//2.0;
+  GaussianBlur(out, out, cv::Size(0,0), saliencyPreSigma);
   
   double tMax = -INFINITY;
   double tMin =  INFINITY;
@@ -15022,7 +15231,7 @@ void processSaliency(Mat in, Mat out) {
     }
   }
 
-  double saliencyThresh = 0.1*(tMax-tMin) + tMin;
+  double saliencyThresh = 0.33*(tMax-tMin) + tMin;
   for (int x = 0; x < in.cols; x++) {
     for (int y = 0; y < in.rows; y++) {
       if (out.at<double>(y,x) >= saliencyThresh)
@@ -15032,8 +15241,8 @@ void processSaliency(Mat in, Mat out) {
     }
   }
 
-  double saliencySigma = 4.0;//0.5;//2.0;
-  GaussianBlur(out, out, cv::Size(0,0), saliencySigma);
+  double saliencyPostSigma = 0.5;//4.0;//0.5;//2.0;
+  GaussianBlur(out, out, cv::Size(0,0), saliencyPostSigma);
 }
 
 ////////////////////////////////////////////////
@@ -15128,6 +15337,7 @@ int main(int argc, char **argv) {
   cv::namedWindow(objectViewerName);
   setMouseCallback(objectViewerName, nodeCallbackFunc, NULL);
 
+  createTrackbar("post_density_sigma", densityViewerName, &postDensitySigmaTrackbarVariable, 40);
   createTrackbar("canny_lo", densityViewerName, &loTrackbarVariable, 100);
   createTrackbar("canny_hi", densityViewerName, &hiTrackbarVariable, 100);
   createTrackbar("blinder_columns", densityViewerName, &blinder_columns, 20);
@@ -15203,6 +15413,7 @@ int main(int argc, char **argv) {
     targetClass = 1;
   }
 
+  pilot_call_stack.push_back(1048625); // change gear to 1
   pilot_call_stack.push_back(131151); // shake it off 1
 
   execute_stack = 1;
