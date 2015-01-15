@@ -15217,6 +15217,32 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
 }
 
 void processSaliency(Mat in, Mat out) {
+//  out = in.clone();
+//
+//  double saliencyPreSigma = 4.0;//0.5;//2.0;
+//  GaussianBlur(out, out, cv::Size(0,0), saliencyPreSigma);
+//  
+//  double tMax = -INFINITY;
+//  double tMin =  INFINITY;
+//  for (int x = 0; x < in.cols; x++) {
+//    for (int y = 0; y < in.rows; y++) {
+//      tMax = max(tMax, out.at<double>(y,x));
+//      tMin = min(tMin, out.at<double>(y,x));
+//    }
+//  }
+//
+//  double saliencyThresh = 0.33*(tMax-tMin) + tMin;
+//  for (int x = 0; x < in.cols; x++) {
+//    for (int y = 0; y < in.rows; y++) {
+//      if (out.at<double>(y,x) >= saliencyThresh)
+//	out.at<double>(y,x) = 1;
+//      else
+//	out.at<double>(y,x) = 0;
+//    }
+//  }
+//
+//  double saliencyPostSigma = 0.5;//4.0;//0.5;//2.0;
+//  GaussianBlur(out, out, cv::Size(0,0), saliencyPostSigma);
   out = in.clone();
 
   double saliencyPreSigma = 4.0;//0.5;//2.0;
@@ -15241,7 +15267,7 @@ void processSaliency(Mat in, Mat out) {
     }
   }
 
-  double saliencyPostSigma = 0.5;//4.0;//0.5;//2.0;
+  double saliencyPostSigma = 4.0;//0.5;//4.0;//0.5;//2.0;
   GaussianBlur(out, out, cv::Size(0,0), saliencyPostSigma);
 }
 
