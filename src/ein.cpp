@@ -13540,8 +13540,8 @@ void goFindBlueBoxes() {
       
       // XXX for some reason there were spurious blue boxes outside of the gray box, with no green boxes,
       //  so we reject them here for now
-      if ( (cTops.x < grayTop.x) || (cBots.x > grayBot.x) ||
-	   (cTops.y < grayTop.y) || (cBots.y > grayBot.y) )
+      if ( (cTops[c].x < grayTop.x) || (cBots[c].x > grayBot.x) ||
+	   (cTops[c].y < grayTop.y) || (cBots[c].y > grayBot.y) )
 	allow = 0;
 
       // ATTN 5
