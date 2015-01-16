@@ -9299,6 +9299,7 @@ cout <<
 	pilot_call_stack.push_back(1179695); // check to see if bounding box is unique (early outting if not)
 
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	// XXX TODO set the remembered height
 	pilot_call_stack.push_back(1179687); // set random position for bblearn
 	pilot_call_stack.push_back(65568+4); // record register 4
 
@@ -13347,33 +13348,43 @@ void goFindBlueBoxes() {
 	allow = 0;
       //if (cTops[c].y > rejectLow || cBots[c].y < rejectHigh)
 	//allow = 0;
+      
+      // XXX for some reason there were spurious blue boxes outside of the gray box, with no green boxes,
+      //  so we reject them here for now
+      if ( (cTops.x < grayTop.x) || (cBots.x > grayBot.x) ||
+	   (cTops.y < grayTop.y) || (cBots.y > grayBot.y) )
+	allow = 0;
 
       // ATTN 5
       // check for overlap and fuse
       cv::Point thisCen = cv::Point((cTops[c].x+cBots[c].x)/2, (cTops[c].y+cBots[c].y)/2);
       if (fuseBlueBoxes) {
-	for (int fuseIter = 0; fuseIter < fusePasses; fuseIter++) {
-	  for (int cbc = 0; cbc < bTops.size(); cbc++) {
-      int smallWidth = min(bCens[cbc].x-bTops[cbc].x, thisCen.x-cTops[c].x);
-      int bigWidth = max(bCens[cbc].x-bTops[cbc].x, thisCen.x-cTops[c].x);
-	    // this tests overlap
-	    //if ( fabs(thisCen.x - bCens[cbc].x) < fabs(bCens[cbc].x-bTops[cbc].x+thisCen.x-cTops[c].x) && 
-		 //fabs(thisCen.y - bCens[cbc].y) < fabs(bCens[cbc].y-bTops[cbc].y+thisCen.y-cTops[c].y) ) 
-	    //this tests containment
-	    if ( fabs(thisCen.x - bCens[cbc].x) < fabs(bigWidth - smallWidth) && 
-		 fabs(thisCen.y - bCens[cbc].y) < fabs(bigWidth - smallWidth) ) 
-	    {
-	      allow = 0;
-	      bTops[cbc].x = min(bTops[cbc].x, cTops[c].x);
-	      bTops[cbc].y = min(bTops[cbc].y, cTops[c].y);
-	      bBots[cbc].x = max(bBots[cbc].x, cBots[c].x);
-	      bBots[cbc].y = max(bBots[cbc].y, cBots[c].y);
+	if (allow) {
+	  for (int fuseIter = 0; fuseIter < fusePasses; fuseIter++) {
+	    for (int cbc = 0; cbc < bTops.size(); cbc++) {
 
-	      // gotta do this and continue searching to fuse everything, need a better algorithm in the future
-	      cTops[c].x = bTops[cbc].x;
-	      cTops[c].y = bTops[cbc].y;
-	      cBots[c].x = bBots[cbc].x;
-	      cBots[c].y = bBots[cbc].y;
+	      int smallWidth = min(bCens[cbc].x-bTops[cbc].x, thisCen.x-cTops[c].x);
+	      int bigWidth = max(bCens[cbc].x-bTops[cbc].x, thisCen.x-cTops[c].x);
+
+	      // this tests overlap
+	      //if ( fabs(thisCen.x - bCens[cbc].x) < fabs(bCens[cbc].x-bTops[cbc].x+thisCen.x-cTops[c].x) && 
+		   //fabs(thisCen.y - bCens[cbc].y) < fabs(bCens[cbc].y-bTops[cbc].y+thisCen.y-cTops[c].y) ) 
+	      //this tests containment
+	      if ( fabs(thisCen.x - bCens[cbc].x) < fabs(bigWidth - smallWidth) && 
+		   fabs(thisCen.y - bCens[cbc].y) < fabs(bigWidth - smallWidth) ) 
+	      {
+		allow = 0;
+		bTops[cbc].x = min(bTops[cbc].x, cTops[c].x);
+		bTops[cbc].y = min(bTops[cbc].y, cTops[c].y);
+		bBots[cbc].x = max(bBots[cbc].x, cBots[c].x);
+		bBots[cbc].y = max(bBots[cbc].y, cBots[c].y);
+
+		// gotta do this and continue searching to fuse everything, need a better algorithm in the future
+		cTops[c].x = bTops[cbc].x;
+		cTops[c].y = bTops[cbc].y;
+		cBots[c].x = bBots[cbc].x;
+		cBots[c].y = bBots[cbc].y;
+	      }
 	    }
 	  }
 	}
