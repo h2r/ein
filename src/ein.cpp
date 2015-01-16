@@ -775,7 +775,7 @@ double graspMemoryReg1[4*rmWidth*rmWidth];
 
 // height Thompson parameters
 const double minHeight = 0;
-const double maxHeight = 0.2;
+const double maxHeight = 0.25;
 double heightMemoryTries[hmWidth];
 double heightMemoryPicks[hmWidth];
 double heightMemorySample[hmWidth];
@@ -792,9 +792,9 @@ typedef enum {
   LEARNING_SAMPLING = 2,
   STATIC_MARGINALS = 3
 } pickMode;
-pickMode currentPickMode = STATIC_PRIOR;
-pickMode currentBoundingBoxMode = STATIC_PRIOR;
-pickMode currentDepthMode = STATIC_PRIOR;
+pickMode currentPickMode = STATIC_MARGINALS;
+pickMode currentBoundingBoxMode = STATIC_MARGINALS;
+pickMode currentDepthMode = STATIC_MARGINALS;
 
 std::string pickModeToString(int mode) {
   string result;
@@ -1243,7 +1243,7 @@ void loadPriorGraspMemory();
 void estimateGlobalGraspGear();
 void drawMapRegisters();
 
-
+void guardHeightMemory();
 void loadSampledHeightMemory();
 void loadMarginalHeightMemory();
 void loadPriorHeightMemory();
@@ -3737,7 +3737,9 @@ void timercallback1(const ros::TimerEvent&) {
     case 'y': // execute stack
       execute_stack = 1;
       break;
+    // printState
     case 'u':
+      cout << endl;
       cout << "Current EE Position (x,y,z): " << currentEEPose.px << " " << currentEEPose.py << " " << currentEEPose.pz << endl;
       cout << "Current EE Orientation (x,y,z,w): " << currentEEPose.qx << " " << currentEEPose.qy << " " << currentEEPose.qz << " " << currentEEPose.qw << endl;
       cout << "True EE Position (x,y,z): " << trueEEPose.position.x << " " << trueEEPose.position.y << " " << trueEEPose.position.z << endl;
@@ -3747,6 +3749,11 @@ cout <<
 "		      .ox = 0, .oy = 0, .oz = 0," << endl <<
 "		      .qx = " << trueEEPose.orientation.x << ", .qy = " << trueEEPose.orientation.y << ", .qz = " << trueEEPose.orientation.z << ", .qw = " << trueEEPose.orientation.w << "};" << endl;
       cout << "mostRecentUntabledZ: " << mostRecentUntabledZ << endl;
+      cout << "currentPickMode: " << pickModeToString(currentPickMode) << endl;
+      cout << "currentBoundingBoxMode: " << pickModeToString(currentBoundingBoxMode) << endl;
+      cout << "focusedClass: " << focusedClass << " " << classLabels[focusedClass] << endl;
+      cout << "targetClass: " << targetClass << " " << classLabels[targetClass] << endl;
+      cout << endl;
       break;
     case 'i':
       {
@@ -6525,7 +6532,31 @@ cout <<
 	    }
 	    break;
 	}
-	drawHeightMemorySample();
+
+	switch (currentBoundingBoxMode) {
+	  case STATIC_PRIOR:
+	    {
+	      pilot_call_stack.push_back(1244936); // loadPriorHeightMemory
+	    }
+	    break;
+	  case LEARNING_SAMPLING:
+	    {
+	      pilot_call_stack.push_back(1245289); // set heightMemories from classHeightMemories
+	    }
+	    break;
+	  case STATIC_MARGINALS:
+	    {
+	      pilot_call_stack.push_back(1245289); // set heightMemories from classHeightMemories
+	    }
+	    break;
+	  default:
+	    {
+	      assert(0);
+	    }
+	    break;
+	}
+
+
       }
       break;
     // de-increment target class
@@ -6689,7 +6720,7 @@ cout <<
      case 1244936:
        {
          loadPriorHeightMemory();
-         //copyHeightMemoryTriesToClassHeightMemoryTries();
+         copyHeightMemoryTriesToClassHeightMemoryTries();
          loadMarginalHeightMemory();
          drawHeightMemorySample();
        } 
@@ -8042,6 +8073,7 @@ cout <<
 	if (focusedClass > -1) {
 	  // initialize this if we need to
 	  guardGraspMemory();
+	  guardHeightMemory();
 
 	  string thisLabelName = focusedClassLabel;
 
@@ -8074,6 +8106,11 @@ cout <<
           fsvO << "graspMemoryTries4" << classGraspMemoryTries4[focusedClass];
           fsvO << "graspMemoryPicks4" << classGraspMemoryPicks4[focusedClass];
 
+          copyHeightMemoryTriesToClassHeightMemoryTries();
+          fsvO << "heightMemoryTries" << classHeightMemoryTries[focusedClass];
+          fsvO << "heightMemoryPicks" << classHeightMemoryPicks[focusedClass];
+
+
 	  //fsvO << "graspMemoryTries" << triesTemp;
 	  //fsvO << "graspMemoryPicks" << picksTemp;
 	  lastRangeMap = rangeMapTemp;
@@ -8089,6 +8126,8 @@ cout <<
 	if (focusedClass > -1) {
 	  // initialize this if we need to
 	  guardGraspMemory();
+	  guardHeightMemory();
+
 
 	  string thisLabelName = focusedClassLabel;
 
@@ -8119,6 +8158,12 @@ cout <<
           fsvO << "graspMemoryPicks3" << classGraspMemoryPicks3[focusedClass];
           fsvO << "graspMemoryTries4" << classGraspMemoryTries4[focusedClass];
           fsvO << "graspMemoryPicks4" << classGraspMemoryPicks4[focusedClass];
+
+
+          copyHeightMemoryTriesToClassHeightMemoryTries();
+          fsvO << "heightMemoryTries" << classHeightMemoryTries[focusedClass];
+          fsvO << "heightMemoryPicks" << classHeightMemoryPicks[focusedClass];
+
 
 	  lastRangeMap = rangeMapTemp;
 	  fsvO.release();
@@ -9103,6 +9148,7 @@ cout <<
 	if (focusedClass > -1) {
 	  // initialize this if we need to
 	  guardGraspMemory();
+	  guardHeightMemory();
 
 	  string thisLabelName = focusedClassLabel;
 
@@ -9133,6 +9179,9 @@ cout <<
 	  fsvO << "graspMemoryPicks3" << classGraspMemoryPicks3[focusedClass];
 	  fsvO << "graspMemoryTries4" << classGraspMemoryTries4[focusedClass];
 	  fsvO << "graspMemoryPicks4" << classGraspMemoryPicks4[focusedClass];
+
+          fsvO << "heightMemoryTries" << classHeightMemoryTries[focusedClass];
+          fsvO << "heightMemoryPicks" << classHeightMemoryPicks[focusedClass];
 	
 	  // ATTN 5 what is last range map for?
 	  lastRangeMap = rangeMapTemp;
@@ -9160,7 +9209,7 @@ cout <<
 	    } 
 	  } 
 	} else {
-	  cout << "Whoops, tried to set grasp memories 1 but they don't exist for this class:"  << targetClass << endl;
+	  cout << "Whoops, tried to set grasp memories 1 but they don't exist for this class." << targetClass << " " << classLabels[targetClass] << endl;
 	}
 	if ((classGraspMemoryTries2[targetClass].rows > 1) && (classGraspMemoryTries2[targetClass].cols > 1) &&
 	    (classGraspMemoryPicks2[targetClass].rows > 1) && (classGraspMemoryPicks2[targetClass].cols > 1) ) {
@@ -9178,7 +9227,7 @@ cout <<
 	    } 
 	  } 
 	} else {
-	  cout << "Whoops, tried to set grasp memories 2 but they don't exist for this class." << targetClass << endl;
+	  cout << "Whoops, tried to set grasp memories 2 but they don't exist for this class." << targetClass << " " << classLabels[targetClass] << endl;
 	}
 	if ((classGraspMemoryTries3[targetClass].rows > 1) && (classGraspMemoryTries3[targetClass].cols > 1) &&
 	    (classGraspMemoryPicks3[targetClass].rows > 1) && (classGraspMemoryPicks3[targetClass].cols > 1) ) {
@@ -9196,7 +9245,7 @@ cout <<
 	    } 
 	  } 
 	} else {
-	  cout << "Whoops, tried to set grasp memories 3 but they don't exist for this class." << targetClass << endl;
+	  cout << "Whoops, tried to set grasp memories 3 but they don't exist for this class." << targetClass << " " << classLabels[targetClass] << endl;
 	}
 	if ((classGraspMemoryTries4[targetClass].rows > 1) && (classGraspMemoryTries4[targetClass].cols > 1) &&
 	    (classGraspMemoryPicks4[targetClass].rows > 1) && (classGraspMemoryPicks4[targetClass].cols > 1) ) {
@@ -9214,9 +9263,26 @@ cout <<
 	    } 
 	  } 
 	} else {
-	  cout << "Whoops, tried to set grasp memories 4 but they don't exist for this class." << targetClass << endl;
+	  cout << "Whoops, tried to set grasp memories 4 but they don't exist for this class." << targetClass << " " << classLabels[targetClass] << endl;
 	}
+        
         cout << "class " << classLabels[targetClass] << " number ";
+      }
+      break;
+      // 
+    // set heightMemories from classHeightMemories
+    // capslock + numlock + I 
+      case 1245289: {
+        cout << "Loading height memories." << endl;
+        if ((classHeightMemoryTries[targetClass].rows > 1) && (classHeightMemoryPicks[targetClass].rows > 1)) {
+          for (int i = 0; i < hmWidth; i++) {
+            heightMemoryPicks[i] = classHeightMemoryPicks[targetClass].at<double>(i, 0);
+            heightMemoryTries[i] = classHeightMemoryTries[targetClass].at<double>(i, 0);
+          }
+        } else {
+	  cout << "Whoops, tried to set height memories but they don't exist for this class:" << targetClass << " " << classLabels[targetClass] << endl;
+        }
+
       }
       break;
     // test getLocalGraspGear
@@ -10422,6 +10488,7 @@ void guardGraspMemory() {
     if (classGraspMemoryPicks4.size() <= focusedClass) {
       classGraspMemoryPicks4.resize(focusedClass + 1);
     }
+
   }
 
   {
@@ -10445,7 +10512,24 @@ void guardGraspMemory() {
       classGraspMemoryTries4[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
       classGraspMemoryPicks4[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
     }
+
+
   }
+
+}
+
+void guardHeightMemory() {
+    if (classHeightMemoryTries.size() <= focusedClass) {
+      classHeightMemoryTries.resize(focusedClass + 1);
+    }
+    if (classHeightMemoryPicks.size() <= focusedClass) {
+      classHeightMemoryPicks.resize(focusedClass + 1);
+    }
+    if (!((classHeightMemoryTries[focusedClass].rows > 1) && (classHeightMemoryTries[focusedClass].cols > 1) &&
+	(classHeightMemoryPicks[focusedClass].rows > 1) && (classHeightMemoryPicks[focusedClass].cols > 1) )) {
+      classHeightMemoryTries[focusedClass] = Mat(hmWidth, 1, CV_64F);
+      classHeightMemoryPicks[focusedClass] = Mat(hmWidth, 1, CV_64F);
+    }
 
 }
 void convertGlobalGraspIdxToLocal(const int rx, const int ry, 
@@ -10674,7 +10758,11 @@ void drawHeightMemorySample() {
 }
 
 void copyHeightMemoryTriesToClassHeightMemoryTries() {
-  // XXX TODO
+  guardHeightMemory();
+  for (int i = 0; i < hmWidth; i++) {
+    classHeightMemoryTries[focusedClass].at<double>(i,0) = heightMemoryTries[i];
+    classHeightMemoryPicks[focusedClass].at<double>(i,0) = heightMemoryPicks[i];
+  }
 }
 
 void estimateGlobalGraspGear() {
@@ -13540,8 +13628,8 @@ void goFindBlueBoxes() {
       
       // XXX for some reason there were spurious blue boxes outside of the gray box, with no green boxes,
       //  so we reject them here for now
-      if ( (cTops.x < grayTop.x) || (cBots.x > grayBot.x) ||
-	   (cTops.y < grayTop.y) || (cBots.y > grayBot.y) )
+      if ( (cTops[c].x < grayTop.x) || (cBots[c].x > grayBot.x) ||
+	   (cTops[c].y < grayTop.y) || (cBots[c].y > grayBot.y) )
 	allow = 0;
 
       // ATTN 5
@@ -15446,6 +15534,8 @@ void detectorsInit() {
     classGraspMemoryTries4.resize(numClasses);
     classGraspMemoryPicks4.resize(numClasses);
     classAerialGradients.resize(numClasses);
+    classHeightMemoryTries.resize(numClasses);
+    classHeightMemoryPicks.resize(numClasses);
     for (int i = 0; i < classLabels.size(); i++) {
       tryToLoadRangeMap(class_crops_path, classLabels[i].c_str(), i);
     }
@@ -15661,6 +15751,10 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
       fsfI["graspMemoryTries4"] >> classGraspMemoryTries4[i];
       fsfI["graspMemoryPicks4"] >> classGraspMemoryPicks4[i];
 
+      fsfI["heightMemoryTries"] >> classHeightMemoryTries[i];
+      fsfI["heightMemoryPicks"] >> classHeightMemoryPicks[i];
+
+
       fsfI.release();
       cout << "Loaded rangeMap from " << this_range_path << classRangeMaps[i].size() << classRangeMaps[i] << endl; 
       cout << "Loaded classGraspMemoryTries1 from " << this_range_path << classGraspMemoryTries1[i].size() << classGraspMemoryTries1[i] << endl; 
@@ -15671,6 +15765,9 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
       cout << "Loaded classGraspMemoryPicks3 from " << this_range_path << classGraspMemoryPicks3[i].size() << classGraspMemoryPicks3[i] << endl; 
       cout << "Loaded classGraspMemoryTries4 from " << this_range_path << classGraspMemoryTries4[i].size() << classGraspMemoryTries4[i] << endl; 
       cout << "Loaded classGraspMemoryPicks4 from " << this_range_path << classGraspMemoryPicks4[i].size() << classGraspMemoryPicks4[i] << endl; 
+
+      cout << "Loaded classHeightMemoryTries from " << this_range_path << classHeightMemoryTries[i].size() << classHeightMemoryTries[i] << endl;
+      cout << "Loaded classHeightMemoryPicks from " << this_range_path << classHeightMemoryPicks[i].size() << classHeightMemoryPicks[i] << endl;
     } else {
       classRangeMaps[i] = Mat(1, 1, CV_64F);
       classGraspMemoryTries1[i] = Mat(1, 1, CV_64F);
@@ -15681,6 +15778,10 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
       classGraspMemoryPicks3[i] = Mat(1, 1, CV_64F);
       classGraspMemoryTries4[i] = Mat(1, 1, CV_64F);
       classGraspMemoryPicks4[i] = Mat(1, 1, CV_64F);
+
+      classHeightMemoryTries[i] = Mat(1, 1, CV_64F);
+      classHeightMemoryPicks[i] = Mat(1, 1, CV_64F);
+
       cout << "Failed to load rangeMap from " << this_range_path << endl; 
     }
   }
@@ -15910,6 +16011,7 @@ int main(int argc, char **argv) {
 
   saveROSParams();
 
+  pilot_call_stack.push_back('u'); // printState
   int devInit = 1;
   if (devInit) {
     if (0) {
