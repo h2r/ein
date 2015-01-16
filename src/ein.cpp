@@ -609,7 +609,7 @@ int localMaxX = 0;
 int localMaxY = 0;
 int localMaxGG = 0;
 
-double graspDepth = -0.105;//-.10;//-.09;//-.03;//-.01;//-.03;//-.04;//-.02;
+double graspDepth = -.09;//-0.105;//-.10;//-.09;//-.03;//-.01;//-.03;//-.04;//-.02;
 
 // grasp gear should always be even
 const int totalGraspGears = 8;
@@ -6861,7 +6861,7 @@ cout <<
 
 	// ATTN 3
 	// gradientServoScale should be even
-	int gradientServoScale = 3;//11;
+	int gradientServoScale = 1;//3;//11;
 	double gradientServoScaleStep = 1.02;
 	double startScale = pow(gradientServoScaleStep, -(gradientServoScale-1)/2);
 
@@ -8848,7 +8848,35 @@ cout <<
 	    cout << "lastLabelLearned classLabels[targetClass]: " << lastLabelLearned << " " << classLabels[targetClass] << endl;
 	  }
 	}
-	pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+
+	pilot_call_stack.push_back(1048673); // render register 1
+	// ATTN 10
+	//pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+	//pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+	switch (currentPickMode) {
+	  case STATIC_PRIOR:
+	    {
+	      pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+	    }
+	    break;
+	  case LEARNING_SAMPLING:
+	    {
+	      //pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+	      pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+	    }
+	    break;
+	  case STATIC_MARGINALS:
+	    {
+	      //pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+	      pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+	    }
+	    break;
+	  default:
+	    {
+	      assert(0);
+	    }
+	    break;
+	}
       }
       break;
     // set lastLabelLearned
@@ -15257,7 +15285,7 @@ void processSaliency(Mat in, Mat out) {
     }
   }
 
-  double saliencyThresh = 0.33*(tMax-tMin) + tMin;
+  double saliencyThresh = 0.1*(tMax-tMin) + tMin;
   for (int x = 0; x < in.cols; x++) {
     for (int y = 0; y < in.rows; y++) {
       if (out.at<double>(y,x) >= saliencyThresh)
