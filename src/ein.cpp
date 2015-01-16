@@ -121,6 +121,8 @@
 #include <opencv/highgui.h>
 #include <opencv2/nonfree/nonfree.hpp>
 
+#include <opencv2/gpu/gpu.hpp>
+
 using namespace std;
 using namespace cv;
 using namespace Eigen;
@@ -15734,6 +15736,11 @@ int main(int argc, char **argv) {
   pilot_call_stack.push_back(1048625); // change gear to 1
 
   execute_stack = 1;
+
+
+  int cudaCount = gpu::getCudaEnabledDeviceCount();
+  cout << "cuda count: " << cudaCount << endl;;
+  //exit(0);
 
   ros::spin();
 
