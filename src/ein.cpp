@@ -6744,24 +6744,25 @@ cout <<
 
 	// if we time out, reset the bblearning program
 	if ((synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING)) {
+	  cout << "bbLearning: synchronic servo timed out, early outting." << endl;
 	  restartBBLearning();
 	}
 
 	if (synchronicTakeClosest) {
 	  if ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1)) {
-	    cout << ">> Synchronic set to take closest box... pilotTarget = pilotClosestTarget << ";
+	    //cout << ">> Synchronic set to take closest box... pilotTarget = pilotClosestTarget << ";
 	    pilotTarget.px = pilotClosestTarget.px;
 	    pilotTarget.py = pilotClosestTarget.py;
 	    pilotTarget.pz = pilotClosestTarget.pz;
 	    pilotTargetBlueBoxNumber = pilotClosestBlueBoxNumber;
 	  } else {
-	    cout << ">> Synchronic set to take closest but closest is invalid. Halting servo. << " << endl;
-	    cout << "synchronic servo: " << reticle.px << " " << pilotClosestTarget.px << " " << reticle.py << " " << pilotClosestTarget.py << " ";
+	    //cout << ">> Synchronic set to take closest but closest is invalid. Halting servo. << " << endl;
+	    //cout << "synchronic servo: " << reticle.px << " " << pilotClosestTarget.px << " " << reticle.py << " " << pilotClosestTarget.py << " ";
 	    break;
 	  }
 	} else if ((pilotTarget.px == -1) || (pilotTarget.py == -1)) {
 	  if ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1) && (synServoLockFrames >= synServoLockThresh)) {
-	    cout << ">> Lost Target But Taking Closest Box For Continuity... pilotTarget = pilotClosestTarget << ";
+	    //cout << ">> Lost Target But Taking Closest Box For Continuity... pilotTarget = pilotClosestTarget << ";
 	    pilotTarget.px = pilotClosestTarget.px;
 	    pilotTarget.py = pilotClosestTarget.py;
 	    pilotTarget.pz = pilotClosestTarget.pz;
@@ -6794,7 +6795,7 @@ cout <<
 	  delete histClassProbs;
 	}
 
-	cout << "synchronic servo Px Py: " << Px << " " << Py << " : " << reticle.px << " " << pilotTarget.px << " " << reticle.py << " " << pilotTarget.py << " ";
+	//cout << "synchronic servo Px Py: " << Px << " " << Py << " : " << reticle.px << " " << pilotTarget.px << " " << reticle.py << " " << pilotTarget.py << " ";
 	double dx = (currentEEPose.px - trueEEPose.position.x);
 	double dy = (currentEEPose.py - trueEEPose.position.y);
 	double dz = (currentEEPose.pz - trueEEPose.position.z);
@@ -6809,6 +6810,11 @@ cout <<
 	  if (   (fabs(Px) < synServoPixelThresh) && (fabs(Py) < synServoPixelThresh) &&
 	       !( (surveyDuringServo) && (surveyTotalCounts < viewsWithNoise) )   )
 	  {
+	    if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+	      cout << "bbLearning: servo succeeded, returning." << endl;
+	      break;
+	    }
+
 	    cout << "got within thresh. ";
 	    if (surveyDuringServo) {
 	      cout << "Survey results: " << endl;
@@ -6870,7 +6876,7 @@ cout <<
 	    double thisKp = max(synServoMinKp, synKp * pow(synServoKDecay, double(synServoLockFrames)));
 	    double pTermX = thisKp*Px;
 	    double pTermY = thisKp*Py;
-	    cout << " synKp synServoLockFrames synServoKDecay thisKp: " << synKp << " " << synServoLockFrames << " " << synServoKDecay << " " << thisKp << endl;
+	    //cout << " synKp synServoLockFrames synServoKDecay thisKp: " << synKp << " " << synServoLockFrames << " " << synServoKDecay << " " << thisKp << endl;
 	    //double pTermX = synKp*Px;
 	    //double pTermY = synKp*Py;
 
@@ -9037,7 +9043,7 @@ cout <<
     case 1179737:
       {
 	if (temporalDensity != NULL && predensity != NULL) {
-	  cout << "predensity<<<<***" << endl;
+	  //cout << "predensity<<<<***" << endl;
 	  Size sz = objectViewerImage.size();
 	  int imW = sz.width;
 	  int imH = sz.height;
@@ -9245,7 +9251,7 @@ cout <<
 	cout << "gradientTakeClosest = " << gradientTakeClosest << endl;
       }
       break;
-    // change bounding box inference mode
+    // change bounding box inference mode to STATIC_PRIOR
     // capslock + numlock + j
     case 1179722:
       {
@@ -9253,7 +9259,7 @@ cout <<
 	cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
       }
       break;
-    // change bounding box inference mode
+    // change bounding box inference mode to LEARNING_SAMPLING
     // capslock + numlock + k
     case 1179723:
       {
@@ -9261,7 +9267,7 @@ cout <<
 	cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
       }
       break;
-    // change bounding box inference mode
+    // change bounding box inference mode to STATIC_MARGINALS
     // capslock + numlock + l
     case 1179724:
       {
@@ -9310,6 +9316,7 @@ cout <<
 	// servo to object, which will early out if it times out 
 	pilot_call_stack.push_back(131139); // synchronic servo don't take closest
 	pilot_call_stack.push_back(131156); // synchronic servo
+	pilot_call_stack.push_back(131153); // vision cycle
 	pilot_call_stack.push_back(196707); // synchronic servo take closest
 	pilot_call_stack.push_back(1179719); // set gradient servo don't take closest
 
@@ -9321,14 +9328,19 @@ cout <<
 
 	pilot_call_stack.push_back(131139); // synchronic servo don't take closest
 	pilot_call_stack.push_back(131156); // synchronic servo
+	pilot_call_stack.push_back(131153); // vision cycle
 	pilot_call_stack.push_back(196707); // synchronic servo take closest
 	pilot_call_stack.push_back(1179719); // set gradient servo don't take closest
+	pilot_call_stack.push_back(1179723); // change bounding box inference mode to LEARNING_SAMPLING
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(1179717); // change to pantry table
       }
       break;
     // record the bblearn trial if successful
     // capslock + numlock + .
     case 1179694:
       {
+	recordBoundingBoxSuccess();
       }
       break;
     // set random position for bblearn
@@ -9362,6 +9374,7 @@ cout <<
     case 1179695:
       {
 	if (bTops.size() != 1) {
+	  cout << "bbLearning: not enough bounding boxes, early outting." << endl;
 	  restartBBLearning();
 	}
       }
@@ -11286,10 +11299,16 @@ void selectMaxTargetThompsonRotated(double minDepth) {
 void recordBoundingBoxSuccess() {
   heightMemoryTries[currentThompsonHeightIdx]++;
   heightMemoryPicks[currentThompsonHeightIdx]++;
+  cout << "Successful bounding box." << endl;;
+  cout << "Tries: " << heightMemoryTries[currentThompsonHeightIdx] << endl;
+  cout << "Picks: " << heightMemoryPicks[currentThompsonHeightIdx] << endl;
 }
 
 void recordBoundingBoxFailure() {
   heightMemoryTries[currentThompsonHeightIdx]++;
+  cout << "Failed bounding box." << endl;;
+  cout << "Tries: " << heightMemoryTries[currentThompsonHeightIdx] << endl;
+  cout << "Picks: " << heightMemoryPicks[currentThompsonHeightIdx] << endl;
 }
 
 void restartBBLearning() {
@@ -11957,11 +11976,11 @@ void fill_RO_and_M_arrays(object_recognition_msgs::RecognizedObjectArray& roa_to
   visualization_msgs::MarkerArray& ma_to_send, vector<cv::Point>& pointCloudPoints, 
   int aI, int label, int winningO, int poseIndex) {
 
-  //#ifdef DEBUG
+  #ifdef DEBUG
 cout << "check" << endl;
 cout << "hit a publishable object " << label << " " << classLabels[label] 
 << " " << classPoseModels[label] << aI << " of total objects " << bTops.size() << endl;
-//#endif
+  #endif
 
   geometry_msgs::Pose object_pose;
 
@@ -12002,8 +12021,8 @@ cout << "constructing rotation matrix" << endl;
     objectQuaternion = thisLabelQuaternion;
 
   }
-  ROS_INFO_STREAM("quaternion: " << objectQuaternion.x());
-  ROS_INFO_STREAM("roa: " << roa_to_send.objects[aI]);
+  //ROS_INFO_STREAM("quaternion: " << objectQuaternion.x());
+  //ROS_INFO_STREAM("roa: " << roa_to_send.objects[aI]);
 
   roa_to_send.objects[aI].pose.pose.pose.orientation.x = objectQuaternion.x();
   roa_to_send.objects[aI].pose.pose.pose.orientation.y = objectQuaternion.y();
@@ -13233,9 +13252,9 @@ void goCalculateDensity() {
     }
   }
 
-  cout << "SobelGray: " << sobGrayRange << " " << maxGraySob << " " << minGraySob << endl;
-  cout << "SobelCr: " << sobCrRange << " " << maxCrSob << " " << minCrSob << endl;
-  cout << "SobelCb: " << sobCbRange << " " << maxCbSob << " " << minCbSob << endl;
+  //cout << "SobelGray: " << sobGrayRange << " " << maxGraySob << " " << minGraySob << endl;
+  //cout << "SobelCr: " << sobCrRange << " " << maxCrSob << " " << minCrSob << endl;
+  //cout << "SobelCb: " << sobCbRange << " " << maxCbSob << " " << minCbSob << endl;
 
 
 
@@ -13798,11 +13817,11 @@ void goFindBrownBoxes() {
 }
 
 void goClassifyBlueBoxes() {
-  cout << "entered gCBB()" << endl; cout.flush();
+  //cout << "entered gCBB()" << endl; cout.flush();
   Size sz = objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
-  cout << imW << " " << imH << endl; cout.flush();
+  //cout << imW << " " << imH << endl; cout.flush();
 
   vector< vector<int> > pIoCbuffer;
 
@@ -13823,7 +13842,7 @@ void goClassifyBlueBoxes() {
   ma_to_send_blue.markers.resize(bTops.size()+1);
 
   for (int c = 0; c < bTops.size(); c++) {
-    cout << "  gCBB() c = " << c << endl; cout.flush();
+    //cout << "  gCBB() c = " << c << endl; cout.flush();
     #ifdef DEBUG3
     fprintf(stderr, " object check1"); fflush(stderr);
     #endif
@@ -15799,10 +15818,12 @@ int main(int argc, char **argv) {
 
       pilot_call_stack.push_back(1179720); // set gradient servo take closest
       pilot_call_stack.push_back(196707); // synchronic servo take closest
-      pilot_call_stack.push_back(196437); // increment target class
     }
 
-    pilot_call_stack.push_back(1179720); // set gradient servo take closest
+    pilot_call_stack.push_back(196437); // increment target class
+    pilot_call_stack.push_back(196437); // increment target class
+    //pilot_call_stack.push_back(1179720); // set gradient servo take closest
+    pilot_call_stack.push_back(1179719); // set gradient servo don't take closest
     pilot_call_stack.push_back(196707); // synchronic servo take closest
   }
 
