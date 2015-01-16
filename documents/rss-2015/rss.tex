@@ -83,6 +83,8 @@ urlcolor=blue
 
 % end of personal macros
 % \input{inputFile.tex}
+\newcommand{\argmax}[1]{\underset{#1}{\operatorname{argmax}}\;}
+\newcommand{\argmin}[1]{\underset{#1}{\operatorname{argmin}}\;}
 
 
 \begin{document}
@@ -165,7 +167,7 @@ improves accuracy over a non-adaptive system.
 % demonstration.
 
 \section{Introduction}
-Robotic assistants will assist us at childcare, help us cook, and
+Robotics will assist us at childcare, help us cook, and
 provide service to doctors, nurses, and patients in hospitals. Many of
 these tasks require a robot to robustly perceive and manipulate
 objects in its environment, yet robust object manipulation remains a
@@ -174,41 +176,51 @@ computationally expensive and do not enjoy high accuracy on novel
 objects~\citep{saxena08}.  Instance-based approaches that focus on
 specific instances of objects can have higher accuracy but require
 training by a human operator, which is time consuming and can be
-difficult for a non-expert to perform ~\citep{ork14, lai11, lai11a}.
-Existing approaches to autonomously learn 3d object models still
+difficult for a non-expert to perform~\citep{ork14, lai11, lai11a}.
+Existing approaches to autonomously learn 3D object models still
 require expensive ICP-based methods to localize objects, which are
 susceptible to local minima and take time to
 converge~\citep{krainin11}.
 
-Instead we propose an approach that enables a robot to autonomously
-learn a view-based model for closed-loop visual picking.  View-based
-methods for instance detection have many advantages over methods using
-3d models, because they directly capture the visual appearance of the
-object, and are relatively simple and efficient to implement because
-they operate on low-level features~\citep{hsiao13}.  However these
-systems require large amounts of training data for robust performance,
-for example more than 2000 images which must be manually collected and
-annotated with bounding boxes for the state of the art LINE2D
-method~\citep{hinterstoisser12}.  Moreover, for manipulation,
-view-based methods do not propose potential grasps, and autonomous
-methods for recognizing visual grasps are prone to error. 
-
-We address this problem by enabling a robot to learn to identify and
-grasp on a per object basis by autonomously collecting large amounts
-of data for instance-based visual detection and pose estimation.  We
-formalize a general algorithm for closed-loop picking with active
-servoing.  This pipeline uses standard computer vision techniques and
-is not itself novel.  Our contribution is a formalization of this
-pipeline together with reward signals for each module. This
-formalization enables the robot to use a bandit-based algorithm to
-autonomously and actively train its subsystems for specific objects.
-We use slower, more accurate sensing approaches to provide supervision
-for faster, simpler methods that excel with large amounts of training
-data.  For example, to perform grasping we use an analytic model to
-select grasp points, but depending on the object, the best grasp
-according to the analytic model may not be optimal; the robot can
-learn better grasps for that object using the analytic model as a
+To address this problem robustly, we present an approach that enables
+a robot to learn to identify and grasp on a per object basis by
+adapting its perceptual framework to specific objects. Our grasping
+and percpetion pipeline uses standard computer vision techniques to
+perform data collection, feature extraction, training, along with
+active visual servoing for localization.  This framework works to some
+degree with many objects, but reaches performance ceilings for
+specific objects for a variety of reasons.  To address these
+limitations, we present a mathematical formalization of a system of
+software components combined with validators as an n-armed bandit
+problem~\citep{thompson33}.  Conventional abstractions and data flow used in
+system design translate into independence assumptions in the model,
+enabling RL algorithms such as Thompson sampling to be applied to
+autonomously adapt the system for specific objects.  Our system uses
+Thompson sampling to learn to adapt itself for specific objects,
+greatly improving end-to-end performance at picking after training is
+complete.  We use slower, more accurate sensing approaches to provide
+supervision for faster, simpler methods that excel with large amounts
+of training data.  For example, to perform grasping we use an analytic
+model to select grasp points, but depending on the object, the best
+grasp according to the analytic model may not be optimal; the robot
+can learn better grasps for that object using the analytic model as a
 prior and actively collecting data for that object.
+
+
+
+
+%%  a view-based model for closed-loop visual picking.  View-based
+%% methods for instance detection have many advantages over methods using
+%% 3D models, because they directly capture the visual appearance of the
+%% object, and are relatively simple and efficient to implement because
+%% they operate on low-level features~\citep{hsiao13}.  However these
+%% systems require large amounts of training data for robust performance,
+%% for example more than 2000 images which must be manually collected and
+%% annotated with bounding boxes for the state of the art LINE2D
+%% method~\citep{hinterstoisser12}.  Moreover, for manipulation,
+%% view-based methods do not propose potential grasps, and autonomous
+%% methods for recognizing visual grasps are prone to error. 
+
 
 %% To address these issues, we present an approach for enabling a robot
 %% to train its own view-based model to recognize and manipulate the
@@ -237,15 +249,13 @@ person's requests.  We demonstrate that our baseline system can learn
 to pick up objects approximately 50\% of the time; augmenting this
 system with our self-training approach increases accuracy to XX\%.
 
-%% Our software is compatible with ROS and the Baxter SDK version 1.0.0,
-%% and we intend to release it as free software should our paper be
-%% accepted.  Our software includes the capability to upload
-%% instance-based models to the RoboBrain database~\citep{x}; as more and
-%% more instance-based models are collected, this corpus will form a
-%% unique training set for category-based models for detecting and
-%% grasping novel objects, since the robot will have a very large number
-%% of views of a large set of objects as well as storing depth
-%% information and grasping success.
+Our software is compatible with ROS and the Baxter SDK version 1.0.0,
+and we intend to release it as free software should our paper be
+accepted.  As more and more instance-based models are collected, this
+corpus will form a unique training set for category-based models for
+detecting and grasping novel objects, since the robot will have a very
+large number of views of a large set of objects as well as storing
+depth information and grasping success.
 
 
 \section{Grasping System}
@@ -441,7 +451,7 @@ the arm into
 
 
 
-\section{Autonomous Training}
+\subsection{Autonomous Training}
 \label{sec:training}
 
 An object model in our framework consists of the following elements:
@@ -504,6 +514,44 @@ the bounding boxes inferred by the Bing objectness detector.
 
 
 \section{Bandit-based Adaptation}
+
+Our formal model of a system defines a reinforcment learning problem,
+in which the action space consists of different settings for system
+parameters, and the reward function consists of the output of the
+testing modules for each component.  The modular design of our system
+(which is true of most well-design systems) supports a decomposition
+in the RL problem, so that we can treat each optimization problem as a
+separate N-armed bandit problem.  For example, optimizing grasp height
+at level one is rewarded based on its accuracy at identifying bounding
+boxes for the object; this training step does not require running the
+entire pipeline.  Thus our algorithm for adaptation runs from the root
+to the leaves of the system diagram, optimizing each parameter based
+on the tester closest to it in the system tree.
+\begin{figure}
+  \textbf{ThompsonSample(module, tester)}
+  \begin{algorithmic}
+    \FOR {$action \in parameterSettings(module)$}
+    \STATE $S_{action} \gets 0$
+    \STATE $F_{action} \gets 0$
+    \ENDFOR
+    \FOR {$t \in 1, 2, ...., do$}
+      \FOR {$action \in parameterSettings(module)$}
+      \STATE $\mu_{action}(t) \gets \mbox{Sample}(Beta(S_{action} + 1, F_{action} + 1))$
+      \ENDFOR
+      \STATE $bestAction \gets \argmax{action} \mu_{action}(t)$
+      \STATE $\tilde{r_t} \gets tester(bestAction)$
+      \STATE $r_t \gets \mbox{Sample}(Bernoulli(\tilde{r_t}))$
+      \IF {x} %$r_t = 1$}
+       \STATE $S_{i(t)} \gets S_{i(t)} + 1$
+%      \ELSE 
+%       \STATE $F_{i(t)} \gets F_{i(t)} + 1$
+      \ENDIF
+    \ENDFOR
+  \end{algorithmic}
+  \caption{The high-level algorithm for acquiring visual and grasping
+    models of objects.}
+\end{figure}
+
 
  
 \section{Experimental Setup}
