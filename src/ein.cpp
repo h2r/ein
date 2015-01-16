@@ -758,10 +758,19 @@ string lastLabelLearned;
 double perturbScale = 0.05;//0.1;
 double bbLearnPerturbScale = .05;//
 
+// grasp Thompson parameters
 double graspMemoryTries[4*rmWidth*rmWidth];
 double graspMemoryPicks[4*rmWidth*rmWidth];
 double graspMemorySample[4*rmWidth*rmWidth];
 double graspMemoryReg1[4*rmWidth*rmWidth];
+
+// height Thompson parameters
+const int hmWidth = 4; // must be odd
+const double minHeight = 0;
+const double maxHeight = 0.2;
+double heightMemoryTries[hmWidth];
+double heightMemoryPicks[hmWidth];
+double heightMemorySample[hmWidth];
 
 int gmTargetX = -1;
 int gmTargetY = -1;
@@ -799,6 +808,8 @@ int lPTthresh = 3;
 int orientationCascadeHalfWidth = 2;
 
 int heightLearningServoTimeout = 10;
+double currentThompsonHeight = 0;
+int currentThompsonHeightIdx = 0;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -1221,6 +1232,14 @@ void loadPriorGraspMemory();
 void estimateGlobalGraspGear();
 void drawMapRegisters();
 
+
+void loadSampledHeightMemory();
+void loadMarginalHeightMemory();
+void loadPriorHeightMemory();
+double convertHeightIdxToGlobalZ(int);
+int convertHeightGlobalZToIdx(double);
+void testHeightConversion();
+
 void applyGraspFilter(double * rangeMapRegA, double * rangeMapRegB);
 void prepareGraspFilter(int i);
 void prepareGraspFilter1();
@@ -1243,6 +1262,8 @@ void selectMaxTargetLinearFilter(double minDepth);
 
 void recordBoundingBoxSuccess();
 void recordBoundingBoxFailure();
+
+void restartBBLearning();
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -6698,7 +6719,7 @@ cout <<
 	}
       }
       break;
-    // synchronic servo take closest
+    // synchronic servo do not take closest
     // capslock + c
     case 131139:
       {
@@ -6723,11 +6744,7 @@ cout <<
 
 	// if we time out, reset the bblearning program
 	if ((synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING)) {
-	  recordBoundingBoxFailure();
-	  pilot_call_stack.resize(0);
-	  pilot_call_stack.push_back(1179707); // begin bounding box learning
-	  pilot_call_stack.push_back(131154); // w1 wait until at current position
-	  pilot_call_stack.push_back('4'); // recall register 4
+	  restartBBLearning();
 	}
 
 	if (synchronicTakeClosest) {
@@ -9320,19 +9337,32 @@ cout <<
       {
 	double noX = bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
 	double noY = bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
-	//double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
   
 	currentEEPose.px += noX;
 	currentEEPose.py += noY;
-	//currentEEPose.oz += noTheta;
+
+        loadSampledHeightMemory();
+
+        double best_height_prob = 0.0;
+        int max_i = -1;
+        for (int i = 0; i < hmWidth; i++) {
+          if (heightMemorySample[i] > best_height_prob) {
+            max_i = i;
+            best_height_prob = heightMemorySample[i];
+          }
+        }
+	currentThompsonHeight = convertHeightIdxToGlobalZ(max_i);
+        currentThompsonHeightIdx = max_i;
+        currentEEPose.pz = currentThompsonHeight;
+        
       }
       break;
     // check to see if bounding box is unique (early outting if not)
     // capslock + numlock + /
     case 1179695:
       {
-	if (bTops.size() == 1) {
-	} else {
+	if (bTops.size() != 1) {
+	  restartBBLearning();
 	}
       }
       break;
@@ -10501,6 +10531,40 @@ void loadPriorGraspMemory() {
   }
 }
 
+void loadSampledHeightMemory() {
+  ROS_INFO("Loading sampled height memory.");
+  for (int i = 0; i < hmWidth; i++) {
+    double nsuccess = heightMemoryPicks[i];
+    double nfailure = heightMemoryTries[i] - heightMemoryPicks[i];
+    heightMemorySample[i] = rk_beta(&random_state, 
+                                    nsuccess + 1, 
+                                    nfailure + 1);
+  }
+}
+
+double convertHeightIdxToGlobalZ(int heightIdx) {
+  double scaledHeight = (double(heightIdx)/double(hmWidth-1)) * (maxHeight - minHeight);
+  double scaledTranslatedHeight = scaledHeight + minHeight;
+  double tableTranslatedScaledHeight = scaledTranslatedHeight + currentTableZ;
+  return tableTranslatedScaledHeight;
+}
+
+int convertHeightGlobalZToIdx(double globalZ) {
+  double scaledHeight = (globalZ - currentTableZ) / (maxHeight - minHeight);
+  int heightIdx = floor(scaledHeight * (hmWidth - 1));
+}
+
+void testHeightConversion() {
+  for (int i = 0; i < hmWidth; i++) {
+    double height = convertHeightIdxToGlobalZ(i);
+    int newIdx = convertHeightGlobalZToIdx(height);
+    cout << "i: " << i << " height: " << height << " newIdx: " << newIdx << endl;
+    //assert(newIdx == i);
+  }
+}
+
+
+
 void estimateGlobalGraspGear() {
   ROS_INFO("Estimating global grasp gear.");
   double max_range_value = -VERYBIGNUMBER;
@@ -11220,13 +11284,21 @@ void selectMaxTargetThompsonRotated(double minDepth) {
 }
 
 void recordBoundingBoxSuccess() {
-
+  heightMemoryTries[currentThompsonHeightIdx]++;
+  heightMemoryPicks[currentThompsonHeightIdx]++;
 }
 
 void recordBoundingBoxFailure() {
-
+  heightMemoryTries[currentThompsonHeightIdx]++;
 }
 
+void restartBBLearning() {
+  recordBoundingBoxFailure();
+  pilot_call_stack.resize(0);
+  pilot_call_stack.push_back(1179707); // begin bounding box learning
+  pilot_call_stack.push_back(131154); // w1 wait until at current position
+  pilot_call_stack.push_back('4'); // recall register 4
+}
 
 ////////////////////////////////////////////////
 // end pilot definitions 
@@ -15725,7 +15797,9 @@ int main(int argc, char **argv) {
       pilot_call_stack.push_back(131162);  // load target class range map
       pilot_call_stack.push_back(1114200); // arrange windows
 
-      targetClass = 1;
+      pilot_call_stack.push_back(1179720); // set gradient servo take closest
+      pilot_call_stack.push_back(196707); // synchronic servo take closest
+      pilot_call_stack.push_back(196437); // increment target class
     }
 
     pilot_call_stack.push_back(1179720); // set gradient servo take closest
