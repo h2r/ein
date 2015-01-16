@@ -326,6 +326,8 @@ std::string hiColorRangemapViewName = "Hi Color Range Map View";
 std::string graspMemoryViewName = "Grasp Memory View";
 std::string graspMemorySampleViewName = "Grasp Memory Sample View";
 
+std::string heightMemorySampleViewName = "Height Memory Sample View";
+
 int reticleHalfWidth = 30;
 int pilotTargetHalfWidth = 15;
 
@@ -484,6 +486,7 @@ Mat hiRangemapImage;
 Mat hiColorRangemapImage;
 Mat graspMemoryImage;
 Mat graspMemorySampleImage;
+Mat heightMemorySampleImage;
 
 const int totalRangeHistoryLength = 100;
 double rangeHistory[totalRangeHistoryLength];
@@ -587,6 +590,12 @@ int rmiWidth = rmiCellWidth*rmWidth;
 
 int hrmiHeight = hrmWidth;
 int hrmiWidth = hrmWidth;
+
+const int hmWidth = 4; 
+int hmiCellWidth = 100;
+int hmiWidth = hmiCellWidth;
+int hmiHeight = hmiCellWidth*hmWidth;
+
 
 // the currently equipped depth reticle
 double drX = .02; //.01;
@@ -765,7 +774,6 @@ double graspMemorySample[4*rmWidth*rmWidth];
 double graspMemoryReg1[4*rmWidth*rmWidth];
 
 // height Thompson parameters
-const int hmWidth = 4; // must be odd
 const double minHeight = 0;
 const double maxHeight = 0.2;
 double heightMemoryTries[hmWidth];
@@ -1141,6 +1149,9 @@ vector<Mat> classGraspMemoryPicks3;
 vector<Mat> classGraspMemoryTries4;
 vector<Mat> classGraspMemoryPicks4;
 
+vector<Mat> classHeightMemoryTries;
+vector<Mat> classHeightMemoryPicks;
+
 
 Mat frameGraySobel;
 // XXX this should probably be odd
@@ -1239,6 +1250,8 @@ void loadPriorHeightMemory();
 double convertHeightIdxToGlobalZ(int);
 int convertHeightGlobalZToIdx(double);
 void testHeightConversion();
+void drawHeightMemorySample();
+void copyHeightMemoryTriesToClassHeightMemoryTries();
 
 void applyGraspFilter(double * rangeMapRegA, double * rangeMapRegB);
 void prepareGraspFilter(int i);
@@ -3199,6 +3212,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
     cv::imshow(rangemapViewName, rangemapImage);
     cv::imshow(graspMemoryViewName, graspMemoryImage);
     cv::imshow(graspMemorySampleViewName, graspMemorySampleImage);
+    cv::imshow(heightMemorySampleViewName, heightMemorySampleImage);
     //cv::imshow(hiRangemapViewName, hiRangemapImage);
     Mat hRIT;
     cv::resize(hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
@@ -5590,7 +5604,7 @@ cout <<
         // loadSampled gives proper Thompson
         // loadMarginal is MAP estimate
         //pilot_call_stack.push_back(131117); // loadSampledGraspMemory
-        //pilot_call_stack.push_back(131133); // loadMarginalGraspMemory
+        //pilot_call_stack.push_back(131133); // loadMarginalGraspMemory	
 	switch (currentPickMode) {
 	  case STATIC_PRIOR:
 	    {
@@ -6511,6 +6525,7 @@ cout <<
 	    }
 	    break;
 	}
+	drawHeightMemorySample();
       }
       break;
     // de-increment target class
@@ -6554,6 +6569,7 @@ cout <<
 	    }
 	    break;
 	}
+	drawHeightMemorySample();
       }
       break;
     // listen for pick requests from fetch command
@@ -6636,7 +6652,6 @@ cout <<
         drawMapRegisters();
       }
       break;
-
     // loadPriorGraspMemory
     // capslock + backspace
      case 196360:
@@ -6651,6 +6666,32 @@ cout <<
 
          drawMapRegisters();
 	 cout << "class " << classLabels[targetClass] << " number ";
+       } 
+       break;
+    // loadSampledHeightMemory
+    // capslock + numlock + -
+    case 1179693:
+      {
+        loadSampledHeightMemory();
+        drawHeightMemorySample();
+      }
+      break;
+    // loadMarginalHeightMemory
+    // capslock + numlock + =
+    case 1179709:
+      {
+        loadMarginalHeightMemory();
+	drawHeightMemorySample();
+      }
+      break;
+    // loadPriorHeightMemory
+    // capslock + numlock + backspace
+     case 1244936:
+       {
+         loadPriorHeightMemory();
+         //copyHeightMemoryTriesToClassHeightMemoryTries();
+         loadMarginalHeightMemory();
+         drawHeightMemorySample();
        } 
        break;
     // 2D patrol start
@@ -6867,7 +6908,7 @@ cout <<
 
 	    break;	
 	  } else {
-	    cout << "executing P controller update." << endl;
+	    //cout << "executing P controller update." << endl;
 	    pilot_call_stack.push_back(131156); // synchronic servo
 	    // simple servo code because there is no hysteresis to be found
 
@@ -7875,7 +7916,7 @@ cout <<
     // capslock + 1
     case 131121:
       {
-	cout << "Updating density estimate..." << endl;
+	//cout << "Updating density estimate..." << endl;
 	goCalculateDensity();
       }
       break;
@@ -7891,7 +7932,7 @@ cout <<
     // capslock + 2
     case 131122:
       {
-	cout << "Finding blue boxes..." << endl;
+	//cout << "Finding blue boxes..." << endl;
 	goFindBlueBoxes();
       }
       break;
@@ -7901,7 +7942,7 @@ cout <<
       {
 	lastVisionCycle = ros::Time::now();
 	oscilStart = ros::Time::now();
-	cout << "Classifying blue boxes..." << endl;
+	//cout << "Classifying blue boxes..." << endl;
 	goClassifyBlueBoxes();
       }
       break;
@@ -10109,6 +10150,7 @@ void pilotInit() {
   rangemapImage = Mat(rmiHeight, 3*rmiWidth, CV_8UC3);
   graspMemoryImage = Mat(rmiHeight, 2*rmiWidth, CV_8UC3);
   graspMemorySampleImage = Mat(2*rmiHeight, 2*rmiWidth, CV_8UC3);
+  heightMemorySampleImage = Mat(hmiHeight, hmiWidth, CV_8UC3);
 
   for (int rx = 0; rx < hrmWidth; rx++) {
     for (int ry = 0; ry < hrmWidth; ry++) {
@@ -10478,7 +10520,7 @@ void loadMarginalGraspMemory() {
         int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
         double nsuccess = graspMemoryPicks[i];
         double nfailure = graspMemoryTries[i] - graspMemoryPicks[i];
-        graspMemorySample[i] = nsuccess / (nsuccess + nfailure);
+        graspMemorySample[i] = (nsuccess + 1) / (nsuccess + nfailure + 2);
       }
     }
   }
@@ -10544,6 +10586,15 @@ void loadPriorGraspMemory() {
   }
 }
 
+void loadMarginalHeightMemory() {
+  ROS_INFO("Loading marginal height memory.");
+  for (int i = 0; i < hmWidth; i++) {
+    double nsuccess = heightMemoryPicks[i];
+    double nfailure = heightMemoryTries[i] - heightMemoryPicks[i];
+    heightMemorySample[i] = (nsuccess + 1) / (nsuccess + nfailure + 2);
+  }
+}
+ 
 void loadSampledHeightMemory() {
   ROS_INFO("Loading sampled height memory.");
   for (int i = 0; i < hmWidth; i++) {
@@ -10553,6 +10604,7 @@ void loadSampledHeightMemory() {
                                     nsuccess + 1, 
                                     nfailure + 1);
   }
+  drawHeightMemorySample();
 }
 
 double convertHeightIdxToGlobalZ(int heightIdx) {
@@ -10576,7 +10628,53 @@ void testHeightConversion() {
   }
 }
 
+void loadPriorHeightMemory() {
+  for (int i = 0; i < hmWidth; i++) {
+    heightMemoryPicks[i] = 0;
+    heightMemoryTries[i] = 0;
+  }
+}
 
+void drawHeightMemorySample() {
+  double max_value = -VERYBIGNUMBER;
+  int max_i=0, max_ry=0, max_rx=0;
+  
+  for (int i = 0; i < hmWidth; i++) {
+    if (heightMemorySample[i] > max_value) {
+      max_value = heightMemorySample[i];
+      max_i = i;
+      max_rx = hmWidth - 1 - max_i;
+      max_ry = 0;
+    }
+    {
+      int ry = 0;
+      int rx = hmWidth - 1 - i;
+      double blueIntensity = 255 * heightMemorySample[i];
+      double greenIntensity = 255 * heightMemorySample[i];
+      double redIntensity = 255 * heightMemorySample[i];
+      //cout << "Height Memory Sample: " << "rx: " << rx << " ry: " << ry << " tGG:" << tGG << "sample: " << heightMemorySample[i] << endl;
+      cv::Scalar color(ceil(blueIntensity),ceil(greenIntensity),ceil(redIntensity));
+      
+      cv::Point outTop = cv::Point((ry)*hmiCellWidth,(rx)*hmiCellWidth);
+      cv::Point outBot = cv::Point(((ry)+1)*hmiCellWidth,((rx)+1)*hmiCellWidth);
+      Mat vCrop = heightMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+      vCrop = color;
+    }
+  }
+  {
+    // draw the max
+    char buff[256];
+    cv::Point text_anchor = cv::Point((max_ry) * hmiCellWidth, 
+                                      (max_rx + 1) * hmiCellWidth);
+    sprintf(buff, "x");
+    putText(heightMemorySampleImage, buff, text_anchor, MY_FONT, 7, 
+            Scalar(0,0,255), 2);
+  }
+}
+
+void copyHeightMemoryTriesToClassHeightMemoryTries() {
+  // XXX TODO
+}
 
 void estimateGlobalGraspGear() {
   ROS_INFO("Estimating global grasp gear.");
@@ -14367,7 +14465,7 @@ void goClassifyBlueBoxes() {
     markers_blue.publish(ma_to_send_blue);
   }
 
-  cout << "leaving gCBB()" << endl; cout.flush();
+  //cout << "leaving gCBB()" << endl; cout.flush();
 }
 
 void goFindRedBoxes() {
