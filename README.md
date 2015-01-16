@@ -436,3 +436,5 @@ capslock + numlock + i: set grasp memories from classGraspMemories
 
 numlock + s: select max target NOT cumulative
 numlock + S: select max target cumulative
+
+capslock + numlock + s, d, f: change current pick mode
