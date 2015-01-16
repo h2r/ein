@@ -326,6 +326,8 @@ std::string hiColorRangemapViewName = "Hi Color Range Map View";
 std::string graspMemoryViewName = "Grasp Memory View";
 std::string graspMemorySampleViewName = "Grasp Memory Sample View";
 
+std::string heightMemorySampleViewName = "Height Memory Sample View";
+
 int reticleHalfWidth = 30;
 int pilotTargetHalfWidth = 15;
 
@@ -484,6 +486,7 @@ Mat hiRangemapImage;
 Mat hiColorRangemapImage;
 Mat graspMemoryImage;
 Mat graspMemorySampleImage;
+Mat heightMemorySampleImage;
 
 const int totalRangeHistoryLength = 100;
 double rangeHistory[totalRangeHistoryLength];
@@ -587,6 +590,12 @@ int rmiWidth = rmiCellWidth*rmWidth;
 
 int hrmiHeight = hrmWidth;
 int hrmiWidth = hrmWidth;
+
+const int hmWidth = 4; 
+int hmiCellWidth = 100;
+int hmiWidth = hmiCellWidth;
+int hmiHeight = hmiCellWidth*hmWidth;
+
 
 // the currently equipped depth reticle
 double drX = .02; //.01;
@@ -758,10 +767,18 @@ string lastLabelLearned;
 double perturbScale = 0.05;//0.1;
 double bbLearnPerturbScale = .05;//
 
+// grasp Thompson parameters
 double graspMemoryTries[4*rmWidth*rmWidth];
 double graspMemoryPicks[4*rmWidth*rmWidth];
 double graspMemorySample[4*rmWidth*rmWidth];
 double graspMemoryReg1[4*rmWidth*rmWidth];
+
+// height Thompson parameters
+const double minHeight = 0;
+const double maxHeight = 0.2;
+double heightMemoryTries[hmWidth];
+double heightMemoryPicks[hmWidth];
+double heightMemorySample[hmWidth];
 
 int gmTargetX = -1;
 int gmTargetY = -1;
@@ -799,6 +816,8 @@ int lPTthresh = 3;
 int orientationCascadeHalfWidth = 2;
 
 int heightLearningServoTimeout = 10;
+double currentThompsonHeight = 0;
+int currentThompsonHeightIdx = 0;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -1130,6 +1149,9 @@ vector<Mat> classGraspMemoryPicks3;
 vector<Mat> classGraspMemoryTries4;
 vector<Mat> classGraspMemoryPicks4;
 
+vector<Mat> classHeightMemoryTries;
+vector<Mat> classHeightMemoryPicks;
+
 
 Mat frameGraySobel;
 // XXX this should probably be odd
@@ -1221,6 +1243,16 @@ void loadPriorGraspMemory();
 void estimateGlobalGraspGear();
 void drawMapRegisters();
 
+
+void loadSampledHeightMemory();
+void loadMarginalHeightMemory();
+void loadPriorHeightMemory();
+double convertHeightIdxToGlobalZ(int);
+int convertHeightGlobalZToIdx(double);
+void testHeightConversion();
+void drawHeightMemorySample();
+void copyHeightMemoryTriesToClassHeightMemoryTries();
+
 void applyGraspFilter(double * rangeMapRegA, double * rangeMapRegB);
 void prepareGraspFilter(int i);
 void prepareGraspFilter1();
@@ -1243,6 +1275,8 @@ void selectMaxTargetLinearFilter(double minDepth);
 
 void recordBoundingBoxSuccess();
 void recordBoundingBoxFailure();
+
+void restartBBLearning();
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -3178,6 +3212,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
     cv::imshow(rangemapViewName, rangemapImage);
     cv::imshow(graspMemoryViewName, graspMemoryImage);
     cv::imshow(graspMemorySampleViewName, graspMemorySampleImage);
+    cv::imshow(heightMemorySampleViewName, heightMemorySampleImage);
     //cv::imshow(hiRangemapViewName, hiRangemapImage);
     Mat hRIT;
     cv::resize(hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
@@ -5569,7 +5604,7 @@ cout <<
         // loadSampled gives proper Thompson
         // loadMarginal is MAP estimate
         //pilot_call_stack.push_back(131117); // loadSampledGraspMemory
-        //pilot_call_stack.push_back(131133); // loadMarginalGraspMemory
+        //pilot_call_stack.push_back(131133); // loadMarginalGraspMemory	
 	switch (currentPickMode) {
 	  case STATIC_PRIOR:
 	    {
@@ -6490,6 +6525,7 @@ cout <<
 	    }
 	    break;
 	}
+	drawHeightMemorySample();
       }
       break;
     // de-increment target class
@@ -6533,6 +6569,7 @@ cout <<
 	    }
 	    break;
 	}
+	drawHeightMemorySample();
       }
       break;
     // listen for pick requests from fetch command
@@ -6615,7 +6652,6 @@ cout <<
         drawMapRegisters();
       }
       break;
-
     // loadPriorGraspMemory
     // capslock + backspace
      case 196360:
@@ -6630,6 +6666,32 @@ cout <<
 
          drawMapRegisters();
 	 cout << "class " << classLabels[targetClass] << " number ";
+       } 
+       break;
+    // loadSampledHeightMemory
+    // capslock + numlock + -
+    case 1179693:
+      {
+        loadSampledHeightMemory();
+        drawHeightMemorySample();
+      }
+      break;
+    // loadMarginalHeightMemory
+    // capslock + numlock + =
+    case 1179709:
+      {
+        loadMarginalHeightMemory();
+	drawHeightMemorySample();
+      }
+      break;
+    // loadPriorHeightMemory
+    // capslock + numlock + backspace
+     case 1244936:
+       {
+         loadPriorHeightMemory();
+         //copyHeightMemoryTriesToClassHeightMemoryTries();
+         loadMarginalHeightMemory();
+         drawHeightMemorySample();
        } 
        break;
     // 2D patrol start
@@ -6698,7 +6760,7 @@ cout <<
 	}
       }
       break;
-    // synchronic servo take closest
+    // synchronic servo do not take closest
     // capslock + c
     case 131139:
       {
@@ -6723,28 +6785,25 @@ cout <<
 
 	// if we time out, reset the bblearning program
 	if ((synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING)) {
-	  recordBoundingBoxFailure();
-	  pilot_call_stack.resize(0);
-	  pilot_call_stack.push_back(1179707); // begin bounding box learning
-	  pilot_call_stack.push_back(131154); // w1 wait until at current position
-	  pilot_call_stack.push_back('4'); // recall register 4
+	  cout << "bbLearning: synchronic servo timed out, early outting." << endl;
+	  restartBBLearning();
 	}
 
 	if (synchronicTakeClosest) {
 	  if ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1)) {
-	    cout << ">> Synchronic set to take closest box... pilotTarget = pilotClosestTarget << ";
+	    //cout << ">> Synchronic set to take closest box... pilotTarget = pilotClosestTarget << ";
 	    pilotTarget.px = pilotClosestTarget.px;
 	    pilotTarget.py = pilotClosestTarget.py;
 	    pilotTarget.pz = pilotClosestTarget.pz;
 	    pilotTargetBlueBoxNumber = pilotClosestBlueBoxNumber;
 	  } else {
-	    cout << ">> Synchronic set to take closest but closest is invalid. Halting servo. << " << endl;
-	    cout << "synchronic servo: " << reticle.px << " " << pilotClosestTarget.px << " " << reticle.py << " " << pilotClosestTarget.py << " ";
+	    //cout << ">> Synchronic set to take closest but closest is invalid. Halting servo. << " << endl;
+	    //cout << "synchronic servo: " << reticle.px << " " << pilotClosestTarget.px << " " << reticle.py << " " << pilotClosestTarget.py << " ";
 	    break;
 	  }
 	} else if ((pilotTarget.px == -1) || (pilotTarget.py == -1)) {
 	  if ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1) && (synServoLockFrames >= synServoLockThresh)) {
-	    cout << ">> Lost Target But Taking Closest Box For Continuity... pilotTarget = pilotClosestTarget << ";
+	    //cout << ">> Lost Target But Taking Closest Box For Continuity... pilotTarget = pilotClosestTarget << ";
 	    pilotTarget.px = pilotClosestTarget.px;
 	    pilotTarget.py = pilotClosestTarget.py;
 	    pilotTarget.pz = pilotClosestTarget.pz;
@@ -6777,7 +6836,7 @@ cout <<
 	  delete histClassProbs;
 	}
 
-	cout << "synchronic servo Px Py: " << Px << " " << Py << " : " << reticle.px << " " << pilotTarget.px << " " << reticle.py << " " << pilotTarget.py << " ";
+	//cout << "synchronic servo Px Py: " << Px << " " << Py << " : " << reticle.px << " " << pilotTarget.px << " " << reticle.py << " " << pilotTarget.py << " ";
 	double dx = (currentEEPose.px - trueEEPose.position.x);
 	double dy = (currentEEPose.py - trueEEPose.position.y);
 	double dz = (currentEEPose.pz - trueEEPose.position.z);
@@ -6792,6 +6851,11 @@ cout <<
 	  if (   (fabs(Px) < synServoPixelThresh) && (fabs(Py) < synServoPixelThresh) &&
 	       !( (surveyDuringServo) && (surveyTotalCounts < viewsWithNoise) )   )
 	  {
+	    if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+	      cout << "bbLearning: servo succeeded, returning." << endl;
+	      break;
+	    }
+
 	    cout << "got within thresh. ";
 	    if (surveyDuringServo) {
 	      cout << "Survey results: " << endl;
@@ -6844,7 +6908,7 @@ cout <<
 
 	    break;	
 	  } else {
-	    cout << "executing P controller update." << endl;
+	    //cout << "executing P controller update." << endl;
 	    pilot_call_stack.push_back(131156); // synchronic servo
 	    // simple servo code because there is no hysteresis to be found
 
@@ -6853,7 +6917,7 @@ cout <<
 	    double thisKp = max(synServoMinKp, synKp * pow(synServoKDecay, double(synServoLockFrames)));
 	    double pTermX = thisKp*Px;
 	    double pTermY = thisKp*Py;
-	    cout << " synKp synServoLockFrames synServoKDecay thisKp: " << synKp << " " << synServoLockFrames << " " << synServoKDecay << " " << thisKp << endl;
+	    //cout << " synKp synServoLockFrames synServoKDecay thisKp: " << synKp << " " << synServoLockFrames << " " << synServoKDecay << " " << thisKp << endl;
 	    //double pTermX = synKp*Px;
 	    //double pTermY = synKp*Py;
 
@@ -7852,7 +7916,7 @@ cout <<
     // capslock + 1
     case 131121:
       {
-	cout << "Updating density estimate..." << endl;
+	//cout << "Updating density estimate..." << endl;
 	goCalculateDensity();
       }
       break;
@@ -7868,7 +7932,7 @@ cout <<
     // capslock + 2
     case 131122:
       {
-	cout << "Finding blue boxes..." << endl;
+	//cout << "Finding blue boxes..." << endl;
 	goFindBlueBoxes();
       }
       break;
@@ -7878,7 +7942,7 @@ cout <<
       {
 	lastVisionCycle = ros::Time::now();
 	oscilStart = ros::Time::now();
-	cout << "Classifying blue boxes..." << endl;
+	//cout << "Classifying blue boxes..." << endl;
 	goClassifyBlueBoxes();
       }
       break;
@@ -9020,7 +9084,7 @@ cout <<
     case 1179737:
       {
 	if (temporalDensity != NULL && predensity != NULL) {
-	  cout << "predensity<<<<***" << endl;
+	  //cout << "predensity<<<<***" << endl;
 	  Size sz = objectViewerImage.size();
 	  int imW = sz.width;
 	  int imH = sz.height;
@@ -9228,7 +9292,7 @@ cout <<
 	cout << "gradientTakeClosest = " << gradientTakeClosest << endl;
       }
       break;
-    // change bounding box inference mode
+    // change bounding box inference mode to STATIC_PRIOR
     // capslock + numlock + j
     case 1179722:
       {
@@ -9236,7 +9300,7 @@ cout <<
 	cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
       }
       break;
-    // change bounding box inference mode
+    // change bounding box inference mode to LEARNING_SAMPLING
     // capslock + numlock + k
     case 1179723:
       {
@@ -9244,7 +9308,7 @@ cout <<
 	cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
       }
       break;
-    // change bounding box inference mode
+    // change bounding box inference mode to STATIC_MARGINALS
     // capslock + numlock + l
     case 1179724:
       {
@@ -9293,6 +9357,7 @@ cout <<
 	// servo to object, which will early out if it times out 
 	pilot_call_stack.push_back(131139); // synchronic servo don't take closest
 	pilot_call_stack.push_back(131156); // synchronic servo
+	pilot_call_stack.push_back(131153); // vision cycle
 	pilot_call_stack.push_back(196707); // synchronic servo take closest
 	pilot_call_stack.push_back(1179719); // set gradient servo don't take closest
 
@@ -9305,14 +9370,19 @@ cout <<
 
 	pilot_call_stack.push_back(131139); // synchronic servo don't take closest
 	pilot_call_stack.push_back(131156); // synchronic servo
+	pilot_call_stack.push_back(131153); // vision cycle
 	pilot_call_stack.push_back(196707); // synchronic servo take closest
 	pilot_call_stack.push_back(1179719); // set gradient servo don't take closest
+	pilot_call_stack.push_back(1179723); // change bounding box inference mode to LEARNING_SAMPLING
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(1179717); // change to pantry table
       }
       break;
     // record the bblearn trial if successful
     // capslock + numlock + .
     case 1179694:
       {
+	recordBoundingBoxSuccess();
       }
       break;
     // set random position for bblearn
@@ -9321,19 +9391,33 @@ cout <<
       {
 	double noX = bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
 	double noY = bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
-	//double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
   
 	currentEEPose.px += noX;
 	currentEEPose.py += noY;
-	//currentEEPose.oz += noTheta;
+
+        loadSampledHeightMemory();
+
+        double best_height_prob = 0.0;
+        int max_i = -1;
+        for (int i = 0; i < hmWidth; i++) {
+          if (heightMemorySample[i] > best_height_prob) {
+            max_i = i;
+            best_height_prob = heightMemorySample[i];
+          }
+        }
+	currentThompsonHeight = convertHeightIdxToGlobalZ(max_i);
+        currentThompsonHeightIdx = max_i;
+        currentEEPose.pz = currentThompsonHeight;
+        
       }
       break;
     // check to see if bounding box is unique (early outting if not)
     // capslock + numlock + /
     case 1179695:
       {
-	if (bTops.size() == 1) {
-	} else {
+	if (bTops.size() != 1) {
+	  cout << "bbLearning: not enough bounding boxes, early outting." << endl;
+	  restartBBLearning();
 	}
       }
       break;
@@ -10067,6 +10151,7 @@ void pilotInit() {
   rangemapImage = Mat(rmiHeight, 3*rmiWidth, CV_8UC3);
   graspMemoryImage = Mat(rmiHeight, 2*rmiWidth, CV_8UC3);
   graspMemorySampleImage = Mat(2*rmiHeight, 2*rmiWidth, CV_8UC3);
+  heightMemorySampleImage = Mat(hmiHeight, hmiWidth, CV_8UC3);
 
   for (int rx = 0; rx < hrmWidth; rx++) {
     for (int ry = 0; ry < hrmWidth; ry++) {
@@ -10436,7 +10521,7 @@ void loadMarginalGraspMemory() {
         int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
         double nsuccess = graspMemoryPicks[i];
         double nfailure = graspMemoryTries[i] - graspMemoryPicks[i];
-        graspMemorySample[i] = nsuccess / (nsuccess + nfailure);
+        graspMemorySample[i] = (nsuccess + 1) / (nsuccess + nfailure + 2);
       }
     }
   }
@@ -10500,6 +10585,96 @@ void loadPriorGraspMemory() {
       }
     }
   }
+}
+
+void loadMarginalHeightMemory() {
+  ROS_INFO("Loading marginal height memory.");
+  for (int i = 0; i < hmWidth; i++) {
+    double nsuccess = heightMemoryPicks[i];
+    double nfailure = heightMemoryTries[i] - heightMemoryPicks[i];
+    heightMemorySample[i] = (nsuccess + 1) / (nsuccess + nfailure + 2);
+  }
+}
+ 
+void loadSampledHeightMemory() {
+  ROS_INFO("Loading sampled height memory.");
+  for (int i = 0; i < hmWidth; i++) {
+    double nsuccess = heightMemoryPicks[i];
+    double nfailure = heightMemoryTries[i] - heightMemoryPicks[i];
+    heightMemorySample[i] = rk_beta(&random_state, 
+                                    nsuccess + 1, 
+                                    nfailure + 1);
+  }
+  drawHeightMemorySample();
+}
+
+double convertHeightIdxToGlobalZ(int heightIdx) {
+  double scaledHeight = (double(heightIdx)/double(hmWidth-1)) * (maxHeight - minHeight);
+  double scaledTranslatedHeight = scaledHeight + minHeight;
+  double tableTranslatedScaledHeight = scaledTranslatedHeight + currentTableZ;
+  return tableTranslatedScaledHeight;
+}
+
+int convertHeightGlobalZToIdx(double globalZ) {
+  double scaledHeight = (globalZ - currentTableZ) / (maxHeight - minHeight);
+  int heightIdx = floor(scaledHeight * (hmWidth - 1));
+}
+
+void testHeightConversion() {
+  for (int i = 0; i < hmWidth; i++) {
+    double height = convertHeightIdxToGlobalZ(i);
+    int newIdx = convertHeightGlobalZToIdx(height);
+    cout << "i: " << i << " height: " << height << " newIdx: " << newIdx << endl;
+    //assert(newIdx == i);
+  }
+}
+
+void loadPriorHeightMemory() {
+  for (int i = 0; i < hmWidth; i++) {
+    heightMemoryPicks[i] = 0;
+    heightMemoryTries[i] = 0;
+  }
+}
+
+void drawHeightMemorySample() {
+  double max_value = -VERYBIGNUMBER;
+  int max_i=0, max_ry=0, max_rx=0;
+  
+  for (int i = 0; i < hmWidth; i++) {
+    if (heightMemorySample[i] > max_value) {
+      max_value = heightMemorySample[i];
+      max_i = i;
+      max_rx = hmWidth - 1 - max_i;
+      max_ry = 0;
+    }
+    {
+      int ry = 0;
+      int rx = hmWidth - 1 - i;
+      double blueIntensity = 255 * heightMemorySample[i];
+      double greenIntensity = 255 * heightMemorySample[i];
+      double redIntensity = 255 * heightMemorySample[i];
+      //cout << "Height Memory Sample: " << "rx: " << rx << " ry: " << ry << " tGG:" << tGG << "sample: " << heightMemorySample[i] << endl;
+      cv::Scalar color(ceil(blueIntensity),ceil(greenIntensity),ceil(redIntensity));
+      
+      cv::Point outTop = cv::Point((ry)*hmiCellWidth,(rx)*hmiCellWidth);
+      cv::Point outBot = cv::Point(((ry)+1)*hmiCellWidth,((rx)+1)*hmiCellWidth);
+      Mat vCrop = heightMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+      vCrop = color;
+    }
+  }
+  {
+    // draw the max
+    char buff[256];
+    cv::Point text_anchor = cv::Point((max_ry) * hmiCellWidth, 
+                                      (max_rx + 1) * hmiCellWidth);
+    sprintf(buff, "x");
+    putText(heightMemorySampleImage, buff, text_anchor, MY_FONT, 7, 
+            Scalar(0,0,255), 2);
+  }
+}
+
+void copyHeightMemoryTriesToClassHeightMemoryTries() {
+  // XXX TODO
 }
 
 void estimateGlobalGraspGear() {
@@ -11221,13 +11396,27 @@ void selectMaxTargetThompsonRotated(double minDepth) {
 }
 
 void recordBoundingBoxSuccess() {
-
+  heightMemoryTries[currentThompsonHeightIdx]++;
+  heightMemoryPicks[currentThompsonHeightIdx]++;
+  cout << "Successful bounding box." << endl;;
+  cout << "Tries: " << heightMemoryTries[currentThompsonHeightIdx] << endl;
+  cout << "Picks: " << heightMemoryPicks[currentThompsonHeightIdx] << endl;
 }
 
 void recordBoundingBoxFailure() {
-
+  heightMemoryTries[currentThompsonHeightIdx]++;
+  cout << "Failed bounding box." << endl;;
+  cout << "Tries: " << heightMemoryTries[currentThompsonHeightIdx] << endl;
+  cout << "Picks: " << heightMemoryPicks[currentThompsonHeightIdx] << endl;
 }
 
+void restartBBLearning() {
+  recordBoundingBoxFailure();
+  pilot_call_stack.resize(0);
+  pilot_call_stack.push_back(1179707); // begin bounding box learning
+  pilot_call_stack.push_back(131154); // w1 wait until at current position
+  pilot_call_stack.push_back('4'); // recall register 4
+}
 
 ////////////////////////////////////////////////
 // end pilot definitions 
@@ -11886,11 +12075,11 @@ void fill_RO_and_M_arrays(object_recognition_msgs::RecognizedObjectArray& roa_to
   visualization_msgs::MarkerArray& ma_to_send, vector<cv::Point>& pointCloudPoints, 
   int aI, int label, int winningO, int poseIndex) {
 
-  //#ifdef DEBUG
+  #ifdef DEBUG
 cout << "check" << endl;
 cout << "hit a publishable object " << label << " " << classLabels[label] 
 << " " << classPoseModels[label] << aI << " of total objects " << bTops.size() << endl;
-//#endif
+  #endif
 
   geometry_msgs::Pose object_pose;
 
@@ -11931,8 +12120,8 @@ cout << "constructing rotation matrix" << endl;
     objectQuaternion = thisLabelQuaternion;
 
   }
-  ROS_INFO_STREAM("quaternion: " << objectQuaternion.x());
-  ROS_INFO_STREAM("roa: " << roa_to_send.objects[aI]);
+  //ROS_INFO_STREAM("quaternion: " << objectQuaternion.x());
+  //ROS_INFO_STREAM("roa: " << roa_to_send.objects[aI]);
 
   roa_to_send.objects[aI].pose.pose.pose.orientation.x = objectQuaternion.x();
   roa_to_send.objects[aI].pose.pose.pose.orientation.y = objectQuaternion.y();
@@ -13162,9 +13351,9 @@ void goCalculateDensity() {
     }
   }
 
-  cout << "SobelGray: " << sobGrayRange << " " << maxGraySob << " " << minGraySob << endl;
-  cout << "SobelCr: " << sobCrRange << " " << maxCrSob << " " << minCrSob << endl;
-  cout << "SobelCb: " << sobCbRange << " " << maxCbSob << " " << minCbSob << endl;
+  //cout << "SobelGray: " << sobGrayRange << " " << maxGraySob << " " << minGraySob << endl;
+  //cout << "SobelCr: " << sobCrRange << " " << maxCrSob << " " << minCrSob << endl;
+  //cout << "SobelCb: " << sobCbRange << " " << maxCbSob << " " << minCbSob << endl;
 
 
 
@@ -13737,11 +13926,11 @@ void goFindBrownBoxes() {
 }
 
 void goClassifyBlueBoxes() {
-  cout << "entered gCBB()" << endl; cout.flush();
+  //cout << "entered gCBB()" << endl; cout.flush();
   Size sz = objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
-  cout << imW << " " << imH << endl; cout.flush();
+  //cout << imW << " " << imH << endl; cout.flush();
 
   vector< vector<int> > pIoCbuffer;
 
@@ -13762,7 +13951,7 @@ void goClassifyBlueBoxes() {
   ma_to_send_blue.markers.resize(bTops.size()+1);
 
   for (int c = 0; c < bTops.size(); c++) {
-    cout << "  gCBB() c = " << c << endl; cout.flush();
+    //cout << "  gCBB() c = " << c << endl; cout.flush();
     #ifdef DEBUG3
     fprintf(stderr, " object check1"); fflush(stderr);
     #endif
@@ -14287,7 +14476,7 @@ void goClassifyBlueBoxes() {
     markers_blue.publish(ma_to_send_blue);
   }
 
-  cout << "leaving gCBB()" << endl; cout.flush();
+  //cout << "leaving gCBB()" << endl; cout.flush();
 }
 
 void goFindRedBoxes() {
@@ -15736,10 +15925,14 @@ int main(int argc, char **argv) {
       pilot_call_stack.push_back(131162);  // load target class range map
       pilot_call_stack.push_back(1114200); // arrange windows
 
-      targetClass = 1;
+      pilot_call_stack.push_back(1179720); // set gradient servo take closest
+      pilot_call_stack.push_back(196707); // synchronic servo take closest
     }
 
-    pilot_call_stack.push_back(1179720); // set gradient servo take closest
+    pilot_call_stack.push_back(196437); // increment target class
+    pilot_call_stack.push_back(196437); // increment target class
+    //pilot_call_stack.push_back(1179720); // set gradient servo take closest
+    pilot_call_stack.push_back(1179719); // set gradient servo don't take closest
     pilot_call_stack.push_back(196707); // synchronic servo take closest
   }
 
