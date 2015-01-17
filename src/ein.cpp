@@ -5701,7 +5701,7 @@ cout <<
 	else
 	  pilot_call_stack.push_back(1048623); // numlock + /
 
-	pushCopies('s', 12);
+	pushCopies('s', 3);
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 
 	if (currentBoundingBoxMode == LEARNING_SAMPLING)
