@@ -418,9 +418,10 @@ eePose rssPoseL = {.px = 0.334217, .py = 0.75386, .pz = 0.0362593,
                   .ox = 0, .oy = 0, .oz = 0,
                   .qx = -0.00125253, .qy = 0.999999, .qz = -0.000146851, .qw = 0.000236656};
 
-eePose rssPoseR = {.px = 0.334217, .py = 0.75386, .pz = 0.0362593,
-                  .ox = 0, .oy = 0, .oz = 0,
-                  .qx = -0.00125253, .qy = 0.999999, .qz = -0.000146851, .qw = 0.000236656};
+eePose rssPoseR = {.px = 0.525866, .py = -0.710611, .pz = 0.0695764,
+		      .ox = 0, .oy = 0, .oz = 0,
+		      .qx = -0.00122177, .qy = 0.999998, .qz = 0.00116169, .qw = -0.001101};
+
 
 eePose rssPose = rssPoseR;
 
@@ -764,9 +765,9 @@ double graspSuccessCounter = 0;
 double graspSuccessRate = 0;
 ros::Time graspTrialStart;
 
-double bagTableZ = 0.18; //0.195;//0.22;
-double counterTableZ = 0.209123; //0.20;//0.18;
-double pantryTableZ = 0.209123; //0.195;
+double bagTableZ = 0.174251; //0.195;//0.22;
+double counterTableZ = 0.174251; //0.20;//0.18;
+double pantryTableZ = 0.174251; //0.195;
 
 double currentTableZ = bagTableZ;
 
