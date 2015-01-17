@@ -9425,7 +9425,7 @@ cout <<
       break;
     // begin bounding box learning
     // capslock + numlock + :
-    case 1245242:
+    case 1310746:
       {
 	pilot_call_stack.push_back(1179707); // begin bounding box learning
 	pilot_call_stack.push_back(65568+3); // record register 3
@@ -10774,10 +10774,10 @@ void loadPriorHeightMemory() {
 }
 
 void drawHeightMemorySample() {
+  double max_value = -VERYBIGNUMBER;
+  int max_i=0, max_ry=0, max_rx=0;
   
   {
-    double max_value = -VERYBIGNUMBER;
-    int max_i=0, max_ry=0, max_rx=0;
     for (int i = 0; i < hmWidth; i++) {
       if (heightMemorySample[i] > max_value) {
 	max_value = heightMemorySample[i];
@@ -10811,8 +10811,6 @@ void drawHeightMemorySample() {
     }
   }
   {
-    double max_value = -VERYBIGNUMBER;
-    int max_i=0, max_ry=0, max_rx=0;
     for (int i = 0; i < hmWidth; i++) {
       double thisMarginal = (heightMemoryPicks[i]+1)/(heightMemoryTries[i]+heightMemoryPicks[i]+2);
       if (thisMarginal > max_value) {
@@ -10830,8 +10828,8 @@ void drawHeightMemorySample() {
 	//cout << "Height Memory Marginal: " << "rx: " << rx << " ry: " << ry << " tGG:" << tGG << "sample: " << thisMarginal << endl;
 	cv::Scalar color(ceil(blueIntensity),ceil(greenIntensity),ceil(redIntensity));
 	
-	cv::Point outTop = cv::Point((ry+1)*hmiCellWidth,(rx)*hmiCellWidth);
-	cv::Point outBot = cv::Point(((ry+1)+1)*hmiCellWidth,((rx)+1)*hmiCellWidth);
+	cv::Point outTop = cv::Point((ry+hmWidth)*hmiCellWidth,(rx)*hmiCellWidth);
+	cv::Point outBot = cv::Point(((ry+hmWidth)+1)*hmiCellWidth,((rx)+1)*hmiCellWidth);
 	Mat vCrop = heightMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
 	vCrop = color;
       }
@@ -10839,9 +10837,9 @@ void drawHeightMemorySample() {
     {
       // draw the max
       char buff[256];
-      cv::Point text_anchor = cv::Point((max_ry+1) * hmiCellWidth, 
+      cv::Point text_anchor = cv::Point((max_ry+hmWidth) * hmiCellWidth, 
 					(max_rx + 1) * hmiCellWidth);
-      sprintf(buff, "x");
+      sprintf(buff, "M");
       putText(heightMemorySampleImage, buff, text_anchor, MY_FONT, 7, 
 	      Scalar(0,0,255), 2);
     }
