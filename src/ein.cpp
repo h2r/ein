@@ -10178,12 +10178,12 @@ void pilotInit() {
 
   if (0 == left_or_right_arm.compare("left")) {
     cout << "Possessing left arm..." << endl;
-    beeHome = wholeFoodsPantryL;
+    beeHome = rssPoseL; //wholeFoodsPantryL;
     //beeHome = crane1left;
     //eepReg1 = crane1left;
     //eepReg2 = crane2left;
     //eepReg3 = crane3left;
-    eepReg4 = beeLHome;
+    eepReg4 = rssPoseL; //beeLHome;
     oscillatingSign = 1;
     //defaultReticle = defaultLeftReticle;
     defaultReticle = centerReticle;
@@ -10193,9 +10193,9 @@ void pilotInit() {
     wholeFoodsPantry1 = rssPoseL; //wholeFoodsPantryL;
     wholeFoodsCounter1 = rssPoseL; //wholeFoodsCounterL;
 
-    eepReg1 = wholeFoodsBagL;
-    eepReg2 = wholeFoodsPantryL;
-    eepReg3 = wholeFoodsCounterL;
+    eepReg1 = rssPoseL; //wholeFoodsBagL;
+    eepReg2 = rssPoseL; //wholeFoodsPantryL;
+    eepReg3 = rssPoseL; //wholeFoodsCounterL;
   } else if (0 == left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
     beeHome = wholeFoodsPantryR;
@@ -10203,7 +10203,7 @@ void pilotInit() {
     //eepReg1 = crane1right;
     //eepReg2 = crane2right;
     //eepReg3 = crane3right;
-    eepReg4 = beeRHome;
+    eepReg4 = rssPoseR; //beeRHome;
     oscillatingSign = -1;
     //defaultReticle = defaultRightReticle;
     defaultReticle = centerReticle;
@@ -10238,9 +10238,9 @@ void pilotInit() {
     wholeFoodsPantry1 = rssPoseR; //wholeFoodsPantryR;
     wholeFoodsCounter1 = rssPoseR; //wholeFoodsCounterR;
 
-    eepReg1 = wholeFoodsBagR;
-    eepReg2 = wholeFoodsPantryR;
-    eepReg3 = wholeFoodsCounterR;
+    eepReg1 = rssPoseR; //wholeFoodsBagR;
+    eepReg2 = rssPoseR; //wholeFoodsPantryR;
+    eepReg3 = rssPoseR; //wholeFoodsCounterR;
   } else {
     cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
     exit(0);
