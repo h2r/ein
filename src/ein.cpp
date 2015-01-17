@@ -3900,7 +3900,6 @@ cout <<
       currentWarehousePose = (currentWarehousePose + 1) % warehousePoses.size();
       break;
     case '6':
-      currentEEPose = eepReg2;
       currentThompsonHeightIdx = (currentThompsonHeightIdx + 1) % hmWidth;
       currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
       currentEEPose.pz = currentThompsonHeight;
