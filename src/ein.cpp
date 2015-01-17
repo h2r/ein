@@ -8224,8 +8224,8 @@ cout <<
       }
       break;
     // record example as focused class if there is only one blue box in frame
-    // capslock + l
-    case 196652:
+    // capslock + l 
+    case 131148:
       {
 	if ((focusedClass > -1) && (bTops.size() == 1)) {
 	  string thisLabelName = focusedClassLabel;
@@ -8241,12 +8241,12 @@ cout <<
       break;
     // record labeled example of focused class regardless of number of blue boxes
     // capslock + L
-    case 262220:
+    case 196716:
       {
 	for (int c = 0; c < bTops.size(); c++) {
 	  if (bLabels[c] == focusedClass) {
 	    string thisLabelName = focusedClassLabel;
-	    Mat crop = cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
+	    Mat crop = cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
 	    char buf[1000];
 	    //string this_crops_path = data_directory + "/" + thisLabelName + "/";
 	    string this_crops_path = data_directory + "/" + thisLabelName + "/rgb/";
@@ -8264,7 +8264,7 @@ cout <<
       {
 	for (int c = 0; c < bTops.size(); c++) {
 	  string thisLabelName = focusedClassLabel;
-	  Mat crop = cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
+	  Mat crop = cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
 	  char buf[1000];
 	  //string this_crops_path = data_directory + "/" + thisLabelName + "/";
 	  string this_crops_path = data_directory + "/" + thisLabelName + "/rgb/";
@@ -8714,7 +8714,7 @@ cout <<
     case 196711:
       {
 	for (int angleCounter = 0; angleCounter < totalGraspGears; angleCounter++) {
-	  pilot_call_stack.push_back(196652); // save crop as focused class if there is only one
+	  pilot_call_stack.push_back(131148); // save crop as focused class if there is only one
 	  pilot_call_stack.push_back(196721); // vision cycle no classify
 	  pilot_call_stack.push_back(131154); // w1 wait until at current position
 	  pilot_call_stack.push_back(196712); // increment grasp gear
@@ -16199,8 +16199,8 @@ int main(int argc, char **argv) {
 
     pilot_call_stack.push_back(196437); // increment target class
     pilot_call_stack.push_back(196437); // increment target class
-    //pilot_call_stack.push_back(1179720); // set gradient servo take closest
-    pilot_call_stack.push_back(1179719); // set gradient servo don't take closest
+    pilot_call_stack.push_back(1179720); // set gradient servo take closest
+    //pilot_call_stack.push_back(1179719); // set gradient servo don't take closest
     pilot_call_stack.push_back(196707); // synchronic servo take closest
   }
 
