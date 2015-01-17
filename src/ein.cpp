@@ -1,4 +1,4 @@
-//#define DEBUG3
+///#define DEBUG3
 //#define DEBUG4
 // start Header
 //
@@ -3896,6 +3896,12 @@ cout <<
       currentEEPose = warehousePoses[currentWarehousePose];
       currentWarehousePose = (currentWarehousePose + 1) % warehousePoses.size();
       break;
+    case '6':
+      currentEEPose = eepReg2;
+      currentThompsonHeightIdx = (currentThompsonHeightIdx + 1) % hmWidth;
+      currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
+      currentEEPose.pz = currentThompsonHeight;
+      break;
     // begin register target acquisition calls
     case 1+262192:
       eepReg1 = redTargetEEPose;
@@ -6815,6 +6821,7 @@ cout <<
 	synServoLockFrames++;
 
 	// if we time out, reset the bblearning program
+        // ATTN 12
 	if ((synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING)) {
 	  cout << "bbLearning: synchronic servo timed out, early outting." << endl;
 	  restartBBLearning();
@@ -9428,7 +9435,7 @@ cout <<
 	pilot_call_stack.push_back(1179719); // set gradient servo don't take closest
 
 	pilot_call_stack.push_back(1179695); // check to see if bounding box is unique (early outting if not)
-
+	pilot_call_stack.push_back(131153); // vision cycle
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	// XXX TODO set the remembered height
 	pilot_call_stack.push_back(1179687); // set random position for bblearn
