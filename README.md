@@ -444,6 +444,10 @@ capslock + numlock + ;: height learning
                         
 catkin_make && gdb --args ./devel/lib/node/ein  _data_directory:="$(rospack find node)/ein_data" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml" _left_or_right_arm:="left" _gray_box_left:=90 _gray_box_right:=90 _gray_box_bot:=60 left
 
+Training new model:
+capslock + shift d: queues scan program
+
+
 
 
 Training grasping:
