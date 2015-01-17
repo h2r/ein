@@ -401,6 +401,9 @@ eePose wholeFoodsCounterR = {.px = -0.114591, .py = -0.771545, .pz = 0.0365494,
                       .ox = 0, .oy = 0, .oz = 0,
 		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 
+
+
+
 eePose wholeFoodsBagL = {.px = 0.64828, .py = 0.762787, .pz = 0.0592764,
                       .ox = 0, .oy = 0, .oz = 0,
 		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
@@ -410,6 +413,15 @@ eePose wholeFoodsPantryL = {.px = 0.645494, .py = 0.4937, .pz = 0.0568737,
 eePose wholeFoodsCounterL = {.px = -0.114389, .py = 0.803518, .pz = 0.056705,
                       .ox = 0, .oy = 0, .oz = 0,
 		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
+
+eePose rssPoseL = {.px = 0.334217, .py = 0.75386, .pz = 0.0362593,
+                  .ox = 0, .oy = 0, .oz = 0,
+                  .qx = -0.00125253, .qy = 0.999999, .qz = -0.000146851, .qw = 0.000236656};
+
+eePose rssPoseR = {.px = 0.334217, .py = 0.75386, .pz = 0.0362593,
+                  .ox = 0, .oy = 0, .oz = 0,
+                  .qx = -0.00125253, .qy = 0.999999, .qz = -0.000146851, .qw = 0.000236656};
+
 
 eePose wholeFoodsBag1 = wholeFoodsBagR;
 eePose wholeFoodsPantry1 = wholeFoodsPantryR;
@@ -695,7 +707,7 @@ double lastPtheta = INFINITY;
 int synServoPixelThresh = 15;//10;
 int synServoLockFrames = 0;
 // XXX
-int synServoLockThresh = 3;
+int synServoLockThresh = 20;
 
 double synServoMinKp = synKp/20.0;
 double synServoKDecay = .95;
@@ -750,9 +762,9 @@ double graspSuccessCounter = 0;
 double graspSuccessRate = 0;
 ros::Time graspTrialStart;
 
-double bagTableZ = 0.195;//0.22;
-double counterTableZ = 0.20;//0.18;
-double pantryTableZ = 0.195;
+double bagTableZ = 0.18; //0.195;//0.22;
+double counterTableZ = 0.209123; //0.20;//0.18;
+double pantryTableZ = 0.209123; //0.195;
 
 double currentTableZ = bagTableZ;
 
@@ -866,7 +878,7 @@ Mat gradientViewerImage;
 
 int mask_gripper = 1;
 
-int add_blinders = 1;
+int add_blinders = 0;
 int blinder_stride = 10;
 int blinder_columns = 5;
 
@@ -1237,7 +1249,7 @@ void convertGlobalGraspIdxToLocal(const int rx, const int ry,
 void convertLocalGraspIdxToGlobal(const int localX, const int localY,
                                   int * rx, int * ry);
 
-
+void changeTargetClass(int);
 
 void guardGraspMemory();
 void loadSampledGraspMemory();
@@ -3754,6 +3766,8 @@ cout <<
       cout << "mostRecentUntabledZ: " << mostRecentUntabledZ << endl;
       cout << "currentPickMode: " << pickModeToString(currentPickMode) << endl;
       cout << "currentBoundingBoxMode: " << pickModeToString(currentBoundingBoxMode) << endl;
+      cout << "gradientServoTakeClosest: " << gradientTakeClosest << endl;
+      cout << "synchronicTakeClosest: " << synchronicTakeClosest << endl;
       cout << "focusedClass: " << focusedClass << " " << classLabels[focusedClass] << endl;
       cout << "targetClass: " << targetClass << " " << classLabels[targetClass] << endl;
       cout << endl;
@@ -6515,67 +6529,11 @@ cout <<
     // capslock + pageup
     case 196437:
       {
-	cout << "targetClass++: ";
+	cout << "targetClass++ " << endl;
 	if (numClasses > 0) {
-	  targetClass++;
-	  targetClass = (numClasses+targetClass) % numClasses;
-	  focusedClass = targetClass;
-	  focusedClassLabel = classLabels[focusedClass];
-	  cout << "class " << classLabels[targetClass] << " number ";
+          int newTargetClass = (targetClass + 1) % numClasses;
+          changeTargetClass(newTargetClass);
 	}
-	cout << targetClass << endl;
-
-	execute_stack = 1;	
-	pilot_call_stack.push_back(1048673); // render register 1
-	// ATTN 10
-	//pilot_call_stack.push_back(196360); // loadPriorGraspMemory
-	//pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
-	switch (currentPickMode) {
-	  case STATIC_PRIOR:
-	    {
-	      pilot_call_stack.push_back(196360); // loadPriorGraspMemory
-	    }
-	    break;
-	  case LEARNING_SAMPLING:
-	    {
-	      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
-	    }
-	    break;
-	  case STATIC_MARGINALS:
-	    {
-	      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
-	    }
-	    break;
-	  default:
-	    {
-	      assert(0);
-	    }
-	    break;
-	}
-
-	switch (currentBoundingBoxMode) {
-	  case STATIC_PRIOR:
-	    {
-	      pilot_call_stack.push_back(1244936); // loadPriorHeightMemory
-	    }
-	    break;
-	  case LEARNING_SAMPLING:
-	    {
-	      pilot_call_stack.push_back(1245289); // set heightMemories from classHeightMemories
-	    }
-	    break;
-	  case STATIC_MARGINALS:
-	    {
-	      pilot_call_stack.push_back(1245289); // set heightMemories from classHeightMemories
-	    }
-	    break;
-	  default:
-	    {
-	      assert(0);
-	    }
-	    break;
-	}
-
 
       }
       break;
@@ -6583,44 +6541,11 @@ cout <<
     // capslock + pagedown
     case 196438:
       {
-	cout << "targetClass--: ";
+	cout << "targetClass-- " << endl;
 	if (numClasses > 0) {
-	  targetClass--;
-	  targetClass = (numClasses + targetClass) % numClasses;
-	  focusedClass = targetClass;
-	  focusedClassLabel = classLabels[focusedClass];
-	  cout << "class " << classLabels[targetClass] << " number ";
+          int newTargetClass = (targetClass - 1 + numClasses) % numClasses;
+          changeTargetClass(newTargetClass);
 	}
-	cout << targetClass << endl;
-
-	execute_stack = 1;	
-	pilot_call_stack.push_back(1048673); // render register 1
-	// ATTN 10
-	//pilot_call_stack.push_back(196360); // loadPriorGraspMemory
-	//pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
-	switch (currentPickMode) {
-	  case STATIC_PRIOR:
-	    {
-	      pilot_call_stack.push_back(196360); // loadPriorGraspMemory
-	    }
-	    break;
-	  case LEARNING_SAMPLING:
-	    {
-	      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
-	    }
-	    break;
-	  case STATIC_MARGINALS:
-	    {
-	      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
-	    }
-	    break;
-	  default:
-	    {
-	      assert(0);
-	    }
-	    break;
-	}
-	drawHeightMemorySample();
       }
       break;
     // listen for pick requests from fetch command
@@ -6817,6 +6742,7 @@ cout <<
       {
 	synchronicTakeClosest = 0;
 	cout << "synchronicTakeClosest = 0" << endl;
+	synServoLockFrames = 0;
       }
       break;
     // synchronic servo take closest
@@ -6835,13 +6761,18 @@ cout <<
 	synServoLockFrames++;
 
 	// ATTN 12
-//	// if we time out, reset the bblearning program
-//        if ( ((synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING)) 
-//	     || (bTops.size() <= 0) ) {
-//          cout << "bbLearning: synchronic servo timed out, early outting." << endl;
-//          restartBBLearning();
-//          break;
-//        }
+	// if we time out, reset the bblearning program
+        if ( ((synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING)) 
+	     || (bTops.size() <= 0) ) {
+          cout << "bbLearning: synchronic servo early outting: ";
+	  if (bTops.size() <= 0)
+	    cout << "NO BLUE BOXES ";
+	  if ((synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING))
+	    cout << "TIMED OUT ";
+	  cout << endl;
+          restartBBLearning();
+          break;
+        }
 
 	if (synchronicTakeClosest) {
 	  if ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1)) {
@@ -6906,10 +6837,10 @@ cout <<
 	       !( (surveyDuringServo) && (surveyTotalCounts < viewsWithNoise) )   )
 	  {
 	    // ATTN 12
-//	    if (currentBoundingBoxMode == LEARNING_SAMPLING) {
-//	      cout << "bbLearning: servo succeeded, returning." << endl;
-//	      break;
-//	    }
+	    if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+	      cout << "bbLearning: servo succeeded, returning." << endl;
+	      break;
+	    }
 
 	    cout << "got within thresh. ";
 	    if (surveyDuringServo) {
@@ -6946,6 +6877,7 @@ cout <<
 		cout << "Returning." << endl;
 	      }
 	    } else if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
+              break;
 	      pilot_call_stack.push_back(196728); // gradient servo
 	      cout << "Queuing gradient servo." << endl;
 	      // ATTN 8
@@ -6977,7 +6909,9 @@ cout <<
 
       
 	    // ATTN 3
-	    double thisKp = max(synServoMinKp, synKp * pow(synServoKDecay, double(synServoLockFrames)));
+	    //double thisKp = max(synServoMinKp, synKp * pow(synServoKDecay, double(synServoLockFrames)));
+	    // ATTN 12
+	    double thisKp = synKp;
 	    double pTermX = thisKp*Px;
 	    double pTermY = thisKp*Py;
 	    //cout << " synKp synServoLockFrames synServoKDecay thisKp: " << synKp << " " << synServoLockFrames << " " << synServoKDecay << " " << thisKp << endl;
@@ -7026,10 +6960,10 @@ cout <<
       {
 
 	// ATTN 12
-        if ((synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING)) {
-          cout << "bbLearning: synchronic servo timed out, early outting." << endl;
-          restartBBLearning();
-        }
+//        if ((synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING)) {
+//          cout << "bbLearning: synchronic servo timed out, early outting." << endl;
+//          restartBBLearning();
+//        }
 
 	cout << "entered gradient servo... iteration " << currentGradientServoIterations << endl;
 	if (targetClass < 0 || targetClass >= numClasses) {
@@ -9343,10 +9277,13 @@ cout <<
     // capslock + numlock + I 
       case 1245289: {
         cout << "Loading height memories." << endl;
-        if ((classHeightMemoryTries[targetClass].rows > 1) && (classHeightMemoryPicks[targetClass].rows > 1)) {
+        if ((classHeightMemoryTries[targetClass].rows > 1) && (classHeightMemoryPicks[targetClass].cols == 1)) {
+          cout << "targetClass: " << targetClass << " " << classLabels[targetClass] << endl;
           for (int i = 0; i < hmWidth; i++) {
             heightMemoryPicks[i] = classHeightMemoryPicks[targetClass].at<double>(i, 0);
             heightMemoryTries[i] = classHeightMemoryTries[targetClass].at<double>(i, 0);
+            cout << "picks: " << heightMemoryPicks[i] << endl;
+            cout << "tries: " << heightMemoryTries[i] << endl;
           }
         } else {
 	  cout << "Whoops, tried to set height memories but they don't exist for this class:" << targetClass << " " << classLabels[targetClass] << endl;
@@ -9479,26 +9416,25 @@ cout <<
     // capslock + numlock + :
     case 1245242:
       {
-	pilot_call_stack.push_back(1179707); // begin bounding box learning
-	pilot_call_stack.push_back(65568+4); // record register 4
+	pilot_call_stack.push_back(1179707); // continue bounding box learning
+	pilot_call_stack.push_back(65568+3); // record register 3
 
 	pilot_call_stack.push_back(131139); // synchronic servo don't take closest
 	pilot_call_stack.push_back(131156); // synchronic servo
-	pilot_call_stack.push_back(131153); // vision cycle
 	pilot_call_stack.push_back(196707); // synchronic servo take closest
-	//pilot_call_stack.push_back(131139); // synchronic servo don't take closest
-	pilot_call_stack.push_back(1179719); // set gradient servo don't take closest
+	pilot_call_stack.push_back(131153); // vision cycle
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	{ // prepare to servo
 	  currentEEPose.pz = wholeFoodsCounter1.pz+.1;
 	}
+	pilot_call_stack.push_back(1179723); // change bounding box inference mode to LEARNING_SAMPLING
       }
       break;
-    // begin bounding box learning
+    // continue bounding box learning
     // capslock + numlock + ;
     case 1179707:
       {
-	cout << "beginning bounding box learning with currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
+	cout << "continuing bounding box learning with currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
 	synServoLockFrames = 0;
 	currentGradientServoIterations = 0;
 
@@ -9506,43 +9442,33 @@ cout <<
 	pilot_call_stack.push_back(1179707); // begin bounding box learning
 
 	// record the bblearn trial if successful
-	//pilot_call_stack.push_back(1179694); 
-
+	pilot_call_stack.push_back(1179694); 
 
 	pilot_call_stack.push_back(131139); // synchronic servo don't take closest
 	pilot_call_stack.push_back(131156); // synchronic servo
-	pilot_call_stack.push_back(131153); // vision cycle
 	pilot_call_stack.push_back(196707); // synchronic servo take closest
-	//pilot_call_stack.push_back(131139); // synchronic servo don't take closest
-	//pilot_call_stack.push_back(1179719); // set gradient servo don't take closest
-	pilot_call_stack.push_back(1179720); // set gradient servo take closest
-
+	pilot_call_stack.push_back(131153); // vision cycle
 	//pilot_call_stack.push_back(1179695); // check to see if bounding box is unique (early outting if not)
 	pilot_call_stack.push_back(131153); // vision cycle
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	pilot_call_stack.push_back(1179687); // set random position for bblearn
 
-//	pilot_call_stack.push_back(65568+4); // record register 4
-//
-//	// servo to object, which will early out if it times out 
-//	pilot_call_stack.push_back(131139); // synchronic servo don't take closest
-//	pilot_call_stack.push_back(131156); // synchronic servo
-//	pilot_call_stack.push_back(131153); // vision cycle
-//	pilot_call_stack.push_back(196707); // synchronic servo take closest
-//	//pilot_call_stack.push_back(131139); // synchronic servo don't take closest
-//	pilot_call_stack.push_back(1179719); // set gradient servo don't take closest
-//	//pilot_call_stack.push_back(1179720); // set gradient servo take closest
+	pilot_call_stack.push_back(65568+4); // record register 4
 
+	// servo to object, which will early out if it times out 
+	pilot_call_stack.push_back(131139); // synchronic servo don't take closest
+	pilot_call_stack.push_back(131156); // synchronic servo
+	pilot_call_stack.push_back(196707); // synchronic servo take closest
+	pilot_call_stack.push_back(131153); // vision cycle
 	//pilot_call_stack.push_back(1179695); // check to see if bounding box is unique (early outting if not)
 	pilot_call_stack.push_back(131153); // vision cycle
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(1179687); // set random position for bblearn
+
 	pilot_call_stack.push_back(1245247); // sample height
-	pilot_call_stack.push_back(1179687); // set random position for bblearn
 
-	pilot_call_stack.push_back(1179723); // change bounding box inference mode to LEARNING_SAMPLING
-	pilot_call_stack.push_back(1179716); // set pickMode to LEARNING_SAMPLING
 	pilot_call_stack.push_back(1179717); // change to pantry table
-	pilot_call_stack.push_back('4'); // recall register 4
+	pilot_call_stack.push_back('3'); // recall register 3
       }
       break;
     // record the bblearn trial if successful
@@ -9597,8 +9523,22 @@ cout <<
     // capslock + numlock + /
     case 1179695:
       {
-	if (bTops.size() != 1) {
-	  cout << "bbLearning: not enough bounding boxes, early outting." << endl;
+        int background_count = 0;
+        int focused_count = 0;
+        int other_count = 0;
+	for (int c = 0; c < bTops.size(); c++) {
+	  string thisLabelName = focusedClassLabel;
+	  if (bLabels[c] == focusedClass) {
+            focused_count += 1;
+          } else if (classLabels[bLabels[c]] == "background") {
+            background_count += 1;
+          } else {
+            other_count += 1;
+          }
+        }
+        if (focused_count != 1) {
+	  cout << "bbLearning: not enough bounding boxes, early outting.";
+          cout << "focusedCount: " << focused_count << " background_count: " << background_count << " other_count: " << other_count << endl;
 	  restartBBLearning();
 	}
       }
@@ -10248,9 +10188,9 @@ void pilotInit() {
     defaultReticle = centerReticle;
     reticle = defaultReticle;
 
-    wholeFoodsBag1 = wholeFoodsBagL;
-    wholeFoodsPantry1 = wholeFoodsPantryL;
-    wholeFoodsCounter1 = wholeFoodsCounterL;
+    wholeFoodsBag1 = rssPoseL; //wholeFoodsBagL;
+    wholeFoodsPantry1 = rssPoseL; //wholeFoodsPantryL;
+    wholeFoodsCounter1 = rssPoseL; //wholeFoodsCounterL;
 
     eepReg1 = wholeFoodsBagL;
     eepReg2 = wholeFoodsPantryL;
@@ -10293,9 +10233,9 @@ void pilotInit() {
 
 
 
-    wholeFoodsBag1 = wholeFoodsBagR;
-    wholeFoodsPantry1 = wholeFoodsPantryR;
-    wholeFoodsCounter1 = wholeFoodsCounterR;
+    wholeFoodsBag1 = rssPoseR; //wholeFoodsBagR;
+    wholeFoodsPantry1 = rssPoseR; //wholeFoodsPantryR;
+    wholeFoodsCounter1 = rssPoseR; //wholeFoodsCounterR;
 
     eepReg1 = wholeFoodsBagR;
     eepReg2 = wholeFoodsPantryR;
@@ -10573,6 +10513,65 @@ int getGlobalGraspGear(int localGraspGearIn) {
   return ggToReturn;
 }
 
+void changeTargetClass(int newTargetClass) {
+  targetClass = newTargetClass;
+  focusedClass = targetClass;
+  focusedClassLabel = classLabels[focusedClass];
+  cout << "class " << targetClass << " " << classLabels[targetClass] << endl;
+  execute_stack = 1;	
+  pilot_call_stack.push_back(1048673); // render register 1
+  // ATTN 10
+  //pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+  //pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+  switch (currentPickMode) {
+  case STATIC_PRIOR:
+    {
+      pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+    }
+    break;
+  case LEARNING_SAMPLING:
+    {
+      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+    }
+    break;
+  case STATIC_MARGINALS:
+    {
+      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+    }
+    break;
+  default:
+    {
+      assert(0);
+    }
+    break;
+  }
+  
+  switch (currentBoundingBoxMode) {
+  case STATIC_PRIOR:
+    {
+      pilot_call_stack.push_back(1244936); // loadPriorHeightMemory
+    }
+    break;
+  case LEARNING_SAMPLING:
+    {
+      pilot_call_stack.push_back(1245289); // set heightMemories from classHeightMemories
+    }
+    break;
+  case STATIC_MARGINALS:
+    {
+      cout << "Pushing set heightMemories from classHeightMemories" << endl;
+      pilot_call_stack.push_back(1245289); // set heightMemories from classHeightMemories
+    }
+    break;
+  default:
+    {
+      assert(0);
+    }
+    break;
+  }
+  drawHeightMemorySample();
+  drawGraspMemorySample();
+}
 
 void guardGraspMemory() {
 
@@ -10868,7 +10867,7 @@ void drawHeightMemorySample() {
     {
       // draw the max
       char buff[256];
-      cv::Point text_anchor = cv::Point((max_ry) * hmiCellWidth, 
+      cv::Point text_anchor = cv::Point((max_ry) * hmiCellWidth - 5, 
 					(max_rx + 1) * hmiCellWidth);
       sprintf(buff, "x");
       putText(heightMemorySampleImage, buff, text_anchor, MY_FONT, 7, 
@@ -10879,7 +10878,7 @@ void drawHeightMemorySample() {
     double max_value = -VERYBIGNUMBER;
     int max_i=0, max_ry=0, max_rx=0;
     for (int i = 0; i < hmWidth; i++) {
-      double thisMarginal = (heightMemoryPicks[i]+1)/(heightMemoryTries[i]+heightMemoryPicks[i]+2);
+      double thisMarginal = (heightMemoryPicks[i]+1)/(heightMemoryTries[i]+2);
       if (thisMarginal > max_value) {
 	max_value = thisMarginal;
 	max_i = i;
@@ -11649,12 +11648,19 @@ double squareDistanceEEPose(eePose pose1, eePose pose2) {
 
 
 void recordBoundingBoxSuccess() {
-    heightMemoryTries[currentThompsonHeightIdx]++;
-    heightMemoryPicks[currentThompsonHeightIdx]++;
-    cout << "Successful bounding box." << endl;;
-    cout << "Tries: " << heightMemoryTries[currentThompsonHeightIdx] << endl;
-    cout << "Picks: " << heightMemoryPicks[currentThompsonHeightIdx] << endl;
-
+  heightMemoryTries[currentThompsonHeightIdx]++;
+  heightMemoryPicks[currentThompsonHeightIdx]++;
+  cout << "Successful bounding box." << endl;;
+  cout << "Tries: " << heightMemoryTries[currentThompsonHeightIdx] << endl;
+  cout << "Picks: " << heightMemoryPicks[currentThompsonHeightIdx] << endl;
+  int ttotalTries = 0;
+  int ttotalPicks = 0;
+  for (int i = 0; i < hmWidth; i++) {
+    ttotalTries += heightMemoryTries[i];
+    ttotalPicks += heightMemoryPicks[i];
+  }
+  cout << "Total Tries: " << ttotalTries << endl;
+  cout << "Total Picks: " << ttotalPicks << endl;
 }
 
 void recordBoundingBoxFailure() {
@@ -11662,14 +11668,20 @@ void recordBoundingBoxFailure() {
   cout << "Failed to learn bounding box." << endl;;
   cout << "Tries: " << heightMemoryTries[currentThompsonHeightIdx] << endl;
   cout << "Picks: " << heightMemoryPicks[currentThompsonHeightIdx] << endl;
+  int ttotalTries = 0;
+  int ttotalPicks = 0;
+  for (int i = 0; i < hmWidth; i++) {
+    ttotalTries += heightMemoryTries[i];
+    ttotalPicks += heightMemoryPicks[i];
+  }
+  cout << "Total Tries: " << ttotalTries << endl;
+  cout << "Total Picks: " << ttotalPicks << endl;
 }
 
 void restartBBLearning() {
   recordBoundingBoxFailure();
   pilot_call_stack.resize(0);
-  pilot_call_stack.push_back(1179707); // begin bounding box learning
-  pilot_call_stack.push_back(131154); // w1 wait until at current position
-  pilot_call_stack.push_back('4'); // recall register 4
+  pilot_call_stack.push_back(1179707); // continue bounding box learning
 }
 
 ////////////////////////////////////////////////
@@ -13694,8 +13706,11 @@ void goFindBlueBoxes() {
 //cout << "Here 2" << endl;
 
   // canny will start on a hi and spread on a lo or hi.
-  for (int x = 0; x < imW-gBoxW; x+=gBoxStrideX) {
-    for (int y = 0; y < imH-gBoxH; y+=gBoxStrideY) {
+  //{for (int x = 0; x < imW-gBoxW; x+=gBoxStrideX)}
+    //{for (int y = 0; y < imH-gBoxH; y+=gBoxStrideY)}
+  for (int x = xS; x <= xF; x+=gBoxStrideX) {
+    for (int y = yS; y <= yF; y+=gBoxStrideY) {
+  
       if (gBoxIndicator[y*imW+x] == 2 && gBoxGrayNodes[y*imW+x] == 0) {
 
       	gBoxGrayNodes[y*imW+x] = 1;
@@ -13794,9 +13809,9 @@ void goFindBlueBoxes() {
       
       // XXX for some reason there were spurious blue boxes outside of the gray box, with no green boxes,
       //  so we reject them here for now
-      if ( (cTops[c].x < grayTop.x) || (cBots[c].x > grayBot.x) ||
-	   (cTops[c].y < grayTop.y) || (cBots[c].y > grayBot.y) )
-	allow = 0;
+//      if ( (cTops[c].x < max(grayTop.x-gBoxW, 0)) || (cBots[c].x > min(grayBot.x+gBoxW, imW-1)) ||
+//	   (cTops[c].y < max(grayTop.y-gBoxW, 0)) || (cBots[c].y > min(grayBot.y+gBoxW, imH-1)) )
+//	allow = 0;
 
       // ATTN 5
       // check for overlap and fuse
@@ -15963,7 +15978,7 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
     if (fsfI.isOpened()) {
       fsfI["aerialGradient"] >> classAerialGradients[i]; 
       fsfI.release();
-      cout << "Loaded aerial gradient from " << this_ag_path << classAerialGradients[i].size() << classAerialGradients[i] << endl; 
+      cout << "Loaded aerial gradient from " << this_ag_path << classAerialGradients[i].size() << endl;
     } else {
       classAerialGradients[i] = Mat(1, 1, CV_64F);
       cout << "Failed to load aerialGradients from " << this_ag_path << endl; 

@@ -399,6 +399,7 @@ that order and enforce it in the code)
 Ein
 
 2: Shift to ready position on the front table.
+capslock + @: assume wholeFoodsCounter1
 c r c: clear call stack
 capslock + shift d: queues scan program
 y: execute what is in the queue
@@ -440,3 +441,24 @@ S
 capslock + numlock + s, d, f: change current pick mode
 
 capslock + numlock + ;: height learning
+                        
+catkin_make && gdb --args ./devel/lib/node/ein  _data_directory:="$(rospack find node)/ein_data" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml" _left_or_right_arm:="left" _gray_box_left:=90 _gray_box_right:=90 _gray_box_bot:=60 left
+
+
+
+Training grasping:
+capslock + pageup: select target class
+capslock + backspace: load prior (if desired)
+capslock + numlock + d: select learning sampling 
+capslock + w:  queue pick command
+
+Testing grasping:
+capslock + pageup: select target class
+capslock + backspace: load prior (if desired)
+capslock + w:  queue pick command
+
+
+Training height:
+capslock + pageup: select target class
+capslock + numlock + backspace: load prior (if desired)
+capslock + numlock + :: queue height learning
