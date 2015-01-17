@@ -422,6 +422,7 @@ eePose rssPoseR = {.px = 0.334217, .py = 0.75386, .pz = 0.0362593,
                   .ox = 0, .oy = 0, .oz = 0,
                   .qx = -0.00125253, .qy = 0.999999, .qz = -0.000146851, .qw = 0.000236656};
 
+eePose rssPose = rssPoseR;
 
 eePose wholeFoodsBag1 = wholeFoodsBagR;
 eePose wholeFoodsPantry1 = wholeFoodsPantryR;
@@ -6675,6 +6676,7 @@ cout <<
     // capslock + w
     case 131159:
       {
+	eepReg2 = rssPose;
 	graspAttemptCounter = 0;
 	graspFailCounter = 0;
 	graspSuccessCounter = 0;
@@ -9417,6 +9419,7 @@ cout <<
     // capslock + numlock + :
     case 1245242:
       {
+	eepReg3 = rssPose;
 	pilot_call_stack.push_back(1179707); // continue bounding box learning
 	pilot_call_stack.push_back(65568+3); // record register 3
 
@@ -9429,6 +9432,7 @@ cout <<
 	  currentEEPose.pz = wholeFoodsCounter1.pz+.1;
 	}
 	pilot_call_stack.push_back(1179723); // change bounding box inference mode to LEARNING_SAMPLING
+	pilot_call_stack.push_back('3'); // recall register 3
       }
       break;
     // continue bounding box learning
@@ -10189,6 +10193,8 @@ void pilotInit() {
     defaultReticle = centerReticle;
     reticle = defaultReticle;
 
+    rssPose = rssPoseL;
+
     wholeFoodsBag1 = rssPoseL; //wholeFoodsBagL;
     wholeFoodsPantry1 = rssPoseL; //wholeFoodsPantryL;
     wholeFoodsCounter1 = rssPoseL; //wholeFoodsCounterL;
@@ -10232,7 +10238,7 @@ void pilotInit() {
     warehousePoses.push_back(pose3);
     warehousePoses.push_back(pose4);
 
-
+    rssPose = rssPoseR;
 
     wholeFoodsBag1 = rssPoseR; //wholeFoodsBagR;
     wholeFoodsPantry1 = rssPoseR; //wholeFoodsPantryR;

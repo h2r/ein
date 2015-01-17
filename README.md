@@ -441,24 +441,43 @@ S
 capslock + numlock + s, d, f: change current pick mode
 
 capslock + numlock + ;: height learning
-                        
-catkin_make && gdb --args ./devel/lib/node/ein  _data_directory:="$(rospack find node)/ein_data" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml" _left_or_right_arm:="left" _gray_box_left:=90 _gray_box_right:=90 _gray_box_bot:=60 left
+
+
+Command:                         
+catkin_make && gdb --args ./devel/lib/node/ein  _data_directory:="$(rospack find node)/ein_data1" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml" _left_or_right_arm:="left" _gray_box_left:=90 _gray_box_right:=90 _gray_box_bot:=60 _add_blinders:=0 left
+
+
+General notes:
+
+CRC:  clears the stack
+Y:  Runs what is on the stack
 
 Training new model:
 capslock + shift d: queues scan program
 
 
+Prior (grasping):
+2: move to position 2
+capslock + pageup: select target class
+capslock + backspace: load prior 
+capslock + numlock + s: prior
+capslock + w:  queue pick command
 
 
-Training grasping:
+Training (grasping):
+2: move to position 2
 capslock + pageup: select target class
 capslock + backspace: load prior (if desired)
 capslock + numlock + d: select learning sampling 
 capslock + w:  queue pick command
+capslock + numlock + A: save the learned numbers
 
-Testing grasping:
+Marginal (grasping):
+restart the program
+2: move to position 2
 capslock + pageup: select target class
-capslock + backspace: load prior (if desired)
+capslock + =: load marginals.  Verify they are in Grasp Memory Sample window.
+capslock + numlock + d: select learning sampling 
 capslock + w:  queue pick command
 
 
