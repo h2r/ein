@@ -10570,7 +10570,6 @@ void changeTargetClass(int newTargetClass) {
     break;
   }
   drawHeightMemorySample();
-  drawGraspMemorySample();
 }
 
 void guardGraspMemory() {
