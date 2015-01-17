@@ -465,6 +465,7 @@ baxter_core_msgs::SolvePositionIK ikRequest;
 ros::ServiceClient ikClient;
 ros::Publisher joint_mover;
 ros::Publisher gripperPub;
+ros::Publisher facePublisher;
 
 
 const int imRingBufferSize = 300;
@@ -778,7 +779,7 @@ string lastLabelLearned;
 
 double perturbScale = 0.05;//0.1;
 double bbLearnPerturbScale = 0.07;//0.1;//.05;//
-double bbLearnPerturbBias = 0.04;//.05;//
+double bbLearnPerturbBias = 0.06;  //0.04;//0.05;
 double bbLearnThresh = 0.04;
 
 // grasp Thompson parameters
@@ -788,7 +789,7 @@ double graspMemorySample[4*rmWidth*rmWidth];
 double graspMemoryReg1[4*rmWidth*rmWidth];
 
 // height Thompson parameters
-const double minHeight = 0;
+const double minHeight = 0.0;
 const double maxHeight = 0.25;
 double heightMemoryTries[hmWidth];
 double heightMemoryPicks[hmWidth];
@@ -9510,8 +9511,8 @@ cout <<
       {
 	double noX = bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
 	double noY = bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
-	noX = noX + ((((noX - 0.5*bbLearnPerturbScale) > 0) - 0.5) * 2) * bbLearnPerturbBias;
-	noY = noY + ((((noY - 0.5*bbLearnPerturbScale) > 0) - 0.5) * 2) * bbLearnPerturbBias;
+	noX = noX + (((noX > 0) - 0.5) * 2) * bbLearnPerturbBias;
+	noY = noY + (((noY > 0) - 0.5) * 2) * bbLearnPerturbBias;
 	double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
   
 	currentEEPose.px += noX;
@@ -9543,51 +9544,51 @@ cout <<
 	}
       }
       break;
-    case 2:
-      drawOrientor = !drawOrientor;
-      break;
-    case 3:
-      drawLabels = !drawLabels;
-      break;
-    case 4:
-      add_blinders = !add_blinders;
-      break;
-    case 5:
-      mask_gripper = !mask_gripper;
-      break;
-    case 6:
-      drawPurple= !drawPurple;
-      break;
-    case 7:
-      //drawWhite = !drawWhite;
-      break;
-    case 8:
-      drawGreen = !drawGreen;
-      break;
-    case 9:
-      drawBlue = !drawBlue;
-      break;
-    case 10:
-      drawRed = !drawRed;
-      break;
-    case 11:
-      drawRB = !drawRB;
-      break;
-    case 12:
-      drawGray = !drawGray;
-      break;
-    case 13:
-      drawPink = !drawPink;
-      break;
-    case 14:
-      drawBrown = !drawBrown;
-      break;
-    case 15:
-      drawBlueKP = !drawBlueKP;
-      break;
-    case 16:
-      drawRedKP = !drawRedKP;
-      break;
+//    case 2:
+//      drawOrientor = !drawOrientor;
+//      break;
+//    case 3:
+//      drawLabels = !drawLabels;
+//      break;
+//    case 4:
+//      add_blinders = !add_blinders;
+//      break;
+//    case 5:
+//      mask_gripper = !mask_gripper;
+//      break;
+//    case 6:
+//      drawPurple= !drawPurple;
+//      break;
+//    case 7:
+//      //drawWhite = !drawWhite;
+//      break;
+//    case 8:
+//      drawGreen = !drawGreen;
+//      break;
+//    case 9:
+//      drawBlue = !drawBlue;
+//      break;
+//    case 10:
+//      drawRed = !drawRed;
+//      break;
+//    case 11:
+//      drawRB = !drawRB;
+//      break;
+//    case 12:
+//      drawGray = !drawGray;
+//      break;
+//    case 13:
+//      drawPink = !drawPink;
+//      break;
+//    case 14:
+//      drawBrown = !drawBrown;
+//      break;
+//    case 15:
+//      drawBlueKP = !drawBlueKP;
+//      break;
+//    case 16:
+//      drawRedKP = !drawRedKP;
+//      break;
 
     default:
       {
@@ -10519,6 +10520,11 @@ void changeTargetClass(int newTargetClass) {
   focusedClassLabel = classLabels[focusedClass];
   cout << "class " << targetClass << " " << classLabels[targetClass] << endl;
   execute_stack = 1;	
+
+
+  pilot_call_stack.push_back(1179709);
+
+
   pilot_call_stack.push_back(1048673); // render register 1
   // ATTN 10
   //pilot_call_stack.push_back(196360); // loadPriorGraspMemory
@@ -10569,7 +10575,6 @@ void changeTargetClass(int newTargetClass) {
     }
     break;
   }
-  drawHeightMemorySample();
 }
 
 void guardGraspMemory() {
@@ -11649,7 +11654,7 @@ double squareDistanceEEPose(eePose pose1, eePose pose2) {
 void recordBoundingBoxSuccess() {
   heightMemoryTries[currentThompsonHeightIdx]++;
   heightMemoryPicks[currentThompsonHeightIdx]++;
-  cout << "Successful bounding box." << endl;;
+  cout << "Successful bounding box on floor " << currentThompsonHeightIdx << endl;
   cout << "Tries: " << heightMemoryTries[currentThompsonHeightIdx] << endl;
   cout << "Picks: " << heightMemoryPicks[currentThompsonHeightIdx] << endl;
   int ttotalTries = 0;
@@ -11664,7 +11669,7 @@ void recordBoundingBoxSuccess() {
 
 void recordBoundingBoxFailure() {
   heightMemoryTries[currentThompsonHeightIdx]++;
-  cout << "Failed to learn bounding box." << endl;;
+  cout << "Failed to learn bounding box on floor " << currentThompsonHeightIdx << endl;
   cout << "Tries: " << heightMemoryTries[currentThompsonHeightIdx] << endl;
   cout << "Picks: " << heightMemoryPicks[currentThompsonHeightIdx] << endl;
   int ttotalTries = 0;
@@ -16174,6 +16179,9 @@ int main(int argc, char **argv) {
   ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + left_or_right_arm + "/PositionKinematicsNode/IKService");
   joint_mover = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/" + left_or_right_arm + "/joint_command", 10);
   gripperPub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + left_or_right_arm + "_gripper/command",10);
+
+  //facePub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + left_or_right_arm + "_gripper/command",10);
+
   vmMarkerPublisher = n.advertise<visualization_msgs::MarkerArray>("volumetric_rgb_map", 10);
 
   {
