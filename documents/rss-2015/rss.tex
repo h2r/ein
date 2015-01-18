@@ -539,8 +539,7 @@ on the tester closest to it in the system tree.
       \STATE $\mu_{action}(t) \gets \mbox{Sample}(Beta(S_{action} + 1, F_{action} + 1))$
       \ENDFOR
       \STATE $bestAction \gets \argmax{action} \mu_{action}(t)$
-      \STATE $\tilde{r_t} \gets tester(bestAction)$
-      \STATE $r_t \gets \mbox{Sample}(Bernoulli(\tilde{r_t}))$
+      \STATE $r_t \gets tester(bestAction)$
       \IF {x} %$r_t = 1$}
        \STATE $S_{i(t)} \gets S_{i(t)} + 1$
 %      \ELSE 
