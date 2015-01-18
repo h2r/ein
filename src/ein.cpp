@@ -786,7 +786,7 @@ string lastLabelLearned;
 double perturbScale = 0.05;//0.1;
 double bbLearnPerturbScale = 0.07;//0.1;//.05;//
 double bbLearnPerturbBias = 0.06;  //0.04;//0.05;
-double bbLearnThresh = 0.04;
+double bbLearnThresh = 0.05;//0.04;
 
 // grasp Thompson parameters
 double graspMemoryTries[4*rmWidth*rmWidth];
