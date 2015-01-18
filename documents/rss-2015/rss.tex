@@ -28,8 +28,14 @@ urlcolor=blue
 \usepackage{algorithmic}
 
 
-\newcommand{\mytitle}[0]{Autonomously Acquiring Models of Objects for
-  Instance-Based Manipulation}
+%\newcommand{\mytitle}[0]{Autonomously Acquiring Models of Objects for
+%  Instance-Based Manipulation}
+
+%\newcommand{\mytitle}[0]{How to Teach a Robot to Pick Something Up on Its Own}
+
+\newcommand{\mytitle}[0]{Bandit-Based System Adaptation for
+  Instance-Based Grasping}
+
 
 \pdfinfo{
    /Author ()
@@ -110,28 +116,28 @@ urlcolor=blue
 Manipulating and reasoning about objects is an important task for
 robots that help people in the home, in factories, and in hospitals.
 A key aim of current research is to create robots that can reliably
-manipulate generic objects in clutter.  However in many applications,
+manipulate generic objects.  However, in many applications,
 general-purpose object detection or manipulation is not required: the
 robot would be useful if it could recognize, localize, and manipulate
 the relatively small set of specific objects most important in that
 application, but do so with very high reliability.  To address this
 problem, we focus not on {\em category-based} manipulation (pick up
 any mug) but rather {\em instance-based} manipulation (pick up this
-mug).  Instance-based recognition and pose estimation using vision can
-be highly accurate but requires adapting the system to the specific
-object being manipulated: the system designer must adapt the system to
-specific objects in the environment in large and small ways, ranging
-from collecting training data to choosing parameter values to
-selecting algorithms for tasks such as image segmentation or bounding
-box classification.  The contribution of this paper is to formalize
-this adaptation process as a hierarchy of bandit problems, enabling
-the robot to apply learning techniques such as Thompson sampling to
-learn to manipulate specific objects.  Our framework runs on an
-unmodified Baxter robot; using our algorithm, a robot can interact
-with an object for twenty minutes, and then reliably and quickly
-localize it with vision and pick it up with closed-loop visual
-servoing. We demonstrate that the adaptation step significantly
-improves accuracy over a non-adaptive system.
+mug).  Instance-based recognition and pose estimation can be highly
+accurate but require the designer to adapt the system to the specific
+object being manipulated in large and small ways, ranging from
+collecting training data, to choosing parameter values, to selecting
+algorithms for tasks such as image segmentation or bounding box
+classification.  The contribution of this paper is to automate this
+adaption process by formalizing a grasping system as a hierarchy of
+bandit problems, enabling the robot to apply learning techniques such
+as Thompson sampling to adapt itself to manipulate specific objects
+with increased accuracy.  Our framework runs on an unmodified Baxter
+robot; using our algorithm, a robot can interact with an object for
+twenty minutes, and then reliably and quickly localize it with vision
+and pick it up with closed-loop visual servoing. We demonstrate that
+the bandit-based adaptation step significantly improves accuracy over
+a non-adaptive system.
 
 
 %% Robots need to pick stuff up.
