@@ -259,6 +259,7 @@ int autoPilotFrameCounter = 0;
 int ik_reset_thresh = 3600;
 int ik_reset_counter = 0;
 int ikInitialized = 0.0;
+// ATTN 14
 double ikShare = 1.0;
 double oscillating_ikShare = .1;
 double default_ikShare = 1.0;
@@ -785,7 +786,7 @@ string lastLabelLearned;
 double perturbScale = 0.05;//0.1;
 double bbLearnPerturbScale = 0.07;//0.1;//.05;//
 double bbLearnPerturbBias = 0.06;  //0.04;//0.05;
-double bbLearnThresh = 0.04;
+double bbLearnThresh = 0.05;//0.04;
 
 // grasp Thompson parameters
 double graspMemoryTries[4*rmWidth*rmWidth];
@@ -5447,8 +5448,8 @@ cout <<
     // neutral scan
     case 1048622:
       {
-	double lineSpeed = MOVE_MEDIUM;//MOVE_FAST;
-	double betweenSpeed = MOVE_MEDIUM;//MOVE_FAST;
+	double lineSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
+	double betweenSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
 	////pushCopies('e', 3);
 	////pushCopies('q', 10);
 	////scanYdirection(lineSpeed, betweenSpeed); // load scan program
@@ -8627,6 +8628,10 @@ cout <<
     // capslock + g
     case 131143:
       {
+	{ // prepare to servo
+	  currentEEPose.pz = wholeFoodsCounter1.pz+.1;
+	}
+
 	pushCopies('e', 5);
 	pushCopies('a', 5);
 	pilot_call_stack.push_back(196711); // photospin
@@ -8647,6 +8652,7 @@ cout <<
 	pushCopies('q', 5);
 	pilot_call_stack.push_back(196711); // photospin
 
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	pushSpeedSign(MOVE_FAST);
       }
       break;
@@ -8741,8 +8747,9 @@ cout <<
 	  // so that closest servoing doesn't go into gradient servoing.
 	  targetClass = -1;
 
-	  //pilot_call_stack.push_back(196708); // remove and scan the items in the grocery bag until it is empty
-	  pilot_call_stack.push_back(131159); // 2D patrol start
+	  // ATTN 14
+//	  //pilot_call_stack.push_back(196708); // remove and scan the items in the grocery bag until it is empty
+//	  pilot_call_stack.push_back(131159); // 2D patrol start
 
 
 	  pilot_call_stack.push_back(131140); // move the scanned object from the counter to the pantry
