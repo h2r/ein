@@ -1,5 +1,7 @@
 %YAML:1.0
 labels:
+   - autoClass1
    - background
 poseModels:
+   - B
    - B
