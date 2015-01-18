@@ -764,11 +764,14 @@ double graspSuccessCounter = 0;
 double graspSuccessRate = 0;
 ros::Time graspTrialStart;
 
+double rightTableZ = 0.18;
+double leftTableZ = 0.177;
+
 double bagTableZ = 0.18; //0.195;//0.22;
 double counterTableZ = 0.209123; //0.20;//0.18;
 double pantryTableZ = 0.209123; //0.195;
 
-double currentTableZ = bagTableZ;
+double currentTableZ = leftTableZ;
 
 double mostRecentUntabledZ = 0.0;
 eePose bestOrientationEEPose = crane2right;
@@ -5443,8 +5446,8 @@ cout <<
     // neutral scan
     case 1048622:
       {
-	double lineSpeed = MOVE_FAST;//MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
-	double betweenSpeed = MOVE_FAST;//MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
+	double lineSpeed = MOVE_MEDIUM;//MOVE_FAST;
+	double betweenSpeed = MOVE_MEDIUM;//MOVE_FAST;
 	////pushCopies('e', 3);
 	////pushCopies('q', 10);
 	////scanYdirection(lineSpeed, betweenSpeed); // load scan program
@@ -8731,6 +8734,9 @@ cout <<
       {
 	  cout << "BEGINNING WHOLE FOODS VIDEO MAIN" << endl;
 
+	  eepReg2 = rssPose;
+	  eepReg4 = rssPose;
+
 	  // so that closest servoing doesn't go into gradient servoing.
 	  targetClass = -1;
 
@@ -10195,6 +10201,11 @@ void pilotInit() {
 
     rssPose = rssPoseL;
 
+    currentTableZ = leftTableZ;
+    bagTableZ = leftTableZ;
+    counterTableZ = leftTableZ;
+    pantryTableZ  = leftTableZ;
+
     wholeFoodsBag1 = rssPoseL; //wholeFoodsBagL;
     wholeFoodsPantry1 = rssPoseL; //wholeFoodsPantryL;
     wholeFoodsCounter1 = rssPoseL; //wholeFoodsCounterL;
@@ -10239,6 +10250,11 @@ void pilotInit() {
     warehousePoses.push_back(pose4);
 
     rssPose = rssPoseR;
+
+    currentTableZ = rightTableZ;
+    bagTableZ = rightTableZ;
+    counterTableZ = rightTableZ;
+    pantryTableZ  = rightTableZ;
 
     wholeFoodsBag1 = rssPoseR; //wholeFoodsBagR;
     wholeFoodsPantry1 = rssPoseR; //wholeFoodsPantryR;
