@@ -6770,8 +6770,8 @@ cout <<
 
 	// ATTN 12
 	// if we time out, reset the bblearning program
-        if ( ((synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING)) 
-	     || (bTops.size() <= 0) ) {
+        if ( ((synServoLockFrames > heightLearningServoTimeout) || (bTops.size() <= 0)) && 
+	      (currentBoundingBoxMode == LEARNING_SAMPLING) ) {
           cout << "bbLearning: synchronic servo early outting: ";
 	  if (bTops.size() <= 0)
 	    cout << "NO BLUE BOXES ";
@@ -8752,7 +8752,7 @@ cout <<
 //	  pilot_call_stack.push_back(131159); // 2D patrol start
 
 
-	  pilot_call_stack.push_back(131140); // move the scanned object from the counter to the pantry
+	  //pilot_call_stack.push_back(131140); // move the scanned object from the counter to the pantry
 
 	  // set target class to the lastLabelLearned 
 	  pilot_call_stack.push_back(1179730);
