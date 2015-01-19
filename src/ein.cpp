@@ -7080,7 +7080,7 @@ cout <<
 
 	//int gradientServoTranslation = 40;
 	//int gsStride = 2;
-	int gradientServoTranslation = 80;
+	int gradientServoTranslation = 40;
 	int gsStride = 2;
 	if (orientationCascade) {
 	  if (lastPtheta < lPTthresh) {
