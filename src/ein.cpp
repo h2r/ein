@@ -810,7 +810,7 @@ int gmTargetX = -1;
 int gmTargetY = -1;
 
 // the last value the gripper was at when it began to open from a closed position
-double lastMeasuredBias = 2.0;
+double lastMeasuredBias = 2.3;
 double lastMeasuredClosed = 3.0;
 
 typedef enum {
@@ -1252,6 +1252,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 void pilotInit();
 void spinlessPilotMain();
 
+void calibrateGripper();
 int shouldIPick(int classToPick);
 int getLocalGraspGear(int globalGraspGearIn);
 int getGlobalGraspGear(int localGraspGearIn);
@@ -2291,6 +2292,7 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
 }
 
 void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees) {
+  //cout << "setting gripper position: " << gripperPosition << endl;
   gripperPosition  = ees.position;
   gripperMoving = ees.moving;
   gripperGripping = ees.gripping;
@@ -3927,6 +3929,14 @@ cout <<
     case '6':
       currentEEPose = eepReg6;
       break;
+     
+    // capslock + *
+    case 196650:
+      {
+        calibrateGripper();
+      }
+      break;
+
     // capslock + 7
     case 131127:
       currentEEPose = warehousePoses[currentWarehousePose];
@@ -5708,7 +5718,7 @@ cout <<
 	{ // in case it fell out
 	  pilot_call_stack.push_back(196713); // count grasp
 
-	  pushNoOps(5);
+	  pushNoOps(30);
           pilot_call_stack.push_back('j'); // close gripper
           pilot_call_stack.push_back(131081); // shake it up and down
 
@@ -5756,11 +5766,13 @@ cout <<
 
 	{ // this sets the gripper closed thresh appropriately
 	  pilot_call_stack.push_back(1179713); // set gripperThresh 
+	  pushNoOps(30);
 	  pilot_call_stack.push_back('k'); // open gripper
-	  pushNoOps(15);
+	  pushNoOps(30);
 	  pilot_call_stack.push_back('j'); // close gripper
 	  pilot_call_stack.push_back('i'); // initialize gripper
 	}
+        calibrateGripper();
       }
       break;
     // perturb position by a random amount
@@ -8399,11 +8411,7 @@ cout <<
 	    cout << "  assert yes merely returns." << endl;
 	    // resets the gripper server
 	    //int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
-	    if (0 == left_or_right_arm.compare("left")) {
-	      int sis = system("bash -c \"echo -e \'c\003\' | rosrun baxter_examples gripper_keyboard.py\"");
-	    } else if (0 == left_or_right_arm.compare("right")) {
-	      int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_examples gripper_keyboard.py\"");
-	    }
+            calibrateGripper();
 	  }
 	}
       }
@@ -8433,11 +8441,7 @@ cout <<
 	    cout << "  assert no merely returns." << endl;
 	    // resets the gripper server
 	    //int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
-	    if (0 == left_or_right_arm.compare("left")) {
-	      int sis = system("bash -c \"echo -e \'c\003\' | rosrun baxter_examples gripper_keyboard.py\"");
-	    } else if (0 == left_or_right_arm.compare("right")) {
-	      int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_examples gripper_keyboard.py\"");
-	    }
+            calibrateGripper();
 	  }
 	}
       }
@@ -8554,11 +8558,7 @@ cout <<
 
 	// resets the gripper server
 	//int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
-	if (0 == left_or_right_arm.compare("left")) {
-	  int sis = system("bash -c \"echo -e \'c\003\' | rosrun baxter_examples gripper_keyboard.py\"");
-	} else if (0 == left_or_right_arm.compare("right")) {
-	  int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_examples gripper_keyboard.py\"");
-	}
+        calibrateGripper();
       }
       break;
     // shake it off1
@@ -8629,11 +8629,7 @@ cout <<
 
 	// resets the gripper server
 	//int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
-	if (0 == left_or_right_arm.compare("left")) {
-	  int sis = system("bash -c \"echo -e \'c\003\' | rosrun baxter_examples gripper_keyboard.py\"");
-	} else if (0 == left_or_right_arm.compare("right")) {
-	  int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_examples gripper_keyboard.py\"");
-	}
+        calibrateGripper();
       }
       break;
     //
@@ -9396,7 +9392,8 @@ cout <<
     // capslock + numlock + a
     case 1179713:
       {
-	gripperThresh = lastMeasuredClosed+lastMeasuredBias;
+	gripperThresh = lastMeasuredClosed + lastMeasuredBias;
+        cout << "lastMeasuredClosed: " << lastMeasuredClosed << " lastMeasuredBias: " << lastMeasuredBias << endl;
 	cout << "gripperThresh = " << gripperThresh << endl;
       }
       break;
@@ -10748,6 +10745,15 @@ void guardHeightMemory() {
     classHeightMemoryPicks[focusedClass] = Mat(hmWidth, 1, CV_64F);
   }
 }
+
+void calibrateGripper() {
+  if (0 == left_or_right_arm.compare("left")) {
+    int sis = system("bash -c \"echo -e \'c\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+  } else if (0 == left_or_right_arm.compare("right")) {
+    int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+  }
+}
+
 void convertGlobalGraspIdxToLocal(const int rx, const int ry, 
                                   int * localX, int * localY) {
   // COMPLETELY UNTESTED
