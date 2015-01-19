@@ -6837,7 +6837,7 @@ cout <<
 
 	// if we are not there yet, continue
 	if (distance > w1GoThresh*w1GoThresh) {
-	  cout << "waiting to arrive at current position." << endl;
+	  //cout << "waiting to arrive at current position." << endl;
 	  synServoLockFrames = 0;
 	  pilot_call_stack.push_back(131156); // synchronic servo
 	} else {
@@ -7242,7 +7242,7 @@ cout <<
 	currentGradientServoIterations++;
 	// if we are not there yet, continue
 	if (distance > w1GoThresh*w1GoThresh) {
-	  cout << "waiting to arrive at current position." << endl;
+	  //cout << "waiting to arrive at current position." << endl;
 	  pilot_call_stack.push_back(196728); // gradient servo
 	  // ATTN 8
 	  //pilot_call_stack.push_back(131153); // vision cycle
