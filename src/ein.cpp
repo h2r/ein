@@ -7157,6 +7157,14 @@ cout <<
 	  }
 	}
 
+	//rotatedAerialGrads.resize(gradientServoScale*numOrientations);
+	int gSTwidth = 2*gradientServoTranslation + 1;
+	double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
+        Size sz = objectViewerImage.size();
+        int imW = sz.width;
+        int imH = sz.height;
+
+
 	for (int etaS = 0; etaS < gradientServoScale; etaS++) {
 	  #pragma omp parallel for
 	  for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
@@ -7166,9 +7174,6 @@ cout <<
 	      int topCornerY = etaY + reticle.py - (aerialGradientReticleWidth/2);
 	      Mat gCrop(maxDim, maxDim, CV_64F);
 
-	      Size sz = objectViewerImage.size();
-	      int imW = sz.width;
-	      int imH = sz.height;
 	      // throw it out if it isn't contained in the image
 	      if ( (topCornerX+aerialGradientWidth >= imW) || (topCornerY+aerialGradientWidth >= imH) )
 		continue;
@@ -7222,6 +7227,48 @@ cout <<
 		double thisScore = 0;
 		thisScore = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(gCrop);
 
+		int tEtaX = etaX+gradientServoTranslation;
+		int tEtaY = etaY+gradientServoTranslation;
+		allScores[tEtaX][tEtaY][etaS][thisOrient] = thisScore;
+	      }
+	    }
+	  }
+	}
+
+	// perform max
+	for (int etaS = 0; etaS < gradientServoScale; etaS++) {
+	  for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
+	    for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
+	      // get the patch
+	      int topCornerX = etaX + reticle.px - (aerialGradientReticleWidth/2);
+	      int topCornerY = etaY + reticle.py - (aerialGradientReticleWidth/2);
+	      Mat gCrop(maxDim, maxDim, CV_64F);
+
+	      // throw it out if it isn't contained in the image
+	      if ( (topCornerX+aerialGradientWidth >= imW) || (topCornerY+aerialGradientWidth >= imH) )
+		continue;
+	      if ( (topCornerX < 0) || (topCornerY < 0) )
+		continue;
+
+	      for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
+		// orientation cascade
+		if (orientationCascade) {
+		  if (lastPtheta < lPTthresh) {
+		    if (thisOrient < orientationCascadeHalfWidth) {
+		      //cout << "skipping orientation " << thisOrient << endl;
+		      continue;
+		    }
+		    if (thisOrient > numOrientations - orientationCascadeHalfWidth) {
+		      //cout << "skipping orientation " << thisOrient << endl;
+		      continue;
+		    }
+		  }
+		}
+
+		int tEtaX = etaX+gradientServoTranslation;
+		int tEtaY = etaY+gradientServoTranslation;
+		double thisScore = allScores[tEtaX][tEtaY][etaS][thisOrient];
+
 		if (thisScore > bestOrientationScore) {
 		  bestOrientation = thisOrient;
 		  bestOrientationScore = thisScore;
@@ -7231,7 +7278,7 @@ cout <<
 		  bestS = etaS;
 		}
 		//cout << " this best: " << thisScore << " " << bestOrientationScore << " " << bestX << " " << bestY << endl;
-	      }
+	      } 
 	    }
 	  }
 	}
@@ -10893,23 +10940,58 @@ void loadPriorGraspMemory() {
   }
 
   // make everything peakier
+  // for (int tGG = 0; tGG < totalGraspGears/2; tGG++) {
+  //   for (int rx = 0; rx < rmWidth; rx++) {
+  //     for (int ry = 0; ry < rmWidth; ry++) {
+  //       int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
+  //       graspMemoryReg1[i] = pow(graspMemoryReg1[i], 4);
+  //     }
+  //   }
+  // }
+  
+  std::vector<double> sorted;
   for (int tGG = 0; tGG < totalGraspGears/2; tGG++) {
     for (int rx = 0; rx < rmWidth; rx++) {
       for (int ry = 0; ry < rmWidth; ry++) {
         int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
-        graspMemoryReg1[i] = pow(graspMemoryReg1[i], 4);
+        sorted.push_back(graspMemoryReg1[i]);
       }
     }
   }
+  
+  std::sort (sorted.begin(), sorted.end());
+
+  double threshold = sorted[sorted.size() - 10];
+
+
+  for (int tGG = 0; tGG < totalGraspGears/2; tGG++) {
+    for (int rx = 0; rx < rmWidth; rx++) {
+      for (int ry = 0; ry < rmWidth; ry++) {
+        int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
+        if (graspMemoryReg1[i] < threshold) {
+          graspMemoryReg1[i] = 0;
+        }
+      }
+    }
+  }
+
 
   for (int tGG = 0; tGG < totalGraspGears/2; tGG++) {
     for (int rx = 0; rx < rmWidth; rx++) {
       for (int ry = 0; ry < rmWidth; ry++) {
         int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
         double mu = graspMemoryReg1[i];
-        double eccentricity = 5;
-        double nsuccess = round(eccentricity * mu);
-        double nfailure = round(eccentricity * (1 - mu));
+        double nfailure;
+        if (mu == 0) {
+          nfailure = VERYBIGNUMBER;
+          
+        } else {
+          nfailure = 0;
+        }
+        double nsuccess = 0;
+        //double eccentricity = 5;
+        //double nsuccess = round(eccentricity * mu);
+        //double nfailure = round(eccentricity * (1 - mu));
         graspMemoryPicks[i] = nsuccess;
         graspMemoryTries[i] = nsuccess + nfailure;
 
