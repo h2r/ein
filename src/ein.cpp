@@ -448,6 +448,8 @@ eePose eepReg1 = workCenter;
 eePose eepReg2 = beeHome;
 eePose eepReg3 = beeHome;
 eePose eepReg4 = beeHome;
+eePose eepReg5 = beeHome;
+eePose eepReg6 = beeHome;
 std::vector<eePose> warehousePoses;
 int currentWarehousePose = 0;
 
@@ -3632,7 +3634,7 @@ void timercallback1(const ros::TimerEvent&) {
   switch (c) {
     case 30: // up arrow
       break;
-    case 'j':
+    case 'j':  // close gripper
       {
 	baxter_core_msgs::EndEffectorCommand command;
 	command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
@@ -3920,10 +3922,18 @@ cout <<
       currentEEPose = eepReg4;
       break;
     case '5':
+      currentEEPose = eepReg5;
+      break;
+    case '6':
+      currentEEPose = eepReg6;
+      break;
+    // capslock + 7
+    case 131127:
       currentEEPose = warehousePoses[currentWarehousePose];
       currentWarehousePose = (currentWarehousePose + 1) % warehousePoses.size();
       break;
-    case '6':
+    // capslock + 8
+    case 131128:
       currentThompsonHeightIdx = (currentThompsonHeightIdx + 1) % hmWidth;
       currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
       currentEEPose.pz = currentThompsonHeight;
@@ -4836,7 +4846,7 @@ cout <<
     // numlock + j
     case 1048682:
       {
-	pilot_call_stack.push_back('j');
+	pilot_call_stack.push_back('j');  // close gripper
 
     #ifdef DEBUG4
 	cout << " ++Move to target z: " << maxD << " " << graspDepth << " " << currentEEPose.pz << endl; cout.flush();
@@ -5697,6 +5707,11 @@ cout <<
 	//count here so that if it drops it on the way it will count as a miss
 	{ // in case it fell out
 	  pilot_call_stack.push_back(196713); // count grasp
+
+	  pushNoOps(5);
+
+          pilot_call_stack.push_back(131081); // shake it up and down
+
 	  pushNoOps(5);
 	  pilot_call_stack.push_back('j'); // close gripper
 	}
@@ -6768,6 +6783,33 @@ cout <<
 	synServoLockFrames = 0;
       }
       break;
+  // shake it up and down
+  // capslock + tab
+  case 131081:
+    {
+    eepReg5 = currentEEPose;
+
+    eepReg6 = currentEEPose;
+    eepReg6.pz += 0.2;
+
+    pilot_call_stack.push_back(131154); // w1 wait until at current position
+    pilot_call_stack.push_back('5');  // assume pose at register 5
+
+    pilot_call_stack.push_back(131154); // w1 wait until at current position
+    pilot_call_stack.push_back('6'); // assume pose at register 6
+
+    pilot_call_stack.push_back(131154); // w1 wait until at current position
+    pilot_call_stack.push_back('5'); // assume pose at register 5
+
+    pilot_call_stack.push_back(131154); // w1 wait until at current position
+    pilot_call_stack.push_back('6');
+
+    
+
+    
+    }
+    break;
+    
     // synchronic servo
     // capslock + t
     case 131156:
