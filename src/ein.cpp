@@ -7055,7 +7055,7 @@ cout <<
 	//rotatedAerialGrads.resize(numOrientations);
 	rotatedAerialGrads.resize(gradientServoScale*numOrientations);
 
-	if (lastPtheta < lPTthresh) {
+	if ((lastPtheta < lPTthresh) && orientationCascade) {
 	  cout << "orientation cascade activated" << endl;
 	}
 
@@ -7119,8 +7119,8 @@ cout <<
 
 	//int gradientServoTranslation = 40;
 	//int gsStride = 2;
-	int gradientServoTranslation = 60;
-	int gsStride = 4;
+	int gradientServoTranslation = 40;
+	int gsStride = 2;
 	if (orientationCascade) {
 	  if (lastPtheta < lPTthresh) {
 	    //int gradientServoTranslation = 20;
@@ -7131,6 +7131,7 @@ cout <<
 	}
 
 	for (int etaS = 0; etaS < gradientServoScale; etaS++) {
+	  #pragma omp parallel for
 	  for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
 	    for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
 	      // get the patch
