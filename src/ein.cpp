@@ -6808,7 +6808,7 @@ cout <<
     eepReg6.pz += 0.2;
 
     
-    if (gripperPosition < gripperThresh) {
+    if (gripperPosition >= gripperThresh) {
 
       pilot_call_stack.push_back(131154); // w1 wait until at current position
       pilot_call_stack.push_back('5');  // assume pose at register 5
