@@ -336,10 +336,13 @@ eePose centerReticle = {.px = 325, .py = 127, .pz = 0.0,
 		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
 		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
 
-eePose defaultRightReticle = {.px = 321, .py = 154, .pz = 0.0,
+eePose defaultRightReticle = {.px = 325, .py = 127, .pz = 0.0,
 		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
 		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
-eePose defaultLeftReticle = {.px = 328, .py = 113, .pz = 0.0,
+//eePose defaultRightReticle = {.px = 321, .py = 154, .pz = 0.0,
+//		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
+//		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
+eePose defaultLeftReticle = {.px = 334, .py = 100, .pz = 0.0,
 		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
 		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
 
@@ -832,7 +835,7 @@ std::string pickModeToString(int mode) {
   return result;
 }
 
-int orientationCascade = 1;
+int orientationCascade = 0;
 int lPTthresh = 3;
 int orientationCascadeHalfWidth = 2;
 
@@ -6742,6 +6745,9 @@ cout <<
 	    accumulatedTime = accumulatedTime + (ros::Time::now() - oscilStart);
 	  }
 	}
+	
+	// if you are static_prior, this does nothing and defaults to the usual height
+	pilot_call_stack.push_back(1245247); // sample height
       }
       break;
     // synchronic servo do not take closest
@@ -7001,8 +7007,8 @@ cout <<
 	double gradientServoScaleStep = 1.02;
 	if (orientationCascade) {
 	  if (lastPtheta < lPTthresh) {
-	    gradientServoScale = 1;
-	    gradientServoScaleStep = 1.0;
+	    //gradientServoScale = 1;
+	    //gradientServoScaleStep = 1.0;
 	  }
 	}
 	double startScale = pow(gradientServoScaleStep, -(gradientServoScale-1)/2);
@@ -7072,11 +7078,15 @@ cout <<
 	int tRy = (maxDim-crows)/2;
 	int tRx = (maxDim-ccols)/2;
 
-	int gradientServoTranslation = 40;
-	int gsStride = 2;
+	//int gradientServoTranslation = 40;
+	//int gsStride = 2;
+	int gradientServoTranslation = 60;
+	int gsStride = 4;
 	if (orientationCascade) {
 	  if (lastPtheta < lPTthresh) {
-	    int gradientServoTranslation = 20;
+	    //int gradientServoTranslation = 20;
+	    //int gsStride = 2;
+	    int gradientServoTranslation = 40;
 	    int gsStride = 2;
 	  }
 	}
@@ -9509,18 +9519,24 @@ cout <<
     // capslock + numlock + ?
     case 1245247: 
     {
-      loadSampledHeightMemory();
-      double best_height_prob = 0.0;
-      int max_i = -1;
-      for (int i = 0; i < hmWidth; i++) {
-        if (heightMemorySample[i] > best_height_prob) {
-          max_i = i;
-          best_height_prob = heightMemorySample[i];
-        }
+      if (currentBoundingBoxMode != STATIC_PRIOR) {
+	if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+	  loadSampledHeightMemory();
+	} else if (currentBoundingBoxMode == STATIC_MARGINALS) {
+	  loadMarginalHeightMemory();
+	}
+	double best_height_prob = 0.0;
+	int max_i = -1;
+	for (int i = 0; i < hmWidth; i++) {
+	  if (heightMemorySample[i] > best_height_prob) {
+	    max_i = i;
+	    best_height_prob = heightMemorySample[i];
+	  }
+	}
+	currentThompsonHeight = convertHeightIdxToGlobalZ(max_i);
+	currentThompsonHeightIdx = max_i;
+	currentEEPose.pz = currentThompsonHeight;
       }
-      currentThompsonHeight = convertHeightIdxToGlobalZ(max_i);
-      currentThompsonHeightIdx = max_i;
-      currentEEPose.pz = currentThompsonHeight;
     } 
     break;
     // set random position for bblearn
@@ -10203,8 +10219,8 @@ void pilotInit() {
     //eepReg3 = crane3left;
     eepReg4 = rssPoseL; //beeLHome;
     oscillatingSign = 1;
-    //defaultReticle = defaultLeftReticle;
-    defaultReticle = centerReticle;
+    defaultReticle = defaultLeftReticle;
+    //defaultReticle = centerReticle;
     reticle = defaultReticle;
 
     rssPose = rssPoseL;
@@ -10230,8 +10246,8 @@ void pilotInit() {
     //eepReg3 = crane3right;
     eepReg4 = rssPoseR; //beeRHome;
     oscillatingSign = -1;
-    //defaultReticle = defaultRightReticle;
-    defaultReticle = centerReticle;
+    defaultReticle = defaultRightReticle;
+    //defaultReticle = centerReticle;
     reticle = defaultReticle;
 
 
@@ -11576,7 +11592,7 @@ void selectMaxTargetThompson(double minDepth) {
         graspMemoryWeight = 0;
       }
       
-      cout << "graspMemory Thompson incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localX << " " << localY << " " << graspMemoryWeight << endl;
+      //cout << "graspMemory Thompson incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localX << " " << localY << " " << graspMemoryWeight << endl;
       
       if (graspMemoryBias + graspMemoryWeight < minDepth) 
         {
@@ -16061,7 +16077,7 @@ void processSaliency(Mat in, Mat out) {
     }
   }
 
-  double saliencyThresh = 0.1*(tMax-tMin) + tMin;
+  double saliencyThresh = 0.5*(tMax-tMin) + tMin;
   for (int x = 0; x < in.cols; x++) {
     for (int y = 0; y < in.rows; y++) {
       if (out.at<double>(y,x) >= saliencyThresh)
