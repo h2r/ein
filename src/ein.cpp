@@ -9554,6 +9554,7 @@ cout <<
         //0.04, 2.57e-05, 0.0005, 0.0009, 0.007, 0.0006
         double distance = squareDistanceEEPose(currentEEPose, eepReg4);
         cout << "distance from start: " << sqrt(distance) << endl;
+        cout << "bbLearnThresh: " << bbLearnThresh << endl;
         if (distance < bbLearnThresh*bbLearnThresh) {
           recordBoundingBoxSuccess();
         } else {
