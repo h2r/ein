@@ -24,6 +24,7 @@ urlcolor=blue
 
 \newcommand{\stnote}[1]{\textcolor{blue}{\textbf{ST: #1}}}
 \newcommand{\jgonote}[1]{\textcolor{green}{\textbf{JGO: #1}}}
+\newcommand{\menote}[1]{\textcolor{red}{\textbf{ME: #1}}}
 
 \usepackage{algorithmic}
 
@@ -349,7 +350,7 @@ clutter and occlusion.
 \subsection{Object Recognition}
 \label{sec:recognition}
 
-The object recognition module takes as input a bonding box, $B$, and
+The object recognition module takes as input a bounding box, $B$, and
 outputs a label for that object, $c$, based on the robot's memory.
 This label is used to identify the object and look up other
 information about the object for grasping further down the pipeline.
@@ -359,16 +360,16 @@ crops $E_c$ which are candidate bounding boxes (derived as above)
 which contain $c$. We extract dense SIFT features ~\citep{lowe99} from
 all boxes of all classes and use k-means to extract a visual
 vocabulary of SIFT features ~\citep{szeliski10}. We then construct a
-BoW feature vector for each image and augment it with a histogram of
+Bag of Words feature vector for each image and augment it with a histogram of
 colors which appear in that image.  The augmented feature vector is
 incorporated into a k-nearest-neighbors model which we use to classify
 objects at inference~\citep{szeliski10}. We use kNN because our
 automated training process allows us to acquire as much high-quality
 data as necessary to make the model work well, and kNN supports direct
 matching to this large dataset.  Existing approaches for
-instance-based grasping such as LINE-2D require the order of $2000$
+instance-based grasping such as LINE-2D require the order of $2000$ examples
 whereas our SIFT-based approach performs well with only $200$
-examples~\citep{hinterstoisser12}.
+~\citep{hinterstoisser12}.
 
 
 %% The use of SIFT features is motivated by the instance level nature of
@@ -433,7 +434,7 @@ To identify a grasp points, we combine a depth map of the object with
 a model of the gripper.  The depth map appears in
 Figure~\ref{fig:depth_map}.  The grasp model scores each potential
 grasp according to a linear model of the gripper to estimate grasp
-success.  A default algorithm picks the highest-scoring grasp point,
+success. \menote{default algorithm?} A default algorithm picks the highest-scoring grasp point,
 but frequently this point is not actually a good grasp, because the
 object might slip out of the robot's gripper or part of the object may
 not be visible in IR.  The input to this module is the 3d pose of the
@@ -446,12 +447,12 @@ assume only crane grasps rather than full 3d grasping.
 
 To grasp an object, we first scan the work area by moving the camera
 until the object is detected an recognized.  Then we perform active
-visual servoign to move the arm directly above the object.  Next, we
+visual servoing to move the arm directly above the object.  Next, we
 perform orientation servoing using the pose estimation
 algorithm. Because these components are instance-based, they report
 position and orientation with high accuracy, enabling us to use a
 proportional controller (with no derivative or integral terms) to move
-the arm into
+the arm into \menote{....?}
 
 
 
@@ -481,12 +482,12 @@ grasping.  To achieve this accuracy, the robot autonomously collects
 this information by using a depth sensor to acquire an initial grasp,
 move the object to a standard known pose, and then actively collect
 data for view-based methods.  Our learning algorithm appears in
-Algorithm~\ref{alg:learning}.
+Algorithm~\ref{alg:learning}. \menote{It's labeled Figure 3, might want to change here or there.}
 
 Once the object has been moved to a known pose, we acquire the object
 model by moving the camera to a sequence of prespecified orientations.
 We automatically crop the image using integral images computed over
-the bounding boxes inferred by the Bing objectness detector.
+the bounding boxes inferred by the BING objectness detector.
 
 
 \begin{figure}
