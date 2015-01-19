@@ -1185,7 +1185,7 @@ int aerialGradientWidth = 100;
 int aerialGradientReticleWidth = 200;
 
 int softMaxGradientServoIterations = 3;//3;
-int hardMaxGradientServoIterations = 4;//3;//10;
+int hardMaxGradientServoIterations = 10;//3;//10;
 int currentGradientServoIterations = 0;
 
 int fuseBlueBoxes = 1;
@@ -6829,6 +6829,11 @@ cout <<
           restartBBLearning();
           break;
         }
+
+	if (bTops.size() <= 0) {
+	  pilot_call_stack.push_back(131141); // 2D patrol continue
+	  cout << ">>>> HELP,  I CAN'T SEE!!!!! <<<<" << endl;
+	}
 
 	if (synchronicTakeClosest) {
 	  if ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1)) {
@@ -16121,7 +16126,7 @@ void processSaliency(Mat in, Mat out) {
     }
   }
 
-  double saliencyThresh = 0.5*(tMax-tMin) + tMin;
+  double saliencyThresh = 0.1*(tMax-tMin) + tMin;
   for (int x = 0; x < in.cols; x++) {
     for (int y = 0; y < in.rows; y++) {
       if (out.at<double>(y,x) >= saliencyThresh)
