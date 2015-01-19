@@ -845,6 +845,9 @@ int heightLearningServoTimeout = 10;
 double currentThompsonHeight = 0;
 int currentThompsonHeightIdx = 0;
 
+int useGradientServoThresh = 0;
+double gradientServoResetThresh = 0.7/(6.0e5);
+
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -6592,7 +6595,7 @@ cout <<
         } else {
           ROS_INFO_STREAM("Picking: " << fetchCommand << " idx: " << target_idx);
           targetClass = target_idx;
-          pilot_call_stack.push_back(131159); // fetch targetClass
+          pilot_call_stack.push_back(131159); // 2D patrol start
         }
 
 
@@ -7115,6 +7118,7 @@ cout <<
 
 	int bestOrientation = -1;
 	double bestOrientationScore = -INFINITY;
+	double bestCropNorm = 1.0;
 	int bestX = -1;
 	int bestY = -1;
 	int bestS = -1;
@@ -7177,9 +7181,11 @@ cout <<
 		gCrop = gCrop - mean;
 		double l2norm = gCrop.dot(gCrop);
 		gCrop = gCrop - mean;
-		if (l2norm <= EPSILON)
-		  l2norm = 1.0;
-		gCrop = gCrop / l2norm;
+		// ATTN 15
+		// normalization hoses rejection
+//		if (l2norm <= EPSILON)
+//		  l2norm = 1.0;
+//		gCrop = gCrop / l2norm;
 	      }
 
 	      for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
@@ -7204,6 +7210,7 @@ cout <<
 		if (thisScore > bestOrientationScore) {
 		  bestOrientation = thisOrient;
 		  bestOrientationScore = thisScore;
+		  bestCropNorm = sqrt(gCrop.dot(gCrop));
 		  bestX = etaX;
 		  bestY = etaY;
 		  bestS = etaS;
@@ -7297,7 +7304,21 @@ cout <<
 	double dz = (currentEEPose.pz - trueEEPose.position.z);
 	double distance = dx*dx + dy*dy + dz*dz;
 
+	// ATTN 15
+	// return to synchronic if the match is poor
+	if (useGradientServoThresh) {
+	  cout << "ATTN score, thresh, norm, product: " << bestOrientationScore << " " << gradientServoResetThresh << " " << bestCropNorm << " " << (gradientServoResetThresh * bestCropNorm) << endl;
+	  if (bestOrientationScore < (gradientServoResetThresh * bestCropNorm) ) {
+	    pilot_call_stack.push_back(131156); // synchronic servo
+	    pilot_call_stack.push_back(131153); // vision cycle
+	    cout << " XXX BAD GRADIENT SERVO SCORE, RETURN TO SYNCHRONIC XXX" << endl;
+	    break;
+	  }
+	}
+
+	// update after
 	currentGradientServoIterations++;
+
 	// if we are not there yet, continue
 	if (distance > w1GoThresh*w1GoThresh) {
 	  //cout << "waiting to arrive at current position." << endl;
