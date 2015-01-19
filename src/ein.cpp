@@ -5709,7 +5709,7 @@ cout <<
 	  pilot_call_stack.push_back(196713); // count grasp
 
 	  pushNoOps(5);
-
+          pilot_call_stack.push_back('j'); // close gripper
           pilot_call_stack.push_back(131081); // shake it up and down
 
 	  pushNoOps(5);
@@ -8472,6 +8472,7 @@ cout <<
 //	      }
 //	      break;
 //	  }
+          cout << "gripperPosition: " << gripperPosition << " gripperThresh: " << gripperThresh << endl;
 	  if (gripperPosition < gripperThresh) {
 	    if (currentBoundingBoxMode == LEARNING_SAMPLING) {
 	      recordBoundingBoxFailure();
