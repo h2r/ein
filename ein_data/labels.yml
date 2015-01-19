@@ -1,7 +1,31 @@
 %YAML:1.0
 labels:
-   - autoClass1
+   - blackTape
+   - eraser
+   - mug
+   - woodenSpoon
    - background
+   - whiteRuler
+   - woodenFork
+   - blueBowl
+   - brush
+   - knife
+   - vanilla
+   - gyroBowl
+   - scissors
+   - vaseline
 poseModels:
+   - B
+   - B
+   - B
+   - B
+   - B
+   - B
+   - B
+   - B
+   - B
+   - B
+   - B
+   - B
    - B
    - B
