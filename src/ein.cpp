@@ -13778,8 +13778,8 @@ void goFindBlueBoxes() {
       	    parentD.pop_back();
       	  } 
       	  // if the next direction is valid, push it on to the stack and increment direction counter
-      	  else if(gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0
-      		  && nextX > -1 && nextX < imW && nextY > -1 && nextY < imH) {
+      	  else if(nextX > -1 && nextX < imW && nextY > -1 && nextY < imH && 
+	    gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0) {
 
       	    gBoxGrayNodes[nextY*imW+nextX] = 1;
       	    gBoxComponentLabels[nextY*imW+nextX] = gBoxComponentLabels[parentY[index]*imW+parentX[index]];
