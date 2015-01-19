@@ -6807,19 +6807,22 @@ cout <<
     eepReg6 = currentEEPose;
     eepReg6.pz += 0.2;
 
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('5');  // assume pose at register 5
-
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('6'); // assume pose at register 6
-
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('5'); // assume pose at register 5
-
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('6');
-
     
+    if (gripperPosition < gripperThresh) {
+
+      pilot_call_stack.push_back(131154); // w1 wait until at current position
+      pilot_call_stack.push_back('5');  // assume pose at register 5
+      
+      pilot_call_stack.push_back(131154); // w1 wait until at current position
+      pilot_call_stack.push_back('6'); // assume pose at register 6
+      
+      pilot_call_stack.push_back(131154); // w1 wait until at current position
+      pilot_call_stack.push_back('5'); // assume pose at register 5
+      
+      pilot_call_stack.push_back(131154); // w1 wait until at current position
+      pilot_call_stack.push_back('6');
+
+    }
 
     
     }
