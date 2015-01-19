@@ -5707,6 +5707,11 @@ cout <<
 	//count here so that if it drops it on the way it will count as a miss
 	{ // in case it fell out
 	  pilot_call_stack.push_back(196713); // count grasp
+
+	  pushNoOps(5);
+
+          pilot_call_stack.push_back(131081); // shake it up and down
+
 	  pushNoOps(5);
 	  pilot_call_stack.push_back('j'); // close gripper
 	}
@@ -6785,7 +6790,7 @@ cout <<
     eepReg5 = currentEEPose;
 
     eepReg6 = currentEEPose;
-    eepReg6.pz += 5;
+    eepReg6.pz += 0.2;
 
     pilot_call_stack.push_back(131154); // w1 wait until at current position
     pilot_call_stack.push_back('5');  // assume pose at register 5
@@ -6799,8 +6804,6 @@ cout <<
     pilot_call_stack.push_back(131154); // w1 wait until at current position
     pilot_call_stack.push_back('6');
 
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('5'); // assume pose at register 6
     
 
     
