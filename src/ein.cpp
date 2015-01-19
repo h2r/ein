@@ -10982,16 +10982,16 @@ void loadPriorGraspMemory() {
         int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
         double mu = graspMemoryReg1[i];
         double nfailure;
+        double eccentricity = 5;
+        double nsuccess = round(eccentricity * mu);
+
         if (mu == 0) {
           nfailure = VERYBIGNUMBER;
-          
         } else {
-          nfailure = 0;
+          nfailure = round(eccentricity * (1 - mu));
         }
-        double nsuccess = 0;
-        //double eccentricity = 5;
-        //double nsuccess = round(eccentricity * mu);
-        //double nfailure = round(eccentricity * (1 - mu));
+
+
         graspMemoryPicks[i] = nsuccess;
         graspMemoryTries[i] = nsuccess + nfailure;
 
