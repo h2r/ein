@@ -329,7 +329,7 @@ std::string graspMemorySampleViewName = "Grasp Memory Sample View";
 
 std::string heightMemorySampleViewName = "Height Memory Sample View";
 
-int reticleHalfWidth = 30;
+int reticleHalfWidth = 72;
 int pilotTargetHalfWidth = 15;
 
 eePose centerReticle = {.px = 325, .py = 127, .pz = 0.0,
@@ -801,8 +801,8 @@ double graspMemorySample[4*rmWidth*rmWidth];
 double graspMemoryReg1[4*rmWidth*rmWidth];
 
 // height Thompson parameters
-const double minHeight = 0.0;
-const double maxHeight = 0.25;
+const double minHeight = -0.10;
+const double maxHeight = 0.3;
 double heightMemoryTries[hmWidth];
 double heightMemoryPicks[hmWidth];
 double heightMemorySample[hmWidth];
@@ -10472,15 +10472,15 @@ void pilotInit() {
     heightReticles[2] = defaultReticle;
     heightReticles[3] = defaultReticle;
 
-    heightReticles[0].px = 323;
-    heightReticles[1].px = 324;
-    heightReticles[2].px = 328;
-    heightReticles[3].px = 332;
+    heightReticles[3].px = 323;
+    heightReticles[2].px = 326;
+    heightReticles[1].px = 331;
+    heightReticles[0].px = 347;
 
-    heightReticles[0].py = 135;
-    heightReticles[1].py = 129;
-    heightReticles[2].py = 123;
-    heightReticles[3].py = 109;
+    heightReticles[3].py = 137;
+    heightReticles[2].py = 132;
+    heightReticles[1].py = 118;
+    heightReticles[0].py = 72;
 
   } else if (0 == left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
@@ -10539,15 +10539,16 @@ void pilotInit() {
     heightReticles[2] = defaultReticle;
     heightReticles[3] = defaultReticle;
 
-    heightReticles[0].px = 327;
-    heightReticles[1].px = 330;
-    heightReticles[2].px = 335;
-    heightReticles[3].px = 342;
+    
+    heightReticles[3].px = 319;
+    heightReticles[2].px = 323;
+    heightReticles[1].px = 328;
+    heightReticles[0].px = 341;
 
-    heightReticles[0].py = 160;
-    heightReticles[1].py = 154;
-    heightReticles[2].py = 143;
-    heightReticles[3].py = 125;
+    heightReticles[3].py = 170;
+    heightReticles[2].py = 159;
+    heightReticles[1].py = 145;
+    heightReticles[0].py = 100;
   } else {
     cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
     exit(0);
