@@ -9244,14 +9244,14 @@ cout <<
 	    break;
 	  case LEARNING_SAMPLING:
 	    {
-	      //pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
-	      pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+	      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+	      //pilot_call_stack.push_back(196360); // loadPriorGraspMemory
 	    }
 	    break;
 	  case STATIC_MARGINALS:
 	    {
-	      //pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
-	      pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+	      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+	      //pilot_call_stack.push_back(196360); // loadPriorGraspMemory
 	    }
 	    break;
 	  default:
