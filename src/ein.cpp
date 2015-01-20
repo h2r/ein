@@ -437,6 +437,7 @@ eePose wholeFoodsCounter1 = wholeFoodsCounterR;
 //eePose defaultReticle = defaultRightReticle;
 eePose defaultReticle = centerReticle;
 
+eePose heightReticles[4];
 
 eePose reticle = defaultReticle;
 eePose beeHome = beeRHome;
@@ -1168,7 +1169,14 @@ cv::Point armBot;
 
 int loadRange = 1;
 vector<Mat> classRangeMaps;
+
+// ATTN 16
 vector<Mat> classAerialGradients;
+vector<Mat> classHeight0AerialGradients;
+vector<Mat> classHeight1AerialGradients;
+vector<Mat> classHeight2AerialGradients;
+vector<Mat> classHeight3AerialGradients;
+
 vector<Mat> classGraspMemoryTries1;
 vector<Mat> classGraspMemoryPicks1;
 vector<Mat> classGraspMemoryTries2;
@@ -6833,6 +6841,7 @@ cout <<
     case 131156:
       {
 	synServoLockFrames++;
+        reticle = heightReticles[currentThompsonHeightIdx];
 
 	// ATTN 12
 	// if we time out, reset the bblearning program
@@ -6948,9 +6957,10 @@ cout <<
 		//pushCopies(131154, 40); // w1 wait until at current position
 		pushCopies(131154, 5); // w1 wait until at current position
 
-		{ // prepare to servo
-		  currentEEPose.pz = wholeFoodsCounter1.pz+.1;
-		}
+		// ATTN 16
+//		{ // prepare to servo
+//		  currentEEPose.pz = wholeFoodsCounter1.pz+.1;
+//		}
 	      } else {
 		// do nothing, just proceed
 		cout << "Returning." << endl;
@@ -6967,9 +6977,10 @@ cout <<
 	      //pushCopies(131154, 40); // w1 wait until at current position
 	      pushCopies(131154, 5); // w1 wait until at current position
 
-	      { // prepare to servo
-		currentEEPose.pz = wholeFoodsCounter1.pz+.1;
-	      }
+	      // ATTN 16
+//	      { // prepare to servo
+//		currentEEPose.pz = wholeFoodsCounter1.pz+.1;
+//	      }
 	    } else {
               if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
 		pilot_call_stack.push_back(1048624); // prepare for and execute the best grasp from memory at the current location and target
@@ -7038,6 +7049,7 @@ cout <<
     case 196728:
       {
 
+
 	// ATTN 12
 //        if ((synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING)) {
 //          cout << "bbLearning: synchronic servo timed out, early outting." << endl;
@@ -7052,6 +7064,35 @@ cout <<
 	if ((classAerialGradients[targetClass].rows <= 1) && (classAerialGradients[targetClass].cols <= 1)) {
 	  cout << "no aerial gradients for this class, not servoing." << endl;
 	  break;
+	}
+
+	// ATTN 16
+	switch (currentThompsonHeightIdx) {
+	  case 0:
+	    {
+	      classAerialGradients[targetClass] = classHeight0AerialGradients[targetClass];
+	    }
+	    break;
+	  case 1:
+	    {
+	      classAerialGradients[targetClass] = classHeight1AerialGradients[targetClass];
+	    }
+	    break;
+	  case 2:
+	    {
+	      classAerialGradients[targetClass] = classHeight2AerialGradients[targetClass];
+	    }
+	    break;
+	  case 3:
+	    {
+	      classAerialGradients[targetClass] = classHeight3AerialGradients[targetClass];
+	    }
+	    break;
+	  default:
+	    {
+	      assert(0);
+	    }
+	    break;
 	}
 
 	double Px = 0;
@@ -7393,9 +7434,10 @@ cout <<
 	  //pushCopies(131154, 40); // w1 wait until at current position
 	  pushCopies(131154, 5); // w1 wait until at current position
 
-	  { // prepare to servo
-	    currentEEPose.pz = wholeFoodsCounter1.pz+.1;
-	  }
+	  // ATTN 16
+//	  { // prepare to servo
+//	    currentEEPose.pz = wholeFoodsCounter1.pz+.1;
+//	  }
 	} else {
 	  // ATTN 5
 	  // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
@@ -7495,9 +7537,10 @@ cout <<
 	    //pushCopies(131154, 40); // w1 wait until at current position
 	    pushCopies(131154, 5); // w1 wait until at current position
 
-	    { // prepare to servo
-	      currentEEPose.pz = wholeFoodsCounter1.pz+.1;
-	    }
+	    // ATTN 16
+//	    { // prepare to servo
+//	      currentEEPose.pz = wholeFoodsCounter1.pz+.1;
+//	    }
 	  }
 	}
       }
@@ -8144,7 +8187,36 @@ cout <<
 
 	  char buf[1000];
 	  string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
-	  string this_range_path = dirToMakePath + "aerialGradient.yml";
+	  string this_range_path;
+
+	  // ATTN 16
+	  switch (currentThompsonHeightIdx) {
+	    case 0:
+	      {
+		this_range_path = dirToMakePath + "aerialHeight0Gradients.yml";
+	      }
+	      break;
+	    case 1:
+	      {
+		this_range_path = dirToMakePath + "aerialHeight1Gradients.yml";
+	      }
+	      break;
+	    case 2:
+	      {
+		this_range_path = dirToMakePath + "aerialHeight2Gradients.yml";
+	      }
+	      break;
+	    case 3:
+	      {
+		this_range_path = dirToMakePath + "aerialHeight3Gradients.yml";
+	      }
+	      break;
+	    default:
+	      {
+		assert(0);
+		break;
+	      }
+	  }
 
 	  mkdir(dirToMakePath.c_str(), 0777);
 
@@ -8188,7 +8260,36 @@ cout <<
           cout << "capslock + Z: Writing: " << this_range_path << endl;
 
 	  fsvO.open(this_range_path, FileStorage::WRITE);
-	  fsvO << "aerialGradient" << gCrop;
+
+	  // ATTN 16
+	  switch (currentThompsonHeightIdx) {
+	    case 0:
+	      {
+		fsvO << "aerialHeight0Gradients" << gCrop;
+	      }
+	      break;
+	    case 1:
+	      {
+		fsvO << "aerialHeight1Gradients" << gCrop;
+	      }
+	      break;
+	    case 2:
+	      {
+		fsvO << "aerialHeight2Gradients" << gCrop;
+	      }
+	      break;
+	    case 3:
+	      {
+		fsvO << "aerialHeight3Gradients" << gCrop;
+	      }
+	      break;
+	    default:
+	      {
+		assert(0);
+	      }
+	      break;
+	  }
+
 	  lastAerialGradient = gCrop;
 	  fsvO.release();
 	} 
@@ -9584,8 +9685,9 @@ cout <<
 	synServoLockFrames = 0;
 	currentGradientServoIterations = 0;
 
-	// push this program 
-	pilot_call_stack.push_back(1179707); // begin bounding box learning
+	// ATTN 16
+//	// push this program 
+//	pilot_call_stack.push_back(1179707); // begin bounding box learning
 
 	// record the bblearn trial if successful
 	pilot_call_stack.push_back(1179694); 
@@ -10091,11 +10193,14 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     }
   }
 
-  {
-    cv::Point outTop = cv::Point(reticle.px-reticleHalfWidth, reticle.py-reticleHalfWidth);
-    cv::Point outBot = cv::Point(reticle.px+reticleHalfWidth, reticle.py+reticleHalfWidth);
-    cv::Point inTop = cv::Point(reticle.px+1-reticleHalfWidth,reticle.py+1-reticleHalfWidth);
-    cv::Point inBot = cv::Point(reticle.px-1+reticleHalfWidth,reticle.py-1+reticleHalfWidth);
+  // ATTN 16
+  for (int hri = 0; hri < 4; hri++) {
+    eePose thisReticle = heightReticles[hri];
+    int thisReticleHalfWidth = int(  ceil( double(reticleHalfWidth) / double(1+hri) )  );
+    cv::Point outTop = cv::Point(thisReticle.px-thisReticleHalfWidth, thisReticle.py-thisReticleHalfWidth);
+    cv::Point outBot = cv::Point(thisReticle.px+thisReticleHalfWidth, thisReticle.py+thisReticleHalfWidth);
+    cv::Point inTop = cv::Point(thisReticle.px+1-thisReticleHalfWidth,thisReticle.py+1-thisReticleHalfWidth);
+    cv::Point inBot = cv::Point(thisReticle.px-1+thisReticleHalfWidth,thisReticle.py-1+thisReticleHalfWidth);
 
     if (auto_pilot) {
       int boxBrightness = 128;
@@ -10116,8 +10221,13 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       vCrop = vCrop + fillColor;
     }
 
-    rectangle(wristViewImage, outTop, outBot, cv::Scalar(82,70,22)); // RGB: 22 70 82
-    rectangle(wristViewImage, inTop, inBot, cv::Scalar(239,205,68)); // RGB: 68 205 239
+    if (hri == currentThompsonHeightIdx) {
+      rectangle(wristViewImage, outTop, outBot, cv::Scalar(22,70,82)); 
+      rectangle(wristViewImage, inTop, inBot, cv::Scalar(68,205,239));
+    } else {
+      rectangle(wristViewImage, outTop, outBot, cv::Scalar(82,70,22)); // RGB: 22 70 82
+      rectangle(wristViewImage, inTop, inBot, cv::Scalar(239,205,68)); // RGB: 68 205 239
+    }
   }
 
   {
@@ -10355,6 +10465,23 @@ void pilotInit() {
     eepReg1 = rssPoseL; //wholeFoodsBagL;
     eepReg2 = rssPoseL; //wholeFoodsPantryL;
     eepReg3 = rssPoseL; //wholeFoodsCounterL;
+
+    // ATTN 16
+    heightReticles[0] = defaultReticle;
+    heightReticles[1] = defaultReticle;
+    heightReticles[2] = defaultReticle;
+    heightReticles[3] = defaultReticle;
+
+    heightReticles[0].px = 323;
+    heightReticles[1].px = 324;
+    heightReticles[2].px = 328;
+    heightReticles[3].px = 332;
+
+    heightReticles[0].py = 135;
+    heightReticles[1].py = 129;
+    heightReticles[2].py = 123;
+    heightReticles[3].py = 109;
+
   } else if (0 == left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
     beeHome = wholeFoodsPantryR;
@@ -10405,6 +10532,22 @@ void pilotInit() {
     eepReg1 = rssPoseR; //wholeFoodsBagR;
     eepReg2 = rssPoseR; //wholeFoodsPantryR;
     eepReg3 = rssPoseR; //wholeFoodsCounterR;
+
+    // ATTN 16
+    heightReticles[0] = defaultReticle;
+    heightReticles[1] = defaultReticle;
+    heightReticles[2] = defaultReticle;
+    heightReticles[3] = defaultReticle;
+
+    heightReticles[0].px = 327;
+    heightReticles[1].px = 330;
+    heightReticles[2].px = 335;
+    heightReticles[3].px = 342;
+
+    heightReticles[0].py = 160;
+    heightReticles[1].py = 154;
+    heightReticles[2].py = 143;
+    heightReticles[3].py = 125;
   } else {
     cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
     exit(0);
@@ -15927,6 +16070,13 @@ void detectorsInit() {
     classGraspMemoryTries4.resize(numClasses);
     classGraspMemoryPicks4.resize(numClasses);
     classAerialGradients.resize(numClasses);
+
+    // ATTN 16
+    classHeight0AerialGradients.resize(numClasses);
+    classHeight1AerialGradients.resize(numClasses);
+    classHeight2AerialGradients.resize(numClasses);
+    classHeight3AerialGradients.resize(numClasses);
+
     classHeightMemoryTries.resize(numClasses);
     classHeightMemoryPicks.resize(numClasses);
     for (int i = 0; i < classLabels.size(); i++) {
@@ -16178,24 +16328,105 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
       cout << "Failed to load rangeMap from " << this_range_path << endl; 
     }
   }
+  
+  // ATTN 16
   {
-    string thisLabelName(className);
+//    {
+//      string thisLabelName(className);
+//
+//      char buf[1000];
+//      string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
+//      string this_ag_path = dirToMakePath + "aerialGradient.yml";
+//
+//      FileStorage fsfI;
+//      fsfI.open(this_ag_path, FileStorage::READ);
+//      if (fsfI.isOpened()) {
+//	fsfI["aerialGradient"] >> classAerialGradients[i]; 
+//	fsfI.release();
+//	cout << "Loaded aerial gradient from " << this_ag_path << classAerialGradients[i].size() << endl;
+//      } else {
+//	classAerialGradients[i] = Mat(1, 1, CV_64F);
+//	cout << "Failed to load aerialGradients from " << this_ag_path << endl; 
+//      }
+//    }
 
-    char buf[1000];
-    string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
-    string this_ag_path = dirToMakePath + "aerialGradient.yml";
+    {
+      string thisLabelName(className);
 
-    FileStorage fsfI;
-    fsfI.open(this_ag_path, FileStorage::READ);
-    if (fsfI.isOpened()) {
-      fsfI["aerialGradient"] >> classAerialGradients[i]; 
-      fsfI.release();
-      cout << "Loaded aerial gradient from " << this_ag_path << classAerialGradients[i].size() << endl;
-    } else {
-      classAerialGradients[i] = Mat(1, 1, CV_64F);
-      cout << "Failed to load aerialGradients from " << this_ag_path << endl; 
+      char buf[1000];
+      string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
+      string this_ag_path = dirToMakePath + "aerialHeight0Gradients.yml";
+
+      FileStorage fsfI;
+      fsfI.open(this_ag_path, FileStorage::READ);
+      if (fsfI.isOpened()) {
+	fsfI["aerialHeight0Gradients"] >> classHeight0AerialGradients[i]; 
+	fsfI.release();
+	cout << "Loaded aerial height 0 gradient from " << this_ag_path << classHeight0AerialGradients[i].size() << endl;
+      } else {
+	classHeight0AerialGradients[i] = Mat(1, 1, CV_64F);
+	cout << "Failed to load aerialHeight0Gradients from " << this_ag_path << endl; 
+      }
     }
+    {
+      string thisLabelName(className);
+
+      char buf[1000];
+      string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
+      string this_ag_path = dirToMakePath + "aerialHeight1Gradients.yml";
+
+      FileStorage fsfI;
+      fsfI.open(this_ag_path, FileStorage::READ);
+      if (fsfI.isOpened()) {
+	fsfI["aerialHeight1Gradients"] >> classHeight1AerialGradients[i]; 
+	fsfI.release();
+	cout << "Loaded aerial height 1 gradient from " << this_ag_path << classHeight1AerialGradients[i].size() << endl;
+      } else {
+	classHeight1AerialGradients[i] = Mat(1, 1, CV_64F);
+	cout << "Failed to load aerialHeight1Gradients from " << this_ag_path << endl; 
+      }
+    }
+    {
+      string thisLabelName(className);
+
+      char buf[1000];
+      string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
+      string this_ag_path = dirToMakePath + "aerialHeight2Gradients.yml";
+
+      FileStorage fsfI;
+      fsfI.open(this_ag_path, FileStorage::READ);
+      if (fsfI.isOpened()) {
+	fsfI["aerialHeight2Gradients"] >> classHeight2AerialGradients[i]; 
+	fsfI.release();
+	cout << "Loaded aerial height 2 gradient from " << this_ag_path << classHeight2AerialGradients[i].size() << endl;
+      } else {
+	classHeight2AerialGradients[i] = Mat(1, 1, CV_64F);
+	cout << "Failed to load aerialHeight2Gradients from " << this_ag_path << endl; 
+      }
+    }
+    {
+      string thisLabelName(className);
+
+      char buf[1000];
+      string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
+      string this_ag_path = dirToMakePath + "aerialHeight3Gradients.yml";
+
+      FileStorage fsfI;
+      fsfI.open(this_ag_path, FileStorage::READ);
+      if (fsfI.isOpened()) {
+	fsfI["aerialHeight3Gradients"] >> classHeight3AerialGradients[i]; 
+	fsfI.release();
+	cout << "Loaded aerial height 3 gradient from " << this_ag_path << classHeight3AerialGradients[i].size() << endl;
+      } else {
+	classHeight3AerialGradients[i] = Mat(1, 1, CV_64F);
+	cout << "Failed to load aerialHeight3Gradients from " << this_ag_path << endl; 
+      }
+    }
+    
+    cout << "Initializing classAerialGradients with classAerialHeight0Gradients." << endl;
+    classAerialGradients[i] = classHeight0AerialGradients[i];
   }
+
 }
 
 void processSaliency(Mat in, Mat out) {
