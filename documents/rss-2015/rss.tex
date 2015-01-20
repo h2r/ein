@@ -303,51 +303,23 @@ speeds up performance.
 
 The input of the object detection component is an image, $I$; the
 output is a set of candidate bounding boxes, $B$.  We validate this
-component during training using the 3d IR map of the object, which we
-back-project into the original image to obtain the true bounding box.
-We use two algorithms for object detection, one based on the BING
-objectness metric, which works well for objects that have distinct
-colors, and one based on gradients, which works well for objects that
-contrast well with the background. 
+component during training \jgonote{by filling this in}.
+For object detection we use a modified Canny algorithm which terminates before
+the usual non-maximal suppression step, which works for objects that
+contrast well with the background as well as those with only self contrast.
 
-\subsubsection{Detecting Objects Using BING and Integral Images}
+%\subsubsection{Detecting Objects Using Image Gradients}
+We start by converting $I$ to YCbCr opponent color representation. 
+Then we apply $5 \times 5$ Sobel gradient filters to each of the three channels
+and keep the square gradient magnitude. We take a convex combination of the
+three channels, where Cb and Cr and weighted the same and more heavily than Y.
+After this we downsample, apply the two Canny thresholds, and find connected components.
+If a connected component is contained in another, we discared the contained component.
+We throw out boxes which do not contain enough visual data to classify.
+We generate a candidate bounding box for each remaining component by taking the smallest
+box which contains the component.
 
-To detect candidate objects, we first apply the BING objectness
-detector~\citep{cheng14} to the image, which returns a set $\{B_i\}$
-of thousands of approximate object bounding boxes in the image, shown
-in Figure~\ref{fig:bing}. This process substantially reduces the
-number of bounding boxes we need to consider but is still too large to
-process in real time. Besides, even good bounding boxes from BING are
-typically not aligned to the degree that we require. Therefore, we use
-integral images to efficiently compute the per-pixel map:
-\begin{align}
-J(p) = \sum_{B \in \{B_i\} s.t. p \in B} \frac{1}{Area(B)}.
-\end{align}
-
-This map appears in Figure~\ref{fig:objectness}.  We then apply the
-Canny edge detector with hysteresis ~\citep{canny86} to find the
-connected components of bright regions in the map $J(p)$, which
-correspond with high probability to objects in the image. We form our
-candidate object bounding boxes by taking the smallest bounding box
-which surrounds each connected component, shown in
-Figure~\ref{fig:bounding_boxes}.  These bounding boxes make it easy to
-gather training data and to perform inference in real time, but at the
-expense of poorly handing occulusion as overlapping objects are fused
-into the same bounding box.  It is possible to search within the
-proposed bounding boxes to better handle occlusion.
-Figure~\ref{fig:object_detection} shows images from each step in this
-pipeline, ending with just one candidate bounding boxes for an objects
-on an empty table.  Note that we designed this pipeline to quickly and
-accurately provide bounding boxes in the presence of relatively
-unobstructed backgrounds to support the training process;
-Section~\ref{sec:mapping} describes our approach to recognition under
-clutter and occlusion.
-
-\subsubsection{Detecting Objects Using Image Gradients}
-
-\stnote{John -- please fill this part in.}
-
-\subsection{Object Recognition}
+\subsection{Object Classification}
 \label{sec:recognition}
 
 The object recognition module takes as input a bounding box, $B$, and
@@ -366,7 +338,11 @@ incorporated into a k-nearest-neighbors model which we use to classify
 objects at inference~\citep{szeliski10}. We use kNN because our
 automated training process allows us to acquire as much high-quality
 data as necessary to make the model work well, and kNN supports direct
-matching to this large dataset.  Existing approaches for
+matching to this large dataset.  
+
+\jgonote{I would be careful to think about what "performing well" means to
+us versus what it means to line2D, because I'm betting they use more objects.}
+Existing approaches for
 instance-based grasping such as LINE-2D require the order of $2000$ examples
 whereas our SIFT-based approach performs well with only $200$
 ~\citep{hinterstoisser12}.
@@ -409,24 +385,28 @@ whereas our SIFT-based approach performs well with only $200$
  
 \subsection{Pose Estimation}
 
-To perform pose estimation, we require an image gradient of the object
-at a specific, known pose:
+We use the image gradient for object detection and pose estimation. During
+object detection, the gradient of the whole image is the first step in the Canny pipeline.
+For pose estimation,  we require a crop of  image gradient of the object
+at a specific, known pose. We denote the gradient by
 
 \begin{align}
 \Delta I = \left( \frac{\partial I}{\partial x}, \frac{\partial I}{\partial y} \right)
 \end{align}
 
-We approximate the gradiant using differences after smoothing the
-training image:
-\begin{align}
-\frac{\partial I(x, y)}{\partial x} \approx \frac{I(x + 1, y) - I(x - 1, y)}{2}\\
-\frac{\partial I(x, y)}{\partial y} \approx \frac{I(x, y + 1) - I(x, y - 1)}{2}
-\end{align}
+We approximate the gradient using $5 \times 5$ Sobel derivative filters \citet{}.
 
-To estimate pose, we perform data augmentation by rotating our
-training image and finding the closest match to the image currently
+
+To estimate pose, we rotate our
+training image and find the closest match to the image currently
 recorded from the camera, as detected and localized via the pipeline
 in Section~\ref{sec:detection} and~\ref{sec:recognition}.
+
+In order to match our template image with the crop observed at pick time,
+we remove the mean from and $L^2$ normalize the template and the crop.
+Removing the mean provides invariance to bias, and normalizing introduces
+invariance to scaling, which both help account somewhat
+for lighting. 
 
 \subsection{Identifying Grasp Points}
 
@@ -557,6 +537,17 @@ on the tester closest to it in the system tree.
   \caption{The high-level algorithm for acquiring visual and grasping
     models of objects.}
 \end{figure}
+
+\section{Robotic Implementation}
+We use stock baxter and one computer.
+We use the wrist cameras to obtain RGB at 30hz. Different parts of the visual pipeline
+run at different frequencies, but the full visual system runs at 2Hz in typical conditions.
+To obtain the 3D point cloud maps, we use the IR sensor in conjunction with the RGB measurement.
+Color triangulation, a nice image of the brush.
+Quickly describe raster scan.
+Parzen kernel density estimator, downsampling to fill in data.
+
+Figure: A nice scan of the brush together with an RGB image of the brush from a similar height.
 
 
  
