@@ -704,7 +704,7 @@ int targetClass = -1;
 ros::Time lastVisionCycle;
 ros::Duration accumulatedTime;
 
-double w1GoThresh = 0.005;
+double w1GoThresh = 0.01;
 double w1AngleThresh = 0.02; 
 double synKp = 0.0005;
 double gradKp = 0.00025;//0.0005;
@@ -714,7 +714,7 @@ int kPThresh = 3;
 double lastPtheta = INFINITY;
 
 // ATTN 4
-int synServoPixelThresh = 15;//10;
+int synServoPixelThresh = 10;//15;//10;
 int synServoLockFrames = 0;
 // XXX
 int synServoLockThresh = 20;
@@ -722,7 +722,7 @@ int synServoLockThresh = 20;
 double synServoMinKp = synKp/20.0;
 double synServoKDecay = .95;
 
-int gradServoPixelThresh = 5;
+int gradServoPixelThresh = 2;
 int gradServoThetaThresh = 1;
 
 ros::Time oscilStart;
@@ -791,7 +791,7 @@ string lastLabelLearned;
 
 double perturbScale = 0.05;//0.1;
 double bbLearnPerturbScale = 0.07;//0.1;//.05;//
-double bbLearnPerturbBias = 0.06;  //0.04;//0.05;
+double bbLearnPerturbBias = 0.01;  //0.04;//0.05;
 double bbLearnThresh = 0.05;//0.04;
 
 // grasp Thompson parameters
@@ -891,6 +891,7 @@ Mat objectViewerImage;
 Mat densityViewerImage;
 Mat wristViewImage;
 Mat gradientViewerImage;
+Mat aerialGradientViewerImage;
 
 int mask_gripper = 1;
 
@@ -907,6 +908,7 @@ int ikResult = 1;
 std::string densityViewerName = "Density Viewer";
 std::string objectViewerName = "Object Viewer";
 std::string gradientViewerName = "Gradient Viewer";
+std::string aerialGradientViewerName = "Aerial Gradient Viewer";
 
 int loTrackbarVariable = 30;//45;//75;
 int hiTrackbarVariable = 35;//40;//50;
@@ -1195,8 +1197,8 @@ Mat frameGraySobel;
 int aerialGradientWidth = 100;
 int aerialGradientReticleWidth = 200;
 
-int softMaxGradientServoIterations = 3;//3;
-int hardMaxGradientServoIterations = 10;//3;//10;
+int softMaxGradientServoIterations = 10;//3;
+int hardMaxGradientServoIterations = 20;//3;//10;
 int currentGradientServoIterations = 0;
 
 int fuseBlueBoxes = 1;
@@ -1316,6 +1318,8 @@ void recordBoundingBoxSuccess();
 void recordBoundingBoxFailure();
 
 void restartBBLearning();
+
+double unsignedQuaternionDistance(Quaternionf a, Quaternionf b);
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -3264,6 +3268,48 @@ void rangeCallback(const sensor_msgs::Range& range) {
     cv::imshow(objectViewerName, objectViewerImage);
     cv::imshow(densityViewerName, densityViewerImage);
     cv::imshow(gradientViewerName, gradientViewerImage);
+    
+    if (targetClass > -1) {
+      if (classHeight0AerialGradients[targetClass].rows == aerialGradientWidth) {
+	Mat crop0 = aerialGradientViewerImage(cv::Rect(0, 0, aerialGradientWidth, aerialGradientWidth));
+	double min0 = 0;
+	double max0 = 0;
+	minMaxLoc(classHeight0AerialGradients[targetClass], &min0, &max0);
+	double denom0 = max0-min0;
+	if (fabs(denom0) < EPSILON)
+	  denom0 = 1;
+	crop0 = (classHeight0AerialGradients[targetClass] - min0) / denom0;
+
+	Mat crop1 = aerialGradientViewerImage(cv::Rect(0, 1*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
+	double min1 = 0;
+	double max1 = 0;
+	minMaxLoc(classHeight1AerialGradients[targetClass], &min1, &max1);
+	double denom1 = max1-min1;
+	if (fabs(denom1) < EPSILON)
+	  denom1 = 1;
+	crop1 = (classHeight1AerialGradients[targetClass] - min1) / denom1;
+
+	Mat crop2 = aerialGradientViewerImage(cv::Rect(0, 2*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
+	double min2 = 0;
+	double max2 = 0;
+	minMaxLoc(classHeight2AerialGradients[targetClass], &min2, &max2);
+	double denom2 = max2-min2;
+	if (fabs(denom2) < EPSILON)
+	  denom2 = 1;
+	crop2 = (classHeight2AerialGradients[targetClass] - min2) / denom2;
+
+	Mat crop3 = aerialGradientViewerImage(cv::Rect(0, 3*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
+	double min3 = 0;
+	double max3 = 0;
+	minMaxLoc(classHeight3AerialGradients[targetClass], &min3, &max3);
+	double denom3 = max3-min3;
+	if (fabs(denom3) < EPSILON)
+	  denom3 = 1;
+	crop3 = (classHeight3AerialGradients[targetClass] - min3) / denom3;
+
+	cv::imshow(aerialGradientViewerName, aerialGradientViewerImage);
+      }
+    }
   }
   #ifdef DEBUG
   cout << "debug 1" << endl;
@@ -3589,7 +3635,7 @@ void timercallback1(const ros::TimerEvent&) {
   int c = cvWaitKey(1);
   int takeSymbol = 1;
   if (c != -1) {
-    cout << "You pressed " << c << " which when shifted is " << c + 65504 << " and the state is " << currentEEPose.ox << " " << currentEEPose.oy << " " <<currentEEPose.oz << endl;
+    cout << "You pressed " << c << "." << endl;
     takeSymbol = 0;
   }
 //cout << "block3" << endl;
@@ -3776,6 +3822,12 @@ void timercallback1(const ros::TimerEvent&) {
       break;
     case 'y': // execute stack
       execute_stack = 1;
+      break;
+    case 'Y': // pause stack execution
+      {
+	cout << "STACK EXECUTION PAUSED, press 'y' to continue." << endl;
+	execute_stack = 0;
+      }
       break;
     // printState
     case 'u':
@@ -5482,6 +5534,7 @@ cout <<
     // neutral scan
     case 1048622:
       {
+	cout << "Entering neutral scan." << endl;
 	double lineSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
 	double betweenSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
 	////pushCopies('e', 3);
@@ -6765,7 +6818,8 @@ cout <<
 	  pilot_call_stack.push_back(131156); // synchronic servo
 	  pilot_call_stack.push_back(131146); // turn survey on
 
-	  cout << "Found the target " << classLabels[targetClass] << ". " << endl;
+	  if (targetClass != -1)
+	    cout << "Found the target " << classLabels[targetClass] << ". " << endl;
 	  // grab the last bit of accumulated time
 	  accumulatedTime = accumulatedTime + (ros::Time::now() - oscilStart);
 	} else {
@@ -7049,6 +7103,7 @@ cout <<
     case 196728:
       {
 
+        reticle = heightReticles[currentThompsonHeightIdx];
 
 	// ATTN 12
 //        if ((synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING)) {
@@ -8659,7 +8714,9 @@ cout <<
 	      recordBoundingBoxFailure();
 	    }
 	    graspFailCounter++;
-            cout << "Failed grasp." << endl;
+            cout << "\a\a\a\aFailed grasp." << endl;
+	    pilot_call_stack.push_back('Y'); // pause stack execution
+	    pushCopies(1310812, 30); // beep
 	  } else {
 	    if (currentBoundingBoxMode == LEARNING_SAMPLING) {
 	      recordBoundingBoxSuccess();
@@ -8855,31 +8912,41 @@ cout <<
     // capslock + g
     case 131143:
       {
-	{ // prepare to servo
-	  currentEEPose.pz = wholeFoodsCounter1.pz+.1;
-	}
+	// ATTN 16
+//	{ // prepare to servo
+//	  currentEEPose.pz = wholeFoodsCounter1.pz+.1;
+//	}
 
 	pushCopies('e', 5);
 	pushCopies('a', 5);
 	pilot_call_stack.push_back(196711); // photospin
 	pushCopies('q', 5);
+	pilot_call_stack.push_back(1245246); // uniformly sample height
 	pilot_call_stack.push_back(196711); // photospin
 	pushCopies('q', 5);
+	pilot_call_stack.push_back(1245246); // uniformly sample height
 	pilot_call_stack.push_back(196711); // photospin
 	pushCopies('d', 5);
+	pilot_call_stack.push_back(1245246); // uniformly sample height
 	pilot_call_stack.push_back(196711); // photospin
 	pushCopies('d', 5);
+	pilot_call_stack.push_back(1245246); // uniformly sample height
 	pilot_call_stack.push_back(196711); // photospin
 	pushCopies('e', 5);
+	pilot_call_stack.push_back(1245246); // uniformly sample height
 	pilot_call_stack.push_back(196711); // photospin
 	pushCopies('e', 5);
+	pilot_call_stack.push_back(1245246); // uniformly sample height
 	pilot_call_stack.push_back(196711); // photospin
 	pushCopies('a', 5);
+	pilot_call_stack.push_back(1245246); // uniformly sample height
 	pilot_call_stack.push_back(196711); // photospin
 	pushCopies('q', 5);
+	pilot_call_stack.push_back(1245246); // uniformly sample height
 	pilot_call_stack.push_back(196711); // photospin
 
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(1245246); // uniformly sample height
 	pushSpeedSign(MOVE_FAST);
       }
       break;
@@ -8891,7 +8958,7 @@ cout <<
 	  pilot_call_stack.push_back(131148); // save crop as focused class if there is only one
 	  pilot_call_stack.push_back(196721); // vision cycle no classify
 	  pilot_call_stack.push_back(131154); // w1 wait until at current position
-	  pilot_call_stack.push_back(196712); // increment grasp gear
+	  pilot_call_stack.push_back(1310722); // set random orientation for photospin.
 	}
 	pilot_call_stack.push_back(1048625); // change gear to 1
       }
@@ -8966,7 +9033,8 @@ cout <<
     // capslock + D
     case 196708:
       {
-	  cout << "BEGINNING WHOLE FOODS VIDEO MAIN" << endl;
+	  cout << "ENTERING WHOLE FOODS VIDEO MAIN." << endl;
+	  cout << "Program will pause shortly. Please adjust height for IR scan before unpausing." << endl;
 
 	  eepReg2 = rssPose;
 	  eepReg4 = rssPose;
@@ -8990,17 +9058,51 @@ cout <<
 	  pilot_call_stack.push_back(1179732);
 
 	  pilot_call_stack.push_back(131143); // 72 way scan
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pilot_call_stack.push_back(1245220); // change to height 3
+
+	  pilot_call_stack.push_back(131143); // 72 way scan
+	  pilot_call_stack.push_back(131154); // w1 wait until at current position
+	  pilot_call_stack.push_back(1245248); // change to height 1
 	  
 	  { // do density and gradient, save gradient, do medium scan in two directions, save range map
-	    pushCopies('w', 10);
 	    pushSpeedSign(MOVE_FAST);
 	    pilot_call_stack.push_back(196705); // save current depth map to current class
 	    pilot_call_stack.push_back(1048622); // neutral scan 
-	    pushCopies('s', 10);
+	    pilot_call_stack.push_back('Y'); // pause stack execution
+	    pushCopies(1310812, 30); // beep
 	    pushSpeedSign(MOVE_FAST);
-	    pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
-	    pushCopies(131121, 20); // density
-	    pilot_call_stack.push_back(131153); // vision cycle
+
+	    pilot_call_stack.push_back(1245248); // change to height 1
+
+	    {
+	      pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
+	      pushCopies(131121, 20); // density
+	      pilot_call_stack.push_back(131153); // vision cycle
+	      pilot_call_stack.push_back(131154); // w1 wait until at current position
+	      pilot_call_stack.push_back(1245220); // change to height 3
+	    }
+	    {
+	      pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
+	      pushCopies(131121, 20); // density
+	      pilot_call_stack.push_back(131153); // vision cycle
+	      pilot_call_stack.push_back(131154); // w1 wait until at current position
+	      pilot_call_stack.push_back(1245219); // change to height 2
+	    }
+	    {
+	      pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
+	      pushCopies(131121, 20); // density
+	      pilot_call_stack.push_back(131153); // vision cycle
+	      pilot_call_stack.push_back(131154); // w1 wait until at current position
+	      pilot_call_stack.push_back(1245248); // change to height 1
+	    }
+	    {
+	      pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
+	      pushCopies(131121, 20); // density
+	      pilot_call_stack.push_back(131153); // vision cycle
+	      pilot_call_stack.push_back(131154); // w1 wait until at current position
+	      pilot_call_stack.push_back(1245217); // change to height 0
+	    }
 	  }
 
 	  // ATTN 3
@@ -9014,7 +9116,7 @@ cout <<
 
 	  pilot_call_stack.push_back(131154); // w1 wait until at current position
 	  pilot_call_stack.push_back(1048625); // change to first gear
-	  pushCopies('w', 10);
+	  pilot_call_stack.push_back(1245219); // change to height 2
 	  pushSpeedSign(MOVE_FAST);
 	  pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
 
@@ -9687,7 +9789,7 @@ cout <<
 
 	// ATTN 16
 //	// push this program 
-//	pilot_call_stack.push_back(1179707); // begin bounding box learning
+	pilot_call_stack.push_back(1179707); // begin bounding box learning
 
 	// record the bblearn trial if successful
 	pilot_call_stack.push_back(1179694); 
@@ -9759,7 +9861,17 @@ cout <<
       }
     } 
     break;
-    // set random position for bblearn
+    // uniformly sample height
+    // capslock + numlock + >
+    case 1245246: 
+    {
+      int thisRandThompsonHeight = lrand48() % hmWidth;
+      currentThompsonHeight = convertHeightIdxToGlobalZ(thisRandThompsonHeight);
+      currentThompsonHeightIdx = thisRandThompsonHeight;
+      currentEEPose.pz = currentThompsonHeight;
+    } 
+    break;
+    // set random position and orientation for bblearn
     // capslock + numlock + '
     case 1179687:
       {
@@ -9772,6 +9884,21 @@ cout <<
 	currentEEPose.px += noX;
 	currentEEPose.py += noY;
 	currentEEPose.oz += noTheta;
+      }
+      break;
+    // set random orientation for photospin.
+    // capslock + numlock + "
+    case 1310722:
+      {
+	double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
+	currentEEPose.oz += noTheta;
+      }
+      break;
+    // beep
+    // capslock + numlock + |
+    case 1310812:
+      {
+	cout << "\a"; cout.flush();
       }
       break;
     // check to see if bounding box is unique (early outting if not)
@@ -9796,6 +9923,46 @@ cout <<
           cout << "focusedCount: " << focused_count << " background_count: " << background_count << " other_count: " << other_count << endl;
 	  restartBBLearning();
 	}
+      }
+      break;
+    // change to height 0
+    // capslock + numlock + !
+    case 1245217:
+      {
+	currentThompsonHeightIdx = 0;
+	currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
+	currentEEPose.pz = currentThompsonHeight;
+        reticle = heightReticles[currentThompsonHeightIdx];
+      }
+      break;
+    // change to height 1
+    // capslock + numlock + @
+    case 1245248:
+      {
+	currentThompsonHeightIdx = 1;
+	currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
+	currentEEPose.pz = currentThompsonHeight;
+        reticle = heightReticles[currentThompsonHeightIdx];
+      }
+      break;
+    // change to height 2
+    // capslock + numlock + #
+    case 1245219:
+      {
+	currentThompsonHeightIdx = 2;
+	currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
+	currentEEPose.pz = currentThompsonHeight;
+        reticle = heightReticles[currentThompsonHeightIdx];
+      }
+      break;
+    // change to height 3
+    // capslock + numlock + $
+    case 1245220:
+      {
+	currentThompsonHeightIdx = 3;
+	currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
+	currentEEPose.pz = currentThompsonHeight;
+        reticle = heightReticles[currentThompsonHeightIdx];
       }
       break;
 //    case 2:
@@ -10041,11 +10208,12 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     return;
   }
 
-  if (densityViewerImage.rows <= 0 || densityViewerImage.rows <= 0) {
+  if (densityViewerImage.rows <= 1 || densityViewerImage.rows <= 1) {
     densityViewerImage = cv_ptr->image.clone();
     densityViewerImage *= 0;
     gradientViewerImage = Mat(2*cv_ptr->image.rows, cv_ptr->image.cols, cv_ptr->image.type());
     gradientViewerImage *= 0;
+    aerialGradientViewerImage = Mat(4*aerialGradientWidth, aerialGradientWidth, CV_64F);
   }
   if (objectViewerImage.rows <= 0 || objectViewerImage.rows <= 0)
     objectViewerImage = cv_ptr->image.clone();
@@ -10195,6 +10363,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   // ATTN 16
   for (int hri = 0; hri < 4; hri++) {
+    if (hri != currentThompsonHeightIdx)
+      continue;
     eePose thisReticle = heightReticles[hri];
     int thisReticleHalfWidth = int(  ceil( double(reticleHalfWidth) / double(1+hri) )  );
     cv::Point outTop = cv::Point(thisReticle.px-thisReticleHalfWidth, thisReticle.py-thisReticleHalfWidth);
@@ -10667,8 +10837,14 @@ void pilotInit() {
     // 
     // 0.037829849
     //Eigen::Quaternionf gear0offset(0.0, 0.031996, 0.020183, 0.0167228); // from TF, accounts for upside down rotation of crane2
-    Eigen::Quaternionf gear0offset(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
     //Eigen::Quaternionf gear0offset(0.0, 0.020183, 0.031996, 0.0167228); // from TF, accounts for upside down rotation of crane2
+    Eigen::Quaternionf gear0offset(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
+
+    if (0 == left_or_right_arm.compare("left")) {
+      gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    } else if (0 == left_or_right_arm.compare("right")) {
+      gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    }
 
     // invert the transformation
     irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
@@ -12040,6 +12216,13 @@ void restartBBLearning() {
   pilot_call_stack.push_back(1179707); // continue bounding box learning
 }
 
+double unsignedQuaternionDistance(Quaternionf q1, Quaternionf q2) {
+  float r = q1.dot(q2);
+  if(r < -1.0 || r > 1.0) return 0;
+    r = acos(r); 
+  return r <= M_PI_2? r: M_PI-r;
+}
+
 ////////////////////////////////////////////////
 // end pilot definitions 
 //
@@ -13368,7 +13551,7 @@ void goCalculateDensity() {
   tGO = gBoxH*(tGO/gBoxH);
   bGO = gBoxH*(bGO/gBoxH);
   grayTop = cv::Point(lGO, tGO);
-  grayBot = cv::Point(imW-rGO, imH-bGO);
+  grayBot = cv::Point(imW-rGO-1, imH-bGO-1);
 
   if (all_range_mode) {
     grayTop = armTop;
@@ -16571,8 +16754,10 @@ int main(int argc, char **argv) {
   densityViewerName = "Density Viewer " + left_or_right_arm;
   objectViewerName = "Object Viewer " + left_or_right_arm;
   gradientViewerName = "Gradient Viewer " + left_or_right_arm;
+  aerialGradientViewerName = "Aerial Gradient Viewer " + left_or_right_arm;
 
   cv::namedWindow(gradientViewerName);
+  cv::namedWindow(aerialGradientViewerName);
   cv::namedWindow(densityViewerName);
   cv::namedWindow(objectViewerName);
   setMouseCallback(objectViewerName, nodeCallbackFunc, NULL);
