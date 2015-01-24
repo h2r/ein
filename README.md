@@ -449,8 +449,8 @@ catkin_make && gdb --args ./devel/lib/node/ein  _data_directory:="$(rospack find
 
 General notes:
 
-CRC:  clears the stack
-Y:  Runs what is on the stack
+crc:  clears the stack
+y:  Runs what is on the stack
 
 Training new model:
 capslock + shift d: queues scan program

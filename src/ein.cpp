@@ -190,6 +190,10 @@ int cfi = 1;
 
 int gradientFeatureWidth = 50;
 
+typedef enum {
+  UNIFORM_PRIOR,
+  ANALYTIC_PRIOR
+} priorType;
 
 typedef enum {
   MRT,
@@ -729,8 +733,8 @@ ros::Time oscilStart;
  double oscCenX = 0.0;
  double oscCenY = 0.0;
  double oscCenZ = 0.0;
-double oscAmpX = 0.0;//.0.16;//0.08;//0.1;
-double oscAmpY = 0.0;//0.16;//0.2;
+double oscAmpX = 0.10;//.0.16;//0.08;//0.1;
+double oscAmpY = 0.10;//0.16;//0.2;
 double oscAmpZ = 0.0;
 
  const double commonFreq = 1.0;//1.0/2.0;
@@ -806,6 +810,9 @@ const double maxHeight = 0.3;
 double heightMemoryTries[hmWidth];
 double heightMemoryPicks[hmWidth];
 double heightMemorySample[hmWidth];
+
+double heightAttemptCounter = 0;
+double heightSuccessCounter = 0;
 
 int gmTargetX = -1;
 int gmTargetY = -1;
@@ -1280,14 +1287,14 @@ void changeTargetClass(int);
 void guardGraspMemory();
 void loadSampledGraspMemory();
 void loadMarginalGraspMemory();
-void loadPriorGraspMemory();
+void loadPriorGraspMemory(priorType);
 void estimateGlobalGraspGear();
 void drawMapRegisters();
 
 void guardHeightMemory();
 void loadSampledHeightMemory();
 void loadMarginalHeightMemory();
-void loadPriorHeightMemory();
+void loadPriorHeightMemory(priorType);
 double convertHeightIdxToGlobalZ(int);
 int convertHeightGlobalZToIdx(double);
 void testHeightConversion();
@@ -3689,6 +3696,10 @@ void timercallback1(const ros::TimerEvent&) {
   cout << "debug 8 c: " << c << endl;
   cout.flush();
   #endif
+
+  Size sz = objectViewerImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
 
   switch (c) {
     case 30: // up arrow
@@ -6729,11 +6740,27 @@ cout <<
         drawMapRegisters();
       }
       break;
-    // loadPriorGraspMemory
+    // loadPriorGraspMemory (analytic)
     // capslock + backspace
      case 196360:
        {
-         loadPriorGraspMemory();
+         loadPriorGraspMemory(ANALYTIC_PRIOR);
+         copyGraspMemoryTriesToClassGraspMemoryTries();
+         loadMarginalGraspMemory();
+
+         // shows mus before we converted them to alphas and betas,
+         // smoothing the values based on eccentricity.  
+         //copyGraspMemoryRegister(graspMemoryReg1, graspMemorySample);
+
+         drawMapRegisters();
+	 cout << "class " << classLabels[targetClass] << " number ";
+       } 
+       break;
+    // loadPriorGraspMemory (uniform)
+    // capslock + shift + backspace
+     case 261896:
+       {
+         loadPriorGraspMemory(UNIFORM_PRIOR);
          copyGraspMemoryTriesToClassGraspMemoryTries();
          loadMarginalGraspMemory();
 
@@ -6765,12 +6792,23 @@ cout <<
     // capslock + numlock + backspace
      case 1244936:
        {
-         loadPriorHeightMemory();
+         loadPriorHeightMemory(UNIFORM_PRIOR);
          copyHeightMemoryTriesToClassHeightMemoryTries();
          loadMarginalHeightMemory();
          drawHeightMemorySample();
        } 
        break;
+    // loadStartingHeightMemory
+    // capslock + numlock + shift + backspace
+    case 1310472:
+       {
+         loadPriorHeightMemory(ANALYTIC_PRIOR);
+         copyHeightMemoryTriesToClassHeightMemoryTries();
+         loadMarginalHeightMemory();
+         drawHeightMemorySample();
+       } 
+       break;
+
     // 2D patrol start
     // capslock + w
     case 131159:
@@ -7256,10 +7294,6 @@ cout <<
 	//rotatedAerialGrads.resize(gradientServoScale*numOrientations);
 	int gSTwidth = 2*gradientServoTranslation + 1;
 	double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
-        Size sz = objectViewerImage.size();
-        int imW = sz.width;
-        int imH = sz.height;
-
 
 	for (int etaS = 0; etaS < gradientServoScale; etaS++) {
 	  #pragma omp parallel for
@@ -7270,17 +7304,14 @@ cout <<
 	      int topCornerY = etaY + reticle.py - (aerialGradientReticleWidth/2);
 	      Mat gCrop(maxDim, maxDim, CV_64F);
 
-	      // throw it out if it isn't contained in the image
-	      if ( (topCornerX+aerialGradientWidth >= imW) || (topCornerY+aerialGradientWidth >= imH) )
-		continue;
-	      if ( (topCornerX < 0) || (topCornerY < 0) )
-		continue;
-
 	      for (int x = 0; x < maxDim; x++) {
 		for (int y = 0; y < maxDim; y++) {
 		  int tx = x - tRx;
 		  int ty = y - tRy;
-		  if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+		  int tCtx = topCornerX + tx;
+		  int tCty = topCornerY + ty;
+		  if ( (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) &&
+		       (tCtx > 0) && (tCty > 0) && (tCtx < imW) && (tCty < imH) ) {
 		    gCrop.at<double>(y, x) = frameGraySobel.at<double>(topCornerY + ty, topCornerX + tx);
 		  } else {
 		    gCrop.at<double>(y, x) = 0.0;
@@ -8278,10 +8309,10 @@ cout <<
 	  //int hbb = pilotTargetBlueBoxNumber;
 	  //int hbb = 0;
 
-	int topCornerX = reticle.px - (aerialGradientReticleWidth/2);
-	int topCornerY = reticle.py - (aerialGradientReticleWidth/2);
-	int crows = aerialGradientReticleWidth;
-	int ccols = aerialGradientReticleWidth;
+	  int topCornerX = reticle.px - (aerialGradientReticleWidth/2);
+	  int topCornerY = reticle.py - (aerialGradientReticleWidth/2);
+	  int crows = aerialGradientReticleWidth;
+	  int ccols = aerialGradientReticleWidth;
 
 	  //int crows = bBots[hbb].y - bTops[hbb].y;
 	  //int ccols = bBots[hbb].x - bTops[hbb].x;
@@ -8296,9 +8327,12 @@ cout <<
 	    for (int y = 0; y < maxDim; y++) {
 	      int tx = x - tRx;
 	      int ty = y - tRy;
-	      if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+	      int tCtx = topCornerX + tx;
+	      int tCty = topCornerY + ty;
+	      if ( (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) &&
+		   (tCtx > 0) && (tCty > 0) && (tCtx < imW) && (tCty < imH) ) {
 		//gCrop.at<double>(y, x) = frameGraySobel.at<double>(bTops[hbb].y + ty, bTops[hbb].x + tx);
-		gCrop.at<double>(y, x) = frameGraySobel.at<double>(topCornerY + ty, topCornerX + tx);
+		gCrop.at<double>(y, x) = frameGraySobel.at<double>(tCty, tCtx);
 	      } else {
 		gCrop.at<double>(y, x) = 0.0;
 	      }
@@ -8681,6 +8715,7 @@ cout <<
 	//int i = maxX + maxY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear);
 	//int i = localMaxX + localMaxY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear);
 	int i = localMaxX + localMaxY * rmWidth + rmWidth*rmWidth*localMaxGG;
+	int j = localMaxX + localMaxY * rmWidth + rmWidth*rmWidth*0;
 	if (gripperMoving) {
 	  pilot_call_stack.push_back(196713); // count grasp
 	} else {
@@ -8688,35 +8723,39 @@ cout <<
           //graspMemoryTries[i]++;
 	  if (currentPickMode == LEARNING_SAMPLING)
 	    graspMemoryTries[i]++;
-//	  switch (currentPickMode) {
-//	    case STATIC_PRIOR:
-//	      {
-//	      }
-//	      break;
-//	    case LEARNING_SAMPLING:
-//	      {
-//		graspMemoryTries[i]++;
-//	      }
-//	      break;
-//	    case STATIC_MARGINALS:
-//	      {
-//	      }
-//	      break;
-//	    default:
-//	      {
-//		assert(0);
-//	      }
-//	      break;
-//	  }
+	  switch (currentPickMode) {
+	    case STATIC_PRIOR:
+	      {
+	      }
+	      break;
+	    case LEARNING_SAMPLING:
+	      {
+		//graspMemoryTries[i]++;
+		graspMemoryTries[j]++;
+		graspMemoryTries[j+1*rmWidth*rmWidth]++;
+		graspMemoryTries[j+2*rmWidth*rmWidth]++;
+		graspMemoryTries[j+3*rmWidth*rmWidth]++;
+	      }
+	      break;
+	    case STATIC_MARGINALS:
+	      {
+	      }
+	      break;
+	    default:
+	      {
+		assert(0);
+	      }
+	      break;
+	  }
           cout << "gripperPosition: " << gripperPosition << " gripperThresh: " << gripperThresh << endl;
 	  if (gripperPosition < gripperThresh) {
 	    if (currentBoundingBoxMode == LEARNING_SAMPLING) {
 	      recordBoundingBoxFailure();
 	    }
 	    graspFailCounter++;
-            cout << "\a\a\a\aFailed grasp." << endl;
-	    pilot_call_stack.push_back('Y'); // pause stack execution
-	    pushCopies(1310812, 30); // beep
+            cout << "Failed grasp." << endl;
+	    //pilot_call_stack.push_back('Y'); // pause stack execution
+	    pushCopies(1245308, 15); // beep
 	  } else {
 	    if (currentBoundingBoxMode == LEARNING_SAMPLING) {
 	      recordBoundingBoxSuccess();
@@ -8724,26 +8763,30 @@ cout <<
 	    graspSuccessCounter++;
             cout << "Successful grasp." << endl;
             //graspMemoryPicks[i]++;
-//	    switch (currentPickMode) {
-//	      case STATIC_PRIOR:
-//		{
-//		}
-//		break;
-//	      case LEARNING_SAMPLING:
-//		{
-//		  graspMemoryPicks[i]++;
-//		}
-//		break;
-//	      case STATIC_MARGINALS:
-//		{
-//		}
-//		break;
-//	      default:
-//		{
-//		  assert(0);
-//		}
-//		break;
-//	    }
+	    switch (currentPickMode) {
+	      case STATIC_PRIOR:
+		{
+		}
+		break;
+	      case LEARNING_SAMPLING:
+		{
+		  //graspMemoryPicks[i]++;
+		  graspMemoryPicks[j]++;
+		  graspMemoryPicks[j+1*rmWidth*rmWidth]++;
+		  graspMemoryPicks[j+2*rmWidth*rmWidth]++;
+		  graspMemoryPicks[j+3*rmWidth*rmWidth]++;
+		}
+		break;
+	      case STATIC_MARGINALS:
+		{
+		}
+		break;
+	      default:
+		{
+		  assert(0);
+		}
+		break;
+	    }
 	  }
           copyGraspMemoryTriesToClassGraspMemoryTries();
 	  graspSuccessRate = graspSuccessCounter / graspAttemptCounter;
@@ -8959,6 +9002,7 @@ cout <<
 	  pilot_call_stack.push_back(196721); // vision cycle no classify
 	  pilot_call_stack.push_back(131154); // w1 wait until at current position
 	  pilot_call_stack.push_back(1310722); // set random orientation for photospin.
+	  pilot_call_stack.push_back(196712); // increment grasp gear
 	}
 	pilot_call_stack.push_back(1048625); // change gear to 1
       }
@@ -9034,7 +9078,8 @@ cout <<
     case 196708:
       {
 	  cout << "ENTERING WHOLE FOODS VIDEO MAIN." << endl;
-	  cout << "Program will pause shortly. Please adjust height for IR scan before unpausing." << endl;
+	  cout << "Program will pause shortly. Please adjust height for bounding box servo before unpausing." << endl;
+	  cout << "Program will pause a second time. Please adjust height for IR scan before unpausing." << endl;
 
 	  eepReg2 = rssPose;
 	  eepReg4 = rssPose;
@@ -9048,6 +9093,9 @@ cout <<
 
 
 	  //pilot_call_stack.push_back(131140); // move the scanned object from the counter to the pantry
+
+	  pilot_call_stack.push_back(1245248); // change to height 1
+	  pilot_call_stack.push_back(1048625); // change to first gear
 
 	  // set target class to the lastLabelLearned 
 	  pilot_call_stack.push_back(1179730);
@@ -9070,7 +9118,7 @@ cout <<
 	    pilot_call_stack.push_back(196705); // save current depth map to current class
 	    pilot_call_stack.push_back(1048622); // neutral scan 
 	    pilot_call_stack.push_back('Y'); // pause stack execution
-	    pushCopies(1310812, 30); // beep
+	    pushCopies(1245308, 15); // beep
 	    pushSpeedSign(MOVE_FAST);
 
 	    pilot_call_stack.push_back(1245248); // change to height 1
@@ -9113,6 +9161,9 @@ cout <<
 	  pilot_call_stack.push_back(131156); // synchronic servo
 	  pilot_call_stack.push_back(196707); // synchronic servo take closest
 	  pilot_call_stack.push_back(131153); // vision cycle
+
+	  pilot_call_stack.push_back('Y'); // pause stack execution
+	  pushCopies(1245308, 15); // beep
 
 	  pilot_call_stack.push_back(131154); // w1 wait until at current position
 	  pilot_call_stack.push_back(1048625); // change to first gear
@@ -9545,8 +9596,8 @@ cout <<
 	if ((classGraspMemoryTries1[targetClass].rows > 1) && (classGraspMemoryTries1[targetClass].cols > 1) &&
 	    (classGraspMemoryPicks1[targetClass].rows > 1) && (classGraspMemoryPicks1[targetClass].cols > 1) ) {
 	  cout << "graspMemoryTries[] = classGraspMemoryTries1" << endl;
-	  cout << "classGraspMemoryTries1 " << classGraspMemoryTries1[targetClass] << endl; 
-	  cout << "classGraspMemoryPicks1 " << classGraspMemoryPicks1[targetClass] << endl; 
+	  //cout << "classGraspMemoryTries1 " << classGraspMemoryTries1[targetClass] << endl; 
+	  //cout << "classGraspMemoryPicks1 " << classGraspMemoryPicks1[targetClass] << endl; 
 	  for (int y = 0; y < rmWidth; y++) {
 	    for (int x = 0; x < rmWidth; x++) {
 	      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*0] = classGraspMemoryTries1[targetClass].at<double>(y,x);
@@ -9563,8 +9614,8 @@ cout <<
 	if ((classGraspMemoryTries2[targetClass].rows > 1) && (classGraspMemoryTries2[targetClass].cols > 1) &&
 	    (classGraspMemoryPicks2[targetClass].rows > 1) && (classGraspMemoryPicks2[targetClass].cols > 1) ) {
 	  cout << "graspMemoryTries[] = classGraspMemoryTries2" << endl;
-	  cout << "classGraspMemoryTries2 " << classGraspMemoryTries2[targetClass] << endl; 
-	  cout << "classGraspMemoryPicks2 " << classGraspMemoryPicks2[targetClass] << endl; 
+	  //cout << "classGraspMemoryTries2 " << classGraspMemoryTries2[targetClass] << endl; 
+	  //cout << "classGraspMemoryPicks2 " << classGraspMemoryPicks2[targetClass] << endl; 
 	  for (int y = 0; y < rmWidth; y++) {
 	    for (int x = 0; x < rmWidth; x++) {
 	      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*1] = classGraspMemoryTries2[targetClass].at<double>(y,x);
@@ -9581,8 +9632,8 @@ cout <<
 	if ((classGraspMemoryTries3[targetClass].rows > 1) && (classGraspMemoryTries3[targetClass].cols > 1) &&
 	    (classGraspMemoryPicks3[targetClass].rows > 1) && (classGraspMemoryPicks3[targetClass].cols > 1) ) {
 	  cout << "graspMemoryTries[] = classGraspMemoryTries3" << endl;
-	  cout << "classGraspMemoryTries3 " << classGraspMemoryTries3[targetClass] << endl; 
-	  cout << "classGraspMemoryPicks3 " << classGraspMemoryPicks3[targetClass] << endl; 
+	  //cout << "classGraspMemoryTries3 " << classGraspMemoryTries3[targetClass] << endl; 
+	  //cout << "classGraspMemoryPicks3 " << classGraspMemoryPicks3[targetClass] << endl; 
 	  for (int y = 0; y < rmWidth; y++) {
 	    for (int x = 0; x < rmWidth; x++) {
 	      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*2] = classGraspMemoryTries3[targetClass].at<double>(y,x);
@@ -9599,8 +9650,8 @@ cout <<
 	if ((classGraspMemoryTries4[targetClass].rows > 1) && (classGraspMemoryTries4[targetClass].cols > 1) &&
 	    (classGraspMemoryPicks4[targetClass].rows > 1) && (classGraspMemoryPicks4[targetClass].cols > 1) ) {
 	  cout << "graspMemoryTries[] = classGraspMemoryTries4" << endl;
-	  cout << "classGraspMemoryTries4 " << classGraspMemoryTries4[targetClass] << endl; 
-	  cout << "classGraspMemoryPicks4 " << classGraspMemoryPicks4[targetClass] << endl; 
+	  //cout << "classGraspMemoryTries4 " << classGraspMemoryTries4[targetClass] << endl; 
+	  //cout << "classGraspMemoryPicks4 " << classGraspMemoryPicks4[targetClass] << endl; 
 	  for (int y = 0; y < rmWidth; y++) {
 	    for (int x = 0; x < rmWidth; x++) {
 	      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*3] = classGraspMemoryTries4[targetClass].at<double>(y,x);
@@ -9764,6 +9815,8 @@ cout <<
     case 1245242:
       {
 	eepReg3 = rssPose;
+        heightAttemptCounter = 0;
+        heightSuccessCounter = 0;
 	pilot_call_stack.push_back(1179707); // continue bounding box learning
 	pilot_call_stack.push_back(65568+3); // record register 3
 
@@ -9773,7 +9826,8 @@ cout <<
 	pilot_call_stack.push_back(131153); // vision cycle
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	{ // prepare to servo
-	  currentEEPose.pz = wholeFoodsCounter1.pz+.1;
+	  //currentEEPose.pz = wholeFoodsCounter1.pz+.1;
+	  pilot_call_stack.push_back(1245248); // change to height 1
 	}
 	pilot_call_stack.push_back(1179723); // change bounding box inference mode to LEARNING_SAMPLING
 	pilot_call_stack.push_back('3'); // recall register 3
@@ -9789,7 +9843,11 @@ cout <<
 
 	// ATTN 16
 //	// push this program 
-	pilot_call_stack.push_back(1179707); // begin bounding box learning
+        if (heightAttemptCounter < 50) {
+          pilot_call_stack.push_back(1179707); // begin bounding box learning
+        } else {
+          pushCopies(1245308, 15); // beep
+        }
 
 	// record the bblearn trial if successful
 	pilot_call_stack.push_back(1179694); 
@@ -9890,14 +9948,18 @@ cout <<
     // capslock + numlock + "
     case 1310722:
       {
-	double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
+	// this ensures that we explore randomly within each grasp gear sector
+	double arcFraction = 0.125;
+	double noTheta = arcFraction * 3.1415926 * ((drand48() - 0.5) * 2.0);
 	currentEEPose.oz += noTheta;
       }
       break;
     // beep
     // capslock + numlock + |
-    case 1310812:
+      // old: 1310812:
+    case 1245308:
       {
+        cout << "BEEEEEEP" << endl;
 	cout << "\a"; cout.flush();
       }
       break;
@@ -10400,13 +10462,19 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     }
   }
 
+  Size sz = objectViewerImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
   {
     cv::Point outTop = cv::Point(pilotTarget.px-pilotTargetHalfWidth, pilotTarget.py-pilotTargetHalfWidth);
     cv::Point outBot = cv::Point(pilotTarget.px+pilotTargetHalfWidth, pilotTarget.py+pilotTargetHalfWidth);
     cv::Point inTop = cv::Point(pilotTarget.px+1-pilotTargetHalfWidth,pilotTarget.py+1-pilotTargetHalfWidth);
     cv::Point inBot = cv::Point(pilotTarget.px-1+pilotTargetHalfWidth,pilotTarget.py-1+pilotTargetHalfWidth);
-    rectangle(wristViewImage, outTop, outBot, cv::Scalar(53,10,97)); // RGB: 97 10 53
-    rectangle(wristViewImage, inTop, inBot, cv::Scalar(142,31,255)); // RGB: 255 31 142
+    if ( (outTop.x > 0) && (outTop.y > 0) && (outBot.x < imW) && (outBot.y < imH) ) {
+      rectangle(wristViewImage, outTop, outBot, cv::Scalar(53,10,97)); // RGB: 97 10 53
+      rectangle(wristViewImage, inTop, inBot, cv::Scalar(142,31,255)); // RGB: 255 31 142
+    }
   }
 
   if (shouldIRender) {
@@ -11225,7 +11293,7 @@ void loadMarginalGraspMemory() {
   }
 }
 
-void loadPriorGraspMemory() {
+void loadPriorGraspMemory(priorType prior) {
   ROS_INFO("Loading prior grasp memory.");
   double max_range_value = -VERYBIGNUMBER;
   double min_range_value = VERYBIGNUMBER;
@@ -11302,15 +11370,27 @@ void loadPriorGraspMemory() {
         int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
         double mu = graspMemoryReg1[i];
         double nfailure;
-        double eccentricity = 5;
+        double eccentricity = 2;//5;
         double nsuccess = round(eccentricity * mu);
 
         if (mu == 0) {
           nfailure = VERYBIGNUMBER;
         } else {
-          nfailure = round(eccentricity * (1 - mu));
-        }
 
+          if (prior == UNIFORM_PRIOR) {
+            nfailure = 0;
+          } else if (prior == ANALYTIC_PRIOR) {
+            nfailure = round(eccentricity * (1 - mu));
+          } else {
+            cout << "Invalid prior: " << prior << endl;
+            assert(0);
+          }
+
+          
+        }
+          if (prior == UNIFORM_PRIOR) {
+            nsuccess = 0;
+          }
 
         graspMemoryPicks[i] = nsuccess;
         graspMemoryTries[i] = nsuccess + nfailure;
@@ -11362,10 +11442,14 @@ void testHeightConversion() {
   }
 }
 
-void loadPriorHeightMemory() {
+void loadPriorHeightMemory(priorType prior) {
   for (int i = 0; i < hmWidth; i++) {
     heightMemoryPicks[i] = 0;
     heightMemoryTries[i] = 0;
+  }
+  if (prior == ANALYTIC_PRIOR) {
+    heightMemoryPicks[1] = 1;
+    heightMemoryTries[1] = 1;
   }
 }
 
@@ -12182,6 +12266,8 @@ double squareDistanceEEPose(eePose pose1, eePose pose2) {
 void recordBoundingBoxSuccess() {
   heightMemoryTries[currentThompsonHeightIdx]++;
   heightMemoryPicks[currentThompsonHeightIdx]++;
+  heightSuccessCounter++;
+  heightAttemptCounter++;
   cout << "Successful bounding box on floor " << currentThompsonHeightIdx << endl;
   cout << "Tries: " << heightMemoryTries[currentThompsonHeightIdx] << endl;
   cout << "Picks: " << heightMemoryPicks[currentThompsonHeightIdx] << endl;
@@ -12197,6 +12283,7 @@ void recordBoundingBoxSuccess() {
 
 void recordBoundingBoxFailure() {
   heightMemoryTries[currentThompsonHeightIdx]++;
+  heightAttemptCounter++;
   cout << "Failed to learn bounding box on floor " << currentThompsonHeightIdx << endl;
   cout << "Tries: " << heightMemoryTries[currentThompsonHeightIdx] << endl;
   cout << "Picks: " << heightMemoryPicks[currentThompsonHeightIdx] << endl;
@@ -13868,16 +13955,21 @@ void goCalculateDensity() {
   }
 
   // optionally feed it back in
-  int sobelBecomesDensity = 1;
-  double maxGsob = -INFINITY;
-  double maxYsob = -INFINITY;
+  int sobelBecomesDensity = 0;
   if (sobelBecomesDensity) {
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
 	totalGraySobel.at<double>(y,x) = density[y*imW+x];
-	maxGsob = max(maxGsob, totalGraySobel.at<double>(y,x));
-	maxYsob = max(maxYsob, totalYSobel.at<double>(y,x));
       }
+    }
+  }
+
+  double maxGsob = -INFINITY;
+  double maxYsob = -INFINITY;
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      maxGsob = max(maxGsob, totalGraySobel.at<double>(y,x));
+      maxYsob = max(maxYsob, totalYSobel.at<double>(y,x));
     }
   }
   
@@ -16483,18 +16575,18 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
 
 
       fsfI.release();
-      cout << "Loaded rangeMap from " << this_range_path << classRangeMaps[i].size() << classRangeMaps[i] << endl; 
-      cout << "Loaded classGraspMemoryTries1 from " << this_range_path << classGraspMemoryTries1[i].size() << classGraspMemoryTries1[i] << endl; 
-      cout << "Loaded classGraspMemoryPicks1 from " << this_range_path << classGraspMemoryPicks1[i].size() << classGraspMemoryPicks1[i] << endl; 
-      cout << "Loaded classGraspMemoryTries2 from " << this_range_path << classGraspMemoryTries2[i].size() << classGraspMemoryTries2[i] << endl; 
-      cout << "Loaded classGraspMemoryPicks2 from " << this_range_path << classGraspMemoryPicks2[i].size() << classGraspMemoryPicks2[i] << endl; 
-      cout << "Loaded classGraspMemoryTries3 from " << this_range_path << classGraspMemoryTries3[i].size() << classGraspMemoryTries3[i] << endl; 
-      cout << "Loaded classGraspMemoryPicks3 from " << this_range_path << classGraspMemoryPicks3[i].size() << classGraspMemoryPicks3[i] << endl; 
-      cout << "Loaded classGraspMemoryTries4 from " << this_range_path << classGraspMemoryTries4[i].size() << classGraspMemoryTries4[i] << endl; 
-      cout << "Loaded classGraspMemoryPicks4 from " << this_range_path << classGraspMemoryPicks4[i].size() << classGraspMemoryPicks4[i] << endl; 
+      cout << "Loaded rangeMap from " << this_range_path << classRangeMaps[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries1 from " << this_range_path << classGraspMemoryTries1[i].size() << endl; 
+      cout << "Loaded classGraspMemoryPicks1 from " << this_range_path << classGraspMemoryPicks1[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries2 from " << this_range_path << classGraspMemoryTries2[i].size() << endl; 
+      cout << "Loaded classGraspMemoryPicks2 from " << this_range_path << classGraspMemoryPicks2[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries3 from " << this_range_path << classGraspMemoryTries3[i].size() << endl; 
+      cout << "Loaded classGraspMemoryPicks3 from " << this_range_path << classGraspMemoryPicks3[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries4 from " << this_range_path << classGraspMemoryTries4[i].size() << endl; 
+      cout << "Loaded classGraspMemoryPicks4 from " << this_range_path << classGraspMemoryPicks4[i].size() << endl; 
 
-      cout << "Loaded classHeightMemoryTries from " << this_range_path << classHeightMemoryTries[i].size() << classHeightMemoryTries[i] << endl;
-      cout << "Loaded classHeightMemoryPicks from " << this_range_path << classHeightMemoryPicks[i].size() << classHeightMemoryPicks[i] << endl;
+      cout << "Loaded classHeightMemoryTries from " << this_range_path << classHeightMemoryTries[i].size() << endl;
+      cout << "Loaded classHeightMemoryPicks from " << this_range_path << classHeightMemoryPicks[i].size() << endl;
     } else {
       classRangeMaps[i] = Mat(1, 1, CV_64F);
       classGraspMemoryTries1[i] = Mat(1, 1, CV_64F);
@@ -16781,6 +16873,7 @@ int main(int argc, char **argv) {
   rangemapViewName = "Range Map View " + left_or_right_arm;
   graspMemoryViewName = "Grasp Memory View " + left_or_right_arm;
   graspMemorySampleViewName = "Grasp Memory Sample View " + left_or_right_arm;
+  heightMemorySampleViewName = "Height Memory Sample View " + left_or_right_arm;
   hiRangemapViewName = "Hi Range Map View " + left_or_right_arm;
   hiColorRangemapViewName = "Hi Color Range Map View " + left_or_right_arm;
 
