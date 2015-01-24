@@ -1374,6 +1374,7 @@ orientedFilterType getOrientedFilterType(string toCompare);
 
 void nodeCallbackFunc(int event, int x, int y, int flags, void* userdata);
 
+void goCalculateObjectness();
 void goCalculateDensity();
 void goFindBlueBoxes();
 void goFindBrownBoxes();
@@ -13637,6 +13638,122 @@ void goAddBlinders() {
   */
 }
 
+void goCalculateObjectness() {
+/*
+  Size sz = objectViewerImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  int boxesPerSize = 800;
+  ValStructVec<float, Vec4i> boxes;
+  glObjectness->getObjBndBoxes(densityViewerImage, boxes, boxesPerSize);
+
+  int numBoxes = boxes.size();
+
+  #ifdef DEBUG
+  cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
+  #endif
+
+  nTop.resize(numBoxes);
+  nBot.resize(numBoxes);
+
+  int boxesToConsider= 50000;
+
+  if (integralDensity == NULL)
+    integralDensity = new double[imW*imH];
+  if (density == NULL)
+    density = new double[imW*imH];
+  if (predensity == NULL)
+    predensity = new double[imW*imH];
+  double *differentialDensity = new double[imW*imH];
+  if (temporalDensity == NULL) {
+    temporalDensity = new double[imW*imH];
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	temporalDensity[y*imW + x] = 0;
+      }
+    }
+  }
+
+  // XXX make this prettier
+  for(int i =0; i < min(numBoxes, boxesToConsider); i++){
+    int boxInd = numBoxes-1-i;
+    boxInd = max(0, boxInd);
+    nTop[i].x = boxes[boxInd][0] - 1;
+    nTop[i].y = boxes[boxInd][1] - 1;
+    nBot[i].x = boxes[boxInd][2] - 1;
+    nBot[i].y = boxes[boxInd][3] - 1;
+    double width = nBot[i].x - nTop[i].x;
+    double height= nBot[i].y - nTop[i].y;
+    double ratio = width / height;
+    double area = width*height;
+    double aspectThresh = 20.0;
+    if (ratio < aspectThresh && ratio > 1.0/aspectThresh) {
+      if (drawPurple) {
+	if (drand48() < drawBingProb) {
+	  cv::Point outTop = cv::Point(nTop[i].x, nTop[i].y);
+	  cv::Point outBot = cv::Point(nBot[i].x, nBot[i].y);
+	  cv::Point inTop = cv::Point(nTop[i].x+1,nTop[i].y+1);
+	  cv::Point inBot = cv::Point(nBot[i].x-1,nBot[i].y-1);
+	  rectangle(objectViewerImage, outTop, outBot, cv::Scalar(188,40,140));
+	  rectangle(objectViewerImage, inTop, inBot, cv::Scalar(94,20,70));
+	}
+      }
+      
+      double toAdd = 1.0 / area;
+      //double toAdd = 1.0;
+      int x = nTop[i].x;
+      int y = nTop[i].y;
+      differentialDensity[y*imW + x] += toAdd;
+      x = nBot[i].x;
+      y = nBot[i].y;
+      differentialDensity[y*imW + x] += toAdd;
+      x = nTop[i].x;
+      y = nBot[i].y;
+      differentialDensity[y*imW + x] -= toAdd;
+      x = nBot[i].x;
+      y = nTop[i].y;
+      differentialDensity[y*imW + x] -= toAdd;
+    }
+  }
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      density[y*imW + x] = 0;
+      differentialDensity[y*imW + x] = 0;
+    }
+  }
+
+  // integrate the differential density into the density
+  density[0] = differentialDensity[0];
+  for (int x = 1; x < imW; x++) {
+    int y = 0;
+    density[y*imW+x] = density[y*imW+(x-1)] + differentialDensity[y*imW + x];
+  }
+  for (int y = 1; y < imH; y++) {
+    int x = 0;
+    density[y*imW+x] = density[(y-1)*imW+x] + differentialDensity[y*imW + x];
+  }
+  for (int x = 1; x < imW; x++) {
+    for (int y = 1; y < imH; y++) {
+      density[y*imW+x] = 
+	density[(y-1)*imW+x]+density[y*imW+(x-1)]-density[(y-1)*imW+(x-1)]+differentialDensity[y*imW + x];
+    }
+  }
+
+  // copy the density map to the rendered image
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      uchar val = uchar(min( 1*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
+      gradientViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
+      gradientViewerImage.at<cv::Vec3b>(y+imH,x) = convertedYCbCrGradientImage.at<cv::Vec3b>(y,x);
+    }
+  }
+
+  delete differentialDensity;
+*/
+}
+
 void goCalculateDensity() {
   Size sz = objectViewerImage.size();
   int imW = sz.width;
@@ -13665,8 +13782,6 @@ void goCalculateDensity() {
     grayTop = armTop;
     grayBot = armBot;
   }
-
-
 
   // Sobel business
   Mat sobelGrayBlur;
@@ -13802,51 +13917,9 @@ void goCalculateDensity() {
       totalYSobel.at<double>(y,x) = 0;
     }
   }
-//  // make it gradient magnitude to the fourth to spread the values a little
-//  // this increases robustness and makes it easier to tune
-//  pow(totalSobel, 2.0, totalSobel);
-//  totalSobel = totalSobel * sobel_scale_factor;
-//
-//  //totalSobel = abs(totalSobel);
-//  //cv::sqrt(totalSobel, totalSobel);
-//  //cv::sqrt(totalSobel, totalSobel);
-//
-//  // try local contrast normalization
-//  //GaussianBlur(totalSobel, local_ave, Size(max(4*local_sobel_sigma+1, 17.0),max(4*local_sobel_sigma+1, 17.0)), local_sobel_sigma, local_sobel_sigma, BORDER_DEFAULT); 
-//  //local_ave = cv::max(local_ave,.000001);
-//  //totalSobel = local_ave / totalSobel;
-//
-//  // try laplacian
-//  Mat lapl;
-//  Laplacian(densityViewerImage_blur, lapl, sobelDepth, 1, sobelScale, sobelDelta, BORDER_DEFAULT);
-//  //pow(totalSobel, 4.0, totalSobel);
-//  //totalSobel = max(totalSobel, .001);
-//  //totalSobel = 1 / totalSobel;
-//  totalSobel = lapl.mul(totalSobel);
-
-  //vector<Mat> channels;
-  //channels.push_back(densityViewerImageGtmp);
-  //channels.push_back(densityViewerImageGtmp);
-  //channels.push_back(densityViewerImageGtmp);
-  //merge(channels, densityViewerImageG);
 
   // input image is noisy so blurring is a good idea
   //GaussianBlur(densityViewerImage, densityViewerImage, cv::Size(0,0), 1.0);
-
-  int boxesPerSize = 800;
-  ValStructVec<float, Vec4i> boxes;
-  glObjectness->getObjBndBoxes(densityViewerImage, boxes, boxesPerSize);
-
-  int numBoxes = boxes.size();
-
-  #ifdef DEBUG
-  cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
-  #endif
-
-  nTop.resize(numBoxes);
-  nBot.resize(numBoxes);
-
-  int boxesToConsider= 50000;
 
   if (integralDensity == NULL)
     integralDensity = new double[imW*imH];
@@ -13854,7 +13927,6 @@ void goCalculateDensity() {
     density = new double[imW*imH];
   if (predensity == NULL)
     predensity = new double[imW*imH];
-  double *differentialDensity = new double[imW*imH];
   if (temporalDensity == NULL) {
     temporalDensity = new double[imW*imH];
     for (int x = 0; x < imW; x++) {
@@ -13864,86 +13936,6 @@ void goCalculateDensity() {
     }
   }
 
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      density[y*imW + x] = 0;
-      differentialDensity[y*imW + x] = 0;
-    }
-  }
-
-  //if (drawWhite) {
-    //// draw the ork bounding boxes
-    //for(int i =0; i<wTop.size(); i++){
-      //rectangle(objectViewerImage, wTop[i], wBot[i], cv::Scalar(255,255,255));
-    //}
-  //}
-
-  // XXX make this prettier
-  for(int i =0; i < min(numBoxes, boxesToConsider); i++){
-    int boxInd = numBoxes-1-i;
-    boxInd = max(0, boxInd);
-    nTop[i].x = boxes[boxInd][0] - 1;
-    nTop[i].y = boxes[boxInd][1] - 1;
-    nBot[i].x = boxes[boxInd][2] - 1;
-    nBot[i].y = boxes[boxInd][3] - 1;
-    double width = nBot[i].x - nTop[i].x;
-    double height= nBot[i].y - nTop[i].y;
-    double ratio = width / height;
-    double area = width*height;
-    double aspectThresh = 20.0;
-    if (ratio < aspectThresh && ratio > 1.0/aspectThresh) {
-      if (drawPurple) {
-	if (drand48() < drawBingProb) {
-	  cv::Point outTop = cv::Point(nTop[i].x, nTop[i].y);
-	  cv::Point outBot = cv::Point(nBot[i].x, nBot[i].y);
-	  cv::Point inTop = cv::Point(nTop[i].x+1,nTop[i].y+1);
-	  cv::Point inBot = cv::Point(nBot[i].x-1,nBot[i].y-1);
-	  rectangle(objectViewerImage, outTop, outBot, cv::Scalar(188,40,140));
-	  rectangle(objectViewerImage, inTop, inBot, cv::Scalar(94,20,70));
-	}
-      }
-      
-      double toAdd = 1.0 / area;
-      //double toAdd = 1.0;
-      int x = nTop[i].x;
-      int y = nTop[i].y;
-      differentialDensity[y*imW + x] += toAdd;
-      x = nBot[i].x;
-      y = nBot[i].y;
-      differentialDensity[y*imW + x] += toAdd;
-      x = nTop[i].x;
-      y = nBot[i].y;
-      differentialDensity[y*imW + x] -= toAdd;
-      x = nBot[i].x;
-      y = nTop[i].y;
-      differentialDensity[y*imW + x] -= toAdd;
-    }
-  }
-
-  // integrate the differential density into the density
-  density[0] = differentialDensity[0];
-  for (int x = 1; x < imW; x++) {
-    int y = 0;
-    density[y*imW+x] = density[y*imW+(x-1)] + differentialDensity[y*imW + x];
-  }
-  for (int y = 1; y < imH; y++) {
-    int x = 0;
-    density[y*imW+x] = density[(y-1)*imW+x] + differentialDensity[y*imW + x];
-  }
-  for (int x = 1; x < imW; x++) {
-    for (int y = 1; y < imH; y++) {
-      density[y*imW+x] = 
-	density[(y-1)*imW+x]+density[y*imW+(x-1)]-density[(y-1)*imW+(x-1)]+differentialDensity[y*imW + x];
-    }
-  }
-
-  /*
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      density[y*imW+x] = totalSobel.at<float>(y,x);
-    }
-  }
-  */
   int replaceDensityWithGrad = 1;
   if (replaceDensityWithGrad) {
     for (int x = 0; x < imW; x++) {
@@ -13970,8 +13962,6 @@ void goCalculateDensity() {
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
       temporalDensity[y*imW+x] = densityDecay*temporalDensity[y*imW+x] + (1.0-densityDecay)*density[y*imW+x];
-      //density[y*imW+x] = pow(temporalDensity[y*imW+x], densityPower);
-      //maxDensity = max(maxDensity, density[y*imW+x]);
     }
   }
 
@@ -13995,35 +13985,22 @@ void goCalculateDensity() {
   }
   
   // ATTN 11
-// experimental
+  // experimental
   int combineYandGray = 1;
   double yWeight = 1.0;
   if (combineYandGray) {
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	//totalGraySobel.at<double>(y,x) += maxGsob * yWeight * totalYSobel.at<double>(y,x) * totalYSobel.at<double>(y,x) / (maxYsob * maxYsob);
 	double thisY2G = min(maxYsob, yWeight * totalYSobel.at<double>(y,x));
 	totalGraySobel.at<double>(y,x) += maxGsob * thisY2G * thisY2G / (maxYsob * maxYsob);
       }
     }
   }
-// works
-//  int combineYandGray = 1;
-//  double yWeight = 1.0;
-//  if (combineYandGray) {
-//    for (int x = 0; x < imW; x++) {
-//      for (int y = 0; y < imH; y++) {
-//	totalGraySobel.at<double>(y,x) += maxGsob * yWeight * totalYSobel.at<double>(y,x) * totalYSobel.at<double>(y,x) / (maxYsob * maxYsob);
-//      }
-//    }
-//  }
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
       if (density[y*imW+x] < maxDensity* threshFraction)
 	density[y*imW+x] = 0;
-      //else
-	//density[y*imW+x] = maxDensity* threshFraction;
     }
   }
 
@@ -14079,8 +14056,6 @@ void goCalculateDensity() {
       for (int y = 0; y < imH; y++) {
 	if (density[y*imW+x] < maxDensity* threshFraction)
 	  density[y*imW+x] = 0;
-	//else
-	  //density[y*imW+x] = maxDensity* threshFraction;
       }
     }
   }
@@ -14101,8 +14076,6 @@ void goCalculateDensity() {
 	integralDensity[(y-1)*imW+x]+integralDensity[y*imW+(x-1)]-integralDensity[(y-1)*imW+(x-1)]+density[y*imW + x];
     }
   }
-
-//cout << lGO << " " << rGO << " " << tGO << " " << bGO << endl;
 
   if (drawGray) {
     cv::Point outTop = cv::Point(grayTop.x, grayTop.y);
@@ -14171,18 +14144,15 @@ void goCalculateDensity() {
   for (int x = 1; x < imW; x++) {
     int y = 0;
     integralDensity[y*imW+x] = integralDensity[y*imW+(x-1)] + density[y*imW + x];
-    //maxIntegralDensity = max(maxIntegralDensity, integralDensity[y*imW+x]);
   }
   for (int y = 1; y < imH; y++) {
     int x = 0;
     integralDensity[y*imW+x] = integralDensity[(y-1)*imW+x] + density[y*imW + x];
-    //maxIntegralDensity = max(maxIntegralDensity, integralDensity[y*imW+x]);
   }
   for (int x = 1; x < imW; x++) {
     for (int y = 1; y < imH; y++) {
       integralDensity[y*imW+x] = 
 	integralDensity[(y-1)*imW+x]+integralDensity[y*imW+(x-1)]-integralDensity[(y-1)*imW+(x-1)]+density[y*imW + x];
-      //maxIntegralDensity = max(maxIntegralDensity, integralDensity[y*imW+x]);
     }
   }
 
@@ -14226,27 +14196,12 @@ void goCalculateDensity() {
   double sobCbRange = maxCbSob - minCbSob;
   double sobYRange = maxYSob - minYSob;
 
-  // ignore normalization
-  //maxCrSob = 255;
-  //minCrSob = 0;
-  //sobCrRange = 1;
-  //maxCbSob = 255;
-  //minCbSob = 0;
-  //sobCbRange = 1;
-
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
       yCbCrGradientImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(
-	//uchar(max(0.0, min((128+255.0*(totalGraySobel.at<double>(y,x) - minGraySob - (sobGrayRange/2.0)) / sobGrayRange), 255.0))) ,
-	//128,
-
 	uchar(max(0.0, min((128+255.0*(totalYSobel.at<double>(y,x) - minYSob - (sobYRange/2.0)) / sobYRange), 255.0))) ,
-	//uchar(max(0.0, min((255.0*(totalYSobel.at<double>(y,x) - minYSob) / sobYRange), 255.0))) ,
 	uchar(max(0.0, min((128+255.0*(totalCrSobel.at<double>(y,x) - minCrSob - (sobCrRange/2.0)) / sobCrRange), 255.0))) ,
 	uchar(max(0.0, min((128+255.0*(totalCbSobel.at<double>(y,x) - minCbSob - (sobCbRange/2.0)) / sobCbRange), 255.0))) );
-
-	//uchar(max(0.0, min((128+255.0*fabs(totalCrSobel.at<double>(y,x) - minCrSob - (sobCrRange/2.0)) / sobCrRange), 255.0))) ,
-	//uchar(max(0.0, min((128+255.0*fabs(totalCbSobel.at<double>(y,x) - minCbSob - (sobCbRange/2.0)) / sobCbRange), 255.0))) );
     }
   }
   Mat convertedYCbCrGradientImage;
@@ -14255,33 +14210,17 @@ void goCalculateDensity() {
   // copy the density map to the rendered image
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      //uchar val = uchar(min( 255.0 * density[y*imW+x] / maxDensity, 255.0));
-      //densityViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
-      // XXX TODO
-      //uchar val = uchar(min( 255.0 *  (totalGraySobel.at<float>(y,x) - minGraySob) / sobGrayRange, 255.0));
-
-      //uchar val = uchar(min( 3*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
       uchar val = uchar(min( 1*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
       gradientViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
       gradientViewerImage.at<cv::Vec3b>(y+imH,x) = convertedYCbCrGradientImage.at<cv::Vec3b>(y,x);
-
-      //cout << yCbCrGradientImage.at<cv::Vec3b>(y,x) << " ";
     }
   }
-
-  //cout << "SobelGray: " << sobGrayRange << " " << maxGraySob << " " << minGraySob << endl;
-  //cout << "SobelCr: " << sobCrRange << " " << maxCrSob << " " << minCrSob << endl;
-  //cout << "SobelCb: " << sobCbRange << " " << maxCbSob << " " << minCbSob << endl;
-
-
 
   if (shouldIRender) {
     cv::imshow(densityViewerName, densityViewerImage);
     cv::imshow(gradientViewerName, gradientViewerImage);
     cv::imshow(objectnessViewerName, objectnessViewerImage);
   }
-
-  delete differentialDensity;
 }
 
 void goFindBlueBoxes() {
