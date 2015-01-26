@@ -449,8 +449,8 @@ catkin_make && gdb --args ./devel/lib/node/ein  _data_directory:="$(rospack find
 
 General notes:
 
-CRC:  clears the stack
-Y:  Runs what is on the stack
+crc:  clears the stack
+y:  Runs what is on the stack
 
 Training new model:
 capslock + shift d: queues scan program
@@ -485,3 +485,13 @@ Training height:
 capslock + pageup: select target class
 capslock + numlock + backspace: load prior (if desired)
 capslock + numlock + :: queue height learning
+
+
+
+
+**********************************************************************
+ein_data_height_done (height, no grasp, possibly bad contrast)
+ein_data_contrast (no height, no grasp, good contrast)
+ein_data (baseline scans, possibly bad contrast)
+ein_data_combine1 (height, no grasp, fixes)
+ * really good models
