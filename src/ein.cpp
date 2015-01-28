@@ -890,6 +890,14 @@ double gradientServoResetThresh = 0.7/(6.0e5);
 vector<double> classL2RangeComparator;
 double irHeightPadding = 0.16;
 
+vector<double> rgbServoSample;
+vector<double> rgbServoMarginals;
+vector<double> rgbServoTries;
+vector<double> rgbServoPicks;
+int rgbServoTrials;
+int rgbServoTrialsMax = 20;
+
+
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -9751,11 +9759,29 @@ cout <<
     case 262257:
       {
 	cout << "adjusting height and scanning..." << endl;
-	// find tallest point on the range map, recall it is inverted
 	double negativeMaxZ = INFINITY;
-	for (int x = 0; x < rmWidth; x++) {
-	  for (int y = 0; y < rmWidth; y++) {
-	    negativeMaxZ = min(negativeMaxZ, classRangeMaps[targetClass].at<double>(y,x));
+
+	if (0) {
+	// find tallest point on this range map, recall it is inverted
+	//  this can give bad readings if it is too low and 
+	//  gets stuck on the gripper
+	  for (int x = 0; x < rmWidth; x++) {
+	    for (int y = 0; y < rmWidth; y++) {
+	      negativeMaxZ = min(negativeMaxZ, classRangeMaps[targetClass].at<double>(y,x));
+	    }
+	  }
+	} else {
+	// find tallest point in all range maps
+	//  this is more robust but less precise when it works
+	  for (int clCounter = numClasses-1; clCounter >= 0; clCounter--) {
+	    if ( !((classAerialGradients[clCounter].rows <= 1) && (classAerialGradients[clCounter].cols <= 1)) &&
+		  ((classRangeMaps[clCounter].rows > 1) && (classRangeMaps[clCounter].cols > 1)) ) {
+	      for (int x = 0; x < rmWidth; x++) {
+		for (int y = 0; y < rmWidth; y++) {
+		  negativeMaxZ = min(negativeMaxZ, classRangeMaps[clCounter].at<double>(y,x));
+		}
+	      }
+	    }
 	  }
 	}
     
@@ -9783,18 +9809,21 @@ cout <<
     // ctrl + w
     case 262263:
       {
+	// XXX consider removing the mean here
 	cout << "comparing rangeMapReg1 to rangeMapReg2" << endl;
 	double thisL2DistanceSquared = 0;
 	for (int rx = 0; rx < rmWidth; rx++) {
 	  for (int ry = 0; ry < rmWidth; ry++) {
-	    double diff = rangeMapReg2[rx + ry*rmWidth]-rangeMapReg1[rx + ry*rmWidth];
+	    double diff = min(rangeMapReg2[rx + ry*rmWidth],0.0) -
+			   min(rangeMapReg1[rx + ry*rmWidth],0.0);
+	    //double diff = rangeMapReg2[rx + ry*rmWidth]-rangeMapReg1[rx + ry*rmWidth];
 	    thisL2DistanceSquared += diff*diff;
 	  }
 	}
 	classL2RangeComparator[targetClass] = thisL2DistanceSquared;
 	cout << " thisL2DistanceSquared: " << thisL2DistanceSquared << endl;
 	for (int compa = 0; compa < numClasses; compa++) {
-	  cout << "comparator[" << compa << "]: " << classL2RangeComparator[compa] << endl;
+	  cout << "comparator[" << compa << "]: " << classL2RangeComparator[compa] << " " <<  classLabels[compa] << endl;
 	}
       }
       break;
@@ -9813,10 +9842,10 @@ cout <<
 	  }
 	}
 	for (int compa = 0; compa < numClasses; compa++) {
-	  cout << "comparator[" << compa << "]: " << classL2RangeComparator[compa] << endl;
+	  cout << "comparator[" << compa << "]: " << classL2RangeComparator[compa] << " " <<  classLabels[compa] << endl;
 	}
 	if (minClass > -1)
-	  cout << "and the winner is: class " << minClass << " named " << classLabels[minClass] << ".";
+	  cout << "and the winner is: class " << minClass << " named " << classLabels[minClass] << "." << endl;
 	else
 	  cout << "in a game with no players, nobody wins." << endl;
       }
@@ -9880,6 +9909,181 @@ cout <<
 	pilot_call_stack.push_back(1179735); // change to counter table
       }
       break;
+    // gradient servo then record rgb at different heights
+    // ctrl + y
+    case 262265:
+      {
+	// TODO
+	// now this is where it pays to have separate focusedClass and targetClass, because we can servo
+	//  with the wrong class to get all of the discriminative views.
+      }
+      break;
+    // begin Thompson sampling for RGB discriminative servo
+    // ctrl + u
+    case 262261:
+      {
+	// init all of the structures
+	rgbServoSample.resize(numClasses);
+	rgbServoMarginals.resize(numClasses);
+	rgbServoTries.resize(numClasses);
+	rgbServoPicks.resize(numClasses);
+	rgbServoTrials = 0;
+  
+	for (int clCounter = 0; clCounter < numClasses; clCounter++) {
+	  if ( !((classAerialGradients[clCounter].rows <= 1) && (classAerialGradients[clCounter].cols <= 1)) &&
+		((classRangeMaps[clCounter].rows > 1) && (classRangeMaps[clCounter].cols > 1)) ) {
+	    rgbServoSample[clCounter] = 0;
+	    rgbServoMarginals[clCounter] = 1;
+	    rgbServoTries[clCounter] = 1;
+	    rgbServoPicks[clCounter] = 1;
+	  } else {
+	    rgbServoSample[clCounter] = 0;
+	    rgbServoMarginals[clCounter] = 0;
+	    rgbServoTries[clCounter] = 1;
+	    rgbServoPicks[clCounter] = 0;
+	  }
+	}
+
+	pilot_call_stack.push_back(262249); // Thompson sample a class to servo with,
+      }
+      break;
+    // Thompson sample a class to servo with, 
+    //  assume the proper height, servo in, and check the category.
+    // ctrl + i
+    case 262249:
+      {
+	for (int clCounter = numClasses-1; clCounter >= 0; clCounter--) {
+	  if ( !((classAerialGradients[clCounter].rows <= 1) && (classAerialGradients[clCounter].cols <= 1)) &&
+		((classRangeMaps[clCounter].rows > 1) && (classRangeMaps[clCounter].cols > 1)) ) {
+	    double nsuccess = rgbServoPicks[clCounter];
+	    double nfailure = rgbServoTries[clCounter] - rgbServoPicks[clCounter];
+	    rgbServoSample[clCounter] = rk_beta(&random_state, 
+					   nsuccess + 1, 
+					   nfailure + 1);
+	  } else {
+	    rgbServoSample[clCounter] = 0.0;
+	  }
+	}
+	int maxSampleClass = -1;
+	double maxSampleVal = -1;
+	for (int clCounter = numClasses-1; clCounter >= 0; clCounter--) {
+	  if ( !((classAerialGradients[clCounter].rows <= 1) && (classAerialGradients[clCounter].cols <= 1)) &&
+		((classRangeMaps[clCounter].rows > 1) && (classRangeMaps[clCounter].cols > 1)) ) {
+	    if (rgbServoSample[clCounter] > maxSampleVal) {
+	      maxSampleVal = rgbServoSample[clCounter];
+	      maxSampleClass = clCounter;
+	    }
+	  }
+	}
+	assert(maxSampleClass != -1);
+	targetClass = 0;
+
+	cout << "maxSampleClass = " << maxSampleClass << endl;
+
+	pilot_call_stack.push_back(262255); // check the category of the center bounding box, 
+	pushCopies(131153,2); // vision cycle
+
+	pilot_call_stack.push_back(1179692); // set bailAfterGradient off 
+
+	pilot_call_stack.push_back(131139); // synchronic servo don't take closest
+	pilot_call_stack.push_back(131156); // synchronic servo
+					    // into gradient servo
+	pilot_call_stack.push_back(196707); // synchronic servo take closest
+	pilot_call_stack.push_back(131153); // vision cycle
+	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(1245247); // sample height
+	pilot_call_stack.push_back(1048625); // change gear to 1
+
+	pilot_call_stack.push_back(1179724); // change bounding box inference mode to STATIC_MARGINALS
+	pilot_call_stack.push_back(1245244); // set bailAfterGradient on
+	pilot_call_stack.push_back(1179725); // set bailAfterSynchronic off 
+	pilot_call_stack.push_back(1179735); // change to counter table
+
+	// takes us to the max class, naturally
+	for (int tcCounter = 0; tcCounter < maxSampleClass; tcCounter++) {
+	  pilot_call_stack.push_back(196437); // increment target class
+	}
+      }
+      break;
+    // check the category of the center bounding box, 
+    //  record marginals, and either sample again
+    //  or end and summarize
+    // ctrl + o
+    case 262255:
+      {
+	int thisClosestClass = -1;
+	if (pilotClosestBlueBoxNumber > -1) {
+	  thisClosestClass = bLabels[pilotClosestBlueBoxNumber];
+	  cout << "thisClosestClass is " << thisClosestClass << " named " << classLabels[thisClosestClass] << ". ";
+	} else {
+	  cout << "Uh oh, closest blue box doesn't exist... ";
+	}
+
+	int gotAHit = (thisClosestClass == targetClass);
+	cout << "and targetClass is " << targetClass << " so gotAHit is " << gotAHit << endl;
+
+	// record marginals
+	rgbServoTries[targetClass] += 1;
+	rgbServoTries[targetClass] = max(rgbServoTries[targetClass], 1.0);
+	if (gotAHit)
+	  rgbServoPicks[targetClass] += 1;
+	rgbServoMarginals[targetClass] = rgbServoPicks[targetClass]/rgbServoTries[targetClass];
+
+	for (int compa = 0; compa < numClasses; compa++) {
+	  cout << "rgbServoSample[" << compa << "]: " << rgbServoSample[compa] << " " <<  classLabels[compa] << endl;
+	}
+	for (int compa = 0; compa < numClasses; compa++) {
+	  cout << "rgbServoPicks[" << compa << "]: " << rgbServoPicks[compa] << " " <<  classLabels[compa] << endl;
+	}
+	for (int compa = 0; compa < numClasses; compa++) {
+	  cout << "rgbServoTries[" << compa << "]: " << rgbServoTries[compa] << " " <<  classLabels[compa] << endl;
+	}
+	for (int compa = 0; compa < numClasses; compa++) {
+	  cout << "rgbServoMarginals[" << compa << "]: " << rgbServoMarginals[compa] << " " <<  classLabels[compa] << endl;
+	}
+
+	if (rgbServoTrials < rgbServoTrialsMax) {
+	  pilot_call_stack.push_back(262249); // Thompson sample a class to servo with, 
+	} else {
+	  pilot_call_stack.push_back(262256); // summarize this round of RGB discriminative servo.
+	}	
+
+	rgbServoTrials++;
+      }
+      break;
+    // summarize this round of RGB discriminative servo.
+    // ctrl + p
+    case 262256:
+      {
+	double maxMarg = -1;
+	int maxClass = -1;
+	for (int clCounter = 0; clCounter < numClasses; clCounter++) {
+	  if (rgbServoMarginals[clCounter] > maxMarg) {
+	    maxMarg = rgbServoMarginals[clCounter];
+	    maxClass = clCounter;
+	  }
+	}
+
+	for (int compa = 0; compa < numClasses; compa++) {
+	  cout << "rgbServoSample[" << compa << "]: " << rgbServoSample[compa] << " " <<  classLabels[compa] << endl;
+	}
+	for (int compa = 0; compa < numClasses; compa++) {
+	  cout << "rgbServoPicks[" << compa << "]: " << rgbServoPicks[compa] << " " <<  classLabels[compa] << endl;
+	}
+	for (int compa = 0; compa < numClasses; compa++) {
+	  cout << "rgbServoTries[" << compa << "]: " << rgbServoTries[compa] << " " <<  classLabels[compa] << endl;
+	}
+	for (int compa = 0; compa < numClasses; compa++) {
+	  cout << "rgbServoMarginals[" << compa << "]: " << rgbServoMarginals[compa] << " " <<  classLabels[compa] << endl;
+	}
+
+	if (maxClass == -1)
+	  cout << "in a game with no players, nobody wins." << endl;
+	else
+	  cout << "and the winner is: class " << maxClass << " named " << classLabels[maxClass] << "." << endl;
+      }
+      break;
+    
 //    case 2:
 //      drawOrientor = !drawOrientor;
 //      break;
@@ -12489,7 +12693,12 @@ void gradientServo() {
     //cout << thisColor;
     int thisTopCornerX = bestX + reticle.px - (aerialGradientReticleWidth/2);
     int thisTopCornerY = bestY + reticle.py - (aerialGradientReticleWidth/2);
-    gradientViewerImage.at<Vec3b>(thisTopCornerY + ty, thisTopCornerX + tx) += thisColor;
+
+    int tgX = thisTopCornerX + tx;
+    int tgY = thisTopCornerY + ty;
+    if ((tgX > 0) && (tgX < imW) && (tgY > 0) && (tgY < imH)) {
+      gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColor;
+    }
   }
   }
   }
@@ -12507,7 +12716,7 @@ void gradientServo() {
     // XXX this still might miss if it nails the correct orientation on the last try
     // but we don't want to move because we want all the numbers to be consistent
     if (currentGradientServoIterations > hardMaxGradientServoIterations) {
-    cout << "LAST ITERATION indefinite orientation ";
+    //cout << "LAST ITERATION indefinite orientation ";
   } else {
     double kPtheta = 0.0;
     if (Ptheta < kPThresh)
@@ -12523,9 +12732,9 @@ void gradientServo() {
 
     double doublePtheta = currentEEPose.oz;
 
-    cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << 
-      pilotTarget.px << " " << reticle.py << " " << pilotTarget.py << " " <<
-      bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
+    //cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << 
+      //pilotTarget.px << " " << reticle.py << " " << pilotTarget.py << " " <<
+      //bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
 
     double dx = (currentEEPose.px - trueEEPose.position.x);
     double dy = (currentEEPose.py - trueEEPose.position.y);
@@ -12622,7 +12831,7 @@ void gradientServo() {
 
     return;
   } else {
-    cout << "executing P controller update." << endl;
+    //cout << "executing P controller update." << endl;
     pilot_call_stack.push_back(196728); // gradient servo
     // simple servo code because there is no hysteresis to be found
     double pTermX = gradKp*Px;
@@ -15998,6 +16207,8 @@ void goClassifyBlueBoxes() {
     pilotClosestTarget.pz = p.z;
 
     pilotClosestBlueBoxNumber = closestBBToReticle;
+  } else {
+    pilotClosestBlueBoxNumber = -1;
   }
 
   if (shouldIRender)
