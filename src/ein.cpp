@@ -104,6 +104,7 @@
 #include <dirent.h>
 
 #include "std_msgs/String.h"
+#include "std_msgs/Int32.h"
 #include "visualization_msgs/MarkerArray.h"
 #include "geometry_msgs/Point.h"
 #include "geometry_msgs/Pose.h"
@@ -499,7 +500,8 @@ baxter_core_msgs::SolvePositionIK ikRequest;
 ros::ServiceClient ikClient;
 ros::Publisher joint_mover;
 ros::Publisher gripperPub;
-ros::Publisher facePublisher;
+ros::Publisher facePub;
+
 
 
 const int imRingBufferSize = 300;
@@ -1454,11 +1456,34 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i);
 
 void processSaliency(Mat in, Mat out);
 
+void happy();
+void sad();
+void neutral();
+
 ////////////////////////////////////////////////
 // end node prototypes 
 //
 // start pilot definitions 
 ////////////////////////////////////////////////
+
+void happy() {
+  std_msgs::Int32 msg;
+  msg.data = 0;
+  facePub.publish(msg);
+}
+
+void sad() {
+  std_msgs::Int32 msg;
+  msg.data = 99;
+  facePub.publish(msg);
+}
+
+void neutral() {
+  std_msgs::Int32 msg;
+  msg.data = 50;
+  facePub.publish(msg);
+}
+
 
 int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
   if (imRingBufferStart == imRingBufferEnd) {
@@ -6921,6 +6946,7 @@ cout <<
       {
         thisGraspPicked = UNKNOWN;
         thisGraspReleased = UNKNOWN;
+        neutral();
         if (graspAttemptCounter >= thompsonTries && currentPickMode == LEARNING_SAMPLING) {
           cout << "Clearing call stack because we did " << graspAttemptCounter << " tries." << endl;
           pilot_call_stack.resize(0);
@@ -8352,6 +8378,7 @@ cout <<
       }
       if ((thisGraspPicked == SUCCESS) && (thisGraspReleased == SUCCESS)) {
         graspSuccessCounter++;
+        happy();
         if (currentPickMode == LEARNING_SAMPLING) {
           graspMemoryPicks[j+0*rmWidth*rmWidth]++;
           graspMemoryPicks[j+1*rmWidth*rmWidth]++;
@@ -8364,6 +8391,7 @@ cout <<
         }
         
       } else {
+        sad();
         if (currentBoundingBoxMode == LEARNING_SAMPLING) {
           recordBoundingBoxFailure();
         }
@@ -17742,7 +17770,7 @@ int main(int argc, char **argv) {
   joint_mover = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/" + left_or_right_arm + "/joint_command", 10);
   gripperPub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + left_or_right_arm + "_gripper/command",10);
 
-  //facePub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + left_or_right_arm + "_gripper/command",10);
+  facePub = n.advertise<std_msgs::Int32>("/confusion/target/command", 10);
 
   vmMarkerPublisher = n.advertise<visualization_msgs::MarkerArray>("volumetric_rgb_map", 10);
 
