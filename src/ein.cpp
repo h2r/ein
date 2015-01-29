@@ -899,6 +899,13 @@ vector<double> rgbServoPicks;
 int rgbServoTrials;
 int rgbServoTrialsMax = 20;
 
+int useTemporalAerialGradient = 1;
+double aerialGradientDecay = 0.9;
+Mat aerialGradientTemporalFrameAverage;
+Mat preFrameGraySobel;
+int densityIterationsForGradientServo = 10;
+
+double lastPickHeight = 0;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -1261,8 +1268,8 @@ int aerialGradientWidth = 100;
 int aerialGradientReticleWidth = 200;
 
 // XXX TODO
-int softMaxGradientServoIterations = 3;//10;//3;
-int hardMaxGradientServoIterations = 3;//10;//20;//3;//10;
+int softMaxGradientServoIterations = 5;//3;//10;//3;
+int hardMaxGradientServoIterations = 5;//3;//10;//20;//3;//10;
 int currentGradientServoIterations = 0;
 
 int fuseBlueBoxes = 1;
@@ -5050,6 +5057,8 @@ cout <<
 	double threshedZ = min(trZ, 0.0);
 	double deltaZ = (-(threshedZ + currentTableZ) - graspDepth) - currentEEPose.pz;
 
+	lastPickHeight = deltaZ + currentEEPose.pz;
+
 	double zTimes = fabs(floor(deltaZ / bDelta)); 
 
     #ifdef DEBUG4
@@ -5893,6 +5902,8 @@ cout <<
 	pushNoOps(30);
 	pilot_call_stack.push_back('k'); // open gripper
 
+	pushNoOps(5);
+	pilot_call_stack.push_back(262241); // try to move to the last pick height 
 
 	//count here so that if it drops it on the way it will count as a miss
 	{ // in case it fell out
@@ -7175,8 +7186,10 @@ cout <<
 		// ATTN 8
 		//pilot_call_stack.push_back(131153); // vision cycle
 		//pilot_call_stack.push_back(196721); // vision cycle no classify
-		pushCopies(131121, 1); // density
+		pushCopies(131121, densityIterationsForGradientServo); // density
 		pushCopies(1179737, 1); // reset temporal map
+		pilot_call_stack.push_back(262237); // reset aerialGradientTemporalFrameAverage
+		pushCopies(131121, 1); // density
 		//pushCopies(131154, 40); // w1 wait until at current position
 		pushCopies(131154, 5); // w1 wait until at current position
 
@@ -7195,8 +7208,10 @@ cout <<
 	      // ATTN 8
 	      //pilot_call_stack.push_back(131153); // vision cycle
 	      //pilot_call_stack.push_back(196721); // vision cycle no classify
-	      pushCopies(131121, 1); // density
+	      pushCopies(131121, densityIterationsForGradientServo); // density
 	      pushCopies(1179737, 1); // reset temporal map
+	      pilot_call_stack.push_back(262237); // reset aerialGradientTemporalFrameAverage
+	      pushCopies(131121, 1); // density
 	      //pushCopies(131154, 40); // w1 wait until at current position
 	      pushCopies(131154, 5); // w1 wait until at current position
 
@@ -8805,28 +8820,36 @@ cout <<
 
 	    {
 	      pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
-	      pushCopies(131121, 20); // density
+	      pushCopies(131121, densityIterationsForGradientServo); // density
+	      pilot_call_stack.push_back(262237); // reset aerialGradientTemporalFrameAverage
+	      pushCopies(131121, 1); // density
 	      pilot_call_stack.push_back(131153); // vision cycle
 	      pilot_call_stack.push_back(131154); // w1 wait until at current position
 	      pilot_call_stack.push_back(1245220); // change to height 3
 	    }
 	    {
 	      pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
-	      pushCopies(131121, 20); // density
+	      pushCopies(131121, densityIterationsForGradientServo); // density
+	      pilot_call_stack.push_back(262237); // reset aerialGradientTemporalFrameAverage
+	      pushCopies(131121, 1); // density
 	      pilot_call_stack.push_back(131153); // vision cycle
 	      pilot_call_stack.push_back(131154); // w1 wait until at current position
 	      pilot_call_stack.push_back(1245219); // change to height 2
 	    }
 	    {
 	      pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
-	      pushCopies(131121, 20); // density
+	      pushCopies(131121, densityIterationsForGradientServo); // density
+	      pilot_call_stack.push_back(262237); // reset aerialGradientTemporalFrameAverage
+	      pushCopies(131121, 1); // density
 	      pilot_call_stack.push_back(131153); // vision cycle
 	      pilot_call_stack.push_back(131154); // w1 wait until at current position
 	      pilot_call_stack.push_back(1245248); // change to height 1
 	    }
 	    {
 	      pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
-	      pushCopies(131121, 20); // density
+	      pushCopies(131121, densityIterationsForGradientServo); // density
+	      pilot_call_stack.push_back(262237); // reset aerialGradientTemporalFrameAverage
+	      pushCopies(131121, 1); // density
 	      pilot_call_stack.push_back(131153); // vision cycle
 	      pilot_call_stack.push_back(131154); // w1 wait until at current position
 	      pilot_call_stack.push_back(1245217); // change to height 0
@@ -10109,6 +10132,45 @@ cout <<
 	  cout << "in a game with no players, nobody wins." << endl;
 	else
 	  cout << "and the winner is: class " << maxClass << " named " << classLabels[maxClass] << "." << endl;
+      }
+      break;
+    // toggle useTemporalAerialGradient
+    // ctrl + [
+    case 262235:
+      {
+	useTemporalAerialGradient = !useTemporalAerialGradient;
+	cout << "useTemporalAerialGradient = " << useTemporalAerialGradient << endl;
+      }
+      break;
+    // reset aerialGradientTemporalFrameAverage for a fresh exposure 
+    // ctrl + ]
+    case 262237:
+      {
+	cout << "resetting aerialGradientTemporalFrameAverage." << endl;
+	aerialGradientTemporalFrameAverage *= 0.0;
+      }
+      break;
+    // try to move to the last pick height 
+    // ctrl + a
+    case 262241:
+      {
+	double deltaZ = (lastPickHeight) - currentEEPose.pz;
+	double zTimes = fabs(floor(deltaZ / bDelta)); 
+	int numNoOps = 2;
+	if (deltaZ > 0)
+	  for (int zc = 0; zc < zTimes; zc++) {
+	    for (int cc = 0; cc < numNoOps; cc++) {
+	      pilot_call_stack.push_back('C');
+	    }
+	    pilot_call_stack.push_back('w');
+	  }
+	if (deltaZ < 0)
+	  for (int zc = 0; zc < zTimes; zc++) {
+	    for (int cc = 0; cc < numNoOps; cc++) {
+	      pilot_call_stack.push_back('C');
+	    }
+	    pilot_call_stack.push_back('s');
+	  }
       }
       break;
     
@@ -12789,8 +12851,10 @@ void gradientServo() {
     // ATTN 8
     //pilot_call_stack.push_back(131153); // vision cycle
     //pilot_call_stack.push_back(196721); // vision cycle no classify
-    pushCopies(131121, 1); // density
+    pushCopies(131121, densityIterationsForGradientServo); // density
     pushCopies(1179737, 1); // reset temporal map
+    pilot_call_stack.push_back(262237); // reset aerialGradientTemporalFrameAverage
+    pushCopies(131121, 1); // density
     //pushCopies(131154, 40); // w1 wait until at current position
     pushCopies(131154, 5); // w1 wait until at current position
 
@@ -12900,8 +12964,10 @@ void gradientServo() {
     // ATTN 8
     //pilot_call_stack.push_back(131153); // vision cycle
     //pilot_call_stack.push_back(196721); // vision cycle no classify
-    pushCopies(131121, 1); // density
+    pushCopies(131121, densityIterationsForGradientServo); // density
     pushCopies(1179737, 1); // reset temporal map
+    pilot_call_stack.push_back(262237); // reset aerialGradientTemporalFrameAverage
+    pushCopies(131121, 1); // density
     //pilot_call_stack.push_back(131154); // w1 wait until at current position
 
     // ATTN 7
@@ -15074,6 +15140,26 @@ void goCalculateDensity() {
 
   // masked this too
   frameGraySobel = totalGraySobel.clone();
+  preFrameGraySobel = totalGraySobel.clone();
+
+  { // temporal averaging of aerial gradient
+    if ( (aerialGradientTemporalFrameAverage.rows < aerialGradientReticleWidth) ||
+	 (aerialGradientTemporalFrameAverage.cols < aerialGradientReticleWidth) ) {
+      aerialGradientTemporalFrameAverage = Mat(imH,imW,frameGraySobel.type()); 
+    }
+
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	aerialGradientTemporalFrameAverage.at<double>(y, x) = 
+	  aerialGradientDecay*aerialGradientTemporalFrameAverage.at<double>(y, x) + 
+	  (1.0 - aerialGradientDecay)*frameGraySobel.at<double>(y, x);
+      }
+    }
+  }
+
+  if (useTemporalAerialGradient) {
+    frameGraySobel = aerialGradientTemporalFrameAverage;
+  }
 
   double minGraySob = INFINITY;
   double maxGraySob = -INFINITY;
@@ -15083,6 +15169,8 @@ void goCalculateDensity() {
   double maxCbSob = -INFINITY;
   double minYSob = INFINITY;
   double maxYSob = -INFINITY;
+  double minAerTemp = INFINITY;
+  double maxAerTemp = -INFINITY;
   for (int y = 0; y < imH; y++) {
     for (int x = 0; x < imW; x++) {
       minGraySob = min(minGraySob, double(totalGraySobel.at<double>(y,x)));
@@ -15096,6 +15184,9 @@ void goCalculateDensity() {
 
       minYSob = min(minYSob, double(totalYSobel.at<double>(y,x)));
       maxYSob = max(maxYSob, double(totalYSobel.at<double>(y,x)));
+      
+      minAerTemp = min(minAerTemp, double(frameGraySobel.at<double>(y,x)));
+      maxAerTemp = max(maxAerTemp, double(frameGraySobel.at<double>(y,x)));
     }
   }
 
@@ -15103,6 +15194,7 @@ void goCalculateDensity() {
   double sobCrRange = maxCrSob - minCrSob;
   double sobCbRange = maxCbSob - minCbSob;
   double sobYRange = maxYSob - minYSob;
+  double aerTempRange = maxAerTemp - minAerTemp;
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
@@ -15118,8 +15210,10 @@ void goCalculateDensity() {
   // copy the density map to the rendered image
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      uchar val = uchar(min( 1*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
+      //uchar val = uchar(min( 1*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
+      uchar val = uchar(min( 1*255.0 *  (frameGraySobel.at<double>(y,x) - minAerTemp) / aerTempRange, 255.0));
       gradientViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
+
       gradientViewerImage.at<cv::Vec3b>(y+imH,x) = convertedYCbCrGradientImage.at<cv::Vec3b>(y,x);
     }
   }
@@ -17719,6 +17813,7 @@ int main(int argc, char **argv) {
   objectViewerName = "Object Viewer " + left_or_right_arm;
   gradientViewerName = "Gradient Viewer " + left_or_right_arm;
   aerialGradientViewerName = "Aerial Gradient Viewer " + left_or_right_arm;
+  objectnessViewerName = "Objectness Viewer " + left_or_right_arm;
 
   cv::namedWindow(gradientViewerName);
   cv::namedWindow(aerialGradientViewerName);
