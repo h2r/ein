@@ -76,12 +76,7 @@ the relatively small set of specific objects most important in that
 application, but do so with very high reliability.  To address this
 problem, we focus not on {\em category-based} manipulation (pick up
 any mug) but rather {\em instance-based} manipulation (pick up this
-mug).  Instance-based recognition and pose estimation can be highly
-accurate but require the designer to adapt the system to the specific
-object being manipulated in large and small ways, ranging from
-collecting training data, to choosing parameter values, to selecting
-algorithms for tasks such as image segmentation or bounding box
-classification.  The contribution of this paper is to automate this
+mug).  The contribution of this paper is to automate this
 adaption process by formalizing a grasping system as a hierarchy of
 bandit problems, enabling the robot to apply learning techniques such
 as Thompson sampling to adapt itself to manipulate specific objects
@@ -92,6 +87,13 @@ and pick it up with closed-loop visual servoing. We demonstrate that
 the bandit-based adaptation step significantly improves accuracy over
 a non-adaptive system.
 
+
+%% Instance-based recognition and pose estimation can be highly
+%% accurate but require the designer to adapt the system to the specific
+%% object being manipulated in large and small ways, ranging from
+%% collecting training data, to choosing parameter values, to selecting
+%% algorithms for tasks such as image segmentation or bounding box
+%% classification.  
 
 \end{abstract}
 
@@ -123,12 +125,16 @@ degree with many objects, but reaches performance ceilings for
 specific objects for a variety of reasons.  To address these
 limitations, we present a mathematical formalization of a system of
 software components combined with validators as an n-armed bandit
-problem~\citep{thompson33}.  Conventional abstractions and data flow used in
-system design translate into independence assumptions in the model,
-enabling RL algorithms such as Thompson sampling to be applied to
-autonomously adapt the system for specific objects.  Our system uses
-Thompson sampling to learn to adapt itself for specific objects,
-greatly improving end-to-end performance at picking after training is
+problem~\citep{thompson33}.  Conventional abstractions and data flow
+used in system design translate into independence assumptions in the
+model; because we are operating using a robot which can actively
+collect additional information about the environment (although
+sometimes at higher cost in time and sensing), we can obtain a
+high-quality reward signal for supervision.  Our formulation enables
+RL algorithms such as Thompson sampling to be applied to autonomously
+adapt the system for specific objects.  Our system uses Thompson
+sampling to learn to adapt itself for specific objects, greatly
+improving end-to-end performance at picking after training is
 complete.  We use slower, more accurate sensing approaches to provide
 supervision for faster, simpler methods that excel with large amounts
 of training data.  For example, to perform grasping we use an analytic
@@ -177,8 +183,8 @@ camera as a seven-degree of freedom one-pixel RGB-D camera.  After
 training, Baxter can quickly and reliably grasp objects anywhere in
 its work space using closed-loop visual servoing in response to a
 person's requests.  We demonstrate that our baseline system can learn
-to pick up objects approximately 50\% of the time; augmenting this
-system with our self-training approach increases accuracy to XX\%.
+to pick up objects approximately XX\% of the time; augmenting this
+system with our self-training approach increases accuracy to YY\%.
 
 Our software is compatible with ROS and the Baxter SDK version 1.0.0,
 and we intend to release it as free software should our paper be
@@ -226,22 +232,25 @@ speeds up performance.
 \label{sec:detection}
 
 The input of the object detection component is an image, $I$; the
-output is a set of candidate bounding boxes, $B$.  We validate this
-component during training \jgonote{by filling this in}.
-For object detection we use a modified Canny algorithm which terminates before
-the usual non-maximal suppression step, which works for objects that
-contrast well with the background as well as those with only self contrast.
+output is a set of candidate bounding boxes, $B$.  For object
+detection we use a modified Canny algorithm which terminates before
+the usual non-maximal suppression step~\citep{canny86}.
 
 %\subsubsection{Detecting Objects Using Image Gradients}
-We start by converting $I$ to YCbCr opponent color representation. 
-Then we apply $5 \times 5$ Sobel gradient filters to each of the three channels
-and keep the square gradient magnitude. We take a convex combination of the
-three channels, where Cb and Cr and weighted the same and more heavily than Y.
-After this we downsample, apply the two Canny thresholds, and find connected components.
-If a connected component is contained in another, we discared the contained component.
-We throw out boxes which do not contain enough visual data to classify.
-We generate a candidate bounding box for each remaining component by taking the smallest
-box which contains the component.
+
+We start by converting $I$ to YCbCr opponent color representation.
+Then we apply $5 \times 5$ Sobel derivative filters~\citep{sobel95} to
+each of the three channels and keep the square gradient magnitude. We
+take a convex combination of the three channels, where Cb and Cr and
+weighted the same and more heavily than Y.  After this we downsample,
+apply the two Canny thresholds, and find connected components.  If a
+connected component is contained in another, we discared the contained
+component.  We throw out boxes which do not contain enough visual data
+to classify.  We generate a candidate bounding box for each remaining
+component by taking the smallest box which contains the component.
+
+\stnote{Need to make a figure showing this process (analgous to the
+  objectness figure)}
 
 \subsection{Object Classification}
 \label{sec:recognition}
@@ -318,13 +327,11 @@ at a specific, known pose. We denote the gradient by
 \Delta I = \left( \frac{\partial I}{\partial x}, \frac{\partial I}{\partial y} \right)
 \end{align}
 
-We approximate the gradient using $5 \times 5$ Sobel derivative filters \citet{}.
-
-
-To estimate pose, we rotate our
-training image and find the closest match to the image currently
-recorded from the camera, as detected and localized via the pipeline
-in Section~\ref{sec:detection} and~\ref{sec:recognition}.
+We approximate the gradient using $5 \times 5$ Sobel derivative
+filters~\citep{sobel95}.  To estimate pose, we rotate our training
+image and find the closest match to the image currently recorded from
+the camera, as detected and localized via the pipeline in
+Section~\ref{sec:detection} and~\ref{sec:recognition}.
 
 In order to match our template image with the crop observed at pick time,
 we remove the mean from and $L^2$ normalize the template and the crop.
