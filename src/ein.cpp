@@ -1340,6 +1340,9 @@ void scanXdirectionVerySlow(double speedOnLines, double speedBetweenLines);
 Eigen::Quaternionf getGGRotation(int givenGraspGear);
 void setGGRotation(int thisGraspGear);
 
+Eigen::Quaternionf getCCRotation(int givenGraspGear, double angle);
+void setCCRotation(int thisGraspGear);
+
 void rangeCallback(const sensor_msgs::Range& range);
 void update_baxter(ros::NodeHandle &n);
 void timercallback1(const ros::TimerEvent&);
@@ -1396,7 +1399,9 @@ void copyGraspMemoryTriesToClassGraspMemoryTries();
 void selectMaxTarget(double minDepth);
 void selectMaxTargetThompson(double minDepth);
 void selectMaxTargetThompsonContinuous(double minDepth);
+void selectMaxTargetThompsonContinuous2(double minDepth);
 void selectMaxTargetThompsonRotated(double minDepth);
+void selectMaxTargetThompsonRotated2(double minDepth);
 void selectMaxTargetLinearFilter(double minDepth);
 
 void recordBoundingBoxSuccess();
@@ -3055,11 +3060,78 @@ void setGGRotation(int thisGraspGear) {
   currentEEPose.qy = eeBaseQuat.y();
   currentEEPose.qz = eeBaseQuat.z();
   currentEEPose.qw = eeBaseQuat.w();
+}
 
-  // ATTN 19
-  if (useContinuousGraspTransform) {
-    currentEEPose.oz = bestOrientationAngle;
+Eigen::Quaternionf getCCRotation(int givenGraspGear, double angle) {
+  Eigen::Vector3f localUnitX;
+  {
+    Eigen::Quaternionf qin(0, 1, 0, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
+    //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitX.x() = qout.x();
+    localUnitX.y() = qout.y();
+    localUnitX.z() = qout.z();
   }
+
+  Eigen::Vector3f localUnitY;
+  {
+    Eigen::Quaternionf qin(0, 0, 1, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
+    //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitY.x() = qout.x();
+    localUnitY.y() = qout.y();
+    localUnitY.z() = qout.z();
+  }
+
+  Eigen::Vector3f localUnitZ;
+  {
+    Eigen::Quaternionf qin(0, 0, 0, 1);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
+    //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitZ.x() = qout.x();
+    localUnitZ.y() = qout.y();
+    localUnitZ.z() = qout.z();
+  }
+
+  double deltaTheta = angle + (double(givenGraspGear)*2.0*3.1415926/double(totalGraspGears));
+  double sinBuff = 0.0;
+  double angleRate = 1.0;
+  //Eigen::Quaternionf eeBaseQuat(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+  //Eigen::Quaternionf eeBaseQuat(0, 0, 1, 0);
+  Eigen::Quaternionf eeBaseQuat(bestOrientationEEPose.qw, bestOrientationEEPose.qx, bestOrientationEEPose.qy, bestOrientationEEPose.qz);
+  sinBuff = sin(angleRate*0.0/2.0);
+  Eigen::Quaternionf eeRotatorX(cos(angleRate*0.0/2.0), localUnitX.x()*sinBuff, localUnitX.y()*sinBuff, localUnitX.z()*sinBuff);
+  sinBuff = sin(angleRate*0.0/2.0);
+  Eigen::Quaternionf eeRotatorY(cos(angleRate*0.0/2.0), localUnitY.x()*sinBuff, localUnitY.y()*sinBuff, localUnitY.z()*sinBuff);
+  sinBuff = sin(angleRate*deltaTheta/2.0);
+  Eigen::Quaternionf eeRotatorZ(cos(angleRate*deltaTheta/2.0), localUnitZ.x()*sinBuff, localUnitZ.y()*sinBuff, localUnitZ.z()*sinBuff);
+  eeRotatorX.normalize();
+  eeRotatorY.normalize();
+  eeRotatorZ.normalize();
+
+  eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * eeBaseQuat;
+  eeBaseQuat.normalize();
+
+  return eeBaseQuat;
+}
+
+void setCCRotation(int thisGraspGear) {
+  //Eigen::Quaternionf eeBaseQuat = getCCRotation(thisGraspGear, -bestOrientationAngle);
+  Eigen::Quaternionf eeBaseQuat = getCCRotation(thisGraspGear, 0.0);
+
+  currentEEPose.qx = eeBaseQuat.x();
+  currentEEPose.qy = eeBaseQuat.y();
+  currentEEPose.qz = eeBaseQuat.z();
+  currentEEPose.qw = eeBaseQuat.w();
 }
 
 void rangeCallback(const sensor_msgs::Range& range) {
@@ -5375,7 +5447,14 @@ cout <<
 	cout << "Assuming x,y,gear: " << targetX << " " << targetY << " " << maxGG << endl;
 
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
-	pilot_call_stack.push_back(1048631); // assume best gear
+
+	// ATTN 19
+	if (useContinuousGraspTransform) {
+	  cout << "Assuming continuous maxGG: " << maxGG << " localMaxGG: " << localMaxGG << endl;
+	  setCCRotation((maxGG+4)%4); 
+	} else {
+	  pilot_call_stack.push_back(1048631); // assume best gear
+	}
       }
       break;
     // change diagonal filter balance
@@ -5825,8 +5904,13 @@ cout <<
     // numlock + ,
     case 1048620:
       {
-	pilot_call_stack.push_back(1179728); // estimateGlobalGraspGear
-	cout << "Selecting best of 4 grasps...  numlock + ," << endl;
+	cout << "Selecting best of 4 grasps...  numlock + , useContinuousGraspTransform = " << useContinuousGraspTransform << endl;
+
+	if (useContinuousGraspTransform) {
+	} else {
+	  pilot_call_stack.push_back(1179728); // estimateGlobalGraspGear
+	}
+
 	// select max target cumulative
 	pilot_call_stack.push_back(1114195);
 	// apply grasp filter for 4
@@ -5970,13 +6054,15 @@ cout <<
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 	//pilot_call_stack.push_back(1048680); // assume x,y of target 
 	pilot_call_stack.push_back(1114175); // assume x,y of target in local space
+
 	pilot_call_stack.push_back(1048679); // render reticle
 	//pilot_call_stack.push_back(1048691); // find max on register 1
 	pilot_call_stack.push_back(1048673); // render register 1
 
 	pilot_call_stack.push_back(131162); // load target classRangeMap
 
-	pilot_call_stack.push_back(1048631); // assume best gear
+	// ATTN 19 
+	//pilot_call_stack.push_back(1048631); // assume best gear
 	pilot_call_stack.push_back(1048678); // target best grasp
 	pilot_call_stack.push_back(1048620); // find best grasp from memory
 
@@ -12118,9 +12204,11 @@ void selectMaxTarget(double minDepth) {
   // ATTN 10
   //selectMaxTargetLinearFilter(minDepth);
   //selectMaxTargetThompsonRotated(minDepth);
+  //selectMaxTargetThompsonRotated2(minDepth);
   // ATTN 19
   //selectMaxTargetThompson(minDepth);
-  selectMaxTargetThompsonContinuous(minDepth);
+  //selectMaxTargetThompsonContinuous(minDepth);
+  selectMaxTargetThompsonContinuous2(minDepth);
 }
 
 void selectMaxTargetLinearFilter(double minDepth) {
@@ -12304,13 +12392,89 @@ void selectMaxTargetThompsonContinuous(double minDepth) {
 	//localMaxGG = currentGraspGear;
 	localMaxGG = getLocalGraspGear(currentGraspGear);
 	maxD = graspMemoryWeight;
-	maxGG = currentGraspGear;
-	//useContinuousGraspTransform = 1;
-	useContinuousGraspTransform = 0;
+	//maxGG = currentGraspGear;
+	maxGG = getLocalGraspGear(currentGraspGear);
+	useContinuousGraspTransform = 1;
+	//useContinuousGraspTransform = 0;
       }
     }
   }
   cout << "non-cumulative maxX: " << maxX << " maxY: " << maxY <<  " maxD: " << maxD << " maxGG: " << maxGG << endl;
+}
+
+void selectMaxTargetThompsonContinuous2(double minDepth) {
+  // ATTN 2
+  int maxSearchPadding = 3;
+  //int maxSearchPadding = 4;
+
+  for (int rx = maxSearchPadding; rx < rmWidth-maxSearchPadding; rx++) {
+    for (int ry = maxSearchPadding; ry < rmWidth-maxSearchPadding; ry++) {
+
+      // ATTN 5
+      double graspMemoryWeight = 0.0;
+      double graspMemoryBias = VERYBIGNUMBER;
+      int localIntThX = -1; 
+      int localIntThY = -1; 
+      double localThX = 0.0;
+      double localThY = 0.0;
+      {
+        // find local coordinate of current point
+        double thX = (rx-rmHalfWidth) * rmDelta;
+        double thY = (ry-rmHalfWidth) * rmDelta;
+        // transform it into global coordinates
+        double angle = bestOrientationAngle;
+        double unscale = 1.0;
+        Point uncenter = Point(0, 0);
+        Mat un_rot_mat = getRotationMatrix2D(uncenter, angle, unscale);
+        Mat toUn(3,1,CV_64F);
+        toUn.at<double>(0,0)=thX;
+        toUn.at<double>(1,0)=thY;
+        toUn.at<double>(2,0)=1.0;
+        Mat didUn = un_rot_mat*toUn;
+        localThX = didUn.at<double>(0,0);
+        localThY = didUn.at<double>(1,0);
+        localIntThX = ((localThX)/rmDelta) + rmHalfWidth; 
+        localIntThY = ((localThY)/rmDelta) + rmHalfWidth; 
+        // retrieve its value
+        double mDenom = max(graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*(currentGraspGear)], 1.0);
+        if ((rx < rmWidth) && (ry < rmWidth)) {
+
+          // Thompson
+          graspMemoryWeight = (graspMemorySample[rx + ry*rmWidth + rmWidth*rmWidth*(currentGraspGear)]) * -1;  
+
+          graspMemoryBias = 0;
+        } else {
+          graspMemoryWeight = 0;
+        }
+      }
+
+
+      cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
+      cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*(currentGraspGear)] << endl;
+	    
+      // ATTN 19
+      int maxedOutTries = ((graspMemoryTries[rx + ry*rmWidth + 
+			    rmWidth*rmWidth*(currentGraspGear)] >= graspLearningMaxTries) &&
+			   (currentPickMode == LEARNING_SAMPLING));
+
+      //if (graspMemoryBias + graspMemoryWeight < minDepth) 
+      if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
+          minDepth = graspMemoryWeight;
+          maxX = localIntThX;
+          maxY = localIntThY;
+          localMaxX = rx;
+          localMaxY = ry;
+          localMaxGG = (currentGraspGear);
+          maxD = graspMemoryWeight;
+          //maxGG = getGlobalGraspGear(currentGraspGear);
+          maxGG = (currentGraspGear);
+	  //useContinuousGraspTransform = 0;
+	  useContinuousGraspTransform = 1;
+        }
+    }
+  }
+  cout << "non-cumulative maxX: " << maxX << " maxY: " << maxY <<  " maxD: " << 
+    maxD << " maxGG: " << maxGG << " localMaxGG: " << localMaxGG << endl;
 }
 
 void selectMaxTargetThompsonRotated(double minDepth) {
@@ -12382,6 +12546,78 @@ void selectMaxTargetThompsonRotated(double minDepth) {
           localMaxGG = getLocalGraspGear(currentGraspGear);
           maxD = graspMemoryWeight;
           maxGG = currentGraspGear;
+	  useContinuousGraspTransform = 0;
+        }
+    }
+  }
+  cout << "non-cumulative maxX: " << maxX << " maxY: " << maxY <<  " maxD: " << maxD << " maxGG: " << maxGG << endl;
+}
+
+void selectMaxTargetThompsonRotated2(double minDepth) {
+  // ATTN 2
+  int maxSearchPadding = 3;
+  //int maxSearchPadding = 4;
+
+  for (int rx = maxSearchPadding; rx < rmWidth-maxSearchPadding; rx++) {
+    for (int ry = maxSearchPadding; ry < rmWidth-maxSearchPadding; ry++) {
+
+      // ATTN 5
+      double graspMemoryWeight = 0.0;
+      double graspMemoryBias = VERYBIGNUMBER;
+      int localIntThX = -1; 
+      int localIntThY = -1; 
+      double localThX = 0.0;
+      double localThY = 0.0;
+      {
+        // find local coordinate of current point
+        double thX = (rx-rmHalfWidth) * rmDelta;
+        double thY = (ry-rmHalfWidth) * rmDelta;
+        // transform it into global coordinates
+        double angle = bestOrientationAngle;
+        double unscale = 1.0;
+        Point uncenter = Point(0, 0);
+        Mat un_rot_mat = getRotationMatrix2D(uncenter, angle, unscale);
+        Mat toUn(3,1,CV_64F);
+        toUn.at<double>(0,0)=thX;
+        toUn.at<double>(1,0)=thY;
+        toUn.at<double>(2,0)=1.0;
+        Mat didUn = un_rot_mat*toUn;
+        localThX = didUn.at<double>(0,0);
+        localThY = didUn.at<double>(1,0);
+        localIntThX = ((localThX)/rmDelta) + rmHalfWidth; 
+        localIntThY = ((localThY)/rmDelta) + rmHalfWidth; 
+        // retrieve its value
+        double mDenom = max(graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*(currentGraspGear)], 1.0);
+        if ((rx < rmWidth) && (ry < rmWidth)) {
+
+          // Thompson
+          graspMemoryWeight = (graspMemorySample[rx + ry*rmWidth + rmWidth*rmWidth*(currentGraspGear)]) * -1;  
+
+          graspMemoryBias = 0;
+        } else {
+          graspMemoryWeight = 0;
+        }
+      }
+
+
+      cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
+      cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*(currentGraspGear)] << endl;
+	    
+      // ATTN 19
+      int maxedOutTries = ((graspMemoryTries[rx + ry*rmWidth + 
+			    rmWidth*rmWidth*(currentGraspGear)] >= graspLearningMaxTries) &&
+			   (currentPickMode == LEARNING_SAMPLING));
+
+      //if (graspMemoryBias + graspMemoryWeight < minDepth) 
+      if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
+          minDepth = graspMemoryWeight;
+          maxX = localIntThX;
+          maxY = localIntThY;
+          localMaxX = rx;
+          localMaxY = ry;
+          localMaxGG = (currentGraspGear);
+          maxD = graspMemoryWeight;
+          maxGG = getGlobalGraspGear(currentGraspGear);
 	  useContinuousGraspTransform = 0;
         }
     }
