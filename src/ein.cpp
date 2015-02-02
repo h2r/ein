@@ -1354,7 +1354,8 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 void pilotInit();
 void spinlessPilotMain();
 
-void calibrateGripper();
+int doCalibrateGripper();
+int calibrateGripper();
 int shouldIPick(int classToPick);
 int getLocalGraspGear(int globalGraspGearIn);
 int getGlobalGraspGear(int localGraspGearIn);
@@ -6000,6 +6001,7 @@ cout <<
 
 	pilot_call_stack.push_back(131153); // vision cycle
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
+	pilot_call_stack.push_back(1245247); // sample height
 	pilot_call_stack.push_back(1048625); // change to first gear
 
         pilot_call_stack.push_back(196717); //count grasp
@@ -6032,10 +6034,11 @@ cout <<
 
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 
-	if (currentBoundingBoxMode == LEARNING_SAMPLING)
+	if (currentBoundingBoxMode == LEARNING_SAMPLING) {
 	  pilot_call_stack.push_back(1179687); // set random position for bblearn
-	else
+        } else {
 	  pilot_call_stack.push_back(1048623); // numlock + /
+        }
 
 	pushCopies('s', 3);
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
@@ -8332,6 +8335,9 @@ cout <<
 	  thompsonPickHaltFlag = 1;
 	}
       } else {
+	double thisPickRate = double(graspMemoryPicks[i]) / double(graspMemoryTries[i]);
+	int thisNumTries = graspMemoryTries[i];
+	cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
         sad();
         if (currentBoundingBoxMode == LEARNING_SAMPLING) {
           recordBoundingBoxFailure();
@@ -9509,8 +9515,14 @@ cout <<
 	    pushCopies(1245308, 15); // beep
 	    break;
 	  } else {
-	    // push this program 
-	    pilot_call_stack.push_back(1179707); // begin bounding box learning
+	    if (heightAttemptCounter < thompsonTries - 1) {
+	      // push this program 
+	      pilot_call_stack.push_back(1179707); // begin bounding box learning
+	    } else {
+	      cout << "Clearing call stack. thompsonHeightHaltFlag = " << thompsonHeightHaltFlag << 
+		" and we did " << heightAttemptCounter << " tries." << endl;
+	      pilot_call_stack.resize(0);
+	    }
 	  }
 	}
 
@@ -11328,12 +11340,29 @@ void guardHeightMemory() {
   }
 }
 
-void calibrateGripper() {
-  if (0 == left_or_right_arm.compare("left")) {
-    int sis = system("bash -c \"echo -e \'c\003\' | rosrun baxter_examples gripper_keyboard.py\"");
-  } else if (0 == left_or_right_arm.compare("right")) {
-    int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+int calibrateGripper() {
+  for (int i = 0; i < 10; i++) {
+    int return_value = doCalibrateGripper();
+    if (return_value == 0) {
+      return return_value;
+    }
   }
+  cout << "Gripper could not calibrate!" << endl;
+  pilot_call_stack.push_back('Y'); // pause stack execution
+  pushCopies(1245308, 15); // beep
+  return -1;
+}
+int doCalibrateGripper() {
+  int return_value;
+  if (0 == left_or_right_arm.compare("left")) {
+    return_value =system("bash -c \"echo -e \'c\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+  } else if (0 == left_or_right_arm.compare("right")) {
+    return_value = system("bash -c \"echo -e \'C\003\' | rosrun baxter_examples gripper_keyboard.py\"");
+  }
+  if (return_value != 0) {
+    cout << "Error running calibrate: " << return_value << endl;
+  }
+  return return_value;
 }
 
 void convertGlobalGraspIdxToLocal(const int rx, const int ry, 
@@ -11522,7 +11551,8 @@ void loadPriorGraspMemory(priorType prior) {
         double nsuccess = mu;
 
         if (mu == 0) {
-          nfailure = VERYBIGNUMBER;
+          //nfailure = VERYBIGNUMBER;
+          nfailure = 1;
         } else {
           if (prior == UNIFORM_PRIOR) {
             nfailure = 0;
