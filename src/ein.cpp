@@ -1313,7 +1313,7 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps);
 void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees);
 void fetchCommandCallback(const std_msgs::String::ConstPtr& msg);
 
-
+bool isGripperGripping();
 void initialize3DParzen();
 void l2Normalize3DParzen();
 void initializeParzen();
@@ -2435,7 +2435,11 @@ void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees) {
 }
 
 
+bool isGripperGripping() {
+  //return (gripperPosition >= gripperThresh);
+  return gripperGripping; 
 
+}
 void initialize3DParzen() {
   for (int kx = 0; kx < parzen3DKernelWidth; kx++) {
     for (int ky = 0; ky < parzen3DKernelWidth; ky++) {
@@ -7172,8 +7176,8 @@ cout <<
     eepReg6 = currentEEPose;
     eepReg6.pz += 0.2;
 
-    
-    if (gripperPosition >= gripperThresh) {
+    pushSpeedSign(MOVE_FAST);    
+    if (isGripperGripping()) {
       happy();
       pilot_call_stack.push_back(131154); // w1 wait until at current position
       pilot_call_stack.push_back('5');  // assume pose at register 5
@@ -7189,6 +7193,7 @@ cout <<
 
     }
 
+    pushSpeedSign(NOW_THATS_FAST);
     
     }
     break;
@@ -8242,8 +8247,7 @@ cout <<
 	if (gripperMoving) {
 	  pilot_call_stack.push_back(131157); // assert yes grasp
 	} else {
-	  //if (gripperGripping)
-	  if (gripperPosition >= gripperThresh)
+	  if (isGripperGripping())
 	  {
 	    pilot_call_stack.pop_back();
 	    // leave gripper in released state
@@ -8271,7 +8275,7 @@ cout <<
 	if (gripperMoving) {
 	  pilot_call_stack.push_back(196649); // assert no grasp
 	} else {
-	  if (gripperPosition < gripperThresh)  {
+	  if (!isGripperGripping())  {
 	    pilot_call_stack.pop_back();
 	    // leave gripper in released state
 	    cout << "  assert no pops back instruction." << endl;
@@ -8359,7 +8363,8 @@ cout <<
 	  pilot_call_stack.push_back(196718); // check grasp
 	} else {
           cout << "gripperPosition: " << gripperPosition << " gripperThresh: " << gripperThresh << endl;
-	  if (gripperPosition < gripperThresh) {
+          cout << "gripperGripping: " << gripperGripping << endl;
+	  if (!isGripperGripping()) {
             cout << "Failed to pick." << endl;
 	    thisGraspPicked = FAILURE;
             sad();
@@ -8414,7 +8419,7 @@ cout <<
 	      break;
 	  }
           cout << "gripperPosition: " << gripperPosition << " gripperThresh: " << gripperThresh << endl;
-	  if (gripperPosition < gripperThresh) {
+	  if (!isGripperGripping()) {
 	    if (currentBoundingBoxMode == LEARNING_SAMPLING) {
 	      recordBoundingBoxFailure();
 	    }
@@ -8735,6 +8740,7 @@ cout <<
 
 
 	  // this automatically changes learning mode
+          
 	  pilot_call_stack.push_back(1245242); // begin bounding box learning
 
 	  pilot_call_stack.push_back(1245248); // change to height 1
@@ -9508,7 +9514,7 @@ cout <<
 	}
 	if (thompsonAdaptiveCutoff) {
 	  if ( (thompsonHeightHaltFlag) ||
-	       (graspAttemptCounter >= thompsonTries) ) {
+	       (heightAttemptCounter >= thompsonTries - 1) ) {
 	    cout << "Clearing call stack. thompsonHeightHaltFlag = " << thompsonHeightHaltFlag << 
 	      " and we did " << heightAttemptCounter << " tries." << endl;
 	    pilot_call_stack.resize(0);
@@ -11297,28 +11303,34 @@ void guardGraspMemory() {
   }
 
   {
+    bool loadPrior = false;
     if (!((classGraspMemoryTries1[focusedClass].rows > 1) && (classGraspMemoryTries1[focusedClass].cols > 1) &&
 	(classGraspMemoryPicks1[focusedClass].rows > 1) && (classGraspMemoryPicks1[focusedClass].cols > 1) )) {
       classGraspMemoryTries1[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
       classGraspMemoryPicks1[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
+      loadPrior = true;
     }
     if (!((classGraspMemoryTries2[focusedClass].rows > 1) && (classGraspMemoryTries2[focusedClass].cols > 1) &&
 	(classGraspMemoryPicks2[focusedClass].rows > 1) && (classGraspMemoryPicks2[focusedClass].cols > 1) )) {
       classGraspMemoryTries2[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
       classGraspMemoryPicks2[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
+      loadPrior = true;
     }
     if (!((classGraspMemoryTries3[focusedClass].rows > 1) && (classGraspMemoryTries3[focusedClass].cols > 1) &&
 	(classGraspMemoryPicks3[focusedClass].rows > 1) && (classGraspMemoryPicks3[focusedClass].cols > 1) )) {
       classGraspMemoryTries3[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
       classGraspMemoryPicks3[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
+      loadPrior = true;
     }
     if (!((classGraspMemoryTries4[focusedClass].rows > 1) && (classGraspMemoryTries4[focusedClass].cols > 1) &&
 	(classGraspMemoryPicks4[focusedClass].rows > 1) && (classGraspMemoryPicks4[focusedClass].cols > 1) )) {
       classGraspMemoryTries4[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
       classGraspMemoryPicks4[focusedClass] = Mat(rmWidth, rmWidth, CV_64F);
+      loadPrior = true;
     }
-
-
+    if (loadPrior) {
+      loadPriorGraspMemory(ANALYTIC_PRIOR);
+    }
   }
 
 }
@@ -11337,6 +11349,7 @@ void guardHeightMemory() {
 	(classHeightMemoryPicks[focusedClass].rows > 1) && (classHeightMemoryPicks[focusedClass].cols == 1) )) {
     classHeightMemoryTries[focusedClass] = Mat(hmWidth, 1, CV_64F);
     classHeightMemoryPicks[focusedClass] = Mat(hmWidth, 1, CV_64F);
+    loadPriorHeightMemory(ANALYTIC_PRIOR);
   }
 }
 
@@ -12292,8 +12305,8 @@ void selectMaxTargetLinearFilter(double minDepth) {
       }
 
 
-      cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] << endl;
+      //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] << endl;
 	    
       // 
       if (graspMemoryBias + graspMemoryWeight < minDepth) 
@@ -12404,8 +12417,8 @@ void selectMaxTargetThompsonContinuous(double minDepth) {
         }
       }
 
-      cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] << endl;
+      //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] << endl;
 	    
       // ATTN 19
       int maxedOutTries = ((graspMemoryTries[localIntThX + localIntThY*rmWidth + 
@@ -12479,8 +12492,8 @@ void selectMaxTargetThompsonContinuous2(double minDepth) {
       }
 
 
-      cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*(currentGraspGear)] << endl;
+      //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*(currentGraspGear)] << endl;
 	    
       // ATTN 19
       int maxedOutTries = ((graspMemoryTries[rx + ry*rmWidth + 
@@ -12558,8 +12571,8 @@ void selectMaxTargetThompsonRotated(double minDepth) {
       }
 
 
-      cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] << endl;
+      //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] << endl;
 	    
       // ATTN 19
       int maxedOutTries = ((graspMemoryTries[localIntThX + localIntThY*rmWidth + 
@@ -12630,8 +12643,8 @@ void selectMaxTargetThompsonRotated2(double minDepth) {
       }
 
 
-      cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*(currentGraspGear)] << endl;
+      //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*(currentGraspGear)] << endl;
 	    
       // ATTN 19
       int maxedOutTries = ((graspMemoryTries[rx + ry*rmWidth + 
