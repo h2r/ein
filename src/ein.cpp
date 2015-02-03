@@ -11208,7 +11208,7 @@ void changeTargetClass(int newTargetClass) {
   execute_stack = 1;	
 
 
-  pilot_call_stack.push_back(1179709);
+  pilot_call_stack.push_back(1179709); // loadMarginalHeightMemory
 
 
   pilot_call_stack.push_back(1048673); // render register 1
