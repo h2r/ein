@@ -48,8 +48,15 @@ class Policy(object):
 
 
 class AlgorithmB(Policy):
-    def __init__(self):
+    def __init__(self, confidence=95):
         self.upperbound = 0.8
+        self.confidence = confidence
+        self.confidence_map = {
+            1: 1,
+            90: 1.645,
+            95: 1.96,
+            99: 2.575}
+        self.confidence_factor = self.confidence_map[confidence]
 
 
     def train(self, bandit, max_budget):
@@ -74,10 +81,17 @@ class AlgorithmB(Policy):
                     continue
                 arm_mean = self.S[a_i] / ntrials
                 arm_stderr = na.sqrt(arm_mean * (1 - arm_mean) / ntrials)
-                arm_confidence = arm_stderr * 1.96
+
+                arm_confidence = arm_stderr * self.confidence_factor
                 if (arm_mean + arm_confidence)  < self.upperbound:
                     break # this arm sucks; next arm
                 elif (arm_mean - arm_confidence > self.upperbound):
+                    print
+                    print "arm", a_i
+                    print "arm_mean", arm_mean
+                    print "stderr", arm_stderr
+                    print "s", self.S
+                    print "f", self.F
                     return #this arm is awesome; leave
                 else:
                     # continue trying this arm
@@ -85,7 +99,7 @@ class AlgorithmB(Policy):
 
     @property
     def marginals(self):
-        return [s/(s + f + 2) for (s, f) in zip(self.S, self.F)]
+        return [s/(s + f) if (s + f != 0) else 0.5 for (s, f) in zip(self.S, self.F)]
         
     def bestAction(self):
         return na.argmax(self.marginals)
@@ -96,7 +110,7 @@ class AlgorithmB(Policy):
         delta[self.bestAction()] = 1
         return delta
     def __str__(self):
-        return "Algorithm B"
+        return "Algorithm B: " + str(self.confidence)
 
 class ThompsonSampling(Policy):
     def __init__(self):
@@ -136,17 +150,13 @@ class ThompsonSampling(Policy):
 def main():
 
     
-    easy_bandit = Bandit([0.1, 0.1, 0.9, 0.1, 0.9, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
-
-
-    
     figure = mpl.figure()
     bandit = na.zeros(20) + 0.1
     bandit[1] = 0.9  # Thompson
     bandit = Bandit(bandit)
     plotBandit(bandit, figure.gca())
     figure.suptitle("Easy Object")
-
+    mpl.show()
     figure = mpl.figure()
     bandit = na.zeros(20) + 0.1
     bandit[len(bandit)/2] = 0.9
@@ -168,13 +178,15 @@ def main():
 def plotBandit(bandit, axes):
 
     thompson_sampling = ThompsonSampling()
-    algorithmB = AlgorithmB()
-    for method in [thompson_sampling, algorithmB]:
+    algorithmB1 = AlgorithmB(confidence=95)
+    algorithmB2 = AlgorithmB(confidence=99)
+    algorithmB3 = AlgorithmB(confidence=1)
+    for method in [thompson_sampling, algorithmB1]: #, algorithmB2, algorithmB3]:
         results = []
-        for budget in na.arange(0, 110, 10):
+        for budget in na.arange(0, 70, 10):
             regrets = []
             budgets = []
-            for iteration in range(50):
+            for iteration in range(25):
                 bandit.reset_log()
                 method.train(bandit, budget)
                 budgets.append(len(bandit.log))
