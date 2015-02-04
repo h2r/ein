@@ -87,12 +87,6 @@ class AlgorithmB(Policy):
                 if (arm_mean + arm_confidence)  < self.upperbound:
                     break # this arm sucks; next arm
                 elif (arm_mean - arm_confidence > self.upperbound):
-                    print
-                    print "arm", a_i
-                    print "arm_mean", arm_mean
-                    print "stderr", arm_stderr
-                    print "s", self.S
-                    print "f", self.F
                     return #this arm is awesome; leave
                 else:
                     # continue trying this arm
@@ -175,6 +169,59 @@ class AlgorithmC(Policy):
 
 
 
+class Stochastic(Policy):
+    def __init__(self, n, confidence):
+        self.n = n
+        self.upperbound = 0.8
+        self.confidence = confidence  / 100.0
+
+    def train(self, bandit, max_budget):
+        self.S = na.zeros(bandit.narms) * 0.0
+        self.F = na.zeros(bandit.narms) * 0.0
+        
+
+        for a_i in bandit.actions:
+            for i in range(self.n):
+                if len(bandit.log) >= max_budget:
+                    return
+                r = bandit.sample(a_i)
+                if r == 1:
+                    self.S[a_i] += 1.0
+                else:
+                    self.F[a_i] += 1.0
+            ntrials = self.S[a_i] + self.F[a_i]
+
+            arm_mean = self.S[a_i] / ntrials
+            Pr_mu_less_than_bound = betainc(self.S[a_i] + 1, self.F[a_i] + 1, self.upperbound)
+            Pr_mu_greater_than_bound = 1 - Pr_mu_less_than_bound
+            if Pr_mu_greater_than_bound >= self.confidence:
+                print
+                print "arm", a_i
+                print "arm_mean", arm_mean
+                print "s", self.S
+                print "f", self.F
+                return #this arm is awesome; leave
+            else:
+                # continue trying this arm
+                pass
+
+    @property
+    def marginals(self):
+        return [s/(s + f) if (s + f != 0) else 0.5 for (s, f) in zip(self.S, self.F)]
+        
+    def bestAction(self):
+        return na.argmax(self.marginals)
+
+    def actionDistribution(self):
+        #return self.marginals / na.sum(self.marginals)
+        delta = na.zeros(len(self.S))
+        delta[self.bestAction()] = 1
+        return delta
+    def __str__(self):
+        return "Stochastic n=%d, %.2f" % (self.n, self.confidence)
+
+
+
 class ThompsonSampling(Policy):
     def __init__(self):
         pass
@@ -241,13 +288,15 @@ def main():
 def plotBandit(bandit, axes):
 
     thompson_sampling = ThompsonSampling()
-    algorithmB = AlgorithmB(confidence=95)
+    #algorithmB = AlgorithmB(confidence=95)
     algorithmC95 = AlgorithmC(confidence=95)
-    algorithmC99 = AlgorithmC(confidence=99)
+    #algorithmC99 = AlgorithmC(confidence=99)
+    stochastic5 = Stochastic(n=5, confidence=95)
+    stochastic2 = Stochastic(n=2, confidence=95)
 
-    for method in [thompson_sampling, algorithmB, algorithmC95, algorithmC99]:
+    for method in [thompson_sampling, stochastic5, stochastic2]:
         results = []
-        for budget in na.arange(0, 70, 10):
+        for budget in na.arange(0, 110, 10):
             regrets = []
             budgets = []
             for iteration in range(25):
