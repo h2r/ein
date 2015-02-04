@@ -75,8 +75,6 @@ class AlgorithmB(Policy):
                 arm_mean = self.S[a_i] / ntrials
                 arm_stderr = na.sqrt(arm_mean * (1 - arm_mean) / ntrials)
                 arm_confidence = arm_stderr * 1.96
-                print "mean", arm_mean
-                print arm_confidence
                 if (arm_mean + arm_confidence)  < self.upperbound:
                     break # this arm sucks; next arm
                 elif (arm_mean - arm_confidence > self.upperbound):
@@ -136,13 +134,42 @@ class ThompsonSampling(Policy):
         
 
 def main():
-    bandit = Bandit([0.1, 0.1, 0.9, 0.1, 0.9, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
 
-    print bandit.arms
+    
+    easy_bandit = Bandit([0.1, 0.1, 0.9, 0.1, 0.9, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+
+
+    
+    figure = mpl.figure()
+    bandit = na.zeros(20) + 0.1
+    bandit[1] = 0.9  # Thompson
+    bandit = Bandit(bandit)
+    plotBandit(bandit, figure.gca())
+    figure.suptitle("Easy Object")
+
+    figure = mpl.figure()
+    bandit = na.zeros(20) + 0.1
+    bandit[len(bandit)/2] = 0.9
+    bandit = Bandit(bandit)
+    plotBandit(bandit, figure.gca())
+    figure.suptitle("Hard Object")
+
+
+    figure = mpl.figure()
+    bandit = na.zeros(20) + 0.1
+    bandit[-1] = 0.9
+    bandit = Bandit(bandit)
+    plotBandit(bandit, figure.gca())
+    figure.suptitle("Pathological Object")
+
+    mpl.show()
+
+
+def plotBandit(bandit, axes):
 
     thompson_sampling = ThompsonSampling()
     algorithmB = AlgorithmB()
-    for method in [algorithmB, thompson_sampling]:
+    for method in [thompson_sampling, algorithmB]:
         results = []
         for budget in na.arange(0, 110, 10):
             regrets = []
@@ -163,12 +190,11 @@ def main():
         xerr = [scipy.stats.sem(b) * 1.96 for b, r in results]
         yerr = [scipy.stats.sem(r) * 1.96 for b, r in results]
         mpl.errorbar(X, Y, label=str(method), xerr=xerr, yerr=yerr)
+
     mpl.ylabel("Simple Regret")
     mpl.xlabel("Training Trials")
     mpl.axis((0, 105, -0.1, 1))
     mpl.legend()
-    mpl.show()
-
 
 if __name__ == "__main__":
     main()
