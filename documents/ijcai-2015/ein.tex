@@ -66,8 +66,6 @@ urlcolor=blue
 \maketitle
 
 \begin{abstract}
-Manipulating and reasoning about objects is an important task for
-robots that help people in the home, in factories, and in hospitals.
 A key aim of current research is to create robots that can reliably
 manipulate generic objects.  However, in many applications,
 general-purpose object detection or manipulation is not required: the
@@ -76,17 +74,18 @@ the relatively small set of specific objects most important in that
 application, but do so with very high reliability.  To address this
 problem, we focus not on {\em category-based} manipulation (pick up
 any mug) but rather {\em instance-based} manipulation (pick up this
-mug).  The contribution of this paper is to automate this
-adaption process by formalizing a grasping system as a hierarchy of
-bandit problems, enabling the robot to apply learning techniques such
-as Thompson sampling to adapt itself to manipulate specific objects
-with increased accuracy.  Our framework runs on an unmodified Baxter
-robot; using our algorithm, a robot can interact with an object for
-twenty minutes, and then reliably and quickly localize it with vision
-and pick it up with closed-loop visual servoing. We demonstrate that
-the bandit-based adaptation step significantly improves accuracy over
-a non-adaptive system.
+mug).  The contribution of this paper is to automate this adaptation
+process by formalizing a grasping system as a hierarchy of bandit
+problems, enabling the robot to apply learning techniques such as
+Thompson sampling to adapt itself to manipulate specific objects with
+increased accuracy.  We demonstrate that the bandit-based adaptation
+step significantly improves accuracy over a non-adaptive system.
 
+
+%% Our framework runs on an unmodified Baxter
+%% robot; using our algorithm, a robot can interact with an object for
+%% twenty minutes, and then reliably and quickly localize it with vision
+%% and pick it up with closed-loop visual servoing. 
 
 %% Instance-based recognition and pose estimation can be highly
 %% accurate but require the designer to adapt the system to the specific
@@ -429,6 +428,59 @@ the bounding boxes inferred by the BING objectness detector.
   \caption{The high-level algorithm for acquiring visual and grasping
     models of objects.}
 \end{figure}
+
+\section{POMDP Adaptation}
+
+We formally define a partially observable Markov Decision Process
+(POMDP)~\citep{kaelbling98} for our problem.  Then we describe our
+bandit-based approximation algorithm for inferring an approximate
+policy for the POMDP.  Our POMDP consists of states, $S$, actions,
+$A$, reward, $R$, observations, $\Omega$ and observation function,
+$O$.  We assume access to a set of objects, $C$, which consists of
+object, $d \in C$.  Each object consists of the visual model along
+with settings for various parameters. 
+
+\begin{itemize}
+\item $S$ 
+\end{itemize}
+
+%% * terminate fast, and know when to terminate
+%% * identify the best grasp with high probability (and search longer if you haven't)
+%% * providing a prior
+%% * providing a bound on mu. 
+
+\subsection{Simple Regret Halting Bandit}
+
+The agent is given an n-armed bandit, where each arm pays out $1$ with
+probability $\mu_i$ and $0$ otherwise.  The agent's goal is to
+identify a good arm (with payout >= k) with probability c (e.g., 95\%
+confidence that this arm is good) as quickly as possible.  As soon as
+it has done this, it should terminate.  The agent is also given an
+ordering on the arms, promising ones first.  The order isn't perfect
+(if it was, it would be done).
+
+Our algorithm is to iterate through each arm, and try it until we have
+identified it either is above $k$ with probability $c$ (in which case
+it terminates) or it is below $k$ with probability $c$ (in which case
+it moves to the next arm in the sequence.  To compute this probability
+we need to estimate the probability that the true payout probability,
+$\mu$ is greater than the threshold, $c$ given the observed number of
+successes and failures:
+\begin{align}
+\Pr(\mu_i > c|  S, F)
+\end{align}
+
+We can compute this probability using the law of total probability:
+\begin{align}
+\Pr(\mu_i > c|  S, F) &= \int_c^1 \Pr(\mu_i=\mu | S, F) d\mu\\
+\intertext{We assume a beta distribution on $\mu$:}
+                      &= \int_c^1 \mu^S (1- \mu) ^F d\mu
+\end{align}
+
+This integral is the CDF of the beta distribution, and is called the
+regularized incomplete beta function.  (Actually the CDF is the
+integral from $0$ to $c$, while we would like the integral from $c$ to
+$1$.)
 
 
 \section{Bandit-based Adaptation}
