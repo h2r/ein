@@ -2,6 +2,7 @@ import numpy as na
 import random
 import scipy.stats
 import pylab as mpl
+from scipy.special import betainc
 
 class Bandit(object):
 
@@ -118,13 +119,7 @@ class AlgorithmB(Policy):
 class AlgorithmC(Policy):
     def __init__(self, confidence=95):
         self.upperbound = 0.8
-        self.confidence = confidence
-        self.confidence_map = {
-            1: 1,
-            90: 1.645,
-            95: 1.96,
-            99: 2.575}
-        self.confidence_factor = self.confidence_map[confidence]
+        self.confidence = confidence  / 100.0
 
 
     def train(self, bandit, max_budget):
@@ -148,16 +143,14 @@ class AlgorithmC(Policy):
                 if ntrials == 1:
                     continue
                 arm_mean = self.S[a_i] / ntrials
-                arm_stderr = na.sqrt(arm_mean * (1 - arm_mean) / ntrials)
-
-                arm_confidence = arm_stderr * self.confidence_factor
-                if (arm_mean + arm_confidence)  < self.upperbound:
+                Pr_mu_less_than_bound = betainc(self.S[a_i] + 1, self.F[a_i] + 1, self.upperbound)
+                Pr_mu_greater_than_bound = 1 - Pr_mu_less_than_bound
+                if Pr_mu_less_than_bound  >= self.confidence:
                     break # this arm sucks; next arm
-                elif (arm_mean - arm_confidence > self.upperbound):
+                elif Pr_mu_greater_than_bound >= self.confidence:
                     print
                     print "arm", a_i
                     print "arm_mean", arm_mean
-                    print "stderr", arm_stderr
                     print "s", self.S
                     print "f", self.F
                     return #this arm is awesome; leave
@@ -178,7 +171,7 @@ class AlgorithmC(Policy):
         delta[self.bestAction()] = 1
         return delta
     def __str__(self):
-        return "Algorithm B: " + str(self.confidence)
+        return "Algorithm C: " + str(self.confidence)
 
 
 
@@ -249,9 +242,10 @@ def plotBandit(bandit, axes):
 
     thompson_sampling = ThompsonSampling()
     algorithmB = AlgorithmB(confidence=95)
-    algorithmC = AlgorithmC(confidence=95)
+    algorithmC95 = AlgorithmC(confidence=95)
+    algorithmC99 = AlgorithmC(confidence=99)
 
-    for method in [thompson_sampling, algorithmB, algorithmC]:
+    for method in [thompson_sampling, algorithmB, algorithmC95, algorithmC99]:
         results = []
         for budget in na.arange(0, 70, 10):
             regrets = []
