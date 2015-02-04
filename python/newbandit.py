@@ -49,29 +49,56 @@ class Policy(object):
 
 class AlgorithmB(Policy):
     def __init__(self):
-        pass
+        self.upperbound = 0.8
+
 
     def train(self, bandit, max_budget):
-        self.S = na.zeros(bandit.narms)
-        self.F = na.zeros(bandit.narms)
-
-        for iterations in range(max_budget):
-            sampled_params = []
-            for a_i in bandit.actions:
-                p = scipy.stats.beta.rvs(self.S[a_i] + 1, self.F[a_i] + 1)
-                sampled_params.append(p)
-
-            best_ai = na.argmax(sampled_params)
-
-            r = bandit.sample(best_ai)
-
-            if r == 1:
-                self.S[best_ai] += 1
-            else:
-                self.F[best_ai] += 1
-
-        self.marginals = [(s + 1)/(s + f + 2) for (s, f) in zip(self.S, self.F)]
+        self.S = na.zeros(bandit.narms) * 0.0
+        self.F = na.zeros(bandit.narms) * 0.0
         
+        iteration = 0
+
+        for a_i in bandit.actions:
+            while True:
+                if iteration >= max_budget:
+                    return
+
+                r = bandit.sample(a_i)
+                iteration += 1
+                if r == 1:
+                    self.S[a_i] += 1.0
+                else:
+                    self.F[a_i] += 1.0
+                ntrials = self.S[a_i] + self.F[a_i]
+                if ntrials == 1:
+                    continue
+                arm_mean = self.S[a_i] / ntrials
+                arm_stderr = na.sqrt(arm_mean * (1 - arm_mean) / ntrials)
+                arm_confidence = arm_stderr * 1.96
+                print "mean", arm_mean
+                print arm_confidence
+                if (arm_mean + arm_confidence)  < self.upperbound:
+                    break # this arm sucks; next arm
+                elif (arm_mean - arm_confidence > self.upperbound):
+                    return #this arm is awesome; leave
+                else:
+                    # continue trying this arm
+                    pass
+
+    @property
+    def marginals(self):
+        return [s/(s + f + 2) for (s, f) in zip(self.S, self.F)]
+        
+    def bestAction(self):
+        return na.argmax(self.marginals)
+
+    def actionDistribution(self):
+        #return self.marginals / na.sum(self.marginals)
+        delta = na.zeros(len(self.S))
+        delta[self.bestAction()] = 1
+        return delta
+    def __str__(self):
+        return "Algorithm B"
 
 class ThompsonSampling(Policy):
     def __init__(self):
@@ -114,7 +141,8 @@ def main():
     print bandit.arms
 
     thompson_sampling = ThompsonSampling()
-    for method in [thompson_sampling]:
+    algorithmB = AlgorithmB()
+    for method in [algorithmB, thompson_sampling]:
         results = []
         for budget in na.arange(0, 110, 10):
             regrets = []
@@ -123,6 +151,8 @@ def main():
                 bandit.reset_log()
                 method.train(bandit, budget)
                 budgets.append(len(bandit.log))
+                if len(bandit.log) > budget:
+                    raise ValueError("Someone is cheating:" + `len(bandit.log)` + " budget: " + `budget`)
                 regret = bandit.regret(method.actionDistribution())
                 regrets.append(regret)
 
