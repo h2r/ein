@@ -124,7 +124,7 @@ def policy_search(bandit, iterations):
 
     
 
-def main():
+def regularbandit():
     bandit = Bandit(3)
     bandit.arms = [0.2, 0.3, 0.7]
     print bandit.arms
@@ -142,7 +142,26 @@ def main():
             total_rewards.append(total_reward)
 
         print method.__name__, na.mean(total_reward), "+/-", scipy.stats.sem(total_rewards)
+
+
+def budgetedbandit():
+    bandit = Bandit(3)
+    bandit.arms = [0.2, 0.3, 0.7]
+    print bandit.arms
+    
+
+    for method in [ml_bandit, thompson_sampling, random_agent]:
+        total_rewards = []
+        for trials in range(100):
+            total_reward = 0
+            for a_i, r in method(bandit, 50):
+                total_reward += r
+            total_rewards.append(total_reward)
             
+        print method.__name__, na.mean(total_rewards), "+/-", scipy.stats.sem(total_rewards) * 1.96
+
+def main():
+    budgetedbandit()
 
 if __name__ == "__main__":
     main()
