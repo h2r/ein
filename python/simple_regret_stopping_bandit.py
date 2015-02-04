@@ -156,7 +156,7 @@ def main():
     bandit = Bandit(bandit)
     plotBandit(bandit, figure.gca())
     figure.suptitle("Easy Object")
-    mpl.show()
+
     figure = mpl.figure()
     bandit = na.zeros(20) + 0.1
     bandit[len(bandit)/2] = 0.9
@@ -181,7 +181,7 @@ def plotBandit(bandit, axes):
     algorithmB1 = AlgorithmB(confidence=95)
     algorithmB2 = AlgorithmB(confidence=99)
     algorithmB3 = AlgorithmB(confidence=1)
-    for method in [thompson_sampling, algorithmB1]: #, algorithmB2, algorithmB3]:
+    for method in [thompson_sampling, algorithmB1]:
         results = []
         for budget in na.arange(0, 70, 10):
             regrets = []
