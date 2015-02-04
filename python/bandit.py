@@ -124,27 +124,22 @@ def policy_search(bandit, iterations):
 
     
 
-def regularbandit():
-    bandit = Bandit(3)
-    bandit.arms = [0.2, 0.3, 0.7]
-    print bandit.arms
+
+def run_bandit_trial(method, bandit):
+    total_reward = 0
+    for a_i, r in method(bandit, 50):
+        total_reward += r
+    return total_reward 
+
+def run_budget_bandit_simple_regret_trial(method, bandit, budget):
+    total_reward = 0
+    for i, (a_i, r) in enumerate(method(bandit, budget + 50)):
+        if i >= budget:
+            total_reward += r
+    return total_reward 
     
 
-    for method in [ml_bandit, explore_then_exploit, qlearning, thompson_sampling, random_agent, policy_search]:
-     
-    
-        total_rewards = []
-        for trials in range(30):
-            total_reward = 0
-
-            for a_i, r in method(bandit, 2000):
-                total_reward += r
-            total_rewards.append(total_reward)
-
-        print method.__name__, na.mean(total_reward), "+/-", scipy.stats.sem(total_rewards)
-
-
-def budgetedbandit():
+def testbandit():
     bandit = Bandit(3)
     bandit.arms = [0.2, 0.3, 0.7]
     print bandit.arms
@@ -152,16 +147,14 @@ def budgetedbandit():
 
     for method in [ml_bandit, thompson_sampling, random_agent]:
         total_rewards = []
-        for trials in range(100):
-            total_reward = 0
-            for a_i, r in method(bandit, 50):
-                total_reward += r
+        for trials in range(200):
+            total_reward = run_budget_bandit_simple_regret_trial(method, bandit, 50)
             total_rewards.append(total_reward)
             
         print method.__name__, na.mean(total_rewards), "+/-", scipy.stats.sem(total_rewards) * 1.96
 
 def main():
-    budgetedbandit()
+    testbandit()
 
 if __name__ == "__main__":
     main()
