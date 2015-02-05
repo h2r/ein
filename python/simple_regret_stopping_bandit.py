@@ -120,23 +120,18 @@ class AlgorithmC(Policy):
         self.S = na.zeros(bandit.narms) * 0.0
         self.F = na.zeros(bandit.narms) * 0.0
         
-        iteration = 0
-
         for a_i in bandit.actions:
             while True:
-                if iteration >= max_budget:
+                if len(bandit.log) >= max_budget:
                     return
 
                 r = bandit.sample(a_i)
-                iteration += 1
+
                 if r == 1:
                     self.S[a_i] += 1.0
                 else:
                     self.F[a_i] += 1.0
-                ntrials = self.S[a_i] + self.F[a_i]
-                if ntrials == 1:
-                    continue
-                arm_mean = self.S[a_i] / ntrials
+
                 Pr_mu_less_than_bound = betainc(self.S[a_i] + 1, self.F[a_i] + 1, self.upperbound)
                 Pr_mu_greater_than_bound = 1 - Pr_mu_less_than_bound
                 if Pr_mu_less_than_bound  >= self.confidence:
@@ -144,7 +139,6 @@ class AlgorithmC(Policy):
                 elif Pr_mu_greater_than_bound >= self.confidence:
                     print
                     print "arm", a_i
-                    print "arm_mean", arm_mean
                     print "s", self.S
                     print "f", self.F
                     return #this arm is awesome; leave
@@ -166,6 +160,64 @@ class AlgorithmC(Policy):
         return delta
     def __str__(self):
         return "Algorithm C: " + str(self.confidence)
+
+
+
+class AlgorithmCDelta(Policy):
+    def __init__(self, confidence=95):
+        self.upperbound = 0.8
+        self.confidence = confidence  / 100.0
+        self.delta = 1 - self.confidence
+
+    def train(self, bandit, max_budget):
+        arm_delta = (self.delta) / bandit.narms
+        arm_confidence = 1 - arm_delta
+
+        self.S = na.zeros(bandit.narms) * 0.0
+        self.F = na.zeros(bandit.narms) * 0.0
+        
+        for a_i in bandit.actions:
+            while True:
+                if len(bandit.log) >= max_budget:
+                    return
+
+                r = bandit.sample(a_i)
+                trial_delta = arm_delta / 2**len(bandit.log)
+                trial_confidence = 1 - trial_delta
+                if r == 1:
+                    self.S[a_i] += 1.0
+                else:
+                    self.F[a_i] += 1.0
+
+                Pr_mu_less_than_bound = betainc(self.S[a_i] + 1, self.F[a_i] + 1, self.upperbound)
+                Pr_mu_greater_than_bound = 1 - Pr_mu_less_than_bound
+                if Pr_mu_less_than_bound  >= arm_confidence:
+                    break # this arm sucks; next arm
+                elif Pr_mu_greater_than_bound >= arm_confidence:
+                    print
+                    print "arm", a_i
+                    print "s", self.S
+                    print "f", self.F
+                    return #this arm is awesome; leave
+                else:
+                    # continue trying this arm
+                    pass
+
+    @property
+    def marginals(self):
+        return [s/(s + f) if (s + f != 0) else 0.5 for (s, f) in zip(self.S, self.F)]
+        
+    def bestAction(self):
+        return na.argmax(self.marginals)
+
+    def actionDistribution(self):
+        #return self.marginals / na.sum(self.marginals)
+        delta = na.zeros(len(self.S))
+        delta[self.bestAction()] = 1
+        return delta
+    def __str__(self):
+        return "Algorithm C Delta: " + str(self.confidence)
+
 
 
 
@@ -276,7 +328,6 @@ class StochasticEarlyStopping(Policy):
         return "StochasticEarlyStopping n=%d, %.2f" % (self.n, self.confidence)
 
 
-
 class ThompsonSampling(Policy):
     def __init__(self):
         pass
@@ -344,13 +395,14 @@ def plotBandit(bandit, axes):
 
     thompson_sampling = ThompsonSampling()
     #algorithmB = AlgorithmB(confidence=95)
-    #algorithmC95 = AlgorithmC(confidence=95)
+    algorithmC95 = AlgorithmC(confidence=95)
+    algorithmCDelta95 = AlgorithmCDelta(confidence=95)
     #algorithmC99 = AlgorithmC(confidence=99)
-    stochastic5 = Stochastic(n=5, confidence=95)
-    stochastic2 = Stochastic(n=2, confidence=95)
-    stochasticEarlyStopping5 = StochasticEarlyStopping(n=5, confidence=95)
+    #stochastic5 = Stochastic(n=5, confidence=95)
+    #stochastic2 = Stochastic(n=2, confidence=95)
+    #stochasticEarlyStopping5 = StochasticEarlyStopping(n=5, confidence=95)
 
-    for method in [thompson_sampling, stochastic5, stochastic2, stochasticEarlyStopping5]:
+    for method in [thompson_sampling, algorithmC95, algorithmCDelta95]:
         results = []
         for budget in na.arange(0, 110, 10):
             regrets = []
