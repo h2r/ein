@@ -79,11 +79,17 @@
 
 #include <vector>
 #include <string>
-#include "distributions.h"
+
+
 #include "ros/ros.h"
 #include "ros/package.h"
 #include "ros/time.h"
 #include <ctime>
+
+// numpy library 1 (randomkit, for original beta)
+#include "distributions.h"
+// numpy library 2 (cephes, for betainc)
+#include "cephes/protos.h"
 
 #include <tf/transform_listener.h>
 
@@ -6937,6 +6943,7 @@ cout <<
     // capslock + v
     case 131158:
     {
+
       double random_value = rk_random(&random_state);
       ROS_INFO_STREAM("Random value: " << random_value);
       double sample = rk_beta(&random_state, 1, 1);
@@ -18302,6 +18309,28 @@ void processSaliency(Mat in, Mat out) {
   GaussianBlur(out, out, cv::Size(0,0), saliencyPostSigma);
 }
 
+void testIncbet() {
+  cout << "no trials" << endl;
+  double successes = 0;
+  double failures = 0;
+  cout << "Successes: " << successes << " Failures: " << failures << endl;
+  for (double d = 0; d < 1; d +=0.01) {
+    // returns probability that mu <= d given successes and failures.
+    double result = incbet(successes + 1, failures + 1, d);
+    cout << "Result: " << result << endl;
+  }
+
+  successes = 10;
+  failures = 10;
+  cout << "Successes: " << successes << " Failures: " << failures << endl;
+  for (double d = 0; d < 1; d +=0.01) {
+    // returns probability that mu <= d given successes and failures.
+    double result = incbet(successes + 1, failures + 1, d);
+    cout << "Result: " << result << endl;
+  }
+
+}
+
 ////////////////////////////////////////////////
 // end node definitions 
 //
@@ -18309,6 +18338,9 @@ void processSaliency(Mat in, Mat out) {
 ////////////////////////////////////////////////
 
 int main(int argc, char **argv) {
+  //testIncbet();
+  //exit(0);
+ 
 
   srand(time(NULL));
   time(&firstTime);
