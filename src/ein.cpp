@@ -855,7 +855,8 @@ double lastMeasuredClosed = 3.0;
 typedef enum {
   STATIC_PRIOR = 1,
   LEARNING_SAMPLING = 2,
-  STATIC_MARGINALS = 3
+  LEARNING_ALGORITHMC = 3,
+  STATIC_MARGINALS = 4
 } pickMode;
 pickMode currentPickMode = STATIC_MARGINALS;
 pickMode currentBoundingBoxMode = STATIC_MARGINALS;
@@ -867,6 +868,8 @@ std::string pickModeToString(pickMode mode) {
     result = "static prior";
   } else if (mode == LEARNING_SAMPLING) {
     result = "learning sampling";
+  } else if (mode == LEARNING_ALGORITHMC) {
+    result = "learning algorithm C";
   } else if (mode == STATIC_MARGINALS) {
     result = "static marginals";
   } else {
@@ -874,6 +877,11 @@ std::string pickModeToString(pickMode mode) {
     assert(0);
   }
   return result;
+}
+
+int ARE_GENERIC_PICK_LEARNING() {
+  return ( (currentPickMode == LEARNING_SAMPLING) ||
+	   (currentPickMode == LEARNING_ALGORITHMC) );
 }
 
 int orientationCascade = 0;
@@ -1283,8 +1291,8 @@ int aerialGradientWidth = 100;
 int aerialGradientReticleWidth = 200;
 
 // XXX TODO
-int softMaxGradientServoIterations = 5;//3;//10;//3;
-int hardMaxGradientServoIterations = 5;//3;//10;//20;//3;//10;
+int softMaxGradientServoIterations = 10;//5;//3;//10;//3;
+int hardMaxGradientServoIterations = 10;//5;//3;//10;//20;//3;//10;
 int currentGradientServoIterations = 0;
 
 int fuseBlueBoxes = 1;
@@ -1396,6 +1404,7 @@ void copyGraspMemoryRegister(double * src, double * target);
 void loadGlobalTargetClassRangeMap(double * rangeMapRegA, double * rangeMapRegB);
 void loadLocalTargetClassRangeMap(double * rangeMapRegA, double * rangeMapRegB);
 void copyGraspMemoryTriesToClassGraspMemoryTries();
+void copyClassGraspMemoryTriesToGraspMemoryTries();
 
 void selectMaxTarget(double minDepth);
 void selectMaxTargetThompson(double minDepth);
@@ -5975,6 +5984,7 @@ cout <<
 	      pilot_call_stack.push_back(131133); // loadMarginalGraspMemory
 	    }
 	    break;
+	  case LEARNING_ALGORITHMC:
 	  case LEARNING_SAMPLING:
 	    {
 	      pilot_call_stack.push_back(131117); // loadSampledGraspMemory
@@ -7086,26 +7096,30 @@ cout <<
         neutral();
 
 	// ATTN 19
-	if (thompsonHardCutoff) {
-	  if (graspAttemptCounter >= thompsonTries && currentPickMode == LEARNING_SAMPLING) {
-	    cout << "Clearing call stack because we did " << graspAttemptCounter << " tries." << endl;
-	    pilot_call_stack.resize(0);
-	    pushCopies(1245308, 15); // beep
-	    break;
+	if (currentPickMode == LEARNING_SAMPLING) {
+	  if (thompsonHardCutoff) {
+	    if (graspAttemptCounter >= thompsonTries) {
+	      cout << "Clearing call stack because we did " << graspAttemptCounter << " tries." << endl;
+	      pilot_call_stack.resize(0);
+	      pushCopies(1245308, 15); // beep
+	      break;
+	    }
+	  }
+
+	  if (thompsonAdaptiveCutoff) {
+	    if ( (thompsonPickHaltFlag) ||
+		 (graspAttemptCounter >= thompsonTries) ) {
+	      cout << "Clearing call stack. thompsonPickHaltFlag = " << thompsonPickHaltFlag << 
+		" and we did " << graspAttemptCounter << " tries." << endl;
+	      pilot_call_stack.resize(0);
+	      pushCopies(1245308, 15); // beep
+	      break;
+	    }
 	  }
 	}
 
-	if (thompsonAdaptiveCutoff) {
-	  if ( ((thompsonPickHaltFlag) ||
-		(graspAttemptCounter >= thompsonTries) ) && 
-		currentPickMode == LEARNING_SAMPLING) {
-	    cout << "Clearing call stack. thompsonPickHaltFlag = " << thompsonPickHaltFlag << 
-	      " and we did " << graspAttemptCounter << " tries." << endl;
-	    pilot_call_stack.resize(0);
-	    pushCopies(1245308, 15); // beep
-	    break;
-	  }
-	}
+	// ATTN 20
+	// XXX TODO stopping criterion for ALGORITHMC
 
 
 	synServoLockFrames = 0;
@@ -8309,7 +8323,7 @@ cout <<
       graspAttemptCounter++;      
       cout << "thisGraspPicked: " << operationStatusToString(thisGraspPicked) << endl;
       cout << "thisGraspReleased: " << operationStatusToString(thisGraspReleased) << endl;
-      if (currentPickMode == LEARNING_SAMPLING) {
+      if (ARE_GENERIC_PICK_LEARNING()) {
         //graspMemoryTries[j+0*rmWidth*rmWidth]++;
         //graspMemoryTries[j+1*rmWidth*rmWidth]++;
         //graspMemoryTries[j+2*rmWidth*rmWidth]++;
@@ -8319,7 +8333,7 @@ cout <<
       if ((thisGraspPicked == SUCCESS) && (thisGraspReleased == SUCCESS)) {
         graspSuccessCounter++;
         happy();
-        if (currentPickMode == LEARNING_SAMPLING) {
+        if (ARE_GENERIC_PICK_LEARNING()) {
           //graspMemoryPicks[j+0*rmWidth*rmWidth]++;
           //graspMemoryPicks[j+1*rmWidth*rmWidth]++;
           //graspMemoryPicks[j+2*rmWidth*rmWidth]++;
@@ -8334,9 +8348,11 @@ cout <<
 	double thisPickRate = double(graspMemoryPicks[i]) / double(graspMemoryTries[i]);
 	int thisNumTries = graspMemoryTries[i];
 	cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
-	if ( (thisNumTries >= thompsonMinTryCutoff) && 
-	     (thisPickRate >= thompsonMinPassRate) ) {
-	  thompsonPickHaltFlag = 1;
+	if (currentPickMode == LEARNING_SAMPLING) {
+	  if ( (thisNumTries >= thompsonMinTryCutoff) && 
+	       (thisPickRate >= thompsonMinPassRate) ) {
+	    thompsonPickHaltFlag = 1;
+	  }
 	}
       } else {
 	double thisPickRate = double(graspMemoryPicks[i]) / double(graspMemoryTries[i]);
@@ -8399,6 +8415,7 @@ cout <<
 	      {
 	      }
 	      break;
+	    case LEARNING_ALGORITHMC:
 	    case LEARNING_SAMPLING:
 	      {
 		graspMemoryTries[i]++;
@@ -8438,6 +8455,7 @@ cout <<
 		{
 		}
 		break;
+	      case LEARNING_ALGORITHMC:
 	      case LEARNING_SAMPLING:
 		{
 		  graspMemoryPicks[i]++;
@@ -8462,9 +8480,12 @@ cout <<
 	  double thisPickRate = double(graspMemoryPicks[i]) / double(graspMemoryTries[i]);
 	  int thisNumTries = graspMemoryTries[i];
 	  cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
-	  if ( (thisNumTries >= thompsonMinTryCutoff) && 
-	       (thisPickRate >= thompsonMinPassRate) ) {
-	    thompsonPickHaltFlag = 1;
+
+	  if (currentPickMode == LEARNING_SAMPLING) {
+	    if ( (thisNumTries >= thompsonMinTryCutoff) && 
+		 (thisPickRate >= thompsonMinPassRate) ) {
+	      thompsonPickHaltFlag = 1;
+	    }
 	  }
 
           copyGraspMemoryTriesToClassGraspMemoryTries();
@@ -9155,6 +9176,7 @@ cout <<
 	      pilot_call_stack.push_back(196360); // loadPriorGraspMemory
 	    }
 	    break;
+	  case LEARNING_ALGORITHMC:
 	  case LEARNING_SAMPLING:
 	    {
 	      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
@@ -9252,80 +9274,7 @@ cout <<
     // capslock + numlock + i
     case 1179721:
       {
-	if ((classGraspMemoryTries1[targetClass].rows > 1) && (classGraspMemoryTries1[targetClass].cols > 1) &&
-	    (classGraspMemoryPicks1[targetClass].rows > 1) && (classGraspMemoryPicks1[targetClass].cols > 1) ) {
-	  cout << "graspMemoryTries[] = classGraspMemoryTries1" << endl;
-	  //cout << "classGraspMemoryTries1 " << classGraspMemoryTries1[targetClass] << endl; 
-	  //cout << "classGraspMemoryPicks1 " << classGraspMemoryPicks1[targetClass] << endl; 
-	  for (int y = 0; y < rmWidth; y++) {
-	    for (int x = 0; x < rmWidth; x++) {
-	      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*0] = classGraspMemoryTries1[targetClass].at<double>(y,x);
-	    } 
-	  } 
-	  for (int y = 0; y < rmWidth; y++) {
-	    for (int x = 0; x < rmWidth; x++) {
-	      graspMemoryPicks[x + y*rmWidth + rmWidth*rmWidth*0] = classGraspMemoryPicks1[targetClass].at<double>(y,x);
-	    } 
-	  } 
-	} else {
-	  cout << "Whoops, tried to set grasp memories 1 but they don't exist for this class." << targetClass << " " << classLabels[targetClass] << endl;
-	}
-	if ((classGraspMemoryTries2[targetClass].rows > 1) && (classGraspMemoryTries2[targetClass].cols > 1) &&
-	    (classGraspMemoryPicks2[targetClass].rows > 1) && (classGraspMemoryPicks2[targetClass].cols > 1) ) {
-	  cout << "graspMemoryTries[] = classGraspMemoryTries2" << endl;
-	  //cout << "classGraspMemoryTries2 " << classGraspMemoryTries2[targetClass] << endl; 
-	  //cout << "classGraspMemoryPicks2 " << classGraspMemoryPicks2[targetClass] << endl; 
-	  for (int y = 0; y < rmWidth; y++) {
-	    for (int x = 0; x < rmWidth; x++) {
-	      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*1] = classGraspMemoryTries2[targetClass].at<double>(y,x);
-	    } 
-	  } 
-	  for (int y = 0; y < rmWidth; y++) {
-	    for (int x = 0; x < rmWidth; x++) {
-	      graspMemoryPicks[x + y*rmWidth + rmWidth*rmWidth*1] = classGraspMemoryPicks2[targetClass].at<double>(y,x);
-	    } 
-	  } 
-	} else {
-	  cout << "Whoops, tried to set grasp memories 2 but they don't exist for this class." << targetClass << " " << classLabels[targetClass] << endl;
-	}
-	if ((classGraspMemoryTries3[targetClass].rows > 1) && (classGraspMemoryTries3[targetClass].cols > 1) &&
-	    (classGraspMemoryPicks3[targetClass].rows > 1) && (classGraspMemoryPicks3[targetClass].cols > 1) ) {
-	  cout << "graspMemoryTries[] = classGraspMemoryTries3" << endl;
-	  //cout << "classGraspMemoryTries3 " << classGraspMemoryTries3[targetClass] << endl; 
-	  //cout << "classGraspMemoryPicks3 " << classGraspMemoryPicks3[targetClass] << endl; 
-	  for (int y = 0; y < rmWidth; y++) {
-	    for (int x = 0; x < rmWidth; x++) {
-	      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*2] = classGraspMemoryTries3[targetClass].at<double>(y,x);
-	    } 
-	  } 
-	  for (int y = 0; y < rmWidth; y++) {
-	    for (int x = 0; x < rmWidth; x++) {
-	      graspMemoryPicks[x + y*rmWidth + rmWidth*rmWidth*2] = classGraspMemoryPicks3[targetClass].at<double>(y,x);
-	    } 
-	  } 
-	} else {
-	  cout << "Whoops, tried to set grasp memories 3 but they don't exist for this class." << targetClass << " " << classLabels[targetClass] << endl;
-	}
-	if ((classGraspMemoryTries4[targetClass].rows > 1) && (classGraspMemoryTries4[targetClass].cols > 1) &&
-	    (classGraspMemoryPicks4[targetClass].rows > 1) && (classGraspMemoryPicks4[targetClass].cols > 1) ) {
-	  cout << "graspMemoryTries[] = classGraspMemoryTries4" << endl;
-	  //cout << "classGraspMemoryTries4 " << classGraspMemoryTries4[targetClass] << endl; 
-	  //cout << "classGraspMemoryPicks4 " << classGraspMemoryPicks4[targetClass] << endl; 
-	  for (int y = 0; y < rmWidth; y++) {
-	    for (int x = 0; x < rmWidth; x++) {
-	      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*3] = classGraspMemoryTries4[targetClass].at<double>(y,x);
-	    } 
-	  } 
-	  for (int y = 0; y < rmWidth; y++) {
-	    for (int x = 0; x < rmWidth; x++) {
-	      graspMemoryPicks[x + y*rmWidth + rmWidth*rmWidth*3] = classGraspMemoryPicks4[targetClass].at<double>(y,x);
-	    } 
-	  } 
-	} else {
-	  cout << "Whoops, tried to set grasp memories 4 but they don't exist for this class." << targetClass << " " << classLabels[targetClass] << endl;
-	}
-        
-        cout << "class " << classLabels[targetClass] << " number ";
+        copyClassGraspMemoryTriesToGraspMemoryTries();
       }
       break;
       // 
@@ -9394,6 +9343,14 @@ cout <<
     case 1179716:
       {
 	currentPickMode = LEARNING_SAMPLING;
+	cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
+      }
+      break;
+    // set pickMode to LEARNING_SAMPLING
+    // capslock + numlock + D
+    case 1245284:
+      {
+	currentPickMode = LEARNING_ALGORITHMC;
 	cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
       }
       break;
@@ -10159,6 +10116,7 @@ cout <<
       {
 	cout << "re-init range maps, etc."  << endl;
 	initRangeMaps();
+        copyClassGraspMemoryTriesToGraspMemoryTries();
       }
       break;
     
@@ -11227,6 +11185,7 @@ void changeTargetClass(int newTargetClass) {
       pilot_call_stack.push_back(196360); // loadPriorGraspMemory
     }
     break;
+  case LEARNING_ALGORITHMC:
   case LEARNING_SAMPLING:
     {
       pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
@@ -11257,7 +11216,7 @@ void changeTargetClass(int newTargetClass) {
     break;
   case STATIC_MARGINALS:
     {
-      cout << "Pushing set heightMemories from classHeightMemories" << endl;
+      //cout << "Pushing set heightMemories from classHeightMemories" << endl;
       pilot_call_stack.push_back(1245289); // set heightMemories from classHeightMemories
     }
     break;
@@ -12196,6 +12155,84 @@ void prepareGraspFilter4() {
 
 }
 
+void copyClassGraspMemoryTriesToGraspMemoryTries() {
+  if ((classGraspMemoryTries1[targetClass].rows > 1) && (classGraspMemoryTries1[targetClass].cols > 1) &&
+      (classGraspMemoryPicks1[targetClass].rows > 1) && (classGraspMemoryPicks1[targetClass].cols > 1) ) {
+    cout << "graspMemoryTries[] = classGraspMemoryTries1" << endl;
+    //cout << "classGraspMemoryTries1 " << classGraspMemoryTries1[targetClass] << endl; 
+    //cout << "classGraspMemoryPicks1 " << classGraspMemoryPicks1[targetClass] << endl; 
+    for (int y = 0; y < rmWidth; y++) {
+      for (int x = 0; x < rmWidth; x++) {
+        graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*0] = classGraspMemoryTries1[targetClass].at<double>(y,x);
+      } 
+    } 
+    for (int y = 0; y < rmWidth; y++) {
+      for (int x = 0; x < rmWidth; x++) {
+        graspMemoryPicks[x + y*rmWidth + rmWidth*rmWidth*0] = classGraspMemoryPicks1[targetClass].at<double>(y,x);
+      } 
+    } 
+  } else {
+    cout << "Whoops, tried to set grasp memories 1 but they don't exist for this class." << targetClass << " " << classLabels[targetClass] << endl;
+  }
+  if ((classGraspMemoryTries2[targetClass].rows > 1) && (classGraspMemoryTries2[targetClass].cols > 1) &&
+      (classGraspMemoryPicks2[targetClass].rows > 1) && (classGraspMemoryPicks2[targetClass].cols > 1) ) {
+    cout << "graspMemoryTries[] = classGraspMemoryTries2" << endl;
+    //cout << "classGraspMemoryTries2 " << classGraspMemoryTries2[targetClass] << endl; 
+    //cout << "classGraspMemoryPicks2 " << classGraspMemoryPicks2[targetClass] << endl; 
+    for (int y = 0; y < rmWidth; y++) {
+      for (int x = 0; x < rmWidth; x++) {
+        graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*1] = classGraspMemoryTries2[targetClass].at<double>(y,x);
+      } 
+    } 
+    for (int y = 0; y < rmWidth; y++) {
+      for (int x = 0; x < rmWidth; x++) {
+        graspMemoryPicks[x + y*rmWidth + rmWidth*rmWidth*1] = classGraspMemoryPicks2[targetClass].at<double>(y,x);
+      } 
+    } 
+  } else {
+    cout << "Whoops, tried to set grasp memories 2 but they don't exist for this class." << targetClass << " " << classLabels[targetClass] << endl;
+  }
+  if ((classGraspMemoryTries3[targetClass].rows > 1) && (classGraspMemoryTries3[targetClass].cols > 1) &&
+      (classGraspMemoryPicks3[targetClass].rows > 1) && (classGraspMemoryPicks3[targetClass].cols > 1) ) {
+    cout << "graspMemoryTries[] = classGraspMemoryTries3" << endl;
+    //cout << "classGraspMemoryTries3 " << classGraspMemoryTries3[targetClass] << endl; 
+    //cout << "classGraspMemoryPicks3 " << classGraspMemoryPicks3[targetClass] << endl; 
+    for (int y = 0; y < rmWidth; y++) {
+      for (int x = 0; x < rmWidth; x++) {
+        graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*2] = classGraspMemoryTries3[targetClass].at<double>(y,x);
+      } 
+    } 
+    for (int y = 0; y < rmWidth; y++) {
+      for (int x = 0; x < rmWidth; x++) {
+        graspMemoryPicks[x + y*rmWidth + rmWidth*rmWidth*2] = classGraspMemoryPicks3[targetClass].at<double>(y,x);
+      } 
+    } 
+  } else {
+    cout << "Whoops, tried to set grasp memories 3 but they don't exist for this class." << targetClass << " " << classLabels[targetClass] << endl;
+  }
+  if ((classGraspMemoryTries4[targetClass].rows > 1) && (classGraspMemoryTries4[targetClass].cols > 1) &&
+      (classGraspMemoryPicks4[targetClass].rows > 1) && (classGraspMemoryPicks4[targetClass].cols > 1) ) {
+    cout << "graspMemoryTries[] = classGraspMemoryTries4" << endl;
+    //cout << "classGraspMemoryTries4 " << classGraspMemoryTries4[targetClass] << endl; 
+    //cout << "classGraspMemoryPicks4 " << classGraspMemoryPicks4[targetClass] << endl; 
+    for (int y = 0; y < rmWidth; y++) {
+      for (int x = 0; x < rmWidth; x++) {
+        graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*3] = classGraspMemoryTries4[targetClass].at<double>(y,x);
+      } 
+    } 
+    for (int y = 0; y < rmWidth; y++) {
+      for (int x = 0; x < rmWidth; x++) {
+        graspMemoryPicks[x + y*rmWidth + rmWidth*rmWidth*3] = classGraspMemoryPicks4[targetClass].at<double>(y,x);
+      } 
+    } 
+  } else {
+    cout << "Whoops, tried to set grasp memories 4 but they don't exist for this class." << targetClass << " " << classLabels[targetClass] << endl;
+  }
+        
+  cout << "class " << classLabels[targetClass] << " number ";
+
+}
+
 void copyGraspMemoryTriesToClassGraspMemoryTries() {
   guardGraspMemory();
   for (int y = 0; y < rmWidth; y++) {
@@ -12352,9 +12389,12 @@ void selectMaxTargetThompson(double minDepth) {
       //cout << "graspMemory Thompson incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localX << " " << localY << " " << graspMemoryWeight << endl;
       
       // ATTN 19
-      int maxedOutTries = ((graspMemoryTries[localX + localY*rmWidth + 
-			    rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] >= graspLearningMaxTries) &&
-			   (currentPickMode == LEARNING_SAMPLING));
+      int maxedOutTries = 0;
+
+      if (currentPickMode == LEARNING_SAMPLING) {
+	maxedOutTries = ( (graspMemoryTries[localX + localY*rmWidth + 
+	  rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] >= graspLearningMaxTries) );
+      }
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
       if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
@@ -12421,9 +12461,12 @@ void selectMaxTargetThompsonContinuous(double minDepth) {
       //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] << endl;
 	    
       // ATTN 19
-      int maxedOutTries = ((graspMemoryTries[localIntThX + localIntThY*rmWidth + 
-			    rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] >= graspLearningMaxTries) &&
-			   (currentPickMode == LEARNING_SAMPLING));
+      int maxedOutTries = 0;
+
+      if (currentPickMode == LEARNING_SAMPLING) {
+	maxedOutTries = ( (graspMemoryTries[localX + localY*rmWidth + 
+	  rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] >= graspLearningMaxTries) );
+      }
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
       if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
@@ -12496,9 +12539,12 @@ void selectMaxTargetThompsonContinuous2(double minDepth) {
       //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*(currentGraspGear)] << endl;
 	    
       // ATTN 19
-      int maxedOutTries = ((graspMemoryTries[rx + ry*rmWidth + 
-			    rmWidth*rmWidth*(currentGraspGear)] >= graspLearningMaxTries) &&
-			   (currentPickMode == LEARNING_SAMPLING));
+      int maxedOutTries = 0;
+
+      if (currentPickMode == LEARNING_SAMPLING) {
+	maxedOutTries = ( (graspMemoryTries[localX + localY*rmWidth + 
+	  rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] >= graspLearningMaxTries) );
+      }
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
       if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
@@ -12575,9 +12621,12 @@ void selectMaxTargetThompsonRotated(double minDepth) {
       //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] << endl;
 	    
       // ATTN 19
-      int maxedOutTries = ((graspMemoryTries[localIntThX + localIntThY*rmWidth + 
-			    rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] >= graspLearningMaxTries) &&
-			   (currentPickMode == LEARNING_SAMPLING));
+      int maxedOutTries = 0;
+
+      if (currentPickMode == LEARNING_SAMPLING) {
+	maxedOutTries = ( (graspMemoryTries[localX + localY*rmWidth + 
+	  rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] >= graspLearningMaxTries) );
+      }
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
       if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
@@ -12647,9 +12696,12 @@ void selectMaxTargetThompsonRotated2(double minDepth) {
       //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*(currentGraspGear)] << endl;
 	    
       // ATTN 19
-      int maxedOutTries = ((graspMemoryTries[rx + ry*rmWidth + 
-			    rmWidth*rmWidth*(currentGraspGear)] >= graspLearningMaxTries) &&
-			   (currentPickMode == LEARNING_SAMPLING));
+      int maxedOutTries = 0;
+
+      if (currentPickMode == LEARNING_SAMPLING) {
+	maxedOutTries = ( (graspMemoryTries[localX + localY*rmWidth + 
+	  rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] >= graspLearningMaxTries) );
+      }
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
       if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
@@ -13279,8 +13331,9 @@ void synchronicServo() {
   // ATTN 19
   // if we time out, reset the pick learning 
   if ( ((synServoLockFrames > heightLearningServoTimeout)) && 
-	(currentPickMode == LEARNING_SAMPLING) ) {
+	ARE_GENERIC_PICK_LEARNING() ) {
     // record a failure
+    cout << "Pick failure in synchronic." << endl;
     thisGraspPicked = FAILURE; 
     pilot_call_stack.push_back(131141); // 2D patrol continue
 
@@ -13294,12 +13347,11 @@ void synchronicServo() {
   }
 
   if (bTops.size() <= 0) {
-    ros::Duration delta = (ros::Time::now() - oscilStart) + accumulatedTime;
-    currentEEPose.px = oscCenX + oscAmpX*sin(2.0*3.1415926*oscFreqX*delta.toSec());
-    currentEEPose.py = oscCenY + oscAmpY*sin(2.0*3.1415926*oscFreqY*delta.toSec());
-    currentEEPose.pz = oscCenZ + oscAmpZ*sin(2.0*3.1415926*oscFreqZ*delta.toSec());
-    //pilot_call_stack.push_back(131141); // 2D patrol continue
-    pilot_call_stack.push_back(131156); // synchronic servo
+    //ros::Duration delta = (ros::Time::now() - oscilStart) + accumulatedTime;
+    //currentEEPose.px = oscCenX + oscAmpX*sin(2.0*3.1415926*oscFreqX*delta.toSec());
+    //currentEEPose.py = oscCenY + oscAmpY*sin(2.0*3.1415926*oscFreqY*delta.toSec());
+    //currentEEPose.pz = oscCenZ + oscAmpZ*sin(2.0*3.1415926*oscFreqZ*delta.toSec());
+    pilot_call_stack.push_back(131141); // 2D patrol continue
     pilot_call_stack.push_back(131153); // vision cycle
     pilot_call_stack.push_back(131154); // w1 wait until at current position
     cout << ">>>> HELP,  I CAN'T SEE!!!!! Going back on patrol. <<<<" << endl;
