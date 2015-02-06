@@ -936,6 +936,11 @@ int useContinuousGraspTransform = 1;
 double pickEccentricity = 100.0;
 double heightEccentricity = 1.0;
 
+// algorithmC accecpt and reject thresholds
+double algorithmCTarget = 0.8;
+double algorithmCAT = 0.95;
+double algorithmCRT= 0.95;
+
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -1432,6 +1437,8 @@ void synchronicServo();
 int simulatedServo();
 
 void initRangeMaps();
+
+int isThisGraspMaxedOut(int i);
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -7102,8 +7109,10 @@ cout <<
         thisGraspReleased = UNKNOWN;
         neutral();
 
+	// ATTN 20
+	// use a different stopping criterion for ALGORITHMC?
 	// ATTN 19
-	if (currentPickMode == LEARNING_SAMPLING) {
+	if (ARE_GENERIC_PICK_LEARNING()) {
 	  if (thompsonHardCutoff) {
 	    if (graspAttemptCounter >= thompsonTries) {
 	      cout << "Clearing call stack because we did " << graspAttemptCounter << " tries." << endl;
@@ -7124,10 +7133,6 @@ cout <<
 	    }
 	  }
 	}
-
-	// ATTN 20
-	// XXX TODO stopping criterion for ALGORITHMC
-
 
 	synServoLockFrames = 0;
 	currentGradientServoIterations = 0;
@@ -8361,6 +8366,16 @@ cout <<
 	    thompsonPickHaltFlag = 1;
 	  }
 	}
+	// ATTN 20
+	if (currentPickMode == LEARNING_ALGORITHMC) {
+	  double successes = graspMemoryPicks[i];
+	  double failures =  graspMemoryTries[i] - graspMemoryPicks[i];
+	  // returns probability that mu <= d given successes and failures.
+	  double presult = incbet(successes + 1, failures + 1, algorithmCTarget);
+	  // we want probability that mu > d
+	  double result = 1.0 - presult;
+	  thompsonPickHaltFlag = (result > algorithmCRT);
+	}
       } else {
 	double thisPickRate = double(graspMemoryPicks[i]) / double(graspMemoryTries[i]);
 	int thisNumTries = graspMemoryTries[i];
@@ -8493,6 +8508,16 @@ cout <<
 		 (thisPickRate >= thompsonMinPassRate) ) {
 	      thompsonPickHaltFlag = 1;
 	    }
+	  }
+	  // ATTN 20
+	  if (currentPickMode == LEARNING_ALGORITHMC) {
+	    double successes = graspMemoryPicks[i];
+	    double failures =  graspMemoryTries[i] - graspMemoryPicks[i];
+	    // returns probability that mu <= d given successes and failures.
+	    double presult = incbet(successes + 1, failures + 1, algorithmCTarget);
+	    // we want probability that mu > d
+	    double result = 1.0 - presult;
+	    thompsonPickHaltFlag = (result > algorithmCRT);
 	  }
 
           copyGraspMemoryTriesToClassGraspMemoryTries();
@@ -12396,12 +12421,8 @@ void selectMaxTargetThompson(double minDepth) {
       //cout << "graspMemory Thompson incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localX << " " << localY << " " << graspMemoryWeight << endl;
       
       // ATTN 19
-      int maxedOutTries = 0;
-
-      if (currentPickMode == LEARNING_SAMPLING) {
-	maxedOutTries = ( (graspMemoryTries[localX + localY*rmWidth + 
-	  rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] >= graspLearningMaxTries) );
-      }
+      int i = localX + localY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear);
+      int maxedOutTries = isThisGraspMaxedOut(i);
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
       if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
@@ -12468,12 +12489,8 @@ void selectMaxTargetThompsonContinuous(double minDepth) {
       //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] << endl;
 	    
       // ATTN 19
-      int maxedOutTries = 0;
-
-      if (currentPickMode == LEARNING_SAMPLING) {
-	maxedOutTries = ( (graspMemoryTries[localX + localY*rmWidth + 
-	  rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] >= graspLearningMaxTries) );
-      }
+      int i = localIntThX + localIntThY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear);
+      int maxedOutTries = isThisGraspMaxedOut(i);
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
       if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
@@ -12546,12 +12563,8 @@ void selectMaxTargetThompsonContinuous2(double minDepth) {
       //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*(currentGraspGear)] << endl;
 	    
       // ATTN 19
-      int maxedOutTries = 0;
-
-      if (currentPickMode == LEARNING_SAMPLING) {
-	maxedOutTries = ( (graspMemoryTries[localX + localY*rmWidth + 
-	  rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] >= graspLearningMaxTries) );
-      }
+      int i = rx + ry * rmWidth + rmWidth*rmWidth*(currentGraspGear);
+      int maxedOutTries = isThisGraspMaxedOut(i);
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
       if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
@@ -12628,12 +12641,8 @@ void selectMaxTargetThompsonRotated(double minDepth) {
       //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] << endl;
 	    
       // ATTN 19
-      int maxedOutTries = 0;
-
-      if (currentPickMode == LEARNING_SAMPLING) {
-	maxedOutTries = ( (graspMemoryTries[localX + localY*rmWidth + 
-	  rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] >= graspLearningMaxTries) );
-      }
+      int i = localIntThX + localIntThY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear);
+      int maxedOutTries = isThisGraspMaxedOut(i);
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
       if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
@@ -12703,12 +12712,8 @@ void selectMaxTargetThompsonRotated2(double minDepth) {
       //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*(currentGraspGear)] << endl;
 	    
       // ATTN 19
-      int maxedOutTries = 0;
-
-      if (currentPickMode == LEARNING_SAMPLING) {
-	maxedOutTries = ( (graspMemoryTries[localX + localY*rmWidth + 
-	  rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] >= graspLearningMaxTries) );
-      }
+      int i = rx + ry * rmWidth + rmWidth*rmWidth*(currentGraspGear);
+      int maxedOutTries = isThisGraspMaxedOut(i);
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
       if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
@@ -13829,6 +13834,26 @@ void initRangeMaps() {
     tryToLoadRangeMap(class_crops_path, classLabels[i].c_str(), i);
   }
 }
+
+int isThisGraspMaxedOut(int i) {
+  int toReturn = 0;
+
+  if (currentPickMode == LEARNING_SAMPLING) {
+    toReturn = ( (graspMemoryTries[i] >= graspLearningMaxTries) );
+  }
+
+  // ATTN 20
+  if (currentPickMode == LEARNING_ALGORITHMC) {
+    double successes = graspMemoryPicks[i];
+    double failures = graspMemoryTries[i] - graspMemoryPicks[i];
+    // returns probability that mu <= d given successes and failures.
+    double result = incbet(successes + 1, failures + 1, algorithmCTarget);
+    toReturn = (result > algorithmCRT);
+  }
+
+  return toReturn;
+}
+
 
 ////////////////////////////////////////////////
 // end pilot definitions 
