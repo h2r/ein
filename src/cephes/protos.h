@@ -1,11 +1,18 @@
 #ifndef __SCIPY_SPECIAL_CEPHES
 #define __SCIPY_SPECIAL_CEPHES
 
+
+
 /* Complex numeral.  */
 typedef struct {
     double r;
     double i;
 } cmplx;
+
+#ifdef __cplusplus
+
+extern "C" {
+#endif
 
 extern double acosh(double x);
 extern int airy(double x, double *ai, double *aip, double *bi,
@@ -194,4 +201,9 @@ extern void polcos(double x[], double y[], int nn);
 int polrt(double[], double[], int, cmplx[]);
 
 double yv(double v, double x);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
