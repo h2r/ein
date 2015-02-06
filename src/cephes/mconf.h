@@ -65,8 +65,23 @@
 #ifndef CEPHES_MCONF_H
 #define CEPHES_MCONF_H
 
-#include <Python.h>
-#include <numpy/npy_math.h>
+//include <Python.h>
+//include <numpy/npy_math.h>
+#include <math.h>
+#define NPY_NAN NAN
+#define NPY_INFINITY INFINITY
+#define NPY_PI 3.14159265358979
+#define NPY_2_PI 6.283185307179586
+#define NPY_PI_2 1.5707963267948966
+#define NPY_PI_4 0.7853981633974483
+#define NPY_EULER     0.577215664901532860606512090082402431  /* Euler constant */
+#define npy_isnan(x) ((x) != (x))
+#define npy_isfinite(x) !npy_isnan((x) + (-x))
+#define npy_isinf(x) isinf((x))
+#define NPY_NZERO -0
+
+
+#include <assert.h>
 
 #include "cephes_names.h"
 #include "protos.h"

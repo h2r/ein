@@ -79,11 +79,17 @@
 
 #include <vector>
 #include <string>
-#include "distributions.h"
+
+
 #include "ros/ros.h"
 #include "ros/package.h"
 #include "ros/time.h"
 #include <ctime>
+
+// numpy library 1 (randomkit, for original beta)
+#include "distributions.h"
+// numpy library 2 (cephes, for betainc)
+#include "cephes/protos.h"
 
 #include <tf/transform_listener.h>
 
@@ -6927,37 +6933,44 @@ cout <<
     // capslock + v
     case 131158:
     {
-      double random_value = rk_random(&random_state);
-      ROS_INFO_STREAM("Random value: " << random_value);
-      double sample = rk_beta(&random_state, 1, 1);
-      ROS_INFO_STREAM("Sample from gamma: " << sample);
-      double true_probs[] = {0.3, 0.9, 0.1};
-      int nsuccess[] = {0, 0, 0};
-      int nfailure[] = {0, 0, 0};
-      for (int iteration = 0; iteration < 1000; iteration++) {
-        double sampled_probs[] = {0, 0, 0};
-        for (int action = 0; action < 3; action++) {
-          sampled_probs[action] = rk_beta(&random_state, 
-                                          nsuccess[action] + 1, 
-                                          nfailure[action] + 1);
-        }
-        int argmax = -1;
-        double max = 0;
-        for (int action = 0; action < 3; action++) {
-          ROS_INFO_STREAM("Sampled probs: " << action << " value: " << sampled_probs[action]);
-          if (sampled_probs[action] > max) {
-            max = sampled_probs[action];
-            argmax = action;
-          }
-        }
-        long is_success = rk_binomial(&random_state, 1, true_probs[argmax]);
-        if (is_success) {
-          nsuccess[argmax]++;
-        } else {
-          nfailure[argmax]++;
-        }
-        ROS_INFO_STREAM("Action: " << argmax << " value: " << max);
+
+      cout << "no trials" << endl;
+      double successes = 0;
+      double failures = 0;
+      for (double d = 0; d < 1; d +=0.01) {
+        cout << incbet(successes + 1, failures + 1, 0.5) << endl;
       }
+      // double random_value = rk_random(&random_state);
+      // ROS_INFO_STREAM("Random value: " << random_value);
+      // double sample = rk_beta(&random_state, 1, 1);
+      // ROS_INFO_STREAM("Sample from gamma: " << sample);
+      // double true_probs[] = {0.3, 0.9, 0.1};
+      // int nsuccess[] = {0, 0, 0};
+      // int nfailure[] = {0, 0, 0};
+      // for (int iteration = 0; iteration < 1000; iteration++) {
+      //   double sampled_probs[] = {0, 0, 0};
+      //   for (int action = 0; action < 3; action++) {
+      //     sampled_probs[action] = rk_beta(&random_state, 
+      //                                     nsuccess[action] + 1, 
+      //                                     nfailure[action] + 1);
+      //   }
+      //   int argmax = -1;
+      //   double max = 0;
+      //   for (int action = 0; action < 3; action++) {
+      //     ROS_INFO_STREAM("Sampled probs: " << action << " value: " << sampled_probs[action]);
+      //     if (sampled_probs[action] > max) {
+      //       max = sampled_probs[action];
+      //       argmax = action;
+      //     }
+      //   }
+      //   long is_success = rk_binomial(&random_state, 1, true_probs[argmax]);
+      //   if (is_success) {
+      //     nsuccess[argmax]++;
+      //   } else {
+      //     nfailure[argmax]++;
+      //   }
+      //   ROS_INFO_STREAM("Action: " << argmax << " value: " << max);
+      // }
 
 
     }
