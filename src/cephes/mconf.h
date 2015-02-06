@@ -83,7 +83,7 @@
 
 #include <assert.h>
 
-#include "cephes_names.h"
+//#include "cephes_names.h"
 #include "protos.h"
 
 /* Constant definitions for math error conditions

@@ -6934,43 +6934,37 @@ cout <<
     case 131158:
     {
 
-      cout << "no trials" << endl;
-      double successes = 0;
-      double failures = 0;
-      for (double d = 0; d < 1; d +=0.01) {
-        cout << incbet(successes + 1, failures + 1, 0.5) << endl;
+      double random_value = rk_random(&random_state);
+      ROS_INFO_STREAM("Random value: " << random_value);
+      double sample = rk_beta(&random_state, 1, 1);
+      ROS_INFO_STREAM("Sample from gamma: " << sample);
+      double true_probs[] = {0.3, 0.9, 0.1};
+      int nsuccess[] = {0, 0, 0};
+      int nfailure[] = {0, 0, 0};
+      for (int iteration = 0; iteration < 1000; iteration++) {
+        double sampled_probs[] = {0, 0, 0};
+        for (int action = 0; action < 3; action++) {
+          sampled_probs[action] = rk_beta(&random_state, 
+                                          nsuccess[action] + 1, 
+                                          nfailure[action] + 1);
+        }
+        int argmax = -1;
+        double max = 0;
+        for (int action = 0; action < 3; action++) {
+          ROS_INFO_STREAM("Sampled probs: " << action << " value: " << sampled_probs[action]);
+          if (sampled_probs[action] > max) {
+            max = sampled_probs[action];
+            argmax = action;
+          }
+        }
+        long is_success = rk_binomial(&random_state, 1, true_probs[argmax]);
+        if (is_success) {
+          nsuccess[argmax]++;
+        } else {
+          nfailure[argmax]++;
+        }
+        ROS_INFO_STREAM("Action: " << argmax << " value: " << max);
       }
-      // double random_value = rk_random(&random_state);
-      // ROS_INFO_STREAM("Random value: " << random_value);
-      // double sample = rk_beta(&random_state, 1, 1);
-      // ROS_INFO_STREAM("Sample from gamma: " << sample);
-      // double true_probs[] = {0.3, 0.9, 0.1};
-      // int nsuccess[] = {0, 0, 0};
-      // int nfailure[] = {0, 0, 0};
-      // for (int iteration = 0; iteration < 1000; iteration++) {
-      //   double sampled_probs[] = {0, 0, 0};
-      //   for (int action = 0; action < 3; action++) {
-      //     sampled_probs[action] = rk_beta(&random_state, 
-      //                                     nsuccess[action] + 1, 
-      //                                     nfailure[action] + 1);
-      //   }
-      //   int argmax = -1;
-      //   double max = 0;
-      //   for (int action = 0; action < 3; action++) {
-      //     ROS_INFO_STREAM("Sampled probs: " << action << " value: " << sampled_probs[action]);
-      //     if (sampled_probs[action] > max) {
-      //       max = sampled_probs[action];
-      //       argmax = action;
-      //     }
-      //   }
-      //   long is_success = rk_binomial(&random_state, 1, true_probs[argmax]);
-      //   if (is_success) {
-      //     nsuccess[argmax]++;
-      //   } else {
-      //     nfailure[argmax]++;
-      //   }
-      //   ROS_INFO_STREAM("Action: " << argmax << " value: " << max);
-      // }
 
 
     }
@@ -18263,6 +18257,28 @@ void processSaliency(Mat in, Mat out) {
   GaussianBlur(out, out, cv::Size(0,0), saliencyPostSigma);
 }
 
+void testIncbet() {
+  cout << "no trials" << endl;
+  double successes = 0;
+  double failures = 0;
+  cout << "Successes: " << successes << " Failures: " << failures << endl;
+  for (double d = 0; d < 1; d +=0.01) {
+    // returns probability that mu <= d given successes and failures.
+    double result = incbet(successes + 1, failures + 1, d);
+    cout << "Result: " << result << endl;
+  }
+
+  successes = 10;
+  failures = 10;
+  cout << "Successes: " << successes << " Failures: " << failures << endl;
+  for (double d = 0; d < 1; d +=0.01) {
+    // returns probability that mu <= d given successes and failures.
+    double result = incbet(successes + 1, failures + 1, d);
+    cout << "Result: " << result << endl;
+  }
+
+}
+
 ////////////////////////////////////////////////
 // end node definitions 
 //
@@ -18270,6 +18286,9 @@ void processSaliency(Mat in, Mat out) {
 ////////////////////////////////////////////////
 
 int main(int argc, char **argv) {
+  //testIncbet();
+  //exit(0);
+ 
 
   srand(time(NULL));
   time(&firstTime);
