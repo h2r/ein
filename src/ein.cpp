@@ -938,6 +938,7 @@ int thompsonHeightHaltFlag = 0;
 
 int useContinuousGraspTransform = 1;
 
+double priorScaleFactor = 0.001;
 double pickEccentricity = 100.0;
 double heightEccentricity = 1.0;
 
@@ -11453,8 +11454,8 @@ void loadSampledGraspMemory() {
 	// ATTN 19 this isn't quite Thompson sampling...
 	//   regularization.
         int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
-        double nsuccess = pickEccentricity * (graspMemoryPicks[i]);
-        double nfailure = pickEccentricity * (graspMemoryTries[i] - graspMemoryPicks[i]);
+        double nsuccess = (1.0/priorScaleFactor) * pickEccentricity * (graspMemoryPicks[i]);
+        double nfailure = (1.0/priorScaleFactor) * pickEccentricity * (graspMemoryTries[i] - graspMemoryPicks[i]);
         graspMemorySample[i] = rk_beta(&random_state, 
                                        nsuccess + 1, 
                                        nfailure + 1);
@@ -11604,6 +11605,9 @@ void loadPriorGraspMemory(priorType prior) {
 	}
 	graspMemoryPicks[i] = nsuccess;
 	graspMemoryTries[i] = nsuccess + nfailure;
+
+	graspMemoryPicks[i] *= priorScaleFactor;
+	graspMemoryTries[i] *= priorScaleFactor;
       }
     }
   }
@@ -11621,8 +11625,8 @@ void loadMarginalHeightMemory() {
 void loadSampledHeightMemory() {
   ROS_INFO("Loading sampled height memory.");
   for (int i = 0; i < hmWidth; i++) {
-    double nsuccess = heightEccentricity * (heightMemoryPicks[i]);
-    double nfailure = heightEccentricity * (heightMemoryTries[i] - heightMemoryPicks[i]);
+    double nsuccess = (1.0/priorScaleFactor) * heightEccentricity * (heightMemoryPicks[i]);
+    double nfailure = (1.0/priorScaleFactor) * heightEccentricity * (heightMemoryTries[i] - heightMemoryPicks[i]);
     heightMemorySample[i] = rk_beta(&random_state, 
                                     nsuccess + 1, 
                                     nfailure + 1);
@@ -11653,12 +11657,12 @@ void testHeightConversion() {
 
 void loadPriorHeightMemory(priorType prior) {
   for (int i = 0; i < hmWidth; i++) {
-    heightMemoryPicks[i] = 1;
-    heightMemoryTries[i] = 1;
+    heightMemoryPicks[i] = 1*priorScaleFactor;
+    heightMemoryTries[i] = 1*priorScaleFactor;
   }
   if (prior == ANALYTIC_PRIOR) {
-    heightMemoryPicks[1] = 1;
-    heightMemoryTries[1] = 1;
+    heightMemoryPicks[1] = 1*priorScaleFactor;
+    heightMemoryTries[1] = 1*priorScaleFactor;
   }
 }
 
