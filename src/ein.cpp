@@ -927,6 +927,7 @@ double graspDepth = -.07;//-.09;
 double lastPickHeight = 0;
 double pickFlushFactor = 0.11;
 
+int bbLearningMaxTries = 15;
 int graspLearningMaxTries = 10;
 
 int thompsonHardCutoff = 0;
@@ -938,14 +939,14 @@ int thompsonHeightHaltFlag = 0;
 
 int useContinuousGraspTransform = 1;
 
-double priorScaleFactor = 0.001;
 double pickEccentricity = 100.0;
 double heightEccentricity = 1.0;
 
 // algorithmC accecpt and reject thresholds
-double algorithmCTarget = 0.8;
-double algorithmCAT = 0.95;
-double algorithmCRT= 0.95;
+double algorithmCEPS = 0.2;
+double algorithmCTarget = 0.7;
+double algorithmCAT = 0.7;
+double algorithmCRT = 0.95;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -1308,8 +1309,8 @@ int aerialGradientWidth = 100;
 int aerialGradientReticleWidth = 200;
 
 // XXX TODO
-int softMaxGradientServoIterations = 10;//5;//3;//10;//3;
-int hardMaxGradientServoIterations = 10;//5;//3;//10;//20;//3;//10;
+int softMaxGradientServoIterations = 5;//3;//10;//3;
+int hardMaxGradientServoIterations = 5;//5;//3;//10;//20;//3;//10;
 int currentGradientServoIterations = 0;
 
 int fuseBlueBoxes = 1;
@@ -7150,7 +7151,6 @@ cout <<
   
 	currentEEPose.px = oscCenX + oscAmpX*sin(2.0*3.1415926*oscFreqX*delta.toSec());
 	currentEEPose.py = oscCenY + oscAmpY*sin(2.0*3.1415926*oscFreqY*delta.toSec());
-	currentEEPose.pz = oscCenZ + oscAmpZ*sin(2.0*3.1415926*oscFreqZ*delta.toSec());
 
 	// check to see if the target class is around, or take closest
 	if ( ((pilotTarget.px != -1) && (pilotTarget.py != -1)) ||
@@ -8349,7 +8349,12 @@ cout <<
         //graspMemoryTries[j+1*rmWidth*rmWidth]++;
         //graspMemoryTries[j+2*rmWidth*rmWidth]++;
         //graspMemoryTries[j+3*rmWidth*rmWidth]++;
-        graspMemoryTries[i]++;
+	if (graspMemoryTries[i] <= 1.0) {
+	  graspMemoryTries[i] = 1.001;
+	  graspMemoryPicks[i] = 0.0;
+	} else {
+	  graspMemoryTries[i]++;
+	}
       }
       if ((thisGraspPicked == SUCCESS) && (thisGraspReleased == SUCCESS)) {
         graspSuccessCounter++;
@@ -8383,9 +8388,19 @@ cout <<
 	  double presult = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
 	  // we want probability that mu > d
 	  double result = 1.0 - presult;
-	  cout << "prob that mu > d: " << result << " algorithmCRT: " << algorithmCRT << endl;
+
+	  double presult2a = cephes_incbet(successes + 1, failures + 1, algorithmCTarget + algorithmCEPS);
+	  double presult2b = cephes_incbet(successes + 1, failures + 1, algorithmCTarget - algorithmCEPS);
+	  // we want probability that 
+	  //  algorithmCTarget - algorithmCEPS < mu < algorithmCTarget + algorithmCEPS
+	  double result2 = presult2a - presult2b;
+
+	  cout << "prob that mu > d: " << result << " algorithmCAT: " << algorithmCAT << endl;
 	  if (currentPickMode == LEARNING_ALGORITHMC) {
-	    thompsonPickHaltFlag = (result > algorithmCRT);
+	    thompsonPickHaltFlag = (result > algorithmCAT);
+	    if (result2 > algorithmCAT) {
+	      thompsonPickHaltFlag = 1;
+	    }
 	  }
 	}
       } else {
@@ -8452,7 +8467,12 @@ cout <<
 	    case LEARNING_ALGORITHMC:
 	    case LEARNING_SAMPLING:
 	      {
-		graspMemoryTries[i]++;
+		if (graspMemoryTries[i] <= 1.0) {
+		  graspMemoryTries[i] = 1.001;
+		  graspMemoryPicks[i] = 0.0;
+		} else {
+		  graspMemoryTries[i]++;
+		}
 		//graspMemoryTries[j+0*rmWidth*rmWidth]++;
 		//graspMemoryTries[j+1*rmWidth*rmWidth]++;
 		//graspMemoryTries[j+2*rmWidth*rmWidth]++;
@@ -8529,9 +8549,19 @@ cout <<
 	    double presult = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
 	    // we want probability that mu > d
 	    double result = 1.0 - presult;
-	    cout << "prob that mu > d: " << result << " algorithmCRT: " << algorithmCRT << endl;
+
+	    double presult2a = cephes_incbet(successes + 1, failures + 1, algorithmCTarget + algorithmCEPS);
+	    double presult2b = cephes_incbet(successes + 1, failures + 1, algorithmCTarget - algorithmCEPS);
+	    // we want probability that 
+	    //  algorithmCTarget - algorithmCEPS < mu < algorithmCTarget + algorithmCEPS
+	    double result2 = presult2a - presult2b;
+
+	    cout << "prob that mu > d: " << result << " algorithmCAT: " << algorithmCAT << endl;
 	    if (currentPickMode == LEARNING_ALGORITHMC) {
-	      thompsonPickHaltFlag = (result > algorithmCRT);
+	      thompsonPickHaltFlag = (result > algorithmCAT);
+	      if (result2 > algorithmCAT) {
+		thompsonPickHaltFlag = 1;
+	      }
 	    }
 	  }
 
@@ -9502,7 +9532,7 @@ cout <<
 	  //currentEEPose.pz = wholeFoodsCounter1.pz+.1;
 	  pilot_call_stack.push_back(1245248); // change to height 1
 	}
-	pilot_call_stack.push_back(1179723); // change bounding box inference mode to LEARNING_SAMPLING
+	//pilot_call_stack.push_back(1179723); // change bounding box inference mode to LEARNING_SAMPLING
 	pilot_call_stack.push_back('3'); // recall register 3
       }
       break;
@@ -9614,10 +9644,26 @@ cout <<
 	  cout << "Invalid currentBoundingBoxMode. Asserting." << endl;
 	  assert(0);
 	}
+        drawHeightMemorySample();
+
 	double best_height_prob = 0.0;
 	int max_i = -1;
 	for (int i = 0; i < hmWidth; i++) {
-	  if (heightMemorySample[i] > best_height_prob) {
+
+	  int thisHeightMaxedOut = 0;
+
+	  if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+	    thisHeightMaxedOut = ( (heightMemoryTries[i] >= bbLearningMaxTries) );
+	  } else if (currentBoundingBoxMode == LEARNING_ALGORITHMC) {
+	    double successes = heightMemoryPicks[i];
+	    double failures = heightMemoryTries[i] - heightMemoryPicks[i];
+	    // returns probability that mu <= d given successes and failures.
+	    double result = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
+	    thisHeightMaxedOut = (result > algorithmCRT);
+	  }
+
+	  if ( (heightMemorySample[i] > best_height_prob) &&
+	       (!thisHeightMaxedOut) ) {
 	    max_i = i;
 	    best_height_prob = heightMemorySample[i];
 	  }
@@ -11454,8 +11500,8 @@ void loadSampledGraspMemory() {
 	// ATTN 19 this isn't quite Thompson sampling...
 	//   regularization.
         int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
-        double nsuccess = (1.0/priorScaleFactor) * pickEccentricity * (graspMemoryPicks[i]);
-        double nfailure = (1.0/priorScaleFactor) * pickEccentricity * (graspMemoryTries[i] - graspMemoryPicks[i]);
+        double nsuccess = pickEccentricity * (graspMemoryPicks[i]);
+        double nfailure = pickEccentricity * (graspMemoryTries[i] - graspMemoryPicks[i]);
         graspMemorySample[i] = rk_beta(&random_state, 
                                        nsuccess + 1, 
                                        nfailure + 1);
@@ -11605,9 +11651,6 @@ void loadPriorGraspMemory(priorType prior) {
 	}
 	graspMemoryPicks[i] = nsuccess;
 	graspMemoryTries[i] = nsuccess + nfailure;
-
-	graspMemoryPicks[i] *= priorScaleFactor;
-	graspMemoryTries[i] *= priorScaleFactor;
       }
     }
   }
@@ -11625,8 +11668,8 @@ void loadMarginalHeightMemory() {
 void loadSampledHeightMemory() {
   ROS_INFO("Loading sampled height memory.");
   for (int i = 0; i < hmWidth; i++) {
-    double nsuccess = (1.0/priorScaleFactor) * heightEccentricity * (heightMemoryPicks[i]);
-    double nfailure = (1.0/priorScaleFactor) * heightEccentricity * (heightMemoryTries[i] - heightMemoryPicks[i]);
+    double nsuccess = heightEccentricity * (heightMemoryPicks[i]);
+    double nfailure = heightEccentricity * (heightMemoryTries[i] - heightMemoryPicks[i]);
     heightMemorySample[i] = rk_beta(&random_state, 
                                     nsuccess + 1, 
                                     nfailure + 1);
@@ -11657,12 +11700,12 @@ void testHeightConversion() {
 
 void loadPriorHeightMemory(priorType prior) {
   for (int i = 0; i < hmWidth; i++) {
-    heightMemoryPicks[i] = 1*priorScaleFactor;
-    heightMemoryTries[i] = 1*priorScaleFactor;
+    heightMemoryPicks[i] = 1;
+    heightMemoryTries[i] = 1;
   }
   if (prior == ANALYTIC_PRIOR) {
-    heightMemoryPicks[1] = 1*priorScaleFactor;
-    heightMemoryTries[1] = 1*priorScaleFactor;
+    heightMemoryPicks[1] = 1;
+    heightMemoryTries[1] = 1;
   }
 }
 
@@ -12808,9 +12851,19 @@ void recordBoundingBoxSuccess() {
     double presult = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
     // we want probability that mu > d
     double result = 1.0 - presult;
-    cout << "prob that mu > d: " << result << " algorithmCRT: " << algorithmCRT << endl;
+
+    double presult2a = cephes_incbet(successes + 1, failures + 1, algorithmCTarget + algorithmCEPS);
+    double presult2b = cephes_incbet(successes + 1, failures + 1, algorithmCTarget - algorithmCEPS);
+    // we want probability that 
+    //  algorithmCTarget - algorithmCEPS < mu < algorithmCTarget + algorithmCEPS
+    double result2 = presult2a - presult2b;
+
+    cout << "prob that mu > d: " << result << " algorithmCAT: " << algorithmCAT << endl;
     if (currentBoundingBoxMode == LEARNING_ALGORITHMC) {
-      thompsonPickHaltFlag = (result > algorithmCRT);
+      thompsonHeightHaltFlag = (result > algorithmCAT);
+      if (result2 > algorithmCAT) {
+	thompsonHeightHaltFlag = 1;
+      }
     }
   }
 }
