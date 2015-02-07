@@ -890,6 +890,11 @@ int ARE_GENERIC_PICK_LEARNING() {
 	   (currentPickMode == LEARNING_ALGORITHMC) );
 }
 
+int ARE_GENERIC_HEIGHT_LEARNING() {
+  return ( (currentHeightMode == LEARNING_SAMPLING) ||
+	   (currentHeightMode == LEARNING_ALGORITHMC) );
+}
+
 int orientationCascade = 0;
 int lPTthresh = 3;
 int orientationCascadeHalfWidth = 2;
@@ -6000,12 +6005,12 @@ cout <<
 	      pilot_call_stack.push_back(131133); // loadMarginalGraspMemory
 	    }
 	    break;
-	  case LEARNING_ALGORITHMC:
 	  case LEARNING_SAMPLING:
 	    {
 	      pilot_call_stack.push_back(131117); // loadSampledGraspMemory
 	    }
 	    break;
+	  case LEARNING_ALGORITHMC:
 	  case STATIC_MARGINALS:
 	    {
 	      pilot_call_stack.push_back(131133); // loadMarginalGraspMemory
@@ -6026,7 +6031,7 @@ cout <<
     // numlock + 0
     case 1048624:
       {
-	if (currentBoundingBoxMode != LEARNING_SAMPLING)
+	if (!ARE_GENERIC_HEIGHT_LEARNING())
 	  pilot_call_stack.push_back(131141); // 2D patrol continue
 
 	pilot_call_stack.push_back(131153); // vision cycle
@@ -6064,7 +6069,7 @@ cout <<
 
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 
-	if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+	if (ARE_GENERIC_HEIGHT_LEARNING()) {
 	  pilot_call_stack.push_back(1179687); // set random position for bblearn
         } else {
 	  pilot_call_stack.push_back(1048623); // numlock + /
@@ -6073,7 +6078,7 @@ cout <<
 	pushCopies('s', 3);
 	pilot_call_stack.push_back(131154); // w1 wait until at current position
 
-	if (currentBoundingBoxMode == LEARNING_SAMPLING)
+	if (ARE_GENERIC_HEIGHT_LEARNING())
 	  pilot_call_stack.push_back('4'); // assume pose at register 4
 	else
 	  pilot_call_stack.push_back('2'); // assume pose at register 2
@@ -8356,7 +8361,7 @@ cout <<
           graspMemoryPicks[i]++;
         }
         
-        if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+        if (ARE_GENERIC_HEIGHT_LEARNING()) {
           recordBoundingBoxSuccess();
         }
 
@@ -8387,7 +8392,7 @@ cout <<
 	int thisNumTries = graspMemoryTries[i];
 	cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
         sad();
-        if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+        if (ARE_GENERIC_HEIGHT_LEARNING()) {
           recordBoundingBoxFailure();
         }
       }
@@ -8465,14 +8470,14 @@ cout <<
 	  }
           cout << "gripperPosition: " << gripperPosition << " gripperThresh: " << gripperThresh << endl;
 	  if (!isGripperGripping()) {
-	    if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+	    if (ARE_GENERIC_HEIGHT_LEARNING()) {
 	      recordBoundingBoxFailure();
 	    }
             cout << "Failed grasp." << endl;
 	    //pilot_call_stack.push_back('Y'); // pause stack execution
 	    pushCopies(1245308, 15); // beep
 	  } else {
-	    if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+	    if (ARE_GENERIC_HEIGHT_LEARNING()) {
 	      recordBoundingBoxSuccess();
 	    }
 	    graspSuccessCounter++;
@@ -9435,6 +9440,14 @@ cout <<
 	cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
       }
       break;
+    // change bounding box inference mode to LEARNING_ALGORITHMC
+    // capslock + numlock + K
+    case 1245291:
+      {
+	currentBoundingBoxMode = LEARNING_ALGORITHMC;
+	cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
+      }
+      break;
     // change bounding box inference mode to STATIC_MARGINALS
     // capslock + numlock + l
     case 1179724:
@@ -9594,6 +9607,11 @@ cout <<
 	  loadSampledHeightMemory();
 	} else if (currentBoundingBoxMode == STATIC_MARGINALS) {
 	  loadMarginalHeightMemory();
+	} else if (currentBoundingBoxMode == LEARNING_ALGORITHMC) {
+	  loadMarginalHeightMemory();
+	} else {
+	  cout << "Invalid currentBoundingBoxMode. Asserting." << endl;
+	  assert(0);
 	}
 	double best_height_prob = 0.0;
 	int max_i = -1;
@@ -11250,6 +11268,7 @@ void changeTargetClass(int newTargetClass) {
       pilot_call_stack.push_back(1244936); // loadPriorHeightMemory
     }
     break;
+  case LEARNING_ALGORITHMC:
   case LEARNING_SAMPLING:
     {
       pilot_call_stack.push_back(1245289); // set heightMemories from classHeightMemories
@@ -12770,9 +12789,25 @@ void recordBoundingBoxSuccess() {
   double thisPickRate = double(heightMemoryPicks[currentThompsonHeightIdx]) / double(heightMemoryTries[currentThompsonHeightIdx]);
   int thisNumTries = heightMemoryTries[currentThompsonHeightIdx];
   cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
-  if ( (thisNumTries >= thompsonMinTryCutoff) && 
-       (thisPickRate >= thompsonMinPassRate) ) {
-    thompsonHeightHaltFlag = 1;
+  if (currentHeightMode == LEARNING_SAMPLING) {
+    if ( (thisNumTries >= thompsonMinTryCutoff) && 
+	 (thisPickRate >= thompsonMinPassRate) ) {
+      thompsonHeightHaltFlag = 1;
+    }
+  }
+
+  // ATTN 20
+  {
+    double successes = heightMemoryPicks[currentThompsonHeightIdx];
+    double failures =  heightMemoryTries[currentThompsonHeightIdx] - heightMemoryPicks[currentThompsonHeightIdx];
+    // returns probability that mu <= d given successes and failures.
+    double presult = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
+    // we want probability that mu > d
+    double result = 1.0 - presult;
+    cout << "prob that mu > d: " << result << " algorithmCRT: " << algorithmCRT << endl;
+    if (currentHeightMode == LEARNING_ALGORITHMC) {
+      thompsonPickHaltFlag = (result > algorithmCRT);
+    }
   }
 }
 
@@ -13214,7 +13249,7 @@ void gradientServo() {
       (currentGradientServoIterations > hardMaxGradientServoIterations) )
       {
 	// ATTN 12
-	if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+	if (ARE_GENERIC_HEIGHT_LEARNING()) {
 	  cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << gradientServoDuringHeightLearning << endl;
 	  cout << "bbLearning: returning from synchronic servo." << endl;
 	  return;
@@ -13338,11 +13373,11 @@ void synchronicServo() {
   // ATTN 12
   // if we time out, reset the bblearning program
   if ( ((synServoLockFrames > heightLearningServoTimeout) || (bTops.size() <= 0)) && 
-	(currentBoundingBoxMode == LEARNING_SAMPLING) ) {
+	(ARE_GENERIC_HEIGHT_LEARNING()) ) {
     cout << "bbLearning: synchronic servo early outting: ";
     if (bTops.size() <= 0)
       cout << "NO BLUE BOXES ";
-    if ((synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING))
+    if ((synServoLockFrames > heightLearningServoTimeout) && (ARE_GENERIC_HEIGHT_LEARNING()))
       cout << "TIMED OUT ";
     cout << endl;
     restartBBLearning();
@@ -13442,7 +13477,7 @@ void synchronicServo() {
 	 !( (surveyDuringServo) && (surveyTotalCounts < viewsWithNoise) )   )
     {
       // ATTN 12
-      if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+      if (ARE_GENERIC_HEIGHT_LEARNING()) {
 	cout << "bbLearning: synchronic servo succeeded. gradientServoDuringHeightLearning: " << gradientServoDuringHeightLearning << endl;
 	if (gradientServoDuringHeightLearning) {
 	  cout << "bbLearning: proceeding to gradient servo." << endl;
