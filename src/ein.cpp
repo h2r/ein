@@ -89,7 +89,7 @@
 // numpy library 1 (randomkit, for original beta)
 #include "distributions.h"
 // numpy library 2 (cephes, for betainc)
-#include "cephes/protos.h"
+//#include "cephes/protos.h"
 
 #include <tf/transform_listener.h>
 
@@ -1318,6 +1318,9 @@ int fusePasses = 5;
 int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack = 0);
 int getRingRangeAtTime(ros::Time t, double &value, int drawSlack = 0);
 int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack = 0);
+extern "C" {
+double cephes_incbet(double a, double b, double x) ;
+}
 void setRingImageAtTime(ros::Time t, Mat& imToSet);
 void setRingRangeAtTime(ros::Time t, double rgToSet);
 void setRingPoseAtTime(ros::Time t, geometry_msgs::Pose epToSet);
@@ -8367,14 +8370,17 @@ cout <<
 	  }
 	}
 	// ATTN 20
-	if (currentPickMode == LEARNING_ALGORITHMC) {
+	{
 	  double successes = graspMemoryPicks[i];
 	  double failures =  graspMemoryTries[i] - graspMemoryPicks[i];
 	  // returns probability that mu <= d given successes and failures.
-	  double presult = incbet(successes + 1, failures + 1, algorithmCTarget);
+	  double presult = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
 	  // we want probability that mu > d
 	  double result = 1.0 - presult;
-	  thompsonPickHaltFlag = (result > algorithmCRT);
+	  cout << "prob that mu > d: " << result << " algorithmCRT: " << algorithmCRT << endl;
+	  if (currentPickMode == LEARNING_ALGORITHMC) {
+	    thompsonPickHaltFlag = (result > algorithmCRT);
+	  }
 	}
       } else {
 	double thisPickRate = double(graspMemoryPicks[i]) / double(graspMemoryTries[i]);
@@ -8510,14 +8516,17 @@ cout <<
 	    }
 	  }
 	  // ATTN 20
-	  if (currentPickMode == LEARNING_ALGORITHMC) {
+	  {
 	    double successes = graspMemoryPicks[i];
 	    double failures =  graspMemoryTries[i] - graspMemoryPicks[i];
 	    // returns probability that mu <= d given successes and failures.
-	    double presult = incbet(successes + 1, failures + 1, algorithmCTarget);
+	    double presult = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
 	    // we want probability that mu > d
 	    double result = 1.0 - presult;
-	    thompsonPickHaltFlag = (result > algorithmCRT);
+	    cout << "prob that mu > d: " << result << " algorithmCRT: " << algorithmCRT << endl;
+	    if (currentPickMode == LEARNING_ALGORITHMC) {
+	      thompsonPickHaltFlag = (result > algorithmCRT);
+	    }
 	  }
 
           copyGraspMemoryTriesToClassGraspMemoryTries();
@@ -13847,7 +13856,7 @@ int isThisGraspMaxedOut(int i) {
     double successes = graspMemoryPicks[i];
     double failures = graspMemoryTries[i] - graspMemoryPicks[i];
     // returns probability that mu <= d given successes and failures.
-    double result = incbet(successes + 1, failures + 1, algorithmCTarget);
+    double result = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
     toReturn = (result > algorithmCRT);
   }
 
@@ -18334,6 +18343,11 @@ void processSaliency(Mat in, Mat out) {
   GaussianBlur(out, out, cv::Size(0,0), saliencyPostSigma);
 }
 
+// double cephes_incbet(double a, double b, double x) 
+// {
+//   return 0.0;
+// }
+
 void testIncbet() {
   cout << "no trials" << endl;
   double successes = 0;
@@ -18341,7 +18355,7 @@ void testIncbet() {
   cout << "Successes: " << successes << " Failures: " << failures << endl;
   for (double d = 0; d < 1; d +=0.01) {
     // returns probability that mu <= d given successes and failures.
-    double result = incbet(successes + 1, failures + 1, d);
+    double result = cephes_incbet(successes + 1, failures + 1, d);
     cout << "Result: " << result << endl;
   }
 
@@ -18350,7 +18364,7 @@ void testIncbet() {
   cout << "Successes: " << successes << " Failures: " << failures << endl;
   for (double d = 0; d < 1; d +=0.01) {
     // returns probability that mu <= d given successes and failures.
-    double result = incbet(successes + 1, failures + 1, d);
+    double result = cephes_incbet(successes + 1, failures + 1, d);
     cout << "Result: " << result << endl;
   }
 
