@@ -72,18 +72,18 @@ manipulate generic objects.  However, in many applications,
 general-purpose object detection or manipulation is not required: the
 robot would be useful if it could recognize, localize, and manipulate
 the relatively small set of specific objects most important in that
-application, but do so with very high reliability.The contribution of
-this paper is to automate this adaptation process by formalizing a
+application, but do so with very high reliability.  The contribution
+of this paper is to automate this adaptation process by formalizing a
 grasping system as a hierarchy of bandit problems, enabling the robot
-to apply learning techniques such as Thompson sampling to adapt itself
-to manipulate specific objects with increased accuracy.  We define a
-new variant of the bandit problem, which we term simple-regret
-stopping bandits and demonstrate that it finds an optimal arm more
-quickly than Thomspon sampling when we provide an ordering on arms.
-Our the bandit-based adaptation step significantly improves accuracy
-over a non-adaptive system, enabling a robot to quickly and
-autonomously acquire models for objects, and adaptively improve them
-through experience.
+to apply learning techniques to adapt itself to manipulate specific
+objects with increased accuracy.  The robot performs best arm
+identification using a variant of Hoeffding races, enabling it to
+quickly find an optimal arm and then move on to the next object.  Our
+approach also incorporates knowledge from a prior defined in terms of
+an ordering on the arms.  We demonstrate that our the bandit-based
+adaptation step significantly improves accuracy over a non-adaptive
+system, enabling a robot to quickly and autonomously acquire models
+for objects, and adaptively improve them through experience.
 
 
 %%   To address this
@@ -142,17 +142,11 @@ supervision.
 
 Unlike traditional bandit problems, where the agent trades off
 exploration and exploitation, in our formulation, the robot aims to
-minimize simple regret after a finite exploration period.  This
-approach is similar to \citet{bubeck09}.  However, in contrast to
-their approach, where the agent always uses its entire training
-budget, in our problem, we would like the robot to stop training once
-it has acquired a good enough model for the object (for example, a
-success rate greater than 95\%, so that it can move on to the next
-object.  For some objects, where many grasps are effective, this
-success rate can be quickly achieved with little adaptation, but other
-objects require extensive trials to find a good grasp.  Our approach
-enables the robot to quickly converge when it finds a good grasp, so
-it can move on to the next object.
+minimize simple regret after a finite exploration
+period~\citep{bubeck09}.  We follow \citet{maron93} to explore until
+the agent is confident that it has found an acceptable arm.  Our
+approach enables the robot to quickly converge when it finds a good
+grasp, so it can move on to the next object.
 
 
 %% We use slower, more accurate sensing approaches
@@ -485,14 +479,6 @@ that promising arms are first, not assign any specific probability
 distribution on $\mu$.
 
 
-The agent is given an n-armed bandit, where each arm pays out $1$ with
-probability $\mu_i$ and $0$ otherwise.  The agent's goal is to
-identify a good arm (with payout >= k) with probability c (e.g., 95\%
-confidence that this arm is good) as quickly as possible.  As soon as
-it has done this, it should terminate.  The agent is also given an
-ordering on the arms, promising ones first.  The order isn't perfect
-(if it was, it would be done).
-
 Our algorithm is to iterate through each arm, and try it until we have
 identified it either is above $k$ with probability $c$ (in which case
 it terminates) or it is below $k$ with probability $c$ (in which case
@@ -554,13 +540,14 @@ $\mbox{Initialize } F_0 \dots F_n \mbox{ to } 0$\\
 
 
 \section{Robotic Implementation}
-We use stock baxter and one computer.
-We use the wrist cameras to obtain RGB at 30hz. Different parts of the visual pipeline
-run at different frequencies, but the full visual system runs at 2Hz in typical conditions.
-To obtain the 3D point cloud maps, we use the IR sensor in conjunction with the RGB measurement.
-Color triangulation, a nice image of the brush.
-Quickly describe raster scan.
-Parzen kernel density estimator, downsampling to fill in data.
+
+We use stock Baxter and one computer.  We use the wrist cameras to
+obtain RGB at 30hz. Different parts of the visual pipeline run at
+different frequencies, but the full visual system runs at 2Hz in
+typical conditions.  To obtain the 3D point cloud maps, we use the IR
+sensor in conjunction with the RGB measurement.  Color triangulation,
+a nice image of the brush.  Quickly describe raster scan.  Parzen
+kernel density estimator, downsampling to fill in data.
 
 Figure: A nice scan of the brush together with an RGB image of the brush from a similar height.
 
