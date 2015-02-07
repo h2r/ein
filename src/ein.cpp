@@ -891,8 +891,8 @@ int ARE_GENERIC_PICK_LEARNING() {
 }
 
 int ARE_GENERIC_HEIGHT_LEARNING() {
-  return ( (currentHeightMode == LEARNING_SAMPLING) ||
-	   (currentHeightMode == LEARNING_ALGORITHMC) );
+  return ( (currentBoundingBoxMode == LEARNING_SAMPLING) ||
+	   (currentBoundingBoxMode == LEARNING_ALGORITHMC) );
 }
 
 int orientationCascade = 0;
@@ -12793,7 +12793,7 @@ void recordBoundingBoxSuccess() {
   double thisPickRate = double(heightMemoryPicks[currentThompsonHeightIdx]) / double(heightMemoryTries[currentThompsonHeightIdx]);
   int thisNumTries = heightMemoryTries[currentThompsonHeightIdx];
   cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
-  if (currentHeightMode == LEARNING_SAMPLING) {
+  if (currentBoundingBoxMode == LEARNING_SAMPLING) {
     if ( (thisNumTries >= thompsonMinTryCutoff) && 
 	 (thisPickRate >= thompsonMinPassRate) ) {
       thompsonHeightHaltFlag = 1;
@@ -12809,7 +12809,7 @@ void recordBoundingBoxSuccess() {
     // we want probability that mu > d
     double result = 1.0 - presult;
     cout << "prob that mu > d: " << result << " algorithmCRT: " << algorithmCRT << endl;
-    if (currentHeightMode == LEARNING_ALGORITHMC) {
+    if (currentBoundingBoxMode == LEARNING_ALGORITHMC) {
       thompsonPickHaltFlag = (result > algorithmCRT);
     }
   }
