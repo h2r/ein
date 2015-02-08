@@ -12,7 +12,8 @@ def drawThresholds():
     """ Draw the thresholds in mpl. """
     mpl.figure(figsize=(10,10))
     policy = computePolicy()
-    max_idx = na.sqrt(len(policy))
+    #max_idx = na.sqrt(len(policy))
+    max_idx = 16
 
     mpl.xticks([i for i in na.arange(0, max_idx)])
     mpl.yticks([i for i in na.arange(0, max_idx)])
@@ -53,16 +54,16 @@ def drawThresholds():
             else:
                 raise ValueError("Unexpected result: " + `result`)
                 
-    mpl.scatter(accept_X, accept_Y, marker="s", color="g", s=780)
-    mpl.scatter(reject_X, reject_Y, marker="s", color="r", s=780)
+    mpl.scatter(accept_X, na.array(accept_Y) - 0.2, marker="s", color="g", s=1300)
+    mpl.scatter(reject_X, na.array(reject_Y) - 0.2, marker="s", color="r", s=1300)
 
     for (mx, my) in zip(continue_X, continue_Y):
-        mpl.arrow(mx - 0.25, my - 0.25, 0, 0.75, head_width=0.2, length_includes_head=True)
-        mpl.arrow(mx - 0.25, my - 0.25, 0.75, 0, head_width=0.2, length_includes_head=True)
+        mpl.arrow(mx - 0.25, my - 0.25 - 0.2, 0, 0.75, head_width=0.2, length_includes_head=True)
+        mpl.arrow(mx - 0.25, my - 0.25 - 0.2, 0.75, 0, head_width=0.2, length_includes_head=True)
 
 
     mpl.axis('equal')
-    mpl.axis((-0.5, max_idx - 0.75, -0.5, max_idx - 0.75))
+    mpl.axis((-0.5, max_idx - 1, -0.5, max_idx - 1)) 
     mpl.show()
 
 def printThresholds():
