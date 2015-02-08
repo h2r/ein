@@ -108,13 +108,10 @@ class AlgorithmB(Policy):
         return "Algorithm B: " + str(self.confidence)
 
 
-
-
 class AlgorithmC(Policy):
     def __init__(self, confidence=95):
-        self.upperbound = 0.8
+        self.upperbound = 0.75
         self.confidence = confidence  / 100.0
-
 
     def train(self, bandit, max_budget):
         self.S = na.zeros(bandit.narms) * 0.0
@@ -126,7 +123,6 @@ class AlgorithmC(Policy):
                     return
 
                 r = bandit.sample(a_i)
-
                 if r == 1:
                     self.S[a_i] += 1.0
                 else:
@@ -364,7 +360,8 @@ class ThompsonSampling(Policy):
         
 
 def main():
-
+    printThresholds()
+    return
     
     figure = mpl.figure()
     bandit = na.zeros(20) + 0.1
@@ -385,7 +382,7 @@ def main():
     bandit = na.zeros(20) + 0.1
     bandit[-1] = 0.9
     bandit = Bandit(bandit)
-    plotBandit(bandit, figure.gca())
+    #plotBandit(bandit, figure.gca())
     figure.suptitle("Pathological Object")
 
     mpl.show()
@@ -396,13 +393,14 @@ def plotBandit(bandit, axes):
     thompson_sampling = ThompsonSampling()
     #algorithmB = AlgorithmB(confidence=95)
     algorithmC95 = AlgorithmC(confidence=95)
-    algorithmCDelta95 = AlgorithmCDelta(confidence=95)
+    algorithmC90 = AlgorithmC(confidence=90)
+    #algorithmCDelta95 = AlgorithmCDelta(confidence=95)
     #algorithmC99 = AlgorithmC(confidence=99)
     #stochastic5 = Stochastic(n=5, confidence=95)
     #stochastic2 = Stochastic(n=2, confidence=95)
     #stochasticEarlyStopping5 = StochasticEarlyStopping(n=5, confidence=95)
 
-    for method in [thompson_sampling, algorithmC95, algorithmCDelta95]:
+    for method in [thompson_sampling, algorithmC90, algorithmC95]:
         results = []
         for budget in na.arange(0, 110, 10):
             regrets = []
@@ -428,6 +426,44 @@ def plotBandit(bandit, axes):
     mpl.xlabel("Training Trials")
     mpl.axis((0, 105, -0.1, 1))
     mpl.legend()
+
+def printThresholds():
+    max_idx = 20
+    mu = 0.7
+    epsilon = 0.2
+    threshold_confidence = 0.7
+    accept_confidence = 0.7
+    reject_confidence = 0.95
+    print "".rjust(2),
+    for x in na.arange(0, max_idx):
+        print ("%d" % x).rjust(2),
+    print
+    for successes in na.arange(0, max_idx):
+        print ("%d" % successes).rjust(2),
+        for failures in na.arange(0, max_idx):
+
+            p_in_threshold = (
+                betainc(successes + 1, failures + 1, mu + epsilon) - 
+                betainc(successes + 1, failures + 1, mu - epsilon))
+
+            p_below = betainc(successes + 1, failures + 1, mu)
+            p_above = 1 - p_below
+            if p_in_threshold > threshold_confidence:
+                result = "t"
+            elif p_below > reject_confidence:
+                result = "r"
+            elif p_above > accept_confidence:
+                result = "A"
+            else:
+                result = "c"
+            if (successes + failures <= 10):
+                print str(result).rjust(2), 
+            else:
+                print " ".rjust(2),
+
+            #print successes, failures, mu, "p(s): %.4f" %(1 - probability), 
+            #print "p(f): %.4f" % probability
+        print
 
 if __name__ == "__main__":
     main()
