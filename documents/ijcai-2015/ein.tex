@@ -501,8 +501,8 @@ This integral is the CDF of the beta distribution, and is called the
 regularized incomplete beta function~\citep{olver10}. 
 
 \begin{algorithm}
-\SetKwFunction{HaltingBandit}{HaltingBandit}
-\HaltingBandit{$armOrder$, $\delta$, $k$}
+\SetKwFunction{BestArmConfidence}{BestArmConfidence}
+\BestArmConfidence{$armOrder$, $\delta$, $k$}
 
 
 $\mbox{Initialize } S_0 \dots S_n \mbox{ to } 0$\\
@@ -609,6 +609,10 @@ Vanilla         & 5/10          &  4/5          & 9/10 \\
 Triangle block  & 0/10          &  3/13         & 7/10 \\
 Metal pitcher   & 6/10          &  7/12         & 10/10\\
 Helicopter      & 2/10          &  8/39         & 3/10 \\
+Salt shaker     & 1/10          &  4/16         & 9/10 \\
+Clear pitcher   & 4/10          &  3/4          & 4/10 \\
+Gyro bowl       & 0/10          &  5/15         & 3/10 \\
+Sippy cup       &               &               & 4/12 \\
 \midrule
 Total           & 29/60         &  30/79        & 46/60\\
 \bottomrule
