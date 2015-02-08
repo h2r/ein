@@ -72,18 +72,18 @@ manipulate generic objects.  However, in many applications,
 general-purpose object detection or manipulation is not required: the
 robot would be useful if it could recognize, localize, and manipulate
 the relatively small set of specific objects most important in that
-application, but do so with very high reliability.The contribution of
-this paper is to automate this adaptation process by formalizing a
+application, but do so with very high reliability.  The contribution
+of this paper is to automate this adaptation process by formalizing a
 grasping system as a hierarchy of bandit problems, enabling the robot
-to apply learning techniques such as Thompson sampling to adapt itself
-to manipulate specific objects with increased accuracy.  We define a
-new variant of the bandit problem, which we term simple-regret
-stopping bandits and demonstrate that it finds an optimal arm more
-quickly than Thomspon sampling when we provide an ordering on arms.
-Our the bandit-based adaptation step significantly improves accuracy
-over a non-adaptive system, enabling a robot to quickly and
-autonomously acquire models for objects, and adaptively improve them
-through experience.
+to apply learning techniques to adapt itself to manipulate specific
+objects with increased accuracy.  The robot performs best arm
+identification using a variant of Hoeffding races, enabling it to
+quickly find an optimal arm and then move on to the next object.  Our
+approach also incorporates knowledge from a prior defined in terms of
+an ordering on the arms.  We demonstrate that our the bandit-based
+adaptation step significantly improves accuracy over a non-adaptive
+system, enabling a robot to quickly and autonomously acquire models
+for objects, and adaptively improve them through experience.
 
 
 %%   To address this
@@ -142,17 +142,11 @@ supervision.
 
 Unlike traditional bandit problems, where the agent trades off
 exploration and exploitation, in our formulation, the robot aims to
-minimize simple regret after a finite exploration period.  This
-approach is similar to \citet{bubeck09}.  However, in contrast to
-their approach, where the agent always uses its entire training
-budget, in our problem, we would like the robot to stop training once
-it has acquired a good enough model for the object (for example, a
-success rate greater than 95\%, so that it can move on to the next
-object.  For some objects, where many grasps are effective, this
-success rate can be quickly achieved with little adaptation, but other
-objects require extensive trials to find a good grasp.  Our approach
-enables the robot to quickly converge when it finds a good grasp, so
-it can move on to the next object.
+minimize simple regret after a finite exploration
+period~\citep{bubeck09}.  We follow \citet{maron93} to explore until
+the agent is confident that it has found an acceptable arm.  Our
+approach enables the robot to quickly converge when it finds a good
+grasp, so it can move on to the next object.
 
 
 %% We use slower, more accurate sensing approaches
@@ -485,14 +479,6 @@ that promising arms are first, not assign any specific probability
 distribution on $\mu$.
 
 
-The agent is given an n-armed bandit, where each arm pays out $1$ with
-probability $\mu_i$ and $0$ otherwise.  The agent's goal is to
-identify a good arm (with payout >= k) with probability c (e.g., 95\%
-confidence that this arm is good) as quickly as possible.  As soon as
-it has done this, it should terminate.  The agent is also given an
-ordering on the arms, promising ones first.  The order isn't perfect
-(if it was, it would be done).
-
 Our algorithm is to iterate through each arm, and try it until we have
 identified it either is above $k$ with probability $c$ (in which case
 it terminates) or it is below $k$ with probability $c$ (in which case
@@ -539,7 +525,7 @@ $\mbox{Initialize } F_0 \dots F_n \mbox{ to } 0$\\
   }
 }
 
-\caption{Algorithm for our Halting Bandit}
+\caption{Algorithm for Best Arm Identification\label{alg:bandit}}
 \end{algorithm}
 
 
@@ -554,19 +540,20 @@ $\mbox{Initialize } F_0 \dots F_n \mbox{ to } 0$\\
 
 
 \section{Robotic Implementation}
-We use stock baxter and one computer.
-We use the wrist cameras to obtain RGB at 30hz. Different parts of the visual pipeline
-run at different frequencies, but the full visual system runs at 2Hz in typical conditions.
-To obtain the 3D point cloud maps, we use the IR sensor in conjunction with the RGB measurement.
-Color triangulation, a nice image of the brush.
-Quickly describe raster scan.
-Parzen kernel density estimator, downsampling to fill in data.
+
+We use stock Baxter and one computer.  We use the wrist cameras to
+obtain RGB at 30hz. Different parts of the visual pipeline run at
+different frequencies, but the full visual system runs at 2Hz in
+typical conditions.  To obtain the 3D point cloud maps, we use the IR
+sensor in conjunction with the RGB measurement.  Color triangulation,
+a nice image of the brush.  Quickly describe raster scan.  Parzen
+kernel density estimator, downsampling to fill in data.
 
 Figure: A nice scan of the brush together with an RGB image of the brush from a similar height.
 
 
  
-\section{Experimental Setup}
+\section{Evaluation}
 
 The aim of our evaluation is to assess the ability of the system to
 acquire visual models of objects which are effective for grasping and
@@ -575,35 +562,58 @@ robot, which is equipped with a seven-degree-of-freedom arm with a
 camera and IR depth sensor, which we use as a one-pixel depth camera
 to acquire our models.
 
-\subsection{Object Detection and Pose Estimation}
+The robot acquired visual and RGB-D models for N objects using our
+autonomous learning system.  We manually verified that the scans were
+accurate, and set the following parameters: height above the object
+for the IR scan (to approximately 2cm); this height could be acquired
+automatically by doing a first coarse IR scan following by a second IR
+scan 2cm above the tallest height, but we set it manually to save
+time.  Additionally we set the height of the arm for the initial servo
+to acquire the object.
 
-For object Detection and pose estimation, we constructed data sets on
-which we could evaluate our models. This involved hand annotating the
-ground truth for the images in the sets, which is a costly procedure
-which we are attempting to eliminate for future tasks.  However, we
-cannot evaluate our system in a principled fashion without such a data
-set.
+After acquiring visual and IR models for the object at different poses
+of the arm, the robot performed the bandit-based adaptation step using
+Algortihm~\ref{alg:bandit}.
 
-We demonstrate our method's success in this setting where we pay the cost
-to acquire the data so that we can trust our method and that cost need not be 
-payed during future applications. 
+We report the performance of the robot at picking using the learned
+height for servoing, but without grasp learning, then the number of
+trials used for grasp learning by our algorithm, and finally the
+performance at picking using the learned grasp location.
 
-Probably uses confusion rates as the objective function.
+Our algorithm used an accept threshold of $0.7$, reject confidence of
+$0.95$ and epsilon of $0.2$.  These parameters result in a policy that
+rejects a grasp after one failed try, and accepts if the first three
+picks are successful.  Different observations of success and failure
+will cause the algorithm to try the grasp more to determine the true
+probability of success.  The policy for exploring an arm appears in
+Figure~\ref{fig:policy}.
 
-Expert viewpoint collection (uses at least hard negatives)
+\begin{figure}
+\includegraphics[width=1\linewidth]{figures/policy.png}
+\caption{Policy for the agent given a belief state, defined by an
+  observed number of succeseses and failures on that arm for our model
+  parameters.  Red shows states where the agent rejects the arm and
+  move to the next one; green shows states where it accepts the arm
+  and stops learning, and the arrows show movement to the next belief
+  state based on whether the next trial is successful.}
+\end{figure}
 
-Super dense sampling
-
-uniform hard negative sampling with stopping criterion
-
-
-
-\section{Evaluation and Discussion}
-
-To evaluate the system, we learned visual and RGB-D models for N
-objects using our autonomous learning system.  We manually verified
-that the scans were accurate, setting parameters such as height above
-the object.
+\begin{table}
+\begin{tabular}{cccc}
+\toprule
+                & Prior         &  Training     & Marginal\\
+\midrule
+Epipen          & 8/10          &  4/5          & 8/10 \\
+Toy Egg         & 8/10          &  4/5          & 9/10 \\
+Vanilla         & 5/10          &  4/5          & 9/10 \\
+Triangle block  & 0/10          &  3/13         & 7/10 \\
+Metal pitcher   & 6/10          &  7/12         & 10/10\\
+Helicopter      & 2/10          &  8/39         & 3/10 \\
+\midrule
+Total           & 29/60         &  30/79        & 46/60\\
+\bottomrule
+\end{tabular}
+\end{table}
 
 
 \section{Related Work}
