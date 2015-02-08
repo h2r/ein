@@ -525,7 +525,7 @@ $\mbox{Initialize } F_0 \dots F_n \mbox{ to } 0$\\
   }
 }
 
-\caption{Algorithm for our Halting Bandit}
+\caption{Algorithm for Best Arm Identification\label{alg:bandit}}
 \end{algorithm}
 
 
@@ -553,7 +553,7 @@ Figure: A nice scan of the brush together with an RGB image of the brush from a 
 
 
  
-\section{Experimental Setup}
+\section{Evaluation}
 
 The aim of our evaluation is to assess the ability of the system to
 acquire visual models of objects which are effective for grasping and
@@ -562,35 +562,58 @@ robot, which is equipped with a seven-degree-of-freedom arm with a
 camera and IR depth sensor, which we use as a one-pixel depth camera
 to acquire our models.
 
-\subsection{Object Detection and Pose Estimation}
+The robot acquired visual and RGB-D models for N objects using our
+autonomous learning system.  We manually verified that the scans were
+accurate, and set the following parameters: height above the object
+for the IR scan (to approximately 2cm); this height could be acquired
+automatically by doing a first coarse IR scan following by a second IR
+scan 2cm above the tallest height, but we set it manually to save
+time.  Additionally we set the height of the arm for the initial servo
+to acquire the object.
 
-For object Detection and pose estimation, we constructed data sets on
-which we could evaluate our models. This involved hand annotating the
-ground truth for the images in the sets, which is a costly procedure
-which we are attempting to eliminate for future tasks.  However, we
-cannot evaluate our system in a principled fashion without such a data
-set.
+After acquiring visual and IR models for the object at different poses
+of the arm, the robot performed the bandit-based adaptation step using
+Algortihm~\ref{alg:bandit}.
 
-We demonstrate our method's success in this setting where we pay the cost
-to acquire the data so that we can trust our method and that cost need not be 
-payed during future applications. 
+We report the performance of the robot at picking using the learned
+height for servoing, but without grasp learning, then the number of
+trials used for grasp learning by our algorithm, and finally the
+performance at picking using the learned grasp location.
 
-Probably uses confusion rates as the objective function.
+Our algorithm used an accept threshold of $0.7$, reject confidence of
+$0.95$ and epsilon of $0.2$.  These parameters result in a policy that
+rejects a grasp after one failed try, and accepts if the first three
+picks are successful.  Different observations of success and failure
+will cause the algorithm to try the grasp more to determine the true
+probability of success.  The policy for exploring an arm appears in
+Figure~\ref{fig:policy}.
 
-Expert viewpoint collection (uses at least hard negatives)
+\begin{figure}
+\includegraphics[width=1\linewidth]{figures/policy.png}
+\caption{Policy for the agent given a belief state, defined by an
+  observed number of succeseses and failures on that arm for our model
+  parameters.  Red shows states where the agent rejects the arm and
+  move to the next one; green shows states where it accepts the arm
+  and stops learning, and the arrows show movement to the next belief
+  state based on whether the next trial is successful.}
+\end{figure}
 
-Super dense sampling
-
-uniform hard negative sampling with stopping criterion
-
-
-
-\section{Evaluation and Discussion}
-
-To evaluate the system, we learned visual and RGB-D models for N
-objects using our autonomous learning system.  We manually verified
-that the scans were accurate, setting parameters such as height above
-the object.
+\begin{table}
+\begin{tabular}{cccc}
+\toprule
+                & Prior         &  Training     & Marginal\\
+\midrule
+Epipen          & 8/10          &  4/5          & 8/10 \\
+Toy Egg         & 8/10          &  4/5          & 9/10 \\
+Vanilla         & 5/10          &  4/5          & 9/10 \\
+Triangle block  & 0/10          &  3/13         & 7/10 \\
+Metal pitcher   & 6/10          &  7/12         & 10/10\\
+Helicopter      & 2/10          &  8/39         & 3/10 \\
+\midrule
+Total           & 29/60         &  30/79        & 46/60\\
+\bottomrule
+\end{tabular}
+\end{table}
 
 
 \section{Related Work}
