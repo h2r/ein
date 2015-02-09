@@ -567,7 +567,32 @@ Figure: A nice scan of the brush together with an RGB image of the brush from a 
 
 The aim of our evaluation is to assess the ability of the system to
 acquire visual models of objects which are effective for grasping and
-object detection.  We have implemented our approach on the Baxter
+object detection.  We first assess our approach in simulation,
+comparing it to Thompson sampling and a fixed policy.  Next we
+describe our robotic evaluation and manipulation which assesses our
+system's ability to learn and adaptively improve its ability to grasp
+objects, end-to-end.
+
+\subsection{Simulation}
+
+Our simulated results compare our approach to Thompson sampling as
+well as a fixed policy, assessing the tradeoffs inherent in our choice
+of parameters and algorithm.  We present results in
+Table~\ref{fig:simulation_results}.  We simulate picking performance
+by creating a sequence of $20$ bandits, where each arm pays out at a
+rate of $0.1$ except for one, which pays out at $0.9$.  We move the
+location of the best arm to be either second, half-way through the
+sequence, or last.  These correspond to a highly informative prior, an
+uninformative prior, and a pathological prior where the best arm is
+last.
+\begin{figure}
+\includegraphics{figures/bestarm.pdf}
+\caption{Results comparing our approach to various baselines in simulation.\label{fig:simulation_results}}
+\end{figure}
+
+
+\subsection{Robotic Evaluation}
+ We have implemented our approach on the Baxter
 robot, which is equipped with a seven-degree-of-freedom arm with a
 camera and IR depth sensor, which we use as a one-pixel depth camera
 to acquire our models.
@@ -599,13 +624,13 @@ probability of success.  The policy for exploring an arm appears in
 Figure~\ref{fig:policy}.
 
 \begin{figure}
-\includegraphics[width=1\linewidth]{figures/policy.png}
+\includegraphics{figures/policy.pdf}
 \caption{Policy for the agent given a belief state, defined by an
   observed number of succeseses and failures on that arm for our model
-  parameters.  Red shows states where the agent rejects the arm and
-  move to the next one; green shows states where it accepts the arm
-  and stops learning, and the arrows show movement to the next belief
-  state based on whether the next trial is successful.}
+  parameters.  Red (-) shows states where the agent rejects the arm
+  and move to the next one; green (+) shows states where it accepts
+  the arm and stops learning, and the arrows show movement to the next
+  belief state based on whether the next trial is successful.}
 \end{figure}
 
 \begin{table}
@@ -628,6 +653,7 @@ Total           & 34/100         & 48/164       & 66/100\\
 Rate            & 0.34          &  0.29         & 0.66\\
 \bottomrule
 \end{tabular}
+\caption{Results from the robotic evaluation.\label{table:robot_results}}
 \end{table}
 
 
@@ -650,7 +676,7 @@ circle an area and we will restrict exploration to that region.
 
 \citet{ude12} described an approach for detecting and manipulating
 objects to learn models.  It uses a bag of words model and learns to
-detect the objects.  It does not learn a model for grapsing.
+detect the objects.  It does not learn a model for grasping.
 \citet{schiebener13} describes an extension that also does model
 learning.  The robot pushes the object and then trains an object
 recognition system.  It does not use a camera that moves and does not
