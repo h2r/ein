@@ -10803,8 +10803,8 @@ void targetCallback(const geometry_msgs::Point& point) {
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
   if ( event == EVENT_LBUTTONDOWN ) {
     //cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-    reticle.px = x;
-    reticle.py = y;
+    //reticle.px = x;
+    //reticle.py = y;
     cout << "x: " << x << " y: " << y << " eeRange: " << eeRange << endl;
   } else if ( event == EVENT_RBUTTONDOWN ) {
     //cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
@@ -13941,15 +13941,15 @@ int isThisGraspMaxedOut(int i) {
 
   if (currentPickMode == LEARNING_SAMPLING) {
     toReturn = ( (graspMemoryTries[i] >= graspLearningMaxTries) );
-  }
-
-  // ATTN 20
-  if (currentPickMode == LEARNING_ALGORITHMC) {
+  } else if (currentPickMode == LEARNING_ALGORITHMC) {
+    // ATTN 20
     double successes = graspMemoryPicks[i];
     double failures = graspMemoryTries[i] - graspMemoryPicks[i];
     // returns probability that mu <= d given successes and failures.
     double result = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
     toReturn = (result > algorithmCRT);
+  } else if (currentPickMode == STATIC_MARGINALS) {
+    toReturn = (graspMemoryTries[i] <= 1);
   }
 
   return toReturn;
