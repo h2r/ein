@@ -34,6 +34,8 @@ urlcolor=blue
 
 % Use the postscript times font!
 \usepackage{times}
+\newcommand{\algorithmCTxt}{Ordered Confidence Bound}
+\newcommand{\algorithmCFname}{OrderedConfidenceBound}
 
 % the following package is optional:
 %\usepackage{latexsym} 
@@ -80,7 +82,7 @@ objects with increased accuracy.  The robot performs best arm
 identification using a variant of Hoeffding races, enabling it to
 quickly find an optimal arm and then move on to the next object.  Our
 approach also incorporates knowledge from a prior defined in terms of
-an ordering on the arms.  We demonstrate that our the bandit-based
+an ordering on the arms.  We demonstrate that our bandit-based
 adaptation step significantly improves accuracy over a non-adaptive
 system, enabling a robot to quickly and autonomously acquire models
 for objects, and adaptively improve them through experience.
@@ -127,8 +129,8 @@ To address this problem, we present an approach that enables a robot
 to learn to identify and grasp on a per object basis by adapting its
 perceptual framework to specific objects. Our grasping and percpetion
 pipeline uses standard computer vision techniques to perform data
-collection, feature extraction, training, along with active visual
-servoing for localization.  This framework works to some degree with
+collection, feature extraction, and training, along with active visual
+servoing for localization.  This framework succeeds to some degree with
 many objects, but reaches performance ceilings for specific objects
 for a variety of reasons.  To address these limitations, we present a
 mathematical formalization of a system of software components combined
@@ -231,17 +233,18 @@ recognition means we cannot reliably detect categories, such as
 ``mugs,'' but the system will be able to detect, localize, and grasp
 the specific instances for which it has models with much higher speed
 and accuracy.  A visualization of data flow in the pipeline appears in
-Figure~\ref{fig:system}.  For each module, we formalize its input,
+Figure~\ref{fig:system}.  \jgonote{This doesn't quite seem current:}
+For each module, we formalize its input,
 output, and reward function; each component can have multiple
 implementations which better for different objects.  The following
 sections describe how we can use this pipeline to learn which
 implementation to use for specific objects; this learning dramatically
 speeds up performance.
 
-\begin{figure}
-\includegraphics{system.pdf}
-\caption{Data flow in our grasping system.\label{fig:system}}
-\end{figure}
+%% \begin{figure}
+%% \includegraphics{system.pdf}
+%% \caption{Data flow in our grasping system.\label{fig:system}}
+%% \end{figure}
 
 \subsection{Object Detection}
 \label{sec:detection}
@@ -336,17 +339,22 @@ matching to this large dataset.
 We use the image gradient for object detection and pose estimation. During
 object detection, the gradient of the whole image is the first step in the Canny pipeline.
 For pose estimation,  we require a crop of  image gradient of the object
-at a specific, known pose. We denote the gradient by
+at a specific, known pose. 
 
-\begin{align}
-\Delta I = \left( \frac{\partial I}{\partial x}, \frac{\partial I}{\partial y} \right)
-\end{align}
+%We denote the gradient by
+%\begin{align}
+%\Delta I = \left( \frac{\partial I}{\partial x}, \frac{\partial I}{\partial y} \right)
+%\end{align}
 
-We approximate the gradient using $5 \times 5$ Sobel derivative
-filters~\citep{sobel95}.  To estimate pose, we rotate our training
-image and find the closest match to the image currently recorded from
-the camera, as detected and localized via the pipeline in
-Section~\ref{sec:detection} and~\ref{sec:recognition}.
+As during bounding box proposal, We approximate the gradient using 
+$5 \times 5$ Sobel derivative filters~\citep{sobel95}, but we use a
+different convex combination of the channels which focuses even less
+on the Y channel.  Camera noise in the color channels is significant. To
+cope with the noise, we marginalize the gradient estimate over several
+frames taken from the same location, providing a much cleaner signal which matches more robustly.  To estimate 
+pose, we rotate our training image and find the closest match to the 
+image currently recorded from the camera, as detected and localized via 
+the pipeline in Section~\ref{sec:detection} and~\ref{sec:recognition}.
 
 In order to match our template image with the crop observed at pick time,
 we remove the mean from and $L^2$ normalize the template and the crop.
@@ -358,14 +366,17 @@ for lighting.
 
 To identify a grasp points, we combine a depth map of the object with
 a model of the gripper.  The depth map appears in
-Figure~\ref{fig:depth_map}.  The grasp model scores each potential
+Figure~\ref{fig:depth_map} and is acquired by moving the rangefinder on the
+arm through a raster scan over the object.  The grasp model scores each potential
 grasp according to a linear model of the gripper to estimate grasp
-success. A default algorithm picks the highest-scoring grasp point,
+success. A default algorithm picks the highest-scoring grasp point
+using hand designed linear filters,
 but frequently this point is not actually a good grasp, because the
 object might slip out of the robot's gripper or part of the object may
 not be visible in IR.  The input to this module is the 3d pose of the
-object, and the output is a grasp point $(x, y)$; at this point we
-assume only crane grasps rather than full 3d grasping.
+object, and the output is a grasp point $(x, y, \theta)$; at this point we
+assume only crane grasps rather than full 3d grasping, where $\theta$
+is the angle which the gripper assumes for the grasp.
 
 
 
@@ -390,7 +401,7 @@ the arm into position.
 An object model in our framework consists of the following elements:
 \begin{itemize}
 \item cropped object templates (roughly 200), $t^1 ... t^K$
-\item depth map, $D$, which consists of a point cloud, $(x, y, z, r, g, b, d)$.
+\item depth map, $D$, which consists of a point cloud, $(x, y, z, r, g, b)$.
 \item cropped gradient template, $t_0$
 \end{itemize}
 
@@ -412,8 +423,7 @@ Algorithm~\ref{alg:learning}.
 
 Once the object has been moved to a known pose, we acquire the object
 model by moving the camera to a sequence of prespecified orientations.
-We automatically crop the image using integral images computed over
-the bounding boxes inferred by the BING objectness detector.
+We automatically crop the image using our object detection system.
 
 
 %% \begin{figure}
@@ -501,34 +511,40 @@ This integral is the CDF of the beta distribution, and is called the
 regularized incomplete beta function~\citep{olver10}. 
 
 \begin{algorithm}
-\SetKwFunction{HaltingBandit}{HaltingBandit}
-\HaltingBandit{$armOrder$, $\delta$, $k$}
-
+\SetKwFunction{x}{\algorithmCFname}
+\x{$armOrder$, $k$, $\delta_{accept}$, $\delta_{reject}$}
 
 $\mbox{Initialize } S_0 \dots S_n \mbox{ to } 0$\\
 $\mbox{Initialize } F_0 \dots F_n \mbox{ to } 0$\\
 \For {$i \in armOrder$}{
   $r \gets sample(arm_i)$\\
-  \If {$r = 1$}{
+  \uIf {$r = 1$}{
     $S_i  \gets S_i + 1$
-  } \Else {
+  }\uElse{
     $F_i  \gets F_i + 1$
   }
-  $p_{reject} \gets \int_0^k Pr(\mu_i = u | S_i, F_i) d\mu $\\
-  $p_{accept} \gets 1 - p_{reject}$\\
-  \uIf {$p_{reject} \ge  k$} {
-    break \tcp*[r]{go to the next arm}
-  } \uElseIf {$p_{accept} \ge k$} {
+  $p_{below} \gets \int_0^k \Pr(\mu_i = \mu | S_i, F_i) d\mu $\\
+  $p_{above} \gets \int_k^1 \Pr(\mu_i = \mu | S_i, F_i) d\mu $\\ %1 - p_{below}$\\
+  $p_{threshold} \gets \int_{k - \epsilon}^{k + \epsilon} \Pr(\mu_i = \mu | S_i, F_i) d\mu $\\
+
+  \uIf{$p_{above} \ge  \delta_{accept}$}{
     return $i$ \tcp*[r]{accept this arm}
-  } \Else {
+  }\uElseIf{$p_{threshold} \ge \delta_{accept}$}{
+    return $i$ \tcp*[r]{accept this arm}
+  }\uElseIf{$p_{below} \ge \delta_{reject}$}{
+    break \tcp*[r]{go to the next arm}
+  } \Else{
     pass \tcp*[r]{keep pulling this arm}
   }
 }
 
-\caption{Algorithm for Best Arm Identification\label{alg:bandit}}
+\caption{Ordered confidence bound algorithm for Best Arm
+  Identification\label{alg:bandit}}
 \end{algorithm}
 
-
+Note that if $\mu = k$ the runtime is unbounded, so we fix an
+$\epsilon > 0$ and accept a grasp if $\mu \in [k-\epsilon, k+\epsilon]$
+with probability $c$.
 
 
 %% * terminate fast, and know when to terminate
@@ -545,19 +561,53 @@ We use stock Baxter and one computer.  We use the wrist cameras to
 obtain RGB at 30hz. Different parts of the visual pipeline run at
 different frequencies, but the full visual system runs at 2Hz in
 typical conditions.  To obtain the 3D point cloud maps, we use the IR
-sensor in conjunction with the RGB measurement.  Color triangulation,
-a nice image of the brush.  Quickly describe raster scan.  Parzen
-kernel density estimator, downsampling to fill in data.
+sensor in conjunction with the RGB camera.  
 
-Figure: A nice scan of the brush together with an RGB image of the brush from a similar height.
+The IR sensor is a triangulation rangefinder, which means it actively
+illuminates its target with an infrared LED. If the robot is totally
+deprived of light, the spot of light projected by the IR LED can be seen in the RGB camera
+image. The location of the point in the image changes significantly with the
+range of the point being measured. We record the location at several reference ranges
+and interpolate between the two closest reference points, allowing us to know the pixel
+in the RGB image corresponding to the $(x,y,z)$ point being measured. Together, this
+forms an $(r,g,b,x,y,z)$ measurement for the pointcloud.
 
+We collect many measurements for the pointcloud by performing an overhead raster
+scan of the object. The IR sensor reports at about 30hz but gives fairly good localization.
+In order to use the good resolution despite the sparsity of measurement induced by the frequency
+of the sensor and the speed of the robot's movement, we employ a Parzen kernel density 
+estimator to record measurements at 1mm resolution. We then downsample to 1cm resolution, which 
+gives a very clean map and a tractable state space for grasp inference.
 
  
 \section{Evaluation}
 
 The aim of our evaluation is to assess the ability of the system to
 acquire visual models of objects which are effective for grasping and
-object detection.  We have implemented our approach on the Baxter
+object detection.  We first assess our approach in simulation,
+comparing it to Thompson sampling and a fixed policy.  Next we
+describe our robotic evaluation and manipulation which assesses our
+system's ability to learn and adaptively improve its ability to grasp
+objects, end-to-end.
+
+\subsection{Simulation}
+
+Our simulated results compare our approach to Thompson sampling as
+well as a fixed policy, assessing the tradeoffs inherent in our choice
+of parameters and algorithm.  We present results in
+Table~\ref{fig:simulation_results}.  We simulate picking performance
+by creating a sequence of $20$ bandits, where each arm pays out at a
+rate of $0.1$ except for one, which pays out at $0.9$.  We move the
+location of the best arm to a uniformly sampled random position in the
+sequence.
+\begin{figure}
+\includegraphics{figures/bestarm.pdf}
+\caption{Results comparing our approach to various baselines in simulation.\label{fig:simulation_results}}
+\end{figure}
+
+
+\subsection{Robotic Evaluation}
+ We have implemented our approach on the Baxter
 robot, which is equipped with a seven-degree-of-freedom arm with a
 camera and IR depth sensor, which we use as a one-pixel depth camera
 to acquire our models.
@@ -580,6 +630,14 @@ height for servoing, but without grasp learning, then the number of
 trials used for grasp learning by our algorithm, and finally the
 performance at picking using the learned grasp location.
 
+After the robot detects an initially successful grab, we have it
+shake the object vigorously to ensure that it would not fall out during
+transport. After releasing the object and moving away, the robot checks 
+to make sure the object is not stuck in its gripper. If the object
+falls out during shaking or does not release properly, the grasp is
+recorded as a failure. If the object is stuck, the robot pauses and
+requests assistance before proceeding.
+
 Our algorithm used an accept threshold of $0.7$, reject confidence of
 $0.95$ and epsilon of $0.2$.  These parameters result in a policy that
 rejects a grasp after one failed try, and accepts if the first three
@@ -589,13 +647,13 @@ probability of success.  The policy for exploring an arm appears in
 Figure~\ref{fig:policy}.
 
 \begin{figure}
-\includegraphics[width=1\linewidth]{figures/policy.png}
+\includegraphics{figures/policy.pdf}
 \caption{Policy for the agent given a belief state, defined by an
   observed number of succeseses and failures on that arm for our model
-  parameters.  Red shows states where the agent rejects the arm and
-  move to the next one; green shows states where it accepts the arm
-  and stops learning, and the arrows show movement to the next belief
-  state based on whether the next trial is successful.}
+  parameters.  Red (-) shows states where the agent rejects the arm
+  and move to the next one; green (+) shows states where it accepts
+  the arm and stops learning, and the arrows show movement to the next
+  belief state based on whether the next trial is successful.}
 \end{figure}
 
 \begin{table}
@@ -603,16 +661,33 @@ Figure~\ref{fig:policy}.
 \toprule
                 & Prior         &  Training     & Marginal\\
 \midrule
-Epipen          & 8/10          &  4/5          & 8/10 \\
-Toy Egg         & 8/10          &  4/5          & 9/10 \\
-Vanilla         & 5/10          &  4/5          & 9/10 \\
-Triangle block  & 0/10          &  3/13         & 7/10 \\
-Metal pitcher   & 6/10          &  7/12         & 10/10\\
-Helicopter      & 2/10          &  8/39         & 3/10 \\
+Epipen          & 8/10          &  4/5         &  8/10 \\
+Toy Egg         & 8/10          &  4/5         &  9/10 \\
+Vanilla         & 5/10          &  4/5         &  9/10 \\
+Triangle block  & 0/10          &  3/13        &  7/10 \\
+Metal pitcher   & 6/10          &  7/12        &  10/10\\
+Helicopter      & 2/10          &  8/39        &  3/10 \\
+Salt shaker     & 1/10          &  4/16        &  9/10 \\
+Clear pitcher   & 4/10          &  3/4         &  4/10 \\
+Gyro bowl       & 0/10          &  5/15        &  3/10 \\
+Sippy cup       & 0/10          &  6/50        &  4/10 \\
+Ruler           & 6/10          &  5/12        &  7/10 \\
+Brush (*)       & 10/10         &  3/3         & 10/10 \\
+Shoe (*)        & 10/10         &  3/3         & 10/10 \\
+Blue salt shaker&  6/10         &  5/10        &  8/10 \\
+Big syringe     & 1/10          &  13/50       &  4/10 \\
+Bottle top      & 0/10          &  5/17        &  7/10 \\
+Red bowl (*)    & 10/10         &  3/3         & 10/10 \\
+Purple marker(*)& 9/10          &  3/3         &  9/10 \\
+Dragon          & 8/10          &  5/6         &  7/10 \\
+Stamp (*)       & 8/10          &  3/3         &  8/10 \\
+Yellow Boat     & 9/10          &  5/6         &  9/10 \\
 \midrule
-Total           & 29/60         &  30/79        & 46/60\\
+Total           & 34/100         & 48/164       & 66/100\\
+Rate            & 0.34          &  0.29         & 0.66\\
 \bottomrule
 \end{tabular}
+\caption{Results from the robotic evaluation.\label{table:robot_results}}
 \end{table}
 
 
@@ -626,15 +701,19 @@ generate a grasp hypothesis space and bandit-based methods for trying
 grasps and learning instance-based distributions for the grasp
 experience database.  In this way our system achieves the best of both
 approaches: models for grasping unknown objects can be applied; when
-they do not fail, the system can automatically recover by trying
-grasps and adapting itself based on that specific object. 
+they do fail, the system can automatically recover by trying
+grasps and adapting itself based on that specific object. Additionally, we
+can use other grasp detectors to seed our prior, since it is only based
+on an ordering and does not require an explicit probability distribution.
+We can also interface with manual labeling similar to the forklift demarcation:
+circle an area and we will restrict exploration to that region.
 
 \citet{ude12} described an approach for detecting and manipulating
 objects to learn models.  It uses a bag of words model and learns to
-detect the objects.  It does not learn a model for grapsing.
+detect the objects.  It does not learn a model for grasping.
 \citet{schiebener13} describes an extension that also does model
 learning.  The robot pushes the object and then trains an object
-recognition system.  It does nto use a camera that move and does not
+recognition system.  It does not use a camera that moves and does not
 grasp.
 \citet{schiebener12} discovers and grasps unknown objects.
 
@@ -803,6 +882,14 @@ Ideas for doing for the paper, otherwise future work:
 \item Multiple poses during training (e.g., what happens when you drop
   the object?)
 \end{itemize}
+
+Objects which failed entirely did so because of reasonable limitations of the
+system induced by compromises we made for global compatibility. For instance,
+the small vaseline container only has 3mm of play between the container and the
+gripper in the only feasible grasp location. If we double the number of iterations
+during gradient servoing we can more reliably pick it, but this would either
+introduce another parameter in the system (iterations) or excessively slow down
+other objects which are more tolerant to error.
 
 
 %% The file named.bst is a bibliography style file for BibTeX 0.99c
