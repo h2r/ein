@@ -34,7 +34,8 @@ urlcolor=blue
 
 % Use the postscript times font!
 \usepackage{times}
-\newcommand{\algorithmC}{Ordered Confidence Bound}
+\newcommand{\algorithmCTxt}{Ordered Confidence Bound}
+\newcommand{\algorithmCFname}{OrderedConfidenceBound}
 
 % the following package is optional:
 %\usepackage{latexsym} 
@@ -240,10 +241,10 @@ sections describe how we can use this pipeline to learn which
 implementation to use for specific objects; this learning dramatically
 speeds up performance.
 
-\begin{figure}
-\includegraphics{system.pdf}
-\caption{Data flow in our grasping system.\label{fig:system}}
-\end{figure}
+%% \begin{figure}
+%% \includegraphics{system.pdf}
+%% \caption{Data flow in our grasping system.\label{fig:system}}
+%% \end{figure}
 
 \subsection{Object Detection}
 \label{sec:detection}
@@ -510,31 +511,35 @@ This integral is the CDF of the beta distribution, and is called the
 regularized incomplete beta function~\citep{olver10}. 
 
 \begin{algorithm}
-\SetKwFunction{x}{\algorithmC}
-\x{$armOrder$, $\delta$, $k$}
-
+\SetKwFunction{x}{\algorithmCFname}
+\x{$armOrder$, $k$, $\delta_{accept}$, $\delta_{reject}$}
 
 $\mbox{Initialize } S_0 \dots S_n \mbox{ to } 0$\\
 $\mbox{Initialize } F_0 \dots F_n \mbox{ to } 0$\\
 \For {$i \in armOrder$}{
   $r \gets sample(arm_i)$\\
-  \If {$r = 1$}{
+  \uIf {$r = 1$}{
     $S_i  \gets S_i + 1$
-  } \Else {
+  }\uElse{
     $F_i  \gets F_i + 1$
   }
-  $p_{reject} \gets \int_0^k Pr(\mu_i = u | S_i, F_i) d\mu $\\
-  $p_{accept} \gets 1 - p_{reject}$\\
-  \uIf {$p_{reject} \ge  k$} {
-    break \tcp*[r]{go to the next arm}
-  } \uElseIf {$p_{accept} \ge k$} {
+  $p_{below} \gets \int_0^k \Pr(\mu_i = \mu | S_i, F_i) d\mu $\\
+  $p_{above} \gets \int_k^1 \Pr(\mu_i = \mu | S_i, F_i) d\mu $\\ %1 - p_{below}$\\
+  $p_{threshold} \gets \int_{k - \epsilon}^{k + \epsilon} \Pr(\mu_i = \mu | S_i, F_i) d\mu $\\
+
+  \uIf{$p_{above} \ge  \delta_{accept}$}{
     return $i$ \tcp*[r]{accept this arm}
-  } \Else {
+  }\uElseIf{$p_{threshold} \ge \delta_{accept}$}{
+    return $i$ \tcp*[r]{accept this arm}
+  }\uElseIf{$p_{below} \ge \delta_{reject}$}{
+    break \tcp*[r]{go to the next arm}
+  } \Else{
     pass \tcp*[r]{keep pulling this arm}
   }
 }
 
-\caption{Algorithm for Best Arm Identification\label{alg:bandit}}
+\caption{Ordered confidence bound algorithm for Best Arm
+  Identification\label{alg:bandit}}
 \end{algorithm}
 
 Note that if $\mu = k$ the runtime is unbounded, so we fix an
@@ -656,16 +661,27 @@ Figure~\ref{fig:policy}.
 \toprule
                 & Prior         &  Training     & Marginal\\
 \midrule
-Epipen          & 8/10          &  4/5          & 8/10 \\
-Toy Egg         & 8/10          &  4/5          & 9/10 \\
-Vanilla         & 5/10          &  4/5          & 9/10 \\
-Triangle block  & 0/10          &  3/13         & 7/10 \\
-Metal pitcher   & 6/10          &  7/12         & 10/10\\
-Helicopter      & 2/10          &  8/39         & 3/10 \\
-Salt shaker     & 1/10          &  4/16         & 9/10 \\
-Clear pitcher   & 4/10          &  3/4          & 4/10 \\
-Gyro bowl       & 0/10          &  5/15         & 3/10 \\
-Sippy cup       & 0/10          &  6/50         & 4/10 \\
+Epipen          & 8/10          &  4/5         &  8/10 \\
+Toy Egg         & 8/10          &  4/5         &  9/10 \\
+Vanilla         & 5/10          &  4/5         &  9/10 \\
+Triangle block  & 0/10          &  3/13        &  7/10 \\
+Metal pitcher   & 6/10          &  7/12        &  10/10\\
+Helicopter      & 2/10          &  8/39        &  3/10 \\
+Salt shaker     & 1/10          &  4/16        &  9/10 \\
+Clear pitcher   & 4/10          &  3/4         &  4/10 \\
+Gyro bowl       & 0/10          &  5/15        &  3/10 \\
+Sippy cup       & 0/10          &  6/50        &  4/10 \\
+Ruler           & 6/10          &  5/12        &  7/10 \\
+Brush (*)       & 10/10         &  3/3         & 10/10 \\
+Shoe (*)        & 10/10         &  3/3         & 10/10 \\
+Blue salt shaker&  6/10         &  5/10        &  8/10 \\
+Big syringe     & 1/10          &  13/50       &  4/10 \\
+Bottle top      & 0/10          &  5/17        &  7/10 \\
+Red bowl (*)    & 10/10         &  3/3         & 10/10 \\
+Purple marker(*)& 9/10          &  3/3         &  9/10 \\
+Dragon          & 8/10          &  5/6         &  7/10 \\
+Stamp (*)       & 8/10          &  3/3         &  8/10 \\
+Yellow Boat     & 9/10          &  5/6         &  9/10 \\
 \midrule
 Total           & 34/100         & 48/164       & 66/100\\
 Rate            & 0.34          &  0.29         & 0.66\\
