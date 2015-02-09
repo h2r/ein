@@ -593,10 +593,8 @@ of parameters and algorithm.  We present results in
 Table~\ref{fig:simulation_results}.  We simulate picking performance
 by creating a sequence of $20$ bandits, where each arm pays out at a
 rate of $0.1$ except for one, which pays out at $0.9$.  We move the
-location of the best arm to be either second, half-way through the
-sequence, or last.  These correspond to a highly informative prior, an
-uninformative prior, and a pathological prior where the best arm is
-last.
+location of the best arm to a uniformly sampled random position in the
+sequence.
 \begin{figure}
 \includegraphics{figures/bestarm.pdf}
 \caption{Results comparing our approach to various baselines in simulation.\label{fig:simulation_results}}
@@ -626,6 +624,14 @@ We report the performance of the robot at picking using the learned
 height for servoing, but without grasp learning, then the number of
 trials used for grasp learning by our algorithm, and finally the
 performance at picking using the learned grasp location.
+
+After the robot detects an initially successful grab, we have it
+shake the object vigorously to ensure that it would not fall out during
+transport. After releasing the object and moving away, the robot checks 
+to make sure the object is not stuck in its gripper. If the object
+falls out during shaking or does not release properly, the grasp is
+recorded as a failure. If the object is stuck, the robot pauses and
+requests assistance before proceeding.
 
 Our algorithm used an accept threshold of $0.7$, reject confidence of
 $0.95$ and epsilon of $0.2$.  These parameters result in a policy that
