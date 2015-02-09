@@ -80,7 +80,7 @@ objects with increased accuracy.  The robot performs best arm
 identification using a variant of Hoeffding races, enabling it to
 quickly find an optimal arm and then move on to the next object.  Our
 approach also incorporates knowledge from a prior defined in terms of
-an ordering on the arms.  We demonstrate that our the bandit-based
+an ordering on the arms.  We demonstrate that our bandit-based
 adaptation step significantly improves accuracy over a non-adaptive
 system, enabling a robot to quickly and autonomously acquire models
 for objects, and adaptively improve them through experience.
@@ -127,8 +127,8 @@ To address this problem, we present an approach that enables a robot
 to learn to identify and grasp on a per object basis by adapting its
 perceptual framework to specific objects. Our grasping and percpetion
 pipeline uses standard computer vision techniques to perform data
-collection, feature extraction, training, along with active visual
-servoing for localization.  This framework works to some degree with
+collection, feature extraction, and training, along with active visual
+servoing for localization.  This framework succeeds to some degree with
 many objects, but reaches performance ceilings for specific objects
 for a variety of reasons.  To address these limitations, we present a
 mathematical formalization of a system of software components combined
@@ -231,7 +231,8 @@ recognition means we cannot reliably detect categories, such as
 ``mugs,'' but the system will be able to detect, localize, and grasp
 the specific instances for which it has models with much higher speed
 and accuracy.  A visualization of data flow in the pipeline appears in
-Figure~\ref{fig:system}.  For each module, we formalize its input,
+Figure~\ref{fig:system}.  \jgonote{This doesn't quite seem current:}
+For each module, we formalize its input,
 output, and reward function; each component can have multiple
 implementations which better for different objects.  The following
 sections describe how we can use this pipeline to learn which
@@ -336,17 +337,22 @@ matching to this large dataset.
 We use the image gradient for object detection and pose estimation. During
 object detection, the gradient of the whole image is the first step in the Canny pipeline.
 For pose estimation,  we require a crop of  image gradient of the object
-at a specific, known pose. We denote the gradient by
+at a specific, known pose. 
 
-\begin{align}
-\Delta I = \left( \frac{\partial I}{\partial x}, \frac{\partial I}{\partial y} \right)
-\end{align}
+%We denote the gradient by
+%\begin{align}
+%\Delta I = \left( \frac{\partial I}{\partial x}, \frac{\partial I}{\partial y} \right)
+%\end{align}
 
-We approximate the gradient using $5 \times 5$ Sobel derivative
-filters~\citep{sobel95}.  To estimate pose, we rotate our training
-image and find the closest match to the image currently recorded from
-the camera, as detected and localized via the pipeline in
-Section~\ref{sec:detection} and~\ref{sec:recognition}.
+As during bounding box proposal, We approximate the gradient using 
+$5 \times 5$ Sobel derivative filters~\citep{sobel95}, but we use a
+different convex combination of the channels which focuses even less
+on the Y channel.  Camera noise in the color channels is significant. To
+cope with the noise, we marginalize the gradient estimate over several
+frames taken from the same location, providing a much cleaner signal which matches more robustly.  To estimate 
+pose, we rotate our training image and find the closest match to the 
+image currently recorded from the camera, as detected and localized via 
+the pipeline in Section~\ref{sec:detection} and~\ref{sec:recognition}.
 
 In order to match our template image with the crop observed at pick time,
 we remove the mean from and $L^2$ normalize the template and the crop.
@@ -358,14 +364,17 @@ for lighting.
 
 To identify a grasp points, we combine a depth map of the object with
 a model of the gripper.  The depth map appears in
-Figure~\ref{fig:depth_map}.  The grasp model scores each potential
+Figure~\ref{fig:depth_map} and is acquired by moving the rangefinder on the
+arm through a raster scan over the object.  The grasp model scores each potential
 grasp according to a linear model of the gripper to estimate grasp
-success. A default algorithm picks the highest-scoring grasp point,
+success. A default algorithm picks the highest-scoring grasp point
+using hand designed linear filters,
 but frequently this point is not actually a good grasp, because the
 object might slip out of the robot's gripper or part of the object may
 not be visible in IR.  The input to this module is the 3d pose of the
-object, and the output is a grasp point $(x, y)$; at this point we
-assume only crane grasps rather than full 3d grasping.
+object, and the output is a grasp point $(x, y, \theta)$; at this point we
+assume only crane grasps rather than full 3d grasping, where $\theta$
+is the angle which the gripper assumes for the grasp.
 
 
 
@@ -390,7 +399,7 @@ the arm into position.
 An object model in our framework consists of the following elements:
 \begin{itemize}
 \item cropped object templates (roughly 200), $t^1 ... t^K$
-\item depth map, $D$, which consists of a point cloud, $(x, y, z, r, g, b, d)$.
+\item depth map, $D$, which consists of a point cloud, $(x, y, z, r, g, b)$.
 \item cropped gradient template, $t_0$
 \end{itemize}
 
@@ -412,8 +421,7 @@ Algorithm~\ref{alg:learning}.
 
 Once the object has been moved to a known pose, we acquire the object
 model by moving the camera to a sequence of prespecified orientations.
-We automatically crop the image using integral images computed over
-the bounding boxes inferred by the BING objectness detector.
+We automatically crop the image using our object detection system.
 
 
 %% \begin{figure}
@@ -528,7 +536,9 @@ $\mbox{Initialize } F_0 \dots F_n \mbox{ to } 0$\\
 \caption{Algorithm for Best Arm Identification\label{alg:bandit}}
 \end{algorithm}
 
-
+Note that if $\mu = k$ the runtime is unbounded, so we fix an
+$\epsilon > 0$ and accept a grasp if $\mu \in [k-\epsilon, k+\epsilon]$
+with probability $c$.
 
 
 %% * terminate fast, and know when to terminate
@@ -657,15 +667,19 @@ generate a grasp hypothesis space and bandit-based methods for trying
 grasps and learning instance-based distributions for the grasp
 experience database.  In this way our system achieves the best of both
 approaches: models for grasping unknown objects can be applied; when
-they do not fail, the system can automatically recover by trying
-grasps and adapting itself based on that specific object. 
+they do fail, the system can automatically recover by trying
+grasps and adapting itself based on that specific object. Additionally, we
+can use other grasp detectors to seed our prior, since it is only based
+on an ordering and does not require an explicit probability distribution.
+We can also interface with manual labeling similar to the forklift demarcation:
+circle an area and we will restrict exploration to that region.
 
 \citet{ude12} described an approach for detecting and manipulating
 objects to learn models.  It uses a bag of words model and learns to
 detect the objects.  It does not learn a model for grasping.
 \citet{schiebener13} describes an extension that also does model
 learning.  The robot pushes the object and then trains an object
-recognition system.  It does nto use a camera that move and does not
+recognition system.  It does not use a camera that moves and does not
 grasp.
 \citet{schiebener12} discovers and grasps unknown objects.
 
