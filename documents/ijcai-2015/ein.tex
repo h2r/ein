@@ -34,6 +34,7 @@ urlcolor=blue
 
 % Use the postscript times font!
 \usepackage{times}
+\newcommand{\algorithmC}{Ordered Confidence Bound}
 
 % the following package is optional:
 %\usepackage{latexsym} 
@@ -509,8 +510,8 @@ This integral is the CDF of the beta distribution, and is called the
 regularized incomplete beta function~\citep{olver10}. 
 
 \begin{algorithm}
-\SetKwFunction{BestArmConfidence}{BestArmConfidence}
-\BestArmConfidence{$armOrder$, $\delta$, $k$}
+\SetKwFunction{x}{\algorithmC}
+\x{$armOrder$, $\delta$, $k$}
 
 
 $\mbox{Initialize } S_0 \dots S_n \mbox{ to } 0$\\
