@@ -92,7 +92,7 @@ def printThresholds():
 def computePolicy():
     """ Draw the thresholds in matplotlib. """
     max_idx = 20
-    mu = 0.7
+    target_mu = 0.7
     epsilon = 0.2
     threshold_confidence = 0.7
     accept_confidence = 0.7
@@ -103,23 +103,28 @@ def computePolicy():
 
     for successes in na.arange(0, max_idx):
         for failures in na.arange(0, max_idx):
-            p_in_threshold = (
-                betainc(successes + 1, failures + 1, mu + epsilon) - 
-                betainc(successes + 1, failures + 1, mu - epsilon))
-
-            p_below = betainc(successes + 1, failures + 1, mu)
-            p_above = 1 - p_below
-            if p_in_threshold > threshold_confidence:
-                result = "t"
-            elif p_below > reject_confidence:
-                result = "r"
-            elif p_above > accept_confidence:
-                result = "a"
-            else:
-                result = "c"
+            result = compute_policy(successes, failures, target_mu, epsilon, 
+                                    threshold_confidence, accept_confidence, reject_confidence)
             policy[(successes, failures)] = result
     return policy
 
+def compute_policy(successes, failures, mu, epsilon, threshold_confidence, accept_confidence, reject_confidence):
+    p_in_threshold = (
+        betainc(successes + 1, failures + 1, mu + epsilon) - 
+        betainc(successes + 1, failures + 1, mu - epsilon))
+
+    p_below = betainc(successes + 1, failures + 1, mu)
+    p_above = 1 - p_below
+    if p_in_threshold > threshold_confidence:
+        result = "t"
+    elif p_below > reject_confidence:
+        result = "r"
+    elif p_above > accept_confidence:
+        result = "a"
+    else:
+        result = "c"
+
+    return result
 
 def main():
     #printThresholds()
