@@ -561,12 +561,23 @@ We use stock Baxter and one computer.  We use the wrist cameras to
 obtain RGB at 30hz. Different parts of the visual pipeline run at
 different frequencies, but the full visual system runs at 2Hz in
 typical conditions.  To obtain the 3D point cloud maps, we use the IR
-sensor in conjunction with the RGB measurement.  Color triangulation,
-a nice image of the brush.  Quickly describe raster scan.  Parzen
-kernel density estimator, downsampling to fill in data.
+sensor in conjunction with the RGB camera.  
 
-Figure: A nice scan of the brush together with an RGB image of the brush from a similar height.
+The IR sensor is a triangulation rangefinder, which means it actively
+illuminates its target with an infrared LED. If the robot is totally
+deprived of light, the spot of light projected by the IR LED can be seen in the RGB camera
+image. The location of the point in the image changes significantly with the
+range of the point being measured. We record the location at several reference ranges
+and interpolate between the two closest reference points, allowing us to know the pixel
+in the RGB image corresponding to the $(x,y,z)$ point being measured. Together, this
+forms an $(r,g,b,x,y,z)$ measurement for the pointcloud.
 
+We collect many measurements for the pointcloud by performing an overhead raster
+scan of the object. The IR sensor reports at about 30hz but gives fairly good localization.
+In order to use the good resolution despite the sparsity of measurement induced by the frequency
+of the sensor and the speed of the robot's movement, we employ a Parzen kernel density 
+estimator to record measurements at 1mm resolution. We then downsample to 1cm resolution, which 
+gives a very clean map and a tractable state space for grasp inference.
 
  
 \section{Evaluation}
@@ -868,7 +879,7 @@ Ideas for doing for the paper, otherwise future work:
 
 Objects which failed entirely did so because of reasonable limitations of the
 system induced by compromises we made for global compatibility. For instance,
-the small vaseline container only has $3mm$ of play between the container and the
+the small vaseline container only has 3mm of play between the container and the
 gripper in the only feasible grasp location. If we double the number of iterations
 during gradient servoing we can more reliably pick it, but this would either
 introduce another parameter in the system (iterations) or excessively slow down
