@@ -3,6 +3,7 @@ import random
 import scipy.stats
 import pylab as mpl
 from scipy.special import betainc
+from draw_policy import compute_policy
 
 class Bandit(object):
 
@@ -109,9 +110,14 @@ class AlgorithmB(Policy):
 
 
 class AlgorithmC(Policy):
-    def __init__(self, confidence=95):
-        self.upperbound = 0.75
-        self.confidence = confidence  / 100.0
+    def __init__(self):
+
+        self.target_mu = 0.7
+        self.epsilon = 0.2
+        self.threshold_confidence = 0.7
+        self.accept_confidence = 0.7
+        self.reject_confidence = 0.95
+
 
     def train(self, bandit, max_budget):
         self.S = na.zeros(bandit.narms) * 0.0
@@ -128,19 +134,24 @@ class AlgorithmC(Policy):
                 else:
                     self.F[a_i] += 1.0
 
-                Pr_mu_less_than_bound = betainc(self.S[a_i] + 1, self.F[a_i] + 1, self.upperbound)
-                Pr_mu_greater_than_bound = 1 - Pr_mu_less_than_bound
-                if Pr_mu_less_than_bound  >= self.confidence:
+                result = compute_policy(self.S[a_i], self.F[a_i], 
+                                self.target_mu, self.epsilon, 
+                                self.threshold_confidence, 
+                                self.accept_confidence, 
+                                self.reject_confidence)
+                if result == "r":
                     break # this arm sucks; next arm
-                elif Pr_mu_greater_than_bound >= self.confidence:
+                elif result in ('a', 't'):
                     print
                     print "arm", a_i
                     print "s", self.S
                     print "f", self.F
                     return #this arm is awesome; leave
-                else:
+                elif result == "c":
                     # continue trying this arm
                     pass
+                else:
+                    raise ValueError("Unexpected result.")
 
     @property
     def marginals(self):
@@ -155,7 +166,7 @@ class AlgorithmC(Policy):
         delta[self.bestAction()] = 1
         return delta
     def __str__(self):
-        return "Algorithm C: " + str(self.confidence)
+        return "Algorithm C"
 
 
 
@@ -360,8 +371,6 @@ class ThompsonSampling(Policy):
         
 
 def main():
-    printThresholds()
-    return
     
     figure = mpl.figure()
     bandit = na.zeros(20) + 0.1
@@ -369,6 +378,8 @@ def main():
     bandit = Bandit(bandit)
     plotBandit(bandit, figure.gca())
     figure.suptitle("Easy Object")
+
+    return
 
     figure = mpl.figure()
     bandit = na.zeros(20) + 0.1
@@ -392,20 +403,20 @@ def plotBandit(bandit, axes):
 
     thompson_sampling = ThompsonSampling()
     #algorithmB = AlgorithmB(confidence=95)
-    algorithmC95 = AlgorithmC(confidence=95)
-    algorithmC90 = AlgorithmC(confidence=90)
+    algorithmC95 = AlgorithmC()
+    #algorithmC90 = AlgorithmC(confidence=90)
     #algorithmCDelta95 = AlgorithmCDelta(confidence=95)
     #algorithmC99 = AlgorithmC(confidence=99)
     #stochastic5 = Stochastic(n=5, confidence=95)
     #stochastic2 = Stochastic(n=2, confidence=95)
     #stochasticEarlyStopping5 = StochasticEarlyStopping(n=5, confidence=95)
 
-    for method in [thompson_sampling, algorithmC90, algorithmC95]:
+    for method in [thompson_sampling, algorithmC95]:
         results = []
         for budget in na.arange(0, 110, 10):
             regrets = []
             budgets = []
-            for iteration in range(25):
+            for iteration in range(10):
                 bandit.reset_log()
                 method.train(bandit, budget)
                 budgets.append(len(bandit.log))
