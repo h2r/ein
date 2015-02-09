@@ -850,6 +850,14 @@ Ideas for doing for the paper, otherwise future work:
   the object?)
 \end{itemize}
 
+Objects which failed entirely did so because of reasonable limitations of the
+system induced by compromises we made for global compatibility. For instance,
+the small vaseline container only has $3mm$ of play between the container and the
+gripper in the only feasible grasp location. If we double the number of iterations
+during gradient servoing we can more reliably pick it, but this would either
+introduce another parameter in the system (iterations) or excessively slow down
+other objects which are more tolerant to error.
+
 
 %% The file named.bst is a bibliography style file for BibTeX 0.99c
 {\tiny
