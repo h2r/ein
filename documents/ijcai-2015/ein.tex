@@ -34,7 +34,8 @@ urlcolor=blue
 
 % Use the postscript times font!
 \usepackage{times}
-\newcommand{\algorithmC}{Ordered Confidence Bound}
+\newcommand{\algorithmCTxt}{Ordered Confidence Bound}
+\newcommand{\algorithmCFname}{OrderedConfidenceBound}
 
 % the following package is optional:
 %\usepackage{latexsym} 
@@ -510,26 +511,29 @@ This integral is the CDF of the beta distribution, and is called the
 regularized incomplete beta function~\citep{olver10}. 
 
 \begin{algorithm}
-\SetKwFunction{x}{\algorithmC}
-\x{$armOrder$, $\delta$, $k$}
-
+\SetKwFunction{x}{\algorithmCFname}
+\x{$armOrder$, $k$, $\delta_{accept}$, $\delta_{reject}$}
 
 $\mbox{Initialize } S_0 \dots S_n \mbox{ to } 0$\\
 $\mbox{Initialize } F_0 \dots F_n \mbox{ to } 0$\\
 \For {$i \in armOrder$}{
   $r \gets sample(arm_i)$\\
-  \If {$r = 1$}{
+  \uIf {$r = 1$}{
     $S_i  \gets S_i + 1$
-  } \Else {
+  }\uElse{
     $F_i  \gets F_i + 1$
   }
-  $p_{reject} \gets \int_0^k Pr(\mu_i = u | S_i, F_i) d\mu $\\
-  $p_{accept} \gets 1 - p_{reject}$\\
-  \uIf {$p_{reject} \ge  k$} {
-    break \tcp*[r]{go to the next arm}
-  } \uElseIf {$p_{accept} \ge k$} {
+  $p_{below} \gets \int_0^k \Pr(\mu_i = \mu | S_i, F_i) d\mu $\\
+  $p_{above} \gets \int_k^1 \Pr(\mu_i = \mu | S_i, F_i) d\mu $\\ %1 - p_{below}$\\
+  $p_{threshold} \gets \int_{k - \epsilon}^{k + \epsilon} \Pr(\mu_i = \mu | S_i, F_i) d\mu $\\
+
+  \uIf{$p_{above} \ge  \delta_{accept}$}{
     return $i$ \tcp*[r]{accept this arm}
-  } \Else {
+  }\uElseIf{$p_{threshold} \ge \delta_{accept}$}{
+    return $i$ \tcp*[r]{accept this arm}
+  }\uElseIf{$p_{below} \ge \delta_{reject}$}{
+    break \tcp*[r]{go to the next arm}
+  } \Else{
     pass \tcp*[r]{keep pulling this arm}
   }
 }
