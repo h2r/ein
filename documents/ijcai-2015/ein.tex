@@ -60,8 +60,9 @@ urlcolor=blue
 % page charge instructions.
 % Put where the files are available in the appropriate places.
 
-\title{Bandit-Based System Adaptation for
-  Instance-Based Grasping}
+\title{Bandit-Based System Adaptation for Grasping}
+
+
 \author{}
 
 \begin{document}
@@ -70,22 +71,20 @@ urlcolor=blue
 
 \begin{abstract}
 A key aim of current research is to create robots that can reliably
-manipulate generic objects.  However, in many applications,
-general-purpose object detection or manipulation is not required: the
-robot would be useful if it could recognize, localize, and manipulate
-the relatively small set of specific objects most important in that
-application, but do so with very high reliability.  The contribution
-of this paper is to automate this adaptation process by formalizing a
-grasping system as a hierarchy of bandit problems, enabling the robot
-to apply learning techniques to adapt itself to manipulate specific
-objects with increased accuracy.  The robot performs best arm
-identification using a variant of Hoeffding races, enabling it to
-quickly find an optimal arm and then move on to the next object.  Our
-approach also incorporates knowledge from a prior defined in terms of
-an ordering on the arms.  We demonstrate that our bandit-based
-adaptation step significantly improves accuracy over a non-adaptive
-system, enabling a robot to quickly and autonomously acquire models
-for objects, and adaptively improve them through experience.
+manipulate objects.  However, in many instances, information needed to
+infer a successful grasp is latent in the environment and arises from
+complicated physical dynamics; for example, a heavy object might need
+to be grasped in the middle or else it will torque out of the gripper
+when the robot raises it.  The contribution of this paper is an
+approach for enabling a robot to learn models for successfully
+localizing and grasping objects by formalizing a grasping system as an
+n-armed bandit problem.  The robot performs best arm identification
+using a variant of Hoeffding races that incorporates prior
+information, enabling it to quickly find an optimal arm without
+pulling all the arms as in UCB-based approaches.  We demonstrate that
+our adaptation step significantly improves accuracy over a
+non-adaptive system, enabling a robot to adaptively improve grasping
+models through experience.
 
 
 %%   To address this
@@ -110,45 +109,43 @@ for objects, and adaptively improve them through experience.
 
 
 \section{Introduction}
-Robotics will assist us at childcare, help us cook, and
-provide service to doctors, nurses, and patients in hospitals. Many of
-these tasks require a robot to robustly perceive and manipulate
-objects in its environment, yet robust object manipulation remains a
-challenging problem.  Systems for general-purpose manipulation are
-computationally expensive and do not enjoy high accuracy on novel
-objects~\citep{saxena08}.  Instance-based approaches that focus on
-specific instances of objects can have higher accuracy but require
-training by a human operator, which is time consuming and can be
-difficult for a non-expert to perform~\citep{ork14, lai11, lai11a}.
-Existing approaches to autonomously learn 3D object models still
-require expensive ICP-based methods to localize objects, which are
-susceptible to local minima and take time to
-converge~\citep{krainin11}.
+Robotics will assist us at childcare, help us cook, and provide
+service to doctors, nurses, and patients in hospitals. Many of these
+tasks require a robot to robustly perceive and manipulate objects in
+its environment, yet robust object manipulation remains a challenging
+problem.  Systems for general-purpose manipulation are computationally
+expensive and do not enjoy high accuracy on novel
+objects~\citep{saxena08}.  A common source of error is the presence of
+latent dynamics that emerge from interactions between the object and
+the robot's gripper.  For example, a heavy object might fall out of
+the robot's gripper unless it grabs it close to the center.
+Transparent or reflective surfaces that are not visible in IR or RGB
+make it difficult to infer grasp points even with high quality IR or
+RGB sensors~\citep{x}.
 
-To address this problem, we present an approach that enables a robot
-to learn to identify and grasp on a per object basis by adapting its
-perceptual framework to specific objects. Our grasping and percpetion
-pipeline uses standard computer vision techniques to perform data
-collection, feature extraction, and training, along with active visual
-servoing for localization.  This framework succeeds to some degree with
-many objects, but reaches performance ceilings for specific objects
-for a variety of reasons.  To address these limitations, we present a
-mathematical formalization of a system of software components combined
-with validators as an n-armed bandit problem~\citep{thompson33}.
-Conventional abstractions and data flow used in system design
-translate into independence assumptions in the model; because we are
-operating using a robot which can actively collect additional
-information about the environment (although sometimes at higher cost
-in time and sensing), we can obtain a high-quality reward signal for
-supervision.  
-
-Unlike traditional bandit problems, where the agent trades off
-exploration and exploitation, in our formulation, the robot aims to
+To address these limitations, we propose an approach for enabling a
+robot to learn about latent dynamics by exploring the object and
+adapting its recognition and grasping pipeline accordingly.  We frame
+the problem of system adaptation as identifying the best arm for an
+n-armed bandit problem~\citep{thompson33} where the robot aims to
 minimize simple regret after a finite exploration
-period~\citep{bubeck09}.  We follow \citet{maron93} to explore until
-the agent is confident that it has found an acceptable arm.  Our
-approach enables the robot to quickly converge when it finds a good
-grasp, so it can move on to the next object.
+period~\citep{bubeck09}.  Our robot can obtain a high-quality reward
+signal (although sometimes at a higher cost in time and sensing) by
+actively collecting additional information from the environment.
+Because existing algorithms for best arm identification require
+pulling all the arms as an initialization step~\citep{mannor04,
+  audibert10, chen14}, we present a new algorithm, \algorithmCTxt,
+which enables the robot to incorporate prior knowledge about promising
+arms to avoid pulling all arms as an initialization step, and
+autonomously decide when to stop by bounding the confidence in the
+result.
+
+
+We follow
+\citet{maron93} to explore until the agent is confident that it has
+found an acceptable arm.  Our approach enables the robot to quickly
+converge when it finds a good grasp, so it can move on to the next
+object.  
 
 
 %% We use slower, more accurate sensing approaches
@@ -202,6 +199,10 @@ its work space using closed-loop visual servoing in response to a
 person's requests.  We demonstrate that our baseline system can learn
 to pick up objects approximately XX\% of the time; augmenting this
 system with our self-training approach increases accuracy to YY\%.
+Moreover, our approach also enables the robot to learn success
+probabilities for each object it encounters; this information can be
+used to make principled decisions planning decisions as it operates in
+the environment. 
 
 %% Our software is compatible with ROS and the Baxter SDK version 1.0.0,
 %% and we intend to release it as free software should our paper be
@@ -211,249 +212,27 @@ system with our self-training approach increases accuracy to YY\%.
 %% large number of views of a large set of objects as well as storing
 %% depth information and grasping success.
 
+\section{Grasping Pipeline}
 
-\section{Grasping System}
-
-We first describe our instance-based object detection and pose
-estimation pipeline, which uses standard computer vision algorithms
-combined to achieve a simple software architecture, a high frame rate,
-and high accuracy at recognition and pose estimation.  This pipeline
-can be manually trained by an expert to reliably detect and grasp
-objects.  Section~\ref{sec:training} describes our approach to
-enabling a robot to autonomously train this pipeline by actively
-collecting images and training data from the environment using
-Thompson sampling.
-
-Our recognition pipeline takes video from the robot, proposes a small
-number of candidate object bounding boxes in each frame, and
-classifies each candidate bounding box as belonging to a previously
-encountered object class. Our object classes consist of object
-instances rather than pure object categories.  Using instance
+Our object detection and pose estimation pipeline uses standard
+computer vision algorithms combined to achieve a simple software
+architecture, a high frame rate, and high accuracy at recognition and
+pose estimation.  Our recognition pipeline takes video from the robot,
+proposes a small number of candidate object bounding boxes in each
+frame, and classifies each candidate bounding box as belonging to a
+previously encountered object class. Our object classes consist of
+object instances rather than pure object categories.  Using instance
 recognition means we cannot reliably detect categories, such as
 ``mugs,'' but the system will be able to detect, localize, and grasp
 the specific instances for which it has models with much higher speed
 and accuracy.  A visualization of data flow in the pipeline appears in
-Figure~\ref{fig:system}.  \jgonote{This doesn't quite seem current:}
-For each module, we formalize its input,
+Figure~\ref{fig:system}.  For each module, we formalize its input,
 output, and reward function; each component can have multiple
 implementations which better for different objects.  The following
 sections describe how we can use this pipeline to learn which
 implementation to use for specific objects; this learning dramatically
 speeds up performance.
 
-%% \begin{figure}
-%% \includegraphics{system.pdf}
-%% \caption{Data flow in our grasping system.\label{fig:system}}
-%% \end{figure}
-
-\subsection{Object Detection}
-\label{sec:detection}
-
-The input of the object detection component is an image, $I$; the
-output is a set of candidate bounding boxes, $B$.  For object
-detection we use a modified Canny algorithm which terminates before
-the usual non-maximal suppression step~\citep{canny86}.
-
-%\subsubsection{Detecting Objects Using Image Gradients}
-
-We start by converting $I$ to YCbCr opponent color representation.
-Then we apply $5 \times 5$ Sobel derivative filters~\citep{sobel95} to
-each of the three channels and keep the square gradient magnitude. We
-take a convex combination of the three channels, where Cb and Cr and
-weighted the same and more heavily than Y.  After this we downsample,
-apply the two Canny thresholds, and find connected components.  If a
-connected component is contained in another, we discared the contained
-component.  We throw out boxes which do not contain enough visual data
-to classify.  We generate a candidate bounding box for each remaining
-component by taking the smallest box which contains the component.
-
-\stnote{Need to make a figure showing this process (analgous to the
-  objectness figure)}
-
-\subsection{Object Classification}
-\label{sec:recognition}
-
-The object recognition module takes as input a bounding box, $B$, and
-outputs a label for that object, $c$, based on the robot's memory.
-This label is used to identify the object and look up other
-information about the object for grasping further down the pipeline.
-
-For each object $c$ we wish to classify, we gather a set of example
-crops $E_c$ which are candidate bounding boxes (derived as above)
-which contain $c$. We extract dense SIFT features ~\citep{lowe99} from
-all boxes of all classes and use k-means to extract a visual
-vocabulary of SIFT features ~\citep{szeliski10}. We then construct a
-Bag of Words feature vector for each image and augment it with a histogram of
-colors which appear in that image.  The augmented feature vector is
-incorporated into a k-nearest-neighbors model which we use to classify
-objects at inference~\citep{szeliski10}. We use kNN because our
-automated training process allows us to acquire as much high-quality
-data as necessary to make the model work well, and kNN supports direct
-matching to this large dataset.  
-
-%% \jgonote{I would be careful to think about what "performing well" means to
-%% us versus what it means to line2D, because I'm betting they use more objects.}
-%% Existing approaches for
-%% instance-based grasping such as LINE-2D require the order of $2000$ examples
-%% whereas our SIFT-based approach performs well with only $200$
-%% ~\citep{hinterstoisser12}.
-
-
-%% The use of SIFT features is motivated by the instance level nature of
-%% our task. State-of-the-art vision methods typically use
-%% HOG~\citep{dalal05} features, but that choice is motivated by category
-%% level recognition. \stnote{What about category level recognition
-%%   motivates HOG or CNN?  Can you be more specific?}
-
-
-%% is easy to rebuild online, which is a key
-%% property a classifier should enjoy if it is to interact with our
-%% framework in real time. State-of-the-art computer vision classifiers
-%% currently employ SVM's ~\citep{} or other models which require
-%% expensive training. Using such a model would introduce a training step
-%% in the inside loop of our data collection process, which would be
-%% costly in either engineering or time.  It is possible to use kNN
-%% during the online collection process and then train a stronger
-%% classifier in the background at higher latency, essentially
-%% introducing a cascading step in the data collection process.
-
-\begin{figure*}
-\subfigure[Raw image from the camera.]{
-  \includegraphics[width=0.25\linewidth]{figures/objectness_raw.png}}%
-\subfigure[Candidate bounding boxes from Bing.\label{fig:bing}]{
-  \includegraphics[width=0.25\linewidth]{figures/objectness_purple.png}}%
-\subfigure[Integral image objectness map.\label{fig:objectness}]{
-  \includegraphics[width=0.25\linewidth]{figures/objectness_map.png}}%
-\subfigure[Candidate bounding boxes.\label{fig:bounding_boxes}]{
-  \includegraphics[width=0.25\linewidth]{figures/objectness_boxes1.png}}
-\caption{The object detection pipeline, showing a raw image from the
-  camera, the integral image computed using objectness, and candidate
-  bounding boxes.\label{fig:object_detection}}
-\end{figure*}
-
-
-
- 
-\subsection{Pose Estimation}
-
-We use the image gradient for object detection and pose estimation. During
-object detection, the gradient of the whole image is the first step in the Canny pipeline.
-For pose estimation,  we require a crop of  image gradient of the object
-at a specific, known pose. 
-
-%We denote the gradient by
-%\begin{align}
-%\Delta I = \left( \frac{\partial I}{\partial x}, \frac{\partial I}{\partial y} \right)
-%\end{align}
-
-As during bounding box proposal, We approximate the gradient using 
-$5 \times 5$ Sobel derivative filters~\citep{sobel95}, but we use a
-different convex combination of the channels which focuses even less
-on the Y channel.  Camera noise in the color channels is significant. To
-cope with the noise, we marginalize the gradient estimate over several
-frames taken from the same location, providing a much cleaner signal which matches more robustly.  To estimate 
-pose, we rotate our training image and find the closest match to the 
-image currently recorded from the camera, as detected and localized via 
-the pipeline in Section~\ref{sec:detection} and~\ref{sec:recognition}.
-
-In order to match our template image with the crop observed at pick time,
-we remove the mean from and $L^2$ normalize the template and the crop.
-Removing the mean provides invariance to bias, and normalizing introduces
-invariance to scaling, which both help account somewhat
-for lighting. 
-
-\subsection{Identifying Grasp Points}
-
-To identify a grasp points, we combine a depth map of the object with
-a model of the gripper.  The depth map appears in
-Figure~\ref{fig:depth_map} and is acquired by moving the rangefinder on the
-arm through a raster scan over the object.  The grasp model scores each potential
-grasp according to a linear model of the gripper to estimate grasp
-success. A default algorithm picks the highest-scoring grasp point
-using hand designed linear filters,
-but frequently this point is not actually a good grasp, because the
-object might slip out of the robot's gripper or part of the object may
-not be visible in IR.  The input to this module is the 3d pose of the
-object, and the output is a grasp point $(x, y, \theta)$; at this point we
-assume only crane grasps rather than full 3d grasping, where $\theta$
-is the angle which the gripper assumes for the grasp.
-
-
-
-\subsection{Closed-Loop Grasping}
-
-To grasp an object, we first scan the work area by moving the camera
-until the object is detected an recognized.  Then we perform active
-visual servoing to move the arm directly above the object.  Next, we
-perform orientation servoing using the pose estimation
-algorithm. Because these components are instance-based, they report
-position and orientation with high accuracy, enabling us to use a
-proportional controller (with no derivative or integral terms) to move
-the arm into position.
-
-
-
-
-
-\subsection{Autonomous Training}
-\label{sec:training}
-
-An object model in our framework consists of the following elements:
-\begin{itemize}
-\item cropped object templates (roughly 200), $t^1 ... t^K$
-\item depth map, $D$, which consists of a point cloud, $(x, y, z, r, g, b)$.
-\item cropped gradient template, $t_0$
-\end{itemize}
-
-Additionally, the model can be augmented with words or attributes,
-$w_1... w_n$ which people might use to describe the object, so the
-robot can respond to natural language commands such as ``Put the cup
-on the left table.''
-
-To train our model, the robot first moves the object to a known pose,
-then acquires images that are annotated with a pose as well as a
-cropped bounding box for training.  As typical in machine learning
-applications, the more images we can acquire, from the more
-viewpoints, the more accurate our detection, pose estimation, and
-grasping.  To achieve this accuracy, the robot autonomously collects
-this information by using a depth sensor to acquire an initial grasp,
-move the object to a standard known pose, and then actively collect
-data for view-based methods.  Our learning algorithm appears in
-Algorithm~\ref{alg:learning}.
-
-Once the object has been moved to a known pose, we acquire the object
-model by moving the camera to a sequence of prespecified orientations.
-We automatically crop the image using our object detection system.
-
-
-%% \begin{figure}
-%%   \textbf{GraspObject()}
-%%   \begin{algorithmic}
-%%     \WHILE {true}
-%%       \STATE $I \gets loadImage()$
-%%       \STATE $B \gets Attempt a grasp.$
-%%       \IF {grasp is successful}
-%%         \STATE Move object to training area.
-%%         \STATE Map(object).
-%%       \ENDIF
-%%     \ENDWHILE
-%%   \end{algorithmic}
-%%   \caption{The high-level object-learning algorithm.\label{alg:learning}}
-%% \end{figure}
-
-
-%% \begin{figure}
-%%   \textbf{Map}
-%%   \begin{algorithmic}
-%%     \FOR {$(x^k, y^k, z^k) \in scan$}
-%%     \STATE $I^k \gets ImageAt (x^k, y^k, z^k)$
-%%     \STATE $t^k \gets Crop(I^k)$ using the approach described in Section~\ref{sec:detection}
-%%     \STATE $D^k \gets PointAt(x^k, y^k, z^k)$
-%%     \ENDFOR
-%%   \end{algorithmic}
-%%   \caption{The high-level algorithm for acquiring visual and grasping
-%%     models of objects.}
-%% \end{figure}
 
 \section{Bandit-based Adaptation}
 
@@ -489,13 +268,13 @@ that promising arms are first, not assign any specific probability
 distribution on $\mu$.
 
 
-Our algorithm is to iterate through each arm, and try it until we have
-identified it either is above $k$ with probability $c$ (in which case
-it terminates) or it is below $k$ with probability $c$ (in which case
-it moves to the next arm in the sequence.  To compute this probability
-we need to estimate the probability that the true payout probability,
-$\mu$ is greater than the threshold, $c$ given the observed number of
-successes and failures:
+Our algorithm, \algorithmCTxt, iterates through each arm, and try it
+until we have identified it either is above $k$ with probability $c$
+(in which case it terminates) or it is below $k$ with probability $c$
+(in which case it moves to the next arm in the sequence.  To compute
+this probability we need to estimate the probability that the true
+payout probability, $\mu$ is greater than the threshold, $c$ given the
+observed number of successes and failures:
 \begin{align}
 \Pr(\mu_i > c|  S, F)
 \end{align}
@@ -546,6 +325,9 @@ Note that if $\mu = k$ the runtime is unbounded, so we fix an
 $\epsilon > 0$ and accept a grasp if $\mu \in [k-\epsilon, k+\epsilon]$
 with probability $c$.
 
+This formalization gives rise to our policy, \algorithmCTxt, which
+appears in Algorithm~\ref{alg:bandit}.    
+
 
 %% * terminate fast, and know when to terminate
 %% * identify the best grasp with high probability (and search longer if you haven't)
@@ -558,26 +340,31 @@ with probability $c$.
 \section{Robotic Implementation}
 
 We use stock Baxter and one computer.  We use the wrist cameras to
-obtain RGB at 30hz. Different parts of the visual pipeline run at
-different frequencies, but the full visual system runs at 2Hz in
-typical conditions.  To obtain the 3D point cloud maps, we use the IR
-sensor in conjunction with the RGB camera.  
+obtain RGB at 30hz.  The full visual system runs at 2Hz in typical
+conditions.  We collect many measurements for the depth map by
+performing an overhead raster scan of the object. The IR sensor
+reports at about 30hz but gives fairly good localization.  In order to
+use the good resolution despite the sparsity of measurement induced by
+the frequency of the sensor and the speed of the robot's movement, we
+employ a Parzen kernel density estimator to record measurements at 1mm
+resolution. We then downsample to 1cm resolution, which gives a very
+clean map and a tractable state space for grasp inference.
 
-The IR sensor is a triangulation rangefinder, which means it actively
-illuminates its target with an infrared LED. If the robot is totally
-deprived of light, the spot of light projected by the IR LED can be seen in the RGB camera
-image. The location of the point in the image changes significantly with the
-range of the point being measured. We record the location at several reference ranges
-and interpolate between the two closest reference points, allowing us to know the pixel
-in the RGB image corresponding to the $(x,y,z)$ point being measured. Together, this
-forms an $(r,g,b,x,y,z)$ measurement for the pointcloud.
+%To obtain the 3D point cloud maps, we use the IR sensor in
+%conjunction with the RGB camera.
 
-We collect many measurements for the pointcloud by performing an overhead raster
-scan of the object. The IR sensor reports at about 30hz but gives fairly good localization.
-In order to use the good resolution despite the sparsity of measurement induced by the frequency
-of the sensor and the speed of the robot's movement, we employ a Parzen kernel density 
-estimator to record measurements at 1mm resolution. We then downsample to 1cm resolution, which 
-gives a very clean map and a tractable state space for grasp inference.
+
+%% The IR sensor is a triangulation rangefinder, which means it actively
+%% illuminates its target with an infrared LED. If the robot is totally
+%% deprived of light, the spot of light projected by the IR LED can be
+%% seen in the RGB camera image. The location of the point in the image
+%% changes significantly with the range of the point being measured. We
+%% record the location at several reference ranges and interpolate
+%% between the two closest reference points, allowing us to know the
+%% pixel in the RGB image corresponding to the $(x,y,z)$ point being
+%% measured. Together, this forms an $(r,g,b,x,y,z)$ measurement for the
+%% pointcloud.
+
 
  
 \section{Evaluation}
@@ -682,9 +469,18 @@ Purple marker(*)& 9/10          &  3/3         &  9/10 \\
 Dragon          & 8/10          &  5/6         &  7/10 \\
 Stamp (*)       & 8/10          &  3/3         &  8/10 \\
 Yellow Boat     & 9/10          &  5/6         &  9/10 \\
+Icosahedron     & 7/10          &  7/21        &  8/10 \\
+wooden train    & 4/10          &  11/24       &  8/10 \\
+mug             & 3/10          &  3/4         &  10/10 \\
+packing tape*    & 9/10          &  3/3        &  9/10 \\
+wooden spoon*    & 7/10          &  3/3        &  7/10 \\
+red bucket*      & 5/10          &  3/3        &  5/10 \\
+syringe         & 9/10          &  6/9         & 10/10 \\
+garlic press    & 0/10          &  8/50        & 2/10 \\
+whiteout*        & 10/10         &  3/3        & 10/10\\
 \midrule
-Total           & 34/100         & 48/164       & 66/100\\
-Rate            & 0.34          &  0.29         & 0.66\\
+Total           & 165/300         & 148/400    & 224/300\\
+Rate            & 0.55          &  0.37        & 0.75\\
 \bottomrule
 \end{tabular}
 \caption{Results from the robotic evaluation.\label{table:robot_results}}
