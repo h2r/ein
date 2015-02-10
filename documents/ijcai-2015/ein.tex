@@ -74,16 +74,16 @@ A key aim of current research is to create robots that can reliably
 manipulate objects.  However, in many instances, information needed to
 infer a successful grasp is latent in the environment and arises from
 complicated physical dynamics; for example, a heavy object might need
-to be grasped in the middle or else it will torque out of the gripper
-when the robot raises it.  The contribution of this paper is an
-approach for enabling a robot to learn models for successfully
+to be grasped in the middle or else it will twist out of the robot's gripper.  
+The contribution of this paper is an
+approach for enabling a robot to learn models for 
 localizing and grasping objects by formalizing a grasping system as an
 n-armed bandit problem.  The robot performs best arm identification
 using a variant of Hoeffding races that incorporates prior
 information, enabling it to quickly find an optimal arm without
 pulling all the arms as in UCB-based approaches.  We demonstrate that
 our adaptation step significantly improves accuracy over a
-non-adaptive system, enabling a robot to adaptively improve grasping
+non-adaptive system, enabling a robot to improve grasping
 models through experience.
 
 
@@ -120,33 +120,26 @@ latent dynamics that emerge from interactions between the object and
 the robot's gripper.  For example, a heavy object might fall out of
 the robot's gripper unless it grabs it close to the center.
 Transparent or reflective surfaces that are not visible in IR or RGB
-make it difficult to infer grasp points even with high quality IR or
-RGB sensors~\citep{x}.
+make it difficult to infer grasp points~\citep{x}.
 
 To address these limitations, we propose an approach for enabling a
-robot to learn about latent dynamics by exploring the object and
-adapting its recognition and grasping pipeline accordingly.  We frame
-the problem of system adaptation as identifying the best arm for an
-n-armed bandit problem~\citep{thompson33} where the robot aims to
-minimize simple regret after a finite exploration
-period~\citep{bubeck09}.  Our robot can obtain a high-quality reward
-signal (although sometimes at a higher cost in time and sensing) by
-actively collecting additional information from the environment.
-Because existing algorithms for best arm identification require
-pulling all the arms as an initialization step~\citep{mannor04,
-  audibert10, chen14}, we present a new algorithm, \algorithmCTxt,
-which enables the robot to incorporate prior knowledge about promising
-arms to avoid pulling all arms as an initialization step, and
+robot to learn about an object through exploration and adapt its
+grasping model accordingly.  We frame the problem of model adaptation
+as identifying the best arm for an n-armed bandit
+problem~\citep{thompson33} where the robot aims to minimize simple
+regret after a finite exploration period~\citep{bubeck09}.  Our robot
+can obtain a high-quality reward signal (although sometimes at a
+higher cost in time and sensing) by actively collecting additional
+information from the environment.  Existing algorithms for best arm
+identification require pulling all the arms as an initialization
+step~\citep{mannor04, audibert10, chen14}, a prohibitive expense when
+each arm pull takes on the order of 90 seconds and there are more than
+1000 arms.  To address this problem, we present a new algorithm,
+\algorithmCTxt, based on Hoeffding races~\citep{maron93}. In our
+approach, the robot pulls arms in an order determined by a prior,
+which allows it to try the most promising arms first. It can then
 autonomously decide when to stop by bounding the confidence in the
 result.
-
-
-We follow
-\citet{maron93} to explore until the agent is confident that it has
-found an acceptable arm.  Our approach enables the robot to quickly
-converge when it finds a good grasp, so it can move on to the next
-object.  
-
 
 %% We use slower, more accurate sensing approaches
 %% to provide supervision for faster, simpler methods that excel with
@@ -156,9 +149,6 @@ object.
 %% optimal; the robot can learn better grasps for that object using the
 %% analytic model as a prior and actively collecting data for that
 %% object.
-
-
-
 
 %%  a view-based model for closed-loop visual picking.  View-based
 %% methods for instance detection have many advantages over methods using
@@ -171,7 +161,6 @@ object.
 %% method~\citep{hinterstoisser12}.  Moreover, for manipulation,
 %% view-based methods do not propose potential grasps, and autonomous
 %% methods for recognizing visual grasps are prone to error. 
-
 
 %% To address these issues, we present an approach for enabling a robot
 %% to train its own view-based model to recognize and manipulate the
@@ -191,18 +180,29 @@ object.
 %% autonomously and reliably finding object bounding boxes once the
 %% object is on a background such as a floor or table.
 
-Our evaluation demonstrates that a Baxter robot can autonomously learn
-robust models for detection and grasping, using its IR sensor and arm
-camera as a seven-degree of freedom one-pixel RGB-D camera.  After
-training, Baxter can quickly and reliably grasp objects anywhere in
-its work space using closed-loop visual servoing in response to a
-person's requests.  We demonstrate that our baseline system can learn
-to pick up objects approximately XX\% of the time; augmenting this
-system with our self-training approach increases accuracy to YY\%.
-Moreover, our approach also enables the robot to learn success
-probabilities for each object it encounters; this information can be
-used to make principled decisions planning decisions as it operates in
-the environment. 
+
+Our evaluation, performed on a Baxter robot, demonstrates that our
+adaptation step improves the overall pick success rate from 55\% to
+75\% on our test set of 30 household objects, shown in
+Figure~\ref{fig:object_glory_shot}.  Moreover, our approach also
+enables the robot to learn success probabilities for each object it
+encounters; when the robot fails to infer a successful grasp for an
+object, it knows this fact, enabling it to take active steps to
+recover such as asking for help~\citep{tellex14}.
+
+We first give an overview of our object detection and localization,
+then formalize our grasping framework as a bandit problem, where each
+arm corresponds to a grasp point on the object.
+Section~\ref{sec:evaluation} describes our evaluation in simulation
+and on the real robot with $30$ household objects,
+Section~\ref{sec:relatedwork} covers related work, and
+Section~\ref{sec:conclusion} concludes.
+
+\begin{figure}
+\includegraphics[width=1\linewidth]{figures/object_glory_shot.jpg}
+\caption{The objects used in our evaluation.\label{fig:object_glory_shot}}
+\end{figure}
+
 
 %% Our software is compatible with ROS and the Baxter SDK version 1.0.0,
 %% and we intend to release it as free software should our paper be
@@ -212,22 +212,23 @@ the environment.
 %% large number of views of a large set of objects as well as storing
 %% depth information and grasping success.
 
-\section{Grasping Pipeline}
+\section{Object Detection and Localization}
 
-Our object detection and pose estimation pipeline uses standard
-computer vision algorithms combined to achieve a simple software
-architecture, a high frame rate, and high accuracy at recognition and
-pose estimation.  Our recognition pipeline takes video from the robot,
-proposes a small number of candidate object bounding boxes in each
-frame, and classifies each candidate bounding box as belonging to a
-previously encountered object class. Our object classes consist of
-object instances rather than pure object categories.  Using instance
-recognition means we cannot reliably detect categories, such as
-``mugs,'' but the system will be able to detect, localize, and grasp
-the specific instances for which it has models with much higher speed
-and accuracy.  A visualization of data flow in the pipeline appears in
-Figure~\ref{fig:system}.  For each module, we formalize its input,
-output, and reward function; each component can have multiple
+The robot uses its arm cameras and IR sensor to localize objects in
+the environment.  Our object detection and pose estimation pipeline
+uses conventional computer vision algorithms to achieve a simple
+software architecture, and a frame rate of about 2Hz for object
+detection and pose estimation.  Our recognition pipeline takes video
+from the robot, proposes a small number of candidate object bounding
+boxes in each frame, and classifies each candidate bounding box as
+belonging to a previously encountered object class. Our object classes
+consist of object instances rather than pure object categories.  Using
+instance recognition means we cannot reliably detect categories, such
+as ``mugs,'' but the system will be able to detect, localize, and
+grasp the specific instances for which it has models with much higher
+speed and accuracy.  A visualization of data flow in the pipeline
+appears in Figure~\ref{fig:system}.  For each module, we formalize its
+input, output, and reward function; each component can have multiple
 implementations which better for different objects.  The following
 sections describe how we can use this pipeline to learn which
 implementation to use for specific objects; this learning dramatically
@@ -340,10 +341,10 @@ appears in Algorithm~\ref{alg:bandit}.
 \section{Robotic Implementation}
 
 We use stock Baxter and one computer.  We use the wrist cameras to
-obtain RGB at 30hz.  The full visual system runs at 2Hz in typical
+obtain RGB at 30Hz.  The full visual system runs at 2Hz in typical
 conditions.  We collect many measurements for the depth map by
 performing an overhead raster scan of the object. The IR sensor
-reports at about 30hz but gives fairly good localization.  In order to
+reports at about 30Hz but gives fairly good localization.  In order to
 use the good resolution despite the sparsity of measurement induced by
 the frequency of the sensor and the speed of the robot's movement, we
 employ a Parzen kernel density estimator to record measurements at 1mm
@@ -368,11 +369,8 @@ clean map and a tractable state space for grasp inference.
 
  
 \section{Evaluation}
+\label{sec:evaluation}
 
-\begin{figure}
-\includegraphics[width=1\linewidth]{figures/object_glory_shot.jpg}
-\caption{The objects used in our evaluation.\label{fig:object_glory_shot}}
-\end{figure}
 
 The aim of our evaluation is to assess the ability of the system to
 acquire visual models of objects which are effective for grasping and
@@ -493,6 +491,8 @@ Rate            & 0.55          &  0.37        & 0.75\\
 
 
 \section{Related Work}
+
+\label{sec:relatedwork}
 
 \citet{bohg13} survey data-driven approaches to grasping.  Our
 approaches can be thought of as a pipeline for automatically building
@@ -659,6 +659,8 @@ new objects.
 
 
 \section{Conclusion}
+
+\label{sec:conclusion}
 
 \stnote{First paragraph:  contributions.  What are the things this paper has done to advance the state of the art?}
 
