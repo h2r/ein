@@ -49,69 +49,11 @@ class Policy(object):
         raise NotImplementedError()
 
 
-class AlgorithmB(Policy):
-    def __init__(self, confidence=95):
-        self.upperbound = 0.8
-        self.confidence = confidence
-        self.confidence_map = {
-            1: 1,
-            90: 1.645,
-            95: 1.96,
-            99: 2.575}
-        self.confidence_factor = self.confidence_map[confidence]
-
-
-    def train(self, bandit, max_budget):
-        self.S = na.zeros(bandit.narms) * 0.0
-        self.F = na.zeros(bandit.narms) * 0.0
-        
-        iteration = 0
-
-        for a_i in bandit.actions:
-            while True:
-                if iteration >= max_budget:
-                    return
-
-                r = bandit.sample(a_i)
-                iteration += 1
-                if r == 1:
-                    self.S[a_i] += 1.0
-                else:
-                    self.F[a_i] += 1.0
-                ntrials = self.S[a_i] + self.F[a_i]
-                if ntrials == 1:
-                    continue
-                arm_mean = self.S[a_i] / ntrials
-                arm_stderr = na.sqrt(arm_mean * (1 - arm_mean) / ntrials)
-
-                arm_confidence = arm_stderr * self.confidence_factor
-                if (arm_mean + arm_confidence)  < self.upperbound:
-                    break # this arm sucks; next arm
-                elif (arm_mean - arm_confidence > self.upperbound):
-                    return #this arm is awesome; leave
-                else:
-                    # continue trying this arm
-                    pass
-
-    @property
-    def marginals(self):
-        return [s/(s + f) if (s + f != 0) else 0.5 for (s, f) in zip(self.S, self.F)]
-        
-    def bestAction(self):
-        return na.argmax(self.marginals)
-
-    def actionDistribution(self):
-        #return self.marginals / na.sum(self.marginals)
-        delta = na.zeros(len(self.S))
-        delta[self.bestAction()] = 1
-        return delta
-    def __str__(self):
-        return "Algorithm B: " + str(self.confidence)
-
 
 class AlgorithmC(Policy):
-    def __init__(self):
-
+    def __init__(self, union_bound=False):
+        self.drawBudget = False
+        self.union_bound = union_bound
         self.target_mu = 0.7
         self.epsilon = 0.2
         self.threshold_confidence = 0.7
@@ -122,6 +64,16 @@ class AlgorithmC(Policy):
     def train(self, bandit, max_budget):
         self.S = na.zeros(bandit.narms) * 0.0
         self.F = na.zeros(bandit.narms) * 0.0
+        
+        if self.union_bound:
+            accept_confidence = 1 - (1 - self.accept_confidence) / bandit.narms
+            reject_confidence = 1 - (1 - self.reject_confidence) / bandit.narms
+            threshold_confidence = 1 - (1 - self.reject_confidence) / bandit.narms
+        else:
+            accept_confidence = self.accept_confidence
+            reject_confidence = self.reject_confidence
+            threshold_confidence = self.threshold_confidence
+
         
         for a_i in bandit.actions:
             while True:
@@ -136,9 +88,9 @@ class AlgorithmC(Policy):
 
                 result = compute_policy(self.S[a_i], self.F[a_i], 
                                 self.target_mu, self.epsilon, 
-                                self.threshold_confidence, 
-                                self.accept_confidence, 
-                                self.reject_confidence)
+                                threshold_confidence, 
+                                accept_confidence, 
+                                reject_confidence)
                 if result == "r":
                     break # this arm sucks; next arm
                 elif result in ('a', 't'):
@@ -166,66 +118,10 @@ class AlgorithmC(Policy):
         delta[self.bestAction()] = 1
         return delta
     def __str__(self):
-        return "Algorithm C"
-
-
-
-class AlgorithmCDelta(Policy):
-    def __init__(self, confidence=95):
-        self.upperbound = 0.8
-        self.confidence = confidence  / 100.0
-        self.delta = 1 - self.confidence
-
-    def train(self, bandit, max_budget):
-        arm_delta = (self.delta) / bandit.narms
-        arm_confidence = 1 - arm_delta
-
-        self.S = na.zeros(bandit.narms) * 0.0
-        self.F = na.zeros(bandit.narms) * 0.0
-        
-        for a_i in bandit.actions:
-            while True:
-                if len(bandit.log) >= max_budget:
-                    return
-
-                r = bandit.sample(a_i)
-                trial_delta = arm_delta / 2**len(bandit.log)
-                trial_confidence = 1 - trial_delta
-                if r == 1:
-                    self.S[a_i] += 1.0
-                else:
-                    self.F[a_i] += 1.0
-
-                Pr_mu_less_than_bound = betainc(self.S[a_i] + 1, self.F[a_i] + 1, self.upperbound)
-                Pr_mu_greater_than_bound = 1 - Pr_mu_less_than_bound
-                if Pr_mu_less_than_bound  >= arm_confidence:
-                    break # this arm sucks; next arm
-                elif Pr_mu_greater_than_bound >= arm_confidence:
-                    print
-                    print "arm", a_i
-                    print "s", self.S
-                    print "f", self.F
-                    return #this arm is awesome; leave
-                else:
-                    # continue trying this arm
-                    pass
-
-    @property
-    def marginals(self):
-        return [s/(s + f) if (s + f != 0) else 0.5 for (s, f) in zip(self.S, self.F)]
-        
-    def bestAction(self):
-        return na.argmax(self.marginals)
-
-    def actionDistribution(self):
-        #return self.marginals / na.sum(self.marginals)
-        delta = na.zeros(len(self.S))
-        delta[self.bestAction()] = 1
-        return delta
-    def __str__(self):
-        return "Algorithm C Delta: " + str(self.confidence)
-
-
+        name = "Ordered Confidence Bound"
+        if self.union_bound:
+            name = name + " (tight)"
+        return name
 
 
 class Stochastic(Policy):
@@ -337,6 +233,7 @@ class StochasticEarlyStopping(Policy):
 
 class ThompsonSampling(Policy):
     def __init__(self):
+        self.drawBudget = True
         pass
 
     def train(self, bandit, max_budget):
@@ -371,53 +268,42 @@ class ThompsonSampling(Policy):
         
 
 def main():
-    
-    figure = mpl.figure()
-    bandit = na.zeros(20) + 0.1
-    bandit[1] = 0.9  # Thompson
-    bandit = Bandit(bandit)
-    plotBandit(bandit, figure.gca())
-    figure.suptitle("Easy Object")
-
-    return
-
-    figure = mpl.figure()
-    bandit = na.zeros(20) + 0.1
-    bandit[len(bandit)/2] = 0.9
-    bandit = Bandit(bandit)
-    plotBandit(bandit, figure.gca())
-    figure.suptitle("Hard Object")
-
-
-    figure = mpl.figure()
-    bandit = na.zeros(20) + 0.1
-    bandit[-1] = 0.9
-    bandit = Bandit(bandit)
-    #plotBandit(bandit, figure.gca())
-    figure.suptitle("Pathological Object")
-
+    figure = mpl.figure(figsize=(3.5,3.5))
+    plotBandit(figure.gca())
+    figure.suptitle("Best Arm Identification")
     mpl.show()
 
-
-def plotBandit(bandit, axes):
+def plotBandit(axes):
 
     thompson_sampling = ThompsonSampling()
     #algorithmB = AlgorithmB(confidence=95)
-    algorithmC95 = AlgorithmC()
+    algorithmC = AlgorithmC()
+    algorithmCub = AlgorithmC(union_bound=True)
     #algorithmC90 = AlgorithmC(confidence=90)
     #algorithmCDelta95 = AlgorithmCDelta(confidence=95)
     #algorithmC99 = AlgorithmC(confidence=99)
     #stochastic5 = Stochastic(n=5, confidence=95)
     #stochastic2 = Stochastic(n=2, confidence=95)
     #stochasticEarlyStopping5 = StochasticEarlyStopping(n=5, confidence=95)
-
-    for method in [thompson_sampling, algorithmC95]:
+    fmts = ['-*', '^', 'o']
+    for i, method in enumerate([thompson_sampling, algorithmC, algorithmCub]):
         results = []
-        for budget in na.arange(0, 110, 10):
+        if not method.drawBudget:
+            budget_start = 49
+            budget_end = 50
+            budget_step = 5
+        else:
+            budget_start = 0
+            budget_end = 50
+            budget_step = 5
+        for budget in na.arange(budget_start, budget_end, budget_step):
             regrets = []
             budgets = []
-            for iteration in range(10):
-                bandit.reset_log()
+            for iteration in range(50):
+                arms = na.zeros(10) + 0.1
+                idx = random.choice(na.arange(len(arms)))
+                arms[idx] = 0.9
+                bandit = Bandit(arms)
                 method.train(bandit, budget)
                 budgets.append(len(bandit.log))
                 if len(bandit.log) > budget:
@@ -427,16 +313,28 @@ def plotBandit(bandit, axes):
 
             results.append((budgets, regrets))
         
+        if not method.drawBudget:
+            newb = []
+            newr = []
+            for (b, r) in results:
+                newb.extend(b)
+                newr.extend(r)
+            results = [(newb, newr)]
+
         X = [na.mean(b) for (b, r) in results]
         Y = [na.mean(r) for (b, r) in results]
+
         xerr = [scipy.stats.sem(b) * 1.96 for b, r in results]
         yerr = [scipy.stats.sem(r) * 1.96 for b, r in results]
-        mpl.errorbar(X, Y, label=str(method), xerr=xerr, yerr=yerr)
+        mpl.errorbar(X, Y, label=str(method), xerr=xerr, yerr=yerr, fmt=fmts[i],
+                     ms=5)
 
     mpl.ylabel("Simple Regret")
     mpl.xlabel("Training Trials")
-    mpl.axis((0, 105, -0.1, 1))
-    mpl.legend()
+    mpl.title("Simulation Results")
+    mpl.axis((0, 60, -0.1, 1))
+    mpl.legend(fontsize=8)
+    mpl.savefig("bestarm.pdf")
 
 def printThresholds():
     max_idx = 20
