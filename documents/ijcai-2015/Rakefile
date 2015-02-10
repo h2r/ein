@@ -1,7 +1,5 @@
 desc "build the pdf"
 task :default => [] do
-  sh "pdflatex -shell-escape model.tex"
-  sh "pdfcrop model.pdf"
   sh "pdflatex ein.tex"
   sh "bibtex ein"
   sh "pdflatex ein.tex"
