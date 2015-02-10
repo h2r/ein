@@ -455,9 +455,12 @@ Figure~\ref{fig:policy}.
 \end{figure}
 
 \begin{table}
+\small
 \begin{tabular}{cccc}
 \toprule
 		    & Prior         &  Training     & Marginal\\
+\midrule
+\multicolumn{4}{c}{$\delta = 0; training = 3$} \\
 \midrule
 % too easy
 Brush    	    & 10/10         &  3/3         &  10/10\\
@@ -469,9 +472,13 @@ Shoe    	    & 10/10         &  3/3         &  10/10\\
 Stamp    	    & 8/10          &  3/3         &  8/10 \\
 Whiteout    	    & 10/10         &  3/3         &  10/10\\
 Wooden Spoon        & 7/10          &  3/3         &  7/10 \\
-\midrule
 % good improvement  
+\midrule
+\\
+\multicolumn{4}{c}{$\delta >= 2$} \\
+\midrule
 Big Syringe    	    & 1/10          &  13/50       &  4/10 \\
+Blue Salt Shaker    & 6/10          &  5/10        &  8/10 \\
 Bottle Top    	    & 0/10          &  5/17        &  7/10 \\
 Garlic Press        & 0/10          &  8/50        &  2/10 \\
 Gyro Bowl    	    & 0/10          &  5/15        &  3/10 \\
@@ -482,9 +489,12 @@ Sippy Cup    	    & 0/10          &  6/50        &  4/10 \\
 Triangle Block      & 0/10          &  3/13        &  7/10 \\
 Vanilla	   	    & 5/10          &  4/5         &  9/10 \\
 Wooden Train        & 4/10          &  11/24       &  8/10 \\
+
+\midrule
+\\
+\multicolumn{4}{c}{$\delta <= 1$} \\
 \midrule
 % little to no improvement
-Blue Salt Shaker    & 6/10          &  5/10        &  8/10 \\
 Clear Pitcher       & 4/10          &  3/4         &  4/10 \\
 Dragon    	    & 8/10          &  5/6         &  7/10 \\
 Epipen    	    & 8/10          &  4/5         &  8/10 \\
