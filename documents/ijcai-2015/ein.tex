@@ -199,10 +199,10 @@ Section~\ref{sec:relatedwork} covers related work, and
 Section~\ref{sec:conclusion} concludes.
 
 \begin{figure}
-\includegraphics[width=1\linewidth]{figures/object_glory_shot.jpg}
-\caption{The objects used in our evaluation.\label{fig:object_glory_shot}}
+\subfigure[Before learning.]{\includegraphics[width=0.5\linewidth]{figures/dropping_ruler.png}}%
+\subfigure[After learning.]{\includegraphics[width=0.5\linewidth]{figures/holding_ruler.png}}
+\caption{Before learning, the robot grasps the ruler near the end, and it twists out of its gripper and falls onto the table when it lifts; after learning, the robot knows to grasp it near the center of mass.\label{fig:ruler}}
 \end{figure}
-
 
 %% Our software is compatible with ROS and the Baxter SDK version 1.0.0,
 %% and we intend to release it as free software should our paper be
@@ -370,6 +370,11 @@ clean map and a tractable state space for grasp inference.
  
 \section{Evaluation}
 \label{sec:evaluation}
+
+\begin{figure}
+\includegraphics[width=1\linewidth]{figures/object_glory_shot.jpg}
+\caption{The objects used in our evaluation.\label{fig:object_glory_shot}}
+\end{figure}
 
 
 The aim of our evaluation is to assess the ability of the system to
