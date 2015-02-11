@@ -109,6 +109,8 @@ models through experience.
 
 
 \section{Introduction}
+
+
 Robotics will assist us at childcare, help us cook, and provide
 service to doctors, nurses, and patients in hospitals. Many of these
 tasks require a robot to robustly perceive and manipulate objects in
@@ -120,7 +122,7 @@ latent dynamics that emerge from interactions between the object and
 the robot's gripper.  For example, a heavy object might fall out of
 the robot's gripper unless it grabs it close to the center.
 Transparent or reflective surfaces that are not visible in IR or RGB
-make it difficult to infer grasp points~\citep{x}.
+make it difficult to infer grasp points~\citep{lysenkov13}.
 
 To address these limitations, we propose an approach for enabling a
 robot to learn about an object through exploration and adapt its
@@ -139,7 +141,14 @@ each arm pull takes on the order of 90 seconds and there are more than
 approach, the robot pulls arms in an order determined by a prior,
 which allows it to try the most promising arms first. It can then
 autonomously decide when to stop by bounding the confidence in the
-result.
+result.  Figure~\ref{fig:ruler} shows the robot's performance before
+and after training on a ruler; after training it grasps the object in
+the center, improving the success rate.
+\begin{figure}
+\subfigure[Before learning.]{\includegraphics[width=0.5\linewidth]{figures/dropping_ruler.png}}%
+\subfigure[After learning.]{\includegraphics[width=0.5\linewidth]{figures/holding_ruler.png}}
+\caption{Before learning, the robot grasps the ruler near the end, and it twists out of its gripper and falls onto the table when it lifts; after learning, the robot knows to grasp it near the center of mass.\label{fig:ruler}}
+\end{figure}
 
 %% We use slower, more accurate sensing approaches
 %% to provide supervision for faster, simpler methods that excel with
@@ -198,11 +207,6 @@ and on the real robot with $30$ household objects,
 Section~\ref{sec:relatedwork} covers related work, and
 Section~\ref{sec:conclusion} concludes.
 
-\begin{figure}
-\subfigure[Before learning.]{\includegraphics[width=0.5\linewidth]{figures/dropping_ruler.png}}%
-\subfigure[After learning.]{\includegraphics[width=0.5\linewidth]{figures/holding_ruler.png}}
-\caption{Before learning, the robot grasps the ruler near the end, and it twists out of its gripper and falls onto the table when it lifts; after learning, the robot knows to grasp it near the center of mass.\label{fig:ruler}}
-\end{figure}
 
 %% Our software is compatible with ROS and the Baxter SDK version 1.0.0,
 %% and we intend to release it as free software should our paper be
@@ -221,22 +225,33 @@ software architecture, and a frame rate of about 2Hz for object
 detection and pose estimation.  Our recognition pipeline takes video
 from the robot, proposes a small number of candidate object bounding
 boxes in each frame, and classifies each candidate bounding box as
-belonging to a previously encountered object class. Our object classes
+belonging to a previously encountered object class. Object classes
 consist of object instances rather than pure object categories.  Using
 instance recognition means we cannot reliably detect categories, such
 as ``mugs,'' but the system will be able to detect, localize, and
 grasp the specific instances for which it has models with much higher
 speed and accuracy.
 
-When we move to attempt a pick, we use detected bounding boxes and
-visual servoing to move the arm to a position approximately above the 
-target object. Next we use image gradients to more precisely servo the
-arm to a known position and orientation above the object. Because we 
-can know the arm's position relative to the object, we can reliably collect
-statistics about the success rate of grasps at specific points on the object.
+When the robot moves to attempt a pick, it uses detected bounding
+boxes and visual servoing to move the arm to a position approximately
+above the target object. Next it uses image gradients to servo the arm
+to a known position and orientation above the object. Because we can
+know the arm's position relative to the object, we can reliably
+collect statistics about the success rate of grasps at specific points
+on the object.
 
+\stnote{Need a paragraph about the IR scan, the linear filter, the
+  basic grasping model (discrete 2d positions and four discrete
+  orientations)}
 
-
+This pipeline works well on some objects, but often fails for a
+variety of reasons.  For example, our grasp model is not able to find
+reliable grasps for objects that are not visible in IR, such as
+transparent objects or very dark objects.  Other objects need to be
+grasped in particular locations to avoid getting stuck on the gripper
+due to the compliance of the object and the dynamics of the robot's
+gripper.  The next section defines how we adapt this grasping pipeline
+by learning to identify good grasps from experience.
 
 \section{Bandit-based Adaptation}
 
@@ -272,12 +287,13 @@ that promising arms are first, not assign any specific probability
 distribution on $\mu$.
 
 
-Our algorithm, \algorithmCTxt, iterates through each arm, and try it
-until we have identified it either is above $k$ with probability $c$
-(in which case it terminates) or it is below $k$ with probability $c$
-(in which case it moves to the next arm in the sequence.  To compute
-this probability we need to estimate the probability that the true
-payout probability, $\mu$ is greater than the threshold, $c$ given the
+Our algorithm, \algorithmCTxt, iterates through each arm, and tries it
+until it has identified that it either is above $k$ with probability
+$c$ (in which case it terminates) or it is below $k$ with probability
+$c$ (in which case it moves to the next arm in the sequence.
+Pseudocode apperas in Algortihm~\ref{alg:bandit}.  To compute this
+probability we need to estimate the probability that the true payout
+probability, $\mu$ is greater than the threshold, $c$ given the
 observed number of successes and failures:
 \begin{align}
 \Pr(\mu_i > c|  S, F)
@@ -291,7 +307,13 @@ We can compute this probability using the law of total probability:
 \end{align}
 
 This integral is the CDF of the beta distribution, and is called the
-regularized incomplete beta function~\citep{olver10}. 
+regularized incomplete beta function~\citep{olver10}.  Note that if
+$\mu = k$ the runtime is unbounded, so we fix an $\epsilon > 0$ and
+accept a grasp if $\mu \in [k-\epsilon, k+\epsilon]$ with probability
+$c$.  This formalization gives rise to our policy, \algorithmCTxt,
+which appears in Algorithm~\ref{alg:bandit}.
+
+
 
 \begin{algorithm}
 \SetKwFunction{x}{\algorithmCFname}
@@ -325,13 +347,6 @@ $\mbox{Initialize } F_0 \dots F_n \mbox{ to } 0$\\
   Identification\label{alg:bandit}}
 \end{algorithm}
 
-Note that if $\mu = k$ the runtime is unbounded, so we fix an
-$\epsilon > 0$ and accept a grasp if $\mu \in [k-\epsilon, k+\epsilon]$
-with probability $c$.
-
-This formalization gives rise to our policy, \algorithmCTxt, which
-appears in Algorithm~\ref{alg:bandit}.    
-
 
 %% * terminate fast, and know when to terminate
 %% * identify the best grasp with high probability (and search longer if you haven't)
@@ -342,6 +357,11 @@ appears in Algorithm~\ref{alg:bandit}.
 
 
 \section{Robotic Implementation}
+
+
+\stnote{ This section is too short and choppy.  I'd move parts of it
+  into the evaluation section (Robotic Evaluation), and other parts
+  into Section 2(e.g., IR and linear filter)}
 
 We use stock Baxter and one computer.  We use the wrist cameras to
 obtain RGB at 30Hz.  The full visual system runs at 2Hz in typical
@@ -397,7 +417,20 @@ Table~\ref{fig:simulation_results}.  We simulate picking performance
 by creating a sequence of $20$ bandits, where each arm pays out at a
 rate of $0.1$ except for one, which pays out at $0.9$.  We move the
 location of the best arm to a uniformly sampled random position in the
-sequence.
+sequence.  Thompson Sampling always uses all trials in its budget and,
+given enough trials, reliably finds the optimal arm.  We present two
+versions of \algorithmCTxt with different parameters.  The tight
+bound uses a confidence interval defined by the union bound to decide
+when to move on; this results in the agent pulling each arm many times
+before eachieving a high confidence.  It almost always terminates with
+the optimal arm, but takes many trials to do it.  In contrast, the
+parameter settings used in this paper with a lower confidence bound
+taks many fewer trials on average, but sometimes terminates with a
+non-optimal arm.  Because of the high cost of running on the robot, we
+use less conservative settings in our evaluation.
+
+
+
 \begin{figure}
 \includegraphics{figures/bestarm.pdf}
 \caption{Results comparing our approach to various baselines in simulation.\label{fig:simulation_results}}
@@ -405,6 +438,8 @@ sequence.
 
 
 \subsection{Robotic Evaluation}
+
+
  We have implemented our approach on the Baxter
 robot, which is equipped with a seven-degree-of-freedom arm with a
 camera and IR depth sensor, which we use as a one-pixel depth camera
@@ -428,21 +463,21 @@ height for servoing, but without grasp learning, then the number of
 trials used for grasp learning by our algorithm, and finally the
 performance at picking using the learned grasp location.
 
-After the robot detects an initially successful grab, we have it
-shake the object vigorously to ensure that it would not fall out during
-transport. After releasing the object and moving away, the robot checks 
-to make sure the object is not stuck in its gripper. If the object
-falls out during shaking or does not release properly, the grasp is
-recorded as a failure. If the object is stuck, the robot pauses and
-requests assistance before proceeding.
+After the robot detects an initially successful grab, it shakes the
+object vigorously to ensure that it would not fall out during
+transport. After releasing the object and moving away, the robot
+checks to make sure the object is not stuck in its gripper. If the
+object falls out during shaking or does not release properly, the
+grasp is recorded as a failure. If the object is stuck, the robot
+pauses and requests assistance before proceeding.
 
-Most objects have more than one pose in which they can stand upright on
-the table. If the robot knocks over an object, the model taken in the 
-reference pose is no longer meaningful. Thus, during training,
-we monitored the object and returned it to the reference pose whenever the 
-robot knocked it over. Future work will incorporate multiple components in
-the models which will allow the robot to cope with objects whose pose
-can change during training. 
+Most objects have more than one pose in which they can stand upright
+on the table. If the robot knocks over an object, the model taken in
+the reference pose is no longer meaningful. Thus, during training, we
+monitored the object and returned it to the reference pose whenever
+the robot knocked it over. In the future, we aim to incorporate
+multiple components in the models which will allow the robot to cope
+with objects whose pose can change during training.
 
 Our algorithm used an accept threshold of $0.7$, reject confidence of
 $0.95$ and epsilon of $0.2$.  These parameters result in a policy that
@@ -452,6 +487,11 @@ will cause the algorithm to try the grasp more to determine the true
 probability of success.  The policy for exploring an arm appears in
 Figure~\ref{fig:policy}.
 
+\stnote{ I think the policy is wrong.  I know it moves on after one,
+  and accepts after 3.  But the policy says we move on after two.  I
+  thought it was one before, but I misread.  Then I thought it was the
+  prior, but if you add the prior, it takes more than three to accept.}
+
 \begin{figure}
 \includegraphics{figures/policy.pdf}
 \caption{Policy for the agent given a belief state, defined by an
@@ -459,7 +499,7 @@ Figure~\ref{fig:policy}.
   parameters.  Red (-) shows states where the agent rejects the arm
   and move to the next one; green (+) shows states where it accepts
   the arm and stops learning, and the arrows show movement to the next
-  belief state based on whether the next trial is successful.}
+  belief state based on whether the next trial is successful.\label{fig:policy}}
 \end{figure}
 
 \begin{table}
