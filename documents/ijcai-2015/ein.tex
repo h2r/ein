@@ -226,13 +226,16 @@ consist of object instances rather than pure object categories.  Using
 instance recognition means we cannot reliably detect categories, such
 as ``mugs,'' but the system will be able to detect, localize, and
 grasp the specific instances for which it has models with much higher
-speed and accuracy.  A visualization of data flow in the pipeline
-appears in Figure~\ref{fig:system}.  For each module, we formalize its
-input, output, and reward function; each component can have multiple
-implementations which better for different objects.  The following
-sections describe how we can use this pipeline to learn which
-implementation to use for specific objects; this learning dramatically
-speeds up performance.
+speed and accuracy.
+
+When we move to attempt a pick, we use detected bounding boxes and
+visual servoing to move the arm to a position approximately above the 
+target object. Next we use image gradients to more precisely servo the
+arm to a known position and orientation above the object. Because we 
+can know the arm's position relative to the object, we can reliably collect
+statistics about the success rate of grasps at specific points on the object.
+
+
 
 
 \section{Bandit-based Adaptation}
