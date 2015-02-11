@@ -468,7 +468,7 @@ Figure~\ref{fig:policy}.
 \toprule
 		    & Prior         &  Training     & Marginal\\
 \midrule
-\multicolumn{4}{c}{$\delta = 0; training = 3$} \\
+\multicolumn{4}{c}{$\Delta = 0; training = 3$} \\
 \midrule
 % too easy
 Brush    	    & 10/10         &  3/3         &  10/10\\
@@ -483,7 +483,7 @@ Wooden Spoon        & 7/10          &  3/3         &  7/10 \\
 % good improvement  
 \midrule
 \\
-\multicolumn{4}{c}{$\delta >= 2$} \\
+\multicolumn{4}{c}{$\Delta >= 2$} \\
 \midrule
 Big Syringe    	    & 1/10          &  13/50       &  4/10 \\
 Blue Salt Shaker    & 6/10          &  5/10        &  8/10 \\
@@ -500,7 +500,7 @@ Wooden Train        & 4/10          &  11/24       &  8/10 \\
 
 \midrule
 \\
-\multicolumn{4}{c}{$\delta <= 1$} \\
+\multicolumn{4}{c}{$\Delta <= 1$} \\
 \midrule
 % little to no improvement
 Clear Pitcher       & 4/10          &  3/4         &  4/10 \\
@@ -517,12 +517,17 @@ Total		    & 165/300       &  148/400     & 224/300\\
 Rate		    & 0.55          &  0.37        & 0.75\\
 \bottomrule
 \end{tabular}
-\caption{Results from the robotic evaluation. We tested on 30 objects. The top block
-contains objects which succeeded on the initial grasp estimate and therefor did not
-learn a new grasp. The middle block contains objects which spent some time learning
-and improved their performance notably. The bottom block contains objects for which 
-some learning occurred but little or more improvement was seen. A performance
-drop after learning was seen on one class: Dragon.\label{table:robot_results}}
+\caption{Results from the robotic evaluation. We tested on 30 objects. We use
+$\Delta$ to denote the difference in success rate between the grasp recommended
+by the prior (Prior column) and the grasp learned by the system (Marginal
+column). The top block contains objects which succeeded on the initial grasp
+estimate and therefor did not learn a new grasp. Since the grasp did not change
+we report the results from one round of 10 picks as both the prior and marginal
+success rate.  The middle block contains objects which spent some time learning
+and improved their performance notably. The bottom block contains objects for
+which some learning occurred but little or more improvement was seen. A
+performance drop after learning was seen on one class:
+Dragon.\label{table:robot_results}}
 % Curses to the dragon. Curses to Smaug!
 % jgo: I double and triple checked the sums.
 \end{table}
