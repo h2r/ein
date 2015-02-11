@@ -782,13 +782,47 @@ new objects.
 
 \label{sec:conclusion}
 
-\stnote{First paragraph:  contributions.  What are the things this paper has done to advance the state of the art?}
+%\stnote{First paragraph:  contributions.  What are the things this paper has done to advance the state of the art?}
+%\stnote{Next paragraphs: future work, spiraling upward to more and
+  %more ambitiuos extensions.}
+%Software stack for autonomously acquiring instance-based models of objects for the Baxter Research Robot.
+%Ordered Confidence Bound algorithm for solving pure exploration bandits with low constant factors by exploiting prior knowledge.
 
-\stnote{Next paragraphs: future work, spiraling upward to more and
-  more ambitiuos extensions.}
+We presented a software stack for autonomously acquiring instance based models
+of objects for the Baxter Research Robot.  Conventional MAB algorithms value
+reduced runtime complexity over small constants because large numbers of trials
+can be tolerated.  Our MAB problem has 1764 levers, so even if we could pull a
+lever every 10 seconds it would take around 5 hours to explore all of the arms
+for a single object.  We provided the Ordered Confidence Bound algorithm for
+solving pure exploration bandits with low constant factors by exploiting prior
+knowledge.  This allows us to obtain an approximately optimal solution without
+pulling too many arms.  
 
-Right now, NODE runs on Baxter. We will port NODE to PR2 and other AH systems.
-GRATA could be applied in other domains as well.  What are some examples?
+Our stack gathers feedback from the environment, which it uses to learn models to detect, localize, and
+manipulate previously unseen objects. The platform and example we provide
+open the door for more extensive investigation in the same direction and
+suggest that it might be possible to similarly learn parameters for a variety
+of tasks. 
+For instance, different objects can be located and oriented better or worse
+at different heights. One could learn which heights work well for which objects.
+Likewise, we use color gradients for localization, but some objects would work 
+better with other quantities. One could learn the appropriate map to use when
+localizing each object, or even further, the map might also depend upon the 
+robot's current environment.
+
+%Right now, NODE runs on Baxter. We will port NODE to PR2 and other AH systems.
+%GRATA could be applied in other domains as well.  What are some examples?
+Our stack currently runs on Baxter, but the requirements are not stringent.
+In fact, it would be possible to execute all scanning and some training for 
+crane grasps on a modified 3D printer. Furthermore, the parallel electric gripper
+for Baxter is more difficult to infer grasps for than the gripper on the PR2.
+Even though the PR2 lacks the IR rangefinder we use, that data could be gathered
+by a printer converted from a scanner, and the PR2 could perform its own grasp training.
+
+It is clear that the system's accuracy and precision would benefit from the use of more
+sophisticated imaging equipment such as the Kinect 2. Better and faster pointclouds acquisition 
+would allow the use of more precise physical models for grasps. It would also open the way for
+additional grasp types, such as side and handle grasps.
 
 Ideas for doing for the paper, otherwise future work: 
 \begin{itemize}
