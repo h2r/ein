@@ -428,57 +428,53 @@ $totalTries \gets 0$\\
 
 The aim of our evaluation is to assess the ability of the system to
 acquire visual models of objects which are effective for grasping and
-object detection.  We first assess our approach in simulation,
-comparing both algorithms to Thompson sampling as a baseline.  Next we
-describe our robotic evaluation, which assesses our
-system's ability to learn and adaptively improve its ability to grasp
-objects, end-to-end.
+object detection.  We first assess our approach in simulation to allow
+comparison to baselines, which would be prohibitively time-consuming
+to run on the real robot.  Next we describe our robotic evaluation,
+which assesses our system's ability to adaptively improve its ability
+to grasp objects, end-to-end.
 
 \subsection{Simulation}
 
-Our simulated results assess the performance of our approach to
-several baselines.  We simulate picking performance by creating a
-sequence of $50$ bandits, where each arm pays out at a rate of $0.1$
-except for one, which pays out at $0.9$.  We move the location of the
-best arm to a uniformly sampled random position in the sequence.  To
-model prior knowledge, we sample an estimate for each $\mu_i$ from a
-beta distribution with $\alpha = \beta = 1 + e * \mu_i$ where $e$
-controls the entropy of the sampling distribution.
+We simulate picking performance by creating a sequence of $50$
+bandits, where each arm pays out at a rate uniformly sampled between
+$0$ and $1$.  For algorithms that incorporate prior knowledge, we
+sample a vector of estimates for each $\mu_i$ from a beta distribution
+with $\alpha = \beta = 1 + e * \mu_i$ where $e$ controls the entropy
+of the sampling distribution.
 
 
-We assess the performance of Thompson Sampling~\citep{thompson33} in
-the fixed budget setting, as a well-known baseline, although this
-algorithm minimizes total regret, including regret during training,
-rather than simple regret.  Second, we compare to a Uniform baseline
-that pulls every arm equally until the budget is exceeded.  This
-baseline corresponds to the initialization step in UCB or the
-confidence bound algorithms in \citet{chen14}.  If we implemented the
-state-of-the-art CLUCB algorithm from \citet{chen14}, it would not
-have enough pulls to finish this initialization step in our setting.
-Finally, we show the performance of three versions of \algorithmDTxt,
-one with an uninformed prior ($e=0$, corresponding to Hoeffding
-races~\citep{maron93}), one quite noisy with $e=1$(but still
-informative), the other less noisy $e=3$).
+To compare to a well-known baseline, we assess the performance of
+Thompson Sampling~\citep{thompson33} in the fixed budget setting,
+although this algorithm minimizes total regret, including regret
+during training, rather than simple regret.  Second, we compare to a
+Uniform baseline that pulls every arm equally until the budget is
+exceeded.  This baseline corresponds to the initialization step in UCB
+or the confidence bound algorithms in \citet{chen14}.  If we
+implemented the state-of-the-art CLUCB algorithm from \citet{chen14},
+it would not have enough pulls to finish this initialization step in
+our setting.  Finally, we show the performance of three versions of
+\algorithmDTxt, one with an uninformed prior ($e=0$, corresponding to
+Hoeffding races~\citep{maron93}), one quite noisy with $e=1$(but still
+informative), the other less noisy $e=5$).
 
 We report for each point after $100$ trials, and report $95\%$
-confidence intervals.  For Thompson Sampling and Uniform, which always
-use all trials in their budget, we report performance at each budget
-level; for \algorithmDTxt, we report the mean number of trials the
-algorithm took before halting.
+confidence intervals around the algorithm's simple regret.  For
+Thompson Sampling and Uniform, which always use all trials in their
+budget, we report performance at each budget level; for
+\algorithmDTxt, we report the mean number of trials the algorithm took
+before halting, also at $95\%$ confidence intervals.
 
 Results appear in Figure~\ref{fig:simulation_results}.  Thompson
-Sampling always uses all trials in its budget and, given enough
-trials, reliably finds the optimal arm.  We present two versions of
-\algorithmCTxt with different parameters.  The tight bound uses a
-confidence interval defined by the union bound to decide when to move
-on; this results in the agent pulling each arm many times before
-achieving a high confidence.  It almost always terminates with the
-optimal arm, but takes many trials to do it.  In contrast, the
-parameter settings used in this paper with a lower confidence bound
-takes many fewer trials on average, but sometimes terminates with a
-non-optimal arm.  Because of the high cost of running on the robot, we
-use less conservative settings in our evaluation.
-
+Sampling always uses all trials in its budget and improves performance
+over time.  The Uniform method fails to find the optimal arm because
+there is not enough information when pulling each arm once.  All
+variants of \algorithmDTxt outperform these baselines, but as more
+prior information is incorporated, regret decreases.  Even with a
+completely uninformed prior taking a confidence-based approach
+improves performance over Thompson sampling or a uniform baseline, but
+the approach realizes significant further improvement with more prior
+knowledge.
 
 
 \begin{figure}
@@ -489,15 +485,11 @@ use less conservative settings in our evaluation.
 
 \subsection{Robotic Evaluation}
 
-We have implemented our approach on the Baxter
-robot. It is equipped with a seven-degree-of-freedom arm with a
-camera and IR depth sensor, which we use as a one-pixel depth camera
-to acquire our models.
-
-The robot acquired visual and RGB-D models for 30 objects using our
-autonomous learning system.  We manually verified that the scans were
-accurate, and set the following parameters: height above the object
-for the IR scan (to approximately 2cm); this height could be acquired
+We have implemented our approach on the Baxter robot.  The robot
+acquired visual and RGB-D models for 30 objects using our autonomous
+learning system.  We manually verified that the scans were accurate,
+and set the following parameters: height above the object for the IR
+scan (to approximately 2cm); this height could be acquired
 automatically by doing a first coarse IR scan following by a second IR
 scan 2cm above the tallest height, but we set it manually to save
 time.  Additionally we set the height of the arm for the initial servo
