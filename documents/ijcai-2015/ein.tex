@@ -125,12 +125,13 @@ tasks require a robot to robustly perceive and manipulate objects in
 its environment, yet robust object manipulation remains a challenging
 problem.  Systems for general-purpose manipulation are computationally
 expensive and do not enjoy high accuracy on novel
-objects~\citep{saxena08}.  A common source of error is the presence of
-latent dynamics that emerge from interactions between the object and
-the robot's gripper.  For example, a heavy object might fall out of
-the robot's gripper unless it grabs it close to the center.
-Transparent or reflective surfaces that are not visible in IR or RGB
-make it difficult to infer grasp points~\citep{lysenkov13}.
+objects~\citep{saxena08}.  Transparent or reflective surfaces that are
+not visible in IR or RGB make it difficult to infer grasp
+points~\citep{lysenkov13}.  A common source of error is the presence
+of latent dynamics that emerge from interactions between the object
+and the robot's gripper.  For example, a heavy object might fall out
+of the robot's gripper unless it grabs it close to the center.
+
 
 To address these limitations, we propose an approach for enabling a
 robot to learn about an object through exploration and adapt its
@@ -143,19 +144,19 @@ higher cost in time and sensing) by actively collecting additional
 information from the environment, and use this reward signal to
 adaptively identify grasp points that are likely to succeed.  
 
-Identifying the best grasp point corresponds to best arm
-identification with pure exploration in bandit problems.  Existing
-algorithms for best arm identification require pulling all the arms as
-an initialization step~\citep{mannor04, audibert10, chen14}, a
-prohibitive expense when each arm pull takes on the order of 90
-seconds and there are more than 1000 arms.  To address this problem,
-we present a new algorithm, \algorithmDTxt, based on Hoeffding
-races~\citep{maron93}. In our approach, the robot pulls arms in an order
-determined by a prior, which allows it to try the most promising arms
-first. It can then autonomously decide when to stop by bounding the
-confidence in the result.  Figure~\ref{fig:ruler} shows the robot's
-performance before and after training on a ruler; after training it
-grasps the object in the center, improving the success rate.
+Existing algorithms for best arm identification require pulling all
+the arms as an initialization step~\citep{mannor04, audibert10,
+  chen14}; in the case of identifying grasp points, where each grasp
+takes more than 90 seconds and there are more than 1000 potential
+arms, this is a prohibitive expense.  To address this problem, we
+present a new algorithm, \algorithmDTxt, based on Hoeffding
+races~\citep{maron93}. In our approach, the robot pulls arms in an
+order determined by a prior, which allows it to try the most promising
+arms first. It can then autonomously decide when to stop by bounding
+the confidence in the result.  Figure~\ref{fig:ruler} shows the
+robot's performance before and after training on a ruler; after
+training it grasps the object in the center, improving the success
+rate.
 \begin{figure}
 \subfigure[Before learning.]{\includegraphics[width=0.5\linewidth]{figures/dropping_ruler.png}}%
 \subfigure[After learning.]{\includegraphics[width=0.5\linewidth]{figures/holding_ruler.png}}
