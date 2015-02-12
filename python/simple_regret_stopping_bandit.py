@@ -11,13 +11,14 @@ class Bandit(object):
         arms = na.random.rand(narms)
         return Bandit(arms)
 
-    def __init__(self, arms):
+    def __init__(self, arms, prior_signal=2):
         self.arms = arms
         self.narms = len(arms)
         self.actions = na.array(list(range(self.narms)))
         self.best_ai = na.argmax(self.arms)
         self.log = []
-        prior_signal = 2
+        if prior_signal == None:
+            prior_signal = 0
         self.prior = na.array([na.random.beta(mu * prior_signal + 1, (1 - mu) * prior_signal + 1) for mu in self.arms])
 
 
@@ -57,7 +58,7 @@ class AlgorithmD(Policy):
         self.threshold_confidence = 0.7
         self.accept_confidence = 0.7
         self.reject_confidence = 0.95
-
+        
 
     @property
     def marginals(self):
@@ -127,6 +128,52 @@ class AlgorithmD(Policy):
 
     def __str__(self):
         return "Prior Confidence Bound"
+
+
+
+class Uniform(Policy):
+    def __init__(self):
+        self.drawBudget = True
+        self.target_mu = 0.7
+        self.epsilon = 0.2
+        self.threshold_confidence = 0.7
+        self.accept_confidence = 0.7
+        self.reject_confidence = 0.95
+        
+
+    @property
+    def marginals(self):
+        return [s/(s + f) if (s + f != 0) else 0.5 for (s, f) in zip(self.S, self.F)]
+ 
+    def bestAction(self):
+        return na.argmax(self.marginals)
+
+    def actionDistribution(self):
+        #return self.marginals / na.sum(self.marginals)
+        delta = na.zeros(len(self.S))
+        delta[self.bestAction()] = 1
+        return delta
+
+    def train(self, bandit, max_budget):
+        print "training D"
+        self.S = na.zeros(bandit.narms) * 0.0
+        self.F = na.zeros(bandit.narms) * 0.0
+
+        while True:
+            for a_i in range(bandit.narms):
+                if len(bandit.log) >= max_budget:
+                    print "over budget"
+                    return
+
+                r = bandit.sample(a_i)
+                if r == 1:
+                    self.S[a_i] += 1.0
+                else:
+                    self.F[a_i] += 1.0
+
+    def __str__(self):
+        return "Uniform"
+
 
 class AlgorithmC(Policy):
     def __init__(self, union_bound=False):
@@ -350,7 +397,7 @@ class ThompsonSampling(Policy):
         
 
 def main():
-    figure = mpl.figure(figsize=(3.5,3.5))
+    figure = mpl.figure(figsize=(3.5,4))
     plotBandit(figure.gca())
     #figure.suptitle("Best Arm Identification")
     mpl.show()
@@ -359,7 +406,6 @@ def plotBandit(axes):
 
     thompson_sampling = ThompsonSampling()
     #algorithmB = AlgorithmB(confidence=95)
-    algorithmC = AlgorithmC()
     algorithmD = AlgorithmD()
     #algorithmCub = AlgorithmC(union_bound=True)
     #algorithmC90 = AlgorithmC(confidence=90)
@@ -367,9 +413,14 @@ def plotBandit(axes):
     #algorithmC99 = AlgorithmC(confidence=99)
     #stochastic5 = Stochastic(n=5, confidence=95)
     #stochastic2 = Stochastic(n=2, confidence=95)
-    stochasticEarlyStopping5 = StochasticEarlyStopping(n=5, confidence=95)
-    fmts = ['-*', '^', 'o', 'x']
-    for i, method in enumerate([thompson_sampling, algorithmD, stochasticEarlyStopping5]):
+    #stochasticEarlyStopping5 = StochasticEarlyStopping(n=5, confidence=95)
+    uniform = Uniform()
+    fmts = ['-*', '-^', 'o', 'x']
+    for i, (method, prior_signal, prior_name) in enumerate([(thompson_sampling, None, ""), 
+                                                            (uniform, None, ""),
+                                                            (algorithmD, 3, "(Informed)"),
+                                                            (algorithmD, 1, "(Noisy)"),
+                                            ]):
         results = []
         if not method.drawBudget:
             budget_start = 49
@@ -386,7 +437,7 @@ def plotBandit(axes):
                 arms = na.zeros(50) + 0.1
                 idx = random.choice(na.arange(len(arms)))
                 arms[idx] = 0.9
-                bandit = Bandit(arms)
+                bandit = Bandit(arms, prior_signal=prior_signal)
                 method.train(bandit, budget)
                 budgets.append(len(bandit.log))
                 if len(bandit.log) > budget:
@@ -409,14 +460,16 @@ def plotBandit(axes):
 
         xerr = [scipy.stats.sem(b) * 1.96 for b, r in results]
         yerr = [scipy.stats.sem(r) * 1.96 for b, r in results]
-        mpl.errorbar(X, Y, label=str(method), xerr=xerr, yerr=yerr, fmt=fmts[i],
+
+                      
+        mpl.errorbar(X, Y, label=(str(method) + " " + prior_name), xerr=xerr, yerr=yerr, fmt=fmts[i],
                      ms=5)
 
     mpl.ylabel("Simple Regret")
     mpl.xlabel("Training Trials")
     #mpl.title("Simulation Results")
-    mpl.axis((0, 60, -0.1, 1))
-    mpl.legend(fontsize=8)
+    mpl.axis((0, 65, -0.1, 1.19))
+    mpl.legend(fontsize=8, loc="upper right")
     mpl.savefig("bestarm.pdf")
 
 def printThresholds():
