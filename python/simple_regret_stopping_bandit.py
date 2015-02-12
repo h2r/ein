@@ -352,7 +352,7 @@ class ThompsonSampling(Policy):
 def main():
     figure = mpl.figure(figsize=(3.5,3.5))
     plotBandit(figure.gca())
-    figure.suptitle("Best Arm Identification")
+    #figure.suptitle("Best Arm Identification")
     mpl.show()
 
 def plotBandit(axes):
@@ -369,7 +369,7 @@ def plotBandit(axes):
     #stochastic2 = Stochastic(n=2, confidence=95)
     stochasticEarlyStopping5 = StochasticEarlyStopping(n=5, confidence=95)
     fmts = ['-*', '^', 'o', 'x']
-    for i, method in enumerate([thompson_sampling, algorithmC, algorithmD, stochasticEarlyStopping5]):
+    for i, method in enumerate([thompson_sampling, algorithmD, stochasticEarlyStopping5]):
         results = []
         if not method.drawBudget:
             budget_start = 49
@@ -414,7 +414,7 @@ def plotBandit(axes):
 
     mpl.ylabel("Simple Regret")
     mpl.xlabel("Training Trials")
-    mpl.title("Simulation Results")
+    #mpl.title("Simulation Results")
     mpl.axis((0, 60, -0.1, 1))
     mpl.legend(fontsize=8)
     mpl.savefig("bestarm.pdf")
