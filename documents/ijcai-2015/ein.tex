@@ -314,11 +314,10 @@ arm, records the results, and checks to see if its probability of
 success is above $k$ or within $[k-\epsilon, k+\epsilon]$ with
 probability $c$ (in which case it terminates). (If the latter
 condition is not included, an arm with success probability equal to
-$k$ will continue to be pulled indefinitely.)  Pseudo-code appears in
-Algorithm~\ref{alg:bandit2}.  To compute this probability we need to
-estimate the probability that the true payout probability, $\mu$ is
-greater than the threshold, $c$ given the observed number of successes
-and failures:
+$k$ will continue to be pulled indefinitely.)  
+Pseudo-code appears in Algorithm~\ref{alg:bandit2}.  We need to estimate the 
+probability that the true payout probability, $\mu$, is greater than the threshold, 
+$c$, given the observed number of successes and failures:
 \begin{align}
 \Pr(\mu_i > c|  S, F)
 \end{align}
