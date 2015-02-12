@@ -300,9 +300,6 @@ storing the resulting crops.
 
 
 
-
-
-
 \begin{algorithm}
 \SetKwFunction{x}{\algorithmCFname}
 \x{$armOrder$, $k$, $\delta_{accept}$, $\delta_{reject}$}
@@ -337,11 +334,6 @@ $\mbox{Initialize } F_0 \dots F_n \mbox{ to } 0$\\
 
 
 
-
-
-
-
-
 %% \begin{figure}
 %%   \textbf{GraspObject()}
 %%   \begin{algorithmic}
@@ -370,6 +362,171 @@ $\mbox{Initialize } F_0 \dots F_n \mbox{ to } 0$\\
 %%   \caption{The high-level algorithm for acquiring visual and grasping
 %%     models of objects.}
 %% \end{figure}
+
+
+\section{Related Work}
+
+\label{sec:relatedwork}
+
+\citet{bohg13} survey data-driven approaches to grasping.  Our
+approach can be thought of as a pipeline for automatically building an
+experience database consisting of object models and known good grasps,
+using analytic approaches to grasping unknown objects to generate a
+grasp hypothesis space and using our bandit-based method for trying
+grasps and learning instance-based distributions for the grasp
+experience database.  In this way our system achieves the best of both
+approaches: models for grasping unknown objects can be applied; when
+they do fail, the system can attempt to recover by trying grasps and
+adapting itself based on that specific object.  
+
+\citet{ude12} described an approach for detecting and manipulating
+objects to learn models.  It uses a bag of words model and learns to
+detect the objects.  It does not learn a model for grasping.
+\citet{schiebener13} describes an extension that also does model
+learning.  The robot pushes the object and then trains an object
+recognition system.  It does not use a camera that moves and does not
+grasp.
+\citet{schiebener12} discovers and grasps unknown objects.
+
+Summary: 
+\begin{itemize}
+\item People doing SLAM.  \citet{wang07, gallagher09}, 
+\item People doing 3d reconstruction.   \citet{krainin11, banta00}
+\item People doing big databases for category recognition.  \citet{kent14a, kent14, lai11a, goldfeder09}
+\item Object tracking in vision (typically surveillance).
+\item POMDPs for grasping.  \citet{platt11, hsiao10}
+\item People doing systems.  \citet{hudson12, ciocarlie14}
+\end{itemize}
+
+
+
+
+Crowd-sourced and web robotics have created large databases of objects
+and grasps using human supervision on the web~\citep{kent14a, kent14}.
+These approaches outperform automatically inferred grasps but still
+require humans in the loop.  Our approach enables a robot to acquire a
+model fully autonomously, once the object has been placed on the
+table.
+
+\citet{zhu14} created a system for detecting objects and estimating
+pose from single images of cluttered objects.  They use KinectFusion
+to construct 3d object models from depth measurements with a
+turn-table rather than automatically acquiring models.
+
+\citet{chang12} created a system for picking out objects from a pile
+for sorting and arranging but did not learn object models.  
+
+next-best view planning~\citep{kriegel11}
+
+\citet{nguyen14} learn to manipulate objects such as a light switch or
+drawer with a similar self-training approach.  Our work learns visual
+models for objects for autonomous pick-and-place rather than to
+manipulate objects.
+
+Developmental/cognitive robotics~\citep{lyubova13, kraft10r}
+
+\citet{banta00} constructs a prototype 3d model from a minimum number
+of range images of the object.  It terminates reconstruction when it
+reaches a minimum threshold of accuracy.  It uses methods based on the
+occluded regions of the reconstructed surface to decide where to place
+the camera and evaluates based on the reconstruction rather than pick
+up success.  \citet{krainin11} present an approach for autonomous
+object modeling using a depth camera observing the robot's hand as it
+moves the object.  This system provides a 3d construction of the
+object autonomously.  Our approach uses vision-based features and
+evaluates based on grasp success.  Eye-in-hand laser
+sensor.~\citep{aeotti14}
+
+\stnote{Need to find the instance-based work that Erik mentioned when
+  he said it was a ``solved problem.''}
+
+\citet{velez11} created a mobile robot that explores the environment
+and actively plans paths to acquire views of objects such as doors.
+However it uses a fixed model of the object being detected rather than
+updating its model based on the data it has acquired from the
+environment.
+
+Methods for planning in information space \citep{he08, atanasov13,
+  prentice09} have been applied to enable mobile robots to plan
+trajectories that avoid failures due to inability to accurately
+estimate positions.  Our approach is focused instead on
+object detection and manipulation, actively acquiring data for use
+later in localizing and picking up objects. \stnote{May need to say
+  more here depending on what GRATA actually is.}
+
+
+Early models for pick-and-place rely on has been studied since the
+early days of robotics~\citep{brooks83, lozano89}.  These systems
+relied on models of object pose and end effector pose being provided to the
+algorithm, and simply planned a motion for the arm to grasp.  Modern
+approaches use object recognition systems to estimate pose and object
+type, then libraries of grasps either annotated or learned from
+data~\citep{saxena08, goldfeder09, morales03}.  These approaches
+attempt to create systems that can grasp arbitrary objects based on
+learned visual features or known 3d configuration.  Collecting these
+training sets is an expensive process and is not accessible to the
+average user in a non-robotics setting.  If the system does not work
+for the user's particular application, there is no easy way for it to
+adapt or relearn.  Our approach, instead, enables the robot to
+autonomously acquire more information to increase robustness at
+detecting and manipulating the specific object that is important to
+the user at the current moment.
+
+Visual-servoing based methods~\citep{chaumette06} \stnote{Need a whole
+  paragraph about that. }
+
+\stnote{\citet{ciocarlie14} seems highly relevant, could not read from
+  the train's wifi.}  Existing work has collected large database of
+object models for pose estimation, typically curated by an
+expert~\citep{lai11}.  \citet{kasper12} created a semiautomatic system
+that fuses 2d and 3d data, but the setup requires a special rig
+including a turntable and a pair of cameras.  Our approach requires an
+active camera mounted on a robot arm, but no additional equipment, so
+that a robot in the home can autonomously acquire new models.
+
+\citet{collect14} describes an approach for lifelong robotic object
+discovery, which infers object candidates from the robot's perceptual
+data.  This system does not learn grasping models and does not
+actively acquire more data to recognize, localize, and grasp the
+object with high reliability.  It could be used as a first-pass to
+our system, after which the robot uses an active method to acquire
+additional data enabling it to grasp the object.  Approaches that
+integrate SLAM and moving object tracking estimate pose of objects
+over time but have not been extended to manipulation~\citep{wang07,
+  gallagher09, salas-moreno13, selvatici08}.
+
+Our approach is similar to the philosophy adopted by Rethink Robotic's
+Baxter robot, and indeed, we use Baxter as our test
+platform~\citep{fitzgerald13}.  \stnote{Haven't actually read this
+  paper, just making stuff up based on Rod's talks.  Should read the
+  paper and confirm.}  Baxter's manufacturing platform is designed to
+be easily learned and trained by workers on the factory floor.  The
+difference between this system and our approach is we rely on the
+robot to autonomously collect the training information it needs to
+grasp the object, rather than requiring this training information to
+be provided by the user.
+
+
+Robot systems for cooking~\citep{bollini12, beetz11} or furniture
+assembly~\citep{knepper13} use many simplifying assumptions, including
+pre-trained object locations or using VICON to solve the perceptual
+system.  We envision vision or RGB-D based sensors mounted on the
+robot, so that a person can train a robot to recognize and manipulate
+objects wherever the robot finds itself.
+
+Approaches to plan grasps under pose uncertainty~\citep{stulp11} or
+collect information from tacticle sensors~\citep{hsiao10} using
+POMDPs.  \citet{plat11} describe new algorithms for solving POMDPs by
+tracking belief state with a high-fidelity particle filter, but using
+a lower-fidelity representation of belief for planning, and tracking
+the KL divergence.
+
+\citet{hudson12} used active perception to create a grasping system
+capable of carrying out a variety of complex tasks.  Using feedback is
+critical for good performance, but the model cannot adapt itself to
+new objects.
+
+
 
 
 \citet{tellex11}

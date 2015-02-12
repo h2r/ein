@@ -644,172 +644,112 @@ false negatives for grasp release.
 Finally, some objects, such as the Helicopter and Dragon, barely fit in the gripper and would
 therefor benefit from additional servo iterations to increase localization precision. 
 
+
+Objects which failed entirely did so because of reasonable limitations of the
+system induced by compromises we made for global compatibility. For instance,
+the small Vaseline container only has 3mm of play between the container and the
+gripper in the only feasible grasp location. If we double the number of iterations
+during gradient servoing we can more reliably pick it, but this would either
+introduce another parameter in the system (iterations) or excessively slow down
+other objects which are more tolerant to error.
+
+
 \section{Related Work}
 
 \label{sec:relatedwork}
 
+
+Early models for pick-and-place rely on has been studied since the
+early days of robotics~\citep{brooks83, lozano89}.  These systems
+relied on models of object pose and end effector pose being provided
+to the algorithm, and simply planned a motion for the arm to grasp.
 \citet{bohg13} survey data-driven approaches to grasping.  Our
-approaches can be thought of as a pipeline for automatically building
-an experience database consisting of object models and known good
-grasps, using analytic approaches to grasping unknown objects to
-generate a grasp hypothesis space and bandit-based methods for trying
+approach can be thought of as a pipeline for automatically building an
+experience database consisting of object models and known good grasps,
+using analytic approaches to grasping unknown objects to generate a
+grasp hypothesis space and using our bandit-based method for trying
 grasps and learning instance-based distributions for the grasp
 experience database.  In this way our system achieves the best of both
 approaches: models for grasping unknown objects can be applied; when
-they do fail, the system can automatically recover by trying
-grasps and adapting itself based on that specific object. Additionally, we
-can use other grasp detectors to seed our prior, since it is only based
-on an ordering and does not require an explicit probability distribution.
-We can also interface with manual labeling similar to the forklift demarcation:
-circle an area and we will restrict exploration to that region.
+they do fail, the system can attempt to recover by trying grasps and
+adapting itself based on that specific object.  
 
-\citet{ude12} described an approach for detecting and manipulating
-objects to learn models.  It uses a bag of words model and learns to
-detect the objects.  It does not learn a model for grasping.
-\citet{schiebener13} describes an extension that also does model
-learning.  The robot pushes the object and then trains an object
-recognition system.  It does not use a camera that moves and does not
-grasp.
-\citet{schiebener12} discovers and grasps unknown objects.
-
-Summary: 
-\begin{itemize}
-\item People doing SLAM.  \citet{wang07, gallagher09}, 
-\item People doing 3d reconstruction.   \citet{krainin11, banta00}
-\item People doing big databases for category recognition.  \citet{kent14a, kent14, lai11a, goldfeder09}
-\item Object tracking in vision (typically surveillance).
-\item POMDPs for grasping.  \citet{platt11, hsiao10}
-\item People doing systems.  \citet{hudson12, ciocarlie14}
-\end{itemize}
+Modern approaches use object recognition systems to estimate pose and
+object type, then libraries of grasps either annotated or learned from
+data~\citep{saxena08, goldfeder09, morales03,ciocarlie14}.  These
+approaches attempt to create systems that can grasp arbitrary objects
+based on learned visual features or the object's known 3d
+configuration.  Collecting these training sets is an expensive process
+and is not accessible to the average user in a non-robotics
+setting. If the system does not work for the user's particular
+application, there is no easy way for it to adapt or relearn.  Our
+approach, instead, enables the robot to autonomously acquire more
+information to increase robustness at detecting and manipulating the
+specific object that is important to the user at the current moment.
+Other approaches focus on object discovery and
+manipulation~\citep{lyubova13, kraft10, collet14, schiebener12}.  By
+formalizing grasp identification as a bandit problem, we are able to
+leverege existing strategies for inferring the best arm.
 
 
+Many existing approaches use a simulator to assess planned grasp
+quality, because assessing grasp quality in simulation is much faster
+than trying it on the real robot~\citet{miller04}.  Our approach,
+instead, is more expensive to evaluate grasp quality because it
+requires actually attempting to pick up the object.  However, by
+assessing grasp quality in the end-to-end system, our approach
+potentially obtains more accurate information about grasp quality
+during training, that it can leverage later at inference time.
 
 
 Crowd-sourced and web robotics have created large databases of objects
 and grasps using human supervision on the web~\citep{kent14a, kent14}.
 These approaches outperform automatically inferred grasps but still
-require humans in the loop.  Our approach enables a robot to acquire a
-model fully autonomously, once the object has been placed on the
-table.
+require humans in the loop.  Our approach can incorporate human
+annotations in the form of the prior.  If the annotated grasps work
+well, then the robot will quickly converge and stop sampling; if they
+are poor grasps, our approach will find better ones.
 
-\citet{zhu14} created a system for detecting objects and estimating
-pose from single images of cluttered objects.  They use KinectFusion
-to construct 3d object models from depth measurements with a
-turn-table rather than automatically acquiring models.
-
-\citet{chang12} created a system for picking out objects from a pile
-for sorting and arranging but did not learn object models.  
-
-next-best view planning~\citep{kriegel11}
 
 \citet{nguyen14} learn to manipulate objects such as a light switch or
 drawer with a similar self-training approach.  Our work learns visual
 models for objects for autonomous pick-and-place rather than to
-manipulate objects.
+manipulate objects and uses a bandit-based formulation to actively
+select the best grasp point.
 
-Developmental/cognitive robotics~\citep{lyubova13, kraft10r}
-
-\citet{banta00} constructs a prototype 3d model from a minimum number
-of range images of the object.  It terminates reconstruction when it
-reaches a minimum threshold of accuracy.  It uses methods based on the
-occluded regions of the reconstructed surface to decide where to place
-the camera and evaluates based on the reconstruction rather than pick
-up success.  \citet{krainin11} present an approach for autonomous
-object modeling using a depth camera observing the robot's hand as it
-moves the object.  This system provides a 3d construction of the
-object autonomously.  Our approach uses vision-based features and
-evaluates based on grasp success.  Eye-in-hand laser
-sensor.~\citep{aeotti14}
-
-\stnote{Need to find the instance-based work that Erik mentioned when
-  he said it was a ``solved problem.''}
-
-\citet{velez11} created a mobile robot that explores the environment
-and actively plans paths to acquire views of objects such as doors.
-However it uses a fixed model of the object being detected rather than
-updating its model based on the data it has acquired from the
-environment.
 
 Methods for planning in information space \citep{he08, atanasov13,
   prentice09} have been applied to enable mobile robots to plan
 trajectories that avoid failures due to inability to accurately
-estimate positions.  Our approach is focused instead on
-object detection and manipulation, actively acquiring data for use
-later in localizing and picking up objects. \stnote{May need to say
-  more here depending on what GRATA actually is.}
-
-
-Early models for pick-and-place rely on has been studied since the
-early days of robotics~\citep{brooks83, lozano89}.  These systems
-relied on models of object pose and end effector pose being provided to the
-algorithm, and simply planned a motion for the arm to grasp.  Modern
-approaches use object recognition systems to estimate pose and object
-type, then libraries of grasps either annotated or learned from
-data~\citep{saxena08, goldfeder09, morales03}.  These approaches
-attempt to create systems that can grasp arbitrary objects based on
-learned visual features or known 3d configuration.  Collecting these
-training sets is an expensive process and is not accessible to the
-average user in a non-robotics setting.  If the system does not work
-for the user's particular application, there is no easy way for it to
-adapt or relearn.  Our approach, instead, enables the robot to
-autonomously acquire more information to increase robustness at
-detecting and manipulating the specific object that is important to
-the user at the current moment.
-
-Visual-servoing based methods~\citep{chaumette06} \stnote{Need a whole
-  paragraph about that. }
-
-\stnote{\citet{ciocarlie14} seems highly relevant, could not read from
-  the train's wifi.}  Existing work has collected large database of
-object models for pose estimation, typically curated by an
-expert~\citep{lai11}.  \citet{kasper12} created a semiautomatic system
-that fuses 2d and 3d data, but the setup requires a special rig
-including a turntable and a pair of cameras.  Our approach requires an
-active camera mounted on a robot arm, but no additional equipment, so
-that a robot in the home can autonomously acquire new models.
-
-\citet{collect14} describes an approach for lifelong robotic object
-discovery, which infers object candidates from the robot's perceptual
-data.  This system does not learn grasping models and does not
-actively acquire more data to recognize, localize, and grasp the
-object with high reliability.  It could be used as a first-pass to
-our system, after which the robot uses an active method to acquire
-additional data enabling it to grasp the object.  Approaches that
-integrate SLAM and moving object tracking estimate pose of objects
-over time but have not been extended to manipulation~\citep{wang07,
-  gallagher09, salas-moreno13, selvatici08}.
-
-Our approach is similar to the philosophy adopted by Rethink Robotic's
-Baxter robot, and indeed, we use Baxter as our test
-platform~\citep{fitzgerald13}.  \stnote{Haven't actually read this
-  paper, just making stuff up based on Rod's talks.  Should read the
-  paper and confirm.}  Baxter's manufacturing platform is designed to
-be easily learned and trained by workers on the factory floor.  The
-difference between this system and our approach is we rely on the
-robot to autonomously collect the training information it needs to
-grasp the object, rather than requiring this training information to
-be provided by the user.
-
-
-Robot systems for cooking~\citep{bollini12, beetz11} or furniture
-assembly~\citep{knepper13} use many simplifying assumptions, including
-pre-trained object locations or using VICON to solve the perceptual
-system.  We envision vision or RGB-D based sensors mounted on the
-robot, so that a person can train a robot to recognize and manipulate
-objects wherever the robot finds itself.
+estimate positions.  \citet{velez11} created a mobile robot that
+explores the environment and actively plans paths to acquire views of
+objects such as doors.  However it uses a fixed model of the object
+being detected rather than updating its model based on the data it has
+acquired from the environment.  Our approach is focused instead on
+identifyng the best grasp point by actively experimenting with objects
+in the world.
 
 Approaches to plan grasps under pose uncertainty~\citep{stulp11} or
 collect information from tacticle sensors~\citep{hsiao10} using
-POMDPs.  \citet{plat11} describe new algorithms for solving POMDPs by
+POMDPs.  \citet{platt11} describe new algorithms for solving POMDPs by
 tracking belief state with a high-fidelity particle filter, but using
 a lower-fidelity representation of belief for planning, and tracking
-the KL divergence.
+the KL divergence.  \citet{hudson12} used active perception to create
+a grasping system capable of carrying out a variety of complex tasks.
+Using feedback is critical for good performance, but the model cannot
+adapt itself to new objects.  Our approach could be used to improve
+any of these systems by defining a space of parameters to optimize,
+such as potential grasp points, and then assessing the performance
+from experience.
 
-\citet{hudson12} used active perception to create a grasping system
-capable of carrying out a variety of complex tasks.  Using feedback is
-critical for good performance, but the model cannot adapt itself to
-new objects.
-
+We formalize the problem as an N-armed bandit~\citep{thompson33} where
+the robot aims to perform best arm identification~\citep{audibert10,
+  chen14}, or alternatively, to minimize simple regret after a finite
+exploration period~\citep{bubeck09}.  Our approach for estimating the
+confidence that one arm is better than another follows Hoeffding
+races~\citep{maron93} but operates in a confidence threshold setting
+with a fixed budget.  By incorporating prior information, our approach
+achieves good performance without being required to pull all the arms.
 
 
 \section{Conclusion}
@@ -822,49 +762,42 @@ new objects.
 %Software stack for autonomously acquiring instance-based models of objects for the Baxter Research Robot.
 %Ordered Confidence Bound algorithm for solving pure exploration bandits with low constant factors by exploiting prior knowledge.
 
-We presented a software stack for autonomously acquiring instance based models
-of objects for the Baxter Research Robot.  Conventional MAB algorithms value
-reduced run time complexity over small constants because large numbers of trials
-can be tolerated.  Our MAB problem has 1764 levers, so even if we could pull a
-lever every 10 seconds it would take around 5 hours to explore all of the arms
-for a single object.  We provided the Ordered Confidence Bound algorithm for
-solving pure exploration bandits with low constant factors by exploiting prior
-knowledge.  This allows us to obtain an approximately optimal solution without
-pulling too many arms.  
+We presented a formalization of the grasping problem as best arm
+identification in an N-armed bandit.  Our bandit problem has 1764
+levers, so even if we could pull a lever every 10 seconds it would
+take around 5 hours to explore all of the arms for a single object.
+To address this problem, we created a new algorithm, \algorithmDTxt,
+which explores promising arm first by exploiting prior knowledge,
+significantly reducing constant factors. 
 
-Our stack gathers feedback from the environment, which it uses to learn models to detect, localize, and
-manipulate previously unseen objects. The platform and example we provide
-open the door for more extensive investigation in the same direction and
-suggest that it might be possible to similarly learn parameters for a variety
-of tasks. 
-For instance, different objects can be located and oriented better or worse
-at different heights. One could learn which heights work well for which objects.
-Likewise, we use color gradients for localization, but some objects would work 
-better with other quantities. One could learn the appropriate map to use when
-localizing each object, or even further, the map might also depend upon the 
-robot's current environment.
+Our stack gathers feedback from the environment, which it uses to
+learn models to detect, localize, and manipulate previously unseen
+objects. In the future, we plan to explore learning parameters for a
+wider variety of tasks.  For instance, different objects can be
+located and oriented better or worse at different heights. One could
+learn which heights work well for which objects.  Likewise, we use
+color gradients for localization, but some objects would work better
+with other quantities. One could learn the appropriate map to use when
+localizing each object, or even further, the map might also depend
+upon the robot's current environment.
 
 %Right now, NODE runs on Baxter. We will port NODE to PR2 and other AH systems.
 %GRATA could be applied in other domains as well.  What are some examples?
-Our stack currently runs on Baxter, but the requirements are not stringent.
-In fact, it would be possible to execute all scanning and some training for 
-crane grasps on a modified 3D printer. Furthermore, the parallel electric gripper
-for Baxter is more difficult to infer grasps for than the gripper on the PR2.
-Even though the PR2 lacks the IR rangefinder we use, that data could be gathered
-by a printer converted from a scanner, and the PR2 could perform its own grasp training.
 
-It is clear that the system's accuracy and precision would benefit from the use of more
-sophisticated imaging equipment such as the Kinect 2. Better and faster point clouds acquisition 
-would allow the use of more precise physical models for grasps. It would also open the way for
-additional grasp types, such as side and handle grasps.
+Our stack currently runs on Baxter, but the requirements are not
+stringent.  In fact, it would be possible to execute all scanning and
+some training for crane grasps on a modified 3D printer. Furthermore,
+the parallel electric gripper for Baxter is more difficult to infer
+grasps for than the gripper on the PR2.  Even though the PR2 lacks the
+IR rangefinder we use, that data could be gathered by a printer
+converted from a scanner, and the PR2 could perform its own grasp
+training.
 
-Objects which failed entirely did so because of reasonable limitations of the
-system induced by compromises we made for global compatibility. For instance,
-the small Vaseline container only has 3mm of play between the container and the
-gripper in the only feasible grasp location. If we double the number of iterations
-during gradient servoing we can more reliably pick it, but this would either
-introduce another parameter in the system (iterations) or excessively slow down
-other objects which are more tolerant to error.
+It is clear that the system's accuracy and precision would benefit
+from the use of more sophisticated imaging equipment such as the
+Kinect 2. Better and faster point clouds acquisition would allow the
+use of more precise physical models for grasps. It would also open the
+way for additional grasp types, such as side and handle grasps.
 
 %Ideas for doing for the paper, otherwise future work: 
 %\begin{itemize}
