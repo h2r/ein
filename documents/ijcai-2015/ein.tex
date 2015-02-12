@@ -288,7 +288,7 @@ Our first algorithm, \algorithmCTxt, iterates through each arm, and tries it
 until it has identified that it either is above $k$ with probability
 $c$ (in which case it terminates) or it is below $k$ with probability
 $c$ (in which case it moves to the next arm in the sequence.
-Pseudocode apperas in Algortihm~\ref{alg:bandit}.  To compute this
+Pseudocode apperas in Algortihm~\ref{alg:bandit1}.  To compute this
 probability we need to estimate the probability that the true payout
 probability, $\mu$ is greater than the threshold, $c$ given the
 observed number of successes and failures:
@@ -308,7 +308,7 @@ regularized incomplete beta function~\citep{olver10}.  Note that if
 $\mu = k$ the runtime is unbounded, so we fix an $\epsilon > 0$ and
 accept a grasp if $\mu \in [k-\epsilon, k+\epsilon]$ with probability
 $c$.  This formalization gives rise to our policy, \algorithmCTxt,
-which appears in Algorithm~\ref{alg:bandit}.
+which appears in Algorithm~\ref{alg:bandit1}.
 
 
 
@@ -340,8 +340,76 @@ $\mbox{Initialize } F_0 \dots F_n \mbox{ to } 0$\\
   }
 }
 
-\caption{Ordered confidence bound algorithm for Best Arm
-  Identification\label{alg:bandit}}
+\caption{\algorithmCTxt for Best Arm
+  Identification\label{alg:bandit1}}
+\end{algorithm}
+
+
+
+\begin{algorithm}
+\SetKwFunction{x}{\algorithmDFname}
+\x{$\pi$, $k$, $\delta_{accept}$, $\delta_{reject}$, $maxTries$}
+
+\For {$i \in 0...n$}{
+    $S_i  \gets \pi(i)$
+}
+$\mbox{Initialize } F_0 \dots F_n \mbox{ to } 0$\\
+$\mbox{Initialize } M_0 \dots M_n \mbox{ to } 0$\\
+$totalTries \gets 0$\\
+\While {$true$}{
+  $totalTries \gets totalTries + 1$\\
+  \For {$i \in 0...n$}{
+      $M_i  \gets S_i / (S_i + F_i)$\\
+  }
+
+  %$\tilde{M}_i \gets sortDescending(M_i)$ \\
+
+  $maxI \gets -1$\\
+  $maxIval \gets -1$\\
+  \For {$i \in 0...n$}{
+    $p^i_{below} \gets \int_0^k \Pr(\mu_i = \mu | S_i, F_i) d\mu $\\
+    \If{$p_{below} < \delta_{reject}$ and $M_i > maxIval$}{
+      $maxI \gets i$\\
+      $maxIval \gets M_i$\\
+    }
+  }
+
+  $j \gets maxI$\\
+
+  $r \gets sample(arm_j)$\\
+  \uIf {$r = 1$}{
+    $S_j  \gets S_j + 1$
+  }\Else{
+    $F_j  \gets F_j + 1$
+  }
+  $p_{below} \gets \int_0^k \Pr(\mu_j = \mu | S_j, F_j) d\mu $\\
+  $p_{above} \gets \int_k^1 \Pr(\mu_j = \mu | S_j, F_j) d\mu $\\ %1 - p_{below}$\\
+  $p_{threshold} \gets \int_{k - \epsilon}^{k + \epsilon} \Pr(\mu_j = \mu | S_j, F_j) d\mu $\\
+
+  \uIf{$p_{above} \ge  \delta_{accept}$}{
+    return $j$ \tcp*[r]{accept this arm}
+  }\uElseIf{$p_{threshold} \ge \delta_{accept}$}{
+    return $j$ \tcp*[r]{accept this arm}
+  }\uElseIf{$totalTries > maxTries$}{
+    \For {$i \in 0...n$}{
+	$M_i  \gets S_i / (S_i + F_i)$\\
+    }
+    $maxI \gets -1$\\
+    $maxIval \gets -1$\\
+    \For {$i \in 0...n$}{
+      \If{$M_i > maxIval$}{
+	$maxI \gets i$\\
+	$maxIval \gets M_i$\\
+      }
+    }
+    return $maxI$ \tcp*[r]{return the best arm encountered}
+  } \Else{
+    pass \tcp*[r]{keep trying}
+  }
+}
+
+\caption{\algorithmDTxt for Best Arm
+  Identification\label{alg:bandit2}}
 \end{algorithm}
 
 
@@ -427,11 +495,11 @@ use less conservative settings in our evaluation.
 \jgonote{In this section we use algorithm singular because we only evaluated one of them.}
 
 We have implemented our approach on the Baxter
-robot, which is equipped with a seven-degree-of-freedom arm with a
+robot. It is equipped with a seven-degree-of-freedom arm with a
 camera and IR depth sensor, which we use as a one-pixel depth camera
 to acquire our models.
 
-The robot acquired visual and RGB-D models for N objects using our
+The robot acquired visual and RGB-D models for 30 objects using our
 autonomous learning system.  We manually verified that the scans were
 accurate, and set the following parameters: height above the object
 for the IR scan (to approximately 2cm); this height could be acquired
@@ -442,7 +510,7 @@ to acquire the object.
 
 After acquiring visual and IR models for the object at different poses
 of the arm, the robot performed the bandit-based adaptation step using
-Algortihm~\ref{alg:bandit}.
+Algortihm~\ref{alg:bandit2}.
 
 We report the performance of the robot at picking using the learned
 height for servoing, but without grasp learning, then the number of
