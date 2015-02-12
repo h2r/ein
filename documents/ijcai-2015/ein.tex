@@ -9,6 +9,7 @@
 \usepackage{ijcai15}
 \usepackage[numbers]{natbib}
 \usepackage{graphicx}
+\usepackage{xspace}
 \usepackage{color}
 %\usepackage{algorithmic}
 \usepackage[]{algorithm2e}
@@ -34,10 +35,10 @@ urlcolor=blue
 
 % Use the postscript times font!
 \usepackage{times}
-\newcommand{\algorithmCTxt}{Ordered Confidence Bound }
-\newcommand{\algorithmCFname}{OrderedConfidenceBound }
-\newcommand{\algorithmDTxt}{Reckless Ordered Confidence Bound }
-\newcommand{\algorithmDFname}{RecklessOrderedConfidenceBound }
+\newcommand{\algorithmCTxt}{Ordered Confidence Bound\xspace}
+\newcommand{\algorithmCFname}{OrderedConfidenceBound}
+\newcommand{\algorithmDTxt}{Reckless Ordered Confidence Bound\xspace}
+\newcommand{\algorithmDFname}{RecklessOrderedConfidenceBound}
 
 % the following package is optional:
 %\usepackage{latexsym} 
@@ -76,17 +77,16 @@ A key aim of current research is to create robots that can reliably
 manipulate objects.  However, in many instances, information needed to
 infer a successful grasp is latent in the environment and arises from
 complicated physical dynamics; for example, a heavy object might need
-to be grasped in the middle or else it will twist out of the robot's gripper.  
-The contribution of this paper is an
-approach for enabling a robot to learn models for 
-localizing and grasping objects by formalizing a grasping system as an
-n-armed bandit problem.  The robot performs best arm identification
-using a variant of Hoeffding races that incorporates prior
-information, enabling it to quickly find a near optimal arm without
-pulling all the arms as in UCB-based approaches.  We demonstrate that
-our adaptation step significantly improves accuracy over a
-non-adaptive system, enabling a robot to improve grasping
-models through experience.
+to be grasped in the middle or else it will twist out of the robot's
+gripper.  The contribution of this paper is an approach for enabling a
+robot to learn models for localizing and grasping objects by
+formalizing a grasping system as an n-armed bandit problem.  The robot
+performs best arm identification using a policy that computes
+confidence bounds while incorporating prior information, enabling it
+to quickly find a near optimal arm without pulling all the arms as in
+UCB-based approaches.  We demonstrate that our adaptation step
+significantly improves accuracy over a non-adaptive system, enabling a
+robot to improve grasping models through experience.
 
 
 %%   To address this
@@ -134,20 +134,21 @@ problem~\citep{thompson33} where the robot aims to minimize simple
 regret after a finite exploration period~\citep{bubeck09}.  Our robot
 can obtain a high-quality reward signal (although sometimes at a
 higher cost in time and sensing) by actively collecting additional
-information from the environment.  Existing algorithms for best arm
-identification require pulling all the arms as an initialization
-step~\citep{mannor04, audibert10, chen14}, a prohibitive expense when
-each arm pull takes on the order of 90 seconds and there are more than
-1000 arms.  To address this problem, we present two new algorithms:
-\algorithmCTxt, based on Hoeffding races~\citep{maron93}, and \algorithmDTxt, 
-an approximation of \algorithmCTxt that explores faster and performs
-similarly empiracally. In our
-approaches, the robot pulls arms in an order determined by a prior,
-which allows it to try the most promising arms first. It can then
-autonomously decide when to stop by bounding the confidence in the
-result.  Figure~\ref{fig:ruler} shows the robot's performance before
-and after training on a ruler; after training it grasps the object in
-the center, improving the success rate.
+information from the environment.  
+
+Existing algorithms for best arm identification require pulling all
+the arms as an initialization step~\citep{mannor04, audibert10,
+  chen14}, a prohibitive expense when each arm pull takes on the order
+of 90 seconds and there are more than 1000 arms.  To address this
+problem, we present two new algorithms: \algorithmCTxt, based on
+Hoeffding races~\citep{maron93}, and \algorithmDTxt, an approximation
+of \algorithmCTxt that explores faster and performs similarly
+empirically. In our approaches, the robot pulls arms in an order
+determined by a prior, which allows it to try the most promising arms
+first. It can then autonomously decide when to stop by bounding the
+confidence in the result.  Figure~\ref{fig:ruler} shows the robot's
+performance before and after training on a ruler; after training it
+grasps the object in the center, improving the success rate.
 \begin{figure}
 \subfigure[Before learning.]{\includegraphics[width=0.5\linewidth]{figures/dropping_ruler.png}}%
 \subfigure[After learning.]{\includegraphics[width=0.5\linewidth]{figures/holding_ruler.png}}
@@ -223,20 +224,21 @@ Section~\ref{sec:conclusion} concludes.
 %% depth information and grasping success.
 
 \section{Object Detection and Localization}
-All of our detection runs on stock Baxter with one additional computer.
-The robot uses its arm cameras and IR sensor to localize objects in
-the environment.  Our object detection and pose estimation pipeline
-uses conventional computer vision algorithms in a simple
-software architecture to achieve a frame rate of about 2Hz for object
-detection and pose estimation.  Our recognition pipeline takes video
-from the robot's wrist cameras, proposes a small number of candidate object bounding
-boxes in each frame, and classifies each candidate bounding box as
-belonging to a previously encountered object class. Object classes
-consist of object instances rather than pure object categories.  Using
-instance recognition means we cannot reliably detect categories, such
-as ``mugs,'' but the system will be able to detect, localize, and
-grasp the specific instances for which it has models with much higher
-speed and accuracy.
+Our object detection and pose estimation pipeline uses conventional
+computer vision algorithms in a simple software architecture to
+achieve a frame rate of about 2Hz for object detection and pose
+estimation.  Object classes consist of object instances rather than
+pure object categories.  Using instance recognition means we cannot
+reliably detect categories, such as ``mugs,'' but the system will be
+able to detect, localize, and grasp the specific instances for which
+it has models with much higher speed and accuracy.
+
+Our detection pipeline runs on stock Baxter with one additional
+computer, using the arm cameras and IR sensor to localize objects in
+the environment.  Our recognition pipeline takes video from the
+robot's wrist cameras, proposes a small number of candidate object
+bounding boxes in each frame, and classifies each candidate bounding
+box as belonging to a previously encountered object class.
 
 When the robot moves to attempt a pick, it uses detected bounding
 boxes and visual servoing to move the arm to a position approximately
@@ -246,22 +248,32 @@ know the arm's position relative to the object, we can reliably
 collect statistics about the success rate of grasps at specific points
 on the object.
 
-We collect many measurements for the pointcloud by
-performing an overhead raster scan of the object. The IR sensor
-reports at about 30Hz but gives fairly good localization.  In order to
-use the good resolution despite the sparsity of measurement induced by
-the frequency of the sensor and the speed of the robot's movement, we
-employ a Parzen kernel density estimator to record z measurements at 1mm $(x,y)$
-resolution. We then downsample to a $21 \times 21$ grid at 1cm resolution, which yields
-s clean depth map and a tractable state space for grasp inference. We consider 
-4 gripper orientations at each $(x,y)$ location in the scan for a total of 1764 possible
-grasps. Our prior for grasp success is a map $(x,y,\theta) \rightarrow \mathbb{R}$ generated by convolving the 1cm depth map with
-4 linear filters which correspond to the 4 orientation we consider. Their responses
-are scaled linearly to be between 0 and 1 inclusive.
+We collect many measurements for the point cloud by performing an
+overhead raster scan of the object using Baxter's IR sensor. The IR
+sensor reports at about 30Hz but gives fairly good localization.  In
+order to use the good resolution despite the sparsity of measurement
+induced by the frequency of the sensor and the speed of the robot's
+movement, we employ a Parzen kernel density estimator to record z
+measurements at 1mm $(x,y)$ resolution. We then downsample to a $21
+\times 21$ grid at 1cm resolution, which yields a clean depth map and
+a tractable state space for grasp inference.  An example raster scan
+appears in Figure~\ref{fig:ir}.  We consider 4 gripper orientations at
+each $(x,y)$ location in the scan for a total of 1764 possible
+grasps. Our prior for grasp success is a map $(x,y,\theta) \rightarrow
+\mathbb{R}$ generated by convolving the 1cm depth map with 4 linear
+filters which correspond to the 4 orientation we consider. Their
+responses are scaled linearly to be between 0 and 1 inclusive.
+
+\begin{figure}
+\includegraphics[width=0.4\linewidth]{figures/ruler_rgb.png}
+\includegraphics[width=0.4\linewidth]{figures/ruler_ir.png}
+\caption{Automatically acquired RGB image for one of the objects in our
+  training set, combined with the IR raster scan.\label{fig:ir}}
+\end{figure}
 
 This pipeline works well on some objects, but often fails for a
 variety of reasons.  For example, our grasp model is not able to 
-reliabley infer grasps for objects that are not visible in IR, such as
+reliably infer grasps for objects that are not visible in IR, such as
 transparent or very dark objects.  Other objects need to be
 grasped in particular locations to avoid getting stuck on the gripper
 due to the compliance of the object and the dynamics of the robot's
@@ -270,25 +282,27 @@ by learning to identify good grasps from experience.
 
 \section{Bandit-based Adaptation}
 
-Our model treats grasp learning as an N-armed bandit problem. Because the
-problem domain is rooted in the physical world, we can obtain high-quality
-supervision at the cost of time and additional sensing by trying grasps with the
-robot. Formally, the agent is given an n-armed bandit, where each arm pays
-out $1$ with probability $\mu_i$ and $0$ otherwise.  The agent's goal
-is to identify a good arm (with payout $>= k$) with probability $c$
-(e.g., 95\% confidence that this arm is good) as quickly as possible.
-As soon as it has done this, it should terminate.  The agent is also
-given a prior $\pi$ on the arms. \algorithmCTxt only makes use of order of the arms as ranked
-by the prior, trying promising ones first and ignoring the specific 
-values of $\pi$. \algorithmDTxt, on the other hand, actually makes use of the 
-probabilities specified by the prior in order to explore more aggresively.
+Our model treats grasp learning as an n-armed bandit problem. Because
+the problem domain is rooted in the physical world, we can obtain
+high-quality supervision at the cost of time and additional sensing by
+trying grasps with the robot. Formally, the agent is given an n-armed
+bandit, where each arm pays out $1$ with probability $\mu_i$ and $0$
+otherwise.  The agent's goal is to identify a good arm (with payout
+$>= k$) with probability $c$ (e.g., 95\% confidence that this arm is
+good) as quickly as possible.  As soon as it has done this, it should
+terminate.  The agent is also given a prior $\pi$ on the
+arms. \algorithmCTxt only makes use of order of the arms as ranked by
+the prior, trying promising ones first and ignoring the specific
+values of $\pi$. \algorithmDTxt, on the other hand, actually makes use
+of the probabilities specified by the prior in order to explore more
+aggressively.
 
 
 Our first algorithm, \algorithmCTxt, iterates through each arm, and tries it
 until it has identified that it either is above $k$ with probability
 $c$ (in which case it terminates) or it is below $k$ with probability
 $c$ (in which case it moves to the next arm in the sequence.
-Pseudocode apperas in Algortihm~\ref{alg:bandit1}.  To compute this
+Pseudo-code appears in Algorithm~\ref{alg:bandit1}.  To compute this
 probability we need to estimate the probability that the true payout
 probability, $\mu$ is greater than the threshold, $c$ given the
 observed number of successes and failures:
@@ -305,7 +319,7 @@ We can compute this probability using the law of total probability:
 
 This integral is the CDF of the beta distribution, and is called the
 regularized incomplete beta function~\citep{olver10}.  Note that if
-$\mu = k$ the runtime is unbounded, so we fix an $\epsilon > 0$ and
+$\mu = k$ the run time is unbounded, so we fix an $\epsilon > 0$ and
 accept a grasp if $\mu \in [k-\epsilon, k+\epsilon]$ with probability
 $c$.
 
@@ -459,7 +473,7 @@ objects, end-to-end.
 
 \subsection{Simulation}
 Our simulated results compare our two algorithms to Thompson sampling, 
-assessing the tradeoffs inherent in our choice
+assessing the trade-offs inherent in our choice
 of parameters and algorithms.  We present results in
 
 \jgonote{This should be updated for whatever we decide to do. Here and
@@ -475,10 +489,10 @@ given enough trials, reliably finds the optimal arm.  We present two
 versions of \algorithmCTxt with different parameters.  The tight
 bound uses a confidence interval defined by the union bound to decide
 when to move on; this results in the agent pulling each arm many times
-before eachieving a high confidence.  It almost always terminates with
+before achieving a high confidence.  It almost always terminates with
 the optimal arm, but takes many trials to do it.  In contrast, the
 parameter settings used in this paper with a lower confidence bound
-taks many fewer trials on average, but sometimes terminates with a
+takes many fewer trials on average, but sometimes terminates with a
 non-optimal arm.  Because of the high cost of running on the robot, we
 use less conservative settings in our evaluation.
 
@@ -510,7 +524,7 @@ to acquire the object.
 
 After acquiring visual and IR models for the object at different poses
 of the arm, the robot performed the bandit-based adaptation step using
-Algortihm~\ref{alg:bandit2}.
+Algorithm~\ref{alg:bandit2}.
 
 We report the performance of the robot at picking using the learned
 height for servoing, but without grasp learning, then the number of
@@ -544,7 +558,7 @@ Figure~\ref{fig:policy}.
 \begin{figure}
 \includegraphics{figures/policy.pdf}
 \caption{Policy for an \algorithmCTxt agent given a belief state, defined by an
-  observed number of succeseses and failures on that arm for our model
+  observed number of successes and failures on that arm for our model
   parameters.  Red (-) shows states where the agent rejects the arm
   and move to the next one; green (+) shows states where it accepts
   the arm and stops learning, and the arrows show movement to the next
@@ -735,7 +749,7 @@ Developmental/cognitive robotics~\citep{lyubova13, kraft10r}
 \citet{banta00} constructs a prototype 3d model from a minimum number
 of range images of the object.  It terminates reconstruction when it
 reaches a minimum threshold of accuracy.  It uses methods based on the
-occluded regions of the reconstructed surfice to decide where to place
+occluded regions of the reconstructed surface to decide where to place
 the camera and evaluates based on the reconstruction rather than pick
 up success.  \citet{krainin11} present an approach for autonomous
 object modeling using a depth camera observing the robot's hand as it
@@ -789,20 +803,20 @@ expert~\citep{lai11}.  \citet{kasper12} created a semiautomatic system
 that fuses 2d and 3d data, but the setup requires a special rig
 including a turntable and a pair of cameras.  Our approach requires an
 active camera mounted on a robot arm, but no additional equipment, so
-that a robot in the home can autonomoulsy acquire new models.
+that a robot in the home can autonomously acquire new models.
 
 \citet{collect14} describes an approach for lifelong robotic object
 discovery, which infers object candidates from the robot's perceptual
 data.  This system does not learn grasping models and does not
 actively acquire more data to recognize, localize, and grasp the
-object with high reliabilitiy.  It could be used as a first-pass to
+object with high reliability.  It could be used as a first-pass to
 our system, after which the robot uses an active method to acquire
-additional data enablign it to grasp the object.  Approaches that
+additional data enabling it to grasp the object.  Approaches that
 integrate SLAM and moving object tracking estimate pose of objects
 over time but have not been extended to manipulation~\citep{wang07,
   gallagher09, salas-moreno13, selvatici08}.
 
-Our approach is similar to the philosphy adopted by Rethink Robotic's
+Our approach is similar to the philosophy adopted by Rethink Robotic's
 Baxter robot, and indeed, we use Baxter as our test
 platform~\citep{fitzgerald13}.  \stnote{Haven't actually read this
   paper, just making stuff up based on Rod's talks.  Should read the
@@ -847,7 +861,7 @@ new objects.
 
 We presented a software stack for autonomously acquiring instance based models
 of objects for the Baxter Research Robot.  Conventional MAB algorithms value
-reduced runtime complexity over small constants because large numbers of trials
+reduced run time complexity over small constants because large numbers of trials
 can be tolerated.  Our MAB problem has 1764 levers, so even if we could pull a
 lever every 10 seconds it would take around 5 hours to explore all of the arms
 for a single object.  We provided the Ordered Confidence Bound algorithm for
@@ -877,13 +891,13 @@ Even though the PR2 lacks the IR rangefinder we use, that data could be gathered
 by a printer converted from a scanner, and the PR2 could perform its own grasp training.
 
 It is clear that the system's accuracy and precision would benefit from the use of more
-sophisticated imaging equipment such as the Kinect 2. Better and faster pointclouds acquisition 
+sophisticated imaging equipment such as the Kinect 2. Better and faster point clouds acquisition 
 would allow the use of more precise physical models for grasps. It would also open the way for
 additional grasp types, such as side and handle grasps.
 
 Objects which failed entirely did so because of reasonable limitations of the
 system induced by compromises we made for global compatibility. For instance,
-the small vaseline container only has 3mm of play between the container and the
+the small Vaseline container only has 3mm of play between the container and the
 gripper in the only feasible grasp location. If we double the number of iterations
 during gradient servoing we can more reliably pick it, but this would either
 introduce another parameter in the system (iterations) or excessively slow down
