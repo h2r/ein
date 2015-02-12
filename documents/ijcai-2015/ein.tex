@@ -440,44 +440,44 @@ Our simulated results assess the performance of our approach to
 several baselines.  We simulate picking performance by creating a
 sequence of $50$ bandits, where each arm pays out at a rate of $0.1$
 except for one, which pays out at $0.9$.  We move the location of the
-best arm to a uniformly sampled random position in the sequence. 
-
-To incorporate prior knowledge, we sample a prior estimate for each
-$\mu_i$ from a beta distribution with $\alpha = \beta = 1 + e * \mu_i$
-where $e$ controls the entropy of the prior distribution.
-
-
-First we compare against Thompson Sampling~\citep{thompson33} in the
-fixed budget setting, as a well-known baseline, although this
-algorithm is optimizing regret rather than simple regret.  Second, we
-compare to a Uniform baseline that pulls every arm equally until the
-budget is exceeded.  This baseline corresponds to the initialization
-step in UCB or the confidence bound algorithms in \citet{chen14}.  If
-we implemented the state-of-the-art CLUCB algorithm from
-\citet{chen14}, it would not get past this initialization step in our
-setting.  Finally, we show the performance of three versions of
-\algorithmDTxt with two different priors, one quite noisy (but still
-informative), the other less noisy, along with a completely uninformed
-prior.
+best arm to a uniformly sampled random position in the sequence.  To
+model prior knowledge, we sample an estimate for each $\mu_i$ from a
+beta distribution with $\alpha = \beta = 1 + e * \mu_i$ where $e$
+controls the entropy of the sampling distribution.
 
 
+We assess the performance of Thompson Sampling~\citep{thompson33} in
+the fixed budget setting, as a well-known baseline, although this
+algorithm minimizes total regret, including regret during training,
+rather than simple regret.  Second, we compare to a Uniform baseline
+that pulls every arm equally until the budget is exceeded.  This
+baseline corresponds to the initialization step in UCB or the
+confidence bound algorithms in \citet{chen14}.  If we implemented the
+state-of-the-art CLUCB algorithm from \citet{chen14}, it would not
+have enough pulls to finish this initialization step in our setting.
+Finally, we show the performance of three versions of \algorithmDTxt,
+one with an uninformed prior ($e=0$, corresponding to Hoeffding
+races~\citep{maron93}), one quite noisy with $e=1$(but still
+informative), the other less noisy $e=3$).
 
- compare our two algorithms to Thompson
-sampling, assessing the trade-offs inherent in our choice of
-parameters and algorithms.  We present results in
+We report for each point after $100$ trials, and report $95\%$
+confidence intervals.  For Thompson Sampling and Uniform, which always
+use all trials in their budget, we report performance at each budget
+level; for \algorithmDTxt, we report the mean number of trials the
+algorithm took before halting.
 
-Results appear in Figure~\ref{fig:simulation_results}.  Thompson Sampling always uses all
-trials in its budget and, given enough trials, reliably finds the
-optimal arm.  We present two versions of \algorithmCTxt with different
-parameters.  The tight bound uses a confidence interval defined by the
-union bound to decide when to move on; this results in the agent
-pulling each arm many times before achieving a high confidence.  It
-almost always terminates with the optimal arm, but takes many trials
-to do it.  In contrast, the parameter settings used in this paper with
-a lower confidence bound takes many fewer trials on average, but
-sometimes terminates with a non-optimal arm.  Because of the high cost
-of running on the robot, we use less conservative settings in our
-evaluation.
+Results appear in Figure~\ref{fig:simulation_results}.  Thompson
+Sampling always uses all trials in its budget and, given enough
+trials, reliably finds the optimal arm.  We present two versions of
+\algorithmCTxt with different parameters.  The tight bound uses a
+confidence interval defined by the union bound to decide when to move
+on; this results in the agent pulling each arm many times before
+achieving a high confidence.  It almost always terminates with the
+optimal arm, but takes many trials to do it.  In contrast, the
+parameter settings used in this paper with a lower confidence bound
+takes many fewer trials on average, but sometimes terminates with a
+non-optimal arm.  Because of the high cost of running on the robot, we
+use less conservative settings in our evaluation.
 
 
 

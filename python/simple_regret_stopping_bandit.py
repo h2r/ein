@@ -94,7 +94,17 @@ class AlgorithmD(Policy):
         while True:
             marginals = self.compute_marginals(bandit)
             sorted_indexes = na.argsort(marginals)
-            a_i = sorted_indexes[-1]
+
+            for a_i in reversed(sorted_indexes):
+                result = compute_policy(self.S[a_i], self.F[a_i], 
+                                        self.target_mu, self.epsilon, 
+                                        self.threshold_confidence, 
+                                        self.accept_confidence, 
+                                        self.reject_confidence)
+                if result != "r":
+                    break
+
+
 
 
             if len(bandit.log) >= max_budget:
