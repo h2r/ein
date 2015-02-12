@@ -659,20 +659,21 @@ other objects which are more tolerant to error.
 \label{sec:relatedwork}
 
 
-Early models for pick-and-place rely on has been studied since the
-early days of robotics~\citep{brooks83, lozano89}.  These systems
-relied on models of object pose and end effector pose being provided
-to the algorithm, and simply planned a motion for the arm to grasp.
-\citet{bohg13} survey data-driven approaches to grasping.  Our
-approach can be thought of as a pipeline for automatically building an
-experience database consisting of object models and known good grasps,
-using analytic approaches to grasping unknown objects to generate a
-grasp hypothesis space and using our bandit-based method for trying
-grasps and learning instance-based distributions for the grasp
-experience database.  In this way our system achieves the best of both
-approaches: models for grasping unknown objects can be applied; when
-they do fail, the system can attempt to recover by trying grasps and
-adapting itself based on that specific object.  
+Pick-and-place has been studied since the early days of
+robotics~\citep{brooks83, lozano89}.  Forerunning systems relied on the user to
+provide models of object and end effector pose for the algorithm, and simply
+planned a motion for the arm to grasp.  \citet{bohg13} survey data-driven
+approaches to grasping.  
+
+Our approach can be thought of as a pipeline for
+automatically building an experience database consisting of object models and
+known good grasps.  The system initially uses analytic approaches to generate a
+grasp hypothesis space which allows it to pick previously unencountered
+objects. It then uses our bandit-based method to try new grasps and learn
+instance-based distributions for the grasp experience database.  In this way
+our system achieves the best of both approaches: models for grasping unknown
+objects can be applied; when they do fail, the system can attempt to recover by
+trying grasps and adapting itself based on that specific object.  
 
 Modern approaches use object recognition systems to estimate pose and
 object type, then libraries of grasps either annotated or learned from
