@@ -7,6 +7,8 @@
 \documentclass{article}
 % The file ijcai15.sty is the style file for IJCAI-15 (same as ijcai07.sty).
 \usepackage{ijcai15}
+\usepackage{amsmath}
+\usepackage{amsfonts}
 \usepackage[numbers]{natbib}
 \usepackage{graphicx}
 \usepackage{xspace}
@@ -335,31 +337,14 @@ $c$.
 \SetKwFunction{x}{\algorithmDFname}
 \x{$\pi$, $k$, $\delta_{accept}$, $\delta_{reject}$, $maxTries$}
 
-\For {$i \in 0...n$}{
-    $S_i  \gets \pi(i)$
-}
+$\mbox{Initialize } S_0 \dots S_n \mbox{ to } \pi(0)...\pi(n)$\\
 $\mbox{Initialize } F_0 \dots F_n \mbox{ to } 0$\\
-$\mbox{Initialize } M_0 \dots M_n \mbox{ to } 0$\\
 $totalTries \gets 0$\\
 \While {$true$}{
   $totalTries \gets totalTries + 1$\\
-  \For {$i \in 0...n$}{
-      $M_i  \gets S_i / (S_i + F_i)$\\
-  }
+  $\mbox{Set } M_0 \dots M_n \mbox{ to } \frac{S_0}{S_0 + F_0}...\frac{S_n}{S_n + F_n}$\\
 
-  %$\tilde{M}_i \gets sortDescending(M_i)$ \\
-
-  $maxI \gets -1$\\
-  $maxIval \gets -1$\\
-  \For {$i \in 0...n$}{
-    $p^i_{below} \gets \int_0^k \Pr(\mu_i = \mu | S_i, F_i) d\mu $\\
-    \If{$p_{below} < \delta_{reject}$ and $M_i > maxIval$}{
-      $maxI \gets i$\\
-      $maxIval \gets M_i$\\
-    }
-  }
-
-  $j \gets maxI$\\
+  $j \gets bestValidArm$\tcp*[r]{set j to the arm with $p_{below} < \delta_{reject}$ that has the highest marginal value}
 
   $r \gets sample(arm_j)$\\
   \uIf {$r = 1$}{
@@ -376,18 +361,7 @@ $totalTries \gets 0$\\
   }\uElseIf{$p_{threshold} \ge \delta_{accept}$}{
     return $j$ \tcp*[r]{accept this arm}
   }\uElseIf{$totalTries > maxTries$}{
-    \For {$i \in 0...n$}{
-	$M_i  \gets S_i / (S_i + F_i)$\\
-    }
-    $maxI \gets -1$\\
-    $maxIval \gets -1$\\
-    \For {$i \in 0...n$}{
-      \If{$M_i > maxIval$}{
-	$maxI \gets i$\\
-	$maxIval \gets M_i$\\
-      }
-    }
-    return $maxI$ \tcp*[r]{return the best arm encountered}
+    return $maxI$ \tcp*[r]{return the arm with the best marginal value out of those that were tried}
   } \Else{
     pass \tcp*[r]{keep trying}
   }
