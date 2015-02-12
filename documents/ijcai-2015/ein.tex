@@ -819,7 +819,15 @@ Kinect 2. Better and faster point clouds acquisition would allow the
 use of more precise physical models for grasps. It would also open the
 way for additional grasp types, such as side and handle grasps.
 
-Instance-based approaches mean that the robot must acquire data about a 
+Instance-based approaches mean that the robot must acquire data about
+a specific object before manipluating it; however by adapting itself
+to the object it can obtain higher accuracy.  We aim to aggregate data
+collected via our instance-based system to create a new dataset of
+images, RGB-D, and grasp success rates at various poses to provide
+supervision for general-purpose category models for grasping.  Our
+long term vision is a system that can infer high quality grasps for
+any object, but adaptively recover if the initial grasp attempt is
+unsuccessful, leading overall to robust and accurate pick-and-place.
 
 %Ideas for doing for the paper, otherwise future work: 
 %\begin{itemize}
