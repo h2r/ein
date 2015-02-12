@@ -782,8 +782,13 @@ such as potential grasp points, and then assessing the performance
 from experience.
 
 We formalize the problem as an N-armed bandit~\citep{thompson33} where
-the robot aims to minimize simple regret after a finite exploration
-period~\citep{bubeck09}.  
+the robot aims to perform best arm identification~\citep{audibert10,
+  chen14}, or alternatively, to minimize simple regret after a finite
+exploration period~\citep{bubeck09}.  Our approach for estimating the
+confidence that one arm is better than another follows Hoeffding
+races~\citep{maron93} but operates in a confidence threshold setting
+with a fixed budget.  By incorporating prior information, our approach
+achieves good performance without being required to pull all the arms.
 
 
 \section{Conclusion}
