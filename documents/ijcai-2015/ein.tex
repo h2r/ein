@@ -643,7 +643,7 @@ clear pitcher and icosahedron.
 Objects that failed to improve, shown in the next segment, fall into
 several categories.  For some, performance was already high, so there
 was not much room to move.  A common failure mode for poorly
-performing objects was failure to accurately determing the position
+performing objects was failure to accurately determine the position
 and orientation through visual servoing.  If the grasp map cannot be
 localized accurately, significant noise is introduced because the map
 does not correspond to the same physical location on the object at
@@ -673,7 +673,7 @@ excessively slow down other objects which are more tolerant to error.
 
 
 Pick-and-place has been studied since the early days of
-robotics~\citep{brooks83, lozano89}.  Forerunning systems relied on
+robotics~\citep{brooks83, lozano89}.  These systems relied on
 the user to provide models of object and end effector pose for the
 algorithm, and simply planned a motion for the arm to grasp.
 \citet{bohg13} survey data-driven approaches to grasping.  In their
@@ -703,7 +703,7 @@ specific object that is important to the user at the current moment.
 Other approaches focus on object discovery and
 manipulation~\citep{lyubova13, kraft10, collet14, schiebener12}.  By
 formalizing grasp identification as a bandit problem, we are able to
-leverege existing strategies for inferring the best arm.
+leverage existing strategies for inferring the best arm.
 
 Many existing approaches use a simulator to assess planned grasp
 quality, because assessing grasp quality in simulation is much faster
@@ -738,7 +738,7 @@ explores the environment and actively plans paths to acquire views of
 objects such as doors.  However it uses a fixed model of the object
 being detected rather than updating its model based on the data it has
 acquired from the environment.  Our approach is focused instead on
-identifyng the best grasp point by actively experimenting with objects
+identifying the best grasp point by actively experimenting with objects
 in the world.
 
 Other approaches plan grasps under pose uncertainty~\citep{stulp11} or
@@ -763,7 +763,7 @@ approach does not match our problem, because we would like the robot
 to stop sampling as soon as it has improved performance above a
 threshold.  We take a fixed confidence approach as in \citet{chen14},
 but their fixed confidence algorithm begins by pulling each arm once,
-a prohibativly expensive operation on our robot.  Instead our
+a prohibitively expensive operation on our robot.  Instead our
 algorithm estimates confidence that one arm is better than another,
 following Hoeffding races~\citep{maron93} but operating in a confidence
 threshold setting that incorporates prior information.  By
@@ -819,9 +819,9 @@ use of more precise physical models for grasps. It would also open the
 way for additional grasp types, such as side and handle grasps.
 
 Instance-based approaches mean that the robot must acquire data about
-a specific object before manipluating it; however by adapting itself
+a specific object before manipulating it; however by adapting itself
 to the object it can obtain higher accuracy.  We aim to aggregate data
-collected via our instance-based system to create a new dataset of
+collected via our instance-based system to create a new data set of
 images, RGB-D, and grasp success rates at various poses to provide
 supervision for general-purpose category models for grasping.  Our
 long term vision is a system that can infer high quality grasps for
