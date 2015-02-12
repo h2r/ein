@@ -133,7 +133,7 @@ make it difficult to infer grasp points~\citep{lysenkov13}.
 To address these limitations, we propose an approach for enabling a
 robot to learn about an object through exploration and adapt its
 grasping model accordingly.  We frame the problem of model adaptation
-as identifying the best arm for an n-armed bandit
+as identifying the best arm for an N-armed bandit
 problem~\citep{thompson33} where the robot aims to minimize simple
 regret after a finite exploration period~\citep{bubeck09}.  Our robot
 can obtain a high-quality reward signal (although sometimes at a
@@ -291,10 +291,10 @@ by learning to identify good grasps from experience.
 
 \section{Bandit-based Adaptation}
 
-Our model treats grasp learning as an n-armed bandit problem. Because
+Our model treats grasp learning as an N-armed bandit problem. Because
 the problem domain is rooted in the physical world, we can obtain
 high-quality supervision at the cost of time and additional sensing by
-trying grasps with the robot. Formally, the agent is given an n-armed
+trying grasps with the robot. Formally, the agent is given an N-armed
 bandit, where each arm pays out $1$ with probability $\mu_i$ and $0$
 otherwise.  The agent's goal is to identify a good arm (with payout
 $>= k$) with probability $c$ (e.g., 95\% confidence that this arm is
