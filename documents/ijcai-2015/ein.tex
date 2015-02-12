@@ -610,9 +610,9 @@ failed with the prior grasp because the gripper slid over the sloped
 edges and pinched the block out of its grippers.  The robot tried
 grasps until it found one that targeted the sides that were parallel
 to the grippers, resulting in a flush grasp, significantly improving
-accuracy.  The round salt shaker , the robot first attempted to
+accuracy.  For the round salt shaker, the robot first attempted to
 grab the round plastic dome, which is infeasible. It tried grasps
-until it found one on the handle.
+until it found one on the handle that worked well.
 
 
 Objects such as the round salt shaker and the bottle top are on the
@@ -636,10 +636,10 @@ deformed the bulb into a grippable shape regardless of the perceived
 orientation of the syringe. Similar problems were observed with the
 clear pitcher and icosahedron.
 
-Some of the objects had several grasps of similar, mediocre quality,
-which caused the robot to try multiple grasps several times,
-eventually accepting one of the mediocre grasps by chance.  For
-example, the helicopter, wooden train, and icosahedron.
+%% Some of the objects had several grasps of similar, mediocre quality,
+%% which caused the robot to try multiple grasps several times,
+%% eventually accepting one of the mediocre grasps by chance.  For
+%% example, the helicopter, wooden train, and icosahedron.
 
 Objects that failed to improve, shown in the next segment, fall into
 several categories.  For some, performance was already high, so there
@@ -648,7 +648,7 @@ performing objects was failure to accurately determing the position
 and orientation through visual servoing.  If the grasp map cannot be
 localized accurately, significant noise is introduced because the map
 does not correspond to the same physical location on the object at
-each trial.  For example, there is only about a $5mm$ difference
+each trial.  For example, there is only about a 5mm difference
 between the width of the dragon and the width of the gripper; objects
 such as these would benefit from additional servo iterations to
 increase localization precision. If we double the number of iterations
@@ -658,13 +658,13 @@ excessively slow down other objects which are more tolerant to error.
 
 
 
-The red bucket exhibited interesting behavior. Its gradient profile is
-rectangular, but at the chosen servo height only two opposing sides
-are visible in the camera. Due to symmetry, the robot found a good
-grasp despite the degeneracy in the model. Most of this object's
-failures were because the object is tall and the robot did not raise
-its arm up enough before checking if its gripper was empty, which
-triggered false negatives for grasp release.
+%% The red bucket exhibited interesting behavior. Its gradient profile is
+%% rectangular, but at the chosen servo height only two opposing sides
+%% are visible in the camera. Due to symmetry, the robot found a good
+%% grasp despite the degeneracy in the model. Most of this object's
+%% failures were because the object is tall and the robot did not raise
+%% its arm up enough before checking if its gripper was empty, which
+%% triggered false negatives for grasp release.
 
 
 
@@ -680,16 +680,16 @@ algorithm, and simply planned a motion for the arm to grasp.
 \citet{bohg13} survey data-driven approaches to grasping.  In their
 terminology, our approach is a pipeline for automatically building an
 experience database consisting of object models and known good grasps.
-The system initially uses analytic approaches to generate a grasp
+Our system initially uses analytic approaches to generate a grasp
 hypothesis space which allows it to pick previously unencountered
-objects. It then uses our bandit-based method to try new grasps and
-learn instance-based distributions for the grasp experience database.
-In this way our system achieves the best of both approaches: models
-for grasping unknown objects can be applied; when they do fail, the
-system can attempt to recover by trying grasps and adapting itself
-based on that specific object.
+objects. Our bandit-based method tries new grasps and learns
+instance-based distributions for the grasp experience database.  In
+this way our system achieves the best of both approaches: models for
+grasping unknown objects can be applied; if they fail, the system can
+attempt to recover by trying grasps and adapting itself based on that
+specific object.
 
-Modern approaches use object recognition systems to estimate pose and
+Many  approaches use object recognition systems to estimate pose and
 object type, then libraries of grasps either annotated or learned from
 data~\citep{saxena08, goldfeder09, morales03,ciocarlie14}.  These
 approaches attempt to create systems that can grasp arbitrary objects
@@ -708,7 +708,7 @@ leverege existing strategies for inferring the best arm.
 
 Many existing approaches use a simulator to assess planned grasp
 quality, because assessing grasp quality in simulation is much faster
-than trying it on the real robot~\citet{miller04}.  In our approach
+than trying it on the real robot~\citep{miller04}.  In our approach
 it is more expensive to evaluate grasp rates because it
 requires actually attempting to pick up the object.  However, by
 assessing grasp quality in situ with the end-to-end system, our approach
