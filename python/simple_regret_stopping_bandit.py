@@ -407,7 +407,7 @@ class ThompsonSampling(Policy):
         
 
 def main():
-    figure = mpl.figure(figsize=(3.5,4))
+    figure = mpl.figure(figsize=(3.5,3.5))
     plotBandit(figure.gca())
     #figure.suptitle("Best Arm Identification")
     mpl.show()
@@ -428,26 +428,24 @@ def plotBandit(axes):
     fmts = ['-*', '-.', 'o', 'x', '^']
     for i, (method, prior_signal, prior_name) in enumerate([(thompson_sampling, None, ""), 
                                                             (uniform, None, ""),
-                                                            (algorithmD, 3, "(Informed)"),
-                                                            (algorithmD, 1, "(Noisy)"),
-                                                            (algorithmD, 0, "(Uninformed)"),
+                                                            (algorithmD, 5, "($e=5$)"),
+                                                            (algorithmD, 1, "($e=1$)"),
+                                                            (algorithmD, 0, "($e=0$)"),
 ]):
         results = []
         if not method.drawBudget:
             budget_start = 49
-            budget_end = 50
+            budget_end = 51
             budget_step = 5
         else:
             budget_start = 0
-            budget_end = 50
+            budget_end = 51
             budget_step = 5
         for budget in na.arange(budget_start, budget_end, budget_step):
             regrets = []
             budgets = []
             for iteration in range(100):
                 arms = na.zeros(50) + 0.1
-                idx = random.choice(na.arange(len(arms)))
-                arms[idx] = 0.9
                 arms = na.random.rand(50)
                 bandit = Bandit(arms, prior_signal=prior_signal)
                 method.train(bandit, budget)
@@ -480,7 +478,7 @@ def plotBandit(axes):
     mpl.ylabel("Simple Regret")
     mpl.xlabel("Training Trials")
     #mpl.title("Simulation Results")
-    mpl.axis((0, 65, -0.1, 1.19))
+    mpl.axis((0, 65, -0.1, 1))
     mpl.legend(fontsize=8, loc="upper right")
     mpl.savefig("bestarm.pdf")
 

@@ -1,4 +1,5 @@
 import pylab as mpl
+import matplotlib.pyplot as plt; plt.rc('text', usetex=True)
 import matplotlib.pyplot as plt
 font = {'family' : 'serif',
         'size'   : 8}
