@@ -692,16 +692,14 @@ manipulation~\citep{lyubova13, kraft10, collet14, schiebener12}.  By
 formalizing grasp identification as a bandit problem, we are able to
 leverege existing strategies for inferring the best arm.
 
-
 Many existing approaches use a simulator to assess planned grasp
 quality, because assessing grasp quality in simulation is much faster
-than trying it on the real robot~\citet{miller04}.  Our approach,
-instead, is more expensive to evaluate grasp quality because it
+than trying it on the real robot~\citet{miller04}.  In our approach
+it is more expensive to evaluate grasp rates because it
 requires actually attempting to pick up the object.  However, by
-assessing grasp quality in the end-to-end system, our approach
-potentially obtains more accurate information about grasp quality
-during training, that it can leverage later at inference time.
-
+assessing grasp quality in situ with the end-to-end system, our approach
+potentially obtains more accurate grasp statistics 
+during training which it can leverage later at inference time.
 
 Crowd-sourced and web robotics have created large databases of objects
 and grasps using human supervision on the web~\citep{kent14a, kent14}.
@@ -711,13 +709,13 @@ annotations in the form of the prior.  If the annotated grasps work
 well, then the robot will quickly converge and stop sampling; if they
 are poor grasps, our approach will find better ones.
 
-
-\citet{nguyen14} learn to manipulate objects such as a light switch or
-drawer with a similar self-training approach.  Our work learns visual
-models for objects for autonomous pick-and-place rather than to
-manipulate objects and uses a bandit-based formulation to actively
-select the best grasp point.
-
+\citet{nguyen14} learn to manipulate objects such as a light switch or drawer
+with a similar self-training approach.  Our work autonomously learns visual
+models to detect, pick, and place previously unencountered rigid objects by actively
+selecting the best grasp point with a bandit based system, rather than
+acquiring models for the manipulation of articulated objects. We rely on
+the fixed structure of objects rather than learning how to deal
+with structure that can change.
 
 Methods for planning in information space \citep{he08, atanasov13,
   prentice09} have been applied to enable mobile robots to plan
@@ -730,10 +728,10 @@ acquired from the environment.  Our approach is focused instead on
 identifyng the best grasp point by actively experimenting with objects
 in the world.
 
-Approaches to plan grasps under pose uncertainty~\citep{stulp11} or
-collect information from tacticle sensors~\citep{hsiao10} using
+Other approaches plan grasps under pose uncertainty~\citep{stulp11} or
+collect information from tactile sensors~\citep{hsiao10} using
 POMDPs.  \citet{platt11} describe new algorithms for solving POMDPs by
-tracking belief state with a high-fidelity particle filter, but using
+tracking the belief state with a high-fidelity particle filter, but using
 a lower-fidelity representation of belief for planning, and tracking
 the KL divergence.  \citet{hudson12} used active perception to create
 a grasping system capable of carrying out a variety of complex tasks.
@@ -746,11 +744,18 @@ from experience.
 We formalize the problem as an N-armed bandit~\citep{thompson33} where
 the robot aims to perform best arm identification~\citep{audibert10,
   chen14}, or alternatively, to minimize simple regret after a finite
-exploration period~\citep{bubeck09}.  Our approach for estimating the
-confidence that one arm is better than another follows Hoeffding
-races~\citep{maron93} but operates in a confidence threshold setting
-with a fixed budget.  By incorporating prior information, our approach
-achieves good performance without being required to pull all the arms.
+exploration period~\citep{bubeck09}.  \citet{audibert10} explored best
+arm identification in a fixed budget setting; however a fixed budget
+approach does not match our problem, because we would like the robot
+to stop sampling as soon as it has improved performance above a
+threshold.  We take a fixed confidence approach as in \citet{chen14},
+but their fixed confidence algorithm begins by pulling each arm once,
+a prohibativly expensive operation on our robot.  Instead our
+algorithm estimates confidence that one arm is better than another,
+following Hoeffding races~\citep{maron93} but operating in a confidence
+threshold setting that incorporates prior information.  By
+incorporating prior information, our approach achieves good
+performance without being required to pull all the arms.
 
 
 \section{Conclusion}
