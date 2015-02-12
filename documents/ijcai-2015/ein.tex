@@ -268,7 +268,7 @@ To infer grasp points, we create a depth map of the object using the
 robot's IR sensor.  (This process would be much faster with an RGB-D
 sensor such as the Kinect, but the advantage of our approach is that
 it can be used with a stock Baxter with no additional sensing.)  We
-collect many measurements for the pointcloud by performing an overhead
+collect many measurements for the depth map by performing an overhead
 raster scan of the object. The IR sensor reports at about 30Hz but
 gives fairly good localization.  In order to use the good resolution
 despite the sparsity of measurement induced by the frequency of the
