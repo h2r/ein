@@ -138,15 +138,18 @@ problem~\citep{thompson33} where the robot aims to minimize simple
 regret after a finite exploration period~\citep{bubeck09}.  Our robot
 can obtain a high-quality reward signal (although sometimes at a
 higher cost in time and sensing) by actively collecting additional
-information from the environment.  
+information from the environment, and use this reward signal to
+adaptively identify grasp points that are likely to succeed.  
 
-Existing algorithms for best arm identification require pulling all
-the arms as an initialization step~\citep{mannor04, audibert10,
-  chen14}, a prohibitive expense when each arm pull takes on the order
-of 90 seconds and there are more than 1000 arms.  To address this
-problem, we present two new algorithms: \algorithmCTxt, based on
-Hoeffding races~\citep{maron93}, and \algorithmDTxt, an approximation
-of \algorithmCTxt that explores faster and performs similarly
+Identifying the best grasp point corresponds to best arm
+identification with pure exploration in bandit problems.  Existing
+algorithms for best arm identification require pulling all the arms as
+an initialization step~\citep{mannor04, audibert10, chen14}, a
+prohibitive expense when each arm pull takes on the order of 90
+seconds and there are more than 1000 arms.  To address this problem,
+we present two new algorithms: \algorithmCTxt, based on Hoeffding
+races~\citep{maron93}, and \algorithmDTxt, an approximation of
+\algorithmCTxt that explores faster and performs similarly
 empirically. In our approaches, the robot pulls arms in an order
 determined by a prior, which allows it to try the most promising arms
 first. It can then autonomously decide when to stop by bounding the
