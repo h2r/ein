@@ -390,10 +390,14 @@ system's ability to learn and adaptively improve its ability to grasp
 objects, end-to-end.
 
 \subsection{Simulation}
+Our simulated results compare our two algorithms to Thompson sampling, 
+assessing the tradeoffs inherent in our choice
+of parameters and algorithms.  We present results in
 
-Our simulated results compare our approach to Thompson sampling as
-well as a fixed policy, assessing the tradeoffs inherent in our choice
-of parameters and algorithm.  We present results in
+\jgonote{This should be updated for whatever we decide to do. Here and
+previously we need to make sure to refer to algorithms because now we
+have two.}
+
 Table~\ref{fig:simulation_results}.  We simulate picking performance
 by creating a sequence of $20$ bandits, where each arm pays out at a
 rate of $0.1$ except for one, which pays out at $0.9$.  We move the
@@ -420,8 +424,9 @@ use less conservative settings in our evaluation.
 
 \subsection{Robotic Evaluation}
 
+\jgonote{In this section we use algorithm singular because we only evaluated one of them.}
 
- We have implemented our approach on the Baxter
+We have implemented our approach on the Baxter
 robot, which is equipped with a seven-degree-of-freedom arm with a
 camera and IR depth sensor, which we use as a one-pixel depth camera
 to acquire our models.
@@ -470,7 +475,7 @@ Figure~\ref{fig:policy}.
 
 \begin{figure}
 \includegraphics{figures/policy.pdf}
-\caption{Policy for the agent given a belief state, defined by an
+\caption{Policy for an \algorithmCTxt agent given a belief state, defined by an
   observed number of succeseses and failures on that arm for our model
   parameters.  Red (-) shows states where the agent rejects the arm
   and move to the next one; green (+) shows states where it accepts
@@ -533,7 +538,7 @@ Total		    & 165/300       &  148/400     & 224/300\\
 Rate		    & 0.55          &  0.37        & 0.75\\
 \bottomrule
 \end{tabular}
-\caption{Results from the robotic evaluation. We tested on 30 objects. We use
+\caption{Results from the robotic evaluation of \algorithmDTxt. We tested on 30 objects. We use
 $\Delta$ to denote the difference in success rate between the grasp recommended
 by the prior (Prior column) and the grasp learned by the system (Marginal
 column). The top block contains objects which succeeded on the initial grasp
@@ -551,22 +556,29 @@ Dragon.\label{table:robot_results}}
 \subsection{Discussion}
 Consider the top block in Figure~\ref{fig:robot_results}, the objects for which the
 initially estimated grasp succeeds 3 times in a row. Note that when 10 trials are performed,
-the variance in performance is about what we would expect.
+it becomes clear that 3 consecutive successes do not assure even near perfect performance.
+Even though \algorithmDTxt rejects more quickly than \algorithmCTxt, they behave identically
+for these objects and accept faster than Thompson sampling does. 
 
 % XXX TODO
 % talk about successes and failures
 The first few grasps suggested by the prior for the Triangle Block were infeasible because
 the gripper slid over the sloped edges and pinched the block out of its grippers. The robot
 tried grasps until it found one that targeted the sides that were parallel to the grippers,
-resulting in a flush grasp.
-
+resulting in a flush grasp. 
 For the Round Salt Shaker, the robot first attempted to grab the round plastic dome, which 
 is infeasible. It tried grasps until it found one on the handle.
+
+Objects such as the Round Salt Shaker and the Bottle Top are on the edge of tractability
+for thorough policies such as Thompson sampling and \algorithmCTxt. \algorithmDTxt, on the other
+hand, rejects arms quickly so as to make these two objects train in relatively short order
+while bringing even more difficult objects such as the Sippy Cup and Big Syringe into the
+realm of possibility. It would have taken substantially more time and picks for Thompson
+sampling and \algorithmCTxt to reject the long list of bad grasps before finding the good ones.
 
 The Garlic Press is a geometrically simple object but quite heavy compared to the others. The
 robot found a few grasps which might have been good for a lighter object, but it frequently
 shook the press out of its grippers when confirming grasp quality.
-
 The Big Syringe has some good grasps which are detected well by the prior, but due to its poor
 contrast and transparent tip, orientation servoing was imprecise and the robot was unable to
 learn well due to poor signal. What improvement did occur was due to finding a grasp which
@@ -575,14 +587,15 @@ of the syringe. Similar problems were observed with the Clear Pitcher and Icosah
 
 Some of the objects had several grasps of similar, mediocre quality, which
 caused the robot to try multiple grasps several times, eventually accepting one of the
-mediocre grasps by chance.
+mediocre grasps by chance. It is likely that \algorithmDTxt rejected good grasps a little
+too quickly, as a result perhaps even taking longer than \algorithmCTxt would have and settling
+for a worse solution.
 
 The Red Bucket exhibited interesting behavior. Its gradient profile is rectangular, but at the
 chosen height only two opposing sides are visible. Due to symmetry it was able to find a good
 grasp despite the degeneracy in the model. Most of its failures were because the object is tall
 and the robot did not back up enough before checking if the gripper was empty, which triggered
 false negatives for grasp release.
-
 Finally, some objects, such as the Helicopter and Dragon, barely fit in the gripper and would
 therefor benefit from additional servo iterations to increase localization precision. 
 
