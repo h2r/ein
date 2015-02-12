@@ -465,11 +465,9 @@ scan (to approximately 2cm); this height could be acquired
 automatically by doing a first coarse IR scan following by a second IR
 scan 2cm above the tallest height, but we set it manually to save
 time.  Additionally we set the height of the arm for the initial servo
-to acquire the object.
-
-After acquiring visual and IR models for the object at different poses
-of the arm, the robot performed the bandit-based adaptation step using
-Algorithm~\ref{alg:bandit2}.
+to acquire the object.  After acquiring visual and IR models for the
+object at different poses of the arm, the robot performed the
+bandit-based adaptation step using Algorithm~\ref{alg:bandit2}.
 
 We report the performance of the robot at picking using the learned
 height for servoing, but without grasp learning, then the number of
@@ -497,8 +495,7 @@ $0.95$ and epsilon of $0.2$.  These parameters result in a policy that
 rejects a grasp after one failed try, and accepts if the first three
 picks are successful.  Different observations of success and failure
 will cause the algorithm to try the grasp more to determine the true
-probability of success.  The policy for exploring an arm appears in
-Figure~\ref{fig:policy}.
+probability of success.  
 
 %% \begin{figure}
 %% \includegraphics{figures/policy.pdf}
@@ -581,59 +578,86 @@ Dragon.\label{table:robot_results}}
 \end{table}
 
 \subsection{Discussion}
-Consider the top block in Figure~\ref{fig:robot_results}, the objects for which the
-initially estimated grasp succeeds 3 times in a row. Note that when 10 trials are performed,
-it becomes clear that 3 consecutive successes do not assure even near perfect performance.
-Even though \algorithmDTxt rejects more quickly than \algorithmCTxt, they behave identically
-for these objects and accept faster than Thompson sampling does. 
 
-% XXX TODO
-% talk about successes and failures
-The first few grasps suggested by the prior for the Triangle Block were infeasible because
-the gripper slid over the sloped edges and pinched the block out of its grippers. The robot
-tried grasps until it found one that targeted the sides that were parallel to the grippers,
-resulting in a flush grasp. 
-For the Round Salt Shaker, the robot first attempted to grab the round plastic dome, which 
-is infeasible. It tried grasps until it found one on the handle.
+After evaluating, we sorted objects into three blocks, shown in
+Table~\ref{table:robot_results}.  We define the quantity $\Delta$ to
+be the difference in grasp successes before and after training.  The
+first block shows objects where the learning process kept the same
+grasp.  For these objects, since the prior and marginal grasps are the
+same, we ran that grasp $10$ times and reported it as both the prior
+and marginal performance, to save time.  Note that when ten trials are
+performed, three consecutive successes do not assure even near perfect
+performance.  Using a low accept threshold and confidence means that
+sometimes the algorithm will accept a grasp that is actually below the
+threshold.  By increasing the confidence, we could obtain higher
+certainty that the best grasp was found (including obtaining
+PAC~\citep{valiant84} bounds on performance as in \citet{maron93}),
+but at the cost of significantly more trails.
 
-Objects such as the Round Salt Shaker and the Bottle Top are on the edge of tractability
-for thorough policies such as Thompson sampling and \algorithmCTxt. \algorithmDTxt, on the other
-hand, rejects arms quickly so as to make these two objects train in relatively short order
-while bringing even more difficult objects such as the Sippy Cup and Big Syringe into the
-realm of possibility. It would have taken substantially more time and picks for Thompson
-sampling and \algorithmCTxt to reject the long list of bad grasps before finding the good ones.
-
-The Garlic Press is a geometrically simple object but quite heavy compared to the others. The
-robot found a few grasps which might have been good for a lighter object, but it frequently
-shook the press out of its grippers when confirming grasp quality.
-The Big Syringe has some good grasps which are detected well by the prior, but due to its poor
-contrast and transparent tip, orientation servoing was imprecise and the robot was unable to
-learn well due to poor signal. What improvement did occur was due to finding a grasp which
-consistently deformed the bulb into a grippable shape regardless of the perceived orientation
-of the syringe. Similar problems were observed with the Clear Pitcher and Icosahedron.
-
-Some of the objects had several grasps of similar, mediocre quality, which
-caused the robot to try multiple grasps several times, eventually accepting one of the
-mediocre grasps by chance. It is likely that \algorithmDTxt rejected good grasps a little
-too quickly, as a result perhaps even taking longer than \algorithmCTxt would have and settling
-for a worse solution.
-
-The Red Bucket exhibited interesting behavior. Its gradient profile is rectangular, but at the
-chosen height only two opposing sides are visible. Due to symmetry it was able to find a good
-grasp despite the degeneracy in the model. Most of its failures were because the object is tall
-and the robot did not back up enough before checking if the gripper was empty, which triggered
-false negatives for grasp release.
-Finally, some objects, such as the Helicopter and Dragon, barely fit in the gripper and would
-therefor benefit from additional servo iterations to increase localization precision. 
+The second block in the table shows objects that improved performance
+by more than two pick successes.  These objects typically had some
+feature that prevented our grasping model from working, for example,
+being difficult to view in IR.  For example, the triangular block
+failed with the prior grasp because the gripper slid over the sloped
+edges and pinched the block out of its grippers.  The robot tried
+grasps until it found one that targeted the sides that were parallel
+to the grippers, resulting in a flush grasp, significantly improving
+accuracy.  The round salt shaker , the robot first attempted to
+grab the round plastic dome, which is infeasible. It tried grasps
+until it found one on the handle.
 
 
-Objects which failed entirely did so because of reasonable limitations of the
-system induced by compromises we made for global compatibility. For instance,
-there is only about a 5mm difference between the width of the Dragon and the width of 
-the gripper. If we double the number of iterations
-during fine grained servoing we can more reliably pick it, but this would either
-introduce another parameter in the system (iterations) or excessively slow down
-other objects which are more tolerant to error.
+Objects such as the round salt shaker and the bottle top are on the
+edge of tractability for thorough policies such as Thompson
+sampling. \algorithmDTxt, on the other hand, rejects arms quickly so
+as to make these two objects train in relatively short order while
+bringing even more difficult objects such as the sippy cup and big
+syringe into the realm of possibility. It would have taken
+substantially more time and picks for Thompson sampling to reject the
+long list of bad grasps before finding the good ones.
+
+The garlic press is a geometrically simple object but quite heavy
+compared to the others. The robot found a few grasps which might have
+been good for a lighter object, but it frequently shook the press out
+of its grippers when confirming grasp quality.  The big syringe has
+some good grasps which are detected well by the prior, but due to its
+poor contrast and transparent tip, orientation servoing was imprecise
+and the robot was unable to learn well due to poor signal. What
+improvement did occur was due to finding a grasp which consistently
+deformed the bulb into a grippable shape regardless of the perceived
+orientation of the syringe. Similar problems were observed with the
+Clear Pitcher and Icosahedron.
+
+Some of the objects had several grasps of similar, mediocre quality,
+which caused the robot to try multiple grasps several times,
+eventually accepting one of the mediocre grasps by chance.  For
+exampe, \stnote{John, can you fill in an example?}
+
+Objects that failed to improve, shown in the next segment, fall into
+several categories.  For some, performance was already high, so there
+was not much room to move.  A common failure mode for poorly
+performing objects was failure to accurately determing the position
+and orientation through visual servoing.  If the grasp map cannot be
+localized accurately, significant noise is introduced because the map
+does not correspond to the same physical location on the object at
+each trial.  For example, there is only about a $5mm$ difference
+between the width of the dragon and the width of the gripper; objects
+such as these would benefit from additional servo iterations to
+increase localization precision. If we double the number of iterations
+during fine grained servoing we can more reliably pick it, but this
+would either introduce another parameter in the system (iterations) or
+excessively slow down other objects which are more tolerant to error.
+
+
+
+The red bucket exhibited interesting behavior. Its gradient profile is
+rectangular, but at the chosen servo height only two opposing sides
+are visible in the camera. Due to symmetry, the robot found a good
+grasp despite the degeneracy in the model. Most of this object's
+failures were because the object is tall and the robot did not raise
+its arm up enough before checking if its gripper was empty, which
+triggered false negatives for grasp release.
+
 
 
 \section{Related Work}
