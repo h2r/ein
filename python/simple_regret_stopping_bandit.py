@@ -17,6 +17,9 @@ class Bandit(object):
         self.actions = na.array(list(range(self.narms)))
         self.best_ai = na.argmax(self.arms)
         self.log = []
+        prior_signal = 2
+        self.prior = na.array([na.random.beta(mu * prior_signal + 1, (1 - mu) * prior_signal + 1) for mu in self.arms])
+
 
     def sample(self, armnum):
 
@@ -60,11 +63,11 @@ class AlgorithmD(Policy):
     def marginals(self):
         return [s/(s + f) if (s + f != 0) else 0.5 for (s, f) in zip(self.S, self.F)]
  
-    def compute_marginals(self, bandit, prior):
+    def compute_marginals(self, bandit):
         m = []
         for i in range(bandit.narms):
             if self.S[i] == 0 and self.F[i] == 0:
-                m.append(prior[i])
+                m.append(bandit.prior[i])
             else:
                 m.append(float(self.S[i])/(self.S[i] + self.F[i]))
         return m
@@ -82,15 +85,13 @@ class AlgorithmD(Policy):
         print "training D"
         self.S = na.zeros(bandit.narms) * 0.0
         self.F = na.zeros(bandit.narms) * 0.0
-        prior_signal = 2
-        prior = na.array([na.random.beta(mu * prior_signal + 1, (1 - mu) * prior_signal + 1) for mu in bandit.arms])
 
         print "arms", bandit.arms
-        print "prior", prior
+        print "prior", bandit.prior
         #raw_input()
         
         while True:
-            marginals = self.compute_marginals(bandit, prior)
+            marginals = self.compute_marginals(bandit)
             sorted_indexes = na.argsort(marginals)
             a_i = sorted_indexes[-1]
 
@@ -141,6 +142,9 @@ class AlgorithmC(Policy):
     def train(self, bandit, max_budget):
         self.S = na.zeros(bandit.narms) * 0.0
         self.F = na.zeros(bandit.narms) * 0.0
+
+
+
         
         if self.union_bound:
             accept_confidence = 1 - (1 - self.accept_confidence) / bandit.narms
@@ -152,7 +156,7 @@ class AlgorithmC(Policy):
             threshold_confidence = self.threshold_confidence
 
         
-        for a_i in bandit.actions:
+        for a_i in reversed(na.argsort(bandit.prior)): #bandit.actions:
             while True:
                 if len(bandit.log) >= max_budget:
                     return
@@ -256,6 +260,7 @@ class Stochastic(Policy):
 
 class StochasticEarlyStopping(Policy):
     def __init__(self, n, confidence):
+        self.drawBudget = False
         self.n = n
         self.upperbound = 0.8
         self.confidence = confidence  / 100.0
@@ -362,9 +367,9 @@ def plotBandit(axes):
     #algorithmC99 = AlgorithmC(confidence=99)
     #stochastic5 = Stochastic(n=5, confidence=95)
     #stochastic2 = Stochastic(n=2, confidence=95)
-    #stochasticEarlyStopping5 = StochasticEarlyStopping(n=5, confidence=95)
-    fmts = ['-*', '^', 'o']
-    for i, method in enumerate([thompson_sampling, algorithmC, algorithmD]):
+    stochasticEarlyStopping5 = StochasticEarlyStopping(n=5, confidence=95)
+    fmts = ['-*', '^', 'o', 'x']
+    for i, method in enumerate([thompson_sampling, algorithmC, algorithmD, stochasticEarlyStopping5]):
         results = []
         if not method.drawBudget:
             budget_start = 49
@@ -378,7 +383,7 @@ def plotBandit(axes):
             regrets = []
             budgets = []
             for iteration in range(50):
-                arms = na.zeros(10) + 0.1
+                arms = na.zeros(50) + 0.1
                 idx = random.choice(na.arange(len(arms)))
                 arms[idx] = 0.9
                 bandit = Bandit(arms)
