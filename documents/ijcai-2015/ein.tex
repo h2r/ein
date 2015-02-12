@@ -78,15 +78,19 @@ manipulate objects.  However, in many instances, information needed to
 infer a successful grasp is latent in the environment and arises from
 complicated physical dynamics; for example, a heavy object might need
 to be grasped in the middle or else it will twist out of the robot's
-gripper.  The contribution of this paper is an approach for enabling a
-robot to learn models for localizing and grasping objects by
-formalizing a grasping system as an n-armed bandit problem.  The robot
-performs best arm identification using a policy that computes
-confidence bounds while incorporating prior information, enabling it
-to quickly find a near optimal arm without pulling all the arms as in
-UCB-based approaches.  We demonstrate that our adaptation step
-significantly improves accuracy over a non-adaptive system, enabling a
-robot to improve grasping models through experience.
+gripper.  The contribution of this paper is a formalization of object
+picking as an N-armed bandit problem, where each potential grasp point
+corresponds to an arm with unknown pick success rate.  This
+formalization enables us to apply bandit-based exploration algorithms
+to enable a robot to identify the best arm by attempting to pick up
+the object and tracking its successes and failures.  The robot
+performs best arm identification in the N-armed bandit problem by
+using a policy that computes confidence bounds while incorporating
+prior information, enabling it to quickly find a near optimal arm
+without pulling all the arms as in UCB-based approaches.  We
+demonstrate that our adaptation step significantly improves accuracy
+over a non-adaptive system, enabling a robot to improve grasping
+models through experience.
 
 
 %%   To address this
