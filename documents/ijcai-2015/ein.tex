@@ -83,14 +83,14 @@ picking as an N-armed bandit problem, where each potential grasp point
 corresponds to an arm with unknown pick success rate.  This
 formalization enables us to apply bandit-based exploration algorithms
 to enable a robot to identify the best arm by attempting to pick up
-the object and tracking its successes and failures.  The robot
-performs best arm identification in the N-armed bandit problem by
-using a policy that computes confidence bounds while incorporating
-prior information, enabling it to quickly find a near optimal arm
-without pulling all the arms as in UCB-based approaches.  We
-demonstrate that our adaptation step significantly improves accuracy
-over a non-adaptive system, enabling a robot to improve grasping
-models through experience.
+the object and tracking its successes and failures.  Because the
+number of grasp points is very large, we define a new algorithm for
+best arm identification in budgeted bandits that computes confidence
+bounds while incorporating prior information, enabling the robot to
+quickly find a near optimal arm without pulling all the arms as in
+UCB-based approaches.  We demonstrate that our adaptation step
+significantly improves accuracy over a non-adaptive system, enabling a
+robot to improve grasping models through experience.
 
 
 %%   To address this
