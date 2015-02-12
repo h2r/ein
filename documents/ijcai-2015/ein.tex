@@ -303,17 +303,15 @@ otherwise.  The agent's goal is to identify a good arm (with payout
 $>= k$) with probability $c$ (e.g., 95\% confidence that this arm is
 good) as quickly as possible.  As soon as it has done this, it should
 terminate.  The agent is also given a prior $\pi$ on the
-arms. \algorithmCTxt only makes use of order of the arms as ranked by
-the prior, trying promising ones first and ignoring the specific
-values of $\pi$. \algorithmDTxt, on the other hand, actually makes use
-of the probabilities specified by the prior in order to explore more
-aggressively.
+arms so that it may make informed decision about which grasps to explore.
 
-
-Our first algorithm, \algorithmCTxt, iterates through each arm, and tries it
-until it has identified that it either is above $k$ with probability
-$c$ (in which case it terminates) or it is below $k$ with probability
-$c$ (in which case it moves to the next arm in the sequence.
+Our contributed algorithm, \algorithmDTxt, iteratively chooses the arm with the
+highest observed (or prior) success rate but whose probability of being below $k$ 
+is less than $c$. It then tries that arm, records the results, and checks to see
+if its probability of success is above $k$ or within $[k-\epsilon, k+\epsilon]$ 
+with probability $c$ (in which case it terminates). If the latter condition is
+not included, an arm with success probability equal to $k$ will continue to
+be pulled indefinitely.
 Pseudo-code appears in Algorithm~\ref{alg:bandit2}.  To compute this
 probability we need to estimate the probability that the true payout
 probability, $\mu$ is greater than the threshold, $c$ given the
@@ -633,12 +631,12 @@ and the robot was unable to learn well due to poor signal. What
 improvement did occur was due to finding a grasp which consistently
 deformed the bulb into a grippable shape regardless of the perceived
 orientation of the syringe. Similar problems were observed with the
-Clear Pitcher and Icosahedron.
+clear pitcher and icosahedron.
 
 Some of the objects had several grasps of similar, mediocre quality,
 which caused the robot to try multiple grasps several times,
 eventually accepting one of the mediocre grasps by chance.  For
-exampe, \stnote{John, can you fill in an example?}
+example, the helicopter, wooden train, and icosahedron.
 
 Objects that failed to improve, shown in the next segment, fall into
 several categories.  For some, performance was already high, so there
