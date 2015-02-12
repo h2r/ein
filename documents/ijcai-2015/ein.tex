@@ -647,9 +647,9 @@ therefor benefit from additional servo iterations to increase localization preci
 
 Objects which failed entirely did so because of reasonable limitations of the
 system induced by compromises we made for global compatibility. For instance,
-the small Vaseline container only has 3mm of play between the container and the
-gripper in the only feasible grasp location. If we double the number of iterations
-during gradient servoing we can more reliably pick it, but this would either
+there is only about a 5mm difference between the width of the Dragon and the width of 
+the gripper. If we double the number of iterations
+during fine grained servoing we can more reliably pick it, but this would either
 introduce another parameter in the system (iterations) or excessively slow down
 other objects which are more tolerant to error.
 
