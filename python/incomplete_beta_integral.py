@@ -34,6 +34,15 @@ def main():
     mpl.title("Value of the incomplete beta function for different values of $x$")
     mpl.show()
 
+def printIncbet():
+    successes = 1
+    failures = 0
+    for d in na.arange(0, 1, 0.01):
+        result = betainc(successes + 1, failures + 1, d);
+        print "Result: S:", successes,
+        print "F:",  failures, "d:", d, "inc: %.5f" % result
+
 if __name__ == "__main__":
-    main()
+    printIncbet()
+    #main()
 
