@@ -693,6 +693,16 @@ false negatives for grasp release.
 Finally, some objects, such as the Helicopter and Dragon, barely fit in the gripper and would
 therefor benefit from additional servo iterations to increase localization precision. 
 
+
+Objects which failed entirely did so because of reasonable limitations of the
+system induced by compromises we made for global compatibility. For instance,
+the small Vaseline container only has 3mm of play between the container and the
+gripper in the only feasible grasp location. If we double the number of iterations
+during gradient servoing we can more reliably pick it, but this would either
+introduce another parameter in the system (iterations) or excessively slow down
+other objects which are more tolerant to error.
+
+
 \section{Related Work}
 
 \label{sec:relatedwork}
@@ -801,49 +811,42 @@ achieves good performance without being required to pull all the arms.
 %Software stack for autonomously acquiring instance-based models of objects for the Baxter Research Robot.
 %Ordered Confidence Bound algorithm for solving pure exploration bandits with low constant factors by exploiting prior knowledge.
 
-We presented a software stack for autonomously acquiring instance based models
-of objects for the Baxter Research Robot.  Conventional MAB algorithms value
-reduced run time complexity over small constants because large numbers of trials
-can be tolerated.  Our MAB problem has 1764 levers, so even if we could pull a
-lever every 10 seconds it would take around 5 hours to explore all of the arms
-for a single object.  We provided the Ordered Confidence Bound algorithm for
-solving pure exploration bandits with low constant factors by exploiting prior
-knowledge.  This allows us to obtain an approximately optimal solution without
-pulling too many arms.  
+We presented a formalization of the grasping problem as best arm
+identification in an N-armed bandit.  Our bandit problem has 1764
+levers, so even if we could pull a lever every 10 seconds it would
+take around 5 hours to explore all of the arms for a single object.
+To address this problem, we created a new algorithm, \algorithmDTxt,
+which explores promising arm first by exploiting prior knowledge,
+significantly reducing constant factors. 
 
-Our stack gathers feedback from the environment, which it uses to learn models to detect, localize, and
-manipulate previously unseen objects. The platform and example we provide
-open the door for more extensive investigation in the same direction and
-suggest that it might be possible to similarly learn parameters for a variety
-of tasks. 
-For instance, different objects can be located and oriented better or worse
-at different heights. One could learn which heights work well for which objects.
-Likewise, we use color gradients for localization, but some objects would work 
-better with other quantities. One could learn the appropriate map to use when
-localizing each object, or even further, the map might also depend upon the 
-robot's current environment.
+Our stack gathers feedback from the environment, which it uses to
+learn models to detect, localize, and manipulate previously unseen
+objects. In the future, we plan to explore learning parameters for a
+wider variety of tasks.  For instance, different objects can be
+located and oriented better or worse at different heights. One could
+learn which heights work well for which objects.  Likewise, we use
+color gradients for localization, but some objects would work better
+with other quantities. One could learn the appropriate map to use when
+localizing each object, or even further, the map might also depend
+upon the robot's current environment.
 
 %Right now, NODE runs on Baxter. We will port NODE to PR2 and other AH systems.
 %GRATA could be applied in other domains as well.  What are some examples?
-Our stack currently runs on Baxter, but the requirements are not stringent.
-In fact, it would be possible to execute all scanning and some training for 
-crane grasps on a modified 3D printer. Furthermore, the parallel electric gripper
-for Baxter is more difficult to infer grasps for than the gripper on the PR2.
-Even though the PR2 lacks the IR rangefinder we use, that data could be gathered
-by a printer converted from a scanner, and the PR2 could perform its own grasp training.
 
-It is clear that the system's accuracy and precision would benefit from the use of more
-sophisticated imaging equipment such as the Kinect 2. Better and faster point clouds acquisition 
-would allow the use of more precise physical models for grasps. It would also open the way for
-additional grasp types, such as side and handle grasps.
+Our stack currently runs on Baxter, but the requirements are not
+stringent.  In fact, it would be possible to execute all scanning and
+some training for crane grasps on a modified 3D printer. Furthermore,
+the parallel electric gripper for Baxter is more difficult to infer
+grasps for than the gripper on the PR2.  Even though the PR2 lacks the
+IR rangefinder we use, that data could be gathered by a printer
+converted from a scanner, and the PR2 could perform its own grasp
+training.
 
-Objects which failed entirely did so because of reasonable limitations of the
-system induced by compromises we made for global compatibility. For instance,
-the small Vaseline container only has 3mm of play between the container and the
-gripper in the only feasible grasp location. If we double the number of iterations
-during gradient servoing we can more reliably pick it, but this would either
-introduce another parameter in the system (iterations) or excessively slow down
-other objects which are more tolerant to error.
+It is clear that the system's accuracy and precision would benefit
+from the use of more sophisticated imaging equipment such as the
+Kinect 2. Better and faster point clouds acquisition would allow the
+use of more precise physical models for grasps. It would also open the
+way for additional grasp types, such as side and handle grasps.
 
 %Ideas for doing for the paper, otherwise future work: 
 %\begin{itemize}
