@@ -159,7 +159,10 @@ grasps the object in the center, improving the success rate.
 \begin{figure}
 \subfigure[Before learning.]{\includegraphics[width=0.5\linewidth]{figures/dropping_ruler.png}}%
 \subfigure[After learning.]{\includegraphics[width=0.5\linewidth]{figures/holding_ruler.png}}
-\caption{Before learning, the robot grasps the ruler near the end, and it twists out of its gripper and falls onto the table when it lifts; after learning, the robot grasps it near the center of mass.\label{fig:ruler}}
+\caption{Before learning, the robot grasps the ruler near the end, and
+  it twists out of the gripper and falls onto the table;
+  after learning, the robot grasps near the ruler's center of
+  mass.\label{fig:ruler}}
 \end{figure}
 
 %% We use slower, more accurate sensing approaches
@@ -461,15 +464,17 @@ knowledge.
 
 We have implemented our approach on the Baxter robot.  The robot
 acquired visual and RGB-D models for 30 objects using our autonomous
-learning system.  We manually verified that the scans were accurate,
-and set the following parameters: height above the object for the IR
-scan (to approximately 2cm); this height could be acquired
-automatically by doing a first coarse IR scan following by a second IR
-scan 2cm above the tallest height, but we set it manually to save
-time.  Additionally we set the height of the arm for the initial servo
-to acquire the object.  After acquiring visual and IR models for the
-object at different poses of the arm, the robot performed the
-bandit-based adaptation step using Algorithm~\ref{alg:bandit2}.
+learning system.  The objects used in our evaluation appear in
+Figure~\ref{fig:object_glory_shot}. We manually verified that the
+scans were accurate, and set the following parameters: height above
+the object for the IR scan (to approximately 2cm); this height could
+be acquired automatically by doing a first coarse IR scan following by
+a second IR scan 2cm above the tallest height, but we set it manually
+to save time.  Additionally we set the height of the arm for the
+initial servo to acquire the object.  After acquiring visual and IR
+models for the object at different poses of the arm, the robot
+performed the bandit-based adaptation step using
+Algorithm~\ref{alg:bandit2}.
 
 We report the performance of the robot at picking using the learned
 height for servoing, but without grasp learning, then the number of
@@ -831,7 +836,7 @@ way for additional grasp types, such as side and handle grasps.
 
 
 %% The file named.bst is a bibliography style file for BibTeX 0.99c
-{\tiny
+{\small
 \bibliographystyle{plainnat}
 \bibliography{main,references}
 }
