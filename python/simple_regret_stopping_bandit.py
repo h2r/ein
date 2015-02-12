@@ -415,12 +415,13 @@ def plotBandit(axes):
     #stochastic2 = Stochastic(n=2, confidence=95)
     #stochasticEarlyStopping5 = StochasticEarlyStopping(n=5, confidence=95)
     uniform = Uniform()
-    fmts = ['-*', '-^', 'o', 'x']
+    fmts = ['-*', '-.', 'o', 'x', '^']
     for i, (method, prior_signal, prior_name) in enumerate([(thompson_sampling, None, ""), 
                                                             (uniform, None, ""),
                                                             (algorithmD, 3, "(Informed)"),
                                                             (algorithmD, 1, "(Noisy)"),
-                                            ]):
+                                                            (algorithmD, 0, "(Uninformed)"),
+]):
         results = []
         if not method.drawBudget:
             budget_start = 49
@@ -433,7 +434,7 @@ def plotBandit(axes):
         for budget in na.arange(budget_start, budget_end, budget_step):
             regrets = []
             budgets = []
-            for iteration in range(50):
+            for iteration in range(100):
                 arms = na.zeros(50) + 0.1
                 idx = random.choice(na.arange(len(arms)))
                 arms[idx] = 0.9

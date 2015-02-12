@@ -435,29 +435,49 @@ system's ability to learn and adaptively improve its ability to grasp
 objects, end-to-end.
 
 \subsection{Simulation}
-Our simulated results compare our two algorithms to Thompson sampling, 
-assessing the trade-offs inherent in our choice
-of parameters and algorithms.  We present results in
 
-\jgonote{This should be updated for whatever we decide to do. Here and
-previously we need to make sure to refer to algorithms because now we
-have two.}
+Our simulated results assess the performance of our approach to
+several baselines.  We simulate picking performance by creating a
+sequence of $50$ bandits, where each arm pays out at a rate of $0.1$
+except for one, which pays out at $0.9$.  We move the location of the
+best arm to a uniformly sampled random position in the sequence. 
 
-Table~\ref{fig:simulation_results}.  We simulate picking performance
-by creating a sequence of $20$ bandits, where each arm pays out at a
-rate of $0.1$ except for one, which pays out at $0.9$.  We move the
-location of the best arm to a uniformly sampled random position in the
-sequence.  Thompson Sampling always uses all trials in its budget and,
-given enough trials, reliably finds the optimal arm.  We present two
-versions of \algorithmCTxt with different parameters.  The tight
-bound uses a confidence interval defined by the union bound to decide
-when to move on; this results in the agent pulling each arm many times
-before achieving a high confidence.  It almost always terminates with
-the optimal arm, but takes many trials to do it.  In contrast, the
-parameter settings used in this paper with a lower confidence bound
-takes many fewer trials on average, but sometimes terminates with a
-non-optimal arm.  Because of the high cost of running on the robot, we
-use less conservative settings in our evaluation.
+To incorporate prior knowledge, we sample a prior estimate for each
+$\mu_i$ from a beta distribution with $\alpha = \beta = 1 + e * \mu_i$
+where $e$ controls the entropy of the prior distribution.
+
+
+First we compare against Thompson Sampling~\citep{thompson33} in the
+fixed budget setting, as a well-known baseline, although this
+algorithm is optimizing regret rather than simple regret.  Second, we
+compare to a Uniform baseline that pulls every arm equally until the
+budget is exceeded.  This baseline corresponds to the initialization
+step in UCB or the confidence bound algorithms in \citet{chen14}.  If
+we implemented the state-of-the-art CLUCB algorithm from
+\citet{chen14}, it would not get past this initialization step in our
+setting.  Finally, we show the performance of three versions of
+\algorithmDTxt with two different priors, one quite noisy (but still
+informative), the other less noisy, along with a completely uninformed
+prior.
+
+
+
+ compare our two algorithms to Thompson
+sampling, assessing the trade-offs inherent in our choice of
+parameters and algorithms.  We present results in
+
+Results appear in Figure~\ref{fig:simulation_results}.  Thompson Sampling always uses all
+trials in its budget and, given enough trials, reliably finds the
+optimal arm.  We present two versions of \algorithmCTxt with different
+parameters.  The tight bound uses a confidence interval defined by the
+union bound to decide when to move on; this results in the agent
+pulling each arm many times before achieving a high confidence.  It
+almost always terminates with the optimal arm, but takes many trials
+to do it.  In contrast, the parameter settings used in this paper with
+a lower confidence bound takes many fewer trials on average, but
+sometimes terminates with a non-optimal arm.  Because of the high cost
+of running on the robot, we use less conservative settings in our
+evaluation.
 
 
 
