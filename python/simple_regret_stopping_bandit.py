@@ -42,13 +42,90 @@ class Bandit(object):
 
 class Policy(object):
     
-    def train(self, bandit):
-        raise NotImplementedError()
-
-    def selectAction(self, bandit):
+    def train(self, bandit, max_budget):
         raise NotImplementedError()
 
 
+class AlgorithmD(Policy):
+    def __init__(self):
+        self.drawBudget = False
+        self.target_mu = 0.7
+        self.epsilon = 0.2
+        self.threshold_confidence = 0.7
+        self.accept_confidence = 0.7
+        self.reject_confidence = 0.95
+
+
+    @property
+    def marginals(self):
+        return [s/(s + f) if (s + f != 0) else 0.5 for (s, f) in zip(self.S, self.F)]
+ 
+    def compute_marginals(self, bandit, prior):
+        m = []
+        for i in range(bandit.narms):
+            if self.S[i] == 0 and self.F[i] == 0:
+                m.append(prior[i])
+            else:
+                m.append(float(self.S[i])/(self.S[i] + self.F[i]))
+        return m
+            
+    def bestAction(self):
+        return na.argmax(self.marginals)
+
+    def actionDistribution(self):
+        #return self.marginals / na.sum(self.marginals)
+        delta = na.zeros(len(self.S))
+        delta[self.bestAction()] = 1
+        return delta
+
+    def train(self, bandit, max_budget):
+        print "training D"
+        self.S = na.zeros(bandit.narms) * 0.0
+        self.F = na.zeros(bandit.narms) * 0.0
+        prior_signal = 2
+        prior = na.array([na.random.beta(mu * prior_signal + 1, (1 - mu) * prior_signal + 1) for mu in bandit.arms])
+
+        print "arms", bandit.arms
+        print "prior", prior
+        #raw_input()
+        
+        while True:
+            marginals = self.compute_marginals(bandit, prior)
+            sorted_indexes = na.argsort(marginals)
+            a_i = sorted_indexes[-1]
+
+
+            if len(bandit.log) >= max_budget:
+                print "over budget"
+                return
+
+            r = bandit.sample(a_i)
+            if r == 1:
+                self.S[a_i] += 1.0
+            else:
+                self.F[a_i] += 1.0
+
+            result = compute_policy(self.S[a_i], self.F[a_i], 
+                                    self.target_mu, self.epsilon, 
+                                    self.threshold_confidence, 
+                                    self.accept_confidence, 
+                                    self.reject_confidence)
+            if result == "r":
+                continue # this arm sucks; try again
+            elif result in ('a', 't'):
+                print "found awesome arm"
+                print "arm", a_i
+                print "s", self.S
+                print "f", self.F
+                return #this arm is awesome; leave
+            elif result == "c":
+                # continue trying this arm
+                pass
+            else:
+                raise ValueError("Unexpected result.")
+
+    def __str__(self):
+        return "Prior Confidence Bound"
 
 class AlgorithmC(Policy):
     def __init__(self, union_bound=False):
@@ -278,7 +355,8 @@ def plotBandit(axes):
     thompson_sampling = ThompsonSampling()
     #algorithmB = AlgorithmB(confidence=95)
     algorithmC = AlgorithmC()
-    algorithmCub = AlgorithmC(union_bound=True)
+    algorithmD = AlgorithmD()
+    #algorithmCub = AlgorithmC(union_bound=True)
     #algorithmC90 = AlgorithmC(confidence=90)
     #algorithmCDelta95 = AlgorithmCDelta(confidence=95)
     #algorithmC99 = AlgorithmC(confidence=99)
@@ -286,7 +364,7 @@ def plotBandit(axes):
     #stochastic2 = Stochastic(n=2, confidence=95)
     #stochasticEarlyStopping5 = StochasticEarlyStopping(n=5, confidence=95)
     fmts = ['-*', '^', 'o']
-    for i, method in enumerate([thompson_sampling, algorithmC, algorithmCub]):
+    for i, method in enumerate([thompson_sampling, algorithmC, algorithmD]):
         results = []
         if not method.drawBudget:
             budget_start = 49
