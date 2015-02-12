@@ -102,6 +102,12 @@ def computePolicy():
     accept_confidence = 0.7
     reject_confidence = 0.95
 
+#double algorithmCEPS = 0.2;
+#double algorithmCTarget = 0.7;
+#double algorithmCAT = 0.7;
+#double algorithmCRT = 0.95;
+
+
 
     policy = dict()
 
@@ -119,14 +125,34 @@ def compute_policy(successes, failures, mu, epsilon, threshold_confidence, accep
 
     p_below = betainc(successes + 1, failures + 1, mu)
     p_above = 1 - p_below
-    if p_in_threshold > threshold_confidence:
+    if p_above > accept_confidence:
+        result = "a"
+    elif p_in_threshold > threshold_confidence:
         result = "t"
     elif p_below > reject_confidence:
         result = "r"
-    elif p_above > accept_confidence:
-        result = "a"
     else:
         result = "c"
+    # result = "c"
+    if successes == 0 and failures == 0:
+        result = 'c'
+    elif successes == 0:
+        result = 'r'
+    
+    # if p_above > accept_confidence:
+    #     result = "a"
+    # else:
+    #     result = "c"
+
+    # if p_in_threshold > threshold_confidence:
+    #     result = "t"
+    # if p_below > reject_confidence:
+    #     result = "r"
+    # else:
+    #     result = "c"
+
+
+
 
     return result
 
