@@ -65,7 +65,7 @@ urlcolor=blue
 % page charge instructions.
 % Put where the files are available in the appropriate places.
 
-\title{Bandit-Based System Adaptation for Grasping}
+\title{Bandit-Based Adaptation for Robotic Grasping}
 
 
 \author{}
@@ -334,7 +334,7 @@ accept a grasp if $\mu \in [k-\epsilon, k+\epsilon]$ with probability
 $c$.
 
 
-\begin{algorithm}
+\begin{algorithm}[t]
 \SetKwFunction{x}{\algorithmDFname}
 \x{$\pi$, $k$, $\delta_{accept}$, $\delta_{reject}$, $maxTries$}
 
@@ -433,20 +433,20 @@ our setting.  Finally, we show the performance of three versions of
 Hoeffding races~\citep{maron93}), one quite noisy with $e=1$(but still
 informative), the other less noisy $e=5$).
 
-We report for each point after $100$ trials, and report $95\%$
-confidence intervals around the algorithm's simple regret.  For
-Thompson Sampling and Uniform, which always use all trials in their
-budget, we report performance at each budget level; for
-\algorithmDTxt, we report the mean number of trials the algorithm took
-before halting, also at $95\%$ confidence intervals.
+We run each experiment for $100$ trials, and report $95\%$ confidence
+intervals around the algorithm's simple regret.  For Thompson Sampling
+and Uniform, which always use all trials in their budget, we report
+performance at each budget level; for \algorithmDTxt, we report the
+mean number of trials the algorithm took before halting, also at
+$95\%$ confidence intervals.
 
 Results appear in Figure~\ref{fig:simulation_results}.  Thompson
 Sampling always uses all trials in its budget and improves performance
-over time.  The Uniform method fails to find the optimal arm because
-there is not enough information when pulling each arm once.  All
-variants of \algorithmDTxt outperform these baselines, but as more
-prior information is incorporated, regret decreases.  Even with a
-completely uninformed prior taking a confidence-based approach
+as larger budgets are available.  The Uniform method fails to find the
+optimal arm because there is not enough information when pulling each
+arm once.  All variants of \algorithmDTxt outperform these baselines,
+but as more prior information is incorporated, regret decreases.  Even
+with a completely uninformed prior taking a confidence-based approach
 improves performance over Thompson sampling or a uniform baseline, but
 the approach realizes significant further improvement with more prior
 knowledge.
@@ -460,9 +460,9 @@ knowledge.
 
 \subsection{Robotic Evaluation}
 
-We have implemented our approach on the Baxter robot.  The robot
-acquired visual and RGB-D models for 30 objects using our autonomous
-learning system.  The objects used in our evaluation appear in
+We implemented our approach on the Baxter robot.  The robot acquired
+visual and RGB-D models for 30 objects using our autonomous learning
+system.  The objects used in our evaluation appear in
 Figure~\ref{fig:object_glory_shot}. We manually verified that the
 scans were accurate, and set the following parameters: height above
 the object for the IR scan (to approximately 2cm); this height could
@@ -474,10 +474,6 @@ models for the object at different poses of the arm, the robot
 performed the bandit-based adaptation step using
 Algorithm~\ref{alg:bandit2}.
 
-We report the performance of the robot at picking using the learned
-height for servoing, but without grasp learning, then the number of
-trials used for grasp learning by our algorithm, and finally the
-performance at picking using the learned grasp location.
 
 After the robot detects an initially successful grab, it shakes the
 object vigorously to ensure that it would not fall out during
@@ -501,6 +497,13 @@ rejects a grasp after one failed try, and accepts if the first three
 picks are successful.  Different observations of success and failure
 will cause the algorithm to try the grasp more to determine the true
 probability of success.  
+
+We report the performance of the robot at picking using the learned
+height for servoing, but without grasp learning, then the number of
+trials used for grasp learning by our algorithm, and finally the
+performance at picking using the learned grasp location.  These
+results appear in Table~\ref{table:robot_results}.
+
 
 %% \begin{figure}
 %% \includegraphics{figures/policy.pdf}
@@ -671,20 +674,20 @@ triggered false negatives for grasp release.
 
 
 Pick-and-place has been studied since the early days of
-robotics~\citep{brooks83, lozano89}.  Forerunning systems relied on the user to
-provide models of object and end effector pose for the algorithm, and simply
-planned a motion for the arm to grasp.  \citet{bohg13} survey data-driven
-approaches to grasping.  
-
-Our approach can be thought of as a pipeline for
-automatically building an experience database consisting of object models and
-known good grasps.  The system initially uses analytic approaches to generate a
-grasp hypothesis space which allows it to pick previously unencountered
-objects. It then uses our bandit-based method to try new grasps and learn
-instance-based distributions for the grasp experience database.  In this way
-our system achieves the best of both approaches: models for grasping unknown
-objects can be applied; when they do fail, the system can attempt to recover by
-trying grasps and adapting itself based on that specific object.  
+robotics~\citep{brooks83, lozano89}.  Forerunning systems relied on
+the user to provide models of object and end effector pose for the
+algorithm, and simply planned a motion for the arm to grasp.
+\citet{bohg13} survey data-driven approaches to grasping.  In their
+terminology, our approach is a pipeline for automatically building an
+experience database consisting of object models and known good grasps.
+The system initially uses analytic approaches to generate a grasp
+hypothesis space which allows it to pick previously unencountered
+objects. It then uses our bandit-based method to try new grasps and
+learn instance-based distributions for the grasp experience database.
+In this way our system achieves the best of both approaches: models
+for grasping unknown objects can be applied; when they do fail, the
+system can attempt to recover by trying grasps and adapting itself
+based on that specific object.
 
 Modern approaches use object recognition systems to estimate pose and
 object type, then libraries of grasps either annotated or learned from
