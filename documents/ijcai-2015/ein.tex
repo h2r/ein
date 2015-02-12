@@ -360,7 +360,7 @@ $totalTries \gets 0$\\
     return $j$ \tcp*[r]{accept this arm}
   }\uElseIf{$p_{threshold} \ge \delta_{accept}$}{
     return $j$ \tcp*[r]{accept this arm}
-  }\uElseIf{$totalTries > maxTries$}{
+  }\uElseIf{$totalTries \ge maxTries$}{
     return $maxI$ \tcp*[r]{return the arm with the best marginal value out of those that were tried}
   } \Else{
     pass \tcp*[r]{keep trying}
