@@ -448,6 +448,7 @@ def plotBandit(axes):
                 arms = na.zeros(50) + 0.1
                 idx = random.choice(na.arange(len(arms)))
                 arms[idx] = 0.9
+                arms = na.random.rand(50)
                 bandit = Bandit(arms, prior_signal=prior_signal)
                 method.train(bandit, budget)
                 budgets.append(len(bandit.log))
