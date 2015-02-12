@@ -299,6 +299,49 @@ the object, extracting bounding boxes from the resulting imgages, and
 storing the resulting crops.
 
 
+
+
+
+
+\begin{algorithm}
+\SetKwFunction{x}{\algorithmCFname}
+\x{$armOrder$, $k$, $\delta_{accept}$, $\delta_{reject}$}
+
+$\mbox{Initialize } S_0 \dots S_n \mbox{ to } 0$\\
+$\mbox{Initialize } F_0 \dots F_n \mbox{ to } 0$\\
+\For {$i \in armOrder$}{
+  $r \gets sample(arm_i)$\\
+  \uIf {$r = 1$}{
+    $S_i  \gets S_i + 1$
+  }\uElse{
+    $F_i  \gets F_i + 1$
+  }
+  $p_{below} \gets \int_0^k \Pr(\mu_i = \mu | S_i, F_i) d\mu $\\
+  $p_{above} \gets \int_k^1 \Pr(\mu_i = \mu | S_i, F_i) d\mu $\\ %1 - p_{below}$\\
+  $p_{threshold} \gets \int_{k - \epsilon}^{k + \epsilon} \Pr(\mu_i = \mu | S_i, F_i) d\mu $\\
+
+  \uIf{$p_{above} \ge  \delta_{accept}$}{
+    return $i$ \tcp*[r]{accept this arm}
+  }\uElseIf{$p_{threshold} \ge \delta_{accept}$}{
+    return $i$ \tcp*[r]{accept this arm}
+  }\uElseIf{$p_{below} \ge \delta_{reject}$}{
+    break \tcp*[r]{go to the next arm}
+  } \Else{
+    pass \tcp*[r]{keep pulling this arm}
+  }
+}
+
+\caption{\algorithmCTxt for Best Arm
+  Identification\label{alg:bandit1}}
+\end{algorithm}
+
+
+
+
+
+
+
+
 %% \begin{figure}
 %%   \textbf{GraspObject()}
 %%   \begin{algorithmic}
