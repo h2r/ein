@@ -726,7 +726,7 @@ approach, instead, enables the robot to autonomously acquire more
 information to increase robustness at detecting and manipulating the
 specific object that is important to the user at the current moment.
 Other approaches focus on object discovery and
-manipulation~\citep{lyubova13, kraft10r, collect14, schiebener12}.  By
+manipulation~\citep{lyubova13, kraft10, collet14, schiebener12}.  By
 formalizing grasp identification as a bandit problem, we are able to
 leverege existing strategies for inferring the best arm.
 
@@ -770,7 +770,7 @@ in the world.
 
 Approaches to plan grasps under pose uncertainty~\citep{stulp11} or
 collect information from tacticle sensors~\citep{hsiao10} using
-POMDPs.  \citet{plat11} describe new algorithms for solving POMDPs by
+POMDPs.  \citet{platt11} describe new algorithms for solving POMDPs by
 tracking belief state with a high-fidelity particle filter, but using
 a lower-fidelity representation of belief for planning, and tracking
 the KL divergence.  \citet{hudson12} used active perception to create
@@ -780,6 +780,10 @@ adapt itself to new objects.  Our approach could be used to improve
 any of these systems by defining a space of parameters to optimize,
 such as potential grasp points, and then assessing the performance
 from experience.
+
+We formalize the problem as an N-armed bandit~\citep{thompson33} where
+the robot aims to minimize simple regret after a finite exploration
+period~\citep{bubeck09}.  
 
 
 \section{Conclusion}
