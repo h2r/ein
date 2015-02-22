@@ -735,6 +735,12 @@ int targetClass = -1;
 ros::Time lastVisionCycle;
 ros::Duration accumulatedTime;
 
+
+
+void pushBackPrint(string print) {
+  
+}
+
 double w1GoThresh = 0.01;
 double w1AngleThresh = 0.02; 
 double synKp = 0.0005;
@@ -18471,7 +18477,10 @@ void testIncbet() {
 int main(int argc, char **argv) {
   //testIncbet();
   //exit(0);
- 
+  //auto lfunc = [] () { cout << "Hello world"; }; 
+  //lfunc();
+  //exit(0);
+
 
   srand(time(NULL));
   time(&firstTime);
