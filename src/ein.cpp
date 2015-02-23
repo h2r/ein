@@ -791,7 +791,7 @@ int histogramDuringClassification = 0;
 double surveyNoiseScale = 50;
 int synchronicTakeClosest = 0;
 int gradientTakeClosest = 0;
-int gradientServoDuringHeightLearning = 0;
+int gradientServoDuringHeightLearning = 1;
 int bailAfterSynchronic = 0;
 int bailAfterGradient = 0;
 
@@ -8384,6 +8384,10 @@ cout <<
 	{
 	  double successes = graspMemoryPicks[i];
 	  double failures =  graspMemoryTries[i] - graspMemoryPicks[i];
+    cout << "YYY failures, successes: " << failures << " " << successes << endl;
+    successes = round(successes);
+    failures = round(failures);
+    cout << "XXX failures, successes: " << failures << " " << successes << endl;
 	  // returns probability that mu <= d given successes and failures.
 	  double presult = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
 	  // we want probability that mu > d
@@ -8418,6 +8422,14 @@ cout <<
       ros::Duration sinceStartOfTrial = thisTime - graspTrialStart;
       
       cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << graspSuccessCounter << "/" << graspAttemptCounter << " " << graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << " " << pickModeToString(currentPickMode) << endl;
+      {
+	double successes = graspMemoryPicks[i];
+	double failures =  graspMemoryTries[i] - graspMemoryPicks[i];
+	cout << "YYY failures, successes: " << failures << " " << successes << endl;
+	successes = round(successes);
+	failures = round(failures);
+	cout << "XXX failures, successes: " << failures << " " << successes << endl;
+      }
     }
     break;
     // check grasp
@@ -8545,6 +8557,10 @@ cout <<
 	  {
 	    double successes = graspMemoryPicks[i];
 	    double failures =  graspMemoryTries[i] - graspMemoryPicks[i];
+    cout << "YYY failures, successes: " << failures << " " << successes << endl;
+    successes = round(successes);
+    failures = round(failures);
+    cout << "XXX failures, successes: " << failures << " " << successes << endl;
 	    // returns probability that mu <= d given successes and failures.
 	    double presult = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
 	    // we want probability that mu > d
@@ -8570,6 +8586,14 @@ cout <<
 	  ros::Time thisTime = ros::Time::now();
 	  ros::Duration sinceStartOfTrial = thisTime - graspTrialStart;
 	  cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << graspSuccessCounter << "/" << graspAttemptCounter << " " << graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << gripperPosition << " " << pickModeToString(currentPickMode) << endl;
+	}
+	{
+	  double successes = graspMemoryPicks[i];
+	  double failures =  graspMemoryTries[i] - graspMemoryPicks[i];
+	  cout << "YYY failures, successes: " << failures << " " << successes << endl;
+	  successes = round(successes);
+	  failures = round(failures);
+	  cout << "XXX failures, successes: " << failures << " " << successes << endl;
 	}
       }
       break;
@@ -12654,6 +12678,7 @@ void selectMaxTargetThompsonContinuous2(double minDepth) {
           maxGG = (currentGraspGear);
 	  //useContinuousGraspTransform = 0;
 	  useContinuousGraspTransform = 1;
+	  cout << "ZZZ ZZZ ZZZ" << endl;
         }
     }
   }
@@ -13308,7 +13333,7 @@ void gradientServo() {
 	// ATTN 12
 	if (ARE_GENERIC_HEIGHT_LEARNING()) {
 	  cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << gradientServoDuringHeightLearning << endl;
-	  cout << "bbLearning: returning from synchronic servo." << endl;
+	  cout << "bbLearning: returning from gradient servo." << endl;
 	  return;
 	}
 
@@ -13945,6 +13970,10 @@ int isThisGraspMaxedOut(int i) {
     // ATTN 20
     double successes = graspMemoryPicks[i];
     double failures = graspMemoryTries[i] - graspMemoryPicks[i];
+    cout << "YYY failures, successes: " << failures << " " << successes << endl;
+    successes = round(successes);
+    failures = round(failures);
+    cout << "XXX failures, successes: " << failures << " " << successes << endl;
     // returns probability that mu <= d given successes and failures.
     double result = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
     toReturn = (result > algorithmCRT);
