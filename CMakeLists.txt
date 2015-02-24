@@ -22,7 +22,7 @@ catkin_package(CATKIN_DEPENDS
   eigen
   message_runtime)
 
-link_directories(/opt/ros/hydro/lib ${PCL_LIBRARY_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
 
 add_definitions(${PCL_DEFINITIONS})
 
