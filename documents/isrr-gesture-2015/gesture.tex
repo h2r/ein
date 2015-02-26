@@ -1,0 +1,179 @@
+%%%%%%%%%%%%%%%%%%%% author.tex %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% sample root file for your "contribution" to a contributed volume
+%
+% Use this file as a template for your own input.
+%
+%%%%%%%%%%%%%%%% Springer %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% RECOMMENDED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[graybox]{svmult}
+
+% choose options for [] as required from the list
+% in the Reference Guide
+
+\newcommand{\algorithmCTxt}{Ordered Confidence Bound\xspace}
+\newcommand{\algorithmCFname}{OrderedConfidenceBound}
+\newcommand{\algorithmDTxt}{Prior Confidence Bound\xspace}
+\newcommand{\algorithmDFname}{PriorConfidenceBound}
+
+\usepackage{amsmath}
+\usepackage[]{algorithm2e}
+\usepackage{mathptmx}       % selects Times Roman as basic font
+\usepackage{helvet}         % selects Helvetica as sans-serif font
+\usepackage{courier}        % selects Courier as typewriter font
+\usepackage{type1cm}        % activate if the above 3 fonts are
+                            % not available on your system
+%
+\usepackage{makeidx}         % allows index generation
+\usepackage{graphicx}        % standard LaTeX graphics tool
+                             % when including figure files
+\usepackage{multicol}        % used for the two-column index
+\usepackage[bottom]{footmisc}% places footnotes at page bottom
+
+\usepackage[numbers]{natbib}
+\usepackage{subfigure}
+\newcommand{\stnote}[1]{\textcolor{blue}{\textbf{ST: #1}}}
+\newcommand{\jgonote}[1]{\textcolor{red}{\textbf{JGO: #1}}}
+
+
+% see the list of further useful packages
+% in the Reference Guide
+
+\makeindex             % used for the subject index
+                       % please use the style svind.ist with
+                       % your makeindex program
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\title*{Multichannel Robotic Interaction With Gesture and Language}
+% Use \titlerunning{Short Title} for an abbreviated version of
+% your contribution title if the original one is too long
+\author{Anonymous for submission.}
+% Use \authorrunning{Short Title} for an abbreviated version of
+% your contribution title if the original one is too long
+\institute{Brown University}
+%
+% Use the package "url.sty" to avoid
+% problems with special characters
+% used in your e-mail or web address
+%
+\maketitle
+
+\abstract{
+Humans communicate about objects using language and gesture, fusing information
+from multiple modalities and responding to those communications in real time.
+For robots to make the leap from factories into homes, they must be able to
+rapidly understand human communication and respond through the use of
+backchannels, gestures and language that seek to clarify goals in joint
+activities. Existing work has addressed this problem in single modalities, such
+as natural language or gesture, or fused modalities to make reactive, but
+non-realtime, systems, but a gap remains in creating systems that can
+continuously and simultaneously fuse information from language and gesture and
+respond to that information in real time. To address this problem, we define a
+multimodal POMDP for interpreting and responding to a  users referring
+expressions. Finding this formalized POMDP to be intractable in the real world,
+we then provide an approximation that we demonstrate accurately and quickly
+interacts with human users in the desired way.
+\jgonote{Miles take a stab at a better title.}
+\\
+}
+
+
+\section{Introduction}
+
+\section{Related Work}
+
+\section{Overview}
+
+\subsection{Robotic Setup}
+\jgonote{Describe the warehouse (if there is one), the objects on the table, the user's position.
+Describe the robot and the microphone.}
+\subsection{Pick and Place}
+\jgonote{I have the lock on this subsection.}
+\subsection{Integrating Speech and Gestures With Single Agent POMDP}
+\subsection{Evaluation}
+
+\section{Single Agent POMDP}
+Defined by:\\
+A set of states $\mathcal{X}$\\
+A set of actions $\mathcal{A}$\\
+The conditional transition probabilities between states $\mathcal{T}$\\
+The reward function $\mathcal{R}: \mathcal{S} \times \mathcal{A} \rightarrow R$\\
+A set of observations $Z$\\
+A set of observation probabilities $\mathcal{O}$\\
+$\gamma \in [0,1]$ a discount factor\\\\
+$\mathcal{X}$ is the object the robot thinks the person wants.\\\\
+$\mathcal{A} = (M, P)$ where $M = \{\text{`waiting'}, \text{`pointing'},
+\text{`sweeping'}, \text{`grouping'}, \text{`touching'}, \text{`handing'}\}$
+and $P$ represents a set  of objects being acted upon (limited to one for
+`pointing', `touching', and `handing' and zero for `waiting').\\\\
+$Z$ consists of the observed speech (s), left and right arm gestures (l and r),
+and also the user belief in the robots belief (u).The user's belief is assumed
+to be observed variable because it is assumed to depend only on the robots
+actions, which are known to the robot. At every time step, the belief degrades
+slightly back towards uniform if no non-waiting action is observed. (Note that
+this can be computed at any time given the entire history of robot actions)\\\\
+We assume that a person is likely to continue referring to the same
+object, but at each timestep has a large probability, $c$, of
+not transitioning to a different object: 
+\begin{align}
+\mathcal{T}(x_t| x_{t-1}, a_{t-1}) = \left\{  \begin{array}{ll}
+c &\mbox{if } x_t = x_{t-1}\\
+\frac{1-c}{|X| -1} &\mbox{otherwise}
+\end{array}\right.
+\end{align}\\
+To calculate $\mathcal{O}(o | x_t, a)$, where $o = \{l, r, s, u\}$, that l, r,
+s, and u are conditionally independent when conditioned on the state.\\\\
+\subsection{Gesture}
+We model pointing gestures as a vector
+through three dimensional space.  First, we calculate a gesture vector
+using the skeleton pose returned by NITE.  For arms, we compute a
+vector from the elbow to the wrist, then project this vector so that the origin is at the wrist.  For head pose, we compute a
+vector based on the body orientation. Next, we calculate the angle between the gesture
+vector and the vector from the gesture origin to the center of each object, and then use the PDF of a Gaussian ($\mathcal{N}$) with
+variance ($\sigma$) to determine the weight that should be assigned to
+that object. We define a function $\mbox{A}(o, p_1, p_2)$ as the angle
+between the two points, $p_1$ and $p_2$ with the given origin, $o$.
+Then
+\begin{align}
+p(l | x_t) \propto \mathcal{N}(\mu_l=0, \sigma_l)[A(l_o, l_v, x_t)]\\
+p(r | x_t) \propto \mathcal{N}(\mu_r=0, \sigma_r)[A(r_o, r_v, x_t)]
+\end{align}
+If the person's arm is more than a certain angle away from the table,
+we assume they are referring to none of the objects, and perform an
+update.  As a result, these gestures do not effect the robot's
+estimate of the objects being referenced.\\\\
+\subsection{Speech}
+We model speech with a unigram model, namely we
+take each word in a given speech input and calcuate the probability that, given the state, that word would have been spoken.
+\begin{align}
+p(s |x_t) = \displaystyle \prod_{w \in s} p(w | x_t)
+\end{align}
+\subsection{User Estimate}
+We assume that the user estimate of the robots belief, $u$, is an observed
+variable. The user belief $u$ is calculated from the history of robot actions
+(with slight degradation over time, similar to the transition function) and
+then incorporated into the robots state in $\mathcal{O}(o | x_t, a)$. Since $u$
+is a distribution, $p(u | x_t, a)  = u(x_t)$, namely, the users belief that the
+robot is in state $x_t$.
+
+\section{Experiments}
+\section{Discussion}
+
+\section{Conclusion}
+
+
+
+
+
+\citet{tellex11}
+
+
+\bibliographystyle{plainnat}
+\bibliography{main}
+
+\end{document}
