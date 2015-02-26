@@ -2,16 +2,6 @@
 //#define DEBUG4
 // start Header
 //
-//  // start TODO XXX
-//  //
-//  // patch targeting
-//  // redo cartesian autopilot to account for ee coordinate frame
-//  // redo PID controller for absolute coordinates
-//  // make sure chirality is accounted for properly in autopilot
-//  // make more general grasping interface, i.e. have a grasp depth target register.
-//  // 
-//  // end   TODO XXX
-//
 //  // start structure of this program 
 //  //
 //  ////
@@ -258,13 +248,6 @@ rk_state random_state;
 
 double spiralEta = 1.25;
 
-//double trueJointPositions[numJoints] = {0, 0, 0, 0, 0, 0, 0};
-//double rapidJointGlobalOmega[numJoints] = {0, 0, 0, 4, 4, 0, 4};
-//double rapidJointLocalOmega[numJoints] = {0, 0, 0, 1, 1, 0, 1};
-//double rapidJointLocalBias[numJoints] = {0, 0, 0, 0.7, 0, 0, 0};
-//int rapidJointMask[numJoints] = {0, 0, 0, 1, 1, 0, 1};
-//double rapidJointScales[numJoints] = {0, 0, 0, 1.0, 2.0, 0, 3.1415926};
-
 double trueJointPositions[numJoints] = {0, 0, 0, 0, 0, 0, 0};
 double rapidJointGlobalOmega[numJoints] = {4, 0, 0, 4, 4, 4, 4};
 double rapidJointLocalOmega[numJoints] = {.2, 0, 0, 2, 2, .2, 2};
@@ -315,7 +298,6 @@ int successive_lock_frames = 0;
 int lock_reset_thresh = 1800;
 int lock_status = 0; // TODO enum
 
-//double slow_aim_factor = 0.5;
 double slow_aim_factor = 0.75;
 int aim_thresh = 20;
 int lock_thresh = 5;
@@ -327,16 +309,12 @@ int timesTimerCounted = 0;
 
 double prevPx = 0;
 double prevPy = 0;
-//double Kd = 0.00001; // for P only
 double Kd = 0.002;
 double Kp = 0.0004;
 double cCutoff = 20.0;
 
 double a_thresh_close = .11;
-// XXX TODO 
-//double a_thresh_far = .3; // for visual servoing
 double a_thresh_far = .2; // for depth scanning
-//double a_thresh_far = .13; // for close depth scanning
 double eeRange = 0.0;
 
 double bDelta = MOVE_FAST;
@@ -465,8 +443,6 @@ eePose wholeFoodsBag1 = wholeFoodsBagR;
 eePose wholeFoodsPantry1 = wholeFoodsPantryR;
 eePose wholeFoodsCounter1 = wholeFoodsCounterR;
 
-
-//eePose defaultReticle = defaultRightReticle;
 eePose defaultReticle = centerReticle;
 
 eePose heightReticles[4];
@@ -507,8 +483,6 @@ ros::ServiceClient ikClient;
 ros::Publisher joint_mover;
 ros::Publisher gripperPub;
 ros::Publisher facePub;
-
-
 
 const int imRingBufferSize = 300;
 const int epRingBufferSize = 100;
@@ -564,8 +538,6 @@ double rangeMapReg2[rmWidth*rmWidth];
 double rangeMapReg3[rmWidth*rmWidth];
 double rangeMapReg4[rmWidth*rmWidth];
 
-
-//const int hrmWidth = 201; // must be odd
 const int hrmWidth = 211; // must be odd
 const int hrmHalfWidth = (hrmWidth-1)/2; // must be odd
 const double hrmDelta = 0.001;
@@ -593,9 +565,6 @@ double filter[9] = {1.0/16.0, 1.0/8.0, 1.0/16.0,
 // .67 was a little unreliable, trimming a bit more.
 double diagonalKappa = 0.60;
 double deltaDiagonalKappa = 0.01;
-
-double gibbsIota= 0.00;
-double deltaGibbsIota= 0.01;
 
 const int parzenKernelHalfWidth = 15;
 const int parzenKernelWidth = 2*parzenKernelHalfWidth+1;
@@ -639,7 +608,6 @@ double thisiX = 0;
 double thisiY = 0;
 
 int rmiCellWidth = 20;
-//int rmiCellWidth = 10;
 int rmiHeight = rmiCellWidth*rmWidth;
 int rmiWidth = rmiCellWidth*rmWidth;
 
@@ -650,7 +618,6 @@ const int hmWidth = 4;
 int hmiCellWidth = 100;
 int hmiWidth = hmiCellWidth;
 int hmiHeight = hmiCellWidth*hmWidth;
-
 
 // the currently equipped depth reticle
 double drX = .02; //.01;
@@ -736,7 +703,6 @@ ros::Time lastVisionCycle;
 ros::Duration accumulatedTime;
 
 
-
 void pushBackPrint(string print) {
   
 }
@@ -753,7 +719,6 @@ double lastPtheta = INFINITY;
 // ATTN 4
 int synServoPixelThresh = 10;//15;//10;
 int synServoLockFrames = 0;
-// XXX
 int synServoLockThresh = 20;
 
 double synServoMinKp = synKp/20.0;
@@ -763,9 +728,9 @@ int gradServoPixelThresh = 2;
 int gradServoThetaThresh = 1;
 
 ros::Time oscilStart;
- double oscCenX = 0.0;
- double oscCenY = 0.0;
- double oscCenZ = 0.0;
+double oscCenX = 0.0;
+double oscCenY = 0.0;
+double oscCenZ = 0.0;
 double oscAmpX = 0.10;//.0.16;//0.08;//0.1;
 double oscAmpY = 0.10;//0.16;//0.2;
 double oscAmpZ = 0.0;
@@ -775,7 +740,6 @@ double oscAmpZ = 0.0;
  double oscFreqY = commonFreq*1.0/20.0;
  double oscFreqZ = commonFreq*1.0;
 
-//double visionCycleInterval = 2.5 * (1.0/commonFreq);//5.0;
 double visionCycleInterval = 7.5 / 7.0 * (1.0/commonFreq);
 
 // class focused for learning
@@ -929,7 +893,6 @@ Mat preFrameGraySobel;
 int densityIterationsForGradientServo = 10;
 
 double graspDepth = -.07;//-.09;
-//-0.105;//-.10;//-.09;//-.03;//-.01;//-.03;//-.04;//-.02;
 double lastPickHeight = 0;
 double pickFlushFactor = 0.11;
 
@@ -960,16 +923,16 @@ double algorithmCRT = 0.95;
 // start node variables 
 ////////////////////////////////////////////////
 
-// Start Intron: The below variables are left over and should be considered defunct
 int retrain_vocab = 0;
 int rewrite_labels = 0;
 int reextract_knn = 0;
 int runInference = 1;
+int trainOnly = 0;
+// Start Intron: The below variables are left over and should be considered defunct
 int saveAnnotatedBoxes = 0;
 int captureHardClass = 0;
 int captureOnly = 0;
 int saveBoxes = 0;
-int trainOnly = 0;
 // End Intron 1: The above variables are left over and should be considered defunct
 
 int runTracking = 1; // calculates the red boxes
@@ -977,7 +940,6 @@ int runTracking = 1; // calculates the red boxes
 int drawOrientor = 1;
 int drawLabels = 1;
 int drawPurple = 0;
-//int drawWhite = 0;
 int drawGreen = 1;
 int drawBlue = 1;
 int drawRed = 1;
@@ -1024,12 +986,8 @@ int postDensitySigmaTrackbarVariable = 10.0;
 
 double drawBingProb = .1;
 
-// for objectness
 double canny_hi_thresh = 5e5;//7;
 double canny_lo_thresh = 5e5;//4;
-// for sobel
-//double canny_hi_thresh = 10;
-//double canny_lo_thresh = 0.5;
 
 double sobel_sigma = 4.0;
 double sobel_scale_factor = 1e-12;
@@ -1168,7 +1126,7 @@ Mat *orientedFiltersS;
 Mat *orientedFiltersK;
 
 // Top variables are top left corners of bounding boxes (smallest coordinates)
-// Bot variables are bottom right corners of bounding boxes (largenst coordinates)
+// Bot variables are bottom right corners of bounding boxes (largest coordinates)
 // Cen variables are centers of bounding boxes
 
 // white boxes come from ork. in the future they can lay down
@@ -1242,7 +1200,6 @@ Eigen::Vector3d tableTangent2;
 Eigen::Vector3d tablePosition;
 double tableBias;
 double tableBiasMargin = -5.001;
-//double tableBiasMargin = .01;
 geometry_msgs::Pose tablePose;
 Eigen::Quaternionf tableQuaternion;
 Mat tablePerspective;
@@ -1267,7 +1224,6 @@ double gbPBT = 0.0;//6.0;
 double mbPBT = 0.0;//7.0;
 
 double pBoxThresh = 0;
-//double densityPower = 1.0;//1.0/4.0;
 
 // gray box offset from the top and bottom of the screen
 int tGO = 30;
@@ -1367,10 +1323,6 @@ void pushSpeedSign(double speed);
 
 void scanXdirection(double speedOnLines, double speedBetweenLines);
 void scanYdirection(double speedOnLines, double speedBetweenLines);
-void scanYdirectionMedium(double speedOnLines, double speedBetweenLines);
-void scanXdirectionMedium(double speedOnLines, double speedBetweenLines);
-void scanYdirectionVerySlow(double speedOnLines, double speedBetweenLines);
-void scanXdirectionVerySlow(double speedOnLines, double speedBetweenLines);
 
 Eigen::Quaternionf getGGRotation(int givenGraspGear);
 void setGGRotation(int thisGraspGear);
@@ -1504,12 +1456,7 @@ void goFindBrownBoxes();
 void goClassifyBlueBoxes();
 void goFindRedBoxes();
 
-// Start Intron 2: nodeImageCallback() is retained as a reference for backporting.
-void nodeImageCallback(const sensor_msgs::ImageConstPtr& msg);
-// End Intron 2
-
 void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg);
-//void clusterCallback(const visualization_msgs::MarkerArray& msg);
 
 void loadROSParamsFromArgs();
 void loadROSParams();
@@ -2174,15 +2121,6 @@ void recordReadyRangeReadings() {
 	Eigen::Vector3d rayDirection;
 
 	{
-	  // XXX 
-	  //Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
-	  //Eigen::Quaternionf crane2quat(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
-
-	  //Eigen::Quaternionf crane2quat = getGGRotation(currentGraspGear);
-	  //Eigen::Quaternionf gear0offset(0.0, ggX[currentGraspGear], ggY[currentGraspGear], 0.0); // for initial calibration
-	  //irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
-
-
 	  Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
 	  Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
 	  Eigen::Quaternionf irSensorStartGlobal(
@@ -2195,7 +2133,6 @@ void recordReadyRangeReadings() {
 	  Eigen::Quaternionf globalUnitZ(0, 0, 0, 1);
 	  Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
 
-	  //Eigen::Quaternionf irSensorEnd = irSensorStartLocal + (thisRange * localUnitZ);
 	  Eigen::Vector3d irSensorEnd(
 				       (thisPose.position.x - irSensorStartLocal.x()) + thisRange*localUnitZ.x(),
 				       (thisPose.position.y - irSensorStartLocal.y()) + thisRange*localUnitZ.y(),
@@ -2446,7 +2383,6 @@ void jointCallback(const sensor_msgs::JointState& js) {
       }
     }
   }
-  
 }
 
 void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
@@ -2456,11 +2392,8 @@ void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
 
 void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
   //cout << "endpoint frame_id: " << eps.header.frame_id << endl;
-
   trueEEPose = eps.pose;
-
   setRingPoseAtTime(eps.header.stamp, eps.pose);
-
   geometry_msgs::Pose thisPose;
   int weHavePoseData = getRingPoseAtTime(eps.header.stamp, thisPose);
 }
@@ -2472,12 +2405,11 @@ void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees) {
   gripperGripping = ees.gripping;
 }
 
-
 bool isGripperGripping() {
   //return (gripperPosition >= gripperThresh);
   return gripperGripping; 
-
 }
+
 void initialize3DParzen() {
   for (int kx = 0; kx < parzen3DKernelWidth; kx++) {
     for (int ky = 0; ky < parzen3DKernelWidth; ky++) {
@@ -2781,260 +2713,6 @@ void scanYdirection(double speedOnLines, double speedBetweenLines) {
   pushSpeedSign(speedOnLines);
 }
 
-void scanYdirectionMedium(double speedOnLines, double speedBetweenLines) {
-  // VERY SLOW progressive scan
-  int scanPadding = 0;
-  double rmbGain = rmDelta / bDelta;
-  //pilot_call_stack.push_back(1048689);
-  for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back('q');
-  }
-  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back('d');
-  }
-  for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
-    pilot_call_stack.push_back(1114183); // full render
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('e');
-    pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('a');
-    }
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('e');
-    pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('d');
-    }
-  }
-  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back('q');
-  }
-  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back('a');
-  }
-  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-}
-
-void scanXdirectionMedium(double speedOnLines, double speedBetweenLines) {
-  // VERY SLOW progressive scan
-  int scanPadding = 0;
-  double rmbGain = rmDelta / bDelta;
-  //pilot_call_stack.push_back(1048689);
-  for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back('a');
-  }
-  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back('e');
-  }
-  for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
-    pilot_call_stack.push_back(1114183); // full render
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('d');
-    pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('q');
-    }
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('d');
-    pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('e');
-    }
-  }
-  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back('q');
-  }
-  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back('a');
-  }
-  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-
-}
-
-void scanYdirectionVerySlow(double speedOnLines, double speedBetweenLines) {
-  // VERY SLOW progressive scan
-  int scanPadding = 0;
-  double rmbGain = rmDelta / bDelta;
-  //pilot_call_stack.push_back(1048689);
-  for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back('q');
-  }
-  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back('d');
-  }
-  for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
-    pilot_call_stack.push_back(1114183); // full render
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('e');
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('a');
-    }
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('e');
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('d');
-    }
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('e');
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('a');
-    }
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('e');
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('d');
-    }
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('e');
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('a');
-    }
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('e');
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('d');
-    }
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('e');
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('a');
-    }
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('e');
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('d');
-    }
-  }
-  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back('q');
-  }
-  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back('a');
-  }
-  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-}
-
-void scanXdirectionVerySlow(double speedOnLines, double speedBetweenLines) {
-  // VERY SLOW progressive scan
-  int scanPadding = 0;
-  double rmbGain = rmDelta / bDelta;
-  //pilot_call_stack.push_back(1048689);
-  for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back('a');
-  }
-  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back('e');
-  }
-  for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
-    pilot_call_stack.push_back(1114183); // full render
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('d');
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('q');
-    }
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('d');
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('e');
-    }
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('d');
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('q');
-    }
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('d');
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('e');
-    }
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('d');
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('q');
-    }
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('d');
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('e');
-    }
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('d');
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('q');
-    }
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-    pilot_call_stack.push_back('d');
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-    for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-      pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back('e');
-    }
-  }
-  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back('q');
-  }
-  for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-    pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back('a');
-  }
-  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-
-}
-
 Eigen::Quaternionf getGGRotation(int givenGraspGear) {
   Eigen::Vector3f localUnitX;
   {
@@ -3178,10 +2856,7 @@ void setCCRotation(int thisGraspGear) {
 }
 
 void rangeCallback(const sensor_msgs::Range& range) {
-
   //cout << "range frame_id: " << range.header.frame_id << endl;
-
-
   setRingRangeAtTime(range.header.stamp, range.range);
   //double thisRange;
   //int weHaveRangeData = getRingRangeAtTime(range.header.stamp, thisRange);
@@ -3207,26 +2882,10 @@ void rangeCallback(const sensor_msgs::Range& range) {
   if (deltaTime > 0.0)
     aveFrequency = timeMass / deltaTime;
 
-//cout << "Average time between frames: " << aveTime << 
-  //"   Average Frequency: " << aveFrequency << " Hz   Duration of sampling: " << 
-  //deltaTime << "   Frames since sampling: " << timeMass << endl; 
-
-
   eeRange = range.range;
-  //cout << eeRange << endl;
   rangeHistory[currentRangeHistoryIndex] = eeRange;
   currentRangeHistoryIndex++;
   currentRangeHistoryIndex = currentRangeHistoryIndex % totalRangeHistoryLength;
-
-  
-
-  //rectangle(rangeogramImage, outTop, outBot, cv::Scalar(0,0,0)); 
-
-  //cv::Scalar fillColor(0,0,0);
-  //cv::Point outTop = cv::Point(0, 0);
-  //cv::Point outBot = cv::Point(rggWidth, rggHeight);
-  //Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-  //vCrop = fillColor;
 
   #ifdef DEBUG
   cout << "debug 4" << endl;
@@ -3286,7 +2945,6 @@ void rangeCallback(const sensor_msgs::Range& range) {
   #endif
 
   if (recordRangeMap) {
-
     // actually storing the negative z for backwards compatibility
     //double thisZmeasurement = -(currentEEPose.pz - eeRange);
     double thisZmeasurement = -(trueEEPose.position.z - eeRange);
@@ -3294,15 +2952,6 @@ void rangeCallback(const sensor_msgs::Range& range) {
     double dY = 0;
 
     {
-      // XXX 
-      //Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
-      //Eigen::Quaternionf crane2quat(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
-
-      //Eigen::Quaternionf crane2quat = getGGRotation(currentGraspGear);
-      //Eigen::Quaternionf gear0offset(0.0, ggX[currentGraspGear], ggY[currentGraspGear], 0.0); // for initial calibration
-      //irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
-
-
       Eigen::Quaternionf ceeQuat(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
       Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
       Eigen::Quaternionf irSensorStartGlobal(
@@ -3315,15 +2964,14 @@ void rangeCallback(const sensor_msgs::Range& range) {
       Eigen::Quaternionf globalUnitZ(0, 0, 0, 1);
       Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
 
-      //Eigen::Quaternionf irSensorEnd = irSensorStartLocal + (eeRange * localUnitZ);
       Eigen::Vector3d irSensorEnd(
 				   (trueEEPose.position.x - irSensorStartLocal.x()) + eeRange*localUnitZ.x(),
 				   (trueEEPose.position.y - irSensorStartLocal.y()) + eeRange*localUnitZ.y(),
 				   (trueEEPose.position.z - irSensorStartLocal.z()) + eeRange*localUnitZ.z()
 				  );
 
-      dX = (irSensorEnd.x() - rmcX); //(trueEEPose.position.x - drX) - rmcX;
-      dY = (irSensorEnd.y() - rmcY); //(trueEEPose.position.y - drY) - rmcY;
+      dX = (irSensorEnd.x() - rmcX); 
+      dY = (irSensorEnd.y() - rmcY); 
 
       double eX = (irSensorEnd.x() - rmcX) / hrmDelta;
       double eY = (irSensorEnd.y() - rmcY) / hrmDelta;
@@ -4281,328 +3929,7 @@ cout <<
       break;
     case 1048689: 
       // numlock + q
-      // future program:
-      // execute a grab
-      // estimate proper grasp depth and stow in a register
-      // move back to the center of the grid      
-      // snake around the grid
-	// at each point, increment grid counters
-	//  and store the current range
-      // move to beginning of grid
       {
-	currentEEPose.px = rmcX + drX;
-	currentEEPose.py = rmcY + drY;
-
-	/*
-	// constant speed
-	int scanPadding = 0;
-	double rmbGain = rmDelta / bDelta;
-	//pilot_call_stack.push_back(1048689);
-	for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('q');
-	}
-	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('d');
-	}
-	for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('e');
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('a');
-	  }
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('d');
-	  }
-	}
-	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('q');
-	}
-	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('a');
-	}
-	*/
-
-	/*
-	*/
-	// VERY SLOW progressive scan
-	int scanPadding = 0;
-	double rmbGain = rmDelta / bDelta;
-	//pilot_call_stack.push_back(1048689);
-	for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('q');
-	}
-	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('d');
-	}
-	for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
-	  pilot_call_stack.push_back(1114183); // full render
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('a');
-	  }
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('d');
-	  }
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('a');
-	  }
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('d');
-	  }
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('a');
-	  }
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('d');
-	  }
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('a');
-	  }
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('d');
-	  }
-	}
-	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('q');
-	}
-	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('a');
-	}
-	pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-
-	/*
-	// SLOW progressive scan
-	int scanPadding = 0;
-	double rmbGain = rmDelta / bDelta;
-	//pilot_call_stack.push_back(1048689);
-	for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('q');
-	}
-	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('d');
-	}
-	for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
-	  pilot_call_stack.push_back(1114183); // full render
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1114190); // set speed to MOVE_SLOW
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('a');
-	  }
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1114190); // set speed to MOVE_SLOW
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('d');
-	  }
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1114190); // set speed to MOVE_SLOW
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('a');
-	  }
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1114190); // set speed to MOVE_SLOW
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('d');
-	  }
-	}
-	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('q');
-	}
-	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('a');
-	}
-	pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	*/
-
-	/*
-	// interlaced scan
-	int scanPadding = 0;
-	double rmbGain = rmDelta / bDelta;
-	//pilot_call_stack.push_back(1048689);
-	for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('q');
-	}
-	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('d');
-	}
-	for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
-	  pilot_call_stack.push_back(1114183); // full render
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('a');
-	  }
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('d');
-	  }
-
-//	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-//	  pilot_call_stack.push_back('e');
-//	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
-//	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-//	    pilot_call_stack.push_back(1048677);
-//	    pilot_call_stack.push_back('a');
-//	  }
-//	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-//	  pilot_call_stack.push_back('e');
-//	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
-//	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-//	    pilot_call_stack.push_back(1048677);
-//	    pilot_call_stack.push_back('d');
-//	  }
-	  
-	}
-	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('q');
-	}
-	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('a');
-	}
-	pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	pilot_call_stack.push_back(1048621); // change offset of position based on current gear 
-	*/
-
-
-	/*
-	// progressive with interleaved gear changes...
-	int scanPadding = 0;
-	double rmbGain = rmDelta / bDelta;
-	//pilot_call_stack.push_back(1048689);
-	for (int g = 0; g < ((rmWidth*rmbGain)-(rmHalfWidth*rmbGain))+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('q');
-	}
-	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('d');
-	}
-	for (int g = 0; g < rmWidth*rmbGain+2*scanPadding; g++) {
-	  pilot_call_stack.push_back(1114183); // full render
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
-	  pilot_call_stack.push_back(1114155); // rotate gear
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('a');
-	  }
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('d');
-	  }
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
-	  pilot_call_stack.push_back(1114155); // rotate gear
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('a');
-	  }
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('d');
-	  }
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
-	  pilot_call_stack.push_back(1114155); // rotate gear
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('a');
-	  }
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('d');
-	  }
-	  pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	  pilot_call_stack.push_back('e');
-	  pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
-	  pilot_call_stack.push_back(1114155); // rotate gear
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('a');
-	  }
-	  for (int gg = 0; gg < rmWidth*rmbGain+2*scanPadding; gg++) {
-	    pilot_call_stack.push_back(1048677);
-	    pilot_call_stack.push_back('d');
-	  }
-	}
-	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('q');
-	}
-	for (int g = 0; g < rmHalfWidth*rmbGain+scanPadding; g++) {
-	  pilot_call_stack.push_back(1048677);
-	  pilot_call_stack.push_back('a');
-	}
-	pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
-	*/
       }
       break;
     case 1048695: // numlock + w
@@ -4717,7 +4044,6 @@ cout <<
     #ifdef DEBUG4
 	cout << "  ++Resampling (by mass   experimental): " << highestReading << " " << highestEpsilonMassReading << endl;
     #endif
-
 	
 	for (int rx = 0; rx < rmWidth; rx++) {
 	  for (int ry = 0; ry < rmWidth; ry++) {
@@ -4741,19 +4067,6 @@ cout <<
 	    rangeMapReg1[rx + ry*rmWidth] = thisSum/numSamples;
 	  }
 	}
-
-	// XXX no register load for hi map
-	// this is a direct read from the maps
-//	for (int rx = 0; rx < rmWidth; rx++) {
-//	  for (int ry = 0; ry < rmWidth; ry++) {
-//	    rangeMapReg1[rx + ry*rmWidth] = rangeMap[rx + ry*rmWidth];
-//	  }
-//	}
-//	for (int rx = 0; rx < hrmWidth; rx++) {
-//	  for (int ry = 0; ry < hrmWidth; ry++) {
-//	    hiRangeMapReg1[rx + ry*hrmWidth] = hiRangeMap[rx + ry*hrmWidth];
-//	  }
-//	}
       }
       break;
     // apply grasp filter
@@ -4788,22 +4101,6 @@ cout <<
       break;
     case 1114185: // numlock + I
       {
-	//double tfilter[9]    = {   0, 0,  0, 
-				   //-gibbsIota, 1,  gibbsIota, 
-				   //0, 0,  0};
-	//double tfilter[9]    = {   -gibbsIota, 1,  gibbsIota,
-				   //-gibbsIota, 1,  gibbsIota, 
-				   //-gibbsIota, 1,  gibbsIota,};
-
-	double tfilter[9]    = {0, -gibbsIota,  0, 
-				   0, 1,  0, 
-				   0, gibbsIota,  0};
-	for (int fx = 0; fx < 9; fx++)
-	  filter[fx] = tfilter[fx];
-	l2NormalizeFilter();
-	for (int fx = 0; fx < 9; fx++) {
-	  cout << filter[fx] << endl;
-	}
       }
       break;
     // prepare to apply grasp filter for 2
@@ -4849,9 +4146,9 @@ cout <<
 	pilot_call_stack.push_back(1048690); // load map to register 1
       }
       break;
-      // stow the max coordinate and grasp angle of MapReg1
-      // calculate z coordinate to grab at and assume the max grasp angle orientation
-      // move to z coordinate and grab
+    // stow the max coordinate and grasp angle of MapReg1
+    // calculate z coordinate to grab at and assume the max grasp angle orientation
+    // move to z coordinate and grab
     // reset window positions
     // numlock + z
     case 1048698:
@@ -4862,7 +4159,6 @@ cout <<
 	int menuHeight = 28+38;
 	int uiOffsetX = toolbarWidth + sideOffset;
 	int uiOffsetY = 0;
-
 
 	cv::moveWindow(rangemapViewName, uiOffsetX, uiOffsetY);
 	cv::moveWindow(graspMemoryViewName, uiOffsetX, uiOffsetY);
@@ -4951,9 +4247,9 @@ cout <<
       {
 	drX = rmDelta*(maxX-rmHalfWidth);
 	drY = rmDelta*(maxY-rmHalfWidth);
-    #ifdef DEBUG4
+	#ifdef DEBUG4
 	cout << "drX: " << drX << " drY: " << drY << endl;
-    #endif
+	#endif
       }
       break;
     // set target reticle to the max mapped position
@@ -4963,9 +4259,9 @@ cout <<
 	trX = rmcX + rmDelta*(maxX-rmHalfWidth);
 	trY = rmcY + rmDelta*(maxY-rmHalfWidth);
 
-    #ifdef DEBUG4
+	#ifdef DEBUG4
 	cout << "trX: " << trX << " trY: " << trY << endl;
-    #endif
+	#endif
       }
       break;
     // set hi target reticle by searching over all pixels and all acceptable grasps
@@ -5009,9 +4305,6 @@ cout <<
 	      }
 	    }
 	  }
-
-	  //htrX = TODO XXX;
-	  //htrY = TODO XXX;
 	}
       }
       break;
@@ -5072,8 +4365,6 @@ cout <<
 	    putText(rangemapImage, reticleLabel, text_anchor, MY_FONT, 0.5, Scalar(192,192,192), 1.0);
 	  }
 	}
-//circle(Mat& img, Point center, int radius, const Scalar& color, int thickness=1, int lineType=8, int shift=0)
-//line(Mat& img, Point pt1, Point pt2, const Scalar& color, int thickness=1, int lineType=8, int shift=0)
 	double httrX = (trX-rmcX)/hrmDelta;
 	double httrY = (trY-rmcY)/hrmDelta;
 	int hiCellWidth = 5;
@@ -5104,9 +4395,9 @@ cout <<
 	  cv::Point l2p2 = cv::Point((ciiY+hrmWidth),ciiX+hiCellWidth);
 	  line(hiRangemapImage, l1p1, l1p2, backColor);
 	  line(hiRangemapImage, l2p1, l2p2, backColor);
-    #ifdef DEBUG4
+	  #ifdef DEBUG4
 	  cout << "printing curseReticle xy globalz: " << curseReticleX << " " << curseReticleY << " " << hiRangeMap[ciiX + ciiY*hrmWidth] << endl;
-    #endif
+	  #endif
 	}
 	{
 	  double intensity = 128;
@@ -5139,9 +4430,6 @@ cout <<
     // numlock + h
     case 1048680:
       {
-	// XXX
-	//double targetX = trX - (drX);
-	//double targetY = trY - (drY);
 	double targetX = trX;
 	double targetY = trY;
 
@@ -5168,9 +4456,9 @@ cout <<
 	  for (int yc = 0; yc < yTimes; yc++)
 	    pilot_call_stack.push_back('a');
       
-    #ifdef DEBUG4
+	#ifdef DEBUG4
 	cout << "Move to target x,y. deltaX: " << deltaX << " xTimes: " << xTimes << endl;
-    #endif
+	#endif
       }
       break;
     // move to target z and grasp
@@ -5179,9 +4467,9 @@ cout <<
       {
 	pilot_call_stack.push_back('j');  // close gripper
 
-    #ifdef DEBUG4
+	#ifdef DEBUG4
 	cout << " ++Move to target z: " << maxD << " " << graspDepth << " " << currentEEPose.pz << endl; cout.flush();
-    #endif
+	#endif
 
 	//double deltaZ = -maxD - graspDepth;
 	//double deltaZ = (-maxD -graspDepth) - currentEEPose.pz;
@@ -5235,18 +4523,18 @@ cout <<
       {
 	pilot_call_stack.push_back('j');
 
-    #ifdef DEBUG4
+	#ifdef DEBUG4
 	cout << " ++Move to target z: " << maxD << " " << graspDepth << " " << currentEEPose.pz << endl; cout.flush();
-    #endif
+	#endif
 
 	//double deltaZ = -maxD - graspDepth;
 	double deltaZ = -eeRange + graspDepth;
 
 	double zTimes = fabs(floor(deltaZ / bDelta)); 
 
-    #ifdef DEBUG4
+	#ifdef DEBUG4
 	cout << " ++Move to target z: " << deltaZ << " " << zTimes << " " << endl; cout.flush();
-    #endif
+	#endif
 
 	int numNoOps = 2;
 	if (deltaZ > 0)
@@ -5263,9 +4551,9 @@ cout <<
 	    }
 	    pilot_call_stack.push_back('s');
 	  }
-    #ifdef DEBUG4
+	#ifdef DEBUG4
 	cout << "Move to target z and grasp. deltaZ: " << deltaZ << " zTimes: " << zTimes << endl;
-    #endif
+	#endif
       }
       break;
     // add switches disable recording
@@ -5459,7 +4747,6 @@ cout <<
 	pilot_call_stack.push_back(1048684); // turn off scanning
       }
       break;
-
     // assume winning gg
     // numlock + 7
     case 1048631:
@@ -5500,22 +4787,18 @@ cout <<
 	}
       }
       break;
-    // change diagonal filter balance
     // numlock + c
     case 1048675:
       {
-	gibbsIota += deltaGibbsIota;
-	cout << "gibbsIota: " << gibbsIota << " deltaGibbsIota: " << deltaGibbsIota << endl;
       }
       break;
     // numlock + v
     case 1048694:
       {
-	gibbsIota -= deltaGibbsIota;
-	cout << "gibbsIota: " << gibbsIota << " deltaGibbsIota: " << deltaGibbsIota << endl;
       }
       break;
     // XXX
+    // JGO CURRENT PASS MARKER
     // try damping the diagonal by the value it's supposed to have
     //  according to gaussian
     // scan, grab, put in the box
@@ -5705,7 +4988,6 @@ cout <<
 	pilot_call_stack.push_back(1048630); // find best grasp
 
 	//pilot_call_stack.push_back(1048689); // load scan program
-	//scanXdirectionMedium(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
 	//scanXdirection(MOVE_SLOW, MOVE_SLOW); // load scan program
 	//scanXdirection(MOVE_MEDIUM, MOVE_MEDIUM); // load scan program
 	//scanXdirection(MOVE_FAST, MOVE_FAST); // load scan program
@@ -5724,7 +5006,6 @@ cout <<
 	pilot_call_stack.push_back(1048630); // find best grasp
 
 	//pilot_call_stack.push_back(1048689); // load scan program
-	//scanXdirectionMedium(MOVE_FAST, MOVE_VERY_SLOW); // load scan program
 	//scanXdirection(MOVE_SLOW, MOVE_SLOW); // load scan program
 	//scanXdirection(MOVE_MEDIUM, MOVE_MEDIUM); // load scan program
 	//scanXdirection(MOVE_FAST, MOVE_FAST); // load scan program
@@ -10270,9 +9551,6 @@ cout <<
 //      break;
 //    case 6:
 //      drawPurple= !drawPurple;
-//      break;
-//    case 7:
-//      //drawWhite = !drawWhite;
 //      break;
 //    case 8:
 //      drawGreen = !drawGreen;
@@ -17537,200 +16815,12 @@ void goFindRedBoxes() {
   }
 }
 
-void nodeImageCallback(const sensor_msgs::ImageConstPtr& msg) {
-
-  ros::NodeHandle nh("~");
-
-  loadROSParams();
-
-  invertQuaternionLabel = 0;
-
-  gBoxStrideX = gBoxW / 2.0;
-  gBoxStrideY = gBoxH / 2.0;
-
-  //cv::Rect bound;
-  //cv::Mat boxed;
-
-  Size sz = objectViewerImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  if (add_blinders) {
-    goAddBlinders();
-  }
-
-  goCalculateDensity();
-
-  goFindBlueBoxes();
-
-  roa_to_send_blue.objects.resize(bTops.size());
-  ma_to_send_blue.markers.resize(bTops.size()+1);
-
-  if (runInference) {
-
-    goFindBrownBoxes();
-
-    goClassifyBlueBoxes();
-
-    // publish the table
-    {
-      #ifdef DEBUG
-      cout << "table check 1" << endl;
-      #endif
-      int c = bTops.size();
-      ma_to_send_blue.markers[c].pose = tablePose;
-      ma_to_send_blue.markers[c].type =  visualization_msgs::Marker::CUBE;
-      ma_to_send_blue.markers[c].scale.x = 1.0;
-      ma_to_send_blue.markers[c].scale.y = 1.0;
-      ma_to_send_blue.markers[c].scale.z = 0.002;
-      ma_to_send_blue.markers[c].color.a = 0.5;
-      ma_to_send_blue.markers[c].color.r = 176/255.0;
-      ma_to_send_blue.markers[c].color.g = 133/255.0;
-      ma_to_send_blue.markers[c].color.b = 14/255.0;
-
-      ma_to_send_blue.markers[c].header =  roa_to_send_blue.header;
-      ma_to_send_blue.markers[c].action = visualization_msgs::Marker::ADD;
-      ma_to_send_blue.markers[c].id = c;
-      ma_to_send_blue.markers[c].lifetime = ros::Duration(1.0);
-      #ifdef DEBUG
-      cout << "table check 2" << endl;
-      #endif
-    }
-
-    if (publishObjects) {
-      #ifdef DEBUG
-      cout << "about to publish" << endl;
-      #endif
-      if (bTops.size() > 0) {
-	rec_objs_blue.publish(roa_to_send_blue);
-      }
-      markers_blue.publish(ma_to_send_blue);
-      #ifdef DEBUG
-      cout << "published" << endl;
-      #endif
-    }
-
-    if (saveAnnotatedBoxes)
-      if (fc > 0)
-	fc--;
-
-    if (runTracking) {
-      goFindRedBoxes();
-    }
-  }
-
-
-  if (saveBoxes) {
-    // save the crops
-    if (fc > 0) {
-      fc--;
-      for (int c = bTops.size()-1; c >= 0; c--) {
-	Mat original_cam_img = cam_img;
-	Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
-	char buf[1000];
-	sprintf(buf, "%s%s%s_%d.ppm", saved_crops_path.c_str(), class_name.c_str(), run_prefix.c_str(), cropCounter);
-	cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
-	imwrite(buf, crop);
-	cropCounter++;
-      }
-    }
-  }
-
-  cv::imshow(objectViewerName, objectViewerImage);
-  cv::imshow(densityViewerName, densityViewerImage);
-  cv::imshow(gradientViewerName, gradientViewerImage);
-  cv::imshow(objectnessViewerName, objectnessViewerImage);
-
-  int kc = cv::waitKey(1);
-  saveROSParams();
-}
-
-/*
-void tableCallback(const object_recognition_msgs::Table& msg) {
-#ifdef DEBUG
-  cout << "Hit tableCloudCallback" << endl;
-#endif
-  tablePose = msg.pose;
-}
-*/
-
 void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg) {
   pcl::fromROSMsg(*msg, pointCloud);
 #ifdef DEBUG
 cout << "Hit pointCloudCallback" <<  "  " << pointCloud.size() << endl;
 #endif
 }
-
-//void clusterCallback(const visualization_msgs::MarkerArray& msg) {
-//	if(real_img){
-//		object_recognition_msgs::RecognizedObjectArray to_send;
-//		to_send.objects.resize(msg.markers.size());
-//		//MatrixXf imfea2;
-//		//VectorXf scores;
-//		IplImage temp = cam_img;
-//		int height = cam_img.size().height;
-//		int width = cam_img.size().width;
-//		ROS_INFO("(%d,%d)", height, width);
-//		float minx, miny, maxx, maxy, px, py;
-//		cv::Rect bound;
-//		cv::Mat boxed;
-//		geometry_msgs::Point p;
-//		wTop.resize(msg.markers.size());
-//		wBot.resize(msg.markers.size());
-//		ROS_INFO("Objects found: %d", int(msg.markers.size()));
-//		float f;
-//		std::string res;
-//		//if(LOC_MODEL_TYPE == 0) f= 580;
-//		//else f=525;
-//		f = 525;
-//		float cx = (width/2) - 0.5;
-//		float cy = (height/2) - 0.5;
-//		for(int i=0; i<msg.markers.size(); i++){
-//			minx = f*(msg.markers[i].points[0].x/msg.markers[i].points[0].z) + cx;
-//			maxx = f*(msg.markers[i].points[0].x/msg.markers[i].points[0].z) + cx;
-//			miny = f*(msg.markers[i].points[0].y/msg.markers[i].points[0].z) + cy;
-//			maxy = f*(msg.markers[i].points[0].y/msg.markers[i].points[0].z) + cy;
-//			for(int j = 0; j < msg.markers[i].points.size(); j++){
-//				p = msg.markers[i].points[j];
-//				px = f*(p.x/p.z) + cx;
-//				py = f*(p.y/p.z) + cy;
-//				if(px < minx){minx = px;}
-//				if(px > maxx){maxx = px;}
-//				if(py < miny){miny = py;}
-//				if(py > maxy){maxy = py;}
-//			}
-//			wTop[i] = cv::Point(minx - 5, miny - 5);
-//			wBot[i] = cv::Point(maxx + 5, maxy + 5);
-//			if(wTop[i].x < 0){wTop[i].x = 0;}
-//			else if(wTop[i].x > width - 1){wTop[i].x = width-1;}
-//			if(wTop[i].y < 0) wTop[i].y = 0;
-//			else if(wTop[i].y > height-1){wTop[i].y = height-1;}
-//			if(wBot[i].x < 0){wBot[i].x = 0;}
-//			else if(wBot[i].x > width - 1){wBot[i].x = width-1;}
-//			if(wBot[i].y < 0) wBot[i].y = 0;
-//			else if(wBot[i].y > height-1){wBot[i].y = height-1;}
-//		}/*
-//		for(int i=0; i<wTop.size(); i++){
-//			ROS_INFO("BOXED: (%d, %d) to (%d, %d)", wTop[i].x, wTop[i].y, wBot[i].x, wBot[i].y);
-//			bound = cv::Rect(wTop[i].x, wTop[i].y, wBot[i].x - wTop[i].x, wBot[i].y - wTop[i].y);
-//			boxed = cam_img(bound);
-//			temp = boxed;
-//			kdm->Process(imfea2, &temp);
-//			kdm->Classify(scores, imfea2);
-//			res = kdm->GetObjectName(scores);
-//			ROS_INFO("Tabletop %d identified as %s", i, res.c_str());
-//			meldon_detection::RecognizedObject to_add;
-//			to_add.points = msg.markers[i].points;
-//			to_add.name = res.c_str();
-//			to_send.objects[i] = to_add;
-//		}*/
-//		temp = cam_img;
-//		//kdm->Process(imfea2, &temp);
-//		//kdm->Classify(scores, imfea2);
-//		//rec_objs.publish(to_send);
-//	}
-//	ROS_INFO("Identification complete");
-//}
 
 // TODO probably don't need two separate functions for this
 void loadROSParamsFromArgs() {
@@ -17793,7 +16883,6 @@ void loadROSParams() {
 
   nh.getParam("pink_box_threshold", pBoxThresh);
   nh.getParam("threshold_fraction", threshFraction);
-  //nh.getParam("density_power", densityPower);
   nh.getParam("plastic_spoon_normalizer", psPBT);
   nh.getParam("wooden_spoon_normalizer", wsPBT);
   nh.getParam("gyrobowl_normalizer", gbPBT);
@@ -17855,7 +16944,6 @@ void saveROSParams() {
 
   nh.setParam("pink_box_threshold", pBoxThresh);
   nh.setParam("threshold_fraction", threshFraction);
-  //nh.setParam("density_power", densityPower);
   nh.setParam("plastic_spoon_normalizer", psPBT);
   nh.setParam("wooden_spoon_normalizer", wsPBT);
   nh.setParam("gyrobowl_normalizer", gbPBT);
@@ -18578,7 +17666,6 @@ int main(int argc, char **argv) {
   image_sub = it.subscribe(image_topic, 1, imageCallback);
 
   ros::Subscriber points = n.subscribe(pc_topic, 1, pointCloudCallback);
-  //ros::Subscriber clusters = n.subscribe("/tabletop/clusters", 1, clusterCallback);
 
   rec_objs_blue = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_labeled_objects", 10);
   rec_objs_red = n.advertise<object_recognition_msgs::RecognizedObjectArray>("red_labeled_objects", 10);
