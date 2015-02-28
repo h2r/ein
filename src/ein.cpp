@@ -2647,12 +2647,12 @@ void scanXdirection(double speedOnLines, double speedBetweenLines) {
   for (int g = 0; g < ((rmWidth*onLineGain)-(rmHalfWidth*onLineGain))+scanPadding; g++) {
     // ATTN 2
     //pushWord(1048677);
-    pushWord(131154); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); 
     pushWord('a');
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
     //pushWord(1048677);
-    pushWord(131154); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); 
     pushWord('e');
   }
   pushSpeedSign(speedOnLines);
@@ -2662,13 +2662,13 @@ void scanXdirection(double speedOnLines, double speedBetweenLines) {
   for (int g = 0; g < gLimit; g++) {
     pushWord("fullRender"); // full render
     //pushWord(1048677);
-    pushWord(131154); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); 
     pushSpeedSign(speedOnLines);
     pushWord('d');
     pushSpeedSign(speedBetweenLines);
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
       //pushWord(1048677);
-      pushWord(131154); // w1 wait until at current position
+      pushWord("waitUntilAtCurrentPosition");
       pushWord('q');
     }
     //pushSpeedSign(speedOnLines);
@@ -2676,18 +2676,18 @@ void scanXdirection(double speedOnLines, double speedBetweenLines) {
     //pushSpeedSign(speedBetweenLines);
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
       //pushWord(1048677);
-      pushWord(131154); // w1 wait until at current position
+      pushWord("waitUntilAtCurrentPosition"); 
       pushWord('e');
     }
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
     //pushWord(1048677);
-    pushWord(131154); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); 
     pushWord('q');
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
     //pushWord(1048677);
-    pushWord(131154); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); 
     pushWord('a');
   }
   pushSpeedSign(speedOnLines);
@@ -2704,12 +2704,12 @@ void scanYdirection(double speedOnLines, double speedBetweenLines) {
   for (int g = 0; g < ((rmWidth*onLineGain)-(rmHalfWidth*onLineGain))+scanPadding; g++) {
     // ATTN 2
     //pushWord(1048677);
-    pushWord(131154); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); 
     pushWord('q');
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
     //pushWord(1048677);
-    pushWord(131154); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); 
     pushWord('d');
   }
   pushSpeedSign(speedOnLines);
@@ -2719,13 +2719,13 @@ void scanYdirection(double speedOnLines, double speedBetweenLines) {
   for (int g = 0; g < gLimit; g++) {
     pushWord("fullRender"); // full render
     //pushWord(1048677);
-    pushWord(131154); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); 
     pushSpeedSign(speedOnLines);
     pushWord('e');
     pushSpeedSign(speedBetweenLines);
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
       //pushWord(1048677);
-      pushWord(131154); // w1 wait until at current position
+      pushWord("waitUntilAtCurrentPosition"); 
       pushWord('a');
     }
     //pushSpeedSign(speedOnLines);
@@ -2733,19 +2733,19 @@ void scanYdirection(double speedOnLines, double speedBetweenLines) {
     //pushSpeedSign(speedBetweenLines);
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
       //pushWord(1048677);
-      pushWord(131154); // w1 wait until at current position
+      pushWord("waitUntilAtCurrentPosition"); 
       pushWord('d');
     }
   }
 
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
     //pushWord(1048677);
-    pushWord(131154); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); 
     pushWord('q');
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
     //pushWord(1048677);
-    pushWord(131154); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); 
     pushWord('a');
   }
   pushSpeedSign(speedOnLines);
@@ -6378,7 +6378,7 @@ void gradientServo() {
       cout << "ATTN score, thresh, norm, product: " << bestOrientationScore << " " << gradientServoResetThresh << " " << bestCropNorm << " " << (gradientServoResetThresh * bestCropNorm) << endl;
       if (bestOrientationScore < (gradientServoResetThresh * bestCropNorm) ) {
         pushWord(131156); // synchronic servo
-        pushWord(131153); // vision cycle
+        pushWord("visionCycle"); // vision cycle
         cout << " XXX BAD GRADIENT SERVO SCORE, RETURN TO SYNCHRONIC XXX" << endl;
         return;
       }
@@ -6390,14 +6390,14 @@ void gradientServo() {
     //cout << "waiting to arrive at current position." << endl;
     pushWord(196728); // gradient servo
     // ATTN 8
-    //pushWord(131153); // vision cycle
+    //pushWord("visionCycle"); // vision cycle
     //pushWord(196721); // vision cycle no classify
     pushCopies(131121, densityIterationsForGradientServo); // density
     pushCopies(1179737, 1); // reset temporal map
     pushWord(262237); // reset aerialGradientTemporalFrameAverage
     pushCopies(131121, 1); // density
-    //pushCopies(131154, 40); // w1 wait until at current position
-    pushCopies(131154, 5); // w1 wait until at current position
+    //pushCopies("waitUntilAtCurrentPosition", 40); 
+    pushCopies("waitUntilAtCurrentPosition", 5); 
 
     // ATTN 16
     //	  { // prepare to servo
@@ -6503,19 +6503,19 @@ void gradientServo() {
     currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
 
     // ATTN 8
-    //pushWord(131153); // vision cycle
+    //pushWord("visionCycle"); // vision cycle
     //pushWord(196721); // vision cycle no classify
     pushCopies(131121, densityIterationsForGradientServo); // density
     pushCopies(1179737, 1); // reset temporal map
     pushWord(262237); // reset aerialGradientTemporalFrameAverage
     pushCopies(131121, 1); // density
-    //pushWord(131154); // w1 wait until at current position
+    //pushWord("waitUntilAtCurrentPosition"); 
 
     // ATTN 7
     // if you don't wait multiple times, it could get triggered early by weird ik or latency could cause a loop
     // this is a very aggressive choice and we should also be using the ring buffers for Ode calls
-    //pushCopies(131154, 40); // w1 wait until at current position
-    pushCopies(131154, 5); // w1 wait until at current position
+    //pushCopies("waitUntilAtCurrentPosition", 40); 
+    pushCopies("waitUntilAtCurrentPosition", 5); 
     
     // ATTN 16
     //	    { // prepare to servo
@@ -6555,8 +6555,8 @@ void synchronicServo() {
     thisGraspPicked = FAILURE; 
     pushWord(131141); // 2D patrol continue
 
-    pushWord(131153); // vision cycle
-    pushWord(131154); // w1 wait until at current position
+    pushWord("visionCycle"); // vision cycle
+    pushWord("waitUntilAtCurrentPosition"); 
     pushWord("shiftIntoGraspGear1"); // change to first gear
 
     pushCopies(1245308, 15); // beep
@@ -6570,8 +6570,8 @@ void synchronicServo() {
     //currentEEPose.py = oscCenY + oscAmpY*sin(2.0*3.1415926*oscFreqY*delta.toSec());
     //currentEEPose.pz = oscCenZ + oscAmpZ*sin(2.0*3.1415926*oscFreqZ*delta.toSec());
     pushWord(131141); // 2D patrol continue
-    pushWord(131153); // vision cycle
-    pushWord(131154); // w1 wait until at current position
+    pushWord("visionCycle"); // vision cycle
+    pushWord("waitUntilAtCurrentPosition"); 
     cout << ">>>> HELP,  I CAN'T SEE!!!!! Going back on patrol. <<<<" << endl;
     return;
   }
@@ -6675,14 +6675,13 @@ void synchronicServo() {
 	  pushWord(196728); // gradient servo
 	  cout << "Queuing gradient servo." << endl;
 	  // ATTN 8
-	  //pushWord(131153); // vision cycle
+	  //pushWord("visionCycle"); // vision cycle
 	  //pushWord(196721); // vision cycle no classify
 	  pushCopies(131121, densityIterationsForGradientServo); // density
 	  pushCopies(1179737, 1); // reset temporal map
 	  pushWord(262237); // reset aerialGradientTemporalFrameAverage
 	  pushCopies(131121, 1); // density
-	  //pushCopies(131154, 40); // w1 wait until at current position
-	  pushCopies(131154, 5); // w1 wait until at current position
+	  pushCopies("waitUntilAtCurrentPosition", 5); 
 
 	  // ATTN 16
 //		{ // prepare to servo
@@ -6698,14 +6697,13 @@ void synchronicServo() {
 	pushWord(196728); // gradient servo
 	cout << "Queuing gradient servo." << endl;
 	// ATTN 8
-	//pushWord(131153); // vision cycle
+	//pushWord("visionCycle"); // vision cycle
 	//pushWord(196721); // vision cycle no classify
 	pushCopies(131121, densityIterationsForGradientServo); // density
 	pushCopies(1179737, 1); // reset temporal map
 	pushWord(262237); // reset aerialGradientTemporalFrameAverage
 	pushCopies(131121, 1); // density
-	//pushCopies(131154, 40); // w1 wait until at current position
-	pushCopies(131154, 5); // w1 wait until at current position
+	pushCopies("waitUntilAtCurrentPosition", 5); 
 
 	// ATTN 16
 //	      { // prepare to servo
@@ -6768,8 +6766,8 @@ void synchronicServo() {
       currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
       currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
 
-      pushWord(131153); // vision cycle
-      pushWord(131154); // w1 wait until at current position
+      pushWord("visionCycle"); // vision cycle
+      pushWord("waitUntilAtCurrentPosition"); 
     }
   }
 }
