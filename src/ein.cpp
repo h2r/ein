@@ -269,10 +269,6 @@ int shouldIRenderDefault = 1;
 int shouldIRender = 0;
 int renderInit = 0;
 
-// if autopilot takes too long, it gets angry and takes a shot on a yellow frame
-int take_yellow_thresh = 3600;
-int autoPilotFrameCounter = 0;
-
 int ik_reset_thresh = 20;
 int ik_reset_counter = 0;
 int ikInitialized = 0.0;
@@ -280,24 +276,24 @@ int ikInitialized = 0.0;
 double ikShare = 1.0;
 double oscillating_ikShare = .1;
 double default_ikShare = 1.0;
-int oscillatingPeriod = 3200;
-double oscillatingInvAmplitude = 4.0;
-double oscillatingBias = 0.4;
-
-int oscillating = 0;
-int oscillatingSign = 1;
-int oscillatorTimerThresh = 600;
 
 Word * current_instruction = NULL;
 double tap_factor = 0.1;
 int execute_stack = 0;
-std::vector<int> pilot_call_stack;
+
+
+std::vector<Word *> call_stack;
+void clearStack();
+Word * popWord();
+bool pushWord(int code);
+bool pushWord(string name);
+bool pushWord(Word * word);
+
 
 std::vector<Word *> words;
 std::map<int, Word *> character_code_to_word;
 std::map<string, Word *> name_to_word;
 
-int go_on_lock = 0;
 int slf_thresh = 5;
 int successive_lock_frames = 0;
 
@@ -329,7 +325,6 @@ double hoverMultiplier = 0.5;
 
 int zero_g_toggle = 0;
 int holding_pattern = 0; // TODO enum
-int auto_pilot = 0;
 
 tf::TransformListener* tfListener;
 double tfPast = 10.0;
@@ -2579,30 +2574,30 @@ Quaternionf extractQuatFromPose(geometry_msgs::Pose poseIn) {
 
 void pushNoOps(int n) {
   for (int i = 0; i < n; i++)
-    pilot_call_stack.push_back('C'); 
+    pushWord('C'); 
 }
 
 void pushCopies(int symbol, int times) {
   for (int i = 0; i < times; i++)
-    pilot_call_stack.push_back(symbol); 
+    pushWord(symbol); 
 }
 
 void pushSpeedSign(double speed) {
 
   if (speed == NOW_THATS_FAST)
-    pilot_call_stack.push_back(1114193); // set speed to NOW_THATS_FAST
+    pushWord(1114193); // set speed to NOW_THATS_FAST
   if (speed == MOVE_EVEN_FASTER)
-    pilot_call_stack.push_back(1114199); // set speed to MOVE_EVEN_FASTER 
+    pushWord(1114199); // set speed to MOVE_EVEN_FASTER 
   if (speed == MOVE_FASTER)
-    pilot_call_stack.push_back(1114181); // set speed to MOVE_FASTER
+    pushWord(1114181); // set speed to MOVE_FASTER
   if (speed == MOVE_FAST)
-    pilot_call_stack.push_back(1048674); // set speed to MOVE_FAST 
+    pushWord(1048674); // set speed to MOVE_FAST 
   if (speed == MOVE_MEDIUM)
-    pilot_call_stack.push_back(1048686); // set speed to MOVE_MEDIUM
+    pushWord(1048686); // set speed to MOVE_MEDIUM
   if (speed == MOVE_SLOW)
-    pilot_call_stack.push_back(1114190); // set speed to MOVE_SLOW
+    pushWord(1114190); // set speed to MOVE_SLOW
   if (speed == MOVE_VERY_SLOW)
-    pilot_call_stack.push_back(1114178); // set speed to MOVE_VERY_SLOW
+    pushWord(1114178); // set speed to MOVE_VERY_SLOW
 
 }
 void scanXdirection(double speedOnLines, double speedBetweenLines) {
@@ -2614,49 +2609,49 @@ void scanXdirection(double speedOnLines, double speedBetweenLines) {
 
   for (int g = 0; g < ((rmWidth*onLineGain)-(rmHalfWidth*onLineGain))+scanPadding; g++) {
     // ATTN 2
-    //pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('a');
+    //pushWord(1048677);
+    pushWord(131154); // w1 wait until at current position
+    pushWord('a');
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    //pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('e');
+    //pushWord(1048677);
+    pushWord(131154); // w1 wait until at current position
+    pushWord('e');
   }
   pushSpeedSign(speedOnLines);
 
   //int gLimit = 1+((rmWidth*betweenLineGain+2*scanPadding)/2);
   int gLimit = ((rmWidth*betweenLineGain+2*scanPadding));
   for (int g = 0; g < gLimit; g++) {
-    pilot_call_stack.push_back(1114183); // full render
-    //pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
+    pushWord(1114183); // full render
+    //pushWord(1048677);
+    pushWord(131154); // w1 wait until at current position
     pushSpeedSign(speedOnLines);
-    pilot_call_stack.push_back('d');
+    pushWord('d');
     pushSpeedSign(speedBetweenLines);
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
-      //pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back(131154); // w1 wait until at current position
-      pilot_call_stack.push_back('q');
+      //pushWord(1048677);
+      pushWord(131154); // w1 wait until at current position
+      pushWord('q');
     }
     //pushSpeedSign(speedOnLines);
-    //pilot_call_stack.push_back('d');
+    //pushWord('d');
     //pushSpeedSign(speedBetweenLines);
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
-      //pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back(131154); // w1 wait until at current position
-      pilot_call_stack.push_back('e');
+      //pushWord(1048677);
+      pushWord(131154); // w1 wait until at current position
+      pushWord('e');
     }
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    //pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('q');
+    //pushWord(1048677);
+    pushWord(131154); // w1 wait until at current position
+    pushWord('q');
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    //pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('a');
+    //pushWord(1048677);
+    pushWord(131154); // w1 wait until at current position
+    pushWord('a');
   }
   pushSpeedSign(speedOnLines);
 
@@ -2671,50 +2666,50 @@ void scanYdirection(double speedOnLines, double speedBetweenLines) {
 
   for (int g = 0; g < ((rmWidth*onLineGain)-(rmHalfWidth*onLineGain))+scanPadding; g++) {
     // ATTN 2
-    //pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('q');
+    //pushWord(1048677);
+    pushWord(131154); // w1 wait until at current position
+    pushWord('q');
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    //pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('d');
+    //pushWord(1048677);
+    pushWord(131154); // w1 wait until at current position
+    pushWord('d');
   }
   pushSpeedSign(speedOnLines);
 
   //int gLimit = 1+((rmWidth*betweenLineGain+2*scanPadding)/2);
   int gLimit = ((rmWidth*betweenLineGain+2*scanPadding));
   for (int g = 0; g < gLimit; g++) {
-    pilot_call_stack.push_back(1114183); // full render
-    //pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
+    pushWord(1114183); // full render
+    //pushWord(1048677);
+    pushWord(131154); // w1 wait until at current position
     pushSpeedSign(speedOnLines);
-    pilot_call_stack.push_back('e');
+    pushWord('e');
     pushSpeedSign(speedBetweenLines);
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
-      //pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back(131154); // w1 wait until at current position
-      pilot_call_stack.push_back('a');
+      //pushWord(1048677);
+      pushWord(131154); // w1 wait until at current position
+      pushWord('a');
     }
     //pushSpeedSign(speedOnLines);
-    //pilot_call_stack.push_back('e');
+    //pushWord('e');
     //pushSpeedSign(speedBetweenLines);
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
-      //pilot_call_stack.push_back(1048677);
-      pilot_call_stack.push_back(131154); // w1 wait until at current position
-      pilot_call_stack.push_back('d');
+      //pushWord(1048677);
+      pushWord(131154); // w1 wait until at current position
+      pushWord('d');
     }
   }
 
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    //pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('q');
+    //pushWord(1048677);
+    pushWord(131154); // w1 wait until at current position
+    pushWord('q');
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    //pilot_call_stack.push_back(1048677);
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('a');
+    //pushWord(1048677);
+    pushWord(131154); // w1 wait until at current position
+    pushWord('a');
   }
   pushSpeedSign(speedOnLines);
 }
@@ -3352,7 +3347,7 @@ void update_baxter(ros::NodeHandle &n) {
       if (ik_reset_counter > ik_reset_thresh) {
 	ik_reset_counter = 0;
 	currentEEPose = ik_reset_eePose;
-	pilot_call_stack.push_back('Y'); // pause stack execution
+	pushWord('Y'); // pause stack execution
 	pushCopies(1245308, 15); // beep
 	cout << "target position denied by ik, please reset the object.";
       }
@@ -3468,9 +3463,41 @@ void update_baxter(ros::NodeHandle &n) {
   bfc++;
 }
 
-void timercallback1(const ros::TimerEvent&) {
+void clearStack() {
+  call_stack.resize(0);
+}
+Word * popWord() {
+  Word * word = call_stack.back();
+  call_stack.pop_back();
+  return word; 
+}
 
-  eePose redTargetEEPose = beeHome;
+bool pushWord(int code) {
+  if (character_code_to_word.count(code) > 0) {
+    Word * word = character_code_to_word[code];      
+    return pushWord(word);
+  } else {
+    cout << "No word for code " << code << endl;
+    return false;
+  }
+}
+
+bool pushWord(string name) {
+  if (name_to_word.count(name) > 0) {
+    Word * word = name_to_word[name];
+    return pushWord(word);
+  } else {
+    cout << "No word for name " << name << endl;
+    return false;
+  }
+}
+
+bool pushWord(Word * word) {
+  call_stack.push_back(word);
+  return true;
+}
+
+void timercallback1(const ros::TimerEvent&) {
 
   ros::NodeHandle n("~");
   Word * word = NULL;
@@ -3489,47 +3516,13 @@ void timercallback1(const ros::TimerEvent&) {
     }
   }
 
-  if (!auto_pilot) {
-    autoPilotFrameCounter = 0;
-  }
-  // both of these could be moved into the symbolic logic
-  // if we have a lock, proceed to grab 
-
-  if ((auto_pilot && go_on_lock && (successive_lock_frames >= slf_thresh)) || ((autoPilotFrameCounter > take_yellow_thresh) && (lock_status == 1))) {
-    lock_status = 0;
-    successive_lock_frames = 0;
-    auto_pilot = 0;
-    go_on_lock = 0;
-    c = -1;
-    zero_g_toggle = 0;
-    holding_pattern = 1;
-    autoPilotFrameCounter = 0;
-  }
-  
   // deal with the stack
   if (execute_stack && takeSymbol) {
-    if (pilot_call_stack.size() > 0) {
-      c = pilot_call_stack.back();
-      pilot_call_stack.pop_back();
-      if (character_code_to_word.count(c) > 0) {
-        word = character_code_to_word[c];      
-        current_instruction = word;
-      } else {
-        cout  << "Could not find word for " << c << endl;
-        assert(0);
-      }
+    if (call_stack.size() > 0) {
+      word = popWord();
     } else {
       execute_stack = 0;
     }
-  }
-
-  if (oscillating && (lock_status == 0) && (holding_pattern == 0) && (timerCounter >= oscillatorTimerThresh)) {
-    currentEEPose.py = eepReg2.py + oscillatingSign*(oscillatingBias + sin( 2.0 * 3.1415926 * double(timesTimerCounted % oscillatingPeriod) / oscillatingPeriod)) / oscillatingInvAmplitude;
-    currentEEPose.px = eepReg2.px;
-    currentEEPose.pz = eepReg2.pz;
-    ikShare = oscillating_ikShare;
-  } else {
-    ikShare = default_ikShare;
   }
 
   if (timerCounter >= lock_reset_thresh) {
@@ -3538,151 +3531,6 @@ void timercallback1(const ros::TimerEvent&) {
   
   if (word != NULL) {
     word->execute();
-  }
-
-
-  // stateful updates
-  // this could be moved into the 'no-op' / 'continue' logic
-  if (!zero_g_toggle) {
-
-    Eigen::Quaternionf qin(0, 0, 0, 1);
-    Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
-
-    qout = eeqform * qin * eeqform.conjugate();
-
-    eeForward.x() = qout.x();
-    eeForward.y() = qout.y();
-    eeForward.z() = qout.z();
-
-    // autopilot update
-    // XXX TODO this really needs to be in the coordinate frame of the
-    //  end effector to be general enough to use. now we are assuming that
-    //  we are aligned with the table.
-    if (auto_pilot && (timerCounter < timerThresh)) {
-      currentEEPose.ox = 0.0;
-      currentEEPose.oy = 0.0;
-      currentEEPose.oz = 0.0;
-
-      double PxPre = reticle.px - pilotTarget.px; 
-      double PyPre = reticle.py - pilotTarget.py;
-
-      double Px = PxPre;
-      double Py = PyPre;
-
-      double thisDelta = bDelta;
-      lock_status = 0;
-      if ((fabs(Px) < aim_thresh) && (fabs(Py) < aim_thresh)) {
-	thisDelta = bDelta * slow_aim_factor;
-	lock_status = 1;
-      } 
-      if ((fabs(Px) < lock_thresh) && (fabs(Py) < lock_thresh)) {
-	thisDelta = bDelta * slow_aim_factor;
-	lock_status = 2;
-      }
-      // angular control
-      //currentEEPose.oy -= thisDelta*Kp*Py;
-      //currentEEPose.ox -= thisDelta*Kp*Px;
-  
-      // cartesian control
-      // square is flatter near 0 and we need the si
-      /*
-      if (Px < -cCutoff)
-	Px = -cCutoff;
-      if (Px > cCutoff)
-	Px = cCutoff;
-      if (Py < -cCutoff)
-	Py = -cCutoff;
-      if (Py > cCutoff)
-	Py = cCutoff;
-      */
-
-      double Dx = pilotTarget.px - prevPx;
-      double Dy = pilotTarget.py - prevPy;
-
-      // parallel update
-      //double pTermX = thisDelta*Kp*Px*fabs(Px);
-      //double pTermY = thisDelta*Kp*Py*fabs(Py);
-      double pTermX = thisDelta*Kp*Px;
-      double pTermY = thisDelta*Kp*Py;
-      double dTermX = -thisDelta*Kd*Dx;
-      double dTermY = -thisDelta*Kd*Dy;
-      //currentEEPose.px -= (thisDelta*Kp*Px*fabs(Px);
-      //currentEEPose.py += (thisDelta*Kp*Py*fabs(Py);
-      //currentEEPose.px -= pTermX;
-      //currentEEPose.py += pTermY;
-      currentEEPose.px -= pTermX + dTermX;
-      currentEEPose.py += pTermY + dTermY;
-
-      autoPilotFrameCounter++;
-
-
-      cout << "ikShare: " << ikShare << " Px: " << Px << " Py: " << Py << "      Dx: " << Dx << " Dy: " << Dy << "      lock_status: " << lock_status << " slf: " << successive_lock_frames << " slf_t: " << slf_thresh << endl;
-    }
-
-    // holding pattern update
-    switch (holding_pattern) {
-      case -1:
-	{
-	  if (eeRange < a_thresh_far) {
-	    currentEEPose.px -= eeForward.x()*approachStep;
-	    currentEEPose.py -= eeForward.y()*approachStep;
-	    currentEEPose.pz -= eeForward.z()*approachStep;
-	  } else {
-	    holding_pattern = 0;
-	  }
-	  baxter_core_msgs::EndEffectorCommand command;
-	  command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
-	  command.args = "{\"position\": 100.0}";
-	  command.id = 65538;
-	  gripperPub.publish(command);
-	}
-	break;
-      case 0:
-	break;
-      case 1:
-	if (eeRange > a_thresh_close) {
-	  baxter_core_msgs::EndEffectorCommand command;
-	  command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
-	  command.args = "{\"position\": 100.0}";
-	  command.id = 65538;
-	  gripperPub.publish(command);
-	  currentEEPose.px += eeForward.x()*approachStep;
-	  currentEEPose.py += eeForward.y()*approachStep;
-	  currentEEPose.pz += eeForward.z()*approachStep;
-	} else {
-	  baxter_core_msgs::EndEffectorCommand command;
-	  command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
-	  command.args = "{\"position\": 0.0}";
-	  command.id = 65538;
-	  gripperPub.publish(command);
-	  holding_pattern = 0;
-	}
-	break;
-      case 2:
-	{
-	  baxter_core_msgs::EndEffectorCommand command;
-	  command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
-	  command.args = "{\"position\": 100.0}";
-	  command.id = 65538;
-	  gripperPub.publish(command);
-	  currentEEPose.qx = -0.283134;
-	  currentEEPose.qy = 0.958744;
-	  currentEEPose.qz = -0.00634737;
-	  currentEEPose.qw = 0.0245754;
-
-	  if (eeRange > a_thresh_far) {
-	    currentEEPose.px += eeForward.x()*approachStep*hoverMultiplier;
-	    currentEEPose.py += eeForward.y()*approachStep*hoverMultiplier;
-	    currentEEPose.pz += eeForward.z()*approachStep*hoverMultiplier;
-	  } else {
-	    currentEEPose.px -= eeForward.x()*approachStep*hoverMultiplier;
-	    currentEEPose.py -= eeForward.y()*approachStep*hoverMultiplier;
-	    currentEEPose.pz -= eeForward.z()*approachStep*hoverMultiplier;
-	  }
-	}
-	break;
-    }
   }
 
   if (!zero_g_toggle) {
@@ -3701,8 +3549,6 @@ void timercallback1(const ros::TimerEvent&) {
     currentEEPose.oz = 0.0;
   }
 
-
-  //cv::waitKey(1);
   timerCounter++;
   timesTimerCounted++;
 }
@@ -3889,25 +3735,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     cv::Point inTop = cv::Point(thisReticle.px+1-thisReticleHalfWidth,thisReticle.py+1-thisReticleHalfWidth);
     cv::Point inBot = cv::Point(thisReticle.px-1+thisReticleHalfWidth,thisReticle.py-1+thisReticleHalfWidth);
 
-    if (auto_pilot) {
-      int boxBrightness = 128;
-      if (go_on_lock)
-	boxBrightness = 255;
-      Mat vCrop = wristViewImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-      cv::Scalar fillColor(0,boxBrightness,0);
-      switch (lock_status) {
-	case 0:
-	  break;
-	case 1:
-	  fillColor = cv::Scalar(0,boxBrightness,boxBrightness);
-	  break;
-	case 2:
-	  fillColor = cv::Scalar(0,0,boxBrightness);
-	  break;
-      }
-      vCrop = vCrop + fillColor;
-    }
-
     if (hri == currentThompsonHeightIdx) {
       rectangle(wristViewImage, outTop, outBot, cv::Scalar(22,70,82)); 
       rectangle(wristViewImage, inTop, inBot, cv::Scalar(68,205,239));
@@ -3950,45 +3777,17 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   cv::Point lAnchor(170,50);
   string lText = "";
   lText += "CI: ";
-  lText += current_instruction->name();
+  if (current_instruction != NULL) {
+    lText += current_instruction->name();
+  } else {
+    lText += "NULL";
+  }
   putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
 
   lAnchor.y += 20;
   lText = "";
   lText += "ZG: ";
   sprintf(buf, "%d", zero_g_toggle);
-  lText += buf;
-  lText += "  HP: ";
-  sprintf(buf, "%d", holding_pattern);
-  lText += buf;
-  lText += "  AP: ";
-  sprintf(buf, "%d", auto_pilot);
-  lText += buf;
-  putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
-
-  lAnchor.y += 20;
-  lText = "";
-  lText += "LS: ";
-  sprintf(buf, "%d", lock_status);
-  lText += buf;
-  lText += "  GOL: ";
-  sprintf(buf, "%d", go_on_lock);
-  lText += buf;
-  lText += "  SLF: ";
-  sprintf(buf, "%d", successive_lock_frames);
-  lText += buf;
-  lText += "  O: ";
-  sprintf(buf, "%d", oscillating);
-  lText += buf;
-  putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
-
-  lAnchor.y += 20;
-  lText = "";
-  lText += "TYT: ";
-  sprintf(buf, "%d", take_yellow_thresh);
-  lText += buf;
-  lText += " APFC: ";
-  sprintf(buf, "%d", autoPilotFrameCounter);
   lText += buf;
   lText += " GG: ";
   sprintf(buf, "%d", currentGraspGear);
@@ -4012,25 +3811,28 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   cv::Point csAnchor(10,stackRowY);
   putText(coreImage, "Call Stack: ", csAnchor, MY_FONT, 0.5, labelColor, 1.0);
   
-  int instructionsPerRow = 25;
+  int instructionsPerRow = 1;
   int rowAnchorStep = 25;
   cv::Point rowAnchor(120,stackRowY);
   int insCount = 0; 
 
   int numCommandsToShow = 400;
-  int lowerBound = max(int(pilot_call_stack.size() - numCommandsToShow), 0);
+  int lowerBound = max(int(call_stack.size() - numCommandsToShow), 0);
   insCount = lowerBound;
 
-  while (insCount < pilot_call_stack.size()) {
+  while (insCount < call_stack.size()) {
     string outRowText;
 
-    for (int rowCount = 0; (insCount < pilot_call_stack.size()) && (rowCount < instructionsPerRow); insCount++, rowCount++) {
-      outRowText += pilot_call_stack[max(int(pilot_call_stack.size() - (insCount - lowerBound) - 1),0)];
+    for (int rowCount = 0; (insCount < call_stack.size()) && (rowCount < instructionsPerRow); insCount++, rowCount++) {
+      outRowText += call_stack[max(int(call_stack.size() - (insCount - lowerBound) - 1),0)]->name();
       outRowText += " ";
     }
 
     putText(coreImage, outRowText, rowAnchor, MY_FONT, 0.5, dataColor, 2.0);
     rowAnchor.y += rowAnchorStep;
+    if (rowAnchor.y >= coreImage.rows) {
+      break;
+    }
   }
 
   if (shouldIRender) {
@@ -4091,8 +3893,8 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
       graspMemoryTries[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*currentGraspGear] += 1;
       graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*currentGraspGear] += 1;
     }
-    pilot_call_stack.push_back(1048679); // render reticle
-    pilot_call_stack.push_back(1048673); // render register 1
+    pushWord(1048679); // render reticle
+    pushWord(1048673); // render register 1
     execute_stack = 1;
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << eeRange << 
@@ -4103,8 +3905,8 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     if ((bigX >= rmWidth) && (bigX < 2*rmWidth) && (bigY < rmWidth)) {
       graspMemoryTries[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*currentGraspGear] += 1;
     }
-    pilot_call_stack.push_back(1048679); // render reticle
-    pilot_call_stack.push_back(1048673); // render register 1
+    pushWord(1048679); // render reticle
+    pushWord(1048673); // render register 1
     execute_stack = 1;
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << eeRange << 
@@ -4121,8 +3923,8 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 	}
       }
     }
-    pilot_call_stack.push_back(1048679); // render reticle
-    pilot_call_stack.push_back(1048673); // render register 1
+    pushWord(1048679); // render reticle
+    pushWord(1048673); // render register 1
     execute_stack = 1;
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << eeRange << 
@@ -4143,7 +3945,6 @@ void pilotInit() {
     //eepReg2 = crane2left;
     //eepReg3 = crane3left;
     eepReg4 = rssPoseL; //beeLHome;
-    oscillatingSign = 1;
     defaultReticle = defaultLeftReticle;
     //defaultReticle = centerReticle;
     reticle = defaultReticle;
@@ -4188,7 +3989,6 @@ void pilotInit() {
     //eepReg2 = crane2right;
     //eepReg3 = crane3right;
     eepReg4 = rssPoseR; //beeRHome;
-    oscillatingSign = -1;
     defaultReticle = defaultRightReticle;
     //defaultReticle = centerReticle;
     reticle = defaultReticle;
@@ -4534,28 +4334,28 @@ void changeTargetClass(int newTargetClass) {
   execute_stack = 1;	
 
 
-  pilot_call_stack.push_back(1179709); // loadMarginalHeightMemory
+  pushWord(1179709); // loadMarginalHeightMemory
 
 
-  pilot_call_stack.push_back(1048673); // render register 1
+  pushWord(1048673); // render register 1
   // ATTN 10
-  //pilot_call_stack.push_back(196360); // loadPriorGraspMemory
-  //pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+  //pushWord(196360); // loadPriorGraspMemory
+  //pushWord(1179721); // set graspMemories from classGraspMemories
   switch (currentPickMode) {
   case STATIC_PRIOR:
     {
-      pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+      pushWord(196360); // loadPriorGraspMemory
     }
     break;
   case LEARNING_ALGORITHMC:
   case LEARNING_SAMPLING:
     {
-      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+      pushWord(1179721); // set graspMemories from classGraspMemories
     }
     break;
   case STATIC_MARGINALS:
     {
-      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+      pushWord(1179721); // set graspMemories from classGraspMemories
     }
     break;
   default:
@@ -4568,19 +4368,19 @@ void changeTargetClass(int newTargetClass) {
   switch (currentBoundingBoxMode) {
   case STATIC_PRIOR:
     {
-      pilot_call_stack.push_back(1244936); // loadPriorHeightMemory
+      pushWord(1244936); // loadPriorHeightMemory
     }
     break;
   case LEARNING_ALGORITHMC:
   case LEARNING_SAMPLING:
     {
-      pilot_call_stack.push_back(1245289); // set heightMemories from classHeightMemories
+      pushWord(1245289); // set heightMemories from classHeightMemories
     }
     break;
   case STATIC_MARGINALS:
     {
       //cout << "Pushing set heightMemories from classHeightMemories" << endl;
-      pilot_call_stack.push_back(1245289); // set heightMemories from classHeightMemories
+      pushWord(1245289); // set heightMemories from classHeightMemories
     }
     break;
   default:
@@ -4683,7 +4483,7 @@ int calibrateGripper() {
     }
   }
   cout << "Gripper could not calibrate!" << endl;
-  pilot_call_stack.push_back('Y'); // pause stack execution
+  pushWord('Y'); // pause stack execution
   pushCopies(1245308, 15); // beep
   return -1;
 }
@@ -6143,8 +5943,8 @@ void recordBoundingBoxFailure() {
 
 void restartBBLearning() {
   recordBoundingBoxFailure();
-  pilot_call_stack.resize(0);
-  pilot_call_stack.push_back(1179707); // continue bounding box learning
+  clearStack();
+  pushWord(1179707); // continue bounding box learning
 }
 
 double unsignedQuaternionDistance(Quaternionf q1, Quaternionf q2) {
@@ -6529,8 +6329,8 @@ void gradientServo() {
     if (useGradientServoThresh) {
       cout << "ATTN score, thresh, norm, product: " << bestOrientationScore << " " << gradientServoResetThresh << " " << bestCropNorm << " " << (gradientServoResetThresh * bestCropNorm) << endl;
       if (bestOrientationScore < (gradientServoResetThresh * bestCropNorm) ) {
-        pilot_call_stack.push_back(131156); // synchronic servo
-        pilot_call_stack.push_back(131153); // vision cycle
+        pushWord(131156); // synchronic servo
+        pushWord(131153); // vision cycle
         cout << " XXX BAD GRADIENT SERVO SCORE, RETURN TO SYNCHRONIC XXX" << endl;
         return;
       }
@@ -6540,13 +6340,13 @@ void gradientServo() {
     // if we are not there yet, continue
     if (distance > w1GoThresh*w1GoThresh) {
     //cout << "waiting to arrive at current position." << endl;
-    pilot_call_stack.push_back(196728); // gradient servo
+    pushWord(196728); // gradient servo
     // ATTN 8
-    //pilot_call_stack.push_back(131153); // vision cycle
-    //pilot_call_stack.push_back(196721); // vision cycle no classify
+    //pushWord(131153); // vision cycle
+    //pushWord(196721); // vision cycle no classify
     pushCopies(131121, densityIterationsForGradientServo); // density
     pushCopies(1179737, 1); // reset temporal map
-    pilot_call_stack.push_back(262237); // reset aerialGradientTemporalFrameAverage
+    pushWord(262237); // reset aerialGradientTemporalFrameAverage
     pushCopies(131121, 1); // density
     //pushCopies(131154, 40); // w1 wait until at current position
     pushCopies(131154, 5); // w1 wait until at current position
@@ -6593,31 +6393,31 @@ void gradientServo() {
     cout << "  Winning Class: " << classLabels[winningClass] << " counts: " << surveyHistogram[winningClass] << endl;
     surveyWinningClass = winningClass;
   }
-    //pilot_call_stack.push_back(131161); // fetch
-    //pilot_call_stack.push_back(196729); // quick fetch
+    //pushWord(131161); // fetch
+    //pushWord(196729); // quick fetch
     // XXX
     // perform best grasp from memory in local space
 
     if (synchronicTakeClosest) {
     if (gradientTakeClosest) {
     if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
-      pilot_call_stack.push_back(1048624); // prepare for and execute the best grasp from memory at the current location and target
+      pushWord(1048624); // prepare for and execute the best grasp from memory at the current location and target
     else
-      pilot_call_stack.push_back(196729); // quick fetch
+      pushWord(196729); // quick fetch
   } else {
       return;
   }
   } else {
     if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
-      pilot_call_stack.push_back(1048624); // prepare for and execute the best grasp from memory at the current location and target
+      pushWord(1048624); // prepare for and execute the best grasp from memory at the current location and target
     else
-      pilot_call_stack.push_back(196729); // quick fetch
+      pushWord(196729); // quick fetch
   }
 
     return;
   } else {
     //cout << "executing P controller update." << endl;
-    pilot_call_stack.push_back(196728); // gradient servo
+    pushWord(196728); // gradient servo
     // simple servo code because there is no hysteresis to be found
     double pTermX = gradKp*Px;
     double pTermY = gradKp*Py;
@@ -6655,13 +6455,13 @@ void gradientServo() {
     currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
 
     // ATTN 8
-    //pilot_call_stack.push_back(131153); // vision cycle
-    //pilot_call_stack.push_back(196721); // vision cycle no classify
+    //pushWord(131153); // vision cycle
+    //pushWord(196721); // vision cycle no classify
     pushCopies(131121, densityIterationsForGradientServo); // density
     pushCopies(1179737, 1); // reset temporal map
-    pilot_call_stack.push_back(262237); // reset aerialGradientTemporalFrameAverage
+    pushWord(262237); // reset aerialGradientTemporalFrameAverage
     pushCopies(131121, 1); // density
-    //pilot_call_stack.push_back(131154); // w1 wait until at current position
+    //pushWord(131154); // w1 wait until at current position
 
     // ATTN 7
     // if you don't wait multiple times, it could get triggered early by weird ik or latency could cause a loop
@@ -6705,15 +6505,15 @@ void synchronicServo() {
     // record a failure
     cout << "Pick failure in synchronic." << endl;
     thisGraspPicked = FAILURE; 
-    pilot_call_stack.push_back(131141); // 2D patrol continue
+    pushWord(131141); // 2D patrol continue
 
-    pilot_call_stack.push_back(131153); // vision cycle
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back(1048625); // change to first gear
+    pushWord(131153); // vision cycle
+    pushWord(131154); // w1 wait until at current position
+    pushWord(1048625); // change to first gear
 
     pushCopies(1245308, 15); // beep
-    pilot_call_stack.push_back(1179714); // uniformly sample orientation for simulatedServo
-    pilot_call_stack.push_back(196717); //count grasp
+    pushWord(1179714); // uniformly sample orientation for simulatedServo
+    pushWord(196717); //count grasp
   }
 
   if (bTops.size() <= 0) {
@@ -6721,9 +6521,9 @@ void synchronicServo() {
     //currentEEPose.px = oscCenX + oscAmpX*sin(2.0*3.1415926*oscFreqX*delta.toSec());
     //currentEEPose.py = oscCenY + oscAmpY*sin(2.0*3.1415926*oscFreqY*delta.toSec());
     //currentEEPose.pz = oscCenZ + oscAmpZ*sin(2.0*3.1415926*oscFreqZ*delta.toSec());
-    pilot_call_stack.push_back(131141); // 2D patrol continue
-    pilot_call_stack.push_back(131153); // vision cycle
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
+    pushWord(131141); // 2D patrol continue
+    pushWord(131153); // vision cycle
+    pushWord(131154); // w1 wait until at current position
     cout << ">>>> HELP,  I CAN'T SEE!!!!! Going back on patrol. <<<<" << endl;
     return;
   }
@@ -6748,7 +6548,7 @@ void synchronicServo() {
       pilotTarget.pz = pilotClosestTarget.pz;
       pilotTargetBlueBoxNumber = pilotClosestBlueBoxNumber;
     } else {
-      pilot_call_stack.push_back(131141); // 2D patrol continue
+      pushWord(131141); // 2D patrol continue
       // set oscilStart to now
       oscilStart = ros::Time::now();
       // add thresh to time since vision to stimulate scan
@@ -6785,7 +6585,7 @@ void synchronicServo() {
   if (distance > w1GoThresh*w1GoThresh) {
     //cout << "waiting to arrive at current position." << endl;
     synServoLockFrames = 0;
-    pilot_call_stack.push_back(131156); // synchronic servo
+    pushWord(131156); // synchronic servo
   } else {
     if (   (fabs(Px) < synServoPixelThresh) && (fabs(Py) < synServoPixelThresh) &&
 	 !( (surveyDuringServo) && (surveyTotalCounts < viewsWithNoise) )   )
@@ -6824,14 +6624,14 @@ void synchronicServo() {
       }
       if (synchronicTakeClosest) {
 	if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
-	  pilot_call_stack.push_back(196728); // gradient servo
+	  pushWord(196728); // gradient servo
 	  cout << "Queuing gradient servo." << endl;
 	  // ATTN 8
-	  //pilot_call_stack.push_back(131153); // vision cycle
-	  //pilot_call_stack.push_back(196721); // vision cycle no classify
+	  //pushWord(131153); // vision cycle
+	  //pushWord(196721); // vision cycle no classify
 	  pushCopies(131121, densityIterationsForGradientServo); // density
 	  pushCopies(1179737, 1); // reset temporal map
-	  pilot_call_stack.push_back(262237); // reset aerialGradientTemporalFrameAverage
+	  pushWord(262237); // reset aerialGradientTemporalFrameAverage
 	  pushCopies(131121, 1); // density
 	  //pushCopies(131154, 40); // w1 wait until at current position
 	  pushCopies(131154, 5); // w1 wait until at current position
@@ -6847,14 +6647,14 @@ void synchronicServo() {
       } else if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
 	// XXX this seems wrong.
 	//return;
-	pilot_call_stack.push_back(196728); // gradient servo
+	pushWord(196728); // gradient servo
 	cout << "Queuing gradient servo." << endl;
 	// ATTN 8
-	//pilot_call_stack.push_back(131153); // vision cycle
-	//pilot_call_stack.push_back(196721); // vision cycle no classify
+	//pushWord(131153); // vision cycle
+	//pushWord(196721); // vision cycle no classify
 	pushCopies(131121, densityIterationsForGradientServo); // density
 	pushCopies(1179737, 1); // reset temporal map
-	pilot_call_stack.push_back(262237); // reset aerialGradientTemporalFrameAverage
+	pushWord(262237); // reset aerialGradientTemporalFrameAverage
 	pushCopies(131121, 1); // density
 	//pushCopies(131154, 40); // w1 wait until at current position
 	pushCopies(131154, 5); // w1 wait until at current position
@@ -6865,10 +6665,10 @@ void synchronicServo() {
 //	      }
       } else {
 	if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
-	  pilot_call_stack.push_back(1048624); // prepare for and execute the best grasp from memory at the current location and target
+	  pushWord(1048624); // prepare for and execute the best grasp from memory at the current location and target
 	  cout << "Recalling range map and calculating grasp..." << endl;
 	} else {
-	  pilot_call_stack.push_back(196729); // quick fetch
+	  pushWord(196729); // quick fetch
 	  cout << "No range map recalled so performing a quick fetch..." << endl;
 	}
       }
@@ -6876,7 +6676,7 @@ void synchronicServo() {
       return;	
     } else {
       //cout << "executing P controller update." << endl;
-      pilot_call_stack.push_back(131156); // synchronic servo
+      pushWord(131156); // synchronic servo
       // simple servo code because there is no hysteresis to be found
 
 
@@ -6920,8 +6720,8 @@ void synchronicServo() {
       currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
       currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
 
-      pilot_call_stack.push_back(131153); // vision cycle
-      pilot_call_stack.push_back(131154); // w1 wait until at current position
+      pushWord(131153); // vision cycle
+      pushWord(131154); // w1 wait until at current position
     }
   }
 }
@@ -11241,17 +11041,17 @@ int main(int argc, char **argv) {
 
   saveROSParams();
 
-  pilot_call_stack.push_back('u'); // printState
+  pushWord('u'); // printState
   int devInit = 1;
   if (devInit) {
-    pilot_call_stack.push_back(196437); // increment target class
+    pushWord(196437); // increment target class
 
-    pilot_call_stack.push_back(1179720); // set gradient servo take closest
-    //pilot_call_stack.push_back(1179719); // set gradient servo don't take closest
-    pilot_call_stack.push_back(196707); // synchronic servo take closest
+    pushWord(1179720); // set gradient servo take closest
+    //pushWord(1179719); // set gradient servo don't take closest
+    pushWord(196707); // synchronic servo take closest
   }
 
-  pilot_call_stack.push_back(1048625); // change gear to 1
+  pushWord(1048625); // change gear to 1
 
   execute_stack = 1;
 

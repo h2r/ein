@@ -74,20 +74,20 @@ virtual void execute()       {
   heightSuccessCounter = 0;
   thompsonPickHaltFlag = 0;
   thompsonHeightHaltFlag = 0;
-  pilot_call_stack.push_back(1179707); // continue height learning
-  pilot_call_stack.push_back(65568+3); // record register 3
+  pushWord(1179707); // continue height learning
+  pushWord(65568+3); // record register 3
 
-  pilot_call_stack.push_back(131139); // synchronic servo don't take closest
-  pilot_call_stack.push_back(131156); // synchronic servo
-  pilot_call_stack.push_back(196707); // synchronic servo take closest
-  pilot_call_stack.push_back(131153); // vision cycle
-  pilot_call_stack.push_back(131154); // w1 wait until at current position
+  pushWord(131139); // synchronic servo don't take closest
+  pushWord(131156); // synchronic servo
+  pushWord(196707); // synchronic servo take closest
+  pushWord(131153); // vision cycle
+  pushWord(131154); // w1 wait until at current position
   { // prepare to servo
     //currentEEPose.pz = wholeFoodsCounter1.pz+.1;
-    pilot_call_stack.push_back(1245248); // change to height 1
+    pushWord(1245248); // change to height 1
   }
-  //pilot_call_stack.push_back(1179723); // change height inference mode to LEARNING_SAMPLING
-  pilot_call_stack.push_back('3'); // recall register 3
+  //pushWord(1179723); // change height inference mode to LEARNING_SAMPLING
+  pushWord('3'); // recall register 3
 }
 END_WORD
 
@@ -104,7 +104,7 @@ CODE(1179707)     // capslock + numlock + ;
   if (thompsonHardCutoff) {
     if (heightAttemptCounter < thompsonTries - 1) {
       // push this program 
-      pilot_call_stack.push_back(1179707); // begin bounding box learning
+      pushWord(1179707); // begin bounding box learning
     } else {
       pushCopies(1245308, 15); // beep
     }
@@ -114,49 +114,49 @@ CODE(1179707)     // capslock + numlock + ;
          (heightAttemptCounter >= thompsonTries - 1) ) {
       cout << "Clearing call stack. thompsonHeightHaltFlag = " << thompsonHeightHaltFlag << 
         " and we did " << heightAttemptCounter << " tries." << endl;
-      pilot_call_stack.resize(0);
+      clearStack();
       pushCopies(1245308, 15); // beep
       return;
     } else {
       if (heightAttemptCounter < thompsonTries - 1) {
         // push this program 
-        pilot_call_stack.push_back(1179707); // begin bounding box learning
+        pushWord(1179707); // begin bounding box learning
       } else {
         cout << "Clearing call stack. thompsonHeightHaltFlag = " << thompsonHeightHaltFlag << 
           " and we did " << heightAttemptCounter << " tries." << endl;
-        pilot_call_stack.resize(0);
+        clearStack();
       }
     }
   }
 
   // record the bblearn trial if successful
-  pilot_call_stack.push_back(1179694); 
+  pushWord(1179694); 
 
-  pilot_call_stack.push_back(131139); // synchronic servo don't take closest
-  pilot_call_stack.push_back(131156); // synchronic servo
-  pilot_call_stack.push_back(196707); // synchronic servo take closest
-  pilot_call_stack.push_back(131153); // vision cycle
-  //pilot_call_stack.push_back(1179695); // check to see if bounding box is unique (early outting if not)
-  pilot_call_stack.push_back(131153); // vision cycle
-  pilot_call_stack.push_back(131154); // w1 wait until at current position
-  pilot_call_stack.push_back(1179687); // set random position for bblearn
+  pushWord(131139); // synchronic servo don't take closest
+  pushWord(131156); // synchronic servo
+  pushWord(196707); // synchronic servo take closest
+  pushWord(131153); // vision cycle
+  //pushWord(1179695); // check to see if bounding box is unique (early outting if not)
+  pushWord(131153); // vision cycle
+  pushWord(131154); // w1 wait until at current position
+  pushWord(1179687); // set random position for bblearn
 
-  pilot_call_stack.push_back(65568+4); // record register 4
+  pushWord(65568+4); // record register 4
 
   // servo to object, which will early out if it times out 
-  pilot_call_stack.push_back(131139); // synchronic servo don't take closest
-  pilot_call_stack.push_back(131156); // synchronic servo
-  pilot_call_stack.push_back(196707); // synchronic servo take closest
-  pilot_call_stack.push_back(131153); // vision cycle
-  //pilot_call_stack.push_back(1179695); // check to see if bounding box is unique (early outting if not)
-  pilot_call_stack.push_back(131153); // vision cycle
-  pilot_call_stack.push_back(131154); // w1 wait until at current position
-  pilot_call_stack.push_back(1179687); // set random position for bblearn
+  pushWord(131139); // synchronic servo don't take closest
+  pushWord(131156); // synchronic servo
+  pushWord(196707); // synchronic servo take closest
+  pushWord(131153); // vision cycle
+  //pushWord(1179695); // check to see if bounding box is unique (early outting if not)
+  pushWord(131153); // vision cycle
+  pushWord(131154); // w1 wait until at current position
+  pushWord(1179687); // set random position for bblearn
 
-  pilot_call_stack.push_back(1245247); // sample height
+  pushWord(1245247); // sample height
 
-  pilot_call_stack.push_back(1179717); // change to pantry table
-  pilot_call_stack.push_back('3'); // recall register 3
+  pushWord(1179717); // change to pantry table
+  pushWord('3'); // recall register 3
 }
 END_WORD
 

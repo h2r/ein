@@ -122,11 +122,11 @@ WORD(FullRender)
 CODE(1114183)     // numlock + G 
 virtual void execute() {
   if (!shouldIRender) {
-    pilot_call_stack.push_back(1114177); // manual render
+    pushWord(1114177); // manual render
   }
-  pilot_call_stack.push_back(1048679); // render reticle
-  pilot_call_stack.push_back(1048673); // render register 1
-  pilot_call_stack.push_back(1048690); // load map to register 1
+  pushWord(1048679); // render reticle
+  pushWord(1048673); // render register 1
+  pushWord(1048690); // load map to register 1
 }
 END_WORD
 

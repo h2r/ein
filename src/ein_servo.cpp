@@ -5,77 +5,77 @@ virtual void execute()       {
 
   if (useContinuousGraspTransform) {
   } else {
-    pilot_call_stack.push_back(1179728); // estimateGlobalGraspGear
+    pushWord(1179728); // estimateGlobalGraspGear
   }
 
   // select max target cumulative
-  pilot_call_stack.push_back(1114195);
+  pushWord(1114195);
   // apply grasp filter for 4
-  pilot_call_stack.push_back(1048673); // drawMapRegisters
-  pilot_call_stack.push_back(1048692); // apply grasp filter
-  pilot_call_stack.push_back(1048688); // prepare grasp filter for 4
+  pushWord(1048673); // drawMapRegisters
+  pushWord(1048692); // apply grasp filter
+  pushWord(1048688); // prepare grasp filter for 4
   // load reg1
-  pilot_call_stack.push_back(131162); // load target classRangeMap
+  pushWord(131162); // load target classRangeMap
   // change gear to 4
-  pilot_call_stack.push_back(1048628);
+  pushWord(1048628);
 
   // select max target cumulative
-  pilot_call_stack.push_back(1114195);
+  pushWord(1114195);
   // apply grasp filter for 3
-  pilot_call_stack.push_back(1048673); // drawMapRegisters    
-  pilot_call_stack.push_back(1048692); // apply grasp filter
-  pilot_call_stack.push_back(1048693); // prepare grasp filter for 3
+  pushWord(1048673); // drawMapRegisters    
+  pushWord(1048692); // apply grasp filter
+  pushWord(1048693); // prepare grasp filter for 3
   // load reg1
-  pilot_call_stack.push_back(131162); // load target classRangeMap
+  pushWord(131162); // load target classRangeMap
   // change gear to 3
-  pilot_call_stack.push_back(1048627);
+  pushWord(1048627);
 
   // select max target cumulative
-  pilot_call_stack.push_back(1114195);
+  pushWord(1114195);
   // apply grasp filter for 2
-  pilot_call_stack.push_back(1048673); // drawMapRegisters
-  pilot_call_stack.push_back(1048692); // apply grasp filter
-  pilot_call_stack.push_back(1048687); // prepare to apply grasp filter for 2
+  pushWord(1048673); // drawMapRegisters
+  pushWord(1048692); // apply grasp filter
+  pushWord(1048687); // prepare to apply grasp filter for 2
   // load reg1
-  pilot_call_stack.push_back(131162); // load target classRangeMap
+  pushWord(131162); // load target classRangeMap
   // change gear to 2
-  pilot_call_stack.push_back(1048626);
+  pushWord(1048626);
 
   // select max target NOT cumulative
-  pilot_call_stack.push_back(1048691);
+  pushWord(1048691);
 
 
               
   // apply grasp filter for 1
-  pilot_call_stack.push_back(1048673); // drawMapRegisters 
-  pilot_call_stack.push_back(1048692); // apply grasp filter
-  pilot_call_stack.push_back(1048681); // prepare to apply grasp filter for 1
+  pushWord(1048673); // drawMapRegisters 
+  pushWord(1048692); // apply grasp filter
+  pushWord(1048681); // prepare to apply grasp filter for 1
   // load reg1
-  pilot_call_stack.push_back(131162); // load target classRangeMap
+  pushWord(131162); // load target classRangeMap
 
   // change gear to 1
-  pilot_call_stack.push_back(1048625);
+  pushWord(1048625);
 
   // ATTN 10
   // loadSampled gives proper Thompson
   // loadMarginal is MAP estimate
-  //pilot_call_stack.push_back(131117); // loadSampledGraspMemory
-  //pilot_call_stack.push_back(131133); // loadMarginalGraspMemory	
+  //pushWord(131117); // loadSampledGraspMemory
+  //pushWord(131133); // loadMarginalGraspMemory	
   switch (currentPickMode) {
   case STATIC_PRIOR:
     {
-      pilot_call_stack.push_back(131133); // loadMarginalGraspMemory
+      pushWord(131133); // loadMarginalGraspMemory
     }
     break;
   case LEARNING_SAMPLING:
     {
-      pilot_call_stack.push_back(131117); // loadSampledGraspMemory
+      pushWord(131117); // loadSampledGraspMemory
     }
     break;
   case LEARNING_ALGORITHMC:
   case STATIC_MARGINALS:
     {
-      pilot_call_stack.push_back(131133); // loadMarginalGraspMemory
+      pushWord(131133); // loadMarginalGraspMemory
     }
     break;
   default:
@@ -85,8 +85,8 @@ virtual void execute()       {
     break;
   }
 
-  pilot_call_stack.push_back(1048684); // turn off scanning
-  pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+  pushWord(1048684); // turn off scanning
+  pushWord(1179721); // set graspMemories from classGraspMemories
 }
 END_WORD
 
@@ -107,14 +107,14 @@ virtual void execute()       {
       
   cout << "Assuming x,y,gear: " << targetX << " " << targetY << " " << maxGG << endl;
 
-  pilot_call_stack.push_back(131154); // w1 wait until at current position
+  pushWord(131154); // w1 wait until at current position
 
   // ATTN 19
   if (useContinuousGraspTransform) {
     cout << "Assuming continuous maxGG: " << maxGG << " localMaxGG: " << localMaxGG << endl;
     setCCRotation((maxGG+4)%4); 
   } else {
-    pilot_call_stack.push_back(1048631); // assume best gear
+    pushWord(1048631); // assume best gear
   }
 }
 END_WORD
@@ -122,7 +122,7 @@ END_WORD
 WORD(MoveToTargetZAndGrasp)
 CODE(1048682)     // numlock + j
 virtual void execute()       {
-  pilot_call_stack.push_back('j');  // close gripper
+  pushWord('j');  // close gripper
   double threshedZ = min(trZ, 0.0);
 
   double pickZ = (-(threshedZ + currentTableZ) - graspDepth);
@@ -138,16 +138,16 @@ virtual void execute()       {
   if (deltaZ > 0)
     for (int zc = 0; zc < zTimes; zc++) {
       for (int cc = 0; cc < numNoOps; cc++) {
-        pilot_call_stack.push_back('C');
+        pushWord('C');
       }
-      pilot_call_stack.push_back('w');
+      pushWord('w');
     }
   if (deltaZ < 0)
     for (int zc = 0; zc < zTimes; zc++) {
       for (int cc = 0; cc < numNoOps; cc++) {
-        pilot_call_stack.push_back('C');
+        pushWord('C');
       }
-      pilot_call_stack.push_back('s');
+      pushWord('s');
     }
 }
 END_WORD
@@ -163,17 +163,17 @@ virtual void execute() {
   pushSpeedSign(MOVE_FAST);    
   if (isGripperGripping()) {
     happy();
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('5');  // assume pose at register 5
+    pushWord(131154); // w1 wait until at current position
+    pushWord('5');  // assume pose at register 5
       
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('6'); // assume pose at register 6
+    pushWord(131154); // w1 wait until at current position
+    pushWord('6'); // assume pose at register 6
       
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('5'); // assume pose at register 5
+    pushWord(131154); // w1 wait until at current position
+    pushWord('5'); // assume pose at register 5
       
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back('6');
+    pushWord(131154); // w1 wait until at current position
+    pushWord('6');
 
   }
 
@@ -192,16 +192,16 @@ virtual void execute() {
   if (deltaZ > 0)
     for (int zc = 0; zc < zTimes; zc++) {
       for (int cc = 0; cc < numNoOps; cc++) {
-        pilot_call_stack.push_back('C');
+        pushWord('C');
       }
-      pilot_call_stack.push_back('w');
+      pushWord('w');
     }
   if (deltaZ < 0)
     for (int zc = 0; zc < zTimes; zc++) {
       for (int cc = 0; cc < numNoOps; cc++) {
-        pilot_call_stack.push_back('C');
+        pushWord('C');
       }
-      pilot_call_stack.push_back('s');
+      pushWord('s');
     }
 }
 END_WORD
@@ -217,11 +217,11 @@ CODE( 131157)     // capslock + u
   // TODO push this and then a calibration message if uncalibrated
   // push this again if moving
   if (gripperMoving) {
-    pilot_call_stack.push_back(131157); // assert yes grasp
+    pushWord(131157); // assert yes grasp
   } else {
     if (isGripperGripping())
       {
-        pilot_call_stack.pop_back();
+        popWord();
         // leave gripper in released state
         cout << "  assert yes pops back instruction." << endl;
       } else {
@@ -247,10 +247,10 @@ CODE(196649)     // capslock + i
   cout << "assert no grasp: " << gripperMoving << " " << gripperGripping << " " << gripperPosition << endl;
 
   if (gripperMoving) {
-    pilot_call_stack.push_back(196649); // assert no grasp
+    pushWord(196649); // assert no grasp
   } else {
     if (!isGripperGripping())  {
-      pilot_call_stack.pop_back();
+      popWord();
       // leave gripper in released state
       cout << "  assert no pops back instruction." << endl;
       if (thisGraspReleased == UNKNOWN) {
@@ -258,7 +258,7 @@ CODE(196649)     // capslock + i
       }
     } else {
       // stuck
-      pilot_call_stack.push_back('Y'); // pause stack execution
+      pushWord('Y'); // pause stack execution
       pushCopies(1245308, 15); // beep
       cout << "Stuck, please reset the object. ";
       cout << " gripperPosition: " << gripperPosition;
@@ -268,7 +268,7 @@ CODE(196649)     // capslock + i
         sad();
       }
     }
-    pilot_call_stack.push_back('k'); // open gripper
+    pushWord('k'); // open gripper
 
   }
 
@@ -281,28 +281,28 @@ CODE( 131151)     // capslock + o
   int depthToPlunge = 24;
   int flexThisFar = 80;
   cout << "SHAKING IT OFF!!!" << endl;
-  pilot_call_stack.push_back(196719); // shake it off 2
-  pilot_call_stack.push_back(196649); // assert no grasp
+  pushWord(196719); // shake it off 2
+  pushWord(196649); // assert no grasp
 
   pushNoOps(60);
-  //pilot_call_stack.push_back('2'); // assume pose at register 2
-  pilot_call_stack.push_back('j'); // close gripper
+  //pushWord('2'); // assume pose at register 2
+  pushWord('j'); // close gripper
   pushNoOps(20);
-  pilot_call_stack.push_back('k'); // open gripper
-  pilot_call_stack.push_back('j'); // close gripper
+  pushWord('k'); // open gripper
+  pushWord('j'); // close gripper
   pushNoOps(20);
   //pushCopies('w', depthToPlunge); // move up 
-  pilot_call_stack.push_back('k'); // open gripper
-  pilot_call_stack.push_back('j'); // close gripper
+  pushWord('k'); // open gripper
+  pushWord('j'); // close gripper
   //pushNoOps(20);
   //pushCopies('s'+65504, flexThisFar); // rotate forward
   //pushCopies('e', 5); // move forward
   //pushCopies('s', depthToPlunge); // move down
-  pilot_call_stack.push_back('k'); // open gripper
+  pushWord('k'); // open gripper
   pushNoOps(50);
   //pushCopies('w'+65504, flexThisFar); // rotate forward
 
-  //pilot_call_stack.push_back('2'); // assume pose at register 2
+  //pushWord('2'); // assume pose at register 2
   pushSpeedSign(MOVE_FAST);
 
   // resets the gripper server
@@ -422,7 +422,7 @@ WORD(CheckGrasp)
 CODE(196718)     // capslock + N 
   virtual void execute()       {
   if (gripperMoving) {
-    pilot_call_stack.push_back(196718); // check grasp
+    pushWord(196718); // check grasp
   } else {
     cout << "gripperPosition: " << gripperPosition << " gripperThresh: " << gripperThresh << endl;
     cout << "gripperGripping: " << gripperGripping << endl;
@@ -446,7 +446,7 @@ CODE(196713)     // capslock + I
   int i = localMaxX + localMaxY * rmWidth + rmWidth*rmWidth*localMaxGG;
   int j = localMaxX + localMaxY * rmWidth + rmWidth*rmWidth*0;
   if (gripperMoving) {
-    pilot_call_stack.push_back(196713); // check and count grasp
+    pushWord(196713); // check and count grasp
   } else {
     graspAttemptCounter++;
     switch (currentPickMode) {
@@ -485,7 +485,7 @@ CODE(196713)     // capslock + I
         recordBoundingBoxFailure();
       }
       cout << "Failed grasp." << endl;
-      //pilot_call_stack.push_back('Y'); // pause stack execution
+      //pushWord('Y'); // pause stack execution
       pushCopies(1245308, 15); // beep
     } else {
       if (ARE_GENERIC_HEIGHT_LEARNING()) {
@@ -583,90 +583,90 @@ WORD(PrepareForAndExecuteGraspFromMemory)
 CODE(1048624)     // numlock + 0
 virtual void execute()       {
   if (!ARE_GENERIC_HEIGHT_LEARNING()) {
-    pilot_call_stack.push_back(131141); // 2D patrol continue
+    pushWord(131141); // 2D patrol continue
   }
 
-  pilot_call_stack.push_back(131153); // vision cycle
-  pilot_call_stack.push_back(131154); // w1 wait until at current position
-  pilot_call_stack.push_back(1245247); // sample height
-  pilot_call_stack.push_back(1048625); // change to first gear
+  pushWord(131153); // vision cycle
+  pushWord(131154); // w1 wait until at current position
+  pushWord(1245247); // sample height
+  pushWord(1048625); // change to first gear
 
-  pilot_call_stack.push_back(196717); //count grasp
+  pushWord(196717); //count grasp
 
-  pilot_call_stack.push_back('k'); // open gripper
-  pilot_call_stack.push_back(131151); // shake it off 1
-  pilot_call_stack.push_back(196649); // assert no grasp
+  pushWord('k'); // open gripper
+  pushWord(131151); // shake it off 1
+  pushWord(196649); // assert no grasp
 
   pushNoOps(30);
-  pilot_call_stack.push_back('j'); // close gripper
-  pilot_call_stack.push_back(131154); // w1 wait until at current position
+  pushWord('j'); // close gripper
+  pushWord(131154); // w1 wait until at current position
   pushCopies('w', 10);
   pushNoOps(30);
-  pilot_call_stack.push_back('k'); // open gripper
+  pushWord('k'); // open gripper
 
   pushNoOps(5);
-  pilot_call_stack.push_back(262241); // try to move to the last pick height 
+  pushWord(262241); // try to move to the last pick height 
 
   //count here so that if it drops it on the way it will count as a miss
   { // in case it fell out
-    pilot_call_stack.push_back(196718); // check grasp
+    pushWord(196718); // check grasp
 
     pushNoOps(30);
-    pilot_call_stack.push_back('j'); // close gripper
-    pilot_call_stack.push_back(131081); // shake it up and down
+    pushWord('j'); // close gripper
+    pushWord(131081); // shake it up and down
 
     pushNoOps(5);
-    pilot_call_stack.push_back('j'); // close gripper
+    pushWord('j'); // close gripper
   }
 
-  pilot_call_stack.push_back(131154); // w1 wait until at current position
+  pushWord(131154); // w1 wait until at current position
 
   if (ARE_GENERIC_HEIGHT_LEARNING()) {
-    pilot_call_stack.push_back(1179687); // set random position for bblearn
+    pushWord(1179687); // set random position for bblearn
   } else {
-    pilot_call_stack.push_back(1048623); // numlock + /
+    pushWord(1048623); // numlock + /
   }
 
   pushCopies('s', 3);
-  pilot_call_stack.push_back(131154); // w1 wait until at current position
+  pushWord(131154); // w1 wait until at current position
 
   if (ARE_GENERIC_HEIGHT_LEARNING())
-    pilot_call_stack.push_back('4'); // assume pose at register 4
+    pushWord('4'); // assume pose at register 4
   else
-    pilot_call_stack.push_back('2'); // assume pose at register 2
+    pushWord('2'); // assume pose at register 2
 
   pushNoOps(10);
 
   // XXX TODO this is broken because we no longer know the height in the transformed space
   // need to translate to current table height
-  pilot_call_stack.push_back(1048682); // grasp at z inferred from target
-  //pilot_call_stack.push_back(1114186); // use current range as target z and grasp
-  pilot_call_stack.push_back(131154); // w1 wait until at current position
-  //pilot_call_stack.push_back(1048680); // assume x,y of target 
-  pilot_call_stack.push_back(1114175); // assume x,y of target in local space
+  pushWord(1048682); // grasp at z inferred from target
+  //pushWord(1114186); // use current range as target z and grasp
+  pushWord(131154); // w1 wait until at current position
+  //pushWord(1048680); // assume x,y of target 
+  pushWord(1114175); // assume x,y of target in local space
 
-  pilot_call_stack.push_back(1048679); // render reticle
-  //pilot_call_stack.push_back(1048691); // find max on register 1
-  pilot_call_stack.push_back(1048673); // render register 1
+  pushWord(1048679); // render reticle
+  //pushWord(1048691); // find max on register 1
+  pushWord(1048673); // render register 1
 
-  pilot_call_stack.push_back(131162); // load target classRangeMap
+  pushWord(131162); // load target classRangeMap
 
   // ATTN 19 
-  //pilot_call_stack.push_back(1048631); // assume best gear
-  pilot_call_stack.push_back(1048678); // target best grasp
-  pilot_call_stack.push_back(1048620); // find best grasp from memory
+  //pushWord(1048631); // assume best gear
+  pushWord(1048678); // target best grasp
+  pushWord(1048620); // find best grasp from memory
 
-  pilot_call_stack.push_back(131162); // load target classRangeMap
-  pilot_call_stack.push_back(1048695); // clear scan history
-  pilot_call_stack.push_back(1048684); // turn off scanning
+  pushWord(131162); // load target classRangeMap
+  pushWord(1048695); // clear scan history
+  pushWord(1048684); // turn off scanning
 
   { // this sets the gripper closed thresh appropriately
-    pilot_call_stack.push_back(1179713); // set gripperThresh 
+    pushWord(1179713); // set gripperThresh 
     pushNoOps(30);
-    pilot_call_stack.push_back('k'); // open gripper
+    pushWord('k'); // open gripper
     pushNoOps(30);
-    pilot_call_stack.push_back('j'); // close gripper
-    pilot_call_stack.push_back('i'); // initialize gripper
+    pushWord('j'); // close gripper
+    pushWord('i'); // initialize gripper
   }
   calibrateGripper();
 }
@@ -770,65 +770,65 @@ CODE(1048630)  // numlock + 6
 virtual void execute() {
   cout << "Selecting best of 4 grasps... numlock + 6" << endl;
   // select max target cumulative
-  pilot_call_stack.push_back(1114195);
+  pushWord(1114195);
   // apply grasp filter for 4
-  pilot_call_stack.push_back(1048673); // drawMapRegisters
-  pilot_call_stack.push_back(1048692);
-  pilot_call_stack.push_back(1048688);
+  pushWord(1048673); // drawMapRegisters
+  pushWord(1048692);
+  pushWord(1048688);
   // blur
-  pilot_call_stack.push_back(1048673); // drawMapRegisters
-  pilot_call_stack.push_back(1048692);
-  pilot_call_stack.push_back(1048697);
+  pushWord(1048673); // drawMapRegisters
+  pushWord(1048692);
+  pushWord(1048697);
   // load reg1
-  pilot_call_stack.push_back(1048690);
+  pushWord(1048690);
   // change gear to 4
-  pilot_call_stack.push_back(1048628);
+  pushWord(1048628);
 
   // select max target cumulative
-  pilot_call_stack.push_back(1114195);
+  pushWord(1114195);
   // apply grasp filter for 3
-  pilot_call_stack.push_back(1048673); // drawMapRegisters
-  pilot_call_stack.push_back(1048692);
-  pilot_call_stack.push_back(1048693);
+  pushWord(1048673); // drawMapRegisters
+  pushWord(1048692);
+  pushWord(1048693);
   // blur
-  pilot_call_stack.push_back(1048673); // drawMapRegisters
-  pilot_call_stack.push_back(1048692);
-  pilot_call_stack.push_back(1048697);
+  pushWord(1048673); // drawMapRegisters
+  pushWord(1048692);
+  pushWord(1048697);
   // load reg1
-  pilot_call_stack.push_back(1048690);
+  pushWord(1048690);
   // change gear to 3
-  pilot_call_stack.push_back(1048627);
+  pushWord(1048627);
 
   // select max target cumulative
-  pilot_call_stack.push_back(1114195);
+  pushWord(1114195);
   // apply grasp filter for 2
-  pilot_call_stack.push_back(1048673); // drawMapRegisters
-  pilot_call_stack.push_back(1048692);
-  pilot_call_stack.push_back(1048687);
+  pushWord(1048673); // drawMapRegisters
+  pushWord(1048692);
+  pushWord(1048687);
   // blur
-  pilot_call_stack.push_back(1048673); // drawMapRegisters
-  pilot_call_stack.push_back(1048692);
-  pilot_call_stack.push_back(1048697);
+  pushWord(1048673); // drawMapRegisters
+  pushWord(1048692);
+  pushWord(1048697);
   // load reg1
-  pilot_call_stack.push_back(1048690);
+  pushWord(1048690);
   // change gear to 2
-  pilot_call_stack.push_back(1048626);
+  pushWord(1048626);
 
   // select max target NOT cumulative
-  pilot_call_stack.push_back(1048691);
+  pushWord(1048691);
   // apply grasp filter for 1
-  pilot_call_stack.push_back(1048673); // drawMapRegisters
-  pilot_call_stack.push_back(1048692);
-  pilot_call_stack.push_back(1048681);
+  pushWord(1048673); // drawMapRegisters
+  pushWord(1048692);
+  pushWord(1048681);
   // blur
-  pilot_call_stack.push_back(1048673); // drawMapRegisters
-  pilot_call_stack.push_back(1048692);
-  pilot_call_stack.push_back(1048697);
+  pushWord(1048673); // drawMapRegisters
+  pushWord(1048692);
+  pushWord(1048697);
   // load reg1
-  pilot_call_stack.push_back(1048690);
+  pushWord(1048690);
   // change gear to 1
-  pilot_call_stack.push_back(1048625);
-  pilot_call_stack.push_back(1048684); // turn off scanning
+  pushWord(1048625);
+  pushWord(1048684); // turn off scanning
 }
 END_WORD
 
@@ -988,14 +988,14 @@ virtual void execute()       {
   oscCenX = currentEEPose.px;
   oscCenY = currentEEPose.py;
   oscCenZ = currentEEPose.pz+0.1;
-  pilot_call_stack.push_back(131141); // 2D patrol continue
-  pilot_call_stack.push_back(131153); // vision cycle
+  pushWord(131141); // 2D patrol continue
+  pushWord(131153); // vision cycle
   // we want to move to a higher holding position for visual patrol
   // so we assume that we are at 20 cm = IR scan height and move to 30 cm
   pushSpeedSign(MOVE_FAST);
-  pilot_call_stack.push_back(1179717); // change to pantry table
-  pilot_call_stack.push_back(1179724); // change bounding box inference mode to STATIC_MARGINALS
-  pilot_call_stack.push_back(196707); // synchronic servo take closest
+  pushWord(1179717); // change to pantry table
+  pushWord(1179724); // change bounding box inference mode to STATIC_MARGINALS
+  pushWord(196707); // synchronic servo take closest
 }
 END_WORD
 
@@ -1010,7 +1010,7 @@ virtual void execute() {
     if (thompsonHardCutoff) {
       if (graspAttemptCounter >= thompsonTries) {
         cout << "Clearing call stack because we did " << graspAttemptCounter << " tries." << endl;
-        pilot_call_stack.resize(0);
+        clearStack();
         pushCopies(1245308, 15); // beep
         return;
       }
@@ -1021,7 +1021,7 @@ virtual void execute() {
            (graspAttemptCounter >= thompsonTries) ) {
         cout << "Clearing call stack. thompsonPickHaltFlag = " << thompsonPickHaltFlag << 
           " and we did " << graspAttemptCounter << " tries." << endl;
-        pilot_call_stack.resize(0);
+        clearStack();
         pushCopies(1245308, 15); // beep
         return;
       }
@@ -1041,8 +1041,8 @@ virtual void execute() {
        (synchronicTakeClosest && ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1))) )
     {
       // if so, push servoing command and set lock frames to 0
-      pilot_call_stack.push_back(131156); // synchronic servo
-      pilot_call_stack.push_back(131146); // turn survey on
+      pushWord(131156); // synchronic servo
+      pushWord(131146); // turn survey on
       
       if (targetClass != -1)
         cout << "Found the target " << classLabels[targetClass] << ". " << endl;
@@ -1051,20 +1051,20 @@ virtual void execute() {
     } else {
     // if not, potentially do vision and continue the 2D patrol
     
-    pilot_call_stack.push_back(131141); // 2D patrol continue
+    pushWord(131141); // 2D patrol continue
     // check and push vision cycle 
     ros::Duration timeSinceLast = ros::Time::now() - lastVisionCycle;
     if (timeSinceLast.toSec() > visionCycleInterval) {
       if (collectBackgroundInstances) {
-        pilot_call_stack.push_back(131152); // save all blue boxes as focused class
+        pushWord(131152); // save all blue boxes as focused class
       }
-      pilot_call_stack.push_back(131153); // vision cycle
+      pushWord(131153); // vision cycle
       // grab the last bit of accumulated time
       accumulatedTime = accumulatedTime + (ros::Time::now() - oscilStart);
     }
   }
   // if you are static_prior, this does nothing and defaults to the usual height
-  pilot_call_stack.push_back(1245247); // sample height
+  pushWord(1245247); // sample height
 }
 END_WORD
 

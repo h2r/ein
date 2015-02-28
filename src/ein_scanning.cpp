@@ -13,27 +13,27 @@ virtual void execute() {
     }
   }
 
-  pilot_call_stack.push_back(1048673); // render register 1
+  pushWord(1048673); // render register 1
   // ATTN 10
-  //pilot_call_stack.push_back(196360); // loadPriorGraspMemory
-  //pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+  //pushWord(196360); // loadPriorGraspMemory
+  //pushWord(1179721); // set graspMemories from classGraspMemories
   switch (currentPickMode) {
   case STATIC_PRIOR:
     {
-      pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+      pushWord(196360); // loadPriorGraspMemory
     }
     return;
   case LEARNING_ALGORITHMC:
   case LEARNING_SAMPLING:
     {
-      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
-      //pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+      pushWord(1179721); // set graspMemories from classGraspMemories
+      //pushWord(196360); // loadPriorGraspMemory
     }
     break;
   case STATIC_MARGINALS:
     {
-      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
-      //pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+      pushWord(1179721); // set graspMemories from classGraspMemories
+      //pushWord(196360); // loadPriorGraspMemory
     }
     return;
   default:
@@ -131,7 +131,7 @@ END_WORD
 WORD(VisionCycleNoClassify)
 CODE(196721)     // capslock + Q
 virtual void execute()       {
-  pilot_call_stack.push_back(131122); // blue boxes
+  pushWord(131122); // blue boxes
   pushCopies(131121, 1); // density
   pushCopies(1179737, 1); // reset temporal map
   pushCopies(131121, 1); // density
@@ -171,34 +171,34 @@ virtual void execute()       {
 
   pushCopies('e', 5);
   pushCopies('a', 5);
-  pilot_call_stack.push_back(196711); // photospin
+  pushWord(196711); // photospin
   pushCopies('q', 5);
-  pilot_call_stack.push_back(1245246); // uniformly sample height
-  pilot_call_stack.push_back(196711); // photospin
+  pushWord(1245246); // uniformly sample height
+  pushWord(196711); // photospin
   pushCopies('q', 5);
-  pilot_call_stack.push_back(1245246); // uniformly sample height
-  pilot_call_stack.push_back(196711); // photospin
+  pushWord(1245246); // uniformly sample height
+  pushWord(196711); // photospin
   pushCopies('d', 5);
-  pilot_call_stack.push_back(1245246); // uniformly sample height
-  pilot_call_stack.push_back(196711); // photospin
+  pushWord(1245246); // uniformly sample height
+  pushWord(196711); // photospin
   pushCopies('d', 5);
-  pilot_call_stack.push_back(1245246); // uniformly sample height
-  pilot_call_stack.push_back(196711); // photospin
+  pushWord(1245246); // uniformly sample height
+  pushWord(196711); // photospin
   pushCopies('e', 5);
-  pilot_call_stack.push_back(1245246); // uniformly sample height
-  pilot_call_stack.push_back(196711); // photospin
+  pushWord(1245246); // uniformly sample height
+  pushWord(196711); // photospin
   pushCopies('e', 5);
-  pilot_call_stack.push_back(1245246); // uniformly sample height
-  pilot_call_stack.push_back(196711); // photospin
+  pushWord(1245246); // uniformly sample height
+  pushWord(196711); // photospin
   pushCopies('a', 5);
-  pilot_call_stack.push_back(1245246); // uniformly sample height
-  pilot_call_stack.push_back(196711); // photospin
+  pushWord(1245246); // uniformly sample height
+  pushWord(196711); // photospin
   pushCopies('q', 5);
-  pilot_call_stack.push_back(1245246); // uniformly sample height
-  pilot_call_stack.push_back(196711); // photospin
+  pushWord(1245246); // uniformly sample height
+  pushWord(196711); // photospin
 
-  pilot_call_stack.push_back(131154); // w1 wait until at current position
-  pilot_call_stack.push_back(1245246); // uniformly sample height
+  pushWord(131154); // w1 wait until at current position
+  pushWord(1245246); // uniformly sample height
   pushSpeedSign(MOVE_FAST);
 }
 END_WORD
@@ -209,13 +209,13 @@ WORD(PhotoSpin)
 CODE(196711)      // capslock + G
 virtual void execute() {
   for (int angleCounter = 0; angleCounter < totalGraspGears; angleCounter++) {
-    pilot_call_stack.push_back(131148); // save crop as focused class if there is only one
-    pilot_call_stack.push_back(196721); // vision cycle no classify
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back(1310722); // set random orientation for photospin.
-    pilot_call_stack.push_back(196712); // increment grasp gear
+    pushWord(131148); // save crop as focused class if there is only one
+    pushWord(196721); // vision cycle no classify
+    pushWord(131154); // w1 wait until at current position
+    pushWord(1310722); // set random orientation for photospin.
+    pushWord(196712); // increment grasp gear
   }
-  pilot_call_stack.push_back(1048625); // change gear to 1
+  pushWord(1048625); // change gear to 1
 }
 END_WORD
 
@@ -298,97 +298,97 @@ virtual void execute() {
 
   // this automatically changes learning mode
           
-  pilot_call_stack.push_back(1245242); // begin bounding box learning
+  pushWord(1245242); // begin bounding box learning
 
-  pilot_call_stack.push_back(1245248); // change to height 1
-  pilot_call_stack.push_back(1048625); // change to first gear
+  pushWord(1245248); // change to height 1
+  pushWord(1048625); // change to first gear
 
   // set target class to the lastLabelLearned 
-  pilot_call_stack.push_back(1179730);
+  pushWord(1179730);
 
-  pilot_call_stack.push_back(131142); // reinitialize and retrain everything
+  pushWord(131142); // reinitialize and retrain everything
 
   // set lastLabelLearned
-  pilot_call_stack.push_back(1179732);
+  pushWord(1179732);
 
-  pilot_call_stack.push_back(131143); // 72 way scan
-  pilot_call_stack.push_back(131154); // w1 wait until at current position
-  pilot_call_stack.push_back(131143); // 72 way scan
-  pilot_call_stack.push_back(131154); // w1 wait until at current position
+  pushWord(131143); // 72 way scan
+  pushWord(131154); // w1 wait until at current position
+  pushWord(131143); // 72 way scan
+  pushWord(131154); // w1 wait until at current position
 
   // this is a good time to remove a contrast agent
-  //pilot_call_stack.push_back('Y'); // pause stack execution
+  //pushWord('Y'); // pause stack execution
   //pushCopies(1245308, 15); // beep
 	  
   { // do density and gradient, save gradient, do medium scan in two directions, save range map
     pushSpeedSign(MOVE_FAST);
-    pilot_call_stack.push_back(196705); // save current depth map to current class
-    pilot_call_stack.push_back(1048622); // neutral scan 
-    pilot_call_stack.push_back('Y'); // pause stack execution
+    pushWord(196705); // save current depth map to current class
+    pushWord(1048622); // neutral scan 
+    pushWord('Y'); // pause stack execution
     pushCopies(1245308, 15); // beep
     pushSpeedSign(MOVE_FAST);
 
-    pilot_call_stack.push_back(1245248); // change to height 1
+    pushWord(1245248); // change to height 1
 
     {
-      pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
+      pushWord(196730); // save aerial gradient map if there is only one blue box
       pushCopies(131121, densityIterationsForGradientServo); // density
-      pilot_call_stack.push_back(262237); // reset aerialGradientTemporalFrameAverage
+      pushWord(262237); // reset aerialGradientTemporalFrameAverage
       pushCopies(131121, 1); // density
-      pilot_call_stack.push_back(131153); // vision cycle
-      pilot_call_stack.push_back(131154); // w1 wait until at current position
-      pilot_call_stack.push_back(1245220); // change to height 3
+      pushWord(131153); // vision cycle
+      pushWord(131154); // w1 wait until at current position
+      pushWord(1245220); // change to height 3
     }
     {
-      pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
+      pushWord(196730); // save aerial gradient map if there is only one blue box
       pushCopies(131121, densityIterationsForGradientServo); // density
-      pilot_call_stack.push_back(262237); // reset aerialGradientTemporalFrameAverage
+      pushWord(262237); // reset aerialGradientTemporalFrameAverage
       pushCopies(131121, 1); // density
-      pilot_call_stack.push_back(131153); // vision cycle
-      pilot_call_stack.push_back(131154); // w1 wait until at current position
-      pilot_call_stack.push_back(1245219); // change to height 2
+      pushWord(131153); // vision cycle
+      pushWord(131154); // w1 wait until at current position
+      pushWord(1245219); // change to height 2
     }
     {
-      pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
+      pushWord(196730); // save aerial gradient map if there is only one blue box
       pushCopies(131121, densityIterationsForGradientServo); // density
-      pilot_call_stack.push_back(262237); // reset aerialGradientTemporalFrameAverage
+      pushWord(262237); // reset aerialGradientTemporalFrameAverage
       pushCopies(131121, 1); // density
-      pilot_call_stack.push_back(131153); // vision cycle
-      pilot_call_stack.push_back(131154); // w1 wait until at current position
-      pilot_call_stack.push_back(1245248); // change to height 1
+      pushWord(131153); // vision cycle
+      pushWord(131154); // w1 wait until at current position
+      pushWord(1245248); // change to height 1
     }
     {
-      pilot_call_stack.push_back(196730); // save aerial gradient map if there is only one blue box
+      pushWord(196730); // save aerial gradient map if there is only one blue box
       pushCopies(131121, densityIterationsForGradientServo); // density
-      pilot_call_stack.push_back(262237); // reset aerialGradientTemporalFrameAverage
+      pushWord(262237); // reset aerialGradientTemporalFrameAverage
       pushCopies(131121, 1); // density
-      pilot_call_stack.push_back(131153); // vision cycle
-      pilot_call_stack.push_back(131154); // w1 wait until at current position
-      pilot_call_stack.push_back(1245217); // change to height 0
+      pushWord(131153); // vision cycle
+      pushWord(131154); // w1 wait until at current position
+      pushWord(1245217); // change to height 0
     }
   }
 
   // ATTN 3
   // start NO bag routine
-  pilot_call_stack.push_back(196720); //  make a new class
+  pushWord(196720); //  make a new class
 
-  pilot_call_stack.push_back(131139); // synchronic servo don't take closest
-  pilot_call_stack.push_back(131156); // synchronic servo
-  pilot_call_stack.push_back(196707); // synchronic servo take closest
-  pilot_call_stack.push_back(131153); // vision cycle
+  pushWord(131139); // synchronic servo don't take closest
+  pushWord(131156); // synchronic servo
+  pushWord(196707); // synchronic servo take closest
+  pushWord(131153); // vision cycle
 
-  pilot_call_stack.push_back('Y'); // pause stack execution
+  pushWord('Y'); // pause stack execution
   pushCopies(1245308, 15); // beep
 
-  pilot_call_stack.push_back(131154); // w1 wait until at current position
-  pilot_call_stack.push_back(1048625); // change to first gear
-  pilot_call_stack.push_back(1245219); // change to height 2
+  pushWord(131154); // w1 wait until at current position
+  pushWord(1048625); // change to first gear
+  pushWord(1245219); // change to height 2
   pushSpeedSign(MOVE_FAST);
-  pilot_call_stack.push_back(196672); // go to wholeFoodsCounter1
+  pushWord(196672); // go to wholeFoodsCounter1
 
-  pilot_call_stack.push_back(1179735); // change to counter table
-  pilot_call_stack.push_back(1048625); // change to first gear
-  pilot_call_stack.push_back('k'); // open gripper
+  pushWord(1179735); // change to counter table
+  pushWord(1048625); // change to first gear
+  pushWord('k'); // open gripper
 }
 END_WORD
 
@@ -496,32 +496,32 @@ virtual void execute() {
   double betweenSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
 
   scanXdirection(lineSpeed, betweenSpeed); // load scan program
-  pilot_call_stack.push_back(1114150); // prepare for search
+  pushWord(1114150); // prepare for search
 
   pushCopies('q',4);
   pushCopies('a',6);
 
-  pilot_call_stack.push_back(1048683); // turn on scanning
+  pushWord(1048683); // turn on scanning
   pushNoOps(60);
-  pilot_call_stack.push_back(1114155); // rotate gear
+  pushWord(1114155); // rotate gear
 
-  pilot_call_stack.push_back(1114183); // full render
-  pilot_call_stack.push_back(1048679); // render reticle
-  pilot_call_stack.push_back(1048625); // change to first gear
-  pilot_call_stack.push_back(1048673); // render register 1
-  pilot_call_stack.push_back(1048690); // load map to register 1
+  pushWord(1114183); // full render
+  pushWord(1048679); // render reticle
+  pushWord(1048625); // change to first gear
+  pushWord(1048673); // render register 1
+  pushWord(1048690); // load map to register 1
   {
-    pilot_call_stack.push_back(1048678); // target best grasp
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
-    pilot_call_stack.push_back(1048625); // change to first gear
+    pushWord(1048678); // target best grasp
+    pushWord(131154); // w1 wait until at current position
+    pushWord(1048625); // change to first gear
   }
-  pilot_call_stack.push_back(1048630); // find best grasp
+  pushWord(1048630); // find best grasp
 
   scanXdirection(lineSpeed, betweenSpeed); // load scan program
-  pilot_call_stack.push_back(1114150); // prepare for search
+  pushWord(1114150); // prepare for search
 
-  pilot_call_stack.push_back(1048683); // turn on scanning
-  pilot_call_stack.push_back(1048695); // clear scan history
+  pushWord(1048683); // turn on scanning
+  pushWord(1048695); // clear scan history
 }
 END_WORD
 
