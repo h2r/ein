@@ -288,6 +288,7 @@ Word * popWord();
 bool pushWord(int code);
 bool pushWord(string name);
 bool pushWord(Word * word);
+Word * nameToWord(string name);
 
 
 std::vector<Word *> words;
@@ -3497,6 +3498,16 @@ bool pushWord(Word * word) {
   return true;
 }
 
+Word * nameToWord(string name) {
+  if (name_to_word.count(name) > 0) {
+    Word * word = name_to_word[name];
+    return word;
+  } else  {
+    cout << "Could not find word with name " << name << endl;
+    assert(0);
+  }
+}
+
 void timercallback1(const ros::TimerEvent&) {
 
   ros::NodeHandle n("~");
@@ -3510,7 +3521,6 @@ void timercallback1(const ros::TimerEvent&) {
     takeSymbol = 0;
     if (character_code_to_word.count(c) > 0) {
       word = character_code_to_word[c];      
-      current_instruction = word;
     } else {
       cout  << "Could not find word for " << c << endl;
     }
@@ -3530,6 +3540,7 @@ void timercallback1(const ros::TimerEvent&) {
   }
   
   if (word != NULL) {
+    current_instruction = word;
     word->execute();
   }
 
@@ -10890,7 +10901,6 @@ int main(int argc, char **argv) {
   words = create_words();
   character_code_to_word = create_character_code_to_word(words);
   name_to_word = create_name_to_word(words);
-  current_instruction = name_to_word["pause"];
 
   srand(time(NULL));
   time(&firstTime);
