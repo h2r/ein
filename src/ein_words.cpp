@@ -122,7 +122,6 @@ END_WORD
 WORD(PauseAndReset)
 CODE('c') 
 virtual void execute() {
-  holding_pattern = 0;
   execute_stack = 0;
   lastPtheta = INFINITY;
 }
@@ -188,30 +187,25 @@ virtual void execute()
 END_WORD
 
 
-WORD(GraspGear1)
-CODE(1048625)
-virtual void execute()
-{
-  int thisGraspGear = 0;
-  
-  //   set drX
-  drX = ggX[thisGraspGear];
-  drY = ggY[thisGraspGear];
-  
-  //   rotate
-  setGGRotation(thisGraspGear);
-  
-  //   set currentGraspGear;
-  currentGraspGear = thisGraspGear;
-  // numlock + 1
-}
-END_WORD
-
 WORD(Noop)
 CODE('C')
 virtual void execute()
 {
 
+}
+END_WORD
+
+WORD(PrintWords)
+CODE('I')
+virtual void execute()
+{
+  ofstream wordFile;
+  wordFile.open("wordFile.ein");
+  std::vector<Word *> words = create_words();
+  for (int i = 0; i < words.size(); i++) {
+    wordFile << words[i]->name() << " " << words[i]->character_code() << endl;
+  }
+  wordFile.close();
 }
 END_WORD
 
@@ -222,7 +216,15 @@ using namespace  ein_words;
 std::map<int, Word *> create_character_code_to_word(std::vector<Word *> words) {
   std::map<int, Word *> character_code_to_word;
   for (unsigned int i = 0; i < words.size(); i++) {
-    character_code_to_word[words[i]->character_code()] = words[i];
+    if (character_code_to_word.count(words[i]->character_code()) > 0) {
+      cout << "Two words with the same code." << endl;
+      cout << "Word 1: " << character_code_to_word[words[i]->character_code()]->name() << endl;
+      cout << "Word 2: " << words[i]->name() << endl;
+      cout << "Code: " << words[i]->character_code() << endl;
+      assert(0);
+    } else {
+      character_code_to_word[words[i]->character_code()] = words[i];
+    }
   }
   return character_code_to_word;
 }
@@ -247,7 +249,6 @@ std::vector<Word *> create_words() {
   words.push_back(new ZUp());
   words.push_back(new ZDown());
   words.push_back(new Noop());
-  words.push_back(new GraspGear1());
   words.push_back(new SynchronicServoTakeClosest());
   words.push_back(new GradientServoTakeClosest());
   words.push_back(new IncrementTargetClass());
@@ -289,7 +290,6 @@ std::vector<Word *> create_words() {
   words.push_back(new TwoDPatrolStart());
   words.push_back(new TwoDPatrolContinue());
   words.push_back(new SynchronicServoDoNotTakeClosest());
-  words.push_back(new SynchronicServoTakeClosest());
   words.push_back(new InitializeAndFocusOnNewClass());
   words.push_back(new ResetAerialGradientTemporalFrameAverage());
   words.push_back(new SaveAerialGradientMap());
@@ -391,6 +391,8 @@ std::vector<Word *> create_words() {
   words.push_back(new SetRandomPositionAndOrientationForHeightLearning());
   words.push_back(new SaveLearnedModels());
   words.push_back(new DecrementTargetClass());
+
+  words.push_back(new PrintWords());
   return words;
 }
 

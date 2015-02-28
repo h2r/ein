@@ -1,11 +1,11 @@
 WORD(VisionCycle)
 CODE(131153)  // capslock + q
 virtual void execute() {
-  pushWord(131123); // classify
-  pushWord(131122); // blue boxes
-  pushCopies(131121, 4); // density
-  pushCopies(1179737, 1); // reset temporal map
-  pushCopies(131121, 1); // density
+  pushWord("goClassifyBlueBoxes"); 
+  pushWord("goFindBlueBoxes"); 
+  pushCopies("density", 4); 
+  pushCopies("resetTemporalMap", 1); 
+  pushCopies("density", 1); 
 }
 END_WORD
 

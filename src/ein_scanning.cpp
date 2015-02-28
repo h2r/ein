@@ -13,7 +13,7 @@ virtual void execute() {
     }
   }
 
-  pushWord(1048673); // render register 1
+  pushWord("drawMapRegisters"); // render register 1
   // ATTN 10
   //pushWord(196360); // loadPriorGraspMemory
   //pushWord(1179721); // set graspMemories from classGraspMemories
@@ -131,7 +131,7 @@ END_WORD
 WORD(VisionCycleNoClassify)
 CODE(196721)     // capslock + Q
 virtual void execute()       {
-  pushWord(131122); // blue boxes
+  pushWord("goFindBlueBoxes"); // blue boxes
   pushCopies(131121, 1); // density
   pushCopies(1179737, 1); // reset temporal map
   pushCopies(131121, 1); // density
@@ -215,7 +215,7 @@ virtual void execute() {
     pushWord(1310722); // set random orientation for photospin.
     pushWord(196712); // increment grasp gear
   }
-  pushWord(1048625); // change gear to 1
+  pushWord("shiftIntoGraspGear1"); // change gear to 1
 }
 END_WORD
 
@@ -301,7 +301,7 @@ virtual void execute() {
   pushWord(1245242); // begin bounding box learning
 
   pushWord(1245248); // change to height 1
-  pushWord(1048625); // change to first gear
+  pushWord("shiftIntoGraspGear1"); // change to first gear
 
   // set target class to the lastLabelLearned 
   pushWord(1179730);
@@ -381,13 +381,13 @@ virtual void execute() {
   pushCopies(1245308, 15); // beep
 
   pushWord(131154); // w1 wait until at current position
-  pushWord(1048625); // change to first gear
+  pushWord("shiftIntoGraspGear1"); // change to first gear
   pushWord(1245219); // change to height 2
   pushSpeedSign(MOVE_FAST);
   pushWord(196672); // go to wholeFoodsCounter1
 
   pushWord(1179735); // change to counter table
-  pushWord(1048625); // change to first gear
+  pushWord("shiftIntoGraspGear1"); // change to first gear
   pushWord('k'); // open gripper
 }
 END_WORD
@@ -505,15 +505,15 @@ virtual void execute() {
   pushNoOps(60);
   pushWord(1114155); // rotate gear
 
-  pushWord(1114183); // full render
-  pushWord(1048679); // render reticle
-  pushWord(1048625); // change to first gear
-  pushWord(1048673); // render register 1
-  pushWord(1048690); // load map to register 1
+  pushWord("fullRender"); // full render
+  pushWord("paintReticles"); // render reticle
+  pushWord("shiftIntoGraspGear1"); // change to first gear
+  pushWord("drawMapRegisters"); // render register 1
+  pushWord("downsampleIrScan"); // load map to register 1
   {
     pushWord(1048678); // target best grasp
     pushWord(131154); // w1 wait until at current position
-    pushWord(1048625); // change to first gear
+    pushWord("shiftIntoGraspGear1"); // change to first gear
   }
   pushWord(1048630); // find best grasp
 
