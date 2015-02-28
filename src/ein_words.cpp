@@ -232,7 +232,6 @@ std::vector<Word *> create_words() {
   words.push_back(new SetHeightMemoriesFromClassHeightMemories());
   words.push_back(new SetGraspMemoriesFromClassGraspMemories());
   words.push_back(new DrawMapRegisters());
-  words.push_back(new LoadMarginalHeightMemory());
   words.push_back(new ScanObject());
   words.push_back(new ExecuteStack());
   words.push_back(new PauseStackExecution());
@@ -262,6 +261,7 @@ std::vector<Word *> create_words() {
   words.push_back(new GoClassifyBlueBoxes());
   words.push_back(new SynchronicServo());
   words.push_back(new GradientServo());
+  words.push_back(new TwoDPatrolStart());
   words.push_back(new TwoDPatrolContinue());
   words.push_back(new SynchronicServoDoNotTakeClosest());
   words.push_back(new SynchronicServoTakeClosest());
@@ -319,6 +319,43 @@ std::vector<Word *> create_words() {
   words.push_back(new SetRandomOrientationForPhotospin());
   words.push_back(new RecordExampleAsFocusedClass());
   words.push_back(new VisionCycleNoClassify());
+
+  words.push_back(new SetPickModeToStaticPrior());
+  words.push_back(new SetPickModeToLearningSampling());
+  words.push_back(new SetPickModeToLearningAlgorithmC());
+  words.push_back(new SetPickModeToStaticMarginals());
+  words.push_back(new SetBoundingBoxModeToStaticPrior());
+  words.push_back(new SetBoundingBoxModeToLearningSampling());
+  words.push_back(new SetBoundingBoxModeToLearningAlgorithmC());
+  words.push_back(new SetBoundingBoxModeToStaticMarginals());
+  words.push_back(new TurnHistogrammingDuringServoingOn());
+  words.push_back(new TurnHistogrammingDuringServoingOff());
+  words.push_back(new PrepareForAndExecuteGraspFromMemory());
+
+  words.push_back(new CountGrasp());
+  words.push_back(new CheckGrasp());
+  words.push_back(new CheckAndCountGrasp());
+  words.push_back(new CalibrateGripper());
+  words.push_back(new SetGripperThresh());
+  words.push_back(new LoadTargetClassRangeMapIntoRegister1());
+
+  words.push_back(new AssumeWinningGgAndXyInLocalPose());
+  words.push_back(new MoveToTargetZAndGrasp());
+  words.push_back(new ShakeItUpAndDown());
+  words.push_back(new TryToMoveToTheLastPickHeight());
+  words.push_back(new AssertYesGrasp());
+  words.push_back(new AssertNoGrasp());
+  words.push_back(new ShakeItOff1());
+  words.push_back(new FindBestOfFourGraspsUsingMemory());
+  words.push_back(new LoadSampledGraspMemory());
+  words.push_back(new LoadMarginalGraspMemory());
+  words.push_back(new LoadPriorGraspMemoryAnalytic());
+  words.push_back(new LoadPriorGraspMemoryUniform());
+  words.push_back(new LoadSampledHeightMemory());
+  words.push_back(new LoadMarginalHeightMemory());
+  words.push_back(new LoadPriorHeightMemoryAnalytic());
+  words.push_back(new LoadPriorHeightMemoryUniform());
+  words.push_back(new PerturbPosition());
   return words;
 }
 
