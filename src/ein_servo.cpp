@@ -107,7 +107,7 @@ virtual void execute()       {
       
   cout << "Assuming x,y,gear: " << targetX << " " << targetY << " " << maxGG << endl;
 
-  pushWord(131154); // w1 wait until at current position
+  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
   // ATTN 19
   if (useContinuousGraspTransform) {
@@ -163,16 +163,16 @@ virtual void execute() {
   pushSpeedSign(MOVE_FAST);    
   if (isGripperGripping()) {
     happy();
-    pushWord(131154); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     pushWord('5');  // assume pose at register 5
       
-    pushWord(131154); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     pushWord('6'); // assume pose at register 6
       
-    pushWord(131154); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     pushWord('5'); // assume pose at register 5
       
-    pushWord(131154); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     pushWord('6');
 
   }
@@ -586,8 +586,8 @@ virtual void execute()       {
     pushWord(131141); // 2D patrol continue
   }
 
-  pushWord(131153); // vision cycle
-  pushWord(131154); // w1 wait until at current position
+  pushWord("visionCycle"); // vision cycle
+  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   pushWord(1245247); // sample height
   pushWord("shiftIntoGraspGear1"); // change to first gear
 
@@ -599,7 +599,7 @@ virtual void execute()       {
 
   pushNoOps(30);
   pushWord('j'); // close gripper
-  pushWord(131154); // w1 wait until at current position
+  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   pushCopies('w', 10);
   pushNoOps(30);
   pushWord('k'); // open gripper
@@ -619,7 +619,7 @@ virtual void execute()       {
     pushWord('j'); // close gripper
   }
 
-  pushWord(131154); // w1 wait until at current position
+  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
   if (ARE_GENERIC_HEIGHT_LEARNING()) {
     pushWord(1179687); // set random position for bblearn
@@ -628,7 +628,7 @@ virtual void execute()       {
   }
 
   pushCopies('s', 3);
-  pushWord(131154); // w1 wait until at current position
+  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
   if (ARE_GENERIC_HEIGHT_LEARNING())
     pushWord('4'); // assume pose at register 4
@@ -641,7 +641,7 @@ virtual void execute()       {
   // need to translate to current table height
   pushWord(1048682); // grasp at z inferred from target
   //pushWord(1114186); // use current range as target z and grasp
-  pushWord(131154); // w1 wait until at current position
+  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   //pushWord(1048680); // assume x,y of target 
   pushWord(1114175); // assume x,y of target in local space
 
@@ -989,7 +989,7 @@ virtual void execute()       {
   oscCenY = currentEEPose.py;
   oscCenZ = currentEEPose.pz+0.1;
   pushWord(131141); // 2D patrol continue
-  pushWord(131153); // vision cycle
+  pushWord("visionCycle"); // vision cycle
   // we want to move to a higher holding position for visual patrol
   // so we assume that we are at 20 cm = IR scan height and move to 30 cm
   pushSpeedSign(MOVE_FAST);
@@ -1058,7 +1058,7 @@ virtual void execute() {
       if (collectBackgroundInstances) {
         pushWord(131152); // save all blue boxes as focused class
       }
-      pushWord(131153); // vision cycle
+      pushWord("visionCycle"); // vision cycle
       // grab the last bit of accumulated time
       accumulatedTime = accumulatedTime + (ros::Time::now() - oscilStart);
     }
