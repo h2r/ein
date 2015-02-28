@@ -309,7 +309,16 @@ std::vector<Word *> create_words() {
   words.push_back(new PrepareToApplyGraspFilterFor2());
   words.push_back(new PrepareToApplyGraspFilterFor3());
   words.push_back(new PrepareToApplyGraspFilterFor4());
-
+  words.push_back(new SetTargetReticleToTheMaxMappedPosition());
+  words.push_back(new ShiftGraspGear()); 
+  words.push_back(new SaveCurrentClassDepthAndGraspMaps());
+  words.push_back(new UniformlySampleHeight());
+  words.push_back(new PhotoSpin());
+  words.push_back(new RgbScan());
+  words.push_back(new IncrementGraspGear());
+  words.push_back(new SetRandomOrientationForPhotospin());
+  words.push_back(new RecordExampleAsFocusedClass());
+  words.push_back(new VisionCycleNoClassify());
   return words;
 }
 

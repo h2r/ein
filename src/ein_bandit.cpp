@@ -1,3 +1,13 @@
+WORD(UniformlySampleHeight)
+CODE(1245246)      // capslock + numlock + >
+virtual void execute() {
+  int thisRandThompsonHeight = lrand48() % hmWidth;
+  currentThompsonHeight = convertHeightIdxToGlobalZ(thisRandThompsonHeight);
+  currentThompsonHeightIdx = thisRandThompsonHeight;
+  currentEEPose.pz = currentThompsonHeight;
+}
+END_WORD
+
 WORD(LoadMarginalHeightMemory)
 CODE(1179709)  // capslock + numlock + =
 virtual void execute()

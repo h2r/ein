@@ -1,3 +1,42 @@
+WORD(IncrementGraspGear)
+CODE(196712)     // capslock + H
+virtual void execute()       {
+  cout << "increment currentGraspGear was is: " << currentGraspGear << " ";
+  int thisGraspGear = (currentGraspGear + 1) % totalGraspGears;
+  
+  //   set drX
+  drX = ggX[thisGraspGear];
+  drY = ggY[thisGraspGear];
+  
+  //   rotate
+  setGGRotation(thisGraspGear);
+  currentGraspGear = thisGraspGear;
+  
+  cout << currentGraspGear << endl;
+}
+END_WORD
+
+
+
+
+
+WORD(ShiftGraspGear)
+CODE(1114155)     // numlock + +
+virtual void execute() {
+  pushNoOps(50);
+  int thisGraspGear = (currentGraspGear+4) % totalGraspGears;
+  
+  //   set drX
+  drX = ggX[thisGraspGear];
+  drY = ggY[thisGraspGear];
+  
+  //   rotate
+  setGGRotation(thisGraspGear);
+  
+  //   set currentGraspGear;
+  currentGraspGear = thisGraspGear;
+}
+END_WORD
 
 WORD(PrepareToApplyGraspFilterFor1)
 CODE(1048681)     // numlock + i

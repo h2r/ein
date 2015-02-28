@@ -1,3 +1,102 @@
+WORD(VisionCycleNoClassify)
+CODE(196721)     // capslock + Q
+virtual void execute()       {
+  pilot_call_stack.push_back(131122); // blue boxes
+  pushCopies(131121, 1); // density
+  pushCopies(1179737, 1); // reset temporal map
+  pushCopies(131121, 1); // density
+}
+END_WORD
+
+
+WORD(RecordExampleAsFocusedClass)
+CODE(131148)     // capslock + l 
+virtual void execute()       {
+  if ((focusedClass > -1) && (bTops.size() == 1)) {
+    string thisLabelName = focusedClassLabel;
+    Mat crop = cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
+    char buf[1000];
+    string this_crops_path = data_directory + "/" + thisLabelName + "/rgb/";
+    sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
+    imwrite(buf, crop);
+    cropCounter++;
+  }
+}
+END_WORD
+
+WORD(SetRandomOrientationForPhotospin)
+CODE(1310722)     // capslock + numlock + "
+virtual void execute() {
+  // this ensures that we explore randomly within each grasp gear sector
+  double arcFraction = 0.125;
+  double noTheta = arcFraction * 3.1415926 * ((drand48() - 0.5) * 2.0);
+  currentEEPose.oz += noTheta;
+}
+END_WORD
+
+WORD(RgbScan)
+CODE(131143)      // capslock + g
+virtual void execute()       {
+  // ATTN 16
+
+  pushCopies('e', 5);
+  pushCopies('a', 5);
+  pilot_call_stack.push_back(196711); // photospin
+  pushCopies('q', 5);
+  pilot_call_stack.push_back(1245246); // uniformly sample height
+  pilot_call_stack.push_back(196711); // photospin
+  pushCopies('q', 5);
+  pilot_call_stack.push_back(1245246); // uniformly sample height
+  pilot_call_stack.push_back(196711); // photospin
+  pushCopies('d', 5);
+  pilot_call_stack.push_back(1245246); // uniformly sample height
+  pilot_call_stack.push_back(196711); // photospin
+  pushCopies('d', 5);
+  pilot_call_stack.push_back(1245246); // uniformly sample height
+  pilot_call_stack.push_back(196711); // photospin
+  pushCopies('e', 5);
+  pilot_call_stack.push_back(1245246); // uniformly sample height
+  pilot_call_stack.push_back(196711); // photospin
+  pushCopies('e', 5);
+  pilot_call_stack.push_back(1245246); // uniformly sample height
+  pilot_call_stack.push_back(196711); // photospin
+  pushCopies('a', 5);
+  pilot_call_stack.push_back(1245246); // uniformly sample height
+  pilot_call_stack.push_back(196711); // photospin
+  pushCopies('q', 5);
+  pilot_call_stack.push_back(1245246); // uniformly sample height
+  pilot_call_stack.push_back(196711); // photospin
+
+  pilot_call_stack.push_back(131154); // w1 wait until at current position
+  pilot_call_stack.push_back(1245246); // uniformly sample height
+  pushSpeedSign(MOVE_FAST);
+}
+END_WORD
+
+
+
+WORD(PhotoSpin)
+CODE(196711)      // capslock + G
+virtual void execute() {
+  for (int angleCounter = 0; angleCounter < totalGraspGears; angleCounter++) {
+    pilot_call_stack.push_back(131148); // save crop as focused class if there is only one
+    pilot_call_stack.push_back(196721); // vision cycle no classify
+    pilot_call_stack.push_back(131154); // w1 wait until at current position
+    pilot_call_stack.push_back(1310722); // set random orientation for photospin.
+    pilot_call_stack.push_back(196712); // increment grasp gear
+  }
+  pilot_call_stack.push_back(1048625); // change gear to 1
+}
+END_WORD
+
+WORD(SetTargetReticleToTheMaxMappedPosition)
+CODE(1048678)  // numlock + f
+virtual void execute() {
+  trX = rmcX + rmDelta*(maxX-rmHalfWidth);
+  trY = rmcY + rmDelta*(maxY-rmHalfWidth);
+}
+END_WORD
+
 WORD(DownsampleIrScan)
 CODE(1048690) // numlock + r
 virtual void execute() {
@@ -265,14 +364,6 @@ virtual void execute() {
   cout << "Entering neutral scan." << endl;
   double lineSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
   double betweenSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
-  ////pushCopies('e', 3);
-  ////pushCopies('q', 10);
-  ////scanYdirection(lineSpeed, betweenSpeed); // load scan program
-  //scanXdirection(lineSpeed, betweenSpeed); // load scan program
-  ////pushCopies('q', 3);
-  ////pushCopies('e', 10);
-
-  //pilot_call_stack.push_back(1048684); // turn off scanning
 
   scanXdirection(lineSpeed, betweenSpeed); // load scan program
   pilot_call_stack.push_back(1114150); // prepare for search
@@ -430,7 +521,6 @@ virtual void execute() {
 }
 END_WORD
 
-
 WORD(InitializeAndFocusOnNewClass)
 CODE(196720)     // capslock + P
 virtual void execute() {
@@ -447,3 +537,51 @@ virtual void execute() {
   newClassCounter++;
 }
 END_WORD
+
+WORD(SaveCurrentClassDepthAndGraspMaps)
+CODE(196705) // capslock + A
+virtual void execute() {
+  if (focusedClass > -1) {
+    // initialize this if we need to
+    guardGraspMemory();
+    guardHeightMemory();
+
+    string thisLabelName = focusedClassLabel;
+
+    char buf[1000];
+    string dirToMakePath = data_directory + "/" + thisLabelName + "/ir2D/";
+    string this_range_path = dirToMakePath + "xyzRange.yml";
+
+    Mat rangeMapTemp(rmWidth, rmWidth, CV_64F);
+    for (int y = 0; y < rmWidth; y++) {
+      for (int x = 0; x < rmWidth; x++) {
+	rangeMapTemp.at<double>(y,x) = rangeMapReg1[x + y*rmWidth];
+      } 
+    } 
+
+    mkdir(dirToMakePath.c_str(), 0777);
+
+    FileStorage fsvO;
+    cout << "capslock + A: Writing: " << this_range_path << endl;
+    fsvO.open(this_range_path, FileStorage::WRITE);
+    fsvO << "rangeMap" << rangeMapTemp;
+    copyGraspMemoryTriesToClassGraspMemoryTries();
+    fsvO << "graspMemoryTries1" << classGraspMemoryTries1[focusedClass];
+    fsvO << "graspMemoryPicks1" << classGraspMemoryPicks1[focusedClass];
+    fsvO << "graspMemoryTries2" << classGraspMemoryTries2[focusedClass];
+    fsvO << "graspMemoryPicks2" << classGraspMemoryPicks2[focusedClass];
+    fsvO << "graspMemoryTries3" << classGraspMemoryTries3[focusedClass];
+    fsvO << "graspMemoryPicks3" << classGraspMemoryPicks3[focusedClass];
+    fsvO << "graspMemoryTries4" << classGraspMemoryTries4[focusedClass];
+    fsvO << "graspMemoryPicks4" << classGraspMemoryPicks4[focusedClass];
+
+    copyHeightMemoryTriesToClassHeightMemoryTries();
+    fsvO << "heightMemoryTries" << classHeightMemoryTries[focusedClass];
+    fsvO << "heightMemoryPicks" << classHeightMemoryPicks[focusedClass];
+
+    lastRangeMap = rangeMapTemp;
+    fsvO.release();
+  } 
+}
+END_WORD
+
