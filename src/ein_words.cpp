@@ -26,65 +26,91 @@ public: \
 
 namespace ein_words
 {
-WORD(LoadMarginalHeightMemory)
-CODE(1179709)  // capslock + numlock + =
-virtual void execute()
-{
-  loadMarginalHeightMemory();
-  drawHeightMemorySample();
-}
-END_WORD
+
+#include "ein_bandit.cpp"
+#include "ein_render.cpp"
+#include "ein_movement.cpp"
+#include "ein_servo.cpp"
+#include "ein_vision_cycle.cpp"
+#include "ein_scanning.cpp"
 
 
-WORD(DrawMapRegisters)
-// numlock + a 
-CODE(1048673)
-virtual void execute()
-{
-  drawMapRegisters();
-}
-END_WORD
 
-WORD(SetGraspMemoriesFromClassGraspMemories)  
-// capslock + numlock + i
-CODE(1179721)
+WORD(Beep)
+CODE(1245308)     // capslock + numlock + |
 virtual void execute() {
-  copyClassGraspMemoryTriesToGraspMemoryTries();
+  cout << "\a"; cout.flush();
+}
+END_WORD
+
+WORD(WaitUntilAtCurrentPosition)
+CODE(131154)    // capslock + r
+virtual void execute() {
+  double dx = (currentEEPose.px - trueEEPose.position.x);
+  double dy = (currentEEPose.py - trueEEPose.position.y);
+  double dz = (currentEEPose.pz - trueEEPose.position.z);
+  double distance = dx*dx + dy*dy + dz*dz;
+  
+  double qx = (fabs(currentEEPose.qx) - fabs(trueEEPose.orientation.x));
+  double qy = (fabs(currentEEPose.qy) - fabs(trueEEPose.orientation.y));
+  double qz = (fabs(currentEEPose.qz) - fabs(trueEEPose.orientation.z));
+  double qw = (fabs(currentEEPose.qw) - fabs(trueEEPose.orientation.w));
+  double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
+  
+  if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh))
+    pilot_call_stack.push_back(131154); // w1 wait until at current position
 }
 END_WORD
 
 
-WORD(CopyClassGraspMemoryTriesToGraspMemoryTries)    
-// capslock + numlock + i
-CODE(1179721)
-virtual void execute()
-{
-  copyClassGraspMemoryTriesToGraspMemoryTries();
+
+
+WORD(AssumeWholeFoodsCounter1)
+CODE(196672)  // capslock + @
+virtual void execute() {
+  currentEEPose = wholeFoodsCounter1;
+}
+END_WORD
+
+WORD(AssumeWholeFoodsPantry1)
+CODE(196643)   // capslock + #
+virtual void execute() {
+  currentEEPose = wholeFoodsPantry1;
 }
 END_WORD
 
 
-
-WORD(SetHeightMemoriesFromClassHeightMemories)
-// capslock + numlock + I 
-CODE(1245289)
-virtual void execute()
-{
-        cout << "Loading height memories." << endl;
-        if ((classHeightMemoryTries[targetClass].rows > 1) && (classHeightMemoryPicks[targetClass].cols == 1)) {
-          cout << "targetClass: " << targetClass << " " << classLabels[targetClass] << endl;
-          for (int i = 0; i < hmWidth; i++) {
-            heightMemoryPicks[i] = classHeightMemoryPicks[targetClass].at<double>(i, 0);
-            heightMemoryTries[i] = classHeightMemoryTries[targetClass].at<double>(i, 0);
-            cout << "picks: " << heightMemoryPicks[i] << endl;
-            cout << "tries: " << heightMemoryTries[i] << endl;
-          }
-        } else {
-	  cout << "Whoops, tried to set height memories but they don't exist for this class:" << targetClass << " " << classLabels[targetClass] << endl;
-        }
-
+WORD(ChangeToCounterTable)
+CODE(1179735) // capslock + numlock + w
+virtual void execute() {
+  currentTableZ = counterTableZ;
 }
 END_WORD
+  
+WORD(ChangeToPantryTable)
+CODE(1179717)    // capslock + numlock + e
+virtual void execute() {
+  currentTableZ = pantryTableZ;
+}
+END_WORD
+
+
+WORD(ExecuteStack)
+CODE('y')
+virtual void execute() {
+  execute_stack = 1;
+}
+END_WORD
+
+WORD(PauseStackExecution)
+CODE('Y') 
+virtual void execute()  {
+  cout << "STACK EXECUTION PAUSED, press 'y' to continue." << endl;
+  execute_stack = 0;
+}
+END_WORD
+
+
 
 WORD(PrintState)
 CODE('u')
@@ -132,26 +158,6 @@ virtual void execute()
 }
 END_WORD
 
-WORD(GradientServoTakeClosest)
-// capslock + numlock + h
-CODE(1179720)
-  virtual void execute()
-{
-    gradientTakeClosest = 1;
-    cout << "gradientTakeClosest = " << gradientTakeClosest << endl;
-}
-END_WORD
-
-WORD(SynchronicServoTakeClosest)
-// capslock + C
-CODE(196707)
-virtual void execute()
-{
-    synchronicTakeClosest = 1;
-    cout << "synchronicTakeClosest = 1" << endl;
-    synServoLockFrames = 0;
-}
-END_WORD
 
 WORD(GraspGear1)
 CODE(1048625)
@@ -186,41 +192,9 @@ virtual void execute()
 }
 END_WORD
 
-WORD(ZUp)
-CODE('w')
-virtual void execute()
-{
-  currentEEPose.pz += bDelta;
-}
-END_WORD
-
-WORD(ZDown)
-CODE('s')
-virtual void execute()
-{
-    currentEEPose.pz -= bDelta;
-}
-END_WORD
-
 }
 
 using namespace  ein_words;
-std::vector<Word *> create_words() {
-  std::vector<Word *> words;
-  words.push_back(new ZUp());
-  words.push_back(new ZDown());
-  words.push_back(new Pause());
-  words.push_back(new GraspGear1());
-  words.push_back(new SynchronicServoTakeClosest());
-  words.push_back(new GradientServoTakeClosest());
-  words.push_back(new IncrementTargetClass());
-  words.push_back(new PrintState());
-  words.push_back(new SetHeightMemoriesFromClassHeightMemories());
-  words.push_back(new SetGraspMemoriesFromClassGraspMemories());
-  words.push_back(new DrawMapRegisters());
-  words.push_back(new LoadMarginalHeightMemory());
-  return words;
-}
 
 std::map<int, Word *> create_character_code_to_word(std::vector<Word *> words) {
   std::map<int, Word *> character_code_to_word;
@@ -239,4 +213,103 @@ std::map<string, Word *> create_name_to_word(std::vector<Word *> words) {
 }
 
 
+
+
+std::vector<Word *> create_words() {
+  std::vector<Word *> words;
+  words.push_back(new XUp());
+  words.push_back(new XDown());
+  words.push_back(new YUp());
+  words.push_back(new YDown());
+  words.push_back(new ZUp());
+  words.push_back(new ZDown());
+  words.push_back(new Pause());
+  words.push_back(new GraspGear1());
+  words.push_back(new SynchronicServoTakeClosest());
+  words.push_back(new GradientServoTakeClosest());
+  words.push_back(new IncrementTargetClass());
+  words.push_back(new PrintState());
+  words.push_back(new SetHeightMemoriesFromClassHeightMemories());
+  words.push_back(new SetGraspMemoriesFromClassGraspMemories());
+  words.push_back(new DrawMapRegisters());
+  words.push_back(new LoadMarginalHeightMemory());
+  words.push_back(new ScanObject());
+  words.push_back(new ExecuteStack());
+  words.push_back(new PauseStackExecution());
+  words.push_back(new OpenGripper());
+  words.push_back(new CloseGripper());
+  words.push_back(new ChangeToCounterTable());
+  words.push_back(new ChangeToPantryTable());
+  words.push_back(new AssumeWholeFoodsPantry1());
+  words.push_back(new AssumeWholeFoodsCounter1());
+  words.push_back(new SetMovementSpeedNowThatsFast());
+  words.push_back(new SetMovementSpeedMoveEvenFaster());
+  words.push_back(new SetMovementSpeedMoveFaster());
+  words.push_back(new SetMovementSpeedMoveFast());
+  words.push_back(new SetMovementSpeedMoveMedium());
+  words.push_back(new SetMovementSpeedMoveSlow());
+  words.push_back(new SetMovementSpeedMoveVerySlow());
+  words.push_back(new ChangeToHeight0());
+  words.push_back(new ChangeToHeight1());
+  words.push_back(new ChangeToHeight2());
+  words.push_back(new ChangeToHeight3());
+  words.push_back(new WaitUntilAtCurrentPosition());
+  words.push_back(new Beep());
+  words.push_back(new VisionCycle());
+  words.push_back(new Density());
+  words.push_back(new ResetTemporalMap());
+  words.push_back(new GoFindBlueBoxes());
+  words.push_back(new GoClassifyBlueBoxes());
+  words.push_back(new SynchronicServo());
+  words.push_back(new GradientServo());
+  words.push_back(new TwoDPatrolContinue());
+  words.push_back(new SynchronicServoDoNotTakeClosest());
+  words.push_back(new SynchronicServoTakeClosest());
+  words.push_back(new InitializeAndFocusOnNewClass());
+  words.push_back(new ResetAerialGradientTemporalFrameAverage());
+  words.push_back(new SaveAerialGradientMap());
+  words.push_back(new NeutralScan());
+  words.push_back(new InitDepthScan());
+  words.push_back(new TurnOnRecordRangeMap());
+  words.push_back(new PrepareForSearch());
+  words.push_back(new FullRender());
+  words.push_back(new SampleHeight());
+  words.push_back(new DownsampleIrScan());
+  words.push_back(new PaintReticles());
+  words.push_back(new SelectBestAvailableGrasp());
+  words.push_back(new SelectMaxTargetNotCumulative());
+  words.push_back(new SelectMaxTargetCumulative());
+  words.push_back(new ApplyGraspFilter());
+  words.push_back(new Blur());
+  words.push_back(new ShiftIntoGraspGear1());
+  words.push_back(new ShiftIntoGraspGear2());
+  words.push_back(new ShiftIntoGraspGear3());
+  words.push_back(new ShiftIntoGraspGear4());
+  words.push_back(new TurnOffScanning());
+  words.push_back(new OXDown());
+  words.push_back(new OXUp());
+  words.push_back(new OYDown());
+  words.push_back(new OYUp());
+  words.push_back(new OZDown());
+  words.push_back(new OZUp());
+  
+  words.push_back(new SaveRegister1());
+  words.push_back(new SaveRegister2());
+  words.push_back(new SaveRegister3());
+  words.push_back(new SaveRegister4());
+
+  words.push_back(new MoveToRegister1());
+  words.push_back(new MoveToRegister2());
+  words.push_back(new MoveToRegister3());
+  words.push_back(new MoveToRegister4());
+  words.push_back(new MoveToRegister5());
+  words.push_back(new MoveToRegister6());
+  
+  words.push_back(new PrepareToApplyGraspFilterFor1());
+  words.push_back(new PrepareToApplyGraspFilterFor2());
+  words.push_back(new PrepareToApplyGraspFilterFor3());
+  words.push_back(new PrepareToApplyGraspFilterFor4());
+
+  return words;
+}
 

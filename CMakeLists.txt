@@ -35,7 +35,7 @@ include_directories(include
 
 
 set(OPENMP_FLAG "-fopenmp")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -g -std=c++11 -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -g -std=c++11")
 
 set(CMAKE_BUILD_TYPE Debug)
 

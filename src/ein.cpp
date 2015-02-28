@@ -3948,10 +3948,14 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   char buf[256];
   cv::Point lAnchor(170,50);
-  string lText;
+  string lText = "";
   lText += "CI: ";
-  lText += current_instruction->name() += endl;
-  lText += "  ZG: ";
+  lText += current_instruction->name();
+  putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
+
+  lAnchor.y += 20;
+  lText = "";
+  lText += "ZG: ";
   sprintf(buf, "%d", zero_g_toggle);
   lText += buf;
   lText += "  HP: ";
@@ -4004,7 +4008,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   lText += buf;
   putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
 
-  int stackRowY = 140; //remember to increment
+  int stackRowY = lAnchor.y + 40; 
   cv::Point csAnchor(10,stackRowY);
   putText(coreImage, "Call Stack: ", csAnchor, MY_FONT, 0.5, labelColor, 1.0);
   
