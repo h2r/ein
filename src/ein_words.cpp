@@ -37,22 +37,10 @@ namespace ein_words
 WORD(ClearStack)
 CODE('r') 
 virtual void execute() {
-  pilot_call_stack.resize(0);
+  clearStack();
 }
 END_WORD
 
-
- 
-WORD(PauseAndClearVariables)
-CODE('c') 
-virtual void execute() {
-  holding_pattern = 0;
-  auto_pilot = 0;
-  go_on_lock = 0;
-  execute_stack = 0;
-  lastPtheta = INFINITY;
-}
-END_WORD
 
 
 WORD(Beep)
@@ -77,7 +65,7 @@ virtual void execute() {
   double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
   
   if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh))
-    pilot_call_stack.push_back(131154); // w1 wait until at current position
+    pushWord(131154); // w1 wait until at current position
 }
 END_WORD
 
@@ -128,6 +116,18 @@ virtual void execute()  {
   execute_stack = 0;
 }
 END_WORD
+
+
+ 
+WORD(PauseAndReset)
+CODE('c') 
+virtual void execute() {
+  holding_pattern = 0;
+  execute_stack = 0;
+  lastPtheta = INFINITY;
+}
+END_WORD
+
 
 
 
@@ -207,17 +207,11 @@ virtual void execute()
 }
 END_WORD
 
-WORD(Pause)
+WORD(Noop)
 CODE('C')
 virtual void execute()
 {
-  if (auto_pilot || (holding_pattern != 0)) {
-    pilot_call_stack.push_back('C');
-  } else {
-    holding_pattern = 0;
-    auto_pilot = 0;
-    go_on_lock = 0;
-  }
+
 }
 END_WORD
 
@@ -252,7 +246,7 @@ std::vector<Word *> create_words() {
   words.push_back(new YDown());
   words.push_back(new ZUp());
   words.push_back(new ZDown());
-  words.push_back(new Pause());
+  words.push_back(new Noop());
   words.push_back(new GraspGear1());
   words.push_back(new SynchronicServoTakeClosest());
   words.push_back(new GradientServoTakeClosest());
@@ -264,7 +258,7 @@ std::vector<Word *> create_words() {
   words.push_back(new ScanObject());
   words.push_back(new ExecuteStack());
   words.push_back(new PauseStackExecution());
-  words.push_back(new PauseAndClearVariables());
+  words.push_back(new PauseAndReset());
   words.push_back(new ClearStack());
   words.push_back(new OpenGripper());
   words.push_back(new CloseGripper());
