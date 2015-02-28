@@ -44,9 +44,9 @@
 //
 //  // start Tips
 //  // it's dangerous to go alone. take this.
-//  //               \|/
+//  //               \|/ 
 //  // o++{==========>*
-//  //		     /|\
+//  //               /|\ 
 //  // end Tips
 //
 //  // Ein: Ein Isn't Node.
@@ -3950,7 +3950,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   cv::Point lAnchor(170,50);
   string lText;
   lText += "CI: ";
-  lText += current_instruction->name();
+  lText += current_instruction->name() += endl;
   lText += "  ZG: ";
   sprintf(buf, "%d", zero_g_toggle);
   lText += buf;
@@ -10235,29 +10235,8 @@ void goClassifyBlueBoxes() {
       putText(objectViewerImage, augmentedLabelName, text_anchor2, MY_FONT, 0.5, Scalar(255,0,0), 1.0);
     }
 
-    double thisThresh = pBoxThresh;
-    /*
-    if (label == 1)
-      thisThresh = gbPBT;
-    if (label == 2)
-      thisThresh = mbPBT;
-    if (label == 3)
-      thisThresh = wsPBT;
-    if (label == 4)
-      thisThresh = psPBT;
-    */
-
-    #ifdef DEBUG3
-    fprintf(stderr, " object check5"); fflush(stderr);
-    #endif
 
     vector<cv::Point> pointCloudPoints;
-//    getPointCloudPoints(pointCloudPoints, pBoxIndicator, thisThresh, 
-//      bTops[c], bBots[c], imW, imH, gBoxStrideX, gBoxStrideY, gBoxW, gBoxH);
-
-    #ifdef DEBUG3
-    fprintf(stderr, " object check6"); fflush(stderr);
-    #endif
 
     if (label >= 0) {
       if (publishObjects) {
@@ -10329,434 +10308,6 @@ void goClassifyBlueBoxes() {
   }
 
   //cout << "leaving gCBB()" << endl; cout.flush();
-}
-
-void goFindRedBoxes() {
-  Size sz = objectViewerImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  object_recognition_msgs::RecognizedObjectArray roa_to_send_red;
-  visualization_msgs::MarkerArray ma_to_send_red; 
-  roa_to_send_red.objects.resize(0);
-  ma_to_send_red.markers.resize(0);
-
-  for (int r = 0; r < numRedBoxes; r++) {
-
-    #ifdef DEBUG
-    cout << "dealing with redBox[" << r << "]" << endl;
-    #endif
-
-    redBox *thisRedBox = &(redBoxes[r]);
-    int thisClass = thisRedBox->classLabel;
-
-    int accepted = 0;
-    // check to see if there is a class who wants this red box
-    //   if so, scan it, if not, scan all
-    for (int c = 0; c < bTops.size(); c++) {
-      if (bLabels[c] == thisClass) {
-	accepted = 1;
-	thisRedBox->rootBlueBox = c;
-      }
-    }
-
-    // XXX
-    // check the old position of the redbox, keep its distance
-    // randomly alter the size of the test boxes, save the new size in that red box
-    // make feature computation efficient
-    // this should give interesting behavior
-
-    int thisRedStride = redStride*redPeriod;
-    int winJ = -1;
-    float winD = 1e6;
-    cv::Point winTop(0,0);
-    cv::Point winBot(thisRedBox->bot.x, thisRedBox->bot.y);
-    vector<KeyPoint> winKeypoints;
-    Mat winDescriptors;
-
-    cv::Point dTop;
-    cv::Point dBot;
-
-    if (thisRedBox->persistence < persistenceThresh) {
-      redRounds = 1;
-      //thisRedBox->bot = cv::Point(redInitialWidth, redInitialWidth);
-    }
-
-    for (int redR = 0; redR < redRounds; redR++) {
-
-      int proposalValid = 0;
-      int proposals = 0;
-
-      //int deltaAmplitude = ((lrand48() % 3)*10);
-      // "wide-scale random noise"
-      int dmax = redDigitsWSRN;
-      int digits = 1 + (lrand48() % (dmax));
-      int deltaAmplitude = (1 << (digits-1)) + (lrand48() % (1 << (digits-1)));
-      
-      //int dmax = 5;
-      //int digits = (lrand48() % dmax);
-      //int deltaAmplitude = (1 << digits);
-      //for (int d = 0; d < digits; d++)
-	//deltaAmplitude += ((lrand48() % 2) << d);
-
-      cv::Point rbDelta(0,0);
-      cv::Point cornerDelta(0,0);
-
-      double slideProb = slidesPerFrame / double(redRounds);
-      int slideOrNot = (drand48() < slideProb);
-      if (thisRedBox->persistence < persistenceThresh)
-	slideOrNot = 1;
-
-      while (!proposalValid && proposals < max_red_proposals) {
-	proposals++;
-	int deltaRnd = lrand48() % 6;
-	int cornerRnd = lrand48() % 4;
-	if (deltaRnd == 0) {
-	  if (thisRedBox->bot.x+deltaAmplitude <= rbMaxWidth) {
-	    rbDelta.x = deltaAmplitude;
-	    proposalValid = 1;
-	  }
-	} else if (deltaRnd == 1) {
-	  if (thisRedBox->bot.x-deltaAmplitude >= rbMinWidth) {
-	    rbDelta.x = -deltaAmplitude;
-	    proposalValid = 1;
-	  }
-	} else if (deltaRnd == 2) {
-	  if (thisRedBox->bot.y+deltaAmplitude <= rbMaxWidth) {
-	    rbDelta.y = deltaAmplitude;
-	    proposalValid = 1;
-	  }
-	} else if (deltaRnd == 3) {
-	  if (thisRedBox->bot.y-deltaAmplitude >= rbMinWidth) {
-	    rbDelta.y = -deltaAmplitude;
-	    proposalValid = 1;
-	  }
-	} else if (deltaRnd == 4) {
-	  if ((thisRedBox->bot.y-deltaAmplitude >= rbMinWidth) &&
-	      (thisRedBox->bot.x-deltaAmplitude >= rbMinWidth) ) {
-	    rbDelta.y = -deltaAmplitude;
-	    rbDelta.x = -deltaAmplitude;
-	    proposalValid = 1;
-	  }
-	} else if (deltaRnd == 5) {
-	  if ((thisRedBox->bot.y+deltaAmplitude <= rbMaxWidth) &&
-	      (thisRedBox->bot.x+deltaAmplitude <= rbMaxWidth) ) {
-	    rbDelta.y = deltaAmplitude;
-	    rbDelta.x = deltaAmplitude;
-	    proposalValid = 1;
-	  }
-	}
-
-	if (cornerRnd == 0) {
-	} else if (cornerRnd == 1) {
-	  cornerDelta.x = -rbDelta.x;
-	  cornerDelta.y = -rbDelta.y;
-	} else if (cornerRnd == 2) {
-	  cornerDelta.y = -rbDelta.y;
-	} else if (cornerRnd == 3) {
-	  cornerDelta.x = -rbDelta.x;
-	}
-      }
-      
-      vector<int> theseBlueBoxes;
-
-      if (accepted) {
-	theseBlueBoxes.push_back(thisRedBox->rootBlueBox);
-      } else {
-	int root_search = 0;
-	if (root_search == 0) {
-	  // search every box
-	  for (int bb = 0; bb < bTops.size(); bb++) {
-	    theseBlueBoxes.push_back(bb);
-	  }
-	} else if (root_search == 1) {
-	  // search a random box
-	  // consider removing
-	  if (bTops.size() > 0)
-	    theseBlueBoxes.push_back(lrand48() % bTops.size());
-	}
-      }
-
-      for (int cc = 0; cc < theseBlueBoxes.size(); cc++) {
-	int c = theseBlueBoxes[cc];
-	cv::Point hTop = bTops[c];
-	cv::Point hBot = bBots[c];
-
-	if (!slideOrNot) {
-	  hTop.x = thisRedBox->anchor.x + cornerDelta.x;
-	  hTop.y = thisRedBox->anchor.y + cornerDelta.y;
-
-	  hBot.x = thisRedBox->anchor.x + cornerDelta.x + thisRedBox->bot.x + rbDelta.x;
-	  hBot.y = thisRedBox->anchor.y + cornerDelta.y + thisRedBox->bot.y + rbDelta.y;
-
-	  hTop.x = min(hTop.x, bBots[c].x);
-	  hTop.y = min(hTop.y, bBots[c].y);
-	  hTop.x = max(hTop.x, bTops[c].x);
-	  hTop.y = max(hTop.y, bTops[c].y);
-
-	  hBot.x = min(hBot.x, bBots[c].x);
-	  hBot.y = min(hBot.y, bBots[c].y);
-	  hBot.x = max(hBot.x, bTops[c].x);
-	  hBot.y = max(hBot.y, bTops[c].y);
-
-	  if ((hBot.x-hTop.x < rbMinWidth) || (hBot.y-hTop.y < rbMinWidth)) {
-	    #ifdef DEBUG
-	    cout << "REJECTED class: " << thisClass << " bb: " << c << hTop << hBot << " prop: " << proposals << endl;
-	    #endif
-	    continue;
-	  }
-	}
-	
-	int ix = min(hTop.x + thisRedBox->bot.x + rbDelta.x, hBot.x);
-	int iy = min(hTop.y + thisRedBox->bot.y + rbDelta.y, hBot.y);
-	/*1*/cv::Point itTop(hTop.x,0);
-	/*1*/cv::Point itBot(ix , 0);
-	for (/*1*/; itBot.x <= hBot.x; /*2*/) {
-	  
-	  /*3*/itTop.y = hTop.y;
-	  /*3*/itBot.y = iy;
-	  for (/*3*/; itBot.y <= hBot.y; /*4*/) {
-	    // score this crop
-	    vector<KeyPoint> keypoints;
-	    Mat descriptors(1,vocabNumWords, CV_32F);
-	    Mat descriptors2;
-
-	    Mat& yCrCb_image = bYCrCb[c];
-	    #ifdef DEBUG
-	    //cout << &(bYCrCb[c]) << endl;
-	    #endif
-
-	    cv::Point lItTop(itTop.x-bTops[c].x, itTop.y-bTops[c].y);
-	    cv::Point lItBot(itBot.x-bTops[c].x, itBot.y-bTops[c].y);
-
-	    float totalWords = bWords[c].size();
-	    float countedWords = 0;
-	    #ifdef DEBUG
-	    //cout << "totalWords: " << totalWords;
-	    #endif
-	    for (int w = 0; w < totalWords; w++) {
-	      int tX = bKeypoints[c][w].pt.x;
-	      int tY = bKeypoints[c][w].pt.y;
-	      // check for containment in this box
-	      #ifdef DEBUG
-	      //cout << " tX tY:" << tX << " " << tY << " " << itTop << itBot << lItTop << lItBot << hTop << hBot << endl;
-	      #endif
-	      if(
-		(tX >= lItTop.x) &&
-		(tX <= lItBot.x) &&
-		(tY >= lItTop.y) &&
-		(tY <= lItBot.y) 
-		) {
-		#ifdef DEBUG
-		//cout << " w:" << w << " " << endl;
-		#endif
-		descriptors.at<float>(bWords[c][w])++;
-		keypoints.push_back(bKeypoints[c][w]);
-		countedWords++;		
-		if (drawBlueKP) {
-		  cv::Point kpTop = cv::Point(bTops[c].x+tX,bTops[c].y+tY);
-		  cv::Point kpBot = cv::Point(bTops[c].x+tX+1,bTops[c].y+tY+1);
-		  if(
-		    (kpTop.x >= 1) &&
-		    (kpBot.x <= imW-2) &&
-		    (kpTop.y >= 1) &&
-		    (kpBot.y <= imH-2) 
-		    ) {
-		    rectangle(objectViewerImage, kpTop, kpBot, cv::Scalar(0,0,255));
-		  }
-		}
-	      }
-	    }
-
-	    Mat neighbors(1, redK, CV_32F);
-	    Mat dist;
-	    if (countedWords > 0) {
-	      // normalize the BoW
-	      for (int w = 0; w < vocabNumWords; w++) {
-		descriptors.at<float>(w) = descriptors.at<float>(w) / countedWords;
-	      }
-
-	      appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
-
-	      //kNN->find_nearest(descriptors, redK, 0, 0, &neighbors, &dist);
-	      kNN->find_nearest(descriptors2, redK, 0, 0, &neighbors, &dist);
-
-	      int thisJ = 0;
-	      float thisD = 1e6;
-	      for (int n = 0; n < redK; n++) {
-		#ifdef DEBUG
-		cout << "  neighbors[" << n <<"] is " << (neighbors.at<float>(n));
-		#endif
-		if (neighbors.at<float>(n) == float(thisClass)) {
-		  thisJ++;
-		  thisD = min(dist.at<float>(n), winD);
-		}
-	      }
-	      #ifdef DEBUG
-	      cout << " thisJ: " << thisJ << " slide: " << slideOrNot << " redR: " << redR << endl;
-	      #endif
-	      if (thisJ > 0 && thisD < winD) {
-		winJ = thisJ;
-		winD = thisD;
-		winTop = itTop;
-		winBot = itBot;
-		winDescriptors = descriptors;
-		winKeypoints = keypoints;
-	      }
-
-	      if (drawRB) {
-		{
-		  cv::Point outTop = cv::Point(dTop.x, dTop.y);
-		  cv::Point outBot = cv::Point(dBot.x, dBot.y);
-		  cv::Point inTop = cv::Point(dTop.x+1,dTop.y+1);
-		  cv::Point inBot = cv::Point(dBot.x-1,dBot.y-1);
-		  rectangle(objectViewerImage, outTop, outBot, 0.5*cv::Scalar(64,64,192));
-		  rectangle(objectViewerImage, inTop, inBot, 0.5*cv::Scalar(160,160,224));
-		}
-
-		{
-		  cv::Point outTop = cv::Point(itTop.x, itTop.y);
-		  cv::Point outBot = cv::Point(itBot.x, itBot.y);
-		  cv::Point inTop = cv::Point(winTop.x+1,winTop.y+1);
-		  cv::Point inBot = cv::Point(winBot.x-1,winBot.y-1);
-		  rectangle(objectViewerImage, outTop, outBot, 0.5*cv::Scalar(0,0,255));
-		  rectangle(objectViewerImage, inTop, inBot, 0.5*cv::Scalar(192,192,255));
-		}
-
-		//{
-		  //cv::Point outTop = cv::Point(winTop.x, winTop.y);
-		  //cv::Point outBot = cv::Point(winBot.x, winBot.y);
-		  //cv::Point inTop = cv::Point(winTop.x+1,winTop.y+1);
-		  //cv::Point inBot = cv::Point(winBot.x-1,winBot.y-1);
-		  //rectangle(objectViewerImage, outTop, outBot, 0.5*cv::Scalar(0,0,255));
-		  //rectangle(objectViewerImage, inTop, inBot, 0.5*cv::Scalar(192,192,255));
-		//}
-	      }
-
-	    }
-
-	    #ifdef DEBUG
-	    cout << "class: " << thisClass << " bb: " << c << " descriptors: " << keypoints.size() << " " 
-	    << itBot << itTop << "  " << hTop << hBot << " prop: " << proposals << endl;
-	    #endif
-
-	    /*4*/itTop.y += thisRedStride;
-	    /*4*/itBot.y += thisRedStride;
-	  }
-
-	  /*2*/itTop.x += thisRedStride;
-	  /*2*/itBot.x += thisRedStride;
-	}
-      }
-      
-      if (winD < thisRedBox->lastDistance) {
-	if (thisRedBox->persistence > persistenceThresh)
-	  thisRedBox->bot = cv::Point(redDecay*thisRedBox->bot.x + (1.0-redDecay)*(winBot.x - winTop.x), 
-				      redDecay*thisRedBox->bot.y + (1.0-redDecay)*(winBot.y - winTop.y) );
-	else
-	  thisRedBox->bot = cv::Point((winBot.x - winTop.x), (winBot.y - winTop.y));
-      }
-      thisRedBox->lastDistance = winD;
-
-      dTop = cv::Point(thisRedBox->anchor.x, thisRedBox->anchor.y);
-      dBot = cv::Point(thisRedBox->anchor.x + thisRedBox->bot.x, thisRedBox->anchor.y + thisRedBox->bot.y);
-    }
-
-    string labelName; 
-    string augmentedLabelName;
-    double poseIndex = -1;
-    int winningO = -1;
-
-    getOrientation(winKeypoints, winDescriptors, winTop, winBot, 
-      thisClass, labelName, augmentedLabelName, poseIndex, winningO);
-    
-    // always decay persistence but only add it if we got a hit
-    thisRedBox->persistence = redDecay*thisRedBox->persistence;
-    if (winD < 1e6) {
-      if (thisRedBox->persistence > persistenceThresh) {
-	thisRedBox->anchor.x = redDecay*thisRedBox->anchor.x + (1.0-redDecay)*winTop.x;
-	thisRedBox->anchor.y = redDecay*thisRedBox->anchor.y + (1.0-redDecay)*winTop.y;
-      } else {
-	thisRedBox->anchor.x = winTop.x;
-	thisRedBox->anchor.y = winTop.y;
-	thisRedBox->persistence = persistenceThresh+.001;
-      }
-      thisRedBox->persistence = thisRedBox->persistence + (1.0-redDecay)*1.0;
-    
-      thisRedBox->poseIndex = poseIndex;
-      thisRedBox->winningO = winningO;
-    }
-
-    if (drawRed) {
-      //if (thisRedBox->persistence > 0.0) 
-      {
-	cv::Point outTop = cv::Point(dTop.x, dTop.y);
-	cv::Point outBot = cv::Point(dBot.x, dBot.y);
-	cv::Point inTop = cv::Point(dTop.x+1,dTop.y+1);
-	cv::Point inBot = cv::Point(dBot.x-1,dBot.y-1);
-	rectangle(objectViewerImage, outTop, outBot, cv::Scalar(64,64,192));
-	rectangle(objectViewerImage, inTop, inBot, cv::Scalar(160,160,224));
-
-	if (drawLabels) {
-	  cv::Point text_anchor(dTop.x+1, dBot.y-2);
-	  cv::Point text_anchor2(dTop.x+1, dBot.y-2);
-	  putText(objectViewerImage, augmentedLabelName, text_anchor, MY_FONT, 0.5, Scalar(160,160,224), 2.0);
-	  putText(objectViewerImage, augmentedLabelName, text_anchor2, MY_FONT, 0.5, Scalar(64,64,192), 1.0);
-	}
-      }
-
-      {
-	cv::Point outTop = cv::Point(winTop.x, winTop.y);
-	cv::Point outBot = cv::Point(winBot.x, winBot.y);
-	cv::Point inTop = cv::Point(winTop.x+1,winTop.y+1);
-	cv::Point inBot = cv::Point(winBot.x-1,winBot.y-1);
-	rectangle(objectViewerImage, outTop, outBot, cv::Scalar(0,0,255));
-	rectangle(objectViewerImage, inTop, inBot, cv::Scalar(192,192,255));
-
-	if (drawLabels) {
-	  cv::Point text_anchor(winTop.x+1, winBot.y-2);
-	  cv::Point text_anchor2(winTop.x+1, winBot.y-2);
-	  putText(objectViewerImage, augmentedLabelName, text_anchor, MY_FONT, 0.5, Scalar(192,192,255), 2.0);
-	  putText(objectViewerImage, augmentedLabelName, text_anchor2, MY_FONT, 0.5, Scalar(0,0,255), 1.0);
-	}
-      }
-    }
-
-    double thisThresh = pBoxThresh;
-
-    if (publishObjects) {
-      vector<cv::Point> pointCloudPoints;
-//      getPointCloudPoints(pointCloudPoints, pBoxIndicator, thisThresh, 
-//	dTop    , dBot    , imW, imH, gBoxStrideX, gBoxStrideY, gBoxW, gBoxH);
-
-      if (thisClass >= 0) {
-	roa_to_send_red.objects.resize(roa_to_send_red.objects.size()+1);
-	ma_to_send_red.markers.resize(ma_to_send_red.markers.size()+1);
-
-	fill_RO_and_M_arrays(roa_to_send_red, 
-	  ma_to_send_red, pointCloudPoints, roa_to_send_red.objects.size()-1, thisClass, thisRedBox->winningO, thisRedBox->poseIndex);
-	
-	thisRedBox->com.px = roa_to_send_red.objects[roa_to_send_red.objects.size()-1].pose.pose.pose.position.x;
-	thisRedBox->com.py = roa_to_send_red.objects[roa_to_send_red.objects.size()-1].pose.pose.pose.position.y;
-	thisRedBox->com.pz = roa_to_send_red.objects[roa_to_send_red.objects.size()-1].pose.pose.pose.position.z;
-	thisRedBox->com.ox = 0.0;
-	thisRedBox->com.oy = 0.0; 
-	thisRedBox->com.oz = 0.0; 
-
-	if (!isFiniteNumber(thisRedBox->com.px) ||
-	    !isFiniteNumber(thisRedBox->com.py) ||
-	    !isFiniteNumber(thisRedBox->com.pz) )
-	  thisRedBox->com = beeHome;
-      }
-    }
-  }
-
-  if (publishObjects) {
-    if (numRedBoxes > 0) {
-      rec_objs_red.publish(roa_to_send_red);
-      markers_red.publish(ma_to_send_red);
-    }
-  }
 }
 
 void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg) {
@@ -11011,7 +10562,6 @@ void detectorsInit() {
   bowtrainer = new BOWKMeansTrainer(vocabNumWords);
 
   // read the class image data
-  struct dirent *epdf;
   string dot(".");
   string dotdot("..");
 
@@ -11087,7 +10637,7 @@ void detectorsInit() {
     cout << "done. classLabels size: " << classLabels.size() << " classPoseModels size: " << classPoseModels.size() << endl;
   }
 
-  for (int i = 0; i < classLabels.size(); i++) {
+  for (unsigned int i = 0; i < classLabels.size(); i++) {
     cout << classLabels[i] << " " << classPoseModels[i] << endl;
   }
 
@@ -11690,7 +11240,7 @@ int main(int argc, char **argv) {
   pilot_call_stack.push_back('u'); // printState
   int devInit = 1;
   if (devInit) {
-    //pilot_call_stack.push_back(196437); // increment target class
+    pilot_call_stack.push_back(196437); // increment target class
 
     pilot_call_stack.push_back(1179720); // set gradient servo take closest
     //pilot_call_stack.push_back(1179719); // set gradient servo don't take closest
