@@ -1,3 +1,22 @@
+WORD(WaitUntilAtCurrentPosition)
+CODE(131154)    // capslock + r
+virtual void execute() {
+  double dx = (currentEEPose.px - trueEEPose.position.x);
+  double dy = (currentEEPose.py - trueEEPose.position.y);
+  double dz = (currentEEPose.pz - trueEEPose.position.z);
+  double distance = dx*dx + dy*dy + dz*dz;
+  
+  double qx = (fabs(currentEEPose.qx) - fabs(trueEEPose.orientation.x));
+  double qy = (fabs(currentEEPose.qy) - fabs(trueEEPose.orientation.y));
+  double qz = (fabs(currentEEPose.qz) - fabs(trueEEPose.orientation.z));
+  double qw = (fabs(currentEEPose.qw) - fabs(trueEEPose.orientation.w));
+  double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
+  
+  if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh))
+    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+}
+END_WORD
+
 WORD(PerturbPosition)
 CODE(1048623)     // numlock + /
 virtual void execute() {

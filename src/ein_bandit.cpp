@@ -80,8 +80,8 @@ virtual void execute()       {
   pushWord(131139); // synchronic servo don't take closest
   pushWord(131156); // synchronic servo
   pushWord(196707); // synchronic servo take closest
-  pushWord(131153); // vision cycle
-  pushWord(131154); // w1 wait until at current position
+  pushWord("visionCycle"); // vision cycle
+  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   { // prepare to servo
     //currentEEPose.pz = wholeFoodsCounter1.pz+.1;
     pushWord(1245248); // change to height 1
@@ -137,7 +137,7 @@ CODE(1179707)     // capslock + numlock + ;
   pushWord("visionCycle"); // vision cycle
   //pushWord(1179695); // check to see if bounding box is unique (early outting if not)
   pushWord("visionCycle"); // vision cycle
-  pushWord(131154); // w1 wait until at current position
+  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   pushWord(1179687); // set random position for bblearn
 
   pushWord(65568+4); // record register 4
@@ -146,10 +146,10 @@ CODE(1179707)     // capslock + numlock + ;
   pushWord(131139); // synchronic servo don't take closest
   pushWord(131156); // synchronic servo
   pushWord(196707); // synchronic servo take closest
-  pushWord(131153); // vision cycle
+  pushWord("visionCycle"); // vision cycle
   //pushWord(1179695); // check to see if bounding box is unique (early outting if not)
-  pushWord(131153); // vision cycle
-  pushWord(131154); // w1 wait until at current position
+  pushWord("visionCycle"); // vision cycle
+  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   pushWord(1179687); // set random position for bblearn
 
   pushWord(1245247); // sample height
