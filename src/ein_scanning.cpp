@@ -197,7 +197,7 @@ virtual void execute()       {
   pushWord(1245246); // uniformly sample height
   pushWord(196711); // photospin
 
-  pushWord(131154); // w1 wait until at current position
+  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   pushWord(1245246); // uniformly sample height
   pushSpeedSign(MOVE_FAST);
 }
@@ -211,7 +211,7 @@ virtual void execute() {
   for (int angleCounter = 0; angleCounter < totalGraspGears; angleCounter++) {
     pushWord(131148); // save crop as focused class if there is only one
     pushWord(196721); // vision cycle no classify
-    pushWord(131154); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     pushWord(1310722); // set random orientation for photospin.
     pushWord(196712); // increment grasp gear
   }
@@ -298,10 +298,12 @@ virtual void execute() {
 
   // this automatically changes learning mode
           
-  pushWord(1245242); // begin bounding box learning
+  pushWord("beginHeightLearning"); // begin bounding box learning
 
-  pushWord(1245248); // change to height 1
+  pushWord("changeToHeight1"); // change to height 1
   pushWord("shiftIntoGraspGear1"); // change to first gear
+  
+  pushWord("loadPriorGraspMemoryAnalytic");
 
   // set target class to the lastLabelLearned 
   pushWord(1179730);
@@ -312,9 +314,9 @@ virtual void execute() {
   pushWord(1179732);
 
   pushWord(131143); // 72 way scan
-  pushWord(131154); // w1 wait until at current position
+  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   pushWord(131143); // 72 way scan
-  pushWord(131154); // w1 wait until at current position
+  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
   // this is a good time to remove a contrast agent
   //pushWord('Y'); // pause stack execution
@@ -335,8 +337,8 @@ virtual void execute() {
       pushCopies(131121, densityIterationsForGradientServo); // density
       pushWord(262237); // reset aerialGradientTemporalFrameAverage
       pushCopies(131121, 1); // density
-      pushWord(131153); // vision cycle
-      pushWord(131154); // w1 wait until at current position
+      pushWord("visionCycle"); // vision cycle
+      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
       pushWord(1245220); // change to height 3
     }
     {
@@ -344,8 +346,8 @@ virtual void execute() {
       pushCopies(131121, densityIterationsForGradientServo); // density
       pushWord(262237); // reset aerialGradientTemporalFrameAverage
       pushCopies(131121, 1); // density
-      pushWord(131153); // vision cycle
-      pushWord(131154); // w1 wait until at current position
+      pushWord("visionCycle"); // vision cycle
+      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
       pushWord(1245219); // change to height 2
     }
     {
@@ -353,8 +355,8 @@ virtual void execute() {
       pushCopies(131121, densityIterationsForGradientServo); // density
       pushWord(262237); // reset aerialGradientTemporalFrameAverage
       pushCopies(131121, 1); // density
-      pushWord(131153); // vision cycle
-      pushWord(131154); // w1 wait until at current position
+      pushWord("visionCycle"); // vision cycle
+      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
       pushWord(1245248); // change to height 1
     }
     {
@@ -362,8 +364,8 @@ virtual void execute() {
       pushCopies(131121, densityIterationsForGradientServo); // density
       pushWord(262237); // reset aerialGradientTemporalFrameAverage
       pushCopies(131121, 1); // density
-      pushWord(131153); // vision cycle
-      pushWord(131154); // w1 wait until at current position
+      pushWord("visionCycle"); // vision cycle
+      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
       pushWord(1245217); // change to height 0
     }
   }
@@ -375,12 +377,12 @@ virtual void execute() {
   pushWord(131139); // synchronic servo don't take closest
   pushWord(131156); // synchronic servo
   pushWord(196707); // synchronic servo take closest
-  pushWord(131153); // vision cycle
+  pushWord("visionCycle"); // vision cycle
 
   pushWord('Y'); // pause stack execution
   pushCopies(1245308, 15); // beep
 
-  pushWord(131154); // w1 wait until at current position
+  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   pushWord("shiftIntoGraspGear1"); // change to first gear
   pushWord(1245219); // change to height 2
   pushSpeedSign(MOVE_FAST);
@@ -512,7 +514,7 @@ virtual void execute() {
   pushWord("downsampleIrScan"); // load map to register 1
   {
     pushWord(1048678); // target best grasp
-    pushWord(131154); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     pushWord("shiftIntoGraspGear1"); // change to first gear
   }
   pushWord(1048630); // find best grasp

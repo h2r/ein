@@ -3395,6 +3395,8 @@ void update_baxter(ros::NodeHandle &n) {
       return;
     }
 
+    ik_reset_counter = max(ik_reset_counter-1, 0);
+
     lastGoodEEPose = currentEEPose;
     ikRequest = thisIkRequest;
     ikInitialized = 1;
