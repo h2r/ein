@@ -8,30 +8,30 @@
 using namespace std;
 
 
-class Word {
+class ToyWord {
 public:
   virtual void execute() = 0;
   virtual string to_string() = 0;
 };
 
 
-vector<Word *> stack;
+vector<ToyWord *> stack;
 
 
-void push(Word * word) {
+void push(ToyWord * word) {
   stack.push_back(word);
   word->execute();
 }
 
-Word * pop() {
-  Word * result = stack.back();
+ToyWord * pop() {
+  ToyWord * result = stack.back();
   stack.pop_back();
   return result;
 }
 
 
 
-class Integer: public Word
+class Integer: public ToyWord
 {
 private:
 public:
@@ -61,7 +61,7 @@ public:
   }
 };
 
-class Plus: public Word
+class Plus: public ToyWord
 {
 public: 
   static Plus * parse(string token) {
@@ -94,7 +94,7 @@ public:
 };
 
 
-class Minus: public Word
+class Minus: public ToyWord
 {
 public: 
   static Minus * parse(string token) {
@@ -151,7 +151,7 @@ void printStack() {
 
 }
 
-Word * parse(string token) {
+ToyWord * parse(string token) {
   if (Integer::isInteger(token)) {
     return Integer::parse(token);
   }
@@ -171,7 +171,7 @@ string read() {
   cout << "ok" << endl;
   vector<string> tokens = split(line.c_str(), ' ');
   for (int i = 0; i < tokens.size(); i++) {
-    Word * word = parse(tokens[i]);
+    ToyWord * word = parse(tokens[i]);
     push(word);
   }
   printStack();

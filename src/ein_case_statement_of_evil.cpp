@@ -120,8 +120,6 @@
 
 #include <opencv2/gpu/gpu.hpp>
 
-#include "word.h"
-
 using namespace std;
 using namespace cv;
 using namespace Eigen;
@@ -288,14 +286,10 @@ int oscillating = 0;
 int oscillatingSign = 1;
 int oscillatorTimerThresh = 600;
 
-Word * current_instruction = NULL;
+int current_instruction = 'C';
 double tap_factor = 0.1;
 int execute_stack = 0;
 std::vector<int> pilot_call_stack;
-
-std::vector<Word *> words;
-std::map<int, Word *> character_code_to_word;
-std::map<string, Word *> name_to_word;
 
 int go_on_lock = 0;
 int slf_thresh = 5;
@@ -3473,35 +3467,80 @@ void update_baxter(ros::NodeHandle &n) {
 
 void timercallback1(const ros::TimerEvent&) {
 
+  #ifdef DEBUG
+  cout << "debug 6" << endl;
+  cout.flush();
+  #endif
+
+//cout << "block1" << endl;
+  //eePose redTargetEEPose;
+
   eePose redTargetEEPose = beeHome;
 
-  ros::NodeHandle n("~");
-  Word * word = NULL;
+  // target a chosen red box
+  /*
+  if ((numRedBoxes > 0) && (redTrackbarVariable > 0))
+    if (redBoxes[redTrackbarVariable - 1].persistence > persistenceThresh) {
+      tf::StampedTransform transform;
+      try {
+	geometry_msgs::PointStamped pStampedIn;
+	geometry_msgs::PointStamped pStampedOut;
+	pStampedIn.header.seq = 0;
+	pStampedIn.header.stamp = ros::Time::now() - ros::Duration(tfPast);
+	pStampedIn.header.frame_id = "/camera_rgb_optical_frame";
+	pStampedIn.point.x = redBoxes[redTrackbarVariable - 1].com.px;
+	pStampedIn.point.y = redBoxes[redTrackbarVariable - 1].com.py;
+	pStampedIn.point.z = redBoxes[redTrackbarVariable - 1].com.pz;
 
+//	try {
+//	    //listener.waitForTransform(destination_frame, original_frame, ros::Time(0), ros::Duration(10.0) );
+//	    //listener.lookupTransform(destination_frame, original_frame, ros::Time(0), transform);
+//	    tfListener->waitForTransform("/base", "/camera_rgb_optical_frame", ros::Time(0), ros::Duration(10.0) );
+//	    tfListener->transformPoint("/base", pStampedIn, pStampedOut); 
+//	} catch (tf::TransformException ex) {
+//	    ROS_ERROR("%s",ex.what());
+//	}
+
+
+	tfListener->transformPoint("/base", pStampedIn, pStampedOut); 
+
+
+
+	redTargetEEPose.px = pStampedOut.point.x;
+	redTargetEEPose.py = pStampedOut.point.y;
+	redTargetEEPose.pz = pStampedOut.point.z;
+	redTargetEEPose.ox = currentEEPose.ox; 
+	redTargetEEPose.oy = currentEEPose.oy;
+	redTargetEEPose.oz = currentEEPose.oz;
+      } catch (tf::TransformException &ex) {
+	ROS_ERROR("%s",ex.what());
+	//ROS_ERROR("unable to lookup transform...");
+      }
+    }
+  */
+
+//cout << "block2" << endl;
+  //ROS_INFO("Callback 1 triggered");
+  ros::NodeHandle n("~");
 
   int c = cvWaitKey(1);
   int takeSymbol = 1;
   if (c != -1) {
     cout << "You pressed " << c << "." << endl;
     takeSymbol = 0;
-    if (character_code_to_word.count(c) > 0) {
-      word = character_code_to_word[c];      
-      current_instruction = word;
-    } else {
-      cout  << "Could not find word for " << c << endl;
-    }
-
-
   }
+//cout << "block3" << endl;
 
 
+  #ifdef DEBUG
+  cout << "debug 7" << endl;
+  cout.flush();
+  #endif
   
-  if (!auto_pilot) {
+  if (!auto_pilot)
     autoPilotFrameCounter = 0;
-  }
   // both of these could be moved into the symbolic logic
   // if we have a lock, proceed to grab 
-
   if ((auto_pilot && go_on_lock && (successive_lock_frames >= slf_thresh)) || ((autoPilotFrameCounter > take_yellow_thresh) && (lock_status == 1))) {
     lock_status = 0;
     successive_lock_frames = 0;
@@ -3518,14 +3557,7 @@ void timercallback1(const ros::TimerEvent&) {
     if (pilot_call_stack.size() > 0) {
       c = pilot_call_stack.back();
       pilot_call_stack.pop_back();
-      if (character_code_to_word.count(c) > 0) {
-        word = character_code_to_word[c];      
-        current_instruction = word;
-      } else {
-        cout  << "Could not find word for " << c << endl;
-        //assert(0);
-      }
-
+      current_instruction = c;
     } else {
       execute_stack = 0;
     }
@@ -3550,7 +3582,6 @@ void timercallback1(const ros::TimerEvent&) {
   #endif
 
   //cout << "current command: " << int(c) << endl;
-  //word->execute();
 
   switch (c) {
     case 30: // up arrow
@@ -9975,7 +10006,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   cv::Point lAnchor(170,50);
   string lText;
   lText += "CI: ";
-  lText += current_instruction->name();
+  lText += current_instruction;
   lText += "  ZG: ";
   sprintf(buf, "%d", zero_g_toggle);
   lText += buf;
@@ -17396,6 +17427,7 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
     {
       string thisLabelName(className);
 
+      char buf[1000];
       string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
       string this_ag_path = dirToMakePath + "aerialHeight0Gradients.yml";
 
@@ -17431,6 +17463,7 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
     {
       string thisLabelName(className);
 
+      char buf[1000];
       string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
       string this_ag_path = dirToMakePath + "aerialHeight2Gradients.yml";
 
@@ -17448,6 +17481,7 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
     {
       string thisLabelName(className);
 
+      char buf[1000];
       string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
       string this_ag_path = dirToMakePath + "aerialHeight3Gradients.yml";
 
@@ -17564,10 +17598,6 @@ int main(int argc, char **argv) {
   //lfunc();
   //exit(0);
 
-  words = create_words();
-  character_code_to_word = create_character_code_to_word(words);
-  name_to_word = create_name_to_word(words);
-  current_instruction = name_to_word["pause"];
 
   srand(time(NULL));
   time(&firstTime);
@@ -17758,5 +17788,3 @@ int main(int argc, char **argv) {
 
   return 0;
 }
-
-#include "ein_words.cpp"
