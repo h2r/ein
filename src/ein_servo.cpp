@@ -11,7 +11,7 @@ virtual void execute()       {
   // select max target cumulative
   pushWord(1114195);
   // apply grasp filter for 4
-  pushWord(1048673); // drawMapRegisters
+  pushWord("drawMapRegisters"); 
   pushWord(1048692); // apply grasp filter
   pushWord(1048688); // prepare grasp filter for 4
   // load reg1
@@ -22,7 +22,7 @@ virtual void execute()       {
   // select max target cumulative
   pushWord(1114195);
   // apply grasp filter for 3
-  pushWord(1048673); // drawMapRegisters    
+  pushWord("drawMapRegisters"); 
   pushWord(1048692); // apply grasp filter
   pushWord(1048693); // prepare grasp filter for 3
   // load reg1

@@ -2579,8 +2579,14 @@ void pushNoOps(int n) {
 }
 
 void pushCopies(int symbol, int times) {
-  for (int i = 0; i < times; i++)
+  for (int i = 0; i < times; i++) {
     pushWord(symbol); 
+  }
+}
+void pushCopies(string symbol, int times) {
+  for (int i = 0; i < times; i++) {
+    pushWord(symbol); 
+  }
 }
 
 void pushSpeedSign(double speed) {
@@ -3513,8 +3519,7 @@ void timercallback1(const ros::TimerEvent&) {
   ros::NodeHandle n("~");
   Word * word = NULL;
 
-
-  int c = cvWaitKey(1);
+ int c = cvWaitKey(1);
   int takeSymbol = 1;
   if (c != -1) {
     cout << "You pressed " << c << "." << endl;
