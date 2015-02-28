@@ -1,3 +1,15 @@
+WORD(PerturbPosition)
+CODE(1048623)     // numlock + /
+virtual void execute() {
+  double noX = perturbScale * ((drand48() - 0.5) * 2.0);
+  double noY = perturbScale * ((drand48() - 0.5) * 2.0);
+  double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
+  
+  currentEEPose.px += noX;
+  currentEEPose.py += noY;
+  currentEEPose.oz += noTheta;
+}
+END_WORD
 
 WORD(OYDown)
 CODE('w'+65504) 
@@ -161,6 +173,24 @@ virtual void execute()
 }
 END_WORD
 
+WORD(SetGripperThresh)
+CODE(1179713)     // capslock + numlock + a
+virtual void execute() {
+  gripperThresh = lastMeasuredClosed + lastMeasuredBias;
+  cout << "lastMeasuredClosed: " << lastMeasuredClosed << " lastMeasuredBias: " << lastMeasuredBias << endl;
+  cout << "gripperThresh = " << gripperThresh << endl;
+}
+END_WORD
+
+WORD(CalibrateGripper)
+CODE('i') 
+virtual void execute() {
+  baxter_core_msgs::EndEffectorCommand command;
+  command.command = baxter_core_msgs::EndEffectorCommand::CMD_CALIBRATE;
+  command.id = 65538;
+  gripperPub.publish(command);
+}
+END_WORD
 
 WORD(CloseGripper)
 CODE('j')
