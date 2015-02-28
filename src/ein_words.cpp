@@ -34,6 +34,25 @@ namespace ein_words
 #include "ein_vision_cycle.cpp"
 #include "ein_scanning.cpp"
 
+WORD(ClearStack)
+CODE('r') 
+virtual void execute() {
+  pilot_call_stack.resize(0);
+}
+END_WORD
+
+
+ 
+WORD(PauseAndClearVariables)
+CODE('c') 
+virtual void execute() {
+  holding_pattern = 0;
+  auto_pilot = 0;
+  go_on_lock = 0;
+  execute_stack = 0;
+  lastPtheta = INFINITY;
+}
+END_WORD
 
 
 WORD(Beep)
@@ -143,18 +162,28 @@ virtual void execute() {
   cout << endl;
   cout << endl;
 }
-  END_WORD
+END_WORD
+
+WORD(DecrementTargetClass)
+CODE(196438)     // capslock + pagedown
+virtual void execute() {
+  cout << "targetClass-- " << endl;
+  if (numClasses > 0) {
+    int newTargetClass = (targetClass - 1 + numClasses) % numClasses;
+    changeTargetClass(newTargetClass);
+  }
+}
+END_WORD
 
 WORD(IncrementTargetClass)
-// capslock + pageup
-CODE(196437)
+CODE(196437)// capslock + pageup
 virtual void execute()
 {
-    cout << "targetClass++ " << endl;
-    if (numClasses > 0) {
-      int newTargetClass = (targetClass + 1) % numClasses;
-      changeTargetClass(newTargetClass);
-    }
+  cout << "targetClass++ " << endl;
+  if (numClasses > 0) {
+    int newTargetClass = (targetClass + 1) % numClasses;
+    changeTargetClass(newTargetClass);
+  }
 }
 END_WORD
 
@@ -235,6 +264,8 @@ std::vector<Word *> create_words() {
   words.push_back(new ScanObject());
   words.push_back(new ExecuteStack());
   words.push_back(new PauseStackExecution());
+  words.push_back(new PauseAndClearVariables());
+  words.push_back(new ClearStack());
   words.push_back(new OpenGripper());
   words.push_back(new CloseGripper());
   words.push_back(new ChangeToCounterTable());
@@ -356,6 +387,16 @@ std::vector<Word *> create_words() {
   words.push_back(new LoadPriorHeightMemoryAnalytic());
   words.push_back(new LoadPriorHeightMemoryUniform());
   words.push_back(new PerturbPosition());
+  words.push_back(new TrainModels());
+  words.push_back(new SetTargetClassToLastLabelLearned());
+  words.push_back(new SetLastLabelLearned());
+
+  words.push_back(new BeginHeightLearning());
+  words.push_back(new ContinueHeightLearning());
+  words.push_back(new RecordHeightLearnTrial());
+  words.push_back(new SetRandomPositionAndOrientationForHeightLearning());
+  words.push_back(new SaveLearnedModels());
+  words.push_back(new DecrementTargetClass());
   return words;
 }
 

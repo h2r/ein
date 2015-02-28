@@ -1,3 +1,193 @@
+WORD(SaveLearnedModels)
+CODE(1245281)     // capslock + numlock + A
+virtual void execute()       {
+  if (focusedClass > -1) {
+    // initialize this if we need to
+    guardGraspMemory();
+    guardHeightMemory();
+
+
+    string thisLabelName = focusedClassLabel;
+
+    char buf[1000];
+    string dirToMakePath = data_directory + "/" + thisLabelName + "/ir2D/";
+    string this_range_path = dirToMakePath + "xyzRange.yml";
+
+    Mat rangeMapTemp(rmWidth, rmWidth, CV_64F);
+    for (int y = 0; y < rmWidth; y++) {
+      for (int x = 0; x < rmWidth; x++) {
+        rangeMapTemp.at<double>(y,x) = classRangeMaps[focusedClass].at<double>(y,x);
+      } 
+    } 
+
+    mkdir(dirToMakePath.c_str(), 0777);
+
+    FileStorage fsvO;
+    cout << "capslock + numlock + A: Writing: " << this_range_path << endl;
+    fsvO.open(this_range_path, FileStorage::WRITE);
+    fsvO << "rangeMap" << rangeMapTemp;
+
+    copyGraspMemoryTriesToClassGraspMemoryTries();
+    fsvO << "graspMemoryTries1" << classGraspMemoryTries1[focusedClass];
+    fsvO << "graspMemoryPicks1" << classGraspMemoryPicks1[focusedClass];
+    fsvO << "graspMemoryTries2" << classGraspMemoryTries2[focusedClass];
+    fsvO << "graspMemoryPicks2" << classGraspMemoryPicks2[focusedClass];
+    fsvO << "graspMemoryTries3" << classGraspMemoryTries3[focusedClass];
+    fsvO << "graspMemoryPicks3" << classGraspMemoryPicks3[focusedClass];
+    fsvO << "graspMemoryTries4" << classGraspMemoryTries4[focusedClass];
+    fsvO << "graspMemoryPicks4" << classGraspMemoryPicks4[focusedClass];
+
+
+    copyHeightMemoryTriesToClassHeightMemoryTries();
+    fsvO << "heightMemoryTries" << classHeightMemoryTries[focusedClass];
+    fsvO << "heightMemoryPicks" << classHeightMemoryPicks[focusedClass];
+
+
+    lastRangeMap = rangeMapTemp;
+    fsvO.release();
+  } 
+}
+END_WORD
+
+
+
+WORD(SetRandomPositionAndOrientationForHeightLearning)
+CODE( 1179687)     // capslock + numlock + '
+virtual void execute() {
+  double noX = bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
+  double noY = bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
+  noX = noX + (((noX > 0) - 0.5) * 2) * bbLearnPerturbBias;
+  noY = noY + (((noY > 0) - 0.5) * 2) * bbLearnPerturbBias;
+  double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
+  
+  currentEEPose.px += noX;
+  currentEEPose.py += noY;
+  currentEEPose.oz += noTheta;
+}
+END_WORD
+
+WORD(BeginHeightLearning)
+CODE(1245242)     // capslock + numlock + :
+virtual void execute()       {
+  eepReg3 = rssPose;
+  heightAttemptCounter = 0;
+  heightSuccessCounter = 0;
+  thompsonPickHaltFlag = 0;
+  thompsonHeightHaltFlag = 0;
+  pilot_call_stack.push_back(1179707); // continue height learning
+  pilot_call_stack.push_back(65568+3); // record register 3
+
+  pilot_call_stack.push_back(131139); // synchronic servo don't take closest
+  pilot_call_stack.push_back(131156); // synchronic servo
+  pilot_call_stack.push_back(196707); // synchronic servo take closest
+  pilot_call_stack.push_back(131153); // vision cycle
+  pilot_call_stack.push_back(131154); // w1 wait until at current position
+  { // prepare to servo
+    //currentEEPose.pz = wholeFoodsCounter1.pz+.1;
+    pilot_call_stack.push_back(1245248); // change to height 1
+  }
+  //pilot_call_stack.push_back(1179723); // change height inference mode to LEARNING_SAMPLING
+  pilot_call_stack.push_back('3'); // recall register 3
+}
+END_WORD
+
+
+WORD(ContinueHeightLearning)
+CODE(1179707)     // capslock + numlock + ;
+  virtual void execute()       {
+  cout << "continuing bounding box learning with currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
+  synServoLockFrames = 0;
+  currentGradientServoIterations = 0;
+
+  // ATTN 16
+  // ATTN 19
+  if (thompsonHardCutoff) {
+    if (heightAttemptCounter < thompsonTries - 1) {
+      // push this program 
+      pilot_call_stack.push_back(1179707); // begin bounding box learning
+    } else {
+      pushCopies(1245308, 15); // beep
+    }
+  }
+  if (thompsonAdaptiveCutoff) {
+    if ( (thompsonHeightHaltFlag) ||
+         (heightAttemptCounter >= thompsonTries - 1) ) {
+      cout << "Clearing call stack. thompsonHeightHaltFlag = " << thompsonHeightHaltFlag << 
+        " and we did " << heightAttemptCounter << " tries." << endl;
+      pilot_call_stack.resize(0);
+      pushCopies(1245308, 15); // beep
+      return;
+    } else {
+      if (heightAttemptCounter < thompsonTries - 1) {
+        // push this program 
+        pilot_call_stack.push_back(1179707); // begin bounding box learning
+      } else {
+        cout << "Clearing call stack. thompsonHeightHaltFlag = " << thompsonHeightHaltFlag << 
+          " and we did " << heightAttemptCounter << " tries." << endl;
+        pilot_call_stack.resize(0);
+      }
+    }
+  }
+
+  // record the bblearn trial if successful
+  pilot_call_stack.push_back(1179694); 
+
+  pilot_call_stack.push_back(131139); // synchronic servo don't take closest
+  pilot_call_stack.push_back(131156); // synchronic servo
+  pilot_call_stack.push_back(196707); // synchronic servo take closest
+  pilot_call_stack.push_back(131153); // vision cycle
+  //pilot_call_stack.push_back(1179695); // check to see if bounding box is unique (early outting if not)
+  pilot_call_stack.push_back(131153); // vision cycle
+  pilot_call_stack.push_back(131154); // w1 wait until at current position
+  pilot_call_stack.push_back(1179687); // set random position for bblearn
+
+  pilot_call_stack.push_back(65568+4); // record register 4
+
+  // servo to object, which will early out if it times out 
+  pilot_call_stack.push_back(131139); // synchronic servo don't take closest
+  pilot_call_stack.push_back(131156); // synchronic servo
+  pilot_call_stack.push_back(196707); // synchronic servo take closest
+  pilot_call_stack.push_back(131153); // vision cycle
+  //pilot_call_stack.push_back(1179695); // check to see if bounding box is unique (early outting if not)
+  pilot_call_stack.push_back(131153); // vision cycle
+  pilot_call_stack.push_back(131154); // w1 wait until at current position
+  pilot_call_stack.push_back(1179687); // set random position for bblearn
+
+  pilot_call_stack.push_back(1245247); // sample height
+
+  pilot_call_stack.push_back(1179717); // change to pantry table
+  pilot_call_stack.push_back('3'); // recall register 3
+}
+END_WORD
+
+WORD(RecordHeightLearnTrial)
+CODE(1179694)     // capslock + numlock + .
+  virtual void execute()       {
+  // Distances for the eraser
+  //0.04, 2.57e-05, 0.0005, 0.0009, 0.007, 0.0006
+  // ATTN 17
+  double distance = squareDistanceEEPose(currentEEPose, eepReg4);
+  cout << "cartesian distance from start: " << sqrt(distance) << endl;
+  cout << "bbLearnThresh: " << bbLearnThresh << endl;
+  if (distance < bbLearnThresh*bbLearnThresh) {
+    Quaternionf q1(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+    Quaternionf q2(eepReg4.qw, eepReg4.qx, eepReg4.qy, eepReg4.qz);
+    double quaternionDistance = unsignedQuaternionDistance(q1, q2);
+    cout << "quat distance from start: " << quaternionDistance << endl;
+    cout << "bbQuatThresh: " << bbQuatThresh << endl;
+    if (quaternionDistance < bbQuatThresh)
+      recordBoundingBoxSuccess();
+    else
+      recordBoundingBoxFailure();
+  } else {
+    recordBoundingBoxFailure();
+  }
+}
+END_WORD
+
+
+
+
 WORD(LoadSampledGraspMemory)
 CODE(131117)     // capslock + -
 virtual void execute() {
