@@ -106,7 +106,7 @@ CODE(1179707)     // capslock + numlock + ;
       // push this program 
       pushWord(1179707); // begin bounding box learning
     } else {
-      pushCopies(1245308, 15); // beep
+      pushCopies("beep", 15); // beep
     }
   }
   if (thompsonAdaptiveCutoff) {
@@ -115,7 +115,7 @@ CODE(1179707)     // capslock + numlock + ;
       cout << "Clearing call stack. thompsonHeightHaltFlag = " << thompsonHeightHaltFlag << 
         " and we did " << heightAttemptCounter << " tries." << endl;
       clearStack();
-      pushCopies(1245308, 15); // beep
+      pushCopies("beep", 15); // beep
       return;
     } else {
       if (heightAttemptCounter < thompsonTries - 1) {
@@ -129,15 +129,14 @@ CODE(1179707)     // capslock + numlock + ;
     }
   }
 
-  // record the bblearn trial if successful
-  pushWord(1179694); 
+  pushWord("recordHeightLearnTrial"); 
 
-  pushWord(131139); // synchronic servo don't take closest
-  pushWord(131156); // synchronic servo
-  pushWord(196707); // synchronic servo take closest
-  pushWord(131153); // vision cycle
+  pushWord("synchronicServoDoNotTakeClosest"); 
+  pushWord("synchronicServo"); // synchronic servo
+  pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
+  pushWord("visionCycle"); // vision cycle
   //pushWord(1179695); // check to see if bounding box is unique (early outting if not)
-  pushWord(131153); // vision cycle
+  pushWord("visionCycle"); // vision cycle
   pushWord(131154); // w1 wait until at current position
   pushWord(1179687); // set random position for bblearn
 
