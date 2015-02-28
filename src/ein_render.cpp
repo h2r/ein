@@ -124,9 +124,9 @@ virtual void execute() {
   if (!shouldIRender) {
     pushWord(1114177); // manual render
   }
-  pushWord(1048679); // render reticle
+  pushWord("paintReticles"); // render reticle
   pushWord("drawMapRegisters"); 
-  pushWord(1048690); // load map to register 1
+  pushWord("downsampleIrScan"); // load map to register 1
 }
 END_WORD
 

@@ -9,52 +9,52 @@ virtual void execute()       {
   }
 
   // select max target cumulative
-  pushWord(1114195);
+  pushWord("selectMaxTargetCumulative");
   // apply grasp filter for 4
   pushWord("drawMapRegisters"); 
-  pushWord(1048692); // apply grasp filter
-  pushWord(1048688); // prepare grasp filter for 4
+  pushWord("applyGraspFilter"); // apply grasp filter
+  pushWord("prepareToApplyGraspFilterFor4"); // prepare grasp filter for 4
   // load reg1
   pushWord(131162); // load target classRangeMap
   // change gear to 4
-  pushWord(1048628);
+  pushWord("shiftIntoGraspGear4");
 
   // select max target cumulative
-  pushWord(1114195);
+  pushWord("selectMaxTargetCumulative");
   // apply grasp filter for 3
   pushWord("drawMapRegisters"); 
-  pushWord(1048692); // apply grasp filter
-  pushWord(1048693); // prepare grasp filter for 3
+  pushWord("applyGraspFilter"); // apply grasp filter
+  pushWord("prepareToApplyGraspFilterFor3"); // prepare grasp filter for 3
   // load reg1
   pushWord(131162); // load target classRangeMap
   // change gear to 3
-  pushWord(1048627);
+  pushWord("shiftIntoGraspGear3");
 
   // select max target cumulative
-  pushWord(1114195);
+  pushWord("selectMaxTargetCumulative");
   // apply grasp filter for 2
-  pushWord(1048673); // drawMapRegisters
-  pushWord(1048692); // apply grasp filter
-  pushWord(1048687); // prepare to apply grasp filter for 2
+  pushWord("drawMapRegisters"); // drawMapRegisters
+  pushWord("applyGraspFilter"); // apply grasp filter
+  pushWord("prepareToApplyGraspFilterFor2"); // prepare to apply grasp filter for 2
   // load reg1
   pushWord(131162); // load target classRangeMap
   // change gear to 2
-  pushWord(1048626);
+  pushWord("shiftIntoGraspGear2");
 
   // select max target NOT cumulative
-  pushWord(1048691);
+  pushWord("selectMaxTargetNotCumulative");
 
 
               
   // apply grasp filter for 1
-  pushWord(1048673); // drawMapRegisters 
-  pushWord(1048692); // apply grasp filter
-  pushWord(1048681); // prepare to apply grasp filter for 1
+  pushWord("drawMapRegisters"); // drawMapRegisters 
+  pushWord("applyGraspFilter"); // apply grasp filter
+  pushWord("prepareToApplyGraspFilterFor1"); // prepare to apply grasp filter for 1
   // load reg1
   pushWord(131162); // load target classRangeMap
 
   // change gear to 1
-  pushWord(1048625);
+  pushWord("shiftIntoGraspGear1");
 
   // ATTN 10
   // loadSampled gives proper Thompson
@@ -85,7 +85,7 @@ virtual void execute()       {
     break;
   }
 
-  pushWord(1048684); // turn off scanning
+  pushWord("turnOffScanning"); // turn off scanning
   pushWord(1179721); // set graspMemories from classGraspMemories
 }
 END_WORD
@@ -589,7 +589,7 @@ virtual void execute()       {
   pushWord(131153); // vision cycle
   pushWord(131154); // w1 wait until at current position
   pushWord(1245247); // sample height
-  pushWord(1048625); // change to first gear
+  pushWord("shiftIntoGraspGear1"); // change to first gear
 
   pushWord(196717); //count grasp
 
@@ -645,9 +645,9 @@ virtual void execute()       {
   //pushWord(1048680); // assume x,y of target 
   pushWord(1114175); // assume x,y of target in local space
 
-  pushWord(1048679); // render reticle
-  //pushWord(1048691); // find max on register 1
-  pushWord(1048673); // render register 1
+  pushWord("paintReticles"); // render reticle
+  //pushWord("selectMaxTargetNotCumulative"); // find max on register 1
+  pushWord("drawMapRegisters"); // render register 1
 
   pushWord(131162); // load target classRangeMap
 
@@ -658,7 +658,7 @@ virtual void execute()       {
 
   pushWord(131162); // load target classRangeMap
   pushWord(1048695); // clear scan history
-  pushWord(1048684); // turn off scanning
+  pushWord("turnOffScanning"); // turn off scanning
 
   { // this sets the gripper closed thresh appropriately
     pushWord(1179713); // set gripperThresh 
@@ -769,66 +769,66 @@ WORD(SelectBestAvailableGrasp)
 CODE(1048630)  // numlock + 6
 virtual void execute() {
   cout << "Selecting best of 4 grasps... numlock + 6" << endl;
-  // select max target cumulative
-  pushWord(1114195);
-  // apply grasp filter for 4
-  pushWord(1048673); // drawMapRegisters
-  pushWord(1048692);
-  pushWord(1048688);
-  // blur
-  pushWord(1048673); // drawMapRegisters
-  pushWord(1048692);
-  pushWord(1048697);
-  // load reg1
-  pushWord(1048690);
-  // change gear to 4
-  pushWord(1048628);
 
-  // select max target cumulative
-  pushWord(1114195);
-  // apply grasp filter for 3
-  pushWord(1048673); // drawMapRegisters
-  pushWord(1048692);
-  pushWord(1048693);
-  // blur
-  pushWord(1048673); // drawMapRegisters
-  pushWord(1048692);
-  pushWord(1048697);
-  // load reg1
-  pushWord(1048690);
-  // change gear to 3
-  pushWord(1048627);
+  pushWord("selectMaxTargetCumulative");
 
-  // select max target cumulative
-  pushWord(1114195);
-  // apply grasp filter for 2
-  pushWord(1048673); // drawMapRegisters
-  pushWord(1048692);
-  pushWord(1048687);
-  // blur
-  pushWord(1048673); // drawMapRegisters
-  pushWord(1048692);
-  pushWord(1048697);
-  // load reg1
-  pushWord(1048690);
-  // change gear to 2
-  pushWord(1048626);
+  pushWord("drawMapRegisters"); 
+  pushWord("applyGraspFilter");
+  pushWord("prepareToApplyGraspFilterFor4");
 
-  // select max target NOT cumulative
-  pushWord(1048691);
-  // apply grasp filter for 1
-  pushWord(1048673); // drawMapRegisters
-  pushWord(1048692);
-  pushWord(1048681);
-  // blur
-  pushWord(1048673); // drawMapRegisters
-  pushWord(1048692);
-  pushWord(1048697);
-  // load reg1
-  pushWord(1048690);
+  pushWord("drawMapRegisters"); 
+  pushWord("applyGraspFilter");
+  pushWord("blur");
+
+  pushWord("downsampleIrScan");
+
+  pushWord("shiftIntoGraspGear4");
+
+
+  pushWord("selectMaxTargetCumulative");
+
+  pushWord("drawMapRegisters"); 
+  pushWord("applyGraspFilter");
+  pushWord("prepareToApplyGraspFilterFor3");
+
+  pushWord("drawMapRegisters"); 
+  pushWord("applyGraspFilter");
+  pushWord("blur");
+
+  pushWord("downsampleIrScan");
+
+  pushWord("shiftIntoGraspGear3");
+
+
+  pushWord("selectMaxTargetCumulative");
+
+  pushWord("drawMapRegisters"); 
+  pushWord("applyGraspFilter");
+  pushWord("prepareToApplyGraspFilterFor2");
+
+  pushWord("drawMapRegisters"); 
+  pushWord("applyGraspFilter");
+  pushWord("blur");
+
+  pushWord("downsampleIrScan");
+
+  pushWord("shiftIntoGraspGear2");
+
+
+  pushWord("selectMaxTargetNotCumulative");
+
+  pushWord("drawMapRegisters"); 
+  pushWord("applyGraspFilter");
+  pushWord("prepareToApplyGraspFilterFor1");
+
+  pushWord("drawMapRegisters"); 
+  pushWord("applyGraspFilter");
+  pushWord("blur");
+
+  pushWord("downsampleIrScan");
   // change gear to 1
-  pushWord(1048625);
-  pushWord(1048684); // turn off scanning
+  pushWord("shiftIntoGraspGear1");
+  pushWord("turnOffScanning"); // turn off scanning
 }
 END_WORD
 

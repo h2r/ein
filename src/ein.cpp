@@ -247,7 +247,6 @@ int jointNamesInit = 0;
 std::vector<std::string> jointNames;
 rk_state random_state;
 
-
 double spiralEta = 1.25;
 
 double trueJointPositions[numJoints] = {0, 0, 0, 0, 0, 0, 0};
@@ -281,7 +280,6 @@ Word * current_instruction = NULL;
 double tap_factor = 0.1;
 int execute_stack = 0;
 
-
 std::vector<Word *> call_stack;
 void clearStack();
 Word * popWord();
@@ -289,7 +287,6 @@ bool pushWord(int code);
 bool pushWord(string name);
 bool pushWord(Word * word);
 Word * nameToWord(string name);
-
 
 std::vector<Word *> words;
 std::map<int, Word *> character_code_to_word;
@@ -325,7 +322,6 @@ double approachStep = .0005;
 double hoverMultiplier = 0.5;
 
 int zero_g_toggle = 0;
-int holding_pattern = 0; // TODO enum
 
 tf::TransformListener* tfListener;
 double tfPast = 10.0;
@@ -474,6 +470,7 @@ eePose ik_reset_eePose = beeHome;
 Vector3d eeForward;
 geometry_msgs::Pose trueEEPose;
 std::string fetchCommand;
+std::string forthCommand;
 
 int bfc = 0;
 int bfc_period = 3;
@@ -1305,6 +1302,7 @@ void jointCallback(const sensor_msgs::JointState& js);
 void endpointCallback(const baxter_core_msgs::EndpointState& eps);
 void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees);
 void fetchCommandCallback(const std_msgs::String::ConstPtr& msg);
+void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
 
 bool isGripperGripping();
 void initialize3DParzen();
@@ -2392,6 +2390,38 @@ void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
   ROS_INFO_STREAM("Received " << fetchCommand << endl);
 }
 
+vector<string> split(const char *str, char c = ' ')
+{
+    vector<string> result;
+    do
+    {
+      const char *begin = str;
+      
+      while(*str != c && *str)
+        str++;
+      
+      result.push_back(string(begin, str));
+    } while (0 != *str++);
+    
+    return result;
+}
+
+
+void forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
+  forthCommand = msg->data;
+  ROS_INFO_STREAM("Received " << forthCommand << endl);
+  vector<string> tokens = split(forthCommand.c_str(), ' ');
+  for (unsigned int i = 0; i < tokens.size(); i++) {
+    if (tokens[i] == "executeStack" || tokens[i] == ";") {
+      execute_stack = 1;
+    } else {
+      if (!pushWord(tokens[i])) {
+        cout << "Warning, ignoring unknown word from the forth topic: " << tokens[i] << endl;
+      }
+    }
+  }
+}
+
 void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
   //cout << "endpoint frame_id: " << eps.header.frame_id << endl;
   trueEEPose = eps.pose;
@@ -2630,7 +2660,7 @@ void scanXdirection(double speedOnLines, double speedBetweenLines) {
   //int gLimit = 1+((rmWidth*betweenLineGain+2*scanPadding)/2);
   int gLimit = ((rmWidth*betweenLineGain+2*scanPadding));
   for (int g = 0; g < gLimit; g++) {
-    pushWord(1114183); // full render
+    pushWord("fullRender"); // full render
     //pushWord(1048677);
     pushWord(131154); // w1 wait until at current position
     pushSpeedSign(speedOnLines);
@@ -2687,7 +2717,7 @@ void scanYdirection(double speedOnLines, double speedBetweenLines) {
   //int gLimit = 1+((rmWidth*betweenLineGain+2*scanPadding)/2);
   int gLimit = ((rmWidth*betweenLineGain+2*scanPadding));
   for (int g = 0; g < gLimit; g++) {
-    pushWord(1114183); // full render
+    pushWord("fullRender"); // full render
     //pushWord(1048677);
     pushWord(131154); // w1 wait until at current position
     pushSpeedSign(speedOnLines);
@@ -3909,8 +3939,8 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
       graspMemoryTries[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*currentGraspGear] += 1;
       graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*currentGraspGear] += 1;
     }
-    pushWord(1048679); // render reticle
-    pushWord(1048673); // render register 1
+    pushWord("paintReticles"); // render reticle
+    pushWord("drawMapRegisters"); // render register 1
     execute_stack = 1;
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << eeRange << 
@@ -3921,8 +3951,8 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     if ((bigX >= rmWidth) && (bigX < 2*rmWidth) && (bigY < rmWidth)) {
       graspMemoryTries[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*currentGraspGear] += 1;
     }
-    pushWord(1048679); // render reticle
-    pushWord(1048673); // render register 1
+    pushWord("paintReticles"); // render reticle
+    pushWord("drawMapRegisters"); // render register 1
     execute_stack = 1;
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << eeRange << 
@@ -3939,8 +3969,8 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 	}
       }
     }
-    pushWord(1048679); // render reticle
-    pushWord(1048673); // render register 1
+    pushWord("paintReticles"); // render reticle
+    pushWord("drawMapRegisters"); // render register 1
     execute_stack = 1;
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << eeRange << 
@@ -4353,7 +4383,7 @@ void changeTargetClass(int newTargetClass) {
   pushWord(1179709); // loadMarginalHeightMemory
 
 
-  pushWord(1048673); // render register 1
+  pushWord("drawMapRegisters"); // render register 1
   // ATTN 10
   //pushWord(196360); // loadPriorGraspMemory
   //pushWord(1179721); // set graspMemories from classGraspMemories
@@ -6525,7 +6555,7 @@ void synchronicServo() {
 
     pushWord(131153); // vision cycle
     pushWord(131154); // w1 wait until at current position
-    pushWord(1048625); // change to first gear
+    pushWord("shiftIntoGraspGear1"); // change to first gear
 
     pushCopies(1245308, 15); // beep
     pushWord(1179714); // uniformly sample orientation for simulatedServo
@@ -10680,7 +10710,6 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
       fsfI["heightMemoryTries"] >> classHeightMemoryTries[i];
       fsfI["heightMemoryPicks"] >> classHeightMemoryPicks[i];
 
-
       fsfI.release();
       cout << "Loaded rangeMap from " << this_range_path << classRangeMaps[i].size() << endl; 
       cout << "Loaded classGraspMemoryTries1 from " << this_range_path << classGraspMemoryTries1[i].size() << endl; 
@@ -10714,25 +10743,6 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
   
   // ATTN 16
   {
-//    {
-//      string thisLabelName(className);
-//
-//      char buf[1000];
-//      string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
-//      string this_ag_path = dirToMakePath + "aerialGradient.yml";
-//
-//      FileStorage fsfI;
-//      fsfI.open(this_ag_path, FileStorage::READ);
-//      if (fsfI.isOpened()) {
-//	fsfI["aerialGradient"] >> classAerialGradients[i]; 
-//	fsfI.release();
-//	cout << "Loaded aerial gradient from " << this_ag_path << classAerialGradients[i].size() << endl;
-//      } else {
-//	classAerialGradients[i] = Mat(1, 1, CV_64F);
-//	cout << "Failed to load aerialGradients from " << this_ag_path << endl; 
-//      }
-//    }
-
     {
       string thisLabelName(className);
 
@@ -10801,11 +10811,9 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
 	cout << "Failed to load aerialHeight3Gradients from " << this_ag_path << endl; 
       }
     }
-    
     cout << "Initializing classAerialGradients with classAerialHeight0Gradients." << endl;
     classAerialGradients[i] = classHeight0AerialGradients[i];
   }
-
 }
 
 void processSaliency(Mat in, Mat out) {
@@ -10863,11 +10871,6 @@ void processSaliency(Mat in, Mat out) {
   GaussianBlur(out, out, cv::Size(0,0), saliencyPostSigma);
 }
 
-// double cephes_incbet(double a, double b, double x) 
-// {
-//   return 0.0;
-// }
-
 void testIncbet() {
   cout << "no trials" << endl;
   double successes = 0;
@@ -10887,7 +10890,6 @@ void testIncbet() {
     double result = cephes_incbet(successes + 1, failures + 1, d);
     cout << "Result: " << result << endl;
   }
-
 }
 
 ////////////////////////////////////////////////
@@ -10921,8 +10923,9 @@ int main(int argc, char **argv) {
     programName = string(PROGRAM_NAME) + "_" + argv[argc-1];
     cout << "programName: " << programName << endl;
   }
-  else
+  else {
     programName = string(PROGRAM_NAME);
+  }
 
   ros::init(argc, argv, programName);
   ros::NodeHandle n("~");
@@ -10945,11 +10948,7 @@ int main(int argc, char **argv) {
   unsigned long seed = 1;
   rk_seed(seed, &random_state);
 
-
-  // The other models
-  //ObjNessB2W8MAXBGR
-  //ObjNessB2W8I
-  //ObjNessB2W8HSV
+  // Models: ObjNessB2W8MAXBGR ObjNessB2W8I ObjNessB2W8HSV
   bing_trained_models_path = package_path + "/bing_trained_models/";
   objectness_path_prefix = bing_trained_models_path + "ObjNessB2W8MAXBGR";
 
@@ -11027,9 +11026,11 @@ int main(int argc, char **argv) {
   fetchCommandSubscriber = n.subscribe("/fetch_commands", 1, 
                                        fetchCommandCallback);
 
+  ros::Subscriber forthCommandSubscriber;
+  forthCommandSubscriber = n.subscribe("/ein/" + left_or_right_arm + "/forth_commands", 1, 
+                                       forthCommandCallback);
 
   ros::Timer timer1 = n.createTimer(ros::Duration(0.01), timercallback1);
-
 
   tfListener = new tf::TransformListener();
 
@@ -11050,7 +11051,6 @@ int main(int argc, char **argv) {
 
   frameGraySobel = Mat(1,1,CV_64F);
 
-  //nodeInit();
   spinlessNodeMain();
   spinlessPilotMain();
 
@@ -11066,15 +11066,12 @@ int main(int argc, char **argv) {
     pushWord(196707); // synchronic servo take closest
   }
 
-  pushWord(1048625); // change gear to 1
+  pushWord("shiftIntoGraspGear1"); // change gear to 1
 
   execute_stack = 1;
 
-
   int cudaCount = gpu::getCudaEnabledDeviceCount();
   cout << "cuda count: " << cudaCount << endl;;
-  //exit(0);
-
   ros::spin();
 
   return 0;
