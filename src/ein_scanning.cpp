@@ -1,3 +1,133 @@
+
+
+WORD(SetTargetClassToLastLabelLearned)
+CODE(1179730)     // capslock + numlock + r
+virtual void execute() {
+  for (int i = 0; i < numClasses; i++) {
+    if (lastLabelLearned.compare(classLabels[i]) == 0) {
+      targetClass = i;
+      focusedClass = targetClass;
+      focusedClassLabel = classLabels[focusedClass];
+      cout << "lastLabelLearned classLabels[targetClass]: " << lastLabelLearned << " " << classLabels[targetClass] << endl;
+      changeTargetClass(targetClass);
+    }
+  }
+
+  pilot_call_stack.push_back(1048673); // render register 1
+  // ATTN 10
+  //pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+  //pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+  switch (currentPickMode) {
+  case STATIC_PRIOR:
+    {
+      pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+    }
+    return;
+  case LEARNING_ALGORITHMC:
+  case LEARNING_SAMPLING:
+    {
+      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+      //pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+    }
+    break;
+  case STATIC_MARGINALS:
+    {
+      pilot_call_stack.push_back(1179721); // set graspMemories from classGraspMemories
+      //pilot_call_stack.push_back(196360); // loadPriorGraspMemory
+    }
+    return;
+  default:
+    {
+      assert(0);
+    }
+    return;
+  }
+}
+END_WORD
+
+
+
+WORD(SetLastLabelLearned)
+CODE(1179732)    // capslock + numlock + t 
+virtual void execute() {
+  lastLabelLearned = focusedClassLabel;
+  cout << "lastLabelLearned: " << lastLabelLearned << endl;
+}
+END_WORD
+
+
+WORD(TrainModels)
+CODE(131142)     // capslock + f
+virtual void execute()       {
+  classLabels.resize(0);
+  classPoseModels.resize(0);
+
+  // snoop folders
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+
+  char buf[1024];
+  sprintf(buf, "%s", data_directory.c_str());
+  dpdf = opendir(buf);
+  if (dpdf != NULL){
+    while (epdf = readdir(dpdf)){
+      string thisFileName(epdf->d_name);
+
+      string thisFullFileName(buf);
+      thisFullFileName = thisFullFileName + "/" + thisFileName;
+
+      struct stat buf2;
+      stat(thisFullFileName.c_str(), &buf2);
+
+      int itIsADir = S_ISDIR(buf2.st_mode);
+      if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+        classLabels.push_back(thisFileName);
+        classPoseModels.push_back("B");
+      }
+    }
+  }
+
+  if ((classLabels.size() != classPoseModels.size()) || (classLabels.size() < 1)) {
+    cout << "Label and pose model list size problem. Not proceeding to train." << endl;
+    return;
+  }
+
+  cout << "Reinitializing and retraining. " << endl;
+  for (int i = 0; i < classLabels.size(); i++) {
+    cout << classLabels[i] << " " << classPoseModels[i] << endl;
+  }
+
+  rewrite_labels = 1;
+  retrain_vocab = 1;
+  reextract_knn = 1;
+  trainOnly = 0;
+
+
+  // delete things that will be reallocated
+  if (bowtrainer)
+    delete bowtrainer;
+  if (kNN)
+    delete kNN;
+
+  for (int i = 0; i < classPosekNNs.size(); i++) {
+    if (classPosekNNs[i])
+      delete classPosekNNs[i];
+  }
+
+  //  detectorsInit() will reset numClasses
+  detectorsInit();
+
+  // reset numNewClasses
+  newClassCounter = 0;
+
+  // XXX reset anything else
+}
+END_WORD
+
+
+
 WORD(VisionCycleNoClassify)
 CODE(196721)     // capslock + Q
 virtual void execute()       {
