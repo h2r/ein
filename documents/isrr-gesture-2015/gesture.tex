@@ -17,7 +17,7 @@
 \newcommand{\algorithmCFname}{OrderedConfidenceBound}
 \newcommand{\algorithmDTxt}{Prior Confidence Bound\xspace}
 \newcommand{\algorithmDFname}{PriorConfidenceBound}
-
+\usepackage{booktabs}
 \usepackage{amsmath}
 \usepackage[]{algorithm2e}
 \usepackage{mathptmx}       % selects Times Roman as basic font
@@ -49,7 +49,7 @@
 
 \begin{document}
 
-\title*{Multichannel Robotic Interaction With Gesture and Language}
+\title*{Interpreting Multimodal Referring Expressions in Real Time}
 % Use \titlerunning{Short Title} for an abbreviated version of
 % your contribution title if the original one is too long
 \author{Anonymous for submission.}
@@ -64,71 +64,252 @@
 \maketitle
 
 \abstract{
-Humans communicate about objects using language and gesture, fusing information
-from multiple modalities and responding to those communications in real time.
-For robots to make the leap from factories into homes, they must be able to
-rapidly understand human communication and respond through the use of
-backchannels, gestures and language that seek to clarify goals in joint
-activities. Existing work has addressed this problem in single modalities, such
-as natural language or gesture, or fused modalities to make reactive, but
-non-realtime, systems, but a gap remains in creating systems that can
-continuously and simultaneously fuse information from language and gesture and
-respond to that information in real time. To address this problem, we define a
-multimodal POMDP for interpreting and responding to a  users referring
-expressions. Finding this formalized POMDP to be intractable in the real world,
-we then provide an approximation that we demonstrate accurately and quickly
-interacts with human users in the desired way.
-\jgonote{Miles take a stab at a better title.}
-\\
+Humans communicate about objects using language and gesture, fusing
+information from multiple modalities over time, and robots need to
+interpret their communication in order to collaborate with them on
+shared tasks.  Existing work has addressed this problem in single
+modalities, such as natural language or gesture, or fused modalities
+in non-realtime systems, but a gap remains in creating systems that
+simultaneously fuse information from language and gesture
+incrementally, over time. Processing communicative input incrementally
+has the potential to speed up the robot's reaction time, as well as
+incorporate the timing of words and gesture into the understanding
+process, increasing the robot's speed and accuracy at interpreting the
+person's mental state.  To address this problem, we define a
+multimodal Bayes' filter for interpreting a person's referring
+expressions to objects.  Our approach outputs a distribution over the
+referent object at 14Hz, updating dynamically as it receives new
+observations of the person's spoken words and gestures.  We collected
+a new dataset of people referring to objects in a tabletop setting and
+demonstrate that our approach is able to infer the correct object with
+90\% accuracy.  Additionally, we demonstrate that our approach enables
+a Baxter robot to provide back-channel responses in real-time,
+pointing toward a mathematical framework for human-robot communication
+as a {\em joint activity}~\citep{clark96}.
+\begin{figure}
+\centering
+\includegraphics[width=1\linewidth]{figures/baxter_scene_cropped.jpg}
+\caption{Robots that collaborate with people need to understand their
+  references to objects in the environment.  For example, if a person
+  asks for a tool using language and gesture, the robot needs to
+  interpret the person's reference in order to pick up the correct
+  tool.\label{fig:example}}
+\end{figure}
 }
 
 
 \section{Introduction}
 
+In order for humans and robots to collaborate in complex tasks, robots
+must be able to understand people's references to objects in the
+external world.  For example, a robotic cooking assistant might fetch
+ingredients and tools, while a robotic factory assistant could deliver
+a part or a hospital robot could deliver water to a bedridden patient;
+Figure~\ref{fig:example} shows a robot handing a tool to an engineer.
+To refer to objects, people use a combination of language, gesture,
+and body language such as eye gaze and pointing.  People provide these
+signals continuously, and a person's reference can quickly change
+based on new information about the domain.  Moreover, a human listener
+responds to these signals as they are given using {\em backchannels},
+for example nodding their head when they understand and looking
+confused or interrupting to ask a question when they do not.
+\citet{clark96} refers to this continuous dance as {\em joint
+  activity} and compares language use to playing a duet because of its
+collaborative nature, where both parties act to establish common
+ground and reduce uncertainty.  
+
+Responding quickly and incorporating the relative timing of speech and
+gesture is critical for accurate understanding.  Fast responses make
+interaction more fluid and enable a robot to provide backchannel
+feedback based on its ability to understand: when it is confident, it
+can indicate that it is confident, and when it is unsure, it can
+indicate that as well.  This backchannel feedback could elicit
+appropriate responses from the person: they will move to the next task
+when the robot understands, or provide more information to
+disambiguate when the robot is confused.
+
+
+Despite the importance of real-time response to multi-modal input,
+existing unimodal models do not integrate information from language
+and gesture~\citep{matuszek14, tellex11, kollar10}.  Approaches that
+fuse information from language and gesture~\citep{matuszek14} do not
+take into account that information appears to the system over a period
+of time.  These approaches make it impossible for a robot to provide
+back-channel feedback, because of the length of time required to
+interpret the communication and because of the inability to interpret
+partial utterances.
+
+
+To provide a foundation for these capabilities, we propose a Bayes'
+filtering approach for interpreting multimodal information from
+language and gesture~\citep{thrun08}.  Our framework relies on a
+factored observation probability that fuses information from language
+and gesture in real time to continuously estimate the object a person
+is referring to in the real world.  We demonstrate our model in
+simulation, as well as providing quantitative results on a real-world
+RGB-D corpus of people referring to objects with language and gesture.
+These results show that our approach quickly and accurately fuses
+multimodal information in real time to continuously estimate the
+object a person is referencing.  Additionally, we demonstrate a robot
+that uses our model to provide backchannel responses in real-time to a
+person's language and gesture input.
+
+\begin{figure*}
+\centering
+\subfigure[Ambiguous gesture.\label{fig:confused}]{\includegraphics[width=0.49\linewidth]{figures/cartoon1.pdf}}
+\subfigure[Clarification with language.\label{fig:clarified}]{\includegraphics[width=0.49\linewidth]{figures/cartoon2.pdf}}
+\caption{After an ambiguous gesture, the model has a uniform
+  distribution between two objects (a).  The robot responds by
+  indicating confusion.  Clarification with language causes a
+  probabilistic update leaving the model highly confident it has
+  inferred the correct object (b).  The robot responds by smiling and
+  pointing to the correct object. \label{fig:cartoon}}
+\end{figure*}
+
+
 \section{Related Work}
 
-\section{Overview}
+\citet{clark96} proposed that conversation is a {\em joint activity},
+a coordinated, collaborative processes akin to playing a duet or
+performing a waltz.  The two participants must establish {\em common
+  ground}.  Common ground refers to the process of two conversational
+participants establishing joint understanding about the beliefs of the
+others\footnote{Note that common ground is in dialog is distinct from
+  {\em symbol grounding} proposed by~\citet{harnad90}, which is the
+  problem of mapping from language to aspects of the external world.}.
+To establish common ground, people use backchannel feedback, such as
+head nods, looks of confusion, as well as explicit request for
+clarification such as asking a question.  These mechanisms enable the
+participants in a conversation to engage in a feedback loop to
+iteratively establish common ground as the conversation progresses.
+Our approach for interpreting language and gesture in real time
+provides a foundation for producing backchannel feedback with a robot,
+pointing toward increased robustness as a person and robot iteratively
+establish common ground and actively communicate to reduce errors.
 
-\subsection{Robotic Setup}
-\jgonote{Describe the warehouse (if there is one), the objects on the table, the user's position.
-Describe the robot and the microphone.}
-\subsection{Pick and Place}
-\jgonote{I have the lock on this subsection.}
-\subsection{Integrating Speech and Gestures With Single Agent POMDP}
-\subsection{Evaluation}
+A large body of work focuses on language understanding for
+robots~\citep{macmahon06, dzifcak09, kollar10, matuszek12}.  This work
+does not take into account the continuous nature of natural language
+input, and requires sentences or at least chunks of words before
+understanding can take place.  Our approach, in contrast, incorporates
+information from each word as it is processed by the speech
+recognition system, integrating word information over time and fusing
+it with gesture information.  \citet{guadarrama14} presents a
+framework for interpreting open-domain references to objects but
+focuses on interpreting language rather than language combined with
+gesture.  \citet{cantrell10} presented a framework for understanding
+language incrementally in real time dialog but did not use gesture and
+did not use a corpus-based evaluation.  Our approach is related to
+\citet{holladay14} but focuses on interpreting a person's gestures
+rather than enabling a robot to generate pointing gestures.
 
-\section{Single Agent POMDP}
-Defined by:\\
-A set of states $\mathcal{X}$\\
-A set of actions $\mathcal{A}$\\
-The conditional transition probabilities between states $\mathcal{T}$\\
-The reward function $\mathcal{R}: \mathcal{S} \times \mathcal{A} \rightarrow R$\\
-A set of observations $Z$\\
-A set of observation probabilities $\mathcal{O}$\\
-$\gamma \in [0,1]$ a discount factor\\\\
-$\mathcal{X}$ is the object the robot thinks the person wants.\\\\
-$\mathcal{A} = (M, P)$ where $M = \{\text{`waiting'}, \text{`pointing'},
-\text{`sweeping'}, \text{`grouping'}, \text{`touching'}, \text{`handing'}\}$
-and $P$ represents a set  of objects being acted upon (limited to one for
-`pointing', `touching', and `handing' and zero for `waiting').\\\\
-$Z$ consists of the observed speech (s), left and right arm gestures (l and r),
-and also the user belief in the robots belief (u).The user's belief is assumed
-to be observed variable because it is assumed to depend only on the robots
-actions, which are known to the robot. At every time step, the belief degrades
-slightly back towards uniform if no non-waiting action is observed. (Note that
-this can be computed at any time given the entire history of robot actions)\\\\
-We assume that a person is likely to continue referring to the same
-object, but at each timestep has a large probability, $c$, of
-not transitioning to a different object: 
+Many existing approaches for interpreting gesture rely on fixed
+vocabularies of gesture, such as ``stop'' or
+``follow''~\citep{waldherr00, marge11} without a principled way for
+fusing information from language and gesture.  Our work unifies
+language and gesture interpretation into a single mathematical
+framework, and focuses on parameterized gestures such as pointing.
+
+\citet{matuszek14} presented a multimodal framework for interpreting
+unscripted references to tabletop objects using language and gesture.
+Our approach similarly focuses on tabletop objects but integrates
+language and gesture continuously over time using a Bayes' filtering
+framework.  This approach enables the robot to continuously process
+new information and produce an estimate that converges over time to
+the correct object as new information is observed from the person.
+
+POMDP-approaches to dialog~\citep{young13, young10} have been extended
+to incorporate gesture and noise models, and our approach is related
+to these types of belief updates.  We are eager to explore enabling a
+robot to adaptively respond to its estimate of which object a person
+is referring to, leading to backchannels.  \citet{dragan13} created a
+framework enabling a robot to produce gesture.  Similarly,
+\citet{tellex14} described an approach for enabling a robot to
+generate language by inverting a semantics framework.  Our long-term
+aim is that by combining these types of generation approaches with
+real-time understanding, the robot will produce back-channel feedback
+that closes the loop of dialog and enable it to participate in dialog
+as a joint activity.
+\section{Technical Approach}
+Our aim is to estimate a distribution over the object that a person is
+referring to given language and gesture inputs.  We frame the problem
+as a Bayes' filter~\citep{thrun08}, where the hidden state,
+$x \in \mathcal{X}$, is the the object in the scene that the person is
+currently referencing. The robot observes the person's actions and
+speech, $\mathcal{Z}$, and at each time step estimates a distribution
+over the current state, $x_t$:
 \begin{align}
-\mathcal{T}(x_t| x_{t-1}, a_{t-1}) = \left\{  \begin{array}{ll}
-c &\mbox{if } x_t = x_{t-1}\\
-\frac{1-c}{|X| -1} &\mbox{otherwise}
+  p(x_t | z_0 \dots z_{0:t})
+\end{align}
+
+
+To estimate this distribution, we alternate performing a time update
+and a measurement update.  The time update updates the belief that the
+user is referring to a specific object given previous
+information:
+\begin{align}
+p(x_t | z_{0:t-1}) = \int_{x_{t-1} \in \mathcal{X}} p(x_t|x_{t-1})\times p(x_{t-1} | z_{0:t-1}) \text{d}x_{t-1}
+\end{align}
+
+The measurement update combines the previous belief with the newest observation to update each belief state: 
+\begin{align}
+p(x_t |z_{0:t}) = \frac{p(z_t | x_t) \times p(x_t | z_{0:t-1})}{p(z_t | z_{0:t-1})} \\\propto p(z_t | x_t) \times p(x_t | z_{0:t-1})
+\end{align}
+
+
+
+\subsection{Prediction Model}
+We assume that a person is likely to continue referring to the same
+object, but at each timestep has a small probability, $c$, of
+transitioning to a different object: 
+
+\begin{align}
+p(x_t | x_{t-1}) = \left\{  \begin{array}{ll}
+1-c &\mbox{if } x_t = x_{t-1}\\
+c &\mbox{otherwise}
 \end{array}\right.
-\end{align}\\
-To calculate $\mathcal{O}(o | x_t, a)$, where $o = \{l, r, s, u\}$, that l, r,
-s, and u are conditionally independent when conditioned on the state.\\\\
-\subsection{Gesture}
+\end{align}
+
+This assumption means that the robot's certainty slowly decays over
+time, in the absence of corroborating information, converging to a
+uniform distribution.  It enables our framework to integrate past
+language and gesture information but also quickly adapt to new,
+conflicting information because it assumes the person has changed
+objects.
+
+
+\subsection{Observation Model}
+
+We assume access to an observation model of the form:
+\begin{align}
+p(z_t | x_t)
+\end{align}
+
+Observations consist of a tuple consisting of a person's actions,
+$\langle l, r, h, s\rangle $ where:
+\begin{itemize}
+    \item $l$ represents a vector from the observed origin ($l_o$) to the point ($l_v$) of the left arm.
+    \item $r$ represents a vector from the observed origin ($r_o$) to the point ($r_v$) of the right arm.
+    \item $h$ represents a vector from the observed origin ($h_o$) to the point ($h_v$) of the head.
+    \item $s$ represents the observed speech from the user,
+          consisting of a list of words.
+    \end{itemize}
+
+Formally, we have:
+\begin{align}
+p(z_t | x_t) &= p(l, r, h, s | x_t)\\
+\intertext{We factor assuming that each modality is independent of the others given the state. Namely, we are assuming that if we know the
+true object, the probabilities of the user pointing at that object with there left hand and right hand are indpendent.:}
+p(z_t | x_t) &= p(l | x_t) \times p(r | x_t) \times p(h | x_t) \times p(s | x_t)
+\end{align}
+
+\noindent The following sections describe how we model each type of
+input from the person.  We track body pose using the NITE
+tracker~\citep{openni} and define our models for the arm and head
+gestures in terms of the person's body pose.
+
+\noindent{\bf Gesture.} 
+
 We model pointing gestures as a vector
 through three dimensional space.  First, we calculate a gesture vector
 using the skeleton pose returned by NITE.  For arms, we compute a
@@ -143,28 +324,300 @@ Then
 p(l | x_t) \propto \mathcal{N}(\mu_l=0, \sigma_l)[A(l_o, l_v, x_t)]\\
 p(r | x_t) \propto \mathcal{N}(\mu_r=0, \sigma_r)[A(r_o, r_v, x_t)]
 \end{align}
+
 If the person's arm is more than a certain angle away from the table,
 we assume they are referring to none of the objects, and perform an
 update.  As a result, these gestures do not effect the robot's
-estimate of the objects being referenced.\\\\
-\subsection{Speech}
+estimate of the objects being referenced.
+
+\noindent{\bf Head Pose.}
+
+Head pose is modeled in the same manner as arm gestures.
+\begin{align}
+p(h | x_t) \propto \mathcal{N}(\mu_h=0, \sigma_h)[A(h_o, h_v, x_t)]
+\end{align}
+
+
+\noindent{\bf Speech.} 
+
 We model speech with a unigram model, namely we
 take each word in a given speech input and calcuate the probability that, given the state, that word would have been spoken.
 \begin{align}
 p(s |x_t) = \displaystyle \prod_{w \in s} p(w | x_t)
 \end{align}
-\subsection{User Estimate}
-We assume that the user estimate of the robots belief, $u$, is an observed
-variable. The user belief $u$ is calculated from the history of robot actions
-(with slight degradation over time, similar to the transition function) and
-then incorporated into the robots state in $\mathcal{O}(o | x_t, a)$. Since $u$
-is a distribution, $p(u | x_t, a)  = u(x_t)$, namely, the users belief that the
-robot is in state $x_t$.
 
-\section{Experiments}
-\section{Discussion}
 
-\section{Conclusion}
+\subsection{Null Words and Gesture}
+
+To account for continuous gesture and non-continuous speech input, we
+have both null poses and speech.  When no words are spoken, we assume
+a null word which has a uniform distribution over the objects.  This
+effect means that spoken words cause a discrete bump in probability
+according to the language model, which then decays over time. While
+gesture remains a continuous input throughout the entire interaction,
+many gestures have little or no meaning. To allow for these without
+overloading the model with noise, we also calculate the angle between
+each arm vector and each foot. If the angle between the arms and a
+foot is smaller than the angle between the arms and any object, we
+assume that the user is in a resting pose, and treat that gesture as
+indicating uniform probability over all states.
+
+\subsection{Model Parameters}
+
+We tuned model parameters by hand.  We considered collecting and
+annotating a data set to train the model parameters, but we found our
+initial process to be quite accurate. We generated the language model
+by hand, adding to it based on results of our pilot
+studies. After our initial tuning, we fixed
+  model parameters, and results reported in the paper all use the same
+  fixed set of parameters. We expect that as we add
+larger sets of objects, a language model trained using data from
+Amazon Mechanical Turk or other corpora will be necessary to increase
+robustness over a larger set of objects.  
+
+In our experiments, we had the following parameters: the transition
+probability, $c$, was 0.0005. We set this parameter to give an object
+that has 100\% confidence an approximately 10\% drop in confidence per
+second with all null observations.  Standard deviation for the
+Gaussian used to model probability of gesture, $\sigma_l$, $\sigma_r$,
+and $\sigma_h$ was 1.0 radians. We found that this standard deviation
+allowed for accurate pointing, without skewing the probabilities
+during an arm swing.  The language model consisted of 16 unique words,
+containing common descriptors for the objects such as ``bowl,''
+``spoon,'' ``metal,'' ``shiny,'' etc. It also included words that were
+commonly misinterpreted by the speech recognition system, such as
+``bull'' when the user was requesting a bowl.
+
+
+\begin{algorithm}
+    \DontPrintSemicolon
+    \KwIn{$bel(x_{t-1}), z_t$}
+    \BlankLine
+    \KwOut{$bel(x_t)$}
+    \BlankLine
+    \For{ $x_t$} {
+      $\bar{bel}(x_t) = \displaystyle\sum_{x_{t-1}} p(x_t|x_{t-1})*bel(x_{t-1})$
+      \BlankLine
+      \textbf{if not} is\_null\_gesture(l)
+      \BlankLine
+      \Indp$\bar{bel}(x_t) = p(l | x_t) *  \bar{bel}(x_t)$
+      \BlankLine
+      \Indm\textbf{if not} is\_null\_gesture(r)
+      \BlankLine
+      \Indp$\bar{bel}(x_t) = p(r | x_t) *  \bar{bel}(x_t)$
+      \BlankLine
+      \Indm\textbf{if not} is\_null\_gesture(h)
+      \BlankLine
+      \Indp$\bar{bel}(x_t) = p(h | x_t) *  \bar{bel}(x_t)$
+      \BlankLine
+      \Indm\For{$w \in s$}{
+        $\bar{bel}(x_t) = p(w | x_t) *  \bar{bel}(x_t)$
+      }
+      $bel(x_t) = \bar{bel}(x_t)$
+
+    }
+    \BlankLine
+\caption{Interactive Bayes Filtering Algorithm} 
+\label{alg:algorithm}
+\end{algorithm}
+
+Algorithm~\ref{alg:algorithm} shows pseudocode for our approach, while
+Figure~\ref{fig:cartoon} shows an example of the system's execution.
+The person's gesture is ambiguous, and the system initially infers an
+approximately bimodal distribution between the orange bowl and silver
+spoon.  The robot indicates it has not understood by showing a
+confused face.  This reaction elicits a disambiguating response from
+the person, who says, ``the spoon.''  The model incorporates
+information from language and infers the person is referring to the
+silver spoon.  The robot indicates it has understood with a facial
+expression and by pointing to the correct object.  Note that the
+person's linguistic response was itself ambiguous, but provided
+complementary information to the person's gesture, leading to overall
+success at interpreting their intent.
+
+Although in this example we are demonstrating the approach at two
+specific timesteps, the system is updating its distribution
+continuously, enabling it to fuse language and gesture as it occurs
+and quickly updating in response to new input from the person, verbal
+or nonverbal.  Our approach runs at 14Hz, including a 30Hz sleep
+cycle, on an Asus machine with 8 2.4 GHz Intel Cores that is also
+performing all perceptual and network processing. This is used in conjunction with the Baxter Robot and a Kinect V1.
+
+\section{EVALUATION}
+
+We evaluated our model in simulation, comparing the full model to
+versions without multimodal information.  Additionally we assessed its
+performance on an RGB-D audio and video corpus of people referring to
+objects.  Finally we created an end-to-end robotic demonstration,
+demonstrated in the video attachment to our paper, also is available
+at \url{https://vimeo.com/107725829}.
+
+\subsection{Simulation Results}
+
+We evaluated our approach in simulation by generating data from the
+model and assessing its accuracy at estimating the object being
+referenced.  We generated simulated pointing data for each arm and the
+head, as well as spoken utterances at each timestep according to the
+model parameters.  We then used these parameters to update the
+system's estimate of the object being referred to.
+Table~\ref{table:sim_results} shows the results.  Our accuracy metric
+is the fraction of time that the robot is pointing at the correct
+object.  We report performance using language alone, gesture alone,
+and language combined with gesture.  These results demonstrate that
+the system is successfully able to fuse multi-modal information to
+achieve higher accuracy than each modality alone, but do not show
+performance in the real world.  To assess robustness to signal noise,
+we used two different levels of variance, demonstrating that even when
+the signal is highly noisy, our approach is able to fuse information
+across modalities to improve performance.
+
+\begin{table}
+\centering
+\caption{Simulation Results\label{table:sim_results}}
+\begin{tabular}{lcr}
+\toprule
+& $\sigma^2 = 0.5$ & $\sigma^2 = 1.0$\\
+Language only &  36.5\% & 37\%\\
+Head only & 50.9\% & 35.8\%\\
+Arms only & 62.4\% & 42.1\%\\
+Multimodal (all)&  65.7\% & 54.1\%\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Real-World Corpus-Based Results}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.5\linewidth]{figures/dataset.png}
+\caption{Scene from our data collection environment.\label{fig:corpus_scene}}
+\end{figure}
+
+Our real-world experiments measured our algorithm's performance when a
+person referred to an object visually and with gesture.  The subject
+stood in front of a table with varying numbers of objects placed randomly on a table
+Figure~\ref{fig:corpus_scene}.  We instructed subjects to pick an object and ask for it in the most natural way possible, using whatever
+combination of gesture and language they felt was appropriate. The test subjects wore a microphone to pick up high-quality audio, and
+we
+used the HTML5 Speech Recognition package in conjunction with Google
+Chrome to transcibe the speech.  This package reports incremental output
+as recognition proceeds, and we perform a model update each time a new
+word is perceived.  We used several object setups, using 4, 8, and 16 objects.
+We used $N$ subjects, and each subject participated
+in one trial per object set for a total of $3N$ trials.
+
+Results showing the percent of the time the object handed to the user was the object the user desired.
+The results can be see in Tables~\ref{table:real_results_4}, ~\ref{table:real_results_8}, ~\ref{table:real_results_16}
+with 95\% confidence intervals.  During a typical trial, the model
+starts out approximately uniform or unimodal on the previous object
+(we did not reset the model between trials.) As the subject points and
+talks, the model quickly converges to the correct object.  Our first
+set of results give a sense of how quickly the model converges.
+
+To assess overall accuracy, we report the system's accuracy at the end
+of a trial in \ref{table:end_real}.  Multimodal accuracy with language
+and gesture is more than 90\%, demonstrating that our approach is able
+to quickly and accurately interpret unscripted language and gesture
+produced by a person.  We found that our head pose estimator was quite
+inaccurate, performing slightly below random.  Thus overall
+results that include head pose perform worse than language and
+gesture.  We believe this effect has several sources, including marginal head movement when objects are relatively close together, as well as general inaccuracy in head rotation tracking. 
+
+The difference in accuracy between gesture alone and the multimodal output is not as large as one might expect. This is in part caused by the small delay in speech recognition software as opposed to the instantaneous gesture input. Additionally, many subjects, when told they could use gestures, leaned towards relying almost entirely on gesticulation. There were some users, however, who relied on an equal mix of both, and showed large leaps in accuracy between arms and multimodal. The most extreme example is of a user who, over their five trials, achieved only 45.5\% accuracy with arms alone and 42.2\% with speech alone, yet managed to achieve 85.7\% multimodal accuracy, only 2 percentage points away from the sum of the two probabilities, showing the ease at which alternating speech and gesture can give incredibly accurate results overall. While a combination of ambiguous speech and gesture such as "that spoon" followed by a gesture would be more accurate than just a gesture, we found that most test subjects either spoke with complete ambiguity or none, using phrases either of the form "hand me that thing" or "hand me the silver spoon". Therefore we were unable to fully test this hypothesis.
+
+\begin{table}
+\caption{Real-world Results (4 objects)\label{table:real_results_4}}
+\centering
+\begin{tabular}{lr}
+\toprule
+Random & 25\%\\
+Language only &  32.4\% +/- 10\%\\
+Gesture only  &  73.12\% +/- 9\%\\
+Head only     &  21.67\% +/- 10\%\\
+Multimodal (Language and Gesture) & {\bf 81.99\% +/- 5.5\%}\\
+Multimodal (All) &  64.84\% +/- 8\%\\
+\bottomrule
+\end{tabular}
+\end{table}
+\begin{table}
+\caption{Real-world Results (8 objects)\label{table:real_results_8}}
+\centering
+\begin{tabular}{lr}
+\toprule
+Random & 25\%\\
+Language only &  46.15\%\\
+Gesture only  &  80.0\%\\
+Head only     & 18.46\%\\
+Multimodal (Language and Gesture) & {\bf 90.77\%}\\
+Multimodal (All) &  61.54\%\\
+\bottomrule
+\end{tabular}
+\end{table}
+\begin{table}
+\caption{Real-world Results (16 objects)\label{table:real_results_16}}
+\centering
+\begin{tabular}{lr}
+\toprule
+Random & 25\%\\
+Language only &  32.4\% +/- 10\%\\
+Gesture only  &  73.12\% +/- 9\%\\
+Head only     &  21.67\% +/- 10\%\\
+Multimodal (Language and Gesture) & {\bf 81.99\% +/- 5.5\%}\\
+Multimodal (All) &  64.84\% +/- 8\%\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Robotic Demonstration}
+
+Because our approach enables a robot to quickly monitor a person's
+references to an object, the robot can respond to these estimates in
+real time, producing backchannel feedback that can trigger a person to
+produce disambiguating language and gesture when the person does not
+understand, and move on to the next task when the robot does
+understand.  We demonstrate this behavior by enabling Baxter to
+demonstrate its certainty about what object is being referenced, this
+eliciting more feedback from the person.  When the robot is very
+unsure, it indicates its confusion by displaying a confused face,
+shown in Figure~\ref{fig:confused}.  The look of confusion triggers a
+disambiguating response from the person; this response causes the
+model to update and the robot responds by looking confident and moving
+its arm to point to the correct object.  A video demonstrating this
+behavior is located in the video attachment to our paper, and also at
+\url{https://vimeo.com/107725829}.
+
+\section{CONCLUSION}
+
+We have demonstrated a Bayes' filtering approach to interpreting a
+person's multimodal language and gesture references to objects
+continuously in real time.  Our approach enables a robot to understand
+a person's references to objects in the real world.  This paper
+represents steps toward continuous language understanding and the
+vision presented by \citet{clark96} of language as joint activity.
+
+In the future we plan to expand our language model to incorporate
+models of compositional semantics and lower-level visual features so
+that the robot is not limited to prespecified object models.
+Additionally we aim to enable the robot to generate back-channel
+feedback based on its model using a POMDP framework~\citep{kaelbling99}, ultimately aiming
+to demonstrate that by providing appropriate backchannels, the robot
+elicits disambiguating responses from the person, increasing overall
+speed and accuracy of the interaction.  \citet{dragan13} created a
+framework for generating legible gesture, and we anticipate that
+enabling a robot to respond by pointing as in \citet{holladay14} when
+it is sure and reflecting its confusion when it is unsure will enable
+the human-robot dyad to increase efficiency by naturally eliciting
+more information when the robot is confused and indicate that the
+person can move on when the robot has understood.  We also plan to
+extend our approach beyond a unigram language model so that it
+supports models of compositional semantics by embedding a parsing
+chart into the state~\citep{jurafsky95, earley70}.  These methods will
+enable the robot to understand nested referring expressions such as
+``the bowl on the table'' incrementally.  Finally, we aim to extend
+our approach beyond just object references; a similar modeling
+approach could be used to understand references to locations in the
+environment, and ultimately general command interpretation. 
+
 
 
 
