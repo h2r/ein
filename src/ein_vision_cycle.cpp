@@ -1,3 +1,27 @@
+WORD(VisionPatrol)
+CODE(196727) // capslock + W
+virtual void execute() {
+  cout << "vision patrol" << endl;
+  pushWord("fullRender"); 
+  pushWord("recordBlueBoxes");
+  pushWord("visionCycle");
+}
+END_WORD
+
+WORD(RecordBlueBoxes)
+virtual void execute() {
+  for (int c = bTops.size()-1; c >= 0; c--) {
+    BoxMemory box;
+    box.bTop = bTops[c];
+    box.bBot = bBots[c];
+    box.cameraPose = currentEEPose;
+    box.cameraTime = ros::Time::now();
+    box.labeledClassIndex = bLabels[c];
+    blueBoxMemories.push_back(box);
+  }
+}
+END_WORD
+
 WORD(VisionCycle)
 CODE(131153)  // capslock + q
 virtual void execute() {
