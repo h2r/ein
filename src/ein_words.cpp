@@ -177,8 +177,9 @@ virtual void execute()
 }
 END_WORD
 
+/*
 WORD(PrintWords)
-CODE('I')
+CODE(65609) // I
 virtual void execute()
 {
   ofstream wordFile;
@@ -190,6 +191,21 @@ virtual void execute()
   wordFile.close();
 }
 END_WORD
+*/
+
+WORD(PixelGlobalTest)
+CODE(65609)
+virtual void execute()
+{
+  eePose teePose;
+  teePose.px = trueEEPose.position.x;
+  teePose.py = trueEEPose.position.y;
+  teePose.pz = trueEEPose.position.z;
+  paintEEPoseOnWrist(teePose, cv::Scalar(0,0,255));
+  paintEEPoseOnWrist(eepReg1, cv::Scalar(0,255,0));
+}
+END_WORD
+
 
 }
 
@@ -198,14 +214,16 @@ using namespace  ein_words;
 std::map<int, Word *> create_character_code_to_word(std::vector<Word *> words) {
   std::map<int, Word *> character_code_to_word;
   for (unsigned int i = 0; i < words.size(); i++) {
-    if (character_code_to_word.count(words[i]->character_code()) > 0) {
-      cout << "Two words with the same code." << endl;
-      cout << "Word 1: " << character_code_to_word[words[i]->character_code()]->name() << endl;
-      cout << "Word 2: " << words[i]->name() << endl;
-      cout << "Code: " << words[i]->character_code() << endl;
-      assert(0);
-    } else {
-      character_code_to_word[words[i]->character_code()] = words[i];
+    if (words[i]->character_code() != -1) {
+      if (character_code_to_word.count(words[i]->character_code()) > 0) {
+        cout << "Two words with the same code." << endl;
+        cout << "Word 1: " << character_code_to_word[words[i]->character_code()]->name() << endl;
+        cout << "Word 2: " << words[i]->name() << endl;
+        cout << "Code: " << words[i]->character_code() << endl;
+        assert(0);
+      } else {
+        character_code_to_word[words[i]->character_code()] = words[i];
+      }
     }
   }
   return character_code_to_word;
@@ -374,7 +392,11 @@ std::vector<Word *> create_words() {
   words.push_back(new SaveLearnedModels());
   words.push_back(new DecrementTargetClass());
 
-  words.push_back(new PrintWords());
+  //words.push_back(new PrintWords());
+  words.push_back(new PixelGlobalTest());
+
+  words.push_back(new VisionPatrol());
+  words.push_back(new RecordBlueBoxes());
   return words;
 }
 
