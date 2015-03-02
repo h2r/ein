@@ -3565,12 +3565,17 @@ void timercallback1(const ros::TimerEvent&) {
  int c = cvWaitKey(1);
   int takeSymbol = 1;
   if (c != -1) {
-    cout << "You pressed " << c << "." << endl;
-    takeSymbol = 0;
-    if (character_code_to_word.count(c) > 0) {
-      word = character_code_to_word[c];      
-    } else {
-      cout  << "Could not find word for " << c << endl;
+    // don't print for capslock, shift, alt (for alt-tab)
+    if (!(c == 65509 || c == 196581 || c == 196577 || c == 65505 ||
+          c == 65513 || c == 196578)) {
+      cout << "You pressed " << c << "." << endl;
+
+      takeSymbol = 0;
+      if (character_code_to_word.count(c) > 0) {
+        word = character_code_to_word[c];      
+      } else {
+        cout  << "Could not find word for " << c << endl;
+      }
     }
   }
 
@@ -3593,7 +3598,7 @@ void timercallback1(const ros::TimerEvent&) {
   }
 
   if (!zero_g_toggle) {
-    update_baxter(n);
+    //update_baxter(n);
   }
   else {
     currentEEPose.px = trueEEPose.position.x;
