@@ -23,6 +23,12 @@ public: \
 #define END_WORD };
 
 
+void CompoundWord::execute() {
+  for (unsigned int i = 0; i < stack.size(); i++) {
+    pushWord(stack[i]);
+  }
+}
+
 
 namespace ein_words
 {
@@ -156,6 +162,132 @@ virtual void execute() {
 }
 END_WORD
 
+
+WORD(Plus)
+CODE('+') 
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("+");
+  return result;
+}
+virtual void execute() {
+  Word * p1 = popWord();
+  Word * p2 = popWord();
+  if (p1 == NULL || p2 == NULL) {
+    cout << "Warning, requires two words on the stack." << endl;
+    return;
+  }
+
+  IntegerWord * w1 = dynamic_cast<IntegerWord *>(p1);
+  IntegerWord * w2 = dynamic_cast<IntegerWord *>(p2);
+
+  if (w1 == NULL || w2 == NULL) {
+    cout << "Warning, requires two integers on the stack." << endl;
+    return;
+  }
+
+  IntegerWord * newWord = new IntegerWord(w1->value() + w2->value());
+  pushWord(newWord);
+
+}
+END_WORD
+
+WORD(Equals)
+CODE('=') 
+virtual void execute() {
+  Word * p1 = popWord();
+  Word * p2 = popWord();
+  if (p1 == NULL || p2 == NULL) {
+    cout << "Warning, requires two words on the stack." << endl;
+    return;
+  }
+  int new_value;
+  if (p1->equals(p2)) {
+    new_value = 1;
+  } else {
+    new_value = 0;
+  }
+  IntegerWord * newWord = new IntegerWord(new_value);
+  pushWord(newWord);
+
+}
+END_WORD
+
+
+
+WORD(Ift)
+virtual void execute() {
+  Word * then = popWord();
+  Word * condition = popWord();
+  if (then == NULL || condition == NULL) {
+    cout << "Warning, requires two words on the stack." << endl;
+    return;
+  }
+
+  if (condition->as_bool()) {
+    pushWord(then);
+  }
+
+}
+END_WORD
+
+
+WORD(Start)
+virtual void execute() {
+}
+END_WORD
+
+WORD(Next)
+virtual void execute() {
+  vector <Word *> words_in_loop;
+  
+  while (true) {
+    Word * word = popWord();
+    if (word == NULL) {
+      cout << "Warning, next could not find start, aborting." << endl;
+      return;
+    }
+    if (word->name() == "start") {
+      break;
+    } 
+    words_in_loop.push_back(word);
+  }
+  
+  Word * index_to = popWord();
+  Word * index_from = popWord();
+  if (index_from == NULL || index_to == NULL) {
+    cout << "Warning, next requires two words on the stack." << endl;
+    return;
+  }
+  cout << "looping: " << index_from->as_int() << " to " << index_to->as_int() << endl;
+
+  for (int i = index_from->as_int(); i < index_to->as_int(); i++) {
+    for (int j = 0; j < words_in_loop.size(); j++) {
+      pushWord(words_in_loop[j]);
+    }
+  }
+  
+}
+END_WORD
+
+WORD(Print)
+virtual void execute() {
+  Word * word = popWord();
+  if (word != NULL) {
+    cout << word->as_string() << endl;
+  }
+}
+END_WORD
+
+WORD(Dup)
+virtual void execute() {
+  Word * word = popWord();
+  pushWord(word);
+  pushWord(word);
+}
+END_WORD
+
 WORD(IncrementTargetClass)
 CODE(196437)// capslock + pageup
 virtual void execute()
@@ -178,11 +310,11 @@ virtual void execute()
 END_WORD
 
 WORD(PrintWords)
-CODE('I')
+CODE(65609) //'I'
 virtual void execute()
 {
   ofstream wordFile;
-  wordFile.open("wordFile.ein");
+  wordFile.open("ein_words.txt");
   std::vector<Word *> words = create_words();
   for (int i = 0; i < words.size(); i++) {
     wordFile << words[i]->name() << " " << words[i]->character_code() << endl;
@@ -198,7 +330,8 @@ using namespace  ein_words;
 std::map<int, Word *> create_character_code_to_word(std::vector<Word *> words) {
   std::map<int, Word *> character_code_to_word;
   for (unsigned int i = 0; i < words.size(); i++) {
-    if (character_code_to_word.count(words[i]->character_code()) > 0) {
+    if ((character_code_to_word.count(words[i]->character_code()) > 0) &&
+        (words[i]->character_code() != -1)) {
       cout << "Two words with the same code." << endl;
       cout << "Word 1: " << character_code_to_word[words[i]->character_code()]->name() << endl;
       cout << "Word 2: " << words[i]->name() << endl;
@@ -214,7 +347,10 @@ std::map<int, Word *> create_character_code_to_word(std::vector<Word *> words) {
 std::map<string, Word *> create_name_to_word(std::vector<Word *> words) {
   std::map<string, Word *> name_to_word;
   for (unsigned int i = 0; i < words.size(); i++) {
-    name_to_word[words[i]->name()] = words[i];
+    vector<string> names = words[i]->names();
+    for (unsigned int j = 0; j < names.size(); j++) {
+      name_to_word[names[j]] = words[i];      
+    }
   }
   return name_to_word;
 }
@@ -373,8 +509,16 @@ std::vector<Word *> create_words() {
   words.push_back(new SetRandomPositionAndOrientationForHeightLearning());
   words.push_back(new SaveLearnedModels());
   words.push_back(new DecrementTargetClass());
-
   words.push_back(new PrintWords());
+
+  words.push_back(new Plus());
+  words.push_back(new Equals());
+  words.push_back(new Ift());
+  words.push_back(new Start());
+  words.push_back(new Next());
+  words.push_back(new Print());
+  words.push_back(new Dup());
+
   return words;
 }
 
