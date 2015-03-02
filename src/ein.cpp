@@ -1142,6 +1142,15 @@ cv::vector<cv::Point> nBot;
 vector<cv::Point> cTops; 
 vector<cv::Point> cBots;
 
+struct BoxMemory {
+  cv::Point bTop;
+  cv::Point bBot;
+  eePose cameraPose;
+  ros::Time cameraTime;
+  int labeledClassIndex;
+};
+vector<BoxMemory> blueBoxMemories;
+
 // create the blue boxes from the parental green boxes
 vector<cv::Point> bTops; 
 vector<cv::Point> bBots;
@@ -1408,6 +1417,8 @@ int simulatedServo();
 void initRangeMaps();
 
 int isThisGraspMaxedOut(int i);
+
+void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY);
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -2663,7 +2674,7 @@ void scanXdirection(double speedOnLines, double speedBetweenLines) {
   //int gLimit = 1+((rmWidth*betweenLineGain+2*scanPadding)/2);
   int gLimit = ((rmWidth*betweenLineGain+2*scanPadding));
   for (int g = 0; g < gLimit; g++) {
-    pushWord("fullRender"); // full render
+    pushWord("fullRender"); 
     //pushWord(1048677);
     pushWord("waitUntilAtCurrentPosition"); 
     pushSpeedSign(speedOnLines);
@@ -5128,7 +5139,7 @@ void drawMapRegisters() {
   // draw grasp memory sample window
   {
     double max_value = -VERYBIGNUMBER;
-    int max_rx, max_ry, max_tGG;
+    int max_rx=0, max_ry=0, max_tGG=0;
     int dy[4] = {0,1,0,1};
     int dx[4] = {0,0,1,1};
     
@@ -7094,6 +7105,130 @@ int isThisGraspMaxedOut(int i) {
   }
 
   return toReturn;
+}
+
+void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
+  int x1 = heightReticles[0].px;
+  int x2 = heightReticles[1].px;
+  int x3 = heightReticles[2].px;
+  int x4 = heightReticles[3].px;
+
+  int y1 = heightReticles[0].py;
+  int y2 = heightReticles[1].py;
+  int y3 = heightReticles[2].py;
+  int y4 = heightReticles[3].py;
+
+  double z1 = convertHeightIdxToGlobalZ(0) - currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(1) - currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(2) - currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(3) - currentTableZ;
+
+  double d_x = 0.02;
+  double d_y = 0.02;
+  double m_x = 5.0;
+  double m_y = 5.0;
+  {
+    double d = d_x;
+    double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
+
+    double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
+    double b31 = (z3*x3-z1*x1+(z1-z3)*c)/(x3-x1);
+
+    double bDiff = b42-b31;
+    cout << "bDiff = " << bDiff << ", c = " << c << endl;
+    double b = (b42+b31)/2.0;
+
+    int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
+    //gX = d + ( (pX-c)*(currentEEPose.px-d) )/(x1-c) ;
+    gX = d + ( (pX-c)*(currentEEPose.px-d) )/(x_thisZ-c) ;
+  }
+  {
+    double d = d_y;
+    double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
+
+    double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
+    double b31 = (z3*y3-z1*y1+(z1-z3)*c)/(y3-y1);
+
+    double bDiff = b42-b31;
+    cout << "bDiff = " << bDiff << ", c = " << c << endl;
+    double b = (b42+b31)/2.0;
+
+    int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
+    //gY = d + ( (pY-c)*(currentEEPose.py-d) )/(y1-c) ;
+    gY = d + ( (pY-c)*(currentEEPose.py-d) )/(y_thisZ-c) ;
+  }
+}
+void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY) {
+  int x1 = heightReticles[0].px;
+  int x2 = heightReticles[1].px;
+  int x3 = heightReticles[2].px;
+  int x4 = heightReticles[3].px;
+
+  int y1 = heightReticles[0].py;
+  int y2 = heightReticles[1].py;
+  int y3 = heightReticles[2].py;
+  int y4 = heightReticles[3].py;
+
+  double z1 = convertHeightIdxToGlobalZ(0) - currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(1) - currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(2) - currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(3) - currentTableZ;
+
+  double d_x = 0.02;
+  double d_y = 0.02;
+  double m_x = 5.0;
+  double m_y = 5.0;
+  {
+    double d = d_x;
+    double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
+
+    double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
+    double b31 = (z3*x3-z1*x1+(z1-z3)*c)/(x3-x1);
+
+    double bDiff = b42-b31;
+    cout << "bDiff = " << bDiff << ", c = " << c << endl;
+    double b = (b42+b31)/2.0;
+
+    int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
+    //pX = c + ( (gX-d)*(x1-c) )/(currentEEPose.px-d_x);
+    pX = c + ( (gX-d)*(x_thisZ-c) )/(currentEEPose.px-d_x);
+  }
+  {
+    double d = d_y;
+    double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
+
+    double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
+    double b31 = (z3*y3-z1*y1+(z1-z3)*c)/(y3-y1);
+
+    double bDiff = b42-b31;
+    cout << "bDiff = " << bDiff << ", c = " << c << endl;
+    double b = (b42+b31)/2.0;
+
+    int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
+    //pY = c + ( (gY-d)*(y1-c) )/(currentEEPose.py-d_y);
+    pY = c + ( (gY-d)*(y_thisZ-c) )/(currentEEPose.py-d_y);
+  }
+}
+
+void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor) {
+  cv::Scalar THEcOLOR(255-theColor[0], 255-theColor[1], 255-theColor[2]);
+  int lineLength = 5;
+  int pX = 0, pY = 0;  
+  globalToPixel(pX, pY, trueEEPose.position.z-currentTableZ, toPaint.px, toPaint.py);
+  cout << "paintEEPoseOnWrist pX pY: " << pX << " " << pY << endl;
+  if ( (pX > 0+lineLength) && (pX < wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < wristViewImage.rows-lineLength) ) {
+    {
+      Point pt1(pX+lineLength, pY);
+      Point pt2(pX+lineLength, pY+lineLength*2);
+      cv::line(objectViewerImage, pt1, pt2, theColor);
+    }
+    {
+      Point pt1(pX, pY+lineLength);
+      Point pt2(pX+lineLength*2, pY+lineLength);
+      cv::line(objectViewerImage, pt1, pt2, theColor);
+    }
+  }
+  cv::imshow(objectViewerName, objectViewerImage);
 }
 
 
