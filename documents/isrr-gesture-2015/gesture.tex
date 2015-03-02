@@ -88,7 +88,7 @@ pointing toward a mathematical framework for human-robot communication
 as a {\em joint activity}~\citep{clark96}.
 \begin{figure}
 \centering
-\includegraphics[width=1\linewidth]{figures/baxter_scene_cropped.jpg}
+\includegraphics[width=0.3\linewidth]{figures/baxter_scene_cropped.jpg}
 \caption{Robots that collaborate with people need to understand their
   references to objects in the environment.  For example, if a person
   asks for a tool using language and gesture, the robot needs to
@@ -295,13 +295,22 @@ $\langle l, r, h, s\rangle $ where:
           consisting of a list of words.
     \end{itemize}
 
+\begin{figure}
+\centering
+\fbox{\includegraphics{bigram-crop.pdf}}
+\caption{Graphical model for our approach.\label{fig:model}}
+\end{figure}
+
 Formally, we have:
 \begin{align}
 p(z_t | x_t) &= p(l, r, h, s | x_t)\\
 \intertext{We factor assuming that each modality is independent of the others given the state. Namely, we are assuming that if we know the
-true object, the probabilities of the user pointing at that object with there left hand and right hand are indpendent.:}
+true object, the probabilities of the user pointing at that object with there left hand and right hand are independent:}
 p(z_t | x_t) &= p(l | x_t) \times p(r | x_t) \times p(h | x_t) \times p(s | x_t)
 \end{align}
+
+The graphical model for our approach appears in
+Figure~\ref{fig:model}.
 
 \noindent The following sections describe how we model each type of
 input from the person.  We track body pose using the NITE
