@@ -1334,6 +1334,7 @@ void rangeCallback(const sensor_msgs::Range& range);
 void update_baxter(ros::NodeHandle &n);
 void timercallback1(const ros::TimerEvent&);
 void imageCallback(const sensor_msgs::ImageConstPtr& msg);
+void renderCoreView();
 void targetCallback(const geometry_msgs::Point& point);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata);
@@ -2407,11 +2408,13 @@ vector<string> split(const char *str, char c = ' ')
 }
 
 
+
 void forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
   forthCommand = msg->data;
   ROS_INFO_STREAM("Received " << forthCommand << endl);
   vector<string> tokens = split(forthCommand.c_str(), ' ');
   for (unsigned int i = 0; i < tokens.size(); i++) {
+    trim(tokens[i]);
     if (tokens[i] == "executeStack" || tokens[i] == ";") {
       execute_stack = 1;
     } else {
@@ -3506,9 +3509,13 @@ void clearStack() {
   call_stack.resize(0);
 }
 Word * popWord() {
-  Word * word = call_stack.back();
-  call_stack.pop_back();
-  return word; 
+  if (call_stack.size() > 0) {
+    Word * word = call_stack.back();
+    call_stack.pop_back();
+    return word; 
+  } else {
+    return NULL;
+  }
 }
 
 bool pushWord(int code) {
@@ -3521,15 +3528,30 @@ bool pushWord(int code) {
   }
 }
 
-bool pushWord(string name) {
-  if (name_to_word.count(name) > 0) {
-    Word * word = name_to_word[name];
-    return pushWord(word);
+
+Word * forthletParse(string token) {
+  if (IntegerWord::isInteger(token)) {
+    return IntegerWord::parse(token);
+  } else if (StringWord::isString(token)) {
+    return StringWord::parse(token);
+  } else if (name_to_word.count(token) > 0) {
+    Word * word = name_to_word[token];
+    return word;
+  } else if (SymbolWord::isSymbol(token)) {
+    Word * word = SymbolWord::parse(token);
+    return word;
   } else {
-    cout << "No word for name " << name << endl;
-    return false;
+    cout << "Cannot parse " << token << endl;
+    return NULL;
   }
 }
+bool pushWord(string token) {
+  Word * word = forthletParse(token);
+  if (word != NULL) {
+    pushWord(word);
+  }
+}
+
 
 bool pushWord(Word * word) {
   call_stack.push_back(word);
@@ -3570,7 +3592,8 @@ void timercallback1(const ros::TimerEvent&) {
 
   // deal with the stack
   if (execute_stack && takeSymbol) {
-    if (call_stack.size() > 0) {
+    if (call_stack.size() > 0 && 
+        !call_stack[call_stack.size() - 1]->is_value()) {
       word = popWord();
     } else {
       execute_stack = 0;
@@ -3587,7 +3610,7 @@ void timercallback1(const ros::TimerEvent&) {
   }
 
   if (!zero_g_toggle) {
-    //update_baxter(n);
+    update_baxter(n);
   }
   else {
     currentEEPose.px = trueEEPose.position.x;
@@ -3604,6 +3627,9 @@ void timercallback1(const ros::TimerEvent&) {
 
   timerCounter++;
   timesTimerCounted++;
+
+  renderCoreView();
+
 }
 
 
@@ -3816,8 +3842,13 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     cv::imshow(wristViewName, wristViewImage);
   }
 
+
+
+}
+
+void renderCoreView() {
   //Mat coreImage = wristViewImage.clone();
-  Mat coreImage(2*wristViewImage.rows, wristViewImage.cols, wristViewImage.type());
+  Mat coreImage(800, 800, CV_64F);
   coreImage = 0.0*coreImage;
 
   cv::Scalar dataColor(192,192,192);
@@ -3887,10 +3918,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       break;
     }
   }
-
-  if (shouldIRender) {
-    cv::imshow(coreViewName, coreImage);
-  }
+  
+  cv::imshow(coreViewName, coreImage);
 }
 
 void targetCallback(const geometry_msgs::Point& point) {

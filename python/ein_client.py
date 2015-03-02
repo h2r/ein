@@ -37,8 +37,10 @@ class SimpleCompleter(object):
 
 
 class EinClient:
-    def __init__(self, words):
-        self.forth_command_publisher = rospy.Publisher("/ein/left/forth_commands", 
+    def __init__(self, words, topic):
+        print "topic: ", topic
+
+        self.forth_command_publisher = rospy.Publisher(topic, 
                                                        std_msgs.msg.String, queue_size=10)
         
         readline.set_completer(SimpleCompleter(words).complete)
@@ -55,12 +57,12 @@ class EinClient:
 def main():
     rospy.init_node("ein_client")
     words = []
-    for wordline in open("wordFile.ein"):
+    for wordline in open("ein_words.txt"):
         words.append(wordline.split(" ")[0])
         
     print words
 
-    client = EinClient(words)
+    client = EinClient(words, "/ein/right/forth_commands")
 
     client.ask()
 
