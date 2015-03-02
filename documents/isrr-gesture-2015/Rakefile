@@ -1,5 +1,7 @@
 desc "build the pdf"
 task :default => [] do
+  sh "pdflatex -shell-escape bigram.tex"
+  sh "pdfcrop bigram.pdf"
   sh "pdflatex gesture.tex"
   sh "bibtex gesture"
   sh "pdflatex gesture.tex"
