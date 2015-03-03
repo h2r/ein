@@ -2,7 +2,6 @@ WORD(VisionPatrol)
 CODE(196727) // capslock + W
 virtual void execute() {
   cout << "vision patrol" << endl;
-  pushWord("fullRender"); 
   pushWord("recordBlueBoxes");
   pushWord("visionCycle");
 }
@@ -10,7 +9,8 @@ END_WORD
 
 WORD(RecordBlueBoxes)
 virtual void execute() {
-  for (int c = bTops.size()-1; c >= 0; c--) {
+  cout << "Recording blue boxes: " << bTops.size() << endl;
+  for (int c = 0; c < bTops.size(); c++) {
     BoxMemory box;
     box.bTop = bTops[c];
     box.bBot = bBots[c];
@@ -19,6 +19,7 @@ virtual void execute() {
     box.labeledClassIndex = bLabels[c];
     blueBoxMemories.push_back(box);
   }
+
 }
 END_WORD
 

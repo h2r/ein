@@ -995,7 +995,7 @@ virtual void execute()       {
   pushSpeedSign(MOVE_FAST);
   pushWord(1179717); // change to pantry table
   pushWord(1179724); // change bounding box inference mode to STATIC_MARGINALS
-  pushWord(196707); // synchronic servo take closest
+  pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
 }
 END_WORD
 

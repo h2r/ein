@@ -335,6 +335,7 @@ std::string hiColorRangemapViewName = "Hi Color Range Map View";
 std::string graspMemoryViewName = "Grasp Memory View";
 std::string graspMemorySampleViewName = "Grasp Memory Sample View";
 
+
 std::string heightMemorySampleViewName = "Height Memory Sample View";
 
 int reticleHalfWidth = 72;
@@ -954,6 +955,7 @@ visualization_msgs::MarkerArray ma_to_send_blue;
 
 cv_bridge::CvImagePtr cv_ptr;
 Mat objectViewerImage;
+Mat objectMapViewerImage;
 Mat densityViewerImage;
 Mat wristViewImage;
 Mat gradientViewerImage;
@@ -974,6 +976,7 @@ int ikResult = 1;
 
 std::string densityViewerName = "Density Viewer";
 std::string objectViewerName = "Object Viewer";
+std::string objectMapViewerName = "Object Map View";
 std::string gradientViewerName = "Gradient Viewer";
 std::string objectnessViewerName = "Objectness Viewer";
 std::string aerialGradientViewerName = "Aerial Gradient Viewer";
@@ -1344,6 +1347,7 @@ void update_baxter(ros::NodeHandle &n);
 void timercallback1(const ros::TimerEvent&);
 void imageCallback(const sensor_msgs::ImageConstPtr& msg);
 void renderCoreView();
+void renderObjectMapView();
 void targetCallback(const geometry_msgs::Point& point);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata);
@@ -3201,6 +3205,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
     cv::imshow(hiColorRangemapViewName, hCRIT);
 
     cv::imshow(objectViewerName, objectViewerImage);
+    cv::imshow(objectMapViewerName, objectMapViewerImage);
     cv::imshow(densityViewerName, densityViewerImage);
     cv::imshow(gradientViewerName, gradientViewerImage);
     cv::imshow(objectnessViewerName, objectnessViewerImage);
@@ -3640,7 +3645,7 @@ void timercallback1(const ros::TimerEvent&) {
   timesTimerCounted++;
 
   renderCoreView();
-
+  renderObjectMapView();
 }
 
 
@@ -3668,8 +3673,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     objectnessViewerImage *= 0;
     aerialGradientViewerImage = Mat(4*aerialGradientWidth, aerialGradientWidth, CV_64F);
   }
-  if (objectViewerImage.rows <= 0 || objectViewerImage.rows <= 0)
+  if (objectViewerImage.rows <= 0) {
     objectViewerImage = cv_ptr->image.clone();
+  }
 
 
   wristCamImage = cv_ptr->image.clone();
@@ -3857,8 +3863,80 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
 }
 
+cv::Point worldToPixel(Mat image, double xMin, double xMax, double yMin, double yMax, double x, double y) {
+  double pxMin = 0;
+  double pxMax = objectMapViewerImage.cols;
+  double pyMin = 0;
+  double pyMax = objectMapViewerImage.rows;
+  cv::Point center = cv::Point(pxMax/2, pyMax/2);
+
+  cv::Point out = cv::Point((pyMax - pyMin) / (yMax - yMin) * y + center.y,
+                            (pxMax - pxMin) / (xMax - xMin) * x + center.x);
+  return out;
+}
+
+void renderObjectMapView() {
+  if (objectMapViewerImage.rows <= 0 ) {
+    objectMapViewerImage = Mat(800, 800, CV_64FC3);
+  }
+  objectMapViewerImage = CV_RGB(0, 0, 0);
+  double xMin = -1;
+  double xMax = 1;
+  double yMin = -1;
+  double yMax = 1;
+  double pxMin = 0;
+  double pxMax = objectMapViewerImage.cols;
+  double pyMin = 0;
+  double pyMax = objectMapViewerImage.rows;
+  double step = 0.5;
+  cv::Point center = cv::Point(pxMax/2, pyMax/2);
+  for (int i = 0; i < blueBoxMemories.size(); i++) {
+    BoxMemory memory = blueBoxMemories[i];
+  }
+
+  for (double x = xMin; x < xMax; x = x + step) {
+    for (double y = yMin; y < xMax; y = y + step) {
+      for (int i = 0; i < blueBoxMemories.size(); i++) {
+        BoxMemory memory = blueBoxMemories[i];
+        if ((x <= memory.cameraPose.px && memory.cameraPose.px <= x + step) &&
+            (y <= memory.cameraPose.py && memory.cameraPose.py <= y + step)) {
+          
+          cv::Point outTop = worldToPixel(objectMapViewerImage, xMin, xMax, yMin, yMax, x, y);
+
+          cv::Point outBot = worldToPixel(objectMapViewerImage, xMin, xMax, yMin, yMax, x + step, y + step);
+
+          rectangle(objectMapViewerImage, outTop, outBot, CV_RGB(255, 255, 255));
+
+          cv::Point objectPoint = worldToPixel(objectMapViewerImage, xMin, xMax, yMin, yMax, 
+                                               memory.cameraPose.px, memory.cameraPose.py);
+
+          circle(objectMapViewerImage, objectPoint, 10, CV_RGB(255, 255, 255));
+        }
+      }
+    }
+  }
+  
+  
+  { // drawRobot
+    double radius = 20;
+    cv::Point orientation_point = cv::Point(pxMax/2, pyMax/2 + radius);
+    
+    circle(objectMapViewerImage, center, radius, cv::Scalar(0, 0, 255));
+    line(objectMapViewerImage, center, orientation_point, cv::Scalar(0, 0, 255));
+  }
+  { // drawHand
+    double radius = 10;
+    cv::Point handPoint = worldToPixel(objectMapViewerImage, xMin, xMax, yMin, yMax, 
+                                       currentEEPose.px, currentEEPose.py);
+    circle(objectMapViewerImage, handPoint, radius, cv::Scalar(0, 0, 255));
+  }
+
+  cv::imshow(objectMapViewerName, objectMapViewerImage);
+
+
+}
+
 void renderCoreView() {
-  //Mat coreImage = wristViewImage.clone();
   Mat coreImage(800, 800, CV_64F);
   coreImage = 0.0*coreImage;
 
@@ -9493,8 +9571,9 @@ void goFindBlueBoxes() {
 
 //cout << "Here 4" << endl;
 
-  if (shouldIRender)
+  if (shouldIRender) {
     cv::imshow(objectViewerName, objectViewerImage);
+  }
 
   delete gBoxIndicator;
   delete gBoxGrayNodes;
@@ -9790,8 +9869,10 @@ void goFindBrownBoxes() {
     rectangle(objectViewerImage, inTop, inBot, cv::Scalar(32,32,32));
   }
 
-  if (shouldIRender)
+  if (shouldIRender) {
     cv::imshow(objectViewerName, objectViewerImage);
+  }
+
 }
 
 void goClassifyBlueBoxes() {
@@ -11224,17 +11305,16 @@ int main(int argc, char **argv) {
   spinlessPilotMain();
 
   saveROSParams();
-
-  pushWord('u'); // printState
+  pushWord("visionPatrol");
+  pushWord("printState");
+  pushCopies("zUp", 15);
   int devInit = 1;
   if (devInit) {
-    pushWord(196437); // increment target class
-
-    pushWord(1179720); // set gradient servo take closest
-    //pushWord(1179719); // set gradient servo don't take closest
-    pushWord(196707); // synchronic servo take closest
+    pushWord("incrementTargetClass"); 
+    pushWord("gradientServoTakeClosest"); 
+    pushWord("synchronicServoTakeClosest");
   }
-
+  
   pushWord("shiftIntoGraspGear1"); // change gear to 1
 
   execute_stack = 1;
