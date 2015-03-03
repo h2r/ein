@@ -3928,7 +3928,22 @@ void renderObjectMapView() {
     double radius = 10;
     cv::Point handPoint = worldToPixel(objectMapViewerImage, xMin, xMax, yMin, yMax, 
                                        currentEEPose.px, currentEEPose.py);
+    
+    Eigen::Quaternionf handQuat(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+
+    double rotated_magnitude = radius / sqrt(pow(pxMax - pxMin, 2) +  pow(pyMax - pyMin, 2)) * sqrt(pow(xMax - xMin, 2) + pow(yMax - yMin, 2));
+    Eigen::Vector3f point(rotated_magnitude, 0, 0);
+    Eigen::Vector3f rotated = handQuat * point;
+    
+    cv::Point orientation_point = worldToPixel(objectMapViewerImage, xMin, xMax, yMin, yMax,
+                                               currentEEPose.px + rotated[0], 
+                                               currentEEPose.py + rotated[1]);
+
+
     circle(objectMapViewerImage, handPoint, radius, cv::Scalar(0, 0, 255));
+
+    line(objectMapViewerImage, handPoint, orientation_point, cv::Scalar(0, 0, 255));
+
   }
 
   cv::imshow(objectMapViewerName, objectMapViewerImage);
