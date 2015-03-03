@@ -6,7 +6,7 @@ virtual void execute() {
   pushWord("setRandomPositionAndOrientationForHeightLearning");
   pushWord("recordBlueBoxes");
   pushWord("visionCycle");
-  pushCopies("noop", 10);
+  pushCopies("noop", 100);
 }
 END_WORD
 
@@ -33,7 +33,7 @@ END_WORD
 
 
 
-WORD(ClearBlueBoxeMemories)
+WORD(ClearBlueBoxMemories)
 CODE(196709) // capslock + E
 virtual void execute() {
   cout << "Clearing blue box memory: " << blueBoxMemories.size() << endl;
