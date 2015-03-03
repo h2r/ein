@@ -7234,8 +7234,8 @@ double d_x = -0.02;
 double d_y = 0.015;
 double m_x = 1.27;
 double m_y = 0.50;
-double offX = 0;
-double offY = 0;
+double offX = -15;
+double offY = -10;
 
 eePose pixelToGlobalEEPose(int pX, int pY, double gZ) {
   eePose result;
@@ -7343,7 +7343,7 @@ void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
 
     int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
     //gX = d + ( (pX-c)*(currentEEPose.px-d) )/(x1-c) ;
-    gX = currentEEPose.px + d + ( (pX-c)*(d) )/(x_thisZ-c) ;
+    gX = trueEEPose.position.x - d + ( (pX-c)*(d) )/( (x_thisZ-c)*m_x ) ;
   }
   {
     double d = d_y;
@@ -7361,7 +7361,7 @@ void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
 
     int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
     //gY = d + ( (pY-c)*(currentEEPose.py-d) )/(y1-c) ;
-    gY = currentEEPose.py + d + ( (pY-c)*(d) )/(y_thisZ-c) ;
+    gY = trueEEPose.position.y - d + ( (pY-c)*(d) )/( (y_thisZ-c)*m_y ) ;
   }
 }
 
@@ -7483,7 +7483,7 @@ void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor) {
   double gX = 0, gY = 0;
   pixelToGlobal(pX, pY, zToUse, gX, gY);
   globalToPixel(pX, pY, zToUse, gX, gY);
-  cout << "paintEEPoseOnWrist pX pY zToUse: " << pX << " " << pY << " " << zToUse << endl;
+  cout << "PAINTeepOSEoNwRIST pX pY gX gY: " << pX << " " << pY << " " << gX << " " << gY << endl;
   if ( (pX > 0+lineLength) && (pX < wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < wristViewImage.rows-lineLength) ) {
     {
       Point pt1(pX+lineLength, pY);
