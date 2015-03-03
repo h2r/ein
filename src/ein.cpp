@@ -1099,8 +1099,10 @@ std::string saved_crops_path;
 cv::Mat cam_img;
 cv::Mat depth_img;
 ros::Publisher rec_objs_blue;
+ros::Publisher rec_objs_blue_memory;
 ros::Publisher rec_objs_red;
 ros::Publisher markers_blue;
+ros::Publisher markers_blue_memory;
 ros::Publisher markers_red;
 
 ros::Publisher ee_target_pub;
@@ -2422,6 +2424,24 @@ void jointCallback(const sensor_msgs::JointState& js) {
 void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
   fetchCommand = msg->data;
   ROS_INFO_STREAM("Received " << fetchCommand << endl);
+
+  int class_idx = -1;
+
+  for (int i = 0; i < classLabels.size(); i++) {
+    class_idx = i;
+    if (classLabels[i] == fetchCommand) {
+
+      break;
+    }
+  }
+  if (class_idx == -1) {
+    cout << "Could not find class " << fetchCommand << endl; 
+  } else {
+    clearStack();
+    changeTargetClass(class_idx);
+    pushWord("twoDPatrolStart");
+    execute_stack = 1;
+  }
 }
 
 vector<string> split(const char *str, char c = ' ')
@@ -7240,7 +7260,7 @@ double offY = -10;
 eePose pixelToGlobalEEPose(int pX, int pY, double gZ) {
   eePose result;
   pixelToGlobal(pX, pY, gZ, result.px, result.py);
-  result.pz = gZ;
+  result.pz = trueEEPose.position.z - currentTableZ;
   result.ox = 0;
   result.oy = 0;
   result.oz = 0;
@@ -8158,11 +8178,6 @@ void fill_RO_and_M_arrays(object_recognition_msgs::RecognizedObjectArray& roa_to
   visualization_msgs::MarkerArray& ma_to_send, vector<cv::Point>& pointCloudPoints, 
   int aI, int label, int winningO, int poseIndex) {
 
-  #ifdef DEBUG
-cout << "check" << endl;
-cout << "hit a publishable object " << label << " " << classLabels[label] 
-<< " " << classPoseModels[label] << aI << " of total objects " << bTops.size() << endl;
-  #endif
 
   geometry_msgs::Pose object_pose;
 
@@ -10590,9 +10605,11 @@ void goClassifyBlueBoxes() {
     pilotClosestBlueBoxNumber = -1;
   }
 
-  if (shouldIRender)
+  if (shouldIRender) {
     cv::imshow(objectViewerName, objectViewerImage);
+  }
 
+  cout << "Publish objects: " << publishObjects << endl;
   if (publishObjects) {
     rec_objs_blue.publish(roa_to_send_blue);
     markers_blue.publish(ma_to_send_blue);
@@ -11414,6 +11431,9 @@ int main(int argc, char **argv) {
   image_sub = it.subscribe(image_topic, 1, imageCallback);
 
   ros::Subscriber points = n.subscribe(pc_topic, 1, pointCloudCallback);
+
+  rec_objs_blue_memory = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_memory_objects", 10);
+  markers_blue_memory = n.advertise<visualization_msgs::MarkerArray>("blue_memory_markers", 10);
 
   rec_objs_blue = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_labeled_objects", 10);
   rec_objs_red = n.advertise<object_recognition_msgs::RecognizedObjectArray>("red_labeled_objects", 10);

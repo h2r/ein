@@ -575,6 +575,7 @@ std::vector<Word *> create_words() {
   words.push_back(new VisionPatrol());
   words.push_back(new RecordBlueBoxes());
   words.push_back(new ClearBlueBoxMemories());
+  words.push_back(new PublishRecognizedObjectArrayFromBlueBoxMemory());
 
   words.push_back(new IncMx());
   words.push_back(new DecMx());
