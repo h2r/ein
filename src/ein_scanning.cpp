@@ -376,7 +376,7 @@ virtual void execute() {
 
   pushWord(131139); // synchronic servo don't take closest
   pushWord(131156); // synchronic servo
-  pushWord(196707); // synchronic servo take closest
+  pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
   pushWord("visionCycle"); // vision cycle
 
   pushWord('Y'); // pause stack execution

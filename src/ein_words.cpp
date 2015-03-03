@@ -536,7 +536,7 @@ std::vector<Word *> create_words() {
   words.push_back(new Dup());
 
   words.push_back(new PixelGlobalTest());
-  //words.push_back(new VisionPatrol());
+  words.push_back(new VisionPatrol());
   words.push_back(new RecordBlueBoxes());
 
   return words;
