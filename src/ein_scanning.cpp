@@ -62,6 +62,9 @@ virtual void execute()       {
   classLabels.resize(0);
   classPoseModels.resize(0);
 
+  pushWord("clearBlueBoxMemories");
+
+
   // snoop folders
   DIR *dpdf;
   struct dirent *epdf;

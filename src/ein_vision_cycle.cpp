@@ -6,6 +6,7 @@ virtual void execute() {
   pushWord("setRandomPositionAndOrientationForHeightLearning");
   pushWord("recordBlueBoxes");
   pushWord("visionCycle");
+  pushCopies("noop", 10);
 }
 END_WORD
 
@@ -17,11 +18,26 @@ virtual void execute() {
     box.bTop = bTops[c];
     box.bBot = bBots[c];
     box.cameraPose = currentEEPose;
+    box.eeTop = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, currentTableZ);
+    box.eeBot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, currentTableZ);
+    box.eeCentroid.px = (box.eeTop.px + box.eeBot.px) * 0.5;
+    box.eeCentroid.py = (box.eeTop.py + box.eeBot.py) * 0.5;
+    box.eeCentroid.pz = (box.eeTop.pz + box.eeBot.pz) * 0.5;
     box.cameraTime = ros::Time::now();
     box.labeledClassIndex = bLabels[c];
     blueBoxMemories.push_back(box);
   }
 
+}
+END_WORD
+
+
+
+WORD(ClearBlueBoxeMemories)
+CODE(196709) // capslock + E
+virtual void execute() {
+  cout << "Clearing blue box memory: " << blueBoxMemories.size() << endl;
+  blueBoxMemories.resize(0);
 }
 END_WORD
 

@@ -574,11 +574,14 @@ std::vector<Word *> create_words() {
   words.push_back(new PixelGlobalTest());
   words.push_back(new VisionPatrol());
   words.push_back(new RecordBlueBoxes());
+  words.push_back(new ClearBlueBoxes());
 
   words.push_back(new IncMx());
   words.push_back(new DecMx());
   words.push_back(new IncMy());
   words.push_back(new DecMy());
+
+
 
   return words;
 }

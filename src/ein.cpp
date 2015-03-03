@@ -1163,6 +1163,9 @@ struct BoxMemory {
   cv::Point bTop;
   cv::Point bBot;
   eePose cameraPose;
+  eePose eeTop;
+  eePose eeBot;
+  eePose eeCentroid;
   ros::Time cameraTime;
   int labeledClassIndex;
 };
@@ -1437,6 +1440,7 @@ void initRangeMaps();
 int isThisGraspMaxedOut(int i);
 
 void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY);
+eePose pixelToEEPose(int pX, int pY, double gZ);
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -3913,8 +3917,16 @@ void renderObjectMapView() {
     for (double y = yMin; y < xMax; y = y + step) {
       for (int i = 0; i < blueBoxMemories.size(); i++) {
         BoxMemory memory = blueBoxMemories[i];
-        if ((x <= memory.cameraPose.px && memory.cameraPose.px <= x + step) &&
-            (y <= memory.cameraPose.py && memory.cameraPose.py <= y + step)) {
+        string class_name = classLabels[memory.labeledClassIndex];
+          
+        double tx, ty;
+        pixelToGlobal(memory.bTop.x, memory.bTop.y, currentTableZ, tx, ty);
+        
+        tx = memory.eeCentroid.px;
+        ty = memory.eeCentroid.py;
+
+        if ((x <= tx && tx <= x + step) &&
+            (y <= ty && ty <= y + step) && class_name != "background") {
           
           cv::Point outTop = worldToPixel(objectMapViewerImage, xMin, xMax, yMin, yMax, x, y);
 
@@ -3923,9 +3935,8 @@ void renderObjectMapView() {
           rectangle(objectMapViewerImage, outTop, outBot, CV_RGB(255, 255, 255));
 
           cv::Point objectPoint = worldToPixel(objectMapViewerImage, xMin, xMax, yMin, yMax, 
-                                               memory.cameraPose.px, memory.cameraPose.py);
-          string label = classLabels[memory.labeledClassIndex];
-          putText(objectMapViewerImage, label, objectPoint, MY_FONT, 0.5, Scalar(255, 255, 255), 2.0);
+                                               tx, ty);
+          putText(objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, Scalar(255, 255, 255), 2.0);
 
 
           circle(objectMapViewerImage, objectPoint, 10, CV_RGB(255, 255, 255));
@@ -7226,6 +7237,19 @@ double m_y = 0.50;
 double offX = 0;
 double offY = 0;
 
+eePose pixelToGlobalEEPose(int pX, int pY, double gZ) {
+  eePose result;
+  pixelToGlobal(pX, pY, gZ, result.px, result.py);
+  result.pz = gZ;
+  result.ox = 0;
+  result.oy = 0;
+  result.oz = 0;
+  result.qx = 0;
+  result.qy = 0;
+  result.qz = 0;
+  return result;
+}
+
 void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
   int x1 = heightReticles[0].px;
   int x2 = heightReticles[1].px;
@@ -7311,10 +7335,10 @@ void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
     double b31 = (z3*x3-z1*x1+(z1-z3)*c)/(x3-x1);
 
     double bDiff = b42-b31;
-    cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
-    cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
-    cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
-    cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
     double b = (b42+b31)/2.0;
 
     int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
@@ -7329,10 +7353,10 @@ void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
     double b31 = (z3*y3-z1*y1+(z1-z3)*c)/(y3-y1);
 
     double bDiff = b42-b31;
-    cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
-    cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
-    cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
-    cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
     double b = (b42+b31)/2.0;
 
     int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
