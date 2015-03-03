@@ -692,6 +692,22 @@ ros::Publisher vmMarkerPublisher;
 int getColorReticleX();
 int getColorReticleY();
 
+
+eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
+  eePose result;
+  result.px = pose.position.x;
+  result.py = pose.position.y;
+  result.pz = pose.position.z;
+  result.qx = pose.orientation.x;
+  result.qy = pose.orientation.y;
+  result.qz = pose.orientation.z;
+  result.qw = pose.orientation.w;
+  result.ox = 0.0;
+  result.oy = 0.0;
+  result.oz = 0.0;
+  return result;
+}
+
 double fEpsilon = EPSILON;
 
 int curseReticleX = 0;
@@ -703,9 +719,7 @@ ros::Time lastVisionCycle;
 ros::Duration accumulatedTime;
 
 
-void pushBackPrint(string print) {
-  
-}
+
 
 double w1GoThresh = 0.01;
 double w1AngleThresh = 0.02; 
@@ -3879,6 +3893,7 @@ void renderObjectMapView() {
   if (objectMapViewerImage.rows <= 0 ) {
     objectMapViewerImage = Mat(800, 800, CV_64FC3);
   }
+
   objectMapViewerImage = CV_RGB(0, 0, 0);
   double xMin = -1;
   double xMax = 1;
@@ -3909,6 +3924,9 @@ void renderObjectMapView() {
 
           cv::Point objectPoint = worldToPixel(objectMapViewerImage, xMin, xMax, yMin, yMax, 
                                                memory.cameraPose.px, memory.cameraPose.py);
+          string label = classLabels[memory.labeledClassIndex];
+          putText(objectMapViewerImage, label, objectPoint, MY_FONT, 0.5, Scalar(255, 255, 255), 2.0);
+
 
           circle(objectMapViewerImage, objectPoint, 10, CV_RGB(255, 255, 255));
         }
@@ -3925,19 +3943,20 @@ void renderObjectMapView() {
     line(objectMapViewerImage, center, orientation_point, cv::Scalar(0, 0, 255));
   }
   { // drawHand
+    eePose tp = rosPoseToEEPose(trueEEPose);
     double radius = 10;
     cv::Point handPoint = worldToPixel(objectMapViewerImage, xMin, xMax, yMin, yMax, 
-                                       currentEEPose.px, currentEEPose.py);
+                                       tp.px, tp.py);
     
-    Eigen::Quaternionf handQuat(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+    Eigen::Quaternionf handQuat(tp.qw, tp.qx, tp.qy, tp.qz);
 
     double rotated_magnitude = radius / sqrt(pow(pxMax - pxMin, 2) +  pow(pyMax - pyMin, 2)) * sqrt(pow(xMax - xMin, 2) + pow(yMax - yMin, 2));
     Eigen::Vector3f point(rotated_magnitude, 0, 0);
     Eigen::Vector3f rotated = handQuat * point;
     
     cv::Point orientation_point = worldToPixel(objectMapViewerImage, xMin, xMax, yMin, yMax,
-                                               currentEEPose.px + rotated[0], 
-                                               currentEEPose.py + rotated[1]);
+                                               tp.px + rotated[0], 
+                                               tp.py + rotated[1]);
 
 
     circle(objectMapViewerImage, handPoint, radius, cv::Scalar(0, 0, 255));

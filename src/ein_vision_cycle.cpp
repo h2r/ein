@@ -2,6 +2,8 @@ WORD(VisionPatrol)
 CODE(196727) // capslock + W
 virtual void execute() {
   cout << "vision patrol" << endl;
+  pushWord("visionPatrol");
+  pushWord("setRandomPositionAndOrientationForHeightLearning");
   pushWord("recordBlueBoxes");
   pushWord("visionCycle");
 }
