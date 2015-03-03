@@ -337,6 +337,42 @@ virtual void execute()
 }
 END_WORD
 
+WORD(IncMx)
+CODE(65361) // left arrow 
+virtual void execute()
+{
+  m_x += .01;
+  cout << "m_x: " << m_x << endl;
+}
+END_WORD
+
+WORD(DecMx)
+CODE(65363) // right arrow 
+virtual void execute()
+{
+  m_x -= .01;
+  cout << "m_x: " << m_x << endl;
+}
+END_WORD
+
+WORD(IncMy)
+CODE(65362) // up arrow 
+virtual void execute()
+{
+  m_y += .01;
+  cout << "m_y: " << m_y << endl;
+}
+END_WORD
+
+WORD(DecMy)
+CODE(65364) // down arrow 
+virtual void execute()
+{
+  m_y -= .01;
+  cout << "m_y: " << m_y << endl;
+}
+END_WORD
+
 
 }
 
@@ -538,6 +574,11 @@ std::vector<Word *> create_words() {
   words.push_back(new PixelGlobalTest());
   //words.push_back(new VisionPatrol());
   words.push_back(new RecordBlueBoxes());
+
+  words.push_back(new IncMx());
+  words.push_back(new DecMx());
+  words.push_back(new IncMy());
+  words.push_back(new DecMy());
 
   return words;
 }
