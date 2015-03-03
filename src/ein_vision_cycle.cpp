@@ -1,14 +1,112 @@
+
+
 WORD(VisionPatrol)
 CODE(196727) // capslock + W
 virtual void execute() {
   cout << "vision patrol" << endl;
   pushWord("visionPatrol");
+  pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
   pushWord("setRandomPositionAndOrientationForHeightLearning");
   pushWord("recordBlueBoxes");
   pushWord("visionCycle");
   pushCopies("noop", 100);
 }
 END_WORD
+
+WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)
+virtual void execute() {
+  object_recognition_msgs::RecognizedObjectArray roa;
+  visualization_msgs::MarkerArray ma; 
+ 
+  roa.objects.resize(0);
+
+  roa.header.stamp = ros::Time::now();
+  roa.header.frame_id = "/base";
+
+
+  for (int class_i = 0; class_i < classLabels.size(); class_i++) {
+    string class_label = classLabels[class_i];
+    if (class_label != "background") {
+      eePose centroid;
+      centroid.px = 0;
+      centroid.py = 0;
+      centroid.pz = 0;
+      int class_count = 0;
+      for (int j = 0; j < blueBoxMemories.size(); j++) {
+        if (blueBoxMemories[j].labeledClassIndex == class_i) {
+          centroid.px += blueBoxMemories[j].eeCentroid.px;
+          centroid.py += blueBoxMemories[j].eeCentroid.py;
+          centroid.pz += blueBoxMemories[j].eeCentroid.pz;
+          class_count += 1;
+        }
+      }
+      if (class_count == 0) {
+        continue;
+      }
+      centroid.px = centroid.px / class_count;
+      centroid.py = centroid.py / class_count;
+      centroid.pz = centroid.pz / class_count;
+      int closest_idx = -1;
+      double min_square_dist = VERYBIGNUMBER;
+
+      for (int j = 0; j < blueBoxMemories.size(); j++) {
+        if (blueBoxMemories[j].labeledClassIndex == class_i) {
+          double square_dist = 
+            squareDistanceEEPose(centroid, blueBoxMemories[j].eeCentroid);
+          if (square_dist < min_square_dist) {
+            min_square_dist = square_dist;
+            closest_idx = j;
+          }
+        }
+      }
+
+
+      if (closest_idx != -1) {
+        geometry_msgs::Pose pose;
+        int aI = roa.objects.size();
+        roa.objects.resize(roa.objects.size() + 1);
+        ma.markers.resize(ma.markers.size() + 1);
+
+        pose.position.x = blueBoxMemories[closest_idx].eeCentroid.px;
+        pose.position.y = blueBoxMemories[closest_idx].eeCentroid.py;
+        pose.position.z = blueBoxMemories[closest_idx].eeCentroid.pz;
+
+        cout << "blueBoxMemories: " << blueBoxMemories[closest_idx].eeCentroid.px << endl;
+        cout << "pose: " << pose.position.x << endl;
+
+        roa.objects[aI].pose.pose.pose.position = pose.position;
+
+        cout << "roa objects x: " << roa.objects[aI].pose.pose.pose.position.x << endl;
+        roa.objects[aI].type.key = class_label;
+
+        ma.markers[aI].pose = roa.objects[aI].pose.pose.pose;
+        cout << "marker pose x: " << ma.markers[aI].pose.position.x << endl;
+        roa.objects[aI].header = roa.header;
+        ma.markers[aI].header = roa.header;
+
+        ma.markers[aI].type =  visualization_msgs::Marker::SPHERE;
+        ma.markers[aI].scale.x = 0.15;
+        ma.markers[aI].scale.y = 0.15;
+        ma.markers[aI].scale.z = 0.15;
+        ma.markers[aI].color.a = 0.5;
+        ma.markers[aI].color.r = 0.9;
+        ma.markers[aI].color.g = 0.9;
+        ma.markers[aI].color.b = 0.0;
+        ma.markers[aI].id = aI;
+        ma.markers[aI].lifetime = ros::Duration(1.0);
+
+
+
+      }
+    }
+  }
+
+  rec_objs_blue_memory.publish(roa);
+  markers_blue_memory.publish(ma);
+
+}
+END_WORD
+
 
 WORD(RecordBlueBoxes)
 virtual void execute() {
@@ -18,8 +116,8 @@ virtual void execute() {
     box.bTop = bTops[c];
     box.bBot = bBots[c];
     box.cameraPose = currentEEPose;
-    box.eeTop = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, currentTableZ);
-    box.eeBot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, currentTableZ);
+    box.eeTop = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
+    box.eeBot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
     box.eeCentroid.px = (box.eeTop.px + box.eeBot.px) * 0.5;
     box.eeCentroid.py = (box.eeTop.py + box.eeBot.py) * 0.5;
     box.eeCentroid.pz = (box.eeTop.pz + box.eeBot.pz) * 0.5;
