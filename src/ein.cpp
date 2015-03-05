@@ -338,7 +338,7 @@ std::string graspMemorySampleViewName = "Grasp Memory Sample View";
 
 std::string heightMemorySampleViewName = "Height Memory Sample View";
 
-int reticleHalfWidth = 72;
+int reticleHalfWidth = 18;
 int pilotTargetHalfWidth = 15;
 
 eePose centerReticle = {.px = 325, .py = 127, .pz = 0.0,
@@ -936,6 +936,21 @@ double algorithmCRT = 0.95;
 
 int paintEEandReg1OnWrist = 0;
 
+// d values obtained by putting laser in gripper
+//  to find end effector projection, then using
+//  a tape dot to find the vanishing point of
+//  the camera
+// the estimated vanishing point is actually pretty
+//  close to the measured one
+double d_y = -0.04;
+double d_x = 0.018;
+double offX = 0;
+double offY = 0;
+// these corrective magnification factors should be close to 1
+//  these are set elsewhere according to chirality
+double m_x = 1.08;
+double m_y = 0.94;
+
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -1447,6 +1462,7 @@ void initRangeMaps();
 int isThisGraspMaxedOut(int i);
 
 void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY);
+void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY);
 eePose pixelToEEPose(int pX, int pY, double gZ);
 
 void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor);
@@ -3843,7 +3859,55 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     vmMarkerPublisher.publish(ma_to_send);
   }
 
+  // paint interpolated gripper reticle
   {
+
+  }
+
+  // paint gripper reticle centerline
+  if (1) {
+    eePose teePose;
+    teePose.px = trueEEPose.position.x;
+    teePose.py = trueEEPose.position.y;
+    teePose.pz = trueEEPose.position.z;
+    cv::Scalar theColor(192, 64, 64);
+    cv::Scalar THEcOLOR(64, 192, 192);
+
+    double zStart = (minHeight + currentTableZ) + currentTableZ;
+    double zEnd = (maxHeight + currentTableZ) + currentTableZ; 
+    double deltaZ = 0.005;
+    
+    for (double zCounter = zStart; zCounter < zEnd; zCounter += deltaZ) {
+      int pX = 0, pY = 0;  
+      double zToUse = zCounter;
+
+      globalToPixel(pX, pY, zToUse, teePose.px, teePose.py);
+      Point pt1(pX, pY);
+
+      zToUse = zCounter+deltaZ;
+      globalToPixel(pX, pY, zToUse, teePose.px, teePose.py);
+      Point pt2(pX, pY);
+
+      line(wristViewImage, pt1, pt2, theColor, 3);
+    }
+    for (double zCounter = zStart; zCounter < zEnd; zCounter += deltaZ) {
+      int pX = 0, pY = 0;  
+      double zToUse = zCounter;
+
+      globalToPixel(pX, pY, zToUse, teePose.px, teePose.py);
+      Point pt1(pX, pY);
+
+      zToUse = zCounter+deltaZ;
+      globalToPixel(pX, pY, zToUse, teePose.px, teePose.py);
+      Point pt2(pX, pY);
+
+      line(wristViewImage, pt1, pt2, THEcOLOR, 1);
+    }
+
+  }
+
+  // paint transform reticles
+  if (paintEEandReg1OnWrist) {
     eePose teePose;
     teePose.px = trueEEPose.position.x;
     teePose.py = trueEEPose.position.y;
@@ -3851,9 +3915,10 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     paintEEPoseOnWrist(teePose, cv::Scalar(0,0,255));
     paintEEPoseOnWrist(eepReg1, cv::Scalar(0,255,0));
   }
+
   // draw vanishing point reticle
   {
-    int vanishingPointReticleRadius = 20;
+    int vanishingPointReticleRadius = 15;
 
     int x0 = vanishingPointReticle.px;
     int y0 = vanishingPointReticle.py;
@@ -3864,7 +3929,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
     circle(wristViewImage, pt1, vanishingPointReticleRadius, theColor, 1);
     circle(wristViewImage, pt1, vanishingPointReticleRadius+1, THEcOLOR, 1);
-    circle(wristViewImage, pt1, vanishingPointReticleRadius+2, theColor, 1);
+    circle(wristViewImage, pt1, vanishingPointReticleRadius+3, theColor, 1);
   }
 
   // draw probe reticle
@@ -3976,22 +4041,24 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   // ATTN 16
-  for (int hri = 0; hri < 4; hri++) {
-    if (hri != currentThompsonHeightIdx)
-      continue;
-    eePose thisReticle = heightReticles[hri];
-    int thisReticleHalfWidth = int(  ceil( double(reticleHalfWidth) / double(1+hri) )  );
-    cv::Point outTop = cv::Point(thisReticle.px-thisReticleHalfWidth, thisReticle.py-thisReticleHalfWidth);
-    cv::Point outBot = cv::Point(thisReticle.px+thisReticleHalfWidth, thisReticle.py+thisReticleHalfWidth);
-    cv::Point inTop = cv::Point(thisReticle.px+1-thisReticleHalfWidth,thisReticle.py+1-thisReticleHalfWidth);
-    cv::Point inBot = cv::Point(thisReticle.px-1+thisReticleHalfWidth,thisReticle.py-1+thisReticleHalfWidth);
+  if (1) {
+    for (int hri = 0; hri < 4; hri++) {
+      if (hri != currentThompsonHeightIdx)
+	continue;
+      eePose thisReticle = heightReticles[hri];
+      int thisReticleHalfWidth = int(  ceil( double(reticleHalfWidth) / double(1+hri) )  );
+      cv::Point outTop = cv::Point(thisReticle.px-thisReticleHalfWidth, thisReticle.py-thisReticleHalfWidth);
+      cv::Point outBot = cv::Point(thisReticle.px+thisReticleHalfWidth, thisReticle.py+thisReticleHalfWidth);
+      cv::Point inTop = cv::Point(thisReticle.px+1-thisReticleHalfWidth,thisReticle.py+1-thisReticleHalfWidth);
+      cv::Point inBot = cv::Point(thisReticle.px-1+thisReticleHalfWidth,thisReticle.py-1+thisReticleHalfWidth);
 
-    if (hri == currentThompsonHeightIdx) {
-      rectangle(wristViewImage, outTop, outBot, cv::Scalar(22,70,82)); 
-      rectangle(wristViewImage, inTop, inBot, cv::Scalar(68,205,239));
-    } else {
-      rectangle(wristViewImage, outTop, outBot, cv::Scalar(82,70,22)); // RGB: 22 70 82
-      rectangle(wristViewImage, inTop, inBot, cv::Scalar(239,205,68)); // RGB: 68 205 239
+      if (hri == currentThompsonHeightIdx) {
+	rectangle(wristViewImage, outTop, outBot, cv::Scalar(22,70,82)); 
+	rectangle(wristViewImage, inTop, inBot, cv::Scalar(68,205,239));
+      } else {
+	rectangle(wristViewImage, outTop, outBot, cv::Scalar(82,70,22)); // RGB: 22 70 82
+	rectangle(wristViewImage, inTop, inBot, cv::Scalar(239,205,68)); // RGB: 68 205 239
+      }
     }
   }
 
@@ -4318,9 +4385,13 @@ void pilotInit() {
     eepReg2 = rssPoseL; //wholeFoodsPantryL;
     eepReg3 = rssPoseL; //wholeFoodsCounterL;
 
-    // (312, 158)
-    vanishingPointReticle.px = 312;
-    vanishingPointReticle.py = 158;
+    // left arm
+    // (313, 163)
+    vanishingPointReticle.px = 313;
+    vanishingPointReticle.py = 163;
+    probeReticle = vanishingPointReticle;
+    m_x = 1.08;
+    m_y = 0.94;
 
     // ATTN 16
     heightReticles[0] = defaultReticle;
@@ -4337,7 +4408,6 @@ void pilotInit() {
     //heightReticles[2].py = 132;
     //heightReticles[1].py = 118;
     //heightReticles[0].py = 72;
-
     heightReticles[3].px = 323;
     heightReticles[2].px = 326;
     heightReticles[1].px = 329;
@@ -4399,26 +4469,38 @@ void pilotInit() {
     eepReg2 = rssPoseR; //wholeFoodsPantryR;
     eepReg3 = rssPoseR; //wholeFoodsCounterR;
 
-    // (312, 158)
-    vanishingPointReticle.px = 312;
-    vanishingPointReticle.py = 158;
+    // right arm
+    // (313, 185)
+    vanishingPointReticle.px = 313;
+    vanishingPointReticle.py = 185;
+    probeReticle = vanishingPointReticle;
+    m_x = 1.10;
+    m_y = 1.15;
 
     // ATTN 16
     heightReticles[0] = defaultReticle;
     heightReticles[1] = defaultReticle;
     heightReticles[2] = defaultReticle;
     heightReticles[3] = defaultReticle;
-
     
-    heightReticles[3].px = 319;
-    heightReticles[2].px = 323;
-    heightReticles[1].px = 328;
-    heightReticles[0].px = 341;
+    // values used for IJCAI
+    //heightReticles[3].px = 319;
+    //heightReticles[2].px = 323;
+    //heightReticles[1].px = 328;
+    //heightReticles[0].px = 341;
+    //heightReticles[3].py = 170;
+    //heightReticles[2].py = 159;
+    //heightReticles[1].py = 145;
+    //heightReticles[0].py = 100;
+    heightReticles[3].px = 314;
+    heightReticles[2].px = 317;
+    heightReticles[1].px = 320;
+    heightReticles[0].px = 328;
 
-    heightReticles[3].py = 170;
-    heightReticles[2].py = 159;
-    heightReticles[1].py = 145;
-    heightReticles[0].py = 100;
+    heightReticles[3].py = 154;
+    heightReticles[2].py = 149;
+    heightReticles[1].py = 139;
+    heightReticles[0].py = 120;
   } else {
     cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
     exit(0);
@@ -7384,23 +7466,10 @@ int isThisGraspMaxedOut(int i) {
   return toReturn;
 }
 
-// d values obtained by putting laser in gripper
-//  to find end effector projection, then using
-//  a tape dot to find the vanishing point of
-//  the camera
-// the estimated vanishing point is actually pretty
-//  close to the measured one
-double d_y = -0.04;
-double d_x = 0.018;
-double offX = 0;
-double offY = 0;
-// these corrective magnification factors should be close to 1
-double m_x = 1.08;
-double m_y = 0.94;
-
 eePose pixelToGlobalEEPose(int pX, int pY, double gZ) {
   eePose result;
   pixelToGlobal(pX, pY, gZ, result.px, result.py);
+// XXX check to see if this is right...
   result.pz = trueEEPose.position.z - currentTableZ;
   result.ox = 0;
   result.oy = 0;
@@ -7503,6 +7572,7 @@ void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
     double b = (b42+b31)/2.0;
 
     int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
+    //int x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
     //gX = d + ( (pX-c)*(currentEEPose.px-d) )/(x1-c) ;
     gX = trueEEPose.position.x - d + ( (pX-c)*(d) )/( (x_thisZ-c)*m_x ) ;
   }
@@ -7521,6 +7591,7 @@ void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
     double b = (b42+b31)/2.0;
 
     int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
+    //int y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
     //gY = d + ( (pY-c)*(currentEEPose.py-d) )/(y1-c) ;
     gY = trueEEPose.position.y - d + ( (pY-c)*(d) )/( (y_thisZ-c)*m_y ) ;
   }
@@ -7559,9 +7630,13 @@ void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY) {
     double b = (b42+b31)/2.0;
 
     int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
+    //int x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
     //pX = c + ( (gX-d)*(x1-c) )/(currentEEPose.px-d);
     //pX = c + ( (gX-d)*(x_thisZ-c) )/(currentEEPose.px-d);
-    pX = c + ( m_x*(gX-trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
+    //pX = c + ( m_x*(gX-trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
+    pX = c + ( (gX-trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
+    // need to set this again so things match up if gX is truEEpose
+    //x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
     reticlePixelX = x_thisZ;
   }
   {
@@ -7579,9 +7654,13 @@ void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY) {
     double b = (b42+b31)/2.0;
 
     int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
+    //int y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
     //pY = c + ( (gY-d)*(y1-c) )/(currentEEPose.py-d);
     //pY = c + ( (gY-d)*(y_thisZ-c) )/(currentEEPose.py-d);
-    pY = c + ( m_y*(gY-trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
+    //pY = c + ( m_y*(gY-trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
+    pY = c + ( (gY-trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
+    // need to set this again so things match up if gX is truEEpose
+    //y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
     reticlePixelY = y_thisZ;
   }
 
@@ -7616,32 +7695,34 @@ void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY) {
 
   double oldPx = pX;
   double oldPy = pY;
-  pX = reticlePixelX + (oldPy - reticlePixelY) + offX;
-  pY = reticlePixelY + (oldPx - reticlePixelX) + offY;
+  pX = reticlePixelX + m_y*(oldPy - reticlePixelY) + offX;
+  pY = reticlePixelY + m_x*(oldPx - reticlePixelX) + offY;
 }
 
 void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor) {
-  if (paintEEandReg1OnWrist) {
-    cv::Scalar THEcOLOR(255-theColor[0], 255-theColor[1], 255-theColor[2]);
-    int lineLength = 5;
-    int pX = 0, pY = 0;  
-    double zToUse = trueEEPose.position.z+currentTableZ;
+  cv::Scalar THEcOLOR(255-theColor[0], 255-theColor[1], 255-theColor[2]);
+  int lineLength = 5;
+  int pX = 0, pY = 0;  
+  double zToUse = trueEEPose.position.z+currentTableZ;
 
-    globalToPixel(pX, pY, zToUse, toPaint.px, toPaint.py);
-    //cout << "paintEEPoseOnWrist pX pY zToUse: " << pX << " " << pY << " " << zToUse << endl;
-    if ( (pX > 0+lineLength) && (pX < wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < wristViewImage.rows-lineLength) ) {
-      {
-	Point pt1(pX+lineLength, pY);
-	Point pt2(pX+lineLength, pY+lineLength*2);
-	line(wristViewImage, pt1, pt2, theColor);
-      }
-      {
-	Point pt1(pX, pY+lineLength);
-	Point pt2(pX+lineLength*2, pY+lineLength);
-	line(wristViewImage, pt1, pt2, theColor);
-      }
+  globalToPixel(pX, pY, zToUse, toPaint.px, toPaint.py);
+  pX = pX - lineLength;
+  pY = pY - lineLength;
+  //cout << "paintEEPoseOnWrist pX pY zToUse: " << pX << " " << pY << " " << zToUse << endl;
+  if ( (pX > 0+lineLength) && (pX < wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < wristViewImage.rows-lineLength) ) {
+    {
+      Point pt1(pX+lineLength, pY);
+      Point pt2(pX+lineLength, pY+lineLength*2);
+      line(wristViewImage, pt1, pt2, theColor);
     }
+    {
+      Point pt1(pX, pY+lineLength);
+      Point pt2(pX+lineLength*2, pY+lineLength);
+      line(wristViewImage, pt1, pt2, theColor);
+    }
+  }
 
+  if (0) {
     double gX = 0, gY = 0;
     pixelToGlobal(pX, pY, zToUse, gX, gY);
     globalToPixel(pX, pY, zToUse, gX, gY);
@@ -7658,9 +7739,9 @@ void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor) {
 	line(wristViewImage, pt1, pt2, THEcOLOR);
       }
     }
-
-    //cv::imshow(objectViewerName, objectViewerImage);
   }
+
+  //cv::imshow(objectViewerName, objectViewerImage);
 }
 
 
