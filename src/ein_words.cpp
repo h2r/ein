@@ -328,12 +328,7 @@ WORD(PixelGlobalTest)
 CODE(65609) // I
 virtual void execute()
 {
-  eePose teePose;
-  teePose.px = trueEEPose.position.x;
-  teePose.py = trueEEPose.position.y;
-  teePose.pz = trueEEPose.position.z;
-  paintEEPoseOnWrist(teePose, cv::Scalar(0,0,255));
-  paintEEPoseOnWrist(eepReg1, cv::Scalar(0,255,0));
+  paintEEandReg1OnWrist = !paintEEandReg1OnWrist;
 }
 END_WORD
 
