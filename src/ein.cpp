@@ -446,6 +446,9 @@ eePose defaultReticle = centerReticle;
 
 eePose heightReticles[4];
 
+eePose probeReticle = defaultReticle;
+eePose vanishingPointReticle = defaultReticle;
+
 eePose reticle = defaultReticle;
 eePose beeHome = beeRHome;
 eePose pilotTarget = beeHome;
@@ -930,6 +933,8 @@ double algorithmCEPS = 0.2;
 double algorithmCTarget = 0.7;
 double algorithmCAT = 0.7;
 double algorithmCRT = 0.95;
+
+int paintEEandReg1OnWrist = 0;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -1441,6 +1446,8 @@ int isThisGraspMaxedOut(int i);
 
 void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY);
 eePose pixelToEEPose(int pX, int pY, double gZ);
+
+void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor);
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -3816,6 +3823,116 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     vmMarkerPublisher.publish(ma_to_send);
   }
 
+  {
+    eePose teePose;
+    teePose.px = trueEEPose.position.x;
+    teePose.py = trueEEPose.position.y;
+    teePose.pz = trueEEPose.position.z;
+    paintEEPoseOnWrist(teePose, cv::Scalar(0,0,255));
+    paintEEPoseOnWrist(eepReg1, cv::Scalar(0,255,0));
+  }
+  // draw vanishing point reticle
+  {
+    int vanishingPointReticleRadius = 20;
+
+    int x0 = vanishingPointReticle.px;
+    int y0 = vanishingPointReticle.py;
+    Point pt1(x0, y0);
+
+    cv::Scalar theColor(192, 64, 64);
+    cv::Scalar THEcOLOR(64, 192, 192);
+
+    circle(wristViewImage, pt1, vanishingPointReticleRadius, theColor, 1);
+    circle(wristViewImage, pt1, vanishingPointReticleRadius+1, THEcOLOR, 1);
+    circle(wristViewImage, pt1, vanishingPointReticleRadius+2, theColor, 1);
+  }
+
+  // draw probe reticle
+  {
+    int probeReticleHalfWidth = 7;
+    int x0 = probeReticle.px;
+    int y0 = probeReticle.py;
+
+    int x1 = max(int(probeReticle.px-probeReticleHalfWidth), 0);
+    int x2 = min(int(probeReticle.px+probeReticleHalfWidth), wristViewImage.cols);
+    int y1 = max(int(probeReticle.py-probeReticleHalfWidth), 0);
+    int y2 = min(int(probeReticle.py+probeReticleHalfWidth), wristViewImage.rows);
+
+    int probeReticleShortHalfWidth = 3;
+    int x1s = max(int(probeReticle.px-probeReticleShortHalfWidth), 0);
+    int x2s = min(int(probeReticle.px+probeReticleShortHalfWidth), wristViewImage.cols);
+    int y1s = max(int(probeReticle.py-probeReticleShortHalfWidth), 0);
+    int y2s = min(int(probeReticle.py+probeReticleShortHalfWidth), wristViewImage.rows);
+
+    cv::Scalar theColor(255, 0, 0);
+    cv::Scalar THEcOLOR(0, 255, 255);
+    {
+      int xs = x0;
+      int xf = x0;
+      int ys = y1;
+      int yf = y1s;
+      {
+	Point pt1(xs, ys);
+	Point pt2(xf, yf);
+	line(wristViewImage, pt1, pt2, theColor, 2.0);
+      }
+      {
+	Point pt1(xs, ys+1);
+	Point pt2(xf, yf-1);
+	line(wristViewImage, pt1, pt2, THEcOLOR, 1.0);
+      }
+    }
+    {
+      int xs = x0;
+      int xf = x0;
+      int ys = y2s;
+      int yf = y2;
+      {
+	Point pt1(xs, ys);
+	Point pt2(xf, yf);
+	line(wristViewImage, pt1, pt2, theColor, 2.0);
+      }
+      {
+	Point pt1(xs, ys+1);
+	Point pt2(xf, yf-1);
+	line(wristViewImage, pt1, pt2, THEcOLOR, 1.0);
+      }
+    }
+    {
+      int xs = x1;
+      int xf = x1s;
+      int ys = y0;
+      int yf = y0;
+      {
+	Point pt1(xs, ys);
+	Point pt2(xf, yf);
+	line(wristViewImage, pt1, pt2, theColor, 2.0);
+      }
+      {
+	Point pt1(xs+1, ys);
+	Point pt2(xf-1, yf);
+	line(wristViewImage, pt1, pt2, THEcOLOR, 1.0);
+      }
+    }
+    {
+      int xs = x2s;
+      int xf = x2;
+      int ys = y0;
+      int yf = y0;
+      {
+	Point pt1(xs, ys);
+	Point pt2(xf, yf);
+	line(wristViewImage, pt1, pt2, theColor, 2.0);
+      }
+      {
+	Point pt1(xs+1, ys);
+	Point pt2(xf-1, yf);
+	line(wristViewImage, pt1, pt2, THEcOLOR, 1.0);
+      }
+    }
+  
+  }
+
   // draw color reticle
   {
     for (int cr = 0; cr < numCReticleIndeces; cr++) {
@@ -4076,9 +4193,9 @@ void targetCallback(const geometry_msgs::Point& point) {
 
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
   if ( event == EVENT_LBUTTONDOWN ) {
-    //cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-    //reticle.px = x;
-    //reticle.py = y;
+    cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+    probeReticle.px = x;
+    probeReticle.py = y;
     cout << "x: " << x << " y: " << y << " eeRange: " << eeRange << endl;
   } else if ( event == EVENT_RBUTTONDOWN ) {
     //cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
@@ -4181,22 +4298,35 @@ void pilotInit() {
     eepReg2 = rssPoseL; //wholeFoodsPantryL;
     eepReg3 = rssPoseL; //wholeFoodsCounterL;
 
+    // (312, 158)
+    vanishingPointReticle.px = 312;
+    vanishingPointReticle.py = 158;
+
     // ATTN 16
     heightReticles[0] = defaultReticle;
     heightReticles[1] = defaultReticle;
     heightReticles[2] = defaultReticle;
     heightReticles[3] = defaultReticle;
 
+    // values used for IJCAI
+    //heightReticles[3].px = 323;
+    //heightReticles[2].px = 326;
+    //heightReticles[1].px = 331;
+    //heightReticles[0].px = 347;
+    //heightReticles[3].py = 137;
+    //heightReticles[2].py = 132;
+    //heightReticles[1].py = 118;
+    //heightReticles[0].py = 72;
+
     heightReticles[3].px = 323;
     heightReticles[2].px = 326;
-    heightReticles[1].px = 331;
-    heightReticles[0].px = 347;
+    heightReticles[1].px = 329;
+    heightReticles[0].px = 336;
 
-    heightReticles[3].py = 137;
-    heightReticles[2].py = 132;
-    heightReticles[1].py = 118;
-    heightReticles[0].py = 72;
-
+    heightReticles[3].py = 135;
+    heightReticles[2].py = 128;
+    heightReticles[1].py = 117;
+    heightReticles[0].py = 94;
   } else if (0 == left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
     beeHome = rssPoseR;
@@ -4248,6 +4378,10 @@ void pilotInit() {
     eepReg1 = rssPoseR; //wholeFoodsBagR;
     eepReg2 = rssPoseR; //wholeFoodsPantryR;
     eepReg3 = rssPoseR; //wholeFoodsCounterR;
+
+    // (312, 158)
+    vanishingPointReticle.px = 312;
+    vanishingPointReticle.py = 158;
 
     // ATTN 16
     heightReticles[0] = defaultReticle;
@@ -7224,18 +7358,25 @@ int isThisGraspMaxedOut(int i) {
     double result = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
     toReturn = (result > algorithmCRT);
   } else if (currentPickMode == STATIC_MARGINALS) {
-    toReturn = (graspMemoryTries[i] <= 1);
+    //toReturn = (graspMemoryTries[i] <= 1);
   }
 
   return toReturn;
 }
 
-double d_x = -0.02;
-double d_y = 0.015;
-double m_x = 1.27;
-double m_y = 0.50;
-double offX = -15;
-double offY = -10;
+// d values obtained by putting laser in gripper
+//  to find end effector projection, then using
+//  a tape dot to find the vanishing point of
+//  the camera
+// the estimated vanishing point is actually pretty
+//  close to the measured one
+double d_y = -0.04;
+double d_x = 0.018;
+double offX = 0;
+double offY = 0;
+// these corrective magnification factors should be close to 1
+double m_x = 1.08;
+double m_y = 0.94;
 
 eePose pixelToGlobalEEPose(int pX, int pY, double gZ) {
   eePose result;
@@ -7308,7 +7449,7 @@ void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
   double aX = result.x();
 
   double angle = atan2(aY, aX)*180.0/3.1415926;
-  angle = (angle - 180);
+  angle = (angle);
   double scale = 1.0;
   Point center = Point(reticlePixelX, reticlePixelY);
 
@@ -7391,10 +7532,10 @@ void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY) {
     double b31 = (z3*x3-z1*x1+(z1-z3)*c)/(x3-x1);
 
     double bDiff = b42-b31;
-    cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
-    cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
-    cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
-    cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
     double b = (b42+b31)/2.0;
 
     int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
@@ -7411,10 +7552,10 @@ void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY) {
     double b31 = (z3*y3-z1*y1+(z1-z3)*c)/(y3-y1);
 
     double bDiff = b42-b31;
-    cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
-    cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
-    cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
-    cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
     double b = (b42+b31)/2.0;
 
     int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
@@ -7424,7 +7565,7 @@ void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY) {
     reticlePixelY = y_thisZ;
   }
 
-  cout << "reticlePixelX, reticlePixelY: " << reticlePixelX << " " << reticlePixelY << endl;
+  //cout << "reticlePixelX, reticlePixelY: " << reticlePixelX << " " << reticlePixelY << endl;
 
   // account for rotation of the end effector 
   Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
@@ -7439,7 +7580,7 @@ void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY) {
   double aX = result.x();
 
   double angle = atan2(aY, aX)*180.0/3.1415926;
-  angle = angle - 180;
+  angle = angle;
   double scale = 1.0;
   Point center = Point(reticlePixelX, reticlePixelY);
 
@@ -7460,44 +7601,46 @@ void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY) {
 }
 
 void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor) {
-  cv::Scalar THEcOLOR(255-theColor[0], 255-theColor[1], 255-theColor[2]);
-  int lineLength = 5;
-  int pX = 0, pY = 0;  
-  double zToUse = trueEEPose.position.z+currentTableZ;
+  if (paintEEandReg1OnWrist) {
+    cv::Scalar THEcOLOR(255-theColor[0], 255-theColor[1], 255-theColor[2]);
+    int lineLength = 5;
+    int pX = 0, pY = 0;  
+    double zToUse = trueEEPose.position.z+currentTableZ;
 
-  globalToPixel(pX, pY, zToUse, toPaint.px, toPaint.py);
-  cout << "paintEEPoseOnWrist pX pY zToUse: " << pX << " " << pY << " " << zToUse << endl;
-  if ( (pX > 0+lineLength) && (pX < wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < wristViewImage.rows-lineLength) ) {
-    {
-      Point pt1(pX+lineLength, pY);
-      Point pt2(pX+lineLength, pY+lineLength*2);
-      cv::line(objectViewerImage, pt1, pt2, theColor);
+    globalToPixel(pX, pY, zToUse, toPaint.px, toPaint.py);
+    //cout << "paintEEPoseOnWrist pX pY zToUse: " << pX << " " << pY << " " << zToUse << endl;
+    if ( (pX > 0+lineLength) && (pX < wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < wristViewImage.rows-lineLength) ) {
+      {
+	Point pt1(pX+lineLength, pY);
+	Point pt2(pX+lineLength, pY+lineLength*2);
+	line(wristViewImage, pt1, pt2, theColor);
+      }
+      {
+	Point pt1(pX, pY+lineLength);
+	Point pt2(pX+lineLength*2, pY+lineLength);
+	line(wristViewImage, pt1, pt2, theColor);
+      }
     }
-    {
-      Point pt1(pX, pY+lineLength);
-      Point pt2(pX+lineLength*2, pY+lineLength);
-      cv::line(objectViewerImage, pt1, pt2, theColor);
+
+    double gX = 0, gY = 0;
+    pixelToGlobal(pX, pY, zToUse, gX, gY);
+    globalToPixel(pX, pY, zToUse, gX, gY);
+    //cout << "PAINTeepOSEoNwRIST pX pY gX gY: " << pX << " " << pY << " " << gX << " " << gY << endl;
+    if ( (pX > 0+lineLength) && (pX < wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < wristViewImage.rows-lineLength) ) {
+      {
+	Point pt1(pX+lineLength, pY);
+	Point pt2(pX+lineLength, pY+lineLength*2);
+	line(wristViewImage, pt1, pt2, THEcOLOR);
+      }
+      {
+	Point pt1(pX, pY+lineLength);
+	Point pt2(pX+lineLength*2, pY+lineLength);
+	line(wristViewImage, pt1, pt2, THEcOLOR);
+      }
     }
+
+    //cv::imshow(objectViewerName, objectViewerImage);
   }
-
-  double gX = 0, gY = 0;
-  pixelToGlobal(pX, pY, zToUse, gX, gY);
-  globalToPixel(pX, pY, zToUse, gX, gY);
-  cout << "PAINTeepOSEoNwRIST pX pY gX gY: " << pX << " " << pY << " " << gX << " " << gY << endl;
-  if ( (pX > 0+lineLength) && (pX < wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < wristViewImage.rows-lineLength) ) {
-    {
-      Point pt1(pX+lineLength, pY);
-      Point pt2(pX+lineLength, pY+lineLength*2);
-      cv::line(objectViewerImage, pt1, pt2, THEcOLOR);
-    }
-    {
-      Point pt1(pX, pY+lineLength);
-      Point pt2(pX+lineLength*2, pY+lineLength);
-      cv::line(objectViewerImage, pt1, pt2, THEcOLOR);
-    }
-  }
-
-  cv::imshow(objectViewerName, objectViewerImage);
 }
 
 
