@@ -7,8 +7,7 @@ virtual void execute() {
   pushWord("mappingPatrol");
   pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
   pushWord("setRandomPositionAndOrientationForHeightLearning");
-  pushWord("recordBlueBoxes");
-  pushWord("changeTargetClassToClosestBlueBox");
+  pushWord("recordAllBlueBoxes");
   pushWord("synchronicServo"); 
   pushWord("visionCycle");
   pushWord("synchronicServoTakeClosest");
@@ -111,7 +110,7 @@ virtual void execute() {
 END_WORD
 
 
-WORD(RecordBlueBoxes)
+WORD(RecordAllBlueBoxes)
 virtual void execute() {
   cout << "Recording blue boxes: " << bTops.size() << endl;
   for (int c = 0; c < bTops.size(); c++) {
@@ -131,6 +130,60 @@ virtual void execute() {
 
 }
 END_WORD
+
+
+
+void mapBox(BoxMemory box) {
+  for (double px = box.bTop.x; px <= box.bBot.x; px++) {
+    for (double py = box.bTop.y; py <= box.bBot.y; py++) {
+      double x, y;
+      double z = trueEEPose.position.z - currentTableZ;
+
+      pixelToGlobal(px, py, z, x, y);
+      int i, j;
+      mapxyToij(x, y, &i, &j);
+      
+    }
+  }
+  
+}
+
+WORD(InitializeMap)
+virtual void execute() {
+  for (int i = 0; i < mapWidth; i++) {
+    for(int j = 0; j < mapHeight; j++) {
+      objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
+      objectMap[i + mapWidth * j].detectedClass = -1;
+    }
+  }
+}
+END_WORD;
+
+WORD(MapClosestBlueBox)
+virtual void execute() {
+  if (pilotClosestBlueBoxNumber == -1) {
+    cout << "Not changing because closest bbox is " << pilotClosestBlueBoxNumber << endl;
+    return;
+  }
+
+  int c = pilotClosestBlueBoxNumber;
+  BoxMemory box;
+  box.bTop = bTops[c];
+  box.bBot = bBots[c];
+  box.cameraPose = currentEEPose;
+  box.eeTop = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
+  box.eeBot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+  box.eeCentroid.px = (box.eeTop.px + box.eeBot.px) * 0.5;
+  box.eeCentroid.py = (box.eeTop.py + box.eeBot.py) * 0.5;
+  box.eeCentroid.pz = (box.eeTop.pz + box.eeBot.pz) * 0.5;
+  box.cameraTime = ros::Time::now();
+  box.labeledClassIndex = bLabels[c];
+  
+  mapBox(box);
+
+}
+END_WORD
+
 
 
 
