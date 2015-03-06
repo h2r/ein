@@ -518,8 +518,6 @@ std::vector<Word *> create_words() {
   words.push_back(new SetBoundingBoxModeToLearningSampling());
   words.push_back(new SetBoundingBoxModeToLearningAlgorithmC());
   words.push_back(new SetBoundingBoxModeToStaticMarginals());
-  words.push_back(new TurnHistogrammingDuringServoingOn());
-  words.push_back(new TurnHistogrammingDuringServoingOff());
   words.push_back(new PrepareForAndExecuteGraspFromMemory());
 
   words.push_back(new CountGrasp());

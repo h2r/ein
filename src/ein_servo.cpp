@@ -670,27 +670,7 @@ virtual void execute()       {
 END_WORD
 
 
-WORD(TurnHistogrammingDuringServoingOn)
-CODE(131146)     // capslock + j
-virtual void execute() {
-  // reset histograms
-  surveyHistogram.resize(numClasses);
-  surveyTotalCounts = 0;
-  for (int vy = 0; vy < surveyHistogram.size(); vy++) {
-    surveyHistogram[vy] = 0;
-  }
-  surveyDuringServo = 1;
-  histogramDuringClassification = 1;
-}
-END_WORD
 
-WORD(TurnHistogrammingDuringServoingOff)
-CODE( 196714)     // capslock + J
-virtual void execute() {
-  surveyDuringServo = 0;
-  histogramDuringClassification = 0;
-}
-END_WORD
 
 WORD(IncrementGraspGear)
 CODE(196712)     // capslock + H
@@ -1040,7 +1020,6 @@ virtual void execute() {
     {
       // if so, push servoing command and set lock frames to 0
       pushWord("synchronicServo"); // synchronic servo
-      pushWord("turnHistogrammingDuringServoingOn"); // turn survey on
       
       if (targetClass != -1)
         cout << "Found the target " << classLabels[targetClass] << ". " << endl;
@@ -1087,4 +1066,7 @@ CODE(1179720)
     cout << "gradientTakeClosest = " << gradientTakeClosest << endl;
 }
 END_WORD
+
+
+
 
