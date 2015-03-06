@@ -1189,11 +1189,14 @@ struct BoxMemory {
   int labeledClassIndex;
 };
 
-struct MapCell {
+typedef struct MapCell {
   ros::Time lastMappedTime;
   int detectedClass; // -1 means not denied
   
-};
+} MapCell;
+void mapijToxy(int i, int j, double * x, double * y);
+void mapxyToij(double x, double y, int * i, int * j); 
+
 
 const double mapXMin = -1;
 const double mapXMax = 1;
@@ -1203,7 +1206,7 @@ const double mapStep = 0.05;
 const int mapWidth = (mapXMax - mapXMin) / mapStep;
 const int mapHeight = (mapYMax - mapYMin) / mapStep;
 
-MapCell map[mapWidth][mapHeight];
+MapCell objectMap[mapWidth * mapHeight];
 
 vector<BoxMemory> blueBoxMemories;
 
@@ -4135,8 +4138,11 @@ void renderObjectMapView() {
 
   for (int i = 0; i < mapWidth; i++) {
     for (int j = 0; j < mapHeight; j++) {
-      double x = mapXMin + i * mapStep;
-      double y = mapYMin + j * mapStep;
+
+      double x, y;
+      
+      //double x = mapXMin + i * mapStep;
+      //double y = mapYMin + j * mapStep;
       for (int i = 0; i < blueBoxMemories.size(); i++) {
         BoxMemory memory = blueBoxMemories[i];
         string class_name = classLabels[memory.labeledClassIndex];
@@ -11664,4 +11670,16 @@ int main(int argc, char **argv) {
   return 0;
 }
 
+void mapxyToij(double x, double y, int * i, int * j) 
+{
+  *i = round((x - mapXMin) / mapStep);
+  *j = round((y - mapYMin) / mapStep);
+}
+void mapijToxy(int i, int j, double * x, double * y) 
+{
+  *x = mapXMin + i * mapStep;
+  *y = mapYMin + j * mapStep;
+}
+
 #include "ein_words.cpp"
+

@@ -578,10 +578,11 @@ std::vector<Word *> create_words() {
 
   words.push_back(new PixelGlobalTest());
   words.push_back(new MappingPatrol());
-  words.push_back(new RecordBlueBoxes());
+  words.push_back(new RecordAllBlueBoxes());
   words.push_back(new ClearBlueBoxMemories());
   words.push_back(new PublishRecognizedObjectArrayFromBlueBoxMemory());
   words.push_back(new ChangeTargetClassToClosestBlueBox());
+  words.push_back(new InitializeMap());
 
   words.push_back(new IncMx());
   words.push_back(new DecMx());
