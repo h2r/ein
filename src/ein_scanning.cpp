@@ -323,14 +323,14 @@ virtual void execute() {
 
   // this is a good time to remove a contrast agent
   //pushWord('Y'); // pause stack execution
-  //pushCopies(1245308, 15); // beep
+  //pushCopies("beep", 15); // beep
 	  
   { // do density and gradient, save gradient, do medium scan in two directions, save range map
     pushSpeedSign(MOVE_FAST);
     pushWord(196705); // save current depth map to current class
     pushWord(1048622); // neutral scan 
     pushWord('Y'); // pause stack execution
-    pushCopies(1245308, 15); // beep
+    pushCopies("beep", 15); // beep
     pushSpeedSign(MOVE_FAST);
 
     pushWord(1245248); // change to height 1
@@ -378,12 +378,12 @@ virtual void execute() {
   pushWord(196720); //  make a new class
 
   pushWord(131139); // synchronic servo don't take closest
-  pushWord(131156); // synchronic servo
+  pushWord("synchronicServo"); // synchronic servo
   pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
   pushWord("visionCycle"); // vision cycle
 
   pushWord('Y'); // pause stack execution
-  pushCopies(1245308, 15); // beep
+  pushCopies("beep", 15); // beep
 
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   pushWord("shiftIntoGraspGear1"); // change to first gear
