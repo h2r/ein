@@ -6799,8 +6799,8 @@ void gradientServo() {
   if (useGradientServoThresh) {
     cout << "ATTN score, thresh, norm, product: " << bestOrientationScore << " " << gradientServoResetThresh << " " << bestCropNorm << " " << (gradientServoResetThresh * bestCropNorm) << endl;
     if (bestOrientationScore < (gradientServoResetThresh * bestCropNorm) ) {
-      pushWord("synchronicServo"); // synchronic servo
-      pushWord("visionCycle"); // vision cycle
+      pushWord("synchronicServo"); 
+      pushWord("visionCycle"); 
       cout << " XXX BAD GRADIENT SERVO SCORE, RETURN TO SYNCHRONIC XXX" << endl;
       return;
     }
@@ -6951,8 +6951,6 @@ void synchronicServo() {
     // record a failure
     cout << ">>>> Synchronic servo timed out.  Going back on patrol. <<<<" << endl;
     thisGraspPicked = FAILURE; 
-
-    pushWord("twoDPatrolContinue"); 
     pushWord("shiftIntoGraspGear1"); 
     pushCopies("beep", 15); 
     pushWord("countGrasp"); 
@@ -6961,7 +6959,6 @@ void synchronicServo() {
 
   if (bTops.size() <= 0) {
     cout << ">>>> HELP,  I CAN'T SEE!!!!! Going back on patrol. <<<<" << endl;
-    pushWord("twoDPatrolContinue"); 
     pushWord("visionCycle"); 
     pushWord("waitUntilAtCurrentPosition"); 
     return;

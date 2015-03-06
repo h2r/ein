@@ -2,11 +2,16 @@ WORD(MappingPatrol)
 CODE(196727) // capslock + W
 virtual void execute() {
   cout << "Mapping patrol" << endl;
-  pushWord("MappingPatrol");
+  bailAfterSynchronic = 1;
+
+  pushWord("mappingPatrol");
   pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
   pushWord("setRandomPositionAndOrientationForHeightLearning");
   pushWord("recordBlueBoxes");
+  pushWord("changeTargetClassToClosestBlueBox");
+  pushWord("synchronicServo"); 
   pushWord("visionCycle");
+  pushWord("synchronicServoTakeClosest");
   pushCopies("noop", 100);
 }
 END_WORD
