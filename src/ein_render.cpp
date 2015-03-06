@@ -1,3 +1,10 @@
+WORD(FocusWindow)
+virtual void execute() {
+  
+}
+END_WORD
+
+
 WORD(PaintReticles)
 CODE(1048679)     // numlock + g
 virtual void execute()       {
