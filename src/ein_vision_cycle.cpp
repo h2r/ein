@@ -1,8 +1,8 @@
-WORD(VisionPatrol)
+WORD(MappingPatrol)
 CODE(196727) // capslock + W
 virtual void execute() {
-  cout << "vision patrol" << endl;
-  pushWord("visionPatrol");
+  cout << "Mapping patrol" << endl;
+  pushWord("MappingPatrol");
   pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
   pushWord("setRandomPositionAndOrientationForHeightLearning");
   pushWord("recordBlueBoxes");

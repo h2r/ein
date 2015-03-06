@@ -763,7 +763,6 @@ double visionCycleInterval = 7.5 / 7.0 * (1.0/commonFreq);
 int focusedClass = -1;
 int newClassCounter = 0;
 string focusedClassLabel;
-int collectBackgroundInstances = 0;
 
 // variables for survey during servoing
 vector<double> surveyHistogram;
@@ -987,7 +986,7 @@ int drawRedKP = 1;
 object_recognition_msgs::RecognizedObjectArray roa_to_send_blue;
 visualization_msgs::MarkerArray ma_to_send_blue; 
 
-cv_bridge::CvImagePtr cv_ptr;
+cv_bridge::CvImagePtr cv_ptr = NULL;
 Mat objectViewerImage;
 Mat objectMapViewerImage;
 Mat densityViewerImage;
@@ -1191,6 +1190,23 @@ struct BoxMemory {
   ros::Time cameraTime;
   int labeledClassIndex;
 };
+
+struct MapCell {
+  ros::Time lastMappedTime;
+  int detectedClass; // -1 means not denied
+  
+};
+
+const double mapXMin = -1;
+const double mapXMax = 1;
+const double mapYMin = -1;
+const double mapYMax = 1;
+const double mapStep = 0.05;
+const int mapWidth = (mapXMax - mapXMin) / mapStep;
+const int mapHeight = (mapYMax - mapYMin) / mapStep;
+
+MapCell map[mapWidth][mapHeight];
+
 vector<BoxMemory> blueBoxMemories;
 
 // create the blue boxes from the parental green boxes
@@ -3267,6 +3283,8 @@ void rangeCallback(const sensor_msgs::Range& range) {
 
     cv::imshow(objectViewerName, objectViewerImage);
     cv::imshow(objectMapViewerName, objectMapViewerImage);
+    cv::moveWindow(objectMapViewerName, 0, 0);
+
     cv::imshow(densityViewerName, densityViewerImage);
     cv::imshow(gradientViewerName, gradientViewerImage);
     cv::imshow(objectnessViewerName, objectnessViewerImage);
@@ -3465,7 +3483,7 @@ void update_baxter(ros::NodeHandle &n) {
 	ik_reset_counter = 0;
 	currentEEPose = ik_reset_eePose;
 	pushWord('Y'); // pause stack execution
-	pushCopies(1245308, 15); // beep
+	pushCopies("beep", 15); // beep
 	cout << "target position denied by ik, please reset the object.";
       }
       else {
@@ -4107,22 +4125,20 @@ void renderObjectMapView() {
   }
 
   objectMapViewerImage = CV_RGB(0, 0, 0);
-  double xMin = -1;
-  double xMax = 1;
-  double yMin = -1;
-  double yMax = 1;
   double pxMin = 0;
   double pxMax = objectMapViewerImage.cols;
   double pyMin = 0;
   double pyMax = objectMapViewerImage.rows;
-  double step = 0.5;
+  double step = 0.05;
   cv::Point center = cv::Point(pxMax/2, pyMax/2);
   for (int i = 0; i < blueBoxMemories.size(); i++) {
     BoxMemory memory = blueBoxMemories[i];
   }
 
-  for (double x = xMin; x < xMax; x = x + step) {
-    for (double y = yMin; y < xMax; y = y + step) {
+  for (int i = 0; i < mapWidth; i++) {
+    for (int j = 0; j < mapHeight; j++) {
+      double x = mapXMin + i * mapStep;
+      double y = mapYMin + j * mapStep;
       for (int i = 0; i < blueBoxMemories.size(); i++) {
         BoxMemory memory = blueBoxMemories[i];
         string class_name = classLabels[memory.labeledClassIndex];
@@ -4136,13 +4152,13 @@ void renderObjectMapView() {
         if ((x <= tx && tx <= x + step) &&
             (y <= ty && ty <= y + step) && class_name != "background") {
           
-          cv::Point outTop = worldToPixel(objectMapViewerImage, xMin, xMax, yMin, yMax, x, y);
+          cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, x, y);
 
-          cv::Point outBot = worldToPixel(objectMapViewerImage, xMin, xMax, yMin, yMax, x + step, y + step);
+          cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, x + step, y + step);
 
           rectangle(objectMapViewerImage, outTop, outBot, CV_RGB(255, 255, 255));
 
-          cv::Point objectPoint = worldToPixel(objectMapViewerImage, xMin, xMax, yMin, yMax, 
+          cv::Point objectPoint = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                                tx, ty);
           putText(objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, Scalar(255, 255, 255), 2.0);
 
@@ -4164,16 +4180,16 @@ void renderObjectMapView() {
   { // drawHand
     eePose tp = rosPoseToEEPose(trueEEPose);
     double radius = 10;
-    cv::Point handPoint = worldToPixel(objectMapViewerImage, xMin, xMax, yMin, yMax, 
+    cv::Point handPoint = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                        tp.px, tp.py);
     
     Eigen::Quaternionf handQuat(tp.qw, tp.qx, tp.qy, tp.qz);
 
-    double rotated_magnitude = radius / sqrt(pow(pxMax - pxMin, 2) +  pow(pyMax - pyMin, 2)) * sqrt(pow(xMax - xMin, 2) + pow(yMax - yMin, 2));
+    double rotated_magnitude = radius / sqrt(pow(pxMax - pxMin, 2) +  pow(pyMax - pyMin, 2)) * sqrt(pow(mapXMax - mapXMin, 2) + pow(mapYMax - mapYMin, 2));
     Eigen::Vector3f point(rotated_magnitude, 0, 0);
     Eigen::Vector3f rotated = handQuat * point;
     
-    cv::Point orientation_point = worldToPixel(objectMapViewerImage, xMin, xMax, yMin, yMax,
+    cv::Point orientation_point = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax,
                                                tp.px + rotated[0], 
                                                tp.py + rotated[1]);
 
@@ -4940,7 +4956,7 @@ int calibrateGripper() {
   }
   cout << "Gripper could not calibrate!" << endl;
   pushWord('Y'); // pause stack execution
-  pushCopies(1245308, 15); // beep
+  pushCopies("beep", 15); // beep
   return -1;
 }
 int doCalibrateGripper() {
@@ -6948,15 +6964,15 @@ void synchronicServo() {
     // record a failure
     cout << "Pick failure in synchronic." << endl;
     thisGraspPicked = FAILURE; 
-    pushWord(131141); // 2D patrol continue
+    pushWord("twoDPatrolContinue"); // 2D patrol continue
 
     pushWord("visionCycle"); // vision cycle
     pushWord("waitUntilAtCurrentPosition"); 
     pushWord("shiftIntoGraspGear1"); // change to first gear
 
-    pushCopies(1245308, 15); // beep
+    pushCopies("beep", 15); // beep
     pushWord(1179714); // uniformly sample orientation for simulatedServo
-    pushWord(196717); //count grasp
+    pushWord("countGrasp"); //count grasp
   }
 
   if (bTops.size() <= 0) {
@@ -6964,7 +6980,7 @@ void synchronicServo() {
     //currentEEPose.px = oscCenX + oscAmpX*sin(2.0*3.1415926*oscFreqX*delta.toSec());
     //currentEEPose.py = oscCenY + oscAmpY*sin(2.0*3.1415926*oscFreqY*delta.toSec());
     //currentEEPose.pz = oscCenZ + oscAmpZ*sin(2.0*3.1415926*oscFreqZ*delta.toSec());
-    pushWord(131141); // 2D patrol continue
+    pushWord("twoDPatrolContinue"); // 2D patrol continue
     pushWord("visionCycle"); // vision cycle
     pushWord("waitUntilAtCurrentPosition"); 
     cout << ">>>> HELP,  I CAN'T SEE!!!!! Going back on patrol. <<<<" << endl;
@@ -6991,7 +7007,7 @@ void synchronicServo() {
       pilotTarget.pz = pilotClosestTarget.pz;
       pilotTargetBlueBoxNumber = pilotClosestBlueBoxNumber;
     } else {
-      pushWord(131141); // 2D patrol continue
+      pushWord("twoDPatrolContinue"); // 2D patrol continue
       // set oscilStart to now
       oscilStart = ros::Time::now();
       // add thresh to time since vision to stimulate scan
@@ -9261,6 +9277,12 @@ void goCalculateDensity() {
   Size sz = objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
+
+  if (cv_ptr == NULL) {
+    ROS_ERROR("Not receiving camera data, clearing call stack.");
+    clearStack();
+    return;
+  }
 
   objectViewerImage = cv_ptr->image.clone();
 

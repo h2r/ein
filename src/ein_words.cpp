@@ -567,7 +567,7 @@ std::vector<Word *> create_words() {
   words.push_back(new Dup());
 
   words.push_back(new PixelGlobalTest());
-  words.push_back(new VisionPatrol());
+  words.push_back(new MappingPatrol());
   words.push_back(new RecordBlueBoxes());
   words.push_back(new ClearBlueBoxMemories());
   words.push_back(new PublishRecognizedObjectArrayFromBlueBoxMemory());
