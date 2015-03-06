@@ -582,9 +582,6 @@ END_WORD
 WORD(PrepareForAndExecuteGraspFromMemory)
 CODE(1048624)     // numlock + 0
 virtual void execute()       {
-  if (!ARE_GENERIC_HEIGHT_LEARNING()) {
-    pushWord("twoDPatrolContinue"); // 2D patrol continue
-  }
 
   pushWord("visionCycle"); // vision cycle
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
@@ -1035,6 +1032,7 @@ virtual void execute() {
   
   currentEEPose.px = oscCenX + oscAmpX*sin(2.0*3.1415926*oscFreqX*delta.toSec());
   currentEEPose.py = oscCenY + oscAmpY*sin(2.0*3.1415926*oscFreqY*delta.toSec());
+  pushWord("twoDPatrolContinue"); 
   
   // check to see if the target class is around, or take closest
   if ( ((pilotTarget.px != -1) && (pilotTarget.py != -1)) ||
@@ -1042,7 +1040,7 @@ virtual void execute() {
     {
       // if so, push servoing command and set lock frames to 0
       pushWord("synchronicServo"); // synchronic servo
-      pushWord(131146); // turn survey on
+      pushWord("turnHistogrammingDuringServoingOn"); // turn survey on
       
       if (targetClass != -1)
         cout << "Found the target " << classLabels[targetClass] << ". " << endl;
@@ -1051,20 +1049,19 @@ virtual void execute() {
     } else {
     // if not, potentially do vision and continue the 2D patrol
     
-    pushWord("twoDPatrolContinue"); // 2D patrol continue
     // check and push vision cycle 
     ros::Duration timeSinceLast = ros::Time::now() - lastVisionCycle;
     if (timeSinceLast.toSec() > visionCycleInterval) {
       if (collectBackgroundInstances) {
         pushWord(131152); // save all blue boxes as focused class
       }
-      pushWord("visionCycle"); // vision cycle
+      pushWord("visionCycle");
       // grab the last bit of accumulated time
       accumulatedTime = accumulatedTime + (ros::Time::now() - oscilStart);
     }
   }
   // if you are static_prior, this does nothing and defaults to the usual height
-  pushWord("sampleHeight"); // sample height
+  pushWord("sampleHeight"); 
 }
 END_WORD
 

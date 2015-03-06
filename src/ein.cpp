@@ -6635,9 +6635,9 @@ void gradientServo() {
     int tEtaX = etaX+gradientServoTranslation;
     int tEtaY = etaY+gradientServoTranslation;
     allScores[tEtaX][tEtaY][etaS][thisOrient] = thisScore;
-  }
-  }
-  }
+    }
+    }
+    }
   }
 
     // perform max
@@ -11710,7 +11710,7 @@ int main(int argc, char **argv) {
                                        fetchCommandCallback);
 
   ros::Subscriber forthCommandSubscriber;
-  forthCommandSubscriber = n.subscribe("/ein_" + left_or_right_arm + "/forth_commands", 1, 
+  forthCommandSubscriber = n.subscribe("/ein/" + left_or_right_arm + "/forth_commands", 1, 
                                        forthCommandCallback);
 
   ros::Timer timer1 = n.createTimer(ros::Duration(0.01), timercallback1);
