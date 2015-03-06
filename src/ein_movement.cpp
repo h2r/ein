@@ -13,7 +13,7 @@ virtual void execute() {
   double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
   
   if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh))
-    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    pushWord("waitUntilAtCurrentPosition"); 
 }
 END_WORD
 

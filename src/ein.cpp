@@ -7010,53 +7010,18 @@ void synchronicServo() {
       }
 
       cout << "got within thresh. ";
-      if (synchronicTakeClosest) {
-	if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
-	  pushWord("gradientServo"); // gradient servo
-	  cout << "Queuing gradient servo." << endl;
-	  // ATTN 8
-	  //pushWord("visionCycle"); // vision cycle
-	  //pushWord(196721); // vision cycle no classify
-	  pushCopies("density", densityIterationsForGradientServo); // density
-	  pushCopies("resetTemporalMap", 1); // reset temporal map
-	  pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
-	  pushCopies("density", 1); // density
-	  pushCopies("waitUntilAtCurrentPosition", 5); 
-
-	  // ATTN 16
-//		{ // prepare to servo
-//		  currentEEPose.pz = wholeFoodsCounter1.pz+.1;
-//		}
-	} else {
-	  // do nothing, just proceed
-	  cout << "Returning." << endl;
-	}
-      } else if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
-	// XXX this seems wrong.
-	//return;
-	pushWord("gradientServo"); // gradient servo
-	cout << "Queuing gradient servo." << endl;
-	// ATTN 8
-	//pushWord("visionCycle"); // vision cycle
-	//pushWord(196721); // vision cycle no classify
-	pushCopies("density", densityIterationsForGradientServo); // density
-	pushCopies("resetTemporalMap", 1); // reset temporal map
-	pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
-	pushCopies("density", 1); // density
-	pushCopies("waitUntilAtCurrentPosition", 5); 
-
-	// ATTN 16
-//	      { // prepare to servo
-//		currentEEPose.pz = wholeFoodsCounter1.pz+.1;
-//	      }
+      if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
+        pushWord("gradientServo"); 
+        cout << "Queuing gradient servo." << endl;
+        pushCopies("density", densityIterationsForGradientServo); 
+        pushCopies("resetTemporalMap", 1); 
+        pushWord("resetAerialGradientTemporalFrameAverage"); 
+        pushCopies("density", 1); 
+        pushCopies("waitUntilAtCurrentPosition", 5); 
+        
       } else {
-	if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
-	  pushWord("prepareForAndExecuteGraspFromMemory"); // prepare for and execute the best grasp from memory at the current location and target
-	  cout << "Recalling range map and calculating grasp..." << endl;
-	} else {
-	  pushWord(196729); // quick fetch
-	  cout << "No range map recalled so performing a quick fetch..." << endl;
-	}
+        ROS_ERROR_STREAM("No gradient map for class " << targetClass << endl);
+        clearStack();
       }
 
       return;	
