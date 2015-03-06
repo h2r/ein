@@ -78,7 +78,7 @@ virtual void execute()       {
   pushWord(65568+3); // record register 3
 
   pushWord(131139); // synchronic servo don't take closest
-  pushWord(131156); // synchronic servo
+  pushWord("synchronicServo"); // synchronic servo
   pushWord(196707); // synchronic servo take closest
   pushWord("visionCycle"); // vision cycle
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
@@ -144,7 +144,7 @@ CODE(1179707)     // capslock + numlock + ;
 
   // servo to object, which will early out if it times out 
   pushWord(131139); // synchronic servo don't take closest
-  pushWord(131156); // synchronic servo
+  pushWord("synchronicServo"); // synchronic servo
   pushWord(196707); // synchronic servo take closest
   pushWord("visionCycle"); // vision cycle
   //pushWord(1179695); // check to see if bounding box is unique (early outting if not)
@@ -154,7 +154,7 @@ CODE(1179707)     // capslock + numlock + ;
 
   pushWord(1245247); // sample height
 
-  pushWord(1179717); // change to pantry table
+  pushWord("changeToPantryTable"); // change to pantry table
   pushWord('3'); // recall register 3
 }
 END_WORD

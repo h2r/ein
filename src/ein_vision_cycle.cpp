@@ -1,5 +1,3 @@
-
-
 WORD(VisionPatrol)
 CODE(196727) // capslock + W
 virtual void execute() {
