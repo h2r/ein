@@ -588,7 +588,7 @@ virtual void execute()       {
   pushWord("sampleHeight"); // sample height
   pushWord("shiftIntoGraspGear1"); // change to first gear
 
-  pushWord(196717); //count grasp
+  pushWord("countGrasp"); //count grasp
 
   pushWord('k'); // open gripper
   pushWord(131151); // shake it off 1
@@ -986,7 +986,7 @@ virtual void execute()       {
   oscCenY = currentEEPose.py;
   oscCenZ = currentEEPose.pz+0.1;
   pushWord("twoDPatrolContinue"); // 2D patrol continue
-  pushWord("visionCycle"); // vision cycle
+  pushWord("visionCycle");
   // we want to move to a higher holding position for visual patrol
   // so we assume that we are at 20 cm = IR scan height and move to 30 cm
   pushSpeedSign(MOVE_FAST);
@@ -1052,9 +1052,6 @@ virtual void execute() {
     // check and push vision cycle 
     ros::Duration timeSinceLast = ros::Time::now() - lastVisionCycle;
     if (timeSinceLast.toSec() > visionCycleInterval) {
-      if (collectBackgroundInstances) {
-        pushWord(131152); // save all blue boxes as focused class
-      }
       pushWord("visionCycle");
       // grab the last bit of accumulated time
       accumulatedTime = accumulatedTime + (ros::Time::now() - oscilStart);
