@@ -3469,6 +3469,10 @@ void update_baxter(ros::NodeHandle &n) {
 	cout << "target position denied by ik, please reset the object.";
       }
       else {
+	cout << "This pose was rejected by ikClient:" << endl;
+	cout << "Current EE Position (x,y,z): " << currentEEPose.px << " " << currentEEPose.py << " " << currentEEPose.pz << endl;
+	cout << "Current EE Orientation (x,y,z,w): " << currentEEPose.qx << " " << currentEEPose.qy << " " << currentEEPose.qz << " " << currentEEPose.qw << endl;
+
 	currentEEPose = lastGoodEEPose;
       }
 
@@ -4390,8 +4394,8 @@ void pilotInit() {
     vanishingPointReticle.px = 313;
     vanishingPointReticle.py = 163;
     probeReticle = vanishingPointReticle;
-    m_x = 1.08;
-    m_y = 0.94;
+    m_x = 1.03;
+    m_y = 0.93;
 
     // ATTN 16
     heightReticles[0] = defaultReticle;
@@ -4474,8 +4478,8 @@ void pilotInit() {
     vanishingPointReticle.px = 313;
     vanishingPointReticle.py = 185;
     probeReticle = vanishingPointReticle;
-    m_x = 1.10;
-    m_y = 1.15;
+    m_x = 1.14;
+    m_y = 1.20;
 
     // ATTN 16
     heightReticles[0] = defaultReticle;
@@ -7545,7 +7549,7 @@ void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
   pY = reticlePixelY + (oldPx - reticlePixelX) - offY;
 
   {
-    double d = d_x;
+    double d = d_x/m_x;
     double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
 
     double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
@@ -7561,10 +7565,11 @@ void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
     int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
     //int x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
     //gX = d + ( (pX-c)*(currentEEPose.px-d) )/(x1-c) ;
-    gX = trueEEPose.position.x - d + ( (pX-c)*(d) )/( (x_thisZ-c)*m_x ) ;
+    //gX = trueEEPose.position.x - d + ( (pX-c)*(d) )/( (x_thisZ-c)*m_x ) ;
+    gX = trueEEPose.position.x - d + ( (pX-c)*(d) )/( (x_thisZ-c) ) ;
   }
   {
-    double d = d_y;
+    double d = d_y/m_y;
     double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
 
     double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
@@ -7580,7 +7585,8 @@ void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
     int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
     //int y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
     //gY = d + ( (pY-c)*(currentEEPose.py-d) )/(y1-c) ;
-    gY = trueEEPose.position.y - d + ( (pY-c)*(d) )/( (y_thisZ-c)*m_y ) ;
+    //gY = trueEEPose.position.y - d + ( (pY-c)*(d) )/( (y_thisZ-c)*m_y ) ;
+    gY = trueEEPose.position.y - d + ( (pY-c)*(d) )/( (y_thisZ-c) ) ;
   }
 }
 
@@ -7603,7 +7609,8 @@ void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY) {
   double reticlePixelX = 0.0;
   double reticlePixelY = 0.0;
   {
-    double d = d_x;
+    //double d = d_x;
+    double d = d_x/m_x;
     double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
 
     double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
@@ -7627,7 +7634,8 @@ void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY) {
     reticlePixelX = x_thisZ;
   }
   {
-    double d = d_y;
+    //double d = d_y;
+    double d = d_y/m_y;
     double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
 
     double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
@@ -7682,8 +7690,10 @@ void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY) {
 
   double oldPx = pX;
   double oldPy = pY;
-  pX = reticlePixelX + m_y*(oldPy - reticlePixelY) + offX;
-  pY = reticlePixelY + m_x*(oldPx - reticlePixelX) + offY;
+  //pX = reticlePixelX + m_y*(oldPy - reticlePixelY) + offX;
+  //pY = reticlePixelY + m_x*(oldPx - reticlePixelX) + offY;
+  pX = reticlePixelX + (oldPy - reticlePixelY) + offX;
+  pY = reticlePixelY + (oldPx - reticlePixelX) + offY;
 }
 
 void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor) {
@@ -7709,6 +7719,7 @@ void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor) {
     }
   }
 
+  // draw the test pattern for the inverse transformation 
   if (0) {
     double gX = 0, gY = 0;
     pixelToGlobal(pX, pY, zToUse, gX, gY);
