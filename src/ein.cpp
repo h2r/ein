@@ -11740,7 +11740,7 @@ int main(int argc, char **argv) {
   spinlessPilotMain();
 
   saveROSParams();
-  pushWord("visionPatrol");
+  //pushWord("visionPatrol");
   pushWord("printState");
   pushCopies("zUp", 15);
   int devInit = 1;

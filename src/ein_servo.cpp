@@ -15,7 +15,7 @@ virtual void execute()       {
   pushWord("applyGraspFilter"); // apply grasp filter
   pushWord("prepareToApplyGraspFilterFor4"); // prepare grasp filter for 4
   // load reg1
-  pushWord(131162); // load target classRangeMap
+  pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
   // change gear to 4
   pushWord("shiftIntoGraspGear4");
 
@@ -26,7 +26,7 @@ virtual void execute()       {
   pushWord("applyGraspFilter"); // apply grasp filter
   pushWord("prepareToApplyGraspFilterFor3"); // prepare grasp filter for 3
   // load reg1
-  pushWord(131162); // load target classRangeMap
+  pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
   // change gear to 3
   pushWord("shiftIntoGraspGear3");
 
@@ -37,7 +37,7 @@ virtual void execute()       {
   pushWord("applyGraspFilter"); // apply grasp filter
   pushWord("prepareToApplyGraspFilterFor2"); // prepare to apply grasp filter for 2
   // load reg1
-  pushWord(131162); // load target classRangeMap
+  pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
   // change gear to 2
   pushWord("shiftIntoGraspGear2");
 
@@ -51,7 +51,7 @@ virtual void execute()       {
   pushWord("applyGraspFilter"); // apply grasp filter
   pushWord("prepareToApplyGraspFilterFor1"); // prepare to apply grasp filter for 1
   // load reg1
-  pushWord(131162); // load target classRangeMap
+  pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
 
   // change gear to 1
   pushWord("shiftIntoGraspGear1");
@@ -60,11 +60,11 @@ virtual void execute()       {
   // loadSampled gives proper Thompson
   // loadMarginal is MAP estimate
   //pushWord(131117); // loadSampledGraspMemory
-  //pushWord(131133); // loadMarginalGraspMemory	
+  //pushWord("loadMarginalGraspMemory"); // loadMarginalGraspMemory	
   switch (currentPickMode) {
   case STATIC_PRIOR:
     {
-      pushWord(131133); // loadMarginalGraspMemory
+      pushWord("loadMarginalGraspMemory"); // loadMarginalGraspMemory
     }
     break;
   case LEARNING_SAMPLING:
@@ -75,7 +75,7 @@ virtual void execute()       {
   case LEARNING_ALGORITHMC:
   case STATIC_MARGINALS:
     {
-      pushWord(131133); // loadMarginalGraspMemory
+      pushWord("loadMarginalGraspMemory"); // loadMarginalGraspMemory
     }
     break;
   default:
@@ -259,7 +259,7 @@ CODE(196649)     // capslock + i
     } else {
       // stuck
       pushWord('Y'); // pause stack execution
-      pushCopies(1245308, 15); // beep
+      pushCopies("beep", 15); // beep
       cout << "Stuck, please reset the object. ";
       cout << " gripperPosition: " << gripperPosition;
       cout << " gripperThresh: " << gripperThresh << endl;
@@ -430,7 +430,7 @@ CODE(196718)     // capslock + N
       cout << "Failed to pick." << endl;
       thisGraspPicked = FAILURE;
       sad();
-      pushCopies(1245308, 15); // beep
+      pushCopies("beep", 15); // beep
     } else {
       cout << "Successful pick." << endl;
       thisGraspPicked = SUCCESS;
@@ -486,7 +486,7 @@ CODE(196713)     // capslock + I
       }
       cout << "Failed grasp." << endl;
       //pushWord('Y'); // pause stack execution
-      pushCopies(1245308, 15); // beep
+      pushCopies("beep", 15); // beep
     } else {
       if (ARE_GENERIC_HEIGHT_LEARNING()) {
         recordBoundingBoxSuccess();
@@ -583,7 +583,7 @@ WORD(PrepareForAndExecuteGraspFromMemory)
 CODE(1048624)     // numlock + 0
 virtual void execute()       {
   if (!ARE_GENERIC_HEIGHT_LEARNING()) {
-    pushWord(131141); // 2D patrol continue
+    pushWord("twoDPatrolContinue"); // 2D patrol continue
   }
 
   pushWord("visionCycle"); // vision cycle
@@ -649,14 +649,14 @@ virtual void execute()       {
   //pushWord("selectMaxTargetNotCumulative"); // find max on register 1
   pushWord("drawMapRegisters"); // render register 1
 
-  pushWord(131162); // load target classRangeMap
+  pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
 
   // ATTN 19 
   //pushWord(1048631); // assume best gear
   pushWord(1048678); // target best grasp
   pushWord(1048620); // find best grasp from memory
 
-  pushWord(131162); // load target classRangeMap
+  pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
   pushWord(1048695); // clear scan history
   pushWord("turnOffScanning"); // turn off scanning
 
@@ -988,13 +988,13 @@ virtual void execute()       {
   oscCenX = currentEEPose.px;
   oscCenY = currentEEPose.py;
   oscCenZ = currentEEPose.pz+0.1;
-  pushWord(131141); // 2D patrol continue
+  pushWord("twoDPatrolContinue"); // 2D patrol continue
   pushWord("visionCycle"); // vision cycle
   // we want to move to a higher holding position for visual patrol
   // so we assume that we are at 20 cm = IR scan height and move to 30 cm
   pushSpeedSign(MOVE_FAST);
-  pushWord(1179717); // change to pantry table
-  pushWord(1179724); // change bounding box inference mode to STATIC_MARGINALS
+  pushWord("changeToPantryTable"); // change to pantry table
+  pushWord("setBoundingBoxModeToStaticMarginals"); // change bounding box inference mode to STATIC_MARGINALS
   pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
 }
 END_WORD
@@ -1011,7 +1011,7 @@ virtual void execute() {
       if (graspAttemptCounter >= thompsonTries) {
         cout << "Clearing call stack because we did " << graspAttemptCounter << " tries." << endl;
         clearStack();
-        pushCopies(1245308, 15); // beep
+        pushCopies("beep", 15); // beep
         return;
       }
     }
@@ -1022,7 +1022,7 @@ virtual void execute() {
         cout << "Clearing call stack. thompsonPickHaltFlag = " << thompsonPickHaltFlag << 
           " and we did " << graspAttemptCounter << " tries." << endl;
         clearStack();
-        pushCopies(1245308, 15); // beep
+        pushCopies("beep", 15); // beep
         return;
       }
     }
@@ -1041,7 +1041,7 @@ virtual void execute() {
        (synchronicTakeClosest && ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1))) )
     {
       // if so, push servoing command and set lock frames to 0
-      pushWord(131156); // synchronic servo
+      pushWord("synchronicServo"); // synchronic servo
       pushWord(131146); // turn survey on
       
       if (targetClass != -1)
@@ -1051,7 +1051,7 @@ virtual void execute() {
     } else {
     // if not, potentially do vision and continue the 2D patrol
     
-    pushWord(131141); // 2D patrol continue
+    pushWord("twoDPatrolContinue"); // 2D patrol continue
     // check and push vision cycle 
     ros::Duration timeSinceLast = ros::Time::now() - lastVisionCycle;
     if (timeSinceLast.toSec() > visionCycleInterval) {
