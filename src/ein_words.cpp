@@ -300,6 +300,18 @@ virtual void execute()
 }
 END_WORD
 
+WORD(ChangeTargetClassToClosestBlueBox)
+virtual void execute()  {
+  if (pilotClosestBlueBoxNumber == -1) {
+    cout << "Not changing because closest bbox is " << pilotClosestBlueBoxNumber << endl;
+    return;
+  }
+  int class_idx = bLabels[pilotClosestBlueBoxNumber];
+  cout << "Changing to closest blue blox target, which is class " << classLabels[class_idx] << endl;
+  changeTargetClass(class_idx);
+}
+END_WORD
+
 
 WORD(Noop)
 CODE('C')
@@ -569,6 +581,7 @@ std::vector<Word *> create_words() {
   words.push_back(new RecordBlueBoxes());
   words.push_back(new ClearBlueBoxMemories());
   words.push_back(new PublishRecognizedObjectArrayFromBlueBoxMemory());
+  words.push_back(new ChangeTargetClassToClosestBlueBox());
 
   words.push_back(new IncMx());
   words.push_back(new DecMx());
