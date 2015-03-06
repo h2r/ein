@@ -6789,143 +6789,130 @@ void gradientServo() {
     }
 
 
-    // if we are not there yet, continue
     if (distance > w1GoThresh*w1GoThresh) {
-    //cout << "waiting to arrive at current position." << endl;
-    pushWord(196728); // gradient servo
-    // ATTN 8
-    //pushWord("visionCycle"); // vision cycle
-    //pushWord(196721); // vision cycle no classify
-    pushCopies(131121, densityIterationsForGradientServo); // density
-    pushCopies(1179737, 1); // reset temporal map
-    pushWord(262237); // reset aerialGradientTemporalFrameAverage
-    pushCopies(131121, 1); // density
-    //pushCopies("waitUntilAtCurrentPosition", 40); 
-    pushCopies("waitUntilAtCurrentPosition", 5); 
 
-    // ATTN 16
-    //	  { // prepare to servo
-    //	    currentEEPose.pz = wholeFoodsCounter1.pz+.1;
-    //	  }
-  } else {
+      pushWord("gradientServo"); 
+      // ATTN 8
+      pushCopies("density", densityIterationsForGradientServo); 
+      pushCopies("resetTemporalMap", 1); 
+      pushWord("resetAerialGradientTemporalFrameAverage"); 
+      pushCopies("density", 1); 
+      pushCopies("waitUntilAtCurrentPosition", 5); 
+
+    } else {
     // ATTN 5
     // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
-    if (((fabs(Px) < gradServoPixelThresh) && (fabs(Py) < gradServoPixelThresh) && (fabs(Ptheta) < gradServoThetaThresh)) ||
-      ((currentGradientServoIterations > softMaxGradientServoIterations) && (fabs(Ptheta) < gradServoThetaThresh)) || 
-      (currentGradientServoIterations > hardMaxGradientServoIterations) )
-      {
-	// ATTN 12
-	if (ARE_GENERIC_HEIGHT_LEARNING()) {
-	  cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << gradientServoDuringHeightLearning << endl;
-	  cout << "bbLearning: returning from gradient servo." << endl;
-	  return;
-	}
+      if (((fabs(Px) < gradServoPixelThresh) && (fabs(Py) < gradServoPixelThresh) && (fabs(Ptheta) < gradServoThetaThresh)) ||
+          ((currentGradientServoIterations > softMaxGradientServoIterations) && (fabs(Ptheta) < gradServoThetaThresh)) || 
+          (currentGradientServoIterations > hardMaxGradientServoIterations) )
+        {
+          // ATTN 12
+          if (ARE_GENERIC_HEIGHT_LEARNING()) {
+            cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << gradientServoDuringHeightLearning << endl;
+            cout << "bbLearning: returning from gradient servo." << endl;
+            return;
+          }
+          
+          // ATTN 17
+          if (bailAfterGradient) {
+            cout << "gradient servo set to bail. returning." << endl;
+            return;
+          }
+          
+          //cout << "got within thresh, returning." << endl;
+          cout << "got within thresh, fetching." << endl;
+          lastPtheta = INFINITY;
+          cout << "resetting lastPtheta: " << lastPtheta << endl;
+          if (surveyDuringServo) {
+            cout << "Survey results: " << endl;
+            int winningClass = -1;
+            int winningClassCounts = -1;
+            for (int clc = 0; clc < numClasses; clc++) {
+              if (surveyHistogram[clc] > winningClassCounts) {
+                winningClass = clc;
+                winningClassCounts = surveyHistogram[clc];
+              }
+              cout << "    class " << classLabels[clc] << " counts: " << surveyHistogram[clc] << endl;
+            }
+            cout << "  Winning Class: " << classLabels[winningClass] << " counts: " << surveyHistogram[winningClass] << endl;
+            surveyWinningClass = winningClass;
+          }
 
-	// ATTN 17
-	if (bailAfterGradient) {
-	  cout << "gradient servo set to bail. returning." << endl;
-	  return;
-	}
+          if (synchronicTakeClosest) {
+            if (gradientTakeClosest) {
+              if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
+                pushWord("prepareForAndExecuteGraspFromMemory"); // prepare for and execute the best grasp from memory at the current location and target
+              else {
+                pushWord(196729); // quick fetch
+              }
+            } else {
+              return;
+            }
+          } else {
+            if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
+              pushWord("prepareForAndExecuteGraspFromMemory"); 
+            } else {
+              ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
+            }
+          }
+          
+          return;
+        } else {
 
-    //cout << "got within thresh, returning." << endl;
-    cout << "got within thresh, fetching." << endl;
-    lastPtheta = INFINITY;
-    cout << "resetting lastPtheta: " << lastPtheta << endl;
-    if (surveyDuringServo) {
-    cout << "Survey results: " << endl;
-    int winningClass = -1;
-    int winningClassCounts = -1;
-    for (int clc = 0; clc < numClasses; clc++) {
-    if (surveyHistogram[clc] > winningClassCounts) {
-    winningClass = clc;
-    winningClassCounts = surveyHistogram[clc];
-  }
-    cout << "    class " << classLabels[clc] << " counts: " << surveyHistogram[clc] << endl;
-  }
-    cout << "  Winning Class: " << classLabels[winningClass] << " counts: " << surveyHistogram[winningClass] << endl;
-    surveyWinningClass = winningClass;
-  }
-    //pushWord(131161); // fetch
-    //pushWord(196729); // quick fetch
-    // XXX
-    // perform best grasp from memory in local space
+        pushWord("gradientServo"); 
 
-    if (synchronicTakeClosest) {
-    if (gradientTakeClosest) {
-    if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
-      pushWord(1048624); // prepare for and execute the best grasp from memory at the current location and target
-    else
-      pushWord(196729); // quick fetch
-  } else {
-      return;
-  }
-  } else {
-    if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
-      pushWord(1048624); // prepare for and execute the best grasp from memory at the current location and target
-    else
-      pushWord(196729); // quick fetch
-  }
-
-    return;
-  } else {
-    //cout << "executing P controller update." << endl;
-    pushWord(196728); // gradient servo
-    // simple servo code because there is no hysteresis to be found
-    double pTermX = gradKp*Px;
-    double pTermY = gradKp*Py;
-
-    double pTermS = Ps * .005;
-    currentEEPose.pz += pTermS;
-
-    //currentEEPose.py += pTermX;
-    //currentEEPose.px += pTermY;
-
-    // invert the current eePose orientation to decide which direction to move from POV
-    Eigen::Vector3f localUnitX;
-    {
-    Eigen::Quaternionf qin(0, 1, 0, 0);
-    Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
-    qout = eeqform * qin * eeqform.conjugate();
-    localUnitX.x() = qout.x();
-    localUnitX.y() = qout.y();
-    localUnitX.z() = qout.z();
-  }
-
-    Eigen::Vector3f localUnitY;
-    {
-    Eigen::Quaternionf qin(0, 0, 1, 0);
-    Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
-    qout = eeqform * qin * eeqform.conjugate();
-    localUnitY.x() = qout.x();
-    localUnitY.y() = qout.y();
-    localUnitY.z() = qout.z();
-  }
-
-    currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
-    currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
-
-    // ATTN 8
-    //pushWord("visionCycle"); // vision cycle
-    //pushWord(196721); // vision cycle no classify
-    pushCopies(131121, densityIterationsForGradientServo); // density
-    pushCopies(1179737, 1); // reset temporal map
-    pushWord(262237); // reset aerialGradientTemporalFrameAverage
-    pushCopies(131121, 1); // density
-    //pushWord("waitUntilAtCurrentPosition"); 
-
-    // ATTN 7
-    // if you don't wait multiple times, it could get triggered early by weird ik or latency could cause a loop
-    // this is a very aggressive choice and we should also be using the ring buffers for Ode calls
-    //pushCopies("waitUntilAtCurrentPosition", 40); 
-    pushCopies("waitUntilAtCurrentPosition", 5); 
-    
-    // ATTN 16
-    //	    { // prepare to servo
-    //	      currentEEPose.pz = wholeFoodsCounter1.pz+.1;
-    //	    }
-    }
+        double pTermX = gradKp*Px;
+        double pTermY = gradKp*Py;
+        
+        double pTermS = Ps * .005;
+        currentEEPose.pz += pTermS;
+        
+        // invert the current eePose orientation to decide which direction to move from POV
+        Eigen::Vector3f localUnitX;
+        {
+          Eigen::Quaternionf qin(0, 1, 0, 0);
+          Eigen::Quaternionf qout(0, 1, 0, 0);
+          Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+          qout = eeqform * qin * eeqform.conjugate();
+          localUnitX.x() = qout.x();
+          localUnitX.y() = qout.y();
+          localUnitX.z() = qout.z();
+        }
+        
+        Eigen::Vector3f localUnitY;
+        {
+          Eigen::Quaternionf qin(0, 0, 1, 0);
+          Eigen::Quaternionf qout(0, 1, 0, 0);
+          Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+          qout = eeqform * qin * eeqform.conjugate();
+          localUnitY.x() = qout.x();
+          localUnitY.y() = qout.y();
+          localUnitY.z() = qout.z();
+        }
+        
+        currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
+        currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
+        
+        // ATTN 8
+        //pushWord("visionCycle"); // vision cycle
+        //pushWord(196721); // vision cycle no classify
+        pushCopies("density", densityIterationsForGradientServo); // density
+        pushCopies("resetTemporalMap", 1); // reset temporal map
+        pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
+        pushCopies("density", 1); // density
+        //pushWord("waitUntilAtCurrentPosition"); 
+        
+        // ATTN 7
+        // if you don't wait multiple times, it could get triggered early by weird ik or latency could cause a loop
+        // this is a very aggressive choice and we should also be using the ring buffers for Ode calls
+        //pushCopies("waitUntilAtCurrentPosition", 40); 
+        pushCopies("waitUntilAtCurrentPosition", 5); 
+        
+        // ATTN 16
+        //	    { // prepare to servo
+        //	      currentEEPose.pz = wholeFoodsCounter1.pz+.1;
+        //	    }
+      }
     }
 }
 
@@ -7076,15 +7063,15 @@ void synchronicServo() {
       }
       if (synchronicTakeClosest) {
 	if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
-	  pushWord(196728); // gradient servo
+	  pushWord("gradientServo"); // gradient servo
 	  cout << "Queuing gradient servo." << endl;
 	  // ATTN 8
 	  //pushWord("visionCycle"); // vision cycle
 	  //pushWord(196721); // vision cycle no classify
-	  pushCopies(131121, densityIterationsForGradientServo); // density
-	  pushCopies(1179737, 1); // reset temporal map
-	  pushWord(262237); // reset aerialGradientTemporalFrameAverage
-	  pushCopies(131121, 1); // density
+	  pushCopies("density", densityIterationsForGradientServo); // density
+	  pushCopies("resetTemporalMap", 1); // reset temporal map
+	  pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
+	  pushCopies("density", 1); // density
 	  pushCopies("waitUntilAtCurrentPosition", 5); 
 
 	  // ATTN 16
@@ -7098,15 +7085,15 @@ void synchronicServo() {
       } else if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
 	// XXX this seems wrong.
 	//return;
-	pushWord(196728); // gradient servo
+	pushWord("gradientServo"); // gradient servo
 	cout << "Queuing gradient servo." << endl;
 	// ATTN 8
 	//pushWord("visionCycle"); // vision cycle
 	//pushWord(196721); // vision cycle no classify
-	pushCopies(131121, densityIterationsForGradientServo); // density
-	pushCopies(1179737, 1); // reset temporal map
-	pushWord(262237); // reset aerialGradientTemporalFrameAverage
-	pushCopies(131121, 1); // density
+	pushCopies("density", densityIterationsForGradientServo); // density
+	pushCopies("resetTemporalMap", 1); // reset temporal map
+	pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
+	pushCopies("density", 1); // density
 	pushCopies("waitUntilAtCurrentPosition", 5); 
 
 	// ATTN 16
@@ -7115,7 +7102,7 @@ void synchronicServo() {
 //	      }
       } else {
 	if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
-	  pushWord(1048624); // prepare for and execute the best grasp from memory at the current location and target
+	  pushWord("prepareForAndExecuteGraspFromMemory"); // prepare for and execute the best grasp from memory at the current location and target
 	  cout << "Recalling range map and calculating grasp..." << endl;
 	} else {
 	  pushWord(196729); // quick fetch

@@ -152,7 +152,7 @@ CODE(1179707)     // capslock + numlock + ;
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   pushWord(1179687); // set random position for bblearn
 
-  pushWord(1245247); // sample height
+  pushWord("sampleHeight"); // sample height
 
   pushWord("changeToPantryTable"); // change to pantry table
   pushWord('3'); // recall register 3

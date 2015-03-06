@@ -588,7 +588,7 @@ virtual void execute()       {
 
   pushWord("visionCycle"); // vision cycle
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  pushWord(1245247); // sample height
+  pushWord("sampleHeight"); // sample height
   pushWord("shiftIntoGraspGear1"); // change to first gear
 
   pushWord(196717); //count grasp
@@ -1064,7 +1064,7 @@ virtual void execute() {
     }
   }
   // if you are static_prior, this does nothing and defaults to the usual height
-  pushWord(1245247); // sample height
+  pushWord("sampleHeight"); // sample height
 }
 END_WORD
 
