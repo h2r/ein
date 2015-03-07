@@ -40,6 +40,14 @@ namespace ein_words
 #include "ein_vision_cycle.cpp"
 #include "ein_scanning.cpp"
 
+WORD(ZeroGToggle)
+CODE('z')
+virtual void execute() {
+  zero_g_toggle = !zero_g_toggle;
+}
+END_WORD
+
+
 WORD(ClearStack)
 CODE('r') 
 virtual void execute() {
@@ -457,6 +465,7 @@ std::vector<Word *> create_words() {
   words.push_back(new ChangeToHeight3());
   words.push_back(new WaitUntilAtCurrentPosition());
   words.push_back(new Beep());
+  words.push_back(new ZeroGToggle());
   words.push_back(new VisionCycle());
   words.push_back(new Density());
   words.push_back(new ResetTemporalMap());
