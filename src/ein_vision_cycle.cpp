@@ -7,11 +7,12 @@ virtual void execute() {
   pushWord("mappingPatrol");
   pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
   pushWord("setRandomPositionAndOrientationForHeightLearning");
-  pushWord("recordAllBlueBoxes");
+  //pushWord("recordAllBlueBoxes");
+  pushWord("mapClosestBlueBox");
   pushWord("synchronicServo"); 
   pushWord("visionCycle");
   pushWord("synchronicServoTakeClosest");
-  pushCopies("noop", 100);
+  pushCopies("noop", 5);
 }
 END_WORD
 
@@ -133,29 +134,38 @@ END_WORD
 
 
 
-void mapBox(BoxMemory box) {
-  for (double px = box.bTop.x; px <= box.bBot.x; px++) {
-    for (double py = box.bTop.y; py <= box.bBot.y; py++) {
+void mapBox(BoxMemory boxMemory) {
+  for (double px = boxMemory.bTop.x; px <= boxMemory.bBot.x; px++) {
+    for (double py = boxMemory.bTop.y; py <= boxMemory.bBot.y; py++) {
       double x, y;
-      double z = trueEEPose.position.z - currentTableZ;
+      double z = trueEEPose.position.z + currentTableZ;
+
 
       pixelToGlobal(px, py, z, x, y);
       int i, j;
       mapxyToij(x, y, &i, &j);
-      
+
+      objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
+      objectMap[i + mapWidth * j].detectedClass = boxMemory.labeledClassIndex;
+
+
+      if (cam_img.rows != 0 && cam_img.cols != 0) {
+        cout << "green: " << (int) cam_img.at<cv::Vec3b>(py, px)[0] << endl;
+        cout << "blue: " << (int) cam_img.at<cv::Vec3b>(py, px)[1] << endl;
+        cout << "red: " << (int) cam_img.at<cv::Vec3b>(py, px)[2] << endl;
+        objectMap[i + mapWidth * j].b += (int) cam_img.at<cv::Vec3b>(py, px)[0];
+        objectMap[i + mapWidth * j].g += (int) cam_img.at<cv::Vec3b>(py, px)[1];
+        objectMap[i + mapWidth * j].r += (int) cam_img.at<cv::Vec3b>(py, px)[2];
+        objectMap[i + mapWidth * j].pixelCount += 1.0;
+      }
     }
   }
-  
 }
 
 WORD(InitializeMap)
 virtual void execute() {
-  for (int i = 0; i < mapWidth; i++) {
-    for(int j = 0; j < mapHeight; j++) {
-      objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
-      objectMap[i + mapWidth * j].detectedClass = -1;
-    }
-  }
+  initializeMap();
+
 }
 END_WORD;
 
@@ -180,6 +190,7 @@ virtual void execute() {
   box.labeledClassIndex = bLabels[c];
   
   mapBox(box);
+  blueBoxMemories.push_back(box);
 
 }
 END_WORD
