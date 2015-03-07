@@ -1214,9 +1214,10 @@ vector<BoxMemory> memoriesForClass(int classIdx);
 
 bool cellIsMapped(int i, int j);
 bool positionIsMapped(double x, double y);
-bool boxMemoryIntersects(BoxMemory b1, BoxMemory b2);
+bool boxMemoryIntersectPolygons(BoxMemory b1, BoxMemory b2);
+bool boxMemoryIntersectCentroid(BoxMemory b1, BoxMemory b2);
 bool boxMemoryContains(BoxMemory b, double x, double y);
-
+bool boxMemoryIntersectsMapCell(BoxMemory b, int map_i, int map_j);
 
 
 const double mapXMin = -1.5;
@@ -1447,9 +1448,12 @@ void timercallback1(const ros::TimerEvent&);
 void imageCallback(const sensor_msgs::ImageConstPtr& msg);
 void renderCoreView();
 void renderObjectMapView();
+void drawMapPolygon(gsl_matrix * poly, cv::Scalar color);
 void targetCallback(const geometry_msgs::Point& point);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata);
+gsl_matrix * boxMemoryToPolygon(BoxMemory b);
+gsl_matrix * mapCellToPolygon(int map_i, int map_j) ;
 
 void pilotInit();
 void spinlessPilotMain();
@@ -4170,6 +4174,16 @@ void renderObjectMapView() {
     objectMapViewerImage = Mat(800, 800, CV_8UC3);
   }
 
+  if (0) { // drawGrid
+    for (int i = 0; i < mapWidth; i++) {
+      for (int j = 0; j < mapHeight; j++) {
+        gsl_matrix * mapcell = mapCellToPolygon(i, j);
+        drawMapPolygon(mapcell, CV_RGB(0, 255, 0));
+        gsl_matrix_free(mapcell);
+      }
+    }
+  }
+
   objectMapViewerImage = CV_RGB(0, 0, 0);
   double pxMin = 0;
   double pxMax = objectMapViewerImage.cols;
@@ -4272,11 +4286,63 @@ void renderObjectMapView() {
     rectangle(objectMapViewerImage, outTop, outBot, 
               CV_RGB(255, 0, 0));
   }
+  
+  if (0) { // drawBoxMemoryIntersectTests
+
+    for (int i = 0; i < mapWidth; i++) {
+      for (int j = 0; j < mapHeight; j++) {
+        gsl_matrix * mapcell = mapCellToPolygon(i, j);
+
+        for (int b_i = 0; b_i < blueBoxMemories.size(); b_i++) {
+          BoxMemory b = blueBoxMemories[b_i];
+          gsl_matrix * poly = boxMemoryToPolygon(b);
+          cv::Scalar color;
+          if (boxMemoryIntersectsMapCell(b, i, j)) {
+            ros::Duration diff = objectMap[i + mapWidth * j].lastMappedTime - b.cameraTime;
+            cout << "box time: " << b.cameraTime << endl;
+            cout << "cell time: " << objectMap[i + mapWidth * j].lastMappedTime << endl;
+            cout << "diff: " << diff << endl;
+            if (diff < ros::Duration(2.0)) {
+              drawMapPolygon(poly, color);
+              drawMapPolygon(mapcell, CV_RGB(255, 255, 0));
+
+            }
+          }
+     
+          
+          gsl_matrix_free(poly);
+        }
+        gsl_matrix_free(mapcell);
+      }
+    }
+  }
 
   cv::imshow(objectMapViewerName, objectMapViewerImage);
 
 
 }
+
+void drawMapPolygon(gsl_matrix * polygon_xy, cv::Scalar color) {
+  for (size_t i = 0; i < polygon_xy->size2; i++) {
+    int j = (i + 1) % polygon_xy->size2;
+    gsl_vector_view p1 = gsl_matrix_column(polygon_xy, i);
+    gsl_vector_view p2 = gsl_matrix_column(polygon_xy, j);
+    double x1 = gsl_vector_get(&p1.vector, 0);
+    double y1 = gsl_vector_get(&p1.vector, 1);
+
+
+    double x2 = gsl_vector_get(&p2.vector, 0);
+    double y2 = gsl_vector_get(&p2.vector, 1);
+    double px1, px2, py1, py2;
+    cv::Point cvp1 = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                  x1, y1);
+    cv::Point cvp2 = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                  x2, y2);
+    line(objectMapViewerImage, cvp1, cvp2, color);
+  }
+
+}
+
 
 void renderCoreView() {
   Mat coreImage(800, 800, CV_64F);
@@ -4493,15 +4559,7 @@ void pilotInit() {
     eepReg3 = rssPoseL; //wholeFoodsCounterL;
 
 
-    // raw fence values (from John estimating arm limits)
-    //True EE Position (x,y,z): 0.448698 0.805331 0.288319
-    //True EE Position (x,y,z): -0.299706 0.885332 0.344286
-
-
-    //mapSearchFenceXMin = -0.25;
-    //mapSearchFenceXMax = 0.45;
-    //mapSearchFenceYMin = 0.78;
-    //mapSearchFenceYMax = 0.86;
+    // good fence values
     mapSearchFenceXMin = -0.4;
     mapSearchFenceXMax = 0.45;
     mapSearchFenceYMin = 0.58;
@@ -4511,6 +4569,15 @@ void pilotInit() {
     mapRejectFenceXMax = 0.45;
     mapRejectFenceYMin = 0.58;
     mapRejectFenceYMax = 0.96;
+
+    // small fence values (for debugging)
+    //mapSearchFenceXMin = 0;
+    //mapRejectFenceXMin = 0;
+
+    //mapSearchFenceXMax = 0.3;
+    //mapRejectFenceXMax = 0.3;
+
+
 
     // left arm
     // (313, 163)
@@ -11657,12 +11724,39 @@ gsl_matrix * boxMemoryToPolygon(BoxMemory b) {
   return polygon;
 }
 
-bool boxMemoryContains(BoxMemory b, double x, double y) {
-  gsl_matrix * polygon = boxMemoryToPolygon(b);
-  gsl_vector * point = math2d_point(x, y);
-  bool result = math2d_is_interior_point(point, polygon);
-  gsl_matrix_free(polygon);
-  gsl_vector_free(point);
+gsl_matrix * mapCellToPolygon(int map_i, int map_j) {
+  
+  double min_x, min_y;
+  mapijToxy(map_i, map_j, &min_x, &min_y);
+  double max_x = min_x + mapStep;
+  double max_y = min_y + mapStep;
+  double width = max_x - min_x;
+  double height = max_y - min_y;
+
+  gsl_matrix *  polygon = gsl_matrix_alloc(2, 4);
+  gsl_matrix_set(polygon, 0, 0, min_x);
+  gsl_matrix_set(polygon, 1, 0, min_y);
+
+  gsl_matrix_set(polygon, 0, 1, min_x + width);
+  gsl_matrix_set(polygon, 1, 1, min_y);
+
+  gsl_matrix_set(polygon, 0, 2, min_x + width);
+  gsl_matrix_set(polygon, 1, 2, min_y + height);
+
+  gsl_matrix_set(polygon, 0, 3, min_x);
+  gsl_matrix_set(polygon, 1, 3, min_y + height);
+  return polygon;
+}
+
+bool boxMemoryIntersectsMapCell(BoxMemory b, int map_i, int map_j) {
+  gsl_matrix * bpolygon = boxMemoryToPolygon(b);
+
+  gsl_matrix * map_cell = mapCellToPolygon(map_i, map_j);
+
+  bool result = math2d_overlaps(bpolygon, map_cell);
+  gsl_matrix_free(bpolygon);
+  gsl_matrix_free(map_cell);
+
   return result;
 }
 
@@ -11670,7 +11764,7 @@ bool boxMemoryTooOld(BoxMemory b) {
   
 }
 
-bool boxMemoryIntersects(BoxMemory b1, BoxMemory b2) {
+bool boxMemoryIntersectPolygons(BoxMemory b1, BoxMemory b2) {
   gsl_matrix * p1 = boxMemoryToPolygon(b1);
   gsl_matrix * p2 = boxMemoryToPolygon(b2);
 
@@ -11681,6 +11775,30 @@ bool boxMemoryIntersects(BoxMemory b1, BoxMemory b2) {
 
   return result;
 }
+
+bool boxMemoryIntersectCentroid(BoxMemory b1, BoxMemory b2) {
+  gsl_matrix * p1 = boxMemoryToPolygon(b1);
+  gsl_matrix * p2 = boxMemoryToPolygon(b2);
+  gsl_vector * p1_center = math2d_point(b1.centroid.px, b1.centroid.py);
+  gsl_vector * p2_center = math2d_point(b2.centroid.px, b2.centroid.py);
+
+  bool result;
+  if (math2d_is_interior_point(p2_center, p1) || 
+      math2d_is_interior_point(p1_center, p2)) {
+    result = true;
+  } else {
+    result = false;
+  }
+    
+  gsl_matrix_free(p1);
+  gsl_matrix_free(p2);
+  gsl_vector_free(p1_center);
+  gsl_vector_free(p2_center);
+
+  return result;
+}
+
+
 vector<BoxMemory> memoriesForClass(int classIdx) {
   vector<BoxMemory> results;
   for (int j = 0; j < blueBoxMemories.size(); j++) {
@@ -11920,6 +12038,7 @@ int main(int argc, char **argv) {
     pushWord("gradientServoTakeClosest"); 
     pushWord("synchronicServoTakeClosest");
   }
+  pushWord("printWords");
   pushWord("openGripper");
   pushWord("calibrateGripper");
   pushWord("shiftIntoGraspGear1"); // change gear to 1

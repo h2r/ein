@@ -55,6 +55,7 @@ virtual void execute() {
   pushWord("moveToNextMapPosition");
   //pushWord("setRandomPositionAndOrientationForHeightLearning");
   //pushWord("recordAllBlueBoxes");
+  pushWord("filterBoxMemories");
   pushWord("mapClosestBlueBox");
   pushWord("synchronicServo"); 
   pushWord("visionCycle");
@@ -308,7 +309,7 @@ virtual void execute() {
   vector<BoxMemory> newMemories;
   
   for (int i = 0; i < blueBoxMemories.size(); i++) {
-    if (!boxMemoryIntersects(box, blueBoxMemories[i])) {
+    if (!boxMemoryIntersectCentroid(box, blueBoxMemories[i])) {
       newMemories.push_back(blueBoxMemories[i]);
     }
   }
@@ -323,23 +324,30 @@ END_WORD
 
 WORD(FilterBoxMemories)
 virtual void execute() {
-  vector<BoxMemory> newMemories;
-  
+  set<int> boxMemoryIndexesToKeep;
+
   for (int i = 0; i < mapWidth; i++) {
     for (int j = 0; j < mapHeight; j++) {
-      double x, y;
-      mapijToxy(i, j, &x, &y);
       for (int b_i = 0; b_i < blueBoxMemories.size(); b_i++) {
         BoxMemory b = blueBoxMemories[b_i];
-        if (boxMemoryContains(b, x, y)) {
-          
+        if (boxMemoryIntersectsMapCell(b, i, j)) {
+          //if (b.cameraTime.sec > objectMap[i + mapWidth * j].lastMappedTime.sec) {
+          ros::Duration diff = objectMap[i + mapWidth * j].lastMappedTime - b.cameraTime;
+
+          if (diff < ros::Duration(2.0)) {
+            boxMemoryIndexesToKeep.insert(b_i);
+          }
         }
-        
       }
     }
   }
-  //newMemories.push_back(box);
-  //blueBoxMemories = newMemories;
+
+  vector<BoxMemory> newMemories;
+
+  for (std::set<int>::iterator it=boxMemoryIndexesToKeep.begin(); it!=boxMemoryIndexesToKeep.end(); ++it) {
+    newMemories.push_back(blueBoxMemories[*it]);
+  }
+  blueBoxMemories = newMemories;
 }
 END_WORD;
 
