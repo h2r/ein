@@ -222,6 +222,14 @@ void mapBox(BoxMemory boxMemory) {
       objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
       objectMap[i + mapWidth * j].detectedClass = boxMemory.labeledClassIndex;
 
+      if (ros::Time::now() - objectMap[i + mapWidth * j].lastMappedTime > mapMemoryTimeout) {
+        objectMap[i + mapWidth * j].b = 0;
+        objectMap[i + mapWidth * j].g = 0;
+        objectMap[i + mapWidth * j].r = 0;
+        objectMap[i + mapWidth * j].pixelCount = 0;
+      }
+      
+
 
       if (cam_img.rows != 0 && cam_img.cols != 0) {
         objectMap[i + mapWidth * j].b += (int) cam_img.at<cv::Vec3b>(py, px)[0];
@@ -266,6 +274,15 @@ virtual void execute() {
         pixelToGlobal(px, py, z, x, y);
         int i, j;
         mapxyToij(x, y, &i, &j);
+
+        if (ros::Time::now() - objectMap[i + mapWidth * j].lastMappedTime > mapMemoryTimeout) {
+          objectMap[i + mapWidth * j].b = 0;
+          objectMap[i + mapWidth * j].g = 0;
+          objectMap[i + mapWidth * j].r = 0;
+          objectMap[i + mapWidth * j].pixelCount = 0;
+        }
+
+
         objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
         randomizeNanos(&objectMap[i + mapWidth * j].lastMappedTime);
         

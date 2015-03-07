@@ -1238,6 +1238,7 @@ double mapRejectFenceYMax;
 
 const int mapWidth = (mapXMax - mapXMin) / mapStep;
 const int mapHeight = (mapYMax - mapYMin) / mapStep;
+const ros::Duration mapMemoryTimeout(10);
 
 MapCell objectMap[mapWidth * mapHeight];
 
