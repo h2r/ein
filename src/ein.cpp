@@ -4468,7 +4468,7 @@ void pilotInit() {
     double yend = 0.7;
     int numposes = 4;
     double ystep = (yend - ystart) / numposes;
-    eePose pose1 = {.px = 0.6, .py = 0.0544691, .pz = -0.0582791,
+    eePose pose1 = {.px = 0.65, .py = 0.0544691, .pz = -0.0582791,
                        .ox = 0, .oy = 0, .oz = 0,
                        .qx = 0, .qy = 1, .qz = 0, .qw = 0};
     for (int i = 0; i < numposes; i++) {
@@ -4562,7 +4562,7 @@ void pilotInit() {
     double yend = -0.1;
     int numposes = 4;
     double ystep = (yend - ystart) / numposes;
-    eePose pose1 = {.px = 0.6, .py = 0.0544691, .pz = -0.0582791,
+    eePose pose1 = {.px = 0.65, .py = 0.0544691, .pz = -0.0582791,
                        .ox = 0, .oy = 0, .oz = 0,
                        .qx = 0, .qy = 1, .qz = 0, .qw = 0};
     for (int i = 0; i < numposes; i++) {

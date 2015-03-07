@@ -27,7 +27,7 @@ virtual void execute() {
   pushWord("setPickModeToStaticMarginals"); 
   pushWord("setBoundingBoxModeToStaticMarginals"); 
   pushWord("synchronicServoDoNotTakeClosest"); 
-
+  pushWord("openGripper");
 }
 END_WORD
 
