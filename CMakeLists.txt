@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(node)
 
 find_package(catkin REQUIRED COMPONENTS
+  cmake_modules
   roscpp
   rospy
   std_msgs
@@ -17,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   baxter_core_msgs
   control_msgs
 )
+find_package(GSL REQUIRED)
 
 catkin_package(CATKIN_DEPENDS 
   eigen
@@ -35,8 +37,7 @@ include_directories(include
 
 
 set(OPENMP_FLAG "-fopenmp")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -g -std=c++11")
-
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -g -std=c++11 -fpermissive")
 set(CMAKE_BUILD_TYPE Debug)
 
 add_executable(capture_object src/capture_object.cpp)
@@ -132,6 +133,7 @@ target_link_libraries(ein
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
 	opencv_nonfree
+        ${GSL_LIBRARIES}
 	BINGLIB ###
 )
 
