@@ -21,8 +21,8 @@ virtual void execute() {
 
   
   pushWord("placeObjectInDeliveryZone");
-  pushWord("assertYesGrasp");
-  pushWord("prepareForAndExecuteGraspFromMemorySimple"); 
+  pushWord("assertNoGrasp");
+  pushWord("prepareForAndExecuteGraspFromMemory"); 
   pushWord("gradientServo");
   pushWord("waitUntilAtCurrentPosition");
   pushWord("setPickModeToStaticMarginals"); 

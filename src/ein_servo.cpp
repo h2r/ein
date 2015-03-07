@@ -578,9 +578,8 @@ END_WORD
 
 
 
-
-WORD(PrepareForAndExecuteGraspFromMemory)
-CODE(1048624)     // numlock + 0
+// XX We should get rid of this one and put the shake and count behaviors elsewhere. 
+WORD(PrepareForAndExecuteGraspFromMemoryLearning)
 virtual void execute()       {
 
   pushWord("visionCycle"); // vision cycle
@@ -597,7 +596,7 @@ virtual void execute()       {
   pushNoOps(30);
   pushWord("closeGripper"); // close gripper
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  pushCopies('w', 10);
+  pushCopies("zUp", 10);
   pushNoOps(30);
   pushWord("openGripper"); // open gripper
 
@@ -625,6 +624,47 @@ virtual void execute()       {
   }
 
   pushCopies("zDown", 3);
+  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+
+  if (ARE_GENERIC_HEIGHT_LEARNING()) {
+    pushWord("moveToRegister4"); // assume pose at register 4
+  } else {
+    pushWord("moveToRegister2"); // assume pose at register 2
+  }
+
+  pushNoOps(10);
+
+  pushWord("moveToTargetZAndGrasp"); 
+  pushWord("waitUntilAtCurrentPosition"); 
+  pushWord("assumeWinningGgAndXyInLocalPose"); 
+
+  pushWord("paintReticles"); 
+
+  pushWord("drawMapRegisters"); 
+
+  pushWord("loadTargetClassRangeMapIntoRegister1"); 
+
+
+
+  pushWord("setTargetReticleToTheMaxMappedPosition");
+  pushWord("findBestOfFourGraspsUsingMemory"); 
+
+  pushWord("loadTargetClassRangeMapIntoRegister1"); 
+  pushWord("initDepthScan"); 
+  pushWord("turnOffScanning"); 
+
+  pushWord("openGripper"); 
+
+}
+END_WORD
+
+
+
+
+
+WORD(PrepareForAndExecuteGraspFromMemory)
+virtual void execute()       {
+
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
   if (ARE_GENERIC_HEIGHT_LEARNING()) {
