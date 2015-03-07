@@ -25,7 +25,8 @@ virtual void execute() {
   pushWord("gradientServo");
   pushWord("waitUntilAtCurrentPosition");
   pushWord("setPickModeToStaticMarginals"); 
-  pushWord("setBoundingBoxModeToStaticMarginals"); 
+  pushWord("sampleHeight"); 
+  pushWord("setBoundingBoxModeToMapping"); 
   pushWord("synchronicServoDoNotTakeClosest"); 
   pushWord("openGripper");
 }
@@ -59,6 +60,7 @@ virtual void execute() {
   pushWord("visionCycle");
   pushWord("synchronicServoTakeClosest");
   pushCopies("noop", 5);
+  pushWord("sampleHeight"); 
   pushWord("setBoundingBoxModeToMapping");
 }
 END_WORD
@@ -317,6 +319,31 @@ virtual void execute() {
 
 }
 END_WORD
+
+
+WORD(FilterBoxMemories)
+virtual void execute() {
+  vector<BoxMemory> newMemories;
+  
+  for (int i = 0; i < mapWidth; i++) {
+    for (int j = 0; j < mapHeight; j++) {
+      double x, y;
+      mapijToxy(i, j, &x, &y);
+      for (int b_i = 0; b_i < blueBoxMemories.size(); b_i++) {
+        BoxMemory b = blueBoxMemories[b_i];
+        if (boxMemoryContains(b, x, y)) {
+          
+        }
+        
+      }
+    }
+  }
+  //newMemories.push_back(box);
+  //blueBoxMemories = newMemories;
+}
+END_WORD;
+
+
 
 
 
