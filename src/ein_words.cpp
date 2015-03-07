@@ -470,6 +470,7 @@ std::vector<Word *> create_words() {
   words.push_back(new ChangeToHeight2());
   words.push_back(new ChangeToHeight3());
   words.push_back(new WaitUntilAtCurrentPosition());
+  words.push_back(new AssumeDeliveryPose());
   words.push_back(new Beep());
   words.push_back(new ZeroGToggle());
   words.push_back(new VisionCycle());

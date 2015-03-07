@@ -1,3 +1,44 @@
+WORD(DeliverObject)
+virtual void execute() {
+  bailAfterGradient = 1;
+
+  pilotTarget.px = -1;
+  pilotTarget.py = -1;
+  pilotClosestTarget.px = -1;
+  pilotClosestTarget.py = -1;
+  
+  vector<BoxMemory> focusedClassMemories = memoriesForClass(focusedClass);
+  if (focusedClassMemories.size() == 0) {
+    cout << "can't find focused class. " << endl;
+    return;
+  }
+  if (focusedClassMemories.size() > 1) {
+    cout << "more than one bounding box for class.  Using first." << focusedClassMemories.size() << endl;
+    return;
+  }
+  BoxMemory memory = focusedClassMemories[0];
+  currentEEPose = memory.cameraPose;
+
+  
+  pushWord("placeObjectInDeliveryZone");
+  pushWord("assertYesGrasp");
+  pushWord("prepareForAndExecuteGraspFromMemorySimple"); 
+  pushWord("gradientServo");
+  pushWord("waitUntilAtCurrentPosition");
+  pushWord("setPickModeToStaticMarginals"); 
+  pushWord("setBoundingBoxModeToStaticMarginals"); 
+  pushWord("synchronicServoDoNotTakeClosest"); 
+
+}
+END_WORD
+
+WORD(PlaceObjectInDeliveryZone)
+virtual void execute() {
+  
+  pushWord("assumeDeliveryPose");
+}
+END_WORD
+
 WORD(MappingPatrol)
 CODE(196727) // capslock + W
 virtual void execute() {
