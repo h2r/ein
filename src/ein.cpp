@@ -1199,7 +1199,7 @@ typedef struct MapCell {
 void mapijToxy(int i, int j, double * x, double * y);
 void mapxyToij(double x, double y, int * i, int * j); 
 void initializeMap() ;
-
+int blueBoxForPixel(int px, int py);
 
 const double mapXMin = -1.5;
 const double mapXMax = 1.5;
@@ -1212,6 +1212,8 @@ const int mapHeight = (mapYMax - mapYMin) / mapStep;
 MapCell objectMap[mapWidth * mapHeight];
 
 vector<BoxMemory> blueBoxMemories;
+
+
 
 // create the blue boxes from the parental green boxes
 vector<cv::Point> bTops; 
@@ -11496,6 +11498,18 @@ void mapijToxy(int i, int j, double * x, double * y)
   *x = mapXMin + i * mapStep;
   *y = mapYMin + j * mapStep;
 }
+
+int blueBoxForPixel(int px, int py)
+{
+  for (int c = 0; c < bTops.size(); c++) {
+    if ((bTops[c].x <= px && px <= bBots[c].x) &&
+        (bTops[c].y <= py && py <= bBots[c].y)) {
+      return c;
+    }
+  }
+  return -1;
+}
+
 void initializeMap() 
 {
   for (int i = 0; i < mapWidth; i++) {
