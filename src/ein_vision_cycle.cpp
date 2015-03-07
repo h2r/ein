@@ -150,9 +150,6 @@ void mapBox(BoxMemory boxMemory) {
 
 
       if (cam_img.rows != 0 && cam_img.cols != 0) {
-        cout << "green: " << (int) cam_img.at<cv::Vec3b>(py, px)[0] << endl;
-        cout << "blue: " << (int) cam_img.at<cv::Vec3b>(py, px)[1] << endl;
-        cout << "red: " << (int) cam_img.at<cv::Vec3b>(py, px)[2] << endl;
         objectMap[i + mapWidth * j].b += (int) cam_img.at<cv::Vec3b>(py, px)[0];
         objectMap[i + mapWidth * j].g += (int) cam_img.at<cv::Vec3b>(py, px)[1];
         objectMap[i + mapWidth * j].r += (int) cam_img.at<cv::Vec3b>(py, px)[2];
@@ -168,6 +165,34 @@ virtual void execute() {
 
 }
 END_WORD;
+
+WORD(MapEmptySpace)
+virtual void execute() {
+  for (int px = 0; px < cam_img.cols; px++) {
+    for (int py = 0; py < cam_img.rows; py++) {
+      int blueBoxIdx = blueBoxForPixel(px, py);
+      if (blueBoxIdx == -1) {
+        double x, y;
+        double z = trueEEPose.position.z + currentTableZ;
+
+        pixelToGlobal(px, py, z, x, y);
+        int i, j;
+        mapxyToij(x, y, &i, &j);
+        objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
+        objectMap[i + mapWidth * j].detectedClass = -2;
+        objectMap[i + mapWidth * j].b += (int) cam_img.at<cv::Vec3b>(py, px)[0];
+        objectMap[i + mapWidth * j].g += (int) cam_img.at<cv::Vec3b>(py, px)[1];
+        objectMap[i + mapWidth * j].r += (int) cam_img.at<cv::Vec3b>(py, px)[2];
+        objectMap[i + mapWidth * j].pixelCount += 1.0;
+      }
+    }
+  }
+}
+END_WORD;
+
+
+
+
 
 WORD(MapClosestBlueBox)
 virtual void execute() {
@@ -209,6 +234,7 @@ END_WORD
 WORD(VisionCycle)
 CODE(131153)  // capslock + q
 virtual void execute() {
+  pushWord("mapEmptySpace");
   pushWord("goClassifyBlueBoxes"); 
   pushWord("goFindBlueBoxes"); 
   pushCopies("density", 4); 
