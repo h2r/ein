@@ -14,14 +14,13 @@ virtual void execute() {
   }
   if (focusedClassMemories.size() > 1) {
     cout << "more than one bounding box for class.  Using first." << focusedClassMemories.size() << endl;
-    return;
   }
   BoxMemory memory = focusedClassMemories[0];
   currentEEPose = memory.cameraPose;
 
   
   pushWord("placeObjectInDeliveryZone");
-  pushWord("assertNoGrasp");
+  pushWord("ifGrasp");
   pushWord("prepareForAndExecuteGraspFromMemory"); 
   pushWord("gradientServo");
   pushWord("waitUntilAtCurrentPosition");
@@ -34,7 +33,12 @@ END_WORD
 
 WORD(PlaceObjectInDeliveryZone)
 virtual void execute() {
-  
+  pushCopies("zUp", 20);
+  pushNoOps(30);
+  pushWord("openGripper"); 
+  pushNoOps(5);
+  pushWord("tryToMoveToTheLastPickHeight");   
+  pushWord("waitUntilAtCurrentPosition"); 
   pushWord("assumeDeliveryPose");
 }
 END_WORD
