@@ -464,8 +464,9 @@ eePose eepReg3 = beeHome;
 eePose eepReg4 = beeHome;
 eePose eepReg5 = beeHome;
 eePose eepReg6 = beeHome;
-std::vector<eePose> warehousePoses;
-int currentWarehousePose = 0;
+
+std::vector<eePose> deliveryPoses;
+int currentDeliveryPose = 0;
 
 int pilotTargetBlueBoxNumber = -1;
 int pilotClosestBlueBoxNumber = -1;
@@ -1206,6 +1207,7 @@ void randomizeNanos(ros::Time * time);
 int blueBoxForPixel(int px, int py);
 bool cellIsSearched(int i, int j);
 bool positionIsSearched(double x, double y);
+vector<BoxMemory> memoriesForClass(int classIdx);
 
 bool cellIsMapped(int i, int j);
 bool positionIsMapped(double x, double y);
@@ -2515,8 +2517,10 @@ void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
     cout << "Could not find class " << fetchCommand << endl; 
   } else {
     clearStack();
+
     changeTargetClass(class_idx);
     pushWord("twoDPatrolStart");
+    pushWord("mappingPatrol");
     execute_stack = 1;
   }
 }
@@ -4537,28 +4541,20 @@ void pilotInit() {
     //defaultReticle = centerReticle;
     reticle = defaultReticle;
 
+    double ystart = -0.4;
+    double yend = 0.2;
+    int numposes = 4;
+    double ystep = (yend - ystart) / numposes;
+    eePose pose1 = {.px = 0.6, .py = 0.0544691, .pz = -0.0582791,
+                       .ox = 0, .oy = 0, .oz = 0,
+                       .qx = 0, .qy = 1, .qz = 0, .qw = 0};
+    for (int i = 0; i < numposes; i++) {
+      deliveryPoses.push_back(pose1);
+    }
+    for (int i = 0; i < numposes; i++) {
+      deliveryPoses[i].py = ystart + i * ystep;
+    }
 
-    
-    eePose pose1 = {.px = 0.233681, .py = -0.853305, .pz = 0.0536631,
-                    .ox = 0, .oy = 0, .oz = 0,
-                    .qx = 0.00408151, .qy = 0.999991, .qz = -0.00108426, .qw = 0.000678766};
-
-    eePose pose2 = {.px = 0.255665, .py = -0.661719, .pz = 0.0527955,
-                    .ox = 0, .oy = 0, .oz = 0,
-                    .qx = 0.00369431, .qy = 0.99999, .qz = 0.00231318, .qw = -0.00063272};
-
-    eePose pose3 = {.px = 0.00579471, .py = -0.642449, .pz = 0.0727708,
-                    .ox = 0, .oy = 0, .oz = 0,
-                    .qx = 0.00248598, .qy = 0.999995, .qz = 0.00201974, .qw = -0.000816647};
-
-    eePose pose4 = {.px = 0.0249181, .py = -0.850118, .pz = 0.0713887,
-                    .ox = 0, .oy = 0, .oz = 0,
-                    .qx = 0.00331993, .qy = 0.999982, .qz = 0.00477704, .qw = -0.00145784};
-
-    warehousePoses.push_back(pose1);
-    warehousePoses.push_back(pose2);
-    warehousePoses.push_back(pose3);
-    warehousePoses.push_back(pose4);
 
     rssPose = rssPoseR;
     ik_reset_eePose = rssPose;
@@ -4592,6 +4588,17 @@ void pilotInit() {
     mapRejectFenceXMax = 0.7;
     mapRejectFenceYMin = -1.06;
     mapRejectFenceYMax = -0.58;
+
+    mapSearchFenceXMin = -0.4;
+    mapSearchFenceXMax = 0.45;
+    mapSearchFenceYMin = -0.96;
+    mapSearchFenceYMax = -0.58;
+
+    mapRejectFenceXMin = -0.4;
+    mapRejectFenceXMax = 0.45;
+    mapRejectFenceYMin = -0.96;
+    mapRejectFenceYMax = -0.58;
+
 
 
     // right arm
@@ -6954,7 +6961,7 @@ void gradientServo() {
             if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
               pushWord("prepareForAndExecuteGraspFromMemory"); // prepare for and execute the best grasp from memory at the current location and target
             else {
-              pushWord(196729); // quick fetch
+              ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
             }
           } else {
             return;
@@ -11638,6 +11645,15 @@ bool boxMemoryIntersects(BoxMemory b1, BoxMemory b2) {
   gsl_matrix_free(p2);
 
   return result;
+}
+vector<BoxMemory> memoriesForClass(int classIdx) {
+  vector<BoxMemory> results;
+  for (int j = 0; j < blueBoxMemories.size(); j++) {
+    if (blueBoxMemories[j].labeledClassIndex == focusedClass) {
+      results.push_back(blueBoxMemories[j]);
+    }
+  }
+  return results;
 }
 
 bool cellIsMapped(int i, int j) {

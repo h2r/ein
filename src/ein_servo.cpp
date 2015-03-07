@@ -217,7 +217,7 @@ CODE( 131157)     // capslock + u
   // TODO push this and then a calibration message if uncalibrated
   // push this again if moving
   if (gripperMoving) {
-    pushWord(131157); // assert yes grasp
+    pushWord("assertYesGrasp"); // assert yes grasp
   } else {
     if (isGripperGripping())
       {
@@ -247,7 +247,7 @@ CODE(196649)     // capslock + i
   cout << "assert no grasp: " << gripperMoving << " " << gripperGripping << " " << gripperPosition << endl;
 
   if (gripperMoving) {
-    pushWord(196649); // assert no grasp
+    pushWord("assertNoGrasp"); // assert no grasp
   } else {
     if (!isGripperGripping())  {
       popWord();
@@ -268,7 +268,7 @@ CODE(196649)     // capslock + i
         sad();
       }
     }
-    pushWord('k'); // open gripper
+    pushWord("openGripper"); // open gripper
 
   }
 
@@ -282,23 +282,23 @@ CODE( 131151)     // capslock + o
   int flexThisFar = 80;
   cout << "SHAKING IT OFF!!!" << endl;
   pushWord(196719); // shake it off 2
-  pushWord(196649); // assert no grasp
+  pushWord("assertNoGrasp"); // assert no grasp
 
   pushNoOps(60);
   //pushWord('2'); // assume pose at register 2
   pushWord('j'); // close gripper
   pushNoOps(20);
-  pushWord('k'); // open gripper
+  pushWord("openGripper"); // open gripper
   pushWord('j'); // close gripper
   pushNoOps(20);
   //pushCopies('w', depthToPlunge); // move up 
-  pushWord('k'); // open gripper
+  pushWord("openGripper"); // open gripper
   pushWord('j'); // close gripper
   //pushNoOps(20);
   //pushCopies('s'+65504, flexThisFar); // rotate forward
   //pushCopies('e', 5); // move forward
   //pushCopies('s', depthToPlunge); // move down
-  pushWord('k'); // open gripper
+  pushWord("openGripper"); // open gripper
   pushNoOps(50);
   //pushCopies('w'+65504, flexThisFar); // rotate forward
 
@@ -590,16 +590,16 @@ virtual void execute()       {
 
   pushWord("countGrasp"); //count grasp
 
-  pushWord('k'); // open gripper
+  pushWord("openGripper"); // open gripper
   pushWord(131151); // shake it off 1
-  pushWord(196649); // assert no grasp
+  pushWord("assertNoGrasp"); // assert no grasp
 
   pushNoOps(30);
   pushWord('j'); // close gripper
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   pushCopies('w', 10);
   pushNoOps(30);
-  pushWord('k'); // open gripper
+  pushWord("openGripper"); // open gripper
 
   pushNoOps(5);
   pushWord(262241); // try to move to the last pick height 
@@ -660,7 +660,7 @@ virtual void execute()       {
   { // this sets the gripper closed thresh appropriately
     pushWord(1179713); // set gripperThresh 
     pushNoOps(30);
-    pushWord('k'); // open gripper
+    pushWord("openGripper"); // open gripper
     pushNoOps(30);
     pushWord('j'); // close gripper
     pushWord('i'); // initialize gripper

@@ -1,3 +1,13 @@
+WORD(AssumeDeliveryPose)
+virtual void execute() {
+  double oldz = currentEEPose.pz;
+  currentEEPose = deliveryPoses[currentDeliveryPose];
+  currentEEPose.pz = oldz;
+  currentDeliveryPose = (currentDeliveryPose + 1) % deliveryPoses.size();
+  pushWord("waitUntilAtCurrentPosition");
+}
+END_WORD
+
 WORD(WaitUntilAtCurrentPosition)
 CODE(131154)    // capslock + r
 virtual void execute() {
