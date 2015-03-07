@@ -55,6 +55,7 @@ virtual void execute() {
   pushWord("visionCycle");
   pushWord("synchronicServoTakeClosest");
   pushCopies("noop", 5);
+  pushWord("setBoundingBoxModeToMapping");
 }
 END_WORD
 

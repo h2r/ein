@@ -308,6 +308,13 @@ virtual void execute() {
 END_WORD
 
 
+WORD(SetBoundingBoxModeToMapping)
+virtual void execute() {
+  currentBoundingBoxMode = MAPPING;
+  cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
+}
+END_WORD
+
 WORD(SetBoundingBoxModeToStaticPrior)
 CODE(1179722)     // capslock + numlock + j
 virtual void execute() {
@@ -397,9 +404,15 @@ END_WORD
 
 WORD(SampleHeight)
 CODE(1245247)   // capslock + numlock + ?
+const int mappingHeightIdx = 1;
 virtual void execute() {
+    
   if (currentBoundingBoxMode != STATIC_PRIOR) {
-    if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+    if (currentBoundingBoxMode == MAPPING) {
+      currentThompsonHeight = convertHeightIdxToGlobalZ(mappingHeightIdx);
+      currentThompsonHeightIdx = mappingHeightIdx;
+      currentEEPose.pz = currentThompsonHeight;
+    } else if (currentBoundingBoxMode == LEARNING_SAMPLING) {
       loadSampledHeightMemory();
     } else if (currentBoundingBoxMode == STATIC_MARGINALS) {
       loadMarginalHeightMemory();
