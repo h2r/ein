@@ -68,18 +68,19 @@ def save_history_hook():
 
 def main():
     import sys
-    rospy.init_node("ein_client")
+    if (len(sys.argv) != 2):
+        print "usage:  ein_client.py left|right"
+        return
+
+    arm = sys.argv[1]
+
+    rospy.init_node("ein_client_%s" % arm)
     words = []
     for wordline in open("ein_words.txt"):
         words.append(wordline.split(" ")[0])
         
     print words
 
-    if (len(sys.argv) != 2):
-        print "usage:  ein_client.py left|right"
-        return
-
-    arm = sys.argv[1]
 
     client = EinClient(words, "/ein/%s/forth_commands" % arm)
 
