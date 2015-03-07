@@ -44,6 +44,8 @@ class EinClient:
                                                        std_msgs.msg.String, queue_size=10)
         
         readline.set_completer(SimpleCompleter(words).complete)
+        save_history_hook()
+
 
     def ask(self):
 
@@ -54,7 +56,18 @@ class EinClient:
             print 'ENTERED: "%s"' % line
             self.forth_command_publisher.publish(line);
 
+def save_history_hook():
+    import os
+    histfile = os.path.join(os.path.expanduser("~"), ".ein_client_history")
+    try:
+        readline.read_history_file(histfile)
+    except IOError:
+        pass
+    import atexit
+    atexit.register(readline.write_history_file, histfile)
+
 def main():
+    import sys
     rospy.init_node("ein_client")
     words = []
     for wordline in open("ein_words.txt"):
@@ -62,7 +75,13 @@ def main():
         
     print words
 
-    client = EinClient(words, "/ein/right/forth_commands")
+    if (len(sys.argv) != 2):
+        print "usage:  ein_client.py left|right"
+        return
+
+    arm = sys.argv[1]
+
+    client = EinClient(words, "/ein/%s/forth_commands" % arm)
 
     client.ask()
 
