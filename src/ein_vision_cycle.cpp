@@ -6,13 +6,38 @@ virtual void execute() {
 
   pushWord("mappingPatrol");
   pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
-  pushWord("setRandomPositionAndOrientationForHeightLearning");
+  pushWord("moveToNextMapPosition");
+  //pushWord("setRandomPositionAndOrientationForHeightLearning");
   //pushWord("recordAllBlueBoxes");
   pushWord("mapClosestBlueBox");
   pushWord("synchronicServo"); 
   pushWord("visionCycle");
   pushWord("synchronicServoTakeClosest");
   pushCopies("noop", 5);
+}
+END_WORD
+
+WORD(MoveToNextMapPosition)
+virtual void execute() {
+  ros::Time oldestTime = ros::Time::now();
+  int oldestI=-1, oldestJ=-1;
+
+  for (int i = 0; i < mapWidth; i++) {
+    for (int j = 0; j < mapHeight; j++) {
+      if (cellIsSearched(i, j) &&
+          (objectMap[i + mapWidth * j].lastMappedTime <= oldestTime)) {
+        oldestTime = objectMap[i + mapWidth * j].lastMappedTime;
+        oldestI = i;
+        oldestJ = j;
+      }
+    }
+  }
+  double oldestX, oldestY;
+  mapijToxy(oldestI, oldestJ, &oldestX, &oldestY);
+
+  currentEEPose.px = oldestX;
+  currentEEPose.py = oldestY;
+  pushWord("waitUntilAtCurrentPosition");
 }
 END_WORD
 
@@ -177,8 +202,8 @@ bool isInGripperMask(int x, int y) {
 
 WORD(MapEmptySpace)
 virtual void execute() {
-  for (int px = 0; px < cam_img.cols; px++) {
-    for (int py = 0; py < cam_img.rows; py++) {
+  for (int px = grayTop.x; px < grayBot.x; px++) {
+    for (int py = grayTop.y; py < grayBot.y; py++) {
 
       if (mask_gripper && isInGripperMask(px, py)) {
 	continue;

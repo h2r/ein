@@ -1200,6 +1200,13 @@ void mapijToxy(int i, int j, double * x, double * y);
 void mapxyToij(double x, double y, int * i, int * j); 
 void initializeMap() ;
 int blueBoxForPixel(int px, int py);
+bool cellIsSearched(int i, int j);
+bool positionIsSearched(double x, double y);
+
+bool cellIsMapped(int i, int j);
+bool positionIsMapped(double x, double y);
+
+
 
 const double mapXMin = -1.5;
 const double mapXMax = 1.5;
@@ -1207,10 +1214,15 @@ const double mapYMin = -1.5;
 const double mapYMax = 1.5;
 const double mapStep = 0.01;
 
-double mapFenceXMin;
-double mapFenceXMax;
-double mapFenceYMin;
-double mapFenceYMax;
+double mapSearchFenceXMin;
+double mapSearchFenceXMax;
+double mapSearchFenceYMin;
+double mapSearchFenceYMax;
+
+double mapRejectFenceXMin;
+double mapRejectFenceXMax;
+double mapRejectFenceYMin;
+double mapRejectFenceYMax;
 
 const int mapWidth = (mapXMax - mapXMin) / mapStep;
 const int mapHeight = (mapYMax - mapYMin) / mapStep;
@@ -4230,15 +4242,26 @@ void renderObjectMapView() {
 
   }
 
-  { // drawFence
+  { // drawMapSearchFence
     
     cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
-                                    mapFenceXMin, mapFenceYMin);
+                                    mapSearchFenceXMin, mapSearchFenceYMin);
     cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
-                                    mapFenceXMax, mapFenceYMax);
+                                    mapSearchFenceXMax, mapSearchFenceYMax);
 
     rectangle(objectMapViewerImage, outTop, outBot, 
               CV_RGB(255, 255, 0));
+  }
+
+  { // drawMapRejectFence
+    
+    cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                    mapRejectFenceXMin, mapRejectFenceYMin);
+    cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                    mapRejectFenceXMax, mapRejectFenceYMax);
+
+    rectangle(objectMapViewerImage, outTop, outBot, 
+              CV_RGB(255, 0, 0));
   }
 
   cv::imshow(objectMapViewerName, objectMapViewerImage);
@@ -4452,12 +4475,19 @@ void pilotInit() {
     //True EE Position (x,y,z): -0.299706 0.885332 0.344286
 
 
-    mapFenceXMin = -0.3;
-    mapFenceXMax = 0.5;
-    mapFenceYMin = 0.78;
-    mapFenceYMax = 0.86;
+    //mapSearchFenceXMin = -0.25;
+    //mapSearchFenceXMax = 0.45;
+    //mapSearchFenceYMin = 0.78;
+    //mapSearchFenceYMax = 0.86;
+    mapSearchFenceXMin = -0.4;
+    mapSearchFenceXMax = 0.45;
+    mapSearchFenceYMin = 0.58;
+    mapSearchFenceYMax = 0.96;
 
-
+    mapRejectFenceXMin = -0.4;
+    mapRejectFenceXMax = 0.45;
+    mapRejectFenceYMin = 0.58;
+    mapRejectFenceYMax = 0.96;
 
     // left arm
     // (313, 163)
@@ -4549,10 +4579,15 @@ void pilotInit() {
     //True EE Position (x,y,z): 0.525236 -0.841226 0.217111
 
 
-    mapFenceXMin = -0.3;
-    mapFenceXMax = 0.5;
-    mapFenceYMin = -0.86;
-    mapFenceYMax = -0.78;
+    mapSearchFenceXMin = -0.25;
+    mapSearchFenceXMax = 0.45;
+    mapSearchFenceYMin = -0.86;
+    mapSearchFenceYMax = -0.78;
+
+    mapRejectFenceXMin = -0.1;
+    mapRejectFenceXMax = 0.7;
+    mapRejectFenceYMin = -1.06;
+    mapRejectFenceYMax = -0.58;
 
 
     // right arm
@@ -7091,24 +7126,10 @@ void synchronicServo() {
 
       return;	
     } else {
-      //cout << "executing P controller update." << endl;
-      pushWord("synchronicServo"); // synchronic servo
-      // simple servo code because there is no hysteresis to be found
 
-
-      // ATTN 3
-      //double thisKp = max(synServoMinKp, synKp * pow(synServoKDecay, double(synServoLockFrames)));
-      // ATTN 12
       double thisKp = synKp;
       double pTermX = thisKp*Px;
       double pTermY = thisKp*Py;
-      //cout << " synKp synServoLockFrames synServoKDecay thisKp: " << synKp << " " << synServoLockFrames << " " << synServoKDecay << " " << thisKp << endl;
-      //double pTermX = synKp*Px;
-      //double pTermY = synKp*Py;
-
-
-      //currentEEPose.py += pTermX;
-      //currentEEPose.px += pTermY;
 
       // invert the current eePose orientation to decide which direction to move from POV
       Eigen::Vector3f localUnitX;
@@ -7133,11 +7154,19 @@ void synchronicServo() {
 	localUnitY.z() = qout.z();
       }
 
-      currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
-      currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
+      double newx = currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
+      double newy = currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
 
-      pushWord("visionCycle"); // vision cycle
-      pushWord("waitUntilAtCurrentPosition"); 
+      if (!positionIsMapped(newx, newy)) {
+        cout << "Returning because position is out of map bounds." << endl;
+        return;
+      } else {
+        pushWord("synchronicServo"); 
+        currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
+        currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
+        pushWord("visionCycle"); // vision cycle
+        pushWord("waitUntilAtCurrentPosition"); 
+      }
     }
   }
 }
@@ -11556,6 +11585,37 @@ void mapijToxy(int i, int j, double * x, double * y)
   *x = mapXMin + i * mapStep;
   *y = mapYMin + j * mapStep;
 }
+bool cellIsSearched(int i, int j) {
+  double x, y;
+  mapijToxy(i, j, &x, &y);
+  return positionIsSearched(x, y);
+}
+
+bool positionIsSearched(double x, double y) {
+  if ((mapSearchFenceXMin <= x && x <= mapSearchFenceXMax) &&
+      (mapSearchFenceYMin <= y && y <= mapSearchFenceYMax)) {
+    return true;
+  } else {
+    return false;
+  }
+
+}
+
+
+bool cellIsMapped(int i, int j) {
+  double x, y;
+  mapijToxy(i, j, &x, &y);
+  return positionIsMapped(x, y);
+}
+bool positionIsMapped(double x, double y) {
+  if ((mapRejectFenceXMin <= x && x <= mapRejectFenceXMax) &&
+      (mapRejectFenceYMin <= y && y <= mapRejectFenceYMax)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 
 int blueBoxForPixel(int px, int py)
 {
@@ -11573,6 +11633,11 @@ void initializeMap()
   for (int i = 0; i < mapWidth; i++) {
     for(int j = 0; j < mapHeight; j++) {
       objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
+
+      double nanoseconds = (rk_double(&random_state) - 0.5) * 1000;
+      
+      objectMap[i + mapWidth * j].lastMappedTime.nsec = nanoseconds; // make it be more random
+
       objectMap[i + mapWidth * j].detectedClass = -1;
       objectMap[i + mapWidth * j].pixelCount = 0;
       objectMap[i + mapWidth * j].r = 0;
