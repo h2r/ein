@@ -1215,6 +1215,7 @@ vector<BoxMemory> memoriesForClass(int classIdx);
 bool cellIsMapped(int i, int j);
 bool positionIsMapped(double x, double y);
 bool boxMemoryIntersects(BoxMemory b1, BoxMemory b2);
+bool boxMemoryContains(BoxMemory b, double x, double y);
 
 
 
@@ -4176,9 +4177,6 @@ void renderObjectMapView() {
   double pyMax = objectMapViewerImage.rows;
 
   cv::Point center = cv::Point(pxMax/2, pyMax/2);
-  for (int i = 0; i < blueBoxMemories.size(); i++) {
-    BoxMemory memory = blueBoxMemories[i];
-  }
 
   for (int i = 0; i < mapWidth; i++) {
     for (int j = 0; j < mapHeight; j++) {
@@ -11657,6 +11655,19 @@ gsl_matrix * boxMemoryToPolygon(BoxMemory b) {
   gsl_matrix_set(polygon, 0, 3, min_x);
   gsl_matrix_set(polygon, 1, 3, min_y + height);
   return polygon;
+}
+
+bool boxMemoryContains(BoxMemory b, double x, double y) {
+  gsl_matrix * polygon = boxMemoryToPolygon(b);
+  gsl_vector * point = math2d_point(x, y);
+  bool result = math2d_is_interior_point(point, polygon);
+  gsl_matrix_free(polygon);
+  gsl_vector_free(point);
+  return result;
+}
+
+bool boxMemoryTooOld(BoxMemory b) {
+  
 }
 
 bool boxMemoryIntersects(BoxMemory b1, BoxMemory b2) {
