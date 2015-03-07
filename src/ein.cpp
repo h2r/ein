@@ -1206,6 +1206,12 @@ const double mapXMax = 1.5;
 const double mapYMin = -1.5;
 const double mapYMax = 1.5;
 const double mapStep = 0.01;
+
+double mapFenceXMin;
+double mapFenceXMax;
+double mapFenceYMin;
+double mapFenceYMax;
+
 const int mapWidth = (mapXMax - mapXMin) / mapStep;
 const int mapHeight = (mapYMax - mapYMin) / mapStep;
 
@@ -4224,6 +4230,17 @@ void renderObjectMapView() {
 
   }
 
+  { // drawFence
+    
+    cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                    mapFenceXMin, mapFenceYMin);
+    cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                    mapFenceXMax, mapFenceYMax);
+
+    rectangle(objectMapViewerImage, outTop, outBot, 
+              CV_RGB(255, 255, 0));
+  }
+
   cv::imshow(objectMapViewerName, objectMapViewerImage);
 
 
@@ -4429,6 +4446,19 @@ void pilotInit() {
     eepReg2 = rssPoseL; //wholeFoodsPantryL;
     eepReg3 = rssPoseL; //wholeFoodsCounterL;
 
+
+    // raw fence values (from John estimating arm limits)
+    //True EE Position (x,y,z): 0.448698 0.805331 0.288319
+    //True EE Position (x,y,z): -0.299706 0.885332 0.344286
+
+
+    mapFenceXMin = -0.3;
+    mapFenceXMax = 0.5;
+    mapFenceYMin = 0.78;
+    mapFenceYMax = 0.86;
+
+
+
     // left arm
     // (313, 163)
     vanishingPointReticle.px = 313;
@@ -4512,6 +4542,18 @@ void pilotInit() {
     eepReg1 = rssPoseR; //wholeFoodsBagR;
     eepReg2 = rssPoseR; //wholeFoodsPantryR;
     eepReg3 = rssPoseR; //wholeFoodsCounterR;
+
+
+    // raw fence values (from John estimating arm limits)
+    // True EE Position (x,y,z): -0.329642 -0.77571 0.419954
+    //True EE Position (x,y,z): 0.525236 -0.841226 0.217111
+
+
+    mapFenceXMin = -0.3;
+    mapFenceXMax = 0.5;
+    mapFenceYMin = -0.86;
+    mapFenceYMax = -0.78;
+
 
     // right arm
     // (313, 185)
