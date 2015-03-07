@@ -1192,17 +1192,20 @@ struct BoxMemory {
 typedef struct MapCell {
   ros::Time lastMappedTime;
   int detectedClass; // -1 means not denied
-  
+  double r, g, b;
+  double pixelCount;
 } MapCell;
+
 void mapijToxy(int i, int j, double * x, double * y);
 void mapxyToij(double x, double y, int * i, int * j); 
+void initializeMap() ;
 
 
-const double mapXMin = -1;
-const double mapXMax = 1;
-const double mapYMin = -1;
-const double mapYMax = 1;
-const double mapStep = 0.05;
+const double mapXMin = -1.5;
+const double mapXMax = 1.5;
+const double mapYMin = -1.5;
+const double mapYMax = 1.5;
+const double mapStep = 0.01;
 const int mapWidth = (mapXMax - mapXMin) / mapStep;
 const int mapHeight = (mapYMax - mapYMin) / mapStep;
 
@@ -1480,7 +1483,7 @@ int isThisGraspMaxedOut(int i);
 
 void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY);
 void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY);
-eePose pixelToEEPose(int pX, int pY, double gZ);
+eePose pixelToGlobalEEPose(int pX, int pY, double gZ);
 
 void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor);
 
@@ -4122,7 +4125,7 @@ cv::Point worldToPixel(Mat image, double xMin, double xMax, double yMin, double 
 
 void renderObjectMapView() {
   if (objectMapViewerImage.rows <= 0 ) {
-    objectMapViewerImage = Mat(800, 800, CV_64FC3);
+    objectMapViewerImage = Mat(800, 800, CV_8UC3);
   }
 
   objectMapViewerImage = CV_RGB(0, 0, 0);
@@ -4130,7 +4133,7 @@ void renderObjectMapView() {
   double pxMax = objectMapViewerImage.cols;
   double pyMin = 0;
   double pyMax = objectMapViewerImage.rows;
-  double step = 0.05;
+
   cv::Point center = cv::Point(pxMax/2, pyMax/2);
   for (int i = 0; i < blueBoxMemories.size(); i++) {
     BoxMemory memory = blueBoxMemories[i];
@@ -4140,38 +4143,38 @@ void renderObjectMapView() {
     for (int j = 0; j < mapHeight; j++) {
 
       double x, y;
-      
-      //double x = mapXMin + i * mapStep;
-      //double y = mapYMin + j * mapStep;
-      for (int i = 0; i < blueBoxMemories.size(); i++) {
-        BoxMemory memory = blueBoxMemories[i];
-        string class_name = classLabels[memory.labeledClassIndex];
-          
-        double tx, ty;
-        pixelToGlobal(memory.bTop.x, memory.bTop.y, currentTableZ, tx, ty);
-        
-        tx = memory.eeCentroid.px;
-        ty = memory.eeCentroid.py;
+      mapijToxy(i, j, &x, &y);
 
-        if ((x <= tx && tx <= x + step) &&
-            (y <= ty && ty <= y + step) && class_name != "background") {
-          
-          cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, x, y);
-
-          cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, x + step, y + step);
-
-          rectangle(objectMapViewerImage, outTop, outBot, CV_RGB(255, 255, 255));
-
-          cv::Point objectPoint = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
-                                               tx, ty);
-          putText(objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, Scalar(255, 255, 255), 2.0);
-
-
-          circle(objectMapViewerImage, objectPoint, 10, CV_RGB(255, 255, 255));
-        }
+      if (objectMap[i + mapWidth * j].detectedClass != -1) {
+        cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, x, y);
+        cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, x + mapStep, y + mapStep);
+        cv::Scalar color = CV_RGB((int) objectMap[i + mapWidth * j].r / objectMap[i + mapWidth * j].pixelCount,
+                                  (int) objectMap[i + mapWidth * j].g / objectMap[i + mapWidth * j].pixelCount,
+                                  (int) objectMap[i + mapWidth * j].b / objectMap[i + mapWidth * j].pixelCount);
+        double area = (outBot.x - outTop.x)  * (outBot.y - outTop.y);
+        rectangle(objectMapViewerImage, outTop, outBot, 
+                  color,
+                  CV_FILLED);
       }
     }
   }
+  for (int i = 0; i < blueBoxMemories.size(); i++) {
+    BoxMemory memory = blueBoxMemories[i];
+    string class_name = classLabels[memory.labeledClassIndex];
+    
+    double tx, ty;
+    pixelToGlobal(memory.bTop.x, memory.bTop.y, currentTableZ, tx, ty);
+    
+    tx = memory.eeCentroid.px;
+    ty = memory.eeCentroid.py;
+    
+    cv::Point objectPoint = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                         tx, ty);
+    objectPoint.x += 15;
+    putText(objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, Scalar(255, 255, 255), 2.0);
+    
+  }
+
   
   
   { // drawRobot
@@ -7373,7 +7376,6 @@ int isThisGraspMaxedOut(int i) {
 eePose pixelToGlobalEEPose(int pX, int pY, double gZ) {
   eePose result;
   pixelToGlobal(pX, pY, gZ, result.px, result.py);
-// XXX check to see if this is right...
   result.pz = trueEEPose.position.z - currentTableZ;
   result.ox = 0;
   result.oy = 0;
@@ -11483,6 +11485,33 @@ void testIncbet() {
   }
 }
 
+
+void mapxyToij(double x, double y, int * i, int * j) 
+{
+  *i = round((x - mapXMin) / mapStep);
+  *j = round((y - mapYMin) / mapStep);
+}
+void mapijToxy(int i, int j, double * x, double * y) 
+{
+  *x = mapXMin + i * mapStep;
+  *y = mapYMin + j * mapStep;
+}
+void initializeMap() 
+{
+  for (int i = 0; i < mapWidth; i++) {
+    for(int j = 0; j < mapHeight; j++) {
+      objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
+      objectMap[i + mapWidth * j].detectedClass = -1;
+      objectMap[i + mapWidth * j].pixelCount = 0;
+      objectMap[i + mapWidth * j].r = 0;
+      objectMap[i + mapWidth * j].g = 0;
+      objectMap[i + mapWidth * j].b = 0;
+
+    }
+  }
+}
+
+
 ////////////////////////////////////////////////
 // end node definitions 
 //
@@ -11645,6 +11674,8 @@ int main(int argc, char **argv) {
 
   frameGraySobel = Mat(1,1,CV_64F);
 
+  initializeMap();
+
   spinlessNodeMain();
   spinlessPilotMain();
 
@@ -11670,16 +11701,6 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-void mapxyToij(double x, double y, int * i, int * j) 
-{
-  *i = round((x - mapXMin) / mapStep);
-  *j = round((y - mapYMin) / mapStep);
-}
-void mapijToxy(int i, int j, double * x, double * y) 
-{
-  *x = mapXMin + i * mapStep;
-  *y = mapYMin + j * mapStep;
-}
 
 #include "ein_words.cpp"
 
