@@ -594,6 +594,7 @@ std::vector<Word *> create_words() {
   words.push_back(new InitializeMap());
   words.push_back(new MapClosestBlueBox());
   words.push_back(new MapEmptySpace());
+  words.push_back(new MoveToNextMapPosition());
 
   words.push_back(new IncMx());
   words.push_back(new DecMx());
