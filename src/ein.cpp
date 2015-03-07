@@ -76,6 +76,9 @@
 #include "ros/time.h"
 #include <ctime>
 
+// slu
+#include "slu/math2d.h"
+
 // numpy library 1 (randomkit, for original beta)
 #include "distributions.h"
 // numpy library 2 (cephes, for betainc)
@@ -1199,12 +1202,14 @@ typedef struct MapCell {
 void mapijToxy(int i, int j, double * x, double * y);
 void mapxyToij(double x, double y, int * i, int * j); 
 void initializeMap() ;
+void randomizeNanos(ros::Time * time);
 int blueBoxForPixel(int px, int py);
 bool cellIsSearched(int i, int j);
 bool positionIsSearched(double x, double y);
 
 bool cellIsMapped(int i, int j);
 bool positionIsMapped(double x, double y);
+bool boxMemoryIntersects(BoxMemory b1, BoxMemory b2);
 
 
 
@@ -1230,7 +1235,6 @@ const int mapHeight = (mapYMax - mapYMin) / mapStep;
 MapCell objectMap[mapWidth * mapHeight];
 
 vector<BoxMemory> blueBoxMemories;
-
 
 
 // create the blue boxes from the parental green boxes
@@ -11601,6 +11605,40 @@ bool positionIsSearched(double x, double y) {
 
 }
 
+gsl_matrix * boxMemoryToPolygon(BoxMemory b) {
+  double min_x = b.top.px;
+  double min_y = b.top.py;
+  double max_x = b.bot.px;
+  double max_y = b.bot.py;
+  double width = max_x - min_x;
+  double height = max_y - min_y;
+
+  gsl_matrix *  polygon = gsl_matrix_alloc(2, 4);
+  gsl_matrix_set(polygon, 0, 0, min_x);
+  gsl_matrix_set(polygon, 1, 0, min_y);
+
+  gsl_matrix_set(polygon, 0, 1, min_x + width);
+  gsl_matrix_set(polygon, 1, 1, min_y);
+
+  gsl_matrix_set(polygon, 0, 2, min_x + width);
+  gsl_matrix_set(polygon, 1, 2, min_y + height);
+
+  gsl_matrix_set(polygon, 0, 3, min_x);
+  gsl_matrix_set(polygon, 1, 3, min_y + height);
+  return polygon;
+}
+
+bool boxMemoryIntersects(BoxMemory b1, BoxMemory b2) {
+  gsl_matrix * p1 = boxMemoryToPolygon(b1);
+  gsl_matrix * p2 = boxMemoryToPolygon(b2);
+
+  bool result = math2d_overlaps(p1, p2);
+  
+  gsl_matrix_free(p1);
+  gsl_matrix_free(p2);
+
+  return result;
+}
 
 bool cellIsMapped(int i, int j) {
   double x, y;
@@ -11628,15 +11666,20 @@ int blueBoxForPixel(int px, int py)
   return -1;
 }
 
+void randomizeNanos(ros::Time * time) {
+  double nanoseconds = rk_double(&random_state) * 1000;
+  time->nsec = nanoseconds;
+}
+
+
 void initializeMap() 
 {
   for (int i = 0; i < mapWidth; i++) {
     for(int j = 0; j < mapHeight; j++) {
       objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
+      // make the search more random
+      randomizeNanos(&objectMap[i + mapWidth * j].lastMappedTime);
 
-      double nanoseconds = (rk_double(&random_state) - 0.5) * 1000;
-      
-      objectMap[i + mapWidth * j].lastMappedTime.nsec = nanoseconds; // make it be more random
 
       objectMap[i + mapWidth * j].detectedClass = -1;
       objectMap[i + mapWidth * j].pixelCount = 0;
@@ -11840,4 +11883,6 @@ int main(int argc, char **argv) {
 
 
 #include "ein_words.cpp"
+#include "slu/math2d.c"
+#include "slu/gsl_utilities.c"
 

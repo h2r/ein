@@ -296,6 +296,12 @@ virtual void execute() {
 }
 END_WORD
 
+WORD(Pop)
+virtual void execute() {
+  Word * word = popWord();
+}
+END_WORD
+
 WORD(IncrementTargetClass)
 CODE(196437)// capslock + pageup
 virtual void execute()
@@ -584,6 +590,7 @@ std::vector<Word *> create_words() {
   words.push_back(new Next());
   words.push_back(new Print());
   words.push_back(new Dup());
+  words.push_back(new Pop());
 
   words.push_back(new PixelGlobalTest());
   words.push_back(new MappingPatrol());

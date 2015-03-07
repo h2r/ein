@@ -218,6 +218,8 @@ virtual void execute() {
         int i, j;
         mapxyToij(x, y, &i, &j);
         objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
+        randomizeNanos(&objectMap[i + mapWidth * j].lastMappedTime);
+        
         objectMap[i + mapWidth * j].detectedClass = -2;
         objectMap[i + mapWidth * j].b += (int) cam_img.at<cv::Vec3b>(py, px)[0];
         objectMap[i + mapWidth * j].g += (int) cam_img.at<cv::Vec3b>(py, px)[1];
@@ -254,7 +256,18 @@ virtual void execute() {
   box.labeledClassIndex = bLabels[c];
   
   mapBox(box);
-  blueBoxMemories.push_back(box);
+
+  vector<BoxMemory> newMemories;
+  
+  for (int i = 0; i < blueBoxMemories.size(); i++) {
+    if (!boxMemoryIntersects(box, blueBoxMemories[i])) {
+      newMemories.push_back(blueBoxMemories[i]);
+    }
+  }
+  newMemories.push_back(box);
+  
+
+  blueBoxMemories = newMemories;
 
 }
 END_WORD
