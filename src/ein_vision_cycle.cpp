@@ -37,9 +37,9 @@ virtual void execute() {
       int class_count = 0;
       for (int j = 0; j < blueBoxMemories.size(); j++) {
         if (blueBoxMemories[j].labeledClassIndex == class_i) {
-          centroid.px += blueBoxMemories[j].eeCentroid.px;
-          centroid.py += blueBoxMemories[j].eeCentroid.py;
-          centroid.pz += blueBoxMemories[j].eeCentroid.pz;
+          centroid.px += blueBoxMemories[j].centroid.px;
+          centroid.py += blueBoxMemories[j].centroid.py;
+          centroid.pz += blueBoxMemories[j].centroid.pz;
           class_count += 1;
         }
       }
@@ -55,7 +55,7 @@ virtual void execute() {
       for (int j = 0; j < blueBoxMemories.size(); j++) {
         if (blueBoxMemories[j].labeledClassIndex == class_i) {
           double square_dist = 
-            squareDistanceEEPose(centroid, blueBoxMemories[j].eeCentroid);
+            squareDistanceEEPose(centroid, blueBoxMemories[j].centroid);
           if (square_dist < min_square_dist) {
             min_square_dist = square_dist;
             closest_idx = j;
@@ -70,11 +70,11 @@ virtual void execute() {
         roa.objects.resize(roa.objects.size() + 1);
         ma.markers.resize(ma.markers.size() + 1);
 
-        pose.position.x = blueBoxMemories[closest_idx].eeCentroid.px;
-        pose.position.y = blueBoxMemories[closest_idx].eeCentroid.py;
-        pose.position.z = blueBoxMemories[closest_idx].eeCentroid.pz;
+        pose.position.x = blueBoxMemories[closest_idx].centroid.px;
+        pose.position.y = blueBoxMemories[closest_idx].centroid.py;
+        pose.position.z = blueBoxMemories[closest_idx].centroid.pz;
 
-        cout << "blueBoxMemories: " << blueBoxMemories[closest_idx].eeCentroid.px << endl;
+        cout << "blueBoxMemories: " << blueBoxMemories[closest_idx].centroid.px << endl;
         cout << "pose: " << pose.position.x << endl;
 
         roa.objects[aI].pose.pose.pose.position = pose.position;
@@ -119,11 +119,11 @@ virtual void execute() {
     box.bTop = bTops[c];
     box.bBot = bBots[c];
     box.cameraPose = currentEEPose;
-    box.eeTop = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
-    box.eeBot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
-    box.eeCentroid.px = (box.eeTop.px + box.eeBot.px) * 0.5;
-    box.eeCentroid.py = (box.eeTop.py + box.eeBot.py) * 0.5;
-    box.eeCentroid.pz = (box.eeTop.pz + box.eeBot.pz) * 0.5;
+    box.top = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
+    box.bot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+    box.centroid.px = (box.top.px + box.bot.px) * 0.5;
+    box.centroid.py = (box.top.py + box.bot.py) * 0.5;
+    box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
     box.cameraTime = ros::Time::now();
     box.labeledClassIndex = bLabels[c];
     blueBoxMemories.push_back(box);
@@ -206,11 +206,11 @@ virtual void execute() {
   box.bTop = bTops[c];
   box.bBot = bBots[c];
   box.cameraPose = currentEEPose;
-  box.eeTop = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
-  box.eeBot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
-  box.eeCentroid.px = (box.eeTop.px + box.eeBot.px) * 0.5;
-  box.eeCentroid.py = (box.eeTop.py + box.eeBot.py) * 0.5;
-  box.eeCentroid.pz = (box.eeTop.pz + box.eeBot.pz) * 0.5;
+  box.top = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
+  box.bot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+  box.centroid.px = (box.top.px + box.bot.px) * 0.5;
+  box.centroid.py = (box.top.py + box.bot.py) * 0.5;
+  box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
   box.cameraTime = ros::Time::now();
   box.labeledClassIndex = bLabels[c];
   

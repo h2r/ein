@@ -1182,9 +1182,9 @@ struct BoxMemory {
   cv::Point bTop;
   cv::Point bBot;
   eePose cameraPose;
-  eePose eeTop;
-  eePose eeBot;
-  eePose eeCentroid;
+  eePose top;
+  eePose bot;
+  eePose centroid;
   ros::Time cameraTime;
   int labeledClassIndex;
 };
@@ -4164,17 +4164,22 @@ void renderObjectMapView() {
     BoxMemory memory = blueBoxMemories[i];
     string class_name = classLabels[memory.labeledClassIndex];
     
-    double tx, ty;
-    pixelToGlobal(memory.bTop.x, memory.bTop.y, currentTableZ, tx, ty);
+    double cx, cy;
     
-    tx = memory.eeCentroid.px;
-    ty = memory.eeCentroid.py;
+    cx = memory.centroid.px;
+    cy = memory.centroid.py;
     
     cv::Point objectPoint = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
-                                         tx, ty);
+                                         cx, cy);
     objectPoint.x += 15;
     putText(objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, Scalar(255, 255, 255), 2.0);
-    
+
+    cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                    memory.top.px, memory.top.py);
+    cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                    memory.bot.px, memory.bot.py);
+    rectangle(objectMapViewerImage, outTop, outBot, 
+              CV_RGB(0, 0, 255));
   }
 
   
