@@ -339,8 +339,10 @@ END_WORD
 WORD(PrintWords)
 virtual void execute()
 {
+  string wordFileName = "ein_words.txt";
+  cout << "Writing words to " << wordFileName << endl;
   ofstream wordFile;
-  wordFile.open("ein_words.txt");
+  wordFile.open(wordFileName);
   std::vector<Word *> words = create_words();
   for (int i = 0; i < words.size(); i++) {
     wordFile << words[i]->name() << " " << words[i]->character_code() << endl;
@@ -601,6 +603,7 @@ std::vector<Word *> create_words() {
   words.push_back(new MappingPatrol());
   words.push_back(new RecordAllBlueBoxes());
   words.push_back(new ClearBlueBoxMemories());
+  words.push_back(new FilterBoxMemories());
   words.push_back(new PublishRecognizedObjectArrayFromBlueBoxMemory());
   words.push_back(new ChangeTargetClassToClosestBlueBox());
   words.push_back(new InitializeMap());
@@ -609,6 +612,7 @@ std::vector<Word *> create_words() {
   words.push_back(new MoveToNextMapPosition());
   words.push_back(new DeliverObject());
   words.push_back(new PlaceObjectInDeliveryZone());
+
 
   words.push_back(new IncMx());
   words.push_back(new DecMx());
