@@ -1350,6 +1350,16 @@ int currentGradientServoIterations = 0;
 int fuseBlueBoxes = 1;
 int fusePasses = 5;
 
+int g1xs = 200;
+int g1xe = 295;
+int g1ys = 0;
+int g1ye = 75;
+
+int g2xs = 420;
+int g2xe = 560;
+int g2ys = 0;
+int g2ye = 75;
+
 ////////////////////////////////////////////////
 // end node variables 
 //
@@ -9097,19 +9107,20 @@ void goCalculateObjectness() {
   }
 
   if (mask_gripper) {
-    int xs = 200;
-    int xe = 295;
-    int ys = 0;
-    int ye = 75;
+    int xs = g1xs;
+    int xe = g1xe;
+    int ys = g1ys;
+    int ye = g1ye;
     for (int x = xs; x < xe; x++) {
       for (int y = ys; y < ye; y++) {
 	objDensity[y*imW+x] = 0;
       }
     }
-    xs = 420;
-    xe = 560;
-    ys = 0;
-    ye = 75;
+
+    xs = g2xs;
+    xe = g2xe;
+    ys = g2ys;
+    ye = g2ye;
     for (int x = xs; x < xe; x++) {
       for (int y = ys; y < ye; y++) {
 	objDensity[y*imW+x] = 0;
@@ -9501,10 +9512,10 @@ void goCalculateDensity() {
   }
 
   if (mask_gripper) {
-    int xs = 200;
-    int xe = 295;
-    int ys = 0;
-    int ye = 75;
+    int xs = g1xs;
+    int xe = g1xe;
+    int ys = g1ys;
+    int ye = g1ye;
     for (int x = xs; x < xe; x++) {
       for (int y = ys; y < ye; y++) {
 	density[y*imW+x] = 0;
@@ -9513,10 +9524,10 @@ void goCalculateDensity() {
     }
     Mat vCrop = objectViewerImage(cv::Rect(xs, ys, xe-xs, ye-ys));
     vCrop = vCrop/2;
-    xs = 420;
-    xe = 560;
-    ys = 0;
-    ye = 75;
+    xs = g2xs;
+    xe = g2xe;
+    ys = g2ys;
+    ye = g2ye;
     for (int x = xs; x < xe; x++) {
       for (int y = ys; y < ye; y++) {
 	density[y*imW+x] = 0;

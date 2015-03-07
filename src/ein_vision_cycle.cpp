@@ -166,10 +166,24 @@ virtual void execute() {
 }
 END_WORD;
 
+bool isInGripperMask(int x, int y) {
+  if ( (x >= g1xs && x <= g1xe && y >= g1ys && y <= g1ye) ||
+       (x >= g2xs && x <= g2xe && y >= g2ys && y <= g2ye) ) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 WORD(MapEmptySpace)
 virtual void execute() {
   for (int px = 0; px < cam_img.cols; px++) {
     for (int py = 0; py < cam_img.rows; py++) {
+
+      if (mask_gripper && isInGripperMask(px, py)) {
+	continue;
+      }
+
       int blueBoxIdx = blueBoxForPixel(px, py);
       if (blueBoxIdx == -1) {
         double x, y;
