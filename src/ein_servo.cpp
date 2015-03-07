@@ -122,7 +122,7 @@ END_WORD
 WORD(MoveToTargetZAndGrasp)
 CODE(1048682)     // numlock + j
 virtual void execute()       {
-  pushWord('j');  // close gripper
+  pushWord("closeGripper");  // close gripper
   double threshedZ = min(trZ, 0.0);
 
   double pickZ = (-(threshedZ + currentTableZ) - graspDepth);
@@ -285,24 +285,24 @@ CODE( 131151)     // capslock + o
   pushWord("assertNoGrasp"); // assert no grasp
 
   pushNoOps(60);
-  //pushWord('2'); // assume pose at register 2
-  pushWord('j'); // close gripper
+  //pushWord("moveToRegister2"); // assume pose at register 2
+  pushWord("closeGripper"); // close gripper
   pushNoOps(20);
   pushWord("openGripper"); // open gripper
-  pushWord('j'); // close gripper
+  pushWord("closeGripper"); // close gripper
   pushNoOps(20);
   //pushCopies('w', depthToPlunge); // move up 
   pushWord("openGripper"); // open gripper
-  pushWord('j'); // close gripper
+  pushWord("closeGripper"); // close gripper
   //pushNoOps(20);
-  //pushCopies('s'+65504, flexThisFar); // rotate forward
+  //pushCopies("zDown"+65504, flexThisFar); // rotate forward
   //pushCopies('e', 5); // move forward
   //pushCopies('s', depthToPlunge); // move down
   pushWord("openGripper"); // open gripper
   pushNoOps(50);
   //pushCopies('w'+65504, flexThisFar); // rotate forward
 
-  //pushWord('2'); // assume pose at register 2
+  //pushWord("moveToRegister2"); // assume pose at register 2
   pushSpeedSign(MOVE_FAST);
 
   // resets the gripper server
@@ -422,7 +422,7 @@ WORD(CheckGrasp)
 CODE(196718)     // capslock + N 
   virtual void execute()       {
   if (gripperMoving) {
-    pushWord(196718); // check grasp
+    pushWord("checkGrasp"); // check grasp
   } else {
     cout << "gripperPosition: " << gripperPosition << " gripperThresh: " << gripperThresh << endl;
     cout << "gripperGripping: " << gripperGripping << endl;
@@ -591,81 +591,71 @@ virtual void execute()       {
   pushWord("countGrasp"); //count grasp
 
   pushWord("openGripper"); // open gripper
-  pushWord(131151); // shake it off 1
+  pushWord("shakeItOff1"); // shake it off 1
   pushWord("assertNoGrasp"); // assert no grasp
 
   pushNoOps(30);
-  pushWord('j'); // close gripper
+  pushWord("closeGripper"); // close gripper
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   pushCopies('w', 10);
   pushNoOps(30);
   pushWord("openGripper"); // open gripper
 
   pushNoOps(5);
-  pushWord(262241); // try to move to the last pick height 
+  pushWord("tryToMoveToTheLastPickHeight"); // try to move to the last pick height 
 
   //count here so that if it drops it on the way it will count as a miss
   { // in case it fell out
-    pushWord(196718); // check grasp
+    pushWord("checkGrasp"); // check grasp
 
     pushNoOps(30);
-    pushWord('j'); // close gripper
-    pushWord(131081); // shake it up and down
+    pushWord("closeGripper"); // close gripper
+    pushWord("shakeItUpAndDown"); // shake it up and down
 
     pushNoOps(5);
-    pushWord('j'); // close gripper
+    pushWord("closeGripper"); // close gripper
   }
 
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
   if (ARE_GENERIC_HEIGHT_LEARNING()) {
-    pushWord(1179687); // set random position for bblearn
+    pushWord("setRandomPositionAndOrientationForHeightLearning"); // set random position for bblearn
   } else {
-    pushWord(1048623); // numlock + /
+    pushWord("perturbPosition"); // numlock + /
   }
 
-  pushCopies('s', 3);
+  pushCopies("zDown", 3);
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
-  if (ARE_GENERIC_HEIGHT_LEARNING())
-    pushWord('4'); // assume pose at register 4
-  else
-    pushWord('2'); // assume pose at register 2
+  if (ARE_GENERIC_HEIGHT_LEARNING()) {
+    pushWord("moveToRegister4"); // assume pose at register 4
+  } else {
+    pushWord("moveToRegister2"); // assume pose at register 2
+  }
 
   pushNoOps(10);
 
-  // XXX TODO this is broken because we no longer know the height in the transformed space
-  // need to translate to current table height
-  pushWord(1048682); // grasp at z inferred from target
-  //pushWord(1114186); // use current range as target z and grasp
-  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  //pushWord(1048680); // assume x,y of target 
-  pushWord(1114175); // assume x,y of target in local space
+  pushWord("moveToTargetZAndGrasp"); 
+  pushWord("waitUntilAtCurrentPosition"); 
+  pushWord("assumeWinningGgAndXyInLocalPose"); 
 
-  pushWord("paintReticles"); // render reticle
-  //pushWord("selectMaxTargetNotCumulative"); // find max on register 1
-  pushWord("drawMapRegisters"); // render register 1
+  pushWord("paintReticles"); 
 
-  pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
+  pushWord("drawMapRegisters"); 
 
-  // ATTN 19 
-  //pushWord(1048631); // assume best gear
-  pushWord(1048678); // target best grasp
-  pushWord(1048620); // find best grasp from memory
+  pushWord("loadTargetClassRangeMapIntoRegister1"); 
 
-  pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
-  pushWord(1048695); // clear scan history
-  pushWord("turnOffScanning"); // turn off scanning
 
-  { // this sets the gripper closed thresh appropriately
-    pushWord(1179713); // set gripperThresh 
-    pushNoOps(30);
-    pushWord("openGripper"); // open gripper
-    pushNoOps(30);
-    pushWord('j'); // close gripper
-    pushWord('i'); // initialize gripper
-  }
-  calibrateGripper();
+
+  pushWord("setTargetReticleToTheMaxMappedPosition");
+  pushWord("findBestOfFourGraspsUsingMemory"); 
+
+  pushWord("loadTargetClassRangeMapIntoRegister1"); 
+  pushWord("initDepthScan"); 
+  pushWord("turnOffScanning"); 
+
+  pushWord("openGripper"); 
+
 }
 END_WORD
 

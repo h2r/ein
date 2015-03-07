@@ -526,7 +526,7 @@ virtual void execute() {
   pushWord(1114150); // prepare for search
 
   pushWord(1048683); // turn on scanning
-  pushWord(1048695); // clear scan history
+  pushWord("initDepthScan"); // clear scan history
 }
 END_WORD
 
