@@ -849,7 +849,8 @@ typedef enum {
   STATIC_PRIOR = 1,
   LEARNING_SAMPLING = 2,
   LEARNING_ALGORITHMC = 3,
-  STATIC_MARGINALS = 4
+  STATIC_MARGINALS = 4,
+  MAPPING = 5
 } pickMode;
 pickMode currentPickMode = STATIC_MARGINALS;
 pickMode currentBoundingBoxMode = STATIC_MARGINALS;
@@ -865,6 +866,8 @@ std::string pickModeToString(pickMode mode) {
     result = "learning algorithm C";
   } else if (mode == STATIC_MARGINALS) {
     result = "static marginals";
+  } else if (mode == MAPPING) {
+    result = "mapping";
   } else {
     cout << "Invalid pick mode: " << mode << endl;
     assert(0);
@@ -9864,8 +9867,11 @@ void goFindBlueBoxes() {
       	    parentD.pop_back();
       	  } 
       	  // if the next direction is valid, push it on to the stack and increment direction counter
-      	  else if(nextX > -1 && nextX < imW && nextY > -1 && nextY < imH && 
-	    gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0) {
+      	  //else if(nextX > -1 && nextX < imW && nextY > -1 && nextY < imH && 
+	    //gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0) 
+      	  else if(nextX >= xS && nextX <= xF && nextY >= yS && nextY <= yF && 
+	    gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0) 
+	    {
 
       	    gBoxGrayNodes[nextY*imW+nextX] = 1;
       	    gBoxComponentLabels[nextY*imW+nextX] = gBoxComponentLabels[parentY[index]*imW+parentX[index]];
