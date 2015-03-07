@@ -563,6 +563,8 @@ std::vector<Word *> create_words() {
   words.push_back(new TryToMoveToTheLastPickHeight());
   words.push_back(new AssertYesGrasp());
   words.push_back(new AssertNoGrasp());
+  words.push_back(new IfGrasp());
+  words.push_back(new IfNoGrasp());
   words.push_back(new ShakeItOff1());
   words.push_back(new FindBestOfFourGraspsUsingMemory());
   words.push_back(new LoadSampledGraspMemory());
@@ -606,6 +608,7 @@ std::vector<Word *> create_words() {
   words.push_back(new MapEmptySpace());
   words.push_back(new MoveToNextMapPosition());
   words.push_back(new DeliverObject());
+  words.push_back(new PlaceObjectInDeliveryZone());
 
   words.push_back(new IncMx());
   words.push_back(new DecMx());

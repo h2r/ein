@@ -234,6 +234,23 @@ CODE( 131157)     // capslock + u
 }
 END_WORD
 
+WORD(IfNoGrasp)
+virtual void execute() {
+  if (isGripperGripping())  {
+    popWord();
+  }
+}
+END_WORD
+
+WORD(IfGrasp)
+virtual void execute() {
+  if (!isGripperGripping())  {
+    popWord();
+  }
+}
+END_WORD
+
+
 
 
 WORD(AssertNoGrasp)
@@ -594,18 +611,18 @@ virtual void execute()       {
   pushWord("assertNoGrasp"); // assert no grasp
 
   pushNoOps(30);
-  pushWord("closeGripper"); // close gripper
-  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  pushWord("closeGripper"); 
+  pushWord("waitUntilAtCurrentPosition"); 
   pushCopies("zUp", 10);
   pushNoOps(30);
-  pushWord("openGripper"); // open gripper
+  pushWord("openGripper"); 
 
   pushNoOps(5);
-  pushWord("tryToMoveToTheLastPickHeight"); // try to move to the last pick height 
+  pushWord("tryToMoveToTheLastPickHeight"); 
 
   //count here so that if it drops it on the way it will count as a miss
   { // in case it fell out
-    pushWord("checkGrasp"); // check grasp
+    pushWord("checkGrasp");
 
     pushNoOps(30);
     pushWord("closeGripper"); // close gripper
