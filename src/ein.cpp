@@ -6980,7 +6980,7 @@ void gradientServo() {
         if (synchronicTakeClosest) {
           if (gradientTakeClosest) {
             if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
-              pushWord("prepareForAndExecuteGraspFromMemory"); // prepare for and execute the best grasp from memory at the current location and target
+              pushWord("prepareForAndExecuteGraspFromMemoryLearning"); // prepare for and execute the best grasp from memory at the current location and target
             else {
               ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
             }
@@ -6989,7 +6989,7 @@ void gradientServo() {
           }
         } else {
           if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
-            pushWord("prepareForAndExecuteGraspFromMemory"); 
+            pushWord("prepareForAndExecuteGraspFromMemoryLearning"); 
           } else {
             ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
           }
