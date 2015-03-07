@@ -11909,7 +11909,8 @@ int main(int argc, char **argv) {
     pushWord("gradientServoTakeClosest"); 
     pushWord("synchronicServoTakeClosest");
   }
-  
+  pushWord("openGripper");
+  pushWord("calibrateGripper");
   pushWord("shiftIntoGraspGear1"); // change gear to 1
 
   execute_stack = 1;

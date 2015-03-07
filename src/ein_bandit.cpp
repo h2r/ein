@@ -138,7 +138,7 @@ CODE(1179707)     // capslock + numlock + ;
   //pushWord(1179695); // check to see if bounding box is unique (early outting if not)
   pushWord("visionCycle"); // vision cycle
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  pushWord(1179687); // set random position for bblearn
+  pushWord("setRandomPositionAndOrientationForHeightLearning"); // set random position for bblearn
 
   pushWord(65568+4); // record register 4
 
@@ -150,7 +150,7 @@ CODE(1179707)     // capslock + numlock + ;
   //pushWord(1179695); // check to see if bounding box is unique (early outting if not)
   pushWord("visionCycle"); // vision cycle
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  pushWord(1179687); // set random position for bblearn
+  pushWord("setRandomPositionAndOrientationForHeightLearning"); // set random position for bblearn
 
   pushWord("sampleHeight"); // sample height
 
