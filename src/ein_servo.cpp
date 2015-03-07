@@ -951,6 +951,7 @@ WORD(TwoDPatrolStart)
 CODE(131159)     // capslock + w
 virtual void execute()       {
   eepReg2 = rssPose;
+  bailAfterSynchronic = 0;
   graspAttemptCounter = 0;
   graspSuccessCounter = 0;
   graspTrialStart = ros::Time::now();

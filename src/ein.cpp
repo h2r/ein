@@ -2522,8 +2522,8 @@ void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
     clearStack();
 
     changeTargetClass(class_idx);
-    pushWord("twoDPatrolStart");
     pushWord("mappingPatrol");
+    pushWord("deliverObject");
     execute_stack = 1;
   }
 }
@@ -4464,6 +4464,20 @@ void pilotInit() {
     //defaultReticle = centerReticle;
     reticle = defaultReticle;
 
+    double ystart = 0.1;
+    double yend = 0.7;
+    int numposes = 4;
+    double ystep = (yend - ystart) / numposes;
+    eePose pose1 = {.px = 0.6, .py = 0.0544691, .pz = -0.0582791,
+                       .ox = 0, .oy = 0, .oz = 0,
+                       .qx = 0, .qy = 1, .qz = 0, .qw = 0};
+    for (int i = 0; i < numposes; i++) {
+      deliveryPoses.push_back(pose1);
+    }
+    for (int i = 0; i < numposes; i++) {
+      deliveryPoses[i].py = ystart + i * ystep;
+    }
+
     rssPose = rssPoseL;
     ik_reset_eePose = rssPose;
 
@@ -4544,8 +4558,8 @@ void pilotInit() {
     //defaultReticle = centerReticle;
     reticle = defaultReticle;
 
-    double ystart = -0.4;
-    double yend = 0.2;
+    double ystart = -0.7;
+    double yend = -0.1;
     int numposes = 4;
     double ystep = (yend - ystart) / numposes;
     eePose pose1 = {.px = 0.6, .py = 0.0544691, .pz = -0.0582791,
@@ -4968,6 +4982,10 @@ void changeTargetClass(int newTargetClass) {
     {
       //cout << "Pushing set heightMemories from classHeightMemories" << endl;
       pushWord(1245289); // set heightMemories from classHeightMemories
+    }
+    break;
+  case MAPPING:
+    {
     }
     break;
   default:
