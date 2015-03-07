@@ -542,6 +542,7 @@ std::vector<Word *> create_words() {
   words.push_back(new SetPickModeToLearningSampling());
   words.push_back(new SetPickModeToLearningAlgorithmC());
   words.push_back(new SetPickModeToStaticMarginals());
+  words.push_back(new SetBoundingBoxModeToMapping());
   words.push_back(new SetBoundingBoxModeToStaticPrior());
   words.push_back(new SetBoundingBoxModeToLearningSampling());
   words.push_back(new SetBoundingBoxModeToLearningAlgorithmC());
