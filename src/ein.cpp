@@ -4713,6 +4713,7 @@ void pilotInit() {
     heightReticles[0].py = 94;
 
     /* color reticle init */
+    /* XXX TODO needs recalibrating */
     //const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
     xCR[0] = 462;
     xCR[1] = 450;
@@ -4857,6 +4858,7 @@ void pilotInit() {
     heightReticles[0].py = 120;
 
     /* color reticle init */
+    /* XXX TODO needs recalibrating */
     //const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
     xCR[0] = 462;
     xCR[1] = 450;
@@ -7858,6 +7860,7 @@ void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
     double b = (b42+b31)/2.0;
 
     int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
+    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
     reticlePixelX = x_thisZ;
   }
   {
@@ -7871,6 +7874,7 @@ void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
     double b = (b42+b31)/2.0;
 
     int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
+    y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
     reticlePixelY = y_thisZ;
   }
 
@@ -7927,6 +7931,7 @@ void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
     //gX = d + ( (pX-c)*(currentEEPose.px-d) )/(x1-c) ;
     //gX = trueEEPose.position.x - d + ( (pX-c)*(d) )/( (x_thisZ-c)*m_x ) ;
     gX = trueEEPose.position.x - d + ( (pX-c)*(d) )/( (x_thisZ-c) ) ;
+    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
   }
   {
     double d = d_y/m_y;
@@ -7947,6 +7952,7 @@ void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
     //gY = d + ( (pY-c)*(currentEEPose.py-d) )/(y1-c) ;
     //gY = trueEEPose.position.y - d + ( (pY-c)*(d) )/( (y_thisZ-c)*m_y ) ;
     gY = trueEEPose.position.y - d + ( (pY-c)*(d) )/( (y_thisZ-c) ) ;
+    y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
   }
 }
 
@@ -7993,6 +7999,7 @@ void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY) {
     pX = c + ( (gX-trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
     //x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
+    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
     reticlePixelX = x_thisZ;
   }
   {
@@ -8018,6 +8025,7 @@ void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY) {
     pY = c + ( (gY-trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
     //y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
+    y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
     reticlePixelY = y_thisZ;
   }
 
