@@ -8120,7 +8120,7 @@ double vectorArcTan(double y, double x) {
       maxVaDot = product;
       maxVaSlot = vaSlot;
     }
-  }
+  } 
   // return value in interval [-pi, pi]
 
   double angleZeroTwopi = (maxVaSlot * vaDelta);
