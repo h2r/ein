@@ -404,7 +404,6 @@ END_WORD
 
 WORD(SampleHeight)
 CODE(1245247)   // capslock + numlock + ?
-const int mappingHeightIdx = 1;
 virtual void execute() {
     
   if (currentBoundingBoxMode != STATIC_PRIOR) {

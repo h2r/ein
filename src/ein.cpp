@@ -691,8 +691,12 @@ const int numCReticleIndeces = 14;
 const double firstCReticleIndexDepth = .08;
 //const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
 //const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 153, 153, 153, 153, 153, 153, 153, 153, 153};
-const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
-const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
+// most recent, smoothed:
+//const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
+//const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
+
+int xCR[numCReticleIndeces];
+int yCR[numCReticleIndeces];
 
 ros::Publisher vmMarkerPublisher;
 
@@ -954,6 +958,17 @@ double offY = 0;
 //  these are set elsewhere according to chirality
 double m_x = 1.08;
 double m_y = 0.94;
+double m_x_h[4];
+double m_y_h[4];
+
+int mappingServoTimeout = 5;
+
+const int mappingHeightIdx = 1;
+
+const int vaNumAngles = 360;
+const double vaDelta = (2.0 * 3.1415926) / vaNumAngles;
+double vaX[vaNumAngles];
+double vaY[vaNumAngles];
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -1010,7 +1025,6 @@ boost::mutex ros_mutex;
 boost::mutex pcl_mutex;
 boost::mutex redbox_mutex;
 boost::thread *timercallback1_thread;
-int ikResult = 1;
 
 std::string densityViewerName = "Density Viewer";
 std::string objectViewerName = "Object Viewer";
@@ -1241,6 +1255,7 @@ const int mapHeight = (mapYMax - mapYMin) / mapStep;
 const ros::Duration mapMemoryTimeout(10);
 
 MapCell objectMap[mapWidth * mapHeight];
+int deadMap[mapWidth * mapHeight];
 
 vector<BoxMemory> blueBoxMemories;
 
@@ -1444,6 +1459,8 @@ Eigen::Quaternionf getCCRotation(int givenGraspGear, double angle);
 void setCCRotation(int thisGraspGear);
 
 void rangeCallback(const sensor_msgs::Range& range);
+void endEffectorAngularUpdate(eePose *givenEEPose);
+void fillIkRequest(eePose givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest);
 void update_baxter(ros::NodeHandle &n);
 void timercallback1(const ros::TimerEvent&);
 void imageCallback(const sensor_msgs::ImageConstPtr& msg);
@@ -1531,6 +1548,9 @@ void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY);
 eePose pixelToGlobalEEPose(int pX, int pY, double gZ);
 
 void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor);
+
+double vectorArcTan(double y, double x);
+void initVectorArcTan();
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -2732,6 +2752,7 @@ cv::Vec3b getCRColor() {
   return toReturn;
 }
 
+// XXX TODO this should really use a buffered eeRange
 cv::Vec3b getCRColor(Mat im) {
   cv::Vec3b toReturn(0,0,0);
 
@@ -3407,124 +3428,182 @@ void rangeCallback(const sensor_msgs::Range& range) {
   #endif
 }
 
-
-void update_baxter(ros::NodeHandle &n) {
-//cout << "block5" << endl;
-  bfc = bfc % bfc_period;
-
-
-  baxter_core_msgs::SolvePositionIK thisIkRequest;
-  thisIkRequest.request.pose_stamp.resize(1);
-
-  thisIkRequest.request.pose_stamp[0].header.seq = 0;
-  thisIkRequest.request.pose_stamp[0].header.stamp = ros::Time::now();
-  thisIkRequest.request.pose_stamp[0].header.frame_id = "/base";
-
-  
-  thisIkRequest.request.pose_stamp[0].pose.position.x = currentEEPose.px;
-  thisIkRequest.request.pose_stamp[0].pose.position.y = currentEEPose.py;
-  thisIkRequest.request.pose_stamp[0].pose.position.z = currentEEPose.pz;
+void endEffectorAngularUpdate(eePose *givenEEPose) {
 
   /* global cartesian update 
   Eigen::Matrix3f m;
-  m = Eigen::AngleAxisf(currentEEPose.ox*M_PI, Eigen::Vector3f::UnitX())
-  * Eigen::AngleAxisf(currentEEPose.oy*M_PI, Eigen::Vector3f::UnitY())
-  * Eigen::AngleAxisf(currentEEPose.oz*M_PI, Eigen::Vector3f::UnitZ());
+  m = Eigen::AngleAxisf(givenEEPose.ox*M_PI, Eigen::Vector3f::UnitX())
+  * Eigen::AngleAxisf(givenEEPose.oy*M_PI, Eigen::Vector3f::UnitY())
+  * Eigen::AngleAxisf(givenEEPose.oz*M_PI, Eigen::Vector3f::UnitZ());
 
   Eigen::Quaternionf eeRotator(m);
-  Eigen::Quaternionf eeBaseQuat(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+  Eigen::Quaternionf eeBaseQuat(givenEEPose.qw, givenEEPose.qx, givenEEPose.qy, givenEEPose.qz);
 
   eeBaseQuat = eeRotator * eeBaseQuat;
   */ 
 
   /* end effector local angular update */
+  Eigen::Vector3f localUnitX;
   {
-    Eigen::Vector3f localUnitX;
-    {
-      Eigen::Quaternionf qin(0, 1, 0, 0);
-      Eigen::Quaternionf qout(0, 1, 0, 0);
-      Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
-      qout = eeqform * qin * eeqform.conjugate();
-      localUnitX.x() = qout.x();
-      localUnitX.y() = qout.y();
-      localUnitX.z() = qout.z();
-    }
-
-    Eigen::Vector3f localUnitY;
-    {
-      Eigen::Quaternionf qin(0, 0, 1, 0);
-      Eigen::Quaternionf qout(0, 1, 0, 0);
-      Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
-      qout = eeqform * qin * eeqform.conjugate();
-      localUnitY.x() = qout.x();
-      localUnitY.y() = qout.y();
-      localUnitY.z() = qout.z();
-    }
-
-    Eigen::Vector3f localUnitZ;
-    {
-      Eigen::Quaternionf qin(0, 0, 0, 1);
-      Eigen::Quaternionf qout(0, 1, 0, 0);
-      Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
-      qout = eeqform * qin * eeqform.conjugate();
-      localUnitZ.x() = qout.x();
-      localUnitZ.y() = qout.y();
-      localUnitZ.z() = qout.z();
-    }
-
-    double sinBuff = 0.0;
-    double angleRate = 1.0;
-    Eigen::Quaternionf eeBaseQuat(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
-    sinBuff = sin(angleRate*currentEEPose.ox/2.0);
-    Eigen::Quaternionf eeRotatorX(cos(angleRate*currentEEPose.ox/2.0), localUnitX.x()*sinBuff, localUnitX.y()*sinBuff, localUnitX.z()*sinBuff);
-    sinBuff = sin(angleRate*currentEEPose.oy/2.0);
-    Eigen::Quaternionf eeRotatorY(cos(angleRate*currentEEPose.oy/2.0), localUnitY.x()*sinBuff, localUnitY.y()*sinBuff, localUnitY.z()*sinBuff);
-    sinBuff = sin(angleRate*currentEEPose.oz/2.0);
-    Eigen::Quaternionf eeRotatorZ(cos(angleRate*currentEEPose.oz/2.0), localUnitZ.x()*sinBuff, localUnitZ.y()*sinBuff, localUnitZ.z()*sinBuff);
-    currentEEPose.ox = 0;
-    currentEEPose.oy = 0;
-    currentEEPose.oz = 0;
-    eeRotatorX.normalize();
-    eeRotatorY.normalize();
-    eeRotatorZ.normalize();
-    //eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * 
-		  //eeBaseQuat * 
-		//eeRotatorZ.conjugate() * eeRotatorY.conjugate() * eeRotatorX.conjugate();
-    eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * eeBaseQuat;
-    eeBaseQuat.normalize();
-
-    thisIkRequest.request.pose_stamp[0].pose.orientation.x = eeBaseQuat.x();
-    thisIkRequest.request.pose_stamp[0].pose.orientation.y = eeBaseQuat.y();
-    thisIkRequest.request.pose_stamp[0].pose.orientation.z = eeBaseQuat.z();
-    thisIkRequest.request.pose_stamp[0].pose.orientation.w = eeBaseQuat.w();
-
-    currentEEPose.qx = eeBaseQuat.x();
-    currentEEPose.qy = eeBaseQuat.y();
-    currentEEPose.qz = eeBaseQuat.z();
-    currentEEPose.qw = eeBaseQuat.w();
+    Eigen::Quaternionf qin(0, 1, 0, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitX.x() = qout.x();
+    localUnitX.y() = qout.y();
+    localUnitX.z() = qout.z();
   }
 
-//cout << "block6" << endl;
+  Eigen::Vector3f localUnitY;
+  {
+    Eigen::Quaternionf qin(0, 0, 1, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitY.x() = qout.x();
+    localUnitY.y() = qout.y();
+    localUnitY.z() = qout.z();
+  }
 
-  int ikResult = 0;
+  Eigen::Vector3f localUnitZ;
+  {
+    Eigen::Quaternionf qin(0, 0, 0, 1);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitZ.x() = qout.x();
+    localUnitZ.y() = qout.y();
+    localUnitZ.z() = qout.z();
+  }
 
-  //cout << "ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
+  double sinBuff = 0.0;
+  double angleRate = 1.0;
+  Eigen::Quaternionf eeBaseQuat(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
+  sinBuff = sin(angleRate*givenEEPose->ox/2.0);
+  Eigen::Quaternionf eeRotatorX(cos(angleRate*givenEEPose->ox/2.0), localUnitX.x()*sinBuff, localUnitX.y()*sinBuff, localUnitX.z()*sinBuff);
+  sinBuff = sin(angleRate*givenEEPose->oy/2.0);
+  Eigen::Quaternionf eeRotatorY(cos(angleRate*givenEEPose->oy/2.0), localUnitY.x()*sinBuff, localUnitY.y()*sinBuff, localUnitY.z()*sinBuff);
+  sinBuff = sin(angleRate*givenEEPose->oz/2.0);
+  Eigen::Quaternionf eeRotatorZ(cos(angleRate*givenEEPose->oz/2.0), localUnitZ.x()*sinBuff, localUnitZ.y()*sinBuff, localUnitZ.z()*sinBuff);
+  givenEEPose->ox = 0;
+  givenEEPose->oy = 0;
+  givenEEPose->oz = 0;
+  eeRotatorX.normalize();
+  eeRotatorY.normalize();
+  eeRotatorZ.normalize();
+  //eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * 
+		//eeBaseQuat * 
+	      //eeRotatorZ.conjugate() * eeRotatorY.conjugate() * eeRotatorX.conjugate();
+  eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * eeBaseQuat;
+  eeBaseQuat.normalize();
+
+  givenEEPose->qx = eeBaseQuat.x();
+  givenEEPose->qy = eeBaseQuat.y();
+  givenEEPose->qz = eeBaseQuat.z();
+  givenEEPose->qw = eeBaseQuat.w();
+}
+
+void fillIkRequest(eePose * givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
+  givenIkRequest->request.pose_stamp.resize(1);
+
+  givenIkRequest->request.pose_stamp[0].header.seq = 0;
+  givenIkRequest->request.pose_stamp[0].header.stamp = ros::Time::now();
+  givenIkRequest->request.pose_stamp[0].header.frame_id = "/base";
+
+  
+  givenIkRequest->request.pose_stamp[0].pose.position.x = givenEEPose->px;
+  givenIkRequest->request.pose_stamp[0].pose.position.y = givenEEPose->py;
+  givenIkRequest->request.pose_stamp[0].pose.position.z = givenEEPose->pz;
+
+  givenIkRequest->request.pose_stamp[0].pose.orientation.x = givenEEPose->qx;
+  givenIkRequest->request.pose_stamp[0].pose.orientation.y = givenEEPose->qy;
+  givenIkRequest->request.pose_stamp[0].pose.orientation.z = givenEEPose->qz;
+  givenIkRequest->request.pose_stamp[0].pose.orientation.w = givenEEPose->qw;
+}
+
+void update_baxter(ros::NodeHandle &n) {
+  bfc = bfc % bfc_period;
+
+  baxter_core_msgs::SolvePositionIK thisIkRequest;
+  endEffectorAngularUpdate(&currentEEPose);
+  fillIkRequest(&currentEEPose, &thisIkRequest);
+
+  int ikResultFailed = 0;
 
   // do not start in a state with ikShare 
   if ((drand48() <= ikShare) || !ikInitialized) {
-    ikResult = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
+
+    int numIkRetries = 10;
+    double ikNoiseAmplitude = 0.001;
+    double ikNoiseAmplitudeQuat = 0.01;
+    for (int ikRetry = 0; ikRetry < numIkRetries; ikRetry++) {
+      int ikCallResult = ikClient.call(thisIkRequest);
+      //ikResultFailed = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
+      //cout << "ik call result: " << ikCallResult << " joints: " << (thisIkRequest.response.joints.size()) << " "; 
+
+      //if (thisIkRequest.response.joints.size()) {
+	//cout << "position size: " << (thisIkRequest.response.joints[0].position.size()) << endl;
+      //}
+
+
+      //ikResultFailed = (!ikCallResult || (thisIkRequest.response.joints.size() == 0) || (thisIkRequest.response.joints[0].position.size() != numJoints));
+
+      // XXX This is ridiculous
+      if (ikCallResult && thisIkRequest.response.isValid[0]) {
+	// set this here in case noise was added
+	currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
+	currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
+	currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
+	ikResultFailed = 0;
+      } else {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be invalid." << endl;
+      } 
+
+//      {} else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != numJoints)) {
+//	ikResultFailed = 1;
+//	cout << "Initial IK result appears to be truly invalid." << endl;
+//      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != numJoints)) {
+//	ikResultFailed = 1;
+//	cout << "Initial IK result appears to be truly invalid." << endl;
+//      } else {
+//	if (!thisIkRequest.response.isValid[0]) {
+//	  cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
+//	  cout << "ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
+//	}
+//	ikResultFailed = 0;
+//	currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
+//	currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
+//	currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
+//      }
+
+      if (!ikResultFailed) {
+	break;
+      }
+
+      cout << "Initial IK result invalid... adding noise and retrying." << endl;
+      cout << thisIkRequest.request.pose_stamp[0].pose << endl;
+
+      eePose noisedCurrentEEPose = currentEEPose;
+      noisedCurrentEEPose.px = currentEEPose.px + (drand48() - 0.5)*2.0*ikNoiseAmplitude;
+      noisedCurrentEEPose.py = currentEEPose.py + (drand48() - 0.5)*2.0*ikNoiseAmplitude;
+      noisedCurrentEEPose.pz = currentEEPose.pz + (drand48() - 0.5)*2.0*ikNoiseAmplitude;
+
+      fillIkRequest(&noisedCurrentEEPose, &thisIkRequest);
+    }
+  }
 
   /*
     if ( ikClient.waitForExistence(ros::Duration(1, 0)) ) {
   //cout << "block6.1" << endl;
-      ikResult = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
+      ikResultFailed = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
     } else {
       cout << "waitForExistence timed out" << endl;
-      ikResult = 1;
+      ikResultFailed = 1;
     }
   */
 
-    if (ikResult) 
+    if (ikResultFailed) 
     {
       ROS_ERROR_STREAM("ikClient says pose request is invalid.");
       ik_reset_counter++;
@@ -3553,7 +3632,6 @@ void update_baxter(ros::NodeHandle &n) {
     lastGoodEEPose = currentEEPose;
     ikRequest = thisIkRequest;
     ikInitialized = 1;
-  }
   
 //cout << "block7" << endl;
 
@@ -3932,11 +4010,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     vmMarkerPublisher.publish(ma_to_send);
   }
 
-  // paint interpolated gripper reticle
-  {
-
-  }
-
   // paint gripper reticle centerline
   if (1) {
     eePose teePose;
@@ -3987,6 +4060,34 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     teePose.pz = trueEEPose.position.z;
     paintEEPoseOnWrist(teePose, cv::Scalar(0,0,255));
     paintEEPoseOnWrist(eepReg1, cv::Scalar(0,255,0));
+
+    {
+      eePose irPose;
+      {
+	geometry_msgs::Pose thisPose = trueEEPose;
+	Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
+	Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
+	Eigen::Quaternionf irSensorStartGlobal(
+						0.0,
+					       (thisPose.position.x - irSensorStartLocal.x()),
+					       (thisPose.position.y - irSensorStartLocal.y()),
+					       (thisPose.position.z - irSensorStartLocal.z())
+					      );
+
+	Eigen::Quaternionf globalUnitZ(0, 0, 0, 1);
+	Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
+
+	Eigen::Vector3d irSensorEnd(
+				     (thisPose.position.x - irSensorStartLocal.x()) + eeRange*localUnitZ.x(),
+				     (thisPose.position.y - irSensorStartLocal.y()) + eeRange*localUnitZ.y(),
+				     (thisPose.position.z - irSensorStartLocal.z()) + eeRange*localUnitZ.z()
+				    );
+	irPose.px = irSensorEnd.x();
+	irPose.py = irSensorEnd.y();
+	irPose.pz = irSensorEnd.z();
+      }
+      paintEEPoseOnWrist(irPose, cv::Scalar(255,0,0));
+    }
   }
 
   // draw vanishing point reticle
@@ -4202,9 +4303,9 @@ void renderObjectMapView() {
       if (objectMap[i + mapWidth * j].detectedClass != -1) {
         cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, x, y);
         cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, x + mapStep, y + mapStep);
-        cv::Scalar color = CV_RGB((int) objectMap[i + mapWidth * j].r / objectMap[i + mapWidth * j].pixelCount,
-                                  (int) objectMap[i + mapWidth * j].g / objectMap[i + mapWidth * j].pixelCount,
-                                  (int) objectMap[i + mapWidth * j].b / objectMap[i + mapWidth * j].pixelCount);
+        cv::Scalar color = CV_RGB((int) (objectMap[i + mapWidth * j].r / objectMap[i + mapWidth * j].pixelCount),
+                                  (int) (objectMap[i + mapWidth * j].g / objectMap[i + mapWidth * j].pixelCount),
+                                  (int) (objectMap[i + mapWidth * j].b / objectMap[i + mapWidth * j].pixelCount) );
         double area = (outBot.x - outTop.x)  * (outBot.y - outTop.y);
         rectangle(objectMapViewerImage, outTop, outBot, 
                   color,
@@ -4563,12 +4664,12 @@ void pilotInit() {
     // good fence values
     mapSearchFenceXMin = -0.4;
     mapSearchFenceXMax = 0.45;
-    mapSearchFenceYMin = 0.58;
+    mapSearchFenceYMin = 0.63;
     mapSearchFenceYMax = 0.96;
 
     mapRejectFenceXMin = -0.4;
     mapRejectFenceXMax = 0.45;
-    mapRejectFenceYMin = 0.58;
+    mapRejectFenceYMin = 0.63;
     mapRejectFenceYMax = 0.96;
 
     // small fence values (for debugging)
@@ -4585,8 +4686,6 @@ void pilotInit() {
     vanishingPointReticle.px = 313;
     vanishingPointReticle.py = 163;
     probeReticle = vanishingPointReticle;
-    m_x = 1.03;
-    m_y = 0.93;
 
     // ATTN 16
     heightReticles[0] = defaultReticle;
@@ -4612,6 +4711,51 @@ void pilotInit() {
     heightReticles[2].py = 128;
     heightReticles[1].py = 117;
     heightReticles[0].py = 94;
+
+    /* color reticle init */
+    //const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
+    xCR[0] = 462;
+    xCR[1] = 450;
+    xCR[2] = 439;
+    xCR[3] = 428;
+    xCR[4] = 419;
+    xCR[5] = 410;
+    xCR[6] = 405;
+    xCR[7] = 399;
+    xCR[8] = 394;
+    xCR[9] = 389;
+    xCR[10] = 383;
+    xCR[11] = 381;
+    xCR[12] = 379;
+    xCR[13] = 378;
+
+    /* left arm */
+    //const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
+    yCR[0] = 153;
+    yCR[1] = 153;
+    yCR[2] = 153;
+    yCR[3] = 153;
+    yCR[4] = 153;
+    yCR[5] = 154;
+    yCR[6] = 154;
+    yCR[7] = 154;
+    yCR[8] = 154;
+    yCR[9] = 154;
+    yCR[10] = 155;
+    yCR[11] = 155;
+    yCR[12] = 155;
+    yCR[13] = 155;
+
+    /* lens correction */
+    m_x_h[0] = 1.2;
+    m_x_h[1] = 1.06;
+    m_x_h[2] = 0.98;
+    m_x_h[3] = 0.94;
+
+    m_y_h[0] = 0.95;
+    m_y_h[1] = 0.93;
+    m_y_h[2] = 0.92;
+    m_y_h[3] = 0.92;
   } else if (0 == left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
     beeHome = rssPoseR;
@@ -4662,26 +4806,23 @@ void pilotInit() {
     //True EE Position (x,y,z): 0.525236 -0.841226 0.217111
 
 
-    mapSearchFenceXMin = -0.25;
-    mapSearchFenceXMax = 0.45;
-    mapSearchFenceYMin = -0.86;
-    mapSearchFenceYMax = -0.78;
-
-    mapRejectFenceXMin = -0.1;
-    mapRejectFenceXMax = 0.7;
-    mapRejectFenceYMin = -1.06;
-    mapRejectFenceYMax = -0.58;
-
+    //mapSearchFenceXMin = -0.25;
+    //mapSearchFenceXMax = 0.45;
+    //mapSearchFenceYMin = -0.86;
+    //mapSearchFenceYMax = -0.78;
+    //mapRejectFenceXMin = -0.1;
+    //mapRejectFenceXMax = 0.7;
+    //mapRejectFenceYMin = -1.06;
+    //mapRejectFenceYMax = -0.58;
     mapSearchFenceXMin = -0.4;
     mapSearchFenceXMax = 0.45;
     mapSearchFenceYMin = -0.96;
-    mapSearchFenceYMax = -0.58;
+    mapSearchFenceYMax = -0.63;
 
     mapRejectFenceXMin = -0.4;
     mapRejectFenceXMax = 0.45;
     mapRejectFenceYMin = -0.96;
-    mapRejectFenceYMax = -0.58;
-
+    mapRejectFenceYMax = -0.63;
 
 
     // right arm
@@ -4689,8 +4830,6 @@ void pilotInit() {
     vanishingPointReticle.px = 313;
     vanishingPointReticle.py = 185;
     probeReticle = vanishingPointReticle;
-    m_x = 1.14;
-    m_y = 1.20;
 
     // ATTN 16
     heightReticles[0] = defaultReticle;
@@ -4716,6 +4855,51 @@ void pilotInit() {
     heightReticles[2].py = 149;
     heightReticles[1].py = 139;
     heightReticles[0].py = 120;
+
+    /* color reticle init */
+    //const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
+    xCR[0] = 462;
+    xCR[1] = 450;
+    xCR[2] = 439;
+    xCR[3] = 428;
+    xCR[4] = 419;
+    xCR[5] = 410;
+    xCR[6] = 405;
+    xCR[7] = 399;
+    xCR[8] = 394;
+    xCR[9] = 389;
+    xCR[10] = 383;
+    xCR[11] = 381;
+    xCR[12] = 379;
+    xCR[13] = 378;
+
+    /* right arm */
+    //const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
+    yCR[0] = 153;
+    yCR[1] = 153;
+    yCR[2] = 153;
+    yCR[3] = 153;
+    yCR[4] = 153;
+    yCR[5] = 154;
+    yCR[6] = 154;
+    yCR[7] = 154;
+    yCR[8] = 154;
+    yCR[9] = 154;
+    yCR[10] = 155;
+    yCR[11] = 155;
+    yCR[12] = 155;
+    yCR[13] = 155;
+
+    /* lens correction */
+    m_x_h[0] = 1.18;
+    m_x_h[1] = 1.12;
+    m_x_h[2] = 1.07;
+    m_x_h[3] = 1.06;
+
+    m_y_h[0] = 1.16;
+    m_y_h[1] = 1.17;
+    m_y_h[2] = 1.18;
+    m_y_h[3] = 1.2;
   } else {
     cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
     exit(0);
@@ -4942,7 +5126,9 @@ int getLocalGraspGear(int globalGraspGearIn) {
 
   //double angle = atan2(aY, aX)*180.0/3.1415926;
   // no degrees here
-  double angle = atan2(aY, aX);
+  // ATTN 22
+  //double angle = atan2(aY, aX);
+  double angle = vectorArcTan(aY, aX);
   // no inversion necessary
   //angle = -angle;
   
@@ -4980,7 +5166,9 @@ int getGlobalGraspGear(int localGraspGearIn) {
 
   //double angle = atan2(aY, aX)*180.0/3.1415926;
   // no degrees here
-  double angle = atan2(aY, aX);
+  // ATTN 22
+  //double angle = atan2(aY, aX);
+  double angle = vectorArcTan(aY, aX);
   // inversion to convert to global
   angle = -angle;
   
@@ -5879,7 +6067,9 @@ void loadGlobalTargetClassRangeMap(double * rangeMapRegA, double * rangeMapRegB)
   // this is here to get the signs right
   aX = -aX;
 
-  double angle = atan2(aY, aX)*180.0/3.1415926;
+  // ATTN 22
+  //double angle = atan2(aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
   double scale = 1.0;
   Point center = Point(rmWidth/2, rmWidth/2);
   Size toBecome(rmWidth, rmWidth);
@@ -7095,8 +7285,17 @@ void gradientServo() {
       localUnitY.z() = qout.z();
     }
     
-    currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
-    currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
+    // ATTN 21
+    //double newx = currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
+    //double newy = currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
+    double newx = 0;
+    double newy = 0;
+    double zToUse = trueEEPose.position.z+currentTableZ;
+    pixelToGlobal(pilotTarget.px, pilotTarget.py, zToUse, newx, newy);
+    //currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
+    //currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
+    currentEEPose.px = newx;
+    currentEEPose.py = newy;
     
     // ATTN 8
     //pushWord("visionCycle"); // vision cycle
@@ -7142,6 +7341,12 @@ void synchronicServo() {
     }
     cout << endl;
     restartBBLearning();
+    return;
+  }
+
+  if ( ((synServoLockFrames > mappingServoTimeout) || (bTops.size() <= 0)) && 
+	(currentBoundingBoxMode == MAPPING) ) {
+    cout << ">>>> Synchronic servo timed out during mapping. <<<<" << endl;
     return;
   }
 
@@ -7252,16 +7457,24 @@ void synchronicServo() {
 	localUnitY.z() = qout.z();
       }
 
-      double newx = currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
-      double newy = currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
+      // ATTN 21
+      //double newx = currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
+      //double newy = currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
+      double newx = 0;
+      double newy = 0;
+      double zToUse = trueEEPose.position.z+currentTableZ;
+      pixelToGlobal(pilotTarget.px, pilotTarget.py, zToUse, newx, newy);
 
       if (!positionIsMapped(newx, newy)) {
         cout << "Returning because position is out of map bounds." << endl;
         return;
       } else {
         pushWord("synchronicServo"); 
-        currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
-        currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
+	// ATTN 21
+        //currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
+        //currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
+        currentEEPose.px = newx;
+        currentEEPose.py = newy;
         pushWord("visionCycle"); // vision cycle
         pushWord("waitUntilAtCurrentPosition"); 
       }
@@ -7572,7 +7785,51 @@ eePose pixelToGlobalEEPose(int pX, int pY, double gZ) {
   return result;
 }
 
+void interpolateM_xAndM_yFromZ(double dZ, double * m_x, double * m_y) {
+
+  // XXX disabling for calibration
+  //return;
+
+  double bBZ[4];
+  bBZ[0] = convertHeightIdxToGlobalZ(0) + currentTableZ;
+  bBZ[1] = convertHeightIdxToGlobalZ(1) + currentTableZ;
+  bBZ[2] = convertHeightIdxToGlobalZ(2) + currentTableZ;
+  bBZ[3] = convertHeightIdxToGlobalZ(3) + currentTableZ;
+
+  if (dZ <= bBZ[0]) {
+    *m_x = m_x_h[0];
+    *m_y = m_y_h[0];
+  } else if (dZ <= bBZ[1]) {
+    double gap = bBZ[1] - bBZ[0];
+    double c0 = 1.0 - ((dZ - bBZ[0])/gap);
+    double c1 = 1.0 - ((bBZ[1] - dZ)/gap);
+    *m_x = c0*m_x_h[0] + c1*m_x_h[1];
+    *m_y = c0*m_y_h[0] + c1*m_y_h[1];
+  } else if (dZ <= bBZ[2]) {
+    double gap = bBZ[2] - bBZ[1];
+    double c1 = 1.0 - ((dZ - bBZ[1])/gap);
+    double c2 = 1.0 - ((bBZ[2] - dZ)/gap);
+    *m_x = c1*m_x_h[1] + c2*m_x_h[2];
+    *m_y = c1*m_y_h[1] + c2*m_y_h[2];
+  } else if (dZ <= bBZ[3]) {
+    double gap = bBZ[3] - bBZ[2];
+    double c2 = 1.0 - ((dZ - bBZ[2])/gap);
+    double c3 = 1.0 - ((bBZ[3] - dZ)/gap);
+    *m_x = c2*m_x_h[2] + c3*m_x_h[3];
+    *m_y = c2*m_y_h[2] + c3*m_y_h[3];
+  } else if (dZ > bBZ[3]) {
+    *m_x = m_x_h[3];
+    *m_y = m_y_h[3];
+  } else {
+    assert(0); // my my
+  }
+  //cout << m_x_h[0] << " " << m_x_h[1] << " " << m_x_h[2] << " " << m_x_h[3] << " " << *m_x << endl;
+  //cout << m_y_h[0] << " " << m_y_h[1] << " " << m_y_h[2] << " " << m_y_h[3] << " " << *m_y << endl;
+}
+
 void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
+  interpolateM_xAndM_yFromZ(gZ, &m_x, &m_y);
+
   int x1 = heightReticles[0].px;
   int x2 = heightReticles[1].px;
   int x3 = heightReticles[2].px;
@@ -7629,7 +7886,9 @@ void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
   double aY = result.y();
   double aX = result.x();
 
-  double angle = atan2(aY, aX)*180.0/3.1415926;
+  // ATTN 22
+  //double angle = atan2(aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
   angle = (angle);
   double scale = 1.0;
   Point center = Point(reticlePixelX, reticlePixelY);
@@ -7692,6 +7951,8 @@ void pixelToGlobal(int pX, int pY, double gZ, double &gX, double &gY) {
 }
 
 void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY) {
+  interpolateM_xAndM_yFromZ(gZ, &m_x, &m_y);
+
   int x1 = heightReticles[0].px;
   int x2 = heightReticles[1].px;
   int x3 = heightReticles[2].px;
@@ -7774,7 +8035,9 @@ void globalToPixel(int &pX, int &pY, double gZ, double gX, double gY) {
   double aY = result.y();
   double aX = result.x();
 
-  double angle = atan2(aY, aX)*180.0/3.1415926;
+  // ATTN 22
+  //double angle = atan2(aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
   angle = angle;
   double scale = 1.0;
   Point center = Point(reticlePixelX, reticlePixelY);
@@ -7843,6 +8106,44 @@ void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor) {
   //cv::imshow(objectViewerName, objectViewerImage);
 }
 
+void ikLast(eePose targetPose, double *jointsOut) {
+
+
+}
+
+double vectorArcTan(double y, double x) {
+  int maxVaSlot = 0;
+  double maxVaDot = -INFINITY;
+  for (int vaSlot = 0; vaSlot < vaNumAngles; vaSlot++) {
+    double product = vaX[vaSlot]*x + vaY[vaSlot]*y;
+    if (product > maxVaDot) {
+      maxVaDot = product;
+      maxVaSlot = vaSlot;
+    }
+  }
+  // return value in interval [-pi, pi]
+
+  double angleZeroTwopi = (maxVaSlot * vaDelta);
+  if (angleZeroTwopi <= 3.1415926) {
+    return angleZeroTwopi;
+  } else {
+    return ( angleZeroTwopi - (2.0*3.1415926) );
+  }
+}
+
+void initVectorArcTan() {
+  for (int vaSlot = 0; vaSlot < vaNumAngles; vaSlot++) {
+    vaX[vaSlot] = cos(vaSlot*vaDelta);
+    vaY[vaSlot] = sin(vaSlot*vaDelta);
+  }
+  /* smoke test
+  for (int vaSlot = 0; vaSlot < vaNumAngles; vaSlot++) {
+    cout << "atan2 vectorArcTan: " << 
+      vectorArcTan(vaY[vaSlot], vaX[vaSlot]) << " " << 
+      atan2(vaY[vaSlot], vaX[vaSlot]) << endl; 
+  }
+  */
+}
 
 ////////////////////////////////////////////////
 // end pilot definitions 
@@ -11857,6 +12158,7 @@ void initializeMap()
       objectMap[i + mapWidth * j].g = 0;
       objectMap[i + mapWidth * j].b = 0;
 
+      deadMap[i + mapWidth * j] = 0;
     }
   }
 }
@@ -11869,6 +12171,8 @@ void initializeMap()
 ////////////////////////////////////////////////
 
 int main(int argc, char **argv) {
+  initVectorArcTan();
+
   //testIncbet();
   //exit(0);
   //auto lfunc = [] () { cout << "Hello world"; }; 
@@ -12048,6 +12352,7 @@ int main(int argc, char **argv) {
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();
   cout << "cuda count: " << cudaCount << endl;;
+
   ros::spin();
 
   return 0;
