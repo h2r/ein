@@ -67,26 +67,59 @@ virtual void execute() {
 END_WORD
 
 WORD(MoveToNextMapPosition)
+int maxNextTries = 100;
 virtual void execute() {
-  ros::Time oldestTime = ros::Time::now();
-  int oldestI=-1, oldestJ=-1;
+  for (int tries = 0; tries < maxNextTries; tries++) {
+    ros::Time oldestTime = ros::Time::now();
+    int oldestI=-1, oldestJ=-1;
 
-  for (int i = 0; i < mapWidth; i++) {
-    for (int j = 0; j < mapHeight; j++) {
-      if (cellIsSearched(i, j) &&
-          (objectMap[i + mapWidth * j].lastMappedTime <= oldestTime)) {
-        oldestTime = objectMap[i + mapWidth * j].lastMappedTime;
-        oldestI = i;
-        oldestJ = j;
+    for (int i = 0; i < mapWidth; i++) {
+      for (int j = 0; j < mapHeight; j++) {
+	if (cellIsSearched(i, j) &&
+	    (objectMap[i + mapWidth * j].lastMappedTime <= oldestTime) &&
+	    (deadMap[i + mapWidth * j] == 0) ) {
+	  oldestTime = objectMap[i + mapWidth * j].lastMappedTime;
+	  oldestI = i;
+	  oldestJ = j;
+	}
       }
     }
-  }
-  double oldestX, oldestY;
-  mapijToxy(oldestI, oldestJ, &oldestX, &oldestY);
 
-  currentEEPose.px = oldestX;
-  currentEEPose.py = oldestY;
-  pushWord("waitUntilAtCurrentPosition");
+    if (oldestI == -1 || oldestJ == -1) {
+      cout << "moveToNextMapPosition failed to find a position. Clearing callstack." << endl;
+      clearStack();
+      pushCopies("beep", 15); // beep
+      return;
+    }
+
+    double oldestX, oldestY;
+    mapijToxy(oldestI, oldestJ, &oldestX, &oldestY);
+
+    eePose nextEEPose = currentEEPose;
+    nextEEPose.px = oldestX;
+    nextEEPose.py = oldestY;
+
+    baxter_core_msgs::SolvePositionIK thisIkRequest;
+    endEffectorAngularUpdate(&nextEEPose);
+    fillIkRequest(&nextEEPose, &thisIkRequest);
+
+    int foundGoodPosition = (ikClient.call(thisIkRequest) && thisIkRequest.response.isValid[0]);
+
+    if (foundGoodPosition) {
+      currentEEPose.px = oldestX;
+      currentEEPose.py = oldestY;
+      cout << "This pose was accepted by ikClient:" << endl;
+      cout << "Next EE Position (x,y,z): " << nextEEPose.px << " " << nextEEPose.py << " " << nextEEPose.pz << endl;
+      cout << "Next EE Orientation (x,y,z,w): " << nextEEPose.qx << " " << nextEEPose.qy << " " << nextEEPose.qz << " " << nextEEPose.qw << endl;
+      pushWord("waitUntilAtCurrentPosition");
+      cout << "moveToNextMapPosition tries foundGoodPosition oldestI oldestJ oldestX oldestY: "  << tries << " " << foundGoodPosition << " "  << oldestI << " " << oldestJ << " " << oldestX << " " << oldestY << endl;
+      break;
+    } else {
+      cout << "moveToNextMapPosition tries foundGoodPosition oldestI oldestJ: "  << tries << " " << foundGoodPosition << " "  << oldestI << " " << oldestJ << " " << oldestX << " " << oldestY << endl;
+      cout << "Try number try: " << tries << ", adding point to deadMap oldestI oldestJ: " << " " << oldestI << " " << oldestJ << endl;
+      deadMap[oldestI + mapWidth * oldestJ] = 1;
+    }
+  }
 }
 END_WORD
 
@@ -222,20 +255,19 @@ void mapBox(BoxMemory boxMemory) {
       objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
       objectMap[i + mapWidth * j].detectedClass = boxMemory.labeledClassIndex;
 
-      if (ros::Time::now() - objectMap[i + mapWidth * j].lastMappedTime > mapMemoryTimeout) {
-        objectMap[i + mapWidth * j].b = 0;
-        objectMap[i + mapWidth * j].g = 0;
-        objectMap[i + mapWidth * j].r = 0;
-        objectMap[i + mapWidth * j].pixelCount = 0;
-      }
-      
+//      if (ros::Time::now() - objectMap[i + mapWidth * j].lastMappedTime > mapMemoryTimeout) {
+//        objectMap[i + mapWidth * j].b = 0;
+//        objectMap[i + mapWidth * j].g = 0;
+//        objectMap[i + mapWidth * j].r = 0;
+//        objectMap[i + mapWidth * j].pixelCount = 0;
+//      }
 
-
+      double blueBoxWeight = 0.1;
       if (cam_img.rows != 0 && cam_img.cols != 0) {
-        objectMap[i + mapWidth * j].b += (int) cam_img.at<cv::Vec3b>(py, px)[0];
-        objectMap[i + mapWidth * j].g += (int) cam_img.at<cv::Vec3b>(py, px)[1];
-        objectMap[i + mapWidth * j].r += (int) cam_img.at<cv::Vec3b>(py, px)[2];
-        objectMap[i + mapWidth * j].pixelCount += 1.0;
+        objectMap[i + mapWidth * j].b = (cam_img.at<cv::Vec3b>(py, px)[0] * blueBoxWeight);
+        objectMap[i + mapWidth * j].g = (cam_img.at<cv::Vec3b>(py, px)[1] * blueBoxWeight);
+        objectMap[i + mapWidth * j].r = (cam_img.at<cv::Vec3b>(py, px)[2] * blueBoxWeight);
+        objectMap[i + mapWidth * j].pixelCount = blueBoxWeight;
       }
     }
   }
@@ -275,22 +307,42 @@ virtual void execute() {
         int i, j;
         mapxyToij(x, y, &i, &j);
 
-        if (ros::Time::now() - objectMap[i + mapWidth * j].lastMappedTime > mapMemoryTimeout) {
-          objectMap[i + mapWidth * j].b = 0;
-          objectMap[i + mapWidth * j].g = 0;
-          objectMap[i + mapWidth * j].r = 0;
-          objectMap[i + mapWidth * j].pixelCount = 0;
-        }
+//        if (ros::Time::now() - objectMap[i + mapWidth * j].lastMappedTime > mapMemoryTimeout) {
+//          objectMap[i + mapWidth * j].b = 0;
+//          objectMap[i + mapWidth * j].g = 0;
+//          objectMap[i + mapWidth * j].r = 0;
+//          objectMap[i + mapWidth * j].pixelCount = 0;
+//        }
 
 
         objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
         randomizeNanos(&objectMap[i + mapWidth * j].lastMappedTime);
         
         objectMap[i + mapWidth * j].detectedClass = -2;
-        objectMap[i + mapWidth * j].b += (int) cam_img.at<cv::Vec3b>(py, px)[0];
-        objectMap[i + mapWidth * j].g += (int) cam_img.at<cv::Vec3b>(py, px)[1];
-        objectMap[i + mapWidth * j].r += (int) cam_img.at<cv::Vec3b>(py, px)[2];
-        objectMap[i + mapWidth * j].pixelCount += 1.0;
+
+//	{
+//	  objectMap[i + mapWidth * j].b += (int) cam_img.at<cv::Vec3b>(py, px)[0];
+//	  objectMap[i + mapWidth * j].g += (int) cam_img.at<cv::Vec3b>(py, px)[1];
+//	  objectMap[i + mapWidth * j].r += (int) cam_img.at<cv::Vec3b>(py, px)[2];
+//        objectMap[i + mapWidth * j].pixelCount += 1.0;
+//	}
+	//const double spaceDecay = 0.996; // 0.7 ^ 0.01
+	const double spaceDecay = 0.99821; // 0.7 ^ 0.005
+	{
+	  objectMap[i + mapWidth * j].b = 
+	    ( spaceDecay*double(objectMap[i + mapWidth * j].b) + 
+		    (1.0-spaceDecay)*double(cam_img.at<cv::Vec3b>(py, px)[0]) );
+	  objectMap[i + mapWidth * j].g = 
+	    ( spaceDecay*double(objectMap[i + mapWidth * j].b) + 
+		    (1.0-spaceDecay)*double(cam_img.at<cv::Vec3b>(py, px)[1]) );
+	  objectMap[i + mapWidth * j].r = 
+	    ( spaceDecay*double(objectMap[i + mapWidth * j].b) + 
+		    (1.0-spaceDecay)*double(cam_img.at<cv::Vec3b>(py, px)[2]) );
+	  objectMap[i + mapWidth * j].pixelCount = 
+	    ( spaceDecay*double(objectMap[i + mapWidth * j].pixelCount) + 
+		    (1.0-spaceDecay)*double(1.0) );
+	}
+
       }
     }
   }
@@ -367,11 +419,6 @@ virtual void execute() {
   blueBoxMemories = newMemories;
 }
 END_WORD;
-
-
-
-
-
 
 WORD(ClearBlueBoxMemories)
 CODE(196709) // capslock + E
