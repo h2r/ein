@@ -369,3 +369,27 @@ virtual void execute() {
 }
 END_WORD
 
+WORD(TenthImpulse)
+virtual void execute() {
+  currentEESpeedRatio = 0.1;
+}
+END_WORD
+
+WORD(QuarterImpulse)
+virtual void execute() {
+  currentEESpeedRatio = 0.25;
+}
+END_WORD
+
+WORD(HalfImpulse)
+virtual void execute() {
+  currentEESpeedRatio = 0.5;
+}
+END_WORD
+
+WORD(FullImpulse)
+virtual void execute() {
+  currentEESpeedRatio = 1.0;
+}
+END_WORD
+

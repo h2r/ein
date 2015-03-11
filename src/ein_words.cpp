@@ -634,6 +634,11 @@ std::vector<Word *> create_words() {
   words.push_back(new SaveIkMap());
   words.push_back(new FillIkMap());
 
+  words.push_back(new TenthImpulse());
+  words.push_back(new QuarterImpulse());
+  words.push_back(new HalfImpulse());
+  words.push_back(new FullImpulse());
+
   return words;
 }
 
