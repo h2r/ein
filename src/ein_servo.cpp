@@ -686,8 +686,6 @@ virtual void execute()       {
 
   if (ARE_GENERIC_HEIGHT_LEARNING()) {
     pushWord("moveToRegister4"); // assume pose at register 4
-  } else {
-    pushWord("moveToRegister2"); // assume pose at register 2
   }
 
   pushNoOps(10);

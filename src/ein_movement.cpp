@@ -11,6 +11,7 @@ END_WORD
 WORD(WaitUntilAtCurrentPosition)
 CODE(131154)    // capslock + r
 virtual void execute() {
+  waitUntilAtCurrentPositionCounter = 0;
   double dx = (currentEEPose.px - trueEEPose.position.x);
   double dy = (currentEEPose.py - trueEEPose.position.y);
   double dz = (currentEEPose.pz - trueEEPose.position.z);
@@ -23,7 +24,31 @@ virtual void execute() {
   double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
   
   if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh))
-    pushWord("waitUntilAtCurrentPosition"); 
+    pushWord("waitUntilAtCurrentPositionB"); 
+}
+END_WORD
+
+WORD(WaitUntilAtCurrentPositionB)
+virtual void execute() {
+  double dx = (currentEEPose.px - trueEEPose.position.x);
+  double dy = (currentEEPose.py - trueEEPose.position.y);
+  double dz = (currentEEPose.pz - trueEEPose.position.z);
+  double distance = dx*dx + dy*dy + dz*dz;
+  
+  double qx = (fabs(currentEEPose.qx) - fabs(trueEEPose.orientation.x));
+  double qy = (fabs(currentEEPose.qy) - fabs(trueEEPose.orientation.y));
+  double qz = (fabs(currentEEPose.qz) - fabs(trueEEPose.orientation.z));
+  double qw = (fabs(currentEEPose.qw) - fabs(trueEEPose.orientation.w));
+  double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
+  
+  if (waitUntilAtCurrentPositionCounter < waitUntilAtCurrentPositionCounterMax) {
+    waitUntilAtCurrentPositionCounter++;
+    if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh)) {
+      pushWord("waitUntilAtCurrentPositionB"); 
+    }
+  } else {
+    cout << "Warning: waitUntilAtCurrentPosition timed out, moving on." << endl;
+  }
 }
 END_WORD
 
@@ -303,6 +328,8 @@ virtual void execute() {
   currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
   currentEEPose.pz = currentThompsonHeight;
   reticle = heightReticles[currentThompsonHeightIdx];
+  m_x = m_x_h[currentThompsonHeightIdx];
+  m_y = m_y_h[currentThompsonHeightIdx];
 }
 END_WORD
 
@@ -313,6 +340,8 @@ virtual void execute() {
   currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
   currentEEPose.pz = currentThompsonHeight;
   reticle = heightReticles[currentThompsonHeightIdx];
+  m_x = m_x_h[currentThompsonHeightIdx];
+  m_y = m_y_h[currentThompsonHeightIdx];
 }
 END_WORD
 
@@ -323,6 +352,8 @@ virtual void execute()  {
   currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
   currentEEPose.pz = currentThompsonHeight;
   reticle = heightReticles[currentThompsonHeightIdx];
+  m_x = m_x_h[currentThompsonHeightIdx];
+  m_y = m_y_h[currentThompsonHeightIdx];
 }
 END_WORD
 
@@ -333,6 +364,8 @@ virtual void execute() {
   currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
   currentEEPose.pz = currentThompsonHeight;
   reticle = heightReticles[currentThompsonHeightIdx];
+  m_x = m_x_h[currentThompsonHeightIdx];
+  m_y = m_y_h[currentThompsonHeightIdx];
 }
 END_WORD
 
