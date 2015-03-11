@@ -627,6 +627,7 @@ std::vector<Word *> create_words() {
 
   words.push_back(new ToggleDrawClearanceMap());
   words.push_back(new ToggleDrawIKMap());
+  words.push_back(new ToggleUseGlow());
 
   words.push_back(new FillClearanceMap());
   words.push_back(new LoadIkMap());
