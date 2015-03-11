@@ -7,7 +7,8 @@ virtual void execute() {
   pilotClosestTarget.px = -1;
   pilotClosestTarget.py = -1;
   
-  vector<BoxMemory> focusedClassMemories = memoriesForClass(focusedClass);
+  int idxOfFirst = -1;
+  vector<BoxMemory> focusedClassMemories = memoriesForClass(focusedClass, &idxOfFirst);
   if (focusedClassMemories.size() == 0) {
     cout << "can't find focused class. " << endl;
     return;
@@ -18,16 +19,63 @@ virtual void execute() {
   BoxMemory memory = focusedClassMemories[0];
   currentEEPose = memory.cameraPose;
 
+  { // set the old box's lastMappedTime to moments after the start of time
+    int iStart=-1, iEnd=-1, jStart=-1, jEnd=-1;
+    int iTop=-1, iBot=-1, jTop=-1, jBot=-1;
+    {
+      int i=-1, j=-1;
+      mapxyToij(memory.top.px, memory.top.py, &i, &j);
+      iTop=i;
+      jTop=j;
+    }
+    {
+      int i=-1, j=-1;
+      mapxyToij(memory.bot.px, memory.bot.py, &i, &j);
+      iBot=i;
+      jBot=j;
+    }
+    iStart = min(iBot, iTop);
+    iEnd = max(iBot, iTop);
+    jStart = min(jBot, jTop);
+    jEnd = max(jBot, jTop);
+    cout << "DeliverObject erasing iStart iEnd jStart jEnd: " << iStart << " " << iEnd << " " << jStart << " " << jEnd << endl;
+    for (int i = iStart; i <= iEnd; i++) {
+      for (int j = jStart; j <= jEnd; j++) {
+	if (i >= 0 && i < mapWidth && j >= 0 && j < mapHeight) {
+	  objectMap[i + mapWidth * j].lastMappedTime = ros::Time(0.001);
+	}
+      }
+    }
+  }
   
+  { // remove this blue box; above stamping would cause it to be naturally eliminated IF it was 
+    // observed in a searched region...
+    vector<BoxMemory> newMemories;
+    for (int i = 0; i < blueBoxMemories.size(); i++) {
+      if (i != idxOfFirst) {
+	cout << "Retaining blue box " << i << " while booting " << idxOfFirst << endl; 
+	newMemories.push_back(blueBoxMemories[i]);
+      }
+    }
+    blueBoxMemories = newMemories;
+  }
+
+  pushWord("clearStackIntoMappingPatrol"); 
+  pushWord("synchronicServoDoNotTakeClosest"); 
+  pushWord("openGripper"); 
   pushWord("placeObjectInDeliveryZone");
   pushWord("ifGrasp");
   pushWord("prepareForAndExecuteGraspFromMemory"); 
   pushWord("gradientServo");
+  pushCopies("density", densityIterationsForGradientServo); 
+  pushCopies("resetTemporalMap", 1); 
+  pushWord("synchronicServo"); 
+  pushWord("visionCycle");
+  pushWord("synchronicServoTakeClosest"); 
   pushWord("waitUntilAtCurrentPosition");
   pushWord("setPickModeToStaticMarginals"); 
   pushWord("sampleHeight"); 
   pushWord("setBoundingBoxModeToMapping"); 
-  pushWord("synchronicServoDoNotTakeClosest"); 
   pushWord("openGripper");
 }
 END_WORD
@@ -41,8 +89,19 @@ virtual void execute() {
   pushWord("tryToMoveToTheLastPickHeight");   
   pushWord("waitUntilAtCurrentPosition"); 
   pushWord("assumeDeliveryPose");
+  pushWord("waitUntilAtCurrentPosition"); 
+  pushCopies("zUp", 20);
 }
 END_WORD
+
+WORD(ClearStackIntoMappingPatrol)
+virtual void execute() {
+  clearStack();
+  pushWord("mappingPatrol");
+  execute_stack = 1;
+}
+END_WORD
+
 
 WORD(MappingPatrol)
 CODE(196727) // capslock + W
@@ -60,9 +119,188 @@ virtual void execute() {
   pushWord("synchronicServo"); 
   pushWord("visionCycle");
   pushWord("synchronicServoTakeClosest");
-  pushCopies("noop", 5);
+  pushWord("waitUntilAtCurrentPosition"); 
   pushWord("sampleHeight"); 
   pushWord("setBoundingBoxModeToMapping");
+  pushWord("shiftIntoGraspGear1");
+}
+END_WORD
+
+WORD(ToggleDrawClearanceMap)
+virtual void execute() {
+  drawClearanceMap = !drawClearanceMap;
+}
+END_WORD
+
+WORD(ToggleDrawIKMap)
+virtual void execute() {
+  drawIKMap = !drawIKMap;
+}
+END_WORD
+
+WORD(FillClearanceMap)
+int pursuitProximity = 5;
+int searchProximity = 20;
+virtual void execute() {
+  {
+    int proximity = pursuitProximity;
+    for (int i = 0; i < mapWidth; i++) {
+      for (int j = 0; j < mapHeight; j++) {
+	if ( cellIsSearched(i, j) ) {
+	  int iIStart = max(0, i-proximity);
+	  int iIEnd = min(mapWidth-1, i+proximity);
+	  int iJStart = max(0, j-proximity);
+	  int iJEnd = min(mapHeight-1, j+proximity);
+
+	  int reject = 0;
+	  for (int iI = iIStart; iI <= iIEnd; iI++) {
+	    for (int iJ = iJStart; iJ <= iJEnd; iJ++) {
+	      if (  ( cellIsSearched(iI, iJ) ) && 
+		    ( ikMap[iI + mapWidth * iJ] != 0 ) &&
+		    ( sqrt((iI-i)*(iI-i) + (iJ-j)*(iJ-j)) < proximity )  ) {
+		reject = 1;
+	      }
+	    }
+	  }
+
+	  if (reject) {
+	    clearanceMap[i + mapWidth * j] = 0;
+	  } else {
+	    clearanceMap[i + mapWidth * j] = 1;
+	  }
+	} else {
+	  clearanceMap[i + mapWidth * j] = 0;
+	}
+      }
+    }
+  }
+  {
+    int proximity = searchProximity;
+    for (int i = 0; i < mapWidth; i++) {
+      for (int j = 0; j < mapHeight; j++) {
+	if ( cellIsSearched(i, j) ) {
+	  int iIStart = max(0, i-proximity);
+	  int iIEnd = min(mapWidth-1, i+proximity);
+	  int iJStart = max(0, j-proximity);
+	  int iJEnd = min(mapHeight-1, j+proximity);
+
+	  int reject = 0;
+	  for (int iI = iIStart; iI <= iIEnd; iI++) {
+	    for (int iJ = iJStart; iJ <= iJEnd; iJ++) {
+	      if (  ( cellIsSearched(iI, iJ) ) && 
+		    ( ikMap[iI + mapWidth * iJ] != 0 ) &&
+		    ( sqrt((iI-i)*(iI-i) + (iJ-j)*(iJ-j)) < proximity )  ) {
+		reject = 1;
+	      }
+	    }
+	  }
+
+	  if (reject) {
+	  } else {
+	    clearanceMap[i + mapWidth * j] = 2;
+	  }
+	} else {
+	}
+      }
+    }
+  }
+}
+END_WORD
+
+WORD(SaveIkMap)
+virtual void execute() {
+  ofstream ofile;
+  string fileName = data_directory + "/" + left_or_right_arm + "IkMap";
+  cout << "Saving ikMap to " << fileName << endl;
+  ofile.open(fileName, ios::trunc | ios::binary);
+  ofile.write((char*)ikMap, sizeof(int)*mapWidth*mapHeight);
+  ofile.close();
+}
+END_WORD
+
+WORD(LoadIkMap)
+virtual void execute() {
+  ifstream ifile;
+  string fileName = data_directory + "/" + left_or_right_arm + "IkMap";
+  cout << "Loading ikMap from " << fileName << endl;
+  ifile.open(fileName, ios::binary);
+  ifile.read((char*)ikMap, sizeof(int)*mapWidth*mapHeight);
+  ifile.close();
+}
+END_WORD
+
+WORD(FillIkMap)
+// store these here and create accessors if they need to change
+int currentI = 0;
+int currentJ = 0;
+int cellsPerQuery = 100;
+virtual void execute() {
+  int queries = 0;
+  int i=currentI, j=currentJ;
+  for (; i < mapWidth; i++) {
+    if (queries < cellsPerQuery) {
+      for (; j < mapHeight; j++) {
+	if (queries < cellsPerQuery) {
+	  if ( cellIsSearched(i, j) ) {
+	    double X, Y;
+	    mapijToxy(i, j, &X, &Y);
+
+	    eePose nextEEPose = currentEEPose;
+	    nextEEPose.px = X;
+	    nextEEPose.py = Y;
+
+	    baxter_core_msgs::SolvePositionIK thisIkRequest;
+	    endEffectorAngularUpdate(&nextEEPose);
+	    fillIkRequest(&nextEEPose, &thisIkRequest);
+
+	    bool likelyInCollision = 0;
+	    int thisIkCallResult = ikClient.call(thisIkRequest);
+	    int ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
+	    int foundGoodPosition = !ikResultFailed;
+	    //ikMap[i + mapWidth * j] = ikResultFailed;
+	    //ikMap[i + mapWidth * j] = 1;
+	    //cout << i << " " << j << endl;
+	    if (ikResultFailed) {
+	      ikMap[i + mapWidth * j] = 1;
+	    } else {
+	      if (likelyInCollision) {
+		ikMap[i + mapWidth * j] = 2;
+	      } else {
+		ikMap[i + mapWidth * j] = 0;
+	      }
+	    }
+	    queries++;
+	  }
+	} else {
+	  break;
+	}
+      }
+      // reset here so we don't bash the initial restart
+      if ( !(j < mapHeight) ) {
+	j = 0;
+      }
+
+      if (queries < cellsPerQuery) {
+	continue;
+      } else {
+	break;
+      }
+    } else {
+      break;
+    }
+  }
+
+  if (i >= mapWidth) {
+    i = 0;
+  } else {
+    pushWord("fillIkMap");
+  }
+  if (j >= mapHeight) {
+    j = 0;
+  }
+
+  currentI = i;
+  currentJ = j;
 }
 END_WORD
 
@@ -77,7 +315,8 @@ virtual void execute() {
       for (int j = 0; j < mapHeight; j++) {
 	if (cellIsSearched(i, j) &&
 	    (objectMap[i + mapWidth * j].lastMappedTime <= oldestTime) &&
-	    (deadMap[i + mapWidth * j] == 0) ) {
+	    (clearanceMap[i + mapWidth * j] == 2) &&
+	    (ikMap[i + mapWidth * j] == 0) ) {
 	  oldestTime = objectMap[i + mapWidth * j].lastMappedTime;
 	  oldestI = i;
 	  oldestJ = j;
@@ -103,7 +342,10 @@ virtual void execute() {
     endEffectorAngularUpdate(&nextEEPose);
     fillIkRequest(&nextEEPose, &thisIkRequest);
 
-    int foundGoodPosition = (ikClient.call(thisIkRequest) && thisIkRequest.response.isValid[0]);
+    bool likelyInCollision = 0;
+    int thisIkCallResult = ikClient.call(thisIkRequest);
+    int ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
+    int foundGoodPosition = !ikResultFailed;
 
     if (foundGoodPosition) {
       currentEEPose.px = oldestX;
@@ -116,8 +358,17 @@ virtual void execute() {
       break;
     } else {
       cout << "moveToNextMapPosition tries foundGoodPosition oldestI oldestJ: "  << tries << " " << foundGoodPosition << " "  << oldestI << " " << oldestJ << " " << oldestX << " " << oldestY << endl;
-      cout << "Try number try: " << tries << ", adding point to deadMap oldestI oldestJ: " << " " << oldestI << " " << oldestJ << endl;
-      deadMap[oldestI + mapWidth * oldestJ] = 1;
+      cout << "Try number try: " << tries << ", adding point to ikMap oldestI oldestJ ikMap[.]: " << " " << oldestI << " " << oldestJ;
+      if (ikResultFailed) {
+	ikMap[oldestI + mapWidth * oldestJ] = 1;
+      } else {
+	if (likelyInCollision) {
+	  ikMap[oldestI + mapWidth * oldestJ] = 2;
+	} else {
+	  ikMap[oldestI + mapWidth * oldestJ] = 0;
+	}
+      }
+      cout << " " << ikMap[oldestI + mapWidth * oldestJ] << endl;
     }
   }
 }
@@ -372,21 +623,20 @@ virtual void execute() {
   box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
   box.cameraTime = ros::Time::now();
   box.labeledClassIndex = bLabels[c];
-  
-  mapBox(box);
 
-  vector<BoxMemory> newMemories;
-  
-  for (int i = 0; i < blueBoxMemories.size(); i++) {
-    if (!boxMemoryIntersectCentroid(box, blueBoxMemories[i])) {
-      newMemories.push_back(blueBoxMemories[i]);
+  if (!positionIsSearched(box.centroid.px, box.centroid.py)) {
+    return;
+  } else {
+    mapBox(box);
+    vector<BoxMemory> newMemories;
+    for (int i = 0; i < blueBoxMemories.size(); i++) {
+      if (!boxMemoryIntersectCentroid(box, blueBoxMemories[i])) {
+	newMemories.push_back(blueBoxMemories[i]);
+      }
     }
+    newMemories.push_back(box);
+    blueBoxMemories = newMemories;
   }
-  newMemories.push_back(box);
-  
-
-  blueBoxMemories = newMemories;
-
 }
 END_WORD
 

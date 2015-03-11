@@ -365,7 +365,8 @@ CODE(65361) // left arrow
 virtual void execute()
 {
   m_x += .01;
-  cout << "m_x: " << m_x << endl;
+  m_x_h[currentThompsonHeightIdx] = m_x;
+  cout << "m_x, m_x_h: " << m_x << endl;
 }
 END_WORD
 
@@ -374,7 +375,8 @@ CODE(65363) // right arrow
 virtual void execute()
 {
   m_x -= .01;
-  cout << "m_x: " << m_x << endl;
+  m_x_h[currentThompsonHeightIdx] = m_x;
+  cout << "m_x, m_x_h: " << m_x << endl;
 }
 END_WORD
 
@@ -383,7 +385,8 @@ CODE(65362) // up arrow
 virtual void execute()
 {
   m_y += .01;
-  cout << "m_y: " << m_y << endl;
+  m_y_h[currentThompsonHeightIdx] = m_y;
+  cout << "m_y, m_y_h: " << m_y << endl;
 }
 END_WORD
 
@@ -392,7 +395,8 @@ CODE(65364) // down arrow
 virtual void execute()
 {
   m_y -= .01;
-  cout << "m_y: " << m_y << endl;
+  m_y_h[currentThompsonHeightIdx] = m_y;
+  cout << "m_y, m_y_h: " << m_y << endl;
 }
 END_WORD
 
@@ -472,6 +476,7 @@ std::vector<Word *> create_words() {
   words.push_back(new ChangeToHeight2());
   words.push_back(new ChangeToHeight3());
   words.push_back(new WaitUntilAtCurrentPosition());
+  words.push_back(new WaitUntilAtCurrentPositionB());
   words.push_back(new AssumeDeliveryPose());
   words.push_back(new Beep());
   words.push_back(new ZeroGToggle());
@@ -600,6 +605,7 @@ std::vector<Word *> create_words() {
   words.push_back(new Pop());
 
   words.push_back(new PixelGlobalTest());
+  words.push_back(new ClearStackIntoMappingPatrol());
   words.push_back(new MappingPatrol());
   words.push_back(new RecordAllBlueBoxes());
   words.push_back(new ClearBlueBoxMemories());
@@ -619,7 +625,13 @@ std::vector<Word *> create_words() {
   words.push_back(new IncMy());
   words.push_back(new DecMy());
 
+  words.push_back(new ToggleDrawClearanceMap());
+  words.push_back(new ToggleDrawIKMap());
 
+  words.push_back(new FillClearanceMap());
+  words.push_back(new LoadIkMap());
+  words.push_back(new SaveIkMap());
+  words.push_back(new FillIkMap());
 
   return words;
 }

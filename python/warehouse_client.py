@@ -14,7 +14,9 @@ class WarehouseClient:
         self.objects = []
         #topic = "/publish_detections_center/blue_labeled_objects" # node
         #topic = "/ar_objects" # ar tags
-        topic = "/ein_right/blue_memory_objects" # ein
+        #topic = "/ein_right/blue_memory_objects" # ein
+        topic = "/ein_left/blue_memory_objects" # ein
+	print topic
         rospy.Subscriber(topic, RecognizedObjectArray, self.object_callback)
         self.last_object_callback = rospy.Time()
         rospy.Timer(rospy.Duration(2), self.timer)

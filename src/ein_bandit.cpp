@@ -354,6 +354,8 @@ virtual void execute() {
   currentThompsonHeight = convertHeightIdxToGlobalZ(thisRandThompsonHeight);
   currentThompsonHeightIdx = thisRandThompsonHeight;
   currentEEPose.pz = currentThompsonHeight;
+  m_x = m_x_h[currentThompsonHeightIdx];
+  m_y = m_y_h[currentThompsonHeightIdx];
 }
 END_WORD
 
@@ -411,6 +413,8 @@ virtual void execute() {
       currentThompsonHeight = convertHeightIdxToGlobalZ(mappingHeightIdx);
       currentThompsonHeightIdx = mappingHeightIdx;
       currentEEPose.pz = currentThompsonHeight;
+      m_x = m_x_h[currentThompsonHeightIdx];
+      m_y = m_y_h[currentThompsonHeightIdx];
     } else if (currentBoundingBoxMode == LEARNING_SAMPLING) {
       loadSampledHeightMemory();
     } else if (currentBoundingBoxMode == STATIC_MARGINALS) {
@@ -448,6 +452,8 @@ virtual void execute() {
     currentThompsonHeight = convertHeightIdxToGlobalZ(max_i);
     currentThompsonHeightIdx = max_i;
     currentEEPose.pz = currentThompsonHeight;
+    m_x = m_x_h[currentThompsonHeightIdx];
+    m_y = m_y_h[currentThompsonHeightIdx];
   }
 }
 END_WORD

@@ -742,15 +742,21 @@ int kPThresh = 3;
 double lastPtheta = INFINITY;
 
 // ATTN 4
-int synServoPixelThresh = 10;//15;//10;
+// ATTN 22
+// pre-absolute
+//int synServoPixelThresh = 10;//15;//10;
+//int gradServoPixelThresh = 2;
+//int gradServoThetaThresh = 1;
+int synServoPixelThresh = 15;//15;//10;
+int gradServoPixelThresh = 5;
+int gradServoThetaThresh = 2;
+
 int synServoLockFrames = 0;
 int synServoLockThresh = 20;
 
 double synServoMinKp = synKp/20.0;
 double synServoKDecay = .95;
 
-int gradServoPixelThresh = 2;
-int gradServoThetaThresh = 1;
 
 ros::Time oscilStart;
 double oscCenX = 0.0;
@@ -784,7 +790,7 @@ double surveyNoiseScale = 50;
 int synchronicTakeClosest = 0;
 int gradientTakeClosest = 0;
 int gradientServoDuringHeightLearning = 1;
-int bailAfterSynchronic = 0;
+int bailAfterSynchronic = 1;
 int bailAfterGradient = 0;
 
 int gripperMoving = 0;
@@ -969,6 +975,9 @@ const int vaNumAngles = 360;
 const double vaDelta = (2.0 * 3.1415926) / vaNumAngles;
 double vaX[vaNumAngles];
 double vaY[vaNumAngles];
+
+int waitUntilAtCurrentPositionCounter = 0;
+int waitUntilAtCurrentPositionCounterMax = 300;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -1225,6 +1234,7 @@ int blueBoxForPixel(int px, int py);
 bool cellIsSearched(int i, int j);
 bool positionIsSearched(double x, double y);
 vector<BoxMemory> memoriesForClass(int classIdx);
+vector<BoxMemory> memoriesForClass(int classIdx, int * memoryIdxOfFirst);
 
 bool cellIsMapped(int i, int j);
 bool positionIsMapped(double x, double y);
@@ -1255,7 +1265,10 @@ const int mapHeight = (mapYMax - mapYMin) / mapStep;
 const ros::Duration mapMemoryTimeout(10);
 
 MapCell objectMap[mapWidth * mapHeight];
-int deadMap[mapWidth * mapHeight];
+int ikMap[mapWidth * mapHeight];
+int clearanceMap[mapWidth * mapHeight];
+int drawClearanceMap = 1;
+int drawIKMap = 1;
 
 vector<BoxMemory> blueBoxMemories;
 
@@ -3515,10 +3528,42 @@ void fillIkRequest(eePose * givenEEPose, baxter_core_msgs::SolvePositionIK * giv
   givenIkRequest->request.pose_stamp[0].pose.position.y = givenEEPose->py;
   givenIkRequest->request.pose_stamp[0].pose.position.z = givenEEPose->pz;
 
+  Eigen::Quaternionf normalizer(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
+  normalizer.normalize();
+  givenEEPose->qx = normalizer.x();
+  givenEEPose->qy = normalizer.y();
+  givenEEPose->qz = normalizer.z();
+  givenEEPose->qw = normalizer.w();
+
   givenIkRequest->request.pose_stamp[0].pose.orientation.x = givenEEPose->qx;
   givenIkRequest->request.pose_stamp[0].pose.orientation.y = givenEEPose->qy;
   givenIkRequest->request.pose_stamp[0].pose.orientation.z = givenEEPose->qz;
   givenIkRequest->request.pose_stamp[0].pose.orientation.w = givenEEPose->qw;
+}
+
+bool willIkResultFail(baxter_core_msgs::SolvePositionIK thisIkRequest, int thisIkCallResult, bool * likelyInCollision) {
+  bool thisIkResultFailed = 0;
+  *likelyInCollision = 0;
+
+  if (thisIkCallResult && thisIkRequest.response.isValid[0]) {
+    thisIkResultFailed = 0;
+  } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != numJoints)) {
+    thisIkResultFailed = 1;
+    //cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
+  } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != numJoints)) {
+    thisIkResultFailed = 1;
+    //cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
+  } else if (thisIkRequest.response.joints.size() == 1) {
+    //cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
+    //cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
+    thisIkResultFailed = 0;
+    *likelyInCollision = 1;
+  } else {
+    thisIkResultFailed = 1;
+    //cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
+  }
+
+  return thisIkResultFailed;
 }
 
 void update_baxter(ros::NodeHandle &n) {
@@ -3548,34 +3593,42 @@ void update_baxter(ros::NodeHandle &n) {
 
       //ikResultFailed = (!ikCallResult || (thisIkRequest.response.joints.size() == 0) || (thisIkRequest.response.joints[0].position.size() != numJoints));
 
-      // XXX This is ridiculous
+//      // XXX This is ridiculous
+//      if (ikCallResult && thisIkRequest.response.isValid[0]) {
+//	// set this here in case noise was added
+//	currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
+//	currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
+//	currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
+//	ikResultFailed = 0;
+//      } else {
+//	ikResultFailed = 1;
+//	cout << "Initial IK result appears to be invalid." << endl;
+//      } 
+
       if (ikCallResult && thisIkRequest.response.isValid[0]) {
 	// set this here in case noise was added
 	currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
 	currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
 	currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
 	ikResultFailed = 0;
+      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != numJoints)) {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
+      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != numJoints)) {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
+      } else if (thisIkRequest.response.joints.size() == 1) {
+	cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
+	cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
+
+	ikResultFailed = 0;
+	currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
+	currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
+	currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
       } else {
 	ikResultFailed = 1;
-	cout << "Initial IK result appears to be invalid." << endl;
-      } 
-
-//      {} else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != numJoints)) {
-//	ikResultFailed = 1;
-//	cout << "Initial IK result appears to be truly invalid." << endl;
-//      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != numJoints)) {
-//	ikResultFailed = 1;
-//	cout << "Initial IK result appears to be truly invalid." << endl;
-//      } else {
-//	if (!thisIkRequest.response.isValid[0]) {
-//	  cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
-//	  cout << "ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
-//	}
-//	ikResultFailed = 0;
-//	currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
-//	currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
-//	currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
-//      }
+	cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
+      }
 
       if (!ikResultFailed) {
 	break;
@@ -4313,6 +4366,84 @@ void renderObjectMapView() {
       }
     }
   }
+
+  if (drawIKMap) { // draw ikMap
+    int ikMapRenderStride = 1;
+    for (int i = 0; i < mapWidth; i+=ikMapRenderStride) {
+      for (int j = 0; j < mapHeight; j+=ikMapRenderStride) {
+	if ( cellIsSearched(i, j) ) {
+	    double x=-1, y=-1;
+	    mapijToxy(i, j, &x, &y);
+	    cv::Point cvp1 = worldToPixel(objectMapViewerImage, 
+	      mapXMin, mapXMax, mapYMin, mapYMax, x, y);
+	    if ( (ikMap[i + mapWidth * j] == 1) ) {
+	      Scalar tColor = CV_RGB(192, 32, 32);
+	      //gsl_matrix * mapcell = mapCellToPolygon(i, j);
+	      //drawMapPolygon(mapcell, tColor);
+	      //gsl_matrix_free(mapcell);
+	      line(objectMapViewerImage, cvp1, cvp1, tColor);
+	    } else if ( (ikMap[i + mapWidth * j] == 2) ) {
+	      Scalar tColor = CV_RGB(224, 64, 64);
+	      //gsl_matrix * mapcell = mapCellToPolygon(i, j);
+	      //drawMapPolygon(mapcell, tColor);
+	      //gsl_matrix_free(mapcell);
+	      line(objectMapViewerImage, cvp1, cvp1, tColor);
+	    }
+	}
+      }
+    }
+  }
+
+  if (drawClearanceMap) { // draw clearanceMap 
+    int ikMapRenderStride = 1;
+    for (int i = 0; i < mapWidth; i+=ikMapRenderStride) {
+      for (int j = 0; j < mapHeight; j+=ikMapRenderStride) {
+	if ( cellIsSearched(i, j) ) {
+	    double x=-1, y=-1;
+	    mapijToxy(i, j, &x, &y);
+	    cv::Point cvp1 = worldToPixel(objectMapViewerImage, 
+	      mapXMin, mapXMax, mapYMin, mapYMax, x, y);
+	    if ( (clearanceMap[i + mapWidth * j] == 1) ) {
+	      Scalar tColor = CV_RGB(224, 224, 0);
+	      //gsl_matrix * mapcell = mapCellToPolygon(i, j);
+	      //drawMapPolygon(mapcell, CV_RGB(128, 128, 0));
+	      //gsl_matrix_free(mapcell);
+	      line(objectMapViewerImage, cvp1, cvp1, tColor);
+	    } else if ( (clearanceMap[i + mapWidth * j] == 2) ) {
+	      Scalar tColor = CV_RGB(0, 224, 0);
+	      //gsl_matrix * mapcell = mapCellToPolygon(i, j);
+	      //drawMapPolygon(mapcell, CV_RGB(32, 128, 32));
+	      //gsl_matrix_free(mapcell);
+	      line(objectMapViewerImage, cvp1, cvp1, tColor);
+	    }
+	}
+      }
+    }
+  }
+
+  { // drawMapSearchFence
+    
+    cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                    mapSearchFenceXMin, mapSearchFenceYMin);
+    cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                    mapSearchFenceXMax, mapSearchFenceYMax);
+
+    rectangle(objectMapViewerImage, outTop, outBot, 
+              CV_RGB(255, 255, 0));
+  }
+
+  { // drawMapRejectFence
+    
+    cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                    mapRejectFenceXMin, mapRejectFenceYMin);
+    cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                    mapRejectFenceXMax, mapRejectFenceYMax);
+
+    rectangle(objectMapViewerImage, outTop, outBot, 
+              CV_RGB(255, 0, 0));
+  }
+
+  // draw blue boxes
   for (int i = 0; i < blueBoxMemories.size(); i++) {
     BoxMemory memory = blueBoxMemories[i];
     string class_name = classLabels[memory.labeledClassIndex];
@@ -4325,7 +4456,6 @@ void renderObjectMapView() {
     cv::Point objectPoint = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                          cx, cy);
     objectPoint.x += 15;
-    putText(objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, Scalar(255, 255, 255), 2.0);
 
     cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                     memory.top.px, memory.top.py);
@@ -4333,9 +4463,9 @@ void renderObjectMapView() {
                                     memory.bot.px, memory.bot.py);
     rectangle(objectMapViewerImage, outTop, outBot, 
               CV_RGB(0, 0, 255));
-  }
 
-  
+    putText(objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, Scalar(255, 255, 255), 2.0);
+  }
   
   { // drawRobot
     double radius = 20;
@@ -4367,28 +4497,6 @@ void renderObjectMapView() {
 
   }
 
-  { // drawMapSearchFence
-    
-    cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
-                                    mapSearchFenceXMin, mapSearchFenceYMin);
-    cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
-                                    mapSearchFenceXMax, mapSearchFenceYMax);
-
-    rectangle(objectMapViewerImage, outTop, outBot, 
-              CV_RGB(255, 255, 0));
-  }
-
-  { // drawMapRejectFence
-    
-    cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
-                                    mapRejectFenceXMin, mapRejectFenceYMin);
-    cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
-                                    mapRejectFenceXMax, mapRejectFenceYMax);
-
-    rectangle(objectMapViewerImage, outTop, outBot, 
-              CV_RGB(255, 0, 0));
-  }
-  
   if (0) { // drawBoxMemoryIntersectTests
 
     for (int i = 0; i < mapWidth; i++) {
@@ -4662,15 +4770,33 @@ void pilotInit() {
 
 
     // good fence values
-    mapSearchFenceXMin = -0.4;
-    mapSearchFenceXMax = 0.45;
-    mapSearchFenceYMin = 0.63;
-    mapSearchFenceYMax = 0.96;
+    //mapSearchFenceXMin = -0.4;
+    //mapSearchFenceXMax = 0.45;
+    //mapSearchFenceYMin = 0.63;
+    //mapSearchFenceYMax = 0.96;
+    // full workspace
+    //mapSearchFenceXMin = -0.75;
+    //mapSearchFenceXMax = 1.00;
+    //mapSearchFenceYMin = -1.25;
+    //mapSearchFenceYMax = 1.25;
+    mapSearchFenceXMin = -0.75;
+    mapSearchFenceXMax = 0.5;
+    mapSearchFenceYMin = -1.25;
+    mapSearchFenceYMax = 1.25;
 
-    mapRejectFenceXMin = -0.4;
-    mapRejectFenceXMax = 0.45;
-    mapRejectFenceYMin = 0.63;
-    mapRejectFenceYMax = 0.96;
+    //mapSearchFenceXMin = -0.75;
+    //mapSearchFenceXMax = 1.0;
+    //mapSearchFenceYMin = 0.45;
+    //mapSearchFenceYMax = 1.25;
+
+    //mapRejectFenceXMin = -0.4;
+    //mapRejectFenceXMax = 0.45;
+    //mapRejectFenceYMin = 0.63;
+    //mapRejectFenceYMax = 0.96;
+    mapRejectFenceXMin = mapSearchFenceXMin;
+    mapRejectFenceXMax = mapSearchFenceXMax;
+    mapRejectFenceYMin = mapSearchFenceYMin;
+    mapRejectFenceYMax = mapSearchFenceYMax;
 
     // small fence values (for debugging)
     //mapSearchFenceXMin = 0;
@@ -4815,15 +4941,29 @@ void pilotInit() {
     //mapRejectFenceXMax = 0.7;
     //mapRejectFenceYMin = -1.06;
     //mapRejectFenceYMax = -0.58;
-    mapSearchFenceXMin = -0.4;
-    mapSearchFenceXMax = 0.45;
-    mapSearchFenceYMin = -0.96;
-    mapSearchFenceYMax = -0.63;
 
-    mapRejectFenceXMin = -0.4;
-    mapRejectFenceXMax = 0.45;
-    mapRejectFenceYMin = -0.96;
-    mapRejectFenceYMax = -0.63;
+    //mapSearchFenceXMin = -0.4;
+    //mapSearchFenceXMax = 0.45;
+    //mapSearchFenceYMin = -0.96;
+    //mapSearchFenceYMax = -0.63;
+    // full workspace
+    mapSearchFenceXMin = -0.75;
+    mapSearchFenceXMax = 1.00;
+    mapSearchFenceYMin = -1.25;
+    mapSearchFenceYMax = 1.25;
+    //mapSearchFenceXMin = -0.75;
+    //mapSearchFenceXMax = 0.75;
+    //mapSearchFenceYMin = -0.45;
+    //mapSearchFenceYMax = 1.25;
+
+    //mapRejectFenceXMin = -0.4;
+    //mapRejectFenceXMax = 0.45;
+    //mapRejectFenceYMin = -0.96;
+    //mapRejectFenceYMax = -0.63;
+    mapRejectFenceXMin = mapSearchFenceXMin;
+    mapRejectFenceXMax = mapSearchFenceXMax;
+    mapRejectFenceYMin = mapSearchFenceYMin;
+    mapRejectFenceYMax = mapSearchFenceYMax;
 
 
     // right arm
@@ -4895,12 +5035,12 @@ void pilotInit() {
     /* lens correction */
     m_x_h[0] = 1.18;
     m_x_h[1] = 1.12;
-    m_x_h[2] = 1.07;
-    m_x_h[3] = 1.06;
+    m_x_h[2] = 1.09;
+    m_x_h[3] = 1.08;
 
     m_y_h[0] = 1.16;
     m_y_h[1] = 1.17;
-    m_y_h[2] = 1.18;
+    m_y_h[2] = 1.16;
     m_y_h[3] = 1.2;
   } else {
     cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
@@ -6841,6 +6981,16 @@ void gradientServo() {
     return;
   }
 
+  {
+    int i, j;
+    mapxyToij(currentEEPose.px, currentEEPose.py, &i, &j);
+    int doWeHaveClearance = (clearanceMap[i + mapWidth * j] != 0);
+    if (!doWeHaveClearance) {
+      cout << ">>>> Gradient servo strayed out of clearance area during mapping. <<<<" << endl;
+      return;
+    }
+  }
+
   // ATTN 16
   switch (currentThompsonHeightIdx) {
   case 0:
@@ -7350,6 +7500,16 @@ void synchronicServo() {
 	(currentBoundingBoxMode == MAPPING) ) {
     cout << ">>>> Synchronic servo timed out during mapping. <<<<" << endl;
     return;
+  }
+
+  {
+    int i, j;
+    mapxyToij(currentEEPose.px, currentEEPose.py, &i, &j);
+    int doWeHaveClearance = (clearanceMap[i + mapWidth * j] != 0);
+    if (!doWeHaveClearance) {
+      cout << ">>>> Synchronic servo strayed out of clearance area during mapping. <<<<" << endl;
+      return;
+    }
   }
 
   // ATTN 19
@@ -12119,6 +12279,17 @@ vector<BoxMemory> memoriesForClass(int classIdx) {
   return results;
 }
 
+vector<BoxMemory> memoriesForClass(int classIdx, int * memoryIdxOfFirst) {
+  vector<BoxMemory> results;
+  for (int j = 0; j < blueBoxMemories.size(); j++) {
+    if (blueBoxMemories[j].labeledClassIndex == focusedClass) {
+      results.push_back(blueBoxMemories[j]);
+      *memoryIdxOfFirst = j;
+    }
+  }
+  return results;
+}
+
 bool cellIsMapped(int i, int j) {
   double x, y;
   mapijToxy(i, j, &x, &y);
@@ -12166,7 +12337,8 @@ void initializeMap()
       objectMap[i + mapWidth * j].g = 0;
       objectMap[i + mapWidth * j].b = 0;
 
-      deadMap[i + mapWidth * j] = 0;
+      ikMap[i + mapWidth * j] = 0;
+      clearanceMap[i + mapWidth * j] = 0;
     }
   }
 }
