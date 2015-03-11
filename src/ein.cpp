@@ -1269,6 +1269,7 @@ int ikMap[mapWidth * mapHeight];
 int clearanceMap[mapWidth * mapHeight];
 int drawClearanceMap = 1;
 int drawIKMap = 1;
+int useGlow = 0;
 
 vector<BoxMemory> blueBoxMemories;
 
@@ -3579,7 +3580,7 @@ void update_baxter(ros::NodeHandle &n) {
   if ((drand48() <= ikShare) || !ikInitialized) {
 
     int numIkRetries = 10;
-    double ikNoiseAmplitude = 0.001;
+    double ikNoiseAmplitude = 0.005;
     double ikNoiseAmplitudeQuat = 0.01;
     for (int ikRetry = 0; ikRetry < numIkRetries; ikRetry++) {
       int ikCallResult = ikClient.call(thisIkRequest);
@@ -3641,6 +3642,11 @@ void update_baxter(ros::NodeHandle &n) {
       noisedCurrentEEPose.px = currentEEPose.px + (drand48() - 0.5)*2.0*ikNoiseAmplitude;
       noisedCurrentEEPose.py = currentEEPose.py + (drand48() - 0.5)*2.0*ikNoiseAmplitude;
       noisedCurrentEEPose.pz = currentEEPose.pz + (drand48() - 0.5)*2.0*ikNoiseAmplitude;
+
+      noisedCurrentEEPose.qx = currentEEPose.qx + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
+      noisedCurrentEEPose.qy = currentEEPose.qy + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
+      noisedCurrentEEPose.qz = currentEEPose.qz + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
+      noisedCurrentEEPose.qw = currentEEPose.qw + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
 
       fillIkRequest(&noisedCurrentEEPose, &thisIkRequest);
     }
@@ -4367,27 +4373,48 @@ void renderObjectMapView() {
     }
   }
 
+
+  double glowBias = 0.15;
+  double glowLast = 30.0;
+
   if (drawIKMap) { // draw ikMap
     int ikMapRenderStride = 1;
     for (int i = 0; i < mapWidth; i+=ikMapRenderStride) {
       for (int j = 0; j < mapHeight; j+=ikMapRenderStride) {
 	if ( cellIsSearched(i, j) ) {
+	    ros::Duration longAgo = ros::Time::now() - objectMap[i + mapWidth * j].lastMappedTime;
+	    double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgo.toSec(), 0.0), glowLast) / glowLast)) + glowBias;
+	    if (!useGlow) {
+	      glowFraction = 1.0;
+	    }
 	    double x=-1, y=-1;
 	    mapijToxy(i, j, &x, &y);
 	    cv::Point cvp1 = worldToPixel(objectMapViewerImage, 
 	      mapXMin, mapXMax, mapYMin, mapYMax, x, y);
 	    if ( (ikMap[i + mapWidth * j] == 1) ) {
 	      Scalar tColor = CV_RGB(192, 32, 32);
+	      cv::Vec3b cColor;
+	      cColor[0] = tColor[0]*glowFraction;
+	      cColor[1] = tColor[1]*glowFraction;
+	      cColor[2] = tColor[2]*glowFraction;
 	      //gsl_matrix * mapcell = mapCellToPolygon(i, j);
 	      //drawMapPolygon(mapcell, tColor);
 	      //gsl_matrix_free(mapcell);
-	      line(objectMapViewerImage, cvp1, cvp1, tColor);
+	      //line(objectMapViewerImage, cvp1, cvp1, tColor);
+	      objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+		objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
 	    } else if ( (ikMap[i + mapWidth * j] == 2) ) {
 	      Scalar tColor = CV_RGB(224, 64, 64);
+	      cv::Vec3b cColor;
+	      cColor[0] = tColor[0]*glowFraction;
+	      cColor[1] = tColor[1]*glowFraction;
+	      cColor[2] = tColor[2]*glowFraction;
 	      //gsl_matrix * mapcell = mapCellToPolygon(i, j);
 	      //drawMapPolygon(mapcell, tColor);
 	      //gsl_matrix_free(mapcell);
-	      line(objectMapViewerImage, cvp1, cvp1, tColor);
+	      //line(objectMapViewerImage, cvp1, cvp1, tColor);
+	      objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+		objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
 	    }
 	}
       }
@@ -4399,22 +4426,39 @@ void renderObjectMapView() {
     for (int i = 0; i < mapWidth; i+=ikMapRenderStride) {
       for (int j = 0; j < mapHeight; j+=ikMapRenderStride) {
 	if ( cellIsSearched(i, j) ) {
+	    ros::Duration longAgo = ros::Time::now() - objectMap[i + mapWidth * j].lastMappedTime;
+	    double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgo.toSec(), 0.0), glowLast) / glowLast)) + glowBias;
+	    if (!useGlow) {
+	      glowFraction = 1.0;
+	    }
 	    double x=-1, y=-1;
 	    mapijToxy(i, j, &x, &y);
 	    cv::Point cvp1 = worldToPixel(objectMapViewerImage, 
 	      mapXMin, mapXMax, mapYMin, mapYMax, x, y);
 	    if ( (clearanceMap[i + mapWidth * j] == 1) ) {
 	      Scalar tColor = CV_RGB(224, 224, 0);
+	      cv::Vec3b cColor;
+	      cColor[0] = tColor[0]*glowFraction;
+	      cColor[1] = tColor[1]*glowFraction;
+	      cColor[2] = tColor[2]*glowFraction;
 	      //gsl_matrix * mapcell = mapCellToPolygon(i, j);
 	      //drawMapPolygon(mapcell, CV_RGB(128, 128, 0));
 	      //gsl_matrix_free(mapcell);
-	      line(objectMapViewerImage, cvp1, cvp1, tColor);
+	      //line(objectMapViewerImage, cvp1, cvp1, tColor);
+	      objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+		objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
 	    } else if ( (clearanceMap[i + mapWidth * j] == 2) ) {
 	      Scalar tColor = CV_RGB(0, 224, 0);
+	      cv::Vec3b cColor;
+	      cColor[0] = tColor[0]*glowFraction;
+	      cColor[1] = tColor[1]*glowFraction;
+	      cColor[2] = tColor[2]*glowFraction;
 	      //gsl_matrix * mapcell = mapCellToPolygon(i, j);
 	      //drawMapPolygon(mapcell, CV_RGB(32, 128, 32));
 	      //gsl_matrix_free(mapcell);
-	      line(objectMapViewerImage, cvp1, cvp1, tColor);
+	      //line(objectMapViewerImage, cvp1, cvp1, tColor);
+	      objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+		objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
 	    }
 	}
       }

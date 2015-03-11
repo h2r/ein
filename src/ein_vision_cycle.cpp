@@ -20,6 +20,7 @@ virtual void execute() {
   currentEEPose = memory.cameraPose;
 
   { // set the old box's lastMappedTime to moments after the start of time
+    int skirtWidthCm = 10;
     int iStart=-1, iEnd=-1, jStart=-1, jEnd=-1;
     int iTop=-1, iBot=-1, jTop=-1, jBot=-1;
     {
@@ -34,15 +35,16 @@ virtual void execute() {
       iBot=i;
       jBot=j;
     }
-    iStart = min(iBot, iTop);
-    iEnd = max(iBot, iTop);
-    jStart = min(jBot, jTop);
-    jEnd = max(jBot, jTop);
+    iStart = min(iBot, iTop)-skirtWidthCm;
+    iEnd = max(iBot, iTop)+skirtWidthCm;
+    jStart = min(jBot, jTop)-skirtWidthCm;
+    jEnd = max(jBot, jTop)+skirtWidthCm;
     cout << "DeliverObject erasing iStart iEnd jStart jEnd: " << iStart << " " << iEnd << " " << jStart << " " << jEnd << endl;
     for (int i = iStart; i <= iEnd; i++) {
       for (int j = jStart; j <= jEnd; j++) {
 	if (i >= 0 && i < mapWidth && j >= 0 && j < mapHeight) {
 	  objectMap[i + mapWidth * j].lastMappedTime = ros::Time(0.001);
+	  randomizeNanos(&objectMap[i + mapWidth * j].lastMappedTime);
 	}
       }
     }
@@ -91,6 +93,7 @@ virtual void execute() {
   pushWord("assumeDeliveryPose");
   pushWord("waitUntilAtCurrentPosition"); 
   pushCopies("zUp", 20);
+  pushCopies("noop", 5);
 }
 END_WORD
 
@@ -135,6 +138,12 @@ END_WORD
 WORD(ToggleDrawIKMap)
 virtual void execute() {
   drawIKMap = !drawIKMap;
+}
+END_WORD
+
+WORD(ToggleUseGlow)
+virtual void execute() {
+  useGlow = !useGlow;
 }
 END_WORD
 
