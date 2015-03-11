@@ -104,6 +104,7 @@
 
 #include "std_msgs/String.h"
 #include "std_msgs/Int32.h"
+#include "std_msgs/Float64.h"
 #include "visualization_msgs/MarkerArray.h"
 #include "geometry_msgs/Point.h"
 #include "geometry_msgs/Pose.h"
@@ -490,6 +491,7 @@ ros::ServiceClient ikClient;
 ros::Publisher joint_mover;
 ros::Publisher gripperPub;
 ros::Publisher facePub;
+ros::Publisher moveSpeedPub;
 
 const int imRingBufferSize = 300;
 const int epRingBufferSize = 100;
@@ -978,6 +980,8 @@ double vaY[vaNumAngles];
 
 int waitUntilAtCurrentPositionCounter = 0;
 int waitUntilAtCurrentPositionCounterMax = 300;
+
+double currentEESpeedRatio = 0.5;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -3785,8 +3789,11 @@ void update_baxter(ros::NodeHandle &n) {
     }
   }
 
+  std_msgs::Float64 speedCommand;
+  speedCommand.data = currentEESpeedRatio;
   for (int r = 0; r < resend_times; r++) {
     joint_mover.publish(myCommand);
+    moveSpeedPub.publish(speedCommand);
   }
 
   bfc++;
@@ -4384,6 +4391,7 @@ void renderObjectMapView() {
 	if ( cellIsSearched(i, j) ) {
 	    ros::Duration longAgo = ros::Time::now() - objectMap[i + mapWidth * j].lastMappedTime;
 	    double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgo.toSec(), 0.0), glowLast) / glowLast)) + glowBias;
+	    glowFraction = min(max(glowFraction, 0.0), 1.0);
 	    if (!useGlow) {
 	      glowFraction = 1.0;
 	    }
@@ -12325,10 +12333,14 @@ vector<BoxMemory> memoriesForClass(int classIdx) {
 
 vector<BoxMemory> memoriesForClass(int classIdx, int * memoryIdxOfFirst) {
   vector<BoxMemory> results;
+  int haventFoundFirst = 1;
   for (int j = 0; j < blueBoxMemories.size(); j++) {
     if (blueBoxMemories[j].labeledClassIndex == focusedClass) {
       results.push_back(blueBoxMemories[j]);
-      *memoryIdxOfFirst = j;
+      if (haventFoundFirst) {
+	*memoryIdxOfFirst = j;
+	haventFoundFirst = 0;
+      }
     }
   }
   return results;
@@ -12538,6 +12550,7 @@ int main(int argc, char **argv) {
   ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + left_or_right_arm + "/PositionKinematicsNode/IKService");
   joint_mover = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/" + left_or_right_arm + "/joint_command", 10);
   gripperPub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + left_or_right_arm + "_gripper/command",10);
+  moveSpeedPub = n.advertise<std_msgs::Float64>("/robot/limb/" + left_or_right_arm + "/set_speed_ratio",10);
 
   facePub = n.advertise<std_msgs::Int32>("/confusion/target/command", 10);
 
