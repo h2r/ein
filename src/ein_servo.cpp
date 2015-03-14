@@ -17,7 +17,7 @@ virtual void execute()       {
   // load reg1
   pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
   // change gear to 4
-  pushWord("shiftIntoGraspGear4");
+  //pushWord("shiftIntoGraspGear4");
 
   // select max target cumulative
   pushWord("selectMaxTargetCumulative");
@@ -28,7 +28,7 @@ virtual void execute()       {
   // load reg1
   pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
   // change gear to 3
-  pushWord("shiftIntoGraspGear3");
+  //pushWord("shiftIntoGraspGear3");
 
   // select max target cumulative
   pushWord("selectMaxTargetCumulative");
@@ -39,7 +39,7 @@ virtual void execute()       {
   // load reg1
   pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
   // change gear to 2
-  pushWord("shiftIntoGraspGear2");
+  //pushWord("shiftIntoGraspGear2");
 
   // select max target NOT cumulative
   pushWord("selectMaxTargetNotCumulative");
@@ -54,7 +54,7 @@ virtual void execute()       {
   pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
 
   // change gear to 1
-  pushWord("shiftIntoGraspGear1");
+  //pushWord("shiftIntoGraspGear1");
 
   // ATTN 10
   // loadSampled gives proper Thompson
@@ -122,33 +122,41 @@ END_WORD
 WORD(MoveToTargetZAndGrasp)
 CODE(1048682)     // numlock + j
 virtual void execute()       {
-  pushWord("closeGripper");  // close gripper
+  pushWord("closeGripper"); 
   double threshedZ = min(trZ, 0.0);
 
   double pickZ = (-(threshedZ + currentTableZ) - graspDepth);
   double flushZ = -currentTableZ + pickFlushFactor;
   pickZ = max(flushZ, pickZ);
 
-  double deltaZ = pickZ - currentEEPose.pz;
+  int useIncrementalPick = 0;
+  if (useIncrementalPick) {
+    double deltaZ = pickZ - currentEEPose.pz;
 
-  lastPickHeight = pickZ;
-  double zTimes = fabs(floor(deltaZ / bDelta)); 
+    lastPickHeight = pickZ;
+    double zTimes = fabs(floor(deltaZ / bDelta)); 
 
-  int numNoOps = 2;
-  if (deltaZ > 0)
-    for (int zc = 0; zc < zTimes; zc++) {
-      for (int cc = 0; cc < numNoOps; cc++) {
-        pushWord('C');
+    int numNoOps = 2;
+    if (deltaZ > 0) {
+      for (int zc = 0; zc < zTimes; zc++) {
+	for (int cc = 0; cc < numNoOps; cc++) {
+	  pushWord('C');
+	}
+	pushWord('w');
       }
-      pushWord('w');
     }
-  if (deltaZ < 0)
-    for (int zc = 0; zc < zTimes; zc++) {
-      for (int cc = 0; cc < numNoOps; cc++) {
-        pushWord('C');
+    if (deltaZ < 0) {
+      for (int zc = 0; zc < zTimes; zc++) {
+	for (int cc = 0; cc < numNoOps; cc++) {
+	  pushWord('C');
+	}
+	pushWord('s');
       }
-      pushWord('s');
     }
+  } else {
+    currentEEPose.pz = pickZ;
+    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  }
 }
 END_WORD
 
@@ -182,6 +190,12 @@ virtual void execute() {
 }
 END_WORD
 
+WORD(TryToMoveToTheLastPrePickHeight)
+virtual void execute() {
+  currentEEPose.pz = lastPrePickHeight;
+  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+}
+END_WORD
 
 WORD(TryToMoveToTheLastPickHeight)
 CODE( 262241)     // ctrl + a
@@ -189,20 +203,28 @@ virtual void execute() {
   double deltaZ = (lastPickHeight) - currentEEPose.pz;
   double zTimes = fabs(floor(deltaZ / bDelta)); 
   int numNoOps = 2;
-  if (deltaZ > 0)
-    for (int zc = 0; zc < zTimes; zc++) {
-      for (int cc = 0; cc < numNoOps; cc++) {
-        pushWord('C');
+  int useIncrementalPlace = 0;
+  if (useIncrementalPlace) {
+    if (deltaZ > 0) {
+      for (int zc = 0; zc < zTimes; zc++) {
+	for (int cc = 0; cc < numNoOps; cc++) {
+	  pushWord('C');
+	}
+	pushWord('w');
       }
-      pushWord('w');
     }
-  if (deltaZ < 0)
-    for (int zc = 0; zc < zTimes; zc++) {
-      for (int cc = 0; cc < numNoOps; cc++) {
-        pushWord('C');
+    if (deltaZ < 0) {
+      for (int zc = 0; zc < zTimes; zc++) {
+	for (int cc = 0; cc < numNoOps; cc++) {
+	  pushWord('C');
+	}
+	pushWord('s');
       }
-      pushWord('s');
     }
+  } else {
+    currentEEPose.pz = lastPickHeight;
+    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  }
 }
 END_WORD
 
@@ -619,6 +641,7 @@ virtual void execute()       {
 
   pushNoOps(5);
   pushWord("tryToMoveToTheLastPickHeight"); 
+  pushWord("approachSpeed"); 
 
   //count here so that if it drops it on the way it will count as a miss
   { // in case it fell out
@@ -652,6 +675,7 @@ virtual void execute()       {
   pushNoOps(10);
 
   pushWord("moveToTargetZAndGrasp"); 
+  pushWord("approachSpeed"); 
   pushWord("waitUntilAtCurrentPosition"); 
   pushWord("assumeWinningGgAndXyInLocalPose"); 
 
@@ -680,17 +704,31 @@ END_WORD
 
 
 WORD(PrepareForAndExecuteGraspFromMemory)
-virtual void execute()       {
+virtual void execute() {
+  pushWord("executePreparedGrasp"); 
+  pushWord("prepareForGraspFromMemory"); 
+}
+END_WORD
 
+
+WORD(ExecutePreparedGrasp)
+virtual void execute()       {
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
   if (ARE_GENERIC_HEIGHT_LEARNING()) {
     pushWord("moveToRegister4"); // assume pose at register 4
   }
 
-  pushNoOps(10);
-
+  pushWord("waitUntilGripperNotMoving");
   pushWord("moveToTargetZAndGrasp"); 
+  pushWord("approachSpeed"); 
+  pushWord("openGripper"); 
+}
+END_WORD
+
+WORD(PrepareForGraspFromMemory)
+virtual void execute() {
+
   pushWord("waitUntilAtCurrentPosition"); 
   pushWord("assumeWinningGgAndXyInLocalPose"); 
 
@@ -700,17 +738,16 @@ virtual void execute()       {
 
   pushWord("loadTargetClassRangeMapIntoRegister1"); 
 
-
-
   pushWord("setTargetReticleToTheMaxMappedPosition");
+  //pushWord("endStackCollapse");
   pushWord("findBestOfFourGraspsUsingMemory"); 
+  //pushWord("collapseStack");
 
   pushWord("loadTargetClassRangeMapIntoRegister1"); 
   pushWord("initDepthScan"); 
   pushWord("turnOffScanning"); 
 
   pushWord("openGripper"); 
-
 }
 END_WORD
 
@@ -1101,6 +1138,38 @@ virtual void execute() {
 }
 END_WORD
 
+WORD(GradientServoIfBlueBoxes)
+virtual void execute() {
+  if ( (bLabels.size() > 0) && (pilotClosestBlueBoxNumber != -1) ) {
+    changeTargetClass(bLabels[pilotClosestBlueBoxNumber]);
+    pushWord("gradientServo");
+    pushCopies("density", densityIterationsForGradientServo); 
+    //pushCopies("accumulateDensity", densityIterationsForGradientServo); 
+    pushWord("resetAerialGradientTemporalFrameAverage"); 
+  }
+}
+END_WORD
+
+WORD(LockTargetIfBlueBoxes)
+virtual void execute() {
+  if ( (bLabels.size() > 0) && (pilotClosestBlueBoxNumber != -1) ) {
+    pushWord("recordTargetLock");
+    pushWord("prepareForGraspFromMemory");
+  }
+}
+END_WORD
+
+WORD(RecordTargetLock)
+virtual void execute() {
+  if (blueBoxMemories.size() > 0) {
+    BoxMemory *lastAdded = &(blueBoxMemories[blueBoxMemories.size()-1]);
+    lastAdded->aimedPose = currentEEPose;
+    lastAdded->pickedPose = currentEEPose;
+    lastAdded->pickedPose.pz  = lastPickHeight;
+  }
+}
+END_WORD
+
 
 
 WORD(GradientServoTakeClosest)
@@ -1112,7 +1181,5 @@ CODE(1179720)
     cout << "gradientTakeClosest = " << gradientTakeClosest << endl;
 }
 END_WORD
-
-
 
 

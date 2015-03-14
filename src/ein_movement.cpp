@@ -41,13 +41,53 @@ virtual void execute() {
   double qw = (fabs(currentEEPose.qw) - fabs(trueEEPose.orientation.w));
   double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
   
-  if (waitUntilAtCurrentPositionCounter < waitUntilAtCurrentPositionCounterMax) {
+  if (waitUntilAtCurrentPositionCounter < waitUntilAtCurrentPositionCounterTimeout) {
     waitUntilAtCurrentPositionCounter++;
     if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh)) {
       pushWord("waitUntilAtCurrentPositionB"); 
     }
   } else {
     cout << "Warning: waitUntilAtCurrentPosition timed out, moving on." << endl;
+  }
+}
+END_WORD
+
+WORD(WaitUntilGripperNotMoving)
+virtual void execute() {
+  waitUntilGripperNotMovingCounter = 0;
+  if (gripperMoving) {
+    pushWord("waitUntilGripperNotMovingB"); 
+  } 
+}
+END_WORD
+
+WORD(WaitUntilGripperNotMovingB)
+virtual void execute() {
+  if (waitUntilGripperNotMovingCounter < waitUntilGripperNotMovingTimeout) {
+    if (gripperMoving) {
+      waitUntilGripperNotMovingCounter++;
+      pushWord("waitUntilGripperNotMovingB"); 
+    } else {
+      pushWord("waitUntilGripperNotMovingC"); 
+      waitUntilGripperNotMovingStamp = ros::Time::now();
+      waitUntilGripperNotMovingCounter = 0;
+    }
+  } else {
+    cout << "Warning: waitUntilGripperNotMovingB timed out, moving on." << endl;
+  }
+}
+END_WORD
+
+WORD(WaitUntilGripperNotMovingC)
+virtual void execute() {
+  if (waitUntilGripperNotMovingCounter < waitUntilGripperNotMovingTimeout) {
+    ros::Duration deltaSinceUpdate = gripperLastUpdated - waitUntilGripperNotMovingStamp;
+    if (deltaSinceUpdate.toSec() <= 0) {
+      waitUntilGripperNotMovingCounter++;
+      pushWord("waitUntilGripperNotMovingC"); 
+    }
+  } else {
+    cout << "Warning: waitUntilGripperNotMovingC timed out, moving on." << endl;
   }
 }
 END_WORD
@@ -369,6 +409,12 @@ virtual void execute() {
 }
 END_WORD
 
+WORD(HundredthImpulse)
+virtual void execute() {
+  currentEESpeedRatio = 0.01;
+}
+END_WORD
+
 WORD(TenthImpulse)
 virtual void execute() {
   currentEESpeedRatio = 0.1;
@@ -390,6 +436,34 @@ END_WORD
 WORD(FullImpulse)
 virtual void execute() {
   currentEESpeedRatio = 1.0;
+}
+END_WORD
+
+WORD(CruisingSpeed)
+virtual void execute() {
+  //w1GoThresh = 0.40;
+  //currentEESpeedRatio = 0.75;
+  currentEESpeedRatio = 1.0;
+}
+END_WORD
+
+WORD(ApproachSpeed)
+virtual void execute() {
+  //w1GoThresh = 0.01;
+  currentEESpeedRatio = 0.07;//0.05;
+}
+END_WORD
+
+WORD(DepartureSpeed)
+virtual void execute() {
+  //w1GoThresh = 0.05;
+  currentEESpeedRatio = 0.5;
+}
+END_WORD
+
+WORD(ResetW1ThreshToDefault)
+virtual void execute() {
+  w1GoThresh = 0.03;
 }
 END_WORD
 
