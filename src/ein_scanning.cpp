@@ -134,9 +134,8 @@ END_WORD
 WORD(VisionCycleNoClassify)
 CODE(196721)     // capslock + Q
 virtual void execute()       {
+  pushWord("mapEmptySpace");
   pushWord("goFindBlueBoxes"); // blue boxes
-  pushCopies("density", 1); // density
-  pushCopies("resetTemporalMap", 1); // reset temporal map
   pushCopies("density", 1); // density
 }
 END_WORD
@@ -301,17 +300,19 @@ virtual void execute() {
 
   // this automatically changes learning mode
           
-  pushWord("beginHeightLearning"); // begin bounding box learning
+  if (0) {
+    pushWord("beginHeightLearning"); // begin bounding box learning
 
-  pushWord("changeToHeight1"); // change to height 1
-  pushWord("shiftIntoGraspGear1"); // change to first gear
-  
-  pushWord("loadPriorGraspMemoryAnalytic");
+    pushWord("changeToHeight1"); // change to height 1
+    pushWord("shiftIntoGraspGear1"); // change to first gear
+    
+    pushWord("loadPriorGraspMemoryAnalytic");
 
-  // set target class to the lastLabelLearned 
-  pushWord(1179730);
+    // set target class to the lastLabelLearned 
+    pushWord(1179730);
 
-  pushWord(131142); // reinitialize and retrain everything
+    pushWord(131142); // reinitialize and retrain everything
+  }
 
   // set lastLabelLearned
   pushWord(1179732);
@@ -396,8 +397,6 @@ virtual void execute() {
   pushWord('k'); // open gripper
 }
 END_WORD
-
-
 
 
 

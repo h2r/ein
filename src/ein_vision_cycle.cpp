@@ -17,28 +17,35 @@ virtual void execute() {
     cout << "more than one bounding box for class.  Using first." << focusedClassMemories.size() << endl;
   }
   BoxMemory memory = focusedClassMemories[0];
-  currentEEPose = memory.cameraPose;
+  //currentEEPose = memory.cameraPose;
+  currentEEPose = memory.aimedPose;
+  lastPickHeight = memory.pickedPose.pz;
+  lastPrePickHeight = memory.aimedPose.pz;
 
   { // set the old box's lastMappedTime to moments after the start of time
-    int skirtWidthCm = 10;
     int iStart=-1, iEnd=-1, jStart=-1, jEnd=-1;
     int iTop=-1, iBot=-1, jTop=-1, jBot=-1;
+    double z = trueEEPose.position.z + currentTableZ;
     {
-      int i=-1, j=-1;
-      mapxyToij(memory.top.px, memory.top.py, &i, &j);
+      double x, y;
+      int i, j;
+      pixelToGlobal(memory.top.px-mapBlueBoxPixelSkirt, memory.top.py-mapBlueBoxPixelSkirt, z, &x, &y);
+      mapxyToij(x, y, &i, &j);
       iTop=i;
       jTop=j;
     }
     {
-      int i=-1, j=-1;
-      mapxyToij(memory.bot.px, memory.bot.py, &i, &j);
+      double x, y;
+      int i, j;
+      pixelToGlobal(memory.bot.px+mapBlueBoxPixelSkirt, memory.bot.py+mapBlueBoxPixelSkirt, z, &x, &y);
+      mapxyToij(x, y, &i, &j);
       iBot=i;
       jBot=j;
     }
-    iStart = min(iBot, iTop)-skirtWidthCm;
-    iEnd = max(iBot, iTop)+skirtWidthCm;
-    jStart = min(jBot, jTop)-skirtWidthCm;
-    jEnd = max(jBot, jTop)+skirtWidthCm;
+    iStart = min(iBot, iTop);
+    iEnd = max(iBot, iTop);
+    jStart = min(jBot, jTop);
+    jEnd = max(jBot, jTop);
     cout << "DeliverObject erasing iStart iEnd jStart jEnd: " << iStart << " " << iEnd << " " << jStart << " " << jEnd << endl;
     for (int i = iStart; i <= iEnd; i++) {
       for (int j = jStart; j <= jEnd; j++) {
@@ -63,17 +70,23 @@ virtual void execute() {
   }
 
   pushWord("clearStackIntoMappingPatrol"); 
+  pushWord("moveToNextMapPosition");
   pushWord("synchronicServoDoNotTakeClosest"); 
   pushWord("openGripper"); 
+  pushWord("cruisingSpeed"); 
+  pushWord("waitUntilAtCurrentPosition"); 
+  pushWord("tryToMoveToTheLastPrePickHeight");   
+  pushWord("departureSpeed");
   pushWord("placeObjectInDeliveryZone");
   pushWord("ifGrasp");
-  pushWord("prepareForAndExecuteGraspFromMemory"); 
-  pushWord("gradientServo");
-  pushCopies("density", densityIterationsForGradientServo); 
-  pushCopies("resetTemporalMap", 1); 
-  pushWord("synchronicServo"); 
-  pushWord("visionCycle");
-  pushWord("synchronicServoTakeClosest"); 
+  pushWord("executePreparedGrasp"); 
+  //pushWord("prepareForAndExecuteGraspFromMemory"); 
+  //pushWord("gradientServo");
+  //pushCopies("density", densityIterationsForGradientServo); 
+  //pushCopies("resetTemporalMap", 1); 
+  //pushWord("synchronicServo"); 
+  //pushWord("visionCycle");
+  //pushWord("synchronicServoTakeClosest"); 
   pushWord("waitUntilAtCurrentPosition");
   pushWord("setPickModeToStaticMarginals"); 
   pushWord("sampleHeight"); 
@@ -84,16 +97,15 @@ END_WORD
 
 WORD(PlaceObjectInDeliveryZone)
 virtual void execute() {
-  pushCopies("zUp", 20);
-  pushNoOps(30);
   pushWord("openGripper"); 
-  pushNoOps(5);
   pushWord("tryToMoveToTheLastPickHeight");   
+  pushWord("approachSpeed"); 
   pushWord("waitUntilAtCurrentPosition"); 
   pushWord("assumeDeliveryPose");
+  pushWord("cruisingSpeed");
   pushWord("waitUntilAtCurrentPosition"); 
-  pushCopies("zUp", 20);
-  pushCopies("noop", 5);
+  pushWord("tryToMoveToTheLastPrePickHeight");   
+  pushWord("departureSpeed");
 }
 END_WORD
 
@@ -111,21 +123,46 @@ CODE(196727) // capslock + W
 virtual void execute() {
   cout << "Mapping patrol" << endl;
   bailAfterSynchronic = 1;
+  bailAfterGradient = 1;
+  acceptingFetchCommands = 1;
 
   pushWord("mappingPatrol");
-  pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
+  pushWord("bringUpAllNonessentialSystems");
+  pushWord("endStackCollapse");
   pushWord("moveToNextMapPosition");
+  pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
   //pushWord("setRandomPositionAndOrientationForHeightLearning");
   //pushWord("recordAllBlueBoxes");
   pushWord("filterBoxMemories");
+  pushWord("shiftIntoGraspGear1");
+  pushWord("lockTargetIfBlueBoxes");
+  pushWord("collapseStack");
+  pushWord("shutdownAllNonessentialSystems");
+  pushWord("gradientServoIfBlueBoxes");
   pushWord("mapClosestBlueBox");
+  pushWord("goClassifyBlueBoxes"); 
   pushWord("synchronicServo"); 
-  pushWord("visionCycle");
+  pushWord("visionCycleNoClassify");
   pushWord("synchronicServoTakeClosest");
   pushWord("waitUntilAtCurrentPosition"); 
+  pushWord("moveToNextMapPosition");
   pushWord("sampleHeight"); 
   pushWord("setBoundingBoxModeToMapping");
   pushWord("shiftIntoGraspGear1");
+  pushWord("cruisingSpeed");
+  pushWord("bringUpAllNonessentialSystems");
+}
+END_WORD
+
+WORD(ToggleShouldIDoIK)
+virtual void execute() {
+  shouldIDoIK = !shouldIDoIK;
+}
+END_WORD
+
+WORD(ToggleShouldIRender)
+virtual void execute() {
+  shouldIRender = !shouldIRender;
 }
 END_WORD
 
@@ -144,6 +181,12 @@ END_WORD
 WORD(ToggleUseGlow)
 virtual void execute() {
   useGlow = !useGlow;
+}
+END_WORD
+
+WORD(ToggleUseFade)
+virtual void execute() {
+  useFade = !useFade;
 }
 END_WORD
 
@@ -317,19 +360,28 @@ WORD(MoveToNextMapPosition)
 int maxNextTries = 100;
 virtual void execute() {
   for (int tries = 0; tries < maxNextTries; tries++) {
-    ros::Time oldestTime = ros::Time::now();
+    //ros::Time oldestTime = ros::Time::now();
     int oldestI=-1, oldestJ=-1;
-
-    for (int i = 0; i < mapWidth; i++) {
-      for (int j = 0; j < mapHeight; j++) {
-	if (cellIsSearched(i, j) &&
-	    (objectMap[i + mapWidth * j].lastMappedTime <= oldestTime) &&
-	    (clearanceMap[i + mapWidth * j] == 2) &&
-	    (ikMap[i + mapWidth * j] == 0) ) {
-	  oldestTime = objectMap[i + mapWidth * j].lastMappedTime;
-	  oldestI = i;
-	  oldestJ = j;
+    int foundASpot = 0;
+    for (int scanRestarter = 0; scanRestarter < 2; scanRestarter++) {
+      ros::Time oldestTime = lastScanStarted;
+      for (int i = 0; i < mapWidth; i++) {
+	for (int j = 0; j < mapHeight; j++) {
+	  if (cellIsSearched(i, j) &&
+	      (objectMap[i + mapWidth * j].lastMappedTime <= oldestTime) &&
+	      (clearanceMap[i + mapWidth * j] == 2) &&
+	      (ikMap[i + mapWidth * j] == 0) ) {
+	    oldestTime = objectMap[i + mapWidth * j].lastMappedTime;
+	    oldestI = i;
+	    oldestJ = j;
+	    foundASpot = 1;
+	  }
 	}
+      }
+
+      if (!foundASpot) {
+	lastScanStarted = ros::Time::now();
+	cout << "All spots visited. Restarting scan." << endl;
       }
     }
 
@@ -502,32 +554,33 @@ END_WORD
 
 
 void mapBox(BoxMemory boxMemory) {
-  for (double px = boxMemory.bTop.x; px <= boxMemory.bBot.x; px++) {
-    for (double py = boxMemory.bTop.y; py <= boxMemory.bBot.y; py++) {
+  for (double px = boxMemory.bTop.x-mapBlueBoxPixelSkirt; px <= boxMemory.bBot.x+mapBlueBoxPixelSkirt; px++) {
+    for (double py = boxMemory.bTop.y-mapBlueBoxPixelSkirt; py <= boxMemory.bBot.y+mapBlueBoxPixelSkirt; py++) {
       double x, y;
       double z = trueEEPose.position.z + currentTableZ;
 
-
-      pixelToGlobal(px, py, z, x, y);
+      pixelToGlobal(px, py, z, &x, &y);
       int i, j;
       mapxyToij(x, y, &i, &j);
 
-      objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
-      objectMap[i + mapWidth * j].detectedClass = boxMemory.labeledClassIndex;
+      if (i >= 0 && i < mapWidth && j >= 0 && j < mapHeight) {
+	objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
+	objectMap[i + mapWidth * j].detectedClass = boxMemory.labeledClassIndex;
 
-//      if (ros::Time::now() - objectMap[i + mapWidth * j].lastMappedTime > mapMemoryTimeout) {
-//        objectMap[i + mapWidth * j].b = 0;
-//        objectMap[i + mapWidth * j].g = 0;
-//        objectMap[i + mapWidth * j].r = 0;
-//        objectMap[i + mapWidth * j].pixelCount = 0;
-//      }
+  //      if (ros::Time::now() - objectMap[i + mapWidth * j].lastMappedTime > mapMemoryTimeout) {
+  //        objectMap[i + mapWidth * j].b = 0;
+  //        objectMap[i + mapWidth * j].g = 0;
+  //        objectMap[i + mapWidth * j].r = 0;
+  //        objectMap[i + mapWidth * j].pixelCount = 0;
+  //      }
 
-      double blueBoxWeight = 0.1;
-      if (cam_img.rows != 0 && cam_img.cols != 0) {
-        objectMap[i + mapWidth * j].b = (cam_img.at<cv::Vec3b>(py, px)[0] * blueBoxWeight);
-        objectMap[i + mapWidth * j].g = (cam_img.at<cv::Vec3b>(py, px)[1] * blueBoxWeight);
-        objectMap[i + mapWidth * j].r = (cam_img.at<cv::Vec3b>(py, px)[2] * blueBoxWeight);
-        objectMap[i + mapWidth * j].pixelCount = blueBoxWeight;
+	double blueBoxWeight = 0.1;
+	if (cam_img.rows != 0 && cam_img.cols != 0) {
+	  objectMap[i + mapWidth * j].b = (cam_img.at<cv::Vec3b>(py, px)[0] * blueBoxWeight);
+	  objectMap[i + mapWidth * j].g = (cam_img.at<cv::Vec3b>(py, px)[1] * blueBoxWeight);
+	  objectMap[i + mapWidth * j].r = (cam_img.at<cv::Vec3b>(py, px)[2] * blueBoxWeight);
+	  objectMap[i + mapWidth * j].pixelCount = blueBoxWeight;
+	}
       }
     }
   }
@@ -551,19 +604,21 @@ bool isInGripperMask(int x, int y) {
 
 WORD(MapEmptySpace)
 virtual void execute() {
-  for (int px = grayTop.x; px < grayBot.x; px++) {
-    for (int py = grayTop.y; py < grayBot.y; py++) {
+  for (int px = grayTop.x+mapGrayBoxPixelSkirt; px < grayBot.x-mapGrayBoxPixelSkirt; px++) {
+    for (int py = grayTop.y+mapGrayBoxPixelSkirt; py < grayBot.y-mapGrayBoxPixelSkirt; py++) {
 
       if (mask_gripper && isInGripperMask(px, py)) {
 	continue;
       }
 
-      int blueBoxIdx = blueBoxForPixel(px, py);
+      //int blueBoxIdx = blueBoxForPixel(px, py);
+      int blueBoxIdx = skirtedBlueBoxForPixel(px, py, mapFreeSpacePixelSkirt);
+
       if (blueBoxIdx == -1) {
         double x, y;
         double z = trueEEPose.position.z + currentTableZ;
 
-        pixelToGlobal(px, py, z, x, y);
+        pixelToGlobal(px, py, z, &x, &y);
         int i, j;
         mapxyToij(x, y, &i, &j);
 
@@ -632,8 +687,16 @@ virtual void execute() {
   box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
   box.cameraTime = ros::Time::now();
   box.labeledClassIndex = bLabels[c];
-
-  if (!positionIsSearched(box.centroid.px, box.centroid.py)) {
+  
+  int i, j;
+  mapxyToij(box.centroid.px, box.centroid.py, &i, &j);
+  
+  //if ( !positionIsSearched(box.centroid.px, box.centroid.py) && 
+       //!isCellInPursuitZone(i, j) ) 
+  //if (!positionIsSearched(box.centroid.px, box.centroid.py)) 
+  if ( !positionIsSearched(box.centroid.px, box.centroid.py) && 
+       !isBoxMemoryIKPossible(box) ) 
+  {
     return;
   } else {
     mapBox(box);
@@ -693,9 +756,9 @@ virtual void execute() {
   pushWord("mapEmptySpace");
   pushWord("goClassifyBlueBoxes"); 
   pushWord("goFindBlueBoxes"); 
-  pushCopies("density", 4); 
-  pushCopies("resetTemporalMap", 1); 
   pushCopies("density", 1); 
+  //pushCopies("resetTemporalMap", 1); 
+  //pushCopies("density", 1); 
 }
 END_WORD
 
@@ -703,10 +766,15 @@ WORD(Density)
 CODE(131121)     // capslock + 1
 virtual void execute() {
   goCalculateDensity();
-  goCalculateObjectness();
+  //goCalculateObjectness();
 }
 END_WORD
 
+WORD(AccumulateForAerial)
+virtual void execute() {
+  goAccumulateForAerial();
+}
+END_WORD
 
 WORD(ResetTemporalMap)
 CODE(1179737) // capslock + numlock + y

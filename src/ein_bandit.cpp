@@ -410,11 +410,13 @@ virtual void execute() {
     
   if (currentBoundingBoxMode != STATIC_PRIOR) {
     if (currentBoundingBoxMode == MAPPING) {
+      cout << "SampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
       currentThompsonHeight = convertHeightIdxToGlobalZ(mappingHeightIdx);
       currentThompsonHeightIdx = mappingHeightIdx;
       currentEEPose.pz = currentThompsonHeight;
       m_x = m_x_h[currentThompsonHeightIdx];
       m_y = m_y_h[currentThompsonHeightIdx];
+      return;
     } else if (currentBoundingBoxMode == LEARNING_SAMPLING) {
       loadSampledHeightMemory();
     } else if (currentBoundingBoxMode == STATIC_MARGINALS) {
