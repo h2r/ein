@@ -127,8 +127,8 @@ virtual void execute() {
   acceptingFetchCommands = 1;
 
   pushWord("mappingPatrol");
-  pushWord("bringUpAllNonessentialSystems");
-  pushWord("endStackCollapse");
+  //pushWord("bringUpAllNonessentialSystems");
+  //pushWord("endStackCollapse");
   pushWord("moveToNextMapPosition");
   pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
   //pushWord("setRandomPositionAndOrientationForHeightLearning");
@@ -136,8 +136,7 @@ virtual void execute() {
   pushWord("filterBoxMemories");
   pushWord("shiftIntoGraspGear1");
   pushWord("lockTargetIfBlueBoxes");
-  pushWord("collapseStack");
-  pushWord("shutdownAllNonessentialSystems");
+  //pushWord("collapseStack");
   pushWord("gradientServoIfBlueBoxes");
   pushWord("mapClosestBlueBox");
   pushWord("goClassifyBlueBoxes"); 
@@ -150,7 +149,8 @@ virtual void execute() {
   pushWord("setBoundingBoxModeToMapping");
   pushWord("shiftIntoGraspGear1");
   pushWord("cruisingSpeed");
-  pushWord("bringUpAllNonessentialSystems");
+  //pushWord("shutdownAllNonessentialSystems");
+  //pushWord("bringUpAllNonessentialSystems");
 }
 END_WORD
 
@@ -763,10 +763,16 @@ virtual void execute() {
 END_WORD
 
 WORD(Density)
+virtual void execute() {
+  pushWord("densityA");
+  pushWord("waitUntilImageCallbackReceived");
+}
+END_WORD
+
+WORD(DensityA)
 CODE(131121)     // capslock + 1
 virtual void execute() {
   goCalculateDensity();
-  //goCalculateObjectness();
 }
 END_WORD
 

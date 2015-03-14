@@ -125,6 +125,7 @@ std::vector<Word *> create_words() {
     words.push_back(new ZeroGToggle());
     words.push_back(new VisionCycle());
     words.push_back(new Density());
+    words.push_back(new DensityA());
     //words.push_back(new AccumulateDensity());
     words.push_back(new ResetTemporalMap());
     words.push_back(new GoFindBlueBoxes());
@@ -309,6 +310,9 @@ std::vector<Word *> create_words() {
 
     words.push_back(new ShutdownAllNonessentialSystems());
     words.push_back(new BringUpAllNonessentialSystems());
+
+    words.push_back(new WaitUntilImageCallbackReceived());
+    words.push_back(new WaitUntilImageCallbackReceivedA());
   }
 
   return words;
