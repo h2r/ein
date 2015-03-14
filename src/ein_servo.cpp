@@ -107,7 +107,7 @@ virtual void execute()       {
       
   cout << "Assuming x,y,gear: " << targetX << " " << targetY << " " << maxGG << endl;
 
-  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  //pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
   // ATTN 19
   if (useContinuousGraspTransform) {
@@ -729,7 +729,7 @@ END_WORD
 WORD(PrepareForGraspFromMemory)
 virtual void execute() {
 
-  pushWord("waitUntilAtCurrentPosition"); 
+  //pushWord("waitUntilAtCurrentPosition"); 
   pushWord("assumeWinningGgAndXyInLocalPose"); 
 
   pushWord("paintReticles"); 
@@ -739,9 +739,7 @@ virtual void execute() {
   pushWord("loadTargetClassRangeMapIntoRegister1"); 
 
   pushWord("setTargetReticleToTheMaxMappedPosition");
-  //pushWord("endStackCollapse");
   pushWord("findBestOfFourGraspsUsingMemory"); 
-  //pushWord("collapseStack");
 
   pushWord("loadTargetClassRangeMapIntoRegister1"); 
   pushWord("initDepthScan"); 
@@ -1166,6 +1164,10 @@ virtual void execute() {
     lastAdded->aimedPose = currentEEPose;
     lastAdded->pickedPose = currentEEPose;
     lastAdded->pickedPose.pz  = lastPickHeight;
+    cout << "recordTargetLock saving pickedPose..." << endl;
+    cout << "Current EE Position (x,y,z): " << currentEEPose.px << " " << currentEEPose.py << " " << currentEEPose.pz << endl;
+    cout << "Current EE Orientation (x,y,z,w): " << currentEEPose.qx << " " << currentEEPose.qy << " " << currentEEPose.qz << " " << currentEEPose.qw << endl;
+    
   }
 }
 END_WORD

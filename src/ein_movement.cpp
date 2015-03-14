@@ -23,8 +23,12 @@ virtual void execute() {
   double qw = (fabs(currentEEPose.qw) - fabs(trueEEPose.orientation.w));
   double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
   
-  if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh))
+  if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh)) {
     pushWord("waitUntilAtCurrentPositionB"); 
+  }
+  endThisStackCollapse = 1;
+  shouldIMiscCallback = 1;
+  shouldIDoIK = 1;
 }
 END_WORD
 
@@ -49,46 +53,67 @@ virtual void execute() {
   } else {
     cout << "Warning: waitUntilAtCurrentPosition timed out, moving on." << endl;
   }
+  endThisStackCollapse = 1;
+  shouldIMiscCallback = 1;
+  shouldIDoIK = 1;
 }
 END_WORD
 
 WORD(WaitUntilGripperNotMoving)
 virtual void execute() {
   waitUntilGripperNotMovingCounter = 0;
-  if (gripperMoving) {
-    pushWord("waitUntilGripperNotMovingB"); 
-  } 
+  lastGripperCallbackRequest = ros::Time::now();
+  pushWord("waitUntilGripperNotMovingB"); 
+  endThisStackCollapse = 1;
+  shouldIMiscCallback = 1;
+  shouldIDoIK = 1;
 }
 END_WORD
 
 WORD(WaitUntilGripperNotMovingB)
 virtual void execute() {
-  if (waitUntilGripperNotMovingCounter < waitUntilGripperNotMovingTimeout) {
-    if (gripperMoving) {
-      waitUntilGripperNotMovingCounter++;
-      pushWord("waitUntilGripperNotMovingB"); 
-    } else {
-      pushWord("waitUntilGripperNotMovingC"); 
-      waitUntilGripperNotMovingStamp = ros::Time::now();
-      waitUntilGripperNotMovingCounter = 0;
-    }
+  if (lastGripperCallbackRequest >= lastGripperCallbackReceived) {
+    pushWord("waitUntilGripperNotMovingB"); 
   } else {
-    cout << "Warning: waitUntilGripperNotMovingB timed out, moving on." << endl;
+    lastGripperCallbackRequest = ros::Time::now();
+    if (waitUntilGripperNotMovingCounter < waitUntilGripperNotMovingTimeout) {
+      if (gripperMoving) {
+	waitUntilGripperNotMovingCounter++;
+	pushWord("waitUntilGripperNotMovingB"); 
+      } else {
+	pushWord("waitUntilGripperNotMovingC"); 
+	waitUntilGripperNotMovingStamp = ros::Time::now();
+	waitUntilGripperNotMovingCounter = 0;
+      }
+    } else {
+      cout << "Warning: waitUntilGripperNotMovingB timed out, moving on." << endl;
+    }
   }
+  endThisStackCollapse = 1;
+  shouldIMiscCallback = 1;
+  shouldIDoIK = 1;
 }
 END_WORD
 
 WORD(WaitUntilGripperNotMovingC)
 virtual void execute() {
-  if (waitUntilGripperNotMovingCounter < waitUntilGripperNotMovingTimeout) {
-    ros::Duration deltaSinceUpdate = gripperLastUpdated - waitUntilGripperNotMovingStamp;
-    if (deltaSinceUpdate.toSec() <= 0) {
-      waitUntilGripperNotMovingCounter++;
-      pushWord("waitUntilGripperNotMovingC"); 
-    }
+  if (lastGripperCallbackRequest >= lastGripperCallbackReceived) {
+    pushWord("waitUntilGripperNotMovingC"); 
   } else {
-    cout << "Warning: waitUntilGripperNotMovingC timed out, moving on." << endl;
+    lastGripperCallbackRequest = ros::Time::now();
+    if (waitUntilGripperNotMovingCounter < waitUntilGripperNotMovingTimeout) {
+      ros::Duration deltaSinceUpdate = gripperLastUpdated - waitUntilGripperNotMovingStamp;
+      if (deltaSinceUpdate.toSec() <= 0) {
+	waitUntilGripperNotMovingCounter++;
+	pushWord("waitUntilGripperNotMovingC"); 
+      }
+    } else {
+      cout << "Warning: waitUntilGripperNotMovingC timed out, moving on." << endl;
+    }
   }
+  endThisStackCollapse = 1;
+  shouldIMiscCallback = 1;
+  shouldIDoIK = 1;
 }
 END_WORD
 

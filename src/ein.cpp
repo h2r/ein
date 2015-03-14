@@ -270,6 +270,13 @@ double timeInterval = 30;
 time_t thisTime = 0;
 time_t firstTime = 0;
 
+double aveTimeRange = 0.0;
+double aveFrequencyRange = 0.0;
+double timeMassRange = 0.0;
+double timeIntervalRange = 30;
+time_t thisTimeRange = 0;
+time_t firstTimeRange = 0;
+
 // this should be initted to 0 and set to its default setting only after an imageCallback has happened.
 int shouldIRenderDefault = 1;
 int shouldIRender = 0;
@@ -1005,6 +1012,7 @@ ros::Time waitUntilGripperNotMovingStamp;
 double currentEESpeedRatio = 0.5;
 
 int endCollapse = 0;
+int endThisStackCollapse = 0;
 
 baxter_core_msgs::HeadPanCommand currentHeadPanCommand;
 std_msgs::Bool currentHeadNodCommand;
@@ -1012,6 +1020,16 @@ std_msgs::UInt16 currentSonarCommand;
 
 int heartBeatCounter = 0;
 int heartBeatPeriod = 150;
+
+ros::Time lastImageCallbackRequest;
+ros::Time lastGripperCallbackRequest;
+ros::Time lastRangeCallbackRequest;
+ros::Time lastFullMiscCallbackRequest;
+
+ros::Time lastImageCallbackReceived;
+ros::Time lastGripperCallbackReceived;
+ros::Time lastRangeCallbackReceived;
+ros::Time lastFullMiscCallbackReceived;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -2695,6 +2713,8 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
 
 void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees) {
 
+  lastGripperCallbackReceived = ros::Time::now();
+
   if (!shouldIMiscCallback) {
     return;
   }
@@ -3175,21 +3195,23 @@ void rangeCallback(const sensor_msgs::Range& range) {
   cout.flush();
   #endif
 
-  time(&thisTime);
-  double deltaTime = difftime(thisTime, firstTime);
-  timeMass = timeMass + 1;
+  time(&thisTimeRange);
+  double deltaTimeRange = difftime(thisTimeRange, firstTimeRange);
+  timeMassRange = timeMassRange + 1;
 
-  if (deltaTime > timeInterval) {
-    deltaTime = 0;
-    timeMass = 0;
-    time(&firstTime);
+  if (deltaTimeRange > timeIntervalRange) {
+    deltaTimeRange = 0;
+    timeMassRange = 0;
+    time(&firstTimeRange);
   }
 
-  if (timeMass > 0.0)
-    aveTime = deltaTime / timeMass;
+  if (timeMassRange > 0.0) {
+    aveTimeRange = deltaTimeRange / timeMassRange;
+  }
 
-  if (deltaTime > 0.0)
-    aveFrequency = timeMass / deltaTime;
+  if (deltaTimeRange > 0.0) {
+    aveFrequencyRange = timeMassRange / deltaTimeRange;
+  }
 
   eeRange = range.range;
   rangeHistory[currentRangeHistoryIndex] = eeRange;
@@ -3253,14 +3275,22 @@ void rangeCallback(const sensor_msgs::Range& range) {
     {
       cv::Scalar backColor(0,0,0);
       cv::Point outTop = cv::Point(text_anchor.x,text_anchor.y+1-35);
-      cv::Point outBot = cv::Point(text_anchor.x+200,text_anchor.y+1);
+      cv::Point outBot = cv::Point(text_anchor.x+350,text_anchor.y+1);
       Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
       vCrop = backColor;
     }
-    char buff[256];
-    sprintf(buff, "Hz: %.2f", aveFrequency);
-    string fpslabel(buff);
-    putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
+    {
+      char buff[256];
+      sprintf(buff, "            Hz: %.2f", aveFrequency);
+      string fpslabel(buff);
+      putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(160,0,0), 1.0);
+    }
+    {
+      char buff[256];
+      sprintf(buff, "Hz: %.2f", aveFrequencyRange);
+      string fpslabel(buff);
+      putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
+    }
   }
   cv::imshow(rangeogramViewName, rangeogramImage);
 
@@ -3616,12 +3646,12 @@ void fillIkRequest(eePose * givenEEPose, baxter_core_msgs::SolvePositionIK * giv
   givenIkRequest->request.pose_stamp[0].pose.position.y = givenEEPose->py;
   givenIkRequest->request.pose_stamp[0].pose.position.z = givenEEPose->pz;
 
-  Eigen::Quaternionf normalizer(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
-  normalizer.normalize();
-  givenEEPose->qx = normalizer.x();
-  givenEEPose->qy = normalizer.y();
-  givenEEPose->qz = normalizer.z();
-  givenEEPose->qw = normalizer.w();
+//  Eigen::Quaternionf normalizer(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
+//  normalizer.normalize();
+//  givenEEPose->qx = normalizer.x();
+//  givenEEPose->qy = normalizer.y();
+//  givenEEPose->qz = normalizer.z();
+//  givenEEPose->qw = normalizer.w();
 
   givenIkRequest->request.pose_stamp[0].pose.orientation.x = givenEEPose->qx;
   givenIkRequest->request.pose_stamp[0].pose.orientation.y = givenEEPose->qy;
@@ -3980,22 +4010,66 @@ void timercallback1(const ros::TimerEvent&) {
   }
 
   // deal with the stack
-  if (execute_stack && takeSymbol) {
-    if (call_stack.size() > 0 && 
-        !call_stack[call_stack.size() - 1]->is_value()) {
-      word = popWord();
-    } else {
-      execute_stack = 0;
-    }
-  }
+//  if (execute_stack && takeSymbol) {
+//    if (call_stack.size() > 0 && 
+//        !call_stack[call_stack.size() - 1]->is_value()) {
+//      word = popWord();
+//    } else {
+//      execute_stack = 0;
+//    }
+//  }
+//  if (timerCounter >= lock_reset_thresh) {
+//    lock_status = 0;
+//  }
+//  
+//  if (word != NULL) {
+//    current_instruction = word;
+//    word->execute();
+//  }
 
-  if (timerCounter >= lock_reset_thresh) {
-    lock_status = 0;
-  }
+  endThisStackCollapse = endCollapse;
+  while (1) {
+    time(&thisTime);
+    double deltaTime = difftime(thisTime, firstTime);
+    timeMass = timeMass + 1;
+
+    if (deltaTime > timeInterval) {
+      deltaTime = 0;
+      timeMass = 0;
+      time(&firstTime);
+    }
+
+    if (timeMass > 0.0) {
+      aveTime = deltaTime / timeMass;
+    }
+
+    if (deltaTime > 0.0) {
+      aveFrequency = timeMass / deltaTime;
+    }
+
+    // deal with the stack
+    if (execute_stack && takeSymbol) {
+      if (call_stack.size() > 0 && 
+	  !call_stack[call_stack.size() - 1]->is_value()) {
+	word = popWord();
+      } else {
+	execute_stack = 0;
+	endThisStackCollapse = 1;
+      }
+    }
+
+    if (timerCounter >= lock_reset_thresh) {
+      lock_status = 0;
+    }
   
-  if (word != NULL) {
-    current_instruction = word;
-    word->execute();
+    if (word != NULL) {
+      current_instruction = word;
+      word->execute();
+    }
+
+    if( endThisStackCollapse || (call_stack.size() == 0) ) {
+      break;
+    }
   }
 
   if (!zero_g_toggle) {
@@ -4026,6 +4100,8 @@ void timercallback1(const ros::TimerEvent&) {
 
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg){
+
+  lastImageCallbackReceived = ros::Time::now();
 
   if (!shouldIImageCallback) {
     return;
@@ -4799,6 +4875,44 @@ void renderCoreView() {
       break;
     }
   }
+
+//  {
+//    cv::Point text_anchor = cv::Point(0,coreImage.rows-1);
+//    {
+//      cv::Scalar backColor(0,0,0);
+//      cv::Point outTop = cv::Point(text_anchor.x,text_anchor.y+1-35);
+//      cv::Point outBot = cv::Point(text_anchor.x+200,text_anchor.y+1);
+//      Mat vCrop = coreImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+//      vCrop = backColor;
+//    }
+//    char buff[256];
+//    sprintf(buff, "Hz: %.2f", aveFrequency);
+//    string fpslabel(buff);
+//    putText(coreImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
+//  }
+  if ( (rangeogramImage.rows > 0) && (rangeogramImage.cols > 0) ) {
+    cv::Point text_anchor = cv::Point(0,rangeogramImage.rows-1);
+    {
+      cv::Scalar backColor(0,0,0);
+      cv::Point outTop = cv::Point(text_anchor.x,text_anchor.y+1-35);
+      cv::Point outBot = cv::Point(text_anchor.x+400,text_anchor.y+1);
+      Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+      vCrop = backColor;
+    }
+    {
+      char buff[256];
+      sprintf(buff, "            Hz: %.2f", aveFrequency);
+      string fpslabel(buff);
+      putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(160,0,0), 1.0);
+    }
+    {
+      char buff[256];
+      sprintf(buff, "Hz: %.2f", aveFrequencyRange);
+      string fpslabel(buff);
+      putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
+    }
+  }
+  cv::imshow(rangeogramViewName, rangeogramImage);
 
   cv::imshow(coreViewName, coreImage);
 }
@@ -7782,6 +7896,11 @@ void synchronicServo() {
   if (distance > w1GoThresh*w1GoThresh) {
     synServoLockFrames = 0;
     pushWord("synchronicServo"); 
+    if (currentBoundingBoxMode == MAPPING) {
+      pushWord("visionCycleNoClassify");
+    } else {
+      pushWord("visionCycle"); // vision cycle
+    }
   } else {
     if ((fabs(Px) < synServoPixelThresh) && (fabs(Py) < synServoPixelThresh)) {
       // ATTN 12
@@ -13267,6 +13386,7 @@ int main(int argc, char **argv) {
 
   srand(time(NULL));
   time(&firstTime);
+  time(&firstTimeRange);
 
   cout << "argc: " << argc << endl;
   for (int ccc = 0; ccc < argc; ccc++) {
@@ -13446,6 +13566,8 @@ int main(int argc, char **argv) {
   cout << "cuda count: " << cudaCount << endl;;
 
   cvWaitKey(1); // this might be good to init cv gui stuff
+  lastImageCallbackReceived = ros::Time::now();
+
   ros::spin();
 
   return 0;
