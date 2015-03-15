@@ -78,7 +78,7 @@ virtual void execute()       {
   pushWord(65568+3); // record register 3
 
   pushWord(131139); // synchronic servo don't take closest
-  pushWord(131156); // synchronic servo
+  pushWord("synchronicServo"); // synchronic servo
   pushWord(196707); // synchronic servo take closest
   pushWord("visionCycle"); // vision cycle
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
@@ -138,23 +138,23 @@ CODE(1179707)     // capslock + numlock + ;
   //pushWord(1179695); // check to see if bounding box is unique (early outting if not)
   pushWord("visionCycle"); // vision cycle
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  pushWord(1179687); // set random position for bblearn
+  pushWord("setRandomPositionAndOrientationForHeightLearning"); // set random position for bblearn
 
   pushWord(65568+4); // record register 4
 
   // servo to object, which will early out if it times out 
   pushWord(131139); // synchronic servo don't take closest
-  pushWord(131156); // synchronic servo
+  pushWord("synchronicServo"); // synchronic servo
   pushWord(196707); // synchronic servo take closest
   pushWord("visionCycle"); // vision cycle
   //pushWord(1179695); // check to see if bounding box is unique (early outting if not)
   pushWord("visionCycle"); // vision cycle
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  pushWord(1179687); // set random position for bblearn
+  pushWord("setRandomPositionAndOrientationForHeightLearning"); // set random position for bblearn
 
-  pushWord(1245247); // sample height
+  pushWord("sampleHeight"); // sample height
 
-  pushWord(1179717); // change to pantry table
+  pushWord("changeToPantryTable"); // change to pantry table
   pushWord('3'); // recall register 3
 }
 END_WORD
@@ -308,6 +308,13 @@ virtual void execute() {
 END_WORD
 
 
+WORD(SetBoundingBoxModeToMapping)
+virtual void execute() {
+  currentBoundingBoxMode = MAPPING;
+  cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
+}
+END_WORD
+
 WORD(SetBoundingBoxModeToStaticPrior)
 CODE(1179722)     // capslock + numlock + j
 virtual void execute() {
@@ -347,6 +354,8 @@ virtual void execute() {
   currentThompsonHeight = convertHeightIdxToGlobalZ(thisRandThompsonHeight);
   currentThompsonHeightIdx = thisRandThompsonHeight;
   currentEEPose.pz = currentThompsonHeight;
+  m_x = m_x_h[currentThompsonHeightIdx];
+  m_y = m_y_h[currentThompsonHeightIdx];
 }
 END_WORD
 
@@ -398,8 +407,17 @@ END_WORD
 WORD(SampleHeight)
 CODE(1245247)   // capslock + numlock + ?
 virtual void execute() {
+    
   if (currentBoundingBoxMode != STATIC_PRIOR) {
-    if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+    if (currentBoundingBoxMode == MAPPING) {
+      cout << "SampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
+      currentThompsonHeight = convertHeightIdxToGlobalZ(mappingHeightIdx);
+      currentThompsonHeightIdx = mappingHeightIdx;
+      currentEEPose.pz = currentThompsonHeight;
+      m_x = m_x_h[currentThompsonHeightIdx];
+      m_y = m_y_h[currentThompsonHeightIdx];
+      return;
+    } else if (currentBoundingBoxMode == LEARNING_SAMPLING) {
       loadSampledHeightMemory();
     } else if (currentBoundingBoxMode == STATIC_MARGINALS) {
       loadMarginalHeightMemory();
@@ -436,6 +454,8 @@ virtual void execute() {
     currentThompsonHeight = convertHeightIdxToGlobalZ(max_i);
     currentThompsonHeightIdx = max_i;
     currentEEPose.pz = currentThompsonHeight;
+    m_x = m_x_h[currentThompsonHeightIdx];
+    m_y = m_y_h[currentThompsonHeightIdx];
   }
 }
 END_WORD

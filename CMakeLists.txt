@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(node)
 
 find_package(catkin REQUIRED COMPONENTS
+  cmake_modules
   roscpp
   rospy
   std_msgs
@@ -17,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   baxter_core_msgs
   control_msgs
 )
+find_package(GSL REQUIRED)
 
 catkin_package(CATKIN_DEPENDS 
   eigen
@@ -35,8 +37,7 @@ include_directories(include
 
 
 set(OPENMP_FLAG "-fopenmp")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -g -std=c++11")
-
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -g -std=c++11 -fpermissive")
 set(CMAKE_BUILD_TYPE Debug)
 
 add_executable(capture_object src/capture_object.cpp)
@@ -47,6 +48,7 @@ add_executable(capture_hard_class src/capture_hard_class.cpp)
 add_executable(filter_time src/filter_time.cpp)
 add_executable(pilot_baxter src/pilot_baxter.cpp)
 add_executable(repl src/repl.cpp)
+#add_executable(baxter_ikfast_left src/baxter_ikfast_w1_left.cpp)
 add_executable(ein src/ein.cpp src/distributions.c src/randomkit.c src/cephes/airy.c    src/cephes/fdtr.c    src/cephes/kn.c          src/cephes/scipy_iv.c
 src/cephes/bdtr.c    src/cephes/fresnl.c  src/cephes/kolmogorov.c  src/cephes/setprec.c
 src/cephes/beta.c    src/cephes/gamma.c   src/cephes/mmmpy.c       src/cephes/shichi.c
@@ -132,6 +134,7 @@ target_link_libraries(ein
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
 	opencv_nonfree
+        ${GSL_LIBRARIES}
 	BINGLIB ###
 )
 

@@ -1,3 +1,4 @@
+
 WORD(PaintReticles)
 CODE(1048679)     // numlock + g
 virtual void execute()       {
