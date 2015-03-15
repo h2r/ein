@@ -76,6 +76,9 @@
 #include "ros/time.h"
 #include <ctime>
 
+// slu
+#include "slu/math2d.h"
+
 // numpy library 1 (randomkit, for original beta)
 #include "distributions.h"
 // numpy library 2 (cephes, for betainc)
@@ -96,11 +99,15 @@
 #include <control_msgs/FollowJointTrajectoryAction.h>
 #include <baxter_core_msgs/SolvePositionIK.h>
 #include <baxter_core_msgs/JointCommand.h>
+#include <baxter_core_msgs/HeadPanCommand.h>
 
 #include <dirent.h>
 
+#include "std_msgs/Bool.h"
 #include "std_msgs/String.h"
 #include "std_msgs/Int32.h"
+#include "std_msgs/UInt16.h"
+#include "std_msgs/Float64.h"
 #include "visualization_msgs/MarkerArray.h"
 #include "geometry_msgs/Point.h"
 #include "geometry_msgs/Pose.h"
@@ -263,10 +270,21 @@ double timeInterval = 30;
 time_t thisTime = 0;
 time_t firstTime = 0;
 
+double aveTimeRange = 0.0;
+double aveFrequencyRange = 0.0;
+double timeMassRange = 0.0;
+double timeIntervalRange = 30;
+time_t thisTimeRange = 0;
+time_t firstTimeRange = 0;
+
 // this should be initted to 0 and set to its default setting only after an imageCallback has happened.
 int shouldIRenderDefault = 1;
 int shouldIRender = 0;
+int shouldIDoIK = 1;
 int renderInit = 0;
+int shouldIImageCallback = 1;
+int shouldIMiscCallback = 1;
+int shouldIRangeCallback = 1;
 
 int ik_reset_thresh = 20;
 int ik_reset_counter = 0;
@@ -335,9 +353,10 @@ std::string hiColorRangemapViewName = "Hi Color Range Map View";
 std::string graspMemoryViewName = "Grasp Memory View";
 std::string graspMemorySampleViewName = "Grasp Memory Sample View";
 
+
 std::string heightMemorySampleViewName = "Height Memory Sample View";
 
-int reticleHalfWidth = 72;
+int reticleHalfWidth = 18;
 int pilotTargetHalfWidth = 15;
 
 eePose centerReticle = {.px = 325, .py = 127, .pz = 0.0,
@@ -445,6 +464,9 @@ eePose defaultReticle = centerReticle;
 
 eePose heightReticles[4];
 
+eePose probeReticle = defaultReticle;
+eePose vanishingPointReticle = defaultReticle;
+
 eePose reticle = defaultReticle;
 eePose beeHome = beeRHome;
 eePose pilotTarget = beeHome;
@@ -457,8 +479,9 @@ eePose eepReg3 = beeHome;
 eePose eepReg4 = beeHome;
 eePose eepReg5 = beeHome;
 eePose eepReg6 = beeHome;
-std::vector<eePose> warehousePoses;
-int currentWarehousePose = 0;
+
+std::vector<eePose> deliveryPoses;
+int currentDeliveryPose = 0;
 
 int pilotTargetBlueBoxNumber = -1;
 int pilotClosestBlueBoxNumber = -1;
@@ -470,6 +493,10 @@ eePose ik_reset_eePose = beeHome;
 Vector3d eeForward;
 geometry_msgs::Pose trueEEPose;
 std::string fetchCommand;
+ros::Time fetchCommandTime;
+double fetchCommandCooldown = 5;
+int acceptingFetchCommands = 0;
+
 std::string forthCommand;
 
 int bfc = 0;
@@ -482,6 +509,10 @@ ros::ServiceClient ikClient;
 ros::Publisher joint_mover;
 ros::Publisher gripperPub;
 ros::Publisher facePub;
+ros::Publisher moveSpeedPub;
+ros::Publisher sonarPub;
+ros::Publisher headPub;
+ros::Publisher nodPub;
 
 const int imRingBufferSize = 300;
 const int epRingBufferSize = 100;
@@ -683,13 +714,33 @@ const int numCReticleIndeces = 14;
 const double firstCReticleIndexDepth = .08;
 //const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
 //const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 153, 153, 153, 153, 153, 153, 153, 153, 153};
-const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
-const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
+// most recent, smoothed:
+//const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
+//const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
+
+int xCR[numCReticleIndeces];
+int yCR[numCReticleIndeces];
 
 ros::Publisher vmMarkerPublisher;
 
 int getColorReticleX();
 int getColorReticleY();
+
+
+eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
+  eePose result;
+  result.px = pose.position.x;
+  result.py = pose.position.y;
+  result.pz = pose.position.z;
+  result.qx = pose.orientation.x;
+  result.qy = pose.orientation.y;
+  result.qz = pose.orientation.z;
+  result.qw = pose.orientation.w;
+  result.ox = 0.0;
+  result.oy = 0.0;
+  result.oz = 0.0;
+  return result;
+}
 
 double fEpsilon = EPSILON;
 
@@ -702,11 +753,9 @@ ros::Time lastVisionCycle;
 ros::Duration accumulatedTime;
 
 
-void pushBackPrint(string print) {
-  
-}
 
-double w1GoThresh = 0.01;
+
+double w1GoThresh = 0.03;//0.01;
 double w1AngleThresh = 0.02; 
 double synKp = 0.0005;
 double gradKp = 0.00025;//0.0005;
@@ -716,15 +765,21 @@ int kPThresh = 3;
 double lastPtheta = INFINITY;
 
 // ATTN 4
-int synServoPixelThresh = 10;//15;//10;
+// ATTN 22
+// pre-absolute
+//int synServoPixelThresh = 10;//15;//10;
+//int gradServoPixelThresh = 2;
+//int gradServoThetaThresh = 1;
+int synServoPixelThresh = 15;//15;//10;
+int gradServoPixelThresh = 5;
+int gradServoThetaThresh = 2;
+
 int synServoLockFrames = 0;
 int synServoLockThresh = 20;
 
 double synServoMinKp = synKp/20.0;
 double synServoKDecay = .95;
 
-int gradServoPixelThresh = 2;
-int gradServoThetaThresh = 1;
 
 ros::Time oscilStart;
 double oscCenX = 0.0;
@@ -745,29 +800,27 @@ double visionCycleInterval = 7.5 / 7.0 * (1.0/commonFreq);
 int focusedClass = -1;
 int newClassCounter = 0;
 string focusedClassLabel;
-int collectBackgroundInstances = 0;
 
 // variables for survey during servoing
 vector<double> surveyHistogram;
 int surveyWinningClass = -1;
-double surveyTotalCounts = 1;
 int viewsWithNoise = 0;
 int publishObjects = 1;
 
 
-int surveyDuringServo = 0;
 int histogramDuringClassification = 0;
 double surveyNoiseScale = 50;
 int synchronicTakeClosest = 0;
 int gradientTakeClosest = 0;
 int gradientServoDuringHeightLearning = 1;
-int bailAfterSynchronic = 0;
+int bailAfterSynchronic = 1;
 int bailAfterGradient = 0;
 
 int gripperMoving = 0;
 double gripperPosition = 0;
 int gripperGripping = 0;
 double gripperThresh = 3.5;//6.0;//7.0;
+ros::Time gripperLastUpdated;
 
 double graspAttemptCounter = 0;
 double graspSuccessCounter = 0;
@@ -831,7 +884,8 @@ typedef enum {
   STATIC_PRIOR = 1,
   LEARNING_SAMPLING = 2,
   LEARNING_ALGORITHMC = 3,
-  STATIC_MARGINALS = 4
+  STATIC_MARGINALS = 4,
+  MAPPING = 5
 } pickMode;
 pickMode currentPickMode = STATIC_MARGINALS;
 pickMode currentBoundingBoxMode = STATIC_MARGINALS;
@@ -847,6 +901,8 @@ std::string pickModeToString(pickMode mode) {
     result = "learning algorithm C";
   } else if (mode == STATIC_MARGINALS) {
     result = "static marginals";
+  } else if (mode == MAPPING) {
+    result = "mapping";
   } else {
     cout << "Invalid pick mode: " << mode << endl;
     assert(0);
@@ -888,11 +944,14 @@ int rgbServoTrialsMax = 20;
 int useTemporalAerialGradient = 1;
 double aerialGradientDecay = 0.9;
 Mat aerialGradientTemporalFrameAverage;
+Mat aerialGradientSobelCbCr;
+Mat aerialGradientSobelGray;
 Mat preFrameGraySobel;
 int densityIterationsForGradientServo = 10;
 
 double graspDepth = -.07;//-.09;
 double lastPickHeight = 0;
+double lastPrePickHeight = 0;
 double pickFlushFactor = 0.11;
 
 int bbLearningMaxTries = 15;
@@ -915,6 +974,62 @@ double algorithmCEPS = 0.2;
 double algorithmCTarget = 0.7;
 double algorithmCAT = 0.7;
 double algorithmCRT = 0.95;
+
+int paintEEandReg1OnWrist = 1;
+
+// d values obtained by putting laser in gripper
+//  to find end effector projection, then using
+//  a tape dot to find the vanishing point of
+//  the camera
+// the estimated vanishing point is actually pretty
+//  close to the measured one
+double d_y = -0.04;
+double d_x = 0.018;
+double offX = 0;
+double offY = 0;
+// these corrective magnification factors should be close to 1
+//  these are set elsewhere according to chirality
+double m_x = 1.08;
+double m_y = 0.94;
+double m_x_h[4];
+double m_y_h[4];
+
+int mappingServoTimeout = 5;
+
+const int mappingHeightIdx = 1;
+
+const int vaNumAngles = 360;
+const double vaDelta = (2.0 * 3.1415926) / vaNumAngles;
+double vaX[vaNumAngles];
+double vaY[vaNumAngles];
+
+int waitUntilAtCurrentPositionCounter = 0;
+int waitUntilAtCurrentPositionCounterTimeout = 300;
+int waitUntilGripperNotMovingCounter = 0;
+int waitUntilGripperNotMovingTimeout = 100;
+ros::Time waitUntilGripperNotMovingStamp;
+
+double currentEESpeedRatio = 0.5;
+
+int endCollapse = 0;
+int endThisStackCollapse = 0;
+
+baxter_core_msgs::HeadPanCommand currentHeadPanCommand;
+std_msgs::Bool currentHeadNodCommand;
+std_msgs::UInt16 currentSonarCommand;
+
+int heartBeatCounter = 0;
+int heartBeatPeriod = 150;
+
+ros::Time lastImageCallbackRequest;
+ros::Time lastGripperCallbackRequest;
+ros::Time lastRangeCallbackRequest;
+ros::Time lastFullMiscCallbackRequest;
+
+ros::Time lastImageCallbackReceived;
+ros::Time lastGripperCallbackReceived;
+ros::Time lastRangeCallbackReceived;
+ros::Time lastFullMiscCallbackReceived;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -952,8 +1067,9 @@ int drawRedKP = 1;
 object_recognition_msgs::RecognizedObjectArray roa_to_send_blue;
 visualization_msgs::MarkerArray ma_to_send_blue; 
 
-cv_bridge::CvImagePtr cv_ptr;
+cv_bridge::CvImagePtr cv_ptr = NULL;
 Mat objectViewerImage;
+Mat objectMapViewerImage;
 Mat densityViewerImage;
 Mat wristViewImage;
 Mat gradientViewerImage;
@@ -970,10 +1086,10 @@ boost::mutex ros_mutex;
 boost::mutex pcl_mutex;
 boost::mutex redbox_mutex;
 boost::thread *timercallback1_thread;
-int ikResult = 1;
 
 std::string densityViewerName = "Density Viewer";
 std::string objectViewerName = "Object Viewer";
+std::string objectMapViewerName = "Object Map View";
 std::string gradientViewerName = "Gradient Viewer";
 std::string objectnessViewerName = "Objectness Viewer";
 std::string aerialGradientViewerName = "Aerial Gradient Viewer";
@@ -1082,8 +1198,10 @@ std::string saved_crops_path;
 cv::Mat cam_img;
 cv::Mat depth_img;
 ros::Publisher rec_objs_blue;
+ros::Publisher rec_objs_blue_memory;
 ros::Publisher rec_objs_red;
 ros::Publisher markers_blue;
+ros::Publisher markers_blue_memory;
 ros::Publisher markers_red;
 
 ros::Publisher ee_target_pub;
@@ -1141,6 +1259,96 @@ cv::vector<cv::Point> nBot;
 //  they are the candidate blue boxes
 vector<cv::Point> cTops; 
 vector<cv::Point> cBots;
+
+struct BoxMemory {
+  cv::Point bTop;
+  cv::Point bBot;
+  eePose cameraPose;
+  eePose aimedPose;
+  eePose pickedPose;
+  eePose top;
+  eePose bot;
+  eePose centroid;
+  ros::Time cameraTime;
+  int labeledClassIndex;
+};
+
+typedef struct MapCell {
+  ros::Time lastMappedTime;
+  int detectedClass; // -1 means not denied
+  double r, g, b;
+  double pixelCount;
+} MapCell;
+
+void mapijToxy(int i, int j, double * x, double * y);
+void mapxyToij(double x, double y, int * i, int * j); 
+void initializeMap() ;
+void randomizeNanos(ros::Time * time);
+int blueBoxForPixel(int px, int py);
+int skirtedBlueBoxForPixel(int px, int py, int skirtPixels);
+bool cellIsSearched(int i, int j);
+bool positionIsSearched(double x, double y);
+vector<BoxMemory> memoriesForClass(int classIdx);
+vector<BoxMemory> memoriesForClass(int classIdx, int * memoryIdxOfFirst);
+
+// XXX TODO searched and mapped are redundant. just need one to talk about the fence.
+
+bool cellIsMapped(int i, int j);
+bool positionIsMapped(double x, double y);
+bool boxMemoryIntersectPolygons(BoxMemory b1, BoxMemory b2);
+bool boxMemoryIntersectCentroid(BoxMemory b1, BoxMemory b2);
+bool boxMemoryContains(BoxMemory b, double x, double y);
+bool boxMemoryIntersectsMapCell(BoxMemory b, int map_i, int map_j);
+
+bool isBoxMemoryIKPossible(BoxMemory b);
+
+bool isCellInPursuitZone(int i, int j);
+bool isCellInPatrolZone(int i, int j);
+
+bool isCellInteresting(int i, int j);
+void markCellAsInteresting(int i, int j);
+void markCellAsNotInteresting(int i, int j);
+
+bool isCellIkColliding(int i, int j);
+bool isCellIkPossible(int i, int j);
+bool isCellIkImpossible(int i, int j);
+
+
+const double mapXMin = -1.5;
+const double mapXMax = 1.5;
+const double mapYMin = -1.5;
+const double mapYMax = 1.5;
+const double mapStep = 0.01;
+
+double mapSearchFenceXMin;
+double mapSearchFenceXMax;
+double mapSearchFenceYMin;
+double mapSearchFenceYMax;
+
+double mapRejectFenceXMin;
+double mapRejectFenceXMax;
+double mapRejectFenceYMin;
+double mapRejectFenceYMax;
+
+const int mapWidth = (mapXMax - mapXMin) / mapStep;
+const int mapHeight = (mapYMax - mapYMin) / mapStep;
+const ros::Duration mapMemoryTimeout(10);
+
+MapCell objectMap[mapWidth * mapHeight];
+ros::Time lastScanStarted;
+int mapFreeSpacePixelSkirt = 25;
+int mapBlueBoxPixelSkirt = 50;
+//double mapBlueBoxCooldown = 45; // cooldown is a temporal skirt
+int mapGrayBoxPixelSkirt = 50;
+int ikMap[mapWidth * mapHeight];
+int clearanceMap[mapWidth * mapHeight];
+int drawClearanceMap = 1;
+int drawIKMap = 1;
+int useGlow = 0;
+int useFade = 1;
+
+vector<BoxMemory> blueBoxMemories;
+
 
 // create the blue boxes from the parental green boxes
 vector<cv::Point> bTops; 
@@ -1270,12 +1478,22 @@ int aerialGradientWidth = 100;
 int aerialGradientReticleWidth = 200;
 
 // XXX TODO
-int softMaxGradientServoIterations = 5;//3;//10;//3;
-int hardMaxGradientServoIterations = 5;//5;//3;//10;//20;//3;//10;
+int softMaxGradientServoIterations = 2;//5;//3;//10;//3;
+int hardMaxGradientServoIterations = 2;//5;//5;//3;//10;//20;//3;//10;
 int currentGradientServoIterations = 0;
 
 int fuseBlueBoxes = 1;
 int fusePasses = 5;
+
+int g1xs = 200;
+int g1xe = 295;
+int g1ys = 0;
+int g1ye = 75;
+
+int g2xs = 420;
+int g2xe = 560;
+int g2ys = 0;
+int g2ye = 75;
 
 ////////////////////////////////////////////////
 // end node variables 
@@ -1331,12 +1549,19 @@ Eigen::Quaternionf getCCRotation(int givenGraspGear, double angle);
 void setCCRotation(int thisGraspGear);
 
 void rangeCallback(const sensor_msgs::Range& range);
+void endEffectorAngularUpdate(eePose *givenEEPose);
+void fillIkRequest(eePose givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest);
 void update_baxter(ros::NodeHandle &n);
 void timercallback1(const ros::TimerEvent&);
 void imageCallback(const sensor_msgs::ImageConstPtr& msg);
+void renderCoreView();
+void renderObjectMapView();
+void drawMapPolygon(gsl_matrix * poly, cv::Scalar color);
 void targetCallback(const geometry_msgs::Point& point);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata);
+gsl_matrix * boxMemoryToPolygon(BoxMemory b);
+gsl_matrix * mapCellToPolygon(int map_i, int map_j) ;
 
 void pilotInit();
 void spinlessPilotMain();
@@ -1407,6 +1632,15 @@ int simulatedServo();
 void initRangeMaps();
 
 int isThisGraspMaxedOut(int i);
+
+void pixelToGlobal(int pX, int pY, double gZ, double * gX, double * gY);
+void globalToPixel(int * pX, int * pY, double gZ, double gX, double gY);
+eePose pixelToGlobalEEPose(int pX, int pY, double gZ);
+
+void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor);
+
+double vectorArcTan(double y, double x);
+void initVectorArcTan();
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -2373,6 +2607,11 @@ void recordReadyRangeReadings() {
 }
 
 void jointCallback(const sensor_msgs::JointState& js) {
+
+  if (!shouldIMiscCallback) {
+    return;
+  }
+
   if (jointNamesInit) {
     int limit = js.position.size();
     for (int i = 0; i < limit; i++) {
@@ -2386,8 +2625,40 @@ void jointCallback(const sensor_msgs::JointState& js) {
 }
 
 void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
+
+  if (!shouldIMiscCallback) {
+    return;
+  }
+
+  if ( (ros::Time::now() - fetchCommandTime < ros::Duration(fetchCommandCooldown)) ||
+       (!acceptingFetchCommands) ) {
+    return;
+  }
+  acceptingFetchCommands = 0;
+
   fetchCommand = msg->data;
+  fetchCommandTime = ros::Time::now();
   ROS_INFO_STREAM("Received " << fetchCommand << endl);
+
+  int class_idx = -1;
+
+  for (int i = 0; i < classLabels.size(); i++) {
+    class_idx = i;
+    if (classLabels[i] == fetchCommand) {
+
+      break;
+    }
+  }
+  if (class_idx == -1) {
+    cout << "Could not find class " << fetchCommand << endl; 
+  } else {
+    clearStack();
+
+    changeTargetClass(class_idx);
+    pushWord("mappingPatrol");
+    pushWord("deliverObject");
+    execute_stack = 1;
+  }
 }
 
 vector<string> split(const char *str, char c = ' ')
@@ -2407,11 +2678,16 @@ vector<string> split(const char *str, char c = ' ')
 }
 
 
+
 void forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
+
+  // disabling this would be unwise
+
   forthCommand = msg->data;
   ROS_INFO_STREAM("Received " << forthCommand << endl);
   vector<string> tokens = split(forthCommand.c_str(), ' ');
   for (unsigned int i = 0; i < tokens.size(); i++) {
+    trim(tokens[i]);
     if (tokens[i] == "executeStack" || tokens[i] == ";") {
       execute_stack = 1;
     } else {
@@ -2423,6 +2699,11 @@ void forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
 }
 
 void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
+
+  if (!shouldIMiscCallback) {
+    return;
+  }
+
   //cout << "endpoint frame_id: " << eps.header.frame_id << endl;
   trueEEPose = eps.pose;
   setRingPoseAtTime(eps.header.stamp, eps.pose);
@@ -2431,7 +2712,15 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
 }
 
 void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees) {
+
+  lastGripperCallbackReceived = ros::Time::now();
+
+  if (!shouldIMiscCallback) {
+    return;
+  }
+
   //cout << "setting gripper position: " << gripperPosition << endl;
+  gripperLastUpdated = ros::Time::now();
   gripperPosition  = ees.position;
   gripperMoving = ees.moving;
   gripperGripping = ees.gripping;
@@ -2586,6 +2875,7 @@ cv::Vec3b getCRColor() {
   return toReturn;
 }
 
+// XXX TODO this should really use a buffered eeRange
 cv::Vec3b getCRColor(Mat im) {
   cv::Vec3b toReturn(0,0,0);
 
@@ -2660,7 +2950,7 @@ void scanXdirection(double speedOnLines, double speedBetweenLines) {
   //int gLimit = 1+((rmWidth*betweenLineGain+2*scanPadding)/2);
   int gLimit = ((rmWidth*betweenLineGain+2*scanPadding));
   for (int g = 0; g < gLimit; g++) {
-    pushWord("fullRender"); // full render
+    pushWord("fullRender"); 
     //pushWord(1048677);
     pushWord("waitUntilAtCurrentPosition"); 
     pushSpeedSign(speedOnLines);
@@ -2894,6 +3184,7 @@ void setCCRotation(int thisGraspGear) {
 }
 
 void rangeCallback(const sensor_msgs::Range& range) {
+
   //cout << "range frame_id: " << range.header.frame_id << endl;
   setRingRangeAtTime(range.header.stamp, range.range);
   //double thisRange;
@@ -2904,21 +3195,23 @@ void rangeCallback(const sensor_msgs::Range& range) {
   cout.flush();
   #endif
 
-  time(&thisTime);
-  double deltaTime = difftime(thisTime, firstTime);
-  timeMass = timeMass + 1;
+  time(&thisTimeRange);
+  double deltaTimeRange = difftime(thisTimeRange, firstTimeRange);
+  timeMassRange = timeMassRange + 1;
 
-  if (deltaTime > timeInterval) {
-    deltaTime = 0;
-    timeMass = 0;
-    time(&firstTime);
+  if (deltaTimeRange > timeIntervalRange) {
+    deltaTimeRange = 0;
+    timeMassRange = 0;
+    time(&firstTimeRange);
   }
 
-  if (timeMass > 0.0)
-    aveTime = deltaTime / timeMass;
+  if (timeMassRange > 0.0) {
+    aveTimeRange = deltaTimeRange / timeMassRange;
+  }
 
-  if (deltaTime > 0.0)
-    aveFrequency = timeMass / deltaTime;
+  if (deltaTimeRange > 0.0) {
+    aveFrequencyRange = timeMassRange / deltaTimeRange;
+  }
 
   eeRange = range.range;
   rangeHistory[currentRangeHistoryIndex] = eeRange;
@@ -2975,6 +3268,34 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	vCrop += fillColor;
       }
     }
+  }
+
+  {
+    cv::Point text_anchor = cv::Point(0,rangeogramImage.rows-1);
+    {
+      cv::Scalar backColor(0,0,0);
+      cv::Point outTop = cv::Point(text_anchor.x,text_anchor.y+1-35);
+      cv::Point outBot = cv::Point(text_anchor.x+350,text_anchor.y+1);
+      Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+      vCrop = backColor;
+    }
+    {
+      char buff[256];
+      sprintf(buff, "            Hz: %.2f", aveFrequency);
+      string fpslabel(buff);
+      putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(160,0,0), 1.0);
+    }
+    {
+      char buff[256];
+      sprintf(buff, "Hz: %.2f", aveFrequencyRange);
+      string fpslabel(buff);
+      putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
+    }
+  }
+  cv::imshow(rangeogramViewName, rangeogramImage);
+
+  if (!shouldIRangeCallback) {
+    return;
   }
 
   #ifdef DEBUG
@@ -3187,6 +3508,9 @@ void rangeCallback(const sensor_msgs::Range& range) {
     cv::imshow(hiColorRangemapViewName, hCRIT);
 
     cv::imshow(objectViewerName, objectViewerImage);
+    cv::imshow(objectMapViewerName, objectMapViewerImage);
+    cv::moveWindow(objectMapViewerName, 0, 0);
+
     cv::imshow(densityViewerName, densityViewerImage);
     cv::imshow(gradientViewerName, gradientViewerImage);
     cv::imshow(objectnessViewerName, objectnessViewerImage);
@@ -3233,149 +3557,233 @@ void rangeCallback(const sensor_msgs::Range& range) {
       }
     }
   }
-  #ifdef DEBUG
-  cout << "debug 1" << endl;
-  cout.flush();
-  #endif
-  {
-    cv::Point text_anchor = cv::Point(0,rangeogramImage.rows-1);
-    {
-      cv::Scalar backColor(0,0,0);
-      cv::Point outTop = cv::Point(text_anchor.x,text_anchor.y+1-35);
-      cv::Point outBot = cv::Point(text_anchor.x+200,text_anchor.y+1);
-      Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-      vCrop = backColor;
-    }
-    char buff[256];
-    sprintf(buff, "Hz: %.2f", aveFrequency);
-    string fpslabel(buff);
-    putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
-  }
-  cv::imshow(rangeogramViewName, rangeogramImage);
-  #ifdef DEBUG
-  cout << "debug 2" << endl;
-  cout.flush();
-  #endif
 }
 
-
-void update_baxter(ros::NodeHandle &n) {
-//cout << "block5" << endl;
-  bfc = bfc % bfc_period;
-
-
-  baxter_core_msgs::SolvePositionIK thisIkRequest;
-  thisIkRequest.request.pose_stamp.resize(1);
-
-  thisIkRequest.request.pose_stamp[0].header.seq = 0;
-  thisIkRequest.request.pose_stamp[0].header.stamp = ros::Time::now();
-  thisIkRequest.request.pose_stamp[0].header.frame_id = "/base";
-
-  
-  thisIkRequest.request.pose_stamp[0].pose.position.x = currentEEPose.px;
-  thisIkRequest.request.pose_stamp[0].pose.position.y = currentEEPose.py;
-  thisIkRequest.request.pose_stamp[0].pose.position.z = currentEEPose.pz;
+void endEffectorAngularUpdate(eePose *givenEEPose) {
 
   /* global cartesian update 
   Eigen::Matrix3f m;
-  m = Eigen::AngleAxisf(currentEEPose.ox*M_PI, Eigen::Vector3f::UnitX())
-  * Eigen::AngleAxisf(currentEEPose.oy*M_PI, Eigen::Vector3f::UnitY())
-  * Eigen::AngleAxisf(currentEEPose.oz*M_PI, Eigen::Vector3f::UnitZ());
+  m = Eigen::AngleAxisf(givenEEPose.ox*M_PI, Eigen::Vector3f::UnitX())
+  * Eigen::AngleAxisf(givenEEPose.oy*M_PI, Eigen::Vector3f::UnitY())
+  * Eigen::AngleAxisf(givenEEPose.oz*M_PI, Eigen::Vector3f::UnitZ());
 
   Eigen::Quaternionf eeRotator(m);
-  Eigen::Quaternionf eeBaseQuat(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+  Eigen::Quaternionf eeBaseQuat(givenEEPose.qw, givenEEPose.qx, givenEEPose.qy, givenEEPose.qz);
 
   eeBaseQuat = eeRotator * eeBaseQuat;
   */ 
 
   /* end effector local angular update */
+  Eigen::Vector3f localUnitX;
   {
-    Eigen::Vector3f localUnitX;
-    {
-      Eigen::Quaternionf qin(0, 1, 0, 0);
-      Eigen::Quaternionf qout(0, 1, 0, 0);
-      Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
-      qout = eeqform * qin * eeqform.conjugate();
-      localUnitX.x() = qout.x();
-      localUnitX.y() = qout.y();
-      localUnitX.z() = qout.z();
-    }
-
-    Eigen::Vector3f localUnitY;
-    {
-      Eigen::Quaternionf qin(0, 0, 1, 0);
-      Eigen::Quaternionf qout(0, 1, 0, 0);
-      Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
-      qout = eeqform * qin * eeqform.conjugate();
-      localUnitY.x() = qout.x();
-      localUnitY.y() = qout.y();
-      localUnitY.z() = qout.z();
-    }
-
-    Eigen::Vector3f localUnitZ;
-    {
-      Eigen::Quaternionf qin(0, 0, 0, 1);
-      Eigen::Quaternionf qout(0, 1, 0, 0);
-      Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
-      qout = eeqform * qin * eeqform.conjugate();
-      localUnitZ.x() = qout.x();
-      localUnitZ.y() = qout.y();
-      localUnitZ.z() = qout.z();
-    }
-
-    double sinBuff = 0.0;
-    double angleRate = 1.0;
-    Eigen::Quaternionf eeBaseQuat(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
-    sinBuff = sin(angleRate*currentEEPose.ox/2.0);
-    Eigen::Quaternionf eeRotatorX(cos(angleRate*currentEEPose.ox/2.0), localUnitX.x()*sinBuff, localUnitX.y()*sinBuff, localUnitX.z()*sinBuff);
-    sinBuff = sin(angleRate*currentEEPose.oy/2.0);
-    Eigen::Quaternionf eeRotatorY(cos(angleRate*currentEEPose.oy/2.0), localUnitY.x()*sinBuff, localUnitY.y()*sinBuff, localUnitY.z()*sinBuff);
-    sinBuff = sin(angleRate*currentEEPose.oz/2.0);
-    Eigen::Quaternionf eeRotatorZ(cos(angleRate*currentEEPose.oz/2.0), localUnitZ.x()*sinBuff, localUnitZ.y()*sinBuff, localUnitZ.z()*sinBuff);
-    currentEEPose.ox = 0;
-    currentEEPose.oy = 0;
-    currentEEPose.oz = 0;
-    eeRotatorX.normalize();
-    eeRotatorY.normalize();
-    eeRotatorZ.normalize();
-    //eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * 
-		  //eeBaseQuat * 
-		//eeRotatorZ.conjugate() * eeRotatorY.conjugate() * eeRotatorX.conjugate();
-    eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * eeBaseQuat;
-    eeBaseQuat.normalize();
-
-    thisIkRequest.request.pose_stamp[0].pose.orientation.x = eeBaseQuat.x();
-    thisIkRequest.request.pose_stamp[0].pose.orientation.y = eeBaseQuat.y();
-    thisIkRequest.request.pose_stamp[0].pose.orientation.z = eeBaseQuat.z();
-    thisIkRequest.request.pose_stamp[0].pose.orientation.w = eeBaseQuat.w();
-
-    currentEEPose.qx = eeBaseQuat.x();
-    currentEEPose.qy = eeBaseQuat.y();
-    currentEEPose.qz = eeBaseQuat.z();
-    currentEEPose.qw = eeBaseQuat.w();
+    Eigen::Quaternionf qin(0, 1, 0, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitX.x() = qout.x();
+    localUnitX.y() = qout.y();
+    localUnitX.z() = qout.z();
   }
 
-//cout << "block6" << endl;
+  Eigen::Vector3f localUnitY;
+  {
+    Eigen::Quaternionf qin(0, 0, 1, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitY.x() = qout.x();
+    localUnitY.y() = qout.y();
+    localUnitY.z() = qout.z();
+  }
 
-  int ikResult = 0;
+  Eigen::Vector3f localUnitZ;
+  {
+    Eigen::Quaternionf qin(0, 0, 0, 1);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitZ.x() = qout.x();
+    localUnitZ.y() = qout.y();
+    localUnitZ.z() = qout.z();
+  }
 
-  //cout << "ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
+  double sinBuff = 0.0;
+  double angleRate = 1.0;
+  Eigen::Quaternionf eeBaseQuat(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
+  sinBuff = sin(angleRate*givenEEPose->ox/2.0);
+  Eigen::Quaternionf eeRotatorX(cos(angleRate*givenEEPose->ox/2.0), localUnitX.x()*sinBuff, localUnitX.y()*sinBuff, localUnitX.z()*sinBuff);
+  sinBuff = sin(angleRate*givenEEPose->oy/2.0);
+  Eigen::Quaternionf eeRotatorY(cos(angleRate*givenEEPose->oy/2.0), localUnitY.x()*sinBuff, localUnitY.y()*sinBuff, localUnitY.z()*sinBuff);
+  sinBuff = sin(angleRate*givenEEPose->oz/2.0);
+  Eigen::Quaternionf eeRotatorZ(cos(angleRate*givenEEPose->oz/2.0), localUnitZ.x()*sinBuff, localUnitZ.y()*sinBuff, localUnitZ.z()*sinBuff);
+  givenEEPose->ox = 0;
+  givenEEPose->oy = 0;
+  givenEEPose->oz = 0;
+  eeRotatorX.normalize();
+  eeRotatorY.normalize();
+  eeRotatorZ.normalize();
+  //eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * 
+		//eeBaseQuat * 
+	      //eeRotatorZ.conjugate() * eeRotatorY.conjugate() * eeRotatorX.conjugate();
+  eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * eeBaseQuat;
+  eeBaseQuat.normalize();
+
+  givenEEPose->qx = eeBaseQuat.x();
+  givenEEPose->qy = eeBaseQuat.y();
+  givenEEPose->qz = eeBaseQuat.z();
+  givenEEPose->qw = eeBaseQuat.w();
+}
+
+void fillIkRequest(eePose * givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
+  givenIkRequest->request.pose_stamp.resize(1);
+
+  givenIkRequest->request.pose_stamp[0].header.seq = 0;
+  givenIkRequest->request.pose_stamp[0].header.stamp = ros::Time::now();
+  givenIkRequest->request.pose_stamp[0].header.frame_id = "/base";
+
+  
+  givenIkRequest->request.pose_stamp[0].pose.position.x = givenEEPose->px;
+  givenIkRequest->request.pose_stamp[0].pose.position.y = givenEEPose->py;
+  givenIkRequest->request.pose_stamp[0].pose.position.z = givenEEPose->pz;
+
+//  Eigen::Quaternionf normalizer(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
+//  normalizer.normalize();
+//  givenEEPose->qx = normalizer.x();
+//  givenEEPose->qy = normalizer.y();
+//  givenEEPose->qz = normalizer.z();
+//  givenEEPose->qw = normalizer.w();
+
+  givenIkRequest->request.pose_stamp[0].pose.orientation.x = givenEEPose->qx;
+  givenIkRequest->request.pose_stamp[0].pose.orientation.y = givenEEPose->qy;
+  givenIkRequest->request.pose_stamp[0].pose.orientation.z = givenEEPose->qz;
+  givenIkRequest->request.pose_stamp[0].pose.orientation.w = givenEEPose->qw;
+}
+
+bool willIkResultFail(baxter_core_msgs::SolvePositionIK thisIkRequest, int thisIkCallResult, bool * likelyInCollision) {
+  bool thisIkResultFailed = 0;
+  *likelyInCollision = 0;
+
+  if (thisIkCallResult && thisIkRequest.response.isValid[0]) {
+    thisIkResultFailed = 0;
+  } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != numJoints)) {
+    thisIkResultFailed = 1;
+    //cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
+  } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != numJoints)) {
+    thisIkResultFailed = 1;
+    //cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
+  } else if (thisIkRequest.response.joints.size() == 1) {
+    //cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
+    //cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
+    thisIkResultFailed = 0;
+    *likelyInCollision = 1;
+  } else {
+    thisIkResultFailed = 1;
+    //cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
+  }
+
+  return thisIkResultFailed;
+}
+
+void update_baxter(ros::NodeHandle &n) {
+  bfc = bfc % bfc_period;
+
+  if (!shouldIDoIK) {
+    return;
+  }
+
+  baxter_core_msgs::SolvePositionIK thisIkRequest;
+  endEffectorAngularUpdate(&currentEEPose);
+  fillIkRequest(&currentEEPose, &thisIkRequest);
+
+  int ikResultFailed = 0;
 
   // do not start in a state with ikShare 
   if ((drand48() <= ikShare) || !ikInitialized) {
-    ikResult = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
+
+    int numIkRetries = 10;
+    double ikNoiseAmplitude = 0.005;
+    double ikNoiseAmplitudeQuat = 0.01;
+    for (int ikRetry = 0; ikRetry < numIkRetries; ikRetry++) {
+      int ikCallResult = ikClient.call(thisIkRequest);
+      //ikResultFailed = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
+      //cout << "ik call result: " << ikCallResult << " joints: " << (thisIkRequest.response.joints.size()) << " "; 
+
+      //if (thisIkRequest.response.joints.size()) {
+	//cout << "position size: " << (thisIkRequest.response.joints[0].position.size()) << endl;
+      //}
+
+
+      //ikResultFailed = (!ikCallResult || (thisIkRequest.response.joints.size() == 0) || (thisIkRequest.response.joints[0].position.size() != numJoints));
+
+//      // XXX This is ridiculous
+//      if (ikCallResult && thisIkRequest.response.isValid[0]) {
+//	// set this here in case noise was added
+//	currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
+//	currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
+//	currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
+//	ikResultFailed = 0;
+//      } else {
+//	ikResultFailed = 1;
+//	cout << "Initial IK result appears to be invalid." << endl;
+//      } 
+
+      if (ikCallResult && thisIkRequest.response.isValid[0]) {
+	// set this here in case noise was added
+	currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
+	currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
+	currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
+	ikResultFailed = 0;
+      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != numJoints)) {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
+      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != numJoints)) {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
+      } else if (thisIkRequest.response.joints.size() == 1) {
+	cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
+	cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
+
+	ikResultFailed = 0;
+	currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
+	currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
+	currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
+      } else {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
+      }
+
+      if (!ikResultFailed) {
+	break;
+      }
+
+      cout << "Initial IK result invalid... adding noise and retrying." << endl;
+      cout << thisIkRequest.request.pose_stamp[0].pose << endl;
+
+      eePose noisedCurrentEEPose = currentEEPose;
+      noisedCurrentEEPose.px = currentEEPose.px + (drand48() - 0.5)*2.0*ikNoiseAmplitude;
+      noisedCurrentEEPose.py = currentEEPose.py + (drand48() - 0.5)*2.0*ikNoiseAmplitude;
+      noisedCurrentEEPose.pz = currentEEPose.pz + (drand48() - 0.5)*2.0*ikNoiseAmplitude;
+
+      noisedCurrentEEPose.qx = currentEEPose.qx + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
+      noisedCurrentEEPose.qy = currentEEPose.qy + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
+      noisedCurrentEEPose.qz = currentEEPose.qz + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
+      noisedCurrentEEPose.qw = currentEEPose.qw + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
+
+      fillIkRequest(&noisedCurrentEEPose, &thisIkRequest);
+    }
+  }
 
   /*
     if ( ikClient.waitForExistence(ros::Duration(1, 0)) ) {
   //cout << "block6.1" << endl;
-      ikResult = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
+      ikResultFailed = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
     } else {
       cout << "waitForExistence timed out" << endl;
-      ikResult = 1;
+      ikResultFailed = 1;
     }
   */
 
-    if (ikResult) 
+    if (ikResultFailed) 
     {
       ROS_ERROR_STREAM("ikClient says pose request is invalid.");
       ik_reset_counter++;
@@ -3385,10 +3793,14 @@ void update_baxter(ros::NodeHandle &n) {
 	ik_reset_counter = 0;
 	currentEEPose = ik_reset_eePose;
 	pushWord('Y'); // pause stack execution
-	pushCopies(1245308, 15); // beep
+	pushCopies("beep", 15); // beep
 	cout << "target position denied by ik, please reset the object.";
       }
       else {
+	cout << "This pose was rejected by ikClient:" << endl;
+	cout << "Current EE Position (x,y,z): " << currentEEPose.px << " " << currentEEPose.py << " " << currentEEPose.pz << endl;
+	cout << "Current EE Orientation (x,y,z,w): " << currentEEPose.qx << " " << currentEEPose.qy << " " << currentEEPose.qz << " " << currentEEPose.qw << endl;
+
 	currentEEPose = lastGoodEEPose;
       }
 
@@ -3400,7 +3812,6 @@ void update_baxter(ros::NodeHandle &n) {
     lastGoodEEPose = currentEEPose;
     ikRequest = thisIkRequest;
     ikInitialized = 1;
-  }
   
 //cout << "block7" << endl;
 
@@ -3495,8 +3906,11 @@ void update_baxter(ros::NodeHandle &n) {
     }
   }
 
+  std_msgs::Float64 speedCommand;
+  speedCommand.data = currentEESpeedRatio;
   for (int r = 0; r < resend_times; r++) {
     joint_mover.publish(myCommand);
+    moveSpeedPub.publish(speedCommand);
   }
 
   bfc++;
@@ -3506,9 +3920,13 @@ void clearStack() {
   call_stack.resize(0);
 }
 Word * popWord() {
-  Word * word = call_stack.back();
-  call_stack.pop_back();
-  return word; 
+  if (call_stack.size() > 0) {
+    Word * word = call_stack.back();
+    call_stack.pop_back();
+    return word; 
+  } else {
+    return NULL;
+  }
 }
 
 bool pushWord(int code) {
@@ -3521,15 +3939,30 @@ bool pushWord(int code) {
   }
 }
 
-bool pushWord(string name) {
-  if (name_to_word.count(name) > 0) {
-    Word * word = name_to_word[name];
-    return pushWord(word);
+
+Word * forthletParse(string token) {
+  if (IntegerWord::isInteger(token)) {
+    return IntegerWord::parse(token);
+  } else if (StringWord::isString(token)) {
+    return StringWord::parse(token);
+  } else if (name_to_word.count(token) > 0) {
+    Word * word = name_to_word[token];
+    return word;
+  } else if (SymbolWord::isSymbol(token)) {
+    Word * word = SymbolWord::parse(token);
+    return word;
   } else {
-    cout << "No word for name " << name << endl;
-    return false;
+    cout << "Cannot parse " << token << endl;
+    return NULL;
   }
 }
+bool pushWord(string token) {
+  Word * word = forthletParse(token);
+  if (word != NULL) {
+    pushWord(word);
+  }
+}
+
 
 bool pushWord(Word * word) {
   call_stack.push_back(word);
@@ -3551,34 +3984,92 @@ void timercallback1(const ros::TimerEvent&) {
   ros::NodeHandle n("~");
   Word * word = NULL;
 
- int c = cvWaitKey(1);
+  int c = -1;
   int takeSymbol = 1;
+  if (shouldIMiscCallback) {
+    c = cvWaitKey(1);
+  } else if ((heartBeatCounter % heartBeatPeriod) == 0) {
+    c = cvWaitKey(1);
+    heartBeatCounter = 0;
+  }
+  heartBeatCounter++;
+
   if (c != -1) {
-    cout << "You pressed " << c << "." << endl;
-    takeSymbol = 0;
-    if (character_code_to_word.count(c) > 0) {
-      word = character_code_to_word[c];      
-    } else {
-      cout  << "Could not find word for " << c << endl;
+    // don't print for capslock, shift, alt (for alt-tab)
+    if (!(c == 65509 || c == 196581 || c == 196577 || c == 65505 ||
+          c == 65513 || c == 196578)) {
+      cout << "You pressed " << c << "." << endl;
+
+      takeSymbol = 0;
+      if (character_code_to_word.count(c) > 0) {
+        word = character_code_to_word[c];      
+      } else {
+        cout  << "Could not find word for " << c << endl;
+      }
     }
   }
 
   // deal with the stack
-  if (execute_stack && takeSymbol) {
-    if (call_stack.size() > 0) {
-      word = popWord();
-    } else {
-      execute_stack = 0;
-    }
-  }
+//  if (execute_stack && takeSymbol) {
+//    if (call_stack.size() > 0 && 
+//        !call_stack[call_stack.size() - 1]->is_value()) {
+//      word = popWord();
+//    } else {
+//      execute_stack = 0;
+//    }
+//  }
+//  if (timerCounter >= lock_reset_thresh) {
+//    lock_status = 0;
+//  }
+//  
+//  if (word != NULL) {
+//    current_instruction = word;
+//    word->execute();
+//  }
 
-  if (timerCounter >= lock_reset_thresh) {
-    lock_status = 0;
-  }
+  endThisStackCollapse = endCollapse;
+  while (1) {
+    time(&thisTime);
+    double deltaTime = difftime(thisTime, firstTime);
+    timeMass = timeMass + 1;
+
+    if (deltaTime > timeInterval) {
+      deltaTime = 0;
+      timeMass = 0;
+      time(&firstTime);
+    }
+
+    if (timeMass > 0.0) {
+      aveTime = deltaTime / timeMass;
+    }
+
+    if (deltaTime > 0.0) {
+      aveFrequency = timeMass / deltaTime;
+    }
+
+    // deal with the stack
+    if (execute_stack && takeSymbol) {
+      if (call_stack.size() > 0 && 
+	  !call_stack[call_stack.size() - 1]->is_value()) {
+	word = popWord();
+      } else {
+	execute_stack = 0;
+	endThisStackCollapse = 1;
+      }
+    }
+
+    if (timerCounter >= lock_reset_thresh) {
+      lock_status = 0;
+    }
   
-  if (word != NULL) {
-    current_instruction = word;
-    word->execute();
+    if (word != NULL) {
+      current_instruction = word;
+      word->execute();
+    }
+
+    if( endThisStackCollapse || (call_stack.size() == 0) ) {
+      break;
+    }
   }
 
   if (!zero_g_toggle) {
@@ -3599,10 +4090,22 @@ void timercallback1(const ros::TimerEvent&) {
 
   timerCounter++;
   timesTimerCounted++;
+
+  renderCoreView();
+
+  if (shouldIRender) {
+    renderObjectMapView();
+  }
 }
 
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg){
+
+  lastImageCallbackReceived = ros::Time::now();
+
+  if (!shouldIImageCallback) {
+    return;
+  }
 
   if (!renderInit) {
     renderInit = 1;
@@ -3626,8 +4129,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     objectnessViewerImage *= 0;
     aerialGradientViewerImage = Mat(4*aerialGradientWidth, aerialGradientWidth, CV_64F);
   }
-  if (objectViewerImage.rows <= 0 || objectViewerImage.rows <= 0)
+  if (objectViewerImage.rows <= 0) {
     objectViewerImage = cv_ptr->image.clone();
+  }
 
 
   wristCamImage = cv_ptr->image.clone();
@@ -3750,6 +4254,188 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     vmMarkerPublisher.publish(ma_to_send);
   }
 
+  // paint gripper reticle centerline
+  if (1) {
+    eePose teePose;
+    teePose.px = trueEEPose.position.x;
+    teePose.py = trueEEPose.position.y;
+    teePose.pz = trueEEPose.position.z;
+    cv::Scalar theColor(192, 64, 64);
+    cv::Scalar THEcOLOR(64, 192, 192);
+
+    double zStart = (minHeight + currentTableZ) + currentTableZ;
+    double zEnd = (maxHeight + currentTableZ) + currentTableZ; 
+    double deltaZ = 0.005;
+    
+    for (double zCounter = zStart; zCounter < zEnd; zCounter += deltaZ) {
+      int pX = 0, pY = 0;  
+      double zToUse = zCounter;
+
+      globalToPixel(&pX, &pY, zToUse, teePose.px, teePose.py);
+      Point pt1(pX, pY);
+
+      zToUse = zCounter+deltaZ;
+      globalToPixel(&pX, &pY, zToUse, teePose.px, teePose.py);
+      Point pt2(pX, pY);
+
+      line(wristViewImage, pt1, pt2, theColor, 3);
+    }
+    for (double zCounter = zStart; zCounter < zEnd; zCounter += deltaZ) {
+      int pX = 0, pY = 0;  
+      double zToUse = zCounter;
+
+      globalToPixel(&pX, &pY, zToUse, teePose.px, teePose.py);
+      Point pt1(pX, pY);
+
+      zToUse = zCounter+deltaZ;
+      globalToPixel(&pX, &pY, zToUse, teePose.px, teePose.py);
+      Point pt2(pX, pY);
+
+      line(wristViewImage, pt1, pt2, THEcOLOR, 1);
+    }
+
+  }
+
+  // paint transform reticles
+  if (paintEEandReg1OnWrist) {
+    eePose teePose;
+    teePose.px = trueEEPose.position.x;
+    teePose.py = trueEEPose.position.y;
+    teePose.pz = trueEEPose.position.z;
+    paintEEPoseOnWrist(teePose, cv::Scalar(0,0,255));
+    paintEEPoseOnWrist(eepReg1, cv::Scalar(0,255,0));
+
+    {
+      eePose irPose;
+      {
+	geometry_msgs::Pose thisPose = trueEEPose;
+	Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
+	Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
+	Eigen::Quaternionf irSensorStartGlobal(
+						0.0,
+					       (thisPose.position.x - irSensorStartLocal.x()),
+					       (thisPose.position.y - irSensorStartLocal.y()),
+					       (thisPose.position.z - irSensorStartLocal.z())
+					      );
+
+	Eigen::Quaternionf globalUnitZ(0, 0, 0, 1);
+	Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
+
+	Eigen::Vector3d irSensorEnd(
+				     (thisPose.position.x - irSensorStartLocal.x()) + eeRange*localUnitZ.x(),
+				     (thisPose.position.y - irSensorStartLocal.y()) + eeRange*localUnitZ.y(),
+				     (thisPose.position.z - irSensorStartLocal.z()) + eeRange*localUnitZ.z()
+				    );
+	irPose.px = irSensorEnd.x();
+	irPose.py = irSensorEnd.y();
+	irPose.pz = irSensorEnd.z();
+      }
+      paintEEPoseOnWrist(irPose, cv::Scalar(255,0,0));
+    }
+  }
+
+  // draw vanishing point reticle
+  {
+    int vanishingPointReticleRadius = 15;
+
+    int x0 = vanishingPointReticle.px;
+    int y0 = vanishingPointReticle.py;
+    Point pt1(x0, y0);
+
+    cv::Scalar theColor(192, 64, 64);
+    cv::Scalar THEcOLOR(64, 192, 192);
+
+    circle(wristViewImage, pt1, vanishingPointReticleRadius, theColor, 1);
+    circle(wristViewImage, pt1, vanishingPointReticleRadius+1, THEcOLOR, 1);
+    circle(wristViewImage, pt1, vanishingPointReticleRadius+3, theColor, 1);
+  }
+
+  // draw probe reticle
+  {
+    int probeReticleHalfWidth = 7;
+    int x0 = probeReticle.px;
+    int y0 = probeReticle.py;
+
+    int x1 = max(int(probeReticle.px-probeReticleHalfWidth), 0);
+    int x2 = min(int(probeReticle.px+probeReticleHalfWidth), wristViewImage.cols);
+    int y1 = max(int(probeReticle.py-probeReticleHalfWidth), 0);
+    int y2 = min(int(probeReticle.py+probeReticleHalfWidth), wristViewImage.rows);
+
+    int probeReticleShortHalfWidth = 3;
+    int x1s = max(int(probeReticle.px-probeReticleShortHalfWidth), 0);
+    int x2s = min(int(probeReticle.px+probeReticleShortHalfWidth), wristViewImage.cols);
+    int y1s = max(int(probeReticle.py-probeReticleShortHalfWidth), 0);
+    int y2s = min(int(probeReticle.py+probeReticleShortHalfWidth), wristViewImage.rows);
+
+    cv::Scalar theColor(255, 0, 0);
+    cv::Scalar THEcOLOR(0, 255, 255);
+    {
+      int xs = x0;
+      int xf = x0;
+      int ys = y1;
+      int yf = y1s;
+      {
+	Point pt1(xs, ys);
+	Point pt2(xf, yf);
+	line(wristViewImage, pt1, pt2, theColor, 2.0);
+      }
+      {
+	Point pt1(xs, ys+1);
+	Point pt2(xf, yf-1);
+	line(wristViewImage, pt1, pt2, THEcOLOR, 1.0);
+      }
+    }
+    {
+      int xs = x0;
+      int xf = x0;
+      int ys = y2s;
+      int yf = y2;
+      {
+	Point pt1(xs, ys);
+	Point pt2(xf, yf);
+	line(wristViewImage, pt1, pt2, theColor, 2.0);
+      }
+      {
+	Point pt1(xs, ys+1);
+	Point pt2(xf, yf-1);
+	line(wristViewImage, pt1, pt2, THEcOLOR, 1.0);
+      }
+    }
+    {
+      int xs = x1;
+      int xf = x1s;
+      int ys = y0;
+      int yf = y0;
+      {
+	Point pt1(xs, ys);
+	Point pt2(xf, yf);
+	line(wristViewImage, pt1, pt2, theColor, 2.0);
+      }
+      {
+	Point pt1(xs+1, ys);
+	Point pt2(xf-1, yf);
+	line(wristViewImage, pt1, pt2, THEcOLOR, 1.0);
+      }
+    }
+    {
+      int xs = x2s;
+      int xf = x2;
+      int ys = y0;
+      int yf = y0;
+      {
+	Point pt1(xs, ys);
+	Point pt2(xf, yf);
+	line(wristViewImage, pt1, pt2, theColor, 2.0);
+      }
+      {
+	Point pt1(xs+1, ys);
+	Point pt2(xf-1, yf);
+	line(wristViewImage, pt1, pt2, THEcOLOR, 1.0);
+      }
+    }
+  
+  }
+
   // draw color reticle
   {
     for (int cr = 0; cr < numCReticleIndeces; cr++) {
@@ -3773,22 +4459,24 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   // ATTN 16
-  for (int hri = 0; hri < 4; hri++) {
-    if (hri != currentThompsonHeightIdx)
-      continue;
-    eePose thisReticle = heightReticles[hri];
-    int thisReticleHalfWidth = int(  ceil( double(reticleHalfWidth) / double(1+hri) )  );
-    cv::Point outTop = cv::Point(thisReticle.px-thisReticleHalfWidth, thisReticle.py-thisReticleHalfWidth);
-    cv::Point outBot = cv::Point(thisReticle.px+thisReticleHalfWidth, thisReticle.py+thisReticleHalfWidth);
-    cv::Point inTop = cv::Point(thisReticle.px+1-thisReticleHalfWidth,thisReticle.py+1-thisReticleHalfWidth);
-    cv::Point inBot = cv::Point(thisReticle.px-1+thisReticleHalfWidth,thisReticle.py-1+thisReticleHalfWidth);
+  if (1) {
+    for (int hri = 0; hri < 4; hri++) {
+      if (hri != currentThompsonHeightIdx)
+	continue;
+      eePose thisReticle = heightReticles[hri];
+      int thisReticleHalfWidth = int(  ceil( double(reticleHalfWidth) / double(1+hri) )  );
+      cv::Point outTop = cv::Point(thisReticle.px-thisReticleHalfWidth, thisReticle.py-thisReticleHalfWidth);
+      cv::Point outBot = cv::Point(thisReticle.px+thisReticleHalfWidth, thisReticle.py+thisReticleHalfWidth);
+      cv::Point inTop = cv::Point(thisReticle.px+1-thisReticleHalfWidth,thisReticle.py+1-thisReticleHalfWidth);
+      cv::Point inBot = cv::Point(thisReticle.px-1+thisReticleHalfWidth,thisReticle.py-1+thisReticleHalfWidth);
 
-    if (hri == currentThompsonHeightIdx) {
-      rectangle(wristViewImage, outTop, outBot, cv::Scalar(22,70,82)); 
-      rectangle(wristViewImage, inTop, inBot, cv::Scalar(68,205,239));
-    } else {
-      rectangle(wristViewImage, outTop, outBot, cv::Scalar(82,70,22)); // RGB: 22 70 82
-      rectangle(wristViewImage, inTop, inBot, cv::Scalar(239,205,68)); // RGB: 68 205 239
+      if (hri == currentThompsonHeightIdx) {
+	rectangle(wristViewImage, outTop, outBot, cv::Scalar(22,70,82)); 
+	rectangle(wristViewImage, inTop, inBot, cv::Scalar(68,205,239));
+      } else {
+	rectangle(wristViewImage, outTop, outBot, cv::Scalar(82,70,22)); // RGB: 22 70 82
+	rectangle(wristViewImage, inTop, inBot, cv::Scalar(239,205,68)); // RGB: 68 205 239
+      }
     }
   }
 
@@ -3810,9 +4498,314 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   if (shouldIRender) {
     cv::imshow(wristViewName, wristViewImage);
   }
+}
 
-  //Mat coreImage = wristViewImage.clone();
-  Mat coreImage(2*wristViewImage.rows, wristViewImage.cols, wristViewImage.type());
+cv::Point worldToPixel(Mat image, double xMin, double xMax, double yMin, double yMax, double x, double y) {
+  double pxMin = 0;
+  double pxMax = objectMapViewerImage.cols;
+  double pyMin = 0;
+  double pyMax = objectMapViewerImage.rows;
+  cv::Point center = cv::Point(pxMax/2, pyMax/2);
+
+  cv::Point out = cv::Point((pyMax - pyMin) / (yMax - yMin) * y + center.y,
+                            (pxMax - pxMin) / (xMax - xMin) * x + center.x);
+  return out;
+}
+
+void renderObjectMapView() {
+  if (objectMapViewerImage.rows <= 0 ) {
+    objectMapViewerImage = Mat(800, 800, CV_8UC3);
+  }
+
+  if (0) { // drawGrid
+    for (int i = 0; i < mapWidth; i++) {
+      for (int j = 0; j < mapHeight; j++) {
+        gsl_matrix * mapcell = mapCellToPolygon(i, j);
+        drawMapPolygon(mapcell, CV_RGB(0, 255, 0));
+        gsl_matrix_free(mapcell);
+      }
+    }
+  }
+
+  objectMapViewerImage = CV_RGB(0, 0, 0);
+  double pxMin = 0;
+  double pxMax = objectMapViewerImage.cols;
+  double pyMin = 0;
+  double pyMax = objectMapViewerImage.rows;
+
+  cv::Point center = cv::Point(pxMax/2, pyMax/2);
+
+  double fadeBias = 0.50;
+  double fadeLast = 30.0;
+
+  for (int i = 0; i < mapWidth; i++) {
+    for (int j = 0; j < mapHeight; j++) {
+
+      ros::Duration longAgo = ros::Time::now() - objectMap[i + mapWidth * j].lastMappedTime;
+      double fadeFraction = (1.0-fadeBias)*(1.0-(min(max(longAgo.toSec(), 0.0), fadeLast) / fadeLast)) + fadeBias;
+      fadeFraction = min(max(fadeFraction, 0.0), 1.0);
+      if (!useGlow) {
+	fadeFraction = 1.0;
+      }
+      if (!useFade) {
+	fadeFraction = 1.0;
+      }
+
+      double x, y;
+      mapijToxy(i, j, &x, &y);
+
+      if (objectMap[i + mapWidth * j].detectedClass != -1) {
+        cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, x, y);
+        cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, x + mapStep, y + mapStep);
+        cv::Scalar color = CV_RGB((int) (objectMap[i + mapWidth * j].r / objectMap[i + mapWidth * j].pixelCount),
+                                  (int) (objectMap[i + mapWidth * j].g / objectMap[i + mapWidth * j].pixelCount),
+                                  (int) (objectMap[i + mapWidth * j].b / objectMap[i + mapWidth * j].pixelCount) );
+	color = color*fadeFraction;
+        rectangle(objectMapViewerImage, outTop, outBot, 
+                  color,
+                  CV_FILLED);
+      }
+    }
+  }
+
+
+  double glowBias = 0.15;
+  double glowLast = 30.0;
+
+  if (drawIKMap) { // draw ikMap
+    int ikMapRenderStride = 1;
+    for (int i = 0; i < mapWidth; i+=ikMapRenderStride) {
+      for (int j = 0; j < mapHeight; j+=ikMapRenderStride) {
+	if ( cellIsSearched(i, j) ) {
+	    ros::Duration longAgo = ros::Time::now() - objectMap[i + mapWidth * j].lastMappedTime;
+	    double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgo.toSec(), 0.0), glowLast) / glowLast)) + glowBias;
+	    glowFraction = min(max(glowFraction, 0.0), 1.0);
+	    if (!useGlow) {
+	      glowFraction = 1.0;
+	    }
+	    double x=-1, y=-1;
+	    mapijToxy(i, j, &x, &y);
+	    cv::Point cvp1 = worldToPixel(objectMapViewerImage, 
+	      mapXMin, mapXMax, mapYMin, mapYMax, x, y);
+	    if ( (ikMap[i + mapWidth * j] == 1) ) {
+	      Scalar tColor = CV_RGB(192, 32, 32);
+	      cv::Vec3b cColor;
+	      cColor[0] = tColor[0]*glowFraction;
+	      cColor[1] = tColor[1]*glowFraction;
+	      cColor[2] = tColor[2]*glowFraction;
+	      //gsl_matrix * mapcell = mapCellToPolygon(i, j);
+	      //drawMapPolygon(mapcell, tColor);
+	      //gsl_matrix_free(mapcell);
+	      //line(objectMapViewerImage, cvp1, cvp1, tColor);
+	      objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+		objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+	    } else if ( (ikMap[i + mapWidth * j] == 2) ) {
+	      Scalar tColor = CV_RGB(224, 64, 64);
+	      cv::Vec3b cColor;
+	      cColor[0] = tColor[0]*glowFraction;
+	      cColor[1] = tColor[1]*glowFraction;
+	      cColor[2] = tColor[2]*glowFraction;
+	      //gsl_matrix * mapcell = mapCellToPolygon(i, j);
+	      //drawMapPolygon(mapcell, tColor);
+	      //gsl_matrix_free(mapcell);
+	      //line(objectMapViewerImage, cvp1, cvp1, tColor);
+	      objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+		objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+	    }
+	}
+      }
+    }
+  }
+
+  if (drawClearanceMap) { // draw clearanceMap 
+    int ikMapRenderStride = 1;
+    for (int i = 0; i < mapWidth; i+=ikMapRenderStride) {
+      for (int j = 0; j < mapHeight; j+=ikMapRenderStride) {
+	if ( cellIsSearched(i, j) ) {
+	    ros::Duration longAgo = ros::Time::now() - objectMap[i + mapWidth * j].lastMappedTime;
+	    double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgo.toSec(), 0.0), glowLast) / glowLast)) + glowBias;
+	    if (!useGlow) {
+	      glowFraction = 1.0;
+	    }
+	    double x=-1, y=-1;
+	    mapijToxy(i, j, &x, &y);
+	    cv::Point cvp1 = worldToPixel(objectMapViewerImage, 
+	      mapXMin, mapXMax, mapYMin, mapYMax, x, y);
+	    if ( (clearanceMap[i + mapWidth * j] == 1) ) {
+	      Scalar tColor = CV_RGB(224, 224, 0);
+	      cv::Vec3b cColor;
+	      cColor[0] = tColor[0]*glowFraction;
+	      cColor[1] = tColor[1]*glowFraction;
+	      cColor[2] = tColor[2]*glowFraction;
+	      //gsl_matrix * mapcell = mapCellToPolygon(i, j);
+	      //drawMapPolygon(mapcell, CV_RGB(128, 128, 0));
+	      //gsl_matrix_free(mapcell);
+	      //line(objectMapViewerImage, cvp1, cvp1, tColor);
+	      objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+		objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+	    } else if ( (clearanceMap[i + mapWidth * j] == 2) ) {
+	      Scalar tColor = CV_RGB(0, 224, 0);
+	      cv::Vec3b cColor;
+	      cColor[0] = tColor[0]*glowFraction;
+	      cColor[1] = tColor[1]*glowFraction;
+	      cColor[2] = tColor[2]*glowFraction;
+	      //gsl_matrix * mapcell = mapCellToPolygon(i, j);
+	      //drawMapPolygon(mapcell, CV_RGB(32, 128, 32));
+	      //gsl_matrix_free(mapcell);
+	      //line(objectMapViewerImage, cvp1, cvp1, tColor);
+	      objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+		objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+	    }
+	}
+      }
+    }
+  }
+
+  { // drawMapSearchFence
+    
+    cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                    mapSearchFenceXMin, mapSearchFenceYMin);
+    cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                    mapSearchFenceXMax, mapSearchFenceYMax);
+
+    rectangle(objectMapViewerImage, outTop, outBot, 
+              CV_RGB(255, 255, 0));
+  }
+
+  { // drawMapRejectFence
+    
+    cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                    mapRejectFenceXMin, mapRejectFenceYMin);
+    cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                    mapRejectFenceXMax, mapRejectFenceYMax);
+
+    rectangle(objectMapViewerImage, outTop, outBot, 
+              CV_RGB(255, 0, 0));
+  }
+
+  // draw blue boxes
+  for (int i = 0; i < blueBoxMemories.size(); i++) {
+    BoxMemory memory = blueBoxMemories[i];
+    string class_name = classLabels[memory.labeledClassIndex];
+    
+    double cx, cy;
+    
+    cx = memory.centroid.px;
+    cy = memory.centroid.py;
+    
+    cv::Point objectPoint = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                         cx, cy);
+    objectPoint.x += 15;
+
+    cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                    memory.top.px, memory.top.py);
+    cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                    memory.bot.px, memory.bot.py);
+
+    cv::Point outTopOriginal = outTop;
+    cv::Point outBotOriginal = outBot;
+    outTop.x = min(outTopOriginal.x, outBotOriginal.x);
+    outTop.y = min(outTopOriginal.y, outBotOriginal.y);
+    outBot.x = max(outTopOriginal.x, outBotOriginal.x);
+    outBot.y = max(outTopOriginal.y, outBotOriginal.y);
+
+    rectangle(objectMapViewerImage, outTop, outBot, 
+              CV_RGB(0, 0, 255));
+
+    putText(objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, Scalar(255, 255, 255), 2.0);
+  }
+  
+  { // drawRobot
+    double radius = 20;
+    cv::Point orientation_point = cv::Point(pxMax/2, pyMax/2 + radius);
+    
+    circle(objectMapViewerImage, center, radius, cv::Scalar(0, 0, 255));
+    line(objectMapViewerImage, center, orientation_point, cv::Scalar(0, 0, 255));
+  }
+  { // drawHand
+    eePose tp = rosPoseToEEPose(trueEEPose);
+    double radius = 10;
+    cv::Point handPoint = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                       tp.px, tp.py);
+    
+    Eigen::Quaternionf handQuat(tp.qw, tp.qx, tp.qy, tp.qz);
+
+    double rotated_magnitude = radius / sqrt(pow(pxMax - pxMin, 2) +  pow(pyMax - pyMin, 2)) * sqrt(pow(mapXMax - mapXMin, 2) + pow(mapYMax - mapYMin, 2));
+    Eigen::Vector3f point(rotated_magnitude, 0, 0);
+    Eigen::Vector3f rotated = handQuat * point;
+    
+    cv::Point orientation_point = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax,
+                                               tp.px + rotated[0], 
+                                               tp.py + rotated[1]);
+
+
+    circle(objectMapViewerImage, handPoint, radius, cv::Scalar(0, 0, 255));
+
+    line(objectMapViewerImage, handPoint, orientation_point, cv::Scalar(0, 0, 255));
+
+  }
+
+  if (0) { // drawBoxMemoryIntersectTests
+
+    for (int i = 0; i < mapWidth; i++) {
+      for (int j = 0; j < mapHeight; j++) {
+        gsl_matrix * mapcell = mapCellToPolygon(i, j);
+
+        for (int b_i = 0; b_i < blueBoxMemories.size(); b_i++) {
+          BoxMemory b = blueBoxMemories[b_i];
+          gsl_matrix * poly = boxMemoryToPolygon(b);
+          cv::Scalar color;
+          if (boxMemoryIntersectsMapCell(b, i, j)) {
+            ros::Duration diff = objectMap[i + mapWidth * j].lastMappedTime - b.cameraTime;
+            cout << "box time: " << b.cameraTime << endl;
+            cout << "cell time: " << objectMap[i + mapWidth * j].lastMappedTime << endl;
+            cout << "diff: " << diff << endl;
+            if (diff < ros::Duration(2.0)) {
+              drawMapPolygon(poly, color);
+              drawMapPolygon(mapcell, CV_RGB(255, 255, 0));
+
+            }
+          }
+     
+          
+          gsl_matrix_free(poly);
+        }
+        gsl_matrix_free(mapcell);
+      }
+    }
+  }
+
+  if (shouldIRender) {
+    cv::imshow(objectMapViewerName, objectMapViewerImage);
+  }
+
+
+}
+
+void drawMapPolygon(gsl_matrix * polygon_xy, cv::Scalar color) {
+  for (size_t i = 0; i < polygon_xy->size2; i++) {
+    int j = (i + 1) % polygon_xy->size2;
+    gsl_vector_view p1 = gsl_matrix_column(polygon_xy, i);
+    gsl_vector_view p2 = gsl_matrix_column(polygon_xy, j);
+    double x1 = gsl_vector_get(&p1.vector, 0);
+    double y1 = gsl_vector_get(&p1.vector, 1);
+
+
+    double x2 = gsl_vector_get(&p2.vector, 0);
+    double y2 = gsl_vector_get(&p2.vector, 1);
+    double px1, px2, py1, py2;
+    cv::Point cvp1 = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                  x1, y1);
+    cv::Point cvp2 = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+                                  x2, y2);
+    line(objectMapViewerImage, cvp1, cvp2, color);
+  }
+
+}
+
+
+void renderCoreView() {
+  Mat coreImage(800, 800, CV_64F);
   coreImage = 0.0*coreImage;
 
   cv::Scalar dataColor(192,192,192);
@@ -3883,12 +4876,53 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     }
   }
 
-  if (shouldIRender) {
-    cv::imshow(coreViewName, coreImage);
+//  {
+//    cv::Point text_anchor = cv::Point(0,coreImage.rows-1);
+//    {
+//      cv::Scalar backColor(0,0,0);
+//      cv::Point outTop = cv::Point(text_anchor.x,text_anchor.y+1-35);
+//      cv::Point outBot = cv::Point(text_anchor.x+200,text_anchor.y+1);
+//      Mat vCrop = coreImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+//      vCrop = backColor;
+//    }
+//    char buff[256];
+//    sprintf(buff, "Hz: %.2f", aveFrequency);
+//    string fpslabel(buff);
+//    putText(coreImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
+//  }
+  if ( (rangeogramImage.rows > 0) && (rangeogramImage.cols > 0) ) {
+    cv::Point text_anchor = cv::Point(0,rangeogramImage.rows-1);
+    {
+      cv::Scalar backColor(0,0,0);
+      cv::Point outTop = cv::Point(text_anchor.x,text_anchor.y+1-35);
+      cv::Point outBot = cv::Point(text_anchor.x+400,text_anchor.y+1);
+      Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+      vCrop = backColor;
+    }
+    {
+      char buff[256];
+      sprintf(buff, "            Hz: %.2f", aveFrequency);
+      string fpslabel(buff);
+      putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(160,0,0), 1.0);
+    }
+    {
+      char buff[256];
+      sprintf(buff, "Hz: %.2f", aveFrequencyRange);
+      string fpslabel(buff);
+      putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
+    }
   }
+  cv::imshow(rangeogramViewName, rangeogramImage);
+
+  cv::imshow(coreViewName, coreImage);
 }
 
 void targetCallback(const geometry_msgs::Point& point) {
+
+  if (!shouldIMiscCallback) {
+    return;
+  }
+
 //  prevPx = pilotTarget.px;
 //  prevPy = pilotTarget.py;
 //
@@ -3907,10 +4941,15 @@ void targetCallback(const geometry_msgs::Point& point) {
 }
 
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
+
+  if (!shouldIMiscCallback) {
+    return;
+  }
+
   if ( event == EVENT_LBUTTONDOWN ) {
-    //cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-    //reticle.px = x;
-    //reticle.py = y;
+    cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+    probeReticle.px = x;
+    probeReticle.py = y;
     cout << "x: " << x << " y: " << y << " eeRange: " << eeRange << endl;
   } else if ( event == EVENT_RBUTTONDOWN ) {
     //cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
@@ -3922,6 +4961,11 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
 }
 
 void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata) {
+
+  if (!shouldIMiscCallback) {
+    return;
+  }
+
   if ( event == EVENT_LBUTTONDOWN ) {
     int bigX = x / rmiCellWidth;
     int bigY = y / rmiCellWidth;
@@ -3997,6 +5041,20 @@ void pilotInit() {
     //defaultReticle = centerReticle;
     reticle = defaultReticle;
 
+    double ystart = 0.1;
+    double yend = 0.7;
+    int numposes = 4;
+    double ystep = (yend - ystart) / numposes;
+    eePose pose1 = {.px = 0.65, .py = 0.0544691, .pz = -0.0582791,
+                       .ox = 0, .oy = 0, .oz = 0,
+                       .qx = 0, .qy = 1, .qz = 0, .qw = 0};
+    for (int i = 0; i < numposes; i++) {
+      deliveryPoses.push_back(pose1);
+    }
+    for (int i = 0; i < numposes; i++) {
+      deliveryPoses[i].py = ystart + i * ystep;
+    }
+
     rssPose = rssPoseL;
     ik_reset_eePose = rssPose;
 
@@ -4013,22 +5071,121 @@ void pilotInit() {
     eepReg2 = rssPoseL; //wholeFoodsPantryL;
     eepReg3 = rssPoseL; //wholeFoodsCounterL;
 
+
+    // good fence values
+    //mapSearchFenceXMin = -0.4;
+    //mapSearchFenceXMax = 0.45;
+    //mapSearchFenceYMin = 0.63;
+    //mapSearchFenceYMax = 0.96;
+    // full workspace
+    //mapSearchFenceXMin = -0.75;
+    //mapSearchFenceXMax = 1.00;
+    //mapSearchFenceYMin = -1.25;
+    //mapSearchFenceYMax = 1.25;
+    mapSearchFenceXMin = -0.75;
+    mapSearchFenceXMax = 0.5;
+    mapSearchFenceYMin = -1.25;
+    mapSearchFenceYMax = 1.25;
+
+    //mapSearchFenceXMin = -0.75;
+    //mapSearchFenceXMax = 1.0;
+    //mapSearchFenceYMin = 0.45;
+    //mapSearchFenceYMax = 1.25;
+
+    //mapRejectFenceXMin = -0.4;
+    //mapRejectFenceXMax = 0.45;
+    //mapRejectFenceYMin = 0.63;
+    //mapRejectFenceYMax = 0.96;
+    mapRejectFenceXMin = mapSearchFenceXMin;
+    mapRejectFenceXMax = mapSearchFenceXMax;
+    mapRejectFenceYMin = mapSearchFenceYMin;
+    mapRejectFenceYMax = mapSearchFenceYMax;
+
+    // small fence values (for debugging)
+    //mapSearchFenceXMin = 0;
+    //mapRejectFenceXMin = 0;
+
+    //mapSearchFenceXMax = 0.3;
+    //mapRejectFenceXMax = 0.3;
+
+
+
+    // left arm
+    // (313, 163)
+    vanishingPointReticle.px = 313;
+    vanishingPointReticle.py = 163;
+    probeReticle = vanishingPointReticle;
+
     // ATTN 16
     heightReticles[0] = defaultReticle;
     heightReticles[1] = defaultReticle;
     heightReticles[2] = defaultReticle;
     heightReticles[3] = defaultReticle;
 
+    // values used for IJCAI
+    //heightReticles[3].px = 323;
+    //heightReticles[2].px = 326;
+    //heightReticles[1].px = 331;
+    //heightReticles[0].px = 347;
+    //heightReticles[3].py = 137;
+    //heightReticles[2].py = 132;
+    //heightReticles[1].py = 118;
+    //heightReticles[0].py = 72;
     heightReticles[3].px = 323;
     heightReticles[2].px = 326;
-    heightReticles[1].px = 331;
-    heightReticles[0].px = 347;
+    heightReticles[1].px = 329;
+    heightReticles[0].px = 336;
 
-    heightReticles[3].py = 137;
-    heightReticles[2].py = 132;
-    heightReticles[1].py = 118;
-    heightReticles[0].py = 72;
+    heightReticles[3].py = 135;
+    heightReticles[2].py = 128;
+    heightReticles[1].py = 117;
+    heightReticles[0].py = 94;
 
+    /* color reticle init */
+    /* XXX TODO needs recalibrating */
+    //const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
+    xCR[0] = 462;
+    xCR[1] = 450;
+    xCR[2] = 439;
+    xCR[3] = 428;
+    xCR[4] = 419;
+    xCR[5] = 410;
+    xCR[6] = 405;
+    xCR[7] = 399;
+    xCR[8] = 394;
+    xCR[9] = 389;
+    xCR[10] = 383;
+    xCR[11] = 381;
+    xCR[12] = 379;
+    xCR[13] = 378;
+
+    /* left arm */
+    //const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
+    yCR[0] = 153;
+    yCR[1] = 153;
+    yCR[2] = 153;
+    yCR[3] = 153;
+    yCR[4] = 153;
+    yCR[5] = 154;
+    yCR[6] = 154;
+    yCR[7] = 154;
+    yCR[8] = 154;
+    yCR[9] = 154;
+    yCR[10] = 155;
+    yCR[11] = 155;
+    yCR[12] = 155;
+    yCR[13] = 155;
+
+    /* lens correction */
+    m_x_h[0] = 1.2;
+    m_x_h[1] = 1.06;
+    m_x_h[2] = 0.98;
+    m_x_h[3] = 0.94;
+
+    m_y_h[0] = 0.95;
+    m_y_h[1] = 0.93;
+    m_y_h[2] = 0.92;
+    m_y_h[3] = 0.92;
   } else if (0 == left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
     beeHome = rssPoseR;
@@ -4041,28 +5198,20 @@ void pilotInit() {
     //defaultReticle = centerReticle;
     reticle = defaultReticle;
 
+    double ystart = -0.7;
+    double yend = -0.1;
+    int numposes = 4;
+    double ystep = (yend - ystart) / numposes;
+    eePose pose1 = {.px = 0.65, .py = 0.0544691, .pz = -0.0582791,
+                       .ox = 0, .oy = 0, .oz = 0,
+                       .qx = 0, .qy = 1, .qz = 0, .qw = 0};
+    for (int i = 0; i < numposes; i++) {
+      deliveryPoses.push_back(pose1);
+    }
+    for (int i = 0; i < numposes; i++) {
+      deliveryPoses[i].py = ystart + i * ystep;
+    }
 
-    
-    eePose pose1 = {.px = 0.233681, .py = -0.853305, .pz = 0.0536631,
-                    .ox = 0, .oy = 0, .oz = 0,
-                    .qx = 0.00408151, .qy = 0.999991, .qz = -0.00108426, .qw = 0.000678766};
-
-    eePose pose2 = {.px = 0.255665, .py = -0.661719, .pz = 0.0527955,
-                    .ox = 0, .oy = 0, .oz = 0,
-                    .qx = 0.00369431, .qy = 0.99999, .qz = 0.00231318, .qw = -0.00063272};
-
-    eePose pose3 = {.px = 0.00579471, .py = -0.642449, .pz = 0.0727708,
-                    .ox = 0, .oy = 0, .oz = 0,
-                    .qx = 0.00248598, .qy = 0.999995, .qz = 0.00201974, .qw = -0.000816647};
-
-    eePose pose4 = {.px = 0.0249181, .py = -0.850118, .pz = 0.0713887,
-                    .ox = 0, .oy = 0, .oz = 0,
-                    .qx = 0.00331993, .qy = 0.999982, .qz = 0.00477704, .qw = -0.00145784};
-
-    warehousePoses.push_back(pose1);
-    warehousePoses.push_back(pose2);
-    warehousePoses.push_back(pose3);
-    warehousePoses.push_back(pose4);
 
     rssPose = rssPoseR;
     ik_reset_eePose = rssPose;
@@ -4081,22 +5230,121 @@ void pilotInit() {
     eepReg2 = rssPoseR; //wholeFoodsPantryR;
     eepReg3 = rssPoseR; //wholeFoodsCounterR;
 
+
+    // raw fence values (from John estimating arm limits)
+    // True EE Position (x,y,z): -0.329642 -0.77571 0.419954
+    //True EE Position (x,y,z): 0.525236 -0.841226 0.217111
+
+
+    //mapSearchFenceXMin = -0.25;
+    //mapSearchFenceXMax = 0.45;
+    //mapSearchFenceYMin = -0.86;
+    //mapSearchFenceYMax = -0.78;
+    //mapRejectFenceXMin = -0.1;
+    //mapRejectFenceXMax = 0.7;
+    //mapRejectFenceYMin = -1.06;
+    //mapRejectFenceYMax = -0.58;
+
+    //mapSearchFenceXMin = -0.4;
+    //mapSearchFenceXMax = 0.45;
+    //mapSearchFenceYMin = -0.96;
+    //mapSearchFenceYMax = -0.63;
+    // full workspace
+    mapSearchFenceXMin = -0.75;
+    mapSearchFenceXMax = 1.00;
+    mapSearchFenceYMin = -1.25;
+    mapSearchFenceYMax = 1.25;
+    //mapSearchFenceXMin = -0.75;
+    //mapSearchFenceXMax = 0.75;
+    //mapSearchFenceYMin = -0.45;
+    //mapSearchFenceYMax = 1.25;
+
+    //mapRejectFenceXMin = -0.4;
+    //mapRejectFenceXMax = 0.45;
+    //mapRejectFenceYMin = -0.96;
+    //mapRejectFenceYMax = -0.63;
+    mapRejectFenceXMin = mapSearchFenceXMin;
+    mapRejectFenceXMax = mapSearchFenceXMax;
+    mapRejectFenceYMin = mapSearchFenceYMin;
+    mapRejectFenceYMax = mapSearchFenceYMax;
+
+
+    // right arm
+    // (313, 185)
+    vanishingPointReticle.px = 313;
+    vanishingPointReticle.py = 185;
+    probeReticle = vanishingPointReticle;
+
     // ATTN 16
     heightReticles[0] = defaultReticle;
     heightReticles[1] = defaultReticle;
     heightReticles[2] = defaultReticle;
     heightReticles[3] = defaultReticle;
-
     
-    heightReticles[3].px = 319;
-    heightReticles[2].px = 323;
-    heightReticles[1].px = 328;
-    heightReticles[0].px = 341;
+    // values used for IJCAI
+    //heightReticles[3].px = 319;
+    //heightReticles[2].px = 323;
+    //heightReticles[1].px = 328;
+    //heightReticles[0].px = 341;
+    //heightReticles[3].py = 170;
+    //heightReticles[2].py = 159;
+    //heightReticles[1].py = 145;
+    //heightReticles[0].py = 100;
+    heightReticles[3].px = 314;
+    heightReticles[2].px = 317;
+    heightReticles[1].px = 320;
+    heightReticles[0].px = 328;
 
-    heightReticles[3].py = 170;
-    heightReticles[2].py = 159;
-    heightReticles[1].py = 145;
-    heightReticles[0].py = 100;
+    heightReticles[3].py = 154;
+    heightReticles[2].py = 149;
+    heightReticles[1].py = 139;
+    heightReticles[0].py = 120;
+
+    /* color reticle init */
+    /* XXX TODO needs recalibrating */
+    //const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
+    xCR[0] = 462;
+    xCR[1] = 450;
+    xCR[2] = 439;
+    xCR[3] = 428;
+    xCR[4] = 419;
+    xCR[5] = 410;
+    xCR[6] = 405;
+    xCR[7] = 399;
+    xCR[8] = 394;
+    xCR[9] = 389;
+    xCR[10] = 383;
+    xCR[11] = 381;
+    xCR[12] = 379;
+    xCR[13] = 378;
+
+    /* right arm */
+    //const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
+    yCR[0] = 153;
+    yCR[1] = 153;
+    yCR[2] = 153;
+    yCR[3] = 153;
+    yCR[4] = 153;
+    yCR[5] = 154;
+    yCR[6] = 154;
+    yCR[7] = 154;
+    yCR[8] = 154;
+    yCR[9] = 154;
+    yCR[10] = 155;
+    yCR[11] = 155;
+    yCR[12] = 155;
+    yCR[13] = 155;
+
+    /* lens correction */
+    m_x_h[0] = 1.18;
+    m_x_h[1] = 1.12;
+    m_x_h[2] = 1.09;
+    m_x_h[3] = 1.08;
+
+    m_y_h[0] = 1.16;
+    m_y_h[1] = 1.17;
+    m_y_h[2] = 1.16;
+    m_y_h[3] = 1.2;
   } else {
     cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
     exit(0);
@@ -4323,7 +5571,9 @@ int getLocalGraspGear(int globalGraspGearIn) {
 
   //double angle = atan2(aY, aX)*180.0/3.1415926;
   // no degrees here
-  double angle = atan2(aY, aX);
+  // ATTN 22
+  //double angle = atan2(aY, aX);
+  double angle = vectorArcTan(aY, aX);
   // no inversion necessary
   //angle = -angle;
   
@@ -4361,7 +5611,9 @@ int getGlobalGraspGear(int localGraspGearIn) {
 
   //double angle = atan2(aY, aX)*180.0/3.1415926;
   // no degrees here
-  double angle = atan2(aY, aX);
+  // ATTN 22
+  //double angle = atan2(aY, aX);
+  double angle = vectorArcTan(aY, aX);
   // inversion to convert to global
   angle = -angle;
   
@@ -4429,6 +5681,10 @@ void changeTargetClass(int newTargetClass) {
     {
       //cout << "Pushing set heightMemories from classHeightMemories" << endl;
       pushWord(1245289); // set heightMemories from classHeightMemories
+    }
+    break;
+  case MAPPING:
+    {
     }
     break;
   default:
@@ -4532,7 +5788,7 @@ int calibrateGripper() {
   }
   cout << "Gripper could not calibrate!" << endl;
   pushWord('Y'); // pause stack execution
-  pushCopies(1245308, 15); // beep
+  pushCopies("beep", 15); // beep
   return -1;
 }
 int doCalibrateGripper() {
@@ -5094,7 +6350,7 @@ void drawMapRegisters() {
   // draw grasp memory sample window
   {
     double max_value = -VERYBIGNUMBER;
-    int max_rx, max_ry, max_tGG;
+    int max_rx=0, max_ry=0, max_tGG=0;
     int dy[4] = {0,1,0,1};
     int dx[4] = {0,0,1,1};
     
@@ -5256,7 +6512,9 @@ void loadGlobalTargetClassRangeMap(double * rangeMapRegA, double * rangeMapRegB)
   // this is here to get the signs right
   aX = -aX;
 
-  double angle = atan2(aY, aX)*180.0/3.1415926;
+  // ATTN 22
+  //double angle = atan2(aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
   double scale = 1.0;
   Point center = Point(rmWidth/2, rmWidth/2);
   Size toBecome(rmWidth, rmWidth);
@@ -6026,6 +7284,16 @@ void gradientServo() {
     return;
   }
 
+  {
+    int i, j;
+    mapxyToij(currentEEPose.px, currentEEPose.py, &i, &j);
+    int doWeHaveClearance = (clearanceMap[i + mapWidth * j] != 0);
+    if (!doWeHaveClearance) {
+      cout << ">>>> Gradient servo strayed out of clearance area during mapping. <<<<" << endl;
+      return;
+    }
+  }
+
   // ATTN 16
   switch (currentThompsonHeightIdx) {
   case 0:
@@ -6102,26 +7370,26 @@ void gradientServo() {
           }
         }
       }
-
+      
       // rotate the template and L1 normalize it
       Point center = Point(aerialGradientWidth/2, aerialGradientWidth/2);
       double angle = thisOrient*360.0/numOrientations;
-
+      
       //double scale = 1.0;
       double scale = thisScale;
-
+      
       // Get the rotation matrix with the specifications above
       Mat rot_mat = getRotationMatrix2D(center, angle, scale);
       warpAffine(classAerialGradients[targetClass], rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
-
+      
       processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations], rotatedAerialGrads[thisOrient + etaS*numOrientations]);
-
+      
       //double l1norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type()));
       //if (l1norm <= EPSILON)
       //l1norm = 1.0;
       //rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l1norm;
       //cout << "classOrientedGradients[targetClass]: " << classAerialGradients[targetClass] << "rotatedAerialGrads[thisOrient + etaS*numOrientations] " << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
-
+      
       double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(aerialGradientWidth*aerialGradientWidth);
       rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
       double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations]);
@@ -6156,197 +7424,197 @@ void gradientServo() {
       int gsStride = 2;
     }
   }
-
+  
   //rotatedAerialGrads.resize(gradientServoScale*numOrientations);
   int gSTwidth = 2*gradientServoTranslation + 1;
   double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
-
+  
   for (int etaS = 0; etaS < gradientServoScale; etaS++) {
 #pragma omp parallel for
     for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
-    for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
-    // get the patch
-    int topCornerX = etaX + reticle.px - (aerialGradientReticleWidth/2);
-    int topCornerY = etaY + reticle.py - (aerialGradientReticleWidth/2);
-    Mat gCrop(maxDim, maxDim, CV_64F);
-
-    for (int x = 0; x < maxDim; x++) {
-    for (int y = 0; y < maxDim; y++) {
-    int tx = x - tRx;
-    int ty = y - tRy;
-    int tCtx = topCornerX + tx;
-    int tCty = topCornerY + ty;
-    if ( (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) &&
-                                     (tCtx > 0) && (tCty > 0) && (tCtx < imW) && (tCty < imH) ) {
-    gCrop.at<double>(y, x) = frameGraySobel.at<double>(topCornerY + ty, topCornerX + tx);
-  } else {
-    gCrop.at<double>(y, x) = 0.0;
-  }
-  }
-  }
-
-    cv::resize(gCrop, gCrop, toBecome);
-
-    processSaliency(gCrop, gCrop);
-
-    {
-    double mean = gCrop.dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, gCrop.type())) / double(aerialGradientWidth*aerialGradientWidth);
-    gCrop = gCrop - mean;
-    double l2norm = gCrop.dot(gCrop);
-    // ATTN 17
-    // removed normalization for discriminative servoing
-    // ATTN 15
-    // normalization hoses rejection
-    if (useGradientServoThresh) {
-    } else {
-      if (l2norm <= EPSILON)
-	l2norm = 1.0;
-      gCrop = gCrop / l2norm;
+      for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
+        // get the patch
+        int topCornerX = etaX + reticle.px - (aerialGradientReticleWidth/2);
+        int topCornerY = etaY + reticle.py - (aerialGradientReticleWidth/2);
+        Mat gCrop(maxDim, maxDim, CV_64F);
+        
+        for (int x = 0; x < maxDim; x++) {
+          for (int y = 0; y < maxDim; y++) {
+            int tx = x - tRx;
+            int ty = y - tRy;
+            int tCtx = topCornerX + tx;
+            int tCty = topCornerY + ty;
+            if ( (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) &&
+                 (tCtx > 0) && (tCty > 0) && (tCtx < imW) && (tCty < imH) ) {
+              gCrop.at<double>(y, x) = frameGraySobel.at<double>(topCornerY + ty, topCornerX + tx);
+            } else {
+              gCrop.at<double>(y, x) = 0.0;
+            }
+          }
+        }
+        
+        cv::resize(gCrop, gCrop, toBecome);
+        
+        processSaliency(gCrop, gCrop);
+        
+        {
+          double mean = gCrop.dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, gCrop.type())) / double(aerialGradientWidth*aerialGradientWidth);
+          gCrop = gCrop - mean;
+          double l2norm = gCrop.dot(gCrop);
+          // ATTN 17
+          // removed normalization for discriminative servoing
+          // ATTN 15
+          // normalization hoses rejection
+          if (useGradientServoThresh) {
+          } else {
+            if (l2norm <= EPSILON)
+              l2norm = 1.0;
+            gCrop = gCrop / l2norm;
+          }
+        }
+        
+        for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
+          // orientation cascade
+          if (orientationCascade) {
+            if (lastPtheta < lPTthresh) {
+              if (thisOrient < orientationCascadeHalfWidth) {
+                //cout << "skipping orientation " << thisOrient << endl;
+                continue;
+              }
+              if (thisOrient > numOrientations - orientationCascadeHalfWidth) {
+                //cout << "skipping orientation " << thisOrient << endl;
+                continue;
+              }
+            }
+          }
+          
+          // compute the score
+          double thisScore = 0;
+          thisScore = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(gCrop);
+          
+          int tEtaX = etaX+gradientServoTranslation;
+          int tEtaY = etaY+gradientServoTranslation;
+          allScores[tEtaX][tEtaY][etaS][thisOrient] = thisScore;
+        }
+      }
     }
   }
-
-    for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-    // orientation cascade
-    if (orientationCascade) {
-    if (lastPtheta < lPTthresh) {
-    if (thisOrient < orientationCascadeHalfWidth) {
-    //cout << "skipping orientation " << thisOrient << endl;
-    continue;
-  }
-    if (thisOrient > numOrientations - orientationCascadeHalfWidth) {
-    //cout << "skipping orientation " << thisOrient << endl;
-    continue;
-  }
-  }
-  }
-
-    // compute the score
-    double thisScore = 0;
-    thisScore = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(gCrop);
-
-    int tEtaX = etaX+gradientServoTranslation;
-    int tEtaY = etaY+gradientServoTranslation;
-    allScores[tEtaX][tEtaY][etaS][thisOrient] = thisScore;
-  }
-  }
-  }
-  }
-
-    // perform max
-    for (int etaS = 0; etaS < gradientServoScale; etaS++) {
+  
+  // perform max
+  for (int etaS = 0; etaS < gradientServoScale; etaS++) {
     for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
-    for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
-    // get the patch
-    int topCornerX = etaX + reticle.px - (aerialGradientReticleWidth/2);
-    int topCornerY = etaY + reticle.py - (aerialGradientReticleWidth/2);
-    Mat gCrop(maxDim, maxDim, CV_64F);
-
-    // throw it out if it isn't contained in the image
-//    if ( (topCornerX+aerialGradientWidth >= imW) || (topCornerY+aerialGradientWidth >= imH) )
-//      continue;
-//    if ( (topCornerX < 0) || (topCornerY < 0) )
-//      continue;
-
-    for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-    // orientation cascade
-    if (orientationCascade) {
-    if (lastPtheta < lPTthresh) {
-    if (thisOrient < orientationCascadeHalfWidth) {
-    //cout << "skipping orientation " << thisOrient << endl;
-    continue;
-  }
-    if (thisOrient > numOrientations - orientationCascadeHalfWidth) {
-    //cout << "skipping orientation " << thisOrient << endl;
-    continue;
-  }
-  }
-  }
-
-    int tEtaX = etaX+gradientServoTranslation;
-    int tEtaY = etaY+gradientServoTranslation;
-    double thisScore = allScores[tEtaX][tEtaY][etaS][thisOrient];
-
-    if (thisScore > bestOrientationScore) {
-    bestOrientation = thisOrient;
-    bestOrientationScore = thisScore;
-    bestCropNorm = sqrt(gCrop.dot(gCrop));
-    bestX = etaX;
-    bestY = etaY;
-    bestS = etaS;
-  }
-    //cout << " this best: " << thisScore << " " << bestOrientationScore << " " << bestX << " " << bestY << endl;
-  } 
-  }
-  }
-  }
-
-    // set the target reticle
-    pilotTarget.px = reticle.px + bestX;
-    pilotTarget.py = reticle.py + bestY;
-
-    bestOrientationEEPose = currentEEPose;
-
-    int oneToDraw = bestOrientation;
-    Px = -bestX;
-    Py = -bestY;
-
-    //Ps = bestS - ((gradientServoScale-1)/2);
-    Ps = 0;
-
-    Mat toShow;
-    Size toUnBecome(maxDim, maxDim);
-    //cv::resize(classAerialGradients[targetClass], toShow, toUnBecome);
-    //cv::resize(rotatedAerialGrads[oneToDraw], toShow, toUnBecome);
-    cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations], toShow, toUnBecome);
-    //cout << rotatedAerialGrads[oneToDraw];
-
-    double maxTS = -INFINITY;
-    double minTS = INFINITY;
-    for (int x = 0; x < maxDim; x++) {
-    for (int y = 0; y < maxDim; y++) {
-    maxTS = max(maxTS, toShow.at<double>(y, x));
-    minTS = min(minTS, toShow.at<double>(y, x));
-  }
-  }
-
-    // draw the winning score in place
-    for (int x = 0; x < maxDim; x++) {
-    for (int y = 0; y < maxDim; y++) {
-    //int tx = x - tRx;
-    //int ty = y - tRy;
-    int tx = x - tRx;
-    int ty = y - tRy;
-    if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
-    Vec3b thisColor = Vec3b(0,0,min(255, int(floor(255.0*8*(toShow.at<double>(y, x)-minTS)/(maxTS-minTS)))));
-    //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
-    //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
-    //cout << thisColor;
-    int thisTopCornerX = bestX + reticle.px - (aerialGradientReticleWidth/2);
-    int thisTopCornerY = bestY + reticle.py - (aerialGradientReticleWidth/2);
-
-    int tgX = thisTopCornerX + tx;
-    int tgY = thisTopCornerY + ty;
-    if ((tgX > 0) && (tgX < imW) && (tgY > 0) && (tgY < imH)) {
-      gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColor;
+      for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
+        // get the patch
+        int topCornerX = etaX + reticle.px - (aerialGradientReticleWidth/2);
+        int topCornerY = etaY + reticle.py - (aerialGradientReticleWidth/2);
+        Mat gCrop(maxDim, maxDim, CV_64F);
+        
+        // throw it out if it isn't contained in the image
+        //    if ( (topCornerX+aerialGradientWidth >= imW) || (topCornerY+aerialGradientWidth >= imH) )
+        //      continue;
+        //    if ( (topCornerX < 0) || (topCornerY < 0) )
+        //      continue;
+        
+        for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
+          // orientation cascade
+          if (orientationCascade) {
+            if (lastPtheta < lPTthresh) {
+              if (thisOrient < orientationCascadeHalfWidth) {
+                //cout << "skipping orientation " << thisOrient << endl;
+                continue;
+              }
+              if (thisOrient > numOrientations - orientationCascadeHalfWidth) {
+                //cout << "skipping orientation " << thisOrient << endl;
+                continue;
+              }
+            }
+          }
+          
+          int tEtaX = etaX+gradientServoTranslation;
+          int tEtaY = etaY+gradientServoTranslation;
+          double thisScore = allScores[tEtaX][tEtaY][etaS][thisOrient];
+          
+          if (thisScore > bestOrientationScore) {
+            bestOrientation = thisOrient;
+            bestOrientationScore = thisScore;
+            bestCropNorm = sqrt(gCrop.dot(gCrop));
+            bestX = etaX;
+            bestY = etaY;
+            bestS = etaS;
+          }
+          //cout << " this best: " << thisScore << " " << bestOrientationScore << " " << bestX << " " << bestY << endl;
+        } 
+      }
     }
   }
+
+  // set the target reticle
+  pilotTarget.px = reticle.px + bestX;
+  pilotTarget.py = reticle.py + bestY;
+  
+  bestOrientationEEPose = currentEEPose;
+  
+  int oneToDraw = bestOrientation;
+  Px = -bestX;
+  Py = -bestY;
+  
+  //Ps = bestS - ((gradientServoScale-1)/2);
+  Ps = 0;
+  
+  Mat toShow;
+  Size toUnBecome(maxDim, maxDim);
+  //cv::resize(classAerialGradients[targetClass], toShow, toUnBecome);
+  //cv::resize(rotatedAerialGrads[oneToDraw], toShow, toUnBecome);
+  cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations], toShow, toUnBecome);
+  //cout << rotatedAerialGrads[oneToDraw];
+  
+  double maxTS = -INFINITY;
+  double minTS = INFINITY;
+  for (int x = 0; x < maxDim; x++) {
+    for (int y = 0; y < maxDim; y++) {
+      maxTS = max(maxTS, toShow.at<double>(y, x));
+      minTS = min(minTS, toShow.at<double>(y, x));
+    }
   }
+  
+  // draw the winning score in place
+  for (int x = 0; x < maxDim; x++) {
+    for (int y = 0; y < maxDim; y++) {
+      //int tx = x - tRx;
+      //int ty = y - tRy;
+      int tx = x - tRx;
+      int ty = y - tRy;
+      if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+        Vec3b thisColor = Vec3b(0,0,min(255, int(floor(255.0*8*(toShow.at<double>(y, x)-minTS)/(maxTS-minTS)))));
+        //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
+        //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
+        //cout << thisColor;
+        int thisTopCornerX = bestX + reticle.px - (aerialGradientReticleWidth/2);
+        int thisTopCornerY = bestY + reticle.py - (aerialGradientReticleWidth/2);
+        
+        int tgX = thisTopCornerX + tx;
+        int tgY = thisTopCornerY + ty;
+        if ((tgX > 0) && (tgX < imW) && (tgY > 0) && (tgY < imH)) {
+          gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColor;
+        }
+      }
+    }
   }
-
-    oneToDraw = oneToDraw % numOrientations;
-    double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
-    lastPtheta = Ptheta;
-
-    // change orientation according to winning rotation
-    //currentEEPose.oz -= bestOrientation*2.0*3.1415926/double(numOrientations);
-
-    // update after
-    currentGradientServoIterations++;
-
-    // XXX this still might miss if it nails the correct orientation on the last try
-    // TODO but we could set the bestOrientationEEPose here according to what it would have been`
-    // but we don't want to move because we want all the numbers to be consistent
-    if (currentGradientServoIterations > hardMaxGradientServoIterations) {
+  
+  oneToDraw = oneToDraw % numOrientations;
+  double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
+  lastPtheta = Ptheta;
+  
+  // change orientation according to winning rotation
+  //currentEEPose.oz -= bestOrientation*2.0*3.1415926/double(numOrientations);
+  
+  // update after
+  currentGradientServoIterations++;
+  
+  // XXX this still might miss if it nails the correct orientation on the last try
+  // TODO but we could set the bestOrientationEEPose here according to what it would have been`
+  // but we don't want to move because we want all the numbers to be consistent
+  if (currentGradientServoIterations > hardMaxGradientServoIterations) {
     //cout << "LAST ITERATION indefinite orientation ";
   } else {
     double kPtheta = 0.0;
@@ -6354,176 +7622,163 @@ void gradientServo() {
       kPtheta = kPtheta2;
     else
       kPtheta = kPtheta1;
-
+    
     if (bestOrientation <= numOrientations/2)
       currentEEPose.oz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
     else
       currentEEPose.oz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
   }
-
-    double doublePtheta = currentEEPose.oz;
-
-    //cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << 
-      //pilotTarget.px << " " << reticle.py << " " << pilotTarget.py << " " <<
-      //bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
-
-    double dx = (currentEEPose.px - trueEEPose.position.x);
-    double dy = (currentEEPose.py - trueEEPose.position.y);
-    double dz = (currentEEPose.pz - trueEEPose.position.z);
-    double distance = dx*dx + dy*dy + dz*dz;
-
-    // ATTN 15
-    // return to synchronic if the match is poor
-    if (useGradientServoThresh) {
-      cout << "ATTN score, thresh, norm, product: " << bestOrientationScore << " " << gradientServoResetThresh << " " << bestCropNorm << " " << (gradientServoResetThresh * bestCropNorm) << endl;
-      if (bestOrientationScore < (gradientServoResetThresh * bestCropNorm) ) {
-        pushWord(131156); // synchronic servo
-        pushWord("visionCycle"); // vision cycle
-        cout << " XXX BAD GRADIENT SERVO SCORE, RETURN TO SYNCHRONIC XXX" << endl;
-        return;
-      }
+  
+  double doublePtheta = currentEEPose.oz;
+  
+  //cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << 
+  //pilotTarget.px << " " << reticle.py << " " << pilotTarget.py << " " <<
+  //bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
+  
+  double dx = (currentEEPose.px - trueEEPose.position.x);
+  double dy = (currentEEPose.py - trueEEPose.position.y);
+  double dz = (currentEEPose.pz - trueEEPose.position.z);
+  double distance = dx*dx + dy*dy + dz*dz;
+  
+  // ATTN 15
+  // return to synchronic if the match is poor
+  if (useGradientServoThresh) {
+    cout << "ATTN score, thresh, norm, product: " << bestOrientationScore << " " << gradientServoResetThresh << " " << bestCropNorm << " " << (gradientServoResetThresh * bestCropNorm) << endl;
+    if (bestOrientationScore < (gradientServoResetThresh * bestCropNorm) ) {
+      pushWord("synchronicServo"); 
+      pushWord("visionCycle"); 
+      cout << " XXX BAD GRADIENT SERVO SCORE, RETURN TO SYNCHRONIC XXX" << endl;
+      return;
     }
+  }
+  
 
-
-    // if we are not there yet, continue
-    if (distance > w1GoThresh*w1GoThresh) {
-    //cout << "waiting to arrive at current position." << endl;
-    pushWord(196728); // gradient servo
+  if (distance > w1GoThresh*w1GoThresh) {
+    
+    pushWord("gradientServo"); 
     // ATTN 8
-    //pushWord("visionCycle"); // vision cycle
-    //pushWord(196721); // vision cycle no classify
-    pushCopies(131121, densityIterationsForGradientServo); // density
-    pushCopies(1179737, 1); // reset temporal map
-    pushWord(262237); // reset aerialGradientTemporalFrameAverage
-    pushCopies(131121, 1); // density
-    //pushCopies("waitUntilAtCurrentPosition", 40); 
-    pushCopies("waitUntilAtCurrentPosition", 5); 
-
-    // ATTN 16
-    //	  { // prepare to servo
-    //	    currentEEPose.pz = wholeFoodsCounter1.pz+.1;
-    //	  }
+    pushCopies("density", densityIterationsForGradientServo); 
+    //pushCopies("accumulateDensity", densityIterationsForGradientServo); 
+    //pushCopies("resetTemporalMap", 1); 
+    pushWord("resetAerialGradientTemporalFrameAverage"); 
+    pushCopies("density", 1); 
+    //pushCopies("waitUntilAtCurrentPosition", 5); 
+    pushCopies("waitUntilAtCurrentPosition", 1); 
+    
   } else {
     // ATTN 5
     // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
     if (((fabs(Px) < gradServoPixelThresh) && (fabs(Py) < gradServoPixelThresh) && (fabs(Ptheta) < gradServoThetaThresh)) ||
-      ((currentGradientServoIterations > softMaxGradientServoIterations) && (fabs(Ptheta) < gradServoThetaThresh)) || 
-      (currentGradientServoIterations > hardMaxGradientServoIterations) )
+        ((currentGradientServoIterations > softMaxGradientServoIterations) && (fabs(Ptheta) < gradServoThetaThresh)) || 
+        (currentGradientServoIterations > hardMaxGradientServoIterations) )
       {
-	// ATTN 12
-	if (ARE_GENERIC_HEIGHT_LEARNING()) {
-	  cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << gradientServoDuringHeightLearning << endl;
-	  cout << "bbLearning: returning from gradient servo." << endl;
-	  return;
-	}
-
-	// ATTN 17
-	if (bailAfterGradient) {
-	  cout << "gradient servo set to bail. returning." << endl;
-	  return;
-	}
-
-    //cout << "got within thresh, returning." << endl;
-    cout << "got within thresh, fetching." << endl;
-    lastPtheta = INFINITY;
-    cout << "resetting lastPtheta: " << lastPtheta << endl;
-    if (surveyDuringServo) {
-    cout << "Survey results: " << endl;
-    int winningClass = -1;
-    int winningClassCounts = -1;
-    for (int clc = 0; clc < numClasses; clc++) {
-    if (surveyHistogram[clc] > winningClassCounts) {
-    winningClass = clc;
-    winningClassCounts = surveyHistogram[clc];
-  }
-    cout << "    class " << classLabels[clc] << " counts: " << surveyHistogram[clc] << endl;
-  }
-    cout << "  Winning Class: " << classLabels[winningClass] << " counts: " << surveyHistogram[winningClass] << endl;
-    surveyWinningClass = winningClass;
-  }
-    //pushWord(131161); // fetch
-    //pushWord(196729); // quick fetch
-    // XXX
-    // perform best grasp from memory in local space
-
-    if (synchronicTakeClosest) {
-    if (gradientTakeClosest) {
-    if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
-      pushWord(1048624); // prepare for and execute the best grasp from memory at the current location and target
-    else
-      pushWord(196729); // quick fetch
-  } else {
-      return;
-  }
-  } else {
-    if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
-      pushWord(1048624); // prepare for and execute the best grasp from memory at the current location and target
-    else
-      pushWord(196729); // quick fetch
-  }
-
-    return;
-  } else {
-    //cout << "executing P controller update." << endl;
-    pushWord(196728); // gradient servo
-    // simple servo code because there is no hysteresis to be found
-    double pTermX = gradKp*Px;
-    double pTermY = gradKp*Py;
-
-    double pTermS = Ps * .005;
-    currentEEPose.pz += pTermS;
-
-    //currentEEPose.py += pTermX;
-    //currentEEPose.px += pTermY;
-
-    // invert the current eePose orientation to decide which direction to move from POV
-    Eigen::Vector3f localUnitX;
-    {
-    Eigen::Quaternionf qin(0, 1, 0, 0);
-    Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
-    qout = eeqform * qin * eeqform.conjugate();
-    localUnitX.x() = qout.x();
-    localUnitX.y() = qout.y();
-    localUnitX.z() = qout.z();
-  }
-
+        // ATTN 12
+        if (ARE_GENERIC_HEIGHT_LEARNING()) {
+          cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << gradientServoDuringHeightLearning << endl;
+          cout << "bbLearning: returning from gradient servo." << endl;
+          return;
+        }
+        
+        // ATTN 17
+        if (bailAfterGradient) {
+          cout << "gradient servo set to bail. returning." << endl;
+          return;
+        }
+        
+        //cout << "got within thresh, returning." << endl;
+        cout << "got within thresh, fetching." << endl;
+        lastPtheta = INFINITY;
+        cout << "resetting lastPtheta: " << lastPtheta << endl;
+    
+        if (synchronicTakeClosest) {
+          if (gradientTakeClosest) {
+            if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
+              pushWord("prepareForAndExecuteGraspFromMemoryLearning"); // prepare for and execute the best grasp from memory at the current location and target
+            else {
+              ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
+            }
+          } else {
+            return;
+          }
+        } else {
+          if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
+            pushWord("prepareForAndExecuteGraspFromMemoryLearning"); 
+          } else {
+            ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
+          }
+        }
+        
+        return;
+      } else {
+      
+      pushWord("gradientServo"); 
+      
+      double pTermX = gradKp*Px;
+      double pTermY = gradKp*Py;
+      
+      double pTermS = Ps * .005;
+      currentEEPose.pz += pTermS;
+      
+      // invert the current eePose orientation to decide which direction to move from POV
+      Eigen::Vector3f localUnitX;
+      {
+        Eigen::Quaternionf qin(0, 1, 0, 0);
+        Eigen::Quaternionf qout(0, 1, 0, 0);
+        Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+        qout = eeqform * qin * eeqform.conjugate();
+        localUnitX.x() = qout.x();
+        localUnitX.y() = qout.y();
+        localUnitX.z() = qout.z();
+      }
+      
     Eigen::Vector3f localUnitY;
     {
-    Eigen::Quaternionf qin(0, 0, 1, 0);
-    Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
-    qout = eeqform * qin * eeqform.conjugate();
-    localUnitY.x() = qout.x();
-    localUnitY.y() = qout.y();
-    localUnitY.z() = qout.z();
-  }
-
-    currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
-    currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
-
+      Eigen::Quaternionf qin(0, 0, 1, 0);
+      Eigen::Quaternionf qout(0, 1, 0, 0);
+      Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+      qout = eeqform * qin * eeqform.conjugate();
+      localUnitY.x() = qout.x();
+      localUnitY.y() = qout.y();
+      localUnitY.z() = qout.z();
+    }
+    
+    // ATTN 21
+    //double newx = currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
+    //double newy = currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
+    double newx = 0;
+    double newy = 0;
+    double zToUse = trueEEPose.position.z+currentTableZ;
+    pixelToGlobal(pilotTarget.px, pilotTarget.py, zToUse, &newx, &newy);
+    //currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
+    //currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
+    currentEEPose.px = newx;
+    currentEEPose.py = newy;
+    
     // ATTN 8
     //pushWord("visionCycle"); // vision cycle
     //pushWord(196721); // vision cycle no classify
-    pushCopies(131121, densityIterationsForGradientServo); // density
-    pushCopies(1179737, 1); // reset temporal map
-    pushWord(262237); // reset aerialGradientTemporalFrameAverage
-    pushCopies(131121, 1); // density
+    pushCopies("density", densityIterationsForGradientServo); // density
+    //pushCopies("accumulateDensity", densityIterationsForGradientServo); 
+    //pushCopies("resetTemporalMap", 1); // reset temporal map
+    pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
+    pushCopies("density", 1); // density
     //pushWord("waitUntilAtCurrentPosition"); 
-
+    
     // ATTN 7
     // if you don't wait multiple times, it could get triggered early by weird ik or latency could cause a loop
     // this is a very aggressive choice and we should also be using the ring buffers for Ode calls
     //pushCopies("waitUntilAtCurrentPosition", 40); 
-    pushCopies("waitUntilAtCurrentPosition", 5); 
+    //pushCopies("waitUntilAtCurrentPosition", 5); 
+    pushCopies("waitUntilAtCurrentPosition", 1); 
     
     // ATTN 16
     //	    { // prepare to servo
     //	      currentEEPose.pz = wholeFoodsCounter1.pz+.1;
     //	    }
     }
-    }
+  }
 }
+
 
 void synchronicServo() {
   synServoLockFrames++;
@@ -6537,13 +7792,31 @@ void synchronicServo() {
   if ( ((synServoLockFrames > heightLearningServoTimeout) || (bTops.size() <= 0)) && 
 	(ARE_GENERIC_HEIGHT_LEARNING()) ) {
     cout << "bbLearning: synchronic servo early outting: ";
-    if (bTops.size() <= 0)
+    if (bTops.size() <= 0) {
       cout << "NO BLUE BOXES ";
-    if ((synServoLockFrames > heightLearningServoTimeout) && (ARE_GENERIC_HEIGHT_LEARNING()))
+    }
+    if ((synServoLockFrames > heightLearningServoTimeout) && (ARE_GENERIC_HEIGHT_LEARNING())) {
       cout << "TIMED OUT ";
+    }
     cout << endl;
     restartBBLearning();
     return;
+  }
+
+  if ( ((synServoLockFrames > mappingServoTimeout) || (bTops.size() <= 0)) && 
+	(currentBoundingBoxMode == MAPPING) ) {
+    cout << ">>>> Synchronic servo timed out during mapping. <<<<" << endl;
+    return;
+  }
+
+  {
+    int i, j;
+    mapxyToij(currentEEPose.px, currentEEPose.py, &i, &j);
+    int doWeHaveClearance = (clearanceMap[i + mapWidth * j] != 0);
+    if (!doWeHaveClearance) {
+      cout << ">>>> Synchronic servo strayed out of clearance area during mapping. <<<<" << endl;
+      return;
+    }
   }
 
   // ATTN 19
@@ -6551,79 +7824,69 @@ void synchronicServo() {
   if ( ((synServoLockFrames > heightLearningServoTimeout)) && 
 	ARE_GENERIC_PICK_LEARNING() ) {
     // record a failure
-    cout << "Pick failure in synchronic." << endl;
+    cout << ">>>> Synchronic servo timed out.  Going back on patrol. <<<<" << endl;
     thisGraspPicked = FAILURE; 
-    pushWord(131141); // 2D patrol continue
-
-    pushWord("visionCycle"); // vision cycle
-    pushWord("waitUntilAtCurrentPosition"); 
-    pushWord("shiftIntoGraspGear1"); // change to first gear
-
-    pushCopies(1245308, 15); // beep
-    pushWord(1179714); // uniformly sample orientation for simulatedServo
-    pushWord(196717); //count grasp
+    pushWord("shiftIntoGraspGear1"); 
+    pushCopies("beep", 15); 
+    pushWord("countGrasp"); 
+    return; 
   }
 
   if (bTops.size() <= 0) {
-    //ros::Duration delta = (ros::Time::now() - oscilStart) + accumulatedTime;
-    //currentEEPose.px = oscCenX + oscAmpX*sin(2.0*3.1415926*oscFreqX*delta.toSec());
-    //currentEEPose.py = oscCenY + oscAmpY*sin(2.0*3.1415926*oscFreqY*delta.toSec());
-    //currentEEPose.pz = oscCenZ + oscAmpZ*sin(2.0*3.1415926*oscFreqZ*delta.toSec());
-    pushWord(131141); // 2D patrol continue
-    pushWord("visionCycle"); // vision cycle
-    pushWord("waitUntilAtCurrentPosition"); 
     cout << ">>>> HELP,  I CAN'T SEE!!!!! Going back on patrol. <<<<" << endl;
+    pushWord("visionCycle"); 
+    pushWord("waitUntilAtCurrentPosition"); 
     return;
   }
 
-  if (synchronicTakeClosest) {
-    if ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1)) {
-      //cout << ">> Synchronic set to take closest box... pilotTarget = pilotClosestTarget << ";
-      pilotTarget.px = pilotClosestTarget.px;
-      pilotTarget.py = pilotClosestTarget.py;
-      pilotTarget.pz = pilotClosestTarget.pz;
-      pilotTargetBlueBoxNumber = pilotClosestBlueBoxNumber;
-    } else {
-      //cout << ">> Synchronic set to take closest but closest is invalid. Halting servo. << " << endl;
-      //cout << "synchronic servo: " << reticle.px << " " << pilotClosestTarget.px << " " << reticle.py << " " << pilotClosestTarget.py << " ";
-      return;
+  if (synchronicTakeClosest &&
+      (pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1)) {
+    pilotTarget.px = pilotClosestTarget.px;
+    pilotTarget.py = pilotClosestTarget.py;
+    pilotTarget.pz = pilotClosestTarget.pz;
+    pilotTargetBlueBoxNumber = pilotClosestBlueBoxNumber;
+  } else {
+    return;
+  }
+
+  // target the closest blue box that hasn't been mapped since
+  //  the last mapping started
+  if (currentBoundingBoxMode == MAPPING) {
+    int foundAnUnmappedTarget = 0;
+    int closestUnmappedBBToReticle = -1;
+    double closestBBDistance = VERYBIGNUMBER;
+    for (int c = 0; c < bTops.size(); c++) {
+      double tbx, tby;
+      int tbi, tbj;
+      double zToUse = trueEEPose.position.z+currentTableZ;
+      pixelToGlobal(bCens[c].x, bCens[c].y, zToUse, &tbx, &tby);
+      mapxyToij(tbx, tby, &tbi, &tbj);
+      int isUnmapped = (objectMap[tbi + mapWidth * tbj].lastMappedTime < lastScanStarted);
+
+      double thisDistance = sqrt((bCens[c].x-reticle.px)*(bCens[c].x-reticle.px) + (bCens[c].y-reticle.py)*(bCens[c].y-reticle.py));
+      cout << "   Servo CUB distance for box " << c << " : " << thisDistance << endl;
+      if ( isUnmapped && (thisDistance < closestBBDistance) ) {
+	closestBBDistance = thisDistance;
+	closestUnmappedBBToReticle = c;
+	foundAnUnmappedTarget = 1;
+      }
     }
-  } else if ((pilotTarget.px == -1) || (pilotTarget.py == -1)) {
-    if ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1) && (synServoLockFrames >= synServoLockThresh)) {
-      //cout << ">> Lost Target But Taking Closest Box For Continuity... pilotTarget = pilotClosestTarget << ";
-      pilotTarget.px = pilotClosestTarget.px;
-      pilotTarget.py = pilotClosestTarget.py;
-      pilotTarget.pz = pilotClosestTarget.pz;
-      pilotTargetBlueBoxNumber = pilotClosestBlueBoxNumber;
+
+    if (foundAnUnmappedTarget) {
+      pilotClosestBlueBoxNumber = closestUnmappedBBToReticle;
+      pilotTarget.px = bCens[pilotClosestBlueBoxNumber].x;
+      pilotTarget.py = bCens[pilotClosestBlueBoxNumber].y;
+      pilotTarget.pz = 0;
+      pilotClosestTarget = pilotTarget;
     } else {
-      pushWord(131141); // 2D patrol continue
-      // set oscilStart to now
-      oscilStart = ros::Time::now();
-      // add thresh to time since vision to stimulate scan
-      // this might cause cycles of failure
-      //ros::Duration toAdd(visionCycleInterval);
-      return;
+      pilotClosestBlueBoxNumber = -1;
     }
   }
+
 
   double Px = reticle.px - pilotTarget.px;
   double Py = reticle.py - pilotTarget.py;
 
-  if ((surveyDuringServo) && (surveyTotalCounts < viewsWithNoise)) {
-    Px += surveyNoiseScale * ((drand48() - 0.5) * 2.0);
-    Py += surveyNoiseScale * ((drand48() - 0.5) * 2.0);
-
-    double histDenom = max(surveyTotalCounts, 1.0);
-    double *histClassProbs = new double[numClasses];
-    //cout << "  histogram scores during servoing: " << endl;
-    for (int cl = 0; cl < numClasses; cl++) {
-      histClassProbs[cl] = surveyHistogram[cl] / histDenom;
-      //cout << "   class " << cl << " " << classLabels[cl] << " score: " << histClassProbs[cl] << endl;
-    }
-    delete histClassProbs;
-  }
-
-  //cout << "synchronic servo Px Py: " << Px << " " << Py << " : " << reticle.px << " " << pilotTarget.px << " " << reticle.py << " " << pilotTarget.py << " ";
   double dx = (currentEEPose.px - trueEEPose.position.x);
   double dy = (currentEEPose.py - trueEEPose.position.y);
   double dz = (currentEEPose.pz - trueEEPose.position.z);
@@ -6631,13 +7894,15 @@ void synchronicServo() {
 
   // if we are not there yet, continue
   if (distance > w1GoThresh*w1GoThresh) {
-    //cout << "waiting to arrive at current position." << endl;
     synServoLockFrames = 0;
-    pushWord(131156); // synchronic servo
+    pushWord("synchronicServo"); 
+    if (currentBoundingBoxMode == MAPPING) {
+      pushWord("visionCycleNoClassify");
+    } else {
+      pushWord("visionCycle"); // vision cycle
+    }
   } else {
-    if (   (fabs(Px) < synServoPixelThresh) && (fabs(Py) < synServoPixelThresh) &&
-	 !( (surveyDuringServo) && (surveyTotalCounts < viewsWithNoise) )   )
-    {
+    if ((fabs(Px) < synServoPixelThresh) && (fabs(Py) < synServoPixelThresh)) {
       // ATTN 12
       if (ARE_GENERIC_HEIGHT_LEARNING()) {
 	cout << "bbLearning: synchronic servo succeeded. gradientServoDuringHeightLearning: " << gradientServoDuringHeightLearning << endl;
@@ -6656,89 +7921,28 @@ void synchronicServo() {
       }
 
       cout << "got within thresh. ";
-      if (surveyDuringServo) {
-	cout << "Survey results: " << endl;
-	int winningClass = -1;
-	int winningClassCounts = -1;
-	for (int clc = 0; clc < numClasses; clc++) {
-	  if (surveyHistogram[clc] > winningClassCounts) {
-	    winningClass = clc;
-	    winningClassCounts = surveyHistogram[clc];
-	  }
-	  cout << "    class " << classLabels[clc] << " counts: " << surveyHistogram[clc] << endl;
-	}
-	cout << "  Winning Class: " << classLabels[winningClass] << " counts: " << surveyHistogram[winningClass] << endl;
-	surveyWinningClass = winningClass;
-      }
-      if (synchronicTakeClosest) {
-	if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
-	  pushWord(196728); // gradient servo
-	  cout << "Queuing gradient servo." << endl;
-	  // ATTN 8
-	  //pushWord("visionCycle"); // vision cycle
-	  //pushWord(196721); // vision cycle no classify
-	  pushCopies(131121, densityIterationsForGradientServo); // density
-	  pushCopies(1179737, 1); // reset temporal map
-	  pushWord(262237); // reset aerialGradientTemporalFrameAverage
-	  pushCopies(131121, 1); // density
-	  pushCopies("waitUntilAtCurrentPosition", 5); 
-
-	  // ATTN 16
-//		{ // prepare to servo
-//		  currentEEPose.pz = wholeFoodsCounter1.pz+.1;
-//		}
-	} else {
-	  // do nothing, just proceed
-	  cout << "Returning." << endl;
-	}
-      } else if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
-	// XXX this seems wrong.
-	//return;
-	pushWord(196728); // gradient servo
-	cout << "Queuing gradient servo." << endl;
-	// ATTN 8
-	//pushWord("visionCycle"); // vision cycle
-	//pushWord(196721); // vision cycle no classify
-	pushCopies(131121, densityIterationsForGradientServo); // density
-	pushCopies(1179737, 1); // reset temporal map
-	pushWord(262237); // reset aerialGradientTemporalFrameAverage
-	pushCopies(131121, 1); // density
-	pushCopies("waitUntilAtCurrentPosition", 5); 
-
-	// ATTN 16
-//	      { // prepare to servo
-//		currentEEPose.pz = wholeFoodsCounter1.pz+.1;
-//	      }
+      if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
+        pushWord("gradientServo"); 
+        cout << "Queuing gradient servo." << endl;
+        pushCopies("density", densityIterationsForGradientServo); 
+	//pushCopies("accumulateDensity", densityIterationsForGradientServo); 
+        //pushCopies("resetTemporalMap", 1); 
+        pushWord("resetAerialGradientTemporalFrameAverage"); 
+        pushCopies("density", 1); 
+        //pushCopies("waitUntilAtCurrentPosition", 5); 
+        pushCopies("waitUntilAtCurrentPosition", 1); 
+        
       } else {
-	if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
-	  pushWord(1048624); // prepare for and execute the best grasp from memory at the current location and target
-	  cout << "Recalling range map and calculating grasp..." << endl;
-	} else {
-	  pushWord(196729); // quick fetch
-	  cout << "No range map recalled so performing a quick fetch..." << endl;
-	}
+        ROS_ERROR_STREAM("No gradient map for class " << targetClass << endl);
+        clearStack();
       }
 
       return;	
     } else {
-      //cout << "executing P controller update." << endl;
-      pushWord(131156); // synchronic servo
-      // simple servo code because there is no hysteresis to be found
 
-
-      // ATTN 3
-      //double thisKp = max(synServoMinKp, synKp * pow(synServoKDecay, double(synServoLockFrames)));
-      // ATTN 12
       double thisKp = synKp;
       double pTermX = thisKp*Px;
       double pTermY = thisKp*Py;
-      //cout << " synKp synServoLockFrames synServoKDecay thisKp: " << synKp << " " << synServoLockFrames << " " << synServoKDecay << " " << thisKp << endl;
-      //double pTermX = synKp*Px;
-      //double pTermY = synKp*Py;
-
-
-      //currentEEPose.py += pTermX;
-      //currentEEPose.px += pTermY;
 
       // invert the current eePose orientation to decide which direction to move from POV
       Eigen::Vector3f localUnitX;
@@ -6763,11 +7967,32 @@ void synchronicServo() {
 	localUnitY.z() = qout.z();
       }
 
-      currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
-      currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
+      // ATTN 21
+      //double newx = currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
+      //double newy = currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
+      double newx = 0;
+      double newy = 0;
+      double zToUse = trueEEPose.position.z+currentTableZ;
+      pixelToGlobal(pilotTarget.px, pilotTarget.py, zToUse, &newx, &newy);
 
-      pushWord("visionCycle"); // vision cycle
-      pushWord("waitUntilAtCurrentPosition"); 
+      if (!positionIsMapped(newx, newy)) {
+        cout << "Returning because position is out of map bounds." << endl;
+        return;
+      } else {
+        pushWord("synchronicServo"); 
+	// ATTN 21
+        //currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
+        //currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
+        currentEEPose.px = newx;
+        currentEEPose.py = newy;
+	if (currentBoundingBoxMode == MAPPING) {
+	  pushWord("visionCycleNoClassify");
+	} else {
+	  pushWord("visionCycle"); // vision cycle
+	}
+
+        pushWord("waitUntilAtCurrentPosition"); 
+      }
     }
   }
 }
@@ -6883,7 +8108,7 @@ int simulatedServo() {
     double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
 
     for (int etaS = 0; etaS < gradientServoScale; etaS++) {
-      #pragma omp parallel for
+#pragma omp parallel for
       for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
 	for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
 	  // get the patch
@@ -7056,12 +8281,390 @@ int isThisGraspMaxedOut(int i) {
     double result = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
     toReturn = (result > algorithmCRT);
   } else if (currentPickMode == STATIC_MARGINALS) {
-    toReturn = (graspMemoryTries[i] <= 1);
+    //toReturn = (graspMemoryTries[i] <= 1);
   }
 
   return toReturn;
 }
 
+eePose pixelToGlobalEEPose(int pX, int pY, double gZ) {
+  eePose result;
+  pixelToGlobal(pX, pY, gZ, &result.px, &result.py);
+  result.pz = trueEEPose.position.z - currentTableZ;
+  result.ox = 0;
+  result.oy = 0;
+  result.oz = 0;
+  result.qx = 0;
+  result.qy = 0;
+  result.qz = 0;
+  return result;
+}
+
+void interpolateM_xAndM_yFromZ(double dZ, double * m_x, double * m_y) {
+
+  // XXX disabling for calibration
+  //return;
+
+  double bBZ[4];
+  bBZ[0] = convertHeightIdxToGlobalZ(0) + currentTableZ;
+  bBZ[1] = convertHeightIdxToGlobalZ(1) + currentTableZ;
+  bBZ[2] = convertHeightIdxToGlobalZ(2) + currentTableZ;
+  bBZ[3] = convertHeightIdxToGlobalZ(3) + currentTableZ;
+
+  if (dZ <= bBZ[0]) {
+    *m_x = m_x_h[0];
+    *m_y = m_y_h[0];
+  } else if (dZ <= bBZ[1]) {
+    double gap = bBZ[1] - bBZ[0];
+    double c0 = 1.0 - ((dZ - bBZ[0])/gap);
+    double c1 = 1.0 - ((bBZ[1] - dZ)/gap);
+    *m_x = c0*m_x_h[0] + c1*m_x_h[1];
+    *m_y = c0*m_y_h[0] + c1*m_y_h[1];
+  } else if (dZ <= bBZ[2]) {
+    double gap = bBZ[2] - bBZ[1];
+    double c1 = 1.0 - ((dZ - bBZ[1])/gap);
+    double c2 = 1.0 - ((bBZ[2] - dZ)/gap);
+    *m_x = c1*m_x_h[1] + c2*m_x_h[2];
+    *m_y = c1*m_y_h[1] + c2*m_y_h[2];
+  } else if (dZ <= bBZ[3]) {
+    double gap = bBZ[3] - bBZ[2];
+    double c2 = 1.0 - ((dZ - bBZ[2])/gap);
+    double c3 = 1.0 - ((bBZ[3] - dZ)/gap);
+    *m_x = c2*m_x_h[2] + c3*m_x_h[3];
+    *m_y = c2*m_y_h[2] + c3*m_y_h[3];
+  } else if (dZ > bBZ[3]) {
+    *m_x = m_x_h[3];
+    *m_y = m_y_h[3];
+  } else {
+    assert(0); // my my
+  }
+  //cout << m_x_h[0] << " " << m_x_h[1] << " " << m_x_h[2] << " " << m_x_h[3] << " " << *m_x << endl;
+  //cout << m_y_h[0] << " " << m_y_h[1] << " " << m_y_h[2] << " " << m_y_h[3] << " " << *m_y << endl;
+}
+
+void pixelToGlobal(int pX, int pY, double gZ, double * gX, double * gY) {
+  interpolateM_xAndM_yFromZ(gZ, &m_x, &m_y);
+
+  int x1 = heightReticles[0].px;
+  int x2 = heightReticles[1].px;
+  int x3 = heightReticles[2].px;
+  int x4 = heightReticles[3].px;
+
+  int y1 = heightReticles[0].py;
+  int y2 = heightReticles[1].py;
+  int y3 = heightReticles[2].py;
+  int y4 = heightReticles[3].py;
+
+  double z1 = convertHeightIdxToGlobalZ(0) + currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(1) + currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(2) + currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(3) + currentTableZ;
+
+  double reticlePixelX = 0.0;
+  double reticlePixelY = 0.0;
+  {
+    double d = d_x;
+    double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
+
+    double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
+    double b31 = (z3*x3-z1*x1+(z1-z3)*c)/(x3-x1);
+
+    double bDiff = b42-b31;
+    double b = (b42+b31)/2.0;
+
+    int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
+    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    reticlePixelX = x_thisZ;
+  }
+  {
+    double d = d_y;
+    double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
+
+    double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
+    double b31 = (z3*y3-z1*y1+(z1-z3)*c)/(y3-y1);
+
+    double bDiff = b42-b31;
+    double b = (b42+b31)/2.0;
+
+    int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
+    y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    reticlePixelY = y_thisZ;
+  }
+
+  // account for rotation of the end effector 
+  Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+  Quaternionf crane2Orient(0, 1, 0, 0);
+  Quaternionf rel = eeqform * crane2Orient.inverse();
+  Quaternionf ex(0,1,0,0);
+  Quaternionf zee(0,0,0,1);
+	
+  Quaternionf result = rel * ex * rel.conjugate();
+  Quaternionf thumb = rel * zee * rel.conjugate();
+  double aY = result.y();
+  double aX = result.x();
+
+  // ATTN 22
+  //double angle = atan2(aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
+  angle = (angle);
+  double scale = 1.0;
+  Point center = Point(reticlePixelX, reticlePixelY);
+
+  Mat un_rot_mat = getRotationMatrix2D( center, angle, scale );
+
+  Mat toUn(3,1,CV_64F);
+  toUn.at<double>(0,0)=pX;
+  toUn.at<double>(1,0)=pY;
+  toUn.at<double>(2,0)=1.0;
+  Mat didUn = un_rot_mat*toUn;
+  pX = didUn.at<double>(0,0);
+  pY = didUn.at<double>(1,0);
+
+  double oldPx = pX;
+  double oldPy = pY;
+  pX = reticlePixelX + (oldPy - reticlePixelY) - offX;
+  pY = reticlePixelY + (oldPx - reticlePixelX) - offY;
+
+  {
+    double d = d_x/m_x;
+    double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
+
+    double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
+    double b31 = (z3*x3-z1*x1+(z1-z3)*c)/(x3-x1);
+
+    double bDiff = b42-b31;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+    double b = (b42+b31)/2.0;
+
+    int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
+    //int x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //*gX = d + ( (pX-c)*(currentEEPose.px-d) )/(x1-c) ;
+    //*gX = trueEEPose.position.x - d + ( (pX-c)*(d) )/( (x_thisZ-c)*m_x ) ;
+    *gX = trueEEPose.position.x - d + ( (pX-c)*(d) )/( (x_thisZ-c) ) ;
+    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+  }
+  {
+    double d = d_y/m_y;
+    double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
+
+    double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
+    double b31 = (z3*y3-z1*y1+(z1-z3)*c)/(y3-y1);
+
+    double bDiff = b42-b31;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+    double b = (b42+b31)/2.0;
+
+    int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
+    //int y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //*gY = d + ( (pY-c)*(currentEEPose.py-d) )/(y1-c) ;
+    //*gY = trueEEPose.position.y - d + ( (pY-c)*(d) )/( (y_thisZ-c)*m_y ) ;
+    *gY = trueEEPose.position.y - d + ( (pY-c)*(d) )/( (y_thisZ-c) ) ;
+    y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+  }
+}
+
+void globalToPixel(int * pX, int * pY, double gZ, double gX, double gY) {
+  interpolateM_xAndM_yFromZ(gZ, &m_x, &m_y);
+
+  int x1 = heightReticles[0].px;
+  int x2 = heightReticles[1].px;
+  int x3 = heightReticles[2].px;
+  int x4 = heightReticles[3].px;
+
+  int y1 = heightReticles[0].py;
+  int y2 = heightReticles[1].py;
+  int y3 = heightReticles[2].py;
+  int y4 = heightReticles[3].py;
+
+  double z1 = convertHeightIdxToGlobalZ(0) + currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(1) + currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(2) + currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(3) + currentTableZ;
+
+  double reticlePixelX = 0.0;
+  double reticlePixelY = 0.0;
+  {
+    //double d = d_x;
+    double d = d_x/m_x;
+    double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
+
+    double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
+    double b31 = (z3*x3-z1*x1+(z1-z3)*c)/(x3-x1);
+
+    double bDiff = b42-b31;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+    double b = (b42+b31)/2.0;
+
+    int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
+    //int x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //*pX = c + ( (gX-d)*(x1-c) )/(currentEEPose.px-d);
+    //*pX = c + ( (gX-d)*(x_thisZ-c) )/(currentEEPose.px-d);
+    //*pX = c + ( m_x*(gX-trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
+    *pX = c + ( (gX-trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
+    // need to set this again so things match up if gX is truEEpose
+    //x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
+    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    reticlePixelX = x_thisZ;
+  }
+  {
+    //double d = d_y;
+    double d = d_y/m_y;
+    double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
+
+    double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
+    double b31 = (z3*y3-z1*y1+(z1-z3)*c)/(y3-y1);
+
+    double bDiff = b42-b31;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+    double b = (b42+b31)/2.0;
+
+    int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
+    //int y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //*pY = c + ( (gY-d)*(y1-c) )/(currentEEPose.py-d);
+    //*pY = c + ( (gY-d)*(y_thisZ-c) )/(currentEEPose.py-d);
+    //*pY = c + ( m_y*(gY-trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
+    *pY = c + ( (gY-trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
+    // need to set this again so things match up if gX is truEEpose
+    //y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
+    y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    reticlePixelY = y_thisZ;
+  }
+
+  //cout << "reticlePixelX, reticlePixelY: " << reticlePixelX << " " << reticlePixelY << endl;
+
+  // account for rotation of the end effector 
+  Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+  Quaternionf crane2Orient(0, 1, 0, 0);
+  Quaternionf rel = eeqform * crane2Orient.inverse();
+  Quaternionf ex(0,1,0,0);
+  Quaternionf zee(0,0,0,1);
+	
+  Quaternionf result = rel * ex * rel.conjugate();
+  Quaternionf thumb = rel * zee * rel.conjugate();
+  double aY = result.y();
+  double aX = result.x();
+
+  // ATTN 22
+  //double angle = atan2(aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
+  angle = angle;
+  double scale = 1.0;
+  Point center = Point(reticlePixelX, reticlePixelY);
+
+  Mat un_rot_mat = getRotationMatrix2D( center, angle, scale );
+
+  Mat toUn(3,1,CV_64F);
+  toUn.at<double>(0,0)=*pX;
+  toUn.at<double>(1,0)=*pY;
+  toUn.at<double>(2,0)=1.0;
+  Mat didUn = un_rot_mat*toUn;
+  *pX = didUn.at<double>(0,0);
+  *pY = didUn.at<double>(1,0);
+
+  double oldPx = *pX;
+  double oldPy = *pY;
+  //*pX = reticlePixelX + m_y*(oldPy - reticlePixelY) + offX;
+  //*pY = reticlePixelY + m_x*(oldPx - reticlePixelX) + offY;
+  *pX = reticlePixelX + (oldPy - reticlePixelY) + offX;
+  *pY = reticlePixelY + (oldPx - reticlePixelX) + offY;
+}
+
+void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor) {
+  cv::Scalar THEcOLOR(255-theColor[0], 255-theColor[1], 255-theColor[2]);
+  int lineLength = 5;
+  int pX = 0, pY = 0;  
+  double zToUse = trueEEPose.position.z+currentTableZ;
+
+  globalToPixel(&pX, &pY, zToUse, toPaint.px, toPaint.py);
+  pX = pX - lineLength;
+  pY = pY - lineLength;
+  //cout << "paintEEPoseOnWrist pX pY zToUse: " << pX << " " << pY << " " << zToUse << endl;
+  if ( (pX > 0+lineLength) && (pX < wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < wristViewImage.rows-lineLength) ) {
+    {
+      Point pt1(pX+lineLength, pY);
+      Point pt2(pX+lineLength, pY+lineLength*2);
+      line(wristViewImage, pt1, pt2, theColor);
+    }
+    {
+      Point pt1(pX, pY+lineLength);
+      Point pt2(pX+lineLength*2, pY+lineLength);
+      line(wristViewImage, pt1, pt2, theColor);
+    }
+  }
+
+  // draw the test pattern for the inverse transformation 
+  if (0) {
+    double gX = 0, gY = 0;
+    pixelToGlobal(pX, pY, zToUse, &gX, &gY);
+    globalToPixel(&pX, &pY, zToUse, gX, gY);
+    //cout << "PAINTeepOSEoNwRIST pX pY gX gY: " << pX << " " << pY << " " << gX << " " << gY << endl;
+    if ( (pX > 0+lineLength) && (pX < wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < wristViewImage.rows-lineLength) ) {
+      {
+	Point pt1(pX+lineLength, pY);
+	Point pt2(pX+lineLength, pY+lineLength*2);
+	line(wristViewImage, pt1, pt2, THEcOLOR);
+      }
+      {
+	Point pt1(pX, pY+lineLength);
+	Point pt2(pX+lineLength*2, pY+lineLength);
+	line(wristViewImage, pt1, pt2, THEcOLOR);
+      }
+    }
+  }
+
+  //cv::imshow(objectViewerName, objectViewerImage);
+}
+
+void ikLast(eePose targetPose, double *jointsOut) {
+
+
+}
+
+double vectorArcTan(double y, double x) {
+  int maxVaSlot = 0;
+  double maxVaDot = -INFINITY;
+  for (int vaSlot = 0; vaSlot < vaNumAngles; vaSlot++) {
+    double product = vaX[vaSlot]*x + vaY[vaSlot]*y;
+    if (product > maxVaDot) {
+      maxVaDot = product;
+      maxVaSlot = vaSlot;
+    }
+  } 
+  // return value in interval [-pi, pi]
+
+  double angleZeroTwopi = (maxVaSlot * vaDelta);
+  if (angleZeroTwopi <= 3.1415926) {
+    return angleZeroTwopi;
+  } else {
+    return ( angleZeroTwopi - (2.0*3.1415926) );
+  }
+}
+
+void initVectorArcTan() {
+  for (int vaSlot = 0; vaSlot < vaNumAngles; vaSlot++) {
+    vaX[vaSlot] = cos(vaSlot*vaDelta);
+    vaY[vaSlot] = sin(vaSlot*vaDelta);
+  }
+  /* smoke test
+  for (int vaSlot = 0; vaSlot < vaNumAngles; vaSlot++) {
+    cout << "atan2 vectorArcTan: " << 
+      vectorArcTan(vaY[vaSlot], vaX[vaSlot]) << " " << 
+      atan2(vaY[vaSlot], vaX[vaSlot]) << endl; 
+  }
+  */
+}
 
 ////////////////////////////////////////////////
 // end pilot definitions 
@@ -7720,11 +9323,6 @@ void fill_RO_and_M_arrays(object_recognition_msgs::RecognizedObjectArray& roa_to
   visualization_msgs::MarkerArray& ma_to_send, vector<cv::Point>& pointCloudPoints, 
   int aI, int label, int winningO, int poseIndex) {
 
-  #ifdef DEBUG
-cout << "check" << endl;
-cout << "hit a publishable object " << label << " " << classLabels[label] 
-<< " " << classPoseModels[label] << aI << " of total objects " << bTops.size() << endl;
-  #endif
 
   geometry_msgs::Pose object_pose;
 
@@ -8309,6 +9907,11 @@ orientedFilterType getOrientedFilterType(string toCompare) {
 }
 
 void nodeCallbackFunc(int event, int x, int y, int flags, void* userdata) {
+
+  if (!shouldIMiscCallback) {
+    return;
+  }
+
   if ( event == EVENT_LBUTTONDOWN ) {
     if (captureOnly) 
       fc = frames_per_click;
@@ -8500,19 +10103,20 @@ void goCalculateObjectness() {
   }
 
   if (mask_gripper) {
-    int xs = 200;
-    int xe = 295;
-    int ys = 0;
-    int ye = 75;
+    int xs = g1xs;
+    int xe = g1xe;
+    int ys = g1ys;
+    int ye = g1ye;
     for (int x = xs; x < xe; x++) {
       for (int y = ys; y < ye; y++) {
 	objDensity[y*imW+x] = 0;
       }
     }
-    xs = 420;
-    xe = 560;
-    ys = 0;
-    ye = 75;
+
+    xs = g2xs;
+    xe = g2xe;
+    ys = g2ys;
+    ye = g2ye;
     for (int x = xs; x < xe; x++) {
       for (int y = ys; y < ye; y++) {
 	objDensity[y*imW+x] = 0;
@@ -8582,10 +10186,539 @@ void goCalculateObjectness() {
   }
 }
 
+void goAccumulateForAerial() {
+  Size sz = objectViewerImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  if (cv_ptr == NULL) {
+    ROS_ERROR("Not receiving camera data, clearing call stack.");
+    clearStack();
+    return;
+  }
+
+  Mat tmpImage = cv_ptr->image.clone();
+
+  if (add_blinders) {
+    goAddBlinders();
+  }
+
+  // determine table edges, i.e. the gray boxes
+  lGO = gBoxW*(lGO/gBoxW);
+  rGO = gBoxW*(rGO/gBoxW);
+  tGO = gBoxH*(tGO/gBoxH);
+  bGO = gBoxH*(bGO/gBoxH);
+  grayTop = cv::Point(lGO, tGO);
+  grayBot = cv::Point(imW-rGO-1, imH-bGO-1);
+
+  if (all_range_mode) {
+    grayTop = armTop;
+    grayBot = armBot;
+  }
+
+  // Sobel business
+  Mat sobelGrayBlur;
+  Mat sobelYCrCbBlur;
+  processImage(tmpImage, sobelGrayBlur, sobelYCrCbBlur, sobel_sigma);
+
+  {
+    if ( (aerialGradientSobelCbCr.rows < imH) ||
+	 (aerialGradientSobelCbCr.cols < imW) ) {
+      aerialGradientSobelCbCr = sobelGrayBlur.clone(); 
+    }
+    if ( (aerialGradientSobelGray.rows < imH) ||
+	 (aerialGradientSobelGray.cols < imW) ) {
+      aerialGradientSobelGray = sobelYCrCbBlur.clone(); 
+    }
+
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	aerialGradientSobelCbCr = 
+	  aerialGradientDecay*aerialGradientSobelCbCr + 
+	  (1.0 - aerialGradientDecay)*sobelYCrCbBlur;
+
+	aerialGradientSobelGray = 
+	  aerialGradientDecay*aerialGradientSobelGray + 
+	  (1.0 - aerialGradientDecay)*sobelGrayBlur;
+      }
+    }
+  }
+}
+
+void goAccumulateDensityFromAccumulated() {
+  Size sz = objectViewerImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  if (cv_ptr == NULL) {
+    ROS_ERROR("Not receiving camera data, clearing call stack.");
+    clearStack();
+    return;
+  }
+
+  Mat tmpImage = cv_ptr->image.clone();
+
+  if (add_blinders) {
+    goAddBlinders();
+  }
+
+  // determine table edges, i.e. the gray boxes
+  lGO = gBoxW*(lGO/gBoxW);
+  rGO = gBoxW*(rGO/gBoxW);
+  tGO = gBoxH*(tGO/gBoxH);
+  bGO = gBoxH*(bGO/gBoxH);
+  grayTop = cv::Point(lGO, tGO);
+  grayBot = cv::Point(imW-rGO-1, imH-bGO-1);
+
+  if (all_range_mode) {
+    grayTop = armTop;
+    grayBot = armBot;
+  }
+
+  // Sobel business
+  Mat sobelGrayBlur;
+  Mat sobelYCrCbBlur;
+
+  sobelGrayBlur = aerialGradientSobelGray;
+  sobelYCrCbBlur = aerialGradientSobelCbCr;
+  
+  Mat totalGraySobel;
+//  {
+//    Mat grad_x, grad_y;
+//    int sobelScale = 1;
+//    int sobelDelta = 0;
+//    int sobelDepth = CV_64F;
+//    /// Gradient X
+//    Sobel(sobelGrayBlur, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+//    /// Gradient Y
+//    Sobel(sobelGrayBlur, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+//
+//    grad_x = grad_x.mul(grad_x);
+//    grad_y = grad_y.mul(grad_y);
+//    totalGraySobel = grad_x + grad_y;
+//    // now totalGraySobel is gradient magnitude squared
+//  }
+
+  Mat totalCrSobel(imH, imW, CV_64F);
+  Mat totalCrSobelMag;
+  {
+    for (int y = 0; y < imH; y++) {
+      for (int x = 0; x < imW; x++) {
+	cv::Vec3b thisColor = sobelYCrCbBlur.at<cv::Vec3b>(y,x);
+	totalCrSobel.at<double>(y,x) = thisColor[1];
+      }
+    }
+    Mat grad_x, grad_y;
+    int sobelScale = 1;
+    int sobelDelta = 0;
+    int sobelDepth = CV_64F;
+    /// Gradient X
+    Sobel(totalCrSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+    /// Gradient Y
+    Sobel(totalCrSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+    totalCrSobel = grad_x + grad_y;
+    grad_x = grad_x.mul(grad_x);
+    grad_y = grad_y.mul(grad_y);
+    totalCrSobelMag = grad_x + grad_y;
+  }
+
+  Mat totalCbSobel(imH, imW, CV_64F);
+  Mat totalCbSobelMag;
+  {
+    for (int y = 0; y < imH; y++) {
+      for (int x = 0; x < imW; x++) {
+	cv::Vec3b thisColor = sobelYCrCbBlur.at<cv::Vec3b>(y,x);
+	totalCbSobel.at<double>(y,x) = thisColor[2];
+      }
+    }
+    Mat grad_x, grad_y;
+    int sobelScale = 1;
+    int sobelDelta = 0;
+    int sobelDepth = CV_64F;
+    /// Gradient X
+    Sobel(totalCbSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+    /// Gradient Y
+    Sobel(totalCbSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+    totalCbSobel = grad_x + grad_y;
+    grad_x = grad_x.mul(grad_x);
+    grad_y = grad_y.mul(grad_y);
+    totalCbSobelMag = grad_x + grad_y;
+  }
+
+  Mat totalYSobel(imH, imW, CV_64F);
+  {
+    for (int y = 0; y < imH; y++) {
+      for (int x = 0; x < imW; x++) {
+	cv::Vec3b thisColor = sobelYCrCbBlur.at<cv::Vec3b>(y,x);
+	totalYSobel.at<double>(y,x) = thisColor[0];
+      }
+    }
+    Mat grad_x, grad_y;
+    int sobelScale = 1;
+    int sobelDelta = 0;
+    int sobelDepth = CV_64F;
+    /// Gradient X
+    Sobel(totalYSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+    /// Gradient Y
+    Sobel(totalYSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+    grad_x = grad_x.mul(grad_x);
+    grad_y = grad_y.mul(grad_y);
+    totalYSobel = grad_x + grad_y;
+  }
+
+  // total becomes sum of Cr and Cb
+  int totalBecomes = 1;
+  if (totalBecomes) {
+    totalGraySobel = totalCrSobelMag + totalCbSobelMag;
+  }
+
+  // truncate the Sobel image outside the gray box
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < grayTop.y; y++) {
+      totalGraySobel.at<double>(y,x) = 0;
+      totalYSobel.at<double>(y,x) = 0;
+    }
+  }
+
+  for (int x = 0; x < grayTop.x; x++) {
+    for (int y = grayTop.y; y < grayBot.y; y++) {
+      totalGraySobel.at<double>(y,x) = 0;
+      totalYSobel.at<double>(y,x) = 0;
+    }
+  }
+
+  for (int x = grayBot.x; x < imW; x++) {
+    for (int y = grayTop.y; y < grayBot.y; y++) {
+      totalGraySobel.at<double>(y,x) = 0;
+      totalYSobel.at<double>(y,x) = 0;
+    }
+  }
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = grayBot.y; y < imH; y++) {
+      totalGraySobel.at<double>(y,x) = 0;
+      totalYSobel.at<double>(y,x) = 0;
+    }
+  }
+
+  if (integralDensity == NULL)
+    integralDensity = new double[imW*imH];
+  if (density == NULL)
+    density = new double[imW*imH];
+  if (preDensity == NULL)
+    preDensity = new double[imW*imH];
+  if (temporalDensity == NULL) {
+    temporalDensity = new double[imW*imH];
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	temporalDensity[y*imW + x] = 0;
+      }
+    }
+  }
+
+  double maxGsob = -INFINITY;
+  double maxYsob = -INFINITY;
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      maxGsob = max(maxGsob, totalGraySobel.at<double>(y,x));
+      maxYsob = max(maxYsob, totalYSobel.at<double>(y,x));
+    }
+  }
+  
+  // ATTN 11
+  // experimental
+  int combineYandGray = 1;
+  double yWeight = 1.0;
+  if (combineYandGray) {
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	double thisY2G = min(maxYsob, yWeight * totalYSobel.at<double>(y,x));
+	totalGraySobel.at<double>(y,x) += maxGsob * thisY2G * thisY2G / (maxYsob * maxYsob);
+      }
+    }
+  }
+
+  if (mask_gripper) {
+    int xs = g1xs;
+    int xe = g1xe;
+    int ys = g1ys;
+    int ye = g1ye;
+    for (int x = xs; x < xe; x++) {
+      for (int y = ys; y < ye; y++) {
+	totalGraySobel.at<double>(y,x) = 0;
+      }
+    }
+    xs = g2xs;
+    xe = g2xe;
+    ys = g2ys;
+    ye = g2ye;
+    for (int x = xs; x < xe; x++) {
+      for (int y = ys; y < ye; y++) {
+	totalGraySobel.at<double>(y,x) = 0;
+      }
+    }
+  }
+
+  { // temporal averaging of aerial gradient
+    if ( (aerialGradientTemporalFrameAverage.rows < aerialGradientReticleWidth) ||
+	 (aerialGradientTemporalFrameAverage.cols < aerialGradientReticleWidth) ) {
+      aerialGradientTemporalFrameAverage = Mat(imH,imW,totalGraySobel.type()); 
+    }
+
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	aerialGradientTemporalFrameAverage.at<double>(y, x) = 
+	  aerialGradientDecay*aerialGradientTemporalFrameAverage.at<double>(y, x) + 
+	  (1.0 - aerialGradientDecay)*totalGraySobel.at<double>(y, x);
+      }
+    }
+  }
+}
+
+void goAccumulateDensity() {
+  Size sz = objectViewerImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  if (cv_ptr == NULL) {
+    ROS_ERROR("Not receiving camera data, clearing call stack.");
+    clearStack();
+    return;
+  }
+
+  Mat tmpImage = cv_ptr->image.clone();
+
+  if (add_blinders) {
+    goAddBlinders();
+  }
+
+  // determine table edges, i.e. the gray boxes
+  lGO = gBoxW*(lGO/gBoxW);
+  rGO = gBoxW*(rGO/gBoxW);
+  tGO = gBoxH*(tGO/gBoxH);
+  bGO = gBoxH*(bGO/gBoxH);
+  grayTop = cv::Point(lGO, tGO);
+  grayBot = cv::Point(imW-rGO-1, imH-bGO-1);
+
+  if (all_range_mode) {
+    grayTop = armTop;
+    grayBot = armBot;
+  }
+
+  // Sobel business
+  Mat sobelGrayBlur;
+  Mat sobelYCrCbBlur;
+  processImage(tmpImage, sobelGrayBlur, sobelYCrCbBlur, sobel_sigma);
+  
+  Mat totalGraySobel;
+//  {
+//    Mat grad_x, grad_y;
+//    int sobelScale = 1;
+//    int sobelDelta = 0;
+//    int sobelDepth = CV_64F;
+//    /// Gradient X
+//    Sobel(sobelGrayBlur, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+//    /// Gradient Y
+//    Sobel(sobelGrayBlur, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+//
+//    grad_x = grad_x.mul(grad_x);
+//    grad_y = grad_y.mul(grad_y);
+//    totalGraySobel = grad_x + grad_y;
+//    // now totalGraySobel is gradient magnitude squared
+//  }
+
+  Mat totalCrSobel(imH, imW, CV_64F);
+  Mat totalCrSobelMag;
+  {
+    for (int y = 0; y < imH; y++) {
+      for (int x = 0; x < imW; x++) {
+	cv::Vec3b thisColor = sobelYCrCbBlur.at<cv::Vec3b>(y,x);
+	totalCrSobel.at<double>(y,x) = thisColor[1];
+      }
+    }
+    Mat grad_x, grad_y;
+    int sobelScale = 1;
+    int sobelDelta = 0;
+    int sobelDepth = CV_64F;
+    /// Gradient X
+    Sobel(totalCrSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+    /// Gradient Y
+    Sobel(totalCrSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+    totalCrSobel = grad_x + grad_y;
+    grad_x = grad_x.mul(grad_x);
+    grad_y = grad_y.mul(grad_y);
+    totalCrSobelMag = grad_x + grad_y;
+  }
+
+  Mat totalCbSobel(imH, imW, CV_64F);
+  Mat totalCbSobelMag;
+  {
+    for (int y = 0; y < imH; y++) {
+      for (int x = 0; x < imW; x++) {
+	cv::Vec3b thisColor = sobelYCrCbBlur.at<cv::Vec3b>(y,x);
+	totalCbSobel.at<double>(y,x) = thisColor[2];
+      }
+    }
+    Mat grad_x, grad_y;
+    int sobelScale = 1;
+    int sobelDelta = 0;
+    int sobelDepth = CV_64F;
+    /// Gradient X
+    Sobel(totalCbSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+    /// Gradient Y
+    Sobel(totalCbSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+    totalCbSobel = grad_x + grad_y;
+    grad_x = grad_x.mul(grad_x);
+    grad_y = grad_y.mul(grad_y);
+    totalCbSobelMag = grad_x + grad_y;
+  }
+
+  Mat totalYSobel(imH, imW, CV_64F);
+  {
+    for (int y = 0; y < imH; y++) {
+      for (int x = 0; x < imW; x++) {
+	cv::Vec3b thisColor = sobelYCrCbBlur.at<cv::Vec3b>(y,x);
+	totalYSobel.at<double>(y,x) = thisColor[0];
+      }
+    }
+    Mat grad_x, grad_y;
+    int sobelScale = 1;
+    int sobelDelta = 0;
+    int sobelDepth = CV_64F;
+    /// Gradient X
+    Sobel(totalYSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+    /// Gradient Y
+    Sobel(totalYSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
+
+    grad_x = grad_x.mul(grad_x);
+    grad_y = grad_y.mul(grad_y);
+    totalYSobel = grad_x + grad_y;
+  }
+
+  // total becomes sum of Cr and Cb
+  int totalBecomes = 1;
+  if (totalBecomes) {
+    totalGraySobel = totalCrSobelMag + totalCbSobelMag;
+  }
+
+  // truncate the Sobel image outside the gray box
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < grayTop.y; y++) {
+      totalGraySobel.at<double>(y,x) = 0;
+      totalYSobel.at<double>(y,x) = 0;
+    }
+  }
+
+  for (int x = 0; x < grayTop.x; x++) {
+    for (int y = grayTop.y; y < grayBot.y; y++) {
+      totalGraySobel.at<double>(y,x) = 0;
+      totalYSobel.at<double>(y,x) = 0;
+    }
+  }
+
+  for (int x = grayBot.x; x < imW; x++) {
+    for (int y = grayTop.y; y < grayBot.y; y++) {
+      totalGraySobel.at<double>(y,x) = 0;
+      totalYSobel.at<double>(y,x) = 0;
+    }
+  }
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = grayBot.y; y < imH; y++) {
+      totalGraySobel.at<double>(y,x) = 0;
+      totalYSobel.at<double>(y,x) = 0;
+    }
+  }
+
+  if (integralDensity == NULL)
+    integralDensity = new double[imW*imH];
+  if (density == NULL)
+    density = new double[imW*imH];
+  if (preDensity == NULL)
+    preDensity = new double[imW*imH];
+  if (temporalDensity == NULL) {
+    temporalDensity = new double[imW*imH];
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	temporalDensity[y*imW + x] = 0;
+      }
+    }
+  }
+
+  double maxGsob = -INFINITY;
+  double maxYsob = -INFINITY;
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      maxGsob = max(maxGsob, totalGraySobel.at<double>(y,x));
+      maxYsob = max(maxYsob, totalYSobel.at<double>(y,x));
+    }
+  }
+  
+  // ATTN 11
+  // experimental
+  int combineYandGray = 1;
+  double yWeight = 1.0;
+  if (combineYandGray) {
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	double thisY2G = min(maxYsob, yWeight * totalYSobel.at<double>(y,x));
+	totalGraySobel.at<double>(y,x) += maxGsob * thisY2G * thisY2G / (maxYsob * maxYsob);
+      }
+    }
+  }
+
+  if (mask_gripper) {
+    int xs = g1xs;
+    int xe = g1xe;
+    int ys = g1ys;
+    int ye = g1ye;
+    for (int x = xs; x < xe; x++) {
+      for (int y = ys; y < ye; y++) {
+	totalGraySobel.at<double>(y,x) = 0;
+      }
+    }
+    xs = g2xs;
+    xe = g2xe;
+    ys = g2ys;
+    ye = g2ye;
+    for (int x = xs; x < xe; x++) {
+      for (int y = ys; y < ye; y++) {
+	totalGraySobel.at<double>(y,x) = 0;
+      }
+    }
+  }
+
+  { // temporal averaging of aerial gradient
+    if ( (aerialGradientTemporalFrameAverage.rows < aerialGradientReticleWidth) ||
+	 (aerialGradientTemporalFrameAverage.cols < aerialGradientReticleWidth) ) {
+      aerialGradientTemporalFrameAverage = Mat(imH,imW,totalGraySobel.type()); 
+    }
+
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	aerialGradientTemporalFrameAverage.at<double>(y, x) = 
+	  aerialGradientDecay*aerialGradientTemporalFrameAverage.at<double>(y, x) + 
+	  (1.0 - aerialGradientDecay)*totalGraySobel.at<double>(y, x);
+      }
+    }
+  }
+}
+
 void goCalculateDensity() {
   Size sz = objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
+
+  if (cv_ptr == NULL) {
+    ROS_ERROR("Not receiving camera data, clearing call stack.");
+    clearStack();
+    return;
+  }
 
   objectViewerImage = cv_ptr->image.clone();
 
@@ -8898,10 +11031,10 @@ void goCalculateDensity() {
   }
 
   if (mask_gripper) {
-    int xs = 200;
-    int xe = 295;
-    int ys = 0;
-    int ye = 75;
+    int xs = g1xs;
+    int xe = g1xe;
+    int ys = g1ys;
+    int ye = g1ye;
     for (int x = xs; x < xe; x++) {
       for (int y = ys; y < ye; y++) {
 	density[y*imW+x] = 0;
@@ -8910,10 +11043,10 @@ void goCalculateDensity() {
     }
     Mat vCrop = objectViewerImage(cv::Rect(xs, ys, xe-xs, ye-ys));
     vCrop = vCrop/2;
-    xs = 420;
-    xe = 560;
-    ys = 0;
-    ye = 75;
+    xs = g2xs;
+    xe = g2xe;
+    ys = g2ys;
+    ye = g2ye;
     for (int x = xs; x < xe; x++) {
       for (int y = ys; y < ye; y++) {
 	density[y*imW+x] = 0;
@@ -9175,8 +11308,11 @@ void goFindBlueBoxes() {
       	    parentD.pop_back();
       	  } 
       	  // if the next direction is valid, push it on to the stack and increment direction counter
-      	  else if(nextX > -1 && nextX < imW && nextY > -1 && nextY < imH && 
-	    gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0) {
+      	  //else if(nextX > -1 && nextX < imW && nextY > -1 && nextY < imH && 
+	    //gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0) 
+      	  else if(nextX >= xS && nextX <= xF && nextY >= yS && nextY <= yF && 
+	    gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0) 
+	    {
 
       	    gBoxGrayNodes[nextY*imW+nextX] = 1;
       	    gBoxComponentLabels[nextY*imW+nextX] = gBoxComponentLabels[parentY[index]*imW+parentX[index]];
@@ -9214,6 +11350,9 @@ void goFindBlueBoxes() {
 
   int biggestBB = -1;
   int biggestBBArea = 0;
+
+  int closestBBToReticle = -1;
+  double closestBBDistance = VERYBIGNUMBER;
 
   // this should be -1 if we don't find the target class 
   pilotTarget.px = -1;
@@ -9290,13 +11429,48 @@ void goFindBlueBoxes() {
 	  biggestBBArea = thisArea;
 	  biggestBB = t;
 	}
-	
+
+	double thisDistance = sqrt((bCens[t].x-reticle.px)*(bCens[t].x-reticle.px) + (bCens[t].y-reticle.py)*(bCens[t].y-reticle.py));
+	cout << "   (density) Distance for box " << t << " : " << thisDistance << endl;
+	if (thisDistance < closestBBDistance) {
+	  closestBBDistance = thisDistance;
+	  closestBBToReticle = t;
+	}
       }
     }
   } else {
     bTops.push_back(armTop);
     bBots.push_back(armBot);
     bCens.push_back(cv::Point((armTop.x+armBot.x)/2, (armTop.y+armBot.y)/2));
+  }
+
+  if ((bTops.size() > 0) && (biggestBB > -1)) {
+    geometry_msgs::Point p;
+    p.x = bCens[biggestBB].x;
+    p.y = bCens[biggestBB].y;
+    p.z = 0.0;
+    
+      //ee_target_pub.publish(p);
+    pilotTarget.px = p.x;
+    pilotTarget.py = p.y;
+    pilotTarget.pz = p.z;
+    
+    pilotTargetBlueBoxNumber = biggestBB;
+  }
+  if (closestBBToReticle > -1) {
+    geometry_msgs::Point p;
+    p.x = bCens[closestBBToReticle].x;
+    p.y = bCens[closestBBToReticle].y;
+    p.z = 0.0;
+  
+    //ee_target_pub.publish(p);
+    pilotClosestTarget.px = p.x;
+    pilotClosestTarget.py = p.y;
+    pilotClosestTarget.pz = p.z;
+
+    pilotClosestBlueBoxNumber = closestBBToReticle;
+  } else {
+    pilotClosestBlueBoxNumber = -1;
   }
 
   if (bTops.size() > 0) {
@@ -9324,8 +11498,9 @@ void goFindBlueBoxes() {
 
 //cout << "Here 4" << endl;
 
-  if (shouldIRender)
+  if (shouldIRender) {
     cv::imshow(objectViewerName, objectViewerImage);
+  }
 
   delete gBoxIndicator;
   delete gBoxGrayNodes;
@@ -9621,8 +11796,10 @@ void goFindBrownBoxes() {
     rectangle(objectViewerImage, inTop, inBot, cv::Scalar(32,32,32));
   }
 
-  if (shouldIRender)
+  if (shouldIRender) {
     cv::imshow(objectViewerName, objectViewerImage);
+  }
+
 }
 
 void goClassifyBlueBoxes() {
@@ -9644,7 +11821,7 @@ void goClassifyBlueBoxes() {
   int biggestBBArea = 0;
 
   int closestBBToReticle = -1;
-  int closestBBDistance = VERYBIGNUMBER;
+  double closestBBDistance = VERYBIGNUMBER;
 
   double label = -1;
   roa_to_send_blue.objects.resize(bTops.size());
@@ -10103,7 +12280,8 @@ void goClassifyBlueBoxes() {
 	biggestBB = c;
       }
 
-      int thisDistance = int(fabs(bCens[c].x-reticle.px) + fabs(bCens[c].y-reticle.py));
+      //int thisDistance = int(fabs(bCens[c].x-reticle.px) + fabs(bCens[c].y-reticle.py));
+      double thisDistance = sqrt((bCens[c].x-reticle.px)*(bCens[c].x-reticle.px) + (bCens[c].y-reticle.py)*(bCens[c].y-reticle.py));
       cout << "   Distance for box " << c << " : " << thisDistance << endl;
       if (thisDistance < closestBBDistance) {
 	closestBBDistance = thisDistance;
@@ -10113,25 +12291,17 @@ void goClassifyBlueBoxes() {
   }
 
   if ((bTops.size() > 0) && (biggestBB > -1)) {
-    if (histogramDuringClassification) {
-      int labelOfClosest = bLabels[closestBBToReticle];
-      surveyHistogram[labelOfClosest]++;
-      surveyTotalCounts++;
-      cout << "   HIST ADDED box# class# class " << closestBBToReticle << " " << labelOfClosest << " " << classLabels[labelOfClosest] << endl;
-    }
-    {
-      geometry_msgs::Point p;
-      p.x = bCens[biggestBB].x;
-      p.y = bCens[biggestBB].y;
-      p.z = 0.0;
+    geometry_msgs::Point p;
+    p.x = bCens[biggestBB].x;
+    p.y = bCens[biggestBB].y;
+    p.z = 0.0;
     
       //ee_target_pub.publish(p);
-      pilotTarget.px = p.x;
-      pilotTarget.py = p.y;
-      pilotTarget.pz = p.z;
-  
-      pilotTargetBlueBoxNumber = biggestBB;
-    }
+    pilotTarget.px = p.x;
+    pilotTarget.py = p.y;
+    pilotTarget.pz = p.z;
+    
+    pilotTargetBlueBoxNumber = biggestBB;
   }
   if (closestBBToReticle > -1) {
     geometry_msgs::Point p;
@@ -10149,9 +12319,11 @@ void goClassifyBlueBoxes() {
     pilotClosestBlueBoxNumber = -1;
   }
 
-  if (shouldIRender)
+  if (shouldIRender) {
     cv::imshow(objectViewerName, objectViewerImage);
+  }
 
+  cout << "Publish objects: " << publishObjects << endl;
   if (publishObjects) {
     rec_objs_blue.publish(roa_to_send_blue);
     markers_blue.publish(ma_to_send_blue);
@@ -10161,6 +12333,11 @@ void goClassifyBlueBoxes() {
 }
 
 void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg) {
+
+  if (!shouldIMiscCallback) {
+    return;
+  }
+
   pcl::fromROSMsg(*msg, pointCloud);
 #ifdef DEBUG
 cout << "Hit pointCloudCallback" <<  "  " << pointCloud.size() << endl;
@@ -10892,6 +13069,302 @@ void testIncbet() {
   }
 }
 
+
+void mapxyToij(double x, double y, int * i, int * j) 
+{
+  *i = round((x - mapXMin) / mapStep);
+  *j = round((y - mapYMin) / mapStep);
+}
+void mapijToxy(int i, int j, double * x, double * y) 
+{
+  *x = mapXMin + i * mapStep;
+  *y = mapYMin + j * mapStep;
+}
+bool cellIsSearched(int i, int j) {
+  double x, y;
+  mapijToxy(i, j, &x, &y);
+  return positionIsSearched(x, y);
+}
+
+bool positionIsSearched(double x, double y) {
+  if ((mapSearchFenceXMin <= x && x <= mapSearchFenceXMax) &&
+      (mapSearchFenceYMin <= y && y <= mapSearchFenceYMax)) {
+    return true;
+  } else {
+    return false;
+  }
+
+}
+
+gsl_matrix * boxMemoryToPolygon(BoxMemory b) {
+  double min_x = b.top.px;
+  double min_y = b.top.py;
+  double max_x = b.bot.px;
+  double max_y = b.bot.py;
+  double width = max_x - min_x;
+  double height = max_y - min_y;
+
+  gsl_matrix *  polygon = gsl_matrix_alloc(2, 4);
+  gsl_matrix_set(polygon, 0, 0, min_x);
+  gsl_matrix_set(polygon, 1, 0, min_y);
+
+  gsl_matrix_set(polygon, 0, 1, min_x + width);
+  gsl_matrix_set(polygon, 1, 1, min_y);
+
+  gsl_matrix_set(polygon, 0, 2, min_x + width);
+  gsl_matrix_set(polygon, 1, 2, min_y + height);
+
+  gsl_matrix_set(polygon, 0, 3, min_x);
+  gsl_matrix_set(polygon, 1, 3, min_y + height);
+  return polygon;
+}
+
+gsl_matrix * mapCellToPolygon(int map_i, int map_j) {
+  
+  double min_x, min_y;
+  mapijToxy(map_i, map_j, &min_x, &min_y);
+  double max_x = min_x + mapStep;
+  double max_y = min_y + mapStep;
+  double width = max_x - min_x;
+  double height = max_y - min_y;
+
+  gsl_matrix *  polygon = gsl_matrix_alloc(2, 4);
+  gsl_matrix_set(polygon, 0, 0, min_x);
+  gsl_matrix_set(polygon, 1, 0, min_y);
+
+  gsl_matrix_set(polygon, 0, 1, min_x + width);
+  gsl_matrix_set(polygon, 1, 1, min_y);
+
+  gsl_matrix_set(polygon, 0, 2, min_x + width);
+  gsl_matrix_set(polygon, 1, 2, min_y + height);
+
+  gsl_matrix_set(polygon, 0, 3, min_x);
+  gsl_matrix_set(polygon, 1, 3, min_y + height);
+  return polygon;
+}
+
+bool isBoxMemoryIKPossible(BoxMemory b) {
+  int toReturn = 1;
+  {
+    int i, j;
+    mapxyToij(b.top.px, b.top.py, &i, &j);
+    toReturn &= isCellIkPossible(i, j);
+  }
+  {
+    int i, j;
+    mapxyToij(b.bot.px, b.bot.py, &i, &j);
+    toReturn &= isCellIkPossible(i, j);
+  }
+  {
+    int i, j;
+    mapxyToij(b.bot.px, b.top.py, &i, &j);
+    toReturn &= isCellIkPossible(i, j);
+  }
+  {
+    int i, j;
+    mapxyToij(b.top.px, b.bot.py, &i, &j);
+    toReturn &= isCellIkPossible(i, j);
+  }
+  return toReturn;
+}
+
+bool boxMemoryIntersectsMapCell(BoxMemory b, int map_i, int map_j) {
+  gsl_matrix * bpolygon = boxMemoryToPolygon(b);
+
+  gsl_matrix * map_cell = mapCellToPolygon(map_i, map_j);
+
+  bool result = math2d_overlaps(bpolygon, map_cell);
+  gsl_matrix_free(bpolygon);
+  gsl_matrix_free(map_cell);
+
+  return result;
+}
+
+bool boxMemoryTooOld(BoxMemory b) {
+  
+}
+
+bool boxMemoryIntersectPolygons(BoxMemory b1, BoxMemory b2) {
+  gsl_matrix * p1 = boxMemoryToPolygon(b1);
+  gsl_matrix * p2 = boxMemoryToPolygon(b2);
+
+  bool result = math2d_overlaps(p1, p2);
+  
+  gsl_matrix_free(p1);
+  gsl_matrix_free(p2);
+
+  return result;
+}
+
+bool boxMemoryIntersectCentroid(BoxMemory b1, BoxMemory b2) {
+  gsl_matrix * p1 = boxMemoryToPolygon(b1);
+  gsl_matrix * p2 = boxMemoryToPolygon(b2);
+  gsl_vector * p1_center = math2d_point(b1.centroid.px, b1.centroid.py);
+  gsl_vector * p2_center = math2d_point(b2.centroid.px, b2.centroid.py);
+
+  bool result;
+  if (math2d_is_interior_point(p2_center, p1) || 
+      math2d_is_interior_point(p1_center, p2)) {
+    result = true;
+  } else {
+    result = false;
+  }
+    
+  gsl_matrix_free(p1);
+  gsl_matrix_free(p2);
+  gsl_vector_free(p1_center);
+  gsl_vector_free(p2_center);
+
+  return result;
+}
+
+
+vector<BoxMemory> memoriesForClass(int classIdx) {
+  vector<BoxMemory> results;
+  for (int j = 0; j < blueBoxMemories.size(); j++) {
+    if (blueBoxMemories[j].labeledClassIndex == focusedClass) {
+      results.push_back(blueBoxMemories[j]);
+    }
+  }
+  return results;
+}
+
+vector<BoxMemory> memoriesForClass(int classIdx, int * memoryIdxOfFirst) {
+  vector<BoxMemory> results;
+  int haventFoundFirst = 1;
+  for (int j = 0; j < blueBoxMemories.size(); j++) {
+    if (blueBoxMemories[j].labeledClassIndex == focusedClass) {
+      results.push_back(blueBoxMemories[j]);
+      if (haventFoundFirst) {
+	*memoryIdxOfFirst = j;
+	haventFoundFirst = 0;
+      }
+    }
+  }
+  return results;
+}
+
+bool cellIsMapped(int i, int j) {
+  double x, y;
+  mapijToxy(i, j, &x, &y);
+  return positionIsMapped(x, y);
+}
+bool positionIsMapped(double x, double y) {
+  if ((mapRejectFenceXMin <= x && x <= mapRejectFenceXMax) &&
+      (mapRejectFenceYMin <= y && y <= mapRejectFenceYMax)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool isCellInPursuitZone(int i, int j) {
+  return ( (clearanceMap[i + mapWidth * j] == 1) ||
+	   (clearanceMap[i + mapWidth * j] == 2) );
+} 
+bool isCellInPatrolZone(int i, int j) {
+  return (clearanceMap[i + mapWidth * j] == 2);
+} 
+
+bool isCellInteresting(int i, int j) {
+  if ( (clearanceMap[i + mapWidth * j] == 1) ||
+       (clearanceMap[i + mapWidth * j] == 2) ) {
+    return ( objectMap[i + mapWidth * j].lastMappedTime < lastScanStarted );
+  } else {
+    return false;
+  }
+} 
+void markCellAsInteresting(int i, int j) {
+  if ( (clearanceMap[i + mapWidth * j] == 1) ||
+       (clearanceMap[i + mapWidth * j] == 2) ) {
+    objectMap[i + mapWidth * j].lastMappedTime = ros::Time(0.001);
+    return;
+  } else {
+    return;
+  }
+} 
+void markCellAsNotInteresting(int i, int j) {
+  if ( (clearanceMap[i + mapWidth * j] == 1) ||
+       (clearanceMap[i + mapWidth * j] == 2) ) {
+    objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now() + ros::Duration(VERYBIGNUMBER);
+    return;
+  } else {
+    return;
+  }
+} 
+
+bool isCellIkColliding(int i, int j) {
+  return (ikMap[i + mapWidth * j] == 2);
+} 
+bool isCellIkPossible(int i, int j) {
+  return (ikMap[i + mapWidth * j] == 0);
+} 
+bool isCellIkImpossible(int i, int j) {
+  return (ikMap[i + mapWidth * j] == 1);
+} 
+
+
+int blueBoxForPixel(int px, int py)
+{
+  for (int c = 0; c < bTops.size(); c++) {
+    if ((bTops[c].x <= px && px <= bBots[c].x) &&
+        (bTops[c].y <= py && py <= bBots[c].y)) {
+      return c;
+    }
+  }
+  return -1;
+}
+
+int skirtedBlueBoxForPixel(int px, int py, int skirtPixels) {
+  vector<cv::Point> newBTops;
+  vector<cv::Point> newBBots;
+  newBTops.resize(bBots.size());
+  newBBots.resize(bTops.size()); 
+  for (int c = 0; c < bTops.size(); c++) {
+    newBTops[c].x = bTops[c].x-skirtPixels;
+    newBTops[c].y = bTops[c].y-skirtPixels;
+    newBBots[c].x = bBots[c].x+skirtPixels;
+    newBBots[c].y = bBots[c].y+skirtPixels;
+  }
+
+  for (int c = 0; c < newBTops.size(); c++) {
+    if ((newBTops[c].x <= px && px <= newBBots[c].x) &&
+        (newBTops[c].y <= py && py <= newBBots[c].y)) {
+      return c;
+    }
+  }
+  return -1;
+}
+
+void randomizeNanos(ros::Time * time) {
+  double nanoseconds = rk_double(&random_state) * 1000;
+  time->nsec = nanoseconds;
+}
+
+
+void initializeMap() 
+{
+  for (int i = 0; i < mapWidth; i++) {
+    for(int j = 0; j < mapHeight; j++) {
+      objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
+      // make the search more random
+      randomizeNanos(&objectMap[i + mapWidth * j].lastMappedTime);
+
+
+      objectMap[i + mapWidth * j].detectedClass = -1;
+      objectMap[i + mapWidth * j].pixelCount = 0;
+      objectMap[i + mapWidth * j].r = 0;
+      objectMap[i + mapWidth * j].g = 0;
+      objectMap[i + mapWidth * j].b = 0;
+
+      ikMap[i + mapWidth * j] = 0;
+      clearanceMap[i + mapWidth * j] = 0;
+    }
+  }
+  lastScanStarted = ros::Time::now();
+}
+
+
 ////////////////////////////////////////////////
 // end node definitions 
 //
@@ -10899,6 +13372,8 @@ void testIncbet() {
 ////////////////////////////////////////////////
 
 int main(int argc, char **argv) {
+  initVectorArcTan();
+
   //testIncbet();
   //exit(0);
   //auto lfunc = [] () { cout << "Hello world"; }; 
@@ -10911,6 +13386,7 @@ int main(int argc, char **argv) {
 
   srand(time(NULL));
   time(&firstTime);
+  time(&firstTimeRange);
 
   cout << "argc: " << argc << endl;
   for (int ccc = 0; ccc < argc; ccc++) {
@@ -10974,6 +13450,9 @@ int main(int argc, char **argv) {
 
   ros::Subscriber points = n.subscribe(pc_topic, 1, pointCloudCallback);
 
+  rec_objs_blue_memory = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_memory_objects", 10);
+  markers_blue_memory = n.advertise<visualization_msgs::MarkerArray>("blue_memory_markers", 10);
+
   rec_objs_blue = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_labeled_objects", 10);
   rec_objs_red = n.advertise<object_recognition_msgs::RecognizedObjectArray>("red_labeled_objects", 10);
   markers_blue = n.advertise<visualization_msgs::MarkerArray>("blue_object_markers", 10);
@@ -11030,13 +13509,23 @@ int main(int argc, char **argv) {
   forthCommandSubscriber = n.subscribe("/ein/" + left_or_right_arm + "/forth_commands", 1, 
                                        forthCommandCallback);
 
-  ros::Timer timer1 = n.createTimer(ros::Duration(0.01), timercallback1);
+  ros::Timer timer1 = n.createTimer(ros::Duration(0.0001), timercallback1);
 
   tfListener = new tf::TransformListener();
 
   ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + left_or_right_arm + "/PositionKinematicsNode/IKService");
   joint_mover = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/" + left_or_right_arm + "/joint_command", 10);
   gripperPub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + left_or_right_arm + "_gripper/command",10);
+  moveSpeedPub = n.advertise<std_msgs::Float64>("/robot/limb/" + left_or_right_arm + "/set_speed_ratio",10);
+  sonarPub = n.advertise<std_msgs::UInt16>("/robot/sonar/head_sonar/set_sonars_enabled",10);
+  headPub = n.advertise<baxter_core_msgs::HeadPanCommand>("/robot/head/command_head_pan",10);
+  nodPub = n.advertise<std_msgs::Bool>("/robot/head/command_head_nod",10);
+
+  currentHeadPanCommand.target = 0;
+  currentHeadPanCommand.speed = 50;
+  currentHeadNodCommand.data = 0;
+  currentSonarCommand.data = 0;
+
 
   facePub = n.advertise<std_msgs::Int32>("/confusion/target/command", 10);
 
@@ -11051,30 +13540,41 @@ int main(int argc, char **argv) {
 
   frameGraySobel = Mat(1,1,CV_64F);
 
+  initializeMap();
+
   spinlessNodeMain();
   spinlessPilotMain();
 
   saveROSParams();
-
-  pushWord('u'); // printState
+  //pushWord("visionPatrol");
+  pushWord("printState");
+  pushCopies("zUp", 15);
   int devInit = 1;
   if (devInit) {
-    pushWord(196437); // increment target class
-
-    pushWord(1179720); // set gradient servo take closest
-    //pushWord(1179719); // set gradient servo don't take closest
-    pushWord(196707); // synchronic servo take closest
+    pushWord("incrementTargetClass"); 
+    pushWord("gradientServoTakeClosest"); 
+    pushWord("synchronicServoTakeClosest");
   }
-
+  pushWord("printWords");
+  pushWord("openGripper");
+  pushWord("calibrateGripper");
   pushWord("shiftIntoGraspGear1"); // change gear to 1
 
   execute_stack = 1;
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();
   cout << "cuda count: " << cudaCount << endl;;
+
+  cvWaitKey(1); // this might be good to init cv gui stuff
+  lastImageCallbackReceived = ros::Time::now();
+
   ros::spin();
 
   return 0;
 }
 
+
 #include "ein_words.cpp"
+#include "slu/math2d.c"
+#include "slu/gsl_utilities.c"
+

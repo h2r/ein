@@ -62,6 +62,9 @@ virtual void execute()       {
   classLabels.resize(0);
   classPoseModels.resize(0);
 
+  pushWord("clearBlueBoxMemories");
+
+
   // snoop folders
   DIR *dpdf;
   struct dirent *epdf;
@@ -131,10 +134,9 @@ END_WORD
 WORD(VisionCycleNoClassify)
 CODE(196721)     // capslock + Q
 virtual void execute()       {
+  pushWord("mapEmptySpace");
   pushWord("goFindBlueBoxes"); // blue boxes
-  pushCopies(131121, 1); // density
-  pushCopies(1179737, 1); // reset temporal map
-  pushCopies(131121, 1); // density
+  pushCopies("density", 1); // density
 }
 END_WORD
 
@@ -298,17 +300,19 @@ virtual void execute() {
 
   // this automatically changes learning mode
           
-  pushWord("beginHeightLearning"); // begin bounding box learning
+  if (0) {
+    pushWord("beginHeightLearning"); // begin bounding box learning
 
-  pushWord("changeToHeight1"); // change to height 1
-  pushWord("shiftIntoGraspGear1"); // change to first gear
-  
-  pushWord("loadPriorGraspMemoryAnalytic");
+    pushWord("changeToHeight1"); // change to height 1
+    pushWord("shiftIntoGraspGear1"); // change to first gear
+    
+    pushWord("loadPriorGraspMemoryAnalytic");
 
-  // set target class to the lastLabelLearned 
-  pushWord(1179730);
+    // set target class to the lastLabelLearned 
+    pushWord(1179730);
 
-  pushWord(131142); // reinitialize and retrain everything
+    pushWord(131142); // reinitialize and retrain everything
+  }
 
   // set lastLabelLearned
   pushWord(1179732);
@@ -334,36 +338,36 @@ virtual void execute() {
 
     {
       pushWord(196730); // save aerial gradient map if there is only one blue box
-      pushCopies(131121, densityIterationsForGradientServo); // density
-      pushWord(262237); // reset aerialGradientTemporalFrameAverage
-      pushCopies(131121, 1); // density
+      pushCopies("density", densityIterationsForGradientServo); // density
+      pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
+      pushCopies("density", 1); // density
       pushWord("visionCycle"); // vision cycle
       pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
       pushWord(1245220); // change to height 3
     }
     {
       pushWord(196730); // save aerial gradient map if there is only one blue box
-      pushCopies(131121, densityIterationsForGradientServo); // density
-      pushWord(262237); // reset aerialGradientTemporalFrameAverage
-      pushCopies(131121, 1); // density
+      pushCopies("density", densityIterationsForGradientServo); // density
+      pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
+      pushCopies("density", 1); // density
       pushWord("visionCycle"); // vision cycle
       pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
       pushWord(1245219); // change to height 2
     }
     {
       pushWord(196730); // save aerial gradient map if there is only one blue box
-      pushCopies(131121, densityIterationsForGradientServo); // density
-      pushWord(262237); // reset aerialGradientTemporalFrameAverage
-      pushCopies(131121, 1); // density
+      pushCopies("density", densityIterationsForGradientServo); // density
+      pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
+      pushCopies("density", 1); // density
       pushWord("visionCycle"); // vision cycle
       pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
       pushWord(1245248); // change to height 1
     }
     {
       pushWord(196730); // save aerial gradient map if there is only one blue box
-      pushCopies(131121, densityIterationsForGradientServo); // density
-      pushWord(262237); // reset aerialGradientTemporalFrameAverage
-      pushCopies(131121, 1); // density
+      pushCopies("density", densityIterationsForGradientServo); // density
+      pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
+      pushCopies("density", 1); // density
       pushWord("visionCycle"); // vision cycle
       pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
       pushWord(1245217); // change to height 0
@@ -376,7 +380,7 @@ virtual void execute() {
 
   pushWord(131139); // synchronic servo don't take closest
   pushWord(131156); // synchronic servo
-  pushWord(196707); // synchronic servo take closest
+  pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
   pushWord("visionCycle"); // vision cycle
 
   pushWord('Y'); // pause stack execution
@@ -393,8 +397,6 @@ virtual void execute() {
   pushWord('k'); // open gripper
 }
 END_WORD
-
-
 
 
 
@@ -523,7 +525,7 @@ virtual void execute() {
   pushWord(1114150); // prepare for search
 
   pushWord(1048683); // turn on scanning
-  pushWord(1048695); // clear scan history
+  pushWord("initDepthScan"); // clear scan history
 }
 END_WORD
 
