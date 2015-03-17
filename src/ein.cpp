@@ -7849,8 +7849,8 @@ void gradientServo() {
       {
 	// ATTN 23
 	// move from vanishing point reticle to gripper reticle
-	moveCurrentGripperRayToCameraVanishingRay();
-	bestOrientationEEPose = currentEEPose;
+	//moveCurrentGripperRayToCameraVanishingRay();
+	//bestOrientationEEPose = currentEEPose;
 
         // ATTN 12
         if (ARE_GENERIC_HEIGHT_LEARNING()) {
