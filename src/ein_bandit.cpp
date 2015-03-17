@@ -351,6 +351,10 @@ WORD(UniformlySampleHeight)
 CODE(1245246)      // capslock + numlock + >
 virtual void execute() {
   int thisRandThompsonHeight = lrand48() % hmWidth;
+  if (currentBoundingBoxMode == MAPPING) {
+    thisRandThompsonHeight = mappingHeightIdx;
+    cout << "UniformlySampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
+  }
   currentThompsonHeight = convertHeightIdxToGlobalZ(thisRandThompsonHeight);
   currentThompsonHeightIdx = thisRandThompsonHeight;
   currentEEPose.pz = currentThompsonHeight;

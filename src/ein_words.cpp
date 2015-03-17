@@ -124,14 +124,17 @@ std::vector<Word *> create_words() {
     words.push_back(new Beep());
     words.push_back(new ZeroGToggle());
     words.push_back(new VisionCycle());
+    words.push_back(new AccumulatedDensity());
+    words.push_back(new ResetAccumulatedDensity());
     words.push_back(new Density());
     words.push_back(new DensityA());
-    //words.push_back(new AccumulateDensity());
     words.push_back(new ResetTemporalMap());
     words.push_back(new GoFindBlueBoxes());
     words.push_back(new GoClassifyBlueBoxes());
     words.push_back(new SynchronicServo());
+    words.push_back(new GradientServoPrep());
     words.push_back(new GradientServo());
+    words.push_back(new GradientServoA());
     words.push_back(new GradientServoIfBlueBoxes());
     words.push_back(new TwoDPatrolStart());
     words.push_back(new TwoDPatrolContinue());
@@ -313,6 +316,12 @@ std::vector<Word *> create_words() {
 
     words.push_back(new WaitUntilImageCallbackReceived());
     words.push_back(new WaitUntilImageCallbackReceivedA());
+
+    words.push_back(new ScanCentered());
+    words.push_back(new RecordAllExamplesFocusedClass());
+    words.push_back(new RasterScanningSpeed());
+
+    words.push_back(new SetRangeMapCenterFromCurrentEEPose());
   }
 
   return words;

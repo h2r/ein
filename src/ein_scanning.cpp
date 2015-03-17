@@ -156,6 +156,22 @@ virtual void execute()       {
 }
 END_WORD
 
+WORD(RecordAllExamplesFocusedClass)
+virtual void execute()       {
+  if ( focusedClass > -1 ) {
+    for (int c = 0; c < bTops.size(); c++) {
+      string thisLabelName = focusedClassLabel;
+      Mat crop = cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
+      char buf[1000];
+      string this_crops_path = data_directory + "/" + thisLabelName + "/rgb/";
+      sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
+      imwrite(buf, crop);
+      cropCounter++;
+    }
+  }
+}
+END_WORD
+
 WORD(SetRandomOrientationForPhotospin)
 CODE(1310722)     // capslock + numlock + "
 virtual void execute() {
@@ -211,7 +227,8 @@ WORD(PhotoSpin)
 CODE(196711)      // capslock + G
 virtual void execute() {
   for (int angleCounter = 0; angleCounter < totalGraspGears; angleCounter++) {
-    pushWord(131148); // save crop as focused class if there is only one
+    //pushWord(131148); // save crop as focused class if there is only one
+    pushWord("recordAllExamplesFocusedClass");
     pushWord(196721); // vision cycle no classify
     pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     pushWord(1310722); // set random orientation for photospin.
@@ -324,53 +341,41 @@ virtual void execute() {
 
   // this is a good time to remove a contrast agent
   //pushWord('Y'); // pause stack execution
-  //pushCopies(1245308, 15); // beep
+  //pushCopies("beep", 15); // beep
 	  
   { // do density and gradient, save gradient, do medium scan in two directions, save range map
     pushSpeedSign(MOVE_FAST);
-    pushWord(196705); // save current depth map to current class
-    pushWord(1048622); // neutral scan 
+    pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
+    pushWord("neutralScan"); // neutral scan 
     pushWord('Y'); // pause stack execution
-    pushCopies(1245308, 15); // beep
+    pushCopies("beep", 15); // beep
     pushSpeedSign(MOVE_FAST);
 
-    pushWord(1245248); // change to height 1
+    pushWord("changeToHeight1"); // change to height 1
 
     {
-      pushWord(196730); // save aerial gradient map if there is only one blue box
-      pushCopies("density", densityIterationsForGradientServo); // density
-      pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
-      pushCopies("density", 1); // density
-      pushWord("visionCycle"); // vision cycle
+      pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+      pushWord("gradientServoPrep");
       pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      pushWord(1245220); // change to height 3
+      pushWord("changeToHeight3"); // change to height 3
     }
     {
-      pushWord(196730); // save aerial gradient map if there is only one blue box
-      pushCopies("density", densityIterationsForGradientServo); // density
-      pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
-      pushCopies("density", 1); // density
-      pushWord("visionCycle"); // vision cycle
+      pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+      pushWord("gradientServoPrep");
       pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      pushWord(1245219); // change to height 2
+      pushWord("changeToHeight2"); // change to height 2
     }
     {
-      pushWord(196730); // save aerial gradient map if there is only one blue box
-      pushCopies("density", densityIterationsForGradientServo); // density
-      pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
-      pushCopies("density", 1); // density
-      pushWord("visionCycle"); // vision cycle
+      pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+      pushWord("gradientServoPrep");
       pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      pushWord(1245248); // change to height 1
+      pushWord("changeToHeight1"); // change to height 1
     }
     {
-      pushWord(196730); // save aerial gradient map if there is only one blue box
-      pushCopies("density", densityIterationsForGradientServo); // density
-      pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
-      pushCopies("density", 1); // density
-      pushWord("visionCycle"); // vision cycle
+      pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+      pushWord("gradientServoPrep");
       pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      pushWord(1245217); // change to height 0
+      pushWord("changeToHeight0"); // change to height 0
     }
   }
 
@@ -384,7 +389,7 @@ virtual void execute() {
   pushWord("visionCycle"); // vision cycle
 
   pushWord('Y'); // pause stack execution
-  pushCopies(1245308, 15); // beep
+  pushCopies("beep", 15); // beep
 
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   pushWord("shiftIntoGraspGear1"); // change to first gear
@@ -414,6 +419,15 @@ WORD(TurnOnRecordRangeMap)
 CODE(1048683) 
 virtual void execute() {
   recordRangeMap = 1;
+}
+END_WORD
+
+WORD(SetRangeMapCenterFromCurrentEEPose)
+virtual void execute() {
+  cout << "Set rmcX and rmcY from currentEEPose." << endl;
+  rmcX = currentEEPose.px;
+  rmcY = currentEEPose.py;
+  //rmcZ = currentEEPose.pz - eeRange;
 }
 END_WORD
 
@@ -716,6 +730,21 @@ virtual void execute() {
     lastRangeMap = rangeMapTemp;
     fsvO.release();
   } 
+}
+END_WORD
+
+WORD(ScanCentered)
+virtual void execute() {
+  pushSpeedSign(MOVE_FAST);
+  pushWord("rgbScan");
+  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  pushWord("synchronicServo"); 
+  pushWord("visionCycleNoClassify");
+  pushWord("synchronicServoTakeClosest");
+  pushWord("fillClearanceMap");
+  pushWord("loadIkMap");
+  currentBoundingBoxMode = MAPPING;
+  bDelta = 0.001;
 }
 END_WORD
 

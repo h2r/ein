@@ -400,7 +400,6 @@ virtual void execute() {
     nextEEPose.py = oldestY;
 
     baxter_core_msgs::SolvePositionIK thisIkRequest;
-    endEffectorAngularUpdate(&nextEEPose);
     fillIkRequest(&nextEEPose, &thisIkRequest);
 
     bool likelyInCollision = 0;
@@ -551,41 +550,6 @@ virtual void execute() {
 }
 END_WORD
 
-
-
-void mapBox(BoxMemory boxMemory) {
-  for (double px = boxMemory.bTop.x-mapBlueBoxPixelSkirt; px <= boxMemory.bBot.x+mapBlueBoxPixelSkirt; px++) {
-    for (double py = boxMemory.bTop.y-mapBlueBoxPixelSkirt; py <= boxMemory.bBot.y+mapBlueBoxPixelSkirt; py++) {
-      double x, y;
-      double z = trueEEPose.position.z + currentTableZ;
-
-      pixelToGlobal(px, py, z, &x, &y);
-      int i, j;
-      mapxyToij(x, y, &i, &j);
-
-      if (i >= 0 && i < mapWidth && j >= 0 && j < mapHeight) {
-	objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
-	objectMap[i + mapWidth * j].detectedClass = boxMemory.labeledClassIndex;
-
-  //      if (ros::Time::now() - objectMap[i + mapWidth * j].lastMappedTime > mapMemoryTimeout) {
-  //        objectMap[i + mapWidth * j].b = 0;
-  //        objectMap[i + mapWidth * j].g = 0;
-  //        objectMap[i + mapWidth * j].r = 0;
-  //        objectMap[i + mapWidth * j].pixelCount = 0;
-  //      }
-
-	double blueBoxWeight = 0.1;
-	if (cam_img.rows != 0 && cam_img.cols != 0) {
-	  objectMap[i + mapWidth * j].b = (cam_img.at<cv::Vec3b>(py, px)[0] * blueBoxWeight);
-	  objectMap[i + mapWidth * j].g = (cam_img.at<cv::Vec3b>(py, px)[1] * blueBoxWeight);
-	  objectMap[i + mapWidth * j].r = (cam_img.at<cv::Vec3b>(py, px)[2] * blueBoxWeight);
-	  objectMap[i + mapWidth * j].pixelCount = blueBoxWeight;
-	}
-      }
-    }
-  }
-}
-
 WORD(InitializeMap)
 virtual void execute() {
   initializeMap();
@@ -648,10 +612,10 @@ virtual void execute() {
 	    ( spaceDecay*double(objectMap[i + mapWidth * j].b) + 
 		    (1.0-spaceDecay)*double(cam_img.at<cv::Vec3b>(py, px)[0]) );
 	  objectMap[i + mapWidth * j].g = 
-	    ( spaceDecay*double(objectMap[i + mapWidth * j].b) + 
+	    ( spaceDecay*double(objectMap[i + mapWidth * j].g) + 
 		    (1.0-spaceDecay)*double(cam_img.at<cv::Vec3b>(py, px)[1]) );
 	  objectMap[i + mapWidth * j].r = 
-	    ( spaceDecay*double(objectMap[i + mapWidth * j].b) + 
+	    ( spaceDecay*double(objectMap[i + mapWidth * j].r) + 
 		    (1.0-spaceDecay)*double(cam_img.at<cv::Vec3b>(py, px)[2]) );
 	  objectMap[i + mapWidth * j].pixelCount = 
 	    ( spaceDecay*double(objectMap[i + mapWidth * j].pixelCount) + 
@@ -690,16 +654,18 @@ virtual void execute() {
   
   int i, j;
   mapxyToij(box.centroid.px, box.centroid.py, &i, &j);
+
+  // this only does the timestamp to avoid obsessive behavior
+  mapBox(box);
   
   //if ( !positionIsSearched(box.centroid.px, box.centroid.py) && 
        //!isCellInPursuitZone(i, j) ) 
   //if (!positionIsSearched(box.centroid.px, box.centroid.py)) 
-  if ( !positionIsSearched(box.centroid.px, box.centroid.py) && 
+  if ( !positionIsSearched(box.centroid.px, box.centroid.py) || 
        !isBoxMemoryIKPossible(box) ) 
   {
     return;
   } else {
-    mapBox(box);
     vector<BoxMemory> newMemories;
     for (int i = 0; i < blueBoxMemories.size(); i++) {
       if (!boxMemoryIntersectCentroid(box, blueBoxMemories[i])) {
@@ -717,19 +683,24 @@ WORD(FilterBoxMemories)
 virtual void execute() {
   set<int> boxMemoryIndexesToKeep;
 
-  for (int i = 0; i < mapWidth; i++) {
-    for (int j = 0; j < mapHeight; j++) {
-      for (int b_i = 0; b_i < blueBoxMemories.size(); b_i++) {
-        BoxMemory b = blueBoxMemories[b_i];
+  for (int b_i = 0; b_i < blueBoxMemories.size(); b_i++) {
+    int keep = 0;
+    BoxMemory b = blueBoxMemories[b_i];
+    for (int i = 0; i < mapWidth; i++) {
+      for (int j = 0; j < mapHeight; j++) {
         if (boxMemoryIntersectsMapCell(b, i, j)) {
           //if (b.cameraTime.sec > objectMap[i + mapWidth * j].lastMappedTime.sec) {
           ros::Duration diff = objectMap[i + mapWidth * j].lastMappedTime - b.cameraTime;
 
           if (diff < ros::Duration(2.0)) {
             boxMemoryIndexesToKeep.insert(b_i);
+	    keep = 1;
           }
         }
       }
+    }
+    if (!keep) {
+      cout << "filterBoxMemories rejecting box " << b_i << endl;
     }
   }
 
@@ -772,13 +743,23 @@ END_WORD
 WORD(DensityA)
 CODE(131121)     // capslock + 1
 virtual void execute() {
+  substituteLatestImageQuantities();
   goCalculateDensity();
 }
 END_WORD
 
-WORD(AccumulateForAerial)
+WORD(AccumulatedDensity)
 virtual void execute() {
-  goAccumulateForAerial();
+  substituteAccumulatedImageQuantities();
+  goCalculateDensity();
+  renderAccumulatedImageAndDensity();
+  //goAccumulateForAerial();
+}
+END_WORD
+
+WORD(ResetAccumulatedDensity)
+virtual void execute() {
+  resetAccumulatedImageAndMass();
 }
 END_WORD
 
