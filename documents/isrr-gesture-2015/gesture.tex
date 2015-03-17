@@ -502,40 +502,35 @@ Multimodal (all)&  65.7\% & 54.1\%\\
 \caption{Scene from our data collection environment.\label{fig:corpus_scene}}
 \end{figure}
 
-Our real-world experiments measured our algorithm's performance when a
-person referred to an object visually and with gesture.  The subject
-stood in front of a table with varying numbers of objects placed randomly on a table
-Figure~\ref{fig:corpus_scene}.  We instructed subjects to pick an object and ask for it in the most natural way possible, using whatever
-combination of gesture and language they felt was appropriate. The test subjects wore a microphone to pick up high-quality audio, and
-we
-used the HTML5 Speech Recognition package in conjunction with Google
-Chrome to transcibe the speech.  This package reports incremental output
-as recognition proceeds, and we perform a model update each time a new
-word is perceived.  We used several object setups, using 4, 8, and 16 objects.
-We used $N$ subjects, and each subject participated
-in one trial per object set for a total of $3N$ trials.
+We ran two types of real-world experiments with our algorithm. The first was without a robot, measuring the system's ability to detect and track the object the user wanted in real time using different modalities. The second involved the robot, determining how quickly the robot could hand the user the desired object using language and gesture. In both tests, the subjects wore a microphone to pick up high-quality audio, we used the HTML5 Speech Recognition package in conjunction with Google Chrome to transcribe speech. This package reports incremental output as recognition proceeds, and we perform a model update each time a new word is perceived. We used NITE and the OpenNI Tracker to track user body position. 
 
-Results showing the percent of the time the object handed to the user was the object the user desired.
-The results can be see in Tables~\ref{table:real_results_4}, ~\ref{table:real_results_8}, ~\ref{table:real_results_16}
-with 95\% confidence intervals.  During a typical trial, the model
-starts out approximately uniform or unimodal on the previous object
-(we did not reset the model between trials.) As the subject points and
-talks, the model quickly converges to the correct object.  Our first
-set of results give a sense of how quickly the model converges.
 
-To assess overall accuracy, we report the system's accuracy at the end
-of a trial in \ref{table:end_real}.  Multimodal accuracy with language
-and gesture is more than 90\%, demonstrating that our approach is able
-to quickly and accurately interpret unscripted language and gesture
-produced by a person.  We found that our head pose estimator was quite
-inaccurate, performing slightly below random.  Thus overall
-results that include head pose perform worse than language and
-gesture.  We believe this effect has several sources, including marginal head movement when objects are relatively close together, as well as general inaccuracy in head rotation tracking. 
+In the first set of experiments, we ran 65 trials, involving 13 users performing 5 trials each. In each of these trials, the participant stood a few feet from a table with four object on it (a metal bowl, a plastic bowl, a metal spoon, and a plastic spoon), arranged in a square pattern Figure~\ref{fig:corpus_scene}. The participants were then instructed to ask for the object we indicated with a laser pointer in the most natural way possible. We then measured the percentage of time that the system thought the most likely object was the object the user wanted. We ran the trials masking out various modalities (such as not incorporating speech) to evaluate the importance and accuracy of the various referring expressions. Results appear in Figure~\ref{table:real_results_no_robot} with 95\% confidence intervals. Upon doing these trials, it became apparent that our head tracking software was too inaccurate to provide meaningful information, but that gesture and speech combined provided a very accurate interpretation.
 
-The difference in accuracy between gesture alone and the multimodal output is not as large as one might expect. This is in part caused by the small delay in speech recognition software as opposed to the instantaneous gesture input. Additionally, many subjects, when told they could use gestures, leaned towards relying almost entirely on gesticulation. There were some users, however, who relied on an equal mix of both, and showed large leaps in accuracy between arms and multimodal. The most extreme example is of a user who, over their five trials, achieved only 45.5\% accuracy with arms alone and 42.2\% with speech alone, yet managed to achieve 85.7\% multimodal accuracy, only 2 percentage points away from the sum of the two probabilities, showing the ease at which alternating speech and gesture can give incredibly accurate results overall. While a combination of ambiguous speech and gesture such as "that spoon" followed by a gesture would be more accurate than just a gesture, we found that most test subjects either spoke with complete ambiguity or none, using phrases either of the form "hand me that thing" or "hand me the silver spoon". Therefore we were unable to fully test this hypothesis.
 
+In the second set of experiments, we ran $N$ trials, involving $X$ users performing $M$ trials each. In each of these trials, the participant stood a few feet in front of the Baxter Robot. In Baxter's workspace (to the sides of Baxter, ranging from 4 to 8 feet from the participant) were distributed (depending on the trial type), 4, 8, or 16 objects. Again, we used a laser pointer to indicate the object the user should reference and asked them to ask for the referenced object in the most natural way possible. The results for this appear in Figure~\ref{table:real_results_robot}. To provide a baseline comparison, we ran the same trials with two humans (one acting in Baxter's place). For this, we ran $K$ trials, and the results appear in Figure~\ref{table:real_results_human}.
+
+
+%Results showing the percent of the time the object handed to the user was the object the user desired.
+%The results can be see in Tables~\ref{table:real_results_4}, ~\ref{table:real_results_8}, ~\ref{table:real_results_16}
+%with 95\% confidence intervals.  During a typical trial, the model
+%starts out approximately uniform or unimodal on the previous object
+%(we did not reset the model between trials.) As the subject points and
+%talks, the model quickly converges to the correct object.  Our first
+%set of results give a sense of how quickly the model converges.
+%
+%To assess overall accuracy, we report the system's accuracy at the end
+%of a trial in \ref{table:end_real}.  Multimodal accuracy with language
+%and gesture is more than 90\%, demonstrating that our approach is able
+%to quickly and accurately interpret unscripted language and gesture
+%produced by a person.  We found that our head pose estimator was quite
+%inaccurate, performing slightly below random.  Thus overall
+%results that include head pose perform worse than language and
+%gesture.  We believe this effect has several sources, including marginal head movement when objects are relatively close together, as well as general inaccuracy in head rotation tracking. 
+%
+%The difference in accuracy between gesture alone and the multimodal output is not as large as one might expect. This is in part caused by the small delay in speech recognition software as opposed to the instantaneous gesture input. Additionally, many subjects, when told they could use gestures, leaned towards relying almost entirely on gesticulation. There were some users, however, who relied on an equal mix of both, and showed large leaps in accuracy between arms and multimodal. The most extreme example is of a user who, over their five trials, achieved only 45.5\% accuracy with arms alone and 42.2\% with speech alone, yet managed to achieve 85.7\% multimodal accuracy, only 2 percentage points away from the sum of the two probabilities, showing the ease at which alternating speech and gesture can give incredibly accurate results overall. While a combination of ambiguous speech and gesture such as "that spoon" followed by a gesture would be more accurate than just a gesture, we found that most test subjects either spoke with complete ambiguity or none, using phrases either of the form "hand me that thing" or "hand me the silver spoon". Therefore we were unable to fully test this hypothesis.
 \begin{table}
-\caption{Real-world Results (4 objects)\label{table:real_results_4}}
+\caption{Real-world Results (No Robot)\label{table:real_results_no_robot}}
 \centering
 \begin{tabular}{lr}
 \toprule
@@ -549,33 +544,57 @@ Multimodal (All) &  64.84\% +/- 8\%\\
 \end{tabular}
 \end{table}
 \begin{table}
-\caption{Real-world Results (8 objects)\label{table:real_results_8}}
+\caption{Real-world Results (Robot)\label{table:real_results_robot}}
 \centering
-\begin{tabular}{lr}
+\begin{tabular}{lrr}
 \toprule
-Random & 25\%\\
-Language only &  46.15\%\\
-Gesture only  &  80.0\%\\
-Head only     & 18.46\%\\
-Multimodal (Language and Gesture) & {\bf 90.77\%}\\
-Multimodal (All) &  61.54\%\\
+Number Objects & Times Wrong & Elapsed Time\\
+4 &  1 & 1\\
+8  &  1 & 1\\
+16 &  1 & 1\\
 \bottomrule
 \end{tabular}
 \end{table}
 \begin{table}
-\caption{Real-world Results (16 objects)\label{table:real_results_16}}
+\caption{Real-world Results (Human)\label{table:real_results_human}}
 \centering
-\begin{tabular}{lr}
+\begin{tabular}{lrr}
 \toprule
-Random & 25\%\\
-Language only &  32.4\% +/- 10\%\\
-Gesture only  &  73.12\% +/- 9\%\\
-Head only     &  21.67\% +/- 10\%\\
-Multimodal (Language and Gesture) & {\bf 81.99\% +/- 5.5\%}\\
-Multimodal (All) &  64.84\% +/- 8\%\\
+Number Objects & Times Wrong & Elapsed Time\\
+4 &  1 & 1\\
+8  &  1 & 1\\
+16 &  1 & 1\\
 \bottomrule
 \end{tabular}
 \end{table}
+%\begin{table}
+%\caption{Real-world Results (8 objects)\label{table:real_results_8}}
+%\centering
+%\begin{tabular}{lr}
+%\toprule
+%Random & 25\%\\
+%Language only &  46.15\%\\
+%Gesture only  &  80.0\%\\
+%Head only     & 18.46\%\\
+%Multimodal (Language and Gesture) & {\bf 90.77\%}\\
+%Multimodal (All) &  61.54\%\\
+%\bottomrule
+%\end{tabular}
+%\end{table}
+%\begin{table}
+%\caption{Real-world Results (16 objects)\label{table:real_results_16}}
+%\centering
+%\begin{tabular}{lr}
+%\toprule
+%Random & 25\%\\
+%Language only &  32.4\% +/- 10\%\\
+%Gesture only  &  73.12\% +/- 9\%\\
+%Head only     &  21.67\% +/- 10\%\\
+%Multimodal (Language and Gesture) & {\bf 81.99\% +/- 5.5\%}\\
+%Multimodal (All) &  64.84\% +/- 8\%\\
+%\bottomrule
+%\end{tabular}
+%\end{table}
 
 \subsection{Robotic Demonstration}
 
