@@ -390,7 +390,9 @@ virtual void execute() {
   currentThompsonHeightIdx = 0;
   currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
   currentEEPose.pz = currentThompsonHeight;
-  reticle = heightReticles[currentThompsonHeightIdx];
+  // ATTN 23
+  reticle = vanishingPointReticle;
+  //reticle = heightReticles[currentThompsonHeightIdx];
   m_x = m_x_h[currentThompsonHeightIdx];
   m_y = m_y_h[currentThompsonHeightIdx];
 }
@@ -402,7 +404,9 @@ virtual void execute() {
   currentThompsonHeightIdx = 1;
   currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
   currentEEPose.pz = currentThompsonHeight;
-  reticle = heightReticles[currentThompsonHeightIdx];
+  // ATTN 23
+  reticle = vanishingPointReticle;
+  //reticle = heightReticles[currentThompsonHeightIdx];
   m_x = m_x_h[currentThompsonHeightIdx];
   m_y = m_y_h[currentThompsonHeightIdx];
 }
@@ -414,7 +418,9 @@ virtual void execute()  {
   currentThompsonHeightIdx = 2;
   currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
   currentEEPose.pz = currentThompsonHeight;
-  reticle = heightReticles[currentThompsonHeightIdx];
+  // ATTN 23
+  reticle = vanishingPointReticle;
+  //reticle = heightReticles[currentThompsonHeightIdx];
   m_x = m_x_h[currentThompsonHeightIdx];
   m_y = m_y_h[currentThompsonHeightIdx];
 }
@@ -426,7 +432,9 @@ virtual void execute() {
   currentThompsonHeightIdx = 3;
   currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
   currentEEPose.pz = currentThompsonHeight;
-  reticle = heightReticles[currentThompsonHeightIdx];
+  // ATTN 23
+  reticle = vanishingPointReticle;
+  //reticle = heightReticles[currentThompsonHeightIdx];
   m_x = m_x_h[currentThompsonHeightIdx];
   m_y = m_y_h[currentThompsonHeightIdx];
 }
