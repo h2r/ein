@@ -117,6 +117,132 @@ seven-degree-of-freedom arm, along with an approach for autonomously
 and reliably finding object bounding boxes once the object is on a
 background such as a floor or table.
 
+\section{Overview and Approach}
+Robots can interact with the physical world and collect multiple images
+for processing. We exploit this fact to make some computer vision tasks
+easier by physically adding invariance rather than hand engineering
+features.
+
+Our approach lets us use rich but inconvenient depth sensors once at learning
+time and then exploit the knowledge they provide by using only an RGB
+camera at run time.
+
+\subsection{Invariance in Images}
+A theme in computer vision and pattern recognition Is the notion of invariance.
+We like to detect objects anywhere in an image, invariant to their positions.
+We want to find the spoon no matter which direction it is pointing, invariant
+to its pose. Shadows and reflections can be confusing so we want to be
+invariant to lighting. What if you could add invariance to an image? With a
+robot you can.
+
+\begin{table}
+\begin{tabular}{ccc}
+\toprule
+Subsystem      &  Invariance(s) Addressed\\
+\midrule
+Canny Servo    &  Position\\
+Gradient Servo &  Orientation\\
+Light Map      &  Lighting Gain, Bias, Reflection, Shadow\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Canny Autotune is robotic because we have access to the environment and can
+take additional images.
+
+We can actively light the area with white or IR light (Kinect, for instance) to
+get some invariance to lighting. The IR rangefinder we use is active.
+
+SIFT features give some invariance to scale, as their name implies. BoW models
+give invariance to small model deformation. For invariance to large
+deformations, significant and expensive modeling such as DPM or CNN is
+required. 
+
+We can use our freedom as roboticists (all 7 degrees of it) to add invariance
+to a task not by addressing the features or models as much prior work does, but
+by adding it to the data at training and inference. 
+
+Collecting the data in a timely fashion both requires and facilitates a
+relatively tight loop of control over the robot’s joint states. Canny servoing
+will have an auto-threshold feature that adds lighting invariances to a fast
+saliency map. The resulting movement yields invariance to large translations.
+Gradient servoing provides invariance to orientation and small translations.
+
+Light Map is what averaging before the gradient servo will become. We map the
+projection of the object onto the table in physical coordinates, aggressively
+ignoring reflections and shadows, moving to get a better view and fill in gaps.
+Then we use that map for inference, our immediate cases being that we treat it
+as an image and classify it then feed it into gradient servo. 
+
+Deterministic light mapping is a nice non-parametric method, but you could
+imagine an online method that iteratively estimates the orientation of the
+object, uses prior knowledge of the appearance combined with accumulated
+measurements to construct the light map, then uses that map to estimate the
+orientation of the object, and repeats until convergence. Such a method might
+be called Light SLAM.
+
+\subsection{Sensors}
+By developing systems that work well in real time in simple environments with
+specific objects, we obtain the capacity to collect enough labeled data to
+train systems with the ability to generalize and perform well in more
+complicated, cluttered environments. This approach also lets us get a head
+start with the logistical problems involved in transforming theory to practice.
+
+Infrared (IR) imaging can be useful for segmenting and determining geometry and
+many devices (including the range finder we employ) are active in that they
+shine IR light and measure the return signal. The rangefinder’s readings are
+somewhat invariant to color and material while motionless, but show anisotropic
+artifacts near edges and during movement. None the less, for the most part the
+readings are good enough for us to infer grasps. 
+
+Transparent materials are invisible, reflective materials induce artifacts, and
+dark materials are worse during movement. To overcome these issues on other
+devices, people have spraypainted objects to make them permanently well
+behaved. This works to a degree but really breaks the suspension of disbelief
+and is inappropriate for domestic application. We developed a temporary
+contrast agent that can be applied safely and easily removed. We scan objects
+in IR once during training and use that scan during inference so that we can
+pick things up using only RGB data and do not require a permanent agent.
+
+We use a two phase contrast agent consisting of a binding phase and a
+conditioning phase. The conditioning phase scatters and reflects incoming IR
+light and the binding phase attach the conditioner to the surface of the
+object. For binders we investigated vaseline, zinc oxide ointment (diaper
+creme), and Aquanet hairspray. The only conditioner we tried was wheat flour,
+but you could substitute cornstarch or baking powder in a pinch. We settled on
+the Aquanet because it was fast, not too messy, and as the shell of flour
+hardened it eventually shrank so much that it detached cleanly on its own from
+many surfaces after 60 minutes. Aquanet may be inappropriate for some surfaces,
+in which case water could serve as a binder. In extreme situations, since the
+scan is top down and only needs to detect normal (horizontal) surfaces, you can
+run a scan with no binding phase since a dusting of powder will settle on
+desirable surfaces. This could even be seen as physical feature detection.
+
+\subsection{Purpose}
+\jgonote{I know some of this doesn't really belong but I had these thoughts
+and wanted to add them in case they are useful for, say, future work.}
+One purpose of this system is to investigate an approach to gathering data and
+training models that enable multiple robotic platforms to robustly detect and
+manipulate novel objects and to improve in ability over time. The approach
+consists of three phases.
+
+In the first phase, the system trains only instance level models of objects and
+collects data on those objects as it manipulates them, using heuristic
+proposals for grasp points and confidence bounds for learning. In the second
+phase, the system uses the data collected from instance level models to train
+category level detectors for object class and grasp locations. During the
+second phase, the system still uses its parent proposals during operation but
+it continuously evaluates the performance of the juvenile category level
+detectors. When the category level detectors are comparable to the parent
+detectors, the third phase begins and the system uses its trained category
+models instead of the originally provided parent heuristics. 
+
+In addition to being a convenient way to initially train models, this three
+fold process is a general method for bootstrapping a new classifier to replace
+an old one without taking the system offline.
+
+
+
 
 
 \section{Grasping System}
@@ -475,6 +601,9 @@ Overall             &       &\\
 \section{Related Work}
 
 \label{sec:relatedwork}
+\jgonote{I can do a little survey here on standard approaches for adding
+invariance in computer vision and attempt to find some approaches in robotics
+that add invariance in atypical ways.}
 
 \citet{bohg13} survey data-driven approaches to grasping.  Our
 approach can be thought of as a pipeline for automatically building an
