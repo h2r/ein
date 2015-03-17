@@ -17,7 +17,7 @@ virtual void execute()       {
   // load reg1
   pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
   // change gear to 4
-  //pushWord("shiftIntoGraspGear4");
+  pushWord("shiftIntoGraspGear4");
 
   // select max target cumulative
   pushWord("selectMaxTargetCumulative");
@@ -28,7 +28,7 @@ virtual void execute()       {
   // load reg1
   pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
   // change gear to 3
-  //pushWord("shiftIntoGraspGear3");
+  pushWord("shiftIntoGraspGear3");
 
   // select max target cumulative
   pushWord("selectMaxTargetCumulative");
@@ -39,7 +39,7 @@ virtual void execute()       {
   // load reg1
   pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
   // change gear to 2
-  //pushWord("shiftIntoGraspGear2");
+  pushWord("shiftIntoGraspGear2");
 
   // select max target NOT cumulative
   pushWord("selectMaxTargetNotCumulative");
@@ -54,7 +54,7 @@ virtual void execute()       {
   pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
 
   // change gear to 1
-  //pushWord("shiftIntoGraspGear1");
+  pushWord("shiftIntoGraspGear1");
 
   // ATTN 10
   // loadSampled gives proper Thompson
@@ -194,6 +194,7 @@ WORD(TryToMoveToTheLastPrePickHeight)
 virtual void execute() {
   currentEEPose.pz = lastPrePickHeight;
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  cout << "trying to move to the last pre pick height..." << endl;
 }
 END_WORD
 
@@ -225,6 +226,7 @@ virtual void execute() {
     currentEEPose.pz = lastPickHeight;
     pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   }
+  cout << "trying to move to the last pick height..." << endl;
 }
 END_WORD
 
@@ -691,6 +693,12 @@ virtual void execute()       {
   pushWord("findBestOfFourGraspsUsingMemory"); 
 
   pushWord("loadTargetClassRangeMapIntoRegister1"); 
+
+  // ATTN 23
+  {
+    pushWord("setRangeMapCenterFromCurrentEEPose"); 
+    pushWord("initDepthScan"); 
+  }
   pushWord("initDepthScan"); 
   pushWord("turnOffScanning"); 
 
@@ -742,7 +750,14 @@ virtual void execute() {
   pushWord("findBestOfFourGraspsUsingMemory"); 
 
   pushWord("loadTargetClassRangeMapIntoRegister1"); 
-  pushWord("initDepthScan"); 
+
+  // ATTN 23
+  {
+    pushWord("setRangeMapCenterFromCurrentEEPose"); 
+    pushWord("initDepthScan"); 
+  }
+  //pushWord("initDepthScan"); 
+
   pushWord("turnOffScanning"); 
 
   pushWord("openGripper"); 
@@ -1132,6 +1147,26 @@ END_WORD
 WORD(GradientServo)
 CODE(196728)   // capslock + X
 virtual void execute() {
+  pushWord("gradientServoA");
+  pushWord("gradientServoPrep");
+  pushCopies("waitUntilAtCurrentPosition", 1); 
+}
+END_WORD
+
+WORD(GradientServoPrep)
+virtual void execute() {
+  // ATTN 8
+  pushCopies("density", densityIterationsForGradientServo); 
+  //pushCopies("accumulateDensity", densityIterationsForGradientServo); 
+  //pushCopies("resetTemporalMap", 1); 
+  pushWord("resetAerialGradientTemporalFrameAverage"); 
+  pushCopies("density", 1); 
+  //pushCopies("waitUntilAtCurrentPosition", 5); 
+}
+END_WORD
+
+WORD(GradientServoA)
+virtual void execute() {
   gradientServo();
 }
 END_WORD
@@ -1141,9 +1176,9 @@ virtual void execute() {
   if ( (bLabels.size() > 0) && (pilotClosestBlueBoxNumber != -1) ) {
     changeTargetClass(bLabels[pilotClosestBlueBoxNumber]);
     pushWord("gradientServo");
-    pushCopies("density", densityIterationsForGradientServo); 
+    //pushCopies("density", densityIterationsForGradientServo); 
     //pushCopies("accumulateDensity", densityIterationsForGradientServo); 
-    pushWord("resetAerialGradientTemporalFrameAverage"); 
+    //pushWord("resetAerialGradientTemporalFrameAverage"); 
   }
 }
 END_WORD

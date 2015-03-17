@@ -25,10 +25,11 @@ virtual void execute() {
   
   if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh)) {
     pushWord("waitUntilAtCurrentPositionB"); 
+    endThisStackCollapse = 1;
+    shouldIDoIK = 1;
+  } else {
+    endThisStackCollapse = endCollapse;
   }
-  endThisStackCollapse = 1;
-  shouldIMiscCallback = 1;
-  shouldIDoIK = 1;
 }
 END_WORD
 
@@ -49,13 +50,15 @@ virtual void execute() {
     waitUntilAtCurrentPositionCounter++;
     if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh)) {
       pushWord("waitUntilAtCurrentPositionB"); 
+      endThisStackCollapse = 1;
+      shouldIDoIK = 1;
+    } else {
+      endThisStackCollapse = endCollapse;
     }
   } else {
     cout << "Warning: waitUntilAtCurrentPosition timed out, moving on." << endl;
+    endThisStackCollapse = endCollapse;
   }
-  endThisStackCollapse = 1;
-  shouldIMiscCallback = 1;
-  shouldIDoIK = 1;
 }
 END_WORD
 
@@ -65,8 +68,6 @@ virtual void execute() {
   lastGripperCallbackRequest = ros::Time::now();
   pushWord("waitUntilGripperNotMovingB"); 
   endThisStackCollapse = 1;
-  shouldIMiscCallback = 1;
-  shouldIDoIK = 1;
 }
 END_WORD
 
@@ -90,20 +91,19 @@ virtual void execute() {
     }
   }
   endThisStackCollapse = 1;
-  shouldIMiscCallback = 1;
-  shouldIDoIK = 1;
 }
 END_WORD
 
 WORD(WaitUntilGripperNotMovingC)
 virtual void execute() {
+// waits until gripper has not been moving for gripperNotMovingConfirmTime
   if (lastGripperCallbackRequest >= lastGripperCallbackReceived) {
     pushWord("waitUntilGripperNotMovingC"); 
   } else {
     lastGripperCallbackRequest = ros::Time::now();
     if (waitUntilGripperNotMovingCounter < waitUntilGripperNotMovingTimeout) {
       ros::Duration deltaSinceUpdate = gripperLastUpdated - waitUntilGripperNotMovingStamp;
-      if (deltaSinceUpdate.toSec() <= 0) {
+      if (deltaSinceUpdate.toSec() <= gripperNotMovingConfirmTime) {
 	waitUntilGripperNotMovingCounter++;
 	pushWord("waitUntilGripperNotMovingC"); 
       }
@@ -112,8 +112,6 @@ virtual void execute() {
     }
   }
   endThisStackCollapse = 1;
-  shouldIMiscCallback = 1;
-  shouldIDoIK = 1;
 }
 END_WORD
 
@@ -475,7 +473,7 @@ END_WORD
 WORD(ApproachSpeed)
 virtual void execute() {
   //w1GoThresh = 0.01;
-  currentEESpeedRatio = 0.07;//0.05;
+  currentEESpeedRatio = 0.035;//0.07;//0.05;
 }
 END_WORD
 
@@ -489,6 +487,13 @@ END_WORD
 WORD(ResetW1ThreshToDefault)
 virtual void execute() {
   w1GoThresh = 0.03;
+}
+END_WORD
+
+WORD(RasterScanningSpeed)
+virtual void execute() {
+  //w1GoThresh = 0.05;
+  currentEESpeedRatio = 0.02;
 }
 END_WORD
 
