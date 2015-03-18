@@ -505,3 +505,50 @@ virtual void execute() {
 }
 END_WORD
 
+WORD(Hover)
+virtual void execute() {
+  lastHoverTrueEEPoseEEPose = trueEEPoseEEPose;
+  pushWord("hoverA");
+  endThisStackCollapse = 1;
+  shouldIDoIK = 1;
+  lastHoverRequest = ros::Time::now();
+  lastJointCallbackRequest = lastHoverRequest;
+}
+END_WORD
+
+WORD(HoverA)
+virtual void execute() {
+  if (lastJointCallbackRequest >= lastJointCallbackReceived) {
+    pushWord("hoverA");
+    cout << "hoverA waiting for jointCallback." << endl;
+    endThisStackCollapse = 1;
+  } else {
+    double dx = (lastHoverTrueEEPoseEEPose.px - trueEEPoseEEPose.px);
+    double dy = (lastHoverTrueEEPoseEEPose.py - trueEEPoseEEPose.py);
+    double dz = (lastHoverTrueEEPoseEEPose.pz - trueEEPoseEEPose.pz);
+    double distance = dx*dx + dy*dy + dz*dz;
+    
+    double qx = (fabs(lastHoverTrueEEPoseEEPose.qx) - fabs(trueEEPoseEEPose.qx));
+    double qy = (fabs(lastHoverTrueEEPoseEEPose.qy) - fabs(trueEEPoseEEPose.qy));
+    double qz = (fabs(lastHoverTrueEEPoseEEPose.qz) - fabs(trueEEPoseEEPose.qz));
+    double qw = (fabs(lastHoverTrueEEPoseEEPose.qw) - fabs(trueEEPoseEEPose.qw));
+    double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
+  
+    if ( ros::Time::now() - lastHoverRequest < ros::Duration(hoverTimeout) ) {
+      if ((distance > hoverGoThresh*hoverGoThresh) || (angleDistance > hoverAngleThresh*hoverAngleThresh)) {
+	pushWord("hoverA"); 
+	endThisStackCollapse = 1;
+	shouldIDoIK = 1;
+	cout << "hoverA distance requirement not met, distance angleDistance: " << distance << " " << angleDistance << endl;
+      } else {
+	endThisStackCollapse = endCollapse;
+      }
+    } else {
+      cout << "Warning: hover timed out, moving on." << endl;
+      endThisStackCollapse = endCollapse;
+    }
+  }
+}
+END_WORD
+
+

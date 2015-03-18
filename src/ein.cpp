@@ -1029,16 +1029,24 @@ ros::Time lastImageCallbackRequest;
 ros::Time lastGripperCallbackRequest;
 ros::Time lastRangeCallbackRequest;
 ros::Time lastFullMiscCallbackRequest;
+ros::Time lastJointCallbackRequest;
 
 ros::Time lastImageCallbackReceived;
 ros::Time lastGripperCallbackReceived;
 ros::Time lastRangeCallbackReceived;
 ros::Time lastFullMiscCallbackReceived;
+ros::Time lastJointCallbackReceived;
 
 bool usePotentiallyCollidingIK = 0;
 
 Mat objectViewerYCbCrBlur;
 Mat objectViewerGrayBlur;
+
+ros::Time lastHoverRequest;
+double hoverTimeout = 2.0; // seconds
+double hoverGoThresh = 0.02;
+double hoverAngleThresh = 0.02;
+eePose lastHoverTrueEEPoseEEPose;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -1351,7 +1359,7 @@ MapCell objectMap[mapWidth * mapHeight];
 ros::Time lastScanStarted;
 int mapFreeSpacePixelSkirt = 25;
 int mapBlueBoxPixelSkirt = 50;
-double mapBlueBoxCooldown = 70; // cooldown is a temporal skirt
+double mapBlueBoxCooldown = 20; // cooldown is a temporal skirt
 int mapGrayBoxPixelSkirt = 50;
 int ikMap[mapWidth * mapHeight];
 int clearanceMap[mapWidth * mapHeight];
@@ -2645,6 +2653,7 @@ void jointCallback(const sensor_msgs::JointState& js) {
 //    return;
 //  }
 
+  lastJointCallbackReceived = ros::Time::now();
   if (jointNamesInit) {
     int limit = js.position.size();
     for (int i = 0; i < limit; i++) {
@@ -7597,7 +7606,7 @@ void gradientServo() {
   //int gradientServoTranslation = 40;
   //int gsStride = 2;
   int gradientServoTranslation = 40;
-  int gsStride = 4;//2;
+  int gsStride = 2;
   if (orientationCascade) {
     if (lastPtheta < lPTthresh) {
       //int gradientServoTranslation = 20;
