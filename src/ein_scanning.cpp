@@ -395,7 +395,7 @@ virtual void execute() {
   pushWord("shiftIntoGraspGear1"); // change to first gear
   pushWord(1245219); // change to height 2
   pushSpeedSign(MOVE_FAST);
-  pushWord(196672); // go to wholeFoodsCounter1
+  //pushWord(196672); // go to wholeFoodsCounter1
 
   pushWord(1179735); // change to counter table
   pushWord("shiftIntoGraspGear1"); // change to first gear

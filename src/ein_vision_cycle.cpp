@@ -736,7 +736,8 @@ END_WORD
 WORD(Density)
 virtual void execute() {
   pushWord("densityA");
-  pushWord("waitUntilImageCallbackReceived");
+  //pushWord("waitUntilImageCallbackReceived");
+  pushCopies("waitUntilImageCallbackReceived", 5);
 }
 END_WORD
 

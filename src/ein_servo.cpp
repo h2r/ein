@@ -1156,12 +1156,21 @@ END_WORD
 WORD(GradientServoPrep)
 virtual void execute() {
   // ATTN 8
-  pushCopies("density", densityIterationsForGradientServo); 
-  //pushCopies("accumulateDensity", densityIterationsForGradientServo); 
-  //pushCopies("resetTemporalMap", 1); 
-  pushWord("resetAerialGradientTemporalFrameAverage"); 
-  pushCopies("density", 1); 
-  //pushCopies("waitUntilAtCurrentPosition", 5); 
+  if (0) {
+    pushCopies("density", densityIterationsForGradientServo); 
+    //pushCopies("accumulateDensity", densityIterationsForGradientServo); 
+    //pushCopies("resetTemporalMap", 1); 
+    pushWord("resetAerialGradientTemporalFrameAverage"); 
+    pushCopies("density", 1); 
+    //pushCopies("waitUntilAtCurrentPosition", 5); 
+  }
+
+  // ATTN 23
+  {
+    pushWord("accumulatedDensity");
+    pushCopies("waitUntilImageCallbackReceived", 3);
+    pushWord("resetAccumulatedDensity");
+  }
 }
 END_WORD
 
