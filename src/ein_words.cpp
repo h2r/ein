@@ -322,6 +322,9 @@ std::vector<Word *> create_words() {
     words.push_back(new RasterScanningSpeed());
 
     words.push_back(new SetRangeMapCenterFromCurrentEEPose());
+
+    words.push_back(new Hover());
+    words.push_back(new HoverA());
   }
 
   return words;

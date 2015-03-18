@@ -944,12 +944,14 @@ int rgbServoTrials;
 int rgbServoTrialsMax = 20;
 
 int useTemporalAerialGradient = 1;
-double aerialGradientDecay = 0.9;
+double aerialGradientDecayIteratedDensity = 0.9;
+double aerialGradientDecayImageAverage = 0.0;
+double aerialGradientDecay = 0.9;//0.965;//0.9;
 Mat aerialGradientTemporalFrameAverage;
 Mat aerialGradientSobelCbCr;
 Mat aerialGradientSobelGray;
 Mat preFrameGraySobel;
-int densityIterationsForGradientServo = 10;
+int densityIterationsForGradientServo = 10;//3;//10;
 
 double graspDepth = -.07;//-.09;
 double lastPickHeight = 0;
@@ -1027,15 +1029,24 @@ ros::Time lastImageCallbackRequest;
 ros::Time lastGripperCallbackRequest;
 ros::Time lastRangeCallbackRequest;
 ros::Time lastFullMiscCallbackRequest;
+ros::Time lastJointCallbackRequest;
 
 ros::Time lastImageCallbackReceived;
 ros::Time lastGripperCallbackReceived;
 ros::Time lastRangeCallbackReceived;
 ros::Time lastFullMiscCallbackReceived;
+ros::Time lastJointCallbackReceived;
 
 bool usePotentiallyCollidingIK = 0;
 
 Mat objectViewerYCbCrBlur;
+Mat objectViewerGrayBlur;
+
+ros::Time lastHoverRequest;
+double hoverTimeout = 2.0; // seconds
+double hoverGoThresh = 0.02;
+double hoverAngleThresh = 0.02;
+eePose lastHoverTrueEEPoseEEPose;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -1110,7 +1121,9 @@ double drawBingProb = .1;
 double canny_hi_thresh = 5e5;//7;
 double canny_lo_thresh = 5e5;//4;
 
-double sobel_sigma = 4.0;
+double sobel_sigma = 2.0;//4.0;
+double sobel_sigma_substitute_latest = 4.0;
+double sobel_sigma_substitute_accumulated = 4.0;//2.0; reflections are a problem for low sigma...
 double sobel_scale_factor = 1e-12;
 double local_sobel_sigma = 1.0;
 
@@ -1346,7 +1359,7 @@ MapCell objectMap[mapWidth * mapHeight];
 ros::Time lastScanStarted;
 int mapFreeSpacePixelSkirt = 25;
 int mapBlueBoxPixelSkirt = 50;
-double mapBlueBoxCooldown = 70; // cooldown is a temporal skirt
+double mapBlueBoxCooldown = 20; // cooldown is a temporal skirt
 int mapGrayBoxPixelSkirt = 50;
 int ikMap[mapWidth * mapHeight];
 int clearanceMap[mapWidth * mapHeight];
@@ -1664,6 +1677,8 @@ void mapBox(BoxMemory boxMemory);
 //
 // start node prototypes
 ////////////////////////////////////////////////
+
+int doubleToByte(double in);
 
 int rejectRedBox();
 
@@ -2638,6 +2653,7 @@ void jointCallback(const sensor_msgs::JointState& js) {
 //    return;
 //  }
 
+  lastJointCallbackReceived = ros::Time::now();
   if (jointNamesInit) {
     int limit = js.position.size();
     for (int i = 0; i < limit; i++) {
@@ -4152,7 +4168,6 @@ void timercallback1(const ros::TimerEvent&) {
 	endThisStackCollapse = 1;
       }
     } else {
-      execute_stack = 0;
       endThisStackCollapse = 1;
     }
 
@@ -7464,6 +7479,7 @@ void gradientServo() {
     mapxyToij(currentEEPose.px, currentEEPose.py, &i, &j);
     int doWeHaveClearance = (clearanceMap[i + mapWidth * j] != 0);
     if (!doWeHaveClearance) {
+      //pushWord("clearStackIntoMappingPatrol"); 
       cout << ">>>> Gradient servo strayed out of clearance area during mapping. <<<<" << endl;
       return;
     }
@@ -8263,6 +8279,7 @@ void synchronicServo() {
   }
 }
 
+/*
 int simulatedServo() {
   cout << "Starting simulated servo with " << numClasses << " classes." << endl;
 
@@ -8504,6 +8521,7 @@ int simulatedServo() {
 
   return bestClass;
 }
+*/
 
 void initRangeMaps() {
   classRangeMaps.resize(numClasses);
@@ -8979,6 +8997,10 @@ void mapBox(BoxMemory boxMemory) {
 //
 // start node definitions 
 ////////////////////////////////////////////////
+
+int doubleToByte(double in) {
+  return min(max(round(in),0.0),255.0);
+}
 
 int rejectRedBox() {
   // check that the redBox has probable dimensions
@@ -10768,7 +10790,7 @@ void renderAccumulatedImageAndDensity() {
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      oviToConstantize.at<cv::Vec3b>(y,x)[0] = YConstant;
+      //oviToConstantize.at<cv::Vec3b>(y,x)[0] = YConstant;
     }
   }
 
@@ -10778,6 +10800,13 @@ void renderAccumulatedImageAndDensity() {
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
       gradientViewerImage.at<cv::Vec3b>(y+imH,x) = oviInBGR.at<cv::Vec3b>(y,x);
+      //gradientViewerImage.at<cv::Vec3b>(y+imH,x) = oviToConstantize.at<cv::Vec3b>(y,x);
+
+      //gradientViewerImage.at<cv::Vec3b>(y+imH,x) = objectViewerYCbCrBlur.at<cv::Vec3b>(y,x);
+
+      //gradientViewerImage.at<cv::Vec3b>(y+imH,x)[0] = objectViewerGrayBlur.at<uchar>(y,x);
+      //gradientViewerImage.at<cv::Vec3b>(y+imH,x)[1] = objectViewerGrayBlur.at<uchar>(y,x);
+      //gradientViewerImage.at<cv::Vec3b>(y+imH,x)[2] = objectViewerGrayBlur.at<uchar>(y,x);
     }
   }
 
@@ -10788,6 +10817,8 @@ void renderAccumulatedImageAndDensity() {
 }
 
 void substituteAccumulatedImageQuantities() {
+  aerialGradientDecay = aerialGradientDecayImageAverage;
+  sobel_sigma = sobel_sigma_substitute_accumulated;
   Size sz = accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
@@ -10798,14 +10829,16 @@ void substituteAccumulatedImageQuantities() {
       if (denom <= 1.0) {
 	denom = 1.0;
       }
-      objectViewerImage.at<Vec3b>(y,x)[0] = accumulatedImage.at<Vec3d>(y,x)[0] / denom;
-      objectViewerImage.at<Vec3b>(y,x)[1] = accumulatedImage.at<Vec3d>(y,x)[1] / denom;
-      objectViewerImage.at<Vec3b>(y,x)[2] = accumulatedImage.at<Vec3d>(y,x)[2] / denom;
+      objectViewerImage.at<Vec3b>(y,x)[0] = doubleToByte(accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      objectViewerImage.at<Vec3b>(y,x)[1] = doubleToByte(accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      objectViewerImage.at<Vec3b>(y,x)[2] = doubleToByte(accumulatedImage.at<Vec3d>(y,x)[2] / denom);
     }
   }
 }
 
 void substituteLatestImageQuantities() {
+  aerialGradientDecay = aerialGradientDecayIteratedDensity;
+  sobel_sigma = sobel_sigma_substitute_latest;
   if (cv_ptr == NULL) {
     ROS_ERROR("Not receiving camera data, clearing call stack.");
     clearStack();
@@ -10820,6 +10853,8 @@ void goCalculateDensity() {
   int imW = sz.width;
   int imH = sz.height;
 
+  // XXX TODO might be able to pick up some time here if their allocation is slow
+  // by making these global
   densityViewerImage = objectViewerImage.clone();
   Mat tmpImage = objectViewerImage.clone();
 
@@ -10847,6 +10882,7 @@ void goCalculateDensity() {
   Mat sobelYCrCbBlur;
   processImage(tmpImage, sobelGrayBlur, sobelYCrCbBlur, sobel_sigma);
   objectViewerYCbCrBlur = sobelYCrCbBlur;
+  objectViewerGrayBlur = sobelYCrCbBlur;
   
   Mat totalGraySobel;
   {
@@ -13504,6 +13540,9 @@ bool isSketchyMat(Mat sketchy) {
 void guardViewers() {
   if ( isSketchyMat(objectViewerYCbCrBlur) ) {
     objectViewerYCbCrBlur = Mat(cv_ptr->image.rows, cv_ptr->image.cols, CV_64FC3);
+  }
+  if ( isSketchyMat(objectViewerGrayBlur) ) {
+    objectViewerGrayBlur = Mat(cv_ptr->image.rows, cv_ptr->image.cols, CV_64FC3);
   }
   if ( isSketchyMat(densityViewerImage) ) {
     densityViewerImage = cv_ptr->image.clone();

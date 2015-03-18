@@ -137,6 +137,7 @@ virtual void execute()       {
   pushWord("mapEmptySpace");
   pushWord("goFindBlueBoxes"); // blue boxes
   pushCopies("density", 1); // density
+  pushWord("hover"); // blue boxes
 }
 END_WORD
 
@@ -339,6 +340,8 @@ virtual void execute() {
   pushWord(131143); // 72 way scan
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
+  pushWord("scanCentered"); // 72 way scan
+
   // this is a good time to remove a contrast agent
   //pushWord('Y'); // pause stack execution
   //pushCopies("beep", 15); // beep
@@ -395,7 +398,7 @@ virtual void execute() {
   pushWord("shiftIntoGraspGear1"); // change to first gear
   pushWord(1245219); // change to height 2
   pushSpeedSign(MOVE_FAST);
-  pushWord(196672); // go to wholeFoodsCounter1
+  //pushWord(196672); // go to wholeFoodsCounter1
 
   pushWord(1179735); // change to counter table
   pushWord("shiftIntoGraspGear1"); // change to first gear
@@ -736,6 +739,7 @@ END_WORD
 WORD(ScanCentered)
 virtual void execute() {
   pushSpeedSign(MOVE_FAST);
+  pushWord("rgbScan");
   pushWord("rgbScan");
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   pushWord("synchronicServo"); 
