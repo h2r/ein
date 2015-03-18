@@ -728,6 +728,7 @@ virtual void execute() {
   pushWord("goClassifyBlueBoxes"); 
   pushWord("goFindBlueBoxes"); 
   pushCopies("density", 1); 
+  pushWord("hover");
   //pushCopies("resetTemporalMap", 1); 
   //pushCopies("density", 1); 
 }

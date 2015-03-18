@@ -1163,6 +1163,7 @@ virtual void execute() {
     pushWord("resetAerialGradientTemporalFrameAverage"); 
     pushCopies("density", 1); 
     //pushCopies("waitUntilAtCurrentPosition", 5); 
+    pushWord("hover");
   }
 
   // ATTN 23
@@ -1170,6 +1171,7 @@ virtual void execute() {
     pushWord("accumulatedDensity");
     pushCopies("waitUntilImageCallbackReceived", 3);
     pushWord("resetAccumulatedDensity");
+    pushWord("hover");
   }
 }
 END_WORD

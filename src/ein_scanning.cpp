@@ -137,6 +137,7 @@ virtual void execute()       {
   pushWord("mapEmptySpace");
   pushWord("goFindBlueBoxes"); // blue boxes
   pushCopies("density", 1); // density
+  pushWord("hover"); // blue boxes
 }
 END_WORD
 
@@ -338,6 +339,8 @@ virtual void execute() {
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   pushWord(131143); // 72 way scan
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+
+  pushWord("scanCentered"); // 72 way scan
 
   // this is a good time to remove a contrast agent
   //pushWord('Y'); // pause stack execution
@@ -736,6 +739,7 @@ END_WORD
 WORD(ScanCentered)
 virtual void execute() {
   pushSpeedSign(MOVE_FAST);
+  pushWord("rgbScan");
   pushWord("rgbScan");
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   pushWord("synchronicServo"); 
