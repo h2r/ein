@@ -1,0 +1,10 @@
+desc "build the pdf"
+task :default => [] do
+  sh "pdflatex ein-short.tex"
+  sh "bibtex ein-short"
+  sh "pdflatex ein-short.tex"
+end
+
+task :clean do
+  sh "rm -rf *.aux *.bbl *.blg *.log"
+end
