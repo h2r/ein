@@ -1,6 +1,5 @@
 We thank the reviewer for their comments on our paper.  
 
-
 > About the applicability of this method, the authors specify that if
 > the object is knocked over by the robot, it has to be placed again
 > in the reference pose. Is this also necessary in test?
