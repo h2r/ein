@@ -1,0 +1,24 @@
+We thank the reviewer for their comments on our paper.  
+
+>> For instance, the p_{below}, p_{above} and p{threshold} learned for
+>> an arm $j$ in Algorithm 1, for what object instance is being
+>> learned? Do you have to learn one for each object?
+
+Our approach adapts itself to specific objects and does not generalize
+to new objects.  Learning and then mastering individual objects forms
+an enabling capability for robotic object manipulation, because a
+robot can improve its capability "in the wild" to manipulate the
+object that an untrained user cares about.
+
+>> For instance, if the prior is very optimistic, the learning process
+>> could be very different than if the prior is pessimistic?
+
+
+
+>> Does it happen in this case? If so, how difficult is to find a good
+>> prior to initialize the algorithm? What is the worst case?
+
+Finding a good prior is equivalent to the problem of performing
+category-based grasping.  If the prior is perfect (i.e, category-based
+grasping is solved), then our method will quickly terminate 
+
