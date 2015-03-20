@@ -1,0 +1,6 @@
+We thank the reviewer for their comments on our paper.  
+
+The Kaufman et al. paper incorporates a prior but does not use simple
+regret, with a training period followed by an evaluation period.
+Additionally these approaches do not provide a stopping criterion, to
+decide when to move to the next object.
