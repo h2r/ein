@@ -10,10 +10,16 @@ an enabling capability for robotic object manipulation, because a
 robot can improve its capability "in the wild" to manipulate the
 object that an untrained user cares about.
 
+>> The evaluation, specifically table 1, is focused on measuring the increment of success from
+>> the prior knowledge to that obtained after learning. But the authors does not define in the
+>> robotic evaluation how they define the prior knowledge. They do for simulation, although they
+>> do not evaluate the effect of such prior in the result. 
 >> For instance, if the prior is very optimistic, the learning process
 >> could be very different than if the prior is pessimistic?
 
-
+Our prior knowledge is the response of the linear filters, which is
+a very weak model for grasping.  We demonstrate that we can recover a good
+signal from an easily implemented baseline.
 
 >> Does it happen in this case? If so, how difficult is to find a good
 >> prior to initialize the algorithm? What is the worst case?
