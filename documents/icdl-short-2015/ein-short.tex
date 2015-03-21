@@ -71,6 +71,9 @@
 % \documentclass[conference]{../sty/IEEEtran}
 
 \usepackage[numbers]{natbib}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{booktabs}
 \usepackage{xspace}
 \usepackage{graphicx}
 
@@ -158,21 +161,18 @@
 
 
 
-\section{Introduction}
-
-Robotics will assist us at childcare, help us cook, and provide
-service to doctors, nurses, and patients in hospitals. Many of these
+Robotics will assist at childcare, help with cooking, and provide
+service to doctors, nurses, and patients in hospitals.  Many of these
 tasks require a robot to robustly perceive and manipulate objects in
 its environment, yet robust object manipulation remains a challenging
 problem.  Transparent or reflective surfaces that are not visible in
-IR or RGB make it difficult to infer grasp points~\citep{lysenkov13}.
-A common source of error is the presence of latent dynamics that
-emerge from interactions between the object and the robot's gripper.
-For example, a heavy object might fall out of the robot's gripper
-unless it grabs it close to the center.
+IR or RGB make it difficult to infer grasp points~\citep{lysenkov13},
+while emergent physical dynamics cause objects to slip out of the
+robots gripper; for example, a heavy object might fall out of the
+robot's gripper unless it grabs it close to the center.
 
 To address these limitations, we propose an approach for enabling a
-robot to learn about an object through exploration and adapt its
+robot to learn about objects through active exploration and adapt its
 grasping model accordingly.  We frame the problem of model adaptation
 as identifying the best arm for an N-armed bandit
 problem~\citep{thompson33} where the robot aims to minimize simple
@@ -180,7 +180,7 @@ regret after a finite exploration period~\citep{bubeck09}.  Our robot
 can obtain a high-quality reward signal (although sometimes at a
 higher cost in time and sensing) by actively collecting additional
 information from the environment, and use this reward signal to
-adaptively identify grasp points that are likely to succeed.  
+adaptively identify grasp points that are likely to succeed.
 
 Existing algorithms for best arm identification require pulling all
 the arms as an initialization step~\citep{mannor04, audibert10,
@@ -195,15 +195,16 @@ the confidence in the result.  Figure~\ref{fig:ruler} shows the
 robot's performance before and after training on a ruler; after
 training it grasps the object in the center, improving the success
 rate.
-\begin{figure}
-\subfigure[Before learning.]{\includegraphics[width=0.25\linewidth]{figures/dropping_ruler.png}}%
-\subfigure[After learning.]{\includegraphics[width=0.25\linewidth]{figures/holding_ruler.png}}
-\subfigure[Objects in our evaluation, which improves grasping performance from 55\% (before learning) to 75\% (after learning).\label{fig:object_glory_shot}]{\includegraphics[width=0.5\linewidth]{figures/object_glory_shot.jpg}}
-\caption{Before learning, the robot grasps the ruler near the end, and
-  it twists out of the gripper and falls onto the table;
-  after learning, the robot grasps near the ruler's center of
-  mass.\label{fig:ruler}}
-\end{figure}
+
+Formally, the agent is given an N-armed bandit, where each arm pays
+out $1$ with probability $\mu_i$ and $0$ otherwise.  The agent's goal
+is to identify a good arm (with payout $>= k$) with probability $c$
+(e.g., 95\% confidence that this arm is good) as quickly as possible.
+As soon as it has done this, it should terminate.  The agent is also
+given a prior $\pi$ on the arms so that it may make informed decision
+about which grasps to explore.
+
+
 
 %% We use slower, more accurate sensing approaches
 %% to provide supervision for faster, simpler methods that excel with
@@ -244,62 +245,130 @@ rate.
 %% autonomously and reliably finding object bounding boxes once the
 %% object is on a background such as a floor or table.
 
-We evaluated \algorithmDTxt on a Baxter robot, demonstrating that our
-adaptation step improves the overall pick success rate from 55\% to
-75\% on our test set of 30 household objects, shown in
-Figure~\ref{fig:object_glory_shot}.  Moreover, our approach also
-enables the robot to learn success probabilities for each object it
-encounters; when the robot fails to infer a successful grasp for an
-object, it knows this fact, enabling it to take active steps to
-recover such as asking for help~\citep{tellex14}.
 
-We first give an overview of our object detection and localization pipeline.
-Next we formalize our grasping framework as a bandit problem, where each
-arm corresponds to a grasp point on the object.
-Section~\ref{sec:evaluation} describes our evaluation in simulation
-and on the real robot with $30$ household objects,
-Section~\ref{sec:relatedwork} covers related work, and
-Section~\ref{sec:conclusion} concludes.
+Our contributed algorithm, \algorithmDTxt, iteratively chooses the arm
+with the highest observed (or prior) success rate but whose
+probability of being below $k$ is less than $c$. It then tries that
+arm, records the results, and checks to see if its probability of
+success is above $k$ or within $[k-\epsilon, k+\epsilon]$ with
+probability $c$ (in which case it terminates). (If the latter
+condition is not included, an arm with success probability equal to
+$k$ will continue to be pulled indefinitely.)  We need to estimate the
+probability that the true payout probability, $\mu$, is greater than
+the threshold, $c$, given the observed number of successes and
+failures:
+\begin{align}
+\Pr(\mu_i > c|  S, F)
+\end{align}
+\noindent We can compute this probability using the law of total
+probability: $\Pr(\mu_i > c| S, F) = 1 - \int_0^k \Pr(\mu_i=\mu | S,
+F) d\mu$, assuming a beta distribution on $\mu$: $\int_k^1 \mu^S (1-
+\mu) ^F d\mu$.  This integral is the CDF of the beta distribution, and
+is called the regularized incomplete beta function~\citep{olver10}.
+
+\section*{Evaluation}
 
 
-\section{Conclusion}
+\begin{figure}
+\parbox{0.5\linewidth}{
+\subfigure[Before learning, the robot grasps the ruler near the end and drops it; after learning, it grasps it near the middle.]{\includegraphics[width=0.5\linewidth]{figures/dropping_ruler.png}\includegraphics[width=0.5\linewidth]{figures/holding_ruler.png}}
 
-We presented a formalization of the grasping problem as best arm
-identification in an N-armed bandit.  Our bandit problem has 1764
-levers, so even if we could pull a lever every 10 seconds it would
-take around 5 hours to explore all of the arms for a single object.
-To address this problem, we created a new algorithm, \algorithmDTxt,
-which explores promising arm first by exploiting prior knowledge,
-significantly reducing constant factors. 
+\subfigure[Objects in our evaluation, which improves grasping performance from 55\% (before learning) to 75\% (after learning).\label{fig:object_glory_shot}]{\includegraphics[width=1\linewidth]{figures/object_glory_shot.jpg}}
+}%
+\subfigure[Quantiative results.\label{table:robot_results}]{
+\small
+\begin{tabular}{cccc}
+\toprule
+		    & Prior         &  Training     & Marginal\\
+\midrule
+\multicolumn{4}{c}{$\Delta = 0; training = 3$} \\
+\midrule
+Garlic Press        & 0/10          &  8/50        &  2/10 \\
+Gyro Bowl    	    & 0/10          &  5/15        &  3/10 \\
+Helicopter    	    & 2/10          &  8/39        &  3/10 \\
+Big Syringe    	    & 1/10          &  13/50       &  4/10 \\
+Clear Pitcher       & 4/10          &  3/4         &  4/10 \\
+Sippy Cup    	    & 0/10          &  6/50        &  4/10 \\
+Red Bucket    	    & 5/10          &  3/3         &  5/10 \\
+Dragon    	    & 8/10          &  5/6         &  7/10 \\
+Ruler    	    & 6/10          &  5/12        &  7/10 \\
+Triangle Block      & 0/10          &  3/13        &  7/10 \\
+Bottle Top    	    & 0/10          &  5/17        &  7/10 \\
+Wooden Spoon        & 7/10          &  3/3         &  7/10 \\
+Icosahedron    	    & 7/10          &  7/21        &  8/10 \\
+Blue Salt Shaker    & 6/10          &  5/10        &  8/10 \\
+Epipen    	    & 8/10          &  4/5         &  8/10 \\
+Wooden Train        & 4/10          &  11/24       &  8/10 \\
+Stamp    	    & 8/10          &  3/3         &  8/10 \\
+Toy Egg    	    & 8/10          &  4/5         &  9/10 \\
+Yellow Boat    	    & 9/10          &  5/6         &  9/10 \\
+Vanilla	   	    & 5/10          &  4/5         &  9/10 \\
+Round Salt Shaker   & 1/10          &  4/16        &  9/10 \\
+Packing Tape        & 9/10          &  3/3         &  9/10 \\
+Purple Marker       & 9/10          &  3/3         &  9/10 \\
+Whiteout    	    & 10/10         &  3/3         &  10/10\\
+Syringe    	    & 9/10          &  6/9         &  10/10\\
+Brush    	    & 10/10         &  3/3         &  10/10\\
+Red Bowl    	    & 10/10         &  3/3         &  10/10\\
+Shoe    	    & 10/10         &  3/3         &  10/10\\
+Metal Pitcher       & 6/10          &  7/12        &  10/10\\
+Mug    		    & 3/10          &  3/4         &  10/10\\
+\midrule
+Total		    & 165/300       &  148/400     & 224/300\\
+Rate		    & 0.55          &  0.37        & 0.75\\
+\bottomrule
+\end{tabular}
+}
+\caption{Results from our evaluation. \label{fig:evaluation}}
+\end{figure}
 
-Our stack gathers feedback from the environment, which it uses to
-learn models to detect, localize, and manipulate previously unseen
-objects. In the future, we plan to explore learning parameters for a
-wider variety of tasks.  For instance, different objects can be
+We implemented our approach on the Baxter robot.  The robot acquired
+visual and RGB-D models for 30 objects using our autonomous learning
+system.  The objects used in our evaluation appear in
+Figure~\ref{fig:object_glory_shot}.  After acquiring visual and IR
+models for the object at different poses of the arm and camera, the
+robot performed the bandit-based adaptation step.  After the robot
+detects an initially successful grasp, it shakes the object vigorously
+to ensure that it would not fall out during transport. After releasing
+the object and moving away, the robot checks to make sure the object
+is not stuck in its gripper. If the object falls out during shaking or
+does not release properly, the grasp is recorded as a failure. If the
+object is stuck, the robot pauses and requests assistance before
+proceeding.
+
+Most objects have more than one pose in which they can stand upright
+on the table. If the robot knocks over an object, the model taken in
+the reference pose is no longer meaningful. Thus, during training, we
+monitored the object and returned it to the reference pose whenever
+the robot knocked it over. In the future, we aim to incorporate
+multiple components in the models which will allow the robot to cope
+with objects whose pose can change during training.
+
+Our evaluation demonstrates that our adaptation step improves the
+overall pick success rate from 55\% to 75\% on our test set of 30
+household objects, shown in Figure~\ref{fig:object_glory_shot}.
+Moreover, our approach also enables the robot to learn success
+probabilities for each object it encounters; when the robot fails to
+infer a successful grasp for an object, it knows this fact, enabling
+it to take active steps to recover such as asking for
+help~\citep{tellex14}.
+
+
+
+
+
+\section*{Conclusion}
+
+Our robotic system gathers feedback from the environment, which it
+uses to learn models to detect, localize, and manipulate previously
+unseen objects. In the future, we plan to explore learning parameters
+for a wider variety of tasks.  For instance, different objects can be
 located and oriented better or worse at different heights. One could
 learn which heights work well for which objects.  Likewise, we use
 color gradients for localization, but some objects would work better
 with other quantities. One could learn the appropriate map to use when
 localizing each object, or even further, the map might also depend
 upon the robot's current environment.
-
-%Right now, NODE runs on Baxter. We will port NODE to PR2 and other AH systems.
-%GRATA could be applied in other domains as well.  What are some examples?
-
-Our stack currently runs on Baxter, but the requirements are not
-stringent.  In fact, it would be possible to execute all scanning and
-some training for crane grasps on a modified 3D printer. Furthermore,
-the parallel electric gripper for Baxter is more difficult to infer
-grasps for than the gripper on the PR2.  Even though the PR2 lacks the
-IR rangefinder we use, that data could be gathered by a printer
-converted from a scanner, and the PR2 could perform its own grasp
-training.
-
-It is clear that the system's accuracy and precision would benefit
-from the use of more sophisticated imaging equipment such as the
-Kinect 2. Better and faster point clouds acquisition would allow the
-use of more precise physical models for grasps. It would also open the
-way for additional grasp types, such as side and handle grasps.
 
 Instance-based approaches mean that the robot must acquire data about
 a specific object before manipulating it; however by adapting itself
@@ -335,7 +404,7 @@ unsuccessful, leading overall to robust and accurate pick-and-place.
 % <OR> manually copy in the resultant .bbl file
 % set second argument of \begin to the number of references
 % (used to reserve space for the reference number labels box)
-{\small
+{\tiny
 \bibliographystyle{plainnat}
 \bibliography{main}
 }
