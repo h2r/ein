@@ -70,13 +70,14 @@
   are being manipulated.  The contribution of this paper is a system
   that automates this data collection and adaptation process.  When
   the robot encounters a novel object, it automatically collects
-  instance based models for detecting, estimating pose, and grasping
-  that object.  This approach achieves the generality of
+  instance based models for detecting the object, estimating its pose,
+  and grasping the object.  This approach achieves the generality of
   category-based methods with the reliability of instance-based
   methods, at the cost of time spent collecting data for the model. We
   demonstrate that our approach enables an unmodified Baxter robot to
   autonomously acquire models for a wide variety of objects and then
-  robustly respond to pick-and-place requests for those objects.  }
+  detect the objects on the tabletop and respond to pick-and-place
+  requests.  }
 
 
 \section{Introduction}
@@ -85,192 +86,44 @@ Robotics will assist us at childcare, help us cook, and provide
 service to doctors, nurses, and patients in hospitals. Many of these
 tasks require a robot to robustly perceive and manipulate objects in
 its environment, yet robust object manipulation remains a challenging
-problem.  Systems for general-purpose manipulation are computationally
-expensive and do not enjoy high accuracy on novel
-objects~\citep{saxena08}.  Instance-based approaches that focus on
-specific instances of objects can have higher accuracy but require
-training by a human operator, which is time consuming and can be
-difficult for a non-expert to perform~\citep{ork14, lai11, lai11a}.
-Existing approaches to autonomously learn 3D object models still
-require expensive ICP-based methods to localize objects, which are
-susceptible to local minima and take time to
-converge~\citep{krainin11}.
+problem.  Many of these tasks require a robot to robustly perceive and
+manipulate objects in its environment, yet robust object manipulation
+remains a challenging problem.  Transparent or reflective surfaces
+that are not visible in IR or RGB make it difficult to infer grasp
+points~\citep{lysenkov13}, while emergent physical dynamics cause
+objects to slip out of the robots gripper; for example, a heavy object
+might fall out of the robot's gripper unless it grabs it close to the
+center.  Instance-based approaches that focus on specific instances of
+objects can have higher accuracy but require training by a human
+operator, which is time consuming and can be difficult for a
+non-expert to perform~\citep{ork14, lai11, lai11a}.  Existing
+approaches to autonomously learn 3D object models still require
+expensive ICP-based methods to localize objects, which are susceptible
+to local minima and take time to converge~\citep{krainin11}.
 
-To address these problems, we present an approach that captures the
-high accuracy of instance-based methods without the need for manually
-acquiring training data by enabling a robot to learn to identify and
-grasp on a per object basis. Our grasping and perception pipeline uses
-standard computer vision techniques to perform data collection,
-feature extraction, and training, along with active visual servoing
-for localization.  Using our algorithm, the robot detects candidate
-objects for training using a depth sensor, then actively collects
-view-based visual templates to perform robust instance-based object
-detection, pose estimation and grasping models using visual servoing.
-Because our camera can move with seven degrees of freedom, the robot
-can collect large quantities of data leading to simple visual models
-that perform with high accuracy.  Our approach is enabled by three
-components: our end-to-end algorithm for collecting view-based
-training data with supervision obtained from a higher-reliability
-depth sensor, which is supported by a simple and robust method for
-determining candidate grasps using a depth sensor mounted on a
-seven-degree-of-freedom arm, along with an approach for autonomously
-and reliably finding object bounding boxes once the object is on a
-background such as a floor or table.
-
-\section{Overview and Approach}
-Robots can interact with the physical world and collect multiple images
-for processing. We exploit this fact to make some computer vision tasks
-easier by physically adding invariance rather than hand engineering
-features.
-
-Our approach lets us use rich but inconvenient depth sensors once at learning
-time and then exploit the knowledge they provide by using only an RGB
-camera at run time.
-
-\subsection{Invariance in Images}
-A theme in computer vision and pattern recognition Is the notion of invariance.
-We like to detect objects anywhere in an image, invariant to their positions.
-We want to find the spoon no matter which direction it is pointing, invariant
-to its pose. Shadows and reflections can be confusing so we want to be
-invariant to lighting. What if you could add invariance to an image? With a
-robot you can.
-
-\begin{table}
-\begin{tabular}{ccc}
-\toprule
-Subsystem      &  Invariance(s) Addressed\\
-\midrule
-Canny Servo    &  Position\\
-Gradient Servo &  Orientation\\
-Light Map      &  Lighting Gain, Bias, Reflection, Shadow\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Canny Autotune is robotic because we have access to the environment and can
-take additional images.
-
-We can actively light the area with white or IR light (Kinect, for instance) to
-get some invariance to lighting. The IR rangefinder we use is active.
-
-SIFT features give some invariance to scale, as their name implies. BoW models
-give invariance to small model deformation. For invariance to large
-deformations, significant and expensive modeling such as DPM or CNN is
-required. 
-
-We can use our freedom as roboticists (all 7 degrees of it) to add invariance
-to a task not by addressing the features or models as much prior work does, but
-by adding it to the data at training and inference. 
-
-Collecting the data in a timely fashion both requires and facilitates a
-relatively tight loop of control over the robot’s joint states. Canny servoing
-will have an auto-threshold feature that adds lighting invariances to a fast
-saliency map. The resulting movement yields invariance to large translations.
-Gradient servoing provides invariance to orientation and small translations.
-
-Light Map is what averaging before the gradient servo will become. We map the
-projection of the object onto the table in physical coordinates, aggressively
-ignoring reflections and shadows, moving to get a better view and fill in gaps.
-Then we use that map for inference, our immediate cases being that we treat it
-as an image and classify it then feed it into gradient servo. 
-
-Deterministic light mapping is a nice non-parametric method, but you could
-imagine an online method that iteratively estimates the orientation of the
-object, uses prior knowledge of the appearance combined with accumulated
-measurements to construct the light map, then uses that map to estimate the
-orientation of the object, and repeats until convergence. Such a method might
-be called Light SLAM.
-
-\subsection{Sensors}
-By developing systems that work well in real time in simple environments with
-specific objects, we obtain the capacity to collect enough labeled data to
-train systems with the ability to generalize and perform well in more
-complicated, cluttered environments. This approach also lets us get a head
-start with the logistical problems involved in transforming theory to practice.
-
-Infrared (IR) imaging can be useful for segmenting and determining geometry and
-many devices (including the range finder we employ) are active in that they
-shine IR light and measure the return signal. The rangefinder’s readings are
-somewhat invariant to color and material while motionless, but show anisotropic
-artifacts near edges and during movement. None the less, for the most part the
-readings are good enough for us to infer grasps. 
-
-Transparent materials are invisible, reflective materials induce artifacts, and
-dark materials are worse during movement. To overcome these issues on other
-devices, people have spraypainted objects to make them permanently well
-behaved. This works to a degree but really breaks the suspension of disbelief
-and is inappropriate for domestic application. We developed a temporary
-contrast agent that can be applied safely and easily removed. We scan objects
-in IR once during training and use that scan during inference so that we can
-pick things up using only RGB data and do not require a permanent agent.
-
-We use a two phase contrast agent consisting of a binding phase and a
-conditioning phase. The conditioning phase scatters and reflects incoming IR
-light and the binding phase attach the conditioner to the surface of the
-object. For binders we investigated vaseline, zinc oxide ointment (diaper
-creme), and Aquanet hairspray. The only conditioner we tried was wheat flour,
-but you could substitute cornstarch or baking powder in a pinch. We settled on
-the Aquanet because it was fast, not too messy, and as the shell of flour
-hardened it eventually shrank so much that it detached cleanly on its own from
-many surfaces after 60 minutes. Aquanet may be inappropriate for some surfaces,
-in which case water could serve as a binder. In extreme situations, since the
-scan is top down and only needs to detect normal (horizontal) surfaces, you can
-run a scan with no binding phase since a dusting of powder will settle on
-desirable surfaces. This could even be seen as physical feature detection.
-
-\subsection{Purpose}
-\jgonote{I know some of this doesn't really belong but I had these thoughts
-and wanted to add them in case they are useful for, say, future work.}
-One purpose of this system is to investigate an approach to gathering data and
-training models that enable multiple robotic platforms to robustly detect and
-manipulate novel objects and to improve in ability over time. The approach
-consists of three phases.
-
-In the first phase, the system trains only instance level models of objects and
-collects data on those objects as it manipulates them, using heuristic
-proposals for grasp points and confidence bounds for learning. In the second
-phase, the system uses the data collected from instance level models to train
-category level detectors for object class and grasp locations. During the
-second phase, the system still uses its parent proposals during operation but
-it continuously evaluates the performance of the juvenile category level
-detectors. When the category level detectors are comparable to the parent
-detectors, the third phase begins and the system uses its trained category
-models instead of the originally provided parent heuristics. 
-
-In addition to being a convenient way to initially train models, this three
-fold process is a general method for bootstrapping a new classifier to replace
-an old one without taking the system offline.
-
-
-
+To address these problems, we present an approach that enables a robot
+to achieve the high accuracy of instance-based methods by automously
+acquiring training data on a per object basis. Our grasping and
+perception pipeline uses standard computer vision techniques to
+perform data collection, feature extraction, and training, along with
+active visual servoing for localization, and only uses depth
+information at scan time.  The robot detects candidate objects for
+training, then actively collects view-based visual templates to
+perform instance-based object detection, pose estimation and grasping
+models using visual servoing.  Because our camera can move with seven
+degrees of freedom, the robot collects large quantities of view-based
+training data leading to simple visual models that perform with high
+accuracy.  Our approach is enabled by three components: our end-to-end
+algorithm for collecting view-based training data with supervision
+obtained from a higher-reliability depth sensor, which is supported by
+a simple and robust method for determining candidate grasps using a
+depth sensor mounted on a seven-degree-of-freedom arm, along with an
+approach for autonomously and reliably finding object bounding boxes
+once the object is on a background such as a floor or table.
 
 
 \section{Grasping System}
 
-\begin{figure}
-\subfigure[RGB Image of an object.]{
-\includegraphics[width=0.24\linewidth]{figures/ruler_01_initial.png}
-}%
-\subfigure[Bounding box extracted for the object.]{
-\includegraphics[width=0.24\linewidth]{figures/ruler_02_labeled.png}
-}%
-\subfigure[Gradient image of the object.]{
-\includegraphics[width=0.24\linewidth]{figures/ruler_04_gradient.png}
-}%
-\subfigure[Stored gradient image overlayed on the object image after servoing.]{
-\includegraphics[width=0.24\linewidth]{figures/ruler_05_gradient_overlay.png}
-}%
-
-\caption{Results at each phase of the localization pipeline.\label{fig:images}}
-\end{figure}
-
-We first describe our instance-based object detection and pose
-estimation pipeline, which uses standard computer vision algorithms
-combined to achieve a simple software architecture, a high frame rate,
-and high accuracy at recognition and pose
-estimation.  Section~\ref{sec:training} describes our
-approach to enabling a robot to autonomously collect the data needed
-to perform grasping with this pipeline.
 
 Our recognition pipeline takes video from the robot, proposes a small
 number of candidate object bounding boxes in each frame, and
@@ -282,18 +135,12 @@ recognition means we cannot reliably detect categories, such as
 the specific instances for which it has models with much higher speed
 and accuracy.  A visualization of data flow in the pipeline appears in
 Figure~\ref{fig:system} while Figure~\ref{fig:images} shows results
-from each phase of the localization pipeline.  For each module, we
-formalize its input, output, and reward function; each component can
-have multiple implementations which better for different objects.  The
-following sections describe how we can use this pipeline to learn
-which implementation to use for specific objects; this learning
-dramatically speeds up performance.
-
+from each phase of the localization pipeline.  
 \begin{figure}
-\centering
 \includegraphics{figures/system.pdf}
-\caption{Data flow in our grasping system.\label{fig:system}\stnote{maybe combine with figure 1}}
+\caption{Results at each phase of the localization pipeline.\label{fig:images}}
 \end{figure}
+
 
 \subsection{Object Detection}
 \label{sec:detection}
@@ -423,18 +270,18 @@ appear in Figure~\ref{fig:gradient}.
 Next it acquires a depth image.  Normally this image could be acquired
 from an RGB-D sensor such as the Kinect.  However, in order to make
 our approach run on a stock Baxter robot with no additional sensing,
-we acquire a depth scan using Baxter's IR sensor, turing the arm into
+we acquire a depth scan using Baxter's IR sensor, turning the arm into
 a seven degree of freedom, one-pixel depth sensor.  We perform an IR
-scan scan 2cm above the tallest height, but we set it manually to save
+scan 2cm above the tallest height, but we set it manually to save
 time.  Additionally we set the height of the arm for the initial servo
 to acquire the object.  After acquiring visual and IR models for the
 object at different poses of the arm,
 
-Once the object has been moved to
-a known pose, we acquire the object model by moving the camera around
-the object, extracting bounding boxes from the resulting imgages, and
-storing the resulting crops.  Figure~\ref{fig:ruler_rgb} shows RGB
-images automaticaly collected for one object in our dataset.
+We acquire view-based object models for detection and recognition by
+moving the camera around the object, extracting bounding boxes from
+the imgages, and storing the resulting crops.
+Figure~\ref{fig:ruler_rgb} shows RGB images automaticaly collected for
+one object in our dataset.  
 
 
 \begin{figure}
@@ -449,37 +296,40 @@ images automaticaly collected for one object in our dataset.
 
 \section{Evaluation}
 
-We evaluate our approach in two ways, first at mapping a tabletop
-scene, and second by assessing picking accuracy.  Video showing our
+We implemented our approach on a Baxter robot; video showing our
 training and grasping pipeline is available at
-\url{https://www.youtube.com/watch?v=xfH0B3g782Y}.
+\url{https://www.youtube.com/watch?v=xfH0B3g782Y}.  We evaluate our
+approach in two ways, first at mapping a tabletop scene, and second by
+assessing picking accuracy.
 
 
 \subsection{Mapping Accuracy}
 
 Mapping assesses the ability of our robot to accurately localize and
-label objects in a tabletop scene.  We assess performance by creating
-scenes containing a subset of the objects used in our evaluation.  The
-robot maps the scene by maintaining a data structure for each cell in
-its work space, at approximately 1cm resolution and recording the last
-time that cell was observed by the camera.  It samples a new cell
-uniformly from the set of oldest cells, moves to that location, then
-runs the detection step.  If it sees an object, it servos to that
-object, then adds the object's bounding box and category to the map.
-Figure~\ref{fig:map} shows the map created in this way for a tabletop
-scene.
+label objects in a tabletop scene.  The robot maps the scene by
+maintaining a data structure for each cell in its work space, at
+approximately 1cm resolution and recording the last time that cell was
+observed by the camera.  It samples a new cell uniformly from the set
+of oldest cells, moves to that location, then runs the detection step.
+If it sees an object, it servos to that object, then adds the object's
+bounding box and category to the map.  By running object
+classification directly over the object, we obtain high-accuracy
+recognition rates, since the robot sees the object from a consistent
+pose. Figure~\ref{fig:map} shows the map created in this way for a
+tabletop scene.  We compute colors for each cell by taking the average
+of camera pixel colors at that cell, given the current table height.
+
 
 \begin{figure}
-\subfigure[Tabletop scene.]{\parbox{0.5\linewidth}{~\\~\\~\\~\\}}
-\subfigure[Map created from the scene.]{\parbox{0.5\linewidth}{~\\~\\~\\~\\}}
-\label{fig:map}
+\subfigure[Tabletop scene with objects]{
+\includegraphics[width=0.5\linewidth]{figures/mapping/mergedMapScene.png}}
+\subfigure[Map created for the scene by scanning with both arms.]{
+\includegraphics[width=0.5\linewidth]{figures/mapping/mergedMap.png}}
+\caption{The robot actively scans the table and maps its environment
+  using learned models.  (Object labels are provided by hand.)\label{fig:map}r}
 \end{figure}
 
-We report precision and recall for each object in the scene.
-Precision means that if the system associated that object with a
-bounding box, it correctly labeled it.  Recall means that the object
-associated each object in the scene with a bounding box with a correct
-label.
+
 
 \subsection{Picking Accuracy}
 
@@ -488,11 +338,12 @@ label.
 \caption{The objects used in our evaluation.\label{fig:object_glory_shot}}
 \end{figure}
 
-We evaluated our system by training models for a diverse set of
-objects and assessing picking accuracy.  The objects in our evaluation
-appear in Figure~\ref{fig:object_glory_shot}.
+Once the robot has localized objects, it can pick them up.  We
+evaluated our system by training models for a diverse set of objects
+and assessing picking accuracy.  The objects in our evaluation appear
+in Figure~\ref{fig:object_glory_shot}.
 
-After the robot detects an initially successful grab, it shakes the
+After the robot detects an initially successful grasp, it shakes the
 object vigorously to ensure that it would not fall out during
 transport. After releasing the object and moving away, the robot
 checks to make sure the object is not stuck in its gripper. If the
@@ -502,13 +353,13 @@ pauses and requests assistance before proceeding.
 
 Most objects have more than one pose in which they can stand upright
 on the table. If the robot knocks over an object, the model taken in
-the reference pose is no longer meaningful. Thus, during training, we
-monitored the object and returned it to the reference pose whenever
-the robot knocked it over. In the future, we aim to incorporate
-multiple components in the models which will allow the robot to cope
-with objects whose pose can change during training.  We report the
-performance of the robot at picking after training models for the
-system.
+the reference pose is no longer meaningful. Thus, during our
+evaluation, we monitored the object and returned it to the reference
+pose whenever the robot knocked it over. In the future, we aim to
+incorporate multiple components in the models which will allow the
+robot to cope with objects whose pose can change during training.  We
+report the performance of the robot at picking after training models
+for the system.
 
 
 \begin{table}
@@ -575,6 +426,8 @@ approach, which uses IR only at grasp proposal time, and not at
 inference time; once a good grasp is obtained, high-quality grasps can
 be inferred at pick time.
 
+
+
 Besides our learning approach, we also found that applying a contrast
 agent significantly improves grasp success.  For example, for the two
 objects in Figure~\ref{fig:poor_ir}, performance using a contrast
@@ -609,29 +462,24 @@ Overall             &       &\\
 \section{Related Work}
 
 \label{sec:relatedwork}
-\jgonote{I can do a little survey here on standard approaches for adding
-invariance in computer vision and attempt to find some approaches in robotics
-that add invariance in atypical ways.}
+
+In other work we have demonstrated that a robot can augment its visual
+and analytic grasping models with information obtained from experience
+grasping objects, enabling it to recover from failures due to poor IR
+scans.
 
 \citet{bohg13} survey data-driven approaches to grasping.  Our
 approach can be thought of as a pipeline for automatically building an
-experience database consisting of object models and known good grasps,
-using analytic approaches to grasping unknown objects to generate a
-grasp hypothesis space and using our bandit-based method for trying
-grasps and learning instance-based distributions for the grasp
-experience database.  In this way our system achieves the best of both
-approaches: models for grasping unknown objects can be applied; when
-they do fail, the system can attempt to recover by trying grasps and
-adapting itself based on that specific object.  
-
+experience database consisting of object models and known good grasps.
+Our approach for proposing grasps is quite simple, but could be
+improved by applying state-of-the-art analytic methods for grasping.
 \citet{ude12} described an approach for detecting and manipulating
 objects to learn models.  It uses a bag of words model and learns to
 detect the objects.  It does not learn a model for grasping.
 \citet{schiebener13} describes an extension that also does model
 learning.  The robot pushes the object and then trains an object
 recognition system.  It does not use a camera that moves and does not
-grasp.
-\citet{schiebener12} discovers and grasps unknown objects.
+grasp.  \citet{schiebener12} discovers and grasps unknown objects.
 
 Summary: 
 \begin{itemize}
@@ -644,14 +492,10 @@ Summary:
 \end{itemize}
 
 
-
-
 Crowd-sourced and web robotics have created large databases of objects
 and grasps using human supervision on the web~\citep{kent14a, kent14}.
 These approaches outperform automatically inferred grasps but still
-require humans in the loop.  Our approach enables a robot to acquire a
-model fully autonomously, once the object has been placed on the
-table.
+require humans in the loop.
 
 \citet{zhu14} created a system for detecting objects and estimating
 pose from single images of cluttered objects.  They use KinectFusion
