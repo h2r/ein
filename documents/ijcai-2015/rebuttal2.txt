@@ -6,7 +6,8 @@ We thank the reviewer for their comments on our paper.
 
 Yes.  During test we reset the object to the reference pose.  Our
 method could generalize to new poses by learning a new grasping model
-for each pose.
+for each of the poses in which the object can rest, up to certain symmetries
+such as rotation.
 
 
 
