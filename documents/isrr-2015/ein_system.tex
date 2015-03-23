@@ -293,24 +293,6 @@ one object in our dataset.
 \caption{Autonomously acquired object model.\label{fig:ruler_model}}
 \end{figure}
 
-\section{Contrast Agents}
-
-\begin{figure}
-\subfigure[The depth map for the glass bowl without a contrast agent applied is noisy and leads to poor grasp hypothesis.]{\includegraphics[width=0.5\linewidth]{figures/glassBowl.png}
-\includegraphics[width=0.5\linewidth]{figures/glassBowlIrNoContrast.png}
-}
-\subfigure[When a contrast agent is applied, the depth map is clearn and grasp performance improves.  In our method, the contrast agent is only needed at scan time, not at pick time.]{
-\includegraphics[width=0.5\linewidth]{figures/glassBowlContrast.png}
-\includegraphics[width=0.5\linewidth]{figures/glassBowlIrContrast.png}}
-
-\end{figure}
-
-Because our approach only uses depth information at scan time, ew 
-
-Besides our learning approach, we also found that applying a contrast
-agent significantly improves grasp success.  For example, for the two
-objects in Figure~\ref{fig:poor_ir}, performance using a contrast
-agent raises to XX.
 
 
 
@@ -437,14 +419,42 @@ Triangle Block      & 0/10  \\
 Our evaluation demonstrates that for many objects, the system obtains
 a very high grasp success rate.  Objects failed for several reasons.
 Some objects, such as the garlic press, were quite heavy, at the edge
-of the robot's capability to lift.  Other objects, such as those in
-Figure~\ref{fig:poor_ir} are poorly visible in IR.  In our other
+of the robot's capability to lift.  In our other
 work~\citep{oberlin15}, we showed that we could improve the robot's
 grasp rate on these objects by actively picking and learning better
-grasp points.  This demonstrates the advantage of our vision-based
+grasp points.
+
+
+\subsection{Contrast Agents}
+
+\begin{figure}
+\subfigure[The depth map for the glass bowl without a contrast agent applied is noisy and leads to poor grasp hypothesis.]{\includegraphics[width=0.5\linewidth]{figures/glassBowl.png}
+\includegraphics[width=0.5\linewidth]{figures/glassBowlIrNoContrast.png}
+}
+\subfigure[When a contrast agent is applied, the depth map is clearn and grasp performance improves.  In our method, the contrast agent is only needed at scan time, not at pick time.]{
+\includegraphics[width=0.5\linewidth]{figures/glassBowlContrast.png}
+\includegraphics[width=0.5\linewidth]{figures/glassBowlIrContrast.png}}
+
+\caption{Depth map for a transparent object with and without a contrast agent.\label{fig:contrast}}
+\end{figure}
+
+Many objects are challenging to grasp for our approach because they
+are transparent or dark in IR; grasping objects in spite of these
+issues is a challenging problem that remains an active area of
+research~\citep{ihrke08, meriaudeau12}.  As in \citet{lysenkov13},
+which used paint to construct models of objects, we apply a contrast
+agent to make the object visible in IR.  Because our approach only
+uses depth information at scan time, and not at grasping time, and is
+heavily instance-based, we apply a temporary coating for the IR scan
+and then remove it for grasp training.  Figure~\ref{fig:contrast}
+shows an object and IR scan with and without a contrast agent.  This
+demonstrates the advantage of our view-based and instance-based
 approach, which uses IR only at grasp proposal time, and not at
 inference time; once a good grasp is obtained, high-quality grasps can
 be inferred at pick time.
+
+Other objects, such as those in
+Figure~\ref{fig:poor_ir} are poorly visible in IR.  
 
 
 \begin{table}
@@ -459,11 +469,6 @@ Metal Bowl    	    & 0/10  & 4/10 \\
 \end{tabular}
 \caption{Results with and without the contrast agent.}
 \end{table}
-
-\begin{figure}
-
-\caption{IR scan showing a weird-looking IR scan without the contrast agent, and a non-weird looking IR scan with the contrast agent.}
-\end{figure}
 
 \begin{figure}
 \includegraphics[width=0.3\linewidth]{figures/saltshaker.png}
@@ -659,8 +664,8 @@ the objects.  Using this framework, the system will be capable of
 autonomously learning grasping models over a long period of time,
 significantly increasing the size of the dataset collected and thus
 robustness.
-
+{\small
 \bibliographystyle{plainnat}
-\bibliography{main}
+\bibliography{main}}
 
 \end{document}
