@@ -133,12 +133,12 @@ instances rather than pure object categories.  Using instance
 recognition means we cannot reliably detect categories, such as
 ``mugs,'' but the system will be able to detect, localize, and grasp
 the specific instances for which it has models with much higher speed
-and accuracy.  A visualization of data flow in the pipeline appears in
-Figure~\ref{fig:system} while Figure~\ref{fig:images} shows results
-from each phase of the localization pipeline.  
+and accuracy.  A visualization of data flow in the detection and
+localization pipeline appears in Figure~\ref{fig:system}.
+
 \begin{figure}
 \includegraphics{figures/system.pdf}
-\caption{Results at each phase of the localization pipeline.\label{fig:images}}
+\caption{Results at each phase of the localization pipeline.\label{fig:system}}
 \end{figure}
 
 
@@ -287,7 +287,7 @@ one object in our dataset.
 \begin{figure}
 \subfigure[Cropped RGB images.\label{fig:ruler_rgb}]{\includegraphics[width=1\linewidth]{figures/ruler_collage.png}}
 
-\subfigure[Depth map.]{\includegraphics[width=0.4\linewidth]{figures/ruler_06_depth.png}}
+\subfigure[Depth map.\label{fig:depth_map}]{\includegraphics[width=0.4\linewidth]{figures/ruler_06_depth.png}}
 \subfigure[\label{fig:gradient}Gradient map.]{\includegraphics[width=0.4\linewidth]{figures/ruler_07a_aerialGradient.png}}
 
 \caption{Autonomously acquired object model.\label{fig:ruler_model}}
