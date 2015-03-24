@@ -184,7 +184,7 @@ signal (although sometimes at a higher cost in time and sensing) by
 actively collecting additional information from the environment, and
 use this reward signal to adaptively identify grasp points that are
 likely to succeed.  This paper provides an overview and high-level
-description of \citet{oberlin15}.
+description of our ongoing work~\citep{oberlin15}.
 
 
 Existing algorithms for best arm identification require pulling all
@@ -282,8 +282,8 @@ is called the regularized incomplete beta function~\citep{olver10}.
 
 \subfigure[Objects in our evaluation, which improves grasping performance from 55\% (before learning) to 75\% (after learning).\label{fig:object_glory_shot}]{\includegraphics[width=1\linewidth]{figures/object_glory_shot.jpg}}
 }%
-\subfigure[Quantiative results.\label{table:robot_results}]{
-\small
+\subfigure[Quantiative results.\label{table:robot_results}]{\parbox{0.5\linewidth}{
+\tiny \centering
 \begin{tabular}{cccc}
 \toprule
 		    & Prior         &  Training     & Marginal\\
@@ -325,7 +325,9 @@ Total		    & 165/300       &  148/400     & 224/300\\
 Rate		    & 0.55          &  0.37        & 0.75\\
 \bottomrule
 \end{tabular}
-}
+~\\~
+~\\~
+}}
 \caption{Results from our evaluation. \label{fig:evaluation}}
 \end{figure}
 
