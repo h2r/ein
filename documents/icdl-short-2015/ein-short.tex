@@ -83,6 +83,8 @@
 \newcommand{\algorithmDTxt}{Prior Confidence Bound\xspace}
 \newcommand{\algorithmDFname}{PriorConfidenceBound}
 
+%\newcommand{\jgonote}[1]{\textcolor{blue}{\textbf{JGO: #1}}}
+
 
 % correct bad hyphenation here
 \hyphenation{op-tical net-works semi-conduc-tor}
@@ -168,26 +170,29 @@ its environment, yet robust object manipulation remains a challenging
 problem.  Transparent or reflective surfaces that are not visible in
 IR or RGB make it difficult to infer grasp points~\citep{lysenkov13},
 while emergent physical dynamics cause objects to slip out of the
-robots gripper; for example, a heavy object might fall out of the
+robot's gripper; for example, a heavy object might fall out of the
 robot's gripper unless it grabs it close to the center.
 
 To address these limitations, we propose an approach for enabling a
 robot to learn about objects through active exploration and adapt its
 grasping model accordingly.  We frame the problem of model adaptation
-as identifying the best arm for an N-armed bandit
-problem~\citep{thompson33} where the robot aims to minimize simple
-regret after a finite exploration period~\citep{bubeck09}.  Our robot
-can obtain a high-quality reward signal (although sometimes at a
-higher cost in time and sensing) by actively collecting additional
-information from the environment, and use this reward signal to
-adaptively identify grasp points that are likely to succeed.  This
-paper provides an overview and high-level description of
-\citet{oberlin15}.
+as a bandit problem, specifically the identification of the best of
+the arms of an N-armed bandit, ~\citep{thompson33} where the robot
+aims to minimize simple regret after a finite exploration
+period~\citep{bubeck09}.  Our robot can obtain a high-quality reward
+signal (although sometimes at a higher cost in time and sensing) by
+actively collecting additional information from the environment, and
+use this reward signal to adaptively identify grasp points that are
+likely to succeed.  This paper provides an overview and high-level
+description of \citet{oberlin15}.
+
 
 Existing algorithms for best arm identification require pulling all
 the arms as an initialization step~\citep{mannor04, audibert10,
   chen14}; in the case of identifying grasp points, where each grasp
-takes more than 90 seconds and there are more than 1000 potential
+takes more than 90 seconds 
+%\jgonote{actually we're down to more like 15} 
+and there are more than 1000 potential
 arms, this is a prohibitive expense.  To address this problem, we
 present a new algorithm, \algorithmDTxt, based on Hoeffding
 races~\citep{maron93}. In our approach, the robot pulls arms in an
@@ -203,7 +208,7 @@ out $1$ with probability $\mu_i$ and $0$ otherwise.  The agent's goal
 is to identify a good arm (with payout $>= k$) with probability $c$
 (e.g., 95\% confidence that this arm is good) as quickly as possible.
 As soon as it has done this, it should terminate.  The agent is also
-given a prior $\pi$ on the arms so that it may make informed decision
+given a prior $\pi$ on the arms so that it may make informed decisions
 about which grasps to explore.
 
 
@@ -273,7 +278,7 @@ is called the regularized incomplete beta function~\citep{olver10}.
 
 \begin{figure}
 \parbox{0.5\linewidth}{
-\subfigure[Before learning, the robot grasps the ruler near the end and drops it; after learning, it grasps it near the middle.]{\includegraphics[width=0.5\linewidth]{figures/dropping_ruler.png}\includegraphics[width=0.5\linewidth]{figures/holding_ruler.png}}
+\subfigure[Before learning, the robot grasps the ruler near the end and drops it; after learning, it grasps it near the middle.\label{fig:ruler}]{\includegraphics[width=0.5\linewidth]{figures/dropping_ruler.png}\includegraphics[width=0.5\linewidth]{figures/holding_ruler.png}}
 
 \subfigure[Objects in our evaluation, which improves grasping performance from 55\% (before learning) to 75\% (after learning).\label{fig:object_glory_shot}]{\includegraphics[width=1\linewidth]{figures/object_glory_shot.jpg}}
 }%
@@ -325,7 +330,9 @@ Rate		    & 0.55          &  0.37        & 0.75\\
 \end{figure}
 
 We implemented our approach on the Baxter robot.  The robot acquired
-visual and RGB-D models for 30 objects using our autonomous learning
+visual and 
+%\jgonote{visual AND rgbd?}
+RGB-D models for 30 objects using our autonomous learning
 system.  The objects used in our evaluation appear in
 Figure~\ref{fig:object_glory_shot}.  After acquiring visual and IR
 models for the object at different poses of the arm and camera, the
@@ -371,6 +378,7 @@ color gradients for localization, but some objects would work better
 with other quantities. One could learn the appropriate map to use when
 localizing each object, or even further, the map might also depend
 upon the robot's current environment.
+%\jgonote{this reads really nicely}
 
 Instance-based approaches mean that the robot must acquire data about
 a specific object before manipulating it; however by adapting itself
