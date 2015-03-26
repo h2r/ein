@@ -229,6 +229,12 @@ typedef enum {
   OFT_INVALID
 } orientedFilterType;
 
+typedef enum {
+  PHYSICAL,
+  SIMULATED
+} robotMode;
+robotMode chosen_mode = SIMULATED;
+
 #define ORIENTATIONS 180//12 
 #define O_FILTER_WIDTH 25//25
 #define O_FILTER_SPOON_HEAD_WIDTH 6 
@@ -352,6 +358,7 @@ std::string hiRangemapViewName = "Hi Range Map View";
 std::string hiColorRangemapViewName = "Hi Color Range Map View";
 std::string graspMemoryViewName = "Grasp Memory View";
 std::string graspMemorySampleViewName = "Grasp Memory Sample View";
+std::string mapBackgroundViewName = "Map Background Vew";
 
 
 std::string heightMemorySampleViewName = "Height Memory Sample View";
@@ -1048,6 +1055,12 @@ double hoverGoThresh = 0.02;
 double hoverAngleThresh = 0.02;
 eePose lastHoverTrueEEPoseEEPose;
 
+double simulatorCallbackFrequency = 30.0;
+
+int mbiWidth = 500;
+int mbiHeight = 500;
+Mat mapBackgroundImage;
+
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -1671,6 +1684,10 @@ void initVectorArcTan();
 
 void mapBlueBox(cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark);
 void mapBox(BoxMemory boxMemory);
+
+void queryIK(int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
+
+void simulatorCallback(const ros::TimerEvent&);
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -2364,6 +2381,7 @@ void recordReadyRangeReadings() {
 	#ifdef DEBUG2
 	#endif
 	cout << "  recordReadyRangeReadings(): dropping stale packet due to epRing. consider increasing buffer size." << endl;
+	cout << "  recordReadyRangeReadings() --> " << thisTime << endl; 
       }
       if (weHaveImData == -1) {
 	rgRingBufferAdvance();
@@ -2371,6 +2389,7 @@ void recordReadyRangeReadings() {
 	#ifdef DEBUG2
 	#endif
 	cout << "  recordReadyRangeReadings(): dropping stale packet due to imRing. consider increasing buffer size." << endl;
+	cout << "  recordReadyRangeReadings() --> " << thisTime << endl; 
       } 
       if ((weHavePoseData == 1) && (weHaveImData == 1)) {
 
@@ -3609,6 +3628,8 @@ void rangeCallback(const sensor_msgs::Range& range) {
     guardedImshow(densityViewerName, densityViewerImage);
     guardedImshow(gradientViewerName, gradientViewerImage);
     guardedImshow(objectnessViewerName, objectnessViewerImage);
+
+    guardedImshow(mapBackgroundViewName, mapBackgroundImage);
     
     if (targetClass > -1) {
       if (classHeight0AerialGradients[targetClass].rows == aerialGradientWidth) {
@@ -3791,6 +3812,10 @@ void update_baxter(ros::NodeHandle &n) {
     return;
   }
 
+  if (chosen_mode == SIMULATED) {
+    return;
+  }
+
   baxter_core_msgs::SolvePositionIK thisIkRequest;
   endEffectorAngularUpdate(&currentEEPose);
   fillIkRequest(&currentEEPose, &thisIkRequest);
@@ -3805,7 +3830,11 @@ void update_baxter(ros::NodeHandle &n) {
     double useZOnly = 1;
     double ikNoiseAmplitudeQuat = 0;
     for (int ikRetry = 0; ikRetry < numIkRetries; ikRetry++) {
-      int ikCallResult = ikClient.call(thisIkRequest);
+      // ATTN 24
+      //int ikCallResult = ikClient.call(thisIkRequest);
+      int ikCallResult = 0;
+      queryIK(&ikCallResult, &thisIkRequest);
+
       //ikResultFailed = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
       //cout << "ik call result: " << ikCallResult << " joints: " << (thisIkRequest.response.joints.size()) << " "; 
 
@@ -4213,6 +4242,7 @@ void timercallback1(const ros::TimerEvent&) {
 
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg){
+
 
   lastImageCallbackReceived = ros::Time::now();
 
@@ -8991,6 +9021,199 @@ void mapBox(BoxMemory boxMemory) {
  mapBlueBox(boxMemory.bTop, boxMemory.bBot, boxMemory.labeledClassIndex, ros::Time::now());
 }
 
+void queryIK(int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
+  if (chosen_mode == PHYSICAL) {
+    *thisResult = ikClient.call(*thisRequest);
+  } else if (SIMULATED) {
+    *thisResult = 1;
+  }
+}
+
+void simulatorCallback(const ros::TimerEvent&) {
+    //imageCallback
+    //rangeCallback
+    //endpointCallback
+
+    //gripStateCallback
+
+    //jointCallback
+    //targetCallback
+  {
+    int imW = 640;
+    int imH = 400;
+    Mat dummyImage(imH, imW, CV_8UC3);
+    //cv::resize(mapBackgroundImage, dummyImage, cv::Size(imW,imH));
+    {
+      // XXX TODO this doesn't do rotation yet
+      double msfWidth = mapSearchFenceXMax - mapSearchFenceXMin;
+      double msfHeight = mapSearchFenceYMax - mapSearchFenceYMin;
+
+      double zToUse = trueEEPose.position.z+currentTableZ;
+      double topLx = 0.0;
+      double topLy = 0.0;
+      pixelToGlobal(0, 0, zToUse, &topLx, &topLy);
+
+      double botLx = 0.0;
+      double botLy = 0.0;
+      pixelToGlobal(imW-1, imH-1, zToUse, &botLx, &botLy);
+
+      //cout << zToUse << " z: " << endl;
+      //cout << topLx << " " << topLy << " " << botLx << " " << botLy << endl;
+
+      topLx = min(max(mapSearchFenceXMin, topLx), mapSearchFenceXMax);
+      topLy = min(max(mapSearchFenceYMin, topLy), mapSearchFenceYMax);
+      botLx = min(max(mapSearchFenceXMin, botLx), mapSearchFenceXMax);
+      botLy = min(max(mapSearchFenceYMin, botLy), mapSearchFenceYMax);
+
+      cout << topLx << " " << topLy << " " << botLx << " " << botLy << endl;
+
+      double vpLx = 0.0;
+      double vpLy = 0.0;
+      pixelToGlobal(vanishingPointReticle.px, vanishingPointReticle.py, zToUse, &vpLx, &vpLy);
+
+      double mapVpFractionWidth = (vpLx - mapSearchFenceXMin) / msfWidth;
+      double mapVpFractionHeight = (vpLy - mapSearchFenceYMin) / msfHeight;
+      int mapVpPx = floor(mapVpFractionWidth * mbiWidth);
+      int mapVpPy = floor(mapVpFractionHeight * mbiHeight);
+      mapVpPx = min(max(0, mapVpPx), mbiWidth);
+      mapVpPy = min(max(0, mapVpPy), mbiHeight);
+
+      // account for rotation of the end effector 
+      Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+      Quaternionf crane2Orient(0, 1, 0, 0);
+      Quaternionf rel = eeqform * crane2Orient.inverse();
+      Quaternionf ex(0,1,0,0);
+      Quaternionf zee(0,0,0,1);
+	    
+      Quaternionf result = rel * ex * rel.conjugate();
+      Quaternionf thumb = rel * zee * rel.conjugate();
+      double aY = result.y();
+      double aX = result.x();
+
+      // ATTN 22
+      //double angle = atan2(aY, aX)*180.0/3.1415926;
+      double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
+      angle = (angle);
+      double scale = 1.0;
+      Point center = Point(mapVpPx, mapVpPy);
+
+      Mat un_rot_mat = getRotationMatrix2D( center, angle, scale );
+
+      double rotTopLx = 0.0;
+      double rotTopLy = 0.0;
+      double rotBotLx = 0.0;
+      double rotBotLy = 0.0;
+      {
+	Mat toUn(3,1,CV_64F);
+	toUn.at<double>(0,0)=topLx;
+	toUn.at<double>(1,0)=topLy;
+	toUn.at<double>(2,0)=1.0;
+	Mat didUn = un_rot_mat*toUn;
+	rotTopLx = didUn.at<double>(0,0);
+	rotTopLy = didUn.at<double>(1,0);
+      }
+      {
+	Mat toUn(3,1,CV_64F);
+	toUn.at<double>(0,0)=botLx;
+	toUn.at<double>(1,0)=botLy;
+	toUn.at<double>(2,0)=1.0;
+	Mat didUn = un_rot_mat*toUn;
+	rotBotLx = didUn.at<double>(0,0);
+	rotBotLy = didUn.at<double>(1,0);
+      }
+
+      // XXX rotate the background so that it is aligned with the camera
+      // resize the relevant crop into the image crop
+      
+
+
+      int topPx = 0.0;
+      int topPy = 0.0;
+      globalToPixel( &topPx, &topPy, zToUse, topLx, topLy);
+
+      int botPx = 0.0;
+      int botPy = 0.0;
+      globalToPixel( &botPx, &botPy, zToUse, botLx, botLy);
+
+      topPx = min(max(0, topPx), imW);
+      topPy = min(max(0, topPy), imH);
+      botPx = min(max(0, botPx), imW);
+      botPy = min(max(0, botPy), imH);
+
+      double mapStartFractionWidth = (topLx - mapSearchFenceXMin) / msfWidth;
+      double mapStartFractionHeight = (topLy - mapSearchFenceYMin) / msfHeight;
+      double mapEndFractionWidth = (botLx - mapSearchFenceXMin) / msfWidth;
+      double mapEndFractionHeight = (botLy - mapSearchFenceYMin) / msfHeight;
+
+      cout << "iii: " << mapStartFractionWidth << " " << mapStartFractionHeight << " " << mapEndFractionWidth << " " << mapEndFractionHeight << endl;
+
+      int mapStartPx = floor(mapStartFractionWidth * mbiWidth);
+      int mapStartPy = floor(mapStartFractionHeight * mbiHeight);
+      int mapEndPx = floor(mapEndFractionWidth * mbiWidth);
+      int mapEndPy = floor(mapEndFractionHeight * mbiHeight);
+      mapStartPx = min(max(0, mapStartPx), mbiWidth);
+      mapStartPy = min(max(0, mapStartPy), mbiHeight);
+      mapEndPx = min(max(0, mapEndPx), mbiWidth);
+      mapEndPy = min(max(0, mapEndPy), mbiHeight);
+
+      cout << "jjj: " << mapStartPx << " " << mapStartPy << " " << mapEndPx << " " << mapEndPy << endl;
+
+      int localMapStartPx = min(mapStartPx, mapEndPx);
+      int localMapStartPy = min(mapStartPy, mapEndPy);
+      int localMapEndPx = max(mapStartPx, mapEndPx);
+      int localMapEndPy = max(mapStartPy, mapEndPy);
+
+      Mat backgroundMapCrop = mapBackgroundImage(cv::Rect(localMapStartPx, localMapStartPy, localMapEndPx-localMapStartPx, localMapEndPy-localMapStartPy));
+      Mat screenCrop = dummyImage(cv::Rect(topPx, topPy, botPx-topPx, botPy-topPy));
+      resize(backgroundMapCrop, screenCrop, screenCrop.size(), 0, 0, CV_INTER_LINEAR);
+
+//      Size sz = screenCrop.size();
+//      int cropW = sz.width;
+//      int cropH = sz.height;
+//      Vec3b thisColor = cv::Vec<uchar, 3>(128,128,128);
+//      //screenCrop += thisColor;
+//      for (int y = 0; y < cropH; y++) {
+//	for (int x = 0; x < cropW; x++) {
+//	  screenCrop.at<Vec3b>(y,x) = thisColor;
+//	}
+//      }
+    }
+
+
+    sensor_msgs::ImagePtr myImagePtr(new sensor_msgs::Image());
+    myImagePtr->header.stamp = ros::Time::now();
+    myImagePtr->width = dummyImage.cols;
+    myImagePtr->height = dummyImage.rows;
+    myImagePtr->step = dummyImage.cols * dummyImage.elemSize();
+    myImagePtr->is_bigendian = false;
+    myImagePtr->encoding = sensor_msgs::image_encodings::BGR8;
+    myImagePtr->data.assign(dummyImage.data, dummyImage.data + size_t(dummyImage.rows * myImagePtr->step));
+    imageCallback(myImagePtr);
+  }
+
+  {
+    sensor_msgs::Range myRange;
+    myRange.range = 0.1;
+    myRange.header.stamp = ros::Time::now();
+    rangeCallback(myRange);
+  }
+
+  {
+    baxter_core_msgs::EndpointState myEPS;
+
+    myEPS.header.stamp = ros::Time::now();
+    myEPS.pose.position.x = currentEEPose.px;
+    myEPS.pose.position.y = currentEEPose.py;
+    myEPS.pose.position.z = currentEEPose.pz;
+    myEPS.pose.orientation.x = currentEEPose.qx;
+    myEPS.pose.orientation.y = currentEEPose.qy;
+    myEPS.pose.orientation.z = currentEEPose.qz;
+    myEPS.pose.orientation.w = currentEEPose.qw;
+
+    endpointCallback(myEPS);
+  }
+
+}
 
 ////////////////////////////////////////////////
 // end pilot definitions 
@@ -13656,9 +13879,6 @@ int main(int argc, char **argv) {
 
   image_transport::ImageTransport it(n);
   image_transport::Subscriber image_sub;
-  image_sub = it.subscribe(image_topic, 1, imageCallback);
-
-  ros::Subscriber points = n.subscribe(pc_topic, 1, pointCloudCallback);
 
   rec_objs_blue_memory = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_memory_objects", 10);
   markers_blue_memory = n.advertise<visualization_msgs::MarkerArray>("blue_memory_markers", 10);
@@ -13688,11 +13908,20 @@ int main(int argc, char **argv) {
   createTrackbar("blinder_stride", densityViewerName, &blinder_stride, 50);
   createTrackbar("add_blinders", densityViewerName, &add_blinders, 1);
 
-  ros::Subscriber epState =   n.subscribe("/robot/limb/" + left_or_right_arm + "/endpoint_state", 1, endpointCallback);
-  ros::Subscriber gripState = n.subscribe("/robot/end_effector/" + left_or_right_arm + "_gripper/state", 1, gripStateCallback);
-  ros::Subscriber eeRanger =  n.subscribe("/robot/range/" + left_or_right_arm + "_hand_range/state", 1, rangeCallback);
-  ros::Subscriber eeTarget =  n.subscribe("/ein_" + left_or_right_arm + "/pilot_target_" + left_or_right_arm, 1, targetCallback);
-  ros::Subscriber jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
+  ros::Timer simulatorCallbackTimer;
+
+  if (chosen_mode == PHYSICAL) {
+    ros::Subscriber epState =   n.subscribe("/robot/limb/" + left_or_right_arm + "/endpoint_state", 1, endpointCallback);
+    ros::Subscriber gripState = n.subscribe("/robot/end_effector/" + left_or_right_arm + "_gripper/state", 1, gripStateCallback);
+    ros::Subscriber eeRanger =  n.subscribe("/robot/range/" + left_or_right_arm + "_hand_range/state", 1, rangeCallback);
+    ros::Subscriber eeTarget =  n.subscribe("/ein_" + left_or_right_arm + "/pilot_target_" + left_or_right_arm, 1, targetCallback);
+    ros::Subscriber jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
+    image_sub = it.subscribe(image_topic, 1, imageCallback);
+    ros::Subscriber points = n.subscribe(pc_topic, 1, pointCloudCallback);
+  } else if (chosen_mode == SIMULATED) {
+    cout << "SIMULATION mode enabled." << endl;
+    simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/simulatorCallbackFrequency), simulatorCallback);
+  }
 
   wristViewName = "Wrist View " + left_or_right_arm;
   coreViewName = "Core View " + left_or_right_arm;
@@ -13703,6 +13932,7 @@ int main(int argc, char **argv) {
   heightMemorySampleViewName = "Height Memory Sample View " + left_or_right_arm;
   hiRangemapViewName = "Hi Range Map View " + left_or_right_arm;
   hiColorRangemapViewName = "Hi Color Range Map View " + left_or_right_arm;
+  mapBackgroundViewName = "Map Background Viewer " + left_or_right_arm;
 
   cv::namedWindow(wristViewName);
   cv::setMouseCallback(wristViewName, pilotCallbackFunc, NULL);
@@ -13710,6 +13940,7 @@ int main(int argc, char **argv) {
   cv::setMouseCallback(graspMemoryViewName, graspMemoryCallbackFunc, NULL);
   cv::namedWindow(coreViewName);
   cv::namedWindow(rangeogramViewName);
+  cv::namedWindow(mapBackgroundViewName);
 
   ros::Subscriber fetchCommandSubscriber;
   fetchCommandSubscriber = n.subscribe("/fetch_commands", 1, 
@@ -13775,6 +14006,16 @@ int main(int argc, char **argv) {
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();
   cout << "cuda count: " << cudaCount << endl;;
+
+  {
+    string filename;
+    filename = data_directory + "/mapBackground.ppm";
+    cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
+    Mat tmp = imread(filename);
+    cout << "done. Resizing " << tmp.size() << " "; cout.flush();
+    cv::resize(tmp, mapBackgroundImage, cv::Size(mbiWidth,mbiHeight));
+    cout << "done. " << mapBackgroundImage.size() << endl; cout.flush();
+  }
 
   cvWaitKey(1); // this might be good to init cv gui stuff
   lastImageCallbackReceived = ros::Time::now();

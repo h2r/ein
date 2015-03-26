@@ -306,7 +306,11 @@ virtual void execute() {
 	    fillIkRequest(&nextEEPose, &thisIkRequest);
 
 	    bool likelyInCollision = 0;
-	    int thisIkCallResult = ikClient.call(thisIkRequest);
+	    // ATTN 24
+	    //int thisIkCallResult = ikClient.call(thisIkRequest);
+	    int thisIkCallResult = 0;
+	    queryIK(&thisIkCallResult, &thisIkRequest);
+
 	    int ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
 	    int foundGoodPosition = !ikResultFailed;
 	    //ikMap[i + mapWidth * j] = ikResultFailed;
@@ -403,7 +407,11 @@ virtual void execute() {
     fillIkRequest(&nextEEPose, &thisIkRequest);
 
     bool likelyInCollision = 0;
-    int thisIkCallResult = ikClient.call(thisIkRequest);
+    // ATTN 24
+    //int thisIkCallResult = ikClient.call(thisIkRequest);
+    int thisIkCallResult = 0;
+    queryIK(&thisIkCallResult, &thisIkRequest);
+
     int ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
     int foundGoodPosition = !ikResultFailed;
 
