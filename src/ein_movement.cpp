@@ -551,4 +551,43 @@ virtual void execute() {
 }
 END_WORD
 
+WORD(SpawnTargetClassAtEndEffector)
+virtual void execute() {
+  cout << "SpawnTargetClassAtEndEffector called." << endl;
+  if (targetClass < 0) {
+    cout << "Not spawning because targetClass is " << targetClass << endl;
+    return;
+  }
+
+  BoxMemory box;
+  box.bTop.x = vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
+  box.bTop.y = vanishingPointReticle.py-simulatedObjectHalfWidthPixels;
+  box.bBot.x = vanishingPointReticle.px+simulatedObjectHalfWidthPixels;
+  box.bBot.y = vanishingPointReticle.py+simulatedObjectHalfWidthPixels;
+  box.cameraPose = currentEEPose;
+  box.top = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
+  box.bot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+  box.centroid.px = (box.top.px + box.bot.px) * 0.5;
+  box.centroid.py = (box.top.py + box.bot.py) * 0.5;
+  box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
+  box.cameraTime = ros::Time::now();
+  box.labeledClassIndex = targetClass;
+  
+  if (chosen_mode == PHYSICAL) {
+    return;
+  } else if (SIMULATED) {
+    mapBox(box);
+    vector<BoxMemory> newMemories;
+    for (int i = 0; i < blueBoxMemories.size(); i++) {
+      newMemories.push_back(blueBoxMemories[i]);
+    }
+    newMemories.push_back(box);
+    blueBoxMemories = newMemories;
+  }
+}
+
+END_WORD
+
+
+
 

@@ -325,6 +325,8 @@ std::vector<Word *> create_words() {
 
     words.push_back(new Hover());
     words.push_back(new HoverA());
+
+    words.push_back(new SpawnTargetClassAtEndEffector());
   }
 
   return words;
