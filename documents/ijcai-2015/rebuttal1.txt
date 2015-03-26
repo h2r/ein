@@ -1,30 +1,20 @@
-We thank the reviewer for their comments on our paper.  
+We thank the reviewer for their comments.  
 
->> For instance, the p_{below}, p_{above} and p{threshold} learned for
->> an arm $j$ in Algorithm 1, for what object instance is being
->> learned? Do you have to learn one for each object?
+"Do you have to learn one for each object?"
 
-Our approach adapts itself to specific objects and does not generalize
-to new objects.  Learning and then mastering individual objects forms
-an enabling capability for robotic object manipulation, because a
-robot can improve its capability "in the wild" to manipulate the
-object that an untrained user cares about.
+We learn a separate model for each object.  Learning and then
+mastering individual objects enables a robot to improve its capability
+to manipulate the objects through practice.
 
->> The evaluation, specifically table 1, is focused on measuring the increment of success from
->> the prior knowledge to that obtained after learning. But the authors does not define in the
->> robotic evaluation how they define the prior knowledge. They do for simulation, although they
->> do not evaluate the effect of such prior in the result. 
->> For instance, if the prior is very optimistic, the learning process
->> could be very different than if the prior is pessimistic?
+"For instance, if the prior is very optimistic, the learning process
+could be very different than if the prior is pessimistic?"
 
-Our prior knowledge is the response of the linear filters, which is
-a very weak model for grasping.  We demonstrate that we can recover a good
-signal from an easily implemented baseline.
+Our prior knowledge is the response of the linear filter.  If the
+prior is perfect, then our method will try one grasp and terminate; if
+the prior is imperfect, our method will try grasps in order until it
+finds a successful one.
 
->> Does it happen in this case? If so, how difficult is to find a good
->> prior to initialize the algorithm? What is the worst case?
+"What is the worst case?"
 
-Finding a good prior is equivalent to the problem of performing
-category-based grasping.  If the prior is perfect (i.e, category-based
-grasping is solved), then our method will quickly terminate 
-
+In the worst case, the prior is random, and the robot will need to try
+many grasps before it finds a good one.
