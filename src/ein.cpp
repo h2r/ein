@@ -1061,6 +1061,9 @@ int mbiWidth = 500;
 int mbiHeight = 500;
 Mat mapBackgroundImage;
 
+int objectInHandLabel = -1;
+int simulatedObjectHalfWidthPixels = 50;
+
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -1558,6 +1561,10 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps);
 void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees);
 void fetchCommandCallback(const std_msgs::String::ConstPtr& msg);
 void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
+
+void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
+void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);
+void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg);
 
 bool isGripperGripping();
 void initialize3DParzen();
@@ -2739,6 +2746,92 @@ vector<string> split(const char *str, char c = ' ')
 }
 
 
+void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
+  cout << "moveEndEffectorCommandCallback" << endl << msg.position << msg.orientation << endl;
+  if (chosen_mode == PHYSICAL) {
+    return;
+  } else if (SIMULATED) {
+    currentEEPose.px = msg.position.x;
+    currentEEPose.py = msg.position.y;
+    currentEEPose.pz = msg.position.z;
+  }
+}
+
+void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
+  cout << "pickObjectUnderEndEffectorCommandCallback" << endl;
+  if (chosen_mode == PHYSICAL) {
+    return;
+  } else if (SIMULATED) {
+    if (objectInHandLabel == -1) {
+      // this is a fake box to test intersection
+      int probeBoxHalfWidthPixels = 10;
+      BoxMemory box;
+      box.bTop.x = vanishingPointReticle.px-probeBoxHalfWidthPixels;
+      box.bTop.y = vanishingPointReticle.py-probeBoxHalfWidthPixels;
+      box.bBot.x = vanishingPointReticle.px+probeBoxHalfWidthPixels;
+      box.bBot.y = vanishingPointReticle.py+probeBoxHalfWidthPixels;
+      box.cameraPose = currentEEPose;
+      box.top = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
+      box.bot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+      box.centroid.px = (box.top.px + box.bot.px) * 0.5;
+      box.centroid.py = (box.top.py + box.bot.py) * 0.5;
+      box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
+      box.cameraTime = ros::Time::now();
+      box.labeledClassIndex = 0;
+
+      vector<BoxMemory> newMemories;
+      bool foundOne = false;
+      int foundClassIndex = -1;
+      for (int i = 0; i < blueBoxMemories.size(); i++) {
+	if ( (!foundOne) && (boxMemoryIntersectCentroid(box, blueBoxMemories[i])) ) {
+	  foundOne = true;
+	  foundClassIndex = blueBoxMemories[i].labeledClassIndex;
+	} else {
+	  newMemories.push_back(blueBoxMemories[i]);
+	}
+      }
+      blueBoxMemories = newMemories;
+      objectInHandLabel = foundClassIndex;
+    } else {
+      cout << "Not picking because objectInHandLabel is " << objectInHandLabel << endl;
+      return;
+    }
+  }
+}
+
+void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
+  cout << "placeObjectInEndEffectorCommandCallback" << endl;
+  if (chosen_mode == PHYSICAL) {
+    return;
+  } else if (SIMULATED) {
+    if (objectInHandLabel >= 0) {
+      BoxMemory box;
+      box.bTop.x = vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
+      box.bTop.y = vanishingPointReticle.py-simulatedObjectHalfWidthPixels;
+      box.bBot.x = vanishingPointReticle.px+simulatedObjectHalfWidthPixels;
+      box.bBot.y = vanishingPointReticle.py+simulatedObjectHalfWidthPixels;
+      box.cameraPose = currentEEPose;
+      box.top = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
+      box.bot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+      box.centroid.px = (box.top.px + box.bot.px) * 0.5;
+      box.centroid.py = (box.top.py + box.bot.py) * 0.5;
+      box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
+      box.cameraTime = ros::Time::now();
+      box.labeledClassIndex = objectInHandLabel;
+      
+      mapBox(box);
+      vector<BoxMemory> newMemories;
+      for (int i = 0; i < blueBoxMemories.size(); i++) {
+	newMemories.push_back(blueBoxMemories[i]);
+      }
+      newMemories.push_back(box);
+      blueBoxMemories = newMemories;
+    } else {
+      cout << "Not placing because objectInHandLabel is " << objectInHandLabel << endl;
+    }
+    objectInHandLabel = -1;
+  }
+}
 
 void forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
 
@@ -3817,7 +3910,6 @@ void update_baxter(ros::NodeHandle &n) {
   }
 
   baxter_core_msgs::SolvePositionIK thisIkRequest;
-  endEffectorAngularUpdate(&currentEEPose);
   fillIkRequest(&currentEEPose, &thisIkRequest);
 
   int ikResultFailed = 0;
@@ -4213,6 +4305,8 @@ void timercallback1(const ros::TimerEvent&) {
       break;
     }
   }
+
+  endEffectorAngularUpdate(&currentEEPose);
 
   if (!zero_g_toggle) {
     update_baxter(n);
@@ -9065,7 +9159,7 @@ void simulatorCallback(const ros::TimerEvent&) {
       botLx = min(max(mapSearchFenceXMin, botLx), mapSearchFenceXMax);
       botLy = min(max(mapSearchFenceYMin, botLy), mapSearchFenceYMax);
 
-      cout << topLx << " " << topLy << " " << botLx << " " << botLy << endl;
+      //cout << topLx << " " << topLy << " " << botLx << " " << botLy << endl;
 
       double vpLx = 0.0;
       double vpLy = 0.0;
@@ -9124,8 +9218,6 @@ void simulatorCallback(const ros::TimerEvent&) {
 
       // XXX rotate the background so that it is aligned with the camera
       // resize the relevant crop into the image crop
-      
-
 
       int topPx = 0.0;
       int topPy = 0.0;
@@ -9145,7 +9237,7 @@ void simulatorCallback(const ros::TimerEvent&) {
       double mapEndFractionWidth = (botLx - mapSearchFenceXMin) / msfWidth;
       double mapEndFractionHeight = (botLy - mapSearchFenceYMin) / msfHeight;
 
-      cout << "iii: " << mapStartFractionWidth << " " << mapStartFractionHeight << " " << mapEndFractionWidth << " " << mapEndFractionHeight << endl;
+      //cout << "iii: " << mapStartFractionWidth << " " << mapStartFractionHeight << " " << mapEndFractionWidth << " " << mapEndFractionHeight << endl;
 
       int mapStartPx = floor(mapStartFractionWidth * mbiWidth);
       int mapStartPy = floor(mapStartFractionHeight * mbiHeight);
@@ -9156,16 +9248,17 @@ void simulatorCallback(const ros::TimerEvent&) {
       mapEndPx = min(max(0, mapEndPx), mbiWidth);
       mapEndPy = min(max(0, mapEndPy), mbiHeight);
 
-      cout << "jjj: " << mapStartPx << " " << mapStartPy << " " << mapEndPx << " " << mapEndPy << endl;
+      //cout << "jjj: " << mapStartPx << " " << mapStartPy << " " << mapEndPx << " " << mapEndPy << endl;
 
       int localMapStartPx = min(mapStartPx, mapEndPx);
       int localMapStartPy = min(mapStartPy, mapEndPy);
       int localMapEndPx = max(mapStartPx, mapEndPx);
       int localMapEndPy = max(mapStartPy, mapEndPy);
 
-      Mat backgroundMapCrop = mapBackgroundImage(cv::Rect(localMapStartPx, localMapStartPy, localMapEndPx-localMapStartPx, localMapEndPy-localMapStartPy));
-      Mat screenCrop = dummyImage(cv::Rect(topPx, topPy, botPx-topPx, botPy-topPy));
-      resize(backgroundMapCrop, screenCrop, screenCrop.size(), 0, 0, CV_INTER_LINEAR);
+      
+      //Mat backgroundMapCrop = mapBackgroundImage(cv::Rect(localMapStartPx, localMapStartPy, localMapEndPx-localMapStartPx, localMapEndPy-localMapStartPy));
+      //Mat screenCrop = dummyImage(cv::Rect(topPx, topPy, botPx-topPx, botPy-topPy));
+      //resize(backgroundMapCrop, screenCrop, screenCrop.size(), 0, 0, CV_INTER_LINEAR);
 
 //      Size sz = screenCrop.size();
 //      int cropW = sz.width;
@@ -13880,6 +13973,17 @@ int main(int argc, char **argv) {
   image_transport::ImageTransport it(n);
   image_transport::Subscriber image_sub;
 
+  ros::Subscriber epState;
+  ros::Subscriber gripState;
+  ros::Subscriber eeRanger;
+  ros::Subscriber eeTarget;
+  ros::Subscriber jointSubscriber;
+  ros::Subscriber points;
+
+  ros::Subscriber pickObjectUnderEndEffectorCommandCallbackSub;
+  ros::Subscriber placeObjectInEndEffectorCommandCallbackSub;
+  ros::Subscriber moveEndEfffectorCommandCallbackSub;
+
   rec_objs_blue_memory = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_memory_objects", 10);
   markers_blue_memory = n.advertise<visualization_msgs::MarkerArray>("blue_memory_markers", 10);
 
@@ -13911,17 +14015,20 @@ int main(int argc, char **argv) {
   ros::Timer simulatorCallbackTimer;
 
   if (chosen_mode == PHYSICAL) {
-    ros::Subscriber epState =   n.subscribe("/robot/limb/" + left_or_right_arm + "/endpoint_state", 1, endpointCallback);
-    ros::Subscriber gripState = n.subscribe("/robot/end_effector/" + left_or_right_arm + "_gripper/state", 1, gripStateCallback);
-    ros::Subscriber eeRanger =  n.subscribe("/robot/range/" + left_or_right_arm + "_hand_range/state", 1, rangeCallback);
-    ros::Subscriber eeTarget =  n.subscribe("/ein_" + left_or_right_arm + "/pilot_target_" + left_or_right_arm, 1, targetCallback);
-    ros::Subscriber jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
+    epState =   n.subscribe("/robot/limb/" + left_or_right_arm + "/endpoint_state", 1, endpointCallback);
+    gripState = n.subscribe("/robot/end_effector/" + left_or_right_arm + "_gripper/state", 1, gripStateCallback);
+    eeRanger =  n.subscribe("/robot/range/" + left_or_right_arm + "_hand_range/state", 1, rangeCallback);
+    eeTarget =  n.subscribe("/ein_" + left_or_right_arm + "/pilot_target_" + left_or_right_arm, 1, targetCallback);
+    jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
+    points = n.subscribe(pc_topic, 1, pointCloudCallback);
     image_sub = it.subscribe(image_topic, 1, imageCallback);
-    ros::Subscriber points = n.subscribe(pc_topic, 1, pointCloudCallback);
   } else if (chosen_mode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
     simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/simulatorCallbackFrequency), simulatorCallback);
   }
+  pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, pickObjectUnderEndEffectorCommandCallback);
+  placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
+  moveEndEfffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, moveEndEffectorCommandCallback);
 
   wristViewName = "Wrist View " + left_or_right_arm;
   coreViewName = "Core View " + left_or_right_arm;
