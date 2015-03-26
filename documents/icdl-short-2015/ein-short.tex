@@ -185,17 +185,22 @@ work~\citep{oberlin15} and adds a description of our efforts learning
 the height to servo to an object.
 
 We use our robot's eye-in-hand camera to visually servo to an object
-and identify it.  However objects have different sizes; some objects
+and identify it; however, objects have different sizes. Some objects
 are large, and need to be observed from far away so that the entire
-object fits in frame.  On the other hand small objects should be
+object fits in frame, but not too far because the precision of the
+alignment process falls with
+the distance from the object as pixels in the image span larger physical
+distances.  On the other hand, small objects should be
 observed more closely to obtain a higher-resolution image and
-finer-grained pose estimation.  
+finer-grained pose estimation, but not too closely because distortions
+in the transformations between camera and physical coordinates become more
+dramatic when the object is nearer the lens.  
 
 Our previous work~\citep{oberlin15} presented an new algorithm,
 \algorithmDTxt, based on Hoeffding races~\citep{maron93}. In our
 approach, the robot pulls arms in an order determined by a prior,
 which allows it to try the most promising arms first. It can then
-autonomously decide when to stop by bounding the confidence in the
+autonomously decide when to stop exploring by bounding the confidence in the
 result.  Figure~\ref{fig:ruler} shows the robot's performance before
 and after training on a ruler; after training it grasps the object in
 the center, improving the success rate.  The contribution of this
@@ -375,9 +380,7 @@ uses to learn models to detect, localize, and manipulate previously
 unseen objects.  This paper demonstrates that our approach can learn
 to servo at different heights for different objects.  In the future,
 we plan to explore learning parameters for a wider variety of tasks.
-For instance, different objects can be located and oriented better or
-worse at different heights. One could learn which heights work well
-for which objects.  Likewise, we use color gradients for localization,
+For instance, we use color gradients for localization,
 but some objects would work better with other quantities. One could
 learn the appropriate map to use when localizing each object, or even
 further, the map might also depend upon the robot's current
