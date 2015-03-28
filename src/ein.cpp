@@ -148,6 +148,10 @@ typedef struct {
   double qw;
 } eePose;
 
+void printEEPose(eePose toPrint) {
+  cout << toPrint.px << " " << toPrint.py << " " << toPrint.pz << " " << endl << toPrint.qx << " " << toPrint.qy << " " << toPrint.qz << " " << toPrint.qw << endl;
+}
+
 #define NOW_THATS_FAST 0.08
 #define MOVE_EVEN_FASTER 0.04
 #define MOVE_FASTER 0.02
@@ -1064,6 +1068,10 @@ Mat mapBackgroundImage;
 int objectInHandLabel = -1;
 int simulatedObjectHalfWidthPixels = 50;
 
+int numCornellTables = 10;
+vector<eePose> cornellTables;
+int currentCornellTableIndex = 0;
+
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -1366,6 +1374,13 @@ double mapRejectFenceXMin;
 double mapRejectFenceXMax;
 double mapRejectFenceYMin;
 double mapRejectFenceYMax;
+
+double mapBackgroundXMin;
+double mapBackgroundXMax;
+double mapBackgroundYMin;
+double mapBackgroundYMax;
+
+double mapBackgroundBufferMeters = 1.0;
 
 const int mapWidth = (mapXMax - mapXMin) / mapStep;
 const int mapHeight = (mapYMax - mapYMin) / mapStep;
@@ -2758,7 +2773,6 @@ void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
 }
 
 void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
-  cout << "pickObjectUnderEndEffectorCommandCallback" << endl;
   if (chosen_mode == PHYSICAL) {
     return;
   } else if (SIMULATED) {
@@ -2792,15 +2806,22 @@ void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
       }
       blueBoxMemories = newMemories;
       objectInHandLabel = foundClassIndex;
+      if (objectInHandLabel >= 0) {
+	cout << "pickObjectUnderEndEffectorCommandCallback: The " << classLabels[objectInHandLabel] << " you found is now in your hand." << endl;
+      } else {
+	cout << "pickObjectUnderEndEffectorCommandCallback: Alas, nothing to be found." << endl;
+      }
     } else {
-      cout << "Not picking because objectInHandLabel is " << objectInHandLabel << endl;
-      return;
+      if (objectInHandLabel >= 0) {
+	cout << "pickObjectUnderEndEffectorCommandCallback: Not picking because of the " << classLabels[objectInHandLabel] << " you already hold." << endl;
+      } else {
+	cout << "pickObjectUnderEndEffectorCommandCallback: Not picking because objectInHandLabel is " << objectInHandLabel << "." << endl;
+      }
     }
   }
 }
 
 void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
-  cout << "placeObjectInEndEffectorCommandCallback" << endl;
   if (chosen_mode == PHYSICAL) {
     return;
   } else if (SIMULATED) {
@@ -2826,8 +2847,9 @@ void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
       }
       newMemories.push_back(box);
       blueBoxMemories = newMemories;
+      cout << "placeObjectInEndEffectorCommandCallback: You dropped the " << classLabels[objectInHandLabel] << "." << endl;
     } else {
-      cout << "Not placing because objectInHandLabel is " << objectInHandLabel << endl;
+      cout << "placeObjectInEndEffectorCommandCallback: Not placing because objectInHandLabel is " << objectInHandLabel << "." << endl;
     }
     objectInHandLabel = -1;
   }
@@ -5366,6 +5388,10 @@ void pilotInit() {
     //mapSearchFenceXMax = 0.3;
     //mapRejectFenceXMax = 0.3;
 
+    mapBackgroundXMin = mapSearchFenceXMin - mapBackgroundBufferMeters;
+    mapBackgroundXMax = mapSearchFenceXMax + mapBackgroundBufferMeters;
+    mapBackgroundYMin = mapSearchFenceYMin - mapBackgroundBufferMeters;
+    mapBackgroundYMax = mapSearchFenceYMax + mapBackgroundBufferMeters;
 
 
     // left arm
@@ -5525,6 +5551,11 @@ void pilotInit() {
     mapRejectFenceXMax = mapSearchFenceXMax;
     mapRejectFenceYMin = mapSearchFenceYMin;
     mapRejectFenceYMax = mapSearchFenceYMax;
+
+    mapBackgroundXMin = mapSearchFenceXMin - mapBackgroundBufferMeters;
+    mapBackgroundXMax = mapSearchFenceXMax + mapBackgroundBufferMeters;
+    mapBackgroundYMin = mapSearchFenceYMin - mapBackgroundBufferMeters;
+    mapBackgroundYMax = mapSearchFenceYMax + mapBackgroundBufferMeters;
 
 
     // right arm
@@ -9133,46 +9164,61 @@ void simulatorCallback(const ros::TimerEvent&) {
     //jointCallback
     //targetCallback
   {
+    sensor_msgs::Range myRange;
+    myRange.range = 0.1;
+    myRange.header.stamp = ros::Time::now();
+    rangeCallback(myRange);
+  }
+
+  {
+    baxter_core_msgs::EndpointState myEPS;
+
+    myEPS.header.stamp = ros::Time::now();
+    myEPS.pose.position.x = currentEEPose.px;
+    myEPS.pose.position.y = currentEEPose.py;
+    myEPS.pose.position.z = currentEEPose.pz;
+    myEPS.pose.orientation.x = currentEEPose.qx;
+    myEPS.pose.orientation.y = currentEEPose.qy;
+    myEPS.pose.orientation.z = currentEEPose.qz;
+    myEPS.pose.orientation.w = currentEEPose.qw;
+
+    endpointCallback(myEPS);
+  }
+  {
     int imW = 640;
     int imH = 400;
     Mat dummyImage(imH, imW, CV_8UC3);
     //cv::resize(mapBackgroundImage, dummyImage, cv::Size(imW,imH));
     {
       // XXX TODO this doesn't do rotation yet
-      double msfWidth = mapSearchFenceXMax - mapSearchFenceXMin;
-      double msfHeight = mapSearchFenceYMax - mapSearchFenceYMin;
-
+      double msfWidth = mapBackgroundXMax - mapBackgroundXMin;
+      double msfHeight = mapBackgroundYMax - mapBackgroundYMin;
       double zToUse = trueEEPose.position.z+currentTableZ;
+
       double topLx = 0.0;
       double topLy = 0.0;
       pixelToGlobal(0, 0, zToUse, &topLx, &topLy);
-
       double botLx = 0.0;
       double botLy = 0.0;
       pixelToGlobal(imW-1, imH-1, zToUse, &botLx, &botLy);
-
+      topLx = min(max(mapBackgroundXMin, topLx), mapBackgroundXMax);
+      topLy = min(max(mapBackgroundYMin, topLy), mapBackgroundYMax);
+      botLx = min(max(mapBackgroundXMin, botLx), mapBackgroundXMax);
+      botLy = min(max(mapBackgroundYMin, botLy), mapBackgroundYMax);
       //cout << zToUse << " z: " << endl;
       //cout << topLx << " " << topLy << " " << botLx << " " << botLy << endl;
 
-      topLx = min(max(mapSearchFenceXMin, topLx), mapSearchFenceXMax);
-      topLy = min(max(mapSearchFenceYMin, topLy), mapSearchFenceYMax);
-      botLx = min(max(mapSearchFenceXMin, botLx), mapSearchFenceXMax);
-      botLy = min(max(mapSearchFenceYMin, botLy), mapSearchFenceYMax);
-
-      //cout << topLx << " " << topLy << " " << botLx << " " << botLy << endl;
-
-      double vpLx = 0.0;
-      double vpLy = 0.0;
-      pixelToGlobal(vanishingPointReticle.px, vanishingPointReticle.py, zToUse, &vpLx, &vpLy);
-
-      double mapVpFractionWidth = (vpLx - mapSearchFenceXMin) / msfWidth;
-      double mapVpFractionHeight = (vpLy - mapSearchFenceYMin) / msfHeight;
-      int mapVpPx = floor(mapVpFractionWidth * mbiWidth);
-      int mapVpPy = floor(mapVpFractionHeight * mbiHeight);
-      mapVpPx = min(max(0, mapVpPx), mbiWidth);
-      mapVpPy = min(max(0, mapVpPy), mbiHeight);
-
       // account for rotation of the end effector 
+      double gpLx = 0.0;
+      double gpLy = 0.0;
+      pixelToGlobal(currentEEPose.px, currentEEPose.py, zToUse, &gpLx, &gpLy);
+      double mapGpFractionWidth = (gpLx - mapBackgroundXMin) / msfWidth;
+      double mapGpFractionHeight = (gpLy - mapBackgroundYMin) / msfHeight;
+      int mapGpPx = floor(mapGpFractionWidth * mbiWidth);
+      int mapGpPy = floor(mapGpFractionHeight * mbiHeight);
+      mapGpPx = min(max(0, mapGpPx), mbiWidth-1);
+      mapGpPy = min(max(0, mapGpPy), mbiHeight-1);
+
       Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
       Quaternionf crane2Orient(0, 1, 0, 0);
       Quaternionf rel = eeqform * crane2Orient.inverse();
@@ -9189,76 +9235,129 @@ void simulatorCallback(const ros::TimerEvent&) {
       double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
       angle = (angle);
       double scale = 1.0;
-      Point center = Point(mapVpPx, mapVpPy);
+      Point center = Point(mapGpPx, mapGpPy);
 
       Mat un_rot_mat = getRotationMatrix2D( center, angle, scale );
 
-      double rotTopLx = 0.0;
-      double rotTopLy = 0.0;
-      double rotBotLx = 0.0;
-      double rotBotLy = 0.0;
-      {
-	Mat toUn(3,1,CV_64F);
-	toUn.at<double>(0,0)=topLx;
-	toUn.at<double>(1,0)=topLy;
-	toUn.at<double>(2,0)=1.0;
-	Mat didUn = un_rot_mat*toUn;
-	rotTopLx = didUn.at<double>(0,0);
-	rotTopLy = didUn.at<double>(1,0);
-      }
-      {
-	Mat toUn(3,1,CV_64F);
-	toUn.at<double>(0,0)=botLx;
-	toUn.at<double>(1,0)=botLy;
-	toUn.at<double>(2,0)=1.0;
-	Mat didUn = un_rot_mat*toUn;
-	rotBotLx = didUn.at<double>(0,0);
-	rotBotLy = didUn.at<double>(1,0);
+      if (0) {
+	// un_rot_mat = [[0 1 0]' [1 0 0]' [0 0 1]'] * un_rot_mat
+	cout << un_rot_mat.size() << endl;
+	float tmp = 0.0;
+	tmp = un_rot_mat.at<float>(1,0);
+	un_rot_mat.at<float>(1,0) = un_rot_mat.at<float>(0,0);
+	un_rot_mat.at<float>(0,0) = tmp;
+
+	tmp = un_rot_mat.at<float>(1,1);
+	un_rot_mat.at<float>(1,1) = un_rot_mat.at<float>(0,1);
+	un_rot_mat.at<float>(0,1) = tmp;
       }
 
-      // XXX rotate the background so that it is aligned with the camera
-      // resize the relevant crop into the image crop
+      double mapStartFractionWidth = (topLx - mapBackgroundXMin) / msfWidth;
+      double mapStartFractionHeight = (topLy - mapBackgroundYMin) / msfHeight;
+      double mapEndFractionWidth = (botLx - mapBackgroundXMin) / msfWidth;
+      double mapEndFractionHeight = (botLy - mapBackgroundYMin) / msfHeight;
 
-      int topPx = 0.0;
-      int topPy = 0.0;
-      globalToPixel( &topPx, &topPy, zToUse, topLx, topLy);
-
-      int botPx = 0.0;
-      int botPy = 0.0;
-      globalToPixel( &botPx, &botPy, zToUse, botLx, botLy);
-
-      topPx = min(max(0, topPx), imW);
-      topPy = min(max(0, topPy), imH);
-      botPx = min(max(0, botPx), imW);
-      botPy = min(max(0, botPy), imH);
-
-      double mapStartFractionWidth = (topLx - mapSearchFenceXMin) / msfWidth;
-      double mapStartFractionHeight = (topLy - mapSearchFenceYMin) / msfHeight;
-      double mapEndFractionWidth = (botLx - mapSearchFenceXMin) / msfWidth;
-      double mapEndFractionHeight = (botLy - mapSearchFenceYMin) / msfHeight;
-
-      //cout << "iii: " << mapStartFractionWidth << " " << mapStartFractionHeight << " " << mapEndFractionWidth << " " << mapEndFractionHeight << endl;
+      //cout << "iii: " << mapStartFractionWidth << " " << mapStartFractionHeight << " " << mapEndFractionWidth << " " << mapEndFractionHeight << endl; cout.flush();
 
       int mapStartPx = floor(mapStartFractionWidth * mbiWidth);
       int mapStartPy = floor(mapStartFractionHeight * mbiHeight);
       int mapEndPx = floor(mapEndFractionWidth * mbiWidth);
       int mapEndPy = floor(mapEndFractionHeight * mbiHeight);
-      mapStartPx = min(max(0, mapStartPx), mbiWidth);
-      mapStartPy = min(max(0, mapStartPy), mbiHeight);
-      mapEndPx = min(max(0, mapEndPx), mbiWidth);
-      mapEndPy = min(max(0, mapEndPy), mbiHeight);
+      mapStartPx = min(max(0, mapStartPx), mbiWidth-1);
+      mapStartPy = min(max(0, mapStartPy), mbiHeight-1);
+      mapEndPx = min(max(0, mapEndPx), mbiWidth-1);
+      mapEndPy = min(max(0, mapEndPy), mbiHeight-1);
 
-      //cout << "jjj: " << mapStartPx << " " << mapStartPy << " " << mapEndPx << " " << mapEndPy << endl;
+      //cout << "jjj: " << mapStartPx << " " << mapStartPy << " " << mapEndPx << " " << mapEndPy << endl; cout.flush();
 
-      int localMapStartPx = min(mapStartPx, mapEndPx);
-      int localMapStartPy = min(mapStartPy, mapEndPy);
-      int localMapEndPx = max(mapStartPx, mapEndPx);
-      int localMapEndPy = max(mapStartPy, mapEndPy);
+      int rotTopPx = 0.0;
+      int rotTopPy = 0.0;
+      int rotBotPx = 0.0;
+      int rotBotPy = 0.0;
+      {
+	Mat toUn(3,1,CV_64F);
+	toUn.at<double>(0,0)=mapStartPx;
+	toUn.at<double>(1,0)=mapStartPy;
+	toUn.at<double>(2,0)=1.0;
+	Mat didUn = un_rot_mat*toUn;
+	rotTopPx = floor(didUn.at<double>(0,0));
+	rotTopPy = floor(didUn.at<double>(1,0));
+      }
+      {
+	Mat toUn(3,1,CV_64F);
+	toUn.at<double>(0,0)=mapEndPx;
+	toUn.at<double>(1,0)=mapEndPy;
+	toUn.at<double>(2,0)=1.0;
+	Mat didUn = un_rot_mat*toUn;
+	rotBotPx = floor(didUn.at<double>(0,0));
+	rotBotPy = floor(didUn.at<double>(1,0));
+      }
+      rotTopPx = min(max(0, rotTopPx), mbiWidth-1);
+      rotTopPy = min(max(0, rotTopPy), mbiHeight-1);
+      rotBotPx = min(max(0, rotBotPx), mbiWidth-1);
+      rotBotPy = min(max(0, rotBotPy), mbiHeight-1);
 
-      
-      //Mat backgroundMapCrop = mapBackgroundImage(cv::Rect(localMapStartPx, localMapStartPy, localMapEndPx-localMapStartPx, localMapEndPy-localMapStartPy));
-      //Mat screenCrop = dummyImage(cv::Rect(topPx, topPy, botPx-topPx, botPy-topPy));
-      //resize(backgroundMapCrop, screenCrop, screenCrop.size(), 0, 0, CV_INTER_LINEAR);
+      int topPx = 0.0;
+      int topPy = 0.0;
+      globalToPixel( &topPx, &topPy, zToUse, topLx, topLy);
+      int botPx = 0.0;
+      int botPy = 0.0;
+      globalToPixel( &botPx, &botPy, zToUse, botLx, botLy);
+      topPx = min(max(0, topPx), imW-1);
+      topPy = min(max(0, topPy), imH-1);
+      botPx = min(max(0, botPx), imW-1);
+      botPy = min(max(0, botPy), imH-1);
+
+      //cout << "jja: " << rotTopPx << " " << rotTopPy << " " << rotBotPx << " " << rotBotPy << endl; cout.flush();
+      //cout << "jjb: " << topPx << " " << topPy << " " << botPx << " " << botPy << endl; cout.flush();
+
+      // this switch happens due to the default handedness and rotation of the camera
+      if (0) {
+	int tmp;
+	tmp = rotTopPx;
+	rotTopPx = rotBotPx;
+	rotBotPx = tmp;
+	//tmp = rotTopPy;
+	//rotTopPy = rotBotPy;
+	//rotBotPy = tmp;
+      }
+
+      int localRotTopPx = min(rotTopPx, rotBotPx);
+      int localRotTopPy = min(rotTopPy, rotBotPy);
+      int localRotBotPx = max(rotTopPx, rotBotPx);
+      int localRotBotPy = max(rotTopPy, rotBotPy);
+
+      //cout << "jjc: " << rotTopPx << " " << rotTopPy << " " << rotBotPx << " " << rotBotPy << endl; cout.flush();
+      //cout << "jjd: " << localRotTopPx << " " << localRotTopPy << " " << localRotBotPx << " " << localRotBotPy << endl; cout.flush();
+      //printEEPose(currentEEPose);
+
+      Mat rotatedBackMapImage;
+      warpAffine(mapBackgroundImage, rotatedBackMapImage, un_rot_mat, mapBackgroundImage.size(), INTER_LINEAR, BORDER_REPLICATE);
+
+      //Mat backgroundMapCrop = rotatedBackMapImage(cv::Rect(rotTopPx, rotTopPy, rotBotPx-rotTopPx, rotBotPy-rotTopPy));
+      Mat backgroundMapCrop = rotatedBackMapImage(cv::Rect(localRotTopPx, localRotTopPy, localRotBotPx-localRotTopPx, localRotBotPy-localRotTopPy));
+      transpose(backgroundMapCrop, backgroundMapCrop);
+      //Mat backgroundMapCrop = rotatedBackMapImage(cv::Rect(localRotTopPy, localRotTopPx, localRotBotPy-localRotTopPy, localRotBotPx-localRotTopPx));
+
+
+      //Mat backgroundMapCrop = rotatedBackMapImage(cv::Rect(localRotTopPx, localRotTopPy, localRotBotPx-localRotTopPx, localRotBotPy-localRotTopPy));
+      Mat screenCrop = dummyImage(cv::Rect(topPx, topPy, botPx-topPx, botPy-topPy));
+      resize(backgroundMapCrop, screenCrop, screenCrop.size(), 0, 0, CV_INTER_LINEAR);
+
+
+      // XXX rotate the background so that it is aligned with the camera
+      // resize the relevant crop into the image crop
+
+//      if (0) {
+//	int localMapStartPx = min(mapStartPx, mapEndPx);
+//	int localMapStartPy = min(mapStartPy, mapEndPy);
+//	int localMapEndPx = max(mapStartPx, mapEndPx);
+//	int localMapEndPy = max(mapStartPy, mapEndPy);
+//	
+//	Mat backgroundMapCrop = mapBackgroundImage(cv::Rect(localMapStartPx, localMapStartPy, localMapEndPx-localMapStartPx, localMapEndPy-localMapStartPy));
+//	Mat screenCrop = dummyImage(cv::Rect(topPx, topPy, botPx-topPx, botPy-topPy));
+//	resize(backgroundMapCrop, screenCrop, screenCrop.size(), 0, 0, CV_INTER_LINEAR);
+//      }
 
 //      Size sz = screenCrop.size();
 //      int cropW = sz.width;
@@ -9284,27 +9383,6 @@ void simulatorCallback(const ros::TimerEvent&) {
     imageCallback(myImagePtr);
   }
 
-  {
-    sensor_msgs::Range myRange;
-    myRange.range = 0.1;
-    myRange.header.stamp = ros::Time::now();
-    rangeCallback(myRange);
-  }
-
-  {
-    baxter_core_msgs::EndpointState myEPS;
-
-    myEPS.header.stamp = ros::Time::now();
-    myEPS.pose.position.x = currentEEPose.px;
-    myEPS.pose.position.y = currentEEPose.py;
-    myEPS.pose.position.z = currentEEPose.pz;
-    myEPS.pose.orientation.x = currentEEPose.qx;
-    myEPS.pose.orientation.y = currentEEPose.qy;
-    myEPS.pose.orientation.z = currentEEPose.qz;
-    myEPS.pose.orientation.w = currentEEPose.qw;
-
-    endpointCallback(myEPS);
-  }
 
 }
 
@@ -14116,7 +14194,8 @@ int main(int argc, char **argv) {
 
   {
     string filename;
-    filename = data_directory + "/mapBackground.ppm";
+    //filename = data_directory + "/mapBackground.ppm";
+    filename = data_directory + "/carpetBackground.jpg";
     cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
     Mat tmp = imread(filename);
     cout << "done. Resizing " << tmp.size() << " "; cout.flush();
@@ -14126,6 +14205,17 @@ int main(int argc, char **argv) {
 
   cvWaitKey(1); // this might be good to init cv gui stuff
   lastImageCallbackReceived = ros::Time::now();
+
+  {
+    for (int i = 0; i < numCornellTables; i++) {
+      double yDelta = (mapSearchFenceYMax - mapSearchFenceXMin) / (double(i));
+      eePose thisTablePose = wholeFoodsBagR;
+      thisTablePose.px = 0.75*(mapSearchFenceXMax - mapSearchFenceXMin) + mapSearchFenceXMin; 
+      thisTablePose.py = mapSearchFenceYMin + (double(i) + 0.5)*yDelta;
+      thisTablePose.pz = currentTableZ; 
+      cornellTables.push_back(thisTablePose);
+    }
+  } 
 
   ros::spin();
 
