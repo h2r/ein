@@ -72,6 +72,7 @@
 
 \usepackage[numbers]{natbib}
 \usepackage{amsmath}
+\usepackage{hyperref}
 \usepackage{amsfonts}
 \usepackage{booktabs}
 \usepackage{xspace}
@@ -163,49 +164,46 @@
 
 
 Robots need to perceive and manipulate objects in its environment, yet
-robust object manipulation remains a challenging problem.  Transparent
-or reflective surfaces that are not visible in IR or RGB make it
-difficult to infer grasp points~\citep{lysenkov13}, while emergent
-physical dynamics cause objects to slip out of the robot's gripper;
-for example, a heavy object might fall out of the robot's gripper
-unless it grabs it close to the center.
-
-To address these limitations, we propose an approach for enabling a
-robot to learn about objects through active exploration and adapt its
-grasping model accordingly.  We frame the problem of model adaptation
-as a bandit problem, specifically the identification of the best of
-the arms of an N-armed bandit, ~\citep{thompson33} where the robot
-aims to minimize simple regret after a finite exploration
-period~\citep{bubeck09}.  Our robot can obtain a high-quality reward
-signal (although sometimes at a higher cost in time and sensing) by
-actively collecting additional information from the environment, and
-use this reward signal to adaptively identify grasp points that are
-likely to succeed.  This paper provides an overview of our previous
-work~\citep{oberlin15} and adds a description of our efforts learning
-the height to servo to an object.
+robust object manipulation remains a challenging problem.  Many
+aspects of a perception and manipulation system need to be customized
+for a particular object and environment, such as where to grasp an
+object, what algorithm to use for segmentation, and what height to
+visually servo above an object on the table.  To address these
+limitations, we propose an approach for enabling a robot to learn
+about objects through active exploration and adapt its grasping model
+accordingly.  We frame the problem of model adaptation as a bandit
+problem, specifically the identification of the best of the arms of an
+N-armed bandit, ~\citep{thompson33} where the robot aims to minimize
+simple regret after a finite exploration period~\citep{bubeck09}.  Our
+robot can obtain a high-quality reward signal (although sometimes at a
+higher cost in time and sensing) by actively collecting additional
+information from the environment, and use this reward signal to
+adaptively identify grasp points that are likely to succeed.  This
+paper provides an overview of our previous work~\citep{oberlin15}
+using this approach to actively infer grasp points and adds a
+description of our efforts learning the height to servo to an object.
 
 We use our robot's eye-in-hand camera to visually servo to an object
 and identify it; however, objects have different sizes. Some objects
 are large, and need to be observed from far away so that the entire
 object fits in frame, but not too far because the precision of the
-alignment process falls with
-the distance from the object as pixels in the image span larger physical
-distances.  On the other hand, small objects should be
-observed more closely to obtain a higher-resolution image and
-finer-grained pose estimation, but not too closely because distortions
-in the transformations between camera and physical coordinates become more
-dramatic when the object is nearer the lens.  
+alignment process falls with the distance from the object as pixels in
+the image span larger physical distances.  On the other hand, small
+objects should be observed more closely to obtain a higher-resolution
+image and finer-grained pose estimation, but not too closely because
+distortions in the transformations between camera and physical
+coordinates become more dramatic when the object is nearer the lens.
 
-Our previous work~\citep{oberlin15} presented an new algorithm,
+Our previous work~\citep{oberlin15} presented a new algorithm,
 \algorithmDTxt, based on Hoeffding races~\citep{maron93}. In our
 approach, the robot pulls arms in an order determined by a prior,
 which allows it to try the most promising arms first. It can then
-autonomously decide when to stop exploring by bounding the confidence in the
-result.  Figure~\ref{fig:ruler} shows the robot's performance before
-and after training on a ruler; after training it grasps the object in
-the center, improving the success rate.  The contribution of this
-short paper is to apply our algorithm to learn what height to observe
-an object.
+autonomously decide when to stop exploring by bounding the confidence
+in the result.  Figure~\ref{fig:height} shows the robot's performance
+on two differently sized objects; after training it servos at a higher
+height for the epipen, which is larger, and a lower height for the
+egg, improving the success rate.  The contribution of this short paper
+is to apply our algorithm to learn what height to observe an object.
 
 Formally, the agent is given an N-armed bandit, where each arm pays
 out $1$ with probability $\mu_i$ and $0$ otherwise.  The agent's goal
@@ -290,7 +288,7 @@ height.
 
 \begin{figure}
 \parbox{0.5\linewidth}{
-\subfigure[The robot learns to servo for the epipen at a higher height, so the entire object fits in frame; it servos the egg at a lower height to obtain higher positional accuracy.\label{fig:height}]{\includegraphics[width=1\linewidth]{figures/epipen_egg.png}}
+\subfigure[The robot learns to servo for the epipen at a higher height, so the entire object fits in frame; it servos the egg at a lower height to obtain higher positional accuracy.\label{fig:height}]{\includegraphics[width=1\linewidth]{figures/epipen_egg.jpg}}
 
 %\subfigure[Before learning, the robot grasps the ruler near the end and drops it; after learning, it grasps it near the middle.\label{fig:ruler}]{\includegraphics[width=0.5\linewidth]{figures/dropping_ruler.png}\includegraphics[width=0.5\linewidth]{figures/holding_ruler.png}}
 
@@ -372,6 +370,8 @@ overall pick success rate from 55\% to 75\% on our test set of 30
 household objects, shown in Figure~\ref{fig:object_glory_shot}, after
 doing pick and height training.  Height servoing allows the robot to
 adjust to different heights as shown in Figure~\ref{fig:height}.
+Video showing our approach and evaluation can be seen at
+\url{https://www.youtube.com/watch?v=xfH0B3g782Y}.
 
 \section*{Conclusion}
 
