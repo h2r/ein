@@ -336,6 +336,10 @@ std::vector<Word *> create_words() {
     words.push_back(new IncrementCurrentCornellTable());
     words.push_back(new DecrementCurrentCornellTable());
     words.push_back(new MoveToCurrentCornellTable());
+
+    words.push_back(new GuiShowAll());
+    words.push_back(new GuiHideAll());
+    words.push_back(new GuiCustom1());
   }
 
   return words;

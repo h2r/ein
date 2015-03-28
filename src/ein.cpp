@@ -1072,6 +1072,23 @@ int numCornellTables = 10;
 vector<eePose> cornellTables;
 int currentCornellTableIndex = 0;
 
+bool sirRangeogram = 1;
+bool sirRangemap = 1;
+bool sirGraspMemory = 1;
+bool sirGraspMemorySample = 1;
+bool sirHeightMemorySample = 1;
+bool sirHiRangmap = 1;
+bool sirHiColorRangemap = 1;
+bool sirObject = 1;
+bool sirObjectMap = 1;
+bool sirDensity = 1;
+bool sirGradient = 1;
+bool sirObjectness = 1;
+bool sirMapBackground = 1;
+bool sirAerialGradient = 1;
+bool sirWrist = 1;
+bool sirCore = 1;
+
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -1787,7 +1804,7 @@ void neutral();
 
 bool isSketchyMat(Mat sketchy);
 void guardViewers();
-void guardedImshow(string name, Mat image);
+void guardedImshow(string name, Mat image, bool shouldIRender);
 
 ////////////////////////////////////////////////
 // end node prototypes 
@@ -3521,7 +3538,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
       putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  guardedImshow(rangeogramViewName, rangeogramImage);
+  guardedImshow(rangeogramViewName, rangeogramImage, sirRangeogram);
 
   if (!shouldIRangeCallback) {
     return;
@@ -3724,27 +3741,26 @@ void rangeCallback(const sensor_msgs::Range& range) {
   }
 
   if (shouldIRender) {
-    guardedImshow(rangemapViewName, rangemapImage);
-    guardedImshow(graspMemoryViewName, graspMemoryImage);
-    guardedImshow(graspMemorySampleViewName, graspMemorySampleImage);
-    guardedImshow(heightMemorySampleViewName, heightMemorySampleImage);
-    //guardedImshow(hiRangemapViewName, hiRangemapImage);
+    guardedImshow(rangemapViewName, rangemapImage, sirRangemap);
+    guardedImshow(graspMemoryViewName, graspMemoryImage, sirGraspMemory);
+    guardedImshow(graspMemorySampleViewName, graspMemorySampleImage, sirGraspMemorySample);
+    guardedImshow(heightMemorySampleViewName, heightMemorySampleImage, sirHeightMemorySample);
     Mat hRIT;
     cv::resize(hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
-    guardedImshow(hiRangemapViewName, hRIT);
+    guardedImshow(hiRangemapViewName, hRIT, sirHiRangmap);
     Mat hCRIT;
     cv::resize(hiColorRangemapImage, hCRIT, cv::Size(0,0), 2, 2);
-    guardedImshow(hiColorRangemapViewName, hCRIT);
+    guardedImshow(hiColorRangemapViewName, hCRIT, sirHiColorRangemap);
 
-    guardedImshow(objectViewerName, objectViewerImage);
-    guardedImshow(objectMapViewerName, objectMapViewerImage);
+    guardedImshow(objectViewerName, objectViewerImage, sirObject);
+    guardedImshow(objectMapViewerName, objectMapViewerImage, sirObjectMap);
     //cv::moveWindow(objectMapViewerName, 0, 0);
 
-    guardedImshow(densityViewerName, densityViewerImage);
-    guardedImshow(gradientViewerName, gradientViewerImage);
-    guardedImshow(objectnessViewerName, objectnessViewerImage);
+    guardedImshow(densityViewerName, densityViewerImage, sirDensity);
+    guardedImshow(gradientViewerName, gradientViewerImage, sirGradient);
+    guardedImshow(objectnessViewerName, objectnessViewerImage, sirObjectness);
 
-    guardedImshow(mapBackgroundViewName, mapBackgroundImage);
+    guardedImshow(mapBackgroundViewName, mapBackgroundImage, sirMapBackground);
     
     if (targetClass > -1) {
       if (classHeight0AerialGradients[targetClass].rows == aerialGradientWidth) {
@@ -3784,7 +3800,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  denom3 = 1;
 	crop3 = (classHeight3AerialGradients[targetClass] - min3) / denom3;
 
-	guardedImshow(aerialGradientViewerName, aerialGradientViewerImage);
+	guardedImshow(aerialGradientViewerName, aerialGradientViewerImage, sirAerialGradient);
       }
     }
   }
@@ -4776,7 +4792,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   if (shouldIRender) {
-    guardedImshow(wristViewName, wristViewImage);
+    guardedImshow(wristViewName, wristViewImage, sirWrist);
   }
 }
 
@@ -5056,7 +5072,7 @@ void renderObjectMapView() {
   }
 
   if (shouldIRender) {
-    guardedImshow(objectMapViewerName, objectMapViewerImage);
+    guardedImshow(objectMapViewerName, objectMapViewerImage, sirObjectMap);
   }
 
 
@@ -5192,9 +5208,9 @@ void renderCoreView() {
       putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  guardedImshow(rangeogramViewName, rangeogramImage);
+  guardedImshow(rangeogramViewName, rangeogramImage, sirRangeogram);
 
-  guardedImshow(coreViewName, coreImage);
+  guardedImshow(coreViewName, coreImage, sirCore);
 }
 
 void targetCallback(const geometry_msgs::Point& point) {
@@ -11205,7 +11221,7 @@ void renderAccumulatedImageAndDensity() {
   }
 
   if (shouldIRender) {
-    guardedImshow(gradientViewerName, gradientViewerImage);
+    guardedImshow(gradientViewerName, gradientViewerImage, sirGradient);
   }
 
 }
@@ -11718,9 +11734,9 @@ void goCalculateDensity() {
   }
 
   if (shouldIRender) {
-    guardedImshow(densityViewerName, densityViewerImage);
-    guardedImshow(gradientViewerName, gradientViewerImage);
-    guardedImshow(objectnessViewerName, objectnessViewerImage);
+    guardedImshow(densityViewerName, densityViewerImage, sirDensity);
+    guardedImshow(gradientViewerName, gradientViewerImage, sirGradient);
+    guardedImshow(objectnessViewerName, objectnessViewerImage, sirObjectness);
   }
 }
 
@@ -12028,7 +12044,7 @@ void goFindBlueBoxes() {
 //cout << "Here 4" << endl;
 
   if (shouldIRender) {
-    guardedImshow(objectViewerName, objectViewerImage);
+    guardedImshow(objectViewerName, objectViewerImage, sirObject);
   }
 
   delete gBoxIndicator;
@@ -12326,7 +12342,7 @@ void goFindBrownBoxes() {
   }
 
   if (shouldIRender) {
-    guardedImshow(objectViewerName, objectViewerImage);
+    guardedImshow(objectViewerName, objectViewerImage, sirObject);
   }
 
 }
@@ -12849,7 +12865,7 @@ void goClassifyBlueBoxes() {
   }
 
   if (shouldIRender) {
-    guardedImshow(objectViewerName, objectViewerImage);
+    guardedImshow(objectViewerName, objectViewerImage, sirObject);
   }
 
   cout << "Publish objects: " << publishObjects << endl;
@@ -13963,8 +13979,8 @@ void guardViewers() {
   }
 }
 
-void guardedImshow(string name, Mat image) {
-  if ( !isSketchyMat(image) ) {
+void guardedImshow(string name, Mat image, bool shouldIRender) {
+  if ( !isSketchyMat(image) && shouldIRender ) {
     imshow(name, image);
   }
 }
@@ -14172,7 +14188,8 @@ int main(int argc, char **argv) {
   spinlessPilotMain();
 
   saveROSParams();
-  //pushWord("visionPatrol");
+
+  pushWord("guiCustom1"); 
   pushWord("printState");
   pushCopies("zUp", 15);
   int devInit = 1;
@@ -14185,7 +14202,7 @@ int main(int argc, char **argv) {
   pushWord("printWords");
   pushWord("openGripper");
   pushWord("calibrateGripper");
-  pushWord("shiftIntoGraspGear1"); // change gear to 1
+  pushWord("shiftIntoGraspGear1"); 
 
   execute_stack = 1;
 
