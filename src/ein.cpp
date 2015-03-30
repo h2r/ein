@@ -148,6 +148,10 @@ typedef struct {
   double qw;
 } eePose;
 
+void printEEPose(eePose toPrint) {
+  cout << toPrint.px << " " << toPrint.py << " " << toPrint.pz << " " << endl << toPrint.qx << " " << toPrint.qy << " " << toPrint.qz << " " << toPrint.qw << endl;
+}
+
 #define NOW_THATS_FAST 0.08
 #define MOVE_EVEN_FASTER 0.04
 #define MOVE_FASTER 0.02
@@ -230,6 +234,12 @@ typedef enum {
   KNIFE,
   OFT_INVALID
 } orientedFilterType;
+
+typedef enum {
+  PHYSICAL,
+  SIMULATED
+} robotMode;
+robotMode chosen_mode = SIMULATED;
 
 #define ORIENTATIONS 180//12 
 #define O_FILTER_WIDTH 25//25
@@ -354,6 +364,7 @@ std::string hiRangemapViewName = "Hi Range Map View";
 std::string hiColorRangemapViewName = "Hi Color Range Map View";
 std::string graspMemoryViewName = "Grasp Memory View";
 std::string graspMemorySampleViewName = "Grasp Memory Sample View";
+std::string mapBackgroundViewName = "Map Background Vew";
 
 
 std::string heightMemorySampleViewName = "Height Memory Sample View";
@@ -1050,6 +1061,36 @@ double hoverGoThresh = 0.02;
 double hoverAngleThresh = 0.02;
 eePose lastHoverTrueEEPoseEEPose;
 
+double simulatorCallbackFrequency = 30.0;
+
+int mbiWidth = 500;
+int mbiHeight = 500;
+Mat mapBackgroundImage;
+
+int objectInHandLabel = -1;
+int simulatedObjectHalfWidthPixels = 50;
+
+int numCornellTables = 10;
+vector<eePose> cornellTables;
+int currentCornellTableIndex = 0;
+
+bool sirRangeogram = 1;
+bool sirRangemap = 1;
+bool sirGraspMemory = 1;
+bool sirGraspMemorySample = 1;
+bool sirHeightMemorySample = 1;
+bool sirHiRangmap = 1;
+bool sirHiColorRangemap = 1;
+bool sirObject = 1;
+bool sirObjectMap = 1;
+bool sirDensity = 1;
+bool sirGradient = 1;
+bool sirObjectness = 1;
+bool sirMapBackground = 1;
+bool sirAerialGradient = 1;
+bool sirWrist = 1;
+bool sirCore = 1;
+
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -1353,6 +1394,13 @@ double mapRejectFenceXMax;
 double mapRejectFenceYMin;
 double mapRejectFenceYMax;
 
+double mapBackgroundXMin;
+double mapBackgroundXMax;
+double mapBackgroundYMin;
+double mapBackgroundYMax;
+
+double mapBackgroundBufferMeters = 1.0;
+
 const int mapWidth = (mapXMax - mapXMin) / mapStep;
 const int mapHeight = (mapYMax - mapYMin) / mapStep;
 const ros::Duration mapMemoryTimeout(10);
@@ -1548,6 +1596,10 @@ void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees);
 void fetchCommandCallback(const std_msgs::String::ConstPtr& msg);
 void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
 
+void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
+void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);
+void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg);
+
 bool isGripperGripping();
 void initialize3DParzen();
 void l2Normalize3DParzen();
@@ -1674,6 +1726,10 @@ void initVectorArcTan();
 void mapBlueBox(cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark);
 void mapBox(BoxMemory boxMemory);
 
+void queryIK(int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
+
+void simulatorCallback(const ros::TimerEvent&);
+
 ////////////////////////////////////////////////
 // end pilot prototypes 
 //
@@ -1750,7 +1806,7 @@ void neutral();
 
 bool isSketchyMat(Mat sketchy);
 void guardViewers();
-void guardedImshow(string name, Mat image);
+void guardedImshow(string name, Mat image, bool shouldIRender);
 
 ////////////////////////////////////////////////
 // end node prototypes 
@@ -2366,6 +2422,7 @@ void recordReadyRangeReadings() {
 	#ifdef DEBUG2
 	#endif
 	cout << "  recordReadyRangeReadings(): dropping stale packet due to epRing. consider increasing buffer size." << endl;
+	cout << "  recordReadyRangeReadings() --> " << thisTime << endl; 
       }
       if (weHaveImData == -1) {
 	rgRingBufferAdvance();
@@ -2373,6 +2430,7 @@ void recordReadyRangeReadings() {
 	#ifdef DEBUG2
 	#endif
 	cout << "  recordReadyRangeReadings(): dropping stale packet due to imRing. consider increasing buffer size." << endl;
+	cout << "  recordReadyRangeReadings() --> " << thisTime << endl; 
       } 
       if ((weHavePoseData == 1) && (weHaveImData == 1)) {
 
@@ -2722,6 +2780,99 @@ vector<string> split(const char *str, char c = ' ')
 }
 
 
+void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
+  cout << "moveEndEffectorCommandCallback" << endl << msg.position << msg.orientation << endl;
+  if (chosen_mode == PHYSICAL) {
+    return;
+  } else if (SIMULATED) {
+    currentEEPose.px = msg.position.x;
+    currentEEPose.py = msg.position.y;
+    currentEEPose.pz = msg.position.z;
+  }
+}
+
+void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
+  if (chosen_mode == PHYSICAL) {
+    return;
+  } else if (SIMULATED) {
+    if (objectInHandLabel == -1) {
+      // this is a fake box to test intersection
+      int probeBoxHalfWidthPixels = 10;
+      BoxMemory box;
+      box.bTop.x = vanishingPointReticle.px-probeBoxHalfWidthPixels;
+      box.bTop.y = vanishingPointReticle.py-probeBoxHalfWidthPixels;
+      box.bBot.x = vanishingPointReticle.px+probeBoxHalfWidthPixels;
+      box.bBot.y = vanishingPointReticle.py+probeBoxHalfWidthPixels;
+      box.cameraPose = currentEEPose;
+      box.top = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
+      box.bot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+      box.centroid.px = (box.top.px + box.bot.px) * 0.5;
+      box.centroid.py = (box.top.py + box.bot.py) * 0.5;
+      box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
+      box.cameraTime = ros::Time::now();
+      box.labeledClassIndex = 0;
+
+      vector<BoxMemory> newMemories;
+      bool foundOne = false;
+      int foundClassIndex = -1;
+      for (int i = 0; i < blueBoxMemories.size(); i++) {
+	if ( (!foundOne) && (boxMemoryIntersectCentroid(box, blueBoxMemories[i])) ) {
+	  foundOne = true;
+	  foundClassIndex = blueBoxMemories[i].labeledClassIndex;
+	} else {
+	  newMemories.push_back(blueBoxMemories[i]);
+	}
+      }
+      blueBoxMemories = newMemories;
+      objectInHandLabel = foundClassIndex;
+      if (objectInHandLabel >= 0) {
+	cout << "pickObjectUnderEndEffectorCommandCallback: The " << classLabels[objectInHandLabel] << " you found is now in your hand." << endl;
+      } else {
+	cout << "pickObjectUnderEndEffectorCommandCallback: Alas, nothing to be found." << endl;
+      }
+    } else {
+      if (objectInHandLabel >= 0) {
+	cout << "pickObjectUnderEndEffectorCommandCallback: Not picking because of the " << classLabels[objectInHandLabel] << " you already hold." << endl;
+      } else {
+	cout << "pickObjectUnderEndEffectorCommandCallback: Not picking because objectInHandLabel is " << objectInHandLabel << "." << endl;
+      }
+    }
+  }
+}
+
+void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
+  if (chosen_mode == PHYSICAL) {
+    return;
+  } else if (SIMULATED) {
+    if (objectInHandLabel >= 0) {
+      BoxMemory box;
+      box.bTop.x = vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
+      box.bTop.y = vanishingPointReticle.py-simulatedObjectHalfWidthPixels;
+      box.bBot.x = vanishingPointReticle.px+simulatedObjectHalfWidthPixels;
+      box.bBot.y = vanishingPointReticle.py+simulatedObjectHalfWidthPixels;
+      box.cameraPose = currentEEPose;
+      box.top = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
+      box.bot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+      box.centroid.px = (box.top.px + box.bot.px) * 0.5;
+      box.centroid.py = (box.top.py + box.bot.py) * 0.5;
+      box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
+      box.cameraTime = ros::Time::now();
+      box.labeledClassIndex = objectInHandLabel;
+      
+      mapBox(box);
+      vector<BoxMemory> newMemories;
+      for (int i = 0; i < blueBoxMemories.size(); i++) {
+	newMemories.push_back(blueBoxMemories[i]);
+      }
+      newMemories.push_back(box);
+      blueBoxMemories = newMemories;
+      cout << "placeObjectInEndEffectorCommandCallback: You dropped the " << classLabels[objectInHandLabel] << "." << endl;
+    } else {
+      cout << "placeObjectInEndEffectorCommandCallback: Not placing because objectInHandLabel is " << objectInHandLabel << "." << endl;
+    }
+    objectInHandLabel = -1;
+  }
+}
 
 void forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
 
@@ -3389,7 +3540,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
       putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  guardedImshow(rangeogramViewName, rangeogramImage);
+  guardedImshow(rangeogramViewName, rangeogramImage, sirRangeogram);
 
   if (!shouldIRangeCallback) {
     return;
@@ -3592,25 +3743,26 @@ void rangeCallback(const sensor_msgs::Range& range) {
   }
 
   if (shouldIRender) {
-    guardedImshow(rangemapViewName, rangemapImage);
-    guardedImshow(graspMemoryViewName, graspMemoryImage);
-    guardedImshow(graspMemorySampleViewName, graspMemorySampleImage);
-    guardedImshow(heightMemorySampleViewName, heightMemorySampleImage);
-    //guardedImshow(hiRangemapViewName, hiRangemapImage);
+    guardedImshow(rangemapViewName, rangemapImage, sirRangemap);
+    guardedImshow(graspMemoryViewName, graspMemoryImage, sirGraspMemory);
+    guardedImshow(graspMemorySampleViewName, graspMemorySampleImage, sirGraspMemorySample);
+    guardedImshow(heightMemorySampleViewName, heightMemorySampleImage, sirHeightMemorySample);
     Mat hRIT;
     cv::resize(hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
-    guardedImshow(hiRangemapViewName, hRIT);
+    guardedImshow(hiRangemapViewName, hRIT, sirHiRangmap);
     Mat hCRIT;
     cv::resize(hiColorRangemapImage, hCRIT, cv::Size(0,0), 2, 2);
-    guardedImshow(hiColorRangemapViewName, hCRIT);
+    guardedImshow(hiColorRangemapViewName, hCRIT, sirHiColorRangemap);
 
-    guardedImshow(objectViewerName, objectViewerImage);
-    guardedImshow(objectMapViewerName, objectMapViewerImage);
+    guardedImshow(objectViewerName, objectViewerImage, sirObject);
+    guardedImshow(objectMapViewerName, objectMapViewerImage, sirObjectMap);
     //cv::moveWindow(objectMapViewerName, 0, 0);
 
-    guardedImshow(densityViewerName, densityViewerImage);
-    guardedImshow(gradientViewerName, gradientViewerImage);
-    guardedImshow(objectnessViewerName, objectnessViewerImage);
+    guardedImshow(densityViewerName, densityViewerImage, sirDensity);
+    guardedImshow(gradientViewerName, gradientViewerImage, sirGradient);
+    guardedImshow(objectnessViewerName, objectnessViewerImage, sirObjectness);
+
+    guardedImshow(mapBackgroundViewName, mapBackgroundImage, sirMapBackground);
     
     if (targetClass > -1) {
       if (classHeight0AerialGradients[targetClass].rows == aerialGradientWidth) {
@@ -3650,7 +3802,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  denom3 = 1;
 	crop3 = (classHeight3AerialGradients[targetClass] - min3) / denom3;
 
-	guardedImshow(aerialGradientViewerName, aerialGradientViewerImage);
+	guardedImshow(aerialGradientViewerName, aerialGradientViewerImage, sirAerialGradient);
       }
     }
   }
@@ -3793,8 +3945,11 @@ void update_baxter(ros::NodeHandle &n) {
     return;
   }
 
+  if (chosen_mode == SIMULATED) {
+    return;
+  }
+
   baxter_core_msgs::SolvePositionIK thisIkRequest;
-  endEffectorAngularUpdate(&currentEEPose);
   fillIkRequest(&currentEEPose, &thisIkRequest);
 
   int ikResultFailed = 0;
@@ -3807,7 +3962,11 @@ void update_baxter(ros::NodeHandle &n) {
     double useZOnly = 1;
     double ikNoiseAmplitudeQuat = 0;
     for (int ikRetry = 0; ikRetry < numIkRetries; ikRetry++) {
-      int ikCallResult = ikClient.call(thisIkRequest);
+      // ATTN 24
+      //int ikCallResult = ikClient.call(thisIkRequest);
+      int ikCallResult = 0;
+      queryIK(&ikCallResult, &thisIkRequest);
+
       //ikResultFailed = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
       //cout << "ik call result: " << ikCallResult << " joints: " << (thisIkRequest.response.joints.size()) << " "; 
 
@@ -4187,6 +4346,8 @@ void timercallback1(const ros::TimerEvent&) {
     }
   }
 
+  endEffectorAngularUpdate(&currentEEPose);
+
   if (!zero_g_toggle) {
     update_baxter(n);
   }
@@ -4215,6 +4376,7 @@ void timercallback1(const ros::TimerEvent&) {
 
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg){
+
 
   lastImageCallbackReceived = ros::Time::now();
 
@@ -4632,7 +4794,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   if (shouldIRender) {
-    guardedImshow(wristViewName, wristViewImage);
+    guardedImshow(wristViewName, wristViewImage, sirWrist);
   }
 }
 
@@ -4912,7 +5074,7 @@ void renderObjectMapView() {
   }
 
   if (shouldIRender) {
-    guardedImshow(objectMapViewerName, objectMapViewerImage);
+    guardedImshow(objectMapViewerName, objectMapViewerImage, sirObjectMap);
   }
 
 
@@ -5048,9 +5210,9 @@ void renderCoreView() {
       putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  guardedImshow(rangeogramViewName, rangeogramImage);
+  guardedImshow(rangeogramViewName, rangeogramImage, sirRangeogram);
 
-  guardedImshow(coreViewName, coreImage);
+  guardedImshow(coreViewName, coreImage, sirCore);
 }
 
 void targetCallback(const geometry_msgs::Point& point) {
@@ -5244,6 +5406,10 @@ void pilotInit() {
     //mapSearchFenceXMax = 0.3;
     //mapRejectFenceXMax = 0.3;
 
+    mapBackgroundXMin = mapSearchFenceXMin - mapBackgroundBufferMeters;
+    mapBackgroundXMax = mapSearchFenceXMax + mapBackgroundBufferMeters;
+    mapBackgroundYMin = mapSearchFenceYMin - mapBackgroundBufferMeters;
+    mapBackgroundYMax = mapSearchFenceYMax + mapBackgroundBufferMeters;
 
 
     // left arm
@@ -5403,6 +5569,11 @@ void pilotInit() {
     mapRejectFenceXMax = mapSearchFenceXMax;
     mapRejectFenceYMin = mapSearchFenceYMin;
     mapRejectFenceYMax = mapSearchFenceYMax;
+
+    mapBackgroundXMin = mapSearchFenceXMin - mapBackgroundBufferMeters;
+    mapBackgroundXMax = mapSearchFenceXMax + mapBackgroundBufferMeters;
+    mapBackgroundYMin = mapSearchFenceYMin - mapBackgroundBufferMeters;
+    mapBackgroundYMax = mapSearchFenceYMax + mapBackgroundBufferMeters;
 
 
     // right arm
@@ -8993,6 +9164,245 @@ void mapBox(BoxMemory boxMemory) {
  mapBlueBox(boxMemory.bTop, boxMemory.bBot, boxMemory.labeledClassIndex, ros::Time::now());
 }
 
+void queryIK(int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
+  if (chosen_mode == PHYSICAL) {
+    *thisResult = ikClient.call(*thisRequest);
+  } else if (SIMULATED) {
+    *thisResult = 1;
+  }
+}
+
+void simulatorCallback(const ros::TimerEvent&) {
+    //imageCallback
+    //rangeCallback
+    //endpointCallback
+
+    //gripStateCallback
+
+    //jointCallback
+    //targetCallback
+  {
+    sensor_msgs::Range myRange;
+    myRange.range = 0.1;
+    myRange.header.stamp = ros::Time::now();
+    rangeCallback(myRange);
+  }
+
+  {
+    baxter_core_msgs::EndpointState myEPS;
+
+    myEPS.header.stamp = ros::Time::now();
+    myEPS.pose.position.x = currentEEPose.px;
+    myEPS.pose.position.y = currentEEPose.py;
+    myEPS.pose.position.z = currentEEPose.pz;
+    myEPS.pose.orientation.x = currentEEPose.qx;
+    myEPS.pose.orientation.y = currentEEPose.qy;
+    myEPS.pose.orientation.z = currentEEPose.qz;
+    myEPS.pose.orientation.w = currentEEPose.qw;
+
+    endpointCallback(myEPS);
+  }
+  {
+    int imW = 640;
+    int imH = 400;
+    Mat dummyImage(imH, imW, CV_8UC3);
+    //cv::resize(mapBackgroundImage, dummyImage, cv::Size(imW,imH));
+    {
+      // XXX TODO this doesn't do rotation yet
+      double msfWidth = mapBackgroundXMax - mapBackgroundXMin;
+      double msfHeight = mapBackgroundYMax - mapBackgroundYMin;
+      double zToUse = trueEEPose.position.z+currentTableZ;
+
+      double topLx = 0.0;
+      double topLy = 0.0;
+      pixelToGlobal(0, 0, zToUse, &topLx, &topLy);
+      double botLx = 0.0;
+      double botLy = 0.0;
+      pixelToGlobal(imW-1, imH-1, zToUse, &botLx, &botLy);
+      topLx = min(max(mapBackgroundXMin, topLx), mapBackgroundXMax);
+      topLy = min(max(mapBackgroundYMin, topLy), mapBackgroundYMax);
+      botLx = min(max(mapBackgroundXMin, botLx), mapBackgroundXMax);
+      botLy = min(max(mapBackgroundYMin, botLy), mapBackgroundYMax);
+      //cout << zToUse << " z: " << endl;
+      //cout << topLx << " " << topLy << " " << botLx << " " << botLy << endl;
+
+      // account for rotation of the end effector 
+      double gpLx = 0.0;
+      double gpLy = 0.0;
+      pixelToGlobal(currentEEPose.px, currentEEPose.py, zToUse, &gpLx, &gpLy);
+      double mapGpFractionWidth = (gpLx - mapBackgroundXMin) / msfWidth;
+      double mapGpFractionHeight = (gpLy - mapBackgroundYMin) / msfHeight;
+      int mapGpPx = floor(mapGpFractionWidth * mbiWidth);
+      int mapGpPy = floor(mapGpFractionHeight * mbiHeight);
+      mapGpPx = min(max(0, mapGpPx), mbiWidth-1);
+      mapGpPy = min(max(0, mapGpPy), mbiHeight-1);
+
+      Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+      Quaternionf crane2Orient(0, 1, 0, 0);
+      Quaternionf rel = eeqform * crane2Orient.inverse();
+      Quaternionf ex(0,1,0,0);
+      Quaternionf zee(0,0,0,1);
+	    
+      Quaternionf result = rel * ex * rel.conjugate();
+      Quaternionf thumb = rel * zee * rel.conjugate();
+      double aY = result.y();
+      double aX = result.x();
+
+      // ATTN 22
+      //double angle = atan2(aY, aX)*180.0/3.1415926;
+      double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
+      angle = (angle);
+      double scale = 1.0;
+      Point center = Point(mapGpPx, mapGpPy);
+
+      Mat un_rot_mat = getRotationMatrix2D( center, angle, scale );
+
+      if (0) {
+	// un_rot_mat = [[0 1 0]' [1 0 0]' [0 0 1]'] * un_rot_mat
+	cout << un_rot_mat.size() << endl;
+	float tmp = 0.0;
+	tmp = un_rot_mat.at<float>(1,0);
+	un_rot_mat.at<float>(1,0) = un_rot_mat.at<float>(0,0);
+	un_rot_mat.at<float>(0,0) = tmp;
+
+	tmp = un_rot_mat.at<float>(1,1);
+	un_rot_mat.at<float>(1,1) = un_rot_mat.at<float>(0,1);
+	un_rot_mat.at<float>(0,1) = tmp;
+      }
+
+      double mapStartFractionWidth = (topLx - mapBackgroundXMin) / msfWidth;
+      double mapStartFractionHeight = (topLy - mapBackgroundYMin) / msfHeight;
+      double mapEndFractionWidth = (botLx - mapBackgroundXMin) / msfWidth;
+      double mapEndFractionHeight = (botLy - mapBackgroundYMin) / msfHeight;
+
+      //cout << "iii: " << mapStartFractionWidth << " " << mapStartFractionHeight << " " << mapEndFractionWidth << " " << mapEndFractionHeight << endl; cout.flush();
+
+      int mapStartPx = floor(mapStartFractionWidth * mbiWidth);
+      int mapStartPy = floor(mapStartFractionHeight * mbiHeight);
+      int mapEndPx = floor(mapEndFractionWidth * mbiWidth);
+      int mapEndPy = floor(mapEndFractionHeight * mbiHeight);
+      mapStartPx = min(max(0, mapStartPx), mbiWidth-1);
+      mapStartPy = min(max(0, mapStartPy), mbiHeight-1);
+      mapEndPx = min(max(0, mapEndPx), mbiWidth-1);
+      mapEndPy = min(max(0, mapEndPy), mbiHeight-1);
+
+      //cout << "jjj: " << mapStartPx << " " << mapStartPy << " " << mapEndPx << " " << mapEndPy << endl; cout.flush();
+
+      int rotTopPx = 0.0;
+      int rotTopPy = 0.0;
+      int rotBotPx = 0.0;
+      int rotBotPy = 0.0;
+      {
+	Mat toUn(3,1,CV_64F);
+	toUn.at<double>(0,0)=mapStartPx;
+	toUn.at<double>(1,0)=mapStartPy;
+	toUn.at<double>(2,0)=1.0;
+	Mat didUn = un_rot_mat*toUn;
+	rotTopPx = floor(didUn.at<double>(0,0));
+	rotTopPy = floor(didUn.at<double>(1,0));
+      }
+      {
+	Mat toUn(3,1,CV_64F);
+	toUn.at<double>(0,0)=mapEndPx;
+	toUn.at<double>(1,0)=mapEndPy;
+	toUn.at<double>(2,0)=1.0;
+	Mat didUn = un_rot_mat*toUn;
+	rotBotPx = floor(didUn.at<double>(0,0));
+	rotBotPy = floor(didUn.at<double>(1,0));
+      }
+      rotTopPx = min(max(0, rotTopPx), mbiWidth-1);
+      rotTopPy = min(max(0, rotTopPy), mbiHeight-1);
+      rotBotPx = min(max(0, rotBotPx), mbiWidth-1);
+      rotBotPy = min(max(0, rotBotPy), mbiHeight-1);
+
+      int topPx = 0.0;
+      int topPy = 0.0;
+      globalToPixel( &topPx, &topPy, zToUse, topLx, topLy);
+      int botPx = 0.0;
+      int botPy = 0.0;
+      globalToPixel( &botPx, &botPy, zToUse, botLx, botLy);
+      topPx = min(max(0, topPx), imW-1);
+      topPy = min(max(0, topPy), imH-1);
+      botPx = min(max(0, botPx), imW-1);
+      botPy = min(max(0, botPy), imH-1);
+
+      //cout << "jja: " << rotTopPx << " " << rotTopPy << " " << rotBotPx << " " << rotBotPy << endl; cout.flush();
+      //cout << "jjb: " << topPx << " " << topPy << " " << botPx << " " << botPy << endl; cout.flush();
+
+      // this switch happens due to the default handedness and rotation of the camera
+      if (0) {
+	int tmp;
+	tmp = rotTopPx;
+	rotTopPx = rotBotPx;
+	rotBotPx = tmp;
+	//tmp = rotTopPy;
+	//rotTopPy = rotBotPy;
+	//rotBotPy = tmp;
+      }
+
+      int localRotTopPx = min(rotTopPx, rotBotPx);
+      int localRotTopPy = min(rotTopPy, rotBotPy);
+      int localRotBotPx = max(rotTopPx, rotBotPx);
+      int localRotBotPy = max(rotTopPy, rotBotPy);
+
+      //cout << "jjc: " << rotTopPx << " " << rotTopPy << " " << rotBotPx << " " << rotBotPy << endl; cout.flush();
+      //cout << "jjd: " << localRotTopPx << " " << localRotTopPy << " " << localRotBotPx << " " << localRotBotPy << endl; cout.flush();
+      //printEEPose(currentEEPose);
+
+      Mat rotatedBackMapImage;
+      warpAffine(mapBackgroundImage, rotatedBackMapImage, un_rot_mat, mapBackgroundImage.size(), INTER_LINEAR, BORDER_REPLICATE);
+
+      //Mat backgroundMapCrop = rotatedBackMapImage(cv::Rect(rotTopPx, rotTopPy, rotBotPx-rotTopPx, rotBotPy-rotTopPy));
+      Mat backgroundMapCrop = rotatedBackMapImage(cv::Rect(localRotTopPx, localRotTopPy, localRotBotPx-localRotTopPx, localRotBotPy-localRotTopPy));
+      transpose(backgroundMapCrop, backgroundMapCrop);
+      //Mat backgroundMapCrop = rotatedBackMapImage(cv::Rect(localRotTopPy, localRotTopPx, localRotBotPy-localRotTopPy, localRotBotPx-localRotTopPx));
+
+
+      //Mat backgroundMapCrop = rotatedBackMapImage(cv::Rect(localRotTopPx, localRotTopPy, localRotBotPx-localRotTopPx, localRotBotPy-localRotTopPy));
+      Mat screenCrop = dummyImage(cv::Rect(topPx, topPy, botPx-topPx, botPy-topPy));
+      resize(backgroundMapCrop, screenCrop, screenCrop.size(), 0, 0, CV_INTER_LINEAR);
+
+
+      // XXX rotate the background so that it is aligned with the camera
+      // resize the relevant crop into the image crop
+
+//      if (0) {
+//	int localMapStartPx = min(mapStartPx, mapEndPx);
+//	int localMapStartPy = min(mapStartPy, mapEndPy);
+//	int localMapEndPx = max(mapStartPx, mapEndPx);
+//	int localMapEndPy = max(mapStartPy, mapEndPy);
+//	
+//	Mat backgroundMapCrop = mapBackgroundImage(cv::Rect(localMapStartPx, localMapStartPy, localMapEndPx-localMapStartPx, localMapEndPy-localMapStartPy));
+//	Mat screenCrop = dummyImage(cv::Rect(topPx, topPy, botPx-topPx, botPy-topPy));
+//	resize(backgroundMapCrop, screenCrop, screenCrop.size(), 0, 0, CV_INTER_LINEAR);
+//      }
+
+//      Size sz = screenCrop.size();
+//      int cropW = sz.width;
+//      int cropH = sz.height;
+//      Vec3b thisColor = cv::Vec<uchar, 3>(128,128,128);
+//      //screenCrop += thisColor;
+//      for (int y = 0; y < cropH; y++) {
+//	for (int x = 0; x < cropW; x++) {
+//	  screenCrop.at<Vec3b>(y,x) = thisColor;
+//	}
+//      }
+    }
+
+
+    sensor_msgs::ImagePtr myImagePtr(new sensor_msgs::Image());
+    myImagePtr->header.stamp = ros::Time::now();
+    myImagePtr->width = dummyImage.cols;
+    myImagePtr->height = dummyImage.rows;
+    myImagePtr->step = dummyImage.cols * dummyImage.elemSize();
+    myImagePtr->is_bigendian = false;
+    myImagePtr->encoding = sensor_msgs::image_encodings::BGR8;
+    myImagePtr->data.assign(dummyImage.data, dummyImage.data + size_t(dummyImage.rows * myImagePtr->step));
+    imageCallback(myImagePtr);
+  }
+
+
+}
 
 ////////////////////////////////////////////////
 // end pilot definitions 
@@ -10828,7 +11238,7 @@ void renderAccumulatedImageAndDensity() {
   }
 
   if (shouldIRender) {
-    guardedImshow(gradientViewerName, gradientViewerImage);
+    guardedImshow(gradientViewerName, gradientViewerImage, sirGradient);
   }
 
 }
@@ -11341,9 +11751,9 @@ void goCalculateDensity() {
   }
 
   if (shouldIRender) {
-    guardedImshow(densityViewerName, densityViewerImage);
-    guardedImshow(gradientViewerName, gradientViewerImage);
-    guardedImshow(objectnessViewerName, objectnessViewerImage);
+    guardedImshow(densityViewerName, densityViewerImage, sirDensity);
+    guardedImshow(gradientViewerName, gradientViewerImage, sirGradient);
+    guardedImshow(objectnessViewerName, objectnessViewerImage, sirObjectness);
   }
 }
 
@@ -11651,7 +12061,7 @@ void goFindBlueBoxes() {
 //cout << "Here 4" << endl;
 
   if (shouldIRender) {
-    guardedImshow(objectViewerName, objectViewerImage);
+    guardedImshow(objectViewerName, objectViewerImage, sirObject);
   }
 
   delete gBoxIndicator;
@@ -11949,7 +12359,7 @@ void goFindBrownBoxes() {
   }
 
   if (shouldIRender) {
-    guardedImshow(objectViewerName, objectViewerImage);
+    guardedImshow(objectViewerName, objectViewerImage, sirObject);
   }
 
 }
@@ -12486,7 +12896,7 @@ void goClassifyBlueBoxes() {
   }
 
   if (shouldIRender) {
-    guardedImshow(objectViewerName, objectViewerImage);
+    guardedImshow(objectViewerName, objectViewerImage, sirObject);
   }
 
   cout << "Publish objects: " << publishObjects << endl;
@@ -13602,8 +14012,8 @@ void guardViewers() {
   }
 }
 
-void guardedImshow(string name, Mat image) {
-  if ( !isSketchyMat(image) ) {
+void guardedImshow(string name, Mat image, bool shouldIRender) {
+  if ( !isSketchyMat(image) && shouldIRender ) {
     imshow(name, image);
   }
 }
@@ -13689,9 +14099,17 @@ int main(int argc, char **argv) {
 
   image_transport::ImageTransport it(n);
   image_transport::Subscriber image_sub;
-  image_sub = it.subscribe(image_topic, 1, imageCallback);
 
-  ros::Subscriber points = n.subscribe(pc_topic, 1, pointCloudCallback);
+  ros::Subscriber epState;
+  ros::Subscriber gripState;
+  ros::Subscriber eeRanger;
+  ros::Subscriber eeTarget;
+  ros::Subscriber jointSubscriber;
+  ros::Subscriber points;
+
+  ros::Subscriber pickObjectUnderEndEffectorCommandCallbackSub;
+  ros::Subscriber placeObjectInEndEffectorCommandCallbackSub;
+  ros::Subscriber moveEndEfffectorCommandCallbackSub;
 
   rec_objs_blue_memory = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_memory_objects", 10);
   markers_blue_memory = n.advertise<visualization_msgs::MarkerArray>("blue_memory_markers", 10);
@@ -13721,11 +14139,23 @@ int main(int argc, char **argv) {
   createTrackbar("blinder_stride", densityViewerName, &blinder_stride, 50);
   createTrackbar("add_blinders", densityViewerName, &add_blinders, 1);
 
-  ros::Subscriber epState =   n.subscribe("/robot/limb/" + left_or_right_arm + "/endpoint_state", 1, endpointCallback);
-  ros::Subscriber gripState = n.subscribe("/robot/end_effector/" + left_or_right_arm + "_gripper/state", 1, gripStateCallback);
-  ros::Subscriber eeRanger =  n.subscribe("/robot/range/" + left_or_right_arm + "_hand_range/state", 1, rangeCallback);
-  ros::Subscriber eeTarget =  n.subscribe("/ein_" + left_or_right_arm + "/pilot_target_" + left_or_right_arm, 1, targetCallback);
-  ros::Subscriber jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
+  ros::Timer simulatorCallbackTimer;
+
+  if (chosen_mode == PHYSICAL) {
+    epState =   n.subscribe("/robot/limb/" + left_or_right_arm + "/endpoint_state", 1, endpointCallback);
+    gripState = n.subscribe("/robot/end_effector/" + left_or_right_arm + "_gripper/state", 1, gripStateCallback);
+    eeRanger =  n.subscribe("/robot/range/" + left_or_right_arm + "_hand_range/state", 1, rangeCallback);
+    eeTarget =  n.subscribe("/ein_" + left_or_right_arm + "/pilot_target_" + left_or_right_arm, 1, targetCallback);
+    jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
+    points = n.subscribe(pc_topic, 1, pointCloudCallback);
+    image_sub = it.subscribe(image_topic, 1, imageCallback);
+  } else if (chosen_mode == SIMULATED) {
+    cout << "SIMULATION mode enabled." << endl;
+    simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/simulatorCallbackFrequency), simulatorCallback);
+  }
+  pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, pickObjectUnderEndEffectorCommandCallback);
+  placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
+  moveEndEfffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, moveEndEffectorCommandCallback);
 
   wristViewName = "Wrist View " + left_or_right_arm;
   coreViewName = "Core View " + left_or_right_arm;
@@ -13736,6 +14166,7 @@ int main(int argc, char **argv) {
   heightMemorySampleViewName = "Height Memory Sample View " + left_or_right_arm;
   hiRangemapViewName = "Hi Range Map View " + left_or_right_arm;
   hiColorRangemapViewName = "Hi Color Range Map View " + left_or_right_arm;
+  mapBackgroundViewName = "Map Background Viewer " + left_or_right_arm;
 
   cv::namedWindow(wristViewName);
   cv::setMouseCallback(wristViewName, pilotCallbackFunc, NULL);
@@ -13743,6 +14174,7 @@ int main(int argc, char **argv) {
   cv::setMouseCallback(graspMemoryViewName, graspMemoryCallbackFunc, NULL);
   cv::namedWindow(coreViewName);
   cv::namedWindow(rangeogramViewName);
+  cv::namedWindow(mapBackgroundViewName);
 
   ros::Subscriber fetchCommandSubscriber;
   fetchCommandSubscriber = n.subscribe("/fetch_commands", 1, 
@@ -13789,7 +14221,8 @@ int main(int argc, char **argv) {
   spinlessPilotMain();
 
   saveROSParams();
-  //pushWord("visionPatrol");
+
+  pushWord("guiCustom1"); 
   pushWord("printState");
   pushCopies("zUp", 15);
   int devInit = 1;
@@ -13802,15 +14235,37 @@ int main(int argc, char **argv) {
   pushWord("printWords");
   pushWord("openGripper");
   pushWord("calibrateGripper");
-  pushWord("shiftIntoGraspGear1"); // change gear to 1
+  pushWord("shiftIntoGraspGear1"); 
 
   execute_stack = 1;
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();
   cout << "cuda count: " << cudaCount << endl;;
 
+  {
+    string filename;
+    //filename = data_directory + "/mapBackground.ppm";
+    filename = data_directory + "/carpetBackground.jpg";
+    cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
+    Mat tmp = imread(filename);
+    cout << "done. Resizing " << tmp.size() << " "; cout.flush();
+    cv::resize(tmp, mapBackgroundImage, cv::Size(mbiWidth,mbiHeight));
+    cout << "done. " << mapBackgroundImage.size() << endl; cout.flush();
+  }
+
   cvWaitKey(1); // this might be good to init cv gui stuff
   lastImageCallbackReceived = ros::Time::now();
+
+  {
+    for (int i = 0; i < numCornellTables; i++) {
+      double yDelta = (mapSearchFenceYMax - mapSearchFenceXMin) / (double(i));
+      eePose thisTablePose = wholeFoodsBagR;
+      thisTablePose.px = 0.75*(mapSearchFenceXMax - mapSearchFenceXMin) + mapSearchFenceXMin; 
+      thisTablePose.py = mapSearchFenceYMin + (double(i) + 0.5)*yDelta;
+      thisTablePose.pz = currentTableZ; 
+      cornellTables.push_back(thisTablePose);
+    }
+  } 
 
   ros::spin();
 

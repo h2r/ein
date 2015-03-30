@@ -4,3 +4,8 @@ The Kaufman et al. paper incorporates a prior but does not use simple
 regret, with a training period followed by an evaluation period.
 Additionally these approaches do not provide a stopping criterion, to
 decide when to move to the next object.
+
+Furthermore, confidence bounds allow us to understand the real world
+implications of staying with a particular arm. When we stop we have a
+realistic understanding of how well we can manipulate the object and
+whether we should be able to work with it in practice.

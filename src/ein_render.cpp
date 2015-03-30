@@ -140,3 +140,79 @@ virtual void execute()
   drawMapRegisters();
 }
 END_WORD
+
+WORD(GuiShowAll)
+virtual void execute()
+{
+  destroyAllWindows();
+  sirRangeogram = 1;
+  sirRangemap = 1;
+  sirGraspMemory = 1;
+  sirGraspMemorySample = 1;
+  sirHeightMemorySample = 1;
+  sirHiRangmap = 1;
+  sirHiColorRangemap = 1;
+  sirObject = 1;
+  sirObjectMap = 1;
+  sirDensity = 1;
+  sirGradient = 1;
+  sirObjectness = 1;
+  sirMapBackground = 1;
+  sirAerialGradient = 1;
+  sirWrist = 1;
+  sirCore = 1;
+}
+END_WORD
+
+WORD(GuiHideAll)
+virtual void execute()
+{
+  destroyAllWindows();
+  sirRangeogram = 0;
+  sirRangemap = 0;
+  sirGraspMemory = 0;
+  sirGraspMemorySample = 0;
+  sirHeightMemorySample = 0;
+  sirHiRangmap = 0;
+  sirHiColorRangemap = 0;
+  sirObject = 0;
+  sirObjectMap = 0;
+  sirDensity = 0;
+  sirGradient = 0;
+  sirObjectness = 0;
+  sirMapBackground = 0;
+  sirAerialGradient = 0;
+  sirWrist = 0;
+  sirCore = 0;
+}
+END_WORD
+
+WORD(GuiCustom1)
+virtual void execute()
+{
+  ROS_WARN_STREAM("___________________");
+  ROS_ERROR_STREAM("Called word guiCustom1.");
+  ROS_WARN_STREAM("___________________");
+  destroyAllWindows();
+  sirRangeogram = 0;
+  sirRangemap = 0;
+  sirGraspMemory = 0;
+  sirGraspMemorySample = 0;
+  sirHeightMemorySample = 0;
+  sirHiRangmap = 0;
+  sirHiColorRangemap = 0;
+  sirObject = 0;
+  sirObjectMap = 1;
+  sirDensity = 0;
+  sirGradient = 0;
+  sirObjectness = 0;
+  sirMapBackground = 0;
+  sirAerialGradient = 0;
+  sirWrist = 1;
+  sirCore = 0;
+}
+END_WORD
+
+
+
+

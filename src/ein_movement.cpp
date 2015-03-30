@@ -244,7 +244,7 @@ END_WORD
 
 
 WORD(XDown)
-CODE('q') 
+CODE('w') 
 virtual void execute() {
   currentEEPose.px -= bDelta;
 }
@@ -252,7 +252,7 @@ END_WORD
 
 
 WORD(XUp)
-CODE('e') 
+CODE('s') 
 virtual void execute() {
   currentEEPose.px += bDelta;
 }
@@ -275,7 +275,7 @@ END_WORD
 
 
 WORD(ZUp)
-CODE('w')
+CODE('q')
 virtual void execute()
 {
   currentEEPose.pz += bDelta;
@@ -283,7 +283,7 @@ virtual void execute()
 END_WORD
 
 WORD(ZDown)
-CODE('s')
+CODE('e')
 virtual void execute()
 {
     currentEEPose.pz -= bDelta;
@@ -551,4 +551,98 @@ virtual void execute() {
 }
 END_WORD
 
+WORD(SpawnTargetClassAtEndEffector)
+CODE(65379) // insert
+virtual void execute() {
+  cout << "SpawnTargetClassAtEndEffector called." << endl;
+  if (targetClass < 0) {
+    cout << "Not spawning because targetClass is " << targetClass << endl;
+    return;
+  }
+
+  BoxMemory box;
+  box.bTop.x = vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
+  box.bTop.y = vanishingPointReticle.py-simulatedObjectHalfWidthPixels;
+  box.bBot.x = vanishingPointReticle.px+simulatedObjectHalfWidthPixels;
+  box.bBot.y = vanishingPointReticle.py+simulatedObjectHalfWidthPixels;
+  box.cameraPose = currentEEPose;
+  box.top = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
+  box.bot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+  box.centroid.px = (box.top.px + box.bot.px) * 0.5;
+  box.centroid.py = (box.top.py + box.bot.py) * 0.5;
+  box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
+  box.cameraTime = ros::Time::now();
+  box.labeledClassIndex = targetClass;
+  
+  if (chosen_mode == PHYSICAL) {
+    return;
+  } else if (SIMULATED) {
+    mapBox(box);
+    vector<BoxMemory> newMemories;
+    for (int i = 0; i < blueBoxMemories.size(); i++) {
+      newMemories.push_back(blueBoxMemories[i]);
+    }
+    newMemories.push_back(box);
+    blueBoxMemories = newMemories;
+  }
+}
+END_WORD
+
+WORD(destroyObjectInEndEffector)
+CODE(65535) // delete
+virtual void execute() {
+  if (objectInHandLabel >= 0) {
+    cout << "destroyObjectInEndEffector: The " << classLabels[objectInHandLabel] << " in your hand simply vanished." << endl;
+    objectInHandLabel = -1;
+  } else {
+    cout << "destroyObjectInEndEffector: There is nothing in your hand so there is nothing to destroy." << objectInHandLabel << endl;
+  }
+}
+END_WORD
+
+WORD(PickObjectUnderEndEffector)
+CODE(65365) // page up
+virtual void execute() {
+  std_msgs::Empty msg;
+  pickObjectUnderEndEffectorCommandCallback(msg);
+}
+END_WORD
+
+WORD(PlaceObjectInEndEffector)
+CODE(65366) // page down
+virtual void execute() {
+  std_msgs::Empty msg;
+  placeObjectInEndEffectorCommandCallback(msg);
+}
+END_WORD
+
+WORD(SetCurrentCornellTableToZero)
+virtual void execute() {
+  cout << "Setting currentCornellTableIndex to " << "0" << " out of " << numCornellTables << "." << endl;
+  currentCornellTableIndex = 0;
+}
+END_WORD
+
+WORD(IncrementCurrentCornellTable)
+virtual void execute() {
+  currentCornellTableIndex = (currentCornellTableIndex + 1 + numCornellTables) % numCornellTables;
+  cout << "Incrementing currentCornellTableIndex to " << currentCornellTableIndex << " out of " << numCornellTables << "." << endl;
+}
+END_WORD
+
+WORD(DecrementCurrentCornellTable)
+virtual void execute() {
+  currentCornellTableIndex = (currentCornellTableIndex - 1 + numCornellTables) % numCornellTables;
+  cout << "Decrementing currentCornellTableIndex to " << currentCornellTableIndex << " out of " << numCornellTables << "." << endl;
+}
+END_WORD
+
+WORD(MoveToCurrentCornellTable)
+virtual void execute() {
+  if (currentCornellTableIndex >= 0) {
+    currentEEPose.px = cornellTables[currentCornellTableIndex].px;
+    currentEEPose.py = cornellTables[currentCornellTableIndex].py;
+  }
+}
+END_WORD
 

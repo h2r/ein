@@ -306,8 +306,18 @@ virtual void execute() {
 	    fillIkRequest(&nextEEPose, &thisIkRequest);
 
 	    bool likelyInCollision = 0;
-	    int thisIkCallResult = ikClient.call(thisIkRequest);
-	    int ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
+	    // ATTN 24
+	    //int thisIkCallResult = ikClient.call(thisIkRequest);
+	    int thisIkCallResult = 0;
+	    queryIK(&thisIkCallResult, &thisIkRequest);
+
+	    int ikResultFailed = 1;
+	    if (chosen_mode == PHYSICAL) {
+	      ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
+	    } else if (SIMULATED) {
+	      ikResultFailed = positionIsSearched(nextEEPose.px, nextEEPose.py);
+	    }
+
 	    int foundGoodPosition = !ikResultFailed;
 	    //ikMap[i + mapWidth * j] = ikResultFailed;
 	    //ikMap[i + mapWidth * j] = 1;
@@ -403,8 +413,18 @@ virtual void execute() {
     fillIkRequest(&nextEEPose, &thisIkRequest);
 
     bool likelyInCollision = 0;
-    int thisIkCallResult = ikClient.call(thisIkRequest);
-    int ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
+    // ATTN 24
+    //int thisIkCallResult = ikClient.call(thisIkRequest);
+    int thisIkCallResult = 0;
+    queryIK(&thisIkCallResult, &thisIkRequest);
+
+    int ikResultFailed = 1;
+    if (chosen_mode == PHYSICAL) {
+      ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
+    } else if (SIMULATED) {
+      ikResultFailed = positionIsSearched(nextEEPose.px, nextEEPose.py);
+    }
+
     int foundGoodPosition = !ikResultFailed;
 
     if (foundGoodPosition) {
