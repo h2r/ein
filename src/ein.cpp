@@ -208,11 +208,13 @@ typedef enum {
   OPPONENTSIFTBOW_GLOBALCOLOR_HIST = 2, // this has not been sufficiently tested
   SIFTCOLORBOW_HIST = 3, // unimplemented, calculate color histograms at each keypoint and augment each SIFT feature before clustering
   GRADIENT = 4,
-  OPPONENT_COLOR_GRADIENT = 5
+  OPPONENT_COLOR_GRADIENT = 5,
+  CBCR_HISTOGRAM = 6
 } featureType;
-//featureType chosen_feature = SIFTBOW_GLOBALCOLOR_HIST;
+featureType chosen_feature = SIFTBOW_GLOBALCOLOR_HIST;
 //featureType chosen_feature = GRADIENT;
-featureType chosen_feature = OPPONENT_COLOR_GRADIENT;
+//featureType chosen_feature = OPPONENT_COLOR_GRADIENT;
+//featureType chosen_feature = CBCR_HISTOGRAM;
 int cfi = 1;
 
 int gradientFeatureWidth = 50;
@@ -1043,7 +1045,7 @@ Mat objectViewerYCbCrBlur;
 Mat objectViewerGrayBlur;
 
 ros::Time lastHoverRequest;
-double hoverTimeout = 2.0; // seconds
+double hoverTimeout = 3.0;//2.0; // seconds
 double hoverGoThresh = 0.02;
 double hoverAngleThresh = 0.02;
 eePose lastHoverTrueEEPoseEEPose;
@@ -1111,7 +1113,7 @@ std::string gradientViewerName = "Gradient Viewer";
 std::string objectnessViewerName = "Objectness Viewer";
 std::string aerialGradientViewerName = "Aerial Gradient Viewer";
 
-int loTrackbarVariable = 30;//45;//75;
+int loTrackbarVariable = 20;//30;//45;//75;
 int hiTrackbarVariable = 35;//40;//50;
 int redTrackbarVariable = 0;
 int postDensitySigmaTrackbarVariable = 10.0;
@@ -9343,8 +9345,8 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 	    /// Gradient Y
 	    Sobel(totalCrSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
 
-	    //grad_x = grad_x.mul(grad_x);
-	    //grad_y = grad_y.mul(grad_y);
+	    grad_x = grad_x.mul(grad_x);
+	    grad_y = grad_y.mul(grad_y);
 	    totalCrSobel = grad_x + grad_y;
 	  }
 	  Mat totalCbSobel = totalGraySobel.clone();
@@ -9364,8 +9366,8 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 	    /// Gradient Y
 	    Sobel(totalCbSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
 
-	    //grad_x = grad_x.mul(grad_x);
-	    //grad_y = grad_y.mul(grad_y);
+	    grad_x = grad_x.mul(grad_x);
+	    grad_y = grad_y.mul(grad_y);
 	    totalCbSobel = grad_x + grad_y;
 	  }
 
@@ -9391,13 +9393,21 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 	      int tx = x - tRx;
 	      int ty = y - tRy;
 	      if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+
+		// ATTN 24
+		// XXX
+		crCrop.at<float>(y,x) = yCrCb_image.at<Vec3b>(y,x)[1];
+		cbCrop.at<float>(y,x) = yCrCb_image.at<Vec3b>(y,x)[2];
+
 		gCrop.at<float>(y, x) = totalGraySobel.at<float>(ty, tx);
 		crCrop.at<float>(y, x) = totalCrSobel.at<float>(ty, tx);
 		cbCrop.at<float>(y, x) = totalCbSobel.at<float>(ty, tx);
 		//totalGMass += gCrop.at<float>(y, x);
 		totalGMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
-		totalCrMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
-		totalCbMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+		//totalCrMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+		//totalCbMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+		totalCrMass += crCrop.at<float>(y, x) * crCrop.at<float>(y, x);
+		totalCbMass += cbCrop.at<float>(y, x) * cbCrop.at<float>(y, x);
 	      } else {
 		gCrop.at<float>(y, x) = 0.0;
 	      }
@@ -9406,6 +9416,7 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 	  totalGMass = sqrt(totalGMass);
 	  totalCrMass = sqrt(totalCrMass);
 	  totalCbMass = sqrt(totalCbMass);
+	  double totalColorMass = totalCrMass + totalCbMass;
 	  //Mat descriptorsG = Mat(1, gradientFeatureWidth*gradientFeatureWidth, CV_32F);
 	  Mat descriptorsCbCr = Mat(1, 2*gradientFeatureWidth*gradientFeatureWidth, CV_32F);
 	  for (int y = 0; y < gradientFeatureWidth; y++) {
@@ -9413,10 +9424,16 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 	      int tranX = floor(float(x)*float(maxDim)/float(gradientFeatureWidth));
 	      int tranY = floor(float(y)*float(maxDim)/float(gradientFeatureWidth));
 	      //descriptorsG.at<float>(x + y*gradientFeatureWidth) = gCrop.at<float>(y,x);
-	      descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x)/totalCrMass;
-	      descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalCbMass;
+	      //descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x)/totalCrMass;
+	      //descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalCbMass;
+	      //descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x);
+	      //descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x);
+
+	      descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x)/totalColorMass;
+	      descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalColorMass;
 	    }
 	  }
+	  cout << descriptorsCbCr << endl;
 
 	  kNNfeatures.push_back(descriptorsCbCr);
 	  kNNlabels.push_back(label);
@@ -12217,8 +12234,8 @@ void goClassifyBlueBoxes() {
 	/// Gradient Y
 	Sobel(totalCrSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
 
-	//grad_x = grad_x.mul(grad_x);
-	//grad_y = grad_y.mul(grad_y);
+	grad_x = grad_x.mul(grad_x);
+	grad_y = grad_y.mul(grad_y);
 	totalCrSobel = grad_x + grad_y;
       }
       Mat totalCbSobel = totalGraySobel.clone();
@@ -12238,8 +12255,8 @@ void goClassifyBlueBoxes() {
 	/// Gradient Y
 	Sobel(totalCbSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
 
-	//grad_x = grad_x.mul(grad_x);
-	//grad_y = grad_y.mul(grad_y);
+	grad_x = grad_x.mul(grad_x);
+	grad_y = grad_y.mul(grad_y);
 	totalCbSobel = grad_x + grad_y;
       }
 
@@ -12265,13 +12282,21 @@ void goClassifyBlueBoxes() {
 	  int tx = x - tRx;
 	  int ty = y - tRy;
 	  if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+
+	    // ATTN 24
+	    // XXX
+	    crCrop.at<float>(y,x) = yCrCb_image.at<Vec3b>(y,x)[1];
+	    cbCrop.at<float>(y,x) = yCrCb_image.at<Vec3b>(y,x)[2];
+
 	    gCrop.at<float>(y, x) = totalGraySobel.at<float>(ty, tx);
 	    crCrop.at<float>(y, x) = totalCrSobel.at<float>(ty, tx);
 	    cbCrop.at<float>(y, x) = totalCbSobel.at<float>(ty, tx);
 	    //totalGMass += gCrop.at<float>(y, x);
 	    totalGMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
-	    totalCrMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
-	    totalCbMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+	    //totalCrMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+	    //totalCbMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+	    totalCrMass += crCrop.at<float>(y, x) * crCrop.at<float>(y, x);
+	    totalCbMass += cbCrop.at<float>(y, x) * cbCrop.at<float>(y, x);
 	  } else {
 	    gCrop.at<float>(y, x) = 0.0;
 	  }
@@ -12280,6 +12305,7 @@ void goClassifyBlueBoxes() {
       totalGMass = sqrt(totalGMass);
       totalCrMass = sqrt(totalCrMass);
       totalCbMass = sqrt(totalCbMass);
+      double totalColorMass = totalCrMass + totalCbMass;
       //Mat descriptorsG = Mat(1, gradientFeatureWidth*gradientFeatureWidth, CV_32F);
       Mat descriptorsCbCr = Mat(1, 2*gradientFeatureWidth*gradientFeatureWidth, CV_32F);
       for (int y = 0; y < gradientFeatureWidth; y++) {
@@ -12287,8 +12313,13 @@ void goClassifyBlueBoxes() {
 	  int tranX = floor(float(x)*float(maxDim)/float(gradientFeatureWidth));
 	  int tranY = floor(float(y)*float(maxDim)/float(gradientFeatureWidth));
 	  //descriptorsG.at<float>(x + y*gradientFeatureWidth) = gCrop.at<float>(y,x);
-	  descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x)/totalCrMass;
-	  descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalCbMass;
+	  //descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x)/totalCrMass;
+	  //descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalCbMass;
+	  //descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x);
+	  //descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x);
+
+	  descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x)/totalColorMass;
+	  descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalColorMass;
 	}
       }
 
@@ -12529,8 +12560,8 @@ void loadROSParamsFromArgs() {
 
   nh.getParam("left_or_right_arm", left_or_right_arm);
 
-  nh.getParam("chosen_feature", cfi);
-  chosen_feature = static_cast<featureType>(cfi);
+  //nh.getParam("chosen_feature", cfi);
+  //chosen_feature = static_cast<featureType>(cfi);
 
   saved_crops_path = data_directory + "/" + class_name + "/";
 }
@@ -12651,8 +12682,8 @@ void saveROSParams() {
 
   nh.setParam("left_or_right_arm", left_or_right_arm);
 
-  nh.setParam("chosen_feature", cfi);
-  chosen_feature = static_cast<featureType>(cfi);
+  //nh.setParam("chosen_feature", cfi);
+  //chosen_feature = static_cast<featureType>(cfi);
 
 }
 
@@ -12716,7 +12747,9 @@ void detectorsInit() {
     }
   }
   
-  if ((chosen_feature == GRADIENT) || (chosen_feature == OPPONENT_COLOR_GRADIENT)){
+  if ( (chosen_feature == GRADIENT) || 
+       (chosen_feature == OPPONENT_COLOR_GRADIENT) ||
+       (chosen_feature == CBCR_HISTOGRAM) ){
     retrain_vocab = 0;
   }
 
