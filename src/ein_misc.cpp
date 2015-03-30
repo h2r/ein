@@ -481,3 +481,29 @@ virtual void execute()
 }
 END_WORD
 
+WORD(WriteXMLEnvironment)
+virtual void execute()
+{
+  // For Dipendra
+  ofstream ofile;
+  string fileName = data_directory + "/" + left_or_right_arm + "_environment.xml";
+  cout << "Saving environment to " << fileName << endl;
+  ofile.open(fileName, ios::trunc);
+
+  ofile << "<environment>" << endl;
+  for (int i = 0; i < blueBoxMemories.size(); i++) {
+    BoxMemory box = blueBoxMemories[i];
+    if (box.labeledClassIndex >= 0) {
+      ofile << "  <object>" << endl;
+      ofile << "    <name>" << classLabels[box.labeledClassIndex] << "</name>" << endl;
+      ofile << "    <position>" << "( " << box.centroid.px << ", " << box.centroid.py << ", " << box.centroid.pz << ")" << "</position>" << endl;
+      ofile << "    <rotation>" << "(0, 0, 0)" << "</rotation>" << endl;
+      ofile << "  </object>" << endl;
+    }
+  }
+  ofile << "</environment>" << endl;
+
+  ofile.close();
+}
+END_WORD
+

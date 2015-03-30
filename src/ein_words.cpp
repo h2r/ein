@@ -325,6 +325,21 @@ std::vector<Word *> create_words() {
 
     words.push_back(new Hover());
     words.push_back(new HoverA());
+
+    words.push_back(new SpawnTargetClassAtEndEffector());
+    words.push_back(new destroyObjectInEndEffector());
+    words.push_back(new PickObjectUnderEndEffector());
+    words.push_back(new PlaceObjectInEndEffector());
+    words.push_back(new WriteXMLEnvironment());
+
+    words.push_back(new SetCurrentCornellTableToZero());
+    words.push_back(new IncrementCurrentCornellTable());
+    words.push_back(new DecrementCurrentCornellTable());
+    words.push_back(new MoveToCurrentCornellTable());
+
+    words.push_back(new GuiShowAll());
+    words.push_back(new GuiHideAll());
+    words.push_back(new GuiCustom1());
   }
 
   return words;

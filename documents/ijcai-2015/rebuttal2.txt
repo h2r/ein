@@ -1,12 +1,21 @@
-We thank the reviewer for their comments on our paper.  
+We thank the reviewer for their comments on our paper, especially the
+survey of related work on grasping. 
 
-> About the applicability of this method, the authors specify that if
-> the object is knocked over by the robot, it has to be placed again
-> in the reference pose. Is this also necessary in test?
+> The authors specify that if the object is knocked over by the robot,
+> it has to be placed again in the reference pose. Is this also
+> necessary in test?
 
-Yes.  During test we reset the object to the reference pose.  Our
+Yes, during test we reset the object to the reference pose.  Our
 method could generalize to new poses by learning a new grasping model
-for each pose.
+for each of the poses in which the object can rest, up to certain
+symmetries such as rotation.
+
+> Furthermore, between building the IR scans and trying different
+> picks, sometimes tens of them, this method must be fairly slow.
+
+The entire IR scan corresponds to a single frame of a depth camera
+image.  We only need this slow scan because we want our approach to
+run on a stock Baxter with no additional sensing.
 
 
 
