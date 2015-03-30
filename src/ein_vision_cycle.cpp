@@ -192,7 +192,7 @@ END_WORD
 
 WORD(FillClearanceMap)
 int pursuitProximity = 5;
-int searchProximity = 20;
+int searchProximity = 15;//20;
 virtual void execute() {
   {
     int proximity = pursuitProximity;
@@ -728,7 +728,6 @@ virtual void execute() {
   pushWord("goClassifyBlueBoxes"); 
   pushWord("goFindBlueBoxes"); 
   pushCopies("density", 1); 
-  pushWord("hover");
   //pushCopies("resetTemporalMap", 1); 
   //pushCopies("density", 1); 
 }
@@ -738,7 +737,8 @@ WORD(Density)
 virtual void execute() {
   pushWord("densityA");
   //pushWord("waitUntilImageCallbackReceived");
-  pushCopies("waitUntilImageCallbackReceived", 5);
+  //pushCopies("waitUntilImageCallbackReceived", 5);
+  pushWord("hover");
 }
 END_WORD
 
