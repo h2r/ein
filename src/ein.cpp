@@ -239,7 +239,7 @@ typedef enum {
   PHYSICAL,
   SIMULATED
 } robotMode;
-robotMode chosen_mode = SIMULATED;
+robotMode chosen_mode = PHYSICAL;
 
 #define ORIENTATIONS 180//12 
 #define O_FILTER_WIDTH 25//25
@@ -1322,6 +1322,13 @@ cv::vector<cv::Point> nBot;
 vector<cv::Point> cTops; 
 vector<cv::Point> cBots;
 
+typedef enum {
+  NO_LOCK = 0,
+  CENTROID_LOCK = 1,
+  POSE_LOCK = 2,
+  POSE_REPORTED = 3
+} memoryLockType;
+
 struct BoxMemory {
   cv::Point bTop;
   cv::Point bBot;
@@ -1333,7 +1340,7 @@ struct BoxMemory {
   eePose centroid;
   ros::Time cameraTime;
   int labeledClassIndex;
-  int lockStatus;
+  memoryLockType lockStatus;
 };
 
 typedef struct MapCell {
@@ -5000,15 +5007,48 @@ void renderObjectMapView() {
     cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                     memory.bot.px, memory.bot.py);
 
-    cv::Point outTopOriginal = outTop;
-    cv::Point outBotOriginal = outBot;
-    outTop.x = min(outTopOriginal.x, outBotOriginal.x);
-    outTop.y = min(outTopOriginal.y, outBotOriginal.y);
-    outBot.x = max(outTopOriginal.x, outBotOriginal.x);
-    outBot.y = max(outTopOriginal.y, outBotOriginal.y);
+    int halfHeight = (outBot.y - outTop.y)/2;
+    int halfWidth = (outBot.x - outTop.x)/2;
+    if ((halfHeight < 0) || (halfWidth < 0)) {
+      // really either both or neither should be true
+      cv::Point tmp = outTop;
+      outTop = outBot;
+      outBot = tmp;
+      halfHeight = (outBot.y - outTop.y)/2;
+      halfWidth = (outBot.x - outTop.x)/2;
+    }
 
     rectangle(objectMapViewerImage, outTop, outBot, 
               CV_RGB(0, 0, 255));
+
+    if (memory.lockStatus == POSE_LOCK ||
+        memory.lockStatus == POSE_REPORTED) {
+      double lockRenderPeriod1 = 3.0;
+      double lockRenderPeriod2 = 2.0;
+      ros::Duration timeSince = ros::Time::now() - memory.cameraTime;
+      double lockArg1 = 2.0 * 3.1415926 * timeSince.toSec() / lockRenderPeriod1;
+      double lockArg2 = 2.0 * 3.1415926 * timeSince.toSec() / lockRenderPeriod2;
+      cv::Point outTopLock;
+      cv::Point outBotLock;
+      
+      int widthShim = floor((halfWidth)  * 0.5 * (1.0 + sin(lockArg1)));
+      int heightShim = floor((halfHeight)  * 0.5 * (1.0 + sin(lockArg1)));
+      widthShim = min(max(1,widthShim),halfWidth-1);
+      heightShim = min(max(1,heightShim),halfHeight-1);
+
+      outTopLock.x = outTop.x + widthShim;
+      outTopLock.y = outTop.y + heightShim;
+      outBotLock.x = outBot.x - widthShim;
+      outBotLock.y = outBot.y - heightShim;
+
+      int nonBlueAmount = 0.0;
+      if (memory.lockStatus == POSE_REPORTED) {
+	nonBlueAmount = floor(128 * 0.5 * (1.0 + cos(lockArg2+memory.cameraTime.sec)));
+      }
+      
+      rectangle(objectMapViewerImage, outTopLock, outBotLock, 
+              CV_RGB(nonBlueAmount, nonBlueAmount, 128+nonBlueAmount));
+    }
 
     putText(objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, Scalar(255, 255, 255), 2.0);
   }
@@ -14152,6 +14192,16 @@ int main(int argc, char **argv) {
   } else if (chosen_mode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
     simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/simulatorCallbackFrequency), simulatorCallback);
+    {
+      string filename;
+      //filename = data_directory + "/mapBackground.ppm";
+      filename = data_directory + "/carpetBackground.jpg";
+      cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
+      Mat tmp = imread(filename);
+      cout << "done. Resizing " << tmp.size() << " "; cout.flush();
+      cv::resize(tmp, mapBackgroundImage, cv::Size(mbiWidth,mbiHeight));
+      cout << "done. " << mapBackgroundImage.size() << endl; cout.flush();
+    }
   }
   pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, pickObjectUnderEndEffectorCommandCallback);
   placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
@@ -14241,17 +14291,6 @@ int main(int argc, char **argv) {
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();
   cout << "cuda count: " << cudaCount << endl;;
-
-  {
-    string filename;
-    //filename = data_directory + "/mapBackground.ppm";
-    filename = data_directory + "/carpetBackground.jpg";
-    cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
-    Mat tmp = imread(filename);
-    cout << "done. Resizing " << tmp.size() << " "; cout.flush();
-    cv::resize(tmp, mapBackgroundImage, cv::Size(mbiWidth,mbiHeight));
-    cout << "done. " << mapBackgroundImage.size() << endl; cout.flush();
-  }
 
   cvWaitKey(1); // this might be good to init cv gui stuff
   lastImageCallbackReceived = ros::Time::now();
