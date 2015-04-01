@@ -192,7 +192,7 @@ END_WORD
 
 WORD(FillClearanceMap)
 int pursuitProximity = 5;
-int searchProximity = 20;
+int searchProximity = 15;//20;
 virtual void execute() {
   {
     int proximity = pursuitProximity;
@@ -464,6 +464,9 @@ virtual void execute() {
   roa.header.stamp = ros::Time::now();
   roa.header.frame_id = "/base";
 
+  for (int j = 0; j < blueBoxMemories.size(); j++) {
+    blueBoxMemories[j].lockStatus = POSE_LOCK;
+  }
 
   for (int class_i = 0; class_i < classLabels.size(); class_i++) {
     string class_label = classLabels[class_i];
@@ -474,7 +477,9 @@ virtual void execute() {
       centroid.pz = 0;
       int class_count = 0;
       for (int j = 0; j < blueBoxMemories.size(); j++) {
-        if (blueBoxMemories[j].labeledClassIndex == class_i) {
+        if (blueBoxMemories[j].labeledClassIndex == class_i &&
+	    (blueBoxMemories[j].lockStatus == POSE_LOCK ||
+	     blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
           centroid.px += blueBoxMemories[j].centroid.px;
           centroid.py += blueBoxMemories[j].centroid.py;
           centroid.pz += blueBoxMemories[j].centroid.pz;
@@ -491,7 +496,9 @@ virtual void execute() {
       double min_square_dist = VERYBIGNUMBER;
 
       for (int j = 0; j < blueBoxMemories.size(); j++) {
-        if (blueBoxMemories[j].labeledClassIndex == class_i) {
+        if (blueBoxMemories[j].labeledClassIndex == class_i &&
+	    (blueBoxMemories[j].lockStatus == POSE_LOCK ||
+	     blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
           double square_dist = 
             squareDistanceEEPose(centroid, blueBoxMemories[j].centroid);
           if (square_dist < min_square_dist) {
@@ -503,6 +510,8 @@ virtual void execute() {
 
 
       if (closest_idx != -1) {
+        blueBoxMemories[closest_idx].lockStatus = POSE_REPORTED;
+
         geometry_msgs::Pose pose;
         int aI = roa.objects.size();
         roa.objects.resize(roa.objects.size() + 1);
@@ -671,6 +680,7 @@ virtual void execute() {
   box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
   box.cameraTime = ros::Time::now();
   box.labeledClassIndex = bLabels[c];
+  box.lockStatus = CENTROID_LOCK;
   
   int i, j;
   mapxyToij(box.centroid.px, box.centroid.py, &i, &j);
@@ -748,7 +758,6 @@ virtual void execute() {
   pushWord("goClassifyBlueBoxes"); 
   pushWord("goFindBlueBoxes"); 
   pushCopies("density", 1); 
-  pushWord("hover");
   //pushCopies("resetTemporalMap", 1); 
   //pushCopies("density", 1); 
 }
@@ -758,7 +767,8 @@ WORD(Density)
 virtual void execute() {
   pushWord("densityA");
   //pushWord("waitUntilImageCallbackReceived");
-  pushCopies("waitUntilImageCallbackReceived", 5);
+  //pushCopies("waitUntilImageCallbackReceived", 5);
+  pushWord("hover");
 }
 END_WORD
 
