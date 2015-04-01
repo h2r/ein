@@ -465,7 +465,10 @@ virtual void execute() {
   roa.header.frame_id = "/base";
 
   for (int j = 0; j < blueBoxMemories.size(); j++) {
-    blueBoxMemories[j].lockStatus = POSE_LOCK;
+    if (blueBoxMemories[j].lockStatus == POSE_LOCK ||
+	blueBoxMemories[j].lockStatus == POSE_REPORTED) {
+      blueBoxMemories[j].lockStatus = POSE_LOCK;
+    }
   }
 
   for (int class_i = 0; class_i < classLabels.size(); class_i++) {
