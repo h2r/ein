@@ -212,11 +212,13 @@ typedef enum {
   OPPONENTSIFTBOW_GLOBALCOLOR_HIST = 2, // this has not been sufficiently tested
   SIFTCOLORBOW_HIST = 3, // unimplemented, calculate color histograms at each keypoint and augment each SIFT feature before clustering
   GRADIENT = 4,
-  OPPONENT_COLOR_GRADIENT = 5
+  OPPONENT_COLOR_GRADIENT = 5,
+  CBCR_HISTOGRAM = 6
 } featureType;
-//featureType chosen_feature = SIFTBOW_GLOBALCOLOR_HIST;
+featureType chosen_feature = SIFTBOW_GLOBALCOLOR_HIST;
 //featureType chosen_feature = GRADIENT;
-featureType chosen_feature = OPPONENT_COLOR_GRADIENT;
+//featureType chosen_feature = OPPONENT_COLOR_GRADIENT;
+//featureType chosen_feature = CBCR_HISTOGRAM;
 int cfi = 1;
 
 int gradientFeatureWidth = 50;
@@ -237,7 +239,7 @@ typedef enum {
   PHYSICAL,
   SIMULATED
 } robotMode;
-robotMode chosen_mode = SIMULATED;
+robotMode chosen_mode = PHYSICAL;
 
 #define ORIENTATIONS 180//12 
 #define O_FILTER_WIDTH 25//25
@@ -1054,7 +1056,7 @@ Mat objectViewerYCbCrBlur;
 Mat objectViewerGrayBlur;
 
 ros::Time lastHoverRequest;
-double hoverTimeout = 2.0; // seconds
+double hoverTimeout = 3.0;//2.0; // seconds
 double hoverGoThresh = 0.02;
 double hoverAngleThresh = 0.02;
 eePose lastHoverTrueEEPoseEEPose;
@@ -1154,7 +1156,7 @@ std::string gradientViewerName = "Gradient Viewer";
 std::string objectnessViewerName = "Objectness Viewer";
 std::string aerialGradientViewerName = "Aerial Gradient Viewer";
 
-int loTrackbarVariable = 30;//45;//75;
+int loTrackbarVariable = 20;//30;//45;//75;
 int hiTrackbarVariable = 35;//40;//50;
 int redTrackbarVariable = 0;
 int postDensitySigmaTrackbarVariable = 10.0;
@@ -1322,6 +1324,13 @@ cv::vector<cv::Point> nBot;
 vector<cv::Point> cTops; 
 vector<cv::Point> cBots;
 
+typedef enum {
+  NO_LOCK = 0,
+  CENTROID_LOCK = 1,
+  POSE_LOCK = 2,
+  POSE_REPORTED = 3
+} memoryLockType;
+
 struct BoxMemory {
   cv::Point bTop;
   cv::Point bBot;
@@ -1333,7 +1342,7 @@ struct BoxMemory {
   eePose centroid;
   ros::Time cameraTime;
   int labeledClassIndex;
-  int lockStatus;
+  memoryLockType lockStatus;
 };
 
 typedef struct MapCell {
@@ -5000,15 +5009,48 @@ void renderObjectMapView() {
     cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                     memory.bot.px, memory.bot.py);
 
-    cv::Point outTopOriginal = outTop;
-    cv::Point outBotOriginal = outBot;
-    outTop.x = min(outTopOriginal.x, outBotOriginal.x);
-    outTop.y = min(outTopOriginal.y, outBotOriginal.y);
-    outBot.x = max(outTopOriginal.x, outBotOriginal.x);
-    outBot.y = max(outTopOriginal.y, outBotOriginal.y);
+    int halfHeight = (outBot.y - outTop.y)/2;
+    int halfWidth = (outBot.x - outTop.x)/2;
+    if ((halfHeight < 0) || (halfWidth < 0)) {
+      // really either both or neither should be true
+      cv::Point tmp = outTop;
+      outTop = outBot;
+      outBot = tmp;
+      halfHeight = (outBot.y - outTop.y)/2;
+      halfWidth = (outBot.x - outTop.x)/2;
+    }
 
     rectangle(objectMapViewerImage, outTop, outBot, 
               CV_RGB(0, 0, 255));
+
+    if (memory.lockStatus == POSE_LOCK ||
+        memory.lockStatus == POSE_REPORTED) {
+      double lockRenderPeriod1 = 3.0;
+      double lockRenderPeriod2 = 2.0;
+      ros::Duration timeSince = ros::Time::now() - memory.cameraTime;
+      double lockArg1 = 2.0 * 3.1415926 * timeSince.toSec() / lockRenderPeriod1;
+      double lockArg2 = 2.0 * 3.1415926 * timeSince.toSec() / lockRenderPeriod2;
+      cv::Point outTopLock;
+      cv::Point outBotLock;
+      
+      int widthShim = floor((halfWidth)  * 0.5 * (1.0 + sin(lockArg1)));
+      int heightShim = floor((halfHeight)  * 0.5 * (1.0 + sin(lockArg1)));
+      widthShim = min(max(1,widthShim),halfWidth-1);
+      heightShim = min(max(1,heightShim),halfHeight-1);
+
+      outTopLock.x = outTop.x + widthShim;
+      outTopLock.y = outTop.y + heightShim;
+      outBotLock.x = outBot.x - widthShim;
+      outBotLock.y = outBot.y - heightShim;
+
+      int nonBlueAmount = 0.0;
+      if (memory.lockStatus == POSE_REPORTED) {
+	nonBlueAmount = floor(128 * 0.5 * (1.0 + cos(lockArg2+memory.cameraTime.sec)));
+      }
+      
+      rectangle(objectMapViewerImage, outTopLock, outBotLock, 
+              CV_RGB(nonBlueAmount, nonBlueAmount, 128+nonBlueAmount));
+    }
 
     putText(objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, Scalar(255, 255, 255), 2.0);
   }
@@ -9755,8 +9797,8 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 	    /// Gradient Y
 	    Sobel(totalCrSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
 
-	    //grad_x = grad_x.mul(grad_x);
-	    //grad_y = grad_y.mul(grad_y);
+	    grad_x = grad_x.mul(grad_x);
+	    grad_y = grad_y.mul(grad_y);
 	    totalCrSobel = grad_x + grad_y;
 	  }
 	  Mat totalCbSobel = totalGraySobel.clone();
@@ -9776,8 +9818,8 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 	    /// Gradient Y
 	    Sobel(totalCbSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
 
-	    //grad_x = grad_x.mul(grad_x);
-	    //grad_y = grad_y.mul(grad_y);
+	    grad_x = grad_x.mul(grad_x);
+	    grad_y = grad_y.mul(grad_y);
 	    totalCbSobel = grad_x + grad_y;
 	  }
 
@@ -9803,13 +9845,21 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 	      int tx = x - tRx;
 	      int ty = y - tRy;
 	      if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+
+		// ATTN 24
+		// XXX
+		crCrop.at<float>(y,x) = yCrCb_image.at<Vec3b>(y,x)[1];
+		cbCrop.at<float>(y,x) = yCrCb_image.at<Vec3b>(y,x)[2];
+
 		gCrop.at<float>(y, x) = totalGraySobel.at<float>(ty, tx);
 		crCrop.at<float>(y, x) = totalCrSobel.at<float>(ty, tx);
 		cbCrop.at<float>(y, x) = totalCbSobel.at<float>(ty, tx);
 		//totalGMass += gCrop.at<float>(y, x);
 		totalGMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
-		totalCrMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
-		totalCbMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+		//totalCrMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+		//totalCbMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+		totalCrMass += crCrop.at<float>(y, x) * crCrop.at<float>(y, x);
+		totalCbMass += cbCrop.at<float>(y, x) * cbCrop.at<float>(y, x);
 	      } else {
 		gCrop.at<float>(y, x) = 0.0;
 	      }
@@ -9818,6 +9868,7 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 	  totalGMass = sqrt(totalGMass);
 	  totalCrMass = sqrt(totalCrMass);
 	  totalCbMass = sqrt(totalCbMass);
+	  double totalColorMass = totalCrMass + totalCbMass;
 	  //Mat descriptorsG = Mat(1, gradientFeatureWidth*gradientFeatureWidth, CV_32F);
 	  Mat descriptorsCbCr = Mat(1, 2*gradientFeatureWidth*gradientFeatureWidth, CV_32F);
 	  for (int y = 0; y < gradientFeatureWidth; y++) {
@@ -9825,10 +9876,16 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 	      int tranX = floor(float(x)*float(maxDim)/float(gradientFeatureWidth));
 	      int tranY = floor(float(y)*float(maxDim)/float(gradientFeatureWidth));
 	      //descriptorsG.at<float>(x + y*gradientFeatureWidth) = gCrop.at<float>(y,x);
-	      descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x)/totalCrMass;
-	      descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalCbMass;
+	      //descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x)/totalCrMass;
+	      //descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalCbMass;
+	      //descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x);
+	      //descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x);
+
+	      descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x)/totalColorMass;
+	      descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalColorMass;
 	    }
 	  }
+	  cout << descriptorsCbCr << endl;
 
 	  kNNfeatures.push_back(descriptorsCbCr);
 	  kNNlabels.push_back(label);
@@ -12629,8 +12686,8 @@ void goClassifyBlueBoxes() {
 	/// Gradient Y
 	Sobel(totalCrSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
 
-	//grad_x = grad_x.mul(grad_x);
-	//grad_y = grad_y.mul(grad_y);
+	grad_x = grad_x.mul(grad_x);
+	grad_y = grad_y.mul(grad_y);
 	totalCrSobel = grad_x + grad_y;
       }
       Mat totalCbSobel = totalGraySobel.clone();
@@ -12650,8 +12707,8 @@ void goClassifyBlueBoxes() {
 	/// Gradient Y
 	Sobel(totalCbSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
 
-	//grad_x = grad_x.mul(grad_x);
-	//grad_y = grad_y.mul(grad_y);
+	grad_x = grad_x.mul(grad_x);
+	grad_y = grad_y.mul(grad_y);
 	totalCbSobel = grad_x + grad_y;
       }
 
@@ -12677,13 +12734,21 @@ void goClassifyBlueBoxes() {
 	  int tx = x - tRx;
 	  int ty = y - tRy;
 	  if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+
+	    // ATTN 24
+	    // XXX
+	    crCrop.at<float>(y,x) = yCrCb_image.at<Vec3b>(y,x)[1];
+	    cbCrop.at<float>(y,x) = yCrCb_image.at<Vec3b>(y,x)[2];
+
 	    gCrop.at<float>(y, x) = totalGraySobel.at<float>(ty, tx);
 	    crCrop.at<float>(y, x) = totalCrSobel.at<float>(ty, tx);
 	    cbCrop.at<float>(y, x) = totalCbSobel.at<float>(ty, tx);
 	    //totalGMass += gCrop.at<float>(y, x);
 	    totalGMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
-	    totalCrMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
-	    totalCbMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+	    //totalCrMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+	    //totalCbMass += gCrop.at<float>(y, x) * gCrop.at<float>(y, x);
+	    totalCrMass += crCrop.at<float>(y, x) * crCrop.at<float>(y, x);
+	    totalCbMass += cbCrop.at<float>(y, x) * cbCrop.at<float>(y, x);
 	  } else {
 	    gCrop.at<float>(y, x) = 0.0;
 	  }
@@ -12692,6 +12757,7 @@ void goClassifyBlueBoxes() {
       totalGMass = sqrt(totalGMass);
       totalCrMass = sqrt(totalCrMass);
       totalCbMass = sqrt(totalCbMass);
+      double totalColorMass = totalCrMass + totalCbMass;
       //Mat descriptorsG = Mat(1, gradientFeatureWidth*gradientFeatureWidth, CV_32F);
       Mat descriptorsCbCr = Mat(1, 2*gradientFeatureWidth*gradientFeatureWidth, CV_32F);
       for (int y = 0; y < gradientFeatureWidth; y++) {
@@ -12699,8 +12765,13 @@ void goClassifyBlueBoxes() {
 	  int tranX = floor(float(x)*float(maxDim)/float(gradientFeatureWidth));
 	  int tranY = floor(float(y)*float(maxDim)/float(gradientFeatureWidth));
 	  //descriptorsG.at<float>(x + y*gradientFeatureWidth) = gCrop.at<float>(y,x);
-	  descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x)/totalCrMass;
-	  descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalCbMass;
+	  //descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x)/totalCrMass;
+	  //descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalCbMass;
+	  //descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x);
+	  //descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x);
+
+	  descriptorsCbCr.at<float>(x + y*gradientFeatureWidth) = crCrop.at<float>(y,x)/totalColorMass;
+	  descriptorsCbCr.at<float>(x + y*gradientFeatureWidth + gradientFeatureWidth*gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalColorMass;
 	}
       }
 
@@ -12941,8 +13012,8 @@ void loadROSParamsFromArgs() {
 
   nh.getParam("left_or_right_arm", left_or_right_arm);
 
-  nh.getParam("chosen_feature", cfi);
-  chosen_feature = static_cast<featureType>(cfi);
+  //nh.getParam("chosen_feature", cfi);
+  //chosen_feature = static_cast<featureType>(cfi);
 
   saved_crops_path = data_directory + "/" + class_name + "/";
 
@@ -13070,8 +13141,8 @@ void saveROSParams() {
 
   nh.setParam("left_or_right_arm", left_or_right_arm);
 
-  nh.setParam("chosen_feature", cfi);
-  chosen_feature = static_cast<featureType>(cfi);
+  //nh.setParam("chosen_feature", cfi);
+  //chosen_feature = static_cast<featureType>(cfi);
 
 }
 
@@ -13135,7 +13206,9 @@ void detectorsInit() {
     }
   }
   
-  if ((chosen_feature == GRADIENT) || (chosen_feature == OPPONENT_COLOR_GRADIENT)){
+  if ( (chosen_feature == GRADIENT) || 
+       (chosen_feature == OPPONENT_COLOR_GRADIENT) ||
+       (chosen_feature == CBCR_HISTOGRAM) ){
     retrain_vocab = 0;
   }
 
@@ -14128,6 +14201,16 @@ int main(int argc, char **argv) {
   } else if (chosen_mode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
     simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/simulatorCallbackFrequency), simulatorCallback);
+    {
+      string filename;
+      //filename = data_directory + "/mapBackground.ppm";
+      filename = data_directory + "/carpetBackground.jpg";
+      cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
+      Mat tmp = imread(filename);
+      cout << "done. Resizing " << tmp.size() << " "; cout.flush();
+      cv::resize(tmp, mapBackgroundImage, cv::Size(mbiWidth,mbiHeight));
+      cout << "done. " << mapBackgroundImage.size() << endl; cout.flush();
+    }
   }
   pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, pickObjectUnderEndEffectorCommandCallback);
   placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
@@ -14217,17 +14300,6 @@ int main(int argc, char **argv) {
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();
   cout << "cuda count: " << cudaCount << endl;;
-
-  {
-    string filename;
-    //filename = data_directory + "/mapBackground.ppm";
-    filename = data_directory + "/carpetBackground.jpg";
-    cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
-    Mat tmp = imread(filename);
-    cout << "done. Resizing " << tmp.size() << " "; cout.flush();
-    cv::resize(tmp, mapBackgroundImage, cv::Size(mbiWidth,mbiHeight));
-    cout << "done. " << mapBackgroundImage.size() << endl; cout.flush();
-  }
 
   cvWaitKey(1); // this might be good to init cv gui stuff
   lastImageCallbackReceived = ros::Time::now();

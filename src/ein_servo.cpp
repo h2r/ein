@@ -1169,7 +1169,8 @@ virtual void execute() {
   // ATTN 23
   {
     pushWord("accumulatedDensity");
-    pushCopies("waitUntilImageCallbackReceived", 3);
+    //pushCopies("waitUntilImageCallbackReceived", 10);
+    pushCopies("waitUntilImageCallbackReceived", 10);
     pushWord("resetAccumulatedDensity");
     pushWord("hover");
   }
@@ -1213,6 +1214,7 @@ virtual void execute() {
     cout << "recordTargetLock saving pickedPose..." << endl;
     cout << "Current EE Position (x,y,z): " << currentEEPose.px << " " << currentEEPose.py << " " << currentEEPose.pz << endl;
     cout << "Current EE Orientation (x,y,z,w): " << currentEEPose.qx << " " << currentEEPose.qy << " " << currentEEPose.qz << " " << currentEEPose.qw << endl;
+    lastAdded->lockStatus = POSE_LOCK;
     
   }
 }

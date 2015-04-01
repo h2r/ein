@@ -8,14 +8,15 @@ from object_recognition_msgs.msg import RecognizedObjectArray
 import baxter_external_devices
 
 class WarehouseClient:
-    def __init__(self):
+    def __init__(self, givenTopic):
         self.command_publisher = rospy.Publisher("/fetch_commands", 
                                                  std_msgs.msg.String, queue_size=10)
         self.objects = []
         #topic = "/publish_detections_center/blue_labeled_objects" # node
         #topic = "/ar_objects" # ar tags
         #topic = "/ein_right/blue_memory_objects" # ein
-        topic = "/ein_left/blue_memory_objects" # ein
+        #topic = "/ein_left/blue_memory_objects" # ein
+	topic = givenTopic
 	print topic
         rospy.Subscriber(topic, RecognizedObjectArray, self.object_callback)
         self.last_object_callback = rospy.Time()
@@ -58,9 +59,14 @@ class WarehouseClient:
                         print "Sending", self.objects[idx - 1]
                         self.command_publisher.publish(self.objects[idx - 1])
 def main():
-    rospy.init_node("warehouse_client")
+    import sys
+    if (len(sys.argv) != 2):
+        print "usage:  warehouse_client.py left|right"
+        return
+    arm = sys.argv[1]
 
-    client = WarehouseClient()
+    rospy.init_node("warehouse_client_%s" % arm)
+    client = WarehouseClient("/ein_%s/blue_memory_objects" % arm)
 
     client.ask()
 
