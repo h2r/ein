@@ -372,6 +372,10 @@ std::string heightMemorySampleViewName = "Height Memory Sample View";
 int reticleHalfWidth = 18;
 int pilotTargetHalfWidth = 15;
 
+eePose eePoseZero = {.px = 0.0, .py = 0.0, .pz = 0.0,
+		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
+		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
+
 eePose centerReticle = {.px = 325, .py = 127, .pz = 0.0,
 		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
 		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
@@ -1042,13 +1046,13 @@ ros::Time lastImageCallbackRequest;
 ros::Time lastGripperCallbackRequest;
 ros::Time lastRangeCallbackRequest;
 ros::Time lastFullMiscCallbackRequest;
-ros::Time lastJointCallbackRequest;
+ros::Time lastEndpointCallbackRequest;
 
 ros::Time lastImageCallbackReceived;
 ros::Time lastGripperCallbackReceived;
 ros::Time lastRangeCallbackReceived;
 ros::Time lastFullMiscCallbackReceived;
-ros::Time lastJointCallbackReceived;
+ros::Time lastEndpointCallbackReceived;
 
 bool usePotentiallyCollidingIK = 0;
 
@@ -1063,9 +1067,10 @@ eePose lastHoverTrueEEPoseEEPose;
 
 double simulatorCallbackFrequency = 30.0;
 
-int mbiWidth = 500;
-int mbiHeight = 500;
+int mbiWidth = 2000;
+int mbiHeight = 2000;
 Mat mapBackgroundImage;
+Mat originalMapBackgroundImage;
 
 int objectInHandLabel = -1;
 int simulatedObjectHalfWidthPixels = 50;
@@ -1090,6 +1095,11 @@ bool sirMapBackground = 1;
 bool sirAerialGradient = 1;
 bool sirWrist = 1;
 bool sirCore = 1;
+
+bool use_simulator = false;
+
+int targetInstanceSprite = 0;
+int targetMasterSprite = 0;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -1349,6 +1359,26 @@ typedef struct MapCell {
   double r, g, b;
   double pixelCount;
 } MapCell;
+
+typedef struct Sprite {
+  // sprites are the objects which are rendered in the simulation,
+  //   modeled physically as axis aligned bounding boxes
+  // the aa-bb associated with
+  //  the sprite encompasses the rotated blitted box of the image
+  // there is a master array of sprite types loaded from files, and then
+  //  there is a vector of active sprites, each of which is a clone of an
+  //  entry in the master array but with a unique name and state information
+  Mat image;
+  string name; // unique identifier
+  double scale; // this is pixels / cm
+  ros::Time creationTime;
+  eePose top;
+  eePose bot;
+  eePose pose;
+} Sprite;
+
+vector<Sprite> masterSprites;
+vector<Sprite> instanceSprites;
 
 void mapijToxy(int i, int j, double * x, double * y);
 void mapxyToij(double x, double y, int * i, int * j); 
@@ -1735,6 +1765,7 @@ void mapBox(BoxMemory boxMemory);
 
 void queryIK(int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
 
+void globalToMapBackground(double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
 void simulatorCallback(const ros::TimerEvent&);
 
 ////////////////////////////////////////////////
@@ -2720,7 +2751,6 @@ void jointCallback(const sensor_msgs::JointState& js) {
 //    return;
 //  }
 
-  lastJointCallbackReceived = ros::Time::now();
   if (jointNamesInit) {
     int limit = js.position.size();
     for (int i = 0; i < limit; i++) {
@@ -2791,7 +2821,7 @@ void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
   cout << "moveEndEffectorCommandCallback" << endl << msg.position << msg.orientation << endl;
   if (chosen_mode == PHYSICAL) {
     return;
-  } else if (SIMULATED) {
+  } else if (chosen_mode == SIMULATED) {
     currentEEPose.px = msg.position.x;
     currentEEPose.py = msg.position.y;
     currentEEPose.pz = msg.position.z;
@@ -2801,7 +2831,7 @@ void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
 void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
   if (chosen_mode == PHYSICAL) {
     return;
-  } else if (SIMULATED) {
+  } else if (chosen_mode == SIMULATED) {
     if (objectInHandLabel == -1) {
       // this is a fake box to test intersection
       int probeBoxHalfWidthPixels = 10;
@@ -2850,7 +2880,7 @@ void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
 void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
   if (chosen_mode == PHYSICAL) {
     return;
-  } else if (SIMULATED) {
+  } else if (chosen_mode == SIMULATED) {
     if (objectInHandLabel >= 0) {
       BoxMemory box;
       box.bTop.x = vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
@@ -2905,6 +2935,8 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
 //  if (!shouldIMiscCallback) {
 //    return;
 //  }
+
+  lastEndpointCallbackReceived = ros::Time::now();
 
   //cout << "endpoint frame_id: " << eps.header.frame_id << endl;
   trueEEPose = eps.pose;
@@ -4988,6 +5020,43 @@ void renderObjectMapView() {
               CV_RGB(255, 0, 0));
   }
 
+  // draw sprites
+  if (chosen_mode == SIMULATED) {
+    for (int s = 0; s < instanceSprites.size(); s++) {
+      Sprite sprite = instanceSprites[s];
+      
+      double cx, cy;
+      
+      cx = sprite.pose.px;
+      cy = sprite.pose.py;
+      
+      cv::Point objectPoint = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+					   cx, cy);
+      objectPoint.x += 15;
+
+      cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+				      sprite.top.px, sprite.top.py);
+      cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+				      sprite.bot.px, sprite.bot.py);
+
+      int halfHeight = (outBot.y - outTop.y)/2;
+      int halfWidth = (outBot.x - outTop.x)/2;
+      if ((halfHeight < 0) || (halfWidth < 0)) {
+	// really either both or neither should be true
+	cv::Point tmp = outTop;
+	outTop = outBot;
+	outBot = tmp;
+	halfHeight = (outBot.y - outTop.y)/2;
+	halfWidth = (outBot.x - outTop.x)/2;
+      }
+
+      rectangle(objectMapViewerImage, outTop, outBot, 
+		CV_RGB(0, 255, 0));
+
+      putText(objectMapViewerImage, sprite.name, objectPoint, MY_FONT, 0.5, CV_RGB(196, 255, 196), 2.0);
+    }
+  }
+
   // draw blue boxes
   for (int i = 0; i < blueBoxMemories.size(); i++) {
     BoxMemory memory = blueBoxMemories[i];
@@ -5050,7 +5119,7 @@ void renderObjectMapView() {
               CV_RGB(nonBlueAmount, nonBlueAmount, 128+nonBlueAmount));
     }
 
-    putText(objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, Scalar(255, 255, 255), 2.0);
+    putText(objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, CV_RGB(196, 196, 255), 2.0);
   }
   
   { // drawRobot
@@ -9207,9 +9276,21 @@ void mapBox(BoxMemory boxMemory) {
 void queryIK(int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
   if (chosen_mode == PHYSICAL) {
     *thisResult = ikClient.call(*thisRequest);
-  } else if (SIMULATED) {
+  } else if (chosen_mode == SIMULATED) {
     *thisResult = 1;
   }
+}
+
+void globalToMapBackground(double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy) {
+  double msfWidth = mapBackgroundXMax - mapBackgroundXMin;
+  double msfHeight = mapBackgroundYMax - mapBackgroundYMin;
+
+  double mapGpFractionWidth = (gX - mapBackgroundXMin) / msfWidth;
+  double mapGpFractionHeight = (gY - mapBackgroundYMin) / msfHeight;
+  *mapGpPx = floor(mapGpFractionWidth * mbiWidth);
+  *mapGpPy = floor(mapGpFractionHeight * mbiHeight);
+  *mapGpPx = min(max(0, *mapGpPx), mbiWidth-1);
+  *mapGpPy = min(max(0, *mapGpPy), mbiHeight-1);
 }
 
 void simulatorCallback(const ros::TimerEvent&) {
@@ -9243,15 +9324,37 @@ void simulatorCallback(const ros::TimerEvent&) {
     endpointCallback(myEPS);
   }
   {
+    double zToUse = trueEEPose.position.z+currentTableZ;
+
+    mapBackgroundImage = originalMapBackgroundImage.clone();
+    // draw sprites on background
+    if (1) {
+      for (int s = 0; s < instanceSprites.size(); s++) {
+	Sprite sprite = instanceSprites[s];
+	
+	int topX=0, topY=0, botX=0, botY=0;
+	globalToMapBackground(sprite.bot.px, sprite.bot.py, zToUse, &topX, &topY);
+	globalToMapBackground(sprite.top.px, sprite.top.py, zToUse, &botX, &botY);
+
+	//cout << topX << " " << topY << " " << botX << " " << botY << endl; cout.flush();
+
+	int localTopX = min(topX, botX);
+	int localTopY = min(topY, botY);
+	int localBotX = max(topX, botX);
+	int localBotY = max(topY, botY);
+
+	Mat backCrop = mapBackgroundImage(cv::Rect(localTopX, localTopY, localBotX-localTopX, localBotY-localTopY));
+	resize(sprite.image, backCrop, backCrop.size(), 0, 0, CV_INTER_LINEAR);
+      }
+    }
+
     int imW = 640;
     int imH = 400;
     Mat dummyImage(imH, imW, CV_8UC3);
     //cv::resize(mapBackgroundImage, dummyImage, cv::Size(imW,imH));
     {
-      // XXX TODO this doesn't do rotation yet
       double msfWidth = mapBackgroundXMax - mapBackgroundXMin;
       double msfHeight = mapBackgroundYMax - mapBackgroundYMin;
-      double zToUse = trueEEPose.position.z+currentTableZ;
 
       double topLx = 0.0;
       double topLy = 0.0;
@@ -9267,11 +9370,8 @@ void simulatorCallback(const ros::TimerEvent&) {
       //cout << topLx << " " << topLy << " " << botLx << " " << botLy << endl;
 
       // account for rotation of the end effector 
-      double gpLx = 0.0;
-      double gpLy = 0.0;
-      pixelToGlobal(currentEEPose.px, currentEEPose.py, zToUse, &gpLx, &gpLy);
-      double mapGpFractionWidth = (gpLx - mapBackgroundXMin) / msfWidth;
-      double mapGpFractionHeight = (gpLy - mapBackgroundYMin) / msfHeight;
+      double mapGpFractionWidth = (currentEEPose.px - mapBackgroundXMin) / msfWidth;
+      double mapGpFractionHeight = (currentEEPose.py - mapBackgroundYMin) / msfHeight;
       int mapGpPx = floor(mapGpFractionWidth * mbiWidth);
       int mapGpPy = floor(mapGpFractionHeight * mbiHeight);
       mapGpPx = min(max(0, mapGpPx), mbiWidth-1);
@@ -13014,6 +13114,13 @@ void loadROSParamsFromArgs() {
   //chosen_feature = static_cast<featureType>(cfi);
 
   saved_crops_path = data_directory + "/" + class_name + "/";
+
+  nh.getParam("use_simulator", use_simulator);
+  if (use_simulator) {
+    chosen_mode = SIMULATED;
+  } else {
+    chosen_mode = PHYSICAL;
+  }
 }
 
 void loadROSParams() {
@@ -14192,7 +14299,92 @@ int main(int argc, char **argv) {
   } else if (chosen_mode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
     simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/simulatorCallbackFrequency), simulatorCallback);
-    {
+
+
+    { // load sprites
+      // snoop data/sprites folder
+      //   loop through subfolders
+      //     load image.ppm for now, default everything else
+      vector<string> spriteLabels;
+      spriteLabels.resize(0);
+      masterSprites.resize(0);
+      instanceSprites.resize(0);
+      DIR *dpdf;
+      struct dirent *epdf;
+      string dot(".");
+      string dotdot("..");
+
+      char buf[1024];
+      sprintf(buf, "%s/sprites", data_directory.c_str());
+      dpdf = opendir(buf);
+      if (dpdf != NULL){
+	while (epdf = readdir(dpdf)){
+	  string thisFileName(epdf->d_name);
+
+	  string thisFullFileName(buf);
+	  thisFullFileName = thisFullFileName + "/" + thisFileName;
+	  cout << "checking " << thisFullFileName << " during sprite snoop...";
+
+	  struct stat buf2;
+	  stat(thisFullFileName.c_str(), &buf2);
+
+	  int itIsADir = S_ISDIR(buf2.st_mode);
+	  if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+	    spriteLabels.push_back(thisFileName);
+	    cout << " is a directory." << endl;
+	  } else {
+	    cout << " is NOT a directory." << endl;
+	  }
+	}
+      }
+
+      masterSprites.resize(spriteLabels.size());
+      for (int s = 0; s < masterSprites.size(); s++) {
+	masterSprites[s].name = spriteLabels[s];
+	string filename = data_directory + "/sprites/" + masterSprites[s].name + "/image.ppm";
+	cout << "loading sprite from " << filename << " ... ";
+
+	Mat tmp = imread(filename);
+	masterSprites[s].image = tmp;
+	masterSprites[s].scale = 15/.01;
+
+	masterSprites[s].top = eePoseZero;
+	masterSprites[s].bot = eePoseZero;
+	masterSprites[s].pose = eePoseZero;
+	cout << "loaded " << masterSprites[s].name << " as masterSprites[" << s << "] scale " << masterSprites[s].scale << " image size " << masterSprites[s].image.size() << endl;
+      }
+    }
+
+    // load background
+    int tileBackground = 1;
+    if (tileBackground) {
+      string filename;
+      filename = data_directory + "/tableTile.png";
+      cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
+      Mat tmp = imread(filename);
+      cout << "done. Tiling " << tmp.size() << " "; cout.flush();
+      //cout << "downsampling... "; cout.flush();
+      //cv::resize(tmp, tmp, cv::Size(tmp.cols/2,tmp.rows/2));
+      cv::resize(tmp, mapBackgroundImage, cv::Size(mbiWidth,mbiHeight));
+
+      int tilesWidth = mbiWidth / tmp.cols;
+      int tilesHeight = mbiHeight / tmp.rows;
+
+      for (int tx = 0; tx < tilesWidth; tx++) {
+	for (int ty = 0; ty < tilesHeight; ty++) {
+	  Mat crop = mapBackgroundImage(cv::Rect(tx*tmp.cols, ty*tmp.rows, tmp.cols, tmp.rows));
+	  resize(tmp, crop, crop.size(), 0, 0, CV_INTER_LINEAR);
+	  if (tx % 2) {
+	    flip(crop, crop, 1);
+	  }
+	  if ((ty) % 2) {
+	    flip(crop, crop, 0);
+	  }
+	}
+      }
+
+      cout << "done. " << mapBackgroundImage.size() << endl; cout.flush();
+    } else {
       string filename;
       //filename = data_directory + "/mapBackground.ppm";
       filename = data_directory + "/carpetBackground.jpg";
@@ -14202,6 +14394,7 @@ int main(int argc, char **argv) {
       cv::resize(tmp, mapBackgroundImage, cv::Size(mbiWidth,mbiHeight));
       cout << "done. " << mapBackgroundImage.size() << endl; cout.flush();
     }
+    originalMapBackgroundImage = mapBackgroundImage.clone();
   }
   pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, pickObjectUnderEndEffectorCommandCallback);
   placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
