@@ -1089,6 +1089,8 @@ bool sirAerialGradient = 1;
 bool sirWrist = 1;
 bool sirCore = 1;
 
+bool use_simulator = false;
+
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -12943,6 +12945,13 @@ void loadROSParamsFromArgs() {
   chosen_feature = static_cast<featureType>(cfi);
 
   saved_crops_path = data_directory + "/" + class_name + "/";
+
+  nh.getParam("use_simulator", use_simulator);
+  if (use_simulator) {
+    chosen_mode = SIMULATED;
+  } else {
+    chosen_mode = PHYSICAL;
+  }
 }
 
 void loadROSParams() {
