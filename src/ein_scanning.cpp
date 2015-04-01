@@ -742,9 +742,6 @@ virtual void execute() {
   pushWord("rgbScan");
   pushWord("rgbScan");
   pushWord("rgbScan");
-  pushWord("rgbScan");
-  pushWord("rgbScan");
-  pushWord("rgbScan");
   pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   pushWord("synchronicServo"); 
   pushWord("visionCycleNoClassify");
