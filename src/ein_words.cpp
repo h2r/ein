@@ -327,7 +327,7 @@ std::vector<Word *> create_words() {
     words.push_back(new HoverA());
 
     words.push_back(new SpawnTargetClassAtEndEffector());
-    words.push_back(new destroyObjectInEndEffector());
+    words.push_back(new DestroyObjectInEndEffector());
     words.push_back(new PickObjectUnderEndEffector());
     words.push_back(new PlaceObjectInEndEffector());
     words.push_back(new WriteXMLEnvironment());
@@ -340,6 +340,13 @@ std::vector<Word *> create_words() {
     words.push_back(new GuiShowAll());
     words.push_back(new GuiHideAll());
     words.push_back(new GuiCustom1());
+
+    words.push_back(new SpawnTargetMasterSpriteAtEndEffector());
+    words.push_back(new DestroyTargetInstanceSprite());
+    words.push_back(new IncrementTargetInstanceSprite());
+    words.push_back(new DecrementTargetInstanceSprite());
+    words.push_back(new IncrementTargetMasterSprite());
+    words.push_back(new DecrementTargetMasterSprite());
   }
 
   return words;

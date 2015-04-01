@@ -512,15 +512,15 @@ virtual void execute() {
   endThisStackCollapse = 1;
   shouldIDoIK = 1;
   lastHoverRequest = ros::Time::now();
-  lastJointCallbackRequest = lastHoverRequest;
+  lastEndpointCallbackRequest = lastHoverRequest;
 }
 END_WORD
 
 WORD(HoverA)
 virtual void execute() {
-  if (lastJointCallbackRequest >= lastJointCallbackReceived) {
+  if (lastEndpointCallbackRequest >= lastEndpointCallbackReceived) {
     pushWord("hoverA");
-    cout << "hoverA waiting for jointCallback." << endl;
+    cout << "hoverA waiting for endpointCallback." << endl;
     endThisStackCollapse = 1;
   } else {
     double dx = (lastHoverTrueEEPoseEEPose.px - trueEEPoseEEPose.px);
@@ -560,23 +560,23 @@ virtual void execute() {
     return;
   }
 
-  BoxMemory box;
-  box.bTop.x = vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
-  box.bTop.y = vanishingPointReticle.py-simulatedObjectHalfWidthPixels;
-  box.bBot.x = vanishingPointReticle.px+simulatedObjectHalfWidthPixels;
-  box.bBot.y = vanishingPointReticle.py+simulatedObjectHalfWidthPixels;
-  box.cameraPose = currentEEPose;
-  box.top = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
-  box.bot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
-  box.centroid.px = (box.top.px + box.bot.px) * 0.5;
-  box.centroid.py = (box.top.py + box.bot.py) * 0.5;
-  box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
-  box.cameraTime = ros::Time::now();
-  box.labeledClassIndex = targetClass;
-  
   if (chosen_mode == PHYSICAL) {
     return;
-  } else if (SIMULATED) {
+  } else if (chosen_mode == SIMULATED) {
+    BoxMemory box;
+    box.bTop.x = vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
+    box.bTop.y = vanishingPointReticle.py-simulatedObjectHalfWidthPixels;
+    box.bBot.x = vanishingPointReticle.px+simulatedObjectHalfWidthPixels;
+    box.bBot.y = vanishingPointReticle.py+simulatedObjectHalfWidthPixels;
+    box.cameraPose = currentEEPose;
+    box.top = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
+    box.bot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+    box.centroid.px = (box.top.px + box.bot.px) * 0.5;
+    box.centroid.py = (box.top.py + box.bot.py) * 0.5;
+    box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
+    box.cameraTime = ros::Time::now();
+    box.labeledClassIndex = targetClass;
+  
     mapBox(box);
     vector<BoxMemory> newMemories;
     for (int i = 0; i < blueBoxMemories.size(); i++) {
@@ -588,7 +588,7 @@ virtual void execute() {
 }
 END_WORD
 
-WORD(destroyObjectInEndEffector)
+WORD(DestroyObjectInEndEffector)
 CODE(65535) // delete
 virtual void execute() {
   if (objectInHandLabel >= 0) {
@@ -642,6 +642,171 @@ virtual void execute() {
   if (currentCornellTableIndex >= 0) {
     currentEEPose.px = cornellTables[currentCornellTableIndex].px;
     currentEEPose.py = cornellTables[currentCornellTableIndex].py;
+  }
+}
+END_WORD
+
+WORD(SpawnTargetMasterSpriteAtEndEffector)
+CODE(130915) // shift + insert
+virtual void execute() {
+  cout << "SpawnTargetMasterSpriteAtEndEffector called." << endl;
+  if (targetMasterSprite < 0) {
+    cout << "Not spawning because targetMasterSprite is " << targetMasterSprite << endl;
+    return;
+  }
+
+  for (int s = 0; s < masterSprites.size(); s++) {
+    cout << "checked " << masterSprites[s].name << " as masterSprites[" << s << "] scale " << masterSprites[s].scale << " image size " << masterSprites[s].image.size() << endl;
+  }
+  
+  if (chosen_mode == PHYSICAL) {
+    return;
+  } else if (chosen_mode == SIMULATED) {
+    Sprite sprite;
+    sprite.image = masterSprites[targetMasterSprite].image.clone();
+    sprite.name = masterSprites[targetMasterSprite].name;
+    sprite.scale = masterSprites[targetMasterSprite].scale;
+    sprite.creationTime = ros::Time::now();
+    sprite.pose = currentEEPose;
+    sprite.top = sprite.pose;
+    sprite.bot = sprite.pose;
+
+    // rotate image and grow size
+    {
+      Size sz = sprite.image.size();
+      int deltaWidth = 0;
+      int deltaHeight = 0;
+      if (sz.width < sz.height) {
+	deltaWidth = sz.height - sz.width;
+	sz.width = sz.height;
+      }
+      if (sz.width > sz.height) {
+	deltaHeight = sz.width - sz.height;
+	sz.height = sz.width;
+      }
+
+      Quaternionf eeqform(sprite.pose.qw, sprite.pose.qx, sprite.pose.qy, sprite.pose.qz);
+      Quaternionf crane2Orient(0, 1, 0, 0);
+      Quaternionf rel = eeqform * crane2Orient.inverse();
+      Quaternionf ex(0,1,0,0);
+      Quaternionf zee(0,0,0,1);
+	    
+      Quaternionf result = rel * ex * rel.conjugate();
+      Quaternionf thumb = rel * zee * rel.conjugate();
+      double aY = result.y();
+      double aX = result.x();
+
+      double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
+      angle = (angle);
+      double scale = 1.0;
+      Point center = Point(sz.width/2, sz.height/2);
+
+      Mat un_rot_mat = getRotationMatrix2D( center, angle, scale );
+
+      Mat trans_mat = getRotationMatrix2D( center, angle, scale );
+      trans_mat.at<double>(0,0) = 1;
+      trans_mat.at<double>(1,1) = 1;
+      trans_mat.at<double>(0,1) = 0;
+      trans_mat.at<double>(1,0) = 0;
+      trans_mat.at<double>(0,2) = double(deltaWidth) / 2.0;
+      trans_mat.at<double>(1,2) = double(deltaHeight) / 2.0;
+
+      //Mat rotatedSpriteImage;
+      //warpAffine(sprite.image, rotatedSpriteImage, un_rot_mat, sz, INTER_LINEAR, BORDER_REPLICATE);
+      Mat translatedSpriteImage;
+      warpAffine(sprite.image, translatedSpriteImage, trans_mat, sz, INTER_LINEAR, BORDER_REPLICATE);
+      Mat rotatedSpriteImage;
+      warpAffine(translatedSpriteImage, rotatedSpriteImage, un_rot_mat, sz, INTER_LINEAR, BORDER_REPLICATE);
+      sprite.image = rotatedSpriteImage;
+    }
+
+    double halfWidthMeters = sprite.image.cols / (2.0 * sprite.scale);
+    double halfHeightMeters = sprite.image.rows / (2.0 * sprite.scale);
+
+    sprite.top.px -= halfWidthMeters;
+    sprite.top.py -= halfHeightMeters;
+    sprite.bot.px += halfWidthMeters;
+    sprite.bot.py += halfHeightMeters;
+
+    instanceSprites.push_back(sprite);
+  }
+  cout << "Now instanceSprites.size() is " << instanceSprites.size() << "." << endl;
+}
+END_WORD
+
+WORD(DestroyTargetInstanceSprite)
+CODE(131071) // shift + delete
+virtual void execute() {
+  cout << "DestroyTargetInstanceSprite called." << endl;
+  if ((targetInstanceSprite < 0) ||
+      (targetInstanceSprite >= instanceSprites.size())) {
+    cout << "Not destoying because targetInstanceSprite is " << targetInstanceSprite << " out of " << instanceSprites.size() << endl;
+    return;
+  }
+  
+  if (chosen_mode == PHYSICAL) {
+    return;
+  } else if (chosen_mode == SIMULATED) {
+    vector<Sprite> newInstanceSprites;
+    for (int s = 0; s < instanceSprites.size(); s++) {
+      if (s != targetInstanceSprite) {
+	newInstanceSprites.push_back(instanceSprites[s]);
+      }
+    }
+    instanceSprites = newInstanceSprites;
+  }
+  cout << "Now instanceSprites.size() is " << instanceSprites.size() << "." << endl;
+}
+END_WORD
+
+WORD(IncrementTargetInstanceSprite)
+CODE(130901) // shift + page up
+virtual void execute() {
+  if (chosen_mode == PHYSICAL) {
+    return;
+  } else if (chosen_mode == SIMULATED) {
+    int base = instanceSprites.size();
+    targetInstanceSprite = (targetInstanceSprite + 1 + base) % max(base, 1);
+    cout << "Incrementing targetInstanceSprite to " << targetInstanceSprite << " out of " << base << "." << endl;
+  }
+}
+END_WORD
+
+WORD(DecrementTargetInstanceSprite)
+CODE(130902) // shift + page down
+virtual void execute() {
+  if (chosen_mode == PHYSICAL) {
+    return;
+  } else if (chosen_mode == SIMULATED) {
+    int base = instanceSprites.size();
+    targetInstanceSprite = (targetInstanceSprite - 1 + base) % max(base, 1);
+    cout << "Decrementing targetInstanceSprite to " << targetInstanceSprite << " out of " << base << "." << endl;
+  }
+}
+END_WORD
+
+WORD(IncrementTargetMasterSprite)
+CODE(130896) // shift + home 
+virtual void execute() {
+  if (chosen_mode == PHYSICAL) {
+    return;
+  } else if (chosen_mode == SIMULATED) {
+    int base = masterSprites.size();
+    targetMasterSprite = (targetMasterSprite + 1 + base) % max(base, 1);
+    cout << "Incrementing targetMasterSprite to " << targetMasterSprite << " out of " << base << "." << endl;
+  }
+}
+END_WORD
+
+WORD(DecrementTargetMasterSprite)
+CODE(130903) // shift + end 
+virtual void execute() {
+  if (chosen_mode == PHYSICAL) {
+    return;
+  } else if (chosen_mode == SIMULATED) {
+    int base = masterSprites.size();
+    targetMasterSprite = (targetMasterSprite - 1 + base) % max(base, 1);
+    cout << "Decrementing targetMasterSprite to " << targetMasterSprite << " out of " << base << "." << endl;
   }
 }
 END_WORD
