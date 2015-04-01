@@ -1063,8 +1063,8 @@ eePose lastHoverTrueEEPoseEEPose;
 
 double simulatorCallbackFrequency = 30.0;
 
-int mbiWidth = 500;
-int mbiHeight = 500;
+int mbiWidth = 2000;
+int mbiHeight = 2000;
 Mat mapBackgroundImage;
 
 int objectInHandLabel = -1;
@@ -14201,7 +14201,35 @@ int main(int argc, char **argv) {
   } else if (chosen_mode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
     simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/simulatorCallbackFrequency), simulatorCallback);
-    {
+    int tileBackground = 1;
+    if (tileBackground) {
+      string filename;
+      filename = data_directory + "/tableTile.png";
+      cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
+      Mat tmp = imread(filename);
+      cout << "done. Tiling " << tmp.size() << " "; cout.flush();
+      //cout << "downsampling... "; cout.flush();
+      //cv::resize(tmp, tmp, cv::Size(tmp.cols/2,tmp.rows/2));
+      cv::resize(tmp, mapBackgroundImage, cv::Size(mbiWidth,mbiHeight));
+
+      int tilesWidth = mbiWidth / tmp.cols;
+      int tilesHeight = mbiHeight / tmp.rows;
+
+      for (int tx = 0; tx < tilesWidth; tx++) {
+	for (int ty = 0; ty < tilesHeight; ty++) {
+	  Mat crop = mapBackgroundImage(cv::Rect(tx*tmp.cols, ty*tmp.rows, tmp.cols, tmp.rows));
+	  resize(tmp, crop, crop.size(), 0, 0, CV_INTER_LINEAR);
+	  if (tx % 2) {
+	    flip(crop, crop, 1);
+	  }
+	  if ((ty) % 2) {
+	    flip(crop, crop, 0);
+	  }
+	}
+      }
+
+      cout << "done. " << mapBackgroundImage.size() << endl; cout.flush();
+    } else {
       string filename;
       //filename = data_directory + "/mapBackground.ppm";
       filename = data_directory + "/carpetBackground.jpg";
