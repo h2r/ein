@@ -5119,7 +5119,7 @@ void renderObjectMapView() {
               CV_RGB(nonBlueAmount, nonBlueAmount, 128+nonBlueAmount));
     }
 
-    putText(objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, Scalar(255, 255, 255), 2.0);
+    putText(objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, CV_RGB(196, 196, 255), 2.0);
   }
   
   { // drawRobot

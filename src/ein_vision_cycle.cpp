@@ -315,7 +315,7 @@ virtual void execute() {
 	    if (chosen_mode == PHYSICAL) {
 	      ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
 	    } else if (chosen_mode == SIMULATED) {
-	      ikResultFailed = positionIsSearched(nextEEPose.px, nextEEPose.py);
+	      ikResultFailed = !positionIsSearched(nextEEPose.px, nextEEPose.py);
 	    }
 
 	    int foundGoodPosition = !ikResultFailed;
@@ -422,7 +422,7 @@ virtual void execute() {
     if (chosen_mode == PHYSICAL) {
       ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
     } else if (chosen_mode == SIMULATED) {
-      ikResultFailed = positionIsSearched(nextEEPose.px, nextEEPose.py);
+      ikResultFailed = !positionIsSearched(nextEEPose.px, nextEEPose.py);
     }
 
     int foundGoodPosition = !ikResultFailed;
