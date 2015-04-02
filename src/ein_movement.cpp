@@ -244,7 +244,7 @@ END_WORD
 
 
 WORD(XDown)
-CODE('w') 
+CODE('q') 
 virtual void execute() {
   currentEEPose.px -= bDelta;
 }
@@ -252,7 +252,7 @@ END_WORD
 
 
 WORD(XUp)
-CODE('s') 
+CODE('e') 
 virtual void execute() {
   currentEEPose.px += bDelta;
 }
@@ -275,7 +275,7 @@ END_WORD
 
 
 WORD(ZUp)
-CODE('q')
+CODE('w')
 virtual void execute()
 {
   currentEEPose.pz += bDelta;
@@ -283,7 +283,7 @@ virtual void execute()
 END_WORD
 
 WORD(ZDown)
-CODE('e')
+CODE('s')
 virtual void execute()
 {
     currentEEPose.pz -= bDelta;
@@ -540,6 +540,7 @@ virtual void execute() {
 	endThisStackCollapse = 1;
 	shouldIDoIK = 1;
 	cout << "hoverA distance requirement not met, distance angleDistance: " << distance << " " << angleDistance << endl;
+	lastHoverTrueEEPoseEEPose = trueEEPoseEEPose;
       } else {
 	endThisStackCollapse = endCollapse;
       }

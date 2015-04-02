@@ -86,6 +86,7 @@ std::vector<Word *> create_words() {
     words.push_back(new ZUp());
     words.push_back(new ZDown());
     words.push_back(new Noop());
+    words.push_back(new EndStackCollapseNoop());
     words.push_back(new SynchronicServoTakeClosest());
     words.push_back(new GradientServoTakeClosest());
     words.push_back(new IncrementTargetClass());

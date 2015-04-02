@@ -130,6 +130,7 @@ virtual void execute()       {
   pickZ = max(flushZ, pickZ);
 
   int useIncrementalPick = 0;
+  bool useHybridPick = 1;
   if (useIncrementalPick) {
     double deltaZ = pickZ - currentEEPose.pz;
 
@@ -154,8 +155,22 @@ virtual void execute()       {
       }
     }
   } else {
-    currentEEPose.pz = pickZ;
-    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    if (useHybridPick) {
+      int pickNoops = 30;
+      int increments = 0.1/MOVE_FAST;
+      currentEEPose.pz = pickZ+increments*MOVE_FAST;
+
+      pushCopies("endStackCollapseNoop", pickNoops);
+      pushCopies('s', increments);
+      pushWord("setMovementSpeedMoveFast");
+      pushWord("approachSpeed");
+      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+      //pushWord("quarterImpulse");
+      pushWord("approachSpeed");
+    } else {
+      currentEEPose.pz = pickZ;
+      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    }
   }
 }
 END_WORD

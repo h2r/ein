@@ -851,12 +851,12 @@ int thisGraspSucceed = -1;
 
 ros::Time graspTrialStart;
 
-double rightTableZ = 0.18;
-double leftTableZ = 0.177;
+double rightTableZ = 0.19;//0.18;
+double leftTableZ = 0.19;//0.177;
 
-double bagTableZ = 0.18; //0.195;//0.22;
-double counterTableZ = 0.18;//0.209123; //0.20;//0.18;
-double pantryTableZ = 0.18;//0.209123; //0.195;
+double bagTableZ = 0.19;//0.18; //0.195;//0.22;
+double counterTableZ = 0.19;//0.18;//0.209123; //0.20;//0.18;
+double pantryTableZ = 0.19;//0.18;//0.209123; //0.195;
 
 double currentTableZ = leftTableZ;
 
@@ -13994,7 +13994,7 @@ vector<BoxMemory> memoriesForClass(int classIdx, int * memoryIdxOfFirst) {
   for (int j = 0; j < blueBoxMemories.size(); j++) {
     if (blueBoxMemories[j].labeledClassIndex == focusedClass) {
       results.push_back(blueBoxMemories[j]);
-      if (haventFoundFirst) {
+      if ( haventFoundFirst && (blueBoxMemories[j].lockStatus == POSE_REPORTED) ) {
 	*memoryIdxOfFirst = j;
 	haventFoundFirst = 0;
       }
