@@ -1100,6 +1100,8 @@ bool use_simulator = false;
 
 int targetInstanceSprite = 0;
 int targetMasterSprite = 0;
+  
+Eigen::Quaternionf gear0offset;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -1767,6 +1769,9 @@ void queryIK(int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
 
 void globalToMapBackground(double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
 void simulatorCallback(const ros::TimerEvent&);
+
+void loadCalibration(string inFileName);
+void saveCalibration(string outFileName);
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -5433,6 +5438,180 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
   }
 }
 
+void loadCalibration(string inFileName) {
+  FileStorage fsvI;
+  cout << "Readingcalibration information from " << inFileName << " ...";
+  fsvI.open(inFileName, FileStorage::READ);
+
+  {
+    FileNode anode = fsvI["vanishingPointReticle"];
+    FileNodeIterator it = anode.begin(), it_end = anode.end();
+    vanishingPointReticle.px = *(it++);
+    vanishingPointReticle.py = *(it++);
+  }
+
+  {
+    FileNode anode = fsvI["heightReticles"];
+    FileNodeIterator it = anode.begin(), it_end = anode.end();
+    heightReticles[3].px = *(it++);
+    heightReticles[2].px = *(it++);
+    heightReticles[1].px = *(it++);
+    heightReticles[0].px = *(it++);
+
+    heightReticles[3].py = *(it++);
+    heightReticles[2].py = *(it++);
+    heightReticles[1].py = *(it++);
+    heightReticles[0].py = *(it++);
+  }
+
+  {
+    FileNode anode = fsvI["colorReticles"];
+    FileNodeIterator it = anode.begin(), it_end = anode.end();
+    xCR[0]  = *(it++);
+    xCR[1]  = *(it++);
+    xCR[2]  = *(it++);
+    xCR[3]  = *(it++);
+    xCR[4]  = *(it++);
+    xCR[5]  = *(it++);
+    xCR[6]  = *(it++);
+    xCR[7]  = *(it++);
+    xCR[8]  = *(it++);
+    xCR[9]  = *(it++);
+    xCR[10] = *(it++);
+    xCR[11] = *(it++);
+    xCR[12] = *(it++);
+    xCR[13] = *(it++);
+
+    yCR[0]  = *(it++);
+    yCR[1]  = *(it++);
+    yCR[2]  = *(it++);
+    yCR[3]  = *(it++);
+    yCR[4]  = *(it++);
+    yCR[5]  = *(it++);
+    yCR[6]  = *(it++);
+    yCR[7]  = *(it++);
+    yCR[8]  = *(it++);
+    yCR[9]  = *(it++);
+    yCR[10] = *(it++);
+    yCR[11] = *(it++);
+    yCR[12] = *(it++);
+    yCR[13] = *(it++);
+  }
+
+  {
+    FileNode anode = fsvI["lensCorrections"];
+    FileNodeIterator it = anode.begin(), it_end = anode.end();
+    m_x_h[0] = *(it++);
+    m_x_h[1] = *(it++);
+    m_x_h[2] = *(it++);
+    m_x_h[3] = *(it++);
+
+    m_y_h[0] = *(it++);
+    m_y_h[1] = *(it++);
+    m_y_h[2] = *(it++);
+    m_y_h[3] = *(it++);
+  }
+
+  {
+    FileNode anode = fsvI["gear0offset"];
+    FileNodeIterator it = anode.begin(), it_end = anode.end();
+    gear0offset.x() = *(it++);
+    gear0offset.y() = *(it++);
+    gear0offset.z() = *(it++);
+    gear0offset.w() = *(it++);
+  }
+
+  cout << "done." << endl;
+}
+
+void saveCalibration(string outFileName) {
+
+  /* this works
+  for (int i = 0; i < 5; i++) {
+    char buf[256];
+    sprintf(buf, "%d", i);
+    string testString(buf);
+    testString = "test"+testString;
+    fsvO << testString << classLabels;
+  }
+  */
+
+  FileStorage fsvO;
+  cout << "Writing calibration information to " << outFileName << " ...";
+  fsvO.open(outFileName, FileStorage::WRITE);
+
+  fsvO << "vanishingPointReticle" << "[" 
+    << vanishingPointReticle.px 
+    << vanishingPointReticle.py 
+  << "]";
+
+  fsvO << "heightReticles" << "[" 
+    << heightReticles[3].px
+    << heightReticles[2].px
+    << heightReticles[1].px
+    << heightReticles[0].px
+
+    << heightReticles[3].py
+    << heightReticles[2].py
+    << heightReticles[1].py
+    << heightReticles[0].py
+  << "]";
+
+  fsvO << "colorReticles" << "[" 
+    << xCR[0]
+    << xCR[1]
+    << xCR[2]
+    << xCR[3]
+    << xCR[4]
+    << xCR[5]
+    << xCR[6]
+    << xCR[7]
+    << xCR[8]
+    << xCR[9]
+    << xCR[10]
+    << xCR[11]
+    << xCR[12]
+    << xCR[13]
+
+    << yCR[0] 
+    << yCR[1] 
+    << yCR[2] 
+    << yCR[3] 
+    << yCR[4] 
+    << yCR[5] 
+    << yCR[6] 
+    << yCR[7] 
+    << yCR[8] 
+    << yCR[9] 
+    << yCR[10]
+    << yCR[11]
+    << yCR[12]
+    << yCR[13]
+  << "]";
+
+  fsvO << "lensCorrections" << "[" 
+    << m_x_h[0]
+    << m_x_h[1]
+    << m_x_h[2]
+    << m_x_h[3]
+
+    << m_y_h[0]
+    << m_y_h[1]
+    << m_y_h[2]
+    << m_y_h[3]
+  << "]";
+
+  fsvO << "gear0offset" << "["
+    << gear0offset.x()
+    << gear0offset.y()
+    << gear0offset.z()
+    << gear0offset.w()
+  << "]";
+
+  fsvO.release();
+  cout << "done." << endl;
+}
+
 void pilotInit() {
   eeForward = Eigen::Vector3d(1,0,0);
 
@@ -5878,7 +6057,7 @@ void pilotInit() {
     // 0.037829849
     //Eigen::Quaternionf gear0offset(0.0, 0.031996, 0.020183, 0.0167228); // from TF, accounts for upside down rotation of crane2
     //Eigen::Quaternionf gear0offset(0.0, 0.020183, 0.031996, 0.0167228); // from TF, accounts for upside down rotation of crane2
-    Eigen::Quaternionf gear0offset(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
 
     if (0 == left_or_right_arm.compare("left")) {
       gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
@@ -14498,6 +14677,9 @@ int main(int argc, char **argv) {
       cornellTables.push_back(thisTablePose);
     }
   } 
+
+  //saveCalibration(data_directory + "/testCalibration.yml");
+  //loadCalibration(data_directory + "/testCalibration.yml");
 
   ros::spin();
 
