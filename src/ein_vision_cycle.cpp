@@ -10,13 +10,20 @@ virtual void execute() {
   int idxOfFirst = -1;
   vector<BoxMemory> focusedClassMemories = memoriesForClass(focusedClass, &idxOfFirst);
   if (focusedClassMemories.size() == 0) {
-    cout << "can't find focused class. " << endl;
+    cout << "No memories of the focused class. " << endl;
     return;
   }
   if (focusedClassMemories.size() > 1) {
-    cout << "more than one bounding box for class.  Using first." << focusedClassMemories.size() << endl;
+    cout << "More than one bounding box for class.  Looking for first POSE_REPORTED." << focusedClassMemories.size() << endl;
   }
-  BoxMemory memory = focusedClassMemories[0];
+  //BoxMemory memory = focusedClassMemories[0];
+  BoxMemory memory = blueBoxMemories[idxOfFirst];
+
+  if (idxOfFirst == -1) {
+    cout << "No POSE_REPORTED objects of the focused class." << endl;
+    return;
+  }
+
   //currentEEPose = memory.cameraPose;
   currentEEPose = memory.aimedPose;
   lastPickHeight = memory.pickedPose.pz;

@@ -295,6 +295,12 @@ virtual void execute()
 }
 END_WORD
 
+WORD(EndStackCollapseNoop)
+virtual void execute()
+{
+  endThisStackCollapse = 1;
+}
+END_WORD
 
 WORD(PrintWords)
 virtual void execute()
