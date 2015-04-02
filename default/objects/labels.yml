@@ -1,0 +1,11 @@
+%YAML:1.0
+labels:
+   - blueBowl
+   - background
+   - brownCup
+   - brush
+poseModels:
+   - B
+   - B
+   - B
+   - B
