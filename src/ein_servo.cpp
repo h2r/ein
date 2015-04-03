@@ -658,7 +658,7 @@ virtual void execute()       {
 
   pushNoOps(5);
   pushWord("tryToMoveToTheLastPickHeight"); 
-  pushWord("approachSpeed"); 
+  //pushWord("approachSpeed"); 
 
   //count here so that if it drops it on the way it will count as a miss
   { // in case it fell out
@@ -689,6 +689,7 @@ virtual void execute()       {
     pushWord("moveToRegister2"); // assume pose at register 2
   }
 
+  pushWord("quarterImpulse"); 
   pushNoOps(10);
 
   pushWord("moveToTargetZAndGrasp"); 
@@ -742,6 +743,7 @@ virtual void execute()       {
     pushWord("moveToRegister4"); // assume pose at register 4
   }
 
+  pushWord("quarterImpulse"); 
   pushWord("waitUntilGripperNotMoving");
   pushWord("moveToTargetZAndGrasp"); 
   pushWord("approachSpeed"); 
@@ -1082,8 +1084,10 @@ virtual void execute()       {
   // so we assume that we are at 20 cm = IR scan height and move to 30 cm
   pushSpeedSign(MOVE_FAST);
   pushWord("changeToPantryTable"); // change to pantry table
-  pushWord("setBoundingBoxModeToStaticMarginals"); // change bounding box inference mode to STATIC_MARGINALS
+  //pushWord("setBoundingBoxModeToStaticMarginals"); 
+  pushWord("setBoundingBoxModeToStaticPrior"); 
   pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
+  pushWord("quarterImpulse"); 
 }
 END_WORD
 
@@ -1149,6 +1153,7 @@ virtual void execute() {
   }
   // if you are static_prior, this does nothing and defaults to the usual height
   pushWord("sampleHeight"); 
+  pushWord("quarterImpulse"); 
 }
 END_WORD
 

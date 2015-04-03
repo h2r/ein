@@ -460,6 +460,13 @@ virtual void execute() {
     currentEEPose.pz = currentThompsonHeight;
     m_x = m_x_h[currentThompsonHeightIdx];
     m_y = m_y_h[currentThompsonHeightIdx];
+  } else {
+    cout << "SampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
+    currentThompsonHeight = convertHeightIdxToGlobalZ(mappingHeightIdx);
+    currentThompsonHeightIdx = mappingHeightIdx;
+    currentEEPose.pz = currentThompsonHeight;
+    m_x = m_x_h[currentThompsonHeightIdx];
+    m_y = m_y_h[currentThompsonHeightIdx];
   }
 }
 END_WORD

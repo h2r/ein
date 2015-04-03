@@ -3187,9 +3187,11 @@ void scanXdirection(double speedOnLines, double speedBetweenLines) {
   pushWord("waitUntilAtCurrentPosition"); 
   for (int g = 0; g < ((rmWidth*onLineGain)-(rmHalfWidth*onLineGain))+scanPadding; g++) {
     pushWord('a');
+    pushWord("endStackCollapseNoop");
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
     pushWord('e');
+    pushWord("endStackCollapseNoop");
   }
 
   pushWord("waitUntilAtCurrentPosition"); 
@@ -3202,19 +3204,23 @@ void scanXdirection(double speedOnLines, double speedBetweenLines) {
     pushWord("waitUntilAtCurrentPosition");
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
       pushWord('q');
+      pushWord("endStackCollapseNoop");
     }
     pushWord("waitUntilAtCurrentPosition"); 
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
       pushWord('e');
+      pushWord("endStackCollapseNoop");
     }
   }
 
   pushWord("waitUntilAtCurrentPosition"); 
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
     pushWord('q');
+    pushWord("endStackCollapseNoop");
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
     pushWord('a');
+    pushWord("endStackCollapseNoop");
   }
   pushWord("rasterScanningSpeed");
 }
