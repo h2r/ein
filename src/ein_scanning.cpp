@@ -323,22 +323,25 @@ virtual void execute() {
 
     pushWord("changeToHeight1"); // change to height 1
     pushWord("shiftIntoGraspGear1"); // change to first gear
-    
-    pushWord("loadPriorGraspMemoryAnalytic");
+  }
 
+  if (1) {
+    pushWord("saveLearnedModels");
+    pushWord("loadPriorGraspMemoryAnalytic");
     // set target class to the lastLabelLearned 
     pushWord(1179730);
-
     pushWord(131142); // reinitialize and retrain everything
   }
 
   // set lastLabelLearned
   pushWord(1179732);
 
-  pushWord(131143); // 72 way scan
-  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  pushWord(131143); // 72 way scan
-  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  if (0) {
+    pushWord(131143); // 72 way scan
+    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    pushWord(131143); // 72 way scan
+    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  }
 
   pushWord("scanCentered"); // 72 way scan
 

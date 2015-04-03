@@ -495,3 +495,60 @@ ein_data_contrast (no height, no grasp, good contrast)
 ein_data (baseline scans, possibly bad contrast)
 ein_data_combine1 (height, no grasp, fixes)
  * really good models
+
+
+
+
+
+
+
+
+Ein MIT Visit
+
+Pull.
+Copy the folder node/default/objects to node/ein_dataDefault.
+Copy the contents of node/default/config to node/ein_dataDefault.
+
+
+From the root of your catkin workspace, run the following command:
+
+catkin_make && gdb --args devel/lib/node/ein _data_directory:="$(rospack find node)/ein_dataDefault" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml" _run_prefix:="ISRR" _left_or_right_arm:="left" left
+
+And enter 'r' to start the program from within gdb. If the robot is enabled it should move to a ready position.
+
+In a different window run:
+
+rosrun node ein_client.py left
+
+to start the repl. Enter:
+
+fillClearanceMap loadIkMap ;
+
+and the Object Map View should change to reflect a mapping of a cross section of the ik space. There should be
+red, light red, yellow, and green dots. Note, a space between the last word and the semi-colon is necessary.
+
+Make sure numlock and capslock are off. With the Object Map View focused, use 'a','d','q', and 'e' to move the arm
+deep within green territory. Place an object directly under the arm. Run the following command in the repl:
+
+scanObject ;
+
+and follow the instructions in the ein terminal window to scan the object.
+
+At any time, run
+
+guiShowAll ;
+
+from the repl to show all of the windows.
+
+When scanning finishes, models will be trained with an object class corresponding to each subfolder
+of ein_dataDefault. Since there are no RGB images for
+background, blueBowl, brownCup, and brush, models will be trained for those classes but with no positive examples
+for them, nothing will ever be classified as one of those objects. So those folders can be removed at this point
+(they were necessary earlier for picking to work with those classes and the pretrained knn and vocab).
+
+
+
+
+
+
+
