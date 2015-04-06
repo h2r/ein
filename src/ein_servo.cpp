@@ -131,10 +131,11 @@ virtual void execute()       {
 
   int useIncrementalPick = 0;
   bool useHybridPick = 1;
-  if (useIncrementalPick) {
-    double deltaZ = pickZ - currentEEPose.pz;
 
-    lastPickHeight = pickZ;
+  double deltaZ = pickZ - currentEEPose.pz;
+  lastPickHeight = pickZ;
+
+  if (useIncrementalPick) {
     double zTimes = fabs(floor(deltaZ / bDelta)); 
 
     int numNoOps = 2;
