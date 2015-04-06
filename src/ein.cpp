@@ -5360,9 +5360,11 @@ void targetCallback(const geometry_msgs::Point& point) {
 
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
 
-  if (!shouldIMiscCallback) {
-    return;
-  }
+  //if (!shouldIMiscCallback) {
+    //return;
+  //}
+
+cout << " test test" << endl;
 
   if ( event == EVENT_LBUTTONDOWN ) {
     cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;

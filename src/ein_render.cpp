@@ -161,6 +161,12 @@ virtual void execute()
   sirAerialGradient = 1;
   sirWrist = 1;
   sirCore = 1;
+  cv::namedWindow(objectViewerName);
+  cv::namedWindow(graspMemoryViewName);
+  cv::namedWindow(wristViewName);
+  cv::setMouseCallback(wristViewName, pilotCallbackFunc, NULL);
+  cv::setMouseCallback(graspMemoryViewName, graspMemoryCallbackFunc, NULL);
+  cv::setMouseCallback(objectViewerName, nodeCallbackFunc, NULL);
 }
 END_WORD
 
@@ -210,6 +216,11 @@ virtual void execute()
   sirAerialGradient = 0;
   sirWrist = 1;
   sirCore = 0;
+
+  //cv::namedWindow(objectViewerName);
+  //cv::namedWindow(graspMemoryViewName);
+  cv::namedWindow(wristViewName);
+  cv::setMouseCallback(wristViewName, pilotCallbackFunc, NULL);
 }
 END_WORD
 
