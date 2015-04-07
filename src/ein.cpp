@@ -167,6 +167,17 @@ void printEEPose(eePose toPrint) {
 #define CART_SCAN 131118
 #define QUICK_RANGE_MAP CART_SCAN
 
+typedef enum {
+  STOPPED,
+  HOVERING,
+  MOVING
+} movementState;
+movementState currentMovementState = STOPPED;
+
+double movingThreshold = 0.02; // 1mm
+double hoverThreshold = 0.003; 
+double stoppedTimeout = 0.5;
+
 ////////////////////////////////////////////////
 // end pilot includes, usings, and defines 
 //
@@ -300,7 +311,8 @@ int shouldIRangeCallback = 1;
 
 int ik_reset_thresh = 20;
 int ik_reset_counter = 0;
-int ikInitialized = 0.0;
+int ikInitialized = 0;
+int goodIkInitialized = 0;
 // ATTN 14
 double ikShare = 1.0;
 double oscillating_ikShare = .1;
@@ -522,6 +534,7 @@ int bfc_period = 3;
 int resend_times = 1;
 
 baxter_core_msgs::SolvePositionIK ikRequest;
+baxter_core_msgs::SolvePositionIK lastGoodIkRequest;
 
 ros::ServiceClient ikClient;
 ros::Publisher joint_mover;
@@ -1103,6 +1116,9 @@ int targetMasterSprite = 0;
   
 Eigen::Quaternionf gear0offset;
 
+ros::Time lastMovementStateSet;
+eePose lastTrueEEPoseEEPose;
+
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -1668,7 +1684,7 @@ void setCCRotation(int thisGraspGear);
 void rangeCallback(const sensor_msgs::Range& range);
 void endEffectorAngularUpdate(eePose *givenEEPose);
 void fillIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest);
-void reseedIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest);
+void reseedIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest, int it, int itMax);
 void update_baxter(ros::NodeHandle &n);
 void timercallback1(const ros::TimerEvent&);
 void imageCallback(const sensor_msgs::ImageConstPtr& msg);
@@ -2944,6 +2960,9 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
 
   lastEndpointCallbackReceived = ros::Time::now();
 
+
+
+
   //cout << "endpoint frame_id: " << eps.header.frame_id << endl;
   trueEEPose = eps.pose;
   trueEEPoseEEPose.px = eps.pose.position.x;
@@ -2957,6 +2976,31 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
   setRingPoseAtTime(eps.header.stamp, eps.pose);
   geometry_msgs::Pose thisPose;
   int weHavePoseData = getRingPoseAtTime(eps.header.stamp, thisPose);
+
+  {
+    double dx = (trueEEPoseEEPose.px - lastTrueEEPoseEEPose.px);
+    double dy = (trueEEPoseEEPose.py - lastTrueEEPoseEEPose.py);
+    double dz = (trueEEPoseEEPose.pz - lastTrueEEPoseEEPose.pz);
+    double distance = dx*dx + dy*dy + dz*dz;
+
+    if (distance > movingThreshold*movingThreshold) {
+      currentMovementState = MOVING;
+      lastTrueEEPoseEEPose = trueEEPoseEEPose;
+      lastMovementStateSet = ros::Time::now();
+    } else if (distance > hoverThreshold*hoverThreshold) {
+      currentMovementState = HOVERING;
+      lastTrueEEPoseEEPose = trueEEPoseEEPose;
+      lastMovementStateSet = ros::Time::now();
+    } else {
+      ros::Duration deltaT = ros::Time::now() - lastMovementStateSet;
+      if ( (deltaT.sec) > stoppedTimeout ) {
+	currentMovementState = STOPPED;
+	lastMovementStateSet = ros::Time::now();
+	lastTrueEEPoseEEPose = trueEEPoseEEPose;
+      }
+    }
+  }
+
 }
 
 void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees) {
@@ -3959,22 +4003,29 @@ void fillIkRequest(eePose * givenEEPose, baxter_core_msgs::SolvePositionIK * giv
   givenIkRequest->request.pose_stamp[0].pose.orientation.w = givenEEPose->qw;
 }
 
-void reseedIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
-  if (!jointNamesInit) {
-    jointNames.resize(numJoints);
-    for (int j = 0; j < numJoints; j++) {
-      jointNames[j] = ikRequest.response.joints[0].name[j];
-    }
-    jointNamesInit = 1;
-  }
+void reseedIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest, int it, int itMax) {
 
-  givenIkRequest->request.seed_mode = 1; // SEED_USER
-  givenIkRequest->request.seed_angles.resize(1);
-  givenIkRequest->request.seed_angles[0].position.resize(numJoints);
-  givenIkRequest->request.seed_angles[0].name.resize(numJoints);
-  for (int j = 0; j < numJoints; j++) {
-    givenIkRequest->request.seed_angles[0].position[j] = (drand48() - 0.5)*2.0*3.1415926;
-    givenIkRequest->request.seed_angles[0].name[j] = jointNames[j];
+  double jointSeedAmplitude = (3.1415926 * double(it) / double(itMax));
+  double jointSeedAmplitudeMin = 0.02;
+  jointSeedAmplitude = max(jointSeedAmplitude, jointSeedAmplitudeMin);
+
+  if (goodIkInitialized) {
+    givenIkRequest->request.seed_mode = 1; // SEED_USER
+    givenIkRequest->request.seed_angles.resize(1);
+    givenIkRequest->request.seed_angles[0].position.resize(numJoints);
+    givenIkRequest->request.seed_angles[0].name.resize(numJoints);
+    for (int j = 0; j < numJoints; j++) {
+      givenIkRequest->request.seed_angles[0].name[j] = lastGoodIkRequest.response.joints[0].name[j];
+      givenIkRequest->request.seed_angles[0].position[j] = lastGoodIkRequest.response.joints[0].position[j] + 
+	((drand48() - 0.5)*2.0*jointSeedAmplitude);
+    }
+  } else {
+    ROS_WARN_STREAM("_______**__________");
+    ROS_WARN_STREAM("_____*____*________");
+    ROS_ERROR_STREAM("Uh oh, tried to reseed ik before it was initialized, so returning with no action.");
+    ROS_WARN_STREAM("_____*____*________");
+    ROS_WARN_STREAM("_______**__________");
+    return;
   }
 }
 
@@ -4116,7 +4167,7 @@ void update_baxter(ros::NodeHandle &n) {
       //noisedCurrentEEPose.qw = currentEEPose.qw + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
       //fillIkRequest(&noisedCurrentEEPose, &thisIkRequest);
 
-      reseedIkRequest(&currentEEPose, &thisIkRequest);
+      reseedIkRequest(&currentEEPose, &thisIkRequest, ikRetry, numIkRetries);
       fillIkRequest(&currentEEPose, &thisIkRequest);
     }
   }
@@ -4247,11 +4298,17 @@ void update_baxter(ros::NodeHandle &n) {
     myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
     myCommand.command.resize(numJoints);
     myCommand.names.resize(numJoints);
+    lastGoodIkRequest.response.joints.resize(1);
+    lastGoodIkRequest.response.joints[0].name.resize(numJoints);
+    lastGoodIkRequest.response.joints[0].position.resize(numJoints);
 
     for (int j = 0; j < numJoints; j++) {
       myCommand.names[j] = ikRequest.response.joints[0].name[j];
       myCommand.command[j] = ikRequest.response.joints[0].position[j];
+      lastGoodIkRequest.response.joints[0].name[j] = ikRequest.response.joints[0].name[j];
+      lastGoodIkRequest.response.joints[0].position[j] = ikRequest.response.joints[0].position[j];
     }
+    goodIkInitialized = 1;
   }
 
   std_msgs::Float64 speedCommand;
@@ -4726,6 +4783,30 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     circle(wristViewImage, pt1, vanishingPointReticleRadius, theColor, 1);
     circle(wristViewImage, pt1, vanishingPointReticleRadius+1, THEcOLOR, 1);
     circle(wristViewImage, pt1, vanishingPointReticleRadius+3, theColor, 1);
+  }
+
+  // draw currentMovementState indicator
+  {
+    int movementIndicatorInnerHalfWidth = 7;
+    int movementIndicatorOuterHalfWidth = 10;
+    int x0 = vanishingPointReticle.px;
+    int y0 = vanishingPointReticle.py+3*movementIndicatorOuterHalfWidth;
+    Point pt1(x0, y0);
+    Mat innerCrop = wristViewImage(cv::Rect(pt1.x-movementIndicatorInnerHalfWidth, pt1.y-movementIndicatorInnerHalfWidth, 
+					  2*movementIndicatorInnerHalfWidth, 2*movementIndicatorInnerHalfWidth) );
+    Mat outerCrop = wristViewImage(cv::Rect(pt1.x-movementIndicatorOuterHalfWidth, pt1.y-movementIndicatorOuterHalfWidth, 
+					  2*movementIndicatorOuterHalfWidth, 2*movementIndicatorOuterHalfWidth) );
+    int icMag = 64;
+    Scalar indicatorColor = CV_RGB(icMag,icMag,icMag);
+    if (currentMovementState == STOPPED) {
+      indicatorColor = CV_RGB(icMag,0,0); 
+    } else if (currentMovementState == HOVERING) {
+      indicatorColor = CV_RGB(0,0,icMag); 
+    } else if (currentMovementState == MOVING) {
+      indicatorColor = CV_RGB(0,icMag,0); 
+    }
+    outerCrop += indicatorColor;
+    innerCrop += indicatorColor;
   }
 
   // draw probe reticle
@@ -14709,6 +14790,8 @@ int main(int argc, char **argv) {
       cornellTables.push_back(thisTablePose);
     }
   } 
+
+  lastMovementStateSet = ros::Time::now();
 
   //saveCalibration(data_directory + "/testCalibration.yml");
   //loadCalibration(data_directory + "/testCalibration.yml");
