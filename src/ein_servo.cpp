@@ -157,7 +157,7 @@ virtual void execute()       {
     }
   } else {
     if (useHybridPick) {
-      int pickNoops = 30;
+      int pickNoops = 20;
       int increments = 0.1/MOVE_FAST;
       currentEEPose.pz = pickZ+increments*MOVE_FAST;
 
@@ -221,11 +221,12 @@ virtual void execute() {
   double zTimes = fabs(floor(deltaZ / bDelta)); 
   int numNoOps = 2;
   int useIncrementalPlace = 0;
+  bool useHybridPlace = 1;
   if (useIncrementalPlace) {
     if (deltaZ > 0) {
       for (int zc = 0; zc < zTimes; zc++) {
 	for (int cc = 0; cc < numNoOps; cc++) {
-	  pushWord('C');
+	  pushWord("endStackCollapseNoop");
 	}
 	pushWord('w');
       }
@@ -233,14 +234,28 @@ virtual void execute() {
     if (deltaZ < 0) {
       for (int zc = 0; zc < zTimes; zc++) {
 	for (int cc = 0; cc < numNoOps; cc++) {
-	  pushWord('C');
+	  pushWord("endStackCollapseNoop");
 	}
 	pushWord('s');
       }
     }
   } else {
-    currentEEPose.pz = lastPickHeight;
-    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    if (useHybridPlace) {
+      int pickNoops = 20;
+      int increments = 0.1/MOVE_FAST;
+      currentEEPose.pz = lastPickHeight+increments*MOVE_FAST;
+
+      pushCopies("endStackCollapseNoop", pickNoops);
+      pushCopies('s', increments);
+      pushWord("setMovementSpeedMoveFast");
+      pushWord("approachSpeed");
+      pushWord("waitUntilAtCurrentPosition"); 
+      //pushWord("quarterImpulse");
+      pushWord("approachSpeed");
+    } else {
+      currentEEPose.pz = lastPickHeight;
+      pushWord("waitUntilAtCurrentPosition"); 
+    }
   }
   cout << "trying to move to the last pick height..." << endl;
 }
@@ -744,7 +759,8 @@ virtual void execute()       {
     pushWord("moveToRegister4"); // assume pose at register 4
   }
 
-  pushWord("quarterImpulse"); 
+  //pushWord("quarterImpulse"); 
+  pushWord("cruisingSpeed"); 
   pushWord("waitUntilGripperNotMoving");
   pushWord("moveToTargetZAndGrasp"); 
   pushWord("approachSpeed"); 

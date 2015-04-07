@@ -1667,7 +1667,8 @@ void setCCRotation(int thisGraspGear);
 
 void rangeCallback(const sensor_msgs::Range& range);
 void endEffectorAngularUpdate(eePose *givenEEPose);
-void fillIkRequest(eePose givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest);
+void fillIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest);
+void reseedIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest);
 void update_baxter(ros::NodeHandle &n);
 void timercallback1(const ros::TimerEvent&);
 void imageCallback(const sensor_msgs::ImageConstPtr& msg);
@@ -3958,6 +3959,25 @@ void fillIkRequest(eePose * givenEEPose, baxter_core_msgs::SolvePositionIK * giv
   givenIkRequest->request.pose_stamp[0].pose.orientation.w = givenEEPose->qw;
 }
 
+void reseedIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
+  if (!jointNamesInit) {
+    jointNames.resize(numJoints);
+    for (int j = 0; j < numJoints; j++) {
+      jointNames[j] = ikRequest.response.joints[0].name[j];
+    }
+    jointNamesInit = 1;
+  }
+
+  givenIkRequest->request.seed_mode = 1; // SEED_USER
+  givenIkRequest->request.seed_angles.resize(1);
+  givenIkRequest->request.seed_angles[0].position.resize(numJoints);
+  givenIkRequest->request.seed_angles[0].name.resize(numJoints);
+  for (int j = 0; j < numJoints; j++) {
+    givenIkRequest->request.seed_angles[0].position[j] = (drand48() - 0.5)*2.0*3.1415926;
+    givenIkRequest->request.seed_angles[0].name[j] = jointNames[j];
+  }
+}
+
 bool willIkResultFail(baxter_core_msgs::SolvePositionIK thisIkRequest, int thisIkCallResult, bool * likelyInCollision) {
   bool thisIkResultFailed = 0;
   *likelyInCollision = 0;
@@ -4003,12 +4023,13 @@ void update_baxter(ros::NodeHandle &n) {
   fillIkRequest(&currentEEPose, &thisIkRequest);
 
   int ikResultFailed = 0;
+  eePose originalCurrentEEPose = currentEEPose;
 
   // do not start in a state with ikShare 
   if ((drand48() <= ikShare) || !ikInitialized) {
 
-    int numIkRetries = 100;
-    double ikNoiseAmplitude = 0.03;
+    int numIkRetries = 5000;//100;
+    double ikNoiseAmplitude = 0.01;//0.1;//0.03;
     double useZOnly = 1;
     double ikNoiseAmplitudeQuat = 0;
     for (int ikRetry = 0; ikRetry < numIkRetries; ikRetry++) {
@@ -4048,6 +4069,9 @@ void update_baxter(ros::NodeHandle &n) {
 	if (ikRetry > 0) {
 	  ROS_WARN_STREAM("___________________");
 	  ROS_ERROR_STREAM("Accepting perturbed IK result.");
+	  cout << "ikRetry: " << ikRetry << endl;
+	  printEEPose(originalCurrentEEPose);
+	  printEEPose(currentEEPose);
 	  ROS_WARN_STREAM("___________________");
 	}
       } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != numJoints)) {
@@ -4081,17 +4105,19 @@ void update_baxter(ros::NodeHandle &n) {
       ROS_WARN_STREAM("Initial IK result invalid... adding noise and retrying.");
       cout << thisIkRequest.request.pose_stamp[0].pose << endl;
 
-      eePose noisedCurrentEEPose = currentEEPose;
-      noisedCurrentEEPose.px = currentEEPose.px + (drand48() - 0.5)*2.0*ikNoiseAmplitude*(1.0-useZOnly);
-      noisedCurrentEEPose.py = currentEEPose.py + (drand48() - 0.5)*2.0*ikNoiseAmplitude*(1.0-useZOnly);
-      noisedCurrentEEPose.pz = currentEEPose.pz + (drand48() - 0.5)*2.0*ikNoiseAmplitude*useZOnly;
+      //eePose noisedCurrentEEPose = currentEEPose;
+      //noisedCurrentEEPose.px = currentEEPose.px + (drand48() - 0.5)*2.0*ikNoiseAmplitude*(1.0-useZOnly);
+      //noisedCurrentEEPose.py = currentEEPose.py + (drand48() - 0.5)*2.0*ikNoiseAmplitude*(1.0-useZOnly);
+      //noisedCurrentEEPose.pz = currentEEPose.pz + (drand48() - 0.5)*2.0*ikNoiseAmplitude*useZOnly;
 
-      noisedCurrentEEPose.qx = currentEEPose.qx + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
-      noisedCurrentEEPose.qy = currentEEPose.qy + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
-      noisedCurrentEEPose.qz = currentEEPose.qz + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
-      noisedCurrentEEPose.qw = currentEEPose.qw + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
+      //noisedCurrentEEPose.qx = currentEEPose.qx + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
+      //noisedCurrentEEPose.qy = currentEEPose.qy + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
+      //noisedCurrentEEPose.qz = currentEEPose.qz + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
+      //noisedCurrentEEPose.qw = currentEEPose.qw + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
+      //fillIkRequest(&noisedCurrentEEPose, &thisIkRequest);
 
-      fillIkRequest(&noisedCurrentEEPose, &thisIkRequest);
+      reseedIkRequest(&currentEEPose, &thisIkRequest);
+      fillIkRequest(&currentEEPose, &thisIkRequest);
     }
   }
 
@@ -5363,8 +5389,6 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
   //if (!shouldIMiscCallback) {
     //return;
   //}
-
-cout << " test test" << endl;
 
   if ( event == EVENT_LBUTTONDOWN ) {
     cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;

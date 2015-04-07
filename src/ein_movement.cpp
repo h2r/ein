@@ -302,10 +302,11 @@ END_WORD
 WORD(CalibrateGripper)
 CODE('i') 
 virtual void execute() {
-  baxter_core_msgs::EndEffectorCommand command;
-  command.command = baxter_core_msgs::EndEffectorCommand::CMD_CALIBRATE;
-  command.id = 65538;
-  gripperPub.publish(command);
+  //baxter_core_msgs::EndEffectorCommand command;
+  //command.command = baxter_core_msgs::EndEffectorCommand::CMD_CALIBRATE;
+  //command.id = 65538;
+  //gripperPub.publish(command);
+  calibrateGripper();
 }
 END_WORD
 
@@ -481,7 +482,7 @@ END_WORD
 WORD(ApproachSpeed)
 virtual void execute() {
   //w1GoThresh = 0.01;
-  currentEESpeedRatio = 0.035;//0.07;//0.05;
+  currentEESpeedRatio = 0.1;//0.035;//0.07;//0.05;
 }
 END_WORD
 
