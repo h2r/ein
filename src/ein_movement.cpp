@@ -35,6 +35,12 @@ END_WORD
 
 WORD(WaitUntilAtCurrentPositionB)
 virtual void execute() {
+  if (currentMovementState == STOPPED) {
+    cout << "Warning: waitUntilAtCurrentPosition currentMovementState = STOPPED, moving on." << endl;
+    endThisStackCollapse = endCollapse;
+    return;
+  }
+
   double dx = (currentEEPose.px - trueEEPose.position.x);
   double dy = (currentEEPose.py - trueEEPose.position.y);
   double dz = (currentEEPose.pz - trueEEPose.position.z);

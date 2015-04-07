@@ -130,7 +130,7 @@ virtual void execute()       {
   pickZ = max(flushZ, pickZ);
 
   int useIncrementalPick = 0;
-  bool useHybridPick = 1;
+  bool useHybridPick = 0;
 
   double deltaZ = pickZ - currentEEPose.pz;
   lastPickHeight = pickZ;
@@ -221,7 +221,7 @@ virtual void execute() {
   double zTimes = fabs(floor(deltaZ / bDelta)); 
   int numNoOps = 2;
   int useIncrementalPlace = 0;
-  bool useHybridPlace = 1;
+  bool useHybridPlace = 0;
   if (useIncrementalPlace) {
     if (deltaZ > 0) {
       for (int zc = 0; zc < zTimes; zc++) {
