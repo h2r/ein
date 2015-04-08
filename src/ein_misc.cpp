@@ -98,7 +98,7 @@ virtual void execute() {
     "		      .ox = 0, .oy = 0, .oz = 0," << endl <<
     "		      .qx = " << trueEEPose.orientation.x << ", .qy = " << trueEEPose.orientation.y << ", .qz = " << trueEEPose.orientation.z << ", .qw = " << trueEEPose.orientation.w << "};" << endl;
   cout << "currentThompsonHeightIdx: " << currentThompsonHeightIdx << endl;
-  cout << "mostRecentUntabledZ: " << mostRecentUntabledZ << endl;
+  cout << "mostRecentUntabledZ (remember this is inverted but correct): " << mostRecentUntabledZ << endl;
   cout << "currentPickMode: " << pickModeToString(currentPickMode) << endl;
   cout << "currentBoundingBoxMode: " << pickModeToString(currentBoundingBoxMode) << endl;
   cout << "gradientServoTakeClosest: " << gradientTakeClosest << endl;
