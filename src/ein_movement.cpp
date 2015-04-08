@@ -11,6 +11,11 @@ END_WORD
 WORD(WaitUntilAtCurrentPosition)
 CODE(131154)    // capslock + r
 virtual void execute() {
+
+  currentMovementState = MOVING;
+  lastTrueEEPoseEEPose = trueEEPoseEEPose;
+  lastMovementStateSet = ros::Time::now();
+
   waitUntilAtCurrentPositionCounter = 0;
   double dx = (currentEEPose.px - trueEEPose.position.x);
   double dy = (currentEEPose.py - trueEEPose.position.y);
@@ -37,6 +42,11 @@ WORD(WaitUntilAtCurrentPositionB)
 virtual void execute() {
   if (currentMovementState == STOPPED) {
     cout << "Warning: waitUntilAtCurrentPosition currentMovementState = STOPPED, moving on." << endl;
+    endThisStackCollapse = endCollapse;
+    return;
+  }
+  if (currentMovementState == BLOCKED) {
+    cout << "Warning: waitUntilAtCurrentPosition currentMovementState = BLOCKED, moving on." << endl;
     endThisStackCollapse = endCollapse;
     return;
   }

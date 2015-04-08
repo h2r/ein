@@ -168,6 +168,7 @@ void printEEPose(eePose toPrint) {
 #define QUICK_RANGE_MAP CART_SCAN
 
 typedef enum {
+  BLOCKED,
   STOPPED,
   HOVERING,
   MOVING
@@ -864,12 +865,13 @@ int thisGraspSucceed = -1;
 
 ros::Time graspTrialStart;
 
-double rightTableZ = 0.19;//0.18;
-double leftTableZ = 0.19;//0.177;
+double oneTable = 0.165;
+double rightTableZ = oneTable;//0.165;//0.19;//0.18;
+double leftTableZ = oneTable;//0.165;//0.19;//0.177;
 
-double bagTableZ = 0.19;//0.18; //0.195;//0.22;
-double counterTableZ = 0.19;//0.18;//0.209123; //0.20;//0.18;
-double pantryTableZ = 0.19;//0.18;//0.209123; //0.195;
+double bagTableZ = oneTable;//0.165;//0.19;//0.18; //0.195;//0.22;
+double counterTableZ = oneTable;//0.165;//0.19;//0.18;//0.209123; //0.20;//0.18;
+double pantryTableZ = oneTable;//0.165;//0.19;//0.18;//0.209123; //0.195;
 
 double currentTableZ = leftTableZ;
 
@@ -895,8 +897,8 @@ double graspMemorySample[4*rmWidth*rmWidth];
 double graspMemoryReg1[4*rmWidth*rmWidth];
 
 // height Thompson parameters
-const double minHeight = -0.10;
-const double maxHeight = 0.3;
+const double minHeight = 0.255;//0.09;//-0.10;
+const double maxHeight = 0.655;//0.49;//0.3;
 double heightMemoryTries[hmWidth];
 double heightMemoryPicks[hmWidth];
 double heightMemorySample[hmWidth];
@@ -983,10 +985,10 @@ Mat aerialGradientSobelGray;
 Mat preFrameGraySobel;
 int densityIterationsForGradientServo = 10;//3;//10;
 
-double graspDepth = -.07;//-.09;
+double graspDepth = -0.05;//-.07;//-.09;
 double lastPickHeight = 0;
 double lastPrePickHeight = 0;
-double pickFlushFactor = 0.11;
+double pickFlushFactor = 0.09;//0.11;
 
 int bbLearningMaxTries = 15;
 int graspLearningMaxTries = 10;
@@ -2978,10 +2980,11 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
   int weHavePoseData = getRingPoseAtTime(eps.header.stamp, thisPose);
 
   {
-    double dx = (trueEEPoseEEPose.px - lastTrueEEPoseEEPose.px);
-    double dy = (trueEEPoseEEPose.py - lastTrueEEPoseEEPose.py);
-    double dz = (trueEEPoseEEPose.pz - lastTrueEEPoseEEPose.pz);
-    double distance = dx*dx + dy*dy + dz*dz;
+    //double dx = (trueEEPoseEEPose.px - lastTrueEEPoseEEPose.px);
+    //double dy = (trueEEPoseEEPose.py - lastTrueEEPoseEEPose.py);
+    //double dz = (trueEEPoseEEPose.pz - lastTrueEEPoseEEPose.pz);
+    //double distance = dx*dx + dy*dy + dz*dz;
+    double distance = squareDistanceEEPose(trueEEPoseEEPose, lastTrueEEPoseEEPose);
 
     if (distance > movingThreshold*movingThreshold) {
       currentMovementState = MOVING;
@@ -2994,9 +2997,16 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
     } else {
       ros::Duration deltaT = ros::Time::now() - lastMovementStateSet;
       if ( (deltaT.sec) > stoppedTimeout ) {
-	currentMovementState = STOPPED;
-	lastMovementStateSet = ros::Time::now();
-	lastTrueEEPoseEEPose = trueEEPoseEEPose;
+	double distance2 = squareDistanceEEPose(trueEEPoseEEPose, currentEEPose);
+	if (distance2 > hoverThreshold*hoverThreshold) {
+	  currentMovementState = BLOCKED;
+	  lastMovementStateSet = ros::Time::now();
+	  lastTrueEEPoseEEPose = trueEEPoseEEPose;
+	} else {
+	  currentMovementState = STOPPED;
+	  lastMovementStateSet = ros::Time::now();
+	  lastTrueEEPoseEEPose = trueEEPoseEEPose;
+	}
       }
     }
   }
@@ -4804,8 +4814,14 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       indicatorColor = CV_RGB(0,0,icMag); 
     } else if (currentMovementState == MOVING) {
       indicatorColor = CV_RGB(0,icMag,0); 
+    } else if (currentMovementState == BLOCKED) {
+      indicatorColor = CV_RGB(icMag,0,0); 
     }
     outerCrop += indicatorColor;
+    
+    if (currentMovementState == STOPPED) {
+      indicatorColor = CV_RGB(icMag,2*icMag,0); 
+    }
     innerCrop += indicatorColor;
   }
 
@@ -5212,7 +5228,8 @@ void renderObjectMapView() {
         memory.lockStatus == POSE_REPORTED) {
       double lockRenderPeriod1 = 3.0;
       double lockRenderPeriod2 = 2.0;
-      ros::Duration timeSince = ros::Time::now() - memory.cameraTime;
+      //ros::Duration timeSince = ros::Time::now() - memory.cameraTime;
+      ros::Duration timeSince = ros::Time::now() - ros::Time(0);
       double lockArg1 = 2.0 * 3.1415926 * timeSince.toSec() / lockRenderPeriod1;
       double lockArg2 = 2.0 * 3.1415926 * timeSince.toSec() / lockRenderPeriod2;
       cv::Point outTopLock;
@@ -6746,14 +6763,19 @@ void loadSampledHeightMemory() {
 }
 
 double convertHeightIdxToGlobalZ(int heightIdx) {
-  double scaledHeight = (double(heightIdx)/double(hmWidth-1)) * (maxHeight - minHeight);
-  double scaledTranslatedHeight = scaledHeight + minHeight;
-  double tableTranslatedScaledHeight = scaledTranslatedHeight + currentTableZ;
-  return tableTranslatedScaledHeight;
+  double tabledMaxHeight = maxHeight - currentTableZ;
+  double tabledMinHeight = minHeight - currentTableZ;
+
+  double scaledHeight = (double(heightIdx)/double(hmWidth-1)) * (tabledMaxHeight - tabledMinHeight);
+  double scaledTranslatedHeight = scaledHeight + tabledMinHeight;
+  return scaledTranslatedHeight;
 }
 
 int convertHeightGlobalZToIdx(double globalZ) {
-  double scaledHeight = (globalZ - currentTableZ) / (maxHeight - minHeight);
+  double tabledMaxHeight = maxHeight - currentTableZ;
+  double tabledMinHeight = minHeight - currentTableZ;
+
+  double scaledHeight = (globalZ - currentTableZ) / (tabledMaxHeight - tabledMinHeight);
   int heightIdx = floor(scaledHeight * (hmWidth - 1));
 }
 
@@ -8055,6 +8077,7 @@ void gradientServo() {
     if (!doWeHaveClearance) {
       //pushWord("clearStackIntoMappingPatrol"); 
       cout << ">>>> Gradient servo strayed out of clearance area during mapping. <<<<" << endl;
+      pushWord("endStackCollapseNoop");
       return;
     }
   }
@@ -8634,6 +8657,7 @@ void synchronicServo() {
     int doWeHaveClearance = (clearanceMap[i + mapWidth * j] != 0);
     if (!doWeHaveClearance) {
       cout << ">>>> Synchronic servo strayed out of clearance area during mapping. <<<<" << endl;
+      pushWord("endStackCollapseNoop");
       return;
     }
   }
