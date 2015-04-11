@@ -40,14 +40,23 @@ END_WORD
 
 WORD(WaitUntilAtCurrentPositionB)
 virtual void execute() {
-  if (currentMovementState == STOPPED) {
-    cout << "Warning: waitUntilAtCurrentPosition currentMovementState = STOPPED, moving on." << endl;
-    endThisStackCollapse = endCollapse;
-    return;
-  }
-  if (currentMovementState == BLOCKED) {
-    cout << "Warning: waitUntilAtCurrentPosition currentMovementState = BLOCKED, moving on." << endl;
-    endThisStackCollapse = endCollapse;
+
+  if ( (currentMovementState == STOPPED) ||
+       (currentMovementState == BLOCKED) ) {
+
+    if (currentMovementState == STOPPED) {
+      cout << "Warning: waitUntilAtCurrentPosition currentMovementState = STOPPED, moving on." << endl;
+      endThisStackCollapse = endCollapse;
+    }
+    if (currentMovementState == BLOCKED) {
+      cout << "Warning: waitUntilAtCurrentPosition currentMovementState = BLOCKED, moving on." << endl;
+      endThisStackCollapse = endCollapse;
+    }
+    
+    currentEEPose.pz = trueEEPose.position.z + 0.001;
+    cout << "  backing up just a little to dislodge, then waiting again." << endl;
+
+    pushWord("waitUntilAtCurrentPosition"); 
     return;
   }
 
@@ -498,7 +507,7 @@ END_WORD
 WORD(ApproachSpeed)
 virtual void execute() {
   //w1GoThresh = 0.01;
-  currentEESpeedRatio = 0.1;//0.035;//0.07;//0.05;
+  currentEESpeedRatio = 0.05;//0.035;//0.07;//0.05;
 }
 END_WORD
 
@@ -826,6 +835,106 @@ virtual void execute() {
     targetMasterSprite = (targetMasterSprite - 1 + base) % max(base, 1);
     cout << "Decrementing targetMasterSprite to " << targetMasterSprite << " out of " << base << "." << endl;
   }
+}
+END_WORD
+
+WORD(ComeToStop)
+virtual void execute() {
+  //currentEEPose = trueEEPoseEEPose;
+  pushWord("comeToStopA");
+  comeToStopStart = ros::Time::now();
+  cout << "Waiting to come to a stop..." << endl;
+}
+END_WORD
+
+WORD(ComeToStopA)
+virtual void execute() {
+  if ( (currentMovementState == STOPPED) ||
+       (currentMovementState == BLOCKED) ) {
+    // do nothing
+    cout << "Came to a stop, moving on." << endl;
+  } else {
+    ros::Duration timeSinceCTS = ros::Time::now() - comeToStopStart;
+    if (timeSinceCTS.toSec() < comeToStopTimeout) {
+      pushWord("comeToStopA");
+    } else {
+      ROS_WARN_STREAM("_____*____*________");
+      ROS_ERROR_STREAM("comeToStop timeout reached, moving on.");
+      ROS_WARN_STREAM("_____*____*________");
+    }
+    endThisStackCollapse = 1;
+  }
+}
+END_WORD
+
+WORD(ComeToHover)
+virtual void execute() {
+  //currentEEPose = trueEEPoseEEPose;
+  pushWord("comeToHoverA");
+  comeToHoverStart = ros::Time::now();
+  cout << "Waiting to come to a hover..." << endl;
+}
+END_WORD
+
+WORD(ComeToHoverA)
+virtual void execute() {
+  if ( (currentMovementState == HOVERING) ) {
+    // do nothing
+    cout << "Came to a hover, moving on." << endl;
+  } else {
+    ros::Duration timeSinceCTH = ros::Time::now() - comeToHoverStart;
+    if (timeSinceCTH.toSec() < comeToHoverTimeout) {
+      pushWord("comeToHoverA");
+    } else {
+      ROS_WARN_STREAM("_____*____*________");
+      ROS_ERROR_STREAM("comeToHover timeout reached, moving on.");
+      ROS_WARN_STREAM("_____*____*________");
+    }
+    endThisStackCollapse = 1;
+  }
+}
+END_WORD
+
+WORD(WaitForTugThenOpenGripper)
+virtual void execute() {
+  pushWord("waitForTugThenOpenGripperA");
+  pushWord("comeToStop");
+  waitForTugStart = ros::Time::now();
+  cout << "Waiting to come to a stop and then waiting to feel a tug... " << ARMED << " " << currentMovementState << endl;
+}
+END_WORD
+
+WORD(WaitForTugThenOpenGripperA)
+virtual void execute() {
+  if ( ( currentMovementState == MOVING ) ||
+       ( !gripperGripping ) ) {
+    if ( !gripperGripping ) {
+      cout << "There is nothing in the gripper so we should move on..." << endl;
+    }
+    if (currentMovementState == MOVING) {
+      cout << "Felt a tug, opening gripper." << endl;
+    }
+    pushWord("openGripper");
+  } else {
+    currentMovementState = ARMED;
+    ros::Duration timeSinceWFT = ros::Time::now() - waitForTugStart;
+    if (timeSinceWFT.toSec() < waitForTugTimeout) {
+    pushWord("waitForTugThenOpenGripperA");
+    } else {
+      ROS_WARN_STREAM("_____*____*________");
+      ROS_ERROR_STREAM("waitForTugThenOpenGripper timeout reached, moving on.");
+      ROS_WARN_STREAM("_____*____*________");
+    }
+  }
+  endThisStackCollapse = 1;
+}
+END_WORD
+
+WORD(Idler)
+virtual void execute() {
+  //pushWord("clearStackIntoMappingPatrol"); 
+  //pushWord("clearStack"); 
+  pushWord("clearStackAcceptFetchCommands"); 
 }
 END_WORD
 
