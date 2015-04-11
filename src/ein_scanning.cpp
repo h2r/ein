@@ -756,3 +756,40 @@ virtual void execute() {
 }
 END_WORD
 
+WORD(SetTable)
+virtual void execute() {
+  firstTableHeightTime = ros::Time::now();
+  mostRecentUntabledZLastValue = mostRecentUntabledZ;
+  pushWord("setTableA");
+}
+END_WORD
+
+WORD(SetTableA)
+virtual void execute() {
+  ros::Time thisTableHeightTime = ros::Time::now();
+
+  mostRecentUntabledZLastValue = ((1.0-mostRecentUntabledZDecay)*mostRecentUntabledZ) + (mostRecentUntabledZDecay*mostRecentUntabledZLastValue);
+
+  oneTable = mostRecentUntabledZLastValue;
+  rightTableZ = oneTable;
+  leftTableZ = oneTable;
+  bagTableZ = oneTable;
+  counterTableZ = oneTable;
+  pantryTableZ = oneTable;
+  currentTableZ = oneTable;
+
+  if ( fabs(thisTableHeightTime.sec - firstTableHeightTime.sec) > mostRecentUntabledZWait) {
+    // do nothing
+  } else {
+    double utZDelta = fabs(mostRecentUntabledZ - mostRecentUntabledZLastValue);
+    endThisStackCollapse = 1;
+    pushWord("setTableA");
+    cout << "Looks like the table reading hasn't steadied to within the wait of " << mostRecentUntabledZWait << " ." << endl;
+    cout << "  current, last, delta: " << mostRecentUntabledZ << " " << mostRecentUntabledZLastValue << " " << utZDelta << endl;
+  } 
+}
+END_WORD
+
+
+
+

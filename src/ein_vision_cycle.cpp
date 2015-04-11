@@ -1,5 +1,6 @@
 WORD(DeliverObject)
 virtual void execute() {
+  pushWord("idler"); 
   bailAfterGradient = 1;
 
   pilotTarget.px = -1;
@@ -76,7 +77,6 @@ virtual void execute() {
     blueBoxMemories = newMemories;
   }
 
-  pushWord("clearStackIntoMappingPatrol"); 
   pushWord("moveToNextMapPosition");
   pushWord("synchronicServoDoNotTakeClosest"); 
   pushWord("openGripper"); 
@@ -99,16 +99,26 @@ virtual void execute() {
   pushWord("sampleHeight"); 
   pushWord("setBoundingBoxModeToMapping"); 
   pushWord("openGripper");
+  pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
+
 }
 END_WORD
 
 WORD(PlaceObjectInDeliveryZone)
 virtual void execute() {
-  pushWord("openGripper"); 
-  pushWord("tryToMoveToTheLastPickHeight");   
-  pushWord("approachSpeed"); 
-  pushWord("waitUntilAtCurrentPosition"); 
-  pushWord("assumeDeliveryPose");
+  if (0) {
+    pushWord("openGripper"); 
+    pushWord("tryToMoveToTheLastPickHeight");   
+    pushWord("approachSpeed"); 
+    pushWord("waitUntilAtCurrentPosition"); 
+    pushWord("assumeDeliveryPose");
+  } else {
+    pushWord("waitForTugThenOpenGripper");
+    pushWord("comeToStop");
+    pushWord("waitUntilAtCurrentPosition"); 
+    pushWord("moveToRegister3");
+  }
+
   pushWord("cruisingSpeed");
   pushWord("waitUntilAtCurrentPosition"); 
   pushWord("tryToMoveToTheLastPrePickHeight");   
@@ -121,6 +131,14 @@ virtual void execute() {
   clearStack();
   pushWord("mappingPatrol");
   execute_stack = 1;
+}
+END_WORD
+
+WORD(ClearStackAcceptFetchCommands)
+virtual void execute() {
+  clearStack();
+  execute_stack = 1;
+  acceptingFetchCommands = 1;
 }
 END_WORD
 
@@ -435,6 +453,10 @@ virtual void execute() {
     int foundGoodPosition = !ikResultFailed;
 
     if (foundGoodPosition) {
+      currentEEPose.qx = straightDown.qx;
+      currentEEPose.qy = straightDown.qy;
+      currentEEPose.qz = straightDown.qz;
+      currentEEPose.qw = straightDown.qw;
       currentEEPose.px = oldestX;
       currentEEPose.py = oldestY;
       cout << "This pose was accepted by ikClient:" << endl;
@@ -458,6 +480,10 @@ virtual void execute() {
       cout << " " << ikMap[oldestI + mapWidth * oldestJ] << endl;
     }
   }
+
+  // puts it back at the right height for scanning in
+  //  case coming from exotic pose
+  pushWord("sampleHeight");
 }
 END_WORD
 

@@ -130,7 +130,7 @@ virtual void execute()       {
   pickZ = max(flushZ, pickZ);
 
   int useIncrementalPick = 0;
-  bool useHybridPick = 0;
+  bool useHybridPick = 1;
 
   double deltaZ = pickZ - currentEEPose.pz;
   lastPickHeight = pickZ;
@@ -161,10 +161,13 @@ virtual void execute()       {
       int increments = 0.1/MOVE_FAST;
       currentEEPose.pz = pickZ+increments*MOVE_FAST;
 
-      pushCopies("endStackCollapseNoop", pickNoops);
+      //pushCopies("endStackCollapseNoop", pickNoops);
+      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
       pushCopies('s', increments);
       pushWord("setMovementSpeedMoveFast");
       pushWord("approachSpeed");
+      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
       pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
       //pushWord("quarterImpulse");
       pushWord("approachSpeed");
@@ -221,7 +224,7 @@ virtual void execute() {
   double zTimes = fabs(floor(deltaZ / bDelta)); 
   int numNoOps = 2;
   int useIncrementalPlace = 0;
-  bool useHybridPlace = 0;
+  bool useHybridPlace = 1;
   if (useIncrementalPlace) {
     if (deltaZ > 0) {
       for (int zc = 0; zc < zTimes; zc++) {
@@ -245,11 +248,14 @@ virtual void execute() {
       int increments = 0.1/MOVE_FAST;
       currentEEPose.pz = lastPickHeight+increments*MOVE_FAST;
 
-      pushCopies("endStackCollapseNoop", pickNoops);
+      //pushCopies("endStackCollapseNoop", pickNoops);
+      pushWord("waitUntilAtCurrentPosition"); 
       pushCopies('s', increments);
       pushWord("setMovementSpeedMoveFast");
       pushWord("approachSpeed");
       pushWord("waitUntilAtCurrentPosition"); 
+      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
       //pushWord("quarterImpulse");
       pushWord("approachSpeed");
     } else {
@@ -761,6 +767,7 @@ virtual void execute()       {
 
   //pushWord("quarterImpulse"); 
   pushWord("cruisingSpeed"); 
+  pushWord("comeToHover"); 
   pushWord("waitUntilGripperNotMoving");
   pushWord("moveToTargetZAndGrasp"); 
   pushWord("approachSpeed"); 
@@ -1210,6 +1217,7 @@ virtual void execute() {
     pushCopies("waitUntilImageCallbackReceived", 10);
     pushWord("resetAccumulatedDensity");
     pushWord("hover");
+    pushWord("hover");
   }
 }
 END_WORD
@@ -1245,6 +1253,7 @@ WORD(RecordTargetLock)
 virtual void execute() {
   if (blueBoxMemories.size() > 0) {
     BoxMemory *lastAdded = &(blueBoxMemories[blueBoxMemories.size()-1]);
+    lastAdded->cameraTime = ros::Time::now();
     lastAdded->aimedPose = currentEEPose;
     lastAdded->pickedPose = currentEEPose;
     lastAdded->pickedPose.pz  = lastPickHeight;

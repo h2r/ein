@@ -99,6 +99,7 @@ std::vector<Word *> create_words() {
     words.push_back(new PauseStackExecution());
     words.push_back(new PauseAndReset());
     words.push_back(new ClearStack());
+    words.push_back(new ClearStackAcceptFetchCommands());
     words.push_back(new OpenGripper());
     words.push_back(new CloseGripper());
     words.push_back(new ChangeToCounterTable());
@@ -348,6 +349,18 @@ std::vector<Word *> create_words() {
     words.push_back(new DecrementTargetInstanceSprite());
     words.push_back(new IncrementTargetMasterSprite());
     words.push_back(new DecrementTargetMasterSprite());
+
+    words.push_back(new SetTable());
+    words.push_back(new SetTableA());
+
+    words.push_back(new ComeToStop());
+    words.push_back(new ComeToStopA());
+    words.push_back(new ComeToHover());
+    words.push_back(new ComeToHoverA());
+    words.push_back(new WaitForTugThenOpenGripper());
+    words.push_back(new WaitForTugThenOpenGripperA());
+
+    words.push_back(new Idler());
   }
 
   return words;

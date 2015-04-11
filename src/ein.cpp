@@ -168,6 +168,7 @@ void printEEPose(eePose toPrint) {
 #define QUICK_RANGE_MAP CART_SCAN
 
 typedef enum {
+  ARMED,
   BLOCKED,
   STOPPED,
   HOVERING,
@@ -177,7 +178,7 @@ movementState currentMovementState = STOPPED;
 
 double movingThreshold = 0.02; // 1mm
 double hoverThreshold = 0.003; 
-double stoppedTimeout = 0.5;
+double stoppedTimeout = 0.25;
 
 ////////////////////////////////////////////////
 // end pilot includes, usings, and defines 
@@ -385,6 +386,19 @@ std::string heightMemorySampleViewName = "Height Memory Sample View";
 int reticleHalfWidth = 18;
 int pilotTargetHalfWidth = 15;
 
+eePose handingPoseRight = {.px = 0.879307, .py = -0.0239328, .pz = 0.223839,
+                      .ox = 0, .oy = 0, .oz = 0,
+                      .qx = 0.459157, .qy = 0.527586, .qz = 0.48922, .qw = 0.521049};
+
+eePose handingPoseLeft = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
+                      .ox = 0, .oy = 0, .oz = 0,
+                      .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
+
+eePose handingPose;
+
+eePose straightDown = {.px = 0.0, .py = 0.0, .pz = 0.0,
+		       .ox = 0.0, .oy = 0.0, .oz = 0.0,
+		       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 eePose eePoseZero = {.px = 0.0, .py = 0.0, .pz = 0.0,
 		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
 		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
@@ -865,9 +879,9 @@ int thisGraspSucceed = -1;
 
 ros::Time graspTrialStart;
 
-double oneTable = 0.165;
-double rightTableZ = oneTable;//0.165;//0.19;//0.18;
-double leftTableZ = oneTable;//0.165;//0.19;//0.177;
+double oneTable = 0.175;
+double rightTableZ = 0.172;//0.165;//0.19;//0.18;
+double leftTableZ = 0.172;//0.165;//0.19;//0.177;
 
 double bagTableZ = oneTable;//0.165;//0.19;//0.18; //0.195;//0.22;
 double counterTableZ = oneTable;//0.165;//0.19;//0.18;//0.209123; //0.20;//0.18;
@@ -875,6 +889,10 @@ double pantryTableZ = oneTable;//0.165;//0.19;//0.18;//0.209123; //0.195;
 
 double currentTableZ = leftTableZ;
 
+ros::Time firstTableHeightTime;
+double mostRecentUntabledZWait = 2.0;
+double mostRecentUntabledZLastValue = INFINITY;
+double mostRecentUntabledZDecay = 0.97;
 double mostRecentUntabledZ = 0.0;
 eePose bestOrientationEEPose = crane2right;
 double bestOrientationAngle = 0;
@@ -985,10 +1003,10 @@ Mat aerialGradientSobelGray;
 Mat preFrameGraySobel;
 int densityIterationsForGradientServo = 10;//3;//10;
 
-double graspDepth = -0.05;//-.07;//-.09;
+double graspDepth = -0.04;//-0.05;//-.07;//-.09;
 double lastPickHeight = 0;
 double lastPrePickHeight = 0;
-double pickFlushFactor = 0.09;//0.11;
+double pickFlushFactor = 0.08;//0.09;//0.11;
 
 int bbLearningMaxTries = 15;
 int graspLearningMaxTries = 10;
@@ -1121,6 +1139,15 @@ Eigen::Quaternionf gear0offset;
 ros::Time lastMovementStateSet;
 eePose lastTrueEEPoseEEPose;
 
+ros::Time comeToHoverStart;
+double comeToHoverTimeout = 3.0;
+ros::Time comeToStopStart;
+double comeToStopTimeout = 30.0;
+ros::Time waitForTugStart;
+double waitForTugTimeout = 1e10;
+
+double armedThreshold = 0.01;
+
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -1224,7 +1251,9 @@ double pcgc22 = 1;//1.0+(12.0 / 480.0);
 // if you add an immense number of examples or some new classes and
 //   you begin having discriminative problems (confusion), you can
 //   increase the number of words.
-const double bowSubSampleFactor = 0.05;//0.02;//0.01;
+// ATTN 25
+//const double bowSubSampleFactor = 0.05;//0.02;//0.01;
+const double bowSubSampleFactor = 0.10;
 const int bowOverSampleFactor = 1;
 const int kNNOverSampleFactor = 1;
 const int poseOverSampleFactor = 1;
@@ -1234,18 +1263,24 @@ const double kpGreenThresh = 0;
 //const double kpProb = 0.1;
 const double kpProb = 1.0;
 
-const int vocabNumWords = 1000;
+// ATTN 25
+//const int vocabNumWords = 1000;
+const int vocabNumWords = 1000;//2000;
 const double grayBlur = 1.0;
 
 const int k = 4;
 int redK = 1;
 
 // paramaters for the color histogram feature
-const double colorHistNumBins = 8;
+// ATTN 25
+//const double colorHistNumBins = 8;
+const double colorHistNumBins = 16;
 const double colorHistBinWidth = 256/colorHistNumBins;
 const double colorHistLambda = 1.0;//0.5;
 const double colorHistThresh = 0.1;
-const int colorHistBoxHalfWidth = 1;
+// ATTN 25
+//const int colorHistBoxHalfWidth = 1;
+const int colorHistBoxHalfWidth = 2;
 
 std::string data_directory = "unspecified_dd";
 std::string vocab_file = "unspecified_vf";
@@ -1466,7 +1501,7 @@ MapCell objectMap[mapWidth * mapHeight];
 ros::Time lastScanStarted;
 int mapFreeSpacePixelSkirt = 25;
 int mapBlueBoxPixelSkirt = 50;
-double mapBlueBoxCooldown = 20; // cooldown is a temporal skirt
+double mapBlueBoxCooldown = 120; // cooldown is a temporal skirt
 int mapGrayBoxPixelSkirt = 50;
 int ikMap[mapWidth * mapHeight];
 int clearanceMap[mapWidth * mapHeight];
@@ -1606,8 +1641,8 @@ int aerialGradientWidth = 100;
 int aerialGradientReticleWidth = 200;
 
 // XXX TODO
-int softMaxGradientServoIterations = 2;//5;//3;//10;//3;
-int hardMaxGradientServoIterations = 2;//5;//5;//3;//10;//20;//3;//10;
+int softMaxGradientServoIterations = 4;//5;//3;//10;//3;
+int hardMaxGradientServoIterations = 10;//2;//5;//5;//3;//10;//20;//3;//10;
 int currentGradientServoIterations = 0;
 
 int fuseBlueBoxes = 1;
@@ -2559,7 +2594,9 @@ void recordReadyRangeReadings() {
 	    hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(0,0,128);
 	  // ATTN 0 this is negative because it used to be range and not Z but we have to chase the min / max switches to correct it
 	  thisZmeasurement = -irSensorEnd.z();
+	  // ATTN 25
 	  mostRecentUntabledZ = thisZmeasurement;
+	  //mostRecentUntabledZ = ((1.0-mostRecentUntabledZDecay)*thisZmeasurement) + (mostRecentUntabledZDecay*mostRecentUntabledZ);
 	  // ATTN 1 currently accounting for table models
 	  thisZmeasurement = thisZmeasurement - currentTableZ;
 
@@ -2789,15 +2826,20 @@ void jointCallback(const sensor_msgs::JointState& js) {
 
 void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
 
-  if (!shouldIMiscCallback) {
+  //if (!shouldIMiscCallback) {
+    //return;
+  //}
+
+  if (ros::Time::now() - fetchCommandTime < ros::Duration(fetchCommandCooldown)) {
+    cout << "Received a fetch command but the fetchCommandCooldown hasn't expired so returning." << endl;
     return;
   }
 
-  if ( (ros::Time::now() - fetchCommandTime < ros::Duration(fetchCommandCooldown)) ||
-       (!acceptingFetchCommands) ) {
+  if (!acceptingFetchCommands) {
+    cout << "Received a fetch command but not accepting fetch commands so returning." << endl;
     return;
   }
-  acceptingFetchCommands = 0;
+  //acceptingFetchCommands = 0;
 
   fetchCommand = msg->data;
   fetchCommandTime = ros::Time::now();
@@ -2814,13 +2856,17 @@ void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
   }
   if (class_idx == -1) {
     cout << "Could not find class " << fetchCommand << endl; 
+    // ATTN 25
+    pushWord("clearStackAcceptFetchCommands"); 
   } else {
     clearStack();
 
     changeTargetClass(class_idx);
-    pushWord("mappingPatrol");
+    // ATTN 25
+    //pushWord("mappingPatrol");
     pushWord("deliverObject");
     execute_stack = 1;
+    acceptingFetchCommands = 0;
   }
 }
 
@@ -2980,24 +3026,35 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
   int weHavePoseData = getRingPoseAtTime(eps.header.stamp, thisPose);
 
   {
-    //double dx = (trueEEPoseEEPose.px - lastTrueEEPoseEEPose.px);
-    //double dy = (trueEEPoseEEPose.py - lastTrueEEPoseEEPose.py);
-    //double dz = (trueEEPoseEEPose.pz - lastTrueEEPoseEEPose.pz);
-    //double distance = dx*dx + dy*dy + dz*dz;
     double distance = squareDistanceEEPose(trueEEPoseEEPose, lastTrueEEPoseEEPose);
+    double distance2 = squareDistanceEEPose(trueEEPoseEEPose, currentEEPose);
 
-    if (distance > movingThreshold*movingThreshold) {
+    if (currentMovementState == ARMED ) {
+      if (distance2 > armedThreshold*armedThreshold) {
+	cout << "armedThreshold crossed so leaving armed state into MOVING." << endl;
+	currentMovementState = MOVING;
+	lastTrueEEPoseEEPose = trueEEPoseEEPose;
+	lastMovementStateSet = ros::Time::now();
+      } else {
+	//cout << "currentMovementState is ARMED." << endl;
+      }
+    } else if (distance > movingThreshold*movingThreshold) {
       currentMovementState = MOVING;
       lastTrueEEPoseEEPose = trueEEPoseEEPose;
       lastMovementStateSet = ros::Time::now();
     } else if (distance > hoverThreshold*hoverThreshold) {
-      currentMovementState = HOVERING;
-      lastTrueEEPoseEEPose = trueEEPoseEEPose;
-      lastMovementStateSet = ros::Time::now();
+      if (distance2 > hoverThreshold) {
+	currentMovementState = MOVING;
+	lastTrueEEPoseEEPose = trueEEPoseEEPose;
+	lastMovementStateSet = ros::Time::now();
+      } else {
+	currentMovementState = HOVERING;
+	lastTrueEEPoseEEPose = trueEEPoseEEPose;
+	lastMovementStateSet = ros::Time::now();
+      }
     } else {
       ros::Duration deltaT = ros::Time::now() - lastMovementStateSet;
       if ( (deltaT.sec) > stoppedTimeout ) {
-	double distance2 = squareDistanceEEPose(trueEEPoseEEPose, currentEEPose);
 	if (distance2 > hoverThreshold*hoverThreshold) {
 	  currentMovementState = BLOCKED;
 	  lastMovementStateSet = ros::Time::now();
@@ -3010,7 +3067,6 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
       }
     }
   }
-
 }
 
 void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees) {
@@ -4816,11 +4872,15 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       indicatorColor = CV_RGB(0,icMag,0); 
     } else if (currentMovementState == BLOCKED) {
       indicatorColor = CV_RGB(icMag,0,0); 
+    } else if (currentMovementState == ARMED) {
+      indicatorColor = CV_RGB(icMag,0,0); 
     }
     outerCrop += indicatorColor;
     
     if (currentMovementState == STOPPED) {
       indicatorColor = CV_RGB(icMag,2*icMag,0); 
+    } else if (currentMovementState == ARMED) {
+      indicatorColor = CV_RGB(0,0,2*icMag); 
     }
     innerCrop += indicatorColor;
   }
@@ -5785,7 +5845,7 @@ void pilotInit() {
 
     eepReg1 = rssPoseL; //wholeFoodsBagL;
     eepReg2 = rssPoseL; //wholeFoodsPantryL;
-    eepReg3 = rssPoseL; //wholeFoodsCounterL;
+    //eepReg3 = rssPoseL; //wholeFoodsCounterL;
 
 
     // good fence values
@@ -5906,6 +5966,9 @@ void pilotInit() {
     m_y_h[1] = 0.93;
     m_y_h[2] = 0.92;
     m_y_h[3] = 0.92;
+
+    handingPose = handingPoseLeft;
+    eepReg3 = handingPose;
   } else if (0 == left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
     beeHome = rssPoseR;
@@ -5948,7 +6011,7 @@ void pilotInit() {
 
     eepReg1 = rssPoseR; //wholeFoodsBagR;
     eepReg2 = rssPoseR; //wholeFoodsPantryR;
-    eepReg3 = rssPoseR; //wholeFoodsCounterR;
+    //eepReg3 = rssPoseR; //wholeFoodsCounterR;
 
 
     // raw fence values (from John estimating arm limits)
@@ -6070,6 +6133,9 @@ void pilotInit() {
     m_y_h[1] = 1.17;
     m_y_h[2] = 1.16;
     m_y_h[3] = 1.2;
+
+    handingPose = handingPoseRight;
+    eepReg3 = handingPose;
   } else {
     cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
     exit(0);
@@ -6159,7 +6225,7 @@ void pilotInit() {
 
   // XXX set this to be arm-generic
   // XXX add symbols to change register sets
-  eepReg3 = crane4right;
+  //eepReg3 = crane4right;
 
   initializeParzen();
   //l2NormalizeParzen();
@@ -8275,6 +8341,11 @@ void gradientServo() {
               }
             }
           }
+  // ATTN 25
+  if ( (currentGradientServoIterations > (softMaxGradientServoIterations-1)) &&
+       (thisOrient != 0) ) {
+    continue;
+  }
           
           // compute the score
           double thisScore = 0;
@@ -8317,6 +8388,11 @@ void gradientServo() {
               }
             }
           }
+  // ATTN 25
+  if ( (currentGradientServoIterations > (softMaxGradientServoIterations-1)) &&
+       (thisOrient != 0) ) {
+    continue;
+  }
           
           int tEtaX = etaX+gradientServoTranslation;
           int tEtaY = etaY+gradientServoTranslation;
@@ -8395,6 +8471,8 @@ void gradientServo() {
   
   // change orientation according to winning rotation
   //currentEEPose.oz -= bestOrientation*2.0*3.1415926/double(numOrientations);
+
+
   
   // update after
   currentGradientServoIterations++;
@@ -8402,7 +8480,7 @@ void gradientServo() {
   // XXX this still might miss if it nails the correct orientation on the last try
   // TODO but we could set the bestOrientationEEPose here according to what it would have been`
   // but we don't want to move because we want all the numbers to be consistent
-  if (currentGradientServoIterations > hardMaxGradientServoIterations) {
+  if (currentGradientServoIterations > (hardMaxGradientServoIterations-1)) {
     //cout << "LAST ITERATION indefinite orientation ";
   } else {
     double kPtheta = 0.0;
@@ -8439,7 +8517,6 @@ void gradientServo() {
       return;
     }
   }
-  
 
   if (distance > w1GoThresh*w1GoThresh) {
     
@@ -8457,8 +8534,7 @@ void gradientServo() {
     // ATTN 5
     // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
     if (((fabs(Px) < gradServoPixelThresh) && (fabs(Py) < gradServoPixelThresh) && (fabs(Ptheta) < gradServoThetaThresh)) ||
-        ((currentGradientServoIterations > softMaxGradientServoIterations) && (fabs(Ptheta) < gradServoThetaThresh)) || 
-        (currentGradientServoIterations > hardMaxGradientServoIterations) )
+        (currentGradientServoIterations > (hardMaxGradientServoIterations-1)))
       {
 	// ATTN 23
 	// move from vanishing point reticle to gripper reticle
