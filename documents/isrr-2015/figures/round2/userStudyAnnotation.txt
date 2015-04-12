@@ -2,6 +2,9 @@
 
 human-human
 
+time from start
+time object touched human during delivery
+
 Trial 1
 
 0:22 The wooden bowl
@@ -125,22 +128,33 @@ Trial 6
 
 human-robot
 
+time from start
+time object touched table during delivery
+
 Trial 1
 
+0:04
+0:20
 
+0:23
+0:44
 
+0:50
+1:07
 
+1:11
+<failure in pick system>
+1:14 command likely sent
+(remove this time interval)
+2:09 command forced
+2:25 complete
 
+2:28
+2:44
 
+<entropy misfire, object picked with no command>
 
-
-
-
-
-
-
-
-
+Trial 2
 
 
 
