@@ -156,7 +156,35 @@ Trial 1
 
 Trial 2
 
+0:01
+(long pointing at tight cluster)
+the green one 
+0:12 (arm goes for mug)
+stated in video that it thought it said wooden bowl, it appeared that way because
+mug was actually sent but already removed from the list and so the entropy spiked on mug (said Miles).
 
+0:28
+(pointing at cluster of two)
+the green one
+(arm goes for wooden bowl)
+stated in the video that it sent green spoon, again, wooden bowl was actually sent and had been removed from the list
+of reported objects
+but green spoon remained on the list and had the highest probability when that observation was made
+
+1:20
+1:36
+
+1:40
+all objects were co-linear and so gesturing took a while, there were a few seconds of talking in the middle too
+2:22
+
+2:30
+2:48
+
+2:50
+missed the brush, would have delivered around 3:12
+
+Trial 3
 
 
 
