@@ -186,22 +186,34 @@ missed the brush, would have delivered around 3:12
 
 Trial 3
 
+0:03
+(gesturing)
+0:32
+
+0:41
+(adjusted gripper tip on way down, missed the mug)
+1:03 contact with table since it continued to deliver
+
+1:06
+1:22
+
+1:25
+(ein bug, probably got the signal for brush in < 3 seconds)
+1:28 likely command sent
+(omit this time interval)
+2:38 command forced
+2:56 complete
+
+around 3:00
+bad command sent for white spoon
+
+3:16 unclear if this pick was a false positive command, but if there was a gesture it started here
+(I would throw this out)
+3:36 delivery
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+John's comments:
+Indeed, we can take many seconds off of each pick and place by getting the speed under control.
+But maybe it's nice to know we can already close some of that gap...
 
 
