@@ -622,15 +622,6 @@ virtual void execute() {
 }
 END_WORD;
 
-bool isInGripperMask(int x, int y) {
-  if ( (x >= g1xs && x <= g1xe && y >= g1ys && y <= g1ye) ||
-       (x >= g2xs && x <= g2xe && y >= g2ys && y <= g2ye) ) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 WORD(MapEmptySpace)
 virtual void execute() {
   for (int px = grayTop.x+mapGrayBoxPixelSkirt; px < grayBot.x-mapGrayBoxPixelSkirt; px++) {

@@ -532,6 +532,12 @@ virtual void execute() {
 }
 END_WORD
 
+WORD(IRCalibrationSpeed)
+virtual void execute() {
+  currentEESpeedRatio = 0.04;
+}
+END_WORD
+
 WORD(Hover)
 virtual void execute() {
   lastHoverTrueEEPoseEEPose = trueEEPoseEEPose;
