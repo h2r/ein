@@ -515,6 +515,14 @@ END_WORD
 WORD(NeutralScan)
 CODE(1048622) // numlock + .
 virtual void execute() {
+  pushWord("cruisingSpeed");
+  pushWord("neutralScanA");
+  pushWord("rasterScanningSpeed");
+}
+END_WORD
+
+WORD(NeutralScanA)
+virtual void execute() {
   cout << "Entering neutral scan." << endl;
   double lineSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
   double betweenSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
@@ -548,7 +556,6 @@ virtual void execute() {
   pushWord("initDepthScan"); // clear scan history
 }
 END_WORD
-
 
 WORD(SaveAerialGradientMap)
 CODE(196730)      // capslock + Z
@@ -790,6 +797,337 @@ virtual void execute() {
 }
 END_WORD
 
+WORD(SetIROffset)
+virtual void execute() {
+  pushWord("setIROffsetA");
+  pushWord("cruisingSpeed");
+  pushWord("neutralScanA");
+  pushWord("iRCalibrationSpeed");
+}
+END_WORD
+
+WORD(SetIROffsetA)
+virtual void execute() {
+  // find the maximum in the map
+  // find the coordinate of the maximum
+  // compare the coordinate to the root position
+  // adjust offset
+  // if adjustment was large, recommend running again
+}
+END_WORD
+
+WORD(SetCameraReticles)
+virtual void execute() {
+
+  // setReticlesA
+  // go to height
+  // setReticlesA
+  // go to height
+
+}
+END_WORD
+
+WORD(SetCameraReticlesA)
+virtual void execute() {
+
+}
+END_WORD
+
+WORD(MoveCropToCenter)
+virtual void execute() {
+  Size sz = accumulatedImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  cropUpperLeftCorner.px = 320;
+  cropUpperLeftCorner.py = 200;
+
+  baxter_core_msgs::OpenCamera ocMessage;
+  ocMessage.request.name = left_or_right_arm + "_hand_camera";
+  ocMessage.request.settings.controls.resize(2);
+  ocMessage.request.settings.controls[0].id = 105;
+  ocMessage.request.settings.controls[0].value = cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[1].id = 106;
+  ocMessage.request.settings.controls[1].value = cropUpperLeftCorner.py;
+  int testResult = cameraClient.call(ocMessage);
+}
+END_WORD
+
+WORD(MoveCropToCenterVanishingPoint)
+virtual void execute() {
+  Size sz = accumulatedImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  double Vx = vanishingPointReticle.px - (imW/2);
+  double Vy = vanishingPointReticle.py - (imH/2);
+
+  cropUpperLeftCorner.px += Vx;
+  cropUpperLeftCorner.py += Vy;
+  vanishingPointReticle.px -= Vx;
+  vanishingPointReticle.py -= Vy;
+
+  cout << "MoveCropToCenterVanishingPoint Vx Vy: " << Vx << " " << Vy << endl;
+
+  baxter_core_msgs::OpenCamera ocMessage;
+  ocMessage.request.name = left_or_right_arm + "_hand_camera";
+  ocMessage.request.settings.controls.resize(2);
+  ocMessage.request.settings.controls[0].id = 105;
+  ocMessage.request.settings.controls[0].value = cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[1].id = 106;
+  ocMessage.request.settings.controls[1].value = cropUpperLeftCorner.py;
+  int testResult = cameraClient.call(ocMessage);
+  //cout << "centerVanishingPoint testResult: " << testResult << endl;
+  //cout << ocMessage.response.name << endl;
+  //cout << ocMessage.response.name << " " << ocMessage.response.settings.controls.size() << endl;
+
+  //cout << "MoveCropToCenterVanishingPoint moving region of interest and vanishing point. Recalibrate vanishing point, height reticles, and magnification factors." << endl;
+}
+END_WORD
+
+WORD(MoveToSetVanishingPointHeightLow)
+virtual void execute() {
+  currentEEPose.pz = minHeight - currentTableZ;
+}
+END_WORD
+
+WORD(MoveToSetVanishingPointHeightHigh)
+virtual void execute() {
+  currentEEPose.pz = maxHeight - currentTableZ;
+}
+END_WORD
+
+WORD(SetVanishingPoint)
+virtual void execute() {
+
+  setVanishingPointIterations = 0;
+  // go low, wait
+  pushWord("setVanishingPointA");
+  // is darkest point in current vp? loop here until it is so then rise and go to B
+  pushWord("setVanishingPointPrep");
+}
+END_WORD
+
+WORD(SetVanishingPointPrep)
+virtual void execute() {
+  pushWord("darkServo");
+  pushWord("waitUntilAtCurrentPosition");
+  pushWord("moveToSetVanishingPointHeightLow");
+}
+END_WORD
+
+WORD(SetVanishingPointA)
+virtual void execute() {
+  
+  setVanishingPointIterations++;
+  currentEEPose.pz = -currentTableZ + 0.4;
+  pushWord("setVanishingPointB");
+  pushWord("accumulatedDensity");
+  pushCopies("waitUntilImageCallbackReceived", 10);
+  pushWord("resetAccumulatedDensity");
+  pushWord("comeToStop");
+  pushWord("waitUntilAtCurrentPosition");
+  pushWord("moveToSetVanishingPointHeightHigh");
+}
+END_WORD
+
+WORD(SetVanishingPointB)
+virtual void execute() {
+
+  // where is the darkest point now? did it move? move vp to darkest point and possibly run again
+  int darkX = 0;
+  int darkY = 0;
+  findDarkness(&darkX, &darkY);
+
+  int Px = darkX - vanishingPointReticle.px;
+  int Py = darkY - vanishingPointReticle.py;
+
+  vanishingPointReticle.px = darkX;
+  vanishingPointReticle.py = darkY;
+  
+  cout << "setVanishingPoint Px Py: " << Px << " " << Py << endl;
+
+  if (setVanishingPointIterations > setVanishingPointTimeout) {
+    cout << "setVanishingPoint timed out, continuing..." << endl;
+  }
+
+  if ((fabs(Px) < setVanishingPointPixelThresh) && (fabs(Py) < setVanishingPointPixelThresh)) {
+    cout << "vanishing point set, continuing." << endl;
+  } else {
+    cout << "vanishing point not set, adjusting more. " << setVanishingPointIterations << " " << setVanishingPointTimeout << endl;
+    pushWord("setVanishingPointA");
+    pushWord("setVanishingPointPrep");
+  }
+}
+END_WORD
 
 
+WORD(SetMagnification)
+virtual void execute() {
+
+  // move back
+  // adjust until close	
+  // move back over then down 
+  // adjust until close	
+  // move over 
+  // go to height
+
+  // move back
+  // adjust until close	
+  // move back over then down 
+  // adjust until close	
+  // move over 
+  // go to height
+}
+END_WORD
+
+WORD(SetMagnificationA)
+virtual void execute() {
+  // adjust until close	
+}
+END_WORD
+
+
+WORD(SetGripperMask)
+virtual void execute() {
+  cout << "Program paused; please present the first contrast medium." << endl;
+  pushWord("setGripperMaskA"); 
+  pushWord("accumulatedDensity");
+  pushCopies("waitUntilImageCallbackReceived", 10);
+  pushWord("resetAccumulatedDensity");
+  pushWord("comeToStop");
+  pushWord("pauseStackExecution"); 
+}
+END_WORD
+
+WORD(SetGripperMaskA)
+virtual void execute() {
+  cout << "Program paused; please present the second contrast medium." << endl;
+  pushWord("setGripperMaskB"); 
+  pushWord("accumulatedDensity");
+  pushCopies("waitUntilImageCallbackReceived", 10);
+  pushWord("resetAccumulatedDensity");
+  pushWord("comeToStop");
+  pushWord("pauseStackExecution"); 
+
+  gripperMaskFirstContrast = accumulatedImage.clone();
+  gripperMaskSecondContrast = gripperMaskFirstContrast.clone();
+  gripperMask.create(gripperMaskFirstContrast.size(), CV_8U);
+
+  Size sz = gripperMask.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      double denom = accumulatedImageMass.at<double>(y,x);
+      if (denom <= 1.0) {
+	denom = 1.0;
+      }
+      gripperMaskFirstContrast.at<Vec3d>(y,x)[0] = (accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      gripperMaskFirstContrast.at<Vec3d>(y,x)[1] = (accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      gripperMaskFirstContrast.at<Vec3d>(y,x)[2] = (accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+    }
+  }
+}
+END_WORD
+
+WORD(SetGripperMaskB)
+virtual void execute() {
+  cout << "Thank you. Don't forget to save your mask!" << endl;
+
+  Size sz = gripperMask.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  int dilationPixels = 10;
+  double baseThresh = 10;
+  double multiThresh = 3*baseThresh*baseThresh;
+
+  cout << "  multiThresh dilationPixels: " << multiThresh << " " << dilationPixels << endl;
+
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      double denom = accumulatedImageMass.at<double>(y,x);
+      if (denom <= 1.0) {
+	denom = 1.0;
+      }
+      gripperMaskSecondContrast.at<Vec3d>(y,x)[0] = (accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      gripperMaskSecondContrast.at<Vec3d>(y,x)[1] = (accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      gripperMaskSecondContrast.at<Vec3d>(y,x)[2] = (accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+
+      double maskDiff = 
+      ((gripperMaskFirstContrast.at<Vec3d>(y,x)[0] - gripperMaskSecondContrast.at<Vec3d>(y,x)[0])*
+      (gripperMaskFirstContrast.at<Vec3d>(y,x)[0] - gripperMaskSecondContrast.at<Vec3d>(y,x)[0])) +
+      ((gripperMaskFirstContrast.at<Vec3d>(y,x)[1] - gripperMaskSecondContrast.at<Vec3d>(y,x)[1])*
+      (gripperMaskFirstContrast.at<Vec3d>(y,x)[1] - gripperMaskSecondContrast.at<Vec3d>(y,x)[1])) +
+      ((gripperMaskFirstContrast.at<Vec3d>(y,x)[2] - gripperMaskSecondContrast.at<Vec3d>(y,x)[2])*
+      (gripperMaskFirstContrast.at<Vec3d>(y,x)[2] - gripperMaskSecondContrast.at<Vec3d>(y,x)[2]));
+
+      if(maskDiff < 1000) {
+	cout << multiThresh << " " << maskDiff << endl;
+      }
+
+      if (maskDiff > multiThresh) {
+	gripperMask.at<uchar>(y,x) = 1;
+      } else {
+	gripperMask.at<uchar>(y,x) = 0;
+      }
+    }
+  }
+
+  Mat tmpMask = gripperMask.clone();
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      if (tmpMask.at<uchar>(y,x) == 0) {
+	int xmin = max(0, x - dilationPixels);
+	int xmax = min(imW-1, x + dilationPixels);
+	int ymin = max(0, y - dilationPixels);
+	int ymax = min(imH-1, y + dilationPixels);
+	for (int xp = xmin; xp < xmax; xp++) {
+	  for (int yp = ymin; yp < ymax; yp++) {
+	    gripperMask.at<uchar>(yp,xp) = 0;
+	  }
+	}
+      }
+    }
+  }
+}
+END_WORD
+
+WORD(LoadGripperMask)
+virtual void execute() {
+  string filename = data_directory + "/" + left_or_right_arm + "GripperMask.bmp";
+  cout << "Loading gripper mask from " << filename << endl;
+  Mat tmpMask = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
+  cout << "  tmpMask.type() tmpMask.size(): " << tmpMask.type() << " " << tmpMask.size() << endl;
+
+  gripperMask.create(tmpMask.size(), CV_8U);
+  Size sz = gripperMask.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      if (tmpMask.at<uchar>(y,x) > 0) {
+	gripperMask.at<uchar>(y,x) = 1;
+      } else {
+	gripperMask.at<uchar>(y,x) = 0;
+      }
+    }
+  }
+  
+}
+END_WORD
+
+WORD(SaveGripperMask)
+virtual void execute() {
+  string filename = data_directory + "/" + left_or_right_arm + "GripperMask.bmp";
+  cout << "Saving gripper mask to " << filename << endl;
+  imwrite(filename, 255*gripperMask);
+}
+END_WORD
 
