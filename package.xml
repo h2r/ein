@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>node</name>
-  <version>0.0.0</version>
-  <description>The brown H2R robot virtual machine package.</description>
+  <name>ein</name>
+  <version>1.0.0</version>
+  <description>The Brown H2R robot virtual machine package.</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
