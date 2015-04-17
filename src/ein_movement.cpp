@@ -177,6 +177,7 @@ END_WORD
 WORD(OZUp)
 CODE('e'+65504) 
 virtual void execute() {
+  cout << "Changing pose. " << endl;
   currentEEPose.oz += bDelta;
 }
 END_WORD
