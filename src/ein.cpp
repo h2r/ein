@@ -14808,7 +14808,7 @@ int main(int argc, char **argv) {
        << "knn_file: " << knn_file << endl << "label_file: " << label_file << endl
        << endl;
 
-  package_path = ros::package::getPath("node");
+  package_path = ros::package::getPath("ein");
   class_crops_path = data_directory + "/";
 
   unsigned long seed = 1;
