@@ -134,10 +134,14 @@ std::vector<Word *> create_words() {
     words.push_back(new GoFindBlueBoxes());
     words.push_back(new GoClassifyBlueBoxes());
     words.push_back(new SynchronicServo());
+    words.push_back(new SynchronicServoA());
     words.push_back(new GradientServoPrep());
     words.push_back(new GradientServo());
     words.push_back(new GradientServoA());
     words.push_back(new GradientServoIfBlueBoxes());
+    words.push_back(new DarkServo());
+    words.push_back(new DarkServoA());
+    words.push_back(new DarkServoB());
     words.push_back(new TwoDPatrolStart());
     words.push_back(new TwoDPatrolContinue());
     words.push_back(new SynchronicServoDoNotTakeClosest());
@@ -145,6 +149,7 @@ std::vector<Word *> create_words() {
     words.push_back(new ResetAerialGradientTemporalFrameAverage());
     words.push_back(new SaveAerialGradientMap());
     words.push_back(new NeutralScan());
+    words.push_back(new NeutralScanA());
     words.push_back(new InitDepthScan());
     words.push_back(new TurnOnRecordRangeMap());
     words.push_back(new PrepareForSearch());
@@ -322,6 +327,7 @@ std::vector<Word *> create_words() {
     words.push_back(new ScanCentered());
     words.push_back(new RecordAllExamplesFocusedClass());
     words.push_back(new RasterScanningSpeed());
+    words.push_back(new IRCalibrationSpeed());
 
     words.push_back(new SetRangeMapCenterFromCurrentEEPose());
 
@@ -361,6 +367,26 @@ std::vector<Word *> create_words() {
     words.push_back(new WaitForTugThenOpenGripperA());
 
     words.push_back(new Idler());
+    words.push_back(new MoveCropToCenter());
+    words.push_back(new MoveCropToCenterVanishingPoint());
+    words.push_back(new SetIROffset());
+    words.push_back(new SetIROffsetA());
+    words.push_back(new SetCameraReticles());
+    words.push_back(new SetCameraReticlesA());
+    words.push_back(new SetVanishingPoint());
+    words.push_back(new SetVanishingPointPrep());
+    words.push_back(new SetVanishingPointA());
+    words.push_back(new SetVanishingPointB());
+    words.push_back(new SetMagnification());
+    words.push_back(new SetMagnificationA());
+    words.push_back(new SetGripperMask());
+    words.push_back(new SetGripperMaskA());
+    words.push_back(new SetGripperMaskB());
+    words.push_back(new LoadGripperMask());
+    words.push_back(new SaveGripperMask());
+
+    words.push_back(new MoveToSetVanishingPointHeightLow());
+    words.push_back(new MoveToSetVanishingPointHeightHigh());
   }
 
   return words;
