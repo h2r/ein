@@ -1211,8 +1211,8 @@ Mat gradientViewerImage;
 Mat objectnessViewerImage;
 Mat aerialGradientViewerImage;
 
-int mask_gripper_blocks = 0;
-int mask_gripper = 1;
+int mask_gripper_blocks = 1;
+int mask_gripper = 0;
 
 int add_blinders = 0;
 int blinder_stride = 10;
