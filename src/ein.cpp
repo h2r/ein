@@ -1,4 +1,3 @@
-//#define DEBUG3
 //#define DEBUG4
 // start Header
 //
@@ -320,21 +319,21 @@ double ikShare = 1.0;
 double oscillating_ikShare = .1;
 double default_ikShare = 1.0;
 
-Word * current_instruction = NULL;
+std::shared_ptr<Word> current_instruction = NULL;
 double tap_factor = 0.1;
 int execute_stack = 0;
 
-std::vector<Word *> call_stack;
+std::vector<std::shared_ptr<Word> > call_stack;
 void clearStack();
-Word * popWord();
+std::shared_ptr<Word> popWord();
 bool pushWord(int code);
 bool pushWord(string name);
-bool pushWord(Word * word);
-Word * nameToWord(string name);
+bool pushWord(std::shared_ptr<Word> word);
+std::shared_ptr<Word> nameToWord(string name);
 
-std::vector<Word *> words;
-std::map<int, Word *> character_code_to_word;
-std::map<string, Word *> name_to_word;
+std::vector<std::shared_ptr<Word> > words;
+std::map<int, std::shared_ptr<Word> > character_code_to_word;
+std::map<string, std::shared_ptr<Word> > name_to_word;
 
 int slf_thresh = 5;
 int successive_lock_frames = 0;
@@ -4145,7 +4144,7 @@ void update_baxter(ros::NodeHandle &n) {
   // do not start in a state with ikShare 
   if ((drand48() <= ikShare) || !ikInitialized) {
 
-    int numIkRetries = 5000;//100;
+    int numIkRetries = 100; //5000;//100;
     double ikNoiseAmplitude = 0.01;//0.1;//0.03;
     double useZOnly = 1;
     double ikNoiseAmplitudeQuat = 0;
@@ -4390,9 +4389,9 @@ void update_baxter(ros::NodeHandle &n) {
 void clearStack() {
   call_stack.resize(0);
 }
-Word * popWord() {
+std::shared_ptr<Word> popWord() {
   if (call_stack.size() > 0) {
-    Word * word = call_stack.back();
+    std::shared_ptr<Word> word = call_stack.back();
     call_stack.pop_back();
     return word; 
   } else {
@@ -4402,7 +4401,7 @@ Word * popWord() {
 
 bool pushWord(int code) {
   if (character_code_to_word.count(code) > 0) {
-    Word * word = character_code_to_word[code];      
+    std::shared_ptr<Word> word = character_code_to_word[code];      
     return pushWord(word);
   } else {
     cout << "No word for code " << code << endl;
@@ -4411,16 +4410,16 @@ bool pushWord(int code) {
 }
 
 
-Word * forthletParse(string token) {
+std::shared_ptr<Word> forthletParse(string token) {
   if (IntegerWord::isInteger(token)) {
     return IntegerWord::parse(token);
   } else if (StringWord::isString(token)) {
     return StringWord::parse(token);
   } else if (name_to_word.count(token) > 0) {
-    Word * word = name_to_word[token];
+    std::shared_ptr<Word> word = name_to_word[token];
     return word;
   } else if (SymbolWord::isSymbol(token)) {
-    Word * word = SymbolWord::parse(token);
+    std::shared_ptr<Word> word = SymbolWord::parse(token);
     return word;
   } else {
     cout << "Cannot parse " << token << endl;
@@ -4428,21 +4427,21 @@ Word * forthletParse(string token) {
   }
 }
 bool pushWord(string token) {
-  Word * word = forthletParse(token);
+  std:shared_ptr<Word> word = forthletParse(token);
   if (word != NULL) {
     pushWord(word);
   }
 }
 
 
-bool pushWord(Word * word) {
+bool pushWord(std::shared_ptr<Word> word) {
   call_stack.push_back(word);
   return true;
 }
 
-Word * nameToWord(string name) {
+std::shared_ptr<Word> nameToWord(string name) {
   if (name_to_word.count(name) > 0) {
-    Word * word = name_to_word[name];
+    std::shared_ptr<Word> word = name_to_word[name];
     return word;
   } else  {
     cout << "Could not find word with name " << name << endl;
@@ -4453,7 +4452,7 @@ Word * nameToWord(string name) {
 void timercallback1(const ros::TimerEvent&) {
 
   ros::NodeHandle n("~");
-  Word * word = NULL;
+  std::shared_ptr<Word> word = NULL;
 
   int c = -1;
   int takeSymbol = 1;
@@ -4537,6 +4536,7 @@ void timercallback1(const ros::TimerEvent&) {
   
     if (word != NULL) {
       current_instruction = word;
+      cout << "Executing." << endl;
       word->execute();
     }
 
