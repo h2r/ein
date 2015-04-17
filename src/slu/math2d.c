@@ -43,7 +43,8 @@ gsl_matrix * math2d_copy_point_list_up_to(gsl_matrix * source, int copy_to_idx)
 
   gsl_matrix * result = gsl_matrix_alloc(source->size1, copy_to_idx);
   for (int i = 0; i < copy_to_idx; i++) {
-    gsl_matrix_set_col(result, i, &(gsl_matrix_column(source, i).vector));
+    gsl_vector_view view = gsl_matrix_column(source, i);
+    gsl_matrix_set_col(result, i, &view.vector);
   }
   return result;
 
@@ -57,10 +58,12 @@ gsl_matrix * math2d_point_list_append(gsl_matrix * l1, gsl_matrix * l2)
   gsl_matrix * result = gsl_matrix_alloc(l1->size1, l1->size2 + l2->size2);
   
   for (size_t i = 0; i < l1->size2; i++) {
-    gsl_matrix_set_col(result, i, &(gsl_matrix_column(l1, i).vector));
+    gsl_vector_view view = gsl_matrix_column(l1, i);
+    gsl_matrix_set_col(result, i, &view.vector);
   }
   for (size_t i = 0; i < l2->size2; i++) {
-    gsl_matrix_set_col(result, i + l1->size2, &(gsl_matrix_column(l2, i).vector));
+    gsl_vector_view view = gsl_matrix_column(l2, i);
+    gsl_matrix_set_col(result, i + l1->size2, &view.vector);
   }
 
   return result;
@@ -687,7 +690,8 @@ gsl_matrix* math2d_intersect_polygon_line_analytic(gsl_matrix* polygon, double m
     /*check to make sure that the point hasn't already been added*/
     bool add_point = true;
     if(p!= NULL && counter > 0){
-      gsl_vector* tmp_dist = tklib_get_distance(&gsl_matrix_submatrix(tmp_pts, 0, 0, polygon->size1, counter).matrix, p);
+      gsl_matrix_view sub_matrix = gsl_matrix_submatrix(tmp_pts, 0, 0, polygon->size1, counter);
+      gsl_vector* tmp_dist = tklib_get_distance(&sub_matrix.matrix, p);
       if(gsl_vector_min(tmp_dist) < 10e-5)
 	add_point = false;
       gsl_vector_free(tmp_dist);
@@ -709,7 +713,8 @@ gsl_matrix* math2d_intersect_polygon_line_analytic(gsl_matrix* polygon, double m
   }
   
   gsl_matrix* ret_pts = gsl_matrix_alloc(polygon->size1, counter);
-  gsl_matrix_memcpy(ret_pts, &gsl_matrix_submatrix(tmp_pts, 0, 0, polygon->size1, counter).matrix);
+  gsl_matrix_view sub_matrix = gsl_matrix_submatrix(tmp_pts, 0, 0, polygon->size1, counter); 
+  gsl_matrix_memcpy(ret_pts, &sub_matrix.matrix);
   
   gsl_matrix_free(tmp_pts);
   return ret_pts;
@@ -1133,8 +1138,9 @@ struct axes math2d_compute_axes(gsl_matrix* ground_xy, gsl_matrix* figure_xy){
   }
 
   
-  gsl_matrix* gnd_combined = math2d_combined_matrix(ground_xy, &gsl_matrix_submatrix(ground_xy, 0, 
-										    0, ground_xy->size1, 1).matrix);
+  gsl_matrix_view sub_matrix = gsl_matrix_submatrix(ground_xy, 0, 
+                                                     0, ground_xy->size1, 1);
+  gsl_matrix* gnd_combined = math2d_combined_matrix(ground_xy, &sub_matrix.matrix);
 
   //math2d.isDegenerate(endPointSegment))
   //not math2d.isVertical(endPointSegment) 
@@ -1187,32 +1193,36 @@ struct axes math2d_compute_axes(gsl_matrix* ground_xy, gsl_matrix* figure_xy){
   }
   /* if there is a single intersection point, check and see if one is contained in the other */
   /* get the start and end points of the intersection */
-  else if(intersectPoints->size2 == 1 
-	  || math2d_dist(&gsl_matrix_column(intersectPoints, 0).vector, 
-				      &gsl_matrix_column(intersectPoints, intersectPoints->size2-1).vector) <= 10e-5){
-
-    if(math2d_is_interior_point(&fig_st.vector, ground_xy)) {
-      result.minor_st = math2d_closest_point_on_line(gnd_combined, &fig_st.vector);
+  else  {
+    gsl_vector_view c1 = gsl_matrix_column(intersectPoints, 0);
+    gsl_vector_view c2 = gsl_matrix_column(intersectPoints, intersectPoints->size2-1);
+    if(intersectPoints->size2 == 1 
+       || math2d_dist(&c1.vector, &c2.vector) <= 10e-5){
+      
+      if(math2d_is_interior_point(&fig_st.vector, ground_xy)) {
+        result.minor_st = math2d_closest_point_on_line(gnd_combined, &fig_st.vector);
+      } else {
+        result.minor_st = gsl_vector_alloc(intersectPoints->size1);
+        gsl_matrix_get_col(result.minor_st, intersectPoints, 0);
+      }
+      result.minor_end = math2d_closest_point_on_line(gnd_combined, &fig_end.vector);
     } else {
-      result.minor_st = gsl_vector_alloc(intersectPoints->size1);
-      gsl_matrix_get_col(result.minor_st, intersectPoints, 0);
-    }
-    result.minor_end = math2d_closest_point_on_line(gnd_combined, &fig_end.vector);
-  }
-  
-  /* I think this is wrong, ... you basically want to get the 
-     intersection points that are as far apart as possible ... 
-     especially for the features that get computed */
-  else {
-    gsl_vector* D = tklib_get_distance(intersectPoints, origin);
-    
-    size_t min_i; size_t max_i;
-    gsl_vector_minmax_index(D, &min_i, &max_i);
-    
-    result.minor_st = math2d_vector_copy(&gsl_matrix_column(intersectPoints, min_i).vector);
-    result.minor_end = math2d_vector_copy(&gsl_matrix_column(intersectPoints, max_i).vector);
+      /* I think this is wrong, ... you basically want to get the 
+       intersection points that are as far apart as possible ... 
+       especially for the features that get computed */
+   
+      gsl_vector* D = tklib_get_distance(intersectPoints, origin);
+      
+      size_t min_i; size_t max_i;
+      gsl_vector_minmax_index(D, &min_i, &max_i);
+      
+      gsl_vector_view st = gsl_matrix_column(intersectPoints, min_i);
+    gsl_vector_view end = gsl_matrix_column(intersectPoints, max_i);
+    result.minor_st = math2d_vector_copy(&st.vector);
+    result.minor_end = math2d_vector_copy(&end.vector);
     
     gsl_vector_free(D);
+    }
   }
   
   
@@ -1288,8 +1298,10 @@ void math2d_free_eigenstuff(struct eigenstuff in)
 struct axes math2d_eigen_axes(gsl_matrix * polygon)
 {
   struct eigenstuff estuff = math2d_eigenvectors(polygon);
-  gsl_vector * a0 = math2d_vector_copy(&(gsl_matrix_column(estuff.evecs, 0)).vector);
-  gsl_vector * a1 = math2d_vector_copy(&(gsl_matrix_column(estuff.evecs, 1)).vector);
+  gsl_vector_view v0 = gsl_matrix_column(estuff.evecs, 0);
+  gsl_vector_view v1 = gsl_matrix_column(estuff.evecs, 1);
+  gsl_vector * a0 = math2d_vector_copy(&v0.vector);
+  gsl_vector * a1 = math2d_vector_copy(&v1.vector);
 
   double u_0 = gsl_vector_get(estuff.evals, 0);
   double u_1 = gsl_vector_get(estuff.evals, 1);
@@ -1416,16 +1428,16 @@ gsl_vector * math2d_centroid(gsl_matrix * polygon)
 struct fit_line_result math2d_fit_line(gsl_matrix * points)
 {
   
-  gsl_vector * x_values = &(gsl_matrix_row(points, 0).vector);
-  gsl_vector * y_values = &(gsl_matrix_row(points, 1).vector);
+  gsl_vector_view x_values = gsl_matrix_row(points, 0);
+  gsl_vector_view y_values = gsl_matrix_row(points, 1);
 
   double cov00;
   double cov01; 
   double cov11;
   double sumsq;
   fit_line_result result;
-  gsl_fit_linear(x_values->data, x_values->stride, 
-                 y_values->data, y_values->stride,
+  gsl_fit_linear(x_values.vector.data, x_values.vector.stride, 
+                 y_values.vector.data, y_values.vector.stride,
                  points->size2,
                  &result.intercept, &result.slope, 
                  &cov00, &cov01, &cov11, &sumsq);
@@ -1534,24 +1546,25 @@ gsl_matrix * math2d_top(gsl_matrix * polygon, gsl_vector * direction_xy)
 
   int idx = 0;
   for (size_t i = 0; i < polygon->size2; i++) {
-    gsl_vector * p = &(gsl_matrix_column(polygon, i).vector);
+    gsl_vector_view p = gsl_matrix_column(polygon, i);
 
-    gsl_vector_memcpy(p_plus_lots, p);
+    gsl_vector_memcpy(p_plus_lots, &p.vector);
     gsl_vector_add(p_plus_lots, dir_lots_xy);
-    if (math2d_is_visible(polygon, p, p_plus_lots)) {
-      gsl_matrix_set_col(result, idx, p);
+    if (math2d_is_visible(polygon, &p.vector, p_plus_lots)) {
+      gsl_matrix_set_col(result, idx, &p.vector);
       idx++;
     }
   }
   
   gsl_matrix * final_result;
-  if(idx == 0){
-    gsl_vector * p = &(gsl_matrix_column(polygon, 0).vector);
-    gsl_matrix_set_col(result, idx, p); idx++;
+  if (idx == 0) {
+    gsl_vector_view p = gsl_matrix_column(polygon, 0);
+    gsl_matrix_set_col(result, idx, &p.vector); idx++;
     final_result = math2d_copy_point_list_up_to(result, idx);
   }
-  else
+  else {
     final_result = math2d_copy_point_list_up_to(result, idx);
+  }
 
 
   gsl_matrix_free(result);
@@ -1586,15 +1599,16 @@ gsl_vector * math2d_highest_point(gsl_matrix * points,
 
   int max_idx = -1;
   for (size_t i = 0; i < points->size2; i++) {
-    gsl_vector * p = &(gsl_matrix_column(points, i).vector);
-    double dist =  math2d_height_in_direction(p, direction_xy);
+    gsl_vector_view p = gsl_matrix_column(points, i);
+    double dist =  math2d_height_in_direction(&p.vector, direction_xy);
 
     if (dist > max_dist) {
       max_dist = dist;
       max_idx = i;
     }
   }
-  return math2d_vector_copy(&(gsl_matrix_column(points, max_idx).vector));
+  gsl_vector_view result = gsl_matrix_column(points, max_idx);
+  return math2d_vector_copy(&result.vector);
 }
 
 /**
@@ -1622,20 +1636,20 @@ bool math2d_is_visible(gsl_matrix * polygon, gsl_vector * p1, gsl_vector * p2)
     return false;
   }
   for (size_t i = 0; i < polygon->size2; i++) {
-    gsl_vector * p = &(gsl_matrix_column(polygon, i).vector);
-    gsl_vector * next_p = &(gsl_matrix_column(polygon, 
-                                               (i + 1) % polygon->size2).vector);
-    gsl_vector * intersect_pt =  math2d_intersect_segments(p, next_p,
+    gsl_vector_view p = gsl_matrix_column(polygon, i);
+    gsl_vector_view next_p = gsl_matrix_column(polygon, 
+                                               (i + 1) % polygon->size2);
+    gsl_vector * intersect_pt =  math2d_intersect_segments(&p.vector, &next_p.vector,
                                                            p1, p2, true);
     if (intersect_pt != NULL) {
       if (math2d_point_equal(intersect_pt, p1) &&
-          (! math2d_is_on_segment(p1, p2, next_p) ||
-           ! math2d_is_on_segment(p1, p2, p))) {
+          (! math2d_is_on_segment(p1, p2, &next_p.vector) ||
+           ! math2d_is_on_segment(p1, p2, &p.vector))) {
         gsl_vector_free(intersect_pt);
         continue;
       } else if (math2d_point_equal(intersect_pt, p2) &&
-          (! math2d_is_on_segment(p1, p2, next_p) ||
-           ! math2d_is_on_segment(p1, p2, p))) {
+          (! math2d_is_on_segment(p1, p2, &next_p.vector) ||
+           ! math2d_is_on_segment(p1, p2, &p.vector))) {
         gsl_vector_free(intersect_pt);
         continue;
       } else {
