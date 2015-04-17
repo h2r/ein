@@ -1184,6 +1184,13 @@ END_WORD
 WORD(SynchronicServo)
 CODE(131156)    // capslock + t
 virtual void execute() { 
+  pushWord("synchronicServoA");
+  pushWord("comeToStop");
+}
+END_WORD
+
+WORD(SynchronicServoA)
+virtual void execute() { 
   synchronicServo();
 }
 END_WORD
@@ -1193,7 +1200,6 @@ CODE(196728)   // capslock + X
 virtual void execute() {
   pushWord("gradientServoA");
   pushWord("gradientServoPrep");
-  pushCopies("waitUntilAtCurrentPosition", 1); 
 }
 END_WORD
 
@@ -1216,9 +1222,10 @@ virtual void execute() {
     //pushCopies("waitUntilImageCallbackReceived", 10);
     pushCopies("waitUntilImageCallbackReceived", 10);
     pushWord("resetAccumulatedDensity");
-    pushWord("hover");
-    pushWord("hover");
+    pushWord("comeToStop");
   }
+
+  pushWord("waitUntilAtCurrentPosition"); 
 }
 END_WORD
 
@@ -1271,11 +1278,43 @@ END_WORD
 WORD(GradientServoTakeClosest)
 // capslock + numlock + h
 CODE(1179720)
-  virtual void execute()
+virtual void execute()
 {
     gradientTakeClosest = 1;
     cout << "gradientTakeClosest = " << gradientTakeClosest << endl;
 }
 END_WORD
 
+WORD(DarkServo)
+virtual void execute()
+{
+  darkServoIterations = 0;
+  pushWord("darkServoA");
+}
+END_WORD
+
+WORD(DarkServoA)
+virtual void execute()
+{
+  darkServoIterations++;
+  pushWord("darkServoB");
+  pushWord("accumulatedDensity");
+  pushCopies("waitUntilImageCallbackReceived", 10);
+  pushWord("resetAccumulatedDensity");
+  pushWord("comeToStop");
+  pushWord("waitUntilAtCurrentPosition"); 
+}
+END_WORD
+
+WORD(DarkServoB)
+virtual void execute()
+{
+  if (darkServoIterations > darkServoTimeout) {
+    cout << "darkServo timed out, continuing..." << endl;
+    return;
+  }
+
+  darkServo();
+}
+END_WORD
 

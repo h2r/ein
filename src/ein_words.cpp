@@ -134,10 +134,14 @@ std::vector<std::shared_ptr<Word> > create_words() {
     words.push_back(std::make_shared<GoFindBlueBoxes>());
     words.push_back(std::make_shared<GoClassifyBlueBoxes>());
     words.push_back(std::make_shared<SynchronicServo>());
+    words.push_back(std::make_shared<SynchronicServoA>());
     words.push_back(std::make_shared<GradientServoPrep>());
     words.push_back(std::make_shared<GradientServo>());
     words.push_back(std::make_shared<GradientServoA>());
     words.push_back(std::make_shared<GradientServoIfBlueBoxes>());
+    words.push_back(std::make_shared<DarkServo>());
+    words.push_back(std::make_shared<DarkServoA>());
+    words.push_back(std::make_shared<DarkServoB>());
     words.push_back(std::make_shared<TwoDPatrolStart>());
     words.push_back(std::make_shared<TwoDPatrolContinue>());
     words.push_back(std::make_shared<SynchronicServoDoNotTakeClosest>());
@@ -145,6 +149,7 @@ std::vector<std::shared_ptr<Word> > create_words() {
     words.push_back(std::make_shared<ResetAerialGradientTemporalFrameAverage>());
     words.push_back(std::make_shared<SaveAerialGradientMap>());
     words.push_back(std::make_shared<NeutralScan>());
+    words.push_back(std::make_shared<NeutralScanA>());
     words.push_back(std::make_shared<InitDepthScan>());
     words.push_back(std::make_shared<TurnOnRecordRangeMap>());
     words.push_back(std::make_shared<PrepareForSearch>());
@@ -322,6 +327,7 @@ std::vector<std::shared_ptr<Word> > create_words() {
     words.push_back(std::make_shared<ScanCentered>());
     words.push_back(std::make_shared<RecordAllExamplesFocusedClass>());
     words.push_back(std::make_shared<RasterScanningSpeed>());
+    words.push_back(std::make_shared<IRCalibrationSpeed>());
 
     words.push_back(std::make_shared<SetRangeMapCenterFromCurrentEEPose>());
 
@@ -361,6 +367,26 @@ std::vector<std::shared_ptr<Word> > create_words() {
     words.push_back(std::make_shared<WaitForTugThenOpenGripperA>());
 
     words.push_back(std::make_shared<Idler>());
+    words.push_back(std::make_shared<MoveCropToCenter>());
+    words.push_back(std::make_shared<MoveCropToCenterVanishingPoint>());
+    words.push_back(std::make_shared<SetIROffset>());
+    words.push_back(std::make_shared<SetIROffsetA>());
+    words.push_back(std::make_shared<SetCameraReticles>());
+    words.push_back(std::make_shared<SetCameraReticlesA>());
+    words.push_back(std::make_shared<SetVanishingPoint>());
+    words.push_back(std::make_shared<SetVanishingPointPrep>());
+    words.push_back(std::make_shared<SetVanishingPointA>());
+    words.push_back(std::make_shared<SetVanishingPointB>());
+    words.push_back(std::make_shared<SetMagnification>());
+    words.push_back(std::make_shared<SetMagnificationA>());
+    words.push_back(std::make_shared<SetGripperMask>());
+    words.push_back(std::make_shared<SetGripperMaskA>());
+    words.push_back(std::make_shared<SetGripperMaskB>());
+    words.push_back(std::make_shared<LoadGripperMask>());
+    words.push_back(std::make_shared<SaveGripperMask>());
+
+    words.push_back(std::make_shared<MoveToSetVanishingPointHeightLow>());
+    words.push_back(std::make_shared<MoveToSetVanishingPointHeightHigh>());
   }
 
   return words;

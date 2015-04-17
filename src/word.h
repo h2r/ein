@@ -4,11 +4,6 @@ using namespace std;
 using namespace boost::algorithm;
 
 
-
-
-
-
-
 class Word {
   
 public:
@@ -31,8 +26,8 @@ public:
     return -1;
   }
 
-  virtual bool equals(Word * word) {
-    if (word == this) {
+  virtual bool equals(std::shared_ptr<Word> word) {
+    if (word.get() == this) {
       return true;
     } else {
       return false;
@@ -68,8 +63,8 @@ public:
     return true;
   }
 
-  static IntegerWord * parse(string token) {
-    return new IntegerWord(stoi(token));
+  static std::shared_ptr<IntegerWord> parse(string token) {
+    return std::make_shared<IntegerWord>(stoi(token));
   }
   virtual bool is_static() {
     return false;
@@ -131,9 +126,9 @@ public:
     return false;
   }
 
-  static StringWord * parse(string token) {
+  static std::shared_ptr<StringWord> parse(string token) {
     if (token[0] == '\"' && token[token.size() - 1] == '\"') {
-      return new StringWord(token.substr(1, token.size() - 2));      
+      return std::make_shared<StringWord>(token.substr(1, token.size() - 2));      
     } else {
       return NULL;
     }
@@ -181,9 +176,9 @@ public:
     return false;
   }
 
-  static SymbolWord * parse(string token) {
+  static std::shared_ptr<SymbolWord> parse(string token) {
     if (token.size() != 0) {
-      return new SymbolWord(token);
+      return std::make_shared<SymbolWord>(token);
     } else {
       return NULL;
     }
@@ -213,15 +208,15 @@ public:
 
 class CompoundWord {
  private:
-  vector<Word *> stack;
+  vector<std::shared_ptr<Word> > stack;
  public:
-  CompoundWord(vector<Word *> _stack) {
+  CompoundWord(vector<std::shared_ptr<Word> > _stack) {
     stack = _stack;
   }
   virtual void execute();
 };
 
 
-std::map<int, Word *> create_character_code_to_word(std::vector<Word *> words);
-std::map<string, Word *> create_name_to_word(std::vector<Word *> words);
-std::vector<Word *> create_words();
+std::map<int, std::shared_ptr<Word> > create_character_code_to_word(std::vector<std::shared_ptr<Word> > words);
+std::map<string, std::shared_ptr<Word> > create_name_to_word(std::vector<std::shared_ptr<Word> > words);
+std::vector<std::shared_ptr<Word> > create_words();

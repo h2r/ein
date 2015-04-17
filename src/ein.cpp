@@ -89,6 +89,9 @@
 #include <iostream>
 #include <math.h>
 
+#include <baxter_core_msgs/CameraControl.h>
+#include <baxter_core_msgs/OpenCamera.h>
+
 #include <baxter_core_msgs/EndpointState.h>
 #include <baxter_core_msgs/EndEffectorState.h>
 #include <sensor_msgs/Range.h>
@@ -551,6 +554,7 @@ baxter_core_msgs::SolvePositionIK ikRequest;
 baxter_core_msgs::SolvePositionIK lastGoodIkRequest;
 
 ros::ServiceClient ikClient;
+ros::ServiceClient cameraClient;
 ros::Publisher joint_mover;
 ros::Publisher gripperPub;
 ros::Publisher facePub;
@@ -803,6 +807,7 @@ ros::Duration accumulatedTime;
 double w1GoThresh = 0.03;//0.01;
 double w1AngleThresh = 0.02; 
 double synKp = 0.0005;
+double darkKp = 0.0005;
 double gradKp = 0.00025;//0.0005;
 double kPtheta1 = 1.0;//0.75;
 double kPtheta2 = 0.125;//0.75;
@@ -1147,6 +1152,20 @@ double waitForTugTimeout = 1e10;
 
 double armedThreshold = 0.01;
 
+Mat gripperMaskFirstContrast;
+Mat gripperMaskSecondContrast;
+Mat gripperMask;
+
+int darkServoIterations = 0;
+int darkServoTimeout = 20;
+int darkServoPixelThresh = 10;
+
+int setVanishingPointPixelThresh = 3;
+int setVanishingPointIterations = 0;
+int setVanishingPointTimeout = 6;
+
+eePose cropUpperLeftCorner = defaultReticle;
+
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -1192,6 +1211,7 @@ Mat gradientViewerImage;
 Mat objectnessViewerImage;
 Mat aerialGradientViewerImage;
 
+int mask_gripper_blocks = 0;
 int mask_gripper = 1;
 
 int add_blinders = 0;
@@ -1799,6 +1819,7 @@ eePose analyticServoPixelToReticle(eePose givenPixel, eePose givenReticle, doubl
 void moveCurrentGripperRayToCameraVanishingRay();
 void gradientServo();
 void synchronicServo();
+void darkServo();
 int simulatedServo();
 
 void initRangeMaps();
@@ -1825,6 +1846,8 @@ void simulatorCallback(const ros::TimerEvent&);
 
 void loadCalibration(string inFileName);
 void saveCalibration(string outFileName);
+
+void findDarkness(int * xout, int * yout);
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -3288,12 +3311,13 @@ void pushSpeedSign(double speed) {
 void scanXdirection(double speedOnLines, double speedBetweenLines) {
 // XXX TODO work this out so that it scans from -rmHalfWidth*rmDelta to rmHalfWidth*rmDelta
 
+// XXX TODO right now we need to exit after every increment to set a new position in case there was an IK error
+
   double onLineGain = rmDelta / speedOnLines;
   double betweenLineGain = rmDelta / speedBetweenLines;
 
   int scanPadding = int(floor(1 * onLineGain));
 
-  pushWord("cruisingSpeed");
   pushWord("waitUntilAtCurrentPosition"); 
   for (int g = 0; g < ((rmWidth*onLineGain)-(rmHalfWidth*onLineGain))+scanPadding; g++) {
     pushWord('a');
@@ -3332,7 +3356,6 @@ void scanXdirection(double speedOnLines, double speedBetweenLines) {
     pushWord('a');
     pushWord("endStackCollapseNoop");
   }
-  pushWord("rasterScanningSpeed");
 }
 
 void oldScanXdirection(double speedOnLines, double speedBetweenLines) {
@@ -8528,6 +8551,7 @@ void gradientServo() {
     //pushWord("resetAerialGradientTemporalFrameAverage"); 
     //pushCopies("density", 1); 
     //pushCopies("waitUntilAtCurrentPosition", 5); 
+    cout << " XXX deprecated code path, gradient servo should not be responsible for enforcing distance 73825" << endl;
     pushCopies("waitUntilAtCurrentPosition", 1); 
     
   } else {
@@ -8841,6 +8865,8 @@ void synchronicServo() {
 
   // if we are not there yet, continue
   if (distance > w1GoThresh*w1GoThresh) {
+    cout << " XXX deprecated code path, synchronci servo should not be responsible for enforcing distance 4812675" << endl;
+    pushCopies("waitUntilAtCurrentPosition", 1); 
     synServoLockFrames = 0;
     pushWord("synchronicServo"); 
     if (currentBoundingBoxMode == MAPPING) {
@@ -8950,6 +8976,68 @@ void synchronicServo() {
         pushWord("waitUntilAtCurrentPosition"); 
       }
     }
+  }
+}
+
+void darkServo() {
+
+  // remember, currentTableZ is inverted so this is like minus
+  double heightAboveTable = currentEEPose.pz + currentTableZ;
+
+  double heightFactor = heightAboveTable / minHeight;
+
+  int darkX = 0;
+  int darkY = 0;
+  findDarkness(&darkX, &darkY);
+
+  cout << "darkServo darkX darkY heightAboveTable: " << darkX << " " << darkY << " " << heightAboveTable << endl;
+
+  reticle = vanishingPointReticle;
+  pilotTarget.px = darkX;
+  pilotTarget.py = darkY;
+
+  double Px = reticle.px - pilotTarget.px;
+  double Py = reticle.py - pilotTarget.py;
+
+  double thisKp = darkKp * heightFactor;
+  double pTermX = thisKp*Px;
+  double pTermY = thisKp*Py;
+
+  // invert the current eePose orientation to decide which direction to move from POV
+  //  of course this needs to be from the pose that corresponds to the frame this was taken from 
+  Eigen::Vector3f localUnitX;
+  {
+    Eigen::Quaternionf qin(0, 1, 0, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitX.x() = qout.x();
+    localUnitX.y() = qout.y();
+    localUnitX.z() = qout.z();
+  }
+
+  Eigen::Vector3f localUnitY;
+  {
+    Eigen::Quaternionf qin(0, 0, 1, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitY.x() = qout.x();
+    localUnitY.y() = qout.y();
+    localUnitY.z() = qout.z();
+  }
+
+  double newx = currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
+  double newy = currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
+
+  currentEEPose.px = newx;
+  currentEEPose.py = newy;
+
+  if ((fabs(Px) < darkServoPixelThresh) && (fabs(Py) < darkServoPixelThresh)) {
+    cout << "darkness reached, continuing." << endl;
+  } else {
+    cout << "darkness not reached, servoing more. " << darkServoIterations << " " << darkServoTimeout << endl;
+    pushWord("darkServoA");
   }
 }
 
@@ -9935,6 +10023,74 @@ void simulatorCallback(const ros::TimerEvent&) {
 
 
 }
+
+bool isInGripperMaskBlocks(int x, int y) {
+  if ( (x >= g1xs && x <= g1xe && y >= g1ys && y <= g1ye) ||
+       (x >= g2xs && x <= g2xe && y >= g2ys && y <= g2ye) ) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool isInGripperMask(int x, int y) {
+  if (isSketchyMat(gripperMask)) {
+    return false;
+  } else {
+    return (( gripperMask.at<uchar>(y,x) == 0 ));
+  }
+}
+
+void findDarkness(int * xout, int * yout) {
+  Size sz = accumulatedImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  int minX = 0;
+  int minY = 0;
+  double minVal = INFINITY;
+
+  Mat accToBlur = accumulatedImage.clone();
+
+  int xmin = grayTop.x;
+  int ymin = grayTop.y;
+  int xmax = grayBot.x;
+  int ymax = grayBot.y;
+  //int xmin = 0;
+  //int ymin = 0;
+  //int xmax = imW;
+  //int ymax = imH;
+
+  for (int x = xmin; x < xmax; x++) {
+    for (int y = ymin; y < ymax; y++) {
+
+      double thisVal = 
+      ( (accumulatedImage.at<Vec3d>(y,x)[0]*
+         accumulatedImage.at<Vec3d>(y,x)[0])+
+        (accumulatedImage.at<Vec3d>(y,x)[1]*
+         accumulatedImage.at<Vec3d>(y,x)[1])+
+        (accumulatedImage.at<Vec3d>(y,x)[2]*
+         accumulatedImage.at<Vec3d>(y,x)[2]) );
+      accToBlur.at<double>(y,x) = thisVal;
+    }
+  }
+  double darkSigma = 1.0;
+  GaussianBlur(accToBlur, accToBlur, cv::Size(0,0), darkSigma, BORDER_REFLECT);
+  for (int x = xmin; x < xmax; x++) {
+    for (int y = ymin; y < ymax; y++) {
+      double thisVal = accToBlur.at<double>(y,x);
+      if (thisVal < minVal) {
+	minVal = thisVal;
+	minX = x;
+	minY = y;
+      }
+    }
+  }
+
+  *xout = minX;
+  *yout = minY;
+}
+
 
 ////////////////////////////////////////////////
 // end pilot definitions 
@@ -11392,6 +11548,16 @@ void goCalculateObjectness() {
   }
 
   if (mask_gripper) {
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	if ( isInGripperMask(x, y) ) {
+	  objDensity[y*imW+x] = 0;
+	}
+      }
+    }
+  }
+
+  if (mask_gripper_blocks) {
     int xs = g1xs;
     int xe = g1xe;
     int ys = g1ys;
@@ -11676,6 +11842,16 @@ void goAccumulateDensityFromAccumulated() {
   }
 
   if (mask_gripper) {
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	if ( isInGripperMask(x, y) ) {
+	  totalGraySobel.at<double>(y,x) = 0;
+	}
+      }
+    }
+  }
+
+  if (mask_gripper_blocks) {
     int xs = g1xs;
     int xe = g1xe;
     int ys = g1ys;
@@ -12125,6 +12301,20 @@ void goCalculateDensity() {
   }
 
   if (mask_gripper) {
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	if ( isInGripperMask(x, y) ) {
+	  density[y*imW+x] = 0;
+	  totalGraySobel.at<double>(y,x) = 0;
+	  if (!isSketchyMat(objectViewerImage)) {
+	    objectViewerImage.at<Vec3b>(y,x)[0] = 255;
+	  }
+	}
+      }
+    }
+  }
+
+  if (mask_gripper_blocks) {
     int xs = g1xs;
     int xe = g1xe;
     int ys = g1ys;
@@ -12135,8 +12325,10 @@ void goCalculateDensity() {
 	totalGraySobel.at<double>(y,x) = 0;
       }
     }
-    Mat vCrop = objectViewerImage(cv::Rect(xs, ys, xe-xs, ye-ys));
-    vCrop = vCrop/2;
+    if (!isSketchyMat(objectViewerImage)) {
+      Mat vCrop = objectViewerImage(cv::Rect(xs, ys, xe-xs, ye-ys));
+      vCrop = vCrop/2;
+    }
     xs = g2xs;
     xe = g2xe;
     ys = g2ys;
@@ -14824,6 +15016,8 @@ int main(int argc, char **argv) {
   tfListener = new tf::TransformListener();
 
   ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + left_or_right_arm + "/PositionKinematicsNode/IKService");
+  cameraClient = n.serviceClient<baxter_core_msgs::OpenCamera>("/cameras/open");
+
   joint_mover = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/" + left_or_right_arm + "/joint_command", 10);
   gripperPub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + left_or_right_arm + "_gripper/command",10);
   moveSpeedPub = n.advertise<std_msgs::Float64>("/robot/limb/" + left_or_right_arm + "/set_speed_ratio",10);

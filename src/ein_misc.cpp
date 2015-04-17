@@ -140,22 +140,22 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute() {
-  Word * p1 = popWord();
-  Word * p2 = popWord();
+  std::shared_ptr<Word> p1 = popWord();
+  std::shared_ptr<Word> p2 = popWord();
   if (p1 == NULL || p2 == NULL) {
     cout << "Warning, requires two words on the stack." << endl;
     return;
   }
 
-  IntegerWord * w1 = dynamic_cast<IntegerWord *>(p1);
-  IntegerWord * w2 = dynamic_cast<IntegerWord *>(p2);
+  std::shared_ptr<IntegerWord> w1 = std::dynamic_pointer_cast<IntegerWord>(p1);
+  std::shared_ptr<IntegerWord> w2 = std::dynamic_pointer_cast<IntegerWord>(p2);
 
   if (w1 == NULL || w2 == NULL) {
     cout << "Warning, requires two integers on the stack." << endl;
     return;
   }
 
-  IntegerWord * newWord = new IntegerWord(w1->value() + w2->value());
+  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(w1->value() + w2->value());
   pushWord(newWord);
 
 }
@@ -164,8 +164,8 @@ END_WORD
 WORD(Equals)
 CODE('=') 
 virtual void execute() {
-  Word * p1 = popWord();
-  Word * p2 = popWord();
+  std::shared_ptr<Word> p1 = popWord();
+  std::shared_ptr<Word> p2 = popWord();
   if (p1 == NULL || p2 == NULL) {
     cout << "Warning, requires two words on the stack." << endl;
     return;
@@ -176,7 +176,7 @@ virtual void execute() {
   } else {
     new_value = 0;
   }
-  IntegerWord * newWord = new IntegerWord(new_value);
+  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(new_value);
   pushWord(newWord);
 
 }
@@ -186,8 +186,8 @@ END_WORD
 
 WORD(Ift)
 virtual void execute() {
-  Word * then = popWord();
-  Word * condition = popWord();
+  std::shared_ptr<Word> then = popWord();
+  std::shared_ptr<Word> condition = popWord();
   if (then == NULL || condition == NULL) {
     cout << "Warning, requires two words on the stack." << endl;
     return;
@@ -208,10 +208,10 @@ END_WORD
 
 WORD(Next)
 virtual void execute() {
-  vector <Word *> words_in_loop;
+  vector <std::shared_ptr<Word> > words_in_loop;
   
   while (true) {
-    Word * word = popWord();
+    std::shared_ptr<Word> word = popWord();
     if (word == NULL) {
       cout << "Warning, next could not find start, aborting." << endl;
       return;
@@ -222,8 +222,8 @@ virtual void execute() {
     words_in_loop.push_back(word);
   }
   
-  Word * index_to = popWord();
-  Word * index_from = popWord();
+  std::shared_ptr<Word> index_to = popWord();
+  std::shared_ptr<Word> index_from = popWord();
   if (index_from == NULL || index_to == NULL) {
     cout << "Warning, next requires two words on the stack." << endl;
     return;
@@ -241,7 +241,7 @@ END_WORD
 
 WORD(Print)
 virtual void execute() {
-  Word * word = popWord();
+  std::shared_ptr<Word> word = popWord();
   if (word != NULL) {
     cout << word->as_string() << endl;
   }
@@ -250,7 +250,7 @@ END_WORD
 
 WORD(Dup)
 virtual void execute() {
-  Word * word = popWord();
+  std::shared_ptr<Word> word = popWord();
   pushWord(word);
   pushWord(word);
 }
@@ -258,7 +258,7 @@ END_WORD
 
 WORD(Pop)
 virtual void execute() {
-  Word * word = popWord();
+  std::shared_ptr<Word> word = popWord();
 }
 END_WORD
 
@@ -309,7 +309,7 @@ virtual void execute()
   cout << "Writing words to " << wordFileName << endl;
   ofstream wordFile;
   wordFile.open(wordFileName);
-  std::vector<Word *> words = create_words();
+  std::vector<std::shared_ptr<Word> > words = create_words();
   for (int i = 0; i < words.size(); i++) {
     wordFile << words[i]->name() << " " << words[i]->character_code() << endl;
   }
