@@ -627,7 +627,7 @@ virtual void execute() {
   for (int px = grayTop.x+mapGrayBoxPixelSkirt; px < grayBot.x-mapGrayBoxPixelSkirt; px++) {
     for (int py = grayTop.y+mapGrayBoxPixelSkirt; py < grayBot.y-mapGrayBoxPixelSkirt; py++) {
 
-      if (mask_gripper && isInGripperMask(px, py)) {
+      if (isInGripperMask(px, py)) {
 	continue;
       }
 

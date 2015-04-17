@@ -10034,10 +10034,16 @@ bool isInGripperMaskBlocks(int x, int y) {
 }
 
 bool isInGripperMask(int x, int y) {
-  if (isSketchyMat(gripperMask)) {
-    return false;
+  if (mask_gripper) {
+    if (isSketchyMat(gripperMask)) {
+      return false;
+    } else {
+      return (( gripperMask.at<uchar>(y,x) == 0 ));
+    }
+  } else if (mask_gripper_blocks) {
+    return isInGripperMaskBlocks(x,y);
   } else {
-    return (( gripperMask.at<uchar>(y,x) == 0 ));
+    return false;
   }
 }
 
