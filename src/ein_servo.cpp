@@ -823,8 +823,8 @@ REGISTER_WORD(PrepareForGraspFromMemory)
 WORD(IncrementGraspGear)
 CODE(196712)     // capslock + H
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  cout << "increment currentGraspGear was is: " << currentGraspGear << " ";
-  int thisGraspGear = (currentGraspGear + 1) % totalGraspGears;
+  cout << "increment ms->config.currentGraspGear was is: " << ms->config.currentGraspGear << " ";
+  int thisGraspGear = (ms->config.currentGraspGear + 1) % totalGraspGears;
   
   //   set drX
   drX = ggX[thisGraspGear];
@@ -832,9 +832,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   
   //   rotate
   setGGRotation(thisGraspGear);
-  currentGraspGear = thisGraspGear;
+  ms->config.currentGraspGear = thisGraspGear;
   
-  cout << currentGraspGear << endl;
+  cout << ms->config.currentGraspGear << endl;
 }
 END_WORD
 REGISTER_WORD(IncrementGraspGear)
@@ -846,7 +846,7 @@ WORD(ShiftGraspGear)
 CODE(1114155)     // numlock + +
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushNoOps(50);
-  int thisGraspGear = (currentGraspGear+4) % totalGraspGears;
+  int thisGraspGear = (ms->config.currentGraspGear+4) % totalGraspGears;
   
   //   set drX
   drX = ggX[thisGraspGear];
@@ -855,8 +855,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //   rotate
   setGGRotation(thisGraspGear);
   
-  //   set currentGraspGear;
-  currentGraspGear = thisGraspGear;
+  //   set ms->config.currentGraspGear;
+  ms->config.currentGraspGear = thisGraspGear;
 }
 END_WORD
 REGISTER_WORD(ShiftGraspGear)
@@ -1011,8 +1011,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //   rotate
   setGGRotation(thisGraspGear);
   
-  //   set currentGraspGear;
-  currentGraspGear = thisGraspGear;
+  //   set ms->config.currentGraspGear;
+  ms->config.currentGraspGear = thisGraspGear;
 }
 END_WORD
 REGISTER_WORD(ShiftIntoGraspGear1)
@@ -1028,8 +1028,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //   rotate
   setGGRotation(thisGraspGear);
   
-  //   set currentGraspGear;
-  currentGraspGear = thisGraspGear;
+  //   set ms->config.currentGraspGear;
+  ms->config.currentGraspGear = thisGraspGear;
 }
 END_WORD
 REGISTER_WORD(ShiftIntoGraspGear2)
@@ -1046,8 +1046,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //   rotate
   setGGRotation(thisGraspGear);
   
-  //   set currentGraspGear;
-  currentGraspGear = thisGraspGear;
+  //   set ms->config.currentGraspGear;
+  ms->config.currentGraspGear = thisGraspGear;
 
 }
 END_WORD
@@ -1062,8 +1062,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   drY = ggY[thisGraspGear];
   //   rotate
   setGGRotation(thisGraspGear);
-  //   set currentGraspGear;
-  currentGraspGear = thisGraspGear;
+  //   set ms->config.currentGraspGear;
+  ms->config.currentGraspGear = thisGraspGear;
 }
 END_WORD
 REGISTER_WORD(ShiftIntoGraspGear4)
