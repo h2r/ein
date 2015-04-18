@@ -3,7 +3,7 @@ import rospy
 import time
 import std_msgs
 import roslib
-roslib.load_manifest("baxter_pick_and_place")
+#roslib.load_manifest("ein")
 from object_recognition_msgs.msg import RecognizedObjectArray
 import baxter_external_devices
 
