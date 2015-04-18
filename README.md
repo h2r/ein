@@ -25,9 +25,16 @@ mkdir -p ~/catkin_ws/src
 cd ~/catkin_ws/src
 git clone http://github.com/h2r/ein
 git clone http://github.com/h2r/bing
+wstool init .
 wstool merge https://raw.githubusercontent.com/RethinkRobotics/baxter/master/baxter_sdk.rosinstall
+wstool update
+cp baxter/baxter.sh ..
+# edit baxter.sh following the instructions in that file.
+./baxter.sh
+
 cd .. 
-source /opt/ros/indigo/setup.bash                                                                                                                                                                                 catkin_make
+source /opt/ros/indigo/setup.bash
+catkin_make
 source devel/setup.bash
 catkin_make
 

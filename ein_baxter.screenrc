@@ -39,31 +39,31 @@ hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{= kw}%?%-Lw%?%{r}(%{W}%n*%f%t%?(%u
 
 screen -t " einR"
 stuff "./baxter.sh"
-stuff "gdb --args ./devel/lib/node/ein  _data_directory:=\"$(rospack find node)/ein_data1\" _vocab_file:=\"vocab.yml\" _knn_file:=\"knn.yml\" _label_file:=\"labels.yml\" _left_or_right_arm:=\"right\" _gray_box_left:=90 _gray_box_right:=90 _gray_box_bot:=60 _add_blinders:=0 _use_simulator:=0 right"
+stuff "gdb --args ./devel/lib/ein/ein  _data_directory:=\"$(rospack find ein)/ein_data1\" _vocab_file:=\"vocab.yml\" _knn_file:=\"knn.yml\" _label_file:=\"labels.yml\" _left_or_right_arm:=\"right\" _gray_box_left:=90 _gray_box_right:=90 _gray_box_bot:=60 _add_blinders:=0 _use_simulator:=0 right"
 screen -t " replR"
 stuff "./baxter.sh"
-stuff "rosrun node ein_client.py right"
+stuff "rosrun ein ein_client.py right"
 screen -t " warehouseR"
 stuff "./baxter.sh"
-stuff "rosrun node warehouse_client.py right"
+stuff "rosrun ein warehouse_client.py right"
 screen -t " vim"
 stuff "./baxter.sh"
-stuff "cd $(rospack find node)/src"
+stuff "cd $(rospack find ein)/src"
 stuff "vim -p ein.cpp ein_words.cpp ein_vision_cycle.cpp ein_misc.cpp ein_servo.cpp ein_scanning.cpp ein_movement.cpp ein_bandit.cpp ein_render.cpp ../README.md"
 screen -t " git"
 stuff "./baxter.sh"
 screen -t " emacs"
 stuff "./baxter.sh"
-stuff "cd $(rospack find node)"
+stuff "cd $(rospack find ein)"
 screen -t " warehouseL"
 stuff "./baxter.sh"
-stuff "rosrun node warehouse_client.py left"
+stuff "rosrun ein warehouse_client.py left"
 screen -t " replL"
 stuff "./baxter.sh"
-stuff "rosrun node ein_client.py left"
+stuff "rosrun ein ein_client.py left"
 screen -t " einL"
 stuff "./baxter.sh"
-stuff "gdb --args ./devel/lib/node/ein  _data_directory:=\"$(rospack find node)/ein_data1\" _vocab_file:=\"vocab.yml\" _knn_file:=\"knn.yml\" _label_file:=\"labels.yml\" _left_or_right_arm:=\"left\" _gray_box_left:=90 _gray_box_right:=90 _gray_box_bot:=60 _add_blinders:=0 _use_simulator:=0 left"
+stuff "gdb --args ./devel/lib/ein/ein  _data_directory:=\"$(rospack find ein)/ein_data1\" _vocab_file:=\"vocab.yml\" _knn_file:=\"knn.yml\" _label_file:=\"labels.yml\" _left_or_right_arm:=\"left\" _gray_box_left:=90 _gray_box_right:=90 _gray_box_bot:=60 _add_blinders:=0 _use_simulator:=0 left"
 
 
 # Now the focus is in the newly created screen.
