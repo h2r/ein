@@ -34,6 +34,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <fstream>
 #include <ctime>
 
 #include <math.h>
@@ -71,14 +72,14 @@
 #include <baxter_core_msgs/HeadPanCommand.h>
 
 
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/filesystem.hpp>
+//#include <boost/thread/mutex.hpp>
+//#include <boost/thread/thread.hpp>
+//#include <boost/filesystem.hpp>
 
 
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-#include <pcl_conversions/pcl_conversions.h>
+//#include <pcl/point_cloud.h>
+//#include <pcl/point_types.h>
+//#include <pcl_conversions/pcl_conversions.h>
 
 
 #include <cv.h>
@@ -1068,7 +1069,7 @@ std::string class_pose_models = "unspecified_pm1 unspecified_pm2";
 std::string red_box_list = "";
 
 std::string image_topic = "/camera/rgb/image_raw"; 
-std::string pc_topic = "/camera/depth_registered/points";
+
 
 std::string cache_prefix = "";
 
@@ -1129,8 +1130,6 @@ double densityDecay = 0.5;//0.9;//0.3;//0.7;
 double objDensityDecay = 0.9;
 double threshFraction = 0.2;
 double objectnessThreshFraction = 0.5;
-
-pcl::PointCloud<pcl::PointXYZRGB> pointCloud;
 
 int biggestL1 = 0;
 int oSearchWidth = 5;
@@ -1614,11 +1613,6 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 void posekNNGetFeatures(std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
   vector< cv::Vec<double,4> >& classQuaternions, int lIndexStart = 0);
 
-void getCluster(pcl::PointCloud<pcl::PointXYZRGB> &cluster, pcl::PointCloud<pcl::PointXYZRGB> &cloud, std::vector<cv::Point> &points);
-geometry_msgs::Pose getPose(pcl::PointCloud<pcl::PointXYZRGB> &cluster);
-
-void getPointCloudPoints(vector<cv::Point>& pointCloudPoints, double *pBoxIndicator, double thisThresh, 
-  cv::Point topIn, cv::Point botIn, int imW, int imH, int gBoxStrideX, int gBoxStrideY, int gBoxW, int gBoxH);
 
 void fill_RO_and_M_arrays(object_recognition_msgs::RecognizedObjectArray& roa_to_send, 
   visualization_msgs::MarkerArray& ma_to_send, vector<cv::Point>& pointCloudPoints, 
@@ -1636,15 +1630,12 @@ void nodeCallbackFunc(int event, int x, int y, int flags, void* userdata);
 
 void goCalculateDensity();
 void goFindBlueBoxes();
-void goFindBrownBoxes();
 void goClassifyBlueBoxes();
 void goFindRedBoxes();
 
 void resetAccumulatedImageAndMass();
 void substituteAccumulatedImageQuantities();
 void substituteLatestImageQuantities(shared_ptr<MachineState> ms);
-
-void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg);
 
 void loadROSParamsFromArgs();
 void loadROSParams();
@@ -9054,11 +9045,6 @@ void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor) {
   //guardedImshow(objectViewerName, objectViewerImage);
 }
 
-void ikLast(eePose targetPose, double *jointsOut) {
-
-
-}
-
 double vectorArcTan(double y, double x) {
   int maxVaSlot = 0;
   double maxVaDot = -INFINITY;
@@ -9999,82 +9985,6 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
   }
 }
 
-void getCluster(pcl::PointCloud<pcl::PointXYZRGB> &cluster, pcl::PointCloud<pcl::PointXYZRGB> &cloud, std::vector<cv::Point> &points) {
-  cv::Point point;
-  for (int i = 0; i < points.size(); i++)
-  {
-    point = points[i];
-    pcl::PointXYZRGB pcp = cloud(point.x, point.y);
-    if (isFiniteNumber(pcp.x) &&
-	isFiniteNumber(pcp.y) &&
-	isFiniteNumber(pcp.z) )
-      cluster.push_back(pcp);
-  }
-}
-
-geometry_msgs::Pose getPose(pcl::PointCloud<pcl::PointXYZRGB> &cluster) {
-  geometry_msgs::Pose pose;
-  double sum_x = 0, sum_y = 0, sum_z = 0;
-  for (int i = 0; i < cluster.size(); i++)
-  {
-    pcl::PointXYZRGB point = cluster[i];
-    sum_x += point.x;
-    sum_y += point.y;
-    sum_z += point.z;
-  }
-  pose.position.x = sum_x / cluster.size();
-  pose.position.y = sum_y / cluster.size();
-  pose.position.z = sum_z / cluster.size();
-
-  return pose;
-}
-
-void getPointCloudPoints(vector<cv::Point>& pointCloudPoints, double *pBoxIndicator, double thisThresh, 
-  cv::Point topIn, cv::Point botIn, int imW, int imH, int gBoxStrideX, int gBoxStrideY, int gBoxW, int gBoxH) {
-
-  cv::Point top(gBoxStrideX*(topIn.x / gBoxStrideX), gBoxStrideY*(topIn.y / gBoxStrideY));
-  cv::Point bot(gBoxStrideX*(botIn.x / gBoxStrideX), gBoxStrideY*(botIn.y / gBoxStrideY));
-  for (int x = top.x; x <= bot.x-gBoxW; x+=gBoxStrideX) {
-    for (int y = top.y; y <= bot.y-gBoxH; y+=gBoxStrideY) {
-      int xt = x;
-      int yt = y;
-      int xb = x+gBoxW;
-      int yb = y+gBoxH;
-      cv::Point thisTop(xt,yt);
-      cv::Point thisBot(xb,yb);
-
-      int reject = 0;
-      if (pBoxIndicator[y*imW+x] < thisThresh) {
-	reject = 1;
-      }
-
-      // check to see if the point cloud point lies above the table
-      if (reject == 0 && pointCloud.size() > 0) {
-	cv::Point transformedPixel = pcCorrection( 
-	  double(x)+(double(gBoxW)/2.0), double(y)+(double(gBoxH)/2.0), imW, imH);
-	pcl::PointXYZRGB pcp = pointCloud.at(transformedPixel.x, transformedPixel.y);
-
-	// this check also checks for nans in the points
-	Eigen::Vector3d pinkPoint(pcp.x,pcp.y,pcp.z);
-	if (all_range_mode) {
-	  reject = 1;
-	  if (pinkPoint.dot(tableNormal) >= -FLT_MAX)
-	    reject = 0;
-	} else {
-	  reject = 1;
-	  if (pinkPoint.dot(tableNormal) >= tableBias + tableBiasMargin)
-	    reject = 0;
-	}
-      }
-
-      if (!reject) {
-	if (drawPink)
-	  rectangle(objectViewerImage, thisTop, thisBot, cv::Scalar(100,100,255));
-	pointCloudPoints.push_back(cv::Point(x,y));
-      }
-    }
-  }
-}
 
 // for publishing
 void fill_RO_and_M_arrays(object_recognition_msgs::RecognizedObjectArray& roa_to_send, 
@@ -10129,16 +10039,8 @@ void fill_RO_and_M_arrays(object_recognition_msgs::RecognizedObjectArray& roa_to
 
   // determine the x,y,z coordinates of the object from the point cloud
   // this bounding box has top left  bTops[x] and bBots[aI]
-  if (pointCloud.size() > 0) {
-    pcl::PointCloud<pcl::PointXYZRGB> object_cloud;
-    getCluster(object_cloud, pointCloud, pointCloudPoints);
-    geometry_msgs::Pose pose = getPose(object_cloud);
-    roa_to_send.objects[aI].point_clouds.resize(1);
-    pcl::toROSMsg(object_cloud, roa_to_send.objects[aI].point_clouds[0]);
-    roa_to_send.objects[aI].pose.pose.pose.position = pose.position;
-  } else {
-    roa_to_send.objects[aI].pose.pose.pose.position = object_pose.position;
-  }
+  roa_to_send.objects[aI].pose.pose.pose.position = object_pose.position;
+
 
   ma_to_send.markers[aI].pose = roa_to_send.objects[aI].pose.pose.pose;
 
@@ -11484,282 +11386,6 @@ void goFindBlueBoxes() {
   delete gBoxComponentLabels;
 }
 
-void goFindBrownBoxes() {
-  Size sz = objectViewerImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  // the brown box is a box representing the location of the dominant table in the scene.
-  // locate a good choice for the brown box.
-  int brownBoxWidth = gBoxW;//50;
-  int brownPadding = 0;
-  brTop = cv::Point(0,0);
-  brBot = cv::Point(brownBoxWidth,brownBoxWidth);
-
-  cv::Point thisBrTop(0,0);
-  cv::Point thisBrBot(0,0);
-
-  // raster scan the image looking for a box that doesn't intersect with blueBoxes
-  int rejectAll = 1;
-  int acceptedBrBoxes = 0;
-  int reject = 0;
-  tableNormalSum = Eigen::Vector3d(0,0,0);
-  tableTangent1Sum = Eigen::Vector3d(0,0,0);
-  tableTangent2Sum = Eigen::Vector3d(0,0,0);
-  tablePositionSum = Eigen::Vector3d(0,0,0);
-  tableBiasSum = 0;
-
-  for (int bY = grayTop.y + brownPadding; 
-	bY <= grayBot.y - brownBoxWidth-brownPadding; bY=bY+(brownBoxWidth/2)) {
-    for (int bX = grayTop.x + brownPadding; 
-	bX <= grayBot.x - brownBoxWidth-brownPadding; bX = bX+(brownBoxWidth/2)) {
-      cv::Point thisCen = cv::Point(bX+brownBoxWidth/2, bY+brownBoxWidth/2);
-
-      thisBrTop.x = bX;
-      thisBrTop.y = bY;
-      thisBrBot.x = bX+brownBoxWidth;
-      thisBrBot.y = bY+brownBoxWidth;
-
-      int reject = 0;
-      for (int c = 0; c < bTops.size(); c++) {
-	if ( fabs(bCens[c].x - thisCen.x) < ((fabs(bBots[c].x-bTops[c].x)+brownBoxWidth)/2)-1 && 
-	      fabs(bCens[c].y - thisCen.y) < ((fabs(bBots[c].y-bTops[c].y)+brownBoxWidth)/2)-1 ) {
-	  reject = 1;
-	  break;
-	} 
-      }
-
-      if (!reject) {
-
-	if (pointCloud.size() > 0) {
-	  pcl::PointXYZRGB p0 = pointCloud.at(thisBrTop.x, thisBrBot.y);
-	  pcl::PointXYZRGB p1 = pointCloud.at(thisBrTop.x, thisBrTop.y);
-	  pcl::PointXYZRGB p2 = pointCloud.at(thisBrBot.x, thisBrBot.y);
-  
-	  if (!isFiniteNumber(p0.x) ||
-	      !isFiniteNumber(p0.y) ||
-	      !isFiniteNumber(p0.z) ||
-	      !isFiniteNumber(p1.x) ||
-	      !isFiniteNumber(p1.y) ||
-	      !isFiniteNumber(p1.z) ||
-	      !isFiniteNumber(p2.x) ||
-	      !isFiniteNumber(p2.y) ||
-	      !isFiniteNumber(p2.z) ) {
-	    reject = 1;
-
-	    if (drawBrown)
-	      rectangle(objectViewerImage, thisBrTop, thisBrBot, cv::Scalar(0,102,204));
-	  }
-
-
-	  if (!reject) {
-	    cv::Point tranTop = pcCorrection(thisBrTop.x, thisBrTop.y, imW, imH);
-	    cv::Point tranBot = pcCorrection(thisBrBot.x, thisBrBot.y, imW, imH);
-
-
-	    //pcl::PointXYZRGB p0 = pointCloud.at(thisBrTop.x, thisBrBot.y);
-	    //pcl::PointXYZRGB p1 = pointCloud.at(thisBrTop.x, thisBrTop.y);
-	    //pcl::PointXYZRGB p2 = pointCloud.at(thisBrBot.x, thisBrBot.y);
-
-	    pcl::PointXYZRGB p0 = pointCloud.at(tranTop.x, tranBot.y);
-	    pcl::PointXYZRGB p1 = pointCloud.at(tranTop.x, tranTop.y);
-	    pcl::PointXYZRGB p2 = pointCloud.at(tranBot.x, tranBot.y);
-
-	    Eigen::Vector3d localTablePosition(p0.x,p0.y,p0.z);
-
-	    // a little gram-schmidt...
-	    Eigen::Vector3d p01(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
-	    Eigen::Vector3d p02(p2.x - p0.x, p2.y - p0.y, p2.z - p0.z);
-
-	    double p02norm = sqrt(p02.dot(p02));
-	    if (p02norm > 0) {
-	      p02 = p02 / p02norm;
-	    }
-
-	    double p01p02dot = p01.dot(p02);
-	    p01 = p01 - p01p02dot * p02;
-
-	    double p01norm = sqrt(p01.dot(p01));
-	    if (p01norm > 0) {
-	      p01 = p01 / p01norm;
-	    }
-
-	    // ... and now p01 and p02 are orthonormal
-
-	    // using the right hand rule for cross product order
-	    Eigen::Vector3d p03 = p02.cross(p01);
-
-	    if (!isFiniteNumber(p03.x()) ||
-		!isFiniteNumber(p03.y()) ||
-		!isFiniteNumber(p03.z()) ) {
-	      reject = 1;
-
-	      if (drawBrown)
-		rectangle(objectViewerImage, thisBrTop, thisBrBot, cv::Scalar(0,76,153));
-	    }
-
-	    if (!reject) {
-	      acceptedBrBoxes++;
-	      if (drawBrown)
-		rectangle(objectViewerImage, thisBrTop, thisBrBot, cv::Scalar(0,51,102));
-
-	      tablePositionSum.x() = tablePositionSum.x() + p0.x + p1.x + p2.x;
-	      tablePositionSum.y() = tablePositionSum.y() + p0.y + p1.y + p2.y;
-	      tablePositionSum.z() = tablePositionSum.z() + p0.z + p1.z + p2.z;
-	      tablePosition = tablePositionSum / (3*acceptedBrBoxes);
-
-	      tableNormalSum = tableNormalSum + p03;
-	      tableNormal = tableNormalSum;
-	      tableNormal.normalize(); 
-
-	      tableTangent1Sum = tableTangent1Sum + p01;
-	      tableTangent2Sum = tableTangent2Sum + p02;
-	      tableTangent1 = tableTangent1Sum;
-	      tableTangent2 = tableTangent2Sum;
-	      tableTangent1.normalize();
-	      tableTangent2.normalize();
-
-	      tableTangent1 = tableTangent1 - (tableTangent2.dot(tableTangent1) * tableTangent2);
-	      tableTangent1.normalize();
-
-	      tableNormal = tableTangent2.cross(tableTangent1);
-
-
-	      tableBiasSum = tableBiasSum + tableNormal.dot(localTablePosition);
-	      tableBias = tableBiasSum / acceptedBrBoxes;
-
-	      cv::Matx33f R;
-	      R(0,0) = tableTangent2.x(); R(0,1) = tableTangent1.x(); R(0,2) = tableNormal.x();
-	      R(1,0) = tableTangent2.y(); R(1,1) = tableTangent1.y(); R(1,2) = tableNormal.y();
-	      R(2,0) = tableTangent2.z(); R(2,1) = tableTangent1.z(); R(2,2) = tableNormal.z();
-
-	      Eigen::Matrix3f rotation;
-	      rotation << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
-	      Eigen::Quaternionf patchQuaternion(rotation);
-	      tablePose.orientation.x = patchQuaternion.x();
-	      tablePose.orientation.y = patchQuaternion.y();
-	      tablePose.orientation.z = patchQuaternion.z();
-	      tablePose.orientation.w = patchQuaternion.w();
-
-	      tablePose.position.x = tablePosition.x();
-	      tablePose.position.y = tablePosition.y();
-	      tablePose.position.z = tablePosition.z();
-
-	      // obtain the quaternion pose for the table
-	      tableQuaternion.x() = tablePose.orientation.x;
-	      tableQuaternion.y() = tablePose.orientation.y;
-	      tableQuaternion.z() = tablePose.orientation.z;
-	      tableQuaternion.w() = tablePose.orientation.w;
-
-	      cv::Point2f srcQuad[4]; 
-	      cv::Point2f dstQuad[4]; 
-
-	      double normalizer = 1.0;
-
-	      double scale = 1;
-	      srcQuad[0].x = 0;
-	      srcQuad[0].y = 0;
-
-	      srcQuad[1].x = scale;
-	      srcQuad[1].y = 0;
-
-	      srcQuad[2].x = 0;
-	      srcQuad[2].y = scale;
-
-	      srcQuad[3].x = scale;
-	      srcQuad[3].y = scale;
-
-	      //dstQuad[0].x = 0;
-	      //dstQuad[0].y = 0;
-
-/*
-	      tableNormal = -tableNormal;
-
-	      normalizer = tableNormal.z();
-	      if (fabs(normalizer) < 1e-6)
-		normalizer = 1.0;
-	      dstQuad[0].x = (tableNormal.x()) / normalizer;
-	      dstQuad[0].y = (tableNormal.y()) / normalizer;
-
-	      normalizer = tableTangent2.z() + tableNormal.z();
-	      if (fabs(normalizer) < 1e-6)
-		normalizer = 1.0;
-	      dstQuad[1].x = (tableTangent2.x() + tableNormal.x()) / normalizer;
-	      dstQuad[1].y = (tableTangent2.y() + tableNormal.y()) / normalizer;
-
-	      normalizer = tableTangent1.z() + tableNormal.z();
-	      if (fabs(normalizer) < 1e-6)
-		normalizer = 1.0;
-	      dstQuad[2].x = (-tableTangent1.x() + tableNormal.x()) / normalizer;
-	      dstQuad[2].y = (-tableTangent1.y() + tableNormal.y()) / normalizer;
-
-	      normalizer = tableTangent1.z() + tableTangent2.z() + tableNormal.z();
-	      if (fabs(normalizer) < 1e-6)
-		normalizer = 1.0;
-	      dstQuad[3].x = (tableTangent2.x() + -tableTangent1.x() + tableNormal.x()) / normalizer;
-	      dstQuad[3].y = (tableTangent2.y() + -tableTangent1.y() + tableNormal.y()) / normalizer;
-
-	      tableNormal = -tableNormal;
-
-	      dstQuad[0].x -= dstQuad[0].x;
-	      dstQuad[0].y -= dstQuad[0].y;
-	      dstQuad[1].x -= dstQuad[0].x;
-	      dstQuad[1].y -= dstQuad[0].y;
-	      dstQuad[2].x -= dstQuad[0].x;
-	      dstQuad[2].y -= dstQuad[0].y;
-	      dstQuad[3].x -= dstQuad[0].x;
-	      dstQuad[3].y -= dstQuad[0].y;
-*/
-
-	      dstQuad[0].x = 0;
-	      dstQuad[0].y = 0;
-	      dstQuad[1].x = tableTangent2.x();
-	      dstQuad[1].y = tableTangent2.y();
-	      dstQuad[2].x = -tableTangent1.x();
-	      dstQuad[2].y = -tableTangent1.y();
-	      dstQuad[3].x = -tableTangent1.x() + tableTangent2.x();
-	      dstQuad[3].y = -tableTangent1.y() + tableTangent2.y();
-
-	      double toCenterX = (dstQuad[3].x-1.0)/2.0;
-	      double toCenterY = (dstQuad[3].y-1.0)/2.0;
-
-	      for (int dd = 0; dd < 4; dd++) {
-		dstQuad[dd].x -= toCenterX;
-		dstQuad[dd].y -= toCenterY;
-	      }
-
-	      tablePerspective = getPerspectiveTransform(srcQuad, dstQuad);
-
-
-	      rejectAll = 0;
-	    }
-	  }
-	}
-
-	//break;
-      }
-    }
-    //if (!reject)
-      //break;
-  }
-  
-  init_oriented_filters_all();
-
-  // draw it again to go over the brown boxes
-  if (drawGray) {
-    cv::Point outTop = cv::Point(grayTop.x, grayTop.y);
-    cv::Point outBot = cv::Point(grayBot.x, grayBot.y);
-    cv::Point inTop = cv::Point(grayTop.x+1,grayTop.y+1);
-    cv::Point inBot = cv::Point(grayBot.x-1,grayBot.y-1);
-    rectangle(objectViewerImage, outTop, outBot, cv::Scalar(128,128,128));
-    rectangle(objectViewerImage, inTop, inBot, cv::Scalar(32,32,32));
-  }
-
-  if (shouldIRender) {
-    guardedImshow(objectViewerName, objectViewerImage, sirObject);
-  }
-
-}
 
 void goClassifyBlueBoxes() {
   //cout << "entered gCBB()" << endl; cout.flush();
@@ -12248,14 +11874,6 @@ void goClassifyBlueBoxes() {
   //cout << "leaving gCBB()" << endl; cout.flush();
 }
 
-void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg) {
-
-  if (!shouldIMiscCallback) {
-    return;
-  }
-
-  pcl::fromROSMsg(*msg, pointCloud);
-}
 
 // TODO probably don't need two separate functions for this
 void loadROSParamsFromArgs() {
@@ -12292,7 +11910,6 @@ void loadROSParamsFromArgs() {
   nh.getParam("arm_box_right", rARM);
 
   nh.getParam("image_topic", image_topic);
-  nh.getParam("pc_topic", pc_topic);
 
   nh.getParam("invert_sign_name", invert_sign_name);
 
@@ -12354,7 +11971,6 @@ void loadROSParams() {
   nh.getParam("arm_box_right", rARM);
 
   nh.getParam("image_topic", image_topic);
-  nh.getParam("pc_topic", pc_topic);
 
   nh.getParam("table_label_class_name", table_label_class_name);
   nh.getParam("background_class_name", background_class_name);
@@ -12415,7 +12031,6 @@ void saveROSParams() {
   nh.setParam("arm_box_right", rARM);
 
   nh.setParam("image_topic", image_topic);
-  nh.setParam("pc_topic", pc_topic);
 
   nh.setParam("orientation_search_width", oSearchWidth);
 
@@ -13441,7 +13056,7 @@ int main(int argc, char **argv) {
   ros::Subscriber eeRanger;
   ros::Subscriber eeTarget;
   ros::Subscriber jointSubscriber;
-  ros::Subscriber points;
+
 
   ros::Subscriber pickObjectUnderEndEffectorCommandCallbackSub;
   ros::Subscriber placeObjectInEndEffectorCommandCallbackSub;
@@ -13483,7 +13098,6 @@ int main(int argc, char **argv) {
     eeRanger =  n.subscribe("/robot/range/" + left_or_right_arm + "_hand_range/state", 1, rangeCallback);
     eeTarget =  n.subscribe("/ein_" + left_or_right_arm + "/pilot_target_" + left_or_right_arm, 1, targetCallback);
     jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
-    points = n.subscribe(pc_topic, 1, pointCloudCallback);
     image_sub = it.subscribe(image_topic, 1, imageCallback);
   } else if (chosen_mode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
