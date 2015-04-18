@@ -155,7 +155,8 @@ virtual void execute() {
   
   currentEEPose.px += noX;
   currentEEPose.py += noY;
-  currentEEPose.oz += noTheta;
+
+  currentEEDeltaRPY.pz += noTheta;
 }
 END_WORD
 REGISTER_WORD(PerturbPosition)
@@ -163,7 +164,7 @@ REGISTER_WORD(PerturbPosition)
 WORD(OYDown)
 CODE('w'+65504) 
 virtual void execute() {
-  currentEEPose.oy -= bDelta;
+  currentEEDeltaRPY.py -= bDelta;
 }
 END_WORD
 REGISTER_WORD(OYDown)
@@ -171,7 +172,7 @@ REGISTER_WORD(OYDown)
 WORD(OYUp)
 CODE('s'+65504) 
 virtual void execute() {
-  currentEEPose.oy += bDelta;
+  currentEEDeltaRPY.py += bDelta;
 }
 END_WORD
 REGISTER_WORD(OYUp)
@@ -179,7 +180,7 @@ REGISTER_WORD(OYUp)
 WORD(OZDown)
 CODE('q'+65504) 
 virtual void execute() {
-  currentEEPose.oz -= bDelta;
+  currentEEDeltaRPY.pz -= bDelta;
 }
 END_WORD
 REGISTER_WORD(OZDown)
@@ -188,7 +189,7 @@ WORD(OZUp)
 CODE('e'+65504) 
 virtual void execute() {
   cout << "Changing pose. " << endl;
-  currentEEPose.oz += bDelta;
+  currentEEDeltaRPY.pz += bDelta;
 }
 END_WORD
 REGISTER_WORD(OZUp)
@@ -196,7 +197,7 @@ REGISTER_WORD(OZUp)
 WORD(OXDown)
 CODE('a'+65504) 
 virtual void execute() {
-  currentEEPose.ox -= bDelta;
+  currentEEDeltaRPY.px -= bDelta;
 }
 END_WORD
 REGISTER_WORD(OXDown)
@@ -204,7 +205,7 @@ REGISTER_WORD(OXDown)
 WORD(OXUp)
 CODE('d'+65504) 
 virtual void execute() {
-  currentEEPose.ox += bDelta;
+  currentEEDeltaRPY.px += bDelta;
 }
 END_WORD
 REGISTER_WORD(OXUp)

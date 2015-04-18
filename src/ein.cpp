@@ -142,10 +142,6 @@ typedef struct {
   double py;
   double pz;
 
-  double ox;
-  double oy;
-  double oz;
-
   double qx;
   double qy;
   double qz;
@@ -379,114 +375,77 @@ int reticleHalfWidth = 18;
 int pilotTargetHalfWidth = 15;
 
 eePose handingPoseRight = {.px = 0.879307, .py = -0.0239328, .pz = 0.223839,
-                      .ox = 0, .oy = 0, .oz = 0,
                       .qx = 0.459157, .qy = 0.527586, .qz = 0.48922, .qw = 0.521049};
 
 eePose handingPoseLeft = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
-                      .ox = 0, .oy = 0, .oz = 0,
                       .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
 
 eePose handingPose;
 
 eePose straightDown = {.px = 0.0, .py = 0.0, .pz = 0.0,
-		       .ox = 0.0, .oy = 0.0, .oz = 0.0,
 		       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 eePose eePoseZero = {.px = 0.0, .py = 0.0, .pz = 0.0,
-		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
 		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
 
 eePose centerReticle = {.px = 325, .py = 127, .pz = 0.0,
-		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
 		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
 
 eePose defaultRightReticle = {.px = 325, .py = 127, .pz = 0.0,
-		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
 		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
-//eePose defaultRightReticle = {.px = 321, .py = 154, .pz = 0.0,
-//		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
-//		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
 eePose defaultLeftReticle = {.px = 334, .py = 100, .pz = 0.0,
-		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
 		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
 
 eePose beeLHome = {.px = 0.657579481614, .py = 0.851981417433, .pz = 0.0388352386502,
-		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
 		   .qx = -0.366894936773, .qy = 0.885980397775, .qz = 0.108155782462, .qw = 0.262162481772};
 eePose beeRHome = {.px = 0.657579481614, .py = -0.168019, .pz = 0.0388352386502,
-		   .ox = 0.0, .oy = 0.0, .oz = 0.0,
 		   .qx = -0.366894936773, .qy = 0.885980397775, .qz = 0.108155782462, .qw = 0.262162481772};
 eePose workCenter = {.px = 0.686428, .py = -0.509836, .pz = 0.0883011,
-		     .ox = 0.0, .oy = 0.0, .oz = 0.0,
 		     .qx = -0.435468, .qy = 0.900181, .qz = 0.00453569, .qw = 0.00463141};
 
 eePose crane1right = {.px = 0.0448714, .py = -1.04476, .pz = 0.698522,
-		     .ox = 0, .oy = 0, .oz = 0,
 		     .qx = 0.631511, .qy = 0.68929, .qz = -0.25435, .qw = 0.247748};
 eePose crane2right = {.px = 0.617214, .py = -0.301658, .pz = 0.0533165,
-		     .ox = 0, .oy = 0, .oz = 0,
-		     //.qx = -0.0174863, .qy = 0.998142, .qz = 0.0583579, .qw = -0.000393204}; // 12A6S corrected *
-		     //.qx = -0.0148346, .qy = 0.999022, .qz = 0.0289031, .qw = 0.0300052}; // 9A6S corrected
-		     //.qx = -0.0165925, .qy = 0.99892, .qz = 0.0434064, .qw = -0.000183836}; // 6A corrected
-		     //.qx = -0.01459, .qy = 0.999684, .qz = 0.0136977, .qw = 0.0152314}; // 3A3S corrected
-		     //.qx = -0.0139279, .qy = 0.999439, .qz = -0.00107611, .qw = 0.0304367}; // original
-		     //.qx = -0.0130087, .qy = 0.998957, .qz = -0.0310543, .qw = 0.0308408}; // 6D corrected 
-		     //.qx = -0.0120778, .qy = 0.997576, .qz = -0.0610046, .qw = 0.0312171}; // 12D corrected 
-		     //.qx = -0.0138943, .qy = 0.999903, .qz = -0.000868458, .qw = 0.000435656}; // ray calibrated
 		     .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 
 eePose crane3right = {.px = 0.668384, .py = 0.166692, .pz = -0.120018,
-		     .ox = 0, .oy = 0, .oz = 0,
 		     .qx = 0.0328281, .qy = 0.999139, .qz = 0.00170545, .qw = 0.0253245};
 eePose crane4right = {.px = 0.642291, .py = -0.659793, .pz = 0.144186,
-		     .ox = 0, .oy = 0, .oz = 0,
 		     .qx = 0.825064, .qy = 0.503489, .qz = 0.12954, .qw = 0.221331};
 
 // poised
 eePose crane5right = {.px = 0.68502, .py = -0.109639, .pz = 0.722995,
-		     .ox = 0, .oy = 0, .oz = 0,
 		     .qx = -0.425038, .qy = 0.79398, .qz = 0.183347, .qw = 0.39411};
 
 eePose crane1left = {.px = -0.0155901, .py = 0.981296, .pz = 0.71078,
-		     .ox = 0, .oy = 0, .oz = 0,
 		     .qx = 0.709046, .qy = -0.631526, .qz = -0.226613, .qw = -0.216967};
 eePose crane2left = {.px = 0.646069, .py = 0.253621, .pz = 0.0570906,
-		     .ox = 0, .oy = 0, .oz = 0,
 		     .qx = 0.999605, .qy = -0.0120443, .qz = 0.0253545, .qw = -0.00117847};
 eePose crane3left = {.px = 0.652866, .py = -0.206966, .pz = -0.130561,
-		     .ox = 0, .oy = 0, .oz = 0,
 		     .qx = 0.999605, .qy = -0.0120443, .qz = 0.0253545, .qw = -0.00117847};
 
 
 // whole foods waypoints 
 eePose wholeFoodsBagR = {.px = 0.618641, .py = -0.502567, .pz = 0.054811,
-			 .ox = 0, .oy = 0, .oz = 0,
 			 .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 eePose wholeFoodsPantryR = {.px = 0.616353, .py = -0.182223, .pz = 0.0528802,
-                      .ox = 0, .oy = 0, .oz = 0,
 		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 eePose wholeFoodsCounterR = {.px = -0.114591, .py = -0.771545, .pz = 0.0365494,
-                      .ox = 0, .oy = 0, .oz = 0,
 		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 
 
 
 
 eePose wholeFoodsBagL = {.px = 0.64828, .py = 0.762787, .pz = 0.0592764,
-                      .ox = 0, .oy = 0, .oz = 0,
 		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 eePose wholeFoodsPantryL = {.px = 0.645494, .py = 0.4937, .pz = 0.0568737,
-                      .ox = 0, .oy = 0, .oz = 0,
 		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 eePose wholeFoodsCounterL = {.px = -0.114389, .py = 0.803518, .pz = 0.056705,
-                      .ox = 0, .oy = 0, .oz = 0,
 		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 
 eePose rssPoseL = {.px = 0.334217, .py = 0.75386, .pz = 0.0362593,
-                  .ox = 0, .oy = 0, .oz = 0,
                   .qx = -0.00125253, .qy = 0.999999, .qz = -0.000146851, .qw = 0.000236656};
 
 eePose rssPoseR = {.px = 0.525866, .py = -0.710611, .pz = 0.0695764,
-		      .ox = 0, .oy = 0, .oz = 0,
 		      .qx = -0.00122177, .qy = 0.999998, .qz = 0.00116169, .qw = -0.001101};
 
 
@@ -509,6 +468,7 @@ eePose pilotTarget = beeHome;
 eePose pilotClosestTarget = beeHome;
 eePose lastGoodEEPose = beeHome;
 eePose currentEEPose = beeHome;
+eePose currentEEDeltaRPY = eePoseZero;
 eePose eepReg1 = workCenter;
 eePose eepReg2 = beeHome;
 eePose eepReg3 = beeHome;
@@ -775,9 +735,6 @@ eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
   result.qy = pose.orientation.y;
   result.qz = pose.orientation.z;
   result.qw = pose.orientation.w;
-  result.ox = 0.0;
-  result.oy = 0.0;
-  result.oz = 0.0;
   return result;
 }
 
@@ -1725,7 +1682,7 @@ Eigen::Quaternionf getCCRotation(int givenGraspGear, double angle);
 void setCCRotation(int thisGraspGear);
 
 void rangeCallback(const sensor_msgs::Range& range);
-void endEffectorAngularUpdate(eePose *givenEEPose);
+void endEffectorAngularUpdate(eePose *givenEEPose, eePose *deltaEEPose);
 void fillIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest);
 void reseedIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest, int it, int itMax);
 void update_baxter(ros::NodeHandle &n);
@@ -3940,19 +3897,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
   }
 }
 
-void endEffectorAngularUpdate(eePose *givenEEPose) {
-
-  /* global cartesian update 
-  Eigen::Matrix3f m;
-  m = Eigen::AngleAxisf(givenEEPose.ox*M_PI, Eigen::Vector3f::UnitX())
-  * Eigen::AngleAxisf(givenEEPose.oy*M_PI, Eigen::Vector3f::UnitY())
-  * Eigen::AngleAxisf(givenEEPose.oz*M_PI, Eigen::Vector3f::UnitZ());
-
-  Eigen::Quaternionf eeRotator(m);
-  Eigen::Quaternionf eeBaseQuat(givenEEPose.qw, givenEEPose.qx, givenEEPose.qy, givenEEPose.qz);
-
-  eeBaseQuat = eeRotator * eeBaseQuat;
-  */ 
+void endEffectorAngularUpdate(eePose *givenEEPose, eePose *deltaEEPose) {
 
   /* end effector local angular update */
   Eigen::Vector3f localUnitX;
@@ -3991,15 +3936,17 @@ void endEffectorAngularUpdate(eePose *givenEEPose) {
   double sinBuff = 0.0;
   double angleRate = 1.0;
   Eigen::Quaternionf eeBaseQuat(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
-  sinBuff = sin(angleRate*givenEEPose->ox/2.0);
-  Eigen::Quaternionf eeRotatorX(cos(angleRate*givenEEPose->ox/2.0), localUnitX.x()*sinBuff, localUnitX.y()*sinBuff, localUnitX.z()*sinBuff);
-  sinBuff = sin(angleRate*givenEEPose->oy/2.0);
-  Eigen::Quaternionf eeRotatorY(cos(angleRate*givenEEPose->oy/2.0), localUnitY.x()*sinBuff, localUnitY.y()*sinBuff, localUnitY.z()*sinBuff);
-  sinBuff = sin(angleRate*givenEEPose->oz/2.0);
-  Eigen::Quaternionf eeRotatorZ(cos(angleRate*givenEEPose->oz/2.0), localUnitZ.x()*sinBuff, localUnitZ.y()*sinBuff, localUnitZ.z()*sinBuff);
-  givenEEPose->ox = 0;
-  givenEEPose->oy = 0;
-  givenEEPose->oz = 0;
+  sinBuff = sin(angleRate*deltaEEPose->px/2.0);
+  Eigen::Quaternionf eeRotatorX(cos(angleRate*deltaEEPose->px/2.0), localUnitX.x()*sinBuff, localUnitX.y()*sinBuff, localUnitX.z()*sinBuff);
+  sinBuff = sin(angleRate*deltaEEPose->py/2.0);
+  Eigen::Quaternionf eeRotatorY(cos(angleRate*deltaEEPose->py/2.0), localUnitY.x()*sinBuff, localUnitY.y()*sinBuff, localUnitY.z()*sinBuff);
+  sinBuff = sin(angleRate*deltaEEPose->pz/2.0);
+  Eigen::Quaternionf eeRotatorZ(cos(angleRate*deltaEEPose->pz/2.0), localUnitZ.x()*sinBuff, localUnitZ.y()*sinBuff, localUnitZ.z()*sinBuff);
+  deltaEEPose->px = 0;
+  deltaEEPose->py = 0;
+  deltaEEPose->pz = 0;
+
+
   eeRotatorX.normalize();
   eeRotatorY.normalize();
   eeRotatorZ.normalize();
@@ -4479,7 +4426,7 @@ void timercallback1(const ros::TimerEvent&) {
     }
   }
 
-  endEffectorAngularUpdate(&currentEEPose);
+  endEffectorAngularUpdate(&currentEEPose, &currentEEDeltaRPY);
 
   if (!zero_g_toggle) {
     update_baxter(n);
@@ -4492,9 +4439,6 @@ void timercallback1(const ros::TimerEvent&) {
     currentEEPose.qy = trueEEPose.orientation.y;
     currentEEPose.qz = trueEEPose.orientation.z;
     currentEEPose.qw = trueEEPose.orientation.w;
-    currentEEPose.ox = 0.0;
-    currentEEPose.oy = 0.0;
-    currentEEPose.oz = 0.0;
   }
 
   timerCounter++;
@@ -5756,7 +5700,6 @@ void pilotInit() {
     int numposes = 4;
     double ystep = (yend - ystart) / numposes;
     eePose pose1 = {.px = 0.65, .py = 0.0544691, .pz = -0.0582791,
-                       .ox = 0, .oy = 0, .oz = 0,
                        .qx = 0, .qy = 1, .qz = 0, .qw = 0};
     for (int i = 0; i < numposes; i++) {
       deliveryPoses.push_back(pose1);
@@ -5920,7 +5863,6 @@ void pilotInit() {
     int numposes = 4;
     double ystep = (yend - ystart) / numposes;
     eePose pose1 = {.px = 0.65, .py = 0.0544691, .pz = -0.0582791,
-                       .ox = 0, .oy = 0, .oz = 0,
                        .qx = 0, .qy = 1, .qz = 0, .qw = 0};
     for (int i = 0; i < numposes; i++) {
       deliveryPoses.push_back(pose1);
@@ -8401,10 +8343,6 @@ void gradientServo() {
   double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
   lastPtheta = Ptheta;
   
-  // change orientation according to winning rotation
-  //currentEEPose.oz -= bestOrientation*2.0*3.1415926/double(numOrientations);
-
-
   
   // update after
   currentGradientServoIterations++;
@@ -8421,14 +8359,16 @@ void gradientServo() {
     else
       kPtheta = kPtheta1;
     
-    if (bestOrientation <= numOrientations/2)
-      currentEEPose.oz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
-    else
-      currentEEPose.oz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
+    if (bestOrientation <= numOrientations/2) {
+      currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
+      
+    } else {
+      currentEEDeltaRPY.pz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
+    }
   }
   
-  double doublePtheta = currentEEPose.oz;
-  
+  double doublePtheta =   currentEEDeltaRPY.pz;
+
   //cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << 
   //pilotTarget.px << " " << reticle.py << " " << pilotTarget.py << " " <<
   //bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
@@ -8557,7 +8497,7 @@ void gradientServo() {
     //currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
     // ATTN 23
     // second analytic
-    eePose newGlobalTarget = analyticServoPixelToReticle(pilotTarget, reticle, currentEEPose.oz);
+    eePose newGlobalTarget = analyticServoPixelToReticle(pilotTarget, reticle, currentEEDeltaRPY.pz);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
     currentEEPose.px = newx;
@@ -8605,10 +8545,9 @@ eePose analyticServoPixelToReticle(eePose givenPixel, eePose givenReticle, doubl
   }
 
   eePose fakeEndEffector = currentEEPose;
-  fakeEndEffector.ox = 0;
-  fakeEndEffector.oy = 0;
-  fakeEndEffector.oz = ozAngle;
-  endEffectorAngularUpdate(&fakeEndEffector);
+  eePose fakeEndEffectorDeltaRPY = eePoseZero;
+  fakeEndEffectorDeltaRPY.pz = ozAngle;
+  endEffectorAngularUpdate(&fakeEndEffector, &fakeEndEffectorDeltaRPY);
   {
     double zToUse = trueEEPose.position.z+currentTableZ;
     pixelToGlobal(givenReticle.px, givenReticle.py, zToUse, &(grGlobalPostRotation.px), &(grGlobalPostRotation.py), fakeEndEffector);
@@ -9246,9 +9185,6 @@ eePose pixelToGlobalEEPose(int pX, int pY, double gZ) {
   eePose result;
   pixelToGlobal(pX, pY, gZ, &result.px, &result.py);
   result.pz = trueEEPose.position.z - currentTableZ;
-  result.ox = 0;
-  result.oy = 0;
-  result.oz = 0;
   result.qx = 0;
   result.qy = 0;
   result.qz = 0;
@@ -14226,6 +14162,4 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-
 #include "ein_words.cpp"
-

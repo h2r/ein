@@ -181,7 +181,7 @@ virtual void execute() {
   // this ensures that we explore randomly within each grasp gear sector
   double arcFraction = 0.125;
   double noTheta = arcFraction * 3.1415926 * ((drand48() - 0.5) * 2.0);
-  currentEEPose.oz += noTheta;
+  currentEEDeltaRPY.pz += noTheta;
 }
 END_WORD
 REGISTER_WORD(SetRandomOrientationForPhotospin)
