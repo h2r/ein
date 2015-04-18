@@ -48,6 +48,7 @@ virtual void execute()       {
   } 
 }
 END_WORD
+REGISTER_WORD(SaveLearnedModels)
 
 
 
@@ -65,6 +66,7 @@ virtual void execute() {
   currentEEPose.oz += noTheta;
 }
 END_WORD
+REGISTER_WORD(SetRandomPositionAndOrientationForHeightLearning)
 
 WORD(BeginHeightLearning)
 CODE(1245242)     // capslock + numlock + :
@@ -90,6 +92,7 @@ virtual void execute()       {
   pushWord('3'); // recall register 3
 }
 END_WORD
+REGISTER_WORD(BeginHeightLearning)
 
 
 WORD(ContinueHeightLearning)
@@ -158,6 +161,7 @@ CODE(1179707)     // capslock + numlock + ;
   pushWord('3'); // recall register 3
 }
 END_WORD
+REGISTER_WORD(ContinueHeightLearning)
 
 WORD(RecordHeightLearnTrial)
 CODE(1179694)     // capslock + numlock + .
@@ -183,6 +187,7 @@ CODE(1179694)     // capslock + numlock + .
   }
 }
 END_WORD
+REGISTER_WORD(RecordHeightLearnTrial)
 
 
 
@@ -194,6 +199,7 @@ virtual void execute() {
   drawMapRegisters();
 }
 END_WORD
+REGISTER_WORD(LoadSampledGraspMemory)
 
 WORD(LoadMarginalGraspMemory)
 CODE(131133)     // capslock + =
@@ -202,6 +208,7 @@ virtual void execute() {
   drawMapRegisters();
 }
 END_WORD
+REGISTER_WORD(LoadMarginalGraspMemory)
 
 WORD(LoadPriorGraspMemoryAnalytic)
 CODE(196360)     // capslock + backspace
@@ -218,6 +225,7 @@ virtual void execute() {
   cout << "class " << classLabels[targetClass] << " number ";
 }
 END_WORD
+REGISTER_WORD(LoadPriorGraspMemoryAnalytic)
 
 
 WORD(LoadPriorGraspMemoryUniform)
@@ -235,6 +243,7 @@ virtual void execute() {
   cout << "class " << classLabels[targetClass] << " number ";
 }
 END_WORD
+REGISTER_WORD(LoadPriorGraspMemoryUniform)
 
 WORD(LoadSampledHeightMemory)
 CODE(1179693)     // capslock + numlock + -
@@ -243,6 +252,7 @@ virtual void execute() {
   drawHeightMemorySample();
 }
 END_WORD
+REGISTER_WORD(LoadSampledHeightMemory)
 
 WORD(LoadMarginalHeightMemory)
 CODE(1179709)     // capslock + numlock + =
@@ -251,6 +261,7 @@ virtual void execute() {
   drawHeightMemorySample();
 }
 END_WORD
+REGISTER_WORD(LoadMarginalHeightMemory)
 
 WORD(LoadPriorHeightMemoryAnalytic)
 CODE(1244936)     // capslock + numlock + backspace
@@ -261,7 +272,7 @@ virtual void execute() {
   drawHeightMemorySample();
 }
 END_WORD
-
+REGISTER_WORD(LoadPriorHeightMemoryAnalytic)
 
 WORD(LoadPriorHeightMemoryUniform)
 CODE(1310472)     // capslock + numlock + shift + backspace
@@ -272,7 +283,7 @@ virtual void execute() {
   drawHeightMemorySample();
 }
 END_WORD
-
+REGISTER_WORD(LoadPriorHeightMemoryUniform)
 
 
 WORD(SetPickModeToStaticPrior)
@@ -282,6 +293,7 @@ virtual void execute() {
   cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
 }
 END_WORD
+REGISTER_WORD(SetPickModeToStaticPrior)
 
 WORD(SetPickModeToLearningSampling)
 CODE(1179716)     // capslock + numlock + d
@@ -290,6 +302,7 @@ virtual void execute() {
   cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
 }
 END_WORD
+REGISTER_WORD(SetPickModeToLearningSampling)
 
 WORD(SetPickModeToLearningAlgorithmC)
 CODE(1245284) // capslock + numlock + D
@@ -298,6 +311,7 @@ virtual void execute() {
   cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
 }
 END_WORD
+REGISTER_WORD(SetPickModeToLearningAlgorithmC)
 
 WORD(SetPickModeToStaticMarginals)
 CODE(1179718)     // capslock + numlock + f
@@ -306,6 +320,7 @@ virtual void execute() {
   cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
 }
 END_WORD
+REGISTER_WORD(SetPickModeToStaticMarginals)
 
 
 WORD(SetBoundingBoxModeToMapping)
@@ -314,6 +329,7 @@ virtual void execute() {
   cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
 }
 END_WORD
+REGISTER_WORD(SetBoundingBoxModeToMapping)
 
 WORD(SetBoundingBoxModeToStaticPrior)
 CODE(1179722)     // capslock + numlock + j
@@ -322,6 +338,7 @@ virtual void execute() {
   cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
 }
 END_WORD
+REGISTER_WORD(SetBoundingBoxModeToStaticPrior)
 
 WORD(SetBoundingBoxModeToLearningSampling)
 CODE(1179723)     // capslock + numlock + k
@@ -330,6 +347,7 @@ virtual void execute() {
   cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
 }
 END_WORD
+REGISTER_WORD(SetBoundingBoxModeToLearningSampling)
 
 WORD(SetBoundingBoxModeToLearningAlgorithmC)
 CODE(1245291)     // capslock + numlock + K
@@ -338,6 +356,7 @@ virtual void execute() {
   cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
 }
 END_WORD
+REGISTER_WORD(SetBoundingBoxModeToLearningAlgorithmC)
 
 WORD(SetBoundingBoxModeToStaticMarginals)
 CODE(1179724)     // capslock + numlock + l
@@ -346,6 +365,7 @@ virtual void execute() {
   cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
 }
 END_WORD
+REGISTER_WORD(SetBoundingBoxModeToStaticMarginals)
 
 WORD(UniformlySampleHeight)
 CODE(1245246)      // capslock + numlock + >
@@ -362,7 +382,7 @@ virtual void execute() {
   m_y = m_y_h[currentThompsonHeightIdx];
 }
 END_WORD
-
+REGISTER_WORD(UniformlySampleHeight)
 
 
 
@@ -373,17 +393,7 @@ virtual void execute() {
   copyClassGraspMemoryTriesToGraspMemoryTries();
 }
 END_WORD
-
-
-WORD(CopyClassGraspMemoryTriesToGraspMemoryTries)    
-// capslock + numlock + i
-CODE(1179721)
-virtual void execute()
-{
-  copyClassGraspMemoryTriesToGraspMemoryTries();
-}
-END_WORD
-
+REGISTER_WORD(SetGraspMemoriesFromClassGraspMemories)  
 
 
 WORD(SetHeightMemoriesFromClassHeightMemories)
@@ -406,7 +416,7 @@ virtual void execute()
 
 }
 END_WORD
-
+REGISTER_WORD(SetHeightMemoriesFromClassHeightMemories)
 
 WORD(SampleHeight)
 CODE(1245247)   // capslock + numlock + ?
@@ -470,3 +480,4 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(SampleHeight)

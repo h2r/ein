@@ -7,6 +7,7 @@ virtual void execute() {
   pushWord("waitUntilAtCurrentPosition");
 }
 END_WORD
+REGISTER_WORD(AssumeDeliveryPose)
 
 WORD(WaitUntilAtCurrentPosition)
 CODE(131154)    // capslock + r
@@ -37,6 +38,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(WaitUntilAtCurrentPosition)
 
 WORD(WaitUntilAtCurrentPositionB)
 virtual void execute() {
@@ -86,6 +88,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(WaitUntilAtCurrentPositionB)
 
 WORD(WaitUntilGripperNotMoving)
 virtual void execute() {
@@ -95,6 +98,7 @@ virtual void execute() {
   endThisStackCollapse = 1;
 }
 END_WORD
+REGISTER_WORD(WaitUntilGripperNotMoving)
 
 WORD(WaitUntilGripperNotMovingB)
 virtual void execute() {
@@ -118,6 +122,7 @@ virtual void execute() {
   endThisStackCollapse = 1;
 }
 END_WORD
+REGISTER_WORD(WaitUntilGripperNotMovingB)
 
 WORD(WaitUntilGripperNotMovingC)
 virtual void execute() {
@@ -139,6 +144,7 @@ virtual void execute() {
   endThisStackCollapse = 1;
 }
 END_WORD
+REGISTER_WORD(WaitUntilGripperNotMovingC)
 
 WORD(PerturbPosition)
 CODE(1048623)     // numlock + /
@@ -152,6 +158,7 @@ virtual void execute() {
   currentEEPose.oz += noTheta;
 }
 END_WORD
+REGISTER_WORD(PerturbPosition)
 
 WORD(OYDown)
 CODE('w'+65504) 
@@ -159,6 +166,7 @@ virtual void execute() {
   currentEEPose.oy -= bDelta;
 }
 END_WORD
+REGISTER_WORD(OYDown)
 
 WORD(OYUp)
 CODE('s'+65504) 
@@ -166,6 +174,7 @@ virtual void execute() {
   currentEEPose.oy += bDelta;
 }
 END_WORD
+REGISTER_WORD(OYUp)
 
 WORD(OZDown)
 CODE('q'+65504) 
@@ -173,6 +182,7 @@ virtual void execute() {
   currentEEPose.oz -= bDelta;
 }
 END_WORD
+REGISTER_WORD(OZDown)
 
 WORD(OZUp)
 CODE('e'+65504) 
@@ -181,6 +191,7 @@ virtual void execute() {
   currentEEPose.oz += bDelta;
 }
 END_WORD
+REGISTER_WORD(OZUp)
 
 WORD(OXDown)
 CODE('a'+65504) 
@@ -188,7 +199,7 @@ virtual void execute() {
   currentEEPose.ox -= bDelta;
 }
 END_WORD
-
+REGISTER_WORD(OXDown)
 
 WORD(OXUp)
 CODE('d'+65504) 
@@ -196,6 +207,8 @@ virtual void execute() {
   currentEEPose.ox += bDelta;
 }
 END_WORD
+REGISTER_WORD(OXUp)
+
 
 WORD(SaveRegister1)
 CODE(65568+1) // ! 
@@ -203,6 +216,7 @@ virtual void execute() {
   eepReg1 = currentEEPose;
 }
 END_WORD
+REGISTER_WORD(SaveRegister1)
 
 WORD(SaveRegister2)
 CODE(65600) // @
@@ -210,6 +224,7 @@ virtual void execute() {
   eepReg2 = currentEEPose;
 }
 END_WORD
+REGISTER_WORD(SaveRegister2)
 
 WORD(SaveRegister3)
 CODE(65568+3) // # 
@@ -217,6 +232,7 @@ virtual void execute() {
   eepReg3 = currentEEPose;
 }
 END_WORD
+REGISTER_WORD(SaveRegister3)
 
 WORD(SaveRegister4)
 CODE( 65568+4) // $ 
@@ -224,6 +240,7 @@ virtual void execute() {
   eepReg4 = currentEEPose;
 }
 END_WORD
+REGISTER_WORD(SaveRegister4)
 
 WORD(MoveToRegister1)
 CODE('1') 
@@ -231,6 +248,7 @@ virtual void execute() {
   currentEEPose = eepReg1;
 }
 END_WORD
+REGISTER_WORD(MoveToRegister1)
 
 WORD(MoveToRegister2)
 CODE('2') 
@@ -238,6 +256,7 @@ virtual void execute() {
   currentEEPose = eepReg2;
 }
 END_WORD
+REGISTER_WORD(MoveToRegister2)
 
 WORD(MoveToRegister3)
 CODE('3') 
@@ -245,6 +264,7 @@ virtual void execute() {
   currentEEPose = eepReg3;
 }
 END_WORD
+REGISTER_WORD(MoveToRegister3)
 
 WORD(MoveToRegister4)
 CODE('4') 
@@ -252,6 +272,7 @@ virtual void execute() {
   currentEEPose = eepReg4;
 }
 END_WORD
+REGISTER_WORD(MoveToRegister4)
 
 WORD(MoveToRegister5)
 CODE('5') 
@@ -259,6 +280,7 @@ virtual void execute() {
   currentEEPose = eepReg5;
 }
 END_WORD
+REGISTER_WORD(MoveToRegister5)
 
 
 WORD(MoveToRegister6)
@@ -267,6 +289,7 @@ virtual void execute() {
   currentEEPose = eepReg6;
 }
 END_WORD
+REGISTER_WORD(MoveToRegister6)
 
 
 WORD(XDown)
@@ -275,6 +298,7 @@ virtual void execute() {
   currentEEPose.px -= bDelta;
 }
 END_WORD
+REGISTER_WORD(XDown)
 
 
 WORD(XUp)
@@ -283,6 +307,7 @@ virtual void execute() {
   currentEEPose.px += bDelta;
 }
 END_WORD
+REGISTER_WORD(XUp)
 
 WORD(YDown)
 CODE('a') 
@@ -290,6 +315,7 @@ virtual void execute() {
   currentEEPose.py -= bDelta;
 }
 END_WORD
+REGISTER_WORD(YDown)
 
 
 WORD(YUp)
@@ -298,6 +324,7 @@ virtual void execute() {
   currentEEPose.py += bDelta;
 }
 END_WORD
+REGISTER_WORD(YUp)
 
 
 WORD(ZUp)
@@ -307,6 +334,7 @@ virtual void execute()
   currentEEPose.pz += bDelta;
 }
 END_WORD
+REGISTER_WORD(ZUp)
 
 WORD(ZDown)
 CODE('s')
@@ -315,6 +343,7 @@ virtual void execute()
     currentEEPose.pz -= bDelta;
 }
 END_WORD
+REGISTER_WORD(ZDown)
 
 WORD(SetGripperThresh)
 CODE(1179713)     // capslock + numlock + a
@@ -324,6 +353,7 @@ virtual void execute() {
   cout << "gripperThresh = " << gripperThresh << endl;
 }
 END_WORD
+REGISTER_WORD(SetGripperThresh)
 
 WORD(CalibrateGripper)
 CODE('i') 
@@ -335,6 +365,7 @@ virtual void execute() {
   calibrateGripper();
 }
 END_WORD
+REGISTER_WORD(CalibrateGripper)
 
 WORD(CloseGripper)
 CODE('j')
@@ -346,6 +377,7 @@ virtual void execute() {
   gripperPub.publish(command);
 }
 END_WORD
+REGISTER_WORD(CloseGripper)
 
 WORD(OpenGripper)
 CODE('k')
@@ -358,7 +390,7 @@ virtual void execute() {
   lastMeasuredClosed = gripperPosition;
 }
 END_WORD
-
+REGISTER_WORD(OpenGripper)
 
 
 WORD(SetMovementSpeedNowThatsFast)
@@ -367,6 +399,7 @@ virtual void execute() {
   bDelta = NOW_THATS_FAST;
 }
 END_WORD
+REGISTER_WORD(SetMovementSpeedNowThatsFast)
 
 WORD(SetMovementSpeedMoveEvenFaster)
 CODE(1114199)     // numlock + W
@@ -374,6 +407,7 @@ virtual void execute() {
   bDelta = MOVE_EVEN_FASTER;
 }
 END_WORD
+REGISTER_WORD(SetMovementSpeedMoveEvenFaster)
 
 
 WORD(SetMovementSpeedMoveFaster)
@@ -382,6 +416,7 @@ virtual void execute() {
   bDelta = MOVE_FASTER;
 }
 END_WORD
+REGISTER_WORD(SetMovementSpeedMoveFaster)
 
 WORD(SetMovementSpeedMoveFast)
 CODE(1048674)     // numlock + b
@@ -389,6 +424,7 @@ virtual void execute()  {
   bDelta = MOVE_FAST;
 }
 END_WORD
+REGISTER_WORD(SetMovementSpeedMoveFast)
 
 WORD(SetMovementSpeedMoveMedium)
 CODE(1048686)   // numlock + n
@@ -396,6 +432,7 @@ virtual void execute() {
   bDelta = MOVE_MEDIUM;
 }
 END_WORD
+REGISTER_WORD(SetMovementSpeedMoveMedium)
 
 WORD(SetMovementSpeedMoveSlow)
 CODE(1114190) // numlock + N
@@ -403,6 +440,7 @@ virtual void execute() {
   bDelta = MOVE_SLOW;
 }
 END_WORD
+REGISTER_WORD(SetMovementSpeedMoveSlow)
 
 WORD(SetMovementSpeedMoveVerySlow)
 CODE(1114178) // numlock + B
@@ -410,6 +448,7 @@ virtual void execute() {
 	bDelta = MOVE_VERY_SLOW;
 }
 END_WORD
+REGISTER_WORD(SetMovementSpeedMoveVerySlow)
 
 WORD(ChangeToHeight0)
 CODE(1245217) // capslock + numlock + !
@@ -424,6 +463,7 @@ virtual void execute() {
   m_y = m_y_h[currentThompsonHeightIdx];
 }
 END_WORD
+REGISTER_WORD(ChangeToHeight0)
 
 WORD(ChangeToHeight1)
 CODE(1245248)     // capslock + numlock + @
@@ -438,6 +478,7 @@ virtual void execute() {
   m_y = m_y_h[currentThompsonHeightIdx];
 }
 END_WORD
+REGISTER_WORD(ChangeToHeight1)
 
 WORD(ChangeToHeight2)
 CODE(1245219)  // capslock + numlock + #
@@ -452,6 +493,7 @@ virtual void execute()  {
   m_y = m_y_h[currentThompsonHeightIdx];
 }
 END_WORD
+REGISTER_WORD(ChangeToHeight2)
 
 WORD(ChangeToHeight3)
 CODE(1245220) // capslock + numlock + $
@@ -466,36 +508,42 @@ virtual void execute() {
   m_y = m_y_h[currentThompsonHeightIdx];
 }
 END_WORD
+REGISTER_WORD(ChangeToHeight3)
 
 WORD(HundredthImpulse)
 virtual void execute() {
   currentEESpeedRatio = 0.01;
 }
 END_WORD
+REGISTER_WORD(HundredthImpulse)
 
 WORD(TenthImpulse)
 virtual void execute() {
   currentEESpeedRatio = 0.1;
 }
 END_WORD
+REGISTER_WORD(TenthImpulse)
 
 WORD(QuarterImpulse)
 virtual void execute() {
   currentEESpeedRatio = 0.25;
 }
 END_WORD
+REGISTER_WORD(QuarterImpulse)
 
 WORD(HalfImpulse)
 virtual void execute() {
   currentEESpeedRatio = 0.5;
 }
 END_WORD
+REGISTER_WORD(HalfImpulse)
 
 WORD(FullImpulse)
 virtual void execute() {
   currentEESpeedRatio = 1.0;
 }
 END_WORD
+REGISTER_WORD(FullImpulse)
 
 WORD(CruisingSpeed)
 virtual void execute() {
@@ -504,6 +552,7 @@ virtual void execute() {
   currentEESpeedRatio = 1.0;
 }
 END_WORD
+REGISTER_WORD(CruisingSpeed)
 
 WORD(ApproachSpeed)
 virtual void execute() {
@@ -511,6 +560,7 @@ virtual void execute() {
   currentEESpeedRatio = 0.05;//0.035;//0.07;//0.05;
 }
 END_WORD
+REGISTER_WORD(ApproachSpeed)
 
 WORD(DepartureSpeed)
 virtual void execute() {
@@ -518,12 +568,14 @@ virtual void execute() {
   currentEESpeedRatio = 0.5;
 }
 END_WORD
+REGISTER_WORD(DepartureSpeed)
 
 WORD(ResetW1ThreshToDefault)
 virtual void execute() {
   w1GoThresh = 0.03;
 }
 END_WORD
+REGISTER_WORD(ResetW1ThreshToDefault)
 
 WORD(RasterScanningSpeed)
 virtual void execute() {
@@ -531,12 +583,14 @@ virtual void execute() {
   currentEESpeedRatio = 0.02;
 }
 END_WORD
+REGISTER_WORD(RasterScanningSpeed)
 
 WORD(IRCalibrationSpeed)
 virtual void execute() {
   currentEESpeedRatio = 0.04;
 }
 END_WORD
+REGISTER_WORD(IRCalibrationSpeed)
 
 WORD(Hover)
 virtual void execute() {
@@ -548,6 +602,7 @@ virtual void execute() {
   lastEndpointCallbackRequest = lastHoverRequest;
 }
 END_WORD
+REGISTER_WORD(Hover)
 
 WORD(HoverA)
 virtual void execute() {
@@ -584,6 +639,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(HoverA)
 
 WORD(SpawnTargetClassAtEndEffector)
 CODE(65379) // insert
@@ -621,6 +677,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(SpawnTargetClassAtEndEffector)
 
 WORD(DestroyObjectInEndEffector)
 CODE(65535) // delete
@@ -633,6 +690,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(DestroyObjectInEndEffector)
 
 WORD(PickObjectUnderEndEffector)
 CODE(65365) // page up
@@ -641,6 +699,7 @@ virtual void execute() {
   pickObjectUnderEndEffectorCommandCallback(msg);
 }
 END_WORD
+REGISTER_WORD(PickObjectUnderEndEffector)
 
 WORD(PlaceObjectInEndEffector)
 CODE(65366) // page down
@@ -649,6 +708,7 @@ virtual void execute() {
   placeObjectInEndEffectorCommandCallback(msg);
 }
 END_WORD
+REGISTER_WORD(PlaceObjectInEndEffector)
 
 WORD(SetCurrentCornellTableToZero)
 virtual void execute() {
@@ -656,6 +716,7 @@ virtual void execute() {
   currentCornellTableIndex = 0;
 }
 END_WORD
+REGISTER_WORD(SetCurrentCornellTableToZero)
 
 WORD(IncrementCurrentCornellTable)
 virtual void execute() {
@@ -663,6 +724,7 @@ virtual void execute() {
   cout << "Incrementing currentCornellTableIndex to " << currentCornellTableIndex << " out of " << numCornellTables << "." << endl;
 }
 END_WORD
+REGISTER_WORD(IncrementCurrentCornellTable)
 
 WORD(DecrementCurrentCornellTable)
 virtual void execute() {
@@ -670,6 +732,7 @@ virtual void execute() {
   cout << "Decrementing currentCornellTableIndex to " << currentCornellTableIndex << " out of " << numCornellTables << "." << endl;
 }
 END_WORD
+REGISTER_WORD(DecrementCurrentCornellTable)
 
 WORD(MoveToCurrentCornellTable)
 virtual void execute() {
@@ -679,6 +742,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(MoveToCurrentCornellTable)
 
 WORD(SpawnTargetMasterSpriteAtEndEffector)
 CODE(130915) // shift + insert
@@ -767,6 +831,7 @@ virtual void execute() {
   cout << "Now instanceSprites.size() is " << instanceSprites.size() << "." << endl;
 }
 END_WORD
+REGISTER_WORD(SpawnTargetMasterSpriteAtEndEffector)
 
 WORD(DestroyTargetInstanceSprite)
 CODE(131071) // shift + delete
@@ -792,6 +857,7 @@ virtual void execute() {
   cout << "Now instanceSprites.size() is " << instanceSprites.size() << "." << endl;
 }
 END_WORD
+REGISTER_WORD(DestroyTargetInstanceSprite)
 
 WORD(IncrementTargetInstanceSprite)
 CODE(130901) // shift + page up
@@ -805,6 +871,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(IncrementTargetInstanceSprite)
 
 WORD(DecrementTargetInstanceSprite)
 CODE(130902) // shift + page down
@@ -818,6 +885,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(DecrementTargetInstanceSprite)
 
 WORD(IncrementTargetMasterSprite)
 CODE(130896) // shift + home 
@@ -831,6 +899,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(IncrementTargetMasterSprite)
 
 WORD(DecrementTargetMasterSprite)
 CODE(130903) // shift + end 
@@ -844,6 +913,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(DecrementTargetMasterSprite)
 
 WORD(ComeToStop)
 virtual void execute() {
@@ -853,6 +923,7 @@ virtual void execute() {
   cout << "Waiting to come to a stop..." << endl;
 }
 END_WORD
+REGISTER_WORD(ComeToStop)
 
 WORD(ComeToStopA)
 virtual void execute() {
@@ -873,6 +944,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(ComeToStopA)
 
 WORD(ComeToHover)
 virtual void execute() {
@@ -882,6 +954,7 @@ virtual void execute() {
   cout << "Waiting to come to a hover..." << endl;
 }
 END_WORD
+REGISTER_WORD(ComeToHover)
 
 WORD(ComeToHoverA)
 virtual void execute() {
@@ -901,6 +974,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(ComeToHoverA)
 
 WORD(WaitForTugThenOpenGripper)
 virtual void execute() {
@@ -910,6 +984,7 @@ virtual void execute() {
   cout << "Waiting to come to a stop and then waiting to feel a tug... " << ARMED << " " << currentMovementState << endl;
 }
 END_WORD
+REGISTER_WORD(WaitForTugThenOpenGripper)
 
 WORD(WaitForTugThenOpenGripperA)
 virtual void execute() {
@@ -936,6 +1011,7 @@ virtual void execute() {
   endThisStackCollapse = 1;
 }
 END_WORD
+REGISTER_WORD(WaitForTugThenOpenGripperA)
 
 WORD(Idler)
 virtual void execute() {
@@ -944,4 +1020,4 @@ virtual void execute() {
   pushWord("clearStackAcceptFetchCommands"); 
 }
 END_WORD
-
+REGISTER_WORD(Idler)

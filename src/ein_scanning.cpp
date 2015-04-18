@@ -44,7 +44,7 @@ virtual void execute() {
   }
 }
 END_WORD
-
+REGISTER_WORD(SetTargetClassToLastLabelLearned)
 
 
 WORD(SetLastLabelLearned)
@@ -54,7 +54,7 @@ virtual void execute() {
   cout << "lastLabelLearned: " << lastLabelLearned << endl;
 }
 END_WORD
-
+REGISTER_WORD(SetLastLabelLearned)
 
 WORD(TrainModels)
 CODE(131142)     // capslock + f
@@ -128,7 +128,7 @@ virtual void execute()       {
   // XXX reset anything else
 }
 END_WORD
-
+REGISTER_WORD(TrainModels)
 
 
 WORD(VisionCycleNoClassify)
@@ -140,7 +140,7 @@ virtual void execute()       {
   pushWord("hover"); // blue boxes
 }
 END_WORD
-
+REGISTER_WORD(VisionCycleNoClassify)
 
 WORD(RecordExampleAsFocusedClass)
 CODE(131148)     // capslock + l 
@@ -156,6 +156,7 @@ virtual void execute()       {
   }
 }
 END_WORD
+REGISTER_WORD(RecordExampleAsFocusedClass)
 
 WORD(RecordAllExamplesFocusedClass)
 virtual void execute()       {
@@ -172,6 +173,7 @@ virtual void execute()       {
   }
 }
 END_WORD
+REGISTER_WORD(RecordAllExamplesFocusedClass)
 
 WORD(SetRandomOrientationForPhotospin)
 CODE(1310722)     // capslock + numlock + "
@@ -182,6 +184,7 @@ virtual void execute() {
   currentEEPose.oz += noTheta;
 }
 END_WORD
+REGISTER_WORD(SetRandomOrientationForPhotospin)
 
 WORD(RgbScan)
 CODE(131143)      // capslock + g
@@ -221,7 +224,7 @@ virtual void execute()       {
   pushSpeedSign(MOVE_FAST);
 }
 END_WORD
-
+REGISTER_WORD(RgbScan)
 
 
 WORD(PhotoSpin)
@@ -238,6 +241,7 @@ virtual void execute() {
   pushWord("shiftIntoGraspGear1"); // change gear to 1
 }
 END_WORD
+REGISTER_WORD(PhotoSpin)
 
 WORD(SetTargetReticleToTheMaxMappedPosition)
 CODE(1048678)  // numlock + f
@@ -246,6 +250,7 @@ virtual void execute() {
   trY = rmcY + rmDelta*(maxY-rmHalfWidth);
 }
 END_WORD
+REGISTER_WORD(SetTargetReticleToTheMaxMappedPosition)
 
 WORD(DownsampleIrScan)
 CODE(1048690) // numlock + r
@@ -297,7 +302,7 @@ virtual void execute() {
   }
 }
 END_WORD
-
+REGISTER_WORD(DownsampleIrScan)
 
 
 
@@ -408,7 +413,7 @@ virtual void execute() {
   pushWord('k'); // open gripper
 }
 END_WORD
-
+REGISTER_WORD(ScanObject)
 
 
 WORD(PrepareForSearch)
@@ -418,7 +423,7 @@ virtual void execute() {
   currentEEPose.py = rmcY + drY;
 }
 END_WORD
-
+REGISTER_WORD(PrepareForSearch)
  
 
 WORD(TurnOnRecordRangeMap)
@@ -427,6 +432,7 @@ virtual void execute() {
   recordRangeMap = 1;
 }
 END_WORD
+REGISTER_WORD(TurnOnRecordRangeMap)
 
 WORD(SetRangeMapCenterFromCurrentEEPose)
 virtual void execute() {
@@ -436,6 +442,7 @@ virtual void execute() {
   //rmcZ = currentEEPose.pz - eeRange;
 }
 END_WORD
+REGISTER_WORD(SetRangeMapCenterFromCurrentEEPose)
 
 WORD(InitDepthScan)
 CODE(1048695) // numlock + w
@@ -507,7 +514,7 @@ virtual void execute() {
   }
 }
 END_WORD
-
+REGISTER_WORD(InitDepthScan)
 
 
 
@@ -520,6 +527,7 @@ virtual void execute() {
   pushWord("rasterScanningSpeed");
 }
 END_WORD
+REGISTER_WORD(NeutralScan)
 
 WORD(NeutralScanA)
 virtual void execute() {
@@ -556,6 +564,7 @@ virtual void execute() {
   pushWord("initDepthScan"); // clear scan history
 }
 END_WORD
+REGISTER_WORD(NeutralScanA)
 
 WORD(SaveAerialGradientMap)
 CODE(196730)      // capslock + Z
@@ -681,6 +690,7 @@ virtual void execute() {
   } 
 }
 END_WORD
+REGISTER_WORD(SaveAerialGradientMap)
 
 WORD(InitializeAndFocusOnNewClass)
 CODE(196720)     // capslock + P
@@ -698,6 +708,7 @@ virtual void execute() {
   newClassCounter++;
 }
 END_WORD
+REGISTER_WORD(InitializeAndFocusOnNewClass)
 
 WORD(SaveCurrentClassDepthAndGraspMaps)
 CODE(196705) // capslock + A
@@ -745,6 +756,7 @@ virtual void execute() {
   } 
 }
 END_WORD
+REGISTER_WORD(SaveCurrentClassDepthAndGraspMaps)
 
 WORD(ScanCentered)
 virtual void execute() {
@@ -762,6 +774,7 @@ virtual void execute() {
   bDelta = 0.001;
 }
 END_WORD
+REGISTER_WORD(ScanCentered)
 
 WORD(SetTable)
 virtual void execute() {
@@ -770,6 +783,7 @@ virtual void execute() {
   pushWord("setTableA");
 }
 END_WORD
+REGISTER_WORD(SetTable)
 
 WORD(SetTableA)
 virtual void execute() {
@@ -796,6 +810,7 @@ virtual void execute() {
   } 
 }
 END_WORD
+REGISTER_WORD(SetTableA)
 
 WORD(SetIROffset)
 virtual void execute() {
@@ -805,6 +820,7 @@ virtual void execute() {
   pushWord("iRCalibrationSpeed");
 }
 END_WORD
+REGISTER_WORD(SetIROffset)
 
 WORD(SetIROffsetA)
 virtual void execute() {
@@ -815,6 +831,7 @@ virtual void execute() {
   // if adjustment was large, recommend running again
 }
 END_WORD
+REGISTER_WORD(SetIROffsetA)
 
 WORD(SetCameraReticles)
 virtual void execute() {
@@ -826,12 +843,14 @@ virtual void execute() {
 
 }
 END_WORD
+REGISTER_WORD(SetCameraReticles)
 
 WORD(SetCameraReticlesA)
 virtual void execute() {
 
 }
 END_WORD
+REGISTER_WORD(SetCameraReticlesA)
 
 WORD(MoveCropToCenter)
 virtual void execute() {
@@ -852,6 +871,7 @@ virtual void execute() {
   int testResult = cameraClient.call(ocMessage);
 }
 END_WORD
+REGISTER_WORD(MoveCropToCenter)
 
 WORD(MoveCropToCenterVanishingPoint)
 virtual void execute() {
@@ -884,18 +904,21 @@ virtual void execute() {
   //cout << "MoveCropToCenterVanishingPoint moving region of interest and vanishing point. Recalibrate vanishing point, height reticles, and magnification factors." << endl;
 }
 END_WORD
+REGISTER_WORD(MoveCropToCenterVanishingPoint)
 
 WORD(MoveToSetVanishingPointHeightLow)
 virtual void execute() {
   currentEEPose.pz = minHeight - currentTableZ;
 }
 END_WORD
+REGISTER_WORD(MoveToSetVanishingPointHeightLow)
 
 WORD(MoveToSetVanishingPointHeightHigh)
 virtual void execute() {
   currentEEPose.pz = maxHeight - currentTableZ;
 }
 END_WORD
+REGISTER_WORD(MoveToSetVanishingPointHeightHigh)
 
 WORD(SetVanishingPoint)
 virtual void execute() {
@@ -907,6 +930,7 @@ virtual void execute() {
   pushWord("setVanishingPointPrep");
 }
 END_WORD
+REGISTER_WORD(SetVanishingPoint)
 
 WORD(SetVanishingPointPrep)
 virtual void execute() {
@@ -915,6 +939,7 @@ virtual void execute() {
   pushWord("moveToSetVanishingPointHeightLow");
 }
 END_WORD
+REGISTER_WORD(SetVanishingPointPrep)
 
 WORD(SetVanishingPointA)
 virtual void execute() {
@@ -930,6 +955,7 @@ virtual void execute() {
   pushWord("moveToSetVanishingPointHeightHigh");
 }
 END_WORD
+REGISTER_WORD(SetVanishingPointA)
 
 WORD(SetVanishingPointB)
 virtual void execute() {
@@ -960,7 +986,7 @@ virtual void execute() {
   }
 }
 END_WORD
-
+REGISTER_WORD(SetVanishingPointB)
 
 WORD(SetMagnification)
 virtual void execute() {
@@ -980,13 +1006,14 @@ virtual void execute() {
   // go to height
 }
 END_WORD
+REGISTER_WORD(SetMagnification)
 
 WORD(SetMagnificationA)
 virtual void execute() {
   // adjust until close	
 }
 END_WORD
-
+REGISTER_WORD(SetMagnificationA)
 
 WORD(SetGripperMask)
 virtual void execute() {
@@ -999,6 +1026,7 @@ virtual void execute() {
   pushWord("pauseStackExecution"); 
 }
 END_WORD
+REGISTER_WORD(SetGripperMask)
 
 WORD(SetGripperMaskA)
 virtual void execute() {
@@ -1032,6 +1060,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(SetGripperMaskA)
 
 WORD(SetGripperMaskB)
 virtual void execute() {
@@ -1097,6 +1126,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(SetGripperMaskB)
 
 WORD(LoadGripperMask)
 virtual void execute() {
@@ -1122,6 +1152,7 @@ virtual void execute() {
   
 }
 END_WORD
+REGISTER_WORD(LoadGripperMask)
 
 WORD(SaveGripperMask)
 virtual void execute() {
@@ -1130,4 +1161,4 @@ virtual void execute() {
   imwrite(filename, 255*gripperMask);
 }
 END_WORD
-
+REGISTER_WORD(SaveGripperMask)

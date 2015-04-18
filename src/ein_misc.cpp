@@ -5,6 +5,7 @@ virtual void execute() {
   zero_g_toggle = !zero_g_toggle;
 }
 END_WORD
+REGISTER_WORD(ZeroGToggle)
 
 
 WORD(ClearStack)
@@ -13,7 +14,7 @@ virtual void execute() {
   clearStack();
 }
 END_WORD
-
+REGISTER_WORD(ClearStack)
 
 
 WORD(Beep)
@@ -22,7 +23,7 @@ virtual void execute() {
   cout << "\a"; cout.flush();
 }
 END_WORD
-
+REGISTER_WORD(Beep)
 
 
 
@@ -33,6 +34,7 @@ virtual void execute() {
   currentEEPose = wholeFoodsCounter1;
 }
 END_WORD
+REGISTER_WORD(AssumeWholeFoodsCounter1)
 
 WORD(AssumeWholeFoodsPantry1)
 CODE(196643)   // capslock + #
@@ -40,6 +42,7 @@ virtual void execute() {
   currentEEPose = wholeFoodsPantry1;
 }
 END_WORD
+REGISTER_WORD(AssumeWholeFoodsPantry1)
 
 
 WORD(ChangeToCounterTable)
@@ -48,6 +51,7 @@ virtual void execute() {
   currentTableZ = counterTableZ;
 }
 END_WORD
+REGISTER_WORD(ChangeToCounterTable)
   
 WORD(ChangeToPantryTable)
 CODE(1179717)    // capslock + numlock + e
@@ -55,6 +59,7 @@ virtual void execute() {
   currentTableZ = pantryTableZ;
 }
 END_WORD
+REGISTER_WORD(ChangeToPantryTable)
 
 
 WORD(ExecuteStack)
@@ -63,6 +68,7 @@ virtual void execute() {
   execute_stack = 1;
 }
 END_WORD
+REGISTER_WORD(ExecuteStack)
 
 WORD(PauseStackExecution)
 CODE('Y') 
@@ -71,6 +77,7 @@ virtual void execute()  {
   execute_stack = 0;
 }
 END_WORD
+REGISTER_WORD(PauseStackExecution)
 
 
  
@@ -81,6 +88,7 @@ virtual void execute() {
   lastPtheta = INFINITY;
 }
 END_WORD
+REGISTER_WORD(PauseAndReset)
 
 
 
@@ -118,6 +126,7 @@ virtual void execute() {
   cout << endl;
 }
 END_WORD
+REGISTER_WORD(PrintState)
 
 WORD(DecrementTargetClass)
 CODE(196438)     // capslock + pagedown
@@ -129,6 +138,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(DecrementTargetClass)
 
 
 WORD(Plus)
@@ -160,6 +170,7 @@ virtual void execute() {
 
 }
 END_WORD
+REGISTER_WORD(Plus)
 
 WORD(Equals)
 CODE('=') 
@@ -181,6 +192,7 @@ virtual void execute() {
 
 }
 END_WORD
+REGISTER_WORD(Equals)
 
 
 
@@ -199,12 +211,13 @@ virtual void execute() {
 
 }
 END_WORD
-
+REGISTER_WORD(Ift)
 
 WORD(Start)
 virtual void execute() {
 }
 END_WORD
+REGISTER_WORD(Start)
 
 WORD(Next)
 virtual void execute() {
@@ -238,6 +251,7 @@ virtual void execute() {
   
 }
 END_WORD
+REGISTER_WORD(Next)
 
 WORD(Print)
 virtual void execute() {
@@ -247,6 +261,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(Print)
 
 WORD(Dup)
 virtual void execute() {
@@ -255,12 +270,14 @@ virtual void execute() {
   pushWord(word);
 }
 END_WORD
+REGISTER_WORD(Dup)
 
 WORD(Pop)
 virtual void execute() {
   std::shared_ptr<Word> word = popWord();
 }
 END_WORD
+REGISTER_WORD(Pop)
 
 WORD(IncrementTargetClass)
 CODE(196437)// capslock + pageup
@@ -273,6 +290,7 @@ virtual void execute()
   }
 }
 END_WORD
+REGISTER_WORD(IncrementTargetClass)
 
 WORD(ChangeTargetClassToClosestBlueBox)
 virtual void execute()  {
@@ -285,7 +303,7 @@ virtual void execute()  {
   changeTargetClass(class_idx);
 }
 END_WORD
-
+REGISTER_WORD(ChangeTargetClassToClosestBlueBox)
 
 WORD(Noop)
 CODE('C')
@@ -294,6 +312,7 @@ virtual void execute()
 
 }
 END_WORD
+REGISTER_WORD(Noop)
 
 WORD(EndStackCollapseNoop)
 virtual void execute()
@@ -301,6 +320,7 @@ virtual void execute()
   endThisStackCollapse = 1;
 }
 END_WORD
+REGISTER_WORD(EndStackCollapseNoop)
 
 WORD(PrintWords)
 virtual void execute()
@@ -316,6 +336,7 @@ virtual void execute()
   wordFile.close();
 }
 END_WORD
+REGISTER_WORD(PrintWords)
 
 
 WORD(PixelGlobalTest)
@@ -325,6 +346,7 @@ virtual void execute()
   paintEEandReg1OnWrist = !paintEEandReg1OnWrist;
 }
 END_WORD
+REGISTER_WORD(PixelGlobalTest)
 
 WORD(IncMx)
 CODE(65361) // left arrow 
@@ -335,6 +357,7 @@ virtual void execute()
   cout << "m_x, m_x_h: " << m_x << endl;
 }
 END_WORD
+REGISTER_WORD(IncMx)
 
 WORD(DecMx)
 CODE(65363) // right arrow 
@@ -345,6 +368,7 @@ virtual void execute()
   cout << "m_x, m_x_h: " << m_x << endl;
 }
 END_WORD
+REGISTER_WORD(DecMx)
 
 WORD(IncMy)
 CODE(65362) // up arrow 
@@ -355,6 +379,7 @@ virtual void execute()
   cout << "m_y, m_y_h: " << m_y << endl;
 }
 END_WORD
+REGISTER_WORD(IncMy)
 
 WORD(DecMy)
 CODE(65364) // down arrow 
@@ -365,6 +390,7 @@ virtual void execute()
   cout << "m_y, m_y_h: " << m_y << endl;
 }
 END_WORD
+REGISTER_WORD(DecMy)
 
 WORD(EndStackCollapse)
 virtual void execute()
@@ -372,6 +398,7 @@ virtual void execute()
   endCollapse = 1;
 }
 END_WORD
+REGISTER_WORD(EndStackCollapse)
 
 WORD(CollapseStack)
 virtual void execute()
@@ -379,6 +406,7 @@ virtual void execute()
   endCollapse = 0;
 }
 END_WORD
+REGISTER_WORD(CollapseStack)
 
 WORD(ShakeHeadPositive)
 virtual void execute()
@@ -388,6 +416,8 @@ virtual void execute()
   headPub.publish(currentHeadPanCommand);
 }
 END_WORD
+REGISTER_WORD(ShakeHeadPositive)
+
 
 WORD(ShakeHeadNegative)
 virtual void execute()
@@ -397,6 +427,7 @@ virtual void execute()
   headPub.publish(currentHeadPanCommand);
 }
 END_WORD
+REGISTER_WORD(ShakeHeadNegative)
 
 WORD(CenterHead)
 virtual void execute()
@@ -406,6 +437,7 @@ virtual void execute()
   headPub.publish(currentHeadPanCommand);
 }
 END_WORD
+REGISTER_WORD(CenterHead)
 
 WORD(SilenceSonar)
 virtual void execute()
@@ -413,6 +445,7 @@ virtual void execute()
   sonarPub.publish(currentSonarCommand);
 }
 END_WORD
+REGISTER_WORD(SilenceSonar)
 
 WORD(Nod)
 virtual void execute()
@@ -421,6 +454,7 @@ virtual void execute()
   nodPub.publish(currentHeadNodCommand);
 }
 END_WORD
+REGISTER_WORD(Nod)
 
 WORD(ResetAuxiliary)
 virtual void execute()
@@ -439,6 +473,7 @@ virtual void execute()
   pushWord("centerHead");
 }
 END_WORD
+REGISTER_WORD(ResetAuxiliary)
 
 WORD(ShutdownAllNonessentialSystems)
 virtual void execute()
@@ -451,6 +486,7 @@ virtual void execute()
   cout << "Shutting down all non-essential systems." << endl;
 }
 END_WORD
+REGISTER_WORD(ShutdownAllNonessentialSystems)
 
 WORD(BringUpAllNonessentialSystems)
 virtual void execute()
@@ -463,6 +499,7 @@ virtual void execute()
   cout << "Bringing up all non-essential systems." << endl;
 }
 END_WORD
+REGISTER_WORD(BringUpAllNonessentialSystems)
 
 WORD(WaitUntilImageCallbackReceived)
 virtual void execute()
@@ -473,6 +510,7 @@ virtual void execute()
   endThisStackCollapse = 1;
 }
 END_WORD
+REGISTER_WORD(WaitUntilImageCallbackReceived)
 
 WORD(WaitUntilImageCallbackReceivedA)
 virtual void execute()
@@ -486,6 +524,7 @@ virtual void execute()
   }
 }
 END_WORD
+REGISTER_WORD(WaitUntilImageCallbackReceivedA)
 
 WORD(WriteXMLEnvironment)
 virtual void execute()
@@ -512,4 +551,5 @@ virtual void execute()
   ofile.close();
 }
 END_WORD
+REGISTER_WORD(WriteXMLEnvironment)
 
