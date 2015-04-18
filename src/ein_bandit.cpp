@@ -2,7 +2,7 @@
 
 WORD(SaveLearnedModels)
 CODE(1245281)     // capslock + numlock + A
-virtual void execute()       {
+virtual void execute(std::shared_ptr<MachineState> ms)       {
   if (focusedClass > -1) {
     // initialize this if we need to
     guardGraspMemory();
@@ -56,7 +56,7 @@ REGISTER_WORD(SaveLearnedModels)
 
 WORD(SetRandomPositionAndOrientationForHeightLearning)
 CODE( 1179687)     // capslock + numlock + '
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   double noX = bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
   double noY = bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
   noX = noX + (((noX > 0) - 0.5) * 2) * bbLearnPerturbBias;
@@ -72,7 +72,7 @@ REGISTER_WORD(SetRandomPositionAndOrientationForHeightLearning)
 
 WORD(BeginHeightLearning)
 CODE(1245242)     // capslock + numlock + :
-virtual void execute()       {
+virtual void execute(std::shared_ptr<MachineState> ms)       {
   eepReg3 = rssPose;
   heightAttemptCounter = 0;
   heightSuccessCounter = 0;
@@ -99,7 +99,7 @@ REGISTER_WORD(BeginHeightLearning)
 
 WORD(ContinueHeightLearning)
 CODE(1179707)     // capslock + numlock + ;
-  virtual void execute()       {
+  virtual void execute(std::shared_ptr<MachineState> ms)       {
   cout << "continuing bounding box learning with currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
   synServoLockFrames = 0;
   currentGradientServoIterations = 0;
@@ -167,7 +167,7 @@ REGISTER_WORD(ContinueHeightLearning)
 
 WORD(RecordHeightLearnTrial)
 CODE(1179694)     // capslock + numlock + .
-  virtual void execute()       {
+  virtual void execute(std::shared_ptr<MachineState> ms)       {
   // Distances for the eraser
   //0.04, 2.57e-05, 0.0005, 0.0009, 0.007, 0.0006
   // ATTN 17
@@ -196,7 +196,7 @@ REGISTER_WORD(RecordHeightLearnTrial)
 
 WORD(LoadSampledGraspMemory)
 CODE(131117)     // capslock + -
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   loadSampledGraspMemory();
   drawMapRegisters();
 }
@@ -205,7 +205,7 @@ REGISTER_WORD(LoadSampledGraspMemory)
 
 WORD(LoadMarginalGraspMemory)
 CODE(131133)     // capslock + =
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   loadMarginalGraspMemory();
   drawMapRegisters();
 }
@@ -214,7 +214,7 @@ REGISTER_WORD(LoadMarginalGraspMemory)
 
 WORD(LoadPriorGraspMemoryAnalytic)
 CODE(196360)     // capslock + backspace
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   loadPriorGraspMemory(ANALYTIC_PRIOR);
   copyGraspMemoryTriesToClassGraspMemoryTries();
   loadMarginalGraspMemory();
@@ -232,7 +232,7 @@ REGISTER_WORD(LoadPriorGraspMemoryAnalytic)
 
 WORD(LoadPriorGraspMemoryUniform)
 CODE(261896)     // capslock + shift + backspace
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   loadPriorGraspMemory(UNIFORM_PRIOR);
   copyGraspMemoryTriesToClassGraspMemoryTries();
   loadMarginalGraspMemory();
@@ -249,7 +249,7 @@ REGISTER_WORD(LoadPriorGraspMemoryUniform)
 
 WORD(LoadSampledHeightMemory)
 CODE(1179693)     // capslock + numlock + -
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   loadSampledHeightMemory();
   drawHeightMemorySample();
 }
@@ -258,7 +258,7 @@ REGISTER_WORD(LoadSampledHeightMemory)
 
 WORD(LoadMarginalHeightMemory)
 CODE(1179709)     // capslock + numlock + =
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   loadMarginalHeightMemory();
   drawHeightMemorySample();
 }
@@ -267,7 +267,7 @@ REGISTER_WORD(LoadMarginalHeightMemory)
 
 WORD(LoadPriorHeightMemoryAnalytic)
 CODE(1244936)     // capslock + numlock + backspace
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   loadPriorHeightMemory(ANALYTIC_PRIOR);
   copyHeightMemoryTriesToClassHeightMemoryTries();
   loadMarginalHeightMemory();
@@ -278,7 +278,7 @@ REGISTER_WORD(LoadPriorHeightMemoryAnalytic)
 
 WORD(LoadPriorHeightMemoryUniform)
 CODE(1310472)     // capslock + numlock + shift + backspace
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   loadPriorHeightMemory(UNIFORM_PRIOR);
   copyHeightMemoryTriesToClassHeightMemoryTries();
   loadMarginalHeightMemory();
@@ -290,7 +290,7 @@ REGISTER_WORD(LoadPriorHeightMemoryUniform)
 
 WORD(SetPickModeToStaticPrior)
 CODE(1179731)     // capslock + numlock + s
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentPickMode = STATIC_PRIOR;
   cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
 }
@@ -299,7 +299,7 @@ REGISTER_WORD(SetPickModeToStaticPrior)
 
 WORD(SetPickModeToLearningSampling)
 CODE(1179716)     // capslock + numlock + d
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentPickMode = LEARNING_SAMPLING;
   cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
 }
@@ -308,7 +308,7 @@ REGISTER_WORD(SetPickModeToLearningSampling)
 
 WORD(SetPickModeToLearningAlgorithmC)
 CODE(1245284) // capslock + numlock + D
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentPickMode = LEARNING_ALGORITHMC;
   cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
 }
@@ -317,7 +317,7 @@ REGISTER_WORD(SetPickModeToLearningAlgorithmC)
 
 WORD(SetPickModeToStaticMarginals)
 CODE(1179718)     // capslock + numlock + f
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentPickMode = STATIC_MARGINALS;
   cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
 }
@@ -326,7 +326,7 @@ REGISTER_WORD(SetPickModeToStaticMarginals)
 
 
 WORD(SetBoundingBoxModeToMapping)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentBoundingBoxMode = MAPPING;
   cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
 }
@@ -335,7 +335,7 @@ REGISTER_WORD(SetBoundingBoxModeToMapping)
 
 WORD(SetBoundingBoxModeToStaticPrior)
 CODE(1179722)     // capslock + numlock + j
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentBoundingBoxMode = STATIC_PRIOR;
   cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
 }
@@ -344,7 +344,7 @@ REGISTER_WORD(SetBoundingBoxModeToStaticPrior)
 
 WORD(SetBoundingBoxModeToLearningSampling)
 CODE(1179723)     // capslock + numlock + k
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentBoundingBoxMode = LEARNING_SAMPLING;
   cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
 }
@@ -353,7 +353,7 @@ REGISTER_WORD(SetBoundingBoxModeToLearningSampling)
 
 WORD(SetBoundingBoxModeToLearningAlgorithmC)
 CODE(1245291)     // capslock + numlock + K
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentBoundingBoxMode = LEARNING_ALGORITHMC;
   cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
 }
@@ -362,7 +362,7 @@ REGISTER_WORD(SetBoundingBoxModeToLearningAlgorithmC)
 
 WORD(SetBoundingBoxModeToStaticMarginals)
 CODE(1179724)     // capslock + numlock + l
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentBoundingBoxMode = STATIC_MARGINALS;
   cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
 }
@@ -371,7 +371,7 @@ REGISTER_WORD(SetBoundingBoxModeToStaticMarginals)
 
 WORD(UniformlySampleHeight)
 CODE(1245246)      // capslock + numlock + >
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   int thisRandThompsonHeight = lrand48() % hmWidth;
   if (currentBoundingBoxMode == MAPPING) {
     thisRandThompsonHeight = mappingHeightIdx;
@@ -391,7 +391,7 @@ REGISTER_WORD(UniformlySampleHeight)
 WORD(SetGraspMemoriesFromClassGraspMemories)  
 // capslock + numlock + i
 CODE(1179721)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   copyClassGraspMemoryTriesToGraspMemoryTries();
 }
 END_WORD
@@ -401,7 +401,7 @@ REGISTER_WORD(SetGraspMemoriesFromClassGraspMemories)
 WORD(SetHeightMemoriesFromClassHeightMemories)
 // capslock + numlock + I 
 CODE(1245289)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
         cout << "Loading height memories." << endl;
         if ((classHeightMemoryTries[targetClass].rows > 1) && (classHeightMemoryPicks[targetClass].cols == 1)) {
@@ -422,7 +422,7 @@ REGISTER_WORD(SetHeightMemoriesFromClassHeightMemories)
 
 WORD(SampleHeight)
 CODE(1245247)   // capslock + numlock + ?
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
     
   if (currentBoundingBoxMode != STATIC_PRIOR) {
     if (currentBoundingBoxMode == MAPPING) {

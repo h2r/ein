@@ -20,7 +20,7 @@ std::string operationStatusToString(operationStatusType mode)
 
 
 
-std::string pickModeToString(pickMode mode) {
+string pickModeToString(pickMode mode) {
   string result;
   if (mode == STATIC_PRIOR) {
     result = "static prior";

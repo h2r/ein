@@ -2,7 +2,7 @@
 
 WORD(SetTargetClassToLastLabelLearned)
 CODE(1179730)     // capslock + numlock + r
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int i = 0; i < numClasses; i++) {
     if (lastLabelLearned.compare(classLabels[i]) == 0) {
       targetClass = i;
@@ -49,7 +49,7 @@ REGISTER_WORD(SetTargetClassToLastLabelLearned)
 
 WORD(SetLastLabelLearned)
 CODE(1179732)    // capslock + numlock + t 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   lastLabelLearned = focusedClassLabel;
   cout << "lastLabelLearned: " << lastLabelLearned << endl;
 }
@@ -58,7 +58,7 @@ REGISTER_WORD(SetLastLabelLearned)
 
 WORD(TrainModels)
 CODE(131142)     // capslock + f
-virtual void execute()       {
+virtual void execute(std::shared_ptr<MachineState> ms)       {
   classLabels.resize(0);
   classPoseModels.resize(0);
 
@@ -133,7 +133,7 @@ REGISTER_WORD(TrainModels)
 
 WORD(VisionCycleNoClassify)
 CODE(196721)     // capslock + Q
-virtual void execute()       {
+virtual void execute(std::shared_ptr<MachineState> ms)       {
   pushWord("mapEmptySpace");
   pushWord("goFindBlueBoxes"); // blue boxes
   pushCopies("density", 1); // density
@@ -144,7 +144,7 @@ REGISTER_WORD(VisionCycleNoClassify)
 
 WORD(RecordExampleAsFocusedClass)
 CODE(131148)     // capslock + l 
-virtual void execute()       {
+virtual void execute(std::shared_ptr<MachineState> ms)       {
   if ((focusedClass > -1) && (bTops.size() == 1)) {
     string thisLabelName = focusedClassLabel;
     Mat crop = cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
@@ -159,7 +159,7 @@ END_WORD
 REGISTER_WORD(RecordExampleAsFocusedClass)
 
 WORD(RecordAllExamplesFocusedClass)
-virtual void execute()       {
+virtual void execute(std::shared_ptr<MachineState> ms)       {
   if ( focusedClass > -1 ) {
     for (int c = 0; c < bTops.size(); c++) {
       string thisLabelName = focusedClassLabel;
@@ -177,7 +177,7 @@ REGISTER_WORD(RecordAllExamplesFocusedClass)
 
 WORD(SetRandomOrientationForPhotospin)
 CODE(1310722)     // capslock + numlock + "
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   // this ensures that we explore randomly within each grasp gear sector
   double arcFraction = 0.125;
   double noTheta = arcFraction * 3.1415926 * ((drand48() - 0.5) * 2.0);
@@ -188,7 +188,7 @@ REGISTER_WORD(SetRandomOrientationForPhotospin)
 
 WORD(RgbScan)
 CODE(131143)      // capslock + g
-virtual void execute()       {
+virtual void execute(std::shared_ptr<MachineState> ms)       {
   // ATTN 16
 
   pushCopies('e', 5);
@@ -229,7 +229,7 @@ REGISTER_WORD(RgbScan)
 
 WORD(PhotoSpin)
 CODE(196711)      // capslock + G
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int angleCounter = 0; angleCounter < totalGraspGears; angleCounter++) {
     //pushWord(131148); // save crop as focused class if there is only one
     pushWord("recordAllExamplesFocusedClass");
@@ -245,7 +245,7 @@ REGISTER_WORD(PhotoSpin)
 
 WORD(SetTargetReticleToTheMaxMappedPosition)
 CODE(1048678)  // numlock + f
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   trX = rmcX + rmDelta*(maxX-rmHalfWidth);
   trY = rmcY + rmDelta*(maxY-rmHalfWidth);
 }
@@ -254,7 +254,7 @@ REGISTER_WORD(SetTargetReticleToTheMaxMappedPosition)
 
 WORD(DownsampleIrScan)
 CODE(1048690) // numlock + r
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   // replace unsampled regions with the lowest z reading, highest reading in those maps because they are inverted
   // 
   double highestReading = -VERYBIGNUMBER;
@@ -308,7 +308,7 @@ REGISTER_WORD(DownsampleIrScan)
 
 WORD(ScanObject)
 CODE(196708)     // capslock + D
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "ENTERING WHOLE FOODS VIDEO MAIN." << endl;
   cout << "Program will pause shortly. Please adjust height for bounding box servo before unpausing." << endl;
   cout << "Program will pause a second time. Please adjust height for IR scan before unpausing." << endl;
@@ -418,7 +418,7 @@ REGISTER_WORD(ScanObject)
 
 WORD(PrepareForSearch)
 CODE(1114150)     // numlock + &
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose.px = rmcX + drX;
   currentEEPose.py = rmcY + drY;
 }
@@ -428,14 +428,14 @@ REGISTER_WORD(PrepareForSearch)
 
 WORD(TurnOnRecordRangeMap)
 CODE(1048683) 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   recordRangeMap = 1;
 }
 END_WORD
 REGISTER_WORD(TurnOnRecordRangeMap)
 
 WORD(SetRangeMapCenterFromCurrentEEPose)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Set rmcX and rmcY from currentEEPose." << endl;
   rmcX = currentEEPose.px;
   rmcY = currentEEPose.py;
@@ -446,7 +446,7 @@ REGISTER_WORD(SetRangeMapCenterFromCurrentEEPose)
 
 WORD(InitDepthScan)
 CODE(1048695) // numlock + w
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Set rmcX and rmcY. Resetting maps. " << rmcX << " " << trueEEPose.position.x << endl;
   rmcX = trueEEPose.position.x;
   rmcY = trueEEPose.position.y;
@@ -521,7 +521,7 @@ REGISTER_WORD(InitDepthScan)
 
 WORD(NeutralScan)
 CODE(1048622) // numlock + .
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   pushWord("cruisingSpeed");
   pushWord("neutralScanA");
   pushWord("rasterScanningSpeed");
@@ -530,7 +530,7 @@ END_WORD
 REGISTER_WORD(NeutralScan)
 
 WORD(NeutralScanA)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Entering neutral scan." << endl;
   double lineSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
   double betweenSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
@@ -568,7 +568,7 @@ REGISTER_WORD(NeutralScanA)
 
 WORD(SaveAerialGradientMap)
 CODE(196730)      // capslock + Z
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   Size sz = objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
@@ -694,7 +694,7 @@ REGISTER_WORD(SaveAerialGradientMap)
 
 WORD(InitializeAndFocusOnNewClass)
 CODE(196720)     // capslock + P
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   focusedClass = numClasses+newClassCounter;
   char buf[1024];
   sprintf(buf, "autoClass%d_%s", focusedClass, left_or_right_arm.c_str());
@@ -712,7 +712,7 @@ REGISTER_WORD(InitializeAndFocusOnNewClass)
 
 WORD(SaveCurrentClassDepthAndGraspMaps)
 CODE(196705) // capslock + A
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   if (focusedClass > -1) {
     // initialize this if we need to
     guardGraspMemory();
@@ -759,7 +759,7 @@ END_WORD
 REGISTER_WORD(SaveCurrentClassDepthAndGraspMaps)
 
 WORD(ScanCentered)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   pushSpeedSign(MOVE_FAST);
   pushWord("rgbScan");
   pushWord("rgbScan");
@@ -777,7 +777,7 @@ END_WORD
 REGISTER_WORD(ScanCentered)
 
 WORD(SetTable)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   firstTableHeightTime = ros::Time::now();
   mostRecentUntabledZLastValue = mostRecentUntabledZ;
   pushWord("setTableA");
@@ -786,7 +786,7 @@ END_WORD
 REGISTER_WORD(SetTable)
 
 WORD(SetTableA)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   ros::Time thisTableHeightTime = ros::Time::now();
 
   mostRecentUntabledZLastValue = ((1.0-mostRecentUntabledZDecay)*mostRecentUntabledZ) + (mostRecentUntabledZDecay*mostRecentUntabledZLastValue);
@@ -813,7 +813,7 @@ END_WORD
 REGISTER_WORD(SetTableA)
 
 WORD(SetIROffset)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   pushWord("setIROffsetA");
   pushWord("cruisingSpeed");
   pushWord("neutralScanA");
@@ -823,7 +823,7 @@ END_WORD
 REGISTER_WORD(SetIROffset)
 
 WORD(SetIROffsetA)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   // find the maximum in the map
   // find the coordinate of the maximum
   // compare the coordinate to the root position
@@ -834,7 +834,7 @@ END_WORD
 REGISTER_WORD(SetIROffsetA)
 
 WORD(SetCameraReticles)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
 
   // setReticlesA
   // go to height
@@ -846,14 +846,14 @@ END_WORD
 REGISTER_WORD(SetCameraReticles)
 
 WORD(SetCameraReticlesA)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
 
 }
 END_WORD
 REGISTER_WORD(SetCameraReticlesA)
 
 WORD(MoveCropToCenter)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   Size sz = accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
@@ -874,7 +874,7 @@ END_WORD
 REGISTER_WORD(MoveCropToCenter)
 
 WORD(MoveCropToCenterVanishingPoint)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   Size sz = accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
@@ -907,21 +907,21 @@ END_WORD
 REGISTER_WORD(MoveCropToCenterVanishingPoint)
 
 WORD(MoveToSetVanishingPointHeightLow)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose.pz = minHeight - currentTableZ;
 }
 END_WORD
 REGISTER_WORD(MoveToSetVanishingPointHeightLow)
 
 WORD(MoveToSetVanishingPointHeightHigh)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose.pz = maxHeight - currentTableZ;
 }
 END_WORD
 REGISTER_WORD(MoveToSetVanishingPointHeightHigh)
 
 WORD(SetVanishingPoint)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
 
   setVanishingPointIterations = 0;
   // go low, wait
@@ -933,7 +933,7 @@ END_WORD
 REGISTER_WORD(SetVanishingPoint)
 
 WORD(SetVanishingPointPrep)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   pushWord("darkServo");
   pushWord("waitUntilAtCurrentPosition");
   pushWord("moveToSetVanishingPointHeightLow");
@@ -942,7 +942,7 @@ END_WORD
 REGISTER_WORD(SetVanishingPointPrep)
 
 WORD(SetVanishingPointA)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   
   setVanishingPointIterations++;
   currentEEPose.pz = -currentTableZ + 0.4;
@@ -958,7 +958,7 @@ END_WORD
 REGISTER_WORD(SetVanishingPointA)
 
 WORD(SetVanishingPointB)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
 
   // where is the darkest point now? did it move? move vp to darkest point and possibly run again
   int darkX = 0;
@@ -989,7 +989,7 @@ END_WORD
 REGISTER_WORD(SetVanishingPointB)
 
 WORD(SetMagnification)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
 
   // move back
   // adjust until close	
@@ -1009,14 +1009,14 @@ END_WORD
 REGISTER_WORD(SetMagnification)
 
 WORD(SetMagnificationA)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   // adjust until close	
 }
 END_WORD
 REGISTER_WORD(SetMagnificationA)
 
 WORD(SetGripperMask)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Program paused; please present the first contrast medium." << endl;
   pushWord("setGripperMaskA"); 
   pushWord("accumulatedDensity");
@@ -1029,7 +1029,7 @@ END_WORD
 REGISTER_WORD(SetGripperMask)
 
 WORD(SetGripperMaskA)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Program paused; please present the second contrast medium." << endl;
   pushWord("setGripperMaskB"); 
   pushWord("accumulatedDensity");
@@ -1063,7 +1063,7 @@ END_WORD
 REGISTER_WORD(SetGripperMaskA)
 
 WORD(SetGripperMaskB)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Thank you. Don't forget to save your mask!" << endl;
 
   Size sz = gripperMask.size();
@@ -1129,7 +1129,7 @@ END_WORD
 REGISTER_WORD(SetGripperMaskB)
 
 WORD(LoadGripperMask)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   string filename = data_directory + "/" + left_or_right_arm + "GripperMask.bmp";
   cout << "Loading gripper mask from " << filename << endl;
   Mat tmpMask = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
@@ -1155,7 +1155,7 @@ END_WORD
 REGISTER_WORD(LoadGripperMask)
 
 WORD(SaveGripperMask)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   string filename = data_directory + "/" + left_or_right_arm + "GripperMask.bmp";
   cout << "Saving gripper mask to " << filename << endl;
   imwrite(filename, 255*gripperMask);

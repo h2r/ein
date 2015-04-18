@@ -1,11 +1,12 @@
-#ifndef _WORDH_
-#define _WORDH_
+#ifndef _WORD_H_
+#define _WORD_H_
 
 
 using namespace std;
 #include <sstream>
 #include <map>
 #include <boost/algorithm/string.hpp>
+#include "machine.h"
 using namespace boost::algorithm;
 
 
@@ -13,7 +14,7 @@ class Word {
   
 public:
 
-  virtual void execute() = 0;
+  virtual void execute(std::shared_ptr<MachineState> ms) = 0;
   virtual string name() = 0;
 
   virtual vector<string> names() {
@@ -86,7 +87,7 @@ public:
   IntegerWord(int _n) {
     n = _n;
   }
-  void execute() {
+  void execute(std::shared_ptr<MachineState> ms) {
   }
   string name() {
     stringstream ss;
@@ -154,7 +155,7 @@ public:
   StringWord(string _s) {
     s = _s;
   }
-  void execute() {
+  void execute(std::shared_ptr<MachineState> ms) {
   }
 
   string name() {
@@ -199,7 +200,7 @@ public:
   SymbolWord(string _s) {
     s = _s;
   }
-  void execute() {
+  void execute(std::shared_ptr<MachineState> ms) {
   }
 
   string name() {
@@ -218,11 +219,11 @@ class CompoundWord {
   CompoundWord(vector<std::shared_ptr<Word> > _stack) {
     stack = _stack;
   }
-  virtual void execute();
+  virtual void execute(std::shared_ptr<MachineState> ms);
 };
 
 
 std::map<int, std::shared_ptr<Word> > create_character_code_to_word(std::vector<std::shared_ptr<Word> > words);
 std::map<string, std::shared_ptr<Word> > create_name_to_word(std::vector<std::shared_ptr<Word> > words);
 
-#endif /* _WORDH_ */
+#endif /* _WORD_H_ */
