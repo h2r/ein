@@ -78,20 +78,20 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   heightSuccessCounter = 0;
   thompsonPickHaltFlag = 0;
   thompsonHeightHaltFlag = 0;
-  pushWord("continueHeightLearning"); // continue height learning
-  pushWord(65568+3); // record register 3
+  ms->pushWord("continueHeightLearning"); // continue height learning
+  ms->pushWord(65568+3); // record register 3
 
-  pushWord(131139); // synchronic servo don't take closest
-  pushWord("synchronicServo"); // synchronic servo
-  pushWord(196707); // synchronic servo take closest
-  pushWord("visionCycle"); // vision cycle
-  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  ms->pushWord(131139); // synchronic servo don't take closest
+  ms->pushWord("synchronicServo"); // synchronic servo
+  ms->pushWord(196707); // synchronic servo take closest
+  ms->pushWord("visionCycle"); // vision cycle
+  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   { // prepare to servo
     //currentEEPose.pz = wholeFoodsCounter1.pz+.1;
-    pushWord(1245248); // change to height 1
+    ms->pushWord(1245248); // change to height 1
   }
-  //pushWord(1179723); // change height inference mode to LEARNING_SAMPLING
-  pushWord('3'); // recall register 3
+  //ms->pushWord(1179723); // change height inference mode to LEARNING_SAMPLING
+  ms->pushWord('3'); // recall register 3
 }
 END_WORD
 REGISTER_WORD(BeginHeightLearning)
@@ -109,9 +109,9 @@ CODE(1179707)     // capslock + numlock + ;
   if (thompsonHardCutoff) {
     if (heightAttemptCounter < thompsonTries - 1) {
       // push this program 
-      pushWord("continueHeightLearning"); // begin bounding box learning
+      ms->pushWord("continueHeightLearning"); // begin bounding box learning
     } else {
-      pushCopies("beep", 15); // beep
+      ms->pushCopies("beep", 15); // beep
     }
   }
   if (thompsonAdaptiveCutoff) {
@@ -119,48 +119,48 @@ CODE(1179707)     // capslock + numlock + ;
          (heightAttemptCounter >= thompsonTries - 1) ) {
       cout << "Clearing call stack. thompsonHeightHaltFlag = " << thompsonHeightHaltFlag << 
         " and we did " << heightAttemptCounter << " tries." << endl;
-      clearStack();
-      pushCopies("beep", 15); // beep
+      ms->clearStack();
+      ms->pushCopies("beep", 15); // beep
       return;
     } else {
       if (heightAttemptCounter < thompsonTries - 1) {
         // push this program 
-        pushWord("continueHeightLearning"); // begin bounding box learning
+        ms->pushWord("continueHeightLearning"); // begin bounding box learning
       } else {
         cout << "Clearing call stack. thompsonHeightHaltFlag = " << thompsonHeightHaltFlag << 
           " and we did " << heightAttemptCounter << " tries." << endl;
-        clearStack();
+        ms->clearStack();
       }
     }
   }
 
-  pushWord("recordHeightLearnTrial"); 
+  ms->pushWord("recordHeightLearnTrial"); 
 
-  pushWord("synchronicServoDoNotTakeClosest"); 
-  pushWord("synchronicServo"); // synchronic servo
-  pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
-  pushWord("visionCycle"); // vision cycle
-  //pushWord(1179695); // check to see if bounding box is unique (early outting if not)
-  pushWord("visionCycle"); // vision cycle
-  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  pushWord("setRandomPositionAndOrientationForHeightLearning"); // set random position for bblearn
+  ms->pushWord("synchronicServoDoNotTakeClosest"); 
+  ms->pushWord("synchronicServo"); // synchronic servo
+  ms->pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
+  ms->pushWord("visionCycle"); // vision cycle
+  //ms->pushWord(1179695); // check to see if bounding box is unique (early outting if not)
+  ms->pushWord("visionCycle"); // vision cycle
+  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  ms->pushWord("setRandomPositionAndOrientationForHeightLearning"); // set random position for bblearn
 
-  pushWord(65568+4); // record register 4
+  ms->pushWord(65568+4); // record register 4
 
   // servo to object, which will early out if it times out 
-  pushWord(131139); // synchronic servo don't take closest
-  pushWord("synchronicServo"); // synchronic servo
-  pushWord(196707); // synchronic servo take closest
-  pushWord("visionCycle"); // vision cycle
-  //pushWord(1179695); // check to see if bounding box is unique (early outting if not)
-  pushWord("visionCycle"); // vision cycle
-  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  pushWord("setRandomPositionAndOrientationForHeightLearning"); // set random position for bblearn
+  ms->pushWord(131139); // synchronic servo don't take closest
+  ms->pushWord("synchronicServo"); // synchronic servo
+  ms->pushWord(196707); // synchronic servo take closest
+  ms->pushWord("visionCycle"); // vision cycle
+  //ms->pushWord(1179695); // check to see if bounding box is unique (early outting if not)
+  ms->pushWord("visionCycle"); // vision cycle
+  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  ms->pushWord("setRandomPositionAndOrientationForHeightLearning"); // set random position for bblearn
 
-  pushWord("sampleHeight"); // sample height
+  ms->pushWord("sampleHeight"); // sample height
 
-  pushWord("changeToPantryTable"); // change to pantry table
-  pushWord('3'); // recall register 3
+  ms->pushWord("changeToPantryTable"); // change to pantry table
+  ms->pushWord('3'); // recall register 3
 }
 END_WORD
 REGISTER_WORD(ContinueHeightLearning)

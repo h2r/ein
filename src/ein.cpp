@@ -134,14 +134,13 @@
 #include "eePose.h"
 #include "eigen_util.h"
 #include "ein_util.h"
-#include "machine.h"
 
 using namespace std;
 using namespace cv;
 using namespace Eigen;
 
 MachineState machineState;
-std::shared_ptr<MachineState> pMachineState = std::make_shared<MachineState>(machineState);
+std::shared_ptr<MachineState> pMachineState;
 
 movementState currentMovementState = STOPPED;
 
@@ -229,19 +228,6 @@ double default_ikShare = 1.0;
 
 std::shared_ptr<Word> current_instruction = NULL;
 double tap_factor = 0.1;
-int execute_stack = 0;
-
-std::vector<std::shared_ptr<Word> > call_stack;
-void clearStack();
-std::shared_ptr<Word> popWord();
-bool pushWord(int code);
-bool pushWord(string name);
-bool pushWord(std::shared_ptr<Word> word);
-std::shared_ptr<Word> nameToWord(string name);
-
-std::vector<std::shared_ptr<Word> > words;
-std::map<int, std::shared_ptr<Word> > character_code_to_word;
-std::map<string, std::shared_ptr<Word> > name_to_word;
 
 int slf_thresh = 5;
 int successive_lock_frames = 0;
@@ -1555,11 +1541,10 @@ cv::Vec3b getCRColor();
 cv::Vec3b getCRColor(Mat im);
 Quaternionf extractQuatFromPose(geometry_msgs::Pose poseIn);
 
-void pushNoOps(int n);
-void pushSpeedSign(double speed);
 
-void scanXdirection(double speedOnLines, double speedBetweenLines);
-void scanYdirection(double speedOnLines, double speedBetweenLines);
+
+void scanXdirection(shared_ptr<MachineState> ms, double speedOnLines, double speedBetweenLines);
+void scanYdirection(shared_ptr<MachineState> ms, double speedOnLines, double speedBetweenLines);
 
 Eigen::Quaternionf getGGRotation(int givenGraspGear);
 void setGGRotation(int thisGraspGear);
@@ -1574,7 +1559,7 @@ void reseedIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * gi
 void update_baxter(ros::NodeHandle &n);
 void timercallback1(const ros::TimerEvent&);
 void imageCallback(const sensor_msgs::ImageConstPtr& msg);
-void renderCoreView();
+void renderCoreView(shared_ptr<MachineState> ms);
 void renderObjectMapView();
 void drawMapPolygon(gsl_matrix * poly, cv::Scalar color);
 void targetCallback(const geometry_msgs::Point& point);
@@ -1587,7 +1572,7 @@ void pilotInit();
 void spinlessPilotMain();
 
 int doCalibrateGripper();
-int calibrateGripper();
+int calibrateGripper(shared_ptr<MachineState> ms);
 int shouldIPick(int classToPick);
 int getLocalGraspGear(int globalGraspGearIn);
 int getGlobalGraspGear(int localGraspGearIn);
@@ -1597,7 +1582,7 @@ void convertGlobalGraspIdxToLocal(const int rx, const int ry,
 void convertLocalGraspIdxToGlobal(const int localX, const int localY,
                                   int * rx, int * ry);
 
-void changeTargetClass(int);
+void changeTargetClass(shared_ptr<MachineState> ms, int);
 
 void guardGraspMemory();
 void loadSampledGraspMemory();
@@ -1641,13 +1626,13 @@ void selectMaxTargetLinearFilter(double minDepth);
 void recordBoundingBoxSuccess();
 void recordBoundingBoxFailure();
 
-void restartBBLearning();
+void restartBBLearning(shared_ptr<MachineState> ms);
 
 eePose analyticServoPixelToReticle(eePose givenPixel, eePose givenReticle, double angle);
 void moveCurrentGripperRayToCameraVanishingRay();
-void gradientServo();
-void synchronicServo();
-void darkServo();
+void gradientServo(shared_ptr<MachineState> ms);
+void synchronicServo(shared_ptr<MachineState> ms);
+void darkServo(shared_ptr<MachineState> ms);
 int simulatedServo();
 
 void initRangeMaps();
@@ -1728,7 +1713,7 @@ void goFindRedBoxes();
 
 void resetAccumulatedImageAndMass();
 void substituteAccumulatedImageQuantities();
-void substituteLatestImageQuantities();
+void substituteLatestImageQuantities(shared_ptr<MachineState> ms);
 
 void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg);
 
@@ -2701,15 +2686,15 @@ void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
   if (class_idx == -1) {
     cout << "Could not find class " << fetchCommand << endl; 
     // ATTN 25
-    pushWord("clearStackAcceptFetchCommands"); 
+    pMachineState->pushWord("clearStackAcceptFetchCommands"); 
   } else {
-    clearStack();
+    pMachineState->clearStack();
 
-    changeTargetClass(class_idx);
+    changeTargetClass(pMachineState, class_idx);
     // ATTN 25
-    //pushWord("mappingPatrol");
-    pushWord("deliverObject");
-    execute_stack = 1;
+    //pMachineState->pushWord("mappingPatrol");
+    pMachineState->pushWord("deliverObject");
+    pMachineState->execute_stack = 1;
     acceptingFetchCommands = 0;
   }
 }
@@ -2835,9 +2820,9 @@ void forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
   for (unsigned int i = 0; i < tokens.size(); i++) {
     trim(tokens[i]);
     if (tokens[i] == "executeStack" || tokens[i] == ";") {
-      execute_stack = 1;
+      pMachineState->execute_stack = 1;
     } else {
-      if (!pushWord(tokens[i])) {
+      if (!pMachineState->pushWord(tokens[i])) {
         cout << "Warning, ignoring unknown word from the forth topic: " << tokens[i] << endl;
       }
     }
@@ -3095,42 +3080,9 @@ Quaternionf extractQuatFromPose(geometry_msgs::Pose poseIn) {
 }
 
 
-void pushNoOps(int n) {
-  for (int i = 0; i < n; i++)
-    pushWord('C'); 
-}
 
-void pushCopies(int symbol, int times) {
-  for (int i = 0; i < times; i++) {
-    pushWord(symbol); 
-  }
-}
-void pushCopies(string symbol, int times) {
-  for (int i = 0; i < times; i++) {
-    pushWord(symbol); 
-  }
-}
 
-void pushSpeedSign(double speed) {
-
-  if (speed == NOW_THATS_FAST)
-    pushWord(1114193); // set speed to NOW_THATS_FAST
-  if (speed == MOVE_EVEN_FASTER)
-    pushWord(1114199); // set speed to MOVE_EVEN_FASTER 
-  if (speed == MOVE_FASTER)
-    pushWord(1114181); // set speed to MOVE_FASTER
-  if (speed == MOVE_FAST)
-    pushWord(1048674); // set speed to MOVE_FAST 
-  if (speed == MOVE_MEDIUM)
-    pushWord(1048686); // set speed to MOVE_MEDIUM
-  if (speed == MOVE_SLOW)
-    pushWord(1114190); // set speed to MOVE_SLOW
-  if (speed == MOVE_VERY_SLOW)
-    pushWord(1114178); // set speed to MOVE_VERY_SLOW
-
-}
-
-void scanXdirection(double speedOnLines, double speedBetweenLines) {
+void scanXdirection(shared_ptr<MachineState> ms, double speedOnLines, double speedBetweenLines) {
 // XXX TODO work this out so that it scans from -rmHalfWidth*rmDelta to rmHalfWidth*rmDelta
 
 // XXX TODO right now we need to exit after every increment to set a new position in case there was an IK error
@@ -3140,48 +3092,48 @@ void scanXdirection(double speedOnLines, double speedBetweenLines) {
 
   int scanPadding = int(floor(1 * onLineGain));
 
-  pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("waitUntilAtCurrentPosition"); 
   for (int g = 0; g < ((rmWidth*onLineGain)-(rmHalfWidth*onLineGain))+scanPadding; g++) {
-    pushWord('a');
-    pushWord("endStackCollapseNoop");
+    ms->pushWord('a');
+    ms->pushWord("endStackCollapseNoop");
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    pushWord('e');
-    pushWord("endStackCollapseNoop");
+    ms->pushWord('e');
+    ms->pushWord("endStackCollapseNoop");
   }
 
-  pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("waitUntilAtCurrentPosition"); 
   //int gLimit = 1+((rmWidth*betweenLineGain+2*scanPadding)/2);
   int gLimit = ((rmWidth*betweenLineGain+2*scanPadding));
   for (int g = 0; g < gLimit; g++) {
-    pushWord("fullRender"); 
-    pushWord("waitUntilAtCurrentPosition"); 
-    pushWord('d');
-    pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("fullRender"); 
+    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord('d');
+    ms->pushWord("waitUntilAtCurrentPosition");
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
-      pushWord('q');
-      pushWord("endStackCollapseNoop");
+      ms->pushWord('q');
+      ms->pushWord("endStackCollapseNoop");
     }
-    pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("waitUntilAtCurrentPosition"); 
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
-      pushWord('e');
-      pushWord("endStackCollapseNoop");
+      ms->pushWord('e');
+      ms->pushWord("endStackCollapseNoop");
     }
   }
 
-  pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("waitUntilAtCurrentPosition"); 
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    pushWord('q');
-    pushWord("endStackCollapseNoop");
+    ms->pushWord('q');
+    ms->pushWord("endStackCollapseNoop");
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    pushWord('a');
-    pushWord("endStackCollapseNoop");
+    ms->pushWord('a');
+    ms->pushWord("endStackCollapseNoop");
   }
 }
 
 
-void scanYdirection(double speedOnLines, double speedBetweenLines) {
+void scanYdirection(shared_ptr<MachineState> ms, double speedOnLines, double speedBetweenLines) {
 
   double onLineGain = rmDelta / speedOnLines;
   double betweenLineGain = rmDelta / speedBetweenLines;
@@ -3190,52 +3142,52 @@ void scanYdirection(double speedOnLines, double speedBetweenLines) {
 
   for (int g = 0; g < ((rmWidth*onLineGain)-(rmHalfWidth*onLineGain))+scanPadding; g++) {
     // ATTN 2
-    //pushWord(1048677);
-    pushWord("waitUntilAtCurrentPosition"); 
-    pushWord('q');
+    //ms->pushWord(1048677);
+    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord('q');
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    //pushWord(1048677);
-    pushWord("waitUntilAtCurrentPosition"); 
-    pushWord('d');
+    //ms->pushWord(1048677);
+    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord('d');
   }
-  pushSpeedSign(speedOnLines);
+  pushSpeedSign(ms, speedOnLines);
 
   //int gLimit = 1+((rmWidth*betweenLineGain+2*scanPadding)/2);
   int gLimit = ((rmWidth*betweenLineGain+2*scanPadding));
   for (int g = 0; g < gLimit; g++) {
-    pushWord("fullRender"); // full render
-    //pushWord(1048677);
-    pushWord("waitUntilAtCurrentPosition"); 
-    pushSpeedSign(speedOnLines);
-    pushWord('e');
-    pushSpeedSign(speedBetweenLines);
+    ms->pushWord("fullRender"); // full render
+    //ms->pushWord(1048677);
+    ms->pushWord("waitUntilAtCurrentPosition"); 
+    pushSpeedSign(ms, speedOnLines);
+    ms->pushWord('e');
+    pushSpeedSign(ms, speedBetweenLines);
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
-      //pushWord(1048677);
-      pushWord("waitUntilAtCurrentPosition"); 
-      pushWord('a');
+      //ms->pushWord(1048677);
+      ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord('a');
     }
-    //pushSpeedSign(speedOnLines);
-    //pushWord('e');
-    //pushSpeedSign(speedBetweenLines);
+    //pushSpeedSign(ms, speedOnLines);
+    //ms->pushWord('e');
+    //pushSpeedSign(ms, speedBetweenLines);
     for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
-      //pushWord(1048677);
-      pushWord("waitUntilAtCurrentPosition"); 
-      pushWord('d');
+      //ms->pushWord(1048677);
+      ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord('d');
     }
   }
 
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    //pushWord(1048677);
-    pushWord("waitUntilAtCurrentPosition"); 
-    pushWord('q');
+    //ms->pushWord(1048677);
+    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord('q');
   }
   for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    //pushWord(1048677);
-    pushWord("waitUntilAtCurrentPosition"); 
-    pushWord('a');
+    //ms->pushWord(1048677);
+    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord('a');
   }
-  pushSpeedSign(speedOnLines);
+  pushSpeedSign(ms, speedOnLines);
 }
 
 Eigen::Quaternionf getGGRotation(int givenGraspGear) {
@@ -4003,8 +3955,8 @@ void update_baxter(ros::NodeHandle &n) {
       if (ik_reset_counter > ik_reset_thresh) {
 	ik_reset_counter = 0;
 	currentEEPose = ik_reset_eePose;
-	pushWord('Y'); // pause stack execution
-	pushCopies("beep", 15); // beep
+	pMachineState->pushWord('Y'); // pause stack execution
+	pMachineState->pushCopies("beep", 15); // beep
 	cout << "target position denied by ik, please reset the object.";
       }
       else {
@@ -4095,68 +4047,11 @@ void update_baxter(ros::NodeHandle &n) {
   bfc++;
 }
 
-void clearStack() {
-  call_stack.resize(0);
-}
-std::shared_ptr<Word> popWord() {
-  if (call_stack.size() > 0) {
-    std::shared_ptr<Word> word = call_stack.back();
-    call_stack.pop_back();
-    return word; 
-  } else {
-    return NULL;
-  }
-}
-
-bool pushWord(int code) {
-  if (character_code_to_word.count(code) > 0) {
-    std::shared_ptr<Word> word = character_code_to_word[code];      
-    return pushWord(word);
-  } else {
-    cout << "No word for code " << code << endl;
-    return false;
-  }
-}
 
 
-std::shared_ptr<Word> forthletParse(string token) {
-  if (IntegerWord::isInteger(token)) {
-    return IntegerWord::parse(token);
-  } else if (StringWord::isString(token)) {
-    return StringWord::parse(token);
-  } else if (name_to_word.count(token) > 0) {
-    std::shared_ptr<Word> word = name_to_word[token];
-    return word;
-  } else if (SymbolWord::isSymbol(token)) {
-    std::shared_ptr<Word> word = SymbolWord::parse(token);
-    return word;
-  } else {
-    cout << "Cannot parse " << token << endl;
-    return NULL;
-  }
-}
-bool pushWord(string token) {
-  std:shared_ptr<Word> word = forthletParse(token);
-  if (word != NULL) {
-    pushWord(word);
-  }
-}
 
 
-bool pushWord(std::shared_ptr<Word> word) {
-  call_stack.push_back(word);
-  return true;
-}
 
-std::shared_ptr<Word> nameToWord(string name) {
-  if (name_to_word.count(name) > 0) {
-    std::shared_ptr<Word> word = name_to_word[name];
-    return word;
-  } else  {
-    cout << "Could not find word with name " << name << endl;
-    assert(0);
-  }
-}
 
 void timercallback1(const ros::TimerEvent&) {
 
@@ -4209,12 +4104,12 @@ void timercallback1(const ros::TimerEvent&) {
     }
 
     // deal with the stack
-    if (execute_stack && takeSymbol) {
-      if (call_stack.size() > 0 && 
-	  !call_stack[call_stack.size() - 1]->is_value()) {
-	word = popWord();
+    if (pMachineState->execute_stack && takeSymbol) {
+      if (pMachineState->call_stack.size() > 0 && 
+	  !pMachineState->call_stack[pMachineState->call_stack.size() - 1]->is_value()) {
+	word = pMachineState->popWord();
       } else {
-	execute_stack = 0;
+	pMachineState->execute_stack = 0;
 	endThisStackCollapse = 1;
       }
     } else {
@@ -4227,11 +4122,11 @@ void timercallback1(const ros::TimerEvent&) {
   
     if (word != NULL) {
       current_instruction = word;
-      cout << "Executing." << endl;
+      cout << "Executing " << word->name() << endl;
       word->execute(pMachineState);
     }
 
-    if( endThisStackCollapse || (call_stack.size() == 0) ) {
+    if( endThisStackCollapse || (pMachineState->call_stack.size() == 0) ) {
       break;
     }
   }
@@ -4254,7 +4149,7 @@ void timercallback1(const ros::TimerEvent&) {
   timerCounter++;
   timesTimerCounted++;
 
-  renderCoreView();
+  renderCoreView(pMachineState);
 
   if (shouldIRender) {
     renderObjectMapView();
@@ -5094,7 +4989,7 @@ void drawMapPolygon(gsl_matrix * polygon_xy, cv::Scalar color) {
 }
 
 
-void renderCoreView() {
+void renderCoreView(shared_ptr<MachineState> ms) {
   Mat coreImage(800, 800, CV_64F);
   coreImage = 0.0*coreImage;
 
@@ -5148,14 +5043,14 @@ void renderCoreView() {
   int insCount = 0; 
 
   int numCommandsToShow = 400;
-  int lowerBound = max(int(call_stack.size() - numCommandsToShow), 0);
+  int lowerBound = max(int(ms->call_stack.size() - numCommandsToShow), 0);
   insCount = lowerBound;
 
-  while (insCount < call_stack.size()) {
+  while (insCount < ms->call_stack.size()) {
     string outRowText;
 
-    for (int rowCount = 0; (insCount < call_stack.size()) && (rowCount < instructionsPerRow); insCount++, rowCount++) {
-      outRowText += call_stack[max(int(call_stack.size() - (insCount - lowerBound) - 1),0)]->name();
+    for (int rowCount = 0; (insCount < ms->call_stack.size()) && (rowCount < instructionsPerRow); insCount++, rowCount++) {
+      outRowText += ms->call_stack[max(int(ms->call_stack.size() - (insCount - lowerBound) - 1),0)]->name();
       outRowText += " ";
     }
 
@@ -5275,9 +5170,9 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
       graspMemoryTries[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*currentGraspGear] += 1;
       graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*currentGraspGear] += 1;
     }
-    pushWord("paintReticles"); // render reticle
-    pushWord("drawMapRegisters"); // render register 1
-    execute_stack = 1;
+    pMachineState->pushWord("paintReticles"); // render reticle
+    pMachineState->pushWord("drawMapRegisters"); // render register 1
+    pMachineState->execute_stack = 1;
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << eeRange << 
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << gmTargetX << " " << gmTargetY << endl;
@@ -5287,9 +5182,9 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     if ((bigX >= rmWidth) && (bigX < 2*rmWidth) && (bigY < rmWidth)) {
       graspMemoryTries[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*currentGraspGear] += 1;
     }
-    pushWord("paintReticles"); // render reticle
-    pushWord("drawMapRegisters"); // render register 1
-    execute_stack = 1;
+    pMachineState->pushWord("paintReticles"); // render reticle
+    pMachineState->pushWord("drawMapRegisters"); // render register 1
+    pMachineState->execute_stack = 1;
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << eeRange << 
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << gmTargetX << " " << gmTargetY << endl;
@@ -5305,9 +5200,9 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 	}
       }
     }
-    pushWord("paintReticles"); // render reticle
-    pushWord("drawMapRegisters"); // render register 1
-    execute_stack = 1;
+    pMachineState->pushWord("paintReticles"); // render reticle
+    pMachineState->pushWord("drawMapRegisters"); // render register 1
+    pMachineState->execute_stack = 1;
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << eeRange << 
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << gmTargetX << " " << gmTargetY << endl;
@@ -6101,36 +5996,36 @@ int getGlobalGraspGear(int localGraspGearIn) {
   return ggToReturn;
 }
 
-void changeTargetClass(int newTargetClass) {
+void changeTargetClass(shared_ptr<MachineState> ms, int newTargetClass) {
   targetClass = newTargetClass;
   focusedClass = targetClass;
   focusedClassLabel = classLabels[focusedClass];
   cout << "class " << targetClass << " " << classLabels[targetClass] << endl;
-  execute_stack = 1;	
+  ms->execute_stack = 1;	
 
 
-  pushWord(1179709); // loadMarginalHeightMemory
+  ms->pushWord("loadMarginalHeightMemory"); 
 
 
-  pushWord("drawMapRegisters"); // render register 1
+  ms->pushWord("drawMapRegisters"); // render register 1
   // ATTN 10
-  //pushWord(196360); // loadPriorGraspMemory
-  //pushWord(1179721); // set graspMemories from classGraspMemories
+  //ms->pushWord(196360); // loadPriorGraspMemory
+  //ms->pushWord(1179721); // set graspMemories from classGraspMemories
   switch (currentPickMode) {
   case STATIC_PRIOR:
     {
-      pushWord(196360); // loadPriorGraspMemory
+      ms->pushWord(196360); // loadPriorGraspMemory
     }
     break;
   case LEARNING_ALGORITHMC:
   case LEARNING_SAMPLING:
     {
-      pushWord(1179721); // set graspMemories from classGraspMemories
+      ms->pushWord(1179721); // set graspMemories from classGraspMemories
     }
     break;
   case STATIC_MARGINALS:
     {
-      pushWord(1179721); // set graspMemories from classGraspMemories
+      ms->pushWord(1179721); // set graspMemories from classGraspMemories
     }
     break;
   default:
@@ -6143,19 +6038,19 @@ void changeTargetClass(int newTargetClass) {
   switch (currentBoundingBoxMode) {
   case STATIC_PRIOR:
     {
-      pushWord(1244936); // loadPriorHeightMemory
+      ms->pushWord(1244936); // loadPriorHeightMemory
     }
     break;
   case LEARNING_ALGORITHMC:
   case LEARNING_SAMPLING:
     {
-      pushWord(1245289); // set heightMemories from classHeightMemories
+      ms->pushWord(1245289); // set heightMemories from classHeightMemories
     }
     break;
   case STATIC_MARGINALS:
     {
       //cout << "Pushing set heightMemories from classHeightMemories" << endl;
-      pushWord(1245289); // set heightMemories from classHeightMemories
+      ms->pushWord(1245289); // set heightMemories from classHeightMemories
     }
     break;
   case MAPPING:
@@ -6254,7 +6149,7 @@ void guardHeightMemory() {
   }
 }
 
-int calibrateGripper() {
+int calibrateGripper(shared_ptr<MachineState> ms) {
   for (int i = 0; i < 10; i++) {
     int return_value = doCalibrateGripper();
     if (return_value == 0) {
@@ -6262,8 +6157,8 @@ int calibrateGripper() {
     }
   }
   cout << "Gripper could not calibrate!" << endl;
-  pushWord('Y'); // pause stack execution
-  pushCopies("beep", 15); // beep
+  ms->pushWord('Y'); // pause stack execution
+  ms->pushCopies("beep", 15); // beep
   return -1;
 }
 int doCalibrateGripper() {
@@ -7719,10 +7614,10 @@ void recordBoundingBoxFailure() {
   cout << "Total Picks: " << ttotalPicks << endl;
 }
 
-void restartBBLearning() {
+void restartBBLearning(shared_ptr<MachineState> ms) {
   recordBoundingBoxFailure();
-  clearStack();
-  pushWord("continueHeightLearning"); // continue bounding box learning
+  ms->clearStack();
+  ms->pushWord("continueHeightLearning"); // continue bounding box learning
 }
 
 
@@ -7775,7 +7670,7 @@ void moveCurrentGripperRayToCameraVanishingRay() {
   }
 }
 
-void gradientServo() {
+void gradientServo(shared_ptr<MachineState> ms) {
   Size sz = objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
@@ -7793,7 +7688,7 @@ void gradientServo() {
   // ATTN 12
   //        if ((synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING)) {
   //          cout << "bbLearning: synchronic servo timed out, early outting." << endl;
-  //          restartBBLearning();
+  //          restartBBLearning(ms);
   //        }
 
   cout << "entered gradient servo... iteration " << currentGradientServoIterations << endl;
@@ -7811,9 +7706,9 @@ void gradientServo() {
     mapxyToij(currentEEPose.px, currentEEPose.py, &i, &j);
     int doWeHaveClearance = (clearanceMap[i + mapWidth * j] != 0);
     if (!doWeHaveClearance) {
-      //pushWord("clearStackIntoMappingPatrol"); 
+      //ms->pushWord("clearStackIntoMappingPatrol"); 
       cout << ">>>> Gradient servo strayed out of clearance area during mapping. <<<<" << endl;
-      pushWord("endStackCollapseNoop");
+      ms->pushWord("endStackCollapseNoop");
       return;
     }
   }
@@ -8179,8 +8074,8 @@ void gradientServo() {
   if (useGradientServoThresh) {
     cout << "ATTN score, thresh, norm, product: " << bestOrientationScore << " " << gradientServoResetThresh << " " << bestCropNorm << " " << (gradientServoResetThresh * bestCropNorm) << endl;
     if (bestOrientationScore < (gradientServoResetThresh * bestCropNorm) ) {
-      pushWord("synchronicServo"); 
-      pushWord("visionCycle"); 
+      ms->pushWord("synchronicServo"); 
+      ms->pushWord("visionCycle"); 
       cout << " XXX BAD GRADIENT SERVO SCORE, RETURN TO SYNCHRONIC XXX" << endl;
       return;
     }
@@ -8188,16 +8083,16 @@ void gradientServo() {
 
   if (distance > w1GoThresh*w1GoThresh) {
     
-    pushWord("gradientServo"); 
+    ms->pushWord("gradientServo"); 
     // ATTN 8
-    //pushCopies("density", densityIterationsForGradientServo); 
-    //pushCopies("accumulateDensity", densityIterationsForGradientServo); 
-    //pushCopies("resetTemporalMap", 1); 
-    //pushWord("resetAerialGradientTemporalFrameAverage"); 
-    //pushCopies("density", 1); 
-    //pushCopies("waitUntilAtCurrentPosition", 5); 
+    //ms->pushCopies("density", densityIterationsForGradientServo); 
+    //ms->pushCopies("accumulateDensity", densityIterationsForGradientServo); 
+    //ms->pushCopies("resetTemporalMap", 1); 
+    //ms->pushWord("resetAerialGradientTemporalFrameAverage"); 
+    //ms->pushCopies("density", 1); 
+    //ms->pushCopies("waitUntilAtCurrentPosition", 5); 
     cout << " XXX deprecated code path, gradient servo should not be responsible for enforcing distance 73825" << endl;
-    pushCopies("waitUntilAtCurrentPosition", 1); 
+    ms->pushCopies("waitUntilAtCurrentPosition", 1); 
     
   } else {
     // ATTN 5
@@ -8231,7 +8126,7 @@ void gradientServo() {
         if (synchronicTakeClosest) {
           if (gradientTakeClosest) {
             if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
-              pushWord("prepareForAndExecuteGraspFromMemoryLearning"); // prepare for and execute the best grasp from memory at the current location and target
+              ms->pushWord("prepareForAndExecuteGraspFromMemoryLearning"); // prepare for and execute the best grasp from memory at the current location and target
             else {
               ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
             }
@@ -8240,7 +8135,7 @@ void gradientServo() {
           }
         } else {
           if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
-            pushWord("prepareForAndExecuteGraspFromMemoryLearning"); 
+            ms->pushWord("prepareForAndExecuteGraspFromMemoryLearning"); 
           } else {
             ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
           }
@@ -8249,7 +8144,7 @@ void gradientServo() {
         return;
       } else {
       
-      pushWord("gradientServo"); 
+      ms->pushWord("gradientServo"); 
       
       double pTermX = gradKp*Px;
       double pTermY = gradKp*Py;
@@ -8300,21 +8195,21 @@ void gradientServo() {
     currentEEPose.py = newy;
     
     // ATTN 8
-    //pushWord("visionCycle"); // vision cycle
-    //pushWord(196721); // vision cycle no classify
-    //pushCopies("density", densityIterationsForGradientServo); // density
-    //pushCopies("accumulateDensity", densityIterationsForGradientServo); 
-    //pushCopies("resetTemporalMap", 1); // reset temporal map
-    //pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
-    //pushCopies("density", 1); // density
-    //pushWord("waitUntilAtCurrentPosition"); 
+    //ms->pushWord("visionCycle"); // vision cycle
+    //ms->pushWord(196721); // vision cycle no classify
+    //ms->pushCopies("density", densityIterationsForGradientServo); // density
+    //ms->pushCopies("accumulateDensity", densityIterationsForGradientServo); 
+    //ms->pushCopies("resetTemporalMap", 1); // reset temporal map
+    //ms->pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
+    //ms->pushCopies("density", 1); // density
+    //ms->pushWord("waitUntilAtCurrentPosition"); 
     
     // ATTN 7
     // if you don't wait multiple times, it could get triggered early by weird ik or latency could cause a loop
     // this is a very aggressive choice and we should also be using the ring buffers for Ode calls
-    //pushCopies("waitUntilAtCurrentPosition", 40); 
-    //pushCopies("waitUntilAtCurrentPosition", 5); 
-    pushCopies("waitUntilAtCurrentPosition", 1); 
+    //ms->pushCopies("waitUntilAtCurrentPosition", 40); 
+    //ms->pushCopies("waitUntilAtCurrentPosition", 5); 
+    ms->pushCopies("waitUntilAtCurrentPosition", 1); 
     
     // ATTN 16
     //	    { // prepare to servo
@@ -8356,7 +8251,7 @@ eePose analyticServoPixelToReticle(eePose givenPixel, eePose givenReticle, doubl
   return toReturn;
 }
 
-void synchronicServo() {
+void synchronicServo(shared_ptr<MachineState> ms) {
   ROS_WARN_STREAM("___________________ Synchronic Servo");
   synServoLockFrames++;
 
@@ -8385,7 +8280,7 @@ void synchronicServo() {
       cout << "TIMED OUT ";
     }
     cout << endl;
-    restartBBLearning();
+    restartBBLearning(ms);
     return;
   }
 
@@ -8401,7 +8296,7 @@ void synchronicServo() {
     int doWeHaveClearance = (clearanceMap[i + mapWidth * j] != 0);
     if (!doWeHaveClearance) {
       cout << ">>>> Synchronic servo strayed out of clearance area during mapping. <<<<" << endl;
-      pushWord("endStackCollapseNoop");
+      ms->pushWord("endStackCollapseNoop");
       return;
     }
   }
@@ -8413,16 +8308,16 @@ void synchronicServo() {
     // record a failure
     cout << ">>>> Synchronic servo timed out.  Going back on patrol. <<<<" << endl;
     thisGraspPicked = FAILURE; 
-    pushWord("shiftIntoGraspGear1"); 
-    pushCopies("beep", 15); 
-    pushWord("countGrasp"); 
+    ms->pushWord("shiftIntoGraspGear1"); 
+    ms->pushCopies("beep", 15); 
+    ms->pushWord("countGrasp"); 
     return; 
   }
 
   if (bTops.size() <= 0) {
     cout << ">>>> HELP,  I CAN'T SEE!!!!! Going back on patrol. <<<<" << endl;
-    pushWord("visionCycle"); 
-    pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("visionCycle"); 
+    ms->pushWord("waitUntilAtCurrentPosition"); 
     return;
   }
 
@@ -8510,13 +8405,13 @@ void synchronicServo() {
   // if we are not there yet, continue
   if (distance > w1GoThresh*w1GoThresh) {
     cout << " XXX deprecated code path, synchronci servo should not be responsible for enforcing distance 4812675" << endl;
-    pushCopies("waitUntilAtCurrentPosition", 1); 
+    ms->pushCopies("waitUntilAtCurrentPosition", 1); 
     synServoLockFrames = 0;
-    pushWord("synchronicServo"); 
+    ms->pushWord("synchronicServo"); 
     if (currentBoundingBoxMode == MAPPING) {
-      pushWord("visionCycleNoClassify");
+      ms->pushWord("visionCycleNoClassify");
     } else {
-      pushWord("visionCycle"); // vision cycle
+      ms->pushWord("visionCycle"); // vision cycle
     }
   } else {
     if ((fabs(Px) < synServoPixelThresh) && (fabs(Py) < synServoPixelThresh)) {
@@ -8539,19 +8434,19 @@ void synchronicServo() {
 
       cout << "got within thresh. ";
       if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
-        pushWord("gradientServo"); 
+        ms->pushWord("gradientServo"); 
         cout << "Queuing gradient servo." << endl;
-        //pushCopies("density", densityIterationsForGradientServo); 
-	//pushCopies("accumulateDensity", densityIterationsForGradientServo); 
-        //pushCopies("resetTemporalMap", 1); 
-        //pushWord("resetAerialGradientTemporalFrameAverage"); 
-        //pushCopies("density", 1); 
-        //pushCopies("waitUntilAtCurrentPosition", 5); 
-        pushCopies("waitUntilAtCurrentPosition", 1); 
+        //ms->pushCopies("density", densityIterationsForGradientServo); 
+	//ms->pushCopies("accumulateDensity", densityIterationsForGradientServo); 
+        //ms->pushCopies("resetTemporalMap", 1); 
+        //ms->pushWord("resetAerialGradientTemporalFrameAverage"); 
+        //ms->pushCopies("density", 1); 
+        //ms->pushCopies("waitUntilAtCurrentPosition", 5); 
+        ms->pushCopies("waitUntilAtCurrentPosition", 1); 
         
       } else {
         ROS_ERROR_STREAM("No gradient map for class " << targetClass << endl);
-        clearStack();
+        ms->clearStack();
       }
 
       return;	
@@ -8602,7 +8497,7 @@ void synchronicServo() {
         cout << "Returning because position is out of map bounds." << endl;
         return;
       } else {
-        pushWord("synchronicServo"); 
+        ms->pushWord("synchronicServo"); 
 	// ATTN 21
         //currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
         //currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
@@ -8612,18 +8507,18 @@ void synchronicServo() {
 
 
 	if (currentBoundingBoxMode == MAPPING) {
-	  pushWord("visionCycleNoClassify");
+	  ms->pushWord("visionCycleNoClassify");
 	} else {
-	  pushWord("visionCycle"); // vision cycle
+	  ms->pushWord("visionCycle"); // vision cycle
 	}
 
-        pushWord("waitUntilAtCurrentPosition"); 
+        ms->pushWord("waitUntilAtCurrentPosition"); 
       }
     }
   }
 }
 
-void darkServo() {
+void darkServo(shared_ptr<MachineState> ms) {
 
   // remember, currentTableZ is inverted so this is like minus
   double heightAboveTable = currentEEPose.pz + currentTableZ;
@@ -8681,7 +8576,7 @@ void darkServo() {
     cout << "darkness reached, continuing." << endl;
   } else {
     cout << "darkness not reached, servoing more. " << darkServoIterations << " " << darkServoTimeout << endl;
-    pushWord("darkServoA");
+    ms->pushWord("darkServoA");
   }
 }
 
@@ -10930,12 +10825,12 @@ void substituteAccumulatedImageQuantities() {
   }
 }
 
-void substituteLatestImageQuantities() {
+void substituteLatestImageQuantities(shared_ptr<MachineState> ms) {
   aerialGradientDecay = aerialGradientDecayIteratedDensity;
   sobel_sigma = sobel_sigma_substitute_latest;
   if (cv_ptr == NULL) {
     ROS_ERROR("Not receiving camera data, clearing call stack.");
-    clearStack();
+    ms->clearStack();
     return;
   }
 
@@ -13630,6 +13525,25 @@ void guardedImshow(string name, Mat image, bool shouldIRender) {
   }
 }
 
+void initializeMachine(shared_ptr<MachineState> ms) {
+  ms->pushWord("guiCustom1"); 
+  ms->pushWord("printState");
+  ms->pushCopies("zUp", 15);
+  int devInit = 1;
+  if (devInit) {
+    ms->pushWord("incrementTargetClass"); 
+    ms->pushWord("gradientServoTakeClosest"); 
+    ms->pushWord("synchronicServoTakeClosest");
+  }
+  ms->pushWord("silenceSonar");
+  ms->pushWord("printWords");
+  ms->pushWord("openGripper");
+  ms->pushWord("calibrateGripper");
+  ms->pushWord("shiftIntoGraspGear1"); 
+
+  ms->execute_stack = 1;
+}
+
 ////////////////////////////////////////////////
 // end node definitions 
 //
@@ -13638,14 +13552,8 @@ void guardedImshow(string name, Mat image, bool shouldIRender) {
 
 int main(int argc, char **argv) {
   initVectorArcTan();
-
-  //testIncbet();
-  //exit(0);
-  //auto lfunc = [] () { cout << "Hello world"; }; 
-  //lfunc();
-  //exit(0);
-  character_code_to_word = create_character_code_to_word(words);
-  name_to_word = create_name_to_word(words);
+  initializeWords();
+  pMachineState = std::make_shared<MachineState>(machineState);
 
   srand(time(NULL));
   time(&firstTime);
@@ -13914,22 +13822,8 @@ int main(int argc, char **argv) {
 
   saveROSParams();
 
-  pushWord("guiCustom1"); 
-  pushWord("printState");
-  pushCopies("zUp", 15);
-  int devInit = 1;
-  if (devInit) {
-    pushWord("incrementTargetClass"); 
-    pushWord("gradientServoTakeClosest"); 
-    pushWord("synchronicServoTakeClosest");
-  }
-  pushWord("silenceSonar");
-  pushWord("printWords");
-  pushWord("openGripper");
-  pushWord("calibrateGripper");
-  pushWord("shiftIntoGraspGear1"); 
+  initializeMachine(pMachineState);
 
-  execute_stack = 1;
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();
   cout << "cuda count: " << cudaCount << endl;;

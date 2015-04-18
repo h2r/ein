@@ -1,5 +1,5 @@
 #include "ein_util.h"
-
+#include <ros/console.h>
 
 std::string operationStatusToString(operationStatusType mode) 
 {
@@ -37,4 +37,29 @@ string pickModeToString(pickMode mode) {
     assert(0);
   }
   return result;
+}
+
+
+
+void pushSpeedSign(shared_ptr<MachineState> ms, double speed) {
+
+  if (speed == NOW_THATS_FAST) {
+    ms->pushWord("setMovementSpeedNowThatsFast"); 
+  } else if (speed == MOVE_EVEN_FASTER) {
+    ms->pushWord("setMovementSpeedMoveEvenFaster"); 
+  } else  if (speed == MOVE_FASTER) {
+    ms->pushWord("setMovementSpeedMoveFaster"); 
+  } else if (speed == MOVE_FAST) {
+    ms->pushWord("setMovementSpeedMoveFast"); 
+  } else if (speed == MOVE_MEDIUM) {
+    ms->pushWord("setMovementSpeedMoveMedium"); 
+  } else if (speed == MOVE_SLOW) {
+    ms->pushWord("setMovementSpeedMoveSlow"); 
+  } else if (speed == MOVE_VERY_SLOW) {
+    ms->pushWord("setMovementSpeedMoveVerySlow"); 
+  } else {
+    ROS_ERROR_STREAM("Unknown speed: " << speed);
+    assert(0);
+  }
+
 }
