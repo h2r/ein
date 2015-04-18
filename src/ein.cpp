@@ -131,26 +131,12 @@
 // numpy library 1 (randomkit, for original beta)
 #include "distributions.h"
 #include "word.h"
-
+#include "eePose.h"
 
 using namespace std;
 using namespace cv;
 using namespace Eigen;
 
-typedef struct {
-  double px;
-  double py;
-  double pz;
-
-  double qx;
-  double qy;
-  double qz;
-  double qw;
-} eePose;
-
-void printEEPose(eePose toPrint) {
-  cout << toPrint.px << " " << toPrint.py << " " << toPrint.pz << " " << endl << toPrint.qx << " " << toPrint.qy << " " << toPrint.qz << " " << toPrint.qw << endl;
-}
 
 #define NOW_THATS_FAST 0.08
 #define MOVE_EVEN_FASTER 0.04
@@ -163,10 +149,6 @@ void printEEPose(eePose toPrint) {
 #define RANGE_UPPER_INVALID 0.3
 #define RANGE_LOWER_INVALID 0.08
 
-#define STAR_SCAN 131144
-#define CART_SCAN 131118
-#define QUICK_RANGE_MAP CART_SCAN
-
 typedef enum {
   ARMED,
   BLOCKED,
@@ -176,7 +158,7 @@ typedef enum {
 } movementState;
 movementState currentMovementState = STOPPED;
 
-double movingThreshold = 0.02; // 1mm
+double movingThreshold = 0.02;
 double hoverThreshold = 0.003; 
 double stoppedTimeout = 0.25;
 
