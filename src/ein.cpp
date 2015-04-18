@@ -133,30 +133,13 @@
 #include "word.h"
 #include "eePose.h"
 #include "eigen_util.h"
+#include "ein_util.h"
 
 using namespace std;
 using namespace cv;
 using namespace Eigen;
 
 
-#define NOW_THATS_FAST 0.08
-#define MOVE_EVEN_FASTER 0.04
-#define MOVE_FASTER 0.02
-#define MOVE_FAST 0.01
-#define MOVE_MEDIUM 0.005 //.005
-#define MOVE_SLOW 0.0025
-#define MOVE_VERY_SLOW 0.00125
-
-#define RANGE_UPPER_INVALID 0.3
-#define RANGE_LOWER_INVALID 0.08
-
-typedef enum {
-  ARMED,
-  BLOCKED,
-  STOPPED,
-  HOVERING,
-  MOVING
-} movementState;
 movementState currentMovementState = STOPPED;
 
 double movingThreshold = 0.02;
@@ -170,65 +153,14 @@ double stoppedTimeout = 0.25;
 ////////////////////////////////////////////////
 
 
-typedef enum {
-  UNKNOWN = -1,
-  FAILURE = 0,
-  SUCCESS = 1
-} operationStatusType;
-std::string operationStatusToString(operationStatusType mode) {
-    string result;
-  if (mode == UNKNOWN) {
-    result = "Unknown";
-  } else if (mode == FAILURE) {
-    result = "Failure";
-  } else if (mode == SUCCESS) {
-    result = "Success";
-  } else {
-    cout << "Invalid operation status: " << mode << endl;
-    assert(0);
-  }
-  return result;
-}
 
-
-typedef enum {
-  SIFTBOW_GLOBALCOLOR_HIST = 1,
-  OPPONENTSIFTBOW_GLOBALCOLOR_HIST = 2, // this has not been sufficiently tested
-  SIFTCOLORBOW_HIST = 3, // unimplemented, calculate color histograms at each keypoint and augment each SIFT feature before clustering
-  GRADIENT = 4,
-  OPPONENT_COLOR_GRADIENT = 5,
-  CBCR_HISTOGRAM = 6
-} featureType;
 featureType chosen_feature = SIFTBOW_GLOBALCOLOR_HIST;
-//featureType chosen_feature = GRADIENT;
-//featureType chosen_feature = OPPONENT_COLOR_GRADIENT;
-//featureType chosen_feature = CBCR_HISTOGRAM;
 int cfi = 1;
 
 int gradientFeatureWidth = 50;
 
-typedef enum {
-  UNIFORM_PRIOR,
-  ANALYTIC_PRIOR
-} priorType;
-
-typedef enum {
-  MRT,
-  SPOON,
-  KNIFE,
-  OFT_INVALID
-} orientedFilterType;
-
-typedef enum {
-  PHYSICAL,
-  SIMULATED
-} robotMode;
 robotMode chosen_mode = PHYSICAL;
 
-#define ORIENTATIONS 180//12 
-#define O_FILTER_WIDTH 25//25
-#define O_FILTER_SPOON_HEAD_WIDTH 6 
-#define O_FILTER_SPOON_SHAFT_WIDTH 2
 
 ////////////////////////////////////////////////
 // end node includes, usings, and defines
@@ -864,35 +796,10 @@ int gmTargetY = -1;
 double lastMeasuredBias = 1;
 double lastMeasuredClosed = 3.0;
 
-typedef enum {
-  STATIC_PRIOR = 1,
-  LEARNING_SAMPLING = 2,
-  LEARNING_ALGORITHMC = 3,
-  STATIC_MARGINALS = 4,
-  MAPPING = 5
-} pickMode;
 pickMode currentPickMode = STATIC_MARGINALS;
 pickMode currentBoundingBoxMode = STATIC_MARGINALS;
 pickMode currentDepthMode = STATIC_MARGINALS;
 
-std::string pickModeToString(pickMode mode) {
-  string result;
-  if (mode == STATIC_PRIOR) {
-    result = "static prior";
-  } else if (mode == LEARNING_SAMPLING) {
-    result = "learning sampling";
-  } else if (mode == LEARNING_ALGORITHMC) {
-    result = "learning algorithm C";
-  } else if (mode == STATIC_MARGINALS) {
-    result = "static marginals";
-  } else if (mode == MAPPING) {
-    result = "mapping";
-  } else {
-    cout << "Invalid pick mode: " << mode << endl;
-    assert(0);
-  }
-  return result;
-}
 
 int ARE_GENERIC_PICK_LEARNING() {
   return ( (currentPickMode == LEARNING_SAMPLING) ||
@@ -1331,12 +1238,6 @@ cv::vector<cv::Point> nBot;
 vector<cv::Point> cTops; 
 vector<cv::Point> cBots;
 
-typedef enum {
-  NO_LOCK = 0,
-  CENTROID_LOCK = 1,
-  POSE_LOCK = 2,
-  POSE_REPORTED = 3
-} memoryLockType;
 
 struct BoxMemory {
   cv::Point bTop;
