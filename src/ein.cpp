@@ -14105,6 +14105,10 @@ void detectorsInit() {
     FileStorage fsfI;
     cout<<"Reading features and labels... " << featuresPath << " ..." << endl;
     fsfI.open(featuresPath, FileStorage::READ);
+    if (!fsfI.isOpened()) {
+      ROS_ERROR_STREAM("Could not find file " << featuresPath << endl);
+    }
+
     fsfI["features"] >> kNNfeatures;
     fsfI["labels"] >> kNNlabels;
     for (int i = 0; i < numClasses; i++) {
