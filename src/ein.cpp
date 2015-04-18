@@ -68,57 +68,56 @@
 
 #include <vector>
 #include <string>
-
-
-#include "ros/ros.h"
-#include "ros/package.h"
-#include "ros/time.h"
-#include <ctime>
-
-// slu
-#include "slu/math2d.h"
-
-// numpy library 1 (randomkit, for original beta)
-#include "distributions.h"
-// numpy library 2 (cephes, for betainc)
-//#include "cephes/protos.h"
-
-#include <tf/transform_listener.h>
-
 #include <sstream>
 #include <iostream>
+#include <ctime>
+
 #include <math.h>
+#include <dirent.h>
+#include <signal.h>
+#include <sys/stat.h>
+
+#include "../../bing/Objectness/stdafx.h"
+#include "../../bing/Objectness/Objectness.h"
+#include "../../bing/Objectness/ValStructVec.h"
+#include "../../bing/Objectness/CmShow.h"
+
+
+#include <ros/package.h>
+#include <tf/transform_listener.h>
+#include <sensor_msgs/Range.h>
+#include <actionlib/client/simple_action_client.h>
+#include <control_msgs/FollowJointTrajectoryAction.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/String.h>
+#include <std_msgs/Int32.h>
+#include <std_msgs/UInt16.h>
+#include <std_msgs/Float64.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <geometry_msgs/Point.h>
+#include <geometry_msgs/Pose.h>
+#include <object_recognition_msgs/RecognizedObjectArray.h>
+#include <object_recognition_msgs/RecognizedObject.h>
+#include <image_transport/image_transport.h>
+#include <sensor_msgs/image_encodings.h>
+#include <cv_bridge/cv_bridge.h>
+
 
 #include <baxter_core_msgs/CameraControl.h>
 #include <baxter_core_msgs/OpenCamera.h>
-
 #include <baxter_core_msgs/EndpointState.h>
 #include <baxter_core_msgs/EndEffectorState.h>
-#include <sensor_msgs/Range.h>
 #include <baxter_core_msgs/EndEffectorCommand.h>
-
-#include <actionlib/client/simple_action_client.h>
-#include <control_msgs/FollowJointTrajectoryAction.h>
 #include <baxter_core_msgs/SolvePositionIK.h>
 #include <baxter_core_msgs/JointCommand.h>
 #include <baxter_core_msgs/HeadPanCommand.h>
 
-#include <dirent.h>
 
-#include "std_msgs/Bool.h"
-#include "std_msgs/String.h"
-#include "std_msgs/Int32.h"
-#include "std_msgs/UInt16.h"
-#include "std_msgs/Float64.h"
-#include "visualization_msgs/MarkerArray.h"
-#include "geometry_msgs/Point.h"
-#include "geometry_msgs/Pose.h"
-#include "object_recognition_msgs/RecognizedObjectArray.h"
-#include "object_recognition_msgs/RecognizedObject.h"
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/filesystem.hpp>
 
-#include <cv_bridge/cv_bridge.h>
-#include <image_transport/image_transport.h>
-#include <sensor_msgs/image_encodings.h>
+
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -129,7 +128,15 @@
 
 #include <opencv2/gpu/gpu.hpp>
 
+
+
+// slu
+#include "slu/math2d.h"
+
+// numpy library 1 (randomkit, for original beta)
+#include "distributions.h"
 #include "word.h"
+
 
 using namespace std;
 using namespace cv;
@@ -188,18 +195,6 @@ double stoppedTimeout = 0.25;
 // start node includes, usings, and defines
 ////////////////////////////////////////////////
 
-#include <signal.h>
-
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/filesystem.hpp>
-
-#include <sys/stat.h>
-
-#include "../../bing/Objectness/stdafx.h"
-#include "../../bing/Objectness/Objectness.h"
-#include "../../bing/Objectness/ValStructVec.h"
-#include "../../bing/Objectness/CmShow.h"
 
 typedef enum {
   UNKNOWN = -1,
