@@ -1,6 +1,6 @@
 WORD(DeliverObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  pushWord("idler"); 
+  ms->pushWord("idler"); 
   bailAfterGradient = 1;
 
   pilotTarget.px = -1;
@@ -77,29 +77,29 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     blueBoxMemories = newMemories;
   }
 
-  pushWord("moveToNextMapPosition");
-  pushWord("synchronicServoDoNotTakeClosest"); 
-  pushWord("openGripper"); 
-  pushWord("cruisingSpeed"); 
-  pushWord("waitUntilAtCurrentPosition"); 
-  pushWord("tryToMoveToTheLastPrePickHeight");   
-  pushWord("departureSpeed");
-  pushWord("placeObjectInDeliveryZone");
-  pushWord("ifGrasp");
-  pushWord("executePreparedGrasp"); 
-  //pushWord("prepareForAndExecuteGraspFromMemory"); 
-  //pushWord("gradientServo");
-  //pushCopies("density", densityIterationsForGradientServo); 
-  //pushCopies("resetTemporalMap", 1); 
-  //pushWord("synchronicServo"); 
-  //pushWord("visionCycle");
-  //pushWord("synchronicServoTakeClosest"); 
-  pushWord("waitUntilAtCurrentPosition");
-  pushWord("setPickModeToStaticMarginals"); 
-  pushWord("sampleHeight"); 
-  pushWord("setBoundingBoxModeToMapping"); 
-  pushWord("openGripper");
-  pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
+  ms->pushWord("moveToNextMapPosition");
+  ms->pushWord("synchronicServoDoNotTakeClosest"); 
+  ms->pushWord("openGripper"); 
+  ms->pushWord("cruisingSpeed"); 
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("tryToMoveToTheLastPrePickHeight");   
+  ms->pushWord("departureSpeed");
+  ms->pushWord("placeObjectInDeliveryZone");
+  ms->pushWord("ifGrasp");
+  ms->pushWord("executePreparedGrasp"); 
+  //ms->pushWord("prepareForAndExecuteGraspFromMemory"); 
+  //ms->pushWord("gradientServo");
+  //ms->pushCopies("density", densityIterationsForGradientServo); 
+  //ms->pushCopies("resetTemporalMap", 1); 
+  //ms->pushWord("synchronicServo"); 
+  //ms->pushWord("visionCycle");
+  //ms->pushWord("synchronicServoTakeClosest"); 
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("setPickModeToStaticMarginals"); 
+  ms->pushWord("sampleHeight"); 
+  ms->pushWord("setBoundingBoxModeToMapping"); 
+  ms->pushWord("openGripper");
+  ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
 
 }
 END_WORD
@@ -108,39 +108,39 @@ REGISTER_WORD(DeliverObject)
 WORD(PlaceObjectInDeliveryZone)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if (0) {
-    pushWord("openGripper"); 
-    pushWord("tryToMoveToTheLastPickHeight");   
-    pushWord("approachSpeed"); 
-    pushWord("waitUntilAtCurrentPosition"); 
-    pushWord("assumeDeliveryPose");
+    ms->pushWord("openGripper"); 
+    ms->pushWord("tryToMoveToTheLastPickHeight");   
+    ms->pushWord("approachSpeed"); 
+    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("assumeDeliveryPose");
   } else {
-    pushWord("waitForTugThenOpenGripper");
-    pushWord("comeToStop");
-    pushWord("waitUntilAtCurrentPosition"); 
-    pushWord("moveToRegister3");
+    ms->pushWord("waitForTugThenOpenGripper");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("moveToRegister3");
   }
 
-  pushWord("cruisingSpeed");
-  pushWord("waitUntilAtCurrentPosition"); 
-  pushWord("tryToMoveToTheLastPrePickHeight");   
-  pushWord("departureSpeed");
+  ms->pushWord("cruisingSpeed");
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("tryToMoveToTheLastPrePickHeight");   
+  ms->pushWord("departureSpeed");
 }
 END_WORD
 REGISTER_WORD(PlaceObjectInDeliveryZone)
 
 WORD(ClearStackIntoMappingPatrol)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  clearStack();
-  pushWord("mappingPatrol");
-  execute_stack = 1;
+  ms->clearStack();
+  ms->pushWord("mappingPatrol");
+  ms->execute_stack = 1;
 }
 END_WORD
 REGISTER_WORD(ClearStackIntoMappingPatrol)
 
 WORD(ClearStackAcceptFetchCommands)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  clearStack();
-  execute_stack = 1;
+  ms->clearStack();
+  ms->execute_stack = 1;
   acceptingFetchCommands = 1;
 }
 END_WORD
@@ -154,31 +154,31 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   bailAfterGradient = 1;
   acceptingFetchCommands = 1;
 
-  pushWord("mappingPatrol");
-  //pushWord("bringUpAllNonessentialSystems");
-  //pushWord("endStackCollapse");
-  pushWord("moveToNextMapPosition");
-  pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
-  //pushWord("setRandomPositionAndOrientationForHeightLearning");
-  //pushWord("recordAllBlueBoxes");
-  pushWord("filterBoxMemories");
-  pushWord("shiftIntoGraspGear1");
-  pushWord("lockTargetIfBlueBoxes");
-  //pushWord("collapseStack");
-  pushWord("gradientServoIfBlueBoxes");
-  pushWord("mapClosestBlueBox");
-  pushWord("goClassifyBlueBoxes"); 
-  pushWord("synchronicServo"); 
-  pushWord("visionCycleNoClassify");
-  pushWord("synchronicServoTakeClosest");
-  pushWord("waitUntilAtCurrentPosition"); 
-  pushWord("moveToNextMapPosition");
-  pushWord("sampleHeight"); 
-  pushWord("setBoundingBoxModeToMapping");
-  pushWord("shiftIntoGraspGear1");
-  pushWord("cruisingSpeed");
-  //pushWord("shutdownAllNonessentialSystems");
-  //pushWord("bringUpAllNonessentialSystems");
+  ms->pushWord("mappingPatrol");
+  //ms->pushWord("bringUpAllNonessentialSystems");
+  //ms->pushWord("endStackCollapse");
+  ms->pushWord("moveToNextMapPosition");
+  ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
+  //ms->pushWord("setRandomPositionAndOrientationForHeightLearning");
+  //ms->pushWord("recordAllBlueBoxes");
+  ms->pushWord("filterBoxMemories");
+  ms->pushWord("shiftIntoGraspGear1");
+  ms->pushWord("lockTargetIfBlueBoxes");
+  //ms->pushWord("collapseStack");
+  ms->pushWord("gradientServoIfBlueBoxes");
+  ms->pushWord("mapClosestBlueBox");
+  ms->pushWord("goClassifyBlueBoxes"); 
+  ms->pushWord("synchronicServo"); 
+  ms->pushWord("visionCycleNoClassify");
+  ms->pushWord("synchronicServoTakeClosest");
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("moveToNextMapPosition");
+  ms->pushWord("sampleHeight"); 
+  ms->pushWord("setBoundingBoxModeToMapping");
+  ms->pushWord("shiftIntoGraspGear1");
+  ms->pushWord("cruisingSpeed");
+  //ms->pushWord("shutdownAllNonessentialSystems");
+  //ms->pushWord("bringUpAllNonessentialSystems");
 }
 END_WORD
 REGISTER_WORD(MappingPatrol)
@@ -393,7 +393,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (i >= mapWidth) {
     i = 0;
   } else {
-    pushWord("fillIkMap");
+    ms->pushWord("fillIkMap");
   }
   if (j >= mapHeight) {
     j = 0;
@@ -436,8 +436,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     if (oldestI == -1 || oldestJ == -1) {
       cout << "moveToNextMapPosition failed to find a position. Clearing callstack." << endl;
-      clearStack();
-      pushCopies("beep", 15); // beep
+      ms->clearStack();
+      ms->pushCopies("beep", 15); // beep
       return;
     }
 
@@ -476,7 +476,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       cout << "This pose was accepted by ikClient:" << endl;
       cout << "Next EE Position (x,y,z): " << nextEEPose.px << " " << nextEEPose.py << " " << nextEEPose.pz << endl;
       cout << "Next EE Orientation (x,y,z,w): " << nextEEPose.qx << " " << nextEEPose.qy << " " << nextEEPose.qz << " " << nextEEPose.qw << endl;
-      pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord("waitUntilAtCurrentPosition");
       cout << "moveToNextMapPosition tries foundGoodPosition oldestI oldestJ oldestX oldestY: "  << tries << " " << foundGoodPosition << " "  << oldestI << " " << oldestJ << " " << oldestX << " " << oldestY << endl;
       break;
     } else {
@@ -497,7 +497,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   // puts it back at the right height for scanning in
   //  case coming from exotic pose
-  pushWord("sampleHeight");
+  ms->pushWord("sampleHeight");
 }
 END_WORD
 REGISTER_WORD(MoveToNextMapPosition)
@@ -803,22 +803,22 @@ REGISTER_WORD(ClearBlueBoxMemories)
 WORD(VisionCycle)
 CODE(131153)  // capslock + q
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  pushWord("mapEmptySpace");
-  pushWord("goClassifyBlueBoxes"); 
-  pushWord("goFindBlueBoxes"); 
-  pushCopies("density", 1); 
-  //pushCopies("resetTemporalMap", 1); 
-  //pushCopies("density", 1); 
+  ms->pushWord("mapEmptySpace");
+  ms->pushWord("goClassifyBlueBoxes"); 
+  ms->pushWord("goFindBlueBoxes"); 
+  ms->pushCopies("density", 1); 
+  //ms->pushCopies("resetTemporalMap", 1); 
+  //ms->pushCopies("density", 1); 
 }
 END_WORD
 REGISTER_WORD(VisionCycle)
 
 WORD(Density)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  pushWord("densityA");
-  //pushWord("waitUntilImageCallbackReceived");
-  //pushCopies("waitUntilImageCallbackReceived", 5);
-  pushWord("hover");
+  ms->pushWord("densityA");
+  //ms->pushWord("waitUntilImageCallbackReceived");
+  //ms->pushCopies("waitUntilImageCallbackReceived", 5);
+  ms->pushWord("hover");
 }
 END_WORD
 REGISTER_WORD(Density)
@@ -826,7 +826,7 @@ REGISTER_WORD(Density)
 WORD(DensityA)
 CODE(131121)     // capslock + 1
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  substituteLatestImageQuantities();
+  substituteLatestImageQuantities(ms);
   goCalculateDensity();
 }
 END_WORD

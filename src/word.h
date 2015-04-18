@@ -1,14 +1,29 @@
 #ifndef _WORD_H_
 #define _WORD_H_
 
-
 using namespace std;
 #include <sstream>
 #include <map>
 #include <boost/algorithm/string.hpp>
-#include "machine.h"
+
 using namespace boost::algorithm;
 
+class Word;
+
+class MachineState {
+ private:
+ public:
+  std::vector<std::shared_ptr<Word> > call_stack;
+  int execute_stack = 0;
+  bool pushWord(int code);
+  bool pushWord(string name);
+  bool pushWord(std::shared_ptr<Word> word);
+  std::shared_ptr<Word> popWord();
+  void clearStack();
+  void pushNoOps(int n);
+  void pushCopies(int symbol, int times);
+  void pushCopies(string symbol, int times);
+};
 
 class Word {
   
@@ -225,5 +240,14 @@ class CompoundWord {
 
 std::map<int, std::shared_ptr<Word> > create_character_code_to_word(std::vector<std::shared_ptr<Word> > words);
 std::map<string, std::shared_ptr<Word> > create_name_to_word(std::vector<std::shared_ptr<Word> > words);
+
+std::shared_ptr<Word> forthletParse(string token);
+std::shared_ptr<Word> nameToWord(string name);
+
+extern std::vector<std::shared_ptr<Word> > words;
+extern std::map<int, std::shared_ptr<Word> > character_code_to_word;
+extern std::map<string, std::shared_ptr<Word> > name_to_word;
+
+void initializeWords();
 
 #endif /* _WORD_H_ */

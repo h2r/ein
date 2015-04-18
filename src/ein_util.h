@@ -4,6 +4,8 @@
 #include <string>
 #include <iostream>
 #include <assert.h>
+
+#include "word.h"
 using namespace std;
 
 #define NOW_THATS_FAST 0.08
@@ -88,6 +90,7 @@ typedef enum {
   POSE_REPORTED = 3
 } memoryLockType;
 
+void pushSpeedSign(shared_ptr<MachineState> ms, double speed);
 
 
 #endif /* _EIN_UTIL_H_ */

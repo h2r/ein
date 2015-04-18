@@ -4,7 +4,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose = deliveryPoses[currentDeliveryPose];
   currentEEPose.pz = oldz;
   currentDeliveryPose = (currentDeliveryPose + 1) % deliveryPoses.size();
-  pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("waitUntilAtCurrentPosition");
 }
 END_WORD
 REGISTER_WORD(AssumeDeliveryPose)
@@ -30,7 +30,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
   
   if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh)) {
-    pushWord("waitUntilAtCurrentPositionB"); 
+    ms->pushWord("waitUntilAtCurrentPositionB"); 
     endThisStackCollapse = 1;
     shouldIDoIK = 1;
   } else {
@@ -58,7 +58,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     currentEEPose.pz = trueEEPose.position.z + 0.001;
     cout << "  backing up just a little to dislodge, then waiting again." << endl;
 
-    pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("waitUntilAtCurrentPosition"); 
     return;
   }
 
@@ -76,7 +76,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (waitUntilAtCurrentPositionCounter < waitUntilAtCurrentPositionCounterTimeout) {
     waitUntilAtCurrentPositionCounter++;
     if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh)) {
-      pushWord("waitUntilAtCurrentPositionB"); 
+      ms->pushWord("waitUntilAtCurrentPositionB"); 
       endThisStackCollapse = 1;
       shouldIDoIK = 1;
     } else {
@@ -94,7 +94,7 @@ WORD(WaitUntilGripperNotMoving)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   waitUntilGripperNotMovingCounter = 0;
   lastGripperCallbackRequest = ros::Time::now();
-  pushWord("waitUntilGripperNotMovingB"); 
+  ms->pushWord("waitUntilGripperNotMovingB"); 
   endThisStackCollapse = 1;
 }
 END_WORD
@@ -103,15 +103,15 @@ REGISTER_WORD(WaitUntilGripperNotMoving)
 WORD(WaitUntilGripperNotMovingB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if (lastGripperCallbackRequest >= lastGripperCallbackReceived) {
-    pushWord("waitUntilGripperNotMovingB"); 
+    ms->pushWord("waitUntilGripperNotMovingB"); 
   } else {
     lastGripperCallbackRequest = ros::Time::now();
     if (waitUntilGripperNotMovingCounter < waitUntilGripperNotMovingTimeout) {
       if (gripperMoving) {
 	waitUntilGripperNotMovingCounter++;
-	pushWord("waitUntilGripperNotMovingB"); 
+	ms->pushWord("waitUntilGripperNotMovingB"); 
       } else {
-	pushWord("waitUntilGripperNotMovingC"); 
+	ms->pushWord("waitUntilGripperNotMovingC"); 
 	waitUntilGripperNotMovingStamp = ros::Time::now();
 	waitUntilGripperNotMovingCounter = 0;
       }
@@ -128,14 +128,14 @@ WORD(WaitUntilGripperNotMovingC)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 // waits until gripper has not been moving for gripperNotMovingConfirmTime
   if (lastGripperCallbackRequest >= lastGripperCallbackReceived) {
-    pushWord("waitUntilGripperNotMovingC"); 
+    ms->pushWord("waitUntilGripperNotMovingC"); 
   } else {
     lastGripperCallbackRequest = ros::Time::now();
     if (waitUntilGripperNotMovingCounter < waitUntilGripperNotMovingTimeout) {
       ros::Duration deltaSinceUpdate = gripperLastUpdated - waitUntilGripperNotMovingStamp;
       if (deltaSinceUpdate.toSec() <= gripperNotMovingConfirmTime) {
 	waitUntilGripperNotMovingCounter++;
-	pushWord("waitUntilGripperNotMovingC"); 
+	ms->pushWord("waitUntilGripperNotMovingC"); 
       }
     } else {
       cout << "Warning: waitUntilGripperNotMovingC timed out, moving on." << endl;
@@ -363,7 +363,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //command.command = baxter_core_msgs::EndEffectorCommand::CMD_CALIBRATE;
   //command.id = 65538;
   //gripperPub.publish(command);
-  calibrateGripper();
+  calibrateGripper(ms);
 }
 END_WORD
 REGISTER_WORD(CalibrateGripper)
@@ -596,7 +596,7 @@ REGISTER_WORD(IRCalibrationSpeed)
 WORD(Hover)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   lastHoverTrueEEPoseEEPose = trueEEPoseEEPose;
-  pushWord("hoverA");
+  ms->pushWord("hoverA");
   endThisStackCollapse = 1;
   shouldIDoIK = 1;
   lastHoverRequest = ros::Time::now();
@@ -608,7 +608,7 @@ REGISTER_WORD(Hover)
 WORD(HoverA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if (lastEndpointCallbackRequest >= lastEndpointCallbackReceived) {
-    pushWord("hoverA");
+    ms->pushWord("hoverA");
     cout << "hoverA waiting for endpointCallback." << endl;
     endThisStackCollapse = 1;
   } else {
@@ -625,7 +625,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
     if ( ros::Time::now() - lastHoverRequest < ros::Duration(hoverTimeout) ) {
       if ((distance > hoverGoThresh*hoverGoThresh) || (angleDistance > hoverAngleThresh*hoverAngleThresh)) {
-	pushWord("hoverA"); 
+	ms->pushWord("hoverA"); 
 	endThisStackCollapse = 1;
 	shouldIDoIK = 1;
 	cout << "hoverA distance requirement not met, distance angleDistance: " << distance << " " << angleDistance << endl;
@@ -919,7 +919,7 @@ REGISTER_WORD(DecrementTargetMasterSprite)
 WORD(ComeToStop)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   //currentEEPose = trueEEPoseEEPose;
-  pushWord("comeToStopA");
+  ms->pushWord("comeToStopA");
   comeToStopStart = ros::Time::now();
   cout << "Waiting to come to a stop..." << endl;
 }
@@ -935,7 +935,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   } else {
     ros::Duration timeSinceCTS = ros::Time::now() - comeToStopStart;
     if (timeSinceCTS.toSec() < comeToStopTimeout) {
-      pushWord("comeToStopA");
+      ms->pushWord("comeToStopA");
     } else {
       ROS_WARN_STREAM("_____*____*________");
       ROS_ERROR_STREAM("comeToStop timeout reached, moving on.");
@@ -950,7 +950,7 @@ REGISTER_WORD(ComeToStopA)
 WORD(ComeToHover)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   //currentEEPose = trueEEPoseEEPose;
-  pushWord("comeToHoverA");
+  ms->pushWord("comeToHoverA");
   comeToHoverStart = ros::Time::now();
   cout << "Waiting to come to a hover..." << endl;
 }
@@ -965,7 +965,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   } else {
     ros::Duration timeSinceCTH = ros::Time::now() - comeToHoverStart;
     if (timeSinceCTH.toSec() < comeToHoverTimeout) {
-      pushWord("comeToHoverA");
+      ms->pushWord("comeToHoverA");
     } else {
       ROS_WARN_STREAM("_____*____*________");
       ROS_ERROR_STREAM("comeToHover timeout reached, moving on.");
@@ -979,8 +979,8 @@ REGISTER_WORD(ComeToHoverA)
 
 WORD(WaitForTugThenOpenGripper)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  pushWord("waitForTugThenOpenGripperA");
-  pushWord("comeToStop");
+  ms->pushWord("waitForTugThenOpenGripperA");
+  ms->pushWord("comeToStop");
   waitForTugStart = ros::Time::now();
   cout << "Waiting to come to a stop and then waiting to feel a tug... " << ARMED << " " << currentMovementState << endl;
 }
@@ -997,12 +997,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     if (currentMovementState == MOVING) {
       cout << "Felt a tug, opening gripper." << endl;
     }
-    pushWord("openGripper");
+    ms->pushWord("openGripper");
   } else {
     currentMovementState = ARMED;
     ros::Duration timeSinceWFT = ros::Time::now() - waitForTugStart;
     if (timeSinceWFT.toSec() < waitForTugTimeout) {
-    pushWord("waitForTugThenOpenGripperA");
+    ms->pushWord("waitForTugThenOpenGripperA");
     } else {
       ROS_WARN_STREAM("_____*____*________");
       ROS_ERROR_STREAM("waitForTugThenOpenGripper timeout reached, moving on.");
@@ -1016,9 +1016,9 @@ REGISTER_WORD(WaitForTugThenOpenGripperA)
 
 WORD(Idler)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  //pushWord("clearStackIntoMappingPatrol"); 
-  //pushWord("clearStack"); 
-  pushWord("clearStackAcceptFetchCommands"); 
+  //ms->pushWord("clearStackIntoMappingPatrol"); 
+  //ms->pushWord("clearStack"); 
+  ms->pushWord("clearStackAcceptFetchCommands"); 
 }
 END_WORD
 REGISTER_WORD(Idler)

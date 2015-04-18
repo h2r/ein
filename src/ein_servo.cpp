@@ -5,77 +5,77 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
   if (useContinuousGraspTransform) {
   } else {
-    pushWord(1179728); // estimateGlobalGraspGear
+    ms->pushWord(1179728); // estimateGlobalGraspGear
   }
 
   // select max target cumulative
-  pushWord("selectMaxTargetCumulative");
+  ms->pushWord("selectMaxTargetCumulative");
   // apply grasp filter for 4
-  pushWord("drawMapRegisters"); 
-  pushWord("applyGraspFilter"); // apply grasp filter
-  pushWord("prepareToApplyGraspFilterFor4"); // prepare grasp filter for 4
+  ms->pushWord("drawMapRegisters"); 
+  ms->pushWord("applyGraspFilter"); // apply grasp filter
+  ms->pushWord("prepareToApplyGraspFilterFor4"); // prepare grasp filter for 4
   // load reg1
-  pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
+  ms->pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
   // change gear to 4
-  pushWord("shiftIntoGraspGear4");
+  ms->pushWord("shiftIntoGraspGear4");
 
   // select max target cumulative
-  pushWord("selectMaxTargetCumulative");
+  ms->pushWord("selectMaxTargetCumulative");
   // apply grasp filter for 3
-  pushWord("drawMapRegisters"); 
-  pushWord("applyGraspFilter"); // apply grasp filter
-  pushWord("prepareToApplyGraspFilterFor3"); // prepare grasp filter for 3
+  ms->pushWord("drawMapRegisters"); 
+  ms->pushWord("applyGraspFilter"); // apply grasp filter
+  ms->pushWord("prepareToApplyGraspFilterFor3"); // prepare grasp filter for 3
   // load reg1
-  pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
+  ms->pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
   // change gear to 3
-  pushWord("shiftIntoGraspGear3");
+  ms->pushWord("shiftIntoGraspGear3");
 
   // select max target cumulative
-  pushWord("selectMaxTargetCumulative");
+  ms->pushWord("selectMaxTargetCumulative");
   // apply grasp filter for 2
-  pushWord("drawMapRegisters"); // drawMapRegisters
-  pushWord("applyGraspFilter"); // apply grasp filter
-  pushWord("prepareToApplyGraspFilterFor2"); // prepare to apply grasp filter for 2
+  ms->pushWord("drawMapRegisters"); // drawMapRegisters
+  ms->pushWord("applyGraspFilter"); // apply grasp filter
+  ms->pushWord("prepareToApplyGraspFilterFor2"); // prepare to apply grasp filter for 2
   // load reg1
-  pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
+  ms->pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
   // change gear to 2
-  pushWord("shiftIntoGraspGear2");
+  ms->pushWord("shiftIntoGraspGear2");
 
   // select max target NOT cumulative
-  pushWord("selectMaxTargetNotCumulative");
+  ms->pushWord("selectMaxTargetNotCumulative");
 
 
               
   // apply grasp filter for 1
-  pushWord("drawMapRegisters"); // drawMapRegisters 
-  pushWord("applyGraspFilter"); // apply grasp filter
-  pushWord("prepareToApplyGraspFilterFor1"); // prepare to apply grasp filter for 1
+  ms->pushWord("drawMapRegisters"); // drawMapRegisters 
+  ms->pushWord("applyGraspFilter"); // apply grasp filter
+  ms->pushWord("prepareToApplyGraspFilterFor1"); // prepare to apply grasp filter for 1
   // load reg1
-  pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
+  ms->pushWord("loadTargetClassRangeMapIntoRegister1"); // load target classRangeMap
 
   // change gear to 1
-  pushWord("shiftIntoGraspGear1");
+  ms->pushWord("shiftIntoGraspGear1");
 
   // ATTN 10
   // loadSampled gives proper Thompson
   // loadMarginal is MAP estimate
-  //pushWord(131117); // loadSampledGraspMemory
-  //pushWord("loadMarginalGraspMemory"); // loadMarginalGraspMemory	
+  //ms->pushWord(131117); // loadSampledGraspMemory
+  //ms->pushWord("loadMarginalGraspMemory"); // loadMarginalGraspMemory	
   switch (currentPickMode) {
   case STATIC_PRIOR:
     {
-      pushWord("loadMarginalGraspMemory"); // loadMarginalGraspMemory
+      ms->pushWord("loadMarginalGraspMemory"); // loadMarginalGraspMemory
     }
     break;
   case LEARNING_SAMPLING:
     {
-      pushWord(131117); // loadSampledGraspMemory
+      ms->pushWord(131117); // loadSampledGraspMemory
     }
     break;
   case LEARNING_ALGORITHMC:
   case STATIC_MARGINALS:
     {
-      pushWord("loadMarginalGraspMemory"); // loadMarginalGraspMemory
+      ms->pushWord("loadMarginalGraspMemory"); // loadMarginalGraspMemory
     }
     break;
   default:
@@ -85,8 +85,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     break;
   }
 
-  pushWord("turnOffScanning"); // turn off scanning
-  pushWord(1179721); // set graspMemories from classGraspMemories
+  ms->pushWord("turnOffScanning"); // turn off scanning
+  ms->pushWord(1179721); // set graspMemories from classGraspMemories
 }
 END_WORD
 REGISTER_WORD(FindBestOfFourGraspsUsingMemory)
@@ -107,14 +107,14 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       
   cout << "Assuming x,y,gear: " << targetX << " " << targetY << " " << maxGG << endl;
 
-  //pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  //ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
   // ATTN 19
   if (useContinuousGraspTransform) {
     cout << "Assuming continuous maxGG: " << maxGG << " localMaxGG: " << localMaxGG << endl;
     setCCRotation((maxGG+4)%4); 
   } else {
-    pushWord(1048631); // assume best gear
+    ms->pushWord(1048631); // assume best gear
   }
 }
 END_WORD
@@ -123,7 +123,7 @@ REGISTER_WORD(AssumeWinningGgAndXyInLocalPose)
 WORD(MoveToTargetZAndGrasp)
 CODE(1048682)     // numlock + j
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  pushWord("closeGripper"); 
+  ms->pushWord("closeGripper"); 
   double threshedZ = min(trZ, 0.0);
 
   double pickZ = (-(threshedZ + currentTableZ) - graspDepth);
@@ -143,17 +143,17 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     if (deltaZ > 0) {
       for (int zc = 0; zc < zTimes; zc++) {
 	for (int cc = 0; cc < numNoOps; cc++) {
-	  pushWord('C');
+	  ms->pushWord('C');
 	}
-	pushWord('w');
+	ms->pushWord('w');
       }
     }
     if (deltaZ < 0) {
       for (int zc = 0; zc < zTimes; zc++) {
 	for (int cc = 0; cc < numNoOps; cc++) {
-	  pushWord('C');
+	  ms->pushWord('C');
 	}
-	pushWord('s');
+	ms->pushWord('s');
       }
     }
   } else {
@@ -162,19 +162,19 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       int increments = 0.1/MOVE_FAST;
       currentEEPose.pz = pickZ+increments*MOVE_FAST;
 
-      //pushCopies("endStackCollapseNoop", pickNoops);
-      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      pushCopies('s', increments);
-      pushWord("setMovementSpeedMoveFast");
-      pushWord("approachSpeed");
-      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      //pushWord("quarterImpulse");
-      pushWord("approachSpeed");
+      //ms->pushCopies("endStackCollapseNoop", pickNoops);
+      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+      ms->pushCopies('s', increments);
+      ms->pushWord("setMovementSpeedMoveFast");
+      ms->pushWord("approachSpeed");
+      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+      //ms->pushWord("quarterImpulse");
+      ms->pushWord("approachSpeed");
     } else {
       currentEEPose.pz = pickZ;
-      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     }
   }
 }
@@ -189,24 +189,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   eepReg6 = currentEEPose;
   eepReg6.pz += 0.2;
 
-  pushSpeedSign(MOVE_FAST);    
+  pushSpeedSign(ms, MOVE_FAST);    
   if (isGripperGripping()) {
     happy();
-    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    pushWord('5');  // assume pose at register 5
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord('5');  // assume pose at register 5
       
-    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    pushWord('6'); // assume pose at register 6
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord('6'); // assume pose at register 6
       
-    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    pushWord('5'); // assume pose at register 5
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord('5'); // assume pose at register 5
       
-    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    pushWord('6');
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord('6');
 
   }
 
-  pushSpeedSign(NOW_THATS_FAST);
+  pushSpeedSign(ms, NOW_THATS_FAST);
 
 }
 END_WORD
@@ -215,7 +215,7 @@ REGISTER_WORD(ShakeItUpAndDown)
 WORD(TryToMoveToTheLastPrePickHeight)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose.pz = lastPrePickHeight;
-  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   cout << "trying to move to the last pre pick height..." << endl;
 }
 END_WORD
@@ -233,17 +233,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     if (deltaZ > 0) {
       for (int zc = 0; zc < zTimes; zc++) {
 	for (int cc = 0; cc < numNoOps; cc++) {
-	  pushWord("endStackCollapseNoop");
+	  ms->pushWord("endStackCollapseNoop");
 	}
-	pushWord('w');
+	ms->pushWord('w');
       }
     }
     if (deltaZ < 0) {
       for (int zc = 0; zc < zTimes; zc++) {
 	for (int cc = 0; cc < numNoOps; cc++) {
-	  pushWord("endStackCollapseNoop");
+	  ms->pushWord("endStackCollapseNoop");
 	}
-	pushWord('s');
+	ms->pushWord('s');
       }
     }
   } else {
@@ -252,19 +252,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       int increments = 0.1/MOVE_FAST;
       currentEEPose.pz = lastPickHeight+increments*MOVE_FAST;
 
-      //pushCopies("endStackCollapseNoop", pickNoops);
-      pushWord("waitUntilAtCurrentPosition"); 
-      pushCopies('s', increments);
-      pushWord("setMovementSpeedMoveFast");
-      pushWord("approachSpeed");
-      pushWord("waitUntilAtCurrentPosition"); 
-      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      //pushWord("quarterImpulse");
-      pushWord("approachSpeed");
+      //ms->pushCopies("endStackCollapseNoop", pickNoops);
+      ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushCopies('s', increments);
+      ms->pushWord("setMovementSpeedMoveFast");
+      ms->pushWord("approachSpeed");
+      ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+      //ms->pushWord("quarterImpulse");
+      ms->pushWord("approachSpeed");
     } else {
       currentEEPose.pz = lastPickHeight;
-      pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord("waitUntilAtCurrentPosition"); 
     }
   }
   cout << "trying to move to the last pick height..." << endl;
@@ -282,11 +282,11 @@ CODE( 131157)     // capslock + u
   // TODO push this and then a calibration message if uncalibrated
   // push this again if moving
   if (gripperMoving) {
-    pushWord("assertYesGrasp"); // assert yes grasp
+    ms->pushWord("assertYesGrasp"); // assert yes grasp
   } else {
     if (isGripperGripping())
       {
-        popWord();
+        ms->popWord();
         // leave gripper in released state
         cout << "  assert yes pops back instruction." << endl;
       } else {
@@ -303,7 +303,7 @@ REGISTER_WORD(AssertYesGrasp)
 WORD(IfNoGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if (isGripperGripping())  {
-    popWord();
+    ms->popWord();
   }
 }
 END_WORD
@@ -312,7 +312,7 @@ REGISTER_WORD(IfNoGrasp)
 WORD(IfGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if (!isGripperGripping())  {
-    popWord();
+    ms->popWord();
   }
 }
 END_WORD
@@ -331,10 +331,10 @@ CODE(196649)     // capslock + i
   cout << "assert no grasp: " << gripperMoving << " " << gripperGripping << " " << gripperPosition << endl;
 
   if (gripperMoving) {
-    pushWord("assertNoGrasp"); // assert no grasp
+    ms->pushWord("assertNoGrasp"); // assert no grasp
   } else {
     if (!isGripperGripping())  {
-      popWord();
+      ms->popWord();
       // leave gripper in released state
       cout << "  assert no pops back instruction." << endl;
       if (thisGraspReleased == UNKNOWN) {
@@ -342,8 +342,8 @@ CODE(196649)     // capslock + i
       }
     } else {
       // stuck
-      pushWord('Y'); // pause stack execution
-      pushCopies("beep", 15); // beep
+      ms->pushWord('Y'); // pause stack execution
+      ms->pushCopies("beep", 15); // beep
       cout << "Stuck, please reset the object. ";
       cout << " gripperPosition: " << gripperPosition;
       cout << " gripperThresh: " << gripperThresh << endl;
@@ -352,7 +352,7 @@ CODE(196649)     // capslock + i
         sad();
       }
     }
-    pushWord("openGripper"); // open gripper
+    ms->pushWord("openGripper"); // open gripper
 
   }
 
@@ -366,29 +366,29 @@ CODE( 131151)     // capslock + o
   int depthToPlunge = 24;
   int flexThisFar = 80;
   cout << "SHAKING IT OFF!!!" << endl;
-  pushWord(196719); // shake it off 2
-  pushWord("assertNoGrasp"); // assert no grasp
+  ms->pushWord(196719); // shake it off 2
+  ms->pushWord("assertNoGrasp"); // assert no grasp
 
-  pushNoOps(60);
-  //pushWord("moveToRegister2"); // assume pose at register 2
-  pushWord("closeGripper"); // close gripper
-  pushNoOps(20);
-  pushWord("openGripper"); // open gripper
-  pushWord("closeGripper"); // close gripper
-  pushNoOps(20);
-  //pushCopies('w', depthToPlunge); // move up 
-  pushWord("openGripper"); // open gripper
-  pushWord("closeGripper"); // close gripper
-  //pushNoOps(20);
-  //pushCopies("zDown"+65504, flexThisFar); // rotate forward
-  //pushCopies('e', 5); // move forward
-  //pushCopies('s', depthToPlunge); // move down
-  pushWord("openGripper"); // open gripper
-  pushNoOps(50);
-  //pushCopies('w'+65504, flexThisFar); // rotate forward
+  ms->pushNoOps(60);
+  //ms->pushWord("moveToRegister2"); // assume pose at register 2
+  ms->pushWord("closeGripper"); // close gripper
+  ms->pushNoOps(20);
+  ms->pushWord("openGripper"); // open gripper
+  ms->pushWord("closeGripper"); // close gripper
+  ms->pushNoOps(20);
+  //ms->pushCopies('w', depthToPlunge); // move up 
+  ms->pushWord("openGripper"); // open gripper
+  ms->pushWord("closeGripper"); // close gripper
+  //ms->pushNoOps(20);
+  //ms->pushCopies("zDown"+65504, flexThisFar); // rotate forward
+  //ms->pushCopies('e', 5); // move forward
+  //ms->pushCopies('s', depthToPlunge); // move down
+  ms->pushWord("openGripper"); // open gripper
+  ms->pushNoOps(50);
+  //ms->pushCopies('w'+65504, flexThisFar); // rotate forward
 
-  //pushWord("moveToRegister2"); // assume pose at register 2
-  pushSpeedSign(MOVE_FAST);
+  //ms->pushWord("moveToRegister2"); // assume pose at register 2
+  pushSpeedSign(ms, MOVE_FAST);
 
   // resets the gripper server
   //int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
@@ -509,7 +509,7 @@ WORD(CheckGrasp)
 CODE(196718)     // capslock + N 
   virtual void execute(std::shared_ptr<MachineState> ms)       {
   if (gripperMoving) {
-    pushWord("checkGrasp"); // check grasp
+    ms->pushWord("checkGrasp"); // check grasp
   } else {
     cout << "gripperPosition: " << gripperPosition << " gripperThresh: " << gripperThresh << endl;
     cout << "gripperGripping: " << gripperGripping << endl;
@@ -517,7 +517,7 @@ CODE(196718)     // capslock + N
       cout << "Failed to pick." << endl;
       thisGraspPicked = FAILURE;
       sad();
-      pushCopies("beep", 15); // beep
+      ms->pushCopies("beep", 15); // beep
     } else {
       cout << "Successful pick." << endl;
       thisGraspPicked = SUCCESS;
@@ -534,7 +534,7 @@ CODE(196713)     // capslock + I
   int i = localMaxX + localMaxY * rmWidth + rmWidth*rmWidth*localMaxGG;
   int j = localMaxX + localMaxY * rmWidth + rmWidth*rmWidth*0;
   if (gripperMoving) {
-    pushWord(196713); // check and count grasp
+    ms->pushWord(196713); // check and count grasp
   } else {
     graspAttemptCounter++;
     switch (currentPickMode) {
@@ -573,8 +573,8 @@ CODE(196713)     // capslock + I
         recordBoundingBoxFailure();
       }
       cout << "Failed grasp." << endl;
-      //pushWord('Y'); // pause stack execution
-      pushCopies("beep", 15); // beep
+      //ms->pushWord('Y'); // pause stack execution
+      ms->pushCopies("beep", 15); // beep
     } else {
       if (ARE_GENERIC_HEIGHT_LEARNING()) {
         recordBoundingBoxSuccess();
@@ -671,87 +671,87 @@ REGISTER_WORD(CheckAndCountGrasp)
 WORD(PrepareForAndExecuteGraspFromMemoryLearning)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
 
-  pushWord("visionCycle"); // vision cycle
-  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  pushWord("sampleHeight"); // sample height
-  pushWord("shiftIntoGraspGear1"); // change to first gear
+  ms->pushWord("visionCycle"); // vision cycle
+  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  ms->pushWord("sampleHeight"); // sample height
+  ms->pushWord("shiftIntoGraspGear1"); // change to first gear
 
-  pushWord("countGrasp"); //count grasp
+  ms->pushWord("countGrasp"); //count grasp
 
-  pushWord("openGripper"); // open gripper
-  pushWord("shakeItOff1"); // shake it off 1
-  pushWord("assertNoGrasp"); // assert no grasp
+  ms->pushWord("openGripper"); // open gripper
+  ms->pushWord("shakeItOff1"); // shake it off 1
+  ms->pushWord("assertNoGrasp"); // assert no grasp
 
-  pushNoOps(30);
-  pushWord("closeGripper"); 
-  pushWord("waitUntilAtCurrentPosition"); 
-  pushCopies("zUp", 10);
-  pushNoOps(30);
-  pushWord("openGripper"); 
+  ms->pushNoOps(30);
+  ms->pushWord("closeGripper"); 
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushCopies("zUp", 10);
+  ms->pushNoOps(30);
+  ms->pushWord("openGripper"); 
 
-  pushNoOps(5);
-  pushWord("tryToMoveToTheLastPickHeight"); 
-  //pushWord("approachSpeed"); 
+  ms->pushNoOps(5);
+  ms->pushWord("tryToMoveToTheLastPickHeight"); 
+  //ms->pushWord("approachSpeed"); 
 
   //count here so that if it drops it on the way it will count as a miss
   { // in case it fell out
-    pushWord("checkGrasp");
+    ms->pushWord("checkGrasp");
 
-    pushNoOps(30);
-    pushWord("closeGripper"); // close gripper
-    pushWord("shakeItUpAndDown"); // shake it up and down
+    ms->pushNoOps(30);
+    ms->pushWord("closeGripper"); // close gripper
+    ms->pushWord("shakeItUpAndDown"); // shake it up and down
 
-    pushNoOps(5);
-    pushWord("closeGripper"); // close gripper
+    ms->pushNoOps(5);
+    ms->pushWord("closeGripper"); // close gripper
   }
 
-  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
   if (ARE_GENERIC_HEIGHT_LEARNING()) {
-    pushWord("setRandomPositionAndOrientationForHeightLearning"); // set random position for bblearn
+    ms->pushWord("setRandomPositionAndOrientationForHeightLearning"); // set random position for bblearn
   } else {
-    pushWord("perturbPosition"); // numlock + /
+    ms->pushWord("perturbPosition"); // numlock + /
   }
 
-  pushCopies("zDown", 3);
-  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  ms->pushCopies("zDown", 3);
+  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
   if (ARE_GENERIC_HEIGHT_LEARNING()) {
-    pushWord("moveToRegister4"); // assume pose at register 4
+    ms->pushWord("moveToRegister4"); // assume pose at register 4
   } else {
-    pushWord("moveToRegister2"); // assume pose at register 2
+    ms->pushWord("moveToRegister2"); // assume pose at register 2
   }
 
-  pushWord("quarterImpulse"); 
-  pushNoOps(10);
+  ms->pushWord("quarterImpulse"); 
+  ms->pushNoOps(10);
 
-  pushWord("moveToTargetZAndGrasp"); 
-  pushWord("approachSpeed"); 
-  pushWord("waitUntilAtCurrentPosition"); 
-  pushWord("assumeWinningGgAndXyInLocalPose"); 
+  ms->pushWord("moveToTargetZAndGrasp"); 
+  ms->pushWord("approachSpeed"); 
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("assumeWinningGgAndXyInLocalPose"); 
 
-  pushWord("paintReticles"); 
+  ms->pushWord("paintReticles"); 
 
-  pushWord("drawMapRegisters"); 
+  ms->pushWord("drawMapRegisters"); 
 
-  pushWord("loadTargetClassRangeMapIntoRegister1"); 
+  ms->pushWord("loadTargetClassRangeMapIntoRegister1"); 
 
 
 
-  pushWord("setTargetReticleToTheMaxMappedPosition");
-  pushWord("findBestOfFourGraspsUsingMemory"); 
+  ms->pushWord("setTargetReticleToTheMaxMappedPosition");
+  ms->pushWord("findBestOfFourGraspsUsingMemory"); 
 
-  pushWord("loadTargetClassRangeMapIntoRegister1"); 
+  ms->pushWord("loadTargetClassRangeMapIntoRegister1"); 
 
   // ATTN 23
   {
-    pushWord("setRangeMapCenterFromCurrentEEPose"); 
-    pushWord("initDepthScan"); 
+    ms->pushWord("setRangeMapCenterFromCurrentEEPose"); 
+    ms->pushWord("initDepthScan"); 
   }
-  pushWord("initDepthScan"); 
-  pushWord("turnOffScanning"); 
+  ms->pushWord("initDepthScan"); 
+  ms->pushWord("turnOffScanning"); 
 
-  pushWord("openGripper"); 
+  ms->pushWord("openGripper"); 
 
 }
 END_WORD
@@ -762,27 +762,27 @@ REGISTER_WORD(PrepareForAndExecuteGraspFromMemoryLearning)
 
 WORD(PrepareForAndExecuteGraspFromMemory)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  pushWord("executePreparedGrasp"); 
-  pushWord("prepareForGraspFromMemory"); 
+  ms->pushWord("executePreparedGrasp"); 
+  ms->pushWord("prepareForGraspFromMemory"); 
 }
 END_WORD
 REGISTER_WORD(PrepareForAndExecuteGraspFromMemory)
 
 WORD(ExecutePreparedGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
   if (ARE_GENERIC_HEIGHT_LEARNING()) {
-    pushWord("moveToRegister4"); // assume pose at register 4
+    ms->pushWord("moveToRegister4"); // assume pose at register 4
   }
 
-  //pushWord("quarterImpulse"); 
-  pushWord("cruisingSpeed"); 
-  pushWord("comeToHover"); 
-  pushWord("waitUntilGripperNotMoving");
-  pushWord("moveToTargetZAndGrasp"); 
-  pushWord("approachSpeed"); 
-  pushWord("openGripper"); 
+  //ms->pushWord("quarterImpulse"); 
+  ms->pushWord("cruisingSpeed"); 
+  ms->pushWord("comeToHover"); 
+  ms->pushWord("waitUntilGripperNotMoving");
+  ms->pushWord("moveToTargetZAndGrasp"); 
+  ms->pushWord("approachSpeed"); 
+  ms->pushWord("openGripper"); 
 }
 END_WORD
 REGISTER_WORD(ExecutePreparedGrasp)
@@ -790,30 +790,30 @@ REGISTER_WORD(ExecutePreparedGrasp)
 WORD(PrepareForGraspFromMemory)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
-  //pushWord("waitUntilAtCurrentPosition"); 
-  pushWord("assumeWinningGgAndXyInLocalPose"); 
+  //ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("assumeWinningGgAndXyInLocalPose"); 
 
-  pushWord("paintReticles"); 
+  ms->pushWord("paintReticles"); 
 
-  pushWord("drawMapRegisters"); 
+  ms->pushWord("drawMapRegisters"); 
 
-  pushWord("loadTargetClassRangeMapIntoRegister1"); 
+  ms->pushWord("loadTargetClassRangeMapIntoRegister1"); 
 
-  pushWord("setTargetReticleToTheMaxMappedPosition");
-  pushWord("findBestOfFourGraspsUsingMemory"); 
+  ms->pushWord("setTargetReticleToTheMaxMappedPosition");
+  ms->pushWord("findBestOfFourGraspsUsingMemory"); 
 
-  pushWord("loadTargetClassRangeMapIntoRegister1"); 
+  ms->pushWord("loadTargetClassRangeMapIntoRegister1"); 
 
   // ATTN 23
   {
-    pushWord("setRangeMapCenterFromCurrentEEPose"); 
-    pushWord("initDepthScan"); 
+    ms->pushWord("setRangeMapCenterFromCurrentEEPose"); 
+    ms->pushWord("initDepthScan"); 
   }
-  //pushWord("initDepthScan"); 
+  //ms->pushWord("initDepthScan"); 
 
-  pushWord("turnOffScanning"); 
+  ms->pushWord("turnOffScanning"); 
 
-  pushWord("openGripper"); 
+  ms->pushWord("openGripper"); 
 }
 END_WORD
 REGISTER_WORD(PrepareForGraspFromMemory)
@@ -845,7 +845,7 @@ REGISTER_WORD(IncrementGraspGear)
 WORD(ShiftGraspGear)
 CODE(1114155)     // numlock + +
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  pushNoOps(50);
+  ms->pushNoOps(50);
   int thisGraspGear = (currentGraspGear+4) % totalGraspGears;
   
   //   set drX
@@ -898,65 +898,65 @@ CODE(1048630)  // numlock + 6
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Selecting best of 4 grasps... numlock + 6" << endl;
 
-  pushWord("selectMaxTargetCumulative");
+  ms->pushWord("selectMaxTargetCumulative");
 
-  pushWord("drawMapRegisters"); 
-  pushWord("applyGraspFilter");
-  pushWord("prepareToApplyGraspFilterFor4");
+  ms->pushWord("drawMapRegisters"); 
+  ms->pushWord("applyGraspFilter");
+  ms->pushWord("prepareToApplyGraspFilterFor4");
 
-  pushWord("drawMapRegisters"); 
-  pushWord("applyGraspFilter");
-  pushWord("blur");
+  ms->pushWord("drawMapRegisters"); 
+  ms->pushWord("applyGraspFilter");
+  ms->pushWord("blur");
 
-  pushWord("downsampleIrScan");
+  ms->pushWord("downsampleIrScan");
 
-  pushWord("shiftIntoGraspGear4");
-
-
-  pushWord("selectMaxTargetCumulative");
-
-  pushWord("drawMapRegisters"); 
-  pushWord("applyGraspFilter");
-  pushWord("prepareToApplyGraspFilterFor3");
-
-  pushWord("drawMapRegisters"); 
-  pushWord("applyGraspFilter");
-  pushWord("blur");
-
-  pushWord("downsampleIrScan");
-
-  pushWord("shiftIntoGraspGear3");
+  ms->pushWord("shiftIntoGraspGear4");
 
 
-  pushWord("selectMaxTargetCumulative");
+  ms->pushWord("selectMaxTargetCumulative");
 
-  pushWord("drawMapRegisters"); 
-  pushWord("applyGraspFilter");
-  pushWord("prepareToApplyGraspFilterFor2");
+  ms->pushWord("drawMapRegisters"); 
+  ms->pushWord("applyGraspFilter");
+  ms->pushWord("prepareToApplyGraspFilterFor3");
 
-  pushWord("drawMapRegisters"); 
-  pushWord("applyGraspFilter");
-  pushWord("blur");
+  ms->pushWord("drawMapRegisters"); 
+  ms->pushWord("applyGraspFilter");
+  ms->pushWord("blur");
 
-  pushWord("downsampleIrScan");
+  ms->pushWord("downsampleIrScan");
 
-  pushWord("shiftIntoGraspGear2");
+  ms->pushWord("shiftIntoGraspGear3");
 
 
-  pushWord("selectMaxTargetNotCumulative");
+  ms->pushWord("selectMaxTargetCumulative");
 
-  pushWord("drawMapRegisters"); 
-  pushWord("applyGraspFilter");
-  pushWord("prepareToApplyGraspFilterFor1");
+  ms->pushWord("drawMapRegisters"); 
+  ms->pushWord("applyGraspFilter");
+  ms->pushWord("prepareToApplyGraspFilterFor2");
 
-  pushWord("drawMapRegisters"); 
-  pushWord("applyGraspFilter");
-  pushWord("blur");
+  ms->pushWord("drawMapRegisters"); 
+  ms->pushWord("applyGraspFilter");
+  ms->pushWord("blur");
 
-  pushWord("downsampleIrScan");
+  ms->pushWord("downsampleIrScan");
+
+  ms->pushWord("shiftIntoGraspGear2");
+
+
+  ms->pushWord("selectMaxTargetNotCumulative");
+
+  ms->pushWord("drawMapRegisters"); 
+  ms->pushWord("applyGraspFilter");
+  ms->pushWord("prepareToApplyGraspFilterFor1");
+
+  ms->pushWord("drawMapRegisters"); 
+  ms->pushWord("applyGraspFilter");
+  ms->pushWord("blur");
+
+  ms->pushWord("downsampleIrScan");
   // change gear to 1
-  pushWord("shiftIntoGraspGear1");
-  pushWord("turnOffScanning"); // turn off scanning
+  ms->pushWord("shiftIntoGraspGear1");
+  ms->pushWord("turnOffScanning"); // turn off scanning
 }
 END_WORD
 REGISTER_WORD(SelectBestAvailableGrasp)
@@ -1126,16 +1126,16 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   oscCenX = currentEEPose.px;
   oscCenY = currentEEPose.py;
   oscCenZ = currentEEPose.pz+0.1;
-  pushWord("twoDPatrolContinue"); // 2D patrol continue
-  pushWord("visionCycle");
+  ms->pushWord("twoDPatrolContinue"); // 2D patrol continue
+  ms->pushWord("visionCycle");
   // we want to move to a higher holding position for visual patrol
   // so we assume that we are at 20 cm = IR scan height and move to 30 cm
-  pushSpeedSign(MOVE_FAST);
-  pushWord("changeToPantryTable"); // change to pantry table
-  //pushWord("setBoundingBoxModeToStaticMarginals"); 
-  pushWord("setBoundingBoxModeToStaticPrior"); 
-  pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
-  pushWord("quarterImpulse"); 
+  pushSpeedSign(ms, MOVE_FAST);
+  ms->pushWord("changeToPantryTable"); // change to pantry table
+  //ms->pushWord("setBoundingBoxModeToStaticMarginals"); 
+  ms->pushWord("setBoundingBoxModeToStaticPrior"); 
+  ms->pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
+  ms->pushWord("quarterImpulse"); 
 }
 END_WORD
 REGISTER_WORD(TwoDPatrolStart)
@@ -1151,8 +1151,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     if (thompsonHardCutoff) {
       if (graspAttemptCounter >= thompsonTries) {
         cout << "Clearing call stack because we did " << graspAttemptCounter << " tries." << endl;
-        clearStack();
-        pushCopies("beep", 15); // beep
+        ms->clearStack();
+        ms->pushCopies("beep", 15); // beep
         return;
       }
     }
@@ -1162,8 +1162,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
            (graspAttemptCounter >= thompsonTries) ) {
         cout << "Clearing call stack. thompsonPickHaltFlag = " << thompsonPickHaltFlag << 
           " and we did " << graspAttemptCounter << " tries." << endl;
-        clearStack();
-        pushCopies("beep", 15); // beep
+        ms->clearStack();
+        ms->pushCopies("beep", 15); // beep
         return;
       }
     }
@@ -1176,14 +1176,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   currentEEPose.px = oscCenX + oscAmpX*sin(2.0*3.1415926*oscFreqX*delta.toSec());
   currentEEPose.py = oscCenY + oscAmpY*sin(2.0*3.1415926*oscFreqY*delta.toSec());
-  pushWord("twoDPatrolContinue"); 
+  ms->pushWord("twoDPatrolContinue"); 
   
   // check to see if the target class is around, or take closest
   if ( ((pilotTarget.px != -1) && (pilotTarget.py != -1)) ||
        (synchronicTakeClosest && ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1))) )
     {
       // if so, push servoing command and set lock frames to 0
-      pushWord("synchronicServo"); // synchronic servo
+      ms->pushWord("synchronicServo"); // synchronic servo
       
       if (targetClass != -1)
         cout << "Found the target " << classLabels[targetClass] << ". " << endl;
@@ -1195,14 +1195,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     // check and push vision cycle 
     ros::Duration timeSinceLast = ros::Time::now() - lastVisionCycle;
     if (timeSinceLast.toSec() > visionCycleInterval) {
-      pushWord("visionCycle");
+      ms->pushWord("visionCycle");
       // grab the last bit of accumulated time
       accumulatedTime = accumulatedTime + (ros::Time::now() - oscilStart);
     }
   }
   // if you are static_prior, this does nothing and defaults to the usual height
-  pushWord("sampleHeight"); 
-  pushWord("quarterImpulse"); 
+  ms->pushWord("sampleHeight"); 
+  ms->pushWord("quarterImpulse"); 
 }
 END_WORD
 REGISTER_WORD(TwoDPatrolContinue)
@@ -1210,15 +1210,15 @@ REGISTER_WORD(TwoDPatrolContinue)
 WORD(SynchronicServo)
 CODE(131156)    // capslock + t
 virtual void execute(std::shared_ptr<MachineState> ms) { 
-  pushWord("synchronicServoA");
-  pushWord("comeToStop");
+  ms->pushWord("synchronicServoA");
+  ms->pushWord("comeToStop");
 }
 END_WORD
 REGISTER_WORD(SynchronicServo)
 
 WORD(SynchronicServoA)
 virtual void execute(std::shared_ptr<MachineState> ms) { 
-  synchronicServo();
+  synchronicServo(ms);
 }
 END_WORD
 REGISTER_WORD(SynchronicServoA)
@@ -1226,8 +1226,8 @@ REGISTER_WORD(SynchronicServoA)
 WORD(GradientServo)
 CODE(196728)   // capslock + X
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  pushWord("gradientServoA");
-  pushWord("gradientServoPrep");
+  ms->pushWord("gradientServoA");
+  ms->pushWord("gradientServoPrep");
 }
 END_WORD
 REGISTER_WORD(GradientServo)
@@ -1236,32 +1236,32 @@ WORD(GradientServoPrep)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // ATTN 8
   if (0) {
-    pushCopies("density", densityIterationsForGradientServo); 
-    //pushCopies("accumulateDensity", densityIterationsForGradientServo); 
-    //pushCopies("resetTemporalMap", 1); 
-    pushWord("resetAerialGradientTemporalFrameAverage"); 
-    pushCopies("density", 1); 
-    //pushCopies("waitUntilAtCurrentPosition", 5); 
-    pushWord("hover");
+    ms->pushCopies("density", densityIterationsForGradientServo); 
+    //ms->pushCopies("accumulateDensity", densityIterationsForGradientServo); 
+    //ms->pushCopies("resetTemporalMap", 1); 
+    ms->pushWord("resetAerialGradientTemporalFrameAverage"); 
+    ms->pushCopies("density", 1); 
+    //ms->pushCopies("waitUntilAtCurrentPosition", 5); 
+    ms->pushWord("hover");
   }
 
   // ATTN 23
   {
-    pushWord("accumulatedDensity");
-    //pushCopies("waitUntilImageCallbackReceived", 10);
-    pushCopies("waitUntilImageCallbackReceived", 10);
-    pushWord("resetAccumulatedDensity");
-    pushWord("comeToStop");
+    ms->pushWord("accumulatedDensity");
+    //ms->pushCopies("waitUntilImageCallbackReceived", 10);
+    ms->pushCopies("waitUntilImageCallbackReceived", 10);
+    ms->pushWord("resetAccumulatedDensity");
+    ms->pushWord("comeToStop");
   }
 
-  pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("waitUntilAtCurrentPosition"); 
 }
 END_WORD
 REGISTER_WORD(GradientServoPrep)
 
 WORD(GradientServoA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  gradientServo();
+  gradientServo(ms);
 }
 END_WORD
 REGISTER_WORD(GradientServoA)
@@ -1269,11 +1269,11 @@ REGISTER_WORD(GradientServoA)
 WORD(GradientServoIfBlueBoxes)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (bLabels.size() > 0) && (pilotClosestBlueBoxNumber != -1) ) {
-    changeTargetClass(bLabels[pilotClosestBlueBoxNumber]);
-    pushWord("gradientServo");
-    //pushCopies("density", densityIterationsForGradientServo); 
-    //pushCopies("accumulateDensity", densityIterationsForGradientServo); 
-    //pushWord("resetAerialGradientTemporalFrameAverage"); 
+    changeTargetClass(ms, bLabels[pilotClosestBlueBoxNumber]);
+    ms->pushWord("gradientServo");
+    //ms->pushCopies("density", densityIterationsForGradientServo); 
+    //ms->pushCopies("accumulateDensity", densityIterationsForGradientServo); 
+    //ms->pushWord("resetAerialGradientTemporalFrameAverage"); 
   }
 }
 END_WORD
@@ -1282,8 +1282,8 @@ REGISTER_WORD(GradientServoIfBlueBoxes)
 WORD(LockTargetIfBlueBoxes)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (bLabels.size() > 0) && (pilotClosestBlueBoxNumber != -1) ) {
-    pushWord("recordTargetLock");
-    pushWord("prepareForGraspFromMemory");
+    ms->pushWord("recordTargetLock");
+    ms->pushWord("prepareForGraspFromMemory");
   }
 }
 END_WORD
@@ -1324,7 +1324,7 @@ WORD(DarkServo)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   darkServoIterations = 0;
-  pushWord("darkServoA");
+  ms->pushWord("darkServoA");
 }
 END_WORD
 REGISTER_WORD(DarkServo)
@@ -1333,12 +1333,12 @@ WORD(DarkServoA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   darkServoIterations++;
-  pushWord("darkServoB");
-  pushWord("accumulatedDensity");
-  pushCopies("waitUntilImageCallbackReceived", 10);
-  pushWord("resetAccumulatedDensity");
-  pushWord("comeToStop");
-  pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("darkServoB");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition"); 
 }
 END_WORD
 REGISTER_WORD(DarkServoA)
@@ -1351,7 +1351,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     return;
   }
 
-  darkServo();
+  darkServo(ms);
 }
 END_WORD
 REGISTER_WORD(DarkServoB)

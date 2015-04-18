@@ -9,31 +9,31 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       focusedClass = targetClass;
       focusedClassLabel = classLabels[focusedClass];
       cout << "lastLabelLearned classLabels[targetClass]: " << lastLabelLearned << " " << classLabels[targetClass] << endl;
-      changeTargetClass(targetClass);
+      changeTargetClass(ms, targetClass);
     }
   }
 
-  pushWord("drawMapRegisters"); // render register 1
+  ms->pushWord("drawMapRegisters"); // render register 1
   // ATTN 10
-  //pushWord(196360); // loadPriorGraspMemory
-  //pushWord(1179721); // set graspMemories from classGraspMemories
+  //ms->pushWord(196360); // loadPriorGraspMemory
+  //ms->pushWord(1179721); // set graspMemories from classGraspMemories
   switch (currentPickMode) {
   case STATIC_PRIOR:
     {
-      pushWord(196360); // loadPriorGraspMemory
+      ms->pushWord(196360); // loadPriorGraspMemory
     }
     return;
   case LEARNING_ALGORITHMC:
   case LEARNING_SAMPLING:
     {
-      pushWord(1179721); // set graspMemories from classGraspMemories
-      //pushWord(196360); // loadPriorGraspMemory
+      ms->pushWord(1179721); // set graspMemories from classGraspMemories
+      //ms->pushWord(196360); // loadPriorGraspMemory
     }
     break;
   case STATIC_MARGINALS:
     {
-      pushWord(1179721); // set graspMemories from classGraspMemories
-      //pushWord(196360); // loadPriorGraspMemory
+      ms->pushWord(1179721); // set graspMemories from classGraspMemories
+      //ms->pushWord(196360); // loadPriorGraspMemory
     }
     return;
   default:
@@ -62,7 +62,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   classLabels.resize(0);
   classPoseModels.resize(0);
 
-  pushWord("clearBlueBoxMemories");
+  ms->pushWord("clearBlueBoxMemories");
 
 
   // snoop folders
@@ -134,10 +134,10 @@ REGISTER_WORD(TrainModels)
 WORD(VisionCycleNoClassify)
 CODE(196721)     // capslock + Q
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  pushWord("mapEmptySpace");
-  pushWord("goFindBlueBoxes"); // blue boxes
-  pushCopies("density", 1); // density
-  pushWord("hover"); // blue boxes
+  ms->pushWord("mapEmptySpace");
+  ms->pushWord("goFindBlueBoxes"); // blue boxes
+  ms->pushCopies("density", 1); // density
+  ms->pushWord("hover"); // blue boxes
 }
 END_WORD
 REGISTER_WORD(VisionCycleNoClassify)
@@ -191,37 +191,37 @@ CODE(131143)      // capslock + g
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   // ATTN 16
 
-  pushCopies('e', 5);
-  pushCopies('a', 5);
-  pushWord(196711); // photospin
-  pushCopies('q', 5);
-  pushWord(1245246); // uniformly sample height
-  pushWord(196711); // photospin
-  pushCopies('q', 5);
-  pushWord(1245246); // uniformly sample height
-  pushWord(196711); // photospin
-  pushCopies('d', 5);
-  pushWord(1245246); // uniformly sample height
-  pushWord(196711); // photospin
-  pushCopies('d', 5);
-  pushWord(1245246); // uniformly sample height
-  pushWord(196711); // photospin
-  pushCopies('e', 5);
-  pushWord(1245246); // uniformly sample height
-  pushWord(196711); // photospin
-  pushCopies('e', 5);
-  pushWord(1245246); // uniformly sample height
-  pushWord(196711); // photospin
-  pushCopies('a', 5);
-  pushWord(1245246); // uniformly sample height
-  pushWord(196711); // photospin
-  pushCopies('q', 5);
-  pushWord(1245246); // uniformly sample height
-  pushWord(196711); // photospin
+  ms->pushCopies('e', 5);
+  ms->pushCopies('a', 5);
+  ms->pushWord(196711); // photospin
+  ms->pushCopies('q', 5);
+  ms->pushWord(1245246); // uniformly sample height
+  ms->pushWord(196711); // photospin
+  ms->pushCopies('q', 5);
+  ms->pushWord(1245246); // uniformly sample height
+  ms->pushWord(196711); // photospin
+  ms->pushCopies('d', 5);
+  ms->pushWord(1245246); // uniformly sample height
+  ms->pushWord(196711); // photospin
+  ms->pushCopies('d', 5);
+  ms->pushWord(1245246); // uniformly sample height
+  ms->pushWord(196711); // photospin
+  ms->pushCopies('e', 5);
+  ms->pushWord(1245246); // uniformly sample height
+  ms->pushWord(196711); // photospin
+  ms->pushCopies('e', 5);
+  ms->pushWord(1245246); // uniformly sample height
+  ms->pushWord(196711); // photospin
+  ms->pushCopies('a', 5);
+  ms->pushWord(1245246); // uniformly sample height
+  ms->pushWord(196711); // photospin
+  ms->pushCopies('q', 5);
+  ms->pushWord(1245246); // uniformly sample height
+  ms->pushWord(196711); // photospin
 
-  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  pushWord(1245246); // uniformly sample height
-  pushSpeedSign(MOVE_FAST);
+  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  ms->pushWord(1245246); // uniformly sample height
+  pushSpeedSign(ms, MOVE_FAST);
 }
 END_WORD
 REGISTER_WORD(RgbScan)
@@ -231,14 +231,14 @@ WORD(PhotoSpin)
 CODE(196711)      // capslock + G
 virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int angleCounter = 0; angleCounter < totalGraspGears; angleCounter++) {
-    //pushWord(131148); // save crop as focused class if there is only one
-    pushWord("recordAllExamplesFocusedClass");
-    pushWord(196721); // vision cycle no classify
-    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    pushWord(1310722); // set random orientation for photospin.
-    pushWord(196712); // increment grasp gear
+    //ms->pushWord(131148); // save crop as focused class if there is only one
+    ms->pushWord("recordAllExamplesFocusedClass");
+    ms->pushWord(196721); // vision cycle no classify
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord(1310722); // set random orientation for photospin.
+    ms->pushWord(196712); // increment grasp gear
   }
-  pushWord("shiftIntoGraspGear1"); // change gear to 1
+  ms->pushWord("shiftIntoGraspGear1"); // change gear to 1
 }
 END_WORD
 REGISTER_WORD(PhotoSpin)
@@ -324,93 +324,93 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // this automatically changes learning mode
           
   if (0) {
-    pushWord("beginHeightLearning"); // begin bounding box learning
+    ms->pushWord("beginHeightLearning"); // begin bounding box learning
 
-    pushWord("changeToHeight1"); // change to height 1
-    pushWord("shiftIntoGraspGear1"); // change to first gear
+    ms->pushWord("changeToHeight1"); // change to height 1
+    ms->pushWord("shiftIntoGraspGear1"); // change to first gear
   }
 
   if (1) {
-    pushWord("saveLearnedModels");
-    pushWord("loadPriorGraspMemoryAnalytic");
+    ms->pushWord("saveLearnedModels");
+    ms->pushWord("loadPriorGraspMemoryAnalytic");
     // set target class to the lastLabelLearned 
-    pushWord(1179730);
-    pushWord(131142); // reinitialize and retrain everything
+    ms->pushWord(1179730);
+    ms->pushWord(131142); // reinitialize and retrain everything
   }
 
   // set lastLabelLearned
-  pushWord(1179732);
+  ms->pushWord(1179732);
 
   if (0) {
-    pushWord(131143); // 72 way scan
-    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    pushWord(131143); // 72 way scan
-    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord(131143); // 72 way scan
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord(131143); // 72 way scan
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   }
 
-  pushWord("scanCentered"); // 72 way scan
+  ms->pushWord("scanCentered"); // 72 way scan
 
   // this is a good time to remove a contrast agent
-  //pushWord('Y'); // pause stack execution
-  //pushCopies("beep", 15); // beep
+  //ms->pushWord('Y'); // pause stack execution
+  //ms->pushCopies("beep", 15); // beep
 	  
   { // do density and gradient, save gradient, do medium scan in two directions, save range map
-    pushSpeedSign(MOVE_FAST);
-    pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
-    pushWord("neutralScan"); // neutral scan 
-    pushWord('Y'); // pause stack execution
-    pushCopies("beep", 15); // beep
-    pushSpeedSign(MOVE_FAST);
+    pushSpeedSign(ms, MOVE_FAST);
+    ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
+    ms->pushWord("neutralScan"); // neutral scan 
+    ms->pushWord('Y'); // pause stack execution
+    ms->pushCopies("beep", 15); // beep
+    pushSpeedSign(ms, MOVE_FAST);
 
-    pushWord("changeToHeight1"); // change to height 1
+    ms->pushWord("changeToHeight1"); // change to height 1
 
     {
-      pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
-      pushWord("gradientServoPrep");
-      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      pushWord("changeToHeight3"); // change to height 3
+      ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+      ms->pushWord("gradientServoPrep");
+      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+      ms->pushWord("changeToHeight3"); // change to height 3
     }
     {
-      pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
-      pushWord("gradientServoPrep");
-      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      pushWord("changeToHeight2"); // change to height 2
+      ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+      ms->pushWord("gradientServoPrep");
+      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+      ms->pushWord("changeToHeight2"); // change to height 2
     }
     {
-      pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
-      pushWord("gradientServoPrep");
-      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      pushWord("changeToHeight1"); // change to height 1
+      ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+      ms->pushWord("gradientServoPrep");
+      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+      ms->pushWord("changeToHeight1"); // change to height 1
     }
     {
-      pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
-      pushWord("gradientServoPrep");
-      pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      pushWord("changeToHeight0"); // change to height 0
+      ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+      ms->pushWord("gradientServoPrep");
+      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+      ms->pushWord("changeToHeight0"); // change to height 0
     }
   }
 
   // ATTN 3
   // start NO bag routine
-  pushWord(196720); //  make a new class
+  ms->pushWord(196720); //  make a new class
 
-  pushWord(131139); // synchronic servo don't take closest
-  pushWord(131156); // synchronic servo
-  pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
-  pushWord("visionCycle"); // vision cycle
+  ms->pushWord(131139); // synchronic servo don't take closest
+  ms->pushWord(131156); // synchronic servo
+  ms->pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
+  ms->pushWord("visionCycle"); // vision cycle
 
-  pushWord('Y'); // pause stack execution
-  pushCopies("beep", 15); // beep
+  ms->pushWord('Y'); // pause stack execution
+  ms->pushCopies("beep", 15); // beep
 
-  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  pushWord("shiftIntoGraspGear1"); // change to first gear
-  pushWord(1245219); // change to height 2
-  pushSpeedSign(MOVE_FAST);
-  //pushWord(196672); // go to wholeFoodsCounter1
+  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  ms->pushWord("shiftIntoGraspGear1"); // change to first gear
+  ms->pushWord(1245219); // change to height 2
+  pushSpeedSign(ms, MOVE_FAST);
+  //ms->pushWord(196672); // go to wholeFoodsCounter1
 
-  pushWord(1179735); // change to counter table
-  pushWord("shiftIntoGraspGear1"); // change to first gear
-  pushWord('k'); // open gripper
+  ms->pushWord(1179735); // change to counter table
+  ms->pushWord("shiftIntoGraspGear1"); // change to first gear
+  ms->pushWord('k'); // open gripper
 }
 END_WORD
 REGISTER_WORD(ScanObject)
@@ -522,9 +522,9 @@ REGISTER_WORD(InitDepthScan)
 WORD(NeutralScan)
 CODE(1048622) // numlock + .
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  pushWord("cruisingSpeed");
-  pushWord("neutralScanA");
-  pushWord("rasterScanningSpeed");
+  ms->pushWord("cruisingSpeed");
+  ms->pushWord("neutralScanA");
+  ms->pushWord("rasterScanningSpeed");
 }
 END_WORD
 REGISTER_WORD(NeutralScan)
@@ -535,33 +535,33 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double lineSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
   double betweenSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
 
-  scanXdirection(lineSpeed, betweenSpeed); // load scan program
-  pushWord(1114150); // prepare for search
+  scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
+  ms->pushWord(1114150); // prepare for search
 
-  pushCopies('q',4);
-  pushCopies('a',6);
+  ms->pushCopies('q',4);
+  ms->pushCopies('a',6);
 
-  pushWord(1048683); // turn on scanning
-  pushNoOps(60);
-  pushWord(1114155); // rotate gear
+  ms->pushWord(1048683); // turn on scanning
+  ms->pushNoOps(60);
+  ms->pushWord(1114155); // rotate gear
 
-  pushWord("fullRender"); // full render
-  pushWord("paintReticles"); // render reticle
-  pushWord("shiftIntoGraspGear1"); // change to first gear
-  pushWord("drawMapRegisters"); // render register 1
-  pushWord("downsampleIrScan"); // load map to register 1
+  ms->pushWord("fullRender"); // full render
+  ms->pushWord("paintReticles"); // render reticle
+  ms->pushWord("shiftIntoGraspGear1"); // change to first gear
+  ms->pushWord("drawMapRegisters"); // render register 1
+  ms->pushWord("downsampleIrScan"); // load map to register 1
   {
-    pushWord(1048678); // target best grasp
-    pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    pushWord("shiftIntoGraspGear1"); // change to first gear
+    ms->pushWord(1048678); // target best grasp
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord("shiftIntoGraspGear1"); // change to first gear
   }
-  pushWord(1048630); // find best grasp
+  ms->pushWord(1048630); // find best grasp
 
-  scanXdirection(lineSpeed, betweenSpeed); // load scan program
-  pushWord(1114150); // prepare for search
+  scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
+  ms->pushWord(1114150); // prepare for search
 
-  pushWord(1048683); // turn on scanning
-  pushWord("initDepthScan"); // clear scan history
+  ms->pushWord(1048683); // turn on scanning
+  ms->pushWord("initDepthScan"); // clear scan history
 }
 END_WORD
 REGISTER_WORD(NeutralScanA)
@@ -760,16 +760,16 @@ REGISTER_WORD(SaveCurrentClassDepthAndGraspMaps)
 
 WORD(ScanCentered)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  pushSpeedSign(MOVE_FAST);
-  pushWord("rgbScan");
-  pushWord("rgbScan");
-  pushWord("rgbScan");
-  pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  pushWord("synchronicServo"); 
-  pushWord("visionCycleNoClassify");
-  pushWord("synchronicServoTakeClosest");
-  pushWord("fillClearanceMap");
-  pushWord("loadIkMap");
+  pushSpeedSign(ms, MOVE_FAST);
+  ms->pushWord("rgbScan");
+  ms->pushWord("rgbScan");
+  ms->pushWord("rgbScan");
+  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  ms->pushWord("synchronicServo"); 
+  ms->pushWord("visionCycleNoClassify");
+  ms->pushWord("synchronicServoTakeClosest");
+  ms->pushWord("fillClearanceMap");
+  ms->pushWord("loadIkMap");
   currentBoundingBoxMode = MAPPING;
   bDelta = 0.001;
 }
@@ -780,7 +780,7 @@ WORD(SetTable)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   firstTableHeightTime = ros::Time::now();
   mostRecentUntabledZLastValue = mostRecentUntabledZ;
-  pushWord("setTableA");
+  ms->pushWord("setTableA");
 }
 END_WORD
 REGISTER_WORD(SetTable)
@@ -804,7 +804,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   } else {
     double utZDelta = fabs(mostRecentUntabledZ - mostRecentUntabledZLastValue);
     endThisStackCollapse = 1;
-    pushWord("setTableA");
+    ms->pushWord("setTableA");
     cout << "Looks like the table reading hasn't steadied to within the wait of " << mostRecentUntabledZWait << " ." << endl;
     cout << "  current, last, delta: " << mostRecentUntabledZ << " " << mostRecentUntabledZLastValue << " " << utZDelta << endl;
   } 
@@ -814,10 +814,10 @@ REGISTER_WORD(SetTableA)
 
 WORD(SetIROffset)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  pushWord("setIROffsetA");
-  pushWord("cruisingSpeed");
-  pushWord("neutralScanA");
-  pushWord("iRCalibrationSpeed");
+  ms->pushWord("setIROffsetA");
+  ms->pushWord("cruisingSpeed");
+  ms->pushWord("neutralScanA");
+  ms->pushWord("iRCalibrationSpeed");
 }
 END_WORD
 REGISTER_WORD(SetIROffset)
@@ -925,18 +925,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   setVanishingPointIterations = 0;
   // go low, wait
-  pushWord("setVanishingPointA");
+  ms->pushWord("setVanishingPointA");
   // is darkest point in current vp? loop here until it is so then rise and go to B
-  pushWord("setVanishingPointPrep");
+  ms->pushWord("setVanishingPointPrep");
 }
 END_WORD
 REGISTER_WORD(SetVanishingPoint)
 
 WORD(SetVanishingPointPrep)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  pushWord("darkServo");
-  pushWord("waitUntilAtCurrentPosition");
-  pushWord("moveToSetVanishingPointHeightLow");
+  ms->pushWord("darkServo");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("moveToSetVanishingPointHeightLow");
 }
 END_WORD
 REGISTER_WORD(SetVanishingPointPrep)
@@ -946,13 +946,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   setVanishingPointIterations++;
   currentEEPose.pz = -currentTableZ + 0.4;
-  pushWord("setVanishingPointB");
-  pushWord("accumulatedDensity");
-  pushCopies("waitUntilImageCallbackReceived", 10);
-  pushWord("resetAccumulatedDensity");
-  pushWord("comeToStop");
-  pushWord("waitUntilAtCurrentPosition");
-  pushWord("moveToSetVanishingPointHeightHigh");
+  ms->pushWord("setVanishingPointB");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("moveToSetVanishingPointHeightHigh");
 }
 END_WORD
 REGISTER_WORD(SetVanishingPointA)
@@ -981,8 +981,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     cout << "vanishing point set, continuing." << endl;
   } else {
     cout << "vanishing point not set, adjusting more. " << setVanishingPointIterations << " " << setVanishingPointTimeout << endl;
-    pushWord("setVanishingPointA");
-    pushWord("setVanishingPointPrep");
+    ms->pushWord("setVanishingPointA");
+    ms->pushWord("setVanishingPointPrep");
   }
 }
 END_WORD
@@ -1018,12 +1018,12 @@ REGISTER_WORD(SetMagnificationA)
 WORD(SetGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Program paused; please present the first contrast medium." << endl;
-  pushWord("setGripperMaskA"); 
-  pushWord("accumulatedDensity");
-  pushCopies("waitUntilImageCallbackReceived", 10);
-  pushWord("resetAccumulatedDensity");
-  pushWord("comeToStop");
-  pushWord("pauseStackExecution"); 
+  ms->pushWord("setGripperMaskA"); 
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("pauseStackExecution"); 
 }
 END_WORD
 REGISTER_WORD(SetGripperMask)
@@ -1031,12 +1031,12 @@ REGISTER_WORD(SetGripperMask)
 WORD(SetGripperMaskA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Program paused; please present the second contrast medium." << endl;
-  pushWord("setGripperMaskB"); 
-  pushWord("accumulatedDensity");
-  pushCopies("waitUntilImageCallbackReceived", 10);
-  pushWord("resetAccumulatedDensity");
-  pushWord("comeToStop");
-  pushWord("pauseStackExecution"); 
+  ms->pushWord("setGripperMaskB"); 
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("pauseStackExecution"); 
 
   gripperMaskFirstContrast = accumulatedImage.clone();
   gripperMaskSecondContrast = gripperMaskFirstContrast.clone();

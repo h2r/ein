@@ -11,7 +11,7 @@ REGISTER_WORD(ZeroGToggle)
 WORD(ClearStack)
 CODE('r') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  clearStack();
+  ms->clearStack();
 }
 END_WORD
 REGISTER_WORD(ClearStack)
@@ -65,7 +65,7 @@ REGISTER_WORD(ChangeToPantryTable)
 WORD(ExecuteStack)
 CODE('y')
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  execute_stack = 1;
+  ms->execute_stack = 1;
 }
 END_WORD
 REGISTER_WORD(ExecuteStack)
@@ -74,7 +74,7 @@ WORD(PauseStackExecution)
 CODE('Y') 
 virtual void execute(std::shared_ptr<MachineState> ms)  {
   cout << "STACK EXECUTION PAUSED, press 'y' to continue." << endl;
-  execute_stack = 0;
+  ms->execute_stack = 0;
 }
 END_WORD
 REGISTER_WORD(PauseStackExecution)
@@ -84,7 +84,7 @@ REGISTER_WORD(PauseStackExecution)
 WORD(PauseAndReset)
 CODE('c') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  execute_stack = 0;
+  ms->execute_stack = 0;
   lastPtheta = INFINITY;
 }
 END_WORD
@@ -133,7 +133,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "targetClass-- " << endl;
   if (numClasses > 0) {
     int newTargetClass = (targetClass - 1 + numClasses) % numClasses;
-    changeTargetClass(newTargetClass);
+    changeTargetClass(ms, newTargetClass);
   }
 }
 END_WORD
@@ -149,8 +149,8 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> p1 = popWord();
-  std::shared_ptr<Word> p2 = popWord();
+  std::shared_ptr<Word> p1 = ms->popWord();
+  std::shared_ptr<Word> p2 = ms->popWord();
   if (p1 == NULL || p2 == NULL) {
     cout << "Warning, requires two words on the stack." << endl;
     return;
@@ -165,7 +165,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 
   std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(w1->value() + w2->value());
-  pushWord(newWord);
+  ms->pushWord(newWord);
 
 }
 END_WORD
@@ -174,8 +174,8 @@ REGISTER_WORD(Plus)
 WORD(Equals)
 CODE('=') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> p1 = popWord();
-  std::shared_ptr<Word> p2 = popWord();
+  std::shared_ptr<Word> p1 = ms->popWord();
+  std::shared_ptr<Word> p2 = ms->popWord();
   if (p1 == NULL || p2 == NULL) {
     cout << "Warning, requires two words on the stack." << endl;
     return;
@@ -187,7 +187,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     new_value = 0;
   }
   std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(new_value);
-  pushWord(newWord);
+  ms->pushWord(newWord);
 
 }
 END_WORD
@@ -197,15 +197,15 @@ REGISTER_WORD(Equals)
 
 WORD(Ift)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> then = popWord();
-  std::shared_ptr<Word> condition = popWord();
+  std::shared_ptr<Word> then = ms->popWord();
+  std::shared_ptr<Word> condition = ms->popWord();
   if (then == NULL || condition == NULL) {
     cout << "Warning, requires two words on the stack." << endl;
     return;
   }
 
   if (condition->as_bool()) {
-    pushWord(then);
+    ms->pushWord(then);
   }
 
 }
@@ -223,7 +223,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   vector <std::shared_ptr<Word> > words_in_loop;
   
   while (true) {
-    std::shared_ptr<Word> word = popWord();
+    std::shared_ptr<Word> word = ms->popWord();
     if (word == NULL) {
       cout << "Warning, next could not find start, aborting." << endl;
       return;
@@ -234,8 +234,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     words_in_loop.push_back(word);
   }
   
-  std::shared_ptr<Word> index_to = popWord();
-  std::shared_ptr<Word> index_from = popWord();
+  std::shared_ptr<Word> index_to = ms->popWord();
+  std::shared_ptr<Word> index_from = ms->popWord();
   if (index_from == NULL || index_to == NULL) {
     cout << "Warning, next requires two words on the stack." << endl;
     return;
@@ -244,7 +244,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   for (int i = index_from->as_int(); i < index_to->as_int(); i++) {
     for (int j = 0; j < words_in_loop.size(); j++) {
-      pushWord(words_in_loop[j]);
+      ms->pushWord(words_in_loop[j]);
     }
   }
   
@@ -254,7 +254,7 @@ REGISTER_WORD(Next)
 
 WORD(Print)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> word = popWord();
+  std::shared_ptr<Word> word = ms->popWord();
   if (word != NULL) {
     cout << word->as_string() << endl;
   }
@@ -264,16 +264,16 @@ REGISTER_WORD(Print)
 
 WORD(Dup)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> word = popWord();
-  pushWord(word);
-  pushWord(word);
+  std::shared_ptr<Word> word = ms->popWord();
+  ms->pushWord(word);
+  ms->pushWord(word);
 }
 END_WORD
 REGISTER_WORD(Dup)
 
 WORD(Pop)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> word = popWord();
+  std::shared_ptr<Word> word = ms->popWord();
 }
 END_WORD
 REGISTER_WORD(Pop)
@@ -285,7 +285,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   cout << "targetClass++ " << endl;
   if (numClasses > 0) {
     int newTargetClass = (targetClass + 1) % numClasses;
-    changeTargetClass(newTargetClass);
+    changeTargetClass(ms, newTargetClass);
   }
 }
 END_WORD
@@ -299,7 +299,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)  {
   }
   int class_idx = bLabels[pilotClosestBlueBoxNumber];
   cout << "Changing to closest blue blox target, which is class " << classLabels[class_idx] << endl;
-  changeTargetClass(class_idx);
+  changeTargetClass(ms, class_idx);
 }
 END_WORD
 REGISTER_WORD(ChangeTargetClassToClosestBlueBox)
@@ -457,18 +457,18 @@ REGISTER_WORD(Nod)
 WORD(ResetAuxiliary)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  pushWord("nod");
-  pushWord("centerHead");
-  pushWord("shakeHeadPositive");
-  pushCopies("noop", 20);
-  pushWord("nod");
-  pushWord("shakeHeadNegative");
-  pushWord("shakeHeadNegative");
-  pushCopies("noop", 20);
-  pushWord("nod");
-  pushWord("shakeHeadPositive");
-  pushWord("silenceSonar");
-  pushWord("centerHead");
+  ms->pushWord("nod");
+  ms->pushWord("centerHead");
+  ms->pushWord("shakeHeadPositive");
+  ms->pushCopies("noop", 20);
+  ms->pushWord("nod");
+  ms->pushWord("shakeHeadNegative");
+  ms->pushWord("shakeHeadNegative");
+  ms->pushCopies("noop", 20);
+  ms->pushWord("nod");
+  ms->pushWord("shakeHeadPositive");
+  ms->pushWord("silenceSonar");
+  ms->pushWord("centerHead");
 }
 END_WORD
 REGISTER_WORD(ResetAuxiliary)
@@ -503,7 +503,7 @@ WORD(WaitUntilImageCallbackReceived)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   lastImageCallbackRequest = ros::Time::now();
-  pushWord("waitUntilImageCallbackReceivedA");
+  ms->pushWord("waitUntilImageCallbackReceivedA");
   shouldIImageCallback = 1;
   endThisStackCollapse = 1;
 }
@@ -514,7 +514,7 @@ WORD(WaitUntilImageCallbackReceivedA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   if (lastImageCallbackRequest >= lastImageCallbackReceived) {
-    pushWord("waitUntilImageCallbackReceivedA");
+    ms->pushWord("waitUntilImageCallbackReceivedA");
     shouldIImageCallback = 1;
     endThisStackCollapse = 1;
   } else {

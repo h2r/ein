@@ -123,11 +123,11 @@ WORD(FullRender)
 CODE(1114183)     // numlock + G 
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if (!shouldIRender) {
-    pushWord(1114177); // manual render
+    ms->pushWord(1114177); // manual render
   }
-  pushWord("paintReticles"); // render reticle
-  pushWord("drawMapRegisters"); 
-  pushWord("downsampleIrScan"); // load map to register 1
+  ms->pushWord("paintReticles"); // render reticle
+  ms->pushWord("drawMapRegisters"); 
+  ms->pushWord("downsampleIrScan"); // load map to register 1
 }
 END_WORD
 REGISTER_WORD(FullRender)
