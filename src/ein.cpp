@@ -77,12 +77,6 @@
 #include <signal.h>
 #include <sys/stat.h>
 
-#include "../../bing/Objectness/stdafx.h"
-#include "../../bing/Objectness/Objectness.h"
-#include "../../bing/Objectness/ValStructVec.h"
-#include "../../bing/Objectness/CmShow.h"
-
-
 #include <ros/package.h>
 #include <tf/transform_listener.h>
 #include <sensor_msgs/Range.h>
@@ -122,10 +116,10 @@
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-#include <opencv/cv.h>
-#include <opencv/highgui.h>
+#include <cv.h>
+#include <highgui.h>
+#include <ml.h>
 #include <opencv2/nonfree/nonfree.hpp>
-
 #include <opencv2/gpu/gpu.hpp>
 
 
@@ -1230,7 +1224,6 @@ int hiTrackbarVariable = 35;//40;//50;
 int redTrackbarVariable = 0;
 int postDensitySigmaTrackbarVariable = 10.0;
 
-double drawBingProb = .1;
 
 double canny_hi_thresh = 5e5;//7;
 double canny_lo_thresh = 5e5;//4;
@@ -1332,7 +1325,6 @@ BOWImgDescriptorExtractor *bowExtractor = NULL;
 CvKNearest *kNN = NULL;
 std::string package_path;
 std::string class_crops_path;
-std::string bing_trained_models_path;
 std::string objectness_path_prefix;
 std::string saved_crops_path;
 
@@ -1349,7 +1341,6 @@ ros::Publisher ee_target_pub;
 
 bool real_img = false;
 
-Objectness *glObjectness;
 int fc = 1;
 int fcRange = 10;
 int frames_per_click = 5;
@@ -1887,7 +1878,6 @@ orientedFilterType getOrientedFilterType(string toCompare);
 
 void nodeCallbackFunc(int event, int x, int y, int flags, void* userdata);
 
-void goCalculateObjectness();
 void goCalculateDensity();
 void goFindBlueBoxes();
 void goFindBrownBoxes();
@@ -1895,7 +1885,6 @@ void goClassifyBlueBoxes();
 void goFindRedBoxes();
 
 void resetAccumulatedImageAndMass();
-void renderAccumulatedImageAndDensity();
 void substituteAccumulatedImageQuantities();
 void substituteLatestImageQuantities();
 
@@ -11136,515 +11125,6 @@ void nodeCallbackFunc(int event, int x, int y, int flags, void* userdata) {
   }
 }
 
-void goAddBlinders() {
-  Size sz = objectViewerImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  int thisWidth = blinder_stride*blinder_columns;
-  for (int x = 0; x < thisWidth; x++) {
-    for (int y = 0; y < imH; y++) {
-      int bCol = x/blinder_stride;
-      int bRow = y/blinder_stride;
-      int blackOrWhite = ((bCol + bRow)%2)*255;
-      objectViewerImage.at<cv::Vec3b>(y, x) = cv::Vec<uchar, 3>(blackOrWhite, blackOrWhite, blackOrWhite);
-    }
-  }
-  for (int x = imW-thisWidth; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      int bCol = x/blinder_stride;
-      int bRow = y/blinder_stride;
-      int blackOrWhite = ((bCol + bRow)%2)*255;
-      objectViewerImage.at<cv::Vec3b>(y, x) = cv::Vec<uchar, 3>(blackOrWhite, blackOrWhite, blackOrWhite);
-    }
-  }
-  /*
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < thisWidth; y++) {
-      int bCol = x/blinder_stride;
-      int bRow = y/blinder_stride;
-      int blackOrWhite = ((bCol + bRow)%2)*255;
-      objectViewerImage.at<cv::Vec3b>(y, x) = cv::Vec<uchar, 3>(blackOrWhite, blackOrWhite, blackOrWhite);
-    }
-  }
-  for (int x = 0; x < imW; x++) {
-    for (int y = imH-thisWidth; y < imH; y++) {
-      int bCol = x/blinder_stride;
-      int bRow = y/blinder_stride;
-      int blackOrWhite = ((bCol + bRow)%2)*255;
-      objectViewerImage.at<cv::Vec3b>(y, x) = cv::Vec<uchar, 3>(blackOrWhite, blackOrWhite, blackOrWhite);
-    }
-  }
-  */
-}
-
-void goCalculateObjectness() {
-  Size sz = objectViewerImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  objectnessViewerImage = cv_ptr->image.clone();
-
-  int boxesPerSize = 800;
-  ValStructVec<float, Vec4i> boxes;
-  glObjectness->getObjBndBoxes(objectViewerImage, boxes, boxesPerSize);
-
-  int numBoxes = boxes.size();
-
-
-  nTop.resize(numBoxes);
-  nBot.resize(numBoxes);
-
-  int boxesToConsider= 50000;
-
-  if (integralObjDensity == NULL)
-    integralObjDensity = new double[imW*imH];
-  if (objDensity == NULL)
-    objDensity = new double[imW*imH];
-  if (preObjDensity == NULL)
-    preObjDensity = new double[imW*imH];
-  if (differentialObjDensity == NULL)
-    differentialObjDensity = new double[imW*imH];
-  if (temporalObjDensity == NULL) {
-    temporalObjDensity = new double[imW*imH];
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	temporalObjDensity[y*imW + x] = 0;
-      }
-    }
-  }
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      objDensity[y*imW + x] = 0;
-      differentialObjDensity[y*imW + x] = 0;
-    }
-  }
-
-  // XXX make this prettier
-  for(int i =0; i < min(numBoxes, boxesToConsider); i++){
-    int boxInd = numBoxes-1-i;
-    boxInd = max(0, boxInd);
-    nTop[i].x = boxes[boxInd][0] - 1;
-    nTop[i].y = boxes[boxInd][1] - 1;
-    nBot[i].x = boxes[boxInd][2] - 1;
-    nBot[i].y = boxes[boxInd][3] - 1;
-    double width = nBot[i].x - nTop[i].x;
-    double height= nBot[i].y - nTop[i].y;
-    double ratio = width / height;
-    double area = width*height;
-    double aspectThresh = 20.0;
-    if (ratio < aspectThresh && ratio > 1.0/aspectThresh) {
-      if (drawPurple) {
-	if (drand48() < drawBingProb) {
-	  cv::Point outTop = cv::Point(nTop[i].x, nTop[i].y);
-	  cv::Point outBot = cv::Point(nBot[i].x, nBot[i].y);
-	  cv::Point inTop = cv::Point(nTop[i].x+1,nTop[i].y+1);
-	  cv::Point inBot = cv::Point(nBot[i].x-1,nBot[i].y-1);
-	  rectangle(objectViewerImage, outTop, outBot, cv::Scalar(188,40,140));
-	  rectangle(objectViewerImage, inTop, inBot, cv::Scalar(94,20,70));
-	}
-      }
-      
-      double toAdd = 1.0 / area;
-      //double toAdd = 1.0;
-      int x = nTop[i].x;
-      int y = nTop[i].y;
-      differentialObjDensity[y*imW + x] += toAdd;
-      x = nBot[i].x;
-      y = nBot[i].y;
-      differentialObjDensity[y*imW + x] += toAdd;
-      x = nTop[i].x;
-      y = nBot[i].y;
-      differentialObjDensity[y*imW + x] -= toAdd;
-      x = nBot[i].x;
-      y = nTop[i].y;
-      differentialObjDensity[y*imW + x] -= toAdd;
-    }
-  }
-
-  // integrate the differential objDensity into the objDensity
-  objDensity[0] = differentialObjDensity[0];
-  for (int x = 1; x < imW; x++) {
-    int y = 0;
-    objDensity[y*imW+x] = objDensity[y*imW+(x-1)] + differentialObjDensity[y*imW + x];
-  }
-  for (int y = 1; y < imH; y++) {
-    int x = 0;
-    objDensity[y*imW+x] = objDensity[(y-1)*imW+x] + differentialObjDensity[y*imW + x];
-  }
-  for (int x = 1; x < imW; x++) {
-    for (int y = 1; y < imH; y++) {
-      objDensity[y*imW+x] = 
-	objDensity[(y-1)*imW+x]+objDensity[y*imW+(x-1)]-objDensity[(y-1)*imW+(x-1)]+differentialObjDensity[y*imW + x];
-    }
-  }
-
-  // truncate the objDensity outside the gray box
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < grayTop.y; y++) {
-      objDensity[y*imW+x] = 0;
-    }
-  }
-
-  for (int x = 0; x < grayTop.x; x++) {
-    for (int y = grayTop.y; y < grayBot.y; y++) {
-      objDensity[y*imW+x] = 0;
-    }
-  }
-
-  for (int x = grayBot.x; x < imW; x++) {
-    for (int y = grayTop.y; y < grayBot.y; y++) {
-      objDensity[y*imW+x] = 0;
-    }
-  }
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = grayBot.y; y < imH; y++) {
-      objDensity[y*imW+x] = 0;
-    }
-  }
-
-  if (mask_gripper) {
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	if ( isInGripperMask(x, y) ) {
-	  objDensity[y*imW+x] = 0;
-	}
-      }
-    }
-  }
-
-  if (mask_gripper_blocks) {
-    int xs = g1xs;
-    int xe = g1xe;
-    int ys = g1ys;
-    int ye = g1ye;
-    for (int x = xs; x < xe; x++) {
-      for (int y = ys; y < ye; y++) {
-	objDensity[y*imW+x] = 0;
-      }
-    }
-
-    xs = g2xs;
-    xe = g2xe;
-    ys = g2ys;
-    ye = g2ye;
-    for (int x = xs; x < xe; x++) {
-      for (int y = ys; y < ye; y++) {
-	objDensity[y*imW+x] = 0;
-      }
-    }
-  }
-
-  double maxObjDensity = -INFINITY;
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      maxObjDensity = max(maxObjDensity, objDensity[y*imW+x]);
-    }
-  }
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      if (objDensity[y*imW+x] < maxObjDensity* objectnessThreshFraction)
-	objDensity[y*imW+x] = 0;
-    }
-  }
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      temporalObjDensity[y*imW+x] = objDensityDecay*temporalObjDensity[y*imW+x] + (1.0-objDensityDecay)*objDensity[y*imW+x];
-    }
-  }
-
-  // we don't use the integral objDensity for objectness at the moment.
-  int calculateObjectnessIntegralObjDensity = 0;
-  if (calculateObjectnessIntegralObjDensity) {
-    // integrate objDensity into the integral objDensity
-    integralObjDensity[0] = objDensity[0];
-    for (int x = 1; x < imW; x++) {
-      int y = 0;
-      integralObjDensity[y*imW+x] = integralObjDensity[y*imW+(x-1)] + objDensity[y*imW + x];
-    }
-    for (int y = 1; y < imH; y++) {
-      int x = 0;
-      integralObjDensity[y*imW+x] = integralObjDensity[(y-1)*imW+x] + objDensity[y*imW + x];
-    }
-    for (int x = 1; x < imW; x++) {
-      for (int y = 1; y < imH; y++) {
-	integralObjDensity[y*imW+x] = 
-	  integralObjDensity[(y-1)*imW+x]+integralObjDensity[y*imW+(x-1)]-integralObjDensity[(y-1)*imW+(x-1)]+objDensity[y*imW + x];
-      }
-    }
-  }
-
-  double *objMapToUse = NULL;
-  objMapToUse = temporalObjDensity;
-
-  double minObjDen = INFINITY;
-  double maxObjDen = -INFINITY;
-  for (int y = 0; y < imH; y++) {
-    for (int x = 0; x < imW; x++) {
-      minObjDen = min(minObjDen, objMapToUse[y*imW+x]);
-      maxObjDen = max(maxObjDen, objMapToUse[y*imW+x]);
-    }
-  }
-  double objDenRange = maxObjDen - minObjDen;
-
-  // copy the objMapToUse map to the rendered image
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      uchar val = uchar(min( 1*255.0 *  (objMapToUse[y*imW+x] - minObjDen) / objDenRange, 255.0));
-      objectnessViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
-    }
-  }
-}
-
-void goAccumulateForAerial() {
-
-}
-
-void goAccumulateDensityFromAccumulated() {
-  Size sz = objectViewerImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  if (cv_ptr == NULL) {
-    ROS_ERROR("Not receiving camera data, clearing call stack.");
-    clearStack();
-    return;
-  }
-
-  Mat tmpImage = cv_ptr->image.clone();
-
-  if (add_blinders) {
-    goAddBlinders();
-  }
-
-  // determine table edges, i.e. the gray boxes
-  lGO = gBoxW*(lGO/gBoxW);
-  rGO = gBoxW*(rGO/gBoxW);
-  tGO = gBoxH*(tGO/gBoxH);
-  bGO = gBoxH*(bGO/gBoxH);
-  grayTop = cv::Point(lGO, tGO);
-  grayBot = cv::Point(imW-rGO-1, imH-bGO-1);
-
-  if (all_range_mode) {
-    grayTop = armTop;
-    grayBot = armBot;
-  }
-
-  // Sobel business
-  Mat sobelGrayBlur;
-  Mat sobelYCrCbBlur;
-
-  sobelGrayBlur = aerialGradientSobelGray;
-  sobelYCrCbBlur = aerialGradientSobelCbCr;
-  
-  Mat totalGraySobel;
-//  {
-//    Mat grad_x, grad_y;
-//    int sobelScale = 1;
-//    int sobelDelta = 0;
-//    int sobelDepth = CV_64F;
-//    /// Gradient X
-//    Sobel(sobelGrayBlur, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-//    /// Gradient Y
-//    Sobel(sobelGrayBlur, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-//
-//    grad_x = grad_x.mul(grad_x);
-//    grad_y = grad_y.mul(grad_y);
-//    totalGraySobel = grad_x + grad_y;
-//    // now totalGraySobel is gradient magnitude squared
-//  }
-
-  Mat totalCrSobel(imH, imW, CV_64F);
-  Mat totalCrSobelMag;
-  {
-    for (int y = 0; y < imH; y++) {
-      for (int x = 0; x < imW; x++) {
-	cv::Vec3b thisColor = sobelYCrCbBlur.at<cv::Vec3b>(y,x);
-	totalCrSobel.at<double>(y,x) = thisColor[1];
-      }
-    }
-    Mat grad_x, grad_y;
-    int sobelScale = 1;
-    int sobelDelta = 0;
-    int sobelDepth = CV_64F;
-    /// Gradient X
-    Sobel(totalCrSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-    /// Gradient Y
-    Sobel(totalCrSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-
-    totalCrSobel = grad_x + grad_y;
-    grad_x = grad_x.mul(grad_x);
-    grad_y = grad_y.mul(grad_y);
-    totalCrSobelMag = grad_x + grad_y;
-  }
-
-  Mat totalCbSobel(imH, imW, CV_64F);
-  Mat totalCbSobelMag;
-  {
-    for (int y = 0; y < imH; y++) {
-      for (int x = 0; x < imW; x++) {
-	cv::Vec3b thisColor = sobelYCrCbBlur.at<cv::Vec3b>(y,x);
-	totalCbSobel.at<double>(y,x) = thisColor[2];
-      }
-    }
-    Mat grad_x, grad_y;
-    int sobelScale = 1;
-    int sobelDelta = 0;
-    int sobelDepth = CV_64F;
-    /// Gradient X
-    Sobel(totalCbSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-    /// Gradient Y
-    Sobel(totalCbSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-
-    totalCbSobel = grad_x + grad_y;
-    grad_x = grad_x.mul(grad_x);
-    grad_y = grad_y.mul(grad_y);
-    totalCbSobelMag = grad_x + grad_y;
-  }
-
-  Mat totalYSobel(imH, imW, CV_64F);
-  {
-    for (int y = 0; y < imH; y++) {
-      for (int x = 0; x < imW; x++) {
-	cv::Vec3b thisColor = sobelYCrCbBlur.at<cv::Vec3b>(y,x);
-	totalYSobel.at<double>(y,x) = thisColor[0];
-      }
-    }
-    Mat grad_x, grad_y;
-    int sobelScale = 1;
-    int sobelDelta = 0;
-    int sobelDepth = CV_64F;
-    /// Gradient X
-    Sobel(totalYSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-    /// Gradient Y
-    Sobel(totalYSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-
-    grad_x = grad_x.mul(grad_x);
-    grad_y = grad_y.mul(grad_y);
-    totalYSobel = grad_x + grad_y;
-  }
-
-  // total becomes sum of Cr and Cb
-  int totalBecomes = 1;
-  if (totalBecomes) {
-    totalGraySobel = totalCrSobelMag + totalCbSobelMag;
-  }
-
-  // truncate the Sobel image outside the gray box
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < grayTop.y; y++) {
-      totalGraySobel.at<double>(y,x) = 0;
-      totalYSobel.at<double>(y,x) = 0;
-    }
-  }
-
-  for (int x = 0; x < grayTop.x; x++) {
-    for (int y = grayTop.y; y < grayBot.y; y++) {
-      totalGraySobel.at<double>(y,x) = 0;
-      totalYSobel.at<double>(y,x) = 0;
-    }
-  }
-
-  for (int x = grayBot.x; x < imW; x++) {
-    for (int y = grayTop.y; y < grayBot.y; y++) {
-      totalGraySobel.at<double>(y,x) = 0;
-      totalYSobel.at<double>(y,x) = 0;
-    }
-  }
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = grayBot.y; y < imH; y++) {
-      totalGraySobel.at<double>(y,x) = 0;
-      totalYSobel.at<double>(y,x) = 0;
-    }
-  }
-
-  if (integralDensity == NULL)
-    integralDensity = new double[imW*imH];
-  if (density == NULL)
-    density = new double[imW*imH];
-  if (preDensity == NULL)
-    preDensity = new double[imW*imH];
-  if (temporalDensity == NULL) {
-    temporalDensity = new double[imW*imH];
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	temporalDensity[y*imW + x] = 0;
-      }
-    }
-  }
-
-  double maxGsob = -INFINITY;
-  double maxYsob = -INFINITY;
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      maxGsob = max(maxGsob, totalGraySobel.at<double>(y,x));
-      maxYsob = max(maxYsob, totalYSobel.at<double>(y,x));
-    }
-  }
-  
-  // ATTN 11
-  // experimental
-  int combineYandGray = 1;
-  double yWeight = 1.0;
-  if (combineYandGray) {
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	double thisY2G = min(maxYsob, yWeight * totalYSobel.at<double>(y,x));
-	totalGraySobel.at<double>(y,x) += maxGsob * thisY2G * thisY2G / (maxYsob * maxYsob);
-      }
-    }
-  }
-
-  if (mask_gripper) {
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	if ( isInGripperMask(x, y) ) {
-	  totalGraySobel.at<double>(y,x) = 0;
-	}
-      }
-    }
-  }
-
-  if (mask_gripper_blocks) {
-    int xs = g1xs;
-    int xe = g1xe;
-    int ys = g1ys;
-    int ye = g1ye;
-    for (int x = xs; x < xe; x++) {
-      for (int y = ys; y < ye; y++) {
-	totalGraySobel.at<double>(y,x) = 0;
-      }
-    }
-    xs = g2xs;
-    xe = g2xe;
-    ys = g2ys;
-    ye = g2ye;
-    for (int x = xs; x < xe; x++) {
-      for (int y = ys; y < ye; y++) {
-	totalGraySobel.at<double>(y,x) = 0;
-      }
-    }
-  }
-
-  { // temporal averaging of aerial gradient
-    if ( (aerialGradientTemporalFrameAverage.rows < aerialGradientReticleWidth) ||
-	 (aerialGradientTemporalFrameAverage.cols < aerialGradientReticleWidth) ) {
-      aerialGradientTemporalFrameAverage = Mat(imH,imW,totalGraySobel.type()); 
-    }
-
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	aerialGradientTemporalFrameAverage.at<double>(y, x) = 
-	  aerialGradientDecay*aerialGradientTemporalFrameAverage.at<double>(y, x) + 
-	  (1.0 - aerialGradientDecay)*totalGraySobel.at<double>(y, x);
-      }
-    }
-  }
-}
 
 void resetAccumulatedImageAndMass() {
   Size sz = accumulatedImageMass.size();
@@ -11662,18 +11142,18 @@ void resetAccumulatedImageAndMass() {
 }
 
 void renderAccumulatedImageAndDensity() {
-/*
+  /*
   // copy the density map to the rendered image
   for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      //uchar val = uchar(min( 1*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
-      uchar val = uchar(min( 1*255.0 *  (frameGraySobel.at<double>(y,x) - minAerTemp) / aerTempRange, 255.0));
-      gradientViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
+  for (int y = 0; y < imH; y++) {
+  //uchar val = uchar(min( 1*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
+  uchar val = uchar(min( 1*255.0 *  (frameGraySobel.at<double>(y,x) - minAerTemp) / aerTempRange, 255.0));
+  gradientViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
 
-      gradientViewerImage.at<cv::Vec3b>(y+imH,x) = convertedYCbCrGradientImage.at<cv::Vec3b>(y,x);
-    }
+  gradientViewerImage.at<cv::Vec3b>(y+imH,x) = convertedYCbCrGradientImage.at<cv::Vec3b>(y,x);
   }
-*/
+  }
+  */
   Size sz = objectViewerYCbCrBlur.size();
   int imW = sz.width;
   int imH = sz.height;
@@ -11681,11 +11161,6 @@ void renderAccumulatedImageAndDensity() {
   int YConstant = 128;
   Mat oviToConstantize = objectViewerYCbCrBlur.clone();
 
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      //oviToConstantize.at<cv::Vec3b>(y,x)[0] = YConstant;
-    }
-  }
 
   Mat oviInBGR;
   cvtColor(oviToConstantize, oviInBGR, CV_YCrCb2BGR);
@@ -11693,14 +11168,7 @@ void renderAccumulatedImageAndDensity() {
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
       gradientViewerImage.at<cv::Vec3b>(y+imH,x) = oviInBGR.at<cv::Vec3b>(y,x);
-      //gradientViewerImage.at<cv::Vec3b>(y+imH,x) = oviToConstantize.at<cv::Vec3b>(y,x);
-
-      //gradientViewerImage.at<cv::Vec3b>(y+imH,x) = objectViewerYCbCrBlur.at<cv::Vec3b>(y,x);
-
-      //gradientViewerImage.at<cv::Vec3b>(y+imH,x)[0] = objectViewerGrayBlur.at<uchar>(y,x);
-      //gradientViewerImage.at<cv::Vec3b>(y+imH,x)[1] = objectViewerGrayBlur.at<uchar>(y,x);
-      //gradientViewerImage.at<cv::Vec3b>(y+imH,x)[2] = objectViewerGrayBlur.at<uchar>(y,x);
-    }
+     }
   }
 
   if (shouldIRender) {
@@ -11752,10 +11220,6 @@ void goCalculateDensity() {
   Mat tmpImage = objectViewerImage.clone();
 
   Mat yCbCrGradientImage = objectViewerImage.clone();
-
-  if (add_blinders) {
-    goAddBlinders();
-  }
 
   // determine table edges, i.e. the gray boxes
   lGO = gBoxW*(lGO/gBoxW);
@@ -14490,25 +13954,9 @@ int main(int argc, char **argv) {
   unsigned long seed = 1;
   rk_seed(seed, &random_state);
 
-  // Models: ObjNessB2W8MAXBGR ObjNessB2W8I ObjNessB2W8HSV
-  bing_trained_models_path = package_path + "/bing_trained_models/";
-  objectness_path_prefix = bing_trained_models_path + "ObjNessB2W8MAXBGR";
-
-  string vocPath = package_path + "/VOC2007/";
-  DataSetVOC voc(vocPath);
-  glObjectness = new Objectness(voc, 2, 8, 2);
-
-  cout << "objectness_path_prefix: " << objectness_path_prefix << endl;
-  int result = glObjectness->loadTrainedModel(objectness_path_prefix);
-  cout << "result: " << result << endl << endl;
-
-  if (result != 1) {
-    cout << "ERROR: failed to load BING objectness model. Check the path prefix above. Exiting." << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  if ( (left_or_right_arm.compare("right") == 0) || (left_or_right_arm.compare("left") == 0) )
+  if ( (left_or_right_arm.compare("right") == 0) || (left_or_right_arm.compare("left") == 0) ) {
     image_topic = "/cameras/" + left_or_right_arm + "_hand_camera/image";
+  }
 
   image_transport::ImageTransport it(n);
   image_transport::Subscriber image_sub;

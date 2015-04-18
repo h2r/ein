@@ -65,6 +65,5 @@ target_link_libraries(ein
 	${OpenCV_LIBS}
 	opencv_nonfree
         ${GSL_LIBRARIES}
-	BINGLIB ###
 )
 
