@@ -14773,8 +14773,8 @@ int main(int argc, char **argv) {
   //auto lfunc = [] () { cout << "Hello world"; }; 
   //lfunc();
   //exit(0);
-
-  words = create_words();
+  std::vector<std::shared_ptr<Word> > all_words = create_words();
+  //words = create_words();
   character_code_to_word = create_character_code_to_word(words);
   name_to_word = create_name_to_word(words);
 

@@ -103,6 +103,7 @@ virtual void execute() {
 
 }
 END_WORD
+REGISTER_WORD(DeliverObject)
 
 WORD(PlaceObjectInDeliveryZone)
 virtual void execute() {
@@ -125,6 +126,7 @@ virtual void execute() {
   pushWord("departureSpeed");
 }
 END_WORD
+REGISTER_WORD(PlaceObjectInDeliveryZone)
 
 WORD(ClearStackIntoMappingPatrol)
 virtual void execute() {
@@ -133,6 +135,7 @@ virtual void execute() {
   execute_stack = 1;
 }
 END_WORD
+REGISTER_WORD(ClearStackIntoMappingPatrol)
 
 WORD(ClearStackAcceptFetchCommands)
 virtual void execute() {
@@ -141,7 +144,7 @@ virtual void execute() {
   acceptingFetchCommands = 1;
 }
 END_WORD
-
+REGISTER_WORD(ClearStackAcceptFetchCommands)
 
 WORD(MappingPatrol)
 CODE(196727) // capslock + W
@@ -178,42 +181,49 @@ virtual void execute() {
   //pushWord("bringUpAllNonessentialSystems");
 }
 END_WORD
+REGISTER_WORD(MappingPatrol)
 
 WORD(ToggleShouldIDoIK)
 virtual void execute() {
   shouldIDoIK = !shouldIDoIK;
 }
 END_WORD
+REGISTER_WORD(ToggleShouldIDoIK)
 
 WORD(ToggleShouldIRender)
 virtual void execute() {
   shouldIRender = !shouldIRender;
 }
 END_WORD
+REGISTER_WORD(ToggleShouldIRender)
 
 WORD(ToggleDrawClearanceMap)
 virtual void execute() {
   drawClearanceMap = !drawClearanceMap;
 }
 END_WORD
+REGISTER_WORD(ToggleDrawClearanceMap)
 
 WORD(ToggleDrawIKMap)
 virtual void execute() {
   drawIKMap = !drawIKMap;
 }
 END_WORD
+REGISTER_WORD(ToggleDrawIKMap)
 
 WORD(ToggleUseGlow)
 virtual void execute() {
   useGlow = !useGlow;
 }
 END_WORD
+REGISTER_WORD(ToggleUseGlow)
 
 WORD(ToggleUseFade)
 virtual void execute() {
   useFade = !useFade;
 }
 END_WORD
+REGISTER_WORD(ToggleUseFade)
 
 WORD(FillClearanceMap)
 int pursuitProximity = 5;
@@ -283,6 +293,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(FillClearanceMap)
 
 WORD(SaveIkMap)
 virtual void execute() {
@@ -294,6 +305,7 @@ virtual void execute() {
   ofile.close();
 }
 END_WORD
+REGISTER_WORD(SaveIkMap)
 
 WORD(LoadIkMap)
 virtual void execute() {
@@ -305,6 +317,7 @@ virtual void execute() {
   ifile.close();
 }
 END_WORD
+REGISTER_WORD(LoadIkMap)
 
 WORD(FillIkMap)
 // store these here and create accessors if they need to change
@@ -390,6 +403,7 @@ virtual void execute() {
   currentJ = j;
 }
 END_WORD
+REGISTER_WORD(FillIkMap)
 
 WORD(MoveToNextMapPosition)
 int maxNextTries = 100;
@@ -486,6 +500,7 @@ virtual void execute() {
   pushWord("sampleHeight");
 }
 END_WORD
+REGISTER_WORD(MoveToNextMapPosition)
 
 WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)
 virtual void execute() {
@@ -592,6 +607,7 @@ virtual void execute() {
 
 }
 END_WORD
+REGISTER_WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)
 
 
 WORD(RecordAllBlueBoxes)
@@ -614,13 +630,15 @@ virtual void execute() {
 
 }
 END_WORD
+REGISTER_WORD(RecordAllBlueBoxes)
 
 WORD(InitializeMap)
 virtual void execute() {
   initializeMap();
 
 }
-END_WORD;
+END_WORD
+REGISTER_WORD(InitializeMap)
 
 WORD(MapEmptySpace)
 virtual void execute() {
@@ -682,7 +700,8 @@ virtual void execute() {
     }
   }
 }
-END_WORD;
+END_WORD
+REGISTER_WORD(MapEmptySpace)
 
 
 
@@ -734,6 +753,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(MapClosestBlueBox)
 
 
 WORD(FilterBoxMemories)
@@ -768,7 +788,8 @@ virtual void execute() {
   }
   blueBoxMemories = newMemories;
 }
-END_WORD;
+END_WORD
+REGISTER_WORD(FilterBoxMemories)
 
 WORD(ClearBlueBoxMemories)
 CODE(196709) // capslock + E
@@ -777,6 +798,7 @@ virtual void execute() {
   blueBoxMemories.resize(0);
 }
 END_WORD
+REGISTER_WORD(ClearBlueBoxMemories)
 
 WORD(VisionCycle)
 CODE(131153)  // capslock + q
@@ -789,6 +811,7 @@ virtual void execute() {
   //pushCopies("density", 1); 
 }
 END_WORD
+REGISTER_WORD(VisionCycle)
 
 WORD(Density)
 virtual void execute() {
@@ -798,6 +821,7 @@ virtual void execute() {
   pushWord("hover");
 }
 END_WORD
+REGISTER_WORD(Density)
 
 WORD(DensityA)
 CODE(131121)     // capslock + 1
@@ -806,6 +830,7 @@ virtual void execute() {
   goCalculateDensity();
 }
 END_WORD
+REGISTER_WORD(DensityA)
 
 WORD(AccumulatedDensity)
 virtual void execute() {
@@ -815,12 +840,14 @@ virtual void execute() {
   //goAccumulateForAerial();
 }
 END_WORD
+REGISTER_WORD(AccumulatedDensity)
 
 WORD(ResetAccumulatedDensity)
 virtual void execute() {
   resetAccumulatedImageAndMass();
 }
 END_WORD
+REGISTER_WORD(ResetAccumulatedDensity)
 
 WORD(ResetTemporalMap)
 CODE(1179737) // capslock + numlock + y
@@ -838,6 +865,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(ResetTemporalMap)
 
 WORD(GoFindBlueBoxes)
 CODE(131122) // capslock + 2
@@ -845,7 +873,7 @@ virtual void execute() {
   goFindBlueBoxes();
 }
 END_WORD
-
+REGISTER_WORD(GoFindBlueBoxes)
 
 WORD(GoClassifyBlueBoxes)
 CODE(131123) // capslock + 3
@@ -855,3 +883,4 @@ virtual void execute() {
   goClassifyBlueBoxes();
 }
 END_WORD
+REGISTER_WORD(GoClassifyBlueBoxes)

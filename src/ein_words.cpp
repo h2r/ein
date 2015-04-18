@@ -22,6 +22,16 @@ public: \
 
 #define END_WORD };
 
+#define REGISTER_WORD(gName) \
+  int gName ## _register = register_word(std::make_shared<gName>());
+
+
+int register_word(std::shared_ptr<Word> word) {
+  words.push_back(word);
+  return 0;
+}
+
+
 void CompoundWord::execute() {
   for (unsigned int i = 0; i < stack.size(); i++) {
     pushWord(stack[i]);

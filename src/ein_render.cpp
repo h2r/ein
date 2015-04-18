@@ -116,7 +116,7 @@ virtual void execute()       {
   }
 }
 END_WORD
-
+REGISTER_WORD(PaintReticles)
 
 
 WORD(FullRender)
@@ -130,7 +130,7 @@ virtual void execute() {
   pushWord("downsampleIrScan"); // load map to register 1
 }
 END_WORD
-
+REGISTER_WORD(FullRender)
 
 WORD(DrawMapRegisters)
 // numlock + a 
@@ -140,6 +140,7 @@ virtual void execute()
   drawMapRegisters();
 }
 END_WORD
+REGISTER_WORD(DrawMapRegisters)
 
 WORD(GuiShowAll)
 virtual void execute()
@@ -169,6 +170,7 @@ virtual void execute()
   cv::setMouseCallback(objectViewerName, nodeCallbackFunc, NULL);
 }
 END_WORD
+REGISTER_WORD(GuiShowAll)
 
 WORD(GuiHideAll)
 virtual void execute()
@@ -192,6 +194,7 @@ virtual void execute()
   sirCore = 0;
 }
 END_WORD
+REGISTER_WORD(GuiHideAll)
 
 WORD(GuiCustom1)
 virtual void execute()
@@ -223,7 +226,7 @@ virtual void execute()
   cv::setMouseCallback(wristViewName, pilotCallbackFunc, NULL);
 }
 END_WORD
-
+REGISTER_WORD(GuiCustom1)
 
 
 

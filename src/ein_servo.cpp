@@ -89,7 +89,7 @@ virtual void execute()       {
   pushWord(1179721); // set graspMemories from classGraspMemories
 }
 END_WORD
-
+REGISTER_WORD(FindBestOfFourGraspsUsingMemory)
 
 
 
@@ -118,6 +118,7 @@ virtual void execute()       {
   }
 }
 END_WORD
+REGISTER_WORD(AssumeWinningGgAndXyInLocalPose)
 
 WORD(MoveToTargetZAndGrasp)
 CODE(1048682)     // numlock + j
@@ -178,6 +179,7 @@ virtual void execute()       {
   }
 }
 END_WORD
+REGISTER_WORD(MoveToTargetZAndGrasp)
 
 WORD(ShakeItUpAndDown)
 CODE(131081)   // capslock + tab
@@ -208,6 +210,7 @@ virtual void execute() {
 
 }
 END_WORD
+REGISTER_WORD(ShakeItUpAndDown)
 
 WORD(TryToMoveToTheLastPrePickHeight)
 virtual void execute() {
@@ -216,6 +219,7 @@ virtual void execute() {
   cout << "trying to move to the last pre pick height..." << endl;
 }
 END_WORD
+REGISTER_WORD(TryToMoveToTheLastPrePickHeight)
 
 WORD(TryToMoveToTheLastPickHeight)
 CODE( 262241)     // ctrl + a
@@ -266,7 +270,7 @@ virtual void execute() {
   cout << "trying to move to the last pick height..." << endl;
 }
 END_WORD
-
+REGISTER_WORD(TryToMoveToTheLastPickHeight)
 
 WORD(AssertYesGrasp)
 CODE( 131157)     // capslock + u
@@ -294,6 +298,7 @@ CODE( 131157)     // capslock + u
   }
 }
 END_WORD
+REGISTER_WORD(AssertYesGrasp)
 
 WORD(IfNoGrasp)
 virtual void execute() {
@@ -302,6 +307,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(IfNoGrasp)
 
 WORD(IfGrasp)
 virtual void execute() {
@@ -310,7 +316,7 @@ virtual void execute() {
   }
 }
 END_WORD
-
+REGISTER_WORD(IfGrasp)
 
 
 
@@ -352,6 +358,7 @@ CODE(196649)     // capslock + i
 
 }
 END_WORD
+REGISTER_WORD(AssertNoGrasp)
 
 WORD(ShakeItOff1)
 CODE( 131151)     // capslock + o
@@ -388,7 +395,7 @@ CODE( 131151)     // capslock + o
   //calibrateGripper();
 }
 END_WORD
-
+REGISTER_WORD(ShakeItOff1)
 
 
 WORD(LoadTargetClassRangeMapIntoRegister1)
@@ -397,6 +404,7 @@ virtual void execute() {
   loadGlobalTargetClassRangeMap(rangeMap, rangeMapReg1);
 }
 END_WORD
+REGISTER_WORD(LoadTargetClassRangeMapIntoRegister1)
 
 WORD(CountGrasp)
 CODE(196717)     // capslock + M
@@ -495,6 +503,7 @@ virtual void execute()       {
   }
 }
 END_WORD
+REGISTER_WORD(CountGrasp)
 
 WORD(CheckGrasp)
 CODE(196718)     // capslock + N 
@@ -517,6 +526,7 @@ CODE(196718)     // capslock + N
   }
 }
 END_WORD
+REGISTER_WORD(CheckGrasp)
 
 WORD(CheckAndCountGrasp)
 CODE(196713)     // capslock + I
@@ -653,6 +663,7 @@ CODE(196713)     // capslock + I
   }
 }
 END_WORD
+REGISTER_WORD(CheckAndCountGrasp)
 
 
 
@@ -744,7 +755,7 @@ virtual void execute()       {
 
 }
 END_WORD
-
+REGISTER_WORD(PrepareForAndExecuteGraspFromMemoryLearning)
 
 
 
@@ -755,7 +766,7 @@ virtual void execute() {
   pushWord("prepareForGraspFromMemory"); 
 }
 END_WORD
-
+REGISTER_WORD(PrepareForAndExecuteGraspFromMemory)
 
 WORD(ExecutePreparedGrasp)
 virtual void execute()       {
@@ -774,6 +785,7 @@ virtual void execute()       {
   pushWord("openGripper"); 
 }
 END_WORD
+REGISTER_WORD(ExecutePreparedGrasp)
 
 WORD(PrepareForGraspFromMemory)
 virtual void execute() {
@@ -804,7 +816,7 @@ virtual void execute() {
   pushWord("openGripper"); 
 }
 END_WORD
-
+REGISTER_WORD(PrepareForGraspFromMemory)
 
 
 
@@ -825,7 +837,7 @@ virtual void execute()       {
   cout << currentGraspGear << endl;
 }
 END_WORD
-
+REGISTER_WORD(IncrementGraspGear)
 
 
 
@@ -847,6 +859,7 @@ virtual void execute() {
   currentGraspGear = thisGraspGear;
 }
 END_WORD
+REGISTER_WORD(ShiftGraspGear)
 
 WORD(PrepareToApplyGraspFilterFor1)
 CODE(1048681)     // numlock + i
@@ -854,6 +867,7 @@ virtual void execute() {
   prepareGraspFilter1();
 }
 END_WORD
+REGISTER_WORD(PrepareToApplyGraspFilterFor1)
 
 WORD(PrepareToApplyGraspFilterFor2)
 CODE(1048687)     // numlock + o
@@ -861,7 +875,7 @@ virtual void execute() {
   prepareGraspFilter2();
 }
 END_WORD
-
+REGISTER_WORD(PrepareToApplyGraspFilterFor2)
 
 WORD(PrepareToApplyGraspFilterFor3)
 CODE(1048693)     // numlock + u
@@ -869,6 +883,7 @@ virtual void execute() {
   prepareGraspFilter3();
 }
 END_WORD
+REGISTER_WORD(PrepareToApplyGraspFilterFor3)
 
 WORD(PrepareToApplyGraspFilterFor4)
 CODE(1048688)     // numlock + p
@@ -876,7 +891,7 @@ virtual void execute() {
   prepareGraspFilter4();
 }
 END_WORD
-
+REGISTER_WORD(PrepareToApplyGraspFilterFor4)
 
 WORD(SelectBestAvailableGrasp)
 CODE(1048630)  // numlock + 6
@@ -944,6 +959,7 @@ virtual void execute() {
   pushWord("turnOffScanning"); // turn off scanning
 }
 END_WORD
+REGISTER_WORD(SelectBestAvailableGrasp)
 
 WORD(SelectMaxTargetNotCumulative)
 CODE(1048691)     // numlock + s
@@ -951,6 +967,7 @@ virtual void execute() {
   selectMaxTarget(VERYBIGNUMBER);
 }
 END_WORD
+REGISTER_WORD(SelectMaxTargetNotCumulative)
 
 WORD(SelectMaxTargetCumulative)
 CODE(1114195)     // numlock + S
@@ -958,6 +975,7 @@ virtual void execute() {
   selectMaxTarget(maxD);
 }
 END_WORD
+REGISTER_WORD(SelectMaxTargetCumulative)
 
 WORD(ApplyGraspFilter)
 CODE(1048692)  // numlock + t
@@ -965,6 +983,7 @@ virtual void execute() {
   applyGraspFilter(rangeMapReg1, rangeMapReg2);
 }
 END_WORD
+REGISTER_WORD(ApplyGraspFilter)
 
 
 WORD(Blur)
@@ -978,6 +997,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(Blur)
 
 WORD(ShiftIntoGraspGear1)
 CODE(1048625)      // numlock + 1
@@ -995,6 +1015,7 @@ virtual void execute() {
   currentGraspGear = thisGraspGear;
 }
 END_WORD
+REGISTER_WORD(ShiftIntoGraspGear1)
 
 WORD(ShiftIntoGraspGear2)
 CODE(1048626)     // numlock + 2
@@ -1011,6 +1032,7 @@ virtual void execute() {
   currentGraspGear = thisGraspGear;
 }
 END_WORD
+REGISTER_WORD(ShiftIntoGraspGear2)
 
 WORD(ShiftIntoGraspGear3)
 CODE(1048627)     // numlock + 3
@@ -1029,7 +1051,7 @@ virtual void execute() {
 
 }
 END_WORD
-
+REGISTER_WORD(ShiftIntoGraspGear3)
 
 WORD(ShiftIntoGraspGear4)
 CODE(1048628)      // numlock + 4
@@ -1044,7 +1066,7 @@ virtual void execute() {
   currentGraspGear = thisGraspGear;
 }
 END_WORD
-
+REGISTER_WORD(ShiftIntoGraspGear4)
 
 WORD(TurnOffScanning)
 CODE(1048684)     // numlock + l
@@ -1052,7 +1074,7 @@ virtual void execute() {
   recordRangeMap = 0;
 }
 END_WORD
-
+REGISTER_WORD(TurnOffScanning)
 
 WORD(ResetAerialGradientTemporalFrameAverage)
 CODE(262237)      // ctrl + ]
@@ -1061,6 +1083,7 @@ virtual void execute() {
   aerialGradientTemporalFrameAverage *= 0.0;
 }
 END_WORD
+REGISTER_WORD(ResetAerialGradientTemporalFrameAverage)
 
 
 WORD(SynchronicServoDoNotTakeClosest)
@@ -1071,7 +1094,7 @@ virtual void execute() {
   synServoLockFrames = 0;
 }
 END_WORD
-
+REGISTER_WORD(SynchronicServoDoNotTakeClosest)
 
 WORD(SynchronicServoTakeClosest)
 CODE(196707)     // capslock + C
@@ -1081,6 +1104,7 @@ virtual void execute() {
   synServoLockFrames = 0;
 }
 END_WORD
+REGISTER_WORD(SynchronicServoTakeClosest)
 
 
 WORD(TwoDPatrolStart)
@@ -1114,6 +1138,7 @@ virtual void execute()       {
   pushWord("quarterImpulse"); 
 }
 END_WORD
+REGISTER_WORD(TwoDPatrolStart)
 
 WORD(TwoDPatrolContinue)
 CODE(131141) // capslock + e
@@ -1180,6 +1205,7 @@ virtual void execute() {
   pushWord("quarterImpulse"); 
 }
 END_WORD
+REGISTER_WORD(TwoDPatrolContinue)
 
 WORD(SynchronicServo)
 CODE(131156)    // capslock + t
@@ -1188,12 +1214,14 @@ virtual void execute() {
   pushWord("comeToStop");
 }
 END_WORD
+REGISTER_WORD(SynchronicServo)
 
 WORD(SynchronicServoA)
 virtual void execute() { 
   synchronicServo();
 }
 END_WORD
+REGISTER_WORD(SynchronicServoA)
 
 WORD(GradientServo)
 CODE(196728)   // capslock + X
@@ -1202,6 +1230,7 @@ virtual void execute() {
   pushWord("gradientServoPrep");
 }
 END_WORD
+REGISTER_WORD(GradientServo)
 
 WORD(GradientServoPrep)
 virtual void execute() {
@@ -1228,12 +1257,14 @@ virtual void execute() {
   pushWord("waitUntilAtCurrentPosition"); 
 }
 END_WORD
+REGISTER_WORD(GradientServoPrep)
 
 WORD(GradientServoA)
 virtual void execute() {
   gradientServo();
 }
 END_WORD
+REGISTER_WORD(GradientServoA)
 
 WORD(GradientServoIfBlueBoxes)
 virtual void execute() {
@@ -1246,6 +1277,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(GradientServoIfBlueBoxes)
 
 WORD(LockTargetIfBlueBoxes)
 virtual void execute() {
@@ -1255,6 +1287,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(LockTargetIfBlueBoxes)
 
 WORD(RecordTargetLock)
 virtual void execute() {
@@ -1272,6 +1305,7 @@ virtual void execute() {
   }
 }
 END_WORD
+REGISTER_WORD(RecordTargetLock)
 
 
 
@@ -1284,6 +1318,7 @@ virtual void execute()
     cout << "gradientTakeClosest = " << gradientTakeClosest << endl;
 }
 END_WORD
+REGISTER_WORD(GradientServoTakeClosest)
 
 WORD(DarkServo)
 virtual void execute()
@@ -1292,6 +1327,7 @@ virtual void execute()
   pushWord("darkServoA");
 }
 END_WORD
+REGISTER_WORD(DarkServo)
 
 WORD(DarkServoA)
 virtual void execute()
@@ -1305,6 +1341,7 @@ virtual void execute()
   pushWord("waitUntilAtCurrentPosition"); 
 }
 END_WORD
+REGISTER_WORD(DarkServoA)
 
 WORD(DarkServoB)
 virtual void execute()
@@ -1317,4 +1354,4 @@ virtual void execute()
   darkServo();
 }
 END_WORD
-
+REGISTER_WORD(DarkServoB)
