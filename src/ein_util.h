@@ -32,15 +32,6 @@ using namespace cv;
 
 
 typedef enum {
-  ARMED,
-  BLOCKED,
-  STOPPED,
-  HOVERING,
-  MOVING
-} movementState;
-
-
-typedef enum {
   UNKNOWN = -1,
   FAILURE = 0,
   SUCCESS = 1

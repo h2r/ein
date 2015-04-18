@@ -1,39 +1,4 @@
 // start Header
-//
-//  // start structure of this program 
-//  //
-//  ////
-//  // start pilot includes, usings, and defines
-//  //// preprocessory stuff
-//  // end pilot includes, usings, and defines 
-//  //
-//  // start node includes, usings, and defines
-//  //// preprocessory stuff
-//  // end node includes, usings, and defines
-//  //
-//  // start pilot variables 
-//  //// global variables
-//  // end pilot variables 
-//  //
-//  // start node variables 
-//  //// global variables
-//  // end node variables 
-//  //
-//  // start pilot prototypes 
-//  //// prototypes
-//  // end pilot prototypes 
-//  //
-//  // start node prototypes
-//  //// prototypes
-//  // end node prototypes 
-//  //
-//  // start pilot definitions 
-//  //// function definitions
-//  // end pilot definitions 
-//  //
-//  // start node definitions 
-//  //// function definitions
-//  // end node definitions 
 //  //
 //  // start ein 
 //  //// main()
@@ -141,19 +106,10 @@ using namespace Eigen;
 MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
-movementState currentMovementState = STOPPED;
 
 double movingThreshold = 0.02;
 double hoverThreshold = 0.003; 
 double stoppedTimeout = 0.25;
-
-
-////////////////////////////////////////////////
-// end pilot includes, usings, and defines 
-//
-// start node includes, usings, and defines
-////////////////////////////////////////////////
-
 
 
 featureType chosen_feature = SIFTBOW_GLOBALCOLOR_HIST;
@@ -162,13 +118,6 @@ int cfi = 1;
 int gradientFeatureWidth = 50;
 
 robotMode chosen_mode = PHYSICAL;
-
-
-////////////////////////////////////////////////
-// end node includes, usings, and defines
-//
-// start pilot variables 
-////////////////////////////////////////////////
 
 double rapidAmp1 = 0.00; //0.3 is great
 double rapidAmp1Delta = 0.01;
@@ -2837,26 +2786,26 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
     double distance = squareDistanceEEPose(trueEEPoseEEPose, lastTrueEEPoseEEPose);
     double distance2 = squareDistanceEEPose(trueEEPoseEEPose, currentEEPose);
 
-    if (currentMovementState == ARMED ) {
+    if (pMachineState->config.currentMovementState == ARMED ) {
       if (distance2 > armedThreshold*armedThreshold) {
 	cout << "armedThreshold crossed so leaving armed state into MOVING." << endl;
-	currentMovementState = MOVING;
+	pMachineState->config.currentMovementState = MOVING;
 	lastTrueEEPoseEEPose = trueEEPoseEEPose;
 	lastMovementStateSet = ros::Time::now();
       } else {
-	//cout << "currentMovementState is ARMED." << endl;
+	//cout << "pMachineState->config.currentMovementState is ARMED." << endl;
       }
     } else if (distance > movingThreshold*movingThreshold) {
-      currentMovementState = MOVING;
+      pMachineState->config.currentMovementState = MOVING;
       lastTrueEEPoseEEPose = trueEEPoseEEPose;
       lastMovementStateSet = ros::Time::now();
     } else if (distance > hoverThreshold*hoverThreshold) {
       if (distance2 > hoverThreshold) {
-	currentMovementState = MOVING;
+	pMachineState->config.currentMovementState = MOVING;
 	lastTrueEEPoseEEPose = trueEEPoseEEPose;
 	lastMovementStateSet = ros::Time::now();
       } else {
-	currentMovementState = HOVERING;
+	pMachineState->config.currentMovementState = HOVERING;
 	lastTrueEEPoseEEPose = trueEEPoseEEPose;
 	lastMovementStateSet = ros::Time::now();
       }
@@ -2864,11 +2813,11 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
       ros::Duration deltaT = ros::Time::now() - lastMovementStateSet;
       if ( (deltaT.sec) > stoppedTimeout ) {
 	if (distance2 > hoverThreshold*hoverThreshold) {
-	  currentMovementState = BLOCKED;
+	  pMachineState->config.currentMovementState = BLOCKED;
 	  lastMovementStateSet = ros::Time::now();
 	  lastTrueEEPoseEEPose = trueEEPoseEEPose;
 	} else {
-	  currentMovementState = STOPPED;
+	  pMachineState->config.currentMovementState = STOPPED;
 	  lastMovementStateSet = ros::Time::now();
 	  lastTrueEEPoseEEPose = trueEEPoseEEPose;
 	}
@@ -4412,7 +4361,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     circle(wristViewImage, pt1, vanishingPointReticleRadius+3, theColor, 1);
   }
 
-  // draw currentMovementState indicator
+  // draw pMachineState->config.currentMovementState indicator
   {
     int movementIndicatorInnerHalfWidth = 7;
     int movementIndicatorOuterHalfWidth = 10;
@@ -4425,22 +4374,22 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 					  2*movementIndicatorOuterHalfWidth, 2*movementIndicatorOuterHalfWidth) );
     int icMag = 64;
     Scalar indicatorColor = CV_RGB(icMag,icMag,icMag);
-    if (currentMovementState == STOPPED) {
+    if (pMachineState->config.currentMovementState == STOPPED) {
       indicatorColor = CV_RGB(icMag,0,0); 
-    } else if (currentMovementState == HOVERING) {
+    } else if (pMachineState->config.currentMovementState == HOVERING) {
       indicatorColor = CV_RGB(0,0,icMag); 
-    } else if (currentMovementState == MOVING) {
+    } else if (pMachineState->config.currentMovementState == MOVING) {
       indicatorColor = CV_RGB(0,icMag,0); 
-    } else if (currentMovementState == BLOCKED) {
+    } else if (pMachineState->config.currentMovementState == BLOCKED) {
       indicatorColor = CV_RGB(icMag,0,0); 
-    } else if (currentMovementState == ARMED) {
+    } else if (pMachineState->config.currentMovementState == ARMED) {
       indicatorColor = CV_RGB(icMag,0,0); 
     }
     outerCrop += indicatorColor;
     
-    if (currentMovementState == STOPPED) {
+    if (pMachineState->config.currentMovementState == STOPPED) {
       indicatorColor = CV_RGB(icMag,2*icMag,0); 
-    } else if (currentMovementState == ARMED) {
+    } else if (pMachineState->config.currentMovementState == ARMED) {
       indicatorColor = CV_RGB(0,0,2*icMag); 
     }
     innerCrop += indicatorColor;
