@@ -1,6 +1,14 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
+typedef enum {
+  ARMED,
+  BLOCKED,
+  STOPPED,
+  HOVERING,
+  MOVING
+} movementState;
+
 
 class EinConfig {
  public:
@@ -22,6 +30,8 @@ class EinConfig {
   int imRingBufferEnd = 0;
   int epRingBufferEnd = 0;
   int rgRingBufferEnd = 0;
+
+  movementState currentMovementState = STOPPED;
 
 };
 

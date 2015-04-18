@@ -13,7 +13,7 @@ WORD(WaitUntilAtCurrentPosition)
 CODE(131154)    // capslock + r
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
-  currentMovementState = MOVING;
+  ms->config.currentMovementState = MOVING;
   lastTrueEEPoseEEPose = trueEEPoseEEPose;
   lastMovementStateSet = ros::Time::now();
 
@@ -43,15 +43,15 @@ REGISTER_WORD(WaitUntilAtCurrentPosition)
 WORD(WaitUntilAtCurrentPositionB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
-  if ( (currentMovementState == STOPPED) ||
-       (currentMovementState == BLOCKED) ) {
+  if ( (ms->config.currentMovementState == STOPPED) ||
+       (ms->config.currentMovementState == BLOCKED) ) {
 
-    if (currentMovementState == STOPPED) {
-      cout << "Warning: waitUntilAtCurrentPosition currentMovementState = STOPPED, moving on." << endl;
+    if (ms->config.currentMovementState == STOPPED) {
+      cout << "Warning: waitUntilAtCurrentPosition ms->config.currentMovementState = STOPPED, moving on." << endl;
       endThisStackCollapse = endCollapse;
     }
-    if (currentMovementState == BLOCKED) {
-      cout << "Warning: waitUntilAtCurrentPosition currentMovementState = BLOCKED, moving on." << endl;
+    if (ms->config.currentMovementState == BLOCKED) {
+      cout << "Warning: waitUntilAtCurrentPosition ms->config.currentMovementState = BLOCKED, moving on." << endl;
       endThisStackCollapse = endCollapse;
     }
     
@@ -928,8 +928,8 @@ REGISTER_WORD(ComeToStop)
 
 WORD(ComeToStopA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if ( (currentMovementState == STOPPED) ||
-       (currentMovementState == BLOCKED) ) {
+  if ( (ms->config.currentMovementState == STOPPED) ||
+       (ms->config.currentMovementState == BLOCKED) ) {
     // do nothing
     cout << "Came to a stop, moving on." << endl;
   } else {
@@ -959,7 +959,7 @@ REGISTER_WORD(ComeToHover)
 
 WORD(ComeToHoverA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if ( (currentMovementState == HOVERING) ) {
+  if ( (ms->config.currentMovementState == HOVERING) ) {
     // do nothing
     cout << "Came to a hover, moving on." << endl;
   } else {
@@ -982,24 +982,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitForTugThenOpenGripperA");
   ms->pushWord("comeToStop");
   waitForTugStart = ros::Time::now();
-  cout << "Waiting to come to a stop and then waiting to feel a tug... " << ARMED << " " << currentMovementState << endl;
+  cout << "Waiting to come to a stop and then waiting to feel a tug... " << ARMED << " " << ms->config.currentMovementState << endl;
 }
 END_WORD
 REGISTER_WORD(WaitForTugThenOpenGripper)
 
 WORD(WaitForTugThenOpenGripperA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if ( ( currentMovementState == MOVING ) ||
+  if ( ( ms->config.currentMovementState == MOVING ) ||
        ( !gripperGripping ) ) {
     if ( !gripperGripping ) {
       cout << "There is nothing in the gripper so we should move on..." << endl;
     }
-    if (currentMovementState == MOVING) {
+    if (ms->config.currentMovementState == MOVING) {
       cout << "Felt a tug, opening gripper." << endl;
     }
     ms->pushWord("openGripper");
   } else {
-    currentMovementState = ARMED;
+    ms->config.currentMovementState = ARMED;
     ros::Duration timeSinceWFT = ros::Time::now() - waitForTugStart;
     if (timeSinceWFT.toSec() < waitForTugTimeout) {
     ms->pushWord("waitForTugThenOpenGripperA");
