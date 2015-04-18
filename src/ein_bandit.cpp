@@ -76,7 +76,7 @@ virtual void execute()       {
   heightSuccessCounter = 0;
   thompsonPickHaltFlag = 0;
   thompsonHeightHaltFlag = 0;
-  pushWord(1179707); // continue height learning
+  pushWord("continueHeightLearning"); // continue height learning
   pushWord(65568+3); // record register 3
 
   pushWord(131139); // synchronic servo don't take closest
@@ -107,7 +107,7 @@ CODE(1179707)     // capslock + numlock + ;
   if (thompsonHardCutoff) {
     if (heightAttemptCounter < thompsonTries - 1) {
       // push this program 
-      pushWord(1179707); // begin bounding box learning
+      pushWord("continueHeightLearning"); // begin bounding box learning
     } else {
       pushCopies("beep", 15); // beep
     }
@@ -123,7 +123,7 @@ CODE(1179707)     // capslock + numlock + ;
     } else {
       if (heightAttemptCounter < thompsonTries - 1) {
         // push this program 
-        pushWord(1179707); // begin bounding box learning
+        pushWord("continueHeightLearning"); // begin bounding box learning
       } else {
         cout << "Clearing call stack. thompsonHeightHaltFlag = " << thompsonHeightHaltFlag << 
           " and we did " << heightAttemptCounter << " tries." << endl;
