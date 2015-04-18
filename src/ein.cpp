@@ -72,16 +72,6 @@
 #include <baxter_core_msgs/HeadPanCommand.h>
 
 
-//#include <boost/thread/mutex.hpp>
-//#include <boost/thread/thread.hpp>
-//#include <boost/filesystem.hpp>
-
-
-//#include <pcl/point_cloud.h>
-//#include <pcl/point_types.h>
-//#include <pcl_conversions/pcl_conversions.h>
-
-
 #include <cv.h>
 #include <highgui.h>
 #include <ml.h>
@@ -973,11 +963,6 @@ int add_blinders = 0;
 int blinder_stride = 10;
 int blinder_columns = 5;
 
-boost::mutex ros_mutex;
-boost::mutex pcl_mutex;
-boost::mutex redbox_mutex;
-boost::thread *timercallback1_thread;
-
 std::string densityViewerName = "Density Viewer";
 std::string objectViewerName = "Object Viewer";
 std::string objectMapViewerName = "Object Map View";
@@ -1066,8 +1051,6 @@ std::string class_name = "unspecified_cn";
 std::string class_labels= "unspecified_cl1 unspecified_cl2";
 std::string class_pose_models = "unspecified_pm1 unspecified_pm2";
 
-std::string red_box_list = "";
-
 std::string image_topic = "/camera/rgb/image_raw"; 
 
 
@@ -1075,7 +1058,6 @@ std::string cache_prefix = "";
 
 int numClasses = 0;
 
-vector<string> redBoxLabels;
 vector<string> classLabels; 
 vector<string> classPoseModels;
 vector<CvKNearest*> classPosekNNs;
@@ -1096,12 +1078,9 @@ std::string saved_crops_path;
 
 cv::Mat cam_img;
 cv::Mat depth_img;
-ros::Publisher rec_objs_blue;
+
 ros::Publisher rec_objs_blue_memory;
-ros::Publisher rec_objs_red;
-ros::Publisher markers_blue;
 ros::Publisher markers_blue_memory;
-ros::Publisher markers_red;
 
 ros::Publisher ee_target_pub;
 
@@ -1289,39 +1268,7 @@ vector<int> bLabels;
 double rejectScale = 2.0;
 double rejectAreaScale = 16;//6*6;
 
-typedef struct {
-  int classLabel;
-  cv::Point top;
-  cv::Point bot;
-  int rootBlueBox;
-  int numGreenBoxes;
-  cv::Point anchor;
-  double persistence;
-  double lastDistance;
-  double poseIndex;
-  int winningO;
 
-  eePose com; // center of mass
-} redBox;
-
-redBox *redBoxes;
-int numRedBoxes = 0;
-double persistenceThresh = 0.5;
-int max_red_proposals = 1000;
-double slidesPerFrame = 0.2;
-int rbMinWidth = 50;
-int rbMaxWidth = 200;
-
-int redRounds = 10;
-int redStride = 5;
-int redPeriod = 4;
-int redDigitsWSRN = 6; 
-
-int redInitialWidth = 50;
-
-// the brownBox
-cv::Point brTop;
-cv::Point brBot;
 Eigen::Vector3d tablePositionSum;
 Eigen::Vector3d tableNormalSum;
 Eigen::Vector3d tableTangent1Sum;
@@ -1598,7 +1545,7 @@ void findDarkness(int * xout, int * yout);
 
 int doubleToByte(double in);
 
-int rejectRedBox();
+
 
 void gridKeypoints(int gImW, int gImH, cv::Point top, cv::Point bot, int strideX, int strideY, vector<KeyPoint>& keypoints, int period);
 
@@ -9471,12 +9418,7 @@ int doubleToByte(double in) {
   return min(max(round(in),0.0),255.0);
 }
 
-int rejectRedBox() {
-  // check that the redBox has probable dimensions
 
-  // check that the redBox is tight on green boxes 
-
-}
 
 void gridKeypoints(int gImW, int gImH, cv::Point top, cv::Point bot, int strideX, int strideY, vector<KeyPoint>& keypoints, int period) {
   keypoints.resize(0);
@@ -11865,13 +11807,6 @@ void goClassifyBlueBoxes() {
     guardedImshow(objectViewerName, objectViewerImage, sirObject);
   }
 
-  cout << "Publish objects: " << publishObjects << endl;
-  if (publishObjects) {
-    rec_objs_blue.publish(roa_to_send_blue);
-    markers_blue.publish(ma_to_send_blue);
-  }
-
-  //cout << "leaving gCBB()" << endl; cout.flush();
 }
 
 
@@ -11897,7 +11832,6 @@ void loadROSParamsFromArgs() {
   nh.getParam("run_prefix", run_prefix);
 
   nh.getParam("all_range_mode", all_range_mode);
-  nh.getParam("red_box_list", red_box_list);
 
   nh.getParam("gray_box_top", tGO);
   nh.getParam("gray_box_bot", bGO);
@@ -11951,14 +11885,13 @@ void loadROSParams() {
   nh.getParam("frames_per_click", frames_per_click);
   nh.getParam("density_decay", densityDecay);
   nh.getParam("depth_decay", depthDecay);
-  nh.getParam("red_decay", redDecay);
+
   nh.getParam("data_directory", data_directory);
   nh.getParam("class_labels", class_labels);
   nh.getParam("class_pose_models", class_pose_models);
   nh.getParam("class_name", class_name);
   nh.getParam("run_prefix", run_prefix);
   nh.getParam("all_range_mode", all_range_mode);
-  nh.getParam("red_box_list", red_box_list);
 
   nh.getParam("gray_box_top", tGO);
   nh.getParam("gray_box_bot", bGO);
@@ -12011,14 +11944,14 @@ void saveROSParams() {
   nh.setParam("frames_per_click", frames_per_click);
   nh.setParam("density_decay", densityDecay);
   nh.setParam("depth_decay", depthDecay);
-  nh.setParam("red_decay", redDecay);
+
   nh.setParam("data_directory", data_directory);
   nh.setParam("class_labels", class_labels);
   nh.setParam("class_pose_models", class_pose_models);
   nh.setParam("class_name", class_name);
   nh.setParam("run_prefix", run_prefix);
   nh.setParam("all_range_mode", all_range_mode);
-  nh.setParam("red_box_list", red_box_list);
+
 
   nh.setParam("gray_box_top", tGO);
   nh.setParam("gray_box_bot", bGO);
@@ -12093,7 +12026,6 @@ void nodeInit() {
   tablePerspective = Mat::eye(3,3,CV_32F);
   //init_oriented_filters_all();
 
-  //initRedBoxes();
 }
 
 void detectorsInit() {
@@ -12362,47 +12294,6 @@ void detectorsInit() {
   }
 }
 
-void initRedBoxes() {
-  string bufstr; // Have a buffer string
-  if (runTracking) {
-    // initialize the redBoxes
-    stringstream ss_rb(red_box_list); 
-    while (ss_rb >> bufstr)
-      redBoxLabels.push_back(bufstr);
-
-    int redBoxProposals = redBoxLabels.size();
-    redBoxes = new redBox[redBoxProposals];
-
-    for (int r = 0; r < redBoxProposals; r++) {
-      int thisClassLabel = -1;
-      for (int i = 0; i < numClasses; i++) {
-	if (!classLabels[i].compare(redBoxLabels[r])) {
-	  thisClassLabel = i;
-	}
-      }
-
-      if (thisClassLabel > -1) {
-	numRedBoxes++;
-	cout << "Accepting red box suggestion " << r << " \"" << redBoxLabels[r] << "\" as red box number " << numRedBoxes-1 << endl;
-	redBoxes[r].classLabel = thisClassLabel;
-	redBoxes[r].top = cv::Point(0,0);
-	redBoxes[r].bot = cv::Point(redInitialWidth, redInitialWidth);
-	redBoxes[r].rootBlueBox = 0;
-	redBoxes[r].numGreenBoxes;
-	redBoxes[r].anchor = cv::Point(0,0);
-	redBoxes[r].persistence = 0;
-	redBoxes[r].lastDistance = FLT_MAX;
-	redBoxes[r].poseIndex = 0;
-	redBoxes[r].winningO = 0;
-      } else {
-	cout << "Rejecting red box suggestion " << r << " \"" << redBoxLabels[r] << "\"" << endl;
-      }
-    }
-  }
-
-  if (numRedBoxes > 0)
-    createTrackbar("red target", objectViewerName, &redTrackbarVariable, numRedBoxes);
-}
 
 void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
   {
@@ -13031,7 +12922,6 @@ int main(int argc, char **argv) {
   loadROSParamsFromArgs();
   cout << "mask_gripper: " << mask_gripper << " add_blinders: " << add_blinders << endl;
   cout << "all_range_mode: " << all_range_mode << endl;
-  cout << endl << "numRedBoxes: " << numRedBoxes << endl;
   cout << "data_directory: " << data_directory << endl << "class_name: " << class_name << endl 
        << "run_prefix: " << run_prefix << endl << "class_pose_models: " << class_pose_models << endl 
        << "class_labels: " << class_labels << endl << "vocab_file: " << vocab_file << endl 
@@ -13065,10 +12955,6 @@ int main(int argc, char **argv) {
   rec_objs_blue_memory = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_memory_objects", 10);
   markers_blue_memory = n.advertise<visualization_msgs::MarkerArray>("blue_memory_markers", 10);
 
-  rec_objs_blue = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_labeled_objects", 10);
-  rec_objs_red = n.advertise<object_recognition_msgs::RecognizedObjectArray>("red_labeled_objects", 10);
-  markers_blue = n.advertise<visualization_msgs::MarkerArray>("blue_object_markers", 10);
-  markers_red = n.advertise<visualization_msgs::MarkerArray>("red_object_markers", 10);
   ee_target_pub = n.advertise<geometry_msgs::Point>("pilot_target_" + left_or_right_arm, 10);
 
   densityViewerName = "Density Viewer " + left_or_right_arm;
