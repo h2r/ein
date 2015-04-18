@@ -366,8 +366,6 @@ eePose handingPose;
 
 eePose straightDown = {.px = 0.0, .py = 0.0, .pz = 0.0,
 		       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
-eePose eePoseZero = {.px = 0.0, .py = 0.0, .pz = 0.0,
-		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
 
 eePose centerReticle = {.px = 325, .py = 127, .pz = 0.0,
 		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
@@ -1643,7 +1641,7 @@ void l2Normalize3DParzen();
 void initializeParzen();
 void l2NormalizeParzen();
 void l2NormalizeFilter();
-double squareDistanceEEPose(eePose pose1, eePose pose2);
+
 
 int getColorReticleX();
 int getColorReticleY();
@@ -3278,62 +3276,6 @@ void scanXdirection(double speedOnLines, double speedBetweenLines) {
   }
 }
 
-void oldScanXdirection(double speedOnLines, double speedBetweenLines) {
-
-  double onLineGain = rmDelta / speedOnLines;
-  double betweenLineGain = rmDelta / speedBetweenLines;
-
-  int scanPadding = int(floor(1 * onLineGain));
-
-  for (int g = 0; g < ((rmWidth*onLineGain)-(rmHalfWidth*onLineGain))+scanPadding; g++) {
-    // ATTN 2
-    //pushWord(1048677);
-    pushWord("waitUntilAtCurrentPosition"); 
-    pushWord('a');
-  }
-  for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    //pushWord(1048677);
-    pushWord("waitUntilAtCurrentPosition"); 
-    pushWord('e');
-  }
-  pushSpeedSign(speedOnLines);
-
-  //int gLimit = 1+((rmWidth*betweenLineGain+2*scanPadding)/2);
-  int gLimit = ((rmWidth*betweenLineGain+2*scanPadding));
-  for (int g = 0; g < gLimit; g++) {
-    pushWord("fullRender"); 
-    //pushWord(1048677);
-    pushWord("waitUntilAtCurrentPosition"); 
-    pushSpeedSign(speedOnLines);
-    pushWord('d');
-    pushSpeedSign(speedBetweenLines);
-    for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
-      //pushWord(1048677);
-      pushWord("waitUntilAtCurrentPosition");
-      pushWord('q');
-    }
-    //pushSpeedSign(speedOnLines);
-    //pushWord('d');
-    //pushSpeedSign(speedBetweenLines);
-    for (int gg = 0; gg < rmWidth*onLineGain+2*scanPadding; gg++) {
-      //pushWord(1048677);
-      pushWord("waitUntilAtCurrentPosition"); 
-      pushWord('e');
-    }
-  }
-  for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    //pushWord(1048677);
-    pushWord("waitUntilAtCurrentPosition"); 
-    pushWord('q');
-  }
-  for (int g = 0; g < rmHalfWidth*onLineGain+scanPadding; g++) {
-    //pushWord(1048677);
-    pushWord("waitUntilAtCurrentPosition"); 
-    pushWord('a');
-  }
-  pushSpeedSign(speedOnLines);
-
-}
 
 void scanYdirection(double speedOnLines, double speedBetweenLines) {
 
@@ -7822,14 +7764,6 @@ void selectMaxTargetThompsonRotated2(double minDepth) {
   cout << "non-cumulative maxX: " << maxX << " maxY: " << maxY <<  " maxD: " << maxD << " maxGG: " << maxGG << endl;
 }
 
-double squareDistanceEEPose(eePose pose1, eePose pose2) {
-  double dx = (pose1.px - pose2.px);
-  double dy = (pose1.py - pose2.py);
-  double dz = (pose1.pz - pose2.pz);
-  double squareDistance = dx*dx + dy*dy + dz*dz;
-
-  return squareDistance;
-}
 
 void recordBoundingBoxSuccess() {
   heightMemoryTries[currentThompsonHeightIdx]++;
@@ -7902,7 +7836,7 @@ void recordBoundingBoxFailure() {
 void restartBBLearning() {
   recordBoundingBoxFailure();
   clearStack();
-  pushWord(1179707); // continue bounding box learning
+  pushWord("continueHeightLearning"); // continue bounding box learning
 }
 
 double unsignedQuaternionDistance(Quaternionf q1, Quaternionf q2) {
