@@ -132,6 +132,7 @@
 #include "distributions.h"
 #include "word.h"
 #include "eePose.h"
+#include "eigen_util.h"
 
 using namespace std;
 using namespace cv;
@@ -1736,8 +1737,6 @@ void recordBoundingBoxSuccess();
 void recordBoundingBoxFailure();
 
 void restartBBLearning();
-
-double unsignedQuaternionDistance(Quaternionf a, Quaternionf b);
 
 eePose analyticServoPixelToReticle(eePose givenPixel, eePose givenReticle, double angle);
 void moveCurrentGripperRayToCameraVanishingRay();
@@ -7839,12 +7838,6 @@ void restartBBLearning() {
   pushWord("continueHeightLearning"); // continue bounding box learning
 }
 
-double unsignedQuaternionDistance(Quaternionf q1, Quaternionf q2) {
-  float r = q1.dot(q2);
-  if(r < -1.0 || r > 1.0) return 0;
-    r = acos(r); 
-  return r <= M_PI_2? r: M_PI-r;
-}
 
 void moveCurrentGripperRayToCameraVanishingRay() {
   bool useLaser = 0;
