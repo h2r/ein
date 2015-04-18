@@ -329,7 +329,6 @@ virtual void execute()
   cout << "Writing words to " << wordFileName << endl;
   ofstream wordFile;
   wordFile.open(wordFileName);
-  std::vector<std::shared_ptr<Word> > words = create_words();
   for (int i = 0; i < words.size(); i++) {
     wordFile << words[i]->name() << " " << words[i]->character_code() << endl;
   }
