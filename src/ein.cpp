@@ -15105,6 +15105,4 @@ int main(int argc, char **argv) {
 
 
 #include "ein_words.cpp"
-//#include "slu/math2d.c"
-//#include "slu/gsl_utilities.c"
 
