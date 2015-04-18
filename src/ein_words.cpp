@@ -32,7 +32,7 @@ int register_word(std::shared_ptr<Word> word) {
 }
 
 
-void CompoundWord::execute() {
+void CompoundWord::execute(std::shared_ptr<MachineState> ms) {
   for (unsigned int i = 0; i < stack.size(); i++) {
     pushWord(stack[i]);
   }

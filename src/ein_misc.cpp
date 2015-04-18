@@ -1,7 +1,7 @@
 
 WORD(ZeroGToggle)
 CODE('z')
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   zero_g_toggle = !zero_g_toggle;
 }
 END_WORD
@@ -10,7 +10,7 @@ REGISTER_WORD(ZeroGToggle)
 
 WORD(ClearStack)
 CODE('r') 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   clearStack();
 }
 END_WORD
@@ -19,7 +19,7 @@ REGISTER_WORD(ClearStack)
 
 WORD(Beep)
 CODE(1245308)     // capslock + numlock + |
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "\a"; cout.flush();
 }
 END_WORD
@@ -30,7 +30,7 @@ REGISTER_WORD(Beep)
 
 WORD(AssumeWholeFoodsCounter1)
 CODE(196672)  // capslock + @
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose = wholeFoodsCounter1;
 }
 END_WORD
@@ -38,7 +38,7 @@ REGISTER_WORD(AssumeWholeFoodsCounter1)
 
 WORD(AssumeWholeFoodsPantry1)
 CODE(196643)   // capslock + #
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose = wholeFoodsPantry1;
 }
 END_WORD
@@ -47,7 +47,7 @@ REGISTER_WORD(AssumeWholeFoodsPantry1)
 
 WORD(ChangeToCounterTable)
 CODE(1179735) // capslock + numlock + w
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentTableZ = counterTableZ;
 }
 END_WORD
@@ -55,7 +55,7 @@ REGISTER_WORD(ChangeToCounterTable)
   
 WORD(ChangeToPantryTable)
 CODE(1179717)    // capslock + numlock + e
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentTableZ = pantryTableZ;
 }
 END_WORD
@@ -64,7 +64,7 @@ REGISTER_WORD(ChangeToPantryTable)
 
 WORD(ExecuteStack)
 CODE('y')
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   execute_stack = 1;
 }
 END_WORD
@@ -72,7 +72,7 @@ REGISTER_WORD(ExecuteStack)
 
 WORD(PauseStackExecution)
 CODE('Y') 
-virtual void execute()  {
+virtual void execute(std::shared_ptr<MachineState> ms)  {
   cout << "STACK EXECUTION PAUSED, press 'y' to continue." << endl;
   execute_stack = 0;
 }
@@ -83,7 +83,7 @@ REGISTER_WORD(PauseStackExecution)
  
 WORD(PauseAndReset)
 CODE('c') 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   execute_stack = 0;
   lastPtheta = INFINITY;
 }
@@ -95,7 +95,7 @@ REGISTER_WORD(PauseAndReset)
 
 WORD(PrintState)
 CODE('u')
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << endl;
   cout << "Current EE Position (x,y,z): " << currentEEPose.px << " " << currentEEPose.py << " " << currentEEPose.pz << endl;
   cout << "Current EE Orientation (x,y,z,w): " << currentEEPose.qx << " " << currentEEPose.qy << " " << currentEEPose.qz << " " << currentEEPose.qw << endl;
@@ -129,7 +129,7 @@ REGISTER_WORD(PrintState)
 
 WORD(DecrementTargetClass)
 CODE(196438)     // capslock + pagedown
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "targetClass-- " << endl;
   if (numClasses > 0) {
     int newTargetClass = (targetClass - 1 + numClasses) % numClasses;
@@ -148,7 +148,7 @@ virtual vector<string> names() {
   result.push_back("+");
   return result;
 }
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   std::shared_ptr<Word> p1 = popWord();
   std::shared_ptr<Word> p2 = popWord();
   if (p1 == NULL || p2 == NULL) {
@@ -173,7 +173,7 @@ REGISTER_WORD(Plus)
 
 WORD(Equals)
 CODE('=') 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   std::shared_ptr<Word> p1 = popWord();
   std::shared_ptr<Word> p2 = popWord();
   if (p1 == NULL || p2 == NULL) {
@@ -196,7 +196,7 @@ REGISTER_WORD(Equals)
 
 
 WORD(Ift)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   std::shared_ptr<Word> then = popWord();
   std::shared_ptr<Word> condition = popWord();
   if (then == NULL || condition == NULL) {
@@ -213,13 +213,13 @@ END_WORD
 REGISTER_WORD(Ift)
 
 WORD(Start)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(Start)
 
 WORD(Next)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   vector <std::shared_ptr<Word> > words_in_loop;
   
   while (true) {
@@ -253,7 +253,7 @@ END_WORD
 REGISTER_WORD(Next)
 
 WORD(Print)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   std::shared_ptr<Word> word = popWord();
   if (word != NULL) {
     cout << word->as_string() << endl;
@@ -263,7 +263,7 @@ END_WORD
 REGISTER_WORD(Print)
 
 WORD(Dup)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   std::shared_ptr<Word> word = popWord();
   pushWord(word);
   pushWord(word);
@@ -272,7 +272,7 @@ END_WORD
 REGISTER_WORD(Dup)
 
 WORD(Pop)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   std::shared_ptr<Word> word = popWord();
 }
 END_WORD
@@ -280,7 +280,7 @@ REGISTER_WORD(Pop)
 
 WORD(IncrementTargetClass)
 CODE(196437)// capslock + pageup
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   cout << "targetClass++ " << endl;
   if (numClasses > 0) {
@@ -292,7 +292,7 @@ END_WORD
 REGISTER_WORD(IncrementTargetClass)
 
 WORD(ChangeTargetClassToClosestBlueBox)
-virtual void execute()  {
+virtual void execute(std::shared_ptr<MachineState> ms)  {
   if (pilotClosestBlueBoxNumber == -1) {
     cout << "Not changing because closest bbox is " << pilotClosestBlueBoxNumber << endl;
     return;
@@ -306,7 +306,7 @@ REGISTER_WORD(ChangeTargetClassToClosestBlueBox)
 
 WORD(Noop)
 CODE('C')
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
 
 }
@@ -314,7 +314,7 @@ END_WORD
 REGISTER_WORD(Noop)
 
 WORD(EndStackCollapseNoop)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   endThisStackCollapse = 1;
 }
@@ -322,7 +322,7 @@ END_WORD
 REGISTER_WORD(EndStackCollapseNoop)
 
 WORD(PrintWords)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   string wordFileName = "ein_words.txt";
   cout << "Writing words to " << wordFileName << endl;
@@ -339,7 +339,7 @@ REGISTER_WORD(PrintWords)
 
 WORD(PixelGlobalTest)
 CODE(65609) // I
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   paintEEandReg1OnWrist = !paintEEandReg1OnWrist;
 }
@@ -348,7 +348,7 @@ REGISTER_WORD(PixelGlobalTest)
 
 WORD(IncMx)
 CODE(65361) // left arrow 
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   m_x += .01;
   m_x_h[currentThompsonHeightIdx] = m_x;
@@ -359,7 +359,7 @@ REGISTER_WORD(IncMx)
 
 WORD(DecMx)
 CODE(65363) // right arrow 
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   m_x -= .01;
   m_x_h[currentThompsonHeightIdx] = m_x;
@@ -370,7 +370,7 @@ REGISTER_WORD(DecMx)
 
 WORD(IncMy)
 CODE(65362) // up arrow 
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   m_y += .01;
   m_y_h[currentThompsonHeightIdx] = m_y;
@@ -381,7 +381,7 @@ REGISTER_WORD(IncMy)
 
 WORD(DecMy)
 CODE(65364) // down arrow 
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   m_y -= .01;
   m_y_h[currentThompsonHeightIdx] = m_y;
@@ -391,7 +391,7 @@ END_WORD
 REGISTER_WORD(DecMy)
 
 WORD(EndStackCollapse)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   endCollapse = 1;
 }
@@ -399,7 +399,7 @@ END_WORD
 REGISTER_WORD(EndStackCollapse)
 
 WORD(CollapseStack)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   endCollapse = 0;
 }
@@ -407,7 +407,7 @@ END_WORD
 REGISTER_WORD(CollapseStack)
 
 WORD(ShakeHeadPositive)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   currentHeadPanCommand.target = 3.1415926/2.0;
   currentHeadPanCommand.speed = 50;
@@ -418,7 +418,7 @@ REGISTER_WORD(ShakeHeadPositive)
 
 
 WORD(ShakeHeadNegative)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   currentHeadPanCommand.target = -3.1415926/2.0;
   currentHeadPanCommand.speed = 50;
@@ -428,7 +428,7 @@ END_WORD
 REGISTER_WORD(ShakeHeadNegative)
 
 WORD(CenterHead)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   currentHeadPanCommand.target = 0;
   currentHeadPanCommand.speed = 50;
@@ -438,7 +438,7 @@ END_WORD
 REGISTER_WORD(CenterHead)
 
 WORD(SilenceSonar)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   sonarPub.publish(currentSonarCommand);
 }
@@ -446,7 +446,7 @@ END_WORD
 REGISTER_WORD(SilenceSonar)
 
 WORD(Nod)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   currentHeadNodCommand.data = 1;
   nodPub.publish(currentHeadNodCommand);
@@ -455,7 +455,7 @@ END_WORD
 REGISTER_WORD(Nod)
 
 WORD(ResetAuxiliary)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   pushWord("nod");
   pushWord("centerHead");
@@ -474,7 +474,7 @@ END_WORD
 REGISTER_WORD(ResetAuxiliary)
 
 WORD(ShutdownAllNonessentialSystems)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   shouldIRender = 0;
   shouldIDoIK = 0;
@@ -487,7 +487,7 @@ END_WORD
 REGISTER_WORD(ShutdownAllNonessentialSystems)
 
 WORD(BringUpAllNonessentialSystems)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   shouldIRender = 1;
   shouldIDoIK = 1;
@@ -500,7 +500,7 @@ END_WORD
 REGISTER_WORD(BringUpAllNonessentialSystems)
 
 WORD(WaitUntilImageCallbackReceived)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   lastImageCallbackRequest = ros::Time::now();
   pushWord("waitUntilImageCallbackReceivedA");
@@ -511,7 +511,7 @@ END_WORD
 REGISTER_WORD(WaitUntilImageCallbackReceived)
 
 WORD(WaitUntilImageCallbackReceivedA)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   if (lastImageCallbackRequest >= lastImageCallbackReceived) {
     pushWord("waitUntilImageCallbackReceivedA");
@@ -525,7 +525,7 @@ END_WORD
 REGISTER_WORD(WaitUntilImageCallbackReceivedA)
 
 WORD(WriteXMLEnvironment)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   // For Dipendra
   ofstream ofile;

@@ -134,17 +134,21 @@
 #include "eePose.h"
 #include "eigen_util.h"
 #include "ein_util.h"
+#include "machine.h"
 
 using namespace std;
 using namespace cv;
 using namespace Eigen;
 
+MachineState machineState;
+std::shared_ptr<MachineState> pMachineState = std::make_shared<MachineState>(machineState);
 
 movementState currentMovementState = STOPPED;
 
 double movingThreshold = 0.02;
 double hoverThreshold = 0.003; 
 double stoppedTimeout = 0.25;
+
 
 ////////////////////////////////////////////////
 // end pilot includes, usings, and defines 
@@ -4184,24 +4188,6 @@ void timercallback1(const ros::TimerEvent&) {
     }
   }
 
-  // deal with the stack
-//  if (execute_stack && takeSymbol) {
-//    if (call_stack.size() > 0 && 
-//        !call_stack[call_stack.size() - 1]->is_value()) {
-//      word = popWord();
-//    } else {
-//      execute_stack = 0;
-//    }
-//  }
-//  if (timerCounter >= lock_reset_thresh) {
-//    lock_status = 0;
-//  }
-//  
-//  if (word != NULL) {
-//    current_instruction = word;
-//    word->execute();
-//  }
-
   endThisStackCollapse = endCollapse;
   while (1) {
     time(&thisTime);
@@ -4242,7 +4228,7 @@ void timercallback1(const ros::TimerEvent&) {
     if (word != NULL) {
       current_instruction = word;
       cout << "Executing." << endl;
-      word->execute();
+      word->execute(pMachineState);
     }
 
     if( endThisStackCollapse || (call_stack.size() == 0) ) {

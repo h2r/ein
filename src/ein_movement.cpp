@@ -1,5 +1,5 @@
 WORD(AssumeDeliveryPose)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   double oldz = currentEEPose.pz;
   currentEEPose = deliveryPoses[currentDeliveryPose];
   currentEEPose.pz = oldz;
@@ -11,7 +11,7 @@ REGISTER_WORD(AssumeDeliveryPose)
 
 WORD(WaitUntilAtCurrentPosition)
 CODE(131154)    // capslock + r
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
 
   currentMovementState = MOVING;
   lastTrueEEPoseEEPose = trueEEPoseEEPose;
@@ -41,7 +41,7 @@ END_WORD
 REGISTER_WORD(WaitUntilAtCurrentPosition)
 
 WORD(WaitUntilAtCurrentPositionB)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
 
   if ( (currentMovementState == STOPPED) ||
        (currentMovementState == BLOCKED) ) {
@@ -91,7 +91,7 @@ END_WORD
 REGISTER_WORD(WaitUntilAtCurrentPositionB)
 
 WORD(WaitUntilGripperNotMoving)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   waitUntilGripperNotMovingCounter = 0;
   lastGripperCallbackRequest = ros::Time::now();
   pushWord("waitUntilGripperNotMovingB"); 
@@ -101,7 +101,7 @@ END_WORD
 REGISTER_WORD(WaitUntilGripperNotMoving)
 
 WORD(WaitUntilGripperNotMovingB)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   if (lastGripperCallbackRequest >= lastGripperCallbackReceived) {
     pushWord("waitUntilGripperNotMovingB"); 
   } else {
@@ -125,7 +125,7 @@ END_WORD
 REGISTER_WORD(WaitUntilGripperNotMovingB)
 
 WORD(WaitUntilGripperNotMovingC)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
 // waits until gripper has not been moving for gripperNotMovingConfirmTime
   if (lastGripperCallbackRequest >= lastGripperCallbackReceived) {
     pushWord("waitUntilGripperNotMovingC"); 
@@ -148,7 +148,7 @@ REGISTER_WORD(WaitUntilGripperNotMovingC)
 
 WORD(PerturbPosition)
 CODE(1048623)     // numlock + /
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   double noX = perturbScale * ((drand48() - 0.5) * 2.0);
   double noY = perturbScale * ((drand48() - 0.5) * 2.0);
   double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
@@ -163,7 +163,7 @@ REGISTER_WORD(PerturbPosition)
 
 WORD(OYDown)
 CODE('w'+65504) 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEDeltaRPY.py -= bDelta;
 }
 END_WORD
@@ -171,7 +171,7 @@ REGISTER_WORD(OYDown)
 
 WORD(OYUp)
 CODE('s'+65504) 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEDeltaRPY.py += bDelta;
 }
 END_WORD
@@ -179,7 +179,7 @@ REGISTER_WORD(OYUp)
 
 WORD(OZDown)
 CODE('q'+65504) 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEDeltaRPY.pz -= bDelta;
 }
 END_WORD
@@ -187,7 +187,7 @@ REGISTER_WORD(OZDown)
 
 WORD(OZUp)
 CODE('e'+65504) 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Changing pose. " << endl;
   currentEEDeltaRPY.pz += bDelta;
 }
@@ -196,7 +196,7 @@ REGISTER_WORD(OZUp)
 
 WORD(OXDown)
 CODE('a'+65504) 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEDeltaRPY.px -= bDelta;
 }
 END_WORD
@@ -204,7 +204,7 @@ REGISTER_WORD(OXDown)
 
 WORD(OXUp)
 CODE('d'+65504) 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEDeltaRPY.px += bDelta;
 }
 END_WORD
@@ -213,7 +213,7 @@ REGISTER_WORD(OXUp)
 
 WORD(SaveRegister1)
 CODE(65568+1) // ! 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   eepReg1 = currentEEPose;
 }
 END_WORD
@@ -221,7 +221,7 @@ REGISTER_WORD(SaveRegister1)
 
 WORD(SaveRegister2)
 CODE(65600) // @
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   eepReg2 = currentEEPose;
 }
 END_WORD
@@ -229,7 +229,7 @@ REGISTER_WORD(SaveRegister2)
 
 WORD(SaveRegister3)
 CODE(65568+3) // # 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   eepReg3 = currentEEPose;
 }
 END_WORD
@@ -237,7 +237,7 @@ REGISTER_WORD(SaveRegister3)
 
 WORD(SaveRegister4)
 CODE( 65568+4) // $ 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   eepReg4 = currentEEPose;
 }
 END_WORD
@@ -245,7 +245,7 @@ REGISTER_WORD(SaveRegister4)
 
 WORD(MoveToRegister1)
 CODE('1') 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose = eepReg1;
 }
 END_WORD
@@ -253,7 +253,7 @@ REGISTER_WORD(MoveToRegister1)
 
 WORD(MoveToRegister2)
 CODE('2') 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose = eepReg2;
 }
 END_WORD
@@ -261,7 +261,7 @@ REGISTER_WORD(MoveToRegister2)
 
 WORD(MoveToRegister3)
 CODE('3') 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose = eepReg3;
 }
 END_WORD
@@ -269,7 +269,7 @@ REGISTER_WORD(MoveToRegister3)
 
 WORD(MoveToRegister4)
 CODE('4') 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose = eepReg4;
 }
 END_WORD
@@ -277,7 +277,7 @@ REGISTER_WORD(MoveToRegister4)
 
 WORD(MoveToRegister5)
 CODE('5') 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose = eepReg5;
 }
 END_WORD
@@ -286,7 +286,7 @@ REGISTER_WORD(MoveToRegister5)
 
 WORD(MoveToRegister6)
 CODE('6') 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose = eepReg6;
 }
 END_WORD
@@ -295,7 +295,7 @@ REGISTER_WORD(MoveToRegister6)
 
 WORD(XDown)
 CODE('q') 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose.px -= bDelta;
 }
 END_WORD
@@ -304,7 +304,7 @@ REGISTER_WORD(XDown)
 
 WORD(XUp)
 CODE('e') 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose.px += bDelta;
 }
 END_WORD
@@ -312,7 +312,7 @@ REGISTER_WORD(XUp)
 
 WORD(YDown)
 CODE('a') 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose.py -= bDelta;
 }
 END_WORD
@@ -321,7 +321,7 @@ REGISTER_WORD(YDown)
 
 WORD(YUp)
 CODE('d') 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose.py += bDelta;
 }
 END_WORD
@@ -330,7 +330,7 @@ REGISTER_WORD(YUp)
 
 WORD(ZUp)
 CODE('w')
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   currentEEPose.pz += bDelta;
 }
@@ -339,7 +339,7 @@ REGISTER_WORD(ZUp)
 
 WORD(ZDown)
 CODE('s')
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
     currentEEPose.pz -= bDelta;
 }
@@ -348,7 +348,7 @@ REGISTER_WORD(ZDown)
 
 WORD(SetGripperThresh)
 CODE(1179713)     // capslock + numlock + a
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   gripperThresh = lastMeasuredClosed + lastMeasuredBias;
   cout << "lastMeasuredClosed: " << lastMeasuredClosed << " lastMeasuredBias: " << lastMeasuredBias << endl;
   cout << "gripperThresh = " << gripperThresh << endl;
@@ -358,7 +358,7 @@ REGISTER_WORD(SetGripperThresh)
 
 WORD(CalibrateGripper)
 CODE('i') 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   //baxter_core_msgs::EndEffectorCommand command;
   //command.command = baxter_core_msgs::EndEffectorCommand::CMD_CALIBRATE;
   //command.id = 65538;
@@ -370,7 +370,7 @@ REGISTER_WORD(CalibrateGripper)
 
 WORD(CloseGripper)
 CODE('j')
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   baxter_core_msgs::EndEffectorCommand command;
   command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
   command.args = "{\"position\": 0.0}";
@@ -382,7 +382,7 @@ REGISTER_WORD(CloseGripper)
 
 WORD(OpenGripper)
 CODE('k')
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   baxter_core_msgs::EndEffectorCommand command;
   command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
   command.args = "{\"position\": 100.0}";
@@ -396,7 +396,7 @@ REGISTER_WORD(OpenGripper)
 
 WORD(SetMovementSpeedNowThatsFast)
 CODE(1114193)    // numlock + Q
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   bDelta = NOW_THATS_FAST;
 }
 END_WORD
@@ -404,7 +404,7 @@ REGISTER_WORD(SetMovementSpeedNowThatsFast)
 
 WORD(SetMovementSpeedMoveEvenFaster)
 CODE(1114199)     // numlock + W
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   bDelta = MOVE_EVEN_FASTER;
 }
 END_WORD
@@ -413,7 +413,7 @@ REGISTER_WORD(SetMovementSpeedMoveEvenFaster)
 
 WORD(SetMovementSpeedMoveFaster)
 CODE(1114181)  // numlock + E
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   bDelta = MOVE_FASTER;
 }
 END_WORD
@@ -421,7 +421,7 @@ REGISTER_WORD(SetMovementSpeedMoveFaster)
 
 WORD(SetMovementSpeedMoveFast)
 CODE(1048674)     // numlock + b
-virtual void execute()  {
+virtual void execute(std::shared_ptr<MachineState> ms)  {
   bDelta = MOVE_FAST;
 }
 END_WORD
@@ -429,7 +429,7 @@ REGISTER_WORD(SetMovementSpeedMoveFast)
 
 WORD(SetMovementSpeedMoveMedium)
 CODE(1048686)   // numlock + n
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   bDelta = MOVE_MEDIUM;
 }
 END_WORD
@@ -437,7 +437,7 @@ REGISTER_WORD(SetMovementSpeedMoveMedium)
 
 WORD(SetMovementSpeedMoveSlow)
 CODE(1114190) // numlock + N
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   bDelta = MOVE_SLOW;
 }
 END_WORD
@@ -445,7 +445,7 @@ REGISTER_WORD(SetMovementSpeedMoveSlow)
 
 WORD(SetMovementSpeedMoveVerySlow)
 CODE(1114178) // numlock + B
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
 	bDelta = MOVE_VERY_SLOW;
 }
 END_WORD
@@ -453,7 +453,7 @@ REGISTER_WORD(SetMovementSpeedMoveVerySlow)
 
 WORD(ChangeToHeight0)
 CODE(1245217) // capslock + numlock + !
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentThompsonHeightIdx = 0;
   currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
   currentEEPose.pz = currentThompsonHeight;
@@ -468,7 +468,7 @@ REGISTER_WORD(ChangeToHeight0)
 
 WORD(ChangeToHeight1)
 CODE(1245248)     // capslock + numlock + @
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentThompsonHeightIdx = 1;
   currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
   currentEEPose.pz = currentThompsonHeight;
@@ -483,7 +483,7 @@ REGISTER_WORD(ChangeToHeight1)
 
 WORD(ChangeToHeight2)
 CODE(1245219)  // capslock + numlock + #
-virtual void execute()  {
+virtual void execute(std::shared_ptr<MachineState> ms)  {
   currentThompsonHeightIdx = 2;
   currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
   currentEEPose.pz = currentThompsonHeight;
@@ -498,7 +498,7 @@ REGISTER_WORD(ChangeToHeight2)
 
 WORD(ChangeToHeight3)
 CODE(1245220) // capslock + numlock + $
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentThompsonHeightIdx = 3;
   currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
   currentEEPose.pz = currentThompsonHeight;
@@ -512,42 +512,42 @@ END_WORD
 REGISTER_WORD(ChangeToHeight3)
 
 WORD(HundredthImpulse)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEESpeedRatio = 0.01;
 }
 END_WORD
 REGISTER_WORD(HundredthImpulse)
 
 WORD(TenthImpulse)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEESpeedRatio = 0.1;
 }
 END_WORD
 REGISTER_WORD(TenthImpulse)
 
 WORD(QuarterImpulse)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEESpeedRatio = 0.25;
 }
 END_WORD
 REGISTER_WORD(QuarterImpulse)
 
 WORD(HalfImpulse)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEESpeedRatio = 0.5;
 }
 END_WORD
 REGISTER_WORD(HalfImpulse)
 
 WORD(FullImpulse)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEESpeedRatio = 1.0;
 }
 END_WORD
 REGISTER_WORD(FullImpulse)
 
 WORD(CruisingSpeed)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   //w1GoThresh = 0.40;
   //currentEESpeedRatio = 0.75;
   currentEESpeedRatio = 1.0;
@@ -556,7 +556,7 @@ END_WORD
 REGISTER_WORD(CruisingSpeed)
 
 WORD(ApproachSpeed)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   //w1GoThresh = 0.01;
   currentEESpeedRatio = 0.05;//0.035;//0.07;//0.05;
 }
@@ -564,7 +564,7 @@ END_WORD
 REGISTER_WORD(ApproachSpeed)
 
 WORD(DepartureSpeed)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   //w1GoThresh = 0.05;
   currentEESpeedRatio = 0.5;
 }
@@ -572,14 +572,14 @@ END_WORD
 REGISTER_WORD(DepartureSpeed)
 
 WORD(ResetW1ThreshToDefault)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   w1GoThresh = 0.03;
 }
 END_WORD
 REGISTER_WORD(ResetW1ThreshToDefault)
 
 WORD(RasterScanningSpeed)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   //w1GoThresh = 0.05;
   currentEESpeedRatio = 0.02;
 }
@@ -587,14 +587,14 @@ END_WORD
 REGISTER_WORD(RasterScanningSpeed)
 
 WORD(IRCalibrationSpeed)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEESpeedRatio = 0.04;
 }
 END_WORD
 REGISTER_WORD(IRCalibrationSpeed)
 
 WORD(Hover)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   lastHoverTrueEEPoseEEPose = trueEEPoseEEPose;
   pushWord("hoverA");
   endThisStackCollapse = 1;
@@ -606,7 +606,7 @@ END_WORD
 REGISTER_WORD(Hover)
 
 WORD(HoverA)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   if (lastEndpointCallbackRequest >= lastEndpointCallbackReceived) {
     pushWord("hoverA");
     cout << "hoverA waiting for endpointCallback." << endl;
@@ -644,7 +644,7 @@ REGISTER_WORD(HoverA)
 
 WORD(SpawnTargetClassAtEndEffector)
 CODE(65379) // insert
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "SpawnTargetClassAtEndEffector called." << endl;
   if (targetClass < 0) {
     cout << "Not spawning because targetClass is " << targetClass << endl;
@@ -682,7 +682,7 @@ REGISTER_WORD(SpawnTargetClassAtEndEffector)
 
 WORD(DestroyObjectInEndEffector)
 CODE(65535) // delete
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   if (objectInHandLabel >= 0) {
     cout << "destroyObjectInEndEffector: The " << classLabels[objectInHandLabel] << " in your hand simply vanished." << endl;
     objectInHandLabel = -1;
@@ -695,7 +695,7 @@ REGISTER_WORD(DestroyObjectInEndEffector)
 
 WORD(PickObjectUnderEndEffector)
 CODE(65365) // page up
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   std_msgs::Empty msg;
   pickObjectUnderEndEffectorCommandCallback(msg);
 }
@@ -704,7 +704,7 @@ REGISTER_WORD(PickObjectUnderEndEffector)
 
 WORD(PlaceObjectInEndEffector)
 CODE(65366) // page down
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   std_msgs::Empty msg;
   placeObjectInEndEffectorCommandCallback(msg);
 }
@@ -712,7 +712,7 @@ END_WORD
 REGISTER_WORD(PlaceObjectInEndEffector)
 
 WORD(SetCurrentCornellTableToZero)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Setting currentCornellTableIndex to " << "0" << " out of " << numCornellTables << "." << endl;
   currentCornellTableIndex = 0;
 }
@@ -720,7 +720,7 @@ END_WORD
 REGISTER_WORD(SetCurrentCornellTableToZero)
 
 WORD(IncrementCurrentCornellTable)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentCornellTableIndex = (currentCornellTableIndex + 1 + numCornellTables) % numCornellTables;
   cout << "Incrementing currentCornellTableIndex to " << currentCornellTableIndex << " out of " << numCornellTables << "." << endl;
 }
@@ -728,7 +728,7 @@ END_WORD
 REGISTER_WORD(IncrementCurrentCornellTable)
 
 WORD(DecrementCurrentCornellTable)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   currentCornellTableIndex = (currentCornellTableIndex - 1 + numCornellTables) % numCornellTables;
   cout << "Decrementing currentCornellTableIndex to " << currentCornellTableIndex << " out of " << numCornellTables << "." << endl;
 }
@@ -736,7 +736,7 @@ END_WORD
 REGISTER_WORD(DecrementCurrentCornellTable)
 
 WORD(MoveToCurrentCornellTable)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   if (currentCornellTableIndex >= 0) {
     currentEEPose.px = cornellTables[currentCornellTableIndex].px;
     currentEEPose.py = cornellTables[currentCornellTableIndex].py;
@@ -747,7 +747,7 @@ REGISTER_WORD(MoveToCurrentCornellTable)
 
 WORD(SpawnTargetMasterSpriteAtEndEffector)
 CODE(130915) // shift + insert
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "SpawnTargetMasterSpriteAtEndEffector called." << endl;
   if (targetMasterSprite < 0) {
     cout << "Not spawning because targetMasterSprite is " << targetMasterSprite << endl;
@@ -836,7 +836,7 @@ REGISTER_WORD(SpawnTargetMasterSpriteAtEndEffector)
 
 WORD(DestroyTargetInstanceSprite)
 CODE(131071) // shift + delete
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "DestroyTargetInstanceSprite called." << endl;
   if ((targetInstanceSprite < 0) ||
       (targetInstanceSprite >= instanceSprites.size())) {
@@ -862,7 +862,7 @@ REGISTER_WORD(DestroyTargetInstanceSprite)
 
 WORD(IncrementTargetInstanceSprite)
 CODE(130901) // shift + page up
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   if (chosen_mode == PHYSICAL) {
     return;
   } else if (chosen_mode == SIMULATED) {
@@ -876,7 +876,7 @@ REGISTER_WORD(IncrementTargetInstanceSprite)
 
 WORD(DecrementTargetInstanceSprite)
 CODE(130902) // shift + page down
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   if (chosen_mode == PHYSICAL) {
     return;
   } else if (chosen_mode == SIMULATED) {
@@ -890,7 +890,7 @@ REGISTER_WORD(DecrementTargetInstanceSprite)
 
 WORD(IncrementTargetMasterSprite)
 CODE(130896) // shift + home 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   if (chosen_mode == PHYSICAL) {
     return;
   } else if (chosen_mode == SIMULATED) {
@@ -904,7 +904,7 @@ REGISTER_WORD(IncrementTargetMasterSprite)
 
 WORD(DecrementTargetMasterSprite)
 CODE(130903) // shift + end 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   if (chosen_mode == PHYSICAL) {
     return;
   } else if (chosen_mode == SIMULATED) {
@@ -917,7 +917,7 @@ END_WORD
 REGISTER_WORD(DecrementTargetMasterSprite)
 
 WORD(ComeToStop)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   //currentEEPose = trueEEPoseEEPose;
   pushWord("comeToStopA");
   comeToStopStart = ros::Time::now();
@@ -927,7 +927,7 @@ END_WORD
 REGISTER_WORD(ComeToStop)
 
 WORD(ComeToStopA)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (currentMovementState == STOPPED) ||
        (currentMovementState == BLOCKED) ) {
     // do nothing
@@ -948,7 +948,7 @@ END_WORD
 REGISTER_WORD(ComeToStopA)
 
 WORD(ComeToHover)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   //currentEEPose = trueEEPoseEEPose;
   pushWord("comeToHoverA");
   comeToHoverStart = ros::Time::now();
@@ -958,7 +958,7 @@ END_WORD
 REGISTER_WORD(ComeToHover)
 
 WORD(ComeToHoverA)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (currentMovementState == HOVERING) ) {
     // do nothing
     cout << "Came to a hover, moving on." << endl;
@@ -978,7 +978,7 @@ END_WORD
 REGISTER_WORD(ComeToHoverA)
 
 WORD(WaitForTugThenOpenGripper)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   pushWord("waitForTugThenOpenGripperA");
   pushWord("comeToStop");
   waitForTugStart = ros::Time::now();
@@ -988,7 +988,7 @@ END_WORD
 REGISTER_WORD(WaitForTugThenOpenGripper)
 
 WORD(WaitForTugThenOpenGripperA)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( ( currentMovementState == MOVING ) ||
        ( !gripperGripping ) ) {
     if ( !gripperGripping ) {
@@ -1015,7 +1015,7 @@ END_WORD
 REGISTER_WORD(WaitForTugThenOpenGripperA)
 
 WORD(Idler)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   //pushWord("clearStackIntoMappingPatrol"); 
   //pushWord("clearStack"); 
   pushWord("clearStackAcceptFetchCommands"); 

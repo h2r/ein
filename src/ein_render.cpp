@@ -1,7 +1,7 @@
 
 WORD(PaintReticles)
 CODE(1048679)     // numlock + g
-virtual void execute()       {
+virtual void execute(std::shared_ptr<MachineState> ms)       {
   double ddrX = (drX)/rmDelta;
   double ddrY = (drY)/rmDelta;
   double ttrX = (trX-rmcX)/rmDelta;
@@ -121,7 +121,7 @@ REGISTER_WORD(PaintReticles)
 
 WORD(FullRender)
 CODE(1114183)     // numlock + G 
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   if (!shouldIRender) {
     pushWord(1114177); // manual render
   }
@@ -135,7 +135,7 @@ REGISTER_WORD(FullRender)
 WORD(DrawMapRegisters)
 // numlock + a 
 CODE(1048673)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   drawMapRegisters();
 }
@@ -143,7 +143,7 @@ END_WORD
 REGISTER_WORD(DrawMapRegisters)
 
 WORD(GuiShowAll)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   destroyAllWindows();
   sirRangeogram = 1;
@@ -173,7 +173,7 @@ END_WORD
 REGISTER_WORD(GuiShowAll)
 
 WORD(GuiHideAll)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   destroyAllWindows();
   sirRangeogram = 0;
@@ -197,7 +197,7 @@ END_WORD
 REGISTER_WORD(GuiHideAll)
 
 WORD(GuiCustom1)
-virtual void execute()
+virtual void execute(std::shared_ptr<MachineState> ms)
 {
   ROS_WARN_STREAM("___________________");
   ROS_ERROR_STREAM("Called word guiCustom1.");

@@ -1,5 +1,5 @@
 WORD(DeliverObject)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   pushWord("idler"); 
   bailAfterGradient = 1;
 
@@ -106,7 +106,7 @@ END_WORD
 REGISTER_WORD(DeliverObject)
 
 WORD(PlaceObjectInDeliveryZone)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   if (0) {
     pushWord("openGripper"); 
     pushWord("tryToMoveToTheLastPickHeight");   
@@ -129,7 +129,7 @@ END_WORD
 REGISTER_WORD(PlaceObjectInDeliveryZone)
 
 WORD(ClearStackIntoMappingPatrol)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   clearStack();
   pushWord("mappingPatrol");
   execute_stack = 1;
@@ -138,7 +138,7 @@ END_WORD
 REGISTER_WORD(ClearStackIntoMappingPatrol)
 
 WORD(ClearStackAcceptFetchCommands)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   clearStack();
   execute_stack = 1;
   acceptingFetchCommands = 1;
@@ -148,7 +148,7 @@ REGISTER_WORD(ClearStackAcceptFetchCommands)
 
 WORD(MappingPatrol)
 CODE(196727) // capslock + W
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Mapping patrol" << endl;
   bailAfterSynchronic = 1;
   bailAfterGradient = 1;
@@ -184,42 +184,42 @@ END_WORD
 REGISTER_WORD(MappingPatrol)
 
 WORD(ToggleShouldIDoIK)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   shouldIDoIK = !shouldIDoIK;
 }
 END_WORD
 REGISTER_WORD(ToggleShouldIDoIK)
 
 WORD(ToggleShouldIRender)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   shouldIRender = !shouldIRender;
 }
 END_WORD
 REGISTER_WORD(ToggleShouldIRender)
 
 WORD(ToggleDrawClearanceMap)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   drawClearanceMap = !drawClearanceMap;
 }
 END_WORD
 REGISTER_WORD(ToggleDrawClearanceMap)
 
 WORD(ToggleDrawIKMap)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   drawIKMap = !drawIKMap;
 }
 END_WORD
 REGISTER_WORD(ToggleDrawIKMap)
 
 WORD(ToggleUseGlow)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   useGlow = !useGlow;
 }
 END_WORD
 REGISTER_WORD(ToggleUseGlow)
 
 WORD(ToggleUseFade)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   useFade = !useFade;
 }
 END_WORD
@@ -228,7 +228,7 @@ REGISTER_WORD(ToggleUseFade)
 WORD(FillClearanceMap)
 int pursuitProximity = 5;
 int searchProximity = 15;//20;
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     int proximity = pursuitProximity;
     for (int i = 0; i < mapWidth; i++) {
@@ -296,7 +296,7 @@ END_WORD
 REGISTER_WORD(FillClearanceMap)
 
 WORD(SaveIkMap)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   ofstream ofile;
   string fileName = data_directory + "/" + left_or_right_arm + "IkMap";
   cout << "Saving ikMap to " << fileName << endl;
@@ -308,7 +308,7 @@ END_WORD
 REGISTER_WORD(SaveIkMap)
 
 WORD(LoadIkMap)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   ifstream ifile;
   string fileName = data_directory + "/" + left_or_right_arm + "IkMap";
   cout << "Loading ikMap from " << fileName << endl;
@@ -324,7 +324,7 @@ WORD(FillIkMap)
 int currentI = 0;
 int currentJ = 0;
 int cellsPerQuery = 100;
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   int queries = 0;
   int i=currentI, j=currentJ;
   for (; i < mapWidth; i++) {
@@ -407,7 +407,7 @@ REGISTER_WORD(FillIkMap)
 
 WORD(MoveToNextMapPosition)
 int maxNextTries = 100;
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int tries = 0; tries < maxNextTries; tries++) {
     //ros::Time oldestTime = ros::Time::now();
     int oldestI=-1, oldestJ=-1;
@@ -503,7 +503,7 @@ END_WORD
 REGISTER_WORD(MoveToNextMapPosition)
 
 WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   object_recognition_msgs::RecognizedObjectArray roa;
   visualization_msgs::MarkerArray ma; 
  
@@ -611,7 +611,7 @@ REGISTER_WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)
 
 
 WORD(RecordAllBlueBoxes)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Recording blue boxes: " << bTops.size() << endl;
   for (int c = 0; c < bTops.size(); c++) {
     BoxMemory box;
@@ -633,7 +633,7 @@ END_WORD
 REGISTER_WORD(RecordAllBlueBoxes)
 
 WORD(InitializeMap)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   initializeMap();
 
 }
@@ -641,7 +641,7 @@ END_WORD
 REGISTER_WORD(InitializeMap)
 
 WORD(MapEmptySpace)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int px = grayTop.x+mapGrayBoxPixelSkirt; px < grayBot.x-mapGrayBoxPixelSkirt; px++) {
     for (int py = grayTop.y+mapGrayBoxPixelSkirt; py < grayBot.y-mapGrayBoxPixelSkirt; py++) {
 
@@ -708,7 +708,7 @@ REGISTER_WORD(MapEmptySpace)
 
 
 WORD(MapClosestBlueBox)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   if (pilotClosestBlueBoxNumber == -1) {
     cout << "Not changing because closest bbox is " << pilotClosestBlueBoxNumber << endl;
     return;
@@ -757,7 +757,7 @@ REGISTER_WORD(MapClosestBlueBox)
 
 
 WORD(FilterBoxMemories)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   set<int> boxMemoryIndexesToKeep;
 
   for (int b_i = 0; b_i < blueBoxMemories.size(); b_i++) {
@@ -793,7 +793,7 @@ REGISTER_WORD(FilterBoxMemories)
 
 WORD(ClearBlueBoxMemories)
 CODE(196709) // capslock + E
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Clearing blue box memory: " << blueBoxMemories.size() << endl;
   blueBoxMemories.resize(0);
 }
@@ -802,7 +802,7 @@ REGISTER_WORD(ClearBlueBoxMemories)
 
 WORD(VisionCycle)
 CODE(131153)  // capslock + q
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   pushWord("mapEmptySpace");
   pushWord("goClassifyBlueBoxes"); 
   pushWord("goFindBlueBoxes"); 
@@ -814,7 +814,7 @@ END_WORD
 REGISTER_WORD(VisionCycle)
 
 WORD(Density)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   pushWord("densityA");
   //pushWord("waitUntilImageCallbackReceived");
   //pushCopies("waitUntilImageCallbackReceived", 5);
@@ -825,7 +825,7 @@ REGISTER_WORD(Density)
 
 WORD(DensityA)
 CODE(131121)     // capslock + 1
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   substituteLatestImageQuantities();
   goCalculateDensity();
 }
@@ -833,7 +833,7 @@ END_WORD
 REGISTER_WORD(DensityA)
 
 WORD(AccumulatedDensity)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   substituteAccumulatedImageQuantities();
   goCalculateDensity();
   renderAccumulatedImageAndDensity();
@@ -843,7 +843,7 @@ END_WORD
 REGISTER_WORD(AccumulatedDensity)
 
 WORD(ResetAccumulatedDensity)
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   resetAccumulatedImageAndMass();
 }
 END_WORD
@@ -851,7 +851,7 @@ REGISTER_WORD(ResetAccumulatedDensity)
 
 WORD(ResetTemporalMap)
 CODE(1179737) // capslock + numlock + y
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   if (temporalDensity != NULL && preDensity != NULL) {
     //cout << "preDensity<<<<***" << endl;
     Size sz = objectViewerImage.size();
@@ -869,7 +869,7 @@ REGISTER_WORD(ResetTemporalMap)
 
 WORD(GoFindBlueBoxes)
 CODE(131122) // capslock + 2
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   goFindBlueBoxes();
 }
 END_WORD
@@ -877,7 +877,7 @@ REGISTER_WORD(GoFindBlueBoxes)
 
 WORD(GoClassifyBlueBoxes)
 CODE(131123) // capslock + 3
-virtual void execute() {
+virtual void execute(std::shared_ptr<MachineState> ms) {
   lastVisionCycle = ros::Time::now();
   oscilStart = ros::Time::now();
   goClassifyBlueBoxes();
