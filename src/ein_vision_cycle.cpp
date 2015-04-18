@@ -340,7 +340,7 @@ virtual void execute() {
 	    nextEEPose.py = Y;
 
 	    baxter_core_msgs::SolvePositionIK thisIkRequest;
-	    endEffectorAngularUpdate(&nextEEPose);
+	    endEffectorAngularUpdate(&nextEEPose, &currentEEDeltaRPY);
 	    fillIkRequest(&nextEEPose, &thisIkRequest);
 
 	    bool likelyInCollision = 0;

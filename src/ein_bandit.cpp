@@ -63,7 +63,7 @@ virtual void execute() {
   
   currentEEPose.px += noX;
   currentEEPose.py += noY;
-  currentEEPose.oz += noTheta;
+  currentEEDeltaRPY.pz += noTheta;
 }
 END_WORD
 REGISTER_WORD(SetRandomPositionAndOrientationForHeightLearning)
