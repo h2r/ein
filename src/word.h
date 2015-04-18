@@ -224,6 +224,5 @@ class CompoundWord {
 
 std::map<int, std::shared_ptr<Word> > create_character_code_to_word(std::vector<std::shared_ptr<Word> > words);
 std::map<string, std::shared_ptr<Word> > create_name_to_word(std::vector<std::shared_ptr<Word> > words);
-std::vector<std::shared_ptr<Word> > create_words();
 
 #endif /* _WORDH_ */
