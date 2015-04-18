@@ -1,4 +1,3 @@
-//#define DEBUG4
 // start Header
 //
 //  // start structure of this program 
@@ -55,7 +54,8 @@
 //
 // end Header
 
-//#define DEBUG
+//#define DEBUG_RING_BUFFER // ring buffer
+
 #define EPSILON 1.0e-9
 #define VERYBIGNUMBER 1e6
 
@@ -1955,20 +1955,20 @@ void neutral() {
 int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
   if (imRingBufferStart == imRingBufferEnd) {
     
-    #ifdef DEBUG4
+#ifdef DEBUG_RING_BUFFER
     cout << "Denied request in getRingImageAtTime(): Buffer empty." << endl;
-    #endif
+#endif
     return 0;
   } else {
     int earliestSlot = imRingBufferStart;
     ros::Duration deltaTdur = t - imRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
     if (deltaTdur.toSec() <= 0.0) {
-    #ifdef DEBUG4
+#ifdef DEBUG_RING_BUFFER
       cout << "Denied out of order range value in getRingImageAtTime(): Too small." << endl;
       cout << "  getRingImageAtTime() imRingBufferStart imRingBufferEnd t imRBTimes[earliestSlot]: " << 
 	imRingBufferStart << " " << imRingBufferEnd << " " << t << " " << imRBTimes[earliestSlot] << endl;
-    #endif
+#endif
       return -1;
     } else if (imRingBufferStart < imRingBufferEnd) {
       for (int s = imRingBufferStart; s < imRingBufferEnd; s++) {
@@ -1997,9 +1997,9 @@ int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
 	}
       }
       // if we didn't find it we should return failure
-    #ifdef DEBUG4
-      //cout << "Denied out of order range value in getRingImageAtTime(): Too large." << endl;
-    #endif
+#ifdef DEBUG_RING_BUFFER
+      cout << "Denied out of order range value in getRingImageAtTime(): Too large." << endl;
+#endif
       return -2;
     } else {
       for (int s = imRingBufferStart; s < imRingBufferSize-1; s++) {
@@ -2070,27 +2070,27 @@ int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
 	}
       }
       // if we didn't find it we should return failure
-    #ifdef DEBUG4
-      //cout << "Denied out of order range value in getRingImageAtTime(): Too large." << endl;
-    #endif
+#ifdef DEBUG_RING_BUFFER
+      cout << "Denied out of order range value in getRingImageAtTime(): Too large." << endl;
+#endif
       return -2;
     }
   }
 }
 int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
   if (rgRingBufferStart == rgRingBufferEnd) {
-    #ifdef DEBUG4
+#ifdef DEBUG_RING_BUFFER
     cout << "Denied request in getRingRangeAtTime(): Buffer empty." << endl;
-    #endif
+#endif
     return 0;
   } else {
     int earliestSlot = rgRingBufferStart;
     ros::Duration deltaTdur = t - rgRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
     if (deltaTdur.toSec() <= 0.0) {
-    #ifdef DEBUG4
+#ifdef DEBUG_RING_BUFFER
       cout << "Denied out of order range value in getRingRangeAtTime(): Too small." << endl;
-    #endif
+#endif
       return -1;
     } else if (rgRingBufferStart < rgRingBufferEnd) {
       for (int s = rgRingBufferStart; s < rgRingBufferEnd; s++) {
@@ -2114,9 +2114,9 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
 	}
       }
       // if we didn't find it we should return failure
-    #ifdef DEBUG4
+#ifdef DEBUG_RING_BUFFER
       cout << "Denied out of order range value in getRingRangeAtTime(): Too large." << endl;
-    #endif
+#endif
       return -2;
     } else {
       for (int s = rgRingBufferStart; s < rgRingBufferSize-1; s++) {
@@ -2178,27 +2178,27 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
 	}
       }
       // if we didn't find it we should return failure
-    #ifdef DEBUG4
+#ifdef DEBUG_RING_BUFFER
       cout << "Denied out of order range value in getRingRangeAtTime(): Too large." << endl;
-    #endif
+#endif
       return -2;
     }
   }
 }
 int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
   if (epRingBufferStart == epRingBufferEnd) {
-    #ifdef DEBUG4
+#ifdef DEBUG_RING_BUFFER
     cout << "Denied request in getRingPoseAtTime(): Buffer empty." << endl;
-    #endif
+#endif
     return 0;
   } else {
     int earliestSlot = epRingBufferStart;
     ros::Duration deltaTdur = t - epRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
     if (deltaTdur.toSec() <= 0.0) {
-    #ifdef DEBUG4
+#ifdef DEBUG_RING_BUFFER
       cout << "Denied out of order range value in getRingPoseAtTime(): Too small." << endl;
-    #endif
+#endif
       return -1;
     } else if (epRingBufferStart < epRingBufferEnd) {
       for (int s = epRingBufferStart; s < epRingBufferEnd; s++) {
@@ -2221,11 +2221,11 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	  value.position.x = epRingBuffer[s].position.x*w1 + epRingBuffer[s+1].position.x*w2;
 	  value.position.y = epRingBuffer[s].position.y*w1 + epRingBuffer[s+1].position.y*w2;
 	  value.position.z = epRingBuffer[s].position.z*w1 + epRingBuffer[s+1].position.z*w2;
-    #ifdef DEBUG4
-//cout << value << endl;
-//cout << "33333c " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
-//cout << "44444c " << epRingBuffer[s+1] << endl;
-    #endif
+#ifdef DEBUG_RING_BUFFER
+          cout << value << endl;
+          cout << "33333c " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+          cout << "44444c " << epRingBuffer[s+1] << endl;
+#endif
 
 	  int newStart = s;
 	  if(drawSlack) {
@@ -2235,9 +2235,9 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	}
       }
       // if we didn't find it we should return failure
-    #ifdef DEBUG4
-      //cout << "Denied out of order range value in getRingPoseAtTime(): Too large." << endl;
-    #endif
+#ifdef DEBUG_RING_BUFFER
+      cout << "Denied out of order range value in getRingPoseAtTime(): Too large." << endl;
+#endif
       return -2;
     } else {
       for (int s = epRingBufferStart; s < epRingBufferSize-1; s++) {
@@ -2260,11 +2260,11 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	  value.position.x = epRingBuffer[s].position.x*w1 + epRingBuffer[s+1].position.x*w2;
 	  value.position.y = epRingBuffer[s].position.y*w1 + epRingBuffer[s+1].position.y*w2;
 	  value.position.z = epRingBuffer[s].position.z*w1 + epRingBuffer[s+1].position.z*w2;
-    #ifdef DEBUG4
-//cout << value << endl;
-//cout << "33333b " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
-//cout << "44444b " << epRingBuffer[s+1] << endl;
-    #endif
+#ifdef DEBUG_RING_BUFFER
+          cout << value << endl;
+          cout << "33333b " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+          cout << "44444b " << epRingBuffer[s+1] << endl;
+#endif
 
 	  int newStart = s;
 	  if(drawSlack) {
@@ -2292,11 +2292,11 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	  value.position.x = epRingBuffer[epRingBufferSize-1].position.x*w1 + epRingBuffer[0].position.x*w2;
 	  value.position.y = epRingBuffer[epRingBufferSize-1].position.y*w1 + epRingBuffer[0].position.y*w2;
 	  value.position.z = epRingBuffer[epRingBufferSize-1].position.z*w1 + epRingBuffer[0].position.z*w2;
-    #ifdef DEBUG4
-//cout << value << endl;
-//cout << "33333a " << epRingBuffer[epRingBufferSize-1] << " " << w1 << " " << w2 << " " << totalWeight << endl;
-//cout << "44444a " << epRingBuffer[0] << endl;
-    #endif
+#ifdef DEBUG_RING_BUFFER
+          cout << value << endl;
+          cout << "33333a " << epRingBuffer[epRingBufferSize-1] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+          cout << "44444a " << epRingBuffer[0] << endl;
+#endif
 
 	  int newStart = epRingBufferSize-1;
 	  if(drawSlack) {
@@ -2324,12 +2324,12 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	  value.position.x = epRingBuffer[s].position.x*w1 + epRingBuffer[s+1].position.x*w2;
 	  value.position.y = epRingBuffer[s].position.y*w1 + epRingBuffer[s+1].position.y*w2;
 	  value.position.z = epRingBuffer[s].position.z*w1 + epRingBuffer[s+1].position.z*w2;
-    #ifdef DEBUG4
-//cout << value << endl;
-//cout << "33333d " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
-//cout << "44444d " << epRingBuffer[s+1] << endl;
-    #endif
-
+#ifdef DEBUG_RING_BUFFER
+          cout << value << endl;
+          cout << "33333d " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+          cout << "44444d " << epRingBuffer[s+1] << endl;
+#endif
+          
 	  int newStart = s;
 	  if(drawSlack) {
 	    epRingBufferStart = newStart;
@@ -2338,18 +2338,18 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	}
       }
       // if we didn't find it we should return failure
-    #ifdef DEBUG4
-      //cout << "Denied out of order range value in getRingPoseAtTime(): Too large." << endl;
-    #endif
+#ifdef DEBUG_RING_BUFFER
+      cout << "Denied out of order range value in getRingPoseAtTime(): Too large." << endl;
+#endif
       return -2;
     }
   }
 }
 
 void setRingImageAtTime(ros::Time t, Mat& imToSet) {
-  #ifdef DEBUG2
+#ifdef DEBUG_RING_BUFFER
   cout << "setRingImageAtTime() start end size: " << imRingBufferStart << " " << imRingBufferEnd << " " << imRingBufferSize << endl;
-  #endif
+#endif
 
   // if the ring buffer is empty, always re-initialize
   if (imRingBufferStart == imRingBufferEnd) {
@@ -2360,9 +2360,9 @@ void setRingImageAtTime(ros::Time t, Mat& imToSet) {
   } else {
     ros::Duration deltaTdur = t - imRBTimes[imRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
-      #ifdef DEBUG2 
+#ifdef DEBUG_RING_BUFFER 
       cout << "Dropped out of order range value in setRingImageAtTime(). " << imRBTimes[imRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
-      #endif
+#endif
     } else {
       int slot = imRingBufferEnd;
       imRingBuffer[slot] = imToSet;
@@ -2385,9 +2385,9 @@ void setRingImageAtTime(ros::Time t, Mat& imToSet) {
   }
 }
 void setRingRangeAtTime(ros::Time t, double rgToSet) {
-  #ifdef DEBUG2
+#ifdef DEBUG_RING_BUFFER
   cout << "setRingRangeAtTime() start end size: " << rgRingBufferStart << " " << rgRingBufferEnd << " " << rgRingBufferSize << endl;
-  #endif
+#endif
 
   // if the ring buffer is empty, always re-initialize
   if (rgRingBufferStart == rgRingBufferEnd) {
@@ -2398,9 +2398,9 @@ void setRingRangeAtTime(ros::Time t, double rgToSet) {
   } else {
     ros::Duration deltaTdur = t - rgRBTimes[rgRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
-      #ifdef DEBUG2 
+#ifdef DEBUG_RING_BUFFER 
       cout << "Dropped out of order range value in setRingRangeAtTime(). " << rgRBTimes[rgRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
-      #endif
+#endif
     } else {
       int slot = rgRingBufferEnd;
       rgRingBuffer[slot] = rgToSet;
@@ -2423,33 +2423,33 @@ void setRingRangeAtTime(ros::Time t, double rgToSet) {
   }
 }
 void setRingPoseAtTime(ros::Time t, geometry_msgs::Pose epToSet) {
-  #ifdef DEBUG2
+#ifdef DEBUG_RING_BUFFER
   cout << "setRingPoseAtTime() start end size: " << epRingBufferStart << " " << epRingBufferEnd << " " << epRingBufferSize << endl;
-  #endif
+#endif
 
   // if the ring buffer is empty, always re-initialize
   if (epRingBufferStart == epRingBufferEnd) {
     epRingBufferStart = 0;
     epRingBufferEnd = 1;
     epRingBuffer[0] = epToSet;
-    #ifdef DEBUG4
-//cout << epToSet << endl;
-//cout << "11111 " << epRingBuffer[0] << endl;
-    #endif
+#ifdef DEBUG_RING_BUFFER
+    cout << epToSet << endl;
+    cout << "11111 " << epRingBuffer[0] << endl;
+#endif
     epRBTimes[0] = t;
   } else {
     ros::Duration deltaTdur = t - epRBTimes[epRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
-      #ifdef DEBUG2 
+#ifdef DEBUG_RING_BUFFER 
       cout << "Dropped out of order range value in setRingPoseAtTime(). " << epRBTimes[epRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
-      #endif
+#endif
     } else {
       int slot = epRingBufferEnd;
       epRingBuffer[slot] = epToSet;
-    #ifdef DEBUG4
-//cout << epToSet << endl;
-//cout << "22222" << epRingBuffer[slot] << endl;
-    #endif
+#ifdef DEBUG_RING_BUFFER
+      cout << epToSet << endl;
+      cout << "22222" << epRingBuffer[slot] << endl;
+#endif
       epRBTimes[slot] = t;
 
       if (epRingBufferEnd >= (epRingBufferSize-1)) {
@@ -2530,24 +2530,20 @@ void recordReadyRangeReadings() {
       int weHavePoseData = getRingPoseAtTime(thisTime, thisPose);
       int weHaveImData = getRingImageAtTime(thisTime, thisImage);
 
-      #ifdef DEBUG2
+#ifdef DEBUG_RING_BUFFER
       cout << "  recordReadyRangeReadings()  weHavePoseData weHaveImData: " << weHavePoseData << " " << weHaveImData << endl;
-      #endif
+#endif
 
       // if this request will never be serviceable then forget about it
       if (weHavePoseData == -1) {
 	rgRingBufferAdvance();
 	IShouldContinue = 1; // not strictly necessary
-	#ifdef DEBUG2
-	#endif
 	cout << "  recordReadyRangeReadings(): dropping stale packet due to epRing. consider increasing buffer size." << endl;
 	cout << "  recordReadyRangeReadings() --> " << thisTime << endl; 
       }
       if (weHaveImData == -1) {
 	rgRingBufferAdvance();
 	IShouldContinue = 1; // not strictly necessary
-	#ifdef DEBUG2
-	#endif
 	cout << "  recordReadyRangeReadings(): dropping stale packet due to imRing. consider increasing buffer size." << endl;
 	cout << "  recordReadyRangeReadings() --> " << thisTime << endl; 
       } 
@@ -2602,14 +2598,14 @@ void recordReadyRangeReadings() {
 	  int eeX = (int)round(eX + hrmHalfWidth);
 	  int eeY = (int)round(eY + hrmHalfWidth);
 
-	  #ifdef DEBUG
+#ifdef DEBUG
 	  cout << "irSensorEnd w x y z: " << irSensorEnd.w() << " " << 
 	    irSensorEnd.x() << " " << irSensorEnd.y() << " " << irSensorEnd.z() << endl;
 	  cout << "irSensorStartGlobal w x y z: " << irSensorStartGlobal.w() << " " << 
 	    irSensorStartGlobal.x() << " " << irSensorStartGlobal.y() << " " << irSensorStartGlobal.z() << endl;
 	  cout << "Corrected x y: " << (thisPose.position.x - drX) << " " << (thisPose.position.y - drY) << endl;
 	  cout.flush();
-	  #endif
+#endif
 
 	  //cout << thisPose.orientation << thisPose.position << " " << eX << " " << eY << " " << thisRange << endl;
 	  if ((fabs(eX) <= hrmHalfWidth) && (fabs(eY) <= hrmHalfWidth))
@@ -2823,9 +2819,9 @@ void recordReadyRangeReadings() {
       }
     }
   }
-  #ifdef DEBUG2
+#ifdef DEBUG_RING_BUFFER
   cout << "recordReadyRangeReadings()  rgRingBufferStart rgRingBufferEnd: " << rgRingBufferStart << " " << rgRingBufferEnd << endl;
-  #endif
+#endif
 }
 
 void jointCallback(const sensor_msgs::JointState& js) {
@@ -3146,9 +3142,9 @@ void l2Normalize3DParzen() {
 	double pkz = ky - parzen3DKernelHalfWidth;
 
 	parzen3DKernel[kx + ky*parzen3DKernelWidth + kz*parzen3DKernelWidth*parzen3DKernelWidth] /= norm;
-    #ifdef DEBUG4
+#ifdef DEBUG_RING_BUFFER
 	cout << "Parzen3D: " << parzenKernel[kx + ky*parzenKernelWidth] << endl;
-    #endif
+#endif
       }
     }
   }
@@ -3181,9 +3177,9 @@ void l2NormalizeParzen() {
       double pkx = kx - parzenKernelHalfWidth;
       double pky = ky - parzenKernelHalfWidth;
       parzenKernel[kx + ky*parzenKernelWidth] /= norm;
-    #ifdef DEBUG4
+#ifdef DEBUG_RING_BUFFER
       cout << "Parzen: " << parzenKernel[kx + ky*parzenKernelWidth] << endl;
-    #endif
+#endif
     }
   }
 }
@@ -3621,10 +3617,6 @@ void rangeCallback(const sensor_msgs::Range& range) {
   //double thisRange;
   //int weHaveRangeData = getRingRangeAtTime(range.header.stamp, thisRange);
 
-  #ifdef DEBUG
-  cout << "debug 3" << endl;
-  cout.flush();
-  #endif
 
   time(&thisTimeRange);
   double deltaTimeRange = difftime(thisTimeRange, firstTimeRange);
@@ -3649,10 +3641,6 @@ void rangeCallback(const sensor_msgs::Range& range) {
   currentRangeHistoryIndex++;
   currentRangeHistoryIndex = currentRangeHistoryIndex % totalRangeHistoryLength;
 
-  #ifdef DEBUG
-  cout << "debug 4" << endl;
-  cout.flush();
-  #endif
 
   for (int rr = currentRangeHistoryIndex-1; rr <= currentRangeHistoryIndex; rr++) {
     int r = 0;
@@ -3729,10 +3717,6 @@ void rangeCallback(const sensor_msgs::Range& range) {
     return;
   }
 
-  #ifdef DEBUG
-  cout << "debug 5" << endl;
-  cout.flush();
-  #endif
 
   if (recordRangeMap) {
     // actually storing the negative z for backwards compatibility
@@ -3768,17 +3752,9 @@ void rangeCallback(const sensor_msgs::Range& range) {
       int eeX = (int)round(eX + hrmHalfWidth);
       int eeY = (int)round(eY + hrmHalfWidth);
 
-      #ifdef DEBUG
-      cout << "irSensorEnd w x y z: " << irSensorEnd.w() << " " << 
-	irSensorEnd.x() << " " << irSensorEnd.y() << " " << irSensorEnd.z() << endl;
-      cout << "irSensorStartGlobal w x y z: " << irSensorStartGlobal.w() << " " << 
-	irSensorStartGlobal.x() << " " << irSensorStartGlobal.y() << " " << irSensorStartGlobal.z() << endl;
-      cout << "Corrected x y: " << (trueEEPose.position.x - drX) << " " << (trueEEPose.position.y - drY) << endl;
-      cout.flush();
-      #endif
-
-      if ((fabs(eX) <= hrmHalfWidth) && (fabs(eY) <= hrmHalfWidth))
+      if ((fabs(eX) <= hrmHalfWidth) && (fabs(eY) <= hrmHalfWidth)) {
 	hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(128,0,0);
+      }
       // XXX
       thisZmeasurement = -irSensorEnd.z();
     }
@@ -3911,18 +3887,6 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	rectangle(rangemapImage, inTop, inBot, cv::Scalar(0,64,0)); 
       }
     }
-
-    #ifdef DEBUG
-    cout << "rangeMap: [" << endl;
-    for (int rx = 0; rx < rmWidth; rx++) {
-      for (int ry = 0; ry < rmWidth; ry++) {
-	cout << rangeMap[rx + ry*rmWidth] << " ";
-      }
-      cout << endl;
-    }
-    cout << "]" << endl;
-    cout.flush();
-    #endif
   }
 
   if (shouldIRender) {
@@ -4300,44 +4264,6 @@ void update_baxter(ros::NodeHandle &n) {
     ikRequest = thisIkRequest;
     ikInitialized = 1;
   
-//cout << "block7" << endl;
-
-
-  /*
-  // using the joint controllers
-  // rosmsg show control_msgs/FollowJointTrajectoryAction
-  control_msgs::FollowJointTrajectoryActionGoal goal;
-
-  goal.header.seq = 0;
-  goal.header.stamp = ros::Time::now();
-  goal.header.frame_id = "base";
-  goal.goal.trajectory.header = goal.header;
-
-  goal.goal.trajectory.points.resize(1);
-  goal.goal.trajectory.points[0].positions.resize(7);
-  goal.goal.trajectory.points[0].velocities.resize(7);
-  goal.goal.trajectory.points[0].time_from_start = ros::Duration(2.0);
-
-
-  for (int j = 0; j < numJoints; j++) {
-    goal.goal.trajectory.joint_names.push_back(ikRequest.response.joints[0].name[j]);
-    goal.goal.trajectory.points[0].positions[j] = ikRequest.response.joints[0].position[j];
-    goal.goal.trajectory.points[0].velocities[j] = 0;
-  }
-
-
-  cout << "1" << endl;
-  actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> myClient(n, "/robot/left_velocity_trajectory_controller/follow_joint_trajectory", true);
-  cout << "2" << endl;
-  myClient.waitForServer();
-  cout << "3" << endl;
-  myClient.sendGoal(goal.goal);
-  cout << "4" << endl;
-  myClient.waitForResult(ros::Duration(5.0));
-  cout << "5" << endl;
-  if (myClient.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-    printf("Yay! The dishes are now clean");
-  */ 
 
   // but in theory we can bypass the joint controllers by publishing to this topic
   // /robot/limb/left/joint_command
@@ -6255,8 +6181,6 @@ void pilotInit() {
   initialize3DParzen();
   //l2Normalize3DParzen();
 
-#ifdef DEBUG
-#endif
   {
     Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
     //Eigen::Quaternionf gear0offset(0.0, 0.0, 0.0, 0.0); // for calibration
@@ -10130,9 +10054,6 @@ void gridKeypoints(int gImW, int gImH, cv::Point top, cv::Point bot, int strideX
   int mX = gBoxW / 2;
   int mY = gBoxH / 2;
 
-#ifdef DEBUG
-cout << sTop << sBot << endl;
-#endif
 
   for (int y = sTop.y; y <= sBot.y; y+=strideX*period) {
     for (int x = sTop.x; x <= sBot.x; x+=strideY*period) {
@@ -10219,10 +10140,6 @@ void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descrip
   for (int i = 0; i < descriptors.size().width; i++) 
     descriptors2.at<float>(i) = descriptors.at<float>(i);
   for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) {
-#ifdef DEBUG
-//if ( colorHist.at<float>(i) > 0.1 )
-  //cout << i << ":" << colorHist.at<float>(i) << " ";
-#endif
     colorHist.at<float>(i) = min(colorHist.at<float>(i), float(colorHistThresh));
     descriptors2.at<float>(i+descriptors.size().width) = colorHistLambda * colorHist.at<float>(i);
   }
@@ -10629,69 +10546,6 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
   }
 }
 
-/*
-void depthCallback(const sensor_msgs::ImageConstPtr& msg) {
-
-  cv_bridge::CvImagePtr cv_ptr;
-  try {
-    cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_16UC1);
-    depth_img = cv_ptr->image;
-  } catch (cv_bridge::Exception& e) {
-    ROS_ERROR("cv_bridge exception: %s", e.what());
-    return;
-  }
-
-  Size sz = depth_img.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  if (temporalDepth == NULL) {
-    temporalDepth= new double[imW*imH];
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	temporalDepth[y*imW + x] = 0;
-      }
-    }
-  }
-
-// /camera/depth_registered/points sensor_msgs:PointCloud2
-
-  uint maxDepth = 0.0; 
-  uint minDepth = 256*256-1;
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      uint tDepth = depth_img.at<unsigned short>(y,x);
-      maxDepth = max(maxDepth, tDepth);
-      if (tDepth > 0)
-	minDepth = min(minDepth, tDepth);
-#ifdef DEBUG
-//cout << " " << float(depth_img.at<uint>(y,x));
-#endif
-    }
-  }
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      uint tDepth = depth_img.at<unsigned short>(y,x);
-      temporalDepth[y*imW+x] = depthDecay*temporalDepth[y*imW+x] + (1.0-depthDecay)*float(tDepth);
-#ifdef DEBUG
-//cout << " " << float(depth_img.at<uint>(y,x));
-#endif
-      if (tDepth <= minDepth)
-	depth_img.at<short>(y,x) = 0;
-      //else
-	//depth_img.at<uint>(y,x) = tDepth - minDepth;
-    }
-  }
-
-  maxDepth = max(maxDepth,uint(1));
-
-  guardedImshow("Depth Viewer", depth_img*20);
-#ifdef DEBUG
-cout << depth_img.size() << " " << depth_img.type() << " " << maxDepth << " " << minDepth << endl;
-#endif
-}
-*/
-
 void getCluster(pcl::PointCloud<pcl::PointXYZRGB> &cluster, pcl::PointCloud<pcl::PointXYZRGB> &cloud, std::vector<cv::Point> &points) {
   cv::Point point;
   for (int i = 0; i < points.size(); i++)
@@ -10792,9 +10646,6 @@ void fill_RO_and_M_arrays(object_recognition_msgs::RecognizedObjectArray& roa_to
     R(2,0) = 0;          R(2,1) = 0;           R(2,2) = 1;
   }
 
-#ifdef DEBUG
-cout << "constructing rotation matrix" << endl;
-#endif
 
   Eigen::Matrix3f rotation;
   rotation << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
@@ -10822,9 +10673,6 @@ cout << "constructing rotation matrix" << endl;
   roa_to_send.objects[aI].pose.pose.pose.orientation.z = objectQuaternion.z();
   roa_to_send.objects[aI].pose.pose.pose.orientation.w = objectQuaternion.w();
 
-#ifdef DEBUG
-cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
-#endif
 
   // determine the x,y,z coordinates of the object from the point cloud
   // this bounding box has top left  bTops[x] and bBots[aI]
@@ -10878,64 +10726,6 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
   } 
 
   char labelName[256]; 
-  /*
-  if (label == 1) {
-    sprintf(labelName, "gyroBowl");
-    ma_to_send.markers[aI].type =  visualization_msgs::Marker::SPHERE;
-    ma_to_send.markers[aI].scale.x = 0.15;
-    ma_to_send.markers[aI].scale.y = 0.15;
-    ma_to_send.markers[aI].scale.z = 0.15;
-    ma_to_send.markers[aI].color.a = 1.0;
-    ma_to_send.markers[aI].color.r = 0.9;
-    ma_to_send.markers[aI].color.g = 0.9;
-    ma_to_send.markers[aI].color.b = 0.0;
-
-    ma_to_send.markers[aI].header =  roa_to_send.header;
-    ma_to_send.markers[aI].action = visualization_msgs::Marker::ADD;
-  }
-  if (label == 2) {
-    sprintf(labelName, "mixBowl");
-    ma_to_send.markers[aI].type =  visualization_msgs::Marker::SPHERE;
-    ma_to_send.markers[aI].scale.x = 0.17;
-    ma_to_send.markers[aI].scale.y = 0.17;
-    ma_to_send.markers[aI].scale.z = 0.17;
-    ma_to_send.markers[aI].color.a = 1.0;
-    ma_to_send.markers[aI].color.r = 0.8;
-    ma_to_send.markers[aI].color.g = 0.8;
-    ma_to_send.markers[aI].color.b = 0.8;
-
-    ma_to_send.markers[aI].header =  roa_to_send.header;
-    ma_to_send.markers[aI].action = visualization_msgs::Marker::ADD;
-  }
-  if (label == 3) {
-    sprintf(labelName, "woodSpoon");
-    ma_to_send.markers[aI].type =  visualization_msgs::Marker::CUBE;
-    ma_to_send.markers[aI].scale.x = 0.2;
-    ma_to_send.markers[aI].scale.y = 0.02;
-    ma_to_send.markers[aI].scale.z = 0.02;
-    ma_to_send.markers[aI].color.a = 1.0;
-    ma_to_send.markers[aI].color.r = 0.80;
-    ma_to_send.markers[aI].color.g = 0.80;
-    ma_to_send.markers[aI].color.b = 0.50;
-
-    ma_to_send.markers[aI].header =  roa_to_send.header;
-    ma_to_send.markers[aI].action = visualization_msgs::Marker::ADD;
-  }
-  if (label == 4) {
-    sprintf(labelName, "plasticSpoon");
-    ma_to_send.markers[aI].type =  visualization_msgs::Marker::CUBE;
-    ma_to_send.markers[aI].scale.x = 0.2;
-    ma_to_send.markers[aI].scale.y = 0.02;
-    ma_to_send.markers[aI].scale.z = 0.02;
-    ma_to_send.markers[aI].color.a = 1.0;
-    ma_to_send.markers[aI].color.r = 0.25;
-    ma_to_send.markers[aI].color.g = 0.25;
-    ma_to_send.markers[aI].color.b = 0.25;
-
-    ma_to_send.markers[aI].header =  roa_to_send.header;
-    ma_to_send.markers[aI].action = visualization_msgs::Marker::ADD;
-  }
-  */
 
   if (label == -1)
     sprintf(labelName, "VOID");
@@ -10950,9 +10740,6 @@ cout << "dealing with point cloud" << " of size " << pointCloud.size() << endl;
   ma_to_send.markers[aI].id = aI;
   ma_to_send.markers[aI].lifetime = ros::Duration(1.0);
 
-#ifdef DEBUG
-cout << "  finished a publishable object " << label << " " << classLabels[label] << " " << classPoseModels[label] << endl;
-#endif
 }
 
 void getOrientation(vector<KeyPoint>& keypoints, Mat& descriptors, cv::Point top, cv::Point bot, 
@@ -10988,10 +10775,6 @@ void getOrientation(vector<KeyPoint>& keypoints, Mat& descriptors, cv::Point top
 	exit(EXIT_FAILURE);
       }
 
-#ifdef DEBUG
-fprintf(stderr, " object checkS"); fflush(stderr);
-cout << top << " " << bot << " "; cout.flush();
-#endif
 
       int boxWidth  = bot.x-top.x;
       int boxHeight = bot.y-top.y;
@@ -11032,9 +10815,6 @@ cout << top << " " << bot << " "; cout.flush();
 		gCrop.at<cv::Vec3b>(y, x) = cv::Vec<uchar, 3>(0,0,0);
 	    }
 	  }
-#ifdef DEBUG
-//cout << endl << gCrop1 << endl << endl << endl << endl << gCrop << endl;
-#endif
 	  cv::resize(gCrop, gCrop, orientedFilters[0].size());
 	  gCrop.convertTo(gCrop, orientedFilters[0].type());
 
@@ -11056,9 +10836,6 @@ cout << top << " " << bot << " "; cout.flush();
 	  }
 	}
       }
-#ifdef DEBUG
-cout << winningX << " " << winningY << " " << xxs << " " << yys  << endl;
-#endif
 
       cv::Matx33f R;
       R(0,0) = 1; R(0,1) = 0; R(0,2) = 0;
@@ -11074,9 +10851,6 @@ cout << winningX << " " << winningY << " " << xxs << " " << yys  << endl;
 	R(2,0) = 0;          R(2,1) = 0;           R(2,2) = 1;
       }
 
-#ifdef DEBUG
-cout << "constructing rotation matrix" << endl;
-#endif
 
       Eigen::Matrix3f rotation;
       rotation << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
@@ -11088,10 +10862,6 @@ cout << "constructing rotation matrix" << endl;
 	tableLabelQuaternion = objectQuaternion;
       }
 
-#ifdef DEBUG
-cout << "table label x: " << tableLabelQuaternion.x() << " y: " << 
-  tableLabelQuaternion.y() << " z: " << tableLabelQuaternion.z() << " w: " << tableLabelQuaternion.w() << " " << endl;
-#endif
 
       if (drawOrientor) {
 	Mat vCrop = objectViewerImage(cv::Rect(top.x, top.y, bot.x-top.x, bot.y-top.y));
@@ -11102,9 +10872,6 @@ cout << "table label x: " << tableLabelQuaternion.x() << " y: " <<
 	cv::resize(orientedFilters[winningO], scaledFilter, vCrop.size());
 	//cv::resize(orientedFilters[fc % ORIENTATIONS], scaledFilter, vCrop.size());
 	//fc++;
-#ifdef DEBUG
-cout << "FILTERS: " << fc << " " << orientedFilters[fc % ORIENTATIONS].size() << endl;
-#endif
 	scaledFilter = biggestL1*scaledFilter;
 	 
 	vector<Mat> channels;
@@ -11118,9 +10885,6 @@ cout << "FILTERS: " << fc << " " << orientedFilters[fc % ORIENTATIONS].size() <<
       }
     }
 
-#ifdef DEBUG
-fprintf(stderr, " object check4"); fflush(stderr);
-#endif
 
     if (0 == classPoseModels[label].compare("G")) {
       string result;
@@ -11323,10 +11087,6 @@ void init_oriented_filters(orientedFilterType thisType) {
 
   tmp = orientedFilters[0].clone();
   warpPerspective(tmp, orientedFilters[0], tablePerspective, orientedFilters[0].size(), INTER_NEAREST);
-#ifdef DEBUG
-cout << endl << tablePerspective << endl;
-cout << endl << orientedFilters[0] << endl;
-#endif
 
   double l1norm = orientedFilters[0].dot(Mat::ones(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F));
   orientedFilters[0] = orientedFilters[0] / l1norm;
@@ -11436,9 +11196,6 @@ void goCalculateObjectness() {
 
   int numBoxes = boxes.size();
 
-  #ifdef DEBUG
-  cout << "numBoxes: " << numBoxes << "  fc: " << fc <<  endl;
-  #endif
 
   nTop.resize(numBoxes);
   nBot.resize(numBoxes);
@@ -12837,9 +12594,6 @@ void goFindBrownBoxes() {
 
       int reject = 0;
       for (int c = 0; c < bTops.size(); c++) {
-	#ifdef DEBUG
-	//cout << "brBox   " << c << " / " << bTops.size() << " " << fabs(bCens[c].x - thisCen.x) << endl;
-	#endif
 	if ( fabs(bCens[c].x - thisCen.x) < ((fabs(bBots[c].x-bTops[c].x)+brownBoxWidth)/2)-1 && 
 	      fabs(bCens[c].y - thisCen.y) < ((fabs(bBots[c].y-bTops[c].y)+brownBoxWidth)/2)-1 ) {
 	  reject = 1;
@@ -12869,18 +12623,11 @@ void goFindBrownBoxes() {
 	      rectangle(objectViewerImage, thisBrTop, thisBrBot, cv::Scalar(0,102,204));
 	  }
 
-	  #ifdef DEBUG
-	  //cout << thisBrTop << thisBrBot << "p0, p1, p2:  " << p0 << p1 << p2 << endl;
-	  //cout << "p0, p1, p2:  " << p0 << p1 << p2 << endl;
-	  #endif
 
 	  if (!reject) {
 	    cv::Point tranTop = pcCorrection(thisBrTop.x, thisBrTop.y, imW, imH);
 	    cv::Point tranBot = pcCorrection(thisBrBot.x, thisBrBot.y, imW, imH);
 
-	    #ifdef DEBUG
-	    //cout << "t " << thisBrTop << thisBrBot << endl << "  " << tranTop << tranBot << endl;
-	    #endif
 
 	    //pcl::PointXYZRGB p0 = pointCloud.at(thisBrTop.x, thisBrBot.y);
 	    //pcl::PointXYZRGB p1 = pointCloud.at(thisBrTop.x, thisBrTop.y);
@@ -12949,9 +12696,6 @@ void goFindBrownBoxes() {
 
 	      tableNormal = tableTangent2.cross(tableTangent1);
 
-#ifdef DEBUG
-//cout << tableNormal << endl;
-#endif
 
 	      tableBiasSum = tableBiasSum + tableNormal.dot(localTablePosition);
 	      tableBias = tableBiasSum / acceptedBrBoxes;
@@ -13058,11 +12802,6 @@ void goFindBrownBoxes() {
 
 	      tablePerspective = getPerspectiveTransform(srcQuad, dstQuad);
 
-#ifdef DEBUG
-//cout << endl << "tablePerspective, R: " << tablePerspective << R << endl;
-//cout << srcQuad[0] << srcQuad[1] << srcQuad[2] << srcQuad[3] << endl; 
-//cout << dstQuad[0] << dstQuad[1] << dstQuad[2] << dstQuad[3] << endl; 
-#endif
 
 	      rejectAll = 0;
 	    }
@@ -13120,18 +12859,9 @@ void goClassifyBlueBoxes() {
   ma_to_send_blue.markers.resize(bTops.size()+1);
 
   for (int c = 0; c < bTops.size(); c++) {
-    //cout << "  gCBB() c = " << c << endl; cout.flush();
-    #ifdef DEBUG3
-    fprintf(stderr, " object check1"); fflush(stderr);
-    #endif
     vector<KeyPoint>& keypoints = bKeypoints[c];
     Mat descriptors;
     Mat descriptors2;
-
-    #ifdef DEBUG3
-    fprintf(stderr, " a"); fflush(stderr);
-    cout << bTops[c] << bBots[c] << " "; cout.flush();
-    #endif
 
     Mat original_cam_img = cam_img;
     Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
@@ -13146,32 +12876,14 @@ void goClassifyBlueBoxes() {
       //detector->detect(gray_image, keypoints);
       gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
 
-      for (int kp = 0; kp < keypoints.size(); kp++) {
-      #ifdef DEBUG3
-      //cout << keypoints[kp].angle << " " << keypoints[kp].class_id << " " << 
-      //keypoints[kp].octave << " " << keypoints[kp].pt << " " <<
-      //keypoints[kp].response << " " << keypoints[kp].size << endl;
-      #endif
-      }
-
       bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
 
       // save the word assignments for the keypoints so we can use them for red boxes
-      #ifdef DEBUG3
-      fprintf(stderr, "e "); fflush(stderr);
-      cout << "pIoCbuffer: " << pIoCbuffer.size() << " "; cout.flush();
-      cout << "kpSize: " << keypoints.size() << " "; cout.flush();
-      #endif
 
       bWords[c].resize(keypoints.size());
       if ((pIoCbuffer.size() > 0) && (keypoints.size() > 0)) {
 	for (int w = 0; w < vocabNumWords; w++) {
 	  int numDescrOfWord = pIoCbuffer[w].size();
-
-	  #ifdef DEBUG3
-	  if (numDescrOfWord > 0)
-	  cout << "[" << w << "]: " << numDescrOfWord << " ";
-	  #endif
 
 	  for (int w2 = 0; w2 < numDescrOfWord; w2++) {
 	    bWords[c][pIoCbuffer[w][w2]] = w;
@@ -13197,10 +12909,6 @@ void goClassifyBlueBoxes() {
 
       }
       
-      #ifdef DEBUG3
-      fprintf(stderr, " object check2"); fflush(stderr);
-      #endif
-
       if (!descriptors.empty() && !keypoints.empty()) {
       
 	appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
@@ -13213,14 +12921,6 @@ void goClassifyBlueBoxes() {
       //detector->detect(gray_image, keypoints);
       gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
 
-      for (int kp = 0; kp < keypoints.size(); kp++) {
-      #ifdef DEBUG3
-      //cout << keypoints[kp].angle << " " << keypoints[kp].class_id << " " << 
-      //keypoints[kp].octave << " " << keypoints[kp].pt << " " <<
-      //keypoints[kp].response << " " << keypoints[kp].size << endl;
-      #endif
-      }
-
       //bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
 
       Mat tmpC;
@@ -13228,21 +12928,11 @@ void goClassifyBlueBoxes() {
       bowExtractor->compute(tmpC, keypoints, descriptors);
 
       // save the word assignments for the keypoints so we can use them for red boxes
-      #ifdef DEBUG3
-      fprintf(stderr, "e "); fflush(stderr);
-      cout << "pIoCbuffer: " << pIoCbuffer.size() << " "; cout.flush();
-      cout << "kpSize: " << keypoints.size() << " "; cout.flush();
-      #endif
 
       bWords[c].resize(keypoints.size());
       if ((pIoCbuffer.size() > 0) && (keypoints.size() > 0)) {
 	for (int w = 0; w < vocabNumWords; w++) {
 	  int numDescrOfWord = pIoCbuffer[w].size();
-
-	  #ifdef DEBUG3
-	  if (numDescrOfWord > 0)
-	  cout << "[" << w << "]: " << numDescrOfWord << " ";
-	  #endif
 
 	  for (int w2 = 0; w2 < numDescrOfWord; w2++) {
 	    bWords[c][pIoCbuffer[w][w2]] = w;
@@ -13268,10 +12958,6 @@ void goClassifyBlueBoxes() {
 
       }
       
-      #ifdef DEBUG3
-      fprintf(stderr, " object check2"); fflush(stderr);
-      #endif
-
       if (!descriptors.empty() && !keypoints.empty()) {
       
 	//appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
@@ -13471,10 +13157,6 @@ void goClassifyBlueBoxes() {
       invertQuaternionLabel = 1;
 
 
-    #ifdef DEBUG3
-    fprintf(stderr, " object check3 label %f", label); fflush(stderr);
-    #endif
-
     string labelName; 
     string augmentedLabelName;
     double poseIndex = -1;
@@ -13645,9 +13327,6 @@ void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg) {
   }
 
   pcl::fromROSMsg(*msg, pointCloud);
-#ifdef DEBUG
-cout << "Hit pointCloudCallback" <<  "  " << pointCloud.size() << endl;
-#endif
 }
 
 // TODO probably don't need two separate functions for this
