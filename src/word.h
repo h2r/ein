@@ -1,5 +1,10 @@
-using namespace std;
+#ifndef _WORDH_
+#define _WORDH_
 
+
+using namespace std;
+#include <sstream>
+#include <map>
 #include <boost/algorithm/string.hpp>
 using namespace boost::algorithm;
 
@@ -220,3 +225,5 @@ class CompoundWord {
 std::map<int, std::shared_ptr<Word> > create_character_code_to_word(std::vector<std::shared_ptr<Word> > words);
 std::map<string, std::shared_ptr<Word> > create_name_to_word(std::vector<std::shared_ptr<Word> > words);
 std::vector<std::shared_ptr<Word> > create_words();
+
+#endif /* _WORDH_ */

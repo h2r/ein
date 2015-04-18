@@ -21,6 +21,7 @@ sudo apt-get install libopencv-nonfree-\*
 ```
 
 **Install** the package h2r/ein by going to catkin_ws/src and then cloning.
+```
 mkdir -p ~/catkin_ws/src
 cd ~/catkin_ws/src
 git clone http://github.com/h2r/ein
@@ -29,19 +30,26 @@ wstool init .
 wstool merge https://raw.githubusercontent.com/RethinkRobotics/baxter/master/baxter_sdk.rosinstall
 wstool update
 cp baxter/baxter.sh ..
-# edit baxter.sh following the instructions in that file.
+```
+edit baxter.sh following the instructions in that file.
+```
 ./baxter.sh
+```
 
+Then build:
+```
 cd .. 
 source /opt/ros/indigo/setup.bash
 catkin_make
 source devel/setup.bash
 catkin_make
+```
 
-
-From the root of your catkin workspace, run the following command:
-
+To run the program, from the root of your catkin workspace, run the
+following command:
+```
 catkin_make && gdb --args devel/lib/ein/ein _data_directory:="$(rospack find ein)/ein_dataDefault" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml" _run_prefix:="ISRR" _left_or_right_arm:="left" left
+```
 
 And enter 'r' to start the program from within gdb. If the robot is enabled it should move to a ready position.
     
