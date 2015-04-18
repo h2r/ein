@@ -36,16 +36,20 @@ edit baxter.sh following the instructions in that file.
 ./baxter.sh
 ```
 
+Then build:
+```
 cd .. 
 source /opt/ros/indigo/setup.bash
 catkin_make
 source devel/setup.bash
 catkin_make
+```
 
-
-From the root of your catkin workspace, run the following command:
-
+To run the program, from the root of your catkin workspace, run the
+following command:
+```
 catkin_make && gdb --args devel/lib/ein/ein _data_directory:="$(rospack find ein)/ein_dataDefault" _vocab_file:="vocab.yml" _knn_file:="knn.yml" _label_file:="labels.yml" _run_prefix:="ISRR" _left_or_right_arm:="left" left
+```
 
 And enter 'r' to start the program from within gdb. If the robot is enabled it should move to a ready position.
     
