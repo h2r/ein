@@ -60,7 +60,6 @@
 #define VERYBIGNUMBER 1e6
 
 #define PROGRAM_NAME "ein"
-#define MY_FONT FONT_HERSHEY_SIMPLEX
 
 ////////////////////////////////////////////////
 // start pilot includes, usings, and defines
@@ -140,7 +139,7 @@ using namespace cv;
 using namespace Eigen;
 
 MachineState machineState;
-std::shared_ptr<MachineState> pMachineState;
+shared_ptr<MachineState> pMachineState;
 
 movementState currentMovementState = STOPPED;
 
@@ -226,7 +225,6 @@ double ikShare = 1.0;
 double oscillating_ikShare = .1;
 double default_ikShare = 1.0;
 
-std::shared_ptr<Word> current_instruction = NULL;
 double tap_factor = 0.1;
 
 int slf_thresh = 5;
@@ -257,8 +255,6 @@ double eeRange = 0.0;
 double bDelta = MOVE_FAST;
 double approachStep = .0005;
 double hoverMultiplier = 0.5;
-
-int zero_g_toggle = 0;
 
 tf::TransformListener* tfListener;
 double tfPast = 10.0;
@@ -416,22 +412,7 @@ ros::Publisher sonarPub;
 ros::Publisher headPub;
 ros::Publisher nodPub;
 
-const int imRingBufferSize = 300;
-const int epRingBufferSize = 100;
-const int rgRingBufferSize = 100;
 
-// we make use of a monotonicity assumption
-// if the current index passes the last recorded index, then we just proceed
-//  and lose the ranges we skipped over. alert when this happens
-// first valid entries
-int imRingBufferStart = 0;
-int epRingBufferStart = 0;
-int rgRingBufferStart = 0;
-
-// first free entries
-int imRingBufferEnd = 0;
-int epRingBufferEnd = 0;
-int rgRingBufferEnd = 0;
 
 std::vector<Mat> imRingBuffer;
 std::vector<geometry_msgs::Pose> epRingBuffer;
@@ -577,7 +558,6 @@ int localMaxGG = 0;
 // grasp gear should always be even
 const int totalGraspGears = 8;
 // XXX maybe we should initialize this to a reasonable value
-int currentGraspGear = -1;
 //// reticles
 double ggX[totalGraspGears];
 double ggY[totalGraspGears];
@@ -1559,7 +1539,7 @@ void reseedIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * gi
 void update_baxter(ros::NodeHandle &n);
 void timercallback1(const ros::TimerEvent&);
 void imageCallback(const sensor_msgs::ImageConstPtr& msg);
-void renderCoreView(shared_ptr<MachineState> ms);
+void renderRangeogramView(shared_ptr<MachineState> ms);
 void renderObjectMapView();
 void drawMapPolygon(gsl_matrix * poly, cv::Scalar color);
 void targetCallback(const geometry_msgs::Point& point);
@@ -1734,9 +1714,8 @@ void happy();
 void sad();
 void neutral();
 
-bool isSketchyMat(Mat sketchy);
+
 void guardViewers();
-void guardedImshow(string name, Mat image, bool shouldIRender);
 
 ////////////////////////////////////////////////
 // end node prototypes 
@@ -1764,25 +1743,25 @@ void neutral() {
 
 
 int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
-  if (imRingBufferStart == imRingBufferEnd) {
+  if (pMachineState->config.imRingBufferStart == pMachineState->config.imRingBufferEnd) {
     
 #ifdef DEBUG_RING_BUFFER
     cout << "Denied request in getRingImageAtTime(): Buffer empty." << endl;
 #endif
     return 0;
   } else {
-    int earliestSlot = imRingBufferStart;
+    int earliestSlot = pMachineState->config.imRingBufferStart;
     ros::Duration deltaTdur = t - imRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER
       cout << "Denied out of order range value in getRingImageAtTime(): Too small." << endl;
-      cout << "  getRingImageAtTime() imRingBufferStart imRingBufferEnd t imRBTimes[earliestSlot]: " << 
-	imRingBufferStart << " " << imRingBufferEnd << " " << t << " " << imRBTimes[earliestSlot] << endl;
+      cout << "  getRingImageAtTime() pMachineState->config.imRingBufferStart pMachineState->config.imRingBufferEnd t imRBTimes[earliestSlot]: " << 
+	pMachineState->config.imRingBufferStart << " " << pMachineState->config.imRingBufferEnd << " " << t << " " << imRBTimes[earliestSlot] << endl;
 #endif
       return -1;
-    } else if (imRingBufferStart < imRingBufferEnd) {
-      for (int s = imRingBufferStart; s < imRingBufferEnd; s++) {
+    } else if (pMachineState->config.imRingBufferStart < pMachineState->config.imRingBufferEnd) {
+      for (int s = pMachineState->config.imRingBufferStart; s < pMachineState->config.imRingBufferEnd; s++) {
 	ros::Duration deltaTdurPre = t - imRBTimes[s];
 	ros::Duration deltaTdurPost = t - imRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
@@ -1802,7 +1781,7 @@ int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
 
 	  int newStart = s;
 	  if(drawSlack) {
-	    imRingBufferStart = newStart;
+	    pMachineState->config.imRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
@@ -1813,7 +1792,7 @@ int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
 #endif
       return -2;
     } else {
-      for (int s = imRingBufferStart; s < imRingBufferSize-1; s++) {
+      for (int s = pMachineState->config.imRingBufferStart; s < pMachineState->config.imRingBufferSize-1; s++) {
 	ros::Duration deltaTdurPre = t - imRBTimes[s];
 	ros::Duration deltaTdurPost = t - imRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
@@ -1831,15 +1810,15 @@ int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
 
 	  int newStart = s;
 	  if(drawSlack) {
-	    imRingBufferStart = newStart;
+	    pMachineState->config.imRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
       } {
-	ros::Duration deltaTdurPre = t - imRBTimes[imRingBufferSize-1];
+	ros::Duration deltaTdurPre = t - imRBTimes[pMachineState->config.imRingBufferSize-1];
 	ros::Duration deltaTdurPost = t - imRBTimes[0];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  Mat m1 = imRingBuffer[imRingBufferSize-1];
+	  Mat m1 = imRingBuffer[pMachineState->config.imRingBufferSize-1];
 	  Mat m2 = imRingBuffer[0];
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
@@ -1851,13 +1830,13 @@ int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
 	  else
 	    value = m2;
 
-	  int newStart = imRingBufferSize-1;
+	  int newStart = pMachineState->config.imRingBufferSize-1;
 	  if(drawSlack) {
-	    imRingBufferStart = newStart;
+	    pMachineState->config.imRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
-      } for (int s = 0; s < imRingBufferEnd; s++) {
+      } for (int s = 0; s < pMachineState->config.imRingBufferEnd; s++) {
 	ros::Duration deltaTdurPre = t - imRBTimes[s];
 	ros::Duration deltaTdurPost = t - imRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
@@ -1875,7 +1854,7 @@ int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
 
 	  int newStart = s;
 	  if(drawSlack) {
-	    imRingBufferStart = newStart;
+	    pMachineState->config.imRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
@@ -1889,13 +1868,13 @@ int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
   }
 }
 int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
-  if (rgRingBufferStart == rgRingBufferEnd) {
+  if (pMachineState->config.rgRingBufferStart == pMachineState->config.rgRingBufferEnd) {
 #ifdef DEBUG_RING_BUFFER
     cout << "Denied request in getRingRangeAtTime(): Buffer empty." << endl;
 #endif
     return 0;
   } else {
-    int earliestSlot = rgRingBufferStart;
+    int earliestSlot = pMachineState->config.rgRingBufferStart;
     ros::Duration deltaTdur = t - rgRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
     if (deltaTdur.toSec() <= 0.0) {
@@ -1903,8 +1882,8 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
       cout << "Denied out of order range value in getRingRangeAtTime(): Too small." << endl;
 #endif
       return -1;
-    } else if (rgRingBufferStart < rgRingBufferEnd) {
-      for (int s = rgRingBufferStart; s < rgRingBufferEnd; s++) {
+    } else if (pMachineState->config.rgRingBufferStart < pMachineState->config.rgRingBufferEnd) {
+      for (int s = pMachineState->config.rgRingBufferStart; s < pMachineState->config.rgRingBufferEnd; s++) {
 	ros::Duration deltaTdurPre = t - rgRBTimes[s];
 	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
@@ -1919,7 +1898,7 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
 
 	  int newStart = s;
 	  if(drawSlack) {
-	    rgRingBufferStart = newStart;
+	    pMachineState->config.rgRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
@@ -1930,7 +1909,7 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
 #endif
       return -2;
     } else {
-      for (int s = rgRingBufferStart; s < rgRingBufferSize-1; s++) {
+      for (int s = pMachineState->config.rgRingBufferStart; s < pMachineState->config.rgRingBufferSize-1; s++) {
 	ros::Duration deltaTdurPre = t - rgRBTimes[s];
 	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
@@ -1945,15 +1924,15 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
 
 	  int newStart = s;
 	  if(drawSlack) {
-	    rgRingBufferStart = newStart;
+	    pMachineState->config.rgRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
       } {
-	ros::Duration deltaTdurPre = t - rgRBTimes[rgRingBufferSize-1];
+	ros::Duration deltaTdurPre = t - rgRBTimes[pMachineState->config.rgRingBufferSize-1];
 	ros::Duration deltaTdurPost = t - rgRBTimes[0];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  double r1 = rgRingBuffer[rgRingBufferSize-1];
+	  double r1 = rgRingBuffer[pMachineState->config.rgRingBufferSize-1];
 	  double r2 = rgRingBuffer[0];
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
@@ -1962,13 +1941,13 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
 	  w2 = w2 / totalWeight;
 	  value = w1*r1 + w2*r2;
 
-	  int newStart = rgRingBufferSize-1;
+	  int newStart = pMachineState->config.rgRingBufferSize-1;
 	  if(drawSlack) {
-	    rgRingBufferStart = newStart;
+	    pMachineState->config.rgRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
-      } for (int s = 0; s < rgRingBufferEnd; s++) {
+      } for (int s = 0; s < pMachineState->config.rgRingBufferEnd; s++) {
 	ros::Duration deltaTdurPre = t - rgRBTimes[s];
 	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
@@ -1983,7 +1962,7 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
 
 	  int newStart = s;
 	  if(drawSlack) {
-	    rgRingBufferStart = newStart;
+	    pMachineState->config.rgRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
@@ -1997,13 +1976,13 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
   }
 }
 int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
-  if (epRingBufferStart == epRingBufferEnd) {
+  if (pMachineState->config.epRingBufferStart == pMachineState->config.epRingBufferEnd) {
 #ifdef DEBUG_RING_BUFFER
     cout << "Denied request in getRingPoseAtTime(): Buffer empty." << endl;
 #endif
     return 0;
   } else {
-    int earliestSlot = epRingBufferStart;
+    int earliestSlot = pMachineState->config.epRingBufferStart;
     ros::Duration deltaTdur = t - epRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
     if (deltaTdur.toSec() <= 0.0) {
@@ -2011,8 +1990,8 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
       cout << "Denied out of order range value in getRingPoseAtTime(): Too small." << endl;
 #endif
       return -1;
-    } else if (epRingBufferStart < epRingBufferEnd) {
-      for (int s = epRingBufferStart; s < epRingBufferEnd; s++) {
+    } else if (pMachineState->config.epRingBufferStart < pMachineState->config.epRingBufferEnd) {
+      for (int s = pMachineState->config.epRingBufferStart; s < pMachineState->config.epRingBufferEnd; s++) {
 	ros::Duration deltaTdurPre = t - epRBTimes[s];
 	ros::Duration deltaTdurPost = t - epRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
@@ -2040,7 +2019,7 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 
 	  int newStart = s;
 	  if(drawSlack) {
-	    epRingBufferStart = newStart;
+	    pMachineState->config.epRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
@@ -2051,7 +2030,7 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 #endif
       return -2;
     } else {
-      for (int s = epRingBufferStart; s < epRingBufferSize-1; s++) {
+      for (int s = pMachineState->config.epRingBufferStart; s < pMachineState->config.epRingBufferSize-1; s++) {
 	ros::Duration deltaTdurPre = t - epRBTimes[s];
 	ros::Duration deltaTdurPost = t - epRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
@@ -2079,15 +2058,15 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 
 	  int newStart = s;
 	  if(drawSlack) {
-	    epRingBufferStart = newStart;
+	    pMachineState->config.epRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
       } {
-	ros::Duration deltaTdurPre = t - epRBTimes[epRingBufferSize-1];
+	ros::Duration deltaTdurPre = t - epRBTimes[pMachineState->config.epRingBufferSize-1];
 	ros::Duration deltaTdurPost = t - epRBTimes[0];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  Quaternionf q1 = extractQuatFromPose(epRingBuffer[epRingBufferSize-1]);
+	  Quaternionf q1 = extractQuatFromPose(epRingBuffer[pMachineState->config.epRingBufferSize-1]);
 	  Quaternionf q2 = extractQuatFromPose(epRingBuffer[0]);
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
@@ -2100,22 +2079,22 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	  value.orientation.x = tTerp.x();
 	  value.orientation.y = tTerp.y();
 	  value.orientation.z = tTerp.z();
-	  value.position.x = epRingBuffer[epRingBufferSize-1].position.x*w1 + epRingBuffer[0].position.x*w2;
-	  value.position.y = epRingBuffer[epRingBufferSize-1].position.y*w1 + epRingBuffer[0].position.y*w2;
-	  value.position.z = epRingBuffer[epRingBufferSize-1].position.z*w1 + epRingBuffer[0].position.z*w2;
+	  value.position.x = epRingBuffer[pMachineState->config.epRingBufferSize-1].position.x*w1 + epRingBuffer[0].position.x*w2;
+	  value.position.y = epRingBuffer[pMachineState->config.epRingBufferSize-1].position.y*w1 + epRingBuffer[0].position.y*w2;
+	  value.position.z = epRingBuffer[pMachineState->config.epRingBufferSize-1].position.z*w1 + epRingBuffer[0].position.z*w2;
 #ifdef DEBUG_RING_BUFFER
           cout << value << endl;
-          cout << "33333a " << epRingBuffer[epRingBufferSize-1] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+          cout << "33333a " << epRingBuffer[pMachineState->config.epRingBufferSize-1] << " " << w1 << " " << w2 << " " << totalWeight << endl;
           cout << "44444a " << epRingBuffer[0] << endl;
 #endif
 
-	  int newStart = epRingBufferSize-1;
+	  int newStart = pMachineState->config.epRingBufferSize-1;
 	  if(drawSlack) {
-	    epRingBufferStart = newStart;
+	    pMachineState->config.epRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
-      } for (int s = 0; s < epRingBufferEnd; s++) {
+      } for (int s = 0; s < pMachineState->config.epRingBufferEnd; s++) {
 	ros::Duration deltaTdurPre = t - epRBTimes[s];
 	ros::Duration deltaTdurPost = t - epRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
@@ -2143,7 +2122,7 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
           
 	  int newStart = s;
 	  if(drawSlack) {
-	    epRingBufferStart = newStart;
+	    pMachineState->config.epRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
@@ -2159,37 +2138,37 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 
 void setRingImageAtTime(ros::Time t, Mat& imToSet) {
 #ifdef DEBUG_RING_BUFFER
-  cout << "setRingImageAtTime() start end size: " << imRingBufferStart << " " << imRingBufferEnd << " " << imRingBufferSize << endl;
+  cout << "setRingImageAtTime() start end size: " << pMachineState->config.imRingBufferStart << " " << pMachineState->config.imRingBufferEnd << " " << pMachineState->config.imRingBufferSize << endl;
 #endif
 
   // if the ring buffer is empty, always re-initialize
-  if (imRingBufferStart == imRingBufferEnd) {
-    imRingBufferStart = 0;
-    imRingBufferEnd = 1;
+  if (pMachineState->config.imRingBufferStart == pMachineState->config.imRingBufferEnd) {
+    pMachineState->config.imRingBufferStart = 0;
+    pMachineState->config.imRingBufferEnd = 1;
     imRingBuffer[0] = imToSet;
     imRBTimes[0] = t;
   } else {
-    ros::Duration deltaTdur = t - imRBTimes[imRingBufferStart];
+    ros::Duration deltaTdur = t - imRBTimes[pMachineState->config.imRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER 
-      cout << "Dropped out of order range value in setRingImageAtTime(). " << imRBTimes[imRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+      cout << "Dropped out of order range value in setRingImageAtTime(). " << imRBTimes[pMachineState->config.imRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
 #endif
     } else {
-      int slot = imRingBufferEnd;
+      int slot = pMachineState->config.imRingBufferEnd;
       imRingBuffer[slot] = imToSet;
       imRBTimes[slot] = t;
 
-      if (imRingBufferEnd >= (imRingBufferSize-1)) {
-	imRingBufferEnd = 0;
+      if (pMachineState->config.imRingBufferEnd >= (pMachineState->config.imRingBufferSize-1)) {
+	pMachineState->config.imRingBufferEnd = 0;
       } else {
-	imRingBufferEnd++;
+	pMachineState->config.imRingBufferEnd++;
       }
 
-      if (imRingBufferEnd == imRingBufferStart) {
-	if (imRingBufferStart >= (imRingBufferSize-1)) {
-	  imRingBufferStart = 0;
+      if (pMachineState->config.imRingBufferEnd == pMachineState->config.imRingBufferStart) {
+	if (pMachineState->config.imRingBufferStart >= (pMachineState->config.imRingBufferSize-1)) {
+	  pMachineState->config.imRingBufferStart = 0;
 	} else {
-	  imRingBufferStart++;
+	  pMachineState->config.imRingBufferStart++;
 	}
       }
     }
@@ -2197,37 +2176,37 @@ void setRingImageAtTime(ros::Time t, Mat& imToSet) {
 }
 void setRingRangeAtTime(ros::Time t, double rgToSet) {
 #ifdef DEBUG_RING_BUFFER
-  cout << "setRingRangeAtTime() start end size: " << rgRingBufferStart << " " << rgRingBufferEnd << " " << rgRingBufferSize << endl;
+  cout << "setRingRangeAtTime() start end size: " << pMachineState->config.rgRingBufferStart << " " << pMachineState->config.rgRingBufferEnd << " " << pMachineState->config.rgRingBufferSize << endl;
 #endif
 
   // if the ring buffer is empty, always re-initialize
-  if (rgRingBufferStart == rgRingBufferEnd) {
-    rgRingBufferStart = 0;
-    rgRingBufferEnd = 1;
+  if (pMachineState->config.rgRingBufferStart == pMachineState->config.rgRingBufferEnd) {
+    pMachineState->config.rgRingBufferStart = 0;
+    pMachineState->config.rgRingBufferEnd = 1;
     rgRingBuffer[0] = rgToSet;
     rgRBTimes[0] = t;
   } else {
-    ros::Duration deltaTdur = t - rgRBTimes[rgRingBufferStart];
+    ros::Duration deltaTdur = t - rgRBTimes[pMachineState->config.rgRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER 
-      cout << "Dropped out of order range value in setRingRangeAtTime(). " << rgRBTimes[rgRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+      cout << "Dropped out of order range value in setRingRangeAtTime(). " << rgRBTimes[pMachineState->config.rgRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
 #endif
     } else {
-      int slot = rgRingBufferEnd;
+      int slot = pMachineState->config.rgRingBufferEnd;
       rgRingBuffer[slot] = rgToSet;
       rgRBTimes[slot] = t;
 
-      if (rgRingBufferEnd >= (rgRingBufferSize-1)) {
-	rgRingBufferEnd = 0;
+      if (pMachineState->config.rgRingBufferEnd >= (pMachineState->config.rgRingBufferSize-1)) {
+	pMachineState->config.rgRingBufferEnd = 0;
       } else {
-	rgRingBufferEnd++;
+	pMachineState->config.rgRingBufferEnd++;
       }
 
-      if (rgRingBufferEnd == rgRingBufferStart) {
-	if (rgRingBufferStart >= (rgRingBufferSize-1)) {
-	  rgRingBufferStart = 0;
+      if (pMachineState->config.rgRingBufferEnd == pMachineState->config.rgRingBufferStart) {
+	if (pMachineState->config.rgRingBufferStart >= (pMachineState->config.rgRingBufferSize-1)) {
+	  pMachineState->config.rgRingBufferStart = 0;
 	} else {
-	  rgRingBufferStart++;
+	  pMachineState->config.rgRingBufferStart++;
 	}
       }
     }
@@ -2235,13 +2214,13 @@ void setRingRangeAtTime(ros::Time t, double rgToSet) {
 }
 void setRingPoseAtTime(ros::Time t, geometry_msgs::Pose epToSet) {
 #ifdef DEBUG_RING_BUFFER
-  cout << "setRingPoseAtTime() start end size: " << epRingBufferStart << " " << epRingBufferEnd << " " << epRingBufferSize << endl;
+  cout << "setRingPoseAtTime() start end size: " << pMachineState->config.epRingBufferStart << " " << pMachineState->config.epRingBufferEnd << " " << pMachineState->config.epRingBufferSize << endl;
 #endif
 
   // if the ring buffer is empty, always re-initialize
-  if (epRingBufferStart == epRingBufferEnd) {
-    epRingBufferStart = 0;
-    epRingBufferEnd = 1;
+  if (pMachineState->config.epRingBufferStart == pMachineState->config.epRingBufferEnd) {
+    pMachineState->config.epRingBufferStart = 0;
+    pMachineState->config.epRingBufferEnd = 1;
     epRingBuffer[0] = epToSet;
 #ifdef DEBUG_RING_BUFFER
     cout << epToSet << endl;
@@ -2249,13 +2228,13 @@ void setRingPoseAtTime(ros::Time t, geometry_msgs::Pose epToSet) {
 #endif
     epRBTimes[0] = t;
   } else {
-    ros::Duration deltaTdur = t - epRBTimes[epRingBufferStart];
+    ros::Duration deltaTdur = t - epRBTimes[pMachineState->config.epRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER 
-      cout << "Dropped out of order range value in setRingPoseAtTime(). " << epRBTimes[epRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+      cout << "Dropped out of order range value in setRingPoseAtTime(). " << epRBTimes[pMachineState->config.epRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
 #endif
     } else {
-      int slot = epRingBufferEnd;
+      int slot = pMachineState->config.epRingBufferEnd;
       epRingBuffer[slot] = epToSet;
 #ifdef DEBUG_RING_BUFFER
       cout << epToSet << endl;
@@ -2263,17 +2242,17 @@ void setRingPoseAtTime(ros::Time t, geometry_msgs::Pose epToSet) {
 #endif
       epRBTimes[slot] = t;
 
-      if (epRingBufferEnd >= (epRingBufferSize-1)) {
-	epRingBufferEnd = 0;
+      if (pMachineState->config.epRingBufferEnd >= (pMachineState->config.epRingBufferSize-1)) {
+	pMachineState->config.epRingBufferEnd = 0;
       } else {
-	epRingBufferEnd++;
+	pMachineState->config.epRingBufferEnd++;
       }
 
-      if (epRingBufferEnd == epRingBufferStart) {
-	if (epRingBufferStart >= (epRingBufferSize-1)) {
-	  epRingBufferStart = 0;
+      if (pMachineState->config.epRingBufferEnd == pMachineState->config.epRingBufferStart) {
+	if (pMachineState->config.epRingBufferStart >= (pMachineState->config.epRingBufferSize-1)) {
+	  pMachineState->config.epRingBufferStart = 0;
 	} else {
-	  epRingBufferStart++;
+	  pMachineState->config.epRingBufferStart++;
 	}
       }
     }
@@ -2281,29 +2260,29 @@ void setRingPoseAtTime(ros::Time t, geometry_msgs::Pose epToSet) {
 }
 
 void imRingBufferAdvance() {
-  if (imRingBufferEnd != imRingBufferStart) {
-    if (imRingBufferStart >= (imRingBufferSize-1)) {
-      imRingBufferStart = 0;
+  if (pMachineState->config.imRingBufferEnd != pMachineState->config.imRingBufferStart) {
+    if (pMachineState->config.imRingBufferStart >= (pMachineState->config.imRingBufferSize-1)) {
+      pMachineState->config.imRingBufferStart = 0;
     } else {
-      imRingBufferStart++;
+      pMachineState->config.imRingBufferStart++;
     }
   }
 }
 void rgRingBufferAdvance() {
-  if (rgRingBufferEnd != rgRingBufferStart) {
-    if (rgRingBufferStart >= (rgRingBufferSize-1)) {
-      rgRingBufferStart = 0;
+  if (pMachineState->config.rgRingBufferEnd != pMachineState->config.rgRingBufferStart) {
+    if (pMachineState->config.rgRingBufferStart >= (pMachineState->config.rgRingBufferSize-1)) {
+      pMachineState->config.rgRingBufferStart = 0;
     } else {
-      rgRingBufferStart++;
+      pMachineState->config.rgRingBufferStart++;
     }
   }
 }
 void epRingBufferAdvance() {
-  if (epRingBufferEnd != epRingBufferStart) {
-    if (epRingBufferStart >= (epRingBufferSize-1)) {
-      epRingBufferStart = 0;
+  if (pMachineState->config.epRingBufferEnd != pMachineState->config.epRingBufferStart) {
+    if (pMachineState->config.epRingBufferStart >= (pMachineState->config.epRingBufferSize-1)) {
+      pMachineState->config.epRingBufferStart = 0;
     } else {
-      epRingBufferStart++;
+      pMachineState->config.epRingBufferStart++;
     }
   }
 }
@@ -2323,18 +2302,18 @@ void allRingBuffersAdvance(ros::Time t) {
 
 void recordReadyRangeReadings() {
   // if we have some range readings to process
-  if (rgRingBufferEnd != rgRingBufferStart) {
+  if (pMachineState->config.rgRingBufferEnd != pMachineState->config.rgRingBufferStart) {
 
     // continue until it is empty or we don't have data for a point yet
     int IShouldContinue = 1;
     while (IShouldContinue) {
-      if (rgRingBufferEnd == rgRingBufferStart) {
+      if (pMachineState->config.rgRingBufferEnd == pMachineState->config.rgRingBufferStart) {
 	IShouldContinue = 0; // not strictly necessary
 	break; 
       }
 	
-      double thisRange = rgRingBuffer[rgRingBufferStart];
-      ros::Time thisTime = rgRBTimes[rgRingBufferStart];
+      double thisRange = rgRingBuffer[pMachineState->config.rgRingBufferStart];
+      ros::Time thisTime = rgRBTimes[pMachineState->config.rgRingBufferStart];
     
       geometry_msgs::Pose thisPose;
       Mat thisImage;
@@ -2631,7 +2610,7 @@ void recordReadyRangeReadings() {
     }
   }
 #ifdef DEBUG_RING_BUFFER
-  cout << "recordReadyRangeReadings()  rgRingBufferStart rgRingBufferEnd: " << rgRingBufferStart << " " << rgRingBufferEnd << endl;
+  cout << "recordReadyRangeReadings()  pMachineState->config.rgRingBufferStart pMachineState->config.rgRingBufferEnd: " << rgRingBufferStart << " " << pMachineState->config.rgRingBufferEnd << endl;
 #endif
 }
 
@@ -4120,11 +4099,7 @@ void timercallback1(const ros::TimerEvent&) {
       lock_status = 0;
     }
   
-    if (word != NULL) {
-      current_instruction = word;
-      cout << "Executing " << word->name() << endl;
-      word->execute(pMachineState);
-    }
+    pMachineState->execute(word);
 
     if( endThisStackCollapse || (pMachineState->call_stack.size() == 0) ) {
       break;
@@ -4133,7 +4108,7 @@ void timercallback1(const ros::TimerEvent&) {
 
   endEffectorAngularUpdate(&currentEEPose, &currentEEDeltaRPY);
 
-  if (!zero_g_toggle) {
+  if (!pMachineState->config.zero_g_toggle) {
     update_baxter(n);
   }
   else {
@@ -4149,7 +4124,10 @@ void timercallback1(const ros::TimerEvent&) {
   timerCounter++;
   timesTimerCounted++;
 
-  renderCoreView(pMachineState);
+  if (sirCore) {
+    renderCoreView(pMachineState, coreViewName);
+  }
+  renderRangeogramView(pMachineState);
 
   if (shouldIRender) {
     renderObjectMapView();
@@ -4989,93 +4967,9 @@ void drawMapPolygon(gsl_matrix * polygon_xy, cv::Scalar color) {
 }
 
 
-void renderCoreView(shared_ptr<MachineState> ms) {
-  Mat coreImage(800, 800, CV_64F);
-  coreImage = 0.0*coreImage;
 
-  cv::Scalar dataColor(192,192,192);
-  cv::Scalar labelColor(160,160,160);
-
-  cv::Point ciAnchor(10,50);
-  putText(coreImage, "Current Registers: ", ciAnchor, MY_FONT, 0.5, labelColor, 1.0);
-
-  char buf[256];
-  cv::Point lAnchor(170,50);
-  string lText = "";
-  lText += "CI: ";
-  if (current_instruction != NULL) {
-    lText += current_instruction->name();
-  } else {
-    lText += "NULL";
-  }
-  putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
-
-  lAnchor.y += 20;
-  lText = "";
-  lText += "ZG: ";
-  sprintf(buf, "%d", zero_g_toggle);
-  lText += buf;
-  lText += " GG: ";
-  sprintf(buf, "%d", currentGraspGear);
-  lText += buf;
-  putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
-
-  lAnchor.y += 20;
-  lText = "";
-  lText += "rgRB: ";
-  sprintf(buf, "%+.02d/%d", rgRingBufferEnd-rgRingBufferStart, rgRingBufferSize);
-  lText += buf;
-  lText += " epRB: ";
-  sprintf(buf, "%+.02d/%d", epRingBufferEnd-epRingBufferStart, epRingBufferSize);
-  lText += buf;
-  lText += " imRB: ";
-  sprintf(buf, "%+.02d/%d", imRingBufferEnd-imRingBufferStart, imRingBufferSize);
-  lText += buf;
-  putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
-
-  int stackRowY = lAnchor.y + 40; 
-  cv::Point csAnchor(10,stackRowY);
-  putText(coreImage, "Call Stack: ", csAnchor, MY_FONT, 0.5, labelColor, 1.0);
-  
-  int instructionsPerRow = 1;
-  int rowAnchorStep = 25;
-  cv::Point rowAnchor(120,stackRowY);
-  int insCount = 0; 
-
-  int numCommandsToShow = 400;
-  int lowerBound = max(int(ms->call_stack.size() - numCommandsToShow), 0);
-  insCount = lowerBound;
-
-  while (insCount < ms->call_stack.size()) {
-    string outRowText;
-
-    for (int rowCount = 0; (insCount < ms->call_stack.size()) && (rowCount < instructionsPerRow); insCount++, rowCount++) {
-      outRowText += ms->call_stack[max(int(ms->call_stack.size() - (insCount - lowerBound) - 1),0)]->name();
-      outRowText += " ";
-    }
-
-    putText(coreImage, outRowText, rowAnchor, MY_FONT, 0.5, dataColor, 2.0);
-    rowAnchor.y += rowAnchorStep;
-    if (rowAnchor.y >= coreImage.rows) {
-      break;
-    }
-  }
-
-//  {
-//    cv::Point text_anchor = cv::Point(0,coreImage.rows-1);
-//    {
-//      cv::Scalar backColor(0,0,0);
-//      cv::Point outTop = cv::Point(text_anchor.x,text_anchor.y+1-35);
-//      cv::Point outBot = cv::Point(text_anchor.x+200,text_anchor.y+1);
-//      Mat vCrop = coreImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-//      vCrop = backColor;
-//    }
-//    char buff[256];
-//    sprintf(buff, "Hz: %.2f", aveFrequency);
-//    string fpslabel(buff);
-//    putText(coreImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
-//  }
-  if ( (rangeogramImage.rows > 0) && (rangeogramImage.cols > 0) ) {
+void renderRangeogramView(shared_ptr<MachineState> ms) {
+ if ( (rangeogramImage.rows > 0) && (rangeogramImage.cols > 0) ) {
     cv::Point text_anchor = cv::Point(0,rangeogramImage.rows-1);
     {
       cv::Scalar backColor(0,0,0);
@@ -5098,8 +4992,6 @@ void renderCoreView(shared_ptr<MachineState> ms) {
     }
   }
   guardedImshow(rangeogramViewName, rangeogramImage, sirRangeogram);
-
-  guardedImshow(coreViewName, coreImage, sirCore);
 }
 
 void targetCallback(const geometry_msgs::Point& point) {
@@ -5167,8 +5059,8 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 //	  graspMemoryPicks[(gmTargetX+delX) + (gmTargetY+delY)*rmWidth] = 1;
 //	}
 //      }
-      graspMemoryTries[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*currentGraspGear] += 1;
-      graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*currentGraspGear] += 1;
+      graspMemoryTries[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*pMachineState->config.currentGraspGear] += 1;
+      graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*pMachineState->config.currentGraspGear] += 1;
     }
     pMachineState->pushWord("paintReticles"); // render reticle
     pMachineState->pushWord("drawMapRegisters"); // render register 1
@@ -5180,7 +5072,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     int bigX = x / rmiCellWidth;
     int bigY = y / rmiCellWidth;
     if ((bigX >= rmWidth) && (bigX < 2*rmWidth) && (bigY < rmWidth)) {
-      graspMemoryTries[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*currentGraspGear] += 1;
+      graspMemoryTries[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*pMachineState->config.currentGraspGear] += 1;
     }
     pMachineState->pushWord("paintReticles"); // render reticle
     pMachineState->pushWord("drawMapRegisters"); // render register 1
@@ -5195,8 +5087,8 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
       // reset to uniform failure
       for (int rx = 0; rx < rmWidth; rx++) {
 	for (int ry = 0; ry < rmWidth; ry++) {
-	  graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear] = 10;
-	  graspMemoryPicks[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear] = 0;
+	  graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*pMachineState->config.currentGraspGear] = 10;
+	  graspMemoryPicks[rx + ry*rmWidth + rmWidth*rmWidth*pMachineState->config.currentGraspGear] = 0;
 	}
       }
     }
@@ -5863,13 +5755,13 @@ void pilotInit() {
     }
   }
   
-  imRingBuffer.resize(imRingBufferSize);
-  epRingBuffer.resize(epRingBufferSize);
-  rgRingBuffer.resize(rgRingBufferSize);
+  imRingBuffer.resize(pMachineState->config.imRingBufferSize);
+  epRingBuffer.resize(pMachineState->config.epRingBufferSize);
+  rgRingBuffer.resize(pMachineState->config.rgRingBufferSize);
 
-  imRBTimes.resize(imRingBufferSize);
-  epRBTimes.resize(epRingBufferSize);
-  rgRBTimes.resize(rgRingBufferSize);
+  imRBTimes.resize(pMachineState->config.imRingBufferSize);
+  epRBTimes.resize(pMachineState->config.epRingBufferSize);
+  rgRBTimes.resize(pMachineState->config.rgRingBufferSize);
 
   for (int pz = 0; pz < vmWidth; pz++) {
     for (int py = 0; py < vmWidth; py++) {
@@ -6669,8 +6561,8 @@ void drawMapRegisters() {
       double maxDepth = 0;
       for (int rx = 0; rx < rmWidth; rx++) {
         for (int ry = 0; ry < rmWidth; ry++) {
-          minDepth = min(minDepth, graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear]);
-          maxDepth = max(maxDepth, graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear]);
+          minDepth = min(minDepth, graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*pMachineState->config.currentGraspGear]);
+          maxDepth = max(maxDepth, graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*pMachineState->config.currentGraspGear]);
         }
       }
       for (int rx = 0; rx < rmWidth; rx++) {
@@ -6678,8 +6570,8 @@ void drawMapRegisters() {
           double denom = max(1.0,maxDepth);
           if (denom <= EPSILON)
             denom = VERYBIGNUMBER;
-          double blueIntensity = 128 * (graspMemoryPicks[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear]) / denom;
-          double redIntensity = 128 * (graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear] - graspMemoryPicks[rx + ry*rmWidth + rmWidth*rmWidth*currentGraspGear]) / denom;
+          double blueIntensity = 128 * (graspMemoryPicks[rx + ry*rmWidth + rmWidth*rmWidth*pMachineState->config.currentGraspGear]) / denom;
+          double redIntensity = 128 * (graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*pMachineState->config.currentGraspGear] - graspMemoryPicks[rx + ry*rmWidth + rmWidth*rmWidth*pMachineState->config.currentGraspGear]) / denom;
           cv::Scalar backColor(ceil(blueIntensity),0,ceil(redIntensity));
           cv::Point outTop = cv::Point((ry)*rmiCellWidth,rx*rmiCellWidth);
           cv::Point outBot = cv::Point(((ry)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
@@ -7167,14 +7059,14 @@ void selectMaxTargetLinearFilter(double minDepth) {
         localIntThX = ((localThX)/rmDelta) + rmHalfWidth; 
         localIntThY = ((localThY)/rmDelta) + rmHalfWidth; 
         // retrieve its value
-        double mDenom = max(graspMemoryTries[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)], 1.0);
+        double mDenom = max(graspMemoryTries[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)], 1.0);
         if ((localIntThX < rmWidth) && (localIntThY < rmWidth)) {
 
           // Thompson
-          //graspMemoryWeight = (graspMemorySample[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)]) * -1;  
+          //graspMemoryWeight = (graspMemorySample[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)]) * -1;  
 
           // Original
-          //graspMemoryWeight = graspMemoryPicks[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] / mDenom;
+          //graspMemoryWeight = graspMemoryPicks[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)] / mDenom;
           //graspMemoryWeight = graspMemoryWeight * rangeMapReg1[rx + ry*rmWidth]);  
            
           // No memory; just linear filter
@@ -7187,7 +7079,7 @@ void selectMaxTargetLinearFilter(double minDepth) {
 
 
       //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)] << endl;
 	    
       // 
       if (graspMemoryBias + graspMemoryWeight < minDepth) 
@@ -7198,9 +7090,9 @@ void selectMaxTargetLinearFilter(double minDepth) {
 	maxY = ry;
 	localMaxX = localIntThX;
 	localMaxY = localIntThY;
-	localMaxGG = getLocalGraspGear(currentGraspGear);
+	localMaxGG = getLocalGraspGear(pMachineState->config.currentGraspGear);
 	maxD = rangeMapReg1[rx + ry*rmWidth];
-	maxGG = currentGraspGear;
+	maxGG = pMachineState->config.currentGraspGear;
 	useContinuousGraspTransform = 0;
       }
     }
@@ -7223,7 +7115,7 @@ void selectMaxTargetThompson(double minDepth) {
       if ((rx < rmWidth) && (ry < rmWidth)) {
         
         // Thompson
-        graspMemoryWeight = (graspMemorySample[localX + localY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)]) * -1;  
+        graspMemoryWeight = (graspMemorySample[localX + localY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)]) * -1;  
         
         graspMemoryBias = 0;
       } else {
@@ -7233,7 +7125,7 @@ void selectMaxTargetThompson(double minDepth) {
       //cout << "graspMemory Thompson incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localX << " " << localY << " " << graspMemoryWeight << endl;
       
       // ATTN 19
-      int i = localX + localY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear);
+      int i = localX + localY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear);
       int maxedOutTries = isThisGraspMaxedOut(i);
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
@@ -7243,9 +7135,9 @@ void selectMaxTargetThompson(double minDepth) {
 	maxY = ry;
 	localMaxX = localX;
 	localMaxY = localY;
-	localMaxGG = getLocalGraspGear(currentGraspGear);
+	localMaxGG = getLocalGraspGear(pMachineState->config.currentGraspGear);
 	maxD = graspMemoryWeight;
-	maxGG = currentGraspGear;
+	maxGG = pMachineState->config.currentGraspGear;
 	useContinuousGraspTransform = 0;
       }
     }
@@ -7285,11 +7177,11 @@ void selectMaxTargetThompsonContinuous(double minDepth) {
         localIntThX = ((localThX)/rmDelta) + rmHalfWidth; 
         localIntThY = ((localThY)/rmDelta) + rmHalfWidth; 
         // retrieve its value
-        double mDenom = max(graspMemoryTries[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)], 1.0);
+        double mDenom = max(graspMemoryTries[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)], 1.0);
         if ((localIntThX < rmWidth) && (localIntThY < rmWidth)) {
 
           // Thompson
-          graspMemoryWeight = (graspMemorySample[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)]) * -1;  
+          graspMemoryWeight = (graspMemorySample[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)]) * -1;  
 
           graspMemoryBias = 0;
         } else {
@@ -7298,10 +7190,10 @@ void selectMaxTargetThompsonContinuous(double minDepth) {
       }
 
       //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)] << endl;
 	    
       // ATTN 19
-      int i = localIntThX + localIntThY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear);
+      int i = localIntThX + localIntThY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear);
       int maxedOutTries = isThisGraspMaxedOut(i);
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
@@ -7311,11 +7203,11 @@ void selectMaxTargetThompsonContinuous(double minDepth) {
 	maxY = ry;
 	localMaxX = localIntThX;
 	localMaxY = localIntThY;
-	//localMaxGG = currentGraspGear;
-	localMaxGG = getLocalGraspGear(currentGraspGear);
+	//localMaxGG = pMachineState->config.currentGraspGear;
+	localMaxGG = getLocalGraspGear(pMachineState->config.currentGraspGear);
 	maxD = graspMemoryWeight;
-	//maxGG = currentGraspGear;
-	maxGG = getLocalGraspGear(currentGraspGear);
+	//maxGG = pMachineState->config.currentGraspGear;
+	maxGG = getLocalGraspGear(pMachineState->config.currentGraspGear);
 	useContinuousGraspTransform = 1;
 	//useContinuousGraspTransform = 0;
       }
@@ -7358,11 +7250,11 @@ void selectMaxTargetThompsonContinuous2(double minDepth) {
         localIntThX = ((localThX)/rmDelta) + rmHalfWidth; 
         localIntThY = ((localThY)/rmDelta) + rmHalfWidth; 
         // retrieve its value
-        double mDenom = max(graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*(currentGraspGear)], 1.0);
+        double mDenom = max(graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*(pMachineState->config.currentGraspGear)], 1.0);
         if ((rx < rmWidth) && (ry < rmWidth)) {
 
           // Thompson
-          graspMemoryWeight = (graspMemorySample[rx + ry*rmWidth + rmWidth*rmWidth*(currentGraspGear)]) * -1;  
+          graspMemoryWeight = (graspMemorySample[rx + ry*rmWidth + rmWidth*rmWidth*(pMachineState->config.currentGraspGear)]) * -1;  
 
           graspMemoryBias = 0;
         } else {
@@ -7372,10 +7264,10 @@ void selectMaxTargetThompsonContinuous2(double minDepth) {
 
 
       //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*(currentGraspGear)] << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*(pMachineState->config.currentGraspGear)] << endl;
 	    
       // ATTN 19
-      int i = rx + ry * rmWidth + rmWidth*rmWidth*(currentGraspGear);
+      int i = rx + ry * rmWidth + rmWidth*rmWidth*(pMachineState->config.currentGraspGear);
       int maxedOutTries = isThisGraspMaxedOut(i);
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
@@ -7385,10 +7277,10 @@ void selectMaxTargetThompsonContinuous2(double minDepth) {
           maxY = localIntThY;
           localMaxX = rx;
           localMaxY = ry;
-          localMaxGG = (currentGraspGear);
+          localMaxGG = (pMachineState->config.currentGraspGear);
           maxD = graspMemoryWeight;
-          //maxGG = getGlobalGraspGear(currentGraspGear);
-          maxGG = (currentGraspGear);
+          //maxGG = getGlobalGraspGear(pMachineState->config.currentGraspGear);
+          maxGG = (pMachineState->config.currentGraspGear);
 	  //useContinuousGraspTransform = 0;
 	  useContinuousGraspTransform = 1;
 	  cout << "ZZZ ZZZ ZZZ" << endl;
@@ -7431,14 +7323,14 @@ void selectMaxTargetThompsonRotated(double minDepth) {
         localIntThX = ((localThX)/rmDelta) + rmHalfWidth; 
         localIntThY = ((localThY)/rmDelta) + rmHalfWidth; 
         // retrieve its value
-        double mDenom = max(graspMemoryTries[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)], 1.0);
+        double mDenom = max(graspMemoryTries[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)], 1.0);
         if ((localIntThX < rmWidth) && (localIntThY < rmWidth)) {
 
           // Thompson
-          graspMemoryWeight = (graspMemorySample[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)]) * -1;  
+          graspMemoryWeight = (graspMemorySample[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)]) * -1;  
 
           // Original
-          //graspMemoryWeight = graspMemoryPicks[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] / mDenom;
+          //graspMemoryWeight = graspMemoryPicks[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)] / mDenom;
           //graspMemoryWeight = graspMemoryWeight * rangeMapReg1[rx + ry*rmWidth]);  
            
           // No memory; just linear filter
@@ -7451,10 +7343,10 @@ void selectMaxTargetThompsonRotated(double minDepth) {
 
 
       //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear)] << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)] << endl;
 	    
       // ATTN 19
-      int i = localIntThX + localIntThY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(currentGraspGear);
+      int i = localIntThX + localIntThY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear);
       int maxedOutTries = isThisGraspMaxedOut(i);
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
@@ -7464,9 +7356,9 @@ void selectMaxTargetThompsonRotated(double minDepth) {
           maxY = ry;
           localMaxX = localIntThX;
           localMaxY = localIntThY;
-          localMaxGG = getLocalGraspGear(currentGraspGear);
+          localMaxGG = getLocalGraspGear(pMachineState->config.currentGraspGear);
           maxD = graspMemoryWeight;
-          maxGG = currentGraspGear;
+          maxGG = pMachineState->config.currentGraspGear;
 	  useContinuousGraspTransform = 0;
         }
     }
@@ -7508,11 +7400,11 @@ void selectMaxTargetThompsonRotated2(double minDepth) {
         localIntThX = ((localThX)/rmDelta) + rmHalfWidth; 
         localIntThY = ((localThY)/rmDelta) + rmHalfWidth; 
         // retrieve its value
-        double mDenom = max(graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*(currentGraspGear)], 1.0);
+        double mDenom = max(graspMemoryTries[rx + ry*rmWidth + rmWidth*rmWidth*(pMachineState->config.currentGraspGear)], 1.0);
         if ((rx < rmWidth) && (ry < rmWidth)) {
 
           // Thompson
-          graspMemoryWeight = (graspMemorySample[rx + ry*rmWidth + rmWidth*rmWidth*(currentGraspGear)]) * -1;  
+          graspMemoryWeight = (graspMemorySample[rx + ry*rmWidth + rmWidth*rmWidth*(pMachineState->config.currentGraspGear)]) * -1;  
 
           graspMemoryBias = 0;
         } else {
@@ -7522,10 +7414,10 @@ void selectMaxTargetThompsonRotated2(double minDepth) {
 
 
       //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*(currentGraspGear)] << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*(pMachineState->config.currentGraspGear)] << endl;
 	    
       // ATTN 19
-      int i = rx + ry * rmWidth + rmWidth*rmWidth*(currentGraspGear);
+      int i = rx + ry * rmWidth + rmWidth*rmWidth*(pMachineState->config.currentGraspGear);
       int maxedOutTries = isThisGraspMaxedOut(i);
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
@@ -7535,9 +7427,9 @@ void selectMaxTargetThompsonRotated2(double minDepth) {
           maxY = localIntThY;
           localMaxX = rx;
           localMaxY = ry;
-          localMaxGG = (currentGraspGear);
+          localMaxGG = (pMachineState->config.currentGraspGear);
           maxD = graspMemoryWeight;
-          maxGG = getGlobalGraspGear(currentGraspGear);
+          maxGG = getGlobalGraspGear(pMachineState->config.currentGraspGear);
 	  useContinuousGraspTransform = 0;
         }
     }
@@ -13483,9 +13375,6 @@ void initializeMap()
   lastScanStarted = ros::Time::now();
 }
 
-bool isSketchyMat(Mat sketchy) {
-  return ( (sketchy.rows <= 1) || (sketchy.rows <= 1) );
-}
 
 void guardViewers() {
   if ( isSketchyMat(objectViewerYCbCrBlur) ) {
@@ -13519,11 +13408,7 @@ void guardViewers() {
   }
 }
 
-void guardedImshow(string name, Mat image, bool shouldIRender) {
-  if ( !isSketchyMat(image) && shouldIRender ) {
-    imshow(name, image);
-  }
-}
+
 
 void initializeMachine(shared_ptr<MachineState> ms) {
   ms->pushWord("guiCustom1"); 

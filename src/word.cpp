@@ -1,4 +1,5 @@
 #include "word.h"
+#include "ein_util.h"
 
 void CompoundWord::execute(std::shared_ptr<MachineState> ms) {
   for (unsigned int i = 0; i < stack.size(); i++) {
@@ -70,7 +71,15 @@ void MachineState::clearStack() {
   call_stack.resize(0);
 }
 
-std::shared_ptr<Word> MachineState::popWord() {
+void MachineState::execute(shared_ptr<Word> word) {
+  if (word != NULL) {
+    current_instruction = word;
+    cout << "Executing " << word->name() << endl;
+    word->execute(shared_from_this());
+  }
+}
+
+shared_ptr<Word> MachineState::popWord() {
   if (call_stack.size() > 0) {
     std::shared_ptr<Word> word = call_stack.back();
     call_stack.pop_back();
@@ -134,4 +143,95 @@ void initializeWords() {
   cout << "Making words: " << words.size() << endl;
   character_code_to_word = create_character_code_to_word(words);
   name_to_word = create_name_to_word(words);
+}
+
+
+void renderCoreView(shared_ptr<MachineState> ms, string name) {
+  Mat coreImage(800, 800, CV_64F);
+  coreImage = 0.0*coreImage;
+
+  cv::Scalar dataColor(192,192,192);
+  cv::Scalar labelColor(160,160,160);
+
+  cv::Point ciAnchor(10,50);
+  putText(coreImage, "Current Registers: ", ciAnchor, MY_FONT, 0.5, labelColor, 1.0);
+
+  char buf[256];
+  cv::Point lAnchor(170,50);
+  string lText = "";
+  lText += "CI: ";
+  if (ms->current_instruction != NULL) {
+    lText += ms->current_instruction->name();
+  } else {
+    lText += "NULL";
+  }
+  putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
+
+  lAnchor.y += 20;
+  lText = "";
+  lText += "ZG: ";
+  sprintf(buf, "%d", ms->config.zero_g_toggle);
+  lText += buf;
+  lText += " GG: ";
+  sprintf(buf, "%d", ms->config.currentGraspGear);
+  lText += buf;
+  putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
+
+  lAnchor.y += 20;
+  lText = "";
+  lText += "rgRB: ";
+  sprintf(buf, "%+.02d/%d", ms->config.rgRingBufferEnd-ms->config.rgRingBufferStart, ms->config.rgRingBufferSize);
+  lText += buf;
+  lText += " epRB: ";
+  sprintf(buf, "%+.02d/%d", ms->config.epRingBufferEnd-ms->config.epRingBufferStart, ms->config.epRingBufferSize);
+  lText += buf;
+  lText += " imRB: ";
+  sprintf(buf, "%+.02d/%d", ms->config.imRingBufferEnd-ms->config.imRingBufferStart, ms->config.imRingBufferSize);
+  lText += buf;
+  putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
+
+  int stackRowY = lAnchor.y + 40; 
+  cv::Point csAnchor(10,stackRowY);
+  putText(coreImage, "Call Stack: ", csAnchor, MY_FONT, 0.5, labelColor, 1.0);
+  
+  int instructionsPerRow = 1;
+  int rowAnchorStep = 25;
+  cv::Point rowAnchor(120,stackRowY);
+  int insCount = 0; 
+
+  int numCommandsToShow = 400;
+  int lowerBound = max(int(ms->call_stack.size() - numCommandsToShow), 0);
+  insCount = lowerBound;
+
+  while (insCount < ms->call_stack.size()) {
+    string outRowText;
+
+    for (int rowCount = 0; (insCount < ms->call_stack.size()) && (rowCount < instructionsPerRow); insCount++, rowCount++) {
+      outRowText += ms->call_stack[max(int(ms->call_stack.size() - (insCount - lowerBound) - 1),0)]->name();
+      outRowText += " ";
+    }
+
+    putText(coreImage, outRowText, rowAnchor, MY_FONT, 0.5, dataColor, 2.0);
+    rowAnchor.y += rowAnchorStep;
+    if (rowAnchor.y >= coreImage.rows) {
+      break;
+    }
+  }
+
+//  {
+//    cv::Point text_anchor = cv::Point(0,coreImage.rows-1);
+//    {
+//      cv::Scalar backColor(0,0,0);
+//      cv::Point outTop = cv::Point(text_anchor.x,text_anchor.y+1-35);
+//      cv::Point outBot = cv::Point(text_anchor.x+200,text_anchor.y+1);
+//      Mat vCrop = coreImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+//      vCrop = backColor;
+//    }
+//    char buff[256];
+//    sprintf(buff, "Hz: %.2f", aveFrequency);
+//    string fpslabel(buff);
+//    putText(coreImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
+//  }
+ 
+  guardedImshow(name, coreImage, true);
 }

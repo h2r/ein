@@ -2,7 +2,7 @@
 WORD(ZeroGToggle)
 CODE('z')
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  zero_g_toggle = !zero_g_toggle;
+  ms->config.zero_g_toggle = !ms->config.zero_g_toggle;
 }
 END_WORD
 REGISTER_WORD(ZeroGToggle)

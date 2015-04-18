@@ -5,8 +5,18 @@
 #include <iostream>
 #include <assert.h>
 
+#include <cv.h>
+#include <highgui.h>
+#include <ml.h>
+#include <opencv2/nonfree/nonfree.hpp>
+#include <opencv2/gpu/gpu.hpp>
+
 #include "word.h"
+
 using namespace std;
+using namespace cv;
+
+#define MY_FONT FONT_HERSHEY_SIMPLEX
 
 #define NOW_THATS_FAST 0.08
 #define MOVE_EVEN_FASTER 0.04
@@ -91,6 +101,7 @@ typedef enum {
 } memoryLockType;
 
 void pushSpeedSign(shared_ptr<MachineState> ms, double speed);
-
+void guardedImshow(string name, Mat image, bool shouldIRender);
+bool isSketchyMat(Mat sketchy);
 
 #endif /* _EIN_UTIL_H_ */
