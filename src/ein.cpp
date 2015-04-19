@@ -549,17 +549,6 @@ int getColorReticleX();
 int getColorReticleY();
 
 
-eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
-  eePose result;
-  result.px = pose.position.x;
-  result.py = pose.position.y;
-  result.pz = pose.position.z;
-  result.qx = pose.orientation.x;
-  result.qy = pose.orientation.y;
-  result.qz = pose.orientation.z;
-  result.qw = pose.orientation.w;
-  return result;
-}
 
 double fEpsilon = EPSILON;
 
@@ -1136,27 +1125,6 @@ vector<cv::Point> cTops;
 vector<cv::Point> cBots;
 
 
-struct BoxMemory {
-  cv::Point bTop;
-  cv::Point bBot;
-  eePose cameraPose;
-  eePose aimedPose;
-  eePose pickedPose;
-  eePose top;
-  eePose bot;
-  eePose centroid;
-  ros::Time cameraTime;
-  int labeledClassIndex;
-  memoryLockType lockStatus;
-};
-
-typedef struct MapCell {
-  ros::Time lastMappedTime;
-  int detectedClass; // -1 means not denied
-  double r, g, b;
-  double pixelCount;
-} MapCell;
-
 typedef struct Sprite {
   // sprites are the objects which are rendered in the simulation,
   //   modeled physically as axis aligned bounding boxes
@@ -1440,7 +1408,6 @@ void drawMapPolygon(gsl_matrix * poly, cv::Scalar color);
 void targetCallback(const geometry_msgs::Point& point);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata);
-gsl_matrix * boxMemoryToPolygon(BoxMemory b);
 gsl_matrix * mapCellToPolygon(int map_i, int map_j) ;
 
 void pilotInit();
@@ -12528,28 +12495,6 @@ bool positionIsSearched(double x, double y) {
 
 }
 
-gsl_matrix * boxMemoryToPolygon(BoxMemory b) {
-  double min_x = b.top.px;
-  double min_y = b.top.py;
-  double max_x = b.bot.px;
-  double max_y = b.bot.py;
-  double width = max_x - min_x;
-  double height = max_y - min_y;
-
-  gsl_matrix *  polygon = gsl_matrix_alloc(2, 4);
-  gsl_matrix_set(polygon, 0, 0, min_x);
-  gsl_matrix_set(polygon, 1, 0, min_y);
-
-  gsl_matrix_set(polygon, 0, 1, min_x + width);
-  gsl_matrix_set(polygon, 1, 1, min_y);
-
-  gsl_matrix_set(polygon, 0, 2, min_x + width);
-  gsl_matrix_set(polygon, 1, 2, min_y + height);
-
-  gsl_matrix_set(polygon, 0, 3, min_x);
-  gsl_matrix_set(polygon, 1, 3, min_y + height);
-  return polygon;
-}
 
 gsl_matrix * mapCellToPolygon(int map_i, int map_j) {
   
