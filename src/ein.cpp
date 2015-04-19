@@ -89,6 +89,7 @@
 #include "eePose.h"
 #include "eigen_util.h"
 #include "ein_util.h"
+#include "faces.h"
 
 using namespace std;
 using namespace cv;
@@ -208,6 +209,7 @@ std::string hiColorRangemapViewName = "Hi Color Range Map View";
 std::string graspMemoryViewName = "Grasp Memory View";
 std::string graspMemorySampleViewName = "Grasp Memory Sample View";
 std::string mapBackgroundViewName = "Map Background Vew";
+std::string faceViewName = "Face View";
 
 
 std::string heightMemorySampleViewName = "Height Memory Sample View";
@@ -944,6 +946,7 @@ Mat wristViewImage;
 Mat gradientViewerImage;
 Mat objectnessViewerImage;
 Mat aerialGradientViewerImage;
+Mat faceViewImage;
 
 int mask_gripper_blocks = 1;
 int mask_gripper = 0;
@@ -4014,6 +4017,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     wristCamImage = cv_ptr->image.clone();
     wristCamInit = 1;
     wristViewImage = cv_ptr->image.clone();
+    faceViewImage = cv_ptr->image.clone();
 
     accumulatedImage = Mat(cv_ptr->image.rows, cv_ptr->image.cols, CV_64FC3);
     accumulatedImageMass = Mat(cv_ptr->image.rows, cv_ptr->image.cols, CV_64F);
@@ -4039,6 +4043,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   wristCamImage = cv_ptr->image.clone();
   wristCamInit = 1;
   wristViewImage = cv_ptr->image.clone();
+  faceViewImage = cv_ptr->image.clone();
+
 
   guardViewers();
 
@@ -13036,6 +13042,7 @@ int main(int argc, char **argv) {
 
   wristViewName = "Wrist View " + left_or_right_arm;
   coreViewName = "Core View " + left_or_right_arm;
+  faceViewName = "Face View " + left_or_right_arm;
   rangeogramViewName = "Rangeogram View " + left_or_right_arm;
   rangemapViewName = "Range Map View " + left_or_right_arm;
   graspMemoryViewName = "Grasp Memory View " + left_or_right_arm;
@@ -13052,6 +13059,7 @@ int main(int argc, char **argv) {
   cv::namedWindow(coreViewName);
   cv::namedWindow(rangeogramViewName);
   cv::namedWindow(mapBackgroundViewName);
+  cv::namedWindow(faceViewName);
 
   ros::Subscriber fetchCommandSubscriber;
   fetchCommandSubscriber = n.subscribe("/fetch_commands", 1, 
