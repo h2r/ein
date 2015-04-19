@@ -10,8 +10,14 @@
 #include <ml.h>
 #include <opencv2/nonfree/nonfree.hpp>
 #include <opencv2/gpu/gpu.hpp>
+#include <geometry_msgs/Pose.h>
+
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_vector.h>
+
 
 #include "word.h"
+#include "eePose.h"
 
 using namespace std;
 using namespace cv;
@@ -94,5 +100,30 @@ typedef enum {
 void pushSpeedSign(shared_ptr<MachineState> ms, double speed);
 void guardedImshow(string name, Mat image, bool shouldIRender);
 bool isSketchyMat(Mat sketchy);
+eePose rosPoseToEEPose(geometry_msgs::Pose pose);
+
+struct BoxMemory {
+  cv::Point bTop;
+  cv::Point bBot;
+  eePose cameraPose;
+  eePose aimedPose;
+  eePose pickedPose;
+  eePose top;
+  eePose bot;
+  eePose centroid;
+  ros::Time cameraTime;
+  int labeledClassIndex;
+  memoryLockType lockStatus;
+};
+
+typedef struct MapCell {
+  ros::Time lastMappedTime;
+  int detectedClass; // -1 means not denied
+  double r, g, b;
+  double pixelCount;
+} MapCell;
+
+gsl_matrix * boxMemoryToPolygon(BoxMemory b);
+
 
 #endif /* _EIN_UTIL_H_ */
