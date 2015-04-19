@@ -884,3 +884,20 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(GoClassifyBlueBoxes)
+
+WORD(AssumeFacePose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose facePose = {.px = 1.07226, .py = 0.564963, .pz = 0.287997,                                                                                                           .qx = -0.234838, .qy = 0.75433, .qz = 0.106368, .qw = 0.603757};      
+  currentEEPose = facePose;
+  ms->pushWord("waitUntilAtCurrentPosition");
+}
+END_WORD
+REGISTER_WORD(AssumeFacePose)
+
+
+WORD(DetectFaces)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  faceDetectAndDisplay(faceViewName, faceViewImage);
+}
+END_WORD
+REGISTER_WORD(DetectFaces)
