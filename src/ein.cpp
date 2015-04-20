@@ -13120,7 +13120,7 @@ int main(int argc, char **argv) {
 
   saveROSParams();
 
-  //initializeMachine(pMachineState);
+  initializeMachine(pMachineState);
 
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();
