@@ -836,10 +836,33 @@ REGISTER_WORD(SetIROffsetA)
 WORD(SetCameraReticles)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
-  // setReticlesA
-  // go to height
-  // setReticlesA
-  // go to height
+  ms->pushWord("setCameraReticlesA");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("changeToHeight3");
+
+  ms->pushWord("setCameraReticlesA");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("changeToHeight2");
+
+  ms->pushWord("setCameraReticlesA");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("changeToHeight1");
+
+  ms->pushWord("setCameraReticlesA");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("changeToHeight0");
 
 }
 END_WORD
@@ -847,7 +870,15 @@ REGISTER_WORD(SetCameraReticles)
 
 WORD(SetCameraReticlesA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  int darkX = 0;
+  int darkY = 0;
+  findDarkness(&darkX, &darkY);
 
+  pilotTarget.px = darkX;
+  pilotTarget.py = darkY;
+
+  heightReticles[currentThompsonHeightIdx].px = darkX;
+  heightReticles[currentThompsonHeightIdx].py = darkY;
 }
 END_WORD
 REGISTER_WORD(SetCameraReticlesA)
@@ -948,8 +979,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose.pz = -currentTableZ + 0.4;
   ms->pushWord("setVanishingPointB");
   ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushCopies("waitUntilImageCallbackReceived", 50);
   ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("moveToSetVanishingPointHeightHigh");
@@ -988,8 +1020,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetVanishingPointB)
 
+
 WORD(SetMagnification)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  int translationSteps = 5;
 
   // move back
   // adjust until close	
@@ -997,13 +1031,53 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // adjust until close	
   // move over 
   // go to height
+  translationSteps = 12;
+  ms->pushCopies("xDown", translationSteps);
+  ms->pushCopies("yDown", translationSteps);
+  ms->pushWord("setMagnificationA");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushCopies("xUp", translationSteps);
+  ms->pushCopies("yUp", translationSteps);
+  ms->pushWord("changeToHeight3");
 
-  // move back
-  // adjust until close	
-  // move back over then down 
-  // adjust until close	
-  // move over 
-  // go to height
+  translationSteps = 12;
+  ms->pushCopies("xDown", translationSteps);
+  ms->pushCopies("yDown", translationSteps);
+  ms->pushWord("setMagnificationA");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushCopies("xUp", translationSteps);
+  ms->pushCopies("yUp", translationSteps);
+  ms->pushWord("changeToHeight2");
+
+  translationSteps = 8;
+  ms->pushCopies("xDown", translationSteps);
+  ms->pushCopies("yDown", translationSteps);
+  ms->pushWord("setMagnificationA");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushCopies("xUp", translationSteps);
+  ms->pushCopies("yUp", translationSteps);
+  ms->pushWord("changeToHeight1");
+
+  translationSteps = 5;
+  ms->pushCopies("xDown", translationSteps);
+  ms->pushCopies("yDown", translationSteps);
+  ms->pushWord("setMagnificationA");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushCopies("xUp", translationSteps);
+  ms->pushCopies("yUp", translationSteps);
+  ms->pushWord("changeToHeight0");
 }
 END_WORD
 REGISTER_WORD(SetMagnification)
@@ -1011,6 +1085,61 @@ REGISTER_WORD(SetMagnification)
 WORD(SetMagnificationA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // adjust until close	
+
+  int darkX = 0;
+  int darkY = 0;
+  findDarkness(&darkX, &darkY);
+
+  pilotTarget.px = darkX;
+  pilotTarget.py = darkY;
+
+  int magIters = 20; 
+  double magStep = 0.01;
+
+  for (int i = 0; i < magIters; i++) {
+    double zToUse = trueEEPose.position.z+currentTableZ;
+    int eX=0, eY=0;
+    globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+
+    // remember this is flipped!
+    double Px = darkY - eY;
+    double Py = darkX - eX;
+
+    double xFlip = 1.0;
+    double yFlip = 1.0;
+
+    // remember this is flipped!
+    if (darkX < vanishingPointReticle.px) {
+      yFlip = -1.0;
+    }
+    if (darkY < vanishingPointReticle.py) {
+      xFlip = -1.0;
+    }
+
+    cout << "about to adjust m_x and m_y darkX eX Px xFlip darkY eY Py yFlip: " << darkX << " " << eX << " " << Px << " " << xFlip << " " << darkY << " " << eY << " " << Py << " " << yFlip << " ";
+
+    if ((Px*xFlip) > 0) {
+      m_x += .01;
+      m_x_h[currentThompsonHeightIdx] = m_x;
+      cout << "m_x++ ";
+    } else if ((Px*xFlip) < 0) {
+      m_x -= .01;
+      m_x_h[currentThompsonHeightIdx] = m_x;
+      cout << "m_x-- ";
+    }
+
+    if ((Py*yFlip) > 0) {
+      m_y += .01;
+      m_y_h[currentThompsonHeightIdx] = m_y;
+      cout << "m_y++ ";
+    } else if ((Py*yFlip) < 0) {
+      m_y -= .01;
+      m_y_h[currentThompsonHeightIdx] = m_y;
+      cout << "m_y-- ";
+    }
+
+    cout << endl;
+  }
 }
 END_WORD
 REGISTER_WORD(SetMagnificationA)
@@ -1028,19 +1157,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetGripperMask)
 
-WORD(SetGripperMaskA)
+WORD(SetGripperMaskAA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "Program paused; please present the second contrast medium." << endl;
-  ms->pushWord("setGripperMaskB"); 
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", 10);
-  ms->pushWord("resetAccumulatedDensity");
-  ms->pushWord("comeToStop");
-  ms->pushWord("pauseStackExecution"); 
-
   gripperMaskFirstContrast = accumulatedImage.clone();
   gripperMaskSecondContrast = gripperMaskFirstContrast.clone();
   gripperMask.create(gripperMaskFirstContrast.size(), CV_8U);
+  cumulativeGripperMask.create(gripperMaskFirstContrast.size(), CV_8U);
 
   Size sz = gripperMask.size();
   int imW = sz.width;
@@ -1056,8 +1178,26 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       gripperMaskFirstContrast.at<Vec3d>(y,x)[0] = (accumulatedImage.at<Vec3d>(y,x)[0] / denom);
       gripperMaskFirstContrast.at<Vec3d>(y,x)[1] = (accumulatedImage.at<Vec3d>(y,x)[1] / denom);
       gripperMaskFirstContrast.at<Vec3d>(y,x)[2] = (accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+
+      gripperMask.at<Vec3d>(y,x) = 0;
+      cumulativeGripperMask.at<Vec3d>(y,x) = 0;
     }
   }
+}
+END_WORD
+REGISTER_WORD(SetGripperMaskAA)
+
+WORD(SetGripperMaskA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Program paused; please present the second contrast medium." << endl;
+  ms->pushWord("setGripperMaskB"); 
+  ms->pushWord("setGripperMaskBA"); 
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("pauseStackExecution"); 
+  ms->pushWord("setGripperMaskAA"); 
 }
 END_WORD
 REGISTER_WORD(SetGripperMaskA)
@@ -1065,6 +1205,12 @@ REGISTER_WORD(SetGripperMaskA)
 WORD(SetGripperMaskB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Thank you. Don't forget to save your mask!" << endl;
+}
+END_WORD
+REGISTER_WORD(SetGripperMaskB)
+
+WORD(SetGripperMaskBA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
 
   Size sz = gripperMask.size();
   int imW = sz.width;
@@ -1126,7 +1272,36 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 }
 END_WORD
-REGISTER_WORD(SetGripperMaskB)
+REGISTER_WORD(SetGripperMaskBA)
+
+WORD(SetGripperMaskC)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Setting gripper mask with motion." << endl;
+
+  int maskMotions = 10;
+
+  for (int m = 0; m < maskMotions; m++) {
+    // XXX TODO not done
+    ms->pushWord("setGripperMaskCA");
+  }
+  ms->pushWord("setGripperMaskCB");
+}
+END_WORD
+REGISTER_WORD(SetGripperMaskC)
+
+WORD(SetGripperMaskCA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cumulativeGripperMask = max(cumulativeGripperMask, gripperMask);
+}
+END_WORD
+REGISTER_WORD(SetGripperMaskCA)
+
+WORD(SetGripperMaskCB)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  gripperMask = cumulativeGripperMask.clone();
+}
+END_WORD
+REGISTER_WORD(SetGripperMaskCB)
 
 WORD(LoadGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1162,3 +1337,26 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SaveGripperMask)
+
+WORD(CalibrateRGBCameraIntrinsics)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord("setMagnification");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("moveToRegister1");
+
+  ms->pushWord("setCameraReticles");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("moveToRegister1");
+
+  ms->pushWord("setVanishingPoint");
+  ms->pushWord("moveCropToCenter");
+
+  ms->pushWord("saveRegister1");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+}
+END_WORD
+REGISTER_WORD(CalibrateRGBCameraIntrinsics)
+

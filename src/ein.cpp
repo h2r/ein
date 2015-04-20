@@ -89,7 +89,7 @@
 #include "eePose.h"
 #include "eigen_util.h"
 #include "ein_util.h"
-#include "faces.h"
+//#include "faces.h"
 
 using namespace std;
 using namespace cv;
@@ -891,6 +891,7 @@ double armedThreshold = 0.01;
 Mat gripperMaskFirstContrast;
 Mat gripperMaskSecondContrast;
 Mat gripperMask;
+Mat cumulativeGripperMask;
 
 int darkServoIterations = 0;
 int darkServoTimeout = 20;
@@ -1017,6 +1018,7 @@ const double kpProb = 1.0;
 //const int vocabNumWords = 1000;
 const int vocabNumWords = 1000;//2000;
 const double grayBlur = 1.0;
+int grandTotalDescriptors = 0;
 
 const int k = 4;
 int redK = 1;
@@ -9548,6 +9550,7 @@ void bowGetFeatures(std::string classDir, const char *className, double sigma) {
 	  extractor->compute(gray_image, keypoints2, descriptors);
 
 	  totalDescriptors += int(descriptors.rows);
+	  grandTotalDescriptors += int(descriptors.rows);
 	  cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " total descriptors: " << totalDescriptors << endl;
 
 	  if (!descriptors.empty() && !keypoints2.empty())
@@ -12119,6 +12122,7 @@ void detectorsInit() {
 
   Mat vocabulary;
 
+  grandTotalDescriptors = 0;
   if (retrain_vocab) {
     for (unsigned int i = 0; i < classLabels.size(); i++) {
       cout << "Getting BOW features for class " << classLabels[i] 
@@ -12128,6 +12132,13 @@ void detectorsInit() {
 	string thisPoseLabel = classLabels[i] + "Poses";
 	bowGetFeatures(class_crops_path, thisPoseLabel.c_str(), grayBlur);
       }
+    }
+
+    if (grandTotalDescriptors < vocabNumWords) {
+      cout << "Fewer descriptors than words in the vocab!?... This will never work, cease training. Duplicate RGB images if you must." << endl;
+      cout << "Label file may now be corrupt!" << endl;
+      // TODO XXX we shouldn't write any files until we know it will succeed
+      return;
     }
 
     cout << "Clustering features... ";
@@ -13109,7 +13120,7 @@ int main(int argc, char **argv) {
 
   saveROSParams();
 
-  initializeMachine(pMachineState);
+  //initializeMachine(pMachineState);
 
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();
