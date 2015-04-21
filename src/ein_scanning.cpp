@@ -1315,20 +1315,32 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetGripperMaskBA)
 
-WORD(SetGripperMaskC)
+WORD(SetGripperMaskWithMotion)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Setting gripper mask with motion." << endl;
 
   int maskMotions = 10;
 
   for (int m = 0; m < maskMotions; m++) {
-    // XXX TODO not done
+    // move speed not set so that you can control for aliasing from repl
+    ms->pushWord("yDown");
+    // once observed always observed
     ms->pushWord("setGripperMaskCA");
+
+    // one short pass of normal mask analysis 
+    ms->pushWord("setGripperMaskBA"); 
+    ms->pushWord("accumulatedDensity");
+    ms->pushCopies("waitUntilImageCallbackReceived", 3);
+    ms->pushWord("resetAccumulatedDensity");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("setGripperMaskAA"); 
   }
+
   ms->pushWord("setGripperMaskCB");
 }
 END_WORD
-REGISTER_WORD(SetGripperMaskC)
+REGISTER_WORD(SetGripperMaskWithMotion)
 
 WORD(SetGripperMaskCA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1340,6 +1352,7 @@ REGISTER_WORD(SetGripperMaskCA)
 WORD(SetGripperMaskCB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   gripperMask = cumulativeGripperMask.clone();
+  cout << "Thank you. Don't forget to save your mask!" << endl;
 }
 END_WORD
 REGISTER_WORD(SetGripperMaskCB)
