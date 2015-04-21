@@ -1508,6 +1508,7 @@ void loadCalibration(string inFileName);
 void saveCalibration(string outFileName);
 
 void findDarkness(int * xout, int * yout);
+void findLight(int * xout, int * yout);
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -4971,6 +4972,19 @@ void loadCalibration(string inFileName) {
   fsvI.open(inFileName, FileStorage::READ);
 
   {
+    FileNode anode = fsvI["currentTableZ"];
+    FileNodeIterator it = anode.begin(), it_end = anode.end();
+    currentTableZ = *(it++);
+  }
+
+  {
+    FileNode anode = fsvI["cropUpperLeftCorner"];
+    FileNodeIterator it = anode.begin(), it_end = anode.end();
+    cropUpperLeftCorner.px = *(it++);
+    cropUpperLeftCorner.py = *(it++);
+  }
+
+  {
     FileNode anode = fsvI["vanishingPointReticle"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
     vanishingPointReticle.px = *(it++);
@@ -5066,6 +5080,15 @@ void saveCalibration(string outFileName) {
   FileStorage fsvO;
   cout << "Writing calibration information to " << outFileName << " ...";
   fsvO.open(outFileName, FileStorage::WRITE);
+
+  fsvO << "currentTableZ" << "[" 
+    << currentTableZ 
+  << "]";
+
+  fsvO << "cropUpperLeftCorner" << "[" 
+    << cropUpperLeftCorner.px 
+    << cropUpperLeftCorner.py 
+  << "]";
 
   fsvO << "vanishingPointReticle" << "[" 
     << vanishingPointReticle.px 
@@ -9365,8 +9388,9 @@ void findDarkness(int * xout, int * yout) {
       accToBlur.at<double>(y,x) = thisVal;
     }
   }
-  double darkSigma = 1.0;
-  GaussianBlur(accToBlur, accToBlur, cv::Size(0,0), darkSigma, BORDER_REFLECT);
+  // blurring helps with a noisy image but can kill off small targets
+  //double darkSigma = 1.0;
+  //GaussianBlur(accToBlur, accToBlur, cv::Size(0,0), darkSigma, BORDER_REFLECT);
   for (int x = xmin; x < xmax; x++) {
     for (int y = ymin; y < ymax; y++) {
       double thisVal = accToBlur.at<double>(y,x);
@@ -9380,6 +9404,57 @@ void findDarkness(int * xout, int * yout) {
 
   *xout = minX;
   *yout = minY;
+}
+
+void findLight(int * xout, int * yout) {
+  Size sz = accumulatedImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  int maxX = 0;
+  int maxY = 0;
+  double maxVal = -INFINITY;
+
+  Mat accToBlur = accumulatedImage.clone();
+
+  int xmin = grayTop.x;
+  int ymin = grayTop.y;
+  int xmax = grayBot.x;
+  int ymax = grayBot.y;
+  //int xmin = 0;
+  //int ymin = 0;
+  //int xmax = imW;
+  //int ymax = imH;
+
+  for (int x = xmin; x < xmax; x++) {
+    for (int y = ymin; y < ymax; y++) {
+
+      double thisVal = 
+      ( (accumulatedImage.at<Vec3d>(y,x)[0]*
+         accumulatedImage.at<Vec3d>(y,x)[0])+
+        (accumulatedImage.at<Vec3d>(y,x)[1]*
+         accumulatedImage.at<Vec3d>(y,x)[1])+
+        (accumulatedImage.at<Vec3d>(y,x)[2]*
+         accumulatedImage.at<Vec3d>(y,x)[2]) );
+      accToBlur.at<double>(y,x) = thisVal;
+    }
+  }
+  // blurring helps with a noisy image but can kill off small targets
+  //double lightSigma = 1.0;
+  //GaussianBlur(accToBlur, accToBlur, cv::Size(0,0), lightSigma, BORDER_REFLECT);
+  for (int x = xmin; x < xmax; x++) {
+    for (int y = ymin; y < ymax; y++) {
+      double thisVal = accToBlur.at<double>(y,x);
+      if (thisVal > maxVal) {
+	maxVal = thisVal;
+	maxX = x;
+	maxY = y;
+      }
+    }
+  }
+
+  *xout = maxX;
+  *yout = maxY;
 }
 
 
@@ -13120,7 +13195,7 @@ int main(int argc, char **argv) {
 
   saveROSParams();
 
-  initializeMachine(pMachineState);
+  //initializeMachine(pMachineState);
 
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();
@@ -13141,9 +13216,6 @@ int main(int argc, char **argv) {
   } 
 
   lastMovementStateSet = ros::Time::now();
-
-  //saveCalibration(data_directory + "/testCalibration.yml");
-  //loadCalibration(data_directory + "/testCalibration.yml");
 
   ros::spin();
 
