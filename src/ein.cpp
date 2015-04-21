@@ -2221,6 +2221,8 @@ void recordReadyRangeReadings() {
 	Eigen::Vector3d rayDirection;
 
 	{
+	  Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
+	  irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
 	  Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
 	  Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
 	  Eigen::Quaternionf irSensorStartGlobal(
@@ -3287,6 +3289,8 @@ void rangeCallback(const sensor_msgs::Range& range) {
     double dY = 0;
 
     {
+      Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
+      irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
       Eigen::Quaternionf ceeQuat(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
       Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
       Eigen::Quaternionf irSensorStartGlobal(
@@ -4233,6 +4237,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     {
       eePose irPose;
       {
+	Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
+	irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
 	geometry_msgs::Pose thisPose = trueEEPose;
 	Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
 	Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
@@ -5168,13 +5174,8 @@ void pilotInit() {
   if (0 == left_or_right_arm.compare("left")) {
     cout << "Possessing left arm..." << endl;
     beeHome = rssPoseL; //wholeFoodsPantryL;
-    //beeHome = crane1left;
-    //eepReg1 = crane1left;
-    //eepReg2 = crane2left;
-    //eepReg3 = crane3left;
     eepReg4 = rssPoseL; //beeLHome;
     defaultReticle = defaultLeftReticle;
-    //defaultReticle = centerReticle;
     reticle = defaultReticle;
 
     double ystart = 0.1;
@@ -5206,48 +5207,20 @@ void pilotInit() {
     eepReg2 = rssPoseL; //wholeFoodsPantryL;
     //eepReg3 = rssPoseL; //wholeFoodsCounterL;
 
-
-    // good fence values
-    //mapSearchFenceXMin = -0.4;
-    //mapSearchFenceXMax = 0.45;
-    //mapSearchFenceYMin = 0.63;
-    //mapSearchFenceYMax = 0.96;
-    // full workspace
-    //mapSearchFenceXMin = -0.75;
-    //mapSearchFenceXMax = 1.00;
-    //mapSearchFenceYMin = -1.25;
-    //mapSearchFenceYMax = 1.25;
     mapSearchFenceXMin = -0.75;
     mapSearchFenceXMax = 1.0;
     mapSearchFenceYMin = -1.25;
     mapSearchFenceYMax = 1.25;
 
-    //mapSearchFenceXMin = -0.75;
-    //mapSearchFenceXMax = 1.0;
-    //mapSearchFenceYMin = 0.45;
-    //mapSearchFenceYMax = 1.25;
-
-    //mapRejectFenceXMin = -0.4;
-    //mapRejectFenceXMax = 0.45;
-    //mapRejectFenceYMin = 0.63;
-    //mapRejectFenceYMax = 0.96;
     mapRejectFenceXMin = mapSearchFenceXMin;
     mapRejectFenceXMax = mapSearchFenceXMax;
     mapRejectFenceYMin = mapSearchFenceYMin;
     mapRejectFenceYMax = mapSearchFenceYMax;
 
-    // small fence values (for debugging)
-    //mapSearchFenceXMin = 0;
-    //mapRejectFenceXMin = 0;
-
-    //mapSearchFenceXMax = 0.3;
-    //mapRejectFenceXMax = 0.3;
-
     mapBackgroundXMin = mapSearchFenceXMin - mapBackgroundBufferMeters;
     mapBackgroundXMax = mapSearchFenceXMax + mapBackgroundBufferMeters;
     mapBackgroundYMin = mapSearchFenceYMin - mapBackgroundBufferMeters;
     mapBackgroundYMax = mapSearchFenceYMax + mapBackgroundBufferMeters;
-
 
     // left arm
     // (313, 163)
@@ -5261,15 +5234,6 @@ void pilotInit() {
     heightReticles[2] = defaultReticle;
     heightReticles[3] = defaultReticle;
 
-    // values used for IJCAI
-    //heightReticles[3].px = 323;
-    //heightReticles[2].px = 326;
-    //heightReticles[1].px = 331;
-    //heightReticles[0].px = 347;
-    //heightReticles[3].py = 137;
-    //heightReticles[2].py = 132;
-    //heightReticles[1].py = 118;
-    //heightReticles[0].py = 72;
     heightReticles[3].px = 323;
     heightReticles[2].px = 326;
     heightReticles[1].px = 329;
@@ -5328,16 +5292,15 @@ void pilotInit() {
 
     handingPose = handingPoseLeft;
     eepReg3 = handingPose;
+
+    // ir offset
+    gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
   } else if (0 == left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
+
     beeHome = rssPoseR;
-    //beeHome = crane1right;
-    //eepReg1 = crane1right;
-    //eepReg2 = crane2right;
-    //eepReg3 = crane3right;
-    eepReg4 = rssPoseR; //beeRHome;
+    eepReg4 = rssPoseR; 
     defaultReticle = defaultRightReticle;
-    //defaultReticle = centerReticle;
     reticle = defaultReticle;
 
     double ystart = -0.7;
@@ -5353,10 +5316,8 @@ void pilotInit() {
       deliveryPoses[i].py = ystart + i * ystep;
     }
 
-
     rssPose = rssPoseR;
     ik_reset_eePose = rssPose;
-
 
     currentTableZ = rightTableZ;
     bagTableZ = rightTableZ;
@@ -5371,39 +5332,15 @@ void pilotInit() {
     eepReg2 = rssPoseR; //wholeFoodsPantryR;
     //eepReg3 = rssPoseR; //wholeFoodsCounterR;
 
-
     // raw fence values (from John estimating arm limits)
     // True EE Position (x,y,z): -0.329642 -0.77571 0.419954
-    //True EE Position (x,y,z): 0.525236 -0.841226 0.217111
+    // True EE Position (x,y,z): 0.525236 -0.841226 0.217111
 
-
-    //mapSearchFenceXMin = -0.25;
-    //mapSearchFenceXMax = 0.45;
-    //mapSearchFenceYMin = -0.86;
-    //mapSearchFenceYMax = -0.78;
-    //mapRejectFenceXMin = -0.1;
-    //mapRejectFenceXMax = 0.7;
-    //mapRejectFenceYMin = -1.06;
-    //mapRejectFenceYMax = -0.58;
-
-    //mapSearchFenceXMin = -0.4;
-    //mapSearchFenceXMax = 0.45;
-    //mapSearchFenceYMin = -0.96;
-    //mapSearchFenceYMax = -0.63;
     // full workspace
     mapSearchFenceXMin = -0.75;
     mapSearchFenceXMax = 1.00;
     mapSearchFenceYMin = -1.25;
     mapSearchFenceYMax = 1.25;
-    //mapSearchFenceXMin = -0.75;
-    //mapSearchFenceXMax = 0.75;
-    //mapSearchFenceYMin = -0.45;
-    //mapSearchFenceYMax = 1.25;
-
-    //mapRejectFenceXMin = -0.4;
-    //mapRejectFenceXMax = 0.45;
-    //mapRejectFenceYMin = -0.96;
-    //mapRejectFenceYMax = -0.63;
     mapRejectFenceXMin = mapSearchFenceXMin;
     mapRejectFenceXMax = mapSearchFenceXMax;
     mapRejectFenceYMin = mapSearchFenceYMin;
@@ -5414,9 +5351,7 @@ void pilotInit() {
     mapBackgroundYMin = mapSearchFenceYMin - mapBackgroundBufferMeters;
     mapBackgroundYMax = mapSearchFenceYMax + mapBackgroundBufferMeters;
 
-
     // right arm
-    // (313, 185)
     vanishingPointReticle.px = 313;
     vanishingPointReticle.py = 185;
     probeReticle = vanishingPointReticle;
@@ -5427,15 +5362,6 @@ void pilotInit() {
     heightReticles[2] = defaultReticle;
     heightReticles[3] = defaultReticle;
     
-    // values used for IJCAI
-    //heightReticles[3].px = 319;
-    //heightReticles[2].px = 323;
-    //heightReticles[1].px = 328;
-    //heightReticles[0].px = 341;
-    //heightReticles[3].py = 170;
-    //heightReticles[2].py = 159;
-    //heightReticles[1].py = 145;
-    //heightReticles[0].py = 100;
     heightReticles[3].px = 314;
     heightReticles[2].px = 317;
     heightReticles[1].px = 320;
@@ -5494,6 +5420,9 @@ void pilotInit() {
 
     handingPose = handingPoseRight;
     eepReg3 = handingPose;
+
+    // ir offset
+    gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
   } else {
     cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
     exit(0);
@@ -5591,41 +5520,16 @@ void pilotInit() {
   //l2Normalize3DParzen();
 
   {
-    Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
-    //Eigen::Quaternionf gear0offset(0.0, 0.0, 0.0, 0.0); // for calibration
-    //Eigen::Quaternionf gear0offset(0.0, ggX[0], ggY[0], 0.0); // for initial calibration
-    //Eigen::Quaternionf gear0offset(0.0, .023, .022, 0.0); // for latest ray calibration
-    //Eigen::Quaternionf gear0offset(0.0, .023, .023, 0.0); // eyeball correction
-
-    // gripper x y z
-    // 0.617956
-    // -0.301304
-    // 0.0527889
-    // right range x y z
-    // 0.585962
-    // -0.321487
-    // 0.0695117
-    // 
-    // 0.037829849
-    //Eigen::Quaternionf gear0offset(0.0, 0.031996, 0.020183, 0.0167228); // from TF, accounts for upside down rotation of crane2
-    //Eigen::Quaternionf gear0offset(0.0, 0.020183, 0.031996, 0.0167228); // from TF, accounts for upside down rotation of crane2
-    gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
-
-    if (0 == left_or_right_arm.compare("left")) {
-      gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
-    } else if (0 == left_or_right_arm.compare("right")) {
-      gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
-    }
+    //gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    //if (0 == left_or_right_arm.compare("left")) {
+      //gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    //} else if (0 == left_or_right_arm.compare("right")) {
+      //gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    //}
 
     // invert the transformation
+    Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
     irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
-
-    // initial calibration
-    // irGlobalPositionEEFrame w x y z: 1.62094e-11 -0.0205133 0.0194367 0.00119132
-    //irGlobalPositionEEFrame = Eigen::Quaternionf(1.62094e-11,-0.0205133,0.0194367,0.00119132);
-    // ray calibration
-    // irGlobalPositionEEFrame w x y z: -3.73708e-14 -0.0206869 0.0244346 -2.52088e-05
-    //irGlobalPositionEEFrame = Eigen::Quaternionf(,,,);
 
     cout << "irGlobalPositionEEFrame w x y z: " << irGlobalPositionEEFrame.w() << " " << 
       irGlobalPositionEEFrame.x() << " " << irGlobalPositionEEFrame.y() << " " << irGlobalPositionEEFrame.z() << endl;
@@ -11731,7 +11635,7 @@ void goClassifyBlueBoxes() {
 	    thisLabelName = class_name;
 
 	  {
-	    string another_crops_path = data_directory + "/" + thisLabelName + "/";
+	    string another_crops_path = data_directory + "/objects/" + thisLabelName + "/";
 	    char buf[1000];
 	    sprintf(buf, "%s%s%s_%d.ppm", another_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
 	    cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
@@ -11740,7 +11644,7 @@ void goClassifyBlueBoxes() {
 
 	  Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
 	  char buf[1000];
-	  string this_crops_path = data_directory + "/" + thisLabelName + "Poses/";
+	  string this_crops_path = data_directory + "/objects/" + thisLabelName + "Poses/";
 	  sprintf(buf, "%s%sPoses%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
 	  //sprintf(buf, class_crops_path + "/%s_toAudit/%s%s_%d.ppm", 
 	    //thisLabelName, thisLabelName, run_prefix, cropCounter);
@@ -11912,7 +11816,7 @@ void loadROSParamsFromArgs() {
   //nh.getParam("chosen_feature", cfi);
   //chosen_feature = static_cast<featureType>(cfi);
 
-  saved_crops_path = data_directory + "/" + class_name + "/";
+  saved_crops_path = data_directory + "/objects/" + class_name + "/";
 
   nh.getParam("use_simulator", use_simulator);
   if (use_simulator) {
@@ -11978,7 +11882,7 @@ void loadROSParams() {
 
   nh.getParam("left_or_right_arm", left_or_right_arm);
 
-  saved_crops_path = data_directory + "/" + class_name + "/";
+  saved_crops_path = data_directory + "/objects/" + class_name + "/";
 }
 
 void saveROSParams() {
@@ -12115,9 +12019,9 @@ void detectorsInit() {
   char vocabularyPath[1024];
   char featuresPath[1024];
   char labelsPath[1024];
-  sprintf(vocabularyPath, "%s/%s", data_directory.c_str(), vocab_file.c_str());
-  sprintf(featuresPath, "%s/%s", data_directory.c_str(), knn_file.c_str());
-  sprintf(labelsPath, "%s/%s", data_directory.c_str(), label_file.c_str());
+  sprintf(vocabularyPath, "%s/objects/%s", data_directory.c_str(), vocab_file.c_str());
+  sprintf(featuresPath, "%s/objects/%s", data_directory.c_str(), knn_file.c_str());
+  sprintf(labelsPath, "%s/objects/%s", data_directory.c_str(), label_file.c_str());
   cout << "vocabularyPath: " << vocabularyPath << endl;
   cout << "featuresPath: " << featuresPath << endl;
   cout << "labelsPath: " << labelsPath << endl;
@@ -12149,7 +12053,7 @@ void detectorsInit() {
     vector<string> classCacheLabels;
     vector<string> classCachePoseModels;
     if (cache_prefix.size() > 0) {
-      string labelsCacheFile = data_directory + "/" + cache_prefix + "labels.yml";
+      string labelsCacheFile = data_directory + "/objects/" + cache_prefix + "labels.yml";
 
       FileStorage fsvI;
       cout<<"Reading CACHED labels and pose models from " << labelsCacheFile << " ...";
@@ -12268,7 +12172,7 @@ void detectorsInit() {
     Mat kNNCachefeatures;
     Mat kNNCachelabels;
     if (cache_prefix.size() > 0) {
-      string knnCacheFile = data_directory + "/" + cache_prefix + "knn.yml";
+      string knnCacheFile = data_directory + "/objects/" + cache_prefix + "knn.yml";
 
       FileStorage fsfI;
       cout<<"Reading CACHED features... " << knnCacheFile << " ..." << endl;
@@ -12358,7 +12262,7 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
   {
     string thisLabelName(className);
 
-    string dirToMakePath = data_directory + "/" + thisLabelName + "/ir2D/";
+    string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 
     FileStorage fsfI;
@@ -12414,7 +12318,7 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
     {
       string thisLabelName(className);
 
-      string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
+      string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
       string this_ag_path = dirToMakePath + "aerialHeight0Gradients.yml";
 
       FileStorage fsfI;
@@ -12431,7 +12335,7 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
     {
       string thisLabelName(className);
 
-      string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
+      string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
       string this_ag_path = dirToMakePath + "aerialHeight1Gradients.yml";
 
       FileStorage fsfI;
@@ -12448,7 +12352,7 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
     {
       string thisLabelName(className);
 
-      string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
+      string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
       string this_ag_path = dirToMakePath + "aerialHeight2Gradients.yml";
 
       FileStorage fsfI;
@@ -12465,7 +12369,7 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
     {
       string thisLabelName(className);
 
-      string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
+      string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
       string this_ag_path = dirToMakePath + "aerialHeight3Gradients.yml";
 
       FileStorage fsfI;
@@ -12966,7 +12870,7 @@ int main(int argc, char **argv) {
        << endl;
 
   package_path = ros::package::getPath("ein");
-  class_crops_path = data_directory + "/";
+  class_crops_path = data_directory + "/objects/";
 
   unsigned long seed = 1;
   rk_seed(seed, &random_state);
@@ -13041,7 +12945,7 @@ int main(int argc, char **argv) {
       string dotdot("..");
 
       char buf[1024];
-      sprintf(buf, "%s/sprites", data_directory.c_str());
+      sprintf(buf, "%s/simulator/sprites", data_directory.c_str());
       dpdf = opendir(buf);
       if (dpdf != NULL){
 	while (epdf = readdir(dpdf)){
@@ -13067,7 +12971,7 @@ int main(int argc, char **argv) {
       masterSprites.resize(spriteLabels.size());
       for (int s = 0; s < masterSprites.size(); s++) {
 	masterSprites[s].name = spriteLabels[s];
-	string filename = data_directory + "/sprites/" + masterSprites[s].name + "/image.ppm";
+	string filename = data_directory + "/simulator/sprites/" + masterSprites[s].name + "/image.ppm";
 	cout << "loading sprite from " << filename << " ... ";
 
 	Mat tmp = imread(filename);
@@ -13085,7 +12989,7 @@ int main(int argc, char **argv) {
     int tileBackground = 1;
     if (tileBackground) {
       string filename;
-      filename = data_directory + "/tableTile.png";
+      filename = data_directory + "/simulator/tableTile.png";
       cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
       Mat tmp = imread(filename);
       cout << "done. Tiling " << tmp.size() << " "; cout.flush();
@@ -13113,7 +13017,7 @@ int main(int argc, char **argv) {
     } else {
       string filename;
       //filename = data_directory + "/mapBackground.ppm";
-      filename = data_directory + "/carpetBackground.jpg";
+      filename = data_directory + "/simulator/carpetBackground.jpg";
       cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
       Mat tmp = imread(filename);
       cout << "done. Resizing " << tmp.size() << " "; cout.flush();

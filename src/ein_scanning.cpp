@@ -72,7 +72,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   string dotdot("..");
 
   char buf[1024];
-  sprintf(buf, "%s", data_directory.c_str());
+  sprintf(buf, "%s/objects/", data_directory.c_str());
   dpdf = opendir(buf);
   if (dpdf != NULL){
     while (epdf = readdir(dpdf)){
@@ -149,7 +149,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     string thisLabelName = focusedClassLabel;
     Mat crop = cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
     char buf[1000];
-    string this_crops_path = data_directory + "/" + thisLabelName + "/rgb/";
+    string this_crops_path = data_directory + "/objects/" + thisLabelName + "/rgb/";
     sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
     imwrite(buf, crop);
     cropCounter++;
@@ -165,7 +165,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       string thisLabelName = focusedClassLabel;
       Mat crop = cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
       char buf[1000];
-      string this_crops_path = data_directory + "/" + thisLabelName + "/rgb/";
+      string this_crops_path = data_directory + "/objects/" + thisLabelName + "/rgb/";
       sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
       imwrite(buf, crop);
       cropCounter++;
@@ -419,6 +419,7 @@ REGISTER_WORD(ScanObject)
 WORD(PrepareForSearch)
 CODE(1114150)     // numlock + &
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  // XXX this should be computed here from the ir sensor offset
   currentEEPose.px = rmcX + drX;
   currentEEPose.py = rmcY + drY;
 }
@@ -578,7 +579,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     string thisLabelName = focusedClassLabel;
 
     char buf[1000];
-    string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
+    string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
     string this_range_path;
 
     // ATTN 16
@@ -701,9 +702,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string thisLabelName(buf);
   focusedClassLabel = thisLabelName;
   classLabels.push_back(thisLabelName);
-  string dirToMakePath = data_directory + "/" + thisLabelName + "/";
+  string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/";
   mkdir(dirToMakePath.c_str(), 0777);
-  string rgbDirToMakePath = data_directory + "/" + thisLabelName + "/rgb";
+  string rgbDirToMakePath = data_directory + "/objects/" + thisLabelName + "/rgb";
   mkdir(rgbDirToMakePath.c_str(), 0777);
   newClassCounter++;
 }
@@ -721,7 +722,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     string thisLabelName = focusedClassLabel;
 
     char buf[1000];
-    string dirToMakePath = data_directory + "/" + thisLabelName + "/ir2D/";
+    string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 
     Mat rangeMapTemp(rmWidth, rmWidth, CV_64F);
@@ -822,6 +823,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetIROffset)
 
+WORD(ZeroIROffset)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  gear0offset = Eigen::Quaternionf(0.0, 0.0, 0.0, 0.0);
+  Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
+  irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+}
+END_WORD
+REGISTER_WORD(ZeroIROffset)
+
 WORD(SetIROffsetA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // find the maximum in the map
@@ -829,6 +839,37 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // compare the coordinate to the root position
   // adjust offset
   // if adjustment was large, recommend running again
+  double minDepth = VERYBIGNUMBER;
+  double maxDepth = 0;
+  int minX=-1, minY=-1;
+  int maxX=-1, maxY=-1;
+
+  for (int rx = 0; rx < hrmWidth; rx++) {
+    for (int ry = 0; ry < hrmWidth; ry++) {
+      double thisDepth = hiRangeMap[rx + ry*hrmWidth];
+      if (thisDepth < minDepth) {
+	minDepth = thisDepth;
+	minX = rx;
+	minY = ry;
+      }
+      if (thisDepth > maxDepth) {
+	maxDepth = thisDepth;
+	maxX = rx;
+	maxY = ry;
+      }
+    }
+  }
+
+  double offByX = ((minX-hrmHalfWidth)*hrmDelta);
+  double offByY = ((minY-hrmHalfWidth)*hrmDelta);
+
+  gear0offset = Eigen::Quaternionf(0.0, 
+    gear0offset.x()+offByX, 
+    gear0offset.y()+offByY, 
+    0.0167228); // z is from TF, good for depth alignment
+
+  Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
+  irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
 }
 END_WORD
 REGISTER_WORD(SetIROffsetA)
@@ -1305,7 +1346,7 @@ REGISTER_WORD(SetGripperMaskCB)
 
 WORD(LoadGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string filename = data_directory + "/" + left_or_right_arm + "GripperMask.bmp";
+  string filename = data_directory + "/config/" + left_or_right_arm + "GripperMask.bmp";
   cout << "Loading gripper mask from " << filename << endl;
   Mat tmpMask = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
   cout << "  tmpMask.type() tmpMask.size(): " << tmpMask.type() << " " << tmpMask.size() << endl;
@@ -1331,7 +1372,7 @@ REGISTER_WORD(LoadGripperMask)
 
 WORD(SaveGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string filename = data_directory + "/" + left_or_right_arm + "GripperMask.bmp";
+  string filename = data_directory + "/config/" + left_or_right_arm + "GripperMask.bmp";
   cout << "Saving gripper mask to " << filename << endl;
   imwrite(filename, 255*gripperMask);
 }
@@ -1362,7 +1403,7 @@ REGISTER_WORD(CalibrateRGBCameraIntrinsics)
 
 WORD(LoadCalibration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string fileName = data_directory + "/" + left_or_right_arm + "Calibration";
+  string fileName = data_directory + "/config/" + left_or_right_arm + "Calibration";
   cout << "Loading calibration file from " << fileName << endl;
   loadCalibration(fileName);
 }
@@ -1371,7 +1412,7 @@ REGISTER_WORD(LoadCalibration)
 
 WORD(SaveCalibration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string fileName = data_directory + "/" + left_or_right_arm + "Calibration";
+  string fileName = data_directory + "/config/" + left_or_right_arm + "Calibration";
   cout << "Saving calibration file from " << fileName << endl;
   saveCalibration(fileName);
 }
