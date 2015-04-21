@@ -1360,3 +1360,61 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(CalibrateRGBCameraIntrinsics)
 
+WORD(LoadCalibration)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string fileName = data_directory + "/" + left_or_right_arm + "Calibration";
+  cout << "Loading calibration file from " << fileName << endl;
+  loadCalibration(fileName);
+}
+END_WORD
+REGISTER_WORD(LoadCalibration)
+
+WORD(SaveCalibration)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string fileName = data_directory + "/" + left_or_right_arm + "Calibration";
+  cout << "Saving calibration file from " << fileName << endl;
+  saveCalibration(fileName);
+}
+END_WORD
+REGISTER_WORD(SaveCalibration)
+
+WORD(SetColorReticles)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  bDelta = cReticleIndexDelta;
+  currentEEPose.pz = firstCReticleIndexDepth;
+
+  // leave it in a canonical state
+  ms->pushWord("setMovementSpeedMoveFast");
+
+  int * i = &(pMachineState->config.scrI);
+
+  for ((*i) = 0; (*i) < numCReticleIndeces; (*i)++) {
+    ms->pushWord("zUp");
+    ms->pushWord("setColorReticlesA");
+    ms->pushWord("accumulatedDensity");
+    ms->pushCopies("waitUntilImageCallbackReceived", 50);
+    ms->pushWord("resetAccumulatedDensity");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+  }
+}
+END_WORD
+REGISTER_WORD(SetColorReticles)
+
+WORD(SetColorReticlesA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int lightX = 0;
+  int lightY = 0;
+  findLight(&lightX, &lightY);
+
+  pilotTarget.px = lightX;
+  pilotTarget.py = lightY;
+
+  int * i = &(pMachineState->config.scrI);
+  xCR[(*i)] = lightX;
+  yCR[(*i)] = lightY;
+}
+END_WORD
+REGISTER_WORD(SetColorReticlesA)
+
