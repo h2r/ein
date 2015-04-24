@@ -217,6 +217,17 @@ std::string heightMemorySampleViewName = "Height Memory Sample View";
 int reticleHalfWidth = 18;
 int pilotTargetHalfWidth = 15;
 
+eePose calibrationPose;
+
+eePose calibrationPoseR = {.px = 0.562169, .py = -0.348055, .pz = 0.493231,
+                      .qx = 0.00391311, .qy = 0.999992, .qz = -0.00128095, .qw = 8.18951e-05};
+
+eePose calibrationPoseL = {.px = 0.434176, .py = 0.633423, .pz = 0.48341,
+                      .qx = 0.000177018, .qy = 1, .qz = -0.000352912, .qw = -0.000489087};
+
+eePose cropUpperLeftCorner = {.px = 320, .py = 200, .pz = 0.0,
+		       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // center of image
+
 eePose handingPoseRight = {.px = 0.879307, .py = -0.0239328, .pz = 0.223839,
                       .qx = 0.459157, .qy = 0.527586, .qz = 0.48922, .qw = 0.521049};
 
@@ -901,7 +912,6 @@ int setVanishingPointPixelThresh = 3;
 int setVanishingPointIterations = 0;
 int setVanishingPointTimeout = 6;
 
-eePose cropUpperLeftCorner = defaultReticle;
 
 ////////////////////////////////////////////////
 // end pilot variables 
@@ -1509,6 +1519,7 @@ void saveCalibration(string outFileName);
 
 void findDarkness(int * xout, int * yout);
 void findLight(int * xout, int * yout);
+void findOptimum(int * xout, int * yout, int sign);
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -4192,8 +4203,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     cv::Scalar theColor(192, 64, 64);
     cv::Scalar THEcOLOR(64, 192, 192);
 
-    double zStart = (minHeight + currentTableZ) + currentTableZ;
-    double zEnd = (maxHeight + currentTableZ) + currentTableZ; 
+    double zStart = minHeight;
+    double zEnd = maxHeight; 
     double deltaZ = 0.005;
     
     for (double zCounter = zStart; zCounter < zEnd; zCounter += deltaZ) {
@@ -4283,6 +4294,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   // draw pMachineState->config.currentMovementState indicator
   {
+    // XXX TODO this should be guarded 
     int movementIndicatorInnerHalfWidth = 7;
     int movementIndicatorOuterHalfWidth = 10;
     int x0 = vanishingPointReticle.px;
@@ -5295,6 +5307,8 @@ void pilotInit() {
 
     // ir offset
     gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
+
+    calibrationPose = calibrationPoseL;
   } else if (0 == left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
 
@@ -5423,6 +5437,8 @@ void pilotInit() {
 
     // ir offset
     gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
+
+    calibrationPose = calibrationPoseR;
   } else {
     cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
     exit(0);
@@ -9260,79 +9276,60 @@ bool isInGripperMask(int x, int y) {
 }
 
 void findDarkness(int * xout, int * yout) {
-  Size sz = accumulatedImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  int minX = 0;
-  int minY = 0;
-  double minVal = INFINITY;
-
-  Mat accToBlur = accumulatedImage.clone();
-
-  int xmin = grayTop.x;
-  int ymin = grayTop.y;
-  int xmax = grayBot.x;
-  int ymax = grayBot.y;
-  //int xmin = 0;
-  //int ymin = 0;
-  //int xmax = imW;
-  //int ymax = imH;
-
-  for (int x = xmin; x < xmax; x++) {
-    for (int y = ymin; y < ymax; y++) {
-
-      double thisVal = 
-      ( (accumulatedImage.at<Vec3d>(y,x)[0]*
-         accumulatedImage.at<Vec3d>(y,x)[0])+
-        (accumulatedImage.at<Vec3d>(y,x)[1]*
-         accumulatedImage.at<Vec3d>(y,x)[1])+
-        (accumulatedImage.at<Vec3d>(y,x)[2]*
-         accumulatedImage.at<Vec3d>(y,x)[2]) );
-      accToBlur.at<double>(y,x) = thisVal;
-    }
-  }
-  // blurring helps with a noisy image but can kill off small targets
-  //double darkSigma = 1.0;
-  //GaussianBlur(accToBlur, accToBlur, cv::Size(0,0), darkSigma, BORDER_REFLECT);
-  for (int x = xmin; x < xmax; x++) {
-    for (int y = ymin; y < ymax; y++) {
-      double thisVal = accToBlur.at<double>(y,x);
-      if (thisVal < minVal) {
-	minVal = thisVal;
-	minX = x;
-	minY = y;
-      }
-    }
-  }
-
-  *xout = minX;
-  *yout = minY;
+  //*xout = vanishingPointReticle.px;
+  //*yout = vanishingPointReticle.py;
+  findOptimum(xout, yout, -1);
 }
 
 void findLight(int * xout, int * yout) {
+  findOptimum(xout, yout, 1);
+}
+
+void findOptimum(int * xout, int * yout, int sign) {
+
+  if (isSketchyMat(accumulatedImage)) {
+    ROS_ERROR("Whoops, accumulatedImage is sketchy, returning vanishing point to findOptimum.");
+    *xout = vanishingPointReticle.px;
+    *yout = vanishingPointReticle.py;
+    return;
+  }
+
   Size sz = accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
 
   int maxX = 0;
   int maxY = 0;
+
+  // this should be -INF regardless of sign because we
+  //  always use > to compare
   double maxVal = -INFINITY;
 
-  Mat accToBlur = accumulatedImage.clone();
+  Mat accToBlur;
+  accToBlur.create(accumulatedImage.size(), CV_64F);
 
-  int xmin = grayTop.x;
-  int ymin = grayTop.y;
-  int xmax = grayBot.x;
-  int ymax = grayBot.y;
+  //int xmin = grayTop.x;
+  //int ymin = grayTop.y;
+  //int xmax = grayBot.x;
+  //int ymax = grayBot.y;
   //int xmin = 0;
   //int ymin = 0;
   //int xmax = imW;
   //int ymax = imH;
+  int findPadX = 100;
+  int findPadY = 50;
+  int xmin = 0+findPadX;
+  int ymin = 0+findPadY;
+  int xmax = imW-findPadX;
+  int ymax = imH-findPadY;
+
+  xmax = min(max(0, xmax), imW); 
+  xmin = min(max(0, xmin), imW); 
+  ymax = min(max(0, ymax), imH); 
+  ymin = min(max(0, ymin), imH); 
 
   for (int x = xmin; x < xmax; x++) {
     for (int y = ymin; y < ymax; y++) {
-
       double thisVal = 
       ( (accumulatedImage.at<Vec3d>(y,x)[0]*
          accumulatedImage.at<Vec3d>(y,x)[0])+
@@ -9343,19 +9340,24 @@ void findLight(int * xout, int * yout) {
       accToBlur.at<double>(y,x) = thisVal;
     }
   }
+  // XXX TODO
+  // This should probably be in YCbCr space with the Y channel
   // blurring helps with a noisy image but can kill off small targets
-  //double lightSigma = 1.0;
-  //GaussianBlur(accToBlur, accToBlur, cv::Size(0,0), lightSigma, BORDER_REFLECT);
+  //double darkSigma = 1.0;
+  //GaussianBlur(accToBlur, accToBlur, cv::Size(0,0), darkSigma, BORDER_REFLECT);
   for (int x = xmin; x < xmax; x++) {
     for (int y = ymin; y < ymax; y++) {
-      double thisVal = accToBlur.at<double>(y,x);
-      if (thisVal > maxVal) {
+      double thisVal = sign * accToBlur.at<double>(y,x);
+      if ((!isInGripperMask(x,y)) && (thisVal > maxVal)) {
 	maxVal = thisVal;
 	maxX = x;
 	maxY = y;
       }
     }
   }
+
+  maxX = min(max(xmin, maxX), xmax); 
+  maxY = min(max(ymin, maxY), ymax); 
 
   *xout = maxX;
   *yout = maxY;
@@ -12821,6 +12823,7 @@ void initializeMachine(shared_ptr<MachineState> ms) {
   ms->pushWord("openGripper");
   ms->pushWord("calibrateGripper");
   ms->pushWord("shiftIntoGraspGear1"); 
+  //ms->pushWord("moveCropToProperValue"); 
 
   ms->execute_stack = 1;
 }
@@ -13099,7 +13102,7 @@ int main(int argc, char **argv) {
 
   saveROSParams();
 
-  //initializeMachine(pMachineState);
+  initializeMachine(pMachineState);
 
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();

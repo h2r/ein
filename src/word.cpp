@@ -54,7 +54,7 @@ bool MachineState::pushWord(int code) {
 
 bool MachineState::pushWord(string token) {
   std:shared_ptr<Word> word = forthletParse(token);
-  cout << "Pushing token " << token << " as " << word << endl;
+  //cout << "Pushing token " << token << " as " << word << endl;
   if (word != NULL) {
     return pushWord(word);
   }
@@ -62,7 +62,7 @@ bool MachineState::pushWord(string token) {
 
 
 bool MachineState::pushWord(std::shared_ptr<Word> word) {
-  cout << "Pushing " << word->name() << endl;
+  //cout << "Pushing " << word->name() << endl;
   call_stack.push_back(word);
   return true;
 }
@@ -74,7 +74,7 @@ void MachineState::clearStack() {
 void MachineState::execute(shared_ptr<Word> word) {
   if (word != NULL) {
     current_instruction = word;
-    cout << "Executing " << word->name() << endl;
+    //cout << "Executing " << word->name() << endl;
     word->execute(shared_from_this());
   }
 }
