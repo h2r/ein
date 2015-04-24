@@ -12823,7 +12823,14 @@ void initializeMachine(shared_ptr<MachineState> ms) {
   ms->pushWord("openGripper");
   ms->pushWord("calibrateGripper");
   ms->pushWord("shiftIntoGraspGear1"); 
-  //ms->pushWord("moveCropToProperValue"); 
+
+  {
+    ms->pushWord("fillClearanceMap"); 
+    ms->pushWord("moveCropToProperValue"); 
+    ms->pushWord("loadCalibration"); 
+    ms->pushWord("loadIkMap"); 
+    ms->pushWord("loadGripperMask"); 
+  }
 
   ms->execute_stack = 1;
 }
