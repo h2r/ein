@@ -1212,6 +1212,8 @@ CODE(131156)    // capslock + t
 virtual void execute(std::shared_ptr<MachineState> ms) { 
   ms->pushWord("synchronicServoA");
   ms->pushWord("comeToStop");
+  ms->pushWord("setMovementStateToMoving");
+  ms->pushWord("comeToStop");
 }
 END_WORD
 REGISTER_WORD(SynchronicServo)
@@ -1251,6 +1253,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     //ms->pushCopies("waitUntilImageCallbackReceived", 10);
     ms->pushCopies("waitUntilImageCallbackReceived", 10);
     ms->pushWord("resetAccumulatedDensity");
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
     ms->pushWord("comeToStop");
   }
 

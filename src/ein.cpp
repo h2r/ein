@@ -8799,8 +8799,8 @@ void globalToPixelPrint(int * pX, int * pY, double gZ, double gX, double gY) {
     x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
     reticlePixelX = x_thisZ;
 
-    cout << "d c b42 b31 bDiff b x_thisZ (x pass): " << endl 
-	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << x_thisZ << " "  << endl;
+    cout << "(x pass) d c b42 b31 bDiff b x_thisZ m_x: " << endl 
+	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << x_thisZ << " "  << m_x << " " << endl;
   }
   {
     //double d = d_y;
@@ -8828,8 +8828,8 @@ void globalToPixelPrint(int * pX, int * pY, double gZ, double gX, double gY) {
     y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
     reticlePixelY = y_thisZ;
 
-    cout << "d c b42 b31 bDiff b x_thisZ (y pass): " << endl 
-	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << y_thisZ << " "  << endl;
+    cout << "(y pass) d c b42 b31 bDiff b y_thisZ m_y: " << endl 
+	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << y_thisZ << " "  << m_y << " " << endl;
   }
 
   //cout << "reticlePixelX, reticlePixelY: " << reticlePixelX << " " << reticlePixelY << endl;

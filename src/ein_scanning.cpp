@@ -918,6 +918,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetHeightReticles)
 
+WORD(PrintGlobalToPixel)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  {
+    double zToUse = trueEEPose.position.z+currentTableZ;
+    int eX=0, eY=0;
+    //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    globalToPixelPrint(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+  }
+}
+END_WORD
+REGISTER_WORD(PrintGlobalToPixel)
+
 WORD(SetHeightReticlesA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int darkX = 0;

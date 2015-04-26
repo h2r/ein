@@ -1022,3 +1022,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(Idler)
+
+WORD(SetMovementStateToMoving)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentMovementState = MOVING;
+  lastTrueEEPoseEEPose = trueEEPoseEEPose;
+  lastMovementStateSet = ros::Time::now();
+}
+END_WORD
+REGISTER_WORD(SetMovementStateToMoving)
+
