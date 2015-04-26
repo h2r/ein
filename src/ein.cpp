@@ -959,8 +959,8 @@ Mat objectnessViewerImage;
 Mat aerialGradientViewerImage;
 Mat faceViewImage;
 
-int mask_gripper_blocks = 1;
-int mask_gripper = 0;
+int mask_gripper_blocks = 0;
+int mask_gripper = 1;
 
 int add_blinders = 0;
 int blinder_stride = 10;
@@ -1499,6 +1499,7 @@ int isThisGraspMaxedOut(int i);
 void pixelToGlobal(int pX, int pY, double gZ, double * gX, double * gY);
 void pixelToGlobal(int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose);
 void globalToPixel(int * pX, int * pY, double gZ, double gX, double gY);
+void globalToPixelPrint(int * pX, int * pY, double gZ, double gX, double gY);
 eePose pixelToGlobalEEPose(int pX, int pY, double gZ);
 
 void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor);
@@ -8752,6 +8753,123 @@ void pixelToGlobal(int pX, int pY, double gZ, double * gX, double * gY, eePose g
   }
 }
 
+void globalToPixelPrint(int * pX, int * pY, double gZ, double gX, double gY) {
+  interpolateM_xAndM_yFromZ(gZ, &m_x, &m_y);
+
+  int x1 = heightReticles[0].px;
+  int x2 = heightReticles[1].px;
+  int x3 = heightReticles[2].px;
+  int x4 = heightReticles[3].px;
+
+  int y1 = heightReticles[0].py;
+  int y2 = heightReticles[1].py;
+  int y3 = heightReticles[2].py;
+  int y4 = heightReticles[3].py;
+
+  double z1 = convertHeightIdxToGlobalZ(0) + currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(1) + currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(2) + currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(3) + currentTableZ;
+
+  double reticlePixelX = 0.0;
+  double reticlePixelY = 0.0;
+  {
+    //double d = d_x;
+    double d = d_x/m_x;
+    double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
+
+    double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
+    double b31 = (z3*x3-z1*x1+(z1-z3)*c)/(x3-x1);
+
+    double bDiff = b42-b31;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+    double b = (b42+b31)/2.0;
+
+    int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
+    //int x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //*pX = c + ( (gX-d)*(x1-c) )/(currentEEPose.px-d);
+    //*pX = c + ( (gX-d)*(x_thisZ-c) )/(currentEEPose.px-d);
+    //*pX = c + ( m_x*(gX-trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
+    *pX = c + ( (gX-trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
+    // need to set this again so things match up if gX is truEEpose
+    //x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
+    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    reticlePixelX = x_thisZ;
+
+    cout << "d c b42 b31 bDiff b x_thisZ (x pass): " << endl 
+	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << x_thisZ << " "  << endl;
+  }
+  {
+    //double d = d_y;
+    double d = d_y/m_y;
+    double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
+
+    double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
+    double b31 = (z3*y3-z1*y1+(z1-z3)*c)/(y3-y1);
+
+    double bDiff = b42-b31;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+    double b = (b42+b31)/2.0;
+
+    int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
+    //int y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //*pY = c + ( (gY-d)*(y1-c) )/(currentEEPose.py-d);
+    //*pY = c + ( (gY-d)*(y_thisZ-c) )/(currentEEPose.py-d);
+    //*pY = c + ( m_y*(gY-trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
+    *pY = c + ( (gY-trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
+    // need to set this again so things match up if gX is truEEpose
+    //y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
+    y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    reticlePixelY = y_thisZ;
+
+    cout << "d c b42 b31 bDiff b x_thisZ (y pass): " << endl 
+	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << y_thisZ << " "  << endl;
+  }
+
+  //cout << "reticlePixelX, reticlePixelY: " << reticlePixelX << " " << reticlePixelY << endl;
+
+  // account for rotation of the end effector 
+  Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+  Quaternionf crane2Orient(0, 1, 0, 0);
+  Quaternionf rel = eeqform * crane2Orient.inverse();
+  Quaternionf ex(0,1,0,0);
+  Quaternionf zee(0,0,0,1);
+	
+  Quaternionf result = rel * ex * rel.conjugate();
+  Quaternionf thumb = rel * zee * rel.conjugate();
+  double aY = result.y();
+  double aX = result.x();
+
+  // ATTN 22
+  //double angle = atan2(aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
+  angle = angle;
+  double scale = 1.0;
+  Point center = Point(reticlePixelX, reticlePixelY);
+
+  Mat un_rot_mat = getRotationMatrix2D( center, angle, scale );
+
+  Mat toUn(3,1,CV_64F);
+  toUn.at<double>(0,0)=*pX;
+  toUn.at<double>(1,0)=*pY;
+  toUn.at<double>(2,0)=1.0;
+  Mat didUn = un_rot_mat*toUn;
+  *pX = didUn.at<double>(0,0);
+  *pY = didUn.at<double>(1,0);
+
+  double oldPx = *pX;
+  double oldPy = *pY;
+  //*pX = reticlePixelX + m_y*(oldPy - reticlePixelY) + offX;
+  //*pY = reticlePixelY + m_x*(oldPx - reticlePixelX) + offY;
+  *pX = reticlePixelX + (oldPy - reticlePixelY) + offX;
+  *pY = reticlePixelY + (oldPx - reticlePixelX) + offY;
+}
 void globalToPixel(int * pX, int * pY, double gZ, double gX, double gY) {
   interpolateM_xAndM_yFromZ(gZ, &m_x, &m_y);
 

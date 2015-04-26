@@ -880,9 +880,11 @@ REGISTER_WORD(SetIROffsetA)
 WORD(SetHeightReticles)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
+  int heightWaits = 100;
+
   ms->pushWord("setHeightReticlesA");
   ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushCopies("waitUntilImageCallbackReceived", heightWaits);
   ms->pushWord("resetAccumulatedDensity");
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
@@ -890,7 +892,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("setHeightReticlesA");
   ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushCopies("waitUntilImageCallbackReceived", heightWaits);
   ms->pushWord("resetAccumulatedDensity");
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
@@ -898,7 +900,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("setHeightReticlesA");
   ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushCopies("waitUntilImageCallbackReceived", heightWaits);
   ms->pushWord("resetAccumulatedDensity");
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
@@ -906,7 +908,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("setHeightReticlesA");
   ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushCopies("waitUntilImageCallbackReceived", heightWaits);
   ms->pushWord("resetAccumulatedDensity");
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
@@ -1045,7 +1047,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   setVanishingPointIterations++;
   ms->pushWord("setVanishingPointB");
   ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", 50);
+  ms->pushCopies("waitUntilImageCallbackReceived", 100);
   ms->pushWord("resetAccumulatedDensity");
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
@@ -1211,7 +1213,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int i = 0; i < magIters; i++) {
     double zToUse = trueEEPose.position.z+currentTableZ;
     int eX=0, eY=0;
-    globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    globalToPixelPrint(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
 
     // remember this is flipped!
     double Px = darkY - eY;
@@ -1265,7 +1268,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int i = 0; i < magIters; i++) {
     double zToUse = trueEEPose.position.z+currentTableZ;
     int eX=0, eY=0;
-    globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    globalToPixelPrint(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
 
     // remember this is flipped!
     double Px = darkY - eY;
@@ -1410,7 +1414,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int imH = sz.height;
 
   int dilationPixels = 10;
-  double baseThresh = 10;
+  double baseThresh = 5;
   double multiThresh = 3*baseThresh*baseThresh;
 
   cout << "  multiThresh dilationPixels: " << multiThresh << " " << dilationPixels << endl;
@@ -1631,7 +1635,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("zUp");
     ms->pushWord("setColorReticlesA");
     ms->pushWord("accumulatedDensity");
-    ms->pushCopies("waitUntilImageCallbackReceived", 50);
+    ms->pushCopies("waitUntilImageCallbackReceived", 100);
     ms->pushWord("resetAccumulatedDensity");
     ms->pushWord("comeToStop");
     ms->pushWord("waitUntilAtCurrentPosition");
