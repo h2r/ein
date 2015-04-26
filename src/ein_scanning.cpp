@@ -881,11 +881,17 @@ WORD(SetHeightReticles)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
   int heightWaits = 100;
+  int numPause = 4; 
+  
 
   ms->pushWord("setHeightReticlesA");
   ms->pushWord("accumulatedDensity");
   ms->pushCopies("waitUntilImageCallbackReceived", heightWaits);
   ms->pushWord("resetAccumulatedDensity");
+  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+  }
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("changeToHeight3");
@@ -894,6 +900,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("accumulatedDensity");
   ms->pushCopies("waitUntilImageCallbackReceived", heightWaits);
   ms->pushWord("resetAccumulatedDensity");
+  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+  }
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("changeToHeight2");
@@ -902,6 +912,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("accumulatedDensity");
   ms->pushCopies("waitUntilImageCallbackReceived", heightWaits);
   ms->pushWord("resetAccumulatedDensity");
+  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+  }
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("changeToHeight1");
@@ -910,6 +924,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("accumulatedDensity");
   ms->pushCopies("waitUntilImageCallbackReceived", heightWaits);
   ms->pushWord("resetAccumulatedDensity");
+  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+  }
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("changeToHeight0");
@@ -1056,11 +1074,17 @@ REGISTER_WORD(SetVanishingPointPrep)
 
 WORD(SetVanishingPointA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  int numPause = 4;
+
   setVanishingPointIterations++;
   ms->pushWord("setVanishingPointB");
   ms->pushWord("accumulatedDensity");
   ms->pushCopies("waitUntilImageCallbackReceived", 100);
   ms->pushWord("resetAccumulatedDensity");
+  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+  }
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("moveToSetVanishingPointHeightHigh");
