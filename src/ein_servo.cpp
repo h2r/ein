@@ -1335,7 +1335,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   darkServoIterations++;
   ms->pushWord("darkServoB");
   ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushCopies("waitUntilImageCallbackReceived", 100);
   ms->pushWord("resetAccumulatedDensity");
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition"); 
