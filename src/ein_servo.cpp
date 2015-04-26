@@ -1336,11 +1336,16 @@ REGISTER_WORD(DarkServo)
 WORD(DarkServoA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
+  int numPause = 4;
   darkServoIterations++;
   ms->pushWord("darkServoB");
   ms->pushWord("accumulatedDensity");
   ms->pushCopies("waitUntilImageCallbackReceived", 100);
   ms->pushWord("resetAccumulatedDensity");
+  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+  }
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition"); 
 }
