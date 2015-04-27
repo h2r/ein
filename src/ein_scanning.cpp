@@ -543,7 +543,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushCopies('a',6);
 
   ms->pushWord(1048683); // turn on scanning
-  ms->pushNoOps(60);
+  ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord(1114155); // rotate gear
 
   ms->pushWord("fullRender"); // full render
@@ -563,9 +563,40 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord(1048683); // turn on scanning
   ms->pushWord("initDepthScan"); // clear scan history
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("shiftIntoGraspGear1"); 
 }
 END_WORD
 REGISTER_WORD(NeutralScanA)
+
+WORD(NeutralScanH)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Entering HALF neutral scan." << endl;
+  double lineSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
+  double betweenSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
+
+  ms->pushWord("fullRender"); // full render
+  ms->pushWord("paintReticles"); // render reticle
+  ms->pushWord("shiftIntoGraspGear1"); // change to first gear
+  ms->pushWord("drawMapRegisters"); // render register 1
+  ms->pushWord("downsampleIrScan"); // load map to register 1
+  {
+    ms->pushWord(1048678); // target best grasp
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord("shiftIntoGraspGear1"); // change to first gear
+  }
+  ms->pushWord(1048630); // find best grasp
+
+  scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
+  ms->pushWord(1114150); // prepare for search
+
+  ms->pushWord(1048683); // turn on scanning
+  ms->pushWord("initDepthScan"); // clear scan history
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("shiftIntoGraspGear1"); 
+}
+END_WORD
+REGISTER_WORD(NeutralScanH)
 
 WORD(SaveAerialGradientMap)
 CODE(196730)      // capslock + Z
@@ -817,9 +848,9 @@ WORD(SetIROffset)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setIROffsetA");
   ms->pushWord("cruisingSpeed");
-  ms->pushWord("neutralScanA");
+  ms->pushWord("neutralScanH");
   ms->pushWord("iRCalibrationSpeed");
-  cout << "Commencing neutral scan for SetIROffset." << endl;
+  cout << "Commencing HALF neutral scan for SetIROffset." << endl;
 }
 END_WORD
 REGISTER_WORD(SetIROffset)
