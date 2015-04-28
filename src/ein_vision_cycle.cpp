@@ -29,6 +29,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose = memory.aimedPose;
   lastPickHeight = memory.pickedPose.pz;
   lastPrePickHeight = memory.aimedPose.pz;
+  trZ = memory.trZ;
 
   { // set the old box's lastMappedTime to moments after the start of time
     int iStart=-1, iEnd=-1, jStart=-1, jEnd=-1;

@@ -114,6 +114,7 @@ struct BoxMemory {
   ros::Time cameraTime;
   int labeledClassIndex;
   memoryLockType lockStatus;
+  double trZ;
 };
 
 typedef struct MapCell {
