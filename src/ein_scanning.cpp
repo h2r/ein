@@ -1696,9 +1696,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // leave it in a canonical state
   ms->pushWord("setMovementSpeedMoveFast");
 
-  int * i = &(pMachineState->config.scrI);
+  int * ii = &(pMachineState->config.scrI);
+  (*ii) = 0;
 
-  for ((*i) = 0; (*i) < numCReticleIndeces; (*i)++) {
+  for (int i = 0; i < numCReticleIndeces; i++) {
     ms->pushWord("zUp");
     ms->pushWord("setColorReticlesA");
     ms->pushWord("accumulatedDensity");
@@ -1720,9 +1721,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   pilotTarget.px = lightX;
   pilotTarget.py = lightY;
 
-  int * i = &(pMachineState->config.scrI);
-  xCR[(*i)] = lightX;
-  yCR[(*i)] = lightY;
+  int * ii = &(pMachineState->config.scrI);
+  xCR[(*ii)] = lightX;
+  yCR[(*ii)] = lightY;
+
+  (*ii)++;
 }
 END_WORD
 REGISTER_WORD(SetColorReticlesA)
