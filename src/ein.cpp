@@ -754,7 +754,7 @@ Mat aerialGradientSobelGray;
 Mat preFrameGraySobel;
 int densityIterationsForGradientServo = 10;//3;//10;
 
-double graspDepth = -0.04;//-0.05;//-.07;//-.09;
+double graspDepthOffset = -0.03;
 double lastPickHeight = 0;
 double lastPrePickHeight = 0;
 double pickFlushFactor = 0.08;//0.09;//0.11;
