@@ -13227,7 +13227,9 @@ int main(int argc, char **argv) {
 
   saveROSParams();
 
-  initializeMachine(pMachineState);
+  if (chosen_mode == PHYSICAL) {
+    initializeMachine(pMachineState);
+  } 
 
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();
