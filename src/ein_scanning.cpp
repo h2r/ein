@@ -813,8 +813,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	<< ms->config.currentGraspZ 
       << "]";
 
-      ms->config.classGraspZs[focusedClass] = ms->config.currentGraspZ;
-      ms->config.classGraspZsSet[focusedClass] = 1;
+      if (ms->config.classGraspZs.size() > focusedClass) {
+	ms->config.classGraspZs[focusedClass] = ms->config.currentGraspZ;
+      }
+      if (ms->config.classGraspZsSet.size() > focusedClass) {
+	ms->config.classGraspZsSet[focusedClass] = 1;
+      }
     }
 
     fsvO << "rangeMap" << rangeMapTemp;
@@ -1781,6 +1785,9 @@ REGISTER_WORD(SetColorReticlesA)
 
 WORD(ScanObjectFast)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  int retractCm = 10;
+  
   cout << "BEGINNING SCANOBJECTFAST" << endl;
   cout << "Program will pause shortly. Please adjust height and object so that arm would grip if closed and so that the gripper will clear the object during a scan once raised 5cm." << endl;
 
@@ -1794,7 +1801,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord(1179732);
 
   ms->pushWord("setMovementSpeedMoveFast");
+  currentBoundingBoxMode = MAPPING; // this is here because it is for the rgbScan
   ms->pushWord("rgbScan");
+  ms->pushWord("rgbScan");
+  ms->pushWord("fullImpulse");
   ms->pushWord("setMovementSpeedMoveVerySlow");
 
   ms->pushWord("changeToHeight1"); 
@@ -1804,16 +1814,49 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   { // do density and gradient, save gradient, do medium scan in two directions, save range map
     ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
-    ms->pushWord("neutralScanB");  
+    ms->pushWord("preAnnotateCenterGrasp"); 
+    //ms->pushWord("neutralScanB");  
+    { // empty scan
+      ms->pushWord(1114150); // prepare for search
+
+      //ms->pushCopies('q',4);
+      //ms->pushCopies('a',6);
+
+      ms->pushWord(1048683); // turn on scanning
+      ms->pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord(1114155); // rotate gear
+
+      ms->pushWord("fullRender"); // full render
+      ms->pushWord("paintReticles"); // render reticle
+      ms->pushWord("shiftIntoGraspGear1"); // change to first gear
+      ms->pushWord("drawMapRegisters"); // render register 1
+      ms->pushWord("downsampleIrScan"); // load map to register 1
+      {
+	ms->pushWord(1048678); // target best grasp
+	ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+	ms->pushWord("shiftIntoGraspGear1"); // change to first gear
+      }
+      ms->pushWord(1048630); // find best grasp
+
+      //scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
+      ms->pushWord(1114150); // prepare for search
+
+      ms->pushWord(1048683); // turn on scanning
+      ms->pushWord("initDepthScan"); // clear scan history
+      ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord("shiftIntoGraspGear1"); 
+    }
+
     ms->pushWord("setMovementSpeedMoveEvenFaster");
-    ms->pushWord("fasterRasterScanningSpeed");
+    //ms->pushWord("fasterRasterScanningSpeed");
 
     ms->pushWord("comeToStop");
     ms->pushWord("waitUntilAtCurrentPosition");
-    ms->pushCopies("zDown", 5); 
+    ms->pushCopies("zDown", retractCm); 
     ms->pushWord("comeToHover");
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("moveToRegister1");
+    ms->pushWord("quarterImpulse");
 
     {
       ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
@@ -1842,25 +1885,73 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 
 
+  ms->pushWord("fullImpulse");
+
   ms->pushWord("saveRegister1");
-  ms->pushCopies("zUp", 10); 
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies("zUp", 2*retractCm); 
   ms->pushWord("setMovementSpeedMoveFast");
+  ms->pushWord("recordGraspZ");
 
   ms->pushWord('Y'); // pause stack execution
-  ms->pushWord("recordGraspZ");
+  ms->pushWord("quarterImpulse");
   ms->pushWord(196720); //  make a new class
 
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("shiftIntoGraspGear1");
+  ms->pushWord("changeToHeight0");
+  ms->pushCopies("yDown", 25);
+  ms->pushWord("setMovementSpeedMoveFast");
   ms->pushWord("assumeCalibrationPose");
+  ms->pushWord("fullImpulse");
 }
 END_WORD
 REGISTER_WORD(ScanObjectFast)
 
 WORD(RecordGraspZ)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentGraspZ = currentEEPose.pz;
+  // uses currentEEPose instead of trueEEPose so that we can set it below the table
+  double flushZ = -(currentTableZ) + pickFlushFactor;
+  ms->config.currentGraspZ = currentEEPose.pz - flushZ;
+  cout << "recordGraspZ flushZ currentGraspZ: " << flushZ << " " << ms->config.currentGraspZ << " " << endl;
 }
 END_WORD
 REGISTER_WORD(RecordGraspZ)
+
+WORD(PreAnnotateCenterGrasp)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  guardGraspMemory();
+  for (int y = 0; y < rmWidth; y++) {
+    for (int x = 0; x < rmWidth; x++) {
+      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*0] = 1;
+      graspMemoryPicks[x + y*rmWidth + rmWidth*rmWidth*0] = 0; 
+      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*1] = 1;
+      graspMemoryPicks[x + y*rmWidth + rmWidth*rmWidth*1] = 0; 
+      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*2] = 1;
+      graspMemoryPicks[x + y*rmWidth + rmWidth*rmWidth*2] = 0; 
+      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*3] = 1;
+      graspMemoryPicks[x + y*rmWidth + rmWidth*rmWidth*3] = 0; 
+      //classGraspMemoryTries1[targetClass].at<double>(y,x) = 1;
+      //classGraspMemoryPicks1[targetClass].at<double>(y,x) = 0;
+      //classGraspMemoryTries2[targetClass].at<double>(y,x) = 1;
+      //classGraspMemoryPicks2[targetClass].at<double>(y,x) = 0;
+      //classGraspMemoryTries3[targetClass].at<double>(y,x) = 1;
+      //classGraspMemoryPicks3[targetClass].at<double>(y,x) = 0;
+      //classGraspMemoryTries4[targetClass].at<double>(y,x) = 1;
+      //classGraspMemoryPicks4[targetClass].at<double>(y,x) = 0;
+      rangeMap[x + y*rmWidth] = 0;
+      rangeMapReg1[x + y*rmWidth] = 0;
+      //classRangeMaps[targetClass].at<double>(y,x) = 0;
+    } 
+  } 
+  //classGraspMemoryTries1[targetClass].at<double>(rmHalfWidth,rmHalfWidth) = 1;
+  //classGraspMemoryPicks1[targetClass].at<double>(rmHalfWidth,rmHalfWidth) = 1;
+  graspMemoryTries[rmHalfWidth + rmHalfWidth*rmWidth + rmWidth*rmWidth*0] = 1;
+  graspMemoryPicks[rmHalfWidth + rmHalfWidth*rmWidth + rmWidth*rmWidth*0] = 1; 
+  rangeMap[rmHalfWidth + rmHalfWidth*rmWidth] = ms->config.currentGraspZ;
+  rangeMapReg1[rmHalfWidth + rmHalfWidth*rmWidth] = ms->config.currentGraspZ;
+  //classRangeMaps[targetClass].at<double>(rmHalfWidth,rmHalfWidth) = 1;
+}
+END_WORD
+REGISTER_WORD(PreAnnotateCenterGrasp)
 

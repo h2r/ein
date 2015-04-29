@@ -1026,6 +1026,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //ms->pushWord("clearStackIntoMappingPatrol"); 
   //ms->pushWord("clearStack"); 
   ms->pushWord("clearStackAcceptFetchCommands"); 
+  ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
+  ms->pushWord("assumeCrane1"); 
 }
 END_WORD
 REGISTER_WORD(Idler)
@@ -1039,3 +1041,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetMovementStateToMoving)
 
+WORD(AssumeCrane1)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  currentEEPose = crane1;
+  ms->pushWord("waitUntilAtCurrentPosition");
+}
+END_WORD
+REGISTER_WORD(AssumeCrane1)
