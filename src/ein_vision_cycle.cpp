@@ -100,8 +100,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("sampleHeight"); 
   ms->pushWord("setBoundingBoxModeToMapping"); 
   ms->pushWord("openGripper");
-  ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
-
 }
 END_WORD
 REGISTER_WORD(DeliverObject)
