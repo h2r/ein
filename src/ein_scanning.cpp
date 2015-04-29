@@ -569,6 +569,45 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(NeutralScanA)
 
+WORD(NeutralScanB)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Entering neutralScanB." << endl;
+  double lineSpeed = bDelta;
+  double betweenSpeed = bDelta;
+
+  scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
+  ms->pushWord(1114150); // prepare for search
+
+  ms->pushCopies('q',4);
+  ms->pushCopies('a',6);
+
+  ms->pushWord(1048683); // turn on scanning
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord(1114155); // rotate gear
+
+  ms->pushWord("fullRender"); // full render
+  ms->pushWord("paintReticles"); // render reticle
+  ms->pushWord("shiftIntoGraspGear1"); // change to first gear
+  ms->pushWord("drawMapRegisters"); // render register 1
+  ms->pushWord("downsampleIrScan"); // load map to register 1
+  {
+    ms->pushWord(1048678); // target best grasp
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord("shiftIntoGraspGear1"); // change to first gear
+  }
+  ms->pushWord(1048630); // find best grasp
+
+  scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
+  ms->pushWord(1114150); // prepare for search
+
+  ms->pushWord(1048683); // turn on scanning
+  ms->pushWord("initDepthScan"); // clear scan history
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("shiftIntoGraspGear1"); 
+}
+END_WORD
+REGISTER_WORD(NeutralScanB)
+
 WORD(NeutralScanH)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Entering HALF neutral scan." << endl;
@@ -768,6 +807,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     FileStorage fsvO;
     cout << "capslock + A: Writing: " << this_range_path << endl;
     fsvO.open(this_range_path, FileStorage::WRITE);
+
+    {
+      fsvO << "graspZ" << "[" 
+	<< ms->config.currentGraspZ 
+      << "]";
+
+      ms->config.classGraspZs[focusedClass] = ms->config.currentGraspZ;
+      ms->config.classGraspZsSet[focusedClass] = 1;
+    }
+
     fsvO << "rangeMap" << rangeMapTemp;
     copyGraspMemoryTriesToClassGraspMemoryTries();
     fsvO << "graspMemoryTries1" << classGraspMemoryTries1[focusedClass];
@@ -1729,4 +1778,89 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SetColorReticlesA)
+
+WORD(ScanObjectFast)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "BEGINNING SCANOBJECTFAST" << endl;
+  cout << "Program will pause shortly. Please adjust height and object so that arm would grip if closed and so that the gripper will clear the object during a scan once raised 5cm." << endl;
+
+  eepReg2 = rssPose;
+  eepReg4 = rssPose;
+
+  // so that closest servoing doesn't go into gradient servoing.
+  targetClass = -1;
+
+  // set lastLabelLearned
+  ms->pushWord(1179732);
+
+  ms->pushWord("setMovementSpeedMoveFast");
+  ms->pushWord("rgbScan");
+  ms->pushWord("setMovementSpeedMoveVerySlow");
+
+  ms->pushWord("changeToHeight1"); 
+  ms->pushWord("comeToHover");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("moveToRegister1");
+
+  { // do density and gradient, save gradient, do medium scan in two directions, save range map
+    ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
+    ms->pushWord("neutralScanB");  
+    ms->pushWord("setMovementSpeedMoveEvenFaster");
+    ms->pushWord("fasterRasterScanningSpeed");
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushCopies("zDown", 5); 
+    ms->pushWord("comeToHover");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("moveToRegister1");
+
+    {
+      ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+      ms->pushWord("gradientServoPrep");
+      ms->pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord("changeToHeight3"); // change to height 3
+    }
+    {
+      ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+      ms->pushWord("gradientServoPrep");
+      ms->pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord("changeToHeight2"); // change to height 2
+    }
+    {
+      ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+      ms->pushWord("gradientServoPrep");
+      ms->pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord("changeToHeight1"); // change to height 1
+    }
+    {
+      ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+      ms->pushWord("gradientServoPrep");
+      ms->pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord("changeToHeight0"); // change to height 0
+    }
+  }
+
+
+  ms->pushWord("saveRegister1");
+  ms->pushCopies("zUp", 10); 
+  ms->pushWord("setMovementSpeedMoveFast");
+
+  ms->pushWord('Y'); // pause stack execution
+  ms->pushWord("recordGraspZ");
+  ms->pushWord(196720); //  make a new class
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("shiftIntoGraspGear1");
+  ms->pushWord("assumeCalibrationPose");
+}
+END_WORD
+REGISTER_WORD(ScanObjectFast)
+
+WORD(RecordGraspZ)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentGraspZ = currentEEPose.pz;
+}
+END_WORD
+REGISTER_WORD(RecordGraspZ)
 
