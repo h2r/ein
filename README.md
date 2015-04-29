@@ -25,7 +25,6 @@ sudo apt-get install libopencv-nonfree-\*
 mkdir -p ~/catkin_ws/src
 cd ~/catkin_ws/src
 git clone http://github.com/h2r/ein
-git clone http://github.com/h2r/bing
 wstool init .
 wstool merge https://raw.githubusercontent.com/RethinkRobotics/baxter/master/baxter_sdk.rosinstall
 wstool update

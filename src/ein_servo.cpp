@@ -126,15 +126,17 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->pushWord("closeGripper"); 
   double threshedZ = min(trZ, 0.0);
 
-  double pickZ = (-(threshedZ + currentTableZ) - graspDepth);
-  double flushZ = -currentTableZ + pickFlushFactor;
-  pickZ = max(flushZ, pickZ);
+  double pickZpre = -(threshedZ + currentTableZ) + pickFlushFactor + graspDepthOffset;
+  double flushZ = -(currentTableZ) + pickFlushFactor;
+  double pickZ = max(flushZ, pickZpre);
 
   int useIncrementalPick = 0;
   bool useHybridPick = 1;
 
   double deltaZ = pickZ - currentEEPose.pz;
   lastPickHeight = pickZ;
+
+  cout << "moveToTargetZAndGrasp trZ pickZ flushZ pickZpre: " << trZ << " " << pickZ << " " << flushZ << " " << pickZpre << " " << endl;
 
   if (useIncrementalPick) {
     double zTimes = fabs(floor(deltaZ / bDelta)); 
@@ -1212,6 +1214,8 @@ CODE(131156)    // capslock + t
 virtual void execute(std::shared_ptr<MachineState> ms) { 
   ms->pushWord("synchronicServoA");
   ms->pushWord("comeToStop");
+  ms->pushWord("setMovementStateToMoving");
+  ms->pushWord("comeToStop");
 }
 END_WORD
 REGISTER_WORD(SynchronicServo)
@@ -1251,6 +1255,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     //ms->pushCopies("waitUntilImageCallbackReceived", 10);
     ms->pushCopies("waitUntilImageCallbackReceived", 10);
     ms->pushWord("resetAccumulatedDensity");
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
     ms->pushWord("comeToStop");
   }
 
@@ -1295,9 +1301,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     BoxMemory *lastAdded = &(blueBoxMemories[blueBoxMemories.size()-1]);
     lastAdded->cameraTime = ros::Time::now();
     lastAdded->aimedPose = currentEEPose;
+    // XXX picked pose doesn't seem to mean anything here so likely doesn't matteer
     lastAdded->pickedPose = currentEEPose;
     lastAdded->pickedPose.pz  = lastPickHeight;
+    // XXX picked pose doesn't seem to mean anything here so likely doesn't matteer
+    lastAdded->trZ  = trZ;
     cout << "recordTargetLock saving pickedPose..." << endl;
+    cout << "trZ = " << trZ << endl;
     cout << "Current EE Position (x,y,z): " << currentEEPose.px << " " << currentEEPose.py << " " << currentEEPose.pz << endl;
     cout << "Current EE Orientation (x,y,z,w): " << currentEEPose.qx << " " << currentEEPose.qy << " " << currentEEPose.qz << " " << currentEEPose.qw << endl;
     lastAdded->lockStatus = POSE_LOCK;
@@ -1332,11 +1342,16 @@ REGISTER_WORD(DarkServo)
 WORD(DarkServoA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
+  int numPause = 4;
   darkServoIterations++;
   ms->pushWord("darkServoB");
   ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushCopies("waitUntilImageCallbackReceived", 100);
   ms->pushWord("resetAccumulatedDensity");
+  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+  }
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition"); 
 }
@@ -1355,3 +1370,4 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 }
 END_WORD
 REGISTER_WORD(DarkServoB)
+

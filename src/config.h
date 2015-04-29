@@ -33,6 +33,9 @@ class EinConfig {
 
   movementState currentMovementState = STOPPED;
 
+  // set color reticles iterator
+  int scrI = 0;
+
 };
 
 #endif /* _CONFIG_H_ */

@@ -29,6 +29,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEEPose = memory.aimedPose;
   lastPickHeight = memory.pickedPose.pz;
   lastPrePickHeight = memory.aimedPose.pz;
+  trZ = memory.trZ;
 
   { // set the old box's lastMappedTime to moments after the start of time
     int iStart=-1, iEnd=-1, jStart=-1, jEnd=-1;
@@ -298,7 +299,7 @@ REGISTER_WORD(FillClearanceMap)
 WORD(SaveIkMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ofstream ofile;
-  string fileName = data_directory + "/" + left_or_right_arm + "IkMap";
+  string fileName = data_directory + "/config/" + left_or_right_arm + "IkMap";
   cout << "Saving ikMap to " << fileName << endl;
   ofile.open(fileName, ios::trunc | ios::binary);
   ofile.write((char*)ikMap, sizeof(int)*mapWidth*mapHeight);
@@ -309,8 +310,11 @@ REGISTER_WORD(SaveIkMap)
 
 WORD(LoadIkMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  // binary seems overkill but consider that this map is
+  //  for only one height and is 360kB in binary... how
+  //  big would it be in yml, and what if we want another height?
   ifstream ifile;
-  string fileName = data_directory + "/" + left_or_right_arm + "IkMap";
+  string fileName = data_directory + "/config/" + left_or_right_arm + "IkMap";
   cout << "Loading ikMap from " << fileName << endl;
   ifile.open(fileName, ios::binary);
   ifile.read((char*)ikMap, sizeof(int)*mapWidth*mapHeight);
@@ -887,6 +891,7 @@ REGISTER_WORD(GoClassifyBlueBoxes)
 
 WORD(AssumeFacePose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+
   //eePose facePose = {.px = 1.07226, .py = 0.564963, .pz = 0.287997,
   //                   .qx = -0.234838, .qy = 0.75433, .qz = 0.106368, .qw = 0.603757};      
   eePose facePose = {.px = 0.85838, .py = 0.56957, .pz = 0.163187,
@@ -899,12 +904,14 @@ END_WORD
 REGISTER_WORD(AssumeFacePose)
 
 
+/*
 WORD(DetectFaces)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   vector<Rect> faces = faceDetectAndDisplay(faceViewName, faceViewImage);
 }
 END_WORD
 REGISTER_WORD(DetectFaces)
+
 
 WORD(FaceServo)
 virtual void execute(std::shared_ptr<MachineState> ms)
@@ -942,3 +949,4 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(FaceServoB)
 
+*/

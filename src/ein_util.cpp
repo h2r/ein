@@ -112,3 +112,32 @@ eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
   result.qw = pose.orientation.w;
   return result;
 }
+
+
+
+void initializeMachine(shared_ptr<MachineState> ms) {
+  ms->pushWord("guiCustom1"); 
+  ms->pushWord("printState");
+  ms->pushCopies("zUp", 15);
+  int devInit = 1;
+  if (devInit) {
+    ms->pushWord("incrementTargetClass"); 
+    ms->pushWord("gradientServoTakeClosest"); 
+    ms->pushWord("synchronicServoTakeClosest");
+  }
+  ms->pushWord("silenceSonar");
+  ms->pushWord("printWords");
+  ms->pushWord("openGripper");
+  ms->pushWord("calibrateGripper");
+  ms->pushWord("shiftIntoGraspGear1"); 
+
+  {
+    ms->pushWord("fillClearanceMap"); 
+    ms->pushWord("moveCropToProperValue"); 
+    ms->pushWord("loadCalibration"); 
+    ms->pushWord("loadIkMap"); 
+    ms->pushWord("loadGripperMask"); 
+  }
+
+  ms->execute_stack = 1;
+}
