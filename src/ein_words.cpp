@@ -35,7 +35,10 @@ int register_word(std::shared_ptr<Word> word) {
 }
 
 
-
+// overall:  30s
+// no words;  12s
+// only vision, scanning, misc: 22s
+// only bandit, render, movement, servo: 22s
 
 namespace ein_words
 {

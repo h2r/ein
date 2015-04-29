@@ -12563,27 +12563,6 @@ void processSaliency(Mat in, Mat out) {
   GaussianBlur(out, out, cv::Size(0,0), saliencyPostSigma);
 }
 
-void testIncbet() {
-  cout << "no trials" << endl;
-  double successes = 0;
-  double failures = 0;
-  cout << "Successes: " << successes << " Failures: " << failures << endl;
-  for (double d = 0; d < 1; d +=0.01) {
-    // returns probability that mu <= d given successes and failures.
-    double result = cephes_incbet(successes + 1, failures + 1, d);
-    cout << "Result: " << result << endl;
-  }
-
-  successes = 10;
-  failures = 10;
-  cout << "Successes: " << successes << " Failures: " << failures << endl;
-  for (double d = 0; d < 1; d +=0.01) {
-    // returns probability that mu <= d given successes and failures.
-    double result = cephes_incbet(successes + 1, failures + 1, d);
-    cout << "Result: " << result << endl;
-  }
-}
-
 
 void mapxyToij(double x, double y, int * i, int * j) 
 {
@@ -12926,32 +12905,6 @@ void guardViewers() {
 
 
 
-void initializeMachine(shared_ptr<MachineState> ms) {
-  ms->pushWord("guiCustom1"); 
-  ms->pushWord("printState");
-  ms->pushCopies("zUp", 15);
-  int devInit = 1;
-  if (devInit) {
-    ms->pushWord("incrementTargetClass"); 
-    ms->pushWord("gradientServoTakeClosest"); 
-    ms->pushWord("synchronicServoTakeClosest");
-  }
-  ms->pushWord("silenceSonar");
-  ms->pushWord("printWords");
-  ms->pushWord("openGripper");
-  ms->pushWord("calibrateGripper");
-  ms->pushWord("shiftIntoGraspGear1"); 
-
-  {
-    ms->pushWord("fillClearanceMap"); 
-    ms->pushWord("moveCropToProperValue"); 
-    ms->pushWord("loadCalibration"); 
-    ms->pushWord("loadIkMap"); 
-    ms->pushWord("loadGripperMask"); 
-  }
-
-  ms->execute_stack = 1;
-}
 
 ////////////////////////////////////////////////
 // end node definitions 
@@ -13253,5 +13206,6 @@ int main(int argc, char **argv) {
 
   return 0;
 }
+ 
 
 #include "ein_words.cpp"
