@@ -57,6 +57,7 @@ stuff "./baxter.sh"
 screen -t " emacs"
 stuff "./baxter.sh"
 stuff "cd $(rospack find ein)"
+stuff "emacs -nw src/ein.cpp"
 screen -t " warehouseL"
 stuff "./baxter.sh"
 stuff "rosrun ein warehouse_client.py left"
