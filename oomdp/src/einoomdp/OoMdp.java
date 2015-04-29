@@ -63,10 +63,10 @@ public class OoMdp implements DomainGenerator {
 		
 		SADomain domain = new SADomain();
 		
-		Attribute xatt = new Attribute(domain, ATTX, AttributeType.INT);
+		Attribute xatt = new Attribute(domain, ATTX, AttributeType.REAL);
 		xatt.setLims(0, 10);
 		
-		Attribute yatt = new Attribute(domain, ATTY, AttributeType.INT);
+		Attribute yatt = new Attribute(domain, ATTY, AttributeType.REAL);
 		yatt.setLims(0, 10);
 		
 		ObjectClass agentClass = new ObjectClass(domain, CLASSAGENT);
@@ -141,10 +141,10 @@ public class OoMdp implements DomainGenerator {
 			
 			//get agent and current position
 			ObjectInstance agent = s.getFirstObjectOfClass(CLASSAGENT);
-			int curX = agent.getDiscValForAttribute(ATTX);
-			int curY = agent.getDiscValForAttribute(ATTY);
+			double curX = agent.getNumericValForAttribute(ATTX);
+			double curY = agent.getNumericValForAttribute(ATTY);
 			
-			//sample directon with random roll
+			//sample direction with random roll
 			double r = Math.random();
 			double sumProb = 0.;
 			int dir = 0;
@@ -211,7 +211,7 @@ public class OoMdp implements DomainGenerator {
 		}
 		
 		
-		protected int [] moveResult(int curX, int curY, int direction){
+		protected int [] moveResult(double curX, double curY, int direction){
 			
 			//first get change in x and y from direction using 0: north; 1: south; 2:east; 3: west
 			int xdelta = 0;
@@ -229,8 +229,8 @@ public class OoMdp implements DomainGenerator {
 				xdelta = -1;
 			}
 			
-			int nx = curX + xdelta;
-			int ny = curY + ydelta;
+			int nx = (int) (curX + xdelta);
+			int ny = (int) (curY + ydelta);
 			
 			int width = OoMdp.this.map.length;
 			int height = OoMdp.this.map[0].length;
@@ -238,8 +238,8 @@ public class OoMdp implements DomainGenerator {
 			//make sure new position is valid (not a wall or off bounds)
 			if(nx < 0 || nx >= width || ny < 0 || ny >= height ||  
 				OoMdp.this.map[nx][ny] == 1){
-				nx = curX;
-				ny = curY;
+				nx = (int) curX;
+				ny = (int) curY;
 			}
 				
 			
@@ -262,11 +262,11 @@ public class OoMdp implements DomainGenerator {
 			ObjectInstance agent = s.getObject(params[0]);
 			ObjectInstance location = s.getObject(params[1]);
 			
-			int ax = agent.getDiscValForAttribute(ATTX);
-			int ay = agent.getDiscValForAttribute(ATTY);
+			double ax = agent.getNumericValForAttribute(ATTX);
+			double ay = agent.getNumericValForAttribute(ATTY);
 			
-			int lx = location.getDiscValForAttribute(ATTX);
-			int ly = location.getDiscValForAttribute(ATTY);
+			double lx = location.getNumericValForAttribute(ATTX);
+			double ly = location.getNumericValForAttribute(ATTY);
 			
 			return ax == lx && ay == ly;
 		}
@@ -343,19 +343,19 @@ public class OoMdp implements DomainGenerator {
 			float width = cWidth / fWidth;
 			float height = cHeight / fHeight;
 			
-			int ax = ob.getDiscValForAttribute(ATTX);
-			int ay = ob.getDiscValForAttribute(ATTY);
+			double ax = ob.getNumericValForAttribute(ATTX);
+			double ay = ob.getNumericValForAttribute(ATTY);
 			
 			//left coordinate of cell on our canvas
-			float rx = ax*width;
+			double rx = ax*width;
 			
 			//top coordinate of cell on our canvas
 			//coordinate system adjustment because the java canvas 
 			//origin is in the top left instead of the bottom right
-			float ry = cHeight - height - ay*height;
+			double ry = cHeight - height - ay*height;
 		
 			//paint the rectangle
-			g2.fill(new Ellipse2D.Float(rx, ry, width, height));
+			g2.fill(new Ellipse2D.Double(rx, ry, width, height));
 			
 			
 		}
@@ -382,19 +382,19 @@ public class OoMdp implements DomainGenerator {
 			float width = cWidth / fWidth;
 			float height = cHeight / fHeight;
 			
-			int ax = ob.getDiscValForAttribute(ATTX);
-			int ay = ob.getDiscValForAttribute(ATTY);
+			double ax = ob.getNumericValForAttribute(ATTX);
+			double ay = ob.getNumericValForAttribute(ATTY);
 			
 			//left coordinate of cell on our canvas
-			float rx = ax*width;
+			double rx = ax*width;
 			
 			//top coordinate of cell on our canvas
 			//coordinate system adjustment because the java canvas 
 			//origin is in the top left instead of the bottom right
-			float ry = cHeight - height - ay*height;
+			double ry = cHeight - height - ay*height;
 		
 			//paint the rectangle
-			g2.fill(new Rectangle2D.Float(rx, ry, width, height));
+			g2.fill(new Rectangle2D.Double(rx, ry, width, height));
 			
 			
 		}
