@@ -586,6 +586,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(RasterScanningSpeed)
 
+WORD(FasterRasterScanningSpeed)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  currentEESpeedRatio = 0.1;
+}
+END_WORD
+REGISTER_WORD(FasterRasterScanningSpeed)
+
 WORD(IRCalibrationSpeed)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   currentEESpeedRatio = 0.04;

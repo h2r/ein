@@ -8540,6 +8540,9 @@ void initRangeMaps() {
   classHeight2AerialGradients.resize(numClasses);
   classHeight3AerialGradients.resize(numClasses);
 
+  pMachineState->config.classGraspZs.resize(numClasses);
+  pMachineState->config.classGraspZsSet.resize(numClasses);
+
   classHeightMemoryTries.resize(numClasses);
   classHeightMemoryPicks.resize(numClasses);
   for (int i = 0; i < classLabels.size(); i++) {
@@ -12388,6 +12391,24 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
     FileStorage fsfI;
     fsfI.open(this_range_path, FileStorage::READ);
     if (fsfI.isOpened()) {
+
+      {
+	FileNode anode = fsfI["graspZ"];
+
+	if (anode.type() == cv::FileNode::REAL){
+	  cout << "Loaded  classGraspZs from " << this_range_path << endl;
+	  FileNodeIterator it = anode.begin(), it_end = anode.end();
+	  pMachineState->config.currentGraspZ = *(it++);
+	  pMachineState->config.classGraspZs[i] = pMachineState->config.currentGraspZ;
+	  pMachineState->config.classGraspZsSet[i] = 1;
+	} else {
+	  cout << "Failed to load classGraspZs from " << this_range_path << endl;
+	  pMachineState->config.currentGraspZ = 0;
+	  pMachineState->config.classGraspZs[i] = pMachineState->config.currentGraspZ;
+	  pMachineState->config.classGraspZsSet[i] = 0;
+	}
+      }
+
       fsfI["rangeMap"] >> classRangeMaps[i]; 
 
       fsfI["graspMemoryTries1"] >> classGraspMemoryTries1[i];

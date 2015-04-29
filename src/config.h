@@ -36,6 +36,9 @@ class EinConfig {
   // set color reticles iterator
   int scrI = 0;
 
+  double currentGraspZ = 0;
+  vector<double> classGraspZs;
+  vector<double> classGraspZsSet;
 };
 
 #endif /* _CONFIG_H_ */
