@@ -99,9 +99,6 @@ MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
 
-double movingThreshold = 0.02;
-double hoverThreshold = 0.003; 
-double stoppedTimeout = 0.25;
 
 
 featureType chosen_feature = SIFTBOW_GLOBALCOLOR_HIST;
@@ -758,8 +755,8 @@ Mat preFrameGraySobel;
 int densityIterationsForGradientServo = 10;//3;//10;
 
 double graspDepthOffset = -0.04;
-double lastPickHeight = 0;
-double lastPrePickHeight = 0;
+eePose lastPickPose;
+eePose lastPrePickPose;
 double pickFlushFactor = 0.097;//0.08;//0.09;//0.11;
 
 int bbLearningMaxTries = 15;
@@ -1384,6 +1381,7 @@ void allRingBuffersAdvance(ros::Time t);
 void recordReadyRangeReadings();
 void jointCallback(const sensor_msgs::JointState& js);
 void endpointCallback(const baxter_core_msgs::EndpointState& eps);
+void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::EndpointState& eps);
 void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees);
 void fetchCommandCallback(const std_msgs::String::ConstPtr& msg);
 void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
@@ -2691,6 +2689,10 @@ void forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
 }
 
 void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
+  doEndpointCallback(pMachineState, eps);
+}
+
+void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::EndpointState& eps) {
 
 //  if (!shouldIMiscCallback) {
 //    return;
@@ -2719,38 +2721,39 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
     double distance = squareDistanceEEPose(trueEEPoseEEPose, lastTrueEEPoseEEPose);
     double distance2 = squareDistanceEEPose(trueEEPoseEEPose, currentEEPose);
 
-    if (pMachineState->config.currentMovementState == ARMED ) {
+    if (ms->config.currentMovementState == ARMED ) {
       if (distance2 > armedThreshold*armedThreshold) {
 	cout << "armedThreshold crossed so leaving armed state into MOVING." << endl;
-	pMachineState->config.currentMovementState = MOVING;
+	ms->config.currentMovementState = MOVING;
 	lastTrueEEPoseEEPose = trueEEPoseEEPose;
 	lastMovementStateSet = ros::Time::now();
       } else {
 	//cout << "pMachineState->config.currentMovementState is ARMED." << endl;
       }
-    } else if (distance > movingThreshold*movingThreshold) {
-      pMachineState->config.currentMovementState = MOVING;
+    } else if (distance > ms->config.movingThreshold*ms->config.movingThreshold) {
+      ms->config.currentMovementState = MOVING;
       lastTrueEEPoseEEPose = trueEEPoseEEPose;
       lastMovementStateSet = ros::Time::now();
-    } else if (distance > hoverThreshold*hoverThreshold) {
-      if (distance2 > hoverThreshold) {
-	pMachineState->config.currentMovementState = MOVING;
+    } else if (distance > ms->config.hoverThreshold*ms->config.hoverThreshold) {
+      if (distance2 > ms->config.hoverThreshold) {
+	ms->config.currentMovementState = MOVING;
 	lastTrueEEPoseEEPose = trueEEPoseEEPose;
 	lastMovementStateSet = ros::Time::now();
       } else {
-	pMachineState->config.currentMovementState = HOVERING;
+	ms->config.currentMovementState = HOVERING;
 	lastTrueEEPoseEEPose = trueEEPoseEEPose;
 	lastMovementStateSet = ros::Time::now();
       }
+
     } else {
       ros::Duration deltaT = ros::Time::now() - lastMovementStateSet;
-      if ( (deltaT.sec) > stoppedTimeout ) {
-	if (distance2 > hoverThreshold*hoverThreshold) {
-	  pMachineState->config.currentMovementState = BLOCKED;
+      if ( (deltaT.sec) > ms->config.stoppedTimeout ) {
+	if (distance2 > ms->config.hoverThreshold*ms->config.hoverThreshold) {
+	  ms->config.currentMovementState = BLOCKED;
 	  lastMovementStateSet = ros::Time::now();
 	  lastTrueEEPoseEEPose = trueEEPoseEEPose;
 	} else {
-	  pMachineState->config.currentMovementState = STOPPED;
+	  ms->config.currentMovementState = STOPPED;
 	  lastMovementStateSet = ros::Time::now();
 	  lastTrueEEPoseEEPose = trueEEPoseEEPose;
 	}
