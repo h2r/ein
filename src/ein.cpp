@@ -254,6 +254,8 @@ eePose beeRHome = {.px = 0.657579481614, .py = -0.168019, .pz = 0.0388352386502,
 eePose workCenter = {.px = 0.686428, .py = -0.509836, .pz = 0.0883011,
 		     .qx = -0.435468, .qy = 0.900181, .qz = 0.00453569, .qw = 0.00463141};
 
+eePose crane1;
+
 eePose crane1right = {.px = 0.0448714, .py = -1.04476, .pz = 0.698522,
 		     .qx = 0.631511, .qy = 0.68929, .qz = -0.25435, .qw = 0.247748};
 eePose crane2right = {.px = 0.617214, .py = -0.301658, .pz = 0.0533165,
@@ -758,7 +760,7 @@ int densityIterationsForGradientServo = 10;//3;//10;
 double graspDepthOffset = -0.04;
 double lastPickHeight = 0;
 double lastPrePickHeight = 0;
-double pickFlushFactor = 0.08;//0.09;//0.11;
+double pickFlushFactor = 0.097;//0.08;//0.09;//0.11;
 
 int bbLearningMaxTries = 15;
 int graspLearningMaxTries = 10;
@@ -5197,6 +5199,8 @@ void pilotInit() {
     defaultReticle = defaultLeftReticle;
     reticle = defaultReticle;
 
+    crane1 = crane1left;
+
     double ystart = 0.1;
     double yend = 0.7;
     int numposes = 4;
@@ -5323,6 +5327,8 @@ void pilotInit() {
     eepReg4 = rssPoseR; 
     defaultReticle = defaultRightReticle;
     reticle = defaultReticle;
+
+    crane1 = crane1right;
 
     double ystart = -0.7;
     double yend = -0.1;
@@ -8377,6 +8383,9 @@ void initRangeMaps() {
   classHeight1AerialGradients.resize(numClasses);
   classHeight2AerialGradients.resize(numClasses);
   classHeight3AerialGradients.resize(numClasses);
+
+  pMachineState->config.classGraspZs.resize(numClasses);
+  pMachineState->config.classGraspZsSet.resize(numClasses);
 
   classHeightMemoryTries.resize(numClasses);
   classHeightMemoryPicks.resize(numClasses);
@@ -12226,6 +12235,24 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
     FileStorage fsfI;
     fsfI.open(this_range_path, FileStorage::READ);
     if (fsfI.isOpened()) {
+
+      {
+	FileNode anode = fsfI["graspZ"];
+
+	if (anode.type() == cv::FileNode::REAL){
+	  cout << "Loaded  classGraspZs from " << this_range_path << endl;
+	  FileNodeIterator it = anode.begin(), it_end = anode.end();
+	  pMachineState->config.currentGraspZ = *(it++);
+	  pMachineState->config.classGraspZs[i] = pMachineState->config.currentGraspZ;
+	  pMachineState->config.classGraspZsSet[i] = 1;
+	} else {
+	  cout << "Failed to load classGraspZs from " << this_range_path << endl;
+	  pMachineState->config.currentGraspZ = 0;
+	  pMachineState->config.classGraspZs[i] = pMachineState->config.currentGraspZ;
+	  pMachineState->config.classGraspZsSet[i] = 0;
+	}
+      }
+
       fsfI["rangeMap"] >> classRangeMaps[i]; 
 
       fsfI["graspMemoryTries1"] >> classGraspMemoryTries1[i];
@@ -13018,7 +13045,9 @@ int main(int argc, char **argv) {
 
   saveROSParams();
 
-  initializeMachine(pMachineState);
+  if (chosen_mode == PHYSICAL) {
+    initializeMachine(pMachineState);
+  } 
 
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();
