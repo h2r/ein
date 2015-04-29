@@ -114,6 +114,7 @@ struct BoxMemory {
   ros::Time cameraTime;
   int labeledClassIndex;
   memoryLockType lockStatus;
+  double trZ;
 };
 
 typedef struct MapCell {
@@ -124,6 +125,6 @@ typedef struct MapCell {
 } MapCell;
 
 gsl_matrix * boxMemoryToPolygon(BoxMemory b);
-
+void initializeMachine(shared_ptr<MachineState> ms);
 
 #endif /* _EIN_UTIL_H_ */

@@ -1,7 +1,0 @@
-%YAML:1.0
-labels:
-   - class2
-   - class3
-poseModels:
-   - B
-   - S

@@ -72,7 +72,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   string dotdot("..");
 
   char buf[1024];
-  sprintf(buf, "%s", data_directory.c_str());
+  sprintf(buf, "%s/objects/", data_directory.c_str());
   dpdf = opendir(buf);
   if (dpdf != NULL){
     while (epdf = readdir(dpdf)){
@@ -149,7 +149,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     string thisLabelName = focusedClassLabel;
     Mat crop = cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
     char buf[1000];
-    string this_crops_path = data_directory + "/" + thisLabelName + "/rgb/";
+    string this_crops_path = data_directory + "/objects/" + thisLabelName + "/rgb/";
     sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
     imwrite(buf, crop);
     cropCounter++;
@@ -165,7 +165,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       string thisLabelName = focusedClassLabel;
       Mat crop = cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
       char buf[1000];
-      string this_crops_path = data_directory + "/" + thisLabelName + "/rgb/";
+      string this_crops_path = data_directory + "/objects/" + thisLabelName + "/rgb/";
       sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
       imwrite(buf, crop);
       cropCounter++;
@@ -419,6 +419,7 @@ REGISTER_WORD(ScanObject)
 WORD(PrepareForSearch)
 CODE(1114150)     // numlock + &
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  // XXX this should be computed here from the ir sensor offset
   currentEEPose.px = rmcX + drX;
   currentEEPose.py = rmcY + drY;
 }
@@ -542,7 +543,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushCopies('a',6);
 
   ms->pushWord(1048683); // turn on scanning
-  ms->pushNoOps(60);
+  ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord(1114155); // rotate gear
 
   ms->pushWord("fullRender"); // full render
@@ -562,9 +563,40 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord(1048683); // turn on scanning
   ms->pushWord("initDepthScan"); // clear scan history
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("shiftIntoGraspGear1"); 
 }
 END_WORD
 REGISTER_WORD(NeutralScanA)
+
+WORD(NeutralScanH)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Entering HALF neutral scan." << endl;
+  double lineSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
+  double betweenSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
+
+  ms->pushWord("fullRender"); // full render
+  ms->pushWord("paintReticles"); // render reticle
+  ms->pushWord("shiftIntoGraspGear1"); // change to first gear
+  ms->pushWord("drawMapRegisters"); // render register 1
+  ms->pushWord("downsampleIrScan"); // load map to register 1
+  {
+    ms->pushWord(1048678); // target best grasp
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord("shiftIntoGraspGear1"); // change to first gear
+  }
+  ms->pushWord(1048630); // find best grasp
+
+  scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
+  ms->pushWord(1114150); // prepare for search
+
+  ms->pushWord(1048683); // turn on scanning
+  ms->pushWord("initDepthScan"); // clear scan history
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("shiftIntoGraspGear1"); 
+}
+END_WORD
+REGISTER_WORD(NeutralScanH)
 
 WORD(SaveAerialGradientMap)
 CODE(196730)      // capslock + Z
@@ -578,7 +610,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     string thisLabelName = focusedClassLabel;
 
     char buf[1000];
-    string dirToMakePath = data_directory + "/" + thisLabelName + "/aerialGradient/";
+    string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
     string this_range_path;
 
     // ATTN 16
@@ -701,9 +733,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string thisLabelName(buf);
   focusedClassLabel = thisLabelName;
   classLabels.push_back(thisLabelName);
-  string dirToMakePath = data_directory + "/" + thisLabelName + "/";
+  string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/";
   mkdir(dirToMakePath.c_str(), 0777);
-  string rgbDirToMakePath = data_directory + "/" + thisLabelName + "/rgb";
+  string rgbDirToMakePath = data_directory + "/objects/" + thisLabelName + "/rgb";
   mkdir(rgbDirToMakePath.c_str(), 0777);
   newClassCounter++;
 }
@@ -721,7 +753,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     string thisLabelName = focusedClassLabel;
 
     char buf[1000];
-    string dirToMakePath = data_directory + "/" + thisLabelName + "/ir2D/";
+    string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 
     Mat rangeMapTemp(rmWidth, rmWidth, CV_64F);
@@ -805,7 +837,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double utZDelta = fabs(mostRecentUntabledZ - mostRecentUntabledZLastValue);
     endThisStackCollapse = 1;
     ms->pushWord("setTableA");
-    cout << "Looks like the table reading hasn't steadied to within the wait of " << mostRecentUntabledZWait << " ." << endl;
+    cout << "Looks like the table reading hasn't steadied for the wait of " << mostRecentUntabledZWait << " ." << endl;
     cout << "  current, last, delta: " << mostRecentUntabledZ << " " << mostRecentUntabledZLastValue << " " << utZDelta << endl;
   } 
 }
@@ -816,11 +848,21 @@ WORD(SetIROffset)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setIROffsetA");
   ms->pushWord("cruisingSpeed");
-  ms->pushWord("neutralScanA");
+  ms->pushWord("neutralScanH");
   ms->pushWord("iRCalibrationSpeed");
+  cout << "Commencing HALF neutral scan for SetIROffset." << endl;
 }
 END_WORD
 REGISTER_WORD(SetIROffset)
+
+WORD(ZeroIROffset)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  gear0offset = Eigen::Quaternionf(0.0, 0.0, 0.0, 0.0);
+  Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
+  irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+}
+END_WORD
+REGISTER_WORD(ZeroIROffset)
 
 WORD(SetIROffsetA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -829,28 +871,134 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // compare the coordinate to the root position
   // adjust offset
   // if adjustment was large, recommend running again
+  double minDepth = VERYBIGNUMBER;
+  double maxDepth = 0;
+  int minX=-1, minY=-1;
+  int maxX=-1, maxY=-1;
+
+  for (int rx = 0; rx < hrmWidth; rx++) {
+    for (int ry = 0; ry < hrmWidth; ry++) {
+      double thisDepth = hiRangeMap[rx + ry*hrmWidth];
+      if (thisDepth < minDepth) {
+	minDepth = thisDepth;
+	minX = rx;
+	minY = ry;
+      }
+      if (thisDepth > maxDepth) {
+	maxDepth = thisDepth;
+	maxX = rx;
+	maxY = ry;
+      }
+    }
+  }
+
+  double offByX = ((minX-hrmHalfWidth)*hrmDelta);
+  double offByY = ((minY-hrmHalfWidth)*hrmDelta);
+
+  cout << "SetIROffsetA, hrmHalfWidth minX minY offByX offByY: " << hrmHalfWidth << " " << minX << " " << minY << " " << offByX << " " << offByY << endl;
+
+  gear0offset = Eigen::Quaternionf(0.0, 
+    gear0offset.x()+offByX, 
+    gear0offset.y()+offByY, 
+    0.0167228); // z is from TF, good for depth alignment
+
+  Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
+  irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
 }
 END_WORD
 REGISTER_WORD(SetIROffsetA)
 
-WORD(SetCameraReticles)
+WORD(SetHeightReticles)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
-  // setReticlesA
-  // go to height
-  // setReticlesA
-  // go to height
+  int heightWaits = 100;
+  int numPause = 4; 
+  
+
+  ms->pushWord("setHeightReticlesA");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", heightWaits);
+  ms->pushWord("resetAccumulatedDensity");
+  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+  }
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("changeToHeight3");
+
+  ms->pushWord("setHeightReticlesA");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", heightWaits);
+  ms->pushWord("resetAccumulatedDensity");
+  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+  }
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("changeToHeight2");
+
+  ms->pushWord("setHeightReticlesA");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", heightWaits);
+  ms->pushWord("resetAccumulatedDensity");
+  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+  }
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("changeToHeight1");
+
+  ms->pushWord("setHeightReticlesA");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", heightWaits);
+  ms->pushWord("resetAccumulatedDensity");
+  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+  }
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("changeToHeight0");
 
 }
 END_WORD
-REGISTER_WORD(SetCameraReticles)
+REGISTER_WORD(SetHeightReticles)
 
-WORD(SetCameraReticlesA)
+WORD(PrintGlobalToPixel)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-
+  {
+    double zToUse = trueEEPose.position.z+currentTableZ;
+    int eX=0, eY=0;
+    //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    globalToPixelPrint(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+  }
 }
 END_WORD
-REGISTER_WORD(SetCameraReticlesA)
+REGISTER_WORD(PrintGlobalToPixel)
+
+WORD(SetHeightReticlesA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int darkX = 0;
+  int darkY = 0;
+  findDarkness(&darkX, &darkY);
+
+  pilotTarget.px = darkX;
+  pilotTarget.py = darkY;
+
+  heightReticles[currentThompsonHeightIdx].px = darkX;
+  heightReticles[currentThompsonHeightIdx].py = darkY;
+
+  cout << "setHeightReticles,  currentThompsonHeightIdx: " << currentThompsonHeightIdx << endl;
+  printEEPose(heightReticles[0]); cout << endl;
+  printEEPose(heightReticles[1]); cout << endl;
+  printEEPose(heightReticles[2]); cout << endl;
+  printEEPose(heightReticles[3]); cout << endl;
+}
+END_WORD
+REGISTER_WORD(SetHeightReticlesA)
 
 WORD(MoveCropToCenter)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -872,6 +1020,20 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(MoveCropToCenter)
+
+WORD(MoveCropToProperValue)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  baxter_core_msgs::OpenCamera ocMessage;
+  ocMessage.request.name = left_or_right_arm + "_hand_camera";
+  ocMessage.request.settings.controls.resize(2);
+  ocMessage.request.settings.controls[0].id = 105;
+  ocMessage.request.settings.controls[0].value = cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[1].id = 106;
+  ocMessage.request.settings.controls[1].value = cropUpperLeftCorner.py;
+  int testResult = cameraClient.call(ocMessage);
+}
+END_WORD
+REGISTER_WORD(MoveCropToProperValue)
 
 WORD(MoveCropToCenterVanishingPoint)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -915,7 +1077,7 @@ REGISTER_WORD(MoveToSetVanishingPointHeightLow)
 
 WORD(MoveToSetVanishingPointHeightHigh)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose.pz = maxHeight - currentTableZ;
+  currentEEPose.pz = ((0.75*maxHeight)+(0.25*minHeight)) - currentTableZ;
 }
 END_WORD
 REGISTER_WORD(MoveToSetVanishingPointHeightHigh)
@@ -943,13 +1105,17 @@ REGISTER_WORD(SetVanishingPointPrep)
 
 WORD(SetVanishingPointA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  
+  int numPause = 4;
+
   setVanishingPointIterations++;
-  currentEEPose.pz = -currentTableZ + 0.4;
   ms->pushWord("setVanishingPointB");
   ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushCopies("waitUntilImageCallbackReceived", 100);
   ms->pushWord("resetAccumulatedDensity");
+  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+  }
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("moveToSetVanishingPointHeightHigh");
@@ -988,8 +1154,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetVanishingPointB)
 
+
 WORD(SetMagnification)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  int translationSteps = 5;
+  int imCallsToWait = 10;
+
+  int nudgeSteps = 4;
 
   // move back
   // adjust until close	
@@ -997,13 +1168,97 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // adjust until close	
   // move over 
   // go to height
+  translationSteps = 15;
+  ms->pushCopies("xDown", translationSteps);
+  ms->pushCopies("yDown", nudgeSteps);
+  ms->pushWord("setMagnificationA");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", imCallsToWait);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies("yUp", nudgeSteps);
+  ms->pushCopies("xUp", translationSteps);
+  ms->pushCopies("yDown", translationSteps);
+  ms->pushCopies("xDown", nudgeSteps);
+  ms->pushWord("setMagnificationB");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", imCallsToWait);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies("xUp", nudgeSteps);
+  ms->pushCopies("yUp", translationSteps);
+  ms->pushWord("changeToHeight3");
 
-  // move back
-  // adjust until close	
-  // move back over then down 
-  // adjust until close	
-  // move over 
-  // go to height
+  translationSteps = 15;
+  ms->pushCopies("xDown", translationSteps);
+  ms->pushCopies("yDown", nudgeSteps);
+  ms->pushWord("setMagnificationA");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", imCallsToWait);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies("yUp", nudgeSteps);
+  ms->pushCopies("xUp", translationSteps);
+  ms->pushCopies("yDown", translationSteps);
+  ms->pushCopies("xDown", nudgeSteps);
+  ms->pushWord("setMagnificationB");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", imCallsToWait);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies("xUp", nudgeSteps);
+  ms->pushCopies("yUp", translationSteps);
+  ms->pushWord("changeToHeight2");
+
+  translationSteps = 15;
+  ms->pushCopies("xDown", translationSteps);
+  ms->pushCopies("yDown", nudgeSteps);
+  ms->pushWord("setMagnificationA");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", imCallsToWait);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies("yUp", nudgeSteps);
+  ms->pushCopies("xUp", translationSteps);
+  ms->pushCopies("yDown", translationSteps);
+  ms->pushCopies("xDown", nudgeSteps);
+  ms->pushWord("setMagnificationB");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", imCallsToWait);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies("xUp", nudgeSteps);
+  ms->pushCopies("yUp", translationSteps);
+  ms->pushWord("changeToHeight1");
+
+  translationSteps = 10;
+  ms->pushCopies("xDown", translationSteps);
+  ms->pushCopies("yDown", nudgeSteps);
+  ms->pushWord("setMagnificationA");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", imCallsToWait);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies("yUp", nudgeSteps);
+  ms->pushCopies("xUp", translationSteps);
+  ms->pushCopies("yDown", translationSteps);
+  ms->pushCopies("xDown", nudgeSteps);
+  ms->pushWord("setMagnificationB");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", imCallsToWait);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies("xUp", nudgeSteps);
+  ms->pushCopies("yUp", translationSteps);
+  ms->pushWord("changeToHeight0");
 }
 END_WORD
 REGISTER_WORD(SetMagnification)
@@ -1011,9 +1266,132 @@ REGISTER_WORD(SetMagnification)
 WORD(SetMagnificationA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // adjust until close	
+
+  int darkX = 0;
+  int darkY = 0;
+  findDarkness(&darkX, &darkY);
+
+  pilotTarget.px = darkX;
+  pilotTarget.py = darkY;
+
+  int magIters = 2000; 
+  double magStep = 0.01;
+
+  for (int i = 0; i < magIters; i++) {
+    double zToUse = trueEEPose.position.z+currentTableZ;
+    int eX=0, eY=0;
+    //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    globalToPixelPrint(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+
+    // remember this is flipped!
+    double Px = darkY - eY;
+    double Py = darkX - eX;
+
+    double xFlip = 1.0;
+    double yFlip = 1.0;
+
+    // remember x, y are swapped
+    eePose thisFlipReticle = heightReticles[currentThompsonHeightIdx];
+    if (darkX < thisFlipReticle.px) {
+      yFlip = -1.0;
+    }
+    if (darkY < thisFlipReticle.py) {
+      xFlip = -1.0;
+    }
+
+    cout << "about to adjust m_x, darkX eX Px xFlip darkY eY Py yFlip: " << darkX << " " << eX << " " << Px << " " << xFlip << " " << darkY << " " << eY << " " << Py << " " << yFlip << " ";
+
+    // only do x
+    if ((Px*xFlip) > 0) {
+      m_x += .01;
+      m_x_h[currentThompsonHeightIdx] = m_x;
+      cout << "m_x++ ";
+    } else if ((Px*xFlip) < 0) {
+      m_x -= .01;
+      m_x_h[currentThompsonHeightIdx] = m_x;
+      cout << "m_x-- ";
+    }
+
+    cout << endl;
+  }
 }
 END_WORD
 REGISTER_WORD(SetMagnificationA)
+
+WORD(SetMagnificationB)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // adjust until close	
+
+  int darkX = 0;
+  int darkY = 0;
+  findDarkness(&darkX, &darkY);
+
+  pilotTarget.px = darkX;
+  pilotTarget.py = darkY;
+
+  int magIters = 2000; 
+  double magStep = 0.01;
+
+  for (int i = 0; i < magIters; i++) {
+    double zToUse = trueEEPose.position.z+currentTableZ;
+    int eX=0, eY=0;
+    //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    globalToPixelPrint(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+
+    // remember this is flipped!
+    double Px = darkY - eY;
+    double Py = darkX - eX;
+
+    double xFlip = 1.0;
+    double yFlip = 1.0;
+
+    // remember x, y are swapped
+    eePose thisFlipReticle = heightReticles[currentThompsonHeightIdx];
+    if (darkX < thisFlipReticle.px) {
+      yFlip = -1.0;
+    }
+    if (darkY < thisFlipReticle.py) {
+      xFlip = -1.0;
+    }
+
+    cout << "about to adjust m_y, darkX eX Px xFlip darkY eY Py yFlip: " << darkX << " " << eX << " " << Px << " " << xFlip << " " << darkY << " " << eY << " " << Py << " " << yFlip << " ";
+
+    // only do y
+    if ((Py*yFlip) > 0) {
+      m_y += .01;
+      m_y_h[currentThompsonHeightIdx] = m_y;
+      cout << "m_y++ ";
+    } else if ((Py*yFlip) < 0) {
+      m_y -= .01;
+      m_y_h[currentThompsonHeightIdx] = m_y;
+      cout << "m_y-- ";
+    }
+
+    cout << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(SetMagnificationB)
+
+WORD(SetGripperMaskOnes)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  gripperMask.create(gripperMaskFirstContrast.size(), CV_8U);
+  cumulativeGripperMask.create(gripperMaskFirstContrast.size(), CV_8U);
+
+  Size sz = gripperMask.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      gripperMask.at<uchar>(y,x) = 1;
+      cumulativeGripperMask.at<uchar>(y,x) = 1;
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SetGripperMaskOnes)
 
 WORD(SetGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1028,18 +1406,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetGripperMask)
 
-WORD(SetGripperMaskA)
+WORD(SetGripperMaskAA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "Program paused; please present the second contrast medium." << endl;
-  ms->pushWord("setGripperMaskB"); 
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", 10);
-  ms->pushWord("resetAccumulatedDensity");
-  ms->pushWord("comeToStop");
-  ms->pushWord("pauseStackExecution"); 
-
   gripperMaskFirstContrast = accumulatedImage.clone();
   gripperMaskSecondContrast = gripperMaskFirstContrast.clone();
+
   gripperMask.create(gripperMaskFirstContrast.size(), CV_8U);
 
   Size sz = gripperMask.size();
@@ -1056,8 +1427,41 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       gripperMaskFirstContrast.at<Vec3d>(y,x)[0] = (accumulatedImage.at<Vec3d>(y,x)[0] / denom);
       gripperMaskFirstContrast.at<Vec3d>(y,x)[1] = (accumulatedImage.at<Vec3d>(y,x)[1] / denom);
       gripperMaskFirstContrast.at<Vec3d>(y,x)[2] = (accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+
+      gripperMask.at<uchar>(y,x) = 0;
     }
   }
+}
+END_WORD
+REGISTER_WORD(SetGripperMaskAA)
+
+WORD(InitCumulativeGripperMask)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cumulativeGripperMask.create(accumulatedImage.size(), CV_8U);
+  Size sz = cumulativeGripperMask.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      cumulativeGripperMask.at<uchar>(y,x) = 0;
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(InitCumulativeGripperMask)
+
+WORD(SetGripperMaskA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Program paused; please present the second contrast medium." << endl;
+  ms->pushWord("setGripperMaskB"); 
+  ms->pushWord("setGripperMaskBA"); 
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("pauseStackExecution"); 
+  ms->pushWord("setGripperMaskAA"); 
+  ms->pushWord("initCumulativeGripperMask"); 
 }
 END_WORD
 REGISTER_WORD(SetGripperMaskA)
@@ -1065,13 +1469,19 @@ REGISTER_WORD(SetGripperMaskA)
 WORD(SetGripperMaskB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Thank you. Don't forget to save your mask!" << endl;
+}
+END_WORD
+REGISTER_WORD(SetGripperMaskB)
+
+WORD(SetGripperMaskBA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
 
   Size sz = gripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
 
   int dilationPixels = 10;
-  double baseThresh = 10;
+  double baseThresh = 5;
   double multiThresh = 3*baseThresh*baseThresh;
 
   cout << "  multiThresh dilationPixels: " << multiThresh << " " << dilationPixels << endl;
@@ -1096,7 +1506,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       (gripperMaskFirstContrast.at<Vec3d>(y,x)[2] - gripperMaskSecondContrast.at<Vec3d>(y,x)[2]));
 
       if(maskDiff < 1000) {
-	cout << multiThresh << " " << maskDiff << endl;
+	//cout << multiThresh << " " << maskDiff << endl;
       }
 
       if (maskDiff > multiThresh) {
@@ -1126,11 +1536,68 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 }
 END_WORD
-REGISTER_WORD(SetGripperMaskB)
+REGISTER_WORD(SetGripperMaskBA)
+
+WORD(SetGripperMaskWithMotion)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord("setGripperMaskWithMotionA");
+  ms->pushWord("initCumulativeGripperMask");
+}
+END_WORD
+REGISTER_WORD(SetGripperMaskWithMotion)
+
+WORD(SetGripperMaskWithMotionA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int maskMotions = 25;
+  cout << "Setting gripper mask with motion, iterations: " << maskMotions << endl;
+
+  for (int m = 0; m < maskMotions; m++) {
+    // watch it as it develops
+    ms->pushWord("saveGripperMask");
+    ms->pushWord("setGripperMaskCB");
+
+    // once observed always observed
+    ms->pushWord("setGripperMaskCA");
+
+    ms->pushWord("setGripperMaskBA"); 
+    ms->pushWord("accumulatedDensity");
+    ms->pushCopies("waitUntilImageCallbackReceived", 10);
+    ms->pushWord("resetAccumulatedDensity");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+
+    // move speed not set so that you can control for aliasing from repl
+    ms->pushWord("yDown");
+  }
+
+  ms->pushWord("setGripperMaskAA"); 
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+}
+END_WORD
+REGISTER_WORD(SetGripperMaskWithMotionA)
+
+WORD(SetGripperMaskCA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cumulativeGripperMask = max(cumulativeGripperMask, gripperMask);
+}
+END_WORD
+REGISTER_WORD(SetGripperMaskCA)
+
+WORD(SetGripperMaskCB)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  gripperMask = cumulativeGripperMask.clone();
+  cout << "Thank you. Don't forget to save your mask!" << endl;
+}
+END_WORD
+REGISTER_WORD(SetGripperMaskCB)
 
 WORD(LoadGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string filename = data_directory + "/" + left_or_right_arm + "GripperMask.bmp";
+  string filename = data_directory + "/config/" + left_or_right_arm + "GripperMask.bmp";
   cout << "Loading gripper mask from " << filename << endl;
   Mat tmpMask = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
   cout << "  tmpMask.type() tmpMask.size(): " << tmpMask.type() << " " << tmpMask.size() << endl;
@@ -1156,9 +1623,107 @@ REGISTER_WORD(LoadGripperMask)
 
 WORD(SaveGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string filename = data_directory + "/" + left_or_right_arm + "GripperMask.bmp";
+  string filename = data_directory + "/config/" + left_or_right_arm + "GripperMask.bmp";
   cout << "Saving gripper mask to " << filename << endl;
   imwrite(filename, 255*gripperMask);
 }
 END_WORD
 REGISTER_WORD(SaveGripperMask)
+
+WORD(CalibrateRGBCameraIntrinsics)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord("setMagnification");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("moveToRegister1");
+
+  ms->pushWord("setHeightReticles");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("moveToRegister1");
+
+  ms->pushWord("setVanishingPoint");
+  ms->pushWord("moveCropToCenter");
+
+  int tablePeek = 5;
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies("xUp", tablePeek);
+  ms->pushWord("setTable");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies("xDown", tablePeek);
+  ms->pushWord("setMovementSpeedMoveFast");
+
+  ms->pushWord("saveRegister1");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+}
+END_WORD
+REGISTER_WORD(CalibrateRGBCameraIntrinsics)
+
+WORD(AssumeCalibrationPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  currentEEPose = calibrationPose;
+}
+END_WORD
+REGISTER_WORD(AssumeCalibrationPose)
+
+WORD(LoadCalibration)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string fileName = data_directory + "/config/" + left_or_right_arm + "Calibration.yml";
+  cout << "Loading calibration file from " << fileName << endl;
+  loadCalibration(fileName);
+}
+END_WORD
+REGISTER_WORD(LoadCalibration)
+
+WORD(SaveCalibration)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string fileName = data_directory + "/config/" + left_or_right_arm + "Calibration.yml";
+  cout << "Saving calibration file from " << fileName << endl;
+  saveCalibration(fileName);
+}
+END_WORD
+REGISTER_WORD(SaveCalibration)
+
+WORD(SetColorReticles)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  bDelta = cReticleIndexDelta;
+  currentEEPose.pz = firstCReticleIndexDepth;
+
+  // leave it in a canonical state
+  ms->pushWord("setMovementSpeedMoveFast");
+
+  int * i = &(pMachineState->config.scrI);
+
+  for ((*i) = 0; (*i) < numCReticleIndeces; (*i)++) {
+    ms->pushWord("zUp");
+    ms->pushWord("setColorReticlesA");
+    ms->pushWord("accumulatedDensity");
+    ms->pushCopies("waitUntilImageCallbackReceived", 100);
+    ms->pushWord("resetAccumulatedDensity");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+  }
+}
+END_WORD
+REGISTER_WORD(SetColorReticles)
+
+WORD(SetColorReticlesA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int lightX = 0;
+  int lightY = 0;
+  findLight(&lightX, &lightY);
+
+  pilotTarget.px = lightX;
+  pilotTarget.py = lightY;
+
+  int * i = &(pMachineState->config.scrI);
+  xCR[(*i)] = lightX;
+  yCR[(*i)] = lightY;
+}
+END_WORD
+REGISTER_WORD(SetColorReticlesA)
+
