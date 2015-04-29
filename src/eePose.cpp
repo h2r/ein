@@ -17,4 +17,9 @@ double squareDistanceEEPose(eePose pose1, eePose pose2) {
 }
 
 
-
+eePose rectCentroidToEEPose(Rect rect) {
+  eePose result;
+  result.px = rect.x + rect.width * 0.5;
+  result.py = rect.y + rect.width * 0.5;
+  return result;
+}

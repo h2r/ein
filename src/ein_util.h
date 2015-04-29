@@ -125,6 +125,6 @@ typedef struct MapCell {
 } MapCell;
 
 gsl_matrix * boxMemoryToPolygon(BoxMemory b);
-
+void initializeMachine(shared_ptr<MachineState> ms);
 
 #endif /* _EIN_UTIL_H_ */
