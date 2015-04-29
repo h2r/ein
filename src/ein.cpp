@@ -569,6 +569,7 @@ double w1GoThresh = 0.03;//0.01;
 double w1AngleThresh = 0.02; 
 double synKp = 0.0005;
 double darkKp = 0.0005;
+double faceKp = 0.001;
 double gradKp = 0.00025;//0.0005;
 double kPtheta1 = 1.0;//0.75;
 double kPtheta2 = 0.125;//0.75;
@@ -895,6 +896,10 @@ Mat gripperMask;
 int darkServoIterations = 0;
 int darkServoTimeout = 20;
 int darkServoPixelThresh = 10;
+
+int faceServoIterations = 0;
+int faceServoTimeout = 2000;
+int faceServoPixelThresh = 1;
 
 int setVanishingPointPixelThresh = 3;
 int setVanishingPointIterations = 0;
@@ -1478,6 +1483,7 @@ void moveCurrentGripperRayToCameraVanishingRay();
 void gradientServo(shared_ptr<MachineState> ms);
 void synchronicServo(shared_ptr<MachineState> ms);
 void darkServo(shared_ptr<MachineState> ms);
+void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces);
 int simulatedServo();
 
 void initRangeMaps();
@@ -8332,249 +8338,81 @@ void darkServo(shared_ptr<MachineState> ms) {
   }
 }
 
-/*
-int simulatedServo() {
-  cout << "Starting simulated servo with " << numClasses << " classes." << endl;
+void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces) {
 
-  Size sz = objectViewerImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  reticle = heightReticles[currentThompsonHeightIdx];
-
-  int bestClass = -1;
-  double bestOrientationScore = -INFINITY;
-
-  for (int thisCandidateClass = 0; thisCandidateClass < numClasses; thisCandidateClass++) {
-    cout << "Simulated Servo class " << thisCandidateClass << ": "; 
-    if ((classAerialGradients[thisCandidateClass].rows <= 1) && (classAerialGradients[thisCandidateClass].cols <= 1)) {
-      cout << "no aerial gradients for this class, skipping." << endl;
-      continue;
-    } else {
-      cout << "found aerial gradients for this class, considering." << endl;
-    } 
-
-    switch (currentThompsonHeightIdx) {
-    case 0:
-      {
-	classAerialGradients[thisCandidateClass] = classHeight0AerialGradients[thisCandidateClass];
-      }
-      break;
-    case 1:
-      {
-	classAerialGradients[thisCandidateClass] = classHeight1AerialGradients[thisCandidateClass];
-      }
-      break;
-    case 2:
-      {
-	classAerialGradients[thisCandidateClass] = classHeight2AerialGradients[thisCandidateClass];
-      }
-      break;
-    case 3:
-      {
-	classAerialGradients[thisCandidateClass] = classHeight3AerialGradients[thisCandidateClass];
-      }
-      break;
-    default:
-      {
-	assert(0);
-      }
-      break;
-    }
-
-
-    Size toBecome(aerialGradientWidth, aerialGradientWidth);
-
-    int numOrientations = 37;
-    vector<Mat> rotatedAerialGrads;
-
-    // ATTN 3
-    // gradientServoScale should be even
-    int gradientServoScale = 3;//11;
-    double gradientServoScaleStep = 1.02;
-    double startScale = pow(gradientServoScaleStep, -(gradientServoScale-1)/2);
-
-    //rotatedAerialGrads.resize(numOrientations);
-    rotatedAerialGrads.resize(gradientServoScale*numOrientations);
-
-    for (int etaS = 0; etaS < gradientServoScale; etaS++) {
-      double thisScale = startScale * pow(gradientServoScaleStep, etaS);
-      for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-	// rotate the template and L2 normalize it
-	Point center = Point(aerialGradientWidth/2, aerialGradientWidth/2);
-	double angle = thisOrient*360.0/numOrientations;
-
-	double scale = thisScale;
-
-	// Get the rotation matrix with the specifications above
-	Mat rot_mat = getRotationMatrix2D(center, angle, scale);
-	warpAffine(classAerialGradients[thisCandidateClass], rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
-
-	processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations], rotatedAerialGrads[thisOrient + etaS*numOrientations]);
-
-
-	double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(aerialGradientWidth*aerialGradientWidth);
-	rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
-	double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations]);
-	if (l2norm <= EPSILON)
-	  l2norm = 1.0;
-	rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l2norm;
-      }
-    }
-
-    int bestOrientation = -1;
-    double bestCropNorm = 1.0;
-    int bestX = -1;
-    int bestY = -1;
-    int bestS = -1;
-
-    int crows = aerialGradientReticleWidth;
-    int ccols = aerialGradientReticleWidth;
-    int maxDim = max(crows, ccols);
-    int tRy = (maxDim-crows)/2;
-    int tRx = (maxDim-ccols)/2;
-
-    //int gradientServoTranslation = 40;
-    //int gsStride = 2;
-    int gradientServoTranslation = 40;
-    int gsStride = 2;
-
-    //rotatedAerialGrads.resize(gradientServoScale*numOrientations);
-    int gSTwidth = 2*gradientServoTranslation + 1;
-    double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
-
-    for (int etaS = 0; etaS < gradientServoScale; etaS++) {
-#pragma omp parallel for
-      for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
-	for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
-	  // get the patch
-	  int topCornerX = etaX + reticle.px - (aerialGradientReticleWidth/2);
-	  int topCornerY = etaY + reticle.py - (aerialGradientReticleWidth/2);
-	  Mat gCrop(maxDim, maxDim, CV_64F);
-
-	  for (int x = 0; x < maxDim; x++) {
-	    for (int y = 0; y < maxDim; y++) {
-	      int tx = x - tRx;
-	      int ty = y - tRy;
-	      int tCtx = topCornerX + tx;
-	      int tCty = topCornerY + ty;
-	      if ( (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) &&
-					       (tCtx > 0) && (tCty > 0) && (tCtx < imW) && (tCty < imH) ) {
-	      gCrop.at<double>(y, x) = frameGraySobel.at<double>(topCornerY + ty, topCornerX + tx);
-	      } else {
-		gCrop.at<double>(y, x) = 0.0;
-	      }
-	    }
-	  }
-
-	  cv::resize(gCrop, gCrop, toBecome);
-
-	  processSaliency(gCrop, gCrop);
-
-	  {
-	    double mean = gCrop.dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, gCrop.type())) / double(aerialGradientWidth*aerialGradientWidth);
-	    gCrop = gCrop - mean;
-	    double l2norm = gCrop.dot(gCrop);
-
-	    //cout << l2norm << " " << endl;
-	    if (l2norm <= EPSILON)
-	      l2norm = 1.0;
-	    gCrop = gCrop / l2norm;
-	  }
-
-	  for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-	    // orientation cascade
-
-	    // compute the score
-	    double thisScore = 0;
-	    thisScore = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(gCrop);
-
-	    int tEtaX = etaX+gradientServoTranslation;
-	    int tEtaY = etaY+gradientServoTranslation;
-	    allScores[tEtaX][tEtaY][etaS][thisOrient] = thisScore;
-	  }
-	}
-      }
-    }
-
-    // perform max
-    for (int etaS = 0; etaS < gradientServoScale; etaS++) {
-      for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
-	for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
-	  // get the patch
-	  int topCornerX = etaX + reticle.px - (aerialGradientReticleWidth/2);
-	  int topCornerY = etaY + reticle.py - (aerialGradientReticleWidth/2);
-	  Mat gCrop(maxDim, maxDim, CV_64F);
-
-	  // throw it out if it isn't contained in the image
-//	  if ( (topCornerX+aerialGradientWidth >= imW) || (topCornerY+aerialGradientWidth >= imH) )
-//	    continue;
-//	  if ( (topCornerX < 0) || (topCornerY < 0) )
-//	    continue;
-
-	  for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-	    int tEtaX = etaX+gradientServoTranslation;
-	    int tEtaY = etaY+gradientServoTranslation;
-	    double thisScore = allScores[tEtaX][tEtaY][etaS][thisOrient];
-
-	    if (thisScore > bestOrientationScore) {
-	      bestOrientation = thisOrient;
-	      bestOrientationScore = thisScore;
-	      bestCropNorm = sqrt(gCrop.dot(gCrop));
-	      bestX = etaX;
-	      bestY = etaY;
-	      bestS = etaS;
-	      bestClass = thisCandidateClass;
-	      cout << " new best score, class: " << bestOrientationScore << " " << bestClass << " " << classLabels[bestClass] << endl;
-	    }
-	  } 
-	}
-      }
-    }
-
-    if (bestOrientation > -1) {
-      int oneToDraw = bestOrientation;
-
-      Mat toShow;
-      Size toUnBecome(maxDim, maxDim);
-      cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations], toShow, toUnBecome);
-      double maxTS = -INFINITY;
-      double minTS = INFINITY;
-
-      for (int x = 0; x < maxDim; x++) {
-	for (int y = 0; y < maxDim; y++) {
-	  maxTS = max(maxTS, toShow.at<double>(y, x));
-	  minTS = min(minTS, toShow.at<double>(y, x));
-	}
-      }
-
-      // draw the winning score in place
-      for (int x = 0; x < maxDim; x++) {
-	for (int y = 0; y < maxDim; y++) {
-	  //int tx = x - tRx;
-	  //int ty = y - tRy;
-	  int tx = x - tRx;
-	  int ty = y - tRy;
-	  if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
-	    Vec3b thisColor = Vec3b(0,0,min(255, int(floor(255.0*8*(toShow.at<double>(y, x)-minTS)/(maxTS-minTS)))));
-	    //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
-	    //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
-	    //cout << thisColor;
-	    int thisTopCornerX = bestX + reticle.px - (aerialGradientReticleWidth/2);
-	    int thisTopCornerY = bestY + reticle.py - (aerialGradientReticleWidth/2);
-	    gradientViewerImage.at<Vec3b>(thisTopCornerY + ty, thisTopCornerX + tx) += thisColor;
-	  }
-	}
-      }
-    }
-
-
-
+  if (faces.size() == 0) {
+    cout << "no faces, servoing more. " << faceServoIterations << " " << faceServoTimeout << endl;
+    ms->pushWord("faceServoA");
+    return;
   }
 
-  return bestClass;
+  eePose bestFacePose;
+  double distance = VERYBIGNUMBER;
+  for (int i = 0; i < faces.size(); i++) {
+    eePose faceImagePose = rectCentroidToEEPose(faces[i]);
+    double thisDistance = squareDistanceEEPose(vanishingPointReticle, faceImagePose);
+    if (thisDistance < distance) {
+      distance = thisDistance;
+      bestFacePose = faceImagePose;
+    }
+  }
+
+  double heightFactor = 1 / minHeight;
+
+  reticle = vanishingPointReticle;
+  pilotTarget.px = bestFacePose.px;
+  pilotTarget.py = bestFacePose.py;
+
+  double Px = reticle.px - pilotTarget.px;
+  double Py = reticle.py - pilotTarget.py;
+
+  //double thisKp = faceKp * heightFactor;
+  double yScale = 1.0;
+  double thisKp = faceKp;
+  double pTermX = thisKp*Px;
+  double pTermY = thisKp*Py;
+
+  // invert the current eePose orientation to decide which direction to move from POV
+  //  of course this needs to be from the pose that corresponds to the frame this was taken from 
+  Eigen::Vector3f localUnitX;
+  {
+    Eigen::Quaternionf qin(0, 1, 0, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitX.x() = qout.x();
+    localUnitX.y() = qout.y();
+    localUnitX.z() = qout.z();
+  }
+
+  Eigen::Vector3f localUnitY;
+  {
+    Eigen::Quaternionf qin(0, 0, 1, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(trueEEPose.orientation.w, trueEEPose.orientation.x, trueEEPose.orientation.y, trueEEPose.orientation.z);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitY.x() = qout.x();
+    localUnitY.y() = qout.y();
+    localUnitY.z() = qout.z();
+  }
+
+  //double newx = currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
+  //double newy = currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
+  //currentEEPose.px = newx;
+  //currentEEPose.py = newy;
+  currentEEDeltaRPY.px = -pTermY;
+  endEffectorAngularUpdate(&currentEEPose, &currentEEDeltaRPY);
+  currentEEDeltaRPY.py = pTermX*yScale;
+  endEffectorAngularUpdate(&currentEEPose, &currentEEDeltaRPY);
+
+  if ((fabs(Px) < faceServoPixelThresh) && (fabs(Py) < faceServoPixelThresh)) {
+    cout << "face reached, continuing." << endl;
+  } else {
+    cout << "face not reached, servoing more. " << faceServoIterations << " " << faceServoTimeout << endl;
+    ms->pushWord("faceServoA");
+  }
 }
-*/
+
 
 void initRangeMaps() {
   classRangeMaps.resize(numClasses);
