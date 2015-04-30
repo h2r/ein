@@ -124,23 +124,12 @@ WORD(MoveToTargetZAndGrasp)
 CODE(1048682)     // numlock + j
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->pushWord("closeGripper"); 
+
   double threshedZ = min(trZ, 0.0);
 
   double pickZpre = -(threshedZ + currentTableZ) + pickFlushFactor + graspDepthOffset;
   double flushZ = -(currentTableZ) + pickFlushFactor;
   double pickZ = max(flushZ, pickZpre);
-
-  cout << "moveToTargetZAndGrasp, " << ms->config.classGraspZsSet.size() << " " << ms->config.classGraspZs.size() << endl;
-  // if this depth is annotated, don't exceed it by grasp depth
-  if ( (ms->config.classGraspZsSet.size() > targetClass) && 
-       (ms->config.classGraspZs.size() > targetClass) ) {
-    if (ms->config.classGraspZsSet[targetClass] == 1) {
-      pickZ = ms->config.classGraspZs[targetClass];
-      cout << "picking class " << classLabels[targetClass] << " with classGraspZ " << pickZ << endl;
-    }
-  }
-
-  pickZ = max(flushZ, pickZ);
 
   int useIncrementalPick = 0;
   bool useHybridPick = 1;

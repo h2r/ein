@@ -8913,6 +8913,10 @@ void initVectorArcTan() {
 }
 
 void mapBlueBox(cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark) {
+  Size sz = objectViewerImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
   for (double px = tbTop.x-mapBlueBoxPixelSkirt; px <= tbBot.x+mapBlueBoxPixelSkirt; px++) {
     for (double py = tbTop.y-mapBlueBoxPixelSkirt; py <= tbBot.y+mapBlueBoxPixelSkirt; py++) {
       double x, y;
@@ -8934,7 +8938,9 @@ void mapBlueBox(cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time t
   //      }
 
 	double blueBoxWeight = 0.1;
-	if (cam_img.rows != 0 && cam_img.cols != 0) {
+	if ( (cam_img.rows != 0 && cam_img.cols != 0) &&
+	     ((px >=0) && (px < imW)) &&
+	     ((py >=0) && (py < imH)) ) {
 	  objectMap[i + mapWidth * j].b = (cam_img.at<cv::Vec3b>(py, px)[0] * blueBoxWeight);
 	  objectMap[i + mapWidth * j].g = (cam_img.at<cv::Vec3b>(py, px)[1] * blueBoxWeight);
 	  objectMap[i + mapWidth * j].r = (cam_img.at<cv::Vec3b>(py, px)[2] * blueBoxWeight);
@@ -12242,13 +12248,13 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
       {
 	FileNode anode = fsfI["graspZ"];
 
-	cout << anode.type() << endl;
-	if (anode.type() == cv::FileNode::REAL){
-	  cout << anode.type() << " Loaded  classGraspZs from " << this_range_path << endl;
+	if (anode.type() == cv::FileNode::SEQ){
+	  cout << anode.type() << " Loading  classGraspZs from " << this_range_path;
 	  FileNodeIterator it = anode.begin(), it_end = anode.end();
 	  pMachineState->config.currentGraspZ = *(it++);
 	  pMachineState->config.classGraspZs[i] = pMachineState->config.currentGraspZ;
 	  pMachineState->config.classGraspZsSet[i] = 1;
+	  cout << " ...done " << pMachineState->config.currentGraspZ << " ." << endl;
 	} else {
 	  cout << anode.type() << " Failed to load classGraspZs from " << this_range_path << endl;
 	  pMachineState->config.currentGraspZ = 0;
