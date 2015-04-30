@@ -12242,14 +12242,15 @@ void tryToLoadRangeMap(std::string classDir, const char *className, int i) {
       {
 	FileNode anode = fsfI["graspZ"];
 
+	cout << anode.type() << endl;
 	if (anode.type() == cv::FileNode::REAL){
-	  cout << "Loaded  classGraspZs from " << this_range_path << endl;
+	  cout << anode.type() << " Loaded  classGraspZs from " << this_range_path << endl;
 	  FileNodeIterator it = anode.begin(), it_end = anode.end();
 	  pMachineState->config.currentGraspZ = *(it++);
 	  pMachineState->config.classGraspZs[i] = pMachineState->config.currentGraspZ;
 	  pMachineState->config.classGraspZsSet[i] = 1;
 	} else {
-	  cout << "Failed to load classGraspZs from " << this_range_path << endl;
+	  cout << anode.type() << " Failed to load classGraspZs from " << this_range_path << endl;
 	  pMachineState->config.currentGraspZ = 0;
 	  pMachineState->config.classGraspZs[i] = pMachineState->config.currentGraspZ;
 	  pMachineState->config.classGraspZsSet[i] = 0;
