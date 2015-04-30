@@ -134,7 +134,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   bool useHybridPick = 1;
 
   double deltaZ = pickZ - currentEEPose.pz;
-  lastPickHeight = pickZ;
+  lastPickPose = currentEEPose;
+  lastPickPose.pz = pickZ;
+
 
   cout << "moveToTargetZAndGrasp trZ pickZ flushZ pickZpre: " << trZ << " " << pickZ << " " << flushZ << " " << pickZpre << " " << endl;
 
@@ -216,7 +218,7 @@ REGISTER_WORD(ShakeItUpAndDown)
 
 WORD(TryToMoveToTheLastPrePickHeight)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose.pz = lastPrePickHeight;
+  currentEEPose.pz = lastPrePickPose.pz;
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   cout << "trying to move to the last pre pick height..." << endl;
 }
@@ -226,7 +228,7 @@ REGISTER_WORD(TryToMoveToTheLastPrePickHeight)
 WORD(TryToMoveToTheLastPickHeight)
 CODE( 262241)     // ctrl + a
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double deltaZ = (lastPickHeight) - currentEEPose.pz;
+  double deltaZ = (lastPickPose.pz) - currentEEPose.pz;
   double zTimes = fabs(floor(deltaZ / bDelta)); 
   int numNoOps = 2;
   int useIncrementalPlace = 0;
@@ -252,7 +254,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     if (useHybridPlace) {
       int pickNoops = 20;
       int increments = 0.1/MOVE_FAST;
-      currentEEPose.pz = lastPickHeight+increments*MOVE_FAST;
+      currentEEPose.pz = lastPickPose.pz+increments*MOVE_FAST;
 
       //ms->pushCopies("endStackCollapseNoop", pickNoops);
       ms->pushWord("waitUntilAtCurrentPosition"); 
@@ -265,7 +267,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       //ms->pushWord("quarterImpulse");
       ms->pushWord("approachSpeed");
     } else {
-      currentEEPose.pz = lastPickHeight;
+      currentEEPose.pz = lastPickPose.pz;
       ms->pushWord("waitUntilAtCurrentPosition"); 
     }
   }
@@ -1303,7 +1305,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     lastAdded->aimedPose = currentEEPose;
     // XXX picked pose doesn't seem to mean anything here so likely doesn't matteer
     lastAdded->pickedPose = currentEEPose;
-    lastAdded->pickedPose.pz  = lastPickHeight;
+    lastAdded->pickedPose.pz  = lastPickPose.pz;
     // XXX picked pose doesn't seem to mean anything here so likely doesn't matteer
     lastAdded->trZ  = trZ;
     cout << "recordTargetLock saving pickedPose..." << endl;
@@ -1370,4 +1372,42 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 }
 END_WORD
 REGISTER_WORD(DarkServoB)
+
+
+
+
+WORD(GoToPrePickPose)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  currentEEPose = lastPrePickPose;
+}
+END_WORD
+REGISTER_WORD(GoToPrePickPose)
+
+
+WORD(GoToLastPickPose)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  currentEEPose = lastPickPose;
+}
+END_WORD
+REGISTER_WORD(GoToLastPickPose)
+
+
+WORD(ReturnObject)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  cout << "Returning object." << endl;
+  ms->pushWord("goToPrePickPose");
+  ms->pushWord("waitUntilGripperNotMoving");
+  ms->pushWord("openGripper");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("goToLastPickPose");
+  ms->pushWord("approachSpeed");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("goToPrePickPose");
+
+}
+END_WORD
+REGISTER_WORD(ReturnObject)
 

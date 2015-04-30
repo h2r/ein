@@ -36,6 +36,16 @@ class EinConfig {
   // set color reticles iterator
   int scrI = 0;
 
+  double currentGraspZ = 0;
+  vector<double> classGraspZs;
+  vector<double> classGraspZsSet;
+
+  double movingThreshold = 0.02;
+  double hoverThreshold = 0.003; 
+  double stoppedTimeout = 0.25;
+
+
+
 };
 
 #endif /* _CONFIG_H_ */

@@ -210,7 +210,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   sirHeightMemorySample = 0;
   sirHiRangmap = 0;
   sirHiColorRangemap = 0;
-  sirObject = 0;
+  sirObject = 1;
   sirObjectMap = 1;
   sirDensity = 0;
   sirGradient = 0;
@@ -218,7 +218,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   sirMapBackground = 0;
   sirAerialGradient = 0;
   sirWrist = 1;
-  sirCore = 0;
+  sirCore = 1;
 
   //cv::namedWindow(objectViewerName);
   //cv::namedWindow(graspMemoryViewName);

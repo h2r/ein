@@ -204,9 +204,3 @@ background, blueBowl, brownCup, and brush, models will be trained for those clas
 for them, nothing will ever be classified as one of those objects. So those folders can be removed at this point
 (they were necessary earlier for picking to work with those classes and the pretrained knn and vocab).
 
-
-
-
-
-
-

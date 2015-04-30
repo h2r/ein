@@ -1,10 +1,14 @@
 %YAML:1.0
 labels:
+   - woodenBowl
    - blueBowl
-   - background
-   - brownCup
+   - whiteSpoon
+   - brownMug
+   - greenSpoon
    - brush
 poseModels:
+   - B
+   - B
    - B
    - B
    - B

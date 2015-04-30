@@ -27,8 +27,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   //currentEEPose = memory.cameraPose;
   currentEEPose = memory.aimedPose;
-  lastPickHeight = memory.pickedPose.pz;
-  lastPrePickHeight = memory.aimedPose.pz;
+  lastPickPose = memory.pickedPose;
+  lastPrePickPose = memory.aimedPose;
   trZ = memory.trZ;
 
   { // set the old box's lastMappedTime to moments after the start of time
@@ -100,8 +100,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("sampleHeight"); 
   ms->pushWord("setBoundingBoxModeToMapping"); 
   ms->pushWord("openGripper");
-  ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
-
 }
 END_WORD
 REGISTER_WORD(DeliverObject)
@@ -891,8 +889,12 @@ REGISTER_WORD(GoClassifyBlueBoxes)
 
 WORD(AssumeFacePose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  eePose facePose = {.px = 1.07226, .py = 0.564963, .pz = 0.287997,
-		     .qx = -0.234838, .qy = 0.75433, .qz = 0.106368, .qw = 0.603757};      
+
+  //eePose facePose = {.px = 1.07226, .py = 0.564963, .pz = 0.287997,
+  //                   .qx = -0.234838, .qy = 0.75433, .qz = 0.106368, .qw = 0.603757};      
+  eePose facePose = {.px = 0.85838, .py = 0.56957, .pz = 0.163187,
+                     .qx = -0.153116, .qy = 0.717486, .qz = 0.0830483, .qw = 0.674442};
+
   currentEEPose = facePose;
   ms->pushWord("waitUntilAtCurrentPosition");
 }
@@ -903,8 +905,46 @@ REGISTER_WORD(AssumeFacePose)
 /*
 WORD(DetectFaces)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  faceDetectAndDisplay(faceViewName, faceViewImage);
+  vector<Rect> faces = faceDetectAndDisplay(faceViewName, faceViewImage);
 }
 END_WORD
 REGISTER_WORD(DetectFaces)
+
+
+WORD(FaceServo)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  faceServoIterations = 0;
+  ms->pushWord("faceServoA");
+}
+END_WORD
+REGISTER_WORD(FaceServo)
+
+WORD(FaceServoA)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  faceServoIterations++;
+  ms->pushWord("endStackCollapseNoop");
+  ms->pushWord("faceServoB");
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 1);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+}
+END_WORD
+REGISTER_WORD(FaceServoA)
+
+WORD(FaceServoB)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  if (faceServoIterations > faceServoTimeout) {
+    cout << "faceServo timed out, continuing..." << endl;
+    return;
+  }
+  vector<Rect> faces = faceDetectAndDisplay(faceViewName, faceViewImage);
+  faceServo(ms, faces);
+}
+END_WORD
+REGISTER_WORD(FaceServoB)
+
 */
