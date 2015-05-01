@@ -211,6 +211,14 @@ int pilotTargetHalfWidth = 15;
 
 eePose calibrationPose;
 
+eePose shrugPose;
+
+eePose shrugPoseR = {.px = 0.0558937, .py = -1.12849, .pz = 0.132171,
+                      .qx = 0.392321, .qy = 0.324823, .qz = -0.555039, .qw = 0.657652};
+
+eePose shrugPoseL = {.px = 0.0354772, .py = 1.20633, .pz = 0.150562,
+                      .qx = -0.370521, .qy = 0.381345, .qz = 0.578528, .qw = 0.618544};
+
 eePose calibrationPoseR = {.px = 0.562169, .py = -0.348055, .pz = 0.493231,
                       .qx = 0.00391311, .qy = 0.999992, .qz = -0.00128095, .qw = 8.18951e-05};
 
@@ -5322,6 +5330,7 @@ void pilotInit() {
     gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
 
     calibrationPose = calibrationPoseL;
+    shrugPose = shrugPoseL;
   } else if (0 == left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
 
@@ -5454,6 +5463,7 @@ void pilotInit() {
     gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
 
     calibrationPose = calibrationPoseR;
+    shrugPose = shrugPoseR;
   } else {
     cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
     exit(0);
