@@ -124,6 +124,7 @@ WORD(MoveToTargetZAndGrasp)
 CODE(1048682)     // numlock + j
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->pushWord("closeGripper"); 
+
   double threshedZ = min(trZ, 0.0);
 
   double pickZpre = -(threshedZ + currentTableZ) + pickFlushFactor + graspDepthOffset;
@@ -136,6 +137,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   double deltaZ = pickZ - currentEEPose.pz;
   lastPickPose = currentEEPose;
   lastPickPose.pz = pickZ;
+
 
 
   cout << "moveToTargetZAndGrasp trZ pickZ flushZ pickZpre: " << trZ << " " << pickZ << " " << flushZ << " " << pickZpre << " " << endl;
