@@ -15,9 +15,10 @@
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_vector.h>
 
+#include "eePose.h"
 
 #include "word.h"
-#include "eePose.h"
+#include "config.h"
 
 using namespace std;
 using namespace cv;
@@ -44,15 +45,6 @@ typedef enum {
 } operationStatusType;
 
 std::string operationStatusToString(operationStatusType mode) ;
-
-typedef enum {
-  SIFTBOW_GLOBALCOLOR_HIST = 1,
-  OPPONENTSIFTBOW_GLOBALCOLOR_HIST = 2, // this has not been sufficiently tested
-  SIFTCOLORBOW_HIST = 3, // unimplemented, calculate color histograms at each keypoint and augment each SIFT feature before clustering
-  GRADIENT = 4,
-  OPPONENT_COLOR_GRADIENT = 5,
-  CBCR_HISTOGRAM = 6
-} featureType;
 
 
 typedef enum {
