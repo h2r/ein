@@ -1,36 +1,16 @@
 #ifndef _WORD_H_
 #define _WORD_H_
 
+#include "ein_util.h"
+
 using namespace std;
 #include <sstream>
 #include <map>
 #include <boost/algorithm/string.hpp>
 
-#include "config.h"
+class MachineState;
 
 using namespace boost::algorithm;
-
-class Word;
-
-class MachineState: public std::enable_shared_from_this<MachineState> {
- private:
- public:
-  std::vector<std::shared_ptr<Word> > call_stack;
-  std::shared_ptr<Word> current_instruction = NULL;
-  EinConfig config;
-
-  int execute_stack = 0;
-  bool pushWord(int code);
-  bool pushWord(string name);
-  bool pushWord(std::shared_ptr<Word> word);
-  std::shared_ptr<Word> popWord();
-  void clearStack();
-  void pushNoOps(int n);
-  void pushCopies(int symbol, int times);
-  void pushCopies(string symbol, int times);
-
-  void execute(shared_ptr<Word> word);
-};
 
 class Word {
   
