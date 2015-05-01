@@ -1057,3 +1057,66 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(AssumeShrugPose)
 
+WORD(SetPatrolStateToIdling)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentPatrolState = IDLING;
+}
+END_WORD
+REGISTER_WORD(SetPatrolStateToIdling)
+
+WORD(SetPatrolStateToScanning)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentPatrolState = SCANNING;
+}
+END_WORD
+REGISTER_WORD(SetPatrolStateToScanning)
+
+WORD(SetPatrolStateToPicking)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentPatrolState = PICKING;
+}
+END_WORD
+REGISTER_WORD(SetPatrolStateToPicking)
+
+WORD(SetPatrolStateToPlacing)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentPatrolState = PLACING;
+}
+END_WORD
+REGISTER_WORD(SetPatrolStateToPlacing)
+
+WORD(SetPatrolStateToHanding)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentPatrolState = HANDING;
+}
+END_WORD
+REGISTER_WORD(SetPatrolStateToHanding)
+
+WORD(SetScanModeToLoop)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentScanMode = LOOP;
+}
+END_WORD
+REGISTER_WORD(SetScanModeToLoop)
+
+WORD(SetScanModeToOnce)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentScanMode = ONCE;
+}
+END_WORD
+REGISTER_WORD(SetScanModeToOnce)
+
+WORD(SetPlaceModeToWarehouse)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentPlaceMode = WAREHOUSE;
+}
+END_WORD
+REGISTER_WORD(SetPlaceModeToWarehouse)
+
+WORD(SetPlaceModeToHand)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentPlaceMode = HAND;
+}
+END_WORD
+REGISTER_WORD(SetPlaceModeToHand)
+

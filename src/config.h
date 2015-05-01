@@ -30,6 +30,14 @@ typedef enum {
 } placeMode;
 
 typedef enum {
+  EMPTY = 0,
+  STOPCLEAR = 1,
+  SCAN = 2,
+  CRANE = 3,
+  SHRUG = 4
+} idleMode;
+
+typedef enum {
   SIFTBOW_GLOBALCOLOR_HIST = 1,
   OPPONENTSIFTBOW_GLOBALCOLOR_HIST = 2, // this has not been sufficiently tested
   SIFTCOLORBOW_HIST = 3, // unimplemented, calculate color histograms at each keypoint and augment each SIFT feature before clustering
@@ -63,6 +71,8 @@ class EinConfig {
   movementState currentMovementState = STOPPED;
   patrolState currentPatrolState = IDLING;
   scanMode currentScanMode = ONCE;
+  placeMode currentPlaceMode = HAND;
+  idleMode currentIdleMode = CRANE;
 
   // set color reticles iterator
   int scrI = 0;
