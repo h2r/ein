@@ -1,5 +1,4 @@
 #include "word.h"
-#include "ein_util.h"
 
 void CompoundWord::execute(std::shared_ptr<MachineState> ms) {
   for (unsigned int i = 0; i < stack.size(); i++) {
