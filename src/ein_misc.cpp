@@ -551,3 +551,19 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(WriteXMLEnvironment)
 
+WORD(DisableRobot)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -d\"");
+}
+END_WORD
+REGISTER_WORD(DisableRobot)
+
+WORD(EnableRobot)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -e\"");
+}
+END_WORD
+REGISTER_WORD(EnableRobot)
+

@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  object_recognition_msgs
   geometry_msgs
   visualization_msgs
   genmsg
@@ -18,6 +19,17 @@ find_package(catkin REQUIRED COMPONENTS
   control_msgs
 )
 find_package(GSL REQUIRED)
+
+add_message_files(
+  FILES
+  EinState.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  object_recognition_msgs
+)
 
 catkin_package(CATKIN_DEPENDS 
   eigen
@@ -33,7 +45,6 @@ include_directories(include
 	${EIGEN_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
 )
-
 
 set(OPENMP_FLAG "-fopenmp")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -g -std=c++11 -fpermissive")
