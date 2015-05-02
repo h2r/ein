@@ -20,6 +20,12 @@ typedef enum {
   CBCR_HISTOGRAM = 6
 } featureType;
 
+typedef enum {
+  PHYSICAL,
+  SIMULATED
+} robotMode;
+
+
 
 class EinConfig {
  public:
@@ -61,7 +67,15 @@ class EinConfig {
 
   int gradientFeatureWidth = 50;
 
+  robotMode chosen_mode = PHYSICAL;
 
+
+  // config variables that don't seem to be used
+  //double rapidAmp1 = 0.00; //0.3 is great
+  //double rapidAmp1Delta = 0.01;
+
+  //double rapidAmp2 = 0.00;
+  //double rapidAmp2Delta = 0.03;
 
 };
 

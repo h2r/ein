@@ -361,11 +361,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	    queryIK(&thisIkCallResult, &thisIkRequest);
 
 	    int ikResultFailed = 1;
-	    if (chosen_mode == PHYSICAL) {
+	    if (ms->config.chosen_mode == PHYSICAL) {
 	      ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
-	    } else if (chosen_mode == SIMULATED) {
+	    } else if (ms->config.chosen_mode == SIMULATED) {
 	      ikResultFailed = !positionIsSearched(nextEEPose.px, nextEEPose.py);
-	    }
+	    } else {
+              assert(0);
+            }
 
 	    int foundGoodPosition = !ikResultFailed;
 	    //ikMap[i + mapWidth * j] = ikResultFailed;
@@ -469,10 +471,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     queryIK(&thisIkCallResult, &thisIkRequest);
 
     int ikResultFailed = 1;
-    if (chosen_mode == PHYSICAL) {
+    if (ms->config.chosen_mode == PHYSICAL) {
       ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
-    } else if (chosen_mode == SIMULATED) {
+    } else if (ms->config.chosen_mode == SIMULATED) {
       ikResultFailed = !positionIsSearched(nextEEPose.px, nextEEPose.py);
+    } else {
+      assert(0);
     }
 
     int foundGoodPosition = !ikResultFailed;
