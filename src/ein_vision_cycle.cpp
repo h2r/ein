@@ -364,7 +364,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	    // ATTN 24
 	    //int thisIkCallResult = ikClient.call(thisIkRequest);
 	    int thisIkCallResult = 0;
-	    queryIK(&thisIkCallResult, &thisIkRequest);
+	    queryIK(ms, &thisIkCallResult, &thisIkRequest);
 
 	    int ikResultFailed = 1;
 	    if (ms->config.chosen_mode == PHYSICAL) {
@@ -474,7 +474,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     // ATTN 24
     //int thisIkCallResult = ikClient.call(thisIkRequest);
     int thisIkCallResult = 0;
-    queryIK(&thisIkCallResult, &thisIkRequest);
+    queryIK(ms, &thisIkCallResult, &thisIkRequest);
 
     int ikResultFailed = 1;
     if (ms->config.chosen_mode == PHYSICAL) {
