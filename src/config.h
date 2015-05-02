@@ -13,7 +13,7 @@ typedef enum {
 
 typedef enum {
   IDLING = 0,
-  SCANNING = 1,
+  PATROLLING = 1,
   PICKING = 2,
   PLACING = 3,
   HANDING = 4
@@ -22,7 +22,7 @@ typedef enum {
 typedef enum {
   ONCE = 0,
   LOOP = 1
-} scanMode;
+} patrolMode;
 
 typedef enum {
   HAND = 0,
@@ -32,7 +32,7 @@ typedef enum {
 typedef enum {
   EMPTY = 0,
   STOPCLEAR = 1,
-  SCAN = 2,
+  PATROL = 2,
   CRANE = 3,
   SHRUG = 4
 } idleMode;
@@ -70,7 +70,7 @@ class EinConfig {
 
   movementState currentMovementState = STOPPED;
   patrolState currentPatrolState = IDLING;
-  scanMode currentScanMode = ONCE;
+  patrolMode currentPatrolMode = ONCE;
   placeMode currentPlaceMode = HAND;
   idleMode currentIdleMode = CRANE;
 
