@@ -11,15 +11,18 @@
 //  // o++{==========>*
 //  //               /|\ 
 //  // end Tips
-//
+//   
 //  // Ein: Ein Isn't Node.
 //  // Ein: A dog in Cowboy Bebop.
 //  // Ein: Short for Eindecker.
 //  // Ein: It's one program. 
 //
+//        ><>  
+//
 // end Header
 
 //#define DEBUG_RING_BUFFER // ring buffer
+
 
 #define EPSILON 1.0e-9
 #define VERYBIGNUMBER 1e6
@@ -79,7 +82,6 @@
 #include <opencv2/gpu/gpu.hpp>
 
 
-
 // slu
 #include "slu/math2d.h"
 
@@ -101,13 +103,6 @@ shared_ptr<MachineState> pMachineState;
 
 
 
-robotMode chosen_mode = PHYSICAL;
-
-double rapidAmp1 = 0.00; //0.3 is great
-double rapidAmp1Delta = 0.01;
-
-double rapidAmp2 = 0.00;
-double rapidAmp2Delta = 0.03;
 
 const int numJoints = 7;
 int driveVelocities = 0;
@@ -2576,19 +2571,23 @@ vector<string> split(const char *str, char c = ' ')
 
 void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
   cout << "moveEndEffectorCommandCallback" << endl << msg.position << msg.orientation << endl;
-  if (chosen_mode == PHYSICAL) {
+  shared_ptr<MachineState> ms = pMachineState;
+  if (ms->config.chosen_mode == PHYSICAL) {
     return;
-  } else if (chosen_mode == SIMULATED) {
+  } else if (ms->config.chosen_mode == SIMULATED) {
     currentEEPose.px = msg.position.x;
     currentEEPose.py = msg.position.y;
     currentEEPose.pz = msg.position.z;
+  } else {
+    assert(0);
   }
 }
 
 void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
-  if (chosen_mode == PHYSICAL) {
+  shared_ptr<MachineState> ms = pMachineState;
+  if (ms->config.chosen_mode == PHYSICAL) {
     return;
-  } else if (chosen_mode == SIMULATED) {
+  } else if (ms->config.chosen_mode == SIMULATED) {
     if (objectInHandLabel == -1) {
       // this is a fake box to test intersection
       int probeBoxHalfWidthPixels = 10;
@@ -2631,6 +2630,8 @@ void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
 	cout << "pickObjectUnderEndEffectorCommandCallback: Not picking because objectInHandLabel is " << objectInHandLabel << "." << endl;
       }
     }
+  } else {
+    assert(0);
   }
 }
 
@@ -12787,6 +12788,7 @@ void guardViewers() {
 ////////////////////////////////////////////////
 
 int main(int argc, char **argv) {
+
   initVectorArcTan();
   initializeWords();
   pMachineState = std::make_shared<MachineState>(machineState);
@@ -12874,14 +12876,14 @@ int main(int argc, char **argv) {
 
   ros::Timer simulatorCallbackTimer;
 
-  if (chosen_mode == PHYSICAL) {
+  if (ms.config->chosen_mode == PHYSICAL) {
     epState =   n.subscribe("/robot/limb/" + left_or_right_arm + "/endpoint_state", 1, endpointCallback);
     gripState = n.subscribe("/robot/end_effector/" + left_or_right_arm + "_gripper/state", 1, gripStateCallback);
     eeRanger =  n.subscribe("/robot/range/" + left_or_right_arm + "_hand_range/state", 1, rangeCallback);
     eeTarget =  n.subscribe("/ein_" + left_or_right_arm + "/pilot_target_" + left_or_right_arm, 1, targetCallback);
     jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
     image_sub = it.subscribe(image_topic, 1, imageCallback);
-  } else if (chosen_mode == SIMULATED) {
+  } else if (ms->config.chosen_mode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
     simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/simulatorCallbackFrequency), simulatorCallback);
 
@@ -12980,7 +12982,10 @@ int main(int argc, char **argv) {
       cout << "done. " << mapBackgroundImage.size() << endl; cout.flush();
     }
     originalMapBackgroundImage = mapBackgroundImage.clone();
+  }  else {
+    assert(0);
   }
+
   pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, pickObjectUnderEndEffectorCommandCallback);
   placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
   moveEndEfffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, moveEndEffectorCommandCallback);
@@ -13054,9 +13059,9 @@ int main(int argc, char **argv) {
 
   saveROSParams();
 
-  if (chosen_mode == PHYSICAL) {
-    initializeMachine(pMachineState);
-  } 
+
+  initializeMachine(pMachineState);
+
 
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();
@@ -13083,5 +13088,4 @@ int main(int argc, char **argv) {
   return 0;
 }
  
-
 #include "ein_words.cpp"
