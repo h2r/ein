@@ -1524,7 +1524,7 @@ void initVectorArcTan();
 void mapBlueBox(cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark);
 void mapBox(BoxMemory boxMemory);
 
-void queryIK(int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
+void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
 
 void globalToMapBackground(double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
 void simulatorCallback(const ros::TimerEvent&);
@@ -3737,7 +3737,7 @@ void update_baxter(ros::NodeHandle &n) {
       // ATTN 24
       //int ikCallResult = ikClient.call(thisIkRequest);
       int ikCallResult = 0;
-      queryIK(&ikCallResult, &thisIkRequest);
+      queryIK(ms, &ikCallResult, &thisIkRequest);
 
       //ikResultFailed = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
       //cout << "ik call result: " << ikCallResult << " joints: " << (thisIkRequest.response.joints.size()) << " "; 
