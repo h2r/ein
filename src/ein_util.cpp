@@ -116,6 +116,9 @@ eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
 
 
 void initializeMachine(shared_ptr<MachineState> ms) {
+  if (ms->config.chosen_mode != PHYSICAL) {
+    return;
+  }
   ms->pushWord("guiCustom1"); 
   ms->pushWord("printState");
   ms->pushCopies("zUp", 15);

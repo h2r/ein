@@ -101,7 +101,7 @@ class EinConfig {
 
 
   // config variables that don't seem to be used
-  //double rapidAmp1 = 0.00; //0.3 is great
+  double rapidAmp1 = 0.00; //0.3 is great
   //double rapidAmp1Delta = 0.01;
 
   //double rapidAmp2 = 0.00;
