@@ -1431,7 +1431,7 @@ void update_baxter(ros::NodeHandle &n);
 void timercallback1(const ros::TimerEvent&);
 void imageCallback(const sensor_msgs::ImageConstPtr& msg);
 void renderRangeogramView(shared_ptr<MachineState> ms);
-void renderObjectMapView();
+void renderObjectMapView(shared_ptr<MachineState> ms);
 void drawMapPolygon(gsl_matrix * poly, cv::Scalar color);
 void targetCallback(const geometry_msgs::Point& point);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
@@ -2653,9 +2653,10 @@ void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
 }
 
 void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
-  if (chosen_mode == PHYSICAL) {
+  shared_ptr<MachineState> ms = pMachineState;
+  if (ms->config.chosen_mode == PHYSICAL) {
     return;
-  } else if (chosen_mode == SIMULATED) {
+  } else if (ms->config.chosen_mode == SIMULATED) {
     if (objectInHandLabel >= 0) {
       BoxMemory box;
       box.bTop.x = vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
@@ -2683,6 +2684,8 @@ void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
       cout << "placeObjectInEndEffectorCommandCallback: Not placing because objectInHandLabel is " << objectInHandLabel << "." << endl;
     }
     objectInHandLabel = -1;
+  } else {
+    assert(0);
   }
 }
 
@@ -3708,12 +3711,12 @@ bool willIkResultFail(baxter_core_msgs::SolvePositionIK thisIkRequest, int thisI
 
 void update_baxter(ros::NodeHandle &n) {
   bfc = bfc % bfc_period;
-
+  shared_ptr<MachineState> ms = pMachineState;
   if (!shouldIDoIK) {
     return;
   }
 
-  if (chosen_mode == SIMULATED) {
+  if (ms->config.chosen_mode == SIMULATED) {
     return;
   }
 
@@ -3892,12 +3895,14 @@ void update_baxter(ros::NodeHandle &n) {
     }
     {
       double tim = howLong.toSec();
+      double rapidAmp1 = 0.00; //0.3 is great
       myCommand.command[4] += -rapidAmp1*rapidJointScales[4]*sin(rapidJointLocalBias[4] + (rapidJointLocalOmega[4]*rapidJointGlobalOmega[4]*tim));
       myCommand.command[3] +=  rapidAmp1*rapidJointScales[3]*cos(rapidJointLocalBias[3] + (rapidJointLocalOmega[3]*rapidJointGlobalOmega[3]*tim));
 
       //myCommand.command[5] += -rapidAmp1*rapidJointScales[4]*sin(rapidJointLocalBias[4] + (rapidJointLocalOmega[4]*rapidJointGlobalOmega[4]*tim));
       //myCommand.command[0] +=  rapidAmp1*rapidJointScales[3]*cos(rapidJointLocalBias[3] + (rapidJointLocalOmega[3]*rapidJointGlobalOmega[3]*tim));
 
+      double rapidAmp2 = 0.00;
       myCommand.command[5] += -rapidAmp2*rapidJointScales[5]*sin(rapidJointLocalBias[5] + (rapidJointLocalOmega[5]*rapidJointGlobalOmega[5]*tim));
       myCommand.command[0] +=  rapidAmp2*rapidJointScales[0]*cos(rapidJointLocalBias[0] + (rapidJointLocalOmega[0]*rapidJointGlobalOmega[0]*tim));
 
@@ -4040,7 +4045,7 @@ void timercallback1(const ros::TimerEvent&) {
   renderRangeogramView(pMachineState);
 
   if (shouldIRender) {
-    renderObjectMapView();
+    renderObjectMapView(pMachineState);
   }
 }
 
@@ -4520,7 +4525,7 @@ cv::Point worldToPixel(Mat image, double xMin, double xMax, double yMin, double 
   return out;
 }
 
-void renderObjectMapView() {
+void renderObjectMapView(shared_ptr<MachineState> ms) {
   if (objectMapViewerImage.rows <= 0 ) {
     objectMapViewerImage = Mat(800, 800, CV_8UC3);
   }
@@ -4692,7 +4697,7 @@ void renderObjectMapView() {
   }
 
   // draw sprites
-  if (chosen_mode == SIMULATED) {
+  if (ms->config.chosen_mode == SIMULATED) {
     for (int s = 0; s < instanceSprites.size(); s++) {
       Sprite sprite = instanceSprites[s];
       
@@ -8980,11 +8985,13 @@ void mapBox(BoxMemory boxMemory) {
  mapBlueBox(boxMemory.bTop, boxMemory.bBot, boxMemory.labeledClassIndex, ros::Time::now());
 }
 
-void queryIK(int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
-  if (chosen_mode == PHYSICAL) {
+void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
+  if (ms->config.chosen_mode == PHYSICAL) {
     *thisResult = ikClient.call(*thisRequest);
-  } else if (chosen_mode == SIMULATED) {
+  } else if (ms->config.chosen_mode == SIMULATED) {
     *thisResult = 1;
+  } else {
+    assert(0);
   }
 }
 
@@ -11767,7 +11774,7 @@ void goClassifyBlueBoxes() {
 
 
 // TODO probably don't need two separate functions for this
-void loadROSParamsFromArgs() {
+void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   ros::NodeHandle nh("~");
 
   nh.getParam("default_ikShare", default_ikShare);
@@ -11821,10 +11828,10 @@ void loadROSParamsFromArgs() {
 
   nh.getParam("use_simulator", use_simulator);
   if (use_simulator) {
-    chosen_mode = SIMULATED;
+    ms->config.chosen_mode = SIMULATED;
   } else {
-    chosen_mode = PHYSICAL;
-  }
+    ms->config.chosen_mode = PHYSICAL;
+  } 
 }
 
 void loadROSParams() {
@@ -12938,7 +12945,7 @@ int main(int argc, char **argv) {
 
   cout << "n namespace: " << n.getNamespace() << endl;
 
-  loadROSParamsFromArgs();
+  loadROSParamsFromArgs(pMachineState);
   cout << "mask_gripper: " << mask_gripper << " add_blinders: " << add_blinders << endl;
   cout << "all_range_mode: " << all_range_mode << endl;
   cout << "data_directory: " << data_directory << endl << "class_name: " << class_name << endl 
@@ -12997,14 +13004,14 @@ int main(int argc, char **argv) {
 
   ros::Timer simulatorCallbackTimer;
 
-  if (ms.config->chosen_mode == PHYSICAL) {
+  if (pMachineState->config.chosen_mode == PHYSICAL) {
     epState =   n.subscribe("/robot/limb/" + left_or_right_arm + "/endpoint_state", 1, endpointCallback);
     gripState = n.subscribe("/robot/end_effector/" + left_or_right_arm + "_gripper/state", 1, gripStateCallback);
     eeRanger =  n.subscribe("/robot/range/" + left_or_right_arm + "_hand_range/state", 1, rangeCallback);
     eeTarget =  n.subscribe("/ein_" + left_or_right_arm + "/pilot_target_" + left_or_right_arm, 1, targetCallback);
     jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
     image_sub = it.subscribe(image_topic, 1, imageCallback);
-  } else if (ms->config.chosen_mode == SIMULATED) {
+  } else if (pMachineState->config.chosen_mode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
     simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/simulatorCallbackFrequency), simulatorCallback);
 
