@@ -1023,11 +1023,24 @@ REGISTER_WORD(WaitForTugThenOpenGripperA)
 
 WORD(Idler)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  //ms->pushWord("clearStackIntoMappingPatrol"); 
-  //ms->pushWord("clearStack"); 
-  ms->pushWord("clearStackAcceptFetchCommands"); 
-  ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
-  ms->pushWord("assumeCrane1"); 
+  if (ms->config.currentIdleMode == EMPTY) {
+    // empty
+  } else if (ms->config.currentIdleMode == STOPCLEAR) {
+    ms->pushWord("clearStack"); 
+  } else if (ms->config.currentIdleMode == PATROL) {
+    ms->pushWord("clearStackIntoMappingPatrol"); 
+  } else if (ms->config.currentIdleMode == CRANE) {
+    ms->pushWord("clearStackAcceptFetchCommands"); 
+    ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
+    ms->pushWord("assumeCrane1"); 
+  } else if (ms->config.currentIdleMode == SHRUG) {
+    ms->pushWord("clearStackAcceptFetchCommands"); 
+    ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
+    ms->pushWord("assumeShrugPose"); 
+  } else {
+    assert(0);
+  }
+  ms->pushWord("setPatrolStateToIdling");
 }
 END_WORD
 REGISTER_WORD(Idler)
@@ -1064,12 +1077,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetPatrolStateToIdling)
 
-WORD(SetPatrolStateToScanning)
+WORD(SetPatrolStateToPatrolling)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentPatrolState = SCANNING;
+  ms->config.currentPatrolState = PATROLLING;
 }
 END_WORD
-REGISTER_WORD(SetPatrolStateToScanning)
+REGISTER_WORD(SetPatrolStateToPatrolling)
 
 WORD(SetPatrolStateToPicking)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1092,19 +1105,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetPatrolStateToHanding)
 
-WORD(SetScanModeToLoop)
+WORD(SetPatrolModeToLoop)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentScanMode = LOOP;
+  ms->config.currentPatrolMode = LOOP;
 }
 END_WORD
-REGISTER_WORD(SetScanModeToLoop)
+REGISTER_WORD(SetPatrolModeToLoop)
 
-WORD(SetScanModeToOnce)
+WORD(SetPatrolModeToOnce)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentScanMode = ONCE;
+  ms->config.currentPatrolMode = ONCE;
 }
 END_WORD
-REGISTER_WORD(SetScanModeToOnce)
+REGISTER_WORD(SetPatrolModeToOnce)
 
 WORD(SetPlaceModeToWarehouse)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1119,4 +1132,39 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SetPlaceModeToHand)
+
+WORD(SetIdleModeToCrane)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentIdleMode = CRANE;
+}
+END_WORD
+REGISTER_WORD(SetIdleModeToCrane)
+
+WORD(SetIdleModeToShrug)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentIdleMode = SHRUG;
+}
+END_WORD
+REGISTER_WORD(SetIdleModeToShrug)
+
+WORD(SetIdleModeToEmpty)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentIdleMode = EMPTY;
+}
+END_WORD
+REGISTER_WORD(SetIdleModeToEmpty)
+
+WORD(SetIdleModeToStopClear)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentIdleMode = STOPCLEAR;
+}
+END_WORD
+REGISTER_WORD(SetIdleModeToStopClear)
+
+WORD(SetIdleModeToPatrol)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentIdleMode = PATROL;
+}
+END_WORD
+REGISTER_WORD(SetIdleModeToPatrol)
 

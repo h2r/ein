@@ -109,23 +109,28 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("sampleHeight"); 
   ms->pushWord("setBoundingBoxModeToMapping"); 
   ms->pushWord("openGripper");
+  ms->pushWord("setPatrolStateToPicking");
 }
 END_WORD
 REGISTER_WORD(DeliverObject)
 
 WORD(PlaceObjectInDeliveryZone)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (0) {
+  if (ms->config.currentPlaceMode == WAREHOUSE) {
     ms->pushWord("openGripper"); 
     ms->pushWord("tryToMoveToTheLastPickHeight");   
     ms->pushWord("approachSpeed"); 
     ms->pushWord("waitUntilAtCurrentPosition"); 
     ms->pushWord("assumeDeliveryPose");
-  } else {
+    ms->pushWord("setPatrolStateToPlacing");
+  } else if (ms->config.currentPlaceMode == HAND) {
     ms->pushWord("waitForTugThenOpenGripper");
     ms->pushWord("comeToStop");
     ms->pushWord("waitUntilAtCurrentPosition"); 
     ms->pushWord("moveToRegister3");
+    ms->pushWord("setPatrolStateToHanding");
+  } else {
+    assert(0);
   }
 
   ms->pushWord("cruisingSpeed");
@@ -187,6 +192,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("cruisingSpeed");
   //ms->pushWord("shutdownAllNonessentialSystems");
   //ms->pushWord("bringUpAllNonessentialSystems");
+  ms->pushWord("setPatrolStateToPatrolling");
 }
 END_WORD
 REGISTER_WORD(MappingPatrol)
