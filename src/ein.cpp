@@ -33,6 +33,8 @@
 // start pilot includes, usings, and defines
 ////////////////////////////////////////////////
 
+#include <ein/EinState.h>
+
 #include <vector>
 #include <string>
 #include <sstream>
@@ -95,6 +97,8 @@
 using namespace std;
 using namespace cv;
 using namespace Eigen;
+
+using namespace ein;
 
 MachineState machineState;
 shared_ptr<MachineState> pMachineState;
@@ -205,6 +209,14 @@ int reticleHalfWidth = 18;
 int pilotTargetHalfWidth = 15;
 
 eePose calibrationPose;
+
+eePose shrugPose;
+
+eePose shrugPoseR = {.px = 0.0558937, .py = -1.12849, .pz = 0.132171,
+                      .qx = 0.392321, .qy = 0.324823, .qz = -0.555039, .qw = 0.657652};
+
+eePose shrugPoseL = {.px = 0.0354772, .py = 1.20633, .pz = 0.150562,
+                      .qx = -0.370521, .qy = 0.381345, .qz = 0.578528, .qw = 0.618544};
 
 eePose calibrationPoseR = {.px = 0.562169, .py = -0.348055, .pz = 0.493231,
                       .qx = 0.00391311, .qy = 0.999992, .qz = -0.00128095, .qw = 8.18951e-05};
@@ -353,6 +365,8 @@ ros::Publisher moveSpeedPub;
 ros::Publisher sonarPub;
 ros::Publisher headPub;
 ros::Publisher nodPub;
+
+ros::Publisher einPub;
 
 
 
@@ -1588,6 +1602,9 @@ void neutral();
 
 
 void guardViewers();
+
+void fillRecognizedObjectArrayFromBlueBoxMemory(object_recognition_msgs::RecognizedObjectArray * roa);
+void fillEinStateMsg(EinConfig * configIn, EinState * stateOut);
 
 ////////////////////////////////////////////////
 // end node prototypes 
@@ -3993,6 +4010,12 @@ void timercallback1(const ros::TimerEvent&) {
     }
   }
 
+  {
+    EinState state;
+    fillEinStateMsg(&(pMachineState->config), &state);
+    einPub.publish(state);
+  }
+
   endEffectorAngularUpdate(&currentEEPose, &currentEEDeltaRPY);
 
   if (!pMachineState->config.zero_g_toggle) {
@@ -5323,6 +5346,7 @@ void pilotInit() {
     gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
 
     calibrationPose = calibrationPoseL;
+    shrugPose = shrugPoseL;
   } else if (0 == left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
 
@@ -5455,6 +5479,7 @@ void pilotInit() {
     gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
 
     calibrationPose = calibrationPoseR;
+    shrugPose = shrugPoseR;
   } else {
     cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
     exit(0);
@@ -12787,6 +12812,102 @@ void guardViewers() {
 // start ein 
 ////////////////////////////////////////////////
 
+void fillRecognizedObjectArrayFromBlueBoxMemory(object_recognition_msgs::RecognizedObjectArray * roa) {
+  roa->objects.resize(0);
+
+  roa->header.stamp = ros::Time::now();
+  roa->header.frame_id = "/base";
+
+  for (int j = 0; j < blueBoxMemories.size(); j++) {
+    if (blueBoxMemories[j].lockStatus == POSE_LOCK ||
+	blueBoxMemories[j].lockStatus == POSE_REPORTED) {
+      blueBoxMemories[j].lockStatus = POSE_LOCK;
+    }
+  }
+
+  for (int class_i = 0; class_i < classLabels.size(); class_i++) {
+    string class_label = classLabels[class_i];
+    if (class_label != "background") {
+      eePose centroid;
+      centroid.px = 0;
+      centroid.py = 0;
+      centroid.pz = 0;
+      int class_count = 0;
+      for (int j = 0; j < blueBoxMemories.size(); j++) {
+	if (blueBoxMemories[j].labeledClassIndex == class_i &&
+	    (blueBoxMemories[j].lockStatus == POSE_LOCK ||
+	     blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
+	  centroid.px += blueBoxMemories[j].centroid.px;
+	  centroid.py += blueBoxMemories[j].centroid.py;
+	  centroid.pz += blueBoxMemories[j].centroid.pz;
+	  class_count += 1;
+	}
+      }
+      if (class_count == 0) {
+	continue;
+      }
+      centroid.px = centroid.px / class_count;
+      centroid.py = centroid.py / class_count;
+      centroid.pz = centroid.pz / class_count;
+      int closest_idx = -1;
+      double min_square_dist = VERYBIGNUMBER;
+
+      for (int j = 0; j < blueBoxMemories.size(); j++) {
+	if (blueBoxMemories[j].labeledClassIndex == class_i &&
+	    (blueBoxMemories[j].lockStatus == POSE_LOCK ||
+	     blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
+	  double square_dist = 
+	    squareDistanceEEPose(centroid, blueBoxMemories[j].centroid);
+	  if (square_dist < min_square_dist) {
+	    min_square_dist = square_dist;
+	    closest_idx = j;
+	  }
+	}
+      }
+
+
+      if (closest_idx != -1) {
+	blueBoxMemories[closest_idx].lockStatus = POSE_REPORTED;
+
+	geometry_msgs::Pose pose;
+	int aI = roa->objects.size();
+	roa->objects.resize(roa->objects.size() + 1);
+
+	pose.position.x = blueBoxMemories[closest_idx].centroid.px;
+	pose.position.y = blueBoxMemories[closest_idx].centroid.py;
+	pose.position.z = blueBoxMemories[closest_idx].centroid.pz;
+
+	cout << "blueBoxMemories: " << blueBoxMemories[closest_idx].centroid.px << endl;
+	cout << "pose: " << pose.position.x << endl;
+
+	roa->objects[aI].pose.pose.pose.position = pose.position;
+
+	cout << "roa objects x: " << roa->objects[aI].pose.pose.pose.position.x << endl;
+	roa->objects[aI].type.key = class_label;
+
+	roa->objects[aI].header = roa->header;
+      }
+    }
+  }
+}
+
+void fillEinStateMsg(EinConfig * configIn, EinState * stateOut) {
+  stateOut->zero_g = configIn->zero_g_toggle;
+
+  stateOut->movement_state = configIn->currentMovementState;
+  stateOut->patrol_state = configIn->currentPatrolState;
+  stateOut->patrol_mode = configIn->currentPatrolMode;
+  stateOut->place_mode = configIn->currentPlaceMode;
+  stateOut->idle_mode = configIn->currentIdleMode;
+
+  object_recognition_msgs::RecognizedObjectArray roa;
+  fillRecognizedObjectArrayFromBlueBoxMemory(&roa);
+
+  for (int i = 0; i < roa.objects.size(); i++) {
+    stateOut->objects.push_back(roa.objects[i]);
+  }
+}
+
 int main(int argc, char **argv) {
 
   initVectorArcTan();
@@ -13040,6 +13161,7 @@ int main(int argc, char **argv) {
 
 
   facePub = n.advertise<std_msgs::Int32>("/confusion/target/command", 10);
+  einPub = n.advertise<EinState>("state", 10);
 
   vmMarkerPublisher = n.advertise<visualization_msgs::MarkerArray>("volumetric_rgb_map", 10);
 

@@ -4,12 +4,38 @@
 #include "ein_util.h"
 
 typedef enum {
-  ARMED,
-  BLOCKED,
-  STOPPED,
-  HOVERING,
-  MOVING
+  ARMED = 0,
+  BLOCKED = 1,
+  STOPPED = 2,
+  HOVERING = 3,
+  MOVING = 4
 } movementState;
+
+typedef enum {
+  IDLING = 0,
+  PATROLLING = 1,
+  PICKING = 2,
+  PLACING = 3,
+  HANDING = 4
+} patrolState;
+
+typedef enum {
+  ONCE = 0,
+  LOOP = 1
+} patrolMode;
+
+typedef enum {
+  HAND = 0,
+  WAREHOUSE = 1
+} placeMode;
+
+typedef enum {
+  EMPTY = 0,
+  STOPCLEAR = 1,
+  PATROL = 2,
+  CRANE = 3,
+  SHRUG = 4
+} idleMode;
 
 typedef enum {
   SIFTBOW_GLOBALCOLOR_HIST = 1,
@@ -49,6 +75,10 @@ class EinConfig {
   int rgRingBufferEnd = 0;
 
   movementState currentMovementState = STOPPED;
+  patrolState currentPatrolState = IDLING;
+  patrolMode currentPatrolMode = ONCE;
+  placeMode currentPlaceMode = HAND;
+  idleMode currentIdleMode = CRANE;
 
   // set color reticles iterator
   int scrI = 0;

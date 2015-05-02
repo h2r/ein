@@ -109,23 +109,28 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("sampleHeight"); 
   ms->pushWord("setBoundingBoxModeToMapping"); 
   ms->pushWord("openGripper");
+  ms->pushWord("setPatrolStateToPicking");
 }
 END_WORD
 REGISTER_WORD(DeliverObject)
 
 WORD(PlaceObjectInDeliveryZone)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (0) {
+  if (ms->config.currentPlaceMode == WAREHOUSE) {
     ms->pushWord("openGripper"); 
     ms->pushWord("tryToMoveToTheLastPickHeight");   
     ms->pushWord("approachSpeed"); 
     ms->pushWord("waitUntilAtCurrentPosition"); 
     ms->pushWord("assumeDeliveryPose");
-  } else {
+    ms->pushWord("setPatrolStateToPlacing");
+  } else if (ms->config.currentPlaceMode == HAND) {
     ms->pushWord("waitForTugThenOpenGripper");
     ms->pushWord("comeToStop");
     ms->pushWord("waitUntilAtCurrentPosition"); 
     ms->pushWord("moveToRegister3");
+    ms->pushWord("setPatrolStateToHanding");
+  } else {
+    assert(0);
   }
 
   ms->pushWord("cruisingSpeed");
@@ -187,6 +192,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("cruisingSpeed");
   //ms->pushWord("shutdownAllNonessentialSystems");
   //ms->pushWord("bringUpAllNonessentialSystems");
+  ms->pushWord("setPatrolStateToPatrolling");
 }
 END_WORD
 REGISTER_WORD(MappingPatrol)
@@ -519,107 +525,9 @@ REGISTER_WORD(MoveToNextMapPosition)
 
 WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  object_recognition_msgs::RecognizedObjectArray roa;
-  visualization_msgs::MarkerArray ma; 
- 
-  roa.objects.resize(0);
-
-  roa.header.stamp = ros::Time::now();
-  roa.header.frame_id = "/base";
-
-  for (int j = 0; j < blueBoxMemories.size(); j++) {
-    if (blueBoxMemories[j].lockStatus == POSE_LOCK ||
-	blueBoxMemories[j].lockStatus == POSE_REPORTED) {
-      blueBoxMemories[j].lockStatus = POSE_LOCK;
-    }
-  }
-
-  for (int class_i = 0; class_i < classLabels.size(); class_i++) {
-    string class_label = classLabels[class_i];
-    if (class_label != "background") {
-      eePose centroid;
-      centroid.px = 0;
-      centroid.py = 0;
-      centroid.pz = 0;
-      int class_count = 0;
-      for (int j = 0; j < blueBoxMemories.size(); j++) {
-        if (blueBoxMemories[j].labeledClassIndex == class_i &&
-	    (blueBoxMemories[j].lockStatus == POSE_LOCK ||
-	     blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
-          centroid.px += blueBoxMemories[j].centroid.px;
-          centroid.py += blueBoxMemories[j].centroid.py;
-          centroid.pz += blueBoxMemories[j].centroid.pz;
-          class_count += 1;
-        }
-      }
-      if (class_count == 0) {
-        continue;
-      }
-      centroid.px = centroid.px / class_count;
-      centroid.py = centroid.py / class_count;
-      centroid.pz = centroid.pz / class_count;
-      int closest_idx = -1;
-      double min_square_dist = VERYBIGNUMBER;
-
-      for (int j = 0; j < blueBoxMemories.size(); j++) {
-        if (blueBoxMemories[j].labeledClassIndex == class_i &&
-	    (blueBoxMemories[j].lockStatus == POSE_LOCK ||
-	     blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
-          double square_dist = 
-            squareDistanceEEPose(centroid, blueBoxMemories[j].centroid);
-          if (square_dist < min_square_dist) {
-            min_square_dist = square_dist;
-            closest_idx = j;
-          }
-        }
-      }
-
-
-      if (closest_idx != -1) {
-        blueBoxMemories[closest_idx].lockStatus = POSE_REPORTED;
-
-        geometry_msgs::Pose pose;
-        int aI = roa.objects.size();
-        roa.objects.resize(roa.objects.size() + 1);
-        ma.markers.resize(ma.markers.size() + 1);
-
-        pose.position.x = blueBoxMemories[closest_idx].centroid.px;
-        pose.position.y = blueBoxMemories[closest_idx].centroid.py;
-        pose.position.z = blueBoxMemories[closest_idx].centroid.pz;
-
-        cout << "blueBoxMemories: " << blueBoxMemories[closest_idx].centroid.px << endl;
-        cout << "pose: " << pose.position.x << endl;
-
-        roa.objects[aI].pose.pose.pose.position = pose.position;
-
-        cout << "roa objects x: " << roa.objects[aI].pose.pose.pose.position.x << endl;
-        roa.objects[aI].type.key = class_label;
-
-        ma.markers[aI].pose = roa.objects[aI].pose.pose.pose;
-        cout << "marker pose x: " << ma.markers[aI].pose.position.x << endl;
-        roa.objects[aI].header = roa.header;
-        ma.markers[aI].header = roa.header;
-
-        ma.markers[aI].type =  visualization_msgs::Marker::SPHERE;
-        ma.markers[aI].scale.x = 0.15;
-        ma.markers[aI].scale.y = 0.15;
-        ma.markers[aI].scale.z = 0.15;
-        ma.markers[aI].color.a = 0.5;
-        ma.markers[aI].color.r = 0.9;
-        ma.markers[aI].color.g = 0.9;
-        ma.markers[aI].color.b = 0.0;
-        ma.markers[aI].id = aI;
-        ma.markers[aI].lifetime = ros::Duration(1.0);
-
-
-
-      }
-    }
-  }
-
-  rec_objs_blue_memory.publish(roa);
-  markers_blue_memory.publish(ma);
-
+  object_recognition_msgs::RecognizedObjectArray roaO;
+  fillRecognizedObjectArrayFromBlueBoxMemory(&roaO);
+  rec_objs_blue_memory.publish(roaO);
 }
 END_WORD
 REGISTER_WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)
