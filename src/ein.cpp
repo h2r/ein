@@ -30,6 +30,8 @@
 // start pilot includes, usings, and defines
 ////////////////////////////////////////////////
 
+#include <ein/EinState.h>
+
 #include <vector>
 #include <string>
 #include <sstream>
@@ -93,6 +95,8 @@
 using namespace std;
 using namespace cv;
 using namespace Eigen;
+
+using namespace ein;
 
 MachineState machineState;
 shared_ptr<MachineState> pMachineState;
@@ -366,6 +370,8 @@ ros::Publisher moveSpeedPub;
 ros::Publisher sonarPub;
 ros::Publisher headPub;
 ros::Publisher nodPub;
+
+ros::Publisher einPub;
 
 
 
@@ -1601,6 +1607,9 @@ void neutral();
 
 
 void guardViewers();
+
+void fillRecognizedObjectArrayFromBlueBoxMemory(object_recognition_msgs::RecognizedObjectArray * roa);
+void fillEinStateMsg(EinConfig * configIn, EinState * stateOut);
 
 ////////////////////////////////////////////////
 // end node prototypes 
@@ -3998,6 +4007,12 @@ void timercallback1(const ros::TimerEvent&) {
     if( endThisStackCollapse || (pMachineState->call_stack.size() == 0) ) {
       break;
     }
+  }
+
+  {
+    EinState state;
+    fillEinStateMsg(&(pMachineState->config), &state);
+    einPub.publish(state);
   }
 
   endEffectorAngularUpdate(&currentEEPose, &currentEEDeltaRPY);
@@ -12796,6 +12811,102 @@ void guardViewers() {
 // start ein 
 ////////////////////////////////////////////////
 
+void fillRecognizedObjectArrayFromBlueBoxMemory(object_recognition_msgs::RecognizedObjectArray * roa) {
+  roa->objects.resize(0);
+
+  roa->header.stamp = ros::Time::now();
+  roa->header.frame_id = "/base";
+
+  for (int j = 0; j < blueBoxMemories.size(); j++) {
+    if (blueBoxMemories[j].lockStatus == POSE_LOCK ||
+	blueBoxMemories[j].lockStatus == POSE_REPORTED) {
+      blueBoxMemories[j].lockStatus = POSE_LOCK;
+    }
+  }
+
+  for (int class_i = 0; class_i < classLabels.size(); class_i++) {
+    string class_label = classLabels[class_i];
+    if (class_label != "background") {
+      eePose centroid;
+      centroid.px = 0;
+      centroid.py = 0;
+      centroid.pz = 0;
+      int class_count = 0;
+      for (int j = 0; j < blueBoxMemories.size(); j++) {
+	if (blueBoxMemories[j].labeledClassIndex == class_i &&
+	    (blueBoxMemories[j].lockStatus == POSE_LOCK ||
+	     blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
+	  centroid.px += blueBoxMemories[j].centroid.px;
+	  centroid.py += blueBoxMemories[j].centroid.py;
+	  centroid.pz += blueBoxMemories[j].centroid.pz;
+	  class_count += 1;
+	}
+      }
+      if (class_count == 0) {
+	continue;
+      }
+      centroid.px = centroid.px / class_count;
+      centroid.py = centroid.py / class_count;
+      centroid.pz = centroid.pz / class_count;
+      int closest_idx = -1;
+      double min_square_dist = VERYBIGNUMBER;
+
+      for (int j = 0; j < blueBoxMemories.size(); j++) {
+	if (blueBoxMemories[j].labeledClassIndex == class_i &&
+	    (blueBoxMemories[j].lockStatus == POSE_LOCK ||
+	     blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
+	  double square_dist = 
+	    squareDistanceEEPose(centroid, blueBoxMemories[j].centroid);
+	  if (square_dist < min_square_dist) {
+	    min_square_dist = square_dist;
+	    closest_idx = j;
+	  }
+	}
+      }
+
+
+      if (closest_idx != -1) {
+	blueBoxMemories[closest_idx].lockStatus = POSE_REPORTED;
+
+	geometry_msgs::Pose pose;
+	int aI = roa->objects.size();
+	roa->objects.resize(roa->objects.size() + 1);
+
+	pose.position.x = blueBoxMemories[closest_idx].centroid.px;
+	pose.position.y = blueBoxMemories[closest_idx].centroid.py;
+	pose.position.z = blueBoxMemories[closest_idx].centroid.pz;
+
+	cout << "blueBoxMemories: " << blueBoxMemories[closest_idx].centroid.px << endl;
+	cout << "pose: " << pose.position.x << endl;
+
+	roa->objects[aI].pose.pose.pose.position = pose.position;
+
+	cout << "roa objects x: " << roa->objects[aI].pose.pose.pose.position.x << endl;
+	roa->objects[aI].type.key = class_label;
+
+	roa->objects[aI].header = roa->header;
+      }
+    }
+  }
+}
+
+void fillEinStateMsg(EinConfig * configIn, EinState * stateOut) {
+  stateOut->zero_g = configIn->zero_g_toggle;
+
+  stateOut->movement_state = configIn->currentMovementState;
+  stateOut->patrol_state = configIn->currentPatrolState;
+  stateOut->patrol_mode = configIn->currentPatrolMode;
+  stateOut->place_mode = configIn->currentPlaceMode;
+  stateOut->idle_mode = configIn->currentIdleMode;
+
+  object_recognition_msgs::RecognizedObjectArray roa;
+  fillRecognizedObjectArrayFromBlueBoxMemory(&roa);
+
+  for (int i = 0; i < roa.objects.size(); i++) {
+    stateOut->objects.push_back(roa.objects[i]);
+  }
+}
+
 int main(int argc, char **argv) {
   initVectorArcTan();
   initializeWords();
@@ -13045,6 +13156,7 @@ int main(int argc, char **argv) {
 
 
   facePub = n.advertise<std_msgs::Int32>("/confusion/target/command", 10);
+  einPub = n.advertise<EinState>("state", 10);
 
   vmMarkerPublisher = n.advertise<visualization_msgs::MarkerArray>("volumetric_rgb_map", 10);
 

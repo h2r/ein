@@ -4,11 +4,11 @@
 #include "ein_util.h"
 
 typedef enum {
-  ARMED,
-  BLOCKED,
-  STOPPED,
-  HOVERING,
-  MOVING
+  ARMED = 0,
+  BLOCKED = 1,
+  STOPPED = 2,
+  HOVERING = 3,
+  MOVING = 4
 } movementState;
 
 typedef enum {
