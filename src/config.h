@@ -110,16 +110,10 @@ class EinConfig {
   std::vector<std::string> jointNames;
 
   double trueJointPositions[NUM_JOINTS] = {0, 0, 0, 0, 0, 0, 0};
-  double rapidJointGlobalOmega[NUM_JOINTS] = {4, 0, 0, 4, 4, 4, 4};
-  double rapidJointLocalOmega[NUM_JOINTS] = {.2, 0, 0, 2, 2, .2, 2};
-  double rapidJointLocalBias[NUM_JOINTS] = {0, 0, 0, 0.7, 0, 0, 0};
-  int rapidJointMask[NUM_JOINTS] = {1, 0, 0, 1, 1, 1, 1};
-  double rapidJointScales[NUM_JOINTS] = {.10, 0, 0, 1.0, 2.0, .20, 3.1415926};
-
 
   rk_state random_state;
 
-  double spiralEta = 1.25;
+
 
 
   // config variables that don't seem to be used
