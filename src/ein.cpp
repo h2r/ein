@@ -1156,6 +1156,8 @@ vector<Sprite> instanceSprites;
 
 void mapijToxy(int i, int j, double * x, double * y);
 void mapxyToij(double x, double y, int * i, int * j); 
+void voidMapRegion(shared_ptr<MachineState> ms, double xc, double yc);
+void clearMapForPatrol(shared_ptr<MachineState> ms);
 void initializeMap(shared_ptr<MachineState> ms);
 void randomizeNanos(shared_ptr<MachineState> ms, ros::Time * time);
 int blueBoxForPixel(int px, int py);
@@ -12660,6 +12662,7 @@ bool positionIsMapped(double x, double y) {
   }
 }
 
+// TODO XXX make clearance status enum
 bool isCellInPursuitZone(int i, int j) {
   return ( (clearanceMap[i + mapWidth * j] == 1) ||
 	   (clearanceMap[i + mapWidth * j] == 2) );
@@ -12743,12 +12746,79 @@ void randomizeNanos(shared_ptr<MachineState> ms, ros::Time * time) {
   time->nsec = nanoseconds;
 }
 
+void voidMapRegion(shared_ptr<MachineState> ms, double xc, double yc) {
+  double voidRegionWidth = 0.1;
+  double voidTimeGap = 60.0;
 
-void initializeMap(shared_ptr<MachineState> ms) 
-{
+  int mxs=0,mxe=0,mys=0,mye=0;
+  mapxyToij(xc-voidRegionWidth, yc-voidRegionWidth, &mxs, &mys);
+  mapxyToij(xc+voidRegionWidth, yc+voidRegionWidth, &mxe, &mye);
+  mxs = max(0,min(mxs,mapWidth));
+  mxe = max(0,min(mxe,mapWidth));
+  mys = max(0,min(mys,mapWidth));
+  mye = max(0,min(mye,mapWidth));
+  ros::Time startTime = ros::Time::now();
+  for (int i = mxs; i < mxe; i++) {
+    for(int j = mys; j < mye; j++) {
+      objectMap[i + mapWidth * j].lastMappedTime = startTime - ros::Duration(mapBlueBoxCooldown) - ros::Duration(voidTimeGap);
+      objectMap[i + mapWidth * j].lastMappedTime.nsec = 0.0;
+      objectMap[i + mapWidth * j].detectedClass = -1;
+      objectMap[i + mapWidth * j].pixelCount = 0;
+      objectMap[i + mapWidth * j].r = 0;
+      objectMap[i + mapWidth * j].g = 0;
+      objectMap[i + mapWidth * j].b = 0;
+
+      int goAgain = 1;
+      while (goAgain) {
+	goAgain = 0;
+	vector<BoxMemory> newMemories;
+	for (int k = 0; k < blueBoxMemories.size(); k++) {
+	  BoxMemory b = blueBoxMemories[k];
+	  if (boxMemoryIntersectsMapCell(b,i,j)) {
+	    // if we remove one, go again!
+	    goAgain = 1;
+	  } else {
+	    newMemories.push_back(b);
+	  }
+	}
+	blueBoxMemories = newMemories;
+      }
+
+    }
+  }
+}
+
+void clearMapForPatrol(shared_ptr<MachineState> ms) {
+  ros::Time startTime = ros::Time::now();
   for (int i = 0; i < mapWidth; i++) {
     for(int j = 0; j < mapHeight; j++) {
-      objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now() - ros::Duration(mapBlueBoxCooldown);
+      objectMap[i + mapWidth * j].lastMappedTime = startTime - ros::Duration(mapBlueBoxCooldown);
+      // make the search go in order but strided
+      if ((j % 10) == 0) {
+	if ((i % 10) == 0) {
+	  objectMap[i + mapWidth * j].lastMappedTime.nsec = 1000.0*(double(i + j*mapWidth)/double(mapHeight*mapWidth));
+	} else {
+	  objectMap[i + mapWidth * j].lastMappedTime.nsec = 1000.0;
+	}
+      } else {
+	objectMap[i + mapWidth * j].lastMappedTime.nsec = 1000.0;
+      }
+
+      objectMap[i + mapWidth * j].detectedClass = -1;
+      objectMap[i + mapWidth * j].pixelCount = 0;
+      objectMap[i + mapWidth * j].r = 0;
+      objectMap[i + mapWidth * j].g = 0;
+      objectMap[i + mapWidth * j].b = 0;
+    }
+  }
+  lastScanStarted = ros::Time::now();
+}
+
+void initializeMap(shared_ptr<MachineState> ms) {
+  ros::Time startTime = ros::Time::now();
+  for (int i = 0; i < mapWidth; i++) {
+    for(int j = 0; j < mapHeight; j++) {
+      objectMap[i + mapWidth * j].lastMappedTime = startTime - ros::Duration(mapBlueBoxCooldown);
       // make the search more random
       randomizeNanos(ms, &objectMap[i + mapWidth * j].lastMappedTime);
 
