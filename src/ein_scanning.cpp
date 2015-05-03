@@ -786,8 +786,8 @@ CODE(196705) // capslock + A
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if (focusedClass > -1) {
     // initialize this if we need to
-    guardGraspMemory();
-    guardHeightMemory();
+    guardGraspMemory(ms);
+    guardHeightMemory(ms);
 
     string thisLabelName = focusedClassLabel;
 
@@ -822,7 +822,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
 
     fsvO << "rangeMap" << rangeMapTemp;
-    copyGraspMemoryTriesToClassGraspMemoryTries();
+    copyGraspMemoryTriesToClassGraspMemoryTries(ms);
     fsvO << "graspMemoryTries1" << classGraspMemoryTries1[focusedClass];
     fsvO << "graspMemoryPicks1" << classGraspMemoryPicks1[focusedClass];
     fsvO << "graspMemoryTries2" << classGraspMemoryTries2[focusedClass];
@@ -832,7 +832,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     fsvO << "graspMemoryTries4" << classGraspMemoryTries4[focusedClass];
     fsvO << "graspMemoryPicks4" << classGraspMemoryPicks4[focusedClass];
 
-    copyHeightMemoryTriesToClassHeightMemoryTries();
+    copyHeightMemoryTriesToClassHeightMemoryTries(ms);
     fsvO << "heightMemoryTries" << classHeightMemoryTries[focusedClass];
     fsvO << "heightMemoryPicks" << classHeightMemoryPicks[focusedClass];
 
@@ -1920,7 +1920,7 @@ REGISTER_WORD(RecordGraspZ)
 
 WORD(PreAnnotateCenterGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  guardGraspMemory();
+  guardGraspMemory(ms);
   for (int y = 0; y < rmWidth; y++) {
     for (int x = 0; x < rmWidth; x++) {
       graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*0] = 1;
