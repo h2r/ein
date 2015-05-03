@@ -448,8 +448,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
 
       if (!foundASpot) {
-	lastScanStarted = ros::Time::now();
-	cout << "All spots visited. Restarting scan." << endl;
+	cout << "moveToNextMapPosition all spots visited, currentPatrolMode: " << ms->config.currentPatrolMode << endl;
+	if (ms->config.currentPatrolMode == LOOP) {
+	  lastScanStarted = ros::Time::now();
+	  cout << "Restarting mappingPatrol." << endl;
+	} else if (ms->config.currentPatrolMode == ONCE) {
+	  cout << "Patrolled once, idling." << endl;
+	  ms->clearStack();
+	  ms->execute_stack = 1;
+	  acceptingFetchCommands = 1;
+	  ms->pushWord("idler");
+	} else {
+	  assert(0);
+	}
       }
     }
 
@@ -555,10 +566,25 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(RecordAllBlueBoxes)
 
+WORD(VoidCurrentMapRegion)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  voidMapRegion(ms, currentEEPose.px, currentEEPose.py);
+  cout << "Voiding the region of the map around currentEEPose." << endl;
+}
+END_WORD
+REGISTER_WORD(VoidCurrentMapRegion)
+
+WORD(ClearMapForPatrol)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  clearMapForPatrol(ms);
+  cout << "Clearing the map for a new patrol." << endl;
+}
+END_WORD
+REGISTER_WORD(ClearMapForPatrol)
+
 WORD(InitializeMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   initializeMap(ms);
-
 }
 END_WORD
 REGISTER_WORD(InitializeMap)
