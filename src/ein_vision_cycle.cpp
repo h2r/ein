@@ -69,7 +69,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       for (int j = jStart; j <= jEnd; j++) {
 	if (i >= 0 && i < mapWidth && j >= 0 && j < mapHeight) {
 	  objectMap[i + mapWidth * j].lastMappedTime = ros::Time(0.001);
-	  randomizeNanos(&objectMap[i + mapWidth * j].lastMappedTime);
+	  randomizeNanos(ms, &objectMap[i + mapWidth * j].lastMappedTime);
 	}
       }
     }
@@ -557,7 +557,7 @@ REGISTER_WORD(RecordAllBlueBoxes)
 
 WORD(InitializeMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  initializeMap();
+  initializeMap(ms);
 
 }
 END_WORD
@@ -592,7 +592,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
 
         objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
-        randomizeNanos(&objectMap[i + mapWidth * j].lastMappedTime);
+        randomizeNanos(ms, &objectMap[i + mapWidth * j].lastMappedTime);
         
         objectMap[i + mapWidth * j].detectedClass = -2;
 

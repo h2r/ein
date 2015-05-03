@@ -493,7 +493,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       recordBoundingBoxFailure();
     }
   }
-  copyGraspMemoryTriesToClassGraspMemoryTries();
+  copyGraspMemoryTriesToClassGraspMemoryTries(ms);
   graspSuccessRate = graspSuccessCounter / graspAttemptCounter;
   ros::Time thisTime = ros::Time::now();
   ros::Duration sinceStartOfTrial = thisTime - graspTrialStart;
@@ -653,7 +653,7 @@ CODE(196713)     // capslock + I
       }
     }
 
-    copyGraspMemoryTriesToClassGraspMemoryTries();
+    copyGraspMemoryTriesToClassGraspMemoryTries(ms);
     graspSuccessRate = graspSuccessCounter / graspAttemptCounter;
     ros::Time thisTime = ros::Time::now();
     ros::Duration sinceStartOfTrial = thisTime - graspTrialStart;
