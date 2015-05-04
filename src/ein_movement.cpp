@@ -1007,9 +1007,7 @@ REGISTER_WORD(ComeToHoverA)
 WORD(WaitForTugThenOpenGripper)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitForTugThenOpenGripperA");
-  // XXX TODO remove come to stop once acceleration trigger is in place
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAccelerometerCallbackReceived");
+  ms->pushWord("waitUntilEndpointCallbackReceived");
   ms->pushWord("waitUntilAtCurrentPosition");
   waitForTugStart = ros::Time::now();
   cout << "Waiting to come to a stop and then waiting to feel a tug... " << ARMED << " " << ms->config.currentMovementState << endl;
@@ -1019,28 +1017,52 @@ REGISTER_WORD(WaitForTugThenOpenGripper)
 
 WORD(WaitForTugThenOpenGripperA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  // XXX INSERT TUG checking here
-  if ( ( ms->config.currentMovementState == MOVING ) ||
-       ( !gripperGripping ) ) {
-    if ( !gripperGripping ) {
-      cout << "There is nothing in the gripper so we should move on..." << endl;
-    }
-    if (ms->config.currentMovementState == MOVING) {
-      cout << "Felt a tug, opening gripper." << endl;
-    }
-    ms->pushWord("openGripper");
-  } else {
-    ms->config.currentMovementState = ARMED;
-    ros::Duration timeSinceWFT = ros::Time::now() - waitForTugStart;
-    if (timeSinceWFT.toSec() < waitForTugTimeout) {
-    ms->pushWord("waitForTugThenOpenGripperA");
+  if (0) { // position based
+    if ( ( ms->config.currentMovementState == MOVING ) ||
+	 ( !gripperGripping ) ) {
+      if ( !gripperGripping ) {
+	cout << "There is nothing in the gripper so we should move on..." << endl;
+      }
+      if (ms->config.currentMovementState == MOVING) {
+	cout << "Felt a tug, opening gripper." << endl;
+      }
+      ms->pushWord("openGripper");
     } else {
-      ROS_WARN_STREAM("_____*____*________");
-      ROS_ERROR_STREAM("waitForTugThenOpenGripper timeout reached, moving on.");
-      ROS_WARN_STREAM("_____*____*________");
+      ms->config.currentMovementState = ARMED;
+      ros::Duration timeSinceWFT = ros::Time::now() - waitForTugStart;
+      if (timeSinceWFT.toSec() < waitForTugTimeout) {
+	ms->pushWord("waitForTugThenOpenGripperA");
+      } else {
+	ROS_WARN_STREAM("_____*____*________");
+	ROS_ERROR_STREAM("waitForTugThenOpenGripper timeout reached, moving on.");
+	ROS_WARN_STREAM("_____*____*________");
+      }
+    }
+  } else { // wrench based
+    double wrenchNorm = sqrt( squareDistanceEEPose(eePoseZero, trueEEWrench) );
+    double wrenchThresh = 8;
+    bool wrenchOverThresh = ( wrenchNorm > wrenchThresh );
+    if ( wrenchOverThresh ||
+	 ( !gripperGripping ) ) {
+      if ( !gripperGripping ) {
+	cout << "There is nothing in the gripper so we should move on..." << endl;
+      }
+      if ( wrenchOverThresh ) {
+	cout << "Felt a tug, opening gripper; wrenchNorm wrenchThresh: " << wrenchNorm << " " << wrenchThresh << " " << endl;
+      }
+      ms->pushWord("openGripper");
+    } else {
+      ms->config.currentMovementState = ARMED;
+      ros::Duration timeSinceWFT = ros::Time::now() - waitForTugStart;
+      if (timeSinceWFT.toSec() < waitForTugTimeout) {
+	ms->pushWord("waitForTugThenOpenGripperA");
+      } else {
+	ROS_WARN_STREAM("_____*____*________");
+	ROS_ERROR_STREAM("waitForTugThenOpenGripper timeout reached, moving on.");
+	ROS_WARN_STREAM("_____*____*________");
+      }
     }
   }
-  endThisStackCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(WaitForTugThenOpenGripperA)
