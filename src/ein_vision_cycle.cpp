@@ -458,6 +458,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  ms->execute_stack = 1;
 	  acceptingFetchCommands = 1;
 	  ms->pushWord("idler");
+	  return;
 	} else {
 	  assert(0);
 	}
