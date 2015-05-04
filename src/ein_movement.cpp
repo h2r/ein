@@ -658,9 +658,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  if (chosen_mode == PHYSICAL) {
+  if (ms->config.chosen_mode == PHYSICAL) {
     return;
-  } else if (chosen_mode == SIMULATED) {
+  } else if (ms->config.chosen_mode == SIMULATED) {
     BoxMemory box;
     box.bTop.x = vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
     box.bTop.y = vanishingPointReticle.py-simulatedObjectHalfWidthPixels;
@@ -682,6 +682,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
     newMemories.push_back(box);
     blueBoxMemories = newMemories;
+  } else {
+    assert(0);
   }
 }
 END_WORD
@@ -765,9 +767,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     cout << "checked " << masterSprites[s].name << " as masterSprites[" << s << "] scale " << masterSprites[s].scale << " image size " << masterSprites[s].image.size() << endl;
   }
   
-  if (chosen_mode == PHYSICAL) {
+  if (ms->config.chosen_mode == PHYSICAL) {
     return;
-  } else if (chosen_mode == SIMULATED) {
+  } else if (ms->config.chosen_mode == SIMULATED) {
     Sprite sprite;
     sprite.image = masterSprites[targetMasterSprite].image.clone();
     sprite.name = masterSprites[targetMasterSprite].name;
@@ -835,6 +837,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     sprite.bot.py += halfHeightMeters;
 
     instanceSprites.push_back(sprite);
+  } else {
+    assert(0);
   }
   cout << "Now instanceSprites.size() is " << instanceSprites.size() << "." << endl;
 }
@@ -851,9 +855,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
   
-  if (chosen_mode == PHYSICAL) {
+  if (ms->config.chosen_mode == PHYSICAL) {
     return;
-  } else if (chosen_mode == SIMULATED) {
+  } else if (ms->config.chosen_mode == SIMULATED) {
     vector<Sprite> newInstanceSprites;
     for (int s = 0; s < instanceSprites.size(); s++) {
       if (s != targetInstanceSprite) {
@@ -861,6 +865,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
     }
     instanceSprites = newInstanceSprites;
+  } else {
+    assert(0);
   }
   cout << "Now instanceSprites.size() is " << instanceSprites.size() << "." << endl;
 }
@@ -870,12 +876,14 @@ REGISTER_WORD(DestroyTargetInstanceSprite)
 WORD(IncrementTargetInstanceSprite)
 CODE(130901) // shift + page up
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (chosen_mode == PHYSICAL) {
+  if (ms->config.chosen_mode == PHYSICAL) {
     return;
-  } else if (chosen_mode == SIMULATED) {
+  } else if (ms->config.chosen_mode == SIMULATED) {
     int base = instanceSprites.size();
     targetInstanceSprite = (targetInstanceSprite + 1 + base) % max(base, 1);
     cout << "Incrementing targetInstanceSprite to " << targetInstanceSprite << " out of " << base << "." << endl;
+  } else {
+    assert(0);
   }
 }
 END_WORD
@@ -884,12 +892,14 @@ REGISTER_WORD(IncrementTargetInstanceSprite)
 WORD(DecrementTargetInstanceSprite)
 CODE(130902) // shift + page down
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (chosen_mode == PHYSICAL) {
+  if (ms->config.chosen_mode == PHYSICAL) {
     return;
-  } else if (chosen_mode == SIMULATED) {
+  } else if (ms->config.chosen_mode == SIMULATED) {
     int base = instanceSprites.size();
     targetInstanceSprite = (targetInstanceSprite - 1 + base) % max(base, 1);
     cout << "Decrementing targetInstanceSprite to " << targetInstanceSprite << " out of " << base << "." << endl;
+  } else {
+    assert(0);
   }
 }
 END_WORD
@@ -898,12 +908,14 @@ REGISTER_WORD(DecrementTargetInstanceSprite)
 WORD(IncrementTargetMasterSprite)
 CODE(130896) // shift + home 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (chosen_mode == PHYSICAL) {
+  if (ms->config.chosen_mode == PHYSICAL) {
     return;
-  } else if (chosen_mode == SIMULATED) {
+  } else if (ms->config.chosen_mode == SIMULATED) {
     int base = masterSprites.size();
     targetMasterSprite = (targetMasterSprite + 1 + base) % max(base, 1);
     cout << "Incrementing targetMasterSprite to " << targetMasterSprite << " out of " << base << "." << endl;
+  } else {
+    assert(0);
   }
 }
 END_WORD
@@ -912,12 +924,14 @@ REGISTER_WORD(IncrementTargetMasterSprite)
 WORD(DecrementTargetMasterSprite)
 CODE(130903) // shift + end 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (chosen_mode == PHYSICAL) {
+  if (ms->config.chosen_mode == PHYSICAL) {
     return;
-  } else if (chosen_mode == SIMULATED) {
+  } else if (ms->config.chosen_mode == SIMULATED) {
     int base = masterSprites.size();
     targetMasterSprite = (targetMasterSprite - 1 + base) % max(base, 1);
     cout << "Decrementing targetMasterSprite to " << targetMasterSprite << " out of " << base << "." << endl;
+  } else {
+    assert(0);
   }
 }
 END_WORD

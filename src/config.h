@@ -3,6 +3,9 @@
 
 #include "ein_util.h"
 
+#include "distributions.h"
+
+
 typedef enum {
   ARMED = 0,
   BLOCKED = 1,
@@ -46,6 +49,12 @@ typedef enum {
   CBCR_HISTOGRAM = 6
 } featureType;
 
+typedef enum {
+  PHYSICAL,
+  SIMULATED
+} robotMode;
+
+#define NUM_JOINTS 7
 
 class EinConfig {
  public:
@@ -91,7 +100,28 @@ class EinConfig {
 
   int gradientFeatureWidth = 50;
 
+  robotMode chosen_mode = PHYSICAL;
 
+
+  int driveVelocities = 0;
+  int testJoint = 3;
+  
+  int jointNamesInit = 0;
+  std::vector<std::string> jointNames;
+
+  double trueJointPositions[NUM_JOINTS] = {0, 0, 0, 0, 0, 0, 0};
+
+  rk_state random_state;
+
+
+
+
+  // config variables that don't seem to be used
+
+  //double rapidAmp1Delta = 0.01;
+
+
+  //double rapidAmp2Delta = 0.03;
 
 };
 

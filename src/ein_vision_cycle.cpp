@@ -69,7 +69,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       for (int j = jStart; j <= jEnd; j++) {
 	if (i >= 0 && i < mapWidth && j >= 0 && j < mapHeight) {
 	  objectMap[i + mapWidth * j].lastMappedTime = ros::Time(0.001);
-	  randomizeNanos(&objectMap[i + mapWidth * j].lastMappedTime);
+	  randomizeNanos(ms, &objectMap[i + mapWidth * j].lastMappedTime);
 	}
       }
     }
@@ -364,14 +364,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	    // ATTN 24
 	    //int thisIkCallResult = ikClient.call(thisIkRequest);
 	    int thisIkCallResult = 0;
-	    queryIK(&thisIkCallResult, &thisIkRequest);
+	    queryIK(ms, &thisIkCallResult, &thisIkRequest);
 
 	    int ikResultFailed = 1;
-	    if (chosen_mode == PHYSICAL) {
+	    if (ms->config.chosen_mode == PHYSICAL) {
 	      ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
-	    } else if (chosen_mode == SIMULATED) {
+	    } else if (ms->config.chosen_mode == SIMULATED) {
 	      ikResultFailed = !positionIsSearched(nextEEPose.px, nextEEPose.py);
-	    }
+	    } else {
+              assert(0);
+            }
 
 	    int foundGoodPosition = !ikResultFailed;
 	    //ikMap[i + mapWidth * j] = ikResultFailed;
@@ -446,8 +448,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
 
       if (!foundASpot) {
-	lastScanStarted = ros::Time::now();
-	cout << "All spots visited. Restarting scan." << endl;
+	cout << "moveToNextMapPosition all spots visited, currentPatrolMode: " << ms->config.currentPatrolMode << endl;
+	if (ms->config.currentPatrolMode == LOOP) {
+	  lastScanStarted = ros::Time::now();
+	  cout << "Restarting mappingPatrol." << endl;
+	} else if (ms->config.currentPatrolMode == ONCE) {
+	  cout << "Patrolled once, idling." << endl;
+	  ms->clearStack();
+	  ms->execute_stack = 1;
+	  acceptingFetchCommands = 1;
+	  ms->pushWord("idler");
+	} else {
+	  assert(0);
+	}
       }
     }
 
@@ -472,13 +485,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     // ATTN 24
     //int thisIkCallResult = ikClient.call(thisIkRequest);
     int thisIkCallResult = 0;
-    queryIK(&thisIkCallResult, &thisIkRequest);
+    queryIK(ms, &thisIkCallResult, &thisIkRequest);
 
     int ikResultFailed = 1;
-    if (chosen_mode == PHYSICAL) {
+    if (ms->config.chosen_mode == PHYSICAL) {
       ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
-    } else if (chosen_mode == SIMULATED) {
+    } else if (ms->config.chosen_mode == SIMULATED) {
       ikResultFailed = !positionIsSearched(nextEEPose.px, nextEEPose.py);
+    } else {
+      assert(0);
     }
 
     int foundGoodPosition = !ikResultFailed;
@@ -551,10 +566,33 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(RecordAllBlueBoxes)
 
+WORD(VoidCurrentMapRegion)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  voidMapRegion(ms, currentEEPose.px, currentEEPose.py);
+  cout << "Voiding the region of the map around currentEEPose." << endl;
+}
+END_WORD
+REGISTER_WORD(VoidCurrentMapRegion)
+
+WORD(ClearMapForPatrol)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  clearMapForPatrol(ms);
+  cout << "Clearing the map for a new patrol." << endl;
+}
+END_WORD
+REGISTER_WORD(ClearMapForPatrol)
+
+WORD(MarkMapAsCompleted)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  markMapAsCompleted(ms);
+  cout << "Marking whole map as completed." << endl;
+}
+END_WORD
+REGISTER_WORD(MarkMapAsCompleted)
+
 WORD(InitializeMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  initializeMap();
-
+  initializeMap(ms);
 }
 END_WORD
 REGISTER_WORD(InitializeMap)
@@ -588,7 +626,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
 
         objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
-        randomizeNanos(&objectMap[i + mapWidth * j].lastMappedTime);
+        randomizeNanos(ms, &objectMap[i + mapWidth * j].lastMappedTime);
         
         objectMap[i + mapWidth * j].detectedClass = -2;
 

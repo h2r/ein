@@ -5,8 +5,8 @@ CODE(1245281)     // capslock + numlock + A
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   if (focusedClass > -1) {
     // initialize this if we need to
-    guardGraspMemory();
-    guardHeightMemory();
+    guardGraspMemory(ms);
+    guardHeightMemory(ms);
 
 
     string thisLabelName = focusedClassLabel;
@@ -29,7 +29,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     fsvO.open(this_range_path, FileStorage::WRITE);
     fsvO << "rangeMap" << rangeMapTemp;
 
-    copyGraspMemoryTriesToClassGraspMemoryTries();
+    copyGraspMemoryTriesToClassGraspMemoryTries(ms);
     fsvO << "graspMemoryTries1" << classGraspMemoryTries1[focusedClass];
     fsvO << "graspMemoryPicks1" << classGraspMemoryPicks1[focusedClass];
     fsvO << "graspMemoryTries2" << classGraspMemoryTries2[focusedClass];
@@ -40,7 +40,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     fsvO << "graspMemoryPicks4" << classGraspMemoryPicks4[focusedClass];
 
 
-    copyHeightMemoryTriesToClassHeightMemoryTries();
+    copyHeightMemoryTriesToClassHeightMemoryTries(ms);
     fsvO << "heightMemoryTries" << classHeightMemoryTries[focusedClass];
     fsvO << "heightMemoryPicks" << classHeightMemoryPicks[focusedClass];
 
@@ -197,7 +197,7 @@ REGISTER_WORD(RecordHeightLearnTrial)
 WORD(LoadSampledGraspMemory)
 CODE(131117)     // capslock + -
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  loadSampledGraspMemory();
+  loadSampledGraspMemory(ms);
   drawMapRegisters();
 }
 END_WORD
@@ -206,7 +206,7 @@ REGISTER_WORD(LoadSampledGraspMemory)
 WORD(LoadMarginalGraspMemory)
 CODE(131133)     // capslock + =
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  loadMarginalGraspMemory();
+  loadMarginalGraspMemory(ms);
   drawMapRegisters();
 }
 END_WORD
@@ -215,9 +215,9 @@ REGISTER_WORD(LoadMarginalGraspMemory)
 WORD(LoadPriorGraspMemoryAnalytic)
 CODE(196360)     // capslock + backspace
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  loadPriorGraspMemory(ANALYTIC_PRIOR);
-  copyGraspMemoryTriesToClassGraspMemoryTries();
-  loadMarginalGraspMemory();
+  loadPriorGraspMemory(ms, ANALYTIC_PRIOR);
+  copyGraspMemoryTriesToClassGraspMemoryTries(ms);
+  loadMarginalGraspMemory(ms);
   
   // shows mus before we converted them to alphas and betas,
   // smoothing the values based on eccentricity.  
@@ -233,9 +233,9 @@ REGISTER_WORD(LoadPriorGraspMemoryAnalytic)
 WORD(LoadPriorGraspMemoryUniform)
 CODE(261896)     // capslock + shift + backspace
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  loadPriorGraspMemory(UNIFORM_PRIOR);
-  copyGraspMemoryTriesToClassGraspMemoryTries();
-  loadMarginalGraspMemory();
+  loadPriorGraspMemory(ms, UNIFORM_PRIOR);
+  copyGraspMemoryTriesToClassGraspMemoryTries(ms);
+  loadMarginalGraspMemory(ms);
   
   // shows mus before we converted them to alphas and betas,
   // smoothing the values based on eccentricity.  
@@ -250,7 +250,7 @@ REGISTER_WORD(LoadPriorGraspMemoryUniform)
 WORD(LoadSampledHeightMemory)
 CODE(1179693)     // capslock + numlock + -
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  loadSampledHeightMemory();
+  loadSampledHeightMemory(ms);
   drawHeightMemorySample();
 }
 END_WORD
@@ -259,7 +259,7 @@ REGISTER_WORD(LoadSampledHeightMemory)
 WORD(LoadMarginalHeightMemory)
 CODE(1179709)     // capslock + numlock + =
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  loadMarginalHeightMemory();
+  loadMarginalHeightMemory(ms);
   drawHeightMemorySample();
 }
 END_WORD
@@ -269,8 +269,8 @@ WORD(LoadPriorHeightMemoryAnalytic)
 CODE(1244936)     // capslock + numlock + backspace
 virtual void execute(std::shared_ptr<MachineState> ms) {
   loadPriorHeightMemory(ANALYTIC_PRIOR);
-  copyHeightMemoryTriesToClassHeightMemoryTries();
-  loadMarginalHeightMemory();
+  copyHeightMemoryTriesToClassHeightMemoryTries(ms);
+  loadMarginalHeightMemory(ms);
   drawHeightMemorySample();
 }
 END_WORD
@@ -280,8 +280,8 @@ WORD(LoadPriorHeightMemoryUniform)
 CODE(1310472)     // capslock + numlock + shift + backspace
 virtual void execute(std::shared_ptr<MachineState> ms) {
   loadPriorHeightMemory(UNIFORM_PRIOR);
-  copyHeightMemoryTriesToClassHeightMemoryTries();
-  loadMarginalHeightMemory();
+  copyHeightMemoryTriesToClassHeightMemoryTries(ms);
+  loadMarginalHeightMemory(ms);
   drawHeightMemorySample();
 }
 END_WORD
@@ -434,11 +434,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       m_y = m_y_h[currentThompsonHeightIdx];
       return;
     } else if (currentBoundingBoxMode == LEARNING_SAMPLING) {
-      loadSampledHeightMemory();
+      loadSampledHeightMemory(ms);
     } else if (currentBoundingBoxMode == STATIC_MARGINALS) {
-      loadMarginalHeightMemory();
+      loadMarginalHeightMemory(ms);
     } else if (currentBoundingBoxMode == LEARNING_ALGORITHMC) {
-      loadMarginalHeightMemory();
+      loadMarginalHeightMemory(ms);
     } else {
       cout << "Invalid currentBoundingBoxMode. Asserting." << endl;
       assert(0);
