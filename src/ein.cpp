@@ -12876,12 +12876,12 @@ void fillRecognizedObjectArrayFromBlueBoxMemory(object_recognition_msgs::Recogni
 	pose.position.y = blueBoxMemories[closest_idx].centroid.py;
 	pose.position.z = blueBoxMemories[closest_idx].centroid.pz;
 
-	cout << "blueBoxMemories: " << blueBoxMemories[closest_idx].centroid.px << endl;
-	cout << "pose: " << pose.position.x << endl;
+	//cout << "blueBoxMemories: " << blueBoxMemories[closest_idx].centroid.px << endl;
+	//cout << "pose: " << pose.position.x << endl;
 
 	roa->objects[aI].pose.pose.pose.position = pose.position;
 
-	cout << "roa objects x: " << roa->objects[aI].pose.pose.pose.position.x << endl;
+	//cout << "roa objects x: " << roa->objects[aI].pose.pose.pose.position.x << endl;
 	roa->objects[aI].type.key = class_label;
 
 	roa->objects[aI].header = roa->header;
