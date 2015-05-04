@@ -59,10 +59,6 @@ typedef enum {
   OFT_INVALID
 } orientedFilterType;
 
-typedef enum {
-  PHYSICAL,
-  SIMULATED
-} robotMode;
 
 typedef enum {
   STATIC_PRIOR = 1,

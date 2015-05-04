@@ -11,15 +11,18 @@
 //  // o++{==========>*
 //  //               /|\ 
 //  // end Tips
-//
+//   
 //  // Ein: Ein Isn't Node.
 //  // Ein: A dog in Cowboy Bebop.
 //  // Ein: Short for Eindecker.
 //  // Ein: It's one program. 
 //
+//        ><>  
+//
 // end Header
 
 //#define DEBUG_RING_BUFFER // ring buffer
+
 
 #define EPSILON 1.0e-9
 #define VERYBIGNUMBER 1e6
@@ -81,7 +84,6 @@
 #include <opencv2/gpu/gpu.hpp>
 
 
-
 // slu
 #include "slu/math2d.h"
 
@@ -104,31 +106,6 @@ shared_ptr<MachineState> pMachineState;
 
 
 
-
-robotMode chosen_mode = PHYSICAL;
-
-double rapidAmp1 = 0.00; //0.3 is great
-double rapidAmp1Delta = 0.01;
-
-double rapidAmp2 = 0.00;
-double rapidAmp2Delta = 0.03;
-
-const int numJoints = 7;
-int driveVelocities = 0;
-int testJoint = 3;
-
-int jointNamesInit = 0;
-std::vector<std::string> jointNames;
-rk_state random_state;
-
-double spiralEta = 1.25;
-
-double trueJointPositions[numJoints] = {0, 0, 0, 0, 0, 0, 0};
-double rapidJointGlobalOmega[numJoints] = {4, 0, 0, 4, 4, 4, 4};
-double rapidJointLocalOmega[numJoints] = {.2, 0, 0, 2, 2, .2, 2};
-double rapidJointLocalBias[numJoints] = {0, 0, 0, 0.7, 0, 0, 0};
-int rapidJointMask[numJoints] = {1, 0, 0, 1, 1, 1, 1};
-double rapidJointScales[numJoints] = {.10, 0, 0, 1.0, 2.0, .20, 3.1415926};
 
 double aveTime = 0.0;
 double aveFrequency = 0.0;
@@ -1179,8 +1156,10 @@ vector<Sprite> instanceSprites;
 
 void mapijToxy(int i, int j, double * x, double * y);
 void mapxyToij(double x, double y, int * i, int * j); 
-void initializeMap() ;
-void randomizeNanos(ros::Time * time);
+void voidMapRegion(shared_ptr<MachineState> ms, double xc, double yc);
+void clearMapForPatrol(shared_ptr<MachineState> ms);
+void initializeMap(shared_ptr<MachineState> ms);
+void randomizeNanos(shared_ptr<MachineState> ms, ros::Time * time);
 int blueBoxForPixel(int px, int py);
 int skirtedBlueBoxForPixel(int px, int py, int skirtPixels);
 bool cellIsSearched(int i, int j);
@@ -1436,7 +1415,7 @@ void update_baxter(ros::NodeHandle &n);
 void timercallback1(const ros::TimerEvent&);
 void imageCallback(const sensor_msgs::ImageConstPtr& msg);
 void renderRangeogramView(shared_ptr<MachineState> ms);
-void renderObjectMapView();
+void renderObjectMapView(shared_ptr<MachineState> ms);
 void drawMapPolygon(gsl_matrix * poly, cv::Scalar color);
 void targetCallback(const geometry_msgs::Point& point);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
@@ -1459,22 +1438,22 @@ void convertLocalGraspIdxToGlobal(const int localX, const int localY,
 
 void changeTargetClass(shared_ptr<MachineState> ms, int);
 
-void guardGraspMemory();
-void loadSampledGraspMemory();
-void loadMarginalGraspMemory();
-void loadPriorGraspMemory(priorType);
+void guardGraspMemory(shared_ptr<MachineState> ms);
+void loadSampledGraspMemory(shared_ptr<MachineState> ms);
+void loadMarginalGraspMemory(shared_ptr<MachineState> ms);
+void loadPriorGraspMemory(shared_ptr<MachineState> ms, priorType);
 void estimateGlobalGraspGear();
 void drawMapRegisters();
 
-void guardHeightMemory();
-void loadSampledHeightMemory();
-void loadMarginalHeightMemory();
+void guardHeightMemory(shared_ptr<MachineState> ms);
+void loadSampledHeightMemory(shared_ptr<MachineState> ms);
+void loadMarginalHeightMemory(shared_ptr<MachineState> ms);
 void loadPriorHeightMemory(priorType);
 double convertHeightIdxToGlobalZ(int);
 int convertHeightGlobalZToIdx(double);
 void testHeightConversion();
 void drawHeightMemorySample();
-void copyHeightMemoryTriesToClassHeightMemoryTries();
+void copyHeightMemoryTriesToClassHeightMemoryTries(shared_ptr<MachineState> ms);
 
 void applyGraspFilter(double * rangeMapRegA, double * rangeMapRegB);
 void prepareGraspFilter(int i);
@@ -1487,7 +1466,7 @@ void copyRangeMapRegister(double * src, double * target);
 void copyGraspMemoryRegister(double * src, double * target);
 void loadGlobalTargetClassRangeMap(double * rangeMapRegA, double * rangeMapRegB);
 void loadLocalTargetClassRangeMap(double * rangeMapRegA, double * rangeMapRegB);
-void copyGraspMemoryTriesToClassGraspMemoryTries();
+void copyGraspMemoryTriesToClassGraspMemoryTries(shared_ptr<MachineState> ms);
 void copyClassGraspMemoryTriesToGraspMemoryTries();
 
 void selectMaxTarget(double minDepth);
@@ -1529,7 +1508,7 @@ void initVectorArcTan();
 void mapBlueBox(cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark);
 void mapBox(BoxMemory boxMemory);
 
-void queryIK(int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
+void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
 
 void globalToMapBackground(double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
 void simulatorCallback(const ros::TimerEvent&);
@@ -2515,13 +2494,13 @@ void jointCallback(const sensor_msgs::JointState& js) {
 //  if (!shouldIMiscCallback) {
 //    return;
 //  }
-
-  if (jointNamesInit) {
+  shared_ptr<MachineState> ms = pMachineState;
+  if (ms->config.jointNamesInit) {
     int limit = js.position.size();
     for (int i = 0; i < limit; i++) {
-      for (int j = 0; j < numJoints; j++) {
-	if (0 == js.name[i].compare(jointNames[j]))
-	  trueJointPositions[j] = js.position[i];
+      for (int j = 0; j < NUM_JOINTS; j++) {
+	if (0 == js.name[i].compare(ms->config.jointNames[j]))
+	  ms->config.trueJointPositions[j] = js.position[i];
 	//cout << "tJP[" << j << "]: " << trueJointPositions[j] << endl;
       }
     }
@@ -2593,19 +2572,23 @@ vector<string> split(const char *str, char c = ' ')
 
 void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
   cout << "moveEndEffectorCommandCallback" << endl << msg.position << msg.orientation << endl;
-  if (chosen_mode == PHYSICAL) {
+  shared_ptr<MachineState> ms = pMachineState;
+  if (ms->config.chosen_mode == PHYSICAL) {
     return;
-  } else if (chosen_mode == SIMULATED) {
+  } else if (ms->config.chosen_mode == SIMULATED) {
     currentEEPose.px = msg.position.x;
     currentEEPose.py = msg.position.y;
     currentEEPose.pz = msg.position.z;
+  } else {
+    assert(0);
   }
 }
 
 void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
-  if (chosen_mode == PHYSICAL) {
+  shared_ptr<MachineState> ms = pMachineState;
+  if (ms->config.chosen_mode == PHYSICAL) {
     return;
-  } else if (chosen_mode == SIMULATED) {
+  } else if (ms->config.chosen_mode == SIMULATED) {
     if (objectInHandLabel == -1) {
       // this is a fake box to test intersection
       int probeBoxHalfWidthPixels = 10;
@@ -2648,13 +2631,16 @@ void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
 	cout << "pickObjectUnderEndEffectorCommandCallback: Not picking because objectInHandLabel is " << objectInHandLabel << "." << endl;
       }
     }
+  } else {
+    assert(0);
   }
 }
 
 void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
-  if (chosen_mode == PHYSICAL) {
+  shared_ptr<MachineState> ms = pMachineState;
+  if (ms->config.chosen_mode == PHYSICAL) {
     return;
-  } else if (chosen_mode == SIMULATED) {
+  } else if (ms->config.chosen_mode == SIMULATED) {
     if (objectInHandLabel >= 0) {
       BoxMemory box;
       box.bTop.x = vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
@@ -2682,6 +2668,8 @@ void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
       cout << "placeObjectInEndEffectorCommandCallback: Not placing because objectInHandLabel is " << objectInHandLabel << "." << endl;
     }
     objectInHandLabel = -1;
+  } else {
+    assert(0);
   }
 }
 
@@ -3658,9 +3646,9 @@ void reseedIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * gi
   if (goodIkInitialized) {
     givenIkRequest->request.seed_mode = 1; // SEED_USER
     givenIkRequest->request.seed_angles.resize(1);
-    givenIkRequest->request.seed_angles[0].position.resize(numJoints);
-    givenIkRequest->request.seed_angles[0].name.resize(numJoints);
-    for (int j = 0; j < numJoints; j++) {
+    givenIkRequest->request.seed_angles[0].position.resize(NUM_JOINTS);
+    givenIkRequest->request.seed_angles[0].name.resize(NUM_JOINTS);
+    for (int j = 0; j < NUM_JOINTS; j++) {
       givenIkRequest->request.seed_angles[0].name[j] = lastGoodIkRequest.response.joints[0].name[j];
       givenIkRequest->request.seed_angles[0].position[j] = lastGoodIkRequest.response.joints[0].position[j] + 
 	((drand48() - 0.5)*2.0*jointSeedAmplitude);
@@ -3681,10 +3669,10 @@ bool willIkResultFail(baxter_core_msgs::SolvePositionIK thisIkRequest, int thisI
 
   if (thisIkCallResult && thisIkRequest.response.isValid[0]) {
     thisIkResultFailed = 0;
-  } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != numJoints)) {
+  } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
     thisIkResultFailed = 1;
     //cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
-  } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != numJoints)) {
+  } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
     thisIkResultFailed = 1;
     //cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
   } else if (thisIkRequest.response.joints.size() == 1) {
@@ -3707,12 +3695,12 @@ bool willIkResultFail(baxter_core_msgs::SolvePositionIK thisIkRequest, int thisI
 
 void update_baxter(ros::NodeHandle &n) {
   bfc = bfc % bfc_period;
-
+  shared_ptr<MachineState> ms = pMachineState;
   if (!shouldIDoIK) {
     return;
   }
 
-  if (chosen_mode == SIMULATED) {
+  if (ms->config.chosen_mode == SIMULATED) {
     return;
   }
 
@@ -3733,7 +3721,7 @@ void update_baxter(ros::NodeHandle &n) {
       // ATTN 24
       //int ikCallResult = ikClient.call(thisIkRequest);
       int ikCallResult = 0;
-      queryIK(&ikCallResult, &thisIkRequest);
+      queryIK(ms, &ikCallResult, &thisIkRequest);
 
       //ikResultFailed = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
       //cout << "ik call result: " << ikCallResult << " joints: " << (thisIkRequest.response.joints.size()) << " "; 
@@ -3743,7 +3731,7 @@ void update_baxter(ros::NodeHandle &n) {
       //}
 
 
-      //ikResultFailed = (!ikCallResult || (thisIkRequest.response.joints.size() == 0) || (thisIkRequest.response.joints[0].position.size() != numJoints));
+      //ikResultFailed = (!ikCallResult || (thisIkRequest.response.joints.size() == 0) || (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS));
 
 //      // XXX This is ridiculous
 //      if (ikCallResult && thisIkRequest.response.isValid[0]) {
@@ -3771,10 +3759,10 @@ void update_baxter(ros::NodeHandle &n) {
 	  printEEPose(currentEEPose);
 	  ROS_WARN_STREAM("___________________");
 	}
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != numJoints)) {
+      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
 	ikResultFailed = 1;
 	cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != numJoints)) {
+      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
 	ikResultFailed = 1;
 	cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
       } else if (thisIkRequest.response.joints.size() == 1) {
@@ -3864,39 +3852,48 @@ void update_baxter(ros::NodeHandle &n) {
 
   baxter_core_msgs::JointCommand myCommand;
 
-  if (!jointNamesInit) {
-    jointNames.resize(numJoints);
-    for (int j = 0; j < numJoints; j++) {
-      jointNames[j] = ikRequest.response.joints[0].name[j];
+  if (!ms->config.jointNamesInit) {
+    ms->config.jointNames.resize(NUM_JOINTS);
+    for (int j = 0; j < NUM_JOINTS; j++) {
+      ms->config.jointNames[j] = ikRequest.response.joints[0].name[j];
     }
-    jointNamesInit = 1;
+    ms->config.jointNamesInit = 1;
   }
 
-  if (driveVelocities) {
+  if (ms->config.driveVelocities) {
 
     double l2Gravity = 0.0;
 
     myCommand.mode = baxter_core_msgs::JointCommand::VELOCITY_MODE;
-    myCommand.command.resize(numJoints);
-    myCommand.names.resize(numJoints);
+    myCommand.command.resize(NUM_JOINTS);
+    myCommand.names.resize(NUM_JOINTS);
 
     ros::Time theNow = ros::Time::now();
     ros::Duration howLong = theNow - oscilStart;
+    double spiralEta = 1.25;
+    double rapidJointGlobalOmega[NUM_JOINTS] = {4, 0, 0, 4, 4, 4, 4};
+    double rapidJointLocalOmega[NUM_JOINTS] = {.2, 0, 0, 2, 2, .2, 2};
+    double rapidJointLocalBias[NUM_JOINTS] = {0, 0, 0, 0.7, 0, 0, 0};
+    int rapidJointMask[NUM_JOINTS] = {1, 0, 0, 1, 1, 1, 1};
+    double rapidJointScales[NUM_JOINTS] = {.10, 0, 0, 1.0, 2.0, .20, 3.1415926};
 
-    for (int j = 0; j < numJoints; j++) {
+
+    for (int j = 0; j < NUM_JOINTS; j++) {
       myCommand.names[j] = ikRequest.response.joints[0].name[j];
       //myCommand.command[j] = 0.0;
-      myCommand.command[j] = spiralEta*rapidJointScales[j]*(ikRequest.response.joints[0].position[j] - trueJointPositions[j]);
+      myCommand.command[j] = spiralEta*rapidJointScales[j]*(ikRequest.response.joints[0].position[j] - ms->config.trueJointPositions[j]);
       //myCommand.command[j] = sin(rapidJointGlobalOmega[j]*howLong.toSec());
     }
     {
       double tim = howLong.toSec();
+      double rapidAmp1 = 0.00; //0.3 is great
       myCommand.command[4] += -rapidAmp1*rapidJointScales[4]*sin(rapidJointLocalBias[4] + (rapidJointLocalOmega[4]*rapidJointGlobalOmega[4]*tim));
       myCommand.command[3] +=  rapidAmp1*rapidJointScales[3]*cos(rapidJointLocalBias[3] + (rapidJointLocalOmega[3]*rapidJointGlobalOmega[3]*tim));
 
       //myCommand.command[5] += -rapidAmp1*rapidJointScales[4]*sin(rapidJointLocalBias[4] + (rapidJointLocalOmega[4]*rapidJointGlobalOmega[4]*tim));
       //myCommand.command[0] +=  rapidAmp1*rapidJointScales[3]*cos(rapidJointLocalBias[3] + (rapidJointLocalOmega[3]*rapidJointGlobalOmega[3]*tim));
 
+      double rapidAmp2 = 0.00;
       myCommand.command[5] += -rapidAmp2*rapidJointScales[5]*sin(rapidJointLocalBias[5] + (rapidJointLocalOmega[5]*rapidJointGlobalOmega[5]*tim));
       myCommand.command[0] +=  rapidAmp2*rapidJointScales[0]*cos(rapidJointLocalBias[0] + (rapidJointLocalOmega[0]*rapidJointGlobalOmega[0]*tim));
 
@@ -3904,13 +3901,13 @@ void update_baxter(ros::NodeHandle &n) {
     }
   } else {
     myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
-    myCommand.command.resize(numJoints);
-    myCommand.names.resize(numJoints);
+    myCommand.command.resize(NUM_JOINTS);
+    myCommand.names.resize(NUM_JOINTS);
     lastGoodIkRequest.response.joints.resize(1);
-    lastGoodIkRequest.response.joints[0].name.resize(numJoints);
-    lastGoodIkRequest.response.joints[0].position.resize(numJoints);
+    lastGoodIkRequest.response.joints[0].name.resize(NUM_JOINTS);
+    lastGoodIkRequest.response.joints[0].position.resize(NUM_JOINTS);
 
-    for (int j = 0; j < numJoints; j++) {
+    for (int j = 0; j < NUM_JOINTS; j++) {
       myCommand.names[j] = ikRequest.response.joints[0].name[j];
       myCommand.command[j] = ikRequest.response.joints[0].position[j];
       lastGoodIkRequest.response.joints[0].name[j] = ikRequest.response.joints[0].name[j];
@@ -4039,7 +4036,7 @@ void timercallback1(const ros::TimerEvent&) {
   renderRangeogramView(pMachineState);
 
   if (shouldIRender) {
-    renderObjectMapView();
+    renderObjectMapView(pMachineState);
   }
 }
 
@@ -4519,7 +4516,7 @@ cv::Point worldToPixel(Mat image, double xMin, double xMax, double yMin, double 
   return out;
 }
 
-void renderObjectMapView() {
+void renderObjectMapView(shared_ptr<MachineState> ms) {
   if (objectMapViewerImage.rows <= 0 ) {
     objectMapViewerImage = Mat(800, 800, CV_8UC3);
   }
@@ -4691,7 +4688,7 @@ void renderObjectMapView() {
   }
 
   // draw sprites
-  if (chosen_mode == SIMULATED) {
+  if (ms->config.chosen_mode == SIMULATED) {
     for (int s = 0; s < instanceSprites.size(); s++) {
       Sprite sprite = instanceSprites[s];
       
@@ -5802,7 +5799,7 @@ void changeTargetClass(shared_ptr<MachineState> ms, int newTargetClass) {
   }
 }
 
-void guardGraspMemory() {
+void guardGraspMemory(shared_ptr<MachineState> ms) {
 
   {
     if (classGraspMemoryTries1.size() <= focusedClass) {
@@ -5862,13 +5859,13 @@ void guardGraspMemory() {
       loadPrior = true;
     }
     if (loadPrior) {
-      loadPriorGraspMemory(ANALYTIC_PRIOR);
+      loadPriorGraspMemory(ms, ANALYTIC_PRIOR);
     }
   }
 
 }
 
-void guardHeightMemory() {
+void guardHeightMemory(shared_ptr<MachineState> ms) {
   if (focusedClass == -1) {
     ROS_ERROR_STREAM("Focused class not initialized! " << focusedClass);
   }
@@ -5957,7 +5954,7 @@ void convertLocalGraspIdxToGlobal(const int localX, const int localY,
 }
 
 
-void loadSampledGraspMemory() {
+void loadSampledGraspMemory(shared_ptr<MachineState> ms) {
   ROS_INFO("Loading sampled grasp memory.");
   for (int tGG = 0; tGG < totalGraspGears/2; tGG++) {
     for (int rx = 0; rx < rmWidth; rx++) {
@@ -5969,7 +5966,7 @@ void loadSampledGraspMemory() {
         int i = rx + ry * rmWidth + rmWidth*rmWidth*tGG;
         double nsuccess = pickEccentricity * (graspMemoryPicks[i]);
         double nfailure = pickEccentricity * (graspMemoryTries[i] - graspMemoryPicks[i]);
-        graspMemorySample[i] = rk_beta(&random_state, 
+        graspMemorySample[i] = rk_beta(&ms->config.random_state, 
                                        nsuccess + 1, 
                                        nfailure + 1);
       }
@@ -5978,7 +5975,7 @@ void loadSampledGraspMemory() {
 }
 
 
-void loadMarginalGraspMemory() {
+void loadMarginalGraspMemory(shared_ptr<MachineState> ms) {
   ROS_INFO("Loading marginal grasp memory.");
   for (int tGG = 0; tGG < totalGraspGears/2; tGG++) {
     for (int rx = 0; rx < rmWidth; rx++) {
@@ -5992,7 +5989,7 @@ void loadMarginalGraspMemory() {
   }
 }
 
-void loadPriorGraspMemory(priorType prior) {
+void loadPriorGraspMemory(shared_ptr<MachineState> ms, priorType prior) {
   ROS_INFO("Loading prior grasp memory.");
   double max_range_value = -VERYBIGNUMBER;
   double min_range_value = VERYBIGNUMBER;
@@ -6123,7 +6120,7 @@ void loadPriorGraspMemory(priorType prior) {
   }
 }
 
-void loadMarginalHeightMemory() {
+void loadMarginalHeightMemory(shared_ptr<MachineState> ms) {
   //ROS_INFO("Loading marginal height memory.");
   for (int i = 0; i < hmWidth; i++) {
     double nsuccess = heightMemoryPicks[i];
@@ -6132,12 +6129,12 @@ void loadMarginalHeightMemory() {
   }
 }
  
-void loadSampledHeightMemory() {
+void loadSampledHeightMemory(shared_ptr<MachineState> ms) {
   ROS_INFO("Loading sampled height memory.");
   for (int i = 0; i < hmWidth; i++) {
     double nsuccess = heightEccentricity * (heightMemoryPicks[i]);
     double nfailure = heightEccentricity * (heightMemoryTries[i] - heightMemoryPicks[i]);
-    heightMemorySample[i] = rk_beta(&random_state, 
+    heightMemorySample[i] = rk_beta(&ms->config.random_state, 
                                     nsuccess + 1, 
                                     nfailure + 1);
   }
@@ -6256,8 +6253,8 @@ void drawHeightMemorySample() {
   }
 }
 
-void copyHeightMemoryTriesToClassHeightMemoryTries() {
-  guardHeightMemory();
+void copyHeightMemoryTriesToClassHeightMemoryTries(shared_ptr<MachineState> ms) {
+  guardHeightMemory(ms);
   for (int i = 0; i < hmWidth; i++) {
     classHeightMemoryTries[focusedClass].at<double>(i,0) = heightMemoryTries[i];
     classHeightMemoryPicks[focusedClass].at<double>(i,0) = heightMemoryPicks[i];
@@ -6814,8 +6811,8 @@ void copyClassGraspMemoryTriesToGraspMemoryTries() {
 
 }
 
-void copyGraspMemoryTriesToClassGraspMemoryTries() {
-  guardGraspMemory();
+void copyGraspMemoryTriesToClassGraspMemoryTries(shared_ptr<MachineState> ms) {
+  guardGraspMemory(ms);
   for (int y = 0; y < rmWidth; y++) {
     for (int x = 0; x < rmWidth; x++) {
       classGraspMemoryTries1[focusedClass].at<double>(y,x) = graspMemoryTries[x + y*rmWidth + 0*rmWidth*rmWidth];
@@ -8979,11 +8976,13 @@ void mapBox(BoxMemory boxMemory) {
  mapBlueBox(boxMemory.bTop, boxMemory.bBot, boxMemory.labeledClassIndex, ros::Time::now());
 }
 
-void queryIK(int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
-  if (chosen_mode == PHYSICAL) {
+void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
+  if (ms->config.chosen_mode == PHYSICAL) {
     *thisResult = ikClient.call(*thisRequest);
-  } else if (chosen_mode == SIMULATED) {
+  } else if (ms->config.chosen_mode == SIMULATED) {
     *thisResult = 1;
+  } else {
+    assert(0);
   }
 }
 
@@ -11766,7 +11765,7 @@ void goClassifyBlueBoxes() {
 
 
 // TODO probably don't need two separate functions for this
-void loadROSParamsFromArgs() {
+void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   ros::NodeHandle nh("~");
 
   nh.getParam("default_ikShare", default_ikShare);
@@ -11820,10 +11819,10 @@ void loadROSParamsFromArgs() {
 
   nh.getParam("use_simulator", use_simulator);
   if (use_simulator) {
-    chosen_mode = SIMULATED;
+    ms->config.chosen_mode = SIMULATED;
   } else {
-    chosen_mode = PHYSICAL;
-  }
+    ms->config.chosen_mode = PHYSICAL;
+  } 
 }
 
 void loadROSParams() {
@@ -12663,6 +12662,7 @@ bool positionIsMapped(double x, double y) {
   }
 }
 
+// TODO XXX make clearance status enum
 bool isCellInPursuitZone(int i, int j) {
   return ( (clearanceMap[i + mapWidth * j] == 1) ||
 	   (clearanceMap[i + mapWidth * j] == 2) );
@@ -12741,19 +12741,102 @@ int skirtedBlueBoxForPixel(int px, int py, int skirtPixels) {
   return -1;
 }
 
-void randomizeNanos(ros::Time * time) {
-  double nanoseconds = rk_double(&random_state) * 1000;
+void randomizeNanos(shared_ptr<MachineState> ms, ros::Time * time) {
+  double nanoseconds = rk_double(&ms->config.random_state) * 1000;
   time->nsec = nanoseconds;
 }
 
+void voidMapRegion(shared_ptr<MachineState> ms, double xc, double yc) {
+  double voidRegionWidth = 0.1;
+  double voidTimeGap = 60.0;
 
-void initializeMap() 
-{
+  int mxs=0,mxe=0,mys=0,mye=0;
+  mapxyToij(xc-voidRegionWidth, yc-voidRegionWidth, &mxs, &mys);
+  mapxyToij(xc+voidRegionWidth, yc+voidRegionWidth, &mxe, &mye);
+  mxs = max(0,min(mxs,mapWidth));
+  mxe = max(0,min(mxe,mapWidth));
+  mys = max(0,min(mys,mapWidth));
+  mye = max(0,min(mye,mapWidth));
+  ros::Time startTime = ros::Time::now();
+  for (int i = mxs; i < mxe; i++) {
+    for(int j = mys; j < mye; j++) {
+      objectMap[i + mapWidth * j].lastMappedTime = startTime - ros::Duration(mapBlueBoxCooldown) - ros::Duration(voidTimeGap);
+      objectMap[i + mapWidth * j].lastMappedTime.nsec = 0.0;
+      objectMap[i + mapWidth * j].detectedClass = -1;
+      objectMap[i + mapWidth * j].pixelCount = 0;
+      objectMap[i + mapWidth * j].r = 0;
+      objectMap[i + mapWidth * j].g = 0;
+      objectMap[i + mapWidth * j].b = 0;
+
+      int goAgain = 1;
+      while (goAgain) {
+	goAgain = 0;
+	vector<BoxMemory> newMemories;
+	for (int k = 0; k < blueBoxMemories.size(); k++) {
+	  BoxMemory b = blueBoxMemories[k];
+	  if (boxMemoryIntersectsMapCell(b,i,j)) {
+	    // if we remove one, go again!
+	    goAgain = 1;
+	  } else {
+	    newMemories.push_back(b);
+	  }
+	}
+	blueBoxMemories = newMemories;
+      }
+
+    }
+  }
+}
+
+void markMapAsCompleted(shared_ptr<MachineState> ms) {
+  double completionGap = 10.0;
   for (int i = 0; i < mapWidth; i++) {
     for(int j = 0; j < mapHeight; j++) {
-      objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now() - ros::Duration(mapBlueBoxCooldown);
+      objectMap[i + mapWidth * j].lastMappedTime = lastScanStarted + ros::Duration(completionGap);
+
+      objectMap[i + mapWidth * j].detectedClass = -1;
+      objectMap[i + mapWidth * j].pixelCount = 10;
+      objectMap[i + mapWidth * j].r = 64;
+      objectMap[i + mapWidth * j].g = 64;
+      objectMap[i + mapWidth * j].b = 64;
+    }
+  }
+  lastScanStarted = ros::Time::now();
+}
+
+void clearMapForPatrol(shared_ptr<MachineState> ms) {
+  ros::Time startTime = ros::Time::now();
+  for (int i = 0; i < mapWidth; i++) {
+    for(int j = 0; j < mapHeight; j++) {
+      objectMap[i + mapWidth * j].lastMappedTime = startTime - ros::Duration(mapBlueBoxCooldown);
+      // make the search go in order but strided
+      if ((j % 10) == 0) {
+	if ((i % 10) == 0) {
+	  objectMap[i + mapWidth * j].lastMappedTime.nsec = 1000.0*(double(i + j*mapWidth)/double(mapHeight*mapWidth));
+	} else {
+	  objectMap[i + mapWidth * j].lastMappedTime.nsec = 1000.0;
+	}
+      } else {
+	objectMap[i + mapWidth * j].lastMappedTime.nsec = 1000.0;
+      }
+
+      objectMap[i + mapWidth * j].detectedClass = -1;
+      objectMap[i + mapWidth * j].pixelCount = 0;
+      objectMap[i + mapWidth * j].r = 0;
+      objectMap[i + mapWidth * j].g = 0;
+      objectMap[i + mapWidth * j].b = 0;
+    }
+  }
+  lastScanStarted = ros::Time::now();
+}
+
+void initializeMap(shared_ptr<MachineState> ms) {
+  ros::Time startTime = ros::Time::now();
+  for (int i = 0; i < mapWidth; i++) {
+    for(int j = 0; j < mapHeight; j++) {
+      objectMap[i + mapWidth * j].lastMappedTime = startTime - ros::Duration(mapBlueBoxCooldown);
       // make the search more random
-      randomizeNanos(&objectMap[i + mapWidth * j].lastMappedTime);
+      randomizeNanos(ms, &objectMap[i + mapWidth * j].lastMappedTime);
 
 
       objectMap[i + mapWidth * j].detectedClass = -1;
@@ -12908,6 +12991,7 @@ void fillEinStateMsg(EinConfig * configIn, EinState * stateOut) {
 }
 
 int main(int argc, char **argv) {
+
   initVectorArcTan();
   initializeWords();
   pMachineState = std::make_shared<MachineState>(machineState);
@@ -12936,7 +13020,7 @@ int main(int argc, char **argv) {
 
   cout << "n namespace: " << n.getNamespace() << endl;
 
-  loadROSParamsFromArgs();
+  loadROSParamsFromArgs(pMachineState);
   cout << "mask_gripper: " << mask_gripper << " add_blinders: " << add_blinders << endl;
   cout << "all_range_mode: " << all_range_mode << endl;
   cout << "data_directory: " << data_directory << endl << "class_name: " << class_name << endl 
@@ -12949,7 +13033,7 @@ int main(int argc, char **argv) {
   class_crops_path = data_directory + "/objects/";
 
   unsigned long seed = 1;
-  rk_seed(seed, &random_state);
+  rk_seed(seed, &pMachineState->config.random_state);
 
   if ( (left_or_right_arm.compare("right") == 0) || (left_or_right_arm.compare("left") == 0) ) {
     image_topic = "/cameras/" + left_or_right_arm + "_hand_camera/image";
@@ -12995,14 +13079,14 @@ int main(int argc, char **argv) {
 
   ros::Timer simulatorCallbackTimer;
 
-  if (chosen_mode == PHYSICAL) {
+  if (pMachineState->config.chosen_mode == PHYSICAL) {
     epState =   n.subscribe("/robot/limb/" + left_or_right_arm + "/endpoint_state", 1, endpointCallback);
     gripState = n.subscribe("/robot/end_effector/" + left_or_right_arm + "_gripper/state", 1, gripStateCallback);
     eeRanger =  n.subscribe("/robot/range/" + left_or_right_arm + "_hand_range/state", 1, rangeCallback);
     eeTarget =  n.subscribe("/ein_" + left_or_right_arm + "/pilot_target_" + left_or_right_arm, 1, targetCallback);
     jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
     image_sub = it.subscribe(image_topic, 1, imageCallback);
-  } else if (chosen_mode == SIMULATED) {
+  } else if (pMachineState->config.chosen_mode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
     simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/simulatorCallbackFrequency), simulatorCallback);
 
@@ -13101,7 +13185,10 @@ int main(int argc, char **argv) {
       cout << "done. " << mapBackgroundImage.size() << endl; cout.flush();
     }
     originalMapBackgroundImage = mapBackgroundImage.clone();
+  }  else {
+    assert(0);
   }
+
   pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, pickObjectUnderEndEffectorCommandCallback);
   placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
   moveEndEfffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, moveEndEffectorCommandCallback);
@@ -13169,16 +13256,16 @@ int main(int argc, char **argv) {
 
   frameGraySobel = Mat(1,1,CV_64F);
 
-  initializeMap();
+  initializeMap(pMachineState);
 
   spinlessNodeMain();
   spinlessPilotMain();
 
   saveROSParams();
 
-  if (chosen_mode == PHYSICAL) {
-    initializeMachine(pMachineState);
-  } 
+
+  initializeMachine(pMachineState);
+
 
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();
@@ -13205,5 +13292,4 @@ int main(int argc, char **argv) {
   return 0;
 }
  
-
 #include "ein_words.cpp"
