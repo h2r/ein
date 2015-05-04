@@ -1001,7 +1001,10 @@ REGISTER_WORD(ComeToHoverA)
 WORD(WaitForTugThenOpenGripper)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitForTugThenOpenGripperA");
+  // XXX TODO remove come to stop once acceleration trigger is in place
   ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAccelerometerCallbackReceived");
+  ms->pushWord("waitUntilAtCurrentPosition");
   waitForTugStart = ros::Time::now();
   cout << "Waiting to come to a stop and then waiting to feel a tug... " << ARMED << " " << ms->config.currentMovementState << endl;
 }
@@ -1010,6 +1013,7 @@ REGISTER_WORD(WaitForTugThenOpenGripper)
 
 WORD(WaitForTugThenOpenGripperA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  // XXX INSERT TUG checking here
   if ( ( ms->config.currentMovementState == MOVING ) ||
        ( !gripperGripping ) ) {
     if ( !gripperGripping ) {

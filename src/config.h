@@ -2,6 +2,7 @@
 #define _CONFIG_H_
 
 #include "ein_util.h"
+#include "eigen_util.h"
 
 #include "distributions.h"
 
@@ -82,6 +83,8 @@ class EinConfig {
   patrolMode currentPatrolMode = ONCE;
   placeMode currentPlaceMode = HAND;
   idleMode currentIdleMode = CRANE;
+
+  Vector3d eeLinearAcceleration;
 
   // set color reticles iterator
   int scrI = 0;
