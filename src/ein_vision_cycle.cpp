@@ -582,6 +582,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ClearMapForPatrol)
 
+WORD(MarkMapAsCompleted)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  markMapAsCompleted(ms);
+  cout << "Marking whole map as completed." << endl;
+}
+END_WORD
+REGISTER_WORD(MarkMapAsCompleted)
+
 WORD(InitializeMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   initializeMap(ms);

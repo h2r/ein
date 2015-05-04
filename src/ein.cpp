@@ -12788,6 +12788,22 @@ void voidMapRegion(shared_ptr<MachineState> ms, double xc, double yc) {
   }
 }
 
+void markMapAsCompleted(shared_ptr<MachineState> ms) {
+  double completionGap = 10.0;
+  for (int i = 0; i < mapWidth; i++) {
+    for(int j = 0; j < mapHeight; j++) {
+      objectMap[i + mapWidth * j].lastMappedTime = lastScanStarted + ros::Duration(completionGap);
+
+      objectMap[i + mapWidth * j].detectedClass = -1;
+      objectMap[i + mapWidth * j].pixelCount = 10;
+      objectMap[i + mapWidth * j].r = 64;
+      objectMap[i + mapWidth * j].g = 64;
+      objectMap[i + mapWidth * j].b = 64;
+    }
+  }
+  lastScanStarted = ros::Time::now();
+}
+
 void clearMapForPatrol(shared_ptr<MachineState> ms) {
   ros::Time startTime = ros::Time::now();
   for (int i = 0; i < mapWidth; i++) {
