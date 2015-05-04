@@ -524,6 +524,29 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(WaitUntilImageCallbackReceivedA)
 
+WORD(WaitUntilAccelerometerCallbackReceived)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  lastAccelerometerCallbackRequest = ros::Time::now();
+  ms->pushWord("waitUntilAccelerometerCallbackReceivedA");
+  endThisStackCollapse = 1;
+}
+END_WORD
+REGISTER_WORD(WaitUntilAccelerometerCallbackReceived)
+
+WORD(WaitUntilAccelerometerCallbackReceivedA)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  if (lastAccelerometerCallbackRequest >= lastAccelerometerCallbackReceived) {
+    ms->pushWord("waitUntilAccelerometerCallbackReceivedA");
+    endThisStackCollapse = 1;
+  } else {
+    endThisStackCollapse = endCollapse;
+  }
+}
+END_WORD
+REGISTER_WORD(WaitUntilAccelerometerCallbackReceivedA)
+
 WORD(WriteXMLEnvironment)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {

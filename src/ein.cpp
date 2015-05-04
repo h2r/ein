@@ -49,6 +49,7 @@
 
 #include <ros/package.h>
 #include <tf/transform_listener.h>
+#include <sensor_msgs/Imu.h>
 #include <sensor_msgs/Range.h>
 #include <actionlib/client/simple_action_client.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
@@ -96,7 +97,6 @@
 
 using namespace std;
 using namespace cv;
-using namespace Eigen;
 
 using namespace ein;
 
@@ -816,12 +816,14 @@ std_msgs::UInt16 currentSonarCommand;
 int heartBeatCounter = 0;
 int heartBeatPeriod = 150;
 
+ros::Time lastAccelerometerCallbackRequest;
 ros::Time lastImageCallbackRequest;
 ros::Time lastGripperCallbackRequest;
 ros::Time lastRangeCallbackRequest;
 ros::Time lastFullMiscCallbackRequest;
 ros::Time lastEndpointCallbackRequest;
 
+ros::Time lastAccelerometerCallbackReceived;
 ros::Time lastImageCallbackReceived;
 ros::Time lastGripperCallbackReceived;
 ros::Time lastRangeCallbackReceived;
@@ -1407,6 +1409,7 @@ void setGGRotation(int thisGraspGear);
 Eigen::Quaternionf getCCRotation(int givenGraspGear, double angle);
 void setCCRotation(int thisGraspGear);
 
+void accelerometerCallback(const sensor_msgs::Imu& moment);
 void rangeCallback(const sensor_msgs::Range& range);
 void endEffectorAngularUpdate(eePose *givenEEPose, eePose *deltaEEPose);
 void fillIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest);
@@ -3198,6 +3201,15 @@ void setCCRotation(int thisGraspGear) {
   currentEEPose.qy = eeBaseQuat.y();
   currentEEPose.qz = eeBaseQuat.z();
   currentEEPose.qw = eeBaseQuat.w();
+}
+
+void accelerometerCallback(const sensor_msgs::Imu& moment) {
+  shared_ptr<MachineState> ms = pMachineState;
+  lastAccelerometerCallbackReceived = ros::Time::now();
+  ms->config.eeLinearAcceleration = Vector3d(
+    moment.linear_acceleration.x,
+    moment.linear_acceleration.y,
+    moment.linear_acceleration.z );
 }
 
 void rangeCallback(const sensor_msgs::Range& range) {
@@ -13044,6 +13056,7 @@ int main(int argc, char **argv) {
 
   ros::Subscriber epState;
   ros::Subscriber gripState;
+  ros::Subscriber eeAccelerator;
   ros::Subscriber eeRanger;
   ros::Subscriber eeTarget;
   ros::Subscriber jointSubscriber;
@@ -13082,6 +13095,7 @@ int main(int argc, char **argv) {
   if (pMachineState->config.chosen_mode == PHYSICAL) {
     epState =   n.subscribe("/robot/limb/" + left_or_right_arm + "/endpoint_state", 1, endpointCallback);
     gripState = n.subscribe("/robot/end_effector/" + left_or_right_arm + "_gripper/state", 1, gripStateCallback);
+    eeAccelerator =  n.subscribe("/robot/accelerometer/" + left_or_right_arm + "_accelerometer/state", 1, accelerometerCallback);
     eeRanger =  n.subscribe("/robot/range/" + left_or_right_arm + "_hand_range/state", 1, rangeCallback);
     eeTarget =  n.subscribe("/ein_" + left_or_right_arm + "/pilot_target_" + left_or_right_arm, 1, targetCallback);
     jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
