@@ -8067,14 +8067,15 @@ void synchronicServo(shared_ptr<MachineState> ms) {
     return;
   }
 
-  if (synchronicTakeClosest &&
-      (pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1)) {
-    pilotTarget.px = pilotClosestTarget.px;
-    pilotTarget.py = pilotClosestTarget.py;
-    pilotTarget.pz = pilotClosestTarget.pz;
-    pilotTargetBlueBoxNumber = pilotClosestBlueBoxNumber;
-  } else {
-    return;
+  if (synchronicTakeClosest) {
+    if ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1)) {
+      pilotTarget.px = pilotClosestTarget.px;
+      pilotTarget.py = pilotClosestTarget.py;
+      pilotTarget.pz = pilotClosestTarget.pz;
+      pilotTargetBlueBoxNumber = pilotClosestBlueBoxNumber;
+    } else {
+      return;
+    }
   }
 
   // target the closest blue box that hasn't been mapped since
@@ -8117,10 +8118,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 	  closestUnmappedBBToReticle = c;
 	  foundAnUnmappedTarget = 1;
 	}
-      } else {
-	// XXX this causes a bug
-	//mapBlueBox(bTops[c], bBots[c], 0);
-      }
+      } 
     }
 
     if (foundAnUnmappedTarget) {
@@ -8136,6 +8134,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       bBots.resize(0);
       bCens.resize(0);
       bLabels.resize(0);
+      return;
     }
   }
 
@@ -12813,7 +12812,6 @@ void markMapAsCompleted(shared_ptr<MachineState> ms) {
       objectMap[i + mapWidth * j].b = 64;
     }
   }
-  lastScanStarted = ros::Time::now();
 }
 
 void clearMapForPatrol(shared_ptr<MachineState> ms) {
@@ -12824,7 +12822,7 @@ void clearMapForPatrol(shared_ptr<MachineState> ms) {
       // make the search go in order but strided
       if ((j % 10) == 0) {
 	if ((i % 10) == 0) {
-	  objectMap[i + mapWidth * j].lastMappedTime.nsec = 1000.0*(double(i + j*mapWidth)/double(mapHeight*mapWidth));
+	  objectMap[i + mapWidth * j].lastMappedTime.nsec = 1000.0*(double(j + i*mapHeight)/double(mapHeight*mapWidth));
 	} else {
 	  objectMap[i + mapWidth * j].lastMappedTime.nsec = 1000.0;
 	}
@@ -12971,12 +12969,12 @@ void fillRecognizedObjectArrayFromBlueBoxMemory(object_recognition_msgs::Recogni
 	pose.position.y = blueBoxMemories[closest_idx].centroid.py;
 	pose.position.z = blueBoxMemories[closest_idx].centroid.pz;
 
-	cout << "blueBoxMemories: " << blueBoxMemories[closest_idx].centroid.px << endl;
-	cout << "pose: " << pose.position.x << endl;
+	//cout << "blueBoxMemories: " << blueBoxMemories[closest_idx].centroid.px << endl;
+	//cout << "pose: " << pose.position.x << endl;
 
 	roa->objects[aI].pose.pose.pose.position = pose.position;
 
-	cout << "roa objects x: " << roa->objects[aI].pose.pose.pose.position.x << endl;
+	//cout << "roa objects x: " << roa->objects[aI].pose.pose.pose.position.x << endl;
 	roa->objects[aI].type.key = class_label;
 
 	roa->objects[aI].header = roa->header;

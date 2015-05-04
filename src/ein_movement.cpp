@@ -34,7 +34,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     endThisStackCollapse = 1;
     shouldIDoIK = 1;
   } else {
-    endThisStackCollapse = endCollapse;
+    endThisStackCollapse = 1;
   }
 }
 END_WORD
@@ -84,7 +84,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   } else {
     cout << "Warning: waitUntilAtCurrentPosition timed out, moving on." << endl;
-    endThisStackCollapse = endCollapse;
+    endThisStackCollapse = 1;
   }
 }
 END_WORD
@@ -961,6 +961,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ROS_WARN_STREAM("_____*____*________");
       ROS_ERROR_STREAM("comeToStop timeout reached, moving on.");
       ROS_WARN_STREAM("_____*____*________");
+
+      // waitUntilCurrentPosition will time out, make sure that there will
+      //  be no cycles introduced
+      currentEEPose.pz = trueEEPose.position.z + 0.001;
+      cout << "  backing up just a little to dislodge from failed hover, then waiting." << endl;
+      ms->pushWord("waitUntilAtCurrentPosition"); 
     }
     endThisStackCollapse = 1;
   }
