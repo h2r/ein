@@ -120,6 +120,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (targetClass != -1) {
     cout << " " << classLabels[targetClass];
   }
+
+  
+  double wrenchNorm = sqrt( squareDistanceEEPose(eePoseZero, trueEEWrench) );
+  cout << "wrenchNorm: " << wrenchNorm << endl;
   
   cout << endl;
   cout << endl;
