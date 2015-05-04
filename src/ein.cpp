@@ -323,6 +323,7 @@ eePose ik_reset_eePose = beeHome;
 
 Vector3d eeForward;
 geometry_msgs::Pose trueEEPose;
+eePose trueEEWrench;
 eePose trueEEPoseEEPose;
 std::string fetchCommand;
 ros::Time fetchCommandTime;
@@ -2707,8 +2708,13 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
 
   lastEndpointCallbackReceived = ros::Time::now();
 
-
-
+  // note that the quaternion field holds a vector3!
+  trueEEWrench.px = eps.wrench.force.x;
+  trueEEWrench.py = eps.wrench.force.y;
+  trueEEWrench.pz = eps.wrench.force.z;
+  trueEEWrench.qx = eps.wrench.torque.x;
+  trueEEWrench.qy = eps.wrench.torque.y;
+  trueEEWrench.qz = eps.wrench.torque.z;
 
   //cout << "endpoint frame_id: " << eps.header.frame_id << endl;
   trueEEPose = eps.pose;
