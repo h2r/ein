@@ -124,10 +124,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("assumeDeliveryPose");
     ms->pushWord("setPatrolStateToPlacing");
   } else if (ms->config.currentPlaceMode == HAND) {
+    ms->pushCopies("localZDown", 5);
+    ms->pushWord("setMovementSpeedMoveFast");
     ms->pushWord("waitForTugThenOpenGripper");
-    ms->pushWord("comeToStop");
     ms->pushWord("waitUntilAtCurrentPosition"); 
-    ms->pushWord("moveToRegister3");
+    ms->pushWord("assumeHandingPose");
     ms->pushWord("setPatrolStateToHanding");
   } else {
     assert(0);

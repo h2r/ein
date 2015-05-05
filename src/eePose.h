@@ -1,6 +1,7 @@
 #ifndef _EEPOSEH_
 #define _EEPOSEH_
 
+#include "eigen_util.h"
 #include <cv.h>
 #include <highgui.h>
 #include <ml.h>
@@ -8,7 +9,7 @@
 #include <opencv2/gpu/gpu.hpp>
 using namespace cv;
 
-typedef struct {
+typedef struct _eePose{
   double px;
   double py;
   double pz;
@@ -17,6 +18,31 @@ typedef struct {
   double qy;
   double qz;
   double qw;
+
+  _eePose operator+(const Vector3d& a) const {
+    _eePose toReturn;
+    toReturn.px = px + a.x();
+    toReturn.py = py + a.y();
+    toReturn.pz = pz + a.z();
+    toReturn.qx = qx;
+    toReturn.qy = qy;
+    toReturn.qz = qz;
+    toReturn.qw = qw;
+    return toReturn;
+  }
+
+  _eePose operator-(const Vector3d& a) const {
+    _eePose toReturn;
+    toReturn.px = px - a.x();
+    toReturn.py = py - a.y();
+    toReturn.pz = pz - a.z();
+    toReturn.qx = qx;
+    toReturn.qy = qy;
+    toReturn.qz = qz;
+    toReturn.qw = qw;
+    return toReturn;
+  }
+
 } eePose;
 
 void printEEPose(eePose toPrint);

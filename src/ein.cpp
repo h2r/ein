@@ -1225,7 +1225,7 @@ MapCell objectMap[mapWidth * mapHeight];
 ros::Time lastScanStarted;
 int mapFreeSpacePixelSkirt = 25;
 int mapBlueBoxPixelSkirt = 50;
-double mapBlueBoxCooldown = 120; // cooldown is a temporal skirt
+double mapBlueBoxCooldown = 240; // cooldown is a temporal skirt
 int mapGrayBoxPixelSkirt = 50;
 int ikMap[mapWidth * mapHeight];
 int clearanceMap[mapWidth * mapHeight];
@@ -1523,6 +1523,8 @@ void saveCalibration(string outFileName);
 void findDarkness(int * xout, int * yout);
 void findLight(int * xout, int * yout);
 void findOptimum(int * xout, int * yout, int sign);
+
+void fillLocalUnitBasis(eePose localFrame, Vector3d * localUnitX, Vector3d * localUnitY, Vector3d * localUnitZ);
 
 ////////////////////////////////////////////////
 // end pilot prototypes 
@@ -9377,6 +9379,35 @@ void findOptimum(int * xout, int * yout, int sign) {
   *yout = maxY;
 }
 
+void fillLocalUnitBasis(eePose localFrame, Vector3d * localUnitX, Vector3d * localUnitY, Vector3d * localUnitZ) {
+  {
+    Eigen::Quaternionf qin(0, 1, 0, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(localFrame.qw, localFrame.qx, localFrame.qy, localFrame.qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitX->x() = qout.x();
+    localUnitX->y() = qout.y();
+    localUnitX->z() = qout.z();
+  }
+  {
+    Eigen::Quaternionf qin(0, 0, 1, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(localFrame.qw, localFrame.qx, localFrame.qy, localFrame.qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitY->x() = qout.x();
+    localUnitY->y() = qout.y();
+    localUnitY->z() = qout.z();
+  }
+  {
+    Eigen::Quaternionf qin(0, 0, 0, 1);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(localFrame.qw, localFrame.qx, localFrame.qy, localFrame.qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitZ->x() = qout.x();
+    localUnitZ->y() = qout.y();
+    localUnitZ->z() = qout.z();
+  }
+}
 
 ////////////////////////////////////////////////
 // end pilot definitions 
