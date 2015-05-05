@@ -292,6 +292,76 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(MoveToRegister6)
 
+WORD(LocalXDown)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  Vector3d localUnitX;
+  Vector3d localUnitY;
+  Vector3d localUnitZ;
+  fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  currentEEPose = currentEEPose - (bDelta * localUnitX);
+}
+END_WORD
+REGISTER_WORD(LocalXDown)
+
+
+WORD(LocalXUp)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  Vector3d localUnitX;
+  Vector3d localUnitY;
+  Vector3d localUnitZ;
+  fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  currentEEPose = currentEEPose + (bDelta * localUnitX);
+}
+END_WORD
+REGISTER_WORD(LocalXUp)
+
+WORD(LocalYDown)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  Vector3d localUnitX;
+  Vector3d localUnitY;
+  Vector3d localUnitZ;
+  fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  currentEEPose = currentEEPose - (bDelta * localUnitY);
+}
+END_WORD
+REGISTER_WORD(LocalYDown)
+
+
+WORD(LocalYUp)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  Vector3d localUnitX;
+  Vector3d localUnitY;
+  Vector3d localUnitZ;
+  fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  currentEEPose = currentEEPose + (bDelta * localUnitY);
+}
+END_WORD
+REGISTER_WORD(LocalYUp)
+
+
+WORD(LocalZUp)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  Vector3d localUnitX;
+  Vector3d localUnitY;
+  Vector3d localUnitZ;
+  fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  currentEEPose = currentEEPose + (bDelta * localUnitZ);
+}
+END_WORD
+REGISTER_WORD(LocalZUp)
+
+WORD(LocalZDown)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  Vector3d localUnitX;
+  Vector3d localUnitY;
+  Vector3d localUnitZ;
+  fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  currentEEPose = currentEEPose - (bDelta * localUnitZ);
+}
+END_WORD
+REGISTER_WORD(LocalZDown)
 
 WORD(XDown)
 CODE('q') 
@@ -1008,15 +1078,17 @@ WORD(WaitForTugThenOpenGripper)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitForTugThenOpenGripperA");
   ms->pushWord("waitUntilEndpointCallbackReceived");
+  ms->pushWord("comeToHover");
   ms->pushWord("waitUntilAtCurrentPosition");
   waitForTugStart = ros::Time::now();
-  cout << "Waiting to come to a stop and then waiting to feel a tug... " << ARMED << " " << ms->config.currentMovementState << endl;
+  cout << "Waiting to feel a tug... " << ARMED << " " << ms->config.currentMovementState << endl;
 }
 END_WORD
 REGISTER_WORD(WaitForTugThenOpenGripper)
 
 WORD(WaitForTugThenOpenGripperA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  endThisStackCollapse = 1;
   if (0) { // position based
     if ( ( ms->config.currentMovementState == MOVING ) ||
 	 ( !gripperGripping ) ) {
@@ -1040,7 +1112,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   } else { // wrench based
     double wrenchNorm = sqrt( squareDistanceEEPose(eePoseZero, trueEEWrench) );
-    double wrenchThresh = 8;
+    double wrenchThresh = 15;
     bool wrenchOverThresh = ( wrenchNorm > wrenchThresh );
     if ( wrenchOverThresh ||
 	 ( !gripperGripping ) ) {
@@ -1115,6 +1187,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(AssumeShrugPose)
+
+WORD(AssumeHandingPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  currentEEPose = handingPose;
+  ms->pushWord("waitUntilAtCurrentPosition");
+}
+END_WORD
+REGISTER_WORD(AssumeHandingPose)
 
 WORD(SetPatrolStateToIdling)
 virtual void execute(std::shared_ptr<MachineState> ms) {
