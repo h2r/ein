@@ -1190,7 +1190,7 @@ REGISTER_WORD(AssumeShrugPose)
 
 WORD(AssumeHandingPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose = handingPose;
+  currentEEPose = ms->config.handingPose;
   ms->pushWord("waitUntilAtCurrentPosition");
 }
 END_WORD

@@ -108,16 +108,6 @@ tf::TransformListener* tfListener;
 
 
 
-
-
-eePose handingPoseRight = {.px = 0.879307, .py = -0.0239328, .pz = 0.223839,
-                      .qx = 0.459157, .qy = 0.527586, .qz = 0.48922, .qw = 0.521049};
-
-eePose handingPoseLeft = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
-                      .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
-
-eePose handingPose;
-
 eePose straightDown = {.px = 0.0, .py = 0.0, .pz = 0.0,
 		       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
 
@@ -5249,8 +5239,9 @@ void pilotInit(shared_ptr<MachineState> ms) {
     m_y_h[2] = 0.92;
     m_y_h[3] = 0.92;
 
-    handingPose = handingPoseLeft;
-    eepReg3 = handingPose;
+    ms->config.handingPose = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
+                   .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
+    eepReg3 = ms->config.handingPose;
 
     // ir offset
     gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
@@ -5384,8 +5375,9 @@ void pilotInit(shared_ptr<MachineState> ms) {
     m_y_h[2] = 1.16;
     m_y_h[3] = 1.2;
 
-    handingPose = handingPoseRight;
-    eepReg3 = handingPose;
+    ms->config.handingPose = {.px = 0.879307, .py = -0.0239328, .pz = 0.223839,
+                      .qx = 0.459157, .qy = 0.527586, .qz = 0.48922, .qw = 0.521049};
+    eepReg3 = ms->config.handingPose;
 
     // ir offset
     gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
