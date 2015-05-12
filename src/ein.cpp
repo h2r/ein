@@ -110,14 +110,6 @@ shared_ptr<MachineState> pMachineState;
 
 
 
-int ik_reset_thresh = 20;
-int ik_reset_counter = 0;
-int ikInitialized = 0;
-int goodIkInitialized = 0;
-// ATTN 14
-double ikShare = 1.0;
-double oscillating_ikShare = .1;
-double default_ikShare = 1.0;
 
 double tap_factor = 0.1;
 
@@ -1393,7 +1385,7 @@ void accelerometerCallback(const sensor_msgs::Imu& moment);
 void rangeCallback(const sensor_msgs::Range& range);
 void endEffectorAngularUpdate(eePose *givenEEPose, eePose *deltaEEPose);
 void fillIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest);
-void reseedIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest, int it, int itMax);
+void reseedIkRequest(shared_ptr<MachineState> ms, eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest, int it, int itMax);
 void update_baxter(ros::NodeHandle &n);
 void timercallback1(const ros::TimerEvent&);
 void imageCallback(const sensor_msgs::ImageConstPtr& msg);
@@ -3636,13 +3628,13 @@ void fillIkRequest(eePose * givenEEPose, baxter_core_msgs::SolvePositionIK * giv
   givenIkRequest->request.pose_stamp[0].pose.orientation.w = givenEEPose->qw;
 }
 
-void reseedIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest, int it, int itMax) {
+void reseedIkRequest(shared_ptr<MachineState> ms, eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest, int it, int itMax) {
 
   double jointSeedAmplitude = (3.1415926 * double(it) / double(itMax));
   double jointSeedAmplitudeMin = 0.02;
   jointSeedAmplitude = max(jointSeedAmplitude, jointSeedAmplitudeMin);
 
-  if (goodIkInitialized) {
+  if (ms->config.goodIkInitialized) {
     givenIkRequest->request.seed_mode = 1; // SEED_USER
     givenIkRequest->request.seed_angles.resize(1);
     givenIkRequest->request.seed_angles[0].position.resize(NUM_JOINTS);
@@ -3710,7 +3702,7 @@ void update_baxter(ros::NodeHandle &n) {
   eePose originalCurrentEEPose = currentEEPose;
 
   // do not start in a state with ikShare 
-  if ((drand48() <= ikShare) || !ikInitialized) {
+  if ((drand48() <= ms->config.ikShare) || !ms->config.ikInitialized) {
 
     int numIkRetries = 100; //5000;//100;
     double ikNoiseAmplitude = 0.01;//0.1;//0.03;
@@ -3800,7 +3792,7 @@ void update_baxter(ros::NodeHandle &n) {
       //noisedCurrentEEPose.qw = currentEEPose.qw + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
       //fillIkRequest(&noisedCurrentEEPose, &thisIkRequest);
 
-      reseedIkRequest(&currentEEPose, &thisIkRequest, ikRetry, numIkRetries);
+      reseedIkRequest(ms, &currentEEPose, &thisIkRequest, ikRetry, numIkRetries);
       fillIkRequest(&currentEEPose, &thisIkRequest);
     }
   }
@@ -3815,14 +3807,15 @@ void update_baxter(ros::NodeHandle &n) {
     }
   */
 
+
     if (ikResultFailed) 
     {
       ROS_ERROR_STREAM("ikClient says pose request is invalid.");
-      ik_reset_counter++;
+      ms->config.ik_reset_counter++;
 
-      cout << "ik_reset_counter, ik_reset_thresh: " << ik_reset_counter << " " << ik_reset_thresh << endl;
-      if (ik_reset_counter > ik_reset_thresh) {
-	ik_reset_counter = 0;
+      cout << "ik_reset_counter, ik_reset_thresh: " << ms->config.ik_reset_counter << " " << ms->config.ik_reset_thresh << endl;
+      if (ms->config.ik_reset_counter > ms->config.ik_reset_thresh) {
+	ms->config.ik_reset_counter = 0;
 	currentEEPose = ik_reset_eePose;
 	pMachineState->pushWord('Y'); // pause stack execution
 	pMachineState->pushCopies("beep", 15); // beep
@@ -3839,11 +3832,11 @@ void update_baxter(ros::NodeHandle &n) {
       return;
     }
 
-    ik_reset_counter = max(ik_reset_counter-1, 0);
+    ms->config.ik_reset_counter = max(ms->config.ik_reset_counter-1, 0);
 
     lastGoodEEPose = currentEEPose;
     ikRequest = thisIkRequest;
-    ikInitialized = 1;
+    ms->config.ikInitialized = 1;
   
 
   // but in theory we can bypass the joint controllers by publishing to this topic
@@ -3912,7 +3905,7 @@ void update_baxter(ros::NodeHandle &n) {
       lastGoodIkRequest.response.joints[0].name[j] = ikRequest.response.joints[0].name[j];
       lastGoodIkRequest.response.joints[0].position[j] = ikRequest.response.joints[0].position[j];
     }
-    goodIkInitialized = 1;
+    ms->config.goodIkInitialized = 1;
   }
 
   std_msgs::Float64 speedCommand;
@@ -11805,7 +11798,6 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   ros::NodeHandle nh("~");
 
-  nh.getParam("default_ikShare", default_ikShare);
 
   cout << "nh namespace: " << nh.getNamespace() << endl;
 

@@ -148,6 +148,14 @@ class EinConfig {
 
 
 
+  int ik_reset_counter = 0;
+  int ikInitialized = 0;
+  int goodIkInitialized = 0;
+  // ATTN 14
+  double ikShare = 1.0;
+  double oscillating_ikShare = .1;
+  int ik_reset_thresh = 20;
+
 
   // config variables that don't seem to be used
 
