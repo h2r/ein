@@ -174,7 +174,8 @@ class EinConfig {
   std::string faceViewName = "Face View";
   std::string heightMemorySampleViewName = "Height Memory Sample View";
 
-
+  eePose calibrationPose;
+  eePose shrugPose;
 
   // config variables that don't seem to be used
 };

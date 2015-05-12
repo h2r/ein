@@ -110,24 +110,6 @@ tf::TransformListener* tfListener;
 
 
 
-
-
-eePose calibrationPose;
-
-eePose shrugPose;
-
-eePose shrugPoseR = {.px = 0.0558937, .py = -1.12849, .pz = 0.132171,
-                      .qx = 0.392321, .qy = 0.324823, .qz = -0.555039, .qw = 0.657652};
-
-eePose shrugPoseL = {.px = 0.0354772, .py = 1.20633, .pz = 0.150562,
-                      .qx = -0.370521, .qy = 0.381345, .qz = 0.578528, .qw = 0.618544};
-
-eePose calibrationPoseR = {.px = 0.562169, .py = -0.348055, .pz = 0.493231,
-                      .qx = 0.00391311, .qy = 0.999992, .qz = -0.00128095, .qw = 8.18951e-05};
-
-eePose calibrationPoseL = {.px = 0.434176, .py = 0.633423, .pz = 0.48341,
-                      .qx = 0.000177018, .qy = 1, .qz = -0.000352912, .qw = -0.000489087};
-
 eePose cropUpperLeftCorner = {.px = 320, .py = 200, .pz = 0.0,
 		       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // center of image
 
@@ -1346,8 +1328,8 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata);
 gsl_matrix * mapCellToPolygon(int map_i, int map_j) ;
 
-void pilotInit();
-void spinlessPilotMain();
+void pilotInit(shared_ptr<MachineState> ms);
+void spinlessPilotMain(shared_ptr<MachineState> ms);
 
 int doCalibrateGripper();
 int calibrateGripper(shared_ptr<MachineState> ms);
@@ -5146,7 +5128,7 @@ void saveCalibration(string outFileName) {
   cout << "done." << endl;
 }
 
-void pilotInit() {
+void pilotInit(shared_ptr<MachineState> ms) {
   eeForward = Eigen::Vector3d(1,0,0);
 
   if (0 == left_or_right_arm.compare("left")) {
@@ -5276,8 +5258,10 @@ void pilotInit() {
     // ir offset
     gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
 
-    calibrationPose = calibrationPoseL;
-    shrugPose = shrugPoseL;
+    ms->config.calibrationPose = {.px = 0.434176, .py = 0.633423, .pz = 0.48341,
+                      .qx = 0.000177018, .qy = 1, .qz = -0.000352912, .qw = -0.000489087};
+    ms->config.shrugPose = {.px = 0.0354772, .py = 1.20633, .pz = 0.150562,
+                 .qx = -0.370521, .qy = 0.381345, .qz = 0.578528, .qw = 0.618544};
   } else if (0 == left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
 
@@ -5409,8 +5393,12 @@ void pilotInit() {
     // ir offset
     gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
 
-    calibrationPose = calibrationPoseR;
-    shrugPose = shrugPoseR;
+    ms->config.calibrationPose = {.px = 0.562169, .py = -0.348055, .pz = 0.493231,
+                                  .qx = 0.00391311, .qy = 0.999992, .qz = -0.00128095, .qw = 8.18951e-05};
+    ms->config.shrugPose = {.px = 0.0558937, .py = -1.12849, .pz = 0.132171,
+                            .qx = 0.392321, .qy = 0.324823, .qz = -0.555039, .qw = 0.657652};
+
+
   } else {
     cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
     exit(0);
@@ -5555,9 +5543,10 @@ void pilotInit() {
   }
 }
 
-void spinlessPilotMain() {
+void spinlessPilotMain(shared_ptr<MachineState> ms) {
   cout << endl << endl << "Pilot main begin..." << endl;
-  pilotInit();
+  
+  pilotInit(ms);
 }
 
 int shouldIPick(int classToPick) {
@@ -13235,7 +13224,7 @@ int main(int argc, char **argv) {
   initializeMap(pMachineState);
 
   spinlessNodeMain();
-  spinlessPilotMain();
+  spinlessPilotMain(ms);
 
   saveROSParams();
 
