@@ -43,6 +43,30 @@ typedef struct _eePose{
     return toReturn;
   }
 
+  _eePose pMinus() const {
+    _eePose toReturn;
+    toReturn.px = -px;
+    toReturn.py = -py;
+    toReturn.pz = -pz;
+    toReturn.qx = qx;
+    toReturn.qy = qy;
+    toReturn.qz = qz;
+    toReturn.qw = qw;
+    return toReturn;
+  }
+
+  _eePose qMinus() const {
+    _eePose toReturn;
+    toReturn.px = px;
+    toReturn.py = py;
+    toReturn.pz = pz;
+    toReturn.qx = -qx;
+    toReturn.qy = -qy;
+    toReturn.qz = -qz;
+    toReturn.qw = -qw;
+    return toReturn;
+  }
+
 } eePose;
 
 void printEEPose(eePose toPrint);
