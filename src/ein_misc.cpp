@@ -7,6 +7,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ZeroGToggle)
 
+WORD(ZeroGOn)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.zero_g_toggle = 1;
+}
+END_WORD
+REGISTER_WORD(ZeroGOn)
+
+WORD(ZeroGOff)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.zero_g_toggle = 0;
+}
+END_WORD
+REGISTER_WORD(ZeroGOff)
 
 WORD(ClearStack)
 CODE('r') 
