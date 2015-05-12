@@ -1928,6 +1928,14 @@ REGISTER_WORD(Lock3dGraspBase)
 
 WORD(Add3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose this3dGrasp = currentEEPose;
+  this3dGrasp = this3dGrasp.minusP(ms->config.c3dPoseBase);
+  this3dGrasp = this3dGrasp.multQ( ms->config.c3dPoseBase.invQ() );
+
+  int tnc = ms->config.class3dGrasps.size();
+  if ( (targetClass > 0) && (targetClass < tnc) ) {
+    ms->config.class3dGrasps[targetClass].push_back(this3dGrasp);
+  }
 }
 END_WORD
 REGISTER_WORD(Add3dGrasp)
