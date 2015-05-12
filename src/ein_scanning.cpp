@@ -1920,15 +1920,14 @@ REGISTER_WORD(RecordGraspZ)
 
 WORD(Lock3dGraspBase)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->3dPoseBase = currentEEPose;
-  ms->3dPoseBase.pz = -currentTableZ;
+  ms->config.c3dPoseBase = currentEEPose;
+  ms->config.c3dPoseBase.pz = -currentTableZ;
 }
 END_WORD
 REGISTER_WORD(Lock3dGraspBase)
 
 WORD(Add3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  eePose this3dGrasp;
 }
 END_WORD
 REGISTER_WORD(Add3dGrasp)
