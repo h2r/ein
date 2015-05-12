@@ -1957,7 +1957,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     fsvO << "3dGrasps" << "[" ;
     {
-      fsvO << "size" <<  int(ms->config.class3dGrasps[focusedClass].size());
+      int tng = ms->config.class3dGrasps[focusedClass].size();
+      fsvO << "size" <<  tng;
+      for (int i = 0; i < tng; i++) {
+	ms->config.class3dGrasps[focusedClass][i].writeToFileStorage(fsvO);
+      }
     }
     fsvO << "]";
 
