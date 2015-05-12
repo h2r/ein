@@ -111,9 +111,6 @@ shared_ptr<MachineState> pMachineState;
 
 
 
-double tap_factor = 0.1;
-
-int slf_thresh = 5;
 int successive_lock_frames = 0;
 
 int lock_reset_thresh = 1800;

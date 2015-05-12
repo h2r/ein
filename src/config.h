@@ -153,7 +153,6 @@ class EinConfig {
   int goodIkInitialized = 0;
   // ATTN 14
   double ikShare = 1.0;
-  double oscillating_ikShare = .1;
   int ik_reset_thresh = 20;
 
 
