@@ -111,7 +111,6 @@ shared_ptr<MachineState> pMachineState;
 
 
 
-int successive_lock_frames = 0;
 
 int lock_reset_thresh = 1800;
 int lock_status = 0; // TODO enum
@@ -4904,21 +4903,6 @@ void targetCallback(const geometry_msgs::Point& point) {
     return;
   }
 
-//  prevPx = pilotTarget.px;
-//  prevPy = pilotTarget.py;
-//
-//  pilotTarget.px = point.x;
-//  pilotTarget.py = point.y;
-//  pilotTarget.pz = point.z;
-//      
-//  //cout << ">>received target<<" << endl;
-//
-//  timerCounter = 0;
-//
-//  if (lock_status == 2)
-//    successive_lock_frames++;
-//  else
-//    successive_lock_frames = 0;
 }
 
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
