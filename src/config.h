@@ -148,6 +148,9 @@ class EinConfig {
   double ikShare = 1.0;
   int ik_reset_thresh = 20;
 
+  double eeRange = 0.0;
+
+
   // config variables that don't seem to be used
 };
 
