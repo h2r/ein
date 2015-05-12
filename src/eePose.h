@@ -121,6 +121,28 @@ typedef struct _eePose{
     toReturn.qw = oQ.w();
     return toReturn;
   }
+
+  void writeToFileStorage(FileStorage& fsvO) const {
+    fsvO << "{:";
+    fsvO << "px" << px;
+    fsvO << "py" << py;
+    fsvO << "pz" << pz;
+    fsvO << "qw" << qw;
+    fsvO << "qx" << qx;
+    fsvO << "qy" << qy;
+    fsvO << "qz" << qz;
+    fsvO << "}";
+  }
+
+  void readFromFileStorage(FileNodeIterator& it) {
+    px = (double)(*it)["px"];
+    py = (double)(*it)["py"];
+    pz = (double)(*it)["pz"];
+    qw = (double)(*it)["qw"];
+    qx = (double)(*it)["qx"];
+    qy = (double)(*it)["qy"];
+    qz = (double)(*it)["qz"];
+  }
 } eePose;
 
 void printEEPose(eePose toPrint);
