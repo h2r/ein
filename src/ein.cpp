@@ -107,19 +107,7 @@ shared_ptr<MachineState> pMachineState;
 
 
 
-double aveTime = 0.0;
-double aveFrequency = 0.0;
-double timeMass = 0.0;
-double timeInterval = 30;
-time_t thisTime = 0;
-time_t firstTime = 0;
 
-double aveTimeRange = 0.0;
-double aveFrequencyRange = 0.0;
-double timeMassRange = 0.0;
-double timeIntervalRange = 30;
-time_t thisTimeRange = 0;
-time_t firstTimeRange = 0;
 
 // this should be initted to 0 and set to its default setting only after an imageCallback has happened.
 int shouldIRenderDefault = 1;
@@ -3220,29 +3208,29 @@ void accelerometerCallback(const sensor_msgs::Imu& moment) {
 }
 
 void rangeCallback(const sensor_msgs::Range& range) {
-
+  shared_ptr<MachineState> ms = pMachineState;
   //cout << "range frame_id: " << range.header.frame_id << endl;
   setRingRangeAtTime(range.header.stamp, range.range);
   //double thisRange;
   //int weHaveRangeData = getRingRangeAtTime(range.header.stamp, thisRange);
 
 
-  time(&thisTimeRange);
-  double deltaTimeRange = difftime(thisTimeRange, firstTimeRange);
-  timeMassRange = timeMassRange + 1;
+  time(&ms->config.thisTimeRange);
+  double deltaTimeRange = difftime(ms->config.thisTimeRange, ms->config.firstTimeRange);
+  ms->config.timeMassRange = ms->config.timeMassRange + 1;
 
-  if (deltaTimeRange > timeIntervalRange) {
+  if (deltaTimeRange > ms->config.timeIntervalRange) {
     deltaTimeRange = 0;
-    timeMassRange = 0;
-    time(&firstTimeRange);
+    ms->config.timeMassRange = 0;
+    time(&ms->config.firstTimeRange);
   }
 
-  if (timeMassRange > 0.0) {
-    aveTimeRange = deltaTimeRange / timeMassRange;
+  if (ms->config.timeMassRange > 0.0) {
+    ms->config.aveTimeRange = deltaTimeRange / ms->config.timeMassRange;
   }
 
   if (deltaTimeRange > 0.0) {
-    aveFrequencyRange = timeMassRange / deltaTimeRange;
+    ms->config.aveFrequencyRange = ms->config.timeMassRange / deltaTimeRange;
   }
 
   eeRange = range.range;
@@ -3309,13 +3297,13 @@ void rangeCallback(const sensor_msgs::Range& range) {
     }
     {
       char buff[256];
-      sprintf(buff, "            Hz: %.2f", aveFrequency);
+      sprintf(buff, "            Hz: %.2f", ms->config.aveFrequency);
       string fpslabel(buff);
       putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(160,0,0), 1.0);
     }
     {
       char buff[256];
-      sprintf(buff, "Hz: %.2f", aveFrequencyRange);
+      sprintf(buff, "Hz: %.2f", ms->config.aveFrequencyRange);
       string fpslabel(buff);
       putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
@@ -3955,7 +3943,7 @@ void timercallback1(const ros::TimerEvent&) {
 
   ros::NodeHandle n("~");
   std::shared_ptr<Word> word = NULL;
-
+  shared_ptr<MachineState> ms = pMachineState;
   int c = -1;
   int takeSymbol = 1;
   if (shouldIMiscCallback) {
@@ -3983,31 +3971,31 @@ void timercallback1(const ros::TimerEvent&) {
 
   endThisStackCollapse = endCollapse;
   while (1) {
-    time(&thisTime);
-    double deltaTime = difftime(thisTime, firstTime);
-    timeMass = timeMass + 1;
+    time(&ms->config.thisTime);
+    double deltaTime = difftime(ms->config.thisTime, ms->config.firstTime);
+    ms->config.timeMass = ms->config.timeMass + 1;
 
-    if (deltaTime > timeInterval) {
+    if (deltaTime > ms->config.timeInterval) {
       deltaTime = 0;
-      timeMass = 0;
-      time(&firstTime);
+      ms->config.timeMass = 0;
+      time(&ms->config.firstTime);
     }
 
-    if (timeMass > 0.0) {
-      aveTime = deltaTime / timeMass;
+    if (ms->config.timeMass > 0.0) {
+      ms->config.aveTime = deltaTime / ms->config.timeMass;
     }
 
     if (deltaTime > 0.0) {
-      aveFrequency = timeMass / deltaTime;
+      ms->config.aveFrequency = ms->config.timeMass / deltaTime;
     }
 
     // deal with the stack
-    if (pMachineState->execute_stack && takeSymbol) {
-      if (pMachineState->call_stack.size() > 0 && 
-	  !pMachineState->call_stack[pMachineState->call_stack.size() - 1]->is_value()) {
-	word = pMachineState->popWord();
+    if (ms->execute_stack && takeSymbol) {
+      if (ms->call_stack.size() > 0 && 
+	  !ms->call_stack[ms->call_stack.size() - 1]->is_value()) {
+	word = ms->popWord();
       } else {
-	pMachineState->execute_stack = 0;
+	ms->execute_stack = 0;
 	endThisStackCollapse = 1;
       }
     } else {
@@ -4018,9 +4006,9 @@ void timercallback1(const ros::TimerEvent&) {
       lock_status = 0;
     }
   
-    pMachineState->execute(word);
+    ms->execute(word);
 
-    if( endThisStackCollapse || (pMachineState->call_stack.size() == 0) ) {
+    if( endThisStackCollapse || (ms->call_stack.size() == 0) ) {
       break;
     }
   }
@@ -4911,13 +4899,13 @@ void renderRangeogramView(shared_ptr<MachineState> ms) {
     }
     {
       char buff[256];
-      sprintf(buff, "            Hz: %.2f", aveFrequency);
+      sprintf(buff, "            Hz: %.2f", ms->config.aveFrequency);
       string fpslabel(buff);
       putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(160,0,0), 1.0);
     }
     {
       char buff[256];
-      sprintf(buff, "Hz: %.2f", aveFrequencyRange);
+      sprintf(buff, "Hz: %.2f", ms->config.aveFrequencyRange);
       string fpslabel(buff);
       putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
@@ -13047,8 +13035,8 @@ int main(int argc, char **argv) {
   pMachineState = std::make_shared<MachineState>(machineState);
 
   srand(time(NULL));
-  time(&firstTime);
-  time(&firstTimeRange);
+  time(&pMachineState->config.firstTime);
+  time(&pMachineState->config.firstTimeRange);
 
   cout << "argc: " << argc << endl;
   for (int ccc = 0; ccc < argc; ccc++) {
