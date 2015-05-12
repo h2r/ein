@@ -8427,6 +8427,7 @@ void initRangeMaps() {
 
   pMachineState->config.classGraspZs.resize(numClasses);
   pMachineState->config.classGraspZsSet.resize(numClasses);
+  pMachineState->config.class3dGrasps.resize(numClasses);
 
   classHeightMemoryTries.resize(numClasses);
   classHeightMemoryPicks.resize(numClasses);
