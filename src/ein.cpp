@@ -104,8 +104,6 @@ MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
 
-double a_thresh_close = .11;
-double a_thresh_far = .2; // for depth scanning
 double eeRange = 0.0;
 
 double bDelta = MOVE_FAST;
@@ -1321,6 +1319,7 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
 void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees);
 void fetchCommandCallback(const std_msgs::String::ConstPtr& msg);
 void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
+int classIdxForName(shared_ptr<MachineState> ms, string name);
 
 void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
 void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);
@@ -2454,11 +2453,23 @@ void jointCallback(const sensor_msgs::JointState& js) {
   }
 }
 
-void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
+int classIdxForName(shared_ptr<MachineState> ms, string name) {
+  int class_idx = -1;
+  
+  for (int i = 0; i < classLabels.size(); i++) {
+    if (classLabels[i] == name) {
+      class_idx = i;
+      break;
+    }
+  }
+  if (class_idx == -1) {
+    cout << "Could not find class " << name << endl; 
+  }
+  return class_idx;
+}
 
-  //if (!ms->config.shouldIMiscCallback) {
-    //return;
-  //}
+void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
+  shared_ptr<MachineState> ms = pMachineState;
 
   if (ros::Time::now() - fetchCommandTime < ros::Duration(fetchCommandCooldown)) {
     cout << "Received a fetch command but the fetchCommandCooldown hasn't expired so returning." << endl;
@@ -2475,15 +2486,8 @@ void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
   fetchCommandTime = ros::Time::now();
   ROS_INFO_STREAM("Received " << fetchCommand << endl);
 
-  int class_idx = -1;
+  int class_idx = classIdxForName(ms, fetchCommand);
 
-  for (int i = 0; i < classLabels.size(); i++) {
-    class_idx = i;
-    if (classLabels[i] == fetchCommand) {
-
-      break;
-    }
-  }
   if (class_idx == -1) {
     cout << "Could not find class " << fetchCommand << endl; 
     // ATTN 25
@@ -2494,7 +2498,7 @@ void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
     changeTargetClass(pMachineState, class_idx);
     // ATTN 25
     //pMachineState->pushWord("mappingPatrol");
-    pMachineState->pushWord("deliverObject");
+    pMachineState->pushWord("deliverTargetObject");
     pMachineState->execute_stack = 1;
     acceptingFetchCommands = 0;
   }
