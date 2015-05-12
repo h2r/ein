@@ -200,14 +200,14 @@ REGISTER_WORD(MappingPatrol)
 
 WORD(ToggleShouldIDoIK)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  shouldIDoIK = !shouldIDoIK;
+  ms->config.shouldIDoIK = !ms->config.shouldIDoIK;
 }
 END_WORD
 REGISTER_WORD(ToggleShouldIDoIK)
 
 WORD(ToggleShouldIRender)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  shouldIRender = !shouldIRender;
+  ms->config.shouldIRender = !ms->config.shouldIRender;
 }
 END_WORD
 REGISTER_WORD(ToggleShouldIRender)
@@ -786,7 +786,7 @@ WORD(DensityA)
 CODE(131121)     // capslock + 1
 virtual void execute(std::shared_ptr<MachineState> ms) {
   substituteLatestImageQuantities(ms);
-  goCalculateDensity();
+  goCalculateDensity(ms);
 }
 END_WORD
 REGISTER_WORD(DensityA)
@@ -794,8 +794,8 @@ REGISTER_WORD(DensityA)
 WORD(AccumulatedDensity)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   substituteAccumulatedImageQuantities();
-  goCalculateDensity();
-  renderAccumulatedImageAndDensity();
+  goCalculateDensity(ms);
+  renderAccumulatedImageAndDensity(ms);
   //goAccumulateForAerial();
 }
 END_WORD
@@ -829,7 +829,7 @@ REGISTER_WORD(ResetTemporalMap)
 WORD(GoFindBlueBoxes)
 CODE(131122) // capslock + 2
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  goFindBlueBoxes();
+  goFindBlueBoxes(ms);
 }
 END_WORD
 REGISTER_WORD(GoFindBlueBoxes)
@@ -839,7 +839,7 @@ CODE(131123) // capslock + 3
 virtual void execute(std::shared_ptr<MachineState> ms) {
   lastVisionCycle = ros::Time::now();
   oscilStart = ros::Time::now();
-  goClassifyBlueBoxes();
+  goClassifyBlueBoxes(ms);
 }
 END_WORD
 REGISTER_WORD(GoClassifyBlueBoxes)
