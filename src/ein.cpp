@@ -109,8 +109,8 @@ tf::TransformListener* tfListener;
 
 
 
-int reticleHalfWidth = 18;
-int pilotTargetHalfWidth = 15;
+
+
 
 eePose calibrationPose;
 
@@ -4415,7 +4415,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       if (hri != currentThompsonHeightIdx)
 	continue;
       eePose thisReticle = heightReticles[hri];
-      int thisReticleHalfWidth = int(  ceil( double(reticleHalfWidth) / double(1+hri) )  );
+      int param_reticleHalfWidth = 18;
+      int thisReticleHalfWidth = int(  ceil( double(param_reticleHalfWidth) / double(1+hri) )  );
       cv::Point outTop = cv::Point(thisReticle.px-thisReticleHalfWidth, thisReticle.py-thisReticleHalfWidth);
       cv::Point outBot = cv::Point(thisReticle.px+thisReticleHalfWidth, thisReticle.py+thisReticleHalfWidth);
       cv::Point inTop = cv::Point(thisReticle.px+1-thisReticleHalfWidth,thisReticle.py+1-thisReticleHalfWidth);
@@ -4432,10 +4433,11 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   {
-    cv::Point outTop = cv::Point(pilotTarget.px-pilotTargetHalfWidth, pilotTarget.py-pilotTargetHalfWidth);
-    cv::Point outBot = cv::Point(pilotTarget.px+pilotTargetHalfWidth, pilotTarget.py+pilotTargetHalfWidth);
-    cv::Point inTop = cv::Point(pilotTarget.px+1-pilotTargetHalfWidth,pilotTarget.py+1-pilotTargetHalfWidth);
-    cv::Point inBot = cv::Point(pilotTarget.px-1+pilotTargetHalfWidth,pilotTarget.py-1+pilotTargetHalfWidth);
+    int param_pilotTargetHalfWidth = 15;
+    cv::Point outTop = cv::Point(pilotTarget.px-param_pilotTargetHalfWidth, pilotTarget.py-param_pilotTargetHalfWidth);
+    cv::Point outBot = cv::Point(pilotTarget.px+param_pilotTargetHalfWidth, pilotTarget.py+param_pilotTargetHalfWidth);
+    cv::Point inTop = cv::Point(pilotTarget.px+1-param_pilotTargetHalfWidth,pilotTarget.py+1-param_pilotTargetHalfWidth);
+    cv::Point inBot = cv::Point(pilotTarget.px-1+param_pilotTargetHalfWidth,pilotTarget.py-1+param_pilotTargetHalfWidth);
     if ( (outTop.x > 0) && (outTop.y > 0) && (outBot.x < imW) && (outBot.y < imH) ) {
       rectangle(wristViewImage, outTop, outBot, cv::Scalar(53,10,97)); // RGB: 97 10 53
       rectangle(wristViewImage, inTop, inBot, cv::Scalar(142,31,255)); // RGB: 255 31 142
