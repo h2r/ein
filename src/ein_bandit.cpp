@@ -11,7 +11,6 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
     string thisLabelName = focusedClassLabel;
 
-    char buf[1000];
     string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 

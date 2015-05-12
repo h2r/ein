@@ -55,6 +55,11 @@ typedef enum {
   SIMULATED
 } robotMode;
 
+typedef enum {
+  GRASP_CRANE,
+  GRASP_3D
+} graspMode;
+
 #define NUM_JOINTS 7
 
 class EinConfig {
@@ -83,6 +88,8 @@ class EinConfig {
   patrolMode currentPatrolMode = ONCE;
   placeMode currentPlaceMode = HAND;
   idleMode currentIdleMode = CRANE;
+  graspMode currentGraspMode = GRASP_CRANE;
+  robotMode currentRobotMode = PHYSICAL;
 
   Vector3d eeLinearAcceleration;
 
@@ -107,7 +114,6 @@ class EinConfig {
 
   int gradientFeatureWidth = 50;
 
-  robotMode chosen_mode = PHYSICAL;
 
   int driveVelocities = 0;
   int testJoint = 3;
