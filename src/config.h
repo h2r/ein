@@ -137,6 +137,17 @@ class EinConfig {
   time_t firstTimeRange = 0;
 
 
+  // this should be initted to 0 and set to its default setting only after an imageCallback has happened.
+  int shouldIRenderDefault = 1;
+  int shouldIRender = 0;
+  int shouldIDoIK = 1;
+  int renderInit = 0;
+  int shouldIImageCallback = 1;
+  int shouldIMiscCallback = 1;
+  int shouldIRangeCallback = 1;
+
+
+
 
   // config variables that don't seem to be used
 
