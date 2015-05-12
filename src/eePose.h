@@ -19,7 +19,7 @@ typedef struct _eePose{
   double qz;
   double qw;
 
-  _eePose operator+(const Vector3d& a) const {
+  _eePose plusP(const Vector3d& a) const {
     _eePose toReturn;
     toReturn.px = px + a.x();
     toReturn.py = py + a.y();
@@ -31,7 +31,7 @@ typedef struct _eePose{
     return toReturn;
   }
 
-  _eePose operator-(const Vector3d& a) const {
+  _eePose minusP(const Vector3d& a) const {
     _eePose toReturn;
     toReturn.px = px - a.x();
     toReturn.py = py - a.y();
@@ -43,7 +43,7 @@ typedef struct _eePose{
     return toReturn;
   }
 
-  _eePose pMinus() const {
+  _eePose negativeP() const {
     _eePose toReturn;
     toReturn.px = -px;
     toReturn.py = -py;
@@ -55,7 +55,7 @@ typedef struct _eePose{
     return toReturn;
   }
 
-  _eePose qMinus() const {
+  _eePose negativeQ() const {
     _eePose toReturn;
     toReturn.px = px;
     toReturn.py = py;
