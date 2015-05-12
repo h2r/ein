@@ -1938,6 +1938,35 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(Start3dGraspAnnotation)
 
+WORD(Save3dGrasps)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  if (focusedClass > -1) {
+    guard3dGrasps(ms);
+
+    string thisLabelName = focusedClassLabel;
+
+    char buf[1000];
+    string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
+    string this_range_path = dirToMakePath + "3dGrasps.yml";
+
+    mkdir(dirToMakePath.c_str(), 0777);
+
+    FileStorage fsvO;
+    cout << "save3dGrasps: Writing: " << this_range_path << endl;
+    fsvO.open(this_range_path, FileStorage::WRITE);
+
+    fsvO << "3dGrasps" << "[" ;
+    {
+      fsvO << "size" <<  int(ms->config.class3dGrasps[focusedClass].size());
+    }
+    fsvO << "]";
+
+    fsvO.release();
+  } 
+}
+END_WORD
+REGISTER_WORD(Save3dGrasps)
+
 WORD(Lock3dGraspBase)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (bLabels.size() > 0) && (pilotClosestBlueBoxNumber != -1) ) {
