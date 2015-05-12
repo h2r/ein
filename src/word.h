@@ -49,7 +49,17 @@ public:
     return 1;
   }
 
+  /**
+   * Returns it as a string in the repl (e.g., quotes, back ticks for strings and symbols)
+   */
   virtual string as_string() {
+    return name();
+  }
+
+  /**
+   * Converts to a string (e.g., no quotes)
+   */
+  virtual string to_string() {
     return name();
   }
 
@@ -165,6 +175,10 @@ public:
     ss << "\"" << s << "\"";
     return ss.str();
   }
+
+  string to_string() {
+    return s;
+  }
   
 };
 
@@ -209,6 +223,10 @@ public:
     stringstream ss;
     ss << "'" << s;
     return ss.str();
+  }
+
+  string to_string() {
+    return s;
   }
   
 };

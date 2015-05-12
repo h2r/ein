@@ -1,5 +1,19 @@
 WORD(DeliverObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> word = ms->popWord();
+  string className = word->to_string();
+  int class_idx = classIdxForName(ms, className);
+  if (class_idx != -1) {
+    changeTargetClass(ms, class_idx);
+    pMachineState->pushWord("deliverTargetObject");
+  }
+}
+END_WORD
+REGISTER_WORD(DeliverObject)
+
+
+WORD(DeliverTargetObject)
+virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("idler"); 
   bailAfterGradient = 1;
 
@@ -112,7 +126,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setPatrolStateToPicking");
 }
 END_WORD
-REGISTER_WORD(DeliverObject)
+REGISTER_WORD(DeliverTargetObject)
 
 WORD(PlaceObjectInDeliveryZone)
 virtual void execute(std::shared_ptr<MachineState> ms) {
