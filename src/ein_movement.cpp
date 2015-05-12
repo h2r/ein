@@ -298,7 +298,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  currentEEPose = currentEEPose - (bDelta * localUnitX);
+  currentEEPose = currentEEPose.minusP(bDelta * localUnitX);
 }
 END_WORD
 REGISTER_WORD(LocalXDown)
@@ -310,7 +310,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  currentEEPose = currentEEPose + (bDelta * localUnitX);
+  currentEEPose = currentEEPose.plusP(bDelta * localUnitX);
 }
 END_WORD
 REGISTER_WORD(LocalXUp)
@@ -321,7 +321,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  currentEEPose = currentEEPose - (bDelta * localUnitY);
+  currentEEPose = currentEEPose.minusP(bDelta * localUnitY);
 }
 END_WORD
 REGISTER_WORD(LocalYDown)
@@ -333,7 +333,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  currentEEPose = currentEEPose + (bDelta * localUnitY);
+  currentEEPose = currentEEPose.plusP(bDelta * localUnitY);
 }
 END_WORD
 REGISTER_WORD(LocalYUp)
@@ -346,7 +346,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  currentEEPose = currentEEPose + (bDelta * localUnitZ);
+  currentEEPose = currentEEPose.plusP(bDelta * localUnitZ);
 }
 END_WORD
 REGISTER_WORD(LocalZUp)
@@ -358,7 +358,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  currentEEPose = currentEEPose - (bDelta * localUnitZ);
+  currentEEPose = currentEEPose.minusP(bDelta * localUnitZ);
 }
 END_WORD
 REGISTER_WORD(LocalZDown)
