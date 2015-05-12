@@ -1060,16 +1060,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int imW = sz.width;
   int imH = sz.height;
 
-  cropUpperLeftCorner.px = 320;
-  cropUpperLeftCorner.py = 200;
+  ms->config.cropUpperLeftCorner.px = 320;
+  ms->config.cropUpperLeftCorner.py = 200;
 
   baxter_core_msgs::OpenCamera ocMessage;
   ocMessage.request.name = left_or_right_arm + "_hand_camera";
   ocMessage.request.settings.controls.resize(2);
   ocMessage.request.settings.controls[0].id = 105;
-  ocMessage.request.settings.controls[0].value = cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
-  ocMessage.request.settings.controls[1].value = cropUpperLeftCorner.py;
+  ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
   int testResult = cameraClient.call(ocMessage);
 }
 END_WORD
@@ -1081,9 +1081,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ocMessage.request.name = left_or_right_arm + "_hand_camera";
   ocMessage.request.settings.controls.resize(2);
   ocMessage.request.settings.controls[0].id = 105;
-  ocMessage.request.settings.controls[0].value = cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
-  ocMessage.request.settings.controls[1].value = cropUpperLeftCorner.py;
+  ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
   int testResult = cameraClient.call(ocMessage);
 }
 END_WORD
@@ -1098,8 +1098,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double Vx = vanishingPointReticle.px - (imW/2);
   double Vy = vanishingPointReticle.py - (imH/2);
 
-  cropUpperLeftCorner.px += Vx;
-  cropUpperLeftCorner.py += Vy;
+  ms->config.cropUpperLeftCorner.px += Vx;
+  ms->config.cropUpperLeftCorner.py += Vy;
   vanishingPointReticle.px -= Vx;
   vanishingPointReticle.py -= Vy;
 
@@ -1109,9 +1109,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ocMessage.request.name = left_or_right_arm + "_hand_camera";
   ocMessage.request.settings.controls.resize(2);
   ocMessage.request.settings.controls[0].id = 105;
-  ocMessage.request.settings.controls[0].value = cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
-  ocMessage.request.settings.controls[1].value = cropUpperLeftCorner.py;
+  ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
   int testResult = cameraClient.call(ocMessage);
   //cout << "centerVanishingPoint testResult: " << testResult << endl;
   //cout << ocMessage.response.name << endl;
@@ -1727,7 +1727,7 @@ WORD(LoadCalibration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   string fileName = data_directory + "/config/" + left_or_right_arm + "Calibration.yml";
   cout << "Loading calibration file from " << fileName << endl;
-  loadCalibration(fileName);
+  loadCalibration(ms, fileName);
 }
 END_WORD
 REGISTER_WORD(LoadCalibration)
@@ -1736,7 +1736,7 @@ WORD(SaveCalibration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   string fileName = data_directory + "/config/" + left_or_right_arm + "Calibration.yml";
   cout << "Saving calibration file from " << fileName << endl;
-  saveCalibration(fileName);
+  saveCalibration(ms, fileName);
 }
 END_WORD
 REGISTER_WORD(SaveCalibration)

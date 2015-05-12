@@ -103,15 +103,12 @@ using namespace ein;
 MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
-
-
 tf::TransformListener* tfListener;
 
 
 
 
-eePose cropUpperLeftCorner = {.px = 320, .py = 200, .pz = 0.0,
-		       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // center of image
+
 
 eePose handingPoseRight = {.px = 0.879307, .py = -0.0239328, .pz = 0.223839,
                       .qx = 0.459157, .qy = 0.527586, .qz = 0.48922, .qw = 0.521049};
@@ -1420,8 +1417,8 @@ void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::So
 void globalToMapBackground(double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
 void simulatorCallback(const ros::TimerEvent&);
 
-void loadCalibration(string inFileName);
-void saveCalibration(string outFileName);
+void loadCalibration(shared_ptr<MachineState> ms, string inFileName);
+void saveCalibration(shared_ptr<MachineState> ms, string outFileName);
 
 void findDarkness(int * xout, int * yout);
 void findLight(int * xout, int * yout);
@@ -4932,7 +4929,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
   }
 }
 
-void loadCalibration(string inFileName) {
+void loadCalibration(shared_ptr<MachineState> ms, string inFileName) {
   FileStorage fsvI;
   cout << "Readingcalibration information from " << inFileName << " ...";
   fsvI.open(inFileName, FileStorage::READ);
@@ -4946,8 +4943,8 @@ void loadCalibration(string inFileName) {
   {
     FileNode anode = fsvI["cropUpperLeftCorner"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
-    cropUpperLeftCorner.px = *(it++);
-    cropUpperLeftCorner.py = *(it++);
+    ms->config.cropUpperLeftCorner.px = *(it++);
+    ms->config.cropUpperLeftCorner.py = *(it++);
   }
 
   {
@@ -5031,7 +5028,7 @@ void loadCalibration(string inFileName) {
   cout << "done." << endl;
 }
 
-void saveCalibration(string outFileName) {
+void saveCalibration(shared_ptr<MachineState> ms, string outFileName) {
 
   /* this works
   for (int i = 0; i < 5; i++) {
@@ -5052,8 +5049,8 @@ void saveCalibration(string outFileName) {
   << "]";
 
   fsvO << "cropUpperLeftCorner" << "[" 
-    << cropUpperLeftCorner.px 
-    << cropUpperLeftCorner.py 
+    << ms->config.cropUpperLeftCorner.px 
+    << ms->config.cropUpperLeftCorner.py 
   << "]";
 
   fsvO << "vanishingPointReticle" << "[" 
