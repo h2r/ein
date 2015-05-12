@@ -25,13 +25,6 @@ using namespace cv;
 
 #define MY_FONT FONT_HERSHEY_SIMPLEX
 
-#define NOW_THATS_FAST 0.08
-#define MOVE_EVEN_FASTER 0.04
-#define MOVE_FASTER 0.02
-#define MOVE_FAST 0.01
-#define MOVE_MEDIUM 0.005 //.005
-#define MOVE_SLOW 0.0025
-#define MOVE_VERY_SLOW 0.00125
 
 #define RANGE_UPPER_INVALID 0.3
 #define RANGE_LOWER_INVALID 0.08

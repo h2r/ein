@@ -105,12 +105,8 @@ shared_ptr<MachineState> pMachineState;
 
 
 
-double bDelta = MOVE_FAST;
-double approachStep = .0005;
-double hoverMultiplier = 0.5;
-
 tf::TransformListener* tfListener;
-double tfPast = 10.0;
+
 
 std::string wristViewName = "Wrist View";
 std::string coreViewName = "Core View";

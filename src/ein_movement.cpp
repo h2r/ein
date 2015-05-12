@@ -164,7 +164,7 @@ REGISTER_WORD(PerturbPosition)
 WORD(OYDown)
 CODE('w'+65504) 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEDeltaRPY.py -= bDelta;
+  currentEEDeltaRPY.py -= ms->config.bDelta;
 }
 END_WORD
 REGISTER_WORD(OYDown)
@@ -172,7 +172,7 @@ REGISTER_WORD(OYDown)
 WORD(OYUp)
 CODE('s'+65504) 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEDeltaRPY.py += bDelta;
+  currentEEDeltaRPY.py += ms->config.bDelta;
 }
 END_WORD
 REGISTER_WORD(OYUp)
@@ -180,7 +180,7 @@ REGISTER_WORD(OYUp)
 WORD(OZDown)
 CODE('q'+65504) 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEDeltaRPY.pz -= bDelta;
+  currentEEDeltaRPY.pz -= ms->config.bDelta;
 }
 END_WORD
 REGISTER_WORD(OZDown)
@@ -189,7 +189,7 @@ WORD(OZUp)
 CODE('e'+65504) 
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Changing pose. " << endl;
-  currentEEDeltaRPY.pz += bDelta;
+  currentEEDeltaRPY.pz += ms->config.bDelta;
 }
 END_WORD
 REGISTER_WORD(OZUp)
@@ -197,7 +197,7 @@ REGISTER_WORD(OZUp)
 WORD(OXDown)
 CODE('a'+65504) 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEDeltaRPY.px -= bDelta;
+  currentEEDeltaRPY.px -= ms->config.bDelta;
 }
 END_WORD
 REGISTER_WORD(OXDown)
@@ -205,7 +205,7 @@ REGISTER_WORD(OXDown)
 WORD(OXUp)
 CODE('d'+65504) 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEDeltaRPY.px += bDelta;
+  currentEEDeltaRPY.px += ms->config.bDelta;
 }
 END_WORD
 REGISTER_WORD(OXUp)
@@ -298,7 +298,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  currentEEPose = currentEEPose.minusP(bDelta * localUnitX);
+  currentEEPose = currentEEPose.minusP(ms->config.bDelta * localUnitX);
 }
 END_WORD
 REGISTER_WORD(LocalXDown)
@@ -310,7 +310,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  currentEEPose = currentEEPose.plusP(bDelta * localUnitX);
+  currentEEPose = currentEEPose.plusP(ms->config.bDelta * localUnitX);
 }
 END_WORD
 REGISTER_WORD(LocalXUp)
@@ -321,7 +321,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  currentEEPose = currentEEPose.minusP(bDelta * localUnitY);
+  currentEEPose = currentEEPose.minusP(ms->config.bDelta * localUnitY);
 }
 END_WORD
 REGISTER_WORD(LocalYDown)
@@ -333,7 +333,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  currentEEPose = currentEEPose.plusP(bDelta * localUnitY);
+  currentEEPose = currentEEPose.plusP(ms->config.bDelta * localUnitY);
 }
 END_WORD
 REGISTER_WORD(LocalYUp)
@@ -346,7 +346,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  currentEEPose = currentEEPose.plusP(bDelta * localUnitZ);
+  currentEEPose = currentEEPose.plusP(ms->config.bDelta * localUnitZ);
 }
 END_WORD
 REGISTER_WORD(LocalZUp)
@@ -358,7 +358,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  currentEEPose = currentEEPose.minusP(bDelta * localUnitZ);
+  currentEEPose = currentEEPose.minusP(ms->config.bDelta * localUnitZ);
 }
 END_WORD
 REGISTER_WORD(LocalZDown)
@@ -366,7 +366,7 @@ REGISTER_WORD(LocalZDown)
 WORD(XDown)
 CODE('q') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose.px -= bDelta;
+  currentEEPose.px -= ms->config.bDelta;
 }
 END_WORD
 REGISTER_WORD(XDown)
@@ -375,7 +375,7 @@ REGISTER_WORD(XDown)
 WORD(XUp)
 CODE('e') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose.px += bDelta;
+  currentEEPose.px += ms->config.bDelta;
 }
 END_WORD
 REGISTER_WORD(XUp)
@@ -383,7 +383,7 @@ REGISTER_WORD(XUp)
 WORD(YDown)
 CODE('a') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose.py -= bDelta;
+  currentEEPose.py -= ms->config.bDelta;
 }
 END_WORD
 REGISTER_WORD(YDown)
@@ -392,7 +392,7 @@ REGISTER_WORD(YDown)
 WORD(YUp)
 CODE('d') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose.py += bDelta;
+  currentEEPose.py += ms->config.bDelta;
 }
 END_WORD
 REGISTER_WORD(YUp)
@@ -402,7 +402,7 @@ WORD(ZUp)
 CODE('w')
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  currentEEPose.pz += bDelta;
+  currentEEPose.pz += ms->config.bDelta;
 }
 END_WORD
 REGISTER_WORD(ZUp)
@@ -411,7 +411,7 @@ WORD(ZDown)
 CODE('s')
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-    currentEEPose.pz -= bDelta;
+    currentEEPose.pz -= ms->config.bDelta;
 }
 END_WORD
 REGISTER_WORD(ZDown)
@@ -467,7 +467,7 @@ REGISTER_WORD(OpenGripper)
 WORD(SetMovementSpeedNowThatsFast)
 CODE(1114193)    // numlock + Q
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  bDelta = NOW_THATS_FAST;
+  ms->config.bDelta = NOW_THATS_FAST;
 }
 END_WORD
 REGISTER_WORD(SetMovementSpeedNowThatsFast)
@@ -475,7 +475,7 @@ REGISTER_WORD(SetMovementSpeedNowThatsFast)
 WORD(SetMovementSpeedMoveEvenFaster)
 CODE(1114199)     // numlock + W
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  bDelta = MOVE_EVEN_FASTER;
+  ms->config.bDelta = MOVE_EVEN_FASTER;
 }
 END_WORD
 REGISTER_WORD(SetMovementSpeedMoveEvenFaster)
@@ -484,7 +484,7 @@ REGISTER_WORD(SetMovementSpeedMoveEvenFaster)
 WORD(SetMovementSpeedMoveFaster)
 CODE(1114181)  // numlock + E
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  bDelta = MOVE_FASTER;
+  ms->config.bDelta = MOVE_FASTER;
 }
 END_WORD
 REGISTER_WORD(SetMovementSpeedMoveFaster)
@@ -492,7 +492,7 @@ REGISTER_WORD(SetMovementSpeedMoveFaster)
 WORD(SetMovementSpeedMoveFast)
 CODE(1048674)     // numlock + b
 virtual void execute(std::shared_ptr<MachineState> ms)  {
-  bDelta = MOVE_FAST;
+  ms->config.bDelta = MOVE_FAST;
 }
 END_WORD
 REGISTER_WORD(SetMovementSpeedMoveFast)
@@ -500,7 +500,7 @@ REGISTER_WORD(SetMovementSpeedMoveFast)
 WORD(SetMovementSpeedMoveMedium)
 CODE(1048686)   // numlock + n
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  bDelta = MOVE_MEDIUM;
+  ms->config.bDelta = MOVE_MEDIUM;
 }
 END_WORD
 REGISTER_WORD(SetMovementSpeedMoveMedium)
@@ -508,7 +508,7 @@ REGISTER_WORD(SetMovementSpeedMoveMedium)
 WORD(SetMovementSpeedMoveSlow)
 CODE(1114190) // numlock + N
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  bDelta = MOVE_SLOW;
+  ms->config.bDelta = MOVE_SLOW;
 }
 END_WORD
 REGISTER_WORD(SetMovementSpeedMoveSlow)
@@ -516,7 +516,7 @@ REGISTER_WORD(SetMovementSpeedMoveSlow)
 WORD(SetMovementSpeedMoveVerySlow)
 CODE(1114178) // numlock + B
 virtual void execute(std::shared_ptr<MachineState> ms) {
-	bDelta = MOVE_VERY_SLOW;
+	ms->config.bDelta = MOVE_VERY_SLOW;
 }
 END_WORD
 REGISTER_WORD(SetMovementSpeedMoveVerySlow)
