@@ -107,28 +107,8 @@ shared_ptr<MachineState> pMachineState;
 
 
 
-double aveTime = 0.0;
-double aveFrequency = 0.0;
-double timeMass = 0.0;
-double timeInterval = 30;
-time_t thisTime = 0;
-time_t firstTime = 0;
 
-double aveTimeRange = 0.0;
-double aveFrequencyRange = 0.0;
-double timeMassRange = 0.0;
-double timeIntervalRange = 30;
-time_t thisTimeRange = 0;
-time_t firstTimeRange = 0;
 
-// this should be initted to 0 and set to its default setting only after an imageCallback has happened.
-int shouldIRenderDefault = 1;
-int shouldIRender = 0;
-int shouldIDoIK = 1;
-int renderInit = 0;
-int shouldIImageCallback = 1;
-int shouldIMiscCallback = 1;
-int shouldIRangeCallback = 1;
 
 int ik_reset_thresh = 20;
 int ik_reset_counter = 0;
@@ -1563,9 +1543,9 @@ orientedFilterType getOrientedFilterType(string toCompare);
 
 void nodeCallbackFunc(int event, int x, int y, int flags, void* userdata);
 
-void goCalculateDensity();
-void goFindBlueBoxes();
-void goClassifyBlueBoxes();
+void goCalculateDensity(shared_ptr<MachineState> ms);
+void goFindBlueBoxes(shared_ptr<MachineState> ms);
+void goClassifyBlueBoxes(shared_ptr<MachineState> ms);
 void goFindRedBoxes();
 
 void resetAccumulatedImageAndMass();
@@ -2496,7 +2476,7 @@ void recordReadyRangeReadings() {
 
 void jointCallback(const sensor_msgs::JointState& js) {
 
-//  if (!shouldIMiscCallback) {
+//  if (!ms->config.shouldIMiscCallback) {
 //    return;
 //  }
   shared_ptr<MachineState> ms = pMachineState;
@@ -2514,7 +2494,7 @@ void jointCallback(const sensor_msgs::JointState& js) {
 
 void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
 
-  //if (!shouldIMiscCallback) {
+  //if (!ms->config.shouldIMiscCallback) {
     //return;
   //}
 
@@ -2703,7 +2683,7 @@ void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
 
 void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::EndpointState& eps) {
 
-//  if (!shouldIMiscCallback) {
+//  if (!ms->config.shouldIMiscCallback) {
 //    return;
 //  }
 
@@ -2778,7 +2758,7 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
 
 void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees) {
 
-//  if (!shouldIMiscCallback) {
+//  if (!ms->config.shouldIMiscCallback) {
 //    return;
 //  }
 
@@ -3220,29 +3200,29 @@ void accelerometerCallback(const sensor_msgs::Imu& moment) {
 }
 
 void rangeCallback(const sensor_msgs::Range& range) {
-
+  shared_ptr<MachineState> ms = pMachineState;
   //cout << "range frame_id: " << range.header.frame_id << endl;
   setRingRangeAtTime(range.header.stamp, range.range);
   //double thisRange;
   //int weHaveRangeData = getRingRangeAtTime(range.header.stamp, thisRange);
 
 
-  time(&thisTimeRange);
-  double deltaTimeRange = difftime(thisTimeRange, firstTimeRange);
-  timeMassRange = timeMassRange + 1;
+  time(&ms->config.thisTimeRange);
+  double deltaTimeRange = difftime(ms->config.thisTimeRange, ms->config.firstTimeRange);
+  ms->config.timeMassRange = ms->config.timeMassRange + 1;
 
-  if (deltaTimeRange > timeIntervalRange) {
+  if (deltaTimeRange > ms->config.timeIntervalRange) {
     deltaTimeRange = 0;
-    timeMassRange = 0;
-    time(&firstTimeRange);
+    ms->config.timeMassRange = 0;
+    time(&ms->config.firstTimeRange);
   }
 
-  if (timeMassRange > 0.0) {
-    aveTimeRange = deltaTimeRange / timeMassRange;
+  if (ms->config.timeMassRange > 0.0) {
+    ms->config.aveTimeRange = deltaTimeRange / ms->config.timeMassRange;
   }
 
   if (deltaTimeRange > 0.0) {
-    aveFrequencyRange = timeMassRange / deltaTimeRange;
+    ms->config.aveFrequencyRange = ms->config.timeMassRange / deltaTimeRange;
   }
 
   eeRange = range.range;
@@ -3309,20 +3289,20 @@ void rangeCallback(const sensor_msgs::Range& range) {
     }
     {
       char buff[256];
-      sprintf(buff, "            Hz: %.2f", aveFrequency);
+      sprintf(buff, "            Hz: %.2f", ms->config.aveFrequency);
       string fpslabel(buff);
       putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(160,0,0), 1.0);
     }
     {
       char buff[256];
-      sprintf(buff, "Hz: %.2f", aveFrequencyRange);
+      sprintf(buff, "Hz: %.2f", ms->config.aveFrequencyRange);
       string fpslabel(buff);
       putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
   guardedImshow(rangeogramViewName, rangeogramImage, sirRangeogram);
 
-  if (!shouldIRangeCallback) {
+  if (!ms->config.shouldIRangeCallback) {
     return;
   }
 
@@ -3500,7 +3480,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
     }
   }
 
-  if (shouldIRender) {
+  if (ms->config.shouldIRender) {
     guardedImshow(rangemapViewName, rangemapImage, sirRangemap);
     guardedImshow(graspMemoryViewName, graspMemoryImage, sirGraspMemory);
     guardedImshow(graspMemorySampleViewName, graspMemorySampleImage, sirGraspMemorySample);
@@ -3715,7 +3695,7 @@ bool willIkResultFail(baxter_core_msgs::SolvePositionIK thisIkRequest, int thisI
 void update_baxter(ros::NodeHandle &n) {
   bfc = bfc % bfc_period;
   shared_ptr<MachineState> ms = pMachineState;
-  if (!shouldIDoIK) {
+  if (!ms->config.shouldIDoIK) {
     return;
   }
 
@@ -3955,10 +3935,10 @@ void timercallback1(const ros::TimerEvent&) {
 
   ros::NodeHandle n("~");
   std::shared_ptr<Word> word = NULL;
-
+  shared_ptr<MachineState> ms = pMachineState;
   int c = -1;
   int takeSymbol = 1;
-  if (shouldIMiscCallback) {
+  if (ms->config.shouldIMiscCallback) {
     c = cvWaitKey(1);
   } else if ((heartBeatCounter % heartBeatPeriod) == 0) {
     c = cvWaitKey(1);
@@ -3983,31 +3963,31 @@ void timercallback1(const ros::TimerEvent&) {
 
   endThisStackCollapse = endCollapse;
   while (1) {
-    time(&thisTime);
-    double deltaTime = difftime(thisTime, firstTime);
-    timeMass = timeMass + 1;
+    time(&ms->config.thisTime);
+    double deltaTime = difftime(ms->config.thisTime, ms->config.firstTime);
+    ms->config.timeMass = ms->config.timeMass + 1;
 
-    if (deltaTime > timeInterval) {
+    if (deltaTime > ms->config.timeInterval) {
       deltaTime = 0;
-      timeMass = 0;
-      time(&firstTime);
+      ms->config.timeMass = 0;
+      time(&ms->config.firstTime);
     }
 
-    if (timeMass > 0.0) {
-      aveTime = deltaTime / timeMass;
+    if (ms->config.timeMass > 0.0) {
+      ms->config.aveTime = deltaTime / ms->config.timeMass;
     }
 
     if (deltaTime > 0.0) {
-      aveFrequency = timeMass / deltaTime;
+      ms->config.aveFrequency = ms->config.timeMass / deltaTime;
     }
 
     // deal with the stack
-    if (pMachineState->execute_stack && takeSymbol) {
-      if (pMachineState->call_stack.size() > 0 && 
-	  !pMachineState->call_stack[pMachineState->call_stack.size() - 1]->is_value()) {
-	word = pMachineState->popWord();
+    if (ms->execute_stack && takeSymbol) {
+      if (ms->call_stack.size() > 0 && 
+	  !ms->call_stack[ms->call_stack.size() - 1]->is_value()) {
+	word = ms->popWord();
       } else {
-	pMachineState->execute_stack = 0;
+	ms->execute_stack = 0;
 	endThisStackCollapse = 1;
       }
     } else {
@@ -4018,9 +3998,9 @@ void timercallback1(const ros::TimerEvent&) {
       lock_status = 0;
     }
   
-    pMachineState->execute(word);
+    ms->execute(word);
 
-    if( endThisStackCollapse || (pMachineState->call_stack.size() == 0) ) {
+    if( endThisStackCollapse || (ms->call_stack.size() == 0) ) {
       break;
     }
   }
@@ -4054,7 +4034,7 @@ void timercallback1(const ros::TimerEvent&) {
   }
   renderRangeogramView(pMachineState);
 
-  if (shouldIRender) {
+  if (ms->config.shouldIRender) {
     renderObjectMapView(pMachineState);
   }
 }
@@ -4064,14 +4044,15 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
 
   lastImageCallbackReceived = ros::Time::now();
+  shared_ptr<MachineState> ms = pMachineState;
 
-  if (!shouldIImageCallback) {
+  if (!ms->config.shouldIImageCallback) {
     return;
   }
 
-  if (!renderInit) {
-    renderInit = 1;
-    shouldIRender = shouldIRenderDefault;
+  if (!ms->config.renderInit) {
+    ms->config.renderInit = 1;
+    ms->config.shouldIRender = ms->config.shouldIRenderDefault;
 
     try{
       cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
@@ -4518,7 +4499,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     }
   }
 
-  if (shouldIRender) {
+  if (ms->config.shouldIRender) {
     guardedImshow(wristViewName, wristViewImage, sirWrist);
   }
 }
@@ -4869,7 +4850,7 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
     }
   }
 
-  if (shouldIRender) {
+  if (ms->config.shouldIRender) {
     guardedImshow(objectMapViewerName, objectMapViewerImage, sirObjectMap);
   }
 
@@ -4911,13 +4892,13 @@ void renderRangeogramView(shared_ptr<MachineState> ms) {
     }
     {
       char buff[256];
-      sprintf(buff, "            Hz: %.2f", aveFrequency);
+      sprintf(buff, "            Hz: %.2f", ms->config.aveFrequency);
       string fpslabel(buff);
       putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(160,0,0), 1.0);
     }
     {
       char buff[256];
-      sprintf(buff, "Hz: %.2f", aveFrequencyRange);
+      sprintf(buff, "Hz: %.2f", ms->config.aveFrequencyRange);
       string fpslabel(buff);
       putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
@@ -4927,7 +4908,9 @@ void renderRangeogramView(shared_ptr<MachineState> ms) {
 
 void targetCallback(const geometry_msgs::Point& point) {
 
-  if (!shouldIMiscCallback) {
+  shared_ptr<MachineState> ms = pMachineState;
+
+  if (!ms->config.shouldIMiscCallback) {
     return;
   }
 
@@ -4950,7 +4933,7 @@ void targetCallback(const geometry_msgs::Point& point) {
 
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
 
-  //if (!shouldIMiscCallback) {
+  //if (!ms->config.shouldIMiscCallback) {
     //return;
   //}
 
@@ -4970,7 +4953,9 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
 
 void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata) {
 
-  if (!shouldIMiscCallback) {
+  shared_ptr<MachineState> ms = pMachineState;
+
+  if (!ms->config.shouldIMiscCallback) {
     return;
   }
 
@@ -10420,8 +10405,9 @@ orientedFilterType getOrientedFilterType(string toCompare) {
 }
 
 void nodeCallbackFunc(int event, int x, int y, int flags, void* userdata) {
+  shared_ptr<MachineState> ms = pMachineState;
 
-  if (!shouldIMiscCallback) {
+  if (!ms->config.shouldIMiscCallback) {
     return;
   }
 
@@ -10459,7 +10445,7 @@ void resetAccumulatedImageAndMass() {
   }
 }
 
-void renderAccumulatedImageAndDensity() {
+void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms) {
   /*
   // copy the density map to the rendered image
   for (int x = 0; x < imW; x++) {
@@ -10489,7 +10475,7 @@ void renderAccumulatedImageAndDensity() {
      }
   }
 
-  if (shouldIRender) {
+  if (ms->config.shouldIRender) {
     guardedImshow(gradientViewerName, gradientViewerImage, sirGradient);
   }
 
@@ -10527,7 +10513,7 @@ void substituteLatestImageQuantities(shared_ptr<MachineState> ms) {
   objectViewerImage = cv_ptr->image.clone();
 }
 
-void goCalculateDensity() {
+void goCalculateDensity(shared_ptr<MachineState> ms) {
   Size sz = objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
@@ -11014,14 +11000,14 @@ void goCalculateDensity() {
     }
   }
 
-  if (shouldIRender) {
+  if (ms->config.shouldIRender) {
     guardedImshow(densityViewerName, densityViewerImage, sirDensity);
     guardedImshow(gradientViewerName, gradientViewerImage, sirGradient);
     guardedImshow(objectnessViewerName, objectnessViewerImage, sirObjectness);
   }
 }
 
-void goFindBlueBoxes() {
+void goFindBlueBoxes(shared_ptr<MachineState> ms) {
   Size sz = objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
@@ -11324,7 +11310,7 @@ void goFindBlueBoxes() {
 
 //cout << "Here 4" << endl;
 
-  if (shouldIRender) {
+  if (ms->config.shouldIRender) {
     guardedImshow(objectViewerName, objectViewerImage, sirObject);
   }
 
@@ -11334,7 +11320,7 @@ void goFindBlueBoxes() {
 }
 
 
-void goClassifyBlueBoxes() {
+void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
   //cout << "entered gCBB()" << endl; cout.flush();
   Size sz = objectViewerImage.size();
   int imW = sz.width;
@@ -11808,7 +11794,7 @@ void goClassifyBlueBoxes() {
     pilotClosestBlueBoxNumber = -1;
   }
 
-  if (shouldIRender) {
+  if (ms->config.shouldIRender) {
     guardedImshow(objectViewerName, objectViewerImage, sirObject);
   }
 
@@ -13047,8 +13033,8 @@ int main(int argc, char **argv) {
   pMachineState = std::make_shared<MachineState>(machineState);
 
   srand(time(NULL));
-  time(&firstTime);
-  time(&firstTimeRange);
+  time(&pMachineState->config.firstTime);
+  time(&pMachineState->config.firstTimeRange);
 
   cout << "argc: " << argc << endl;
   for (int ccc = 0; ccc < argc; ccc++) {

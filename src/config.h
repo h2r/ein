@@ -121,6 +121,33 @@ class EinConfig {
 
 
 
+  double aveTime = 0.0;
+  double aveFrequency = 0.0;
+  double timeMass = 0.0;
+  double timeInterval = 30;
+  time_t thisTime = 0;
+  time_t firstTime = 0;
+
+
+  double aveTimeRange = 0.0;
+  double aveFrequencyRange = 0.0;
+  double timeMassRange = 0.0;
+  double timeIntervalRange = 30;
+  time_t thisTimeRange = 0;
+  time_t firstTimeRange = 0;
+
+
+  // this should be initted to 0 and set to its default setting only after an imageCallback has happened.
+  int shouldIRenderDefault = 1;
+  int shouldIRender = 0;
+  int shouldIDoIK = 1;
+  int renderInit = 0;
+  int shouldIImageCallback = 1;
+  int shouldIMiscCallback = 1;
+  int shouldIRangeCallback = 1;
+
+
+
 
   // config variables that don't seem to be used
 

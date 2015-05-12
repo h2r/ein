@@ -480,11 +480,11 @@ REGISTER_WORD(ResetAuxiliary)
 WORD(ShutdownAllNonessentialSystems)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  shouldIRender = 0;
-  shouldIDoIK = 0;
-  shouldIImageCallback = 0;
-  shouldIRangeCallback = 0;
-  shouldIMiscCallback = 0;
+  ms->config.shouldIRender = 0;
+  ms->config.shouldIDoIK = 0;
+  ms->config.shouldIImageCallback = 0;
+  ms->config.shouldIRangeCallback = 0;
+  ms->config.shouldIMiscCallback = 0;
   cout << "Shutting down all non-essential systems." << endl;
 }
 END_WORD
@@ -493,11 +493,11 @@ REGISTER_WORD(ShutdownAllNonessentialSystems)
 WORD(BringUpAllNonessentialSystems)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  shouldIRender = 1;
-  shouldIDoIK = 1;
-  shouldIImageCallback = 1;
-  shouldIRangeCallback = 1;
-  shouldIMiscCallback = 1;
+  ms->config.shouldIRender = 1;
+  ms->config.shouldIDoIK = 1;
+  ms->config.shouldIImageCallback = 1;
+  ms->config.shouldIRangeCallback = 1;
+  ms->config.shouldIMiscCallback = 1;
   cout << "Bringing up all non-essential systems." << endl;
 }
 END_WORD
@@ -508,7 +508,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
   lastImageCallbackRequest = ros::Time::now();
   ms->pushWord("waitUntilImageCallbackReceivedA");
-  shouldIImageCallback = 1;
+  ms->config.shouldIImageCallback = 1;
   endThisStackCollapse = 1;
 }
 END_WORD
@@ -519,7 +519,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
   if (lastImageCallbackRequest >= lastImageCallbackReceived) {
     ms->pushWord("waitUntilImageCallbackReceivedA");
-    shouldIImageCallback = 1;
+    ms->config.shouldIImageCallback = 1;
     endThisStackCollapse = 1;
   } else {
     endThisStackCollapse = endCollapse;

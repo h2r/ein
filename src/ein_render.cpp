@@ -122,7 +122,7 @@ REGISTER_WORD(PaintReticles)
 WORD(FullRender)
 CODE(1114183)     // numlock + G 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (!shouldIRender) {
+  if (!ms->config.shouldIRender) {
     ms->pushWord(1114177); // manual render
   }
   ms->pushWord("paintReticles"); // render reticle
