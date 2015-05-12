@@ -93,6 +93,9 @@ class EinConfig {
   vector<double> classGraspZs;
   vector<double> classGraspZsSet;
 
+  vector<eePose> class3dGrasps;
+  eePose 3dPoseBase;
+
   double movingThreshold = 0.02;
   double hoverThreshold = 0.003; 
   double stoppedTimeout = 0.25;
