@@ -43,6 +43,12 @@ catkin_make
 source devel/setup.bash
 catkin_make
 ```
+Some other stuff you might need to do when installing fresh:
+```
+sudo apt-get install ros-indigo-object-recognition-msgs
+sudo apt-get install ros-indigo-pcl-ros
+sudo apt-get install libgsl0-dev
+```
 
 To run the program, from the root of your catkin workspace, run the
 following command:
