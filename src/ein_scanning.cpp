@@ -1718,7 +1718,7 @@ REGISTER_WORD(CalibrateRGBCameraIntrinsics)
 
 WORD(AssumeCalibrationPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose = calibrationPose;
+  currentEEPose = ms->config.calibrationPose;
 }
 END_WORD
 REGISTER_WORD(AssumeCalibrationPose)

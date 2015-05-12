@@ -1182,7 +1182,7 @@ REGISTER_WORD(AssumeCrane1)
 
 WORD(AssumeShrugPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose = shrugPose;
+  currentEEPose = ms->config.shrugPose;
   ms->pushWord("waitUntilAtCurrentPosition");
 }
 END_WORD
