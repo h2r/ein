@@ -93,6 +93,7 @@ class EinConfig {
   vector<double> classGraspZs;
   vector<double> classGraspZsSet;
 
+  int current3dGraspIndex = 0;
   vector< vector<eePose> > class3dGrasps;
   eePose c3dPoseBase;
 
@@ -108,7 +109,6 @@ class EinConfig {
 
   robotMode chosen_mode = PHYSICAL;
 
-
   int driveVelocities = 0;
   int testJoint = 3;
   
@@ -119,8 +119,6 @@ class EinConfig {
 
   rk_state random_state;
 
-
-
   double aveTime = 0.0;
   double aveFrequency = 0.0;
   double timeMass = 0.0;
@@ -128,14 +126,12 @@ class EinConfig {
   time_t thisTime = 0;
   time_t firstTime = 0;
 
-
   double aveTimeRange = 0.0;
   double aveFrequencyRange = 0.0;
   double timeMassRange = 0.0;
   double timeIntervalRange = 30;
   time_t thisTimeRange = 0;
   time_t firstTimeRange = 0;
-
 
   // this should be initted to 0 and set to its default setting only after an imageCallback has happened.
   int shouldIRenderDefault = 1;
@@ -146,23 +142,13 @@ class EinConfig {
   int shouldIMiscCallback = 1;
   int shouldIRangeCallback = 1;
 
-
-
   int ik_reset_counter = 0;
   int ikInitialized = 0;
   int goodIkInitialized = 0;
-  // ATTN 14
   double ikShare = 1.0;
   int ik_reset_thresh = 20;
 
-
   // config variables that don't seem to be used
-
-  //double rapidAmp1Delta = 0.01;
-
-
-  //double rapidAmp2Delta = 0.03;
-
 };
 
 class Word;
