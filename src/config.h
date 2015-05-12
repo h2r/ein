@@ -178,8 +178,22 @@ class EinConfig {
   eePose shrugPose;
   eePose handingPose;
 
+  eePose straightDown = {.px = 0.0, .py = 0.0, .pz = 0.0,
+                         .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+
   eePose cropUpperLeftCorner = {.px = 320, .py = 200, .pz = 0.0,
                                 .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // center of image
+
+  eePose centerReticle = {.px = 325, .py = 127, .pz = 0.0,
+                          .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
+
+  eePose defaultReticle = centerReticle;
+  eePose heightReticles[4];
+
+  eePose probeReticle = defaultReticle;
+  eePose vanishingPointReticle = defaultReticle;
+  eePose reticle = defaultReticle;
+
 
   // config variables that don't seem to be used
 };

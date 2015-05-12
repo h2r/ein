@@ -528,8 +528,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
   currentEEPose.pz = currentThompsonHeight;
   // ATTN 23
-  reticle = vanishingPointReticle;
-  //reticle = heightReticles[currentThompsonHeightIdx];
+  ms->config.reticle = ms->config.vanishingPointReticle;
+  //ms->config.reticle = heightReticles[currentThompsonHeightIdx];
   m_x = m_x_h[currentThompsonHeightIdx];
   m_y = m_y_h[currentThompsonHeightIdx];
 }
@@ -543,8 +543,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
   currentEEPose.pz = currentThompsonHeight;
   // ATTN 23
-  reticle = vanishingPointReticle;
-  //reticle = heightReticles[currentThompsonHeightIdx];
+  ms->config.reticle = ms->config.vanishingPointReticle;
+  //ms->config.reticle = heightReticles[currentThompsonHeightIdx];
   m_x = m_x_h[currentThompsonHeightIdx];
   m_y = m_y_h[currentThompsonHeightIdx];
 }
@@ -558,8 +558,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)  {
   currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
   currentEEPose.pz = currentThompsonHeight;
   // ATTN 23
-  reticle = vanishingPointReticle;
-  //reticle = heightReticles[currentThompsonHeightIdx];
+  ms->config.reticle = ms->config.vanishingPointReticle;
+  //ms->config.reticle = heightReticles[currentThompsonHeightIdx];
   m_x = m_x_h[currentThompsonHeightIdx];
   m_y = m_y_h[currentThompsonHeightIdx];
 }
@@ -573,8 +573,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
   currentEEPose.pz = currentThompsonHeight;
   // ATTN 23
-  reticle = vanishingPointReticle;
-  //reticle = heightReticles[currentThompsonHeightIdx];
+  ms->config.reticle = ms->config.vanishingPointReticle;
+  //ms->config.reticle = heightReticles[currentThompsonHeightIdx];
   m_x = m_x_h[currentThompsonHeightIdx];
   m_y = m_y_h[currentThompsonHeightIdx];
 }
@@ -732,20 +732,20 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   } else if (ms->config.chosen_mode == SIMULATED) {
     BoxMemory box;
-    box.bTop.x = vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
-    box.bTop.y = vanishingPointReticle.py-simulatedObjectHalfWidthPixels;
-    box.bBot.x = vanishingPointReticle.px+simulatedObjectHalfWidthPixels;
-    box.bBot.y = vanishingPointReticle.py+simulatedObjectHalfWidthPixels;
+    box.bTop.x = ms->config.vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
+    box.bTop.y = ms->config.vanishingPointReticle.py-simulatedObjectHalfWidthPixels;
+    box.bBot.x = ms->config.vanishingPointReticle.px+simulatedObjectHalfWidthPixels;
+    box.bBot.y = ms->config.vanishingPointReticle.py+simulatedObjectHalfWidthPixels;
     box.cameraPose = currentEEPose;
-    box.top = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
-    box.bot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
+    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
     box.centroid.px = (box.top.px + box.bot.px) * 0.5;
     box.centroid.py = (box.top.py + box.bot.py) * 0.5;
     box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
     box.cameraTime = ros::Time::now();
     box.labeledClassIndex = targetClass;
   
-    mapBox(box);
+    mapBox(ms, box);
     vector<BoxMemory> newMemories;
     for (int i = 0; i < blueBoxMemories.size(); i++) {
       newMemories.push_back(blueBoxMemories[i]);

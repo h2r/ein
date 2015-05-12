@@ -686,8 +686,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     //int hbb = pilotTargetBlueBoxNumber;
     //int hbb = 0;
 
-    int topCornerX = reticle.px - (aerialGradientReticleWidth/2);
-    int topCornerY = reticle.py - (aerialGradientReticleWidth/2);
+    int topCornerX = ms->config.reticle.px - (aerialGradientReticleWidth/2);
+    int topCornerY = ms->config.reticle.py - (aerialGradientReticleWidth/2);
     int crows = aerialGradientReticleWidth;
     int ccols = aerialGradientReticleWidth;
 
@@ -1027,7 +1027,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double zToUse = trueEEPose.position.z+currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
-    globalToPixelPrint(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    globalToPixelPrint(ms, &eX, &eY, zToUse, eepReg1.px, eepReg1.py);
   }
 }
 END_WORD
@@ -1037,19 +1037,19 @@ WORD(SetHeightReticlesA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int darkX = 0;
   int darkY = 0;
-  findDarkness(&darkX, &darkY);
+  findDarkness(ms, &darkX, &darkY);
 
   pilotTarget.px = darkX;
   pilotTarget.py = darkY;
 
-  heightReticles[currentThompsonHeightIdx].px = darkX;
-  heightReticles[currentThompsonHeightIdx].py = darkY;
+  ms->config.heightReticles[currentThompsonHeightIdx].px = darkX;
+  ms->config.heightReticles[currentThompsonHeightIdx].py = darkY;
 
   cout << "setHeightReticles,  currentThompsonHeightIdx: " << currentThompsonHeightIdx << endl;
-  printEEPose(heightReticles[0]); cout << endl;
-  printEEPose(heightReticles[1]); cout << endl;
-  printEEPose(heightReticles[2]); cout << endl;
-  printEEPose(heightReticles[3]); cout << endl;
+  printEEPose(ms->config.heightReticles[0]); cout << endl;
+  printEEPose(ms->config.heightReticles[1]); cout << endl;
+  printEEPose(ms->config.heightReticles[2]); cout << endl;
+  printEEPose(ms->config.heightReticles[3]); cout << endl;
 }
 END_WORD
 REGISTER_WORD(SetHeightReticlesA)
@@ -1095,13 +1095,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int imW = sz.width;
   int imH = sz.height;
 
-  double Vx = vanishingPointReticle.px - (imW/2);
-  double Vy = vanishingPointReticle.py - (imH/2);
+  double Vx = ms->config.vanishingPointReticle.px - (imW/2);
+  double Vy = ms->config.vanishingPointReticle.py - (imH/2);
 
   ms->config.cropUpperLeftCorner.px += Vx;
   ms->config.cropUpperLeftCorner.py += Vy;
-  vanishingPointReticle.px -= Vx;
-  vanishingPointReticle.py -= Vy;
+  ms->config.vanishingPointReticle.px -= Vx;
+  ms->config.vanishingPointReticle.py -= Vy;
 
   cout << "MoveCropToCenterVanishingPoint Vx Vy: " << Vx << " " << Vy << endl;
 
@@ -1183,13 +1183,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // where is the darkest point now? did it move? move vp to darkest point and possibly run again
   int darkX = 0;
   int darkY = 0;
-  findDarkness(&darkX, &darkY);
+  findDarkness(ms, &darkX, &darkY);
 
-  int Px = darkX - vanishingPointReticle.px;
-  int Py = darkY - vanishingPointReticle.py;
+  int Px = darkX - ms->config.vanishingPointReticle.px;
+  int Py = darkY - ms->config.vanishingPointReticle.py;
 
-  vanishingPointReticle.px = darkX;
-  vanishingPointReticle.py = darkY;
+  ms->config.vanishingPointReticle.px = darkX;
+  ms->config.vanishingPointReticle.py = darkY;
   
   cout << "setVanishingPoint Px Py: " << Px << " " << Py << endl;
 
@@ -1323,7 +1323,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   int darkX = 0;
   int darkY = 0;
-  findDarkness(&darkX, &darkY);
+  findDarkness(ms, &darkX, &darkY);
 
   pilotTarget.px = darkX;
   pilotTarget.py = darkY;
@@ -1335,7 +1335,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double zToUse = trueEEPose.position.z+currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
-    globalToPixelPrint(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    globalToPixelPrint(ms, &eX, &eY, zToUse, eepReg1.px, eepReg1.py);
 
     // remember this is flipped!
     double Px = darkY - eY;
@@ -1345,7 +1345,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double yFlip = 1.0;
 
     // remember x, y are swapped
-    eePose thisFlipReticle = heightReticles[currentThompsonHeightIdx];
+    eePose thisFlipReticle = ms->config.heightReticles[currentThompsonHeightIdx];
     if (darkX < thisFlipReticle.px) {
       yFlip = -1.0;
     }
@@ -1378,7 +1378,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   int darkX = 0;
   int darkY = 0;
-  findDarkness(&darkX, &darkY);
+  findDarkness(ms, &darkX, &darkY);
 
   pilotTarget.px = darkX;
   pilotTarget.py = darkY;
@@ -1390,7 +1390,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double zToUse = trueEEPose.position.z+currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
-    globalToPixelPrint(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    globalToPixelPrint(ms, &eX, &eY, zToUse, eepReg1.px, eepReg1.py);
 
     // remember this is flipped!
     double Px = darkY - eY;
@@ -1400,7 +1400,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double yFlip = 1.0;
 
     // remember x, y are swapped
-    eePose thisFlipReticle = heightReticles[currentThompsonHeightIdx];
+    eePose thisFlipReticle = ms->config.heightReticles[currentThompsonHeightIdx];
     if (darkX < thisFlipReticle.px) {
       yFlip = -1.0;
     }
@@ -1770,7 +1770,7 @@ WORD(SetColorReticlesA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int lightX = 0;
   int lightY = 0;
-  findLight(&lightX, &lightY);
+  findLight(ms, &lightX, &lightY);
 
   pilotTarget.px = lightX;
   pilotTarget.py = lightY;
