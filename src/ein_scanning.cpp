@@ -784,6 +784,7 @@ REGISTER_WORD(InitializeAndFocusOnNewClass)
 WORD(SaveCurrentClassDepthAndGraspMaps)
 CODE(196705) // capslock + A
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  // XXX TODO is this function even ever used anymore?
   if (focusedClass > -1) {
     // initialize this if we need to
     guardGraspMemory(ms);
@@ -1918,10 +1919,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(RecordGraspZ)
 
+WORD(Start3dGraspAnnotation)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  //ms->pushWord("zeroGToggle");
+  // lock3dGraspBase
+  // servo in to target 
+  // set servoing to bail and not to pick
+}
+END_WORD
+REGISTER_WORD(Start3dGraspAnnotation)
+
 WORD(Lock3dGraspBase)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.c3dPoseBase = currentEEPose;
   ms->config.c3dPoseBase.pz = -currentTableZ;
+  cout << "The base for 3d grasp annotation is now locked and you are in zero-G mode. Please adjust use \"add3dGrasp\" to record a grasp point." << endl;
+  cout << "When you are done, make sure to save to disk and to exit zero-G mode." << endl;
 }
 END_WORD
 REGISTER_WORD(Lock3dGraspBase)

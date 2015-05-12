@@ -29,6 +29,19 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     fsvO.open(this_range_path, FileStorage::WRITE);
     fsvO << "rangeMap" << rangeMapTemp;
 
+    {
+      fsvO << "graspZ" << "[" 
+	<< ms->config.currentGraspZ 
+      << "]";
+
+      if (ms->config.classGraspZs.size() > focusedClass) {
+	ms->config.classGraspZs[focusedClass] = ms->config.currentGraspZ;
+      }
+      if (ms->config.classGraspZsSet.size() > focusedClass) {
+	ms->config.classGraspZsSet[focusedClass] = 1;
+      }
+    }
+
     copyGraspMemoryTriesToClassGraspMemoryTries(ms);
     fsvO << "graspMemoryTries1" << classGraspMemoryTries1[focusedClass];
     fsvO << "graspMemoryPicks1" << classGraspMemoryPicks1[focusedClass];
