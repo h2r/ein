@@ -93,7 +93,7 @@ class EinConfig {
   vector<double> classGraspZs;
   vector<double> classGraspZsSet;
 
-  vector<eePose> class3dGrasps;
+  vector< vector<eePose> > class3dGrasps;
   eePose c3dPoseBase;
 
   double movingThreshold = 0.02;

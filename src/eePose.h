@@ -43,6 +43,30 @@ typedef struct _eePose{
     return toReturn;
   }
 
+  _eePose plusP(const _eePose& a) const {
+    _eePose toReturn;
+    toReturn.px = px + a.px;
+    toReturn.py = py + a.py;
+    toReturn.pz = pz + a.pz;
+    toReturn.qx = qx;
+    toReturn.qy = qy;
+    toReturn.qz = qz;
+    toReturn.qw = qw;
+    return toReturn;
+  }
+
+  _eePose minusP(const _eePose& a) const {
+    _eePose toReturn;
+    toReturn.px = px - a.px;
+    toReturn.py = py - a.py;
+    toReturn.pz = pz - a.pz;
+    toReturn.qx = qx;
+    toReturn.qy = qy;
+    toReturn.qz = qz;
+    toReturn.qw = qw;
+    return toReturn;
+  }
+
   _eePose negativeP() const {
     _eePose toReturn;
     toReturn.px = -px;
@@ -67,6 +91,36 @@ typedef struct _eePose{
     return toReturn;
   }
 
+  _eePose multQ(const _eePose& a) const {
+    Quaternionf thisQ(qw, qx, qy, qz); 
+    Quaternionf aQ(a.qw, a.qx, a.qy, a.qz); 
+    Quaternionf oQ = thisQ * aQ; 
+    
+    _eePose toReturn;
+    toReturn.px = px;
+    toReturn.py = py;
+    toReturn.pz = pz;
+    toReturn.qx = oQ.x();
+    toReturn.qy = oQ.y();
+    toReturn.qz = oQ.z();
+    toReturn.qw = oQ.w();
+    return toReturn;
+  }
+
+  _eePose invQ() const {
+    Quaternionf thisQ(qw, qx, qy, qz); 
+    Quaternionf oQ = thisQ.inverse(); 
+    
+    _eePose toReturn;
+    toReturn.px = px;
+    toReturn.py = py;
+    toReturn.pz = pz;
+    toReturn.qx = oQ.x();
+    toReturn.qy = oQ.y();
+    toReturn.qz = oQ.z();
+    toReturn.qw = oQ.w();
+    return toReturn;
+  }
 } eePose;
 
 void printEEPose(eePose toPrint);
