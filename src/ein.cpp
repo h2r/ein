@@ -1382,6 +1382,7 @@ void convertLocalGraspIdxToGlobal(const int localX, const int localY,
 
 void changeTargetClass(shared_ptr<MachineState> ms, int);
 
+void guard3dGrasps(shared_ptr<MachineState> ms);
 void guardGraspMemory(shared_ptr<MachineState> ms);
 void loadSampledGraspMemory(shared_ptr<MachineState> ms);
 void loadMarginalGraspMemory(shared_ptr<MachineState> ms);
@@ -5747,6 +5748,12 @@ void changeTargetClass(shared_ptr<MachineState> ms, int newTargetClass) {
       assert(0);
     }
     break;
+  }
+}
+
+void guard3dGrasps(shared_ptr<MachineState> ms) {
+  if (pMachineState->config.class3dGrasps.size() < numClasses) {
+    pMachineState->config.class3dGrasps.resize(numClasses);
   }
 }
 
