@@ -108,19 +108,6 @@ shared_ptr<MachineState> pMachineState;
 tf::TransformListener* tfListener;
 
 
-std::string wristViewName = "Wrist View";
-std::string coreViewName = "Core View";
-std::string rangeogramViewName = "Rangeogram View";
-std::string rangemapViewName = "Range Map View";
-std::string hiRangemapViewName = "Hi Range Map View";
-std::string hiColorRangemapViewName = "Hi Color Range Map View";
-std::string graspMemoryViewName = "Grasp Memory View";
-std::string graspMemorySampleViewName = "Grasp Memory Sample View";
-std::string mapBackgroundViewName = "Map Background Vew";
-std::string faceViewName = "Face View";
-
-
-std::string heightMemorySampleViewName = "Height Memory Sample View";
 
 int reticleHalfWidth = 18;
 int pilotTargetHalfWidth = 15;
@@ -3259,7 +3246,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
       putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  guardedImshow(rangeogramViewName, rangeogramImage, sirRangeogram);
+  guardedImshow(ms->config.rangeogramViewName, rangeogramImage, sirRangeogram);
 
   if (!ms->config.shouldIRangeCallback) {
     return;
@@ -3440,16 +3427,16 @@ void rangeCallback(const sensor_msgs::Range& range) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(rangemapViewName, rangemapImage, sirRangemap);
-    guardedImshow(graspMemoryViewName, graspMemoryImage, sirGraspMemory);
-    guardedImshow(graspMemorySampleViewName, graspMemorySampleImage, sirGraspMemorySample);
-    guardedImshow(heightMemorySampleViewName, heightMemorySampleImage, sirHeightMemorySample);
+    guardedImshow(ms->config.rangemapViewName, rangemapImage, sirRangemap);
+    guardedImshow(ms->config.graspMemoryViewName, graspMemoryImage, sirGraspMemory);
+    guardedImshow(ms->config.graspMemorySampleViewName, graspMemorySampleImage, sirGraspMemorySample);
+    guardedImshow(ms->config.heightMemorySampleViewName, heightMemorySampleImage, sirHeightMemorySample);
     Mat hRIT;
     cv::resize(hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
-    guardedImshow(hiRangemapViewName, hRIT, sirHiRangmap);
+    guardedImshow(ms->config.hiRangemapViewName, hRIT, sirHiRangmap);
     Mat hCRIT;
     cv::resize(hiColorRangemapImage, hCRIT, cv::Size(0,0), 2, 2);
-    guardedImshow(hiColorRangemapViewName, hCRIT, sirHiColorRangemap);
+    guardedImshow(ms->config.hiColorRangemapViewName, hCRIT, sirHiColorRangemap);
 
     guardedImshow(objectViewerName, objectViewerImage, sirObject);
     guardedImshow(objectMapViewerName, objectMapViewerImage, sirObjectMap);
@@ -3459,7 +3446,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
     guardedImshow(gradientViewerName, gradientViewerImage, sirGradient);
     guardedImshow(objectnessViewerName, objectnessViewerImage, sirObjectness);
 
-    guardedImshow(mapBackgroundViewName, mapBackgroundImage, sirMapBackground);
+    guardedImshow(ms->config.mapBackgroundViewName, mapBackgroundImage, sirMapBackground);
     
     if (targetClass > -1) {
       if (classHeight0AerialGradients[targetClass].rows == aerialGradientWidth) {
@@ -3985,7 +3972,7 @@ void timercallback1(const ros::TimerEvent&) {
   }
 
   if (sirCore) {
-    renderCoreView(pMachineState, coreViewName);
+    renderCoreView(pMachineState, ms->config.coreViewName);
   }
   renderRangeogramView(pMachineState);
 
@@ -4455,7 +4442,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(wristViewName, wristViewImage, sirWrist);
+    guardedImshow(ms->config.wristViewName, wristViewImage, sirWrist);
   }
 }
 
@@ -4858,7 +4845,7 @@ void renderRangeogramView(shared_ptr<MachineState> ms) {
       putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  guardedImshow(rangeogramViewName, rangeogramImage, sirRangeogram);
+  guardedImshow(ms->config.rangeogramViewName, rangeogramImage, sirRangeogram);
 }
 
 void targetCallback(const geometry_msgs::Point& point) {
@@ -12971,10 +12958,12 @@ int main(int argc, char **argv) {
   initVectorArcTan();
   initializeWords();
   pMachineState = std::make_shared<MachineState>(machineState);
+  shared_ptr<MachineState> ms = pMachineState;
+
 
   srand(time(NULL));
-  time(&pMachineState->config.firstTime);
-  time(&pMachineState->config.firstTimeRange);
+  time(&ms->config.firstTime);
+  time(&ms->config.firstTimeRange);
 
   cout << "argc: " << argc << endl;
   for (int ccc = 0; ccc < argc; ccc++) {
@@ -12996,7 +12985,7 @@ int main(int argc, char **argv) {
 
   cout << "n namespace: " << n.getNamespace() << endl;
 
-  loadROSParamsFromArgs(pMachineState);
+  loadROSParamsFromArgs(ms);
   cout << "mask_gripper: " << mask_gripper << " add_blinders: " << add_blinders << endl;
   cout << "all_range_mode: " << all_range_mode << endl;
   cout << "data_directory: " << data_directory << endl << "class_name: " << class_name << endl 
@@ -13009,7 +12998,7 @@ int main(int argc, char **argv) {
   class_crops_path = data_directory + "/objects/";
 
   unsigned long seed = 1;
-  rk_seed(seed, &pMachineState->config.random_state);
+  rk_seed(seed, &ms->config.random_state);
 
   if ( (left_or_right_arm.compare("right") == 0) || (left_or_right_arm.compare("left") == 0) ) {
     image_topic = "/cameras/" + left_or_right_arm + "_hand_camera/image";
@@ -13171,26 +13160,26 @@ int main(int argc, char **argv) {
   placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
   moveEndEfffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, moveEndEffectorCommandCallback);
 
-  wristViewName = "Wrist View " + left_or_right_arm;
-  coreViewName = "Core View " + left_or_right_arm;
-  faceViewName = "Face View " + left_or_right_arm;
-  rangeogramViewName = "Rangeogram View " + left_or_right_arm;
-  rangemapViewName = "Range Map View " + left_or_right_arm;
-  graspMemoryViewName = "Grasp Memory View " + left_or_right_arm;
-  graspMemorySampleViewName = "Grasp Memory Sample View " + left_or_right_arm;
-  heightMemorySampleViewName = "Height Memory Sample View " + left_or_right_arm;
-  hiRangemapViewName = "Hi Range Map View " + left_or_right_arm;
-  hiColorRangemapViewName = "Hi Color Range Map View " + left_or_right_arm;
-  mapBackgroundViewName = "Map Background Viewer " + left_or_right_arm;
+  ms->config.wristViewName = "Wrist View " + left_or_right_arm;
+  ms->config.coreViewName = "Core View " + left_or_right_arm;
+  ms->config.faceViewName = "Face View " + left_or_right_arm;
+  ms->config.rangeogramViewName = "Rangeogram View " + left_or_right_arm;
+  ms->config.rangemapViewName = "Range Map View " + left_or_right_arm;
+  ms->config.graspMemoryViewName = "Grasp Memory View " + left_or_right_arm;
+  ms->config.graspMemorySampleViewName = "Grasp Memory Sample View " + left_or_right_arm;
+  ms->config.heightMemorySampleViewName = "Height Memory Sample View " + left_or_right_arm;
+  ms->config.hiRangemapViewName = "Hi Range Map View " + left_or_right_arm;
+  ms->config.hiColorRangemapViewName = "Hi Color Range Map View " + left_or_right_arm;
+  ms->config.mapBackgroundViewName = "Map Background Viewer " + left_or_right_arm;
 
-  cv::namedWindow(wristViewName);
-  cv::setMouseCallback(wristViewName, pilotCallbackFunc, NULL);
-  cv::namedWindow(graspMemoryViewName);
-  cv::setMouseCallback(graspMemoryViewName, graspMemoryCallbackFunc, NULL);
-  cv::namedWindow(coreViewName);
-  cv::namedWindow(rangeogramViewName);
-  cv::namedWindow(mapBackgroundViewName);
-  cv::namedWindow(faceViewName);
+  cv::namedWindow(ms->config.wristViewName);
+  cv::setMouseCallback(ms->config.wristViewName, pilotCallbackFunc, NULL);
+  cv::namedWindow(ms->config.graspMemoryViewName);
+  cv::setMouseCallback(ms->config.graspMemoryViewName, graspMemoryCallbackFunc, NULL);
+  cv::namedWindow(ms->config.coreViewName);
+  cv::namedWindow(ms->config.rangeogramViewName);
+  cv::namedWindow(ms->config.mapBackgroundViewName);
+  cv::namedWindow(ms->config.faceViewName);
 
   ros::Subscriber fetchCommandSubscriber;
   fetchCommandSubscriber = n.subscribe("/fetch_commands", 1, 
