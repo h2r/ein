@@ -176,6 +176,7 @@ class EinConfig {
 
   eePose calibrationPose;
   eePose shrugPose;
+  eePose handingPose;
 
   eePose cropUpperLeftCorner = {.px = 320, .py = 200, .pz = 0.0,
                                 .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // center of image
