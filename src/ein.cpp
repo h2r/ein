@@ -104,18 +104,6 @@ MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
 
-
-
-
-
-
-
-
-
-int lock_reset_thresh = 1800;
-int lock_status = 0; // TODO enum
-
-double slow_aim_factor = 0.75;
 int aim_thresh = 20;
 int lock_thresh = 5;
 
@@ -3925,6 +3913,8 @@ void timercallback1(const ros::TimerEvent&) {
   ros::NodeHandle n("~");
   std::shared_ptr<Word> word = NULL;
   shared_ptr<MachineState> ms = pMachineState;
+
+
   int c = -1;
   int takeSymbol = 1;
   if (ms->config.shouldIMiscCallback) {
@@ -3983,10 +3973,6 @@ void timercallback1(const ros::TimerEvent&) {
       endThisStackCollapse = 1;
     }
 
-    if (timerCounter >= lock_reset_thresh) {
-      lock_status = 0;
-    }
-  
     ms->execute(word);
 
     if( endThisStackCollapse || (ms->call_stack.size() == 0) ) {
