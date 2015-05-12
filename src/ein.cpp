@@ -104,20 +104,6 @@ MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
 
-int aim_thresh = 20;
-int lock_thresh = 5;
-
-int timerCounter = 0;
-int timerThresh = 16;
-
-int timesTimerCounted = 0;
-
-double prevPx = 0;
-double prevPy = 0;
-double Kd = 0.002;
-double Kp = 0.0004;
-double cCutoff = 20.0;
-
 double a_thresh_close = .11;
 double a_thresh_far = .2; // for depth scanning
 double eeRange = 0.0;
@@ -4000,9 +3986,6 @@ void timercallback1(const ros::TimerEvent&) {
     currentEEPose.qz = trueEEPose.orientation.z;
     currentEEPose.qw = trueEEPose.orientation.w;
   }
-
-  timerCounter++;
-  timesTimerCounted++;
 
   if (sirCore) {
     renderCoreView(pMachineState, coreViewName);
