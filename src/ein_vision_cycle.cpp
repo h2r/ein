@@ -61,7 +61,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     {
       double x, y;
       int i, j;
-      pixelToGlobal(memory.top.px-mapBlueBoxPixelSkirt, memory.top.py-mapBlueBoxPixelSkirt, z, &x, &y);
+      pixelToGlobal(ms, memory.top.px-mapBlueBoxPixelSkirt, memory.top.py-mapBlueBoxPixelSkirt, z, &x, &y);
       mapxyToij(x, y, &i, &j);
       iTop=i;
       jTop=j;
@@ -69,7 +69,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     {
       double x, y;
       int i, j;
-      pixelToGlobal(memory.bot.px+mapBlueBoxPixelSkirt, memory.bot.py+mapBlueBoxPixelSkirt, z, &x, &y);
+      pixelToGlobal(ms, memory.bot.px+mapBlueBoxPixelSkirt, memory.bot.py+mapBlueBoxPixelSkirt, z, &x, &y);
       mapxyToij(x, y, &i, &j);
       iBot=i;
       jBot=j;
@@ -515,10 +515,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     int foundGoodPosition = !ikResultFailed;
 
     if (foundGoodPosition) {
-      currentEEPose.qx = straightDown.qx;
-      currentEEPose.qy = straightDown.qy;
-      currentEEPose.qz = straightDown.qz;
-      currentEEPose.qw = straightDown.qw;
+      currentEEPose.qx = ms->config.straightDown.qx;
+      currentEEPose.qy = ms->config.straightDown.qy;
+      currentEEPose.qz = ms->config.straightDown.qz;
+      currentEEPose.qw = ms->config.straightDown.qw;
       currentEEPose.px = oldestX;
       currentEEPose.py = oldestY;
       cout << "This pose was accepted by ikClient:" << endl;
@@ -568,8 +568,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     box.bTop = bTops[c];
     box.bBot = bBots[c];
     box.cameraPose = currentEEPose;
-    box.top = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
-    box.bot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
+    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
     box.centroid.px = (box.top.px + box.bot.px) * 0.5;
     box.centroid.py = (box.top.py + box.bot.py) * 0.5;
     box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -629,7 +629,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
         double x, y;
         double z = trueEEPose.position.z + currentTableZ;
 
-        pixelToGlobal(px, py, z, &x, &y);
+        pixelToGlobal(ms, px, py, z, &x, &y);
         int i, j;
         mapxyToij(x, y, &i, &j);
 
@@ -692,8 +692,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   box.bTop = bTops[c];
   box.bBot = bBots[c];
   box.cameraPose = currentEEPose;
-  box.top = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
-  box.bot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+  box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
+  box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
   box.centroid.px = (box.top.px + box.bot.px) * 0.5;
   box.centroid.py = (box.top.py + box.bot.py) * 0.5;
   box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -705,7 +705,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   mapxyToij(box.centroid.px, box.centroid.py, &i, &j);
 
   // this only does the timestamp to avoid obsessive behavior
-  mapBox(box);
+  mapBox(ms, box);
   
   //if ( !positionIsSearched(box.centroid.px, box.centroid.py) && 
        //!isCellInPursuitZone(i, j) ) 

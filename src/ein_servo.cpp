@@ -143,7 +143,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   cout << "moveToTargetZAndGrasp trZ pickZ flushZ pickZpre: " << trZ << " " << pickZ << " " << flushZ << " " << pickZpre << " " << endl;
 
   if (useIncrementalPick) {
-    double zTimes = fabs(floor(deltaZ / bDelta)); 
+    double zTimes = fabs(floor(deltaZ / ms->config.bDelta)); 
 
     int numNoOps = 2;
     if (deltaZ > 0) {
@@ -231,7 +231,7 @@ WORD(TryToMoveToTheLastPickHeight)
 CODE( 262241)     // ctrl + a
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double deltaZ = (lastPickPose.pz) - currentEEPose.pz;
-  double zTimes = fabs(floor(deltaZ / bDelta)); 
+  double zTimes = fabs(floor(deltaZ / ms->config.bDelta)); 
   int numNoOps = 2;
   int useIncrementalPlace = 0;
   bool useHybridPlace = 1;

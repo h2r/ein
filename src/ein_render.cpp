@@ -163,10 +163,10 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   sirWrist = 1;
   sirCore = 1;
   cv::namedWindow(objectViewerName);
-  cv::namedWindow(graspMemoryViewName);
-  cv::namedWindow(wristViewName);
-  cv::setMouseCallback(wristViewName, pilotCallbackFunc, NULL);
-  cv::setMouseCallback(graspMemoryViewName, graspMemoryCallbackFunc, NULL);
+  cv::namedWindow(ms->config.graspMemoryViewName);
+  cv::namedWindow(ms->config.wristViewName);
+  cv::setMouseCallback(ms->config.wristViewName, pilotCallbackFunc, NULL);
+  cv::setMouseCallback(ms->config.graspMemoryViewName, graspMemoryCallbackFunc, NULL);
   cv::setMouseCallback(objectViewerName, nodeCallbackFunc, NULL);
 }
 END_WORD
@@ -221,9 +221,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   sirCore = 1;
 
   //cv::namedWindow(objectViewerName);
-  //cv::namedWindow(graspMemoryViewName);
-  cv::namedWindow(wristViewName);
-  cv::setMouseCallback(wristViewName, pilotCallbackFunc, NULL);
+  //cv::namedWindow(ms->config.graspMemoryViewName);
+  cv::namedWindow(ms->config.wristViewName);
+  cv::setMouseCallback(ms->config.wristViewName, pilotCallbackFunc, NULL);
 }
 END_WORD
 REGISTER_WORD(GuiCustom1)
