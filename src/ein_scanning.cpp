@@ -572,8 +572,8 @@ REGISTER_WORD(NeutralScanA)
 WORD(NeutralScanB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Entering neutralScanB." << endl;
-  double lineSpeed = bDelta;
-  double betweenSpeed = bDelta;
+  double lineSpeed = ms->config.bDelta;
+  double betweenSpeed = ms->config.bDelta;
 
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
   ms->pushWord(1114150); // prepare for search
@@ -857,7 +857,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("fillClearanceMap");
   ms->pushWord("loadIkMap");
   currentBoundingBoxMode = MAPPING;
-  bDelta = 0.001;
+  ms->config.bDelta = 0.001;
 }
 END_WORD
 REGISTER_WORD(ScanCentered)
@@ -1744,7 +1744,7 @@ REGISTER_WORD(SaveCalibration)
 WORD(SetColorReticles)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
-  bDelta = cReticleIndexDelta;
+  ms->config.bDelta = cReticleIndexDelta;
   currentEEPose.pz = firstCReticleIndexDepth;
 
   // leave it in a canonical state

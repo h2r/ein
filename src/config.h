@@ -55,6 +55,15 @@ typedef enum {
   SIMULATED
 } robotMode;
 
+#define NOW_THATS_FAST 0.08
+#define MOVE_EVEN_FASTER 0.04
+#define MOVE_FASTER 0.02
+#define MOVE_FAST 0.01
+#define MOVE_MEDIUM 0.005 //.005
+#define MOVE_SLOW 0.0025
+#define MOVE_VERY_SLOW 0.00125
+
+
 #define NUM_JOINTS 7
 
 class EinConfig {
@@ -149,6 +158,9 @@ class EinConfig {
   int ik_reset_thresh = 20;
 
   double eeRange = 0.0;
+
+
+  double bDelta = MOVE_FAST;
 
 
   // config variables that don't seem to be used
