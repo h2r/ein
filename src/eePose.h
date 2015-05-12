@@ -134,7 +134,7 @@ typedef struct _eePose{
     fsvO << "}";
   }
 
-  void readFromFileStorage(FileNodeIterator& it) {
+  void readFromFileNodeIterator(FileNodeIterator& it) {
     px = (double)(*it)["px"];
     py = (double)(*it)["py"];
     pz = (double)(*it)["pz"];

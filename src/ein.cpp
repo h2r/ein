@@ -2522,9 +2522,9 @@ vector<string> split(const char *str, char c = ' ')
 void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
   cout << "moveEndEffectorCommandCallback" << endl << msg.position << msg.orientation << endl;
   shared_ptr<MachineState> ms = pMachineState;
-  if (ms->config.chosen_mode == PHYSICAL) {
+  if (ms->config.currentRobotMode == PHYSICAL) {
     return;
-  } else if (ms->config.chosen_mode == SIMULATED) {
+  } else if (ms->config.currentRobotMode == SIMULATED) {
     currentEEPose.px = msg.position.x;
     currentEEPose.py = msg.position.y;
     currentEEPose.pz = msg.position.z;
@@ -2535,9 +2535,9 @@ void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
 
 void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
   shared_ptr<MachineState> ms = pMachineState;
-  if (ms->config.chosen_mode == PHYSICAL) {
+  if (ms->config.currentRobotMode == PHYSICAL) {
     return;
-  } else if (ms->config.chosen_mode == SIMULATED) {
+  } else if (ms->config.currentRobotMode == SIMULATED) {
     if (objectInHandLabel == -1) {
       // this is a fake box to test intersection
       int probeBoxHalfWidthPixels = 10;
@@ -2587,9 +2587,9 @@ void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
 
 void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
   shared_ptr<MachineState> ms = pMachineState;
-  if (ms->config.chosen_mode == PHYSICAL) {
+  if (ms->config.currentRobotMode == PHYSICAL) {
     return;
-  } else if (ms->config.chosen_mode == SIMULATED) {
+  } else if (ms->config.currentRobotMode == SIMULATED) {
     if (objectInHandLabel >= 0) {
       BoxMemory box;
       box.bTop.x = vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
@@ -3663,7 +3663,7 @@ void update_baxter(ros::NodeHandle &n) {
     return;
   }
 
-  if (ms->config.chosen_mode == SIMULATED) {
+  if (ms->config.currentRobotMode == SIMULATED) {
     return;
   }
 
@@ -4648,7 +4648,7 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
   }
 
   // draw sprites
-  if (ms->config.chosen_mode == SIMULATED) {
+  if (ms->config.currentRobotMode == SIMULATED) {
     for (int s = 0; s < instanceSprites.size(); s++) {
       Sprite sprite = instanceSprites[s];
       
@@ -4967,7 +4967,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 
 void loadCalibration(string inFileName) {
   FileStorage fsvI;
-  cout << "Readingcalibration information from " << inFileName << " ...";
+  cout << "Reading calibration information from " << inFileName << " ...";
   fsvI.open(inFileName, FileStorage::READ);
 
   {
@@ -8936,9 +8936,9 @@ void mapBox(BoxMemory boxMemory) {
 }
 
 void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
-  if (ms->config.chosen_mode == PHYSICAL) {
+  if (ms->config.currentRobotMode == PHYSICAL) {
     *thisResult = ikClient.call(*thisRequest);
-  } else if (ms->config.chosen_mode == SIMULATED) {
+  } else if (ms->config.currentRobotMode == SIMULATED) {
     *thisResult = 1;
   } else {
     assert(0);
@@ -11807,9 +11807,9 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 
   nh.getParam("use_simulator", use_simulator);
   if (use_simulator) {
-    ms->config.chosen_mode = SIMULATED;
+    ms->config.currentRobotMode = SIMULATED;
   } else {
-    ms->config.chosen_mode = PHYSICAL;
+    ms->config.currentRobotMode = PHYSICAL;
   } 
 }
 
@@ -13067,7 +13067,7 @@ int main(int argc, char **argv) {
 
   ros::Timer simulatorCallbackTimer;
 
-  if (pMachineState->config.chosen_mode == PHYSICAL) {
+  if (pMachineState->config.currentRobotMode == PHYSICAL) {
     epState =   n.subscribe("/robot/limb/" + left_or_right_arm + "/endpoint_state", 1, endpointCallback);
     gripState = n.subscribe("/robot/end_effector/" + left_or_right_arm + "_gripper/state", 1, gripStateCallback);
     eeAccelerator =  n.subscribe("/robot/accelerometer/" + left_or_right_arm + "_accelerometer/state", 1, accelerometerCallback);
@@ -13075,7 +13075,7 @@ int main(int argc, char **argv) {
     eeTarget =  n.subscribe("/ein_" + left_or_right_arm + "/pilot_target_" + left_or_right_arm, 1, targetCallback);
     jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
     image_sub = it.subscribe(image_topic, 1, imageCallback);
-  } else if (pMachineState->config.chosen_mode == SIMULATED) {
+  } else if (pMachineState->config.currentRobotMode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
     simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/simulatorCallbackFrequency), simulatorCallback);
 

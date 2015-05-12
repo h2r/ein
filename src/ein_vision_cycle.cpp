@@ -382,9 +382,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	    queryIK(ms, &thisIkCallResult, &thisIkRequest);
 
 	    int ikResultFailed = 1;
-	    if (ms->config.chosen_mode == PHYSICAL) {
+	    if (ms->config.currentRobotMode == PHYSICAL) {
 	      ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
-	    } else if (ms->config.chosen_mode == SIMULATED) {
+	    } else if (ms->config.currentRobotMode == SIMULATED) {
 	      ikResultFailed = !positionIsSearched(nextEEPose.px, nextEEPose.py);
 	    } else {
               assert(0);
@@ -504,9 +504,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     queryIK(ms, &thisIkCallResult, &thisIkRequest);
 
     int ikResultFailed = 1;
-    if (ms->config.chosen_mode == PHYSICAL) {
+    if (ms->config.currentRobotMode == PHYSICAL) {
       ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
-    } else if (ms->config.chosen_mode == SIMULATED) {
+    } else if (ms->config.currentRobotMode == SIMULATED) {
       ikResultFailed = !positionIsSearched(nextEEPose.px, nextEEPose.py);
     } else {
       assert(0);

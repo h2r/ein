@@ -792,7 +792,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     string thisLabelName = focusedClassLabel;
 
-    char buf[1000];
     string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 
@@ -1942,30 +1941,65 @@ WORD(Save3dGrasps)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if (focusedClass > -1) {
     guard3dGrasps(ms);
-
     string thisLabelName = focusedClassLabel;
-
-    char buf[1000];
     string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
-    string this_range_path = dirToMakePath + "3dGrasps.yml";
+    string this_grasp_path = dirToMakePath + "3dGrasps.yml";
 
     mkdir(dirToMakePath.c_str(), 0777);
 
     FileStorage fsvO;
-    cout << "save3dGrasps: Writing: " << this_range_path << endl;
-    fsvO.open(this_range_path, FileStorage::WRITE);
+    cout << "save3dGrasps: Writing: " << this_grasp_path << endl;
+    fsvO.open(this_grasp_path, FileStorage::WRITE);
 
     fsvO << "3dGrasps" << "[" ;
     {
       int tng = ms->config.class3dGrasps[focusedClass].size();
       fsvO << "size" <<  tng;
+      fsvO << "graspPoses" << "[" ;
       for (int i = 0; i < tng; i++) {
 	ms->config.class3dGrasps[focusedClass][i].writeToFileStorage(fsvO);
       }
+      fsvO << "]";
     }
     fsvO << "]";
 
     fsvO.release();
+
+    {
+      guard3dGrasps(ms);
+      string thisLabelName = focusedClassLabel;
+      string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
+      string this_grasp_path = dirToMakePath + "3dGrasps.yml";
+
+      FileStorage fsvI;
+      cout << "Reading grasp information from " << this_grasp_path << " ...";
+      fsvI.open(this_grasp_path, FileStorage::READ);
+
+      FileNode anode = fsvI["3dGrasps"];
+      FileNodeIterator it = anode.begin(), it_end = anode.end();
+      {
+	FileNode bnode = anode["size"];
+	FileNodeIterator itb = bnode.begin();
+	int tng = *itb;
+	ms->config.class3dGrasps[focusedClass].resize(0);
+
+	FileNode cnode = anode["graspPoses"];
+	FileNodeIterator itc = cnode.begin(), itc_end = cnode.end();
+	int numLoadedPoses = 0;
+	for ( ; itc != itc_end; itc++, numLoadedPoses++) {
+	  eePose buf;
+	  buf.readFromFileNodeIterator(itc);
+	  ms->config.class3dGrasps[focusedClass].push_back(buf);
+	}
+	if (numLoadedPoses != tng) {
+	  ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	}
+	cout << "Expected to load " << tng << " poses, loaded " << numLoadedPoses << " ..." << endl;
+      }
+
+      cout << "done.";
+    }
+
   } 
 }
 END_WORD
