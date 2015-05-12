@@ -162,6 +162,19 @@ class EinConfig {
 
   double bDelta = MOVE_FAST;
 
+  std::string wristViewName = "Wrist View";
+  std::string coreViewName = "Core View";
+  std::string rangeogramViewName = "Rangeogram View";
+  std::string rangemapViewName = "Range Map View";
+  std::string hiRangemapViewName = "Hi Range Map View";
+  std::string hiColorRangemapViewName = "Hi Color Range Map View";
+  std::string graspMemoryViewName = "Grasp Memory View";
+  std::string graspMemorySampleViewName = "Grasp Memory Sample View";
+  std::string mapBackgroundViewName = "Map Background Vew";
+  std::string faceViewName = "Face View";
+  std::string heightMemorySampleViewName = "Height Memory Sample View";
+
+
 
   // config variables that don't seem to be used
 };
