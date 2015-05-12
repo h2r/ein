@@ -1921,20 +1921,35 @@ REGISTER_WORD(RecordGraspZ)
 
 WORD(Start3dGraspAnnotation)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  //ms->pushWord("zeroGToggle");
-  // lock3dGraspBase
-  // servo in to target 
-  // set servoing to bail and not to pick
+  ms->pushWord("lock3dGraspBase");
+
+  ms->pushWord("gradientServoIfBlueBoxes");
+  ms->pushWord("mapClosestBlueBox");
+  ms->pushWord("goClassifyBlueBoxes"); 
+  ms->pushWord("synchronicServo"); 
+  ms->pushWord("visionCycleNoClassify");
+  ms->pushWord("synchronicServoTakeClosest");
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("sampleHeight"); 
+  ms->pushWord("setBoundingBoxModeToMapping");
+  ms->pushWord("shiftIntoGraspGear1");
+  ms->pushWord("cruisingSpeed");
 }
 END_WORD
 REGISTER_WORD(Start3dGraspAnnotation)
 
 WORD(Lock3dGraspBase)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.c3dPoseBase = currentEEPose;
-  ms->config.c3dPoseBase.pz = -currentTableZ;
-  cout << "The base for 3d grasp annotation is now locked and you are in zero-G mode. Please adjust use \"add3dGrasp\" to record a grasp point." << endl;
-  cout << "When you are done, make sure to save to disk and to exit zero-G mode." << endl;
+  if ( (bLabels.size() > 0) && (pilotClosestBlueBoxNumber != -1) ) {
+    ms->config.c3dPoseBase = currentEEPose;
+    ms->config.c3dPoseBase.pz = -currentTableZ;
+    cout << "The base for 3d grasp annotation is now locked and you are in zero-G mode. Please adjust use \"add3dGrasp\" to record a grasp point." << endl;
+    cout << "When you are done, make sure to save to disk and to exit zero-G mode." << endl;
+    ms->config.zero_g_toggle = 1;
+  } else {
+    cout << "Tried to lock c3dPoseBase but failed. Clearing stack." << endl;
+    ms->clearStack();
+  }
 }
 END_WORD
 REGISTER_WORD(Lock3dGraspBase)
@@ -1952,6 +1967,29 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(Add3dGrasp)
+
+WORD(AssumeCurrent3dGrasp)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double p_backoffDistance = 0.05;
+  int t3dGraspIndex = ms->config.current3dGraspIndex;
+  currentEEPose = ms->config.class3dGrasps[targetClass][t3dGraspIndex];  
+
+  Vector3d localUnitX;
+  Vector3d localUnitY;
+  Vector3d localUnitZ;
+  fillLocalUnitBasis(currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  currentEEPose = currentEEPose.plusP(p_backoffDistance * localUnitZ);
+
+  int increments = floor(p_backoffDistance / MOVE_FAST); 
+
+  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  ms->pushCopies("localZDown", increments);
+  ms->pushWord("setMovementSpeedMoveFast");
+  ms->pushWord("approachSpeed");
+  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+}
+END_WORD
+REGISTER_WORD(AssumeCurrent3dGrasp)
 
 WORD(PreAnnotateCenterGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {

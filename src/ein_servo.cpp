@@ -1281,9 +1281,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (bLabels.size() > 0) && (pilotClosestBlueBoxNumber != -1) ) {
     changeTargetClass(ms, bLabels[pilotClosestBlueBoxNumber]);
     ms->pushWord("gradientServo");
-    //ms->pushCopies("density", densityIterationsForGradientServo); 
-    //ms->pushCopies("accumulateDensity", densityIterationsForGradientServo); 
-    //ms->pushWord("resetAerialGradientTemporalFrameAverage"); 
   }
 }
 END_WORD
