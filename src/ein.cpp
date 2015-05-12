@@ -103,69 +103,8 @@ using namespace ein;
 MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
-
-
-double bDelta = MOVE_FAST;
-double approachStep = .0005;
-double hoverMultiplier = 0.5;
-
 tf::TransformListener* tfListener;
-double tfPast = 10.0;
 
-std::string wristViewName = "Wrist View";
-std::string coreViewName = "Core View";
-std::string rangeogramViewName = "Rangeogram View";
-std::string rangemapViewName = "Range Map View";
-std::string hiRangemapViewName = "Hi Range Map View";
-std::string hiColorRangemapViewName = "Hi Color Range Map View";
-std::string graspMemoryViewName = "Grasp Memory View";
-std::string graspMemorySampleViewName = "Grasp Memory Sample View";
-std::string mapBackgroundViewName = "Map Background Vew";
-std::string faceViewName = "Face View";
-
-
-std::string heightMemorySampleViewName = "Height Memory Sample View";
-
-int reticleHalfWidth = 18;
-int pilotTargetHalfWidth = 15;
-
-eePose calibrationPose;
-
-eePose shrugPose;
-
-eePose shrugPoseR = {.px = 0.0558937, .py = -1.12849, .pz = 0.132171,
-                      .qx = 0.392321, .qy = 0.324823, .qz = -0.555039, .qw = 0.657652};
-
-eePose shrugPoseL = {.px = 0.0354772, .py = 1.20633, .pz = 0.150562,
-                      .qx = -0.370521, .qy = 0.381345, .qz = 0.578528, .qw = 0.618544};
-
-eePose calibrationPoseR = {.px = 0.562169, .py = -0.348055, .pz = 0.493231,
-                      .qx = 0.00391311, .qy = 0.999992, .qz = -0.00128095, .qw = 8.18951e-05};
-
-eePose calibrationPoseL = {.px = 0.434176, .py = 0.633423, .pz = 0.48341,
-                      .qx = 0.000177018, .qy = 1, .qz = -0.000352912, .qw = -0.000489087};
-
-eePose cropUpperLeftCorner = {.px = 320, .py = 200, .pz = 0.0,
-		       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // center of image
-
-eePose handingPoseRight = {.px = 0.879307, .py = -0.0239328, .pz = 0.223839,
-                      .qx = 0.459157, .qy = 0.527586, .qz = 0.48922, .qw = 0.521049};
-
-eePose handingPoseLeft = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
-                      .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
-
-eePose handingPose;
-
-eePose straightDown = {.px = 0.0, .py = 0.0, .pz = 0.0,
-		       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
-
-eePose centerReticle = {.px = 325, .py = 127, .pz = 0.0,
-		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
-
-eePose defaultRightReticle = {.px = 325, .py = 127, .pz = 0.0,
-		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
-eePose defaultLeftReticle = {.px = 334, .py = 100, .pz = 0.0,
-		   .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
 
 eePose beeLHome = {.px = 0.657579481614, .py = 0.851981417433, .pz = 0.0388352386502,
 		   .qx = -0.366894936773, .qy = 0.885980397775, .qz = 0.108155782462, .qw = 0.262162481772};
@@ -229,14 +168,6 @@ eePose wholeFoodsBag1 = wholeFoodsBagR;
 eePose wholeFoodsPantry1 = wholeFoodsPantryR;
 eePose wholeFoodsCounter1 = wholeFoodsCounterR;
 
-eePose defaultReticle = centerReticle;
-
-eePose heightReticles[4];
-
-eePose probeReticle = defaultReticle;
-eePose vanishingPointReticle = defaultReticle;
-
-eePose reticle = defaultReticle;
 eePose beeHome = beeRHome;
 eePose pilotTarget = beeHome;
 eePose pilotClosestTarget = beeHome;
@@ -1117,8 +1048,8 @@ bool boxMemoryContains(BoxMemory b, double x, double y);
 bool boxMemoryIntersectsMapCell(BoxMemory b, int map_i, int map_j);
 
 // XXX TODO these just check the corners, they should check all the interior points instead
-bool isBoxMemoryIKPossible(BoxMemory b);
-bool isBlueBoxIKPossible(cv::Point tbTop, cv::Point tbBot);
+bool isBoxMemoryIKPossible(shared_ptr<MachineState> ms, BoxMemory b);
+bool isBlueBoxIKPossible(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot);
 
 bool isCellInPursuitZone(int i, int j);
 bool isCellInPatrolZone(int i, int j);
@@ -1363,8 +1294,8 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata);
 gsl_matrix * mapCellToPolygon(int map_i, int map_j) ;
 
-void pilotInit();
-void spinlessPilotMain();
+void pilotInit(shared_ptr<MachineState> ms);
+void spinlessPilotMain(shared_ptr<MachineState> ms);
 
 int doCalibrateGripper();
 int calibrateGripper(shared_ptr<MachineState> ms);
@@ -1424,8 +1355,8 @@ void recordBoundingBoxFailure();
 
 void restartBBLearning(shared_ptr<MachineState> ms);
 
-eePose analyticServoPixelToReticle(eePose givenPixel, eePose givenReticle, double angle);
-void moveCurrentGripperRayToCameraVanishingRay();
+eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixel, eePose givenReticle, double angle);
+void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms);
 void gradientServo(shared_ptr<MachineState> ms);
 void synchronicServo(shared_ptr<MachineState> ms);
 void darkServo(shared_ptr<MachineState> ms);
@@ -1436,31 +1367,31 @@ void initRangeMaps();
 
 int isThisGraspMaxedOut(int i);
 
-void pixelToGlobal(int pX, int pY, double gZ, double * gX, double * gY);
-void pixelToGlobal(int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose);
-void globalToPixel(int * pX, int * pY, double gZ, double gX, double gY);
-void globalToPixelPrint(int * pX, int * pY, double gZ, double gX, double gY);
-eePose pixelToGlobalEEPose(int pX, int pY, double gZ);
+void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY);
+void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose);
+void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY);
+void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY);
+eePose pixelToGlobalEEPose(shared_ptr<MachineState> ms, int pX, int pY, double gZ);
 
-void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor);
+void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar theColor);
 
 double vectorArcTan(double y, double x);
 void initVectorArcTan();
 
-void mapBlueBox(cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark);
-void mapBox(BoxMemory boxMemory);
+void mapBlueBox(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark);
+void mapBox(shared_ptr<MachineState> ms, BoxMemory boxMemory);
 
 void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
 
 void globalToMapBackground(double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
 void simulatorCallback(const ros::TimerEvent&);
 
-void loadCalibration(string inFileName);
-void saveCalibration(string outFileName);
+void loadCalibration(shared_ptr<MachineState> ms, string inFileName);
+void saveCalibration(shared_ptr<MachineState> ms, string outFileName);
 
-void findDarkness(int * xout, int * yout);
-void findLight(int * xout, int * yout);
-void findOptimum(int * xout, int * yout, int sign);
+void findDarkness(shared_ptr<MachineState> ms, int * xout, int * yout);
+void findLight(shared_ptr<MachineState> ms, int * xout, int * yout);
+void findOptimum(shared_ptr<MachineState> ms, int * xout, int * yout, int sign);
 
 void fillLocalUnitBasis(eePose localFrame, Vector3d * localUnitX, Vector3d * localUnitY, Vector3d * localUnitZ);
 
@@ -2542,13 +2473,13 @@ void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
       // this is a fake box to test intersection
       int probeBoxHalfWidthPixels = 10;
       BoxMemory box;
-      box.bTop.x = vanishingPointReticle.px-probeBoxHalfWidthPixels;
-      box.bTop.y = vanishingPointReticle.py-probeBoxHalfWidthPixels;
-      box.bBot.x = vanishingPointReticle.px+probeBoxHalfWidthPixels;
-      box.bBot.y = vanishingPointReticle.py+probeBoxHalfWidthPixels;
+      box.bTop.x = ms->config.vanishingPointReticle.px-probeBoxHalfWidthPixels;
+      box.bTop.y = ms->config.vanishingPointReticle.py-probeBoxHalfWidthPixels;
+      box.bBot.x = ms->config.vanishingPointReticle.px+probeBoxHalfWidthPixels;
+      box.bBot.y = ms->config.vanishingPointReticle.py+probeBoxHalfWidthPixels;
       box.cameraPose = currentEEPose;
-      box.top = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
-      box.bot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+      box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
+      box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
       box.centroid.px = (box.top.px + box.bot.px) * 0.5;
       box.centroid.py = (box.top.py + box.bot.py) * 0.5;
       box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -2592,20 +2523,20 @@ void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
   } else if (ms->config.currentRobotMode == SIMULATED) {
     if (objectInHandLabel >= 0) {
       BoxMemory box;
-      box.bTop.x = vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
-      box.bTop.y = vanishingPointReticle.py-simulatedObjectHalfWidthPixels;
-      box.bBot.x = vanishingPointReticle.px+simulatedObjectHalfWidthPixels;
-      box.bBot.y = vanishingPointReticle.py+simulatedObjectHalfWidthPixels;
+      box.bTop.x = ms->config.vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
+      box.bTop.y = ms->config.vanishingPointReticle.py-simulatedObjectHalfWidthPixels;
+      box.bBot.x = ms->config.vanishingPointReticle.px+simulatedObjectHalfWidthPixels;
+      box.bBot.y = ms->config.vanishingPointReticle.py+simulatedObjectHalfWidthPixels;
       box.cameraPose = currentEEPose;
-      box.top = pixelToGlobalEEPose(box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
-      box.bot = pixelToGlobalEEPose(box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+      box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
+      box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
       box.centroid.px = (box.top.px + box.bot.px) * 0.5;
       box.centroid.py = (box.top.py + box.bot.py) * 0.5;
       box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
       box.cameraTime = ros::Time::now();
       box.labeledClassIndex = objectInHandLabel;
       
-      mapBox(box);
+      mapBox(ms, box);
       vector<BoxMemory> newMemories;
       for (int i = 0; i < blueBoxMemories.size(); i++) {
 	newMemories.push_back(blueBoxMemories[i]);
@@ -3264,7 +3195,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
       putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  guardedImshow(rangeogramViewName, rangeogramImage, sirRangeogram);
+  guardedImshow(ms->config.rangeogramViewName, rangeogramImage, sirRangeogram);
 
   if (!ms->config.shouldIRangeCallback) {
     return;
@@ -3445,16 +3376,16 @@ void rangeCallback(const sensor_msgs::Range& range) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(rangemapViewName, rangemapImage, sirRangemap);
-    guardedImshow(graspMemoryViewName, graspMemoryImage, sirGraspMemory);
-    guardedImshow(graspMemorySampleViewName, graspMemorySampleImage, sirGraspMemorySample);
-    guardedImshow(heightMemorySampleViewName, heightMemorySampleImage, sirHeightMemorySample);
+    guardedImshow(ms->config.rangemapViewName, rangemapImage, sirRangemap);
+    guardedImshow(ms->config.graspMemoryViewName, graspMemoryImage, sirGraspMemory);
+    guardedImshow(ms->config.graspMemorySampleViewName, graspMemorySampleImage, sirGraspMemorySample);
+    guardedImshow(ms->config.heightMemorySampleViewName, heightMemorySampleImage, sirHeightMemorySample);
     Mat hRIT;
     cv::resize(hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
-    guardedImshow(hiRangemapViewName, hRIT, sirHiRangmap);
+    guardedImshow(ms->config.hiRangemapViewName, hRIT, sirHiRangmap);
     Mat hCRIT;
     cv::resize(hiColorRangemapImage, hCRIT, cv::Size(0,0), 2, 2);
-    guardedImshow(hiColorRangemapViewName, hCRIT, sirHiColorRangemap);
+    guardedImshow(ms->config.hiColorRangemapViewName, hCRIT, sirHiColorRangemap);
 
     guardedImshow(objectViewerName, objectViewerImage, sirObject);
     guardedImshow(objectMapViewerName, objectMapViewerImage, sirObjectMap);
@@ -3464,7 +3395,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
     guardedImshow(gradientViewerName, gradientViewerImage, sirGradient);
     guardedImshow(objectnessViewerName, objectnessViewerImage, sirObjectness);
 
-    guardedImshow(mapBackgroundViewName, mapBackgroundImage, sirMapBackground);
+    guardedImshow(ms->config.mapBackgroundViewName, mapBackgroundImage, sirMapBackground);
     
     if (targetClass > -1) {
       if (classHeight0AerialGradients[targetClass].rows == aerialGradientWidth) {
@@ -3990,7 +3921,7 @@ void timercallback1(const ros::TimerEvent&) {
   }
 
   if (sirCore) {
-    renderCoreView(pMachineState, coreViewName);
+    renderCoreView(pMachineState, ms->config.coreViewName);
   }
   renderRangeogramView(pMachineState);
 
@@ -4202,11 +4133,11 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       int pX = 0, pY = 0;  
       double zToUse = zCounter;
 
-      globalToPixel(&pX, &pY, zToUse, teePose.px, teePose.py);
+      globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt1(pX, pY);
 
       zToUse = zCounter+deltaZ;
-      globalToPixel(&pX, &pY, zToUse, teePose.px, teePose.py);
+      globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt2(pX, pY);
 
       line(wristViewImage, pt1, pt2, theColor, 3);
@@ -4215,11 +4146,11 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       int pX = 0, pY = 0;  
       double zToUse = zCounter;
 
-      globalToPixel(&pX, &pY, zToUse, teePose.px, teePose.py);
+      globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt1(pX, pY);
 
       zToUse = zCounter+deltaZ;
-      globalToPixel(&pX, &pY, zToUse, teePose.px, teePose.py);
+      globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt2(pX, pY);
 
       line(wristViewImage, pt1, pt2, THEcOLOR, 1);
@@ -4233,8 +4164,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     teePose.px = trueEEPose.position.x;
     teePose.py = trueEEPose.position.y;
     teePose.pz = trueEEPose.position.z;
-    paintEEPoseOnWrist(teePose, cv::Scalar(0,0,255));
-    paintEEPoseOnWrist(eepReg1, cv::Scalar(0,255,0));
+    paintEEPoseOnWrist(ms, teePose, cv::Scalar(0,0,255));
+    paintEEPoseOnWrist(ms, eepReg1, cv::Scalar(0,255,0));
 
     {
       eePose irPose;
@@ -4263,7 +4194,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 	irPose.py = irSensorEnd.y();
 	irPose.pz = irSensorEnd.z();
       }
-      paintEEPoseOnWrist(irPose, cv::Scalar(255,0,0));
+      paintEEPoseOnWrist(ms, irPose, cv::Scalar(255,0,0));
     }
   }
 
@@ -4271,8 +4202,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   {
     int vanishingPointReticleRadius = 15;
 
-    int x0 = vanishingPointReticle.px;
-    int y0 = vanishingPointReticle.py;
+    int x0 = ms->config.vanishingPointReticle.px;
+    int y0 = ms->config.vanishingPointReticle.py;
     Point pt1(x0, y0);
 
     cv::Scalar theColor(192, 64, 64);
@@ -4288,8 +4219,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     // XXX TODO this should be guarded 
     int movementIndicatorInnerHalfWidth = 7;
     int movementIndicatorOuterHalfWidth = 10;
-    int x0 = vanishingPointReticle.px;
-    int y0 = vanishingPointReticle.py+3*movementIndicatorOuterHalfWidth;
+    int x0 = ms->config.vanishingPointReticle.px;
+    int y0 = ms->config.vanishingPointReticle.py+3*movementIndicatorOuterHalfWidth;
     Point pt1(x0, y0);
     Mat innerCrop = wristViewImage(cv::Rect(pt1.x-movementIndicatorInnerHalfWidth, pt1.y-movementIndicatorInnerHalfWidth, 
 					  2*movementIndicatorInnerHalfWidth, 2*movementIndicatorInnerHalfWidth) );
@@ -4321,19 +4252,19 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   // draw probe reticle
   {
     int probeReticleHalfWidth = 7;
-    int x0 = probeReticle.px;
-    int y0 = probeReticle.py;
+    int x0 = ms->config.probeReticle.px;
+    int y0 = ms->config.probeReticle.py;
 
-    int x1 = max(int(probeReticle.px-probeReticleHalfWidth), 0);
-    int x2 = min(int(probeReticle.px+probeReticleHalfWidth), wristViewImage.cols);
-    int y1 = max(int(probeReticle.py-probeReticleHalfWidth), 0);
-    int y2 = min(int(probeReticle.py+probeReticleHalfWidth), wristViewImage.rows);
+    int x1 = max(int(ms->config.probeReticle.px-probeReticleHalfWidth), 0);
+    int x2 = min(int(ms->config.probeReticle.px+probeReticleHalfWidth), wristViewImage.cols);
+    int y1 = max(int(ms->config.probeReticle.py-probeReticleHalfWidth), 0);
+    int y2 = min(int(ms->config.probeReticle.py+probeReticleHalfWidth), wristViewImage.rows);
 
     int probeReticleShortHalfWidth = 3;
-    int x1s = max(int(probeReticle.px-probeReticleShortHalfWidth), 0);
-    int x2s = min(int(probeReticle.px+probeReticleShortHalfWidth), wristViewImage.cols);
-    int y1s = max(int(probeReticle.py-probeReticleShortHalfWidth), 0);
-    int y2s = min(int(probeReticle.py+probeReticleShortHalfWidth), wristViewImage.rows);
+    int x1s = max(int(ms->config.probeReticle.px-probeReticleShortHalfWidth), 0);
+    int x2s = min(int(ms->config.probeReticle.px+probeReticleShortHalfWidth), wristViewImage.cols);
+    int y1s = max(int(ms->config.probeReticle.py-probeReticleShortHalfWidth), 0);
+    int y2s = min(int(ms->config.probeReticle.py+probeReticleShortHalfWidth), wristViewImage.rows);
 
     cv::Scalar theColor(255, 0, 0);
     cv::Scalar THEcOLOR(0, 255, 255);
@@ -4431,8 +4362,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     for (int hri = 0; hri < 4; hri++) {
       if (hri != currentThompsonHeightIdx)
 	continue;
-      eePose thisReticle = heightReticles[hri];
-      int thisReticleHalfWidth = int(  ceil( double(reticleHalfWidth) / double(1+hri) )  );
+      eePose thisReticle = ms->config.heightReticles[hri];
+      int param_reticleHalfWidth = 18;
+      int thisReticleHalfWidth = int(  ceil( double(param_reticleHalfWidth) / double(1+hri) )  );
       cv::Point outTop = cv::Point(thisReticle.px-thisReticleHalfWidth, thisReticle.py-thisReticleHalfWidth);
       cv::Point outBot = cv::Point(thisReticle.px+thisReticleHalfWidth, thisReticle.py+thisReticleHalfWidth);
       cv::Point inTop = cv::Point(thisReticle.px+1-thisReticleHalfWidth,thisReticle.py+1-thisReticleHalfWidth);
@@ -4449,10 +4381,11 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   {
-    cv::Point outTop = cv::Point(pilotTarget.px-pilotTargetHalfWidth, pilotTarget.py-pilotTargetHalfWidth);
-    cv::Point outBot = cv::Point(pilotTarget.px+pilotTargetHalfWidth, pilotTarget.py+pilotTargetHalfWidth);
-    cv::Point inTop = cv::Point(pilotTarget.px+1-pilotTargetHalfWidth,pilotTarget.py+1-pilotTargetHalfWidth);
-    cv::Point inBot = cv::Point(pilotTarget.px-1+pilotTargetHalfWidth,pilotTarget.py-1+pilotTargetHalfWidth);
+    int param_pilotTargetHalfWidth = 15;
+    cv::Point outTop = cv::Point(pilotTarget.px-param_pilotTargetHalfWidth, pilotTarget.py-param_pilotTargetHalfWidth);
+    cv::Point outBot = cv::Point(pilotTarget.px+param_pilotTargetHalfWidth, pilotTarget.py+param_pilotTargetHalfWidth);
+    cv::Point inTop = cv::Point(pilotTarget.px+1-param_pilotTargetHalfWidth,pilotTarget.py+1-param_pilotTargetHalfWidth);
+    cv::Point inBot = cv::Point(pilotTarget.px-1+param_pilotTargetHalfWidth,pilotTarget.py-1+param_pilotTargetHalfWidth);
     if ( (outTop.x > 0) && (outTop.y > 0) && (outBot.x < imW) && (outBot.y < imH) ) {
       rectangle(wristViewImage, outTop, outBot, cv::Scalar(53,10,97)); // RGB: 97 10 53
       rectangle(wristViewImage, inTop, inBot, cv::Scalar(142,31,255)); // RGB: 255 31 142
@@ -4460,7 +4393,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(wristViewName, wristViewImage, sirWrist);
+    guardedImshow(ms->config.wristViewName, wristViewImage, sirWrist);
   }
 }
 
@@ -4863,7 +4796,7 @@ void renderRangeogramView(shared_ptr<MachineState> ms) {
       putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  guardedImshow(rangeogramViewName, rangeogramImage, sirRangeogram);
+  guardedImshow(ms->config.rangeogramViewName, rangeogramImage, sirRangeogram);
 }
 
 void targetCallback(const geometry_msgs::Point& point) {
@@ -4885,8 +4818,8 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
 
   if ( event == EVENT_LBUTTONDOWN ) {
     cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-    probeReticle.px = x;
-    probeReticle.py = y;
+    ms->config.probeReticle.px = x;
+    ms->config.probeReticle.py = y;
     cout << "x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << endl;
   } else if ( event == EVENT_RBUTTONDOWN ) {
     //cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
@@ -4965,7 +4898,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
   }
 }
 
-void loadCalibration(string inFileName) {
+void loadCalibration(shared_ptr<MachineState> ms, string inFileName) {
   FileStorage fsvI;
   cout << "Reading calibration information from " << inFileName << " ...";
   fsvI.open(inFileName, FileStorage::READ);
@@ -4979,29 +4912,29 @@ void loadCalibration(string inFileName) {
   {
     FileNode anode = fsvI["cropUpperLeftCorner"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
-    cropUpperLeftCorner.px = *(it++);
-    cropUpperLeftCorner.py = *(it++);
+    ms->config.cropUpperLeftCorner.px = *(it++);
+    ms->config.cropUpperLeftCorner.py = *(it++);
   }
 
   {
     FileNode anode = fsvI["vanishingPointReticle"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
-    vanishingPointReticle.px = *(it++);
-    vanishingPointReticle.py = *(it++);
+    ms->config.vanishingPointReticle.px = *(it++);
+    ms->config.vanishingPointReticle.py = *(it++);
   }
 
   {
     FileNode anode = fsvI["heightReticles"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
-    heightReticles[3].px = *(it++);
-    heightReticles[2].px = *(it++);
-    heightReticles[1].px = *(it++);
-    heightReticles[0].px = *(it++);
+    ms->config.heightReticles[3].px = *(it++);
+    ms->config.heightReticles[2].px = *(it++);
+    ms->config.heightReticles[1].px = *(it++);
+    ms->config.heightReticles[0].px = *(it++);
 
-    heightReticles[3].py = *(it++);
-    heightReticles[2].py = *(it++);
-    heightReticles[1].py = *(it++);
-    heightReticles[0].py = *(it++);
+    ms->config.heightReticles[3].py = *(it++);
+    ms->config.heightReticles[2].py = *(it++);
+    ms->config.heightReticles[1].py = *(it++);
+    ms->config.heightReticles[0].py = *(it++);
   }
 
   {
@@ -5064,7 +4997,7 @@ void loadCalibration(string inFileName) {
   cout << "done." << endl;
 }
 
-void saveCalibration(string outFileName) {
+void saveCalibration(shared_ptr<MachineState> ms, string outFileName) {
 
   /* this works
   for (int i = 0; i < 5; i++) {
@@ -5085,25 +5018,25 @@ void saveCalibration(string outFileName) {
   << "]";
 
   fsvO << "cropUpperLeftCorner" << "[" 
-    << cropUpperLeftCorner.px 
-    << cropUpperLeftCorner.py 
+    << ms->config.cropUpperLeftCorner.px 
+    << ms->config.cropUpperLeftCorner.py 
   << "]";
 
   fsvO << "vanishingPointReticle" << "[" 
-    << vanishingPointReticle.px 
-    << vanishingPointReticle.py 
+    << ms->config.vanishingPointReticle.px 
+    << ms->config.vanishingPointReticle.py 
   << "]";
 
   fsvO << "heightReticles" << "[" 
-    << heightReticles[3].px
-    << heightReticles[2].px
-    << heightReticles[1].px
-    << heightReticles[0].px
+    << ms->config.heightReticles[3].px
+    << ms->config.heightReticles[2].px
+    << ms->config.heightReticles[1].px
+    << ms->config.heightReticles[0].px
 
-    << heightReticles[3].py
-    << heightReticles[2].py
-    << heightReticles[1].py
-    << heightReticles[0].py
+    << ms->config.heightReticles[3].py
+    << ms->config.heightReticles[2].py
+    << ms->config.heightReticles[1].py
+    << ms->config.heightReticles[0].py
   << "]";
 
   fsvO << "colorReticles" << "[" 
@@ -5161,15 +5094,16 @@ void saveCalibration(string outFileName) {
   cout << "done." << endl;
 }
 
-void pilotInit() {
+void pilotInit(shared_ptr<MachineState> ms) {
   eeForward = Eigen::Vector3d(1,0,0);
 
   if (0 == left_or_right_arm.compare("left")) {
     cout << "Possessing left arm..." << endl;
     beeHome = rssPoseL; //wholeFoodsPantryL;
     eepReg4 = rssPoseL; //beeLHome;
-    defaultReticle = defaultLeftReticle;
-    reticle = defaultReticle;
+    ms->config.defaultReticle = {.px = 334, .py = 100, .pz = 0.0,
+                      .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
+    ms->config.reticle = ms->config.defaultReticle;
 
     crane1 = crane1left;
 
@@ -5219,25 +5153,25 @@ void pilotInit() {
 
     // left arm
     // (313, 163)
-    vanishingPointReticle.px = 313;
-    vanishingPointReticle.py = 163;
-    probeReticle = vanishingPointReticle;
+    ms->config.vanishingPointReticle.px = 313;
+    ms->config.vanishingPointReticle.py = 163;
+    ms->config.probeReticle = ms->config.vanishingPointReticle;
 
     // ATTN 16
-    heightReticles[0] = defaultReticle;
-    heightReticles[1] = defaultReticle;
-    heightReticles[2] = defaultReticle;
-    heightReticles[3] = defaultReticle;
+    ms->config.heightReticles[0] = ms->config.defaultReticle;
+    ms->config.heightReticles[1] = ms->config.defaultReticle;
+    ms->config.heightReticles[2] = ms->config.defaultReticle;
+    ms->config.heightReticles[3] = ms->config.defaultReticle;
 
-    heightReticles[3].px = 323;
-    heightReticles[2].px = 326;
-    heightReticles[1].px = 329;
-    heightReticles[0].px = 336;
+    ms->config.heightReticles[3].px = 323;
+    ms->config.heightReticles[2].px = 326;
+    ms->config.heightReticles[1].px = 329;
+    ms->config.heightReticles[0].px = 336;
 
-    heightReticles[3].py = 135;
-    heightReticles[2].py = 128;
-    heightReticles[1].py = 117;
-    heightReticles[0].py = 94;
+    ms->config.heightReticles[3].py = 135;
+    ms->config.heightReticles[2].py = 128;
+    ms->config.heightReticles[1].py = 117;
+    ms->config.heightReticles[0].py = 94;
 
     /* color reticle init */
     /* XXX TODO needs recalibrating */
@@ -5285,21 +5219,25 @@ void pilotInit() {
     m_y_h[2] = 0.92;
     m_y_h[3] = 0.92;
 
-    handingPose = handingPoseLeft;
-    eepReg3 = handingPose;
+    ms->config.handingPose = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
+                   .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
+    eepReg3 = ms->config.handingPose;
 
     // ir offset
     gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
 
-    calibrationPose = calibrationPoseL;
-    shrugPose = shrugPoseL;
+    ms->config.calibrationPose = {.px = 0.434176, .py = 0.633423, .pz = 0.48341,
+                      .qx = 0.000177018, .qy = 1, .qz = -0.000352912, .qw = -0.000489087};
+    ms->config.shrugPose = {.px = 0.0354772, .py = 1.20633, .pz = 0.150562,
+                 .qx = -0.370521, .qy = 0.381345, .qz = 0.578528, .qw = 0.618544};
   } else if (0 == left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
 
     beeHome = rssPoseR;
     eepReg4 = rssPoseR; 
-    defaultReticle = defaultRightReticle;
-    reticle = defaultReticle;
+    ms->config.defaultReticle = {.px = 325, .py = 127, .pz = 0.0,
+                      .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
+    ms->config.reticle = ms->config.defaultReticle;
 
     crane1 = crane1right;
 
@@ -5352,25 +5290,25 @@ void pilotInit() {
     mapBackgroundYMax = mapSearchFenceYMax + mapBackgroundBufferMeters;
 
     // right arm
-    vanishingPointReticle.px = 313;
-    vanishingPointReticle.py = 185;
-    probeReticle = vanishingPointReticle;
+    ms->config.vanishingPointReticle.px = 313;
+    ms->config.vanishingPointReticle.py = 185;
+    ms->config.probeReticle = ms->config.vanishingPointReticle;
 
     // ATTN 16
-    heightReticles[0] = defaultReticle;
-    heightReticles[1] = defaultReticle;
-    heightReticles[2] = defaultReticle;
-    heightReticles[3] = defaultReticle;
+    ms->config.heightReticles[0] = ms->config.defaultReticle;
+    ms->config.heightReticles[1] = ms->config.defaultReticle;
+    ms->config.heightReticles[2] = ms->config.defaultReticle;
+    ms->config.heightReticles[3] = ms->config.defaultReticle;
     
-    heightReticles[3].px = 314;
-    heightReticles[2].px = 317;
-    heightReticles[1].px = 320;
-    heightReticles[0].px = 328;
+    ms->config.heightReticles[3].px = 314;
+    ms->config.heightReticles[2].px = 317;
+    ms->config.heightReticles[1].px = 320;
+    ms->config.heightReticles[0].px = 328;
 
-    heightReticles[3].py = 154;
-    heightReticles[2].py = 149;
-    heightReticles[1].py = 139;
-    heightReticles[0].py = 120;
+    ms->config.heightReticles[3].py = 154;
+    ms->config.heightReticles[2].py = 149;
+    ms->config.heightReticles[1].py = 139;
+    ms->config.heightReticles[0].py = 120;
 
     /* color reticle init */
     /* XXX TODO needs recalibrating */
@@ -5418,14 +5356,19 @@ void pilotInit() {
     m_y_h[2] = 1.16;
     m_y_h[3] = 1.2;
 
-    handingPose = handingPoseRight;
-    eepReg3 = handingPose;
+    ms->config.handingPose = {.px = 0.879307, .py = -0.0239328, .pz = 0.223839,
+                      .qx = 0.459157, .qy = 0.527586, .qz = 0.48922, .qw = 0.521049};
+    eepReg3 = ms->config.handingPose;
 
     // ir offset
     gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
 
-    calibrationPose = calibrationPoseR;
-    shrugPose = shrugPoseR;
+    ms->config.calibrationPose = {.px = 0.562169, .py = -0.348055, .pz = 0.493231,
+                                  .qx = 0.00391311, .qy = 0.999992, .qz = -0.00128095, .qw = 8.18951e-05};
+    ms->config.shrugPose = {.px = 0.0558937, .py = -1.12849, .pz = 0.132171,
+                            .qx = 0.392321, .qy = 0.324823, .qz = -0.555039, .qw = 0.657652};
+
+
   } else {
     cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
     exit(0);
@@ -5570,9 +5513,10 @@ void pilotInit() {
   }
 }
 
-void spinlessPilotMain() {
+void spinlessPilotMain(shared_ptr<MachineState> ms) {
   cout << endl << endl << "Pilot main begin..." << endl;
-  pilotInit();
+  
+  pilotInit(ms);
 }
 
 int shouldIPick(int classToPick) {
@@ -7311,7 +7255,7 @@ void restartBBLearning(shared_ptr<MachineState> ms) {
 }
 
 
-void moveCurrentGripperRayToCameraVanishingRay() {
+void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms) {
   bool useLaser = 0;
   if (useLaser) {
     //double d_y = -0.04;
@@ -7350,7 +7294,7 @@ void moveCurrentGripperRayToCameraVanishingRay() {
     currentEEPose.py += yToAdd;
   } else {
     double zToUse = trueEEPose.position.z+currentTableZ;
-    pixelToGlobal(vanishingPointReticle.px, vanishingPointReticle.py, zToUse, &(currentEEPose.px), &(currentEEPose.py));
+    pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &(currentEEPose.px), &(currentEEPose.py));
   }
   { // yet another way to do this
     // 0 assumes no rotation 
@@ -7366,14 +7310,14 @@ void gradientServo(shared_ptr<MachineState> ms) {
   int imH = sz.height;
 
   // ATTN 23
-  //reticle = heightReticles[currentThompsonHeightIdx];
+  //reticle = ms->config.heightReticles[currentThompsonHeightIdx];
   eePose thisGripperReticle;
   double zToUse = trueEEPose.position.z+currentTableZ;
   int xOut=-1, yOut=-1;
-  globalToPixel(&xOut, &yOut, zToUse, trueEEPoseEEPose.px, trueEEPoseEEPose.py);
+  globalToPixel(ms, &xOut, &yOut, zToUse, trueEEPoseEEPose.px, trueEEPoseEEPose.py);
   thisGripperReticle.px = xOut;
   thisGripperReticle.py = yOut;
-  reticle = vanishingPointReticle;
+  ms->config.reticle = ms->config.vanishingPointReticle;
 
   // ATTN 12
   //        if ((synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING)) {
@@ -7543,8 +7487,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
     for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
       for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
         // get the patch
-        int topCornerX = etaX + reticle.px - (aerialGradientReticleWidth/2);
-        int topCornerY = etaY + reticle.py - (aerialGradientReticleWidth/2);
+        int topCornerX = etaX + ms->config.reticle.px - (aerialGradientReticleWidth/2);
+        int topCornerY = etaY + ms->config.reticle.py - (aerialGradientReticleWidth/2);
         Mat gCrop(maxDim, maxDim, CV_64F);
         
         for (int x = 0; x < maxDim; x++) {
@@ -7619,8 +7563,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
     for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
       for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
         // get the patch
-        int topCornerX = etaX + reticle.px - (aerialGradientReticleWidth/2);
-        int topCornerY = etaY + reticle.py - (aerialGradientReticleWidth/2);
+        int topCornerX = etaX + ms->config.reticle.px - (aerialGradientReticleWidth/2);
+        int topCornerY = etaY + ms->config.reticle.py - (aerialGradientReticleWidth/2);
         Mat gCrop(maxDim, maxDim, CV_64F);
         
         // throw it out if it isn't contained in the image
@@ -7668,8 +7612,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
   }
 
   // set the target reticle
-  pilotTarget.px = reticle.px + bestX;
-  pilotTarget.py = reticle.py + bestY;
+  pilotTarget.px = ms->config.reticle.px + bestX;
+  pilotTarget.py = ms->config.reticle.py + bestY;
   
   bestOrientationEEPose = currentEEPose;
   
@@ -7708,8 +7652,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
         //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
         //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
         //cout << thisColor;
-        int thisTopCornerX = bestX + reticle.px - (aerialGradientReticleWidth/2);
-        int thisTopCornerY = bestY + reticle.py - (aerialGradientReticleWidth/2);
+        int thisTopCornerX = bestX + ms->config.reticle.px - (aerialGradientReticleWidth/2);
+        int thisTopCornerY = bestY + ms->config.reticle.py - (aerialGradientReticleWidth/2);
         
         int tgX = thisTopCornerX + tx;
         int tgY = thisTopCornerY + ty;
@@ -7878,7 +7822,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
     //currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
     // ATTN 23
     // second analytic
-    eePose newGlobalTarget = analyticServoPixelToReticle(pilotTarget, reticle, currentEEDeltaRPY.pz);
+    eePose newGlobalTarget = analyticServoPixelToReticle(ms, pilotTarget, ms->config.reticle, currentEEDeltaRPY.pz);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
     currentEEPose.px = newx;
@@ -7911,18 +7855,18 @@ void gradientServo(shared_ptr<MachineState> ms) {
 
 // given pixel is the pixel in the current frame that you want to be at the vanishing point
 //  after undergoing a rotaion of ozAngle about the end effector Z axis
-eePose analyticServoPixelToReticle(eePose givenPixel, eePose givenReticle, double ozAngle) {
+eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixel, eePose givenReticle, double ozAngle) {
   eePose toReturn = trueEEPoseEEPose;
   eePose grGlobalPostRotation = trueEEPoseEEPose;
   eePose grGlobalPreRotation = trueEEPoseEEPose;
   eePose gpGlobalPreRotation = trueEEPoseEEPose;
   {
     double zToUse = trueEEPose.position.z+currentTableZ;
-    pixelToGlobal(givenPixel.px, givenPixel.py, zToUse, &(gpGlobalPreRotation.px), &(gpGlobalPreRotation.py));
+    pixelToGlobal(ms, givenPixel.px, givenPixel.py, zToUse, &(gpGlobalPreRotation.px), &(gpGlobalPreRotation.py));
   }
   {
     double zToUse = trueEEPose.position.z+currentTableZ;
-    pixelToGlobal(givenReticle.px, givenReticle.py, zToUse, &(grGlobalPreRotation.px), &(grGlobalPreRotation.py));
+    pixelToGlobal(ms, givenReticle.px, givenReticle.py, zToUse, &(grGlobalPreRotation.px), &(grGlobalPreRotation.py));
   }
 
   eePose fakeEndEffector = currentEEPose;
@@ -7931,7 +7875,7 @@ eePose analyticServoPixelToReticle(eePose givenPixel, eePose givenReticle, doubl
   endEffectorAngularUpdate(&fakeEndEffector, &fakeEndEffectorDeltaRPY);
   {
     double zToUse = trueEEPose.position.z+currentTableZ;
-    pixelToGlobal(givenReticle.px, givenReticle.py, zToUse, &(grGlobalPostRotation.px), &(grGlobalPostRotation.py), fakeEndEffector);
+    pixelToGlobal(ms, givenReticle.px, givenReticle.py, zToUse, &(grGlobalPostRotation.px), &(grGlobalPostRotation.py), fakeEndEffector);
   }
   double  postRotationTranslationX = (gpGlobalPreRotation.px - grGlobalPostRotation.px);
   double  postRotationTranslationY = (gpGlobalPreRotation.py - grGlobalPostRotation.py);
@@ -7946,14 +7890,14 @@ void synchronicServo(shared_ptr<MachineState> ms) {
   synServoLockFrames++;
 
   // ATTN 23
-  //reticle = heightReticles[currentThompsonHeightIdx];
+  //reticle = ms->config.heightReticles[currentThompsonHeightIdx];
   eePose thisGripperReticle;
   double zToUse = trueEEPose.position.z+currentTableZ;
   int xOut=-1, yOut=-1;
-  globalToPixel(&xOut, &yOut, zToUse, trueEEPoseEEPose.px, trueEEPoseEEPose.py);
+  globalToPixel(ms, &xOut, &yOut, zToUse, trueEEPoseEEPose.px, trueEEPoseEEPose.py);
   thisGripperReticle.px = xOut;
   thisGripperReticle.py = yOut;
-  reticle = vanishingPointReticle;
+  ms->config.reticle = ms->config.vanishingPointReticle;
 
   // ATTN 17
   currentGradientServoIterations = 0;
@@ -8032,7 +7976,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       double tbx, tby;
       int tbi, tbj;
       double zToUse = trueEEPose.position.z+currentTableZ;
-      pixelToGlobal(bCens[c].x, bCens[c].y, zToUse, &tbx, &tby);
+      pixelToGlobal(ms, bCens[c].x, bCens[c].y, zToUse, &tbx, &tby);
       mapxyToij(tbx, tby, &tbi, &tbj);
       
       ros::Time thisLastMappedTime = objectMap[tbi + mapWidth * tbj].lastMappedTime;
@@ -8043,16 +7987,16 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       int isCooldownComplete = (thisNow.sec - thisLastMappedTime.sec) > mapBlueBoxCooldown;
 
       int isOutOfReach = ( !positionIsSearched(tbx, tby) || 
-			 !isBlueBoxIKPossible(bTops[c], bBots[c]) ); 
+                           !isBlueBoxIKPossible(ms, bTops[c], bBots[c]) ); 
 
-      double thisDistance = sqrt((bCens[c].x-reticle.px)*(bCens[c].x-reticle.px) + (bCens[c].y-reticle.py)*(bCens[c].y-reticle.py));
+      double thisDistance = sqrt((bCens[c].x-ms->config.reticle.px)*(bCens[c].x-ms->config.reticle.px) + (bCens[c].y-ms->config.reticle.py)*(bCens[c].y-ms->config.reticle.py));
       cout << "   Servo CUB distance for box " << c << " : " << thisDistance << ", isCooldownComplete isOutOfReach: " <<
 	      isCooldownComplete << " " << isOutOfReach << endl;
       cout << "      (thisNow - thisLastMappedTime) mapBlueBoxCooldown:" << 
 	      thisNow.sec - thisLastMappedTime.sec << " " << mapBlueBoxCooldown << " " <<  endl;
 
       if (isOutOfReach) {
-	mapBlueBox(bTops[c], bBots[c], 0, ros::Time::now()+ros::Duration(mapBlueBoxCooldown));
+	mapBlueBox(ms, bTops[c], bBots[c], 0, ros::Time::now()+ros::Duration(mapBlueBoxCooldown));
       }
 
       if ( isCooldownComplete  && 
@@ -8083,8 +8027,8 @@ void synchronicServo(shared_ptr<MachineState> ms) {
   }
 
 
-  double Px = reticle.px - pilotTarget.px;
-  double Py = reticle.py - pilotTarget.py;
+  double Px = ms->config.reticle.px - pilotTarget.px;
+  double Py = ms->config.reticle.py - pilotTarget.py;
 
   double dx = (currentEEPose.px - trueEEPose.position.x);
   double dy = (currentEEPose.py - trueEEPose.position.y);
@@ -8176,9 +8120,9 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       double newy = 0;
       // first analytic
       //double zToUse = trueEEPose.position.z+currentTableZ;
-      //pixelToGlobal(pilotTarget.px, pilotTarget.py, zToUse, &newx, &newy);
+      //pixelToGlobal(ms, pilotTarget.px, pilotTarget.py, zToUse, &newx, &newy);
       // ATTN 23
-      eePose newGlobalTarget = analyticServoPixelToReticle(pilotTarget, reticle, 0);
+      eePose newGlobalTarget = analyticServoPixelToReticle(ms, pilotTarget, ms->config.reticle, 0);
       newx = newGlobalTarget.px;
       newy = newGlobalTarget.py;
 
@@ -8216,16 +8160,16 @@ void darkServo(shared_ptr<MachineState> ms) {
 
   int darkX = 0;
   int darkY = 0;
-  findDarkness(&darkX, &darkY);
+  findDarkness(ms, &darkX, &darkY);
 
   cout << "darkServo darkX darkY heightAboveTable: " << darkX << " " << darkY << " " << heightAboveTable << endl;
 
-  reticle = vanishingPointReticle;
+  ms->config.reticle = ms->config.vanishingPointReticle;
   pilotTarget.px = darkX;
   pilotTarget.py = darkY;
 
-  double Px = reticle.px - pilotTarget.px;
-  double Py = reticle.py - pilotTarget.py;
+  double Px = ms->config.reticle.px - pilotTarget.px;
+  double Py = ms->config.reticle.py - pilotTarget.py;
 
   double thisKp = darkKp * heightFactor;
   double pTermX = thisKp*Px;
@@ -8281,7 +8225,7 @@ void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces) {
   double distance = VERYBIGNUMBER;
   for (int i = 0; i < faces.size(); i++) {
     eePose faceImagePose = rectCentroidToEEPose(faces[i]);
-    double thisDistance = squareDistanceEEPose(vanishingPointReticle, faceImagePose);
+    double thisDistance = squareDistanceEEPose(ms->config.vanishingPointReticle, faceImagePose);
     if (thisDistance < distance) {
       distance = thisDistance;
       bestFacePose = faceImagePose;
@@ -8290,12 +8234,12 @@ void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces) {
 
   double heightFactor = 1 / minHeight;
 
-  reticle = vanishingPointReticle;
+  ms->config.reticle = ms->config.vanishingPointReticle;
   pilotTarget.px = bestFacePose.px;
   pilotTarget.py = bestFacePose.py;
 
-  double Px = reticle.px - pilotTarget.px;
-  double Py = reticle.py - pilotTarget.py;
+  double Px = ms->config.reticle.px - pilotTarget.px;
+  double Py = ms->config.reticle.py - pilotTarget.py;
 
   //double thisKp = faceKp * heightFactor;
   double yScale = 1.0;
@@ -8400,9 +8344,9 @@ int isThisGraspMaxedOut(int i) {
   return toReturn;
 }
 
-eePose pixelToGlobalEEPose(int pX, int pY, double gZ) {
+eePose pixelToGlobalEEPose(shared_ptr<MachineState> ms, int pX, int pY, double gZ) {
   eePose result;
-  pixelToGlobal(pX, pY, gZ, &result.px, &result.py);
+  pixelToGlobal(ms, pX, pY, gZ, &result.px, &result.py);
   result.pz = trueEEPose.position.z - currentTableZ;
   result.qx = 0;
   result.qy = 0;
@@ -8452,22 +8396,22 @@ void interpolateM_xAndM_yFromZ(double dZ, double * m_x, double * m_y) {
   //cout << m_y_h[0] << " " << m_y_h[1] << " " << m_y_h[2] << " " << m_y_h[3] << " " << *m_y << endl;
 }
 
-void pixelToGlobal(int pX, int pY, double gZ, double * gX, double * gY) {
-  pixelToGlobal(pX, pY, gZ, gX, gY, trueEEPoseEEPose);
+void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY) {
+  pixelToGlobal(ms, pX, pY, gZ, gX, gY, trueEEPoseEEPose);
 }
 
-void pixelToGlobal(int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose) {
+void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose) {
   interpolateM_xAndM_yFromZ(gZ, &m_x, &m_y);
 
-  int x1 = heightReticles[0].px;
-  int x2 = heightReticles[1].px;
-  int x3 = heightReticles[2].px;
-  int x4 = heightReticles[3].px;
+  int x1 = ms->config.heightReticles[0].px;
+  int x2 = ms->config.heightReticles[1].px;
+  int x3 = ms->config.heightReticles[2].px;
+  int x4 = ms->config.heightReticles[3].px;
 
-  int y1 = heightReticles[0].py;
-  int y2 = heightReticles[1].py;
-  int y3 = heightReticles[2].py;
-  int y4 = heightReticles[3].py;
+  int y1 = ms->config.heightReticles[0].py;
+  int y2 = ms->config.heightReticles[1].py;
+  int y3 = ms->config.heightReticles[2].py;
+  int y4 = ms->config.heightReticles[3].py;
 
   double z1 = convertHeightIdxToGlobalZ(0) + currentTableZ;
   double z2 = convertHeightIdxToGlobalZ(1) + currentTableZ;
@@ -8583,18 +8527,18 @@ void pixelToGlobal(int pX, int pY, double gZ, double * gX, double * gY, eePose g
   }
 }
 
-void globalToPixelPrint(int * pX, int * pY, double gZ, double gX, double gY) {
+void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY) {
   interpolateM_xAndM_yFromZ(gZ, &m_x, &m_y);
 
-  int x1 = heightReticles[0].px;
-  int x2 = heightReticles[1].px;
-  int x3 = heightReticles[2].px;
-  int x4 = heightReticles[3].px;
+  int x1 = ms->config.heightReticles[0].px;
+  int x2 = ms->config.heightReticles[1].px;
+  int x3 = ms->config.heightReticles[2].px;
+  int x4 = ms->config.heightReticles[3].px;
 
-  int y1 = heightReticles[0].py;
-  int y2 = heightReticles[1].py;
-  int y3 = heightReticles[2].py;
-  int y4 = heightReticles[3].py;
+  int y1 = ms->config.heightReticles[0].py;
+  int y2 = ms->config.heightReticles[1].py;
+  int y3 = ms->config.heightReticles[2].py;
+  int y4 = ms->config.heightReticles[3].py;
 
   double z1 = convertHeightIdxToGlobalZ(0) + currentTableZ;
   double z2 = convertHeightIdxToGlobalZ(1) + currentTableZ;
@@ -8700,18 +8644,18 @@ void globalToPixelPrint(int * pX, int * pY, double gZ, double gX, double gY) {
   *pX = reticlePixelX + (oldPy - reticlePixelY) + offX;
   *pY = reticlePixelY + (oldPx - reticlePixelX) + offY;
 }
-void globalToPixel(int * pX, int * pY, double gZ, double gX, double gY) {
+void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY) {
   interpolateM_xAndM_yFromZ(gZ, &m_x, &m_y);
 
-  int x1 = heightReticles[0].px;
-  int x2 = heightReticles[1].px;
-  int x3 = heightReticles[2].px;
-  int x4 = heightReticles[3].px;
+  int x1 = ms->config.heightReticles[0].px;
+  int x2 = ms->config.heightReticles[1].px;
+  int x3 = ms->config.heightReticles[2].px;
+  int x4 = ms->config.heightReticles[3].px;
 
-  int y1 = heightReticles[0].py;
-  int y2 = heightReticles[1].py;
-  int y3 = heightReticles[2].py;
-  int y4 = heightReticles[3].py;
+  int y1 = ms->config.heightReticles[0].py;
+  int y2 = ms->config.heightReticles[1].py;
+  int y3 = ms->config.heightReticles[2].py;
+  int y4 = ms->config.heightReticles[3].py;
 
   double z1 = convertHeightIdxToGlobalZ(0) + currentTableZ;
   double z2 = convertHeightIdxToGlobalZ(1) + currentTableZ;
@@ -8812,13 +8756,13 @@ void globalToPixel(int * pX, int * pY, double gZ, double gX, double gY) {
   *pY = reticlePixelY + (oldPx - reticlePixelX) + offY;
 }
 
-void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor) {
+void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar theColor) {
   cv::Scalar THEcOLOR(255-theColor[0], 255-theColor[1], 255-theColor[2]);
   int lineLength = 5;
   int pX = 0, pY = 0;  
   double zToUse = trueEEPose.position.z+currentTableZ;
 
-  globalToPixel(&pX, &pY, zToUse, toPaint.px, toPaint.py);
+  globalToPixel(ms, &pX, &pY, zToUse, toPaint.px, toPaint.py);
   pX = pX - lineLength;
   pY = pY - lineLength;
   //cout << "paintEEPoseOnWrist pX pY zToUse: " << pX << " " << pY << " " << zToUse << endl;
@@ -8838,8 +8782,8 @@ void paintEEPoseOnWrist(eePose toPaint, cv::Scalar theColor) {
   // draw the test pattern for the inverse transformation 
   if (0) {
     double gX = 0, gY = 0;
-    pixelToGlobal(pX, pY, zToUse, &gX, &gY);
-    globalToPixel(&pX, &pY, zToUse, gX, gY);
+    pixelToGlobal(ms, pX, pY, zToUse, &gX, &gY);
+    globalToPixel(ms, &pX, &pY, zToUse, gX, gY);
     //cout << "PAINTeepOSEoNwRIST pX pY gX gY: " << pX << " " << pY << " " << gX << " " << gY << endl;
     if ( (pX > 0+lineLength) && (pX < wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < wristViewImage.rows-lineLength) ) {
       {
@@ -8892,7 +8836,7 @@ void initVectorArcTan() {
   */
 }
 
-void mapBlueBox(cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark) {
+void mapBlueBox(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark) {
   Size sz = objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
@@ -8902,7 +8846,7 @@ void mapBlueBox(cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time t
       double x, y;
       double z = trueEEPose.position.z + currentTableZ;
 
-      pixelToGlobal(px, py, z, &x, &y);
+      pixelToGlobal(ms, px, py, z, &x, &y);
       int i, j;
       mapxyToij(x, y, &i, &j);
 
@@ -8931,8 +8875,8 @@ void mapBlueBox(cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time t
   }
 }
 
-void mapBox(BoxMemory boxMemory) {
- mapBlueBox(boxMemory.bTop, boxMemory.bBot, boxMemory.labeledClassIndex, ros::Time::now());
+void mapBox(shared_ptr<MachineState> ms, BoxMemory boxMemory) {
+  mapBlueBox(ms, boxMemory.bTop, boxMemory.bBot, boxMemory.labeledClassIndex, ros::Time::now());
 }
 
 void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
@@ -8966,6 +8910,8 @@ void simulatorCallback(const ros::TimerEvent&) {
 
     //jointCallback
     //targetCallback
+  shared_ptr<MachineState> ms = pMachineState;
+
   {
     sensor_msgs::Range myRange;
     myRange.range = 0.1;
@@ -9022,10 +8968,10 @@ void simulatorCallback(const ros::TimerEvent&) {
 
       double topLx = 0.0;
       double topLy = 0.0;
-      pixelToGlobal(0, 0, zToUse, &topLx, &topLy);
+      pixelToGlobal(ms, 0, 0, zToUse, &topLx, &topLy);
       double botLx = 0.0;
       double botLy = 0.0;
-      pixelToGlobal(imW-1, imH-1, zToUse, &botLx, &botLy);
+      pixelToGlobal(ms, imW-1, imH-1, zToUse, &botLx, &botLy);
       topLx = min(max(mapBackgroundXMin, topLx), mapBackgroundXMax);
       topLy = min(max(mapBackgroundYMin, topLy), mapBackgroundYMax);
       botLx = min(max(mapBackgroundXMin, botLx), mapBackgroundXMax);
@@ -9121,10 +9067,10 @@ void simulatorCallback(const ros::TimerEvent&) {
 
       int topPx = 0.0;
       int topPy = 0.0;
-      globalToPixel( &topPx, &topPy, zToUse, topLx, topLy);
+      globalToPixel(ms, &topPx, &topPy, zToUse, topLx, topLy);
       int botPx = 0.0;
       int botPy = 0.0;
-      globalToPixel( &botPx, &botPy, zToUse, botLx, botLy);
+      globalToPixel(ms, &botPx, &botPy, zToUse, botLx, botLy);
       topPx = min(max(0, topPx), imW-1);
       topPy = min(max(0, topPy), imH-1);
       botPx = min(max(0, botPx), imW-1);
@@ -9231,22 +9177,22 @@ bool isInGripperMask(int x, int y) {
   }
 }
 
-void findDarkness(int * xout, int * yout) {
+void findDarkness(shared_ptr<MachineState> ms, int * xout, int * yout) {
   //*xout = vanishingPointReticle.px;
   //*yout = vanishingPointReticle.py;
-  findOptimum(xout, yout, -1);
+  findOptimum(ms, xout, yout, -1);
 }
 
-void findLight(int * xout, int * yout) {
-  findOptimum(xout, yout, 1);
+void findLight(shared_ptr<MachineState> ms, int * xout, int * yout) {
+  findOptimum(ms, xout, yout, 1);
 }
 
-void findOptimum(int * xout, int * yout, int sign) {
+void findOptimum(shared_ptr<MachineState> ms, int * xout, int * yout, int sign) {
 
   if (isSketchyMat(accumulatedImage)) {
     ROS_ERROR("Whoops, accumulatedImage is sketchy, returning vanishing point to findOptimum.");
-    *xout = vanishingPointReticle.px;
-    *yout = vanishingPointReticle.py;
+    *xout = ms->config.vanishingPointReticle.px;
+    *yout = ms->config.vanishingPointReticle.py;
     return;
   }
 
@@ -11194,7 +11140,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
 	  biggestBB = t;
 	}
 
-	double thisDistance = sqrt((bCens[t].x-reticle.px)*(bCens[t].x-reticle.px) + (bCens[t].y-reticle.py)*(bCens[t].y-reticle.py));
+	double thisDistance = sqrt((bCens[t].x-ms->config.reticle.px)*(bCens[t].x-ms->config.reticle.px) + (bCens[t].y-ms->config.reticle.py)*(bCens[t].y-ms->config.reticle.py));
 	cout << "   (density) Distance for box " << t << " : " << thisDistance << endl;
 	if (thisDistance < closestBBDistance) {
 	  closestBBDistance = thisDistance;
@@ -11708,7 +11654,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       }
 
       //int thisDistance = int(fabs(bCens[c].x-reticle.px) + fabs(bCens[c].y-reticle.py));
-      double thisDistance = sqrt((bCens[c].x-reticle.px)*(bCens[c].x-reticle.px) + (bCens[c].y-reticle.py)*(bCens[c].y-reticle.py));
+      double thisDistance = sqrt((bCens[c].x-ms->config.reticle.px)*(bCens[c].x-ms->config.reticle.px) + (bCens[c].y-ms->config.reticle.py)*(bCens[c].y-ms->config.reticle.py));
       cout << "   Distance for box " << c << " : " << thisDistance << endl;
       if (thisDistance < closestBBDistance) {
 	closestBBDistance = thisDistance;
@@ -12526,34 +12472,34 @@ bool isBoxMemoryIKPossible(BoxMemory b) {
   return toReturn;
 }
 
-bool isBlueBoxIKPossible(cv::Point tbTop, cv::Point tbBot) {
+bool isBlueBoxIKPossible(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot) {
   double zToUse = trueEEPose.position.z+currentTableZ;
   int toReturn = 1;
   {
     double tbx, tby;
     int tbi, tbj;
-    pixelToGlobal(tbTop.x, tbTop.y, zToUse, &tbx, &tby);
+    pixelToGlobal(ms, tbTop.x, tbTop.y, zToUse, &tbx, &tby);
     mapxyToij(tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(tbi, tbj);
   }
   {
     double tbx, tby;
     int tbi, tbj;
-    pixelToGlobal(tbBot.x, tbBot.y, zToUse, &tbx, &tby);
+    pixelToGlobal(ms, tbBot.x, tbBot.y, zToUse, &tbx, &tby);
     mapxyToij(tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(tbi, tbj);
   }
   {
     double tbx, tby;
     int tbi, tbj;
-    pixelToGlobal(tbTop.x, tbBot.y, zToUse, &tbx, &tby);
+    pixelToGlobal(ms, tbTop.x, tbBot.y, zToUse, &tbx, &tby);
     mapxyToij(tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(tbi, tbj);
   }
   {
     double tbx, tby;
     int tbi, tbj;
-    pixelToGlobal(tbBot.x, tbTop.y, zToUse, &tbx, &tby);
+    pixelToGlobal(ms, tbBot.x, tbTop.y, zToUse, &tbx, &tby);
     mapxyToij(tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(tbi, tbj);
   }
@@ -12982,10 +12928,12 @@ int main(int argc, char **argv) {
   initVectorArcTan();
   initializeWords();
   pMachineState = std::make_shared<MachineState>(machineState);
+  shared_ptr<MachineState> ms = pMachineState;
+
 
   srand(time(NULL));
-  time(&pMachineState->config.firstTime);
-  time(&pMachineState->config.firstTimeRange);
+  time(&ms->config.firstTime);
+  time(&ms->config.firstTimeRange);
 
   cout << "argc: " << argc << endl;
   for (int ccc = 0; ccc < argc; ccc++) {
@@ -13007,7 +12955,7 @@ int main(int argc, char **argv) {
 
   cout << "n namespace: " << n.getNamespace() << endl;
 
-  loadROSParamsFromArgs(pMachineState);
+  loadROSParamsFromArgs(ms);
   cout << "mask_gripper: " << mask_gripper << " add_blinders: " << add_blinders << endl;
   cout << "all_range_mode: " << all_range_mode << endl;
   cout << "data_directory: " << data_directory << endl << "class_name: " << class_name << endl 
@@ -13020,7 +12968,7 @@ int main(int argc, char **argv) {
   class_crops_path = data_directory + "/objects/";
 
   unsigned long seed = 1;
-  rk_seed(seed, &pMachineState->config.random_state);
+  rk_seed(seed, &ms->config.random_state);
 
   if ( (left_or_right_arm.compare("right") == 0) || (left_or_right_arm.compare("left") == 0) ) {
     image_topic = "/cameras/" + left_or_right_arm + "_hand_camera/image";
@@ -13182,26 +13130,26 @@ int main(int argc, char **argv) {
   placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
   moveEndEfffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, moveEndEffectorCommandCallback);
 
-  wristViewName = "Wrist View " + left_or_right_arm;
-  coreViewName = "Core View " + left_or_right_arm;
-  faceViewName = "Face View " + left_or_right_arm;
-  rangeogramViewName = "Rangeogram View " + left_or_right_arm;
-  rangemapViewName = "Range Map View " + left_or_right_arm;
-  graspMemoryViewName = "Grasp Memory View " + left_or_right_arm;
-  graspMemorySampleViewName = "Grasp Memory Sample View " + left_or_right_arm;
-  heightMemorySampleViewName = "Height Memory Sample View " + left_or_right_arm;
-  hiRangemapViewName = "Hi Range Map View " + left_or_right_arm;
-  hiColorRangemapViewName = "Hi Color Range Map View " + left_or_right_arm;
-  mapBackgroundViewName = "Map Background Viewer " + left_or_right_arm;
+  ms->config.wristViewName = "Wrist View " + left_or_right_arm;
+  ms->config.coreViewName = "Core View " + left_or_right_arm;
+  ms->config.faceViewName = "Face View " + left_or_right_arm;
+  ms->config.rangeogramViewName = "Rangeogram View " + left_or_right_arm;
+  ms->config.rangemapViewName = "Range Map View " + left_or_right_arm;
+  ms->config.graspMemoryViewName = "Grasp Memory View " + left_or_right_arm;
+  ms->config.graspMemorySampleViewName = "Grasp Memory Sample View " + left_or_right_arm;
+  ms->config.heightMemorySampleViewName = "Height Memory Sample View " + left_or_right_arm;
+  ms->config.hiRangemapViewName = "Hi Range Map View " + left_or_right_arm;
+  ms->config.hiColorRangemapViewName = "Hi Color Range Map View " + left_or_right_arm;
+  ms->config.mapBackgroundViewName = "Map Background Viewer " + left_or_right_arm;
 
-  cv::namedWindow(wristViewName);
-  cv::setMouseCallback(wristViewName, pilotCallbackFunc, NULL);
-  cv::namedWindow(graspMemoryViewName);
-  cv::setMouseCallback(graspMemoryViewName, graspMemoryCallbackFunc, NULL);
-  cv::namedWindow(coreViewName);
-  cv::namedWindow(rangeogramViewName);
-  cv::namedWindow(mapBackgroundViewName);
-  cv::namedWindow(faceViewName);
+  cv::namedWindow(ms->config.wristViewName);
+  cv::setMouseCallback(ms->config.wristViewName, pilotCallbackFunc, NULL);
+  cv::namedWindow(ms->config.graspMemoryViewName);
+  cv::setMouseCallback(ms->config.graspMemoryViewName, graspMemoryCallbackFunc, NULL);
+  cv::namedWindow(ms->config.coreViewName);
+  cv::namedWindow(ms->config.rangeogramViewName);
+  cv::namedWindow(ms->config.mapBackgroundViewName);
+  cv::namedWindow(ms->config.faceViewName);
 
   ros::Subscriber fetchCommandSubscriber;
   fetchCommandSubscriber = n.subscribe("/fetch_commands", 1, 
@@ -13248,7 +13196,7 @@ int main(int argc, char **argv) {
   initializeMap(pMachineState);
 
   spinlessNodeMain();
-  spinlessPilotMain();
+  spinlessPilotMain(ms);
 
   saveROSParams();
 

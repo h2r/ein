@@ -572,8 +572,8 @@ REGISTER_WORD(NeutralScanA)
 WORD(NeutralScanB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Entering neutralScanB." << endl;
-  double lineSpeed = bDelta;
-  double betweenSpeed = bDelta;
+  double lineSpeed = ms->config.bDelta;
+  double betweenSpeed = ms->config.bDelta;
 
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
   ms->pushWord(1114150); // prepare for search
@@ -686,8 +686,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     //int hbb = pilotTargetBlueBoxNumber;
     //int hbb = 0;
 
-    int topCornerX = reticle.px - (aerialGradientReticleWidth/2);
-    int topCornerY = reticle.py - (aerialGradientReticleWidth/2);
+    int topCornerX = ms->config.reticle.px - (aerialGradientReticleWidth/2);
+    int topCornerY = ms->config.reticle.py - (aerialGradientReticleWidth/2);
     int crows = aerialGradientReticleWidth;
     int ccols = aerialGradientReticleWidth;
 
@@ -856,7 +856,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("fillClearanceMap");
   ms->pushWord("loadIkMap");
   currentBoundingBoxMode = MAPPING;
-  bDelta = 0.001;
+  ms->config.bDelta = 0.001;
 }
 END_WORD
 REGISTER_WORD(ScanCentered)
@@ -1026,7 +1026,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double zToUse = trueEEPose.position.z+currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
-    globalToPixelPrint(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    globalToPixelPrint(ms, &eX, &eY, zToUse, eepReg1.px, eepReg1.py);
   }
 }
 END_WORD
@@ -1036,19 +1036,19 @@ WORD(SetHeightReticlesA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int darkX = 0;
   int darkY = 0;
-  findDarkness(&darkX, &darkY);
+  findDarkness(ms, &darkX, &darkY);
 
   pilotTarget.px = darkX;
   pilotTarget.py = darkY;
 
-  heightReticles[currentThompsonHeightIdx].px = darkX;
-  heightReticles[currentThompsonHeightIdx].py = darkY;
+  ms->config.heightReticles[currentThompsonHeightIdx].px = darkX;
+  ms->config.heightReticles[currentThompsonHeightIdx].py = darkY;
 
   cout << "setHeightReticles,  currentThompsonHeightIdx: " << currentThompsonHeightIdx << endl;
-  printEEPose(heightReticles[0]); cout << endl;
-  printEEPose(heightReticles[1]); cout << endl;
-  printEEPose(heightReticles[2]); cout << endl;
-  printEEPose(heightReticles[3]); cout << endl;
+  printEEPose(ms->config.heightReticles[0]); cout << endl;
+  printEEPose(ms->config.heightReticles[1]); cout << endl;
+  printEEPose(ms->config.heightReticles[2]); cout << endl;
+  printEEPose(ms->config.heightReticles[3]); cout << endl;
 }
 END_WORD
 REGISTER_WORD(SetHeightReticlesA)
@@ -1059,16 +1059,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int imW = sz.width;
   int imH = sz.height;
 
-  cropUpperLeftCorner.px = 320;
-  cropUpperLeftCorner.py = 200;
+  ms->config.cropUpperLeftCorner.px = 320;
+  ms->config.cropUpperLeftCorner.py = 200;
 
   baxter_core_msgs::OpenCamera ocMessage;
   ocMessage.request.name = left_or_right_arm + "_hand_camera";
   ocMessage.request.settings.controls.resize(2);
   ocMessage.request.settings.controls[0].id = 105;
-  ocMessage.request.settings.controls[0].value = cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
-  ocMessage.request.settings.controls[1].value = cropUpperLeftCorner.py;
+  ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
   int testResult = cameraClient.call(ocMessage);
 }
 END_WORD
@@ -1080,9 +1080,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ocMessage.request.name = left_or_right_arm + "_hand_camera";
   ocMessage.request.settings.controls.resize(2);
   ocMessage.request.settings.controls[0].id = 105;
-  ocMessage.request.settings.controls[0].value = cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
-  ocMessage.request.settings.controls[1].value = cropUpperLeftCorner.py;
+  ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
   int testResult = cameraClient.call(ocMessage);
 }
 END_WORD
@@ -1094,13 +1094,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int imW = sz.width;
   int imH = sz.height;
 
-  double Vx = vanishingPointReticle.px - (imW/2);
-  double Vy = vanishingPointReticle.py - (imH/2);
+  double Vx = ms->config.vanishingPointReticle.px - (imW/2);
+  double Vy = ms->config.vanishingPointReticle.py - (imH/2);
 
-  cropUpperLeftCorner.px += Vx;
-  cropUpperLeftCorner.py += Vy;
-  vanishingPointReticle.px -= Vx;
-  vanishingPointReticle.py -= Vy;
+  ms->config.cropUpperLeftCorner.px += Vx;
+  ms->config.cropUpperLeftCorner.py += Vy;
+  ms->config.vanishingPointReticle.px -= Vx;
+  ms->config.vanishingPointReticle.py -= Vy;
 
   cout << "MoveCropToCenterVanishingPoint Vx Vy: " << Vx << " " << Vy << endl;
 
@@ -1108,9 +1108,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ocMessage.request.name = left_or_right_arm + "_hand_camera";
   ocMessage.request.settings.controls.resize(2);
   ocMessage.request.settings.controls[0].id = 105;
-  ocMessage.request.settings.controls[0].value = cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
-  ocMessage.request.settings.controls[1].value = cropUpperLeftCorner.py;
+  ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
   int testResult = cameraClient.call(ocMessage);
   //cout << "centerVanishingPoint testResult: " << testResult << endl;
   //cout << ocMessage.response.name << endl;
@@ -1182,13 +1182,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // where is the darkest point now? did it move? move vp to darkest point and possibly run again
   int darkX = 0;
   int darkY = 0;
-  findDarkness(&darkX, &darkY);
+  findDarkness(ms, &darkX, &darkY);
 
-  int Px = darkX - vanishingPointReticle.px;
-  int Py = darkY - vanishingPointReticle.py;
+  int Px = darkX - ms->config.vanishingPointReticle.px;
+  int Py = darkY - ms->config.vanishingPointReticle.py;
 
-  vanishingPointReticle.px = darkX;
-  vanishingPointReticle.py = darkY;
+  ms->config.vanishingPointReticle.px = darkX;
+  ms->config.vanishingPointReticle.py = darkY;
   
   cout << "setVanishingPoint Px Py: " << Px << " " << Py << endl;
 
@@ -1322,7 +1322,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   int darkX = 0;
   int darkY = 0;
-  findDarkness(&darkX, &darkY);
+  findDarkness(ms, &darkX, &darkY);
 
   pilotTarget.px = darkX;
   pilotTarget.py = darkY;
@@ -1334,7 +1334,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double zToUse = trueEEPose.position.z+currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
-    globalToPixelPrint(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    globalToPixelPrint(ms, &eX, &eY, zToUse, eepReg1.px, eepReg1.py);
 
     // remember this is flipped!
     double Px = darkY - eY;
@@ -1344,7 +1344,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double yFlip = 1.0;
 
     // remember x, y are swapped
-    eePose thisFlipReticle = heightReticles[currentThompsonHeightIdx];
+    eePose thisFlipReticle = ms->config.heightReticles[currentThompsonHeightIdx];
     if (darkX < thisFlipReticle.px) {
       yFlip = -1.0;
     }
@@ -1377,7 +1377,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   int darkX = 0;
   int darkY = 0;
-  findDarkness(&darkX, &darkY);
+  findDarkness(ms, &darkX, &darkY);
 
   pilotTarget.px = darkX;
   pilotTarget.py = darkY;
@@ -1389,7 +1389,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double zToUse = trueEEPose.position.z+currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
-    globalToPixelPrint(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    globalToPixelPrint(ms, &eX, &eY, zToUse, eepReg1.px, eepReg1.py);
 
     // remember this is flipped!
     double Px = darkY - eY;
@@ -1399,7 +1399,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double yFlip = 1.0;
 
     // remember x, y are swapped
-    eePose thisFlipReticle = heightReticles[currentThompsonHeightIdx];
+    eePose thisFlipReticle = ms->config.heightReticles[currentThompsonHeightIdx];
     if (darkX < thisFlipReticle.px) {
       yFlip = -1.0;
     }
@@ -1717,7 +1717,7 @@ REGISTER_WORD(CalibrateRGBCameraIntrinsics)
 
 WORD(AssumeCalibrationPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose = calibrationPose;
+  currentEEPose = ms->config.calibrationPose;
 }
 END_WORD
 REGISTER_WORD(AssumeCalibrationPose)
@@ -1726,7 +1726,7 @@ WORD(LoadCalibration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   string fileName = data_directory + "/config/" + left_or_right_arm + "Calibration.yml";
   cout << "Loading calibration file from " << fileName << endl;
-  loadCalibration(fileName);
+  loadCalibration(ms, fileName);
 }
 END_WORD
 REGISTER_WORD(LoadCalibration)
@@ -1735,7 +1735,7 @@ WORD(SaveCalibration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   string fileName = data_directory + "/config/" + left_or_right_arm + "Calibration.yml";
   cout << "Saving calibration file from " << fileName << endl;
-  saveCalibration(fileName);
+  saveCalibration(ms, fileName);
 }
 END_WORD
 REGISTER_WORD(SaveCalibration)
@@ -1743,7 +1743,7 @@ REGISTER_WORD(SaveCalibration)
 WORD(SetColorReticles)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
-  bDelta = cReticleIndexDelta;
+  ms->config.bDelta = cReticleIndexDelta;
   currentEEPose.pz = firstCReticleIndexDepth;
 
   // leave it in a canonical state
@@ -1769,7 +1769,7 @@ WORD(SetColorReticlesA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int lightX = 0;
   int lightY = 0;
-  findLight(&lightX, &lightY);
+  findLight(ms, &lightX, &lightY);
 
   pilotTarget.px = lightX;
   pilotTarget.py = lightY;

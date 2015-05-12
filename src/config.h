@@ -60,6 +60,14 @@ typedef enum {
   GRASP_3D
 } graspMode;
 
+#define NOW_THATS_FAST 0.08
+#define MOVE_EVEN_FASTER 0.04
+#define MOVE_FASTER 0.02
+#define MOVE_FAST 0.01
+#define MOVE_MEDIUM 0.005 //.005
+#define MOVE_SLOW 0.0025
+#define MOVE_VERY_SLOW 0.00125
+
 #define NUM_JOINTS 7
 
 class EinConfig {
@@ -155,6 +163,41 @@ class EinConfig {
   int ik_reset_thresh = 20;
 
   double eeRange = 0.0;
+
+
+  double bDelta = MOVE_FAST;
+
+  std::string wristViewName = "Wrist View";
+  std::string coreViewName = "Core View";
+  std::string rangeogramViewName = "Rangeogram View";
+  std::string rangemapViewName = "Range Map View";
+  std::string hiRangemapViewName = "Hi Range Map View";
+  std::string hiColorRangemapViewName = "Hi Color Range Map View";
+  std::string graspMemoryViewName = "Grasp Memory View";
+  std::string graspMemorySampleViewName = "Grasp Memory Sample View";
+  std::string mapBackgroundViewName = "Map Background Vew";
+  std::string faceViewName = "Face View";
+  std::string heightMemorySampleViewName = "Height Memory Sample View";
+
+  eePose calibrationPose;
+  eePose shrugPose;
+  eePose handingPose;
+
+  eePose straightDown = {.px = 0.0, .py = 0.0, .pz = 0.0,
+                         .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+
+  eePose cropUpperLeftCorner = {.px = 320, .py = 200, .pz = 0.0,
+                                .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // center of image
+
+  eePose centerReticle = {.px = 325, .py = 127, .pz = 0.0,
+                          .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
+
+  eePose defaultReticle = centerReticle;
+  eePose heightReticles[4];
+
+  eePose probeReticle = defaultReticle;
+  eePose vanishingPointReticle = defaultReticle;
+  eePose reticle = defaultReticle;
 
 
   // config variables that don't seem to be used
