@@ -440,7 +440,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Set rmcX and rmcY from currentEEPose." << endl;
   rmcX = currentEEPose.px;
   rmcY = currentEEPose.py;
-  //rmcZ = currentEEPose.pz - eeRange;
+  //rmcZ = currentEEPose.pz - ms->config.eeRange;
 }
 END_WORD
 REGISTER_WORD(SetRangeMapCenterFromCurrentEEPose)
@@ -451,7 +451,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Set rmcX and rmcY. Resetting maps. " << rmcX << " " << trueEEPose.position.x << endl;
   rmcX = trueEEPose.position.x;
   rmcY = trueEEPose.position.y;
-  rmcZ = trueEEPose.position.z - eeRange;
+  rmcZ = trueEEPose.position.z - ms->config.eeRange;
   for (int rx = 0; rx < rmWidth; rx++) {
     for (int ry = 0; ry < rmWidth; ry++) {
       rangeMap[rx + ry*rmWidth] = 0;

@@ -104,7 +104,6 @@ MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
 
-double eeRange = 0.0;
 
 double bDelta = MOVE_FAST;
 double approachStep = .0005;
@@ -484,8 +483,8 @@ int yCR[numCReticleIndeces];
 
 ros::Publisher vmMarkerPublisher;
 
-int getColorReticleX();
-int getColorReticleY();
+int getColorReticleX(shared_ptr<MachineState> ms);
+int getColorReticleY(shared_ptr<MachineState> ms);
 
 
 
@@ -1312,7 +1311,7 @@ void rgRingBufferAdvance();
 void epRingBufferAdvance();
 void allRingBuffersAdvance(ros::Time t);
 
-void recordReadyRangeReadings();
+void recordReadyRangeReadings(shared_ptr<MachineState> ms);
 void jointCallback(const sensor_msgs::JointState& js);
 void endpointCallback(const baxter_core_msgs::EndpointState& eps);
 void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::EndpointState& eps);
@@ -1333,10 +1332,8 @@ void l2NormalizeParzen();
 void l2NormalizeFilter();
 
 
-int getColorReticleX();
-int getColorReticleY();
-cv::Vec3b getCRColor();
-cv::Vec3b getCRColor(Mat im);
+cv::Vec3b getCRColor(shared_ptr<MachineState> ms);
+cv::Vec3b getCRColor(shared_ptr<MachineState> ms, Mat im);
 Quaternionf extractQuatFromPose(geometry_msgs::Pose poseIn);
 
 
@@ -2120,7 +2117,7 @@ void allRingBuffersAdvance(ros::Time t) {
   //getRingRangeAtTime(t, thisRange, 1);
 }
 
-void recordReadyRangeReadings() {
+void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
   // if we have some range readings to process
   if (pMachineState->config.rgRingBufferEnd != pMachineState->config.rgRingBufferStart) {
 
@@ -2267,7 +2264,7 @@ void recordReadyRangeReadings() {
 		  int kpx = px - (hiiX - parzenKernelHalfWidth);
 		  int kpy = py - (hiiY - parzenKernelHalfWidth);
 
-		  cv::Vec3b thisSample = getCRColor(thisImage); 
+		  cv::Vec3b thisSample = getCRColor(ms, thisImage); 
 		  hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] += thisSample[0]*parzenKernel[kpx + kpy*parzenKernelWidth];
 		  hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] += thisSample[1]*parzenKernel[kpx + kpy*parzenKernelWidth];
 		  hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] += thisSample[2]*parzenKernel[kpx + kpy*parzenKernelWidth];
@@ -2309,7 +2306,7 @@ void recordReadyRangeReadings() {
 		    int kpy = py - (hiiY - parzen3DKernelHalfWidth);
 		    int kpz = pz - (hiiZ - parzen3DKernelHalfWidth);
 
-		    cv::Vec3b thisSample = getCRColor(thisImage); 
+		    cv::Vec3b thisSample = getCRColor(ms, thisImage); 
 		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] += thisSample[0]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
 		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] += thisSample[1]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
 		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] += thisSample[2]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
@@ -2359,7 +2356,7 @@ void recordReadyRangeReadings() {
 		    int kpy = py - (piiY - parzen3DKernelHalfWidth);
 		    int kpz = pz - (piiZ - parzen3DKernelHalfWidth);
 
-		    cv::Vec3b thisSample = getCRColor(thisImage); 
+		    cv::Vec3b thisSample = getCRColor(ms, thisImage); 
 		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] += thisSample[0]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
 		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] += thisSample[1]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
 		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] += thisSample[2]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
@@ -2833,20 +2830,20 @@ void l2NormalizeFilter() {
 }
 
 
-int getColorReticleX() {
+int getColorReticleX(shared_ptr<MachineState> ms) {
   // rounding
   //int tcri = int(round((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
   //tcri = min(max(tcri,0),numCReticleIndeces-1);
   //return xCR[tcri];
 
   // interpolating
-  int tcriL = int(floor((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
-  int tcriH = int(ceil((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
+  int tcriL = int(floor((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
+  int tcriH = int(ceil((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
   tcriL = min(max(tcriL,0),numCReticleIndeces-1);
   tcriH = min(max(tcriH,0),numCReticleIndeces-1);
 
-  double tcrwL = ((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta) - floor((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta);
-  double tcrwH = ceil((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta) - ((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta);
+  double tcrwL = ((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta) - floor((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta);
+  double tcrwH = ceil((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta) - ((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta);
 
   if (tcriL == tcriH)
     return xCR[tcriL];
@@ -2854,20 +2851,20 @@ int getColorReticleX() {
     return int(round(tcrwL*double(xCR[tcriL]) + tcrwH*double(xCR[tcriH])));
 }
 
-int getColorReticleY() {
+int getColorReticleY(shared_ptr<MachineState> ms) {
   // rounding
-  //int tcri = int(round((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
+  //int tcri = int(round((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
   //tcri = min(max(tcri,0),numCReticleIndeces-1);
   //return yCR[tcri];
 
   // interpolating
-  int tcriL = int(floor((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
-  int tcriH = int(ceil((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
+  int tcriL = int(floor((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
+  int tcriH = int(ceil((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
   tcriL = min(max(tcriL,0),numCReticleIndeces-1);
   tcriH = min(max(tcriH,0),numCReticleIndeces-1);
 
-  double tcrwL = ((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta) - floor((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta);
-  double tcrwH = ceil((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta) - ((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta);
+  double tcrwL = ((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta) - floor((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta);
+  double tcrwH = ceil((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta) - ((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta);
 
   if (tcriL == tcriH)
     return yCR[tcriL];
@@ -2875,11 +2872,11 @@ int getColorReticleY() {
     return int(round(tcrwL*double(yCR[tcriL]) + tcrwH*double(yCR[tcriH])));
 }
 
-cv::Vec3b getCRColor() {
+cv::Vec3b getCRColor(shared_ptr<MachineState> ms) {
   cv::Vec3b toReturn(0,0,0);
   if (wristCamInit) {
-    int crX = getColorReticleX();
-    int crY = getColorReticleY();
+    int crX = getColorReticleX(ms);
+    int crY = getColorReticleY(ms);
 
     if ((crX < wristCamImage.cols) && (crY < wristCamImage.rows))
       toReturn = wristCamImage.at<cv::Vec3b>(crY,crX); 
@@ -2887,12 +2884,12 @@ cv::Vec3b getCRColor() {
   return toReturn;
 }
 
-// XXX TODO this should really use a buffered eeRange
-cv::Vec3b getCRColor(Mat im) {
+// XXX TODO this should really use a buffered ms->config.eeRange
+cv::Vec3b getCRColor(shared_ptr<MachineState> ms, Mat im) {
   cv::Vec3b toReturn(0,0,0);
 
-  int crX = getColorReticleX();
-  int crY = getColorReticleY();
+  int crX = getColorReticleX(ms);
+  int crY = getColorReticleY(ms);
 
   if ((crX < im.cols) && (crY < im.rows))
     toReturn = im.at<cv::Vec3b>(crY,crX); 
@@ -3192,8 +3189,8 @@ void rangeCallback(const sensor_msgs::Range& range) {
     ms->config.aveFrequencyRange = ms->config.timeMassRange / deltaTimeRange;
   }
 
-  eeRange = range.range;
-  rangeHistory[currentRangeHistoryIndex] = eeRange;
+  ms->config.eeRange = range.range;
+  rangeHistory[currentRangeHistoryIndex] = ms->config.eeRange;
   currentRangeHistoryIndex++;
   currentRangeHistoryIndex = currentRangeHistoryIndex % totalRangeHistoryLength;
 
@@ -3276,8 +3273,8 @@ void rangeCallback(const sensor_msgs::Range& range) {
 
   if (recordRangeMap) {
     // actually storing the negative z for backwards compatibility
-    //double thisZmeasurement = -(currentEEPose.pz - eeRange);
-    double thisZmeasurement = -(trueEEPose.position.z - eeRange);
+    //double thisZmeasurement = -(currentEEPose.pz - ms->config.eeRange);
+    double thisZmeasurement = -(trueEEPose.position.z - ms->config.eeRange);
     double dX = 0;
     double dY = 0;
 
@@ -3297,9 +3294,9 @@ void rangeCallback(const sensor_msgs::Range& range) {
       Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
 
       Eigen::Vector3d irSensorEnd(
-				   (trueEEPose.position.x - irSensorStartLocal.x()) + eeRange*localUnitZ.x(),
-				   (trueEEPose.position.y - irSensorStartLocal.y()) + eeRange*localUnitZ.y(),
-				   (trueEEPose.position.z - irSensorStartLocal.z()) + eeRange*localUnitZ.z()
+				   (trueEEPose.position.x - irSensorStartLocal.x()) + ms->config.eeRange*localUnitZ.x(),
+				   (trueEEPose.position.y - irSensorStartLocal.y()) + ms->config.eeRange*localUnitZ.y(),
+				   (trueEEPose.position.z - irSensorStartLocal.z()) + ms->config.eeRange*localUnitZ.z()
 				  );
 
       dX = (irSensorEnd.x() - rmcX); 
@@ -3386,7 +3383,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  int kpx = px - (hiiX - parzenKernelHalfWidth);
 	  int kpy = py - (hiiY - parzenKernelHalfWidth);
 
-	  cv::Vec3b thisSample = getCRColor(); 
+	  cv::Vec3b thisSample = getCRColor(ms); 
 //	  hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] += thisSample[0]*parzenKernel[kpx + kpy*parzenKernelWidth];
 //	  hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] += thisSample[1]*parzenKernel[kpx + kpy*parzenKernelWidth];
 //	  hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] += thisSample[2]*parzenKernel[kpx + kpy*parzenKernelWidth];
@@ -3399,7 +3396,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 //
 //	  hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
 
-	  //hiRangeMapAccumulator[px + py*hrmWidth] += eeRange*parzenKernel[kpx + kpy*parzenKernelWidth];
+	  //hiRangeMapAccumulator[px + py*hrmWidth] += ms->config.eeRange*parzenKernel[kpx + kpy*parzenKernelWidth];
 	  //hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
 	  //hiRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
 	  //double denom = max(hiRangeMapMass[px + py*hrmWidth], EPSILON);
@@ -4078,7 +4075,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   int weHaveImData = getRingImageAtTime(msg->header.stamp, thisImage);
 
   //if (recordRangeMap) 
-  recordReadyRangeReadings();
+  recordReadyRangeReadings(ms);
 
   // publish volumetric representation to a marker array
   {
@@ -4258,9 +4255,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 	Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
 
 	Eigen::Vector3d irSensorEnd(
-				     (thisPose.position.x - irSensorStartLocal.x()) + eeRange*localUnitZ.x(),
-				     (thisPose.position.y - irSensorStartLocal.y()) + eeRange*localUnitZ.y(),
-				     (thisPose.position.z - irSensorStartLocal.z()) + eeRange*localUnitZ.z()
+				     (thisPose.position.x - irSensorStartLocal.x()) + ms->config.eeRange*localUnitZ.x(),
+				     (thisPose.position.y - irSensorStartLocal.y()) + ms->config.eeRange*localUnitZ.y(),
+				     (thisPose.position.z - irSensorStartLocal.z()) + ms->config.eeRange*localUnitZ.z()
 				    );
 	irPose.px = irSensorEnd.x();
 	irPose.py = irSensorEnd.y();
@@ -4418,8 +4415,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       rectangle(wristViewImage, inTop, inBot, cv::Scalar(0,64,0)); 
     }
     {
-      int tcrx = getColorReticleX();
-      int tcry = getColorReticleY();
+      int tcrx = getColorReticleX(ms);
+      int tcry = getColorReticleY(ms);
       cv::Point outTop = cv::Point(tcrx-5, tcry-5);
       cv::Point outBot = cv::Point(tcrx+5, tcry+5);
       cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
@@ -4884,12 +4881,13 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
   //if (!ms->config.shouldIMiscCallback) {
     //return;
   //}
+  shared_ptr<MachineState> ms = pMachineState;
 
   if ( event == EVENT_LBUTTONDOWN ) {
     cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
     probeReticle.px = x;
     probeReticle.py = y;
-    cout << "x: " << x << " y: " << y << " eeRange: " << eeRange << endl;
+    cout << "x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << endl;
   } else if ( event == EVENT_RBUTTONDOWN ) {
     //cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
   } else if  ( event == EVENT_MBUTTONDOWN ) {
@@ -4930,7 +4928,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     pMachineState->pushWord("drawMapRegisters"); // render register 1
     pMachineState->execute_stack = 1;
 
-    cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << eeRange << 
+    cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << gmTargetX << " " << gmTargetY << endl;
   } else if ( event == EVENT_RBUTTONDOWN ) {
     int bigX = x / rmiCellWidth;
@@ -4942,7 +4940,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     pMachineState->pushWord("drawMapRegisters"); // render register 1
     pMachineState->execute_stack = 1;
 
-    cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << eeRange << 
+    cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << gmTargetX << " " << gmTargetY << endl;
   } else if  ( event == EVENT_MBUTTONDOWN ) {
     int bigX = x / rmiCellWidth;
@@ -4960,7 +4958,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     pMachineState->pushWord("drawMapRegisters"); // render register 1
     pMachineState->execute_stack = 1;
 
-    cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << eeRange << 
+    cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << gmTargetX << " " << gmTargetY << endl;
   } else if ( event == EVENT_MOUSEMOVE ) {
     //cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
