@@ -121,6 +121,22 @@ class EinConfig {
 
 
 
+  double aveTime = 0.0;
+  double aveFrequency = 0.0;
+  double timeMass = 0.0;
+  double timeInterval = 30;
+  time_t thisTime = 0;
+  time_t firstTime = 0;
+
+
+  double aveTimeRange = 0.0;
+  double aveFrequencyRange = 0.0;
+  double timeMassRange = 0.0;
+  double timeIntervalRange = 30;
+  time_t thisTimeRange = 0;
+  time_t firstTimeRange = 0;
+
+
 
   // config variables that don't seem to be used
 
