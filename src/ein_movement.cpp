@@ -32,7 +32,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh)) {
     ms->pushWord("waitUntilAtCurrentPositionB"); 
     endThisStackCollapse = 1;
-    shouldIDoIK = 1;
+    ms->config.shouldIDoIK = 1;
   } else {
     endThisStackCollapse = 1;
   }
@@ -78,7 +78,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh)) {
       ms->pushWord("waitUntilAtCurrentPositionB"); 
       endThisStackCollapse = 1;
-      shouldIDoIK = 1;
+      ms->config.shouldIDoIK = 1;
     } else {
       endThisStackCollapse = endCollapse;
     }
@@ -675,7 +675,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   lastHoverTrueEEPoseEEPose = trueEEPoseEEPose;
   ms->pushWord("hoverA");
   endThisStackCollapse = 1;
-  shouldIDoIK = 1;
+  ms->config.shouldIDoIK = 1;
   lastHoverRequest = ros::Time::now();
   lastEndpointCallbackRequest = lastHoverRequest;
 }
@@ -704,7 +704,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       if ((distance > hoverGoThresh*hoverGoThresh) || (angleDistance > hoverAngleThresh*hoverAngleThresh)) {
 	ms->pushWord("hoverA"); 
 	endThisStackCollapse = 1;
-	shouldIDoIK = 1;
+	ms->config.shouldIDoIK = 1;
 	cout << "hoverA distance requirement not met, distance angleDistance: " << distance << " " << angleDistance << endl;
 	lastHoverTrueEEPoseEEPose = trueEEPoseEEPose;
       } else {
