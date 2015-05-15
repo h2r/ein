@@ -5110,10 +5110,10 @@ void pilotInit(shared_ptr<MachineState> ms) {
     eePose pose1 = {.px = 0.65, .py = 0.0544691, .pz = -0.0582791,
                        .qx = 0, .qy = 1, .qz = 0, .qw = 0};
     for (int i = 0; i < numposes; i++) {
-      deliveryPoses.push_back(pose1);
+      ms->config.deliveryPoses.push_back(pose1);
     }
     for (int i = 0; i < numposes; i++) {
-      deliveryPoses[i].py = ystart + i * ystep;
+      ms->config.deliveryPoses[i].py = ystart + i * ystep;
     }
 
     rssPose = rssPoseL;
@@ -5244,10 +5244,10 @@ void pilotInit(shared_ptr<MachineState> ms) {
     eePose pose1 = {.px = 0.65, .py = 0.0544691, .pz = -0.0582791,
                        .qx = 0, .qy = 1, .qz = 0, .qw = 0};
     for (int i = 0; i < numposes; i++) {
-      deliveryPoses.push_back(pose1);
+      ms->config.deliveryPoses.push_back(pose1);
     }
     for (int i = 0; i < numposes; i++) {
-      deliveryPoses[i].py = ystart + i * ystep;
+      ms->config.deliveryPoses[i].py = ystart + i * ystep;
     }
 
     rssPose = rssPoseR;
@@ -8006,14 +8006,14 @@ void synchronicServo(shared_ptr<MachineState> ms) {
     }
 
     if (foundAnUnmappedTarget) {
-      pilotClosestBlueBoxNumber = closestUnmappedBBToReticle;
-      pilotTarget.px = bCens[pilotClosestBlueBoxNumber].x;
-      pilotTarget.py = bCens[pilotClosestBlueBoxNumber].y;
+      ms->config.pilotClosestBlueBoxNumber = closestUnmappedBBToReticle;
+      pilotTarget.px = bCens[ms->config.pilotClosestBlueBoxNumber].x;
+      pilotTarget.py = bCens[ms->config.pilotClosestBlueBoxNumber].y;
       pilotTarget.pz = 0;
       pilotClosestTarget = pilotTarget;
     } else {
       // this prevents gradient servo 
-      pilotClosestBlueBoxNumber = -1;
+      ms->config.pilotClosestBlueBoxNumber = -1;
       bTops.resize(0);
       bBots.resize(0);
       bCens.resize(0);
@@ -11174,9 +11174,9 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
     pilotClosestTarget.py = p.y;
     pilotClosestTarget.pz = p.z;
 
-    pilotClosestBlueBoxNumber = closestBBToReticle;
+    ms->config.pilotClosestBlueBoxNumber = closestBBToReticle;
   } else {
-    pilotClosestBlueBoxNumber = -1;
+    ms->config.pilotClosestBlueBoxNumber = -1;
   }
 
   if (bTops.size() > 0) {
@@ -11683,9 +11683,9 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
     pilotClosestTarget.py = p.y;
     pilotClosestTarget.pz = p.z;
 
-    pilotClosestBlueBoxNumber = closestBBToReticle;
+    ms->config.pilotClosestBlueBoxNumber = closestBBToReticle;
   } else {
-    pilotClosestBlueBoxNumber = -1;
+    ms->config.pilotClosestBlueBoxNumber = -1;
   }
 
   if (ms->config.shouldIRender) {

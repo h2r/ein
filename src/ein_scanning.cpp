@@ -2007,7 +2007,7 @@ REGISTER_WORD(Save3dGrasps)
 
 WORD(Lock3dGraspBase)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if ( (bLabels.size() > 0) && (pilotClosestBlueBoxNumber != -1) ) {
+  if ( (bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
     ms->config.c3dPoseBase = currentEEPose;
     ms->config.c3dPoseBase.pz = -currentTableZ;
     cout << "The base for 3d grasp annotation is now locked and you are in zero-G mode. Please adjust use \"add3dGrasp\" to record a grasp point." << endl;

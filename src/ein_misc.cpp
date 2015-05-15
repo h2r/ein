@@ -343,11 +343,11 @@ REGISTER_WORD(IncrementTargetClass)
 
 WORD(ChangeTargetClassToClosestBlueBox)
 virtual void execute(std::shared_ptr<MachineState> ms)  {
-  if (pilotClosestBlueBoxNumber == -1) {
-    cout << "Not changing because closest bbox is " << pilotClosestBlueBoxNumber << endl;
+  if (ms->config.pilotClosestBlueBoxNumber == -1) {
+    cout << "Not changing because closest bbox is " << ms->config.pilotClosestBlueBoxNumber << endl;
     return;
   }
-  int class_idx = bLabels[pilotClosestBlueBoxNumber];
+  int class_idx = bLabels[ms->config.pilotClosestBlueBoxNumber];
   cout << "Changing to closest blue blox target, which is class " << classLabels[class_idx] << endl;
   changeTargetClass(ms, class_idx);
 }
