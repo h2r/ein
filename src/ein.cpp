@@ -180,8 +180,6 @@ eePose eepReg5 = beeHome;
 eePose eepReg6 = beeHome;
 
 
-int pilotTargetBlueBoxNumber = -1;
-int pilotClosestBlueBoxNumber = -1;
 
 string left_or_right_arm = "right";
 
@@ -7958,7 +7956,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       pilotTarget.px = pilotClosestTarget.px;
       pilotTarget.py = pilotClosestTarget.py;
       pilotTarget.pz = pilotClosestTarget.pz;
-      pilotTargetBlueBoxNumber = pilotClosestBlueBoxNumber;
+      ms->config.pilotTargetBlueBoxNumber = ms->config.pilotClosestBlueBoxNumber;
     } else {
       return;
     }
@@ -11163,7 +11161,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
     pilotTarget.py = p.y;
     pilotTarget.pz = p.z;
     
-    pilotTargetBlueBoxNumber = biggestBB;
+    ms->config.pilotTargetBlueBoxNumber = biggestBB;
   }
   if (closestBBToReticle > -1) {
     geometry_msgs::Point p;
@@ -11672,7 +11670,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
     pilotTarget.py = p.y;
     pilotTarget.pz = p.z;
     
-    pilotTargetBlueBoxNumber = biggestBB;
+    ms->config.pilotTargetBlueBoxNumber = biggestBB;
   }
   if (closestBBToReticle > -1) {
     geometry_msgs::Point p;
