@@ -327,7 +327,7 @@ REGISTER_WORD(FillClearanceMap)
 WORD(SaveIkMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ofstream ofile;
-  string fileName = data_directory + "/config/" + left_or_right_arm + "IkMap";
+  string fileName = data_directory + "/config/" + ms->config.left_or_right_arm + "IkMap";
   cout << "Saving ikMap to " << fileName << endl;
   ofile.open(fileName, ios::trunc | ios::binary);
   ofile.write((char*)ikMap, sizeof(int)*mapWidth*mapHeight);
@@ -342,7 +342,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //  for only one height and is 360kB in binary... how
   //  big would it be in yml, and what if we want another height?
   ifstream ifile;
-  string fileName = data_directory + "/config/" + left_or_right_arm + "IkMap";
+  string fileName = data_directory + "/config/" + ms->config.left_or_right_arm + "IkMap";
   cout << "Loading ikMap from " << fileName << endl;
   ifile.open(fileName, ios::binary);
   ifile.read((char*)ikMap, sizeof(int)*mapWidth*mapHeight);

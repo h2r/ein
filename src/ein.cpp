@@ -181,7 +181,6 @@ eePose eepReg6 = beeHome;
 
 
 
-string left_or_right_arm = "right";
 
 eePose ik_reset_eePose = beeHome;
 
@@ -1291,7 +1290,7 @@ gsl_matrix * mapCellToPolygon(int map_i, int map_j) ;
 void pilotInit(shared_ptr<MachineState> ms);
 void spinlessPilotMain(shared_ptr<MachineState> ms);
 
-int doCalibrateGripper();
+int doCalibrateGripper(shared_ptr<MachineState> ms);
 int calibrateGripper(shared_ptr<MachineState> ms);
 int shouldIPick(int classToPick);
 int getLocalGraspGear(int globalGraspGearIn);
@@ -1436,9 +1435,9 @@ void resetAccumulatedImageAndMass();
 void substituteAccumulatedImageQuantities();
 void substituteLatestImageQuantities(shared_ptr<MachineState> ms);
 
-void loadROSParamsFromArgs();
-void loadROSParams();
-void saveROSParams();
+void loadROSParamsFromArgs(shared_ptr<MachineState> ms);
+void loadROSParams(shared_ptr<MachineState> ms);
+void saveROSParams(shared_ptr<MachineState> ms);
 
 void spinlessNodeMain();
 void nodeInit();
@@ -5093,7 +5092,7 @@ void saveCalibration(shared_ptr<MachineState> ms, string outFileName) {
 void pilotInit(shared_ptr<MachineState> ms) {
   eeForward = Eigen::Vector3d(1,0,0);
 
-  if (0 == left_or_right_arm.compare("left")) {
+  if (0 == ms->config.left_or_right_arm.compare("left")) {
     cout << "Possessing left arm..." << endl;
     beeHome = rssPoseL; //wholeFoodsPantryL;
     eepReg4 = rssPoseL; //beeLHome;
@@ -5226,7 +5225,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
                       .qx = 0.000177018, .qy = 1, .qz = -0.000352912, .qw = -0.000489087};
     ms->config.shrugPose = {.px = 0.0354772, .py = 1.20633, .pz = 0.150562,
                  .qx = -0.370521, .qy = 0.381345, .qz = 0.578528, .qw = 0.618544};
-  } else if (0 == left_or_right_arm.compare("right")) {
+  } else if (0 == ms->config.left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
 
     beeHome = rssPoseR;
@@ -5366,7 +5365,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
 
 
   } else {
-    cout << "Invalid chirality: " << left_or_right_arm << ".  Exiting." << endl;
+    cout << "Invalid chirality: " << ms->config.left_or_right_arm << ".  Exiting." << endl;
     exit(0);
   }
   pilotTarget = beeHome;
@@ -5463,9 +5462,9 @@ void pilotInit(shared_ptr<MachineState> ms) {
 
   {
     //gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
-    //if (0 == left_or_right_arm.compare("left")) {
+    //if (0 == ms->config.left_or_right_arm.compare("left")) {
       //gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
-    //} else if (0 == left_or_right_arm.compare("right")) {
+    //} else if (0 == ms->config.left_or_right_arm.compare("right")) {
       //gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
     //}
 
@@ -5781,7 +5780,7 @@ void guardHeightMemory(shared_ptr<MachineState> ms) {
 
 int calibrateGripper(shared_ptr<MachineState> ms) {
   for (int i = 0; i < 10; i++) {
-    int return_value = doCalibrateGripper();
+    int return_value = doCalibrateGripper(ms);
     if (return_value == 0) {
       return return_value;
     }
@@ -5791,11 +5790,11 @@ int calibrateGripper(shared_ptr<MachineState> ms) {
   ms->pushCopies("beep", 15); // beep
   return -1;
 }
-int doCalibrateGripper() {
+int doCalibrateGripper(shared_ptr<MachineState> ms) {
   int return_value;
-  if (0 == left_or_right_arm.compare("left")) {
+  if (0 == ms->config.left_or_right_arm.compare("left")) {
     return_value =system("bash -c \"echo -e \'c\003\' | rosrun baxter_examples gripper_keyboard.py\"");
-  } else if (0 == left_or_right_arm.compare("right")) {
+  } else if (0 == ms->config.left_or_right_arm.compare("right")) {
     return_value = system("bash -c \"echo -e \'C\003\' | rosrun baxter_examples gripper_keyboard.py\"");
   }
   if (return_value != 0) {
@@ -11740,7 +11739,7 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   nh.getParam("mask_gripper", mask_gripper);
   nh.getParam("add_blinders", add_blinders);
 
-  nh.getParam("left_or_right_arm", left_or_right_arm);
+  nh.getParam("left_or_right_arm", ms->config.left_or_right_arm);
 
   //nh.getParam("pMachineState->config.chosen_feature", cfi);
   //pMachineState->config.chosen_feature = static_cast<featureType>(cfi);
@@ -11755,7 +11754,7 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   } 
 }
 
-void loadROSParams() {
+void loadROSParams(shared_ptr<MachineState> ms) {
   ros::NodeHandle nh("~");
 
   nh.getParam("pink_box_threshold", pBoxThresh);
@@ -11809,12 +11808,12 @@ void loadROSParams() {
   nh.getParam("mask_gripper", mask_gripper);
   nh.getParam("add_blinders", add_blinders);
 
-  nh.getParam("left_or_right_arm", left_or_right_arm);
+  nh.getParam("left_or_right_arm", ms->config.left_or_right_arm);
 
   saved_crops_path = data_directory + "/objects/" + class_name + "/";
 }
 
-void saveROSParams() {
+void saveROSParams(shared_ptr<MachineState> ms) {
   ros::NodeHandle nh("~");
 
   nh.setParam("pink_box_threshold", pBoxThresh);
@@ -11866,7 +11865,7 @@ void saveROSParams() {
   nh.setParam("mask_gripper", mask_gripper);
   nh.setParam("add_blinders", add_blinders);
 
-  nh.setParam("left_or_right_arm", left_or_right_arm);
+  nh.setParam("left_or_right_arm", ms->config.left_or_right_arm);
 
   //nh.setParam("pMachineState->config.chosen_feature", cfi);
   //pMachineState->config.chosen_feature = static_cast<featureType>(cfi);
@@ -12966,8 +12965,8 @@ int main(int argc, char **argv) {
   unsigned long seed = 1;
   rk_seed(seed, &ms->config.random_state);
 
-  if ( (left_or_right_arm.compare("right") == 0) || (left_or_right_arm.compare("left") == 0) ) {
-    image_topic = "/cameras/" + left_or_right_arm + "_hand_camera/image";
+  if ( (ms->config.left_or_right_arm.compare("right") == 0) || (ms->config.left_or_right_arm.compare("left") == 0) ) {
+    image_topic = "/cameras/" + ms->config.left_or_right_arm + "_hand_camera/image";
   }
 
   image_transport::ImageTransport it(n);
@@ -12988,13 +12987,13 @@ int main(int argc, char **argv) {
   rec_objs_blue_memory = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_memory_objects", 10);
   markers_blue_memory = n.advertise<visualization_msgs::MarkerArray>("blue_memory_markers", 10);
 
-  ee_target_pub = n.advertise<geometry_msgs::Point>("pilot_target_" + left_or_right_arm, 10);
+  ee_target_pub = n.advertise<geometry_msgs::Point>("pilot_target_" + ms->config.left_or_right_arm, 10);
 
-  densityViewerName = "Density Viewer " + left_or_right_arm;
-  objectViewerName = "Object Viewer " + left_or_right_arm;
-  gradientViewerName = "Gradient Viewer " + left_or_right_arm;
-  aerialGradientViewerName = "Aerial Gradient Viewer " + left_or_right_arm;
-  objectnessViewerName = "Objectness Viewer " + left_or_right_arm;
+  densityViewerName = "Density Viewer " + ms->config.left_or_right_arm;
+  objectViewerName = "Object Viewer " + ms->config.left_or_right_arm;
+  gradientViewerName = "Gradient Viewer " + ms->config.left_or_right_arm;
+  aerialGradientViewerName = "Aerial Gradient Viewer " + ms->config.left_or_right_arm;
+  objectnessViewerName = "Objectness Viewer " + ms->config.left_or_right_arm;
 
   cv::namedWindow(gradientViewerName);
   cv::namedWindow(aerialGradientViewerName);
@@ -13012,11 +13011,11 @@ int main(int argc, char **argv) {
   ros::Timer simulatorCallbackTimer;
 
   if (pMachineState->config.currentRobotMode == PHYSICAL) {
-    epState =   n.subscribe("/robot/limb/" + left_or_right_arm + "/endpoint_state", 1, endpointCallback);
-    gripState = n.subscribe("/robot/end_effector/" + left_or_right_arm + "_gripper/state", 1, gripStateCallback);
-    eeAccelerator =  n.subscribe("/robot/accelerometer/" + left_or_right_arm + "_accelerometer/state", 1, accelerometerCallback);
-    eeRanger =  n.subscribe("/robot/range/" + left_or_right_arm + "_hand_range/state", 1, rangeCallback);
-    eeTarget =  n.subscribe("/ein_" + left_or_right_arm + "/pilot_target_" + left_or_right_arm, 1, targetCallback);
+    epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, endpointCallback);
+    gripState = n.subscribe("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/state", 1, gripStateCallback);
+    eeAccelerator =  n.subscribe("/robot/accelerometer/" + ms->config.left_or_right_arm + "_accelerometer/state", 1, accelerometerCallback);
+    eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, rangeCallback);
+    eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, targetCallback);
     jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
     image_sub = it.subscribe(image_topic, 1, imageCallback);
   } else if (pMachineState->config.currentRobotMode == SIMULATED) {
@@ -13126,17 +13125,17 @@ int main(int argc, char **argv) {
   placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
   moveEndEfffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, moveEndEffectorCommandCallback);
 
-  ms->config.wristViewName = "Wrist View " + left_or_right_arm;
-  ms->config.coreViewName = "Core View " + left_or_right_arm;
-  ms->config.faceViewName = "Face View " + left_or_right_arm;
-  ms->config.rangeogramViewName = "Rangeogram View " + left_or_right_arm;
-  ms->config.rangemapViewName = "Range Map View " + left_or_right_arm;
-  ms->config.graspMemoryViewName = "Grasp Memory View " + left_or_right_arm;
-  ms->config.graspMemorySampleViewName = "Grasp Memory Sample View " + left_or_right_arm;
-  ms->config.heightMemorySampleViewName = "Height Memory Sample View " + left_or_right_arm;
-  ms->config.hiRangemapViewName = "Hi Range Map View " + left_or_right_arm;
-  ms->config.hiColorRangemapViewName = "Hi Color Range Map View " + left_or_right_arm;
-  ms->config.mapBackgroundViewName = "Map Background Viewer " + left_or_right_arm;
+  ms->config.wristViewName = "Wrist View " + ms->config.left_or_right_arm;
+  ms->config.coreViewName = "Core View " + ms->config.left_or_right_arm;
+  ms->config.faceViewName = "Face View " + ms->config.left_or_right_arm;
+  ms->config.rangeogramViewName = "Rangeogram View " + ms->config.left_or_right_arm;
+  ms->config.rangemapViewName = "Range Map View " + ms->config.left_or_right_arm;
+  ms->config.graspMemoryViewName = "Grasp Memory View " + ms->config.left_or_right_arm;
+  ms->config.graspMemorySampleViewName = "Grasp Memory Sample View " + ms->config.left_or_right_arm;
+  ms->config.heightMemorySampleViewName = "Height Memory Sample View " + ms->config.left_or_right_arm;
+  ms->config.hiRangemapViewName = "Hi Range Map View " + ms->config.left_or_right_arm;
+  ms->config.hiColorRangemapViewName = "Hi Color Range Map View " + ms->config.left_or_right_arm;
+  ms->config.mapBackgroundViewName = "Map Background Viewer " + ms->config.left_or_right_arm;
 
   cv::namedWindow(ms->config.wristViewName);
   cv::setMouseCallback(ms->config.wristViewName, pilotCallbackFunc, NULL);
@@ -13152,19 +13151,19 @@ int main(int argc, char **argv) {
                                        fetchCommandCallback);
 
   ros::Subscriber forthCommandSubscriber;
-  forthCommandSubscriber = n.subscribe("/ein/" + left_or_right_arm + "/forth_commands", 1, 
+  forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1, 
                                        forthCommandCallback);
 
   ros::Timer timer1 = n.createTimer(ros::Duration(0.0001), timercallback1);
 
   tfListener = new tf::TransformListener();
 
-  ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + left_or_right_arm + "/PositionKinematicsNode/IKService");
+  ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + ms->config.left_or_right_arm + "/PositionKinematicsNode/IKService");
   cameraClient = n.serviceClient<baxter_core_msgs::OpenCamera>("/cameras/open");
 
-  joint_mover = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/" + left_or_right_arm + "/joint_command", 10);
-  gripperPub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + left_or_right_arm + "_gripper/command",10);
-  moveSpeedPub = n.advertise<std_msgs::Float64>("/robot/limb/" + left_or_right_arm + "/set_speed_ratio",10);
+  joint_mover = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/" + ms->config.left_or_right_arm + "/joint_command", 10);
+  gripperPub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/command",10);
+  moveSpeedPub = n.advertise<std_msgs::Float64>("/robot/limb/" + ms->config.left_or_right_arm + "/set_speed_ratio",10);
   sonarPub = n.advertise<std_msgs::UInt16>("/robot/sonar/head_sonar/set_sonars_enabled",10);
   headPub = n.advertise<baxter_core_msgs::HeadPanCommand>("/robot/head/command_head_pan",10);
   nodPub = n.advertise<std_msgs::Bool>("/robot/head/command_head_nod",10);
@@ -13194,7 +13193,7 @@ int main(int argc, char **argv) {
   spinlessNodeMain();
   spinlessPilotMain(ms);
 
-  saveROSParams();
+  saveROSParams(ms);
 
 
   initializeMachine(pMachineState);
