@@ -1,9 +1,9 @@
 WORD(AssumeDeliveryPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double oldz = currentEEPose.pz;
-  currentEEPose = deliveryPoses[currentDeliveryPose];
+  currentEEPose = ms->config.deliveryPoses[ms->config.currentDeliveryPose];
   currentEEPose.pz = oldz;
-  currentDeliveryPose = (currentDeliveryPose + 1) % deliveryPoses.size();
+  ms->config.currentDeliveryPose = (ms->config.currentDeliveryPose + 1) % ms->config.deliveryPoses.size();
   ms->pushWord("waitUntilAtCurrentPosition");
 }
 END_WORD

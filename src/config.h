@@ -200,6 +200,9 @@ class EinConfig {
   eePose reticle = defaultReticle;
 
 
+  std::vector<eePose> deliveryPoses;
+  int currentDeliveryPose = 0;
+
   // config variables that don't seem to be used
 };
 
