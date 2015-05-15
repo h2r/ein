@@ -179,8 +179,6 @@ eePose eepReg4 = beeHome;
 eePose eepReg5 = beeHome;
 eePose eepReg6 = beeHome;
 
-std::vector<eePose> deliveryPoses;
-int currentDeliveryPose = 0;
 
 int pilotTargetBlueBoxNumber = -1;
 int pilotClosestBlueBoxNumber = -1;
