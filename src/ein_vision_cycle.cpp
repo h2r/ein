@@ -682,12 +682,12 @@ REGISTER_WORD(MapEmptySpace)
 
 WORD(MapClosestBlueBox)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (pilotClosestBlueBoxNumber == -1) {
-    cout << "Not changing because closest bbox is " << pilotClosestBlueBoxNumber << endl;
+  if (ms->config.pilotClosestBlueBoxNumber == -1) {
+    cout << "Not changing because closest bbox is " << ms->config.pilotClosestBlueBoxNumber << endl;
     return;
   }
 
-  int c = pilotClosestBlueBoxNumber;
+  int c = ms->config.pilotClosestBlueBoxNumber;
   BoxMemory box;
   box.bTop = bTops[c];
   box.bBot = bBots[c];

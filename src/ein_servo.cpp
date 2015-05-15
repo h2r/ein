@@ -1278,8 +1278,8 @@ REGISTER_WORD(GradientServoA)
 
 WORD(GradientServoIfBlueBoxes)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if ( (bLabels.size() > 0) && (pilotClosestBlueBoxNumber != -1) ) {
-    changeTargetClass(ms, bLabels[pilotClosestBlueBoxNumber]);
+  if ( (bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
+    changeTargetClass(ms, bLabels[ms->config.pilotClosestBlueBoxNumber]);
     ms->pushWord("gradientServo");
   }
 }
@@ -1288,7 +1288,7 @@ REGISTER_WORD(GradientServoIfBlueBoxes)
 
 WORD(LockTargetIfBlueBoxes)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if ( (bLabels.size() > 0) && (pilotClosestBlueBoxNumber != -1) ) {
+  if ( (bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
     ms->pushWord("recordTargetLock");
     ms->pushWord("prepareForGraspFromMemory");
   }
