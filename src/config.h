@@ -209,6 +209,8 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
  private:
  public:
   std::vector<std::shared_ptr<Word> > call_stack;
+  std::map<string, std::shared_ptr<Word> > variables;
+
   std::shared_ptr<Word> current_instruction = NULL;
   EinConfig config;
 

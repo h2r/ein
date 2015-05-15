@@ -106,8 +106,6 @@ shared_ptr<MachineState> pMachineState;
 tf::TransformListener* tfListener;
 
 
-eePose beeLHome = {.px = 0.657579481614, .py = 0.851981417433, .pz = 0.0388352386502,
-		   .qx = -0.366894936773, .qy = 0.885980397775, .qz = 0.108155782462, .qw = 0.262162481772};
 eePose beeRHome = {.px = 0.657579481614, .py = -0.168019, .pz = 0.0388352386502,
 		   .qx = -0.366894936773, .qy = 0.885980397775, .qz = 0.108155782462, .qw = 0.262162481772};
 eePose workCenter = {.px = 0.686428, .py = -0.509836, .pz = 0.0883011,
@@ -3892,10 +3890,12 @@ void timercallback1(const ros::TimerEvent&) {
       endThisStackCollapse = 1;
     }
 
-    ms->execute(word);
+
 
     if( endThisStackCollapse || (ms->call_stack.size() == 0) ) {
       break;
+    } else {
+      ms->execute(word);
     }
   }
 

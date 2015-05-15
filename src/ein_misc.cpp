@@ -221,7 +221,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  if (condition->as_bool()) {
+  if (condition->to_bool()) {
     ms->pushWord(then);
   }
 
@@ -257,9 +257,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     cout << "Warning, next requires two words on the stack." << endl;
     return;
   }
-  cout << "looping: " << index_from->as_int() << " to " << index_to->as_int() << endl;
+  cout << "looping: " << index_from->to_int() << " to " << index_to->to_int() << endl;
 
-  for (int i = index_from->as_int(); i < index_to->as_int(); i++) {
+  for (int i = index_from->to_int(); i < index_to->to_int(); i++) {
     for (int j = 0; j < words_in_loop.size(); j++) {
       ms->pushWord(words_in_loop[j]);
     }
@@ -273,7 +273,7 @@ WORD(Print)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   std::shared_ptr<Word> word = ms->popWord();
   if (word != NULL) {
-    cout << word->as_string() << endl;
+    cout << word->repr() << endl;
   }
 }
 END_WORD
@@ -294,6 +294,39 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(Pop)
+
+
+WORD(Store)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  std::shared_ptr<Word> nameword = ms->popWord();
+  std::shared_ptr<Word> valueword = ms->popWord();
+  string name = nameword->to_string();
+  cout << "Storing " << name << " value " << valueword << endl;
+  ms->variables[name] = valueword;
+}
+END_WORD
+REGISTER_WORD(Store)
+
+
+WORD(Fetch)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  std::shared_ptr<Word> nameword = ms->popWord();
+  string name = nameword->to_string();
+  shared_ptr<Word> value = ms->variables[name];
+  cout << "Fetching " << nameword << " " << name << " value " << value << endl;
+  if (value != NULL) {
+    cout << " value: " << value->to_string() << endl;
+    ms->pushWord(value);
+  } else {
+    cout << "No value for variable" << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(Fetch)
+
+
+
+
 
 WORD(IncrementTargetClass)
 CODE(196437)// capslock + pageup
@@ -629,4 +662,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 }
 END_WORD
 REGISTER_WORD(EnableRobot)
+
+
+
+
 
