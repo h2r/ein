@@ -205,6 +205,7 @@ class EinConfig {
 
   int pilotTargetBlueBoxNumber = -1;
   int pilotClosestBlueBoxNumber = -1;
+  string left_or_right_arm = "right";
 
 
   // config variables that don't seem to be used

@@ -768,7 +768,7 @@ CODE(196720)     // capslock + P
 virtual void execute(std::shared_ptr<MachineState> ms) {
   focusedClass = numClasses+newClassCounter;
   char buf[1024];
-  sprintf(buf, "autoClass%d_%s", focusedClass, left_or_right_arm.c_str());
+  sprintf(buf, "autoClass%d_%s", focusedClass, ms->config.left_or_right_arm.c_str());
   string thisLabelName(buf);
   focusedClassLabel = thisLabelName;
   classLabels.push_back(thisLabelName);
@@ -1063,7 +1063,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.cropUpperLeftCorner.py = 200;
 
   baxter_core_msgs::OpenCamera ocMessage;
-  ocMessage.request.name = left_or_right_arm + "_hand_camera";
+  ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
   ocMessage.request.settings.controls.resize(2);
   ocMessage.request.settings.controls[0].id = 105;
   ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
@@ -1077,7 +1077,7 @@ REGISTER_WORD(MoveCropToCenter)
 WORD(MoveCropToProperValue)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   baxter_core_msgs::OpenCamera ocMessage;
-  ocMessage.request.name = left_or_right_arm + "_hand_camera";
+  ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
   ocMessage.request.settings.controls.resize(2);
   ocMessage.request.settings.controls[0].id = 105;
   ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
@@ -1105,7 +1105,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "MoveCropToCenterVanishingPoint Vx Vy: " << Vx << " " << Vy << endl;
 
   baxter_core_msgs::OpenCamera ocMessage;
-  ocMessage.request.name = left_or_right_arm + "_hand_camera";
+  ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
   ocMessage.request.settings.controls.resize(2);
   ocMessage.request.settings.controls[0].id = 105;
   ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
@@ -1650,7 +1650,7 @@ REGISTER_WORD(SetGripperMaskCB)
 
 WORD(LoadGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string filename = data_directory + "/config/" + left_or_right_arm + "GripperMask.bmp";
+  string filename = data_directory + "/config/" + ms->config.left_or_right_arm + "GripperMask.bmp";
   cout << "Loading gripper mask from " << filename << endl;
   Mat tmpMask = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
   cout << "  tmpMask.type() tmpMask.size(): " << tmpMask.type() << " " << tmpMask.size() << endl;
@@ -1676,7 +1676,7 @@ REGISTER_WORD(LoadGripperMask)
 
 WORD(SaveGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string filename = data_directory + "/config/" + left_or_right_arm + "GripperMask.bmp";
+  string filename = data_directory + "/config/" + ms->config.left_or_right_arm + "GripperMask.bmp";
   cout << "Saving gripper mask to " << filename << endl;
   imwrite(filename, 255*gripperMask);
 }
@@ -1724,7 +1724,7 @@ REGISTER_WORD(AssumeCalibrationPose)
 
 WORD(LoadCalibration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string fileName = data_directory + "/config/" + left_or_right_arm + "Calibration.yml";
+  string fileName = data_directory + "/config/" + ms->config.left_or_right_arm + "Calibration.yml";
   cout << "Loading calibration file from " << fileName << endl;
   loadCalibration(ms, fileName);
 }
@@ -1733,7 +1733,7 @@ REGISTER_WORD(LoadCalibration)
 
 WORD(SaveCalibration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string fileName = data_directory + "/config/" + left_or_right_arm + "Calibration.yml";
+  string fileName = data_directory + "/config/" + ms->config.left_or_right_arm + "Calibration.yml";
   cout << "Saving calibration file from " << fileName << endl;
   saveCalibration(ms, fileName);
 }
