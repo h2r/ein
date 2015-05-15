@@ -203,6 +203,10 @@ class EinConfig {
   std::vector<eePose> deliveryPoses;
   int currentDeliveryPose = 0;
 
+  int pilotTargetBlueBoxNumber = -1;
+  int pilotClosestBlueBoxNumber = -1;
+
+
   // config variables that don't seem to be used
 };
 
