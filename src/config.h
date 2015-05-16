@@ -66,6 +66,15 @@ typedef enum {
   SUCCESS = 1
 } operationStatusType;
 
+typedef enum {
+  STATIC_PRIOR = 1,
+  LEARNING_SAMPLING = 2,
+  LEARNING_ALGORITHMC = 3,
+  STATIC_MARGINALS = 4,
+  MAPPING = 5
+} pickMode;
+
+
 
 #define NOW_THATS_FAST 0.08
 #define MOVE_EVEN_FASTER 0.04
@@ -324,7 +333,9 @@ class EinConfig {
   double graspMemoryPicks[4*rmWidth*rmWidth];
   double graspMemorySample[4*rmWidth*rmWidth];
   double graspMemoryReg1[4*rmWidth*rmWidth];
-  
+
+  pickMode currentPickMode = STATIC_MARGINALS;
+  pickMode currentBoundingBoxMode = STATIC_MARGINALS;
   
 
   const static int hrmWidth = 211; // must be odd
@@ -410,6 +421,8 @@ class EinConfig {
   double heightAttemptCounter = 0;
   double heightSuccessCounter = 0;
   double thompsonTries = 50;
+
+
 
 
 
@@ -515,7 +528,8 @@ class EinConfig {
   double gripperThresh = 3.5;//6.0;//7.0;
   ros::Time gripperLastUpdated;
   double gripperNotMovingConfirmTime = 0.25;
-
+  // the last value the gripper was at when it began to open from a closed position
+  double lastMeasuredClosed = 3.0;
 
   ros::Time graspTrialStart;
   double graspAttemptCounter = 0;
@@ -528,6 +542,7 @@ class EinConfig {
 
   int gmTargetX = -1;
   int gmTargetY = -1;
+
 
 
 };

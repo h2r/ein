@@ -115,7 +115,7 @@ REGISTER_WORD(BeginHeightLearning)
 WORD(ContinueHeightLearning)
 CODE(1179707)     // capslock + numlock + ;
   virtual void execute(std::shared_ptr<MachineState> ms)       {
-  cout << "continuing bounding box learning with currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
+  cout << "continuing bounding box learning with currentBoundingBoxMode  =  " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
   ms->config.synServoLockFrames = 0;
   currentGradientServoIterations = 0;
 
@@ -310,8 +310,8 @@ REGISTER_WORD(LoadPriorHeightMemoryUniform)
 WORD(SetPickModeToStaticPrior)
 CODE(1179731)     // capslock + numlock + s
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentPickMode = STATIC_PRIOR;
-  cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
+  ms->config.currentPickMode = STATIC_PRIOR;
+  cout << "currentPickMode = " << pickModeToString(ms->config.currentPickMode) << endl;
 }
 END_WORD
 REGISTER_WORD(SetPickModeToStaticPrior)
@@ -319,8 +319,8 @@ REGISTER_WORD(SetPickModeToStaticPrior)
 WORD(SetPickModeToLearningSampling)
 CODE(1179716)     // capslock + numlock + d
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentPickMode = LEARNING_SAMPLING;
-  cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
+  ms->config.currentPickMode = LEARNING_SAMPLING;
+  cout << "currentPickMode = " << pickModeToString(ms->config.currentPickMode) << endl;
 }
 END_WORD
 REGISTER_WORD(SetPickModeToLearningSampling)
@@ -328,8 +328,8 @@ REGISTER_WORD(SetPickModeToLearningSampling)
 WORD(SetPickModeToLearningAlgorithmC)
 CODE(1245284) // capslock + numlock + D
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentPickMode = LEARNING_ALGORITHMC;
-  cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
+  ms->config.currentPickMode = LEARNING_ALGORITHMC;
+  cout << "currentPickMode = " << pickModeToString(ms->config.currentPickMode) << endl;
 }
 END_WORD
 REGISTER_WORD(SetPickModeToLearningAlgorithmC)
@@ -337,8 +337,8 @@ REGISTER_WORD(SetPickModeToLearningAlgorithmC)
 WORD(SetPickModeToStaticMarginals)
 CODE(1179718)     // capslock + numlock + f
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentPickMode = STATIC_MARGINALS;
-  cout << "currentPickMode = " << pickModeToString(currentPickMode) << endl;
+  ms->config.currentPickMode = STATIC_MARGINALS;
+  cout << "currentPickMode = " << pickModeToString(ms->config.currentPickMode) << endl;
 }
 END_WORD
 REGISTER_WORD(SetPickModeToStaticMarginals)
@@ -346,8 +346,8 @@ REGISTER_WORD(SetPickModeToStaticMarginals)
 
 WORD(SetBoundingBoxModeToMapping)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentBoundingBoxMode = MAPPING;
-  cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
+  ms->config.currentBoundingBoxMode = MAPPING;
+  cout << "currentBoundingBoxMode  =  " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
 }
 END_WORD
 REGISTER_WORD(SetBoundingBoxModeToMapping)
@@ -355,8 +355,8 @@ REGISTER_WORD(SetBoundingBoxModeToMapping)
 WORD(SetBoundingBoxModeToStaticPrior)
 CODE(1179722)     // capslock + numlock + j
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentBoundingBoxMode = STATIC_PRIOR;
-  cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
+  ms->config.currentBoundingBoxMode = STATIC_PRIOR;
+  cout << "currentBoundingBoxMode  =  " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
 }
 END_WORD
 REGISTER_WORD(SetBoundingBoxModeToStaticPrior)
@@ -364,8 +364,8 @@ REGISTER_WORD(SetBoundingBoxModeToStaticPrior)
 WORD(SetBoundingBoxModeToLearningSampling)
 CODE(1179723)     // capslock + numlock + k
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentBoundingBoxMode = LEARNING_SAMPLING;
-  cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
+  ms->config.currentBoundingBoxMode = LEARNING_SAMPLING;
+  cout << "currentBoundingBoxMode  =  " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
 }
 END_WORD
 REGISTER_WORD(SetBoundingBoxModeToLearningSampling)
@@ -373,8 +373,8 @@ REGISTER_WORD(SetBoundingBoxModeToLearningSampling)
 WORD(SetBoundingBoxModeToLearningAlgorithmC)
 CODE(1245291)     // capslock + numlock + K
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentBoundingBoxMode = LEARNING_ALGORITHMC;
-  cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
+  ms->config.currentBoundingBoxMode = LEARNING_ALGORITHMC;
+  cout << "currentBoundingBoxMode  =  " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
 }
 END_WORD
 REGISTER_WORD(SetBoundingBoxModeToLearningAlgorithmC)
@@ -382,8 +382,8 @@ REGISTER_WORD(SetBoundingBoxModeToLearningAlgorithmC)
 WORD(SetBoundingBoxModeToStaticMarginals)
 CODE(1179724)     // capslock + numlock + l
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentBoundingBoxMode = STATIC_MARGINALS;
-  cout << "currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
+  ms->config.currentBoundingBoxMode = STATIC_MARGINALS;
+  cout << "currentBoundingBoxMode  =  " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
 }
 END_WORD
 REGISTER_WORD(SetBoundingBoxModeToStaticMarginals)
@@ -392,7 +392,7 @@ WORD(UniformlySampleHeight)
 CODE(1245246)      // capslock + numlock + >
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int thisRandThompsonHeight = lrand48() % ms->config.hmWidth;
-  if (currentBoundingBoxMode == MAPPING) {
+  if (ms->config.currentBoundingBoxMode == MAPPING) {
     thisRandThompsonHeight = mappingHeightIdx;
     cout << "UniformlySampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
   }
@@ -443,8 +443,8 @@ WORD(SampleHeight)
 CODE(1245247)   // capslock + numlock + ?
 virtual void execute(std::shared_ptr<MachineState> ms) {
     
-  if (currentBoundingBoxMode != STATIC_PRIOR) {
-    if (currentBoundingBoxMode == MAPPING) {
+  if (ms->config.currentBoundingBoxMode != STATIC_PRIOR) {
+    if (ms->config.currentBoundingBoxMode == MAPPING) {
       cout << "SampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
       currentThompsonHeight = convertHeightIdxToGlobalZ(ms, mappingHeightIdx);
       currentThompsonHeightIdx = mappingHeightIdx;
@@ -452,11 +452,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       m_x = m_x_h[currentThompsonHeightIdx];
       m_y = m_y_h[currentThompsonHeightIdx];
       return;
-    } else if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+    } else if (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) {
       loadSampledHeightMemory(ms);
-    } else if (currentBoundingBoxMode == STATIC_MARGINALS) {
+    } else if (ms->config.currentBoundingBoxMode == STATIC_MARGINALS) {
       loadMarginalHeightMemory(ms);
-    } else if (currentBoundingBoxMode == LEARNING_ALGORITHMC) {
+    } else if (ms->config.currentBoundingBoxMode == LEARNING_ALGORITHMC) {
       loadMarginalHeightMemory(ms);
     } else {
       cout << "Invalid currentBoundingBoxMode. Asserting." << endl;
@@ -470,9 +470,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       
       int thisHeightMaxedOut = 0;
       
-      if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+      if (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) {
         thisHeightMaxedOut = ( (ms->config.heightMemoryTries[i] >= bbLearningMaxTries) );
-      } else if (currentBoundingBoxMode == LEARNING_ALGORITHMC) {
+      } else if (ms->config.currentBoundingBoxMode == LEARNING_ALGORITHMC) {
         double successes = ms->config.heightMemoryPicks[i];
         double failures = ms->config.heightMemoryTries[i] - ms->config.heightMemoryPicks[i];
         // returns probability that mu <= d given successes and failures.

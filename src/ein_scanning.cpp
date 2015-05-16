@@ -17,7 +17,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // ATTN 10
   //ms->pushWord(196360); // loadPriorGraspMemory
   //ms->pushWord(1179721); // set graspMemories from classGraspMemories
-  switch (currentPickMode) {
+  switch (ms->config.currentPickMode) {
   case STATIC_PRIOR:
     {
       ms->pushWord(196360); // loadPriorGraspMemory
@@ -852,7 +852,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("synchronicServoTakeClosest");
   ms->pushWord("fillClearanceMap");
   ms->pushWord("loadIkMap");
-  currentBoundingBoxMode = MAPPING;
+  ms->config.currentBoundingBoxMode = MAPPING;
   ms->config.bDelta = 0.001;
 }
 END_WORD
@@ -1798,7 +1798,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord(1179732);
 
   ms->pushWord("setMovementSpeedMoveFast");
-  currentBoundingBoxMode = MAPPING; // this is here because it is for the rgbScan
+  ms->config.currentBoundingBoxMode = MAPPING; // this is here because it is for the rgbScan
   ms->pushWord("rgbScan");
   ms->pushWord("rgbScan");
   ms->pushWord("fullImpulse");
