@@ -196,7 +196,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.eepReg6.pz += 0.2;
 
   pushSpeedSign(ms, MOVE_FAST);    
-  if (isGripperGripping()) {
+  if (isGripperGripping(ms)) {
     happy();
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     ms->pushWord('5');  // assume pose at register 5
@@ -284,13 +284,13 @@ CODE( 131157)     // capslock + u
     // pull from bag will push itself and assert yes grasp
     // assert yes grasp
   virtual void execute(std::shared_ptr<MachineState> ms)       {
-  cout << "assert yes grasp: " << gripperMoving << " " << gripperGripping << " " << gripperPosition << endl;
+  cout << "assert yes grasp: " << ms->config.gripperMoving << " " << ms->config.gripperGripping << " " << ms->config.gripperPosition << endl;
   // TODO push this and then a calibration message if uncalibrated
   // push this again if moving
-  if (gripperMoving) {
+  if (ms->config.gripperMoving) {
     ms->pushWord("assertYesGrasp"); // assert yes grasp
   } else {
-    if (isGripperGripping())
+    if (isGripperGripping(ms))
       {
         ms->popWord();
         // leave gripper in released state
@@ -308,7 +308,7 @@ REGISTER_WORD(AssertYesGrasp)
 
 WORD(IfNoGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (isGripperGripping())  {
+  if (isGripperGripping(ms))  {
     ms->popWord();
   }
 }
@@ -317,7 +317,7 @@ REGISTER_WORD(IfNoGrasp)
 
 WORD(IfGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (!isGripperGripping())  {
+  if (!isGripperGripping(ms))  {
     ms->popWord();
   }
 }
@@ -334,12 +334,12 @@ CODE(196649)     // capslock + i
   // TODO push this and then a calibration message if uncalibrated
   // push this again if moving
 
-  cout << "assert no grasp: " << gripperMoving << " " << gripperGripping << " " << gripperPosition << endl;
+  cout << "assert no grasp: " << ms->config.gripperMoving << " " << ms->config.gripperGripping << " " << ms->config.gripperPosition << endl;
 
-  if (gripperMoving) {
+  if (ms->config.gripperMoving) {
     ms->pushWord("assertNoGrasp"); // assert no grasp
   } else {
-    if (!isGripperGripping())  {
+    if (!isGripperGripping(ms))  {
       ms->popWord();
       // leave gripper in released state
       cout << "  assert no pops back instruction." << endl;
@@ -351,8 +351,8 @@ CODE(196649)     // capslock + i
       ms->pushWord('Y'); // pause stack execution
       ms->pushCopies("beep", 15); // beep
       cout << "Stuck, please reset the object. ";
-      cout << " gripperPosition: " << gripperPosition;
-      cout << " gripperThresh: " << gripperThresh << endl;
+      cout << " gripperPosition: " << ms->config.gripperPosition;
+      cout << " gripperThresh: " << ms->config.gripperThresh << endl;
       if (thisGraspReleased == UNKNOWN) {
         thisGraspReleased = FAILURE;
         sad();
@@ -514,12 +514,12 @@ REGISTER_WORD(CountGrasp)
 WORD(CheckGrasp)
 CODE(196718)     // capslock + N 
   virtual void execute(std::shared_ptr<MachineState> ms)       {
-  if (gripperMoving) {
+  if (ms->config.gripperMoving) {
     ms->pushWord("checkGrasp"); // check grasp
   } else {
-    cout << "gripperPosition: " << gripperPosition << " gripperThresh: " << gripperThresh << endl;
-    cout << "gripperGripping: " << gripperGripping << endl;
-    if (!isGripperGripping()) {
+    cout << "gripperPosition: " << ms->config.gripperPosition << " gripperThresh: " << ms->config.gripperThresh << endl;
+    cout << "gripperGripping: " << ms->config.gripperGripping << endl;
+    if (!isGripperGripping(ms)) {
       cout << "Failed to pick." << endl;
       thisGraspPicked = FAILURE;
       sad();
@@ -539,7 +539,7 @@ CODE(196713)     // capslock + I
   virtual void execute(std::shared_ptr<MachineState> ms)       {
   int i = ms->config.localMaxX + ms->config.localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.localMaxGG;
   int j = ms->config.localMaxX + ms->config.localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0;
-  if (gripperMoving) {
+  if (ms->config.gripperMoving) {
     ms->pushWord(196713); // check and count grasp
   } else {
     graspAttemptCounter++;
@@ -573,8 +573,8 @@ CODE(196713)     // capslock + I
       }
       break;
     }
-    cout << "gripperPosition: " << gripperPosition << " gripperThresh: " << gripperThresh << endl;
-    if (!isGripperGripping()) {
+    cout << "gripperPosition: " << ms->config.gripperPosition << " gripperThresh: " << ms->config.gripperThresh << endl;
+    if (!isGripperGripping(ms)) {
       if (ARE_GENERIC_HEIGHT_LEARNING()) {
         recordBoundingBoxFailure(ms);
       }
@@ -657,7 +657,7 @@ CODE(196713)     // capslock + I
     graspSuccessRate = graspSuccessCounter / graspAttemptCounter;
     ros::Time thisTime = ros::Time::now();
     ros::Duration sinceStartOfTrial = thisTime - graspTrialStart;
-    cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << graspSuccessCounter << "/" << graspAttemptCounter << " " << graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << gripperPosition << " " << pickModeToString(currentPickMode) << endl;
+    cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << graspSuccessCounter << "/" << graspAttemptCounter << " " << graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << ms->config.gripperPosition << " " << pickModeToString(currentPickMode) << endl;
   }
   {
     double successes = ms->config.graspMemoryPicks[i];

@@ -124,12 +124,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-int gripperMoving = 0;
-double gripperPosition = 0;
-int gripperGripping = 0;
-double gripperThresh = 3.5;//6.0;//7.0;
-ros::Time gripperLastUpdated;
-double gripperNotMovingConfirmTime = 0.25;
 
 double graspAttemptCounter = 0;
 double graspSuccessCounter = 0;
@@ -856,7 +850,7 @@ void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
 void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);
 void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg);
 
-bool isGripperGripping();
+bool isGripperGripping(shared_ptr<MachineState> ms);
 void initialize3DParzen(shared_ptr<MachineState> ms);
 void l2Normalize3DParzen(shared_ptr<MachineState> ms);
 void initializeParzen(shared_ptr<MachineState> ms);
@@ -2254,22 +2248,17 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
 
 void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees) {
 
-//  if (!ms->config.shouldIMiscCallback) {
-//    return;
-//  }
-
+  shared_ptr<MachineState> ms = pMachineState;
   lastGripperCallbackReceived = ros::Time::now();
-
-  //cout << "setting gripper position: " << gripperPosition << endl;
-  gripperLastUpdated = ros::Time::now();
-  gripperPosition  = ees.position;
-  gripperMoving = ees.moving;
-  gripperGripping = ees.gripping;
+  ms->config.gripperLastUpdated = ros::Time::now();
+  ms->config.gripperPosition  = ees.position;
+  ms->config.gripperMoving = ees.moving;
+  ms->config.gripperGripping = ees.gripping;
 }
 
-bool isGripperGripping() {
-  //return (gripperPosition >= gripperThresh);
-  return gripperGripping; 
+bool isGripperGripping(shared_ptr<MachineState> ms) {
+  //return (ms->config.gripperPosition >= ms->config.gripperThresh);
+  return ms->config.gripperGripping; 
 }
 
 void initialize3DParzen(shared_ptr<MachineState> ms) {

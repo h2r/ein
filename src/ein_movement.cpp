@@ -107,7 +107,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   } else {
     lastGripperCallbackRequest = ros::Time::now();
     if (waitUntilGripperNotMovingCounter < waitUntilGripperNotMovingTimeout) {
-      if (gripperMoving) {
+      if (ms->config.gripperMoving) {
 	waitUntilGripperNotMovingCounter++;
 	ms->pushWord("waitUntilGripperNotMovingB"); 
       } else {
@@ -132,8 +132,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   } else {
     lastGripperCallbackRequest = ros::Time::now();
     if (waitUntilGripperNotMovingCounter < waitUntilGripperNotMovingTimeout) {
-      ros::Duration deltaSinceUpdate = gripperLastUpdated - waitUntilGripperNotMovingStamp;
-      if (deltaSinceUpdate.toSec() <= gripperNotMovingConfirmTime) {
+      ros::Duration deltaSinceUpdate = ms->config.gripperLastUpdated - waitUntilGripperNotMovingStamp;
+      if (deltaSinceUpdate.toSec() <= ms->config.gripperNotMovingConfirmTime) {
 	waitUntilGripperNotMovingCounter++;
 	ms->pushWord("waitUntilGripperNotMovingC"); 
       }
@@ -419,9 +419,9 @@ REGISTER_WORD(ZDown)
 WORD(SetGripperThresh)
 CODE(1179713)     // capslock + numlock + a
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  gripperThresh = lastMeasuredClosed + lastMeasuredBias;
+  ms->config.gripperThresh = lastMeasuredClosed + lastMeasuredBias;
   cout << "lastMeasuredClosed: " << lastMeasuredClosed << " lastMeasuredBias: " << lastMeasuredBias << endl;
-  cout << "gripperThresh = " << gripperThresh << endl;
+  cout << "gripperThresh = " << ms->config.gripperThresh << endl;
 }
 END_WORD
 REGISTER_WORD(SetGripperThresh)
@@ -458,7 +458,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   command.args = "{\"position\": 100.0}";
   command.id = 65538;
   gripperPub.publish(command);
-  lastMeasuredClosed = gripperPosition;
+  lastMeasuredClosed = ms->config.gripperPosition;
 }
 END_WORD
 REGISTER_WORD(OpenGripper)
@@ -1091,8 +1091,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   endThisStackCollapse = 1;
   if (0) { // position based
     if ( ( ms->config.currentMovementState == MOVING ) ||
-	 ( !gripperGripping ) ) {
-      if ( !gripperGripping ) {
+	 ( !ms->config.gripperGripping ) ) {
+      if ( !ms->config.gripperGripping ) {
 	cout << "There is nothing in the gripper so we should move on..." << endl;
       }
       if (ms->config.currentMovementState == MOVING) {
@@ -1115,8 +1115,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double wrenchThresh = 15;
     bool wrenchOverThresh = ( wrenchNorm > wrenchThresh );
     if ( wrenchOverThresh ||
-	 ( !gripperGripping ) ) {
-      if ( !gripperGripping ) {
+	 ( !ms->config.gripperGripping ) ) {
+      if ( !ms->config.gripperGripping ) {
 	cout << "There is nothing in the gripper so we should move on..." << endl;
       }
       if ( wrenchOverThresh ) {
