@@ -215,8 +215,7 @@ class EinConfig {
   eePose currentEEPose;
   eePose currentEEDeltaRPY;
   eePose ik_reset_eePose;
-
-
+  eePose crane1;
 
 
   std::vector<eePose> deliveryPoses;
@@ -236,6 +235,27 @@ class EinConfig {
   int acceptingFetchCommands = 0;
 
   std::string forthCommand;
+
+
+
+  double oneTable = 0.175;
+  double rightTableZ = 0.172;//0.165;//0.19;//0.18;
+  double leftTableZ = 0.172;//0.165;//0.19;//0.177;
+  
+  double bagTableZ = oneTable;//0.165;//0.19;//0.18; //0.195;//0.22;
+  double counterTableZ = oneTable;//0.165;//0.19;//0.18;//0.209123; //0.20;//0.18;
+  double pantryTableZ = oneTable;//0.165;//0.19;//0.18;//0.209123; //0.195;
+  
+  double currentTableZ = leftTableZ;
+  
+
+  ros::Time firstTableHeightTime;
+  double mostRecentUntabledZWait = 2.0;
+  double mostRecentUntabledZLastValue = INFINITY;
+  double mostRecentUntabledZDecay = 0.97;
+  double mostRecentUntabledZ = 0.0;
+  eePose bestOrientationEEPose = straightDown;
+  double bestOrientationAngle = 0;
 
 
 

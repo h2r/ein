@@ -127,8 +127,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
   double threshedZ = min(trZ, 0.0);
 
-  double pickZpre = -(threshedZ + currentTableZ) + pickFlushFactor + graspDepthOffset;
-  double flushZ = -(currentTableZ) + pickFlushFactor;
+  double pickZpre = -(threshedZ + ms->config.currentTableZ) + pickFlushFactor + graspDepthOffset;
+  double flushZ = -(ms->config.currentTableZ) + pickFlushFactor;
   double pickZ = max(flushZ, pickZpre);
 
   int useIncrementalPick = 0;
@@ -407,7 +407,7 @@ REGISTER_WORD(ShakeItOff1)
 WORD(LoadTargetClassRangeMapIntoRegister1)
 CODE(131162)     // capslock + z
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  loadGlobalTargetClassRangeMap(rangeMap, rangeMapReg1);
+  loadGlobalTargetClassRangeMap(ms, rangeMap, rangeMapReg1);
 }
 END_WORD
 REGISTER_WORD(LoadTargetClassRangeMapIntoRegister1)
@@ -970,7 +970,7 @@ REGISTER_WORD(SelectBestAvailableGrasp)
 WORD(SelectMaxTargetNotCumulative)
 CODE(1048691)     // numlock + s
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  selectMaxTarget(VERYBIGNUMBER);
+  selectMaxTarget(ms, VERYBIGNUMBER);
 }
 END_WORD
 REGISTER_WORD(SelectMaxTargetNotCumulative)
@@ -978,7 +978,7 @@ REGISTER_WORD(SelectMaxTargetNotCumulative)
 WORD(SelectMaxTargetCumulative)
 CODE(1114195)     // numlock + S
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  selectMaxTarget(maxD);
+  selectMaxTarget(ms, maxD);
 }
 END_WORD
 REGISTER_WORD(SelectMaxTargetCumulative)
