@@ -502,6 +502,14 @@ class EinConfig {
   int bailAfterSynchronic = 1;
   int bailAfterGradient = 0;
 
+  int gripperMoving = 0;
+  double gripperPosition = 0;
+  int gripperGripping = 0;
+  double gripperThresh = 3.5;//6.0;//7.0;
+  ros::Time gripperLastUpdated;
+  double gripperNotMovingConfirmTime = 0.25;
+
+
 
 };
 
