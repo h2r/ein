@@ -17,7 +17,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     Mat rangeMapTemp(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        rangeMapTemp.at<double>(y,x) = classRangeMaps[ms->config.focusedClass].at<double>(y,x);
+        rangeMapTemp.at<double>(y,x) = ms->config.classRangeMaps[ms->config.focusedClass].at<double>(y,x);
       } 
     } 
 
@@ -42,19 +42,19 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     }
 
     copyGraspMemoryTriesToClassGraspMemoryTries(ms);
-    fsvO << "graspMemoryTries1" << classGraspMemoryTries1[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks1" << classGraspMemoryPicks1[ms->config.focusedClass];
-    fsvO << "graspMemoryTries2" << classGraspMemoryTries2[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks2" << classGraspMemoryPicks2[ms->config.focusedClass];
-    fsvO << "graspMemoryTries3" << classGraspMemoryTries3[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks3" << classGraspMemoryPicks3[ms->config.focusedClass];
-    fsvO << "graspMemoryTries4" << classGraspMemoryTries4[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks4" << classGraspMemoryPicks4[ms->config.focusedClass];
+    fsvO << "graspMemoryTries1" << ms->config.classGraspMemoryTries1[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks1" << ms->config.classGraspMemoryPicks1[ms->config.focusedClass];
+    fsvO << "graspMemoryTries2" << ms->config.classGraspMemoryTries2[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks2" << ms->config.classGraspMemoryPicks2[ms->config.focusedClass];
+    fsvO << "graspMemoryTries3" << ms->config.classGraspMemoryTries3[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks3" << ms->config.classGraspMemoryPicks3[ms->config.focusedClass];
+    fsvO << "graspMemoryTries4" << ms->config.classGraspMemoryTries4[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks4" << ms->config.classGraspMemoryPicks4[ms->config.focusedClass];
 
 
     copyHeightMemoryTriesToClassHeightMemoryTries(ms);
-    fsvO << "heightMemoryTries" << classHeightMemoryTries[ms->config.focusedClass];
-    fsvO << "heightMemoryPicks" << classHeightMemoryPicks[ms->config.focusedClass];
+    fsvO << "heightMemoryTries" << ms->config.classHeightMemoryTries[ms->config.focusedClass];
+    fsvO << "heightMemoryPicks" << ms->config.classHeightMemoryPicks[ms->config.focusedClass];
 
     fsvO.release();
   } 
@@ -117,7 +117,7 @@ CODE(1179707)     // capslock + numlock + ;
   virtual void execute(std::shared_ptr<MachineState> ms)       {
   cout << "continuing bounding box learning with currentBoundingBoxMode  =  " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
   ms->config.synServoLockFrames = 0;
-  currentGradientServoIterations = 0;
+  ms->config.currentGradientServoIterations = 0;
 
   // ATTN 16
   // ATTN 19
@@ -423,11 +423,11 @@ CODE(1245289)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
         cout << "Loading height memories." << endl;
-        if ((classHeightMemoryTries[ms->config.targetClass].rows > 1) && (classHeightMemoryPicks[ms->config.targetClass].cols == 1)) {
+        if ((ms->config.classHeightMemoryTries[ms->config.targetClass].rows > 1) && (ms->config.classHeightMemoryPicks[ms->config.targetClass].cols == 1)) {
           cout << "targetClass: " << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
           for (int i = 0; i < ms->config.hmWidth; i++) {
-            ms->config.heightMemoryPicks[i] = classHeightMemoryPicks[ms->config.targetClass].at<double>(i, 0);
-            ms->config.heightMemoryTries[i] = classHeightMemoryTries[ms->config.targetClass].at<double>(i, 0);
+            ms->config.heightMemoryPicks[i] = ms->config.classHeightMemoryPicks[ms->config.targetClass].at<double>(i, 0);
+            ms->config.heightMemoryTries[i] = ms->config.classHeightMemoryTries[ms->config.targetClass].at<double>(i, 0);
             cout << "picks: " << ms->config.heightMemoryPicks[i] << endl;
             cout << "tries: " << ms->config.heightMemoryTries[i] << endl;
           }

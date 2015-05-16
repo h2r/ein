@@ -121,51 +121,8 @@ ros::Publisher ee_target_pub;
 
 
 
-// gray box offset from the top and bottom of the screen
-int tGO = 30;
-int bGO = 30;
-int lGO = 60;
-int rGO = 60;
-cv::Point grayTop;
-cv::Point grayBot;
-
-// all range mode switch and bounds
-int all_range_mode = 0;
-int tARM = 100;
-int bARM = 100;
-int lARM = 150;
-int rARM = 150;
-cv::Point armTop;
-cv::Point armBot;
-
-int loadRange = 1;
-vector<Mat> classRangeMaps;
-
-// ATTN 16
-vector<Mat> classAerialGradients;
-vector<Mat> classHeight0AerialGradients;
-vector<Mat> classHeight1AerialGradients;
-vector<Mat> classHeight2AerialGradients;
-vector<Mat> classHeight3AerialGradients;
-
-vector<Mat> classGraspMemoryTries1;
-vector<Mat> classGraspMemoryPicks1;
-vector<Mat> classGraspMemoryTries2;
-vector<Mat> classGraspMemoryPicks2;
-vector<Mat> classGraspMemoryTries3;
-vector<Mat> classGraspMemoryPicks3;
-vector<Mat> classGraspMemoryTries4;
-vector<Mat> classGraspMemoryPicks4;
-
-vector<Mat> classHeightMemoryTries;
-vector<Mat> classHeightMemoryPicks;
 
 
-
-// XXX TODO
-int softMaxGradientServoIterations = 4;//5;//3;//10;//3;
-int hardMaxGradientServoIterations = 10;//2;//5;//5;//3;//10;//20;//3;//10;
-int currentGradientServoIterations = 0;
 
 int fuseBlueBoxes = 1;
 int fusePasses = 5;
@@ -2411,42 +2368,42 @@ void rangeCallback(const sensor_msgs::Range& range) {
     guardedImshow(ms->config.mapBackgroundViewName, ms->config.mapBackgroundImage, ms->config.sirMapBackground);
     
     if (ms->config.targetClass > -1) {
-      if (classHeight0AerialGradients[ms->config.targetClass].rows == ms->config.aerialGradientWidth) {
+      if (ms->config.classHeight0AerialGradients[ms->config.targetClass].rows == ms->config.aerialGradientWidth) {
 	Mat crop0 = ms->config.aerialGradientViewerImage(cv::Rect(0, 3*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, ms->config.aerialGradientWidth));
 	double min0 = 0;
 	double max0 = 0;
-	minMaxLoc(classHeight0AerialGradients[ms->config.targetClass], &min0, &max0);
+	minMaxLoc(ms->config.classHeight0AerialGradients[ms->config.targetClass], &min0, &max0);
 	double denom0 = max0-min0;
 	if (fabs(denom0) < EPSILON)
 	  denom0 = 1;
-	crop0 = (classHeight0AerialGradients[ms->config.targetClass] - min0) / denom0;
+	crop0 = (ms->config.classHeight0AerialGradients[ms->config.targetClass] - min0) / denom0;
 
 	Mat crop1 = ms->config.aerialGradientViewerImage(cv::Rect(0, 2*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, ms->config.aerialGradientWidth));
 	double min1 = 0;
 	double max1 = 0;
-	minMaxLoc(classHeight1AerialGradients[ms->config.targetClass], &min1, &max1);
+	minMaxLoc(ms->config.classHeight1AerialGradients[ms->config.targetClass], &min1, &max1);
 	double denom1 = max1-min1;
 	if (fabs(denom1) < EPSILON)
 	  denom1 = 1;
-	crop1 = (classHeight1AerialGradients[ms->config.targetClass] - min1) / denom1;
+	crop1 = (ms->config.classHeight1AerialGradients[ms->config.targetClass] - min1) / denom1;
 
 	Mat crop2 = ms->config.aerialGradientViewerImage(cv::Rect(0, 1*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, ms->config.aerialGradientWidth));
 	double min2 = 0;
 	double max2 = 0;
-	minMaxLoc(classHeight2AerialGradients[ms->config.targetClass], &min2, &max2);
+	minMaxLoc(ms->config.classHeight2AerialGradients[ms->config.targetClass], &min2, &max2);
 	double denom2 = max2-min2;
 	if (fabs(denom2) < EPSILON)
 	  denom2 = 1;
-	crop2 = (classHeight2AerialGradients[ms->config.targetClass] - min2) / denom2;
+	crop2 = (ms->config.classHeight2AerialGradients[ms->config.targetClass] - min2) / denom2;
 
 	Mat crop3 = ms->config.aerialGradientViewerImage(cv::Rect(0, 0*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, ms->config.aerialGradientWidth));
 	double min3 = 0;
 	double max3 = 0;
-	minMaxLoc(classHeight3AerialGradients[ms->config.targetClass], &min3, &max3);
+	minMaxLoc(ms->config.classHeight3AerialGradients[ms->config.targetClass], &min3, &max3);
 	double denom3 = max3-min3;
 	if (fabs(denom3) < EPSILON)
 	  denom3 = 1;
-	crop3 = (classHeight3AerialGradients[ms->config.targetClass] - min3) / denom3;
+	crop3 = (ms->config.classHeight3AerialGradients[ms->config.targetClass] - min3) / denom3;
 
 	guardedImshow(ms->config.aerialGradientViewerName, ms->config.aerialGradientViewerImage, ms->config.sirAerialGradient);
       }
@@ -4715,60 +4672,60 @@ void guard3dGrasps(shared_ptr<MachineState> ms) {
 void guardGraspMemory(shared_ptr<MachineState> ms) {
 
   {
-    if (classGraspMemoryTries1.size() <= ms->config.focusedClass) {
-      classGraspMemoryTries1.resize(ms->config.focusedClass + 1);
+    if (ms->config.classGraspMemoryTries1.size() <= ms->config.focusedClass) {
+      ms->config.classGraspMemoryTries1.resize(ms->config.focusedClass + 1);
     }
-    if (classGraspMemoryPicks1.size() <= ms->config.focusedClass) {
-      classGraspMemoryPicks1.resize(ms->config.focusedClass + 1);
-    }
-
-    if (classGraspMemoryTries2.size() <= ms->config.focusedClass) {
-      classGraspMemoryTries2.resize(ms->config.focusedClass + 1);
-    }
-    if (classGraspMemoryPicks2.size() <= ms->config.focusedClass) {
-      classGraspMemoryPicks2.resize(ms->config.focusedClass + 1);
+    if (ms->config.classGraspMemoryPicks1.size() <= ms->config.focusedClass) {
+      ms->config.classGraspMemoryPicks1.resize(ms->config.focusedClass + 1);
     }
 
-    if (classGraspMemoryTries3.size() <= ms->config.focusedClass) {
-      classGraspMemoryTries3.resize(ms->config.focusedClass + 1);
+    if (ms->config.classGraspMemoryTries2.size() <= ms->config.focusedClass) {
+      ms->config.classGraspMemoryTries2.resize(ms->config.focusedClass + 1);
     }
-    if (classGraspMemoryPicks3.size() <= ms->config.focusedClass) {
-      classGraspMemoryPicks3.resize(ms->config.focusedClass + 1);
+    if (ms->config.classGraspMemoryPicks2.size() <= ms->config.focusedClass) {
+      ms->config.classGraspMemoryPicks2.resize(ms->config.focusedClass + 1);
     }
 
-    if (classGraspMemoryTries4.size() <= ms->config.focusedClass) {
-      classGraspMemoryTries4.resize(ms->config.focusedClass + 1);
+    if (ms->config.classGraspMemoryTries3.size() <= ms->config.focusedClass) {
+      ms->config.classGraspMemoryTries3.resize(ms->config.focusedClass + 1);
     }
-    if (classGraspMemoryPicks4.size() <= ms->config.focusedClass) {
-      classGraspMemoryPicks4.resize(ms->config.focusedClass + 1);
+    if (ms->config.classGraspMemoryPicks3.size() <= ms->config.focusedClass) {
+      ms->config.classGraspMemoryPicks3.resize(ms->config.focusedClass + 1);
+    }
+
+    if (ms->config.classGraspMemoryTries4.size() <= ms->config.focusedClass) {
+      ms->config.classGraspMemoryTries4.resize(ms->config.focusedClass + 1);
+    }
+    if (ms->config.classGraspMemoryPicks4.size() <= ms->config.focusedClass) {
+      ms->config.classGraspMemoryPicks4.resize(ms->config.focusedClass + 1);
     }
 
   }
 
   {
     bool loadPrior = false;
-    if (!((classGraspMemoryTries1[ms->config.focusedClass].rows > 1) && (classGraspMemoryTries1[ms->config.focusedClass].cols > 1) &&
-	(classGraspMemoryPicks1[ms->config.focusedClass].rows > 1) && (classGraspMemoryPicks1[ms->config.focusedClass].cols > 1) )) {
-      classGraspMemoryTries1[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-      classGraspMemoryPicks1[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+    if (!((ms->config.classGraspMemoryTries1[ms->config.focusedClass].rows > 1) && (ms->config.classGraspMemoryTries1[ms->config.focusedClass].cols > 1) &&
+	(ms->config.classGraspMemoryPicks1[ms->config.focusedClass].rows > 1) && (ms->config.classGraspMemoryPicks1[ms->config.focusedClass].cols > 1) )) {
+      ms->config.classGraspMemoryTries1[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+      ms->config.classGraspMemoryPicks1[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
       loadPrior = true;
     }
-    if (!((classGraspMemoryTries2[ms->config.focusedClass].rows > 1) && (classGraspMemoryTries2[ms->config.focusedClass].cols > 1) &&
-	(classGraspMemoryPicks2[ms->config.focusedClass].rows > 1) && (classGraspMemoryPicks2[ms->config.focusedClass].cols > 1) )) {
-      classGraspMemoryTries2[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-      classGraspMemoryPicks2[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+    if (!((ms->config.classGraspMemoryTries2[ms->config.focusedClass].rows > 1) && (ms->config.classGraspMemoryTries2[ms->config.focusedClass].cols > 1) &&
+	(ms->config.classGraspMemoryPicks2[ms->config.focusedClass].rows > 1) && (ms->config.classGraspMemoryPicks2[ms->config.focusedClass].cols > 1) )) {
+      ms->config.classGraspMemoryTries2[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+      ms->config.classGraspMemoryPicks2[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
       loadPrior = true;
     }
-    if (!((classGraspMemoryTries3[ms->config.focusedClass].rows > 1) && (classGraspMemoryTries3[ms->config.focusedClass].cols > 1) &&
-	(classGraspMemoryPicks3[ms->config.focusedClass].rows > 1) && (classGraspMemoryPicks3[ms->config.focusedClass].cols > 1) )) {
-      classGraspMemoryTries3[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-      classGraspMemoryPicks3[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+    if (!((ms->config.classGraspMemoryTries3[ms->config.focusedClass].rows > 1) && (ms->config.classGraspMemoryTries3[ms->config.focusedClass].cols > 1) &&
+	(ms->config.classGraspMemoryPicks3[ms->config.focusedClass].rows > 1) && (ms->config.classGraspMemoryPicks3[ms->config.focusedClass].cols > 1) )) {
+      ms->config.classGraspMemoryTries3[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+      ms->config.classGraspMemoryPicks3[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
       loadPrior = true;
     }
-    if (!((classGraspMemoryTries4[ms->config.focusedClass].rows > 1) && (classGraspMemoryTries4[ms->config.focusedClass].cols > 1) &&
-	(classGraspMemoryPicks4[ms->config.focusedClass].rows > 1) && (classGraspMemoryPicks4[ms->config.focusedClass].cols > 1) )) {
-      classGraspMemoryTries4[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-      classGraspMemoryPicks4[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+    if (!((ms->config.classGraspMemoryTries4[ms->config.focusedClass].rows > 1) && (ms->config.classGraspMemoryTries4[ms->config.focusedClass].cols > 1) &&
+	(ms->config.classGraspMemoryPicks4[ms->config.focusedClass].rows > 1) && (ms->config.classGraspMemoryPicks4[ms->config.focusedClass].cols > 1) )) {
+      ms->config.classGraspMemoryTries4[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+      ms->config.classGraspMemoryPicks4[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
       loadPrior = true;
     }
     if (loadPrior) {
@@ -4782,16 +4739,16 @@ void guardHeightMemory(shared_ptr<MachineState> ms) {
   if (ms->config.focusedClass == -1) {
     ROS_ERROR_STREAM("Focused class not initialized! " << ms->config.focusedClass);
   }
-  if (classHeightMemoryTries.size() <= ms->config.focusedClass) {
-    classHeightMemoryTries.resize(ms->config.focusedClass + 1);
+  if (ms->config.classHeightMemoryTries.size() <= ms->config.focusedClass) {
+    ms->config.classHeightMemoryTries.resize(ms->config.focusedClass + 1);
   }
-  if (classHeightMemoryPicks.size() <= ms->config.focusedClass) {
-    classHeightMemoryPicks.resize(ms->config.focusedClass + 1);
+  if (ms->config.classHeightMemoryPicks.size() <= ms->config.focusedClass) {
+    ms->config.classHeightMemoryPicks.resize(ms->config.focusedClass + 1);
   }
-  if (!((classHeightMemoryTries[ms->config.focusedClass].rows > 1) && (classHeightMemoryTries[ms->config.focusedClass].cols == 1) &&
-	(classHeightMemoryPicks[ms->config.focusedClass].rows > 1) && (classHeightMemoryPicks[ms->config.focusedClass].cols == 1) )) {
-    classHeightMemoryTries[ms->config.focusedClass] = Mat(ms->config.hmWidth, 1, CV_64F);
-    classHeightMemoryPicks[ms->config.focusedClass] = Mat(ms->config.hmWidth, 1, CV_64F);
+  if (!((ms->config.classHeightMemoryTries[ms->config.focusedClass].rows > 1) && (ms->config.classHeightMemoryTries[ms->config.focusedClass].cols == 1) &&
+	(ms->config.classHeightMemoryPicks[ms->config.focusedClass].rows > 1) && (ms->config.classHeightMemoryPicks[ms->config.focusedClass].cols == 1) )) {
+    ms->config.classHeightMemoryTries[ms->config.focusedClass] = Mat(ms->config.hmWidth, 1, CV_64F);
+    ms->config.classHeightMemoryPicks[ms->config.focusedClass] = Mat(ms->config.hmWidth, 1, CV_64F);
     loadPriorHeightMemory(ms, ANALYTIC_PRIOR);
   }
 }
@@ -5169,8 +5126,8 @@ void drawHeightMemorySample(shared_ptr<MachineState> ms) {
 void copyHeightMemoryTriesToClassHeightMemoryTries(shared_ptr<MachineState> ms) {
   guardHeightMemory(ms);
   for (int i = 0; i < ms->config.hmWidth; i++) {
-    classHeightMemoryTries[ms->config.focusedClass].at<double>(i,0) = ms->config.heightMemoryTries[i];
-    classHeightMemoryPicks[ms->config.focusedClass].at<double>(i,0) = ms->config.heightMemoryPicks[i];
+    ms->config.classHeightMemoryTries[ms->config.focusedClass].at<double>(i,0) = ms->config.heightMemoryTries[i];
+    ms->config.classHeightMemoryPicks[ms->config.focusedClass].at<double>(i,0) = ms->config.heightMemoryPicks[i];
   }
 }
 
@@ -5335,14 +5292,14 @@ void drawMapRegisters(shared_ptr<MachineState> ms) {
         }
       }
     }
-    if ((ms->config.targetClass > -1) && (classRangeMaps[ms->config.targetClass].rows > 1) && (classRangeMaps[ms->config.targetClass].cols > 1)) {
+    if ((ms->config.targetClass > -1) && (ms->config.classRangeMaps[ms->config.targetClass].rows > 1) && (ms->config.classRangeMaps[ms->config.targetClass].cols > 1)) {
       double minDepth = VERYBIGNUMBER;
       double maxDepth = 0;
       for (int rx = 0; rx < ms->config.rmWidth; rx++) {
         for (int ry = 0; ry < ms->config.rmWidth; ry++) {
 
-          minDepth = min(minDepth, classRangeMaps[ms->config.targetClass].at<double>(ry,rx));
-          maxDepth = max(maxDepth, classRangeMaps[ms->config.targetClass].at<double>(ry,rx));
+          minDepth = min(minDepth, ms->config.classRangeMaps[ms->config.targetClass].at<double>(ry,rx));
+          maxDepth = max(maxDepth, ms->config.classRangeMaps[ms->config.targetClass].at<double>(ry,rx));
         }
       }
       for (int rx = 0; rx < ms->config.rmWidth; rx++) {
@@ -5350,7 +5307,7 @@ void drawMapRegisters(shared_ptr<MachineState> ms) {
           double denom = max(EPSILON,maxDepth-minDepth);
           if (denom <= EPSILON)
             denom = VERYBIGNUMBER;
-          double greenIntensity = 255 * (maxDepth - classRangeMaps[ms->config.targetClass].at<double>(ry,rx)) / denom;
+          double greenIntensity = 255 * (maxDepth - ms->config.classRangeMaps[ms->config.targetClass].at<double>(ry,rx)) / denom;
           {
             cv::Scalar backColor(0,ceil(greenIntensity),0);
             cv::Point outTop = cv::Point((ry+ms->config.rmWidth)*ms->config.rmiCellWidth,rx*ms->config.rmiCellWidth);
@@ -5546,7 +5503,7 @@ void loadGlobalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMa
   // Get the rotation matrix with the specifications above
   Mat rotatedClassRangeMap;
   Mat rot_mat = getRotationMatrix2D(center, angle, scale);
-  warpAffine(classRangeMaps[ms->config.targetClass], rotatedClassRangeMap, rot_mat, toBecome, INTER_LINEAR, BORDER_REPLICATE);
+  warpAffine(ms->config.classRangeMaps[ms->config.targetClass], rotatedClassRangeMap, rot_mat, toBecome, INTER_LINEAR, BORDER_REPLICATE);
 
   ms->config.bestOrientationAngle = angle;
 
@@ -5554,8 +5511,8 @@ void loadGlobalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMa
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
         // unrotated
-        //rangeMap[x + y*ms->config.rmWidth] = classRangeMaps[ms->config.targetClass].at<double>(y,x);
-        //ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = classRangeMaps[ms->config.targetClass].at<double>(y,x);
+        //rangeMap[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x);
+        //ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x);
         // rotated
         rangeMapRegA[x + y*ms->config.rmWidth] = rotatedClassRangeMap.at<double>(y,x);
         rangeMapRegB[x + y*ms->config.rmWidth] = rotatedClassRangeMap.at<double>(y,x);
@@ -5569,8 +5526,8 @@ void loadLocalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMap
   if ((ms->config.targetClass < ms->config.numClasses) && (ms->config.targetClass >= 0)) {
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        rangeMapRegA[x + y*ms->config.rmWidth] = classRangeMaps[ms->config.targetClass].at<double>(y,x);
-        rangeMapRegB[x + y*ms->config.rmWidth] = classRangeMaps[ms->config.targetClass].at<double>(y,x);
+        rangeMapRegA[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x);
+        rangeMapRegB[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x);
       } 
     } 
   } 
@@ -5647,73 +5604,73 @@ void prepareGraspFilter4(shared_ptr<MachineState> ms) {
 }
 
 void copyClassGraspMemoryTriesToGraspMemoryTries(shared_ptr<MachineState> ms) {
-  if ((classGraspMemoryTries1[ms->config.targetClass].rows > 1) && (classGraspMemoryTries1[ms->config.targetClass].cols > 1) &&
-      (classGraspMemoryPicks1[ms->config.targetClass].rows > 1) && (classGraspMemoryPicks1[ms->config.targetClass].cols > 1) ) {
+  if ((ms->config.classGraspMemoryTries1[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryTries1[ms->config.targetClass].cols > 1) &&
+      (ms->config.classGraspMemoryPicks1[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryPicks1[ms->config.targetClass].cols > 1) ) {
     cout << "graspMemoryTries[] = classGraspMemoryTries1" << endl;
-    //cout << "classGraspMemoryTries1 " << classGraspMemoryTries1[ms->config.targetClass] << endl; 
-    //cout << "classGraspMemoryPicks1 " << classGraspMemoryPicks1[ms->config.targetClass] << endl; 
+    //cout << "ms->config.classGraspMemoryTries1 " << ms->config.classGraspMemoryTries1[ms->config.targetClass] << endl; 
+    //cout << "classGraspMemoryPicks1 " << ms->config.classGraspMemoryPicks1[ms->config.targetClass] << endl; 
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = classGraspMemoryTries1[ms->config.targetClass].at<double>(y,x);
+        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = ms->config.classGraspMemoryTries1[ms->config.targetClass].at<double>(y,x);
       } 
     } 
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x);
+        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = ms->config.classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x);
       } 
     } 
   } else {
     cout << "Whoops, tried to set grasp memories 1 but they don't exist for this class." << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
   }
-  if ((classGraspMemoryTries2[ms->config.targetClass].rows > 1) && (classGraspMemoryTries2[ms->config.targetClass].cols > 1) &&
-      (classGraspMemoryPicks2[ms->config.targetClass].rows > 1) && (classGraspMemoryPicks2[ms->config.targetClass].cols > 1) ) {
+  if ((ms->config.classGraspMemoryTries2[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryTries2[ms->config.targetClass].cols > 1) &&
+      (ms->config.classGraspMemoryPicks2[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryPicks2[ms->config.targetClass].cols > 1) ) {
     cout << "graspMemoryTries[] = classGraspMemoryTries2" << endl;
-    //cout << "classGraspMemoryTries2 " << classGraspMemoryTries2[ms->config.targetClass] << endl; 
-    //cout << "classGraspMemoryPicks2 " << classGraspMemoryPicks2[ms->config.targetClass] << endl; 
+    //cout << "classGraspMemoryTries2 " << ms->config.classGraspMemoryTries2[ms->config.targetClass] << endl; 
+    //cout << "classGraspMemoryPicks2 " << ms->config.classGraspMemoryPicks2[ms->config.targetClass] << endl; 
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = classGraspMemoryTries2[ms->config.targetClass].at<double>(y,x);
+        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = ms->config.classGraspMemoryTries2[ms->config.targetClass].at<double>(y,x);
       } 
     } 
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x);
+        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = ms->config.classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x);
       } 
     } 
   } else {
     cout << "Whoops, tried to set grasp memories 2 but they don't exist for this class." << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
   }
-  if ((classGraspMemoryTries3[ms->config.targetClass].rows > 1) && (classGraspMemoryTries3[ms->config.targetClass].cols > 1) &&
-      (classGraspMemoryPicks3[ms->config.targetClass].rows > 1) && (classGraspMemoryPicks3[ms->config.targetClass].cols > 1) ) {
+  if ((ms->config.classGraspMemoryTries3[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryTries3[ms->config.targetClass].cols > 1) &&
+      (ms->config.classGraspMemoryPicks3[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryPicks3[ms->config.targetClass].cols > 1) ) {
     cout << "graspMemoryTries[] = classGraspMemoryTries3" << endl;
-    //cout << "classGraspMemoryTries3 " << classGraspMemoryTries3[ms->config.targetClass] << endl; 
-    //cout << "classGraspMemoryPicks3 " << classGraspMemoryPicks3[ms->config.targetClass] << endl; 
+    //cout << "classGraspMemoryTries3 " << ms->config.classGraspMemoryTries3[ms->config.targetClass] << endl; 
+    //cout << "classGraspMemoryPicks3 " << ms->config.classGraspMemoryPicks3[ms->config.targetClass] << endl; 
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = classGraspMemoryTries3[ms->config.targetClass].at<double>(y,x);
+        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = ms->config.classGraspMemoryTries3[ms->config.targetClass].at<double>(y,x);
       } 
     } 
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x);
+        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = ms->config.classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x);
       } 
     } 
   } else {
     cout << "Whoops, tried to set grasp memories 3 but they don't exist for this class." << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
   }
-  if ((classGraspMemoryTries4[ms->config.targetClass].rows > 1) && (classGraspMemoryTries4[ms->config.targetClass].cols > 1) &&
-      (classGraspMemoryPicks4[ms->config.targetClass].rows > 1) && (classGraspMemoryPicks4[ms->config.targetClass].cols > 1) ) {
+  if ((ms->config.classGraspMemoryTries4[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryTries4[ms->config.targetClass].cols > 1) &&
+      (ms->config.classGraspMemoryPicks4[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryPicks4[ms->config.targetClass].cols > 1) ) {
     cout << "graspMemoryTries[] = classGraspMemoryTries4" << endl;
-    //cout << "classGraspMemoryTries4 " << classGraspMemoryTries4[ms->config.targetClass] << endl; 
-    //cout << "classGraspMemoryPicks4 " << classGraspMemoryPicks4[ms->config.targetClass] << endl; 
+    //cout << "classGraspMemoryTries4 " << ms->config.classGraspMemoryTries4[ms->config.targetClass] << endl; 
+    //cout << "classGraspMemoryPicks4 " << ms->config.classGraspMemoryPicks4[ms->config.targetClass] << endl; 
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x);
+        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = ms->config.classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x);
       } 
     } 
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x);
+        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = ms->config.classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x);
       } 
     } 
   } else {
@@ -5728,45 +5685,45 @@ void copyGraspMemoryTriesToClassGraspMemoryTries(shared_ptr<MachineState> ms) {
   guardGraspMemory(ms);
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
-      classGraspMemoryTries1[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 0*ms->config.rmWidth*ms->config.rmWidth];
+      ms->config.classGraspMemoryTries1[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 0*ms->config.rmWidth*ms->config.rmWidth];
     } 
   }
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
-      classGraspMemoryPicks1[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 0*ms->config.rmWidth*ms->config.rmWidth];
+      ms->config.classGraspMemoryPicks1[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 0*ms->config.rmWidth*ms->config.rmWidth];
     } 
   } 
 
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
-      classGraspMemoryTries2[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 1*ms->config.rmWidth*ms->config.rmWidth];
+      ms->config.classGraspMemoryTries2[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 1*ms->config.rmWidth*ms->config.rmWidth];
     } 
   } 
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
-      classGraspMemoryPicks2[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 1*ms->config.rmWidth*ms->config.rmWidth];
+      ms->config.classGraspMemoryPicks2[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 1*ms->config.rmWidth*ms->config.rmWidth];
     } 
   } 
 
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
-      classGraspMemoryTries3[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 2*ms->config.rmWidth*ms->config.rmWidth];
+      ms->config.classGraspMemoryTries3[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 2*ms->config.rmWidth*ms->config.rmWidth];
     } 
   }
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
-      classGraspMemoryPicks3[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 2*ms->config.rmWidth*ms->config.rmWidth];
+      ms->config.classGraspMemoryPicks3[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 2*ms->config.rmWidth*ms->config.rmWidth];
     } 
   }
 
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
-      classGraspMemoryTries4[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 3*ms->config.rmWidth*ms->config.rmWidth];
+      ms->config.classGraspMemoryTries4[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 3*ms->config.rmWidth*ms->config.rmWidth];
     } 
   } 
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
-      classGraspMemoryPicks4[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 3*ms->config.rmWidth*ms->config.rmWidth];
+      ms->config.classGraspMemoryPicks4[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 3*ms->config.rmWidth*ms->config.rmWidth];
     } 
   }
 }
@@ -6338,12 +6295,12 @@ void gradientServo(shared_ptr<MachineState> ms) {
   //          restartBBLearning(ms);
   //        }
 
-  cout << "entered gradient servo... iteration " << currentGradientServoIterations << endl;
+  cout << "entered gradient servo... iteration " << ms->config.currentGradientServoIterations << endl;
   if (ms->config.targetClass < 0 || ms->config.targetClass >= ms->config.numClasses) {
     cout << "bad target class, not servoing." << endl;
     return;
   }
-  if ((classAerialGradients[ms->config.targetClass].rows <= 1) && (classAerialGradients[ms->config.targetClass].cols <= 1)) {
+  if ((ms->config.classAerialGradients[ms->config.targetClass].rows <= 1) && (ms->config.classAerialGradients[ms->config.targetClass].cols <= 1)) {
     cout << "no aerial gradients for this class, not servoing." << endl;
     return;
   }
@@ -6364,22 +6321,22 @@ void gradientServo(shared_ptr<MachineState> ms) {
   switch (ms->config.currentThompsonHeightIdx) {
   case 0:
     {
-      classAerialGradients[ms->config.targetClass] = classHeight0AerialGradients[ms->config.targetClass];
+      ms->config.classAerialGradients[ms->config.targetClass] = ms->config.classHeight0AerialGradients[ms->config.targetClass];
     }
     break;
   case 1:
     {
-      classAerialGradients[ms->config.targetClass] = classHeight1AerialGradients[ms->config.targetClass];
+      ms->config.classAerialGradients[ms->config.targetClass] = ms->config.classHeight1AerialGradients[ms->config.targetClass];
     }
     break;
   case 2:
     {
-      classAerialGradients[ms->config.targetClass] = classHeight2AerialGradients[ms->config.targetClass];
+      ms->config.classAerialGradients[ms->config.targetClass] = ms->config.classHeight2AerialGradients[ms->config.targetClass];
     }
     break;
   case 3:
     {
-      classAerialGradients[ms->config.targetClass] = classHeight3AerialGradients[ms->config.targetClass];
+      ms->config.classAerialGradients[ms->config.targetClass] = ms->config.classHeight3AerialGradients[ms->config.targetClass];
     }
     break;
   default:
@@ -6446,7 +6403,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
       
       // Get the rotation matrix with the specifications above
       Mat rot_mat = getRotationMatrix2D(center, angle, scale);
-      warpAffine(classAerialGradients[ms->config.targetClass], rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
+      warpAffine(ms->config.classAerialGradients[ms->config.targetClass], rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
       
       processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations], rotatedAerialGrads[thisOrient + etaS*numOrientations]);
       
@@ -6454,7 +6411,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
       //if (l1norm <= EPSILON)
       //l1norm = 1.0;
       //rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l1norm;
-      //cout << "classOrientedGradients[ms->config.targetClass]: " << classAerialGradients[ms->config.targetClass] << "rotatedAerialGrads[thisOrient + etaS*numOrientations] " << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
+      //cout << "classOrientedGradients[ms->config.targetClass]: " << ms->config.classAerialGradients[ms->config.targetClass] << "rotatedAerialGrads[thisOrient + etaS*numOrientations] " << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
       
       double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
       rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
@@ -6554,7 +6511,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
             }
           }
   // ATTN 25
-  if ( (currentGradientServoIterations > (softMaxGradientServoIterations-1)) &&
+  if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
        (thisOrient != 0) ) {
     continue;
   }
@@ -6601,7 +6558,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
             }
           }
   // ATTN 25
-  if ( (currentGradientServoIterations > (softMaxGradientServoIterations-1)) &&
+  if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
        (thisOrient != 0) ) {
     continue;
   }
@@ -6639,7 +6596,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   
   Mat toShow;
   Size toUnBecome(maxDim, maxDim);
-  //cv::resize(classAerialGradients[ms->config.targetClass], toShow, toUnBecome);
+  //cv::resize(ms->config.classAerialGradients[ms->config.targetClass], toShow, toUnBecome);
   //cv::resize(rotatedAerialGrads[oneToDraw], toShow, toUnBecome);
   cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations], toShow, toUnBecome);
   //cout << rotatedAerialGrads[oneToDraw];
@@ -6683,12 +6640,12 @@ void gradientServo(shared_ptr<MachineState> ms) {
   
   
   // update after
-  currentGradientServoIterations++;
+  ms->config.currentGradientServoIterations++;
   
   // XXX this still might miss if it nails the correct orientation on the last try
   // TODO but we could set the bestOrientationEEPose here according to what it would have been`
   // but we don't want to move because we want all the numbers to be consistent
-  if (currentGradientServoIterations > (hardMaxGradientServoIterations-1)) {
+  if (ms->config.currentGradientServoIterations > (ms->config.hardMaxGradientServoIterations-1)) {
     //cout << "LAST ITERATION indefinite orientation ";
   } else {
     double kPtheta = 0.0;
@@ -6745,7 +6702,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
     // ATTN 5
     // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
     if (((fabs(Px) < ms->config.gradServoPixelThresh) && (fabs(Py) < ms->config.gradServoPixelThresh) && (fabs(Ptheta) < ms->config.gradServoThetaThresh)) ||
-        (currentGradientServoIterations > (hardMaxGradientServoIterations-1)))
+        (ms->config.currentGradientServoIterations > (ms->config.hardMaxGradientServoIterations-1)))
       {
 	// ATTN 23
 	// move from vanishing point reticle to gripper reticle
@@ -6772,7 +6729,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
     
         if (ms->config.synchronicTakeClosest) {
           if (ms->config.gradientTakeClosest) {
-            if ((classRangeMaps[ms->config.targetClass].rows > 1) && (classRangeMaps[ms->config.targetClass].cols > 1))
+            if ((ms->config.classRangeMaps[ms->config.targetClass].rows > 1) && (ms->config.classRangeMaps[ms->config.targetClass].cols > 1))
               ms->pushWord("prepareForAndExecuteGraspFromMemoryLearning"); // prepare for and execute the best grasp from memory at the current location and target
             else {
               ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
@@ -6781,7 +6738,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
             return;
           }
         } else {
-          if ((classRangeMaps[ms->config.targetClass].rows > 1) && (classRangeMaps[ms->config.targetClass].cols > 1)) {
+          if ((ms->config.classRangeMaps[ms->config.targetClass].rows > 1) && (ms->config.classRangeMaps[ms->config.targetClass].cols > 1)) {
             ms->pushWord("prepareForAndExecuteGraspFromMemoryLearning"); 
           } else {
             ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
@@ -6913,7 +6870,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
   ms->config.reticle = ms->config.vanishingPointReticle;
 
   // ATTN 17
-  currentGradientServoIterations = 0;
+  ms->config.currentGradientServoIterations = 0;
 
   // ATTN 12
   // if we time out, reset the bblearning program
@@ -7079,7 +7036,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       }
 
       cout << "got within thresh. ";
-      if ((classAerialGradients[ms->config.targetClass].rows > 1) && (classAerialGradients[ms->config.targetClass].cols > 1)) {
+      if ((ms->config.classAerialGradients[ms->config.targetClass].rows > 1) && (ms->config.classAerialGradients[ms->config.targetClass].cols > 1)) {
         ms->pushWord("gradientServo"); 
         cout << "Queuing gradient servo." << endl;
         //ms->pushCopies("density", ms->config.densityIterationsForGradientServo); 
@@ -7303,22 +7260,22 @@ void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces) {
 
 
 void initRangeMaps(shared_ptr<MachineState> ms) {
-  classRangeMaps.resize(ms->config.numClasses);
-  classGraspMemoryTries1.resize(ms->config.numClasses);
-  classGraspMemoryPicks1.resize(ms->config.numClasses);
-  classGraspMemoryTries2.resize(ms->config.numClasses);
-  classGraspMemoryPicks2.resize(ms->config.numClasses);
-  classGraspMemoryTries3.resize(ms->config.numClasses);
-  classGraspMemoryPicks3.resize(ms->config.numClasses);
-  classGraspMemoryTries4.resize(ms->config.numClasses);
-  classGraspMemoryPicks4.resize(ms->config.numClasses);
-  classAerialGradients.resize(ms->config.numClasses);
+  ms->config.classRangeMaps.resize(ms->config.numClasses);
+  ms->config.classGraspMemoryTries1.resize(ms->config.numClasses);
+  ms->config.classGraspMemoryPicks1.resize(ms->config.numClasses);
+  ms->config.classGraspMemoryTries2.resize(ms->config.numClasses);
+  ms->config.classGraspMemoryPicks2.resize(ms->config.numClasses);
+  ms->config.classGraspMemoryTries3.resize(ms->config.numClasses);
+  ms->config.classGraspMemoryPicks3.resize(ms->config.numClasses);
+  ms->config.classGraspMemoryTries4.resize(ms->config.numClasses);
+  ms->config.classGraspMemoryPicks4.resize(ms->config.numClasses);
+  ms->config.classAerialGradients.resize(ms->config.numClasses);
 
   // ATTN 16
-  classHeight0AerialGradients.resize(ms->config.numClasses);
-  classHeight1AerialGradients.resize(ms->config.numClasses);
-  classHeight2AerialGradients.resize(ms->config.numClasses);
-  classHeight3AerialGradients.resize(ms->config.numClasses);
+  ms->config.classHeight0AerialGradients.resize(ms->config.numClasses);
+  ms->config.classHeight1AerialGradients.resize(ms->config.numClasses);
+  ms->config.classHeight2AerialGradients.resize(ms->config.numClasses);
+  ms->config.classHeight3AerialGradients.resize(ms->config.numClasses);
 
   ms->config.classGraspZs.resize(ms->config.numClasses);
   ms->config.classGraspZsSet.resize(ms->config.numClasses);
@@ -7327,8 +7284,8 @@ void initRangeMaps(shared_ptr<MachineState> ms) {
     ms->config.class3dGrasps[i].resize(0);
   }
 
-  classHeightMemoryTries.resize(ms->config.numClasses);
-  classHeightMemoryPicks.resize(ms->config.numClasses);
+  ms->config.classHeightMemoryTries.resize(ms->config.numClasses);
+  ms->config.classHeightMemoryPicks.resize(ms->config.numClasses);
   for (int i = 0; i < ms->config.classLabels.size(); i++) {
     tryToLoadRangeMap(ms, ms->config.class_crops_path, ms->config.classLabels[i].c_str(), i);
   }
@@ -8223,10 +8180,10 @@ void findOptimum(shared_ptr<MachineState> ms, int * xout, int * yout, int sign) 
   Mat accToBlur;
   accToBlur.create(accumulatedImage.size(), CV_64F);
 
-  //int xmin = grayTop.x;
-  //int ymin = grayTop.y;
-  //int xmax = grayBot.x;
-  //int ymax = grayBot.y;
+  //int xmin = ms->config.grayTop.x;
+  //int ymin = ms->config.grayTop.y;
+  //int xmax = ms->config.grayBot.x;
+  //int ymax = ms->config.grayBot.y;
   //int xmin = 0;
   //int ymin = 0;
   //int xmax = imW;
@@ -8950,16 +8907,16 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   Mat yCbCrGradientImage = ms->config.objectViewerImage.clone();
 
   // determine table edges, i.e. the gray boxes
-  lGO = ms->config.gBoxW*(lGO/ms->config.gBoxW);
-  rGO = ms->config.gBoxW*(rGO/ms->config.gBoxW);
-  tGO = ms->config.gBoxH*(tGO/ms->config.gBoxH);
-  bGO = ms->config.gBoxH*(bGO/ms->config.gBoxH);
-  grayTop = cv::Point(lGO, tGO);
-  grayBot = cv::Point(imW-rGO-1, imH-bGO-1);
+  ms->config.lGO = ms->config.gBoxW*(ms->config.lGO/ms->config.gBoxW);
+  ms->config.rGO = ms->config.gBoxW*(ms->config.rGO/ms->config.gBoxW);
+  ms->config.tGO = ms->config.gBoxH*(ms->config.tGO/ms->config.gBoxH);
+  ms->config.bGO = ms->config.gBoxH*(ms->config.bGO/ms->config.gBoxH);
+  ms->config.grayTop = cv::Point(ms->config.lGO, ms->config.tGO);
+  ms->config.grayBot = cv::Point(imW-ms->config.rGO-1, imH-ms->config.bGO-1);
 
-  if (all_range_mode) {
-    grayTop = armTop;
-    grayBot = armBot;
+  if (ms->config.all_range_mode) {
+    ms->config.grayTop = ms->config.armTop;
+    ms->config.grayBot = ms->config.armBot;
   }
 
   // Sobel business
@@ -9064,7 +9021,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
 
   // truncate the Sobel image outside the gray box
   for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < grayTop.y; y++) {
+    for (int y = 0; y < ms->config.grayTop.y; y++) {
       totalGraySobel.at<double>(y,x) = 0;
       totalCrSobel.at<double>(y,x) = 0;
       totalCbSobel.at<double>(y,x) = 0;
@@ -9072,8 +9029,8 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
     }
   }
 
-  for (int x = 0; x < grayTop.x; x++) {
-    for (int y = grayTop.y; y < grayBot.y; y++) {
+  for (int x = 0; x < ms->config.grayTop.x; x++) {
+    for (int y = ms->config.grayTop.y; y < ms->config.grayBot.y; y++) {
       totalGraySobel.at<double>(y,x) = 0;
       totalCrSobel.at<double>(y,x) = 0;
       totalCbSobel.at<double>(y,x) = 0;
@@ -9081,8 +9038,8 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
     }
   }
 
-  for (int x = grayBot.x; x < imW; x++) {
-    for (int y = grayTop.y; y < grayBot.y; y++) {
+  for (int x = ms->config.grayBot.x; x < imW; x++) {
+    for (int y = ms->config.grayTop.y; y < ms->config.grayBot.y; y++) {
       totalGraySobel.at<double>(y,x) = 0;
       totalCrSobel.at<double>(y,x) = 0;
       totalCbSobel.at<double>(y,x) = 0;
@@ -9091,7 +9048,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   }
 
   for (int x = 0; x < imW; x++) {
-    for (int y = grayBot.y; y < imH; y++) {
+    for (int y = ms->config.grayBot.y; y < imH; y++) {
       totalGraySobel.at<double>(y,x) = 0;
       totalCrSobel.at<double>(y,x) = 0;
       totalCbSobel.at<double>(y,x) = 0;
@@ -9242,10 +9199,10 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.drawGray) {
-    cv::Point outTop = cv::Point(grayTop.x, grayTop.y);
-    cv::Point outBot = cv::Point(grayBot.x, grayBot.y);
-    cv::Point inTop = cv::Point(grayTop.x+1,grayTop.y+1);
-    cv::Point inBot = cv::Point(grayBot.x-1,grayBot.y-1);
+    cv::Point outTop = cv::Point(ms->config.grayTop.x, ms->config.grayTop.y);
+    cv::Point outBot = cv::Point(ms->config.grayBot.x, ms->config.grayBot.y);
+    cv::Point inTop = cv::Point(ms->config.grayTop.x+1,ms->config.grayTop.y+1);
+    cv::Point inBot = cv::Point(ms->config.grayBot.x-1,ms->config.grayBot.y-1);
     rectangle(ms->config.objectViewerImage, outTop, outBot, cv::Scalar(128,128,128));
     rectangle(ms->config.objectViewerImage, inTop, inBot, cv::Scalar(32,32,32));
   }
@@ -9295,25 +9252,25 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
 
   // truncate the density outside the gray box
   for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < grayTop.y; y++) {
+    for (int y = 0; y < ms->config.grayTop.y; y++) {
       ms->config.density[y*imW+x] = 0;
     }
   }
 
-  for (int x = 0; x < grayTop.x; x++) {
-    for (int y = grayTop.y; y < grayBot.y; y++) {
+  for (int x = 0; x < ms->config.grayTop.x; x++) {
+    for (int y = ms->config.grayTop.y; y < ms->config.grayBot.y; y++) {
       ms->config.density[y*imW+x] = 0;
     }
   }
 
-  for (int x = grayBot.x; x < imW; x++) {
-    for (int y = grayTop.y; y < grayBot.y; y++) {
+  for (int x = ms->config.grayBot.x; x < imW; x++) {
+    for (int y = ms->config.grayTop.y; y < ms->config.grayBot.y; y++) {
       ms->config.density[y*imW+x] = 0;
     }
   }
 
   for (int x = 0; x < imW; x++) {
-    for (int y = grayBot.y; y < imH; y++) {
+    for (int y = ms->config.grayBot.y; y < imH; y++) {
       ms->config.density[y*imW+x] = 0;
     }
   }
@@ -9454,10 +9411,10 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
 
   // make sure that green boxes stay within the grey
   // box and stay on the canonical green matter grid
-  int xS = ms->config.gBoxW*(grayTop.x/ms->config.gBoxW);
-  int xF = min(grayBot.x-ms->config.gBoxW, imW-ms->config.gBoxW);
-  int yS = ms->config.gBoxH*(grayTop.y/ms->config.gBoxH);
-  int yF = min(grayBot.y-ms->config.gBoxH, imH-ms->config.gBoxH);
+  int xS = ms->config.gBoxW*(ms->config.grayTop.x/ms->config.gBoxW);
+  int xF = min(ms->config.grayBot.x-ms->config.gBoxW, imW-ms->config.gBoxW);
+  int yS = ms->config.gBoxH*(ms->config.grayTop.y/ms->config.gBoxH);
+  int yF = min(ms->config.grayBot.y-ms->config.gBoxH, imH-ms->config.gBoxH);
 
   // fine tune
   //double adjusted_canny_lo_thresh = ms->config.canny_lo_thresh * (1.0 + (double(ms->config.loTrackbarVariable-50) / 50.0));
@@ -9575,12 +9532,12 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
   ms->config.bBots.resize(0);
   ms->config.bCens.resize(0);
 
-  lARM = ms->config.gBoxW*(lARM/ms->config.gBoxW);
-  rARM = ms->config.gBoxW*(rARM/ms->config.gBoxW);
-  tARM = ms->config.gBoxH*(tARM/ms->config.gBoxH);
-  bARM = ms->config.gBoxH*(bARM/ms->config.gBoxH);
-  armTop = cv::Point(lARM, tARM);
-  armBot = cv::Point(imW-rARM, imH-bARM);
+  ms->config.lARM = ms->config.gBoxW*(ms->config.lARM/ms->config.gBoxW);
+  ms->config.rARM = ms->config.gBoxW*(ms->config.rARM/ms->config.gBoxW);
+  ms->config.tARM = ms->config.gBoxH*(ms->config.tARM/ms->config.gBoxH);
+  ms->config.bARM = ms->config.gBoxH*(ms->config.bARM/ms->config.gBoxH);
+  ms->config.armTop = cv::Point(ms->config.lARM, ms->config.tARM);
+  ms->config.armBot = cv::Point(imW-ms->config.rARM, imH-ms->config.bARM);
 
   int biggestBB = -1;
   int biggestBBArea = 0;
@@ -9594,7 +9551,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
   ms->config.pilotClosestTarget.px = -1;
   ms->config.pilotClosestTarget.py = -1;
 
-  if (!all_range_mode) {
+  if (!ms->config.all_range_mode) {
     double rejectArea = ms->config.rejectAreaScale*ms->config.gBoxW*ms->config.gBoxH;
     for (int c = 0; c < total_components; c++) {
 
@@ -9613,8 +9570,8 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       
       // XXX for some reason there were spurious blue boxes outside of the gray box, with no green boxes,
       //  so we reject them here for now
-//      if ( (ms->config.cTops[c].x < max(grayTop.x-ms->config.gBoxW, 0)) || (ms->config.cBots[c].x > min(grayBot.x+ms->config.gBoxW, imW-1)) ||
-//	   (ms->config.cTops[c].y < max(grayTop.y-ms->config.gBoxW, 0)) || (ms->config.cBots[c].y > min(grayBot.y+ms->config.gBoxW, imH-1)) )
+//      if ( (ms->config.cTops[c].x < max(ms->config.grayTop.x-ms->config.gBoxW, 0)) || (ms->config.cBots[c].x > min(ms->config.grayBot.x+ms->config.gBoxW, imW-1)) ||
+//	   (ms->config.cTops[c].y < max(ms->config.grayTop.y-ms->config.gBoxW, 0)) || (ms->config.cBots[c].y > min(ms->config.grayBot.y+ms->config.gBoxW, imH-1)) )
 //	allow = 0;
 
       // ATTN 5
@@ -9673,9 +9630,9 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       }
     }
   } else {
-    ms->config.bTops.push_back(armTop);
-    ms->config.bBots.push_back(armBot);
-    ms->config.bCens.push_back(cv::Point((armTop.x+armBot.x)/2, (armTop.y+armBot.y)/2));
+    ms->config.bTops.push_back(ms->config.armTop);
+    ms->config.bBots.push_back(ms->config.armBot);
+    ms->config.bCens.push_back(cv::Point((ms->config.armTop.x+ms->config.armBot.x)/2, (ms->config.armTop.y+ms->config.armBot.y)/2));
   }
 
   if ((ms->config.bTops.size() > 0) && (biggestBB > -1)) {
@@ -10153,17 +10110,17 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 
   nh.getParam("run_prefix", ms->config.run_prefix);
 
-  nh.getParam("all_range_mode", all_range_mode);
+  nh.getParam("all_range_mode", ms->config.all_range_mode);
 
-  nh.getParam("gray_box_top", tGO);
-  nh.getParam("gray_box_bot", bGO);
-  nh.getParam("gray_box_left", lGO);
-  nh.getParam("gray_box_right", rGO);
+  nh.getParam("gray_box_top", ms->config.tGO);
+  nh.getParam("gray_box_bot", ms->config.bGO);
+  nh.getParam("gray_box_left", ms->config.lGO);
+  nh.getParam("gray_box_right", ms->config.rGO);
 
-  nh.getParam("arm_box_top", tARM);
-  nh.getParam("arm_box_bot", bARM);
-  nh.getParam("arm_box_left", lARM);
-  nh.getParam("arm_box_right", rARM);
+  nh.getParam("arm_box_top", ms->config.tARM);
+  nh.getParam("arm_box_bot", ms->config.bARM);
+  nh.getParam("arm_box_left", ms->config.lARM);
+  nh.getParam("arm_box_right", ms->config.rARM);
 
   nh.getParam("image_topic", ms->config.image_topic);
 
@@ -10199,17 +10156,17 @@ void loadROSParams(shared_ptr<MachineState> ms) {
 
   nh.getParam("data_directory", ms->config.data_directory);
   nh.getParam("run_prefix", ms->config.run_prefix);
-  nh.getParam("all_range_mode", all_range_mode);
+  nh.getParam("all_range_mode", ms->config.all_range_mode);
 
-  nh.getParam("gray_box_top", tGO);
-  nh.getParam("gray_box_bot", bGO);
-  nh.getParam("gray_box_left", lGO);
-  nh.getParam("gray_box_right", rGO);
+  nh.getParam("gray_box_top", ms->config.tGO);
+  nh.getParam("gray_box_bot", ms->config.bGO);
+  nh.getParam("gray_box_left", ms->config.lGO);
+  nh.getParam("gray_box_right", ms->config.rGO);
 
-  nh.getParam("arm_box_top", tARM);
-  nh.getParam("arm_box_bot", bARM);
-  nh.getParam("arm_box_left", lARM);
-  nh.getParam("arm_box_right", rARM);
+  nh.getParam("arm_box_top", ms->config.tARM);
+  nh.getParam("arm_box_bot", ms->config.bARM);
+  nh.getParam("arm_box_left", ms->config.lARM);
+  nh.getParam("arm_box_right", ms->config.rARM);
 
   nh.getParam("image_topic", ms->config.image_topic);
 
@@ -10238,18 +10195,18 @@ void saveROSParams(shared_ptr<MachineState> ms) {
 
   nh.setParam("data_directory", ms->config.data_directory);
   nh.setParam("run_prefix", ms->config.run_prefix);
-  nh.setParam("all_range_mode", all_range_mode);
+  nh.setParam("all_range_mode", ms->config.all_range_mode);
 
 
-  nh.setParam("gray_box_top", tGO);
-  nh.setParam("gray_box_bot", bGO);
-  nh.setParam("gray_box_left", lGO);
-  nh.setParam("gray_box_right", rGO);
+  nh.setParam("gray_box_top", ms->config.tGO);
+  nh.setParam("gray_box_bot", ms->config.bGO);
+  nh.setParam("gray_box_left", ms->config.lGO);
+  nh.setParam("gray_box_right", ms->config.rGO);
 
-  nh.setParam("arm_box_top", tARM);
-  nh.setParam("arm_box_bot", bARM);
-  nh.setParam("arm_box_left", lARM);
-  nh.setParam("arm_box_right", rARM);
+  nh.setParam("arm_box_top", ms->config.tARM);
+  nh.setParam("arm_box_bot", ms->config.bARM);
+  nh.setParam("arm_box_left", ms->config.lARM);
+  nh.setParam("arm_box_right", ms->config.rARM);
 
   nh.setParam("image_topic", ms->config.image_topic);
 
@@ -10378,9 +10335,8 @@ void detectorsInit(shared_ptr<MachineState> ms) {
   // this is the total number of classes, so it is counted after the cache is dealt with
   ms->config.numClasses = ms->config.classLabels.size();
 
-  if (loadRange) {
-    initRangeMaps(ms);
-  }
+  initRangeMaps(ms);
+
 
   Mat vocabulary;
 
@@ -10572,46 +10528,46 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
 	}
       }
 
-      fsfI["rangeMap"] >> classRangeMaps[i]; 
+      fsfI["rangeMap"] >> ms->config.classRangeMaps[i]; 
 
-      fsfI["graspMemoryTries1"] >> classGraspMemoryTries1[i];
-      fsfI["graspMemoryPicks1"] >> classGraspMemoryPicks1[i];
-      fsfI["graspMemoryTries2"] >> classGraspMemoryTries2[i];
-      fsfI["graspMemoryPicks2"] >> classGraspMemoryPicks2[i];
-      fsfI["graspMemoryTries3"] >> classGraspMemoryTries3[i];
-      fsfI["graspMemoryPicks3"] >> classGraspMemoryPicks3[i];
-      fsfI["graspMemoryTries4"] >> classGraspMemoryTries4[i];
-      fsfI["graspMemoryPicks4"] >> classGraspMemoryPicks4[i];
+      fsfI["graspMemoryTries1"] >> ms->config.classGraspMemoryTries1[i];
+      fsfI["graspMemoryPicks1"] >> ms->config.classGraspMemoryPicks1[i];
+      fsfI["graspMemoryTries2"] >> ms->config.classGraspMemoryTries2[i];
+      fsfI["graspMemoryPicks2"] >> ms->config.classGraspMemoryPicks2[i];
+      fsfI["graspMemoryTries3"] >> ms->config.classGraspMemoryTries3[i];
+      fsfI["graspMemoryPicks3"] >> ms->config.classGraspMemoryPicks3[i];
+      fsfI["graspMemoryTries4"] >> ms->config.classGraspMemoryTries4[i];
+      fsfI["graspMemoryPicks4"] >> ms->config.classGraspMemoryPicks4[i];
 
-      fsfI["heightMemoryTries"] >> classHeightMemoryTries[i];
-      fsfI["heightMemoryPicks"] >> classHeightMemoryPicks[i];
+      fsfI["heightMemoryTries"] >> ms->config.classHeightMemoryTries[i];
+      fsfI["heightMemoryPicks"] >> ms->config.classHeightMemoryPicks[i];
 
       fsfI.release();
-      cout << "Loaded rangeMap from " << this_range_path << classRangeMaps[i].size() << endl; 
-      cout << "Loaded classGraspMemoryTries1 from " << this_range_path << classGraspMemoryTries1[i].size() << endl; 
-      cout << "Loaded classGraspMemoryPicks1 from " << this_range_path << classGraspMemoryPicks1[i].size() << endl; 
-      cout << "Loaded classGraspMemoryTries2 from " << this_range_path << classGraspMemoryTries2[i].size() << endl; 
-      cout << "Loaded classGraspMemoryPicks2 from " << this_range_path << classGraspMemoryPicks2[i].size() << endl; 
-      cout << "Loaded classGraspMemoryTries3 from " << this_range_path << classGraspMemoryTries3[i].size() << endl; 
-      cout << "Loaded classGraspMemoryPicks3 from " << this_range_path << classGraspMemoryPicks3[i].size() << endl; 
-      cout << "Loaded classGraspMemoryTries4 from " << this_range_path << classGraspMemoryTries4[i].size() << endl; 
-      cout << "Loaded classGraspMemoryPicks4 from " << this_range_path << classGraspMemoryPicks4[i].size() << endl; 
+      cout << "Loaded rangeMap from " << this_range_path << ms->config.classRangeMaps[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries1 from " << this_range_path << ms->config.classGraspMemoryTries1[i].size() << endl; 
+      cout << "Loaded classGraspMemoryPicks1 from " << this_range_path << ms->config.classGraspMemoryPicks1[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries2 from " << this_range_path << ms->config.classGraspMemoryTries2[i].size() << endl; 
+      cout << "Loaded classGraspMemoryPicks2 from " << this_range_path << ms->config.classGraspMemoryPicks2[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries3 from " << this_range_path << ms->config.classGraspMemoryTries3[i].size() << endl; 
+      cout << "Loaded classGraspMemoryPicks3 from " << this_range_path << ms->config.classGraspMemoryPicks3[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries4 from " << this_range_path << ms->config.classGraspMemoryTries4[i].size() << endl; 
+      cout << "Loaded classGraspMemoryPicks4 from " << this_range_path << ms->config.classGraspMemoryPicks4[i].size() << endl; 
 
-      cout << "Loaded classHeightMemoryTries from " << this_range_path << classHeightMemoryTries[i].size() << endl;
-      cout << "Loaded classHeightMemoryPicks from " << this_range_path << classHeightMemoryPicks[i].size() << endl;
+      cout << "Loaded classHeightMemoryTries from " << this_range_path << ms->config.classHeightMemoryTries[i].size() << endl;
+      cout << "Loaded classHeightMemoryPicks from " << this_range_path << ms->config.classHeightMemoryPicks[i].size() << endl;
     } else {
-      classRangeMaps[i] = Mat(1, 1, CV_64F);
-      classGraspMemoryTries1[i] = Mat(1, 1, CV_64F);
-      classGraspMemoryPicks1[i] = Mat(1, 1, CV_64F);
-      classGraspMemoryTries2[i] = Mat(1, 1, CV_64F);
-      classGraspMemoryPicks2[i] = Mat(1, 1, CV_64F);
-      classGraspMemoryTries3[i] = Mat(1, 1, CV_64F);
-      classGraspMemoryPicks3[i] = Mat(1, 1, CV_64F);
-      classGraspMemoryTries4[i] = Mat(1, 1, CV_64F);
-      classGraspMemoryPicks4[i] = Mat(1, 1, CV_64F);
+      ms->config.classRangeMaps[i] = Mat(1, 1, CV_64F);
+      ms->config.classGraspMemoryTries1[i] = Mat(1, 1, CV_64F);
+      ms->config.classGraspMemoryPicks1[i] = Mat(1, 1, CV_64F);
+      ms->config.classGraspMemoryTries2[i] = Mat(1, 1, CV_64F);
+      ms->config.classGraspMemoryPicks2[i] = Mat(1, 1, CV_64F);
+      ms->config.classGraspMemoryTries3[i] = Mat(1, 1, CV_64F);
+      ms->config.classGraspMemoryPicks3[i] = Mat(1, 1, CV_64F);
+      ms->config.classGraspMemoryTries4[i] = Mat(1, 1, CV_64F);
+      ms->config.classGraspMemoryPicks4[i] = Mat(1, 1, CV_64F);
 
-      classHeightMemoryTries[i] = Mat(1, 1, CV_64F);
-      classHeightMemoryPicks[i] = Mat(1, 1, CV_64F);
+      ms->config.classHeightMemoryTries[i] = Mat(1, 1, CV_64F);
+      ms->config.classHeightMemoryPicks[i] = Mat(1, 1, CV_64F);
 
       cout << "Failed to load rangeMap from " << this_range_path << endl; 
     }
@@ -10628,11 +10584,11 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
       FileStorage fsfI;
       fsfI.open(this_ag_path, FileStorage::READ);
       if (fsfI.isOpened()) {
-	fsfI["aerialHeight0Gradients"] >> classHeight0AerialGradients[i]; 
+	fsfI["aerialHeight0Gradients"] >> ms->config.classHeight0AerialGradients[i]; 
 	fsfI.release();
-	cout << "Loaded aerial height 0 gradient from " << this_ag_path << classHeight0AerialGradients[i].size() << endl;
+	cout << "Loaded aerial height 0 gradient from " << this_ag_path << ms->config.classHeight0AerialGradients[i].size() << endl;
       } else {
-	classHeight0AerialGradients[i] = Mat(1, 1, CV_64F);
+	ms->config.classHeight0AerialGradients[i] = Mat(1, 1, CV_64F);
 	cout << "Failed to load aerialHeight0Gradients from " << this_ag_path << endl; 
       }
     }
@@ -10645,11 +10601,11 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
       FileStorage fsfI;
       fsfI.open(this_ag_path, FileStorage::READ);
       if (fsfI.isOpened()) {
-	fsfI["aerialHeight1Gradients"] >> classHeight1AerialGradients[i]; 
+	fsfI["aerialHeight1Gradients"] >> ms->config.classHeight1AerialGradients[i]; 
 	fsfI.release();
-	cout << "Loaded aerial height 1 gradient from " << this_ag_path << classHeight1AerialGradients[i].size() << endl;
+	cout << "Loaded aerial height 1 gradient from " << this_ag_path << ms->config.classHeight1AerialGradients[i].size() << endl;
       } else {
-	classHeight1AerialGradients[i] = Mat(1, 1, CV_64F);
+	ms->config.classHeight1AerialGradients[i] = Mat(1, 1, CV_64F);
 	cout << "Failed to load aerialHeight1Gradients from " << this_ag_path << endl; 
       }
     }
@@ -10662,11 +10618,11 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
       FileStorage fsfI;
       fsfI.open(this_ag_path, FileStorage::READ);
       if (fsfI.isOpened()) {
-	fsfI["aerialHeight2Gradients"] >> classHeight2AerialGradients[i]; 
+	fsfI["aerialHeight2Gradients"] >> ms->config.classHeight2AerialGradients[i]; 
 	fsfI.release();
-	cout << "Loaded aerial height 2 gradient from " << this_ag_path << classHeight2AerialGradients[i].size() << endl;
+	cout << "Loaded aerial height 2 gradient from " << this_ag_path << ms->config.classHeight2AerialGradients[i].size() << endl;
       } else {
-	classHeight2AerialGradients[i] = Mat(1, 1, CV_64F);
+	ms->config.classHeight2AerialGradients[i] = Mat(1, 1, CV_64F);
 	cout << "Failed to load aerialHeight2Gradients from " << this_ag_path << endl; 
       }
     }
@@ -10679,16 +10635,16 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
       FileStorage fsfI;
       fsfI.open(this_ag_path, FileStorage::READ);
       if (fsfI.isOpened()) {
-	fsfI["aerialHeight3Gradients"] >> classHeight3AerialGradients[i]; 
+	fsfI["aerialHeight3Gradients"] >> ms->config.classHeight3AerialGradients[i]; 
 	fsfI.release();
-	cout << "Loaded aerial height 3 gradient from " << this_ag_path << classHeight3AerialGradients[i].size() << endl;
+	cout << "Loaded aerial height 3 gradient from " << this_ag_path << ms->config.classHeight3AerialGradients[i].size() << endl;
       } else {
-	classHeight3AerialGradients[i] = Mat(1, 1, CV_64F);
+	ms->config.classHeight3AerialGradients[i] = Mat(1, 1, CV_64F);
 	cout << "Failed to load aerialHeight3Gradients from " << this_ag_path << endl; 
       }
     }
     cout << "Initializing classAerialGradients with classAerialHeight0Gradients." << endl;
-    classAerialGradients[i] = classHeight0AerialGradients[i];
+    ms->config.classAerialGradients[i] = ms->config.classHeight0AerialGradients[i];
   }
 }
 
@@ -11305,7 +11261,7 @@ int main(int argc, char **argv) {
 
   loadROSParamsFromArgs(ms);
   cout << "mask_gripper: " << ms->config.mask_gripper << endl;
-  cout << "all_range_mode: " << all_range_mode << endl;
+  cout << "all_range_mode: " << ms->config.all_range_mode << endl;
   cout << "data_directory: " << ms->config.data_directory << endl 
        << "run_prefix: " << ms->config.run_prefix << endl << endl 
        << "vocab_file: " << ms->config.vocab_file << endl 

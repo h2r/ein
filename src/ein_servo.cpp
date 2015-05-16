@@ -1184,7 +1184,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
   
   ms->config.synServoLockFrames = 0;
-  currentGradientServoIterations = 0;
+  ms->config.currentGradientServoIterations = 0;
   
   ros::Duration delta = (ros::Time::now() - ms->config.oscilStart) + ms->config.accumulatedTime;
   
