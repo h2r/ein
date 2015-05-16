@@ -1113,7 +1113,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
     }
   } else { // wrench based
-    double wrenchNorm = sqrt( squareDistanceEEPose(eePoseZero, ms->config.trueEEWrench) );
+    double wrenchNorm = sqrt( eePose::squareDistance(eePose::zero(), ms->config.trueEEWrench) );
     double wrenchThresh = 15;
     bool wrenchOverThresh = ( wrenchNorm > wrenchThresh );
     if ( wrenchOverThresh ||
