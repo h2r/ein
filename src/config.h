@@ -833,6 +833,16 @@ class EinConfig {
 
   int cropCounter;
 
+  double maxDensity = 0;
+  double *density = NULL;
+  double *preDensity = NULL;
+  double *integralDensity = NULL;
+  double *temporalDensity = NULL;
+  
+  double densityDecay = 0.5;//0.9;//0.3;//0.7;
+  double threshFraction = 0.2;
+  
+
 }; // config end
 
 class Word;
