@@ -819,18 +819,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     fsvO << "rangeMap" << rangeMapTemp;
     copyGraspMemoryTriesToClassGraspMemoryTries(ms);
-    fsvO << "graspMemoryTries1" << classGraspMemoryTries1[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks1" << classGraspMemoryPicks1[ms->config.focusedClass];
-    fsvO << "graspMemoryTries2" << classGraspMemoryTries2[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks2" << classGraspMemoryPicks2[ms->config.focusedClass];
-    fsvO << "graspMemoryTries3" << classGraspMemoryTries3[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks3" << classGraspMemoryPicks3[ms->config.focusedClass];
-    fsvO << "graspMemoryTries4" << classGraspMemoryTries4[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks4" << classGraspMemoryPicks4[ms->config.focusedClass];
+    fsvO << "graspMemoryTries1" << ms->config.classGraspMemoryTries1[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks1" << ms->config.classGraspMemoryPicks1[ms->config.focusedClass];
+    fsvO << "graspMemoryTries2" << ms->config.classGraspMemoryTries2[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks2" << ms->config.classGraspMemoryPicks2[ms->config.focusedClass];
+    fsvO << "graspMemoryTries3" << ms->config.classGraspMemoryTries3[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks3" << ms->config.classGraspMemoryPicks3[ms->config.focusedClass];
+    fsvO << "graspMemoryTries4" << ms->config.classGraspMemoryTries4[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks4" << ms->config.classGraspMemoryPicks4[ms->config.focusedClass];
 
     copyHeightMemoryTriesToClassHeightMemoryTries(ms);
-    fsvO << "heightMemoryTries" << classHeightMemoryTries[ms->config.focusedClass];
-    fsvO << "heightMemoryPicks" << classHeightMemoryPicks[ms->config.focusedClass];
+    fsvO << "heightMemoryTries" << ms->config.classHeightMemoryTries[ms->config.focusedClass];
+    fsvO << "heightMemoryPicks" << ms->config.classHeightMemoryPicks[ms->config.focusedClass];
 
     fsvO.release();
   } 
@@ -2078,26 +2078,26 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 0; 
       ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 1;
       ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 0; 
-      //classGraspMemoryTries1[ms->config.targetClass].at<double>(y,x) = 1;
-      //classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x) = 0;
-      //classGraspMemoryTries2[ms->config.targetClass].at<double>(y,x) = 1;
-      //classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x) = 0;
-      //classGraspMemoryTries3[ms->config.targetClass].at<double>(y,x) = 1;
-      //classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x) = 0;
-      //classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x) = 1;
-      //classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x) = 0;
+      //ms->config.classGraspMemoryTries1[ms->config.targetClass].at<double>(y,x) = 1;
+      //ms->config.classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x) = 0;
+      //ms->config.classGraspMemoryTries2[ms->config.targetClass].at<double>(y,x) = 1;
+      //ms->config.classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x) = 0;
+      //ms->config.classGraspMemoryTries3[ms->config.targetClass].at<double>(y,x) = 1;
+      //ms->config.classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x) = 0;
+      //ms->config.classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x) = 1;
+      //ms->config.classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x) = 0;
       ms->config.rangeMap[x + y*ms->config.rmWidth] = 0;
       ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = 0;
-      //classRangeMaps[ms->config.targetClass].at<double>(y,x) = 0;
+      //ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x) = 0;
     } 
   } 
-  //classGraspMemoryTries1[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
-  //classGraspMemoryPicks1[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
+  //ms->config.classGraspMemoryTries1[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
+  //ms->config.classGraspMemoryPicks1[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
   ms->config.graspMemoryTries[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1;
   ms->config.graspMemoryPicks[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1; 
   ms->config.rangeMap[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth] = ms->config.currentGraspZ;
   ms->config.rangeMapReg1[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth] = ms->config.currentGraspZ;
-  //classRangeMaps[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
+  //ms->config.classRangeMaps[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
 }
 END_WORD
 REGISTER_WORD(PreAnnotateCenterGrasp)

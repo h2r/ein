@@ -615,8 +615,8 @@ REGISTER_WORD(InitializeMap)
 
 WORD(MapEmptySpace)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  for (int px = grayTop.x+ms->config.mapGrayBoxPixelSkirt; px < grayBot.x-ms->config.mapGrayBoxPixelSkirt; px++) {
-    for (int py = grayTop.y+ms->config.mapGrayBoxPixelSkirt; py < grayBot.y-ms->config.mapGrayBoxPixelSkirt; py++) {
+  for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirt; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirt; px++) {
+    for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirt; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirt; py++) {
 
       if (isInGripperMask(ms, px, py)) {
 	continue;

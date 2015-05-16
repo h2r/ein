@@ -593,6 +593,12 @@ class EinConfig {
   double gradientServoResetThresh = 0.7/(6.0e5);
   int densityIterationsForGradientServo = 10;//3;//10;
 
+  // XXX TODO
+  int softMaxGradientServoIterations = 4;//5;//3;//10;//3;
+  int hardMaxGradientServoIterations = 10;//2;//5;//5;//3;//10;//20;//3;//10;
+  int currentGradientServoIterations = 0;
+
+
   int gripperMoving = 0;
   double gripperPosition = 0;
   int gripperGripping = 0;
@@ -958,6 +964,48 @@ class EinConfig {
 
   // pink box thresholds for the principle classes
   double *pBoxIndicator = NULL;
+
+  // gray box offset from the top and bottom of the screen
+  int tGO = 30;
+  int bGO = 30;
+  int lGO = 60;
+  int rGO = 60;
+  cv::Point grayTop;
+  cv::Point grayBot;
+
+
+
+  // all range mode switch and bounds
+  int all_range_mode = 0;
+  int tARM = 100;
+  int bARM = 100;
+  int lARM = 150;
+  int rARM = 150;
+  cv::Point armTop;
+  cv::Point armBot;
+
+  vector<Mat> classRangeMaps;
+  
+  // ATTN 16
+  vector<Mat> classAerialGradients;
+  vector<Mat> classHeight0AerialGradients;
+  vector<Mat> classHeight1AerialGradients;
+  vector<Mat> classHeight2AerialGradients;
+  vector<Mat> classHeight3AerialGradients;
+  
+  vector<Mat> classGraspMemoryTries1;
+  vector<Mat> classGraspMemoryPicks1;
+  vector<Mat> classGraspMemoryTries2;
+  vector<Mat> classGraspMemoryPicks2;
+  vector<Mat> classGraspMemoryTries3;
+  vector<Mat> classGraspMemoryPicks3;
+  vector<Mat> classGraspMemoryTries4;
+  vector<Mat> classGraspMemoryPicks4;
+  
+  vector<Mat> classHeightMemoryTries;
+  vector<Mat> classHeightMemoryPicks;
+
+
   
 }; // config end
 
