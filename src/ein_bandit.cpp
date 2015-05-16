@@ -11,7 +11,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
     string thisLabelName = ms->config.focusedClassLabel;
 
-    string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/ir2D/";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 
     Mat rangeMapTemp(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
@@ -243,7 +243,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //copyGraspMemoryRegister(ms->config.graspMemoryReg1, ms->config.graspMemorySample);
   
   drawMapRegisters(ms);
-  cout << "class " << classLabels[ms->config.targetClass] << " number ";
+  cout << "class " << ms->config.classLabels[ms->config.targetClass] << " number ";
 }
 END_WORD
 REGISTER_WORD(LoadPriorGraspMemoryAnalytic)
@@ -261,7 +261,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //copyGraspMemoryRegister(ms->config.graspMemoryReg1, ms->config.graspMemorySample);
   
   drawMapRegisters(ms);
-  cout << "class " << classLabels[ms->config.targetClass] << " number ";
+  cout << "class " << ms->config.classLabels[ms->config.targetClass] << " number ";
 }
 END_WORD
 REGISTER_WORD(LoadPriorGraspMemoryUniform)
@@ -424,7 +424,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
         cout << "Loading height memories." << endl;
         if ((classHeightMemoryTries[ms->config.targetClass].rows > 1) && (classHeightMemoryPicks[ms->config.targetClass].cols == 1)) {
-          cout << "targetClass: " << ms->config.targetClass << " " << classLabels[ms->config.targetClass] << endl;
+          cout << "targetClass: " << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
           for (int i = 0; i < ms->config.hmWidth; i++) {
             ms->config.heightMemoryPicks[i] = classHeightMemoryPicks[ms->config.targetClass].at<double>(i, 0);
             ms->config.heightMemoryTries[i] = classHeightMemoryTries[ms->config.targetClass].at<double>(i, 0);
@@ -432,7 +432,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
             cout << "tries: " << ms->config.heightMemoryTries[i] << endl;
           }
         } else {
-	  cout << "Whoops, tried to set height memories but they don't exist for this class:" << ms->config.targetClass << " " << classLabels[ms->config.targetClass] << endl;
+	  cout << "Whoops, tried to set height memories but they don't exist for this class:" << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
         }
 
 }

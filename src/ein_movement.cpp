@@ -765,7 +765,7 @@ WORD(DestroyObjectInEndEffector)
 CODE(65535) // delete
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if (ms->config.objectInHandLabel >= 0) {
-    cout << "destroyObjectInEndEffector: The " << classLabels[ms->config.objectInHandLabel] << " in your hand simply vanished." << endl;
+    cout << "destroyObjectInEndEffector: The " << ms->config.classLabels[ms->config.objectInHandLabel] << " in your hand simply vanished." << endl;
     ms->config.objectInHandLabel = -1;
   } else {
     cout << "destroyObjectInEndEffector: There is nothing in your hand so there is nothing to destroy." << ms->config.objectInHandLabel << endl;

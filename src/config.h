@@ -4,6 +4,7 @@
 #include <baxter_core_msgs/HeadPanCommand.h>
 #include <std_msgs/UInt16.h>
 #include <std_msgs/Bool.h>
+#include <cv_bridge/cv_bridge.h>
 
 #include "ein_util.h"
 #include "eigen_util.h"
@@ -208,6 +209,14 @@ class EinConfig {
   std::string mapBackgroundViewName = "Map Background Vew";
   std::string faceViewName = "Face View";
   std::string heightMemorySampleViewName = "Height Memory Sample View";
+
+
+  std::string densityViewerName = "Density Viewer";
+  std::string objectViewerName = "Object Viewer";
+  std::string objectMapViewerName = "Object Map View";
+  std::string gradientViewerName = "Gradient Viewer";
+  std::string aerialGradientViewerName = "Aerial Gradient Viewer";
+
 
   eePose calibrationPose;
   eePose shrugPose;
@@ -544,8 +553,6 @@ class EinConfig {
   int newClassCounter = 0;
   string focusedClassLabel;
 
-  int publishObjects = 1;
-
   int synchronicTakeClosest = 0;
   int gradientTakeClosest = 0;
   int gradientServoDuringHeightLearning = 1;
@@ -737,6 +744,94 @@ class EinConfig {
   int setVanishingPointTimeout = 6;
 
 
+  // node variables
+  int retrain_vocab = 0;
+  int rewrite_labels = 0;
+  int reextract_knn = 0;
+
+  int drawOrientor = 1;
+  int drawGreen = 1;
+  int drawBlue = 1;
+  int drawGray = 1;
+  int drawBlueKP = 1;
+
+
+  cv_bridge::CvImagePtr cv_ptr = NULL;
+  Mat objectViewerImage;
+  Mat objectMapViewerImage;
+  Mat densityViewerImage;
+  Mat wristViewImage;
+  Mat gradientViewerImage;
+  Mat aerialGradientViewerImage;
+  Mat faceViewImage;
+
+  int mask_gripper_blocks = 0;
+  int mask_gripper = 1;
+
+  int loTrackbarVariable = 20;//30;//45;//75;
+  int hiTrackbarVariable = 35;//40;//50;
+  int postDensitySigmaTrackbarVariable = 10.0;
+  
+
+  double canny_hi_thresh = 5e5;//7;
+  double canny_lo_thresh = 5e5;//4;
+
+
+  double sobel_sigma = 2.0;//4.0;
+
+  double sobel_scale_factor = 1e-12;
+
+  const int keypointPeriod = 1;
+
+
+  // ATTN 25
+  //const int vocabNumWords = 1000;
+  const int vocabNumWords = 1000;//2000;
+
+  constexpr static double grayBlur = 1.0;
+  int grandTotalDescriptors = 0;
+
+
+
+  std::string data_directory = "unspecified_dd";
+  std::string vocab_file = "unspecified_vf";
+  std::string knn_file = "unspecified_kf";
+  std::string label_file = "unspecified_lf";
+  
+  std::string run_prefix = "unspecified_rp";
+  //std::string class_name = "unspecified_cn";
+  //std::string class_labels= "unspecified_cl1 unspecified_cl2";
+  //std::string class_pose_models = "unspecified_pm1 unspecified_pm2";
+  
+  std::string image_topic = "/camera/rgb/image_raw"; 
+  
+
+  std::string cache_prefix = "";
+
+
+  int numClasses = 0;
+
+  vector<string> classLabels; 
+  vector<string> classPoseModels;
+  vector<CvKNearest*> classPosekNNs;
+  vector<Mat> classPosekNNfeatures;
+  vector<Mat> classPosekNNlabels;
+  vector< vector< cv::Vec<double,4> > > classQuaternions;
+
+
+  DescriptorMatcher *matcher = NULL;
+  FeatureDetector *detector = NULL;
+  DescriptorExtractor *extractor = NULL;
+  BOWKMeansTrainer *bowTrainer = NULL; 
+  BOWImgDescriptorExtractor *bowExtractor = NULL;
+  CvKNearest *kNN = NULL;
+
+
+  std::string class_crops_path;
+
+  cv::Mat cam_img;
+
+  int cropCounter;
 
 }; // config end
 
