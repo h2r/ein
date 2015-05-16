@@ -71,8 +71,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     line(ms->config.hiRangemapImage, l1p1, l1p2, backColor);
     line(ms->config.hiRangemapImage, l2p1, l2p2, backColor);
   }
-  double cttrX = curseReticleX - ms->config.hrmHalfWidth;
-  double cttrY = curseReticleY - ms->config.hrmHalfWidth;
+  double cttrX = ms->config.curseReticleX - ms->config.hrmHalfWidth;
+  double cttrY = ms->config.curseReticleY - ms->config.hrmHalfWidth;
   if ((fabs(cttrX) <= ms->config.hrmHalfWidth-hiCellWidth) && (fabs(cttrY) <= ms->config.hrmHalfWidth-hiCellWidth)) {
     int ciiX = (int)round(cttrX + ms->config.hrmHalfWidth);
     int ciiY = (int)round(cttrY + ms->config.hrmHalfWidth);
@@ -86,7 +86,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     line(ms->config.hiRangemapImage, l1p1, l1p2, backColor);
     line(ms->config.hiRangemapImage, l2p1, l2p2, backColor);
 #ifdef DEBUG4
-    cout << "printing curseReticle xy globalz: " << curseReticleX << " " << curseReticleY << " " << ms->config.hiRangeMap[ciiX + ciiY*ms->config.hrmWidth] << endl;
+    cout << "printing curseReticle xy globalz: " << ms->config.curseReticleX << " " << ms->config.curseReticleY << " " << ms->config.hiRangeMap[ciiX + ciiY*ms->config.hrmWidth] << endl;
 #endif
   }
   {

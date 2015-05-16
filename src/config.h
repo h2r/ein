@@ -279,6 +279,9 @@ class EinConfig {
   Mat graspMemorySampleImage;
   Mat heightMemorySampleImage;
 
+  Mat wristCamImage;
+  int wristCamInit = 0;
+
 
 
 
@@ -428,8 +431,21 @@ class EinConfig {
   double ggY[totalGraspGears];
   double ggT[totalGraspGears];
 
-  
-  
+  int recordRangeMap = 1;
+
+  Quaternionf irGlobalPositionEEFrame;
+ 
+  constexpr static double cReticleIndexDelta = .01;
+  const static int numCReticleIndeces = 14;
+  constexpr static double firstCReticleIndexDepth = .08;
+  int xCR[numCReticleIndeces];
+  int yCR[numCReticleIndeces];
+  double fEpsilon = 1.0e-9;
+
+  int curseReticleX = 0;
+  int curseReticleY = 0;
+
+
   // config variables that don't seem to be used
 };
 
