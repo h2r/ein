@@ -1121,12 +1121,8 @@ void forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
   vector<string> tokens = split(ms->config.forthCommand.c_str(), ' ');
   for (unsigned int i = 0; i < tokens.size(); i++) {
     trim(tokens[i]);
-    if (tokens[i] == "executeStack" || tokens[i] == ";") {
-      ms->execute_stack = 1;
-    } else {
-      if (!ms->pushWord(tokens[i])) {
-        cout << "Warning, ignoring unknown word from the forth topic: " << tokens[i] << endl;
-      }
+    if (!ms->pushWord(tokens[i])) {
+      cout << "Warning, ignoring unknown word from the forth topic: " << tokens[i] << endl;
     }
   }
 }
@@ -2274,7 +2270,7 @@ void update_baxter(ros::NodeHandle &n) {
       if (ms->config.ik_reset_counter > ms->config.ik_reset_thresh) {
 	ms->config.ik_reset_counter = 0;
 	ms->config.currentEEPose = ms->config.ik_reset_eePose;
-	ms->pushWord('Y'); // pause stack execution
+	ms->pushWord("pauseStackExecution"); // pause stack execution
 	ms->pushCopies("beep", 15); // beep
 	cout << "target position denied by ik, please reset the object.";
       }
@@ -2405,13 +2401,20 @@ void timercallback1(const ros::TimerEvent&) {
           c == 65513 || c == 196578)) {
       cout << "You pressed " << c << "." << endl;
 
-      ms->execute_stack = 1;
       if (character_code_to_word.count(c) > 0) {
-        ms->pushWord(character_code_to_word[c]);
+        shared_ptr<Word> keycode_word = character_code_to_word[c];
+        ms->pushWord(keycode_word);
       } else {
         cout  << "Could not find word for " << c << endl;
       }
     }
+  }
+
+
+  // always call execute stack, whether or not we are paused.
+  if (ms->call_stack.size() > 0 && ms->call_stack.back()->name() == "executeStack") {
+    shared_ptr<Word> execute_stack_word = ms->popWord();
+    ms->execute(execute_stack_word);
   }
 
   ms->config.endThisStackCollapse = ms->config.endCollapse;
@@ -2436,6 +2439,8 @@ void timercallback1(const ros::TimerEvent&) {
     }
 
     // deal with the stack
+
+
     if (ms->execute_stack) {
       if (ms->call_stack.size() > 0 && 
 	  !ms->call_stack[ms->call_stack.size() - 1]->is_value()) {
@@ -4358,7 +4363,7 @@ int calibrateGripper(shared_ptr<MachineState> ms) {
     }
   }
   cout << "Gripper could not calibrate!" << endl;
-  ms->pushWord('Y'); // pause stack execution
+  ms->pushWord("pauseStackExecution"); // pause stack execution
   ms->pushCopies("beep", 15); // beep
   return -1;
 }

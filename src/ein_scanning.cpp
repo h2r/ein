@@ -338,31 +338,31 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("saveLearnedModels");
     ms->pushWord("loadPriorGraspMemoryAnalytic");
     // set target class to the lastLabelLearned 
-    ms->pushWord(1179730);
-    ms->pushWord(131142); // reinitialize and retrain everything
+    ms->pushWord("setTargetClassToLastLabelLearned");
+    ms->pushWord("trainModels"); // reinitialize and retrain everything
   }
 
   // set lastLabelLearned
-  ms->pushWord(1179732);
+  ms->pushWord("setLastLabelLearned");
 
   if (0) {
-    ms->pushWord(131143); // 72 way scan
+    ms->pushWord("rgbScan"); // 72 way scan
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    ms->pushWord(131143); // 72 way scan
+    ms->pushWord("rgbScan"); // 72 way scan
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   }
 
   ms->pushWord("scanCentered"); // 72 way scan
 
   // this is a good time to remove a contrast agent
-  //ms->pushWord('Y'); // pause stack execution
+  //ms->pushWord("pauseStackExecution"); // pause stack execution
   //ms->pushCopies("beep", 15); // beep
 	  
   { // do density and gradient, save gradient, do medium scan in two directions, save range map
     pushSpeedSign(ms, MOVE_FAST);
     ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
     ms->pushWord("neutralScan"); // neutral scan 
-    ms->pushWord('Y'); // pause stack execution
+    ms->pushWord("pauseStackExecution"); // pause stack execution
     ms->pushCopies("beep", 15); // beep
     pushSpeedSign(ms, MOVE_FAST);
 
@@ -396,23 +396,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   // ATTN 3
   // start NO bag routine
-  ms->pushWord(196720); //  make a new class
+  ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
 
-  ms->pushWord(131139); // synchronic servo don't take closest
-  ms->pushWord(131156); // synchronic servo
+  ms->pushWord("synchronicServoDoNotTakeClosest"); // synchronic servo don't take closest
+  ms->pushWord("synchronicServo"); // synchronic servo
   ms->pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
   ms->pushWord("visionCycle"); // vision cycle
 
-  ms->pushWord('Y'); // pause stack execution
+  ms->pushWord("pauseStackExecution"); // pause stack execution
   ms->pushCopies("beep", 15); // beep
 
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   ms->pushWord("shiftIntoGraspGear1"); // change to first gear
-  ms->pushWord(1245219); // change to height 2
+  ms->pushWord("changeToHeight2"); // change to height 2
   pushSpeedSign(ms, MOVE_FAST);
-  //ms->pushWord(196672); // go to wholeFoodsCounter1
 
-  ms->pushWord(1179735); // change to counter table
+  ms->pushWord("changeToCounterTable"); // change to counter table
   ms->pushWord("shiftIntoGraspGear1"); // change to first gear
   ms->pushWord('k'); // open gripper
 }
@@ -1799,7 +1798,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.targetClass = -1;
 
   // set lastLabelLearned
-  ms->pushWord(1179732);
+  ms->pushWord("setLastLabelLearned");
 
   ms->pushWord("setMovementSpeedMoveFast");
   ms->config.currentBoundingBoxMode = MAPPING; // this is here because it is for the rgbScan
@@ -1894,9 +1893,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setMovementSpeedMoveFast");
   ms->pushWord("recordGraspZ");
 
-  ms->pushWord('Y'); // pause stack execution
+  ms->pushWord("pauseStackExecution"); // pause stack execution
   ms->pushWord("quarterImpulse");
-  ms->pushWord(196720); //  make a new class
+  ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
 
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("shiftIntoGraspGear1");

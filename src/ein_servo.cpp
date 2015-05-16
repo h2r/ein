@@ -356,7 +356,7 @@ CODE(196649)     // capslock + i
       }
     } else {
       // stuck
-      ms->pushWord('Y'); // pause stack execution
+      ms->pushWord("pauseStackExecution"); // pause stack execution
       ms->pushCopies("beep", 15); // beep
       cout << "Stuck, please reset the object. ";
       cout << " gripperPosition: " << ms->config.gripperPosition;
@@ -587,7 +587,7 @@ CODE(196713)     // capslock + I
         recordBoundingBoxFailure(ms);
       }
       cout << "Failed grasp." << endl;
-      //ms->pushWord('Y'); // pause stack execution
+      //ms->pushWord("pauseStackExecution"); // pause stack execution
       ms->pushCopies("beep", 15); // beep
     } else {
       if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {

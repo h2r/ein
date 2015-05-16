@@ -101,7 +101,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->pushWord("continueHeightLearning"); // continue height learning
   ms->pushWord(65568+3); // record register 3
 
-  ms->pushWord(131139); // synchronic servo don't take closest
+  ms->pushWord("synchronicServoDoNotTakeClosest"); // synchronic servo don't take closest
   ms->pushWord("synchronicServo"); // synchronic servo
   ms->pushWord(196707); // synchronic servo take closest
   ms->pushWord("visionCycle"); // vision cycle
@@ -168,7 +168,7 @@ CODE(1179707)     // capslock + numlock + ;
   ms->pushWord(65568+4); // record register 4
 
   // servo to object, which will early out if it times out 
-  ms->pushWord(131139); // synchronic servo don't take closest
+  ms->pushWord("synchronicServoDoNotTakeClosest"); // synchronic servo don't take closest
   ms->pushWord("synchronicServo"); // synchronic servo
   ms->pushWord(196707); // synchronic servo take closest
   ms->pushWord("visionCycle"); // vision cycle
