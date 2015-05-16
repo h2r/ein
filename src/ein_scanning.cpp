@@ -1950,7 +1950,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     cout << "save3dGrasps: Writing: " << this_grasp_path << endl;
     fsvO.open(this_grasp_path, FileStorage::WRITE);
 
-    fsvO << "3dGrasps" << "[" ;
+    fsvO << "grasps";
     {
       int tng = ms->config.class3dGrasps[ms->config.focusedClass].size();
       fsvO << "size" <<  tng;
@@ -1960,11 +1960,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
       fsvO << "]";
     }
-    fsvO << "]";
+    fsvO << "}";
 
     fsvO.release();
 
-    {
+    if (0) {
       guard3dGrasps(ms);
       string thisLabelName = ms->config.focusedClassLabel;
       string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
@@ -2009,7 +2009,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
     ms->config.c3dPoseBase = ms->config.currentEEPose;
     ms->config.c3dPoseBase.pz = -ms->config.currentTableZ;
-    cout << "The base for 3d grasp annotation is now locked and you are in zero-G mode." << endl 
+    cout << endl
+	 << "The base for 3d grasp annotation is now locked and you are in zero-G mode." << endl 
 	 << "Please move the gripper to a valid grasping pose and use \"add3dGrasp\" to record a grasp point." << endl
 	 << "You can record more than one grasp point in a row." << endl
 	 << "When you are done, make sure to save to disk and to exit zero-G mode." << endl;
@@ -2041,7 +2042,6 @@ WORD(AssumeCurrent3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double p_backoffDistance = 0.05;
   int t3dGraspIndex = ms->config.current3dGraspIndex;
-// XXX TODO wrong
   eePose toApply = ms->config.class3dGrasps[ms->config.targetClass][t3dGraspIndex];  
 
   ms->config.currentEEPose.pz = -ms->config.currentTableZ;
