@@ -210,6 +210,14 @@ class EinConfig {
   std::string faceViewName = "Face View";
   std::string heightMemorySampleViewName = "Height Memory Sample View";
 
+
+  std::string densityViewerName = "Density Viewer";
+  std::string objectViewerName = "Object Viewer";
+  std::string objectMapViewerName = "Object Map View";
+  std::string gradientViewerName = "Gradient Viewer";
+  std::string aerialGradientViewerName = "Aerial Gradient Viewer";
+
+
   eePose calibrationPose;
   eePose shrugPose;
   eePose handingPose;
@@ -756,6 +764,9 @@ class EinConfig {
   Mat gradientViewerImage;
   Mat aerialGradientViewerImage;
   Mat faceViewImage;
+
+  int mask_gripper_blocks = 0;
+  int mask_gripper = 1;
 
 
 }; // config end
