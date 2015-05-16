@@ -852,7 +852,7 @@ WORD(GoClassifyBlueBoxes)
 CODE(131123) // capslock + 3
 virtual void execute(std::shared_ptr<MachineState> ms) {
   lastVisionCycle = ros::Time::now();
-  oscilStart = ros::Time::now();
+  ms->config.oscilStart = ros::Time::now();
   goClassifyBlueBoxes(ms);
 }
 END_WORD
