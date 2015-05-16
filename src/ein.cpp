@@ -119,34 +119,6 @@ ros::Publisher markers_blue_memory;
 ros::Publisher ee_target_pub;
 
 
-
-
-
-
-
-
-
-
-Eigen::Vector3d tablePositionSum;
-Eigen::Vector3d tableNormalSum;
-Eigen::Vector3d tableTangent1Sum;
-Eigen::Vector3d tableTangent2Sum;
-double tableBiasSum;
-Eigen::Vector3d tableNormal;
-Eigen::Vector3d tableTangent1;
-Eigen::Vector3d tableTangent2;
-Eigen::Vector3d tablePosition;
-double tableBias;
-double tableBiasMargin = -5.001;
-geometry_msgs::Pose tablePose;
-Eigen::Quaternionf tableQuaternion;
-Mat tablePerspective;
-Eigen::Quaternionf tableLabelQuaternion;
-string table_label_class_name = "";
-string background_class_name = "";
-int invertQuaternionLabel = 0;
-string invert_sign_name = "";
-
 double *gBoxIndicator;
 int gBoxW = 10;
 int gBoxH = 10;
@@ -10108,10 +10080,6 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       ms->config.bLabels[c] = label;
     }
 
-    if (ms->config.classLabels[label].compare(invert_sign_name) == 0)
-      invertQuaternionLabel = 1;
-
-
     string labelName; 
     string augmentedLabelName;
     double poseIndex = -1;
@@ -10217,8 +10185,6 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 
   nh.getParam("image_topic", ms->config.image_topic);
 
-  nh.getParam("invert_sign_name", invert_sign_name);
-
   nh.getParam("retrain_vocab", ms->config.retrain_vocab);
   nh.getParam("reextract_knn", ms->config.reextract_knn);
   nh.getParam("rewrite_labels", ms->config.rewrite_labels);
@@ -10270,11 +10236,6 @@ void loadROSParams(shared_ptr<MachineState> ms) {
 
   nh.getParam("image_topic", ms->config.image_topic);
 
-  nh.getParam("table_label_class_name", table_label_class_name);
-  nh.getParam("background_class_name", background_class_name);
-
-  nh.getParam("invert_sign_name", invert_sign_name);
-
   nh.getParam("retrain_vocab", ms->config.retrain_vocab);
   nh.getParam("reextract_knn", ms->config.reextract_knn);
   nh.getParam("rewrite_labels", ms->config.rewrite_labels);
@@ -10320,8 +10281,6 @@ void saveROSParams(shared_ptr<MachineState> ms) {
 
   nh.setParam("image_topic", ms->config.image_topic);
 
-  nh.setParam("invert_sign_name", invert_sign_name);
-
   nh.setParam("retrain_vocab", ms->config.retrain_vocab);
   nh.setParam("reextract_knn", ms->config.reextract_knn);
   nh.setParam("rewrite_labels", ms->config.rewrite_labels);
@@ -10347,18 +10306,9 @@ void spinlessNodeMain(shared_ptr<MachineState> ms) {
 }
 
 void nodeInit(shared_ptr<MachineState> ms) {
-  tableLabelQuaternion.x() = 0;
-  tableLabelQuaternion.y() = 0;
-  tableLabelQuaternion.z() = 0;
-  tableLabelQuaternion.w() = 1;
-
   gBoxStrideX = gBoxW / 2.0;
   gBoxStrideY = gBoxH / 2.0;
   ms->config.cropCounter = 0;
-  tableNormal = Eigen::Vector3d(1,0,0);
-  tableBias = 0;
-
-  tablePerspective = Mat::eye(3,3,CV_32F);
 
 }
 
