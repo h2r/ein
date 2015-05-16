@@ -885,7 +885,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     // do nothing
   } else {
     double utZDelta = fabs(ms->config.mostRecentUntabledZ - ms->config.mostRecentUntabledZLastValue);
-    endThisStackCollapse = 1;
+    ms->config.endThisStackCollapse = 1;
     ms->pushWord("setTableA");
     cout << "Looks like the table reading hasn't steadied for the wait of " << ms->config.mostRecentUntabledZWait << " ." << endl;
     cout << "  current, last, delta: " << ms->config.mostRecentUntabledZ << " " << ms->config.mostRecentUntabledZLastValue << " " << utZDelta << endl;

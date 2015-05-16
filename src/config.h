@@ -629,7 +629,11 @@ class EinConfig {
   int waitUntilGripperNotMovingTimeout = 100;
   ros::Time waitUntilGripperNotMovingStamp;
 
+  double currentEESpeedRatio = 0.5;
 
+  int endCollapse = 0;
+  int endThisStackCollapse = 0;
+ 
 };
 
 class Word;

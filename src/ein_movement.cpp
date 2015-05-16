@@ -31,10 +31,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
     ms->pushWord("waitUntilAtCurrentPositionB"); 
-    endThisStackCollapse = 1;
+    ms->config.endThisStackCollapse = 1;
     ms->config.shouldIDoIK = 1;
   } else {
-    endThisStackCollapse = 1;
+    ms->config.endThisStackCollapse = 1;
   }
 }
 END_WORD
@@ -48,11 +48,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     if (ms->config.currentMovementState == STOPPED) {
       cout << "Warning: waitUntilAtCurrentPosition ms->config.currentMovementState = STOPPED, moving on." << endl;
-      endThisStackCollapse = endCollapse;
+      ms->config.endThisStackCollapse = ms->config.endCollapse;
     }
     if (ms->config.currentMovementState == BLOCKED) {
       cout << "Warning: waitUntilAtCurrentPosition ms->config.currentMovementState = BLOCKED, moving on." << endl;
-      endThisStackCollapse = endCollapse;
+      ms->config.endThisStackCollapse = ms->config.endCollapse;
     }
     
     ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
@@ -77,14 +77,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->config.waitUntilAtCurrentPositionCounter++;
     if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
       ms->pushWord("waitUntilAtCurrentPositionB"); 
-      endThisStackCollapse = 1;
+      ms->config.endThisStackCollapse = 1;
       ms->config.shouldIDoIK = 1;
     } else {
-      endThisStackCollapse = endCollapse;
+      ms->config.endThisStackCollapse = ms->config.endCollapse;
     }
   } else {
     cout << "Warning: waitUntilAtCurrentPosition timed out, moving on." << endl;
-    endThisStackCollapse = 1;
+    ms->config.endThisStackCollapse = 1;
   }
 }
 END_WORD
@@ -95,7 +95,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.waitUntilGripperNotMovingCounter = 0;
   lastGripperCallbackRequest = ros::Time::now();
   ms->pushWord("waitUntilGripperNotMovingB"); 
-  endThisStackCollapse = 1;
+  ms->config.endThisStackCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(WaitUntilGripperNotMoving)
@@ -119,7 +119,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       cout << "Warning: waitUntilGripperNotMovingB timed out, moving on." << endl;
     }
   }
-  endThisStackCollapse = 1;
+  ms->config.endThisStackCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(WaitUntilGripperNotMovingB)
@@ -141,7 +141,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       cout << "Warning: waitUntilGripperNotMovingC timed out, moving on." << endl;
     }
   }
-  endThisStackCollapse = 1;
+  ms->config.endThisStackCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(WaitUntilGripperNotMovingC)
@@ -585,35 +585,35 @@ REGISTER_WORD(ChangeToHeight3)
 
 WORD(HundredthImpulse)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEESpeedRatio = 0.01;
+  ms->config.currentEESpeedRatio = 0.01;
 }
 END_WORD
 REGISTER_WORD(HundredthImpulse)
 
 WORD(TenthImpulse)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEESpeedRatio = 0.1;
+  ms->config.currentEESpeedRatio = 0.1;
 }
 END_WORD
 REGISTER_WORD(TenthImpulse)
 
 WORD(QuarterImpulse)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEESpeedRatio = 0.25;
+  ms->config.currentEESpeedRatio = 0.25;
 }
 END_WORD
 REGISTER_WORD(QuarterImpulse)
 
 WORD(HalfImpulse)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEESpeedRatio = 0.5;
+  ms->config.currentEESpeedRatio = 0.5;
 }
 END_WORD
 REGISTER_WORD(HalfImpulse)
 
 WORD(FullImpulse)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEESpeedRatio = 1.0;
+  ms->config.currentEESpeedRatio = 1.0;
 }
 END_WORD
 REGISTER_WORD(FullImpulse)
@@ -621,8 +621,8 @@ REGISTER_WORD(FullImpulse)
 WORD(CruisingSpeed)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   //w1GoThresh = 0.40;
-  //currentEESpeedRatio = 0.75;
-  currentEESpeedRatio = 1.0;
+  //ms->config.currentEESpeedRatio = 0.75;
+  ms->config.currentEESpeedRatio = 1.0;
 }
 END_WORD
 REGISTER_WORD(CruisingSpeed)
@@ -630,7 +630,7 @@ REGISTER_WORD(CruisingSpeed)
 WORD(ApproachSpeed)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   //w1GoThresh = 0.01;
-  currentEESpeedRatio = 0.05;//0.035;//0.07;//0.05;
+  ms->config.currentEESpeedRatio = 0.05;//0.035;//0.07;//0.05;
 }
 END_WORD
 REGISTER_WORD(ApproachSpeed)
@@ -638,7 +638,7 @@ REGISTER_WORD(ApproachSpeed)
 WORD(DepartureSpeed)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   //w1GoThresh = 0.05;
-  currentEESpeedRatio = 0.5;
+  ms->config.currentEESpeedRatio = 0.5;
 }
 END_WORD
 REGISTER_WORD(DepartureSpeed)
@@ -653,21 +653,21 @@ REGISTER_WORD(ResetW1ThreshToDefault)
 WORD(RasterScanningSpeed)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   //w1GoThresh = 0.05;
-  currentEESpeedRatio = 0.02;
+  ms->config.currentEESpeedRatio = 0.02;
 }
 END_WORD
 REGISTER_WORD(RasterScanningSpeed)
 
 WORD(FasterRasterScanningSpeed)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEESpeedRatio = 0.1;
+  ms->config.currentEESpeedRatio = 0.1;
 }
 END_WORD
 REGISTER_WORD(FasterRasterScanningSpeed)
 
 WORD(IRCalibrationSpeed)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEESpeedRatio = 0.04;
+  ms->config.currentEESpeedRatio = 0.04;
 }
 END_WORD
 REGISTER_WORD(IRCalibrationSpeed)
@@ -676,7 +676,7 @@ WORD(Hover)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   lastHoverTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
   ms->pushWord("hoverA");
-  endThisStackCollapse = 1;
+  ms->config.endThisStackCollapse = 1;
   ms->config.shouldIDoIK = 1;
   lastHoverRequest = ros::Time::now();
   lastEndpointCallbackRequest = lastHoverRequest;
@@ -689,7 +689,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (lastEndpointCallbackRequest >= lastEndpointCallbackReceived) {
     ms->pushWord("hoverA");
     cout << "hoverA waiting for endpointCallback." << endl;
-    endThisStackCollapse = 1;
+    ms->config.endThisStackCollapse = 1;
   } else {
     double dx = (lastHoverTrueEEPoseEEPose.px - ms->config.trueEEPoseEEPose.px);
     double dy = (lastHoverTrueEEPoseEEPose.py - ms->config.trueEEPoseEEPose.py);
@@ -705,16 +705,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     if ( ros::Time::now() - lastHoverRequest < ros::Duration(hoverTimeout) ) {
       if ((distance > hoverGoThresh*hoverGoThresh) || (angleDistance > hoverAngleThresh*hoverAngleThresh)) {
 	ms->pushWord("hoverA"); 
-	endThisStackCollapse = 1;
+	ms->config.endThisStackCollapse = 1;
 	ms->config.shouldIDoIK = 1;
 	cout << "hoverA distance requirement not met, distance angleDistance: " << distance << " " << angleDistance << endl;
 	lastHoverTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
       } else {
-	endThisStackCollapse = endCollapse;
+	ms->config.endThisStackCollapse = ms->config.endCollapse;
       }
     } else {
       cout << "Warning: hover timed out, moving on." << endl;
-      endThisStackCollapse = endCollapse;
+      ms->config.endThisStackCollapse = ms->config.endCollapse;
     }
   }
 }
@@ -1040,7 +1040,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       cout << "  backing up just a little to dislodge from failed hover, then waiting." << endl;
       ms->pushWord("waitUntilAtCurrentPosition"); 
     }
-    endThisStackCollapse = 1;
+    ms->config.endThisStackCollapse = 1;
   }
 }
 END_WORD
@@ -1070,7 +1070,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ROS_ERROR_STREAM("comeToHover timeout reached, moving on.");
       ROS_WARN_STREAM("_____*____*________");
     }
-    endThisStackCollapse = 1;
+    ms->config.endThisStackCollapse = 1;
   }
 }
 END_WORD
@@ -1090,7 +1090,7 @@ REGISTER_WORD(WaitForTugThenOpenGripper)
 
 WORD(WaitForTugThenOpenGripperA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  endThisStackCollapse = 1;
+  ms->config.endThisStackCollapse = 1;
   if (0) { // position based
     if ( ( ms->config.currentMovementState == MOVING ) ||
 	 ( !ms->config.gripperGripping ) ) {
