@@ -396,11 +396,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     thisRandThompsonHeight = mappingHeightIdx;
     cout << "UniformlySampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
   }
-  currentThompsonHeight = convertHeightIdxToGlobalZ(ms, thisRandThompsonHeight);
-  currentThompsonHeightIdx = thisRandThompsonHeight;
-  ms->config.currentEEPose.pz = currentThompsonHeight;
-  m_x = m_x_h[currentThompsonHeightIdx];
-  m_y = m_y_h[currentThompsonHeightIdx];
+  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, thisRandThompsonHeight);
+  ms->config.currentThompsonHeightIdx = thisRandThompsonHeight;
+  ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
+  m_x = m_x_h[ms->config.currentThompsonHeightIdx];
+  m_y = m_y_h[ms->config.currentThompsonHeightIdx];
 }
 END_WORD
 REGISTER_WORD(UniformlySampleHeight)
@@ -446,11 +446,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (ms->config.currentBoundingBoxMode != STATIC_PRIOR) {
     if (ms->config.currentBoundingBoxMode == MAPPING) {
       cout << "SampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
-      currentThompsonHeight = convertHeightIdxToGlobalZ(ms, mappingHeightIdx);
-      currentThompsonHeightIdx = mappingHeightIdx;
-      ms->config.currentEEPose.pz = currentThompsonHeight;
-      m_x = m_x_h[currentThompsonHeightIdx];
-      m_y = m_y_h[currentThompsonHeightIdx];
+      ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, mappingHeightIdx);
+      ms->config.currentThompsonHeightIdx = mappingHeightIdx;
+      ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
+      m_x = m_x_h[ms->config.currentThompsonHeightIdx];
+      m_y = m_y_h[ms->config.currentThompsonHeightIdx];
       return;
     } else if (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) {
       loadSampledHeightMemory(ms);
@@ -486,18 +486,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
         best_height_prob = ms->config.heightMemorySample[i];
       }
     }
-    currentThompsonHeight = convertHeightIdxToGlobalZ(ms, max_i);
-    currentThompsonHeightIdx = max_i;
-    ms->config.currentEEPose.pz = currentThompsonHeight;
-    m_x = m_x_h[currentThompsonHeightIdx];
-    m_y = m_y_h[currentThompsonHeightIdx];
+    ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, max_i);
+    ms->config.currentThompsonHeightIdx = max_i;
+    ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
+    m_x = m_x_h[ms->config.currentThompsonHeightIdx];
+    m_y = m_y_h[ms->config.currentThompsonHeightIdx];
   } else {
     cout << "SampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
-    currentThompsonHeight = convertHeightIdxToGlobalZ(ms, mappingHeightIdx);
-    currentThompsonHeightIdx = mappingHeightIdx;
-    ms->config.currentEEPose.pz = currentThompsonHeight;
-    m_x = m_x_h[currentThompsonHeightIdx];
-    m_y = m_y_h[currentThompsonHeightIdx];
+    ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, mappingHeightIdx);
+    ms->config.currentThompsonHeightIdx = mappingHeightIdx;
+    ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
+    m_x = m_x_h[ms->config.currentThompsonHeightIdx];
+    m_y = m_y_h[ms->config.currentThompsonHeightIdx];
   }
 }
 END_WORD

@@ -126,9 +126,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-int heightLearningServoTimeout = 10;
-double currentThompsonHeight = 0;
-int currentThompsonHeightIdx = 0;
 
 int useGradientServoThresh = 0;
 double gradientServoResetThresh = 0.7/(6.0e5);
@@ -3918,7 +3915,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   // ATTN 16
   if (1) {
     for (int hri = 0; hri < 4; hri++) {
-      if (hri != currentThompsonHeightIdx)
+      if (hri != ms->config.currentThompsonHeightIdx)
 	continue;
       eePose thisReticle = ms->config.heightReticles[hri];
       int param_reticleHalfWidth = 18;
@@ -3928,7 +3925,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       cv::Point inTop = cv::Point(thisReticle.px+1-thisReticleHalfWidth,thisReticle.py+1-thisReticleHalfWidth);
       cv::Point inBot = cv::Point(thisReticle.px-1+thisReticleHalfWidth,thisReticle.py-1+thisReticleHalfWidth);
 
-      if (hri == currentThompsonHeightIdx) {
+      if (hri == ms->config.currentThompsonHeightIdx) {
 	rectangle(wristViewImage, outTop, outBot, cv::Scalar(22,70,82)); 
 	rectangle(wristViewImage, inTop, inBot, cv::Scalar(68,205,239));
       } else {
@@ -6735,13 +6732,13 @@ void selectMaxTargetThompsonRotated2(shared_ptr<MachineState> ms, double minDept
 
 
 void recordBoundingBoxSuccess(shared_ptr<MachineState> ms) {
-  ms->config.heightMemoryTries[currentThompsonHeightIdx]++;
-  ms->config.heightMemoryPicks[currentThompsonHeightIdx]++;
+  ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx]++;
+  ms->config.heightMemoryPicks[ms->config.currentThompsonHeightIdx]++;
   ms->config.heightSuccessCounter++;
   ms->config.heightAttemptCounter++;
-  cout << "Successful bounding box on floor " << currentThompsonHeightIdx << endl;
-  cout << "Tries: " << ms->config.heightMemoryTries[currentThompsonHeightIdx] << endl;
-  cout << "Picks: " << ms->config.heightMemoryPicks[currentThompsonHeightIdx] << endl;
+  cout << "Successful bounding box on floor " << ms->config.currentThompsonHeightIdx << endl;
+  cout << "Tries: " << ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx] << endl;
+  cout << "Picks: " << ms->config.heightMemoryPicks[ms->config.currentThompsonHeightIdx] << endl;
   int ttotalTries = 0;
   int ttotalPicks = 0;
   for (int i = 0; i < ms->config.hmWidth; i++) {
@@ -6751,8 +6748,8 @@ void recordBoundingBoxSuccess(shared_ptr<MachineState> ms) {
   cout << "Total Tries: " << ttotalTries << endl;
   cout << "Total Picks: " << ttotalPicks << endl;
 
-  double thisPickRate = double(ms->config.heightMemoryPicks[currentThompsonHeightIdx]) / double(ms->config.heightMemoryTries[currentThompsonHeightIdx]);
-  int thisNumTries = ms->config.heightMemoryTries[currentThompsonHeightIdx];
+  double thisPickRate = double(ms->config.heightMemoryPicks[ms->config.currentThompsonHeightIdx]) / double(ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx]);
+  int thisNumTries = ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx];
   cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
   if (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) {
     if ( (thisNumTries >= thompsonMinTryCutoff) && 
@@ -6763,8 +6760,8 @@ void recordBoundingBoxSuccess(shared_ptr<MachineState> ms) {
 
   // ATTN 20
   {
-    double successes = ms->config.heightMemoryPicks[currentThompsonHeightIdx];
-    double failures =  ms->config.heightMemoryTries[currentThompsonHeightIdx] - ms->config.heightMemoryPicks[currentThompsonHeightIdx];
+    double successes = ms->config.heightMemoryPicks[ms->config.currentThompsonHeightIdx];
+    double failures =  ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx] - ms->config.heightMemoryPicks[ms->config.currentThompsonHeightIdx];
     // returns probability that mu <= d given successes and failures.
     double presult = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
     // we want probability that mu > d
@@ -6787,11 +6784,11 @@ void recordBoundingBoxSuccess(shared_ptr<MachineState> ms) {
 }
 
 void recordBoundingBoxFailure(shared_ptr<MachineState> ms) {
-  ms->config.heightMemoryTries[currentThompsonHeightIdx]++;
+  ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx]++;
   ms->config.heightAttemptCounter++;
-  cout << "Failed to learn bounding box on floor " << currentThompsonHeightIdx << endl;
-  cout << "Tries: " << ms->config.heightMemoryTries[currentThompsonHeightIdx] << endl;
-  cout << "Picks: " << ms->config.heightMemoryPicks[currentThompsonHeightIdx] << endl;
+  cout << "Failed to learn bounding box on floor " << ms->config.currentThompsonHeightIdx << endl;
+  cout << "Tries: " << ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx] << endl;
+  cout << "Picks: " << ms->config.heightMemoryPicks[ms->config.currentThompsonHeightIdx] << endl;
   int ttotalTries = 0;
   int ttotalPicks = 0;
   for (int i = 0; i < ms->config.hmWidth; i++) {
@@ -6864,7 +6861,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   int imH = sz.height;
 
   // ATTN 23
-  //reticle = ms->config.heightReticles[currentThompsonHeightIdx];
+  //reticle = ms->config.heightReticles[ms->config.currentThompsonHeightIdx];
   eePose thisGripperReticle;
   double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
   int xOut=-1, yOut=-1;
@@ -6874,7 +6871,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   ms->config.reticle = ms->config.vanishingPointReticle;
 
   // ATTN 12
-  //        if ((ms->config.synServoLockFrames > heightLearningServoTimeout) && (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING)) {
+  //        if ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) && (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING)) {
   //          cout << "bbLearning: synchronic servo timed out, early outting." << endl;
   //          restartBBLearning(ms);
   //        }
@@ -6902,7 +6899,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   }
 
   // ATTN 16
-  switch (currentThompsonHeightIdx) {
+  switch (ms->config.currentThompsonHeightIdx) {
   case 0:
     {
       classAerialGradients[ms->config.targetClass] = classHeight0AerialGradients[ms->config.targetClass];
@@ -7444,7 +7441,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
   ms->config.synServoLockFrames++;
 
   // ATTN 23
-  //reticle = ms->config.heightReticles[currentThompsonHeightIdx];
+  //reticle = ms->config.heightReticles[ms->config.currentThompsonHeightIdx];
   eePose thisGripperReticle;
   double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
   int xOut=-1, yOut=-1;
@@ -7458,13 +7455,13 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 
   // ATTN 12
   // if we time out, reset the bblearning program
-  if ( ((ms->config.synServoLockFrames > heightLearningServoTimeout) || (bTops.size() <= 0)) && 
+  if ( ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) || (bTops.size() <= 0)) && 
 	(ARE_GENERIC_HEIGHT_LEARNING(ms)) ) {
     cout << "bbLearning: synchronic servo early outting: ";
     if (bTops.size() <= 0) {
       cout << "NO BLUE BOXES ";
     }
-    if ((ms->config.synServoLockFrames > heightLearningServoTimeout) && (ARE_GENERIC_HEIGHT_LEARNING(ms))) {
+    if ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) && (ARE_GENERIC_HEIGHT_LEARNING(ms))) {
       cout << "TIMED OUT ";
     }
     cout << endl;
@@ -7491,7 +7488,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 
   // ATTN 19
   // if we time out, reset the pick learning 
-  if ( ((ms->config.synServoLockFrames > heightLearningServoTimeout)) && 
+  if ( ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout)) && 
 	ARE_GENERIC_PICK_LEARNING(ms) ) {
     // record a failure
     cout << ">>>> Synchronic servo timed out.  Going back on patrol. <<<<" << endl;

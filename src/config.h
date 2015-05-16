@@ -423,6 +423,9 @@ class EinConfig {
   double thompsonTries = 50;
 
 
+  int heightLearningServoTimeout = 10;
+  double currentThompsonHeight = 0;
+  int currentThompsonHeightIdx = 0;
 
 
 

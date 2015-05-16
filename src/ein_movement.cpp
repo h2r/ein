@@ -526,14 +526,14 @@ REGISTER_WORD(SetMovementSpeedMoveVerySlow)
 WORD(ChangeToHeight0)
 CODE(1245217) // capslock + numlock + !
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentThompsonHeightIdx = 0;
-  currentThompsonHeight = convertHeightIdxToGlobalZ(ms, currentThompsonHeightIdx);
-  ms->config.currentEEPose.pz = currentThompsonHeight;
+  ms->config.currentThompsonHeightIdx = 0;
+  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
+  ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
-  //ms->config.reticle = heightReticles[currentThompsonHeightIdx];
-  m_x = m_x_h[currentThompsonHeightIdx];
-  m_y = m_y_h[currentThompsonHeightIdx];
+  //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
+  m_x = m_x_h[ms->config.currentThompsonHeightIdx];
+  m_y = m_y_h[ms->config.currentThompsonHeightIdx];
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight0)
@@ -541,14 +541,14 @@ REGISTER_WORD(ChangeToHeight0)
 WORD(ChangeToHeight1)
 CODE(1245248)     // capslock + numlock + @
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentThompsonHeightIdx = 1;
-  currentThompsonHeight = convertHeightIdxToGlobalZ(ms, currentThompsonHeightIdx);
-  ms->config.currentEEPose.pz = currentThompsonHeight;
+  ms->config.currentThompsonHeightIdx = 1;
+  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
+  ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
-  //ms->config.reticle = heightReticles[currentThompsonHeightIdx];
-  m_x = m_x_h[currentThompsonHeightIdx];
-  m_y = m_y_h[currentThompsonHeightIdx];
+  //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
+  m_x = m_x_h[ms->config.currentThompsonHeightIdx];
+  m_y = m_y_h[ms->config.currentThompsonHeightIdx];
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight1)
@@ -556,14 +556,14 @@ REGISTER_WORD(ChangeToHeight1)
 WORD(ChangeToHeight2)
 CODE(1245219)  // capslock + numlock + #
 virtual void execute(std::shared_ptr<MachineState> ms)  {
-  currentThompsonHeightIdx = 2;
-  currentThompsonHeight = convertHeightIdxToGlobalZ(ms, currentThompsonHeightIdx);
-  ms->config.currentEEPose.pz = currentThompsonHeight;
+  ms->config.currentThompsonHeightIdx = 2;
+  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
+  ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
-  //ms->config.reticle = heightReticles[currentThompsonHeightIdx];
-  m_x = m_x_h[currentThompsonHeightIdx];
-  m_y = m_y_h[currentThompsonHeightIdx];
+  //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
+  m_x = m_x_h[ms->config.currentThompsonHeightIdx];
+  m_y = m_y_h[ms->config.currentThompsonHeightIdx];
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight2)
@@ -571,14 +571,14 @@ REGISTER_WORD(ChangeToHeight2)
 WORD(ChangeToHeight3)
 CODE(1245220) // capslock + numlock + $
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentThompsonHeightIdx = 3;
-  currentThompsonHeight = convertHeightIdxToGlobalZ(ms, currentThompsonHeightIdx);
-  ms->config.currentEEPose.pz = currentThompsonHeight;
+  ms->config.currentThompsonHeightIdx = 3;
+  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
+  ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
-  //ms->config.reticle = heightReticles[currentThompsonHeightIdx];
-  m_x = m_x_h[currentThompsonHeightIdx];
-  m_y = m_y_h[currentThompsonHeightIdx];
+  //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
+  m_x = m_x_h[ms->config.currentThompsonHeightIdx];
+  m_y = m_y_h[ms->config.currentThompsonHeightIdx];
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight3)
