@@ -149,8 +149,9 @@ REGISTER_WORD(WaitUntilGripperNotMovingC)
 WORD(PerturbPosition)
 CODE(1048623)     // numlock + /
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double noX = perturbScale * ((drand48() - 0.5) * 2.0);
-  double noY = perturbScale * ((drand48() - 0.5) * 2.0);
+  double param_perturbScale = 0.05;//0.1;
+  double noX = param_perturbScale * ((drand48() - 0.5) * 2.0);
+  double noY = param_perturbScale * ((drand48() - 0.5) * 2.0);
   double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
   
   ms->config.currentEEPose.px += noX;

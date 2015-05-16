@@ -4,11 +4,11 @@ WORD(SetTargetClassToLastLabelLearned)
 CODE(1179730)     // capslock + numlock + r
 virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int i = 0; i < numClasses; i++) {
-    if (lastLabelLearned.compare(classLabels[i]) == 0) {
+    if (ms->config.lastLabelLearned.compare(classLabels[i]) == 0) {
       ms->config.targetClass = i;
       ms->config.focusedClass = ms->config.targetClass;
       ms->config.focusedClassLabel = classLabels[ms->config.focusedClass];
-      cout << "lastLabelLearned classLabels[targetClass]: " << lastLabelLearned << " " << classLabels[ms->config.targetClass] << endl;
+      cout << "lastLabelLearned classLabels[targetClass]: " << ms->config.lastLabelLearned << " " << classLabels[ms->config.targetClass] << endl;
       changeTargetClass(ms, ms->config.targetClass);
     }
   }
@@ -50,8 +50,8 @@ REGISTER_WORD(SetTargetClassToLastLabelLearned)
 WORD(SetLastLabelLearned)
 CODE(1179732)    // capslock + numlock + t 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  lastLabelLearned = ms->config.focusedClassLabel;
-  cout << "lastLabelLearned: " << lastLabelLearned << endl;
+  ms->config.lastLabelLearned = ms->config.focusedClassLabel;
+  cout << "lastLabelLearned: " << ms->config.lastLabelLearned << endl;
 }
 END_WORD
 REGISTER_WORD(SetLastLabelLearned)
@@ -755,8 +755,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
       break;
     }
-
-    lastAerialGradient = gCrop;
     fsvO.release();
   } 
 }
@@ -836,7 +834,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     fsvO << "heightMemoryTries" << classHeightMemoryTries[ms->config.focusedClass];
     fsvO << "heightMemoryPicks" << classHeightMemoryPicks[ms->config.focusedClass];
 
-    lastRangeMap = rangeMapTemp;
     fsvO.release();
   } 
 }
