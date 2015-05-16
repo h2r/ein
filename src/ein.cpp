@@ -122,24 +122,8 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-int paintEEandReg1OnWrist = 1;
 
-// d values obtained by putting laser in gripper
-//  to find end effector projection, then using
-//  a tape dot to find the vanishing point of
-//  the camera
-// the estimated vanishing point is actually pretty
-//  close to the measured one
-double d_y = -0.04;
-double d_x = 0.018;
-double offX = 0;
-double offY = 0;
-// these corrective magnification factors should be close to 1
-//  these are set elsewhere according to chirality
-double m_x = 1.08;
-double m_y = 0.94;
-double m_x_h[4];
-double m_y_h[4];
+
 
 int mappingServoTimeout = 5;
 
@@ -3656,7 +3640,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   // paint transform reticles
-  if (paintEEandReg1OnWrist) {
+  if (ms->config.paintEEandReg1OnWrist) {
     eePose teePose;
     teePose.px = ms->config.trueEEPose.position.x;
     teePose.py = ms->config.trueEEPose.position.y;
@@ -4471,15 +4455,15 @@ void loadCalibration(shared_ptr<MachineState> ms, string inFileName) {
   {
     FileNode anode = fsvI["lensCorrections"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
-    m_x_h[0] = *(it++);
-    m_x_h[1] = *(it++);
-    m_x_h[2] = *(it++);
-    m_x_h[3] = *(it++);
+    ms->config.m_x_h[0] = *(it++);
+    ms->config.m_x_h[1] = *(it++);
+    ms->config.m_x_h[2] = *(it++);
+    ms->config.m_x_h[3] = *(it++);
 
-    m_y_h[0] = *(it++);
-    m_y_h[1] = *(it++);
-    m_y_h[2] = *(it++);
-    m_y_h[3] = *(it++);
+    ms->config.m_y_h[0] = *(it++);
+    ms->config.m_y_h[1] = *(it++);
+    ms->config.m_y_h[2] = *(it++);
+    ms->config.m_y_h[3] = *(it++);
   }
 
   {
@@ -4569,15 +4553,15 @@ void saveCalibration(shared_ptr<MachineState> ms, string outFileName) {
   << "]";
 
   fsvO << "lensCorrections" << "[" 
-    << m_x_h[0]
-    << m_x_h[1]
-    << m_x_h[2]
-    << m_x_h[3]
+    << ms->config.m_x_h[0]
+    << ms->config.m_x_h[1]
+    << ms->config.m_x_h[2]
+    << ms->config.m_x_h[3]
 
-    << m_y_h[0]
-    << m_y_h[1]
-    << m_y_h[2]
-    << m_y_h[3]
+    << ms->config.m_y_h[0]
+    << ms->config.m_y_h[1]
+    << ms->config.m_y_h[2]
+    << ms->config.m_y_h[3]
   << "]";
 
   fsvO << "gear0offset" << "["
@@ -4703,15 +4687,15 @@ void pilotInit(shared_ptr<MachineState> ms) {
     ms->config.yCR[13] = 155;
 
     /* lens correction */
-    m_x_h[0] = 1.2;
-    m_x_h[1] = 1.06;
-    m_x_h[2] = 0.98;
-    m_x_h[3] = 0.94;
+    ms->config.m_x_h[0] = 1.2;
+    ms->config.m_x_h[1] = 1.06;
+    ms->config.m_x_h[2] = 0.98;
+    ms->config.m_x_h[3] = 0.94;
 
-    m_y_h[0] = 0.95;
-    m_y_h[1] = 0.93;
-    m_y_h[2] = 0.92;
-    m_y_h[3] = 0.92;
+    ms->config.m_y_h[0] = 0.95;
+    ms->config.m_y_h[1] = 0.93;
+    ms->config.m_y_h[2] = 0.92;
+    ms->config.m_y_h[3] = 0.92;
 
     ms->config.handingPose = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
                    .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
@@ -4839,15 +4823,15 @@ void pilotInit(shared_ptr<MachineState> ms) {
     ms->config.yCR[13] = 155;
 
     /* lens correction */
-    m_x_h[0] = 1.18;
-    m_x_h[1] = 1.12;
-    m_x_h[2] = 1.09;
-    m_x_h[3] = 1.08;
+    ms->config.m_x_h[0] = 1.18;
+    ms->config.m_x_h[1] = 1.12;
+    ms->config.m_x_h[2] = 1.09;
+    ms->config.m_x_h[3] = 1.08;
 
-    m_y_h[0] = 1.16;
-    m_y_h[1] = 1.17;
-    m_y_h[2] = 1.16;
-    m_y_h[3] = 1.2;
+    ms->config.m_y_h[0] = 1.16;
+    ms->config.m_y_h[1] = 1.17;
+    ms->config.m_y_h[2] = 1.16;
+    ms->config.m_y_h[3] = 1.2;
 
     ms->config.handingPose = {.px = 0.879307, .py = -0.0239328, .pz = 0.223839,
                       .qx = 0.459157, .qy = 0.527586, .qz = 0.48922, .qw = 0.521049};
@@ -7859,34 +7843,34 @@ void interpolateM_xAndM_yFromZ(shared_ptr<MachineState> ms, double dZ, double * 
   bBZ[3] = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
   if (dZ <= bBZ[0]) {
-    *m_x = m_x_h[0];
-    *m_y = m_y_h[0];
+    *m_x = ms->config.m_x_h[0];
+    *m_y = ms->config.m_y_h[0];
   } else if (dZ <= bBZ[1]) {
     double gap = bBZ[1] - bBZ[0];
     double c0 = 1.0 - ((dZ - bBZ[0])/gap);
     double c1 = 1.0 - ((bBZ[1] - dZ)/gap);
-    *m_x = c0*m_x_h[0] + c1*m_x_h[1];
-    *m_y = c0*m_y_h[0] + c1*m_y_h[1];
+    *m_x = c0*ms->config.m_x_h[0] + c1*ms->config.m_x_h[1];
+    *m_y = c0*ms->config.m_y_h[0] + c1*ms->config.m_y_h[1];
   } else if (dZ <= bBZ[2]) {
     double gap = bBZ[2] - bBZ[1];
     double c1 = 1.0 - ((dZ - bBZ[1])/gap);
     double c2 = 1.0 - ((bBZ[2] - dZ)/gap);
-    *m_x = c1*m_x_h[1] + c2*m_x_h[2];
-    *m_y = c1*m_y_h[1] + c2*m_y_h[2];
+    *m_x = c1*ms->config.m_x_h[1] + c2*ms->config.m_x_h[2];
+    *m_y = c1*ms->config.m_y_h[1] + c2*ms->config.m_y_h[2];
   } else if (dZ <= bBZ[3]) {
     double gap = bBZ[3] - bBZ[2];
     double c2 = 1.0 - ((dZ - bBZ[2])/gap);
     double c3 = 1.0 - ((bBZ[3] - dZ)/gap);
-    *m_x = c2*m_x_h[2] + c3*m_x_h[3];
-    *m_y = c2*m_y_h[2] + c3*m_y_h[3];
+    *m_x = c2*ms->config.m_x_h[2] + c3*ms->config.m_x_h[3];
+    *m_y = c2*ms->config.m_y_h[2] + c3*ms->config.m_y_h[3];
   } else if (dZ > bBZ[3]) {
-    *m_x = m_x_h[3];
-    *m_y = m_y_h[3];
+    *m_x = ms->config.m_x_h[3];
+    *m_y = ms->config.m_y_h[3];
   } else {
     assert(0); // my my
   }
-  //cout << m_x_h[0] << " " << m_x_h[1] << " " << m_x_h[2] << " " << m_x_h[3] << " " << *m_x << endl;
-  //cout << m_y_h[0] << " " << m_y_h[1] << " " << m_y_h[2] << " " << m_y_h[3] << " " << *m_y << endl;
+  //cout << ms->config.m_x_h[0] << " " << ms->config.m_x_h[1] << " " << ms->config.m_x_h[2] << " " << ms->config.m_x_h[3] << " " << *m_x << endl;
+  //cout << m_y_h[0] << " " << ms->config.m_y_h[1] << " " << ms->config.m_y_h[2] << " " << ms->config.m_y_h[3] << " " << *m_y << endl;
 }
 
 void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY) {
@@ -7894,7 +7878,7 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
 }
 
 void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose) {
-  interpolateM_xAndM_yFromZ(ms, gZ, &m_x, &m_y);
+  interpolateM_xAndM_yFromZ(ms, gZ, &ms->config.m_x, &ms->config.m_y);
 
   int x1 = ms->config.heightReticles[0].px;
   int x2 = ms->config.heightReticles[1].px;
@@ -7914,7 +7898,7 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
   double reticlePixelX = 0.0;
   double reticlePixelY = 0.0;
   {
-    double d = d_x;
+    double d = ms->config.d_x;
     double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
 
     double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
@@ -7928,7 +7912,7 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
     reticlePixelX = x_thisZ;
   }
   {
-    double d = d_y;
+    double d = ms->config.d_y;
     double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
 
     double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
@@ -7973,11 +7957,11 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
 
   double oldPx = pX;
   double oldPy = pY;
-  pX = reticlePixelX + (oldPy - reticlePixelY) - offX;
-  pY = reticlePixelY + (oldPx - reticlePixelX) - offY;
+  pX = reticlePixelX + (oldPy - reticlePixelY) - ms->config.offX;
+  pY = reticlePixelY + (oldPx - reticlePixelX) - ms->config.offY;
 
   {
-    double d = d_x/m_x;
+    double d = ms->config.d_x/ms->config.m_x;
     double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
 
     double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
@@ -7991,14 +7975,14 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
     double b = (b42+b31)/2.0;
 
     int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
-    //int x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
     //*gX = d + ( (pX-c)*(ms->config.currentEEPose.px-d) )/(x1-c) ;
-    //*gX = givenEEPose.px - d + ( (pX-c)*(d) )/( (x_thisZ-c)*m_x ) ;
+    //*gX = givenEEPose.px - d + ( (pX-c)*(d) )/( (x_thisZ-c)*ms->config.m_x ) ;
     *gX = givenEEPose.px - d + ( (pX-c)*(d) )/( (x_thisZ-c) ) ;
     x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
   }
   {
-    double d = d_y/m_y;
+    double d = ms->config.d_y/ms->config.m_y;
     double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
 
     double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
@@ -8012,16 +7996,16 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
     double b = (b42+b31)/2.0;
 
     int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
-    //int y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
     //*gY = d + ( (pY-c)*(ms->config.currentEEPose.py-d) )/(y1-c) ;
-    //*gY = givenEEPose.py - d + ( (pY-c)*(d) )/( (y_thisZ-c)*m_y ) ;
+    //*gY = givenEEPose.py - d + ( (pY-c)*(d) )/( (y_thisZ-c)*ms->config.m_y ) ;
     *gY = givenEEPose.py - d + ( (pY-c)*(d) )/( (y_thisZ-c) ) ;
     y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
   }
 }
 
 void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY) {
-  interpolateM_xAndM_yFromZ(ms, gZ, &m_x, &m_y);
+  interpolateM_xAndM_yFromZ(ms, gZ, &ms->config.m_x, &ms->config.m_y);
 
   int x1 = ms->config.heightReticles[0].px;
   int x2 = ms->config.heightReticles[1].px;
@@ -8041,8 +8025,8 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
   double reticlePixelX = 0.0;
   double reticlePixelY = 0.0;
   {
-    //double d = d_x;
-    double d = d_x/m_x;
+    //double d = ms->config.d_x;
+    double d = ms->config.d_x/ms->config.m_x;
     double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
 
     double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
@@ -8056,22 +8040,22 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
     double b = (b42+b31)/2.0;
 
     int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
-    //int x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
     //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
-    //*pX = c + ( m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
+    //*pX = c + ( ms->config.m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     *pX = c + ( (gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
     x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
     reticlePixelX = x_thisZ;
 
     cout << "(x pass) d c b42 b31 bDiff b x_thisZ m_x: " << endl 
-	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << x_thisZ << " "  << m_x << " " << endl;
+	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << x_thisZ << " "  << ms->config.m_x << " " << endl;
   }
   {
-    //double d = d_y;
-    double d = d_y/m_y;
+    //double d = ms->config.d_y;
+    double d = ms->config.d_y/ms->config.m_y;
     double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
 
     double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
@@ -8085,18 +8069,18 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
     double b = (b42+b31)/2.0;
 
     int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
-    //int y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
     //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
-    //*pY = c + ( m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
+    //*pY = c + ( ms->config.m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     *pY = c + ( (gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
     y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
     reticlePixelY = y_thisZ;
 
     cout << "(y pass) d c b42 b31 bDiff b y_thisZ m_y: " << endl 
-	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << y_thisZ << " "  << m_y << " " << endl;
+	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << y_thisZ << " "  << ms->config.m_y << " " << endl;
   }
 
   //cout << "reticlePixelX, reticlePixelY: " << reticlePixelX << " " << reticlePixelY << endl;
@@ -8132,13 +8116,13 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
 
   double oldPx = *pX;
   double oldPy = *pY;
-  //*pX = reticlePixelX + m_y*(oldPy - reticlePixelY) + offX;
-  //*pY = reticlePixelY + m_x*(oldPx - reticlePixelX) + offY;
-  *pX = reticlePixelX + (oldPy - reticlePixelY) + offX;
-  *pY = reticlePixelY + (oldPx - reticlePixelX) + offY;
+  //*pX = reticlePixelX + m_y*(oldPy - reticlePixelY) + ms->config.offX;
+  //*pY = reticlePixelY + m_x*(oldPx - reticlePixelX) + ms->config.offY;
+  *pX = reticlePixelX + (oldPy - reticlePixelY) + ms->config.offX;
+  *pY = reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY;
 }
 void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY) {
-  interpolateM_xAndM_yFromZ(ms, gZ, &m_x, &m_y);
+  interpolateM_xAndM_yFromZ(ms, gZ, &ms->config.m_x, &ms->config.m_y);
 
   int x1 = ms->config.heightReticles[0].px;
   int x2 = ms->config.heightReticles[1].px;
@@ -8158,8 +8142,8 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
   double reticlePixelX = 0.0;
   double reticlePixelY = 0.0;
   {
-    //double d = d_x;
-    double d = d_x/m_x;
+    //double d = ms->config.d_x;
+    double d = ms->config.d_x/ms->config.m_x;
     double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
 
     double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
@@ -8173,19 +8157,19 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
     double b = (b42+b31)/2.0;
 
     int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
-    //int x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
     //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
-    //*pX = c + ( m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
+    //*pX = c + ( ms->config.m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     *pX = c + ( (gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
     x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
     reticlePixelX = x_thisZ;
   }
   {
-    //double d = d_y;
-    double d = d_y/m_y;
+    //double d = ms->config.d_y;
+    double d = ms->config.d_y/ms->config.m_y;
     double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
 
     double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
@@ -8199,13 +8183,13 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
     double b = (b42+b31)/2.0;
 
     int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
-    //int y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
     //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
-    //*pY = c + ( m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
+    //*pY = c + ( ms->config.m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     *pY = c + ( (gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
     y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
     reticlePixelY = y_thisZ;
   }
@@ -8243,10 +8227,10 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
 
   double oldPx = *pX;
   double oldPy = *pY;
-  //*pX = reticlePixelX + m_y*(oldPy - reticlePixelY) + offX;
-  //*pY = reticlePixelY + m_x*(oldPx - reticlePixelX) + offY;
-  *pX = reticlePixelX + (oldPy - reticlePixelY) + offX;
-  *pY = reticlePixelY + (oldPx - reticlePixelX) + offY;
+  //*pX = reticlePixelX + ms->config.m_y*(oldPy - reticlePixelY) + ms->config.offX;
+  //*pY = reticlePixelY + ms->config.m_x*(oldPx - reticlePixelX) + ms->config.offY;
+  *pX = reticlePixelX + (oldPy - reticlePixelY) + ms->config.offX;
+  *pY = reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY;
 }
 
 void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar theColor) {
