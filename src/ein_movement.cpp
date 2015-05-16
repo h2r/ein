@@ -252,6 +252,32 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SaveRegister4)
 
+
+WORD(MoveToRegister)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  std::shared_ptr<Word> registerword = ms->popWord();
+
+  int register_num = registerword->to_int();
+  if (register_num == 1) {
+    ms->config.currentEEPose = ms->config.eepReg1;
+  } else if (register_num == 2) {
+    ms->config.currentEEPose = ms->config.eepReg2;
+  } else if (register_num == 3) {
+    ms->config.currentEEPose = ms->config.eepReg3;
+  } else if (register_num == 4) {
+    ms->config.currentEEPose = ms->config.eepReg4;
+  } else if (register_num == 5) {
+    ms->config.currentEEPose = ms->config.eepReg5;
+  } else if (register_num == 6) {
+    ms->config.currentEEPose = ms->config.eepReg6;
+  } else {
+    cout << "Bad register number: " << registerword << " int: " << register_num << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(MoveToRegister)
+
 WORD(MoveToRegister1)
 CODE('1') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
