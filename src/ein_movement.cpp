@@ -17,7 +17,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
   lastMovementStateSet = ros::Time::now();
 
-  waitUntilAtCurrentPositionCounter = 0;
+  ms->config.waitUntilAtCurrentPositionCounter = 0;
   double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
   double dy = (ms->config.currentEEPose.py - ms->config.trueEEPose.position.y);
   double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
@@ -73,8 +73,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double qw = (fabs(ms->config.currentEEPose.qw) - fabs(ms->config.trueEEPose.orientation.w));
   double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
   
-  if (waitUntilAtCurrentPositionCounter < waitUntilAtCurrentPositionCounterTimeout) {
-    waitUntilAtCurrentPositionCounter++;
+  if (ms->config.waitUntilAtCurrentPositionCounter < ms->config.waitUntilAtCurrentPositionCounterTimeout) {
+    ms->config.waitUntilAtCurrentPositionCounter++;
     if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
       ms->pushWord("waitUntilAtCurrentPositionB"); 
       endThisStackCollapse = 1;
@@ -92,7 +92,7 @@ REGISTER_WORD(WaitUntilAtCurrentPositionB)
 
 WORD(WaitUntilGripperNotMoving)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  waitUntilGripperNotMovingCounter = 0;
+  ms->config.waitUntilGripperNotMovingCounter = 0;
   lastGripperCallbackRequest = ros::Time::now();
   ms->pushWord("waitUntilGripperNotMovingB"); 
   endThisStackCollapse = 1;
@@ -106,14 +106,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("waitUntilGripperNotMovingB"); 
   } else {
     lastGripperCallbackRequest = ros::Time::now();
-    if (waitUntilGripperNotMovingCounter < waitUntilGripperNotMovingTimeout) {
+    if (ms->config.waitUntilGripperNotMovingCounter < ms->config.waitUntilGripperNotMovingTimeout) {
       if (ms->config.gripperMoving) {
-	waitUntilGripperNotMovingCounter++;
+	ms->config.waitUntilGripperNotMovingCounter++;
 	ms->pushWord("waitUntilGripperNotMovingB"); 
       } else {
 	ms->pushWord("waitUntilGripperNotMovingC"); 
-	waitUntilGripperNotMovingStamp = ros::Time::now();
-	waitUntilGripperNotMovingCounter = 0;
+	ms->config.waitUntilGripperNotMovingStamp = ros::Time::now();
+	ms->config.waitUntilGripperNotMovingCounter = 0;
       }
     } else {
       cout << "Warning: waitUntilGripperNotMovingB timed out, moving on." << endl;
@@ -131,10 +131,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("waitUntilGripperNotMovingC"); 
   } else {
     lastGripperCallbackRequest = ros::Time::now();
-    if (waitUntilGripperNotMovingCounter < waitUntilGripperNotMovingTimeout) {
-      ros::Duration deltaSinceUpdate = ms->config.gripperLastUpdated - waitUntilGripperNotMovingStamp;
+    if (ms->config.waitUntilGripperNotMovingCounter < ms->config.waitUntilGripperNotMovingTimeout) {
+      ros::Duration deltaSinceUpdate = ms->config.gripperLastUpdated - ms->config.waitUntilGripperNotMovingStamp;
       if (deltaSinceUpdate.toSec() <= ms->config.gripperNotMovingConfirmTime) {
-	waitUntilGripperNotMovingCounter++;
+	ms->config.waitUntilGripperNotMovingCounter++;
 	ms->pushWord("waitUntilGripperNotMovingC"); 
       }
     } else {
