@@ -1,3 +1,11 @@
+
+#include "ein_words.h"
+#include "ein.h"
+
+
+namespace ein_words {
+
+
 WORD(AssumeDeliveryPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double oldz = ms->config.currentEEPose.pz;
@@ -1296,3 +1304,4 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetIdleModeToPatrol)
 
+}
