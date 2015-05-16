@@ -656,8 +656,14 @@ class EinConfig {
   ros::Time lastGripperCallbackReceived;
   ros::Time lastEndpointCallbackReceived;
 
+  bool usePotentiallyCollidingIK = 0;
 
-};
+  Mat objectViewerYCbCrBlur;
+  Mat objectViewerGrayBlur;
+
+
+
+}; // config end
 
 class Word;
 
