@@ -135,33 +135,6 @@ ros::Duration accumulatedTime;
 
 
 
-double w1GoThresh = 0.03;//0.01;
-double w1AngleThresh = 0.02; 
-double synKp = 0.0005;
-double darkKp = 0.0005;
-double faceKp = 0.001;
-double gradKp = 0.00025;//0.0005;
-double kPtheta1 = 1.0;//0.75;
-double kPtheta2 = 0.125;//0.75;
-int kPThresh = 3;
-double lastPtheta = INFINITY;
-
-// pre-absolute
-//int synServoPixelThresh = 10;//15;//10;
-//int gradServoPixelThresh = 2;
-//int gradServoThetaThresh = 1;
-// absolute
-int synServoPixelThresh = 15;//15;//10;
-int gradServoPixelThresh = 5;
-int gradServoThetaThresh = 2;
-
-int synServoLockFrames = 0;
-int synServoLockThresh = 20;
-
-double synServoMinKp = synKp/20.0;
-double synServoKDecay = .95;
-
-
 ros::Time oscilStart;
 double oscCenX = 0.0;
 double oscCenY = 0.0;
@@ -6996,7 +6969,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   ms->config.reticle = ms->config.vanishingPointReticle;
 
   // ATTN 12
-  //        if ((synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING)) {
+  //        if ((ms->config.synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING)) {
   //          cout << "bbLearning: synchronic servo timed out, early outting." << endl;
   //          restartBBLearning(ms);
   //        }
@@ -7069,7 +7042,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   int gradientServoScale = 3;//11;
   double gradientServoScaleStep = 1.02;
   if (orientationCascade) {
-    if (lastPtheta < lPTthresh) {
+    if (ms->config.lastPtheta < lPTthresh) {
       //gradientServoScale = 1;
       //gradientServoScaleStep = 1.0;
     }
@@ -7079,7 +7052,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   //rotatedAerialGrads.resize(numOrientations);
   rotatedAerialGrads.resize(gradientServoScale*numOrientations);
 
-  if ((lastPtheta < lPTthresh) && orientationCascade) {
+  if ((ms->config.lastPtheta < lPTthresh) && orientationCascade) {
     cout << "orientation cascade activated" << endl;
   }
 
@@ -7088,7 +7061,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
     for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
       // orientation cascade
       if (orientationCascade) {
-        if (lastPtheta < lPTthresh) {
+        if (ms->config.lastPtheta < lPTthresh) {
           if (thisOrient < orientationCascadeHalfWidth) {
             //cout << "skipping orientation " << thisOrient << endl;
             continue;
@@ -7146,7 +7119,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   int gradientServoTranslation = 40;
   int gsStride = 2;
   if (orientationCascade) {
-    if (lastPtheta < lPTthresh) {
+    if (ms->config.lastPtheta < lPTthresh) {
       //int gradientServoTranslation = 20;
       //int gsStride = 2;
       int gradientServoTranslation = 40;
@@ -7205,7 +7178,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
         for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
           // orientation cascade
           if (orientationCascade) {
-            if (lastPtheta < lPTthresh) {
+            if (ms->config.lastPtheta < lPTthresh) {
               if (thisOrient < orientationCascadeHalfWidth) {
                 //cout << "skipping orientation " << thisOrient << endl;
                 continue;
@@ -7252,7 +7225,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
         for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
           // orientation cascade
           if (orientationCascade) {
-            if (lastPtheta < lPTthresh) {
+            if (ms->config.lastPtheta < lPTthresh) {
               if (thisOrient < orientationCascadeHalfWidth) {
                 //cout << "skipping orientation " << thisOrient << endl;
                 continue;
@@ -7342,7 +7315,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   
   oneToDraw = oneToDraw % numOrientations;
   double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
-  lastPtheta = Ptheta;
+  ms->config.lastPtheta = Ptheta;
   
   
   // update after
@@ -7355,10 +7328,10 @@ void gradientServo(shared_ptr<MachineState> ms) {
     //cout << "LAST ITERATION indefinite orientation ";
   } else {
     double kPtheta = 0.0;
-    if (Ptheta < kPThresh)
-      kPtheta = kPtheta2;
+    if (Ptheta < ms->config.kPThresh)
+      kPtheta = ms->config.kPtheta2;
     else
-      kPtheta = kPtheta1;
+      kPtheta = ms->config.kPtheta1;
     
     if (bestOrientation <= numOrientations/2) {
       ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
@@ -7391,7 +7364,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
     }
   }
 
-  if (distance > w1GoThresh*w1GoThresh) {
+  if (distance > ms->config.w1GoThresh*ms->config.w1GoThresh) {
     
     ms->pushWord("gradientServo"); 
     // ATTN 8
@@ -7407,7 +7380,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   } else {
     // ATTN 5
     // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
-    if (((fabs(Px) < gradServoPixelThresh) && (fabs(Py) < gradServoPixelThresh) && (fabs(Ptheta) < gradServoThetaThresh)) ||
+    if (((fabs(Px) < ms->config.gradServoPixelThresh) && (fabs(Py) < ms->config.gradServoPixelThresh) && (fabs(Ptheta) < ms->config.gradServoThetaThresh)) ||
         (currentGradientServoIterations > (hardMaxGradientServoIterations-1)))
       {
 	// ATTN 23
@@ -7430,8 +7403,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
         
         //cout << "got within thresh, returning." << endl;
         cout << "got within thresh, fetching." << endl;
-        lastPtheta = INFINITY;
-        cout << "resetting lastPtheta: " << lastPtheta << endl;
+        ms->config.lastPtheta = INFINITY;
+        cout << "resetting lastPtheta: " << ms->config.lastPtheta << endl;
     
         if (synchronicTakeClosest) {
           if (gradientTakeClosest) {
@@ -7456,8 +7429,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
       
       ms->pushWord("gradientServo"); 
       
-      double pTermX = gradKp*Px;
-      double pTermY = gradKp*Py;
+      double pTermX = ms->config.gradKp*Px;
+      double pTermY = ms->config.gradKp*Py;
       
       double pTermS = Ps * .005;
       ms->config.currentEEPose.pz += pTermS;
@@ -7563,7 +7536,7 @@ eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixe
 
 void synchronicServo(shared_ptr<MachineState> ms) {
   ROS_WARN_STREAM("___________________ Synchronic Servo");
-  synServoLockFrames++;
+  ms->config.synServoLockFrames++;
 
   // ATTN 23
   //reticle = ms->config.heightReticles[currentThompsonHeightIdx];
@@ -7580,13 +7553,13 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 
   // ATTN 12
   // if we time out, reset the bblearning program
-  if ( ((synServoLockFrames > heightLearningServoTimeout) || (bTops.size() <= 0)) && 
+  if ( ((ms->config.synServoLockFrames > heightLearningServoTimeout) || (bTops.size() <= 0)) && 
 	(ARE_GENERIC_HEIGHT_LEARNING()) ) {
     cout << "bbLearning: synchronic servo early outting: ";
     if (bTops.size() <= 0) {
       cout << "NO BLUE BOXES ";
     }
-    if ((synServoLockFrames > heightLearningServoTimeout) && (ARE_GENERIC_HEIGHT_LEARNING())) {
+    if ((ms->config.synServoLockFrames > heightLearningServoTimeout) && (ARE_GENERIC_HEIGHT_LEARNING())) {
       cout << "TIMED OUT ";
     }
     cout << endl;
@@ -7594,7 +7567,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
     return;
   }
 
-  if ( ((synServoLockFrames > mappingServoTimeout) || (bTops.size() <= 0)) && 
+  if ( ((ms->config.synServoLockFrames > mappingServoTimeout) || (bTops.size() <= 0)) && 
 	(currentBoundingBoxMode == MAPPING) ) {
     cout << ">>>> Synchronic servo timed out or no blue boxes during mapping. <<<<" << endl;
     return;
@@ -7613,7 +7586,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 
   // ATTN 19
   // if we time out, reset the pick learning 
-  if ( ((synServoLockFrames > heightLearningServoTimeout)) && 
+  if ( ((ms->config.synServoLockFrames > heightLearningServoTimeout)) && 
 	ARE_GENERIC_PICK_LEARNING() ) {
     // record a failure
     cout << ">>>> Synchronic servo timed out.  Going back on patrol. <<<<" << endl;
@@ -7712,10 +7685,10 @@ void synchronicServo(shared_ptr<MachineState> ms) {
   double distance = dx*dx + dy*dy + dz*dz;
 
   // if we are not there yet, continue
-  if (distance > w1GoThresh*w1GoThresh) {
+  if (distance > ms->config.w1GoThresh*ms->config.w1GoThresh) {
     cout << " XXX deprecated code path, synchronci servo should not be responsible for enforcing distance 4812675" << endl;
     ms->pushCopies("waitUntilAtCurrentPosition", 1); 
-    synServoLockFrames = 0;
+    ms->config.synServoLockFrames = 0;
     ms->pushWord("synchronicServo"); 
     if (currentBoundingBoxMode == MAPPING) {
       ms->pushWord("visionCycleNoClassify");
@@ -7723,7 +7696,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       ms->pushWord("visionCycle"); // vision cycle
     }
   } else {
-    if ((fabs(Px) < synServoPixelThresh) && (fabs(Py) < synServoPixelThresh)) {
+    if ((fabs(Px) < ms->config.synServoPixelThresh) && (fabs(Py) < ms->config.synServoPixelThresh)) {
       // ATTN 12
       if (ARE_GENERIC_HEIGHT_LEARNING()) {
 	cout << "bbLearning: synchronic servo succeeded. gradientServoDuringHeightLearning: " << gradientServoDuringHeightLearning << endl;
@@ -7761,7 +7734,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       return;	
     } else {
 
-      double thisKp = synKp;
+      double thisKp = ms->config.synKp;
       double pTermX = thisKp*Px;
       double pTermY = thisKp*Py;
 
@@ -7847,7 +7820,7 @@ void darkServo(shared_ptr<MachineState> ms) {
   double Px = ms->config.reticle.px - ms->config.pilotTarget.px;
   double Py = ms->config.reticle.py - ms->config.pilotTarget.py;
 
-  double thisKp = darkKp * heightFactor;
+  double thisKp = ms->config.darkKp * heightFactor;
   double pTermX = thisKp*Px;
   double pTermY = thisKp*Py;
 
@@ -7917,9 +7890,9 @@ void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces) {
   double Px = ms->config.reticle.px - ms->config.pilotTarget.px;
   double Py = ms->config.reticle.py - ms->config.pilotTarget.py;
 
-  //double thisKp = faceKp * heightFactor;
+  //double thisKp = ms->config.faceKp * heightFactor;
   double yScale = 1.0;
-  double thisKp = faceKp;
+  double thisKp = ms->config.faceKp;
   double pTermX = thisKp*Px;
   double pTermY = thisKp*Py;
 

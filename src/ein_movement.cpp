@@ -29,7 +29,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double qw = (fabs(ms->config.currentEEPose.qw) - fabs(ms->config.trueEEPose.orientation.w));
   double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
   
-  if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh)) {
+  if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
     ms->pushWord("waitUntilAtCurrentPositionB"); 
     endThisStackCollapse = 1;
     ms->config.shouldIDoIK = 1;
@@ -75,7 +75,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   if (waitUntilAtCurrentPositionCounter < waitUntilAtCurrentPositionCounterTimeout) {
     waitUntilAtCurrentPositionCounter++;
-    if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh)) {
+    if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
       ms->pushWord("waitUntilAtCurrentPositionB"); 
       endThisStackCollapse = 1;
       ms->config.shouldIDoIK = 1;
@@ -643,7 +643,7 @@ REGISTER_WORD(DepartureSpeed)
 
 WORD(ResetW1ThreshToDefault)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  w1GoThresh = 0.03;
+  ms->config.w1GoThresh = 0.03;
 }
 END_WORD
 REGISTER_WORD(ResetW1ThreshToDefault)

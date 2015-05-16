@@ -79,7 +79,7 @@ WORD(PauseAndReset)
 CODE('c') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->execute_stack = 0;
-  lastPtheta = INFINITY;
+  ms->config.lastPtheta = INFINITY;
 }
 END_WORD
 REGISTER_WORD(PauseAndReset)
