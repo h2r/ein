@@ -942,8 +942,23 @@ class EinConfig {
   double rejectScale = 2.0;
   double rejectAreaScale = 16;//6*6
 
-;
 
+  // XXX this should probably be odd
+  int aerialGradientWidth = 100;
+  int aerialGradientReticleWidth = 200;
+  
+  
+  double *gBoxIndicator;
+  int gBoxW = 10;
+  int gBoxH = 10;
+  
+  int gBoxStrideX;
+  int gBoxStrideY;
+
+
+  // pink box thresholds for the principle classes
+  double *pBoxIndicator = NULL;
+  
 }; // config end
 
 class Word;
