@@ -6,6 +6,24 @@
 #include <std_msgs/Bool.h>
 #include <cv_bridge/cv_bridge.h>
 
+#include <ros/package.h>
+#include <tf/transform_listener.h>
+#include <object_recognition_msgs/RecognizedObjectArray.h>
+#include <object_recognition_msgs/RecognizedObject.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <actionlib/client/simple_action_client.h>
+#include <control_msgs/FollowJointTrajectoryAction.h>
+
+#include <baxter_core_msgs/CameraControl.h>
+#include <baxter_core_msgs/OpenCamera.h>
+#include <baxter_core_msgs/EndpointState.h>
+#include <baxter_core_msgs/EndEffectorState.h>
+#include <baxter_core_msgs/EndEffectorCommand.h>
+#include <baxter_core_msgs/SolvePositionIK.h>
+#include <baxter_core_msgs/JointCommand.h>
+#include <baxter_core_msgs/HeadPanCommand.h>
+
+
 #include "ein_util.h"
 #include "eigen_util.h"
 
@@ -124,6 +142,34 @@ typedef struct MapCell {
 
 class EinConfig {
  public:
+
+
+  baxter_core_msgs::HeadPanCommand currentHeadPanCommand;
+  std_msgs::Bool currentHeadNodCommand;
+  std_msgs::UInt16 currentSonarCommand;
+  
+  tf::TransformListener* tfListener;
+  
+  baxter_core_msgs::SolvePositionIK ikRequest;
+  baxter_core_msgs::SolvePositionIK lastGoodIkRequest;
+  
+  ros::ServiceClient ikClient;
+  ros::ServiceClient cameraClient;
+  ros::Publisher joint_mover;
+  ros::Publisher gripperPub;
+  ros::Publisher facePub;
+  ros::Publisher moveSpeedPub;
+  ros::Publisher sonarPub;
+  ros::Publisher headPub;
+  ros::Publisher nodPub;
+  ros::Publisher einPub;
+  ros::Publisher vmMarkerPublisher;
+  ros::Publisher rec_objs_blue_memory;
+  ros::Publisher markers_blue_memory;
+  ros::Publisher ee_target_pub;
+
+
+
   int zero_g_toggle = 0;
 
   const int imRingBufferSize = 300;
@@ -593,6 +639,12 @@ class EinConfig {
   double gradientServoResetThresh = 0.7/(6.0e5);
   int densityIterationsForGradientServo = 10;//3;//10;
 
+  // XXX TODO
+  int softMaxGradientServoIterations = 4;//5;//3;//10;//3;
+  int hardMaxGradientServoIterations = 10;//2;//5;//5;//3;//10;//20;//3;//10;
+  int currentGradientServoIterations = 0;
+
+
   int gripperMoving = 0;
   double gripperPosition = 0;
   int gripperGripping = 0;
@@ -678,9 +730,8 @@ class EinConfig {
   int endCollapse = 0;
   int endThisStackCollapse = 0;
 
-  baxter_core_msgs::HeadPanCommand currentHeadPanCommand;
-  std_msgs::Bool currentHeadNodCommand;
-  std_msgs::UInt16 currentSonarCommand;
+
+
 
   int heartBeatCounter = 0;
   int heartBeatPeriod = 150;
@@ -927,6 +978,94 @@ class EinConfig {
   int useFade = 1;
   
   vector<BoxMemory> blueBoxMemories;
+
+
+  // create the blue boxes from the parental green boxes
+  vector<cv::Point> bTops; 
+  vector<cv::Point> bBots;
+  vector<cv::Point> bCens;
+  vector< vector<KeyPoint> > bKeypoints;
+  vector< vector<int> > bWords;
+  vector<Mat> bYCrCb;
+  vector<int> bLabels;
+
+  // adjust these to reject blue boxes
+  double rejectScale = 2.0;
+  double rejectAreaScale = 16;//6*6
+
+
+  // XXX this should probably be odd
+  int aerialGradientWidth = 100;
+  int aerialGradientReticleWidth = 200;
+  
+  
+  double *gBoxIndicator;
+  int gBoxW = 10;
+  int gBoxH = 10;
+  
+  int gBoxStrideX;
+  int gBoxStrideY;
+
+
+  // pink box thresholds for the principle classes
+  double *pBoxIndicator = NULL;
+
+  // gray box offset from the top and bottom of the screen
+  int tGO = 30;
+  int bGO = 30;
+  int lGO = 60;
+  int rGO = 60;
+  cv::Point grayTop;
+  cv::Point grayBot;
+
+
+
+  // all range mode switch and bounds
+  int all_range_mode = 0;
+  int tARM = 100;
+  int bARM = 100;
+  int lARM = 150;
+  int rARM = 150;
+  cv::Point armTop;
+  cv::Point armBot;
+
+  vector<Mat> classRangeMaps;
+  
+  // ATTN 16
+  vector<Mat> classAerialGradients;
+  vector<Mat> classHeight0AerialGradients;
+  vector<Mat> classHeight1AerialGradients;
+  vector<Mat> classHeight2AerialGradients;
+  vector<Mat> classHeight3AerialGradients;
+  
+  vector<Mat> classGraspMemoryTries1;
+  vector<Mat> classGraspMemoryPicks1;
+  vector<Mat> classGraspMemoryTries2;
+  vector<Mat> classGraspMemoryPicks2;
+  vector<Mat> classGraspMemoryTries3;
+  vector<Mat> classGraspMemoryPicks3;
+  vector<Mat> classGraspMemoryTries4;
+  vector<Mat> classGraspMemoryPicks4;
+  
+  vector<Mat> classHeightMemoryTries;
+  vector<Mat> classHeightMemoryPicks;
+
+  int fuseBlueBoxes = 1;
+  int fusePasses = 5;
+  
+  int g1xs = 200;
+  int g1xe = 295;
+  int g1ys = 0;
+  int g1ye = 75;
+  
+  int g2xs = 420;
+  int g2xe = 560;
+  int g2ys = 0;
+  int g2ye = 75;
+  
+  Mat accumulatedImage;
+  Mat accumulatedImageMass;
+
 }; // config end
 
 class Word;

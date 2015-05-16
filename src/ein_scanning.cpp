@@ -143,9 +143,9 @@ REGISTER_WORD(VisionCycleNoClassify)
 WORD(RecordExampleAsFocusedClass)
 CODE(131148)     // capslock + l 
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  if ((ms->config.focusedClass > -1) && (bTops.size() == 1)) {
+  if ((ms->config.focusedClass > -1) && (ms->config.bTops.size() == 1)) {
     string thisLabelName = ms->config.focusedClassLabel;
-    Mat crop = ms->config.cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
+    Mat crop = ms->config.cam_img(cv::Rect(ms->config.bTops[0].x, ms->config.bTops[0].y, ms->config.bBots[0].x-ms->config.bTops[0].x, ms->config.bBots[0].y-ms->config.bTops[0].y));
     char buf[1000];
     string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
     sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), ms->config.cropCounter);
@@ -159,9 +159,9 @@ REGISTER_WORD(RecordExampleAsFocusedClass)
 WORD(RecordAllExamplesFocusedClass)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   if ( ms->config.focusedClass > -1 ) {
-    for (int c = 0; c < bTops.size(); c++) {
+    for (int c = 0; c < ms->config.bTops.size(); c++) {
       string thisLabelName = ms->config.focusedClassLabel;
-      Mat crop = ms->config.cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
+      Mat crop = ms->config.cam_img(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
       char buf[1000];
       string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
       sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), ms->config.cropCounter);
@@ -684,13 +684,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     //int hbb = ms->config.pilotTargetBlueBoxNumber;
     //int hbb = 0;
 
-    int topCornerX = ms->config.reticle.px - (aerialGradientReticleWidth/2);
-    int topCornerY = ms->config.reticle.py - (aerialGradientReticleWidth/2);
-    int crows = aerialGradientReticleWidth;
-    int ccols = aerialGradientReticleWidth;
+    int topCornerX = ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
+    int topCornerY = ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+    int crows = ms->config.aerialGradientReticleWidth;
+    int ccols = ms->config.aerialGradientReticleWidth;
 
-    //int crows = bBots[hbb].y - bTops[hbb].y;
-    //int ccols = bBots[hbb].x - bTops[hbb].x;
+    //int crows = ms->config.bBots[hbb].y - ms->config.bTops[hbb].y;
+    //int ccols = ms->config.bBots[hbb].x - ms->config.bTops[hbb].x;
     int maxDim = max(crows, ccols);
     int tRy = (maxDim-crows)/2;
     int tRx = (maxDim-ccols)/2;
@@ -706,7 +706,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
         int tCty = topCornerY + ty;
         if ( (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) &&
              (tCtx > 0) && (tCty > 0) && (tCtx < imW) && (tCty < imH) ) {
-          //gCrop.at<double>(y, x) = ms->config.frameGraySobel.at<double>(bTops[hbb].y + ty, bTops[hbb].x + tx);
+          //gCrop.at<double>(y, x) = ms->config.frameGraySobel.at<double>(ms->config.bTops[hbb].y + ty, ms->config.bTops[hbb].x + tx);
           gCrop.at<double>(y, x) = ms->config.frameGraySobel.at<double>(tCty, tCtx);
         } else {
           gCrop.at<double>(y, x) = 0.0;
@@ -716,7 +716,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
     cout << "about to resize" << endl;
 
-    Size toBecome(aerialGradientWidth, aerialGradientWidth);
+    Size toBecome(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth);
     cv::resize(gCrop, gCrop, toBecome);
 
 
@@ -819,18 +819,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     fsvO << "rangeMap" << rangeMapTemp;
     copyGraspMemoryTriesToClassGraspMemoryTries(ms);
-    fsvO << "graspMemoryTries1" << classGraspMemoryTries1[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks1" << classGraspMemoryPicks1[ms->config.focusedClass];
-    fsvO << "graspMemoryTries2" << classGraspMemoryTries2[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks2" << classGraspMemoryPicks2[ms->config.focusedClass];
-    fsvO << "graspMemoryTries3" << classGraspMemoryTries3[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks3" << classGraspMemoryPicks3[ms->config.focusedClass];
-    fsvO << "graspMemoryTries4" << classGraspMemoryTries4[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks4" << classGraspMemoryPicks4[ms->config.focusedClass];
+    fsvO << "graspMemoryTries1" << ms->config.classGraspMemoryTries1[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks1" << ms->config.classGraspMemoryPicks1[ms->config.focusedClass];
+    fsvO << "graspMemoryTries2" << ms->config.classGraspMemoryTries2[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks2" << ms->config.classGraspMemoryPicks2[ms->config.focusedClass];
+    fsvO << "graspMemoryTries3" << ms->config.classGraspMemoryTries3[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks3" << ms->config.classGraspMemoryPicks3[ms->config.focusedClass];
+    fsvO << "graspMemoryTries4" << ms->config.classGraspMemoryTries4[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks4" << ms->config.classGraspMemoryPicks4[ms->config.focusedClass];
 
     copyHeightMemoryTriesToClassHeightMemoryTries(ms);
-    fsvO << "heightMemoryTries" << classHeightMemoryTries[ms->config.focusedClass];
-    fsvO << "heightMemoryPicks" << classHeightMemoryPicks[ms->config.focusedClass];
+    fsvO << "heightMemoryTries" << ms->config.classHeightMemoryTries[ms->config.focusedClass];
+    fsvO << "heightMemoryPicks" << ms->config.classHeightMemoryPicks[ms->config.focusedClass];
 
     fsvO.release();
   } 
@@ -1050,7 +1050,7 @@ REGISTER_WORD(SetHeightReticlesA)
 
 WORD(MoveCropToCenter)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  Size sz = accumulatedImage.size();
+  Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
 
@@ -1064,7 +1064,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
   ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
-  int testResult = cameraClient.call(ocMessage);
+  int testResult = ms->config.cameraClient.call(ocMessage);
 }
 END_WORD
 REGISTER_WORD(MoveCropToCenter)
@@ -1078,14 +1078,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
   ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
-  int testResult = cameraClient.call(ocMessage);
+  int testResult = ms->config.cameraClient.call(ocMessage);
 }
 END_WORD
 REGISTER_WORD(MoveCropToProperValue)
 
 WORD(MoveCropToCenterVanishingPoint)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  Size sz = accumulatedImage.size();
+  Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
 
@@ -1106,7 +1106,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
   ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
-  int testResult = cameraClient.call(ocMessage);
+  int testResult = ms->config.cameraClient.call(ocMessage);
   //cout << "centerVanishingPoint testResult: " << testResult << endl;
   //cout << ocMessage.response.name << endl;
   //cout << ocMessage.response.name << " " << ocMessage.response.settings.controls.size() << endl;
@@ -1456,7 +1456,7 @@ REGISTER_WORD(SetGripperMask)
 
 WORD(SetGripperMaskAA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.gripperMaskFirstContrast = accumulatedImage.clone();
+  ms->config.gripperMaskFirstContrast = ms->config.accumulatedImage.clone();
   ms->config.gripperMaskSecondContrast = ms->config.gripperMaskFirstContrast.clone();
 
   ms->config.gripperMask.create(ms->config.gripperMaskFirstContrast.size(), CV_8U);
@@ -1468,13 +1468,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      double denom = accumulatedImageMass.at<double>(y,x);
+      double denom = ms->config.accumulatedImageMass.at<double>(y,x);
       if (denom <= 1.0) {
 	denom = 1.0;
       }
-      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] = (accumulatedImage.at<Vec3d>(y,x)[0] / denom);
-      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[1] = (accumulatedImage.at<Vec3d>(y,x)[1] / denom);
-      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] = (accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[1] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
 
       ms->config.gripperMask.at<uchar>(y,x) = 0;
     }
@@ -1485,7 +1485,7 @@ REGISTER_WORD(SetGripperMaskAA)
 
 WORD(InitCumulativeGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.cumulativeGripperMask.create(accumulatedImage.size(), CV_8U);
+  ms->config.cumulativeGripperMask.create(ms->config.accumulatedImage.size(), CV_8U);
   Size sz = ms->config.cumulativeGripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
@@ -1537,13 +1537,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      double denom = accumulatedImageMass.at<double>(y,x);
+      double denom = ms->config.accumulatedImageMass.at<double>(y,x);
       if (denom <= 1.0) {
 	denom = 1.0;
       }
-      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0] = (accumulatedImage.at<Vec3d>(y,x)[0] / denom);
-      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1] = (accumulatedImage.at<Vec3d>(y,x)[1] / denom);
-      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2] = (accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
 
       double maskDiff = 
       ((ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0])*
@@ -2006,7 +2006,7 @@ REGISTER_WORD(Save3dGrasps)
 
 WORD(Lock3dGraspBase)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if ( (bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
+  if ( (ms->config.bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
     ms->config.c3dPoseBase = ms->config.currentEEPose;
     ms->config.c3dPoseBase.pz = -ms->config.currentTableZ;
     cout << endl
@@ -2078,26 +2078,26 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 0; 
       ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 1;
       ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 0; 
-      //classGraspMemoryTries1[ms->config.targetClass].at<double>(y,x) = 1;
-      //classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x) = 0;
-      //classGraspMemoryTries2[ms->config.targetClass].at<double>(y,x) = 1;
-      //classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x) = 0;
-      //classGraspMemoryTries3[ms->config.targetClass].at<double>(y,x) = 1;
-      //classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x) = 0;
-      //classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x) = 1;
-      //classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x) = 0;
+      //ms->config.classGraspMemoryTries1[ms->config.targetClass].at<double>(y,x) = 1;
+      //ms->config.classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x) = 0;
+      //ms->config.classGraspMemoryTries2[ms->config.targetClass].at<double>(y,x) = 1;
+      //ms->config.classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x) = 0;
+      //ms->config.classGraspMemoryTries3[ms->config.targetClass].at<double>(y,x) = 1;
+      //ms->config.classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x) = 0;
+      //ms->config.classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x) = 1;
+      //ms->config.classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x) = 0;
       ms->config.rangeMap[x + y*ms->config.rmWidth] = 0;
       ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = 0;
-      //classRangeMaps[ms->config.targetClass].at<double>(y,x) = 0;
+      //ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x) = 0;
     } 
   } 
-  //classGraspMemoryTries1[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
-  //classGraspMemoryPicks1[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
+  //ms->config.classGraspMemoryTries1[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
+  //ms->config.classGraspMemoryPicks1[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
   ms->config.graspMemoryTries[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1;
   ms->config.graspMemoryPicks[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1; 
   ms->config.rangeMap[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth] = ms->config.currentGraspZ;
   ms->config.rangeMapReg1[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth] = ms->config.currentGraspZ;
-  //classRangeMaps[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
+  //ms->config.classRangeMaps[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
 }
 END_WORD
 REGISTER_WORD(PreAnnotateCenterGrasp)

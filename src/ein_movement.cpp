@@ -434,7 +434,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //baxter_core_msgs::EndEffectorCommand command;
   //command.command = baxter_core_msgs::EndEffectorCommand::CMD_CALIBRATE;
   //command.id = 65538;
-  //gripperPub.publish(command);
+  //ms->config.gripperPub.publish(command);
   calibrateGripper(ms);
 }
 END_WORD
@@ -447,7 +447,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
   command.args = "{\"position\": 0.0}";
   command.id = 65538;
-  gripperPub.publish(command);
+  ms->config.gripperPub.publish(command);
 }
 END_WORD
 REGISTER_WORD(CloseGripper)
@@ -459,7 +459,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
   command.args = "{\"position\": 100.0}";
   command.id = 65538;
-  gripperPub.publish(command);
+  ms->config.gripperPub.publish(command);
   ms->config.lastMeasuredClosed = ms->config.gripperPosition;
 }
 END_WORD

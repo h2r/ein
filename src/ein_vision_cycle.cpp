@@ -377,7 +377,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
 	    bool likelyInCollision = 0;
 	    // ATTN 24
-	    //int thisIkCallResult = ikClient.call(thisIkRequest);
+	    //int thisIkCallResult = ms->config.ikClient.call(thisIkRequest);
 	    int thisIkCallResult = 0;
 	    queryIK(ms, &thisIkCallResult, &thisIkRequest);
 
@@ -499,7 +499,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     bool likelyInCollision = 0;
     // ATTN 24
-    //int thisIkCallResult = ikClient.call(thisIkRequest);
+    //int thisIkCallResult = ms->config.ikClient.call(thisIkRequest);
     int thisIkCallResult = 0;
     queryIK(ms, &thisIkCallResult, &thisIkRequest);
 
@@ -554,7 +554,7 @@ WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   object_recognition_msgs::RecognizedObjectArray roaO;
   fillRecognizedObjectArrayFromBlueBoxMemory(ms, &roaO);
-  rec_objs_blue_memory.publish(roaO);
+  ms->config.rec_objs_blue_memory.publish(roaO);
 }
 END_WORD
 REGISTER_WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)
@@ -562,11 +562,11 @@ REGISTER_WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)
 
 WORD(RecordAllBlueBoxes)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "Recording blue boxes: " << bTops.size() << endl;
-  for (int c = 0; c < bTops.size(); c++) {
+  cout << "Recording blue boxes: " << ms->config.bTops.size() << endl;
+  for (int c = 0; c < ms->config.bTops.size(); c++) {
     BoxMemory box;
-    box.bTop = bTops[c];
-    box.bBot = bBots[c];
+    box.bTop = ms->config.bTops[c];
+    box.bBot = ms->config.bBots[c];
     box.cameraPose = ms->config.currentEEPose;
     box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
     box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
@@ -574,7 +574,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     box.centroid.py = (box.top.py + box.bot.py) * 0.5;
     box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
     box.cameraTime = ros::Time::now();
-    box.labeledClassIndex = bLabels[c];
+    box.labeledClassIndex = ms->config.bLabels[c];
     ms->config.blueBoxMemories.push_back(box);
   }
 
@@ -615,15 +615,15 @@ REGISTER_WORD(InitializeMap)
 
 WORD(MapEmptySpace)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  for (int px = grayTop.x+ms->config.mapGrayBoxPixelSkirt; px < grayBot.x-ms->config.mapGrayBoxPixelSkirt; px++) {
-    for (int py = grayTop.y+ms->config.mapGrayBoxPixelSkirt; py < grayBot.y-ms->config.mapGrayBoxPixelSkirt; py++) {
+  for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirt; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirt; px++) {
+    for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirt; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirt; py++) {
 
       if (isInGripperMask(ms, px, py)) {
 	continue;
       }
 
       //int blueBoxIdx = blueBoxForPixel(px, py);
-      int blueBoxIdx = skirtedBlueBoxForPixel(px, py, ms->config.mapFreeSpacePixelSkirt);
+      int blueBoxIdx = skirtedBlueBoxForPixel(ms, px, py, ms->config.mapFreeSpacePixelSkirt);
 
       if (blueBoxIdx == -1) {
         double x, y;
@@ -689,8 +689,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   int c = ms->config.pilotClosestBlueBoxNumber;
   BoxMemory box;
-  box.bTop = bTops[c];
-  box.bBot = bBots[c];
+  box.bTop = ms->config.bTops[c];
+  box.bBot = ms->config.bBots[c];
   box.cameraPose = ms->config.currentEEPose;
   box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
   box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
@@ -698,7 +698,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   box.centroid.py = (box.top.py + box.bot.py) * 0.5;
   box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
   box.cameraTime = ros::Time::now();
-  box.labeledClassIndex = bLabels[c];
+  box.labeledClassIndex = ms->config.bLabels[c];
   box.lockStatus = CENTROID_LOCK;
   
   int i, j;
