@@ -102,11 +102,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     cout << classLabels[i] << " " << classPoseModels[i] << endl;
   }
 
-  rewrite_labels = 1;
-  retrain_vocab = 1;
-  reextract_knn = 1;
-  trainOnly = 0;
-
+  ms->config.rewrite_labels = 1;
+  ms->config.retrain_vocab = 1;
+  ms->config.reextract_knn = 1;
 
   // delete things that will be reallocated
   if (bowtrainer)
@@ -120,7 +118,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   }
 
   //  detectorsInit() will reset numClasses
-  detectorsInit();
+  detectorsInit(ms);
 
   // reset numNewClasses
   ms->config.newClassCounter = 0;

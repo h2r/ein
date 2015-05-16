@@ -737,6 +737,11 @@ class EinConfig {
   int setVanishingPointTimeout = 6;
 
 
+  // node variables
+  int retrain_vocab = 0;
+  int rewrite_labels = 0;
+  int reextract_knn = 0;
+
 
 }; // config end
 
