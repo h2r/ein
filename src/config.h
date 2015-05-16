@@ -524,6 +524,10 @@ class EinConfig {
   int gradientServoDuringHeightLearning = 1;
   int bailAfterSynchronic = 1;
   int bailAfterGradient = 0;
+  int useGradientServoThresh = 0;
+  double gradientServoResetThresh = 0.7/(6.0e5);
+
+
 
   int gripperMoving = 0;
   double gripperPosition = 0;
