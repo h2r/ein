@@ -448,10 +448,10 @@ REGISTER_WORD(SetRangeMapCenterFromCurrentEEPose)
 WORD(InitDepthScan)
 CODE(1048695) // numlock + w
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "Set rmcX and rmcY. Resetting maps. " << rmcX << " " << trueEEPose.position.x << endl;
-  rmcX = trueEEPose.position.x;
-  rmcY = trueEEPose.position.y;
-  rmcZ = trueEEPose.position.z - ms->config.eeRange;
+  cout << "Set rmcX and rmcY. Resetting maps. " << rmcX << " " << ms->config.trueEEPose.position.x << endl;
+  rmcX = ms->config.trueEEPose.position.x;
+  rmcY = ms->config.trueEEPose.position.y;
+  rmcZ = ms->config.trueEEPose.position.z - ms->config.eeRange;
   for (int rx = 0; rx < rmWidth; rx++) {
     for (int ry = 0; ry < rmWidth; ry++) {
       rangeMap[rx + ry*rmWidth] = 0;
@@ -1023,7 +1023,7 @@ REGISTER_WORD(SetHeightReticles)
 WORD(PrintGlobalToPixel)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   {
-    double zToUse = trueEEPose.position.z+currentTableZ;
+    double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
     globalToPixelPrint(ms, &eX, &eY, zToUse, eepReg1.px, eepReg1.py);
@@ -1331,7 +1331,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double magStep = 0.01;
 
   for (int i = 0; i < magIters; i++) {
-    double zToUse = trueEEPose.position.z+currentTableZ;
+    double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
     globalToPixelPrint(ms, &eX, &eY, zToUse, eepReg1.px, eepReg1.py);
@@ -1386,7 +1386,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double magStep = 0.01;
 
   for (int i = 0; i < magIters; i++) {
-    double zToUse = trueEEPose.position.z+currentTableZ;
+    double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
     globalToPixelPrint(ms, &eX, &eY, zToUse, eepReg1.px, eepReg1.py);
@@ -1910,7 +1910,7 @@ REGISTER_WORD(ScanObjectFast)
 
 WORD(RecordGraspZ)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  // uses currentEEPose instead of trueEEPose so that we can set it below the table
+  // uses currentEEPose instead of ms->config.trueEEPose so that we can set it below the table
   double flushZ = -(currentTableZ) + pickFlushFactor;
   ms->config.currentGraspZ = currentEEPose.pz - flushZ;
   cout << "recordGraspZ flushZ currentGraspZ: " << flushZ << " " << ms->config.currentGraspZ << " " << endl;

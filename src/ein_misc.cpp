@@ -112,11 +112,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << endl;
   cout << "Current EE Position (x,y,z): " << currentEEPose.px << " " << currentEEPose.py << " " << currentEEPose.pz << endl;
   cout << "Current EE Orientation (x,y,z,w): " << currentEEPose.qx << " " << currentEEPose.qy << " " << currentEEPose.qz << " " << currentEEPose.qw << endl;
-  cout << "True EE Position (x,y,z): " << trueEEPose.position.x << " " << trueEEPose.position.y << " " << trueEEPose.position.z << endl;
-  cout << "True EE Orientation (x,y,z,w): " << trueEEPose.orientation.x << " " << trueEEPose.orientation.y << " " << trueEEPose.orientation.z << " " << trueEEPose.orientation.w << endl;
+  cout << "True EE Position (x,y,z): " << ms->config.trueEEPose.position.x << " " << ms->config.trueEEPose.position.y << " " << ms->config.trueEEPose.position.z << endl;
+  cout << "True EE Orientation (x,y,z,w): " << ms->config.trueEEPose.orientation.x << " " << ms->config.trueEEPose.orientation.y << " " << ms->config.trueEEPose.orientation.z << " " << ms->config.trueEEPose.orientation.w << endl;
   cout <<
-    "eePose = {.px = " << trueEEPose.position.x << ", .py = " << trueEEPose.position.y << ", .pz = " << trueEEPose.position.z << "," << endl <<
-    "		      .qx = " << trueEEPose.orientation.x << ", .qy = " << trueEEPose.orientation.y << ", .qz = " << trueEEPose.orientation.z << ", .qw = " << trueEEPose.orientation.w << "};" << endl;
+    "eePose = {.px = " << ms->config.trueEEPose.position.x << ", .py = " << ms->config.trueEEPose.position.y << ", .pz = " << ms->config.trueEEPose.position.z << "," << endl <<
+    "		      .qx = " << ms->config.trueEEPose.orientation.x << ", .qy = " << ms->config.trueEEPose.orientation.y << ", .qz = " << ms->config.trueEEPose.orientation.z << ", .qw = " << ms->config.trueEEPose.orientation.w << "};" << endl;
   cout << "currentThompsonHeightIdx: " << currentThompsonHeightIdx << endl;
   cout << "mostRecentUntabledZ (remember this is inverted but correct): " << mostRecentUntabledZ << endl;
   cout << "currentPickMode: " << pickModeToString(currentPickMode) << endl;
@@ -135,7 +135,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 
   
-  double wrenchNorm = sqrt( squareDistanceEEPose(eePoseZero, trueEEWrench) );
+  double wrenchNorm = sqrt( squareDistanceEEPose(eePoseZero, ms->config.trueEEWrench) );
   cout << "wrenchNorm: " << wrenchNorm << endl;
   
   cout << endl;

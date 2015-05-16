@@ -14,19 +14,19 @@ CODE(131154)    // capslock + r
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->config.currentMovementState = MOVING;
-  lastTrueEEPoseEEPose = trueEEPoseEEPose;
+  lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
   lastMovementStateSet = ros::Time::now();
 
   waitUntilAtCurrentPositionCounter = 0;
-  double dx = (currentEEPose.px - trueEEPose.position.x);
-  double dy = (currentEEPose.py - trueEEPose.position.y);
-  double dz = (currentEEPose.pz - trueEEPose.position.z);
+  double dx = (currentEEPose.px - ms->config.trueEEPose.position.x);
+  double dy = (currentEEPose.py - ms->config.trueEEPose.position.y);
+  double dz = (currentEEPose.pz - ms->config.trueEEPose.position.z);
   double distance = dx*dx + dy*dy + dz*dz;
   
-  double qx = (fabs(currentEEPose.qx) - fabs(trueEEPose.orientation.x));
-  double qy = (fabs(currentEEPose.qy) - fabs(trueEEPose.orientation.y));
-  double qz = (fabs(currentEEPose.qz) - fabs(trueEEPose.orientation.z));
-  double qw = (fabs(currentEEPose.qw) - fabs(trueEEPose.orientation.w));
+  double qx = (fabs(currentEEPose.qx) - fabs(ms->config.trueEEPose.orientation.x));
+  double qy = (fabs(currentEEPose.qy) - fabs(ms->config.trueEEPose.orientation.y));
+  double qz = (fabs(currentEEPose.qz) - fabs(ms->config.trueEEPose.orientation.z));
+  double qw = (fabs(currentEEPose.qw) - fabs(ms->config.trueEEPose.orientation.w));
   double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
   
   if ((distance > w1GoThresh*w1GoThresh) || (angleDistance > w1AngleThresh*w1AngleThresh)) {
@@ -55,22 +55,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       endThisStackCollapse = endCollapse;
     }
     
-    currentEEPose.pz = trueEEPose.position.z + 0.001;
+    currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
     cout << "  backing up just a little to dislodge, then waiting again." << endl;
 
     ms->pushWord("waitUntilAtCurrentPosition"); 
     return;
   }
 
-  double dx = (currentEEPose.px - trueEEPose.position.x);
-  double dy = (currentEEPose.py - trueEEPose.position.y);
-  double dz = (currentEEPose.pz - trueEEPose.position.z);
+  double dx = (currentEEPose.px - ms->config.trueEEPose.position.x);
+  double dy = (currentEEPose.py - ms->config.trueEEPose.position.y);
+  double dz = (currentEEPose.pz - ms->config.trueEEPose.position.z);
   double distance = dx*dx + dy*dy + dz*dz;
   
-  double qx = (fabs(currentEEPose.qx) - fabs(trueEEPose.orientation.x));
-  double qy = (fabs(currentEEPose.qy) - fabs(trueEEPose.orientation.y));
-  double qz = (fabs(currentEEPose.qz) - fabs(trueEEPose.orientation.z));
-  double qw = (fabs(currentEEPose.qw) - fabs(trueEEPose.orientation.w));
+  double qx = (fabs(currentEEPose.qx) - fabs(ms->config.trueEEPose.orientation.x));
+  double qy = (fabs(currentEEPose.qy) - fabs(ms->config.trueEEPose.orientation.y));
+  double qz = (fabs(currentEEPose.qz) - fabs(ms->config.trueEEPose.orientation.z));
+  double qw = (fabs(currentEEPose.qw) - fabs(ms->config.trueEEPose.orientation.w));
   double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
   
   if (waitUntilAtCurrentPositionCounter < waitUntilAtCurrentPositionCounterTimeout) {
@@ -297,7 +297,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Vector3d localUnitX;
   Vector3d localUnitY;
   Vector3d localUnitZ;
-  fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  fillLocalUnitBasis(ms->config.trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
   currentEEPose = currentEEPose.minusP(ms->config.bDelta * localUnitX);
 }
 END_WORD
@@ -309,7 +309,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Vector3d localUnitX;
   Vector3d localUnitY;
   Vector3d localUnitZ;
-  fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  fillLocalUnitBasis(ms->config.trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
   currentEEPose = currentEEPose.plusP(ms->config.bDelta * localUnitX);
 }
 END_WORD
@@ -320,7 +320,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Vector3d localUnitX;
   Vector3d localUnitY;
   Vector3d localUnitZ;
-  fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  fillLocalUnitBasis(ms->config.trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
   currentEEPose = currentEEPose.minusP(ms->config.bDelta * localUnitY);
 }
 END_WORD
@@ -332,7 +332,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Vector3d localUnitX;
   Vector3d localUnitY;
   Vector3d localUnitZ;
-  fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  fillLocalUnitBasis(ms->config.trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
   currentEEPose = currentEEPose.plusP(ms->config.bDelta * localUnitY);
 }
 END_WORD
@@ -345,7 +345,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   Vector3d localUnitX;
   Vector3d localUnitY;
   Vector3d localUnitZ;
-  fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  fillLocalUnitBasis(ms->config.trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
   currentEEPose = currentEEPose.plusP(ms->config.bDelta * localUnitZ);
 }
 END_WORD
@@ -357,7 +357,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   Vector3d localUnitX;
   Vector3d localUnitY;
   Vector3d localUnitZ;
-  fillLocalUnitBasis(trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  fillLocalUnitBasis(ms->config.trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
   currentEEPose = currentEEPose.minusP(ms->config.bDelta * localUnitZ);
 }
 END_WORD
@@ -672,7 +672,7 @@ REGISTER_WORD(IRCalibrationSpeed)
 
 WORD(Hover)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  lastHoverTrueEEPoseEEPose = trueEEPoseEEPose;
+  lastHoverTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
   ms->pushWord("hoverA");
   endThisStackCollapse = 1;
   ms->config.shouldIDoIK = 1;
@@ -689,15 +689,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     cout << "hoverA waiting for endpointCallback." << endl;
     endThisStackCollapse = 1;
   } else {
-    double dx = (lastHoverTrueEEPoseEEPose.px - trueEEPoseEEPose.px);
-    double dy = (lastHoverTrueEEPoseEEPose.py - trueEEPoseEEPose.py);
-    double dz = (lastHoverTrueEEPoseEEPose.pz - trueEEPoseEEPose.pz);
+    double dx = (lastHoverTrueEEPoseEEPose.px - ms->config.trueEEPoseEEPose.px);
+    double dy = (lastHoverTrueEEPoseEEPose.py - ms->config.trueEEPoseEEPose.py);
+    double dz = (lastHoverTrueEEPoseEEPose.pz - ms->config.trueEEPoseEEPose.pz);
     double distance = dx*dx + dy*dy + dz*dz;
     
-    double qx = (fabs(lastHoverTrueEEPoseEEPose.qx) - fabs(trueEEPoseEEPose.qx));
-    double qy = (fabs(lastHoverTrueEEPoseEEPose.qy) - fabs(trueEEPoseEEPose.qy));
-    double qz = (fabs(lastHoverTrueEEPoseEEPose.qz) - fabs(trueEEPoseEEPose.qz));
-    double qw = (fabs(lastHoverTrueEEPoseEEPose.qw) - fabs(trueEEPoseEEPose.qw));
+    double qx = (fabs(lastHoverTrueEEPoseEEPose.qx) - fabs(ms->config.trueEEPoseEEPose.qx));
+    double qy = (fabs(lastHoverTrueEEPoseEEPose.qy) - fabs(ms->config.trueEEPoseEEPose.qy));
+    double qz = (fabs(lastHoverTrueEEPoseEEPose.qz) - fabs(ms->config.trueEEPoseEEPose.qz));
+    double qw = (fabs(lastHoverTrueEEPoseEEPose.qw) - fabs(ms->config.trueEEPoseEEPose.qw));
     double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
   
     if ( ros::Time::now() - lastHoverRequest < ros::Duration(hoverTimeout) ) {
@@ -706,7 +706,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	endThisStackCollapse = 1;
 	ms->config.shouldIDoIK = 1;
 	cout << "hoverA distance requirement not met, distance angleDistance: " << distance << " " << angleDistance << endl;
-	lastHoverTrueEEPoseEEPose = trueEEPoseEEPose;
+	lastHoverTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
       } else {
 	endThisStackCollapse = endCollapse;
       }
@@ -737,8 +737,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     box.bBot.x = ms->config.vanishingPointReticle.px+simulatedObjectHalfWidthPixels;
     box.bBot.y = ms->config.vanishingPointReticle.py+simulatedObjectHalfWidthPixels;
     box.cameraPose = currentEEPose;
-    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
-    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + currentTableZ);
+    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + currentTableZ);
     box.centroid.px = (box.top.px + box.bot.px) * 0.5;
     box.centroid.py = (box.top.py + box.bot.py) * 0.5;
     box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -1009,7 +1009,7 @@ REGISTER_WORD(DecrementTargetMasterSprite)
 
 WORD(ComeToStop)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  //currentEEPose = trueEEPoseEEPose;
+  //currentEEPose = ms->config.trueEEPoseEEPose;
   ms->pushWord("comeToStopA");
   comeToStopStart = ros::Time::now();
   cout << "Waiting to come to a stop..." << endl;
@@ -1034,7 +1034,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
       // waitUntilCurrentPosition will time out, make sure that there will
       //  be no cycles introduced
-      currentEEPose.pz = trueEEPose.position.z + 0.001;
+      currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
       cout << "  backing up just a little to dislodge from failed hover, then waiting." << endl;
       ms->pushWord("waitUntilAtCurrentPosition"); 
     }
@@ -1046,7 +1046,7 @@ REGISTER_WORD(ComeToStopA)
 
 WORD(ComeToHover)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  //currentEEPose = trueEEPoseEEPose;
+  //currentEEPose = ms->config.trueEEPoseEEPose;
   ms->pushWord("comeToHoverA");
   comeToHoverStart = ros::Time::now();
   cout << "Waiting to come to a hover..." << endl;
@@ -1111,7 +1111,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
     }
   } else { // wrench based
-    double wrenchNorm = sqrt( squareDistanceEEPose(eePoseZero, trueEEWrench) );
+    double wrenchNorm = sqrt( squareDistanceEEPose(eePoseZero, ms->config.trueEEWrench) );
     double wrenchThresh = 15;
     bool wrenchOverThresh = ( wrenchNorm > wrenchThresh );
     if ( wrenchOverThresh ||
@@ -1166,7 +1166,7 @@ REGISTER_WORD(Idler)
 WORD(SetMovementStateToMoving)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentMovementState = MOVING;
-  lastTrueEEPoseEEPose = trueEEPoseEEPose;
+  lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
   lastMovementStateSet = ros::Time::now();
 }
 END_WORD

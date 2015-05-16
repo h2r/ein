@@ -208,6 +208,18 @@ class EinConfig {
   string left_or_right_arm = "right";
 
 
+  geometry_msgs::Pose trueEEPose;
+  eePose trueEEWrench;
+  eePose trueEEPoseEEPose;
+  std::string fetchCommand;
+  ros::Time fetchCommandTime;
+  double fetchCommandCooldown = 5;
+  int acceptingFetchCommands = 0;
+
+  std::string forthCommand;
+
+
+
   // config variables that don't seem to be used
 };
 

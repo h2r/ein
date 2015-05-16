@@ -57,7 +57,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   { // set the old box's lastMappedTime to moments after the start of time
     int iStart=-1, iEnd=-1, jStart=-1, jEnd=-1;
     int iTop=-1, iBot=-1, jTop=-1, jBot=-1;
-    double z = trueEEPose.position.z + currentTableZ;
+    double z = ms->config.trueEEPose.position.z + currentTableZ;
     {
       double x, y;
       int i, j;
@@ -169,7 +169,7 @@ WORD(ClearStackAcceptFetchCommands)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->clearStack();
   ms->execute_stack = 1;
-  acceptingFetchCommands = 1;
+  ms->config.acceptingFetchCommands = 1;
 }
 END_WORD
 REGISTER_WORD(ClearStackAcceptFetchCommands)
@@ -180,7 +180,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Mapping patrol" << endl;
   bailAfterSynchronic = 1;
   bailAfterGradient = 1;
-  acceptingFetchCommands = 1;
+  ms->config.acceptingFetchCommands = 1;
 
   ms->pushWord("mappingPatrol");
   //ms->pushWord("bringUpAllNonessentialSystems");
@@ -471,7 +471,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  cout << "Patrolled once, idling." << endl;
 	  ms->clearStack();
 	  ms->execute_stack = 1;
-	  acceptingFetchCommands = 1;
+	  ms->config.acceptingFetchCommands = 1;
 	  ms->pushWord("idler");
 	  return;
 	} else {
@@ -568,8 +568,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     box.bTop = bTops[c];
     box.bBot = bBots[c];
     box.cameraPose = currentEEPose;
-    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
-    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + currentTableZ);
+    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + currentTableZ);
     box.centroid.px = (box.top.px + box.bot.px) * 0.5;
     box.centroid.py = (box.top.py + box.bot.py) * 0.5;
     box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -627,7 +627,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
       if (blueBoxIdx == -1) {
         double x, y;
-        double z = trueEEPose.position.z + currentTableZ;
+        double z = ms->config.trueEEPose.position.z + currentTableZ;
 
         pixelToGlobal(ms, px, py, z, &x, &y);
         int i, j;
@@ -692,8 +692,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   box.bTop = bTops[c];
   box.bBot = bBots[c];
   box.cameraPose = currentEEPose;
-  box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
-  box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+  box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + currentTableZ);
+  box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + currentTableZ);
   box.centroid.px = (box.top.px + box.bot.px) * 0.5;
   box.centroid.py = (box.top.py + box.bot.py) * 0.5;
   box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
