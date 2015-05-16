@@ -778,12 +778,10 @@ class EinConfig {
 
 
   double sobel_sigma = 2.0;//4.0;
-  double sobel_sigma_substitute_latest = 4.0;
-  double sobel_sigma_substitute_accumulated = 4.0;//2.0; reflections are a problem for low sigma...
+
   double sobel_scale_factor = 1e-12;
-  double local_sobel_sigma = 1.0;
 
-
+  const int keypointPeriod = 1;
 
 
 }; // config end

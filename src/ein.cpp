@@ -121,17 +121,11 @@ ros::Publisher einPub;
 ros::Publisher vmMarkerPublisher;
 
 
-// if you add an immense number of examples or some new classes and
-//   you begin having discriminative problems (confusion), you can
-//   increase the number of words.
-// ATTN 25
-//const double bowSubSampleFactor = 0.05;//0.02;//0.01;
-const double bowSubSampleFactor = 0.10;
-const int bowOverSampleFactor = 1;
-const int kNNOverSampleFactor = 1;
-const int poseOverSampleFactor = 1;
 
-const int keypointPeriod = 1;
+
+
+
+
 const double kpGreenThresh = 0;
 //const double kpProb = 0.1;
 const double kpProb = 1.0;
@@ -664,10 +658,10 @@ bool isFiniteNumber(double x);
 void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descriptors, Mat& descriptors2);
 void processImage(Mat &image, Mat& gray_image, Mat& yCrCb_image, double sigma);
 
-void bowGetFeatures(std::string classDir, const char *className, double sigma);
-void kNNGetFeatures(std::string classDir, const char *className, int label, double sigma, Mat &kNNfeatures, Mat &kNNlabels, double sobel_sigma);
+void bowGetFeatures(std::string classDir, const char *className, double sigma, int keypointPeriod);
+void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const char *className, int label, double sigma, Mat &kNNfeatures, Mat &kNNlabels, double sobel_sigma);
 void posekNNGetFeatures(std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
-  vector< cv::Vec<double,4> >& classQuaternions, int lIndexStart = 0);
+                        vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, int lIndexStart = 0);
 
 
 void nodeCallbackFunc(int event, int x, int y, int flags, void* userdata);
@@ -8639,7 +8633,7 @@ void processImage(Mat &image, Mat& gray_image, Mat& yCrCb_image, double sigma) {
   GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), sigma);
 }
 
-void bowGetFeatures(std::string classDir, const char *className, double sigma) {
+void bowGetFeatures(std::string classDir, const char *className, double sigma, int keypointPeriod) {
 
   int totalDescriptors = 0;
   DIR *dpdf;
@@ -8671,11 +8665,19 @@ void bowGetFeatures(std::string classDir, const char *className, double sigma) {
         Mat yCrCb_image;
 	processImage(image, gray_image, yCrCb_image, sigma);
 
-	for (int i = 0; i < bowOverSampleFactor; i++) {
+
+        // if you add an immense number of examples or some new classes and
+        //   you begin having discriminative problems (confusion), you can
+        //   increase the number of words.
+        // ATTN 25
+        //const double bowSubSampleFactor = 0.05;//0.02;//0.01;
+        double param_bowSubSampleFactor = 0.10;
+        int param_bowOverSampleFactor = 1;
+	for (int i = 0; i < param_bowOverSampleFactor; i++) {
 	  //detector->detect(gray_image, keypoints1);
 	  gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints1, keypointPeriod);
 	  for (int kp = 0; kp < keypoints1.size(); kp++) {
-	    if (drand48() < bowSubSampleFactor)
+	    if (drand48() < param_bowSubSampleFactor)
 	      keypoints2.push_back(keypoints1[kp]);
 	  }
 	  extractor->compute(gray_image, keypoints2, descriptors);
@@ -8692,7 +8694,9 @@ void bowGetFeatures(std::string classDir, const char *className, double sigma) {
   }
 }
 
-void kNNGetFeatures(std::string classDir, const char *className, int label, double sigma, Mat &kNNfeatures, Mat &kNNlabels, double sobel_sigma) {
+void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const char *className, int label, double sigma, Mat &kNNfeatures, Mat &kNNlabels, double sobel_sigma) {
+
+  int param_kNNOverSampleFactor = 1;
 
   DIR *dpdf;
   struct dirent *epdf;
@@ -8722,13 +8726,13 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
         Mat gray_image;
         Mat yCrCb_image;
 
-	//if ((pMachineState->config.chosen_feature == SIFTBOW_GLOBALCOLOR_HIST) || (pMachineState->config.chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST))
-	if (pMachineState->config.chosen_feature == SIFTBOW_GLOBALCOLOR_HIST) 
+	//if ((ms->config.chosen_feature == SIFTBOW_GLOBALCOLOR_HIST) || (ms->config.chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST))
+	if (ms->config.chosen_feature == SIFTBOW_GLOBALCOLOR_HIST) 
 	{
 	  processImage(image, gray_image, yCrCb_image, sigma);
-	  for (int i = 0; i < kNNOverSampleFactor; i++) {
+	  for (int i = 0; i < param_kNNOverSampleFactor; i++) {
 	    //detector->detect(gray_image, keypoints);
-	    gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
+	    gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints, ms->config.keypointPeriod);
 	    bowExtractor->compute(gray_image, keypoints, descriptors);
 
 	    cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " type: " << descriptors.type() << " tot: " << kNNfeatures.size() << endl;
@@ -8740,11 +8744,11 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 	      kNNlabels.push_back(label);
 	    }
 	  }
-	} else if (pMachineState->config.chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST) {
+	} else if (ms->config.chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST) {
 	  processImage(image, gray_image, yCrCb_image, sigma);
-	  for (int i = 0; i < kNNOverSampleFactor; i++) {
+	  for (int i = 0; i < param_kNNOverSampleFactor; i++) {
 	    //detector->detect(gray_image, keypoints);
-	    gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
+	    gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints, ms->config.keypointPeriod);
 	    //bowExtractor->compute(gray_image, keypoints, descriptors);
 
 	    Mat tmpC;
@@ -8760,7 +8764,7 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 	      kNNlabels.push_back(label);
 	    }
 	  }
-	} else if (pMachineState->config.chosen_feature == GRADIENT) {
+	} else if (ms->config.chosen_feature == GRADIENT) {
 	  processImage(image, gray_image, yCrCb_image, sobel_sigma);
 
 	  Mat totalGraySobel;
@@ -8807,18 +8811,18 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 	    }
 	  }
 	  totalMass = sqrt(totalMass);
-	  Mat descriptorsG = Mat(1, pMachineState->config.gradientFeatureWidth*pMachineState->config.gradientFeatureWidth, CV_32F);
-	  for (int y = 0; y < pMachineState->config.gradientFeatureWidth; y++) {
-	    for (int x = 0; x < pMachineState->config.gradientFeatureWidth; x++) {
-	      int tranX = floor(float(x)*float(maxDim)/float(pMachineState->config.gradientFeatureWidth));
-	      int tranY = floor(float(y)*float(maxDim)/float(pMachineState->config.gradientFeatureWidth));
-	      //descriptorsG.at<float>(x + y*pMachineState->config.gradientFeatureWidth) = gCrop.at<float>(y,x);
-	      descriptorsG.at<float>(x + y*pMachineState->config.gradientFeatureWidth) = gCrop.at<float>(y,x)/totalMass;
+	  Mat descriptorsG = Mat(1, ms->config.gradientFeatureWidth*ms->config.gradientFeatureWidth, CV_32F);
+	  for (int y = 0; y < ms->config.gradientFeatureWidth; y++) {
+	    for (int x = 0; x < ms->config.gradientFeatureWidth; x++) {
+	      int tranX = floor(float(x)*float(maxDim)/float(ms->config.gradientFeatureWidth));
+	      int tranY = floor(float(y)*float(maxDim)/float(ms->config.gradientFeatureWidth));
+	      //descriptorsG.at<float>(x + y*ms->config.gradientFeatureWidth) = gCrop.at<float>(y,x);
+	      descriptorsG.at<float>(x + y*ms->config.gradientFeatureWidth) = gCrop.at<float>(y,x)/totalMass;
 	    }
 	  }
 	  kNNfeatures.push_back(descriptorsG);
 	  kNNlabels.push_back(label);
-	} else if (pMachineState->config.chosen_feature == OPPONENT_COLOR_GRADIENT) {
+	} else if (ms->config.chosen_feature == OPPONENT_COLOR_GRADIENT) {
 	  processImage(image, gray_image, yCrCb_image, sobel_sigma);
 
 	  Mat totalGraySobel;
@@ -8926,20 +8930,20 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 	  totalCrMass = sqrt(totalCrMass);
 	  totalCbMass = sqrt(totalCbMass);
 	  double totalColorMass = totalCrMass + totalCbMass;
-	  //Mat descriptorsG = Mat(1, pMachineState->config.gradientFeatureWidth*pMachineState->config.gradientFeatureWidth, CV_32F);
-	  Mat descriptorsCbCr = Mat(1, 2*pMachineState->config.gradientFeatureWidth*pMachineState->config.gradientFeatureWidth, CV_32F);
-	  for (int y = 0; y < pMachineState->config.gradientFeatureWidth; y++) {
-	    for (int x = 0; x < pMachineState->config.gradientFeatureWidth; x++) {
-	      int tranX = floor(float(x)*float(maxDim)/float(pMachineState->config.gradientFeatureWidth));
-	      int tranY = floor(float(y)*float(maxDim)/float(pMachineState->config.gradientFeatureWidth));
-	      //descriptorsG.at<float>(x + y*pMachineState->config.gradientFeatureWidth) = gCrop.at<float>(y,x);
-	      //descriptorsCbCr.at<float>(x + y*pMachineState->config.gradientFeatureWidth) = crCrop.at<float>(y,x)/totalCrMass;
-	      //descriptorsCbCr.at<float>(x + y*pMachineState->config.gradientFeatureWidth + pMachineState->config.gradientFeatureWidth*pMachineState->config.gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalCbMass;
-	      //descriptorsCbCr.at<float>(x + y*pMachineState->config.gradientFeatureWidth) = crCrop.at<float>(y,x);
-	      //descriptorsCbCr.at<float>(x + y*pMachineState->config.gradientFeatureWidth + pMachineState->config.gradientFeatureWidth*pMachineState->config.gradientFeatureWidth) = cbCrop.at<float>(y,x);
+	  //Mat descriptorsG = Mat(1, ms->config.gradientFeatureWidth*ms->config.gradientFeatureWidth, CV_32F);
+	  Mat descriptorsCbCr = Mat(1, 2*ms->config.gradientFeatureWidth*ms->config.gradientFeatureWidth, CV_32F);
+	  for (int y = 0; y < ms->config.gradientFeatureWidth; y++) {
+	    for (int x = 0; x < ms->config.gradientFeatureWidth; x++) {
+	      int tranX = floor(float(x)*float(maxDim)/float(ms->config.gradientFeatureWidth));
+	      int tranY = floor(float(y)*float(maxDim)/float(ms->config.gradientFeatureWidth));
+	      //descriptorsG.at<float>(x + y*ms->config.gradientFeatureWidth) = gCrop.at<float>(y,x);
+	      //descriptorsCbCr.at<float>(x + y*ms->config.gradientFeatureWidth) = crCrop.at<float>(y,x)/totalCrMass;
+	      //descriptorsCbCr.at<float>(x + y*ms->config.gradientFeatureWidth + ms->config.gradientFeatureWidth*ms->config.gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalCbMass;
+	      //descriptorsCbCr.at<float>(x + y*ms->config.gradientFeatureWidth) = crCrop.at<float>(y,x);
+	      //descriptorsCbCr.at<float>(x + y*ms->config.gradientFeatureWidth + ms->config.gradientFeatureWidth*ms->config.gradientFeatureWidth) = cbCrop.at<float>(y,x);
 
-	      descriptorsCbCr.at<float>(x + y*pMachineState->config.gradientFeatureWidth) = crCrop.at<float>(y,x)/totalColorMass;
-	      descriptorsCbCr.at<float>(x + y*pMachineState->config.gradientFeatureWidth + pMachineState->config.gradientFeatureWidth*pMachineState->config.gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalColorMass;
+	      descriptorsCbCr.at<float>(x + y*ms->config.gradientFeatureWidth) = crCrop.at<float>(y,x)/totalColorMass;
+	      descriptorsCbCr.at<float>(x + y*ms->config.gradientFeatureWidth + ms->config.gradientFeatureWidth*ms->config.gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalColorMass;
 	    }
 	  }
 	  cout << descriptorsCbCr << endl;
@@ -8953,7 +8957,7 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 }
 
 void posekNNGetFeatures(std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
-  vector< cv::Vec<double,4> >& classQuaternions, int lIndexStart) {
+                        vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, int lIndexStart) {
 
   string sClassName(className);
 
@@ -9011,8 +9015,8 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
         Mat gray_image;
         Mat yCrCb_image;
 	processImage(image, gray_image, yCrCb_image, sigma);
-
-	for (int i = 0; i < poseOverSampleFactor; i++) {
+        int param_poseOverSampleFactor = 1;
+	for (int i = 0; i < param_poseOverSampleFactor; i++) {
 	  //detector->detect(gray_image, keypoints);
 	  gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
 	  bowExtractor->compute(gray_image, keypoints, descriptors);
@@ -9990,7 +9994,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       processImage(crop, gray_image, yCrCb_image, grayBlur);
 
       //detector->detect(gray_image, keypoints);
-      gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
+      gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, ms->config.keypointPeriod);
 
       bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
 
@@ -10035,7 +10039,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       processImage(crop, gray_image, yCrCb_image, grayBlur);
 
       //detector->detect(gray_image, keypoints);
-      gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
+      gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, ms->config.keypointPeriod);
 
       //bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
 
@@ -10648,10 +10652,10 @@ void detectorsInit(shared_ptr<MachineState> ms) {
     for (unsigned int i = 0; i < classLabels.size(); i++) {
       cout << "Getting BOW features for class " << classLabels[i] 
 	   << " with pose model " << classPoseModels[i] << " index " << i << endl;
-      bowGetFeatures(class_crops_path, classLabels[i].c_str(), grayBlur);
+      bowGetFeatures(class_crops_path, classLabels[i].c_str(), grayBlur, ms->config.keypointPeriod);
       if (classPoseModels[i].compare("G") == 0) {
 	string thisPoseLabel = classLabels[i] + "Poses";
-	bowGetFeatures(class_crops_path, thisPoseLabel.c_str(), grayBlur);
+        bowGetFeatures(class_crops_path, thisPoseLabel.c_str(), grayBlur, ms->config.keypointPeriod);
       }
     }
 
@@ -10701,11 +10705,11 @@ void detectorsInit(shared_ptr<MachineState> ms) {
     {
       cout << "Getting kNN features for class " << classLabels[i] 
 	   << " with pose model " << classPoseModels[i] << " index " << i << endl;
-      kNNGetFeatures(class_crops_path, classLabels[i].c_str(), i, grayBlur, kNNfeatures, kNNlabels, ms->config.sobel_sigma);
+      kNNGetFeatures(ms, class_crops_path, classLabels[i].c_str(), i, grayBlur, kNNfeatures, kNNlabels, ms->config.sobel_sigma);
       if (classPoseModels[i].compare("G") == 0) {
 	string thisPoseLabel = classLabels[i] + "Poses";
-	posekNNGetFeatures(class_crops_path, thisPoseLabel.c_str(), grayBlur, classPosekNNfeatures[i], classPosekNNlabels[i],
-	  classQuaternions[i], 0);
+      posekNNGetFeatures(class_crops_path, thisPoseLabel.c_str(), grayBlur, classPosekNNfeatures[i], classPosekNNlabels[i],
+                         classQuaternions[i], 0, ms->config.keypointPeriod);
       }
     }
 
