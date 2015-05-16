@@ -469,6 +469,21 @@ class EinConfig {
   
   int synServoLockFrames = 0;
 
+
+  ros::Time oscilStart;
+  double oscCenX = 0.0;
+  double oscCenY = 0.0;
+  double oscCenZ = 0.0;
+  double oscAmpX = 0.10;//.0.16;//0.08;//0.1;
+  double oscAmpY = 0.10;//0.16;//0.2;
+  double oscAmpZ = 0.0;
+  
+  constexpr static double commonFreq = 1.0;//1.0/2.0;
+  double oscFreqX = commonFreq*1.0/3.0;
+  double oscFreqY = commonFreq*1.0/20.0;
+  double oscFreqZ = commonFreq*1.0;
+  double visionCycleInterval = 7.5 / 7.0 * (1.0/commonFreq);
+
   // config variables that don't seem to be used
 };
 
