@@ -827,6 +827,11 @@ class EinConfig {
   CvKNearest *kNN = NULL;
 
 
+  std::string class_crops_path;
+
+  cv::Mat cam_img;
+
+  int cropCounter;
 
 }; // config end
 

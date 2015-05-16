@@ -145,12 +145,12 @@ CODE(131148)     // capslock + l
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   if ((ms->config.focusedClass > -1) && (bTops.size() == 1)) {
     string thisLabelName = ms->config.focusedClassLabel;
-    Mat crop = cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
+    Mat crop = ms->config.cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
     char buf[1000];
     string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
-    sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), cropCounter);
+    sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), ms->config.cropCounter);
     imwrite(buf, crop);
-    cropCounter++;
+    ms->config.cropCounter++;
   }
 }
 END_WORD
@@ -161,12 +161,12 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   if ( ms->config.focusedClass > -1 ) {
     for (int c = 0; c < bTops.size(); c++) {
       string thisLabelName = ms->config.focusedClassLabel;
-      Mat crop = cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
+      Mat crop = ms->config.cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
       char buf[1000];
       string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
-      sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), cropCounter);
+      sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), ms->config.cropCounter);
       imwrite(buf, crop);
-      cropCounter++;
+      ms->config.cropCounter++;
     }
   }
 }

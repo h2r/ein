@@ -647,9 +647,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
         objectMap[i + mapWidth * j].detectedClass = -2;
 
 //	{
-//	  objectMap[i + mapWidth * j].b += (int) cam_img.at<cv::Vec3b>(py, px)[0];
-//	  objectMap[i + mapWidth * j].g += (int) cam_img.at<cv::Vec3b>(py, px)[1];
-//	  objectMap[i + mapWidth * j].r += (int) cam_img.at<cv::Vec3b>(py, px)[2];
+//	  objectMap[i + mapWidth * j].b += (int) ms->config.cam_img.at<cv::Vec3b>(py, px)[0];
+//	  objectMap[i + mapWidth * j].g += (int) ms->config.cam_img.at<cv::Vec3b>(py, px)[1];
+//	  objectMap[i + mapWidth * j].r += (int) ms->config.cam_img.at<cv::Vec3b>(py, px)[2];
 //        objectMap[i + mapWidth * j].pixelCount += 1.0;
 //	}
 	//const double spaceDecay = 0.996; // 0.7 ^ 0.01
@@ -657,13 +657,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	{
 	  objectMap[i + mapWidth * j].b = 
 	    ( spaceDecay*double(objectMap[i + mapWidth * j].b) + 
-		    (1.0-spaceDecay)*double(cam_img.at<cv::Vec3b>(py, px)[0]) );
+		    (1.0-spaceDecay)*double(ms->config.cam_img.at<cv::Vec3b>(py, px)[0]) );
 	  objectMap[i + mapWidth * j].g = 
 	    ( spaceDecay*double(objectMap[i + mapWidth * j].g) + 
-		    (1.0-spaceDecay)*double(cam_img.at<cv::Vec3b>(py, px)[1]) );
+		    (1.0-spaceDecay)*double(ms->config.cam_img.at<cv::Vec3b>(py, px)[1]) );
 	  objectMap[i + mapWidth * j].r = 
 	    ( spaceDecay*double(objectMap[i + mapWidth * j].r) + 
-		    (1.0-spaceDecay)*double(cam_img.at<cv::Vec3b>(py, px)[2]) );
+		    (1.0-spaceDecay)*double(ms->config.cam_img.at<cv::Vec3b>(py, px)[2]) );
 	  objectMap[i + mapWidth * j].pixelCount = 
 	    ( spaceDecay*double(objectMap[i + mapWidth * j].pixelCount) + 
 		    (1.0-spaceDecay)*double(1.0) );
