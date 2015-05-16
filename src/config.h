@@ -271,6 +271,16 @@ class EinConfig {
   int bfc_period = 3;
 
 
+  Mat rangeogramImage;
+  Mat rangemapImage;
+  Mat hiRangemapImage;
+  Mat hiColorRangemapImage;
+  Mat graspMemoryImage;
+  Mat graspMemorySampleImage;
+  Mat heightMemorySampleImage;
+
+
+
   // config variables that don't seem to be used
 };
 

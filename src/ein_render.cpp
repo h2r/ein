@@ -14,7 +14,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     cv::Scalar backColor(ceil(intensity),0,0);
     cv::Point outTop = cv::Point((iiY+rmWidth)*rmiCellWidth,iiX*rmiCellWidth);
     cv::Point outBot = cv::Point(((iiY+rmWidth)+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
-    Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+    Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
     vCrop += backColor;
   }
   if ((fabs(ttrX) <= rmHalfWidth) && (fabs(ttrY) <= rmHalfWidth)) {
@@ -25,14 +25,14 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     cv::Scalar backColor(0,ceil(intensity),0);
     cv::Point outTop = cv::Point((iiY+rmWidth)*rmiCellWidth,iiX*rmiCellWidth);
     cv::Point outBot = cv::Point(((iiY+rmWidth)+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
-    Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+    Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
     vCrop += backColor;
 
     cv::Point text_anchor = cv::Point(outTop.x+4, outBot.y-4);
     char buff[256];
     sprintf(buff, "%d", maxGG+1);
     string reticleLabel(buff);
-    putText(rangemapImage, reticleLabel, text_anchor, MY_FONT, 0.5, Scalar(192,192,192), 1.0);
+    putText(ms->config.rangemapImage, reticleLabel, text_anchor, MY_FONT, 0.5, Scalar(192,192,192), 1.0);
   }
   for (int gg = 0; gg < totalGraspGears; gg++){
     double gggX = (ggX[gg])/rmDelta;
@@ -45,14 +45,14 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       cv::Point outBot = cv::Point(((iiY+rmWidth)+1)*rmiCellWidth-1,(iiX+1)*rmiCellWidth-1);
       cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
       cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
-      rectangle(rangemapImage, outTop, outBot, cv::Scalar(192,0,0)); 
-      rectangle(rangemapImage, inTop, inBot, cv::Scalar(64,0,0)); 
+      rectangle(ms->config.rangemapImage, outTop, outBot, cv::Scalar(192,0,0)); 
+      rectangle(ms->config.rangemapImage, inTop, inBot, cv::Scalar(64,0,0)); 
 
       cv::Point text_anchor = cv::Point(outTop.x+4, outBot.y-4);
       char buff[256];
       sprintf(buff, "%d", gg+1);
       string reticleLabel(buff);
-      putText(rangemapImage, reticleLabel, text_anchor, MY_FONT, 0.5, Scalar(192,192,192), 1.0);
+      putText(ms->config.rangemapImage, reticleLabel, text_anchor, MY_FONT, 0.5, Scalar(192,192,192), 1.0);
     }
   }
   double httrX = (trX-rmcX)/hrmDelta;
@@ -68,8 +68,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     cv::Point l1p2 = cv::Point((hiiY+hrmWidth)+hiCellWidth,hiiX);
     cv::Point l2p1 = cv::Point(hiiY+hrmWidth,hiiX-hiCellWidth);
     cv::Point l2p2 = cv::Point((hiiY+hrmWidth),hiiX+hiCellWidth);
-    line(hiRangemapImage, l1p1, l1p2, backColor);
-    line(hiRangemapImage, l2p1, l2p2, backColor);
+    line(ms->config.hiRangemapImage, l1p1, l1p2, backColor);
+    line(ms->config.hiRangemapImage, l2p1, l2p2, backColor);
   }
   double cttrX = curseReticleX - hrmHalfWidth;
   double cttrY = curseReticleY - hrmHalfWidth;
@@ -83,8 +83,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     cv::Point l1p2 = cv::Point((ciiY+hrmWidth)+hiCellWidth,ciiX);
     cv::Point l2p1 = cv::Point(ciiY+hrmWidth,ciiX-hiCellWidth);
     cv::Point l2p2 = cv::Point((ciiY+hrmWidth),ciiX+hiCellWidth);
-    line(hiRangemapImage, l1p1, l1p2, backColor);
-    line(hiRangemapImage, l2p1, l2p2, backColor);
+    line(ms->config.hiRangemapImage, l1p1, l1p2, backColor);
+    line(ms->config.hiRangemapImage, l2p1, l2p2, backColor);
 #ifdef DEBUG4
     cout << "printing curseReticle xy globalz: " << curseReticleX << " " << curseReticleY << " " << hiRangeMap[ciiX + ciiY*hrmWidth] << endl;
 #endif
@@ -92,7 +92,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   {
     double intensity = 128;
     cv::Scalar backColor(0,ceil(intensity),0);
-    circle(hiRangemapImage, cv::Point(hrmHalfWidth+hrmWidth, hrmHalfWidth), hiCellWidth, backColor);
+    circle(ms->config.hiRangemapImage, cv::Point(hrmHalfWidth+hrmWidth, hrmHalfWidth), hiCellWidth, backColor);
   }
   int localCenterMaxX = localMaxX-rmHalfWidth;
   int localCenterMaxY = localMaxY-rmHalfWidth;
@@ -105,14 +105,14 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     cv::Scalar backColor(ceil(intensity),ceil(intensity),0);
     cv::Point outTop = cv::Point((liiY+rmWidth)*rmiCellWidth,liiX*rmiCellWidth);
     cv::Point outBot = cv::Point(((liiY+rmWidth)+1)*rmiCellWidth,(liiX+1)*rmiCellWidth);
-    Mat vCrop = graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+    Mat vCrop = ms->config.graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
     vCrop += backColor;
 
     cv::Point text_anchor = cv::Point(outTop.x+4, outBot.y-4);
     char buff[256];
     sprintf(buff, "%d", localMaxGG + 1);
     string reticleLabel(buff);
-    putText(graspMemoryImage, reticleLabel, text_anchor, MY_FONT, 0.5, Scalar(64,64,192), 1.0);
+    putText(ms->config.graspMemoryImage, reticleLabel, text_anchor, MY_FONT, 0.5, Scalar(64,64,192), 1.0);
   }
 }
 END_WORD
@@ -137,7 +137,7 @@ WORD(DrawMapRegisters)
 CODE(1048673)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  drawMapRegisters();
+  drawMapRegisters(ms);
 }
 END_WORD
 REGISTER_WORD(DrawMapRegisters)

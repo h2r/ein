@@ -466,7 +466,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     cv::Scalar backColor(128,0,0);
     cv::Point outTop = cv::Point(0,0);
     cv::Point outBot = cv::Point(rmiWidth,rmiHeight);
-    Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+    Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
     vCrop = backColor;
   }
   for (int rx = 0; rx < hrmWidth; rx++) {
@@ -482,7 +482,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     cv::Scalar backColor(128,0,0);
     cv::Point outTop = cv::Point(0,0);
     cv::Point outBot = cv::Point(hrmiWidth,hrmiHeight);
-    Mat vCrop = hiRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+    Mat vCrop = ms->config.hiRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
     vCrop = backColor;
   }
   for (int h = 0; h < hrmWidth; h++) {
@@ -509,8 +509,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     cv::Scalar backColor(128,0,0);
     cv::Point outTop = cv::Point(0,0);
-    cv::Point outBot = cv::Point(hiColorRangemapImage.cols,hiColorRangemapImage.rows);
-    Mat vCrop = hiColorRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+    cv::Point outBot = cv::Point(ms->config.hiColorRangemapImage.cols,ms->config.hiColorRangemapImage.rows);
+    Mat vCrop = ms->config.hiColorRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
     vCrop = backColor;
   }
 }
