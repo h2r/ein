@@ -122,19 +122,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-Eigen::Quaternionf gear0offset;
-
-ros::Time lastMovementStateSet;
-eePose lastTrueEEPoseEEPose;
-
-ros::Time comeToHoverStart;
-double comeToHoverTimeout = 3.0;
-ros::Time comeToStopStart;
-double comeToStopTimeout = 30.0;
-ros::Time waitForTugStart;
-double waitForTugTimeout = 1e10;
-
-double armedThreshold = 0.01;
 
 Mat gripperMaskFirstContrast;
 Mat gripperMaskSecondContrast;
@@ -1499,7 +1486,7 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 
 	{
 	  Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-	  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+	  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
 	  Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
 	  Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
 	  Eigen::Quaternionf irSensorStartGlobal(
@@ -1996,44 +1983,44 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
   int weHavePoseData = getRingPoseAtTime(ms, eps.header.stamp, thisPose);
 
   {
-    double distance = squareDistanceEEPose(ms->config.trueEEPoseEEPose, lastTrueEEPoseEEPose);
+    double distance = squareDistanceEEPose(ms->config.trueEEPoseEEPose, ms->config.lastTrueEEPoseEEPose);
     double distance2 = squareDistanceEEPose(ms->config.trueEEPoseEEPose, ms->config.currentEEPose);
 
     if (ms->config.currentMovementState == ARMED ) {
-      if (distance2 > armedThreshold*armedThreshold) {
+      if (distance2 > ms->config.armedThreshold*ms->config.armedThreshold) {
 	cout << "armedThreshold crossed so leaving armed state into MOVING." << endl;
 	ms->config.currentMovementState = MOVING;
-	lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-	lastMovementStateSet = ros::Time::now();
+	ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
+	ms->config.lastMovementStateSet = ros::Time::now();
       } else {
 	//cout << "pMachineState->config.currentMovementState is ARMED." << endl;
       }
     } else if (distance > ms->config.movingThreshold*ms->config.movingThreshold) {
       ms->config.currentMovementState = MOVING;
-      lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-      lastMovementStateSet = ros::Time::now();
+      ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
+      ms->config.lastMovementStateSet = ros::Time::now();
     } else if (distance > ms->config.hoverThreshold*ms->config.hoverThreshold) {
       if (distance2 > ms->config.hoverThreshold) {
 	ms->config.currentMovementState = MOVING;
-	lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-	lastMovementStateSet = ros::Time::now();
+	ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
+	ms->config.lastMovementStateSet = ros::Time::now();
       } else {
 	ms->config.currentMovementState = HOVERING;
-	lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-	lastMovementStateSet = ros::Time::now();
+	ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
+	ms->config.lastMovementStateSet = ros::Time::now();
       }
 
     } else {
-      ros::Duration deltaT = ros::Time::now() - lastMovementStateSet;
+      ros::Duration deltaT = ros::Time::now() - ms->config.lastMovementStateSet;
       if ( (deltaT.sec) > ms->config.stoppedTimeout ) {
 	if (distance2 > ms->config.hoverThreshold*ms->config.hoverThreshold) {
 	  ms->config.currentMovementState = BLOCKED;
-	  lastMovementStateSet = ros::Time::now();
-	  lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
+	  ms->config.lastMovementStateSet = ros::Time::now();
+	  ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
 	} else {
 	  ms->config.currentMovementState = STOPPED;
-	  lastMovementStateSet = ros::Time::now();
-	  lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
+	  ms->config.lastMovementStateSet = ros::Time::now();
+	  ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
 	}
       }
     }
@@ -2595,7 +2582,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 
     {
       Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-      ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+      ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
       Eigen::Quaternionf ceeQuat(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
       Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
       Eigen::Quaternionf irSensorStartGlobal(
@@ -3561,7 +3548,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       eePose irPose;
       {
 	Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-	ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+	ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
 	geometry_msgs::Pose thisPose = ms->config.trueEEPose;
 	Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
 	Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
@@ -4378,10 +4365,10 @@ void loadCalibration(shared_ptr<MachineState> ms, string inFileName) {
   {
     FileNode anode = fsvI["gear0offset"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
-    gear0offset.x() = *(it++);
-    gear0offset.y() = *(it++);
-    gear0offset.z() = *(it++);
-    gear0offset.w() = *(it++);
+    ms->config.gear0offset.x() = *(it++);
+    ms->config.gear0offset.y() = *(it++);
+    ms->config.gear0offset.z() = *(it++);
+    ms->config.gear0offset.w() = *(it++);
   }
 
   cout << "done." << endl;
@@ -4474,10 +4461,10 @@ void saveCalibration(shared_ptr<MachineState> ms, string outFileName) {
   << "]";
 
   fsvO << "gear0offset" << "["
-    << gear0offset.x()
-    << gear0offset.y()
-    << gear0offset.z()
-    << gear0offset.w()
+    << ms->config.gear0offset.x()
+    << ms->config.gear0offset.y()
+    << ms->config.gear0offset.z()
+    << ms->config.gear0offset.w()
   << "]";
 
   fsvO.release();
@@ -4611,7 +4598,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
     ms->config.eepReg3 = ms->config.handingPose;
 
     // ir offset
-    gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    ms->config.gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
 
     ms->config.calibrationPose = {.px = 0.434176, .py = 0.633423, .pz = 0.48341,
                       .qx = 0.000177018, .qy = 1, .qz = -0.000352912, .qw = -0.000489087};
@@ -4747,7 +4734,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
     ms->config.eepReg3 = ms->config.handingPose;
 
     // ir offset
-    gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    ms->config.gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
 
     ms->config.calibrationPose = {.px = 0.562169, .py = -0.348055, .pz = 0.493231,
                                   .qx = 0.00391311, .qy = 0.999992, .qz = -0.00128095, .qw = 8.18951e-05};
@@ -4854,14 +4841,14 @@ void pilotInit(shared_ptr<MachineState> ms) {
   {
     //gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
     //if (0 == ms->config.left_or_right_arm.compare("left")) {
-      //gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
+      //ms->config.gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
     //} else if (0 == ms->config.left_or_right_arm.compare("right")) {
-      //gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
+      //ms->config.gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
     //}
 
     // invert the transformation
     Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-    ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+    ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
 
     cout << "irGlobalPositionEEFrame w x y z: " << ms->config.irGlobalPositionEEFrame.w() << " " << 
       ms->config.irGlobalPositionEEFrame.x() << " " << ms->config.irGlobalPositionEEFrame.y() << " " << ms->config.irGlobalPositionEEFrame.z() << endl;
@@ -12608,7 +12595,7 @@ int main(int argc, char **argv) {
     }
   } 
 
-  lastMovementStateSet = ros::Time::now();
+  ms->config.lastMovementStateSet = ros::Time::now();
 
   ros::spin();
 
