@@ -31,11 +31,6 @@ using namespace cv;
 
 
 
-typedef enum {
-  UNKNOWN = -1,
-  FAILURE = 0,
-  SUCCESS = 1
-} operationStatusType;
 
 std::string operationStatusToString(operationStatusType mode) ;
 

@@ -125,15 +125,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-double graspAttemptCounter = 0;
-double graspSuccessCounter = 0;
-double graspSuccessRate = 0;
-operationStatusType thisGraspPicked = UNKNOWN;
-operationStatusType thisGraspReleased = UNKNOWN;
-
-int thisGraspSucceed = -1;
-
-ros::Time graspTrialStart;
 
 
 Mat lastAerialGradient;
@@ -7533,7 +7524,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 	ARE_GENERIC_PICK_LEARNING() ) {
     // record a failure
     cout << ">>>> Synchronic servo timed out.  Going back on patrol. <<<<" << endl;
-    thisGraspPicked = FAILURE; 
+    ms->config.thisGraspPicked = FAILURE; 
     ms->pushWord("shiftIntoGraspGear1"); 
     ms->pushCopies("beep", 15); 
     ms->pushWord("countGrasp"); 
