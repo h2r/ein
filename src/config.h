@@ -543,6 +543,9 @@ class EinConfig {
   int gmTargetX = -1;
   int gmTargetY = -1;
 
+  int orientationCascade = 0;
+  int lPTthresh = 3;
+  int orientationCascadeHalfWidth = 2;
 
 
 };
