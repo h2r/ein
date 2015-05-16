@@ -210,7 +210,7 @@ WORD(LoadSampledGraspMemory)
 CODE(131117)     // capslock + -
 virtual void execute(std::shared_ptr<MachineState> ms) {
   loadSampledGraspMemory(ms);
-  drawMapRegisters();
+  drawMapRegisters(ms);
 }
 END_WORD
 REGISTER_WORD(LoadSampledGraspMemory)
@@ -219,7 +219,7 @@ WORD(LoadMarginalGraspMemory)
 CODE(131133)     // capslock + =
 virtual void execute(std::shared_ptr<MachineState> ms) {
   loadMarginalGraspMemory(ms);
-  drawMapRegisters();
+  drawMapRegisters(ms);
 }
 END_WORD
 REGISTER_WORD(LoadMarginalGraspMemory)
@@ -235,7 +235,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // smoothing the values based on eccentricity.  
   //copyGraspMemoryRegister(graspMemoryReg1, graspMemorySample);
   
-  drawMapRegisters();
+  drawMapRegisters(ms);
   cout << "class " << classLabels[targetClass] << " number ";
 }
 END_WORD
@@ -253,7 +253,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // smoothing the values based on eccentricity.  
   //copyGraspMemoryRegister(graspMemoryReg1, graspMemorySample);
   
-  drawMapRegisters();
+  drawMapRegisters(ms);
   cout << "class " << classLabels[targetClass] << " number ";
 }
 END_WORD
@@ -263,7 +263,7 @@ WORD(LoadSampledHeightMemory)
 CODE(1179693)     // capslock + numlock + -
 virtual void execute(std::shared_ptr<MachineState> ms) {
   loadSampledHeightMemory(ms);
-  drawHeightMemorySample();
+  drawHeightMemorySample(ms);
 }
 END_WORD
 REGISTER_WORD(LoadSampledHeightMemory)
@@ -272,7 +272,7 @@ WORD(LoadMarginalHeightMemory)
 CODE(1179709)     // capslock + numlock + =
 virtual void execute(std::shared_ptr<MachineState> ms) {
   loadMarginalHeightMemory(ms);
-  drawHeightMemorySample();
+  drawHeightMemorySample(ms);
 }
 END_WORD
 REGISTER_WORD(LoadMarginalHeightMemory)
@@ -283,7 +283,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   loadPriorHeightMemory(ANALYTIC_PRIOR);
   copyHeightMemoryTriesToClassHeightMemoryTries(ms);
   loadMarginalHeightMemory(ms);
-  drawHeightMemorySample();
+  drawHeightMemorySample(ms);
 }
 END_WORD
 REGISTER_WORD(LoadPriorHeightMemoryAnalytic)
@@ -294,7 +294,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   loadPriorHeightMemory(UNIFORM_PRIOR);
   copyHeightMemoryTriesToClassHeightMemoryTries(ms);
   loadMarginalHeightMemory(ms);
-  drawHeightMemorySample();
+  drawHeightMemorySample(ms);
 }
 END_WORD
 REGISTER_WORD(LoadPriorHeightMemoryUniform)
@@ -455,7 +455,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       cout << "Invalid currentBoundingBoxMode. Asserting." << endl;
       assert(0);
     }
-    drawHeightMemorySample();
+    drawHeightMemorySample(ms);
     
     double best_height_prob = 0.0;
     int max_i = -1;

@@ -123,13 +123,6 @@ ros::Publisher einPub;
 
 
 
-Mat rangeogramImage;
-Mat rangemapImage;
-Mat hiRangemapImage;
-Mat hiColorRangemapImage;
-Mat graspMemoryImage;
-Mat graspMemorySampleImage;
-Mat heightMemorySampleImage;
 
 const int totalRangeHistoryLength = 100;
 double rangeHistory[totalRangeHistoryLength];
@@ -1191,7 +1184,7 @@ void loadSampledGraspMemory(shared_ptr<MachineState> ms);
 void loadMarginalGraspMemory(shared_ptr<MachineState> ms);
 void loadPriorGraspMemory(shared_ptr<MachineState> ms, priorType);
 void estimateGlobalGraspGear();
-void drawMapRegisters();
+void drawMapRegisters(shared_ptr<MachineState> ms);
 
 void guardHeightMemory(shared_ptr<MachineState> ms);
 void loadSampledHeightMemory(shared_ptr<MachineState> ms);
@@ -1199,8 +1192,8 @@ void loadMarginalHeightMemory(shared_ptr<MachineState> ms);
 void loadPriorHeightMemory(priorType);
 double convertHeightIdxToGlobalZ(shared_ptr<MachineState> ms, int);
 int convertHeightGlobalZToIdx(shared_ptr<MachineState> ms, double);
-void testHeightConversion();
-void drawHeightMemorySample();
+void testHeightConversion(shared_ptr<MachineState> ms);
+void drawHeightMemorySample(shared_ptr<MachineState> ms);
 void copyHeightMemoryTriesToClassHeightMemoryTries(shared_ptr<MachineState> ms);
 
 void applyGraspFilter(double * rangeMapRegA, double * rangeMapRegB);
@@ -2024,7 +2017,7 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 
 	  //cout << thisPose.orientation << thisPose.position << " " << eX << " " << eY << " " << thisRange << endl;
 	  if ((fabs(eX) <= hrmHalfWidth) && (fabs(eY) <= hrmHalfWidth))
-	    hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(0,0,128);
+	    ms->config.hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(0,0,128);
 	  // ATTN 0 this is negative because it used to be range and not Z but we have to chase the min / max switches to correct it
 	  thisZmeasurement = -irSensorEnd.z();
 	  // ATTN 25
@@ -2056,7 +2049,7 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 	    //int iupX = (int)round(upX + hrmHalfWidth);
 	    //int iupY = (int)round(upY + hrmHalfWidth);
 	    //if ((fabs(upX) <= hrmHalfWidth) && (fabs(upY) <= hrmHalfWidth)) 
-	      //hiRangemapImage.at<cv::Vec3b>(iupX,iupY) += cv::Vec3b(0,128,0);
+	      //ms->config.hiRangemapImage.at<cv::Vec3b>(iupX,iupY) += cv::Vec3b(0,128,0);
 
 	    // 2D map
 	    {
@@ -2081,7 +2074,7 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 		  int tGreen = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] / denomC))));
 		  int tBlue = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] / denomC))));
 
-		  hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
+		  ms->config.hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
 
 		  hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
 		  hiRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
@@ -2211,7 +2204,7 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 	    cv::Scalar backColor(0,0,ceil(intensity));
 	    cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
 	    cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
-	    Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	    Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
 	    vCrop = backColor;
 	    // draw border
 	    {
@@ -2219,8 +2212,8 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 	      cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth-1,(iiX+1)*rmiCellWidth-1);
 	      cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
 	      cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
-	      rectangle(rangemapImage, outTop, outBot, cv::Scalar(0,192,0)); 
-	      rectangle(rangemapImage, inTop, inBot, cv::Scalar(0,64,0)); 
+	      rectangle(ms->config.rangemapImage, outTop, outBot, cv::Scalar(0,192,0)); 
+	      rectangle(ms->config.rangemapImage, inTop, inBot, cv::Scalar(0,64,0)); 
 	    }
 	  }
 	}
@@ -3025,52 +3018,52 @@ void rangeCallback(const sensor_msgs::Range& range) {
     {
       cv::Point outTop = cv::Point(r*rggStride, 0);
       cv::Point outBot = cv::Point((r+1)*rggStride, rggHeight);
-      Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+      Mat vCrop = ms->config.rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
       vCrop = backColor;
     }{
       cv::Point outTop = cv::Point(r*rggStride, topY);
       cv::Point outBot = cv::Point((r+1)*rggStride, rggHeight);
-      Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+      Mat vCrop = ms->config.rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
       vCrop += fillColor;
     }
     if (r != currentRangeHistoryIndex) {
       {
 	cv::Point outTop = cv::Point(r*rggStride, topY);
 	cv::Point outBot = cv::Point((r+1)*rggStride, topY+truH/8);
-	Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	Mat vCrop = ms->config.rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
 	vCrop += fillColor;
       }{
 	cv::Point outTop = cv::Point(r*rggStride, topY);
 	cv::Point outBot = cv::Point((r+1)*rggStride, topY+truH/16);
-	Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	Mat vCrop = ms->config.rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
 	vCrop += fillColor;
       }
     }
   }
 
   {
-    cv::Point text_anchor = cv::Point(0,rangeogramImage.rows-1);
+    cv::Point text_anchor = cv::Point(0,ms->config.rangeogramImage.rows-1);
     {
       cv::Scalar backColor(0,0,0);
       cv::Point outTop = cv::Point(text_anchor.x,text_anchor.y+1-35);
       cv::Point outBot = cv::Point(text_anchor.x+350,text_anchor.y+1);
-      Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+      Mat vCrop = ms->config.rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
       vCrop = backColor;
     }
     {
       char buff[256];
       sprintf(buff, "            Hz: %.2f", ms->config.aveFrequency);
       string fpslabel(buff);
-      putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(160,0,0), 1.0);
+      putText(ms->config.rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(160,0,0), 1.0);
     }
     {
       char buff[256];
       sprintf(buff, "Hz: %.2f", ms->config.aveFrequencyRange);
       string fpslabel(buff);
-      putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
+      putText(ms->config.rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  guardedImshow(ms->config.rangeogramViewName, rangeogramImage, sirRangeogram);
+  guardedImshow(ms->config.rangeogramViewName, ms->config.rangeogramImage, sirRangeogram);
 
   if (!ms->config.shouldIRangeCallback) {
     return;
@@ -3114,7 +3107,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
       int eeY = (int)round(eY + hrmHalfWidth);
 
       if ((fabs(eX) <= hrmHalfWidth) && (fabs(eY) <= hrmHalfWidth)) {
-	hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(128,0,0);
+	ms->config.hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(128,0,0);
       }
       // XXX
       thisZmeasurement = -irSensorEnd.z();
@@ -3161,7 +3154,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
       cv::Scalar backColor(0,0,ceil(intensity));
       cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
       cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
-      Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+      Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
       vCrop = backColor;
     }
 
@@ -3178,7 +3171,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
       //int iupX = (int)round(upX + hrmHalfWidth);
       //int iupY = (int)round(upY + hrmHalfWidth);
       //if ((fabs(upX) <= hrmHalfWidth) && (fabs(upY) <= hrmHalfWidth)) 
-	//hiRangemapImage.at<cv::Vec3b>(iupX,iupY) += cv::Vec3b(0,128,0);
+	//ms->config.hiRangemapImage.at<cv::Vec3b>(iupX,iupY) += cv::Vec3b(0,128,0);
 
       int pxMin = max(0, hiiX-parzenKernelHalfWidth);
       int pxMax = min(hrmWidth-1, hiiX+parzenKernelHalfWidth);
@@ -3200,7 +3193,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 //	  int tGreen = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] / denomC))));
 //	  int tBlue = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] / denomC))));
 //
-//	  hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
+//	  ms->config.hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
 
 	  //hiRangeMapAccumulator[px + py*hrmWidth] += ms->config.eeRange*parzenKernel[kpx + kpy*parzenKernelWidth];
 	  //hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
@@ -3236,7 +3229,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
       cv::Scalar backColor(0,0,ceil(intensity));
       cv::Point outTop = cv::Point(iiY*rmiCellWidth,iiX*rmiCellWidth);
       cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
-      Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+      Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
       vCrop = backColor;
       // draw border
       {
@@ -3244,22 +3237,22 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	cv::Point outBot = cv::Point((iiY+1)*rmiCellWidth-1,(iiX+1)*rmiCellWidth-1);
 	cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
 	cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
-	rectangle(rangemapImage, outTop, outBot, cv::Scalar(0,192,0)); 
-	rectangle(rangemapImage, inTop, inBot, cv::Scalar(0,64,0)); 
+	rectangle(ms->config.rangemapImage, outTop, outBot, cv::Scalar(0,192,0)); 
+	rectangle(ms->config.rangemapImage, inTop, inBot, cv::Scalar(0,64,0)); 
       }
     }
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(ms->config.rangemapViewName, rangemapImage, sirRangemap);
-    guardedImshow(ms->config.graspMemoryViewName, graspMemoryImage, sirGraspMemory);
-    guardedImshow(ms->config.graspMemorySampleViewName, graspMemorySampleImage, sirGraspMemorySample);
-    guardedImshow(ms->config.heightMemorySampleViewName, heightMemorySampleImage, sirHeightMemorySample);
+    guardedImshow(ms->config.rangemapViewName, ms->config.rangemapImage, sirRangemap);
+    guardedImshow(ms->config.graspMemoryViewName, ms->config.graspMemoryImage, sirGraspMemory);
+    guardedImshow(ms->config.graspMemorySampleViewName, ms->config.graspMemorySampleImage, sirGraspMemorySample);
+    guardedImshow(ms->config.heightMemorySampleViewName, ms->config.heightMemorySampleImage, sirHeightMemorySample);
     Mat hRIT;
-    cv::resize(hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
+    cv::resize(ms->config.hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
     guardedImshow(ms->config.hiRangemapViewName, hRIT, sirHiRangmap);
     Mat hCRIT;
-    cv::resize(hiColorRangemapImage, hCRIT, cv::Size(0,0), 2, 2);
+    cv::resize(ms->config.hiColorRangemapImage, hCRIT, cv::Size(0,0), 2, 2);
     guardedImshow(ms->config.hiColorRangemapViewName, hCRIT, sirHiColorRangemap);
 
     guardedImshow(objectViewerName, objectViewerImage, sirObject);
@@ -4655,29 +4648,29 @@ void drawMapPolygon(gsl_matrix * polygon_xy, cv::Scalar color) {
 
 
 void renderRangeogramView(shared_ptr<MachineState> ms) {
- if ( (rangeogramImage.rows > 0) && (rangeogramImage.cols > 0) ) {
-    cv::Point text_anchor = cv::Point(0,rangeogramImage.rows-1);
+ if ( (ms->config.rangeogramImage.rows > 0) && (ms->config.rangeogramImage.cols > 0) ) {
+    cv::Point text_anchor = cv::Point(0,ms->config.rangeogramImage.rows-1);
     {
       cv::Scalar backColor(0,0,0);
       cv::Point outTop = cv::Point(text_anchor.x,text_anchor.y+1-35);
       cv::Point outBot = cv::Point(text_anchor.x+400,text_anchor.y+1);
-      Mat vCrop = rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+      Mat vCrop = ms->config.rangeogramImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
       vCrop = backColor;
     }
     {
       char buff[256];
       sprintf(buff, "            Hz: %.2f", ms->config.aveFrequency);
       string fpslabel(buff);
-      putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(160,0,0), 1.0);
+      putText(ms->config.rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(160,0,0), 1.0);
     }
     {
       char buff[256];
       sprintf(buff, "Hz: %.2f", ms->config.aveFrequencyRange);
       string fpslabel(buff);
-      putText(rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
+      putText(ms->config.rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  guardedImshow(ms->config.rangeogramViewName, rangeogramImage, sirRangeogram);
+  guardedImshow(ms->config.rangeogramViewName, ms->config.rangeogramImage, sirRangeogram);
 }
 
 void targetCallback(const geometry_msgs::Point& point) {
@@ -5274,10 +5267,10 @@ void pilotInit(shared_ptr<MachineState> ms) {
     }
   }
 
-  rangemapImage = Mat(rmiHeight, 3*rmiWidth, CV_8UC3);
-  graspMemoryImage = Mat(rmiHeight, 2*rmiWidth, CV_8UC3);
-  graspMemorySampleImage = Mat(2*rmiHeight, 2*rmiWidth, CV_8UC3);
-  heightMemorySampleImage = Mat(hmiHeight, 2*hmiWidth, CV_8UC3);
+  ms->config.rangemapImage = Mat(rmiHeight, 3*rmiWidth, CV_8UC3);
+  ms->config.graspMemoryImage = Mat(rmiHeight, 2*rmiWidth, CV_8UC3);
+  ms->config.graspMemorySampleImage = Mat(2*rmiHeight, 2*rmiWidth, CV_8UC3);
+  ms->config.heightMemorySampleImage = Mat(hmiHeight, 2*hmiWidth, CV_8UC3);
 
   for (int rx = 0; rx < hrmWidth; rx++) {
     for (int ry = 0; ry < hrmWidth; ry++) {
@@ -5288,11 +5281,11 @@ void pilotInit(shared_ptr<MachineState> ms) {
       hiRangeMapAccumulator[rx + ry*hrmWidth] = 0;
     }
   }
-  hiRangemapImage = Mat(hrmiHeight, 3*hrmiWidth, CV_8UC3);
+  ms->config.hiRangemapImage = Mat(hrmiHeight, 3*hrmiWidth, CV_8UC3);
 
-  hiColorRangemapImage = Mat(hrmiHeight, hrmiWidth, CV_8UC3);
+  ms->config.hiColorRangemapImage = Mat(hrmiHeight, hrmiWidth, CV_8UC3);
 
-  rangeogramImage = Mat(rggHeight, rggWidth, CV_8UC3);
+  ms->config.rangeogramImage = Mat(rggHeight, rggWidth, CV_8UC3);
 
   rmcX = 0;
   rmcY = 0;
@@ -5915,7 +5908,7 @@ void loadSampledHeightMemory(shared_ptr<MachineState> ms) {
                                     nsuccess + 1, 
                                     nfailure + 1);
   }
-  drawHeightMemorySample();
+  drawHeightMemorySample(ms);
 }
 
 double convertHeightIdxToGlobalZ(shared_ptr<MachineState> ms, int heightIdx) {
@@ -5955,7 +5948,7 @@ void loadPriorHeightMemory(priorType prior) {
   }
 }
 
-void drawHeightMemorySample() {
+void drawHeightMemorySample(shared_ptr<MachineState> ms) {
   
   {
     double max_value = -VERYBIGNUMBER;
@@ -5978,7 +5971,7 @@ void drawHeightMemorySample() {
 	
 	cv::Point outTop = cv::Point((ry)*hmiCellWidth,(rx)*hmiCellWidth);
 	cv::Point outBot = cv::Point(((ry)+1)*hmiCellWidth,((rx)+1)*hmiCellWidth);
-	Mat vCrop = heightMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	Mat vCrop = ms->config.heightMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
 	vCrop = color;
       }
     }
@@ -5988,7 +5981,7 @@ void drawHeightMemorySample() {
       cv::Point text_anchor = cv::Point((max_ry) * hmiCellWidth - 5, 
 					(max_rx + 1) * hmiCellWidth);
       sprintf(buff, "x");
-      putText(heightMemorySampleImage, buff, text_anchor, MY_FONT, 7, 
+      putText(ms->config.heightMemorySampleImage, buff, text_anchor, MY_FONT, 7, 
 	      Scalar(0,0,255), 2);
     }
   }
@@ -6014,7 +6007,7 @@ void drawHeightMemorySample() {
 	
 	cv::Point outTop = cv::Point((ry+1)*hmiCellWidth,(rx)*hmiCellWidth);
 	cv::Point outBot = cv::Point(((ry+1)+1)*hmiCellWidth,((rx)+1)*hmiCellWidth);
-	Mat vCrop = heightMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+	Mat vCrop = ms->config.heightMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
 	vCrop = color;
       }
     }
@@ -6024,7 +6017,7 @@ void drawHeightMemorySample() {
       cv::Point text_anchor = cv::Point((max_ry+1) * hmiCellWidth, 
 					(max_rx + 1) * hmiCellWidth);
       sprintf(buff, "x");
-      putText(heightMemorySampleImage, buff, text_anchor, MY_FONT, 7, 
+      putText(ms->config.heightMemorySampleImage, buff, text_anchor, MY_FONT, 7, 
 	      Scalar(0,0,255), 2);
     }
   }
@@ -6067,7 +6060,7 @@ void estimateGlobalGraspGear(shared_ptr<MachineState> ms) {
   localMaxGG = getLocalGraspGear(ms, eMinGG);
 }
 
-void drawMapRegisters() {
+void drawMapRegisters(shared_ptr<MachineState> ms) {
   {
     double minDepth = VERYBIGNUMBER;
     double maxDepth = 0;
@@ -6087,7 +6080,7 @@ void drawMapRegisters() {
         cv::Scalar backColor(0,0,ceil(intensity));
         cv::Point outTop = cv::Point((ry+rmWidth)*rmiCellWidth,rx*rmiCellWidth);
         cv::Point outBot = cv::Point(((ry+rmWidth)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
-        Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+        Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
         vCrop = backColor;
       }
     }
@@ -6110,7 +6103,7 @@ void drawMapRegisters() {
         cv::Scalar backColor(0,0,ceil(intensity));
         cv::Point outTop = cv::Point((ry+2*rmWidth)*rmiCellWidth,rx*rmiCellWidth);
         cv::Point outBot = cv::Point(((ry+2*rmWidth)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
-        Mat vCrop = rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+        Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
         vCrop = backColor;
       }
     }
@@ -6130,7 +6123,7 @@ void drawMapRegisters() {
         if (denom <= EPSILON)
           denom = VERYBIGNUMBER;
         double intensity = 255 * (maxDepth - hiRangeMap[rx + ry*hrmWidth]) / denom;
-        hiRangemapImage.at<cv::Vec3b>(rx,ry) = cv::Vec3b(0,0,ceil(intensity));
+        ms->config.hiRangemapImage.at<cv::Vec3b>(rx,ry) = cv::Vec3b(0,0,ceil(intensity));
       }
     }
   }
@@ -6149,7 +6142,7 @@ void drawMapRegisters() {
         if (denom <= EPSILON)
           denom = VERYBIGNUMBER;
         double intensity = 255 * (maxDepth - hiRangeMapReg1[rx + ry*hrmWidth]) / denom;
-        hiRangemapImage.at<cv::Vec3b>(rx,ry+hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
+        ms->config.hiRangemapImage.at<cv::Vec3b>(rx,ry+hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
       }
     }
   }
@@ -6168,7 +6161,7 @@ void drawMapRegisters() {
         if (denom <= EPSILON)
           denom = VERYBIGNUMBER;
         double intensity = 255 * (maxDepth - hiRangeMapReg2[rx + ry*hrmWidth]) / denom;
-        hiRangemapImage.at<cv::Vec3b>(rx,ry+2*hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
+        ms->config.hiRangemapImage.at<cv::Vec3b>(rx,ry+2*hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
       }
     }
   }
@@ -6194,7 +6187,7 @@ void drawMapRegisters() {
           cv::Scalar backColor(ceil(blueIntensity),0,ceil(redIntensity));
           cv::Point outTop = cv::Point((ry)*rmiCellWidth,rx*rmiCellWidth);
           cv::Point outBot = cv::Point(((ry)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
-          Mat vCrop = graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+          Mat vCrop = ms->config.graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
           vCrop = backColor;
         }
       }
@@ -6219,14 +6212,14 @@ void drawMapRegisters() {
             cv::Scalar backColor(0,ceil(greenIntensity),0);
             cv::Point outTop = cv::Point((ry+rmWidth)*rmiCellWidth,rx*rmiCellWidth);
             cv::Point outBot = cv::Point(((ry+rmWidth)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
-            Mat vCrop = graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+            Mat vCrop = ms->config.graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
             vCrop = backColor;
           }
           {
             cv::Scalar backColor(0,ceil(greenIntensity/2),0);
             cv::Point outTop = cv::Point((ry)*rmiCellWidth,rx*rmiCellWidth);
             cv::Point outBot = cv::Point(((ry)+1)*rmiCellWidth,(rx+1)*rmiCellWidth);
-            Mat vCrop = graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+            Mat vCrop = ms->config.graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
             vCrop = vCrop + backColor;
           }
         }
@@ -6263,7 +6256,7 @@ void drawMapRegisters() {
 
             cv::Point outTop = cv::Point((ry + dy[tGG]*rmWidth)*rmiCellWidth,(rx + dx[tGG]*rmWidth)*rmiCellWidth);
             cv::Point outBot = cv::Point(((ry + dy[tGG]*rmWidth)+1)*rmiCellWidth,((rx + dx[tGG]*rmWidth)+1)*rmiCellWidth);
-            Mat vCrop = graspMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+            Mat vCrop = ms->config.graspMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
             vCrop = color;
           }
         }
@@ -6277,7 +6270,7 @@ void drawMapRegisters() {
         cv::Point text_anchor = cv::Point((dy[tGG]*rmWidth)*rmiCellWidth, 
                                           (dx[tGG]*rmWidth + 1)*rmiCellWidth);
         sprintf(buff, "%d", tGG+1);
-        putText(graspMemorySampleImage, buff, text_anchor, MY_FONT, 1, Scalar(192,192,192), 2);
+        putText(ms->config.graspMemorySampleImage, buff, text_anchor, MY_FONT, 1, Scalar(192,192,192), 2);
       }
     }
 
@@ -6287,7 +6280,7 @@ void drawMapRegisters() {
       cv::Point text_anchor = cv::Point((max_ry + dy[max_tGG]*rmWidth) * rmiCellWidth, 
                                         (max_rx + dx[max_tGG]*rmWidth + 1) * rmiCellWidth);
       sprintf(buff, "x");
-      putText(graspMemorySampleImage, buff, text_anchor, MY_FONT, 1, 
+      putText(ms->config.graspMemorySampleImage, buff, text_anchor, MY_FONT, 1, 
               Scalar(0,0,255), 2);
     }
   }
