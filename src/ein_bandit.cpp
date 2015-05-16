@@ -1,4 +1,9 @@
 
+#include "ein_words.h"
+#include "ein.h"
+
+
+namespace ein_words {
 
 WORD(SaveLearnedModels)
 CODE(1245281)     // capslock + numlock + A
@@ -502,3 +507,4 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SampleHeight)
+}

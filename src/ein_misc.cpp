@@ -1,4 +1,11 @@
 
+#include "ein_words.h"
+#include "ein.h"
+
+
+namespace ein_words {
+
+
 WORD(ZeroGToggle)
 CODE('z')
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -648,3 +655,4 @@ REGISTER_WORD(EnableRobot)
 
 
 
+}

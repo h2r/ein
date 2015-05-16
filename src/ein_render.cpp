@@ -1,4 +1,10 @@
 
+#include "ein_words.h"
+#include "ein.h"
+
+
+namespace ein_words {
+
 WORD(PaintReticles)
 CODE(1048679)     // numlock + g
 virtual void execute(std::shared_ptr<MachineState> ms)       {
@@ -229,3 +235,4 @@ REGISTER_WORD(GuiCustom1)
 
 
 
+}

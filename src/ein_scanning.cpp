@@ -1,4 +1,10 @@
 
+#include "ein_words.h"
+#include "ein.h"
+
+
+namespace ein_words {
+
 
 WORD(SetTargetClassToLastLabelLearned)
 CODE(1179730)     // capslock + numlock + r
@@ -2103,3 +2109,4 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(PreAnnotateCenterGrasp)
 
+}
