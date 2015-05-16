@@ -143,9 +143,9 @@ REGISTER_WORD(VisionCycleNoClassify)
 WORD(RecordExampleAsFocusedClass)
 CODE(131148)     // capslock + l 
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  if ((ms->config.focusedClass > -1) && (bTops.size() == 1)) {
+  if ((ms->config.focusedClass > -1) && (ms->config.bTops.size() == 1)) {
     string thisLabelName = ms->config.focusedClassLabel;
-    Mat crop = ms->config.cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
+    Mat crop = ms->config.cam_img(cv::Rect(ms->config.bTops[0].x, ms->config.bTops[0].y, ms->config.bBots[0].x-ms->config.bTops[0].x, ms->config.bBots[0].y-ms->config.bTops[0].y));
     char buf[1000];
     string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
     sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), ms->config.cropCounter);
@@ -159,9 +159,9 @@ REGISTER_WORD(RecordExampleAsFocusedClass)
 WORD(RecordAllExamplesFocusedClass)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   if ( ms->config.focusedClass > -1 ) {
-    for (int c = 0; c < bTops.size(); c++) {
+    for (int c = 0; c < ms->config.bTops.size(); c++) {
       string thisLabelName = ms->config.focusedClassLabel;
-      Mat crop = ms->config.cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
+      Mat crop = ms->config.cam_img(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
       char buf[1000];
       string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
       sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), ms->config.cropCounter);
@@ -689,8 +689,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     int crows = aerialGradientReticleWidth;
     int ccols = aerialGradientReticleWidth;
 
-    //int crows = bBots[hbb].y - bTops[hbb].y;
-    //int ccols = bBots[hbb].x - bTops[hbb].x;
+    //int crows = ms->config.bBots[hbb].y - ms->config.bTops[hbb].y;
+    //int ccols = ms->config.bBots[hbb].x - ms->config.bTops[hbb].x;
     int maxDim = max(crows, ccols);
     int tRy = (maxDim-crows)/2;
     int tRx = (maxDim-ccols)/2;
@@ -706,7 +706,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
         int tCty = topCornerY + ty;
         if ( (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) &&
              (tCtx > 0) && (tCty > 0) && (tCtx < imW) && (tCty < imH) ) {
-          //gCrop.at<double>(y, x) = ms->config.frameGraySobel.at<double>(bTops[hbb].y + ty, bTops[hbb].x + tx);
+          //gCrop.at<double>(y, x) = ms->config.frameGraySobel.at<double>(ms->config.bTops[hbb].y + ty, ms->config.bTops[hbb].x + tx);
           gCrop.at<double>(y, x) = ms->config.frameGraySobel.at<double>(tCty, tCtx);
         } else {
           gCrop.at<double>(y, x) = 0.0;
@@ -2006,7 +2006,7 @@ REGISTER_WORD(Save3dGrasps)
 
 WORD(Lock3dGraspBase)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if ( (bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
+  if ( (ms->config.bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
     ms->config.c3dPoseBase = ms->config.currentEEPose;
     ms->config.c3dPoseBase.pz = -ms->config.currentTableZ;
     cout << "The base for 3d grasp annotation is now locked and you are in zero-G mode." << endl 

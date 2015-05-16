@@ -927,6 +927,22 @@ class EinConfig {
   int useFade = 1;
   
   vector<BoxMemory> blueBoxMemories;
+
+
+  // create the blue boxes from the parental green boxes
+  vector<cv::Point> bTops; 
+  vector<cv::Point> bBots;
+  vector<cv::Point> bCens;
+  vector< vector<KeyPoint> > bKeypoints;
+  vector< vector<int> > bWords;
+  vector<Mat> bYCrCb;
+  vector<int> bLabels;
+
+  // adjust these to reject blue boxes
+  double rejectScale = 2.0;
+  double rejectAreaScale = 16;//6*6
+;
+
 }; // config end
 
 class Word;

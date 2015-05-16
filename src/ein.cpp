@@ -1,9 +1,4 @@
-// start Header
-//  //
-//  // start ein 
-//  //// main()
-//  //
-//  // end structure of this program
+
 //
 //  // start Tips
 //  // it's dangerous to go alone. take this.
@@ -130,18 +125,6 @@ ros::Publisher ee_target_pub;
 
 
 
-// create the blue boxes from the parental green boxes
-vector<cv::Point> bTops; 
-vector<cv::Point> bBots;
-vector<cv::Point> bCens;
-vector< vector<KeyPoint> > bKeypoints;
-vector< vector<int> > bWords;
-vector<Mat> bYCrCb;
-vector<int> bLabels;
-
-// adjust these to reject blue boxes
-double rejectScale = 2.0;
-double rejectAreaScale = 16;//6*6;
 
 
 Eigen::Vector3d tablePositionSum;
@@ -289,7 +272,7 @@ void clearMapForPatrol(shared_ptr<MachineState> ms);
 void initializeMap(shared_ptr<MachineState> ms);
 void randomizeNanos(shared_ptr<MachineState> ms, ros::Time * time);
 int blueBoxForPixel(int px, int py);
-int skirtedBlueBoxForPixel(int px, int py, int skirtPixels);
+int skirtedBlueBoxForPixel(shared_ptr<MachineState> ms, int px, int py, int skirtPixels);
 bool cellIsSearched(shared_ptr<MachineState> ms, int i, int j);
 bool positionIsSearched(shared_ptr<MachineState> ms, double x, double y);
 vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx);
@@ -6980,10 +6963,10 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 
   // ATTN 12
   // if we time out, reset the bblearning program
-  if ( ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) || (bTops.size() <= 0)) && 
+  if ( ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) || (ms->config.bTops.size() <= 0)) && 
 	(ARE_GENERIC_HEIGHT_LEARNING(ms)) ) {
     cout << "bbLearning: synchronic servo early outting: ";
-    if (bTops.size() <= 0) {
+    if (ms->config.bTops.size() <= 0) {
       cout << "NO BLUE BOXES ";
     }
     if ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) && (ARE_GENERIC_HEIGHT_LEARNING(ms))) {
@@ -6994,7 +6977,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
     return;
   }
 
-  if ( ((ms->config.synServoLockFrames > ms->config.mappingServoTimeout) || (bTops.size() <= 0)) && 
+  if ( ((ms->config.synServoLockFrames > ms->config.mappingServoTimeout) || (ms->config.bTops.size() <= 0)) && 
 	(ms->config.currentBoundingBoxMode == MAPPING) ) {
     cout << ">>>> Synchronic servo timed out or no blue boxes during mapping. <<<<" << endl;
     return;
@@ -7024,7 +7007,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
     return; 
   }
 
-  if (bTops.size() <= 0) {
+  if (ms->config.bTops.size() <= 0) {
     cout << ">>>> HELP,  I CAN'T SEE!!!!! Going back on patrol. <<<<" << endl;
     ms->pushWord("visionCycle"); 
     ms->pushWord("waitUntilAtCurrentPosition"); 
@@ -7048,11 +7031,11 @@ void synchronicServo(shared_ptr<MachineState> ms) {
     int foundAnUnmappedTarget = 0;
     int closestUnmappedBBToReticle = -1;
     double closestBBDistance = VERYBIGNUMBER;
-    for (int c = 0; c < bTops.size(); c++) {
+    for (int c = 0; c < ms->config.bTops.size(); c++) {
       double tbx, tby;
       int tbi, tbj;
       double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-      pixelToGlobal(ms, bCens[c].x, bCens[c].y, zToUse, &tbx, &tby);
+      pixelToGlobal(ms, ms->config.bCens[c].x, ms->config.bCens[c].y, zToUse, &tbx, &tby);
       mapxyToij(ms, tbx, tby, &tbi, &tbj);
       
       ros::Time thisLastMappedTime = ms->config.objectMap[tbi + ms->config.mapWidth * tbj].lastMappedTime;
@@ -7063,16 +7046,16 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       int isCooldownComplete = (thisNow.sec - thisLastMappedTime.sec) > ms->config.mapBlueBoxCooldown;
 
       int isOutOfReach = ( !positionIsSearched(ms, tbx, tby) || 
-                           !isBlueBoxIkPossible(ms, bTops[c], bBots[c]) ); 
+                           !isBlueBoxIkPossible(ms, ms->config.bTops[c], ms->config.bBots[c]) ); 
 
-      double thisDistance = sqrt((bCens[c].x-ms->config.reticle.px)*(bCens[c].x-ms->config.reticle.px) + (bCens[c].y-ms->config.reticle.py)*(bCens[c].y-ms->config.reticle.py));
+      double thisDistance = sqrt((ms->config.bCens[c].x-ms->config.reticle.px)*(ms->config.bCens[c].x-ms->config.reticle.px) + (ms->config.bCens[c].y-ms->config.reticle.py)*(ms->config.bCens[c].y-ms->config.reticle.py));
       cout << "   Servo CUB distance for box " << c << " : " << thisDistance << ", isCooldownComplete isOutOfReach: " <<
 	      isCooldownComplete << " " << isOutOfReach << endl;
       cout << "      (thisNow - thisLastMappedTime) mapBlueBoxCooldown:" << 
 	      thisNow.sec - thisLastMappedTime.sec << " " << ms->config.mapBlueBoxCooldown << " " <<  endl;
 
       if (isOutOfReach) {
-	mapBlueBox(ms, bTops[c], bBots[c], 0, ros::Time::now()+ros::Duration(ms->config.mapBlueBoxCooldown));
+	mapBlueBox(ms, ms->config.bTops[c], ms->config.bBots[c], 0, ros::Time::now()+ros::Duration(ms->config.mapBlueBoxCooldown));
       }
 
       if ( isCooldownComplete  && 
@@ -7087,17 +7070,17 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 
     if (foundAnUnmappedTarget) {
       ms->config.pilotClosestBlueBoxNumber = closestUnmappedBBToReticle;
-      ms->config.pilotTarget.px = bCens[ms->config.pilotClosestBlueBoxNumber].x;
-      ms->config.pilotTarget.py = bCens[ms->config.pilotClosestBlueBoxNumber].y;
+      ms->config.pilotTarget.px = ms->config.bCens[ms->config.pilotClosestBlueBoxNumber].x;
+      ms->config.pilotTarget.py = ms->config.bCens[ms->config.pilotClosestBlueBoxNumber].y;
       ms->config.pilotTarget.pz = 0;
       ms->config.pilotClosestTarget = ms->config.pilotTarget;
     } else {
       // this prevents gradient servo 
       ms->config.pilotClosestBlueBoxNumber = -1;
-      bTops.resize(0);
-      bBots.resize(0);
-      bCens.resize(0);
-      bLabels.resize(0);
+      ms->config.bTops.resize(0);
+      ms->config.bBots.resize(0);
+      ms->config.bCens.resize(0);
+      ms->config.bLabels.resize(0);
       return;
     }
   }
@@ -9634,9 +9617,9 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
   }
 //cout << "Here 3" << endl;
 
-  bTops.resize(0);
-  bBots.resize(0);
-  bCens.resize(0);
+  ms->config.bTops.resize(0);
+  ms->config.bBots.resize(0);
+  ms->config.bCens.resize(0);
 
   lARM = gBoxW*(lARM/gBoxW);
   rARM = gBoxW*(rARM/gBoxW);
@@ -9658,7 +9641,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
   ms->config.pilotClosestTarget.py = -1;
 
   if (!all_range_mode) {
-    double rejectArea = rejectAreaScale*gBoxW*gBoxH;
+    double rejectArea = ms->config.rejectAreaScale*gBoxW*gBoxH;
     for (int c = 0; c < total_components; c++) {
 
       ms->config.cTops[c].x = max(0,min(imW-1, ms->config.cTops[c].x));
@@ -9667,7 +9650,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       ms->config.cBots[c].y = max(0,min(imH-1, ms->config.cBots[c].y));
 
       int allow = 1;
-      if (ms->config.cBots[c].x - ms->config.cTops[c].x < rejectScale*gBoxW || ms->config.cBots[c].y - ms->config.cTops[c].y < rejectScale*gBoxH)
+      if (ms->config.cBots[c].x - ms->config.cTops[c].x < ms->config.rejectScale*gBoxW || ms->config.cBots[c].y - ms->config.cTops[c].y < ms->config.rejectScale*gBoxH)
 	allow = 0;
       if ((ms->config.cBots[c].x - ms->config.cTops[c].x)*(ms->config.cBots[c].y - ms->config.cTops[c].y) < rejectArea)
 	allow = 0;
@@ -9686,29 +9669,29 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       if (fuseBlueBoxes) {
 	if (allow) {
 	  for (int fuseIter = 0; fuseIter < fusePasses; fuseIter++) {
-	    for (int cbc = 0; cbc < bTops.size(); cbc++) {
+	    for (int cbc = 0; cbc < ms->config.bTops.size(); cbc++) {
 
-	      int smallWidth = min(bCens[cbc].x-bTops[cbc].x, thisCen.x-ms->config.cTops[c].x);
-	      int bigWidth = max(bCens[cbc].x-bTops[cbc].x, thisCen.x-ms->config.cTops[c].x);
+	      int smallWidth = min(ms->config.bCens[cbc].x-ms->config.bTops[cbc].x, thisCen.x-ms->config.cTops[c].x);
+	      int bigWidth = max(ms->config.bCens[cbc].x-ms->config.bTops[cbc].x, thisCen.x-ms->config.cTops[c].x);
 
 	      // this tests overlap
-	      //if ( fabs(thisCen.x - bCens[cbc].x) < fabs(bCens[cbc].x-bTops[cbc].x+thisCen.x-ms->config.cTops[c].x) && 
-		   //fabs(thisCen.y - bCens[cbc].y) < fabs(bCens[cbc].y-bTops[cbc].y+thisCen.y-ms->config.cTops[c].y) ) 
+	      //if ( fabs(thisCen.x - ms->config.bCens[cbc].x) < fabs(ms->config.bCens[cbc].x-ms->config.bTops[cbc].x+thisCen.x-ms->config.cTops[c].x) && 
+		   //fabs(thisCen.y - ms->config.bCens[cbc].y) < fabs(ms->config.bCens[cbc].y-ms->config.bTops[cbc].y+thisCen.y-ms->config.cTops[c].y) ) 
 	      //this tests containment
-	      if ( fabs(thisCen.x - bCens[cbc].x) < fabs(bigWidth - smallWidth) && 
-		   fabs(thisCen.y - bCens[cbc].y) < fabs(bigWidth - smallWidth) ) 
+	      if ( fabs(thisCen.x - ms->config.bCens[cbc].x) < fabs(bigWidth - smallWidth) && 
+		   fabs(thisCen.y - ms->config.bCens[cbc].y) < fabs(bigWidth - smallWidth) ) 
 	      {
 		allow = 0;
-		bTops[cbc].x = min(bTops[cbc].x, ms->config.cTops[c].x);
-		bTops[cbc].y = min(bTops[cbc].y, ms->config.cTops[c].y);
-		bBots[cbc].x = max(bBots[cbc].x, ms->config.cBots[c].x);
-		bBots[cbc].y = max(bBots[cbc].y, ms->config.cBots[c].y);
+		ms->config.bTops[cbc].x = min(ms->config.bTops[cbc].x, ms->config.cTops[c].x);
+		ms->config.bTops[cbc].y = min(ms->config.bTops[cbc].y, ms->config.cTops[c].y);
+		ms->config.bBots[cbc].x = max(ms->config.bBots[cbc].x, ms->config.cBots[c].x);
+		ms->config.bBots[cbc].y = max(ms->config.bBots[cbc].y, ms->config.cBots[c].y);
 
 		// gotta do this and continue searching to fuse everything, need a better algorithm in the future
-		ms->config.cTops[c].x = bTops[cbc].x;
-		ms->config.cTops[c].y = bTops[cbc].y;
-		ms->config.cBots[c].x = bBots[cbc].x;
-		ms->config.cBots[c].y = bBots[cbc].y;
+		ms->config.cTops[c].x = ms->config.bTops[cbc].x;
+		ms->config.cTops[c].y = ms->config.bTops[cbc].y;
+		ms->config.cBots[c].x = ms->config.bBots[cbc].x;
+		ms->config.cBots[c].y = ms->config.bBots[cbc].y;
 	      }
 	    }
 	  }
@@ -9716,10 +9699,10 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       }
 
       if (allow == 1) {
-	bTops.push_back(ms->config.cTops[c]);
-	bBots.push_back(ms->config.cBots[c]);
-	bCens.push_back(thisCen);
-	int t = bTops.size()-1;
+	ms->config.bTops.push_back(ms->config.cTops[c]);
+	ms->config.bBots.push_back(ms->config.cBots[c]);
+	ms->config.bCens.push_back(thisCen);
+	int t = ms->config.bTops.size()-1;
 
 	int thisArea = (ms->config.cBots[c].x - ms->config.cTops[c].x)*(ms->config.cBots[c].y - ms->config.cTops[c].y);
 	if (thisArea > biggestBBArea) {
@@ -9727,7 +9710,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
 	  biggestBB = t;
 	}
 
-	double thisDistance = sqrt((bCens[t].x-ms->config.reticle.px)*(bCens[t].x-ms->config.reticle.px) + (bCens[t].y-ms->config.reticle.py)*(bCens[t].y-ms->config.reticle.py));
+	double thisDistance = sqrt((ms->config.bCens[t].x-ms->config.reticle.px)*(ms->config.bCens[t].x-ms->config.reticle.px) + (ms->config.bCens[t].y-ms->config.reticle.py)*(ms->config.bCens[t].y-ms->config.reticle.py));
 	cout << "   (density) Distance for box " << t << " : " << thisDistance << endl;
 	if (thisDistance < closestBBDistance) {
 	  closestBBDistance = thisDistance;
@@ -9736,15 +9719,15 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       }
     }
   } else {
-    bTops.push_back(armTop);
-    bBots.push_back(armBot);
-    bCens.push_back(cv::Point((armTop.x+armBot.x)/2, (armTop.y+armBot.y)/2));
+    ms->config.bTops.push_back(armTop);
+    ms->config.bBots.push_back(armBot);
+    ms->config.bCens.push_back(cv::Point((armTop.x+armBot.x)/2, (armTop.y+armBot.y)/2));
   }
 
-  if ((bTops.size() > 0) && (biggestBB > -1)) {
+  if ((ms->config.bTops.size() > 0) && (biggestBB > -1)) {
     geometry_msgs::Point p;
-    p.x = bCens[biggestBB].x;
-    p.y = bCens[biggestBB].y;
+    p.x = ms->config.bCens[biggestBB].x;
+    p.y = ms->config.bCens[biggestBB].y;
     p.z = 0.0;
     
       //ee_target_pub.publish(p);
@@ -9756,8 +9739,8 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
   }
   if (closestBBToReticle > -1) {
     geometry_msgs::Point p;
-    p.x = bCens[closestBBToReticle].x;
-    p.y = bCens[closestBBToReticle].y;
+    p.x = ms->config.bCens[closestBBToReticle].x;
+    p.y = ms->config.bCens[closestBBToReticle].y;
     p.z = 0.0;
   
     //ee_target_pub.publish(p);
@@ -9770,10 +9753,10 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
     ms->config.pilotClosestBlueBoxNumber = -1;
   }
 
-  if (bTops.size() > 0) {
+  if (ms->config.bTops.size() > 0) {
     geometry_msgs::Point p;
-    p.x = bCens[biggestBB].x;
-    p.y = bCens[biggestBB].y;
+    p.x = ms->config.bCens[biggestBB].x;
+    p.y = ms->config.bCens[biggestBB].y;
     p.z = 0.0;
   
     //ee_target_pub.publish(p);
@@ -9783,11 +9766,11 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.drawBlue) {
-    for (int c = bTops.size()-1; c >= 0; c--) {
-      cv::Point outTop = cv::Point(bTops[c].x, bTops[c].y);
-      cv::Point outBot = cv::Point(bBots[c].x, bBots[c].y);
-      cv::Point inTop = cv::Point(bTops[c].x+1,bTops[c].y+1);
-      cv::Point inBot = cv::Point(bBots[c].x-1,bBots[c].y-1);
+    for (int c = ms->config.bTops.size()-1; c >= 0; c--) {
+      cv::Point outTop = cv::Point(ms->config.bTops[c].x, ms->config.bTops[c].y);
+      cv::Point outBot = cv::Point(ms->config.bBots[c].x, ms->config.bBots[c].y);
+      cv::Point inTop = cv::Point(ms->config.bTops[c].x+1,ms->config.bTops[c].y+1);
+      cv::Point inBot = cv::Point(ms->config.bBots[c].x-1,ms->config.bBots[c].y-1);
       rectangle(ms->config.objectViewerImage, outTop, outBot, cv::Scalar(255,0,0));
       rectangle(ms->config.objectViewerImage, inTop, inBot, cv::Scalar(255,192,192));
     }
@@ -9817,10 +9800,10 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
   vector< vector<int> > pIoCbuffer;
 
   // classify the crops
-  bKeypoints.resize(bTops.size());
-  bWords.resize(bTops.size());
-  bYCrCb.resize(bTops.size());
-  bLabels.resize(bTops.size());
+  ms->config.bKeypoints.resize(ms->config.bTops.size());
+  ms->config.bWords.resize(ms->config.bTops.size());
+  ms->config.bYCrCb.resize(ms->config.bTops.size());
+  ms->config.bLabels.resize(ms->config.bTops.size());
 
   int biggestBB = -1;
   int biggestBBArea = 0;
@@ -9830,15 +9813,15 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 
   double label = -1;
 
-  for (int c = 0; c < bTops.size(); c++) {
-    vector<KeyPoint>& keypoints = bKeypoints[c];
+  for (int c = 0; c < ms->config.bTops.size(); c++) {
+    vector<KeyPoint>& keypoints = ms->config.bKeypoints[c];
     Mat descriptors;
     Mat descriptors2;
 
     Mat original_cam_img = ms->config.cam_img;
-    Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
+    Mat crop = original_cam_img(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
     Mat gray_image;
-    Mat& yCrCb_image = bYCrCb[c];
+    Mat& yCrCb_image = ms->config.bYCrCb[c];
 
     //if ((ms->config.chosen_feature == SIFTBOW_GLOBALCOLOR_HIST) || (ms->config.chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST))
     if (ms->config.chosen_feature == SIFTBOW_GLOBALCOLOR_HIST) 
@@ -9846,19 +9829,19 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       processImage(crop, gray_image, yCrCb_image, ms->config.grayBlur);
 
       //ms->config.detector->detect(gray_image, keypoints);
-      gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, ms->config.keypointPeriod);
+      gridKeypoints(imW, imH, ms->config.bTops[c], ms->config.bBots[c], gBoxStrideX, gBoxStrideY, keypoints, ms->config.keypointPeriod);
 
       ms->config.bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
 
       // save the word assignments for the keypoints so we can use them for red boxes
 
-      bWords[c].resize(keypoints.size());
+      ms->config.bWords[c].resize(keypoints.size());
       if ((pIoCbuffer.size() > 0) && (keypoints.size() > 0)) {
 	for (int w = 0; w < ms->config.vocabNumWords; w++) {
 	  int numDescrOfWord = pIoCbuffer[w].size();
 
 	  for (int w2 = 0; w2 < numDescrOfWord; w2++) {
-	    bWords[c][pIoCbuffer[w][w2]] = w;
+	    ms->config.bWords[c][pIoCbuffer[w][w2]] = w;
 	  }
 	}
     
@@ -9866,8 +9849,8 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 	  for (int kp = 0; kp < keypoints.size(); kp++) {
 	    int tX = keypoints[kp].pt.x;
 	    int tY = keypoints[kp].pt.y;
-	    cv::Point kpTop = cv::Point(bTops[c].x+tX-1,bTops[c].y+tY-1);
-	    cv::Point kpBot = cv::Point(bTops[c].x+tX,bTops[c].y+tY);
+	    cv::Point kpTop = cv::Point(ms->config.bTops[c].x+tX-1,ms->config.bTops[c].y+tY-1);
+	    cv::Point kpBot = cv::Point(ms->config.bTops[c].x+tX,ms->config.bTops[c].y+tY);
 	    if(
 	      (kpTop.x >= 1) &&
 	      (kpBot.x <= imW-2) &&
@@ -9885,13 +9868,13 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       
 	appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
 	label = ms->config.kNN->find_nearest(descriptors2, param_numNeighbors);
-	bLabels[c] = label;
+	ms->config.bLabels[c] = label;
       }
     } else if (ms->config.chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST) {
       processImage(crop, gray_image, yCrCb_image, ms->config.grayBlur);
 
       //ms->config.detector->detect(gray_image, keypoints);
-      gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, ms->config.keypointPeriod);
+      gridKeypoints(imW, imH, ms->config.bTops[c], ms->config.bBots[c], gBoxStrideX, gBoxStrideY, keypoints, ms->config.keypointPeriod);
 
       //ms->config.bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
 
@@ -9901,13 +9884,13 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 
       // save the word assignments for the keypoints so we can use them for red boxes
 
-      bWords[c].resize(keypoints.size());
+      ms->config.bWords[c].resize(keypoints.size());
       if ((pIoCbuffer.size() > 0) && (keypoints.size() > 0)) {
 	for (int w = 0; w < ms->config.vocabNumWords; w++) {
 	  int numDescrOfWord = pIoCbuffer[w].size();
 
 	  for (int w2 = 0; w2 < numDescrOfWord; w2++) {
-	    bWords[c][pIoCbuffer[w][w2]] = w;
+	    ms->config.bWords[c][pIoCbuffer[w][w2]] = w;
 	  }
 	}
     
@@ -9915,8 +9898,8 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 	  for (int kp = 0; kp < keypoints.size(); kp++) {
 	    int tX = keypoints[kp].pt.x;
 	    int tY = keypoints[kp].pt.y;
-	    cv::Point kpTop = cv::Point(bTops[c].x+tX-1,bTops[c].y+tY-1);
-	    cv::Point kpBot = cv::Point(bTops[c].x+tX,bTops[c].y+tY);
+	    cv::Point kpTop = cv::Point(ms->config.bTops[c].x+tX-1,ms->config.bTops[c].y+tY-1);
+	    cv::Point kpBot = cv::Point(ms->config.bTops[c].x+tX,ms->config.bTops[c].y+tY);
 	    if(
 	      (kpTop.x >= 1) &&
 	      (kpBot.x <= imW-2) &&
@@ -9935,7 +9918,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 	//appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
 	//label = kNN->find_nearest(descriptors2,k);
 	label = ms->config.kNN->find_nearest(descriptors, param_numNeighbors);
-	bLabels[c] = label;
+	ms->config.bLabels[c] = label;
       }
     } else if (ms->config.chosen_feature == GRADIENT) {
       processImage(crop, gray_image, yCrCb_image, ms->config.sobel_sigma);
@@ -9995,7 +9978,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       }
 
       label = ms->config.kNN->find_nearest(descriptorsG, param_numNeighbors);
-      bLabels[c] = label;
+      ms->config.bLabels[c] = label;
     } else if (ms->config.chosen_feature == OPPONENT_COLOR_GRADIENT) {
       processImage(crop, gray_image, yCrCb_image, ms->config.sobel_sigma);
 
@@ -10122,7 +10105,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       }
 
       label = ms->config.kNN->find_nearest(descriptorsCbCr, param_numNeighbors);
-      bLabels[c] = label;
+      ms->config.bLabels[c] = label;
     }
 
     if (ms->config.classLabels[label].compare(invert_sign_name) == 0)
@@ -10140,8 +10123,8 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       labelName = ms->config.classLabels[label];
     augmentedLabelName = labelName;
 
-    cv::Point text_anchor(bTops[c].x+1, bBots[c].y-2);
-    cv::Point text_anchor2(bTops[c].x+1, bBots[c].y-2);
+    cv::Point text_anchor(ms->config.bTops[c].x+1, ms->config.bBots[c].y-2);
+    cv::Point text_anchor2(ms->config.bTops[c].x+1, ms->config.bBots[c].y-2);
     putText(ms->config.objectViewerImage, augmentedLabelName, text_anchor, MY_FONT, 0.5, Scalar(255,192,192), 2.0);
     putText(ms->config.objectViewerImage, augmentedLabelName, text_anchor2, MY_FONT, 0.5, Scalar(255,0,0), 1.0);
 
@@ -10151,7 +10134,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 
     if (label >= 0) {
 
-      int thisArea = (bBots[c].x - bTops[c].x)*(bBots[c].y - bTops[c].y);
+      int thisArea = (ms->config.bBots[c].x - ms->config.bTops[c].x)*(ms->config.bBots[c].y - ms->config.bTops[c].y);
       if ((thisArea > biggestBBArea) && (label == ms->config.targetClass)) 
       //if ((thisArea > biggestBBArea) && (shouldIPick(label))) 
       {
@@ -10159,8 +10142,8 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 	biggestBB = c;
       }
 
-      //int thisDistance = int(fabs(bCens[c].x-reticle.px) + fabs(bCens[c].y-reticle.py));
-      double thisDistance = sqrt((bCens[c].x-ms->config.reticle.px)*(bCens[c].x-ms->config.reticle.px) + (bCens[c].y-ms->config.reticle.py)*(bCens[c].y-ms->config.reticle.py));
+      //int thisDistance = int(fabs(ms->config.bCens[c].x-reticle.px) + fabs(ms->config.bCens[c].y-reticle.py));
+      double thisDistance = sqrt((ms->config.bCens[c].x-ms->config.reticle.px)*(ms->config.bCens[c].x-ms->config.reticle.px) + (ms->config.bCens[c].y-ms->config.reticle.py)*(ms->config.bCens[c].y-ms->config.reticle.py));
       cout << "   Distance for box " << c << " : " << thisDistance << endl;
       if (thisDistance < closestBBDistance) {
 	closestBBDistance = thisDistance;
@@ -10169,10 +10152,10 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
     }
   }
 
-  if ((bTops.size() > 0) && (biggestBB > -1)) {
+  if ((ms->config.bTops.size() > 0) && (biggestBB > -1)) {
     geometry_msgs::Point p;
-    p.x = bCens[biggestBB].x;
-    p.y = bCens[biggestBB].y;
+    p.x = ms->config.bCens[biggestBB].x;
+    p.y = ms->config.bCens[biggestBB].y;
     p.z = 0.0;
     
       //ee_target_pub.publish(p);
@@ -10184,8 +10167,8 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
   }
   if (closestBBToReticle > -1) {
     geometry_msgs::Point p;
-    p.x = bCens[closestBBToReticle].x;
-    p.y = bCens[closestBBToReticle].y;
+    p.x = ms->config.bCens[closestBBToReticle].x;
+    p.y = ms->config.bCens[closestBBToReticle].y;
     p.z = 0.0;
   
     //ee_target_pub.publish(p);
@@ -10267,8 +10250,8 @@ void loadROSParams(shared_ptr<MachineState> ms) {
   nh.getParam("wooden_spoon_normalizer", wsPBT);
   nh.getParam("gyrobowl_normalizer", gbPBT);
   nh.getParam("mixing_bowl_normalizer", mbPBT);
-  nh.getParam("reject_scale", rejectScale);
-  nh.getParam("reject_area_scale", rejectAreaScale);
+  nh.getParam("reject_scale", ms->config.rejectScale);
+  nh.getParam("reject_area_scale", ms->config.rejectAreaScale);
   nh.getParam("density_decay", ms->config.densityDecay);
 
   nh.getParam("data_directory", ms->config.data_directory);
@@ -10316,8 +10299,8 @@ void saveROSParams(shared_ptr<MachineState> ms) {
   nh.setParam("wooden_spoon_normalizer", wsPBT);
   nh.setParam("gyrobowl_normalizer", gbPBT);
   nh.setParam("mixing_bowl_normalizer", mbPBT);
-  nh.setParam("reject_scale", rejectScale);
-  nh.setParam("reject_area_scale", rejectAreaScale);
+  nh.setParam("reject_scale", ms->config.rejectScale);
+  nh.setParam("reject_area_scale", ms->config.rejectAreaScale);
   nh.setParam("density_decay", ms->config.densityDecay);
 
   nh.setParam("data_directory", ms->config.data_directory);
@@ -11092,25 +11075,25 @@ bool isCellIkImpossible(shared_ptr<MachineState> ms, int i, int j) {
 
 int blueBoxForPixel(shared_ptr<MachineState> ms, int px, int py)
 {
-  for (int c = 0; c < bTops.size(); c++) {
-    if ((bTops[c].x <= px && px <= bBots[c].x) &&
-        (bTops[c].y <= py && py <= bBots[c].y)) {
+  for (int c = 0; c < ms->config.bTops.size(); c++) {
+    if ((ms->config.bTops[c].x <= px && px <= ms->config.bBots[c].x) &&
+        (ms->config.bTops[c].y <= py && py <= ms->config.bBots[c].y)) {
       return c;
     }
   }
   return -1;
 }
 
-int skirtedBlueBoxForPixel(int px, int py, int skirtPixels) {
+int skirtedBlueBoxForPixel(shared_ptr<MachineState> ms, int px, int py, int skirtPixels) {
   vector<cv::Point> newBTops;
   vector<cv::Point> newBBots;
-  newBTops.resize(bBots.size());
-  newBBots.resize(bTops.size()); 
-  for (int c = 0; c < bTops.size(); c++) {
-    newBTops[c].x = bTops[c].x-skirtPixels;
-    newBTops[c].y = bTops[c].y-skirtPixels;
-    newBBots[c].x = bBots[c].x+skirtPixels;
-    newBBots[c].y = bBots[c].y+skirtPixels;
+  newBTops.resize(ms->config.bBots.size());
+  newBBots.resize(ms->config.bTops.size()); 
+  for (int c = 0; c < ms->config.bTops.size(); c++) {
+    newBTops[c].x = ms->config.bTops[c].x-skirtPixels;
+    newBTops[c].y = ms->config.bTops[c].y-skirtPixels;
+    newBBots[c].x = ms->config.bBots[c].x+skirtPixels;
+    newBBots[c].y = ms->config.bBots[c].y+skirtPixels;
   }
 
   for (int c = 0; c < newBTops.size(); c++) {

@@ -562,11 +562,11 @@ REGISTER_WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)
 
 WORD(RecordAllBlueBoxes)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "Recording blue boxes: " << bTops.size() << endl;
-  for (int c = 0; c < bTops.size(); c++) {
+  cout << "Recording blue boxes: " << ms->config.bTops.size() << endl;
+  for (int c = 0; c < ms->config.bTops.size(); c++) {
     BoxMemory box;
-    box.bTop = bTops[c];
-    box.bBot = bBots[c];
+    box.bTop = ms->config.bTops[c];
+    box.bBot = ms->config.bBots[c];
     box.cameraPose = ms->config.currentEEPose;
     box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
     box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
@@ -574,7 +574,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     box.centroid.py = (box.top.py + box.bot.py) * 0.5;
     box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
     box.cameraTime = ros::Time::now();
-    box.labeledClassIndex = bLabels[c];
+    box.labeledClassIndex = ms->config.bLabels[c];
     ms->config.blueBoxMemories.push_back(box);
   }
 
@@ -623,7 +623,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
 
       //int blueBoxIdx = blueBoxForPixel(px, py);
-      int blueBoxIdx = skirtedBlueBoxForPixel(px, py, ms->config.mapFreeSpacePixelSkirt);
+      int blueBoxIdx = skirtedBlueBoxForPixel(ms, px, py, ms->config.mapFreeSpacePixelSkirt);
 
       if (blueBoxIdx == -1) {
         double x, y;
@@ -689,8 +689,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   int c = ms->config.pilotClosestBlueBoxNumber;
   BoxMemory box;
-  box.bTop = bTops[c];
-  box.bBot = bBots[c];
+  box.bTop = ms->config.bTops[c];
+  box.bBot = ms->config.bBots[c];
   box.cameraPose = ms->config.currentEEPose;
   box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
   box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
@@ -698,7 +698,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   box.centroid.py = (box.top.py + box.bot.py) * 0.5;
   box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
   box.cameraTime = ros::Time::now();
-  box.labeledClassIndex = bLabels[c];
+  box.labeledClassIndex = ms->config.bLabels[c];
   box.lockStatus = CENTROID_LOCK;
   
   int i, j;
