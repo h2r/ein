@@ -121,8 +121,6 @@ ros::Publisher einPub;
 ros::Publisher vmMarkerPublisher;
 
 
-const int k = 4;
-int redK = 1;
 
 // paramaters for the color histogram feature
 // ATTN 25
@@ -9951,6 +9949,8 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
   int imW = sz.width;
   int imH = sz.height;
   //cout << imW << " " << imH << endl; cout.flush();
+  int param_numNeighbors = 4;
+
 
   vector< vector<int> > pIoCbuffer;
 
@@ -10022,7 +10022,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       if (!descriptors.empty() && !keypoints.empty()) {
       
 	appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
-	label = kNN->find_nearest(descriptors2,k);
+	label = kNN->find_nearest(descriptors2, param_numNeighbors);
 	bLabels[c] = label;
       }
     } else if (ms->config.chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST) {
@@ -10072,7 +10072,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       
 	//appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
 	//label = kNN->find_nearest(descriptors2,k);
-	label = kNN->find_nearest(descriptors,k);
+	label = kNN->find_nearest(descriptors, param_numNeighbors);
 	bLabels[c] = label;
       }
     } else if (ms->config.chosen_feature == GRADIENT) {
@@ -10132,7 +10132,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 	}
       }
 
-      label = kNN->find_nearest(descriptorsG,k);
+      label = kNN->find_nearest(descriptorsG, param_numNeighbors);
       bLabels[c] = label;
     } else if (ms->config.chosen_feature == OPPONENT_COLOR_GRADIENT) {
       processImage(crop, gray_image, yCrCb_image, ms->config.sobel_sigma);
@@ -10259,7 +10259,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 	}
       }
 
-      label = kNN->find_nearest(descriptorsCbCr,k);
+      label = kNN->find_nearest(descriptorsCbCr, param_numNeighbors);
       bLabels[c] = label;
     }
 
