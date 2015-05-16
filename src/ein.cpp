@@ -121,15 +121,6 @@ ros::Publisher einPub;
 ros::Publisher vmMarkerPublisher;
 
 
-cv_bridge::CvImagePtr cv_ptr = NULL;
-Mat objectViewerImage;
-Mat objectMapViewerImage;
-Mat densityViewerImage;
-Mat wristViewImage;
-Mat gradientViewerImage;
-Mat objectnessViewerImage;
-Mat aerialGradientViewerImage;
-Mat faceViewImage;
 
 int mask_gripper_blocks = 0;
 int mask_gripper = 1;
@@ -142,7 +133,6 @@ std::string densityViewerName = "Density Viewer";
 std::string objectViewerName = "Object Viewer";
 std::string objectMapViewerName = "Object Map View";
 std::string gradientViewerName = "Gradient Viewer";
-std::string objectnessViewerName = "Objectness Viewer";
 std::string aerialGradientViewerName = "Aerial Gradient Viewer";
 
 int loTrackbarVariable = 20;//30;//45;//75;
@@ -249,7 +239,6 @@ BOWImgDescriptorExtractor *bowExtractor = NULL;
 CvKNearest *kNN = NULL;
 std::string package_path;
 std::string class_crops_path;
-std::string objectness_path_prefix;
 std::string saved_crops_path;
 
 cv::Mat cam_img;
@@ -284,7 +273,6 @@ double *temporalObjDensity = NULL;
 double densityDecay = 0.5;//0.9;//0.3;//0.7;
 double objDensityDecay = 0.9;
 double threshFraction = 0.2;
-double objectnessThreshFraction = 0.5;
 
 int biggestL1 = 0;
 int oSearchWidth = 5;
@@ -299,9 +287,6 @@ int oSearchWidth = 5;
 cv::vector<cv::Point> wTop;
 cv::vector<cv::Point> wBot;
 
-// objectness proposed bounding boxes
-cv::vector<cv::Point> nTop;
-cv::vector<cv::Point> nBot;
 
 // bounding boxes of connected components of green matter,
 //  they are the candidate blue boxes
@@ -605,7 +590,7 @@ void timercallback1(const ros::TimerEvent&);
 void imageCallback(const sensor_msgs::ImageConstPtr& msg);
 void renderRangeogramView(shared_ptr<MachineState> ms);
 void renderObjectMapView(shared_ptr<MachineState> ms);
-void drawMapPolygon(gsl_matrix * poly, cv::Scalar color);
+void drawMapPolygon(Mat mapImage, gsl_matrix * poly, cv::Scalar color);
 void targetCallback(const geometry_msgs::Point& point);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata);
@@ -2687,19 +2672,18 @@ void rangeCallback(const sensor_msgs::Range& range) {
     cv::resize(ms->config.hiColorRangemapImage, hCRIT, cv::Size(0,0), 2, 2);
     guardedImshow(ms->config.hiColorRangemapViewName, hCRIT, ms->config.sirHiColorRangemap);
 
-    guardedImshow(objectViewerName, objectViewerImage, ms->config.sirObject);
-    guardedImshow(objectMapViewerName, objectMapViewerImage, ms->config.sirObjectMap);
+    guardedImshow(objectViewerName, ms->config.objectViewerImage, ms->config.sirObject);
+    guardedImshow(objectMapViewerName, ms->config.objectMapViewerImage, ms->config.sirObjectMap);
     //cv::moveWindow(objectMapViewerName, 0, 0);
 
-    guardedImshow(densityViewerName, densityViewerImage, ms->config.sirDensity);
-    guardedImshow(gradientViewerName, gradientViewerImage, ms->config.sirGradient);
-    guardedImshow(objectnessViewerName, objectnessViewerImage, ms->config.sirObjectness);
+    guardedImshow(densityViewerName, ms->config.densityViewerImage, ms->config.sirDensity);
+    guardedImshow(gradientViewerName, ms->config.gradientViewerImage, ms->config.sirGradient);
 
     guardedImshow(ms->config.mapBackgroundViewName, ms->config.mapBackgroundImage, ms->config.sirMapBackground);
     
     if (ms->config.targetClass > -1) {
       if (classHeight0AerialGradients[ms->config.targetClass].rows == aerialGradientWidth) {
-	Mat crop0 = aerialGradientViewerImage(cv::Rect(0, 3*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
+	Mat crop0 = ms->config.aerialGradientViewerImage(cv::Rect(0, 3*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
 	double min0 = 0;
 	double max0 = 0;
 	minMaxLoc(classHeight0AerialGradients[ms->config.targetClass], &min0, &max0);
@@ -2708,7 +2692,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  denom0 = 1;
 	crop0 = (classHeight0AerialGradients[ms->config.targetClass] - min0) / denom0;
 
-	Mat crop1 = aerialGradientViewerImage(cv::Rect(0, 2*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
+	Mat crop1 = ms->config.aerialGradientViewerImage(cv::Rect(0, 2*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
 	double min1 = 0;
 	double max1 = 0;
 	minMaxLoc(classHeight1AerialGradients[ms->config.targetClass], &min1, &max1);
@@ -2717,7 +2701,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  denom1 = 1;
 	crop1 = (classHeight1AerialGradients[ms->config.targetClass] - min1) / denom1;
 
-	Mat crop2 = aerialGradientViewerImage(cv::Rect(0, 1*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
+	Mat crop2 = ms->config.aerialGradientViewerImage(cv::Rect(0, 1*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
 	double min2 = 0;
 	double max2 = 0;
 	minMaxLoc(classHeight2AerialGradients[ms->config.targetClass], &min2, &max2);
@@ -2726,7 +2710,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  denom2 = 1;
 	crop2 = (classHeight2AerialGradients[ms->config.targetClass] - min2) / denom2;
 
-	Mat crop3 = aerialGradientViewerImage(cv::Rect(0, 0*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
+	Mat crop3 = ms->config.aerialGradientViewerImage(cv::Rect(0, 0*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
 	double min3 = 0;
 	double max3 = 0;
 	minMaxLoc(classHeight3AerialGradients[ms->config.targetClass], &min3, &max3);
@@ -2735,7 +2719,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  denom3 = 1;
 	crop3 = (classHeight3AerialGradients[ms->config.targetClass] - min3) / denom3;
 
-	guardedImshow(aerialGradientViewerName, aerialGradientViewerImage, ms->config.sirAerialGradient);
+	guardedImshow(aerialGradientViewerName, ms->config.aerialGradientViewerImage, ms->config.sirAerialGradient);
       }
     }
   }
@@ -3252,44 +3236,42 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     ms->config.shouldIRender = ms->config.shouldIRenderDefault;
 
     try{
-      cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-      cam_img = cv_ptr->image.clone();
+      ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+      cam_img = ms->config.cv_ptr->image.clone();
       //real_img = true;
     }catch(cv_bridge::Exception& e){
       ROS_ERROR("cv_bridge exception: %s", e.what());
       return;
     }
 
-    ms->config.wristCamImage = cv_ptr->image.clone();
+    ms->config.wristCamImage = ms->config.cv_ptr->image.clone();
     ms->config.wristCamInit = 1;
-    wristViewImage = cv_ptr->image.clone();
-    faceViewImage = cv_ptr->image.clone();
+    ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
+    ms->config.faceViewImage = ms->config.cv_ptr->image.clone();
 
-    accumulatedImage = Mat(cv_ptr->image.rows, cv_ptr->image.cols, CV_64FC3);
-    accumulatedImageMass = Mat(cv_ptr->image.rows, cv_ptr->image.cols, CV_64F);
+    accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
+    accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
 
-    densityViewerImage = cv_ptr->image.clone();
-    densityViewerImage *= 0;
-    gradientViewerImage = Mat(2*cv_ptr->image.rows, cv_ptr->image.cols, cv_ptr->image.type());
-    objectnessViewerImage = Mat(cv_ptr->image.rows, cv_ptr->image.cols, cv_ptr->image.type());
-    objectnessViewerImage *= 0;
-    aerialGradientViewerImage = Mat(4*aerialGradientWidth, aerialGradientWidth, CV_64F);
-    objectViewerImage = cv_ptr->image.clone();
+    ms->config.densityViewerImage = ms->config.cv_ptr->image.clone();
+    ms->config.densityViewerImage *= 0;
+    ms->config.gradientViewerImage = Mat(2*ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, ms->config.cv_ptr->image.type());
+    ms->config.aerialGradientViewerImage = Mat(4*aerialGradientWidth, aerialGradientWidth, CV_64F);
+    ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();
   }
 
   try{
-    cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-    cam_img = cv_ptr->image.clone();
+    ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    cam_img = ms->config.cv_ptr->image.clone();
     //real_img = true;
   }catch(cv_bridge::Exception& e){
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
 
-  ms->config.wristCamImage = cv_ptr->image.clone();
+  ms->config.wristCamImage = ms->config.cv_ptr->image.clone();
   ms->config.wristCamInit = 1;
-  wristViewImage = cv_ptr->image.clone();
-  faceViewImage = cv_ptr->image.clone();
+  ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
+  ms->config.faceViewImage = ms->config.cv_ptr->image.clone();
 
 
   guardViewers(ms);
@@ -3446,7 +3428,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt2(pX, pY);
 
-      line(wristViewImage, pt1, pt2, theColor, 3);
+      line(ms->config.wristViewImage, pt1, pt2, theColor, 3);
     }
     for (double zCounter = zStart; zCounter < zEnd; zCounter += deltaZ) {
       int pX = 0, pY = 0;  
@@ -3459,7 +3441,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt2(pX, pY);
 
-      line(wristViewImage, pt1, pt2, THEcOLOR, 1);
+      line(ms->config.wristViewImage, pt1, pt2, THEcOLOR, 1);
     }
 
   }
@@ -3515,9 +3497,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     cv::Scalar theColor(192, 64, 64);
     cv::Scalar THEcOLOR(64, 192, 192);
 
-    circle(wristViewImage, pt1, vanishingPointReticleRadius, theColor, 1);
-    circle(wristViewImage, pt1, vanishingPointReticleRadius+1, THEcOLOR, 1);
-    circle(wristViewImage, pt1, vanishingPointReticleRadius+3, theColor, 1);
+    circle(ms->config.wristViewImage, pt1, vanishingPointReticleRadius, theColor, 1);
+    circle(ms->config.wristViewImage, pt1, vanishingPointReticleRadius+1, THEcOLOR, 1);
+    circle(ms->config.wristViewImage, pt1, vanishingPointReticleRadius+3, theColor, 1);
   }
 
   // draw pMachineState->config.currentMovementState indicator
@@ -3528,9 +3510,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     int x0 = ms->config.vanishingPointReticle.px;
     int y0 = ms->config.vanishingPointReticle.py+3*movementIndicatorOuterHalfWidth;
     Point pt1(x0, y0);
-    Mat innerCrop = wristViewImage(cv::Rect(pt1.x-movementIndicatorInnerHalfWidth, pt1.y-movementIndicatorInnerHalfWidth, 
+    Mat innerCrop = ms->config.wristViewImage(cv::Rect(pt1.x-movementIndicatorInnerHalfWidth, pt1.y-movementIndicatorInnerHalfWidth, 
 					  2*movementIndicatorInnerHalfWidth, 2*movementIndicatorInnerHalfWidth) );
-    Mat outerCrop = wristViewImage(cv::Rect(pt1.x-movementIndicatorOuterHalfWidth, pt1.y-movementIndicatorOuterHalfWidth, 
+    Mat outerCrop = ms->config.wristViewImage(cv::Rect(pt1.x-movementIndicatorOuterHalfWidth, pt1.y-movementIndicatorOuterHalfWidth, 
 					  2*movementIndicatorOuterHalfWidth, 2*movementIndicatorOuterHalfWidth) );
     int icMag = 64;
     Scalar indicatorColor = CV_RGB(icMag,icMag,icMag);
@@ -3562,15 +3544,15 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     int y0 = ms->config.probeReticle.py;
 
     int x1 = max(int(ms->config.probeReticle.px-probeReticleHalfWidth), 0);
-    int x2 = min(int(ms->config.probeReticle.px+probeReticleHalfWidth), wristViewImage.cols);
+    int x2 = min(int(ms->config.probeReticle.px+probeReticleHalfWidth), ms->config.wristViewImage.cols);
     int y1 = max(int(ms->config.probeReticle.py-probeReticleHalfWidth), 0);
-    int y2 = min(int(ms->config.probeReticle.py+probeReticleHalfWidth), wristViewImage.rows);
+    int y2 = min(int(ms->config.probeReticle.py+probeReticleHalfWidth), ms->config.wristViewImage.rows);
 
     int probeReticleShortHalfWidth = 3;
     int x1s = max(int(ms->config.probeReticle.px-probeReticleShortHalfWidth), 0);
-    int x2s = min(int(ms->config.probeReticle.px+probeReticleShortHalfWidth), wristViewImage.cols);
+    int x2s = min(int(ms->config.probeReticle.px+probeReticleShortHalfWidth), ms->config.wristViewImage.cols);
     int y1s = max(int(ms->config.probeReticle.py-probeReticleShortHalfWidth), 0);
-    int y2s = min(int(ms->config.probeReticle.py+probeReticleShortHalfWidth), wristViewImage.rows);
+    int y2s = min(int(ms->config.probeReticle.py+probeReticleShortHalfWidth), ms->config.wristViewImage.rows);
 
     cv::Scalar theColor(255, 0, 0);
     cv::Scalar THEcOLOR(0, 255, 255);
@@ -3582,12 +3564,12 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       {
 	Point pt1(xs, ys);
 	Point pt2(xf, yf);
-	line(wristViewImage, pt1, pt2, theColor, 2.0);
+	line(ms->config.wristViewImage, pt1, pt2, theColor, 2.0);
       }
       {
 	Point pt1(xs, ys+1);
 	Point pt2(xf, yf-1);
-	line(wristViewImage, pt1, pt2, THEcOLOR, 1.0);
+	line(ms->config.wristViewImage, pt1, pt2, THEcOLOR, 1.0);
       }
     }
     {
@@ -3598,12 +3580,12 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       {
 	Point pt1(xs, ys);
 	Point pt2(xf, yf);
-	line(wristViewImage, pt1, pt2, theColor, 2.0);
+	line(ms->config.wristViewImage, pt1, pt2, theColor, 2.0);
       }
       {
 	Point pt1(xs, ys+1);
 	Point pt2(xf, yf-1);
-	line(wristViewImage, pt1, pt2, THEcOLOR, 1.0);
+	line(ms->config.wristViewImage, pt1, pt2, THEcOLOR, 1.0);
       }
     }
     {
@@ -3614,12 +3596,12 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       {
 	Point pt1(xs, ys);
 	Point pt2(xf, yf);
-	line(wristViewImage, pt1, pt2, theColor, 2.0);
+	line(ms->config.wristViewImage, pt1, pt2, theColor, 2.0);
       }
       {
 	Point pt1(xs+1, ys);
 	Point pt2(xf-1, yf);
-	line(wristViewImage, pt1, pt2, THEcOLOR, 1.0);
+	line(ms->config.wristViewImage, pt1, pt2, THEcOLOR, 1.0);
       }
     }
     {
@@ -3630,12 +3612,12 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       {
 	Point pt1(xs, ys);
 	Point pt2(xf, yf);
-	line(wristViewImage, pt1, pt2, theColor, 2.0);
+	line(ms->config.wristViewImage, pt1, pt2, theColor, 2.0);
       }
       {
 	Point pt1(xs+1, ys);
 	Point pt2(xf-1, yf);
-	line(wristViewImage, pt1, pt2, THEcOLOR, 1.0);
+	line(ms->config.wristViewImage, pt1, pt2, THEcOLOR, 1.0);
       }
     }
   
@@ -3648,8 +3630,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       cv::Point outBot = cv::Point(ms->config.xCR[cr]+3, ms->config.yCR[cr]+3);
       cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
       cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
-      rectangle(wristViewImage, outTop, outBot, cv::Scalar(0,192,0)); 
-      rectangle(wristViewImage, inTop, inBot, cv::Scalar(0,64,0)); 
+      rectangle(ms->config.wristViewImage, outTop, outBot, cv::Scalar(0,192,0)); 
+      rectangle(ms->config.wristViewImage, inTop, inBot, cv::Scalar(0,64,0)); 
     }
     {
       int tcrx = getColorReticleX(ms);
@@ -3658,8 +3640,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       cv::Point outBot = cv::Point(tcrx+5, tcry+5);
       cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
       cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
-      rectangle(wristViewImage, outTop, outBot, cv::Scalar(227,104,193)); 
-      rectangle(wristViewImage, inTop, inBot, cv::Scalar(133,104,109)); 
+      rectangle(ms->config.wristViewImage, outTop, outBot, cv::Scalar(227,104,193)); 
+      rectangle(ms->config.wristViewImage, inTop, inBot, cv::Scalar(133,104,109)); 
     }
   }
 
@@ -3677,11 +3659,11 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       cv::Point inBot = cv::Point(thisReticle.px-1+thisReticleHalfWidth,thisReticle.py-1+thisReticleHalfWidth);
 
       if (hri == ms->config.currentThompsonHeightIdx) {
-	rectangle(wristViewImage, outTop, outBot, cv::Scalar(22,70,82)); 
-	rectangle(wristViewImage, inTop, inBot, cv::Scalar(68,205,239));
+	rectangle(ms->config.wristViewImage, outTop, outBot, cv::Scalar(22,70,82)); 
+	rectangle(ms->config.wristViewImage, inTop, inBot, cv::Scalar(68,205,239));
       } else {
-	rectangle(wristViewImage, outTop, outBot, cv::Scalar(82,70,22)); // RGB: 22 70 82
-	rectangle(wristViewImage, inTop, inBot, cv::Scalar(239,205,68)); // RGB: 68 205 239
+	rectangle(ms->config.wristViewImage, outTop, outBot, cv::Scalar(82,70,22)); // RGB: 22 70 82
+	rectangle(ms->config.wristViewImage, inTop, inBot, cv::Scalar(239,205,68)); // RGB: 68 205 239
       }
     }
   }
@@ -3693,21 +3675,21 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     cv::Point inTop = cv::Point(ms->config.pilotTarget.px+1-param_pilotTargetHalfWidth,ms->config.pilotTarget.py+1-param_pilotTargetHalfWidth);
     cv::Point inBot = cv::Point(ms->config.pilotTarget.px-1+param_pilotTargetHalfWidth,ms->config.pilotTarget.py-1+param_pilotTargetHalfWidth);
     if ( (outTop.x > 0) && (outTop.y > 0) && (outBot.x < imW) && (outBot.y < imH) ) {
-      rectangle(wristViewImage, outTop, outBot, cv::Scalar(53,10,97)); // RGB: 97 10 53
-      rectangle(wristViewImage, inTop, inBot, cv::Scalar(142,31,255)); // RGB: 255 31 142
+      rectangle(ms->config.wristViewImage, outTop, outBot, cv::Scalar(53,10,97)); // RGB: 97 10 53
+      rectangle(ms->config.wristViewImage, inTop, inBot, cv::Scalar(142,31,255)); // RGB: 255 31 142
     }
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(ms->config.wristViewName, wristViewImage, ms->config.sirWrist);
+    guardedImshow(ms->config.wristViewName, ms->config.wristViewImage, ms->config.sirWrist);
   }
 }
 
-cv::Point worldToPixel(Mat image, double xMin, double xMax, double yMin, double yMax, double x, double y) {
+cv::Point worldToPixel(Mat mapImage, double xMin, double xMax, double yMin, double yMax, double x, double y) {
   double pxMin = 0;
-  double pxMax = objectMapViewerImage.cols;
+  double pxMax = mapImage.cols;
   double pyMin = 0;
-  double pyMax = objectMapViewerImage.rows;
+  double pyMax = mapImage.rows;
   cv::Point center = cv::Point(pxMax/2, pyMax/2);
 
   cv::Point out = cv::Point((pyMax - pyMin) / (yMax - yMin) * y + center.y,
@@ -3716,25 +3698,25 @@ cv::Point worldToPixel(Mat image, double xMin, double xMax, double yMin, double 
 }
 
 void renderObjectMapView(shared_ptr<MachineState> ms) {
-  if (objectMapViewerImage.rows <= 0 ) {
-    objectMapViewerImage = Mat(800, 800, CV_8UC3);
+  if (ms->config.objectMapViewerImage.rows <= 0 ) {
+    ms->config.objectMapViewerImage = Mat(800, 800, CV_8UC3);
   }
 
   if (0) { // drawGrid
     for (int i = 0; i < mapWidth; i++) {
       for (int j = 0; j < mapHeight; j++) {
         gsl_matrix * mapcell = mapCellToPolygon(i, j);
-        drawMapPolygon(mapcell, CV_RGB(0, 255, 0));
+        drawMapPolygon(ms->config.objectMapViewerImage, mapcell, CV_RGB(0, 255, 0));
         gsl_matrix_free(mapcell);
       }
     }
   }
 
-  objectMapViewerImage = CV_RGB(0, 0, 0);
+  ms->config.objectMapViewerImage = CV_RGB(0, 0, 0);
   double pxMin = 0;
-  double pxMax = objectMapViewerImage.cols;
+  double pxMax = ms->config.objectMapViewerImage.cols;
   double pyMin = 0;
-  double pyMax = objectMapViewerImage.rows;
+  double pyMax = ms->config.objectMapViewerImage.rows;
 
   cv::Point center = cv::Point(pxMax/2, pyMax/2);
 
@@ -3758,13 +3740,13 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
       mapijToxy(i, j, &x, &y);
 
       if (objectMap[i + mapWidth * j].detectedClass != -1) {
-        cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, x, y);
-        cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, x + mapStep, y + mapStep);
+        cv::Point outTop = worldToPixel(ms->config.objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, x, y);
+        cv::Point outBot = worldToPixel(ms->config.objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, x + mapStep, y + mapStep);
         cv::Scalar color = CV_RGB((int) (objectMap[i + mapWidth * j].r / objectMap[i + mapWidth * j].pixelCount),
                                   (int) (objectMap[i + mapWidth * j].g / objectMap[i + mapWidth * j].pixelCount),
                                   (int) (objectMap[i + mapWidth * j].b / objectMap[i + mapWidth * j].pixelCount) );
 	color = color*fadeFraction;
-        rectangle(objectMapViewerImage, outTop, outBot, 
+        rectangle(ms->config.objectMapViewerImage, outTop, outBot, 
                   color,
                   CV_FILLED);
       }
@@ -3788,7 +3770,7 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
 	    }
 	    double x=-1, y=-1;
 	    mapijToxy(i, j, &x, &y);
-	    cv::Point cvp1 = worldToPixel(objectMapViewerImage, 
+	    cv::Point cvp1 = worldToPixel(ms->config.objectMapViewerImage, 
 	      mapXMin, mapXMax, mapYMin, mapYMax, x, y);
 	    if ( (ikMap[i + mapWidth * j] == 1) ) {
 	      Scalar tColor = CV_RGB(192, 32, 32);
@@ -3799,9 +3781,9 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
 	      //gsl_matrix * mapcell = mapCellToPolygon(i, j);
 	      //drawMapPolygon(mapcell, tColor);
 	      //gsl_matrix_free(mapcell);
-	      //line(objectMapViewerImage, cvp1, cvp1, tColor);
-	      objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
-		objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
+	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
 	    } else if ( (ikMap[i + mapWidth * j] == 2) ) {
 	      Scalar tColor = CV_RGB(224, 64, 64);
 	      cv::Vec3b cColor;
@@ -3811,9 +3793,9 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
 	      //gsl_matrix * mapcell = mapCellToPolygon(i, j);
 	      //drawMapPolygon(mapcell, tColor);
 	      //gsl_matrix_free(mapcell);
-	      //line(objectMapViewerImage, cvp1, cvp1, tColor);
-	      objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
-		objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
+	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
 	    }
 	}
       }
@@ -3832,7 +3814,7 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
 	    }
 	    double x=-1, y=-1;
 	    mapijToxy(i, j, &x, &y);
-	    cv::Point cvp1 = worldToPixel(objectMapViewerImage, 
+	    cv::Point cvp1 = worldToPixel(ms->config.objectMapViewerImage, 
 	      mapXMin, mapXMax, mapYMin, mapYMax, x, y);
 	    if ( (clearanceMap[i + mapWidth * j] == 1) ) {
 	      Scalar tColor = CV_RGB(224, 224, 0);
@@ -3843,9 +3825,9 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
 	      //gsl_matrix * mapcell = mapCellToPolygon(i, j);
 	      //drawMapPolygon(mapcell, CV_RGB(128, 128, 0));
 	      //gsl_matrix_free(mapcell);
-	      //line(objectMapViewerImage, cvp1, cvp1, tColor);
-	      objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
-		objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
+	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
 	    } else if ( (clearanceMap[i + mapWidth * j] == 2) ) {
 	      Scalar tColor = CV_RGB(0, 224, 0);
 	      cv::Vec3b cColor;
@@ -3855,9 +3837,9 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
 	      //gsl_matrix * mapcell = mapCellToPolygon(i, j);
 	      //drawMapPolygon(mapcell, CV_RGB(32, 128, 32));
 	      //gsl_matrix_free(mapcell);
-	      //line(objectMapViewerImage, cvp1, cvp1, tColor);
-	      objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
-		objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
+	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
 	    }
 	}
       }
@@ -3866,23 +3848,23 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
 
   { // drawMapSearchFence
     
-    cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+    cv::Point outTop = worldToPixel(ms->config.objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                     mapSearchFenceXMin, mapSearchFenceYMin);
-    cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+    cv::Point outBot = worldToPixel(ms->config.objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                     mapSearchFenceXMax, mapSearchFenceYMax);
 
-    rectangle(objectMapViewerImage, outTop, outBot, 
+    rectangle(ms->config.objectMapViewerImage, outTop, outBot, 
               CV_RGB(255, 255, 0));
   }
 
   { // drawMapRejectFence
     
-    cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+    cv::Point outTop = worldToPixel(ms->config.objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                     mapRejectFenceXMin, mapRejectFenceYMin);
-    cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+    cv::Point outBot = worldToPixel(ms->config.objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                     mapRejectFenceXMax, mapRejectFenceYMax);
 
-    rectangle(objectMapViewerImage, outTop, outBot, 
+    rectangle(ms->config.objectMapViewerImage, outTop, outBot, 
               CV_RGB(255, 0, 0));
   }
 
@@ -3896,13 +3878,13 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
       cx = sprite.pose.px;
       cy = sprite.pose.py;
       
-      cv::Point objectPoint = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+      cv::Point objectPoint = worldToPixel(ms->config.objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
 					   cx, cy);
       objectPoint.x += 15;
 
-      cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+      cv::Point outTop = worldToPixel(ms->config.objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
 				      sprite.top.px, sprite.top.py);
-      cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+      cv::Point outBot = worldToPixel(ms->config.objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
 				      sprite.bot.px, sprite.bot.py);
 
       int halfHeight = (outBot.y - outTop.y)/2;
@@ -3916,10 +3898,10 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
 	halfWidth = (outBot.x - outTop.x)/2;
       }
 
-      rectangle(objectMapViewerImage, outTop, outBot, 
+      rectangle(ms->config.objectMapViewerImage, outTop, outBot, 
 		CV_RGB(0, 255, 0));
 
-      putText(objectMapViewerImage, sprite.name, objectPoint, MY_FONT, 0.5, CV_RGB(196, 255, 196), 2.0);
+      putText(ms->config.objectMapViewerImage, sprite.name, objectPoint, MY_FONT, 0.5, CV_RGB(196, 255, 196), 2.0);
     }
   }
 
@@ -3933,13 +3915,13 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
     cx = memory.centroid.px;
     cy = memory.centroid.py;
     
-    cv::Point objectPoint = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+    cv::Point objectPoint = worldToPixel(ms->config.objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                          cx, cy);
     objectPoint.x += 15;
 
-    cv::Point outTop = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+    cv::Point outTop = worldToPixel(ms->config.objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                     memory.top.px, memory.top.py);
-    cv::Point outBot = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+    cv::Point outBot = worldToPixel(ms->config.objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                     memory.bot.px, memory.bot.py);
 
     int halfHeight = (outBot.y - outTop.y)/2;
@@ -3953,7 +3935,7 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
       halfWidth = (outBot.x - outTop.x)/2;
     }
 
-    rectangle(objectMapViewerImage, outTop, outBot, 
+    rectangle(ms->config.objectMapViewerImage, outTop, outBot, 
               CV_RGB(0, 0, 255));
 
     if (memory.lockStatus == POSE_LOCK ||
@@ -3982,24 +3964,24 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
 	nonBlueAmount = floor(128 * 0.5 * (1.0 + cos(lockArg2+memory.cameraTime.sec)));
       }
       
-      rectangle(objectMapViewerImage, outTopLock, outBotLock, 
+      rectangle(ms->config.objectMapViewerImage, outTopLock, outBotLock, 
               CV_RGB(nonBlueAmount, nonBlueAmount, 128+nonBlueAmount));
     }
 
-    putText(objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, CV_RGB(196, 196, 255), 2.0);
+    putText(ms->config.objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, CV_RGB(196, 196, 255), 2.0);
   }
   
   { // drawRobot
     double radius = 20;
     cv::Point orientation_point = cv::Point(pxMax/2, pyMax/2 + radius);
     
-    circle(objectMapViewerImage, center, radius, cv::Scalar(0, 0, 255));
-    line(objectMapViewerImage, center, orientation_point, cv::Scalar(0, 0, 255));
+    circle(ms->config.objectMapViewerImage, center, radius, cv::Scalar(0, 0, 255));
+    line(ms->config.objectMapViewerImage, center, orientation_point, cv::Scalar(0, 0, 255));
   }
   { // drawHand
     eePose tp = rosPoseToEEPose(ms->config.trueEEPose);
     double radius = 10;
-    cv::Point handPoint = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+    cv::Point handPoint = worldToPixel(ms->config.objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                        tp.px, tp.py);
     
     Eigen::Quaternionf handQuat(tp.qw, tp.qx, tp.qy, tp.qz);
@@ -4008,14 +3990,14 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
     Eigen::Vector3f point(rotated_magnitude, 0, 0);
     Eigen::Vector3f rotated = handQuat * point;
     
-    cv::Point orientation_point = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax,
+    cv::Point orientation_point = worldToPixel(ms->config.objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax,
                                                tp.px + rotated[0], 
                                                tp.py + rotated[1]);
 
 
-    circle(objectMapViewerImage, handPoint, radius, cv::Scalar(0, 0, 255));
+    circle(ms->config.objectMapViewerImage, handPoint, radius, cv::Scalar(0, 0, 255));
 
-    line(objectMapViewerImage, handPoint, orientation_point, cv::Scalar(0, 0, 255));
+    line(ms->config.objectMapViewerImage, handPoint, orientation_point, cv::Scalar(0, 0, 255));
 
   }
 
@@ -4035,9 +4017,8 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
             cout << "cell time: " << objectMap[i + mapWidth * j].lastMappedTime << endl;
             cout << "diff: " << diff << endl;
             if (diff < ros::Duration(2.0)) {
-              drawMapPolygon(poly, color);
-              drawMapPolygon(mapcell, CV_RGB(255, 255, 0));
-
+              drawMapPolygon(ms->config.objectMapViewerImage, poly, color);
+              drawMapPolygon(ms->config.objectMapViewerImage, mapcell, CV_RGB(255, 255, 0));
             }
           }
      
@@ -4050,13 +4031,13 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(objectMapViewerName, objectMapViewerImage, ms->config.sirObjectMap);
+    guardedImshow(objectMapViewerName, ms->config.objectMapViewerImage, ms->config.sirObjectMap);
   }
 
 
 }
 
-void drawMapPolygon(gsl_matrix * polygon_xy, cv::Scalar color) {
+void drawMapPolygon(Mat mapImage, gsl_matrix * polygon_xy, cv::Scalar color) {
   for (size_t i = 0; i < polygon_xy->size2; i++) {
     int j = (i + 1) % polygon_xy->size2;
     gsl_vector_view p1 = gsl_matrix_column(polygon_xy, i);
@@ -4068,11 +4049,11 @@ void drawMapPolygon(gsl_matrix * polygon_xy, cv::Scalar color) {
     double x2 = gsl_vector_get(&p2.vector, 0);
     double y2 = gsl_vector_get(&p2.vector, 1);
     double px1, px2, py1, py2;
-    cv::Point cvp1 = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+    cv::Point cvp1 = worldToPixel(mapImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                   x1, y1);
-    cv::Point cvp2 = worldToPixel(objectMapViewerImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+    cv::Point cvp2 = worldToPixel(mapImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                   x2, y2);
-    line(objectMapViewerImage, cvp1, cvp2, color);
+    line(mapImage, cvp1, cvp2, color);
   }
 
 }
@@ -6607,7 +6588,7 @@ void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms) {
 }
 
 void gradientServo(shared_ptr<MachineState> ms) {
-  Size sz = objectViewerImage.size();
+  Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
 
@@ -6960,7 +6941,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
         int tgX = thisTopCornerX + tx;
         int tgY = thisTopCornerY + ty;
         if ((tgX > 0) && (tgX < imW) && (tgY > 0) && (tgY < imH)) {
-          gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColor;
+          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColor;
         }
       }
     }
@@ -8068,16 +8049,16 @@ void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar 
   pX = pX - lineLength;
   pY = pY - lineLength;
   //cout << "paintEEPoseOnWrist pX pY zToUse: " << pX << " " << pY << " " << zToUse << endl;
-  if ( (pX > 0+lineLength) && (pX < wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < wristViewImage.rows-lineLength) ) {
+  if ( (pX > 0+lineLength) && (pX < ms->config.wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < ms->config.wristViewImage.rows-lineLength) ) {
     {
       Point pt1(pX+lineLength, pY);
       Point pt2(pX+lineLength, pY+lineLength*2);
-      line(wristViewImage, pt1, pt2, theColor);
+      line(ms->config.wristViewImage, pt1, pt2, theColor);
     }
     {
       Point pt1(pX, pY+lineLength);
       Point pt2(pX+lineLength*2, pY+lineLength);
-      line(wristViewImage, pt1, pt2, theColor);
+      line(ms->config.wristViewImage, pt1, pt2, theColor);
     }
   }
 
@@ -8087,21 +8068,21 @@ void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar 
     pixelToGlobal(ms, pX, pY, zToUse, &gX, &gY);
     globalToPixel(ms, &pX, &pY, zToUse, gX, gY);
     //cout << "PAINTeepOSEoNwRIST pX pY gX gY: " << pX << " " << pY << " " << gX << " " << gY << endl;
-    if ( (pX > 0+lineLength) && (pX < wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < wristViewImage.rows-lineLength) ) {
+    if ( (pX > 0+lineLength) && (pX < ms->config.wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < ms->config.wristViewImage.rows-lineLength) ) {
       {
 	Point pt1(pX+lineLength, pY);
 	Point pt2(pX+lineLength, pY+lineLength*2);
-	line(wristViewImage, pt1, pt2, THEcOLOR);
+	line(ms->config.wristViewImage, pt1, pt2, THEcOLOR);
       }
       {
 	Point pt1(pX, pY+lineLength);
 	Point pt2(pX+lineLength*2, pY+lineLength);
-	line(wristViewImage, pt1, pt2, THEcOLOR);
+	line(ms->config.wristViewImage, pt1, pt2, THEcOLOR);
       }
     }
   }
 
-  //guardedImshow(objectViewerName, objectViewerImage);
+  //guardedImshow(objectViewerName, ms->config.objectViewerImage);
 }
 
 double vectorArcTan(shared_ptr<MachineState> ms, double y, double x) {
@@ -8139,7 +8120,7 @@ void initVectorArcTan(shared_ptr<MachineState> ms) {
 }
 
 void mapBlueBox(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark) {
-  Size sz = objectViewerImage.size();
+  Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
 
@@ -9162,9 +9143,9 @@ void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms) {
   for (int y = 0; y < imH; y++) {
   //uchar val = uchar(min( 1*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
   uchar val = uchar(min( 1*255.0 *  (ms->config.frameGraySobel.at<double>(y,x) - minAerTemp) / aerTempRange, 255.0));
-  gradientViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
+  ms->config.gradientViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
 
-  gradientViewerImage.at<cv::Vec3b>(y+imH,x) = convertedYCbCrGradientImage.at<cv::Vec3b>(y,x);
+  ms->config.gradientViewerImage.at<cv::Vec3b>(y+imH,x) = convertedYCbCrGradientImage.at<cv::Vec3b>(y,x);
   }
   }
   */
@@ -9181,12 +9162,12 @@ void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms) {
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      gradientViewerImage.at<cv::Vec3b>(y+imH,x) = oviInBGR.at<cv::Vec3b>(y,x);
+      ms->config.gradientViewerImage.at<cv::Vec3b>(y+imH,x) = oviInBGR.at<cv::Vec3b>(y,x);
      }
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(gradientViewerName, gradientViewerImage, ms->config.sirGradient);
+    guardedImshow(gradientViewerName, ms->config.gradientViewerImage, ms->config.sirGradient);
   }
 
 }
@@ -9205,9 +9186,9 @@ void substituteAccumulatedImageQuantities(shared_ptr<MachineState> ms) {
       if (denom <= 1.0) {
 	denom = 1.0;
       }
-      objectViewerImage.at<Vec3b>(y,x)[0] = doubleToByte(accumulatedImage.at<Vec3d>(y,x)[0] / denom);
-      objectViewerImage.at<Vec3b>(y,x)[1] = doubleToByte(accumulatedImage.at<Vec3d>(y,x)[1] / denom);
-      objectViewerImage.at<Vec3b>(y,x)[2] = doubleToByte(accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+      ms->config.objectViewerImage.at<Vec3b>(y,x)[0] = doubleToByte(accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      ms->config.objectViewerImage.at<Vec3b>(y,x)[1] = doubleToByte(accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      ms->config.objectViewerImage.at<Vec3b>(y,x)[2] = doubleToByte(accumulatedImage.at<Vec3d>(y,x)[2] / denom);
     }
   }
 }
@@ -9216,26 +9197,26 @@ void substituteLatestImageQuantities(shared_ptr<MachineState> ms) {
   double param_aerialGradientDecayIteratedDensity = 0.9;
   ms->config.aerialGradientDecay = param_aerialGradientDecayIteratedDensity;
   sobel_sigma = sobel_sigma_substitute_latest;
-  if (cv_ptr == NULL) {
+  if (ms->config.cv_ptr == NULL) {
     ROS_ERROR("Not receiving camera data, clearing call stack.");
     ms->clearStack();
     return;
   }
 
-  objectViewerImage = cv_ptr->image.clone();
+  ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();
 }
 
 void goCalculateDensity(shared_ptr<MachineState> ms) {
-  Size sz = objectViewerImage.size();
+  Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
 
   // XXX TODO might be able to pick up some time here if their allocation is slow
   // by making these global
-  densityViewerImage = objectViewerImage.clone();
-  Mat tmpImage = objectViewerImage.clone();
+  ms->config.densityViewerImage = ms->config.objectViewerImage.clone();
+  Mat tmpImage = ms->config.objectViewerImage.clone();
 
-  Mat yCbCrGradientImage = objectViewerImage.clone();
+  Mat yCbCrGradientImage = ms->config.objectViewerImage.clone();
 
   // determine table edges, i.e. the gray boxes
   lGO = gBoxW*(lGO/gBoxW);
@@ -9388,7 +9369,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   }
 
   // input image is noisy so blurring is a good idea
-  //GaussianBlur(densityViewerImage, densityViewerImage, cv::Size(0,0), 1.0);
+  //GaussianBlur(ms->config.densityViewerImage, ms->config.densityViewerImage, cv::Size(0,0), 1.0);
 
   if (integralDensity == NULL)
     integralDensity = new double[imW*imH];
@@ -9534,8 +9515,8 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
     cv::Point outBot = cv::Point(grayBot.x, grayBot.y);
     cv::Point inTop = cv::Point(grayTop.x+1,grayTop.y+1);
     cv::Point inBot = cv::Point(grayBot.x-1,grayBot.y-1);
-    rectangle(objectViewerImage, outTop, outBot, cv::Scalar(128,128,128));
-    rectangle(objectViewerImage, inTop, inBot, cv::Scalar(32,32,32));
+    rectangle(ms->config.objectViewerImage, outTop, outBot, cv::Scalar(128,128,128));
+    rectangle(ms->config.objectViewerImage, inTop, inBot, cv::Scalar(32,32,32));
   }
 
   if (mask_gripper) {
@@ -9544,8 +9525,8 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
 	if ( isInGripperMask(ms, x, y) ) {
 	  density[y*imW+x] = 0;
 	  totalGraySobel.at<double>(y,x) = 0;
-	  if (!isSketchyMat(objectViewerImage)) {
-	    objectViewerImage.at<Vec3b>(y,x)[0] = 255;
+	  if (!isSketchyMat(ms->config.objectViewerImage)) {
+	    ms->config.objectViewerImage.at<Vec3b>(y,x)[0] = 255;
 	  }
 	}
       }
@@ -9563,8 +9544,8 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
 	totalGraySobel.at<double>(y,x) = 0;
       }
     }
-    if (!isSketchyMat(objectViewerImage)) {
-      Mat vCrop = objectViewerImage(cv::Rect(xs, ys, xe-xs, ye-ys));
+    if (!isSketchyMat(ms->config.objectViewerImage)) {
+      Mat vCrop = ms->config.objectViewerImage(cv::Rect(xs, ys, xe-xs, ye-ys));
       vCrop = vCrop/2;
     }
     xs = g2xs;
@@ -9577,7 +9558,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
 	totalGraySobel.at<double>(y,x) = 0;
       }
     }
-    Mat vCrop2 = objectViewerImage(cv::Rect(xs, ys, xe-xs, ye-ys));
+    Mat vCrop2 = ms->config.objectViewerImage(cv::Rect(xs, ys, xe-xs, ye-ys));
     vCrop2 = vCrop2/2;
   }
 
@@ -9628,7 +9609,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
       uchar val = uchar(min( 255.0 * density[y*imW+x] / maxDensity, 255.0));
-      densityViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
+      ms->config.densityViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
     }
   }
 
@@ -9705,21 +9686,20 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
     for (int y = 0; y < imH; y++) {
       //uchar val = uchar(min( 1*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
       uchar val = uchar(min( 1*255.0 *  (ms->config.frameGraySobel.at<double>(y,x) - minAerTemp) / aerTempRange, 255.0));
-      gradientViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
+      ms->config.gradientViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
 
-      gradientViewerImage.at<cv::Vec3b>(y+imH,x) = convertedYCbCrGradientImage.at<cv::Vec3b>(y,x);
+      ms->config.gradientViewerImage.at<cv::Vec3b>(y+imH,x) = convertedYCbCrGradientImage.at<cv::Vec3b>(y,x);
     }
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(densityViewerName, densityViewerImage, ms->config.sirDensity);
-    guardedImshow(gradientViewerName, gradientViewerImage, ms->config.sirGradient);
-    guardedImshow(objectnessViewerName, objectnessViewerImage, ms->config.sirObjectness);
+    guardedImshow(densityViewerName, ms->config.densityViewerImage, ms->config.sirDensity);
+    guardedImshow(gradientViewerName, ms->config.gradientViewerImage, ms->config.sirGradient);
   }
 }
 
 void goFindBlueBoxes(shared_ptr<MachineState> ms) {
-  Size sz = objectViewerImage.size();
+  Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
 
@@ -9779,12 +9759,12 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       if (thisIntegral > adjusted_canny_lo_thresh) {
 	      gBoxIndicator[y*imW+x] = 1;
 	      if (ms->config.drawGreen)
-		rectangle(objectViewerImage, thisTop, thisBot, cv::Scalar(0,128,0));
+		rectangle(ms->config.objectViewerImage, thisTop, thisBot, cv::Scalar(0,128,0));
       }
       if (thisIntegral > adjusted_canny_hi_thresh) {
 	      gBoxIndicator[y*imW+x] = 2;
 	      if (ms->config.drawGreen)
-		rectangle(objectViewerImage, thisTop, thisBot, cv::Scalar(0,255,0));
+		rectangle(ms->config.objectViewerImage, thisTop, thisBot, cv::Scalar(0,255,0));
       }
       pBoxIndicator[y*imW+x] = thisIntegral;
 
@@ -10014,15 +9994,15 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       cv::Point outBot = cv::Point(bBots[c].x, bBots[c].y);
       cv::Point inTop = cv::Point(bTops[c].x+1,bTops[c].y+1);
       cv::Point inBot = cv::Point(bBots[c].x-1,bBots[c].y-1);
-      rectangle(objectViewerImage, outTop, outBot, cv::Scalar(255,0,0));
-      rectangle(objectViewerImage, inTop, inBot, cv::Scalar(255,192,192));
+      rectangle(ms->config.objectViewerImage, outTop, outBot, cv::Scalar(255,0,0));
+      rectangle(ms->config.objectViewerImage, inTop, inBot, cv::Scalar(255,192,192));
     }
   }
 
 //cout << "Here 4" << endl;
 
   if (ms->config.shouldIRender) {
-    guardedImshow(objectViewerName, objectViewerImage, ms->config.sirObject);
+    guardedImshow(objectViewerName, ms->config.objectViewerImage, ms->config.sirObject);
   }
 
   delete gBoxIndicator;
@@ -10033,7 +10013,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
 
 void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
   //cout << "entered gCBB()" << endl; cout.flush();
-  Size sz = objectViewerImage.size();
+  Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
   //cout << imW << " " << imH << endl; cout.flush();
@@ -10098,7 +10078,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 	      (kpTop.y >= 1) &&
 	      (kpBot.y <= imH-2) 
 	      ) {
-	      rectangle(objectViewerImage, kpTop, kpBot, cv::Scalar(255,0,0));
+	      rectangle(ms->config.objectViewerImage, kpTop, kpBot, cv::Scalar(255,0,0));
 	    }
 	  }
 	}
@@ -10147,7 +10127,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 	      (kpTop.y >= 1) &&
 	      (kpBot.y <= imH-2) 
 	      ) {
-	      rectangle(objectViewerImage, kpTop, kpBot, cv::Scalar(255,0,0));
+	      rectangle(ms->config.objectViewerImage, kpTop, kpBot, cv::Scalar(255,0,0));
 	    }
 	  }
 	}
@@ -10366,8 +10346,8 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 
     cv::Point text_anchor(bTops[c].x+1, bBots[c].y-2);
     cv::Point text_anchor2(bTops[c].x+1, bBots[c].y-2);
-    putText(objectViewerImage, augmentedLabelName, text_anchor, MY_FONT, 0.5, Scalar(255,192,192), 2.0);
-    putText(objectViewerImage, augmentedLabelName, text_anchor2, MY_FONT, 0.5, Scalar(255,0,0), 1.0);
+    putText(ms->config.objectViewerImage, augmentedLabelName, text_anchor, MY_FONT, 0.5, Scalar(255,192,192), 2.0);
+    putText(ms->config.objectViewerImage, augmentedLabelName, text_anchor2, MY_FONT, 0.5, Scalar(255,0,0), 1.0);
 
 
 
@@ -10423,7 +10403,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(objectViewerName, objectViewerImage, ms->config.sirObject);
+    guardedImshow(objectViewerName, ms->config.objectViewerImage, ms->config.sirObject);
   }
 
 }
@@ -11484,33 +11464,29 @@ void initializeMap(shared_ptr<MachineState> ms) {
 
 void guardViewers(shared_ptr<MachineState> ms) {
   if ( isSketchyMat(ms->config.objectViewerYCbCrBlur) ) {
-    ms->config.objectViewerYCbCrBlur = Mat(cv_ptr->image.rows, cv_ptr->image.cols, CV_64FC3);
+    ms->config.objectViewerYCbCrBlur = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
   }
   if ( isSketchyMat(ms->config.objectViewerGrayBlur) ) {
-    ms->config.objectViewerGrayBlur = Mat(cv_ptr->image.rows, cv_ptr->image.cols, CV_64FC3);
+    ms->config.objectViewerGrayBlur = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
   }
-  if ( isSketchyMat(densityViewerImage) ) {
-    densityViewerImage = cv_ptr->image.clone();
-    densityViewerImage *= 0;
+  if ( isSketchyMat(ms->config.densityViewerImage) ) {
+    ms->config.densityViewerImage = ms->config.cv_ptr->image.clone();
+    ms->config.densityViewerImage *= 0;
   }
   if ( isSketchyMat(accumulatedImage) ) {
-    accumulatedImage = Mat(cv_ptr->image.rows, cv_ptr->image.cols, CV_64FC3);
+    accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
   }
   if ( isSketchyMat(accumulatedImageMass) ) {
-    accumulatedImageMass = Mat(cv_ptr->image.rows, cv_ptr->image.cols, CV_64F);
+    accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
   }
-  if ( isSketchyMat(gradientViewerImage) ) {
-    gradientViewerImage = Mat(2*cv_ptr->image.rows, cv_ptr->image.cols, cv_ptr->image.type());
+  if ( isSketchyMat(ms->config.gradientViewerImage) ) {
+    ms->config.gradientViewerImage = Mat(2*ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, ms->config.cv_ptr->image.type());
   }
-  if ( isSketchyMat(objectnessViewerImage) ) {
-    objectnessViewerImage = Mat(cv_ptr->image.rows, cv_ptr->image.cols, cv_ptr->image.type());
-    objectnessViewerImage *= 0;
+  if ( isSketchyMat(ms->config.aerialGradientViewerImage) ) {
+    ms->config.aerialGradientViewerImage = Mat(4*aerialGradientWidth, aerialGradientWidth, CV_64F);
   }
-  if ( isSketchyMat(aerialGradientViewerImage) ) {
-    aerialGradientViewerImage = Mat(4*aerialGradientWidth, aerialGradientWidth, CV_64F);
-  }
-  if ( isSketchyMat(objectViewerImage) ) {
-    objectViewerImage = cv_ptr->image.clone();
+  if ( isSketchyMat(ms->config.objectViewerImage) ) {
+    ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();
   }
 }
 
@@ -11694,12 +11670,10 @@ int main(int argc, char **argv) {
   objectViewerName = "Object Viewer " + ms->config.left_or_right_arm;
   gradientViewerName = "Gradient Viewer " + ms->config.left_or_right_arm;
   aerialGradientViewerName = "Aerial Gradient Viewer " + ms->config.left_or_right_arm;
-  objectnessViewerName = "Objectness Viewer " + ms->config.left_or_right_arm;
 
   cv::namedWindow(gradientViewerName);
   cv::namedWindow(aerialGradientViewerName);
   cv::namedWindow(densityViewerName);
-  cv::namedWindow(objectViewerName);
   setMouseCallback(objectViewerName, nodeCallbackFunc, NULL);
 
   createTrackbar("post_density_sigma", densityViewerName, &postDensitySigmaTrackbarVariable, 40);

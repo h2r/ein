@@ -4,6 +4,7 @@
 #include <baxter_core_msgs/HeadPanCommand.h>
 #include <std_msgs/UInt16.h>
 #include <std_msgs/Bool.h>
+#include <cv_bridge/cv_bridge.h>
 
 #include "ein_util.h"
 #include "eigen_util.h"
@@ -746,6 +747,15 @@ class EinConfig {
   int drawGray = 1;
   int drawBlueKP = 1;
 
+
+  cv_bridge::CvImagePtr cv_ptr = NULL;
+  Mat objectViewerImage;
+  Mat objectMapViewerImage;
+  Mat densityViewerImage;
+  Mat wristViewImage;
+  Mat gradientViewerImage;
+  Mat aerialGradientViewerImage;
+  Mat faceViewImage;
 
 
 }; // config end

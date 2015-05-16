@@ -638,7 +638,7 @@ REGISTER_WORD(NeutralScanH)
 WORD(SaveAerialGradientMap)
 CODE(196730)      // capslock + Z
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  Size sz = objectViewerImage.size();
+  Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
         
