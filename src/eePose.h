@@ -1,6 +1,7 @@
 #ifndef _EEPOSEH_
 #define _EEPOSEH_
 
+#include <iostream>
 #include "eigen_util.h"
 #include <cv.h>
 #include <highgui.h>
@@ -8,6 +9,7 @@
 #include <opencv2/nonfree/nonfree.hpp>
 #include <opencv2/gpu/gpu.hpp>
 using namespace cv;
+using namespace std;
 
 typedef struct _eePose{
   double px;
@@ -40,6 +42,8 @@ typedef struct _eePose{
   static _eePose fromRectCentroid(Rect rect);
 
   static _eePose zero();
+
+  friend ostream & operator<<(ostream &, const _eePose &);
 
 } eePose;
 

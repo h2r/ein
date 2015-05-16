@@ -1950,7 +1950,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     cout << "save3dGrasps: Writing: " << this_grasp_path << endl;
     fsvO.open(this_grasp_path, FileStorage::WRITE);
 
-    fsvO << "grasps";
+    fsvO << "grasps" << "{";
     {
       int tng = ms->config.class3dGrasps[ms->config.focusedClass].size();
       fsvO << "size" <<  tng;
@@ -1974,8 +1974,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       cout << "Reading grasp information from " << this_grasp_path << " ...";
       fsvI.open(this_grasp_path, FileStorage::READ);
 
-      FileNode anode = fsvI["3dGrasps"];
-      FileNodeIterator it = anode.begin(), it_end = anode.end();
+      FileNode anode = fsvI["grasps"];
       {
 	FileNode bnode = anode["size"];
 	FileNodeIterator itb = bnode.begin();
@@ -1988,6 +1987,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	for ( ; itc != itc_end; itc++, numLoadedPoses++) {
 	  eePose buf;
 	  buf.readFromFileNodeIterator(itc);
+	  cout << " read pose: " << buf;
 	  ms->config.class3dGrasps[ms->config.focusedClass].push_back(buf);
 	}
 	if (numLoadedPoses != tng) {
