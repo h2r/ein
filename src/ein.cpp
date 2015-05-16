@@ -124,14 +124,7 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-int numClasses = 0;
 
-vector<string> classLabels; 
-vector<string> classPoseModels;
-vector<CvKNearest*> classPosekNNs;
-vector<Mat> classPosekNNfeatures;
-vector<Mat> classPosekNNlabels;
-vector< vector< cv::Vec<double,4> > > classQuaternions;
 
 DescriptorMatcher *matcher = NULL;
 FeatureDetector *detector = NULL;
@@ -652,8 +645,8 @@ void neutral();
 
 void guardViewers(shared_ptr<MachineState> ms);
 
-void fillRecognizedObjectArrayFromBlueBoxMemory(object_recognition_msgs::RecognizedObjectArray * roa);
-void fillEinStateMsg(EinConfig * configIn, EinState * stateOut);
+void fillRecognizedObjectArrayFromBlueBoxMemory(shared_ptr<MachineState> ms, object_recognition_msgs::RecognizedObjectArray * roa);
+void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut);
 
 ////////////////////////////////////////////////
 // end node prototypes 
@@ -1575,8 +1568,8 @@ void jointCallback(const sensor_msgs::JointState& js) {
 int classIdxForName(shared_ptr<MachineState> ms, string name) {
   int class_idx = -1;
   
-  for (int i = 0; i < classLabels.size(); i++) {
-    if (classLabels[i] == name) {
+  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    if (ms->config.classLabels[i] == name) {
       class_idx = i;
       break;
     }
@@ -1690,13 +1683,13 @@ void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
       blueBoxMemories = newMemories;
       ms->config.objectInHandLabel = foundClassIndex;
       if (ms->config.objectInHandLabel >= 0) {
-	cout << "pickObjectUnderEndEffectorCommandCallback: The " << classLabels[ms->config.objectInHandLabel] << " you found is now in your hand." << endl;
+	cout << "pickObjectUnderEndEffectorCommandCallback: The " << ms->config.classLabels[ms->config.objectInHandLabel] << " you found is now in your hand." << endl;
       } else {
 	cout << "pickObjectUnderEndEffectorCommandCallback: Alas, nothing to be found." << endl;
       }
     } else {
       if (ms->config.objectInHandLabel >= 0) {
-	cout << "pickObjectUnderEndEffectorCommandCallback: Not picking because of the " << classLabels[ms->config.objectInHandLabel] << " you already hold." << endl;
+	cout << "pickObjectUnderEndEffectorCommandCallback: Not picking because of the " << ms->config.classLabels[ms->config.objectInHandLabel] << " you already hold." << endl;
       } else {
 	cout << "pickObjectUnderEndEffectorCommandCallback: Not picking because objectInHandLabel is " << ms->config.objectInHandLabel << "." << endl;
       }
@@ -1733,7 +1726,7 @@ void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
       }
       newMemories.push_back(box);
       blueBoxMemories = newMemories;
-      cout << "placeObjectInEndEffectorCommandCallback: You dropped the " << classLabels[ms->config.objectInHandLabel] << "." << endl;
+      cout << "placeObjectInEndEffectorCommandCallback: You dropped the " << ms->config.classLabels[ms->config.objectInHandLabel] << "." << endl;
     } else {
       cout << "placeObjectInEndEffectorCommandCallback: Not placing because objectInHandLabel is " << ms->config.objectInHandLabel << "." << endl;
     }
@@ -3091,13 +3084,13 @@ void timercallback1(const ros::TimerEvent&) {
 
   {
     EinState state;
-    fillEinStateMsg(&(pMachineState->config), &state);
+    fillEinStateMsg(ms, &state);
     einPub.publish(state);
   }
 
   endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
 
-  if (!pMachineState->config.zero_g_toggle) {
+  if (!ms->config.zero_g_toggle) {
     update_baxter(n);
   }
   else {
@@ -3111,9 +3104,9 @@ void timercallback1(const ros::TimerEvent&) {
   }
 
   if (ms->config.sirCore) {
-    renderCoreView(pMachineState, ms->config.coreViewName);
+    renderCoreView(ms, ms->config.coreViewName);
   }
-  renderRangeogramView(pMachineState);
+  renderRangeogramView(ms);
 
   if (ms->config.shouldIRender) {
     renderObjectMapView(pMachineState);
@@ -3808,7 +3801,7 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
   // draw blue boxes
   for (int i = 0; i < blueBoxMemories.size(); i++) {
     BoxMemory memory = blueBoxMemories[i];
-    string class_name = classLabels[memory.labeledClassIndex];
+    string class_name = ms->config.classLabels[memory.labeledClassIndex];
     
     double cx, cy;
     
@@ -4192,7 +4185,7 @@ void saveCalibration(shared_ptr<MachineState> ms, string outFileName) {
     sprintf(buf, "%d", i);
     string testString(buf);
     testString = "test"+testString;
-    fsvO << testString << classLabels;
+    fsvO << testString << ms->config.classLabels;
   }
   */
 
@@ -4810,8 +4803,8 @@ int getGlobalGraspGear(shared_ptr<MachineState> ms, int localGraspGearIn) {
 void changeTargetClass(shared_ptr<MachineState> ms, int newTargetClass) {
   ms->config.targetClass = newTargetClass;
   ms->config.focusedClass = ms->config.targetClass;
-  ms->config.focusedClassLabel = classLabels[ms->config.focusedClass];
-  cout << "class " << ms->config.targetClass << " " << classLabels[ms->config.targetClass] << endl;
+  ms->config.focusedClassLabel = ms->config.classLabels[ms->config.focusedClass];
+  cout << "class " << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
   ms->execute_stack = 1;	
 
 
@@ -4877,8 +4870,8 @@ void changeTargetClass(shared_ptr<MachineState> ms, int newTargetClass) {
 }
 
 void guard3dGrasps(shared_ptr<MachineState> ms) {
-  if (pMachineState->config.class3dGrasps.size() < numClasses) {
-    pMachineState->config.class3dGrasps.resize(numClasses);
+  if (pMachineState->config.class3dGrasps.size() < ms->config.numClasses) {
+    pMachineState->config.class3dGrasps.resize(ms->config.numClasses);
   }
 }
 
@@ -5720,7 +5713,7 @@ void loadGlobalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMa
 
   ms->config.bestOrientationAngle = angle;
 
-  if ((ms->config.targetClass < numClasses) && (ms->config.targetClass >= 0)) {
+  if ((ms->config.targetClass < ms->config.numClasses) && (ms->config.targetClass >= 0)) {
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
         // unrotated
@@ -5736,7 +5729,7 @@ void loadGlobalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMa
 
 
 void loadLocalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB) {
-  if ((ms->config.targetClass < numClasses) && (ms->config.targetClass >= 0)) {
+  if ((ms->config.targetClass < ms->config.numClasses) && (ms->config.targetClass >= 0)) {
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
         rangeMapRegA[x + y*ms->config.rmWidth] = classRangeMaps[ms->config.targetClass].at<double>(y,x);
@@ -5833,7 +5826,7 @@ void copyClassGraspMemoryTriesToGraspMemoryTries(shared_ptr<MachineState> ms) {
       } 
     } 
   } else {
-    cout << "Whoops, tried to set grasp memories 1 but they don't exist for this class." << ms->config.targetClass << " " << classLabels[ms->config.targetClass] << endl;
+    cout << "Whoops, tried to set grasp memories 1 but they don't exist for this class." << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
   }
   if ((classGraspMemoryTries2[ms->config.targetClass].rows > 1) && (classGraspMemoryTries2[ms->config.targetClass].cols > 1) &&
       (classGraspMemoryPicks2[ms->config.targetClass].rows > 1) && (classGraspMemoryPicks2[ms->config.targetClass].cols > 1) ) {
@@ -5851,7 +5844,7 @@ void copyClassGraspMemoryTriesToGraspMemoryTries(shared_ptr<MachineState> ms) {
       } 
     } 
   } else {
-    cout << "Whoops, tried to set grasp memories 2 but they don't exist for this class." << ms->config.targetClass << " " << classLabels[ms->config.targetClass] << endl;
+    cout << "Whoops, tried to set grasp memories 2 but they don't exist for this class." << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
   }
   if ((classGraspMemoryTries3[ms->config.targetClass].rows > 1) && (classGraspMemoryTries3[ms->config.targetClass].cols > 1) &&
       (classGraspMemoryPicks3[ms->config.targetClass].rows > 1) && (classGraspMemoryPicks3[ms->config.targetClass].cols > 1) ) {
@@ -5869,7 +5862,7 @@ void copyClassGraspMemoryTriesToGraspMemoryTries(shared_ptr<MachineState> ms) {
       } 
     } 
   } else {
-    cout << "Whoops, tried to set grasp memories 3 but they don't exist for this class." << ms->config.targetClass << " " << classLabels[ms->config.targetClass] << endl;
+    cout << "Whoops, tried to set grasp memories 3 but they don't exist for this class." << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
   }
   if ((classGraspMemoryTries4[ms->config.targetClass].rows > 1) && (classGraspMemoryTries4[ms->config.targetClass].cols > 1) &&
       (classGraspMemoryPicks4[ms->config.targetClass].rows > 1) && (classGraspMemoryPicks4[ms->config.targetClass].cols > 1) ) {
@@ -5887,10 +5880,10 @@ void copyClassGraspMemoryTriesToGraspMemoryTries(shared_ptr<MachineState> ms) {
       } 
     } 
   } else {
-    cout << "Whoops, tried to set grasp memories 4 but they don't exist for this class." << ms->config.targetClass << " " << classLabels[ms->config.targetClass] << endl;
+    cout << "Whoops, tried to set grasp memories 4 but they don't exist for this class." << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
   }
         
-  cout << "class " << classLabels[ms->config.targetClass] << " number ";
+  cout << "class " << ms->config.classLabels[ms->config.targetClass] << " number ";
 
 }
 
@@ -6509,7 +6502,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   //        }
 
   cout << "entered gradient servo... iteration " << currentGradientServoIterations << endl;
-  if (ms->config.targetClass < 0 || ms->config.targetClass >= numClasses) {
+  if (ms->config.targetClass < 0 || ms->config.targetClass >= ms->config.numClasses) {
     cout << "bad target class, not servoing." << endl;
     return;
   }
@@ -7473,34 +7466,34 @@ void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces) {
 
 
 void initRangeMaps(shared_ptr<MachineState> ms) {
-  classRangeMaps.resize(numClasses);
-  classGraspMemoryTries1.resize(numClasses);
-  classGraspMemoryPicks1.resize(numClasses);
-  classGraspMemoryTries2.resize(numClasses);
-  classGraspMemoryPicks2.resize(numClasses);
-  classGraspMemoryTries3.resize(numClasses);
-  classGraspMemoryPicks3.resize(numClasses);
-  classGraspMemoryTries4.resize(numClasses);
-  classGraspMemoryPicks4.resize(numClasses);
-  classAerialGradients.resize(numClasses);
+  classRangeMaps.resize(ms->config.numClasses);
+  classGraspMemoryTries1.resize(ms->config.numClasses);
+  classGraspMemoryPicks1.resize(ms->config.numClasses);
+  classGraspMemoryTries2.resize(ms->config.numClasses);
+  classGraspMemoryPicks2.resize(ms->config.numClasses);
+  classGraspMemoryTries3.resize(ms->config.numClasses);
+  classGraspMemoryPicks3.resize(ms->config.numClasses);
+  classGraspMemoryTries4.resize(ms->config.numClasses);
+  classGraspMemoryPicks4.resize(ms->config.numClasses);
+  classAerialGradients.resize(ms->config.numClasses);
 
   // ATTN 16
-  classHeight0AerialGradients.resize(numClasses);
-  classHeight1AerialGradients.resize(numClasses);
-  classHeight2AerialGradients.resize(numClasses);
-  classHeight3AerialGradients.resize(numClasses);
+  classHeight0AerialGradients.resize(ms->config.numClasses);
+  classHeight1AerialGradients.resize(ms->config.numClasses);
+  classHeight2AerialGradients.resize(ms->config.numClasses);
+  classHeight3AerialGradients.resize(ms->config.numClasses);
 
-  ms->config.classGraspZs.resize(numClasses);
-  ms->config.classGraspZsSet.resize(numClasses);
-  ms->config.class3dGrasps.resize(numClasses);
-  for(int i = 0; i < numClasses; i++) {
+  ms->config.classGraspZs.resize(ms->config.numClasses);
+  ms->config.classGraspZsSet.resize(ms->config.numClasses);
+  ms->config.class3dGrasps.resize(ms->config.numClasses);
+  for(int i = 0; i < ms->config.numClasses; i++) {
     ms->config.class3dGrasps[i].resize(0);
   }
 
-  classHeightMemoryTries.resize(numClasses);
-  classHeightMemoryPicks.resize(numClasses);
-  for (int i = 0; i < classLabels.size(); i++) {
-    tryToLoadRangeMap(ms, class_crops_path, classLabels[i].c_str(), i);
+  classHeightMemoryTries.resize(ms->config.numClasses);
+  classHeightMemoryPicks.resize(ms->config.numClasses);
+  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    tryToLoadRangeMap(ms, class_crops_path, ms->config.classLabels[i].c_str(), i);
   }
 }
 
@@ -10250,7 +10243,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       bLabels[c] = label;
     }
 
-    if (classLabels[label].compare(invert_sign_name) == 0)
+    if (ms->config.classLabels[label].compare(invert_sign_name) == 0)
       invertQuaternionLabel = 1;
 
 
@@ -10262,7 +10255,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
     if (label == -1)
       labelName = "VOID";
     else
-      labelName = classLabels[label];
+      labelName = ms->config.classLabels[label];
     augmentedLabelName = labelName;
 
     cv::Point text_anchor(bTops[c].x+1, bBots[c].y-2);
@@ -10572,40 +10565,40 @@ void detectorsInit(shared_ptr<MachineState> ms) {
       fsvI.open(labelsCacheFile, FileStorage::READ);
       fsvI["labels"] >> classCacheLabels;
       fsvI["poseModels"] >> classCachePoseModels;
-      //classLabels.insert(classLabels.end(), classCacheLabels.begin(), classCacheLabels.end());
-      //classPoseModels.insert(classPoseModels.end(), classCachePoseModels.begin(), classCachePoseModels.end());
+      //ms->config.classLabels.insert(ms->config.classLabels.end(), classCacheLabels.begin(), classCacheLabels.end());
+      //ms->config.classPoseModels.insert(ms->config.classPoseModels.end(), classCachePoseModels.begin(), classCachePoseModels.end());
       cout << "done." << endl << "classCacheLabels size: " << classCacheLabels.size() << " classCachePoseModels size: " << classCachePoseModels.size() << endl;
       numCachedClasses = classCacheLabels.size();
 
-      classCacheLabels.insert(classCacheLabels.end(), classLabels.begin(), classLabels.end());
-      classCachePoseModels.insert(classCachePoseModels.end(), classPoseModels.begin(), classPoseModels.end());
-      classLabels = classCacheLabels;
-      classPoseModels = classCachePoseModels;
-      cout << "classLabels size: " << classLabels.size() << " classPoseModels size: " << classPoseModels.size() << endl;
+      classCacheLabels.insert(classCacheLabels.end(), ms->config.classLabels.begin(), ms->config.classLabels.end());
+      classCachePoseModels.insert(classCachePoseModels.end(), ms->config.classPoseModels.begin(), ms->config.classPoseModels.end());
+      ms->config.classLabels = classCacheLabels;
+      ms->config.classPoseModels = classCachePoseModels;
+      cout << "classLabels size: " << ms->config.classLabels.size() << " classPoseModels size: " << ms->config.classPoseModels.size() << endl;
     }
 
     FileStorage fsvO;
     cout<<"Writing labels and pose models... " << labelsPath << " ...";
     fsvO.open(labelsPath, FileStorage::WRITE);
-    fsvO << "labels" << classLabels;
-    fsvO << "poseModels" << classPoseModels;
+    fsvO << "labels" << ms->config.classLabels;
+    fsvO << "poseModels" << ms->config.classPoseModels;
     fsvO.release();
     cout << "done." << endl;
   } else {
     FileStorage fsvI;
     cout<<"Reading labels and pose models... "<< labelsPath << " ...";
     fsvI.open(labelsPath, FileStorage::READ);
-    fsvI["labels"] >> classLabels;
-    fsvI["poseModels"] >> classPoseModels;
-    cout << "done. classLabels size: " << classLabels.size() << " classPoseModels size: " << classPoseModels.size() << endl;
+    fsvI["labels"] >> ms->config.classLabels;
+    fsvI["poseModels"] >> ms->config.classPoseModels;
+    cout << "done. classLabels size: " << ms->config.classLabels.size() << " classPoseModels size: " << ms->config.classPoseModels.size() << endl;
   }
 
-  for (unsigned int i = 0; i < classLabels.size(); i++) {
-    cout << classLabels[i] << " " << classPoseModels[i] << endl;
+  for (unsigned int i = 0; i < ms->config.classLabels.size(); i++) {
+    cout << ms->config.classLabels[i] << " " << ms->config.classPoseModels[i] << endl;
   }
 
   // this is the total number of classes, so it is counted after the cache is dealt with
-  numClasses = classLabels.size();
+  ms->config.numClasses = ms->config.classLabels.size();
 
   if (loadRange) {
     initRangeMaps(ms);
@@ -10615,12 +10608,12 @@ void detectorsInit(shared_ptr<MachineState> ms) {
 
   ms->config.grandTotalDescriptors = 0;
   if (ms->config.retrain_vocab) {
-    for (unsigned int i = 0; i < classLabels.size(); i++) {
-      cout << "Getting BOW features for class " << classLabels[i] 
-	   << " with pose model " << classPoseModels[i] << " index " << i << endl;
-      bowGetFeatures(class_crops_path, classLabels[i].c_str(), ms->config.grayBlur, ms->config.keypointPeriod, &ms->config.grandTotalDescriptors);
-      if (classPoseModels[i].compare("G") == 0) {
-	string thisPoseLabel = classLabels[i] + "Poses";
+    for (unsigned int i = 0; i < ms->config.classLabels.size(); i++) {
+      cout << "Getting BOW features for class " << ms->config.classLabels[i] 
+	   << " with pose model " << ms->config.classPoseModels[i] << " index " << i << endl;
+      bowGetFeatures(class_crops_path, ms->config.classLabels[i].c_str(), ms->config.grayBlur, ms->config.keypointPeriod, &ms->config.grandTotalDescriptors);
+      if (ms->config.classPoseModels[i].compare("G") == 0) {
+	string thisPoseLabel = ms->config.classLabels[i] + "Poses";
         bowGetFeatures(class_crops_path, thisPoseLabel.c_str(), ms->config.grayBlur, ms->config.keypointPeriod, &ms->config.grandTotalDescriptors);
       }
     }
@@ -10660,22 +10653,22 @@ void detectorsInit(shared_ptr<MachineState> ms) {
   Mat kNNfeatures;
   Mat kNNlabels;
 
-  classPosekNNs.resize(numClasses);
-  classPosekNNfeatures.resize(numClasses);
-  classPosekNNlabels.resize(numClasses);
-  classQuaternions.resize(numClasses);
+  ms->config.classPosekNNs.resize(ms->config.numClasses);
+  ms->config.classPosekNNfeatures.resize(ms->config.numClasses);
+  ms->config.classPosekNNlabels.resize(ms->config.numClasses);
+  ms->config.classQuaternions.resize(ms->config.numClasses);
 
   if (ms->config.reextract_knn) {
     //for (int i = 0; i < numNewClasses; i++) 
-    for (int i = numCachedClasses; i < numClasses; i++) 
+    for (int i = numCachedClasses; i < ms->config.numClasses; i++) 
     {
-      cout << "Getting kNN features for class " << classLabels[i] 
-	   << " with pose model " << classPoseModels[i] << " index " << i << endl;
-      kNNGetFeatures(ms, class_crops_path, classLabels[i].c_str(), i, ms->config.grayBlur, kNNfeatures, kNNlabels, ms->config.sobel_sigma);
-      if (classPoseModels[i].compare("G") == 0) {
-	string thisPoseLabel = classLabels[i] + "Poses";
-      posekNNGetFeatures(class_crops_path, thisPoseLabel.c_str(), ms->config.grayBlur, classPosekNNfeatures[i], classPosekNNlabels[i],
-                         classQuaternions[i], 0, ms->config.keypointPeriod);
+      cout << "Getting kNN features for class " << ms->config.classLabels[i] 
+	   << " with pose model " << ms->config.classPoseModels[i] << " index " << i << endl;
+      kNNGetFeatures(ms, class_crops_path, ms->config.classLabels[i].c_str(), i, ms->config.grayBlur, kNNfeatures, kNNlabels, ms->config.sobel_sigma);
+      if (ms->config.classPoseModels[i].compare("G") == 0) {
+	string thisPoseLabel = ms->config.classLabels[i] + "Poses";
+      posekNNGetFeatures(class_crops_path, thisPoseLabel.c_str(), ms->config.grayBlur, ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i],
+                         ms->config.classQuaternions[i], 0, ms->config.keypointPeriod);
       }
     }
 
@@ -10694,15 +10687,15 @@ void detectorsInit(shared_ptr<MachineState> ms) {
       kNNfeatures.push_back(kNNCachefeatures);
       kNNlabels.push_back(kNNCachelabels);
 
-      for (int i = 0; i < numClasses; i++) {
-	if (classPoseModels[i].compare("G") == 0) {
-	  string fnIn = "features" + classLabels[i];
-	  string lnIn = "labels" + classLabels[i];
-	  string qnIn = "quaternions" + classLabels[i];
-	  cout << "G: " << classLabels[i] << " " << fnIn << " " << lnIn << endl;
-	  fsfI[fnIn] >> classPosekNNfeatures[i];
-	  fsfI[lnIn] >> classPosekNNlabels[i];
-	  fsfI[qnIn] >> classQuaternions[i];
+      for (int i = 0; i < ms->config.numClasses; i++) {
+	if (ms->config.classPoseModels[i].compare("G") == 0) {
+	  string fnIn = "features" + ms->config.classLabels[i];
+	  string lnIn = "labels" + ms->config.classLabels[i];
+	  string qnIn = "quaternions" + ms->config.classLabels[i];
+	  cout << "G: " << ms->config.classLabels[i] << " " << fnIn << " " << lnIn << endl;
+	  fsfI[fnIn] >> ms->config.classPosekNNfeatures[i];
+	  fsfI[lnIn] >> ms->config.classPosekNNlabels[i];
+	  fsfI[qnIn] >> ms->config.classQuaternions[i];
 	}
       }
 
@@ -10717,15 +10710,15 @@ void detectorsInit(shared_ptr<MachineState> ms) {
 
     // TODO also cache the features for the pose models
 
-    for (int i = 0; i < numClasses; i++) {
-      if (classPoseModels[i].compare("G") == 0) {
-	string fnOut = "features" + classLabels[i];
-	string lnOut = "labels" + classLabels[i];
-	string qnOut = "quaternions" + classLabels[i];
-	cout << "G: " << classLabels[i] << " " << fnOut << " " << lnOut << endl;
-	fsfO << fnOut << classPosekNNfeatures[i];
-	fsfO << lnOut << classPosekNNlabels[i];
-	fsfO << qnOut << classQuaternions[i];
+    for (int i = 0; i < ms->config.numClasses; i++) {
+      if (ms->config.classPoseModels[i].compare("G") == 0) {
+	string fnOut = "features" + ms->config.classLabels[i];
+	string lnOut = "labels" + ms->config.classLabels[i];
+	string qnOut = "quaternions" + ms->config.classLabels[i];
+	cout << "G: " << ms->config.classLabels[i] << " " << fnOut << " " << lnOut << endl;
+	fsfO << fnOut << ms->config.classPosekNNfeatures[i];
+	fsfO << lnOut << ms->config.classPosekNNlabels[i];
+	fsfO << qnOut << ms->config.classQuaternions[i];
       }
     }
     fsfO.release();
@@ -10740,15 +10733,15 @@ void detectorsInit(shared_ptr<MachineState> ms) {
 
     fsfI["features"] >> kNNfeatures;
     fsfI["labels"] >> kNNlabels;
-    for (int i = 0; i < numClasses; i++) {
-      if (classPoseModels[i].compare("G") == 0) {
-	string fnIn = "features" + classLabels[i];
-	string lnIn = "labels" + classLabels[i];
-	string qnIn = "quaternions" + classLabels[i];
-	cout << "G: " << classLabels[i] << " " << fnIn << " " << lnIn << endl;
-	fsfI[fnIn] >> classPosekNNfeatures[i];
-	fsfI[lnIn] >> classPosekNNlabels[i];
-	fsfI[qnIn] >> classQuaternions[i];
+    for (int i = 0; i < ms->config.numClasses; i++) {
+      if (ms->config.classPoseModels[i].compare("G") == 0) {
+	string fnIn = "features" + ms->config.classLabels[i];
+	string lnIn = "labels" + ms->config.classLabels[i];
+	string qnIn = "quaternions" + ms->config.classLabels[i];
+	cout << "G: " << ms->config.classLabels[i] << " " << fnIn << " " << lnIn << endl;
+	fsfI[fnIn] >> ms->config.classPosekNNfeatures[i];
+	fsfI[lnIn] >> ms->config.classPosekNNlabels[i];
+	fsfI[qnIn] >> ms->config.classQuaternions[i];
       }
     }
     cout << "done. knnFeatures size: " << kNNfeatures.size() << " kNNlabels size: " << kNNlabels.size() << endl;
@@ -10760,10 +10753,10 @@ void detectorsInit(shared_ptr<MachineState> ms) {
   cout << "Main kNN...";
   kNN = new CvKNearest(kNNfeatures, kNNlabels);
   cout << "done." << endl;
-  for (int i = 0; i < numClasses; i++) {
-    if (classPoseModels[i].compare("G") == 0) {
-      cout << "Class " << i << " kNN..." << classPosekNNfeatures[i].size() << classPosekNNlabels[i].size() << endl;
-      classPosekNNs[i] = new CvKNearest(classPosekNNfeatures[i], classPosekNNlabels[i]);
+  for (int i = 0; i < ms->config.numClasses; i++) {
+    if (ms->config.classPoseModels[i].compare("G") == 0) {
+      cout << "Class " << i << " kNN..." << ms->config.classPosekNNfeatures[i].size() << ms->config.classPosekNNlabels[i].size() << endl;
+      ms->config.classPosekNNs[i] = new CvKNearest(ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i]);
       cout << "Done" << endl;
     }
   }
@@ -11402,7 +11395,7 @@ void guardViewers(shared_ptr<MachineState> ms) {
 // start ein 
 ////////////////////////////////////////////////
 
-void fillRecognizedObjectArrayFromBlueBoxMemory(object_recognition_msgs::RecognizedObjectArray * roa) {
+void fillRecognizedObjectArrayFromBlueBoxMemory(shared_ptr<MachineState> ms, object_recognition_msgs::RecognizedObjectArray * roa) {
   roa->objects.resize(0);
 
   roa->header.stamp = ros::Time::now();
@@ -11415,8 +11408,8 @@ void fillRecognizedObjectArrayFromBlueBoxMemory(object_recognition_msgs::Recogni
     }
   }
 
-  for (int class_i = 0; class_i < classLabels.size(); class_i++) {
-    string class_label = classLabels[class_i];
+  for (int class_i = 0; class_i < ms->config.classLabels.size(); class_i++) {
+    string class_label = ms->config.classLabels[class_i];
     if (class_label != "background") {
       eePose centroid;
       centroid.px = 0;
@@ -11481,17 +11474,17 @@ void fillRecognizedObjectArrayFromBlueBoxMemory(object_recognition_msgs::Recogni
   }
 }
 
-void fillEinStateMsg(EinConfig * configIn, EinState * stateOut) {
-  stateOut->zero_g = configIn->zero_g_toggle;
+void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut) {
+  stateOut->zero_g = ms->config.zero_g_toggle;
 
-  stateOut->movement_state = configIn->currentMovementState;
-  stateOut->patrol_state = configIn->currentPatrolState;
-  stateOut->patrol_mode = configIn->currentPatrolMode;
-  stateOut->place_mode = configIn->currentPlaceMode;
-  stateOut->idle_mode = configIn->currentIdleMode;
+  stateOut->movement_state = ms->config.currentMovementState;
+  stateOut->patrol_state = ms->config.currentPatrolState;
+  stateOut->patrol_mode = ms->config.currentPatrolMode;
+  stateOut->place_mode = ms->config.currentPlaceMode;
+  stateOut->idle_mode = ms->config.currentIdleMode;
 
   object_recognition_msgs::RecognizedObjectArray roa;
-  fillRecognizedObjectArrayFromBlueBoxMemory(&roa);
+  fillRecognizedObjectArrayFromBlueBoxMemory(ms, &roa);
 
   for (int i = 0; i < roa.objects.size(); i++) {
     stateOut->objects.push_back(roa.objects[i]);
