@@ -124,15 +124,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-int bbLearningMaxTries = 15;
-int graspLearningMaxTries = 10;
-
-int thompsonHardCutoff = 0;
-int thompsonMinTryCutoff = 5;
-double thompsonMinPassRate = 0.80;
-int thompsonAdaptiveCutoff = 1;
-int thompsonPickHaltFlag = 0;
-int thompsonHeightHaltFlag = 0;
 
 int useContinuousGraspTransform = 1;
 
@@ -6717,9 +6708,9 @@ void recordBoundingBoxSuccess(shared_ptr<MachineState> ms) {
   int thisNumTries = ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx];
   cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
   if (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) {
-    if ( (thisNumTries >= thompsonMinTryCutoff) && 
-	 (thisPickRate >= thompsonMinPassRate) ) {
-      thompsonHeightHaltFlag = 1;
+    if ( (thisNumTries >= ms->config.thompsonMinTryCutoff) && 
+	 (thisPickRate >= ms->config.thompsonMinPassRate) ) {
+      ms->config.thompsonHeightHaltFlag = 1;
     }
   }
 
@@ -6740,9 +6731,9 @@ void recordBoundingBoxSuccess(shared_ptr<MachineState> ms) {
 
     cout << "prob that mu > d: " << result << " algorithmCAT: " << algorithmCAT << endl;
     if (ms->config.currentBoundingBoxMode == LEARNING_ALGORITHMC) {
-      thompsonHeightHaltFlag = (result > algorithmCAT);
+      ms->config.thompsonHeightHaltFlag = (result > algorithmCAT);
       if (result2 > algorithmCAT) {
-	thompsonHeightHaltFlag = 1;
+	ms->config.thompsonHeightHaltFlag = 1;
       }
     }
   }
@@ -7841,7 +7832,7 @@ int isThisGraspMaxedOut(shared_ptr<MachineState> ms, int i) {
   int toReturn = 0;
 
   if (ms->config.currentPickMode == LEARNING_SAMPLING) {
-    toReturn = ( (ms->config.graspMemoryTries[i] >= graspLearningMaxTries) );
+    toReturn = ( (ms->config.graspMemoryTries[i] >= ms->config.graspLearningMaxTries) );
   } else if (ms->config.currentPickMode == LEARNING_ALGORITHMC) {
     // ATTN 20
     double successes = ms->config.graspMemoryPicks[i];
