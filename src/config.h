@@ -544,8 +544,6 @@ class EinConfig {
   int newClassCounter = 0;
   string focusedClassLabel;
 
-  int publishObjects = 1;
-
   int synchronicTakeClosest = 0;
   int gradientTakeClosest = 0;
   int gradientServoDuringHeightLearning = 1;
@@ -741,6 +739,13 @@ class EinConfig {
   int retrain_vocab = 0;
   int rewrite_labels = 0;
   int reextract_knn = 0;
+
+  int drawOrientor = 1;
+  int drawGreen = 1;
+  int drawBlue = 1;
+  int drawGray = 1;
+  int drawBlueKP = 1;
+
 
 
 }; // config end

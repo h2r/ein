@@ -121,23 +121,6 @@ ros::Publisher einPub;
 ros::Publisher vmMarkerPublisher;
 
 
-
-int drawOrientor = 1;
-int drawLabels = 1;
-int drawPurple = 0;
-int drawGreen = 1;
-int drawBlue = 1;
-int drawRed = 1;
-int drawRB = 0;
-int drawGray = 1;
-int drawPink = 0;
-int drawBrown = 1;
-int drawBlueKP = 1;
-int drawRedKP = 1;
-
-object_recognition_msgs::RecognizedObjectArray roa_to_send_blue;
-visualization_msgs::MarkerArray ma_to_send_blue; 
-
 cv_bridge::CvImagePtr cv_ptr = NULL;
 Mat objectViewerImage;
 Mat objectMapViewerImage;
@@ -306,9 +289,6 @@ double objectnessThreshFraction = 0.5;
 int biggestL1 = 0;
 int oSearchWidth = 5;
 
-Mat *orientedFiltersT;
-Mat *orientedFiltersS;
-Mat *orientedFiltersK;
 
 // Top variables are top left corners of bounding boxes (smallest coordinates)
 // Bot variables are bottom right corners of bounding boxes (largest coordinates)
@@ -755,18 +735,6 @@ void kNNGetFeatures(std::string classDir, const char *className, int label, doub
 void posekNNGetFeatures(std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
   vector< cv::Vec<double,4> >& classQuaternions, int lIndexStart = 0);
 
-
-void fill_RO_and_M_arrays(object_recognition_msgs::RecognizedObjectArray& roa_to_send, 
-  visualization_msgs::MarkerArray& ma_to_send, vector<cv::Point>& pointCloudPoints, 
-  int aI, int label, int winningO, int poseIndex);
-
-void getOrientation(vector<KeyPoint>& keypoints, Mat& descriptors, cv::Point top, cv::Point bot, 
-  int label, string& labelName, string& augmentedLabelName, double& poseIndex, int& winningO);
-
-void init_oriented_filters(orientedFilterType thisType);
-void init_oriented_filters_all();
-int isOrientedFilterPoseModel(string toCompare);
-orientedFilterType getOrientedFilterType(string toCompare);
 
 void nodeCallbackFunc(int event, int x, int y, int flags, void* userdata);
 
@@ -9150,491 +9118,7 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
 }
 
 
-// for publishing
-void fill_RO_and_M_arrays(object_recognition_msgs::RecognizedObjectArray& roa_to_send, 
-  visualization_msgs::MarkerArray& ma_to_send, vector<cv::Point>& pointCloudPoints, 
-  int aI, int label, int winningO, int poseIndex) {
 
-
-  geometry_msgs::Pose object_pose;
-
-  // XXX calculate orientation elsewhere
-  cv::Matx33f R;
-  R(0,0) = 1; R(0,1) = 0; R(0,2) = 0;
-  R(1,0) = 0; R(1,1) = 1; R(1,2) = 0;
-  R(2,0) = 0; R(2,1) = 0; R(2,2) = 1;
-
-  // handle the rotation differently depending on the class
-  // if we have a spoon
-  if (isOrientedFilterPoseModel(classPoseModels[label])) {
-    double theta = (M_PI / 2.0) + (winningO*2*M_PI/ORIENTATIONS);
-    R(0,0) = cos(theta); R(0,1) = -sin(theta); R(0,2) = 0;
-    R(1,0) = sin(theta); R(1,1) =  cos(theta); R(1,2) = 0;
-    R(2,0) = 0;          R(2,1) = 0;           R(2,2) = 1;
-  }
-
-
-  Eigen::Matrix3f rotation;
-  rotation << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
-  Eigen::Quaternionf objectQuaternion(rotation);
-
-  objectQuaternion = tableQuaternion * objectQuaternion;
-
-  if (0 == classPoseModels[label].compare("G")) {
-
-    cv::Vec<double,4> tLQ = classQuaternions[label][poseIndex];
-
-    Eigen::Quaternionf thisLabelQuaternion;
-    thisLabelQuaternion.x() = tLQ[0];
-    thisLabelQuaternion.y() = tLQ[1];
-    thisLabelQuaternion.z() = tLQ[2];
-    thisLabelQuaternion.w() = tLQ[3];
-    objectQuaternion = thisLabelQuaternion;
-
-  }
-  //ROS_INFO_STREAM("quaternion: " << objectQuaternion.x());
-  //ROS_INFO_STREAM("roa: " << roa_to_send.objects[aI]);
-
-  roa_to_send.objects[aI].pose.pose.pose.orientation.x = objectQuaternion.x();
-  roa_to_send.objects[aI].pose.pose.pose.orientation.y = objectQuaternion.y();
-  roa_to_send.objects[aI].pose.pose.pose.orientation.z = objectQuaternion.z();
-  roa_to_send.objects[aI].pose.pose.pose.orientation.w = objectQuaternion.w();
-
-
-  // determine the x,y,z coordinates of the object from the point cloud
-  // this bounding box has top left  bTops[x] and bBots[aI]
-  roa_to_send.objects[aI].pose.pose.pose.position = object_pose.position;
-
-
-  ma_to_send.markers[aI].pose = roa_to_send.objects[aI].pose.pose.pose;
-
-  roa_to_send.header.stamp = ros::Time::now();
-  roa_to_send.header.frame_id = "/camera_rgb_optical_frame";
-
-  roa_to_send.objects[aI].header = roa_to_send.header;
-  //roa_to_send.objects[aI].point_clouds[0].header = roa_to_send.header;
-  roa_to_send.objects[aI].pose.header = roa_to_send.header;
-
-  if (0 == classPoseModels[label].compare("B")) {
-    ma_to_send.markers[aI].type =  visualization_msgs::Marker::SPHERE;
-    ma_to_send.markers[aI].scale.x = 0.15;
-    ma_to_send.markers[aI].scale.y = 0.15;
-    ma_to_send.markers[aI].scale.z = 0.15;
-    ma_to_send.markers[aI].color.a = 0.5;
-    ma_to_send.markers[aI].color.r = 0.9;
-    ma_to_send.markers[aI].color.g = 0.9;
-    ma_to_send.markers[aI].color.b = 0.0;
-  } else if (isOrientedFilterPoseModel(classPoseModels[label])) {
-    ma_to_send.markers[aI].type =  visualization_msgs::Marker::CUBE;
-    ma_to_send.markers[aI].scale.x = 0.2;
-    ma_to_send.markers[aI].scale.y = 0.02;
-    ma_to_send.markers[aI].scale.z = 0.02;
-    ma_to_send.markers[aI].color.a = 0.50;
-    ma_to_send.markers[aI].color.r = 0.25;
-    ma_to_send.markers[aI].color.g = 0.25;
-    ma_to_send.markers[aI].color.b = 0.25;
-  } else {
-    ma_to_send.markers[aI].type =  visualization_msgs::Marker::CUBE;
-    ma_to_send.markers[aI].scale.x = 0.2;
-    ma_to_send.markers[aI].scale.y = 0.02;
-    ma_to_send.markers[aI].scale.z = 0.02;
-    ma_to_send.markers[aI].color.a = 0.5;
-    ma_to_send.markers[aI].color.r = 0.0;
-    ma_to_send.markers[aI].color.g = 0.9;
-    ma_to_send.markers[aI].color.b = 0.9;
-  } 
-
-  char labelName[256]; 
-
-  if (label == -1)
-    sprintf(labelName, "VOID");
-  else
-    sprintf(labelName, "%s", classLabels[label].c_str());
-
-  roa_to_send.objects[aI].type.key = labelName;
-
-
-  ma_to_send.markers[aI].header =  roa_to_send.header;
-  ma_to_send.markers[aI].action = visualization_msgs::Marker::ADD;
-  ma_to_send.markers[aI].id = aI;
-  ma_to_send.markers[aI].lifetime = ros::Duration(1.0);
-
-}
-
-void getOrientation(vector<KeyPoint>& keypoints, Mat& descriptors, cv::Point top, cv::Point bot, 
-  int label, string& labelName, string& augmentedLabelName, double& poseIndex, int& winningO) {
-
-  if (label == -1)
-    labelName = "VOID";
-  else
-    labelName = classLabels[label];
-
-  augmentedLabelName = labelName;
-
-  if (label >= 0) {
-    if (0 == classPoseModels[label].compare("G")) {
-      if (!descriptors.empty() && !keypoints.empty()) {
-	poseIndex = classPosekNNs[label]->find_nearest(descriptors,k);
-      }
-    }
-
-    if (isOrientedFilterPoseModel(classPoseModels[label])) {
-      Mat *orientedFilters;
-
-      orientedFilterType thisType = getOrientedFilterType(classPoseModels[label]);
-
-      if (thisType == MRT)
-	orientedFilters = orientedFiltersT;
-      else if (thisType == SPOON)
-	orientedFilters = orientedFiltersS;
-      else if (thisType == KNIFE)
-	orientedFilters = orientedFiltersK;
-      else {
-	cout << "Invalid oriented filter type. Exiting." << endl;
-	exit(EXIT_FAILURE);
-      }
-
-
-      int boxWidth  = bot.x-top.x;
-      int boxHeight = bot.y-top.y;
-
-      int xxs = max(0, top.x - oSearchWidth*gBoxStrideX);
-      int xxf = min(gBoxStrideX*((densityViewerImage.size().width-1-boxWidth)/gBoxStrideX), top.x + oSearchWidth*gBoxStrideX);
-      int yys = max(0, top.y - oSearchWidth*gBoxStrideY);
-      int yyf = min(gBoxStrideY*((densityViewerImage.size().height-1-boxHeight)/gBoxStrideY), top.y + oSearchWidth*gBoxStrideY);
-
-//xxs = top.x;
-//xxf = top.x;
-//yys = top.y;
-//yyf = top.y;
-
-      double winningScore = -1;
-      int winningX = -1;
-      int winningY = -1;
-      for (int yy = yys; yy <= yyf; yy+=gBoxStrideY) {
-	for (int xx = xxs; xx <= xxf; xx+=gBoxStrideX) {
-	  //Mat gCrop1 = densityViewerImage(cv::Rect(top.x, top.y, bot.x-top.x, bot.y-top.y));
-	  Mat gCrop1 = densityViewerImage(cv::Rect(xx, yy, bot.x-top.x, bot.y-top.y));
-
-	  // grow to the max dimension to avoid distortion
-	  int crows = gCrop1.rows;
-	  int ccols = gCrop1.cols;
-	  int maxDim = max(crows, ccols);
-	  Mat gCrop(maxDim, maxDim, gCrop1.type());
-	  int tRy = (maxDim-crows)/2;
-	  int tRx = (maxDim-ccols)/2;
-
-	  for (int x = 0; x < maxDim; x++) {
-	    for (int y = 0; y < maxDim; y++) {
-	      int tx = x - tRx;
-	      int ty = y - tRy;
-	      if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols)
-		gCrop.at<cv::Vec3b>(y, x) = gCrop1.at<cv::Vec3b>(ty, tx);
-	      else
-		gCrop.at<cv::Vec3b>(y, x) = cv::Vec<uchar, 3>(0,0,0);
-	    }
-	  }
-	  cv::resize(gCrop, gCrop, orientedFilters[0].size());
-	  gCrop.convertTo(gCrop, orientedFilters[0].type());
-
-	  Mat gcChannels[3];
-	  split(gCrop, gcChannels);
-
-	  //double norm = gcChannels[1].dot(Mat::ones(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F));
-	  double norm = sqrt(gcChannels[1].dot(gcChannels[1]));
-
-	  for (int o = 0; o < ORIENTATIONS; o++) {
-	    //double thisScore = gcChannels[1].dot(orientedFilters[o]);
-	    double thisScore = gcChannels[1].dot(orientedFilters[o]) / norm;
-	    if (thisScore > winningScore) {
-	      winningScore = thisScore;
-	      winningO = o;
-	      winningX = xx;
-	      winningY = yy;
-	    }
-	  }
-	}
-      }
-
-      cv::Matx33f R;
-      R(0,0) = 1; R(0,1) = 0; R(0,2) = 0;
-      R(1,0) = 0; R(1,1) = 1; R(1,2) = 0;
-      R(2,0) = 0; R(2,1) = 0; R(2,2) = 1;
-
-      // handle the rotation differently depending on the class
-      // if we have a spoon
-      if (isOrientedFilterPoseModel(classPoseModels[label])) {
-	double theta = (M_PI / 2.0) + (winningO*2*M_PI/ORIENTATIONS);
-	R(0,0) = cos(theta); R(0,1) = -sin(theta); R(0,2) = 0;
-	R(1,0) = sin(theta); R(1,1) =  cos(theta); R(1,2) = 0;
-	R(2,0) = 0;          R(2,1) = 0;           R(2,2) = 1;
-      }
-
-
-      Eigen::Matrix3f rotation;
-      rotation << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
-      Eigen::Quaternionf objectQuaternion(rotation);
-
-      objectQuaternion = tableQuaternion * objectQuaternion;
-
-      if (0 == classLabels[label].compare(table_label_class_name)) {
-	tableLabelQuaternion = objectQuaternion;
-      }
-
-
-      if (drawOrientor) {
-	Mat vCrop = objectViewerImage(cv::Rect(top.x, top.y, bot.x-top.x, bot.y-top.y));
-	vCrop = vCrop.mul(0.5);
-
-	Mat scaledFilter;
-	// XXX
-	cv::resize(orientedFilters[winningO], scaledFilter, vCrop.size());
-	//cv::resize(orientedFilters[fc % ORIENTATIONS], scaledFilter, vCrop.size());
-	//fc++;
-	scaledFilter = biggestL1*scaledFilter;
-	 
-	vector<Mat> channels;
-	channels.push_back(Mat::zeros(scaledFilter.size(), scaledFilter.type()));
-	channels.push_back(Mat::zeros(scaledFilter.size(), scaledFilter.type()));
-	channels.push_back(scaledFilter);
-	merge(channels, scaledFilter);
-
-	scaledFilter.convertTo(scaledFilter, vCrop.type());
-	vCrop = vCrop + 128*scaledFilter;
-      }
-    }
-
-
-    if (0 == classPoseModels[label].compare("G")) {
-      string result;
-      ostringstream convert;
-      convert << poseIndex;
-      result = convert.str();
-      augmentedLabelName = augmentedLabelName + " " + result;
-    }
-  }
-}
-
-void init_oriented_filters(orientedFilterType thisType) {
-  Mat *orientedFilters; 
-  if (thisType == MRT)
-    orientedFilters = orientedFiltersT;
-  else if (thisType == SPOON)
-    orientedFilters = orientedFiltersS;
-  else if (thisType == KNIFE)
-    orientedFilters = orientedFiltersK;
-  else {
-    cout << "Invalid oriented filter type. Exiting." << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  for (int x = 0; x < O_FILTER_WIDTH; x++) {
-    for (int y = 0; y < O_FILTER_WIDTH; y++) {
-      orientedFilters[0].at<double>(y,x) = 0.0;
-    }
-  }
-  // Spoon filters are used to estimate the orientation of spoon-like objects
-  // based on their green maps. Hard coded for convenience. 
-  // This approach is pretty flexible and works for other types of objects.
-  // E.g., mrT and knives.
-  // A map could be estimated by some other process and loaded here, or just represented
-  // as bitmap and converted here.
-  // We go on to make this comparison based based on an affine transformation, it is more accurate.
-/*
-  // Diagonal Spoon Filter
-  for (int x = 0; x < O_FILTER_SPOON_HEAD_WIDTH; x++) {
-    for (int y = 0; y < O_FILTER_SPOON_HEAD_WIDTH; y++) {
-      orientedFilters[0].at<double>(y,x) = 1.0;
-    }
-  }
-  for (int x = 0; x < O_FILTER_WIDTH; x++) {
-    for (int y = max(0,x-O_FILTER_SPOON_SHAFT_WIDTH); y < min(O_FILTER_WIDTH, x+O_FILTER_SPOON_SHAFT_WIDTH); y++) {
-      orientedFilters[0].at<double>(y,x) = 1.0;
-    }
-  }
-*/
-
-  if (thisType == MRT) {
-    // mrT Filter
-    int center = (O_FILTER_WIDTH-1)/2;
-    for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH; x <= center+O_FILTER_SPOON_SHAFT_WIDTH; x++) {
-      for (int y = 0; y < O_FILTER_WIDTH; y++) {
-	orientedFilters[0].at<double>(y,x) = 1.0;
-      }
-    }
-    for (int x = center-5*O_FILTER_SPOON_SHAFT_WIDTH; x <= center+5*O_FILTER_SPOON_SHAFT_WIDTH; x++) {
-      for (int y = 0; y < 2*O_FILTER_SPOON_SHAFT_WIDTH-1; y++) {
-	orientedFilters[0].at<double>(y,x) = 1.0;
-      }
-    }
-  } else if (thisType == SPOON) {
-    // Vertical Spoon Filter
-    int center = (O_FILTER_WIDTH-1)/2;
-    for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH; x <= center+O_FILTER_SPOON_SHAFT_WIDTH; x++) {
-      for (int y = 0; y < O_FILTER_WIDTH; y++) {
-	orientedFilters[0].at<double>(y,x) = 1.0;
-      }
-    }
-    for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH-1; x <= center+O_FILTER_SPOON_SHAFT_WIDTH+1; x++) {
-      for (int y = 1; y < 3+O_FILTER_SPOON_HEAD_WIDTH; y++) {
-	orientedFilters[0].at<double>(y,x) = 1.0;
-      }
-    }
-    for (int x = center-O_FILTER_SPOON_HEAD_WIDTH; x <= center+O_FILTER_SPOON_HEAD_WIDTH; x++) {
-      for (int y = 2; y < 2+O_FILTER_SPOON_HEAD_WIDTH; y++) {
-	orientedFilters[0].at<double>(y,x) = 1.0;
-      }
-    }
-  } else if (thisType == KNIFE) {
-    // Vertical Knife Filter
-    int center = (O_FILTER_WIDTH-1)/2;
-    for (int x = center-O_FILTER_SPOON_SHAFT_WIDTH; x <= center+O_FILTER_SPOON_SHAFT_WIDTH; x++) {
-      for (int y = 0; y < O_FILTER_WIDTH; y++) {
-	orientedFilters[0].at<double>(y,x) = 1.0;
-      }
-    }
-  } else {
-    cout << "Invalid oriented filter type. Exiting." << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  Mat tmp; 
-  Mat tmp2;
-  Mat tmp3;
-
-  // it is important to L1 normalize the filters so that comparing dot products makes sense.
-  // that is, they should all respond equally to a constant image.
-  // Actually some might say its better to make them mean 0 and L2 unit norm.  But L1 works
-  // for now.
-  biggestL1 = -1;
-
-  for (int o = 1; o < ORIENTATIONS; o++) {
-    // Compute a rotation matrix with respect to the center of the image
-    //Point center = Point(O_FILTER_WIDTH/2, O_FILTER_WIDTH/2);
-    Point center = Point(O_FILTER_WIDTH, O_FILTER_WIDTH);
-    double angle = o*360.0/ORIENTATIONS;
-    double scale = 1.0;
-
-    // Get the rotation matrix with the specifications above
-    Mat rot_mat = getRotationMatrix2D( center, angle, scale );
-
-    cv::Point2f srcTri[3]; 
-    cv::Point2f dstTri[3]; 
-
-    srcTri[0].x = 0;
-    srcTri[0].y = 0;
-    srcTri[1].x = 1;
-    srcTri[1].y = 0;
-    srcTri[2].x = 0;
-    srcTri[2].y = 1;
-    dstTri[0].x = 0+O_FILTER_WIDTH/2;
-    dstTri[0].y = 0+O_FILTER_WIDTH/2;
-    dstTri[1].x = 1+O_FILTER_WIDTH/2;
-    dstTri[1].y = 0+O_FILTER_WIDTH/2;
-    dstTri[2].x = 0+O_FILTER_WIDTH/2;
-    dstTri[2].y = 1+O_FILTER_WIDTH/2;
-
-    Mat trans_mat = getAffineTransform(srcTri, dstTri);
-
-    cv::Size rangeSize = orientedFilters[0].size();
-    rangeSize.width *= 2;
-    rangeSize.height *= 2;
-
-    // Rotate the warped image
-    //warpAffine(orientedFilters[0], orientedFilters[o], rot_mat, orientedFilters[o].size());
-    warpAffine(orientedFilters[0], tmp, trans_mat, rangeSize);
-    warpAffine(tmp, tmp2, rot_mat, rangeSize);
-    warpPerspective(tmp2, tmp3, tablePerspective, rangeSize, INTER_NEAREST);
-
-    //int topOne = O_FILTER_WIDTH/3;
-    //int botOne = 2*O_FILTER_WIDTH-topOne;
-    //int leftOne = O_FILTER_WIDTH/3;
-    //int rightOne = 2*O_FILTER_WIDTH-leftOne;
-
-    int topOne = 4*O_FILTER_WIDTH;
-    int botOne = -1;
-    int leftOne = 4*O_FILTER_WIDTH;
-    int rightOne = -1;
-
-    for (int y = 0; y < 2*O_FILTER_WIDTH; y++) {
-      for (int x = 0; x < 2*O_FILTER_WIDTH; x++) {
-	if(tmp3.at<double>(y,x) > 0) {
-	  if (y < topOne) 
-	    topOne = y;
-	  if (x < leftOne)
-	    leftOne = x;
-	  if (y > botOne)
-	    botOne = y;
-	  if (x > rightOne)
-	    rightOne = x;
-	}
-      }
-    }
-
-//cout << orientedFilters[0].size() << rangeSize << tmp.size() << tmp2.size() << tmp3.size() << endl;
-
-    Mat validCrop = tmp3(cv::Rect(leftOne, topOne, rightOne-leftOne, botOne-topOne));
-
-    // grow to the max dimension to avoid distortion
-    int crows = validCrop.rows;
-    int ccols = validCrop.cols;
-    int maxDim = max(crows, ccols);
-    Mat vCrop(maxDim, maxDim, validCrop.type());
-    int tRy = (maxDim-crows)/2;
-    int tRx = (maxDim-ccols)/2;
-
-    for (int x = 0; x < maxDim; x++) {
-      for (int y = 0; y < maxDim; y++) {
-	int tx = x - tRx;
-	int ty = y - tRy;
-	if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols)
-	  vCrop.at<double>(y, x) = validCrop.at<double>(ty, tx);
-	else
-	  vCrop.at<double>(y, x) = 0.0;
-      }
-    }
-
-    cv::resize(vCrop, orientedFilters[o], orientedFilters[0].size());
-    //cv::resize(tmp3, orientedFilters[o], orientedFilters[0].size());
-
-    double l1norm = orientedFilters[o].dot(Mat::ones(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F));
-    orientedFilters[o] = orientedFilters[o] / l1norm;
-    
-    if (l1norm > biggestL1)
-      biggestL1 = l1norm;
-  }
-
-  tmp = orientedFilters[0].clone();
-  warpPerspective(tmp, orientedFilters[0], tablePerspective, orientedFilters[0].size(), INTER_NEAREST);
-
-  double l1norm = orientedFilters[0].dot(Mat::ones(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F));
-  orientedFilters[0] = orientedFilters[0] / l1norm;
-  if (l1norm > biggestL1)
-    biggestL1 = l1norm;
-}
-
-void init_oriented_filters_all() {
-  init_oriented_filters(MRT);
-  init_oriented_filters(SPOON);
-  init_oriented_filters(KNIFE);
-}
-
-int isOrientedFilterPoseModel(string toCompare) {
-  return ((0 == toCompare.compare("S")) || 
-	  (0 == toCompare.compare("T")) || 
-	  (0 == toCompare.compare("K")) );
-}
-
-orientedFilterType getOrientedFilterType(string toCompare) {
-  if (0 == toCompare.compare("T"))
-    return MRT;
-  if (0 == toCompare.compare("S"))
-    return SPOON;
-  if (0 == toCompare.compare("K"))
-    return KNIFE;
-  else
-    return OFT_INVALID;
-}
 
 void nodeCallbackFunc(int event, int x, int y, int flags, void* userdata) {
   shared_ptr<MachineState> ms = pMachineState;
@@ -10045,7 +9529,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
     }
   }
 
-  if (drawGray) {
+  if (ms->config.drawGray) {
     cv::Point outTop = cv::Point(grayTop.x, grayTop.y);
     cv::Point outBot = cv::Point(grayBot.x, grayBot.y);
     cv::Point inTop = cv::Point(grayTop.x+1,grayTop.y+1);
@@ -10294,12 +9778,12 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
 
       if (thisIntegral > adjusted_canny_lo_thresh) {
 	      gBoxIndicator[y*imW+x] = 1;
-	      if (drawGreen)
+	      if (ms->config.drawGreen)
 		rectangle(objectViewerImage, thisTop, thisBot, cv::Scalar(0,128,0));
       }
       if (thisIntegral > adjusted_canny_hi_thresh) {
 	      gBoxIndicator[y*imW+x] = 2;
-	      if (drawGreen)
+	      if (ms->config.drawGreen)
 		rectangle(objectViewerImage, thisTop, thisBot, cv::Scalar(0,255,0));
       }
       pBoxIndicator[y*imW+x] = thisIntegral;
@@ -10524,7 +10008,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
     //ms->config.pilotTarget.pz = p.z;
   }
 
-  if (drawBlue) {
+  if (ms->config.drawBlue) {
     for (int c = bTops.size()-1; c >= 0; c--) {
       cv::Point outTop = cv::Point(bTops[c].x, bTops[c].y);
       cv::Point outBot = cv::Point(bBots[c].x, bBots[c].y);
@@ -10569,8 +10053,6 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
   double closestBBDistance = VERYBIGNUMBER;
 
   double label = -1;
-  roa_to_send_blue.objects.resize(bTops.size());
-  ma_to_send_blue.markers.resize(bTops.size()+1);
 
   for (int c = 0; c < bTops.size(); c++) {
     vector<KeyPoint>& keypoints = bKeypoints[c];
@@ -10604,7 +10086,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 	  }
 	}
     
-	if (drawBlueKP) {
+	if (ms->config.drawBlueKP) {
 	  for (int kp = 0; kp < keypoints.size(); kp++) {
 	    int tX = keypoints[kp].pt.x;
 	    int tY = keypoints[kp].pt.y;
@@ -10653,7 +10135,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 	  }
 	}
     
-	if (drawBlueKP) {
+	if (ms->config.drawBlueKP) {
 	  for (int kp = 0; kp < keypoints.size(); kp++) {
 	    int tX = keypoints[kp].pt.x;
 	    int tY = keypoints[kp].pt.y;
@@ -10882,22 +10364,16 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       labelName = classLabels[label];
     augmentedLabelName = labelName;
 
-    if (drawLabels) {
-      cv::Point text_anchor(bTops[c].x+1, bBots[c].y-2);
-      cv::Point text_anchor2(bTops[c].x+1, bBots[c].y-2);
-      putText(objectViewerImage, augmentedLabelName, text_anchor, MY_FONT, 0.5, Scalar(255,192,192), 2.0);
-      putText(objectViewerImage, augmentedLabelName, text_anchor2, MY_FONT, 0.5, Scalar(255,0,0), 1.0);
-    }
+    cv::Point text_anchor(bTops[c].x+1, bBots[c].y-2);
+    cv::Point text_anchor2(bTops[c].x+1, bBots[c].y-2);
+    putText(objectViewerImage, augmentedLabelName, text_anchor, MY_FONT, 0.5, Scalar(255,192,192), 2.0);
+    putText(objectViewerImage, augmentedLabelName, text_anchor2, MY_FONT, 0.5, Scalar(255,0,0), 1.0);
+
 
 
     vector<cv::Point> pointCloudPoints;
 
     if (label >= 0) {
-      if (ms->config.publishObjects) {
-
-	fill_RO_and_M_arrays(roa_to_send_blue, 
-	  ma_to_send_blue, pointCloudPoints, c, label, winningO, poseIndex);
-      }
 
       int thisArea = (bBots[c].x - bTops[c].x)*(bBots[c].y - bTops[c].y);
       if ((thisArea > biggestBBArea) && (label == ms->config.targetClass)) 
@@ -11150,16 +10626,7 @@ void nodeInit(shared_ptr<MachineState> ms) {
   tableNormal = Eigen::Vector3d(1,0,0);
   tableBias = 0;
 
-  // manually definining spoon filters
-  orientedFiltersT = new Mat[ORIENTATIONS];
-  orientedFiltersT[0].create(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F);
-  orientedFiltersS = new Mat[ORIENTATIONS];
-  orientedFiltersS[0].create(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F);
-  orientedFiltersK = new Mat[ORIENTATIONS];
-  orientedFiltersK[0].create(O_FILTER_WIDTH, O_FILTER_WIDTH, CV_64F);
-
   tablePerspective = Mat::eye(3,3,CV_32F);
-  //init_oriented_filters_all();
 
 }
 
