@@ -809,6 +809,16 @@ class EinConfig {
   std::string cache_prefix = "";
 
 
+  int numClasses = 0;
+
+  vector<string> classLabels; 
+  vector<string> classPoseModels;
+  vector<CvKNearest*> classPosekNNs;
+  vector<Mat> classPosekNNfeatures;
+  vector<Mat> classPosekNNlabels;
+  vector< vector< cv::Vec<double,4> > > classQuaternions;
+
+
 }; // config end
 
 class Word;

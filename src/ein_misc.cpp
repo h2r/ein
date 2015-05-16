@@ -106,13 +106,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "synchronicTakeClosest: " << ms->config.synchronicTakeClosest << endl;
   cout << "focusedClass: " << ms->config.focusedClass;
   if (ms->config.focusedClass != -1) {
-    cout << " " << classLabels[ms->config.focusedClass];
+    cout << " " << ms->config.classLabels[ms->config.focusedClass];
   }
   cout << endl;
   
   cout << "targetClass: " << ms->config.targetClass;
   if (ms->config.targetClass != -1) {
-    cout << " " << classLabels[ms->config.targetClass];
+    cout << " " << ms->config.classLabels[ms->config.targetClass];
   }
 
   
@@ -129,8 +129,8 @@ WORD(DecrementTargetClass)
 CODE(196438)     // capslock + pagedown
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "targetClass-- " << endl;
-  if (numClasses > 0) {
-    int newTargetClass = (ms->config.targetClass - 1 + numClasses) % numClasses;
+  if (ms->config.numClasses > 0) {
+    int newTargetClass = (ms->config.targetClass - 1 + ms->config.numClasses) % ms->config.numClasses;
     changeTargetClass(ms, newTargetClass);
   }
 }
@@ -314,8 +314,8 @@ CODE(196437)// capslock + pageup
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   cout << "targetClass++ " << endl;
-  if (numClasses > 0) {
-    int newTargetClass = (ms->config.targetClass + 1) % numClasses;
+  if (ms->config.numClasses > 0) {
+    int newTargetClass = (ms->config.targetClass + 1) % ms->config.numClasses;
     changeTargetClass(ms, newTargetClass);
   }
 }
@@ -329,7 +329,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)  {
     return;
   }
   int class_idx = bLabels[ms->config.pilotClosestBlueBoxNumber];
-  cout << "Changing to closest blue blox target, which is class " << classLabels[class_idx] << endl;
+  cout << "Changing to closest blue blox target, which is class " << ms->config.classLabels[class_idx] << endl;
   changeTargetClass(ms, class_idx);
 }
 END_WORD
@@ -615,7 +615,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     BoxMemory box = blueBoxMemories[i];
     if (box.labeledClassIndex >= 0) {
       ofile << "  <object>" << endl;
-      ofile << "    <name>" << classLabels[box.labeledClassIndex] << "</name>" << endl;
+      ofile << "    <name>" << ms->config.classLabels[box.labeledClassIndex] << "</name>" << endl;
       ofile << "    <position>" << "( " << box.centroid.px << ", " << box.centroid.py << ", " << box.centroid.pz << ")" << "</position>" << endl;
       ofile << "    <rotation>" << "(0, 0, 0)" << "</rotation>" << endl;
       ofile << "  </object>" << endl;

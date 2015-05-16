@@ -3,12 +3,12 @@
 WORD(SetTargetClassToLastLabelLearned)
 CODE(1179730)     // capslock + numlock + r
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  for (int i = 0; i < numClasses; i++) {
-    if (ms->config.lastLabelLearned.compare(classLabels[i]) == 0) {
+  for (int i = 0; i < ms->config.numClasses; i++) {
+    if (ms->config.lastLabelLearned.compare(ms->config.classLabels[i]) == 0) {
       ms->config.targetClass = i;
       ms->config.focusedClass = ms->config.targetClass;
-      ms->config.focusedClassLabel = classLabels[ms->config.focusedClass];
-      cout << "lastLabelLearned classLabels[targetClass]: " << ms->config.lastLabelLearned << " " << classLabels[ms->config.targetClass] << endl;
+      ms->config.focusedClassLabel = ms->config.classLabels[ms->config.focusedClass];
+      cout << "lastLabelLearned classLabels[targetClass]: " << ms->config.lastLabelLearned << " " << ms->config.classLabels[ms->config.targetClass] << endl;
       changeTargetClass(ms, ms->config.targetClass);
     }
   }
@@ -59,8 +59,8 @@ REGISTER_WORD(SetLastLabelLearned)
 WORD(TrainModels)
 CODE(131142)     // capslock + f
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  classLabels.resize(0);
-  classPoseModels.resize(0);
+  ms->config.classLabels.resize(0);
+  ms->config.classPoseModels.resize(0);
 
   ms->pushWord("clearBlueBoxMemories");
 
@@ -86,20 +86,20 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
       int itIsADir = S_ISDIR(buf2.st_mode);
       if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
-        classLabels.push_back(thisFileName);
-        classPoseModels.push_back("B");
+        ms->config.classLabels.push_back(thisFileName);
+        ms->config.classPoseModels.push_back("B");
       }
     }
   }
 
-  if ((classLabels.size() != classPoseModels.size()) || (classLabels.size() < 1)) {
+  if ((ms->config.classLabels.size() != ms->config.classPoseModels.size()) || (ms->config.classLabels.size() < 1)) {
     cout << "Label and pose model list size problem. Not proceeding to train." << endl;
     return;
   }
 
   cout << "Reinitializing and retraining. " << endl;
-  for (int i = 0; i < classLabels.size(); i++) {
-    cout << classLabels[i] << " " << classPoseModels[i] << endl;
+  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    cout << ms->config.classLabels[i] << " " << ms->config.classPoseModels[i] << endl;
   }
 
   ms->config.rewrite_labels = 1;
@@ -112,9 +112,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   if (kNN)
     delete kNN;
 
-  for (int i = 0; i < classPosekNNs.size(); i++) {
-    if (classPosekNNs[i])
-      delete classPosekNNs[i];
+  for (int i = 0; i < ms->config.classPosekNNs.size(); i++) {
+    if (ms->config.classPosekNNs[i])
+      delete ms->config.classPosekNNs[i];
   }
 
   //  detectorsInit() will reset numClasses
@@ -762,12 +762,12 @@ REGISTER_WORD(SaveAerialGradientMap)
 WORD(InitializeAndFocusOnNewClass)
 CODE(196720)     // capslock + P
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.focusedClass = numClasses+ms->config.newClassCounter;
+  ms->config.focusedClass = ms->config.numClasses+ms->config.newClassCounter;
   char buf[1024];
   sprintf(buf, "autoClass%d_%s", ms->config.focusedClass, ms->config.left_or_right_arm.c_str());
   string thisLabelName(buf);
   ms->config.focusedClassLabel = thisLabelName;
-  classLabels.push_back(thisLabelName);
+  ms->config.classLabels.push_back(thisLabelName);
   string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/";
   mkdir(dirToMakePath.c_str(), 0777);
   string rgbDirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb";

@@ -50,7 +50,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
        (ms->config.classGraspZs.size() > ms->config.targetClass) ) {
     if (ms->config.classGraspZsSet[ms->config.targetClass] == 1) {
       ms->config.trZ = ms->config.classGraspZs[ms->config.targetClass];
-      cout << "delivering class " << classLabels[ms->config.targetClass] << " with classGraspZ " << ms->config.trZ << endl;
+      cout << "delivering class " << ms->config.classLabels[ms->config.targetClass] << " with classGraspZ " << ms->config.trZ << endl;
     }
   }
 
@@ -553,7 +553,7 @@ REGISTER_WORD(MoveToNextMapPosition)
 WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   object_recognition_msgs::RecognizedObjectArray roaO;
-  fillRecognizedObjectArrayFromBlueBoxMemory(&roaO);
+  fillRecognizedObjectArrayFromBlueBoxMemory(ms, &roaO);
   rec_objs_blue_memory.publish(roaO);
 }
 END_WORD
