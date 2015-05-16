@@ -1,4 +1,17 @@
 
+#include <vector>
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <fstream>
+#include <memory>
+
+#include "word.h"
+
+#include "ein.h"
+
+
+
 // Preprocessor macro to automatically create class structure for words
 // extracted from the case statement of evil (despair)
 // WORD(gName)
