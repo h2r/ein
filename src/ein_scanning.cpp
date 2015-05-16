@@ -1957,6 +1957,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       fsvO << "graspPoses" << "[" ;
       for (int i = 0; i < tng; i++) {
 	ms->config.class3dGrasps[ms->config.focusedClass][i].writeToFileStorage(fsvO);
+	cout << " wrote pose: " << ms->config.class3dGrasps[ms->config.focusedClass][i] << endl;
       }
       fsvO << "]";
     }
@@ -1964,7 +1965,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     fsvO.release();
 
-    if (0) {
+    if (1) {
       guard3dGrasps(ms);
       string thisLabelName = ms->config.focusedClassLabel;
       string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/3dGrasps/";

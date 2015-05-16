@@ -5,7 +5,7 @@ using namespace std;
 
 ostream & operator<<(ostream & os, const _eePose& toPrint)
 {
-  os << "[" << toPrint.px << " " << toPrint.py << " " << toPrint.pz << " | " << endl << toPrint.qx << " " << toPrint.qy << " " << toPrint.qz << " " << toPrint.qw << "]";
+  os << "[" << toPrint.px << " " << toPrint.py << " " << toPrint.pz << " | " << toPrint.qx << " " << toPrint.qy << " " << toPrint.qz << " " << toPrint.qw << "]";
   return os;
 } 
 
