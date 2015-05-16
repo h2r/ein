@@ -343,8 +343,8 @@ CODE(196649)     // capslock + i
       ms->popWord();
       // leave gripper in released state
       cout << "  assert no pops back instruction." << endl;
-      if (thisGraspReleased == UNKNOWN) {
-        thisGraspReleased = SUCCESS;
+      if (ms->config.thisGraspReleased == UNKNOWN) {
+        ms->config.thisGraspReleased = SUCCESS;
       }
     } else {
       // stuck
@@ -353,8 +353,8 @@ CODE(196649)     // capslock + i
       cout << "Stuck, please reset the object. ";
       cout << " gripperPosition: " << ms->config.gripperPosition;
       cout << " gripperThresh: " << ms->config.gripperThresh << endl;
-      if (thisGraspReleased == UNKNOWN) {
-        thisGraspReleased = FAILURE;
+      if (ms->config.thisGraspReleased == UNKNOWN) {
+        ms->config.thisGraspReleased = FAILURE;
         sad();
       }
     }
@@ -418,9 +418,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   // ATTN 19
   int i = ms->config.localMaxX + ms->config.localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.localMaxGG;
   int j = ms->config.localMaxX + ms->config.localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0;
-  graspAttemptCounter++;      
-  cout << "thisGraspPicked: " << operationStatusToString(thisGraspPicked) << endl;
-  cout << "thisGraspReleased: " << operationStatusToString(thisGraspReleased) << endl;
+  ms->config.graspAttemptCounter++;      
+  cout << "thisGraspPicked: " << operationStatusToString(ms->config.thisGraspPicked) << endl;
+  cout << "thisGraspReleased: " << operationStatusToString(ms->config.thisGraspReleased) << endl;
   if (ARE_GENERIC_PICK_LEARNING()) {
     //ms->config.graspMemoryTries[j+0*ms->config.rmWidth*ms->config.rmWidth]++;
     //ms->config.graspMemoryTries[j+1*ms->config.rmWidth*ms->config.rmWidth]++;
@@ -433,8 +433,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       ms->config.graspMemoryTries[i]++;
     }
   }
-  if ((thisGraspPicked == SUCCESS) && (thisGraspReleased == SUCCESS)) {
-    graspSuccessCounter++;
+  if ((ms->config.thisGraspPicked == SUCCESS) && (ms->config.thisGraspReleased == SUCCESS)) {
+    ms->config.graspSuccessCounter++;
     happy();
     if (ARE_GENERIC_PICK_LEARNING()) {
       //ms->config.graspMemoryPicks[j+0*ms->config.rmWidth*ms->config.rmWidth]++;
@@ -494,11 +494,11 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     }
   }
   copyGraspMemoryTriesToClassGraspMemoryTries(ms);
-  graspSuccessRate = graspSuccessCounter / graspAttemptCounter;
+  ms->config.graspSuccessRate = ms->config.graspSuccessCounter / ms->config.graspAttemptCounter;
   ros::Time thisTime = ros::Time::now();
-  ros::Duration sinceStartOfTrial = thisTime - graspTrialStart;
+  ros::Duration sinceStartOfTrial = thisTime - ms->config.graspTrialStart;
       
-  cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << graspSuccessCounter << "/" << graspAttemptCounter << " " << graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << " " << pickModeToString(currentPickMode) << endl;
+  cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << ms->config.graspSuccessCounter << "/" << ms->config.graspAttemptCounter << " " << ms->config.graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << " " << pickModeToString(currentPickMode) << endl;
   {
     double successes = ms->config.graspMemoryPicks[i];
     double failures =  ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i];
@@ -521,12 +521,12 @@ CODE(196718)     // capslock + N
     cout << "gripperGripping: " << ms->config.gripperGripping << endl;
     if (!isGripperGripping(ms)) {
       cout << "Failed to pick." << endl;
-      thisGraspPicked = FAILURE;
+      ms->config.thisGraspPicked = FAILURE;
       sad();
       ms->pushCopies("beep", 15); // beep
     } else {
       cout << "Successful pick." << endl;
-      thisGraspPicked = SUCCESS;
+      ms->config.thisGraspPicked = SUCCESS;
       happy();
     }
   }
@@ -542,7 +542,7 @@ CODE(196713)     // capslock + I
   if (ms->config.gripperMoving) {
     ms->pushWord(196713); // check and count grasp
   } else {
-    graspAttemptCounter++;
+    ms->config.graspAttemptCounter++;
     switch (currentPickMode) {
     case STATIC_PRIOR:
       {
@@ -585,7 +585,7 @@ CODE(196713)     // capslock + I
       if (ARE_GENERIC_HEIGHT_LEARNING()) {
         recordBoundingBoxSuccess(ms);
       }
-      graspSuccessCounter++;
+      ms->config.graspSuccessCounter++;
       cout << "Successful grasp." << endl;
       //ms->config.graspMemoryPicks[i]++;
       switch (currentPickMode) {
@@ -654,10 +654,10 @@ CODE(196713)     // capslock + I
     }
 
     copyGraspMemoryTriesToClassGraspMemoryTries(ms);
-    graspSuccessRate = graspSuccessCounter / graspAttemptCounter;
+    ms->config.graspSuccessRate = ms->config.graspSuccessCounter / ms->config.graspAttemptCounter;
     ros::Time thisTime = ros::Time::now();
-    ros::Duration sinceStartOfTrial = thisTime - graspTrialStart;
-    cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << graspSuccessCounter << "/" << graspAttemptCounter << " " << graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << ms->config.gripperPosition << " " << pickModeToString(currentPickMode) << endl;
+    ros::Duration sinceStartOfTrial = thisTime - ms->config.graspTrialStart;
+    cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << ms->config.graspSuccessCounter << "/" << ms->config.graspAttemptCounter << " " << ms->config.graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << ms->config.gripperPosition << " " << pickModeToString(currentPickMode) << endl;
   }
   {
     double successes = ms->config.graspMemoryPicks[i];
@@ -1118,9 +1118,9 @@ CODE(131159)     // capslock + w
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->config.eepReg2 = ms->config.beeHome;
   ms->config.bailAfterSynchronic = 0;
-  graspAttemptCounter = 0;
-  graspSuccessCounter = 0;
-  graspTrialStart = ros::Time::now();
+  ms->config.graspAttemptCounter = 0;
+  ms->config.graspSuccessCounter = 0;
+  ms->config.graspTrialStart = ros::Time::now();
   thompsonPickHaltFlag = 0;
   thompsonHeightHaltFlag = 0;
   ms->config.pilotTarget.px = -1;
@@ -1149,14 +1149,14 @@ REGISTER_WORD(TwoDPatrolStart)
 WORD(TwoDPatrolContinue)
 CODE(131141) // capslock + e
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  thisGraspPicked = UNKNOWN;
-  thisGraspReleased = UNKNOWN;
+  ms->config.thisGraspPicked = UNKNOWN;
+  ms->config.thisGraspReleased = UNKNOWN;
   neutral();
   
   if (ARE_GENERIC_PICK_LEARNING()) {
     if (thompsonHardCutoff) {
-      if (graspAttemptCounter >= ms->config.thompsonTries) {
-        cout << "Clearing call stack because we did " << graspAttemptCounter << " tries." << endl;
+      if (ms->config.graspAttemptCounter >= ms->config.thompsonTries) {
+        cout << "Clearing call stack because we did " << ms->config.graspAttemptCounter << " tries." << endl;
         ms->clearStack();
         ms->pushCopies("beep", 15); // beep
         return;
@@ -1165,9 +1165,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     
     if (thompsonAdaptiveCutoff) {
       if ( (thompsonPickHaltFlag) ||
-           (graspAttemptCounter >= ms->config.thompsonTries) ) {
+           (ms->config.graspAttemptCounter >= ms->config.thompsonTries) ) {
         cout << "Clearing call stack. thompsonPickHaltFlag = " << thompsonPickHaltFlag << 
-          " and we did " << graspAttemptCounter << " tries." << endl;
+          " and we did " << ms->config.graspAttemptCounter << " tries." << endl;
         ms->clearStack();
         ms->pushCopies("beep", 15); // beep
         return;

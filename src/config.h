@@ -60,6 +60,13 @@ typedef enum {
   GRASP_3D
 } graspMode;
 
+typedef enum {
+  UNKNOWN = -1,
+  FAILURE = 0,
+  SUCCESS = 1
+} operationStatusType;
+
+
 #define NOW_THATS_FAST 0.08
 #define MOVE_EVEN_FASTER 0.04
 #define MOVE_FASTER 0.02
@@ -508,6 +515,14 @@ class EinConfig {
   double gripperThresh = 3.5;//6.0;//7.0;
   ros::Time gripperLastUpdated;
   double gripperNotMovingConfirmTime = 0.25;
+
+
+  ros::Time graspTrialStart;
+  double graspAttemptCounter = 0;
+  double graspSuccessCounter = 0;
+  double graspSuccessRate = 0;
+  operationStatusType thisGraspPicked = UNKNOWN;
+  operationStatusType thisGraspReleased = UNKNOWN;
 
 
 
