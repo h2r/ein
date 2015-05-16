@@ -827,7 +827,7 @@ CODE(1179737) // capslock + numlock + y
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if (temporalDensity != NULL && preDensity != NULL) {
     //cout << "preDensity<<<<***" << endl;
-    Size sz = objectViewerImage.size();
+    Size sz = ms->config.objectViewerImage.size();
     int imW = sz.width;
     int imH = sz.height;
     for (int x = 0; x < imW; x++) {
@@ -876,7 +876,7 @@ REGISTER_WORD(AssumeFacePose)
 /*
 WORD(DetectFaces)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  vector<Rect> faces = faceDetectAndDisplay(faceViewName, faceViewImage);
+  vector<Rect> faces = faceDetectAndDisplay(faceViewName, ms->config.faceViewImage);
 }
 END_WORD
 REGISTER_WORD(DetectFaces)
@@ -912,7 +912,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     cout << "faceServo timed out, continuing..." << endl;
     return;
   }
-  vector<Rect> faces = faceDetectAndDisplay(faceViewName, faceViewImage);
+  vector<Rect> faces = faceDetectAndDisplay(faceViewName, ms->config.faceViewImage);
   faceServo(ms, faces);
 }
 END_WORD
