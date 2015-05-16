@@ -162,12 +162,11 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->config.sirAerialGradient = 1;
   ms->config.sirWrist = 1;
   ms->config.sirCore = 1;
-  cv::namedWindow(objectViewerName);
+  cv::namedWindow(ms->config.objectViewerName);
   cv::namedWindow(ms->config.graspMemoryViewName);
   cv::namedWindow(ms->config.wristViewName);
   cv::setMouseCallback(ms->config.wristViewName, pilotCallbackFunc, NULL);
   cv::setMouseCallback(ms->config.graspMemoryViewName, graspMemoryCallbackFunc, NULL);
-  cv::setMouseCallback(objectViewerName, nodeCallbackFunc, NULL);
 }
 END_WORD
 REGISTER_WORD(GuiShowAll)
@@ -220,7 +219,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->config.sirWrist = 1;
   ms->config.sirCore = 1;
 
-  //cv::namedWindow(objectViewerName);
+  //cv::namedWindow(ms->config.objectViewerName);
   //cv::namedWindow(ms->config.graspMemoryViewName);
   cv::namedWindow(ms->config.wristViewName);
   cv::setMouseCallback(ms->config.wristViewName, pilotCallbackFunc, NULL);

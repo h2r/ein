@@ -3,12 +3,12 @@
 WORD(SetTargetClassToLastLabelLearned)
 CODE(1179730)     // capslock + numlock + r
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  for (int i = 0; i < numClasses; i++) {
-    if (ms->config.lastLabelLearned.compare(classLabels[i]) == 0) {
+  for (int i = 0; i < ms->config.numClasses; i++) {
+    if (ms->config.lastLabelLearned.compare(ms->config.classLabels[i]) == 0) {
       ms->config.targetClass = i;
       ms->config.focusedClass = ms->config.targetClass;
-      ms->config.focusedClassLabel = classLabels[ms->config.focusedClass];
-      cout << "lastLabelLearned classLabels[targetClass]: " << ms->config.lastLabelLearned << " " << classLabels[ms->config.targetClass] << endl;
+      ms->config.focusedClassLabel = ms->config.classLabels[ms->config.focusedClass];
+      cout << "lastLabelLearned classLabels[targetClass]: " << ms->config.lastLabelLearned << " " << ms->config.classLabels[ms->config.targetClass] << endl;
       changeTargetClass(ms, ms->config.targetClass);
     }
   }
@@ -59,8 +59,8 @@ REGISTER_WORD(SetLastLabelLearned)
 WORD(TrainModels)
 CODE(131142)     // capslock + f
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  classLabels.resize(0);
-  classPoseModels.resize(0);
+  ms->config.classLabels.resize(0);
+  ms->config.classPoseModels.resize(0);
 
   ms->pushWord("clearBlueBoxMemories");
 
@@ -72,7 +72,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   string dotdot("..");
 
   char buf[1024];
-  sprintf(buf, "%s/objects/", data_directory.c_str());
+  sprintf(buf, "%s/objects/", ms->config.data_directory.c_str());
   dpdf = opendir(buf);
   if (dpdf != NULL){
     while (epdf = readdir(dpdf)){
@@ -86,41 +86,39 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
       int itIsADir = S_ISDIR(buf2.st_mode);
       if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
-        classLabels.push_back(thisFileName);
-        classPoseModels.push_back("B");
+        ms->config.classLabels.push_back(thisFileName);
+        ms->config.classPoseModels.push_back("B");
       }
     }
   }
 
-  if ((classLabels.size() != classPoseModels.size()) || (classLabels.size() < 1)) {
+  if ((ms->config.classLabels.size() != ms->config.classPoseModels.size()) || (ms->config.classLabels.size() < 1)) {
     cout << "Label and pose model list size problem. Not proceeding to train." << endl;
     return;
   }
 
   cout << "Reinitializing and retraining. " << endl;
-  for (int i = 0; i < classLabels.size(); i++) {
-    cout << classLabels[i] << " " << classPoseModels[i] << endl;
+  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    cout << ms->config.classLabels[i] << " " << ms->config.classPoseModels[i] << endl;
   }
 
-  rewrite_labels = 1;
-  retrain_vocab = 1;
-  reextract_knn = 1;
-  trainOnly = 0;
-
+  ms->config.rewrite_labels = 1;
+  ms->config.retrain_vocab = 1;
+  ms->config.reextract_knn = 1;
 
   // delete things that will be reallocated
-  if (bowtrainer)
-    delete bowtrainer;
-  if (kNN)
-    delete kNN;
+  if (ms->config.bowTrainer)
+    delete ms->config.bowTrainer;
+  if (ms->config.kNN)
+    delete ms->config.kNN;
 
-  for (int i = 0; i < classPosekNNs.size(); i++) {
-    if (classPosekNNs[i])
-      delete classPosekNNs[i];
+  for (int i = 0; i < ms->config.classPosekNNs.size(); i++) {
+    if (ms->config.classPosekNNs[i])
+      delete ms->config.classPosekNNs[i];
   }
 
   //  detectorsInit() will reset numClasses
-  detectorsInit();
+  detectorsInit(ms);
 
   // reset numNewClasses
   ms->config.newClassCounter = 0;
@@ -147,12 +145,12 @@ CODE(131148)     // capslock + l
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   if ((ms->config.focusedClass > -1) && (bTops.size() == 1)) {
     string thisLabelName = ms->config.focusedClassLabel;
-    Mat crop = cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
+    Mat crop = ms->config.cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
     char buf[1000];
-    string this_crops_path = data_directory + "/objects/" + thisLabelName + "/rgb/";
-    sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
+    string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
+    sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), ms->config.cropCounter);
     imwrite(buf, crop);
-    cropCounter++;
+    ms->config.cropCounter++;
   }
 }
 END_WORD
@@ -163,12 +161,12 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   if ( ms->config.focusedClass > -1 ) {
     for (int c = 0; c < bTops.size(); c++) {
       string thisLabelName = ms->config.focusedClassLabel;
-      Mat crop = cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
+      Mat crop = ms->config.cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
       char buf[1000];
-      string this_crops_path = data_directory + "/objects/" + thisLabelName + "/rgb/";
-      sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
+      string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
+      sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), ms->config.cropCounter);
       imwrite(buf, crop);
-      cropCounter++;
+      ms->config.cropCounter++;
     }
   }
 }
@@ -640,7 +638,7 @@ REGISTER_WORD(NeutralScanH)
 WORD(SaveAerialGradientMap)
 CODE(196730)      // capslock + Z
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  Size sz = objectViewerImage.size();
+  Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
         
@@ -649,7 +647,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     string thisLabelName = ms->config.focusedClassLabel;
 
     char buf[1000];
-    string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
     string this_range_path;
 
     // ATTN 16
@@ -764,15 +762,15 @@ REGISTER_WORD(SaveAerialGradientMap)
 WORD(InitializeAndFocusOnNewClass)
 CODE(196720)     // capslock + P
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.focusedClass = numClasses+ms->config.newClassCounter;
+  ms->config.focusedClass = ms->config.numClasses+ms->config.newClassCounter;
   char buf[1024];
   sprintf(buf, "autoClass%d_%s", ms->config.focusedClass, ms->config.left_or_right_arm.c_str());
   string thisLabelName(buf);
   ms->config.focusedClassLabel = thisLabelName;
-  classLabels.push_back(thisLabelName);
-  string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/";
+  ms->config.classLabels.push_back(thisLabelName);
+  string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/";
   mkdir(dirToMakePath.c_str(), 0777);
-  string rgbDirToMakePath = data_directory + "/objects/" + thisLabelName + "/rgb";
+  string rgbDirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb";
   mkdir(rgbDirToMakePath.c_str(), 0777);
   ms->config.newClassCounter++;
 }
@@ -790,7 +788,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     string thisLabelName = ms->config.focusedClassLabel;
 
-    string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/ir2D/";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 
     Mat rangeMapTemp(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
@@ -1647,7 +1645,7 @@ REGISTER_WORD(SetGripperMaskCB)
 
 WORD(LoadGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string filename = data_directory + "/config/" + ms->config.left_or_right_arm + "GripperMask.bmp";
+  string filename = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "GripperMask.bmp";
   cout << "Loading gripper mask from " << filename << endl;
   Mat tmpMask = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
   cout << "  tmpMask.type() tmpMask.size(): " << tmpMask.type() << " " << tmpMask.size() << endl;
@@ -1673,7 +1671,7 @@ REGISTER_WORD(LoadGripperMask)
 
 WORD(SaveGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string filename = data_directory + "/config/" + ms->config.left_or_right_arm + "GripperMask.bmp";
+  string filename = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "GripperMask.bmp";
   cout << "Saving gripper mask to " << filename << endl;
   imwrite(filename, 255*ms->config.gripperMask);
 }
@@ -1721,7 +1719,7 @@ REGISTER_WORD(AssumeCalibrationPose)
 
 WORD(LoadCalibration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string fileName = data_directory + "/config/" + ms->config.left_or_right_arm + "Calibration.yml";
+  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "Calibration.yml";
   cout << "Loading calibration file from " << fileName << endl;
   loadCalibration(ms, fileName);
 }
@@ -1730,7 +1728,7 @@ REGISTER_WORD(LoadCalibration)
 
 WORD(SaveCalibration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string fileName = data_directory + "/config/" + ms->config.left_or_right_arm + "Calibration.yml";
+  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "Calibration.yml";
   cout << "Saving calibration file from " << fileName << endl;
   saveCalibration(ms, fileName);
 }
@@ -1943,7 +1941,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (ms->config.focusedClass > -1) {
     guard3dGrasps(ms);
     string thisLabelName = ms->config.focusedClassLabel;
-    string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
     string this_grasp_path = dirToMakePath + "3dGrasps.yml";
 
     mkdir(dirToMakePath.c_str(), 0777);
@@ -1969,7 +1967,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     {
       guard3dGrasps(ms);
       string thisLabelName = ms->config.focusedClassLabel;
-      string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
       string this_grasp_path = dirToMakePath + "3dGrasps.yml";
 
       FileStorage fsvI;

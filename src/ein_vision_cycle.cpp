@@ -50,7 +50,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
        (ms->config.classGraspZs.size() > ms->config.targetClass) ) {
     if (ms->config.classGraspZsSet[ms->config.targetClass] == 1) {
       ms->config.trZ = ms->config.classGraspZs[ms->config.targetClass];
-      cout << "delivering class " << classLabels[ms->config.targetClass] << " with classGraspZ " << ms->config.trZ << endl;
+      cout << "delivering class " << ms->config.classLabels[ms->config.targetClass] << " with classGraspZ " << ms->config.trZ << endl;
     }
   }
 
@@ -327,7 +327,7 @@ REGISTER_WORD(FillClearanceMap)
 WORD(SaveIkMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ofstream ofile;
-  string fileName = data_directory + "/config/" + ms->config.left_or_right_arm + "IkMap";
+  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "IkMap";
   cout << "Saving ikMap to " << fileName << endl;
   ofile.open(fileName, ios::trunc | ios::binary);
   ofile.write((char*)ikMap, sizeof(int)*mapWidth*mapHeight);
@@ -342,7 +342,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //  for only one height and is 360kB in binary... how
   //  big would it be in yml, and what if we want another height?
   ifstream ifile;
-  string fileName = data_directory + "/config/" + ms->config.left_or_right_arm + "IkMap";
+  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "IkMap";
   cout << "Loading ikMap from " << fileName << endl;
   ifile.open(fileName, ios::binary);
   ifile.read((char*)ikMap, sizeof(int)*mapWidth*mapHeight);
@@ -553,7 +553,7 @@ REGISTER_WORD(MoveToNextMapPosition)
 WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   object_recognition_msgs::RecognizedObjectArray roaO;
-  fillRecognizedObjectArrayFromBlueBoxMemory(&roaO);
+  fillRecognizedObjectArrayFromBlueBoxMemory(ms, &roaO);
   rec_objs_blue_memory.publish(roaO);
 }
 END_WORD
@@ -647,9 +647,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
         objectMap[i + mapWidth * j].detectedClass = -2;
 
 //	{
-//	  objectMap[i + mapWidth * j].b += (int) cam_img.at<cv::Vec3b>(py, px)[0];
-//	  objectMap[i + mapWidth * j].g += (int) cam_img.at<cv::Vec3b>(py, px)[1];
-//	  objectMap[i + mapWidth * j].r += (int) cam_img.at<cv::Vec3b>(py, px)[2];
+//	  objectMap[i + mapWidth * j].b += (int) ms->config.cam_img.at<cv::Vec3b>(py, px)[0];
+//	  objectMap[i + mapWidth * j].g += (int) ms->config.cam_img.at<cv::Vec3b>(py, px)[1];
+//	  objectMap[i + mapWidth * j].r += (int) ms->config.cam_img.at<cv::Vec3b>(py, px)[2];
 //        objectMap[i + mapWidth * j].pixelCount += 1.0;
 //	}
 	//const double spaceDecay = 0.996; // 0.7 ^ 0.01
@@ -657,13 +657,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	{
 	  objectMap[i + mapWidth * j].b = 
 	    ( spaceDecay*double(objectMap[i + mapWidth * j].b) + 
-		    (1.0-spaceDecay)*double(cam_img.at<cv::Vec3b>(py, px)[0]) );
+		    (1.0-spaceDecay)*double(ms->config.cam_img.at<cv::Vec3b>(py, px)[0]) );
 	  objectMap[i + mapWidth * j].g = 
 	    ( spaceDecay*double(objectMap[i + mapWidth * j].g) + 
-		    (1.0-spaceDecay)*double(cam_img.at<cv::Vec3b>(py, px)[1]) );
+		    (1.0-spaceDecay)*double(ms->config.cam_img.at<cv::Vec3b>(py, px)[1]) );
 	  objectMap[i + mapWidth * j].r = 
 	    ( spaceDecay*double(objectMap[i + mapWidth * j].r) + 
-		    (1.0-spaceDecay)*double(cam_img.at<cv::Vec3b>(py, px)[2]) );
+		    (1.0-spaceDecay)*double(ms->config.cam_img.at<cv::Vec3b>(py, px)[2]) );
 	  objectMap[i + mapWidth * j].pixelCount = 
 	    ( spaceDecay*double(objectMap[i + mapWidth * j].pixelCount) + 
 		    (1.0-spaceDecay)*double(1.0) );
@@ -827,7 +827,7 @@ CODE(1179737) // capslock + numlock + y
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if (temporalDensity != NULL && preDensity != NULL) {
     //cout << "preDensity<<<<***" << endl;
-    Size sz = objectViewerImage.size();
+    Size sz = ms->config.objectViewerImage.size();
     int imW = sz.width;
     int imH = sz.height;
     for (int x = 0; x < imW; x++) {
@@ -876,7 +876,7 @@ REGISTER_WORD(AssumeFacePose)
 /*
 WORD(DetectFaces)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  vector<Rect> faces = faceDetectAndDisplay(faceViewName, faceViewImage);
+  vector<Rect> faces = faceDetectAndDisplay(faceViewName, ms->config.faceViewImage);
 }
 END_WORD
 REGISTER_WORD(DetectFaces)
@@ -912,7 +912,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     cout << "faceServo timed out, continuing..." << endl;
     return;
   }
-  vector<Rect> faces = faceDetectAndDisplay(faceViewName, faceViewImage);
+  vector<Rect> faces = faceDetectAndDisplay(faceViewName, ms->config.faceViewImage);
   faceServo(ms, faces);
 }
 END_WORD

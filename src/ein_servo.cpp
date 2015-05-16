@@ -1200,7 +1200,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("synchronicServo"); // synchronic servo
       
       if (ms->config.targetClass != -1)
-        cout << "Found the target " << classLabels[ms->config.targetClass] << ". " << endl;
+        cout << "Found the target " << ms->config.classLabels[ms->config.targetClass] << ". " << endl;
       // grab the last bit of accumulated time
       ms->config.accumulatedTime = ms->config.accumulatedTime + (ros::Time::now() - ms->config.oscilStart);
     } else {
