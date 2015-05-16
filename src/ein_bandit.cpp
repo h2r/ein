@@ -393,8 +393,8 @@ CODE(1245246)      // capslock + numlock + >
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int thisRandThompsonHeight = lrand48() % ms->config.hmWidth;
   if (ms->config.currentBoundingBoxMode == MAPPING) {
-    thisRandThompsonHeight = mappingHeightIdx;
-    cout << "UniformlySampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
+    thisRandThompsonHeight = ms->config.mappingHeightIdx;
+    cout << "UniformlySampleHeight going to mappingHeightIdx: " << ms->config.mappingHeightIdx << endl;
   }
   ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, thisRandThompsonHeight);
   ms->config.currentThompsonHeightIdx = thisRandThompsonHeight;
@@ -445,9 +445,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     
   if (ms->config.currentBoundingBoxMode != STATIC_PRIOR) {
     if (ms->config.currentBoundingBoxMode == MAPPING) {
-      cout << "SampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
-      ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, mappingHeightIdx);
-      ms->config.currentThompsonHeightIdx = mappingHeightIdx;
+      cout << "SampleHeight going to mappingHeightIdx: " << ms->config.mappingHeightIdx << endl;
+      ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.mappingHeightIdx);
+      ms->config.currentThompsonHeightIdx = ms->config.mappingHeightIdx;
       ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
       ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
       ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
@@ -492,9 +492,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
     ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
   } else {
-    cout << "SampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
-    ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, mappingHeightIdx);
-    ms->config.currentThompsonHeightIdx = mappingHeightIdx;
+    cout << "SampleHeight going to mappingHeightIdx: " << ms->config.mappingHeightIdx << endl;
+    ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.mappingHeightIdx);
+    ms->config.currentThompsonHeightIdx = ms->config.mappingHeightIdx;
     ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
     ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
     ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];

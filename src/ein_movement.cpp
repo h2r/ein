@@ -876,7 +876,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double aY = result.y();
       double aX = result.x();
 
-      double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
+      double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
       angle = (angle);
       double scale = 1.0;
       Point center = Point(sz.width/2, sz.height/2);
