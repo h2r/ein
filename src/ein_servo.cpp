@@ -1116,7 +1116,7 @@ REGISTER_WORD(SynchronicServoTakeClosest)
 WORD(TwoDPatrolStart)
 CODE(131159)     // capslock + w
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  ms->config.eepReg2 = rssPose;
+  ms->config.eepReg2 = ms->config.beeHome;
   bailAfterSynchronic = 0;
   graspAttemptCounter = 0;
   graspSuccessCounter = 0;

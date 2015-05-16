@@ -85,7 +85,7 @@ REGISTER_WORD(SetRandomPositionAndOrientationForHeightLearning)
 WORD(BeginHeightLearning)
 CODE(1245242)     // capslock + numlock + :
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  ms->config.eepReg3 = rssPose;
+  ms->config.eepReg3 = ms->config.beeHome;
   heightAttemptCounter = 0;
   heightSuccessCounter = 0;
   thompsonPickHaltFlag = 0;

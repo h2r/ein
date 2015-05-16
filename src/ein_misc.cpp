@@ -39,25 +39,6 @@ END_WORD
 REGISTER_WORD(Beep)
 
 
-
-
-WORD(AssumeWholeFoodsCounter1)
-CODE(196672)  // capslock + @
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentEEPose = wholeFoodsCounter1;
-}
-END_WORD
-REGISTER_WORD(AssumeWholeFoodsCounter1)
-
-WORD(AssumeWholeFoodsPantry1)
-CODE(196643)   // capslock + #
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentEEPose = wholeFoodsPantry1;
-}
-END_WORD
-REGISTER_WORD(AssumeWholeFoodsPantry1)
-
-
 WORD(ChangeToCounterTable)
 CODE(1179735) // capslock + numlock + w
 virtual void execute(std::shared_ptr<MachineState> ms) {

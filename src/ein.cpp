@@ -106,40 +106,6 @@ shared_ptr<MachineState> pMachineState;
 tf::TransformListener* tfListener;
 
 
-
-// whole foods waypoints 
-eePose wholeFoodsBagR = {.px = 0.618641, .py = -0.502567, .pz = 0.054811,
-			 .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
-eePose wholeFoodsPantryR = {.px = 0.616353, .py = -0.182223, .pz = 0.0528802,
-		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
-eePose wholeFoodsCounterR = {.px = -0.114591, .py = -0.771545, .pz = 0.0365494,
-		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
-
-
-
-
-eePose wholeFoodsBagL = {.px = 0.64828, .py = 0.762787, .pz = 0.0592764,
-		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
-eePose wholeFoodsPantryL = {.px = 0.645494, .py = 0.4937, .pz = 0.0568737,
-		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
-eePose wholeFoodsCounterL = {.px = -0.114389, .py = 0.803518, .pz = 0.056705,
-		      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
-
-eePose rssPoseL = {.px = 0.334217, .py = 0.75386, .pz = 0.0362593,
-                  .qx = -0.00125253, .qy = 0.999999, .qz = -0.000146851, .qw = 0.000236656};
-
-eePose rssPoseR = {.px = 0.525866, .py = -0.710611, .pz = 0.0695764,
-		      .qx = -0.00122177, .qy = 0.999998, .qz = 0.00116169, .qw = -0.001101};
-
-
-eePose rssPose = rssPoseR;
-
-eePose wholeFoodsBag1 = wholeFoodsBagR;
-eePose wholeFoodsPantry1 = wholeFoodsPantryR;
-eePose wholeFoodsCounter1 = wholeFoodsCounterR;
-
-
-
 int bfc = 0;
 int bfc_period = 3;
 int resend_times = 1;
@@ -5023,8 +4989,10 @@ void pilotInit(shared_ptr<MachineState> ms) {
 
   if (0 == ms->config.left_or_right_arm.compare("left")) {
     cout << "Possessing left arm..." << endl;
-    ms->config.beeHome = rssPoseL; //wholeFoodsPantryL;
-    ms->config.eepReg4 = rssPoseL; //beeLHome;
+    ms->config.beeHome = {.px = 0.334217, .py = 0.75386, .pz = 0.0362593,
+                          .qx = -0.00125253, .qy = 0.999999, .qz = -0.000146851, .qw = 0.000236656};
+    
+    ms->config.eepReg4 = ms->config.beeHome;
     ms->config.defaultReticle = {.px = 334, .py = 100, .pz = 0.0,
                       .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
     ms->config.reticle = ms->config.defaultReticle;
@@ -5045,21 +5013,16 @@ void pilotInit(shared_ptr<MachineState> ms) {
       ms->config.deliveryPoses[i].py = ystart + i * ystep;
     }
 
-    rssPose = rssPoseL;
-    ms->config.ik_reset_eePose = rssPose;
+    ms->config.ik_reset_eePose = {.px = 0.334217, .py = 0.75386, .pz = 0.0362593,
+                                  .qx = -0.00125253, .qy = 0.999999, .qz = -0.000146851, .qw = 0.000236656};
 
     ms->config.currentTableZ = ms->config.leftTableZ;
     ms->config.bagTableZ = ms->config.leftTableZ;
     ms->config.counterTableZ = ms->config.leftTableZ;
     ms->config.pantryTableZ  = ms->config.leftTableZ;
 
-    wholeFoodsBag1 = rssPoseL; //wholeFoodsBagL;
-    wholeFoodsPantry1 = rssPoseL; //wholeFoodsPantryL;
-    wholeFoodsCounter1 = rssPoseL; //wholeFoodsCounterL;
-
-    ms->config.eepReg1 = rssPoseL; //wholeFoodsBagL;
-    ms->config.eepReg2 = rssPoseL; //wholeFoodsPantryL;
-    //ms->config.eepReg3 = rssPoseL; //wholeFoodsCounterL;
+    ms->config.eepReg1 = ms->config.beeHome; 
+    ms->config.eepReg2 = ms->config.beeHome; 
 
     mapSearchFenceXMin = -0.75;
     mapSearchFenceXMax = 1.0;
@@ -5158,8 +5121,10 @@ void pilotInit(shared_ptr<MachineState> ms) {
   } else if (0 == ms->config.left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
 
-    ms->config.beeHome = rssPoseR;
-    ms->config.eepReg4 = rssPoseR; 
+    ms->config.beeHome = {.px = 0.525866, .py = -0.710611, .pz = 0.0695764,
+                          .qx = -0.00122177, .qy = 0.999998, .qz = 0.00116169, .qw = -0.001101};
+
+    ms->config.eepReg4 = ms->config.beeHome;
     ms->config.defaultReticle = {.px = 325, .py = 127, .pz = 0.0,
                       .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
     ms->config.reticle = ms->config.defaultReticle;
@@ -5180,21 +5145,17 @@ void pilotInit(shared_ptr<MachineState> ms) {
       ms->config.deliveryPoses[i].py = ystart + i * ystep;
     }
 
-    rssPose = rssPoseR;
-    ms->config.ik_reset_eePose = rssPose;
+
+    ms->config.ik_reset_eePose = ms->config.beeHome;
 
     ms->config.currentTableZ = ms->config.rightTableZ;
     ms->config.bagTableZ = ms->config.rightTableZ;
     ms->config.counterTableZ = ms->config.rightTableZ;
     ms->config.pantryTableZ  = ms->config.rightTableZ;
 
-    wholeFoodsBag1 = rssPoseR; //wholeFoodsBagR;
-    wholeFoodsPantry1 = rssPoseR; //wholeFoodsPantryR;
-    wholeFoodsCounter1 = rssPoseR; //wholeFoodsCounterR;
 
-    ms->config.eepReg1 = rssPoseR; //wholeFoodsBagR;
-    ms->config.eepReg2 = rssPoseR; //wholeFoodsPantryR;
-    //ms->config.eepReg3 = rssPoseR; //wholeFoodsCounterR;
+    ms->config.eepReg1 = ms->config.beeHome;
+    ms->config.eepReg2 = ms->config.beeHome;
 
     // raw fence values (from John estimating arm limits)
     // True EE Position (x,y,z): -0.329642 -0.77571 0.419954
@@ -13140,7 +13101,7 @@ int main(int argc, char **argv) {
   {
     for (int i = 0; i < numCornellTables; i++) {
       double yDelta = (mapSearchFenceYMax - mapSearchFenceXMin) / (double(i));
-      eePose thisTablePose = wholeFoodsBagR;
+      eePose thisTablePose = ms->config.beeHome;
       thisTablePose.px = 0.75*(mapSearchFenceXMax - mapSearchFenceXMin) + mapSearchFenceXMin; 
       thisTablePose.py = mapSearchFenceYMin + (double(i) + 0.5)*yDelta;
       thisTablePose.pz = ms->config.currentTableZ; 
