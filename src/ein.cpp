@@ -98,47 +98,6 @@ using namespace ein;
 MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
-tf::TransformListener* tfListener;
-
-baxter_core_msgs::SolvePositionIK ikRequest;
-baxter_core_msgs::SolvePositionIK lastGoodIkRequest;
-
-ros::ServiceClient ikClient;
-ros::ServiceClient cameraClient;
-ros::Publisher joint_mover;
-ros::Publisher gripperPub;
-ros::Publisher facePub;
-ros::Publisher moveSpeedPub;
-ros::Publisher sonarPub;
-ros::Publisher headPub;
-ros::Publisher nodPub;
-ros::Publisher einPub;
-ros::Publisher vmMarkerPublisher;
-ros::Publisher rec_objs_blue_memory;
-ros::Publisher markers_blue_memory;
-ros::Publisher ee_target_pub;
-
-
-
-
-
-
-
-int fuseBlueBoxes = 1;
-int fusePasses = 5;
-
-int g1xs = 200;
-int g1xe = 295;
-int g1ys = 0;
-int g1ye = 75;
-
-int g2xs = 420;
-int g2xe = 560;
-int g2ys = 0;
-int g2ye = 75;
-
-Mat accumulatedImage;
-Mat accumulatedImageMass;
 
 
 int ARE_GENERIC_PICK_LEARNING(shared_ptr<MachineState> ms) {
@@ -431,9 +390,9 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
 
 void processSaliency(Mat in, Mat out);
 
-void happy();
-void sad();
-void neutral();
+void happy(shared_ptr<MachineState> ms);
+void sad(shared_ptr<MachineState> ms);
+void neutral(shared_ptr<MachineState> ms);
 
 
 void guardViewers(shared_ptr<MachineState> ms);
@@ -447,22 +406,22 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut);
 // start pilot definitions 
 ////////////////////////////////////////////////
 
-void happy() {
+void happy(shared_ptr<MachineState> ms) {
   std_msgs::Int32 msg;
   msg.data = 0;
-  facePub.publish(msg);
+  ms->config.facePub.publish(msg);
 }
 
-void sad() {
+void sad(shared_ptr<MachineState> ms) {
   std_msgs::Int32 msg;
   msg.data = 99;
-  facePub.publish(msg);
+  ms->config.facePub.publish(msg);
 }
 
-void neutral() {
+void neutral(shared_ptr<MachineState> ms) {
   std_msgs::Int32 msg;
   msg.data = 50;
-  facePub.publish(msg);
+  ms->config.facePub.publish(msg);
 }
 
 
@@ -2513,8 +2472,8 @@ void reseedIkRequest(shared_ptr<MachineState> ms, eePose *givenEEPose, baxter_co
     givenIkRequest->request.seed_angles[0].position.resize(NUM_JOINTS);
     givenIkRequest->request.seed_angles[0].name.resize(NUM_JOINTS);
     for (int j = 0; j < NUM_JOINTS; j++) {
-      givenIkRequest->request.seed_angles[0].name[j] = lastGoodIkRequest.response.joints[0].name[j];
-      givenIkRequest->request.seed_angles[0].position[j] = lastGoodIkRequest.response.joints[0].position[j] + 
+      givenIkRequest->request.seed_angles[0].name[j] = ms->config.lastGoodIkRequest.response.joints[0].name[j];
+      givenIkRequest->request.seed_angles[0].position[j] = ms->config.lastGoodIkRequest.response.joints[0].position[j] + 
 	((drand48() - 0.5)*2.0*jointSeedAmplitude);
     }
   } else {
@@ -2584,11 +2543,11 @@ void update_baxter(ros::NodeHandle &n) {
     double ikNoiseAmplitudeQuat = 0;
     for (int ikRetry = 0; ikRetry < numIkRetries; ikRetry++) {
       // ATTN 24
-      //int ikCallResult = ikClient.call(thisIkRequest);
+      //int ikCallResult = ms->config.ikClient.call(thisIkRequest);
       int ikCallResult = 0;
       queryIK(ms, &ikCallResult, &thisIkRequest);
 
-      //ikResultFailed = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
+      //ikResultFailed = (!ms->config.ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
       //cout << "ik call result: " << ikCallResult << " joints: " << (thisIkRequest.response.joints.size()) << " "; 
 
       //if (thisIkRequest.response.joints.size()) {
@@ -2672,9 +2631,9 @@ void update_baxter(ros::NodeHandle &n) {
   }
 
   /*
-    if ( ikClient.waitForExistence(ros::Duration(1, 0)) ) {
+    if ( ms->config.ikClient.waitForExistence(ros::Duration(1, 0)) ) {
   //cout << "block6.1" << endl;
-      ikResultFailed = (!ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
+      ikResultFailed = (!ms->config.ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
     } else {
       cout << "waitForExistence timed out" << endl;
       ikResultFailed = 1;
@@ -2709,7 +2668,7 @@ void update_baxter(ros::NodeHandle &n) {
     ms->config.ik_reset_counter = max(ms->config.ik_reset_counter-1, 0);
 
     ms->config.lastGoodEEPose = ms->config.currentEEPose;
-    ikRequest = thisIkRequest;
+    ms->config.ikRequest = thisIkRequest;
     ms->config.ikInitialized = 1;
   
 
@@ -2721,7 +2680,7 @@ void update_baxter(ros::NodeHandle &n) {
   if (!ms->config.jointNamesInit) {
     ms->config.jointNames.resize(NUM_JOINTS);
     for (int j = 0; j < NUM_JOINTS; j++) {
-      ms->config.jointNames[j] = ikRequest.response.joints[0].name[j];
+      ms->config.jointNames[j] = ms->config.ikRequest.response.joints[0].name[j];
     }
     ms->config.jointNamesInit = 1;
   }
@@ -2745,9 +2704,9 @@ void update_baxter(ros::NodeHandle &n) {
 
 
     for (int j = 0; j < NUM_JOINTS; j++) {
-      myCommand.names[j] = ikRequest.response.joints[0].name[j];
+      myCommand.names[j] = ms->config.ikRequest.response.joints[0].name[j];
       //myCommand.command[j] = 0.0;
-      myCommand.command[j] = spiralEta*rapidJointScales[j]*(ikRequest.response.joints[0].position[j] - ms->config.trueJointPositions[j]);
+      myCommand.command[j] = spiralEta*rapidJointScales[j]*(ms->config.ikRequest.response.joints[0].position[j] - ms->config.trueJointPositions[j]);
       //myCommand.command[j] = sin(rapidJointGlobalOmega[j]*howLong.toSec());
     }
     {
@@ -2769,15 +2728,15 @@ void update_baxter(ros::NodeHandle &n) {
     myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
     myCommand.command.resize(NUM_JOINTS);
     myCommand.names.resize(NUM_JOINTS);
-    lastGoodIkRequest.response.joints.resize(1);
-    lastGoodIkRequest.response.joints[0].name.resize(NUM_JOINTS);
-    lastGoodIkRequest.response.joints[0].position.resize(NUM_JOINTS);
+    ms->config.lastGoodIkRequest.response.joints.resize(1);
+    ms->config.lastGoodIkRequest.response.joints[0].name.resize(NUM_JOINTS);
+    ms->config.lastGoodIkRequest.response.joints[0].position.resize(NUM_JOINTS);
 
     for (int j = 0; j < NUM_JOINTS; j++) {
-      myCommand.names[j] = ikRequest.response.joints[0].name[j];
-      myCommand.command[j] = ikRequest.response.joints[0].position[j];
-      lastGoodIkRequest.response.joints[0].name[j] = ikRequest.response.joints[0].name[j];
-      lastGoodIkRequest.response.joints[0].position[j] = ikRequest.response.joints[0].position[j];
+      myCommand.names[j] = ms->config.ikRequest.response.joints[0].name[j];
+      myCommand.command[j] = ms->config.ikRequest.response.joints[0].position[j];
+      ms->config.lastGoodIkRequest.response.joints[0].name[j] = ms->config.ikRequest.response.joints[0].name[j];
+      ms->config.lastGoodIkRequest.response.joints[0].position[j] = ms->config.ikRequest.response.joints[0].position[j];
     }
     ms->config.goodIkInitialized = 1;
   }
@@ -2786,8 +2745,8 @@ void update_baxter(ros::NodeHandle &n) {
   speedCommand.data = ms->config.currentEESpeedRatio;
   int param_resend_times = 1;
   for (int r = 0; r < param_resend_times; r++) {
-    joint_mover.publish(myCommand);
-    moveSpeedPub.publish(speedCommand);
+    ms->config.joint_mover.publish(myCommand);
+    ms->config.moveSpeedPub.publish(speedCommand);
   }
 
   ms->config.bfc++;
@@ -2878,7 +2837,7 @@ void timercallback1(const ros::TimerEvent&) {
   {
     EinState state;
     fillEinStateMsg(ms, &state);
-    einPub.publish(state);
+    ms->config.einPub.publish(state);
   }
 
   endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
@@ -2934,8 +2893,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
     ms->config.faceViewImage = ms->config.cv_ptr->image.clone();
 
-    accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
-    accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
+    ms->config.accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
+    ms->config.accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
 
     ms->config.densityViewerImage = ms->config.cv_ptr->image.clone();
     ms->config.densityViewerImage *= 0;
@@ -2960,16 +2919,16 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   guardViewers(ms);
 
-  Size sz = accumulatedImage.size();
+  Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      accumulatedImage.at<Vec3d>(y,x)[0] = accumulatedImage.at<Vec3d>(y,x)[0] + ms->config.wristCamImage.at<Vec3b>(y,x)[0];
-      accumulatedImage.at<Vec3d>(y,x)[1] = accumulatedImage.at<Vec3d>(y,x)[1] + ms->config.wristCamImage.at<Vec3b>(y,x)[1];
-      accumulatedImage.at<Vec3d>(y,x)[2] = accumulatedImage.at<Vec3d>(y,x)[2] + ms->config.wristCamImage.at<Vec3b>(y,x)[2];
-      accumulatedImageMass.at<double>(y,x) += 1.0;
+      ms->config.accumulatedImage.at<Vec3d>(y,x)[0] = ms->config.accumulatedImage.at<Vec3d>(y,x)[0] + ms->config.wristCamImage.at<Vec3b>(y,x)[0];
+      ms->config.accumulatedImage.at<Vec3d>(y,x)[1] = ms->config.accumulatedImage.at<Vec3d>(y,x)[1] + ms->config.wristCamImage.at<Vec3b>(y,x)[1];
+      ms->config.accumulatedImage.at<Vec3d>(y,x)[2] = ms->config.accumulatedImage.at<Vec3d>(y,x)[2] + ms->config.wristCamImage.at<Vec3b>(y,x)[2];
+      ms->config.accumulatedImageMass.at<double>(y,x) += 1.0;
     }
   }
 
@@ -3085,7 +3044,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 	}
       }
     }
-    vmMarkerPublisher.publish(ma_to_send);
+    ms->config.vmMarkerPublisher.publish(ma_to_send);
   }
 
   // paint gripper reticle centerline
@@ -7851,7 +7810,7 @@ void mapBox(shared_ptr<MachineState> ms, BoxMemory boxMemory) {
 
 void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
   if (ms->config.currentRobotMode == PHYSICAL) {
-    *thisResult = ikClient.call(*thisRequest);
+    *thisResult = ms->config.ikClient.call(*thisRequest);
   } else if (ms->config.currentRobotMode == SIMULATED) {
     *thisResult = 1;
   } else {
@@ -8125,8 +8084,8 @@ void simulatorCallback(const ros::TimerEvent&) {
 }
 
 bool isInGripperMaskBlocks(shared_ptr<MachineState> ms, int x, int y) {
-  if ( (x >= g1xs && x <= g1xe && y >= g1ys && y <= g1ye) ||
-       (x >= g2xs && x <= g2xe && y >= g2ys && y <= g2ye) ) {
+  if ( (x >= ms->config.g1xs && x <= ms->config.g1xe && y >= ms->config.g1ys && y <= ms->config.g1ye) ||
+       (x >= ms->config.g2xs && x <= ms->config.g2xe && y >= ms->config.g2ys && y <= ms->config.g2ye) ) {
     return true;
   } else {
     return false;
@@ -8159,14 +8118,14 @@ void findLight(shared_ptr<MachineState> ms, int * xout, int * yout) {
 
 void findOptimum(shared_ptr<MachineState> ms, int * xout, int * yout, int sign) {
 
-  if (isSketchyMat(accumulatedImage)) {
+  if (isSketchyMat(ms->config.accumulatedImage)) {
     ROS_ERROR("Whoops, accumulatedImage is sketchy, returning vanishing point to findOptimum.");
     *xout = ms->config.vanishingPointReticle.px;
     *yout = ms->config.vanishingPointReticle.py;
     return;
   }
 
-  Size sz = accumulatedImage.size();
+  Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
 
@@ -8178,7 +8137,7 @@ void findOptimum(shared_ptr<MachineState> ms, int * xout, int * yout, int sign) 
   double maxVal = -INFINITY;
 
   Mat accToBlur;
-  accToBlur.create(accumulatedImage.size(), CV_64F);
+  accToBlur.create(ms->config.accumulatedImage.size(), CV_64F);
 
   //int xmin = ms->config.grayTop.x;
   //int ymin = ms->config.grayTop.y;
@@ -8203,12 +8162,12 @@ void findOptimum(shared_ptr<MachineState> ms, int * xout, int * yout, int sign) 
   for (int x = xmin; x < xmax; x++) {
     for (int y = ymin; y < ymax; y++) {
       double thisVal = 
-      ( (accumulatedImage.at<Vec3d>(y,x)[0]*
-         accumulatedImage.at<Vec3d>(y,x)[0])+
-        (accumulatedImage.at<Vec3d>(y,x)[1]*
-         accumulatedImage.at<Vec3d>(y,x)[1])+
-        (accumulatedImage.at<Vec3d>(y,x)[2]*
-         accumulatedImage.at<Vec3d>(y,x)[2]) );
+      ( (ms->config.accumulatedImage.at<Vec3d>(y,x)[0]*
+         ms->config.accumulatedImage.at<Vec3d>(y,x)[0])+
+        (ms->config.accumulatedImage.at<Vec3d>(y,x)[1]*
+         ms->config.accumulatedImage.at<Vec3d>(y,x)[1])+
+        (ms->config.accumulatedImage.at<Vec3d>(y,x)[2]*
+         ms->config.accumulatedImage.at<Vec3d>(y,x)[2]) );
       accToBlur.at<double>(y,x) = thisVal;
     }
   }
@@ -8806,16 +8765,16 @@ void posekNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const
 
 
 void resetAccumulatedImageAndMass(shared_ptr<MachineState> ms) {
-  Size sz = accumulatedImageMass.size();
+  Size sz = ms->config.accumulatedImageMass.size();
   int imW = sz.width;
   int imH = sz.height;
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      accumulatedImageMass.at<double>(y,x) = 0;
-      accumulatedImage.at<Vec3d>(y,x)[0] = 0;
-      accumulatedImage.at<Vec3d>(y,x)[1] = 0;
-      accumulatedImage.at<Vec3d>(y,x)[2] = 0;
+      ms->config.accumulatedImageMass.at<double>(y,x) = 0;
+      ms->config.accumulatedImage.at<Vec3d>(y,x)[0] = 0;
+      ms->config.accumulatedImage.at<Vec3d>(y,x)[1] = 0;
+      ms->config.accumulatedImage.at<Vec3d>(y,x)[2] = 0;
     }
   }
 }
@@ -8862,19 +8821,19 @@ void substituteAccumulatedImageQuantities(shared_ptr<MachineState> ms) {
 
   double param_sobel_sigma_substitute_accumulated = 4.0;//2.0; reflections are a problem for low sigma...
   ms->config.sobel_sigma = param_sobel_sigma_substitute_accumulated;
-  Size sz = accumulatedImage.size();
+  Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      double denom = accumulatedImageMass.at<double>(y,x);
+      double denom = ms->config.accumulatedImageMass.at<double>(y,x);
       if (denom <= 1.0) {
 	denom = 1.0;
       }
-      ms->config.objectViewerImage.at<Vec3b>(y,x)[0] = doubleToByte(accumulatedImage.at<Vec3d>(y,x)[0] / denom);
-      ms->config.objectViewerImage.at<Vec3b>(y,x)[1] = doubleToByte(accumulatedImage.at<Vec3d>(y,x)[1] / denom);
-      ms->config.objectViewerImage.at<Vec3b>(y,x)[2] = doubleToByte(accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+      ms->config.objectViewerImage.at<Vec3b>(y,x)[0] = doubleToByte(ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      ms->config.objectViewerImage.at<Vec3b>(y,x)[1] = doubleToByte(ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      ms->config.objectViewerImage.at<Vec3b>(y,x)[2] = doubleToByte(ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
     }
   }
 }
@@ -9222,10 +9181,10 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.mask_gripper_blocks) {
-    int xs = g1xs;
-    int xe = g1xe;
-    int ys = g1ys;
-    int ye = g1ye;
+    int xs = ms->config.g1xs;
+    int xe = ms->config.g1xe;
+    int ys = ms->config.g1ys;
+    int ye = ms->config.g1ye;
     for (int x = xs; x < xe; x++) {
       for (int y = ys; y < ye; y++) {
 	ms->config.density[y*imW+x] = 0;
@@ -9236,10 +9195,10 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
       Mat vCrop = ms->config.objectViewerImage(cv::Rect(xs, ys, xe-xs, ye-ys));
       vCrop = vCrop/2;
     }
-    xs = g2xs;
-    xe = g2xe;
-    ys = g2ys;
-    ye = g2ye;
+    xs = ms->config.g2xs;
+    xe = ms->config.g2xe;
+    ys = ms->config.g2ys;
+    ye = ms->config.g2ye;
     for (int x = xs; x < xe; x++) {
       for (int y = ys; y < ye; y++) {
 	ms->config.density[y*imW+x] = 0;
@@ -9577,9 +9536,9 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       // ATTN 5
       // check for overlap and fuse
       cv::Point thisCen = cv::Point((ms->config.cTops[c].x+ms->config.cBots[c].x)/2, (ms->config.cTops[c].y+ms->config.cBots[c].y)/2);
-      if (fuseBlueBoxes) {
+      if (ms->config.fuseBlueBoxes) {
 	if (allow) {
-	  for (int fuseIter = 0; fuseIter < fusePasses; fuseIter++) {
+	  for (int fuseIter = 0; fuseIter < ms->config.fusePasses; fuseIter++) {
 	    for (int cbc = 0; cbc < ms->config.bTops.size(); cbc++) {
 
 	      int smallWidth = min(ms->config.bCens[cbc].x-ms->config.bTops[cbc].x, thisCen.x-ms->config.cTops[c].x);
@@ -9641,7 +9600,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
     p.y = ms->config.bCens[biggestBB].y;
     p.z = 0.0;
     
-      //ee_target_pub.publish(p);
+      //ms->config.ee_target_pub.publish(p);
     ms->config.pilotTarget.px = p.x;
     ms->config.pilotTarget.py = p.y;
     ms->config.pilotTarget.pz = p.z;
@@ -9654,7 +9613,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
     p.y = ms->config.bCens[closestBBToReticle].y;
     p.z = 0.0;
   
-    //ee_target_pub.publish(p);
+    //ms->config.ee_target_pub.publish(p);
     ms->config.pilotClosestTarget.px = p.x;
     ms->config.pilotClosestTarget.py = p.y;
     ms->config.pilotClosestTarget.pz = p.z;
@@ -9670,7 +9629,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
     p.y = ms->config.bCens[biggestBB].y;
     p.z = 0.0;
   
-    //ee_target_pub.publish(p);
+    //ms->config.ee_target_pub.publish(p);
     //ms->config.pilotTarget.px = p.x;
     //ms->config.pilotTarget.py = p.y;
     //ms->config.pilotTarget.pz = p.z;
@@ -10065,7 +10024,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
     p.y = ms->config.bCens[biggestBB].y;
     p.z = 0.0;
     
-      //ee_target_pub.publish(p);
+      //ms->config.ee_target_pub.publish(p);
     ms->config.pilotTarget.px = p.x;
     ms->config.pilotTarget.py = p.y;
     ms->config.pilotTarget.pz = p.z;
@@ -10078,7 +10037,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
     p.y = ms->config.bCens[closestBBToReticle].y;
     p.z = 0.0;
   
-    //ee_target_pub.publish(p);
+    //ms->config.ee_target_pub.publish(p);
     ms->config.pilotClosestTarget.px = p.x;
     ms->config.pilotClosestTarget.py = p.y;
     ms->config.pilotClosestTarget.pz = p.z;
@@ -11105,11 +11064,11 @@ void guardViewers(shared_ptr<MachineState> ms) {
     ms->config.densityViewerImage = ms->config.cv_ptr->image.clone();
     ms->config.densityViewerImage *= 0;
   }
-  if ( isSketchyMat(accumulatedImage) ) {
-    accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
+  if ( isSketchyMat(ms->config.accumulatedImage) ) {
+    ms->config.accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
   }
-  if ( isSketchyMat(accumulatedImageMass) ) {
-    accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
+  if ( isSketchyMat(ms->config.accumulatedImageMass) ) {
+    ms->config.accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
   }
   if ( isSketchyMat(ms->config.gradientViewerImage) ) {
     ms->config.gradientViewerImage = Mat(2*ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, ms->config.cv_ptr->image.type());
@@ -11292,10 +11251,10 @@ int main(int argc, char **argv) {
   ros::Subscriber placeObjectInEndEffectorCommandCallbackSub;
   ros::Subscriber moveEndEfffectorCommandCallbackSub;
 
-  rec_objs_blue_memory = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_memory_objects", 10);
-  markers_blue_memory = n.advertise<visualization_msgs::MarkerArray>("blue_memory_markers", 10);
+  ms->config.rec_objs_blue_memory = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_memory_objects", 10);
+  ms->config.markers_blue_memory = n.advertise<visualization_msgs::MarkerArray>("blue_memory_markers", 10);
 
-  ee_target_pub = n.advertise<geometry_msgs::Point>("pilot_target_" + ms->config.left_or_right_arm, 10);
+  ms->config.ee_target_pub = n.advertise<geometry_msgs::Point>("pilot_target_" + ms->config.left_or_right_arm, 10);
 
   ms->config.densityViewerName = "Density Viewer " + ms->config.left_or_right_arm;
   ms->config.objectViewerName = "Object Viewer " + ms->config.left_or_right_arm;
@@ -11458,17 +11417,17 @@ int main(int argc, char **argv) {
 
   ros::Timer timer1 = n.createTimer(ros::Duration(0.0001), timercallback1);
 
-  tfListener = new tf::TransformListener();
+  ms->config.tfListener = new tf::TransformListener();
 
-  ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + ms->config.left_or_right_arm + "/PositionKinematicsNode/IKService");
-  cameraClient = n.serviceClient<baxter_core_msgs::OpenCamera>("/cameras/open");
+  ms->config.ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + ms->config.left_or_right_arm + "/PositionKinematicsNode/IKService");
+  ms->config.cameraClient = n.serviceClient<baxter_core_msgs::OpenCamera>("/cameras/open");
 
-  joint_mover = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/" + ms->config.left_or_right_arm + "/joint_command", 10);
-  gripperPub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/command",10);
-  moveSpeedPub = n.advertise<std_msgs::Float64>("/robot/limb/" + ms->config.left_or_right_arm + "/set_speed_ratio",10);
-  sonarPub = n.advertise<std_msgs::UInt16>("/robot/sonar/head_sonar/set_sonars_enabled",10);
-  headPub = n.advertise<baxter_core_msgs::HeadPanCommand>("/robot/head/command_head_pan",10);
-  nodPub = n.advertise<std_msgs::Bool>("/robot/head/command_head_nod",10);
+  ms->config.joint_mover = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/" + ms->config.left_or_right_arm + "/joint_command", 10);
+  ms->config.gripperPub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/command",10);
+  ms->config.moveSpeedPub = n.advertise<std_msgs::Float64>("/robot/limb/" + ms->config.left_or_right_arm + "/set_speed_ratio",10);
+  ms->config.sonarPub = n.advertise<std_msgs::UInt16>("/robot/sonar/head_sonar/set_sonars_enabled",10);
+  ms->config.headPub = n.advertise<baxter_core_msgs::HeadPanCommand>("/robot/head/command_head_pan",10);
+  ms->config.nodPub = n.advertise<std_msgs::Bool>("/robot/head/command_head_nod",10);
 
   ms->config.currentHeadPanCommand.target = 0;
   ms->config.currentHeadPanCommand.speed = 50;
@@ -11476,16 +11435,16 @@ int main(int argc, char **argv) {
   ms->config.currentSonarCommand.data = 0;
 
 
-  facePub = n.advertise<std_msgs::Int32>("/confusion/target/command", 10);
-  einPub = n.advertise<EinState>("state", 10);
+  ms->config.facePub = n.advertise<std_msgs::Int32>("/confusion/target/command", 10);
+  ms->config.einPub = n.advertise<EinState>("state", 10);
 
-  vmMarkerPublisher = n.advertise<visualization_msgs::MarkerArray>("volumetric_rgb_map", 10);
+  ms->config.vmMarkerPublisher = n.advertise<visualization_msgs::MarkerArray>("volumetric_rgb_map", 10);
 
   {
     baxter_core_msgs::EndEffectorCommand command;
     command.command = baxter_core_msgs::EndEffectorCommand::CMD_CALIBRATE;
     command.id = 65538;
-    gripperPub.publish(command);
+    ms->config.gripperPub.publish(command);
   }
 
   ms->config.frameGraySobel = Mat(1,1,CV_64F);

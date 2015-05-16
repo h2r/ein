@@ -6,6 +6,24 @@
 #include <std_msgs/Bool.h>
 #include <cv_bridge/cv_bridge.h>
 
+#include <ros/package.h>
+#include <tf/transform_listener.h>
+#include <object_recognition_msgs/RecognizedObjectArray.h>
+#include <object_recognition_msgs/RecognizedObject.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <actionlib/client/simple_action_client.h>
+#include <control_msgs/FollowJointTrajectoryAction.h>
+
+#include <baxter_core_msgs/CameraControl.h>
+#include <baxter_core_msgs/OpenCamera.h>
+#include <baxter_core_msgs/EndpointState.h>
+#include <baxter_core_msgs/EndEffectorState.h>
+#include <baxter_core_msgs/EndEffectorCommand.h>
+#include <baxter_core_msgs/SolvePositionIK.h>
+#include <baxter_core_msgs/JointCommand.h>
+#include <baxter_core_msgs/HeadPanCommand.h>
+
+
 #include "ein_util.h"
 #include "eigen_util.h"
 
@@ -124,6 +142,34 @@ typedef struct MapCell {
 
 class EinConfig {
  public:
+
+
+  baxter_core_msgs::HeadPanCommand currentHeadPanCommand;
+  std_msgs::Bool currentHeadNodCommand;
+  std_msgs::UInt16 currentSonarCommand;
+  
+  tf::TransformListener* tfListener;
+  
+  baxter_core_msgs::SolvePositionIK ikRequest;
+  baxter_core_msgs::SolvePositionIK lastGoodIkRequest;
+  
+  ros::ServiceClient ikClient;
+  ros::ServiceClient cameraClient;
+  ros::Publisher joint_mover;
+  ros::Publisher gripperPub;
+  ros::Publisher facePub;
+  ros::Publisher moveSpeedPub;
+  ros::Publisher sonarPub;
+  ros::Publisher headPub;
+  ros::Publisher nodPub;
+  ros::Publisher einPub;
+  ros::Publisher vmMarkerPublisher;
+  ros::Publisher rec_objs_blue_memory;
+  ros::Publisher markers_blue_memory;
+  ros::Publisher ee_target_pub;
+
+
+
   int zero_g_toggle = 0;
 
   const int imRingBufferSize = 300;
@@ -684,9 +730,8 @@ class EinConfig {
   int endCollapse = 0;
   int endThisStackCollapse = 0;
 
-  baxter_core_msgs::HeadPanCommand currentHeadPanCommand;
-  std_msgs::Bool currentHeadNodCommand;
-  std_msgs::UInt16 currentSonarCommand;
+
+
 
   int heartBeatCounter = 0;
   int heartBeatPeriod = 150;
@@ -1005,8 +1050,22 @@ class EinConfig {
   vector<Mat> classHeightMemoryTries;
   vector<Mat> classHeightMemoryPicks;
 
-
+  int fuseBlueBoxes = 1;
+  int fusePasses = 5;
   
+  int g1xs = 200;
+  int g1xe = 295;
+  int g1ys = 0;
+  int g1ye = 75;
+  
+  int g2xs = 420;
+  int g2xe = 560;
+  int g2ys = 0;
+  int g2ye = 75;
+  
+  Mat accumulatedImage;
+  Mat accumulatedImageMass;
+
 }; // config end
 
 class Word;

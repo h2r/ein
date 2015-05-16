@@ -1050,7 +1050,7 @@ REGISTER_WORD(SetHeightReticlesA)
 
 WORD(MoveCropToCenter)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  Size sz = accumulatedImage.size();
+  Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
 
@@ -1064,7 +1064,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
   ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
-  int testResult = cameraClient.call(ocMessage);
+  int testResult = ms->config.cameraClient.call(ocMessage);
 }
 END_WORD
 REGISTER_WORD(MoveCropToCenter)
@@ -1078,14 +1078,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
   ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
-  int testResult = cameraClient.call(ocMessage);
+  int testResult = ms->config.cameraClient.call(ocMessage);
 }
 END_WORD
 REGISTER_WORD(MoveCropToProperValue)
 
 WORD(MoveCropToCenterVanishingPoint)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  Size sz = accumulatedImage.size();
+  Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
 
@@ -1106,7 +1106,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
   ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
-  int testResult = cameraClient.call(ocMessage);
+  int testResult = ms->config.cameraClient.call(ocMessage);
   //cout << "centerVanishingPoint testResult: " << testResult << endl;
   //cout << ocMessage.response.name << endl;
   //cout << ocMessage.response.name << " " << ocMessage.response.settings.controls.size() << endl;
@@ -1456,7 +1456,7 @@ REGISTER_WORD(SetGripperMask)
 
 WORD(SetGripperMaskAA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.gripperMaskFirstContrast = accumulatedImage.clone();
+  ms->config.gripperMaskFirstContrast = ms->config.accumulatedImage.clone();
   ms->config.gripperMaskSecondContrast = ms->config.gripperMaskFirstContrast.clone();
 
   ms->config.gripperMask.create(ms->config.gripperMaskFirstContrast.size(), CV_8U);
@@ -1468,13 +1468,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      double denom = accumulatedImageMass.at<double>(y,x);
+      double denom = ms->config.accumulatedImageMass.at<double>(y,x);
       if (denom <= 1.0) {
 	denom = 1.0;
       }
-      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] = (accumulatedImage.at<Vec3d>(y,x)[0] / denom);
-      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[1] = (accumulatedImage.at<Vec3d>(y,x)[1] / denom);
-      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] = (accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[1] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
 
       ms->config.gripperMask.at<uchar>(y,x) = 0;
     }
@@ -1485,7 +1485,7 @@ REGISTER_WORD(SetGripperMaskAA)
 
 WORD(InitCumulativeGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.cumulativeGripperMask.create(accumulatedImage.size(), CV_8U);
+  ms->config.cumulativeGripperMask.create(ms->config.accumulatedImage.size(), CV_8U);
   Size sz = ms->config.cumulativeGripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
@@ -1537,13 +1537,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      double denom = accumulatedImageMass.at<double>(y,x);
+      double denom = ms->config.accumulatedImageMass.at<double>(y,x);
       if (denom <= 1.0) {
 	denom = 1.0;
       }
-      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0] = (accumulatedImage.at<Vec3d>(y,x)[0] / denom);
-      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1] = (accumulatedImage.at<Vec3d>(y,x)[1] / denom);
-      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2] = (accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
 
       double maskDiff = 
       ((ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0])*
