@@ -4252,6 +4252,7 @@ int ARE_GENERIC_PICK_LEARNING(shared_ptr<MachineState> ms) {
 	   (ms->config.currentPickMode == LEARNING_ALGORITHMC) );
 }
 
+
 int ARE_GENERIC_HEIGHT_LEARNING(shared_ptr<MachineState> ms) {
   return ( (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) ||
 	   (ms->config.currentBoundingBoxMode == LEARNING_ALGORITHMC) );

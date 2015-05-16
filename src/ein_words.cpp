@@ -11,35 +11,10 @@
 #include "ein.h"
 
 
-
-// Preprocessor macro to automatically create class structure for words
-// extracted from the case statement of evil (despair)
-// WORD(gName)
-// // code here
-// CODE(123)
+#include "ein_words.h"
 
 std::vector<std::shared_ptr<Word> > words;
 
-
-#define WORD(gName) \
-class gName: public Word \
-{ \
-public: \
-  virtual string name() { \
-    string str = #gName; \
-    str[0] = tolower(str[0]); \
-    return str; \
-  } 
-
-#define CODE(code) \
-  virtual int character_code() { \
-    return code; \
-  } 
-
-#define END_WORD };
-
-#define REGISTER_WORD(gName) \
-  int gName ## _register = register_word(std::make_shared<gName>());
 
 
 int register_word(std::shared_ptr<Word> word) {
