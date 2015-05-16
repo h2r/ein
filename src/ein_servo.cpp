@@ -1,9 +1,9 @@
 WORD(FindBestOfFourGraspsUsingMemory)
 CODE(1048620)     // numlock + ,
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  cout << "Selecting best of 4 grasps...  numlock + , useContinuousGraspTransform = " << useContinuousGraspTransform << endl;
+  cout << "Selecting best of 4 grasps...  numlock + , useContinuousGraspTransform = " << ms->config.useContinuousGraspTransform << endl;
 
-  if (useContinuousGraspTransform) {
+  if (ms->config.useContinuousGraspTransform) {
   } else {
     ms->pushWord(1179728); // estimateGlobalGraspGear
   }
@@ -110,7 +110,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   //ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
   // ATTN 19
-  if (useContinuousGraspTransform) {
+  if (ms->config.useContinuousGraspTransform) {
     cout << "Assuming continuous maxGG: " << ms->config.maxGG << " localMaxGG: " << ms->config.localMaxGG << endl;
     setCCRotation(ms, (ms->config.maxGG+4)%4); 
   } else {

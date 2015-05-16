@@ -125,10 +125,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-int useContinuousGraspTransform = 1;
-
-double pickEccentricity = 100.0;
-double heightEccentricity = 1.0;
 
 // algorithmC accecpt and reject thresholds
 double algorithmCEPS = 0.2;
@@ -5371,8 +5367,8 @@ void loadSampledGraspMemory(shared_ptr<MachineState> ms) {
 	// ATTN 19 this isn't quite Thompson sampling...
 	//   regularization.
         int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG;
-        double nsuccess = pickEccentricity * (ms->config.graspMemoryPicks[i]);
-        double nfailure = pickEccentricity * (ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i]);
+        double nsuccess = ms->config.pickEccentricity * (ms->config.graspMemoryPicks[i]);
+        double nfailure = ms->config.pickEccentricity * (ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i]);
         ms->config.graspMemorySample[i] = rk_beta(&ms->config.random_state, 
                                        nsuccess + 1, 
                                        nfailure + 1);
@@ -5539,8 +5535,8 @@ void loadMarginalHeightMemory(shared_ptr<MachineState> ms) {
 void loadSampledHeightMemory(shared_ptr<MachineState> ms) {
   ROS_INFO("Loading sampled height memory.");
   for (int i = 0; i < ms->config.hmWidth; i++) {
-    double nsuccess = heightEccentricity * (ms->config.heightMemoryPicks[i]);
-    double nfailure = heightEccentricity * (ms->config.heightMemoryTries[i] - ms->config.heightMemoryPicks[i]);
+    double nsuccess = ms->config.heightEccentricity * (ms->config.heightMemoryPicks[i]);
+    double nfailure = ms->config.heightEccentricity * (ms->config.heightMemoryTries[i] - ms->config.heightMemoryPicks[i]);
     ms->config.heightMemorySample[i] = rk_beta(&ms->config.random_state, 
                                     nsuccess + 1, 
                                     nfailure + 1);
@@ -6342,7 +6338,7 @@ void selectMaxTargetLinearFilter(shared_ptr<MachineState> ms, double minDepth) {
 	ms->config.localMaxGG = getLocalGraspGear(ms, ms->config.currentGraspGear);
 	ms->config.maxD = ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth];
 	ms->config.maxGG = ms->config.currentGraspGear;
-	useContinuousGraspTransform = 0;
+	ms->config.useContinuousGraspTransform = 0;
       }
     }
   }
@@ -6387,7 +6383,7 @@ void selectMaxTargetThompson(shared_ptr<MachineState> ms, double minDepth) {
 	ms->config.localMaxGG = getLocalGraspGear(ms, ms->config.currentGraspGear);
 	ms->config.maxD = graspMemoryWeight;
 	ms->config.maxGG = ms->config.currentGraspGear;
-	useContinuousGraspTransform = 0;
+	ms->config.useContinuousGraspTransform = 0;
       }
     }
   }
@@ -6457,8 +6453,8 @@ void selectMaxTargetThompsonContinuous(shared_ptr<MachineState> ms, double minDe
 	ms->config.maxD = graspMemoryWeight;
 	//ms->config.maxGG = ms->config.currentGraspGear;
 	ms->config.maxGG = getLocalGraspGear(ms, ms->config.currentGraspGear);
-	useContinuousGraspTransform = 1;
-	//useContinuousGraspTransform = 0;
+	ms->config.useContinuousGraspTransform = 1;
+	//ms->config.useContinuousGraspTransform = 0;
       }
     }
   }
@@ -6530,8 +6526,8 @@ void selectMaxTargetThompsonContinuous2(shared_ptr<MachineState> ms, double minD
           ms->config.maxD = graspMemoryWeight;
           //ms->config.maxGG = getGlobalGraspGear(ms, ms->config.currentGraspGear);
           ms->config.maxGG = (ms->config.currentGraspGear);
-	  //useContinuousGraspTransform = 0;
-	  useContinuousGraspTransform = 1;
+	  //ms->config.useContinuousGraspTransform = 0;
+	  ms->config.useContinuousGraspTransform = 1;
 	  cout << "ZZZ ZZZ ZZZ" << endl;
         }
     }
@@ -6608,7 +6604,7 @@ void selectMaxTargetThompsonRotated(shared_ptr<MachineState> ms, double minDepth
           ms->config.localMaxGG = getLocalGraspGear(ms, ms->config.currentGraspGear);
           ms->config.maxD = graspMemoryWeight;
           ms->config.maxGG = ms->config.currentGraspGear;
-	  useContinuousGraspTransform = 0;
+	  ms->config.useContinuousGraspTransform = 0;
         }
     }
   }
@@ -6679,7 +6675,7 @@ void selectMaxTargetThompsonRotated2(shared_ptr<MachineState> ms, double minDept
           ms->config.localMaxGG = (ms->config.currentGraspGear);
           ms->config.maxD = graspMemoryWeight;
           ms->config.maxGG = getGlobalGraspGear(ms, ms->config.currentGraspGear);
-	  useContinuousGraspTransform = 0;
+	  ms->config.useContinuousGraspTransform = 0;
         }
     }
   }
