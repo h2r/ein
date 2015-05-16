@@ -792,6 +792,23 @@ class EinConfig {
   int grandTotalDescriptors = 0;
 
 
+
+  std::string data_directory = "unspecified_dd";
+  std::string vocab_file = "unspecified_vf";
+  std::string knn_file = "unspecified_kf";
+  std::string label_file = "unspecified_lf";
+  
+  std::string run_prefix = "unspecified_rp";
+  //std::string class_name = "unspecified_cn";
+  //std::string class_labels= "unspecified_cl1 unspecified_cl2";
+  //std::string class_pose_models = "unspecified_pm1 unspecified_pm2";
+  
+  std::string image_topic = "/camera/rgb/image_raw"; 
+  
+
+  std::string cache_prefix = "";
+
+
 }; // config end
 
 class Word;

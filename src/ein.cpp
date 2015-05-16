@@ -123,21 +123,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-std::string data_directory = "unspecified_dd";
-std::string vocab_file = "unspecified_vf";
-std::string knn_file = "unspecified_kf";
-std::string label_file = "unspecified_lf";
-
-std::string run_prefix = "unspecified_rp";
-std::string class_name = "unspecified_cn";
-
-std::string class_labels= "unspecified_cl1 unspecified_cl2";
-std::string class_pose_models = "unspecified_pm1 unspecified_pm2";
-
-std::string image_topic = "/camera/rgb/image_raw"; 
-
-
-std::string cache_prefix = "";
 
 int numClasses = 0;
 
@@ -156,7 +141,6 @@ BOWImgDescriptorExtractor *bowExtractor = NULL;
 CvKNearest *kNN = NULL;
 std::string package_path;
 std::string class_crops_path;
-std::string saved_crops_path;
 
 cv::Mat cam_img;
 cv::Mat depth_img;
@@ -10355,16 +10339,13 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 
   nh.getParam("frames_per_click", frames_per_click);
 
-  nh.getParam("vocab_file", vocab_file);
-  nh.getParam("knn_file", knn_file);
-  nh.getParam("label_file", label_file);
+  nh.getParam("vocab_file", ms->config.vocab_file);
+  nh.getParam("knn_file", ms->config.knn_file);
+  nh.getParam("label_file", ms->config.label_file);
 
-  nh.getParam("data_directory", data_directory);
-  nh.getParam("class_labels", class_labels);
-  nh.getParam("class_pose_models", class_pose_models);
+  nh.getParam("data_directory", ms->config.data_directory);
 
-  nh.getParam("class_name", class_name);
-  nh.getParam("run_prefix", run_prefix);
+  nh.getParam("run_prefix", ms->config.run_prefix);
 
   nh.getParam("all_range_mode", all_range_mode);
 
@@ -10378,7 +10359,7 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   nh.getParam("arm_box_left", lARM);
   nh.getParam("arm_box_right", rARM);
 
-  nh.getParam("image_topic", image_topic);
+  nh.getParam("image_topic", ms->config.image_topic);
 
   nh.getParam("invert_sign_name", invert_sign_name);
 
@@ -10386,7 +10367,7 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   nh.getParam("reextract_knn", ms->config.reextract_knn);
   nh.getParam("rewrite_labels", ms->config.rewrite_labels);
 
-  nh.getParam("cache_prefix", cache_prefix);
+  nh.getParam("cache_prefix", ms->config.cache_prefix);
 
   nh.getParam("mask_gripper", ms->config.mask_gripper);
 
@@ -10395,7 +10376,6 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   //nh.getParam("ms->config.chosen_feature", cfi);
   //ms->config.chosen_feature = static_cast<featureType>(cfi);
 
-  saved_crops_path = data_directory + "/objects/" + class_name + "/";
 
   nh.getParam("use_simulator", ms->config.use_simulator);
   if (ms->config.use_simulator) {
@@ -10419,11 +10399,8 @@ void loadROSParams(shared_ptr<MachineState> ms) {
   nh.getParam("frames_per_click", frames_per_click);
   nh.getParam("density_decay", densityDecay);
 
-  nh.getParam("data_directory", data_directory);
-  nh.getParam("class_labels", class_labels);
-  nh.getParam("class_pose_models", class_pose_models);
-  nh.getParam("class_name", class_name);
-  nh.getParam("run_prefix", run_prefix);
+  nh.getParam("data_directory", ms->config.data_directory);
+  nh.getParam("run_prefix", ms->config.run_prefix);
   nh.getParam("all_range_mode", all_range_mode);
 
   nh.getParam("gray_box_top", tGO);
@@ -10436,7 +10413,7 @@ void loadROSParams(shared_ptr<MachineState> ms) {
   nh.getParam("arm_box_left", lARM);
   nh.getParam("arm_box_right", rARM);
 
-  nh.getParam("image_topic", image_topic);
+  nh.getParam("image_topic", ms->config.image_topic);
 
   nh.getParam("table_label_class_name", table_label_class_name);
   nh.getParam("background_class_name", background_class_name);
@@ -10458,7 +10435,6 @@ void loadROSParams(shared_ptr<MachineState> ms) {
 
   nh.getParam("left_or_right_arm", ms->config.left_or_right_arm);
 
-  saved_crops_path = data_directory + "/objects/" + class_name + "/";
 }
 
 void saveROSParams(shared_ptr<MachineState> ms) {
@@ -10475,11 +10451,8 @@ void saveROSParams(shared_ptr<MachineState> ms) {
   nh.setParam("frames_per_click", frames_per_click);
   nh.setParam("density_decay", densityDecay);
 
-  nh.setParam("data_directory", data_directory);
-  nh.setParam("class_labels", class_labels);
-  nh.setParam("class_pose_models", class_pose_models);
-  nh.setParam("class_name", class_name);
-  nh.setParam("run_prefix", run_prefix);
+  nh.setParam("data_directory", ms->config.data_directory);
+  nh.setParam("run_prefix", ms->config.run_prefix);
   nh.setParam("all_range_mode", all_range_mode);
 
 
@@ -10493,7 +10466,7 @@ void saveROSParams(shared_ptr<MachineState> ms) {
   nh.setParam("arm_box_left", lARM);
   nh.setParam("arm_box_right", rARM);
 
-  nh.setParam("image_topic", image_topic);
+  nh.setParam("image_topic", ms->config.image_topic);
 
   nh.setParam("orientation_search_width", oSearchWidth);
 
@@ -10576,9 +10549,9 @@ void detectorsInit(shared_ptr<MachineState> ms) {
   char vocabularyPath[1024];
   char featuresPath[1024];
   char labelsPath[1024];
-  sprintf(vocabularyPath, "%s/objects/%s", data_directory.c_str(), vocab_file.c_str());
-  sprintf(featuresPath, "%s/objects/%s", data_directory.c_str(), knn_file.c_str());
-  sprintf(labelsPath, "%s/objects/%s", data_directory.c_str(), label_file.c_str());
+  sprintf(vocabularyPath, "%s/objects/%s", ms->config.data_directory.c_str(), ms->config.vocab_file.c_str());
+  sprintf(featuresPath, "%s/objects/%s", ms->config.data_directory.c_str(), ms->config.knn_file.c_str());
+  sprintf(labelsPath, "%s/objects/%s", ms->config.data_directory.c_str(), ms->config.label_file.c_str());
   cout << "vocabularyPath: " << vocabularyPath << endl;
   cout << "featuresPath: " << featuresPath << endl;
   cout << "labelsPath: " << labelsPath << endl;
@@ -10591,8 +10564,8 @@ void detectorsInit(shared_ptr<MachineState> ms) {
     // load cached labels 
     vector<string> classCacheLabels;
     vector<string> classCachePoseModels;
-    if (cache_prefix.size() > 0) {
-      string labelsCacheFile = data_directory + "/objects/" + cache_prefix + "labels.yml";
+    if (ms->config.cache_prefix.size() > 0) {
+      string labelsCacheFile = ms->config.data_directory + "/objects/" + ms->config.cache_prefix + "labels.yml";
 
       FileStorage fsvI;
       cout<<"Reading CACHED labels and pose models from " << labelsCacheFile << " ...";
@@ -10710,8 +10683,8 @@ void detectorsInit(shared_ptr<MachineState> ms) {
     // XXX experimental handling of G pose models
     Mat kNNCachefeatures;
     Mat kNNCachelabels;
-    if (cache_prefix.size() > 0) {
-      string knnCacheFile = data_directory + "/objects/" + cache_prefix + "knn.yml";
+    if (ms->config.cache_prefix.size() > 0) {
+      string knnCacheFile = ms->config.data_directory + "/objects/" + ms->config.cache_prefix + "knn.yml";
 
       FileStorage fsfI;
       cout<<"Reading CACHED features... " << knnCacheFile << " ..." << endl;
@@ -10801,7 +10774,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
   {
     string thisLabelName(className);
 
-    string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/ir2D/";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 
     FileStorage fsfI;
@@ -10876,7 +10849,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     {
       string thisLabelName(className);
 
-      string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
       string this_ag_path = dirToMakePath + "aerialHeight0Gradients.yml";
 
       FileStorage fsfI;
@@ -10893,7 +10866,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     {
       string thisLabelName(className);
 
-      string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
       string this_ag_path = dirToMakePath + "aerialHeight1Gradients.yml";
 
       FileStorage fsfI;
@@ -10910,7 +10883,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     {
       string thisLabelName(className);
 
-      string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
       string this_ag_path = dirToMakePath + "aerialHeight2Gradients.yml";
 
       FileStorage fsfI;
@@ -10927,7 +10900,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     {
       string thisLabelName(className);
 
-      string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
       string this_ag_path = dirToMakePath + "aerialHeight3Gradients.yml";
 
       FileStorage fsfI;
@@ -11560,20 +11533,20 @@ int main(int argc, char **argv) {
   loadROSParamsFromArgs(ms);
   cout << "mask_gripper: " << ms->config.mask_gripper << endl;
   cout << "all_range_mode: " << all_range_mode << endl;
-  cout << "data_directory: " << data_directory << endl << "class_name: " << class_name << endl 
-       << "run_prefix: " << run_prefix << endl << "class_pose_models: " << class_pose_models << endl 
-       << "class_labels: " << class_labels << endl << "vocab_file: " << vocab_file << endl 
-       << "knn_file: " << knn_file << endl << "label_file: " << label_file << endl
+  cout << "data_directory: " << ms->config.data_directory << endl 
+       << "run_prefix: " << ms->config.run_prefix << endl << endl 
+       << "vocab_file: " << ms->config.vocab_file << endl 
+       << "knn_file: " << ms->config.knn_file << endl << "label_file: " << ms->config.label_file << endl
        << endl;
 
   package_path = ros::package::getPath("ein");
-  class_crops_path = data_directory + "/objects/";
+  class_crops_path = ms->config.data_directory + "/objects/";
 
   unsigned long seed = 1;
   rk_seed(seed, &ms->config.random_state);
 
   if ( (ms->config.left_or_right_arm.compare("right") == 0) || (ms->config.left_or_right_arm.compare("left") == 0) ) {
-    image_topic = "/cameras/" + ms->config.left_or_right_arm + "_hand_camera/image";
+    ms->config.image_topic = "/cameras/" + ms->config.left_or_right_arm + "_hand_camera/image";
   }
 
   image_transport::ImageTransport it(n);
@@ -11619,7 +11592,7 @@ int main(int argc, char **argv) {
     eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, rangeCallback);
     eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, targetCallback);
     jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
-    image_sub = it.subscribe(image_topic, 1, imageCallback);
+    image_sub = it.subscribe(ms->config.image_topic, 1, imageCallback);
   } else if (pMachineState->config.currentRobotMode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
     simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/ms->config.simulatorCallbackFrequency), simulatorCallback);
@@ -11639,7 +11612,7 @@ int main(int argc, char **argv) {
       string dotdot("..");
 
       char buf[1024];
-      sprintf(buf, "%s/simulator/sprites", data_directory.c_str());
+      sprintf(buf, "%s/simulator/sprites", ms->config.data_directory.c_str());
       dpdf = opendir(buf);
       if (dpdf != NULL){
 	while (epdf = readdir(dpdf)){
@@ -11665,7 +11638,7 @@ int main(int argc, char **argv) {
       masterSprites.resize(spriteLabels.size());
       for (int s = 0; s < masterSprites.size(); s++) {
 	masterSprites[s].name = spriteLabels[s];
-	string filename = data_directory + "/simulator/sprites/" + masterSprites[s].name + "/image.ppm";
+	string filename = ms->config.data_directory + "/simulator/sprites/" + masterSprites[s].name + "/image.ppm";
 	cout << "loading sprite from " << filename << " ... ";
 
 	Mat tmp = imread(filename);
@@ -11683,7 +11656,7 @@ int main(int argc, char **argv) {
     int tileBackground = 1;
     if (tileBackground) {
       string filename;
-      filename = data_directory + "/simulator/tableTile.png";
+      filename = ms->config.data_directory + "/simulator/tableTile.png";
       cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
       Mat tmp = imread(filename);
       cout << "done. Tiling " << tmp.size() << " "; cout.flush();
@@ -11710,8 +11683,8 @@ int main(int argc, char **argv) {
       cout << "done. " << ms->config.mapBackgroundImage.size() << endl; cout.flush();
     } else {
       string filename;
-      //filename = data_directory + "/mapBackground.ppm";
-      filename = data_directory + "/simulator/carpetBackground.jpg";
+      //filename = ms->config.data_directory + "/mapBackground.ppm";
+      filename = ms->config.data_directory + "/simulator/carpetBackground.jpg";
       cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
       Mat tmp = imread(filename);
       cout << "done. Resizing " << tmp.size() << " "; cout.flush();

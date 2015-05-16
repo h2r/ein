@@ -72,7 +72,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   string dotdot("..");
 
   char buf[1024];
-  sprintf(buf, "%s/objects/", data_directory.c_str());
+  sprintf(buf, "%s/objects/", ms->config.data_directory.c_str());
   dpdf = opendir(buf);
   if (dpdf != NULL){
     while (epdf = readdir(dpdf)){
@@ -147,8 +147,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     string thisLabelName = ms->config.focusedClassLabel;
     Mat crop = cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
     char buf[1000];
-    string this_crops_path = data_directory + "/objects/" + thisLabelName + "/rgb/";
-    sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
+    string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
+    sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), cropCounter);
     imwrite(buf, crop);
     cropCounter++;
   }
@@ -163,8 +163,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       string thisLabelName = ms->config.focusedClassLabel;
       Mat crop = cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
       char buf[1000];
-      string this_crops_path = data_directory + "/objects/" + thisLabelName + "/rgb/";
-      sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
+      string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
+      sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), cropCounter);
       imwrite(buf, crop);
       cropCounter++;
     }
@@ -647,7 +647,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     string thisLabelName = ms->config.focusedClassLabel;
 
     char buf[1000];
-    string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
     string this_range_path;
 
     // ATTN 16
@@ -768,9 +768,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string thisLabelName(buf);
   ms->config.focusedClassLabel = thisLabelName;
   classLabels.push_back(thisLabelName);
-  string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/";
+  string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/";
   mkdir(dirToMakePath.c_str(), 0777);
-  string rgbDirToMakePath = data_directory + "/objects/" + thisLabelName + "/rgb";
+  string rgbDirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb";
   mkdir(rgbDirToMakePath.c_str(), 0777);
   ms->config.newClassCounter++;
 }
@@ -788,7 +788,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     string thisLabelName = ms->config.focusedClassLabel;
 
-    string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/ir2D/";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 
     Mat rangeMapTemp(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
@@ -1645,7 +1645,7 @@ REGISTER_WORD(SetGripperMaskCB)
 
 WORD(LoadGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string filename = data_directory + "/config/" + ms->config.left_or_right_arm + "GripperMask.bmp";
+  string filename = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "GripperMask.bmp";
   cout << "Loading gripper mask from " << filename << endl;
   Mat tmpMask = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
   cout << "  tmpMask.type() tmpMask.size(): " << tmpMask.type() << " " << tmpMask.size() << endl;
@@ -1671,7 +1671,7 @@ REGISTER_WORD(LoadGripperMask)
 
 WORD(SaveGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string filename = data_directory + "/config/" + ms->config.left_or_right_arm + "GripperMask.bmp";
+  string filename = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "GripperMask.bmp";
   cout << "Saving gripper mask to " << filename << endl;
   imwrite(filename, 255*ms->config.gripperMask);
 }
@@ -1719,7 +1719,7 @@ REGISTER_WORD(AssumeCalibrationPose)
 
 WORD(LoadCalibration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string fileName = data_directory + "/config/" + ms->config.left_or_right_arm + "Calibration.yml";
+  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "Calibration.yml";
   cout << "Loading calibration file from " << fileName << endl;
   loadCalibration(ms, fileName);
 }
@@ -1728,7 +1728,7 @@ REGISTER_WORD(LoadCalibration)
 
 WORD(SaveCalibration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string fileName = data_directory + "/config/" + ms->config.left_or_right_arm + "Calibration.yml";
+  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "Calibration.yml";
   cout << "Saving calibration file from " << fileName << endl;
   saveCalibration(ms, fileName);
 }
@@ -1937,7 +1937,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (ms->config.focusedClass > -1) {
     guard3dGrasps(ms);
     string thisLabelName = ms->config.focusedClassLabel;
-    string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
     string this_grasp_path = dirToMakePath + "3dGrasps.yml";
 
     mkdir(dirToMakePath.c_str(), 0777);
@@ -1963,7 +1963,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     {
       guard3dGrasps(ms);
       string thisLabelName = ms->config.focusedClassLabel;
-      string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
       string this_grasp_path = dirToMakePath + "3dGrasps.yml";
 
       FileStorage fsvI;
