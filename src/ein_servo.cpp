@@ -786,7 +786,15 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->pushWord("cruisingSpeed"); 
   ms->pushWord("comeToHover"); 
   ms->pushWord("waitUntilGripperNotMoving");
-  ms->pushWord("moveToTargetZAndGrasp"); 
+
+  if (ms->config.currentGraspMode == GRASP_CRANE) {
+    ms->pushWord("moveToTargetZAndGrasp"); 
+  } else if (ms->config.currentGraspMode == GRASP_3D) {
+    ms->pushWord("assumeCurrent3dGrasp"); 
+  } else {
+    assert(0);
+  }
+
   ms->pushWord("approachSpeed"); 
   ms->pushWord("openGripper"); 
 }
