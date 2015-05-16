@@ -1,9 +1,9 @@
 # Ein
-NODE: Native Object Detection / Estimation
 
-Please read this entire document before attempting to use the software. We start
-by describing the underlying functionality and ROS nodes and proceed to describe
-a convenient operating strategy and some utility scripts which you may find helpful.
+Please read this entire document before attempting to use the
+software. We start by describing the underlying functionality and ROS
+nodes and proceed to describe a convenient operating strategy and some
+utility scripts which you may find helpful.
 
 If you are on Trusty 14.04 LTS with Indigo, you need the non-free functionality of opencv.
 
@@ -209,4 +209,3 @@ of ein_dataDefault. Since there are no RGB images for
 background, blueBowl, brownCup, and brush, models will be trained for those classes but with no positive examples
 for them, nothing will ever be classified as one of those objects. So those folders can be removed at this point
 (they were necessary earlier for picking to work with those classes and the pretrained knn and vocab).
-
