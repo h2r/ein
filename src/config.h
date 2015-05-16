@@ -438,6 +438,11 @@ class EinConfig {
   int thompsonHeightHaltFlag = 0;
 
 
+  double pickEccentricity = 100.0;
+  double heightEccentricity = 1.0;
+
+
+
   // the currently equipped depth reticle
   double drX = .02; //.01;
   double drY = .02;
@@ -577,6 +582,9 @@ class EinConfig {
   //  by a margin, or it could prevent getting flush
   //  with the table near a sag
   double pickFlushFactor = 0.08;//0.09;//0.11;
+
+
+  int useContinuousGraspTransform = 1;
 
 
 };
