@@ -126,12 +126,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-DescriptorMatcher *matcher = NULL;
-FeatureDetector *detector = NULL;
-DescriptorExtractor *extractor = NULL;
-BOWKMeansTrainer *bowtrainer = NULL; 
-BOWImgDescriptorExtractor *bowExtractor = NULL;
-CvKNearest *kNN = NULL;
 std::string package_path;
 std::string class_crops_path;
 
@@ -608,10 +602,10 @@ bool isFiniteNumber(double x);
 void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descriptors, Mat& descriptors2);
 void processImage(Mat &image, Mat& gray_image, Mat& yCrCb_image, double sigma);
 
-void bowGetFeatures(std::string classDir, const char *className, double sigma, int keypointPeriod, int * grandTotalDescriptors);
+void bowGetFeatures(std::string classDir, const char *className, double sigma, int keypointPeriod, int * grandTotalDescriptors, DescriptorExtractor * extractor, BOWKMeansTrainer * bowTrainer);
 void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const char *className, int label, double sigma, Mat &kNNfeatures, Mat &kNNlabels, double sobel_sigma);
 void posekNNGetFeatures(std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
-                        vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, int lIndexStart = 0);
+                        vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, BOWImgDescriptorExtractor *bowExtractor, int lIndexStart = 0);
 
 
 void nodeCallbackFunc(int event, int x, int y, int flags, void* userdata);
@@ -8601,7 +8595,7 @@ void processImage(Mat &image, Mat& gray_image, Mat& yCrCb_image, double sigma) {
   GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), sigma);
 }
 
-void bowGetFeatures(std::string classDir, const char *className, double sigma, int keypointPeriod, int * grandTotalDescriptors) {
+void bowGetFeatures(std::string classDir, const char *className, double sigma, int keypointPeriod, int * grandTotalDescriptors, DescriptorExtractor * extractor, BOWKMeansTrainer * bowTrainer) {
 
   int totalDescriptors = 0;
   DIR *dpdf;
@@ -8642,7 +8636,7 @@ void bowGetFeatures(std::string classDir, const char *className, double sigma, i
         double param_bowSubSampleFactor = 0.10;
         int param_bowOverSampleFactor = 1;
 	for (int i = 0; i < param_bowOverSampleFactor; i++) {
-	  //detector->detect(gray_image, keypoints1);
+	  //ms->config.detector->detect(gray_image, keypoints1);
 	  gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints1, keypointPeriod);
 	  for (int kp = 0; kp < keypoints1.size(); kp++) {
 	    if (drand48() < param_bowSubSampleFactor)
@@ -8655,7 +8649,7 @@ void bowGetFeatures(std::string classDir, const char *className, double sigma, i
 	  cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " total descriptors: " << totalDescriptors << endl;
 
 	  if (!descriptors.empty() && !keypoints2.empty())
-	    bowtrainer->add(descriptors);
+	    bowTrainer->add(descriptors);
 	}
       }
     }
@@ -8699,9 +8693,9 @@ void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const cha
 	{
 	  processImage(image, gray_image, yCrCb_image, sigma);
 	  for (int i = 0; i < param_kNNOverSampleFactor; i++) {
-	    //detector->detect(gray_image, keypoints);
+	    //ms->config.detector->detect(gray_image, keypoints);
 	    gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints, ms->config.keypointPeriod);
-	    bowExtractor->compute(gray_image, keypoints, descriptors);
+	    ms->config.bowExtractor->compute(gray_image, keypoints, descriptors);
 
 	    cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " type: " << descriptors.type() << " tot: " << kNNfeatures.size() << endl;
 
@@ -8715,13 +8709,13 @@ void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const cha
 	} else if (ms->config.chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST) {
 	  processImage(image, gray_image, yCrCb_image, sigma);
 	  for (int i = 0; i < param_kNNOverSampleFactor; i++) {
-	    //detector->detect(gray_image, keypoints);
+	    //ms->config.detector->detect(gray_image, keypoints);
 	    gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints, ms->config.keypointPeriod);
-	    //bowExtractor->compute(gray_image, keypoints, descriptors);
+	    //ms->config.bowExtractor->compute(gray_image, keypoints, descriptors);
 
 	    Mat tmpC;
 	    image.convertTo(tmpC, CV_32FC3);
-	    bowExtractor->compute(tmpC, keypoints, descriptors);
+	    ms->config.bowExtractor->compute(tmpC, keypoints, descriptors);
 
 	    cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " type: " << descriptors.type() << " tot: " << kNNfeatures.size() << endl;
 
@@ -8925,7 +8919,7 @@ void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const cha
 }
 
 void posekNNGetFeatures(std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
-                        vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, int lIndexStart) {
+                        vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, int lIndexStart, BOWImgDescriptorExtractor *bowExtractor) {
 
   string sClassName(className);
 
@@ -8985,7 +8979,7 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
 	processImage(image, gray_image, yCrCb_image, sigma);
         int param_poseOverSampleFactor = 1;
 	for (int i = 0; i < param_poseOverSampleFactor; i++) {
-	  //detector->detect(gray_image, keypoints);
+	  //ms->config.detector->detect(gray_image, keypoints);
 	  gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
 	  bowExtractor->compute(gray_image, keypoints, descriptors);
 
@@ -9963,10 +9957,10 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
     {
       processImage(crop, gray_image, yCrCb_image, ms->config.grayBlur);
 
-      //detector->detect(gray_image, keypoints);
+      //ms->config.detector->detect(gray_image, keypoints);
       gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, ms->config.keypointPeriod);
 
-      bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
+      ms->config.bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
 
       // save the word assignments for the keypoints so we can use them for red boxes
 
@@ -10002,20 +9996,20 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       if (!descriptors.empty() && !keypoints.empty()) {
       
 	appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
-	label = kNN->find_nearest(descriptors2, param_numNeighbors);
+	label = ms->config.kNN->find_nearest(descriptors2, param_numNeighbors);
 	bLabels[c] = label;
       }
     } else if (ms->config.chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST) {
       processImage(crop, gray_image, yCrCb_image, ms->config.grayBlur);
 
-      //detector->detect(gray_image, keypoints);
+      //ms->config.detector->detect(gray_image, keypoints);
       gridKeypoints(imW, imH, bTops[c], bBots[c], gBoxStrideX, gBoxStrideY, keypoints, ms->config.keypointPeriod);
 
-      //bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
+      //ms->config.bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
 
       Mat tmpC;
       crop.convertTo(tmpC, CV_32FC3);
-      bowExtractor->compute(tmpC, keypoints, descriptors);
+      ms->config.bowExtractor->compute(tmpC, keypoints, descriptors);
 
       // save the word assignments for the keypoints so we can use them for red boxes
 
@@ -10052,7 +10046,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       
 	//appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
 	//label = kNN->find_nearest(descriptors2,k);
-	label = kNN->find_nearest(descriptors, param_numNeighbors);
+	label = ms->config.kNN->find_nearest(descriptors, param_numNeighbors);
 	bLabels[c] = label;
       }
     } else if (ms->config.chosen_feature == GRADIENT) {
@@ -10112,7 +10106,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 	}
       }
 
-      label = kNN->find_nearest(descriptorsG, param_numNeighbors);
+      label = ms->config.kNN->find_nearest(descriptorsG, param_numNeighbors);
       bLabels[c] = label;
     } else if (ms->config.chosen_feature == OPPONENT_COLOR_GRADIENT) {
       processImage(crop, gray_image, yCrCb_image, ms->config.sobel_sigma);
@@ -10239,7 +10233,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 	}
       }
 
-      label = kNN->find_nearest(descriptorsCbCr, param_numNeighbors);
+      label = ms->config.kNN->find_nearest(descriptorsCbCr, param_numNeighbors);
       bLabels[c] = label;
     }
 
@@ -10511,18 +10505,18 @@ void detectorsInit(shared_ptr<MachineState> ms) {
   // XXX TODO this function should reinit the structures if this function is to be called multiple times
 
   // SIFT 
-  //detector = new SiftFeatureDetector(0, 3, 0.04, 10, 1.6);
+  //ms->config.detector = new SiftFeatureDetector(0, 3, 0.04, 10, 1.6);
   cout << "ms->config.chosen_feature: " << ms->config.chosen_feature << endl;
-  if (detector == NULL)
-    detector = new FastFeatureDetector(4);
+  if (ms->config.detector == NULL)
+    ms->config.detector = new FastFeatureDetector(4);
 
-  if (extractor == NULL) {
+  if (ms->config.extractor == NULL) {
     if (ms->config.chosen_feature == SIFTBOW_GLOBALCOLOR_HIST)
-      extractor = new SiftDescriptorExtractor();
+      ms->config.extractor = new SiftDescriptorExtractor();
     else if (ms->config.chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST)
-      extractor = DescriptorExtractor::create("OpponentSIFT");
+      ms->config.extractor = DescriptorExtractor::create("OpponentSIFT");
     else {
-      extractor = new SiftDescriptorExtractor();
+      ms->config.extractor = new SiftDescriptorExtractor();
     }
   }
   
@@ -10533,7 +10527,7 @@ void detectorsInit(shared_ptr<MachineState> ms) {
   }
 
   // BOW time
-  bowtrainer = new BOWKMeansTrainer(ms->config.vocabNumWords);
+  ms->config.bowTrainer = new BOWKMeansTrainer(ms->config.vocabNumWords);
 
   // read the class image data
   string dot(".");
@@ -10611,10 +10605,12 @@ void detectorsInit(shared_ptr<MachineState> ms) {
     for (unsigned int i = 0; i < ms->config.classLabels.size(); i++) {
       cout << "Getting BOW features for class " << ms->config.classLabels[i] 
 	   << " with pose model " << ms->config.classPoseModels[i] << " index " << i << endl;
-      bowGetFeatures(class_crops_path, ms->config.classLabels[i].c_str(), ms->config.grayBlur, ms->config.keypointPeriod, &ms->config.grandTotalDescriptors);
+      bowGetFeatures(class_crops_path, ms->config.classLabels[i].c_str(), ms->config.grayBlur, ms->config.keypointPeriod, &ms->config.grandTotalDescriptors,
+                     ms->config.extractor, ms->config.bowTrainer);
       if (ms->config.classPoseModels[i].compare("G") == 0) {
 	string thisPoseLabel = ms->config.classLabels[i] + "Poses";
-        bowGetFeatures(class_crops_path, thisPoseLabel.c_str(), ms->config.grayBlur, ms->config.keypointPeriod, &ms->config.grandTotalDescriptors);
+        bowGetFeatures(class_crops_path, thisPoseLabel.c_str(), ms->config.grayBlur, ms->config.keypointPeriod, &ms->config.grandTotalDescriptors,
+                       ms->config.extractor, ms->config.bowTrainer);
       }
     }
 
@@ -10627,7 +10623,7 @@ void detectorsInit(shared_ptr<MachineState> ms) {
 
     cout << "Clustering features... ";
     cout.flush();
-    vocabulary = bowtrainer->cluster();
+    vocabulary = ms->config.bowTrainer->cluster();
     cout << "done." << endl;
 
     FileStorage fsvO;
@@ -10644,11 +10640,11 @@ void detectorsInit(shared_ptr<MachineState> ms) {
     cout << "done. vocabulary size: " << vocabulary.size() << endl;
   }
 
-  if (matcher == NULL)
-    matcher = new BFMatcher(NORM_L2);
-  if (bowExtractor == NULL)
-    bowExtractor = new BOWImgDescriptorExtractor(extractor,matcher);
-  bowExtractor->setVocabulary(vocabulary);
+  if (ms->config.matcher == NULL)
+    ms->config.matcher = new BFMatcher(NORM_L2);
+  if (ms->config.bowExtractor == NULL)
+    ms->config.bowExtractor = new BOWImgDescriptorExtractor(ms->config.extractor, ms->config.matcher);
+  ms->config.bowExtractor->setVocabulary(vocabulary);
 
   Mat kNNfeatures;
   Mat kNNlabels;
@@ -10668,7 +10664,7 @@ void detectorsInit(shared_ptr<MachineState> ms) {
       if (ms->config.classPoseModels[i].compare("G") == 0) {
 	string thisPoseLabel = ms->config.classLabels[i] + "Poses";
       posekNNGetFeatures(class_crops_path, thisPoseLabel.c_str(), ms->config.grayBlur, ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i],
-                         ms->config.classQuaternions[i], 0, ms->config.keypointPeriod);
+                         ms->config.classQuaternions[i], 0, ms->config.keypointPeriod, ms->config.bowExtractor);
       }
     }
 
@@ -10751,7 +10747,7 @@ void detectorsInit(shared_ptr<MachineState> ms) {
   cout << "kNNfeatures dimensions: " << kNNfeatures.size().height << " by " << kNNfeatures.size().width << endl;
 
   cout << "Main kNN...";
-  kNN = new CvKNearest(kNNfeatures, kNNlabels);
+  ms->config.kNN = new CvKNearest(kNNfeatures, kNNlabels);
   cout << "done." << endl;
   for (int i = 0; i < ms->config.numClasses; i++) {
     if (ms->config.classPoseModels[i].compare("G") == 0) {

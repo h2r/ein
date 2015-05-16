@@ -819,6 +819,15 @@ class EinConfig {
   vector< vector< cv::Vec<double,4> > > classQuaternions;
 
 
+  DescriptorMatcher *matcher = NULL;
+  FeatureDetector *detector = NULL;
+  DescriptorExtractor *extractor = NULL;
+  BOWKMeansTrainer *bowTrainer = NULL; 
+  BOWImgDescriptorExtractor *bowExtractor = NULL;
+  CvKNearest *kNN = NULL;
+
+
+
 }; // config end
 
 class Word;
