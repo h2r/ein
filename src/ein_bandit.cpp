@@ -67,10 +67,15 @@ REGISTER_WORD(SaveLearnedModels)
 WORD(SetRandomPositionAndOrientationForHeightLearning)
 CODE( 1179687)     // capslock + numlock + '
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double noX = bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
-  double noY = bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
-  noX = noX + (((noX > 0) - 0.5) * 2) * bbLearnPerturbBias;
-  noY = noY + (((noY > 0) - 0.5) * 2) * bbLearnPerturbBias;
+
+  double param_bbLearnPerturbScale = 0.07;//0.1;//.05;//
+  double param_bbLearnPerturbBias = 0.01;  //0.04;//0.05;
+
+
+  double noX = param_bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
+  double noY = param_bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
+  noX = noX + (((noX > 0) - 0.5) * 2) * param_bbLearnPerturbBias;
+  noY = noY + (((noY > 0) - 0.5) * 2) * param_bbLearnPerturbBias;
   double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
   
   ms->config.currentEEPose.px += noX;
@@ -178,19 +183,23 @@ REGISTER_WORD(ContinueHeightLearning)
 WORD(RecordHeightLearnTrial)
 CODE(1179694)     // capslock + numlock + .
   virtual void execute(std::shared_ptr<MachineState> ms)       {
+
+  double param_bbLearnThresh = 0.05;//0.04;
+  double param_bbQuatThresh = 1000;//0.05;
+
   // Distances for the eraser
   //0.04, 2.57e-05, 0.0005, 0.0009, 0.007, 0.0006
   // ATTN 17
   double distance = squareDistanceEEPose(ms->config.currentEEPose, ms->config.eepReg4);
   cout << "cartesian distance from start: " << sqrt(distance) << endl;
-  cout << "bbLearnThresh: " << bbLearnThresh << endl;
-  if (distance < bbLearnThresh*bbLearnThresh) {
+  cout << "bbLearnThresh: " << param_bbLearnThresh << endl;
+  if (distance < param_bbLearnThresh*param_bbLearnThresh) {
     Quaternionf q1(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
     Quaternionf q2(ms->config.eepReg4.qw, ms->config.eepReg4.qx, ms->config.eepReg4.qy, ms->config.eepReg4.qz);
     double quaternionDistance = unsignedQuaternionDistance(q1, q2);
     cout << "quat distance from start: " << quaternionDistance << endl;
-    cout << "bbQuatThresh: " << bbQuatThresh << endl;
-    if (quaternionDistance < bbQuatThresh)
+    cout << "bbQuatThresh: " << param_bbQuatThresh << endl;
+    if (quaternionDistance < param_bbQuatThresh)
       recordBoundingBoxSuccess(ms);
     else
       recordBoundingBoxFailure(ms);

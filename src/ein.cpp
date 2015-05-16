@@ -122,19 +122,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-
-double perturbScale = 0.05;//0.1;
-double bbLearnPerturbScale = 0.07;//0.1;//.05;//
-double bbLearnPerturbBias = 0.01;  //0.04;//0.05;
-// ATTN 17
-double bbLearnThresh = 0.05;//0.04;
-double bbQuatThresh = 1000;//0.05;
-
-
-
-int gmTargetX = -1;
-int gmTargetY = -1;
-
 // the last value the gripper was at when it began to open from a closed position
 double lastMeasuredBias = 1;
 double lastMeasuredClosed = 3.0;
@@ -144,15 +131,6 @@ pickMode currentBoundingBoxMode = STATIC_MARGINALS;
 pickMode currentDepthMode = STATIC_MARGINALS;
 
 
-int ARE_GENERIC_PICK_LEARNING() {
-  return ( (currentPickMode == LEARNING_SAMPLING) ||
-	   (currentPickMode == LEARNING_ALGORITHMC) );
-}
-
-int ARE_GENERIC_HEIGHT_LEARNING() {
-  return ( (currentBoundingBoxMode == LEARNING_SAMPLING) ||
-	   (currentBoundingBoxMode == LEARNING_ALGORITHMC) );
-}
 
 int orientationCascade = 0;
 int lPTthresh = 3;
@@ -579,6 +557,17 @@ cv::vector<cv::Point> nBot;
 //  they are the candidate blue boxes
 vector<cv::Point> cTops; 
 vector<cv::Point> cBots;
+
+int ARE_GENERIC_PICK_LEARNING() {
+  return ( (currentPickMode == LEARNING_SAMPLING) ||
+	   (currentPickMode == LEARNING_ALGORITHMC) );
+}
+
+int ARE_GENERIC_HEIGHT_LEARNING() {
+  return ( (currentBoundingBoxMode == LEARNING_SAMPLING) ||
+	   (currentBoundingBoxMode == LEARNING_ALGORITHMC) );
+}
+
 
 
 typedef struct Sprite {
@@ -4422,38 +4411,38 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     int bigY = y / ms->config.rmiCellWidth;
     if ((bigX >= ms->config.rmWidth) && (bigX < 2*ms->config.rmWidth) && (bigY < ms->config.rmWidth)) {
       // weight the grasp at a single point
-      gmTargetY = (bigX-ms->config.rmWidth);
-      gmTargetX = bigY;
+      ms->config.gmTargetY = (bigX-ms->config.rmWidth);
+      ms->config.gmTargetX = bigY;
 
       // ATTN 5
       // XXX no check
 //      for (int delX = -1; delX <= 1; delX++) {
 //	for (int delY = -1; delY <= 1; delY++) {
-//	  ms->config.graspMemoryTries[(gmTargetX+delX) + (gmTargetY+delY)*ms->config.rmWidth] = 1;
-//	  ms->config.graspMemoryPicks[(gmTargetX+delX) + (gmTargetY+delY)*ms->config.rmWidth] = 1;
+//	  ms->config.graspMemoryTries[(ms->config.gmTargetX+delX) + (ms->config.gmTargetY+delY)*ms->config.rmWidth] = 1;
+//	  ms->config.graspMemoryPicks[(ms->config.gmTargetX+delX) + (ms->config.gmTargetY+delY)*ms->config.rmWidth] = 1;
 //	}
 //      }
-      ms->config.graspMemoryTries[gmTargetX + gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*pMachineState->config.currentGraspGear] += 1;
-      ms->config.graspMemoryPicks[gmTargetX + gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*pMachineState->config.currentGraspGear] += 1;
+      ms->config.graspMemoryTries[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*pMachineState->config.currentGraspGear] += 1;
+      ms->config.graspMemoryPicks[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*pMachineState->config.currentGraspGear] += 1;
     }
     pMachineState->pushWord("paintReticles"); // render reticle
     pMachineState->pushWord("drawMapRegisters"); // render register 1
     pMachineState->execute_stack = 1;
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
-      " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << gmTargetX << " " << gmTargetY << endl;
+      " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
   } else if ( event == EVENT_RBUTTONDOWN ) {
     int bigX = x / ms->config.rmiCellWidth;
     int bigY = y / ms->config.rmiCellWidth;
     if ((bigX >= ms->config.rmWidth) && (bigX < 2*ms->config.rmWidth) && (bigY < ms->config.rmWidth)) {
-      ms->config.graspMemoryTries[gmTargetX + gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*pMachineState->config.currentGraspGear] += 1;
+      ms->config.graspMemoryTries[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*pMachineState->config.currentGraspGear] += 1;
     }
     pMachineState->pushWord("paintReticles"); // render reticle
     pMachineState->pushWord("drawMapRegisters"); // render register 1
     pMachineState->execute_stack = 1;
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
-      " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << gmTargetX << " " << gmTargetY << endl;
+      " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
   } else if  ( event == EVENT_MBUTTONDOWN ) {
     int bigX = x / ms->config.rmiCellWidth;
     int bigY = y / ms->config.rmiCellWidth;
@@ -4471,7 +4460,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     pMachineState->execute_stack = 1;
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
-      " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << gmTargetX << " " << gmTargetY << endl;
+      " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
   } else if ( event == EVENT_MOUSEMOVE ) {
     //cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
   }
@@ -6396,7 +6385,7 @@ void selectMaxTargetLinearFilter(shared_ptr<MachineState> ms, double minDepth) {
 
 
       //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << ms->config.graspMemoryPicks[gmTargetX + gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)] << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << " " << ms->config.graspMemoryPicks[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)] << endl;
 	    
       // 
       if (graspMemoryBias + graspMemoryWeight < minDepth) 
@@ -6507,7 +6496,7 @@ void selectMaxTargetThompsonContinuous(shared_ptr<MachineState> ms, double minDe
       }
 
       //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << ms->config.graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)] << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << " " << ms->config.graspMemoryPicks[ms->config.gmTargetX + ms->config.gmTargetY*rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)] << endl;
 	    
       // ATTN 19
       int i = localIntThX + localIntThY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear);
@@ -6581,7 +6570,7 @@ void selectMaxTargetThompsonContinuous2(shared_ptr<MachineState> ms, double minD
 
 
       //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << ms->config.graspMemoryPicks[gmTargetX + gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear)] << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << " " << ms->config.graspMemoryPicks[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear)] << endl;
 	    
       // ATTN 19
       int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear);
@@ -6660,7 +6649,7 @@ void selectMaxTargetThompsonRotated(shared_ptr<MachineState> ms, double minDepth
 
 
       //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << ms->config.graspMemoryPicks[gmTargetX + gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)] << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << " " << ms->config.graspMemoryPicks[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)] << endl;
 	    
       // ATTN 19
       int i = localIntThX + localIntThY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear);
@@ -6731,7 +6720,7 @@ void selectMaxTargetThompsonRotated2(shared_ptr<MachineState> ms, double minDept
 
 
       //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << ms->config.graspMemoryPicks[gmTargetX + gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear)] << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << " " << ms->config.graspMemoryPicks[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear)] << endl;
 	    
       // ATTN 19
       int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear);

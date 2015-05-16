@@ -524,8 +524,11 @@ class EinConfig {
   operationStatusType thisGraspPicked = UNKNOWN;
   operationStatusType thisGraspReleased = UNKNOWN;
 
-
   string lastLabelLearned;
+
+  int gmTargetX = -1;
+  int gmTargetY = -1;
+
 
 };
 
