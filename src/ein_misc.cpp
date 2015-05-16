@@ -606,7 +606,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
   // For Dipendra
   ofstream ofile;
-  string fileName = data_directory + "/" + ms->config.left_or_right_arm + "_environment.xml";
+  string fileName = ms->config.data_directory + "/" + ms->config.left_or_right_arm + "_environment.xml";
   cout << "Saving environment to " << fileName << endl;
   ofile.open(fileName, ios::trunc);
 

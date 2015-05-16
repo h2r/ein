@@ -11,7 +11,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
     string thisLabelName = ms->config.focusedClassLabel;
 
-    string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/ir2D/";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 
     Mat rangeMapTemp(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
