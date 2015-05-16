@@ -122,27 +122,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-
-////////////////////////////////////////////////
-// end pilot variables 
-//
-// start node variables 
-////////////////////////////////////////////////
-
-int retrain_vocab = 0;
-int rewrite_labels = 0;
-int reextract_knn = 0;
-int runInference = 1;
-int trainOnly = 0;
-// Start Intron: The below variables are left over and should be considered defunct
-int saveAnnotatedBoxes = 0;
-int captureHardClass = 0;
-int captureOnly = 0;
-int saveBoxes = 0;
-// End Intron 1: The above variables are left over and should be considered defunct
-
-int runTracking = 1; // calculates the red boxes
-
 int drawOrientor = 1;
 int drawLabels = 1;
 int drawPurple = 0;
@@ -804,9 +783,9 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms);
 void loadROSParams(shared_ptr<MachineState> ms);
 void saveROSParams(shared_ptr<MachineState> ms);
 
-void spinlessNodeMain();
-void nodeInit();
-void detectorsInit();
+void spinlessNodeMain(shared_ptr<MachineState> ms);
+void nodeInit(shared_ptr<MachineState> ms);
+void detectorsInit(shared_ptr<MachineState> ms);
 void initRedBoxes();
 
 void tryToLoadRangeMap(std::string classDir, const char *className, int i);
@@ -9665,13 +9644,7 @@ void nodeCallbackFunc(int event, int x, int y, int flags, void* userdata) {
   }
 
   if ( event == EVENT_LBUTTONDOWN ) {
-    if (captureOnly) 
-      fc = frames_per_click;
-    if (saveAnnotatedBoxes)
-      fc = frames_per_click;
-    if (captureHardClass)
-      fc = frames_per_click;
- 
+    fc = frames_per_click;
     //cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
   } else if ( event == EVENT_RBUTTONDOWN ) {
     //cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
@@ -10903,81 +10876,6 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
     double poseIndex = -1;
     int winningO = -1;
 
-    // XXX 
-    //getOrientation(keypoints, descriptors, bTops[c], bBots[c], 
-      //label, labelName, augmentedLabelName, poseIndex, winningO);
-    
-    if (saveAnnotatedBoxes) {
-      // save the crops
-      if (fc > 0) {
-
-	int conditionFulfilled = false;
-	if (captureHardClass)
-	  conditionFulfilled = ( (0 != labelName.compare(table_label_class_name)) &&
-				 (0 != labelName.compare(background_class_name) ) );
-	else
-	  conditionFulfilled = ( 0 == labelName.compare(class_name) );
-
-	if (conditionFulfilled) {
-
-	  string thisLabelName = labelName;
-	  if (captureHardClass)
-	    thisLabelName = class_name;
-
-	  {
-	    string another_crops_path = data_directory + "/objects/" + thisLabelName + "/";
-	    char buf[1000];
-	    sprintf(buf, "%s%s%s_%d.ppm", another_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
-	    cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
-	    imwrite(buf, crop);
-	  }
-
-	  Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
-	  char buf[1000];
-	  string this_crops_path = data_directory + "/objects/" + thisLabelName + "Poses/";
-	  sprintf(buf, "%s%sPoses%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), run_prefix.c_str(), cropCounter);
-	  //sprintf(buf, class_crops_path + "/%s_toAudit/%s%s_%d.ppm", 
-	    //thisLabelName, thisLabelName, run_prefix, cropCounter);
-	  imwrite(buf, crop);
-	  cropCounter++;
-
-	  string poseLabelsPath = this_crops_path + "poseLabels.yml";
-	  char thisCropLabel[1000];
-	  sprintf(thisCropLabel, "%sPoses%s_%d", thisLabelName.c_str(), run_prefix.c_str(), cropCounter); 
-
-	  Eigen::Quaternionf quaternionToWrite = tableLabelQuaternion;
-	  if (invertQuaternionLabel) {
-	    cv::Matx33f R;
-	    R(0,0) = 1; R(0,1) =  0; R(0,2) = 0;
-	    R(1,0) = 0; R(1,1) =  0; R(1,2) = 1;
-	    R(2,0) = 0; R(2,1) = -1; R(2,2) = 0;
-
-	    Eigen::Matrix3f rotation;
-	    rotation << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
-	    Eigen::Quaternionf tempQuaternion(rotation);
-    
-	    quaternionToWrite = tableLabelQuaternion * tempQuaternion;
-	  }
-
-	  cv::Vec <double,4>tLQ;
-	  tLQ[0] = quaternionToWrite.x();
-	  tLQ[1] = quaternionToWrite.y();
-	  tLQ[2] = quaternionToWrite.z();
-	  tLQ[3] = quaternionToWrite.w();
-
-	  FileStorage fsfO;
-	  fsfO.open(poseLabelsPath, FileStorage::APPEND);
-	  fsfO << thisCropLabel << tLQ; 
-	  fsfO.release();
-
-	  cout << buf << " " << bTops[c] << bBots[c] << original_cam_img.size() << crop.size() << endl;
-	} else {
-	  cout << "Rejecting class " << labelName << endl;
-	}
-
-      }
-    }
-
     if (label == -1)
       labelName = "VOID";
     else
@@ -11091,9 +10989,9 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 
   nh.getParam("invert_sign_name", invert_sign_name);
 
-  nh.getParam("retrain_vocab", retrain_vocab);
-  nh.getParam("reextract_knn", reextract_knn);
-  nh.getParam("rewrite_labels", rewrite_labels);
+  nh.getParam("retrain_vocab", ms->config.retrain_vocab);
+  nh.getParam("reextract_knn", ms->config.reextract_knn);
+  nh.getParam("rewrite_labels", ms->config.rewrite_labels);
 
   nh.getParam("cache_prefix", cache_prefix);
 
@@ -11156,9 +11054,9 @@ void loadROSParams(shared_ptr<MachineState> ms) {
 
   nh.getParam("invert_sign_name", invert_sign_name);
 
-  nh.getParam("retrain_vocab", retrain_vocab);
-  nh.getParam("reextract_knn", reextract_knn);
-  nh.getParam("rewrite_labels", rewrite_labels);
+  nh.getParam("retrain_vocab", ms->config.retrain_vocab);
+  nh.getParam("reextract_knn", ms->config.reextract_knn);
+  nh.getParam("rewrite_labels", ms->config.rewrite_labels);
 
   nh.getParam("sobel_sigma", sobel_sigma);
   nh.getParam("local_sobel_sigma", local_sobel_sigma);
@@ -11213,9 +11111,9 @@ void saveROSParams(shared_ptr<MachineState> ms) {
 
   nh.setParam("invert_sign_name", invert_sign_name);
 
-  nh.setParam("retrain_vocab", retrain_vocab);
-  nh.setParam("reextract_knn", reextract_knn);
-  nh.setParam("rewrite_labels", rewrite_labels);
+  nh.setParam("retrain_vocab", ms->config.retrain_vocab);
+  nh.setParam("reextract_knn", ms->config.reextract_knn);
+  nh.setParam("rewrite_labels", ms->config.rewrite_labels);
 
   nh.setParam("sobel_sigma", sobel_sigma);
   nh.setParam("local_sobel_sigma", local_sobel_sigma);
@@ -11233,20 +11131,13 @@ void saveROSParams(shared_ptr<MachineState> ms) {
 
 }
 
-void spinlessNodeMain() {
+void spinlessNodeMain(shared_ptr<MachineState> ms) {
   cout << endl << endl << "Node main begin..." << endl;
-
-  nodeInit();
-
-  if (runInference) {
-    detectorsInit();
-  }
-
-  if (trainOnly)
-    exit(EXIT_SUCCESS);
+  nodeInit(ms);
+  detectorsInit(ms);
 }
 
-void nodeInit() {
+void nodeInit(shared_ptr<MachineState> ms) {
   tableLabelQuaternion.x() = 0;
   tableLabelQuaternion.y() = 0;
   tableLabelQuaternion.z() = 0;
@@ -11272,7 +11163,7 @@ void nodeInit() {
 
 }
 
-void detectorsInit() {
+void detectorsInit(shared_ptr<MachineState> ms) {
 
   // XXX TODO this function should reinit the structures if this function is to be called multiple times
 
@@ -11295,7 +11186,7 @@ void detectorsInit() {
   if ( (pMachineState->config.chosen_feature == GRADIENT) || 
        (pMachineState->config.chosen_feature == OPPONENT_COLOR_GRADIENT) ||
        (pMachineState->config.chosen_feature == CBCR_HISTOGRAM) ){
-    retrain_vocab = 0;
+    ms->config.retrain_vocab = 0;
   }
 
   // BOW time
@@ -11317,27 +11208,9 @@ void detectorsInit() {
 
   string bufstr; // Have a buffer string
 
-  if (trainOnly) {
-    stringstream ss_cl(class_labels); 
-    while (ss_cl >> bufstr)
-      classLabels.push_back(bufstr);
-
-    stringstream ss_cpm(class_pose_models); 
-    while (ss_cpm >> bufstr)
-      classPoseModels.push_back(bufstr);
-
-    cout << "Num labels: " << classLabels.size() << endl;
-    cout << "Num pose models: " << classPoseModels.size() << endl;
-
-    if ((classLabels.size() != classPoseModels.size()) || (classLabels.size() < 1)) {
-      cout << "Label and pose model list size problem. Exiting." << endl;
-      exit(EXIT_FAILURE);
-    }
-  }
-
   int numCachedClasses = 0;
 
-  if (rewrite_labels) {
+  if (ms->config.rewrite_labels) {
     // load cached labels 
     vector<string> classCacheLabels;
     vector<string> classCachePoseModels;
@@ -11391,7 +11264,7 @@ void detectorsInit() {
   Mat vocabulary;
 
   grandTotalDescriptors = 0;
-  if (retrain_vocab) {
+  if (ms->config.retrain_vocab) {
     for (unsigned int i = 0; i < classLabels.size(); i++) {
       cout << "Getting BOW features for class " << classLabels[i] 
 	   << " with pose model " << classPoseModels[i] << " index " << i << endl;
@@ -11442,7 +11315,7 @@ void detectorsInit() {
   classPosekNNlabels.resize(numClasses);
   classQuaternions.resize(numClasses);
 
-  if (reextract_knn) {
+  if (ms->config.reextract_knn) {
     //for (int i = 0; i < numNewClasses; i++) 
     for (int i = numCachedClasses; i < numClasses; i++) 
     {
@@ -12284,6 +12157,7 @@ int main(int argc, char **argv) {
   initializeWords();
   pMachineState = std::make_shared<MachineState>(machineState);
   shared_ptr<MachineState> ms = pMachineState;
+  initializeMachine(ms);
 
   initVectorArcTan(ms);
   srand(time(NULL));
@@ -12550,13 +12424,13 @@ int main(int argc, char **argv) {
 
   initializeMap(pMachineState);
 
-  spinlessNodeMain();
+  spinlessNodeMain(ms);
   spinlessPilotMain(ms);
 
   saveROSParams(ms);
 
 
-  initializeMachine(pMachineState);
+
 
 
 
