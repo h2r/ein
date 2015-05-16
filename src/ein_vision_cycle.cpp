@@ -825,14 +825,14 @@ REGISTER_WORD(ResetAccumulatedDensity)
 WORD(ResetTemporalMap)
 CODE(1179737) // capslock + numlock + y
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (temporalDensity != NULL && preDensity != NULL) {
-    //cout << "preDensity<<<<***" << endl;
+  if (ms->config.temporalDensity != NULL && ms->config.preDensity != NULL) {
+    //cout << "ms->config.preDensity<<<<***" << endl;
     Size sz = ms->config.objectViewerImage.size();
     int imW = sz.width;
     int imH = sz.height;
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-        temporalDensity[y*imW+x] = preDensity[y*imW+x];
+        ms->config.temporalDensity[y*imW+x] = ms->config.preDensity[y*imW+x];
       }
     }
   }

@@ -125,23 +125,6 @@ ros::Publisher ee_target_pub;
 
 
 
-double maxDensity = 0;
-double *density = NULL;
-double *preDensity = NULL;
-double *differentialDensity = NULL;
-double *integralDensity = NULL;
-double *temporalDensity = NULL;
-double *temporalDepth = NULL;
-
-double *objDensity = NULL;
-double *preObjDensity = NULL;
-double *differentialObjDensity = NULL;
-double *integralObjDensity = NULL;
-double *temporalObjDensity = NULL;
-
-double densityDecay = 0.5;//0.9;//0.3;//0.7;
-double objDensityDecay = 0.9;
-double threshFraction = 0.2;
 
 int biggestL1 = 0;
 int oSearchWidth = 5;
@@ -9237,17 +9220,17 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   // input image is noisy so blurring is a good idea
   //GaussianBlur(ms->config.densityViewerImage, ms->config.densityViewerImage, cv::Size(0,0), 1.0);
 
-  if (integralDensity == NULL)
-    integralDensity = new double[imW*imH];
-  if (density == NULL)
-    density = new double[imW*imH];
-  if (preDensity == NULL)
-    preDensity = new double[imW*imH];
-  if (temporalDensity == NULL) {
-    temporalDensity = new double[imW*imH];
+  if (ms->config.integralDensity == NULL)
+    ms->config.integralDensity = new double[imW*imH];
+  if (ms->config.density == NULL)
+    ms->config.density = new double[imW*imH];
+  if (ms->config.preDensity == NULL)
+    ms->config.preDensity = new double[imW*imH];
+  if (ms->config.temporalDensity == NULL) {
+    ms->config.temporalDensity = new double[imW*imH];
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	temporalDensity[y*imW + x] = 0;
+	ms->config.temporalDensity[y*imW + x] = 0;
       }
     }
   }
@@ -9256,28 +9239,28 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   if (replaceDensityWithGrad) {
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	density[y*imW+x] = totalGraySobel.at<double>(y,x);
+	ms->config.density[y*imW+x] = totalGraySobel.at<double>(y,x);
       }
     }
   }
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      preDensity[y*imW+x] = totalGraySobel.at<double>(y,x);
+      ms->config.preDensity[y*imW+x] = totalGraySobel.at<double>(y,x);
     }
   }
 
   // now update the exponential average of the density
   // and set the density to be a thresholded version of this
-  maxDensity = 0;
+  ms->config.maxDensity = 0;
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      maxDensity = max(maxDensity, density[y*imW+x]);
+      ms->config.maxDensity = max(ms->config.maxDensity, ms->config.density[y*imW+x]);
     }
   }
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      temporalDensity[y*imW+x] = densityDecay*temporalDensity[y*imW+x] + (1.0-densityDecay)*density[y*imW+x];
+      ms->config.temporalDensity[y*imW+x] = ms->config.densityDecay*ms->config.temporalDensity[y*imW+x] + (1.0-ms->config.densityDecay)*ms->config.density[y*imW+x];
     }
   }
 
@@ -9286,7 +9269,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   if (sobelBecomesDensity) {
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	totalGraySobel.at<double>(y,x) = density[y*imW+x];
+	totalGraySobel.at<double>(y,x) = ms->config.density[y*imW+x];
       }
     }
   }
@@ -9315,8 +9298,8 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      if (density[y*imW+x] < maxDensity* threshFraction)
-	density[y*imW+x] = 0;
+      if (ms->config.density[y*imW+x] < ms->config.maxDensity* ms->config.threshFraction)
+	ms->config.density[y*imW+x] = 0;
     }
   }
 
@@ -9327,7 +9310,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   if (smoothDensity) {
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	denTemp.at<double>(y,x) = density[y*imW+x];
+	denTemp.at<double>(y,x) = ms->config.density[y*imW+x];
       }
     }
 
@@ -9335,7 +9318,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
 
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	density[y*imW+x] = denTemp.at<double>(y,x);
+	ms->config.density[y*imW+x] = denTemp.at<double>(y,x);
       }
     }
   }
@@ -9347,31 +9330,31 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   double yThresh = 0.9*maxGsob;
   if (injectYGrad) {
     // truncate again after reinjection
-    maxDensity = 0;
+    ms->config.maxDensity = 0;
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	maxDensity = max(maxDensity, density[y*imW+x]);
+	ms->config.maxDensity = max(ms->config.maxDensity, ms->config.density[y*imW+x]);
       }
     }
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
 	if (totalYSobel.at<double>(y,x) > yThresh) {
-	  density[y*imW+x] += 0.5*maxDensity;
+	  ms->config.density[y*imW+x] += 0.5*ms->config.maxDensity;
 	}
       }
     }
 
     // truncate again after reinjection
-    maxDensity = 0;
+    ms->config.maxDensity = 0;
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	maxDensity = max(maxDensity, density[y*imW+x]);
+	ms->config.maxDensity = max(ms->config.maxDensity, ms->config.density[y*imW+x]);
       }
     }
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	if (density[y*imW+x] < maxDensity* threshFraction)
-	  density[y*imW+x] = 0;
+	if (ms->config.density[y*imW+x] < ms->config.maxDensity* ms->config.threshFraction)
+	  ms->config.density[y*imW+x] = 0;
       }
     }
   }
@@ -9389,7 +9372,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
 	if ( isInGripperMask(ms, x, y) ) {
-	  density[y*imW+x] = 0;
+	  ms->config.density[y*imW+x] = 0;
 	  totalGraySobel.at<double>(y,x) = 0;
 	  if (!isSketchyMat(ms->config.objectViewerImage)) {
 	    ms->config.objectViewerImage.at<Vec3b>(y,x)[0] = 255;
@@ -9406,7 +9389,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
     int ye = g1ye;
     for (int x = xs; x < xe; x++) {
       for (int y = ys; y < ye; y++) {
-	density[y*imW+x] = 0;
+	ms->config.density[y*imW+x] = 0;
 	totalGraySobel.at<double>(y,x) = 0;
       }
     }
@@ -9420,7 +9403,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
     ye = g2ye;
     for (int x = xs; x < xe; x++) {
       for (int y = ys; y < ye; y++) {
-	density[y*imW+x] = 0;
+	ms->config.density[y*imW+x] = 0;
 	totalGraySobel.at<double>(y,x) = 0;
       }
     }
@@ -9431,50 +9414,50 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   // truncate the density outside the gray box
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < grayTop.y; y++) {
-      density[y*imW+x] = 0;
+      ms->config.density[y*imW+x] = 0;
     }
   }
 
   for (int x = 0; x < grayTop.x; x++) {
     for (int y = grayTop.y; y < grayBot.y; y++) {
-      density[y*imW+x] = 0;
+      ms->config.density[y*imW+x] = 0;
     }
   }
 
   for (int x = grayBot.x; x < imW; x++) {
     for (int y = grayTop.y; y < grayBot.y; y++) {
-      density[y*imW+x] = 0;
+      ms->config.density[y*imW+x] = 0;
     }
   }
 
   for (int x = 0; x < imW; x++) {
     for (int y = grayBot.y; y < imH; y++) {
-      density[y*imW+x] = 0;
+      ms->config.density[y*imW+x] = 0;
     }
   }
 
   // integrate the density into the integral density
   //double maxIntegralDensity = 0;
-  integralDensity[0] = density[0];
+  ms->config.integralDensity[0] = ms->config.density[0];
   for (int x = 1; x < imW; x++) {
     int y = 0;
-    integralDensity[y*imW+x] = integralDensity[y*imW+(x-1)] + density[y*imW + x];
+    ms->config.integralDensity[y*imW+x] = ms->config.integralDensity[y*imW+(x-1)] + ms->config.density[y*imW + x];
   }
   for (int y = 1; y < imH; y++) {
     int x = 0;
-    integralDensity[y*imW+x] = integralDensity[(y-1)*imW+x] + density[y*imW + x];
+    ms->config.integralDensity[y*imW+x] = ms->config.integralDensity[(y-1)*imW+x] + ms->config.density[y*imW + x];
   }
   for (int x = 1; x < imW; x++) {
     for (int y = 1; y < imH; y++) {
-      integralDensity[y*imW+x] = 
-	integralDensity[(y-1)*imW+x]+integralDensity[y*imW+(x-1)]-integralDensity[(y-1)*imW+(x-1)]+density[y*imW + x];
+      ms->config.integralDensity[y*imW+x] = 
+	ms->config.integralDensity[(y-1)*imW+x]+ms->config.integralDensity[y*imW+(x-1)]-ms->config.integralDensity[(y-1)*imW+(x-1)]+ms->config.density[y*imW + x];
     }
   }
 
   // copy the density map to the rendered image
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      uchar val = uchar(min( 255.0 * density[y*imW+x] / maxDensity, 255.0));
+      uchar val = uchar(min( 255.0 * ms->config.density[y*imW+x] / ms->config.maxDensity, 255.0));
       ms->config.densityViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
     }
   }
@@ -9617,8 +9600,8 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       gBoxIndicator[y*imW+x] = 0;
       pBoxIndicator[y*imW+x] = 0;
 
-      double thisIntegral = integralDensity[yb*imW+xb]-integralDensity[yb*imW+xt]-
-	integralDensity[yt*imW+xb]+integralDensity[yt*imW+xt];
+      double thisIntegral = ms->config.integralDensity[yb*imW+xb]-ms->config.integralDensity[yb*imW+xt]-
+	ms->config.integralDensity[yt*imW+xb]+ms->config.integralDensity[yt*imW+xt];
 
 //cout << thisIntegral << " ";
 
@@ -10334,14 +10317,14 @@ void loadROSParams(shared_ptr<MachineState> ms) {
   ros::NodeHandle nh("~");
 
   nh.getParam("pink_box_threshold", pBoxThresh);
-  nh.getParam("threshold_fraction", threshFraction);
+  nh.getParam("threshold_fraction", ms->config.threshFraction);
   nh.getParam("plastic_spoon_normalizer", psPBT);
   nh.getParam("wooden_spoon_normalizer", wsPBT);
   nh.getParam("gyrobowl_normalizer", gbPBT);
   nh.getParam("mixing_bowl_normalizer", mbPBT);
   nh.getParam("reject_scale", rejectScale);
   nh.getParam("reject_area_scale", rejectAreaScale);
-  nh.getParam("density_decay", densityDecay);
+  nh.getParam("density_decay", ms->config.densityDecay);
 
   nh.getParam("data_directory", ms->config.data_directory);
   nh.getParam("run_prefix", ms->config.run_prefix);
@@ -10385,14 +10368,14 @@ void saveROSParams(shared_ptr<MachineState> ms) {
   ros::NodeHandle nh("~");
 
   nh.setParam("pink_box_threshold", pBoxThresh);
-  nh.setParam("threshold_fraction", threshFraction);
+  nh.setParam("threshold_fraction", ms->config.threshFraction);
   nh.setParam("plastic_spoon_normalizer", psPBT);
   nh.setParam("wooden_spoon_normalizer", wsPBT);
   nh.setParam("gyrobowl_normalizer", gbPBT);
   nh.setParam("mixing_bowl_normalizer", mbPBT);
   nh.setParam("reject_scale", rejectScale);
   nh.setParam("reject_area_scale", rejectAreaScale);
-  nh.setParam("density_decay", densityDecay);
+  nh.setParam("density_decay", ms->config.densityDecay);
 
   nh.setParam("data_directory", ms->config.data_directory);
   nh.setParam("run_prefix", ms->config.run_prefix);
