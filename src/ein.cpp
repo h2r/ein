@@ -1,4 +1,4 @@
-// start Header
+`7// start Header
 //  //
 //  // start ein 
 //  //// main()
@@ -119,7 +119,6 @@ ros::Publisher headPub;
 ros::Publisher nodPub;
 ros::Publisher einPub;
 ros::Publisher vmMarkerPublisher;
-
 
 
 // the last value the gripper was at when it began to open from a closed position
