@@ -39,29 +39,10 @@ END_WORD
 REGISTER_WORD(Beep)
 
 
-
-
-WORD(AssumeWholeFoodsCounter1)
-CODE(196672)  // capslock + @
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose = wholeFoodsCounter1;
-}
-END_WORD
-REGISTER_WORD(AssumeWholeFoodsCounter1)
-
-WORD(AssumeWholeFoodsPantry1)
-CODE(196643)   // capslock + #
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose = wholeFoodsPantry1;
-}
-END_WORD
-REGISTER_WORD(AssumeWholeFoodsPantry1)
-
-
 WORD(ChangeToCounterTable)
 CODE(1179735) // capslock + numlock + w
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentTableZ = counterTableZ;
+  ms->config.currentTableZ = ms->config.counterTableZ;
 }
 END_WORD
 REGISTER_WORD(ChangeToCounterTable)
@@ -69,7 +50,7 @@ REGISTER_WORD(ChangeToCounterTable)
 WORD(ChangeToPantryTable)
 CODE(1179717)    // capslock + numlock + e
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentTableZ = pantryTableZ;
+  ms->config.currentTableZ = ms->config.pantryTableZ;
 }
 END_WORD
 REGISTER_WORD(ChangeToPantryTable)
@@ -98,7 +79,7 @@ WORD(PauseAndReset)
 CODE('c') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->execute_stack = 0;
-  lastPtheta = INFINITY;
+  ms->config.lastPtheta = INFINITY;
 }
 END_WORD
 REGISTER_WORD(PauseAndReset)
@@ -110,32 +91,32 @@ WORD(PrintState)
 CODE('u')
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << endl;
-  cout << "Current EE Position (x,y,z): " << currentEEPose.px << " " << currentEEPose.py << " " << currentEEPose.pz << endl;
-  cout << "Current EE Orientation (x,y,z,w): " << currentEEPose.qx << " " << currentEEPose.qy << " " << currentEEPose.qz << " " << currentEEPose.qw << endl;
-  cout << "True EE Position (x,y,z): " << trueEEPose.position.x << " " << trueEEPose.position.y << " " << trueEEPose.position.z << endl;
-  cout << "True EE Orientation (x,y,z,w): " << trueEEPose.orientation.x << " " << trueEEPose.orientation.y << " " << trueEEPose.orientation.z << " " << trueEEPose.orientation.w << endl;
+  cout << "Current EE Position (x,y,z): " << ms->config.currentEEPose.px << " " << ms->config.currentEEPose.py << " " << ms->config.currentEEPose.pz << endl;
+  cout << "Current EE Orientation (x,y,z,w): " << ms->config.currentEEPose.qx << " " << ms->config.currentEEPose.qy << " " << ms->config.currentEEPose.qz << " " << ms->config.currentEEPose.qw << endl;
+  cout << "True EE Position (x,y,z): " << ms->config.trueEEPose.position.x << " " << ms->config.trueEEPose.position.y << " " << ms->config.trueEEPose.position.z << endl;
+  cout << "True EE Orientation (x,y,z,w): " << ms->config.trueEEPose.orientation.x << " " << ms->config.trueEEPose.orientation.y << " " << ms->config.trueEEPose.orientation.z << " " << ms->config.trueEEPose.orientation.w << endl;
   cout <<
-    "eePose = {.px = " << trueEEPose.position.x << ", .py = " << trueEEPose.position.y << ", .pz = " << trueEEPose.position.z << "," << endl <<
-    "		      .qx = " << trueEEPose.orientation.x << ", .qy = " << trueEEPose.orientation.y << ", .qz = " << trueEEPose.orientation.z << ", .qw = " << trueEEPose.orientation.w << "};" << endl;
-  cout << "currentThompsonHeightIdx: " << currentThompsonHeightIdx << endl;
-  cout << "mostRecentUntabledZ (remember this is inverted but correct): " << mostRecentUntabledZ << endl;
-  cout << "currentPickMode: " << pickModeToString(currentPickMode) << endl;
-  cout << "currentBoundingBoxMode: " << pickModeToString(currentBoundingBoxMode) << endl;
-  cout << "gradientServoTakeClosest: " << gradientTakeClosest << endl;
-  cout << "synchronicTakeClosest: " << synchronicTakeClosest << endl;
-  cout << "focusedClass: " << focusedClass;
-  if (focusedClass != -1) {
-    cout << " " << classLabels[focusedClass];
+    "eePose = {.px = " << ms->config.trueEEPose.position.x << ", .py = " << ms->config.trueEEPose.position.y << ", .pz = " << ms->config.trueEEPose.position.z << "," << endl <<
+    "		      .qx = " << ms->config.trueEEPose.orientation.x << ", .qy = " << ms->config.trueEEPose.orientation.y << ", .qz = " << ms->config.trueEEPose.orientation.z << ", .qw = " << ms->config.trueEEPose.orientation.w << "};" << endl;
+  cout << "currentThompsonHeightIdx: " << ms->config.currentThompsonHeightIdx << endl;
+  cout << "mostRecentUntabledZ (remember this is inverted but correct): " << ms->config.mostRecentUntabledZ << endl;
+  cout << "currentPickMode: " << pickModeToString(ms->config.currentPickMode) << endl;
+  cout << "currentBoundingBoxMode: " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
+  cout << "gradientServoTakeClosest: " << ms->config.gradientTakeClosest << endl;
+  cout << "synchronicTakeClosest: " << ms->config.synchronicTakeClosest << endl;
+  cout << "focusedClass: " << ms->config.focusedClass;
+  if (ms->config.focusedClass != -1) {
+    cout << " " << classLabels[ms->config.focusedClass];
   }
   cout << endl;
   
-  cout << "targetClass: " << targetClass;
-  if (targetClass != -1) {
-    cout << " " << classLabels[targetClass];
+  cout << "targetClass: " << ms->config.targetClass;
+  if (ms->config.targetClass != -1) {
+    cout << " " << classLabels[ms->config.targetClass];
   }
 
   
-  double wrenchNorm = sqrt( squareDistanceEEPose(eePoseZero, trueEEWrench) );
+  double wrenchNorm = sqrt( squareDistanceEEPose(eePoseZero, ms->config.trueEEWrench) );
   cout << "wrenchNorm: " << wrenchNorm << endl;
   
   cout << endl;
@@ -149,7 +130,7 @@ CODE(196438)     // capslock + pagedown
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "targetClass-- " << endl;
   if (numClasses > 0) {
-    int newTargetClass = (targetClass - 1 + numClasses) % numClasses;
+    int newTargetClass = (ms->config.targetClass - 1 + numClasses) % numClasses;
     changeTargetClass(ms, newTargetClass);
   }
 }
@@ -221,7 +202,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  if (condition->as_bool()) {
+  if (condition->to_bool()) {
     ms->pushWord(then);
   }
 
@@ -257,9 +238,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     cout << "Warning, next requires two words on the stack." << endl;
     return;
   }
-  cout << "looping: " << index_from->as_int() << " to " << index_to->as_int() << endl;
+  cout << "looping: " << index_from->to_int() << " to " << index_to->to_int() << endl;
 
-  for (int i = index_from->as_int(); i < index_to->as_int(); i++) {
+  for (int i = index_from->to_int(); i < index_to->to_int(); i++) {
     for (int j = 0; j < words_in_loop.size(); j++) {
       ms->pushWord(words_in_loop[j]);
     }
@@ -273,7 +254,7 @@ WORD(Print)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   std::shared_ptr<Word> word = ms->popWord();
   if (word != NULL) {
-    cout << word->as_string() << endl;
+    cout << word->repr() << endl;
   }
 }
 END_WORD
@@ -295,13 +276,46 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(Pop)
 
+
+WORD(Store)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  std::shared_ptr<Word> nameword = ms->popWord();
+  std::shared_ptr<Word> valueword = ms->popWord();
+  string name = nameword->to_string();
+  cout << "Storing " << name << " value " << valueword << endl;
+  ms->variables[name] = valueword;
+}
+END_WORD
+REGISTER_WORD(Store)
+
+
+WORD(Fetch)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  std::shared_ptr<Word> nameword = ms->popWord();
+  string name = nameword->to_string();
+  shared_ptr<Word> value = ms->variables[name];
+  cout << "Fetching " << nameword << " " << name << " value " << value << endl;
+  if (value != NULL) {
+    cout << " value: " << value->to_string() << endl;
+    ms->pushWord(value);
+  } else {
+    cout << "No value for variable" << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(Fetch)
+
+
+
+
+
 WORD(IncrementTargetClass)
 CODE(196437)// capslock + pageup
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   cout << "targetClass++ " << endl;
   if (numClasses > 0) {
-    int newTargetClass = (targetClass + 1) % numClasses;
+    int newTargetClass = (ms->config.targetClass + 1) % numClasses;
     changeTargetClass(ms, newTargetClass);
   }
 }
@@ -310,11 +324,11 @@ REGISTER_WORD(IncrementTargetClass)
 
 WORD(ChangeTargetClassToClosestBlueBox)
 virtual void execute(std::shared_ptr<MachineState> ms)  {
-  if (pilotClosestBlueBoxNumber == -1) {
-    cout << "Not changing because closest bbox is " << pilotClosestBlueBoxNumber << endl;
+  if (ms->config.pilotClosestBlueBoxNumber == -1) {
+    cout << "Not changing because closest bbox is " << ms->config.pilotClosestBlueBoxNumber << endl;
     return;
   }
-  int class_idx = bLabels[pilotClosestBlueBoxNumber];
+  int class_idx = bLabels[ms->config.pilotClosestBlueBoxNumber];
   cout << "Changing to closest blue blox target, which is class " << classLabels[class_idx] << endl;
   changeTargetClass(ms, class_idx);
 }
@@ -333,7 +347,7 @@ REGISTER_WORD(Noop)
 WORD(EndStackCollapseNoop)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  endThisStackCollapse = 1;
+  ms->config.endThisStackCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(EndStackCollapseNoop)
@@ -358,7 +372,7 @@ WORD(PixelGlobalTest)
 CODE(65609) // I
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  paintEEandReg1OnWrist = !paintEEandReg1OnWrist;
+  ms->config.paintEEandReg1OnWrist = !ms->config.paintEEandReg1OnWrist;
 }
 END_WORD
 REGISTER_WORD(PixelGlobalTest)
@@ -367,9 +381,9 @@ WORD(IncMx)
 CODE(65361) // left arrow 
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  m_x += .01;
-  m_x_h[currentThompsonHeightIdx] = m_x;
-  cout << "m_x, m_x_h: " << m_x << endl;
+  ms->config.m_x += .01;
+  ms->config.m_x_h[ms->config.currentThompsonHeightIdx] = ms->config.m_x;
+  cout << "m_x, m_x_h: " << ms->config.m_x << endl;
 }
 END_WORD
 REGISTER_WORD(IncMx)
@@ -378,9 +392,9 @@ WORD(DecMx)
 CODE(65363) // right arrow 
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  m_x -= .01;
-  m_x_h[currentThompsonHeightIdx] = m_x;
-  cout << "m_x, m_x_h: " << m_x << endl;
+  ms->config.m_x -= .01;
+  ms->config.m_x_h[ms->config.currentThompsonHeightIdx] = ms->config.m_x;
+  cout << "m_x, m_x_h: " << ms->config.m_x << endl;
 }
 END_WORD
 REGISTER_WORD(DecMx)
@@ -389,9 +403,9 @@ WORD(IncMy)
 CODE(65362) // up arrow 
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  m_y += .01;
-  m_y_h[currentThompsonHeightIdx] = m_y;
-  cout << "m_y, m_y_h: " << m_y << endl;
+  ms->config.m_y += .01;
+  ms->config.m_y_h[ms->config.currentThompsonHeightIdx] = ms->config.m_y;
+  cout << "m_y, m_y_h: " << ms->config.m_y << endl;
 }
 END_WORD
 REGISTER_WORD(IncMy)
@@ -400,9 +414,9 @@ WORD(DecMy)
 CODE(65364) // down arrow 
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  m_y -= .01;
-  m_y_h[currentThompsonHeightIdx] = m_y;
-  cout << "m_y, m_y_h: " << m_y << endl;
+  ms->config.m_y -= .01;
+  ms->config.m_y_h[ms->config.currentThompsonHeightIdx] = ms->config.m_y;
+  cout << "m_y, m_y_h: " << ms->config.m_y << endl;
 }
 END_WORD
 REGISTER_WORD(DecMy)
@@ -410,7 +424,7 @@ REGISTER_WORD(DecMy)
 WORD(EndStackCollapse)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  endCollapse = 1;
+  ms->config.endCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(EndStackCollapse)
@@ -418,7 +432,7 @@ REGISTER_WORD(EndStackCollapse)
 WORD(CollapseStack)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  endCollapse = 0;
+  ms->config.endCollapse = 0;
 }
 END_WORD
 REGISTER_WORD(CollapseStack)
@@ -426,9 +440,9 @@ REGISTER_WORD(CollapseStack)
 WORD(ShakeHeadPositive)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  currentHeadPanCommand.target = 3.1415926/2.0;
-  currentHeadPanCommand.speed = 50;
-  headPub.publish(currentHeadPanCommand);
+  ms->config.currentHeadPanCommand.target = 3.1415926/2.0;
+  ms->config.currentHeadPanCommand.speed = 50;
+  headPub.publish(ms->config.currentHeadPanCommand);
 }
 END_WORD
 REGISTER_WORD(ShakeHeadPositive)
@@ -437,9 +451,9 @@ REGISTER_WORD(ShakeHeadPositive)
 WORD(ShakeHeadNegative)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  currentHeadPanCommand.target = -3.1415926/2.0;
-  currentHeadPanCommand.speed = 50;
-  headPub.publish(currentHeadPanCommand);
+  ms->config.currentHeadPanCommand.target = -3.1415926/2.0;
+  ms->config.currentHeadPanCommand.speed = 50;
+  headPub.publish(ms->config.currentHeadPanCommand);
 }
 END_WORD
 REGISTER_WORD(ShakeHeadNegative)
@@ -447,9 +461,9 @@ REGISTER_WORD(ShakeHeadNegative)
 WORD(CenterHead)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  currentHeadPanCommand.target = 0;
-  currentHeadPanCommand.speed = 50;
-  headPub.publish(currentHeadPanCommand);
+  ms->config.currentHeadPanCommand.target = 0;
+  ms->config.currentHeadPanCommand.speed = 50;
+  headPub.publish(ms->config.currentHeadPanCommand);
 }
 END_WORD
 REGISTER_WORD(CenterHead)
@@ -457,7 +471,7 @@ REGISTER_WORD(CenterHead)
 WORD(SilenceSonar)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  sonarPub.publish(currentSonarCommand);
+  sonarPub.publish(ms->config.currentSonarCommand);
 }
 END_WORD
 REGISTER_WORD(SilenceSonar)
@@ -465,8 +479,8 @@ REGISTER_WORD(SilenceSonar)
 WORD(Nod)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  currentHeadNodCommand.data = 1;
-  nodPub.publish(currentHeadNodCommand);
+  ms->config.currentHeadNodCommand.data = 1;
+  nodPub.publish(ms->config.currentHeadNodCommand);
 }
 END_WORD
 REGISTER_WORD(Nod)
@@ -519,10 +533,10 @@ REGISTER_WORD(BringUpAllNonessentialSystems)
 WORD(WaitUntilImageCallbackReceived)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  lastImageCallbackRequest = ros::Time::now();
+  ms->config.lastImageCallbackRequest = ros::Time::now();
   ms->pushWord("waitUntilImageCallbackReceivedA");
   ms->config.shouldIImageCallback = 1;
-  endThisStackCollapse = 1;
+  ms->config.endThisStackCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(WaitUntilImageCallbackReceived)
@@ -530,12 +544,12 @@ REGISTER_WORD(WaitUntilImageCallbackReceived)
 WORD(WaitUntilImageCallbackReceivedA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  if (lastImageCallbackRequest >= lastImageCallbackReceived) {
+  if (ms->config.lastImageCallbackRequest >= ms->config.lastImageCallbackReceived) {
     ms->pushWord("waitUntilImageCallbackReceivedA");
     ms->config.shouldIImageCallback = 1;
-    endThisStackCollapse = 1;
+    ms->config.endThisStackCollapse = 1;
   } else {
-    endThisStackCollapse = endCollapse;
+    ms->config.endThisStackCollapse = ms->config.endCollapse;
   }
 }
 END_WORD
@@ -544,9 +558,9 @@ REGISTER_WORD(WaitUntilImageCallbackReceivedA)
 WORD(WaitUntilAccelerometerCallbackReceived)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  lastAccelerometerCallbackRequest = ros::Time::now();
+  ms->config.lastAccelerometerCallbackRequest = ros::Time::now();
   ms->pushWord("waitUntilAccelerometerCallbackReceivedA");
-  endThisStackCollapse = 1;
+  ms->config.endThisStackCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(WaitUntilAccelerometerCallbackReceived)
@@ -554,11 +568,11 @@ REGISTER_WORD(WaitUntilAccelerometerCallbackReceived)
 WORD(WaitUntilAccelerometerCallbackReceivedA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  if (lastAccelerometerCallbackRequest >= lastAccelerometerCallbackReceived) {
+  if (ms->config.lastAccelerometerCallbackRequest >= ms->config.lastAccelerometerCallbackReceived) {
     ms->pushWord("waitUntilAccelerometerCallbackReceivedA");
-    endThisStackCollapse = 1;
+    ms->config.endThisStackCollapse = 1;
   } else {
-    endThisStackCollapse = endCollapse;
+    ms->config.endThisStackCollapse = ms->config.endCollapse;
   }
 }
 END_WORD
@@ -567,9 +581,9 @@ REGISTER_WORD(WaitUntilAccelerometerCallbackReceivedA)
 WORD(WaitUntilEndpointCallbackReceived)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  lastEndpointCallbackRequest = ros::Time::now();
+  ms->config.lastEndpointCallbackRequest = ros::Time::now();
   ms->pushWord("waitUntilEndpointCallbackReceivedA");
-  endThisStackCollapse = 1;
+  ms->config.endThisStackCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(WaitUntilEndpointCallbackReceived)
@@ -577,11 +591,11 @@ REGISTER_WORD(WaitUntilEndpointCallbackReceived)
 WORD(WaitUntilEndpointCallbackReceivedA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  if (lastEndpointCallbackRequest >= lastEndpointCallbackReceived) {
+  if (ms->config.lastEndpointCallbackRequest >= ms->config.lastEndpointCallbackReceived) {
     ms->pushWord("waitUntilEndpointCallbackReceivedA");
-    endThisStackCollapse = 1;
+    ms->config.endThisStackCollapse = 1;
   } else {
-    endThisStackCollapse = endCollapse;
+    ms->config.endThisStackCollapse = ms->config.endCollapse;
   }
 }
 END_WORD
@@ -592,7 +606,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
   // For Dipendra
   ofstream ofile;
-  string fileName = data_directory + "/" + left_or_right_arm + "_environment.xml";
+  string fileName = data_directory + "/" + ms->config.left_or_right_arm + "_environment.xml";
   cout << "Saving environment to " << fileName << endl;
   ofile.open(fileName, ios::trunc);
 
@@ -629,4 +643,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 }
 END_WORD
 REGISTER_WORD(EnableRobot)
+
+
+
+
 

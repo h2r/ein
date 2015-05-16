@@ -42,17 +42,17 @@ public:
     }
   }
 
-  virtual bool as_bool() {
+  virtual bool to_bool() {
     return true;
   }
-  virtual int as_int() {
+  virtual int to_int() {
     return 1;
   }
 
   /**
    * Returns it as a string in the repl (e.g., quotes, back ticks for strings and symbols)
    */
-  virtual string as_string() {
+  virtual string repr() {
     return name();
   }
 
@@ -116,14 +116,14 @@ public:
     }
   }
   
-  virtual bool as_bool() {
+  virtual bool to_bool() {
     if (n == 0) {
       return false;
     } else {
       return true;
     }
   }
-  virtual int as_int() {
+  virtual int to_int() {
     return n;
   }
 };

@@ -1,6 +1,10 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
+#include <baxter_core_msgs/HeadPanCommand.h>
+#include <std_msgs/UInt16.h>
+#include <std_msgs/Bool.h>
+
 #include "ein_util.h"
 #include "eigen_util.h"
 
@@ -60,6 +64,22 @@ typedef enum {
   GRASP_3D
 } graspMode;
 
+typedef enum {
+  UNKNOWN = -1,
+  FAILURE = 0,
+  SUCCESS = 1
+} operationStatusType;
+
+typedef enum {
+  STATIC_PRIOR = 1,
+  LEARNING_SAMPLING = 2,
+  LEARNING_ALGORITHMC = 3,
+  STATIC_MARGINALS = 4,
+  MAPPING = 5
+} pickMode;
+
+
+
 #define NOW_THATS_FAST 0.08
 #define MOVE_EVEN_FASTER 0.04
 #define MOVE_FASTER 0.02
@@ -73,7 +93,7 @@ typedef enum {
 class EinConfig {
  public:
   int zero_g_toggle = 0;
-  int currentGraspGear = -1;
+
   const int imRingBufferSize = 300;
   const int epRingBufferSize = 100;
   const int rgRingBufferSize = 100;
@@ -90,6 +110,16 @@ class EinConfig {
   int imRingBufferEnd = 0;
   int epRingBufferEnd = 0;
   int rgRingBufferEnd = 0;
+
+
+  std::vector<Mat> imRingBuffer;
+  std::vector<geometry_msgs::Pose> epRingBuffer;
+  std::vector<double> rgRingBuffer;
+  
+  std::vector<ros::Time> imRBTimes;
+  std::vector<ros::Time> epRBTimes;
+  std::vector<ros::Time> rgRBTimes;
+
 
   movementState currentMovementState = STOPPED;
   patrolState currentPatrolState = IDLING;
@@ -200,8 +230,515 @@ class EinConfig {
   eePose reticle = defaultReticle;
 
 
-  // config variables that don't seem to be used
-};
+
+  eePose eepReg1;
+  eePose eepReg2;
+  eePose eepReg3;
+  eePose eepReg4;
+  eePose eepReg5;
+  eePose eepReg6;
+
+  eePose beeHome;
+  eePose pilotTarget;
+  eePose pilotClosestTarget;
+  eePose lastGoodEEPose;
+  eePose currentEEPose;
+  eePose currentEEDeltaRPY;
+  eePose ik_reset_eePose;
+  eePose crane1;
+
+
+  std::vector<eePose> deliveryPoses;
+  int currentDeliveryPose = 0;
+
+  int pilotTargetBlueBoxNumber = -1;
+  int pilotClosestBlueBoxNumber = -1;
+  string left_or_right_arm = "right";
+
+
+  geometry_msgs::Pose trueEEPose;
+  eePose trueEEWrench;
+  eePose trueEEPoseEEPose;
+  std::string fetchCommand;
+  ros::Time fetchCommandTime;
+  double fetchCommandCooldown = 5;
+  int acceptingFetchCommands = 0;
+
+  std::string forthCommand;
+
+
+
+  double oneTable = 0.175;
+  double rightTableZ = 0.172;//0.165;//0.19;//0.18;
+  double leftTableZ = 0.172;//0.165;//0.19;//0.177;
+  
+  double bagTableZ = oneTable;//0.165;//0.19;//0.18; //0.195;//0.22;
+  double counterTableZ = oneTable;//0.165;//0.19;//0.18;//0.209123; //0.20;//0.18;
+  double pantryTableZ = oneTable;//0.165;//0.19;//0.18;//0.209123; //0.195;
+  
+  double currentTableZ = leftTableZ;
+  
+
+  ros::Time firstTableHeightTime;
+  double mostRecentUntabledZWait = 2.0;
+  double mostRecentUntabledZLastValue = INFINITY;
+  double mostRecentUntabledZDecay = 0.97;
+  double mostRecentUntabledZ = 0.0;
+  eePose bestOrientationEEPose = straightDown;
+  double bestOrientationAngle = 0;
+
+  int bfc = 0;
+  int bfc_period = 3;
+
+
+  Mat rangeogramImage;
+  Mat rangemapImage;
+  Mat hiRangemapImage;
+  Mat hiColorRangemapImage;
+  Mat graspMemoryImage;
+  Mat graspMemorySampleImage;
+  Mat heightMemorySampleImage;
+
+  Mat wristCamImage;
+  int wristCamInit = 0;
+
+
+
+
+
+  const static int totalRangeHistoryLength = 100;
+  const static int rggScale = 1;  
+  const static int rggStride = 5*rggScale;
+  const static int rggHeight = 300*rggScale;
+  const static int rggWidth = totalRangeHistoryLength*rggStride;
+
+  double rangeHistory[totalRangeHistoryLength];
+  int currentRangeHistoryIndex = 0;
+
+  const static int rmWidth = 21; // must be odd
+  const static int rmHalfWidth = (rmWidth-1)/2; // must be odd
+  const static int rmiCellWidth = 20;
+  const static int rmiHeight = rmiCellWidth*rmWidth;
+  const static int rmiWidth = rmiCellWidth*rmWidth;
+
+
+  constexpr static double rmDelta = 0.01;
+  double rangeMap[rmWidth*rmWidth];
+  double rangeMapAccumulator[rmWidth*rmWidth];
+  double rangeMapMass[rmWidth*rmWidth];
+  
+  double rangeMapReg1[rmWidth*rmWidth];
+  double rangeMapReg2[rmWidth*rmWidth];
+  double rangeMapReg3[rmWidth*rmWidth];
+  double rangeMapReg4[rmWidth*rmWidth];
+
+  // grasp Thompson parameters
+  double graspMemoryTries[4*rmWidth*rmWidth];
+  double graspMemoryPicks[4*rmWidth*rmWidth];
+  double graspMemorySample[4*rmWidth*rmWidth];
+  double graspMemoryReg1[4*rmWidth*rmWidth];
+
+  pickMode currentPickMode = STATIC_MARGINALS;
+  pickMode currentBoundingBoxMode = STATIC_MARGINALS;
+  
+
+  const static int hrmWidth = 211; // must be odd
+  const static int hrmHalfWidth = (hrmWidth-1)/2; // must be odd
+  constexpr static double hrmDelta = 0.001;
+  double hiRangeMap[hrmWidth*hrmWidth];
+  double hiRangeMapAccumulator[hrmWidth*hrmWidth];
+  double hiRangeMapMass[hrmWidth*hrmWidth];
+  
+  double hiColorRangeMapAccumulator[3*hrmWidth*hrmWidth];
+  double hiColorRangeMapMass[hrmWidth*hrmWidth];
+  
+  double hiRangeMapReg1[hrmWidth*hrmWidth];
+  double hiRangeMapReg2[hrmWidth*hrmWidth];
+
+
+  double filter[9] = {1.0/16.0, 1.0/8.0, 1.0/16.0, 
+                      1.0/8.0, 1.0/4.0, 1.0/8.0, 
+                      1.0/16.0, 1.0/8.0, 1.0/16.0};;
+  
+  // diagonalKappa: 0.72 deltaDiagonalKappa: 0.01
+  // below .72, the horizontal won when it should have. Set to .67 to be safe.
+  // .67 was a little unreliable, trimming a bit more.
+  double diagonalKappa = 0.60;
+  
+  const static int parzenKernelHalfWidth = 15;
+  const static int parzenKernelWidth = 2*parzenKernelHalfWidth+1;
+  double parzenKernel[parzenKernelWidth*parzenKernelWidth];
+  double parzenKernelSigma = 4.0;
+  //double parzenKernelSigma = 2.0;
+  //double parzenKernelSigma = 1.0; // this is approximately what it should be at 20 cm height
+  //double parzenKernelSigma = 0.5;  
+  // 13.8 cm high -> 2.2 cm gap
+  // 23.8 cm high -> 3.8 cm gap
+  // 4 sigma (centered at 0) should be the gap
+  // TODO can 'adjust' and bounds on the fly during lookup in proportion to the measured depth
+  
+  // assumptions are made here so if these values changes, the code must
+  //  be audited.
+  const static int vmWidth = hrmWidth;
+  const static int vmHalfWidth = hrmHalfWidth;
+  const double vmDelta = hrmDelta;
+  double volumeMap[vmWidth*vmWidth*vmWidth];
+  double volumeMapAccumulator[vmWidth*vmWidth*vmWidth];
+  double volumeMapMass[vmWidth*vmWidth*vmWidth];
+  
+  double vmColorRangeMapAccumulator[3*vmWidth*vmWidth*vmWidth];
+  double vmColorRangeMapMass[vmWidth*vmWidth*vmWidth];
+  
+  const static int parzen3DKernelHalfWidth = 9;
+  const static int parzen3DKernelWidth = 2*parzen3DKernelHalfWidth+1;
+  double parzen3DKernel[parzen3DKernelWidth*parzen3DKernelWidth*parzen3DKernelWidth];
+  double parzen3DKernelSigma = 2.0; 
+  
+  // range map center
+  double rmcX;
+  double rmcY;
+  double rmcZ;
+  
+  double lastiX = 0;
+  double lastiY = 0;
+  double thisiX = 0;
+  double thisiY = 0;
+  
+  
+  int hrmiHeight = hrmWidth;
+  int hrmiWidth = hrmWidth;
+  
+  const static int hmWidth = 4; 
+  int hmiCellWidth = 100;
+  int hmiWidth = hmiCellWidth;
+  int hmiHeight = hmiCellWidth*hmWidth;
+
+
+
+  // height Thompson parameters
+  constexpr static double minHeight = 0.255;//0.09;//-0.10;
+  constexpr static double maxHeight = 0.655;//0.49;//0.3;
+  double heightMemoryTries[hmWidth];
+  double heightMemoryPicks[hmWidth];
+  double heightMemorySample[hmWidth];
+  
+  double heightAttemptCounter = 0;
+  double heightSuccessCounter = 0;
+  double thompsonTries = 50;
+
+
+  int heightLearningServoTimeout = 10;
+  double currentThompsonHeight = 0;
+  int currentThompsonHeightIdx = 0;
+
+  int bbLearningMaxTries = 15;
+  int graspLearningMaxTries = 10;
+  
+  int thompsonHardCutoff = 0;
+  int thompsonMinTryCutoff = 5;
+  double thompsonMinPassRate = 0.80;
+  int thompsonAdaptiveCutoff = 1;
+  int thompsonPickHaltFlag = 0;
+  int thompsonHeightHaltFlag = 0;
+
+
+  double pickEccentricity = 100.0;
+  double heightEccentricity = 1.0;
+
+
+  // algorithmC accecpt and reject thresholds
+  double algorithmCEPS = 0.2;
+  double algorithmCTarget = 0.7;
+  double algorithmCAT = 0.7;
+  double algorithmCRT = 0.95;
+
+
+
+  // the currently equipped depth reticle
+  double drX = .02; //.01;
+  double drY = .02;
+  
+  // target reticle
+  double trX = 0;
+  double trY = 0;
+  double trZ = 0;
+  
+  int maxX = 0;
+  int maxY = 0;
+  double maxD = 0;
+  int maxGG = 0;
+  int localMaxX = 0;
+  int localMaxY = 0;
+  int localMaxGG = 0;
+  
+  // grasp gear should always be even
+  static const int totalGraspGears = 8;
+  int currentGraspGear = -1;
+  Eigen::Quaternionf gear0offset;
+  // XXX maybe we should initialize this to a reasonable value
+  //// reticles
+  double ggX[totalGraspGears];
+  double ggY[totalGraspGears];
+  double ggT[totalGraspGears];
+
+  int recordRangeMap = 1;
+
+  Quaternionf irGlobalPositionEEFrame;
+ 
+  constexpr static double cReticleIndexDelta = .01;
+  const static int numCReticleIndeces = 14;
+  constexpr static double firstCReticleIndexDepth = .08;
+  int xCR[numCReticleIndeces];
+  int yCR[numCReticleIndeces];
+  double fEpsilon = 1.0e-9;
+
+  int curseReticleX = 0;
+  int curseReticleY = 0;
+
+
+  
+  double w1GoThresh = 0.03;//0.01;
+  double w1AngleThresh = 0.02; 
+  double synKp = 0.0005;
+  double darkKp = 0.0005;
+  double faceKp = 0.001;
+  double gradKp = 0.00025;//0.0005;
+  double kPtheta1 = 1.0;//0.75;
+  double kPtheta2 = 0.125;//0.75;
+  int kPThresh = 3;
+  double lastPtheta = INFINITY;
+
+  // pre-absolute
+  //int synServoPixelThresh = 10;//15;//10;
+  //int gradServoPixelThresh = 2;
+  //int gradServoThetaThresh = 1;
+  // absolute
+  int synServoPixelThresh = 15;//15;//10;
+  int gradServoPixelThresh = 5;
+  int gradServoThetaThresh = 2;
+  
+  int synServoLockFrames = 0;
+
+
+  ros::Time oscilStart;
+  double oscCenX = 0.0;
+  double oscCenY = 0.0;
+  double oscCenZ = 0.0;
+  double oscAmpX = 0.10;//.0.16;//0.08;//0.1;
+  double oscAmpY = 0.10;//0.16;//0.2;
+  double oscAmpZ = 0.0;
+  
+  constexpr static double commonFreq = 1.0;//1.0/2.0;
+  double oscFreqX = commonFreq*1.0/3.0;
+  double oscFreqY = commonFreq*1.0/20.0;
+  double oscFreqZ = commonFreq*1.0;
+  double visionCycleInterval = 7.5 / 7.0 * (1.0/commonFreq);
+
+  ros::Time lastVisionCycle;
+  ros::Duration accumulatedTime;
+
+  int targetClass = -1;
+
+  // class focused for learning
+  int focusedClass = -1;
+  int newClassCounter = 0;
+  string focusedClassLabel;
+
+  int publishObjects = 1;
+
+  int synchronicTakeClosest = 0;
+  int gradientTakeClosest = 0;
+  int gradientServoDuringHeightLearning = 1;
+  int bailAfterSynchronic = 1;
+  int bailAfterGradient = 0;
+  int useGradientServoThresh = 0;
+  double gradientServoResetThresh = 0.7/(6.0e5);
+  int densityIterationsForGradientServo = 10;//3;//10;
+
+  int gripperMoving = 0;
+  double gripperPosition = 0;
+  int gripperGripping = 0;
+  double gripperThresh = 3.5;//6.0;//7.0;
+  ros::Time gripperLastUpdated;
+  double gripperNotMovingConfirmTime = 0.25;
+  // the last value the gripper was at when it began to open from a closed position
+  double lastMeasuredClosed = 3.0;
+
+  ros::Time graspTrialStart;
+  double graspAttemptCounter = 0;
+  double graspSuccessCounter = 0;
+  double graspSuccessRate = 0;
+  operationStatusType thisGraspPicked = UNKNOWN;
+  operationStatusType thisGraspReleased = UNKNOWN;
+
+  string lastLabelLearned;
+
+  int gmTargetX = -1;
+  int gmTargetY = -1;
+
+  int orientationCascade = 0;
+  int lPTthresh = 3;
+  int orientationCascadeHalfWidth = 2;
+
+  
+  double aerialGradientDecay = 0.9;//0.965;//0.9;
+  Mat aerialGradientTemporalFrameAverage;
+  Mat preFrameGraySobel;
+  Mat frameGraySobel;
+
+
+  double graspDepthOffset = -0.04;
+  eePose lastPickPose;
+  eePose lastPrePickPose;
+  
+  // this needs to place the gripper BELOW the table
+  //  by a margin, or it could prevent getting flush
+  //  with the table near a sag
+  double pickFlushFactor = 0.08;//0.09;//0.11;
+
+
+  int useContinuousGraspTransform = 1;
+
+
+  int paintEEandReg1OnWrist = 1;
+
+  // d values obtained by putting laser in gripper
+  //  to find end effector projection, then using
+  //  a tape dot to find the vanishing point of
+  //  the camera
+  // the estimated vanishing point is actually pretty
+  //  close to the measured one
+  double d_y = -0.04;
+  double d_x = 0.018;
+  double offX = 0;
+  double offY = 0;
+  // these corrective magnification factors should be close to 1
+  //  these are set elsewhere according to chirality
+  double m_x = 1.08;
+  double m_y = 0.94;
+  double m_x_h[4];
+  double m_y_h[4];
+
+  int mappingServoTimeout = 5;
+  const int mappingHeightIdx = 1;
+
+
+  const static int vaNumAngles = 360;
+  constexpr static double vaDelta = (2.0 * 3.1415926) / vaNumAngles;
+  double vaX[vaNumAngles];
+  double vaY[vaNumAngles];
+
+
+  int waitUntilAtCurrentPositionCounter = 0;
+  int waitUntilAtCurrentPositionCounterTimeout = 300;
+  int waitUntilGripperNotMovingCounter = 0;
+  int waitUntilGripperNotMovingTimeout = 100;
+  ros::Time waitUntilGripperNotMovingStamp;
+
+  double currentEESpeedRatio = 0.5;
+
+  int endCollapse = 0;
+  int endThisStackCollapse = 0;
+
+  baxter_core_msgs::HeadPanCommand currentHeadPanCommand;
+  std_msgs::Bool currentHeadNodCommand;
+  std_msgs::UInt16 currentSonarCommand;
+
+  int heartBeatCounter = 0;
+  int heartBeatPeriod = 150;
+
+
+  ros::Time lastAccelerometerCallbackRequest;
+  ros::Time lastImageCallbackRequest;
+  ros::Time lastGripperCallbackRequest;
+  ros::Time lastEndpointCallbackRequest;
+  
+  ros::Time lastAccelerometerCallbackReceived;
+  ros::Time lastImageCallbackReceived;
+  ros::Time lastGripperCallbackReceived;
+  ros::Time lastEndpointCallbackReceived;
+
+  bool usePotentiallyCollidingIK = 0;
+
+  Mat objectViewerYCbCrBlur;
+  Mat objectViewerGrayBlur;
+
+
+  ros::Time lastHoverRequest;
+  double hoverTimeout = 3.0;//2.0; // seconds
+  double hoverGoThresh = 0.02;
+  double hoverAngleThresh = 0.02;
+  eePose lastHoverTrueEEPoseEEPose;
+
+  ros::Time lastMovementStateSet;
+  eePose lastTrueEEPoseEEPose;
+  
+  ros::Time comeToHoverStart;
+  double comeToHoverTimeout = 3.0;
+  ros::Time comeToStopStart;
+  double comeToStopTimeout = 30.0;
+  ros::Time waitForTugStart;
+  double waitForTugTimeout = 1e10;
+  double armedThreshold = 0.01;
+
+
+
+  double simulatorCallbackFrequency = 30.0;
+  
+  int mbiWidth = 2000;
+  int mbiHeight = 2000;
+  Mat mapBackgroundImage;
+  Mat originalMapBackgroundImage;
+  
+  int objectInHandLabel = -1;
+  int simulatedObjectHalfWidthPixels = 50;
+  
+  int numCornellTables = 10;
+  vector<eePose> cornellTables;
+  int currentCornellTableIndex = 0;
+  
+  bool sirRangeogram = 1;
+  bool sirRangemap = 1;
+  bool sirGraspMemory = 1;
+  bool sirGraspMemorySample = 1;
+  bool sirHeightMemorySample = 1;
+  bool sirHiRangemap = 1;
+  bool sirHiColorRangemap = 1;
+  bool sirObject = 1;
+  bool sirObjectMap = 1;
+  bool sirDensity = 1;
+  bool sirGradient = 1;
+  bool sirObjectness = 1;
+  bool sirMapBackground = 1;
+  bool sirAerialGradient = 1;
+  bool sirWrist = 1;
+  bool sirCore = 1;
+  
+  bool use_simulator = false;
+  
+  int targetInstanceSprite = 0;
+  int targetMasterSprite = 0;
+
+  Mat gripperMaskFirstContrast;
+  Mat gripperMaskSecondContrast;
+  Mat gripperMask;
+  Mat cumulativeGripperMask;
+
+  int darkServoIterations = 0;
+  int darkServoTimeout = 20;
+  int darkServoPixelThresh = 10;
+  
+  int faceServoIterations = 0;
+  int faceServoTimeout = 2000;
+  int faceServoPixelThresh = 1;
+  
+  int setVanishingPointPixelThresh = 3;
+  int setVanishingPointIterations = 0;
+  int setVanishingPointTimeout = 6;
+
+
+
+}; // config end
 
 class Word;
 
@@ -209,6 +746,8 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
  private:
  public:
   std::vector<std::shared_ptr<Word> > call_stack;
+  std::map<string, std::shared_ptr<Word> > variables;
+
   std::shared_ptr<Word> current_instruction = NULL;
   EinConfig config;
 
