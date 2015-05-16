@@ -79,6 +79,37 @@ typedef enum {
   MAPPING = 5
 } pickMode;
 
+typedef enum {
+  NO_LOCK = 0,
+  CENTROID_LOCK = 1,
+  POSE_LOCK = 2,
+  POSE_REPORTED = 3
+} memoryLockType;
+
+
+struct BoxMemory {
+  cv::Point bTop;
+  cv::Point bBot;
+  eePose cameraPose;
+  eePose aimedPose;
+  eePose pickedPose;
+  eePose top;
+  eePose bot;
+  eePose centroid;
+  ros::Time cameraTime;
+  int labeledClassIndex;
+  memoryLockType lockStatus;
+  double trZ;
+};
+
+typedef struct MapCell {
+  ros::Time lastMappedTime;
+  int detectedClass; // -1 means not denied
+  double r, g, b;
+  double pixelCount;
+} MapCell;
+
+
 
 
 #define NOW_THATS_FAST 0.08
@@ -856,7 +887,46 @@ class EinConfig {
   vector<cv::Point> cBots;
 
 
+  constexpr static double mapXMin = -1.5;
+  constexpr static double mapXMax = 1.5;
+  constexpr static double mapYMin = -1.5;
+  constexpr static double mapYMax = 1.5;
+  constexpr static double mapStep = 0.01;
+  
+  double mapSearchFenceXMin;
+  double mapSearchFenceXMax;
+  double mapSearchFenceYMin;
+  double mapSearchFenceYMax;
+  
+  double mapRejectFenceXMin;
+  double mapRejectFenceXMax;
+  double mapRejectFenceYMin;
+  double mapRejectFenceYMax;
+  
+  double mapBackgroundXMin;
+  double mapBackgroundXMax;
+  double mapBackgroundYMin;
+  double mapBackgroundYMax;
+  
+  double mapBackgroundBufferMeters = 1.0;
+  
+  const static int mapWidth = (mapXMax - mapXMin) / mapStep;
+  const static int mapHeight = (mapYMax - mapYMin) / mapStep;
 
+  MapCell objectMap[mapWidth * mapHeight];
+  ros::Time lastScanStarted;
+  int mapFreeSpacePixelSkirt = 25;
+  int mapBlueBoxPixelSkirt = 50;
+  double mapBlueBoxCooldown = 240; // cooldown is a temporal skirt
+  int mapGrayBoxPixelSkirt = 50;
+  int ikMap[mapWidth * mapHeight];
+  int clearanceMap[mapWidth * mapHeight];
+  int drawClearanceMap = 1;
+  int drawIKMap = 1;
+  int useGlow = 0;
+  int useFade = 1;
+  
+  vector<BoxMemory> blueBoxMemories;
 }; // config end
 
 class Word;

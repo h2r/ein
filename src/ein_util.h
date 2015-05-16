@@ -59,39 +59,10 @@ std::string pickModeToString(pickMode mode);
 #define O_FILTER_SPOON_SHAFT_WIDTH 2
 
 
-typedef enum {
-  NO_LOCK = 0,
-  CENTROID_LOCK = 1,
-  POSE_LOCK = 2,
-  POSE_REPORTED = 3
-} memoryLockType;
-
 void pushSpeedSign(shared_ptr<MachineState> ms, double speed);
 void guardedImshow(string name, Mat image, bool shouldIRender);
 bool isSketchyMat(Mat sketchy);
 eePose rosPoseToEEPose(geometry_msgs::Pose pose);
-
-struct BoxMemory {
-  cv::Point bTop;
-  cv::Point bBot;
-  eePose cameraPose;
-  eePose aimedPose;
-  eePose pickedPose;
-  eePose top;
-  eePose bot;
-  eePose centroid;
-  ros::Time cameraTime;
-  int labeledClassIndex;
-  memoryLockType lockStatus;
-  double trZ;
-};
-
-typedef struct MapCell {
-  ros::Time lastMappedTime;
-  int detectedClass; // -1 means not denied
-  double r, g, b;
-  double pixelCount;
-} MapCell;
 
 gsl_matrix * boxMemoryToPolygon(BoxMemory b);
 void initializeMachine(shared_ptr<MachineState> ms);
