@@ -23,7 +23,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.pilotClosestTarget.py = -1;
   
   int idxOfFirst = -1;
-  vector<BoxMemory> focusedClassMemories = memoriesForClass(focusedClass, &idxOfFirst);
+  vector<BoxMemory> focusedClassMemories = memoriesForClass(ms, ms->config.focusedClass, &idxOfFirst);
   if (focusedClassMemories.size() == 0) {
     cout << "No memories of the focused class. " << endl;
     return;
@@ -46,11 +46,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.trZ = memory.trZ;
 
   cout << "deliverObject, " << ms->config.classGraspZsSet.size() << " " << ms->config.classGraspZs.size() << endl;
-  if ( (ms->config.classGraspZsSet.size() > targetClass) && 
-       (ms->config.classGraspZs.size() > targetClass) ) {
-    if (ms->config.classGraspZsSet[targetClass] == 1) {
-      ms->config.trZ = ms->config.classGraspZs[targetClass];
-      cout << "delivering class " << classLabels[targetClass] << " with classGraspZ " << ms->config.trZ << endl;
+  if ( (ms->config.classGraspZsSet.size() > ms->config.targetClass) && 
+       (ms->config.classGraspZs.size() > ms->config.targetClass) ) {
+    if (ms->config.classGraspZsSet[ms->config.targetClass] == 1) {
+      ms->config.trZ = ms->config.classGraspZs[ms->config.targetClass];
+      cout << "delivering class " << classLabels[ms->config.targetClass] << " with classGraspZ " << ms->config.trZ << endl;
     }
   }
 
@@ -851,7 +851,7 @@ REGISTER_WORD(GoFindBlueBoxes)
 WORD(GoClassifyBlueBoxes)
 CODE(131123) // capslock + 3
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  lastVisionCycle = ros::Time::now();
+  ms->config.lastVisionCycle = ros::Time::now();
   ms->config.oscilStart = ros::Time::now();
   goClassifyBlueBoxes(ms);
 }

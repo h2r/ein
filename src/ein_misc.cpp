@@ -104,15 +104,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "currentBoundingBoxMode: " << pickModeToString(currentBoundingBoxMode) << endl;
   cout << "gradientServoTakeClosest: " << gradientTakeClosest << endl;
   cout << "synchronicTakeClosest: " << synchronicTakeClosest << endl;
-  cout << "focusedClass: " << focusedClass;
-  if (focusedClass != -1) {
-    cout << " " << classLabels[focusedClass];
+  cout << "focusedClass: " << ms->config.focusedClass;
+  if (ms->config.focusedClass != -1) {
+    cout << " " << classLabels[ms->config.focusedClass];
   }
   cout << endl;
   
-  cout << "targetClass: " << targetClass;
-  if (targetClass != -1) {
-    cout << " " << classLabels[targetClass];
+  cout << "targetClass: " << ms->config.targetClass;
+  if (ms->config.targetClass != -1) {
+    cout << " " << classLabels[ms->config.targetClass];
   }
 
   
@@ -130,7 +130,7 @@ CODE(196438)     // capslock + pagedown
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "targetClass-- " << endl;
   if (numClasses > 0) {
-    int newTargetClass = (targetClass - 1 + numClasses) % numClasses;
+    int newTargetClass = (ms->config.targetClass - 1 + numClasses) % numClasses;
     changeTargetClass(ms, newTargetClass);
   }
 }
@@ -315,7 +315,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
   cout << "targetClass++ " << endl;
   if (numClasses > 0) {
-    int newTargetClass = (targetClass + 1) % numClasses;
+    int newTargetClass = (ms->config.targetClass + 1) % numClasses;
     changeTargetClass(ms, newTargetClass);
   }
 }

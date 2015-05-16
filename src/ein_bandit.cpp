@@ -3,13 +3,13 @@
 WORD(SaveLearnedModels)
 CODE(1245281)     // capslock + numlock + A
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  if (focusedClass > -1) {
+  if (ms->config.focusedClass > -1) {
     // initialize this if we need to
     guardGraspMemory(ms);
     guardHeightMemory(ms);
 
 
-    string thisLabelName = focusedClassLabel;
+    string thisLabelName = ms->config.focusedClassLabel;
 
     string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
@@ -17,7 +17,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     Mat rangeMapTemp(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        rangeMapTemp.at<double>(y,x) = classRangeMaps[focusedClass].at<double>(y,x);
+        rangeMapTemp.at<double>(y,x) = classRangeMaps[ms->config.focusedClass].at<double>(y,x);
       } 
     } 
 
@@ -33,28 +33,28 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 	<< ms->config.currentGraspZ 
       << "]";
 
-      if (ms->config.classGraspZs.size() > focusedClass) {
-	ms->config.classGraspZs[focusedClass] = ms->config.currentGraspZ;
+      if (ms->config.classGraspZs.size() > ms->config.focusedClass) {
+	ms->config.classGraspZs[ms->config.focusedClass] = ms->config.currentGraspZ;
       }
-      if (ms->config.classGraspZsSet.size() > focusedClass) {
-	ms->config.classGraspZsSet[focusedClass] = 1;
+      if (ms->config.classGraspZsSet.size() > ms->config.focusedClass) {
+	ms->config.classGraspZsSet[ms->config.focusedClass] = 1;
       }
     }
 
     copyGraspMemoryTriesToClassGraspMemoryTries(ms);
-    fsvO << "graspMemoryTries1" << classGraspMemoryTries1[focusedClass];
-    fsvO << "graspMemoryPicks1" << classGraspMemoryPicks1[focusedClass];
-    fsvO << "graspMemoryTries2" << classGraspMemoryTries2[focusedClass];
-    fsvO << "graspMemoryPicks2" << classGraspMemoryPicks2[focusedClass];
-    fsvO << "graspMemoryTries3" << classGraspMemoryTries3[focusedClass];
-    fsvO << "graspMemoryPicks3" << classGraspMemoryPicks3[focusedClass];
-    fsvO << "graspMemoryTries4" << classGraspMemoryTries4[focusedClass];
-    fsvO << "graspMemoryPicks4" << classGraspMemoryPicks4[focusedClass];
+    fsvO << "graspMemoryTries1" << classGraspMemoryTries1[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks1" << classGraspMemoryPicks1[ms->config.focusedClass];
+    fsvO << "graspMemoryTries2" << classGraspMemoryTries2[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks2" << classGraspMemoryPicks2[ms->config.focusedClass];
+    fsvO << "graspMemoryTries3" << classGraspMemoryTries3[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks3" << classGraspMemoryPicks3[ms->config.focusedClass];
+    fsvO << "graspMemoryTries4" << classGraspMemoryTries4[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks4" << classGraspMemoryPicks4[ms->config.focusedClass];
 
 
     copyHeightMemoryTriesToClassHeightMemoryTries(ms);
-    fsvO << "heightMemoryTries" << classHeightMemoryTries[focusedClass];
-    fsvO << "heightMemoryPicks" << classHeightMemoryPicks[focusedClass];
+    fsvO << "heightMemoryTries" << classHeightMemoryTries[ms->config.focusedClass];
+    fsvO << "heightMemoryPicks" << classHeightMemoryPicks[ms->config.focusedClass];
 
 
     lastRangeMap = rangeMapTemp;
@@ -236,7 +236,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //copyGraspMemoryRegister(ms->config.graspMemoryReg1, ms->config.graspMemorySample);
   
   drawMapRegisters(ms);
-  cout << "class " << classLabels[targetClass] << " number ";
+  cout << "class " << classLabels[ms->config.targetClass] << " number ";
 }
 END_WORD
 REGISTER_WORD(LoadPriorGraspMemoryAnalytic)
@@ -254,7 +254,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //copyGraspMemoryRegister(ms->config.graspMemoryReg1, ms->config.graspMemorySample);
   
   drawMapRegisters(ms);
-  cout << "class " << classLabels[targetClass] << " number ";
+  cout << "class " << classLabels[ms->config.targetClass] << " number ";
 }
 END_WORD
 REGISTER_WORD(LoadPriorGraspMemoryUniform)
@@ -416,16 +416,16 @@ CODE(1245289)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
         cout << "Loading height memories." << endl;
-        if ((classHeightMemoryTries[targetClass].rows > 1) && (classHeightMemoryPicks[targetClass].cols == 1)) {
-          cout << "targetClass: " << targetClass << " " << classLabels[targetClass] << endl;
+        if ((classHeightMemoryTries[ms->config.targetClass].rows > 1) && (classHeightMemoryPicks[ms->config.targetClass].cols == 1)) {
+          cout << "targetClass: " << ms->config.targetClass << " " << classLabels[ms->config.targetClass] << endl;
           for (int i = 0; i < ms->config.hmWidth; i++) {
-            ms->config.heightMemoryPicks[i] = classHeightMemoryPicks[targetClass].at<double>(i, 0);
-            ms->config.heightMemoryTries[i] = classHeightMemoryTries[targetClass].at<double>(i, 0);
+            ms->config.heightMemoryPicks[i] = classHeightMemoryPicks[ms->config.targetClass].at<double>(i, 0);
+            ms->config.heightMemoryTries[i] = classHeightMemoryTries[ms->config.targetClass].at<double>(i, 0);
             cout << "picks: " << ms->config.heightMemoryPicks[i] << endl;
             cout << "tries: " << ms->config.heightMemoryTries[i] << endl;
           }
         } else {
-	  cout << "Whoops, tried to set height memories but they don't exist for this class:" << targetClass << " " << classLabels[targetClass] << endl;
+	  cout << "Whoops, tried to set height memories but they don't exist for this class:" << ms->config.targetClass << " " << classLabels[ms->config.targetClass] << endl;
         }
 
 }

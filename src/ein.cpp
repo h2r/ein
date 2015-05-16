@@ -117,27 +117,11 @@ ros::Publisher moveSpeedPub;
 ros::Publisher sonarPub;
 ros::Publisher headPub;
 ros::Publisher nodPub;
-
 ros::Publisher einPub;
-
-
-
-
 ros::Publisher vmMarkerPublisher;
 
 
 
-int targetClass = -1;
-
-ros::Time lastVisionCycle;
-ros::Duration accumulatedTime;
-
-
-
-// class focused for learning
-int focusedClass = -1;
-int newClassCounter = 0;
-string focusedClassLabel;
 
 // variables for survey during servoing
 vector<double> surveyHistogram;
@@ -667,8 +651,8 @@ int blueBoxForPixel(int px, int py);
 int skirtedBlueBoxForPixel(int px, int py, int skirtPixels);
 bool cellIsSearched(int i, int j);
 bool positionIsSearched(double x, double y);
-vector<BoxMemory> memoriesForClass(int classIdx);
-vector<BoxMemory> memoriesForClass(int classIdx, int * memoryIdxOfFirst);
+vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx);
+vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx, int * memoryIdxOfFirst);
 
 // XXX TODO searched and mapped are redundant. just need one to talk about the fence.
 bool cellIsMapped(int i, int j);
@@ -930,7 +914,7 @@ void spinlessPilotMain(shared_ptr<MachineState> ms);
 
 int doCalibrateGripper(shared_ptr<MachineState> ms);
 int calibrateGripper(shared_ptr<MachineState> ms);
-int shouldIPick(int classToPick);
+int shouldIPick(shared_ptr<MachineState> ms, int classToPick);
 int getLocalGraspGear(shared_ptr<MachineState> ms, int globalGraspGearIn);
 int getGlobalGraspGear(shared_ptr<MachineState> ms, int localGraspGearIn);
 void convertGlobalGraspIdxToLocal(shared_ptr<MachineState> ms, const int rx, const int ry, 
@@ -3028,43 +3012,43 @@ void rangeCallback(const sensor_msgs::Range& range) {
 
     guardedImshow(ms->config.mapBackgroundViewName, mapBackgroundImage, sirMapBackground);
     
-    if (targetClass > -1) {
-      if (classHeight0AerialGradients[targetClass].rows == aerialGradientWidth) {
+    if (ms->config.targetClass > -1) {
+      if (classHeight0AerialGradients[ms->config.targetClass].rows == aerialGradientWidth) {
 	Mat crop0 = aerialGradientViewerImage(cv::Rect(0, 3*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
 	double min0 = 0;
 	double max0 = 0;
-	minMaxLoc(classHeight0AerialGradients[targetClass], &min0, &max0);
+	minMaxLoc(classHeight0AerialGradients[ms->config.targetClass], &min0, &max0);
 	double denom0 = max0-min0;
 	if (fabs(denom0) < EPSILON)
 	  denom0 = 1;
-	crop0 = (classHeight0AerialGradients[targetClass] - min0) / denom0;
+	crop0 = (classHeight0AerialGradients[ms->config.targetClass] - min0) / denom0;
 
 	Mat crop1 = aerialGradientViewerImage(cv::Rect(0, 2*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
 	double min1 = 0;
 	double max1 = 0;
-	minMaxLoc(classHeight1AerialGradients[targetClass], &min1, &max1);
+	minMaxLoc(classHeight1AerialGradients[ms->config.targetClass], &min1, &max1);
 	double denom1 = max1-min1;
 	if (fabs(denom1) < EPSILON)
 	  denom1 = 1;
-	crop1 = (classHeight1AerialGradients[targetClass] - min1) / denom1;
+	crop1 = (classHeight1AerialGradients[ms->config.targetClass] - min1) / denom1;
 
 	Mat crop2 = aerialGradientViewerImage(cv::Rect(0, 1*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
 	double min2 = 0;
 	double max2 = 0;
-	minMaxLoc(classHeight2AerialGradients[targetClass], &min2, &max2);
+	minMaxLoc(classHeight2AerialGradients[ms->config.targetClass], &min2, &max2);
 	double denom2 = max2-min2;
 	if (fabs(denom2) < EPSILON)
 	  denom2 = 1;
-	crop2 = (classHeight2AerialGradients[targetClass] - min2) / denom2;
+	crop2 = (classHeight2AerialGradients[ms->config.targetClass] - min2) / denom2;
 
 	Mat crop3 = aerialGradientViewerImage(cv::Rect(0, 0*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
 	double min3 = 0;
 	double max3 = 0;
-	minMaxLoc(classHeight3AerialGradients[targetClass], &min3, &max3);
+	minMaxLoc(classHeight3AerialGradients[ms->config.targetClass], &min3, &max3);
 	double denom3 = max3-min3;
 	if (fabs(denom3) < EPSILON)
 	  denom3 = 1;
-	crop3 = (classHeight3AerialGradients[targetClass] - min3) / denom3;
+	crop3 = (classHeight3AerialGradients[ms->config.targetClass] - min3) / denom3;
 
 	guardedImshow(aerialGradientViewerName, aerialGradientViewerImage, sirAerialGradient);
       }
@@ -5152,7 +5136,7 @@ void spinlessPilotMain(shared_ptr<MachineState> ms) {
   pilotInit(ms);
 }
 
-int shouldIPick(int classToPick) {
+int shouldIPick(shared_ptr<MachineState> ms, int classToPick) {
 
   int toReturn = 0;
 
@@ -5171,9 +5155,9 @@ int shouldIPick(int classToPick) {
 //    toReturn = 1;
 //  }
   
-  toReturn = (classToPick == targetClass);
+  toReturn = (classToPick == ms->config.targetClass);
 
-  cout << classToPick << " " << targetClass << " " << toReturn;
+  cout << classToPick << " " << ms->config.targetClass << " " << toReturn;
 
   return toReturn;
 }
@@ -5258,10 +5242,10 @@ int getGlobalGraspGear(shared_ptr<MachineState> ms, int localGraspGearIn) {
 }
 
 void changeTargetClass(shared_ptr<MachineState> ms, int newTargetClass) {
-  targetClass = newTargetClass;
-  focusedClass = targetClass;
-  focusedClassLabel = classLabels[focusedClass];
-  cout << "class " << targetClass << " " << classLabels[targetClass] << endl;
+  ms->config.targetClass = newTargetClass;
+  ms->config.focusedClass = ms->config.targetClass;
+  ms->config.focusedClassLabel = classLabels[ms->config.focusedClass];
+  cout << "class " << ms->config.targetClass << " " << classLabels[ms->config.targetClass] << endl;
   ms->execute_stack = 1;	
 
 
@@ -5335,60 +5319,60 @@ void guard3dGrasps(shared_ptr<MachineState> ms) {
 void guardGraspMemory(shared_ptr<MachineState> ms) {
 
   {
-    if (classGraspMemoryTries1.size() <= focusedClass) {
-      classGraspMemoryTries1.resize(focusedClass + 1);
+    if (classGraspMemoryTries1.size() <= ms->config.focusedClass) {
+      classGraspMemoryTries1.resize(ms->config.focusedClass + 1);
     }
-    if (classGraspMemoryPicks1.size() <= focusedClass) {
-      classGraspMemoryPicks1.resize(focusedClass + 1);
-    }
-
-    if (classGraspMemoryTries2.size() <= focusedClass) {
-      classGraspMemoryTries2.resize(focusedClass + 1);
-    }
-    if (classGraspMemoryPicks2.size() <= focusedClass) {
-      classGraspMemoryPicks2.resize(focusedClass + 1);
+    if (classGraspMemoryPicks1.size() <= ms->config.focusedClass) {
+      classGraspMemoryPicks1.resize(ms->config.focusedClass + 1);
     }
 
-    if (classGraspMemoryTries3.size() <= focusedClass) {
-      classGraspMemoryTries3.resize(focusedClass + 1);
+    if (classGraspMemoryTries2.size() <= ms->config.focusedClass) {
+      classGraspMemoryTries2.resize(ms->config.focusedClass + 1);
     }
-    if (classGraspMemoryPicks3.size() <= focusedClass) {
-      classGraspMemoryPicks3.resize(focusedClass + 1);
+    if (classGraspMemoryPicks2.size() <= ms->config.focusedClass) {
+      classGraspMemoryPicks2.resize(ms->config.focusedClass + 1);
     }
 
-    if (classGraspMemoryTries4.size() <= focusedClass) {
-      classGraspMemoryTries4.resize(focusedClass + 1);
+    if (classGraspMemoryTries3.size() <= ms->config.focusedClass) {
+      classGraspMemoryTries3.resize(ms->config.focusedClass + 1);
     }
-    if (classGraspMemoryPicks4.size() <= focusedClass) {
-      classGraspMemoryPicks4.resize(focusedClass + 1);
+    if (classGraspMemoryPicks3.size() <= ms->config.focusedClass) {
+      classGraspMemoryPicks3.resize(ms->config.focusedClass + 1);
+    }
+
+    if (classGraspMemoryTries4.size() <= ms->config.focusedClass) {
+      classGraspMemoryTries4.resize(ms->config.focusedClass + 1);
+    }
+    if (classGraspMemoryPicks4.size() <= ms->config.focusedClass) {
+      classGraspMemoryPicks4.resize(ms->config.focusedClass + 1);
     }
 
   }
 
   {
     bool loadPrior = false;
-    if (!((classGraspMemoryTries1[focusedClass].rows > 1) && (classGraspMemoryTries1[focusedClass].cols > 1) &&
-	(classGraspMemoryPicks1[focusedClass].rows > 1) && (classGraspMemoryPicks1[focusedClass].cols > 1) )) {
-      classGraspMemoryTries1[focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-      classGraspMemoryPicks1[focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+    if (!((classGraspMemoryTries1[ms->config.focusedClass].rows > 1) && (classGraspMemoryTries1[ms->config.focusedClass].cols > 1) &&
+	(classGraspMemoryPicks1[ms->config.focusedClass].rows > 1) && (classGraspMemoryPicks1[ms->config.focusedClass].cols > 1) )) {
+      classGraspMemoryTries1[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+      classGraspMemoryPicks1[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
       loadPrior = true;
     }
-    if (!((classGraspMemoryTries2[focusedClass].rows > 1) && (classGraspMemoryTries2[focusedClass].cols > 1) &&
-	(classGraspMemoryPicks2[focusedClass].rows > 1) && (classGraspMemoryPicks2[focusedClass].cols > 1) )) {
-      classGraspMemoryTries2[focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-      classGraspMemoryPicks2[focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+    if (!((classGraspMemoryTries2[ms->config.focusedClass].rows > 1) && (classGraspMemoryTries2[ms->config.focusedClass].cols > 1) &&
+	(classGraspMemoryPicks2[ms->config.focusedClass].rows > 1) && (classGraspMemoryPicks2[ms->config.focusedClass].cols > 1) )) {
+      classGraspMemoryTries2[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+      classGraspMemoryPicks2[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
       loadPrior = true;
     }
-    if (!((classGraspMemoryTries3[focusedClass].rows > 1) && (classGraspMemoryTries3[focusedClass].cols > 1) &&
-	(classGraspMemoryPicks3[focusedClass].rows > 1) && (classGraspMemoryPicks3[focusedClass].cols > 1) )) {
-      classGraspMemoryTries3[focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-      classGraspMemoryPicks3[focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+    if (!((classGraspMemoryTries3[ms->config.focusedClass].rows > 1) && (classGraspMemoryTries3[ms->config.focusedClass].cols > 1) &&
+	(classGraspMemoryPicks3[ms->config.focusedClass].rows > 1) && (classGraspMemoryPicks3[ms->config.focusedClass].cols > 1) )) {
+      classGraspMemoryTries3[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+      classGraspMemoryPicks3[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
       loadPrior = true;
     }
-    if (!((classGraspMemoryTries4[focusedClass].rows > 1) && (classGraspMemoryTries4[focusedClass].cols > 1) &&
-	(classGraspMemoryPicks4[focusedClass].rows > 1) && (classGraspMemoryPicks4[focusedClass].cols > 1) )) {
-      classGraspMemoryTries4[focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-      classGraspMemoryPicks4[focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+    if (!((classGraspMemoryTries4[ms->config.focusedClass].rows > 1) && (classGraspMemoryTries4[ms->config.focusedClass].cols > 1) &&
+	(classGraspMemoryPicks4[ms->config.focusedClass].rows > 1) && (classGraspMemoryPicks4[ms->config.focusedClass].cols > 1) )) {
+      classGraspMemoryTries4[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+      classGraspMemoryPicks4[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
       loadPrior = true;
     }
     if (loadPrior) {
@@ -5399,19 +5383,19 @@ void guardGraspMemory(shared_ptr<MachineState> ms) {
 }
 
 void guardHeightMemory(shared_ptr<MachineState> ms) {
-  if (focusedClass == -1) {
-    ROS_ERROR_STREAM("Focused class not initialized! " << focusedClass);
+  if (ms->config.focusedClass == -1) {
+    ROS_ERROR_STREAM("Focused class not initialized! " << ms->config.focusedClass);
   }
-  if (classHeightMemoryTries.size() <= focusedClass) {
-    classHeightMemoryTries.resize(focusedClass + 1);
+  if (classHeightMemoryTries.size() <= ms->config.focusedClass) {
+    classHeightMemoryTries.resize(ms->config.focusedClass + 1);
   }
-  if (classHeightMemoryPicks.size() <= focusedClass) {
-    classHeightMemoryPicks.resize(focusedClass + 1);
+  if (classHeightMemoryPicks.size() <= ms->config.focusedClass) {
+    classHeightMemoryPicks.resize(ms->config.focusedClass + 1);
   }
-  if (!((classHeightMemoryTries[focusedClass].rows > 1) && (classHeightMemoryTries[focusedClass].cols == 1) &&
-	(classHeightMemoryPicks[focusedClass].rows > 1) && (classHeightMemoryPicks[focusedClass].cols == 1) )) {
-    classHeightMemoryTries[focusedClass] = Mat(ms->config.hmWidth, 1, CV_64F);
-    classHeightMemoryPicks[focusedClass] = Mat(ms->config.hmWidth, 1, CV_64F);
+  if (!((classHeightMemoryTries[ms->config.focusedClass].rows > 1) && (classHeightMemoryTries[ms->config.focusedClass].cols == 1) &&
+	(classHeightMemoryPicks[ms->config.focusedClass].rows > 1) && (classHeightMemoryPicks[ms->config.focusedClass].cols == 1) )) {
+    classHeightMemoryTries[ms->config.focusedClass] = Mat(ms->config.hmWidth, 1, CV_64F);
+    classHeightMemoryPicks[ms->config.focusedClass] = Mat(ms->config.hmWidth, 1, CV_64F);
     loadPriorHeightMemory(ms, ANALYTIC_PRIOR);
   }
 }
@@ -5789,8 +5773,8 @@ void drawHeightMemorySample(shared_ptr<MachineState> ms) {
 void copyHeightMemoryTriesToClassHeightMemoryTries(shared_ptr<MachineState> ms) {
   guardHeightMemory(ms);
   for (int i = 0; i < ms->config.hmWidth; i++) {
-    classHeightMemoryTries[focusedClass].at<double>(i,0) = ms->config.heightMemoryTries[i];
-    classHeightMemoryPicks[focusedClass].at<double>(i,0) = ms->config.heightMemoryPicks[i];
+    classHeightMemoryTries[ms->config.focusedClass].at<double>(i,0) = ms->config.heightMemoryTries[i];
+    classHeightMemoryPicks[ms->config.focusedClass].at<double>(i,0) = ms->config.heightMemoryPicks[i];
   }
 }
 
@@ -5955,14 +5939,14 @@ void drawMapRegisters(shared_ptr<MachineState> ms) {
         }
       }
     }
-    if ((targetClass > -1) && (classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
+    if ((ms->config.targetClass > -1) && (classRangeMaps[ms->config.targetClass].rows > 1) && (classRangeMaps[ms->config.targetClass].cols > 1)) {
       double minDepth = VERYBIGNUMBER;
       double maxDepth = 0;
       for (int rx = 0; rx < ms->config.rmWidth; rx++) {
         for (int ry = 0; ry < ms->config.rmWidth; ry++) {
 
-          minDepth = min(minDepth, classRangeMaps[targetClass].at<double>(ry,rx));
-          maxDepth = max(maxDepth, classRangeMaps[targetClass].at<double>(ry,rx));
+          minDepth = min(minDepth, classRangeMaps[ms->config.targetClass].at<double>(ry,rx));
+          maxDepth = max(maxDepth, classRangeMaps[ms->config.targetClass].at<double>(ry,rx));
         }
       }
       for (int rx = 0; rx < ms->config.rmWidth; rx++) {
@@ -5970,7 +5954,7 @@ void drawMapRegisters(shared_ptr<MachineState> ms) {
           double denom = max(EPSILON,maxDepth-minDepth);
           if (denom <= EPSILON)
             denom = VERYBIGNUMBER;
-          double greenIntensity = 255 * (maxDepth - classRangeMaps[targetClass].at<double>(ry,rx)) / denom;
+          double greenIntensity = 255 * (maxDepth - classRangeMaps[ms->config.targetClass].at<double>(ry,rx)) / denom;
           {
             cv::Scalar backColor(0,ceil(greenIntensity),0);
             cv::Point outTop = cv::Point((ry+ms->config.rmWidth)*ms->config.rmiCellWidth,rx*ms->config.rmiCellWidth);
@@ -6166,16 +6150,16 @@ void loadGlobalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMa
   // Get the rotation matrix with the specifications above
   Mat rotatedClassRangeMap;
   Mat rot_mat = getRotationMatrix2D(center, angle, scale);
-  warpAffine(classRangeMaps[targetClass], rotatedClassRangeMap, rot_mat, toBecome, INTER_LINEAR, BORDER_REPLICATE);
+  warpAffine(classRangeMaps[ms->config.targetClass], rotatedClassRangeMap, rot_mat, toBecome, INTER_LINEAR, BORDER_REPLICATE);
 
   ms->config.bestOrientationAngle = angle;
 
-  if ((targetClass < numClasses) && (targetClass >= 0)) {
+  if ((ms->config.targetClass < numClasses) && (ms->config.targetClass >= 0)) {
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
         // unrotated
-        //rangeMap[x + y*ms->config.rmWidth] = classRangeMaps[targetClass].at<double>(y,x);
-        //ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = classRangeMaps[targetClass].at<double>(y,x);
+        //rangeMap[x + y*ms->config.rmWidth] = classRangeMaps[ms->config.targetClass].at<double>(y,x);
+        //ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = classRangeMaps[ms->config.targetClass].at<double>(y,x);
         // rotated
         rangeMapRegA[x + y*ms->config.rmWidth] = rotatedClassRangeMap.at<double>(y,x);
         rangeMapRegB[x + y*ms->config.rmWidth] = rotatedClassRangeMap.at<double>(y,x);
@@ -6186,11 +6170,11 @@ void loadGlobalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMa
 
 
 void loadLocalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB) {
-  if ((targetClass < numClasses) && (targetClass >= 0)) {
+  if ((ms->config.targetClass < numClasses) && (ms->config.targetClass >= 0)) {
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        rangeMapRegA[x + y*ms->config.rmWidth] = classRangeMaps[targetClass].at<double>(y,x);
-        rangeMapRegB[x + y*ms->config.rmWidth] = classRangeMaps[targetClass].at<double>(y,x);
+        rangeMapRegA[x + y*ms->config.rmWidth] = classRangeMaps[ms->config.targetClass].at<double>(y,x);
+        rangeMapRegB[x + y*ms->config.rmWidth] = classRangeMaps[ms->config.targetClass].at<double>(y,x);
       } 
     } 
   } 
@@ -6267,80 +6251,80 @@ void prepareGraspFilter4(shared_ptr<MachineState> ms) {
 }
 
 void copyClassGraspMemoryTriesToGraspMemoryTries(shared_ptr<MachineState> ms) {
-  if ((classGraspMemoryTries1[targetClass].rows > 1) && (classGraspMemoryTries1[targetClass].cols > 1) &&
-      (classGraspMemoryPicks1[targetClass].rows > 1) && (classGraspMemoryPicks1[targetClass].cols > 1) ) {
+  if ((classGraspMemoryTries1[ms->config.targetClass].rows > 1) && (classGraspMemoryTries1[ms->config.targetClass].cols > 1) &&
+      (classGraspMemoryPicks1[ms->config.targetClass].rows > 1) && (classGraspMemoryPicks1[ms->config.targetClass].cols > 1) ) {
     cout << "graspMemoryTries[] = classGraspMemoryTries1" << endl;
-    //cout << "classGraspMemoryTries1 " << classGraspMemoryTries1[targetClass] << endl; 
-    //cout << "classGraspMemoryPicks1 " << classGraspMemoryPicks1[targetClass] << endl; 
+    //cout << "classGraspMemoryTries1 " << classGraspMemoryTries1[ms->config.targetClass] << endl; 
+    //cout << "classGraspMemoryPicks1 " << classGraspMemoryPicks1[ms->config.targetClass] << endl; 
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = classGraspMemoryTries1[targetClass].at<double>(y,x);
+        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = classGraspMemoryTries1[ms->config.targetClass].at<double>(y,x);
       } 
     } 
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = classGraspMemoryPicks1[targetClass].at<double>(y,x);
+        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x);
       } 
     } 
   } else {
-    cout << "Whoops, tried to set grasp memories 1 but they don't exist for this class." << targetClass << " " << classLabels[targetClass] << endl;
+    cout << "Whoops, tried to set grasp memories 1 but they don't exist for this class." << ms->config.targetClass << " " << classLabels[ms->config.targetClass] << endl;
   }
-  if ((classGraspMemoryTries2[targetClass].rows > 1) && (classGraspMemoryTries2[targetClass].cols > 1) &&
-      (classGraspMemoryPicks2[targetClass].rows > 1) && (classGraspMemoryPicks2[targetClass].cols > 1) ) {
+  if ((classGraspMemoryTries2[ms->config.targetClass].rows > 1) && (classGraspMemoryTries2[ms->config.targetClass].cols > 1) &&
+      (classGraspMemoryPicks2[ms->config.targetClass].rows > 1) && (classGraspMemoryPicks2[ms->config.targetClass].cols > 1) ) {
     cout << "graspMemoryTries[] = classGraspMemoryTries2" << endl;
-    //cout << "classGraspMemoryTries2 " << classGraspMemoryTries2[targetClass] << endl; 
-    //cout << "classGraspMemoryPicks2 " << classGraspMemoryPicks2[targetClass] << endl; 
+    //cout << "classGraspMemoryTries2 " << classGraspMemoryTries2[ms->config.targetClass] << endl; 
+    //cout << "classGraspMemoryPicks2 " << classGraspMemoryPicks2[ms->config.targetClass] << endl; 
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = classGraspMemoryTries2[targetClass].at<double>(y,x);
+        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = classGraspMemoryTries2[ms->config.targetClass].at<double>(y,x);
       } 
     } 
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = classGraspMemoryPicks2[targetClass].at<double>(y,x);
+        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x);
       } 
     } 
   } else {
-    cout << "Whoops, tried to set grasp memories 2 but they don't exist for this class." << targetClass << " " << classLabels[targetClass] << endl;
+    cout << "Whoops, tried to set grasp memories 2 but they don't exist for this class." << ms->config.targetClass << " " << classLabels[ms->config.targetClass] << endl;
   }
-  if ((classGraspMemoryTries3[targetClass].rows > 1) && (classGraspMemoryTries3[targetClass].cols > 1) &&
-      (classGraspMemoryPicks3[targetClass].rows > 1) && (classGraspMemoryPicks3[targetClass].cols > 1) ) {
+  if ((classGraspMemoryTries3[ms->config.targetClass].rows > 1) && (classGraspMemoryTries3[ms->config.targetClass].cols > 1) &&
+      (classGraspMemoryPicks3[ms->config.targetClass].rows > 1) && (classGraspMemoryPicks3[ms->config.targetClass].cols > 1) ) {
     cout << "graspMemoryTries[] = classGraspMemoryTries3" << endl;
-    //cout << "classGraspMemoryTries3 " << classGraspMemoryTries3[targetClass] << endl; 
-    //cout << "classGraspMemoryPicks3 " << classGraspMemoryPicks3[targetClass] << endl; 
+    //cout << "classGraspMemoryTries3 " << classGraspMemoryTries3[ms->config.targetClass] << endl; 
+    //cout << "classGraspMemoryPicks3 " << classGraspMemoryPicks3[ms->config.targetClass] << endl; 
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = classGraspMemoryTries3[targetClass].at<double>(y,x);
+        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = classGraspMemoryTries3[ms->config.targetClass].at<double>(y,x);
       } 
     } 
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = classGraspMemoryPicks3[targetClass].at<double>(y,x);
+        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x);
       } 
     } 
   } else {
-    cout << "Whoops, tried to set grasp memories 3 but they don't exist for this class." << targetClass << " " << classLabels[targetClass] << endl;
+    cout << "Whoops, tried to set grasp memories 3 but they don't exist for this class." << ms->config.targetClass << " " << classLabels[ms->config.targetClass] << endl;
   }
-  if ((classGraspMemoryTries4[targetClass].rows > 1) && (classGraspMemoryTries4[targetClass].cols > 1) &&
-      (classGraspMemoryPicks4[targetClass].rows > 1) && (classGraspMemoryPicks4[targetClass].cols > 1) ) {
+  if ((classGraspMemoryTries4[ms->config.targetClass].rows > 1) && (classGraspMemoryTries4[ms->config.targetClass].cols > 1) &&
+      (classGraspMemoryPicks4[ms->config.targetClass].rows > 1) && (classGraspMemoryPicks4[ms->config.targetClass].cols > 1) ) {
     cout << "graspMemoryTries[] = classGraspMemoryTries4" << endl;
-    //cout << "classGraspMemoryTries4 " << classGraspMemoryTries4[targetClass] << endl; 
-    //cout << "classGraspMemoryPicks4 " << classGraspMemoryPicks4[targetClass] << endl; 
+    //cout << "classGraspMemoryTries4 " << classGraspMemoryTries4[ms->config.targetClass] << endl; 
+    //cout << "classGraspMemoryPicks4 " << classGraspMemoryPicks4[ms->config.targetClass] << endl; 
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = classGraspMemoryTries4[targetClass].at<double>(y,x);
+        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x);
       } 
     } 
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = classGraspMemoryPicks4[targetClass].at<double>(y,x);
+        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x);
       } 
     } 
   } else {
-    cout << "Whoops, tried to set grasp memories 4 but they don't exist for this class." << targetClass << " " << classLabels[targetClass] << endl;
+    cout << "Whoops, tried to set grasp memories 4 but they don't exist for this class." << ms->config.targetClass << " " << classLabels[ms->config.targetClass] << endl;
   }
         
-  cout << "class " << classLabels[targetClass] << " number ";
+  cout << "class " << classLabels[ms->config.targetClass] << " number ";
 
 }
 
@@ -6348,45 +6332,45 @@ void copyGraspMemoryTriesToClassGraspMemoryTries(shared_ptr<MachineState> ms) {
   guardGraspMemory(ms);
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
-      classGraspMemoryTries1[focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 0*ms->config.rmWidth*ms->config.rmWidth];
+      classGraspMemoryTries1[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 0*ms->config.rmWidth*ms->config.rmWidth];
     } 
   }
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
-      classGraspMemoryPicks1[focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 0*ms->config.rmWidth*ms->config.rmWidth];
+      classGraspMemoryPicks1[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 0*ms->config.rmWidth*ms->config.rmWidth];
     } 
   } 
 
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
-      classGraspMemoryTries2[focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 1*ms->config.rmWidth*ms->config.rmWidth];
+      classGraspMemoryTries2[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 1*ms->config.rmWidth*ms->config.rmWidth];
     } 
   } 
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
-      classGraspMemoryPicks2[focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 1*ms->config.rmWidth*ms->config.rmWidth];
+      classGraspMemoryPicks2[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 1*ms->config.rmWidth*ms->config.rmWidth];
     } 
   } 
 
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
-      classGraspMemoryTries3[focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 2*ms->config.rmWidth*ms->config.rmWidth];
+      classGraspMemoryTries3[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 2*ms->config.rmWidth*ms->config.rmWidth];
     } 
   }
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
-      classGraspMemoryPicks3[focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 2*ms->config.rmWidth*ms->config.rmWidth];
+      classGraspMemoryPicks3[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 2*ms->config.rmWidth*ms->config.rmWidth];
     } 
   }
 
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
-      classGraspMemoryTries4[focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 3*ms->config.rmWidth*ms->config.rmWidth];
+      classGraspMemoryTries4[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 3*ms->config.rmWidth*ms->config.rmWidth];
     } 
   } 
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
-      classGraspMemoryPicks4[focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 3*ms->config.rmWidth*ms->config.rmWidth];
+      classGraspMemoryPicks4[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 3*ms->config.rmWidth*ms->config.rmWidth];
     } 
   }
 }
@@ -6959,11 +6943,11 @@ void gradientServo(shared_ptr<MachineState> ms) {
   //        }
 
   cout << "entered gradient servo... iteration " << currentGradientServoIterations << endl;
-  if (targetClass < 0 || targetClass >= numClasses) {
+  if (ms->config.targetClass < 0 || ms->config.targetClass >= numClasses) {
     cout << "bad target class, not servoing." << endl;
     return;
   }
-  if ((classAerialGradients[targetClass].rows <= 1) && (classAerialGradients[targetClass].cols <= 1)) {
+  if ((classAerialGradients[ms->config.targetClass].rows <= 1) && (classAerialGradients[ms->config.targetClass].cols <= 1)) {
     cout << "no aerial gradients for this class, not servoing." << endl;
     return;
   }
@@ -6984,22 +6968,22 @@ void gradientServo(shared_ptr<MachineState> ms) {
   switch (currentThompsonHeightIdx) {
   case 0:
     {
-      classAerialGradients[targetClass] = classHeight0AerialGradients[targetClass];
+      classAerialGradients[ms->config.targetClass] = classHeight0AerialGradients[ms->config.targetClass];
     }
     break;
   case 1:
     {
-      classAerialGradients[targetClass] = classHeight1AerialGradients[targetClass];
+      classAerialGradients[ms->config.targetClass] = classHeight1AerialGradients[ms->config.targetClass];
     }
     break;
   case 2:
     {
-      classAerialGradients[targetClass] = classHeight2AerialGradients[targetClass];
+      classAerialGradients[ms->config.targetClass] = classHeight2AerialGradients[ms->config.targetClass];
     }
     break;
   case 3:
     {
-      classAerialGradients[targetClass] = classHeight3AerialGradients[targetClass];
+      classAerialGradients[ms->config.targetClass] = classHeight3AerialGradients[ms->config.targetClass];
     }
     break;
   default:
@@ -7066,7 +7050,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
       
       // Get the rotation matrix with the specifications above
       Mat rot_mat = getRotationMatrix2D(center, angle, scale);
-      warpAffine(classAerialGradients[targetClass], rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
+      warpAffine(classAerialGradients[ms->config.targetClass], rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
       
       processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations], rotatedAerialGrads[thisOrient + etaS*numOrientations]);
       
@@ -7074,7 +7058,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
       //if (l1norm <= EPSILON)
       //l1norm = 1.0;
       //rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l1norm;
-      //cout << "classOrientedGradients[targetClass]: " << classAerialGradients[targetClass] << "rotatedAerialGrads[thisOrient + etaS*numOrientations] " << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
+      //cout << "classOrientedGradients[ms->config.targetClass]: " << classAerialGradients[ms->config.targetClass] << "rotatedAerialGrads[thisOrient + etaS*numOrientations] " << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
       
       double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(aerialGradientWidth*aerialGradientWidth);
       rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
@@ -7259,7 +7243,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   
   Mat toShow;
   Size toUnBecome(maxDim, maxDim);
-  //cv::resize(classAerialGradients[targetClass], toShow, toUnBecome);
+  //cv::resize(classAerialGradients[ms->config.targetClass], toShow, toUnBecome);
   //cv::resize(rotatedAerialGrads[oneToDraw], toShow, toUnBecome);
   cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations], toShow, toUnBecome);
   //cout << rotatedAerialGrads[oneToDraw];
@@ -7392,7 +7376,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
     
         if (synchronicTakeClosest) {
           if (gradientTakeClosest) {
-            if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1))
+            if ((classRangeMaps[ms->config.targetClass].rows > 1) && (classRangeMaps[ms->config.targetClass].cols > 1))
               ms->pushWord("prepareForAndExecuteGraspFromMemoryLearning"); // prepare for and execute the best grasp from memory at the current location and target
             else {
               ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
@@ -7401,7 +7385,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
             return;
           }
         } else {
-          if ((classRangeMaps[targetClass].rows > 1) && (classRangeMaps[targetClass].cols > 1)) {
+          if ((classRangeMaps[ms->config.targetClass].rows > 1) && (classRangeMaps[ms->config.targetClass].cols > 1)) {
             ms->pushWord("prepareForAndExecuteGraspFromMemoryLearning"); 
           } else {
             ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
@@ -7699,7 +7683,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       }
 
       cout << "got within thresh. ";
-      if ((classAerialGradients[targetClass].rows > 1) && (classAerialGradients[targetClass].cols > 1)) {
+      if ((classAerialGradients[ms->config.targetClass].rows > 1) && (classAerialGradients[ms->config.targetClass].cols > 1)) {
         ms->pushWord("gradientServo"); 
         cout << "Queuing gradient servo." << endl;
         //ms->pushCopies("density", densityIterationsForGradientServo); 
@@ -7711,7 +7695,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
         ms->pushCopies("waitUntilAtCurrentPosition", 1); 
         
       } else {
-        ROS_ERROR_STREAM("No gradient map for class " << targetClass << endl);
+        ROS_ERROR_STREAM("No gradient map for class " << ms->config.targetClass << endl);
         ms->clearStack();
       }
 
@@ -11279,7 +11263,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       }
 
       int thisArea = (bBots[c].x - bTops[c].x)*(bBots[c].y - bTops[c].y);
-      if ((thisArea > biggestBBArea) && (label == targetClass)) 
+      if ((thisArea > biggestBBArea) && (label == ms->config.targetClass)) 
       //if ((thisArea > biggestBBArea) && (shouldIPick(label))) 
       {
 	biggestBBArea = thisArea;
@@ -12190,21 +12174,21 @@ bool boxMemoryIntersectCentroid(BoxMemory b1, BoxMemory b2) {
 }
 
 
-vector<BoxMemory> memoriesForClass(int classIdx) {
+vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx) {
   vector<BoxMemory> results;
   for (int j = 0; j < blueBoxMemories.size(); j++) {
-    if (blueBoxMemories[j].labeledClassIndex == focusedClass) {
+    if (blueBoxMemories[j].labeledClassIndex == ms->config.focusedClass) {
       results.push_back(blueBoxMemories[j]);
     }
   }
   return results;
 }
 
-vector<BoxMemory> memoriesForClass(int classIdx, int * memoryIdxOfFirst) {
+vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx, int * memoryIdxOfFirst) {
   vector<BoxMemory> results;
   int haventFoundFirst = 1;
   for (int j = 0; j < blueBoxMemories.size(); j++) {
-    if (blueBoxMemories[j].labeledClassIndex == focusedClass) {
+    if (blueBoxMemories[j].labeledClassIndex == ms->config.focusedClass) {
       results.push_back(blueBoxMemories[j]);
       if ( haventFoundFirst && (blueBoxMemories[j].lockStatus == POSE_REPORTED) ) {
 	*memoryIdxOfFirst = j;

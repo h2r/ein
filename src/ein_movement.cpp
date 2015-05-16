@@ -723,8 +723,8 @@ WORD(SpawnTargetClassAtEndEffector)
 CODE(65379) // insert
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "SpawnTargetClassAtEndEffector called." << endl;
-  if (targetClass < 0) {
-    cout << "Not spawning because targetClass is " << targetClass << endl;
+  if (ms->config.targetClass < 0) {
+    cout << "Not spawning because targetClass is " << ms->config.targetClass << endl;
     return;
   }
 
@@ -743,7 +743,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     box.centroid.py = (box.top.py + box.bot.py) * 0.5;
     box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
     box.cameraTime = ros::Time::now();
-    box.labeledClassIndex = targetClass;
+    box.labeledClassIndex = ms->config.targetClass;
   
     mapBox(ms, box);
     vector<BoxMemory> newMemories;
