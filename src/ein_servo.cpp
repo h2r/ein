@@ -1306,8 +1306,8 @@ REGISTER_WORD(LockTargetIfBlueBoxes)
 
 WORD(RecordTargetLock)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (blueBoxMemories.size() > 0) {
-    BoxMemory *lastAdded = &(blueBoxMemories[blueBoxMemories.size()-1]);
+  if (ms->config.blueBoxMemories.size() > 0) {
+    BoxMemory *lastAdded = &(ms->config.blueBoxMemories[ms->config.blueBoxMemories.size()-1]);
     lastAdded->cameraTime = ros::Time::now();
     lastAdded->aimedPose = ms->config.currentEEPose;
     // XXX picked pose doesn't seem to mean anything here so likely doesn't matteer

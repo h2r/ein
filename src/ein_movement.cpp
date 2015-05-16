@@ -749,11 +749,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
     mapBox(ms, box);
     vector<BoxMemory> newMemories;
-    for (int i = 0; i < blueBoxMemories.size(); i++) {
-      newMemories.push_back(blueBoxMemories[i]);
+    for (int i = 0; i < ms->config.blueBoxMemories.size(); i++) {
+      newMemories.push_back(ms->config.blueBoxMemories[i]);
     }
     newMemories.push_back(box);
-    blueBoxMemories = newMemories;
+    ms->config.blueBoxMemories = newMemories;
   } else {
     assert(0);
   }

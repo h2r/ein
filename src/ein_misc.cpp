@@ -611,8 +611,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ofile.open(fileName, ios::trunc);
 
   ofile << "<environment>" << endl;
-  for (int i = 0; i < blueBoxMemories.size(); i++) {
-    BoxMemory box = blueBoxMemories[i];
+  for (int i = 0; i < ms->config.blueBoxMemories.size(); i++) {
+    BoxMemory box = ms->config.blueBoxMemories[i];
     if (box.labeledClassIndex >= 0) {
       ofile << "  <object>" << endl;
       ofile << "    <name>" << ms->config.classLabels[box.labeledClassIndex] << "</name>" << endl;

@@ -32,7 +32,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     cout << "More than one bounding box for class.  Looking for first POSE_REPORTED." << focusedClassMemories.size() << endl;
   }
   //BoxMemory memory = focusedClassMemories[0];
-  BoxMemory memory = blueBoxMemories[idxOfFirst];
+  BoxMemory memory = ms->config.blueBoxMemories[idxOfFirst];
 
   if (idxOfFirst == -1) {
     cout << "No POSE_REPORTED objects of the focused class." << endl;
@@ -61,16 +61,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     {
       double x, y;
       int i, j;
-      pixelToGlobal(ms, memory.top.px-mapBlueBoxPixelSkirt, memory.top.py-mapBlueBoxPixelSkirt, z, &x, &y);
-      mapxyToij(x, y, &i, &j);
+      pixelToGlobal(ms, memory.top.px-ms->config.mapBlueBoxPixelSkirt, memory.top.py-ms->config.mapBlueBoxPixelSkirt, z, &x, &y);
+      mapxyToij(ms,x, y, &i, &j);
       iTop=i;
       jTop=j;
     }
     {
       double x, y;
       int i, j;
-      pixelToGlobal(ms, memory.bot.px+mapBlueBoxPixelSkirt, memory.bot.py+mapBlueBoxPixelSkirt, z, &x, &y);
-      mapxyToij(x, y, &i, &j);
+      pixelToGlobal(ms, memory.bot.px+ms->config.mapBlueBoxPixelSkirt, memory.bot.py+ms->config.mapBlueBoxPixelSkirt, z, &x, &y);
+      mapxyToij(ms,x, y, &i, &j);
       iBot=i;
       jBot=j;
     }
@@ -81,9 +81,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     cout << "DeliverObject erasing iStart iEnd jStart jEnd: " << iStart << " " << iEnd << " " << jStart << " " << jEnd << endl;
     for (int i = iStart; i <= iEnd; i++) {
       for (int j = jStart; j <= jEnd; j++) {
-	if (i >= 0 && i < mapWidth && j >= 0 && j < mapHeight) {
-	  objectMap[i + mapWidth * j].lastMappedTime = ros::Time(0.001);
-	  randomizeNanos(ms, &objectMap[i + mapWidth * j].lastMappedTime);
+	if (i >= 0 && i < ms->config.mapWidth && j >= 0 && j < ms->config.mapHeight) {
+	  ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime = ros::Time(0.001);
+	  randomizeNanos(ms, &ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime);
 	}
       }
     }
@@ -92,13 +92,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   { // remove this blue box; above stamping would cause it to be naturally eliminated IF it was 
     // observed in a searched region...
     vector<BoxMemory> newMemories;
-    for (int i = 0; i < blueBoxMemories.size(); i++) {
+    for (int i = 0; i < ms->config.blueBoxMemories.size(); i++) {
       if (i != idxOfFirst) {
 	cout << "Retaining blue box " << i << " while booting " << idxOfFirst << endl; 
-	newMemories.push_back(blueBoxMemories[i]);
+	newMemories.push_back(ms->config.blueBoxMemories[i]);
       }
     }
-    blueBoxMemories = newMemories;
+    ms->config.blueBoxMemories = newMemories;
   }
 
   ms->pushWord("moveToNextMapPosition");
@@ -228,28 +228,28 @@ REGISTER_WORD(ToggleShouldIRender)
 
 WORD(ToggleDrawClearanceMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  drawClearanceMap = !drawClearanceMap;
+  ms->config.drawClearanceMap = !ms->config.drawClearanceMap;
 }
 END_WORD
 REGISTER_WORD(ToggleDrawClearanceMap)
 
 WORD(ToggleDrawIKMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  drawIKMap = !drawIKMap;
+  ms->config.drawIKMap = !ms->config.drawIKMap;
 }
 END_WORD
 REGISTER_WORD(ToggleDrawIKMap)
 
 WORD(ToggleUseGlow)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  useGlow = !useGlow;
+  ms->config.useGlow = !ms->config.useGlow;
 }
 END_WORD
 REGISTER_WORD(ToggleUseGlow)
 
 WORD(ToggleUseFade)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  useFade = !useFade;
+  ms->config.useFade = !ms->config.useFade;
 }
 END_WORD
 REGISTER_WORD(ToggleUseFade)
@@ -260,19 +260,19 @@ int searchProximity = 15;//20;
 virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     int proximity = pursuitProximity;
-    for (int i = 0; i < mapWidth; i++) {
-      for (int j = 0; j < mapHeight; j++) {
-	if ( cellIsSearched(i, j) ) {
+    for (int i = 0; i < ms->config.mapWidth; i++) {
+      for (int j = 0; j < ms->config.mapHeight; j++) {
+	if ( cellIsSearched(ms, i, j) ) {
 	  int iIStart = max(0, i-proximity);
-	  int iIEnd = min(mapWidth-1, i+proximity);
+	  int iIEnd = min(ms->config.mapWidth-1, i+proximity);
 	  int iJStart = max(0, j-proximity);
-	  int iJEnd = min(mapHeight-1, j+proximity);
+	  int iJEnd = min(ms->config.mapHeight-1, j+proximity);
 
 	  int reject = 0;
 	  for (int iI = iIStart; iI <= iIEnd; iI++) {
 	    for (int iJ = iJStart; iJ <= iJEnd; iJ++) {
-	      if (  ( cellIsSearched(iI, iJ) ) && 
-		    ( ikMap[iI + mapWidth * iJ] != 0 ) &&
+	      if (  ( cellIsSearched(ms, iI, iJ) ) && 
+		    ( ms->config.ikMap[iI + ms->config.mapWidth * iJ] != 0 ) &&
 		    ( sqrt((iI-i)*(iI-i) + (iJ-j)*(iJ-j)) < proximity )  ) {
 		reject = 1;
 	      }
@@ -280,31 +280,31 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  }
 
 	  if (reject) {
-	    clearanceMap[i + mapWidth * j] = 0;
+	    ms->config.clearanceMap[i + ms->config.mapWidth * j] = 0;
 	  } else {
-	    clearanceMap[i + mapWidth * j] = 1;
+	    ms->config.clearanceMap[i + ms->config.mapWidth * j] = 1;
 	  }
 	} else {
-	  clearanceMap[i + mapWidth * j] = 0;
+	  ms->config.clearanceMap[i + ms->config.mapWidth * j] = 0;
 	}
       }
     }
   }
   {
     int proximity = searchProximity;
-    for (int i = 0; i < mapWidth; i++) {
-      for (int j = 0; j < mapHeight; j++) {
-	if ( cellIsSearched(i, j) ) {
+    for (int i = 0; i < ms->config.mapWidth; i++) {
+      for (int j = 0; j < ms->config.mapHeight; j++) {
+	if ( cellIsSearched(ms, i, j) ) {
 	  int iIStart = max(0, i-proximity);
-	  int iIEnd = min(mapWidth-1, i+proximity);
+	  int iIEnd = min(ms->config.mapWidth-1, i+proximity);
 	  int iJStart = max(0, j-proximity);
-	  int iJEnd = min(mapHeight-1, j+proximity);
+	  int iJEnd = min(ms->config.mapHeight-1, j+proximity);
 
 	  int reject = 0;
 	  for (int iI = iIStart; iI <= iIEnd; iI++) {
 	    for (int iJ = iJStart; iJ <= iJEnd; iJ++) {
-	      if (  ( cellIsSearched(iI, iJ) ) && 
-		    ( ikMap[iI + mapWidth * iJ] != 0 ) &&
+	      if (  ( cellIsSearched(ms, iI, iJ) ) && 
+		    ( ms->config.ikMap[iI + ms->config.mapWidth * iJ] != 0 ) &&
 		    ( sqrt((iI-i)*(iI-i) + (iJ-j)*(iJ-j)) < proximity )  ) {
 		reject = 1;
 	      }
@@ -313,7 +313,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
 	  if (reject) {
 	  } else {
-	    clearanceMap[i + mapWidth * j] = 2;
+	    ms->config.clearanceMap[i + ms->config.mapWidth * j] = 2;
 	  }
 	} else {
 	}
@@ -330,7 +330,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "IkMap";
   cout << "Saving ikMap to " << fileName << endl;
   ofile.open(fileName, ios::trunc | ios::binary);
-  ofile.write((char*)ikMap, sizeof(int)*mapWidth*mapHeight);
+  ofile.write((char*)ms->config.ikMap, sizeof(int)*ms->config.mapWidth*ms->config.mapHeight);
   ofile.close();
 }
 END_WORD
@@ -345,7 +345,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "IkMap";
   cout << "Loading ikMap from " << fileName << endl;
   ifile.open(fileName, ios::binary);
-  ifile.read((char*)ikMap, sizeof(int)*mapWidth*mapHeight);
+  ifile.read((char*)ms->config.ikMap, sizeof(int)*ms->config.mapWidth*ms->config.mapHeight);
   ifile.close();
 }
 END_WORD
@@ -359,13 +359,13 @@ int cellsPerQuery = 100;
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int queries = 0;
   int i=currentI, j=currentJ;
-  for (; i < mapWidth; i++) {
+  for (; i < ms->config.mapWidth; i++) {
     if (queries < cellsPerQuery) {
-      for (; j < mapHeight; j++) {
+      for (; j < ms->config.mapHeight; j++) {
 	if (queries < cellsPerQuery) {
-	  if ( cellIsSearched(i, j) ) {
+	  if ( cellIsSearched(ms, i, j) ) {
 	    double X, Y;
-	    mapijToxy(i, j, &X, &Y);
+	    mapijToxy(ms, i, j, &X, &Y);
 
 	    eePose nextEEPose = ms->config.currentEEPose;
 	    nextEEPose.px = X;
@@ -385,22 +385,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	    if (ms->config.currentRobotMode == PHYSICAL) {
 	      ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision);
 	    } else if (ms->config.currentRobotMode == SIMULATED) {
-	      ikResultFailed = !positionIsSearched(nextEEPose.px, nextEEPose.py);
+	      ikResultFailed = !positionIsSearched(ms, nextEEPose.px, nextEEPose.py);
 	    } else {
               assert(0);
             }
 
 	    int foundGoodPosition = !ikResultFailed;
-	    //ikMap[i + mapWidth * j] = ikResultFailed;
-	    //ikMap[i + mapWidth * j] = 1;
+	    //ms->config.ikMap[i + ms->config.mapWidth * j] = ikResultFailed;
+	    //ms->config.ikMap[i + ms->config.mapWidth * j] = 1;
 	    //cout << i << " " << j << endl;
 	    if (ikResultFailed) {
-	      ikMap[i + mapWidth * j] = 1;
+	      ms->config.ikMap[i + ms->config.mapWidth * j] = 1;
 	    } else {
 	      if (likelyInCollision) {
-		ikMap[i + mapWidth * j] = 2;
+		ms->config.ikMap[i + ms->config.mapWidth * j] = 2;
 	      } else {
-		ikMap[i + mapWidth * j] = 0;
+		ms->config.ikMap[i + ms->config.mapWidth * j] = 0;
 	      }
 	    }
 	    queries++;
@@ -410,7 +410,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	}
       }
       // reset here so we don't bash the initial restart
-      if ( !(j < mapHeight) ) {
+      if ( !(j < ms->config.mapHeight) ) {
 	j = 0;
       }
 
@@ -424,12 +424,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }
 
-  if (i >= mapWidth) {
+  if (i >= ms->config.mapWidth) {
     i = 0;
   } else {
     ms->pushWord("fillIkMap");
   }
-  if (j >= mapHeight) {
+  if (j >= ms->config.mapHeight) {
     j = 0;
   }
 
@@ -447,14 +447,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     int oldestI=-1, oldestJ=-1;
     int foundASpot = 0;
     for (int scanRestarter = 0; scanRestarter < 2; scanRestarter++) {
-      ros::Time oldestTime = lastScanStarted;
-      for (int i = 0; i < mapWidth; i++) {
-	for (int j = 0; j < mapHeight; j++) {
-	  if (cellIsSearched(i, j) &&
-	      (objectMap[i + mapWidth * j].lastMappedTime <= oldestTime) &&
-	      (clearanceMap[i + mapWidth * j] == 2) &&
-	      (ikMap[i + mapWidth * j] == 0) ) {
-	    oldestTime = objectMap[i + mapWidth * j].lastMappedTime;
+      ros::Time oldestTime = ms->config.lastScanStarted;
+      for (int i = 0; i < ms->config.mapWidth; i++) {
+	for (int j = 0; j < ms->config.mapHeight; j++) {
+	  if (cellIsSearched(ms, i, j) &&
+	      (ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime <= oldestTime) &&
+	      (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2) &&
+	      (ms->config.ikMap[i + ms->config.mapWidth * j] == 0) ) {
+	    oldestTime = ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
 	    oldestI = i;
 	    oldestJ = j;
 	    foundASpot = 1;
@@ -465,7 +465,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       if (!foundASpot) {
 	cout << "moveToNextMapPosition all spots visited, currentPatrolMode: " << ms->config.currentPatrolMode << endl;
 	if (ms->config.currentPatrolMode == LOOP) {
-	  lastScanStarted = ros::Time::now();
+	  ms->config.lastScanStarted = ros::Time::now();
 	  cout << "Restarting mappingPatrol." << endl;
 	} else if (ms->config.currentPatrolMode == ONCE) {
 	  cout << "Patrolled once, idling." << endl;
@@ -488,7 +488,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
 
     double oldestX, oldestY;
-    mapijToxy(oldestI, oldestJ, &oldestX, &oldestY);
+    mapijToxy(ms, oldestI, oldestJ, &oldestX, &oldestY);
 
     eePose nextEEPose = ms->config.currentEEPose;
     nextEEPose.px = oldestX;
@@ -507,7 +507,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     if (ms->config.currentRobotMode == PHYSICAL) {
       ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision);
     } else if (ms->config.currentRobotMode == SIMULATED) {
-      ikResultFailed = !positionIsSearched(nextEEPose.px, nextEEPose.py);
+      ikResultFailed = !positionIsSearched(ms, nextEEPose.px, nextEEPose.py);
     } else {
       assert(0);
     }
@@ -531,15 +531,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       cout << "moveToNextMapPosition tries foundGoodPosition oldestI oldestJ: "  << tries << " " << foundGoodPosition << " "  << oldestI << " " << oldestJ << " " << oldestX << " " << oldestY << endl;
       cout << "Try number try: " << tries << ", adding point to ikMap oldestI oldestJ ikMap[.]: " << " " << oldestI << " " << oldestJ;
       if (ikResultFailed) {
-	ikMap[oldestI + mapWidth * oldestJ] = 1;
+	ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] = 1;
       } else {
 	if (likelyInCollision) {
-	  ikMap[oldestI + mapWidth * oldestJ] = 2;
+	  ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] = 2;
 	} else {
-	  ikMap[oldestI + mapWidth * oldestJ] = 0;
+	  ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] = 0;
 	}
       }
-      cout << " " << ikMap[oldestI + mapWidth * oldestJ] << endl;
+      cout << " " << ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] << endl;
     }
   }
 
@@ -575,7 +575,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
     box.cameraTime = ros::Time::now();
     box.labeledClassIndex = bLabels[c];
-    blueBoxMemories.push_back(box);
+    ms->config.blueBoxMemories.push_back(box);
   }
 
 }
@@ -615,15 +615,15 @@ REGISTER_WORD(InitializeMap)
 
 WORD(MapEmptySpace)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  for (int px = grayTop.x+mapGrayBoxPixelSkirt; px < grayBot.x-mapGrayBoxPixelSkirt; px++) {
-    for (int py = grayTop.y+mapGrayBoxPixelSkirt; py < grayBot.y-mapGrayBoxPixelSkirt; py++) {
+  for (int px = grayTop.x+ms->config.mapGrayBoxPixelSkirt; px < grayBot.x-ms->config.mapGrayBoxPixelSkirt; px++) {
+    for (int py = grayTop.y+ms->config.mapGrayBoxPixelSkirt; py < grayBot.y-ms->config.mapGrayBoxPixelSkirt; py++) {
 
       if (isInGripperMask(ms, px, py)) {
 	continue;
       }
 
       //int blueBoxIdx = blueBoxForPixel(px, py);
-      int blueBoxIdx = skirtedBlueBoxForPixel(px, py, mapFreeSpacePixelSkirt);
+      int blueBoxIdx = skirtedBlueBoxForPixel(px, py, ms->config.mapFreeSpacePixelSkirt);
 
       if (blueBoxIdx == -1) {
         double x, y;
@@ -631,41 +631,41 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
         pixelToGlobal(ms, px, py, z, &x, &y);
         int i, j;
-        mapxyToij(x, y, &i, &j);
+        mapxyToij(ms, x, y, &i, &j);
 
-//        if (ros::Time::now() - objectMap[i + mapWidth * j].lastMappedTime > mapMemoryTimeout) {
-//          objectMap[i + mapWidth * j].b = 0;
-//          objectMap[i + mapWidth * j].g = 0;
-//          objectMap[i + mapWidth * j].r = 0;
-//          objectMap[i + mapWidth * j].pixelCount = 0;
+//        if (ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime > mapMemoryTimeout) {
+//          ms->config.objectMap[i + ms->config.mapWidth * j].b = 0;
+//          ms->config.objectMap[i + ms->config.mapWidth * j].g = 0;
+//          ms->config.objectMap[i + ms->config.mapWidth * j].r = 0;
+//          ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount = 0;
 //        }
 
 
-        objectMap[i + mapWidth * j].lastMappedTime = ros::Time::now();
-        randomizeNanos(ms, &objectMap[i + mapWidth * j].lastMappedTime);
+        ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime = ros::Time::now();
+        randomizeNanos(ms, &ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime);
         
-        objectMap[i + mapWidth * j].detectedClass = -2;
+        ms->config.objectMap[i + ms->config.mapWidth * j].detectedClass = -2;
 
 //	{
-//	  objectMap[i + mapWidth * j].b += (int) ms->config.cam_img.at<cv::Vec3b>(py, px)[0];
-//	  objectMap[i + mapWidth * j].g += (int) ms->config.cam_img.at<cv::Vec3b>(py, px)[1];
-//	  objectMap[i + mapWidth * j].r += (int) ms->config.cam_img.at<cv::Vec3b>(py, px)[2];
-//        objectMap[i + mapWidth * j].pixelCount += 1.0;
+//	  ms->config.objectMap[i + ms->config.mapWidth * j].b += (int) ms->config.cam_img.at<cv::Vec3b>(py, px)[0];
+//	  ms->config.objectMap[i + ms->config.mapWidth * j].g += (int) ms->config.cam_img.at<cv::Vec3b>(py, px)[1];
+//	  ms->config.objectMap[i + ms->config.mapWidth * j].r += (int) ms->config.cam_img.at<cv::Vec3b>(py, px)[2];
+//        ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount += 1.0;
 //	}
 	//const double spaceDecay = 0.996; // 0.7 ^ 0.01
 	const double spaceDecay = 0.99821; // 0.7 ^ 0.005
 	{
-	  objectMap[i + mapWidth * j].b = 
-	    ( spaceDecay*double(objectMap[i + mapWidth * j].b) + 
+	  ms->config.objectMap[i + ms->config.mapWidth * j].b = 
+	    ( spaceDecay*double(ms->config.objectMap[i + ms->config.mapWidth * j].b) + 
 		    (1.0-spaceDecay)*double(ms->config.cam_img.at<cv::Vec3b>(py, px)[0]) );
-	  objectMap[i + mapWidth * j].g = 
-	    ( spaceDecay*double(objectMap[i + mapWidth * j].g) + 
+	  ms->config.objectMap[i + ms->config.mapWidth * j].g = 
+	    ( spaceDecay*double(ms->config.objectMap[i + ms->config.mapWidth * j].g) + 
 		    (1.0-spaceDecay)*double(ms->config.cam_img.at<cv::Vec3b>(py, px)[1]) );
-	  objectMap[i + mapWidth * j].r = 
-	    ( spaceDecay*double(objectMap[i + mapWidth * j].r) + 
+	  ms->config.objectMap[i + ms->config.mapWidth * j].r = 
+	    ( spaceDecay*double(ms->config.objectMap[i + ms->config.mapWidth * j].r) + 
 		    (1.0-spaceDecay)*double(ms->config.cam_img.at<cv::Vec3b>(py, px)[2]) );
-	  objectMap[i + mapWidth * j].pixelCount = 
-	    ( spaceDecay*double(objectMap[i + mapWidth * j].pixelCount) + 
+	  ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount = 
+	    ( spaceDecay*double(ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount) + 
 		    (1.0-spaceDecay)*double(1.0) );
 	}
 
@@ -702,7 +702,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   box.lockStatus = CENTROID_LOCK;
   
   int i, j;
-  mapxyToij(box.centroid.px, box.centroid.py, &i, &j);
+  mapxyToij(ms, box.centroid.px, box.centroid.py, &i, &j);
 
   // this only does the timestamp to avoid obsessive behavior
   mapBox(ms, box);
@@ -710,19 +710,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //if ( !positionIsSearched(box.centroid.px, box.centroid.py) && 
        //!isCellInPursuitZone(i, j) ) 
   //if (!positionIsSearched(box.centroid.px, box.centroid.py)) 
-  if ( !positionIsSearched(box.centroid.px, box.centroid.py) || 
-       !isBoxMemoryIKPossible(box) ) 
+  if ( !positionIsSearched(ms, box.centroid.px, box.centroid.py) || 
+       !isBoxMemoryIkPossible(ms, box) ) 
   {
     return;
   } else {
     vector<BoxMemory> newMemories;
-    for (int i = 0; i < blueBoxMemories.size(); i++) {
-      if (!boxMemoryIntersectCentroid(box, blueBoxMemories[i])) {
-	newMemories.push_back(blueBoxMemories[i]);
+    for (int i = 0; i < ms->config.blueBoxMemories.size(); i++) {
+      if (!boxMemoryIntersectCentroid(box, ms->config.blueBoxMemories[i])) {
+	newMemories.push_back(ms->config.blueBoxMemories[i]);
       }
     }
     newMemories.push_back(box);
-    blueBoxMemories = newMemories;
+    ms->config.blueBoxMemories = newMemories;
   }
 }
 END_WORD
@@ -733,14 +733,14 @@ WORD(FilterBoxMemories)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   set<int> boxMemoryIndexesToKeep;
 
-  for (int b_i = 0; b_i < blueBoxMemories.size(); b_i++) {
+  for (int b_i = 0; b_i < ms->config.blueBoxMemories.size(); b_i++) {
     int keep = 0;
-    BoxMemory b = blueBoxMemories[b_i];
-    for (int i = 0; i < mapWidth; i++) {
-      for (int j = 0; j < mapHeight; j++) {
-        if (boxMemoryIntersectsMapCell(b, i, j)) {
-          //if (b.cameraTime.sec > objectMap[i + mapWidth * j].lastMappedTime.sec) {
-          ros::Duration diff = objectMap[i + mapWidth * j].lastMappedTime - b.cameraTime;
+    BoxMemory b = ms->config.blueBoxMemories[b_i];
+    for (int i = 0; i < ms->config.mapWidth; i++) {
+      for (int j = 0; j < ms->config.mapHeight; j++) {
+        if (boxMemoryIntersectsMapCell(ms, b, i, j)) {
+          //if (b.cameraTime.sec > ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime.sec) {
+          ros::Duration diff = ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime - b.cameraTime;
 
           if (diff < ros::Duration(2.0)) {
             boxMemoryIndexesToKeep.insert(b_i);
@@ -757,9 +757,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   vector<BoxMemory> newMemories;
 
   for (std::set<int>::iterator it=boxMemoryIndexesToKeep.begin(); it!=boxMemoryIndexesToKeep.end(); ++it) {
-    newMemories.push_back(blueBoxMemories[*it]);
+    newMemories.push_back(ms->config.blueBoxMemories[*it]);
   }
-  blueBoxMemories = newMemories;
+  ms->config.blueBoxMemories = newMemories;
 }
 END_WORD
 REGISTER_WORD(FilterBoxMemories)
@@ -767,8 +767,8 @@ REGISTER_WORD(FilterBoxMemories)
 WORD(ClearBlueBoxMemories)
 CODE(196709) // capslock + E
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "Clearing blue box memory: " << blueBoxMemories.size() << endl;
-  blueBoxMemories.resize(0);
+  cout << "Clearing blue box memory: " << ms->config.blueBoxMemories.size() << endl;
+  ms->config.blueBoxMemories.resize(0);
 }
 END_WORD
 REGISTER_WORD(ClearBlueBoxMemories)
