@@ -123,61 +123,9 @@ ros::Publisher einPub;
 
 
 
-
-
-
-
-int recordRangeMap = 1;
-
-Quaternionf irGlobalPositionEEFrame;
-
-Mat wristCamImage;
-int wristCamInit = 0;
-
-// reticle indeces
-//x: 439 y: 153 eeRange: 0.102
-//x: 428 y: 153 eeRange: 0.111
-//x: 428 y: 153 eeRange: 0.111
-//x: 418 y: 152 eeRange: 0.12
-//x: 420 y: 152 eeRange: 0.12
-//x: 410 y: 155 eeRange: 0.131
-//x: 411 y: 156 eeRange: 0.131
-//
-//x: 405 y: 153 eeRange: 0.142
-//x: 396 y: 152 eeRange: 0.149
-//x: 394 y: 160 eeRange: 0.16
-//x: 389 y: 154 eeRange: 0.169
-//
-//eeRange: 0.179
-//x: 383 y: 155 eeRange: 0.183
-//x: 383 y: 155 eeRange: 0.191
-const double cReticleIndexDelta = .01;
-//const int numCReticleIndeces = 10;
-//const double firstCReticleIndexDepth = .10;
-//const int xCR[numCReticleIndeces] = {439, 428, 419, 410, 405, 396, 394, 389, 383, 383};
-//const int yCR[numCReticleIndeces] = {153, 153, 153, 152, 155, 153, 152, 160, 154, 155};
-const int numCReticleIndeces = 14;
-const double firstCReticleIndexDepth = .08;
-//const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
-//const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 153, 153, 153, 153, 153, 153, 153, 153, 153};
-// most recent, smoothed:
-//const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
-//const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
-
-int xCR[numCReticleIndeces];
-int yCR[numCReticleIndeces];
-
 ros::Publisher vmMarkerPublisher;
 
-int getColorReticleX(shared_ptr<MachineState> ms);
-int getColorReticleY(shared_ptr<MachineState> ms);
 
-
-
-double fEpsilon = EPSILON;
-
-int curseReticleX = 0;
-int curseReticleY = 0;
 
 int targetClass = -1;
 
@@ -745,6 +693,9 @@ typedef struct Sprite {
   eePose bot;
   eePose pose;
 } Sprite;
+
+int getColorReticleX(shared_ptr<MachineState> ms);
+int getColorReticleY(shared_ptr<MachineState> ms);
 
 vector<Sprite> masterSprites;
 vector<Sprite> instanceSprites;
@@ -1833,9 +1784,9 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 
 	{
 	  Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-	  irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+	  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
 	  Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
-	  Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
+	  Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
 	  Eigen::Quaternionf irSensorStartGlobal(
 						  0.0,
 						 (thisPose.position.x - irSensorStartLocal.x()),
@@ -1891,7 +1842,7 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 	double hiY = dY / ms->config.hrmDelta;
 	double hiZ = dZ / ms->config.hrmDelta;
 
-	if (recordRangeMap) {
+	if (ms->config.recordRangeMap) {
 	  // draw new cell
 	  if ((fabs(hiX) <= ms->config.hrmHalfWidth) && (fabs(hiY) <= ms->config.hrmHalfWidth)) {
 	    int hiiX = (int)round(hiX + ms->config.hrmHalfWidth);
@@ -2419,7 +2370,7 @@ void l2Normalize3DParzen(shared_ptr<MachineState> ms) {
       }
     }
   }
-  if (fabs(norm) < fEpsilon)
+  if (fabs(norm) < ms->config.fEpsilon)
     norm = 1;
   for (int kx = 0; kx < ms->config.parzen3DKernelWidth; kx++) {
     for (int ky = 0; ky < ms->config.parzen3DKernelWidth; ky++) {
@@ -2457,7 +2408,7 @@ void l2NormalizeParzen(shared_ptr<MachineState> ms) {
       norm += ms->config.parzenKernel[kx + ky*ms->config.parzenKernelWidth];
     }
   }
-  if (fabs(norm) < fEpsilon)
+  if (fabs(norm) < ms->config.fEpsilon)
     norm = 1;
   for (int kx = 0; kx < ms->config.parzenKernelWidth; kx++) {
     for (int ky = 0; ky < ms->config.parzenKernelWidth; ky++) {
@@ -2476,7 +2427,7 @@ void l2NormalizeFilter(shared_ptr<MachineState> ms) {
   for (int fx = 0; fx < 9; fx++) {
     norm += ms->config.filter[fx]*ms->config.filter[fx];
   }
-  if (fabs(norm) < fEpsilon)
+  if (fabs(norm) < ms->config.fEpsilon)
     norm = 1;
   for (int fx = 0; fx < 9; fx++) {
     ms->config.filter[fx] /= norm;
@@ -2486,54 +2437,54 @@ void l2NormalizeFilter(shared_ptr<MachineState> ms) {
 
 int getColorReticleX(shared_ptr<MachineState> ms) {
   // rounding
-  //int tcri = int(round((eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
-  //tcri = min(max(tcri,0),numCReticleIndeces-1);
-  //return xCR[tcri];
+  //int tcri = int(round((eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta));
+  //tcri = min(max(tcri,0),ms->config.numCReticleIndeces-1);
+  //return ms->config.xCR[tcri];
 
   // interpolating
-  int tcriL = int(floor((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
-  int tcriH = int(ceil((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
-  tcriL = min(max(tcriL,0),numCReticleIndeces-1);
-  tcriH = min(max(tcriH,0),numCReticleIndeces-1);
+  int tcriL = int(floor((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta));
+  int tcriH = int(ceil((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta));
+  tcriL = min(max(tcriL,0),ms->config.numCReticleIndeces-1);
+  tcriH = min(max(tcriH,0),ms->config.numCReticleIndeces-1);
 
-  double tcrwL = ((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta) - floor((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta);
-  double tcrwH = ceil((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta) - ((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta);
+  double tcrwL = ((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta) - floor((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta);
+  double tcrwH = ceil((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta) - ((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta);
 
   if (tcriL == tcriH)
-    return xCR[tcriL];
+    return ms->config.xCR[tcriL];
   else
-    return int(round(tcrwL*double(xCR[tcriL]) + tcrwH*double(xCR[tcriH])));
+    return int(round(tcrwL*double(ms->config.xCR[tcriL]) + tcrwH*double(ms->config.xCR[tcriH])));
 }
 
 int getColorReticleY(shared_ptr<MachineState> ms) {
   // rounding
-  //int tcri = int(round((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
-  //tcri = min(max(tcri,0),numCReticleIndeces-1);
-  //return yCR[tcri];
+  //int tcri = int(round((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta));
+  //tcri = min(max(tcri,0),ms->config.numCReticleIndeces-1);
+  //return ms->config.yCR[tcri];
 
   // interpolating
-  int tcriL = int(floor((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
-  int tcriH = int(ceil((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta));
-  tcriL = min(max(tcriL,0),numCReticleIndeces-1);
-  tcriH = min(max(tcriH,0),numCReticleIndeces-1);
+  int tcriL = int(floor((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta));
+  int tcriH = int(ceil((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta));
+  tcriL = min(max(tcriL,0),ms->config.numCReticleIndeces-1);
+  tcriH = min(max(tcriH,0),ms->config.numCReticleIndeces-1);
 
-  double tcrwL = ((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta) - floor((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta);
-  double tcrwH = ceil((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta) - ((ms->config.eeRange - firstCReticleIndexDepth)/cReticleIndexDelta);
+  double tcrwL = ((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta) - floor((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta);
+  double tcrwH = ceil((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta) - ((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta);
 
   if (tcriL == tcriH)
-    return yCR[tcriL];
+    return ms->config.yCR[tcriL];
   else
-    return int(round(tcrwL*double(yCR[tcriL]) + tcrwH*double(yCR[tcriH])));
+    return int(round(tcrwL*double(ms->config.yCR[tcriL]) + tcrwH*double(ms->config.yCR[tcriH])));
 }
 
 cv::Vec3b getCRColor(shared_ptr<MachineState> ms) {
   cv::Vec3b toReturn(0,0,0);
-  if (wristCamInit) {
+  if (ms->config.wristCamInit) {
     int crX = getColorReticleX(ms);
     int crY = getColorReticleY(ms);
 
-    if ((crX < wristCamImage.cols) && (crY < wristCamImage.rows))
-      toReturn = wristCamImage.at<cv::Vec3b>(crY,crX); 
+    if ((crX < ms->config.wristCamImage.cols) && (crY < ms->config.wristCamImage.rows))
+      toReturn = ms->config.wristCamImage.at<cv::Vec3b>(crY,crX); 
   }
   return toReturn;
 }
@@ -2925,7 +2876,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
   }
 
 
-  if (recordRangeMap) {
+  if (ms->config.recordRangeMap) {
     // actually storing the negative z for backwards compatibility
     //double thisZmeasurement = -(ms->config.currentEEPose.pz - ms->config.eeRange);
     double thisZmeasurement = -(ms->config.trueEEPose.position.z - ms->config.eeRange);
@@ -2934,9 +2885,9 @@ void rangeCallback(const sensor_msgs::Range& range) {
 
     {
       Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-      irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+      ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
       Eigen::Quaternionf ceeQuat(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-      Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
+      Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
       Eigen::Quaternionf irSensorStartGlobal(
 					      0.0,
 					     (ms->config.trueEEPose.position.x - irSensorStartLocal.x()),
@@ -3683,8 +3634,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       return;
     }
 
-    wristCamImage = cv_ptr->image.clone();
-    wristCamInit = 1;
+    ms->config.wristCamImage = cv_ptr->image.clone();
+    ms->config.wristCamInit = 1;
     wristViewImage = cv_ptr->image.clone();
     faceViewImage = cv_ptr->image.clone();
 
@@ -3709,8 +3660,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     return;
   }
 
-  wristCamImage = cv_ptr->image.clone();
-  wristCamInit = 1;
+  ms->config.wristCamImage = cv_ptr->image.clone();
+  ms->config.wristCamInit = 1;
   wristViewImage = cv_ptr->image.clone();
   faceViewImage = cv_ptr->image.clone();
 
@@ -3723,18 +3674,18 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      accumulatedImage.at<Vec3d>(y,x)[0] = accumulatedImage.at<Vec3d>(y,x)[0] + wristCamImage.at<Vec3b>(y,x)[0];
-      accumulatedImage.at<Vec3d>(y,x)[1] = accumulatedImage.at<Vec3d>(y,x)[1] + wristCamImage.at<Vec3b>(y,x)[1];
-      accumulatedImage.at<Vec3d>(y,x)[2] = accumulatedImage.at<Vec3d>(y,x)[2] + wristCamImage.at<Vec3b>(y,x)[2];
+      accumulatedImage.at<Vec3d>(y,x)[0] = accumulatedImage.at<Vec3d>(y,x)[0] + ms->config.wristCamImage.at<Vec3b>(y,x)[0];
+      accumulatedImage.at<Vec3d>(y,x)[1] = accumulatedImage.at<Vec3d>(y,x)[1] + ms->config.wristCamImage.at<Vec3b>(y,x)[1];
+      accumulatedImage.at<Vec3d>(y,x)[2] = accumulatedImage.at<Vec3d>(y,x)[2] + ms->config.wristCamImage.at<Vec3b>(y,x)[2];
       accumulatedImageMass.at<double>(y,x) += 1.0;
     }
   }
 
-  setRingImageAtTime(ms, msg->header.stamp, wristCamImage);
+  setRingImageAtTime(ms, msg->header.stamp, ms->config.wristCamImage);
   Mat thisImage;
   int weHaveImData = getRingImageAtTime(ms, msg->header.stamp, thisImage);
 
-  //if (recordRangeMap) 
+  //if (ms->config.recordRangeMap) 
   recordReadyRangeReadings(ms);
 
   // publish volumetric representation to a marker array
@@ -3900,10 +3851,10 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       eePose irPose;
       {
 	Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-	irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+	ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
 	geometry_msgs::Pose thisPose = ms->config.trueEEPose;
 	Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
-	Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
+	Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
 	Eigen::Quaternionf irSensorStartGlobal(
 						0.0,
 					       (thisPose.position.x - irSensorStartLocal.x()),
@@ -4066,9 +4017,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   // draw color reticle
   {
-    for (int cr = 0; cr < numCReticleIndeces; cr++) {
-      cv::Point outTop = cv::Point(xCR[cr]-3, yCR[cr]-3);
-      cv::Point outBot = cv::Point(xCR[cr]+3, yCR[cr]+3);
+    for (int cr = 0; cr < ms->config.numCReticleIndeces; cr++) {
+      cv::Point outTop = cv::Point(ms->config.xCR[cr]-3, ms->config.yCR[cr]-3);
+      cv::Point outBot = cv::Point(ms->config.xCR[cr]+3, ms->config.yCR[cr]+3);
       cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
       cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
       rectangle(wristViewImage, outTop, outBot, cv::Scalar(0,192,0)); 
@@ -4669,35 +4620,35 @@ void loadCalibration(shared_ptr<MachineState> ms, string inFileName) {
   {
     FileNode anode = fsvI["colorReticles"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
-    xCR[0]  = *(it++);
-    xCR[1]  = *(it++);
-    xCR[2]  = *(it++);
-    xCR[3]  = *(it++);
-    xCR[4]  = *(it++);
-    xCR[5]  = *(it++);
-    xCR[6]  = *(it++);
-    xCR[7]  = *(it++);
-    xCR[8]  = *(it++);
-    xCR[9]  = *(it++);
-    xCR[10] = *(it++);
-    xCR[11] = *(it++);
-    xCR[12] = *(it++);
-    xCR[13] = *(it++);
+    ms->config.xCR[0]  = *(it++);
+    ms->config.xCR[1]  = *(it++);
+    ms->config.xCR[2]  = *(it++);
+    ms->config.xCR[3]  = *(it++);
+    ms->config.xCR[4]  = *(it++);
+    ms->config.xCR[5]  = *(it++);
+    ms->config.xCR[6]  = *(it++);
+    ms->config.xCR[7]  = *(it++);
+    ms->config.xCR[8]  = *(it++);
+    ms->config.xCR[9]  = *(it++);
+    ms->config.xCR[10] = *(it++);
+    ms->config.xCR[11] = *(it++);
+    ms->config.xCR[12] = *(it++);
+    ms->config.xCR[13] = *(it++);
 
-    yCR[0]  = *(it++);
-    yCR[1]  = *(it++);
-    yCR[2]  = *(it++);
-    yCR[3]  = *(it++);
-    yCR[4]  = *(it++);
-    yCR[5]  = *(it++);
-    yCR[6]  = *(it++);
-    yCR[7]  = *(it++);
-    yCR[8]  = *(it++);
-    yCR[9]  = *(it++);
-    yCR[10] = *(it++);
-    yCR[11] = *(it++);
-    yCR[12] = *(it++);
-    yCR[13] = *(it++);
+    ms->config.yCR[0]  = *(it++);
+    ms->config.yCR[1]  = *(it++);
+    ms->config.yCR[2]  = *(it++);
+    ms->config.yCR[3]  = *(it++);
+    ms->config.yCR[4]  = *(it++);
+    ms->config.yCR[5]  = *(it++);
+    ms->config.yCR[6]  = *(it++);
+    ms->config.yCR[7]  = *(it++);
+    ms->config.yCR[8]  = *(it++);
+    ms->config.yCR[9]  = *(it++);
+    ms->config.yCR[10] = *(it++);
+    ms->config.yCR[11] = *(it++);
+    ms->config.yCR[12] = *(it++);
+    ms->config.yCR[13] = *(it++);
   }
 
   {
@@ -4769,35 +4720,35 @@ void saveCalibration(shared_ptr<MachineState> ms, string outFileName) {
   << "]";
 
   fsvO << "colorReticles" << "[" 
-    << xCR[0]
-    << xCR[1]
-    << xCR[2]
-    << xCR[3]
-    << xCR[4]
-    << xCR[5]
-    << xCR[6]
-    << xCR[7]
-    << xCR[8]
-    << xCR[9]
-    << xCR[10]
-    << xCR[11]
-    << xCR[12]
-    << xCR[13]
+    << ms->config.xCR[0]
+    << ms->config.xCR[1]
+    << ms->config.xCR[2]
+    << ms->config.xCR[3]
+    << ms->config.xCR[4]
+    << ms->config.xCR[5]
+    << ms->config.xCR[6]
+    << ms->config.xCR[7]
+    << ms->config.xCR[8]
+    << ms->config.xCR[9]
+    << ms->config.xCR[10]
+    << ms->config.xCR[11]
+    << ms->config.xCR[12]
+    << ms->config.xCR[13]
 
-    << yCR[0] 
-    << yCR[1] 
-    << yCR[2] 
-    << yCR[3] 
-    << yCR[4] 
-    << yCR[5] 
-    << yCR[6] 
-    << yCR[7] 
-    << yCR[8] 
-    << yCR[9] 
-    << yCR[10]
-    << yCR[11]
-    << yCR[12]
-    << yCR[13]
+    << ms->config.yCR[0] 
+    << ms->config.yCR[1] 
+    << ms->config.yCR[2] 
+    << ms->config.yCR[3] 
+    << ms->config.yCR[4] 
+    << ms->config.yCR[5] 
+    << ms->config.yCR[6] 
+    << ms->config.yCR[7] 
+    << ms->config.yCR[8] 
+    << ms->config.yCR[9] 
+    << ms->config.yCR[10]
+    << ms->config.yCR[11]
+    << ms->config.yCR[12]
+    << ms->config.yCR[13]
   << "]";
 
   fsvO << "lensCorrections" << "[" 
@@ -4901,38 +4852,38 @@ void pilotInit(shared_ptr<MachineState> ms) {
 
     /* color reticle init */
     /* XXX TODO needs recalibrating */
-    //const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
-    xCR[0] = 462;
-    xCR[1] = 450;
-    xCR[2] = 439;
-    xCR[3] = 428;
-    xCR[4] = 419;
-    xCR[5] = 410;
-    xCR[6] = 405;
-    xCR[7] = 399;
-    xCR[8] = 394;
-    xCR[9] = 389;
-    xCR[10] = 383;
-    xCR[11] = 381;
-    xCR[12] = 379;
-    xCR[13] = 378;
+    //const int ms->config.xCR[ms->config.numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
+    ms->config.xCR[0] = 462;
+    ms->config.xCR[1] = 450;
+    ms->config.xCR[2] = 439;
+    ms->config.xCR[3] = 428;
+    ms->config.xCR[4] = 419;
+    ms->config.xCR[5] = 410;
+    ms->config.xCR[6] = 405;
+    ms->config.xCR[7] = 399;
+    ms->config.xCR[8] = 394;
+    ms->config.xCR[9] = 389;
+    ms->config.xCR[10] = 383;
+    ms->config.xCR[11] = 381;
+    ms->config.xCR[12] = 379;
+    ms->config.xCR[13] = 378;
 
     /* left arm */
-    //const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
-    yCR[0] = 153;
-    yCR[1] = 153;
-    yCR[2] = 153;
-    yCR[3] = 153;
-    yCR[4] = 153;
-    yCR[5] = 154;
-    yCR[6] = 154;
-    yCR[7] = 154;
-    yCR[8] = 154;
-    yCR[9] = 154;
-    yCR[10] = 155;
-    yCR[11] = 155;
-    yCR[12] = 155;
-    yCR[13] = 155;
+    //const int ms->config.yCR[ms->config.numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
+    ms->config.yCR[0] = 153;
+    ms->config.yCR[1] = 153;
+    ms->config.yCR[2] = 153;
+    ms->config.yCR[3] = 153;
+    ms->config.yCR[4] = 153;
+    ms->config.yCR[5] = 154;
+    ms->config.yCR[6] = 154;
+    ms->config.yCR[7] = 154;
+    ms->config.yCR[8] = 154;
+    ms->config.yCR[9] = 154;
+    ms->config.yCR[10] = 155;
+    ms->config.yCR[11] = 155;
+    ms->config.yCR[12] = 155;
+    ms->config.yCR[13] = 155;
 
     /* lens correction */
     m_x_h[0] = 1.2;
@@ -5037,38 +4988,38 @@ void pilotInit(shared_ptr<MachineState> ms) {
 
     /* color reticle init */
     /* XXX TODO needs recalibrating */
-    //const int xCR[numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
-    xCR[0] = 462;
-    xCR[1] = 450;
-    xCR[2] = 439;
-    xCR[3] = 428;
-    xCR[4] = 419;
-    xCR[5] = 410;
-    xCR[6] = 405;
-    xCR[7] = 399;
-    xCR[8] = 394;
-    xCR[9] = 389;
-    xCR[10] = 383;
-    xCR[11] = 381;
-    xCR[12] = 379;
-    xCR[13] = 378;
+    //const int ms->config.xCR[ms->config.numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
+    ms->config.xCR[0] = 462;
+    ms->config.xCR[1] = 450;
+    ms->config.xCR[2] = 439;
+    ms->config.xCR[3] = 428;
+    ms->config.xCR[4] = 419;
+    ms->config.xCR[5] = 410;
+    ms->config.xCR[6] = 405;
+    ms->config.xCR[7] = 399;
+    ms->config.xCR[8] = 394;
+    ms->config.xCR[9] = 389;
+    ms->config.xCR[10] = 383;
+    ms->config.xCR[11] = 381;
+    ms->config.xCR[12] = 379;
+    ms->config.xCR[13] = 378;
 
     /* right arm */
-    //const int yCR[numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
-    yCR[0] = 153;
-    yCR[1] = 153;
-    yCR[2] = 153;
-    yCR[3] = 153;
-    yCR[4] = 153;
-    yCR[5] = 154;
-    yCR[6] = 154;
-    yCR[7] = 154;
-    yCR[8] = 154;
-    yCR[9] = 154;
-    yCR[10] = 155;
-    yCR[11] = 155;
-    yCR[12] = 155;
-    yCR[13] = 155;
+    //const int ms->config.yCR[ms->config.numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
+    ms->config.yCR[0] = 153;
+    ms->config.yCR[1] = 153;
+    ms->config.yCR[2] = 153;
+    ms->config.yCR[3] = 153;
+    ms->config.yCR[4] = 153;
+    ms->config.yCR[5] = 154;
+    ms->config.yCR[6] = 154;
+    ms->config.yCR[7] = 154;
+    ms->config.yCR[8] = 154;
+    ms->config.yCR[9] = 154;
+    ms->config.yCR[10] = 155;
+    ms->config.yCR[11] = 155;
+    ms->config.yCR[12] = 155;
+    ms->config.yCR[13] = 155;
 
     /* lens correction */
     m_x_h[0] = 1.18;
@@ -5200,10 +5151,10 @@ void pilotInit(shared_ptr<MachineState> ms) {
 
     // invert the transformation
     Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-    irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+    ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
 
-    cout << "irGlobalPositionEEFrame w x y z: " << irGlobalPositionEEFrame.w() << " " << 
-      irGlobalPositionEEFrame.x() << " " << irGlobalPositionEEFrame.y() << " " << irGlobalPositionEEFrame.z() << endl;
+    cout << "irGlobalPositionEEFrame w x y z: " << ms->config.irGlobalPositionEEFrame.w() << " " << 
+      ms->config.irGlobalPositionEEFrame.x() << " " << ms->config.irGlobalPositionEEFrame.y() << " " << ms->config.irGlobalPositionEEFrame.z() << endl;
   }
 
   for (int h = 0; h < ms->config.hrmWidth; h++) {

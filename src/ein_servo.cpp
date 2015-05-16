@@ -1077,7 +1077,7 @@ REGISTER_WORD(ShiftIntoGraspGear4)
 WORD(TurnOffScanning)
 CODE(1048684)     // numlock + l
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  recordRangeMap = 0;
+  ms->config.recordRangeMap = 0;
 }
 END_WORD
 REGISTER_WORD(TurnOffScanning)

@@ -430,7 +430,7 @@ REGISTER_WORD(PrepareForSearch)
 WORD(TurnOnRecordRangeMap)
 CODE(1048683) 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  recordRangeMap = 1;
+  ms->config.recordRangeMap = 1;
 }
 END_WORD
 REGISTER_WORD(TurnOnRecordRangeMap)
@@ -912,7 +912,7 @@ WORD(ZeroIROffset)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   gear0offset = Eigen::Quaternionf(0.0, 0.0, 0.0, 0.0);
   Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-  irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
 }
 END_WORD
 REGISTER_WORD(ZeroIROffset)
@@ -956,7 +956,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     0.0167228); // z is from TF, good for depth alignment
 
   Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-  irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
 }
 END_WORD
 REGISTER_WORD(SetIROffsetA)
@@ -1743,8 +1743,8 @@ REGISTER_WORD(SaveCalibration)
 WORD(SetColorReticles)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
-  ms->config.bDelta = cReticleIndexDelta;
-  ms->config.currentEEPose.pz = firstCReticleIndexDepth;
+  ms->config.bDelta = ms->config.cReticleIndexDelta;
+  ms->config.currentEEPose.pz = ms->config.firstCReticleIndexDepth;
 
   // leave it in a canonical state
   ms->pushWord("setMovementSpeedMoveFast");
@@ -1752,7 +1752,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int * ii = &(pMachineState->config.scrI);
   (*ii) = 0;
 
-  for (int i = 0; i < numCReticleIndeces; i++) {
+  for (int i = 0; i < ms->config.numCReticleIndeces; i++) {
     ms->pushWord("zUp");
     ms->pushWord("setColorReticlesA");
     ms->pushWord("accumulatedDensity");
@@ -1775,8 +1775,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.pilotTarget.py = lightY;
 
   int * ii = &(pMachineState->config.scrI);
-  xCR[(*ii)] = lightX;
-  yCR[(*ii)] = lightY;
+  ms->config.xCR[(*ii)] = lightX;
+  ms->config.yCR[(*ii)] = lightY;
 
   (*ii)++;
 }
