@@ -3,6 +3,12 @@
 
 using namespace std;
 
+ostream & operator<<(ostream & os, const _eePose& toPrint)
+{
+  os << "[" << toPrint.px << " " << toPrint.py << " " << toPrint.pz << " | " << endl << toPrint.qx << " " << toPrint.qy << " " << toPrint.qz << " " << toPrint.qw << "]";
+  return os;
+} 
+
 _eePose _eePose::zero() {
   _eePose zeroOut = {.px = 0.0, .py = 0.0, .pz = 0.0,
 		     .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
@@ -10,7 +16,7 @@ _eePose _eePose::zero() {
 }
 
 void _eePose::print(eePose toPrint) {
-  cout << toPrint.px << " " << toPrint.py << " " << toPrint.pz << " " << endl << toPrint.qx << " " << toPrint.qy << " " << toPrint.qz << " " << toPrint.qw << endl;
+  cout << toPrint << endl;
 }
 
 double _eePose::squareDistance(eePose pose1, eePose pose2) {
