@@ -125,10 +125,6 @@ ros::Publisher vmMarkerPublisher;
 int mask_gripper_blocks = 0;
 int mask_gripper = 1;
 
-int add_blinders = 0;
-int blinder_stride = 10;
-int blinder_columns = 5;
-
 std::string densityViewerName = "Density Viewer";
 std::string objectViewerName = "Object Viewer";
 std::string objectMapViewerName = "Object Map View";
@@ -10452,7 +10448,6 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   nh.getParam("cache_prefix", cache_prefix);
 
   nh.getParam("mask_gripper", mask_gripper);
-  nh.getParam("add_blinders", add_blinders);
 
   nh.getParam("left_or_right_arm", ms->config.left_or_right_arm);
 
@@ -10521,7 +10516,6 @@ void loadROSParams(shared_ptr<MachineState> ms) {
   nh.getParam("sobel_scale_factor",sobel_scale_factor);
 
   nh.getParam("mask_gripper", mask_gripper);
-  nh.getParam("add_blinders", add_blinders);
 
   nh.getParam("left_or_right_arm", ms->config.left_or_right_arm);
 
@@ -10578,7 +10572,6 @@ void saveROSParams(shared_ptr<MachineState> ms) {
   nh.setParam("sobel_scale_factor",sobel_scale_factor);
 
   nh.setParam("mask_gripper", mask_gripper);
-  nh.setParam("add_blinders", add_blinders);
 
   nh.setParam("left_or_right_arm", ms->config.left_or_right_arm);
 
@@ -11628,7 +11621,7 @@ int main(int argc, char **argv) {
   cout << "n namespace: " << n.getNamespace() << endl;
 
   loadROSParamsFromArgs(ms);
-  cout << "mask_gripper: " << mask_gripper << " add_blinders: " << add_blinders << endl;
+  cout << "mask_gripper: " << mask_gripper << endl;
   cout << "all_range_mode: " << all_range_mode << endl;
   cout << "data_directory: " << data_directory << endl << "class_name: " << class_name << endl 
        << "run_prefix: " << run_prefix << endl << "class_pose_models: " << class_pose_models << endl 
@@ -11679,9 +11672,6 @@ int main(int argc, char **argv) {
   createTrackbar("post_density_sigma", densityViewerName, &postDensitySigmaTrackbarVariable, 40);
   createTrackbar("canny_lo", densityViewerName, &loTrackbarVariable, 100);
   createTrackbar("canny_hi", densityViewerName, &hiTrackbarVariable, 100);
-  createTrackbar("blinder_columns", densityViewerName, &blinder_columns, 20);
-  createTrackbar("blinder_stride", densityViewerName, &blinder_stride, 50);
-  createTrackbar("add_blinders", densityViewerName, &add_blinders, 1);
 
   ros::Timer simulatorCallbackTimer;
 
