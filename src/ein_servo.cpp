@@ -1097,7 +1097,7 @@ CODE(131139)  // capslock + c
 virtual void execute(std::shared_ptr<MachineState> ms) {
   synchronicTakeClosest = 0;
   cout << "synchronicTakeClosest = 0" << endl;
-  synServoLockFrames = 0;
+  ms->config.synServoLockFrames = 0;
 }
 END_WORD
 REGISTER_WORD(SynchronicServoDoNotTakeClosest)
@@ -1107,7 +1107,7 @@ CODE(196707)     // capslock + C
 virtual void execute(std::shared_ptr<MachineState> ms) {
   synchronicTakeClosest = 1;
   cout << "synchronicTakeClosest = 1" << endl;
-  synServoLockFrames = 0;
+  ms->config.synServoLockFrames = 0;
 }
 END_WORD
 REGISTER_WORD(SynchronicServoTakeClosest)
@@ -1175,7 +1175,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }
   
-  synServoLockFrames = 0;
+  ms->config.synServoLockFrames = 0;
   currentGradientServoIterations = 0;
   
   ros::Duration delta = (ros::Time::now() - oscilStart) + accumulatedTime;

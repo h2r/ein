@@ -446,6 +446,29 @@ class EinConfig {
   int curseReticleY = 0;
 
 
+  
+  double w1GoThresh = 0.03;//0.01;
+  double w1AngleThresh = 0.02; 
+  double synKp = 0.0005;
+  double darkKp = 0.0005;
+  double faceKp = 0.001;
+  double gradKp = 0.00025;//0.0005;
+  double kPtheta1 = 1.0;//0.75;
+  double kPtheta2 = 0.125;//0.75;
+  int kPThresh = 3;
+  double lastPtheta = INFINITY;
+
+  // pre-absolute
+  //int synServoPixelThresh = 10;//15;//10;
+  //int gradServoPixelThresh = 2;
+  //int gradServoThetaThresh = 1;
+  // absolute
+  int synServoPixelThresh = 15;//15;//10;
+  int gradServoPixelThresh = 5;
+  int gradServoThetaThresh = 2;
+  
+  int synServoLockFrames = 0;
+
   // config variables that don't seem to be used
 };
 

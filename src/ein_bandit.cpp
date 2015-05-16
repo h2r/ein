@@ -113,7 +113,7 @@ WORD(ContinueHeightLearning)
 CODE(1179707)     // capslock + numlock + ;
   virtual void execute(std::shared_ptr<MachineState> ms)       {
   cout << "continuing bounding box learning with currentBoundingBoxMode  =  " << pickModeToString(currentBoundingBoxMode) << endl;
-  synServoLockFrames = 0;
+  ms->config.synServoLockFrames = 0;
   currentGradientServoIterations = 0;
 
   // ATTN 16
