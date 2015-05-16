@@ -122,10 +122,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-bool usePotentiallyCollidingIK = 0;
-
-Mat objectViewerYCbCrBlur;
-Mat objectViewerGrayBlur;
 
 ros::Time lastHoverRequest;
 double hoverTimeout = 3.0;//2.0; // seconds
@@ -896,7 +892,7 @@ void sad();
 void neutral();
 
 
-void guardViewers();
+void guardViewers(shared_ptr<MachineState> ms);
 
 void fillRecognizedObjectArrayFromBlueBoxMemory(object_recognition_msgs::RecognizedObjectArray * roa);
 void fillEinStateMsg(EinConfig * configIn, EinState * stateOut);
@@ -2988,7 +2984,7 @@ void reseedIkRequest(shared_ptr<MachineState> ms, eePose *givenEEPose, baxter_co
   }
 }
 
-bool willIkResultFail(baxter_core_msgs::SolvePositionIK thisIkRequest, int thisIkCallResult, bool * likelyInCollision) {
+bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositionIK thisIkRequest, int thisIkCallResult, bool * likelyInCollision) {
   bool thisIkResultFailed = 0;
   *likelyInCollision = 0;
 
@@ -3001,7 +2997,7 @@ bool willIkResultFail(baxter_core_msgs::SolvePositionIK thisIkRequest, int thisI
     thisIkResultFailed = 1;
     //cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
   } else if (thisIkRequest.response.joints.size() == 1) {
-    if( usePotentiallyCollidingIK ) {
+    if( ms->config.usePotentiallyCollidingIK ) {
       //cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
       //cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
       thisIkResultFailed = 0;
@@ -3092,7 +3088,7 @@ void update_baxter(ros::NodeHandle &n) {
 	ikResultFailed = 1;
 	cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
       } else if (thisIkRequest.response.joints.size() == 1) {
-	if( usePotentiallyCollidingIK ) {
+	if( ms->config.usePotentiallyCollidingIK ) {
 	  cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
 	  cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
 
@@ -3423,7 +3419,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   faceViewImage = cv_ptr->image.clone();
 
 
-  guardViewers();
+  guardViewers(ms);
 
   Size sz = accumulatedImage.size();
   int imW = sz.width;
@@ -9789,12 +9785,12 @@ void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms) {
   }
   }
   */
-  Size sz = objectViewerYCbCrBlur.size();
+  Size sz = ms->config.objectViewerYCbCrBlur.size();
   int imW = sz.width;
   int imH = sz.height;
 
   int YConstant = 128;
-  Mat oviToConstantize = objectViewerYCbCrBlur.clone();
+  Mat oviToConstantize = ms->config.objectViewerYCbCrBlur.clone();
 
 
   Mat oviInBGR;
@@ -9875,8 +9871,8 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   Mat sobelGrayBlur;
   Mat sobelYCrCbBlur;
   processImage(tmpImage, sobelGrayBlur, sobelYCrCbBlur, sobel_sigma);
-  objectViewerYCbCrBlur = sobelYCrCbBlur;
-  objectViewerGrayBlur = sobelYCrCbBlur;
+  ms->config.objectViewerYCbCrBlur = sobelYCrCbBlur;
+  ms->config.objectViewerGrayBlur = sobelYCrCbBlur;
   
   Mat totalGraySobel;
   {
@@ -12220,12 +12216,12 @@ void initializeMap(shared_ptr<MachineState> ms) {
 }
 
 
-void guardViewers() {
-  if ( isSketchyMat(objectViewerYCbCrBlur) ) {
-    objectViewerYCbCrBlur = Mat(cv_ptr->image.rows, cv_ptr->image.cols, CV_64FC3);
+void guardViewers(shared_ptr<MachineState> ms) {
+  if ( isSketchyMat(ms->config.objectViewerYCbCrBlur) ) {
+    ms->config.objectViewerYCbCrBlur = Mat(cv_ptr->image.rows, cv_ptr->image.cols, CV_64FC3);
   }
-  if ( isSketchyMat(objectViewerGrayBlur) ) {
-    objectViewerGrayBlur = Mat(cv_ptr->image.rows, cv_ptr->image.cols, CV_64FC3);
+  if ( isSketchyMat(ms->config.objectViewerGrayBlur) ) {
+    ms->config.objectViewerGrayBlur = Mat(cv_ptr->image.rows, cv_ptr->image.cols, CV_64FC3);
   }
   if ( isSketchyMat(densityViewerImage) ) {
     densityViewerImage = cv_ptr->image.clone();
