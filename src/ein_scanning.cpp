@@ -1042,10 +1042,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.heightReticles[ms->config.currentThompsonHeightIdx].py = darkY;
 
   cout << "setHeightReticles,  currentThompsonHeightIdx: " << ms->config.currentThompsonHeightIdx << endl;
-  printEEPose(ms->config.heightReticles[0]); cout << endl;
-  printEEPose(ms->config.heightReticles[1]); cout << endl;
-  printEEPose(ms->config.heightReticles[2]); cout << endl;
-  printEEPose(ms->config.heightReticles[3]); cout << endl;
+  eePose::print(ms->config.heightReticles[0]); cout << endl;
+  eePose::print(ms->config.heightReticles[1]); cout << endl;
+  eePose::print(ms->config.heightReticles[2]); cout << endl;
+  eePose::print(ms->config.heightReticles[3]); cout << endl;
 }
 END_WORD
 REGISTER_WORD(SetHeightReticlesA)
@@ -1917,6 +1917,10 @@ REGISTER_WORD(RecordGraspZ)
 
 WORD(Start3dGraspAnnotation)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Starting 3d Grasp Annotation" << endl;
+  ms->config.bailAfterSynchronic = 1;
+  ms->config.bailAfterGradient = 1;
+
   ms->pushWord("lock3dGraspBase");
 
   ms->pushWord("gradientServoIfBlueBoxes");
@@ -2007,8 +2011,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
     ms->config.c3dPoseBase = ms->config.currentEEPose;
     ms->config.c3dPoseBase.pz = -ms->config.currentTableZ;
-    cout << "The base for 3d grasp annotation is now locked and you are in zero-G mode. Please adjust use \"add3dGrasp\" to record a grasp point." << endl;
-    cout << "When you are done, make sure to save to disk and to exit zero-G mode." << endl;
+    cout << "The base for 3d grasp annotation is now locked and you are in zero-G mode." << endl 
+	 << "Please move the gripper to a valid grasping pose and use \"add3dGrasp\" to record a grasp point." << endl
+	 << "You can record more than one grasp point in a row." << endl
+	 << "When you are done, make sure to save to disk and to exit zero-G mode." << endl;
     ms->config.zero_g_toggle = 1;
   } else {
     cout << "Tried to lock c3dPoseBase but failed. Clearing stack." << endl;
@@ -2020,6 +2026,7 @@ REGISTER_WORD(Lock3dGraspBase)
 
 WORD(Add3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Adding 3d grasp" << endl;
   eePose this3dGrasp = ms->config.currentEEPose;
   this3dGrasp = this3dGrasp.minusP(ms->config.c3dPoseBase);
   this3dGrasp = this3dGrasp.multQ( ms->config.c3dPoseBase.invQ() );
@@ -2036,7 +2043,12 @@ WORD(AssumeCurrent3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double p_backoffDistance = 0.05;
   int t3dGraspIndex = ms->config.current3dGraspIndex;
-  ms->config.currentEEPose = ms->config.class3dGrasps[ms->config.targetClass][t3dGraspIndex];  
+// XXX TODO wrong
+  eePose toApply = ms->config.class3dGrasps[ms->config.targetClass][t3dGraspIndex];  
+
+  ms->config.currentEEPose.pz = -ms->config.currentTableZ;
+  ms->config.currentEEPose = ms->config.currentEEPose.plusP(toApply);
+  ms->config.currentEEPose = ms->config.currentEEPose.multQ(toApply);
 
   Vector3d localUnitX;
   Vector3d localUnitY;

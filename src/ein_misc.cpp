@@ -116,7 +116,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 
   
-  double wrenchNorm = sqrt( squareDistanceEEPose(eePoseZero, ms->config.trueEEWrench) );
+  double wrenchNorm = sqrt( eePose::squareDistance(eePose::zero(), ms->config.trueEEWrench) );
   cout << "wrenchNorm: " << wrenchNorm << endl;
   
   cout << endl;

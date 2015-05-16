@@ -190,7 +190,7 @@ CODE(1179694)     // capslock + numlock + .
   // Distances for the eraser
   //0.04, 2.57e-05, 0.0005, 0.0009, 0.007, 0.0006
   // ATTN 17
-  double distance = squareDistanceEEPose(ms->config.currentEEPose, ms->config.eepReg4);
+  double distance = eePose::squareDistance(ms->config.currentEEPose, ms->config.eepReg4);
   cout << "cartesian distance from start: " << sqrt(distance) << endl;
   cout << "bbLearnThresh: " << param_bbLearnThresh << endl;
   if (distance < param_bbLearnThresh*param_bbLearnThresh) {
