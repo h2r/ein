@@ -1,3 +1,11 @@
+
+#include "ein_words.h"
+#include "ein.h"
+
+
+namespace ein_words {
+
+
 WORD(FindBestOfFourGraspsUsingMemory)
 CODE(1048620)     // numlock + ,
 virtual void execute(std::shared_ptr<MachineState> ms)       {
@@ -1418,3 +1426,4 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(ReturnObject)
 
+}
