@@ -122,18 +122,10 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-int mask_gripper_blocks = 0;
-int mask_gripper = 1;
 
-std::string densityViewerName = "Density Viewer";
-std::string objectViewerName = "Object Viewer";
-std::string objectMapViewerName = "Object Map View";
-std::string gradientViewerName = "Gradient Viewer";
-std::string aerialGradientViewerName = "Aerial Gradient Viewer";
 
 int loTrackbarVariable = 20;//30;//45;//75;
 int hiTrackbarVariable = 35;//40;//50;
-int redTrackbarVariable = 0;
 int postDensitySigmaTrackbarVariable = 10.0;
 
 
@@ -2668,12 +2660,12 @@ void rangeCallback(const sensor_msgs::Range& range) {
     cv::resize(ms->config.hiColorRangemapImage, hCRIT, cv::Size(0,0), 2, 2);
     guardedImshow(ms->config.hiColorRangemapViewName, hCRIT, ms->config.sirHiColorRangemap);
 
-    guardedImshow(objectViewerName, ms->config.objectViewerImage, ms->config.sirObject);
-    guardedImshow(objectMapViewerName, ms->config.objectMapViewerImage, ms->config.sirObjectMap);
-    //cv::moveWindow(objectMapViewerName, 0, 0);
+    guardedImshow(ms->config.objectViewerName, ms->config.objectViewerImage, ms->config.sirObject);
+    guardedImshow(ms->config.objectMapViewerName, ms->config.objectMapViewerImage, ms->config.sirObjectMap);
+    //cv::moveWindow(ms->config.objectMapViewerName, 0, 0);
 
-    guardedImshow(densityViewerName, ms->config.densityViewerImage, ms->config.sirDensity);
-    guardedImshow(gradientViewerName, ms->config.gradientViewerImage, ms->config.sirGradient);
+    guardedImshow(ms->config.densityViewerName, ms->config.densityViewerImage, ms->config.sirDensity);
+    guardedImshow(ms->config.gradientViewerName, ms->config.gradientViewerImage, ms->config.sirGradient);
 
     guardedImshow(ms->config.mapBackgroundViewName, ms->config.mapBackgroundImage, ms->config.sirMapBackground);
     
@@ -2715,7 +2707,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  denom3 = 1;
 	crop3 = (classHeight3AerialGradients[ms->config.targetClass] - min3) / denom3;
 
-	guardedImshow(aerialGradientViewerName, ms->config.aerialGradientViewerImage, ms->config.sirAerialGradient);
+	guardedImshow(ms->config.aerialGradientViewerName, ms->config.aerialGradientViewerImage, ms->config.sirAerialGradient);
       }
     }
   }
@@ -4027,7 +4019,7 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(objectMapViewerName, ms->config.objectMapViewerImage, ms->config.sirObjectMap);
+    guardedImshow(ms->config.objectMapViewerName, ms->config.objectMapViewerImage, ms->config.sirObjectMap);
   }
 
 
@@ -8078,7 +8070,7 @@ void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar 
     }
   }
 
-  //guardedImshow(objectViewerName, ms->config.objectViewerImage);
+  //guardedImshow(ms->config.objectViewerName, ms->config.objectViewerImage);
 }
 
 double vectorArcTan(shared_ptr<MachineState> ms, double y, double x) {
@@ -8443,13 +8435,13 @@ bool isInGripperMaskBlocks(shared_ptr<MachineState> ms, int x, int y) {
 }
 
 bool isInGripperMask(shared_ptr<MachineState> ms, int x, int y) {
-  if (mask_gripper) {
+  if (ms->config.mask_gripper) {
     if (isSketchyMat(ms->config.gripperMask)) {
       return false;
     } else {
       return (( ms->config.gripperMask.at<uchar>(y,x) == 0 ));
     }
-  } else if (mask_gripper_blocks) {
+  } else if (ms->config.mask_gripper_blocks) {
     return isInGripperMaskBlocks(ms, x,y);
   } else {
     return false;
@@ -9163,7 +9155,7 @@ void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(gradientViewerName, ms->config.gradientViewerImage, ms->config.sirGradient);
+    guardedImshow(ms->config.gradientViewerName, ms->config.gradientViewerImage, ms->config.sirGradient);
   }
 
 }
@@ -9515,7 +9507,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
     rectangle(ms->config.objectViewerImage, inTop, inBot, cv::Scalar(32,32,32));
   }
 
-  if (mask_gripper) {
+  if (ms->config.mask_gripper) {
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
 	if ( isInGripperMask(ms, x, y) ) {
@@ -9529,7 +9521,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
     }
   }
 
-  if (mask_gripper_blocks) {
+  if (ms->config.mask_gripper_blocks) {
     int xs = g1xs;
     int xe = g1xe;
     int ys = g1ys;
@@ -9689,8 +9681,8 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(densityViewerName, ms->config.densityViewerImage, ms->config.sirDensity);
-    guardedImshow(gradientViewerName, ms->config.gradientViewerImage, ms->config.sirGradient);
+    guardedImshow(ms->config.densityViewerName, ms->config.densityViewerImage, ms->config.sirDensity);
+    guardedImshow(ms->config.gradientViewerName, ms->config.gradientViewerImage, ms->config.sirGradient);
   }
 }
 
@@ -9998,7 +9990,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
 //cout << "Here 4" << endl;
 
   if (ms->config.shouldIRender) {
-    guardedImshow(objectViewerName, ms->config.objectViewerImage, ms->config.sirObject);
+    guardedImshow(ms->config.objectViewerName, ms->config.objectViewerImage, ms->config.sirObject);
   }
 
   delete gBoxIndicator;
@@ -10399,7 +10391,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(objectViewerName, ms->config.objectViewerImage, ms->config.sirObject);
+    guardedImshow(ms->config.objectViewerName, ms->config.objectViewerImage, ms->config.sirObject);
   }
 
 }
@@ -10447,7 +10439,7 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 
   nh.getParam("cache_prefix", cache_prefix);
 
-  nh.getParam("mask_gripper", mask_gripper);
+  nh.getParam("mask_gripper", ms->config.mask_gripper);
 
   nh.getParam("left_or_right_arm", ms->config.left_or_right_arm);
 
@@ -10515,7 +10507,7 @@ void loadROSParams(shared_ptr<MachineState> ms) {
   nh.getParam("canny_lo_thresh",canny_lo_thresh);
   nh.getParam("sobel_scale_factor",sobel_scale_factor);
 
-  nh.getParam("mask_gripper", mask_gripper);
+  nh.getParam("mask_gripper", ms->config.mask_gripper);
 
   nh.getParam("left_or_right_arm", ms->config.left_or_right_arm);
 
@@ -10571,7 +10563,7 @@ void saveROSParams(shared_ptr<MachineState> ms) {
   nh.setParam("canny_lo_thresh",canny_lo_thresh);
   nh.setParam("sobel_scale_factor",sobel_scale_factor);
 
-  nh.setParam("mask_gripper", mask_gripper);
+  nh.setParam("mask_gripper", ms->config.mask_gripper);
 
   nh.setParam("left_or_right_arm", ms->config.left_or_right_arm);
 
@@ -11621,7 +11613,7 @@ int main(int argc, char **argv) {
   cout << "n namespace: " << n.getNamespace() << endl;
 
   loadROSParamsFromArgs(ms);
-  cout << "mask_gripper: " << mask_gripper << endl;
+  cout << "mask_gripper: " << ms->config.mask_gripper << endl;
   cout << "all_range_mode: " << all_range_mode << endl;
   cout << "data_directory: " << data_directory << endl << "class_name: " << class_name << endl 
        << "run_prefix: " << run_prefix << endl << "class_pose_models: " << class_pose_models << endl 
@@ -11659,19 +11651,19 @@ int main(int argc, char **argv) {
 
   ee_target_pub = n.advertise<geometry_msgs::Point>("pilot_target_" + ms->config.left_or_right_arm, 10);
 
-  densityViewerName = "Density Viewer " + ms->config.left_or_right_arm;
-  objectViewerName = "Object Viewer " + ms->config.left_or_right_arm;
-  gradientViewerName = "Gradient Viewer " + ms->config.left_or_right_arm;
-  aerialGradientViewerName = "Aerial Gradient Viewer " + ms->config.left_or_right_arm;
+  ms->config.densityViewerName = "Density Viewer " + ms->config.left_or_right_arm;
+  ms->config.objectViewerName = "Object Viewer " + ms->config.left_or_right_arm;
+  ms->config.gradientViewerName = "Gradient Viewer " + ms->config.left_or_right_arm;
+  ms->config.aerialGradientViewerName = "Aerial Gradient Viewer " + ms->config.left_or_right_arm;
 
-  cv::namedWindow(gradientViewerName);
-  cv::namedWindow(aerialGradientViewerName);
-  cv::namedWindow(densityViewerName);
-  setMouseCallback(objectViewerName, nodeCallbackFunc, NULL);
+  cv::namedWindow(ms->config.gradientViewerName);
+  cv::namedWindow(ms->config.aerialGradientViewerName);
+  cv::namedWindow(ms->config.densityViewerName);
+  setMouseCallback(ms->config.objectViewerName, nodeCallbackFunc, NULL);
 
-  createTrackbar("post_density_sigma", densityViewerName, &postDensitySigmaTrackbarVariable, 40);
-  createTrackbar("canny_lo", densityViewerName, &loTrackbarVariable, 100);
-  createTrackbar("canny_hi", densityViewerName, &hiTrackbarVariable, 100);
+  createTrackbar("post_density_sigma", ms->config.densityViewerName, &postDensitySigmaTrackbarVariable, 40);
+  createTrackbar("canny_lo", ms->config.densityViewerName, &loTrackbarVariable, 100);
+  createTrackbar("canny_hi", ms->config.densityViewerName, &hiTrackbarVariable, 100);
 
   ros::Timer simulatorCallbackTimer;
 
