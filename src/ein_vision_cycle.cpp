@@ -377,7 +377,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
 	    bool likelyInCollision = 0;
 	    // ATTN 24
-	    //int thisIkCallResult = ikClient.call(thisIkRequest);
+	    //int thisIkCallResult = ms->config.ikClient.call(thisIkRequest);
 	    int thisIkCallResult = 0;
 	    queryIK(ms, &thisIkCallResult, &thisIkRequest);
 
@@ -499,7 +499,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     bool likelyInCollision = 0;
     // ATTN 24
-    //int thisIkCallResult = ikClient.call(thisIkRequest);
+    //int thisIkCallResult = ms->config.ikClient.call(thisIkRequest);
     int thisIkCallResult = 0;
     queryIK(ms, &thisIkCallResult, &thisIkRequest);
 
@@ -554,7 +554,7 @@ WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   object_recognition_msgs::RecognizedObjectArray roaO;
   fillRecognizedObjectArrayFromBlueBoxMemory(ms, &roaO);
-  rec_objs_blue_memory.publish(roaO);
+  ms->config.rec_objs_blue_memory.publish(roaO);
 }
 END_WORD
 REGISTER_WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)

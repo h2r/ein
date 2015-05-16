@@ -442,7 +442,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
   ms->config.currentHeadPanCommand.target = 3.1415926/2.0;
   ms->config.currentHeadPanCommand.speed = 50;
-  headPub.publish(ms->config.currentHeadPanCommand);
+  ms->config.headPub.publish(ms->config.currentHeadPanCommand);
 }
 END_WORD
 REGISTER_WORD(ShakeHeadPositive)
@@ -453,7 +453,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
   ms->config.currentHeadPanCommand.target = -3.1415926/2.0;
   ms->config.currentHeadPanCommand.speed = 50;
-  headPub.publish(ms->config.currentHeadPanCommand);
+  ms->config.headPub.publish(ms->config.currentHeadPanCommand);
 }
 END_WORD
 REGISTER_WORD(ShakeHeadNegative)
@@ -463,7 +463,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
   ms->config.currentHeadPanCommand.target = 0;
   ms->config.currentHeadPanCommand.speed = 50;
-  headPub.publish(ms->config.currentHeadPanCommand);
+  ms->config.headPub.publish(ms->config.currentHeadPanCommand);
 }
 END_WORD
 REGISTER_WORD(CenterHead)
@@ -471,7 +471,7 @@ REGISTER_WORD(CenterHead)
 WORD(SilenceSonar)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  sonarPub.publish(ms->config.currentSonarCommand);
+  ms->config.sonarPub.publish(ms->config.currentSonarCommand);
 }
 END_WORD
 REGISTER_WORD(SilenceSonar)
@@ -480,7 +480,7 @@ WORD(Nod)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   ms->config.currentHeadNodCommand.data = 1;
-  nodPub.publish(ms->config.currentHeadNodCommand);
+  ms->config.nodPub.publish(ms->config.currentHeadNodCommand);
 }
 END_WORD
 REGISTER_WORD(Nod)
