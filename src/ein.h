@@ -363,4 +363,4 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut);
 
 ////////////////////////////////////////////////
 // end node prototypes 
-#endif /* _EINo_H_ */
+#endif /* _EIN_H_ */
