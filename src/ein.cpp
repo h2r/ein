@@ -122,20 +122,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-ros::Time lastAccelerometerCallbackRequest;
-ros::Time lastImageCallbackRequest;
-ros::Time lastGripperCallbackRequest;
-ros::Time lastRangeCallbackRequest;
-ros::Time lastFullMiscCallbackRequest;
-ros::Time lastEndpointCallbackRequest;
-
-ros::Time lastAccelerometerCallbackReceived;
-ros::Time lastImageCallbackReceived;
-ros::Time lastGripperCallbackReceived;
-ros::Time lastRangeCallbackReceived;
-ros::Time lastFullMiscCallbackReceived;
-ros::Time lastEndpointCallbackReceived;
-
 bool usePotentiallyCollidingIK = 0;
 
 Mat objectViewerYCbCrBlur;
@@ -2032,7 +2018,7 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
 //    return;
 //  }
 
-  lastEndpointCallbackReceived = ros::Time::now();
+  ms->config.lastEndpointCallbackReceived = ros::Time::now();
 
   // note that the quaternion field holds a vector3!
   ms->config.trueEEWrench.px = eps.wrench.force.x;
@@ -2104,7 +2090,7 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
 void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees) {
 
   shared_ptr<MachineState> ms = pMachineState;
-  lastGripperCallbackReceived = ros::Time::now();
+  ms->config.lastGripperCallbackReceived = ros::Time::now();
   ms->config.gripperLastUpdated = ros::Time::now();
   ms->config.gripperPosition  = ees.position;
   ms->config.gripperMoving = ees.moving;
@@ -2532,7 +2518,7 @@ void setCCRotation(shared_ptr<MachineState> ms, int thisGraspGear) {
 
 void accelerometerCallback(const sensor_msgs::Imu& moment) {
   shared_ptr<MachineState> ms = pMachineState;
-  lastAccelerometerCallbackReceived = ros::Time::now();
+  ms->config.lastAccelerometerCallbackReceived = ros::Time::now();
   ms->config.eeLinearAcceleration = Vector3d(
     moment.linear_acceleration.x,
     moment.linear_acceleration.y,
@@ -3384,9 +3370,9 @@ void timercallback1(const ros::TimerEvent&) {
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
-
-  lastImageCallbackReceived = ros::Time::now();
   shared_ptr<MachineState> ms = pMachineState;
+  ms->config.lastImageCallbackReceived = ros::Time::now();
+
 
   if (!ms->config.shouldIImageCallback) {
     return;
@@ -12656,7 +12642,7 @@ int main(int argc, char **argv) {
   cout << "cuda count: " << cudaCount << endl;;
 
   cvWaitKey(1); // this might be good to init cv gui stuff
-  lastImageCallbackReceived = ros::Time::now();
+  ms->config.lastImageCallbackReceived = ros::Time::now();
 
   {
     for (int i = 0; i < numCornellTables; i++) {

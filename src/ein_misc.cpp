@@ -533,7 +533,7 @@ REGISTER_WORD(BringUpAllNonessentialSystems)
 WORD(WaitUntilImageCallbackReceived)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  lastImageCallbackRequest = ros::Time::now();
+  ms->config.lastImageCallbackRequest = ros::Time::now();
   ms->pushWord("waitUntilImageCallbackReceivedA");
   ms->config.shouldIImageCallback = 1;
   ms->config.endThisStackCollapse = 1;
@@ -544,7 +544,7 @@ REGISTER_WORD(WaitUntilImageCallbackReceived)
 WORD(WaitUntilImageCallbackReceivedA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  if (lastImageCallbackRequest >= lastImageCallbackReceived) {
+  if (ms->config.lastImageCallbackRequest >= ms->config.lastImageCallbackReceived) {
     ms->pushWord("waitUntilImageCallbackReceivedA");
     ms->config.shouldIImageCallback = 1;
     ms->config.endThisStackCollapse = 1;
@@ -558,7 +558,7 @@ REGISTER_WORD(WaitUntilImageCallbackReceivedA)
 WORD(WaitUntilAccelerometerCallbackReceived)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  lastAccelerometerCallbackRequest = ros::Time::now();
+  ms->config.lastAccelerometerCallbackRequest = ros::Time::now();
   ms->pushWord("waitUntilAccelerometerCallbackReceivedA");
   ms->config.endThisStackCollapse = 1;
 }
@@ -568,7 +568,7 @@ REGISTER_WORD(WaitUntilAccelerometerCallbackReceived)
 WORD(WaitUntilAccelerometerCallbackReceivedA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  if (lastAccelerometerCallbackRequest >= lastAccelerometerCallbackReceived) {
+  if (ms->config.lastAccelerometerCallbackRequest >= ms->config.lastAccelerometerCallbackReceived) {
     ms->pushWord("waitUntilAccelerometerCallbackReceivedA");
     ms->config.endThisStackCollapse = 1;
   } else {
@@ -581,7 +581,7 @@ REGISTER_WORD(WaitUntilAccelerometerCallbackReceivedA)
 WORD(WaitUntilEndpointCallbackReceived)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  lastEndpointCallbackRequest = ros::Time::now();
+  ms->config.lastEndpointCallbackRequest = ros::Time::now();
   ms->pushWord("waitUntilEndpointCallbackReceivedA");
   ms->config.endThisStackCollapse = 1;
 }
@@ -591,7 +591,7 @@ REGISTER_WORD(WaitUntilEndpointCallbackReceived)
 WORD(WaitUntilEndpointCallbackReceivedA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  if (lastEndpointCallbackRequest >= lastEndpointCallbackReceived) {
+  if (ms->config.lastEndpointCallbackRequest >= ms->config.lastEndpointCallbackReceived) {
     ms->pushWord("waitUntilEndpointCallbackReceivedA");
     ms->config.endThisStackCollapse = 1;
   } else {

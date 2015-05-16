@@ -645,6 +645,18 @@ class EinConfig {
   int heartBeatCounter = 0;
   int heartBeatPeriod = 150;
 
+
+  ros::Time lastAccelerometerCallbackRequest;
+  ros::Time lastImageCallbackRequest;
+  ros::Time lastGripperCallbackRequest;
+  ros::Time lastEndpointCallbackRequest;
+  
+  ros::Time lastAccelerometerCallbackReceived;
+  ros::Time lastImageCallbackReceived;
+  ros::Time lastGripperCallbackReceived;
+  ros::Time lastEndpointCallbackReceived;
+
+
 };
 
 class Word;

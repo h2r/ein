@@ -93,7 +93,7 @@ REGISTER_WORD(WaitUntilAtCurrentPositionB)
 WORD(WaitUntilGripperNotMoving)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.waitUntilGripperNotMovingCounter = 0;
-  lastGripperCallbackRequest = ros::Time::now();
+  ms->config.lastGripperCallbackRequest = ros::Time::now();
   ms->pushWord("waitUntilGripperNotMovingB"); 
   ms->config.endThisStackCollapse = 1;
 }
@@ -102,10 +102,10 @@ REGISTER_WORD(WaitUntilGripperNotMoving)
 
 WORD(WaitUntilGripperNotMovingB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (lastGripperCallbackRequest >= lastGripperCallbackReceived) {
+  if (ms->config.lastGripperCallbackRequest >= ms->config.lastGripperCallbackReceived) {
     ms->pushWord("waitUntilGripperNotMovingB"); 
   } else {
-    lastGripperCallbackRequest = ros::Time::now();
+    ms->config.lastGripperCallbackRequest = ros::Time::now();
     if (ms->config.waitUntilGripperNotMovingCounter < ms->config.waitUntilGripperNotMovingTimeout) {
       if (ms->config.gripperMoving) {
 	ms->config.waitUntilGripperNotMovingCounter++;
@@ -127,10 +127,10 @@ REGISTER_WORD(WaitUntilGripperNotMovingB)
 WORD(WaitUntilGripperNotMovingC)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 // waits until gripper has not been moving for gripperNotMovingConfirmTime
-  if (lastGripperCallbackRequest >= lastGripperCallbackReceived) {
+  if (ms->config.lastGripperCallbackRequest >= ms->config.lastGripperCallbackReceived) {
     ms->pushWord("waitUntilGripperNotMovingC"); 
   } else {
-    lastGripperCallbackRequest = ros::Time::now();
+    ms->config.lastGripperCallbackRequest = ros::Time::now();
     if (ms->config.waitUntilGripperNotMovingCounter < ms->config.waitUntilGripperNotMovingTimeout) {
       ros::Duration deltaSinceUpdate = ms->config.gripperLastUpdated - ms->config.waitUntilGripperNotMovingStamp;
       if (deltaSinceUpdate.toSec() <= ms->config.gripperNotMovingConfirmTime) {
@@ -679,14 +679,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.endThisStackCollapse = 1;
   ms->config.shouldIDoIK = 1;
   lastHoverRequest = ros::Time::now();
-  lastEndpointCallbackRequest = lastHoverRequest;
+  ms->config.lastEndpointCallbackRequest = lastHoverRequest;
 }
 END_WORD
 REGISTER_WORD(Hover)
 
 WORD(HoverA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (lastEndpointCallbackRequest >= lastEndpointCallbackReceived) {
+  if (ms->config.lastEndpointCallbackRequest >= ms->config.lastEndpointCallbackReceived) {
     ms->pushWord("hoverA");
     cout << "hoverA waiting for endpointCallback." << endl;
     ms->config.endThisStackCollapse = 1;
