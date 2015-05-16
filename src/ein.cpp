@@ -121,37 +121,6 @@ ros::Publisher einPub;
 ros::Publisher vmMarkerPublisher;
 
 
-
-
-
-
-double sobel_sigma = 2.0;//4.0;
-double sobel_sigma_substitute_latest = 4.0;
-double sobel_sigma_substitute_accumulated = 4.0;//2.0; reflections are a problem for low sigma...
-double sobel_scale_factor = 1e-12;
-double local_sobel_sigma = 1.0;
-
-double depthDecay = 0.7;
-double redDecay = 0.9;
-
-// point cloud affine extrinsic calibration
-/*
-// this is for the uncalibrated point cloud
-double pcbcX = 5;
-double pcbcY = -25;
-double pcgc11 = 1.0+(50.0 / 640.0);
-double pcgc12 = 0.0;
-double pcgc21 = 0.0;
-double pcgc22 = 1.0+(12.0 / 480.0);
-*/
-// this is for the calibrated point cloud
-double pcbcX = 10;//5;
-double pcbcY = 0;//-25;
-double pcgc11 = 1;//1.0+(50.0 / 640.0);
-double pcgc12 = 0.0;
-double pcgc21 = 0.0;
-double pcgc22 = 1;//1.0+(12.0 / 480.0);
-
 // if you add an immense number of examples or some new classes and
 //   you begin having discriminative problems (confusion), you can
 //   increase the number of words.
@@ -690,14 +659,13 @@ int doubleToByte(double in);
 
 void gridKeypoints(int gImW, int gImH, cv::Point top, cv::Point bot, int strideX, int strideY, vector<KeyPoint>& keypoints, int period);
 
-cv::Point pcCorrection(double x, double y, double imW, double imH);
 bool isFiniteNumber(double x);
 
 void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descriptors, Mat& descriptors2);
 void processImage(Mat &image, Mat& gray_image, Mat& yCrCb_image, double sigma);
 
 void bowGetFeatures(std::string classDir, const char *className, double sigma);
-void kNNGetFeatures(std::string classDir, const char *className, int label, double sigma, Mat &kNNfeatures, Mat &kNNlabels);
+void kNNGetFeatures(std::string classDir, const char *className, int label, double sigma, Mat &kNNfeatures, Mat &kNNlabels, double sobel_sigma);
 void posekNNGetFeatures(std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
   vector< cv::Vec<double,4> >& classQuaternions, int lIndexStart = 0);
 
@@ -8615,19 +8583,6 @@ void gridKeypoints(int gImW, int gImH, cv::Point top, cv::Point bot, int strideX
 
 }
 
-cv::Point pcCorrection(double x, double y, double imW, double imH) {
-  cv::Point output;
-
-  double bcX = pcbcX+x;
-  double bcY = pcbcY+y;
-  double bgcX = min(max(pcgc11*bcX + pcgc12*bcY,0.0), imW);
-  double bgcY = min(max(pcgc21*bcX + pcgc22*bcY,0.0), imH);
-
-  output.x = round(bgcX);
-  output.y = round(bgcY);
-
-  return output;
-}
 
 bool isFiniteNumber(double x) {
     return (x <= DBL_MAX && x >= -DBL_MAX); 
@@ -8737,7 +8692,7 @@ void bowGetFeatures(std::string classDir, const char *className, double sigma) {
   }
 }
 
-void kNNGetFeatures(std::string classDir, const char *className, int label, double sigma, Mat &kNNfeatures, Mat &kNNlabels) {
+void kNNGetFeatures(std::string classDir, const char *className, int label, double sigma, Mat &kNNfeatures, Mat &kNNlabels, double sobel_sigma) {
 
   DIR *dpdf;
   struct dirent *epdf;
@@ -9156,7 +9111,9 @@ void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms) {
 void substituteAccumulatedImageQuantities(shared_ptr<MachineState> ms) {
   double param_aerialGradientDecayImageAverage = 0.0;
   ms->config.aerialGradientDecay = param_aerialGradientDecayImageAverage;
-  sobel_sigma = sobel_sigma_substitute_accumulated;
+
+  double param_sobel_sigma_substitute_accumulated = 4.0;//2.0; reflections are a problem for low sigma...
+  ms->config.sobel_sigma = param_sobel_sigma_substitute_accumulated;
   Size sz = accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
@@ -9177,7 +9134,9 @@ void substituteAccumulatedImageQuantities(shared_ptr<MachineState> ms) {
 void substituteLatestImageQuantities(shared_ptr<MachineState> ms) {
   double param_aerialGradientDecayIteratedDensity = 0.9;
   ms->config.aerialGradientDecay = param_aerialGradientDecayIteratedDensity;
-  sobel_sigma = sobel_sigma_substitute_latest;
+
+  double param_sobel_sigma_substitute_latest = 4.0;
+  ms->config.sobel_sigma = param_sobel_sigma_substitute_latest;
   if (ms->config.cv_ptr == NULL) {
     ROS_ERROR("Not receiving camera data, clearing call stack.");
     ms->clearStack();
@@ -9215,7 +9174,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   // Sobel business
   Mat sobelGrayBlur;
   Mat sobelYCrCbBlur;
-  processImage(tmpImage, sobelGrayBlur, sobelYCrCbBlur, sobel_sigma);
+  processImage(tmpImage, sobelGrayBlur, sobelYCrCbBlur, ms->config.sobel_sigma);
   ms->config.objectViewerYCbCrBlur = sobelYCrCbBlur;
   ms->config.objectViewerGrayBlur = sobelYCrCbBlur;
   
@@ -10123,7 +10082,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 	bLabels[c] = label;
       }
     } else if (pMachineState->config.chosen_feature == GRADIENT) {
-      processImage(crop, gray_image, yCrCb_image, sobel_sigma);
+      processImage(crop, gray_image, yCrCb_image, ms->config.sobel_sigma);
 
       Mat totalGraySobel;
       {
@@ -10182,7 +10141,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       label = kNN->find_nearest(descriptorsG,k);
       bLabels[c] = label;
     } else if (pMachineState->config.chosen_feature == OPPONENT_COLOR_GRADIENT) {
-      processImage(crop, gray_image, yCrCb_image, sobel_sigma);
+      processImage(crop, gray_image, yCrCb_image, ms->config.sobel_sigma);
 
       Mat totalGraySobel;
       {
@@ -10462,7 +10421,6 @@ void loadROSParams(shared_ptr<MachineState> ms) {
   nh.getParam("reject_area_scale", rejectAreaScale);
   nh.getParam("frames_per_click", frames_per_click);
   nh.getParam("density_decay", densityDecay);
-  nh.getParam("depth_decay", depthDecay);
 
   nh.getParam("data_directory", data_directory);
   nh.getParam("class_labels", class_labels);
@@ -10494,11 +10452,10 @@ void loadROSParams(shared_ptr<MachineState> ms) {
   nh.getParam("reextract_knn", ms->config.reextract_knn);
   nh.getParam("rewrite_labels", ms->config.rewrite_labels);
 
-  nh.getParam("sobel_sigma", sobel_sigma);
-  nh.getParam("local_sobel_sigma", local_sobel_sigma);
+  nh.getParam("sobel_sigma", ms->config.sobel_sigma);
   nh.getParam("canny_hi_thresh",ms->config.canny_hi_thresh);
   nh.getParam("canny_lo_thresh",ms->config.canny_lo_thresh);
-  nh.getParam("sobel_scale_factor",sobel_scale_factor);
+  nh.getParam("sobel_scale_factor",ms->config.sobel_scale_factor);
 
   nh.getParam("mask_gripper", ms->config.mask_gripper);
 
@@ -10520,7 +10477,6 @@ void saveROSParams(shared_ptr<MachineState> ms) {
   nh.setParam("reject_area_scale", rejectAreaScale);
   nh.setParam("frames_per_click", frames_per_click);
   nh.setParam("density_decay", densityDecay);
-  nh.setParam("depth_decay", depthDecay);
 
   nh.setParam("data_directory", data_directory);
   nh.setParam("class_labels", class_labels);
@@ -10550,11 +10506,10 @@ void saveROSParams(shared_ptr<MachineState> ms) {
   nh.setParam("reextract_knn", ms->config.reextract_knn);
   nh.setParam("rewrite_labels", ms->config.rewrite_labels);
 
-  nh.setParam("sobel_sigma", sobel_sigma);
-  nh.setParam("local_sobel_sigma", local_sobel_sigma);
+  nh.setParam("sobel_sigma", ms->config.sobel_sigma);
   nh.setParam("canny_hi_thresh",ms->config.canny_hi_thresh);
   nh.setParam("canny_lo_thresh",ms->config.canny_lo_thresh);
-  nh.setParam("sobel_scale_factor",sobel_scale_factor);
+  nh.setParam("sobel_scale_factor",ms->config.sobel_scale_factor);
 
   nh.setParam("mask_gripper", ms->config.mask_gripper);
 
@@ -10746,7 +10701,7 @@ void detectorsInit(shared_ptr<MachineState> ms) {
     {
       cout << "Getting kNN features for class " << classLabels[i] 
 	   << " with pose model " << classPoseModels[i] << " index " << i << endl;
-      kNNGetFeatures(class_crops_path, classLabels[i].c_str(), i, grayBlur, kNNfeatures, kNNlabels);
+      kNNGetFeatures(class_crops_path, classLabels[i].c_str(), i, grayBlur, kNNfeatures, kNNlabels, ms->config.sobel_sigma);
       if (classPoseModels[i].compare("G") == 0) {
 	string thisPoseLabel = classLabels[i] + "Poses";
 	posekNNGetFeatures(class_crops_path, thisPoseLabel.c_str(), grayBlur, classPosekNNfeatures[i], classPosekNNlabels[i],
