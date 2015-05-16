@@ -128,6 +128,22 @@ typedef struct MapCell {
 } MapCell;
 
 
+typedef struct Sprite {
+  // sprites are the objects which are rendered in the simulation,
+  //   modeled physically as axis aligned bounding boxes
+  // the aa-bb associated with
+  //  the sprite encompasses the rotated blitted box of the image
+  // there is a master array of sprite types loaded from files, and then
+  //  there is a vector of active sprites, each of which is a clone of an
+  //  entry in the master array but with a unique name and state information
+  Mat image;
+  string name; // unique identifier
+  double scale; // this is pixels / cm
+  ros::Time creationTime;
+  eePose top;
+  eePose bot;
+  eePose pose;
+} Sprite;
 
 
 #define NOW_THATS_FAST 0.08
@@ -807,6 +823,10 @@ class EinConfig {
   
   int targetInstanceSprite = 0;
   int targetMasterSprite = 0;
+
+  vector<Sprite> masterSprites;
+  vector<Sprite> instanceSprites;
+
 
   Mat gripperMaskFirstContrast;
   Mat gripperMaskSecondContrast;

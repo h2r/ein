@@ -835,17 +835,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  for (int s = 0; s < masterSprites.size(); s++) {
-    cout << "checked " << masterSprites[s].name << " as masterSprites[" << s << "] scale " << masterSprites[s].scale << " image size " << masterSprites[s].image.size() << endl;
+  for (int s = 0; s < ms->config.masterSprites.size(); s++) {
+    cout << "checked " << ms->config.masterSprites[s].name << " as masterSprites[" << s << "] scale " << ms->config.masterSprites[s].scale << " image size " << ms->config.masterSprites[s].image.size() << endl;
   }
   
   if (ms->config.currentRobotMode == PHYSICAL) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
     Sprite sprite;
-    sprite.image = masterSprites[ms->config.targetMasterSprite].image.clone();
-    sprite.name = masterSprites[ms->config.targetMasterSprite].name;
-    sprite.scale = masterSprites[ms->config.targetMasterSprite].scale;
+    sprite.image = ms->config.masterSprites[ms->config.targetMasterSprite].image.clone();
+    sprite.name = ms->config.masterSprites[ms->config.targetMasterSprite].name;
+    sprite.scale = ms->config.masterSprites[ms->config.targetMasterSprite].scale;
     sprite.creationTime = ros::Time::now();
     sprite.pose = ms->config.currentEEPose;
     sprite.top = sprite.pose;
@@ -908,11 +908,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     sprite.bot.px += halfWidthMeters;
     sprite.bot.py += halfHeightMeters;
 
-    instanceSprites.push_back(sprite);
+    ms->config.instanceSprites.push_back(sprite);
   } else {
     assert(0);
   }
-  cout << "Now instanceSprites.size() is " << instanceSprites.size() << "." << endl;
+  cout << "Now instanceSprites.size() is " << ms->config.instanceSprites.size() << "." << endl;
 }
 END_WORD
 REGISTER_WORD(SpawnTargetMasterSpriteAtEndEffector)
@@ -922,8 +922,8 @@ CODE(131071) // shift + delete
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "DestroyTargetInstanceSprite called." << endl;
   if ((ms->config.targetInstanceSprite < 0) ||
-      (ms->config.targetInstanceSprite >= instanceSprites.size())) {
-    cout << "Not destoying because targetInstanceSprite is " << ms->config.targetInstanceSprite << " out of " << instanceSprites.size() << endl;
+      (ms->config.targetInstanceSprite >= ms->config.instanceSprites.size())) {
+    cout << "Not destoying because targetInstanceSprite is " << ms->config.targetInstanceSprite << " out of " << ms->config.instanceSprites.size() << endl;
     return;
   }
   
@@ -931,16 +931,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
     vector<Sprite> newInstanceSprites;
-    for (int s = 0; s < instanceSprites.size(); s++) {
+    for (int s = 0; s < ms->config.instanceSprites.size(); s++) {
       if (s != ms->config.targetInstanceSprite) {
-	newInstanceSprites.push_back(instanceSprites[s]);
+	newInstanceSprites.push_back(ms->config.instanceSprites[s]);
       }
     }
-    instanceSprites = newInstanceSprites;
+    ms->config.instanceSprites = newInstanceSprites;
   } else {
     assert(0);
   }
-  cout << "Now instanceSprites.size() is " << instanceSprites.size() << "." << endl;
+  cout << "Now instanceSprites.size() is " << ms->config.instanceSprites.size() << "." << endl;
 }
 END_WORD
 REGISTER_WORD(DestroyTargetInstanceSprite)
@@ -951,7 +951,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (ms->config.currentRobotMode == PHYSICAL) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
-    int base = instanceSprites.size();
+    int base = ms->config.instanceSprites.size();
     ms->config.targetInstanceSprite = (ms->config.targetInstanceSprite + 1 + base) % max(base, 1);
     cout << "Incrementing targetInstanceSprite to " << ms->config.targetInstanceSprite << " out of " << base << "." << endl;
   } else {
@@ -967,7 +967,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (ms->config.currentRobotMode == PHYSICAL) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
-    int base = instanceSprites.size();
+    int base = ms->config.instanceSprites.size();
     ms->config.targetInstanceSprite = (ms->config.targetInstanceSprite - 1 + base) % max(base, 1);
     cout << "Decrementing targetInstanceSprite to " << ms->config.targetInstanceSprite << " out of " << base << "." << endl;
   } else {
@@ -983,7 +983,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (ms->config.currentRobotMode == PHYSICAL) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
-    int base = masterSprites.size();
+    int base = ms->config.masterSprites.size();
     ms->config.targetMasterSprite = (ms->config.targetMasterSprite + 1 + base) % max(base, 1);
     cout << "Incrementing targetMasterSprite to " << ms->config.targetMasterSprite << " out of " << base << "." << endl;
   } else {
@@ -999,7 +999,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (ms->config.currentRobotMode == PHYSICAL) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
-    int base = masterSprites.size();
+    int base = ms->config.masterSprites.size();
     ms->config.targetMasterSprite = (ms->config.targetMasterSprite - 1 + base) % max(base, 1);
     cout << "Decrementing targetMasterSprite to " << ms->config.targetMasterSprite << " out of " << base << "." << endl;
   } else {

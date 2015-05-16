@@ -1744,7 +1744,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // leave it in a canonical state
   ms->pushWord("setMovementSpeedMoveFast");
 
-  int * ii = &(pMachineState->config.scrI);
+  int * ii = &(ms->config.scrI);
   (*ii) = 0;
 
   for (int i = 0; i < ms->config.numCReticleIndeces; i++) {
@@ -1769,7 +1769,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.pilotTarget.px = lightX;
   ms->config.pilotTarget.py = lightY;
 
-  int * ii = &(pMachineState->config.scrI);
+  int * ii = &(ms->config.scrI);
   ms->config.xCR[(*ii)] = lightX;
   ms->config.yCR[(*ii)] = lightY;
 
