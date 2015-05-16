@@ -125,9 +125,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-int orientationCascade = 0;
-int lPTthresh = 3;
-int orientationCascadeHalfWidth = 2;
 
 int heightLearningServoTimeout = 10;
 double currentThompsonHeight = 0;
@@ -6949,8 +6946,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
   // gradientServoScale should be even
   int gradientServoScale = 3;//11;
   double gradientServoScaleStep = 1.02;
-  if (orientationCascade) {
-    if (ms->config.lastPtheta < lPTthresh) {
+  if (ms->config.orientationCascade) {
+    if (ms->config.lastPtheta < ms->config.lPTthresh) {
       //gradientServoScale = 1;
       //gradientServoScaleStep = 1.0;
     }
@@ -6960,7 +6957,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   //rotatedAerialGrads.resize(numOrientations);
   rotatedAerialGrads.resize(gradientServoScale*numOrientations);
 
-  if ((ms->config.lastPtheta < lPTthresh) && orientationCascade) {
+  if ((ms->config.lastPtheta < ms->config.lPTthresh) && ms->config.orientationCascade) {
     cout << "orientation cascade activated" << endl;
   }
 
@@ -6968,13 +6965,13 @@ void gradientServo(shared_ptr<MachineState> ms) {
     double thisScale = startScale * pow(gradientServoScaleStep, etaS);
     for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
       // orientation cascade
-      if (orientationCascade) {
-        if (ms->config.lastPtheta < lPTthresh) {
-          if (thisOrient < orientationCascadeHalfWidth) {
+      if (ms->config.orientationCascade) {
+        if (ms->config.lastPtheta < ms->config.lPTthresh) {
+          if (thisOrient < ms->config.orientationCascadeHalfWidth) {
             //cout << "skipping orientation " << thisOrient << endl;
             continue;
           }
-          if (thisOrient > numOrientations - orientationCascadeHalfWidth) {
+          if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
             //cout << "skipping orientation " << thisOrient << endl;
             continue;
           }
@@ -7026,8 +7023,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
   //int gsStride = 2;
   int gradientServoTranslation = 40;
   int gsStride = 2;
-  if (orientationCascade) {
-    if (ms->config.lastPtheta < lPTthresh) {
+  if (ms->config.orientationCascade) {
+    if (ms->config.lastPtheta < ms->config.lPTthresh) {
       //int gradientServoTranslation = 20;
       //int gsStride = 2;
       int gradientServoTranslation = 40;
@@ -7085,13 +7082,13 @@ void gradientServo(shared_ptr<MachineState> ms) {
         
         for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
           // orientation cascade
-          if (orientationCascade) {
-            if (ms->config.lastPtheta < lPTthresh) {
-              if (thisOrient < orientationCascadeHalfWidth) {
+          if (ms->config.orientationCascade) {
+            if (ms->config.lastPtheta < ms->config.lPTthresh) {
+              if (thisOrient < ms->config.orientationCascadeHalfWidth) {
                 //cout << "skipping orientation " << thisOrient << endl;
                 continue;
               }
-              if (thisOrient > numOrientations - orientationCascadeHalfWidth) {
+              if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
                 //cout << "skipping orientation " << thisOrient << endl;
                 continue;
               }
@@ -7132,13 +7129,13 @@ void gradientServo(shared_ptr<MachineState> ms) {
         
         for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
           // orientation cascade
-          if (orientationCascade) {
-            if (ms->config.lastPtheta < lPTthresh) {
-              if (thisOrient < orientationCascadeHalfWidth) {
+          if (ms->config.orientationCascade) {
+            if (ms->config.lastPtheta < ms->config.lPTthresh) {
+              if (thisOrient < ms->config.orientationCascadeHalfWidth) {
                 //cout << "skipping orientation " << thisOrient << endl;
                 continue;
               }
-              if (thisOrient > numOrientations - orientationCascadeHalfWidth) {
+              if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
                 //cout << "skipping orientation " << thisOrient << endl;
                 continue;
               }
