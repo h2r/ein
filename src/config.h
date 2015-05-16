@@ -1,6 +1,10 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
+#include <baxter_core_msgs/HeadPanCommand.h>
+#include <std_msgs/UInt16.h>
+#include <std_msgs/Bool.h>
+
 #include "ein_util.h"
 #include "eigen_util.h"
 
@@ -633,7 +637,14 @@ class EinConfig {
 
   int endCollapse = 0;
   int endThisStackCollapse = 0;
- 
+
+  baxter_core_msgs::HeadPanCommand currentHeadPanCommand;
+  std_msgs::Bool currentHeadNodCommand;
+  std_msgs::UInt16 currentSonarCommand;
+
+  int heartBeatCounter = 0;
+  int heartBeatPeriod = 150;
+
 };
 
 class Word;
