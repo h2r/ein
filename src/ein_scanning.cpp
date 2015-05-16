@@ -653,7 +653,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     string this_range_path;
 
     // ATTN 16
-    switch (currentThompsonHeightIdx) {
+    switch (ms->config.currentThompsonHeightIdx) {
     case 0:
       {
         this_range_path = dirToMakePath + "aerialHeight0Gradients.yml";
@@ -728,7 +728,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     fsvO.open(this_range_path, FileStorage::WRITE);
 
     // ATTN 16
-    switch (currentThompsonHeightIdx) {
+    switch (ms->config.currentThompsonHeightIdx) {
     case 0:
       {
         fsvO << "aerialHeight0Gradients" << gCrop;
@@ -1038,10 +1038,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.pilotTarget.px = darkX;
   ms->config.pilotTarget.py = darkY;
 
-  ms->config.heightReticles[currentThompsonHeightIdx].px = darkX;
-  ms->config.heightReticles[currentThompsonHeightIdx].py = darkY;
+  ms->config.heightReticles[ms->config.currentThompsonHeightIdx].px = darkX;
+  ms->config.heightReticles[ms->config.currentThompsonHeightIdx].py = darkY;
 
-  cout << "setHeightReticles,  currentThompsonHeightIdx: " << currentThompsonHeightIdx << endl;
+  cout << "setHeightReticles,  currentThompsonHeightIdx: " << ms->config.currentThompsonHeightIdx << endl;
   printEEPose(ms->config.heightReticles[0]); cout << endl;
   printEEPose(ms->config.heightReticles[1]); cout << endl;
   printEEPose(ms->config.heightReticles[2]); cout << endl;
@@ -1341,7 +1341,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double yFlip = 1.0;
 
     // remember x, y are swapped
-    eePose thisFlipReticle = ms->config.heightReticles[currentThompsonHeightIdx];
+    eePose thisFlipReticle = ms->config.heightReticles[ms->config.currentThompsonHeightIdx];
     if (darkX < thisFlipReticle.px) {
       yFlip = -1.0;
     }
@@ -1354,11 +1354,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     // only do x
     if ((Px*xFlip) > 0) {
       m_x += .01;
-      m_x_h[currentThompsonHeightIdx] = m_x;
+      m_x_h[ms->config.currentThompsonHeightIdx] = m_x;
       cout << "m_x++ ";
     } else if ((Px*xFlip) < 0) {
       m_x -= .01;
-      m_x_h[currentThompsonHeightIdx] = m_x;
+      m_x_h[ms->config.currentThompsonHeightIdx] = m_x;
       cout << "m_x-- ";
     }
 
@@ -1396,7 +1396,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double yFlip = 1.0;
 
     // remember x, y are swapped
-    eePose thisFlipReticle = ms->config.heightReticles[currentThompsonHeightIdx];
+    eePose thisFlipReticle = ms->config.heightReticles[ms->config.currentThompsonHeightIdx];
     if (darkX < thisFlipReticle.px) {
       yFlip = -1.0;
     }
@@ -1409,11 +1409,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     // only do y
     if ((Py*yFlip) > 0) {
       m_y += .01;
-      m_y_h[currentThompsonHeightIdx] = m_y;
+      m_y_h[ms->config.currentThompsonHeightIdx] = m_y;
       cout << "m_y++ ";
     } else if ((Py*yFlip) < 0) {
       m_y -= .01;
-      m_y_h[currentThompsonHeightIdx] = m_y;
+      m_y_h[ms->config.currentThompsonHeightIdx] = m_y;
       cout << "m_y-- ";
     }
 

@@ -98,7 +98,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout <<
     "eePose = {.px = " << ms->config.trueEEPose.position.x << ", .py = " << ms->config.trueEEPose.position.y << ", .pz = " << ms->config.trueEEPose.position.z << "," << endl <<
     "		      .qx = " << ms->config.trueEEPose.orientation.x << ", .qy = " << ms->config.trueEEPose.orientation.y << ", .qz = " << ms->config.trueEEPose.orientation.z << ", .qw = " << ms->config.trueEEPose.orientation.w << "};" << endl;
-  cout << "currentThompsonHeightIdx: " << currentThompsonHeightIdx << endl;
+  cout << "currentThompsonHeightIdx: " << ms->config.currentThompsonHeightIdx << endl;
   cout << "mostRecentUntabledZ (remember this is inverted but correct): " << ms->config.mostRecentUntabledZ << endl;
   cout << "currentPickMode: " << pickModeToString(ms->config.currentPickMode) << endl;
   cout << "currentBoundingBoxMode: " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
@@ -382,7 +382,7 @@ CODE(65361) // left arrow
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   m_x += .01;
-  m_x_h[currentThompsonHeightIdx] = m_x;
+  m_x_h[ms->config.currentThompsonHeightIdx] = m_x;
   cout << "m_x, m_x_h: " << m_x << endl;
 }
 END_WORD
@@ -393,7 +393,7 @@ CODE(65363) // right arrow
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   m_x -= .01;
-  m_x_h[currentThompsonHeightIdx] = m_x;
+  m_x_h[ms->config.currentThompsonHeightIdx] = m_x;
   cout << "m_x, m_x_h: " << m_x << endl;
 }
 END_WORD
@@ -404,7 +404,7 @@ CODE(65362) // up arrow
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   m_y += .01;
-  m_y_h[currentThompsonHeightIdx] = m_y;
+  m_y_h[ms->config.currentThompsonHeightIdx] = m_y;
   cout << "m_y, m_y_h: " << m_y << endl;
 }
 END_WORD
@@ -415,7 +415,7 @@ CODE(65364) // down arrow
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   m_y -= .01;
-  m_y_h[currentThompsonHeightIdx] = m_y;
+  m_y_h[ms->config.currentThompsonHeightIdx] = m_y;
   cout << "m_y, m_y_h: " << m_y << endl;
 }
 END_WORD
