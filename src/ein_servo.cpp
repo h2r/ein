@@ -127,16 +127,16 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
   double threshedZ = min(ms->config.trZ, 0.0);
 
-  double pickZpre = -(threshedZ + ms->config.currentTableZ) + pickFlushFactor + graspDepthOffset;
-  double flushZ = -(ms->config.currentTableZ) + pickFlushFactor;
+  double pickZpre = -(threshedZ + ms->config.currentTableZ) + ms->config.pickFlushFactor + ms->config.graspDepthOffset;
+  double flushZ = -(ms->config.currentTableZ) + ms->config.pickFlushFactor;
   double pickZ = max(flushZ, pickZpre);
 
   int useIncrementalPick = 0;
   bool useHybridPick = 1;
 
   double deltaZ = pickZ - ms->config.currentEEPose.pz;
-  lastPickPose = ms->config.currentEEPose;
-  lastPickPose.pz = pickZ;
+  ms->config.lastPickPose = ms->config.currentEEPose;
+  ms->config.lastPickPose.pz = pickZ;
 
 
 
@@ -220,7 +220,7 @@ REGISTER_WORD(ShakeItUpAndDown)
 
 WORD(TryToMoveToTheLastPrePickHeight)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentEEPose.pz = lastPrePickPose.pz;
+  ms->config.currentEEPose.pz = ms->config.lastPrePickPose.pz;
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   cout << "trying to move to the last pre pick height..." << endl;
 }
@@ -230,7 +230,7 @@ REGISTER_WORD(TryToMoveToTheLastPrePickHeight)
 WORD(TryToMoveToTheLastPickHeight)
 CODE( 262241)     // ctrl + a
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double deltaZ = (lastPickPose.pz) - ms->config.currentEEPose.pz;
+  double deltaZ = (ms->config.lastPickPose.pz) - ms->config.currentEEPose.pz;
   double zTimes = fabs(floor(deltaZ / ms->config.bDelta)); 
   int numNoOps = 2;
   int useIncrementalPlace = 0;
@@ -256,7 +256,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     if (useHybridPlace) {
       int pickNoops = 20;
       int increments = 0.1/MOVE_FAST;
-      ms->config.currentEEPose.pz = lastPickPose.pz+increments*MOVE_FAST;
+      ms->config.currentEEPose.pz = ms->config.lastPickPose.pz+increments*MOVE_FAST;
 
       //ms->pushCopies("endStackCollapseNoop", pickNoops);
       ms->pushWord("waitUntilAtCurrentPosition"); 
@@ -269,7 +269,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       //ms->pushWord("quarterImpulse");
       ms->pushWord("approachSpeed");
     } else {
-      ms->config.currentEEPose.pz = lastPickPose.pz;
+      ms->config.currentEEPose.pz = ms->config.lastPickPose.pz;
       ms->pushWord("waitUntilAtCurrentPosition"); 
     }
   }
@@ -1244,8 +1244,8 @@ WORD(GradientServoPrep)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // ATTN 8
   if (0) {
-    ms->pushCopies("density", densityIterationsForGradientServo); 
-    //ms->pushCopies("accumulateDensity", densityIterationsForGradientServo); 
+    ms->pushCopies("density", ms->config.densityIterationsForGradientServo); 
+    //ms->pushCopies("accumulateDensity", ms->config.densityIterationsForGradientServo); 
     //ms->pushCopies("resetTemporalMap", 1); 
     ms->pushWord("resetAerialGradientTemporalFrameAverage"); 
     ms->pushCopies("density", 1); 
@@ -1304,7 +1304,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     lastAdded->aimedPose = ms->config.currentEEPose;
     // XXX picked pose doesn't seem to mean anything here so likely doesn't matteer
     lastAdded->pickedPose = ms->config.currentEEPose;
-    lastAdded->pickedPose.pz  = lastPickPose.pz;
+    lastAdded->pickedPose.pz  = ms->config.lastPickPose.pz;
     // XXX picked pose doesn't seem to mean anything here so likely doesn't matteer
     lastAdded->trZ  = ms->config.trZ;
     cout << "recordTargetLock saving pickedPose..." << endl;
@@ -1378,7 +1378,7 @@ REGISTER_WORD(DarkServoB)
 WORD(GoToPrePickPose)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  ms->config.currentEEPose = lastPrePickPose;
+  ms->config.currentEEPose = ms->config.lastPrePickPose;
 }
 END_WORD
 REGISTER_WORD(GoToPrePickPose)
@@ -1387,7 +1387,7 @@ REGISTER_WORD(GoToPrePickPose)
 WORD(GoToLastPickPose)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  ms->config.currentEEPose = lastPickPose;
+  ms->config.currentEEPose = ms->config.lastPickPose;
 }
 END_WORD
 REGISTER_WORD(GoToLastPickPose)

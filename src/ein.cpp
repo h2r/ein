@@ -121,16 +121,8 @@ ros::Publisher einPub;
 ros::Publisher vmMarkerPublisher;
 
 
-int densityIterationsForGradientServo = 10;//3;//10;
 
-double graspDepthOffset = -0.04;
-eePose lastPickPose;
-eePose lastPrePickPose;
 
-// this needs to place the gripper BELOW the table
-//  by a margin, or it could prevent getting flush
-//  with the table near a sag
-double pickFlushFactor = 0.08;//0.09;//0.11;
 
 int bbLearningMaxTries = 15;
 int graspLearningMaxTries = 10;
@@ -7243,8 +7235,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
     
     ms->pushWord("gradientServo"); 
     // ATTN 8
-    //ms->pushCopies("density", densityIterationsForGradientServo); 
-    //ms->pushCopies("accumulateDensity", densityIterationsForGradientServo); 
+    //ms->pushCopies("density", ms->config.densityIterationsForGradientServo); 
+    //ms->pushCopies("accumulateDensity", ms->config.densityIterationsForGradientServo); 
     //ms->pushCopies("resetTemporalMap", 1); 
     //ms->pushWord("resetAerialGradientTemporalFrameAverage"); 
     //ms->pushCopies("density", 1); 
@@ -7355,8 +7347,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
     // ATTN 8
     //ms->pushWord("visionCycle"); // vision cycle
     //ms->pushWord(196721); // vision cycle no classify
-    //ms->pushCopies("density", densityIterationsForGradientServo); // density
-    //ms->pushCopies("accumulateDensity", densityIterationsForGradientServo); 
+    //ms->pushCopies("density", ms->config.densityIterationsForGradientServo); // density
+    //ms->pushCopies("accumulateDensity", ms->config.densityIterationsForGradientServo); 
     //ms->pushCopies("resetTemporalMap", 1); // reset temporal map
     //ms->pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
     //ms->pushCopies("density", 1); // density
@@ -7593,8 +7585,8 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       if ((classAerialGradients[ms->config.targetClass].rows > 1) && (classAerialGradients[ms->config.targetClass].cols > 1)) {
         ms->pushWord("gradientServo"); 
         cout << "Queuing gradient servo." << endl;
-        //ms->pushCopies("density", densityIterationsForGradientServo); 
-	//ms->pushCopies("accumulateDensity", densityIterationsForGradientServo); 
+        //ms->pushCopies("density", ms->config.densityIterationsForGradientServo); 
+	//ms->pushCopies("accumulateDensity", ms->config.densityIterationsForGradientServo); 
         //ms->pushCopies("resetTemporalMap", 1); 
         //ms->pushWord("resetAerialGradientTemporalFrameAverage"); 
         //ms->pushCopies("density", 1); 

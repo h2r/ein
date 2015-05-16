@@ -1908,7 +1908,7 @@ REGISTER_WORD(ScanObjectFast)
 WORD(RecordGraspZ)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // uses ms->config.currentEEPose instead of ms->config.trueEEPose so that we can set it below the table
-  double flushZ = -(ms->config.currentTableZ) + pickFlushFactor;
+  double flushZ = -(ms->config.currentTableZ) + ms->config.pickFlushFactor;
   ms->config.currentGraspZ = ms->config.currentEEPose.pz - flushZ;
   cout << "recordGraspZ flushZ currentGraspZ: " << flushZ << " " << ms->config.currentGraspZ << " " << endl;
 }

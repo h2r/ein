@@ -41,8 +41,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   //ms->config.currentEEPose = memory.cameraPose;
   ms->config.currentEEPose = memory.aimedPose;
-  lastPickPose = memory.pickedPose;
-  lastPrePickPose = memory.aimedPose;
+  ms->config.lastPickPose = memory.pickedPose;
+  ms->config.lastPrePickPose = memory.aimedPose;
   ms->config.trZ = memory.trZ;
 
   cout << "deliverObject, " << ms->config.classGraspZsSet.size() << " " << ms->config.classGraspZs.size() << endl;
@@ -113,7 +113,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("executePreparedGrasp"); 
   //ms->pushWord("prepareForAndExecuteGraspFromMemory"); 
   //ms->pushWord("gradientServo");
-  //ms->pushCopies("density", densityIterationsForGradientServo); 
+  //ms->pushCopies("density", ms->config.densityIterationsForGradientServo); 
   //ms->pushCopies("resetTemporalMap", 1); 
   //ms->pushWord("synchronicServo"); 
   //ms->pushWord("visionCycle");

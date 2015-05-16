@@ -526,8 +526,7 @@ class EinConfig {
   int bailAfterGradient = 0;
   int useGradientServoThresh = 0;
   double gradientServoResetThresh = 0.7/(6.0e5);
-
-
+  int densityIterationsForGradientServo = 10;//3;//10;
 
   int gripperMoving = 0;
   double gripperPosition = 0;
@@ -559,6 +558,17 @@ class EinConfig {
   Mat aerialGradientTemporalFrameAverage;
   Mat preFrameGraySobel;
   Mat frameGraySobel;
+
+
+  double graspDepthOffset = -0.04;
+  eePose lastPickPose;
+  eePose lastPrePickPose;
+  
+  // this needs to place the gripper BELOW the table
+  //  by a margin, or it could prevent getting flush
+  //  with the table near a sag
+  double pickFlushFactor = 0.08;//0.09;//0.11;
+
 
 };
 
