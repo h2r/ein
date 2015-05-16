@@ -863,8 +863,8 @@ REGISTER_WORD(ScanCentered)
 
 WORD(SetTable)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  firstTableHeightTime = ros::Time::now();
-  mostRecentUntabledZLastValue = mostRecentUntabledZ;
+  ms->config.firstTableHeightTime = ros::Time::now();
+  ms->config.mostRecentUntabledZLastValue = ms->config.mostRecentUntabledZ;
   ms->pushWord("setTableA");
 }
 END_WORD
@@ -874,24 +874,24 @@ WORD(SetTableA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ros::Time thisTableHeightTime = ros::Time::now();
 
-  mostRecentUntabledZLastValue = ((1.0-mostRecentUntabledZDecay)*mostRecentUntabledZ) + (mostRecentUntabledZDecay*mostRecentUntabledZLastValue);
+  ms->config.mostRecentUntabledZLastValue = ((1.0-ms->config.mostRecentUntabledZDecay)*ms->config.mostRecentUntabledZ) + (ms->config.mostRecentUntabledZDecay*ms->config.mostRecentUntabledZLastValue);
 
-  oneTable = mostRecentUntabledZLastValue;
-  rightTableZ = oneTable;
-  leftTableZ = oneTable;
-  bagTableZ = oneTable;
-  counterTableZ = oneTable;
-  pantryTableZ = oneTable;
-  currentTableZ = oneTable;
+  ms->config.oneTable = ms->config.mostRecentUntabledZLastValue;
+  ms->config.rightTableZ = ms->config.oneTable;
+  ms->config.leftTableZ = ms->config.oneTable;
+  ms->config.bagTableZ = ms->config.oneTable;
+  ms->config.counterTableZ = ms->config.oneTable;
+  ms->config.pantryTableZ = ms->config.oneTable;
+  ms->config.currentTableZ = ms->config.oneTable;
 
-  if ( fabs(thisTableHeightTime.sec - firstTableHeightTime.sec) > mostRecentUntabledZWait) {
+  if ( fabs(thisTableHeightTime.sec - ms->config.firstTableHeightTime.sec) > ms->config.mostRecentUntabledZWait) {
     // do nothing
   } else {
-    double utZDelta = fabs(mostRecentUntabledZ - mostRecentUntabledZLastValue);
+    double utZDelta = fabs(ms->config.mostRecentUntabledZ - ms->config.mostRecentUntabledZLastValue);
     endThisStackCollapse = 1;
     ms->pushWord("setTableA");
-    cout << "Looks like the table reading hasn't steadied for the wait of " << mostRecentUntabledZWait << " ." << endl;
-    cout << "  current, last, delta: " << mostRecentUntabledZ << " " << mostRecentUntabledZLastValue << " " << utZDelta << endl;
+    cout << "Looks like the table reading hasn't steadied for the wait of " << ms->config.mostRecentUntabledZWait << " ." << endl;
+    cout << "  current, last, delta: " << ms->config.mostRecentUntabledZ << " " << ms->config.mostRecentUntabledZLastValue << " " << utZDelta << endl;
   } 
 }
 END_WORD
@@ -911,7 +911,7 @@ REGISTER_WORD(SetIROffset)
 WORD(ZeroIROffset)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   gear0offset = Eigen::Quaternionf(0.0, 0.0, 0.0, 0.0);
-  Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
+  Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
   irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
 }
 END_WORD
@@ -955,7 +955,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     gear0offset.y()+offByY, 
     0.0167228); // z is from TF, good for depth alignment
 
-  Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
+  Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
   irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
 }
 END_WORD
@@ -1023,7 +1023,7 @@ REGISTER_WORD(SetHeightReticles)
 WORD(PrintGlobalToPixel)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   {
-    double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
+    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
     globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
@@ -1123,14 +1123,14 @@ REGISTER_WORD(MoveCropToCenterVanishingPoint)
 
 WORD(MoveToSetVanishingPointHeightLow)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentEEPose.pz = minHeight - currentTableZ;
+  ms->config.currentEEPose.pz = minHeight - ms->config.currentTableZ;
 }
 END_WORD
 REGISTER_WORD(MoveToSetVanishingPointHeightLow)
 
 WORD(MoveToSetVanishingPointHeightHigh)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentEEPose.pz = ((0.75*maxHeight)+(0.25*minHeight)) - currentTableZ;
+  ms->config.currentEEPose.pz = ((0.75*maxHeight)+(0.25*minHeight)) - ms->config.currentTableZ;
 }
 END_WORD
 REGISTER_WORD(MoveToSetVanishingPointHeightHigh)
@@ -1331,7 +1331,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double magStep = 0.01;
 
   for (int i = 0; i < magIters; i++) {
-    double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
+    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
     globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
@@ -1386,7 +1386,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double magStep = 0.01;
 
   for (int i = 0; i < magIters; i++) {
-    double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
+    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
     globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
@@ -1911,7 +1911,7 @@ REGISTER_WORD(ScanObjectFast)
 WORD(RecordGraspZ)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // uses ms->config.currentEEPose instead of ms->config.trueEEPose so that we can set it below the table
-  double flushZ = -(currentTableZ) + pickFlushFactor;
+  double flushZ = -(ms->config.currentTableZ) + pickFlushFactor;
   ms->config.currentGraspZ = ms->config.currentEEPose.pz - flushZ;
   cout << "recordGraspZ flushZ currentGraspZ: " << flushZ << " " << ms->config.currentGraspZ << " " << endl;
 }
@@ -2009,7 +2009,7 @@ WORD(Lock3dGraspBase)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
     ms->config.c3dPoseBase = ms->config.currentEEPose;
-    ms->config.c3dPoseBase.pz = -currentTableZ;
+    ms->config.c3dPoseBase.pz = -ms->config.currentTableZ;
     cout << "The base for 3d grasp annotation is now locked and you are in zero-G mode. Please adjust use \"add3dGrasp\" to record a grasp point." << endl;
     cout << "When you are done, make sure to save to disk and to exit zero-G mode." << endl;
     ms->config.zero_g_toggle = 1;

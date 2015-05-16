@@ -61,7 +61,7 @@ REGISTER_WORD(AssumeWholeFoodsPantry1)
 WORD(ChangeToCounterTable)
 CODE(1179735) // capslock + numlock + w
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentTableZ = counterTableZ;
+  ms->config.currentTableZ = ms->config.counterTableZ;
 }
 END_WORD
 REGISTER_WORD(ChangeToCounterTable)
@@ -69,7 +69,7 @@ REGISTER_WORD(ChangeToCounterTable)
 WORD(ChangeToPantryTable)
 CODE(1179717)    // capslock + numlock + e
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentTableZ = pantryTableZ;
+  ms->config.currentTableZ = ms->config.pantryTableZ;
 }
 END_WORD
 REGISTER_WORD(ChangeToPantryTable)
@@ -118,7 +118,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     "eePose = {.px = " << ms->config.trueEEPose.position.x << ", .py = " << ms->config.trueEEPose.position.y << ", .pz = " << ms->config.trueEEPose.position.z << "," << endl <<
     "		      .qx = " << ms->config.trueEEPose.orientation.x << ", .qy = " << ms->config.trueEEPose.orientation.y << ", .qz = " << ms->config.trueEEPose.orientation.z << ", .qw = " << ms->config.trueEEPose.orientation.w << "};" << endl;
   cout << "currentThompsonHeightIdx: " << currentThompsonHeightIdx << endl;
-  cout << "mostRecentUntabledZ (remember this is inverted but correct): " << mostRecentUntabledZ << endl;
+  cout << "mostRecentUntabledZ (remember this is inverted but correct): " << ms->config.mostRecentUntabledZ << endl;
   cout << "currentPickMode: " << pickModeToString(currentPickMode) << endl;
   cout << "currentBoundingBoxMode: " << pickModeToString(currentBoundingBoxMode) << endl;
   cout << "gradientServoTakeClosest: " << gradientTakeClosest << endl;

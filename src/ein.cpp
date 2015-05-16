@@ -107,30 +107,6 @@ tf::TransformListener* tfListener;
 
 
 
-eePose crane1;
-
-eePose crane1right = {.px = 0.0448714, .py = -1.04476, .pz = 0.698522,
-		     .qx = 0.631511, .qy = 0.68929, .qz = -0.25435, .qw = 0.247748};
-eePose crane2right = {.px = 0.617214, .py = -0.301658, .pz = 0.0533165,
-		     .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
-
-eePose crane3right = {.px = 0.668384, .py = 0.166692, .pz = -0.120018,
-		     .qx = 0.0328281, .qy = 0.999139, .qz = 0.00170545, .qw = 0.0253245};
-eePose crane4right = {.px = 0.642291, .py = -0.659793, .pz = 0.144186,
-		     .qx = 0.825064, .qy = 0.503489, .qz = 0.12954, .qw = 0.221331};
-
-// poised
-eePose crane5right = {.px = 0.68502, .py = -0.109639, .pz = 0.722995,
-		     .qx = -0.425038, .qy = 0.79398, .qz = 0.183347, .qw = 0.39411};
-
-eePose crane1left = {.px = -0.0155901, .py = 0.981296, .pz = 0.71078,
-		     .qx = 0.709046, .qy = -0.631526, .qz = -0.226613, .qw = -0.216967};
-eePose crane2left = {.px = 0.646069, .py = 0.253621, .pz = 0.0570906,
-		     .qx = 0.999605, .qy = -0.0120443, .qz = 0.0253545, .qw = -0.00117847};
-eePose crane3left = {.px = 0.652866, .py = -0.206966, .pz = -0.130561,
-		     .qx = 0.999605, .qy = -0.0120443, .qz = 0.0253545, .qw = -0.00117847};
-
-
 // whole foods waypoints 
 eePose wholeFoodsBagR = {.px = 0.618641, .py = -0.502567, .pz = 0.054811,
 			 .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // straight down 
@@ -473,23 +449,6 @@ int thisGraspSucceed = -1;
 
 ros::Time graspTrialStart;
 
-double oneTable = 0.175;
-double rightTableZ = 0.172;//0.165;//0.19;//0.18;
-double leftTableZ = 0.172;//0.165;//0.19;//0.177;
-
-double bagTableZ = oneTable;//0.165;//0.19;//0.18; //0.195;//0.22;
-double counterTableZ = oneTable;//0.165;//0.19;//0.18;//0.209123; //0.20;//0.18;
-double pantryTableZ = oneTable;//0.165;//0.19;//0.18;//0.209123; //0.195;
-
-double currentTableZ = leftTableZ;
-
-ros::Time firstTableHeightTime;
-double mostRecentUntabledZWait = 2.0;
-double mostRecentUntabledZLastValue = INFINITY;
-double mostRecentUntabledZDecay = 0.97;
-double mostRecentUntabledZ = 0.0;
-eePose bestOrientationEEPose = crane2right;
-double bestOrientationAngle = 0;
 
 Mat lastAerialGradient;
 Mat lastRangeMap;
@@ -1262,12 +1221,12 @@ void spinlessPilotMain(shared_ptr<MachineState> ms);
 int doCalibrateGripper(shared_ptr<MachineState> ms);
 int calibrateGripper(shared_ptr<MachineState> ms);
 int shouldIPick(int classToPick);
-int getLocalGraspGear(int globalGraspGearIn);
-int getGlobalGraspGear(int localGraspGearIn);
-void convertGlobalGraspIdxToLocal(const int rx, const int ry, 
+int getLocalGraspGear(shared_ptr<MachineState> ms, int globalGraspGearIn);
+int getGlobalGraspGear(shared_ptr<MachineState> ms, int localGraspGearIn);
+void convertGlobalGraspIdxToLocal(shared_ptr<MachineState> ms, const int rx, const int ry, 
                                   int * localX, int * localY);
 
-void convertLocalGraspIdxToGlobal(const int localX, const int localY,
+void convertLocalGraspIdxToGlobal(shared_ptr<MachineState> ms, const int localX, const int localY,
                                   int * rx, int * ry);
 
 void changeTargetClass(shared_ptr<MachineState> ms, int);
@@ -1284,8 +1243,8 @@ void guardHeightMemory(shared_ptr<MachineState> ms);
 void loadSampledHeightMemory(shared_ptr<MachineState> ms);
 void loadMarginalHeightMemory(shared_ptr<MachineState> ms);
 void loadPriorHeightMemory(priorType);
-double convertHeightIdxToGlobalZ(int);
-int convertHeightGlobalZToIdx(double);
+double convertHeightIdxToGlobalZ(shared_ptr<MachineState> ms, int);
+int convertHeightGlobalZToIdx(shared_ptr<MachineState> ms, double);
 void testHeightConversion();
 void drawHeightMemorySample();
 void copyHeightMemoryTriesToClassHeightMemoryTries(shared_ptr<MachineState> ms);
@@ -1297,20 +1256,20 @@ void prepareGraspFilter2();
 void prepareGraspFilter3();
 void prepareGraspFilter4();
 
-void copyRangeMapRegister(double * src, double * target);
-void copyGraspMemoryRegister(double * src, double * target);
-void loadGlobalTargetClassRangeMap(double * rangeMapRegA, double * rangeMapRegB);
-void loadLocalTargetClassRangeMap(double * rangeMapRegA, double * rangeMapRegB);
+void copyRangeMapRegister(shared_ptr<MachineState> ms, double * src, double * target);
+void copyGraspMemoryRegister(shared_ptr<MachineState> ms, double * src, double * target);
+void loadGlobalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB);
+void loadLocalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB);
 void copyGraspMemoryTriesToClassGraspMemoryTries(shared_ptr<MachineState> ms);
 void copyClassGraspMemoryTriesToGraspMemoryTries();
 
-void selectMaxTarget(double minDepth);
-void selectMaxTargetThompson(double minDepth);
-void selectMaxTargetThompsonContinuous(double minDepth);
-void selectMaxTargetThompsonContinuous2(double minDepth);
-void selectMaxTargetThompsonRotated(double minDepth);
-void selectMaxTargetThompsonRotated2(double minDepth);
-void selectMaxTargetLinearFilter(double minDepth);
+void selectMaxTarget(shared_ptr<MachineState> ms, double minDepth);
+void selectMaxTargetThompson(shared_ptr<MachineState> ms, double minDepth);
+void selectMaxTargetThompsonContinuous(shared_ptr<MachineState> ms, double minDepth);
+void selectMaxTargetThompsonContinuous2(shared_ptr<MachineState> ms, double minDepth);
+void selectMaxTargetThompsonRotated(shared_ptr<MachineState> ms, double minDepth);
+void selectMaxTargetThompsonRotated2(shared_ptr<MachineState> ms, double minDepth);
+void selectMaxTargetLinearFilter(shared_ptr<MachineState> ms, double minDepth);
 
 void recordBoundingBoxSuccess();
 void recordBoundingBoxFailure();
@@ -2071,7 +2030,7 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 	Eigen::Vector3d rayDirection;
 
 	{
-	  Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
+	  Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
 	  irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
 	  Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
 	  Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
@@ -2115,10 +2074,10 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 	  // ATTN 0 this is negative because it used to be range and not Z but we have to chase the min / max switches to correct it
 	  thisZmeasurement = -irSensorEnd.z();
 	  // ATTN 25
-	  mostRecentUntabledZ = thisZmeasurement;
-	  //mostRecentUntabledZ = ((1.0-mostRecentUntabledZDecay)*thisZmeasurement) + (mostRecentUntabledZDecay*mostRecentUntabledZ);
+	  ms->config.mostRecentUntabledZ = thisZmeasurement;
+	  //mostRecentUntabledZ = ((1.0-ms->config.mostRecentUntabledZDecay)*thisZmeasurement) + (ms->config.mostRecentUntabledZDecay*mostRecentUntabledZ);
 	  // ATTN 1 currently accounting for table models
-	  thisZmeasurement = thisZmeasurement - currentTableZ;
+	  thisZmeasurement = thisZmeasurement - ms->config.currentTableZ;
 
 	  rayDirection = Eigen::Vector3d(localUnitZ.x(), localUnitZ.y(), localUnitZ.z());
 	}
@@ -2440,8 +2399,8 @@ void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
       box.bBot.x = ms->config.vanishingPointReticle.px+probeBoxHalfWidthPixels;
       box.bBot.y = ms->config.vanishingPointReticle.py+probeBoxHalfWidthPixels;
       box.cameraPose = ms->config.currentEEPose;
-      box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + currentTableZ);
-      box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + currentTableZ);
+      box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+      box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
       box.centroid.px = (box.top.px + box.bot.px) * 0.5;
       box.centroid.py = (box.top.py + box.bot.py) * 0.5;
       box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -2490,8 +2449,8 @@ void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
       box.bBot.x = ms->config.vanishingPointReticle.px+simulatedObjectHalfWidthPixels;
       box.bBot.y = ms->config.vanishingPointReticle.py+simulatedObjectHalfWidthPixels;
       box.cameraPose = ms->config.currentEEPose;
-      box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + currentTableZ);
-      box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + currentTableZ);
+      box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+      box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
       box.centroid.px = (box.top.px + box.bot.px) * 0.5;
       box.centroid.py = (box.top.py + box.bot.py) * 0.5;
       box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -3020,7 +2979,7 @@ Eigen::Quaternionf getCCRotation(shared_ptr<MachineState> ms, int givenGraspGear
   double angleRate = 1.0;
   //Eigen::Quaternionf eeBaseQuat(ms->config.eepReg2.qw, ms->config.eepReg2.qx, ms->config.eepReg2.qy, ms->config.eepReg2.qz);
   //Eigen::Quaternionf eeBaseQuat(0, 0, 1, 0);
-  Eigen::Quaternionf eeBaseQuat(bestOrientationEEPose.qw, bestOrientationEEPose.qx, bestOrientationEEPose.qy, bestOrientationEEPose.qz);
+  Eigen::Quaternionf eeBaseQuat(ms->config.bestOrientationEEPose.qw, ms->config.bestOrientationEEPose.qx, ms->config.bestOrientationEEPose.qy, ms->config.bestOrientationEEPose.qz);
   sinBuff = sin(angleRate*0.0/2.0);
   Eigen::Quaternionf eeRotatorX(cos(angleRate*0.0/2.0), localUnitX.x()*sinBuff, localUnitX.y()*sinBuff, localUnitX.z()*sinBuff);
   sinBuff = sin(angleRate*0.0/2.0);
@@ -3038,7 +2997,7 @@ Eigen::Quaternionf getCCRotation(shared_ptr<MachineState> ms, int givenGraspGear
 }
 
 void setCCRotation(shared_ptr<MachineState> ms, int thisGraspGear) {
-  //Eigen::Quaternionf eeBaseQuat = getCCRotation(ms, thisGraspGear, -bestOrientationAngle);
+  //Eigen::Quaternionf eeBaseQuat = getCCRotation(ms, thisGraspGear, -ms->config.bestOrientationAngle);
   Eigen::Quaternionf eeBaseQuat = getCCRotation(ms, thisGraspGear, 0.0);
 
   ms->config.currentEEPose.qx = eeBaseQuat.x();
@@ -3172,7 +3131,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
     double dY = 0;
 
     {
-      Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
+      Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
       irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
       Eigen::Quaternionf ceeQuat(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
       Eigen::Quaternionf irSensorStartLocal = ceeQuat * irGlobalPositionEEFrame * ceeQuat.conjugate();
@@ -4136,7 +4095,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     {
       eePose irPose;
       {
-	Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
+	Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
 	irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
 	geometry_msgs::Pose thisPose = ms->config.trueEEPose;
 	Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
@@ -4872,7 +4831,7 @@ void loadCalibration(shared_ptr<MachineState> ms, string inFileName) {
   {
     FileNode anode = fsvI["currentTableZ"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
-    currentTableZ = *(it++);
+    ms->config.currentTableZ = *(it++);
   }
 
   {
@@ -4980,7 +4939,7 @@ void saveCalibration(shared_ptr<MachineState> ms, string outFileName) {
   fsvO.open(outFileName, FileStorage::WRITE);
 
   fsvO << "currentTableZ" << "[" 
-    << currentTableZ 
+    << ms->config.currentTableZ 
   << "]";
 
   fsvO << "cropUpperLeftCorner" << "[" 
@@ -5070,7 +5029,8 @@ void pilotInit(shared_ptr<MachineState> ms) {
                       .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
     ms->config.reticle = ms->config.defaultReticle;
 
-    crane1 = crane1left;
+    ms->config.crane1 = {.px = -0.0155901, .py = 0.981296, .pz = 0.71078,
+		     .qx = 0.709046, .qy = -0.631526, .qz = -0.226613, .qw = -0.216967};
 
     double ystart = 0.1;
     double yend = 0.7;
@@ -5088,10 +5048,10 @@ void pilotInit(shared_ptr<MachineState> ms) {
     rssPose = rssPoseL;
     ms->config.ik_reset_eePose = rssPose;
 
-    currentTableZ = leftTableZ;
-    bagTableZ = leftTableZ;
-    counterTableZ = leftTableZ;
-    pantryTableZ  = leftTableZ;
+    ms->config.currentTableZ = ms->config.leftTableZ;
+    ms->config.bagTableZ = ms->config.leftTableZ;
+    ms->config.counterTableZ = ms->config.leftTableZ;
+    ms->config.pantryTableZ  = ms->config.leftTableZ;
 
     wholeFoodsBag1 = rssPoseL; //wholeFoodsBagL;
     wholeFoodsPantry1 = rssPoseL; //wholeFoodsPantryL;
@@ -5204,7 +5164,8 @@ void pilotInit(shared_ptr<MachineState> ms) {
                       .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
     ms->config.reticle = ms->config.defaultReticle;
 
-    crane1 = crane1right;
+    ms->config.crane1 = {.px = 0.0448714, .py = -1.04476, .pz = 0.698522,
+              .qx = 0.631511, .qy = 0.68929, .qz = -0.25435, .qw = 0.247748};
 
     double ystart = -0.7;
     double yend = -0.1;
@@ -5222,10 +5183,10 @@ void pilotInit(shared_ptr<MachineState> ms) {
     rssPose = rssPoseR;
     ms->config.ik_reset_eePose = rssPose;
 
-    currentTableZ = rightTableZ;
-    bagTableZ = rightTableZ;
-    counterTableZ = rightTableZ;
-    pantryTableZ  = rightTableZ;
+    ms->config.currentTableZ = ms->config.rightTableZ;
+    ms->config.bagTableZ = ms->config.rightTableZ;
+    ms->config.counterTableZ = ms->config.rightTableZ;
+    ms->config.pantryTableZ  = ms->config.rightTableZ;
 
     wholeFoodsBag1 = rssPoseR; //wholeFoodsBagR;
     wholeFoodsPantry1 = rssPoseR; //wholeFoodsPantryR;
@@ -5439,7 +5400,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
     //}
 
     // invert the transformation
-    Eigen::Quaternionf crane2quat(crane2right.qw, crane2right.qx, crane2right.qy, crane2right.qz);
+    Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
     irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
 
     cout << "irGlobalPositionEEFrame w x y z: " << irGlobalPositionEEFrame.w() << " " << 
@@ -5510,12 +5471,12 @@ int shouldIPick(int classToPick) {
   return toReturn;
 }
 
-int getLocalGraspGear(int globalGraspGearIn) {
+int getLocalGraspGear(shared_ptr<MachineState> ms, int globalGraspGearIn) {
   // ATTN 7
   // diagnostic line
   //Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
   // correct line
-  Quaternionf eeqform(bestOrientationEEPose.qw, bestOrientationEEPose.qx, bestOrientationEEPose.qy, bestOrientationEEPose.qz);
+  Quaternionf eeqform(ms->config.bestOrientationEEPose.qw, ms->config.bestOrientationEEPose.qx, ms->config.bestOrientationEEPose.qy, ms->config.bestOrientationEEPose.qz);
 
   Quaternionf gear1Orient = getGGRotation(0);
   Quaternionf rel = eeqform * gear1Orient.inverse();
@@ -5545,17 +5506,17 @@ int getLocalGraspGear(int globalGraspGearIn) {
 
   //cout << "getLocalGraspGear angle deltaGG ggToReturn: " << angle << " " << deltaGG << " " << ggToReturn << endl;
 
-  assert(getGlobalGraspGear(ggToReturn) == globalGraspGearIn);
+  assert(getGlobalGraspGear(ms, ggToReturn) == globalGraspGearIn);
 
   return ggToReturn;
 }
 
-int getGlobalGraspGear(int localGraspGearIn) {
+int getGlobalGraspGear(shared_ptr<MachineState> ms, int localGraspGearIn) {
   // ATTN 7
   // diagnostic line
   //Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
   // correct line
-  Quaternionf eeqform(bestOrientationEEPose.qw, bestOrientationEEPose.qx, bestOrientationEEPose.qy, bestOrientationEEPose.qz);
+  Quaternionf eeqform(ms->config.bestOrientationEEPose.qw, ms->config.bestOrientationEEPose.qx, ms->config.bestOrientationEEPose.qy, ms->config.bestOrientationEEPose.qz);
 
   Quaternionf gear1Orient = getGGRotation(0);
   Quaternionf rel = eeqform * gear1Orient.inverse();
@@ -5584,7 +5545,7 @@ int getGlobalGraspGear(int localGraspGearIn) {
   // we are doing ceiling by taking the floor and then adding one, the inverse of getLocalGraspGear.
   int ggToReturn = (totalGraspGears + localGraspGearIn + 1 + int(deltaGG)) % (totalGraspGears / 2);
 
-  //assert(getLocalGraspGear(ggToReturn) == localGraspGearIn);
+  //assert(getLocalGraspGear(ms, ggToReturn) == localGraspGearIn);
 
   return ggToReturn;
 }
@@ -5773,7 +5734,7 @@ int doCalibrateGripper(shared_ptr<MachineState> ms) {
   return return_value;
 }
 
-void convertGlobalGraspIdxToLocal(const int rx, const int ry, 
+void convertGlobalGraspIdxToLocal(shared_ptr<MachineState> ms, const int rx, const int ry, 
                                   int * localX, int * localY) {
   // COMPLETELY UNTESTED
   assert(0);
@@ -5781,7 +5742,7 @@ void convertGlobalGraspIdxToLocal(const int rx, const int ry,
   double thX = (rx-rmHalfWidth) * rmDelta;
   double thY = (ry-rmHalfWidth) * rmDelta;
   // transform it into local coordinates
-  double unangle = -bestOrientationAngle;
+  double unangle = -ms->config.bestOrientationAngle;
   double unscale = 1.0;
   Point uncenter = Point(0, 0);
   Mat un_rot_mat = getRotationMatrix2D(uncenter, unangle, unscale);
@@ -5797,13 +5758,13 @@ void convertGlobalGraspIdxToLocal(const int rx, const int ry,
 
 }
 
-void convertLocalGraspIdxToGlobal(const int localX, const int localY,
+void convertLocalGraspIdxToGlobal(shared_ptr<MachineState> ms, const int localX, const int localY,
                                   int * rx, int * ry) {
   // find local coordinate of current point
   double thX = (localX-rmHalfWidth) * rmDelta;
   double thY = (localY-rmHalfWidth) * rmDelta;
   // transform it into local coordinates
-  double unangle = bestOrientationAngle;
+  double unangle = ms->config.bestOrientationAngle;
   double unscale = 1.0;
   Point uncenter = Point(0, 0);
   Mat un_rot_mat = getRotationMatrix2D(uncenter, unangle, unscale);
@@ -5862,7 +5823,7 @@ void loadPriorGraspMemory(shared_ptr<MachineState> ms, priorType prior) {
 
   for (int tGG = 0; tGG < totalGraspGears/2; tGG++) {
     prepareGraspFilter(tGG);
-    loadLocalTargetClassRangeMap(rangeMapReg3, rangeMapReg4);
+    loadLocalTargetClassRangeMap(ms, rangeMapReg3, rangeMapReg4);
     applyGraspFilter(rangeMapReg3, rangeMapReg4);
 
     for (int rx = 0; rx < rmWidth; rx++) {
@@ -6006,27 +5967,27 @@ void loadSampledHeightMemory(shared_ptr<MachineState> ms) {
   drawHeightMemorySample();
 }
 
-double convertHeightIdxToGlobalZ(int heightIdx) {
-  double tabledMaxHeight = maxHeight - currentTableZ;
-  double tabledMinHeight = minHeight - currentTableZ;
+double convertHeightIdxToGlobalZ(shared_ptr<MachineState> ms, int heightIdx) {
+  double tabledMaxHeight = maxHeight - ms->config.currentTableZ;
+  double tabledMinHeight = minHeight - ms->config.currentTableZ;
 
   double scaledHeight = (double(heightIdx)/double(hmWidth-1)) * (tabledMaxHeight - tabledMinHeight);
   double scaledTranslatedHeight = scaledHeight + tabledMinHeight;
   return scaledTranslatedHeight;
 }
 
-int convertHeightGlobalZToIdx(double globalZ) {
-  double tabledMaxHeight = maxHeight - currentTableZ;
-  double tabledMinHeight = minHeight - currentTableZ;
+int convertHeightGlobalZToIdx(shared_ptr<MachineState> ms, double globalZ) {
+  double tabledMaxHeight = maxHeight - ms->config.currentTableZ;
+  double tabledMinHeight = minHeight - ms->config.currentTableZ;
 
-  double scaledHeight = (globalZ - currentTableZ) / (tabledMaxHeight - tabledMinHeight);
+  double scaledHeight = (globalZ - ms->config.currentTableZ) / (tabledMaxHeight - tabledMinHeight);
   int heightIdx = floor(scaledHeight * (hmWidth - 1));
 }
 
-void testHeightConversion() {
+void testHeightConversion(shared_ptr<MachineState> ms) {
   for (int i = 0; i < hmWidth; i++) {
-    double height = convertHeightIdxToGlobalZ(i);
-    int newIdx = convertHeightGlobalZToIdx(height);
+    double height = convertHeightIdxToGlobalZ(ms, i);
+    int newIdx = convertHeightGlobalZToIdx(ms, height);
     cout << "i: " << i << " height: " << height << " newIdx: " << newIdx << endl;
     //assert(newIdx == i);
   }
@@ -6126,7 +6087,7 @@ void copyHeightMemoryTriesToClassHeightMemoryTries(shared_ptr<MachineState> ms) 
   }
 }
 
-void estimateGlobalGraspGear() {
+void estimateGlobalGraspGear(shared_ptr<MachineState> ms) {
   ROS_INFO("Estimating global grasp gear.");
   double max_range_value = -VERYBIGNUMBER;
   double min_range_value = VERYBIGNUMBER;
@@ -6134,7 +6095,7 @@ void estimateGlobalGraspGear() {
 
   for (int tGG = 0; tGG < totalGraspGears/2; tGG++) {
     prepareGraspFilter(tGG);
-    loadGlobalTargetClassRangeMap(rangeMapReg3, rangeMapReg4);
+    loadGlobalTargetClassRangeMap(ms, rangeMapReg3, rangeMapReg4);
     applyGraspFilter(rangeMapReg3, rangeMapReg4);
 
     int rx = maxX;
@@ -6152,7 +6113,7 @@ void estimateGlobalGraspGear() {
   }
 
   maxGG = eMinGG;
-  localMaxGG = getLocalGraspGear(eMinGG);
+  localMaxGG = getLocalGraspGear(ms, eMinGG);
 }
 
 void drawMapRegisters() {
@@ -6468,9 +6429,9 @@ void copyGraspMemoryRegister(double * src, double * target) {
   }
 }
 
-void loadGlobalTargetClassRangeMap(double * rangeMapRegA, double * rangeMapRegB) {
+void loadGlobalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB) {
   //Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
-  Quaternionf eeqform(bestOrientationEEPose.qw, bestOrientationEEPose.qx, bestOrientationEEPose.qy, bestOrientationEEPose.qz);
+  Quaternionf eeqform(ms->config.bestOrientationEEPose.qw, ms->config.bestOrientationEEPose.qx, ms->config.bestOrientationEEPose.qy, ms->config.bestOrientationEEPose.qz);
   Quaternionf crane2Orient(0, 1, 0, 0);
   Quaternionf rel = eeqform * crane2Orient.inverse();
   Quaternionf ex(0,1,0,0);
@@ -6500,7 +6461,7 @@ void loadGlobalTargetClassRangeMap(double * rangeMapRegA, double * rangeMapRegB)
   Mat rot_mat = getRotationMatrix2D(center, angle, scale);
   warpAffine(classRangeMaps[targetClass], rotatedClassRangeMap, rot_mat, toBecome, INTER_LINEAR, BORDER_REPLICATE);
 
-  bestOrientationAngle = angle;
+  ms->config.bestOrientationAngle = angle;
 
   if ((targetClass < numClasses) && (targetClass >= 0)) {
     for (int y = 0; y < rmWidth; y++) {
@@ -6517,7 +6478,7 @@ void loadGlobalTargetClassRangeMap(double * rangeMapRegA, double * rangeMapRegB)
 }
 
 
-void loadLocalTargetClassRangeMap(double * rangeMapRegA, double * rangeMapRegB) {
+void loadLocalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB) {
   if ((targetClass < numClasses) && (targetClass >= 0)) {
     for (int y = 0; y < rmWidth; y++) {
       for (int x = 0; x < rmWidth; x++) {
@@ -6723,7 +6684,7 @@ void copyGraspMemoryTriesToClassGraspMemoryTries(shared_ptr<MachineState> ms) {
   }
 }
 
-void selectMaxTarget(double minDepth) {
+void selectMaxTarget(shared_ptr<MachineState> ms, double minDepth) {
   // ATTN 10
   //selectMaxTargetLinearFilter(minDepth);
   //selectMaxTargetThompsonRotated(minDepth);
@@ -6731,10 +6692,10 @@ void selectMaxTarget(double minDepth) {
   // ATTN 19
   //selectMaxTargetThompson(minDepth);
   //selectMaxTargetThompsonContinuous(minDepth);
-  selectMaxTargetThompsonContinuous2(minDepth);
+  selectMaxTargetThompsonContinuous2(ms, minDepth);
 }
 
-void selectMaxTargetLinearFilter(double minDepth) {
+void selectMaxTargetLinearFilter(shared_ptr<MachineState> ms, double minDepth) {
   // ATTN 2
   int maxSearchPadding = 3;
   //int maxSearchPadding = 4;
@@ -6752,7 +6713,7 @@ void selectMaxTargetLinearFilter(double minDepth) {
         double thX = (rx-rmHalfWidth) * rmDelta;
         double thY = (ry-rmHalfWidth) * rmDelta;
         // transform it into local coordinates
-        double unangle = -bestOrientationAngle;
+        double unangle = -ms->config.bestOrientationAngle;
         double unscale = 1.0;
         Point uncenter = Point(0, 0);
         Mat un_rot_mat = getRotationMatrix2D(uncenter, unangle, unscale);
@@ -6766,14 +6727,14 @@ void selectMaxTargetLinearFilter(double minDepth) {
         localIntThX = ((localThX)/rmDelta) + rmHalfWidth; 
         localIntThY = ((localThY)/rmDelta) + rmHalfWidth; 
         // retrieve its value
-        double mDenom = max(graspMemoryTries[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)], 1.0);
+        double mDenom = max(graspMemoryTries[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(ms, pMachineState->config.currentGraspGear)], 1.0);
         if ((localIntThX < rmWidth) && (localIntThY < rmWidth)) {
 
           // Thompson
-          //graspMemoryWeight = (graspMemorySample[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)]) * -1;  
+          //graspMemoryWeight = (graspMemorySample[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(ms, pMachineState->config.currentGraspGear)]) * -1;  
 
           // Original
-          //graspMemoryWeight = graspMemoryPicks[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)] / mDenom;
+          //graspMemoryWeight = graspMemoryPicks[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(ms, pMachineState->config.currentGraspGear)] / mDenom;
           //graspMemoryWeight = graspMemoryWeight * rangeMapReg1[rx + ry*rmWidth]);  
            
           // No memory; just linear filter
@@ -6786,7 +6747,7 @@ void selectMaxTargetLinearFilter(double minDepth) {
 
 
       //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)] << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(ms, pMachineState->config.currentGraspGear)] << endl;
 	    
       // 
       if (graspMemoryBias + graspMemoryWeight < minDepth) 
@@ -6797,7 +6758,7 @@ void selectMaxTargetLinearFilter(double minDepth) {
 	maxY = ry;
 	localMaxX = localIntThX;
 	localMaxY = localIntThY;
-	localMaxGG = getLocalGraspGear(pMachineState->config.currentGraspGear);
+	localMaxGG = getLocalGraspGear(ms, pMachineState->config.currentGraspGear);
 	maxD = rangeMapReg1[rx + ry*rmWidth];
 	maxGG = pMachineState->config.currentGraspGear;
 	useContinuousGraspTransform = 0;
@@ -6807,7 +6768,7 @@ void selectMaxTargetLinearFilter(double minDepth) {
   cout << "non-cumulative maxX: " << maxX << " maxY: " << maxY <<  " maxD: " << maxD << " maxGG: " << maxGG << endl;
 }
 
-void selectMaxTargetThompson(double minDepth) {
+void selectMaxTargetThompson(shared_ptr<MachineState> ms, double minDepth) {
   // ATTN 2
   int maxSearchPadding = 3;
   //int maxSearchPadding = 4;
@@ -6818,11 +6779,11 @@ void selectMaxTargetThompson(double minDepth) {
       double graspMemoryWeight = 0.0;
       double graspMemoryBias = VERYBIGNUMBER;
       int rx, ry;
-      convertLocalGraspIdxToGlobal(localX, localY, &rx, &ry);
+      convertLocalGraspIdxToGlobal(ms, localX, localY, &rx, &ry);
       if ((rx < rmWidth) && (ry < rmWidth)) {
         
         // Thompson
-        graspMemoryWeight = (graspMemorySample[localX + localY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)]) * -1;  
+        graspMemoryWeight = (graspMemorySample[localX + localY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(ms, pMachineState->config.currentGraspGear)]) * -1;  
         
         graspMemoryBias = 0;
       } else {
@@ -6832,7 +6793,7 @@ void selectMaxTargetThompson(double minDepth) {
       //cout << "graspMemory Thompson incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localX << " " << localY << " " << graspMemoryWeight << endl;
       
       // ATTN 19
-      int i = localX + localY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear);
+      int i = localX + localY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(ms, pMachineState->config.currentGraspGear);
       int maxedOutTries = isThisGraspMaxedOut(i);
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
@@ -6842,7 +6803,7 @@ void selectMaxTargetThompson(double minDepth) {
 	maxY = ry;
 	localMaxX = localX;
 	localMaxY = localY;
-	localMaxGG = getLocalGraspGear(pMachineState->config.currentGraspGear);
+	localMaxGG = getLocalGraspGear(ms, pMachineState->config.currentGraspGear);
 	maxD = graspMemoryWeight;
 	maxGG = pMachineState->config.currentGraspGear;
 	useContinuousGraspTransform = 0;
@@ -6852,7 +6813,7 @@ void selectMaxTargetThompson(double minDepth) {
   cout << "non-cumulative Thompson maxX: " << maxX << " maxY: " << maxY <<  " maxD: " << maxD << " maxGG: " << maxGG << endl;
 }
 
-void selectMaxTargetThompsonContinuous(double minDepth) {
+void selectMaxTargetThompsonContinuous(shared_ptr<MachineState> ms, double minDepth) {
   // ATTN 2
   int maxSearchPadding = 3;
   //int maxSearchPadding = 4;
@@ -6870,7 +6831,7 @@ void selectMaxTargetThompsonContinuous(double minDepth) {
         double thX = (rx-rmHalfWidth) * rmDelta;
         double thY = (ry-rmHalfWidth) * rmDelta;
         // transform it into local coordinates
-        double unangle = -bestOrientationAngle;
+        double unangle = -ms->config.bestOrientationAngle;
         double unscale = 1.0;
         Point uncenter = Point(0, 0);
         Mat un_rot_mat = getRotationMatrix2D(uncenter, unangle, unscale);
@@ -6884,11 +6845,11 @@ void selectMaxTargetThompsonContinuous(double minDepth) {
         localIntThX = ((localThX)/rmDelta) + rmHalfWidth; 
         localIntThY = ((localThY)/rmDelta) + rmHalfWidth; 
         // retrieve its value
-        double mDenom = max(graspMemoryTries[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)], 1.0);
+        double mDenom = max(graspMemoryTries[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(ms, pMachineState->config.currentGraspGear)], 1.0);
         if ((localIntThX < rmWidth) && (localIntThY < rmWidth)) {
 
           // Thompson
-          graspMemoryWeight = (graspMemorySample[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)]) * -1;  
+          graspMemoryWeight = (graspMemorySample[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(ms, pMachineState->config.currentGraspGear)]) * -1;  
 
           graspMemoryBias = 0;
         } else {
@@ -6897,10 +6858,10 @@ void selectMaxTargetThompsonContinuous(double minDepth) {
       }
 
       //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)] << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(ms, pMachineState->config.currentGraspGear)] << endl;
 	    
       // ATTN 19
-      int i = localIntThX + localIntThY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear);
+      int i = localIntThX + localIntThY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(ms, pMachineState->config.currentGraspGear);
       int maxedOutTries = isThisGraspMaxedOut(i);
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
@@ -6911,10 +6872,10 @@ void selectMaxTargetThompsonContinuous(double minDepth) {
 	localMaxX = localIntThX;
 	localMaxY = localIntThY;
 	//localMaxGG = pMachineState->config.currentGraspGear;
-	localMaxGG = getLocalGraspGear(pMachineState->config.currentGraspGear);
+	localMaxGG = getLocalGraspGear(ms, pMachineState->config.currentGraspGear);
 	maxD = graspMemoryWeight;
 	//maxGG = pMachineState->config.currentGraspGear;
-	maxGG = getLocalGraspGear(pMachineState->config.currentGraspGear);
+	maxGG = getLocalGraspGear(ms, pMachineState->config.currentGraspGear);
 	useContinuousGraspTransform = 1;
 	//useContinuousGraspTransform = 0;
       }
@@ -6923,7 +6884,7 @@ void selectMaxTargetThompsonContinuous(double minDepth) {
   cout << "non-cumulative maxX: " << maxX << " maxY: " << maxY <<  " maxD: " << maxD << " maxGG: " << maxGG << endl;
 }
 
-void selectMaxTargetThompsonContinuous2(double minDepth) {
+void selectMaxTargetThompsonContinuous2(shared_ptr<MachineState> ms, double minDepth) {
   // ATTN 2
   int maxSearchPadding = 3;
   //int maxSearchPadding = 4;
@@ -6943,7 +6904,7 @@ void selectMaxTargetThompsonContinuous2(double minDepth) {
         double thX = (rx-rmHalfWidth) * rmDelta;
         double thY = (ry-rmHalfWidth) * rmDelta;
         // transform it into global coordinates
-        double angle = bestOrientationAngle;
+        double angle = ms->config.bestOrientationAngle;
         double unscale = 1.0;
         Point uncenter = Point(0, 0);
         Mat un_rot_mat = getRotationMatrix2D(uncenter, angle, unscale);
@@ -6986,7 +6947,7 @@ void selectMaxTargetThompsonContinuous2(double minDepth) {
           localMaxY = ry;
           localMaxGG = (pMachineState->config.currentGraspGear);
           maxD = graspMemoryWeight;
-          //maxGG = getGlobalGraspGear(pMachineState->config.currentGraspGear);
+          //maxGG = getGlobalGraspGear(ms, pMachineState->config.currentGraspGear);
           maxGG = (pMachineState->config.currentGraspGear);
 	  //useContinuousGraspTransform = 0;
 	  useContinuousGraspTransform = 1;
@@ -6998,7 +6959,7 @@ void selectMaxTargetThompsonContinuous2(double minDepth) {
     maxD << " maxGG: " << maxGG << " localMaxGG: " << localMaxGG << endl;
 }
 
-void selectMaxTargetThompsonRotated(double minDepth) {
+void selectMaxTargetThompsonRotated(shared_ptr<MachineState> ms, double minDepth) {
   // ATTN 2
   int maxSearchPadding = 3;
   //int maxSearchPadding = 4;
@@ -7016,7 +6977,7 @@ void selectMaxTargetThompsonRotated(double minDepth) {
         double thX = (rx-rmHalfWidth) * rmDelta;
         double thY = (ry-rmHalfWidth) * rmDelta;
         // transform it into local coordinates
-        double unangle = -bestOrientationAngle;
+        double unangle = -ms->config.bestOrientationAngle;
         double unscale = 1.0;
         Point uncenter = Point(0, 0);
         Mat un_rot_mat = getRotationMatrix2D(uncenter, unangle, unscale);
@@ -7030,14 +6991,14 @@ void selectMaxTargetThompsonRotated(double minDepth) {
         localIntThX = ((localThX)/rmDelta) + rmHalfWidth; 
         localIntThY = ((localThY)/rmDelta) + rmHalfWidth; 
         // retrieve its value
-        double mDenom = max(graspMemoryTries[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)], 1.0);
+        double mDenom = max(graspMemoryTries[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(ms, pMachineState->config.currentGraspGear)], 1.0);
         if ((localIntThX < rmWidth) && (localIntThY < rmWidth)) {
 
           // Thompson
-          graspMemoryWeight = (graspMemorySample[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)]) * -1;  
+          graspMemoryWeight = (graspMemorySample[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(ms, pMachineState->config.currentGraspGear)]) * -1;  
 
           // Original
-          //graspMemoryWeight = graspMemoryPicks[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)] / mDenom;
+          //graspMemoryWeight = graspMemoryPicks[localIntThX + localIntThY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(ms, pMachineState->config.currentGraspGear)] / mDenom;
           //graspMemoryWeight = graspMemoryWeight * rangeMapReg1[rx + ry*rmWidth]);  
            
           // No memory; just linear filter
@@ -7050,10 +7011,10 @@ void selectMaxTargetThompsonRotated(double minDepth) {
 
 
       //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear)] << endl;
+      //cout << "  gmTargetX gmTargetY eval: " << gmTargetX << " " << gmTargetY << " " << graspMemoryPicks[gmTargetX + gmTargetY*rmWidth + rmWidth*rmWidth*getLocalGraspGear(ms, pMachineState->config.currentGraspGear)] << endl;
 	    
       // ATTN 19
-      int i = localIntThX + localIntThY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(pMachineState->config.currentGraspGear);
+      int i = localIntThX + localIntThY * rmWidth + rmWidth*rmWidth*getLocalGraspGear(ms, pMachineState->config.currentGraspGear);
       int maxedOutTries = isThisGraspMaxedOut(i);
 
       //if (graspMemoryBias + graspMemoryWeight < minDepth) 
@@ -7063,7 +7024,7 @@ void selectMaxTargetThompsonRotated(double minDepth) {
           maxY = ry;
           localMaxX = localIntThX;
           localMaxY = localIntThY;
-          localMaxGG = getLocalGraspGear(pMachineState->config.currentGraspGear);
+          localMaxGG = getLocalGraspGear(ms, pMachineState->config.currentGraspGear);
           maxD = graspMemoryWeight;
           maxGG = pMachineState->config.currentGraspGear;
 	  useContinuousGraspTransform = 0;
@@ -7073,7 +7034,7 @@ void selectMaxTargetThompsonRotated(double minDepth) {
   cout << "non-cumulative maxX: " << maxX << " maxY: " << maxY <<  " maxD: " << maxD << " maxGG: " << maxGG << endl;
 }
 
-void selectMaxTargetThompsonRotated2(double minDepth) {
+void selectMaxTargetThompsonRotated2(shared_ptr<MachineState> ms, double minDepth) {
   // ATTN 2
   int maxSearchPadding = 3;
   //int maxSearchPadding = 4;
@@ -7093,7 +7054,7 @@ void selectMaxTargetThompsonRotated2(double minDepth) {
         double thX = (rx-rmHalfWidth) * rmDelta;
         double thY = (ry-rmHalfWidth) * rmDelta;
         // transform it into global coordinates
-        double angle = bestOrientationAngle;
+        double angle = ms->config.bestOrientationAngle;
         double unscale = 1.0;
         Point uncenter = Point(0, 0);
         Mat un_rot_mat = getRotationMatrix2D(uncenter, angle, unscale);
@@ -7136,7 +7097,7 @@ void selectMaxTargetThompsonRotated2(double minDepth) {
           localMaxY = ry;
           localMaxGG = (pMachineState->config.currentGraspGear);
           maxD = graspMemoryWeight;
-          maxGG = getGlobalGraspGear(pMachineState->config.currentGraspGear);
+          maxGG = getGlobalGraspGear(ms, pMachineState->config.currentGraspGear);
 	  useContinuousGraspTransform = 0;
         }
     }
@@ -7258,7 +7219,7 @@ void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms) {
     ms->config.currentEEPose.px += xToAdd;
     ms->config.currentEEPose.py += yToAdd;
   } else {
-    double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
+    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &(ms->config.currentEEPose.px), &(ms->config.currentEEPose.py));
   }
   { // yet another way to do this
@@ -7277,7 +7238,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   // ATTN 23
   //reticle = ms->config.heightReticles[currentThompsonHeightIdx];
   eePose thisGripperReticle;
-  double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
+  double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
   int xOut=-1, yOut=-1;
   globalToPixel(ms, &xOut, &yOut, zToUse, ms->config.trueEEPoseEEPose.px, ms->config.trueEEPoseEEPose.py);
   thisGripperReticle.px = xOut;
@@ -7580,7 +7541,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   ms->config.pilotTarget.px = ms->config.reticle.px + bestX;
   ms->config.pilotTarget.py = ms->config.reticle.py + bestY;
   
-  bestOrientationEEPose = ms->config.currentEEPose;
+  ms->config.bestOrientationEEPose = ms->config.currentEEPose;
   
   int oneToDraw = bestOrientation;
   Px = -bestX;
@@ -7702,7 +7663,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
 	// ATTN 23
 	// move from vanishing point reticle to gripper reticle
 	//moveCurrentGripperRayToCameraVanishingRay();
-	//bestOrientationEEPose = ms->config.currentEEPose;
+	//ms->config.bestOrientationEEPose = ms->config.currentEEPose;
 
         // ATTN 12
         if (ARE_GENERIC_HEIGHT_LEARNING()) {
@@ -7780,7 +7741,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
     double newx = 0;
     double newy = 0;
     // first analytic
-    //double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
+    //double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     //pixelToGlobal(ms->config.pilotTarget.px, ms->config.pilotTarget.py, zToUse, &newx, &newy);
     // old PID
     //ms->config.currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
@@ -7826,11 +7787,11 @@ eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixe
   eePose grGlobalPreRotation = ms->config.trueEEPoseEEPose;
   eePose gpGlobalPreRotation = ms->config.trueEEPoseEEPose;
   {
-    double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
+    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     pixelToGlobal(ms, givenPixel.px, givenPixel.py, zToUse, &(gpGlobalPreRotation.px), &(gpGlobalPreRotation.py));
   }
   {
-    double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
+    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     pixelToGlobal(ms, givenReticle.px, givenReticle.py, zToUse, &(grGlobalPreRotation.px), &(grGlobalPreRotation.py));
   }
 
@@ -7839,7 +7800,7 @@ eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixe
   fakeEndEffectorDeltaRPY.pz = ozAngle;
   endEffectorAngularUpdate(&fakeEndEffector, &fakeEndEffectorDeltaRPY);
   {
-    double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
+    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     pixelToGlobal(ms, givenReticle.px, givenReticle.py, zToUse, &(grGlobalPostRotation.px), &(grGlobalPostRotation.py), fakeEndEffector);
   }
   double  postRotationTranslationX = (gpGlobalPreRotation.px - grGlobalPostRotation.px);
@@ -7857,7 +7818,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
   // ATTN 23
   //reticle = ms->config.heightReticles[currentThompsonHeightIdx];
   eePose thisGripperReticle;
-  double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
+  double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
   int xOut=-1, yOut=-1;
   globalToPixel(ms, &xOut, &yOut, zToUse, ms->config.trueEEPoseEEPose.px, ms->config.trueEEPoseEEPose.py);
   thisGripperReticle.px = xOut;
@@ -7940,7 +7901,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
     for (int c = 0; c < bTops.size(); c++) {
       double tbx, tby;
       int tbi, tbj;
-      double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
+      double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
       pixelToGlobal(ms, bCens[c].x, bCens[c].y, zToUse, &tbx, &tby);
       mapxyToij(tbx, tby, &tbi, &tbj);
       
@@ -8084,7 +8045,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       double newx = 0;
       double newy = 0;
       // first analytic
-      //double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
+      //double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
       //pixelToGlobal(ms, ms->config.pilotTarget.px, ms->config.pilotTarget.py, zToUse, &newx, &newy);
       // ATTN 23
       eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, 0);
@@ -8118,8 +8079,8 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 
 void darkServo(shared_ptr<MachineState> ms) {
 
-  // remember, currentTableZ is inverted so this is like minus
-  double heightAboveTable = ms->config.currentEEPose.pz + currentTableZ;
+  // remember, ms->config.currentTableZ is inverted so this is like minus
+  double heightAboveTable = ms->config.currentEEPose.pz + ms->config.currentTableZ;
 
   double heightFactor = heightAboveTable / minHeight;
 
@@ -8312,23 +8273,23 @@ int isThisGraspMaxedOut(int i) {
 eePose pixelToGlobalEEPose(shared_ptr<MachineState> ms, int pX, int pY, double gZ) {
   eePose result;
   pixelToGlobal(ms, pX, pY, gZ, &result.px, &result.py);
-  result.pz = ms->config.trueEEPose.position.z - currentTableZ;
+  result.pz = ms->config.trueEEPose.position.z - ms->config.currentTableZ;
   result.qx = 0;
   result.qy = 0;
   result.qz = 0;
   return result;
 }
 
-void interpolateM_xAndM_yFromZ(double dZ, double * m_x, double * m_y) {
+void interpolateM_xAndM_yFromZ(shared_ptr<MachineState> ms, double dZ, double * m_x, double * m_y) {
 
   // XXX disabling for calibration
   //return;
 
   double bBZ[4];
-  bBZ[0] = convertHeightIdxToGlobalZ(0) + currentTableZ;
-  bBZ[1] = convertHeightIdxToGlobalZ(1) + currentTableZ;
-  bBZ[2] = convertHeightIdxToGlobalZ(2) + currentTableZ;
-  bBZ[3] = convertHeightIdxToGlobalZ(3) + currentTableZ;
+  bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+  bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+  bBZ[2] = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+  bBZ[3] = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
   if (dZ <= bBZ[0]) {
     *m_x = m_x_h[0];
@@ -8366,7 +8327,7 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
 }
 
 void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose) {
-  interpolateM_xAndM_yFromZ(gZ, &m_x, &m_y);
+  interpolateM_xAndM_yFromZ(ms, gZ, &m_x, &m_y);
 
   int x1 = ms->config.heightReticles[0].px;
   int x2 = ms->config.heightReticles[1].px;
@@ -8378,10 +8339,10 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
   int y3 = ms->config.heightReticles[2].py;
   int y4 = ms->config.heightReticles[3].py;
 
-  double z1 = convertHeightIdxToGlobalZ(0) + currentTableZ;
-  double z2 = convertHeightIdxToGlobalZ(1) + currentTableZ;
-  double z3 = convertHeightIdxToGlobalZ(2) + currentTableZ;
-  double z4 = convertHeightIdxToGlobalZ(3) + currentTableZ;
+  double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
   double reticlePixelX = 0.0;
   double reticlePixelY = 0.0;
@@ -8493,7 +8454,7 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
 }
 
 void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY) {
-  interpolateM_xAndM_yFromZ(gZ, &m_x, &m_y);
+  interpolateM_xAndM_yFromZ(ms, gZ, &m_x, &m_y);
 
   int x1 = ms->config.heightReticles[0].px;
   int x2 = ms->config.heightReticles[1].px;
@@ -8505,10 +8466,10 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
   int y3 = ms->config.heightReticles[2].py;
   int y4 = ms->config.heightReticles[3].py;
 
-  double z1 = convertHeightIdxToGlobalZ(0) + currentTableZ;
-  double z2 = convertHeightIdxToGlobalZ(1) + currentTableZ;
-  double z3 = convertHeightIdxToGlobalZ(2) + currentTableZ;
-  double z4 = convertHeightIdxToGlobalZ(3) + currentTableZ;
+  double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
   double reticlePixelX = 0.0;
   double reticlePixelY = 0.0;
@@ -8610,7 +8571,7 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
   *pY = reticlePixelY + (oldPx - reticlePixelX) + offY;
 }
 void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY) {
-  interpolateM_xAndM_yFromZ(gZ, &m_x, &m_y);
+  interpolateM_xAndM_yFromZ(ms, gZ, &m_x, &m_y);
 
   int x1 = ms->config.heightReticles[0].px;
   int x2 = ms->config.heightReticles[1].px;
@@ -8622,10 +8583,10 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
   int y3 = ms->config.heightReticles[2].py;
   int y4 = ms->config.heightReticles[3].py;
 
-  double z1 = convertHeightIdxToGlobalZ(0) + currentTableZ;
-  double z2 = convertHeightIdxToGlobalZ(1) + currentTableZ;
-  double z3 = convertHeightIdxToGlobalZ(2) + currentTableZ;
-  double z4 = convertHeightIdxToGlobalZ(3) + currentTableZ;
+  double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
   double reticlePixelX = 0.0;
   double reticlePixelY = 0.0;
@@ -8725,7 +8686,7 @@ void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar 
   cv::Scalar THEcOLOR(255-theColor[0], 255-theColor[1], 255-theColor[2]);
   int lineLength = 5;
   int pX = 0, pY = 0;  
-  double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
+  double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
 
   globalToPixel(ms, &pX, &pY, zToUse, toPaint.px, toPaint.py);
   pX = pX - lineLength;
@@ -8809,7 +8770,7 @@ void mapBlueBox(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot, i
   for (double px = tbTop.x-mapBlueBoxPixelSkirt; px <= tbBot.x+mapBlueBoxPixelSkirt; px++) {
     for (double py = tbTop.y-mapBlueBoxPixelSkirt; py <= tbBot.y+mapBlueBoxPixelSkirt; py++) {
       double x, y;
-      double z = ms->config.trueEEPose.position.z + currentTableZ;
+      double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
 
       pixelToGlobal(ms, px, py, z, &x, &y);
       int i, j;
@@ -8899,7 +8860,7 @@ void simulatorCallback(const ros::TimerEvent&) {
     endpointCallback(myEPS);
   }
   {
-    double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
+    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
 
     mapBackgroundImage = originalMapBackgroundImage.clone();
     // draw sprites on background
@@ -12438,7 +12399,7 @@ bool isBoxMemoryIKPossible(BoxMemory b) {
 }
 
 bool isBlueBoxIKPossible(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot) {
-  double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
+  double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
   int toReturn = 1;
   {
     double tbx, tby;
@@ -13182,7 +13143,7 @@ int main(int argc, char **argv) {
       eePose thisTablePose = wholeFoodsBagR;
       thisTablePose.px = 0.75*(mapSearchFenceXMax - mapSearchFenceXMin) + mapSearchFenceXMin; 
       thisTablePose.py = mapSearchFenceYMin + (double(i) + 0.5)*yDelta;
-      thisTablePose.pz = currentTableZ; 
+      thisTablePose.pz = ms->config.currentTableZ; 
       cornellTables.push_back(thisTablePose);
     }
   } 

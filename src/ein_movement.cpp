@@ -525,7 +525,7 @@ WORD(ChangeToHeight0)
 CODE(1245217) // capslock + numlock + !
 virtual void execute(std::shared_ptr<MachineState> ms) {
   currentThompsonHeightIdx = 0;
-  currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
+  currentThompsonHeight = convertHeightIdxToGlobalZ(ms, currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = currentThompsonHeight;
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
@@ -540,7 +540,7 @@ WORD(ChangeToHeight1)
 CODE(1245248)     // capslock + numlock + @
 virtual void execute(std::shared_ptr<MachineState> ms) {
   currentThompsonHeightIdx = 1;
-  currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
+  currentThompsonHeight = convertHeightIdxToGlobalZ(ms, currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = currentThompsonHeight;
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
@@ -555,7 +555,7 @@ WORD(ChangeToHeight2)
 CODE(1245219)  // capslock + numlock + #
 virtual void execute(std::shared_ptr<MachineState> ms)  {
   currentThompsonHeightIdx = 2;
-  currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
+  currentThompsonHeight = convertHeightIdxToGlobalZ(ms, currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = currentThompsonHeight;
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
@@ -570,7 +570,7 @@ WORD(ChangeToHeight3)
 CODE(1245220) // capslock + numlock + $
 virtual void execute(std::shared_ptr<MachineState> ms) {
   currentThompsonHeightIdx = 3;
-  currentThompsonHeight = convertHeightIdxToGlobalZ(currentThompsonHeightIdx);
+  currentThompsonHeight = convertHeightIdxToGlobalZ(ms, currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = currentThompsonHeight;
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
@@ -737,8 +737,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     box.bBot.x = ms->config.vanishingPointReticle.px+simulatedObjectHalfWidthPixels;
     box.bBot.y = ms->config.vanishingPointReticle.py+simulatedObjectHalfWidthPixels;
     box.cameraPose = ms->config.currentEEPose;
-    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + currentTableZ);
-    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + currentTableZ);
+    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
     box.centroid.px = (box.top.px + box.bot.px) * 0.5;
     box.centroid.py = (box.top.py + box.bot.py) * 0.5;
     box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -1174,7 +1174,7 @@ REGISTER_WORD(SetMovementStateToMoving)
 
 WORD(AssumeCrane1)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentEEPose = crane1;
+  ms->config.currentEEPose = ms->config.crane1;
   ms->pushWord("waitUntilAtCurrentPosition");
 }
 END_WORD

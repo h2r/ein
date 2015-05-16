@@ -389,7 +389,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     thisRandThompsonHeight = mappingHeightIdx;
     cout << "UniformlySampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
   }
-  currentThompsonHeight = convertHeightIdxToGlobalZ(thisRandThompsonHeight);
+  currentThompsonHeight = convertHeightIdxToGlobalZ(ms, thisRandThompsonHeight);
   currentThompsonHeightIdx = thisRandThompsonHeight;
   ms->config.currentEEPose.pz = currentThompsonHeight;
   m_x = m_x_h[currentThompsonHeightIdx];
@@ -439,7 +439,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (currentBoundingBoxMode != STATIC_PRIOR) {
     if (currentBoundingBoxMode == MAPPING) {
       cout << "SampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
-      currentThompsonHeight = convertHeightIdxToGlobalZ(mappingHeightIdx);
+      currentThompsonHeight = convertHeightIdxToGlobalZ(ms, mappingHeightIdx);
       currentThompsonHeightIdx = mappingHeightIdx;
       ms->config.currentEEPose.pz = currentThompsonHeight;
       m_x = m_x_h[currentThompsonHeightIdx];
@@ -479,14 +479,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
         best_height_prob = heightMemorySample[i];
       }
     }
-    currentThompsonHeight = convertHeightIdxToGlobalZ(max_i);
+    currentThompsonHeight = convertHeightIdxToGlobalZ(ms, max_i);
     currentThompsonHeightIdx = max_i;
     ms->config.currentEEPose.pz = currentThompsonHeight;
     m_x = m_x_h[currentThompsonHeightIdx];
     m_y = m_y_h[currentThompsonHeightIdx];
   } else {
     cout << "SampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
-    currentThompsonHeight = convertHeightIdxToGlobalZ(mappingHeightIdx);
+    currentThompsonHeight = convertHeightIdxToGlobalZ(ms, mappingHeightIdx);
     currentThompsonHeightIdx = mappingHeightIdx;
     ms->config.currentEEPose.pz = currentThompsonHeight;
     m_x = m_x_h[currentThompsonHeightIdx];
