@@ -941,6 +941,7 @@ class EinConfig {
   // adjust these to reject blue boxes
   double rejectScale = 2.0;
   double rejectAreaScale = 16;//6*6
+
 ;
 
 }; // config end
