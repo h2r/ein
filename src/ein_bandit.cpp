@@ -56,8 +56,6 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     fsvO << "heightMemoryTries" << classHeightMemoryTries[ms->config.focusedClass];
     fsvO << "heightMemoryPicks" << classHeightMemoryPicks[ms->config.focusedClass];
 
-
-    lastRangeMap = rangeMapTemp;
     fsvO.release();
   } 
 }

@@ -525,6 +525,7 @@ class EinConfig {
   operationStatusType thisGraspReleased = UNKNOWN;
 
 
+  string lastLabelLearned;
 
 };
 
