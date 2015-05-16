@@ -61,7 +61,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   // loadMarginal is MAP estimate
   //ms->pushWord(131117); // loadSampledGraspMemory
   //ms->pushWord("loadMarginalGraspMemory"); // loadMarginalGraspMemory	
-  switch (currentPickMode) {
+  switch (ms->config.currentPickMode) {
   case STATIC_PRIOR:
     {
       ms->pushWord("loadMarginalGraspMemory"); // loadMarginalGraspMemory
@@ -421,7 +421,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->config.graspAttemptCounter++;      
   cout << "thisGraspPicked: " << operationStatusToString(ms->config.thisGraspPicked) << endl;
   cout << "thisGraspReleased: " << operationStatusToString(ms->config.thisGraspReleased) << endl;
-  if (ARE_GENERIC_PICK_LEARNING()) {
+  if (ARE_GENERIC_PICK_LEARNING(ms)) {
     //ms->config.graspMemoryTries[j+0*ms->config.rmWidth*ms->config.rmWidth]++;
     //ms->config.graspMemoryTries[j+1*ms->config.rmWidth*ms->config.rmWidth]++;
     //ms->config.graspMemoryTries[j+2*ms->config.rmWidth*ms->config.rmWidth]++;
@@ -436,7 +436,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   if ((ms->config.thisGraspPicked == SUCCESS) && (ms->config.thisGraspReleased == SUCCESS)) {
     ms->config.graspSuccessCounter++;
     happy();
-    if (ARE_GENERIC_PICK_LEARNING()) {
+    if (ARE_GENERIC_PICK_LEARNING(ms)) {
       //ms->config.graspMemoryPicks[j+0*ms->config.rmWidth*ms->config.rmWidth]++;
       //ms->config.graspMemoryPicks[j+1*ms->config.rmWidth*ms->config.rmWidth]++;
       //ms->config.graspMemoryPicks[j+2*ms->config.rmWidth*ms->config.rmWidth]++;
@@ -444,14 +444,14 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       ms->config.graspMemoryPicks[i]++;
     }
         
-    if (ARE_GENERIC_HEIGHT_LEARNING()) {
+    if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
       recordBoundingBoxSuccess(ms);
     }
 
     double thisPickRate = double(ms->config.graspMemoryPicks[i]) / double(ms->config.graspMemoryTries[i]);
     int thisNumTries = ms->config.graspMemoryTries[i];
     cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
-    if (currentPickMode == LEARNING_SAMPLING) {
+    if (ms->config.currentPickMode == LEARNING_SAMPLING) {
       if ( (thisNumTries >= thompsonMinTryCutoff) && 
            (thisPickRate >= thompsonMinPassRate) ) {
         thompsonPickHaltFlag = 1;
@@ -477,7 +477,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       double result2 = presult2a - presult2b;
 
       cout << "prob that mu > d: " << result << " algorithmCAT: " << algorithmCAT << endl;
-      if (currentPickMode == LEARNING_ALGORITHMC) {
+      if (ms->config.currentPickMode == LEARNING_ALGORITHMC) {
         thompsonPickHaltFlag = (result > algorithmCAT);
         if (result2 > algorithmCAT) {
           thompsonPickHaltFlag = 1;
@@ -489,7 +489,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     int thisNumTries = ms->config.graspMemoryTries[i];
     cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
     sad();
-    if (ARE_GENERIC_HEIGHT_LEARNING()) {
+    if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
       recordBoundingBoxFailure(ms);
     }
   }
@@ -498,7 +498,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   ros::Time thisTime = ros::Time::now();
   ros::Duration sinceStartOfTrial = thisTime - ms->config.graspTrialStart;
       
-  cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << ms->config.graspSuccessCounter << "/" << ms->config.graspAttemptCounter << " " << ms->config.graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << " " << pickModeToString(currentPickMode) << endl;
+  cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << ms->config.graspSuccessCounter << "/" << ms->config.graspAttemptCounter << " " << ms->config.graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << " " << pickModeToString(ms->config.currentPickMode) << endl;
   {
     double successes = ms->config.graspMemoryPicks[i];
     double failures =  ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i];
@@ -543,7 +543,7 @@ CODE(196713)     // capslock + I
     ms->pushWord(196713); // check and count grasp
   } else {
     ms->config.graspAttemptCounter++;
-    switch (currentPickMode) {
+    switch (ms->config.currentPickMode) {
     case STATIC_PRIOR:
       {
       }
@@ -575,20 +575,20 @@ CODE(196713)     // capslock + I
     }
     cout << "gripperPosition: " << ms->config.gripperPosition << " gripperThresh: " << ms->config.gripperThresh << endl;
     if (!isGripperGripping(ms)) {
-      if (ARE_GENERIC_HEIGHT_LEARNING()) {
+      if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
         recordBoundingBoxFailure(ms);
       }
       cout << "Failed grasp." << endl;
       //ms->pushWord('Y'); // pause stack execution
       ms->pushCopies("beep", 15); // beep
     } else {
-      if (ARE_GENERIC_HEIGHT_LEARNING()) {
+      if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
         recordBoundingBoxSuccess(ms);
       }
       ms->config.graspSuccessCounter++;
       cout << "Successful grasp." << endl;
       //ms->config.graspMemoryPicks[i]++;
-      switch (currentPickMode) {
+      switch (ms->config.currentPickMode) {
       case STATIC_PRIOR:
         {
         }
@@ -619,7 +619,7 @@ CODE(196713)     // capslock + I
     int thisNumTries = ms->config.graspMemoryTries[i];
     cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
 
-    if (currentPickMode == LEARNING_SAMPLING) {
+    if (ms->config.currentPickMode == LEARNING_SAMPLING) {
       if ( (thisNumTries >= thompsonMinTryCutoff) && 
            (thisPickRate >= thompsonMinPassRate) ) {
         thompsonPickHaltFlag = 1;
@@ -645,7 +645,7 @@ CODE(196713)     // capslock + I
       double result2 = presult2a - presult2b;
 
       cout << "prob that mu > d: " << result << " algorithmCAT: " << algorithmCAT << endl;
-      if (currentPickMode == LEARNING_ALGORITHMC) {
+      if (ms->config.currentPickMode == LEARNING_ALGORITHMC) {
         thompsonPickHaltFlag = (result > algorithmCAT);
         if (result2 > algorithmCAT) {
           thompsonPickHaltFlag = 1;
@@ -657,7 +657,7 @@ CODE(196713)     // capslock + I
     ms->config.graspSuccessRate = ms->config.graspSuccessCounter / ms->config.graspAttemptCounter;
     ros::Time thisTime = ros::Time::now();
     ros::Duration sinceStartOfTrial = thisTime - ms->config.graspTrialStart;
-    cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << ms->config.graspSuccessCounter << "/" << ms->config.graspAttemptCounter << " " << ms->config.graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << ms->config.gripperPosition << " " << pickModeToString(currentPickMode) << endl;
+    cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << ms->config.graspSuccessCounter << "/" << ms->config.graspAttemptCounter << " " << ms->config.graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << ms->config.gripperPosition << " " << pickModeToString(ms->config.currentPickMode) << endl;
   }
   {
     double successes = ms->config.graspMemoryPicks[i];
@@ -713,7 +713,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
-  if (ARE_GENERIC_HEIGHT_LEARNING()) {
+  if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
     ms->pushWord("setRandomPositionAndOrientationForHeightLearning"); // set random position for bblearn
   } else {
     ms->pushWord("perturbPosition"); // numlock + /
@@ -722,7 +722,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->pushCopies("zDown", 3);
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
-  if (ARE_GENERIC_HEIGHT_LEARNING()) {
+  if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
     ms->pushWord("moveToRegister4"); // assume pose at register 4
   } else {
     ms->pushWord("moveToRegister2"); // assume pose at register 2
@@ -778,7 +778,7 @@ WORD(ExecutePreparedGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
-  if (ARE_GENERIC_HEIGHT_LEARNING()) {
+  if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
     ms->pushWord("moveToRegister4"); // assume pose at register 4
   }
 
@@ -1153,7 +1153,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.thisGraspReleased = UNKNOWN;
   neutral();
   
-  if (ARE_GENERIC_PICK_LEARNING()) {
+  if (ARE_GENERIC_PICK_LEARNING(ms)) {
     if (thompsonHardCutoff) {
       if (ms->config.graspAttemptCounter >= ms->config.thompsonTries) {
         cout << "Clearing call stack because we did " << ms->config.graspAttemptCounter << " tries." << endl;

@@ -420,8 +420,9 @@ REGISTER_WORD(ZDown)
 WORD(SetGripperThresh)
 CODE(1179713)     // capslock + numlock + a
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.gripperThresh = lastMeasuredClosed + lastMeasuredBias;
-  cout << "lastMeasuredClosed: " << lastMeasuredClosed << " lastMeasuredBias: " << lastMeasuredBias << endl;
+  double param_lastMeasuredBias = 1;
+  ms->config.gripperThresh = ms->config.lastMeasuredClosed + param_lastMeasuredBias;
+  cout << "lastMeasuredClosed: " << ms->config.lastMeasuredClosed << " lastMeasuredBias: " << param_lastMeasuredBias << endl;
   cout << "gripperThresh = " << ms->config.gripperThresh << endl;
 }
 END_WORD
@@ -459,7 +460,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   command.args = "{\"position\": 100.0}";
   command.id = 65538;
   gripperPub.publish(command);
-  lastMeasuredClosed = ms->config.gripperPosition;
+  ms->config.lastMeasuredClosed = ms->config.gripperPosition;
 }
 END_WORD
 REGISTER_WORD(OpenGripper)

@@ -100,8 +100,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     "		      .qx = " << ms->config.trueEEPose.orientation.x << ", .qy = " << ms->config.trueEEPose.orientation.y << ", .qz = " << ms->config.trueEEPose.orientation.z << ", .qw = " << ms->config.trueEEPose.orientation.w << "};" << endl;
   cout << "currentThompsonHeightIdx: " << currentThompsonHeightIdx << endl;
   cout << "mostRecentUntabledZ (remember this is inverted but correct): " << ms->config.mostRecentUntabledZ << endl;
-  cout << "currentPickMode: " << pickModeToString(currentPickMode) << endl;
-  cout << "currentBoundingBoxMode: " << pickModeToString(currentBoundingBoxMode) << endl;
+  cout << "currentPickMode: " << pickModeToString(ms->config.currentPickMode) << endl;
+  cout << "currentBoundingBoxMode: " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
   cout << "gradientServoTakeClosest: " << ms->config.gradientTakeClosest << endl;
   cout << "synchronicTakeClosest: " << ms->config.synchronicTakeClosest << endl;
   cout << "focusedClass: " << ms->config.focusedClass;

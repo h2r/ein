@@ -48,13 +48,6 @@ typedef enum {
 } orientedFilterType;
 
 
-typedef enum {
-  STATIC_PRIOR = 1,
-  LEARNING_SAMPLING = 2,
-  LEARNING_ALGORITHMC = 3,
-  STATIC_MARGINALS = 4,
-  MAPPING = 5
-} pickMode;
 
 
 std::string pickModeToString(pickMode mode);

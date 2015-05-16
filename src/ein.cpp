@@ -1,4 +1,4 @@
-`7// start Header
+// start Header
 //  //
 //  // start ein 
 //  //// main()
@@ -121,13 +121,7 @@ ros::Publisher einPub;
 ros::Publisher vmMarkerPublisher;
 
 
-// the last value the gripper was at when it began to open from a closed position
-double lastMeasuredBias = 1;
-double lastMeasuredClosed = 3.0;
 
-pickMode currentPickMode = STATIC_MARGINALS;
-pickMode currentBoundingBoxMode = STATIC_MARGINALS;
-pickMode currentDepthMode = STATIC_MARGINALS;
 
 
 
@@ -557,14 +551,14 @@ cv::vector<cv::Point> nBot;
 vector<cv::Point> cTops; 
 vector<cv::Point> cBots;
 
-int ARE_GENERIC_PICK_LEARNING() {
-  return ( (currentPickMode == LEARNING_SAMPLING) ||
-	   (currentPickMode == LEARNING_ALGORITHMC) );
+int ARE_GENERIC_PICK_LEARNING(shared_ptr<MachineState> ms) {
+  return ( (ms->config.currentPickMode == LEARNING_SAMPLING) ||
+	   (ms->config.currentPickMode == LEARNING_ALGORITHMC) );
 }
 
-int ARE_GENERIC_HEIGHT_LEARNING() {
-  return ( (currentBoundingBoxMode == LEARNING_SAMPLING) ||
-	   (currentBoundingBoxMode == LEARNING_ALGORITHMC) );
+int ARE_GENERIC_HEIGHT_LEARNING(shared_ptr<MachineState> ms) {
+  return ( (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) ||
+	   (ms->config.currentBoundingBoxMode == LEARNING_ALGORITHMC) );
 }
 
 
@@ -5202,7 +5196,7 @@ void changeTargetClass(shared_ptr<MachineState> ms, int newTargetClass) {
   // ATTN 10
   //ms->pushWord(196360); // loadPriorGraspMemory
   //ms->pushWord(1179721); // set graspMemories from classGraspMemories
-  switch (currentPickMode) {
+  switch (ms->config.currentPickMode) {
   case STATIC_PRIOR:
     {
       ms->pushWord(196360); // loadPriorGraspMemory
@@ -5226,7 +5220,7 @@ void changeTargetClass(shared_ptr<MachineState> ms, int newTargetClass) {
     break;
   }
   
-  switch (currentBoundingBoxMode) {
+  switch (ms->config.currentBoundingBoxMode) {
   case STATIC_PRIOR:
     {
       ms->pushWord(1244936); // loadPriorHeightMemory
@@ -6763,7 +6757,7 @@ void recordBoundingBoxSuccess(shared_ptr<MachineState> ms) {
   double thisPickRate = double(ms->config.heightMemoryPicks[currentThompsonHeightIdx]) / double(ms->config.heightMemoryTries[currentThompsonHeightIdx]);
   int thisNumTries = ms->config.heightMemoryTries[currentThompsonHeightIdx];
   cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
-  if (currentBoundingBoxMode == LEARNING_SAMPLING) {
+  if (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) {
     if ( (thisNumTries >= thompsonMinTryCutoff) && 
 	 (thisPickRate >= thompsonMinPassRate) ) {
       thompsonHeightHaltFlag = 1;
@@ -6786,7 +6780,7 @@ void recordBoundingBoxSuccess(shared_ptr<MachineState> ms) {
     double result2 = presult2a - presult2b;
 
     cout << "prob that mu > d: " << result << " algorithmCAT: " << algorithmCAT << endl;
-    if (currentBoundingBoxMode == LEARNING_ALGORITHMC) {
+    if (ms->config.currentBoundingBoxMode == LEARNING_ALGORITHMC) {
       thompsonHeightHaltFlag = (result > algorithmCAT);
       if (result2 > algorithmCAT) {
 	thompsonHeightHaltFlag = 1;
@@ -6883,7 +6877,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   ms->config.reticle = ms->config.vanishingPointReticle;
 
   // ATTN 12
-  //        if ((ms->config.synServoLockFrames > heightLearningServoTimeout) && (currentBoundingBoxMode == LEARNING_SAMPLING)) {
+  //        if ((ms->config.synServoLockFrames > heightLearningServoTimeout) && (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING)) {
   //          cout << "bbLearning: synchronic servo timed out, early outting." << endl;
   //          restartBBLearning(ms);
   //        }
@@ -7303,7 +7297,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
 	//ms->config.bestOrientationEEPose = ms->config.currentEEPose;
 
         // ATTN 12
-        if (ARE_GENERIC_HEIGHT_LEARNING()) {
+        if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
           cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << ms->config.gradientServoDuringHeightLearning << endl;
           cout << "bbLearning: returning from gradient servo." << endl;
           return;
@@ -7468,12 +7462,12 @@ void synchronicServo(shared_ptr<MachineState> ms) {
   // ATTN 12
   // if we time out, reset the bblearning program
   if ( ((ms->config.synServoLockFrames > heightLearningServoTimeout) || (bTops.size() <= 0)) && 
-	(ARE_GENERIC_HEIGHT_LEARNING()) ) {
+	(ARE_GENERIC_HEIGHT_LEARNING(ms)) ) {
     cout << "bbLearning: synchronic servo early outting: ";
     if (bTops.size() <= 0) {
       cout << "NO BLUE BOXES ";
     }
-    if ((ms->config.synServoLockFrames > heightLearningServoTimeout) && (ARE_GENERIC_HEIGHT_LEARNING())) {
+    if ((ms->config.synServoLockFrames > heightLearningServoTimeout) && (ARE_GENERIC_HEIGHT_LEARNING(ms))) {
       cout << "TIMED OUT ";
     }
     cout << endl;
@@ -7482,7 +7476,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
   }
 
   if ( ((ms->config.synServoLockFrames > mappingServoTimeout) || (bTops.size() <= 0)) && 
-	(currentBoundingBoxMode == MAPPING) ) {
+	(ms->config.currentBoundingBoxMode == MAPPING) ) {
     cout << ">>>> Synchronic servo timed out or no blue boxes during mapping. <<<<" << endl;
     return;
   }
@@ -7501,7 +7495,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
   // ATTN 19
   // if we time out, reset the pick learning 
   if ( ((ms->config.synServoLockFrames > heightLearningServoTimeout)) && 
-	ARE_GENERIC_PICK_LEARNING() ) {
+	ARE_GENERIC_PICK_LEARNING(ms) ) {
     // record a failure
     cout << ">>>> Synchronic servo timed out.  Going back on patrol. <<<<" << endl;
     ms->config.thisGraspPicked = FAILURE; 
@@ -7531,7 +7525,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 
   // target the closest blue box that hasn't been mapped since
   //  the last mapping started
-  if (currentBoundingBoxMode == MAPPING) {
+  if (ms->config.currentBoundingBoxMode == MAPPING) {
     int foundAnUnmappedTarget = 0;
     int closestUnmappedBBToReticle = -1;
     double closestBBDistance = VERYBIGNUMBER;
@@ -7604,7 +7598,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
     ms->pushCopies("waitUntilAtCurrentPosition", 1); 
     ms->config.synServoLockFrames = 0;
     ms->pushWord("synchronicServo"); 
-    if (currentBoundingBoxMode == MAPPING) {
+    if (ms->config.currentBoundingBoxMode == MAPPING) {
       ms->pushWord("visionCycleNoClassify");
     } else {
       ms->pushWord("visionCycle"); // vision cycle
@@ -7612,7 +7606,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
   } else {
     if ((fabs(Px) < ms->config.synServoPixelThresh) && (fabs(Py) < ms->config.synServoPixelThresh)) {
       // ATTN 12
-      if (ARE_GENERIC_HEIGHT_LEARNING()) {
+      if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
 	cout << "bbLearning: synchronic servo succeeded. gradientServoDuringHeightLearning: " << ms->config.gradientServoDuringHeightLearning << endl;
 	if (ms->config.gradientServoDuringHeightLearning) {
 	  cout << "bbLearning: proceeding to gradient servo." << endl;
@@ -7702,7 +7696,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 
 
 
-	if (currentBoundingBoxMode == MAPPING) {
+	if (ms->config.currentBoundingBoxMode == MAPPING) {
 	  ms->pushWord("visionCycleNoClassify");
 	} else {
 	  ms->pushWord("visionCycle"); // vision cycle
@@ -7887,9 +7881,9 @@ void initRangeMaps(shared_ptr<MachineState> ms) {
 int isThisGraspMaxedOut(shared_ptr<MachineState> ms, int i) {
   int toReturn = 0;
 
-  if (currentPickMode == LEARNING_SAMPLING) {
+  if (ms->config.currentPickMode == LEARNING_SAMPLING) {
     toReturn = ( (ms->config.graspMemoryTries[i] >= graspLearningMaxTries) );
-  } else if (currentPickMode == LEARNING_ALGORITHMC) {
+  } else if (ms->config.currentPickMode == LEARNING_ALGORITHMC) {
     // ATTN 20
     double successes = ms->config.graspMemoryPicks[i];
     double failures = ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i];
@@ -7900,7 +7894,7 @@ int isThisGraspMaxedOut(shared_ptr<MachineState> ms, int i) {
     // returns probability that mu <= d given successes and failures.
     double result = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
     toReturn = (result > algorithmCRT);
-  } else if (currentPickMode == STATIC_MARGINALS) {
+  } else if (ms->config.currentPickMode == STATIC_MARGINALS) {
     //toReturn = (ms->config.graspMemoryTries[i] <= 1);
   }
 
