@@ -532,8 +532,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
   //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
-  m_x = m_x_h[ms->config.currentThompsonHeightIdx];
-  m_y = m_y_h[ms->config.currentThompsonHeightIdx];
+  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
+  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight0)
@@ -547,8 +547,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
   //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
-  m_x = m_x_h[ms->config.currentThompsonHeightIdx];
-  m_y = m_y_h[ms->config.currentThompsonHeightIdx];
+  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
+  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight1)
@@ -562,8 +562,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)  {
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
   //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
-  m_x = m_x_h[ms->config.currentThompsonHeightIdx];
-  m_y = m_y_h[ms->config.currentThompsonHeightIdx];
+  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
+  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight2)
@@ -577,8 +577,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
   //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
-  m_x = m_x_h[ms->config.currentThompsonHeightIdx];
-  m_y = m_y_h[ms->config.currentThompsonHeightIdx];
+  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
+  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight3)

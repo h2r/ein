@@ -399,8 +399,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, thisRandThompsonHeight);
   ms->config.currentThompsonHeightIdx = thisRandThompsonHeight;
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
-  m_x = m_x_h[ms->config.currentThompsonHeightIdx];
-  m_y = m_y_h[ms->config.currentThompsonHeightIdx];
+  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
+  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
 }
 END_WORD
 REGISTER_WORD(UniformlySampleHeight)
@@ -449,8 +449,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, mappingHeightIdx);
       ms->config.currentThompsonHeightIdx = mappingHeightIdx;
       ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
-      m_x = m_x_h[ms->config.currentThompsonHeightIdx];
-      m_y = m_y_h[ms->config.currentThompsonHeightIdx];
+      ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
+      ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
       return;
     } else if (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) {
       loadSampledHeightMemory(ms);
@@ -489,15 +489,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, max_i);
     ms->config.currentThompsonHeightIdx = max_i;
     ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
-    m_x = m_x_h[ms->config.currentThompsonHeightIdx];
-    m_y = m_y_h[ms->config.currentThompsonHeightIdx];
+    ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
+    ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
   } else {
     cout << "SampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
     ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, mappingHeightIdx);
     ms->config.currentThompsonHeightIdx = mappingHeightIdx;
     ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
-    m_x = m_x_h[ms->config.currentThompsonHeightIdx];
-    m_y = m_y_h[ms->config.currentThompsonHeightIdx];
+    ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
+    ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
   }
 }
 END_WORD

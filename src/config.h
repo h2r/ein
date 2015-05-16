@@ -594,6 +594,26 @@ class EinConfig {
   int useContinuousGraspTransform = 1;
 
 
+  int paintEEandReg1OnWrist = 1;
+
+  // d values obtained by putting laser in gripper
+  //  to find end effector projection, then using
+  //  a tape dot to find the vanishing point of
+  //  the camera
+  // the estimated vanishing point is actually pretty
+  //  close to the measured one
+  double d_y = -0.04;
+  double d_x = 0.018;
+  double offX = 0;
+  double offY = 0;
+  // these corrective magnification factors should be close to 1
+  //  these are set elsewhere according to chirality
+  double m_x = 1.08;
+  double m_y = 0.94;
+  double m_x_h[4];
+  double m_y_h[4];
+
+
 };
 
 class Word;

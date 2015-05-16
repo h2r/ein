@@ -1353,12 +1353,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     // only do x
     if ((Px*xFlip) > 0) {
-      m_x += .01;
-      m_x_h[ms->config.currentThompsonHeightIdx] = m_x;
+      ms->config.m_x += .01;
+      ms->config.m_x_h[ms->config.currentThompsonHeightIdx] = ms->config.m_x;
       cout << "m_x++ ";
     } else if ((Px*xFlip) < 0) {
-      m_x -= .01;
-      m_x_h[ms->config.currentThompsonHeightIdx] = m_x;
+      ms->config.m_x -= .01;
+      ms->config.m_x_h[ms->config.currentThompsonHeightIdx] = ms->config.m_x;
       cout << "m_x-- ";
     }
 
@@ -1408,12 +1408,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     // only do y
     if ((Py*yFlip) > 0) {
-      m_y += .01;
-      m_y_h[ms->config.currentThompsonHeightIdx] = m_y;
+      ms->config.m_y += .01;
+      ms->config.m_y_h[ms->config.currentThompsonHeightIdx] = ms->config.m_y;
       cout << "m_y++ ";
     } else if ((Py*yFlip) < 0) {
-      m_y -= .01;
-      m_y_h[ms->config.currentThompsonHeightIdx] = m_y;
+      ms->config.m_y -= .01;
+      ms->config.m_y_h[ms->config.currentThompsonHeightIdx] = ms->config.m_y;
       cout << "m_y-- ";
     }
 

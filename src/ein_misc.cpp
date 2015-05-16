@@ -372,7 +372,7 @@ WORD(PixelGlobalTest)
 CODE(65609) // I
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  paintEEandReg1OnWrist = !paintEEandReg1OnWrist;
+  ms->config.paintEEandReg1OnWrist = !ms->config.paintEEandReg1OnWrist;
 }
 END_WORD
 REGISTER_WORD(PixelGlobalTest)
@@ -381,9 +381,9 @@ WORD(IncMx)
 CODE(65361) // left arrow 
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  m_x += .01;
-  m_x_h[ms->config.currentThompsonHeightIdx] = m_x;
-  cout << "m_x, m_x_h: " << m_x << endl;
+  ms->config.m_x += .01;
+  ms->config.m_x_h[ms->config.currentThompsonHeightIdx] = ms->config.m_x;
+  cout << "m_x, m_x_h: " << ms->config.m_x << endl;
 }
 END_WORD
 REGISTER_WORD(IncMx)
@@ -392,9 +392,9 @@ WORD(DecMx)
 CODE(65363) // right arrow 
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  m_x -= .01;
-  m_x_h[ms->config.currentThompsonHeightIdx] = m_x;
-  cout << "m_x, m_x_h: " << m_x << endl;
+  ms->config.m_x -= .01;
+  ms->config.m_x_h[ms->config.currentThompsonHeightIdx] = ms->config.m_x;
+  cout << "m_x, m_x_h: " << ms->config.m_x << endl;
 }
 END_WORD
 REGISTER_WORD(DecMx)
@@ -403,9 +403,9 @@ WORD(IncMy)
 CODE(65362) // up arrow 
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  m_y += .01;
-  m_y_h[ms->config.currentThompsonHeightIdx] = m_y;
-  cout << "m_y, m_y_h: " << m_y << endl;
+  ms->config.m_y += .01;
+  ms->config.m_y_h[ms->config.currentThompsonHeightIdx] = ms->config.m_y;
+  cout << "m_y, m_y_h: " << ms->config.m_y << endl;
 }
 END_WORD
 REGISTER_WORD(IncMy)
@@ -414,9 +414,9 @@ WORD(DecMy)
 CODE(65364) // down arrow 
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  m_y -= .01;
-  m_y_h[ms->config.currentThompsonHeightIdx] = m_y;
-  cout << "m_y, m_y_h: " << m_y << endl;
+  ms->config.m_y -= .01;
+  ms->config.m_y_h[ms->config.currentThompsonHeightIdx] = ms->config.m_y;
+  cout << "m_y, m_y_h: " << ms->config.m_y << endl;
 }
 END_WORD
 REGISTER_WORD(DecMy)
