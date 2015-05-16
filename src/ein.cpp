@@ -122,16 +122,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-
-
-
-
-// algorithmC accecpt and reject thresholds
-double algorithmCEPS = 0.2;
-double algorithmCTarget = 0.7;
-double algorithmCAT = 0.7;
-double algorithmCRT = 0.95;
-
 int paintEEandReg1OnWrist = 1;
 
 // d values obtained by putting laser in gripper
@@ -6715,20 +6705,20 @@ void recordBoundingBoxSuccess(shared_ptr<MachineState> ms) {
     double successes = ms->config.heightMemoryPicks[ms->config.currentThompsonHeightIdx];
     double failures =  ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx] - ms->config.heightMemoryPicks[ms->config.currentThompsonHeightIdx];
     // returns probability that mu <= d given successes and failures.
-    double presult = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
+    double presult = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget);
     // we want probability that mu > d
     double result = 1.0 - presult;
 
-    double presult2a = cephes_incbet(successes + 1, failures + 1, algorithmCTarget + algorithmCEPS);
-    double presult2b = cephes_incbet(successes + 1, failures + 1, algorithmCTarget - algorithmCEPS);
+    double presult2a = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget + ms->config.algorithmCEPS);
+    double presult2b = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget - ms->config.algorithmCEPS);
     // we want probability that 
-    //  algorithmCTarget - algorithmCEPS < mu < algorithmCTarget + algorithmCEPS
+    //  ms->config.algorithmCTarget - ms->config.algorithmCEPS < mu < ms->config.algorithmCTarget + ms->config.algorithmCEPS
     double result2 = presult2a - presult2b;
 
-    cout << "prob that mu > d: " << result << " algorithmCAT: " << algorithmCAT << endl;
+    cout << "prob that mu > d: " << result << " algorithmCAT: " << ms->config.algorithmCAT << endl;
     if (ms->config.currentBoundingBoxMode == LEARNING_ALGORITHMC) {
-      ms->config.thompsonHeightHaltFlag = (result > algorithmCAT);
-      if (result2 > algorithmCAT) {
+      ms->config.thompsonHeightHaltFlag = (result > ms->config.algorithmCAT);
+      if (result2 > ms->config.algorithmCAT) {
 	ms->config.thompsonHeightHaltFlag = 1;
       }
     }
@@ -7838,8 +7828,8 @@ int isThisGraspMaxedOut(shared_ptr<MachineState> ms, int i) {
     failures = round(failures);
     cout << "XXX failures, successes: " << failures << " " << successes << endl;
     // returns probability that mu <= d given successes and failures.
-    double result = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
-    toReturn = (result > algorithmCRT);
+    double result = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget);
+    toReturn = (result > ms->config.algorithmCRT);
   } else if (ms->config.currentPickMode == STATIC_MARGINALS) {
     //toReturn = (ms->config.graspMemoryTries[i] <= 1);
   }
