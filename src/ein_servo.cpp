@@ -97,22 +97,22 @@ REGISTER_WORD(FindBestOfFourGraspsUsingMemory)
 WORD(AssumeWinningGgAndXyInLocalPose)
 CODE(1114175)     // numlock + ?
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  double targetX = trX;
-  double targetY = trY;
+  double targetX = ms->config.trX;
+  double targetY = ms->config.trY;
 
-  trZ = ms->config.rangeMapReg1[maxX + maxY*ms->config.rmWidth];
+  ms->config.trZ = ms->config.rangeMapReg1[ms->config.maxX + ms->config.maxY*ms->config.rmWidth];
 
   ms->config.currentEEPose.px = targetX;
   ms->config.currentEEPose.py = targetY;
       
-  cout << "Assuming x,y,gear: " << targetX << " " << targetY << " " << maxGG << endl;
+  cout << "Assuming x,y,gear: " << targetX << " " << targetY << " " << ms->config.maxGG << endl;
 
   //ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
   // ATTN 19
   if (useContinuousGraspTransform) {
-    cout << "Assuming continuous maxGG: " << maxGG << " localMaxGG: " << localMaxGG << endl;
-    setCCRotation(ms, (maxGG+4)%4); 
+    cout << "Assuming continuous maxGG: " << ms->config.maxGG << " localMaxGG: " << ms->config.localMaxGG << endl;
+    setCCRotation(ms, (ms->config.maxGG+4)%4); 
   } else {
     ms->pushWord(1048631); // assume best gear
   }
@@ -125,7 +125,7 @@ CODE(1048682)     // numlock + j
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->pushWord("closeGripper"); 
 
-  double threshedZ = min(trZ, 0.0);
+  double threshedZ = min(ms->config.trZ, 0.0);
 
   double pickZpre = -(threshedZ + ms->config.currentTableZ) + pickFlushFactor + graspDepthOffset;
   double flushZ = -(ms->config.currentTableZ) + pickFlushFactor;
@@ -140,7 +140,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
 
 
-  cout << "moveToTargetZAndGrasp trZ pickZ flushZ pickZpre: " << trZ << " " << pickZ << " " << flushZ << " " << pickZpre << " " << endl;
+  cout << "moveToTargetZAndGrasp trZ pickZ flushZ pickZpre: " << ms->config.trZ << " " << pickZ << " " << flushZ << " " << pickZpre << " " << endl;
 
   if (useIncrementalPick) {
     double zTimes = fabs(floor(deltaZ / ms->config.bDelta)); 
@@ -416,8 +416,8 @@ WORD(CountGrasp)
 CODE(196717)     // capslock + M
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   // ATTN 19
-  int i = localMaxX + localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*localMaxGG;
-  int j = localMaxX + localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0;
+  int i = ms->config.localMaxX + ms->config.localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.localMaxGG;
+  int j = ms->config.localMaxX + ms->config.localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0;
   graspAttemptCounter++;      
   cout << "thisGraspPicked: " << operationStatusToString(thisGraspPicked) << endl;
   cout << "thisGraspReleased: " << operationStatusToString(thisGraspReleased) << endl;
@@ -537,8 +537,8 @@ REGISTER_WORD(CheckGrasp)
 WORD(CheckAndCountGrasp)
 CODE(196713)     // capslock + I
   virtual void execute(std::shared_ptr<MachineState> ms)       {
-  int i = localMaxX + localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*localMaxGG;
-  int j = localMaxX + localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0;
+  int i = ms->config.localMaxX + ms->config.localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.localMaxGG;
+  int j = ms->config.localMaxX + ms->config.localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0;
   if (gripperMoving) {
     ms->pushWord(196713); // check and count grasp
   } else {
@@ -830,11 +830,11 @@ WORD(IncrementGraspGear)
 CODE(196712)     // capslock + H
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   cout << "increment ms->config.currentGraspGear was is: " << ms->config.currentGraspGear << " ";
-  int thisGraspGear = (ms->config.currentGraspGear + 1) % totalGraspGears;
+  int thisGraspGear = (ms->config.currentGraspGear + 1) % ms->config.totalGraspGears;
   
   //   set drX
-  drX = ggX[thisGraspGear];
-  drY = ggY[thisGraspGear];
+  ms->config.drX = ms->config.ggX[thisGraspGear];
+  ms->config.drY = ms->config.ggY[thisGraspGear];
   
   //   rotate
   setGGRotation(ms, thisGraspGear);
@@ -852,11 +852,11 @@ WORD(ShiftGraspGear)
 CODE(1114155)     // numlock + +
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushNoOps(50);
-  int thisGraspGear = (ms->config.currentGraspGear+4) % totalGraspGears;
+  int thisGraspGear = (ms->config.currentGraspGear+4) % ms->config.totalGraspGears;
   
   //   set drX
-  drX = ggX[thisGraspGear];
-  drY = ggY[thisGraspGear];
+  ms->config.drX = ms->config.ggX[thisGraspGear];
+  ms->config.drY = ms->config.ggY[thisGraspGear];
   
   //   rotate
   setGGRotation(ms, thisGraspGear);
@@ -978,7 +978,7 @@ REGISTER_WORD(SelectMaxTargetNotCumulative)
 WORD(SelectMaxTargetCumulative)
 CODE(1114195)     // numlock + S
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  selectMaxTarget(ms, maxD);
+  selectMaxTarget(ms, ms->config.maxD);
 }
 END_WORD
 REGISTER_WORD(SelectMaxTargetCumulative)
@@ -1011,8 +1011,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int thisGraspGear = 0;
   
   //   set drX
-  drX = ggX[thisGraspGear];
-  drY = ggY[thisGraspGear];
+  ms->config.drX = ms->config.ggX[thisGraspGear];
+  ms->config.drY = ms->config.ggY[thisGraspGear];
   
   //   rotate
   setGGRotation(ms, thisGraspGear);
@@ -1028,8 +1028,8 @@ CODE(1048626)     // numlock + 2
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int thisGraspGear = 1;
   //   set drX
-  drX = ggX[thisGraspGear];
-  drY = ggY[thisGraspGear];
+  ms->config.drX = ms->config.ggX[thisGraspGear];
+  ms->config.drY = ms->config.ggY[thisGraspGear];
   
   //   rotate
   setGGRotation(ms, thisGraspGear);
@@ -1046,8 +1046,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int thisGraspGear = 2;
   
   //   set drX
-  drX = ggX[thisGraspGear];
-  drY = ggY[thisGraspGear];
+  ms->config.drX = ms->config.ggX[thisGraspGear];
+  ms->config.drY = ms->config.ggY[thisGraspGear];
   
   //   rotate
   setGGRotation(ms, thisGraspGear);
@@ -1064,8 +1064,8 @@ CODE(1048628)      // numlock + 4
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int thisGraspGear = 3;
   //   set drX
-  drX = ggX[thisGraspGear];
-  drY = ggY[thisGraspGear];
+  ms->config.drX = ms->config.ggX[thisGraspGear];
+  ms->config.drY = ms->config.ggY[thisGraspGear];
   //   rotate
   setGGRotation(ms, thisGraspGear);
   //   set ms->config.currentGraspGear;
@@ -1306,9 +1306,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     lastAdded->pickedPose = ms->config.currentEEPose;
     lastAdded->pickedPose.pz  = lastPickPose.pz;
     // XXX picked pose doesn't seem to mean anything here so likely doesn't matteer
-    lastAdded->trZ  = trZ;
+    lastAdded->trZ  = ms->config.trZ;
     cout << "recordTargetLock saving pickedPose..." << endl;
-    cout << "trZ = " << trZ << endl;
+    cout << "trZ = " << ms->config.trZ << endl;
     cout << "Current EE Position (x,y,z): " << ms->config.currentEEPose.px << " " << ms->config.currentEEPose.py << " " << ms->config.currentEEPose.pz << endl;
     cout << "Current EE Orientation (x,y,z,w): " << ms->config.currentEEPose.qx << " " << ms->config.currentEEPose.qy << " " << ms->config.currentEEPose.qz << " " << ms->config.currentEEPose.qw << endl;
     lastAdded->lockStatus = POSE_LOCK;

@@ -2,10 +2,10 @@
 WORD(PaintReticles)
 CODE(1048679)     // numlock + g
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  double ddrX = (drX)/ms->config.rmDelta;
-  double ddrY = (drY)/ms->config.rmDelta;
-  double ttrX = (trX-ms->config.rmcX)/ms->config.rmDelta;
-  double ttrY = (trY-ms->config.rmcY)/ms->config.rmDelta;
+  double ddrX = (ms->config.drX)/ms->config.rmDelta;
+  double ddrY = (ms->config.drY)/ms->config.rmDelta;
+  double ttrX = (ms->config.trX-ms->config.rmcX)/ms->config.rmDelta;
+  double ttrY = (ms->config.trY-ms->config.rmcY)/ms->config.rmDelta;
   if ((fabs(ddrX) <= ms->config.rmHalfWidth) && (fabs(ddrY) <= ms->config.rmHalfWidth)) {
     int iiX = (int)round(ddrX + ms->config.rmHalfWidth);
     int iiY = (int)round(ddrY + ms->config.rmHalfWidth);
@@ -30,13 +30,13 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
     cv::Point text_anchor = cv::Point(outTop.x+4, outBot.y-4);
     char buff[256];
-    sprintf(buff, "%d", maxGG+1);
+    sprintf(buff, "%d", ms->config.maxGG+1);
     string reticleLabel(buff);
     putText(ms->config.rangemapImage, reticleLabel, text_anchor, MY_FONT, 0.5, Scalar(192,192,192), 1.0);
   }
-  for (int gg = 0; gg < totalGraspGears; gg++){
-    double gggX = (ggX[gg])/ms->config.rmDelta;
-    double gggY = (ggY[gg])/ms->config.rmDelta;
+  for (int gg = 0; gg < ms->config.totalGraspGears; gg++){
+    double gggX = (ms->config.ggX[gg])/ms->config.rmDelta;
+    double gggY = (ms->config.ggY[gg])/ms->config.rmDelta;
     if ((fabs(gggX) <= ms->config.rmHalfWidth) && (fabs(gggY) <= ms->config.rmHalfWidth)) {
       int iiX = (int)round(gggX + ms->config.rmHalfWidth);
       int iiY = (int)round(gggY + ms->config.rmHalfWidth);
@@ -55,8 +55,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       putText(ms->config.rangemapImage, reticleLabel, text_anchor, MY_FONT, 0.5, Scalar(192,192,192), 1.0);
     }
   }
-  double httrX = (trX-ms->config.rmcX)/ms->config.hrmDelta;
-  double httrY = (trY-ms->config.rmcY)/ms->config.hrmDelta;
+  double httrX = (ms->config.trX-ms->config.rmcX)/ms->config.hrmDelta;
+  double httrY = (ms->config.trY-ms->config.rmcY)/ms->config.hrmDelta;
   int hiCellWidth = 5;
   if ((fabs(httrX) <= ms->config.hrmHalfWidth-hiCellWidth) && (fabs(httrY) <= ms->config.hrmHalfWidth-hiCellWidth)) {
     int hiiX = (int)round(httrX + ms->config.hrmHalfWidth);
@@ -94,9 +94,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     cv::Scalar backColor(0,ceil(intensity),0);
     circle(ms->config.hiRangemapImage, cv::Point(ms->config.hrmHalfWidth+ms->config.hrmWidth, ms->config.hrmHalfWidth), hiCellWidth, backColor);
   }
-  int localCenterMaxX = localMaxX-ms->config.rmHalfWidth;
-  int localCenterMaxY = localMaxY-ms->config.rmHalfWidth;
-  cout << "localMaxX localMaxY localCenterMaxX localCenterMaxY: " << localMaxX << " " << localMaxY << " " << localCenterMaxX << " " << localCenterMaxY << endl;
+  int localCenterMaxX = ms->config.localMaxX-ms->config.rmHalfWidth;
+  int localCenterMaxY = ms->config.localMaxY-ms->config.rmHalfWidth;
+  cout << "localMaxX localMaxY localCenterMaxX localCenterMaxY: " << ms->config.localMaxX << " " << ms->config.localMaxY << " " << localCenterMaxX << " " << localCenterMaxY << endl;
   if ((fabs(localCenterMaxX) <= ms->config.rmHalfWidth) && (fabs(localCenterMaxY) <= ms->config.rmHalfWidth)) {
     int liiX = (int)round(localCenterMaxX + ms->config.rmHalfWidth);
     int liiY = (int)round(localCenterMaxY + ms->config.rmHalfWidth);
@@ -110,7 +110,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
     cv::Point text_anchor = cv::Point(outTop.x+4, outBot.y-4);
     char buff[256];
-    sprintf(buff, "%d", localMaxGG + 1);
+    sprintf(buff, "%d", ms->config.localMaxGG + 1);
     string reticleLabel(buff);
     putText(ms->config.graspMemoryImage, reticleLabel, text_anchor, MY_FONT, 0.5, Scalar(64,64,192), 1.0);
   }

@@ -230,7 +230,7 @@ REGISTER_WORD(RgbScan)
 WORD(PhotoSpin)
 CODE(196711)      // capslock + G
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  for (int angleCounter = 0; angleCounter < totalGraspGears; angleCounter++) {
+  for (int angleCounter = 0; angleCounter < ms->config.totalGraspGears; angleCounter++) {
     //ms->pushWord(131148); // save crop as focused class if there is only one
     ms->pushWord("recordAllExamplesFocusedClass");
     ms->pushWord(196721); // vision cycle no classify
@@ -246,8 +246,8 @@ REGISTER_WORD(PhotoSpin)
 WORD(SetTargetReticleToTheMaxMappedPosition)
 CODE(1048678)  // numlock + f
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  trX = ms->config.rmcX + ms->config.rmDelta*(maxX-ms->config.rmHalfWidth);
-  trY = ms->config.rmcY + ms->config.rmDelta*(maxY-ms->config.rmHalfWidth);
+  ms->config.trX = ms->config.rmcX + ms->config.rmDelta*(ms->config.maxX-ms->config.rmHalfWidth);
+  ms->config.trY = ms->config.rmcY + ms->config.rmDelta*(ms->config.maxY-ms->config.rmHalfWidth);
 }
 END_WORD
 REGISTER_WORD(SetTargetReticleToTheMaxMappedPosition)
@@ -420,8 +420,8 @@ WORD(PrepareForSearch)
 CODE(1114150)     // numlock + &
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // XXX this should be computed here from the ir sensor offset
-  ms->config.currentEEPose.px = ms->config.rmcX + drX;
-  ms->config.currentEEPose.py = ms->config.rmcY + drY;
+  ms->config.currentEEPose.px = ms->config.rmcX + ms->config.drX;
+  ms->config.currentEEPose.py = ms->config.rmcY + ms->config.drY;
 }
 END_WORD
 REGISTER_WORD(PrepareForSearch)
