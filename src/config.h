@@ -427,6 +427,15 @@ class EinConfig {
   double currentThompsonHeight = 0;
   int currentThompsonHeightIdx = 0;
 
+  int bbLearningMaxTries = 15;
+  int graspLearningMaxTries = 10;
+  
+  int thompsonHardCutoff = 0;
+  int thompsonMinTryCutoff = 5;
+  double thompsonMinPassRate = 0.80;
+  int thompsonAdaptiveCutoff = 1;
+  int thompsonPickHaltFlag = 0;
+  int thompsonHeightHaltFlag = 0;
 
 
   // the currently equipped depth reticle

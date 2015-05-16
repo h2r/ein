@@ -452,9 +452,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     int thisNumTries = ms->config.graspMemoryTries[i];
     cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
     if (ms->config.currentPickMode == LEARNING_SAMPLING) {
-      if ( (thisNumTries >= thompsonMinTryCutoff) && 
-           (thisPickRate >= thompsonMinPassRate) ) {
-        thompsonPickHaltFlag = 1;
+      if ( (thisNumTries >= ms->config.thompsonMinTryCutoff) && 
+           (thisPickRate >= ms->config.thompsonMinPassRate) ) {
+        ms->config.thompsonPickHaltFlag = 1;
       }
     }
     // ATTN 20
@@ -478,9 +478,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
       cout << "prob that mu > d: " << result << " algorithmCAT: " << algorithmCAT << endl;
       if (ms->config.currentPickMode == LEARNING_ALGORITHMC) {
-        thompsonPickHaltFlag = (result > algorithmCAT);
+        ms->config.thompsonPickHaltFlag = (result > algorithmCAT);
         if (result2 > algorithmCAT) {
-          thompsonPickHaltFlag = 1;
+          ms->config.thompsonPickHaltFlag = 1;
         }
       }
     }
@@ -620,9 +620,9 @@ CODE(196713)     // capslock + I
     cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
 
     if (ms->config.currentPickMode == LEARNING_SAMPLING) {
-      if ( (thisNumTries >= thompsonMinTryCutoff) && 
-           (thisPickRate >= thompsonMinPassRate) ) {
-        thompsonPickHaltFlag = 1;
+      if ( (thisNumTries >= ms->config.thompsonMinTryCutoff) && 
+           (thisPickRate >= ms->config.thompsonMinPassRate) ) {
+        ms->config.thompsonPickHaltFlag = 1;
       }
     }
     // ATTN 20
@@ -646,9 +646,9 @@ CODE(196713)     // capslock + I
 
       cout << "prob that mu > d: " << result << " algorithmCAT: " << algorithmCAT << endl;
       if (ms->config.currentPickMode == LEARNING_ALGORITHMC) {
-        thompsonPickHaltFlag = (result > algorithmCAT);
+        ms->config.thompsonPickHaltFlag = (result > algorithmCAT);
         if (result2 > algorithmCAT) {
-          thompsonPickHaltFlag = 1;
+          ms->config.thompsonPickHaltFlag = 1;
         }
       }
     }
@@ -1121,8 +1121,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->config.graspAttemptCounter = 0;
   ms->config.graspSuccessCounter = 0;
   ms->config.graspTrialStart = ros::Time::now();
-  thompsonPickHaltFlag = 0;
-  thompsonHeightHaltFlag = 0;
+  ms->config.thompsonPickHaltFlag = 0;
+  ms->config.thompsonHeightHaltFlag = 0;
   ms->config.pilotTarget.px = -1;
   ms->config.pilotTarget.py = -1;
   ms->config.pilotClosestTarget.px = -1;
@@ -1154,7 +1154,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   neutral();
   
   if (ARE_GENERIC_PICK_LEARNING(ms)) {
-    if (thompsonHardCutoff) {
+    if (ms->config.thompsonHardCutoff) {
       if (ms->config.graspAttemptCounter >= ms->config.thompsonTries) {
         cout << "Clearing call stack because we did " << ms->config.graspAttemptCounter << " tries." << endl;
         ms->clearStack();
@@ -1163,10 +1163,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
     }
     
-    if (thompsonAdaptiveCutoff) {
-      if ( (thompsonPickHaltFlag) ||
+    if (ms->config.thompsonAdaptiveCutoff) {
+      if ( (ms->config.thompsonPickHaltFlag) ||
            (ms->config.graspAttemptCounter >= ms->config.thompsonTries) ) {
-        cout << "Clearing call stack. thompsonPickHaltFlag = " << thompsonPickHaltFlag << 
+        cout << "Clearing call stack. thompsonPickHaltFlag = " << ms->config.thompsonPickHaltFlag << 
           " and we did " << ms->config.graspAttemptCounter << " tries." << endl;
         ms->clearStack();
         ms->pushCopies("beep", 15); // beep

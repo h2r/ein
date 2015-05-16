@@ -91,8 +91,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->config.eepReg3 = ms->config.beeHome;
   ms->config.heightAttemptCounter = 0;
   ms->config.heightSuccessCounter = 0;
-  thompsonPickHaltFlag = 0;
-  thompsonHeightHaltFlag = 0;
+  ms->config.thompsonPickHaltFlag = 0;
+  ms->config.thompsonHeightHaltFlag = 0;
   ms->pushWord("continueHeightLearning"); // continue height learning
   ms->pushWord(65568+3); // record register 3
 
@@ -121,7 +121,7 @@ CODE(1179707)     // capslock + numlock + ;
 
   // ATTN 16
   // ATTN 19
-  if (thompsonHardCutoff) {
+  if (ms->config.thompsonHardCutoff) {
     if (ms->config.heightAttemptCounter < ms->config.thompsonTries - 1) {
       // push this program 
       ms->pushWord("continueHeightLearning"); // begin bounding box learning
@@ -129,10 +129,10 @@ CODE(1179707)     // capslock + numlock + ;
       ms->pushCopies("beep", 15); // beep
     }
   }
-  if (thompsonAdaptiveCutoff) {
-    if ( (thompsonHeightHaltFlag) ||
+  if (ms->config.thompsonAdaptiveCutoff) {
+    if ( (ms->config.thompsonHeightHaltFlag) ||
          (ms->config.heightAttemptCounter >= ms->config.thompsonTries - 1) ) {
-      cout << "Clearing call stack. thompsonHeightHaltFlag = " << thompsonHeightHaltFlag << 
+      cout << "Clearing call stack. thompsonHeightHaltFlag = " << ms->config.thompsonHeightHaltFlag << 
         " and we did " << ms->config.heightAttemptCounter << " tries." << endl;
       ms->clearStack();
       ms->pushCopies("beep", 15); // beep
@@ -142,7 +142,7 @@ CODE(1179707)     // capslock + numlock + ;
         // push this program 
         ms->pushWord("continueHeightLearning"); // begin bounding box learning
       } else {
-        cout << "Clearing call stack. thompsonHeightHaltFlag = " << thompsonHeightHaltFlag << 
+        cout << "Clearing call stack. thompsonHeightHaltFlag = " << ms->config.thompsonHeightHaltFlag << 
           " and we did " << ms->config.heightAttemptCounter << " tries." << endl;
         ms->clearStack();
       }
@@ -471,7 +471,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       int thisHeightMaxedOut = 0;
       
       if (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) {
-        thisHeightMaxedOut = ( (ms->config.heightMemoryTries[i] >= bbLearningMaxTries) );
+        thisHeightMaxedOut = ( (ms->config.heightMemoryTries[i] >= ms->config.bbLearningMaxTries) );
       } else if (ms->config.currentBoundingBoxMode == LEARNING_ALGORITHMC) {
         double successes = ms->config.heightMemoryPicks[i];
         double failures = ms->config.heightMemoryTries[i] - ms->config.heightMemoryPicks[i];
