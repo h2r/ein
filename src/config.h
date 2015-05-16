@@ -493,7 +493,16 @@ class EinConfig {
   int focusedClass = -1;
   int newClassCounter = 0;
   string focusedClassLabel;
-  // config variables that don't seem to be used
+
+  int publishObjects = 1;
+
+  int synchronicTakeClosest = 0;
+  int gradientTakeClosest = 0;
+  int gradientServoDuringHeightLearning = 1;
+  int bailAfterSynchronic = 1;
+  int bailAfterGradient = 0;
+
+
 };
 
 class Word;
