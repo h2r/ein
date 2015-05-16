@@ -623,6 +623,13 @@ class EinConfig {
   double vaY[vaNumAngles];
 
 
+  int waitUntilAtCurrentPositionCounter = 0;
+  int waitUntilAtCurrentPositionCounterTimeout = 300;
+  int waitUntilGripperNotMovingCounter = 0;
+  int waitUntilGripperNotMovingTimeout = 100;
+  ros::Time waitUntilGripperNotMovingStamp;
+
+
 };
 
 class Word;
