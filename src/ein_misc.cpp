@@ -347,7 +347,7 @@ REGISTER_WORD(Noop)
 WORD(EndStackCollapseNoop)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  endThisStackCollapse = 1;
+  ms->config.endThisStackCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(EndStackCollapseNoop)
@@ -424,7 +424,7 @@ REGISTER_WORD(DecMy)
 WORD(EndStackCollapse)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  endCollapse = 1;
+  ms->config.endCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(EndStackCollapse)
@@ -432,7 +432,7 @@ REGISTER_WORD(EndStackCollapse)
 WORD(CollapseStack)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  endCollapse = 0;
+  ms->config.endCollapse = 0;
 }
 END_WORD
 REGISTER_WORD(CollapseStack)
@@ -536,7 +536,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   lastImageCallbackRequest = ros::Time::now();
   ms->pushWord("waitUntilImageCallbackReceivedA");
   ms->config.shouldIImageCallback = 1;
-  endThisStackCollapse = 1;
+  ms->config.endThisStackCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(WaitUntilImageCallbackReceived)
@@ -547,9 +547,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   if (lastImageCallbackRequest >= lastImageCallbackReceived) {
     ms->pushWord("waitUntilImageCallbackReceivedA");
     ms->config.shouldIImageCallback = 1;
-    endThisStackCollapse = 1;
+    ms->config.endThisStackCollapse = 1;
   } else {
-    endThisStackCollapse = endCollapse;
+    ms->config.endThisStackCollapse = ms->config.endCollapse;
   }
 }
 END_WORD
@@ -560,7 +560,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
   lastAccelerometerCallbackRequest = ros::Time::now();
   ms->pushWord("waitUntilAccelerometerCallbackReceivedA");
-  endThisStackCollapse = 1;
+  ms->config.endThisStackCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(WaitUntilAccelerometerCallbackReceived)
@@ -570,9 +570,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
   if (lastAccelerometerCallbackRequest >= lastAccelerometerCallbackReceived) {
     ms->pushWord("waitUntilAccelerometerCallbackReceivedA");
-    endThisStackCollapse = 1;
+    ms->config.endThisStackCollapse = 1;
   } else {
-    endThisStackCollapse = endCollapse;
+    ms->config.endThisStackCollapse = ms->config.endCollapse;
   }
 }
 END_WORD
@@ -583,7 +583,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
   lastEndpointCallbackRequest = ros::Time::now();
   ms->pushWord("waitUntilEndpointCallbackReceivedA");
-  endThisStackCollapse = 1;
+  ms->config.endThisStackCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(WaitUntilEndpointCallbackReceived)
@@ -593,9 +593,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
   if (lastEndpointCallbackRequest >= lastEndpointCallbackReceived) {
     ms->pushWord("waitUntilEndpointCallbackReceivedA");
-    endThisStackCollapse = 1;
+    ms->config.endThisStackCollapse = 1;
   } else {
-    endThisStackCollapse = endCollapse;
+    ms->config.endThisStackCollapse = ms->config.endCollapse;
   }
 }
 END_WORD

@@ -125,10 +125,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-double currentEESpeedRatio = 0.5;
-
-int endCollapse = 0;
-int endThisStackCollapse = 0;
 
 baxter_core_msgs::HeadPanCommand currentHeadPanCommand;
 std_msgs::Bool currentHeadNodCommand;
@@ -3273,7 +3269,7 @@ void update_baxter(ros::NodeHandle &n) {
   }
 
   std_msgs::Float64 speedCommand;
-  speedCommand.data = currentEESpeedRatio;
+  speedCommand.data = ms->config.currentEESpeedRatio;
   int param_resend_times = 1;
   for (int r = 0; r < param_resend_times; r++) {
     joint_mover.publish(myCommand);
@@ -3321,7 +3317,7 @@ void timercallback1(const ros::TimerEvent&) {
     }
   }
 
-  endThisStackCollapse = endCollapse;
+  ms->config.endThisStackCollapse = ms->config.endCollapse;
   while (1) {
     std::shared_ptr<Word> word = NULL;
     time(&ms->config.thisTime);
@@ -3349,17 +3345,17 @@ void timercallback1(const ros::TimerEvent&) {
 	word = ms->popWord();
       } else {
 	ms->execute_stack = 0;
-	endThisStackCollapse = 1;
+	ms->config.endThisStackCollapse = 1;
       }
     } else {
-      endThisStackCollapse = 1;
+      ms->config.endThisStackCollapse = 1;
     }
 
     if (word != NULL) {
       ms->execute(word);
     }
 
-    if (endThisStackCollapse || (ms->call_stack.size() == 0)) {
+    if (ms->config.endThisStackCollapse || (ms->call_stack.size() == 0)) {
       break;
     }
     
