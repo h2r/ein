@@ -122,14 +122,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-
-
-
-
-
-int useGradientServoThresh = 0;
-double gradientServoResetThresh = 0.7/(6.0e5);
-
 vector<double> classL2RangeComparator;
 double irHeightPadding = 0.16;
 
@@ -7069,7 +7061,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
           // removed normalization for discriminative servoing
           // ATTN 15
           // normalization hoses rejection
-          if (useGradientServoThresh) {
+          if (ms->config.useGradientServoThresh) {
           } else {
             if (l2norm <= EPSILON)
               l2norm = 1.0;
@@ -7256,9 +7248,9 @@ void gradientServo(shared_ptr<MachineState> ms) {
   
   // ATTN 15
   // return to synchronic if the match is poor
-  if (useGradientServoThresh) {
-    cout << "ATTN score, thresh, norm, product: " << bestOrientationScore << " " << gradientServoResetThresh << " " << bestCropNorm << " " << (gradientServoResetThresh * bestCropNorm) << endl;
-    if (bestOrientationScore < (gradientServoResetThresh * bestCropNorm) ) {
+  if (ms->config.useGradientServoThresh) {
+    cout << "ATTN score, thresh, norm, product: " << bestOrientationScore << " " << ms->config.gradientServoResetThresh << " " << bestCropNorm << " " << (ms->config.gradientServoResetThresh * bestCropNorm) << endl;
+    if (bestOrientationScore < (ms->config.gradientServoResetThresh * bestCropNorm) ) {
       ms->pushWord("synchronicServo"); 
       ms->pushWord("visionCycle"); 
       cout << " XXX BAD GRADIENT SERVO SCORE, RETURN TO SYNCHRONIC XXX" << endl;
