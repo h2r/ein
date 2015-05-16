@@ -16,392 +16,16 @@
 //
 // end Header
 
-//#define DEBUG_RING_BUFFER // ring buffer
-
-
-#define EPSILON 1.0e-9
-#define VERYBIGNUMBER 1e6
-
-#define PROGRAM_NAME "ein"
-
-////////////////////////////////////////////////
-// start pilot includes, usings, and defines
-////////////////////////////////////////////////
-
-#include <ein/EinState.h>
-
-#include <vector>
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <fstream>
-#include <ctime>
-
-#include <math.h>
-#include <dirent.h>
-#include <signal.h>
-#include <sys/stat.h>
-
-#include <ros/package.h>
-#include <tf/transform_listener.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/Range.h>
-#include <actionlib/client/simple_action_client.h>
-#include <control_msgs/FollowJointTrajectoryAction.h>
-#include <std_msgs/Bool.h>
-#include <std_msgs/String.h>
-#include <std_msgs/Int32.h>
-#include <std_msgs/UInt16.h>
-#include <std_msgs/Float64.h>
-#include <visualization_msgs/MarkerArray.h>
-#include <geometry_msgs/Point.h>
-#include <geometry_msgs/Pose.h>
-#include <object_recognition_msgs/RecognizedObjectArray.h>
-#include <object_recognition_msgs/RecognizedObject.h>
-#include <image_transport/image_transport.h>
-#include <sensor_msgs/image_encodings.h>
-#include <cv_bridge/cv_bridge.h>
-
-
-#include <baxter_core_msgs/CameraControl.h>
-#include <baxter_core_msgs/OpenCamera.h>
-#include <baxter_core_msgs/EndpointState.h>
-#include <baxter_core_msgs/EndEffectorState.h>
-#include <baxter_core_msgs/EndEffectorCommand.h>
-#include <baxter_core_msgs/SolvePositionIK.h>
-#include <baxter_core_msgs/JointCommand.h>
-#include <baxter_core_msgs/HeadPanCommand.h>
-
-
-#include <cv.h>
-#include <highgui.h>
-#include <ml.h>
-#include <opencv2/nonfree/nonfree.hpp>
-#include <opencv2/gpu/gpu.hpp>
-
-
-// slu
-#include "slu/math2d.h"
-
-// numpy library 1 (randomkit, for original beta)
-#include "distributions.h"
-#include "eePose.h"
-#include "eigen_util.h"
-#include "ein_util.h"
-//#include "faces.h"
-
-using namespace std;
-using namespace cv;
-
-using namespace ein;
+#include "ein.h"
 
 MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
 
-
-int ARE_GENERIC_PICK_LEARNING(shared_ptr<MachineState> ms) {
-  return ( (ms->config.currentPickMode == LEARNING_SAMPLING) ||
-	   (ms->config.currentPickMode == LEARNING_ALGORITHMC) );
-}
-
-int ARE_GENERIC_HEIGHT_LEARNING(shared_ptr<MachineState> ms) {
-  return ( (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) ||
-	   (ms->config.currentBoundingBoxMode == LEARNING_ALGORITHMC) );
-}
-
-
-
-typedef struct Sprite {
-  // sprites are the objects which are rendered in the simulation,
-  //   modeled physically as axis aligned bounding boxes
-  // the aa-bb associated with
-  //  the sprite encompasses the rotated blitted box of the image
-  // there is a master array of sprite types loaded from files, and then
-  //  there is a vector of active sprites, each of which is a clone of an
-  //  entry in the master array but with a unique name and state information
-  Mat image;
-  string name; // unique identifier
-  double scale; // this is pixels / cm
-  ros::Time creationTime;
-  eePose top;
-  eePose bot;
-  eePose pose;
-} Sprite;
-
-int getColorReticleX(shared_ptr<MachineState> ms);
-int getColorReticleY(shared_ptr<MachineState> ms);
-
-vector<Sprite> masterSprites;
-vector<Sprite> instanceSprites;
-
-void mapijToxy(shared_ptr<MachineState> ms, int i, int j, double * x, double * y);
-void mapxyToij(shared_ptr<MachineState> ms, double x, double y, int * i, int * j); 
-void voidMapRegion(shared_ptr<MachineState> ms, double xc, double yc);
-void clearMapForPatrol(shared_ptr<MachineState> ms);
-void initializeMap(shared_ptr<MachineState> ms);
-void randomizeNanos(shared_ptr<MachineState> ms, ros::Time * time);
-int blueBoxForPixel(int px, int py);
-int skirtedBlueBoxForPixel(shared_ptr<MachineState> ms, int px, int py, int skirtPixels);
-bool cellIsSearched(shared_ptr<MachineState> ms, int i, int j);
-bool positionIsSearched(shared_ptr<MachineState> ms, double x, double y);
-vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx);
-vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx, int * memoryIdxOfFirst);
-
-// XXX TODO searched and mapped are redundant. just need one to talk about the fence.
-bool cellIsMapped(int i, int j);
-bool positionIsMapped(shared_ptr<MachineState> ms, double x, double y);
-bool boxMemoryIntersectPolygons(BoxMemory b1, BoxMemory b2);
-bool boxMemoryIntersectCentroid(BoxMemory b1, BoxMemory b2);
-bool boxMemoryContains(BoxMemory b, double x, double y);
-bool boxMemoryIntersectsMapCell(shared_ptr<MachineState> ms, BoxMemory b, int map_i, int map_j);
-const ros::Duration mapMemoryTimeout(10);
-
-// XXX TODO these just check the corners, they should check all the interior points instead
-bool isBoxMemoryIkPossible(shared_ptr<MachineState> ms, BoxMemory b);
-bool isBlueBoxIkPossible(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot);
-
-bool isCellInPursuitZone(shared_ptr<MachineState> ms, int i, int j);
-bool isCellInPatrolZone(shared_ptr<MachineState> ms, int i, int j);
-
-bool isCellInteresting(shared_ptr<MachineState> ms, int i, int j);
-void markCellAsInteresting(shared_ptr<MachineState> ms, int i, int j);
-void markCellAsNotInteresting(shared_ptr<MachineState> ms, int i, int j);
-
-bool isCellIkColliding(shared_ptr<MachineState> ms, int i, int j);
-bool isCellIkPossible(shared_ptr<MachineState> ms, int i, int j);
-bool isCellIkImpossible(shared_ptr<MachineState> ms, int i, int j);
-
-
-//
-// start pilot prototypes 
+////////////////////////////////////////////////
+// start pilot includes, usings, and defines
 ////////////////////////////////////////////////
 
-int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int drawSlack = 0);
-int getRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double &value, int drawSlack = 0);
-int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::Pose &value, int drawSlack = 0);
-extern "C" {
-double cephes_incbet(double a, double b, double x) ;
-}
-void setRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& imToSet);
-void setRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double rgToSet);
-void setRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::Pose epToSet);
-void imRingBufferAdvance(shared_ptr<MachineState> ms);
-void rgRingBufferAdvance(shared_ptr<MachineState> ms);
-void epRingBufferAdvance(shared_ptr<MachineState> ms);
-void allRingBuffersAdvance(shared_ptr<MachineState> ms, ros::Time t);
-
-void recordReadyRangeReadings(shared_ptr<MachineState> ms);
-void jointCallback(const sensor_msgs::JointState& js);
-void endpointCallback(const baxter_core_msgs::EndpointState& eps);
-void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::EndpointState& eps);
-void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees);
-void fetchCommandCallback(const std_msgs::String::ConstPtr& msg);
-void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
-int classIdxForName(shared_ptr<MachineState> ms, string name);
-
-void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
-void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);
-void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg);
-
-bool isGripperGripping(shared_ptr<MachineState> ms);
-void initialize3DParzen(shared_ptr<MachineState> ms);
-void l2Normalize3DParzen(shared_ptr<MachineState> ms);
-void initializeParzen(shared_ptr<MachineState> ms);
-void l2NormalizeParzen(shared_ptr<MachineState> ms);
-void l2NormalizeFilter(shared_ptr<MachineState> ms);
-
-
-cv::Vec3b getCRColor(shared_ptr<MachineState> ms);
-cv::Vec3b getCRColor(shared_ptr<MachineState> ms, Mat im);
-Quaternionf extractQuatFromPose(geometry_msgs::Pose poseIn);
-
-
-
-void scanXdirection(shared_ptr<MachineState> ms, double speedOnLines, double speedBetweenLines);
-void scanYdirection(shared_ptr<MachineState> ms, double speedOnLines, double speedBetweenLines);
-
-Eigen::Quaternionf getGGRotation(shared_ptr<MachineState> ms, int givenGraspGear);
-void setGGRotation(shared_ptr<MachineState> ms, int thisGraspGear);
-
-Eigen::Quaternionf getCCRotation(shared_ptr<MachineState> ms, int givenGraspGear, double angle);
-void setCCRotation(shared_ptr<MachineState> ms, int thisGraspGear);
-
-void accelerometerCallback(const sensor_msgs::Imu& moment);
-void rangeCallback(const sensor_msgs::Range& range);
-void endEffectorAngularUpdate(eePose *givenEEPose, eePose *deltaEEPose);
-void fillIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest);
-void reseedIkRequest(shared_ptr<MachineState> ms, eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest, int it, int itMax);
-void update_baxter(ros::NodeHandle &n);
-void timercallback1(const ros::TimerEvent&);
-void imageCallback(const sensor_msgs::ImageConstPtr& msg);
-void renderRangeogramView(shared_ptr<MachineState> ms);
-void renderObjectMapView(shared_ptr<MachineState> ms);
-void drawMapPolygon(Mat mapImage, double mapXMin, double mapXMax, double mapYMin, double mapYMax, gsl_matrix * poly, cv::Scalar color);
-void targetCallback(const geometry_msgs::Point& point);
-void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
-void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata);
-gsl_matrix * mapCellToPolygon(shared_ptr<MachineState> ms, int map_i, int map_j) ;
-
-void pilotInit(shared_ptr<MachineState> ms);
-void spinlessPilotMain(shared_ptr<MachineState> ms);
-
-int doCalibrateGripper(shared_ptr<MachineState> ms);
-int calibrateGripper(shared_ptr<MachineState> ms);
-int shouldIPick(shared_ptr<MachineState> ms, int classToPick);
-int getLocalGraspGear(shared_ptr<MachineState> ms, int globalGraspGearIn);
-int getGlobalGraspGear(shared_ptr<MachineState> ms, int localGraspGearIn);
-void convertGlobalGraspIdxToLocal(shared_ptr<MachineState> ms, const int rx, const int ry, 
-                                  int * localX, int * localY);
-
-void convertLocalGraspIdxToGlobal(shared_ptr<MachineState> ms, const int localX, const int localY,
-                                  int * rx, int * ry);
-
-void changeTargetClass(shared_ptr<MachineState> ms, int);
-
-void guard3dGrasps(shared_ptr<MachineState> ms);
-void guardGraspMemory(shared_ptr<MachineState> ms);
-void loadSampledGraspMemory(shared_ptr<MachineState> ms);
-void loadMarginalGraspMemory(shared_ptr<MachineState> ms);
-void loadPriorGraspMemory(shared_ptr<MachineState> ms, priorType);
-void estimateGlobalGraspGear();
-void drawMapRegisters(shared_ptr<MachineState> ms);
-
-void guardHeightMemory(shared_ptr<MachineState> ms);
-void loadSampledHeightMemory(shared_ptr<MachineState> ms);
-void loadMarginalHeightMemory(shared_ptr<MachineState> ms);
-void loadPriorHeightMemory(shared_ptr<MachineState> ms, priorType);
-double convertHeightIdxToGlobalZ(shared_ptr<MachineState> ms, int);
-int convertHeightGlobalZToIdx(shared_ptr<MachineState> ms, double);
-void testHeightConversion(shared_ptr<MachineState> ms);
-void drawHeightMemorySample(shared_ptr<MachineState> ms);
-void copyHeightMemoryTriesToClassHeightMemoryTries(shared_ptr<MachineState> ms);
-
-void applyGraspFilter(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB);
-void prepareGraspFilter(shared_ptr<MachineState> ms, int i);
-void prepareGraspFilter1(shared_ptr<MachineState> ms);
-void prepareGraspFilter2(shared_ptr<MachineState> ms);
-void prepareGraspFilter3(shared_ptr<MachineState> ms);
-void prepareGraspFilter4(shared_ptr<MachineState> ms);
-
-void copyRangeMapRegister(shared_ptr<MachineState> ms, double * src, double * target);
-void copyGraspMemoryRegister(shared_ptr<MachineState> ms, double * src, double * target);
-void loadGlobalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB);
-void loadLocalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB);
-void copyGraspMemoryTriesToClassGraspMemoryTries(shared_ptr<MachineState> ms);
-void copyClassGraspMemoryTriesToGraspMemoryTries(shared_ptr<MachineState> ms);
-
-void selectMaxTarget(shared_ptr<MachineState> ms, double minDepth);
-void selectMaxTargetThompson(shared_ptr<MachineState> ms, double minDepth);
-void selectMaxTargetThompsonContinuous(shared_ptr<MachineState> ms, double minDepth);
-void selectMaxTargetThompsonContinuous2(shared_ptr<MachineState> ms, double minDepth);
-void selectMaxTargetThompsonRotated(shared_ptr<MachineState> ms, double minDepth);
-void selectMaxTargetThompsonRotated2(shared_ptr<MachineState> ms, double minDepth);
-void selectMaxTargetLinearFilter(shared_ptr<MachineState> ms, double minDepth);
-
-void recordBoundingBoxSuccess(shared_ptr<MachineState> ms);
-void recordBoundingBoxFailure(shared_ptr<MachineState> ms);
-
-void restartBBLearning(shared_ptr<MachineState> ms);
-
-eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixel, eePose givenReticle, double angle);
-void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms);
-void gradientServo(shared_ptr<MachineState> ms);
-void synchronicServo(shared_ptr<MachineState> ms);
-void darkServo(shared_ptr<MachineState> ms);
-void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces);
-int simulatedServo();
-
-void initRangeMaps(shared_ptr<MachineState> ms);
-
-int isThisGraspMaxedOut(shared_ptr<MachineState> ms, int i);
-
-void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY);
-void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose);
-void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY);
-void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY);
-eePose pixelToGlobalEEPose(shared_ptr<MachineState> ms, int pX, int pY, double gZ);
-
-void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar theColor);
-
-double vectorArcTan(shared_ptr<MachineState> ms, double y, double x);
-void initVectorArcTan(shared_ptr<MachineState> ms);
-
-void mapBlueBox(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark);
-void mapBox(shared_ptr<MachineState> ms, BoxMemory boxMemory);
-
-void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
-
-void globalToMapBackground(shared_ptr<MachineState> ms, double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
-void simulatorCallback(const ros::TimerEvent&);
-
-void loadCalibration(shared_ptr<MachineState> ms, string inFileName);
-void saveCalibration(shared_ptr<MachineState> ms, string outFileName);
-
-void findDarkness(shared_ptr<MachineState> ms, int * xout, int * yout);
-void findLight(shared_ptr<MachineState> ms, int * xout, int * yout);
-void findOptimum(shared_ptr<MachineState> ms, int * xout, int * yout, int sign);
-
-void fillLocalUnitBasis(eePose localFrame, Vector3d * localUnitX, Vector3d * localUnitY, Vector3d * localUnitZ);
-
-////////////////////////////////////////////////
-// end pilot prototypes 
-//
-// start node prototypes
-////////////////////////////////////////////////
-
-int doubleToByte(double in);
-
-
-
-void gridKeypoints(shared_ptr<MachineState> ms, int gImW, int gImH, cv::Point top, cv::Point bot, int strideX, int strideY, vector<KeyPoint>& keypoints, int period);
-
-bool isFiniteNumber(double x);
-
-void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descriptors, Mat& descriptors2);
-void processImage(Mat &image, Mat& gray_image, Mat& yCrCb_image, double sigma);
-
-void bowGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const char *className, double sigma, int keypointPeriod, int * grandTotalDescriptors, DescriptorExtractor * extractor, BOWKMeansTrainer * bowTrainer);
-void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const char *className, int label, double sigma, Mat &kNNfeatures, Mat &kNNlabels, double sobel_sigma);
-void posekNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
-                        vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, BOWImgDescriptorExtractor *bowExtractor, int lIndexStart = 0);
-
-
-
-void goCalculateDensity(shared_ptr<MachineState> ms);
-void goFindBlueBoxes(shared_ptr<MachineState> ms);
-void goClassifyBlueBoxes(shared_ptr<MachineState> ms);
-void goFindRedBoxes();
-
-void resetAccumulatedImageAndMass(shared_ptr<MachineState> ms);
-void substituteAccumulatedImageQuantities(shared_ptr<MachineState> ms);
-void substituteLatestImageQuantities(shared_ptr<MachineState> ms);
-
-void loadROSParamsFromArgs(shared_ptr<MachineState> ms);
-void loadROSParams(shared_ptr<MachineState> ms);
-void saveROSParams(shared_ptr<MachineState> ms);
-
-void spinlessNodeMain(shared_ptr<MachineState> ms);
-void nodeInit(shared_ptr<MachineState> ms);
-void detectorsInit(shared_ptr<MachineState> ms);
-void initRedBoxes();
-
-void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const char *className, int i);
-
-void processSaliency(Mat in, Mat out);
-
-void happy(shared_ptr<MachineState> ms);
-void sad(shared_ptr<MachineState> ms);
-void neutral(shared_ptr<MachineState> ms);
-
-
-void guardViewers(shared_ptr<MachineState> ms);
-
-void fillRecognizedObjectArrayFromBlueBoxMemory(shared_ptr<MachineState> ms, object_recognition_msgs::RecognizedObjectArray * roa);
-void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut);
-
-////////////////////////////////////////////////
-// end node prototypes 
 //
 // start pilot definitions 
 ////////////////////////////////////////////////
@@ -426,25 +50,25 @@ void neutral(shared_ptr<MachineState> ms) {
 
 
 int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int drawSlack) {
-  if (pMachineState->config.imRingBufferStart == pMachineState->config.imRingBufferEnd) {
+  if (ms->config.imRingBufferStart == ms->config.imRingBufferEnd) {
     
 #ifdef DEBUG_RING_BUFFER
     cout << "Denied request in getRingImageAtTime(): Buffer empty." << endl;
 #endif
     return 0;
   } else {
-    int earliestSlot = pMachineState->config.imRingBufferStart;
+    int earliestSlot = ms->config.imRingBufferStart;
     ros::Duration deltaTdur = t - ms->config.imRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER
       cout << "Denied out of order range value in getRingImageAtTime(): Too small." << endl;
-      cout << "  getRingImageAtTime() pMachineState->config.imRingBufferStart pMachineState->config.imRingBufferEnd t ms->config.imRBTimes[earliestSlot]: " << 
-	pMachineState->config.imRingBufferStart << " " << pMachineState->config.imRingBufferEnd << " " << t << " " << ms->config.imRBTimes[earliestSlot] << endl;
+      cout << "  getRingImageAtTime() ms->config.imRingBufferStart ms->config.imRingBufferEnd t ms->config.imRBTimes[earliestSlot]: " << 
+	ms->config.imRingBufferStart << " " << ms->config.imRingBufferEnd << " " << t << " " << ms->config.imRBTimes[earliestSlot] << endl;
 #endif
       return -1;
-    } else if (pMachineState->config.imRingBufferStart < pMachineState->config.imRingBufferEnd) {
-      for (int s = pMachineState->config.imRingBufferStart; s < pMachineState->config.imRingBufferEnd; s++) {
+    } else if (ms->config.imRingBufferStart < ms->config.imRingBufferEnd) {
+      for (int s = ms->config.imRingBufferStart; s < ms->config.imRingBufferEnd; s++) {
 	ros::Duration deltaTdurPre = t - ms->config.imRBTimes[s];
 	ros::Duration deltaTdurPost = t - ms->config.imRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
@@ -464,7 +88,7 @@ int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int
 
 	  int newStart = s;
 	  if(drawSlack) {
-	    pMachineState->config.imRingBufferStart = newStart;
+	    ms->config.imRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
@@ -475,7 +99,7 @@ int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int
 #endif
       return -2;
     } else {
-      for (int s = pMachineState->config.imRingBufferStart; s < pMachineState->config.imRingBufferSize-1; s++) {
+      for (int s = ms->config.imRingBufferStart; s < ms->config.imRingBufferSize-1; s++) {
 	ros::Duration deltaTdurPre = t - ms->config.imRBTimes[s];
 	ros::Duration deltaTdurPost = t - ms->config.imRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
@@ -493,15 +117,15 @@ int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int
 
 	  int newStart = s;
 	  if(drawSlack) {
-	    pMachineState->config.imRingBufferStart = newStart;
+	    ms->config.imRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
       } {
-	ros::Duration deltaTdurPre = t - ms->config.imRBTimes[pMachineState->config.imRingBufferSize-1];
+	ros::Duration deltaTdurPre = t - ms->config.imRBTimes[ms->config.imRingBufferSize-1];
 	ros::Duration deltaTdurPost = t - ms->config.imRBTimes[0];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  Mat m1 = ms->config.imRingBuffer[pMachineState->config.imRingBufferSize-1];
+	  Mat m1 = ms->config.imRingBuffer[ms->config.imRingBufferSize-1];
 	  Mat m2 = ms->config.imRingBuffer[0];
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
@@ -513,13 +137,13 @@ int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int
 	  else
 	    value = m2;
 
-	  int newStart = pMachineState->config.imRingBufferSize-1;
+	  int newStart = ms->config.imRingBufferSize-1;
 	  if(drawSlack) {
-	    pMachineState->config.imRingBufferStart = newStart;
+	    ms->config.imRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
-      } for (int s = 0; s < pMachineState->config.imRingBufferEnd; s++) {
+      } for (int s = 0; s < ms->config.imRingBufferEnd; s++) {
 	ros::Duration deltaTdurPre = t - ms->config.imRBTimes[s];
 	ros::Duration deltaTdurPost = t - ms->config.imRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
@@ -537,7 +161,7 @@ int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int
 
 	  int newStart = s;
 	  if(drawSlack) {
-	    pMachineState->config.imRingBufferStart = newStart;
+	    ms->config.imRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
@@ -551,13 +175,13 @@ int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int
   }
 }
 int getRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double &value, int drawSlack) {
-  if (pMachineState->config.rgRingBufferStart == pMachineState->config.rgRingBufferEnd) {
+  if (ms->config.rgRingBufferStart == ms->config.rgRingBufferEnd) {
 #ifdef DEBUG_RING_BUFFER
     cout << "Denied request in getRingRangeAtTime(): Buffer empty." << endl;
 #endif
     return 0;
   } else {
-    int earliestSlot = pMachineState->config.rgRingBufferStart;
+    int earliestSlot = ms->config.rgRingBufferStart;
     ros::Duration deltaTdur = t - ms->config.rgRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
     if (deltaTdur.toSec() <= 0.0) {
@@ -565,8 +189,8 @@ int getRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double &value, 
       cout << "Denied out of order range value in getRingRangeAtTime(): Too small." << endl;
 #endif
       return -1;
-    } else if (pMachineState->config.rgRingBufferStart < pMachineState->config.rgRingBufferEnd) {
-      for (int s = pMachineState->config.rgRingBufferStart; s < pMachineState->config.rgRingBufferEnd; s++) {
+    } else if (ms->config.rgRingBufferStart < ms->config.rgRingBufferEnd) {
+      for (int s = ms->config.rgRingBufferStart; s < ms->config.rgRingBufferEnd; s++) {
 	ros::Duration deltaTdurPre = t - ms->config.rgRBTimes[s];
 	ros::Duration deltaTdurPost = t - ms->config.rgRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
@@ -581,7 +205,7 @@ int getRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double &value, 
 
 	  int newStart = s;
 	  if(drawSlack) {
-	    pMachineState->config.rgRingBufferStart = newStart;
+	    ms->config.rgRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
@@ -592,7 +216,7 @@ int getRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double &value, 
 #endif
       return -2;
     } else {
-      for (int s = pMachineState->config.rgRingBufferStart; s < pMachineState->config.rgRingBufferSize-1; s++) {
+      for (int s = ms->config.rgRingBufferStart; s < ms->config.rgRingBufferSize-1; s++) {
 	ros::Duration deltaTdurPre = t - ms->config.rgRBTimes[s];
 	ros::Duration deltaTdurPost = t - ms->config.rgRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
@@ -607,15 +231,15 @@ int getRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double &value, 
 
 	  int newStart = s;
 	  if(drawSlack) {
-	    pMachineState->config.rgRingBufferStart = newStart;
+	    ms->config.rgRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
       } {
-	ros::Duration deltaTdurPre = t - ms->config.rgRBTimes[pMachineState->config.rgRingBufferSize-1];
+	ros::Duration deltaTdurPre = t - ms->config.rgRBTimes[ms->config.rgRingBufferSize-1];
 	ros::Duration deltaTdurPost = t - ms->config.rgRBTimes[0];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  double r1 = ms->config.rgRingBuffer[pMachineState->config.rgRingBufferSize-1];
+	  double r1 = ms->config.rgRingBuffer[ms->config.rgRingBufferSize-1];
 	  double r2 = ms->config.rgRingBuffer[0];
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
@@ -624,13 +248,13 @@ int getRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double &value, 
 	  w2 = w2 / totalWeight;
 	  value = w1*r1 + w2*r2;
 
-	  int newStart = pMachineState->config.rgRingBufferSize-1;
+	  int newStart = ms->config.rgRingBufferSize-1;
 	  if(drawSlack) {
-	    pMachineState->config.rgRingBufferStart = newStart;
+	    ms->config.rgRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
-      } for (int s = 0; s < pMachineState->config.rgRingBufferEnd; s++) {
+      } for (int s = 0; s < ms->config.rgRingBufferEnd; s++) {
 	ros::Duration deltaTdurPre = t - ms->config.rgRBTimes[s];
 	ros::Duration deltaTdurPost = t - ms->config.rgRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
@@ -645,7 +269,7 @@ int getRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double &value, 
 
 	  int newStart = s;
 	  if(drawSlack) {
-	    pMachineState->config.rgRingBufferStart = newStart;
+	    ms->config.rgRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
@@ -1355,15 +979,15 @@ void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
   if (class_idx == -1) {
     cout << "Could not find class " << ms->config.fetchCommand << endl; 
     // ATTN 25
-    pMachineState->pushWord("clearStackAcceptFetchCommands"); 
+    ms->pushWord("clearStackAcceptFetchCommands"); 
   } else {
-    pMachineState->clearStack();
+    ms->clearStack();
 
-    changeTargetClass(pMachineState, class_idx);
+    changeTargetClass(ms, class_idx);
     // ATTN 25
-    //pMachineState->pushWord("mappingPatrol");
-    pMachineState->pushWord("deliverTargetObject");
-    pMachineState->execute_stack = 1;
+    //ms->pushWord("mappingPatrol");
+    ms->pushWord("deliverTargetObject");
+    ms->execute_stack = 1;
     ms->config.acceptingFetchCommands = 0;
   }
 }
@@ -1498,9 +1122,9 @@ void forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
   for (unsigned int i = 0; i < tokens.size(); i++) {
     trim(tokens[i]);
     if (tokens[i] == "executeStack" || tokens[i] == ";") {
-      pMachineState->execute_stack = 1;
+      ms->execute_stack = 1;
     } else {
-      if (!pMachineState->pushWord(tokens[i])) {
+      if (!ms->pushWord(tokens[i])) {
         cout << "Warning, ignoring unknown word from the forth topic: " << tokens[i] << endl;
       }
     }
@@ -1552,7 +1176,7 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
 	ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
 	ms->config.lastMovementStateSet = ros::Time::now();
       } else {
-	//cout << "pMachineState->config.currentMovementState is ARMED." << endl;
+	//cout << "ms->config.currentMovementState is ARMED." << endl;
       }
     } else if (distance > ms->config.movingThreshold*ms->config.movingThreshold) {
       ms->config.currentMovementState = MOVING;
@@ -2650,8 +2274,8 @@ void update_baxter(ros::NodeHandle &n) {
       if (ms->config.ik_reset_counter > ms->config.ik_reset_thresh) {
 	ms->config.ik_reset_counter = 0;
 	ms->config.currentEEPose = ms->config.ik_reset_eePose;
-	pMachineState->pushWord('Y'); // pause stack execution
-	pMachineState->pushCopies("beep", 15); // beep
+	ms->pushWord('Y'); // pause stack execution
+	ms->pushCopies("beep", 15); // beep
 	cout << "target position denied by ik, please reset the object.";
       }
       else {
@@ -2861,7 +2485,7 @@ void timercallback1(const ros::TimerEvent&) {
   renderRangeogramView(ms);
 
   if (ms->config.shouldIRender) {
-    renderObjectMapView(pMachineState);
+    renderObjectMapView(ms);
   }
 }
 
@@ -3145,7 +2769,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     circle(ms->config.wristViewImage, pt1, vanishingPointReticleRadius+3, theColor, 1);
   }
 
-  // draw pMachineState->config.currentMovementState indicator
+  // draw ms->config.currentMovementState indicator
   {
     // XXX TODO this should be guarded 
     int movementIndicatorInnerHalfWidth = 7;
@@ -3159,22 +2783,22 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 					  2*movementIndicatorOuterHalfWidth, 2*movementIndicatorOuterHalfWidth) );
     int icMag = 64;
     Scalar indicatorColor = CV_RGB(icMag,icMag,icMag);
-    if (pMachineState->config.currentMovementState == STOPPED) {
+    if (ms->config.currentMovementState == STOPPED) {
       indicatorColor = CV_RGB(icMag,0,0); 
-    } else if (pMachineState->config.currentMovementState == HOVERING) {
+    } else if (ms->config.currentMovementState == HOVERING) {
       indicatorColor = CV_RGB(0,0,icMag); 
-    } else if (pMachineState->config.currentMovementState == MOVING) {
+    } else if (ms->config.currentMovementState == MOVING) {
       indicatorColor = CV_RGB(0,icMag,0); 
-    } else if (pMachineState->config.currentMovementState == BLOCKED) {
+    } else if (ms->config.currentMovementState == BLOCKED) {
       indicatorColor = CV_RGB(icMag,0,0); 
-    } else if (pMachineState->config.currentMovementState == ARMED) {
+    } else if (ms->config.currentMovementState == ARMED) {
       indicatorColor = CV_RGB(icMag,0,0); 
     }
     outerCrop += indicatorColor;
     
-    if (pMachineState->config.currentMovementState == STOPPED) {
+    if (ms->config.currentMovementState == STOPPED) {
       indicatorColor = CV_RGB(icMag,2*icMag,0); 
-    } else if (pMachineState->config.currentMovementState == ARMED) {
+    } else if (ms->config.currentMovementState == ARMED) {
       indicatorColor = CV_RGB(0,0,2*icMag); 
     }
     innerCrop += indicatorColor;
@@ -3514,8 +3138,8 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
 
   // draw sprites
   if (ms->config.currentRobotMode == SIMULATED) {
-    for (int s = 0; s < instanceSprites.size(); s++) {
-      Sprite sprite = instanceSprites[s];
+    for (int s = 0; s < ms->config.instanceSprites.size(); s++) {
+      Sprite sprite = ms->config.instanceSprites[s];
       
       double cx, cy;
       
@@ -3787,12 +3411,12 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 //	  ms->config.graspMemoryPicks[(ms->config.gmTargetX+delX) + (ms->config.gmTargetY+delY)*ms->config.rmWidth] = 1;
 //	}
 //      }
-      ms->config.graspMemoryTries[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*pMachineState->config.currentGraspGear] += 1;
-      ms->config.graspMemoryPicks[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*pMachineState->config.currentGraspGear] += 1;
+      ms->config.graspMemoryTries[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.currentGraspGear] += 1;
+      ms->config.graspMemoryPicks[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.currentGraspGear] += 1;
     }
-    pMachineState->pushWord("paintReticles"); // render reticle
-    pMachineState->pushWord("drawMapRegisters"); // render register 1
-    pMachineState->execute_stack = 1;
+    ms->pushWord("paintReticles"); // render reticle
+    ms->pushWord("drawMapRegisters"); // render register 1
+    ms->execute_stack = 1;
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
@@ -3800,11 +3424,11 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     int bigX = x / ms->config.rmiCellWidth;
     int bigY = y / ms->config.rmiCellWidth;
     if ((bigX >= ms->config.rmWidth) && (bigX < 2*ms->config.rmWidth) && (bigY < ms->config.rmWidth)) {
-      ms->config.graspMemoryTries[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*pMachineState->config.currentGraspGear] += 1;
+      ms->config.graspMemoryTries[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.currentGraspGear] += 1;
     }
-    pMachineState->pushWord("paintReticles"); // render reticle
-    pMachineState->pushWord("drawMapRegisters"); // render register 1
-    pMachineState->execute_stack = 1;
+    ms->pushWord("paintReticles"); // render reticle
+    ms->pushWord("drawMapRegisters"); // render register 1
+    ms->execute_stack = 1;
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
@@ -3815,14 +3439,14 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
       // reset to uniform failure
       for (int rx = 0; rx < ms->config.rmWidth; rx++) {
 	for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-	  ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*pMachineState->config.currentGraspGear] = 10;
-	  ms->config.graspMemoryPicks[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*pMachineState->config.currentGraspGear] = 0;
+	  ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.currentGraspGear] = 10;
+	  ms->config.graspMemoryPicks[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.currentGraspGear] = 0;
 	}
       }
     }
-    pMachineState->pushWord("paintReticles"); // render reticle
-    pMachineState->pushWord("drawMapRegisters"); // render register 1
-    pMachineState->execute_stack = 1;
+    ms->pushWord("paintReticles"); // render reticle
+    ms->pushWord("drawMapRegisters"); // render register 1
+    ms->execute_stack = 1;
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
@@ -4419,13 +4043,13 @@ void pilotInit(shared_ptr<MachineState> ms) {
     }
   }
   
-  ms->config.imRingBuffer.resize(pMachineState->config.imRingBufferSize);
-  ms->config.epRingBuffer.resize(pMachineState->config.epRingBufferSize);
-  ms->config.rgRingBuffer.resize(pMachineState->config.rgRingBufferSize);
+  ms->config.imRingBuffer.resize(ms->config.imRingBufferSize);
+  ms->config.epRingBuffer.resize(ms->config.epRingBufferSize);
+  ms->config.rgRingBuffer.resize(ms->config.rgRingBufferSize);
 
-  ms->config.imRBTimes.resize(pMachineState->config.imRingBufferSize);
-  ms->config.epRBTimes.resize(pMachineState->config.epRingBufferSize);
-  ms->config.rgRBTimes.resize(pMachineState->config.rgRingBufferSize);
+  ms->config.imRBTimes.resize(ms->config.imRingBufferSize);
+  ms->config.epRBTimes.resize(ms->config.epRingBufferSize);
+  ms->config.rgRBTimes.resize(ms->config.rgRingBufferSize);
 
   for (int pz = 0; pz < ms->config.vmWidth; pz++) {
     for (int py = 0; py < ms->config.vmWidth; py++) {
@@ -4622,9 +4246,22 @@ void changeTargetClass(shared_ptr<MachineState> ms, int newTargetClass) {
   }
 }
 
+
+int ARE_GENERIC_PICK_LEARNING(shared_ptr<MachineState> ms) {
+  return ( (ms->config.currentPickMode == LEARNING_SAMPLING) ||
+	   (ms->config.currentPickMode == LEARNING_ALGORITHMC) );
+}
+
+int ARE_GENERIC_HEIGHT_LEARNING(shared_ptr<MachineState> ms) {
+  return ( (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) ||
+	   (ms->config.currentBoundingBoxMode == LEARNING_ALGORITHMC) );
+}
+
+
+
 void guard3dGrasps(shared_ptr<MachineState> ms) {
-  if (pMachineState->config.class3dGrasps.size() < ms->config.numClasses) {
-    pMachineState->config.class3dGrasps.resize(ms->config.numClasses);
+  if (ms->config.class3dGrasps.size() < ms->config.numClasses) {
+    ms->config.class3dGrasps.resize(ms->config.numClasses);
   }
 }
 
@@ -7868,8 +7505,8 @@ void simulatorCallback(const ros::TimerEvent&) {
     ms->config.mapBackgroundImage = ms->config.originalMapBackgroundImage.clone();
     // draw sprites on background
     if (1) {
-      for (int s = 0; s < instanceSprites.size(); s++) {
-	Sprite sprite = instanceSprites[s];
+      for (int s = 0; s < ms->config.instanceSprites.size(); s++) {
+	Sprite sprite = ms->config.instanceSprites[s];
 	
 	int topX=0, topY=0, botX=0, botY=0;
         globalToMapBackground(ms, sprite.bot.px, sprite.bot.py, zToUse, &topX, &topY);
@@ -11271,7 +10908,7 @@ int main(int argc, char **argv) {
 
   ros::Timer simulatorCallbackTimer;
 
-  if (pMachineState->config.currentRobotMode == PHYSICAL) {
+  if (ms->config.currentRobotMode == PHYSICAL) {
     epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, endpointCallback);
     gripState = n.subscribe("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/state", 1, gripStateCallback);
     eeAccelerator =  n.subscribe("/robot/accelerometer/" + ms->config.left_or_right_arm + "_accelerometer/state", 1, accelerometerCallback);
@@ -11279,7 +10916,7 @@ int main(int argc, char **argv) {
     eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, targetCallback);
     jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
     image_sub = it.subscribe(ms->config.image_topic, 1, imageCallback);
-  } else if (pMachineState->config.currentRobotMode == SIMULATED) {
+  } else if (ms->config.currentRobotMode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
     simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/ms->config.simulatorCallbackFrequency), simulatorCallback);
 
@@ -11290,8 +10927,8 @@ int main(int argc, char **argv) {
       //     load image.ppm for now, default everything else
       vector<string> spriteLabels;
       spriteLabels.resize(0);
-      masterSprites.resize(0);
-      instanceSprites.resize(0);
+      ms->config.masterSprites.resize(0);
+      ms->config.instanceSprites.resize(0);
       DIR *dpdf;
       struct dirent *epdf;
       string dot(".");
@@ -11321,20 +10958,20 @@ int main(int argc, char **argv) {
 	}
       }
 
-      masterSprites.resize(spriteLabels.size());
-      for (int s = 0; s < masterSprites.size(); s++) {
-	masterSprites[s].name = spriteLabels[s];
-	string filename = ms->config.data_directory + "/simulator/sprites/" + masterSprites[s].name + "/image.ppm";
+      ms->config.masterSprites.resize(spriteLabels.size());
+      for (int s = 0; s < ms->config.masterSprites.size(); s++) {
+	ms->config.masterSprites[s].name = spriteLabels[s];
+	string filename = ms->config.data_directory + "/simulator/sprites/" + ms->config.masterSprites[s].name + "/image.ppm";
 	cout << "loading sprite from " << filename << " ... ";
 
 	Mat tmp = imread(filename);
-	masterSprites[s].image = tmp;
-	masterSprites[s].scale = 15/.01;
+	ms->config.masterSprites[s].image = tmp;
+	ms->config.masterSprites[s].scale = 15/.01;
 
-	masterSprites[s].top = eePose::zero();
-	masterSprites[s].bot = eePose::zero();
-	masterSprites[s].pose = eePose::zero();
-	cout << "loaded " << masterSprites[s].name << " as masterSprites[" << s << "] scale " << masterSprites[s].scale << " image size " << masterSprites[s].image.size() << endl;
+	ms->config.masterSprites[s].top = eePose::zero();
+	ms->config.masterSprites[s].bot = eePose::zero();
+	ms->config.masterSprites[s].pose = eePose::zero();
+	cout << "loaded " << ms->config.masterSprites[s].name << " as masterSprites[" << s << "] scale " << ms->config.masterSprites[s].scale << " image size " << ms->config.masterSprites[s].image.size() << endl;
       }
     }
 
@@ -11449,7 +11086,7 @@ int main(int argc, char **argv) {
 
   ms->config.frameGraySobel = Mat(1,1,CV_64F);
 
-  initializeMap(pMachineState);
+  initializeMap(ms);
 
   spinlessNodeMain(ms);
   spinlessPilotMain(ms);
@@ -11485,4 +11122,3 @@ int main(int argc, char **argv) {
   return 0;
 }
  
-#include "ein_words.cpp"
