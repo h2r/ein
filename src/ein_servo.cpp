@@ -1128,7 +1128,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->config.pilotClosestTarget.px = -1;
   ms->config.pilotClosestTarget.py = -1;
   ms->config.oscilStart = ros::Time::now();
-  accumulatedTime = ms->config.oscilStart - ms->config.oscilStart;
+  ms->config.accumulatedTime = ms->config.oscilStart - ms->config.oscilStart;
   ms->config.oscCenX = ms->config.currentEEPose.px;
   ms->config.oscCenY = ms->config.currentEEPose.py;
   ms->config.oscCenZ = ms->config.currentEEPose.pz+0.1;
@@ -1178,7 +1178,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.synServoLockFrames = 0;
   currentGradientServoIterations = 0;
   
-  ros::Duration delta = (ros::Time::now() - ms->config.oscilStart) + accumulatedTime;
+  ros::Duration delta = (ros::Time::now() - ms->config.oscilStart) + ms->config.accumulatedTime;
   
   ms->config.currentEEPose.px = ms->config.oscCenX + ms->config.oscAmpX*sin(2.0*3.1415926*ms->config.oscFreqX*delta.toSec());
   ms->config.currentEEPose.py = ms->config.oscCenY + ms->config.oscAmpY*sin(2.0*3.1415926*ms->config.oscFreqY*delta.toSec());
@@ -1191,19 +1191,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       // if so, push servoing command and set lock frames to 0
       ms->pushWord("synchronicServo"); // synchronic servo
       
-      if (targetClass != -1)
-        cout << "Found the target " << classLabels[targetClass] << ". " << endl;
+      if (ms->config.targetClass != -1)
+        cout << "Found the target " << classLabels[ms->config.targetClass] << ". " << endl;
       // grab the last bit of accumulated time
-      accumulatedTime = accumulatedTime + (ros::Time::now() - ms->config.oscilStart);
+      ms->config.accumulatedTime = ms->config.accumulatedTime + (ros::Time::now() - ms->config.oscilStart);
     } else {
     // if not, potentially do vision and continue the 2D patrol
     
     // check and push vision cycle 
-    ros::Duration timeSinceLast = ros::Time::now() - lastVisionCycle;
+    ros::Duration timeSinceLast = ros::Time::now() - ms->config.lastVisionCycle;
     if (timeSinceLast.toSec() > ms->config.visionCycleInterval) {
       ms->pushWord("visionCycle");
       // grab the last bit of accumulated time
-      accumulatedTime = accumulatedTime + (ros::Time::now() - ms->config.oscilStart);
+      ms->config.accumulatedTime = ms->config.accumulatedTime + (ros::Time::now() - ms->config.oscilStart);
     }
   }
   // if you are static_prior, this does nothing and defaults to the usual height

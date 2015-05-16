@@ -5,11 +5,11 @@ CODE(1179730)     // capslock + numlock + r
 virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int i = 0; i < numClasses; i++) {
     if (lastLabelLearned.compare(classLabels[i]) == 0) {
-      targetClass = i;
-      focusedClass = targetClass;
-      focusedClassLabel = classLabels[focusedClass];
-      cout << "lastLabelLearned classLabels[targetClass]: " << lastLabelLearned << " " << classLabels[targetClass] << endl;
-      changeTargetClass(ms, targetClass);
+      ms->config.targetClass = i;
+      ms->config.focusedClass = ms->config.targetClass;
+      ms->config.focusedClassLabel = classLabels[ms->config.focusedClass];
+      cout << "lastLabelLearned classLabels[targetClass]: " << lastLabelLearned << " " << classLabels[ms->config.targetClass] << endl;
+      changeTargetClass(ms, ms->config.targetClass);
     }
   }
 
@@ -50,7 +50,7 @@ REGISTER_WORD(SetTargetClassToLastLabelLearned)
 WORD(SetLastLabelLearned)
 CODE(1179732)    // capslock + numlock + t 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  lastLabelLearned = focusedClassLabel;
+  lastLabelLearned = ms->config.focusedClassLabel;
   cout << "lastLabelLearned: " << lastLabelLearned << endl;
 }
 END_WORD
@@ -123,7 +123,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   detectorsInit();
 
   // reset numNewClasses
-  newClassCounter = 0;
+  ms->config.newClassCounter = 0;
 
   // XXX reset anything else
 }
@@ -145,8 +145,8 @@ REGISTER_WORD(VisionCycleNoClassify)
 WORD(RecordExampleAsFocusedClass)
 CODE(131148)     // capslock + l 
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  if ((focusedClass > -1) && (bTops.size() == 1)) {
-    string thisLabelName = focusedClassLabel;
+  if ((ms->config.focusedClass > -1) && (bTops.size() == 1)) {
+    string thisLabelName = ms->config.focusedClassLabel;
     Mat crop = cam_img(cv::Rect(bTops[0].x, bTops[0].y, bBots[0].x-bTops[0].x, bBots[0].y-bTops[0].y));
     char buf[1000];
     string this_crops_path = data_directory + "/objects/" + thisLabelName + "/rgb/";
@@ -160,9 +160,9 @@ REGISTER_WORD(RecordExampleAsFocusedClass)
 
 WORD(RecordAllExamplesFocusedClass)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  if ( focusedClass > -1 ) {
+  if ( ms->config.focusedClass > -1 ) {
     for (int c = 0; c < bTops.size(); c++) {
-      string thisLabelName = focusedClassLabel;
+      string thisLabelName = ms->config.focusedClassLabel;
       Mat crop = cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
       char buf[1000];
       string this_crops_path = data_directory + "/objects/" + thisLabelName + "/rgb/";
@@ -318,7 +318,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.eepReg4 = ms->config.beeHome;
 
   // so that closest servoing doesn't go into gradient servoing.
-  targetClass = -1;
+  ms->config.targetClass = -1;
 
 
   // this automatically changes learning mode
@@ -645,8 +645,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int imH = sz.height;
         
   cout << "save aerial gradient ";
-  if ((focusedClass > -1) && (frameGraySobel.rows >1) && (frameGraySobel.cols > 1)) {
-    string thisLabelName = focusedClassLabel;
+  if ((ms->config.focusedClass > -1) && (frameGraySobel.rows >1) && (frameGraySobel.cols > 1)) {
+    string thisLabelName = ms->config.focusedClassLabel;
 
     char buf[1000];
     string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
@@ -766,17 +766,17 @@ REGISTER_WORD(SaveAerialGradientMap)
 WORD(InitializeAndFocusOnNewClass)
 CODE(196720)     // capslock + P
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  focusedClass = numClasses+newClassCounter;
+  ms->config.focusedClass = numClasses+ms->config.newClassCounter;
   char buf[1024];
-  sprintf(buf, "autoClass%d_%s", focusedClass, ms->config.left_or_right_arm.c_str());
+  sprintf(buf, "autoClass%d_%s", ms->config.focusedClass, ms->config.left_or_right_arm.c_str());
   string thisLabelName(buf);
-  focusedClassLabel = thisLabelName;
+  ms->config.focusedClassLabel = thisLabelName;
   classLabels.push_back(thisLabelName);
   string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/";
   mkdir(dirToMakePath.c_str(), 0777);
   string rgbDirToMakePath = data_directory + "/objects/" + thisLabelName + "/rgb";
   mkdir(rgbDirToMakePath.c_str(), 0777);
-  newClassCounter++;
+  ms->config.newClassCounter++;
 }
 END_WORD
 REGISTER_WORD(InitializeAndFocusOnNewClass)
@@ -785,12 +785,12 @@ WORD(SaveCurrentClassDepthAndGraspMaps)
 CODE(196705) // capslock + A
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // XXX TODO is this function even ever used anymore?
-  if (focusedClass > -1) {
+  if (ms->config.focusedClass > -1) {
     // initialize this if we need to
     guardGraspMemory(ms);
     guardHeightMemory(ms);
 
-    string thisLabelName = focusedClassLabel;
+    string thisLabelName = ms->config.focusedClassLabel;
 
     string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
@@ -813,28 +813,28 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	<< ms->config.currentGraspZ 
       << "]";
 
-      if (ms->config.classGraspZs.size() > focusedClass) {
-	ms->config.classGraspZs[focusedClass] = ms->config.currentGraspZ;
+      if (ms->config.classGraspZs.size() > ms->config.focusedClass) {
+	ms->config.classGraspZs[ms->config.focusedClass] = ms->config.currentGraspZ;
       }
-      if (ms->config.classGraspZsSet.size() > focusedClass) {
-	ms->config.classGraspZsSet[focusedClass] = 1;
+      if (ms->config.classGraspZsSet.size() > ms->config.focusedClass) {
+	ms->config.classGraspZsSet[ms->config.focusedClass] = 1;
       }
     }
 
     fsvO << "rangeMap" << rangeMapTemp;
     copyGraspMemoryTriesToClassGraspMemoryTries(ms);
-    fsvO << "graspMemoryTries1" << classGraspMemoryTries1[focusedClass];
-    fsvO << "graspMemoryPicks1" << classGraspMemoryPicks1[focusedClass];
-    fsvO << "graspMemoryTries2" << classGraspMemoryTries2[focusedClass];
-    fsvO << "graspMemoryPicks2" << classGraspMemoryPicks2[focusedClass];
-    fsvO << "graspMemoryTries3" << classGraspMemoryTries3[focusedClass];
-    fsvO << "graspMemoryPicks3" << classGraspMemoryPicks3[focusedClass];
-    fsvO << "graspMemoryTries4" << classGraspMemoryTries4[focusedClass];
-    fsvO << "graspMemoryPicks4" << classGraspMemoryPicks4[focusedClass];
+    fsvO << "graspMemoryTries1" << classGraspMemoryTries1[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks1" << classGraspMemoryPicks1[ms->config.focusedClass];
+    fsvO << "graspMemoryTries2" << classGraspMemoryTries2[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks2" << classGraspMemoryPicks2[ms->config.focusedClass];
+    fsvO << "graspMemoryTries3" << classGraspMemoryTries3[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks3" << classGraspMemoryPicks3[ms->config.focusedClass];
+    fsvO << "graspMemoryTries4" << classGraspMemoryTries4[ms->config.focusedClass];
+    fsvO << "graspMemoryPicks4" << classGraspMemoryPicks4[ms->config.focusedClass];
 
     copyHeightMemoryTriesToClassHeightMemoryTries(ms);
-    fsvO << "heightMemoryTries" << classHeightMemoryTries[focusedClass];
-    fsvO << "heightMemoryPicks" << classHeightMemoryPicks[focusedClass];
+    fsvO << "heightMemoryTries" << classHeightMemoryTries[ms->config.focusedClass];
+    fsvO << "heightMemoryPicks" << classHeightMemoryPicks[ms->config.focusedClass];
 
     lastRangeMap = rangeMapTemp;
     fsvO.release();
@@ -1795,7 +1795,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.eepReg4 = ms->config.beeHome;
 
   // so that closest servoing doesn't go into gradient servoing.
-  targetClass = -1;
+  ms->config.targetClass = -1;
 
   // set lastLabelLearned
   ms->pushWord(1179732);
@@ -1939,9 +1939,9 @@ REGISTER_WORD(Start3dGraspAnnotation)
 
 WORD(Save3dGrasps)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (focusedClass > -1) {
+  if (ms->config.focusedClass > -1) {
     guard3dGrasps(ms);
-    string thisLabelName = focusedClassLabel;
+    string thisLabelName = ms->config.focusedClassLabel;
     string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
     string this_grasp_path = dirToMakePath + "3dGrasps.yml";
 
@@ -1953,11 +1953,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     fsvO << "3dGrasps" << "[" ;
     {
-      int tng = ms->config.class3dGrasps[focusedClass].size();
+      int tng = ms->config.class3dGrasps[ms->config.focusedClass].size();
       fsvO << "size" <<  tng;
       fsvO << "graspPoses" << "[" ;
       for (int i = 0; i < tng; i++) {
-	ms->config.class3dGrasps[focusedClass][i].writeToFileStorage(fsvO);
+	ms->config.class3dGrasps[ms->config.focusedClass][i].writeToFileStorage(fsvO);
       }
       fsvO << "]";
     }
@@ -1967,7 +1967,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     {
       guard3dGrasps(ms);
-      string thisLabelName = focusedClassLabel;
+      string thisLabelName = ms->config.focusedClassLabel;
       string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
       string this_grasp_path = dirToMakePath + "3dGrasps.yml";
 
@@ -1981,7 +1981,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	FileNode bnode = anode["size"];
 	FileNodeIterator itb = bnode.begin();
 	int tng = *itb;
-	ms->config.class3dGrasps[focusedClass].resize(0);
+	ms->config.class3dGrasps[ms->config.focusedClass].resize(0);
 
 	FileNode cnode = anode["graspPoses"];
 	FileNodeIterator itc = cnode.begin(), itc_end = cnode.end();
@@ -1989,7 +1989,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	for ( ; itc != itc_end; itc++, numLoadedPoses++) {
 	  eePose buf;
 	  buf.readFromFileNodeIterator(itc);
-	  ms->config.class3dGrasps[focusedClass].push_back(buf);
+	  ms->config.class3dGrasps[ms->config.focusedClass].push_back(buf);
 	}
 	if (numLoadedPoses != tng) {
 	  ROS_ERROR_STREAM("Did not load the expected number of poses.");
@@ -2028,8 +2028,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   this3dGrasp = this3dGrasp.multQ( ms->config.c3dPoseBase.invQ() );
 
   int tnc = ms->config.class3dGrasps.size();
-  if ( (targetClass > 0) && (targetClass < tnc) ) {
-    ms->config.class3dGrasps[targetClass].push_back(this3dGrasp);
+  if ( (ms->config.targetClass > 0) && (ms->config.targetClass < tnc) ) {
+    ms->config.class3dGrasps[ms->config.targetClass].push_back(this3dGrasp);
   }
 }
 END_WORD
@@ -2039,7 +2039,7 @@ WORD(AssumeCurrent3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double p_backoffDistance = 0.05;
   int t3dGraspIndex = ms->config.current3dGraspIndex;
-  ms->config.currentEEPose = ms->config.class3dGrasps[targetClass][t3dGraspIndex];  
+  ms->config.currentEEPose = ms->config.class3dGrasps[ms->config.targetClass][t3dGraspIndex];  
 
   Vector3d localUnitX;
   Vector3d localUnitY;
@@ -2071,26 +2071,26 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 0; 
       ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 1;
       ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 0; 
-      //classGraspMemoryTries1[targetClass].at<double>(y,x) = 1;
-      //classGraspMemoryPicks1[targetClass].at<double>(y,x) = 0;
-      //classGraspMemoryTries2[targetClass].at<double>(y,x) = 1;
-      //classGraspMemoryPicks2[targetClass].at<double>(y,x) = 0;
-      //classGraspMemoryTries3[targetClass].at<double>(y,x) = 1;
-      //classGraspMemoryPicks3[targetClass].at<double>(y,x) = 0;
-      //classGraspMemoryTries4[targetClass].at<double>(y,x) = 1;
-      //classGraspMemoryPicks4[targetClass].at<double>(y,x) = 0;
+      //classGraspMemoryTries1[ms->config.targetClass].at<double>(y,x) = 1;
+      //classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x) = 0;
+      //classGraspMemoryTries2[ms->config.targetClass].at<double>(y,x) = 1;
+      //classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x) = 0;
+      //classGraspMemoryTries3[ms->config.targetClass].at<double>(y,x) = 1;
+      //classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x) = 0;
+      //classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x) = 1;
+      //classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x) = 0;
       ms->config.rangeMap[x + y*ms->config.rmWidth] = 0;
       ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = 0;
-      //classRangeMaps[targetClass].at<double>(y,x) = 0;
+      //classRangeMaps[ms->config.targetClass].at<double>(y,x) = 0;
     } 
   } 
-  //classGraspMemoryTries1[targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
-  //classGraspMemoryPicks1[targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
+  //classGraspMemoryTries1[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
+  //classGraspMemoryPicks1[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
   ms->config.graspMemoryTries[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1;
   ms->config.graspMemoryPicks[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1; 
   ms->config.rangeMap[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth] = ms->config.currentGraspZ;
   ms->config.rangeMapReg1[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth] = ms->config.currentGraspZ;
-  //classRangeMaps[targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
+  //classRangeMaps[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
 }
 END_WORD
 REGISTER_WORD(PreAnnotateCenterGrasp)

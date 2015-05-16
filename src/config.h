@@ -484,6 +484,15 @@ class EinConfig {
   double oscFreqZ = commonFreq*1.0;
   double visionCycleInterval = 7.5 / 7.0 * (1.0/commonFreq);
 
+  ros::Time lastVisionCycle;
+  ros::Duration accumulatedTime;
+
+  int targetClass = -1;
+
+  // class focused for learning
+  int focusedClass = -1;
+  int newClassCounter = 0;
+  string focusedClassLabel;
   // config variables that don't seem to be used
 };
 
