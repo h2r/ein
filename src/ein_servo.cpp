@@ -197,7 +197,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   pushSpeedSign(ms, MOVE_FAST);    
   if (isGripperGripping(ms)) {
-    happy();
+    happy(ms);
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     ms->pushWord('5');  // assume pose at register 5
       
@@ -355,7 +355,7 @@ CODE(196649)     // capslock + i
       cout << " gripperThresh: " << ms->config.gripperThresh << endl;
       if (ms->config.thisGraspReleased == UNKNOWN) {
         ms->config.thisGraspReleased = FAILURE;
-        sad();
+        sad(ms);
       }
     }
     ms->pushWord("openGripper"); // open gripper
@@ -435,7 +435,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   }
   if ((ms->config.thisGraspPicked == SUCCESS) && (ms->config.thisGraspReleased == SUCCESS)) {
     ms->config.graspSuccessCounter++;
-    happy();
+    happy(ms);
     if (ARE_GENERIC_PICK_LEARNING(ms)) {
       //ms->config.graspMemoryPicks[j+0*ms->config.rmWidth*ms->config.rmWidth]++;
       //ms->config.graspMemoryPicks[j+1*ms->config.rmWidth*ms->config.rmWidth]++;
@@ -488,7 +488,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     double thisPickRate = double(ms->config.graspMemoryPicks[i]) / double(ms->config.graspMemoryTries[i]);
     int thisNumTries = ms->config.graspMemoryTries[i];
     cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
-    sad();
+    sad(ms);
     if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
       recordBoundingBoxFailure(ms);
     }
@@ -522,12 +522,12 @@ CODE(196718)     // capslock + N
     if (!isGripperGripping(ms)) {
       cout << "Failed to pick." << endl;
       ms->config.thisGraspPicked = FAILURE;
-      sad();
+      sad(ms);
       ms->pushCopies("beep", 15); // beep
     } else {
       cout << "Successful pick." << endl;
       ms->config.thisGraspPicked = SUCCESS;
-      happy();
+      happy(ms);
     }
   }
 }
@@ -1159,7 +1159,7 @@ CODE(131141) // capslock + e
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.thisGraspPicked = UNKNOWN;
   ms->config.thisGraspReleased = UNKNOWN;
-  neutral();
+  neutral(ms);
   
   if (ARE_GENERIC_PICK_LEARNING(ms)) {
     if (ms->config.thompsonHardCutoff) {
@@ -1184,7 +1184,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
   
   ms->config.synServoLockFrames = 0;
-  currentGradientServoIterations = 0;
+  ms->config.currentGradientServoIterations = 0;
   
   ros::Duration delta = (ros::Time::now() - ms->config.oscilStart) + ms->config.accumulatedTime;
   
@@ -1286,8 +1286,8 @@ REGISTER_WORD(GradientServoA)
 
 WORD(GradientServoIfBlueBoxes)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if ( (bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
-    changeTargetClass(ms, bLabels[ms->config.pilotClosestBlueBoxNumber]);
+  if ( (ms->config.bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
+    changeTargetClass(ms, ms->config.bLabels[ms->config.pilotClosestBlueBoxNumber]);
     ms->pushWord("gradientServo");
   }
 }
@@ -1296,7 +1296,7 @@ REGISTER_WORD(GradientServoIfBlueBoxes)
 
 WORD(LockTargetIfBlueBoxes)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if ( (bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
+  if ( (ms->config.bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
     ms->pushWord("recordTargetLock");
     ms->pushWord("prepareForGraspFromMemory");
   }
