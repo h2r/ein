@@ -122,16 +122,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-// paramaters for the color histogram feature
-// ATTN 25
-//const double colorHistNumBins = 8;
-const double colorHistNumBins = 16;
-const double colorHistBinWidth = 256/colorHistNumBins;
-const double colorHistLambda = 1.0;//0.5;
-const double colorHistThresh = 0.1;
-// ATTN 25
-//const int colorHistBoxHalfWidth = 1;
-const int colorHistBoxHalfWidth = 2;
 
 std::string data_directory = "unspecified_dd";
 std::string vocab_file = "unspecified_vf";
@@ -8571,6 +8561,19 @@ bool isFiniteNumber(double x) {
 } 
 
 void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descriptors, Mat& descriptors2) {
+  
+  // paramaters for the color histogram feature
+  // ATTN 25
+  //const double colorHistNumBins = 8;
+  double colorHistNumBins = 16;
+  double colorHistBinWidth = 256/colorHistNumBins;
+  double colorHistLambda = 1.0;//0.5;
+  double colorHistThresh = 0.1;
+  // ATTN 25
+  //int colorHistBoxHalfWidth = 1;
+  int colorHistBoxHalfWidth = 2;
+
+
   Size sz = yCrCb_image.size();
   int imW = sz.width;
   int imH = sz.height;
