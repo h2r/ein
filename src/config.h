@@ -208,6 +208,15 @@ class EinConfig {
   eePose eepReg5;
   eePose eepReg6;
 
+  eePose beeHome;
+  eePose pilotTarget;
+  eePose pilotClosestTarget;
+  eePose lastGoodEEPose;
+  eePose currentEEPose;
+  eePose currentEEDeltaRPY;
+  eePose ik_reset_eePose;
+
+
 
 
   std::vector<eePose> deliveryPoses;

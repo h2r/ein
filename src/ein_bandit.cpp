@@ -75,9 +75,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   noY = noY + (((noY > 0) - 0.5) * 2) * bbLearnPerturbBias;
   double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
   
-  currentEEPose.px += noX;
-  currentEEPose.py += noY;
-  currentEEDeltaRPY.pz += noTheta;
+  ms->config.currentEEPose.px += noX;
+  ms->config.currentEEPose.py += noY;
+  ms->config.currentEEDeltaRPY.pz += noTheta;
 }
 END_WORD
 REGISTER_WORD(SetRandomPositionAndOrientationForHeightLearning)
@@ -99,7 +99,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->pushWord("visionCycle"); // vision cycle
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   { // prepare to servo
-    //currentEEPose.pz = wholeFoodsCounter1.pz+.1;
+    //ms->config.currentEEPose.pz = wholeFoodsCounter1.pz+.1;
     ms->pushWord(1245248); // change to height 1
   }
   //ms->pushWord(1179723); // change height inference mode to LEARNING_SAMPLING
@@ -183,11 +183,11 @@ CODE(1179694)     // capslock + numlock + .
   // Distances for the eraser
   //0.04, 2.57e-05, 0.0005, 0.0009, 0.007, 0.0006
   // ATTN 17
-  double distance = squareDistanceEEPose(currentEEPose, ms->config.eepReg4);
+  double distance = squareDistanceEEPose(ms->config.currentEEPose, ms->config.eepReg4);
   cout << "cartesian distance from start: " << sqrt(distance) << endl;
   cout << "bbLearnThresh: " << bbLearnThresh << endl;
   if (distance < bbLearnThresh*bbLearnThresh) {
-    Quaternionf q1(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+    Quaternionf q1(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
     Quaternionf q2(ms->config.eepReg4.qw, ms->config.eepReg4.qx, ms->config.eepReg4.qy, ms->config.eepReg4.qz);
     double quaternionDistance = unsignedQuaternionDistance(q1, q2);
     cout << "quat distance from start: " << quaternionDistance << endl;
@@ -391,7 +391,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
   currentThompsonHeight = convertHeightIdxToGlobalZ(thisRandThompsonHeight);
   currentThompsonHeightIdx = thisRandThompsonHeight;
-  currentEEPose.pz = currentThompsonHeight;
+  ms->config.currentEEPose.pz = currentThompsonHeight;
   m_x = m_x_h[currentThompsonHeightIdx];
   m_y = m_y_h[currentThompsonHeightIdx];
 }
@@ -441,7 +441,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       cout << "SampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
       currentThompsonHeight = convertHeightIdxToGlobalZ(mappingHeightIdx);
       currentThompsonHeightIdx = mappingHeightIdx;
-      currentEEPose.pz = currentThompsonHeight;
+      ms->config.currentEEPose.pz = currentThompsonHeight;
       m_x = m_x_h[currentThompsonHeightIdx];
       m_y = m_y_h[currentThompsonHeightIdx];
       return;
@@ -481,14 +481,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
     currentThompsonHeight = convertHeightIdxToGlobalZ(max_i);
     currentThompsonHeightIdx = max_i;
-    currentEEPose.pz = currentThompsonHeight;
+    ms->config.currentEEPose.pz = currentThompsonHeight;
     m_x = m_x_h[currentThompsonHeightIdx];
     m_y = m_y_h[currentThompsonHeightIdx];
   } else {
     cout << "SampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
     currentThompsonHeight = convertHeightIdxToGlobalZ(mappingHeightIdx);
     currentThompsonHeightIdx = mappingHeightIdx;
-    currentEEPose.pz = currentThompsonHeight;
+    ms->config.currentEEPose.pz = currentThompsonHeight;
     m_x = m_x_h[currentThompsonHeightIdx];
     m_y = m_y_h[currentThompsonHeightIdx];
   }

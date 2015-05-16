@@ -181,7 +181,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // this ensures that we explore randomly within each grasp gear sector
   double arcFraction = 0.125;
   double noTheta = arcFraction * 3.1415926 * ((drand48() - 0.5) * 2.0);
-  currentEEDeltaRPY.pz += noTheta;
+  ms->config.currentEEDeltaRPY.pz += noTheta;
 }
 END_WORD
 REGISTER_WORD(SetRandomOrientationForPhotospin)
@@ -420,8 +420,8 @@ WORD(PrepareForSearch)
 CODE(1114150)     // numlock + &
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // XXX this should be computed here from the ir sensor offset
-  currentEEPose.px = rmcX + drX;
-  currentEEPose.py = rmcY + drY;
+  ms->config.currentEEPose.px = rmcX + drX;
+  ms->config.currentEEPose.py = rmcY + drY;
 }
 END_WORD
 REGISTER_WORD(PrepareForSearch)
@@ -437,10 +437,10 @@ REGISTER_WORD(TurnOnRecordRangeMap)
 
 WORD(SetRangeMapCenterFromCurrentEEPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "Set rmcX and rmcY from currentEEPose." << endl;
-  rmcX = currentEEPose.px;
-  rmcY = currentEEPose.py;
-  //rmcZ = currentEEPose.pz - ms->config.eeRange;
+  cout << "Set rmcX and rmcY from ms->config.currentEEPose." << endl;
+  rmcX = ms->config.currentEEPose.px;
+  rmcY = ms->config.currentEEPose.py;
+  //rmcZ = ms->config.currentEEPose.pz - ms->config.eeRange;
 }
 END_WORD
 REGISTER_WORD(SetRangeMapCenterFromCurrentEEPose)
@@ -683,7 +683,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     mkdir(dirToMakePath.c_str(), 0777);
 
-    //int hbb = pilotTargetBlueBoxNumber;
+    //int hbb = ms->config.pilotTargetBlueBoxNumber;
     //int hbb = 0;
 
     int topCornerX = ms->config.reticle.px - (aerialGradientReticleWidth/2);
@@ -1038,8 +1038,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int darkY = 0;
   findDarkness(ms, &darkX, &darkY);
 
-  pilotTarget.px = darkX;
-  pilotTarget.py = darkY;
+  ms->config.pilotTarget.px = darkX;
+  ms->config.pilotTarget.py = darkY;
 
   ms->config.heightReticles[currentThompsonHeightIdx].px = darkX;
   ms->config.heightReticles[currentThompsonHeightIdx].py = darkY;
@@ -1123,14 +1123,14 @@ REGISTER_WORD(MoveCropToCenterVanishingPoint)
 
 WORD(MoveToSetVanishingPointHeightLow)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose.pz = minHeight - currentTableZ;
+  ms->config.currentEEPose.pz = minHeight - currentTableZ;
 }
 END_WORD
 REGISTER_WORD(MoveToSetVanishingPointHeightLow)
 
 WORD(MoveToSetVanishingPointHeightHigh)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose.pz = ((0.75*maxHeight)+(0.25*minHeight)) - currentTableZ;
+  ms->config.currentEEPose.pz = ((0.75*maxHeight)+(0.25*minHeight)) - currentTableZ;
 }
 END_WORD
 REGISTER_WORD(MoveToSetVanishingPointHeightHigh)
@@ -1324,8 +1324,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int darkY = 0;
   findDarkness(ms, &darkX, &darkY);
 
-  pilotTarget.px = darkX;
-  pilotTarget.py = darkY;
+  ms->config.pilotTarget.px = darkX;
+  ms->config.pilotTarget.py = darkY;
 
   int magIters = 2000; 
   double magStep = 0.01;
@@ -1379,8 +1379,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int darkY = 0;
   findDarkness(ms, &darkX, &darkY);
 
-  pilotTarget.px = darkX;
-  pilotTarget.py = darkY;
+  ms->config.pilotTarget.px = darkX;
+  ms->config.pilotTarget.py = darkY;
 
   int magIters = 2000; 
   double magStep = 0.01;
@@ -1717,7 +1717,7 @@ REGISTER_WORD(CalibrateRGBCameraIntrinsics)
 
 WORD(AssumeCalibrationPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose = ms->config.calibrationPose;
+  ms->config.currentEEPose = ms->config.calibrationPose;
 }
 END_WORD
 REGISTER_WORD(AssumeCalibrationPose)
@@ -1744,7 +1744,7 @@ WORD(SetColorReticles)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->config.bDelta = cReticleIndexDelta;
-  currentEEPose.pz = firstCReticleIndexDepth;
+  ms->config.currentEEPose.pz = firstCReticleIndexDepth;
 
   // leave it in a canonical state
   ms->pushWord("setMovementSpeedMoveFast");
@@ -1771,8 +1771,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int lightY = 0;
   findLight(ms, &lightX, &lightY);
 
-  pilotTarget.px = lightX;
-  pilotTarget.py = lightY;
+  ms->config.pilotTarget.px = lightX;
+  ms->config.pilotTarget.py = lightY;
 
   int * ii = &(pMachineState->config.scrI);
   xCR[(*ii)] = lightX;
@@ -1910,9 +1910,9 @@ REGISTER_WORD(ScanObjectFast)
 
 WORD(RecordGraspZ)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  // uses currentEEPose instead of ms->config.trueEEPose so that we can set it below the table
+  // uses ms->config.currentEEPose instead of ms->config.trueEEPose so that we can set it below the table
   double flushZ = -(currentTableZ) + pickFlushFactor;
-  ms->config.currentGraspZ = currentEEPose.pz - flushZ;
+  ms->config.currentGraspZ = ms->config.currentEEPose.pz - flushZ;
   cout << "recordGraspZ flushZ currentGraspZ: " << flushZ << " " << ms->config.currentGraspZ << " " << endl;
 }
 END_WORD
@@ -2008,7 +2008,7 @@ REGISTER_WORD(Save3dGrasps)
 WORD(Lock3dGraspBase)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
-    ms->config.c3dPoseBase = currentEEPose;
+    ms->config.c3dPoseBase = ms->config.currentEEPose;
     ms->config.c3dPoseBase.pz = -currentTableZ;
     cout << "The base for 3d grasp annotation is now locked and you are in zero-G mode. Please adjust use \"add3dGrasp\" to record a grasp point." << endl;
     cout << "When you are done, make sure to save to disk and to exit zero-G mode." << endl;
@@ -2023,7 +2023,7 @@ REGISTER_WORD(Lock3dGraspBase)
 
 WORD(Add3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  eePose this3dGrasp = currentEEPose;
+  eePose this3dGrasp = ms->config.currentEEPose;
   this3dGrasp = this3dGrasp.minusP(ms->config.c3dPoseBase);
   this3dGrasp = this3dGrasp.multQ( ms->config.c3dPoseBase.invQ() );
 
@@ -2039,13 +2039,13 @@ WORD(AssumeCurrent3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double p_backoffDistance = 0.05;
   int t3dGraspIndex = ms->config.current3dGraspIndex;
-  currentEEPose = ms->config.class3dGrasps[targetClass][t3dGraspIndex];  
+  ms->config.currentEEPose = ms->config.class3dGrasps[targetClass][t3dGraspIndex];  
 
   Vector3d localUnitX;
   Vector3d localUnitY;
   Vector3d localUnitZ;
-  fillLocalUnitBasis(currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  currentEEPose = currentEEPose.plusP(p_backoffDistance * localUnitZ);
+  fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  ms->config.currentEEPose = ms->config.currentEEPose.plusP(p_backoffDistance * localUnitZ);
 
   int increments = floor(p_backoffDistance / MOVE_FAST); 
 

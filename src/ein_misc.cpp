@@ -44,7 +44,7 @@ REGISTER_WORD(Beep)
 WORD(AssumeWholeFoodsCounter1)
 CODE(196672)  // capslock + @
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose = wholeFoodsCounter1;
+  ms->config.currentEEPose = wholeFoodsCounter1;
 }
 END_WORD
 REGISTER_WORD(AssumeWholeFoodsCounter1)
@@ -52,7 +52,7 @@ REGISTER_WORD(AssumeWholeFoodsCounter1)
 WORD(AssumeWholeFoodsPantry1)
 CODE(196643)   // capslock + #
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose = wholeFoodsPantry1;
+  ms->config.currentEEPose = wholeFoodsPantry1;
 }
 END_WORD
 REGISTER_WORD(AssumeWholeFoodsPantry1)
@@ -110,8 +110,8 @@ WORD(PrintState)
 CODE('u')
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << endl;
-  cout << "Current EE Position (x,y,z): " << currentEEPose.px << " " << currentEEPose.py << " " << currentEEPose.pz << endl;
-  cout << "Current EE Orientation (x,y,z,w): " << currentEEPose.qx << " " << currentEEPose.qy << " " << currentEEPose.qz << " " << currentEEPose.qw << endl;
+  cout << "Current EE Position (x,y,z): " << ms->config.currentEEPose.px << " " << ms->config.currentEEPose.py << " " << ms->config.currentEEPose.pz << endl;
+  cout << "Current EE Orientation (x,y,z,w): " << ms->config.currentEEPose.qx << " " << ms->config.currentEEPose.qy << " " << ms->config.currentEEPose.qz << " " << ms->config.currentEEPose.qw << endl;
   cout << "True EE Position (x,y,z): " << ms->config.trueEEPose.position.x << " " << ms->config.trueEEPose.position.y << " " << ms->config.trueEEPose.position.z << endl;
   cout << "True EE Orientation (x,y,z,w): " << ms->config.trueEEPose.orientation.x << " " << ms->config.trueEEPose.orientation.y << " " << ms->config.trueEEPose.orientation.z << " " << ms->config.trueEEPose.orientation.w << endl;
   cout <<

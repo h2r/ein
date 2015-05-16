@@ -106,8 +106,6 @@ shared_ptr<MachineState> pMachineState;
 tf::TransformListener* tfListener;
 
 
-eePose beeRHome = {.px = 0.657579481614, .py = -0.168019, .pz = 0.0388352386502,
-		   .qx = -0.366894936773, .qy = 0.885980397775, .qz = 0.108155782462, .qw = 0.262162481772};
 
 eePose crane1;
 
@@ -164,17 +162,6 @@ eePose wholeFoodsBag1 = wholeFoodsBagR;
 eePose wholeFoodsPantry1 = wholeFoodsPantryR;
 eePose wholeFoodsCounter1 = wholeFoodsCounterR;
 
-eePose beeHome = beeRHome;
-eePose pilotTarget = beeHome;
-eePose pilotClosestTarget = beeHome;
-eePose lastGoodEEPose = beeHome;
-eePose currentEEPose = beeHome;
-eePose currentEEDeltaRPY = eePoseZero;
-
-
-
-
-eePose ik_reset_eePose = beeHome;
 
 
 int bfc = 0;
@@ -1247,11 +1234,11 @@ Quaternionf extractQuatFromPose(geometry_msgs::Pose poseIn);
 void scanXdirection(shared_ptr<MachineState> ms, double speedOnLines, double speedBetweenLines);
 void scanYdirection(shared_ptr<MachineState> ms, double speedOnLines, double speedBetweenLines);
 
-Eigen::Quaternionf getGGRotation(int givenGraspGear);
-void setGGRotation(int thisGraspGear);
+Eigen::Quaternionf getGGRotation(shared_ptr<MachineState> ms, int givenGraspGear);
+void setGGRotation(shared_ptr<MachineState> ms, int thisGraspGear);
 
-Eigen::Quaternionf getCCRotation(int givenGraspGear, double angle);
-void setCCRotation(int thisGraspGear);
+Eigen::Quaternionf getCCRotation(shared_ptr<MachineState> ms, int givenGraspGear, double angle);
+void setCCRotation(shared_ptr<MachineState> ms, int thisGraspGear);
 
 void accelerometerCallback(const sensor_msgs::Imu& moment);
 void rangeCallback(const sensor_msgs::Range& range);
@@ -2431,9 +2418,9 @@ void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
   if (ms->config.currentRobotMode == PHYSICAL) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
-    currentEEPose.px = msg.position.x;
-    currentEEPose.py = msg.position.y;
-    currentEEPose.pz = msg.position.z;
+    ms->config.currentEEPose.px = msg.position.x;
+    ms->config.currentEEPose.py = msg.position.y;
+    ms->config.currentEEPose.pz = msg.position.z;
   } else {
     assert(0);
   }
@@ -2452,7 +2439,7 @@ void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
       box.bTop.y = ms->config.vanishingPointReticle.py-probeBoxHalfWidthPixels;
       box.bBot.x = ms->config.vanishingPointReticle.px+probeBoxHalfWidthPixels;
       box.bBot.y = ms->config.vanishingPointReticle.py+probeBoxHalfWidthPixels;
-      box.cameraPose = currentEEPose;
+      box.cameraPose = ms->config.currentEEPose;
       box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + currentTableZ);
       box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + currentTableZ);
       box.centroid.px = (box.top.px + box.bot.px) * 0.5;
@@ -2502,7 +2489,7 @@ void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
       box.bTop.y = ms->config.vanishingPointReticle.py-simulatedObjectHalfWidthPixels;
       box.bBot.x = ms->config.vanishingPointReticle.px+simulatedObjectHalfWidthPixels;
       box.bBot.y = ms->config.vanishingPointReticle.py+simulatedObjectHalfWidthPixels;
-      box.cameraPose = currentEEPose;
+      box.cameraPose = ms->config.currentEEPose;
       box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + currentTableZ);
       box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + currentTableZ);
       box.centroid.px = (box.top.px + box.bot.px) * 0.5;
@@ -2583,7 +2570,7 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
 
   {
     double distance = squareDistanceEEPose(ms->config.trueEEPoseEEPose, lastTrueEEPoseEEPose);
-    double distance2 = squareDistanceEEPose(ms->config.trueEEPoseEEPose, currentEEPose);
+    double distance2 = squareDistanceEEPose(ms->config.trueEEPoseEEPose, ms->config.currentEEPose);
 
     if (ms->config.currentMovementState == ARMED ) {
       if (distance2 > armedThreshold*armedThreshold) {
@@ -2925,7 +2912,7 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
     Eigen::Quaternionf qout(0, 1, 0, 0);
     //Eigen::Quaternionf eeqform(ms->config.eepReg2.qw, ms->config.eepReg2.qx, ms->config.eepReg2.qy, ms->config.eepReg2.qz);
     Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
-    //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+    //Eigen::Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitX.x() = qout.x();
     localUnitX.y() = qout.y();
@@ -2938,7 +2925,7 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
     Eigen::Quaternionf qout(0, 1, 0, 0);
     //Eigen::Quaternionf eeqform(ms->config.eepReg2.qw, ms->config.eepReg2.qx, ms->config.eepReg2.qy, ms->config.eepReg2.qz);
     Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
-    //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+    //Eigen::Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitY.x() = qout.x();
     localUnitY.y() = qout.y();
@@ -2951,7 +2938,7 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
     Eigen::Quaternionf qout(0, 1, 0, 0);
     //Eigen::Quaternionf eeqform(ms->config.eepReg2.qw, ms->config.eepReg2.qx, ms->config.eepReg2.qy, ms->config.eepReg2.qz);
     Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
-    //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+    //Eigen::Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitZ.x() = qout.x();
     localUnitZ.y() = qout.y();
@@ -2979,23 +2966,23 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
   return eeBaseQuat;
 }
 
-void setGGRotation(int thisGraspGear) {
+void setGGRotation(shared_ptr<MachineState> ms, int thisGraspGear) {
   Eigen::Quaternionf eeBaseQuat = getGGRotation(thisGraspGear);
 
-  currentEEPose.qx = eeBaseQuat.x();
-  currentEEPose.qy = eeBaseQuat.y();
-  currentEEPose.qz = eeBaseQuat.z();
-  currentEEPose.qw = eeBaseQuat.w();
+  ms->config.currentEEPose.qx = eeBaseQuat.x();
+  ms->config.currentEEPose.qy = eeBaseQuat.y();
+  ms->config.currentEEPose.qz = eeBaseQuat.z();
+  ms->config.currentEEPose.qw = eeBaseQuat.w();
 }
 
-Eigen::Quaternionf getCCRotation(int givenGraspGear, double angle) {
+Eigen::Quaternionf getCCRotation(shared_ptr<MachineState> ms, int givenGraspGear, double angle) {
   Eigen::Vector3f localUnitX;
   {
     Eigen::Quaternionf qin(0, 1, 0, 0);
     Eigen::Quaternionf qout(0, 1, 0, 0);
     //Eigen::Quaternionf eeqform(ms->config.eepReg2.qw, ms->config.eepReg2.qx, ms->config.eepReg2.qy, ms->config.eepReg2.qz);
     Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
-    //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+    //Eigen::Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitX.x() = qout.x();
     localUnitX.y() = qout.y();
@@ -3008,7 +2995,7 @@ Eigen::Quaternionf getCCRotation(int givenGraspGear, double angle) {
     Eigen::Quaternionf qout(0, 1, 0, 0);
     //Eigen::Quaternionf eeqform(ms->config.eepReg2.qw, ms->config.eepReg2.qx, ms->config.eepReg2.qy, ms->config.eepReg2.qz);
     Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
-    //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+    //Eigen::Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitY.x() = qout.x();
     localUnitY.y() = qout.y();
@@ -3021,7 +3008,7 @@ Eigen::Quaternionf getCCRotation(int givenGraspGear, double angle) {
     Eigen::Quaternionf qout(0, 1, 0, 0);
     //Eigen::Quaternionf eeqform(ms->config.eepReg2.qw, ms->config.eepReg2.qx, ms->config.eepReg2.qy, ms->config.eepReg2.qz);
     Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
-    //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+    //Eigen::Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitZ.x() = qout.x();
     localUnitZ.y() = qout.y();
@@ -3050,14 +3037,14 @@ Eigen::Quaternionf getCCRotation(int givenGraspGear, double angle) {
   return eeBaseQuat;
 }
 
-void setCCRotation(int thisGraspGear) {
-  //Eigen::Quaternionf eeBaseQuat = getCCRotation(thisGraspGear, -bestOrientationAngle);
-  Eigen::Quaternionf eeBaseQuat = getCCRotation(thisGraspGear, 0.0);
+void setCCRotation(shared_ptr<MachineState> ms, int thisGraspGear) {
+  //Eigen::Quaternionf eeBaseQuat = getCCRotation(ms, thisGraspGear, -bestOrientationAngle);
+  Eigen::Quaternionf eeBaseQuat = getCCRotation(ms, thisGraspGear, 0.0);
 
-  currentEEPose.qx = eeBaseQuat.x();
-  currentEEPose.qy = eeBaseQuat.y();
-  currentEEPose.qz = eeBaseQuat.z();
-  currentEEPose.qw = eeBaseQuat.w();
+  ms->config.currentEEPose.qx = eeBaseQuat.x();
+  ms->config.currentEEPose.qy = eeBaseQuat.y();
+  ms->config.currentEEPose.qz = eeBaseQuat.z();
+  ms->config.currentEEPose.qw = eeBaseQuat.w();
 }
 
 void accelerometerCallback(const sensor_msgs::Imu& moment) {
@@ -3179,7 +3166,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 
   if (recordRangeMap) {
     // actually storing the negative z for backwards compatibility
-    //double thisZmeasurement = -(currentEEPose.pz - ms->config.eeRange);
+    //double thisZmeasurement = -(ms->config.currentEEPose.pz - ms->config.eeRange);
     double thisZmeasurement = -(ms->config.trueEEPose.position.z - ms->config.eeRange);
     double dX = 0;
     double dY = 0;
@@ -3574,10 +3561,10 @@ void update_baxter(ros::NodeHandle &n) {
   }
 
   baxter_core_msgs::SolvePositionIK thisIkRequest;
-  fillIkRequest(&currentEEPose, &thisIkRequest);
+  fillIkRequest(&ms->config.currentEEPose, &thisIkRequest);
 
   int ikResultFailed = 0;
-  eePose originalCurrentEEPose = currentEEPose;
+  eePose originalCurrentEEPose = ms->config.currentEEPose;
 
   // do not start in a state with ikShare 
   if ((drand48() <= ms->config.ikShare) || !ms->config.ikInitialized) {
@@ -3605,9 +3592,9 @@ void update_baxter(ros::NodeHandle &n) {
 //      // XXX This is ridiculous
 //      if (ikCallResult && thisIkRequest.response.isValid[0]) {
 //	// set this here in case noise was added
-//	currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
-//	currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
-//	currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
+//	ms->config.currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
+//	ms->config.currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
+//	ms->config.currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
 //	ikResultFailed = 0;
 //      } else {
 //	ikResultFailed = 1;
@@ -3616,16 +3603,16 @@ void update_baxter(ros::NodeHandle &n) {
 
       if (ikCallResult && thisIkRequest.response.isValid[0]) {
 	// set this here in case noise was added
-	currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
-	currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
-	currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
+	ms->config.currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
+	ms->config.currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
+	ms->config.currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
 	ikResultFailed = 0;
 	if (ikRetry > 0) {
 	  ROS_WARN_STREAM("___________________");
 	  ROS_ERROR_STREAM("Accepting perturbed IK result.");
 	  cout << "ikRetry: " << ikRetry << endl;
 	  printEEPose(originalCurrentEEPose);
-	  printEEPose(currentEEPose);
+	  printEEPose(ms->config.currentEEPose);
 	  ROS_WARN_STREAM("___________________");
 	}
       } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
@@ -3640,9 +3627,9 @@ void update_baxter(ros::NodeHandle &n) {
 	  cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
 
 	  ikResultFailed = 0;
-	  currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
-	  currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
-	  currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
+	  ms->config.currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
+	  ms->config.currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
+	  ms->config.currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
 	} else {
 	  ikResultFailed = 1;
 	  cout << "ik result was reported as colliding and we are sensibly rejecting it..." << endl;
@@ -3659,19 +3646,19 @@ void update_baxter(ros::NodeHandle &n) {
       ROS_WARN_STREAM("Initial IK result invalid... adding noise and retrying.");
       cout << thisIkRequest.request.pose_stamp[0].pose << endl;
 
-      //eePose noisedCurrentEEPose = currentEEPose;
-      //noisedCurrentEEPose.px = currentEEPose.px + (drand48() - 0.5)*2.0*ikNoiseAmplitude*(1.0-useZOnly);
-      //noisedCurrentEEPose.py = currentEEPose.py + (drand48() - 0.5)*2.0*ikNoiseAmplitude*(1.0-useZOnly);
-      //noisedCurrentEEPose.pz = currentEEPose.pz + (drand48() - 0.5)*2.0*ikNoiseAmplitude*useZOnly;
+      //eePose noisedCurrentEEPose = ms->config.currentEEPose;
+      //noisedCurrentEEPose.px = ms->config.currentEEPose.px + (drand48() - 0.5)*2.0*ikNoiseAmplitude*(1.0-useZOnly);
+      //noisedCurrentEEPose.py = ms->config.currentEEPose.py + (drand48() - 0.5)*2.0*ikNoiseAmplitude*(1.0-useZOnly);
+      //noisedCurrentEEPose.pz = ms->config.currentEEPose.pz + (drand48() - 0.5)*2.0*ikNoiseAmplitude*useZOnly;
 
-      //noisedCurrentEEPose.qx = currentEEPose.qx + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
-      //noisedCurrentEEPose.qy = currentEEPose.qy + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
-      //noisedCurrentEEPose.qz = currentEEPose.qz + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
-      //noisedCurrentEEPose.qw = currentEEPose.qw + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
+      //noisedCurrentEEPose.qx = ms->config.currentEEPose.qx + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
+      //noisedCurrentEEPose.qy = ms->config.currentEEPose.qy + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
+      //noisedCurrentEEPose.qz = ms->config.currentEEPose.qz + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
+      //noisedCurrentEEPose.qw = ms->config.currentEEPose.qw + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
       //fillIkRequest(&noisedCurrentEEPose, &thisIkRequest);
 
-      reseedIkRequest(ms, &currentEEPose, &thisIkRequest, ikRetry, numIkRetries);
-      fillIkRequest(&currentEEPose, &thisIkRequest);
+      reseedIkRequest(ms, &ms->config.currentEEPose, &thisIkRequest, ikRetry, numIkRetries);
+      fillIkRequest(&ms->config.currentEEPose, &thisIkRequest);
     }
   }
 
@@ -3694,17 +3681,17 @@ void update_baxter(ros::NodeHandle &n) {
       cout << "ik_reset_counter, ik_reset_thresh: " << ms->config.ik_reset_counter << " " << ms->config.ik_reset_thresh << endl;
       if (ms->config.ik_reset_counter > ms->config.ik_reset_thresh) {
 	ms->config.ik_reset_counter = 0;
-	currentEEPose = ik_reset_eePose;
+	ms->config.currentEEPose = ms->config.ik_reset_eePose;
 	pMachineState->pushWord('Y'); // pause stack execution
 	pMachineState->pushCopies("beep", 15); // beep
 	cout << "target position denied by ik, please reset the object.";
       }
       else {
 	cout << "This pose was rejected by ikClient:" << endl;
-	cout << "Current EE Position (x,y,z): " << currentEEPose.px << " " << currentEEPose.py << " " << currentEEPose.pz << endl;
-	cout << "Current EE Orientation (x,y,z,w): " << currentEEPose.qx << " " << currentEEPose.qy << " " << currentEEPose.qz << " " << currentEEPose.qw << endl;
+	cout << "Current EE Position (x,y,z): " << ms->config.currentEEPose.px << " " << ms->config.currentEEPose.py << " " << ms->config.currentEEPose.pz << endl;
+	cout << "Current EE Orientation (x,y,z,w): " << ms->config.currentEEPose.qx << " " << ms->config.currentEEPose.qy << " " << ms->config.currentEEPose.qz << " " << ms->config.currentEEPose.qw << endl;
 
-	currentEEPose = lastGoodEEPose;
+	ms->config.currentEEPose = ms->config.lastGoodEEPose;
       }
 
       return;
@@ -3712,7 +3699,7 @@ void update_baxter(ros::NodeHandle &n) {
 
     ms->config.ik_reset_counter = max(ms->config.ik_reset_counter-1, 0);
 
-    lastGoodEEPose = currentEEPose;
+    ms->config.lastGoodEEPose = ms->config.currentEEPose;
     ikRequest = thisIkRequest;
     ms->config.ikInitialized = 1;
   
@@ -3884,19 +3871,19 @@ void timercallback1(const ros::TimerEvent&) {
     einPub.publish(state);
   }
 
-  endEffectorAngularUpdate(&currentEEPose, &currentEEDeltaRPY);
+  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
 
   if (!pMachineState->config.zero_g_toggle) {
     update_baxter(n);
   }
   else {
-    currentEEPose.px = ms->config.trueEEPose.position.x;
-    currentEEPose.py = ms->config.trueEEPose.position.y;
-    currentEEPose.pz = ms->config.trueEEPose.position.z;
-    currentEEPose.qx = ms->config.trueEEPose.orientation.x;
-    currentEEPose.qy = ms->config.trueEEPose.orientation.y;
-    currentEEPose.qz = ms->config.trueEEPose.orientation.z;
-    currentEEPose.qw = ms->config.trueEEPose.orientation.w;
+    ms->config.currentEEPose.px = ms->config.trueEEPose.position.x;
+    ms->config.currentEEPose.py = ms->config.trueEEPose.position.y;
+    ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z;
+    ms->config.currentEEPose.qx = ms->config.trueEEPose.orientation.x;
+    ms->config.currentEEPose.qy = ms->config.trueEEPose.orientation.y;
+    ms->config.currentEEPose.qz = ms->config.trueEEPose.orientation.z;
+    ms->config.currentEEPose.qw = ms->config.trueEEPose.orientation.w;
   }
 
   if (sirCore) {
@@ -4361,10 +4348,10 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   {
     int param_pilotTargetHalfWidth = 15;
-    cv::Point outTop = cv::Point(pilotTarget.px-param_pilotTargetHalfWidth, pilotTarget.py-param_pilotTargetHalfWidth);
-    cv::Point outBot = cv::Point(pilotTarget.px+param_pilotTargetHalfWidth, pilotTarget.py+param_pilotTargetHalfWidth);
-    cv::Point inTop = cv::Point(pilotTarget.px+1-param_pilotTargetHalfWidth,pilotTarget.py+1-param_pilotTargetHalfWidth);
-    cv::Point inBot = cv::Point(pilotTarget.px-1+param_pilotTargetHalfWidth,pilotTarget.py-1+param_pilotTargetHalfWidth);
+    cv::Point outTop = cv::Point(ms->config.pilotTarget.px-param_pilotTargetHalfWidth, ms->config.pilotTarget.py-param_pilotTargetHalfWidth);
+    cv::Point outBot = cv::Point(ms->config.pilotTarget.px+param_pilotTargetHalfWidth, ms->config.pilotTarget.py+param_pilotTargetHalfWidth);
+    cv::Point inTop = cv::Point(ms->config.pilotTarget.px+1-param_pilotTargetHalfWidth,ms->config.pilotTarget.py+1-param_pilotTargetHalfWidth);
+    cv::Point inBot = cv::Point(ms->config.pilotTarget.px-1+param_pilotTargetHalfWidth,ms->config.pilotTarget.py-1+param_pilotTargetHalfWidth);
     if ( (outTop.x > 0) && (outTop.y > 0) && (outBot.x < imW) && (outBot.y < imH) ) {
       rectangle(wristViewImage, outTop, outBot, cv::Scalar(53,10,97)); // RGB: 97 10 53
       rectangle(wristViewImage, inTop, inBot, cv::Scalar(142,31,255)); // RGB: 255 31 142
@@ -5077,7 +5064,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
 
   if (0 == ms->config.left_or_right_arm.compare("left")) {
     cout << "Possessing left arm..." << endl;
-    beeHome = rssPoseL; //wholeFoodsPantryL;
+    ms->config.beeHome = rssPoseL; //wholeFoodsPantryL;
     ms->config.eepReg4 = rssPoseL; //beeLHome;
     ms->config.defaultReticle = {.px = 334, .py = 100, .pz = 0.0,
                       .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
@@ -5099,7 +5086,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
     }
 
     rssPose = rssPoseL;
-    ik_reset_eePose = rssPose;
+    ms->config.ik_reset_eePose = rssPose;
 
     currentTableZ = leftTableZ;
     bagTableZ = leftTableZ;
@@ -5211,7 +5198,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
   } else if (0 == ms->config.left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
 
-    beeHome = rssPoseR;
+    ms->config.beeHome = rssPoseR;
     ms->config.eepReg4 = rssPoseR; 
     ms->config.defaultReticle = {.px = 325, .py = 127, .pz = 0.0,
                       .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
@@ -5233,7 +5220,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
     }
 
     rssPose = rssPoseR;
-    ik_reset_eePose = rssPose;
+    ms->config.ik_reset_eePose = rssPose;
 
     currentTableZ = rightTableZ;
     bagTableZ = rightTableZ;
@@ -5351,9 +5338,9 @@ void pilotInit(shared_ptr<MachineState> ms) {
     cout << "Invalid chirality: " << ms->config.left_or_right_arm << ".  Exiting." << endl;
     exit(0);
   }
-  pilotTarget = beeHome;
-  lastGoodEEPose = beeHome;
-  currentEEPose = beeHome;
+  ms->config.pilotTarget = ms->config.beeHome;
+  ms->config.lastGoodEEPose = ms->config.beeHome;
+  ms->config.currentEEPose = ms->config.beeHome;
 
   for (int r = 0; r < totalRangeHistoryLength; r++) {
     rangeHistory[r] = 0;
@@ -5526,7 +5513,7 @@ int shouldIPick(int classToPick) {
 int getLocalGraspGear(int globalGraspGearIn) {
   // ATTN 7
   // diagnostic line
-  //Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+  //Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
   // correct line
   Quaternionf eeqform(bestOrientationEEPose.qw, bestOrientationEEPose.qx, bestOrientationEEPose.qy, bestOrientationEEPose.qz);
 
@@ -5566,7 +5553,7 @@ int getLocalGraspGear(int globalGraspGearIn) {
 int getGlobalGraspGear(int localGraspGearIn) {
   // ATTN 7
   // diagnostic line
-  //Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+  //Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
   // correct line
   Quaternionf eeqform(bestOrientationEEPose.qw, bestOrientationEEPose.qx, bestOrientationEEPose.qy, bestOrientationEEPose.qz);
 
@@ -6482,7 +6469,7 @@ void copyGraspMemoryRegister(double * src, double * target) {
 }
 
 void loadGlobalTargetClassRangeMap(double * rangeMapRegA, double * rangeMapRegB) {
-  //Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+  //Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
   Quaternionf eeqform(bestOrientationEEPose.qw, bestOrientationEEPose.qx, bestOrientationEEPose.qy, bestOrientationEEPose.qz);
   Quaternionf crane2Orient(0, 1, 0, 0);
   Quaternionf rel = eeqform * crane2Orient.inverse();
@@ -7268,17 +7255,17 @@ void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms) {
     double xToAdd = (pTermX*localUnitY.x() - pTermY*localUnitX.x());
     double yToAdd = (pTermX*localUnitY.y() - pTermY*localUnitX.y());
     cout << "moveCurrentGripperRayToCameraVanishingRay xToAdd yToAdd: " << xToAdd << " " << yToAdd << endl;
-    currentEEPose.px += xToAdd;
-    currentEEPose.py += yToAdd;
+    ms->config.currentEEPose.px += xToAdd;
+    ms->config.currentEEPose.py += yToAdd;
   } else {
     double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
-    pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &(currentEEPose.px), &(currentEEPose.py));
+    pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &(ms->config.currentEEPose.px), &(ms->config.currentEEPose.py));
   }
   { // yet another way to do this
     // 0 assumes no rotation 
-    //eePose finalGlobalTarget = analyticServoPixelToReticle(pilotTarget, thisGripperReticle, 0);
-    //currentEEPose.px = finalGlobalTarget.px;
-    //currentEEPose.py = finalGlobalTarget.py;
+    //eePose finalGlobalTarget = analyticServoPixelToReticle(ms->config.pilotTarget, thisGripperReticle, 0);
+    //ms->config.currentEEPose.px = finalGlobalTarget.px;
+    //ms->config.currentEEPose.py = finalGlobalTarget.py;
   }
 }
 
@@ -7315,7 +7302,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
 
   {
     int i, j;
-    mapxyToij(currentEEPose.px, currentEEPose.py, &i, &j);
+    mapxyToij(ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
     int doWeHaveClearance = (clearanceMap[i + mapWidth * j] != 0);
     if (!doWeHaveClearance) {
       //ms->pushWord("clearStackIntoMappingPatrol"); 
@@ -7590,10 +7577,10 @@ void gradientServo(shared_ptr<MachineState> ms) {
   }
 
   // set the target reticle
-  pilotTarget.px = ms->config.reticle.px + bestX;
-  pilotTarget.py = ms->config.reticle.py + bestY;
+  ms->config.pilotTarget.px = ms->config.reticle.px + bestX;
+  ms->config.pilotTarget.py = ms->config.reticle.py + bestY;
   
-  bestOrientationEEPose = currentEEPose;
+  bestOrientationEEPose = ms->config.currentEEPose;
   
   int oneToDraw = bestOrientation;
   Px = -bestX;
@@ -7663,22 +7650,22 @@ void gradientServo(shared_ptr<MachineState> ms) {
       kPtheta = kPtheta1;
     
     if (bestOrientation <= numOrientations/2) {
-      currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
+      ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
       
     } else {
-      currentEEDeltaRPY.pz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
+      ms->config.currentEEDeltaRPY.pz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
     }
   }
   
-  double doublePtheta =   currentEEDeltaRPY.pz;
+  double doublePtheta =   ms->config.currentEEDeltaRPY.pz;
 
   //cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << 
-  //pilotTarget.px << " " << reticle.py << " " << pilotTarget.py << " " <<
+  //ms->config.pilotTarget.px << " " << reticle.py << " " << ms->config.pilotTarget.py << " " <<
   //bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
   
-  double dx = (currentEEPose.px - ms->config.trueEEPose.position.x);
-  double dy = (currentEEPose.py - ms->config.trueEEPose.position.y);
-  double dz = (currentEEPose.pz - ms->config.trueEEPose.position.z);
+  double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
+  double dy = (ms->config.currentEEPose.py - ms->config.trueEEPose.position.y);
+  double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
   double distance = dx*dx + dy*dy + dz*dz;
   
   // ATTN 15
@@ -7715,7 +7702,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
 	// ATTN 23
 	// move from vanishing point reticle to gripper reticle
 	//moveCurrentGripperRayToCameraVanishingRay();
-	//bestOrientationEEPose = currentEEPose;
+	//bestOrientationEEPose = ms->config.currentEEPose;
 
         // ATTN 12
         if (ARE_GENERIC_HEIGHT_LEARNING()) {
@@ -7762,7 +7749,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
       double pTermY = gradKp*Py;
       
       double pTermS = Ps * .005;
-      currentEEPose.pz += pTermS;
+      ms->config.currentEEPose.pz += pTermS;
       
       // invert the current eePose orientation to decide which direction to move from POV
       Eigen::Vector3f localUnitX;
@@ -7788,23 +7775,23 @@ void gradientServo(shared_ptr<MachineState> ms) {
     }
     
     // ATTN 21
-    //double newx = currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
-    //double newy = currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
+    //double newx = ms->config.currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
+    //double newy = ms->config.currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
     double newx = 0;
     double newy = 0;
     // first analytic
     //double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
-    //pixelToGlobal(pilotTarget.px, pilotTarget.py, zToUse, &newx, &newy);
+    //pixelToGlobal(ms->config.pilotTarget.px, ms->config.pilotTarget.py, zToUse, &newx, &newy);
     // old PID
-    //currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
-    //currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
+    //ms->config.currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
+    //ms->config.currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
     // ATTN 23
     // second analytic
-    eePose newGlobalTarget = analyticServoPixelToReticle(ms, pilotTarget, ms->config.reticle, currentEEDeltaRPY.pz);
+    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
-    currentEEPose.px = newx;
-    currentEEPose.py = newy;
+    ms->config.currentEEPose.px = newx;
+    ms->config.currentEEPose.py = newy;
     
     // ATTN 8
     //ms->pushWord("visionCycle"); // vision cycle
@@ -7825,7 +7812,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
     
     // ATTN 16
     //	    { // prepare to servo
-    //	      currentEEPose.pz = wholeFoodsCounter1.pz+.1;
+    //	      ms->config.currentEEPose.pz = wholeFoodsCounter1.pz+.1;
     //	    }
     }
   }
@@ -7847,7 +7834,7 @@ eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixe
     pixelToGlobal(ms, givenReticle.px, givenReticle.py, zToUse, &(grGlobalPreRotation.px), &(grGlobalPreRotation.py));
   }
 
-  eePose fakeEndEffector = currentEEPose;
+  eePose fakeEndEffector = ms->config.currentEEPose;
   eePose fakeEndEffectorDeltaRPY = eePoseZero;
   fakeEndEffectorDeltaRPY.pz = ozAngle;
   endEffectorAngularUpdate(&fakeEndEffector, &fakeEndEffectorDeltaRPY);
@@ -7904,7 +7891,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 
   {
     int i, j;
-    mapxyToij(currentEEPose.px, currentEEPose.py, &i, &j);
+    mapxyToij(ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
     int doWeHaveClearance = (clearanceMap[i + mapWidth * j] != 0);
     if (!doWeHaveClearance) {
       cout << ">>>> Synchronic servo strayed out of clearance area during mapping. <<<<" << endl;
@@ -7934,10 +7921,10 @@ void synchronicServo(shared_ptr<MachineState> ms) {
   }
 
   if (synchronicTakeClosest) {
-    if ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1)) {
-      pilotTarget.px = pilotClosestTarget.px;
-      pilotTarget.py = pilotClosestTarget.py;
-      pilotTarget.pz = pilotClosestTarget.pz;
+    if ((ms->config.pilotClosestTarget.px != -1) && (ms->config.pilotClosestTarget.py != -1)) {
+      ms->config.pilotTarget.px = ms->config.pilotClosestTarget.px;
+      ms->config.pilotTarget.py = ms->config.pilotClosestTarget.py;
+      ms->config.pilotTarget.pz = ms->config.pilotClosestTarget.pz;
       ms->config.pilotTargetBlueBoxNumber = ms->config.pilotClosestBlueBoxNumber;
     } else {
       return;
@@ -7989,10 +7976,10 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 
     if (foundAnUnmappedTarget) {
       ms->config.pilotClosestBlueBoxNumber = closestUnmappedBBToReticle;
-      pilotTarget.px = bCens[ms->config.pilotClosestBlueBoxNumber].x;
-      pilotTarget.py = bCens[ms->config.pilotClosestBlueBoxNumber].y;
-      pilotTarget.pz = 0;
-      pilotClosestTarget = pilotTarget;
+      ms->config.pilotTarget.px = bCens[ms->config.pilotClosestBlueBoxNumber].x;
+      ms->config.pilotTarget.py = bCens[ms->config.pilotClosestBlueBoxNumber].y;
+      ms->config.pilotTarget.pz = 0;
+      ms->config.pilotClosestTarget = ms->config.pilotTarget;
     } else {
       // this prevents gradient servo 
       ms->config.pilotClosestBlueBoxNumber = -1;
@@ -8005,12 +7992,12 @@ void synchronicServo(shared_ptr<MachineState> ms) {
   }
 
 
-  double Px = ms->config.reticle.px - pilotTarget.px;
-  double Py = ms->config.reticle.py - pilotTarget.py;
+  double Px = ms->config.reticle.px - ms->config.pilotTarget.px;
+  double Py = ms->config.reticle.py - ms->config.pilotTarget.py;
 
-  double dx = (currentEEPose.px - ms->config.trueEEPose.position.x);
-  double dy = (currentEEPose.py - ms->config.trueEEPose.position.y);
-  double dz = (currentEEPose.pz - ms->config.trueEEPose.position.z);
+  double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
+  double dy = (ms->config.currentEEPose.py - ms->config.trueEEPose.position.y);
+  double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
   double distance = dx*dx + dy*dy + dz*dz;
 
   // if we are not there yet, continue
@@ -8092,15 +8079,15 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 
       // ATTN 21
       // old PID
-      //double newx = currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
-      //double newy = currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
+      //double newx = ms->config.currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
+      //double newy = ms->config.currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
       double newx = 0;
       double newy = 0;
       // first analytic
       //double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
-      //pixelToGlobal(ms, pilotTarget.px, pilotTarget.py, zToUse, &newx, &newy);
+      //pixelToGlobal(ms, ms->config.pilotTarget.px, ms->config.pilotTarget.py, zToUse, &newx, &newy);
       // ATTN 23
-      eePose newGlobalTarget = analyticServoPixelToReticle(ms, pilotTarget, ms->config.reticle, 0);
+      eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, 0);
       newx = newGlobalTarget.px;
       newy = newGlobalTarget.py;
 
@@ -8110,10 +8097,10 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       } else {
         ms->pushWord("synchronicServo"); 
 	// ATTN 21
-        //currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
-        //currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
-        currentEEPose.px = newx;
-        currentEEPose.py = newy;
+        //ms->config.currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
+        //ms->config.currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
+        ms->config.currentEEPose.px = newx;
+        ms->config.currentEEPose.py = newy;
 
 
 
@@ -8132,7 +8119,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 void darkServo(shared_ptr<MachineState> ms) {
 
   // remember, currentTableZ is inverted so this is like minus
-  double heightAboveTable = currentEEPose.pz + currentTableZ;
+  double heightAboveTable = ms->config.currentEEPose.pz + currentTableZ;
 
   double heightFactor = heightAboveTable / minHeight;
 
@@ -8143,11 +8130,11 @@ void darkServo(shared_ptr<MachineState> ms) {
   cout << "darkServo darkX darkY heightAboveTable: " << darkX << " " << darkY << " " << heightAboveTable << endl;
 
   ms->config.reticle = ms->config.vanishingPointReticle;
-  pilotTarget.px = darkX;
-  pilotTarget.py = darkY;
+  ms->config.pilotTarget.px = darkX;
+  ms->config.pilotTarget.py = darkY;
 
-  double Px = ms->config.reticle.px - pilotTarget.px;
-  double Py = ms->config.reticle.py - pilotTarget.py;
+  double Px = ms->config.reticle.px - ms->config.pilotTarget.px;
+  double Py = ms->config.reticle.py - ms->config.pilotTarget.py;
 
   double thisKp = darkKp * heightFactor;
   double pTermX = thisKp*Px;
@@ -8177,11 +8164,11 @@ void darkServo(shared_ptr<MachineState> ms) {
     localUnitY.z() = qout.z();
   }
 
-  double newx = currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
-  double newy = currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
+  double newx = ms->config.currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
+  double newy = ms->config.currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
 
-  currentEEPose.px = newx;
-  currentEEPose.py = newy;
+  ms->config.currentEEPose.px = newx;
+  ms->config.currentEEPose.py = newy;
 
   if ((fabs(Px) < darkServoPixelThresh) && (fabs(Py) < darkServoPixelThresh)) {
     cout << "darkness reached, continuing." << endl;
@@ -8213,11 +8200,11 @@ void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces) {
   double heightFactor = 1 / minHeight;
 
   ms->config.reticle = ms->config.vanishingPointReticle;
-  pilotTarget.px = bestFacePose.px;
-  pilotTarget.py = bestFacePose.py;
+  ms->config.pilotTarget.px = bestFacePose.px;
+  ms->config.pilotTarget.py = bestFacePose.py;
 
-  double Px = ms->config.reticle.px - pilotTarget.px;
-  double Py = ms->config.reticle.py - pilotTarget.py;
+  double Px = ms->config.reticle.px - ms->config.pilotTarget.px;
+  double Py = ms->config.reticle.py - ms->config.pilotTarget.py;
 
   //double thisKp = faceKp * heightFactor;
   double yScale = 1.0;
@@ -8249,14 +8236,14 @@ void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces) {
     localUnitY.z() = qout.z();
   }
 
-  //double newx = currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
-  //double newy = currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
-  //currentEEPose.px = newx;
-  //currentEEPose.py = newy;
-  currentEEDeltaRPY.px = -pTermY;
-  endEffectorAngularUpdate(&currentEEPose, &currentEEDeltaRPY);
-  currentEEDeltaRPY.py = pTermX*yScale;
-  endEffectorAngularUpdate(&currentEEPose, &currentEEDeltaRPY);
+  //double newx = ms->config.currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
+  //double newy = ms->config.currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
+  //ms->config.currentEEPose.px = newx;
+  //ms->config.currentEEPose.py = newy;
+  ms->config.currentEEDeltaRPY.px = -pTermY;
+  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
+  ms->config.currentEEDeltaRPY.py = pTermX*yScale;
+  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
 
   if ((fabs(Px) < faceServoPixelThresh) && (fabs(Py) < faceServoPixelThresh)) {
     cout << "face reached, continuing." << endl;
@@ -8477,7 +8464,7 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
 
     int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
     //int x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
-    //*gX = d + ( (pX-c)*(currentEEPose.px-d) )/(x1-c) ;
+    //*gX = d + ( (pX-c)*(ms->config.currentEEPose.px-d) )/(x1-c) ;
     //*gX = givenEEPose.px - d + ( (pX-c)*(d) )/( (x_thisZ-c)*m_x ) ;
     *gX = givenEEPose.px - d + ( (pX-c)*(d) )/( (x_thisZ-c) ) ;
     x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
@@ -8498,7 +8485,7 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
 
     int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
     //int y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
-    //*gY = d + ( (pY-c)*(currentEEPose.py-d) )/(y1-c) ;
+    //*gY = d + ( (pY-c)*(ms->config.currentEEPose.py-d) )/(y1-c) ;
     //*gY = givenEEPose.py - d + ( (pY-c)*(d) )/( (y_thisZ-c)*m_y ) ;
     *gY = givenEEPose.py - d + ( (pY-c)*(d) )/( (y_thisZ-c) ) ;
     y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
@@ -8542,8 +8529,8 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
 
     int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
     //int x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
-    //*pX = c + ( (gX-d)*(x1-c) )/(currentEEPose.px-d);
-    //*pX = c + ( (gX-d)*(x_thisZ-c) )/(currentEEPose.px-d);
+    //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
+    //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     *pX = c + ( (gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
@@ -8571,8 +8558,8 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
 
     int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
     //int y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
-    //*pY = c + ( (gY-d)*(y1-c) )/(currentEEPose.py-d);
-    //*pY = c + ( (gY-d)*(y_thisZ-c) )/(currentEEPose.py-d);
+    //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
+    //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     *pY = c + ( (gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
@@ -8659,8 +8646,8 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
 
     int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
     //int x_thisZ = c + ( m_x*(x1-c)*(z1-b) )/(gZ-b);
-    //*pX = c + ( (gX-d)*(x1-c) )/(currentEEPose.px-d);
-    //*pX = c + ( (gX-d)*(x_thisZ-c) )/(currentEEPose.px-d);
+    //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
+    //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     *pX = c + ( (gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
@@ -8685,8 +8672,8 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
 
     int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
     //int y_thisZ = c + ( m_y*(y1-c)*(z1-b) )/(gZ-b);
-    //*pY = c + ( (gY-d)*(y1-c) )/(currentEEPose.py-d);
-    //*pY = c + ( (gY-d)*(y_thisZ-c) )/(currentEEPose.py-d);
+    //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
+    //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     *pY = c + ( (gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
@@ -8901,13 +8888,13 @@ void simulatorCallback(const ros::TimerEvent&) {
     baxter_core_msgs::EndpointState myEPS;
 
     myEPS.header.stamp = ros::Time::now();
-    myEPS.pose.position.x = currentEEPose.px;
-    myEPS.pose.position.y = currentEEPose.py;
-    myEPS.pose.position.z = currentEEPose.pz;
-    myEPS.pose.orientation.x = currentEEPose.qx;
-    myEPS.pose.orientation.y = currentEEPose.qy;
-    myEPS.pose.orientation.z = currentEEPose.qz;
-    myEPS.pose.orientation.w = currentEEPose.qw;
+    myEPS.pose.position.x = ms->config.currentEEPose.px;
+    myEPS.pose.position.y = ms->config.currentEEPose.py;
+    myEPS.pose.position.z = ms->config.currentEEPose.pz;
+    myEPS.pose.orientation.x = ms->config.currentEEPose.qx;
+    myEPS.pose.orientation.y = ms->config.currentEEPose.qy;
+    myEPS.pose.orientation.z = ms->config.currentEEPose.qz;
+    myEPS.pose.orientation.w = ms->config.currentEEPose.qw;
 
     endpointCallback(myEPS);
   }
@@ -8958,14 +8945,14 @@ void simulatorCallback(const ros::TimerEvent&) {
       //cout << topLx << " " << topLy << " " << botLx << " " << botLy << endl;
 
       // account for rotation of the end effector 
-      double mapGpFractionWidth = (currentEEPose.px - mapBackgroundXMin) / msfWidth;
-      double mapGpFractionHeight = (currentEEPose.py - mapBackgroundYMin) / msfHeight;
+      double mapGpFractionWidth = (ms->config.currentEEPose.px - mapBackgroundXMin) / msfWidth;
+      double mapGpFractionHeight = (ms->config.currentEEPose.py - mapBackgroundYMin) / msfHeight;
       int mapGpPx = floor(mapGpFractionWidth * mbiWidth);
       int mapGpPy = floor(mapGpFractionHeight * mbiHeight);
       mapGpPx = min(max(0, mapGpPx), mbiWidth-1);
       mapGpPy = min(max(0, mapGpPy), mbiHeight-1);
 
-      Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
+      Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
       Quaternionf crane2Orient(0, 1, 0, 0);
       Quaternionf rel = eeqform * crane2Orient.inverse();
       Quaternionf ex(0,1,0,0);
@@ -9075,7 +9062,7 @@ void simulatorCallback(const ros::TimerEvent&) {
 
       //cout << "jjc: " << rotTopPx << " " << rotTopPy << " " << rotBotPx << " " << rotBotPy << endl; cout.flush();
       //cout << "jjd: " << localRotTopPx << " " << localRotTopPy << " " << localRotBotPx << " " << localRotBotPy << endl; cout.flush();
-      //printEEPose(currentEEPose);
+      //printEEPose(ms->config.currentEEPose);
 
       Mat rotatedBackMapImage;
       warpAffine(mapBackgroundImage, rotatedBackMapImage, un_rot_mat, mapBackgroundImage.size(), INTER_LINEAR, BORDER_REPLICATE);
@@ -11043,10 +11030,10 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
   double closestBBDistance = VERYBIGNUMBER;
 
   // this should be -1 if we don't find the target class 
-  pilotTarget.px = -1;
-  pilotTarget.py = -1;
-  pilotClosestTarget.px = -1;
-  pilotClosestTarget.py = -1;
+  ms->config.pilotTarget.px = -1;
+  ms->config.pilotTarget.py = -1;
+  ms->config.pilotClosestTarget.px = -1;
+  ms->config.pilotClosestTarget.py = -1;
 
   if (!all_range_mode) {
     double rejectArea = rejectAreaScale*gBoxW*gBoxH;
@@ -11139,9 +11126,9 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
     p.z = 0.0;
     
       //ee_target_pub.publish(p);
-    pilotTarget.px = p.x;
-    pilotTarget.py = p.y;
-    pilotTarget.pz = p.z;
+    ms->config.pilotTarget.px = p.x;
+    ms->config.pilotTarget.py = p.y;
+    ms->config.pilotTarget.pz = p.z;
     
     ms->config.pilotTargetBlueBoxNumber = biggestBB;
   }
@@ -11152,9 +11139,9 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
     p.z = 0.0;
   
     //ee_target_pub.publish(p);
-    pilotClosestTarget.px = p.x;
-    pilotClosestTarget.py = p.y;
-    pilotClosestTarget.pz = p.z;
+    ms->config.pilotClosestTarget.px = p.x;
+    ms->config.pilotClosestTarget.py = p.y;
+    ms->config.pilotClosestTarget.pz = p.z;
 
     ms->config.pilotClosestBlueBoxNumber = closestBBToReticle;
   } else {
@@ -11168,9 +11155,9 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
     p.z = 0.0;
   
     //ee_target_pub.publish(p);
-    //pilotTarget.px = p.x;
-    //pilotTarget.py = p.y;
-    //pilotTarget.pz = p.z;
+    //ms->config.pilotTarget.px = p.x;
+    //ms->config.pilotTarget.py = p.y;
+    //ms->config.pilotTarget.pz = p.z;
   }
 
   if (drawBlue) {
@@ -11648,9 +11635,9 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
     p.z = 0.0;
     
       //ee_target_pub.publish(p);
-    pilotTarget.px = p.x;
-    pilotTarget.py = p.y;
-    pilotTarget.pz = p.z;
+    ms->config.pilotTarget.px = p.x;
+    ms->config.pilotTarget.py = p.y;
+    ms->config.pilotTarget.pz = p.z;
     
     ms->config.pilotTargetBlueBoxNumber = biggestBB;
   }
@@ -11661,9 +11648,9 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
     p.z = 0.0;
   
     //ee_target_pub.publish(p);
-    pilotClosestTarget.px = p.x;
-    pilotClosestTarget.py = p.y;
-    pilotClosestTarget.pz = p.z;
+    ms->config.pilotClosestTarget.px = p.x;
+    ms->config.pilotClosestTarget.py = p.y;
+    ms->config.pilotClosestTarget.pz = p.z;
 
     ms->config.pilotClosestBlueBoxNumber = closestBBToReticle;
   } else {

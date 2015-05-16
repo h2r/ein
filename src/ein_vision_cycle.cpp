@@ -17,10 +17,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("idler"); 
   bailAfterGradient = 1;
 
-  pilotTarget.px = -1;
-  pilotTarget.py = -1;
-  pilotClosestTarget.px = -1;
-  pilotClosestTarget.py = -1;
+  ms->config.pilotTarget.px = -1;
+  ms->config.pilotTarget.py = -1;
+  ms->config.pilotClosestTarget.px = -1;
+  ms->config.pilotClosestTarget.py = -1;
   
   int idxOfFirst = -1;
   vector<BoxMemory> focusedClassMemories = memoriesForClass(focusedClass, &idxOfFirst);
@@ -39,8 +39,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  //currentEEPose = memory.cameraPose;
-  currentEEPose = memory.aimedPose;
+  //ms->config.currentEEPose = memory.cameraPose;
+  ms->config.currentEEPose = memory.aimedPose;
   lastPickPose = memory.pickedPose;
   lastPrePickPose = memory.aimedPose;
   trZ = memory.trZ;
@@ -367,12 +367,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	    double X, Y;
 	    mapijToxy(i, j, &X, &Y);
 
-	    eePose nextEEPose = currentEEPose;
+	    eePose nextEEPose = ms->config.currentEEPose;
 	    nextEEPose.px = X;
 	    nextEEPose.py = Y;
 
 	    baxter_core_msgs::SolvePositionIK thisIkRequest;
-	    endEffectorAngularUpdate(&nextEEPose, &currentEEDeltaRPY);
+	    endEffectorAngularUpdate(&nextEEPose, &ms->config.currentEEDeltaRPY);
 	    fillIkRequest(&nextEEPose, &thisIkRequest);
 
 	    bool likelyInCollision = 0;
@@ -490,7 +490,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double oldestX, oldestY;
     mapijToxy(oldestI, oldestJ, &oldestX, &oldestY);
 
-    eePose nextEEPose = currentEEPose;
+    eePose nextEEPose = ms->config.currentEEPose;
     nextEEPose.px = oldestX;
     nextEEPose.py = oldestY;
 
@@ -515,12 +515,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     int foundGoodPosition = !ikResultFailed;
 
     if (foundGoodPosition) {
-      currentEEPose.qx = ms->config.straightDown.qx;
-      currentEEPose.qy = ms->config.straightDown.qy;
-      currentEEPose.qz = ms->config.straightDown.qz;
-      currentEEPose.qw = ms->config.straightDown.qw;
-      currentEEPose.px = oldestX;
-      currentEEPose.py = oldestY;
+      ms->config.currentEEPose.qx = ms->config.straightDown.qx;
+      ms->config.currentEEPose.qy = ms->config.straightDown.qy;
+      ms->config.currentEEPose.qz = ms->config.straightDown.qz;
+      ms->config.currentEEPose.qw = ms->config.straightDown.qw;
+      ms->config.currentEEPose.px = oldestX;
+      ms->config.currentEEPose.py = oldestY;
       cout << "This pose was accepted by ikClient:" << endl;
       cout << "Next EE Position (x,y,z): " << nextEEPose.px << " " << nextEEPose.py << " " << nextEEPose.pz << endl;
       cout << "Next EE Orientation (x,y,z,w): " << nextEEPose.qx << " " << nextEEPose.qy << " " << nextEEPose.qz << " " << nextEEPose.qw << endl;
@@ -567,7 +567,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     BoxMemory box;
     box.bTop = bTops[c];
     box.bBot = bBots[c];
-    box.cameraPose = currentEEPose;
+    box.cameraPose = ms->config.currentEEPose;
     box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + currentTableZ);
     box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + currentTableZ);
     box.centroid.px = (box.top.px + box.bot.px) * 0.5;
@@ -584,8 +584,8 @@ REGISTER_WORD(RecordAllBlueBoxes)
 
 WORD(VoidCurrentMapRegion)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  voidMapRegion(ms, currentEEPose.px, currentEEPose.py);
-  cout << "Voiding the region of the map around currentEEPose." << endl;
+  voidMapRegion(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py);
+  cout << "Voiding the region of the map around ms->config.currentEEPose." << endl;
 }
 END_WORD
 REGISTER_WORD(VoidCurrentMapRegion)
@@ -691,7 +691,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   BoxMemory box;
   box.bTop = bTops[c];
   box.bBot = bBots[c];
-  box.cameraPose = currentEEPose;
+  box.cameraPose = ms->config.currentEEPose;
   box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + currentTableZ);
   box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + currentTableZ);
   box.centroid.px = (box.top.px + box.bot.px) * 0.5;
@@ -866,7 +866,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   eePose facePose = {.px = 0.85838, .py = 0.56957, .pz = 0.163187,
                      .qx = -0.153116, .qy = 0.717486, .qz = 0.0830483, .qw = 0.674442};
 
-  currentEEPose = facePose;
+  ms->config.currentEEPose = facePose;
   ms->pushWord("waitUntilAtCurrentPosition");
 }
 END_WORD

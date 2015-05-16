@@ -102,8 +102,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
   trZ = rangeMapReg1[maxX + maxY*rmWidth];
 
-  currentEEPose.px = targetX;
-  currentEEPose.py = targetY;
+  ms->config.currentEEPose.px = targetX;
+  ms->config.currentEEPose.py = targetY;
       
   cout << "Assuming x,y,gear: " << targetX << " " << targetY << " " << maxGG << endl;
 
@@ -112,7 +112,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   // ATTN 19
   if (useContinuousGraspTransform) {
     cout << "Assuming continuous maxGG: " << maxGG << " localMaxGG: " << localMaxGG << endl;
-    setCCRotation((maxGG+4)%4); 
+    setCCRotation(ms, (maxGG+4)%4); 
   } else {
     ms->pushWord(1048631); // assume best gear
   }
@@ -134,8 +134,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   int useIncrementalPick = 0;
   bool useHybridPick = 1;
 
-  double deltaZ = pickZ - currentEEPose.pz;
-  lastPickPose = currentEEPose;
+  double deltaZ = pickZ - ms->config.currentEEPose.pz;
+  lastPickPose = ms->config.currentEEPose;
   lastPickPose.pz = pickZ;
 
 
@@ -166,7 +166,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     if (useHybridPick) {
       int pickNoops = 20;
       int increments = 0.1/MOVE_FAST;
-      currentEEPose.pz = pickZ+increments*MOVE_FAST;
+      ms->config.currentEEPose.pz = pickZ+increments*MOVE_FAST;
 
       //ms->pushCopies("endStackCollapseNoop", pickNoops);
       ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
@@ -179,7 +179,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       //ms->pushWord("quarterImpulse");
       ms->pushWord("approachSpeed");
     } else {
-      currentEEPose.pz = pickZ;
+      ms->config.currentEEPose.pz = pickZ;
       ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     }
   }
@@ -190,9 +190,9 @@ REGISTER_WORD(MoveToTargetZAndGrasp)
 WORD(ShakeItUpAndDown)
 CODE(131081)   // capslock + tab
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.eepReg5 = currentEEPose;
+  ms->config.eepReg5 = ms->config.currentEEPose;
 
-  ms->config.eepReg6 = currentEEPose;
+  ms->config.eepReg6 = ms->config.currentEEPose;
   ms->config.eepReg6.pz += 0.2;
 
   pushSpeedSign(ms, MOVE_FAST);    
@@ -220,7 +220,7 @@ REGISTER_WORD(ShakeItUpAndDown)
 
 WORD(TryToMoveToTheLastPrePickHeight)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose.pz = lastPrePickPose.pz;
+  ms->config.currentEEPose.pz = lastPrePickPose.pz;
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   cout << "trying to move to the last pre pick height..." << endl;
 }
@@ -230,7 +230,7 @@ REGISTER_WORD(TryToMoveToTheLastPrePickHeight)
 WORD(TryToMoveToTheLastPickHeight)
 CODE( 262241)     // ctrl + a
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double deltaZ = (lastPickPose.pz) - currentEEPose.pz;
+  double deltaZ = (lastPickPose.pz) - ms->config.currentEEPose.pz;
   double zTimes = fabs(floor(deltaZ / ms->config.bDelta)); 
   int numNoOps = 2;
   int useIncrementalPlace = 0;
@@ -256,7 +256,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     if (useHybridPlace) {
       int pickNoops = 20;
       int increments = 0.1/MOVE_FAST;
-      currentEEPose.pz = lastPickPose.pz+increments*MOVE_FAST;
+      ms->config.currentEEPose.pz = lastPickPose.pz+increments*MOVE_FAST;
 
       //ms->pushCopies("endStackCollapseNoop", pickNoops);
       ms->pushWord("waitUntilAtCurrentPosition"); 
@@ -269,7 +269,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       //ms->pushWord("quarterImpulse");
       ms->pushWord("approachSpeed");
     } else {
-      currentEEPose.pz = lastPickPose.pz;
+      ms->config.currentEEPose.pz = lastPickPose.pz;
       ms->pushWord("waitUntilAtCurrentPosition"); 
     }
   }
@@ -837,7 +837,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   drY = ggY[thisGraspGear];
   
   //   rotate
-  setGGRotation(thisGraspGear);
+  setGGRotation(ms, thisGraspGear);
   ms->config.currentGraspGear = thisGraspGear;
   
   cout << ms->config.currentGraspGear << endl;
@@ -859,7 +859,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   drY = ggY[thisGraspGear];
   
   //   rotate
-  setGGRotation(thisGraspGear);
+  setGGRotation(ms, thisGraspGear);
   
   //   set ms->config.currentGraspGear;
   ms->config.currentGraspGear = thisGraspGear;
@@ -1015,7 +1015,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   drY = ggY[thisGraspGear];
   
   //   rotate
-  setGGRotation(thisGraspGear);
+  setGGRotation(ms, thisGraspGear);
   
   //   set ms->config.currentGraspGear;
   ms->config.currentGraspGear = thisGraspGear;
@@ -1032,7 +1032,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   drY = ggY[thisGraspGear];
   
   //   rotate
-  setGGRotation(thisGraspGear);
+  setGGRotation(ms, thisGraspGear);
   
   //   set ms->config.currentGraspGear;
   ms->config.currentGraspGear = thisGraspGear;
@@ -1050,7 +1050,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   drY = ggY[thisGraspGear];
   
   //   rotate
-  setGGRotation(thisGraspGear);
+  setGGRotation(ms, thisGraspGear);
   
   //   set ms->config.currentGraspGear;
   ms->config.currentGraspGear = thisGraspGear;
@@ -1067,7 +1067,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   drX = ggX[thisGraspGear];
   drY = ggY[thisGraspGear];
   //   rotate
-  setGGRotation(thisGraspGear);
+  setGGRotation(ms, thisGraspGear);
   //   set ms->config.currentGraspGear;
   ms->config.currentGraspGear = thisGraspGear;
 }
@@ -1123,15 +1123,15 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   graspTrialStart = ros::Time::now();
   thompsonPickHaltFlag = 0;
   thompsonHeightHaltFlag = 0;
-  pilotTarget.px = -1;
-  pilotTarget.py = -1;
-  pilotClosestTarget.px = -1;
-  pilotClosestTarget.py = -1;
+  ms->config.pilotTarget.px = -1;
+  ms->config.pilotTarget.py = -1;
+  ms->config.pilotClosestTarget.px = -1;
+  ms->config.pilotClosestTarget.py = -1;
   oscilStart = ros::Time::now();
   accumulatedTime = oscilStart - oscilStart;
-  oscCenX = currentEEPose.px;
-  oscCenY = currentEEPose.py;
-  oscCenZ = currentEEPose.pz+0.1;
+  oscCenX = ms->config.currentEEPose.px;
+  oscCenY = ms->config.currentEEPose.py;
+  oscCenZ = ms->config.currentEEPose.pz+0.1;
   ms->pushWord("twoDPatrolContinue"); // 2D patrol continue
   ms->pushWord("visionCycle");
   // we want to move to a higher holding position for visual patrol
@@ -1180,13 +1180,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   ros::Duration delta = (ros::Time::now() - oscilStart) + accumulatedTime;
   
-  currentEEPose.px = oscCenX + oscAmpX*sin(2.0*3.1415926*oscFreqX*delta.toSec());
-  currentEEPose.py = oscCenY + oscAmpY*sin(2.0*3.1415926*oscFreqY*delta.toSec());
+  ms->config.currentEEPose.px = oscCenX + oscAmpX*sin(2.0*3.1415926*oscFreqX*delta.toSec());
+  ms->config.currentEEPose.py = oscCenY + oscAmpY*sin(2.0*3.1415926*oscFreqY*delta.toSec());
   ms->pushWord("twoDPatrolContinue"); 
   
   // check to see if the target class is around, or take closest
-  if ( ((pilotTarget.px != -1) && (pilotTarget.py != -1)) ||
-       (synchronicTakeClosest && ((pilotClosestTarget.px != -1) && (pilotClosestTarget.py != -1))) )
+  if ( ((ms->config.pilotTarget.px != -1) && (ms->config.pilotTarget.py != -1)) ||
+       (synchronicTakeClosest && ((ms->config.pilotClosestTarget.px != -1) && (ms->config.pilotClosestTarget.py != -1))) )
     {
       // if so, push servoing command and set lock frames to 0
       ms->pushWord("synchronicServo"); // synchronic servo
@@ -1301,16 +1301,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (blueBoxMemories.size() > 0) {
     BoxMemory *lastAdded = &(blueBoxMemories[blueBoxMemories.size()-1]);
     lastAdded->cameraTime = ros::Time::now();
-    lastAdded->aimedPose = currentEEPose;
+    lastAdded->aimedPose = ms->config.currentEEPose;
     // XXX picked pose doesn't seem to mean anything here so likely doesn't matteer
-    lastAdded->pickedPose = currentEEPose;
+    lastAdded->pickedPose = ms->config.currentEEPose;
     lastAdded->pickedPose.pz  = lastPickPose.pz;
     // XXX picked pose doesn't seem to mean anything here so likely doesn't matteer
     lastAdded->trZ  = trZ;
     cout << "recordTargetLock saving pickedPose..." << endl;
     cout << "trZ = " << trZ << endl;
-    cout << "Current EE Position (x,y,z): " << currentEEPose.px << " " << currentEEPose.py << " " << currentEEPose.pz << endl;
-    cout << "Current EE Orientation (x,y,z,w): " << currentEEPose.qx << " " << currentEEPose.qy << " " << currentEEPose.qz << " " << currentEEPose.qw << endl;
+    cout << "Current EE Position (x,y,z): " << ms->config.currentEEPose.px << " " << ms->config.currentEEPose.py << " " << ms->config.currentEEPose.pz << endl;
+    cout << "Current EE Orientation (x,y,z,w): " << ms->config.currentEEPose.qx << " " << ms->config.currentEEPose.qy << " " << ms->config.currentEEPose.qz << " " << ms->config.currentEEPose.qw << endl;
     lastAdded->lockStatus = POSE_LOCK;
     
   }
@@ -1378,7 +1378,7 @@ REGISTER_WORD(DarkServoB)
 WORD(GoToPrePickPose)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  currentEEPose = lastPrePickPose;
+  ms->config.currentEEPose = lastPrePickPose;
 }
 END_WORD
 REGISTER_WORD(GoToPrePickPose)
@@ -1387,7 +1387,7 @@ REGISTER_WORD(GoToPrePickPose)
 WORD(GoToLastPickPose)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  currentEEPose = lastPickPose;
+  ms->config.currentEEPose = lastPickPose;
 }
 END_WORD
 REGISTER_WORD(GoToLastPickPose)
