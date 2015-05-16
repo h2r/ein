@@ -123,11 +123,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-ros::Time lastHoverRequest;
-double hoverTimeout = 3.0;//2.0; // seconds
-double hoverGoThresh = 0.02;
-double hoverAngleThresh = 0.02;
-eePose lastHoverTrueEEPoseEEPose;
 
 double simulatorCallbackFrequency = 30.0;
 

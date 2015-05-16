@@ -662,6 +662,12 @@ class EinConfig {
   Mat objectViewerGrayBlur;
 
 
+  ros::Time lastHoverRequest;
+  double hoverTimeout = 3.0;//2.0; // seconds
+  double hoverGoThresh = 0.02;
+  double hoverAngleThresh = 0.02;
+  eePose lastHoverTrueEEPoseEEPose;
+
 
 }; // config end
 
