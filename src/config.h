@@ -200,6 +200,16 @@ class EinConfig {
   eePose reticle = defaultReticle;
 
 
+
+  eePose eepReg1;
+  eePose eepReg2;
+  eePose eepReg3;
+  eePose eepReg4;
+  eePose eepReg5;
+  eePose eepReg6;
+
+
+
   std::vector<eePose> deliveryPoses;
   int currentDeliveryPose = 0;
 

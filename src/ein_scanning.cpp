@@ -314,8 +314,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Program will pause a second time. Please adjust height for IR scan before unpausing." << endl;
   cout << "Program will pause a third time. Please remove any applied contrast agents." << endl;
 
-  eepReg2 = rssPose;
-  eepReg4 = rssPose;
+  ms->config.eepReg2 = rssPose;
+  ms->config.eepReg4 = rssPose;
 
   // so that closest servoing doesn't go into gradient servoing.
   targetClass = -1;
@@ -1025,8 +1025,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
     int eX=0, eY=0;
-    //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
-    globalToPixelPrint(ms, &eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
+    globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
   }
 }
 END_WORD
@@ -1333,8 +1333,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int i = 0; i < magIters; i++) {
     double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
     int eX=0, eY=0;
-    //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
-    globalToPixelPrint(ms, &eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
+    globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
 
     // remember this is flipped!
     double Px = darkY - eY;
@@ -1388,8 +1388,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int i = 0; i < magIters; i++) {
     double zToUse = ms->config.trueEEPose.position.z+currentTableZ;
     int eX=0, eY=0;
-    //globalToPixel(&eX, &eY, zToUse, eepReg1.px, eepReg1.py);
-    globalToPixelPrint(ms, &eX, &eY, zToUse, eepReg1.px, eepReg1.py);
+    //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
+    globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
 
     // remember this is flipped!
     double Px = darkY - eY;
@@ -1791,8 +1791,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "BEGINNING SCANOBJECTFAST" << endl;
   cout << "Program will pause shortly. Please adjust height and object so that arm would grip if closed and so that the gripper will clear the object during a scan once raised 5cm." << endl;
 
-  eepReg2 = rssPose;
-  eepReg4 = rssPose;
+  ms->config.eepReg2 = rssPose;
+  ms->config.eepReg4 = rssPose;
 
   // so that closest servoing doesn't go into gradient servoing.
   targetClass = -1;
