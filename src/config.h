@@ -613,6 +613,15 @@ class EinConfig {
   double m_x_h[4];
   double m_y_h[4];
 
+  int mappingServoTimeout = 5;
+  const int mappingHeightIdx = 1;
+
+
+  const static int vaNumAngles = 360;
+  constexpr static double vaDelta = (2.0 * 3.1415926) / vaNumAngles;
+  double vaX[vaNumAngles];
+  double vaY[vaNumAngles];
+
 
 };
 

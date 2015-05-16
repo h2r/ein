@@ -125,14 +125,7 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-int mappingServoTimeout = 5;
 
-const int mappingHeightIdx = 1;
-
-const int vaNumAngles = 360;
-const double vaDelta = (2.0 * 3.1415926) / vaNumAngles;
-double vaX[vaNumAngles];
-double vaY[vaNumAngles];
 
 int waitUntilAtCurrentPositionCounter = 0;
 int waitUntilAtCurrentPositionCounterTimeout = 300;
@@ -855,8 +848,8 @@ eePose pixelToGlobalEEPose(shared_ptr<MachineState> ms, int pX, int pY, double g
 
 void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar theColor);
 
-double vectorArcTan(double y, double x);
-void initVectorArcTan();
+double vectorArcTan(shared_ptr<MachineState> ms, double y, double x);
+void initVectorArcTan(shared_ptr<MachineState> ms);
 
 void mapBlueBox(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark);
 void mapBox(shared_ptr<MachineState> ms, BoxMemory boxMemory);
@@ -5048,7 +5041,7 @@ int getLocalGraspGear(shared_ptr<MachineState> ms, int globalGraspGearIn) {
   // no degrees here
   // ATTN 22
   //double angle = atan2(aY, aX);
-  double angle = vectorArcTan(aY, aX);
+  double angle = vectorArcTan(ms, aY, aX);
   // no inversion necessary
   //angle = -angle;
   
@@ -5088,7 +5081,7 @@ int getGlobalGraspGear(shared_ptr<MachineState> ms, int localGraspGearIn) {
   // no degrees here
   // ATTN 22
   //double angle = atan2(aY, aX);
-  double angle = vectorArcTan(aY, aX);
+  double angle = vectorArcTan(ms, aY, aX);
   // inversion to convert to global
   angle = -angle;
   
@@ -6000,7 +5993,7 @@ void loadGlobalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMa
 
   // ATTN 22
   //double angle = atan2(aY, aX)*180.0/3.1415926;
-  double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
   double scale = 1.0;
   Point center = Point(ms->config.rmWidth/2, ms->config.rmWidth/2);
   Size toBecome(ms->config.rmWidth, ms->config.rmWidth);
@@ -7395,7 +7388,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
     return;
   }
 
-  if ( ((ms->config.synServoLockFrames > mappingServoTimeout) || (bTops.size() <= 0)) && 
+  if ( ((ms->config.synServoLockFrames > ms->config.mappingServoTimeout) || (bTops.size() <= 0)) && 
 	(ms->config.currentBoundingBoxMode == MAPPING) ) {
     cout << ">>>> Synchronic servo timed out or no blue boxes during mapping. <<<<" << endl;
     return;
@@ -7940,7 +7933,7 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
 
   // ATTN 22
   //double angle = atan2(aY, aX)*180.0/3.1415926;
-  double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
   angle = (angle);
   double scale = 1.0;
   Point center = Point(reticlePixelX, reticlePixelY);
@@ -8099,7 +8092,7 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
 
   // ATTN 22
   //double angle = atan2(aY, aX)*180.0/3.1415926;
-  double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
   angle = angle;
   double scale = 1.0;
   Point center = Point(reticlePixelX, reticlePixelY);
@@ -8210,7 +8203,7 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
 
   // ATTN 22
   //double angle = atan2(aY, aX)*180.0/3.1415926;
-  double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
   angle = angle;
   double scale = 1.0;
   Point center = Point(reticlePixelX, reticlePixelY);
@@ -8279,11 +8272,11 @@ void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar 
   //guardedImshow(objectViewerName, objectViewerImage);
 }
 
-double vectorArcTan(double y, double x) {
+double vectorArcTan(shared_ptr<MachineState> ms, double y, double x) {
   int maxVaSlot = 0;
   double maxVaDot = -INFINITY;
-  for (int vaSlot = 0; vaSlot < vaNumAngles; vaSlot++) {
-    double product = vaX[vaSlot]*x + vaY[vaSlot]*y;
+  for (int vaSlot = 0; vaSlot < ms->config.vaNumAngles; vaSlot++) {
+    double product = ms->config.vaX[vaSlot]*x + ms->config.vaY[vaSlot]*y;
     if (product > maxVaDot) {
       maxVaDot = product;
       maxVaSlot = vaSlot;
@@ -8291,7 +8284,7 @@ double vectorArcTan(double y, double x) {
   } 
   // return value in interval [-pi, pi]
 
-  double angleZeroTwopi = (maxVaSlot * vaDelta);
+  double angleZeroTwopi = (maxVaSlot * ms->config.vaDelta);
   if (angleZeroTwopi <= 3.1415926) {
     return angleZeroTwopi;
   } else {
@@ -8299,16 +8292,16 @@ double vectorArcTan(double y, double x) {
   }
 }
 
-void initVectorArcTan() {
-  for (int vaSlot = 0; vaSlot < vaNumAngles; vaSlot++) {
-    vaX[vaSlot] = cos(vaSlot*vaDelta);
-    vaY[vaSlot] = sin(vaSlot*vaDelta);
+void initVectorArcTan(shared_ptr<MachineState> ms) {
+  for (int vaSlot = 0; vaSlot < ms->config.vaNumAngles; vaSlot++) {
+    ms->config.vaX[vaSlot] = cos(vaSlot*ms->config.vaDelta);
+    ms->config.vaY[vaSlot] = sin(vaSlot*ms->config.vaDelta);
   }
   /* smoke test
-  for (int vaSlot = 0; vaSlot < vaNumAngles; vaSlot++) {
+  for (int vaSlot = 0; vaSlot < ms->config.vaNumAngles; vaSlot++) {
     cout << "atan2 vectorArcTan: " << 
-      vectorArcTan(vaY[vaSlot], vaX[vaSlot]) << " " << 
-      atan2(vaY[vaSlot], vaX[vaSlot]) << endl; 
+      vectorArcTan(ms->config.vaY[vaSlot], ms->config.vaX[vaSlot]) << " " << 
+      atan2(ms->config.vaY[vaSlot], ms->config.vaX[vaSlot]) << endl; 
   }
   */
 }
@@ -8477,7 +8470,7 @@ void simulatorCallback(const ros::TimerEvent&) {
 
       // ATTN 22
       //double angle = atan2(aY, aX)*180.0/3.1415926;
-      double angle = vectorArcTan(aY, aX)*180.0/3.1415926;
+      double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
       angle = (angle);
       double scale = 1.0;
       Point center = Point(mapGpPx, mapGpPy);
@@ -12403,12 +12396,11 @@ void fillEinStateMsg(EinConfig * configIn, EinState * stateOut) {
 
 int main(int argc, char **argv) {
 
-  initVectorArcTan();
   initializeWords();
   pMachineState = std::make_shared<MachineState>(machineState);
   shared_ptr<MachineState> ms = pMachineState;
 
-
+  initVectorArcTan(ms);
   srand(time(NULL));
   time(&ms->config.firstTime);
   time(&ms->config.firstTimeRange);
