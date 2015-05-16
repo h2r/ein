@@ -124,13 +124,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-int loTrackbarVariable = 20;//30;//45;//75;
-int hiTrackbarVariable = 35;//40;//50;
-int postDensitySigmaTrackbarVariable = 10.0;
-
-
-double canny_hi_thresh = 5e5;//7;
-double canny_lo_thresh = 5e5;//4;
 
 double sobel_sigma = 2.0;//4.0;
 double sobel_sigma_substitute_latest = 4.0;
@@ -9444,7 +9437,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
 
   // smooth the density
   int smoothDensity = 1;
-  double densitySigma = max(0.5, double(postDensitySigmaTrackbarVariable));//3.0;
+  double densitySigma = max(0.5, double(ms->config.postDensitySigmaTrackbarVariable));//3.0;
   Mat denTemp = totalGraySobel.clone();
   if (smoothDensity) {
     for (int x = 0; x < imW; x++) {
@@ -9717,11 +9710,11 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
   int yF = min(grayBot.y-gBoxH, imH-gBoxH);
 
   // fine tune
-  //double adjusted_canny_lo_thresh = canny_lo_thresh * (1.0 + (double(loTrackbarVariable-50) / 50.0));
-  //double adjusted_canny_hi_thresh = canny_hi_thresh * (1.0 + (double(hiTrackbarVariable-50) / 50.0));
+  //double adjusted_canny_lo_thresh = ms->config.canny_lo_thresh * (1.0 + (double(ms->config.loTrackbarVariable-50) / 50.0));
+  //double adjusted_canny_hi_thresh = ms->config.canny_hi_thresh * (1.0 + (double(ms->config.hiTrackbarVariable-50) / 50.0));
   // broad tune
-  double adjusted_canny_lo_thresh = canny_lo_thresh * double(loTrackbarVariable)/100.0;
-  double adjusted_canny_hi_thresh = canny_hi_thresh * double(hiTrackbarVariable)/100.0;
+  double adjusted_canny_lo_thresh = ms->config.canny_lo_thresh * double(ms->config.loTrackbarVariable)/100.0;
+  double adjusted_canny_hi_thresh = ms->config.canny_hi_thresh * double(ms->config.hiTrackbarVariable)/100.0;
 
 //cout << "Here 1" << endl;
   for (int x = xS; x <= xF; x+=gBoxStrideX) {
@@ -10503,8 +10496,8 @@ void loadROSParams(shared_ptr<MachineState> ms) {
 
   nh.getParam("sobel_sigma", sobel_sigma);
   nh.getParam("local_sobel_sigma", local_sobel_sigma);
-  nh.getParam("canny_hi_thresh",canny_hi_thresh);
-  nh.getParam("canny_lo_thresh",canny_lo_thresh);
+  nh.getParam("canny_hi_thresh",ms->config.canny_hi_thresh);
+  nh.getParam("canny_lo_thresh",ms->config.canny_lo_thresh);
   nh.getParam("sobel_scale_factor",sobel_scale_factor);
 
   nh.getParam("mask_gripper", ms->config.mask_gripper);
@@ -10559,8 +10552,8 @@ void saveROSParams(shared_ptr<MachineState> ms) {
 
   nh.setParam("sobel_sigma", sobel_sigma);
   nh.setParam("local_sobel_sigma", local_sobel_sigma);
-  nh.setParam("canny_hi_thresh",canny_hi_thresh);
-  nh.setParam("canny_lo_thresh",canny_lo_thresh);
+  nh.setParam("canny_hi_thresh",ms->config.canny_hi_thresh);
+  nh.setParam("canny_lo_thresh",ms->config.canny_lo_thresh);
   nh.setParam("sobel_scale_factor",sobel_scale_factor);
 
   nh.setParam("mask_gripper", ms->config.mask_gripper);
@@ -11661,9 +11654,9 @@ int main(int argc, char **argv) {
   cv::namedWindow(ms->config.densityViewerName);
   setMouseCallback(ms->config.objectViewerName, nodeCallbackFunc, NULL);
 
-  createTrackbar("post_density_sigma", ms->config.densityViewerName, &postDensitySigmaTrackbarVariable, 40);
-  createTrackbar("canny_lo", ms->config.densityViewerName, &loTrackbarVariable, 100);
-  createTrackbar("canny_hi", ms->config.densityViewerName, &hiTrackbarVariable, 100);
+  createTrackbar("post_density_sigma", ms->config.densityViewerName, &ms->config.postDensitySigmaTrackbarVariable, 40);
+  createTrackbar("canny_lo", ms->config.densityViewerName, &ms->config.loTrackbarVariable, 100);
+  createTrackbar("canny_hi", ms->config.densityViewerName, &ms->config.hiTrackbarVariable, 100);
 
   ros::Timer simulatorCallbackTimer;
 

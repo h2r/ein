@@ -768,6 +768,15 @@ class EinConfig {
   int mask_gripper_blocks = 0;
   int mask_gripper = 1;
 
+  int loTrackbarVariable = 20;//30;//45;//75;
+  int hiTrackbarVariable = 35;//40;//50;
+  int postDensitySigmaTrackbarVariable = 10.0;
+  
+
+  double canny_hi_thresh = 5e5;//7;
+  double canny_lo_thresh = 5e5;//4;
+
+
 
 }; // config end
 
