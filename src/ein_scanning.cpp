@@ -107,10 +107,10 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->config.reextract_knn = 1;
 
   // delete things that will be reallocated
-  if (bowtrainer)
-    delete bowtrainer;
-  if (kNN)
-    delete kNN;
+  if (ms->config.bowTrainer)
+    delete ms->config.bowTrainer;
+  if (ms->config.kNN)
+    delete ms->config.kNN;
 
   for (int i = 0; i < ms->config.classPosekNNs.size(); i++) {
     if (ms->config.classPosekNNs[i])
