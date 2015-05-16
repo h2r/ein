@@ -1334,7 +1334,7 @@ REGISTER_WORD(GradientServoTakeClosest)
 WORD(DarkServo)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  darkServoIterations = 0;
+  ms->config.darkServoIterations = 0;
   ms->pushWord("darkServoA");
 }
 END_WORD
@@ -1344,7 +1344,7 @@ WORD(DarkServoA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   int numPause = 4;
-  darkServoIterations++;
+  ms->config.darkServoIterations++;
   ms->pushWord("darkServoB");
   ms->pushWord("accumulatedDensity");
   ms->pushCopies("waitUntilImageCallbackReceived", 100);
@@ -1362,7 +1362,7 @@ REGISTER_WORD(DarkServoA)
 WORD(DarkServoB)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  if (darkServoIterations > darkServoTimeout) {
+  if (ms->config.darkServoIterations > ms->config.darkServoTimeout) {
     cout << "darkServo timed out, continuing..." << endl;
     return;
   }

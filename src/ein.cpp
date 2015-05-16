@@ -123,24 +123,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-Mat gripperMaskFirstContrast;
-Mat gripperMaskSecondContrast;
-Mat gripperMask;
-Mat cumulativeGripperMask;
-
-int darkServoIterations = 0;
-int darkServoTimeout = 20;
-int darkServoPixelThresh = 10;
-
-int faceServoIterations = 0;
-int faceServoTimeout = 2000;
-int faceServoPixelThresh = 1;
-
-int setVanishingPointPixelThresh = 3;
-int setVanishingPointIterations = 0;
-int setVanishingPointTimeout = 6;
-
-
 ////////////////////////////////////////////////
 // end pilot variables 
 //
@@ -7578,10 +7560,10 @@ void darkServo(shared_ptr<MachineState> ms) {
   ms->config.currentEEPose.px = newx;
   ms->config.currentEEPose.py = newy;
 
-  if ((fabs(Px) < darkServoPixelThresh) && (fabs(Py) < darkServoPixelThresh)) {
+  if ((fabs(Px) < ms->config.darkServoPixelThresh) && (fabs(Py) < ms->config.darkServoPixelThresh)) {
     cout << "darkness reached, continuing." << endl;
   } else {
-    cout << "darkness not reached, servoing more. " << darkServoIterations << " " << darkServoTimeout << endl;
+    cout << "darkness not reached, servoing more. " << ms->config.darkServoIterations << " " << ms->config.darkServoTimeout << endl;
     ms->pushWord("darkServoA");
   }
 }
@@ -7589,7 +7571,7 @@ void darkServo(shared_ptr<MachineState> ms) {
 void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces) {
 
   if (faces.size() == 0) {
-    cout << "no faces, servoing more. " << faceServoIterations << " " << faceServoTimeout << endl;
+    cout << "no faces, servoing more. " << ms->config.faceServoIterations << " " << ms->config.faceServoTimeout << endl;
     ms->pushWord("faceServoA");
     return;
   }
@@ -7653,10 +7635,10 @@ void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces) {
   ms->config.currentEEDeltaRPY.py = pTermX*yScale;
   endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
 
-  if ((fabs(Px) < faceServoPixelThresh) && (fabs(Py) < faceServoPixelThresh)) {
+  if ((fabs(Px) < ms->config.faceServoPixelThresh) && (fabs(Py) < ms->config.faceServoPixelThresh)) {
     cout << "face reached, continuing." << endl;
   } else {
-    cout << "face not reached, servoing more. " << faceServoIterations << " " << faceServoTimeout << endl;
+    cout << "face not reached, servoing more. " << ms->config.faceServoIterations << " " << ms->config.faceServoTimeout << endl;
     ms->pushWord("faceServoA");
   }
 }
@@ -8527,7 +8509,7 @@ void simulatorCallback(const ros::TimerEvent&) {
 
 }
 
-bool isInGripperMaskBlocks(int x, int y) {
+bool isInGripperMaskBlocks(shared_ptr<MachineState> ms, int x, int y) {
   if ( (x >= g1xs && x <= g1xe && y >= g1ys && y <= g1ye) ||
        (x >= g2xs && x <= g2xe && y >= g2ys && y <= g2ye) ) {
     return true;
@@ -8536,15 +8518,15 @@ bool isInGripperMaskBlocks(int x, int y) {
   }
 }
 
-bool isInGripperMask(int x, int y) {
+bool isInGripperMask(shared_ptr<MachineState> ms, int x, int y) {
   if (mask_gripper) {
-    if (isSketchyMat(gripperMask)) {
+    if (isSketchyMat(ms->config.gripperMask)) {
       return false;
     } else {
-      return (( gripperMask.at<uchar>(y,x) == 0 ));
+      return (( ms->config.gripperMask.at<uchar>(y,x) == 0 ));
     }
   } else if (mask_gripper_blocks) {
-    return isInGripperMaskBlocks(x,y);
+    return isInGripperMaskBlocks(ms, x,y);
   } else {
     return false;
   }
@@ -8623,7 +8605,7 @@ void findOptimum(shared_ptr<MachineState> ms, int * xout, int * yout, int sign) 
   for (int x = xmin; x < xmax; x++) {
     for (int y = ymin; y < ymax; y++) {
       double thisVal = sign * accToBlur.at<double>(y,x);
-      if ((!isInGripperMask(x,y)) && (thisVal > maxVal)) {
+      if ((!isInGripperMask(ms, x,y)) && (thisVal > maxVal)) {
 	maxVal = thisVal;
 	maxX = x;
 	maxY = y;
@@ -10102,7 +10084,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   if (mask_gripper) {
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	if ( isInGripperMask(x, y) ) {
+	if ( isInGripperMask(ms, x, y) ) {
 	  density[y*imW+x] = 0;
 	  totalGraySobel.at<double>(y,x) = 0;
 	  if (!isSketchyMat(objectViewerImage)) {

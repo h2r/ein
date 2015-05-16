@@ -618,7 +618,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int px = grayTop.x+mapGrayBoxPixelSkirt; px < grayBot.x-mapGrayBoxPixelSkirt; px++) {
     for (int py = grayTop.y+mapGrayBoxPixelSkirt; py < grayBot.y-mapGrayBoxPixelSkirt; py++) {
 
-      if (isInGripperMask(px, py)) {
+      if (isInGripperMask(ms, px, py)) {
 	continue;
       }
 
@@ -885,7 +885,7 @@ REGISTER_WORD(DetectFaces)
 WORD(FaceServo)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  faceServoIterations = 0;
+  ms->config.faceServoIterations = 0;
   ms->pushWord("faceServoA");
 }
 END_WORD
@@ -894,7 +894,7 @@ REGISTER_WORD(FaceServo)
 WORD(FaceServoA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  faceServoIterations++;
+  ms->config.faceServoIterations++;
   ms->pushWord("endStackCollapseNoop");
   ms->pushWord("faceServoB");
   ms->pushWord("accumulatedDensity");
@@ -908,7 +908,7 @@ REGISTER_WORD(FaceServoA)
 WORD(FaceServoB)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  if (faceServoIterations > faceServoTimeout) {
+  if (ms->config.faceServoIterations > ms->config.faceServoTimeout) {
     cout << "faceServo timed out, continuing..." << endl;
     return;
   }

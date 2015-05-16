@@ -1135,7 +1135,7 @@ REGISTER_WORD(MoveToSetVanishingPointHeightHigh)
 WORD(SetVanishingPoint)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
-  setVanishingPointIterations = 0;
+  ms->config.setVanishingPointIterations = 0;
   // go low, wait
   ms->pushWord("setVanishingPointA");
   // is darkest point in current vp? loop here until it is so then rise and go to B
@@ -1157,7 +1157,7 @@ WORD(SetVanishingPointA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int numPause = 4;
 
-  setVanishingPointIterations++;
+  ms->config.setVanishingPointIterations++;
   ms->pushWord("setVanishingPointB");
   ms->pushWord("accumulatedDensity");
   ms->pushCopies("waitUntilImageCallbackReceived", 100);
@@ -1189,14 +1189,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   cout << "setVanishingPoint Px Py: " << Px << " " << Py << endl;
 
-  if (setVanishingPointIterations > setVanishingPointTimeout) {
+  if (ms->config.setVanishingPointIterations > ms->config.setVanishingPointTimeout) {
     cout << "setVanishingPoint timed out, continuing..." << endl;
   }
 
-  if ((fabs(Px) < setVanishingPointPixelThresh) && (fabs(Py) < setVanishingPointPixelThresh)) {
+  if ((fabs(Px) < ms->config.setVanishingPointPixelThresh) && (fabs(Py) < ms->config.setVanishingPointPixelThresh)) {
     cout << "vanishing point set, continuing." << endl;
   } else {
-    cout << "vanishing point not set, adjusting more. " << setVanishingPointIterations << " " << setVanishingPointTimeout << endl;
+    cout << "vanishing point not set, adjusting more. " << ms->config.setVanishingPointIterations << " " << ms->config.setVanishingPointTimeout << endl;
     ms->pushWord("setVanishingPointA");
     ms->pushWord("setVanishingPointPrep");
   }
@@ -1425,18 +1425,18 @@ REGISTER_WORD(SetMagnificationB)
 
 WORD(SetGripperMaskOnes)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  gripperMask.create(gripperMaskFirstContrast.size(), CV_8U);
-  cumulativeGripperMask.create(gripperMaskFirstContrast.size(), CV_8U);
+  ms->config.gripperMask.create(ms->config.gripperMaskFirstContrast.size(), CV_8U);
+  ms->config.cumulativeGripperMask.create(ms->config.gripperMaskFirstContrast.size(), CV_8U);
 
-  Size sz = gripperMask.size();
+  Size sz = ms->config.gripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
 
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      gripperMask.at<uchar>(y,x) = 1;
-      cumulativeGripperMask.at<uchar>(y,x) = 1;
+      ms->config.gripperMask.at<uchar>(y,x) = 1;
+      ms->config.cumulativeGripperMask.at<uchar>(y,x) = 1;
     }
   }
 }
@@ -1458,12 +1458,12 @@ REGISTER_WORD(SetGripperMask)
 
 WORD(SetGripperMaskAA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  gripperMaskFirstContrast = accumulatedImage.clone();
-  gripperMaskSecondContrast = gripperMaskFirstContrast.clone();
+  ms->config.gripperMaskFirstContrast = accumulatedImage.clone();
+  ms->config.gripperMaskSecondContrast = ms->config.gripperMaskFirstContrast.clone();
 
-  gripperMask.create(gripperMaskFirstContrast.size(), CV_8U);
+  ms->config.gripperMask.create(ms->config.gripperMaskFirstContrast.size(), CV_8U);
 
-  Size sz = gripperMask.size();
+  Size sz = ms->config.gripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
 
@@ -1474,11 +1474,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       if (denom <= 1.0) {
 	denom = 1.0;
       }
-      gripperMaskFirstContrast.at<Vec3d>(y,x)[0] = (accumulatedImage.at<Vec3d>(y,x)[0] / denom);
-      gripperMaskFirstContrast.at<Vec3d>(y,x)[1] = (accumulatedImage.at<Vec3d>(y,x)[1] / denom);
-      gripperMaskFirstContrast.at<Vec3d>(y,x)[2] = (accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] = (accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[1] = (accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] = (accumulatedImage.at<Vec3d>(y,x)[2] / denom);
 
-      gripperMask.at<uchar>(y,x) = 0;
+      ms->config.gripperMask.at<uchar>(y,x) = 0;
     }
   }
 }
@@ -1487,13 +1487,13 @@ REGISTER_WORD(SetGripperMaskAA)
 
 WORD(InitCumulativeGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cumulativeGripperMask.create(accumulatedImage.size(), CV_8U);
-  Size sz = cumulativeGripperMask.size();
+  ms->config.cumulativeGripperMask.create(accumulatedImage.size(), CV_8U);
+  Size sz = ms->config.cumulativeGripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      cumulativeGripperMask.at<uchar>(y,x) = 0;
+      ms->config.cumulativeGripperMask.at<uchar>(y,x) = 0;
     }
   }
 }
@@ -1526,7 +1526,7 @@ REGISTER_WORD(SetGripperMaskB)
 WORD(SetGripperMaskBA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
-  Size sz = gripperMask.size();
+  Size sz = ms->config.gripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
 
@@ -1543,31 +1543,31 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       if (denom <= 1.0) {
 	denom = 1.0;
       }
-      gripperMaskSecondContrast.at<Vec3d>(y,x)[0] = (accumulatedImage.at<Vec3d>(y,x)[0] / denom);
-      gripperMaskSecondContrast.at<Vec3d>(y,x)[1] = (accumulatedImage.at<Vec3d>(y,x)[1] / denom);
-      gripperMaskSecondContrast.at<Vec3d>(y,x)[2] = (accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0] = (accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1] = (accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2] = (accumulatedImage.at<Vec3d>(y,x)[2] / denom);
 
       double maskDiff = 
-      ((gripperMaskFirstContrast.at<Vec3d>(y,x)[0] - gripperMaskSecondContrast.at<Vec3d>(y,x)[0])*
-      (gripperMaskFirstContrast.at<Vec3d>(y,x)[0] - gripperMaskSecondContrast.at<Vec3d>(y,x)[0])) +
-      ((gripperMaskFirstContrast.at<Vec3d>(y,x)[1] - gripperMaskSecondContrast.at<Vec3d>(y,x)[1])*
-      (gripperMaskFirstContrast.at<Vec3d>(y,x)[1] - gripperMaskSecondContrast.at<Vec3d>(y,x)[1])) +
-      ((gripperMaskFirstContrast.at<Vec3d>(y,x)[2] - gripperMaskSecondContrast.at<Vec3d>(y,x)[2])*
-      (gripperMaskFirstContrast.at<Vec3d>(y,x)[2] - gripperMaskSecondContrast.at<Vec3d>(y,x)[2]));
+      ((ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0])*
+      (ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0])) +
+      ((ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[1] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1])*
+      (ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[1] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1])) +
+      ((ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2])*
+      (ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2]));
 
       if(maskDiff < 1000) {
 	//cout << multiThresh << " " << maskDiff << endl;
       }
 
       if (maskDiff > multiThresh) {
-	gripperMask.at<uchar>(y,x) = 1;
+	ms->config.gripperMask.at<uchar>(y,x) = 1;
       } else {
-	gripperMask.at<uchar>(y,x) = 0;
+	ms->config.gripperMask.at<uchar>(y,x) = 0;
       }
     }
   }
 
-  Mat tmpMask = gripperMask.clone();
+  Mat tmpMask = ms->config.gripperMask.clone();
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
@@ -1578,7 +1578,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	int ymax = min(imH-1, y + dilationPixels);
 	for (int xp = xmin; xp < xmax; xp++) {
 	  for (int yp = ymin; yp < ymax; yp++) {
-	    gripperMask.at<uchar>(yp,xp) = 0;
+	    ms->config.gripperMask.at<uchar>(yp,xp) = 0;
 	  }
 	}
       }
@@ -1632,14 +1632,14 @@ REGISTER_WORD(SetGripperMaskWithMotionA)
 
 WORD(SetGripperMaskCA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cumulativeGripperMask = max(cumulativeGripperMask, gripperMask);
+  ms->config.cumulativeGripperMask = max(ms->config.cumulativeGripperMask, ms->config.gripperMask);
 }
 END_WORD
 REGISTER_WORD(SetGripperMaskCA)
 
 WORD(SetGripperMaskCB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  gripperMask = cumulativeGripperMask.clone();
+  ms->config.gripperMask = ms->config.cumulativeGripperMask.clone();
   cout << "Thank you. Don't forget to save your mask!" << endl;
 }
 END_WORD
@@ -1652,17 +1652,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Mat tmpMask = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
   cout << "  tmpMask.type() tmpMask.size(): " << tmpMask.type() << " " << tmpMask.size() << endl;
 
-  gripperMask.create(tmpMask.size(), CV_8U);
-  Size sz = gripperMask.size();
+  ms->config.gripperMask.create(tmpMask.size(), CV_8U);
+  Size sz = ms->config.gripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
       if (tmpMask.at<uchar>(y,x) > 0) {
-	gripperMask.at<uchar>(y,x) = 1;
+	ms->config.gripperMask.at<uchar>(y,x) = 1;
       } else {
-	gripperMask.at<uchar>(y,x) = 0;
+	ms->config.gripperMask.at<uchar>(y,x) = 0;
       }
     }
   }
@@ -1675,7 +1675,7 @@ WORD(SaveGripperMask)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   string filename = data_directory + "/config/" + ms->config.left_or_right_arm + "GripperMask.bmp";
   cout << "Saving gripper mask to " << filename << endl;
-  imwrite(filename, 255*gripperMask);
+  imwrite(filename, 255*ms->config.gripperMask);
 }
 END_WORD
 REGISTER_WORD(SaveGripperMask)

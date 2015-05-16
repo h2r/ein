@@ -719,6 +719,25 @@ class EinConfig {
   int targetInstanceSprite = 0;
   int targetMasterSprite = 0;
 
+  Mat gripperMaskFirstContrast;
+  Mat gripperMaskSecondContrast;
+  Mat gripperMask;
+  Mat cumulativeGripperMask;
+
+  int darkServoIterations = 0;
+  int darkServoTimeout = 20;
+  int darkServoPixelThresh = 10;
+  
+  int faceServoIterations = 0;
+  int faceServoTimeout = 2000;
+  int faceServoPixelThresh = 1;
+  
+  int setVanishingPointPixelThresh = 3;
+  int setVanishingPointIterations = 0;
+  int setVanishingPointTimeout = 6;
+
+
+
 }; // config end
 
 class Word;
