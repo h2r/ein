@@ -328,7 +328,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)  {
     cout << "Not changing because closest bbox is " << ms->config.pilotClosestBlueBoxNumber << endl;
     return;
   }
-  int class_idx = bLabels[ms->config.pilotClosestBlueBoxNumber];
+  int class_idx = ms->config.bLabels[ms->config.pilotClosestBlueBoxNumber];
   cout << "Changing to closest blue blox target, which is class " << ms->config.classLabels[class_idx] << endl;
   changeTargetClass(ms, class_idx);
 }
