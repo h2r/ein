@@ -108,8 +108,6 @@ tf::TransformListener* tfListener;
 
 eePose beeRHome = {.px = 0.657579481614, .py = -0.168019, .pz = 0.0388352386502,
 		   .qx = -0.366894936773, .qy = 0.885980397775, .qz = 0.108155782462, .qw = 0.262162481772};
-eePose workCenter = {.px = 0.686428, .py = -0.509836, .pz = 0.0883011,
-		     .qx = -0.435468, .qy = 0.900181, .qz = 0.00453569, .qw = 0.00463141};
 
 eePose crane1;
 
@@ -172,12 +170,6 @@ eePose pilotClosestTarget = beeHome;
 eePose lastGoodEEPose = beeHome;
 eePose currentEEPose = beeHome;
 eePose currentEEDeltaRPY = eePoseZero;
-eePose eepReg1 = workCenter;
-eePose eepReg2 = beeHome;
-eePose eepReg3 = beeHome;
-eePose eepReg4 = beeHome;
-eePose eepReg5 = beeHome;
-eePose eepReg6 = beeHome;
 
 
 
@@ -2931,7 +2923,7 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
   {
     Eigen::Quaternionf qin(0, 1, 0, 0);
     Eigen::Quaternionf qout(0, 1, 0, 0);
-    //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    //Eigen::Quaternionf eeqform(ms->config.eepReg2.qw, ms->config.eepReg2.qx, ms->config.eepReg2.qy, ms->config.eepReg2.qz);
     Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
     //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
@@ -2944,7 +2936,7 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
   {
     Eigen::Quaternionf qin(0, 0, 1, 0);
     Eigen::Quaternionf qout(0, 1, 0, 0);
-    //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    //Eigen::Quaternionf eeqform(ms->config.eepReg2.qw, ms->config.eepReg2.qx, ms->config.eepReg2.qy, ms->config.eepReg2.qz);
     Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
     //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
@@ -2957,7 +2949,7 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
   {
     Eigen::Quaternionf qin(0, 0, 0, 1);
     Eigen::Quaternionf qout(0, 1, 0, 0);
-    //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    //Eigen::Quaternionf eeqform(ms->config.eepReg2.qw, ms->config.eepReg2.qx, ms->config.eepReg2.qy, ms->config.eepReg2.qz);
     Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
     //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
@@ -2969,7 +2961,7 @@ Eigen::Quaternionf getGGRotation(int givenGraspGear) {
   double deltaTheta = double(givenGraspGear)*2.0*3.1415926/double(totalGraspGears);
   double sinBuff = 0.0;
   double angleRate = 1.0;
-  //Eigen::Quaternionf eeBaseQuat(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+  //Eigen::Quaternionf eeBaseQuat(ms->config.eepReg2.qw, ms->config.eepReg2.qx, ms->config.eepReg2.qy, ms->config.eepReg2.qz);
   Eigen::Quaternionf eeBaseQuat(0, 0, 1, 0);
   sinBuff = sin(angleRate*0.0/2.0);
   Eigen::Quaternionf eeRotatorX(cos(angleRate*0.0/2.0), localUnitX.x()*sinBuff, localUnitX.y()*sinBuff, localUnitX.z()*sinBuff);
@@ -3001,7 +2993,7 @@ Eigen::Quaternionf getCCRotation(int givenGraspGear, double angle) {
   {
     Eigen::Quaternionf qin(0, 1, 0, 0);
     Eigen::Quaternionf qout(0, 1, 0, 0);
-    //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    //Eigen::Quaternionf eeqform(ms->config.eepReg2.qw, ms->config.eepReg2.qx, ms->config.eepReg2.qy, ms->config.eepReg2.qz);
     Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
     //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
@@ -3014,7 +3006,7 @@ Eigen::Quaternionf getCCRotation(int givenGraspGear, double angle) {
   {
     Eigen::Quaternionf qin(0, 0, 1, 0);
     Eigen::Quaternionf qout(0, 1, 0, 0);
-    //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    //Eigen::Quaternionf eeqform(ms->config.eepReg2.qw, ms->config.eepReg2.qx, ms->config.eepReg2.qy, ms->config.eepReg2.qz);
     Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
     //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
@@ -3027,7 +3019,7 @@ Eigen::Quaternionf getCCRotation(int givenGraspGear, double angle) {
   {
     Eigen::Quaternionf qin(0, 0, 0, 1);
     Eigen::Quaternionf qout(0, 1, 0, 0);
-    //Eigen::Quaternionf eeqform(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+    //Eigen::Quaternionf eeqform(ms->config.eepReg2.qw, ms->config.eepReg2.qx, ms->config.eepReg2.qy, ms->config.eepReg2.qz);
     Eigen::Quaternionf eeqform(0, 0, 1.0, 0);
     //Eigen::Quaternionf eeqform(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
@@ -3039,7 +3031,7 @@ Eigen::Quaternionf getCCRotation(int givenGraspGear, double angle) {
   double deltaTheta = angle + (double(givenGraspGear)*2.0*3.1415926/double(totalGraspGears));
   double sinBuff = 0.0;
   double angleRate = 1.0;
-  //Eigen::Quaternionf eeBaseQuat(eepReg2.qw, eepReg2.qx, eepReg2.qy, eepReg2.qz);
+  //Eigen::Quaternionf eeBaseQuat(ms->config.eepReg2.qw, ms->config.eepReg2.qx, ms->config.eepReg2.qy, ms->config.eepReg2.qz);
   //Eigen::Quaternionf eeBaseQuat(0, 0, 1, 0);
   Eigen::Quaternionf eeBaseQuat(bestOrientationEEPose.qw, bestOrientationEEPose.qx, bestOrientationEEPose.qy, bestOrientationEEPose.qz);
   sinBuff = sin(angleRate*0.0/2.0);
@@ -4152,7 +4144,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     teePose.py = ms->config.trueEEPose.position.y;
     teePose.pz = ms->config.trueEEPose.position.z;
     paintEEPoseOnWrist(ms, teePose, cv::Scalar(0,0,255));
-    paintEEPoseOnWrist(ms, eepReg1, cv::Scalar(0,255,0));
+    paintEEPoseOnWrist(ms, ms->config.eepReg1, cv::Scalar(0,255,0));
 
     {
       eePose irPose;
@@ -5086,7 +5078,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
   if (0 == ms->config.left_or_right_arm.compare("left")) {
     cout << "Possessing left arm..." << endl;
     beeHome = rssPoseL; //wholeFoodsPantryL;
-    eepReg4 = rssPoseL; //beeLHome;
+    ms->config.eepReg4 = rssPoseL; //beeLHome;
     ms->config.defaultReticle = {.px = 334, .py = 100, .pz = 0.0,
                       .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
     ms->config.reticle = ms->config.defaultReticle;
@@ -5118,9 +5110,9 @@ void pilotInit(shared_ptr<MachineState> ms) {
     wholeFoodsPantry1 = rssPoseL; //wholeFoodsPantryL;
     wholeFoodsCounter1 = rssPoseL; //wholeFoodsCounterL;
 
-    eepReg1 = rssPoseL; //wholeFoodsBagL;
-    eepReg2 = rssPoseL; //wholeFoodsPantryL;
-    //eepReg3 = rssPoseL; //wholeFoodsCounterL;
+    ms->config.eepReg1 = rssPoseL; //wholeFoodsBagL;
+    ms->config.eepReg2 = rssPoseL; //wholeFoodsPantryL;
+    //ms->config.eepReg3 = rssPoseL; //wholeFoodsCounterL;
 
     mapSearchFenceXMin = -0.75;
     mapSearchFenceXMax = 1.0;
@@ -5207,7 +5199,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
 
     ms->config.handingPose = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
                    .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
-    eepReg3 = ms->config.handingPose;
+    ms->config.eepReg3 = ms->config.handingPose;
 
     // ir offset
     gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
@@ -5220,7 +5212,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
     cout << "Possessing right arm..." << endl;
 
     beeHome = rssPoseR;
-    eepReg4 = rssPoseR; 
+    ms->config.eepReg4 = rssPoseR; 
     ms->config.defaultReticle = {.px = 325, .py = 127, .pz = 0.0,
                       .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
     ms->config.reticle = ms->config.defaultReticle;
@@ -5252,9 +5244,9 @@ void pilotInit(shared_ptr<MachineState> ms) {
     wholeFoodsPantry1 = rssPoseR; //wholeFoodsPantryR;
     wholeFoodsCounter1 = rssPoseR; //wholeFoodsCounterR;
 
-    eepReg1 = rssPoseR; //wholeFoodsBagR;
-    eepReg2 = rssPoseR; //wholeFoodsPantryR;
-    //eepReg3 = rssPoseR; //wholeFoodsCounterR;
+    ms->config.eepReg1 = rssPoseR; //wholeFoodsBagR;
+    ms->config.eepReg2 = rssPoseR; //wholeFoodsPantryR;
+    //ms->config.eepReg3 = rssPoseR; //wholeFoodsCounterR;
 
     // raw fence values (from John estimating arm limits)
     // True EE Position (x,y,z): -0.329642 -0.77571 0.419954
@@ -5344,7 +5336,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
 
     ms->config.handingPose = {.px = 0.879307, .py = -0.0239328, .pz = 0.223839,
                       .qx = 0.459157, .qy = 0.527586, .qz = 0.48922, .qw = 0.521049};
-    eepReg3 = ms->config.handingPose;
+    ms->config.eepReg3 = ms->config.handingPose;
 
     // ir offset
     gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
@@ -5444,7 +5436,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
 
   // XXX set this to be arm-generic
   // XXX add symbols to change register sets
-  //eepReg3 = crane4right;
+  //ms->config.eepReg3 = crane4right;
 
   initializeParzen();
   //l2NormalizeParzen();

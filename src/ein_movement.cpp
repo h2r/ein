@@ -214,7 +214,7 @@ REGISTER_WORD(OXUp)
 WORD(SaveRegister1)
 CODE(65568+1) // ! 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  eepReg1 = currentEEPose;
+  ms->config.eepReg1 = currentEEPose;
 }
 END_WORD
 REGISTER_WORD(SaveRegister1)
@@ -222,7 +222,7 @@ REGISTER_WORD(SaveRegister1)
 WORD(SaveRegister2)
 CODE(65600) // @
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  eepReg2 = currentEEPose;
+  ms->config.eepReg2 = currentEEPose;
 }
 END_WORD
 REGISTER_WORD(SaveRegister2)
@@ -230,7 +230,7 @@ REGISTER_WORD(SaveRegister2)
 WORD(SaveRegister3)
 CODE(65568+3) // # 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  eepReg3 = currentEEPose;
+  ms->config.eepReg3 = currentEEPose;
 }
 END_WORD
 REGISTER_WORD(SaveRegister3)
@@ -238,7 +238,7 @@ REGISTER_WORD(SaveRegister3)
 WORD(SaveRegister4)
 CODE( 65568+4) // $ 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  eepReg4 = currentEEPose;
+  ms->config.eepReg4 = currentEEPose;
 }
 END_WORD
 REGISTER_WORD(SaveRegister4)
@@ -246,7 +246,7 @@ REGISTER_WORD(SaveRegister4)
 WORD(MoveToRegister1)
 CODE('1') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose = eepReg1;
+  currentEEPose = ms->config.eepReg1;
 }
 END_WORD
 REGISTER_WORD(MoveToRegister1)
@@ -254,7 +254,7 @@ REGISTER_WORD(MoveToRegister1)
 WORD(MoveToRegister2)
 CODE('2') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose = eepReg2;
+  currentEEPose = ms->config.eepReg2;
 }
 END_WORD
 REGISTER_WORD(MoveToRegister2)
@@ -262,7 +262,7 @@ REGISTER_WORD(MoveToRegister2)
 WORD(MoveToRegister3)
 CODE('3') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose = eepReg3;
+  currentEEPose = ms->config.eepReg3;
 }
 END_WORD
 REGISTER_WORD(MoveToRegister3)
@@ -270,7 +270,7 @@ REGISTER_WORD(MoveToRegister3)
 WORD(MoveToRegister4)
 CODE('4') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose = eepReg4;
+  currentEEPose = ms->config.eepReg4;
 }
 END_WORD
 REGISTER_WORD(MoveToRegister4)
@@ -278,7 +278,7 @@ REGISTER_WORD(MoveToRegister4)
 WORD(MoveToRegister5)
 CODE('5') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose = eepReg5;
+  currentEEPose = ms->config.eepReg5;
 }
 END_WORD
 REGISTER_WORD(MoveToRegister5)
@@ -287,7 +287,7 @@ REGISTER_WORD(MoveToRegister5)
 WORD(MoveToRegister6)
 CODE('6') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentEEPose = eepReg6;
+  currentEEPose = ms->config.eepReg6;
 }
 END_WORD
 REGISTER_WORD(MoveToRegister6)

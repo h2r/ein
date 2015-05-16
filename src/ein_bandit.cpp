@@ -85,7 +85,7 @@ REGISTER_WORD(SetRandomPositionAndOrientationForHeightLearning)
 WORD(BeginHeightLearning)
 CODE(1245242)     // capslock + numlock + :
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  eepReg3 = rssPose;
+  ms->config.eepReg3 = rssPose;
   heightAttemptCounter = 0;
   heightSuccessCounter = 0;
   thompsonPickHaltFlag = 0;
@@ -183,12 +183,12 @@ CODE(1179694)     // capslock + numlock + .
   // Distances for the eraser
   //0.04, 2.57e-05, 0.0005, 0.0009, 0.007, 0.0006
   // ATTN 17
-  double distance = squareDistanceEEPose(currentEEPose, eepReg4);
+  double distance = squareDistanceEEPose(currentEEPose, ms->config.eepReg4);
   cout << "cartesian distance from start: " << sqrt(distance) << endl;
   cout << "bbLearnThresh: " << bbLearnThresh << endl;
   if (distance < bbLearnThresh*bbLearnThresh) {
     Quaternionf q1(currentEEPose.qw, currentEEPose.qx, currentEEPose.qy, currentEEPose.qz);
-    Quaternionf q2(eepReg4.qw, eepReg4.qx, eepReg4.qy, eepReg4.qz);
+    Quaternionf q2(ms->config.eepReg4.qw, ms->config.eepReg4.qx, ms->config.eepReg4.qy, ms->config.eepReg4.qz);
     double quaternionDistance = unsignedQuaternionDistance(q1, q2);
     cout << "quat distance from start: " << quaternionDistance << endl;
     cout << "bbQuatThresh: " << bbQuatThresh << endl;

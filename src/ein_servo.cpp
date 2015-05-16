@@ -190,10 +190,10 @@ REGISTER_WORD(MoveToTargetZAndGrasp)
 WORD(ShakeItUpAndDown)
 CODE(131081)   // capslock + tab
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  eepReg5 = currentEEPose;
+  ms->config.eepReg5 = currentEEPose;
 
-  eepReg6 = currentEEPose;
-  eepReg6.pz += 0.2;
+  ms->config.eepReg6 = currentEEPose;
+  ms->config.eepReg6.pz += 0.2;
 
   pushSpeedSign(ms, MOVE_FAST);    
   if (isGripperGripping()) {
@@ -1116,7 +1116,7 @@ REGISTER_WORD(SynchronicServoTakeClosest)
 WORD(TwoDPatrolStart)
 CODE(131159)     // capslock + w
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  eepReg2 = rssPose;
+  ms->config.eepReg2 = rssPose;
   bailAfterSynchronic = 0;
   graspAttemptCounter = 0;
   graspSuccessCounter = 0;
