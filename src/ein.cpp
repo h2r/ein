@@ -122,44 +122,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-
-
-double simulatorCallbackFrequency = 30.0;
-
-int mbiWidth = 2000;
-int mbiHeight = 2000;
-Mat mapBackgroundImage;
-Mat originalMapBackgroundImage;
-
-int objectInHandLabel = -1;
-int simulatedObjectHalfWidthPixels = 50;
-
-int numCornellTables = 10;
-vector<eePose> cornellTables;
-int currentCornellTableIndex = 0;
-
-bool sirRangeogram = 1;
-bool sirRangemap = 1;
-bool sirGraspMemory = 1;
-bool sirGraspMemorySample = 1;
-bool sirHeightMemorySample = 1;
-bool sirHiRangmap = 1;
-bool sirHiColorRangemap = 1;
-bool sirObject = 1;
-bool sirObjectMap = 1;
-bool sirDensity = 1;
-bool sirGradient = 1;
-bool sirObjectness = 1;
-bool sirMapBackground = 1;
-bool sirAerialGradient = 1;
-bool sirWrist = 1;
-bool sirCore = 1;
-
-bool use_simulator = false;
-
-int targetInstanceSprite = 0;
-int targetMasterSprite = 0;
-  
 Eigen::Quaternionf gear0offset;
 
 ros::Time lastMovementStateSet;
@@ -810,7 +772,7 @@ void mapBox(shared_ptr<MachineState> ms, BoxMemory boxMemory);
 
 void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
 
-void globalToMapBackground(double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
+void globalToMapBackground(shared_ptr<MachineState> ms, double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
 void simulatorCallback(const ros::TimerEvent&);
 
 void loadCalibration(shared_ptr<MachineState> ms, string inFileName);
@@ -1896,7 +1858,7 @@ void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
   if (ms->config.currentRobotMode == PHYSICAL) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
-    if (objectInHandLabel == -1) {
+    if (ms->config.objectInHandLabel == -1) {
       // this is a fake box to test intersection
       int probeBoxHalfWidthPixels = 10;
       BoxMemory box;
@@ -1925,17 +1887,17 @@ void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
 	}
       }
       blueBoxMemories = newMemories;
-      objectInHandLabel = foundClassIndex;
-      if (objectInHandLabel >= 0) {
-	cout << "pickObjectUnderEndEffectorCommandCallback: The " << classLabels[objectInHandLabel] << " you found is now in your hand." << endl;
+      ms->config.objectInHandLabel = foundClassIndex;
+      if (ms->config.objectInHandLabel >= 0) {
+	cout << "pickObjectUnderEndEffectorCommandCallback: The " << classLabels[ms->config.objectInHandLabel] << " you found is now in your hand." << endl;
       } else {
 	cout << "pickObjectUnderEndEffectorCommandCallback: Alas, nothing to be found." << endl;
       }
     } else {
-      if (objectInHandLabel >= 0) {
-	cout << "pickObjectUnderEndEffectorCommandCallback: Not picking because of the " << classLabels[objectInHandLabel] << " you already hold." << endl;
+      if (ms->config.objectInHandLabel >= 0) {
+	cout << "pickObjectUnderEndEffectorCommandCallback: Not picking because of the " << classLabels[ms->config.objectInHandLabel] << " you already hold." << endl;
       } else {
-	cout << "pickObjectUnderEndEffectorCommandCallback: Not picking because objectInHandLabel is " << objectInHandLabel << "." << endl;
+	cout << "pickObjectUnderEndEffectorCommandCallback: Not picking because objectInHandLabel is " << ms->config.objectInHandLabel << "." << endl;
       }
     }
   } else {
@@ -1948,12 +1910,12 @@ void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
   if (ms->config.currentRobotMode == PHYSICAL) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
-    if (objectInHandLabel >= 0) {
+    if (ms->config.objectInHandLabel >= 0) {
       BoxMemory box;
-      box.bTop.x = ms->config.vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
-      box.bTop.y = ms->config.vanishingPointReticle.py-simulatedObjectHalfWidthPixels;
-      box.bBot.x = ms->config.vanishingPointReticle.px+simulatedObjectHalfWidthPixels;
-      box.bBot.y = ms->config.vanishingPointReticle.py+simulatedObjectHalfWidthPixels;
+      box.bTop.x = ms->config.vanishingPointReticle.px-ms->config.simulatedObjectHalfWidthPixels;
+      box.bTop.y = ms->config.vanishingPointReticle.py-ms->config.simulatedObjectHalfWidthPixels;
+      box.bBot.x = ms->config.vanishingPointReticle.px+ms->config.simulatedObjectHalfWidthPixels;
+      box.bBot.y = ms->config.vanishingPointReticle.py+ms->config.simulatedObjectHalfWidthPixels;
       box.cameraPose = ms->config.currentEEPose;
       box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
       box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
@@ -1961,7 +1923,7 @@ void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
       box.centroid.py = (box.top.py + box.bot.py) * 0.5;
       box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
       box.cameraTime = ros::Time::now();
-      box.labeledClassIndex = objectInHandLabel;
+      box.labeledClassIndex = ms->config.objectInHandLabel;
       
       mapBox(ms, box);
       vector<BoxMemory> newMemories;
@@ -1970,11 +1932,11 @@ void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
       }
       newMemories.push_back(box);
       blueBoxMemories = newMemories;
-      cout << "placeObjectInEndEffectorCommandCallback: You dropped the " << classLabels[objectInHandLabel] << "." << endl;
+      cout << "placeObjectInEndEffectorCommandCallback: You dropped the " << classLabels[ms->config.objectInHandLabel] << "." << endl;
     } else {
-      cout << "placeObjectInEndEffectorCommandCallback: Not placing because objectInHandLabel is " << objectInHandLabel << "." << endl;
+      cout << "placeObjectInEndEffectorCommandCallback: Not placing because objectInHandLabel is " << ms->config.objectInHandLabel << "." << endl;
     }
-    objectInHandLabel = -1;
+    ms->config.objectInHandLabel = -1;
   } else {
     assert(0);
   }
@@ -2617,7 +2579,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
       putText(ms->config.rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  guardedImshow(ms->config.rangeogramViewName, ms->config.rangeogramImage, sirRangeogram);
+  guardedImshow(ms->config.rangeogramViewName, ms->config.rangeogramImage, ms->config.sirRangeogram);
 
   if (!ms->config.shouldIRangeCallback) {
     return;
@@ -2798,26 +2760,26 @@ void rangeCallback(const sensor_msgs::Range& range) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(ms->config.rangemapViewName, ms->config.rangemapImage, sirRangemap);
-    guardedImshow(ms->config.graspMemoryViewName, ms->config.graspMemoryImage, sirGraspMemory);
-    guardedImshow(ms->config.graspMemorySampleViewName, ms->config.graspMemorySampleImage, sirGraspMemorySample);
-    guardedImshow(ms->config.heightMemorySampleViewName, ms->config.heightMemorySampleImage, sirHeightMemorySample);
+    guardedImshow(ms->config.rangemapViewName, ms->config.rangemapImage, ms->config.sirRangemap);
+    guardedImshow(ms->config.graspMemoryViewName, ms->config.graspMemoryImage, ms->config.sirGraspMemory);
+    guardedImshow(ms->config.graspMemorySampleViewName, ms->config.graspMemorySampleImage, ms->config.sirGraspMemorySample);
+    guardedImshow(ms->config.heightMemorySampleViewName, ms->config.heightMemorySampleImage, ms->config.sirHeightMemorySample);
     Mat hRIT;
     cv::resize(ms->config.hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
-    guardedImshow(ms->config.hiRangemapViewName, hRIT, sirHiRangmap);
+    guardedImshow(ms->config.hiRangemapViewName, hRIT, ms->config.sirHiRangemap);
     Mat hCRIT;
     cv::resize(ms->config.hiColorRangemapImage, hCRIT, cv::Size(0,0), 2, 2);
-    guardedImshow(ms->config.hiColorRangemapViewName, hCRIT, sirHiColorRangemap);
+    guardedImshow(ms->config.hiColorRangemapViewName, hCRIT, ms->config.sirHiColorRangemap);
 
-    guardedImshow(objectViewerName, objectViewerImage, sirObject);
-    guardedImshow(objectMapViewerName, objectMapViewerImage, sirObjectMap);
+    guardedImshow(objectViewerName, objectViewerImage, ms->config.sirObject);
+    guardedImshow(objectMapViewerName, objectMapViewerImage, ms->config.sirObjectMap);
     //cv::moveWindow(objectMapViewerName, 0, 0);
 
-    guardedImshow(densityViewerName, densityViewerImage, sirDensity);
-    guardedImshow(gradientViewerName, gradientViewerImage, sirGradient);
-    guardedImshow(objectnessViewerName, objectnessViewerImage, sirObjectness);
+    guardedImshow(densityViewerName, densityViewerImage, ms->config.sirDensity);
+    guardedImshow(gradientViewerName, gradientViewerImage, ms->config.sirGradient);
+    guardedImshow(objectnessViewerName, objectnessViewerImage, ms->config.sirObjectness);
 
-    guardedImshow(ms->config.mapBackgroundViewName, mapBackgroundImage, sirMapBackground);
+    guardedImshow(ms->config.mapBackgroundViewName, ms->config.mapBackgroundImage, ms->config.sirMapBackground);
     
     if (ms->config.targetClass > -1) {
       if (classHeight0AerialGradients[ms->config.targetClass].rows == aerialGradientWidth) {
@@ -2857,7 +2819,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  denom3 = 1;
 	crop3 = (classHeight3AerialGradients[ms->config.targetClass] - min3) / denom3;
 
-	guardedImshow(aerialGradientViewerName, aerialGradientViewerImage, sirAerialGradient);
+	guardedImshow(aerialGradientViewerName, aerialGradientViewerImage, ms->config.sirAerialGradient);
       }
     }
   }
@@ -3348,7 +3310,7 @@ void timercallback1(const ros::TimerEvent&) {
     ms->config.currentEEPose.qw = ms->config.trueEEPose.orientation.w;
   }
 
-  if (sirCore) {
+  if (ms->config.sirCore) {
     renderCoreView(pMachineState, ms->config.coreViewName);
   }
   renderRangeogramView(pMachineState);
@@ -3821,7 +3783,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(ms->config.wristViewName, wristViewImage, sirWrist);
+    guardedImshow(ms->config.wristViewName, wristViewImage, ms->config.sirWrist);
   }
 }
 
@@ -4172,7 +4134,7 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(objectMapViewerName, objectMapViewerImage, sirObjectMap);
+    guardedImshow(objectMapViewerName, objectMapViewerImage, ms->config.sirObjectMap);
   }
 
 
@@ -4224,7 +4186,7 @@ void renderRangeogramView(shared_ptr<MachineState> ms) {
       putText(ms->config.rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  guardedImshow(ms->config.rangeogramViewName, ms->config.rangeogramImage, sirRangeogram);
+  guardedImshow(ms->config.rangeogramViewName, ms->config.rangeogramImage, ms->config.sirRangeogram);
 }
 
 void targetCallback(const geometry_msgs::Point& point) {
@@ -8313,16 +8275,16 @@ void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::So
   }
 }
 
-void globalToMapBackground(double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy) {
+void globalToMapBackground(shared_ptr<MachineState> ms, double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy) {
   double msfWidth = mapBackgroundXMax - mapBackgroundXMin;
   double msfHeight = mapBackgroundYMax - mapBackgroundYMin;
 
   double mapGpFractionWidth = (gX - mapBackgroundXMin) / msfWidth;
   double mapGpFractionHeight = (gY - mapBackgroundYMin) / msfHeight;
-  *mapGpPx = floor(mapGpFractionWidth * mbiWidth);
-  *mapGpPy = floor(mapGpFractionHeight * mbiHeight);
-  *mapGpPx = min(max(0, *mapGpPx), mbiWidth-1);
-  *mapGpPy = min(max(0, *mapGpPy), mbiHeight-1);
+  *mapGpPx = floor(mapGpFractionWidth * ms->config.mbiWidth);
+  *mapGpPy = floor(mapGpFractionHeight * ms->config.mbiHeight);
+  *mapGpPx = min(max(0, *mapGpPx), ms->config.mbiWidth-1);
+  *mapGpPy = min(max(0, *mapGpPy), ms->config.mbiHeight-1);
 }
 
 void simulatorCallback(const ros::TimerEvent&) {
@@ -8360,15 +8322,15 @@ void simulatorCallback(const ros::TimerEvent&) {
   {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
 
-    mapBackgroundImage = originalMapBackgroundImage.clone();
+    ms->config.mapBackgroundImage = ms->config.originalMapBackgroundImage.clone();
     // draw sprites on background
     if (1) {
       for (int s = 0; s < instanceSprites.size(); s++) {
 	Sprite sprite = instanceSprites[s];
 	
 	int topX=0, topY=0, botX=0, botY=0;
-	globalToMapBackground(sprite.bot.px, sprite.bot.py, zToUse, &topX, &topY);
-	globalToMapBackground(sprite.top.px, sprite.top.py, zToUse, &botX, &botY);
+        globalToMapBackground(ms, sprite.bot.px, sprite.bot.py, zToUse, &topX, &topY);
+        globalToMapBackground(ms, sprite.top.px, sprite.top.py, zToUse, &botX, &botY);
 
 	//cout << topX << " " << topY << " " << botX << " " << botY << endl; cout.flush();
 
@@ -8377,7 +8339,7 @@ void simulatorCallback(const ros::TimerEvent&) {
 	int localBotX = max(topX, botX);
 	int localBotY = max(topY, botY);
 
-	Mat backCrop = mapBackgroundImage(cv::Rect(localTopX, localTopY, localBotX-localTopX, localBotY-localTopY));
+	Mat backCrop = ms->config.mapBackgroundImage(cv::Rect(localTopX, localTopY, localBotX-localTopX, localBotY-localTopY));
 	resize(sprite.image, backCrop, backCrop.size(), 0, 0, CV_INTER_LINEAR);
       }
     }
@@ -8385,7 +8347,7 @@ void simulatorCallback(const ros::TimerEvent&) {
     int imW = 640;
     int imH = 400;
     Mat dummyImage(imH, imW, CV_8UC3);
-    //cv::resize(mapBackgroundImage, dummyImage, cv::Size(imW,imH));
+    //cv::resize(ms->config.mapBackgroundImage, dummyImage, cv::Size(imW,imH));
     {
       double msfWidth = mapBackgroundXMax - mapBackgroundXMin;
       double msfHeight = mapBackgroundYMax - mapBackgroundYMin;
@@ -8406,10 +8368,10 @@ void simulatorCallback(const ros::TimerEvent&) {
       // account for rotation of the end effector 
       double mapGpFractionWidth = (ms->config.currentEEPose.px - mapBackgroundXMin) / msfWidth;
       double mapGpFractionHeight = (ms->config.currentEEPose.py - mapBackgroundYMin) / msfHeight;
-      int mapGpPx = floor(mapGpFractionWidth * mbiWidth);
-      int mapGpPy = floor(mapGpFractionHeight * mbiHeight);
-      mapGpPx = min(max(0, mapGpPx), mbiWidth-1);
-      mapGpPy = min(max(0, mapGpPy), mbiHeight-1);
+      int mapGpPx = floor(mapGpFractionWidth * ms->config.mbiWidth);
+      int mapGpPy = floor(mapGpFractionHeight * ms->config.mbiHeight);
+      mapGpPx = min(max(0, mapGpPx), ms->config.mbiWidth-1);
+      mapGpPy = min(max(0, mapGpPy), ms->config.mbiHeight-1);
 
       Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
       Quaternionf crane2Orient(0, 1, 0, 0);
@@ -8451,14 +8413,14 @@ void simulatorCallback(const ros::TimerEvent&) {
 
       //cout << "iii: " << mapStartFractionWidth << " " << mapStartFractionHeight << " " << mapEndFractionWidth << " " << mapEndFractionHeight << endl; cout.flush();
 
-      int mapStartPx = floor(mapStartFractionWidth * mbiWidth);
-      int mapStartPy = floor(mapStartFractionHeight * mbiHeight);
-      int mapEndPx = floor(mapEndFractionWidth * mbiWidth);
-      int mapEndPy = floor(mapEndFractionHeight * mbiHeight);
-      mapStartPx = min(max(0, mapStartPx), mbiWidth-1);
-      mapStartPy = min(max(0, mapStartPy), mbiHeight-1);
-      mapEndPx = min(max(0, mapEndPx), mbiWidth-1);
-      mapEndPy = min(max(0, mapEndPy), mbiHeight-1);
+      int mapStartPx = floor(mapStartFractionWidth * ms->config.mbiWidth);
+      int mapStartPy = floor(mapStartFractionHeight * ms->config.mbiHeight);
+      int mapEndPx = floor(mapEndFractionWidth * ms->config.mbiWidth);
+      int mapEndPy = floor(mapEndFractionHeight * ms->config.mbiHeight);
+      mapStartPx = min(max(0, mapStartPx), ms->config.mbiWidth-1);
+      mapStartPy = min(max(0, mapStartPy), ms->config.mbiHeight-1);
+      mapEndPx = min(max(0, mapEndPx), ms->config.mbiWidth-1);
+      mapEndPy = min(max(0, mapEndPy), ms->config.mbiHeight-1);
 
       //cout << "jjj: " << mapStartPx << " " << mapStartPy << " " << mapEndPx << " " << mapEndPy << endl; cout.flush();
 
@@ -8484,10 +8446,10 @@ void simulatorCallback(const ros::TimerEvent&) {
 	rotBotPx = floor(didUn.at<double>(0,0));
 	rotBotPy = floor(didUn.at<double>(1,0));
       }
-      rotTopPx = min(max(0, rotTopPx), mbiWidth-1);
-      rotTopPy = min(max(0, rotTopPy), mbiHeight-1);
-      rotBotPx = min(max(0, rotBotPx), mbiWidth-1);
-      rotBotPy = min(max(0, rotBotPy), mbiHeight-1);
+      rotTopPx = min(max(0, rotTopPx), ms->config.mbiWidth-1);
+      rotTopPy = min(max(0, rotTopPy), ms->config.mbiHeight-1);
+      rotBotPx = min(max(0, rotBotPx), ms->config.mbiWidth-1);
+      rotBotPy = min(max(0, rotBotPy), ms->config.mbiHeight-1);
 
       int topPx = 0.0;
       int topPy = 0.0;
@@ -8524,7 +8486,7 @@ void simulatorCallback(const ros::TimerEvent&) {
       //printEEPose(ms->config.currentEEPose);
 
       Mat rotatedBackMapImage;
-      warpAffine(mapBackgroundImage, rotatedBackMapImage, un_rot_mat, mapBackgroundImage.size(), INTER_LINEAR, BORDER_REPLICATE);
+      warpAffine(ms->config.mapBackgroundImage, rotatedBackMapImage, un_rot_mat, ms->config.mapBackgroundImage.size(), INTER_LINEAR, BORDER_REPLICATE);
 
       //Mat backgroundMapCrop = rotatedBackMapImage(cv::Rect(rotTopPx, rotTopPy, rotBotPx-rotTopPx, rotBotPy-rotTopPy));
       Mat backgroundMapCrop = rotatedBackMapImage(cv::Rect(localRotTopPx, localRotTopPy, localRotBotPx-localRotTopPx, localRotBotPy-localRotTopPy));
@@ -8546,7 +8508,7 @@ void simulatorCallback(const ros::TimerEvent&) {
 //	int localMapEndPx = max(mapStartPx, mapEndPx);
 //	int localMapEndPy = max(mapStartPy, mapEndPy);
 //	
-//	Mat backgroundMapCrop = mapBackgroundImage(cv::Rect(localMapStartPx, localMapStartPy, localMapEndPx-localMapStartPx, localMapEndPy-localMapStartPy));
+//	Mat backgroundMapCrop = ms->config.mapBackgroundImage(cv::Rect(localMapStartPx, localMapStartPy, localMapEndPx-localMapStartPx, localMapEndPy-localMapStartPy));
 //	Mat screenCrop = dummyImage(cv::Rect(topPx, topPy, botPx-topPx, botPy-topPy));
 //	resize(backgroundMapCrop, screenCrop, screenCrop.size(), 0, 0, CV_INTER_LINEAR);
 //      }
@@ -9798,7 +9760,7 @@ void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(gradientViewerName, gradientViewerImage, sirGradient);
+    guardedImshow(gradientViewerName, gradientViewerImage, ms->config.sirGradient);
   }
 
 }
@@ -10324,9 +10286,9 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(densityViewerName, densityViewerImage, sirDensity);
-    guardedImshow(gradientViewerName, gradientViewerImage, sirGradient);
-    guardedImshow(objectnessViewerName, objectnessViewerImage, sirObjectness);
+    guardedImshow(densityViewerName, densityViewerImage, ms->config.sirDensity);
+    guardedImshow(gradientViewerName, gradientViewerImage, ms->config.sirGradient);
+    guardedImshow(objectnessViewerName, objectnessViewerImage, ms->config.sirObjectness);
   }
 }
 
@@ -10634,7 +10596,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
 //cout << "Here 4" << endl;
 
   if (ms->config.shouldIRender) {
-    guardedImshow(objectViewerName, objectViewerImage, sirObject);
+    guardedImshow(objectViewerName, objectViewerImage, ms->config.sirObject);
   }
 
   delete gBoxIndicator;
@@ -11118,7 +11080,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(objectViewerName, objectViewerImage, sirObject);
+    guardedImshow(objectViewerName, objectViewerImage, ms->config.sirObject);
   }
 
 }
@@ -11176,8 +11138,8 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 
   saved_crops_path = data_directory + "/objects/" + class_name + "/";
 
-  nh.getParam("use_simulator", use_simulator);
-  if (use_simulator) {
+  nh.getParam("use_simulator", ms->config.use_simulator);
+  if (ms->config.use_simulator) {
     ms->config.currentRobotMode = SIMULATED;
   } else {
     ms->config.currentRobotMode = PHYSICAL;
@@ -12449,7 +12411,7 @@ int main(int argc, char **argv) {
     image_sub = it.subscribe(image_topic, 1, imageCallback);
   } else if (pMachineState->config.currentRobotMode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
-    simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/simulatorCallbackFrequency), simulatorCallback);
+    simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/ms->config.simulatorCallbackFrequency), simulatorCallback);
 
 
     { // load sprites
@@ -12516,14 +12478,14 @@ int main(int argc, char **argv) {
       cout << "done. Tiling " << tmp.size() << " "; cout.flush();
       //cout << "downsampling... "; cout.flush();
       //cv::resize(tmp, tmp, cv::Size(tmp.cols/2,tmp.rows/2));
-      cv::resize(tmp, mapBackgroundImage, cv::Size(mbiWidth,mbiHeight));
+      cv::resize(tmp, ms->config.mapBackgroundImage, cv::Size(ms->config.mbiWidth,ms->config.mbiHeight));
 
-      int tilesWidth = mbiWidth / tmp.cols;
-      int tilesHeight = mbiHeight / tmp.rows;
+      int tilesWidth = ms->config.mbiWidth / tmp.cols;
+      int tilesHeight = ms->config.mbiHeight / tmp.rows;
 
       for (int tx = 0; tx < tilesWidth; tx++) {
 	for (int ty = 0; ty < tilesHeight; ty++) {
-	  Mat crop = mapBackgroundImage(cv::Rect(tx*tmp.cols, ty*tmp.rows, tmp.cols, tmp.rows));
+	  Mat crop = ms->config.mapBackgroundImage(cv::Rect(tx*tmp.cols, ty*tmp.rows, tmp.cols, tmp.rows));
 	  resize(tmp, crop, crop.size(), 0, 0, CV_INTER_LINEAR);
 	  if (tx % 2) {
 	    flip(crop, crop, 1);
@@ -12534,7 +12496,7 @@ int main(int argc, char **argv) {
 	}
       }
 
-      cout << "done. " << mapBackgroundImage.size() << endl; cout.flush();
+      cout << "done. " << ms->config.mapBackgroundImage.size() << endl; cout.flush();
     } else {
       string filename;
       //filename = data_directory + "/mapBackground.ppm";
@@ -12542,10 +12504,10 @@ int main(int argc, char **argv) {
       cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
       Mat tmp = imread(filename);
       cout << "done. Resizing " << tmp.size() << " "; cout.flush();
-      cv::resize(tmp, mapBackgroundImage, cv::Size(mbiWidth,mbiHeight));
-      cout << "done. " << mapBackgroundImage.size() << endl; cout.flush();
+      cv::resize(tmp, ms->config.mapBackgroundImage, cv::Size(ms->config.mbiWidth,ms->config.mbiHeight));
+      cout << "done. " << ms->config.mapBackgroundImage.size() << endl; cout.flush();
     }
-    originalMapBackgroundImage = mapBackgroundImage.clone();
+    ms->config.originalMapBackgroundImage = ms->config.mapBackgroundImage.clone();
   }  else {
     assert(0);
   }
@@ -12636,13 +12598,13 @@ int main(int argc, char **argv) {
   ms->config.lastImageCallbackReceived = ros::Time::now();
 
   {
-    for (int i = 0; i < numCornellTables; i++) {
+    for (int i = 0; i < ms->config.numCornellTables; i++) {
       double yDelta = (mapSearchFenceYMax - mapSearchFenceXMin) / (double(i));
       eePose thisTablePose = ms->config.beeHome;
       thisTablePose.px = 0.75*(mapSearchFenceXMax - mapSearchFenceXMin) + mapSearchFenceXMin; 
       thisTablePose.py = mapSearchFenceYMin + (double(i) + 0.5)*yDelta;
       thisTablePose.pz = ms->config.currentTableZ; 
-      cornellTables.push_back(thisTablePose);
+      ms->config.cornellTables.push_back(thisTablePose);
     }
   } 
 

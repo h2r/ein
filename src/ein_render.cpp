@@ -146,22 +146,22 @@ WORD(GuiShowAll)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   destroyAllWindows();
-  sirRangeogram = 1;
-  sirRangemap = 1;
-  sirGraspMemory = 1;
-  sirGraspMemorySample = 1;
-  sirHeightMemorySample = 1;
-  sirHiRangmap = 1;
-  sirHiColorRangemap = 1;
-  sirObject = 1;
-  sirObjectMap = 1;
-  sirDensity = 1;
-  sirGradient = 1;
-  sirObjectness = 1;
-  sirMapBackground = 1;
-  sirAerialGradient = 1;
-  sirWrist = 1;
-  sirCore = 1;
+  ms->config.sirRangeogram = 1;
+  ms->config.sirRangemap = 1;
+  ms->config.sirGraspMemory = 1;
+  ms->config.sirGraspMemorySample = 1;
+  ms->config.sirHeightMemorySample = 1;
+  ms->config.sirHiRangemap = 1;
+  ms->config.sirHiColorRangemap = 1;
+  ms->config.sirObject = 1;
+  ms->config.sirObjectMap = 1;
+  ms->config.sirDensity = 1;
+  ms->config.sirGradient = 1;
+  ms->config.sirObjectness = 1;
+  ms->config.sirMapBackground = 1;
+  ms->config.sirAerialGradient = 1;
+  ms->config.sirWrist = 1;
+  ms->config.sirCore = 1;
   cv::namedWindow(objectViewerName);
   cv::namedWindow(ms->config.graspMemoryViewName);
   cv::namedWindow(ms->config.wristViewName);
@@ -176,22 +176,22 @@ WORD(GuiHideAll)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   destroyAllWindows();
-  sirRangeogram = 0;
-  sirRangemap = 0;
-  sirGraspMemory = 0;
-  sirGraspMemorySample = 0;
-  sirHeightMemorySample = 0;
-  sirHiRangmap = 0;
-  sirHiColorRangemap = 0;
-  sirObject = 0;
-  sirObjectMap = 0;
-  sirDensity = 0;
-  sirGradient = 0;
-  sirObjectness = 0;
-  sirMapBackground = 0;
-  sirAerialGradient = 0;
-  sirWrist = 0;
-  sirCore = 0;
+  ms->config.sirRangeogram = 0;
+  ms->config.sirRangemap = 0;
+  ms->config.sirGraspMemory = 0;
+  ms->config.sirGraspMemorySample = 0;
+  ms->config.sirHeightMemorySample = 0;
+  ms->config.sirHiRangemap = 0;
+  ms->config.sirHiColorRangemap = 0;
+  ms->config.sirObject = 0;
+  ms->config.sirObjectMap = 0;
+  ms->config.sirDensity = 0;
+  ms->config.sirGradient = 0;
+  ms->config.sirObjectness = 0;
+  ms->config.sirMapBackground = 0;
+  ms->config.sirAerialGradient = 0;
+  ms->config.sirWrist = 0;
+  ms->config.sirCore = 0;
 }
 END_WORD
 REGISTER_WORD(GuiHideAll)
@@ -203,22 +203,22 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ROS_ERROR_STREAM("Called word guiCustom1.");
   ROS_WARN_STREAM("___________________");
   destroyAllWindows();
-  sirRangeogram = 0;
-  sirRangemap = 0;
-  sirGraspMemory = 0;
-  sirGraspMemorySample = 0;
-  sirHeightMemorySample = 0;
-  sirHiRangmap = 0;
-  sirHiColorRangemap = 0;
-  sirObject = 1;
-  sirObjectMap = 1;
-  sirDensity = 0;
-  sirGradient = 0;
-  sirObjectness = 0;
-  sirMapBackground = 0;
-  sirAerialGradient = 0;
-  sirWrist = 1;
-  sirCore = 1;
+  ms->config.sirRangeogram = 0;
+  ms->config.sirRangemap = 0;
+  ms->config.sirGraspMemory = 0;
+  ms->config.sirGraspMemorySample = 0;
+  ms->config.sirHeightMemorySample = 0;
+  ms->config.sirHiRangemap = 0;
+  ms->config.sirHiColorRangemap = 0;
+  ms->config.sirObject = 1;
+  ms->config.sirObjectMap = 1;
+  ms->config.sirDensity = 0;
+  ms->config.sirGradient = 0;
+  ms->config.sirObjectness = 0;
+  ms->config.sirMapBackground = 0;
+  ms->config.sirAerialGradient = 0;
+  ms->config.sirWrist = 1;
+  ms->config.sirCore = 1;
 
   //cv::namedWindow(objectViewerName);
   //cv::namedWindow(ms->config.graspMemoryViewName);

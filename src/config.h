@@ -669,6 +669,42 @@ class EinConfig {
   eePose lastHoverTrueEEPoseEEPose;
 
 
+  double simulatorCallbackFrequency = 30.0;
+  
+  int mbiWidth = 2000;
+  int mbiHeight = 2000;
+  Mat mapBackgroundImage;
+  Mat originalMapBackgroundImage;
+  
+  int objectInHandLabel = -1;
+  int simulatedObjectHalfWidthPixels = 50;
+  
+  int numCornellTables = 10;
+  vector<eePose> cornellTables;
+  int currentCornellTableIndex = 0;
+  
+  bool sirRangeogram = 1;
+  bool sirRangemap = 1;
+  bool sirGraspMemory = 1;
+  bool sirGraspMemorySample = 1;
+  bool sirHeightMemorySample = 1;
+  bool sirHiRangemap = 1;
+  bool sirHiColorRangemap = 1;
+  bool sirObject = 1;
+  bool sirObjectMap = 1;
+  bool sirDensity = 1;
+  bool sirGradient = 1;
+  bool sirObjectness = 1;
+  bool sirMapBackground = 1;
+  bool sirAerialGradient = 1;
+  bool sirWrist = 1;
+  bool sirCore = 1;
+  
+  bool use_simulator = false;
+  
+  int targetInstanceSprite = 0;
+  int targetMasterSprite = 0;
+
 }; // config end
 
 class Word;
