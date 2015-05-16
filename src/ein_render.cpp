@@ -4,8 +4,8 @@ CODE(1048679)     // numlock + g
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   double ddrX = (drX)/ms->config.rmDelta;
   double ddrY = (drY)/ms->config.rmDelta;
-  double ttrX = (trX-rmcX)/ms->config.rmDelta;
-  double ttrY = (trY-rmcY)/ms->config.rmDelta;
+  double ttrX = (trX-ms->config.rmcX)/ms->config.rmDelta;
+  double ttrY = (trY-ms->config.rmcY)/ms->config.rmDelta;
   if ((fabs(ddrX) <= ms->config.rmHalfWidth) && (fabs(ddrY) <= ms->config.rmHalfWidth)) {
     int iiX = (int)round(ddrX + ms->config.rmHalfWidth);
     int iiY = (int)round(ddrY + ms->config.rmHalfWidth);
@@ -55,44 +55,44 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       putText(ms->config.rangemapImage, reticleLabel, text_anchor, MY_FONT, 0.5, Scalar(192,192,192), 1.0);
     }
   }
-  double httrX = (trX-rmcX)/hrmDelta;
-  double httrY = (trY-rmcY)/hrmDelta;
+  double httrX = (trX-ms->config.rmcX)/ms->config.hrmDelta;
+  double httrY = (trY-ms->config.rmcY)/ms->config.hrmDelta;
   int hiCellWidth = 5;
-  if ((fabs(httrX) <= hrmHalfWidth-hiCellWidth) && (fabs(httrY) <= hrmHalfWidth-hiCellWidth)) {
-    int hiiX = (int)round(httrX + hrmHalfWidth);
-    int hiiY = (int)round(httrY + hrmHalfWidth);
+  if ((fabs(httrX) <= ms->config.hrmHalfWidth-hiCellWidth) && (fabs(httrY) <= ms->config.hrmHalfWidth-hiCellWidth)) {
+    int hiiX = (int)round(httrX + ms->config.hrmHalfWidth);
+    int hiiY = (int)round(httrY + ms->config.hrmHalfWidth);
 
     double intensity = 128;
     cv::Scalar backColor(0,ceil(intensity),0);
-    cv::Point l1p1 = cv::Point(hiiY+hrmWidth-hiCellWidth,hiiX);
-    cv::Point l1p2 = cv::Point((hiiY+hrmWidth)+hiCellWidth,hiiX);
-    cv::Point l2p1 = cv::Point(hiiY+hrmWidth,hiiX-hiCellWidth);
-    cv::Point l2p2 = cv::Point((hiiY+hrmWidth),hiiX+hiCellWidth);
+    cv::Point l1p1 = cv::Point(hiiY+ms->config.hrmWidth-hiCellWidth,hiiX);
+    cv::Point l1p2 = cv::Point((hiiY+ms->config.hrmWidth)+hiCellWidth,hiiX);
+    cv::Point l2p1 = cv::Point(hiiY+ms->config.hrmWidth,hiiX-hiCellWidth);
+    cv::Point l2p2 = cv::Point((hiiY+ms->config.hrmWidth),hiiX+hiCellWidth);
     line(ms->config.hiRangemapImage, l1p1, l1p2, backColor);
     line(ms->config.hiRangemapImage, l2p1, l2p2, backColor);
   }
-  double cttrX = curseReticleX - hrmHalfWidth;
-  double cttrY = curseReticleY - hrmHalfWidth;
-  if ((fabs(cttrX) <= hrmHalfWidth-hiCellWidth) && (fabs(cttrY) <= hrmHalfWidth-hiCellWidth)) {
-    int ciiX = (int)round(cttrX + hrmHalfWidth);
-    int ciiY = (int)round(cttrY + hrmHalfWidth);
+  double cttrX = curseReticleX - ms->config.hrmHalfWidth;
+  double cttrY = curseReticleY - ms->config.hrmHalfWidth;
+  if ((fabs(cttrX) <= ms->config.hrmHalfWidth-hiCellWidth) && (fabs(cttrY) <= ms->config.hrmHalfWidth-hiCellWidth)) {
+    int ciiX = (int)round(cttrX + ms->config.hrmHalfWidth);
+    int ciiY = (int)round(cttrY + ms->config.hrmHalfWidth);
 
     double intensity = 128;
     cv::Scalar backColor(0,ceil(intensity),ceil(intensity));
-    cv::Point l1p1 = cv::Point(ciiY+hrmWidth-hiCellWidth,ciiX);
-    cv::Point l1p2 = cv::Point((ciiY+hrmWidth)+hiCellWidth,ciiX);
-    cv::Point l2p1 = cv::Point(ciiY+hrmWidth,ciiX-hiCellWidth);
-    cv::Point l2p2 = cv::Point((ciiY+hrmWidth),ciiX+hiCellWidth);
+    cv::Point l1p1 = cv::Point(ciiY+ms->config.hrmWidth-hiCellWidth,ciiX);
+    cv::Point l1p2 = cv::Point((ciiY+ms->config.hrmWidth)+hiCellWidth,ciiX);
+    cv::Point l2p1 = cv::Point(ciiY+ms->config.hrmWidth,ciiX-hiCellWidth);
+    cv::Point l2p2 = cv::Point((ciiY+ms->config.hrmWidth),ciiX+hiCellWidth);
     line(ms->config.hiRangemapImage, l1p1, l1p2, backColor);
     line(ms->config.hiRangemapImage, l2p1, l2p2, backColor);
 #ifdef DEBUG4
-    cout << "printing curseReticle xy globalz: " << curseReticleX << " " << curseReticleY << " " << hiRangeMap[ciiX + ciiY*hrmWidth] << endl;
+    cout << "printing curseReticle xy globalz: " << curseReticleX << " " << curseReticleY << " " << ms->config.hiRangeMap[ciiX + ciiY*ms->config.hrmWidth] << endl;
 #endif
   }
   {
     double intensity = 128;
     cv::Scalar backColor(0,ceil(intensity),0);
-    circle(ms->config.hiRangemapImage, cv::Point(hrmHalfWidth+hrmWidth, hrmHalfWidth), hiCellWidth, backColor);
+    circle(ms->config.hiRangemapImage, cv::Point(ms->config.hrmHalfWidth+ms->config.hrmWidth, ms->config.hrmHalfWidth), hiCellWidth, backColor);
   }
   int localCenterMaxX = localMaxX-ms->config.rmHalfWidth;
   int localCenterMaxY = localMaxY-ms->config.rmHalfWidth;
