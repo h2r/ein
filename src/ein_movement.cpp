@@ -674,12 +674,12 @@ REGISTER_WORD(IRCalibrationSpeed)
 
 WORD(Hover)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  lastHoverTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
+  ms->config.lastHoverTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
   ms->pushWord("hoverA");
   ms->config.endThisStackCollapse = 1;
   ms->config.shouldIDoIK = 1;
-  lastHoverRequest = ros::Time::now();
-  ms->config.lastEndpointCallbackRequest = lastHoverRequest;
+  ms->config.lastHoverRequest = ros::Time::now();
+  ms->config.lastEndpointCallbackRequest = ms->config.lastHoverRequest;
 }
 END_WORD
 REGISTER_WORD(Hover)
@@ -691,24 +691,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     cout << "hoverA waiting for endpointCallback." << endl;
     ms->config.endThisStackCollapse = 1;
   } else {
-    double dx = (lastHoverTrueEEPoseEEPose.px - ms->config.trueEEPoseEEPose.px);
-    double dy = (lastHoverTrueEEPoseEEPose.py - ms->config.trueEEPoseEEPose.py);
-    double dz = (lastHoverTrueEEPoseEEPose.pz - ms->config.trueEEPoseEEPose.pz);
+    double dx = (ms->config.lastHoverTrueEEPoseEEPose.px - ms->config.trueEEPoseEEPose.px);
+    double dy = (ms->config.lastHoverTrueEEPoseEEPose.py - ms->config.trueEEPoseEEPose.py);
+    double dz = (ms->config.lastHoverTrueEEPoseEEPose.pz - ms->config.trueEEPoseEEPose.pz);
     double distance = dx*dx + dy*dy + dz*dz;
     
-    double qx = (fabs(lastHoverTrueEEPoseEEPose.qx) - fabs(ms->config.trueEEPoseEEPose.qx));
-    double qy = (fabs(lastHoverTrueEEPoseEEPose.qy) - fabs(ms->config.trueEEPoseEEPose.qy));
-    double qz = (fabs(lastHoverTrueEEPoseEEPose.qz) - fabs(ms->config.trueEEPoseEEPose.qz));
-    double qw = (fabs(lastHoverTrueEEPoseEEPose.qw) - fabs(ms->config.trueEEPoseEEPose.qw));
+    double qx = (fabs(ms->config.lastHoverTrueEEPoseEEPose.qx) - fabs(ms->config.trueEEPoseEEPose.qx));
+    double qy = (fabs(ms->config.lastHoverTrueEEPoseEEPose.qy) - fabs(ms->config.trueEEPoseEEPose.qy));
+    double qz = (fabs(ms->config.lastHoverTrueEEPoseEEPose.qz) - fabs(ms->config.trueEEPoseEEPose.qz));
+    double qw = (fabs(ms->config.lastHoverTrueEEPoseEEPose.qw) - fabs(ms->config.trueEEPoseEEPose.qw));
     double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
   
-    if ( ros::Time::now() - lastHoverRequest < ros::Duration(hoverTimeout) ) {
-      if ((distance > hoverGoThresh*hoverGoThresh) || (angleDistance > hoverAngleThresh*hoverAngleThresh)) {
+    if ( ros::Time::now() - ms->config.lastHoverRequest < ros::Duration(ms->config.hoverTimeout) ) {
+      if ((distance > ms->config.hoverGoThresh*ms->config.hoverGoThresh) || (angleDistance > ms->config.hoverAngleThresh*ms->config.hoverAngleThresh)) {
 	ms->pushWord("hoverA"); 
 	ms->config.endThisStackCollapse = 1;
 	ms->config.shouldIDoIK = 1;
 	cout << "hoverA distance requirement not met, distance angleDistance: " << distance << " " << angleDistance << endl;
-	lastHoverTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
+	ms->config.lastHoverTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
       } else {
 	ms->config.endThisStackCollapse = ms->config.endCollapse;
       }
