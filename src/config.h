@@ -842,6 +842,20 @@ class EinConfig {
   double densityDecay = 0.5;//0.9;//0.3;//0.7;
   double threshFraction = 0.2;
   
+  int biggestL1 = 0;
+
+
+
+  // Top variables are top left corners of bounding boxes (smallest coordinates)
+  // Bot variables are bottom right corners of bounding boxes (largest coordinates)
+  // Cen variables are centers of bounding boxes
+  
+  // bounding boxes of connected components of green matter,
+  //  they are the candidate blue boxes
+  vector<cv::Point> cTops; 
+  vector<cv::Point> cBots;
+
+
 
 }; // config end
 

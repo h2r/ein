@@ -126,24 +126,6 @@ ros::Publisher ee_target_pub;
 
 
 
-int biggestL1 = 0;
-int oSearchWidth = 5;
-
-
-// Top variables are top left corners of bounding boxes (smallest coordinates)
-// Bot variables are bottom right corners of bounding boxes (largest coordinates)
-// Cen variables are centers of bounding boxes
-
-// white boxes come from ork. in the future they can lay down
-//  green or red boxes to require 'accounting for'.
-cv::vector<cv::Point> wTop;
-cv::vector<cv::Point> wBot;
-
-
-// bounding boxes of connected components of green matter,
-//  they are the candidate blue boxes
-vector<cv::Point> cTops; 
-vector<cv::Point> cBots;
 
 
 const double mapXMin = -1.5;
@@ -9562,8 +9544,8 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
   vector<int> parentY;
   vector<int> parentD;
   
-  cTops.resize(0);
-  cBots.resize(0);
+  ms->config.cTops.resize(0);
+  ms->config.cBots.resize(0);
 
   const int directionX[] = {1, 0, -1,  0};
   const int directionY[] = {0, 1,  0, -1};
@@ -9643,8 +9625,8 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       	int yb = y+gBoxH;
       	cv::Point thisTop(xt,yt);
       	cv::Point thisBot(xb,yb);
-      	cTops.push_back(thisTop);
-      	cBots.push_back(thisBot);
+      	ms->config.cTops.push_back(thisTop);
+      	ms->config.cBots.push_back(thisBot);
 
       	while( parentX.size() > 0 ) {
       	  int index = parentX.size()-1;
@@ -9673,10 +9655,10 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       	    int nyt = nextY;
       	    int nxb = nextX+gBoxW;
       	    int nyb = nextY+gBoxH;
-      	    cTops[gBoxComponentLabels[nextY*imW+nextX]].x = min(cTops[gBoxComponentLabels[nextY*imW+nextX]].x, nxt);
-      	    cTops[gBoxComponentLabels[nextY*imW+nextX]].y = min(cTops[gBoxComponentLabels[nextY*imW+nextX]].y, nyt);
-      	    cBots[gBoxComponentLabels[nextY*imW+nextX]].x = max(cBots[gBoxComponentLabels[nextY*imW+nextX]].x, nxb);
-      	    cBots[gBoxComponentLabels[nextY*imW+nextX]].y = max(cBots[gBoxComponentLabels[nextY*imW+nextX]].y, nyb);
+      	    ms->config.cTops[gBoxComponentLabels[nextY*imW+nextX]].x = min(ms->config.cTops[gBoxComponentLabels[nextY*imW+nextX]].x, nxt);
+      	    ms->config.cTops[gBoxComponentLabels[nextY*imW+nextX]].y = min(ms->config.cTops[gBoxComponentLabels[nextY*imW+nextX]].y, nyt);
+      	    ms->config.cBots[gBoxComponentLabels[nextY*imW+nextX]].x = max(ms->config.cBots[gBoxComponentLabels[nextY*imW+nextX]].x, nxb);
+      	    ms->config.cBots[gBoxComponentLabels[nextY*imW+nextX]].y = max(ms->config.cBots[gBoxComponentLabels[nextY*imW+nextX]].y, nyb);
 
       	    parentX.push_back(nextX);
       	    parentY.push_back(nextY);
@@ -9716,54 +9698,54 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
     double rejectArea = rejectAreaScale*gBoxW*gBoxH;
     for (int c = 0; c < total_components; c++) {
 
-      cTops[c].x = max(0,min(imW-1, cTops[c].x));
-      cTops[c].y = max(0,min(imH-1, cTops[c].y));
-      cBots[c].x = max(0,min(imW-1, cBots[c].x));
-      cBots[c].y = max(0,min(imH-1, cBots[c].y));
+      ms->config.cTops[c].x = max(0,min(imW-1, ms->config.cTops[c].x));
+      ms->config.cTops[c].y = max(0,min(imH-1, ms->config.cTops[c].y));
+      ms->config.cBots[c].x = max(0,min(imW-1, ms->config.cBots[c].x));
+      ms->config.cBots[c].y = max(0,min(imH-1, ms->config.cBots[c].y));
 
       int allow = 1;
-      if (cBots[c].x - cTops[c].x < rejectScale*gBoxW || cBots[c].y - cTops[c].y < rejectScale*gBoxH)
+      if (ms->config.cBots[c].x - ms->config.cTops[c].x < rejectScale*gBoxW || ms->config.cBots[c].y - ms->config.cTops[c].y < rejectScale*gBoxH)
 	allow = 0;
-      if ((cBots[c].x - cTops[c].x)*(cBots[c].y - cTops[c].y) < rejectArea)
+      if ((ms->config.cBots[c].x - ms->config.cTops[c].x)*(ms->config.cBots[c].y - ms->config.cTops[c].y) < rejectArea)
 	allow = 0;
-      //if (cTops[c].y > rejectLow || cBots[c].y < rejectHigh)
+      //if (ms->config.cTops[c].y > rejectLow || ms->config.cBots[c].y < rejectHigh)
 	//allow = 0;
       
       // XXX for some reason there were spurious blue boxes outside of the gray box, with no green boxes,
       //  so we reject them here for now
-//      if ( (cTops[c].x < max(grayTop.x-gBoxW, 0)) || (cBots[c].x > min(grayBot.x+gBoxW, imW-1)) ||
-//	   (cTops[c].y < max(grayTop.y-gBoxW, 0)) || (cBots[c].y > min(grayBot.y+gBoxW, imH-1)) )
+//      if ( (ms->config.cTops[c].x < max(grayTop.x-gBoxW, 0)) || (ms->config.cBots[c].x > min(grayBot.x+gBoxW, imW-1)) ||
+//	   (ms->config.cTops[c].y < max(grayTop.y-gBoxW, 0)) || (ms->config.cBots[c].y > min(grayBot.y+gBoxW, imH-1)) )
 //	allow = 0;
 
       // ATTN 5
       // check for overlap and fuse
-      cv::Point thisCen = cv::Point((cTops[c].x+cBots[c].x)/2, (cTops[c].y+cBots[c].y)/2);
+      cv::Point thisCen = cv::Point((ms->config.cTops[c].x+ms->config.cBots[c].x)/2, (ms->config.cTops[c].y+ms->config.cBots[c].y)/2);
       if (fuseBlueBoxes) {
 	if (allow) {
 	  for (int fuseIter = 0; fuseIter < fusePasses; fuseIter++) {
 	    for (int cbc = 0; cbc < bTops.size(); cbc++) {
 
-	      int smallWidth = min(bCens[cbc].x-bTops[cbc].x, thisCen.x-cTops[c].x);
-	      int bigWidth = max(bCens[cbc].x-bTops[cbc].x, thisCen.x-cTops[c].x);
+	      int smallWidth = min(bCens[cbc].x-bTops[cbc].x, thisCen.x-ms->config.cTops[c].x);
+	      int bigWidth = max(bCens[cbc].x-bTops[cbc].x, thisCen.x-ms->config.cTops[c].x);
 
 	      // this tests overlap
-	      //if ( fabs(thisCen.x - bCens[cbc].x) < fabs(bCens[cbc].x-bTops[cbc].x+thisCen.x-cTops[c].x) && 
-		   //fabs(thisCen.y - bCens[cbc].y) < fabs(bCens[cbc].y-bTops[cbc].y+thisCen.y-cTops[c].y) ) 
+	      //if ( fabs(thisCen.x - bCens[cbc].x) < fabs(bCens[cbc].x-bTops[cbc].x+thisCen.x-ms->config.cTops[c].x) && 
+		   //fabs(thisCen.y - bCens[cbc].y) < fabs(bCens[cbc].y-bTops[cbc].y+thisCen.y-ms->config.cTops[c].y) ) 
 	      //this tests containment
 	      if ( fabs(thisCen.x - bCens[cbc].x) < fabs(bigWidth - smallWidth) && 
 		   fabs(thisCen.y - bCens[cbc].y) < fabs(bigWidth - smallWidth) ) 
 	      {
 		allow = 0;
-		bTops[cbc].x = min(bTops[cbc].x, cTops[c].x);
-		bTops[cbc].y = min(bTops[cbc].y, cTops[c].y);
-		bBots[cbc].x = max(bBots[cbc].x, cBots[c].x);
-		bBots[cbc].y = max(bBots[cbc].y, cBots[c].y);
+		bTops[cbc].x = min(bTops[cbc].x, ms->config.cTops[c].x);
+		bTops[cbc].y = min(bTops[cbc].y, ms->config.cTops[c].y);
+		bBots[cbc].x = max(bBots[cbc].x, ms->config.cBots[c].x);
+		bBots[cbc].y = max(bBots[cbc].y, ms->config.cBots[c].y);
 
 		// gotta do this and continue searching to fuse everything, need a better algorithm in the future
-		cTops[c].x = bTops[cbc].x;
-		cTops[c].y = bTops[cbc].y;
-		cBots[c].x = bBots[cbc].x;
-		cBots[c].y = bBots[cbc].y;
+		ms->config.cTops[c].x = bTops[cbc].x;
+		ms->config.cTops[c].y = bTops[cbc].y;
+		ms->config.cBots[c].x = bBots[cbc].x;
+		ms->config.cBots[c].y = bBots[cbc].y;
 	      }
 	    }
 	  }
@@ -9771,12 +9753,12 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       }
 
       if (allow == 1) {
-	bTops.push_back(cTops[c]);
-	bBots.push_back(cBots[c]);
+	bTops.push_back(ms->config.cTops[c]);
+	bBots.push_back(ms->config.cBots[c]);
 	bCens.push_back(thisCen);
 	int t = bTops.size()-1;
 
-	int thisArea = (cBots[c].x - cTops[c].x)*(cBots[c].y - cTops[c].y);
+	int thisArea = (ms->config.cBots[c].x - ms->config.cTops[c].x)*(ms->config.cBots[c].y - ms->config.cTops[c].y);
 	if (thisArea > biggestBBArea) {
 	  biggestBBArea = thisArea;
 	  biggestBB = t;
@@ -10345,8 +10327,6 @@ void loadROSParams(shared_ptr<MachineState> ms) {
   nh.getParam("table_label_class_name", table_label_class_name);
   nh.getParam("background_class_name", background_class_name);
 
-  nh.getParam("orientation_search_width", oSearchWidth);
-
   nh.getParam("invert_sign_name", invert_sign_name);
 
   nh.getParam("retrain_vocab", ms->config.retrain_vocab);
@@ -10393,8 +10373,6 @@ void saveROSParams(shared_ptr<MachineState> ms) {
   nh.setParam("arm_box_right", rARM);
 
   nh.setParam("image_topic", ms->config.image_topic);
-
-  nh.setParam("orientation_search_width", oSearchWidth);
 
   nh.setParam("invert_sign_name", invert_sign_name);
 
