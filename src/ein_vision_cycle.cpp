@@ -807,7 +807,7 @@ REGISTER_WORD(DensityA)
 
 WORD(AccumulatedDensity)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  substituteAccumulatedImageQuantities();
+  substituteAccumulatedImageQuantities(ms);
   goCalculateDensity(ms);
   renderAccumulatedImageAndDensity(ms);
   //goAccumulateForAerial();
@@ -817,7 +817,7 @@ REGISTER_WORD(AccumulatedDensity)
 
 WORD(ResetAccumulatedDensity)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  resetAccumulatedImageAndMass();
+  resetAccumulatedImageAndMass(ms);
 }
 END_WORD
 REGISTER_WORD(ResetAccumulatedDensity)

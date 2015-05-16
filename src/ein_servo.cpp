@@ -1086,7 +1086,7 @@ WORD(ResetAerialGradientTemporalFrameAverage)
 CODE(262237)      // ctrl + ]
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "resetting aerialGradientTemporalFrameAverage." << endl;
-  aerialGradientTemporalFrameAverage *= 0.0;
+  ms->config.aerialGradientTemporalFrameAverage *= 0.0;
 }
 END_WORD
 REGISTER_WORD(ResetAerialGradientTemporalFrameAverage)
