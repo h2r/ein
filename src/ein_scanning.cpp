@@ -246,8 +246,8 @@ REGISTER_WORD(PhotoSpin)
 WORD(SetTargetReticleToTheMaxMappedPosition)
 CODE(1048678)  // numlock + f
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  trX = rmcX + ms->config.rmDelta*(maxX-ms->config.rmHalfWidth);
-  trY = rmcY + ms->config.rmDelta*(maxY-ms->config.rmHalfWidth);
+  trX = ms->config.rmcX + ms->config.rmDelta*(maxX-ms->config.rmHalfWidth);
+  trY = ms->config.rmcY + ms->config.rmDelta*(maxY-ms->config.rmHalfWidth);
 }
 END_WORD
 REGISTER_WORD(SetTargetReticleToTheMaxMappedPosition)
@@ -264,13 +264,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     for (int ry = 0; ry < ms->config.rmWidth; ry++) {
       for (int rrx = rx*10; rrx < (rx+1)*10; rrx++) {
         for (int rry = ry*10; rry < (ry+1)*10; rry++) {
-          if (hiRangeMapMass[rrx + rry*hrmWidth] > 0.0) {
-            //if ((hiRangeMap[rrx + rry*hrmWidth] > highestReading) && (hiRangeMap[rrx + rry*hrmWidth] >= readingFloor))
-            if ((hiRangeMap[rrx + rry*hrmWidth] > highestEpsilonMassReading) && (hiRangeMapMass[rrx + rry*hrmWidth] > EPSILON))
-              highestEpsilonMassReading = hiRangeMap[rrx + rry*hrmWidth];
+          if (ms->config.hiRangeMapMass[rrx + rry*ms->config.hrmWidth] > 0.0) {
+            //if ((hiRangeMap[rrx + rry*ms->config.hrmWidth] > highestReading) && (ms->config.hiRangeMap[rrx + rry*ms->config.hrmWidth] >= readingFloor))
+            if ((ms->config.hiRangeMap[rrx + rry*ms->config.hrmWidth] > highestEpsilonMassReading) && (ms->config.hiRangeMapMass[rrx + rry*ms->config.hrmWidth] > EPSILON))
+              highestEpsilonMassReading = ms->config.hiRangeMap[rrx + rry*ms->config.hrmWidth];
 
-            if ((hiRangeMap[rrx + rry*hrmWidth] > highestReading) && (hiRangeMapMass[rrx + rry*hrmWidth] > 0))
-              highestReading = hiRangeMap[rrx + rry*hrmWidth];
+            if ((ms->config.hiRangeMap[rrx + rry*ms->config.hrmWidth] > highestReading) && (ms->config.hiRangeMapMass[rrx + rry*ms->config.hrmWidth] > 0))
+              highestReading = ms->config.hiRangeMap[rrx + rry*ms->config.hrmWidth];
           }
         }
       }
@@ -290,8 +290,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       for (int rrx = rx*10; rrx < (rx+1)*10; rrx++) {
         for (int rry = ry*10; rry < (ry+1)*10; rry++) {
           numSamples += 1.0;
-          if (hiRangeMapMass[rrx + rry*hrmWidth] > 0.0) {
-            thisSum += hiRangeMap[rrx + rry*hrmWidth];
+          if (ms->config.hiRangeMapMass[rrx + rry*ms->config.hrmWidth] > 0.0) {
+            thisSum += ms->config.hiRangeMap[rrx + rry*ms->config.hrmWidth];
           } else {
             thisSum += 0;
           }
@@ -420,8 +420,8 @@ WORD(PrepareForSearch)
 CODE(1114150)     // numlock + &
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // XXX this should be computed here from the ir sensor offset
-  ms->config.currentEEPose.px = rmcX + drX;
-  ms->config.currentEEPose.py = rmcY + drY;
+  ms->config.currentEEPose.px = ms->config.rmcX + drX;
+  ms->config.currentEEPose.py = ms->config.rmcY + drY;
 }
 END_WORD
 REGISTER_WORD(PrepareForSearch)
@@ -438,9 +438,9 @@ REGISTER_WORD(TurnOnRecordRangeMap)
 WORD(SetRangeMapCenterFromCurrentEEPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Set rmcX and rmcY from ms->config.currentEEPose." << endl;
-  rmcX = ms->config.currentEEPose.px;
-  rmcY = ms->config.currentEEPose.py;
-  //rmcZ = ms->config.currentEEPose.pz - ms->config.eeRange;
+  ms->config.rmcX = ms->config.currentEEPose.px;
+  ms->config.rmcY = ms->config.currentEEPose.py;
+  //ms->config.rmcZ = ms->config.currentEEPose.pz - ms->config.eeRange;
 }
 END_WORD
 REGISTER_WORD(SetRangeMapCenterFromCurrentEEPose)
@@ -448,10 +448,10 @@ REGISTER_WORD(SetRangeMapCenterFromCurrentEEPose)
 WORD(InitDepthScan)
 CODE(1048695) // numlock + w
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "Set rmcX and rmcY. Resetting maps. " << rmcX << " " << ms->config.trueEEPose.position.x << endl;
-  rmcX = ms->config.trueEEPose.position.x;
-  rmcY = ms->config.trueEEPose.position.y;
-  rmcZ = ms->config.trueEEPose.position.z - ms->config.eeRange;
+  cout << "Set rmcX and rmcY. Resetting maps. " << ms->config.rmcX << " " << ms->config.trueEEPose.position.x << endl;
+  ms->config.rmcX = ms->config.trueEEPose.position.x;
+  ms->config.rmcY = ms->config.trueEEPose.position.y;
+  ms->config.rmcZ = ms->config.trueEEPose.position.z - ms->config.eeRange;
   for (int rx = 0; rx < ms->config.rmWidth; rx++) {
     for (int ry = 0; ry < ms->config.rmWidth; ry++) {
       ms->config.rangeMap[rx + ry*ms->config.rmWidth] = 0;
@@ -469,39 +469,39 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
     vCrop = backColor;
   }
-  for (int rx = 0; rx < hrmWidth; rx++) {
-    for (int ry = 0; ry < hrmWidth; ry++) {
-      hiRangeMap[rx + ry*hrmWidth] = 0;
-      hiRangeMapReg1[rx + ry*hrmWidth] = 0;
-      hiRangeMapReg2[rx + ry*hrmWidth] = 0;
-      hiRangeMapMass[rx + ry*hrmWidth] = 0;
-      hiRangeMapAccumulator[rx + ry*hrmWidth] = 0;
+  for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
+      ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapReg1[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapReg2[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapMass[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapAccumulator[rx + ry*ms->config.hrmWidth] = 0;
     }
   }
   {
     cv::Scalar backColor(128,0,0);
     cv::Point outTop = cv::Point(0,0);
-    cv::Point outBot = cv::Point(hrmiWidth,hrmiHeight);
+    cv::Point outBot = cv::Point(ms->config.hrmiWidth,ms->config.hrmiHeight);
     Mat vCrop = ms->config.hiRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
     vCrop = backColor;
   }
-  for (int h = 0; h < hrmWidth; h++) {
-    for (int i = 0; i < hrmWidth; i++) {
-      hiColorRangeMapMass[h + i*hrmWidth] = 0;
+  for (int h = 0; h < ms->config.hrmWidth; h++) {
+    for (int i = 0; i < ms->config.hrmWidth; i++) {
+      ms->config.hiColorRangeMapMass[h + i*ms->config.hrmWidth] = 0;
       for (int j = 0; j < 3; j++) {
-        hiColorRangeMapAccumulator[h + i*hrmWidth + j*hrmWidth*hrmWidth] = 0;
+        ms->config.hiColorRangeMapAccumulator[h + i*ms->config.hrmWidth + j*ms->config.hrmWidth*ms->config.hrmWidth] = 0;
       }
     }
   }
-  for (int pz = 0; pz < vmWidth; pz++) {
-    for (int py = 0; py < vmWidth; py++) {
-      for (int px = 0; px < vmWidth; px++) {
-        volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth] = 0;
-        volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] = 0;
-        volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] = 0;
-        vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] = 0;
+  for (int pz = 0; pz < ms->config.vmWidth; pz++) {
+    for (int py = 0; py < ms->config.vmWidth; py++) {
+      for (int px = 0; px < ms->config.vmWidth; px++) {
+        ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+        ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+        ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+        ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
         for (int pc = 0; pc < 3; pc++) {
-          vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + pc*vmWidth*vmWidth*vmWidth] = 0;
+          ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + pc*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] = 0;
         }
       }
     }
@@ -929,9 +929,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int minX=-1, minY=-1;
   int maxX=-1, maxY=-1;
 
-  for (int rx = 0; rx < hrmWidth; rx++) {
-    for (int ry = 0; ry < hrmWidth; ry++) {
-      double thisDepth = hiRangeMap[rx + ry*hrmWidth];
+  for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
+      double thisDepth = ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth];
       if (thisDepth < minDepth) {
 	minDepth = thisDepth;
 	minX = rx;
@@ -945,10 +945,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }
 
-  double offByX = ((minX-hrmHalfWidth)*hrmDelta);
-  double offByY = ((minY-hrmHalfWidth)*hrmDelta);
+  double offByX = ((minX-ms->config.hrmHalfWidth)*ms->config.hrmDelta);
+  double offByY = ((minY-ms->config.hrmHalfWidth)*ms->config.hrmDelta);
 
-  cout << "SetIROffsetA, hrmHalfWidth minX minY offByX offByY: " << hrmHalfWidth << " " << minX << " " << minY << " " << offByX << " " << offByY << endl;
+  cout << "SetIROffsetA, ms->config.hrmHalfWidth minX minY offByX offByY: " << ms->config.hrmHalfWidth << " " << minX << " " << minY << " " << offByX << " " << offByY << endl;
 
   gear0offset = Eigen::Quaternionf(0.0, 
     gear0offset.x()+offByX, 
@@ -1123,14 +1123,14 @@ REGISTER_WORD(MoveCropToCenterVanishingPoint)
 
 WORD(MoveToSetVanishingPointHeightLow)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentEEPose.pz = minHeight - ms->config.currentTableZ;
+  ms->config.currentEEPose.pz = ms->config.minHeight - ms->config.currentTableZ;
 }
 END_WORD
 REGISTER_WORD(MoveToSetVanishingPointHeightLow)
 
 WORD(MoveToSetVanishingPointHeightHigh)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentEEPose.pz = ((0.75*maxHeight)+(0.25*minHeight)) - ms->config.currentTableZ;
+  ms->config.currentEEPose.pz = ((0.75*ms->config.maxHeight)+(0.25*ms->config.minHeight)) - ms->config.currentTableZ;
 }
 END_WORD
 REGISTER_WORD(MoveToSetVanishingPointHeightHigh)

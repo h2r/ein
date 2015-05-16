@@ -86,8 +86,8 @@ WORD(BeginHeightLearning)
 CODE(1245242)     // capslock + numlock + :
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->config.eepReg3 = ms->config.beeHome;
-  heightAttemptCounter = 0;
-  heightSuccessCounter = 0;
+  ms->config.heightAttemptCounter = 0;
+  ms->config.heightSuccessCounter = 0;
   thompsonPickHaltFlag = 0;
   thompsonHeightHaltFlag = 0;
   ms->pushWord("continueHeightLearning"); // continue height learning
@@ -119,7 +119,7 @@ CODE(1179707)     // capslock + numlock + ;
   // ATTN 16
   // ATTN 19
   if (thompsonHardCutoff) {
-    if (heightAttemptCounter < thompsonTries - 1) {
+    if (ms->config.heightAttemptCounter < ms->config.thompsonTries - 1) {
       // push this program 
       ms->pushWord("continueHeightLearning"); // begin bounding box learning
     } else {
@@ -128,19 +128,19 @@ CODE(1179707)     // capslock + numlock + ;
   }
   if (thompsonAdaptiveCutoff) {
     if ( (thompsonHeightHaltFlag) ||
-         (heightAttemptCounter >= thompsonTries - 1) ) {
+         (ms->config.heightAttemptCounter >= ms->config.thompsonTries - 1) ) {
       cout << "Clearing call stack. thompsonHeightHaltFlag = " << thompsonHeightHaltFlag << 
-        " and we did " << heightAttemptCounter << " tries." << endl;
+        " and we did " << ms->config.heightAttemptCounter << " tries." << endl;
       ms->clearStack();
       ms->pushCopies("beep", 15); // beep
       return;
     } else {
-      if (heightAttemptCounter < thompsonTries - 1) {
+      if (ms->config.heightAttemptCounter < ms->config.thompsonTries - 1) {
         // push this program 
         ms->pushWord("continueHeightLearning"); // begin bounding box learning
       } else {
         cout << "Clearing call stack. thompsonHeightHaltFlag = " << thompsonHeightHaltFlag << 
-          " and we did " << heightAttemptCounter << " tries." << endl;
+          " and we did " << ms->config.heightAttemptCounter << " tries." << endl;
         ms->clearStack();
       }
     }
@@ -193,11 +193,11 @@ CODE(1179694)     // capslock + numlock + .
     cout << "quat distance from start: " << quaternionDistance << endl;
     cout << "bbQuatThresh: " << bbQuatThresh << endl;
     if (quaternionDistance < bbQuatThresh)
-      recordBoundingBoxSuccess();
+      recordBoundingBoxSuccess(ms);
     else
-      recordBoundingBoxFailure();
+      recordBoundingBoxFailure(ms);
   } else {
-    recordBoundingBoxFailure();
+    recordBoundingBoxFailure(ms);
   }
 }
 END_WORD
@@ -280,7 +280,7 @@ REGISTER_WORD(LoadMarginalHeightMemory)
 WORD(LoadPriorHeightMemoryAnalytic)
 CODE(1244936)     // capslock + numlock + backspace
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  loadPriorHeightMemory(ANALYTIC_PRIOR);
+  loadPriorHeightMemory(ms, ANALYTIC_PRIOR);
   copyHeightMemoryTriesToClassHeightMemoryTries(ms);
   loadMarginalHeightMemory(ms);
   drawHeightMemorySample(ms);
@@ -291,7 +291,7 @@ REGISTER_WORD(LoadPriorHeightMemoryAnalytic)
 WORD(LoadPriorHeightMemoryUniform)
 CODE(1310472)     // capslock + numlock + shift + backspace
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  loadPriorHeightMemory(UNIFORM_PRIOR);
+  loadPriorHeightMemory(ms, UNIFORM_PRIOR);
   copyHeightMemoryTriesToClassHeightMemoryTries(ms);
   loadMarginalHeightMemory(ms);
   drawHeightMemorySample(ms);
@@ -384,7 +384,7 @@ REGISTER_WORD(SetBoundingBoxModeToStaticMarginals)
 WORD(UniformlySampleHeight)
 CODE(1245246)      // capslock + numlock + >
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  int thisRandThompsonHeight = lrand48() % hmWidth;
+  int thisRandThompsonHeight = lrand48() % ms->config.hmWidth;
   if (currentBoundingBoxMode == MAPPING) {
     thisRandThompsonHeight = mappingHeightIdx;
     cout << "UniformlySampleHeight going to mappingHeightIdx: " << mappingHeightIdx << endl;
@@ -418,11 +418,11 @@ virtual void execute(std::shared_ptr<MachineState> ms)
         cout << "Loading height memories." << endl;
         if ((classHeightMemoryTries[targetClass].rows > 1) && (classHeightMemoryPicks[targetClass].cols == 1)) {
           cout << "targetClass: " << targetClass << " " << classLabels[targetClass] << endl;
-          for (int i = 0; i < hmWidth; i++) {
-            heightMemoryPicks[i] = classHeightMemoryPicks[targetClass].at<double>(i, 0);
-            heightMemoryTries[i] = classHeightMemoryTries[targetClass].at<double>(i, 0);
-            cout << "picks: " << heightMemoryPicks[i] << endl;
-            cout << "tries: " << heightMemoryTries[i] << endl;
+          for (int i = 0; i < ms->config.hmWidth; i++) {
+            ms->config.heightMemoryPicks[i] = classHeightMemoryPicks[targetClass].at<double>(i, 0);
+            ms->config.heightMemoryTries[i] = classHeightMemoryTries[targetClass].at<double>(i, 0);
+            cout << "picks: " << ms->config.heightMemoryPicks[i] << endl;
+            cout << "tries: " << ms->config.heightMemoryTries[i] << endl;
           }
         } else {
 	  cout << "Whoops, tried to set height memories but they don't exist for this class:" << targetClass << " " << classLabels[targetClass] << endl;
@@ -459,24 +459,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     
     double best_height_prob = 0.0;
     int max_i = -1;
-    for (int i = 0; i < hmWidth; i++) {
+    for (int i = 0; i < ms->config.hmWidth; i++) {
       
       int thisHeightMaxedOut = 0;
       
       if (currentBoundingBoxMode == LEARNING_SAMPLING) {
-        thisHeightMaxedOut = ( (heightMemoryTries[i] >= bbLearningMaxTries) );
+        thisHeightMaxedOut = ( (ms->config.heightMemoryTries[i] >= bbLearningMaxTries) );
       } else if (currentBoundingBoxMode == LEARNING_ALGORITHMC) {
-        double successes = heightMemoryPicks[i];
-        double failures = heightMemoryTries[i] - heightMemoryPicks[i];
+        double successes = ms->config.heightMemoryPicks[i];
+        double failures = ms->config.heightMemoryTries[i] - ms->config.heightMemoryPicks[i];
         // returns probability that mu <= d given successes and failures.
         double result = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
         thisHeightMaxedOut = (result > algorithmCRT);
       }
       
-      if ( (heightMemorySample[i] > best_height_prob) &&
+      if ( (ms->config.heightMemorySample[i] > best_height_prob) &&
            (!thisHeightMaxedOut) ) {
         max_i = i;
-        best_height_prob = heightMemorySample[i];
+        best_height_prob = ms->config.heightMemorySample[i];
       }
     }
     currentThompsonHeight = convertHeightIdxToGlobalZ(ms, max_i);

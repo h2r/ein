@@ -125,83 +125,6 @@ ros::Publisher einPub;
 
 
 
-const int hrmWidth = 211; // must be odd
-const int hrmHalfWidth = (hrmWidth-1)/2; // must be odd
-const double hrmDelta = 0.001;
-double hiRangeMap[hrmWidth*hrmWidth];
-double hiRangeMapAccumulator[hrmWidth*hrmWidth];
-double hiRangeMapMass[hrmWidth*hrmWidth];
-
-double hiColorRangeMapAccumulator[3*hrmWidth*hrmWidth];
-double hiColorRangeMapMass[hrmWidth*hrmWidth];
-
-double hiRangeMapReg1[hrmWidth*hrmWidth];
-double hiRangeMapReg2[hrmWidth*hrmWidth];
-
-// hi separable filter width / half width
-const int hsfHw = 10;
-const int hsfW = 2*hsfHw+1;
-double hsFilter[hsfW];
-
-double filter[9] = {1.0/16.0, 1.0/8.0, 1.0/16.0, 
-		    1.0/8.0, 1.0/4.0, 1.0/8.0, 
-		    1.0/16.0, 1.0/8.0, 1.0/16.0};;
-
-// diagonalKappa: 0.72 deltaDiagonalKappa: 0.01
-// below .72, the horizontal won when it should have. Set to .67 to be safe.
-// .67 was a little unreliable, trimming a bit more.
-double diagonalKappa = 0.60;
-double deltaDiagonalKappa = 0.01;
-
-const int parzenKernelHalfWidth = 15;
-const int parzenKernelWidth = 2*parzenKernelHalfWidth+1;
-double parzenKernel[parzenKernelWidth*parzenKernelWidth];
-double parzenKernelSigma = 4.0;
-//double parzenKernelSigma = 2.0;
-//double parzenKernelSigma = 1.0; // this is approximately what it should be at 20 cm height
-//double parzenKernelSigma = 0.5;  
-// 13.8 cm high -> 2.2 cm gap
-// 23.8 cm high -> 3.8 cm gap
-// 4 sigma (centered at 0) should be the gap
-// TODO can 'adjust' and bounds on the fly during lookup in proportion to the measured depth
-
-int doParzen = 0;
-
-// assumptions are made here so if these values changes, the code must
-//  be audited.
-const int vmWidth = hrmWidth;
-const int vmHalfWidth = hrmHalfWidth;
-const double vmDelta = hrmDelta;
-double volumeMap[vmWidth*vmWidth*vmWidth];
-double volumeMapAccumulator[vmWidth*vmWidth*vmWidth];
-double volumeMapMass[vmWidth*vmWidth*vmWidth];
-
-double vmColorRangeMapAccumulator[3*vmWidth*vmWidth*vmWidth];
-double vmColorRangeMapMass[vmWidth*vmWidth*vmWidth];
-
-const int parzen3DKernelHalfWidth = 9;
-const int parzen3DKernelWidth = 2*parzen3DKernelHalfWidth+1;
-double parzen3DKernel[parzen3DKernelWidth*parzen3DKernelWidth*parzen3DKernelWidth];
-double parzen3DKernelSigma = 2.0; 
-
-// range map center
-double rmcX;
-double rmcY;
-double rmcZ;
-
-double lastiX = 0;
-double lastiY = 0;
-double thisiX = 0;
-double thisiY = 0;
-
-
-int hrmiHeight = hrmWidth;
-int hrmiWidth = hrmWidth;
-
-const int hmWidth = 4; 
-int hmiCellWidth = 100;
-int hmiWidth = hmiCellWidth;
-int hmiHeight = hmiCellWidth*hmWidth;
 
 // the currently equipped depth reticle
 double drX = .02; //.01;
@@ -386,16 +309,6 @@ double bbLearnThresh = 0.05;//0.04;
 double bbQuatThresh = 1000;//0.05;
 
 
-// height Thompson parameters
-const double minHeight = 0.255;//0.09;//-0.10;
-const double maxHeight = 0.655;//0.49;//0.3;
-double heightMemoryTries[hmWidth];
-double heightMemoryPicks[hmWidth];
-double heightMemorySample[hmWidth];
-
-double heightAttemptCounter = 0;
-double heightSuccessCounter = 0;
-double thompsonTries = 50;
 
 int gmTargetX = -1;
 int gmTargetY = -1;
@@ -1096,11 +1009,11 @@ void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);
 void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg);
 
 bool isGripperGripping();
-void initialize3DParzen();
-void l2Normalize3DParzen();
-void initializeParzen();
-void l2NormalizeParzen();
-void l2NormalizeFilter();
+void initialize3DParzen(shared_ptr<MachineState> ms);
+void l2Normalize3DParzen(shared_ptr<MachineState> ms);
+void initializeParzen(shared_ptr<MachineState> ms);
+void l2NormalizeParzen(shared_ptr<MachineState> ms);
+void l2NormalizeFilter(shared_ptr<MachineState> ms);
 
 
 cv::Vec3b getCRColor(shared_ptr<MachineState> ms);
@@ -1161,7 +1074,7 @@ void drawMapRegisters(shared_ptr<MachineState> ms);
 void guardHeightMemory(shared_ptr<MachineState> ms);
 void loadSampledHeightMemory(shared_ptr<MachineState> ms);
 void loadMarginalHeightMemory(shared_ptr<MachineState> ms);
-void loadPriorHeightMemory(priorType);
+void loadPriorHeightMemory(shared_ptr<MachineState> ms, priorType);
 double convertHeightIdxToGlobalZ(shared_ptr<MachineState> ms, int);
 int convertHeightGlobalZToIdx(shared_ptr<MachineState> ms, double);
 void testHeightConversion(shared_ptr<MachineState> ms);
@@ -1169,11 +1082,11 @@ void drawHeightMemorySample(shared_ptr<MachineState> ms);
 void copyHeightMemoryTriesToClassHeightMemoryTries(shared_ptr<MachineState> ms);
 
 void applyGraspFilter(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB);
-void prepareGraspFilter(int i);
-void prepareGraspFilter1();
-void prepareGraspFilter2();
-void prepareGraspFilter3();
-void prepareGraspFilter4();
+void prepareGraspFilter(shared_ptr<MachineState> ms, int i);
+void prepareGraspFilter1(shared_ptr<MachineState> ms);
+void prepareGraspFilter2(shared_ptr<MachineState> ms);
+void prepareGraspFilter3(shared_ptr<MachineState> ms);
+void prepareGraspFilter4(shared_ptr<MachineState> ms);
 
 void copyRangeMapRegister(shared_ptr<MachineState> ms, double * src, double * target);
 void copyGraspMemoryRegister(shared_ptr<MachineState> ms, double * src, double * target);
@@ -1190,8 +1103,8 @@ void selectMaxTargetThompsonRotated(shared_ptr<MachineState> ms, double minDepth
 void selectMaxTargetThompsonRotated2(shared_ptr<MachineState> ms, double minDepth);
 void selectMaxTargetLinearFilter(shared_ptr<MachineState> ms, double minDepth);
 
-void recordBoundingBoxSuccess();
-void recordBoundingBoxFailure();
+void recordBoundingBoxSuccess(shared_ptr<MachineState> ms);
+void recordBoundingBoxFailure(shared_ptr<MachineState> ms);
 
 void restartBBLearning(shared_ptr<MachineState> ms);
 
@@ -1969,14 +1882,14 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 				       (thisPose.position.z - irSensorStartLocal.z()) + thisRange*localUnitZ.z()
 				      );
 
-	  dX = (irSensorEnd.x() - rmcX); //(thisPose.position.x - drX) - rmcX;
-	  dY = (irSensorEnd.y() - rmcY); //(thisPose.position.y - drY) - rmcY;
-	  dZ = (irSensorEnd.z() - rmcZ); //(thisPose.position.y - drY) - rmcY;
+	  dX = (irSensorEnd.x() - ms->config.rmcX); //(thisPose.position.x - drX) - rmcX;
+	  dY = (irSensorEnd.y() - ms->config.rmcY); //(thisPose.position.y - drY) - rmcY;
+	  dZ = (irSensorEnd.z() - ms->config.rmcZ); //(thisPose.position.y - drY) - rmcY;
 
-	  double eX = (irSensorEnd.x() - rmcX) / hrmDelta;
-	  double eY = (irSensorEnd.y() - rmcY) / hrmDelta;
-	  int eeX = (int)round(eX + hrmHalfWidth);
-	  int eeY = (int)round(eY + hrmHalfWidth);
+	  double eX = (irSensorEnd.x() - ms->config.rmcX) / ms->config.hrmDelta;
+	  double eY = (irSensorEnd.y() - ms->config.rmcY) / ms->config.hrmDelta;
+	  int eeX = (int)round(eX + ms->config.hrmHalfWidth);
+	  int eeY = (int)round(eY + ms->config.hrmHalfWidth);
 
 #ifdef DEBUG
 	  cout << "irSensorEnd w x y z: " << irSensorEnd.w() << " " << 
@@ -1988,7 +1901,7 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 #endif
 
 	  //cout << thisPose.orientation << thisPose.position << " " << eX << " " << eY << " " << thisRange << endl;
-	  if ((fabs(eX) <= hrmHalfWidth) && (fabs(eY) <= hrmHalfWidth))
+	  if ((fabs(eX) <= ms->config.hrmHalfWidth) && (fabs(eY) <= ms->config.hrmHalfWidth))
 	    ms->config.hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(0,0,128);
 	  // ATTN 0 this is negative because it used to be range and not Z but we have to chase the min / max switches to correct it
 	  thisZmeasurement = -irSensorEnd.z();
@@ -2004,154 +1917,154 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 	double iX = dX / ms->config.rmDelta;
 	double iY = dY / ms->config.rmDelta;
 
-	double hiX = dX / hrmDelta;
-	double hiY = dY / hrmDelta;
-	double hiZ = dZ / hrmDelta;
+	double hiX = dX / ms->config.hrmDelta;
+	double hiY = dY / ms->config.hrmDelta;
+	double hiZ = dZ / ms->config.hrmDelta;
 
 	if (recordRangeMap) {
 	  // draw new cell
-	  if ((fabs(hiX) <= hrmHalfWidth) && (fabs(hiY) <= hrmHalfWidth)) {
-	    int hiiX = (int)round(hiX + hrmHalfWidth);
-	    int hiiY = (int)round(hiY + hrmHalfWidth);
-	    int hiiZ = (int)round(hiZ + hrmHalfWidth);
+	  if ((fabs(hiX) <= ms->config.hrmHalfWidth) && (fabs(hiY) <= ms->config.hrmHalfWidth)) {
+	    int hiiX = (int)round(hiX + ms->config.hrmHalfWidth);
+	    int hiiY = (int)round(hiY + ms->config.hrmHalfWidth);
+	    int hiiZ = (int)round(hiZ + ms->config.hrmHalfWidth);
 
 	    // the wrong point without pose correction
-	    //double upX = ((ms->config.trueEEPose.position.x - drX) - rmcX)/hrmDelta;
-	    //double upY = ((ms->config.trueEEPose.position.y - drY) - rmcY)/hrmDelta;
-	    //int iupX = (int)round(upX + hrmHalfWidth);
-	    //int iupY = (int)round(upY + hrmHalfWidth);
-	    //if ((fabs(upX) <= hrmHalfWidth) && (fabs(upY) <= hrmHalfWidth)) 
+	    //double upX = ((ms->config.trueEEPose.position.x - drX) - rmcX)/ms->config.hrmDelta;
+	    //double upY = ((ms->config.trueEEPose.position.y - drY) - ms->config.rmcY)/ms->config.hrmDelta;
+	    //int iupX = (int)round(upX + ms->config.hrmHalfWidth);
+	    //int iupY = (int)round(upY + ms->config.hrmHalfWidth);
+	    //if ((fabs(upX) <= ms->config.hrmHalfWidth) && (fabs(upY) <= ms->config.hrmHalfWidth)) 
 	      //ms->config.hiRangemapImage.at<cv::Vec3b>(iupX,iupY) += cv::Vec3b(0,128,0);
 
 	    // 2D map
 	    {
-	      int pxMin = max(0, hiiX-parzenKernelHalfWidth);
-	      int pxMax = min(hrmWidth-1, hiiX+parzenKernelHalfWidth);
-	      int pyMin = max(0, hiiY-parzenKernelHalfWidth);
-	      int pyMax = min(hrmWidth-1, hiiY+parzenKernelHalfWidth);
+	      int pxMin = max(0, hiiX-ms->config.parzenKernelHalfWidth);
+	      int pxMax = min(ms->config.hrmWidth-1, hiiX+ms->config.parzenKernelHalfWidth);
+	      int pyMin = max(0, hiiY-ms->config.parzenKernelHalfWidth);
+	      int pyMax = min(ms->config.hrmWidth-1, hiiY+ms->config.parzenKernelHalfWidth);
 	      // correct loop order for cache coherency
 	      for (int py = pyMin; py <= pyMax; py++) {
 		for (int px = pxMin; px <= pxMax; px++) {
-		  int kpx = px - (hiiX - parzenKernelHalfWidth);
-		  int kpy = py - (hiiY - parzenKernelHalfWidth);
+		  int kpx = px - (hiiX - ms->config.parzenKernelHalfWidth);
+		  int kpy = py - (hiiY - ms->config.parzenKernelHalfWidth);
 
 		  cv::Vec3b thisSample = getCRColor(ms, thisImage); 
-		  hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] += thisSample[0]*parzenKernel[kpx + kpy*parzenKernelWidth];
-		  hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] += thisSample[1]*parzenKernel[kpx + kpy*parzenKernelWidth];
-		  hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] += thisSample[2]*parzenKernel[kpx + kpy*parzenKernelWidth];
-		  hiColorRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
+		  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 0*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[0]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
+		  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 1*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[1]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
+		  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 2*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[2]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
+		  ms->config.hiColorRangeMapMass[px + py*ms->config.hrmWidth] += ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
 
-		  double denomC = max(hiColorRangeMapMass[px + py*hrmWidth], EPSILON);
-		  int tRed = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] / denomC))));
-		  int tGreen = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] / denomC))));
-		  int tBlue = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] / denomC))));
+		  double denomC = max(ms->config.hiColorRangeMapMass[px + py*ms->config.hrmWidth], EPSILON);
+		  int tRed = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 2*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
+		  int tGreen = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 1*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
+		  int tBlue = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 0*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
 
 		  ms->config.hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
 
-		  hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
-		  hiRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
+		  ms->config.hiRangeMapAccumulator[px + py*ms->config.hrmWidth] += thisZmeasurement*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
+		  ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth] += ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
 		  // nonexperimental
-		  //double denom = max(hiRangeMapMass[px + py*hrmWidth], EPSILON);
+		  //double denom = max(ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth], EPSILON);
 		  // XXX experimental
 		  double denom = 1.0;
-		  if (hiRangeMapMass[px + py*hrmWidth] > 0)
-		    denom = hiRangeMapMass[px + py*hrmWidth];
-		  hiRangeMap[px + py*hrmWidth] = hiRangeMapAccumulator[px + py*hrmWidth] / denom;
+		  if (ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth] > 0)
+		    denom = ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth];
+		  ms->config.hiRangeMap[px + py*ms->config.hrmWidth] = ms->config.hiRangeMapAccumulator[px + py*ms->config.hrmWidth] / denom;
 		}
 	      }
 	    }
 	    // record the point in the 3D maps
 	    // positive surface observation
 	    {
-	      int pxMin = max(0, hiiX-parzen3DKernelHalfWidth);
-	      int pxMax = min(vmWidth-1, hiiX+parzen3DKernelHalfWidth);
-	      int pyMin = max(0, hiiY-parzen3DKernelHalfWidth);
-	      int pyMax = min(vmWidth-1, hiiY+parzen3DKernelHalfWidth);
-	      int pzMin = max(0, hiiZ-parzen3DKernelHalfWidth);
-	      int pzMax = min(vmWidth-1, hiiZ+parzen3DKernelHalfWidth);
+	      int pxMin = max(0, hiiX-ms->config.parzen3DKernelHalfWidth);
+	      int pxMax = min(ms->config.vmWidth-1, hiiX+ms->config.parzen3DKernelHalfWidth);
+	      int pyMin = max(0, hiiY-ms->config.parzen3DKernelHalfWidth);
+	      int pyMax = min(ms->config.vmWidth-1, hiiY+ms->config.parzen3DKernelHalfWidth);
+	      int pzMin = max(0, hiiZ-ms->config.parzen3DKernelHalfWidth);
+	      int pzMax = min(ms->config.vmWidth-1, hiiZ+ms->config.parzen3DKernelHalfWidth);
 	      // correct loop order for cache coherency
 	      for (int pz = pzMin; pz <= pzMax; pz++) {
 		for (int py = pyMin; py <= pyMax; py++) {
 		  for (int px = pxMin; px <= pxMax; px++) {
-		    int kpx = px - (hiiX - parzen3DKernelHalfWidth);
-		    int kpy = py - (hiiY - parzen3DKernelHalfWidth);
-		    int kpz = pz - (hiiZ - parzen3DKernelHalfWidth);
+		    int kpx = px - (hiiX - ms->config.parzen3DKernelHalfWidth);
+		    int kpy = py - (hiiY - ms->config.parzen3DKernelHalfWidth);
+		    int kpz = pz - (hiiZ - ms->config.parzen3DKernelHalfWidth);
 
 		    cv::Vec3b thisSample = getCRColor(ms, thisImage); 
-		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] += thisSample[0]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] += thisSample[1]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] += thisSample[2]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-		    vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[0]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
+		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[1]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
+		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[2]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
+		    ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] += ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
 
-		    //double denomC = max(vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], EPSILON);
-		    //int tRed = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] / denomC))));
-		    //int tGreen = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] / denomC))));
-		    //int tBlue = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] / denomC))));
+		    //double denomC = max(ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth], EPSILON);
+		    //int tRed = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
+		    //int tGreen = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
+		    //int tBlue = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
 
 		    // slightly different than 2D
-		    volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-		    //volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += 1.0;
-		    volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+		    ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] += ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
+		    //ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] += 1.0;
+		    ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] += ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
 
-		    double denom = max(volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], 1e-99); // XXX should be epsilon but there is clipping...
-		    volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth] = volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] / denom;
+		    double denom = max(ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth], 1e-99); // XXX should be epsilon but there is clipping...
+		    ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] / denom;
 		  }
 		}
 	      }
 	    }
-	    double negativeSpacing = 1.0*parzen3DKernelSigma*vmDelta;
+	    double negativeSpacing = 1.0*ms->config.parzen3DKernelSigma*ms->config.vmDelta;
 	    //int numCastPoints = int(ceil(thisRange / negativeSpacing));
 	    int numCastPoints = 10;
 	    // negative surface observations
 	    for (int castPoint = 1; castPoint <= numCastPoints; castPoint++) {
-	      double piX = (dX - negativeSpacing*castPoint*rayDirection.x())/ hrmDelta;
-	      double piY = (dY - negativeSpacing*castPoint*rayDirection.y()) / hrmDelta;
-	      double piZ = (dZ - negativeSpacing*castPoint*rayDirection.z()) / hrmDelta;
+	      double piX = (dX - negativeSpacing*castPoint*rayDirection.x())/ ms->config.hrmDelta;
+	      double piY = (dY - negativeSpacing*castPoint*rayDirection.y()) / ms->config.hrmDelta;
+	      double piZ = (dZ - negativeSpacing*castPoint*rayDirection.z()) / ms->config.hrmDelta;
 
-	      int piiX = (int)round(piX + hrmHalfWidth);
-	      int piiY = (int)round(piY + hrmHalfWidth);
-	      int piiZ = (int)round(piZ + hrmHalfWidth);
+	      int piiX = (int)round(piX + ms->config.hrmHalfWidth);
+	      int piiY = (int)round(piY + ms->config.hrmHalfWidth);
+	      int piiZ = (int)round(piZ + ms->config.hrmHalfWidth);
 	      
 
-	      int pxMin = max(0, piiX-parzen3DKernelHalfWidth);
-	      int pxMax = min(vmWidth-1, piiX+parzen3DKernelHalfWidth);
-	      int pyMin = max(0, piiY-parzen3DKernelHalfWidth);
-	      int pyMax = min(vmWidth-1, piiY+parzen3DKernelHalfWidth);
-	      int pzMin = max(0, piiZ-parzen3DKernelHalfWidth);
-	      int pzMax = min(vmWidth-1, piiZ+parzen3DKernelHalfWidth);
+	      int pxMin = max(0, piiX-ms->config.parzen3DKernelHalfWidth);
+	      int pxMax = min(ms->config.vmWidth-1, piiX+ms->config.parzen3DKernelHalfWidth);
+	      int pyMin = max(0, piiY-ms->config.parzen3DKernelHalfWidth);
+	      int pyMax = min(ms->config.vmWidth-1, piiY+ms->config.parzen3DKernelHalfWidth);
+	      int pzMin = max(0, piiZ-ms->config.parzen3DKernelHalfWidth);
+	      int pzMax = min(ms->config.vmWidth-1, piiZ+ms->config.parzen3DKernelHalfWidth);
 	      // correct loop order for cache coherency
 	      for (int pz = pzMin; pz <= pzMax; pz++) {
 		for (int py = pyMin; py <= pyMax; py++) {
 		  for (int px = pxMin; px <= pxMax; px++) {
-		    int kpx = px - (piiX - parzen3DKernelHalfWidth);
-		    int kpy = py - (piiY - parzen3DKernelHalfWidth);
-		    int kpz = pz - (piiZ - parzen3DKernelHalfWidth);
+		    int kpx = px - (piiX - ms->config.parzen3DKernelHalfWidth);
+		    int kpy = py - (piiY - ms->config.parzen3DKernelHalfWidth);
+		    int kpz = pz - (piiZ - ms->config.parzen3DKernelHalfWidth);
 
 		    cv::Vec3b thisSample = getCRColor(ms, thisImage); 
-		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] += thisSample[0]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] += thisSample[1]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-		    vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] += thisSample[2]*parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
-		    vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[0]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
+		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[1]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
+		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[2]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
+		    ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] += ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
 
-		    //double denomC = max(vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], EPSILON);
-		    //int tRed = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] / denomC))));
-		    //int tGreen = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] / denomC))));
-		    //int tBlue = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] / denomC))));
+		    //double denomC = max(ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth], EPSILON);
+		    //int tRed = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
+		    //int tGreen = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
+		    //int tBlue = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
 
 		    // slightly different than 2D
-		    //volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] += 0.0;
-		    volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] += parzen3DKernel[kpx + kpy*parzen3DKernelWidth + kpz*parzen3DKernelWidth*parzen3DKernelWidth];
+		    //ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] += 0.0;
+		    ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] += ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
 
-		    double denom = max(volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], 1e-99); // XXX should be epsilon but there is clipping...
-		    volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth] = volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] / denom;
+		    double denom = max(ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth], 1e-99); // XXX should be epsilon but there is clipping...
+		    ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] / denom;
 		  }
 		}
 	      }
 	    }
 	  }
-	  if ((fabs(thisiX) <= ms->config.rmHalfWidth) && (fabs(thisiY) <= ms->config.rmHalfWidth)) {
-	    int iiX = (int)round(thisiX + ms->config.rmHalfWidth);
-	    int iiY = (int)round(thisiY + ms->config.rmHalfWidth);
+	  if ((fabs(ms->config.thisiX) <= ms->config.rmHalfWidth) && (fabs(ms->config.thisiY) <= ms->config.rmHalfWidth)) {
+	    int iiX = (int)round(ms->config.thisiX + ms->config.rmHalfWidth);
+	    int iiY = (int)round(ms->config.thisiY + ms->config.rmHalfWidth);
 	    
 	    {
 	      ms->config.rangeMapMass[iiX + iiY*ms->config.rmWidth] += 1;
@@ -2511,92 +2424,92 @@ bool isGripperGripping() {
   return gripperGripping; 
 }
 
-void initialize3DParzen() {
-  for (int kx = 0; kx < parzen3DKernelWidth; kx++) {
-    for (int ky = 0; ky < parzen3DKernelWidth; ky++) {
-      for (int kz = 0; kz < parzen3DKernelWidth; kz++) {
-	double pkx = kx - parzen3DKernelHalfWidth;
-	double pky = ky - parzen3DKernelHalfWidth;
-	double pkz = ky - parzen3DKernelHalfWidth;
-	parzen3DKernel[kx + ky*parzen3DKernelWidth + kz*parzen3DKernelWidth*parzen3DKernelWidth] = exp(-(pkx*pkx + pky*pky + pkz*pkz)/(2.0*parzen3DKernelSigma*parzen3DKernelSigma));
+void initialize3DParzen(shared_ptr<MachineState> ms) {
+  for (int kx = 0; kx < ms->config.parzen3DKernelWidth; kx++) {
+    for (int ky = 0; ky < ms->config.parzen3DKernelWidth; ky++) {
+      for (int kz = 0; kz < ms->config.parzen3DKernelWidth; kz++) {
+	double pkx = kx - ms->config.parzen3DKernelHalfWidth;
+	double pky = ky - ms->config.parzen3DKernelHalfWidth;
+	double pkz = ky - ms->config.parzen3DKernelHalfWidth;
+	ms->config.parzen3DKernel[kx + ky*ms->config.parzen3DKernelWidth + kz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth] = exp(-(pkx*pkx + pky*pky + pkz*pkz)/(2.0*ms->config.parzen3DKernelSigma*ms->config.parzen3DKernelSigma));
       }
     }
   }
 }
 
-void l2Normalize3DParzen() {
+void l2Normalize3DParzen(shared_ptr<MachineState> ms) {
   double norm = 0;
-  for (int kx = 0; kx < parzen3DKernelWidth; kx++) {
-    for (int ky = 0; ky < parzen3DKernelWidth; ky++) {
-      for (int kz = 0; kz < parzen3DKernelWidth; kz++) {
-	double pkx = kx - parzen3DKernelHalfWidth;
-	double pky = ky - parzen3DKernelHalfWidth;
-	double pkz = ky - parzen3DKernelHalfWidth;
-	norm += parzen3DKernel[kx + ky*parzen3DKernelWidth + kz*parzen3DKernelWidth*parzen3DKernelWidth];
+  for (int kx = 0; kx < ms->config.parzen3DKernelWidth; kx++) {
+    for (int ky = 0; ky < ms->config.parzen3DKernelWidth; ky++) {
+      for (int kz = 0; kz < ms->config.parzen3DKernelWidth; kz++) {
+	double pkx = kx - ms->config.parzen3DKernelHalfWidth;
+	double pky = ky - ms->config.parzen3DKernelHalfWidth;
+	double pkz = ky - ms->config.parzen3DKernelHalfWidth;
+	norm += ms->config.parzen3DKernel[kx + ky*ms->config.parzen3DKernelWidth + kz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
       }
     }
   }
   if (fabs(norm) < fEpsilon)
     norm = 1;
-  for (int kx = 0; kx < parzen3DKernelWidth; kx++) {
-    for (int ky = 0; ky < parzen3DKernelWidth; ky++) {
-      for (int kz = 0; kz < parzen3DKernelWidth; kz++) {
-	double pkx = kx - parzen3DKernelHalfWidth;
-	double pky = ky - parzen3DKernelHalfWidth;
-	double pkz = ky - parzen3DKernelHalfWidth;
+  for (int kx = 0; kx < ms->config.parzen3DKernelWidth; kx++) {
+    for (int ky = 0; ky < ms->config.parzen3DKernelWidth; ky++) {
+      for (int kz = 0; kz < ms->config.parzen3DKernelWidth; kz++) {
+	double pkx = kx - ms->config.parzen3DKernelHalfWidth;
+	double pky = ky - ms->config.parzen3DKernelHalfWidth;
+	double pkz = ky - ms->config.parzen3DKernelHalfWidth;
 
-	parzen3DKernel[kx + ky*parzen3DKernelWidth + kz*parzen3DKernelWidth*parzen3DKernelWidth] /= norm;
+	ms->config.parzen3DKernel[kx + ky*ms->config.parzen3DKernelWidth + kz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth] /= norm;
 #ifdef DEBUG_RING_BUFFER
-	cout << "Parzen3D: " << parzenKernel[kx + ky*parzenKernelWidth] << endl;
+	cout << "Parzen3D: " << ms->config.parzenKernel[kx + ky*ms->config.parzenKernelWidth] << endl;
 #endif
       }
     }
   }
 }
 
-void initializeParzen() {
-  for (int kx = 0; kx < parzenKernelWidth; kx++) {
-    for (int ky = 0; ky < parzenKernelWidth; ky++) {
-      double pkx = kx - parzenKernelHalfWidth;
-      double pky = ky - parzenKernelHalfWidth;
-      parzenKernel[kx + ky*parzenKernelWidth] = exp(-(pkx*pkx + pky*pky)/(2.0*parzenKernelSigma*parzenKernelSigma));
+void initializeParzen(shared_ptr<MachineState> ms) {
+  for (int kx = 0; kx < ms->config.parzenKernelWidth; kx++) {
+    for (int ky = 0; ky < ms->config.parzenKernelWidth; ky++) {
+      double pkx = kx - ms->config.parzenKernelHalfWidth;
+      double pky = ky - ms->config.parzenKernelHalfWidth;
+      ms->config.parzenKernel[kx + ky*ms->config.parzenKernelWidth] = exp(-(pkx*pkx + pky*pky)/(2.0*ms->config.parzenKernelSigma*ms->config.parzenKernelSigma));
     }
   }
 }
 
 
-void l2NormalizeParzen() {
+void l2NormalizeParzen(shared_ptr<MachineState> ms) {
   double norm = 0;
-  for (int kx = 0; kx < parzenKernelWidth; kx++) {
-    for (int ky = 0; ky < parzenKernelWidth; ky++) {
-      double pkx = kx - parzenKernelHalfWidth;
-      double pky = ky - parzenKernelHalfWidth;
-      norm += parzenKernel[kx + ky*parzenKernelWidth];
+  for (int kx = 0; kx < ms->config.parzenKernelWidth; kx++) {
+    for (int ky = 0; ky < ms->config.parzenKernelWidth; ky++) {
+      double pkx = kx - ms->config.parzenKernelHalfWidth;
+      double pky = ky - ms->config.parzenKernelHalfWidth;
+      norm += ms->config.parzenKernel[kx + ky*ms->config.parzenKernelWidth];
     }
   }
   if (fabs(norm) < fEpsilon)
     norm = 1;
-  for (int kx = 0; kx < parzenKernelWidth; kx++) {
-    for (int ky = 0; ky < parzenKernelWidth; ky++) {
-      double pkx = kx - parzenKernelHalfWidth;
-      double pky = ky - parzenKernelHalfWidth;
-      parzenKernel[kx + ky*parzenKernelWidth] /= norm;
+  for (int kx = 0; kx < ms->config.parzenKernelWidth; kx++) {
+    for (int ky = 0; ky < ms->config.parzenKernelWidth; ky++) {
+      double pkx = kx - ms->config.parzenKernelHalfWidth;
+      double pky = ky - ms->config.parzenKernelHalfWidth;
+      ms->config.parzenKernel[kx + ky*ms->config.parzenKernelWidth] /= norm;
 #ifdef DEBUG_RING_BUFFER
-      cout << "Parzen: " << parzenKernel[kx + ky*parzenKernelWidth] << endl;
+      cout << "Parzen: " << ms->config.parzenKernel[kx + ky*ms->config.parzenKernelWidth] << endl;
 #endif
     }
   }
 }
 
-void l2NormalizeFilter() {
+void l2NormalizeFilter(shared_ptr<MachineState> ms) {
   double norm = 0;
   for (int fx = 0; fx < 9; fx++) {
-    norm += filter[fx]*filter[fx];
+    norm += ms->config.filter[fx]*ms->config.filter[fx];
   }
   if (fabs(norm) < fEpsilon)
     norm = 1;
   for (int fx = 0; fx < 9; fx++) {
-    filter[fx] /= norm;
+    ms->config.filter[fx] /= norm;
   }
 }
 
@@ -3070,15 +2983,15 @@ void rangeCallback(const sensor_msgs::Range& range) {
 				   (ms->config.trueEEPose.position.z - irSensorStartLocal.z()) + ms->config.eeRange*localUnitZ.z()
 				  );
 
-      dX = (irSensorEnd.x() - rmcX); 
-      dY = (irSensorEnd.y() - rmcY); 
+      dX = (irSensorEnd.x() - ms->config.rmcX); 
+      dY = (irSensorEnd.y() - ms->config.rmcY); 
 
-      double eX = (irSensorEnd.x() - rmcX) / hrmDelta;
-      double eY = (irSensorEnd.y() - rmcY) / hrmDelta;
-      int eeX = (int)round(eX + hrmHalfWidth);
-      int eeY = (int)round(eY + hrmHalfWidth);
+      double eX = (irSensorEnd.x() - ms->config.rmcX) / ms->config.hrmDelta;
+      double eY = (irSensorEnd.y() - ms->config.rmcY) / ms->config.hrmDelta;
+      int eeX = (int)round(eX + ms->config.hrmHalfWidth);
+      int eeY = (int)round(eY + ms->config.hrmHalfWidth);
 
-      if ((fabs(eX) <= hrmHalfWidth) && (fabs(eY) <= hrmHalfWidth)) {
+      if ((fabs(eX) <= ms->config.hrmHalfWidth) && (fabs(eY) <= ms->config.hrmHalfWidth)) {
 	ms->config.hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(128,0,0);
       }
       // XXX
@@ -3090,26 +3003,26 @@ void rangeCallback(const sensor_msgs::Range& range) {
     // if so, update the arrays and draw the slot
     // XXX
     //double dX = (ms->config.trueEEPose.position.x - drX) - rmcX;
-    //double dY = (ms->config.trueEEPose.position.y - drY) - rmcY;
+    //double dY = (ms->config.trueEEPose.position.y - drY) - ms->config.rmcY;
 
     double iX = dX / ms->config.rmDelta;
     double iY = dY / ms->config.rmDelta;
 
-    double hiX = dX / hrmDelta;
-    double hiY = dY / hrmDelta;
+    double hiX = dX / ms->config.hrmDelta;
+    double hiY = dY / ms->config.hrmDelta;
 
-    lastiX = thisiX;
-    lastiY = thisiY;
-    thisiX = iX;
-    thisiY = iY;
+    ms->config.lastiX = ms->config.thisiX;
+    ms->config.lastiY = ms->config.thisiY;
+    ms->config.thisiX = iX;
+    ms->config.thisiY = iY;
 
     
   //cout << rmcX << " " << ms->config.trueEEPose.position.x << " " << dX << " " << iX << " " << ms->config.rmHalfWidth << endl;
 
     // erase old cell
-    if ((fabs(lastiX) <= ms->config.rmHalfWidth) && (fabs(lastiY) <= ms->config.rmHalfWidth)) {
-      int iiX = (int)round(lastiX + ms->config.rmHalfWidth);
-      int iiY = (int)round(lastiY + ms->config.rmHalfWidth);
+    if ((fabs(ms->config.lastiX) <= ms->config.rmHalfWidth) && (fabs(ms->config.lastiY) <= ms->config.rmHalfWidth)) {
+      int iiX = (int)round(ms->config.lastiX + ms->config.rmHalfWidth);
+      int iiY = (int)round(ms->config.lastiY + ms->config.rmHalfWidth);
 
       double minDepth = VERYBIGNUMBER;
       double maxDepth = 0;
@@ -3133,51 +3046,51 @@ void rangeCallback(const sensor_msgs::Range& range) {
 
 
     // draw new cell
-    if ((fabs(hiX) <= hrmHalfWidth) && (fabs(hiY) <= hrmHalfWidth)) {
-      int hiiX = (int)round(hiX + hrmHalfWidth);
-      int hiiY = (int)round(hiY + hrmHalfWidth);
+    if ((fabs(hiX) <= ms->config.hrmHalfWidth) && (fabs(hiY) <= ms->config.hrmHalfWidth)) {
+      int hiiX = (int)round(hiX + ms->config.hrmHalfWidth);
+      int hiiY = (int)round(hiY + ms->config.hrmHalfWidth);
 
       // the wrong point without pose correction
-      //double upX = ((ms->config.trueEEPose.position.x - drX) - rmcX)/hrmDelta;
-      //double upY = ((ms->config.trueEEPose.position.y - drY) - rmcY)/hrmDelta;
-      //int iupX = (int)round(upX + hrmHalfWidth);
-      //int iupY = (int)round(upY + hrmHalfWidth);
-      //if ((fabs(upX) <= hrmHalfWidth) && (fabs(upY) <= hrmHalfWidth)) 
+      //double upX = ((ms->config.trueEEPose.position.x - drX) - rmcX)/ms->config.hrmDelta;
+      //double upY = ((ms->config.trueEEPose.position.y - drY) - ms->config.rmcY)/ms->config.hrmDelta;
+      //int iupX = (int)round(upX + ms->config.hrmHalfWidth);
+      //int iupY = (int)round(upY + ms->config.hrmHalfWidth);
+      //if ((fabs(upX) <= ms->config.hrmHalfWidth) && (fabs(upY) <= ms->config.hrmHalfWidth)) 
 	//ms->config.hiRangemapImage.at<cv::Vec3b>(iupX,iupY) += cv::Vec3b(0,128,0);
 
-      int pxMin = max(0, hiiX-parzenKernelHalfWidth);
-      int pxMax = min(hrmWidth-1, hiiX+parzenKernelHalfWidth);
-      int pyMin = max(0, hiiY-parzenKernelHalfWidth);
-      int pyMax = min(hrmWidth-1, hiiY+parzenKernelHalfWidth);
+      int pxMin = max(0, hiiX-ms->config.parzenKernelHalfWidth);
+      int pxMax = min(ms->config.hrmWidth-1, hiiX+ms->config.parzenKernelHalfWidth);
+      int pyMin = max(0, hiiY-ms->config.parzenKernelHalfWidth);
+      int pyMax = min(ms->config.hrmWidth-1, hiiY+ms->config.parzenKernelHalfWidth);
       for (int px = pxMin; px <= pxMax; px++) {
 	for (int py = pyMin; py <= pyMax; py++) {
-	  int kpx = px - (hiiX - parzenKernelHalfWidth);
-	  int kpy = py - (hiiY - parzenKernelHalfWidth);
+	  int kpx = px - (hiiX - ms->config.parzenKernelHalfWidth);
+	  int kpy = py - (hiiY - ms->config.parzenKernelHalfWidth);
 
 	  cv::Vec3b thisSample = getCRColor(ms); 
-//	  hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] += thisSample[0]*parzenKernel[kpx + kpy*parzenKernelWidth];
-//	  hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] += thisSample[1]*parzenKernel[kpx + kpy*parzenKernelWidth];
-//	  hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] += thisSample[2]*parzenKernel[kpx + kpy*parzenKernelWidth];
-//	  hiColorRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
+//	  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 0*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[0]*parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
+//	  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 1*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[1]*parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
+//	  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 2*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[2]*parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
+//	  ms->config.hiColorRangeMapMass[px + py*ms->config.hrmWidth] += parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
 //
-//	  double denomC = max(hiColorRangeMapMass[px + py*hrmWidth], EPSILON);
-//	  int tRed = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 2*hrmWidth*hrmWidth] / denomC))));
-//	  int tGreen = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 1*hrmWidth*hrmWidth] / denomC))));
-//	  int tBlue = min(255, max(0,int(round(hiColorRangeMapAccumulator[px + py*hrmWidth + 0*hrmWidth*hrmWidth] / denomC))));
+//	  double denomC = max(ms->config.hiColorRangeMapMass[px + py*ms->config.hrmWidth], EPSILON);
+//	  int tRed = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 2*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
+//	  int tGreen = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 1*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
+//	  int tBlue = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 0*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
 //
 //	  ms->config.hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
 
-	  //hiRangeMapAccumulator[px + py*hrmWidth] += ms->config.eeRange*parzenKernel[kpx + kpy*parzenKernelWidth];
-	  //hiRangeMapAccumulator[px + py*hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*parzenKernelWidth];
-	  //hiRangeMapMass[px + py*hrmWidth] += parzenKernel[kpx + kpy*parzenKernelWidth];
-	  //double denom = max(hiRangeMapMass[px + py*hrmWidth], EPSILON);
-	  //hiRangeMap[px + py*hrmWidth] = hiRangeMapAccumulator[px + py*hrmWidth] / denom;
+	  //ms->config.hiRangeMapAccumulator[px + py*ms->config.hrmWidth] += ms->config.eeRange*parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
+	  //ms->config.hiRangeMapAccumulator[px + py*ms->config.hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
+	  //ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth] += parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
+	  //double denom = max(ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth], EPSILON);
+	  //ms->config.hiRangeMap[px + py*ms->config.hrmWidth] = ms->config.hiRangeMapAccumulator[px + py*ms->config.hrmWidth] / denom;
 	}
       }
     }
-    if ((fabs(thisiX) <= ms->config.rmHalfWidth) && (fabs(thisiY) <= ms->config.rmHalfWidth)) {
-      int iiX = (int)round(thisiX + ms->config.rmHalfWidth);
-      int iiY = (int)round(thisiY + ms->config.rmHalfWidth);
+    if ((fabs(ms->config.thisiX) <= ms->config.rmHalfWidth) && (fabs(ms->config.thisiY) <= ms->config.rmHalfWidth)) {
+      int iiX = (int)round(ms->config.thisiX + ms->config.rmHalfWidth);
+      int iiY = (int)round(ms->config.thisiY + ms->config.rmHalfWidth);
       
       {
 	//ms->config.rangeMapMass[iiX + iiY*rmWidth] += 1;
@@ -3859,10 +3772,10 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     int aI = 0;
     int vmSubsampleStride = 10;
     visualization_msgs::MarkerArray ma_to_send; 
-    for (int pz = 0; pz < vmWidth; pz+=vmSubsampleStride) {
-      for (int py = 0; py < vmWidth; py+=vmSubsampleStride) {
-	for (int px = 0; px < vmWidth; px+=vmSubsampleStride) {
-	  if (volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] > 0) {
+    for (int pz = 0; pz < ms->config.vmWidth; pz+=vmSubsampleStride) {
+      for (int py = 0; py < ms->config.vmWidth; py+=vmSubsampleStride) {
+	for (int px = 0; px < ms->config.vmWidth; px+=vmSubsampleStride) {
+	  if (ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0) {
 	    aI++;
 	  }
 	}
@@ -3873,28 +3786,28 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     /*
     ma_to_send.markers.resize(aI);
     aI = 0;
-    for (int pz = 0; pz < vmWidth; pz+=vmSubsampleStride) {
-      for (int py = 0; py < vmWidth; py+=vmSubsampleStride) {
-	for (int px = 0; px < vmWidth; px+=vmSubsampleStride) {
-	  if (volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] > 0) {
-	    double denomC = max(vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], EPSILON);
-	    int tRed = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] / denomC))));
-	    int tGreen = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] / denomC))));
-	    int tBlue = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] / denomC))));
+    for (int pz = 0; pz < ms->config.vmWidth; pz+=vmSubsampleStride) {
+      for (int py = 0; py < ms->config.vmWidth; py+=vmSubsampleStride) {
+	for (int px = 0; px < ms->config.vmWidth; px+=vmSubsampleStride) {
+	  if (ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0) {
+	    double denomC = max(ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth], EPSILON);
+	    int tRed = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
+	    int tGreen = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
+	    int tBlue = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
 
-//cout << tBlue << " " << vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] << " " <<  denomC << endl;
-	    ma_to_send.markers[aI].pose.position.x = rmcX + (px - vmHalfWidth)*vmDelta;
-	    ma_to_send.markers[aI].pose.position.y = rmcY + (py - vmHalfWidth)*vmDelta;
-	    ma_to_send.markers[aI].pose.position.z = rmcZ + (pz - vmHalfWidth)*vmDelta;
+//cout << tBlue << " " << ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] << " " <<  denomC << endl;
+	    ma_to_send.markers[aI].pose.position.x = rmcX + (px - ms->config.vmHalfWidth)*ms->config.vmDelta;
+	    ma_to_send.markers[aI].pose.position.y = ms->config.rmcY + (py - ms->config.vmHalfWidth)*ms->config.vmDelta;
+	    ma_to_send.markers[aI].pose.position.z = ms->config.rmcZ + (pz - ms->config.vmHalfWidth)*ms->config.vmDelta;
 	    ma_to_send.markers[aI].pose.orientation.w = 1.0;
 	    ma_to_send.markers[aI].pose.orientation.x = 0.0;
 	    ma_to_send.markers[aI].pose.orientation.y = 0.0;
 	    ma_to_send.markers[aI].pose.orientation.z = 0.0;
 	    ma_to_send.markers[aI].type =  visualization_msgs::Marker::CUBE;
-	    ma_to_send.markers[aI].scale.x = vmDelta*vmSubsampleStride;
-	    ma_to_send.markers[aI].scale.y = vmDelta*vmSubsampleStride;
-	    ma_to_send.markers[aI].scale.z = vmDelta*vmSubsampleStride;
-	    ma_to_send.markers[aI].color.a = volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth];
+	    ma_to_send.markers[aI].scale.x = ms->config.vmDelta*vmSubsampleStride;
+	    ma_to_send.markers[aI].scale.y = ms->config.vmDelta*vmSubsampleStride;
+	    ma_to_send.markers[aI].scale.z = ms->config.vmDelta*vmSubsampleStride;
+	    ma_to_send.markers[aI].color.a = volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth];
 	    ma_to_send.markers[aI].color.r = double(tRed)/255.0;
 	    ma_to_send.markers[aI].color.g = double(tGreen)/255.0;
 	    ma_to_send.markers[aI].color.b = double(tBlue)/255.0;
@@ -3919,9 +3832,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     ma_to_send.markers[0].pose.orientation.y = 0.0;
     ma_to_send.markers[0].pose.orientation.z = 0.0;
     ma_to_send.markers[0].type =  visualization_msgs::Marker::CUBE_LIST;
-    ma_to_send.markers[0].scale.x = vmDelta*vmSubsampleStride;
-    ma_to_send.markers[0].scale.y = vmDelta*vmSubsampleStride;
-    ma_to_send.markers[0].scale.z = vmDelta*vmSubsampleStride;
+    ma_to_send.markers[0].scale.x = ms->config.vmDelta*vmSubsampleStride;
+    ma_to_send.markers[0].scale.y = ms->config.vmDelta*vmSubsampleStride;
+    ma_to_send.markers[0].scale.z = ms->config.vmDelta*vmSubsampleStride;
 
     ma_to_send.markers[0].header.stamp = ros::Time::now();
     ma_to_send.markers[0].header.frame_id = "/base";
@@ -3931,29 +3844,29 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
     double volumeRenderThresh = 0.333;
 
-    for (int pz = 0; pz < vmWidth; pz+=vmSubsampleStride) {
-      for (int py = 0; py < vmWidth; py+=vmSubsampleStride) {
-	for (int px = 0; px < vmWidth; px+=vmSubsampleStride) {
-	  if (volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] > 0) {
-	    double denomC = max(vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth], EPSILON);
-	    int tRed = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 2*vmWidth*vmWidth*vmWidth] / denomC))));
-	    int tGreen = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 1*vmWidth*vmWidth*vmWidth] / denomC))));
-	    int tBlue = min(255, max(0,int(round(vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + 0*vmWidth*vmWidth*vmWidth] / denomC))));
+    for (int pz = 0; pz < ms->config.vmWidth; pz+=vmSubsampleStride) {
+      for (int py = 0; py < ms->config.vmWidth; py+=vmSubsampleStride) {
+	for (int px = 0; px < ms->config.vmWidth; px+=vmSubsampleStride) {
+	  if (ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0) {
+	    double denomC = max(ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth], EPSILON);
+	    int tRed = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
+	    int tGreen = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
+	    int tBlue = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
 
 	    std_msgs::ColorRGBA p;
-	    //p.a = volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth] > 0;
-	    //p.a = volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth] > 0.5;
-	    p.a = volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth] > volumeRenderThresh;
-	    //p.a = 4.0*volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth];
+	    //p.a = volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0;
+	    //p.a = volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0.5;
+	    p.a = ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > volumeRenderThresh;
+	    //p.a = 4.0*volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth];
 	    p.r = double(tRed)/255.0;
 	    p.g = double(tGreen)/255.0;
 	    p.b = double(tBlue)/255.0;
 	    ma_to_send.markers[0].colors.push_back(p);
 
 	    geometry_msgs::Point temp;
-	    temp.x = rmcX + (px - vmHalfWidth)*vmDelta;
-	    temp.y = rmcY + (py - vmHalfWidth)*vmDelta;
-	    temp.z = rmcZ + (pz - vmHalfWidth)*vmDelta;
+	    temp.x = ms->config.rmcX + (px - ms->config.vmHalfWidth)*ms->config.vmDelta;
+	    temp.y = ms->config.rmcY + (py - ms->config.vmHalfWidth)*ms->config.vmDelta;
+	    temp.z = ms->config.rmcZ + (pz - ms->config.vmHalfWidth)*ms->config.vmDelta;
 	    ma_to_send.markers[0].points.push_back(temp);
 	  }
 	}
@@ -3971,8 +3884,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     cv::Scalar theColor(192, 64, 64);
     cv::Scalar THEcOLOR(64, 192, 192);
 
-    double zStart = minHeight;
-    double zEnd = maxHeight; 
+    double zStart = ms->config.minHeight;
+    double zEnd = ms->config.maxHeight; 
     double deltaZ = 0.005;
     
     for (double zCounter = zStart; zCounter < zEnd; zCounter += deltaZ) {
@@ -5242,26 +5155,26 @@ void pilotInit(shared_ptr<MachineState> ms) {
   ms->config.rangemapImage = Mat(ms->config.rmiHeight, 3*ms->config.rmiWidth, CV_8UC3);
   ms->config.graspMemoryImage = Mat(ms->config.rmiHeight, 2*ms->config.rmiWidth, CV_8UC3);
   ms->config.graspMemorySampleImage = Mat(2*ms->config.rmiHeight, 2*ms->config.rmiWidth, CV_8UC3);
-  ms->config.heightMemorySampleImage = Mat(hmiHeight, 2*hmiWidth, CV_8UC3);
+  ms->config.heightMemorySampleImage = Mat(ms->config.hmiHeight, 2*ms->config.hmiWidth, CV_8UC3);
 
-  for (int rx = 0; rx < hrmWidth; rx++) {
-    for (int ry = 0; ry < hrmWidth; ry++) {
-      hiRangeMap[rx + ry*hrmWidth] = 0;
-      hiRangeMapReg1[rx + ry*hrmWidth] = 0;
-      hiRangeMapReg2[rx + ry*hrmWidth] = 0;
-      hiRangeMapMass[rx + ry*hrmWidth] = 0;
-      hiRangeMapAccumulator[rx + ry*hrmWidth] = 0;
+  for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
+      ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapReg1[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapReg2[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapMass[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapAccumulator[rx + ry*ms->config.hrmWidth] = 0;
     }
   }
-  ms->config.hiRangemapImage = Mat(hrmiHeight, 3*hrmiWidth, CV_8UC3);
+  ms->config.hiRangemapImage = Mat(ms->config.hrmiHeight, 3*ms->config.hrmiWidth, CV_8UC3);
 
-  ms->config.hiColorRangemapImage = Mat(hrmiHeight, hrmiWidth, CV_8UC3);
+  ms->config.hiColorRangemapImage = Mat(ms->config.hrmiHeight, ms->config.hrmiWidth, CV_8UC3);
 
   ms->config.rangeogramImage = Mat(ms->config.rggHeight, ms->config.rggWidth, CV_8UC3);
 
-  rmcX = 0;
-  rmcY = 0;
-  rmcZ = 0;
+  ms->config.rmcX = 0;
+  ms->config.rmcY = 0;
+  ms->config.rmcZ = 0;
 
   for (int g = 0; g < totalGraspGears; g++) {
     ggX[g] = 0;
@@ -5302,9 +5215,9 @@ void pilotInit(shared_ptr<MachineState> ms) {
   // XXX add symbols to change register sets
   //ms->config.eepReg3 = crane4right;
 
-  initializeParzen();
+  initializeParzen(ms);
   //l2NormalizeParzen();
-  initialize3DParzen();
+  initialize3DParzen(ms);
   //l2Normalize3DParzen();
 
   {
@@ -5323,11 +5236,11 @@ void pilotInit(shared_ptr<MachineState> ms) {
       irGlobalPositionEEFrame.x() << " " << irGlobalPositionEEFrame.y() << " " << irGlobalPositionEEFrame.z() << endl;
   }
 
-  for (int h = 0; h < hrmWidth; h++) {
-    for (int i = 0; i < hrmWidth; i++) {
-      hiColorRangeMapMass[h + i*hrmWidth] = 0;
+  for (int h = 0; h < ms->config.hrmWidth; h++) {
+    for (int i = 0; i < ms->config.hrmWidth; i++) {
+      ms->config.hiColorRangeMapMass[h + i*ms->config.hrmWidth] = 0;
       for (int j = 0; j < 3; j++) {
-	hiColorRangeMapAccumulator[h + i*hrmWidth + j*hrmWidth*hrmWidth] = 0;
+	ms->config.hiColorRangeMapAccumulator[h + i*ms->config.hrmWidth + j*ms->config.hrmWidth*ms->config.hrmWidth] = 0;
       }
     }
   }
@@ -5340,15 +5253,15 @@ void pilotInit(shared_ptr<MachineState> ms) {
   ms->config.epRBTimes.resize(pMachineState->config.epRingBufferSize);
   ms->config.rgRBTimes.resize(pMachineState->config.rgRingBufferSize);
 
-  for (int pz = 0; pz < vmWidth; pz++) {
-    for (int py = 0; py < vmWidth; py++) {
-      for (int px = 0; px < vmWidth; px++) {
-	volumeMap[px + py*vmWidth + pz*vmWidth*vmWidth] = 0;
-	volumeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth] = 0;
-	volumeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] = 0;
-	vmColorRangeMapMass[px + py*vmWidth + pz*vmWidth*vmWidth] = 0;
+  for (int pz = 0; pz < ms->config.vmWidth; pz++) {
+    for (int py = 0; py < ms->config.vmWidth; py++) {
+      for (int px = 0; px < ms->config.vmWidth; px++) {
+	ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+	ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+	ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+	ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
 	for (int pc = 0; pc < 3; pc++) {
-	  vmColorRangeMapAccumulator[px + py*vmWidth + pz*vmWidth*vmWidth + pc*vmWidth*vmWidth*vmWidth] = 0;
+	  ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + pc*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] = 0;
 	}
       }
     }
@@ -5619,9 +5532,9 @@ void guardHeightMemory(shared_ptr<MachineState> ms) {
   }
   if (!((classHeightMemoryTries[focusedClass].rows > 1) && (classHeightMemoryTries[focusedClass].cols == 1) &&
 	(classHeightMemoryPicks[focusedClass].rows > 1) && (classHeightMemoryPicks[focusedClass].cols == 1) )) {
-    classHeightMemoryTries[focusedClass] = Mat(hmWidth, 1, CV_64F);
-    classHeightMemoryPicks[focusedClass] = Mat(hmWidth, 1, CV_64F);
-    loadPriorHeightMemory(ANALYTIC_PRIOR);
+    classHeightMemoryTries[focusedClass] = Mat(ms->config.hmWidth, 1, CV_64F);
+    classHeightMemoryPicks[focusedClass] = Mat(ms->config.hmWidth, 1, CV_64F);
+    loadPriorHeightMemory(ms, ANALYTIC_PRIOR);
   }
 }
 
@@ -5738,7 +5651,7 @@ void loadPriorGraspMemory(shared_ptr<MachineState> ms, priorType prior) {
 
 
   for (int tGG = 0; tGG < totalGraspGears/2; tGG++) {
-    prepareGraspFilter(tGG);
+    prepareGraspFilter(ms, tGG);
     loadLocalTargetClassRangeMap(ms, ms->config.rangeMapReg3, ms->config.rangeMapReg4);
     applyGraspFilter(ms, ms->config.rangeMapReg3, ms->config.rangeMapReg4);
 
@@ -5864,19 +5777,19 @@ void loadPriorGraspMemory(shared_ptr<MachineState> ms, priorType prior) {
 
 void loadMarginalHeightMemory(shared_ptr<MachineState> ms) {
   //ROS_INFO("Loading marginal height memory.");
-  for (int i = 0; i < hmWidth; i++) {
-    double nsuccess = heightMemoryPicks[i];
-    double nfailure = heightMemoryTries[i] - heightMemoryPicks[i];
-    heightMemorySample[i] = (nsuccess + 1) / (nsuccess + nfailure + 2);
+  for (int i = 0; i < ms->config.hmWidth; i++) {
+    double nsuccess = ms->config.heightMemoryPicks[i];
+    double nfailure = ms->config.heightMemoryTries[i] - ms->config.heightMemoryPicks[i];
+    ms->config.heightMemorySample[i] = (nsuccess + 1) / (nsuccess + nfailure + 2);
   }
 }
  
 void loadSampledHeightMemory(shared_ptr<MachineState> ms) {
   ROS_INFO("Loading sampled height memory.");
-  for (int i = 0; i < hmWidth; i++) {
-    double nsuccess = heightEccentricity * (heightMemoryPicks[i]);
-    double nfailure = heightEccentricity * (heightMemoryTries[i] - heightMemoryPicks[i]);
-    heightMemorySample[i] = rk_beta(&ms->config.random_state, 
+  for (int i = 0; i < ms->config.hmWidth; i++) {
+    double nsuccess = heightEccentricity * (ms->config.heightMemoryPicks[i]);
+    double nfailure = heightEccentricity * (ms->config.heightMemoryTries[i] - ms->config.heightMemoryPicks[i]);
+    ms->config.heightMemorySample[i] = rk_beta(&ms->config.random_state, 
                                     nsuccess + 1, 
                                     nfailure + 1);
   }
@@ -5884,24 +5797,24 @@ void loadSampledHeightMemory(shared_ptr<MachineState> ms) {
 }
 
 double convertHeightIdxToGlobalZ(shared_ptr<MachineState> ms, int heightIdx) {
-  double tabledMaxHeight = maxHeight - ms->config.currentTableZ;
-  double tabledMinHeight = minHeight - ms->config.currentTableZ;
+  double tabledMaxHeight = ms->config.maxHeight - ms->config.currentTableZ;
+  double tabledMinHeight = ms->config.minHeight - ms->config.currentTableZ;
 
-  double scaledHeight = (double(heightIdx)/double(hmWidth-1)) * (tabledMaxHeight - tabledMinHeight);
+  double scaledHeight = (double(heightIdx)/double(ms->config.hmWidth-1)) * (tabledMaxHeight - tabledMinHeight);
   double scaledTranslatedHeight = scaledHeight + tabledMinHeight;
   return scaledTranslatedHeight;
 }
 
 int convertHeightGlobalZToIdx(shared_ptr<MachineState> ms, double globalZ) {
-  double tabledMaxHeight = maxHeight - ms->config.currentTableZ;
-  double tabledMinHeight = minHeight - ms->config.currentTableZ;
+  double tabledMaxHeight = ms->config.maxHeight - ms->config.currentTableZ;
+  double tabledMinHeight = ms->config.minHeight - ms->config.currentTableZ;
 
   double scaledHeight = (globalZ - ms->config.currentTableZ) / (tabledMaxHeight - tabledMinHeight);
-  int heightIdx = floor(scaledHeight * (hmWidth - 1));
+  int heightIdx = floor(scaledHeight * (ms->config.hmWidth - 1));
 }
 
 void testHeightConversion(shared_ptr<MachineState> ms) {
-  for (int i = 0; i < hmWidth; i++) {
+  for (int i = 0; i < ms->config.hmWidth; i++) {
     double height = convertHeightIdxToGlobalZ(ms, i);
     int newIdx = convertHeightGlobalZToIdx(ms, height);
     cout << "i: " << i << " height: " << height << " newIdx: " << newIdx << endl;
@@ -5909,14 +5822,14 @@ void testHeightConversion(shared_ptr<MachineState> ms) {
   }
 }
 
-void loadPriorHeightMemory(priorType prior) {
-  for (int i = 0; i < hmWidth; i++) {
-    heightMemoryPicks[i] = 1;
-    heightMemoryTries[i] = 1;
+void loadPriorHeightMemory(shared_ptr<MachineState> ms, priorType prior) {
+  for (int i = 0; i < ms->config.hmWidth; i++) {
+    ms->config.heightMemoryPicks[i] = 1;
+    ms->config.heightMemoryTries[i] = 1;
   }
   if (prior == ANALYTIC_PRIOR) {
-    heightMemoryPicks[1] = 1;
-    heightMemoryTries[1] = 1;
+    ms->config.heightMemoryPicks[1] = 1;
+    ms->config.heightMemoryTries[1] = 1;
   }
 }
 
@@ -5925,24 +5838,24 @@ void drawHeightMemorySample(shared_ptr<MachineState> ms) {
   {
     double max_value = -VERYBIGNUMBER;
     int max_i=0, max_ry=0, max_rx=0;
-    for (int i = 0; i < hmWidth; i++) {
-      if (heightMemorySample[i] > max_value) {
-	max_value = heightMemorySample[i];
+    for (int i = 0; i < ms->config.hmWidth; i++) {
+      if (ms->config.heightMemorySample[i] > max_value) {
+	max_value = ms->config.heightMemorySample[i];
 	max_i = i;
-	max_rx = hmWidth - 1 - max_i;
+	max_rx = ms->config.hmWidth - 1 - max_i;
 	max_ry = 0;
       }
       {
 	int ry = 0;
-	int rx = hmWidth - 1 - i;
-	double blueIntensity = 255 * heightMemorySample[i];
-	double greenIntensity = 255 * heightMemorySample[i];
-	double redIntensity = 255 * heightMemorySample[i];
-	//cout << "Height Memory Sample: " << "rx: " << rx << " ry: " << ry << " tGG:" << tGG << "sample: " << heightMemorySample[i] << endl;
+	int rx = ms->config.hmWidth - 1 - i;
+	double blueIntensity = 255 * ms->config.heightMemorySample[i];
+	double greenIntensity = 255 * ms->config.heightMemorySample[i];
+	double redIntensity = 255 * ms->config.heightMemorySample[i];
+	//cout << "Height Memory Sample: " << "rx: " << rx << " ry: " << ry << " tGG:" << tGG << "sample: " << ms->config.heightMemorySample[i] << endl;
 	cv::Scalar color(ceil(blueIntensity),ceil(greenIntensity),ceil(redIntensity));
 	
-	cv::Point outTop = cv::Point((ry)*hmiCellWidth,(rx)*hmiCellWidth);
-	cv::Point outBot = cv::Point(((ry)+1)*hmiCellWidth,((rx)+1)*hmiCellWidth);
+	cv::Point outTop = cv::Point((ry)*ms->config.hmiCellWidth,(rx)*ms->config.hmiCellWidth);
+	cv::Point outBot = cv::Point(((ry)+1)*ms->config.hmiCellWidth,((rx)+1)*ms->config.hmiCellWidth);
 	Mat vCrop = ms->config.heightMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
 	vCrop = color;
       }
@@ -5950,8 +5863,8 @@ void drawHeightMemorySample(shared_ptr<MachineState> ms) {
     {
       // draw the max
       char buff[256];
-      cv::Point text_anchor = cv::Point((max_ry) * hmiCellWidth - 5, 
-					(max_rx + 1) * hmiCellWidth);
+      cv::Point text_anchor = cv::Point((max_ry) * ms->config.hmiCellWidth - 5, 
+					(max_rx + 1) * ms->config.hmiCellWidth);
       sprintf(buff, "x");
       putText(ms->config.heightMemorySampleImage, buff, text_anchor, MY_FONT, 7, 
 	      Scalar(0,0,255), 2);
@@ -5960,25 +5873,25 @@ void drawHeightMemorySample(shared_ptr<MachineState> ms) {
   {
     double max_value = -VERYBIGNUMBER;
     int max_i=0, max_ry=0, max_rx=0;
-    for (int i = 0; i < hmWidth; i++) {
-      double thisMarginal = (heightMemoryPicks[i]+1)/(heightMemoryTries[i]+2);
+    for (int i = 0; i < ms->config.hmWidth; i++) {
+      double thisMarginal = (ms->config.heightMemoryPicks[i]+1)/(ms->config.heightMemoryTries[i]+2);
       if (thisMarginal > max_value) {
 	max_value = thisMarginal;
 	max_i = i;
-	max_rx = hmWidth - 1 - max_i;
+	max_rx = ms->config.hmWidth - 1 - max_i;
 	max_ry = 0;
       }
       {
 	int ry = 0;
-	int rx = hmWidth - 1 - i;
+	int rx = ms->config.hmWidth - 1 - i;
 	double blueIntensity = 255 * thisMarginal;
 	double greenIntensity = 255 * thisMarginal;
 	double redIntensity = 255 * thisMarginal;
 	//cout << "Height Memory Marginal: " << "rx: " << rx << " ry: " << ry << " tGG:" << tGG << "sample: " << thisMarginal << endl;
 	cv::Scalar color(ceil(blueIntensity),ceil(greenIntensity),ceil(redIntensity));
 	
-	cv::Point outTop = cv::Point((ry+1)*hmiCellWidth,(rx)*hmiCellWidth);
-	cv::Point outBot = cv::Point(((ry+1)+1)*hmiCellWidth,((rx)+1)*hmiCellWidth);
+	cv::Point outTop = cv::Point((ry+1)*ms->config.hmiCellWidth,(rx)*ms->config.hmiCellWidth);
+	cv::Point outBot = cv::Point(((ry+1)+1)*ms->config.hmiCellWidth,((rx)+1)*ms->config.hmiCellWidth);
 	Mat vCrop = ms->config.heightMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
 	vCrop = color;
       }
@@ -5986,8 +5899,8 @@ void drawHeightMemorySample(shared_ptr<MachineState> ms) {
     {
       // draw the max
       char buff[256];
-      cv::Point text_anchor = cv::Point((max_ry+1) * hmiCellWidth, 
-					(max_rx + 1) * hmiCellWidth);
+      cv::Point text_anchor = cv::Point((max_ry+1) * ms->config.hmiCellWidth, 
+					(max_rx + 1) * ms->config.hmiCellWidth);
       sprintf(buff, "x");
       putText(ms->config.heightMemorySampleImage, buff, text_anchor, MY_FONT, 7, 
 	      Scalar(0,0,255), 2);
@@ -5997,9 +5910,9 @@ void drawHeightMemorySample(shared_ptr<MachineState> ms) {
 
 void copyHeightMemoryTriesToClassHeightMemoryTries(shared_ptr<MachineState> ms) {
   guardHeightMemory(ms);
-  for (int i = 0; i < hmWidth; i++) {
-    classHeightMemoryTries[focusedClass].at<double>(i,0) = heightMemoryTries[i];
-    classHeightMemoryPicks[focusedClass].at<double>(i,0) = heightMemoryPicks[i];
+  for (int i = 0; i < ms->config.hmWidth; i++) {
+    classHeightMemoryTries[focusedClass].at<double>(i,0) = ms->config.heightMemoryTries[i];
+    classHeightMemoryPicks[focusedClass].at<double>(i,0) = ms->config.heightMemoryPicks[i];
   }
 }
 
@@ -6010,7 +5923,7 @@ void estimateGlobalGraspGear(shared_ptr<MachineState> ms) {
   int eMinGG = 0;
 
   for (int tGG = 0; tGG < totalGraspGears/2; tGG++) {
-    prepareGraspFilter(tGG);
+    prepareGraspFilter(ms, tGG);
     loadGlobalTargetClassRangeMap(ms, ms->config.rangeMapReg3, ms->config.rangeMapReg4);
     applyGraspFilter(ms, ms->config.rangeMapReg3, ms->config.rangeMapReg4);
 
@@ -6083,18 +5996,18 @@ void drawMapRegisters(shared_ptr<MachineState> ms) {
   {
     double minDepth = VERYBIGNUMBER;
     double maxDepth = 0;
-    for (int rx = 0; rx < hrmWidth; rx++) {
-      for (int ry = 0; ry < hrmWidth; ry++) {
-        minDepth = min(minDepth, hiRangeMap[rx + ry*hrmWidth]);
-        maxDepth = max(maxDepth, hiRangeMap[rx + ry*hrmWidth]);
+    for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
+      for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
+        minDepth = min(minDepth, ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth]);
+        maxDepth = max(maxDepth, ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth]);
       }
     }
-    for (int rx = 0; rx < hrmWidth; rx++) {
-      for (int ry = 0; ry < hrmWidth; ry++) {
+    for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
+      for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
         double denom = max(EPSILON,maxDepth-minDepth);
         if (denom <= EPSILON)
           denom = VERYBIGNUMBER;
-        double intensity = 255 * (maxDepth - hiRangeMap[rx + ry*hrmWidth]) / denom;
+        double intensity = 255 * (maxDepth - ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth]) / denom;
         ms->config.hiRangemapImage.at<cv::Vec3b>(rx,ry) = cv::Vec3b(0,0,ceil(intensity));
       }
     }
@@ -6102,38 +6015,38 @@ void drawMapRegisters(shared_ptr<MachineState> ms) {
   {
     double minDepth = VERYBIGNUMBER;
     double maxDepth = 0;
-    for (int rx = 0; rx < hrmWidth; rx++) {
-      for (int ry = 0; ry < hrmWidth; ry++) {
-        minDepth = min(minDepth, hiRangeMapReg1[rx + ry*hrmWidth]);
-        maxDepth = max(maxDepth, hiRangeMapReg1[rx + ry*hrmWidth]);
+    for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
+      for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
+        minDepth = min(minDepth, ms->config.hiRangeMapReg1[rx + ry*ms->config.hrmWidth]);
+        maxDepth = max(maxDepth, ms->config.hiRangeMapReg1[rx + ry*ms->config.hrmWidth]);
       }
     }
-    for (int rx = 0; rx < hrmWidth; rx++) {
-      for (int ry = 0; ry < hrmWidth; ry++) {
+    for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
+      for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
         double denom = max(EPSILON,maxDepth-minDepth);
         if (denom <= EPSILON)
           denom = VERYBIGNUMBER;
-        double intensity = 255 * (maxDepth - hiRangeMapReg1[rx + ry*hrmWidth]) / denom;
-        ms->config.hiRangemapImage.at<cv::Vec3b>(rx,ry+hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
+        double intensity = 255 * (maxDepth - ms->config.hiRangeMapReg1[rx + ry*ms->config.hrmWidth]) / denom;
+        ms->config.hiRangemapImage.at<cv::Vec3b>(rx,ry+ms->config.hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
       }
     }
   }
   {
     double minDepth = VERYBIGNUMBER;
     double maxDepth = 0;
-    for (int rx = 0; rx < hrmWidth; rx++) {
-      for (int ry = 0; ry < hrmWidth; ry++) {
-        minDepth = min(minDepth, hiRangeMapReg2[rx + ry*hrmWidth]);
-        maxDepth = max(maxDepth, hiRangeMapReg2[rx + ry*hrmWidth]);
+    for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
+      for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
+        minDepth = min(minDepth, ms->config.hiRangeMapReg2[rx + ry*ms->config.hrmWidth]);
+        maxDepth = max(maxDepth, ms->config.hiRangeMapReg2[rx + ry*ms->config.hrmWidth]);
       }
     }
-    for (int rx = 0; rx < hrmWidth; rx++) {
-      for (int ry = 0; ry < hrmWidth; ry++) {
+    for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
+      for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
         double denom = max(EPSILON,maxDepth-minDepth);
         if (denom <= EPSILON)
           denom = VERYBIGNUMBER;
-        double intensity = 255 * (maxDepth - hiRangeMapReg2[rx + ry*hrmWidth]) / denom;
-        ms->config.hiRangemapImage.at<cv::Vec3b>(rx,ry+2*hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
+        double intensity = 255 * (maxDepth - ms->config.hiRangeMapReg2[rx + ry*ms->config.hrmWidth]) / denom;
+        ms->config.hiRangemapImage.at<cv::Vec3b>(rx,ry+2*ms->config.hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
       }
     }
   }
@@ -6287,7 +6200,7 @@ void applyGraspFilter(shared_ptr<MachineState> ms, double * rangeMapRegA, double
   for (int rx = transformPadding; rx < ms->config.rmWidth-transformPadding; rx++) {
     for (int ry = transformPadding; ry < ms->config.rmWidth-transformPadding; ry++) {
       for (int fx = 0; fx < 9; fx++)
-        rangeMapRegB[rx + ry*ms->config.rmWidth] += filter[fx] * rangeMapRegA[(rx+dx[fx]) + (ry+dy[fx])*ms->config.rmWidth];
+        rangeMapRegB[rx + ry*ms->config.rmWidth] += ms->config.filter[fx] * rangeMapRegA[(rx+dx[fx]) + (ry+dy[fx])*ms->config.rmWidth];
     }
   }
   for (int rx = 0; rx < ms->config.rmWidth; rx++) {
@@ -6406,31 +6319,31 @@ void loadLocalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMap
 }
 
 
-void prepareGraspFilter(int i) {
+void prepareGraspFilter(shared_ptr<MachineState> ms, int i) {
   if (i == 0) {
-    prepareGraspFilter1();
+    prepareGraspFilter1(ms);
   } else if (i == 1) {
-    prepareGraspFilter2();
+    prepareGraspFilter2(ms);
   } else if (i == 2) {
-    prepareGraspFilter3();
+    prepareGraspFilter3(ms);
   } else if (i == 3) {
-    prepareGraspFilter4();
+    prepareGraspFilter4(ms);
   }
 }
-void prepareGraspFilter1() {
+void prepareGraspFilter1(shared_ptr<MachineState> ms) {
   double tfilter[9]    = {   0, -1,  0, 
                              0,  2,  0, 
                              0, -1,  0};
   for (int fx = 0; fx < 9; fx++)
-    filter[fx] = tfilter[fx];
-  l2NormalizeFilter();
+    ms->config.filter[fx] = tfilter[fx];
+  l2NormalizeFilter(ms);
   for (int fx = 0; fx < 9; fx++) {
-    cout << filter[fx] << endl;
+    cout << ms->config.filter[fx] << endl;
   }
 
 }
 
-void prepareGraspFilter2() {
+void prepareGraspFilter2(shared_ptr<MachineState> ms) {
   double tfilter[9]    = {  -1,  0,  0, 
                             0,  2,  0, 
                             0,  0, -1};
@@ -6438,26 +6351,26 @@ void prepareGraspFilter2() {
   //0,  2-diagonalKappa,  0, 
   //0,  0, -1};
   for (int fx = 0; fx < 9; fx++)
-    filter[fx] = tfilter[fx];
-  l2NormalizeFilter();
+    ms->config.filter[fx] = tfilter[fx];
+  l2NormalizeFilter(ms);
   for (int fx = 0; fx < 9; fx++) {
-    cout << filter[fx] << " ";
-    filter[fx] *= diagonalKappa;
-    cout << filter[fx] << endl;
+    cout << ms->config.filter[fx] << " ";
+    ms->config.filter[fx] *= ms->config.diagonalKappa;
+    cout << ms->config.filter[fx] << endl;
   }
 }
-void prepareGraspFilter3() {
+void prepareGraspFilter3(shared_ptr<MachineState> ms) {
   double tfilter[9]    = {   0,  0,  0, 
                              -1,  2, -1, 
                              0,  0,  0};
   for (int fx = 0; fx < 9; fx++)
-    filter[fx] = tfilter[fx];
-  l2NormalizeFilter();
+    ms->config.filter[fx] = tfilter[fx];
+  l2NormalizeFilter(ms);
   for (int fx = 0; fx < 9; fx++) {
-    cout << filter[fx] << endl;
+    cout << ms->config.filter[fx] << endl;
   }
 }
-void prepareGraspFilter4() {
+void prepareGraspFilter4(shared_ptr<MachineState> ms) {
   double tfilter[9]    = {   0,  0, -1, 
                              0,  2,  0, 
                              -1,  0,  0};
@@ -6465,12 +6378,12 @@ void prepareGraspFilter4() {
   //0,  2-diagonalKappa,  0, 
   //-1,  0,  0};
   for (int fx = 0; fx < 9; fx++)
-    filter[fx] = tfilter[fx];
-  l2NormalizeFilter();
+    ms->config.filter[fx] = tfilter[fx];
+  l2NormalizeFilter(ms);
   for (int fx = 0; fx < 9; fx++) {
-    cout << filter[fx] << " ";
-    filter[fx] *= diagonalKappa;
-    cout << filter[fx] << endl;
+    cout << ms->config.filter[fx] << " ";
+    ms->config.filter[fx] *= ms->config.diagonalKappa;
+    cout << ms->config.filter[fx] << endl;
   }
 
 }
@@ -7022,25 +6935,25 @@ void selectMaxTargetThompsonRotated2(shared_ptr<MachineState> ms, double minDept
 }
 
 
-void recordBoundingBoxSuccess() {
-  heightMemoryTries[currentThompsonHeightIdx]++;
-  heightMemoryPicks[currentThompsonHeightIdx]++;
-  heightSuccessCounter++;
-  heightAttemptCounter++;
+void recordBoundingBoxSuccess(shared_ptr<MachineState> ms) {
+  ms->config.heightMemoryTries[currentThompsonHeightIdx]++;
+  ms->config.heightMemoryPicks[currentThompsonHeightIdx]++;
+  ms->config.heightSuccessCounter++;
+  ms->config.heightAttemptCounter++;
   cout << "Successful bounding box on floor " << currentThompsonHeightIdx << endl;
-  cout << "Tries: " << heightMemoryTries[currentThompsonHeightIdx] << endl;
-  cout << "Picks: " << heightMemoryPicks[currentThompsonHeightIdx] << endl;
+  cout << "Tries: " << ms->config.heightMemoryTries[currentThompsonHeightIdx] << endl;
+  cout << "Picks: " << ms->config.heightMemoryPicks[currentThompsonHeightIdx] << endl;
   int ttotalTries = 0;
   int ttotalPicks = 0;
-  for (int i = 0; i < hmWidth; i++) {
-    ttotalTries += heightMemoryTries[i];
-    ttotalPicks += heightMemoryPicks[i];
+  for (int i = 0; i < ms->config.hmWidth; i++) {
+    ttotalTries += ms->config.heightMemoryTries[i];
+    ttotalPicks += ms->config.heightMemoryPicks[i];
   }
   cout << "Total Tries: " << ttotalTries << endl;
   cout << "Total Picks: " << ttotalPicks << endl;
 
-  double thisPickRate = double(heightMemoryPicks[currentThompsonHeightIdx]) / double(heightMemoryTries[currentThompsonHeightIdx]);
-  int thisNumTries = heightMemoryTries[currentThompsonHeightIdx];
+  double thisPickRate = double(ms->config.heightMemoryPicks[currentThompsonHeightIdx]) / double(ms->config.heightMemoryTries[currentThompsonHeightIdx]);
+  int thisNumTries = ms->config.heightMemoryTries[currentThompsonHeightIdx];
   cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
   if (currentBoundingBoxMode == LEARNING_SAMPLING) {
     if ( (thisNumTries >= thompsonMinTryCutoff) && 
@@ -7051,8 +6964,8 @@ void recordBoundingBoxSuccess() {
 
   // ATTN 20
   {
-    double successes = heightMemoryPicks[currentThompsonHeightIdx];
-    double failures =  heightMemoryTries[currentThompsonHeightIdx] - heightMemoryPicks[currentThompsonHeightIdx];
+    double successes = ms->config.heightMemoryPicks[currentThompsonHeightIdx];
+    double failures =  ms->config.heightMemoryTries[currentThompsonHeightIdx] - ms->config.heightMemoryPicks[currentThompsonHeightIdx];
     // returns probability that mu <= d given successes and failures.
     double presult = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
     // we want probability that mu > d
@@ -7074,24 +6987,24 @@ void recordBoundingBoxSuccess() {
   }
 }
 
-void recordBoundingBoxFailure() {
-  heightMemoryTries[currentThompsonHeightIdx]++;
-  heightAttemptCounter++;
+void recordBoundingBoxFailure(shared_ptr<MachineState> ms) {
+  ms->config.heightMemoryTries[currentThompsonHeightIdx]++;
+  ms->config.heightAttemptCounter++;
   cout << "Failed to learn bounding box on floor " << currentThompsonHeightIdx << endl;
-  cout << "Tries: " << heightMemoryTries[currentThompsonHeightIdx] << endl;
-  cout << "Picks: " << heightMemoryPicks[currentThompsonHeightIdx] << endl;
+  cout << "Tries: " << ms->config.heightMemoryTries[currentThompsonHeightIdx] << endl;
+  cout << "Picks: " << ms->config.heightMemoryPicks[currentThompsonHeightIdx] << endl;
   int ttotalTries = 0;
   int ttotalPicks = 0;
-  for (int i = 0; i < hmWidth; i++) {
-    ttotalTries += heightMemoryTries[i];
-    ttotalPicks += heightMemoryPicks[i];
+  for (int i = 0; i < ms->config.hmWidth; i++) {
+    ttotalTries += ms->config.heightMemoryTries[i];
+    ttotalPicks += ms->config.heightMemoryPicks[i];
   }
   cout << "Total Tries: " << ttotalTries << endl;
   cout << "Total Picks: " << ttotalPicks << endl;
 }
 
 void restartBBLearning(shared_ptr<MachineState> ms) {
-  recordBoundingBoxFailure();
+  recordBoundingBoxFailure(ms);
   ms->clearStack();
   ms->pushWord("continueHeightLearning"); // continue bounding box learning
 }
@@ -7998,7 +7911,7 @@ void darkServo(shared_ptr<MachineState> ms) {
   // remember, ms->config.currentTableZ is inverted so this is like minus
   double heightAboveTable = ms->config.currentEEPose.pz + ms->config.currentTableZ;
 
-  double heightFactor = heightAboveTable / minHeight;
+  double heightFactor = heightAboveTable / ms->config.minHeight;
 
   int darkX = 0;
   int darkY = 0;
@@ -8074,7 +7987,7 @@ void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces) {
     }
   }
 
-  double heightFactor = 1 / minHeight;
+  double heightFactor = 1 / ms->config.minHeight;
 
   ms->config.reticle = ms->config.vanishingPointReticle;
   ms->config.pilotTarget.px = bestFacePose.px;

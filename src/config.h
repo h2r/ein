@@ -299,7 +299,7 @@ class EinConfig {
   const static int rmiWidth = rmiCellWidth*rmWidth;
 
 
-  double rmDelta = 0.01;
+  constexpr static double rmDelta = 0.01;
   double rangeMap[rmWidth*rmWidth];
   double rangeMapAccumulator[rmWidth*rmWidth];
   double rangeMapMass[rmWidth*rmWidth];
@@ -316,6 +316,91 @@ class EinConfig {
   double graspMemoryReg1[4*rmWidth*rmWidth];
   
   
+
+  const static int hrmWidth = 211; // must be odd
+  const static int hrmHalfWidth = (hrmWidth-1)/2; // must be odd
+  constexpr static double hrmDelta = 0.001;
+  double hiRangeMap[hrmWidth*hrmWidth];
+  double hiRangeMapAccumulator[hrmWidth*hrmWidth];
+  double hiRangeMapMass[hrmWidth*hrmWidth];
+  
+  double hiColorRangeMapAccumulator[3*hrmWidth*hrmWidth];
+  double hiColorRangeMapMass[hrmWidth*hrmWidth];
+  
+  double hiRangeMapReg1[hrmWidth*hrmWidth];
+  double hiRangeMapReg2[hrmWidth*hrmWidth];
+
+
+  double filter[9] = {1.0/16.0, 1.0/8.0, 1.0/16.0, 
+                      1.0/8.0, 1.0/4.0, 1.0/8.0, 
+                      1.0/16.0, 1.0/8.0, 1.0/16.0};;
+  
+  // diagonalKappa: 0.72 deltaDiagonalKappa: 0.01
+  // below .72, the horizontal won when it should have. Set to .67 to be safe.
+  // .67 was a little unreliable, trimming a bit more.
+  double diagonalKappa = 0.60;
+  
+  const static int parzenKernelHalfWidth = 15;
+  const static int parzenKernelWidth = 2*parzenKernelHalfWidth+1;
+  double parzenKernel[parzenKernelWidth*parzenKernelWidth];
+  double parzenKernelSigma = 4.0;
+  //double parzenKernelSigma = 2.0;
+  //double parzenKernelSigma = 1.0; // this is approximately what it should be at 20 cm height
+  //double parzenKernelSigma = 0.5;  
+  // 13.8 cm high -> 2.2 cm gap
+  // 23.8 cm high -> 3.8 cm gap
+  // 4 sigma (centered at 0) should be the gap
+  // TODO can 'adjust' and bounds on the fly during lookup in proportion to the measured depth
+  
+  // assumptions are made here so if these values changes, the code must
+  //  be audited.
+  const static int vmWidth = hrmWidth;
+  const static int vmHalfWidth = hrmHalfWidth;
+  const double vmDelta = hrmDelta;
+  double volumeMap[vmWidth*vmWidth*vmWidth];
+  double volumeMapAccumulator[vmWidth*vmWidth*vmWidth];
+  double volumeMapMass[vmWidth*vmWidth*vmWidth];
+  
+  double vmColorRangeMapAccumulator[3*vmWidth*vmWidth*vmWidth];
+  double vmColorRangeMapMass[vmWidth*vmWidth*vmWidth];
+  
+  const static int parzen3DKernelHalfWidth = 9;
+  const static int parzen3DKernelWidth = 2*parzen3DKernelHalfWidth+1;
+  double parzen3DKernel[parzen3DKernelWidth*parzen3DKernelWidth*parzen3DKernelWidth];
+  double parzen3DKernelSigma = 2.0; 
+  
+  // range map center
+  double rmcX;
+  double rmcY;
+  double rmcZ;
+  
+  double lastiX = 0;
+  double lastiY = 0;
+  double thisiX = 0;
+  double thisiY = 0;
+  
+  
+  int hrmiHeight = hrmWidth;
+  int hrmiWidth = hrmWidth;
+  
+  const static int hmWidth = 4; 
+  int hmiCellWidth = 100;
+  int hmiWidth = hmiCellWidth;
+  int hmiHeight = hmiCellWidth*hmWidth;
+
+
+
+  // height Thompson parameters
+  constexpr static double minHeight = 0.255;//0.09;//-0.10;
+  constexpr static double maxHeight = 0.655;//0.49;//0.3;
+  double heightMemoryTries[hmWidth];
+  double heightMemoryPicks[hmWidth];
+  double heightMemorySample[hmWidth];
+  
+  double heightAttemptCounter = 0;
+  double heightSuccessCounter = 0;
+  double thompsonTries = 50;
+
 
   // config variables that don't seem to be used
 };

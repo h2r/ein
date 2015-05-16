@@ -445,7 +445,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     }
         
     if (ARE_GENERIC_HEIGHT_LEARNING()) {
-      recordBoundingBoxSuccess();
+      recordBoundingBoxSuccess(ms);
     }
 
     double thisPickRate = double(ms->config.graspMemoryPicks[i]) / double(ms->config.graspMemoryTries[i]);
@@ -490,7 +490,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
     sad();
     if (ARE_GENERIC_HEIGHT_LEARNING()) {
-      recordBoundingBoxFailure();
+      recordBoundingBoxFailure(ms);
     }
   }
   copyGraspMemoryTriesToClassGraspMemoryTries(ms);
@@ -576,14 +576,14 @@ CODE(196713)     // capslock + I
     cout << "gripperPosition: " << gripperPosition << " gripperThresh: " << gripperThresh << endl;
     if (!isGripperGripping()) {
       if (ARE_GENERIC_HEIGHT_LEARNING()) {
-        recordBoundingBoxFailure();
+        recordBoundingBoxFailure(ms);
       }
       cout << "Failed grasp." << endl;
       //ms->pushWord('Y'); // pause stack execution
       ms->pushCopies("beep", 15); // beep
     } else {
       if (ARE_GENERIC_HEIGHT_LEARNING()) {
-        recordBoundingBoxSuccess();
+        recordBoundingBoxSuccess(ms);
       }
       graspSuccessCounter++;
       cout << "Successful grasp." << endl;
@@ -870,7 +870,7 @@ REGISTER_WORD(ShiftGraspGear)
 WORD(PrepareToApplyGraspFilterFor1)
 CODE(1048681)     // numlock + i
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  prepareGraspFilter1();
+  prepareGraspFilter1(ms);
 }
 END_WORD
 REGISTER_WORD(PrepareToApplyGraspFilterFor1)
@@ -878,7 +878,7 @@ REGISTER_WORD(PrepareToApplyGraspFilterFor1)
 WORD(PrepareToApplyGraspFilterFor2)
 CODE(1048687)     // numlock + o
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  prepareGraspFilter2();
+  prepareGraspFilter2(ms);
 }
 END_WORD
 REGISTER_WORD(PrepareToApplyGraspFilterFor2)
@@ -886,7 +886,7 @@ REGISTER_WORD(PrepareToApplyGraspFilterFor2)
 WORD(PrepareToApplyGraspFilterFor3)
 CODE(1048693)     // numlock + u
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  prepareGraspFilter3();
+  prepareGraspFilter3(ms);
 }
 END_WORD
 REGISTER_WORD(PrepareToApplyGraspFilterFor3)
@@ -894,7 +894,7 @@ REGISTER_WORD(PrepareToApplyGraspFilterFor3)
 WORD(PrepareToApplyGraspFilterFor4)
 CODE(1048688)     // numlock + p
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  prepareGraspFilter4();
+  prepareGraspFilter4(ms);
 }
 END_WORD
 REGISTER_WORD(PrepareToApplyGraspFilterFor4)
@@ -999,7 +999,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
                         1.0/8.0, 1.0/4.0, 1.0/8.0, 
                         1.0/16.0, 1.0/8.0, 1.0/16.0};
   for (int fx = 0; fx < 9; fx++) {
-    filter[fx] = tfilter[fx];
+    ms->config.filter[fx] = tfilter[fx];
   }
 }
 END_WORD
@@ -1155,7 +1155,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   if (ARE_GENERIC_PICK_LEARNING()) {
     if (thompsonHardCutoff) {
-      if (graspAttemptCounter >= thompsonTries) {
+      if (graspAttemptCounter >= ms->config.thompsonTries) {
         cout << "Clearing call stack because we did " << graspAttemptCounter << " tries." << endl;
         ms->clearStack();
         ms->pushCopies("beep", 15); // beep
@@ -1165,7 +1165,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     
     if (thompsonAdaptiveCutoff) {
       if ( (thompsonPickHaltFlag) ||
-           (graspAttemptCounter >= thompsonTries) ) {
+           (graspAttemptCounter >= ms->config.thompsonTries) ) {
         cout << "Clearing call stack. thompsonPickHaltFlag = " << thompsonPickHaltFlag << 
           " and we did " << graspAttemptCounter << " tries." << endl;
         ms->clearStack();
