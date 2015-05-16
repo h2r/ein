@@ -91,6 +91,16 @@ class EinConfig {
   int epRingBufferEnd = 0;
   int rgRingBufferEnd = 0;
 
+
+  std::vector<Mat> imRingBuffer;
+  std::vector<geometry_msgs::Pose> epRingBuffer;
+  std::vector<double> rgRingBuffer;
+  
+  std::vector<ros::Time> imRBTimes;
+  std::vector<ros::Time> epRBTimes;
+  std::vector<ros::Time> rgRBTimes;
+
+
   movementState currentMovementState = STOPPED;
   patrolState currentPatrolState = IDLING;
   patrolMode currentPatrolMode = ONCE;
@@ -257,6 +267,8 @@ class EinConfig {
   eePose bestOrientationEEPose = straightDown;
   double bestOrientationAngle = 0;
 
+  int bfc = 0;
+  int bfc_period = 3;
 
 
   // config variables that don't seem to be used

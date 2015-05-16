@@ -105,11 +105,6 @@ shared_ptr<MachineState> pMachineState;
 
 tf::TransformListener* tfListener;
 
-
-int bfc = 0;
-int bfc_period = 3;
-int resend_times = 1;
-
 baxter_core_msgs::SolvePositionIK ikRequest;
 baxter_core_msgs::SolvePositionIK lastGoodIkRequest;
 
@@ -127,13 +122,6 @@ ros::Publisher einPub;
 
 
 
-std::vector<Mat> imRingBuffer;
-std::vector<geometry_msgs::Pose> epRingBuffer;
-std::vector<double> rgRingBuffer;
-
-std::vector<ros::Time> imRBTimes;
-std::vector<ros::Time> epRBTimes;
-std::vector<ros::Time> rgRBTimes;
 
 Mat rangeogramImage;
 Mat rangemapImage;
@@ -1115,19 +1103,19 @@ Mat accumulatedImageMass;
 // start pilot prototypes 
 ////////////////////////////////////////////////
 
-int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack = 0);
-int getRingRangeAtTime(ros::Time t, double &value, int drawSlack = 0);
-int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack = 0);
+int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int drawSlack = 0);
+int getRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double &value, int drawSlack = 0);
+int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::Pose &value, int drawSlack = 0);
 extern "C" {
 double cephes_incbet(double a, double b, double x) ;
 }
-void setRingImageAtTime(ros::Time t, Mat& imToSet);
-void setRingRangeAtTime(ros::Time t, double rgToSet);
-void setRingPoseAtTime(ros::Time t, geometry_msgs::Pose epToSet);
-void imRingBufferAdvance();
-void rgRingBufferAdvance();
-void epRingBufferAdvance();
-void allRingBuffersAdvance(ros::Time t);
+void setRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& imToSet);
+void setRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double rgToSet);
+void setRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::Pose epToSet);
+void imRingBufferAdvance(shared_ptr<MachineState> ms);
+void rgRingBufferAdvance(shared_ptr<MachineState> ms);
+void epRingBufferAdvance(shared_ptr<MachineState> ms);
+void allRingBuffersAdvance(shared_ptr<MachineState> ms, ros::Time t);
 
 void recordReadyRangeReadings(shared_ptr<MachineState> ms);
 void jointCallback(const sensor_msgs::JointState& js);
@@ -1377,7 +1365,7 @@ void neutral() {
 }
 
 
-int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
+int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int drawSlack) {
   if (pMachineState->config.imRingBufferStart == pMachineState->config.imRingBufferEnd) {
     
 #ifdef DEBUG_RING_BUFFER
@@ -1386,22 +1374,22 @@ int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
     return 0;
   } else {
     int earliestSlot = pMachineState->config.imRingBufferStart;
-    ros::Duration deltaTdur = t - imRBTimes[earliestSlot];
+    ros::Duration deltaTdur = t - ms->config.imRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER
       cout << "Denied out of order range value in getRingImageAtTime(): Too small." << endl;
-      cout << "  getRingImageAtTime() pMachineState->config.imRingBufferStart pMachineState->config.imRingBufferEnd t imRBTimes[earliestSlot]: " << 
-	pMachineState->config.imRingBufferStart << " " << pMachineState->config.imRingBufferEnd << " " << t << " " << imRBTimes[earliestSlot] << endl;
+      cout << "  getRingImageAtTime() pMachineState->config.imRingBufferStart pMachineState->config.imRingBufferEnd t ms->config.imRBTimes[earliestSlot]: " << 
+	pMachineState->config.imRingBufferStart << " " << pMachineState->config.imRingBufferEnd << " " << t << " " << ms->config.imRBTimes[earliestSlot] << endl;
 #endif
       return -1;
     } else if (pMachineState->config.imRingBufferStart < pMachineState->config.imRingBufferEnd) {
       for (int s = pMachineState->config.imRingBufferStart; s < pMachineState->config.imRingBufferEnd; s++) {
-	ros::Duration deltaTdurPre = t - imRBTimes[s];
-	ros::Duration deltaTdurPost = t - imRBTimes[s+1];
+	ros::Duration deltaTdurPre = t - ms->config.imRBTimes[s];
+	ros::Duration deltaTdurPost = t - ms->config.imRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  Mat m1 = imRingBuffer[s];
-	  Mat m2 = imRingBuffer[s+1];
+	  Mat m1 = ms->config.imRingBuffer[s];
+	  Mat m2 = ms->config.imRingBuffer[s+1];
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
 	  double totalWeight = w1 + w2;
@@ -1428,11 +1416,11 @@ int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
       return -2;
     } else {
       for (int s = pMachineState->config.imRingBufferStart; s < pMachineState->config.imRingBufferSize-1; s++) {
-	ros::Duration deltaTdurPre = t - imRBTimes[s];
-	ros::Duration deltaTdurPost = t - imRBTimes[s+1];
+	ros::Duration deltaTdurPre = t - ms->config.imRBTimes[s];
+	ros::Duration deltaTdurPost = t - ms->config.imRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  Mat m1 = imRingBuffer[s];
-	  Mat m2 = imRingBuffer[s+1];
+	  Mat m1 = ms->config.imRingBuffer[s];
+	  Mat m2 = ms->config.imRingBuffer[s+1];
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
 	  double totalWeight = w1 + w2;
@@ -1450,11 +1438,11 @@ int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
 	  return 1;
 	}
       } {
-	ros::Duration deltaTdurPre = t - imRBTimes[pMachineState->config.imRingBufferSize-1];
-	ros::Duration deltaTdurPost = t - imRBTimes[0];
+	ros::Duration deltaTdurPre = t - ms->config.imRBTimes[pMachineState->config.imRingBufferSize-1];
+	ros::Duration deltaTdurPost = t - ms->config.imRBTimes[0];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  Mat m1 = imRingBuffer[pMachineState->config.imRingBufferSize-1];
-	  Mat m2 = imRingBuffer[0];
+	  Mat m1 = ms->config.imRingBuffer[pMachineState->config.imRingBufferSize-1];
+	  Mat m2 = ms->config.imRingBuffer[0];
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
 	  double totalWeight = w1 + w2;
@@ -1472,11 +1460,11 @@ int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
 	  return 1;
 	}
       } for (int s = 0; s < pMachineState->config.imRingBufferEnd; s++) {
-	ros::Duration deltaTdurPre = t - imRBTimes[s];
-	ros::Duration deltaTdurPost = t - imRBTimes[s+1];
+	ros::Duration deltaTdurPre = t - ms->config.imRBTimes[s];
+	ros::Duration deltaTdurPost = t - ms->config.imRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  Mat m1 = imRingBuffer[s];
-	  Mat m2 = imRingBuffer[s+1];
+	  Mat m1 = ms->config.imRingBuffer[s];
+	  Mat m2 = ms->config.imRingBuffer[s+1];
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
 	  double totalWeight = w1 + w2;
@@ -1502,7 +1490,7 @@ int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack) {
     }
   }
 }
-int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
+int getRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double &value, int drawSlack) {
   if (pMachineState->config.rgRingBufferStart == pMachineState->config.rgRingBufferEnd) {
 #ifdef DEBUG_RING_BUFFER
     cout << "Denied request in getRingRangeAtTime(): Buffer empty." << endl;
@@ -1510,7 +1498,7 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
     return 0;
   } else {
     int earliestSlot = pMachineState->config.rgRingBufferStart;
-    ros::Duration deltaTdur = t - rgRBTimes[earliestSlot];
+    ros::Duration deltaTdur = t - ms->config.rgRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER
@@ -1519,11 +1507,11 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
       return -1;
     } else if (pMachineState->config.rgRingBufferStart < pMachineState->config.rgRingBufferEnd) {
       for (int s = pMachineState->config.rgRingBufferStart; s < pMachineState->config.rgRingBufferEnd; s++) {
-	ros::Duration deltaTdurPre = t - rgRBTimes[s];
-	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
+	ros::Duration deltaTdurPre = t - ms->config.rgRBTimes[s];
+	ros::Duration deltaTdurPost = t - ms->config.rgRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  double r1 = rgRingBuffer[s];
-	  double r2 = rgRingBuffer[s+1];
+	  double r1 = ms->config.rgRingBuffer[s];
+	  double r2 = ms->config.rgRingBuffer[s+1];
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
 	  double totalWeight = w1 + w2;
@@ -1545,11 +1533,11 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
       return -2;
     } else {
       for (int s = pMachineState->config.rgRingBufferStart; s < pMachineState->config.rgRingBufferSize-1; s++) {
-	ros::Duration deltaTdurPre = t - rgRBTimes[s];
-	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
+	ros::Duration deltaTdurPre = t - ms->config.rgRBTimes[s];
+	ros::Duration deltaTdurPost = t - ms->config.rgRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  double r1 = rgRingBuffer[s];
-	  double r2 = rgRingBuffer[s+1];
+	  double r1 = ms->config.rgRingBuffer[s];
+	  double r2 = ms->config.rgRingBuffer[s+1];
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
 	  double totalWeight = w1 + w2;
@@ -1564,11 +1552,11 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
 	  return 1;
 	}
       } {
-	ros::Duration deltaTdurPre = t - rgRBTimes[pMachineState->config.rgRingBufferSize-1];
-	ros::Duration deltaTdurPost = t - rgRBTimes[0];
+	ros::Duration deltaTdurPre = t - ms->config.rgRBTimes[pMachineState->config.rgRingBufferSize-1];
+	ros::Duration deltaTdurPost = t - ms->config.rgRBTimes[0];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  double r1 = rgRingBuffer[pMachineState->config.rgRingBufferSize-1];
-	  double r2 = rgRingBuffer[0];
+	  double r1 = ms->config.rgRingBuffer[pMachineState->config.rgRingBufferSize-1];
+	  double r2 = ms->config.rgRingBuffer[0];
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
 	  double totalWeight = w1 + w2;
@@ -1583,11 +1571,11 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
 	  return 1;
 	}
       } for (int s = 0; s < pMachineState->config.rgRingBufferEnd; s++) {
-	ros::Duration deltaTdurPre = t - rgRBTimes[s];
-	ros::Duration deltaTdurPost = t - rgRBTimes[s+1];
+	ros::Duration deltaTdurPre = t - ms->config.rgRBTimes[s];
+	ros::Duration deltaTdurPost = t - ms->config.rgRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  double r1 = rgRingBuffer[s];
-	  double r2 = rgRingBuffer[s+1];
+	  double r1 = ms->config.rgRingBuffer[s];
+	  double r2 = ms->config.rgRingBuffer[s+1];
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
 	  double totalWeight = w1 + w2;
@@ -1610,28 +1598,28 @@ int getRingRangeAtTime(ros::Time t, double &value, int drawSlack) {
     }
   }
 }
-int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
-  if (pMachineState->config.epRingBufferStart == pMachineState->config.epRingBufferEnd) {
+int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
+  if (ms->config.epRingBufferStart == ms->config.epRingBufferEnd) {
 #ifdef DEBUG_RING_BUFFER
     cout << "Denied request in getRingPoseAtTime(): Buffer empty." << endl;
 #endif
     return 0;
   } else {
-    int earliestSlot = pMachineState->config.epRingBufferStart;
-    ros::Duration deltaTdur = t - epRBTimes[earliestSlot];
+    int earliestSlot = ms->config.epRingBufferStart;
+    ros::Duration deltaTdur = t - ms->config.epRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER
       cout << "Denied out of order range value in getRingPoseAtTime(): Too small." << endl;
 #endif
       return -1;
-    } else if (pMachineState->config.epRingBufferStart < pMachineState->config.epRingBufferEnd) {
-      for (int s = pMachineState->config.epRingBufferStart; s < pMachineState->config.epRingBufferEnd; s++) {
-	ros::Duration deltaTdurPre = t - epRBTimes[s];
-	ros::Duration deltaTdurPost = t - epRBTimes[s+1];
+    } else if (ms->config.epRingBufferStart < ms->config.epRingBufferEnd) {
+      for (int s = ms->config.epRingBufferStart; s < ms->config.epRingBufferEnd; s++) {
+	ros::Duration deltaTdurPre = t - ms->config.epRBTimes[s];
+	ros::Duration deltaTdurPost = t - ms->config.epRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  Quaternionf q1 = extractQuatFromPose(epRingBuffer[s]);
-	  Quaternionf q2 = extractQuatFromPose(epRingBuffer[s+1]);
+	  Quaternionf q1 = extractQuatFromPose(ms->config.epRingBuffer[s]);
+	  Quaternionf q2 = extractQuatFromPose(ms->config.epRingBuffer[s+1]);
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
 	  double totalWeight = w1 + w2;
@@ -1643,18 +1631,18 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	  value.orientation.x = tTerp.x();
 	  value.orientation.y = tTerp.y();
 	  value.orientation.z = tTerp.z();
-	  value.position.x = epRingBuffer[s].position.x*w1 + epRingBuffer[s+1].position.x*w2;
-	  value.position.y = epRingBuffer[s].position.y*w1 + epRingBuffer[s+1].position.y*w2;
-	  value.position.z = epRingBuffer[s].position.z*w1 + epRingBuffer[s+1].position.z*w2;
+	  value.position.x = ms->config.epRingBuffer[s].position.x*w1 + ms->config.epRingBuffer[s+1].position.x*w2;
+	  value.position.y = ms->config.epRingBuffer[s].position.y*w1 + ms->config.epRingBuffer[s+1].position.y*w2;
+	  value.position.z = ms->config.epRingBuffer[s].position.z*w1 + ms->config.epRingBuffer[s+1].position.z*w2;
 #ifdef DEBUG_RING_BUFFER
           cout << value << endl;
-          cout << "33333c " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
-          cout << "44444c " << epRingBuffer[s+1] << endl;
+          cout << "33333c " << ms->config.epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+          cout << "44444c " << ms->config.epRingBuffer[s+1] << endl;
 #endif
 
 	  int newStart = s;
 	  if(drawSlack) {
-	    pMachineState->config.epRingBufferStart = newStart;
+	    ms->config.epRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
@@ -1665,12 +1653,12 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 #endif
       return -2;
     } else {
-      for (int s = pMachineState->config.epRingBufferStart; s < pMachineState->config.epRingBufferSize-1; s++) {
-	ros::Duration deltaTdurPre = t - epRBTimes[s];
-	ros::Duration deltaTdurPost = t - epRBTimes[s+1];
+      for (int s = ms->config.epRingBufferStart; s < ms->config.epRingBufferSize-1; s++) {
+	ros::Duration deltaTdurPre = t - ms->config.epRBTimes[s];
+	ros::Duration deltaTdurPost = t - ms->config.epRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  Quaternionf q1 = extractQuatFromPose(epRingBuffer[s]);
-	  Quaternionf q2 = extractQuatFromPose(epRingBuffer[s+1]);
+	  Quaternionf q1 = extractQuatFromPose(ms->config.epRingBuffer[s]);
+	  Quaternionf q2 = extractQuatFromPose(ms->config.epRingBuffer[s+1]);
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
 	  double totalWeight = w1 + w2;
@@ -1682,27 +1670,27 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	  value.orientation.x = tTerp.x();
 	  value.orientation.y = tTerp.y();
 	  value.orientation.z = tTerp.z();
-	  value.position.x = epRingBuffer[s].position.x*w1 + epRingBuffer[s+1].position.x*w2;
-	  value.position.y = epRingBuffer[s].position.y*w1 + epRingBuffer[s+1].position.y*w2;
-	  value.position.z = epRingBuffer[s].position.z*w1 + epRingBuffer[s+1].position.z*w2;
+	  value.position.x = ms->config.epRingBuffer[s].position.x*w1 + ms->config.epRingBuffer[s+1].position.x*w2;
+	  value.position.y = ms->config.epRingBuffer[s].position.y*w1 + ms->config.epRingBuffer[s+1].position.y*w2;
+	  value.position.z = ms->config.epRingBuffer[s].position.z*w1 + ms->config.epRingBuffer[s+1].position.z*w2;
 #ifdef DEBUG_RING_BUFFER
           cout << value << endl;
-          cout << "33333b " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
-          cout << "44444b " << epRingBuffer[s+1] << endl;
+          cout << "33333b " << ms->config.epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+          cout << "44444b " << ms->config.epRingBuffer[s+1] << endl;
 #endif
 
 	  int newStart = s;
 	  if(drawSlack) {
-	    pMachineState->config.epRingBufferStart = newStart;
+	    ms->config.epRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
       } {
-	ros::Duration deltaTdurPre = t - epRBTimes[pMachineState->config.epRingBufferSize-1];
-	ros::Duration deltaTdurPost = t - epRBTimes[0];
+	ros::Duration deltaTdurPre = t - ms->config.epRBTimes[ms->config.epRingBufferSize-1];
+	ros::Duration deltaTdurPost = t - ms->config.epRBTimes[0];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  Quaternionf q1 = extractQuatFromPose(epRingBuffer[pMachineState->config.epRingBufferSize-1]);
-	  Quaternionf q2 = extractQuatFromPose(epRingBuffer[0]);
+	  Quaternionf q1 = extractQuatFromPose(ms->config.epRingBuffer[ms->config.epRingBufferSize-1]);
+	  Quaternionf q2 = extractQuatFromPose(ms->config.epRingBuffer[0]);
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
 	  double totalWeight = w1 + w2;
@@ -1714,27 +1702,27 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	  value.orientation.x = tTerp.x();
 	  value.orientation.y = tTerp.y();
 	  value.orientation.z = tTerp.z();
-	  value.position.x = epRingBuffer[pMachineState->config.epRingBufferSize-1].position.x*w1 + epRingBuffer[0].position.x*w2;
-	  value.position.y = epRingBuffer[pMachineState->config.epRingBufferSize-1].position.y*w1 + epRingBuffer[0].position.y*w2;
-	  value.position.z = epRingBuffer[pMachineState->config.epRingBufferSize-1].position.z*w1 + epRingBuffer[0].position.z*w2;
+	  value.position.x = ms->config.epRingBuffer[ms->config.epRingBufferSize-1].position.x*w1 + ms->config.epRingBuffer[0].position.x*w2;
+	  value.position.y = ms->config.epRingBuffer[ms->config.epRingBufferSize-1].position.y*w1 + ms->config.epRingBuffer[0].position.y*w2;
+	  value.position.z = ms->config.epRingBuffer[ms->config.epRingBufferSize-1].position.z*w1 + ms->config.epRingBuffer[0].position.z*w2;
 #ifdef DEBUG_RING_BUFFER
           cout << value << endl;
-          cout << "33333a " << epRingBuffer[pMachineState->config.epRingBufferSize-1] << " " << w1 << " " << w2 << " " << totalWeight << endl;
-          cout << "44444a " << epRingBuffer[0] << endl;
+          cout << "33333a " << ms->config.epRingBuffer[ms->config.epRingBufferSize-1] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+          cout << "44444a " << ms->config.epRingBuffer[0] << endl;
 #endif
 
-	  int newStart = pMachineState->config.epRingBufferSize-1;
+	  int newStart = ms->config.epRingBufferSize-1;
 	  if(drawSlack) {
-	    pMachineState->config.epRingBufferStart = newStart;
+	    ms->config.epRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
-      } for (int s = 0; s < pMachineState->config.epRingBufferEnd; s++) {
-	ros::Duration deltaTdurPre = t - epRBTimes[s];
-	ros::Duration deltaTdurPost = t - epRBTimes[s+1];
+      } for (int s = 0; s < ms->config.epRingBufferEnd; s++) {
+	ros::Duration deltaTdurPre = t - ms->config.epRBTimes[s];
+	ros::Duration deltaTdurPost = t - ms->config.epRBTimes[s+1];
 	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  Quaternionf q1 = extractQuatFromPose(epRingBuffer[s]);
-	  Quaternionf q2 = extractQuatFromPose(epRingBuffer[s+1]);
+	  Quaternionf q1 = extractQuatFromPose(ms->config.epRingBuffer[s]);
+	  Quaternionf q2 = extractQuatFromPose(ms->config.epRingBuffer[s+1]);
 	  double w1 = deltaTdurPre.toSec();
 	  double w2 = -deltaTdurPost.toSec();
 	  double totalWeight = w1 + w2;
@@ -1746,18 +1734,18 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
 	  value.orientation.x = tTerp.x();
 	  value.orientation.y = tTerp.y();
 	  value.orientation.z = tTerp.z();
-	  value.position.x = epRingBuffer[s].position.x*w1 + epRingBuffer[s+1].position.x*w2;
-	  value.position.y = epRingBuffer[s].position.y*w1 + epRingBuffer[s+1].position.y*w2;
-	  value.position.z = epRingBuffer[s].position.z*w1 + epRingBuffer[s+1].position.z*w2;
+	  value.position.x = ms->config.epRingBuffer[s].position.x*w1 + ms->config.epRingBuffer[s+1].position.x*w2;
+	  value.position.y = ms->config.epRingBuffer[s].position.y*w1 + ms->config.epRingBuffer[s+1].position.y*w2;
+	  value.position.z = ms->config.epRingBuffer[s].position.z*w1 + ms->config.epRingBuffer[s+1].position.z*w2;
 #ifdef DEBUG_RING_BUFFER
           cout << value << endl;
-          cout << "33333d " << epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
-          cout << "44444d " << epRingBuffer[s+1] << endl;
+          cout << "33333d " << ms->config.epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+          cout << "44444d " << ms->config.epRingBuffer[s+1] << endl;
 #endif
           
 	  int newStart = s;
 	  if(drawSlack) {
-	    pMachineState->config.epRingBufferStart = newStart;
+	    ms->config.epRingBufferStart = newStart;
 	  }
 	  return 1;
 	}
@@ -1771,189 +1759,189 @@ int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
   }
 }
 
-void setRingImageAtTime(ros::Time t, Mat& imToSet) {
+void setRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& imToSet) {
 #ifdef DEBUG_RING_BUFFER
-  cout << "setRingImageAtTime() start end size: " << pMachineState->config.imRingBufferStart << " " << pMachineState->config.imRingBufferEnd << " " << pMachineState->config.imRingBufferSize << endl;
+  cout << "setRingImageAtTime() start end size: " << ms->config.imRingBufferStart << " " << ms->config.imRingBufferEnd << " " << ms->config.imRingBufferSize << endl;
 #endif
 
   // if the ring buffer is empty, always re-initialize
-  if (pMachineState->config.imRingBufferStart == pMachineState->config.imRingBufferEnd) {
-    pMachineState->config.imRingBufferStart = 0;
-    pMachineState->config.imRingBufferEnd = 1;
-    imRingBuffer[0] = imToSet;
-    imRBTimes[0] = t;
+  if (ms->config.imRingBufferStart == ms->config.imRingBufferEnd) {
+    ms->config.imRingBufferStart = 0;
+    ms->config.imRingBufferEnd = 1;
+    ms->config.imRingBuffer[0] = imToSet;
+    ms->config.imRBTimes[0] = t;
   } else {
-    ros::Duration deltaTdur = t - imRBTimes[pMachineState->config.imRingBufferStart];
+    ros::Duration deltaTdur = t - ms->config.imRBTimes[ms->config.imRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER 
-      cout << "Dropped out of order range value in setRingImageAtTime(). " << imRBTimes[pMachineState->config.imRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+      cout << "Dropped out of order range value in setRingImageAtTime(). " << ms->config.imRBTimes[ms->config.ms->config.imRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
 #endif
     } else {
-      int slot = pMachineState->config.imRingBufferEnd;
-      imRingBuffer[slot] = imToSet;
-      imRBTimes[slot] = t;
+      int slot = ms->config.imRingBufferEnd;
+      ms->config.imRingBuffer[slot] = imToSet;
+      ms->config.imRBTimes[slot] = t;
 
-      if (pMachineState->config.imRingBufferEnd >= (pMachineState->config.imRingBufferSize-1)) {
-	pMachineState->config.imRingBufferEnd = 0;
+      if (ms->config.imRingBufferEnd >= (ms->config.imRingBufferSize-1)) {
+	ms->config.imRingBufferEnd = 0;
       } else {
-	pMachineState->config.imRingBufferEnd++;
+	ms->config.imRingBufferEnd++;
       }
 
-      if (pMachineState->config.imRingBufferEnd == pMachineState->config.imRingBufferStart) {
-	if (pMachineState->config.imRingBufferStart >= (pMachineState->config.imRingBufferSize-1)) {
-	  pMachineState->config.imRingBufferStart = 0;
+      if (ms->config.imRingBufferEnd == ms->config.imRingBufferStart) {
+	if (ms->config.imRingBufferStart >= (ms->config.imRingBufferSize-1)) {
+	  ms->config.imRingBufferStart = 0;
 	} else {
-	  pMachineState->config.imRingBufferStart++;
+	  ms->config.imRingBufferStart++;
 	}
       }
     }
   }
 }
-void setRingRangeAtTime(ros::Time t, double rgToSet) {
+void setRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double rgToSet) {
 #ifdef DEBUG_RING_BUFFER
-  cout << "setRingRangeAtTime() start end size: " << pMachineState->config.rgRingBufferStart << " " << pMachineState->config.rgRingBufferEnd << " " << pMachineState->config.rgRingBufferSize << endl;
+  cout << "setRingRangeAtTime() start end size: " << ms->config.rgRingBufferStart << " " << ms->config.rgRingBufferEnd << " " << ms->config.rgRingBufferSize << endl;
 #endif
 
   // if the ring buffer is empty, always re-initialize
-  if (pMachineState->config.rgRingBufferStart == pMachineState->config.rgRingBufferEnd) {
-    pMachineState->config.rgRingBufferStart = 0;
-    pMachineState->config.rgRingBufferEnd = 1;
-    rgRingBuffer[0] = rgToSet;
-    rgRBTimes[0] = t;
+  if (ms->config.rgRingBufferStart == ms->config.rgRingBufferEnd) {
+    ms->config.rgRingBufferStart = 0;
+    ms->config.rgRingBufferEnd = 1;
+    ms->config.rgRingBuffer[0] = rgToSet;
+    ms->config.rgRBTimes[0] = t;
   } else {
-    ros::Duration deltaTdur = t - rgRBTimes[pMachineState->config.rgRingBufferStart];
+    ros::Duration deltaTdur = t - ms->config.rgRBTimes[ms->config.rgRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER 
-      cout << "Dropped out of order range value in setRingRangeAtTime(). " << rgRBTimes[pMachineState->config.rgRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+      cout << "Dropped out of order range value in setRingRangeAtTime(). " << ms->config.rgRBTimes[ms->config.rgRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
 #endif
     } else {
-      int slot = pMachineState->config.rgRingBufferEnd;
-      rgRingBuffer[slot] = rgToSet;
-      rgRBTimes[slot] = t;
+      int slot = ms->config.rgRingBufferEnd;
+      ms->config.rgRingBuffer[slot] = rgToSet;
+      ms->config.rgRBTimes[slot] = t;
 
-      if (pMachineState->config.rgRingBufferEnd >= (pMachineState->config.rgRingBufferSize-1)) {
-	pMachineState->config.rgRingBufferEnd = 0;
+      if (ms->config.rgRingBufferEnd >= (ms->config.rgRingBufferSize-1)) {
+	ms->config.rgRingBufferEnd = 0;
       } else {
-	pMachineState->config.rgRingBufferEnd++;
+	ms->config.rgRingBufferEnd++;
       }
 
-      if (pMachineState->config.rgRingBufferEnd == pMachineState->config.rgRingBufferStart) {
-	if (pMachineState->config.rgRingBufferStart >= (pMachineState->config.rgRingBufferSize-1)) {
-	  pMachineState->config.rgRingBufferStart = 0;
+      if (ms->config.rgRingBufferEnd == ms->config.rgRingBufferStart) {
+	if (ms->config.rgRingBufferStart >= (ms->config.rgRingBufferSize-1)) {
+	  ms->config.rgRingBufferStart = 0;
 	} else {
-	  pMachineState->config.rgRingBufferStart++;
+	  ms->config.rgRingBufferStart++;
 	}
       }
     }
   }
 }
-void setRingPoseAtTime(ros::Time t, geometry_msgs::Pose epToSet) {
+void setRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::Pose epToSet) {
 #ifdef DEBUG_RING_BUFFER
-  cout << "setRingPoseAtTime() start end size: " << pMachineState->config.epRingBufferStart << " " << pMachineState->config.epRingBufferEnd << " " << pMachineState->config.epRingBufferSize << endl;
+  cout << "setRingPoseAtTime() start end size: " << ms->config.epRingBufferStart << " " << ms->config.epRingBufferEnd << " " << ms->config.epRingBufferSize << endl;
 #endif
 
   // if the ring buffer is empty, always re-initialize
-  if (pMachineState->config.epRingBufferStart == pMachineState->config.epRingBufferEnd) {
-    pMachineState->config.epRingBufferStart = 0;
-    pMachineState->config.epRingBufferEnd = 1;
-    epRingBuffer[0] = epToSet;
+  if (ms->config.epRingBufferStart == ms->config.epRingBufferEnd) {
+    ms->config.epRingBufferStart = 0;
+    ms->config.epRingBufferEnd = 1;
+    ms->config.epRingBuffer[0] = epToSet;
 #ifdef DEBUG_RING_BUFFER
     cout << epToSet << endl;
-    cout << "11111 " << epRingBuffer[0] << endl;
+    cout << "11111 " << ms->config.epRingBuffer[0] << endl;
 #endif
-    epRBTimes[0] = t;
+    ms->config.epRBTimes[0] = t;
   } else {
-    ros::Duration deltaTdur = t - epRBTimes[pMachineState->config.epRingBufferStart];
+    ros::Duration deltaTdur = t - ms->config.epRBTimes[ms->config.epRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER 
-      cout << "Dropped out of order range value in setRingPoseAtTime(). " << epRBTimes[pMachineState->config.epRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+      cout << "Dropped out of order range value in setRingPoseAtTime(). " << ms->config.epRBTimes[ms->config.epRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
 #endif
     } else {
-      int slot = pMachineState->config.epRingBufferEnd;
-      epRingBuffer[slot] = epToSet;
+      int slot = ms->config.epRingBufferEnd;
+      ms->config.epRingBuffer[slot] = epToSet;
 #ifdef DEBUG_RING_BUFFER
       cout << epToSet << endl;
-      cout << "22222" << epRingBuffer[slot] << endl;
+      cout << "22222" << ms->config.epRingBuffer[slot] << endl;
 #endif
-      epRBTimes[slot] = t;
+      ms->config.epRBTimes[slot] = t;
 
-      if (pMachineState->config.epRingBufferEnd >= (pMachineState->config.epRingBufferSize-1)) {
-	pMachineState->config.epRingBufferEnd = 0;
+      if (ms->config.epRingBufferEnd >= (ms->config.epRingBufferSize-1)) {
+	ms->config.epRingBufferEnd = 0;
       } else {
-	pMachineState->config.epRingBufferEnd++;
+	ms->config.epRingBufferEnd++;
       }
 
-      if (pMachineState->config.epRingBufferEnd == pMachineState->config.epRingBufferStart) {
-	if (pMachineState->config.epRingBufferStart >= (pMachineState->config.epRingBufferSize-1)) {
-	  pMachineState->config.epRingBufferStart = 0;
+      if (ms->config.epRingBufferEnd == ms->config.epRingBufferStart) {
+	if (ms->config.epRingBufferStart >= (ms->config.epRingBufferSize-1)) {
+	  ms->config.epRingBufferStart = 0;
 	} else {
-	  pMachineState->config.epRingBufferStart++;
+	  ms->config.epRingBufferStart++;
 	}
       }
     }
   }
 }
 
-void imRingBufferAdvance() {
-  if (pMachineState->config.imRingBufferEnd != pMachineState->config.imRingBufferStart) {
-    if (pMachineState->config.imRingBufferStart >= (pMachineState->config.imRingBufferSize-1)) {
-      pMachineState->config.imRingBufferStart = 0;
+void imRingBufferAdvance(shared_ptr<MachineState> ms) {
+  if (ms->config.imRingBufferEnd != ms->config.imRingBufferStart) {
+    if (ms->config.imRingBufferStart >= (ms->config.imRingBufferSize-1)) {
+      ms->config.imRingBufferStart = 0;
     } else {
-      pMachineState->config.imRingBufferStart++;
+      ms->config.imRingBufferStart++;
     }
   }
 }
-void rgRingBufferAdvance() {
-  if (pMachineState->config.rgRingBufferEnd != pMachineState->config.rgRingBufferStart) {
-    if (pMachineState->config.rgRingBufferStart >= (pMachineState->config.rgRingBufferSize-1)) {
-      pMachineState->config.rgRingBufferStart = 0;
+void rgRingBufferAdvance(shared_ptr<MachineState> ms) {
+  if (ms->config.rgRingBufferEnd != ms->config.rgRingBufferStart) {
+    if (ms->config.rgRingBufferStart >= (ms->config.rgRingBufferSize-1)) {
+      ms->config.rgRingBufferStart = 0;
     } else {
-      pMachineState->config.rgRingBufferStart++;
+      ms->config.rgRingBufferStart++;
     }
   }
 }
-void epRingBufferAdvance() {
-  if (pMachineState->config.epRingBufferEnd != pMachineState->config.epRingBufferStart) {
-    if (pMachineState->config.epRingBufferStart >= (pMachineState->config.epRingBufferSize-1)) {
-      pMachineState->config.epRingBufferStart = 0;
+void epRingBufferAdvance(shared_ptr<MachineState> ms) {
+  if (ms->config.epRingBufferEnd != ms->config.epRingBufferStart) {
+    if (ms->config.epRingBufferStart >= (ms->config.epRingBufferSize-1)) {
+      ms->config.epRingBufferStart = 0;
     } else {
-      pMachineState->config.epRingBufferStart++;
+      ms->config.epRingBufferStart++;
     }
   }
 }
 
 // advance the buffers until we have only enough
 //  data to account back to time t
-void allRingBuffersAdvance(ros::Time t) {
+void allRingBuffersAdvance(shared_ptr<MachineState> ms, ros::Time t) {
 
   double thisRange;
   Mat thisIm;
   geometry_msgs::Pose thisPose;
 
-  getRingPoseAtTime(t, thisPose, 1);
-  getRingImageAtTime(t, thisIm, 1);
+  getRingPoseAtTime(ms, t, thisPose, 1);
+  getRingImageAtTime(ms, t, thisIm, 1);
   //getRingRangeAtTime(t, thisRange, 1);
 }
 
 void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
   // if we have some range readings to process
-  if (pMachineState->config.rgRingBufferEnd != pMachineState->config.rgRingBufferStart) {
+  if (ms->config.rgRingBufferEnd != ms->config.rgRingBufferStart) {
 
     // continue until it is empty or we don't have data for a point yet
     int IShouldContinue = 1;
     while (IShouldContinue) {
-      if (pMachineState->config.rgRingBufferEnd == pMachineState->config.rgRingBufferStart) {
+      if (ms->config.rgRingBufferEnd == ms->config.rgRingBufferStart) {
 	IShouldContinue = 0; // not strictly necessary
 	break; 
       }
 	
-      double thisRange = rgRingBuffer[pMachineState->config.rgRingBufferStart];
-      ros::Time thisTime = rgRBTimes[pMachineState->config.rgRingBufferStart];
+      double thisRange = ms->config.rgRingBuffer[ms->config.rgRingBufferStart];
+      ros::Time thisTime = ms->config.rgRBTimes[ms->config.rgRingBufferStart];
     
       geometry_msgs::Pose thisPose;
       Mat thisImage;
-      int weHavePoseData = getRingPoseAtTime(thisTime, thisPose);
-      int weHaveImData = getRingImageAtTime(thisTime, thisImage);
+      int weHavePoseData = getRingPoseAtTime(ms, thisTime, thisPose);
+      int weHaveImData = getRingImageAtTime(ms, thisTime, thisImage);
 
 #ifdef DEBUG_RING_BUFFER
       cout << "  recordReadyRangeReadings()  weHavePoseData weHaveImData: " << weHavePoseData << " " << weHaveImData << endl;
@@ -1961,13 +1949,13 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 
       // if this request will never be serviceable then forget about it
       if (weHavePoseData == -1) {
-	rgRingBufferAdvance();
+	rgRingBufferAdvance(ms);
 	IShouldContinue = 1; // not strictly necessary
 	cout << "  recordReadyRangeReadings(): dropping stale packet due to epRing. consider increasing buffer size." << endl;
 	cout << "  recordReadyRangeReadings() --> " << thisTime << endl; 
       }
       if (weHaveImData == -1) {
-	rgRingBufferAdvance();
+	rgRingBufferAdvance(ms);
 	IShouldContinue = 1; // not strictly necessary
 	cout << "  recordReadyRangeReadings(): dropping stale packet due to imRing. consider increasing buffer size." << endl;
 	cout << "  recordReadyRangeReadings() --> " << thisTime << endl; 
@@ -1977,13 +1965,13 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 	if (thisRange >= RANGE_UPPER_INVALID) {
 	  //cout << "DISCARDED large range reading." << endl;
 	  IShouldContinue = 1;
-	  rgRingBufferAdvance();
+	  rgRingBufferAdvance(ms);
 	  continue;
 	}
 	if (thisRange <= RANGE_LOWER_INVALID) {
 	  //cout << "DISCARDED small range reading." << endl;
 	  IShouldContinue = 1;
-	  rgRingBufferAdvance();
+	  rgRingBufferAdvance(ms);
 	  continue;
 	}
 
@@ -2237,8 +2225,8 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 	  }
 	}
     
-	rgRingBufferAdvance();
-	allRingBuffersAdvance(thisTime);
+	rgRingBufferAdvance(ms);
+	allRingBuffersAdvance(ms, thisTime);
 	IShouldContinue = 1; // not strictly necessary
       } else {
 	IShouldContinue = 0;
@@ -2247,7 +2235,7 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
     }
   }
 #ifdef DEBUG_RING_BUFFER
-  cout << "recordReadyRangeReadings()  pMachineState->config.rgRingBufferStart pMachineState->config.rgRingBufferEnd: " << rgRingBufferStart << " " << pMachineState->config.rgRingBufferEnd << endl;
+  cout << "recordReadyRangeReadings()  ms->config.rgRingBufferStart ms->config.rgRingBufferEnd: " << rgRingBufferStart << " " << ms->config.rgRingBufferEnd << endl;
 #endif
 }
 
@@ -2489,9 +2477,9 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
   ms->config.trueEEPoseEEPose.qz = eps.pose.orientation.z;
   ms->config.trueEEPoseEEPose.qw = eps.pose.orientation.w;
 
-  setRingPoseAtTime(eps.header.stamp, eps.pose);
+  setRingPoseAtTime(ms, eps.header.stamp, eps.pose);
   geometry_msgs::Pose thisPose;
-  int weHavePoseData = getRingPoseAtTime(eps.header.stamp, thisPose);
+  int weHavePoseData = getRingPoseAtTime(ms, eps.header.stamp, thisPose);
 
   {
     double distance = squareDistanceEEPose(ms->config.trueEEPoseEEPose, lastTrueEEPoseEEPose);
@@ -2984,7 +2972,7 @@ void accelerometerCallback(const sensor_msgs::Imu& moment) {
 void rangeCallback(const sensor_msgs::Range& range) {
   shared_ptr<MachineState> ms = pMachineState;
   //cout << "range frame_id: " << range.header.frame_id << endl;
-  setRingRangeAtTime(range.header.stamp, range.range);
+  setRingRangeAtTime(ms, range.header.stamp, range.range);
   //double thisRange;
   //int weHaveRangeData = getRingRangeAtTime(range.header.stamp, thisRange);
 
@@ -3475,8 +3463,9 @@ bool willIkResultFail(baxter_core_msgs::SolvePositionIK thisIkRequest, int thisI
 }
 
 void update_baxter(ros::NodeHandle &n) {
-  bfc = bfc % bfc_period;
+
   shared_ptr<MachineState> ms = pMachineState;
+  ms->config.bfc = ms->config.bfc % ms->config.bfc_period;
   if (!ms->config.shouldIDoIK) {
     return;
   }
@@ -3700,12 +3689,13 @@ void update_baxter(ros::NodeHandle &n) {
 
   std_msgs::Float64 speedCommand;
   speedCommand.data = currentEESpeedRatio;
-  for (int r = 0; r < resend_times; r++) {
+  int param_resend_times = 1;
+  for (int r = 0; r < param_resend_times; r++) {
     joint_mover.publish(myCommand);
     moveSpeedPub.publish(speedCommand);
   }
 
-  bfc++;
+  ms->config.bfc++;
 }
 
 
@@ -3892,9 +3882,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     }
   }
 
-  setRingImageAtTime(msg->header.stamp, wristCamImage);
+  setRingImageAtTime(ms, msg->header.stamp, wristCamImage);
   Mat thisImage;
-  int weHaveImData = getRingImageAtTime(msg->header.stamp, thisImage);
+  int weHaveImData = getRingImageAtTime(ms, msg->header.stamp, thisImage);
 
   //if (recordRangeMap) 
   recordReadyRangeReadings(ms);
@@ -5377,13 +5367,13 @@ void pilotInit(shared_ptr<MachineState> ms) {
     }
   }
   
-  imRingBuffer.resize(pMachineState->config.imRingBufferSize);
-  epRingBuffer.resize(pMachineState->config.epRingBufferSize);
-  rgRingBuffer.resize(pMachineState->config.rgRingBufferSize);
+  ms->config.imRingBuffer.resize(pMachineState->config.imRingBufferSize);
+  ms->config.epRingBuffer.resize(pMachineState->config.epRingBufferSize);
+  ms->config.rgRingBuffer.resize(pMachineState->config.rgRingBufferSize);
 
-  imRBTimes.resize(pMachineState->config.imRingBufferSize);
-  epRBTimes.resize(pMachineState->config.epRingBufferSize);
-  rgRBTimes.resize(pMachineState->config.rgRingBufferSize);
+  ms->config.imRBTimes.resize(pMachineState->config.imRingBufferSize);
+  ms->config.epRBTimes.resize(pMachineState->config.epRingBufferSize);
+  ms->config.rgRBTimes.resize(pMachineState->config.rgRingBufferSize);
 
   for (int pz = 0; pz < vmWidth; pz++) {
     for (int py = 0; py < vmWidth; py++) {
