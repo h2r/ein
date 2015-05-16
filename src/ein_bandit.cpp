@@ -14,9 +14,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 
-    Mat rangeMapTemp(rmWidth, rmWidth, CV_64F);
-    for (int y = 0; y < rmWidth; y++) {
-      for (int x = 0; x < rmWidth; x++) {
+    Mat rangeMapTemp(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+    for (int y = 0; y < ms->config.rmWidth; y++) {
+      for (int x = 0; x < ms->config.rmWidth; x++) {
         rangeMapTemp.at<double>(y,x) = classRangeMaps[focusedClass].at<double>(y,x);
       } 
     } 
@@ -233,7 +233,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   // shows mus before we converted them to alphas and betas,
   // smoothing the values based on eccentricity.  
-  //copyGraspMemoryRegister(graspMemoryReg1, graspMemorySample);
+  //copyGraspMemoryRegister(ms->config.graspMemoryReg1, ms->config.graspMemorySample);
   
   drawMapRegisters(ms);
   cout << "class " << classLabels[targetClass] << " number ";
@@ -251,7 +251,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   // shows mus before we converted them to alphas and betas,
   // smoothing the values based on eccentricity.  
-  //copyGraspMemoryRegister(graspMemoryReg1, graspMemorySample);
+  //copyGraspMemoryRegister(ms->config.graspMemoryReg1, ms->config.graspMemorySample);
   
   drawMapRegisters(ms);
   cout << "class " << classLabels[targetClass] << " number ";
@@ -404,7 +404,7 @@ WORD(SetGraspMemoriesFromClassGraspMemories)
 // capslock + numlock + i
 CODE(1179721)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  copyClassGraspMemoryTriesToGraspMemoryTries();
+  copyClassGraspMemoryTriesToGraspMemoryTries(ms);
 }
 END_WORD
 REGISTER_WORD(SetGraspMemoriesFromClassGraspMemories)  
