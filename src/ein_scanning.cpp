@@ -645,7 +645,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int imH = sz.height;
         
   cout << "save aerial gradient ";
-  if ((ms->config.focusedClass > -1) && (frameGraySobel.rows >1) && (frameGraySobel.cols > 1)) {
+  if ((ms->config.focusedClass > -1) && (ms->config.frameGraySobel.rows >1) && (ms->config.frameGraySobel.cols > 1)) {
     string thisLabelName = ms->config.focusedClassLabel;
 
     char buf[1000];
@@ -696,7 +696,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     int maxDim = max(crows, ccols);
     int tRy = (maxDim-crows)/2;
     int tRx = (maxDim-ccols)/2;
-    Mat gCrop(maxDim, maxDim, frameGraySobel.type());
+    Mat gCrop(maxDim, maxDim, ms->config.frameGraySobel.type());
 
     cout << "crows ccols: " << crows << " " << ccols << " ";
 
@@ -708,8 +708,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
         int tCty = topCornerY + ty;
         if ( (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) &&
              (tCtx > 0) && (tCty > 0) && (tCtx < imW) && (tCty < imH) ) {
-          //gCrop.at<double>(y, x) = frameGraySobel.at<double>(bTops[hbb].y + ty, bTops[hbb].x + tx);
-          gCrop.at<double>(y, x) = frameGraySobel.at<double>(tCty, tCtx);
+          //gCrop.at<double>(y, x) = ms->config.frameGraySobel.at<double>(bTops[hbb].y + ty, bTops[hbb].x + tx);
+          gCrop.at<double>(y, x) = ms->config.frameGraySobel.at<double>(tCty, tCtx);
         } else {
           gCrop.at<double>(y, x) = 0.0;
         }

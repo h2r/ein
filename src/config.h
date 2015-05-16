@@ -554,6 +554,11 @@ class EinConfig {
   int lPTthresh = 3;
   int orientationCascadeHalfWidth = 2;
 
+  
+  double aerialGradientDecay = 0.9;//0.965;//0.9;
+  Mat aerialGradientTemporalFrameAverage;
+  Mat preFrameGraySobel;
+  Mat frameGraySobel;
 
 };
 

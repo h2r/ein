@@ -121,25 +121,6 @@ ros::Publisher einPub;
 ros::Publisher vmMarkerPublisher;
 
 
-
-vector<double> classL2RangeComparator;
-double irHeightPadding = 0.16;
-
-vector<double> rgbServoSample;
-vector<double> rgbServoMarginals;
-vector<double> rgbServoTries;
-vector<double> rgbServoPicks;
-int rgbServoTrials;
-int rgbServoTrialsMax = 20;
-
-int useTemporalAerialGradient = 1;
-double aerialGradientDecayIteratedDensity = 0.9;
-double aerialGradientDecayImageAverage = 0.0;
-double aerialGradientDecay = 0.9;//0.965;//0.9;
-Mat aerialGradientTemporalFrameAverage;
-Mat aerialGradientSobelCbCr;
-Mat aerialGradientSobelGray;
-Mat preFrameGraySobel;
 int densityIterationsForGradientServo = 10;//3;//10;
 
 double graspDepthOffset = -0.04;
@@ -742,7 +723,7 @@ vector<Mat> classHeightMemoryTries;
 vector<Mat> classHeightMemoryPicks;
 
 
-Mat frameGraySobel;
+
 // XXX this should probably be odd
 int aerialGradientWidth = 100;
 int aerialGradientReticleWidth = 200;
@@ -984,8 +965,8 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms);
 void goClassifyBlueBoxes(shared_ptr<MachineState> ms);
 void goFindRedBoxes();
 
-void resetAccumulatedImageAndMass();
-void substituteAccumulatedImageQuantities();
+void resetAccumulatedImageAndMass(shared_ptr<MachineState> ms);
+void substituteAccumulatedImageQuantities(shared_ptr<MachineState> ms);
 void substituteLatestImageQuantities(shared_ptr<MachineState> ms);
 
 void loadROSParamsFromArgs(shared_ptr<MachineState> ms);
@@ -7042,7 +7023,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
             int tCty = topCornerY + ty;
             if ( (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) &&
                  (tCtx > 0) && (tCty > 0) && (tCtx < imW) && (tCty < imH) ) {
-              gCrop.at<double>(y, x) = frameGraySobel.at<double>(topCornerY + ty, topCornerX + tx);
+              gCrop.at<double>(y, x) = ms->config.frameGraySobel.at<double>(topCornerY + ty, topCornerX + tx);
             } else {
               gCrop.at<double>(y, x) = 0.0;
             }
@@ -9871,7 +9852,7 @@ void nodeCallbackFunc(int event, int x, int y, int flags, void* userdata) {
 }
 
 
-void resetAccumulatedImageAndMass() {
+void resetAccumulatedImageAndMass(shared_ptr<MachineState> ms) {
   Size sz = accumulatedImageMass.size();
   int imW = sz.width;
   int imH = sz.height;
@@ -9892,7 +9873,7 @@ void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms) {
   for (int x = 0; x < imW; x++) {
   for (int y = 0; y < imH; y++) {
   //uchar val = uchar(min( 1*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
-  uchar val = uchar(min( 1*255.0 *  (frameGraySobel.at<double>(y,x) - minAerTemp) / aerTempRange, 255.0));
+  uchar val = uchar(min( 1*255.0 *  (ms->config.frameGraySobel.at<double>(y,x) - minAerTemp) / aerTempRange, 255.0));
   gradientViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
 
   gradientViewerImage.at<cv::Vec3b>(y+imH,x) = convertedYCbCrGradientImage.at<cv::Vec3b>(y,x);
@@ -9922,8 +9903,9 @@ void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms) {
 
 }
 
-void substituteAccumulatedImageQuantities() {
-  aerialGradientDecay = aerialGradientDecayImageAverage;
+void substituteAccumulatedImageQuantities(shared_ptr<MachineState> ms) {
+  double param_aerialGradientDecayImageAverage = 0.0;
+  ms->config.aerialGradientDecay = param_aerialGradientDecayImageAverage;
   sobel_sigma = sobel_sigma_substitute_accumulated;
   Size sz = accumulatedImage.size();
   int imW = sz.width;
@@ -9943,7 +9925,8 @@ void substituteAccumulatedImageQuantities() {
 }
 
 void substituteLatestImageQuantities(shared_ptr<MachineState> ms) {
-  aerialGradientDecay = aerialGradientDecayIteratedDensity;
+  double param_aerialGradientDecayIteratedDensity = 0.9;
+  ms->config.aerialGradientDecay = param_aerialGradientDecayIteratedDensity;
   sobel_sigma = sobel_sigma_substitute_latest;
   if (cv_ptr == NULL) {
     ROS_ERROR("Not receiving camera data, clearing call stack.");
@@ -10362,27 +10345,26 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   }
 
   // masked this too
-  frameGraySobel = totalGraySobel.clone();
-  preFrameGraySobel = totalGraySobel.clone();
+  ms->config.frameGraySobel = totalGraySobel.clone();
+  ms->config.preFrameGraySobel = totalGraySobel.clone();
 
   { // temporal averaging of aerial gradient
-    if ( (aerialGradientTemporalFrameAverage.rows < aerialGradientReticleWidth) ||
-	 (aerialGradientTemporalFrameAverage.cols < aerialGradientReticleWidth) ) {
-      aerialGradientTemporalFrameAverage = Mat(imH,imW,frameGraySobel.type()); 
+    if ( (ms->config.aerialGradientTemporalFrameAverage.rows < aerialGradientReticleWidth) ||
+	 (ms->config.aerialGradientTemporalFrameAverage.cols < aerialGradientReticleWidth) ) {
+      ms->config.aerialGradientTemporalFrameAverage = Mat(imH,imW,ms->config.frameGraySobel.type()); 
     }
 
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	aerialGradientTemporalFrameAverage.at<double>(y, x) = 
-	  aerialGradientDecay*aerialGradientTemporalFrameAverage.at<double>(y, x) + 
-	  (1.0 - aerialGradientDecay)*frameGraySobel.at<double>(y, x);
+	ms->config.aerialGradientTemporalFrameAverage.at<double>(y, x) = 
+	  ms->config.aerialGradientDecay*ms->config.aerialGradientTemporalFrameAverage.at<double>(y, x) + 
+	  (1.0 - ms->config.aerialGradientDecay)*ms->config.frameGraySobel.at<double>(y, x);
       }
     }
   }
 
-  if (useTemporalAerialGradient) {
-    frameGraySobel = aerialGradientTemporalFrameAverage;
-  }
+  ms->config.frameGraySobel = ms->config.aerialGradientTemporalFrameAverage;
+
 
   double minGraySob = INFINITY;
   double maxGraySob = -INFINITY;
@@ -10408,8 +10390,8 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
       minYSob = min(minYSob, double(totalYSobel.at<double>(y,x)));
       maxYSob = max(maxYSob, double(totalYSobel.at<double>(y,x)));
       
-      minAerTemp = min(minAerTemp, double(frameGraySobel.at<double>(y,x)));
-      maxAerTemp = max(maxAerTemp, double(frameGraySobel.at<double>(y,x)));
+      minAerTemp = min(minAerTemp, double(ms->config.frameGraySobel.at<double>(y,x)));
+      maxAerTemp = max(maxAerTemp, double(ms->config.frameGraySobel.at<double>(y,x)));
     }
   }
 
@@ -10434,7 +10416,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
       //uchar val = uchar(min( 1*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
-      uchar val = uchar(min( 1*255.0 *  (frameGraySobel.at<double>(y,x) - minAerTemp) / aerTempRange, 255.0));
+      uchar val = uchar(min( 1*255.0 *  (ms->config.frameGraySobel.at<double>(y,x) - minAerTemp) / aerTempRange, 255.0));
       gradientViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
 
       gradientViewerImage.at<cv::Vec3b>(y+imH,x) = convertedYCbCrGradientImage.at<cv::Vec3b>(y,x);
@@ -12734,7 +12716,7 @@ int main(int argc, char **argv) {
     gripperPub.publish(command);
   }
 
-  frameGraySobel = Mat(1,1,CV_64F);
+  ms->config.frameGraySobel = Mat(1,1,CV_64F);
 
   initializeMap(pMachineState);
 
