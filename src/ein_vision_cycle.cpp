@@ -1,3 +1,10 @@
+
+#include "ein_words.h"
+#include "ein.h"
+
+
+namespace ein_words {
+
 WORD(DeliverObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   shared_ptr<Word> word = ms->popWord();
@@ -919,3 +926,4 @@ END_WORD
 REGISTER_WORD(FaceServoB)
 
 */
+}
