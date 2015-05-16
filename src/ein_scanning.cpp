@@ -907,9 +907,9 @@ REGISTER_WORD(SetIROffset)
 
 WORD(ZeroIROffset)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  gear0offset = Eigen::Quaternionf(0.0, 0.0, 0.0, 0.0);
+  ms->config.gear0offset = Eigen::Quaternionf(0.0, 0.0, 0.0, 0.0);
   Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
 }
 END_WORD
 REGISTER_WORD(ZeroIROffset)
@@ -947,13 +947,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   cout << "SetIROffsetA, ms->config.hrmHalfWidth minX minY offByX offByY: " << ms->config.hrmHalfWidth << " " << minX << " " << minY << " " << offByX << " " << offByY << endl;
 
-  gear0offset = Eigen::Quaternionf(0.0, 
-    gear0offset.x()+offByX, 
-    gear0offset.y()+offByY, 
+  ms->config.gear0offset = Eigen::Quaternionf(0.0, 
+    ms->config.gear0offset.x()+offByX, 
+    ms->config.gear0offset.y()+offByY, 
     0.0167228); // z is from TF, good for depth alignment
 
   Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * gear0offset * crane2quat;
+  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
 }
 END_WORD
 REGISTER_WORD(SetIROffsetA)

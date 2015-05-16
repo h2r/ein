@@ -14,8 +14,8 @@ CODE(131154)    // capslock + r
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->config.currentMovementState = MOVING;
-  lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-  lastMovementStateSet = ros::Time::now();
+  ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
+  ms->config.lastMovementStateSet = ros::Time::now();
 
   ms->config.waitUntilAtCurrentPositionCounter = 0;
   double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
@@ -1013,7 +1013,7 @@ WORD(ComeToStop)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   //ms->config.currentEEPose = ms->config.trueEEPoseEEPose;
   ms->pushWord("comeToStopA");
-  comeToStopStart = ros::Time::now();
+  ms->config.comeToStopStart = ros::Time::now();
   cout << "Waiting to come to a stop..." << endl;
 }
 END_WORD
@@ -1026,8 +1026,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     // do nothing
     cout << "Came to a stop, moving on." << endl;
   } else {
-    ros::Duration timeSinceCTS = ros::Time::now() - comeToStopStart;
-    if (timeSinceCTS.toSec() < comeToStopTimeout) {
+    ros::Duration timeSinceCTS = ros::Time::now() - ms->config.comeToStopStart;
+    if (timeSinceCTS.toSec() < ms->config.comeToStopTimeout) {
       ms->pushWord("comeToStopA");
     } else {
       ROS_WARN_STREAM("_____*____*________");
@@ -1050,7 +1050,7 @@ WORD(ComeToHover)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   //ms->config.currentEEPose = ms->config.trueEEPoseEEPose;
   ms->pushWord("comeToHoverA");
-  comeToHoverStart = ros::Time::now();
+  ms->config.comeToHoverStart = ros::Time::now();
   cout << "Waiting to come to a hover..." << endl;
 }
 END_WORD
@@ -1062,8 +1062,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     // do nothing
     cout << "Came to a hover, moving on." << endl;
   } else {
-    ros::Duration timeSinceCTH = ros::Time::now() - comeToHoverStart;
-    if (timeSinceCTH.toSec() < comeToHoverTimeout) {
+    ros::Duration timeSinceCTH = ros::Time::now() - ms->config.comeToHoverStart;
+    if (timeSinceCTH.toSec() < ms->config.comeToHoverTimeout) {
       ms->pushWord("comeToHoverA");
     } else {
       ROS_WARN_STREAM("_____*____*________");
@@ -1082,7 +1082,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitUntilEndpointCallbackReceived");
   ms->pushWord("comeToHover");
   ms->pushWord("waitUntilAtCurrentPosition");
-  waitForTugStart = ros::Time::now();
+  ms->config.waitForTugStart = ros::Time::now();
   cout << "Waiting to feel a tug... " << ARMED << " " << ms->config.currentMovementState << endl;
 }
 END_WORD
@@ -1103,8 +1103,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("openGripper");
     } else {
       ms->config.currentMovementState = ARMED;
-      ros::Duration timeSinceWFT = ros::Time::now() - waitForTugStart;
-      if (timeSinceWFT.toSec() < waitForTugTimeout) {
+      ros::Duration timeSinceWFT = ros::Time::now() - ms->config.waitForTugStart;
+      if (timeSinceWFT.toSec() < ms->config.waitForTugTimeout) {
 	ms->pushWord("waitForTugThenOpenGripperA");
       } else {
 	ROS_WARN_STREAM("_____*____*________");
@@ -1127,8 +1127,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("openGripper");
     } else {
       ms->config.currentMovementState = ARMED;
-      ros::Duration timeSinceWFT = ros::Time::now() - waitForTugStart;
-      if (timeSinceWFT.toSec() < waitForTugTimeout) {
+      ros::Duration timeSinceWFT = ros::Time::now() - ms->config.waitForTugStart;
+      if (timeSinceWFT.toSec() < ms->config.waitForTugTimeout) {
 	ms->pushWord("waitForTugThenOpenGripperA");
       } else {
 	ROS_WARN_STREAM("_____*____*________");
@@ -1168,8 +1168,8 @@ REGISTER_WORD(Idler)
 WORD(SetMovementStateToMoving)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentMovementState = MOVING;
-  lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-  lastMovementStateSet = ros::Time::now();
+  ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
+  ms->config.lastMovementStateSet = ros::Time::now();
 }
 END_WORD
 REGISTER_WORD(SetMovementStateToMoving)

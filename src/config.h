@@ -93,7 +93,7 @@ typedef enum {
 class EinConfig {
  public:
   int zero_g_toggle = 0;
-  int currentGraspGear = -1;
+
   const int imRingBufferSize = 300;
   const int epRingBufferSize = 100;
   const int rgRingBufferSize = 100;
@@ -473,6 +473,8 @@ class EinConfig {
   
   // grasp gear should always be even
   static const int totalGraspGears = 8;
+  int currentGraspGear = -1;
+  Eigen::Quaternionf gear0offset;
   // XXX maybe we should initialize this to a reasonable value
   //// reticles
   double ggX[totalGraspGears];
@@ -667,6 +669,18 @@ class EinConfig {
   double hoverGoThresh = 0.02;
   double hoverAngleThresh = 0.02;
   eePose lastHoverTrueEEPoseEEPose;
+
+  ros::Time lastMovementStateSet;
+  eePose lastTrueEEPoseEEPose;
+  
+  ros::Time comeToHoverStart;
+  double comeToHoverTimeout = 3.0;
+  ros::Time comeToStopStart;
+  double comeToStopTimeout = 30.0;
+  ros::Time waitForTugStart;
+  double waitForTugTimeout = 1e10;
+  double armedThreshold = 0.01;
+
 
 
   double simulatorCallbackFrequency = 30.0;
