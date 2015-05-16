@@ -119,30 +119,11 @@ ros::Publisher headPub;
 ros::Publisher nodPub;
 ros::Publisher einPub;
 ros::Publisher vmMarkerPublisher;
-
-
-
-
-
-
-
-std::string package_path;
-std::string class_crops_path;
-
-cv::Mat cam_img;
-cv::Mat depth_img;
-
 ros::Publisher rec_objs_blue_memory;
 ros::Publisher markers_blue_memory;
-
 ros::Publisher ee_target_pub;
 
-bool real_img = false;
 
-int fc = 1;
-int fcRange = 10;
-int frames_per_click = 5;
-int cropCounter;
 
 double maxDensity = 0;
 double *density = NULL;
@@ -180,77 +161,6 @@ cv::vector<cv::Point> wBot;
 //  they are the candidate blue boxes
 vector<cv::Point> cTops; 
 vector<cv::Point> cBots;
-
-int ARE_GENERIC_PICK_LEARNING(shared_ptr<MachineState> ms) {
-  return ( (ms->config.currentPickMode == LEARNING_SAMPLING) ||
-	   (ms->config.currentPickMode == LEARNING_ALGORITHMC) );
-}
-
-int ARE_GENERIC_HEIGHT_LEARNING(shared_ptr<MachineState> ms) {
-  return ( (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) ||
-	   (ms->config.currentBoundingBoxMode == LEARNING_ALGORITHMC) );
-}
-
-
-
-typedef struct Sprite {
-  // sprites are the objects which are rendered in the simulation,
-  //   modeled physically as axis aligned bounding boxes
-  // the aa-bb associated with
-  //  the sprite encompasses the rotated blitted box of the image
-  // there is a master array of sprite types loaded from files, and then
-  //  there is a vector of active sprites, each of which is a clone of an
-  //  entry in the master array but with a unique name and state information
-  Mat image;
-  string name; // unique identifier
-  double scale; // this is pixels / cm
-  ros::Time creationTime;
-  eePose top;
-  eePose bot;
-  eePose pose;
-} Sprite;
-
-int getColorReticleX(shared_ptr<MachineState> ms);
-int getColorReticleY(shared_ptr<MachineState> ms);
-
-vector<Sprite> masterSprites;
-vector<Sprite> instanceSprites;
-
-void mapijToxy(int i, int j, double * x, double * y);
-void mapxyToij(double x, double y, int * i, int * j); 
-void voidMapRegion(shared_ptr<MachineState> ms, double xc, double yc);
-void clearMapForPatrol(shared_ptr<MachineState> ms);
-void initializeMap(shared_ptr<MachineState> ms);
-void randomizeNanos(shared_ptr<MachineState> ms, ros::Time * time);
-int blueBoxForPixel(int px, int py);
-int skirtedBlueBoxForPixel(int px, int py, int skirtPixels);
-bool cellIsSearched(int i, int j);
-bool positionIsSearched(double x, double y);
-vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx);
-vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx, int * memoryIdxOfFirst);
-
-// XXX TODO searched and mapped are redundant. just need one to talk about the fence.
-bool cellIsMapped(int i, int j);
-bool positionIsMapped(double x, double y);
-bool boxMemoryIntersectPolygons(BoxMemory b1, BoxMemory b2);
-bool boxMemoryIntersectCentroid(BoxMemory b1, BoxMemory b2);
-bool boxMemoryContains(BoxMemory b, double x, double y);
-bool boxMemoryIntersectsMapCell(BoxMemory b, int map_i, int map_j);
-
-// XXX TODO these just check the corners, they should check all the interior points instead
-bool isBoxMemoryIKPossible(shared_ptr<MachineState> ms, BoxMemory b);
-bool isBlueBoxIKPossible(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot);
-
-bool isCellInPursuitZone(int i, int j);
-bool isCellInPatrolZone(int i, int j);
-
-bool isCellInteresting(int i, int j);
-void markCellAsInteresting(int i, int j);
-void markCellAsNotInteresting(int i, int j);
-
-bool isCellIkColliding(int i, int j);
-bool isCellIkPossible(int i, int j);
-bool isCellIkImpossible(int i, int j);
 
 
 const double mapXMin = -1.5;
@@ -412,8 +322,79 @@ int g2ye = 75;
 Mat accumulatedImage;
 Mat accumulatedImageMass;
 
-////////////////////////////////////////////////
-// end node variables 
+
+int ARE_GENERIC_PICK_LEARNING(shared_ptr<MachineState> ms) {
+  return ( (ms->config.currentPickMode == LEARNING_SAMPLING) ||
+	   (ms->config.currentPickMode == LEARNING_ALGORITHMC) );
+}
+
+int ARE_GENERIC_HEIGHT_LEARNING(shared_ptr<MachineState> ms) {
+  return ( (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) ||
+	   (ms->config.currentBoundingBoxMode == LEARNING_ALGORITHMC) );
+}
+
+
+
+typedef struct Sprite {
+  // sprites are the objects which are rendered in the simulation,
+  //   modeled physically as axis aligned bounding boxes
+  // the aa-bb associated with
+  //  the sprite encompasses the rotated blitted box of the image
+  // there is a master array of sprite types loaded from files, and then
+  //  there is a vector of active sprites, each of which is a clone of an
+  //  entry in the master array but with a unique name and state information
+  Mat image;
+  string name; // unique identifier
+  double scale; // this is pixels / cm
+  ros::Time creationTime;
+  eePose top;
+  eePose bot;
+  eePose pose;
+} Sprite;
+
+int getColorReticleX(shared_ptr<MachineState> ms);
+int getColorReticleY(shared_ptr<MachineState> ms);
+
+vector<Sprite> masterSprites;
+vector<Sprite> instanceSprites;
+
+void mapijToxy(int i, int j, double * x, double * y);
+void mapxyToij(double x, double y, int * i, int * j); 
+void voidMapRegion(shared_ptr<MachineState> ms, double xc, double yc);
+void clearMapForPatrol(shared_ptr<MachineState> ms);
+void initializeMap(shared_ptr<MachineState> ms);
+void randomizeNanos(shared_ptr<MachineState> ms, ros::Time * time);
+int blueBoxForPixel(int px, int py);
+int skirtedBlueBoxForPixel(int px, int py, int skirtPixels);
+bool cellIsSearched(int i, int j);
+bool positionIsSearched(double x, double y);
+vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx);
+vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx, int * memoryIdxOfFirst);
+
+// XXX TODO searched and mapped are redundant. just need one to talk about the fence.
+bool cellIsMapped(int i, int j);
+bool positionIsMapped(double x, double y);
+bool boxMemoryIntersectPolygons(BoxMemory b1, BoxMemory b2);
+bool boxMemoryIntersectCentroid(BoxMemory b1, BoxMemory b2);
+bool boxMemoryContains(BoxMemory b, double x, double y);
+bool boxMemoryIntersectsMapCell(BoxMemory b, int map_i, int map_j);
+
+// XXX TODO these just check the corners, they should check all the interior points instead
+bool isBoxMemoryIKPossible(shared_ptr<MachineState> ms, BoxMemory b);
+bool isBlueBoxIKPossible(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot);
+
+bool isCellInPursuitZone(int i, int j);
+bool isCellInPatrolZone(int i, int j);
+
+bool isCellInteresting(int i, int j);
+void markCellAsInteresting(int i, int j);
+void markCellAsNotInteresting(int i, int j);
+
+bool isCellIkColliding(int i, int j);
+bool isCellIkPossible(int i, int j);
+bool isCellIkImpossible(int i, int j);
+
+
 //
 // start pilot prototypes 
 ////////////////////////////////////////////////
@@ -608,7 +589,6 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
                         vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, BOWImgDescriptorExtractor *bowExtractor, int lIndexStart = 0);
 
 
-void nodeCallbackFunc(int event, int x, int y, int flags, void* userdata);
 
 void goCalculateDensity(shared_ptr<MachineState> ms);
 void goFindBlueBoxes(shared_ptr<MachineState> ms);
@@ -3124,8 +3104,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
     try{
       ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-      cam_img = ms->config.cv_ptr->image.clone();
-      //real_img = true;
+      ms->config.cam_img = ms->config.cv_ptr->image.clone();
     }catch(cv_bridge::Exception& e){
       ROS_ERROR("cv_bridge exception: %s", e.what());
       return;
@@ -3148,8 +3127,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   try{
     ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-    cam_img = ms->config.cv_ptr->image.clone();
-    //real_img = true;
+    ms->config.cam_img = ms->config.cv_ptr->image.clone();
   }catch(cv_bridge::Exception& e){
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
@@ -7487,7 +7465,7 @@ void initRangeMaps(shared_ptr<MachineState> ms) {
   classHeightMemoryTries.resize(ms->config.numClasses);
   classHeightMemoryPicks.resize(ms->config.numClasses);
   for (int i = 0; i < ms->config.classLabels.size(); i++) {
-    tryToLoadRangeMap(ms, class_crops_path, ms->config.classLabels[i].c_str(), i);
+    tryToLoadRangeMap(ms, ms->config.class_crops_path, ms->config.classLabels[i].c_str(), i);
   }
 }
 
@@ -8032,12 +8010,12 @@ void mapBlueBox(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot, i
   //      }
 
 	double blueBoxWeight = 0.1;
-	if ( (cam_img.rows != 0 && cam_img.cols != 0) &&
+	if ( (ms->config.cam_img.rows != 0 && ms->config.cam_img.cols != 0) &&
 	     ((px >=0) && (px < imW)) &&
 	     ((py >=0) && (py < imH)) ) {
-	  objectMap[i + mapWidth * j].b = (cam_img.at<cv::Vec3b>(py, px)[0] * blueBoxWeight);
-	  objectMap[i + mapWidth * j].g = (cam_img.at<cv::Vec3b>(py, px)[1] * blueBoxWeight);
-	  objectMap[i + mapWidth * j].r = (cam_img.at<cv::Vec3b>(py, px)[2] * blueBoxWeight);
+	  objectMap[i + mapWidth * j].b = (ms->config.cam_img.at<cv::Vec3b>(py, px)[0] * blueBoxWeight);
+	  objectMap[i + mapWidth * j].g = (ms->config.cam_img.at<cv::Vec3b>(py, px)[1] * blueBoxWeight);
+	  objectMap[i + mapWidth * j].r = (ms->config.cam_img.at<cv::Vec3b>(py, px)[2] * blueBoxWeight);
 	  objectMap[i + mapWidth * j].pixelCount = blueBoxWeight;
 	}
       }
@@ -9003,24 +8981,6 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
 
 
 
-void nodeCallbackFunc(int event, int x, int y, int flags, void* userdata) {
-  shared_ptr<MachineState> ms = pMachineState;
-
-  if (!ms->config.shouldIMiscCallback) {
-    return;
-  }
-
-  if ( event == EVENT_LBUTTONDOWN ) {
-    fc = frames_per_click;
-    //cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-  } else if ( event == EVENT_RBUTTONDOWN ) {
-    //cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-  } else if  ( event == EVENT_MBUTTONDOWN ) {
-    //cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-  } else if ( event == EVENT_MOUSEMOVE ) {
-    //cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
-  }
-}
 
 
 void resetAccumulatedImageAndMass(shared_ptr<MachineState> ms) {
@@ -9947,7 +9907,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
     Mat descriptors;
     Mat descriptors2;
 
-    Mat original_cam_img = cam_img;
+    Mat original_cam_img = ms->config.cam_img;
     Mat crop = original_cam_img(cv::Rect(bTops[c].x, bTops[c].y, bBots[c].x-bTops[c].x, bBots[c].y-bTops[c].y));
     Mat gray_image;
     Mat& yCrCb_image = bYCrCb[c];
@@ -10324,8 +10284,6 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 
   cout << "nh namespace: " << nh.getNamespace() << endl;
 
-  nh.getParam("frames_per_click", frames_per_click);
-
   nh.getParam("vocab_file", ms->config.vocab_file);
   nh.getParam("knn_file", ms->config.knn_file);
   nh.getParam("label_file", ms->config.label_file);
@@ -10383,7 +10341,6 @@ void loadROSParams(shared_ptr<MachineState> ms) {
   nh.getParam("mixing_bowl_normalizer", mbPBT);
   nh.getParam("reject_scale", rejectScale);
   nh.getParam("reject_area_scale", rejectAreaScale);
-  nh.getParam("frames_per_click", frames_per_click);
   nh.getParam("density_decay", densityDecay);
 
   nh.getParam("data_directory", ms->config.data_directory);
@@ -10435,7 +10392,6 @@ void saveROSParams(shared_ptr<MachineState> ms) {
   nh.setParam("mixing_bowl_normalizer", mbPBT);
   nh.setParam("reject_scale", rejectScale);
   nh.setParam("reject_area_scale", rejectAreaScale);
-  nh.setParam("frames_per_click", frames_per_click);
   nh.setParam("density_decay", densityDecay);
 
   nh.setParam("data_directory", ms->config.data_directory);
@@ -10491,8 +10447,7 @@ void nodeInit(shared_ptr<MachineState> ms) {
 
   gBoxStrideX = gBoxW / 2.0;
   gBoxStrideY = gBoxH / 2.0;
-  fc = 0;
-  cropCounter = 0;
+  ms->config.cropCounter = 0;
   tableNormal = Eigen::Vector3d(1,0,0);
   tableBias = 0;
 
@@ -10605,11 +10560,11 @@ void detectorsInit(shared_ptr<MachineState> ms) {
     for (unsigned int i = 0; i < ms->config.classLabels.size(); i++) {
       cout << "Getting BOW features for class " << ms->config.classLabels[i] 
 	   << " with pose model " << ms->config.classPoseModels[i] << " index " << i << endl;
-      bowGetFeatures(class_crops_path, ms->config.classLabels[i].c_str(), ms->config.grayBlur, ms->config.keypointPeriod, &ms->config.grandTotalDescriptors,
+      bowGetFeatures(ms->config.class_crops_path, ms->config.classLabels[i].c_str(), ms->config.grayBlur, ms->config.keypointPeriod, &ms->config.grandTotalDescriptors,
                      ms->config.extractor, ms->config.bowTrainer);
       if (ms->config.classPoseModels[i].compare("G") == 0) {
 	string thisPoseLabel = ms->config.classLabels[i] + "Poses";
-        bowGetFeatures(class_crops_path, thisPoseLabel.c_str(), ms->config.grayBlur, ms->config.keypointPeriod, &ms->config.grandTotalDescriptors,
+        bowGetFeatures(ms->config.class_crops_path, thisPoseLabel.c_str(), ms->config.grayBlur, ms->config.keypointPeriod, &ms->config.grandTotalDescriptors,
                        ms->config.extractor, ms->config.bowTrainer);
       }
     }
@@ -10660,10 +10615,10 @@ void detectorsInit(shared_ptr<MachineState> ms) {
     {
       cout << "Getting kNN features for class " << ms->config.classLabels[i] 
 	   << " with pose model " << ms->config.classPoseModels[i] << " index " << i << endl;
-      kNNGetFeatures(ms, class_crops_path, ms->config.classLabels[i].c_str(), i, ms->config.grayBlur, kNNfeatures, kNNlabels, ms->config.sobel_sigma);
+      kNNGetFeatures(ms, ms->config.class_crops_path, ms->config.classLabels[i].c_str(), i, ms->config.grayBlur, kNNfeatures, kNNlabels, ms->config.sobel_sigma);
       if (ms->config.classPoseModels[i].compare("G") == 0) {
 	string thisPoseLabel = ms->config.classLabels[i] + "Poses";
-      posekNNGetFeatures(class_crops_path, thisPoseLabel.c_str(), ms->config.grayBlur, ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i],
+      posekNNGetFeatures(ms->config.class_crops_path, thisPoseLabel.c_str(), ms->config.grayBlur, ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i],
                          ms->config.classQuaternions[i], 0, ms->config.keypointPeriod, ms->config.bowExtractor);
       }
     }
@@ -11528,8 +11483,7 @@ int main(int argc, char **argv) {
        << "knn_file: " << ms->config.knn_file << endl << "label_file: " << ms->config.label_file << endl
        << endl;
 
-  package_path = ros::package::getPath("ein");
-  class_crops_path = ms->config.data_directory + "/objects/";
+  ms->config.class_crops_path = ms->config.data_directory + "/objects/";
 
   unsigned long seed = 1;
   rk_seed(seed, &ms->config.random_state);
@@ -11566,7 +11520,6 @@ int main(int argc, char **argv) {
   cv::namedWindow(ms->config.gradientViewerName);
   cv::namedWindow(ms->config.aerialGradientViewerName);
   cv::namedWindow(ms->config.densityViewerName);
-  setMouseCallback(ms->config.objectViewerName, nodeCallbackFunc, NULL);
 
   createTrackbar("post_density_sigma", ms->config.densityViewerName, &ms->config.postDensitySigmaTrackbarVariable, 40);
   createTrackbar("canny_lo", ms->config.densityViewerName, &ms->config.loTrackbarVariable, 100);

@@ -167,7 +167,6 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   cv::namedWindow(ms->config.wristViewName);
   cv::setMouseCallback(ms->config.wristViewName, pilotCallbackFunc, NULL);
   cv::setMouseCallback(ms->config.graspMemoryViewName, graspMemoryCallbackFunc, NULL);
-  cv::setMouseCallback(ms->config.objectViewerName, nodeCallbackFunc, NULL);
 }
 END_WORD
 REGISTER_WORD(GuiShowAll)
