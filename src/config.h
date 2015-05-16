@@ -784,6 +784,14 @@ class EinConfig {
   const int keypointPeriod = 1;
 
 
+  // ATTN 25
+  //const int vocabNumWords = 1000;
+  const int vocabNumWords = 1000;//2000;
+
+  constexpr static double grayBlur = 1.0;
+  int grandTotalDescriptors = 0;
+
+
 }; // config end
 
 class Word;
