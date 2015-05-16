@@ -281,6 +281,42 @@ class EinConfig {
 
 
 
+
+
+  const static int totalRangeHistoryLength = 100;
+  const static int rggScale = 1;  
+  const static int rggStride = 5*rggScale;
+  const static int rggHeight = 300*rggScale;
+  const static int rggWidth = totalRangeHistoryLength*rggStride;
+
+  double rangeHistory[totalRangeHistoryLength];
+  int currentRangeHistoryIndex = 0;
+
+  const static int rmWidth = 21; // must be odd
+  const static int rmHalfWidth = (rmWidth-1)/2; // must be odd
+  const static int rmiCellWidth = 20;
+  const static int rmiHeight = rmiCellWidth*rmWidth;
+  const static int rmiWidth = rmiCellWidth*rmWidth;
+
+
+  double rmDelta = 0.01;
+  double rangeMap[rmWidth*rmWidth];
+  double rangeMapAccumulator[rmWidth*rmWidth];
+  double rangeMapMass[rmWidth*rmWidth];
+  
+  double rangeMapReg1[rmWidth*rmWidth];
+  double rangeMapReg2[rmWidth*rmWidth];
+  double rangeMapReg3[rmWidth*rmWidth];
+  double rangeMapReg4[rmWidth*rmWidth];
+
+  // grasp Thompson parameters
+  double graspMemoryTries[4*rmWidth*rmWidth];
+  double graspMemoryPicks[4*rmWidth*rmWidth];
+  double graspMemorySample[4*rmWidth*rmWidth];
+  double graspMemoryReg1[4*rmWidth*rmWidth];
+  
+  
+
   // config variables that don't seem to be used
 };
 

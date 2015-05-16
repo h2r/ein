@@ -246,8 +246,8 @@ REGISTER_WORD(PhotoSpin)
 WORD(SetTargetReticleToTheMaxMappedPosition)
 CODE(1048678)  // numlock + f
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  trX = rmcX + rmDelta*(maxX-rmHalfWidth);
-  trY = rmcY + rmDelta*(maxY-rmHalfWidth);
+  trX = rmcX + ms->config.rmDelta*(maxX-ms->config.rmHalfWidth);
+  trY = rmcY + ms->config.rmDelta*(maxY-ms->config.rmHalfWidth);
 }
 END_WORD
 REGISTER_WORD(SetTargetReticleToTheMaxMappedPosition)
@@ -260,8 +260,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double highestReading = -VERYBIGNUMBER;
   double highestEpsilonMassReading = -VERYBIGNUMBER;
   double readingFloor = -1;
-  for (int rx = 0; rx < rmWidth; rx++) {
-    for (int ry = 0; ry < rmWidth; ry++) {
+  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
       for (int rrx = rx*10; rrx < (rx+1)*10; rrx++) {
         for (int rry = ry*10; rry < (ry+1)*10; rry++) {
           if (hiRangeMapMass[rrx + rry*hrmWidth] > 0.0) {
@@ -283,8 +283,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 
 	
-  for (int rx = 0; rx < rmWidth; rx++) {
-    for (int ry = 0; ry < rmWidth; ry++) {
+  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
       double thisSum = 0;
       double numSamples = 0;
       for (int rrx = rx*10; rrx < (rx+1)*10; rrx++) {
@@ -297,7 +297,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
           }
         }
       }
-      rangeMapReg1[rx + ry*rmWidth] = thisSum/numSamples;
+      ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth] = thisSum/numSamples;
     }
   }
 }
@@ -452,20 +452,20 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   rmcX = ms->config.trueEEPose.position.x;
   rmcY = ms->config.trueEEPose.position.y;
   rmcZ = ms->config.trueEEPose.position.z - ms->config.eeRange;
-  for (int rx = 0; rx < rmWidth; rx++) {
-    for (int ry = 0; ry < rmWidth; ry++) {
-      rangeMap[rx + ry*rmWidth] = 0;
-      rangeMapReg1[rx + ry*rmWidth] = 0;
+  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
+      ms->config.rangeMap[rx + ry*ms->config.rmWidth] = 0;
+      ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth] = 0;
       // ATTN 17
-      //rangeMapReg2[rx + ry*rmWidth] = 0;
-      rangeMapMass[rx + ry*rmWidth] = 0;
-      rangeMapAccumulator[rx + ry*rmWidth] = 0;
+      //rangeMapReg2[rx + ry*ms->config.rmWidth] = 0;
+      ms->config.rangeMapMass[rx + ry*ms->config.rmWidth] = 0;
+      ms->config.rangeMapAccumulator[rx + ry*ms->config.rmWidth] = 0;
     }
   }
   {
     cv::Scalar backColor(128,0,0);
     cv::Point outTop = cv::Point(0,0);
-    cv::Point outBot = cv::Point(rmiWidth,rmiHeight);
+    cv::Point outBot = cv::Point(ms->config.rmiWidth,ms->config.rmiHeight);
     Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
     vCrop = backColor;
   }
@@ -795,10 +795,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     string dirToMakePath = data_directory + "/objects/" + thisLabelName + "/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 
-    Mat rangeMapTemp(rmWidth, rmWidth, CV_64F);
-    for (int y = 0; y < rmWidth; y++) {
-      for (int x = 0; x < rmWidth; x++) {
-	rangeMapTemp.at<double>(y,x) = rangeMapReg1[x + y*rmWidth];
+    Mat rangeMapTemp(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
+    for (int y = 0; y < ms->config.rmWidth; y++) {
+      for (int x = 0; x < ms->config.rmWidth; x++) {
+	rangeMapTemp.at<double>(y,x) = ms->config.rangeMapReg1[x + y*ms->config.rmWidth];
       } 
     } 
 
@@ -2061,16 +2061,16 @@ REGISTER_WORD(AssumeCurrent3dGrasp)
 WORD(PreAnnotateCenterGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   guardGraspMemory(ms);
-  for (int y = 0; y < rmWidth; y++) {
-    for (int x = 0; x < rmWidth; x++) {
-      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*0] = 1;
-      graspMemoryPicks[x + y*rmWidth + rmWidth*rmWidth*0] = 0; 
-      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*1] = 1;
-      graspMemoryPicks[x + y*rmWidth + rmWidth*rmWidth*1] = 0; 
-      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*2] = 1;
-      graspMemoryPicks[x + y*rmWidth + rmWidth*rmWidth*2] = 0; 
-      graspMemoryTries[x + y*rmWidth + rmWidth*rmWidth*3] = 1;
-      graspMemoryPicks[x + y*rmWidth + rmWidth*rmWidth*3] = 0; 
+  for (int y = 0; y < ms->config.rmWidth; y++) {
+    for (int x = 0; x < ms->config.rmWidth; x++) {
+      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1;
+      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 0; 
+      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = 1;
+      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = 0; 
+      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 1;
+      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 0; 
+      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 1;
+      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 0; 
       //classGraspMemoryTries1[targetClass].at<double>(y,x) = 1;
       //classGraspMemoryPicks1[targetClass].at<double>(y,x) = 0;
       //classGraspMemoryTries2[targetClass].at<double>(y,x) = 1;
@@ -2079,18 +2079,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       //classGraspMemoryPicks3[targetClass].at<double>(y,x) = 0;
       //classGraspMemoryTries4[targetClass].at<double>(y,x) = 1;
       //classGraspMemoryPicks4[targetClass].at<double>(y,x) = 0;
-      rangeMap[x + y*rmWidth] = 0;
-      rangeMapReg1[x + y*rmWidth] = 0;
+      ms->config.rangeMap[x + y*ms->config.rmWidth] = 0;
+      ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = 0;
       //classRangeMaps[targetClass].at<double>(y,x) = 0;
     } 
   } 
-  //classGraspMemoryTries1[targetClass].at<double>(rmHalfWidth,rmHalfWidth) = 1;
-  //classGraspMemoryPicks1[targetClass].at<double>(rmHalfWidth,rmHalfWidth) = 1;
-  graspMemoryTries[rmHalfWidth + rmHalfWidth*rmWidth + rmWidth*rmWidth*0] = 1;
-  graspMemoryPicks[rmHalfWidth + rmHalfWidth*rmWidth + rmWidth*rmWidth*0] = 1; 
-  rangeMap[rmHalfWidth + rmHalfWidth*rmWidth] = ms->config.currentGraspZ;
-  rangeMapReg1[rmHalfWidth + rmHalfWidth*rmWidth] = ms->config.currentGraspZ;
-  //classRangeMaps[targetClass].at<double>(rmHalfWidth,rmHalfWidth) = 1;
+  //classGraspMemoryTries1[targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
+  //classGraspMemoryPicks1[targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
+  ms->config.graspMemoryTries[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1;
+  ms->config.graspMemoryPicks[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1; 
+  ms->config.rangeMap[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth] = ms->config.currentGraspZ;
+  ms->config.rangeMapReg1[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth] = ms->config.currentGraspZ;
+  //classRangeMaps[targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
 }
 END_WORD
 REGISTER_WORD(PreAnnotateCenterGrasp)

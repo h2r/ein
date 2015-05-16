@@ -100,7 +100,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   double targetX = trX;
   double targetY = trY;
 
-  trZ = rangeMapReg1[maxX + maxY*rmWidth];
+  trZ = ms->config.rangeMapReg1[maxX + maxY*ms->config.rmWidth];
 
   ms->config.currentEEPose.px = targetX;
   ms->config.currentEEPose.py = targetY;
@@ -407,7 +407,7 @@ REGISTER_WORD(ShakeItOff1)
 WORD(LoadTargetClassRangeMapIntoRegister1)
 CODE(131162)     // capslock + z
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  loadGlobalTargetClassRangeMap(ms, rangeMap, rangeMapReg1);
+  loadGlobalTargetClassRangeMap(ms, ms->config.rangeMap, ms->config.rangeMapReg1);
 }
 END_WORD
 REGISTER_WORD(LoadTargetClassRangeMapIntoRegister1)
@@ -416,40 +416,40 @@ WORD(CountGrasp)
 CODE(196717)     // capslock + M
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   // ATTN 19
-  int i = localMaxX + localMaxY * rmWidth + rmWidth*rmWidth*localMaxGG;
-  int j = localMaxX + localMaxY * rmWidth + rmWidth*rmWidth*0;
+  int i = localMaxX + localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*localMaxGG;
+  int j = localMaxX + localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0;
   graspAttemptCounter++;      
   cout << "thisGraspPicked: " << operationStatusToString(thisGraspPicked) << endl;
   cout << "thisGraspReleased: " << operationStatusToString(thisGraspReleased) << endl;
   if (ARE_GENERIC_PICK_LEARNING()) {
-    //graspMemoryTries[j+0*rmWidth*rmWidth]++;
-    //graspMemoryTries[j+1*rmWidth*rmWidth]++;
-    //graspMemoryTries[j+2*rmWidth*rmWidth]++;
-    //graspMemoryTries[j+3*rmWidth*rmWidth]++;
-    if (graspMemoryTries[i] <= 1.0) {
-      graspMemoryTries[i] = 1.001;
-      graspMemoryPicks[i] = 0.0;
+    //ms->config.graspMemoryTries[j+0*ms->config.rmWidth*ms->config.rmWidth]++;
+    //ms->config.graspMemoryTries[j+1*ms->config.rmWidth*ms->config.rmWidth]++;
+    //ms->config.graspMemoryTries[j+2*ms->config.rmWidth*ms->config.rmWidth]++;
+    //ms->config.graspMemoryTries[j+3*ms->config.rmWidth*ms->config.rmWidth]++;
+    if (ms->config.graspMemoryTries[i] <= 1.0) {
+      ms->config.graspMemoryTries[i] = 1.001;
+      ms->config.graspMemoryPicks[i] = 0.0;
     } else {
-      graspMemoryTries[i]++;
+      ms->config.graspMemoryTries[i]++;
     }
   }
   if ((thisGraspPicked == SUCCESS) && (thisGraspReleased == SUCCESS)) {
     graspSuccessCounter++;
     happy();
     if (ARE_GENERIC_PICK_LEARNING()) {
-      //graspMemoryPicks[j+0*rmWidth*rmWidth]++;
-      //graspMemoryPicks[j+1*rmWidth*rmWidth]++;
-      //graspMemoryPicks[j+2*rmWidth*rmWidth]++;
-      //graspMemoryPicks[j+3*rmWidth*rmWidth]++;
-      graspMemoryPicks[i]++;
+      //ms->config.graspMemoryPicks[j+0*ms->config.rmWidth*ms->config.rmWidth]++;
+      //ms->config.graspMemoryPicks[j+1*ms->config.rmWidth*ms->config.rmWidth]++;
+      //ms->config.graspMemoryPicks[j+2*ms->config.rmWidth*ms->config.rmWidth]++;
+      //ms->config.graspMemoryPicks[j+3*ms->config.rmWidth*ms->config.rmWidth]++;
+      ms->config.graspMemoryPicks[i]++;
     }
         
     if (ARE_GENERIC_HEIGHT_LEARNING()) {
       recordBoundingBoxSuccess();
     }
 
-    double thisPickRate = double(graspMemoryPicks[i]) / double(graspMemoryTries[i]);
-    int thisNumTries = graspMemoryTries[i];
+    double thisPickRate = double(ms->config.graspMemoryPicks[i]) / double(ms->config.graspMemoryTries[i]);
+    int thisNumTries = ms->config.graspMemoryTries[i];
     cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
     if (currentPickMode == LEARNING_SAMPLING) {
       if ( (thisNumTries >= thompsonMinTryCutoff) && 
@@ -459,8 +459,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     }
     // ATTN 20
     {
-      double successes = graspMemoryPicks[i];
-      double failures =  graspMemoryTries[i] - graspMemoryPicks[i];
+      double successes = ms->config.graspMemoryPicks[i];
+      double failures =  ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i];
       cout << "YYY failures, successes: " << failures << " " << successes << endl;
       successes = round(successes);
       failures = round(failures);
@@ -485,8 +485,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       }
     }
   } else {
-    double thisPickRate = double(graspMemoryPicks[i]) / double(graspMemoryTries[i]);
-    int thisNumTries = graspMemoryTries[i];
+    double thisPickRate = double(ms->config.graspMemoryPicks[i]) / double(ms->config.graspMemoryTries[i]);
+    int thisNumTries = ms->config.graspMemoryTries[i];
     cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
     sad();
     if (ARE_GENERIC_HEIGHT_LEARNING()) {
@@ -500,8 +500,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       
   cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << graspSuccessCounter << "/" << graspAttemptCounter << " " << graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << " " << pickModeToString(currentPickMode) << endl;
   {
-    double successes = graspMemoryPicks[i];
-    double failures =  graspMemoryTries[i] - graspMemoryPicks[i];
+    double successes = ms->config.graspMemoryPicks[i];
+    double failures =  ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i];
     cout << "YYY failures, successes: " << failures << " " << successes << endl;
     successes = round(successes);
     failures = round(failures);
@@ -537,8 +537,8 @@ REGISTER_WORD(CheckGrasp)
 WORD(CheckAndCountGrasp)
 CODE(196713)     // capslock + I
   virtual void execute(std::shared_ptr<MachineState> ms)       {
-  int i = localMaxX + localMaxY * rmWidth + rmWidth*rmWidth*localMaxGG;
-  int j = localMaxX + localMaxY * rmWidth + rmWidth*rmWidth*0;
+  int i = localMaxX + localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*localMaxGG;
+  int j = localMaxX + localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0;
   if (gripperMoving) {
     ms->pushWord(196713); // check and count grasp
   } else {
@@ -551,16 +551,16 @@ CODE(196713)     // capslock + I
     case LEARNING_ALGORITHMC:
     case LEARNING_SAMPLING:
       {
-        if (graspMemoryTries[i] <= 1.0) {
-          graspMemoryTries[i] = 1.001;
-          graspMemoryPicks[i] = 0.0;
+        if (ms->config.graspMemoryTries[i] <= 1.0) {
+          ms->config.graspMemoryTries[i] = 1.001;
+          ms->config.graspMemoryPicks[i] = 0.0;
         } else {
-          graspMemoryTries[i]++;
+          ms->config.graspMemoryTries[i]++;
         }
-        //graspMemoryTries[j+0*rmWidth*rmWidth]++;
-        //graspMemoryTries[j+1*rmWidth*rmWidth]++;
-        //graspMemoryTries[j+2*rmWidth*rmWidth]++;
-        //graspMemoryTries[j+3*rmWidth*rmWidth]++;
+        //ms->config.graspMemoryTries[j+0*ms->config.rmWidth*ms->config.rmWidth]++;
+        //ms->config.graspMemoryTries[j+1*ms->config.rmWidth*ms->config.rmWidth]++;
+        //ms->config.graspMemoryTries[j+2*ms->config.rmWidth*ms->config.rmWidth]++;
+        //ms->config.graspMemoryTries[j+3*ms->config.rmWidth*ms->config.rmWidth]++;
       }
       break;
     case STATIC_MARGINALS:
@@ -587,7 +587,7 @@ CODE(196713)     // capslock + I
       }
       graspSuccessCounter++;
       cout << "Successful grasp." << endl;
-      //graspMemoryPicks[i]++;
+      //ms->config.graspMemoryPicks[i]++;
       switch (currentPickMode) {
       case STATIC_PRIOR:
         {
@@ -596,11 +596,11 @@ CODE(196713)     // capslock + I
       case LEARNING_ALGORITHMC:
       case LEARNING_SAMPLING:
         {
-          graspMemoryPicks[i]++;
-          //graspMemoryPicks[j]++;
-          //graspMemoryPicks[j+1*rmWidth*rmWidth]++;
-          //graspMemoryPicks[j+2*rmWidth*rmWidth]++;
-          //graspMemoryPicks[j+3*rmWidth*rmWidth]++;
+          ms->config.graspMemoryPicks[i]++;
+          //ms->config.graspMemoryPicks[j]++;
+          //ms->config.graspMemoryPicks[j+1*ms->config.rmWidth*ms->config.rmWidth]++;
+          //ms->config.graspMemoryPicks[j+2*ms->config.rmWidth*ms->config.rmWidth]++;
+          //ms->config.graspMemoryPicks[j+3*ms->config.rmWidth*ms->config.rmWidth]++;
         }
         break;
       case STATIC_MARGINALS:
@@ -615,8 +615,8 @@ CODE(196713)     // capslock + I
       }
     }
 
-    double thisPickRate = double(graspMemoryPicks[i]) / double(graspMemoryTries[i]);
-    int thisNumTries = graspMemoryTries[i];
+    double thisPickRate = double(ms->config.graspMemoryPicks[i]) / double(ms->config.graspMemoryTries[i]);
+    int thisNumTries = ms->config.graspMemoryTries[i];
     cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
 
     if (currentPickMode == LEARNING_SAMPLING) {
@@ -627,8 +627,8 @@ CODE(196713)     // capslock + I
     }
     // ATTN 20
     {
-      double successes = graspMemoryPicks[i];
-      double failures =  graspMemoryTries[i] - graspMemoryPicks[i];
+      double successes = ms->config.graspMemoryPicks[i];
+      double failures =  ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i];
       cout << "YYY failures, successes: " << failures << " " << successes << endl;
       successes = round(successes);
       failures = round(failures);
@@ -660,8 +660,8 @@ CODE(196713)     // capslock + I
     cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << graspSuccessCounter << "/" << graspAttemptCounter << " " << graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << gripperPosition << " " << pickModeToString(currentPickMode) << endl;
   }
   {
-    double successes = graspMemoryPicks[i];
-    double failures =  graspMemoryTries[i] - graspMemoryPicks[i];
+    double successes = ms->config.graspMemoryPicks[i];
+    double failures =  ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i];
     cout << "YYY failures, successes: " << failures << " " << successes << endl;
     successes = round(successes);
     failures = round(failures);
@@ -986,7 +986,7 @@ REGISTER_WORD(SelectMaxTargetCumulative)
 WORD(ApplyGraspFilter)
 CODE(1048692)  // numlock + t
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  applyGraspFilter(rangeMapReg1, rangeMapReg2);
+  applyGraspFilter(ms, ms->config.rangeMapReg1, ms->config.rangeMapReg2);
 }
 END_WORD
 REGISTER_WORD(ApplyGraspFilter)

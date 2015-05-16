@@ -2,29 +2,29 @@
 WORD(PaintReticles)
 CODE(1048679)     // numlock + g
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  double ddrX = (drX)/rmDelta;
-  double ddrY = (drY)/rmDelta;
-  double ttrX = (trX-rmcX)/rmDelta;
-  double ttrY = (trY-rmcY)/rmDelta;
-  if ((fabs(ddrX) <= rmHalfWidth) && (fabs(ddrY) <= rmHalfWidth)) {
-    int iiX = (int)round(ddrX + rmHalfWidth);
-    int iiY = (int)round(ddrY + rmHalfWidth);
+  double ddrX = (drX)/ms->config.rmDelta;
+  double ddrY = (drY)/ms->config.rmDelta;
+  double ttrX = (trX-rmcX)/ms->config.rmDelta;
+  double ttrY = (trY-rmcY)/ms->config.rmDelta;
+  if ((fabs(ddrX) <= ms->config.rmHalfWidth) && (fabs(ddrY) <= ms->config.rmHalfWidth)) {
+    int iiX = (int)round(ddrX + ms->config.rmHalfWidth);
+    int iiY = (int)round(ddrY + ms->config.rmHalfWidth);
 
     double intensity = 128;
     cv::Scalar backColor(ceil(intensity),0,0);
-    cv::Point outTop = cv::Point((iiY+rmWidth)*rmiCellWidth,iiX*rmiCellWidth);
-    cv::Point outBot = cv::Point(((iiY+rmWidth)+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
+    cv::Point outTop = cv::Point((iiY+ms->config.rmWidth)*ms->config.rmiCellWidth,iiX*ms->config.rmiCellWidth);
+    cv::Point outBot = cv::Point(((iiY+ms->config.rmWidth)+1)*ms->config.rmiCellWidth,(iiX+1)*ms->config.rmiCellWidth);
     Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
     vCrop += backColor;
   }
-  if ((fabs(ttrX) <= rmHalfWidth) && (fabs(ttrY) <= rmHalfWidth)) {
-    int iiX = (int)round(ttrX + rmHalfWidth);
-    int iiY = (int)round(ttrY + rmHalfWidth);
+  if ((fabs(ttrX) <= ms->config.rmHalfWidth) && (fabs(ttrY) <= ms->config.rmHalfWidth)) {
+    int iiX = (int)round(ttrX + ms->config.rmHalfWidth);
+    int iiY = (int)round(ttrY + ms->config.rmHalfWidth);
 
     double intensity = 128;
     cv::Scalar backColor(0,ceil(intensity),0);
-    cv::Point outTop = cv::Point((iiY+rmWidth)*rmiCellWidth,iiX*rmiCellWidth);
-    cv::Point outBot = cv::Point(((iiY+rmWidth)+1)*rmiCellWidth,(iiX+1)*rmiCellWidth);
+    cv::Point outTop = cv::Point((iiY+ms->config.rmWidth)*ms->config.rmiCellWidth,iiX*ms->config.rmiCellWidth);
+    cv::Point outBot = cv::Point(((iiY+ms->config.rmWidth)+1)*ms->config.rmiCellWidth,(iiX+1)*ms->config.rmiCellWidth);
     Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
     vCrop += backColor;
 
@@ -35,14 +35,14 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     putText(ms->config.rangemapImage, reticleLabel, text_anchor, MY_FONT, 0.5, Scalar(192,192,192), 1.0);
   }
   for (int gg = 0; gg < totalGraspGears; gg++){
-    double gggX = (ggX[gg])/rmDelta;
-    double gggY = (ggY[gg])/rmDelta;
-    if ((fabs(gggX) <= rmHalfWidth) && (fabs(gggY) <= rmHalfWidth)) {
-      int iiX = (int)round(gggX + rmHalfWidth);
-      int iiY = (int)round(gggY + rmHalfWidth);
+    double gggX = (ggX[gg])/ms->config.rmDelta;
+    double gggY = (ggY[gg])/ms->config.rmDelta;
+    if ((fabs(gggX) <= ms->config.rmHalfWidth) && (fabs(gggY) <= ms->config.rmHalfWidth)) {
+      int iiX = (int)round(gggX + ms->config.rmHalfWidth);
+      int iiY = (int)round(gggY + ms->config.rmHalfWidth);
 
-      cv::Point outTop = cv::Point((iiY+rmWidth)*rmiCellWidth,iiX*rmiCellWidth);
-      cv::Point outBot = cv::Point(((iiY+rmWidth)+1)*rmiCellWidth-1,(iiX+1)*rmiCellWidth-1);
+      cv::Point outTop = cv::Point((iiY+ms->config.rmWidth)*ms->config.rmiCellWidth,iiX*ms->config.rmiCellWidth);
+      cv::Point outBot = cv::Point(((iiY+ms->config.rmWidth)+1)*ms->config.rmiCellWidth-1,(iiX+1)*ms->config.rmiCellWidth-1);
       cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
       cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
       rectangle(ms->config.rangemapImage, outTop, outBot, cv::Scalar(192,0,0)); 
@@ -94,17 +94,17 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     cv::Scalar backColor(0,ceil(intensity),0);
     circle(ms->config.hiRangemapImage, cv::Point(hrmHalfWidth+hrmWidth, hrmHalfWidth), hiCellWidth, backColor);
   }
-  int localCenterMaxX = localMaxX-rmHalfWidth;
-  int localCenterMaxY = localMaxY-rmHalfWidth;
+  int localCenterMaxX = localMaxX-ms->config.rmHalfWidth;
+  int localCenterMaxY = localMaxY-ms->config.rmHalfWidth;
   cout << "localMaxX localMaxY localCenterMaxX localCenterMaxY: " << localMaxX << " " << localMaxY << " " << localCenterMaxX << " " << localCenterMaxY << endl;
-  if ((fabs(localCenterMaxX) <= rmHalfWidth) && (fabs(localCenterMaxY) <= rmHalfWidth)) {
-    int liiX = (int)round(localCenterMaxX + rmHalfWidth);
-    int liiY = (int)round(localCenterMaxY + rmHalfWidth);
+  if ((fabs(localCenterMaxX) <= ms->config.rmHalfWidth) && (fabs(localCenterMaxY) <= ms->config.rmHalfWidth)) {
+    int liiX = (int)round(localCenterMaxX + ms->config.rmHalfWidth);
+    int liiY = (int)round(localCenterMaxY + ms->config.rmHalfWidth);
 
     double intensity = 255;
     cv::Scalar backColor(ceil(intensity),ceil(intensity),0);
-    cv::Point outTop = cv::Point((liiY+rmWidth)*rmiCellWidth,liiX*rmiCellWidth);
-    cv::Point outBot = cv::Point(((liiY+rmWidth)+1)*rmiCellWidth,(liiX+1)*rmiCellWidth);
+    cv::Point outTop = cv::Point((liiY+ms->config.rmWidth)*ms->config.rmiCellWidth,liiX*ms->config.rmiCellWidth);
+    cv::Point outBot = cv::Point(((liiY+ms->config.rmWidth)+1)*ms->config.rmiCellWidth,(liiX+1)*ms->config.rmiCellWidth);
     Mat vCrop = ms->config.graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
     vCrop += backColor;
 
