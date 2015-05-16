@@ -466,20 +466,20 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       failures = round(failures);
       cout << "XXX failures, successes: " << failures << " " << successes << endl;
       // returns probability that mu <= d given successes and failures.
-      double presult = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
+      double presult = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget);
       // we want probability that mu > d
       double result = 1.0 - presult;
 
-      double presult2a = cephes_incbet(successes + 1, failures + 1, algorithmCTarget + algorithmCEPS);
-      double presult2b = cephes_incbet(successes + 1, failures + 1, algorithmCTarget - algorithmCEPS);
+      double presult2a = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget + ms->config.algorithmCEPS);
+      double presult2b = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget - ms->config.algorithmCEPS);
       // we want probability that 
-      //  algorithmCTarget - algorithmCEPS < mu < algorithmCTarget + algorithmCEPS
+      //  ms->config.algorithmCTarget - ms->config.algorithmCEPS < mu < ms->config.algorithmCTarget + ms->config.algorithmCEPS
       double result2 = presult2a - presult2b;
 
-      cout << "prob that mu > d: " << result << " algorithmCAT: " << algorithmCAT << endl;
+      cout << "prob that mu > d: " << result << " algorithmCAT: " << ms->config.algorithmCAT << endl;
       if (ms->config.currentPickMode == LEARNING_ALGORITHMC) {
-        ms->config.thompsonPickHaltFlag = (result > algorithmCAT);
-        if (result2 > algorithmCAT) {
+        ms->config.thompsonPickHaltFlag = (result > ms->config.algorithmCAT);
+        if (result2 > ms->config.algorithmCAT) {
           ms->config.thompsonPickHaltFlag = 1;
         }
       }
@@ -634,20 +634,20 @@ CODE(196713)     // capslock + I
       failures = round(failures);
       cout << "XXX failures, successes: " << failures << " " << successes << endl;
       // returns probability that mu <= d given successes and failures.
-      double presult = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
+      double presult = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget);
       // we want probability that mu > d
       double result = 1.0 - presult;
 
-      double presult2a = cephes_incbet(successes + 1, failures + 1, algorithmCTarget + algorithmCEPS);
-      double presult2b = cephes_incbet(successes + 1, failures + 1, algorithmCTarget - algorithmCEPS);
+      double presult2a = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget + ms->config.algorithmCEPS);
+      double presult2b = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget - ms->config.algorithmCEPS);
       // we want probability that 
-      //  algorithmCTarget - algorithmCEPS < mu < algorithmCTarget + algorithmCEPS
+      //  ms->config.algorithmCTarget - ms->config.algorithmCEPS < mu < ms->config.algorithmCTarget + ms->config.algorithmCEPS
       double result2 = presult2a - presult2b;
 
-      cout << "prob that mu > d: " << result << " algorithmCAT: " << algorithmCAT << endl;
+      cout << "prob that mu > d: " << result << " algorithmCAT: " << ms->config.algorithmCAT << endl;
       if (ms->config.currentPickMode == LEARNING_ALGORITHMC) {
-        ms->config.thompsonPickHaltFlag = (result > algorithmCAT);
-        if (result2 > algorithmCAT) {
+        ms->config.thompsonPickHaltFlag = (result > ms->config.algorithmCAT);
+        if (result2 > ms->config.algorithmCAT) {
           ms->config.thompsonPickHaltFlag = 1;
         }
       }

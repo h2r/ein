@@ -476,8 +476,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
         double successes = ms->config.heightMemoryPicks[i];
         double failures = ms->config.heightMemoryTries[i] - ms->config.heightMemoryPicks[i];
         // returns probability that mu <= d given successes and failures.
-        double result = cephes_incbet(successes + 1, failures + 1, algorithmCTarget);
-        thisHeightMaxedOut = (result > algorithmCRT);
+        double result = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget);
+        thisHeightMaxedOut = (result > ms->config.algorithmCRT);
       }
       
       if ( (ms->config.heightMemorySample[i] > best_height_prob) &&

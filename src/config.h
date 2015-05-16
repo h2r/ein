@@ -442,6 +442,13 @@ class EinConfig {
   double heightEccentricity = 1.0;
 
 
+  // algorithmC accecpt and reject thresholds
+  double algorithmCEPS = 0.2;
+  double algorithmCTarget = 0.7;
+  double algorithmCAT = 0.7;
+  double algorithmCRT = 0.95;
+
+
 
   // the currently equipped depth reticle
   double drX = .02; //.01;
