@@ -15,15 +15,15 @@ REGISTER_WORD(DeliverObject)
 WORD(DeliverTargetObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("idler"); 
-  bailAfterGradient = 1;
+  ms->config.bailAfterGradient = 1;
 
-  pilotTarget.px = -1;
-  pilotTarget.py = -1;
-  pilotClosestTarget.px = -1;
-  pilotClosestTarget.py = -1;
+  ms->config.pilotTarget.px = -1;
+  ms->config.pilotTarget.py = -1;
+  ms->config.pilotClosestTarget.px = -1;
+  ms->config.pilotClosestTarget.py = -1;
   
   int idxOfFirst = -1;
-  vector<BoxMemory> focusedClassMemories = memoriesForClass(focusedClass, &idxOfFirst);
+  vector<BoxMemory> focusedClassMemories = memoriesForClass(ms, ms->config.focusedClass, &idxOfFirst);
   if (focusedClassMemories.size() == 0) {
     cout << "No memories of the focused class. " << endl;
     return;
@@ -39,25 +39,25 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  //currentEEPose = memory.cameraPose;
-  currentEEPose = memory.aimedPose;
-  lastPickPose = memory.pickedPose;
-  lastPrePickPose = memory.aimedPose;
-  trZ = memory.trZ;
+  //ms->config.currentEEPose = memory.cameraPose;
+  ms->config.currentEEPose = memory.aimedPose;
+  ms->config.lastPickPose = memory.pickedPose;
+  ms->config.lastPrePickPose = memory.aimedPose;
+  ms->config.trZ = memory.trZ;
 
   cout << "deliverObject, " << ms->config.classGraspZsSet.size() << " " << ms->config.classGraspZs.size() << endl;
-  if ( (ms->config.classGraspZsSet.size() > targetClass) && 
-       (ms->config.classGraspZs.size() > targetClass) ) {
-    if (ms->config.classGraspZsSet[targetClass] == 1) {
-      trZ = ms->config.classGraspZs[targetClass];
-      cout << "delivering class " << classLabels[targetClass] << " with classGraspZ " << trZ << endl;
+  if ( (ms->config.classGraspZsSet.size() > ms->config.targetClass) && 
+       (ms->config.classGraspZs.size() > ms->config.targetClass) ) {
+    if (ms->config.classGraspZsSet[ms->config.targetClass] == 1) {
+      ms->config.trZ = ms->config.classGraspZs[ms->config.targetClass];
+      cout << "delivering class " << classLabels[ms->config.targetClass] << " with classGraspZ " << ms->config.trZ << endl;
     }
   }
 
   { // set the old box's lastMappedTime to moments after the start of time
     int iStart=-1, iEnd=-1, jStart=-1, jEnd=-1;
     int iTop=-1, iBot=-1, jTop=-1, jBot=-1;
-    double z = trueEEPose.position.z + currentTableZ;
+    double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
     {
       double x, y;
       int i, j;
@@ -113,7 +113,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("executePreparedGrasp"); 
   //ms->pushWord("prepareForAndExecuteGraspFromMemory"); 
   //ms->pushWord("gradientServo");
-  //ms->pushCopies("density", densityIterationsForGradientServo); 
+  //ms->pushCopies("density", ms->config.densityIterationsForGradientServo); 
   //ms->pushCopies("resetTemporalMap", 1); 
   //ms->pushWord("synchronicServo"); 
   //ms->pushWord("visionCycle");
@@ -169,7 +169,7 @@ WORD(ClearStackAcceptFetchCommands)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->clearStack();
   ms->execute_stack = 1;
-  acceptingFetchCommands = 1;
+  ms->config.acceptingFetchCommands = 1;
 }
 END_WORD
 REGISTER_WORD(ClearStackAcceptFetchCommands)
@@ -178,9 +178,9 @@ WORD(MappingPatrol)
 CODE(196727) // capslock + W
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Mapping patrol" << endl;
-  bailAfterSynchronic = 1;
-  bailAfterGradient = 1;
-  acceptingFetchCommands = 1;
+  ms->config.bailAfterSynchronic = 1;
+  ms->config.bailAfterGradient = 1;
+  ms->config.acceptingFetchCommands = 1;
 
   ms->pushWord("mappingPatrol");
   //ms->pushWord("bringUpAllNonessentialSystems");
@@ -327,7 +327,7 @@ REGISTER_WORD(FillClearanceMap)
 WORD(SaveIkMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ofstream ofile;
-  string fileName = data_directory + "/config/" + left_or_right_arm + "IkMap";
+  string fileName = data_directory + "/config/" + ms->config.left_or_right_arm + "IkMap";
   cout << "Saving ikMap to " << fileName << endl;
   ofile.open(fileName, ios::trunc | ios::binary);
   ofile.write((char*)ikMap, sizeof(int)*mapWidth*mapHeight);
@@ -342,7 +342,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //  for only one height and is 360kB in binary... how
   //  big would it be in yml, and what if we want another height?
   ifstream ifile;
-  string fileName = data_directory + "/config/" + left_or_right_arm + "IkMap";
+  string fileName = data_directory + "/config/" + ms->config.left_or_right_arm + "IkMap";
   cout << "Loading ikMap from " << fileName << endl;
   ifile.open(fileName, ios::binary);
   ifile.read((char*)ikMap, sizeof(int)*mapWidth*mapHeight);
@@ -367,12 +367,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	    double X, Y;
 	    mapijToxy(i, j, &X, &Y);
 
-	    eePose nextEEPose = currentEEPose;
+	    eePose nextEEPose = ms->config.currentEEPose;
 	    nextEEPose.px = X;
 	    nextEEPose.py = Y;
 
 	    baxter_core_msgs::SolvePositionIK thisIkRequest;
-	    endEffectorAngularUpdate(&nextEEPose, &currentEEDeltaRPY);
+	    endEffectorAngularUpdate(&nextEEPose, &ms->config.currentEEDeltaRPY);
 	    fillIkRequest(&nextEEPose, &thisIkRequest);
 
 	    bool likelyInCollision = 0;
@@ -383,7 +383,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
 	    int ikResultFailed = 1;
 	    if (ms->config.currentRobotMode == PHYSICAL) {
-	      ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
+	      ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision);
 	    } else if (ms->config.currentRobotMode == SIMULATED) {
 	      ikResultFailed = !positionIsSearched(nextEEPose.px, nextEEPose.py);
 	    } else {
@@ -471,7 +471,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  cout << "Patrolled once, idling." << endl;
 	  ms->clearStack();
 	  ms->execute_stack = 1;
-	  acceptingFetchCommands = 1;
+	  ms->config.acceptingFetchCommands = 1;
 	  ms->pushWord("idler");
 	  return;
 	} else {
@@ -490,7 +490,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double oldestX, oldestY;
     mapijToxy(oldestI, oldestJ, &oldestX, &oldestY);
 
-    eePose nextEEPose = currentEEPose;
+    eePose nextEEPose = ms->config.currentEEPose;
     nextEEPose.px = oldestX;
     nextEEPose.py = oldestY;
 
@@ -505,7 +505,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     int ikResultFailed = 1;
     if (ms->config.currentRobotMode == PHYSICAL) {
-      ikResultFailed = willIkResultFail(thisIkRequest, thisIkCallResult, &likelyInCollision);
+      ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision);
     } else if (ms->config.currentRobotMode == SIMULATED) {
       ikResultFailed = !positionIsSearched(nextEEPose.px, nextEEPose.py);
     } else {
@@ -515,12 +515,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     int foundGoodPosition = !ikResultFailed;
 
     if (foundGoodPosition) {
-      currentEEPose.qx = ms->config.straightDown.qx;
-      currentEEPose.qy = ms->config.straightDown.qy;
-      currentEEPose.qz = ms->config.straightDown.qz;
-      currentEEPose.qw = ms->config.straightDown.qw;
-      currentEEPose.px = oldestX;
-      currentEEPose.py = oldestY;
+      ms->config.currentEEPose.qx = ms->config.straightDown.qx;
+      ms->config.currentEEPose.qy = ms->config.straightDown.qy;
+      ms->config.currentEEPose.qz = ms->config.straightDown.qz;
+      ms->config.currentEEPose.qw = ms->config.straightDown.qw;
+      ms->config.currentEEPose.px = oldestX;
+      ms->config.currentEEPose.py = oldestY;
       cout << "This pose was accepted by ikClient:" << endl;
       cout << "Next EE Position (x,y,z): " << nextEEPose.px << " " << nextEEPose.py << " " << nextEEPose.pz << endl;
       cout << "Next EE Orientation (x,y,z,w): " << nextEEPose.qx << " " << nextEEPose.qy << " " << nextEEPose.qz << " " << nextEEPose.qw << endl;
@@ -567,9 +567,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     BoxMemory box;
     box.bTop = bTops[c];
     box.bBot = bBots[c];
-    box.cameraPose = currentEEPose;
-    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
-    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+    box.cameraPose = ms->config.currentEEPose;
+    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
     box.centroid.px = (box.top.px + box.bot.px) * 0.5;
     box.centroid.py = (box.top.py + box.bot.py) * 0.5;
     box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -584,8 +584,8 @@ REGISTER_WORD(RecordAllBlueBoxes)
 
 WORD(VoidCurrentMapRegion)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  voidMapRegion(ms, currentEEPose.px, currentEEPose.py);
-  cout << "Voiding the region of the map around currentEEPose." << endl;
+  voidMapRegion(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py);
+  cout << "Voiding the region of the map around ms->config.currentEEPose." << endl;
 }
 END_WORD
 REGISTER_WORD(VoidCurrentMapRegion)
@@ -618,7 +618,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int px = grayTop.x+mapGrayBoxPixelSkirt; px < grayBot.x-mapGrayBoxPixelSkirt; px++) {
     for (int py = grayTop.y+mapGrayBoxPixelSkirt; py < grayBot.y-mapGrayBoxPixelSkirt; py++) {
 
-      if (isInGripperMask(px, py)) {
+      if (isInGripperMask(ms, px, py)) {
 	continue;
       }
 
@@ -627,7 +627,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
       if (blueBoxIdx == -1) {
         double x, y;
-        double z = trueEEPose.position.z + currentTableZ;
+        double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
 
         pixelToGlobal(ms, px, py, z, &x, &y);
         int i, j;
@@ -682,18 +682,18 @@ REGISTER_WORD(MapEmptySpace)
 
 WORD(MapClosestBlueBox)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (pilotClosestBlueBoxNumber == -1) {
-    cout << "Not changing because closest bbox is " << pilotClosestBlueBoxNumber << endl;
+  if (ms->config.pilotClosestBlueBoxNumber == -1) {
+    cout << "Not changing because closest bbox is " << ms->config.pilotClosestBlueBoxNumber << endl;
     return;
   }
 
-  int c = pilotClosestBlueBoxNumber;
+  int c = ms->config.pilotClosestBlueBoxNumber;
   BoxMemory box;
   box.bTop = bTops[c];
   box.bBot = bBots[c];
-  box.cameraPose = currentEEPose;
-  box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, trueEEPose.position.z + currentTableZ);
-  box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, trueEEPose.position.z + currentTableZ);
+  box.cameraPose = ms->config.currentEEPose;
+  box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
   box.centroid.px = (box.top.px + box.bot.px) * 0.5;
   box.centroid.py = (box.top.py + box.bot.py) * 0.5;
   box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -807,7 +807,7 @@ REGISTER_WORD(DensityA)
 
 WORD(AccumulatedDensity)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  substituteAccumulatedImageQuantities();
+  substituteAccumulatedImageQuantities(ms);
   goCalculateDensity(ms);
   renderAccumulatedImageAndDensity(ms);
   //goAccumulateForAerial();
@@ -817,7 +817,7 @@ REGISTER_WORD(AccumulatedDensity)
 
 WORD(ResetAccumulatedDensity)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  resetAccumulatedImageAndMass();
+  resetAccumulatedImageAndMass(ms);
 }
 END_WORD
 REGISTER_WORD(ResetAccumulatedDensity)
@@ -851,8 +851,8 @@ REGISTER_WORD(GoFindBlueBoxes)
 WORD(GoClassifyBlueBoxes)
 CODE(131123) // capslock + 3
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  lastVisionCycle = ros::Time::now();
-  oscilStart = ros::Time::now();
+  ms->config.lastVisionCycle = ros::Time::now();
+  ms->config.oscilStart = ros::Time::now();
   goClassifyBlueBoxes(ms);
 }
 END_WORD
@@ -866,7 +866,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   eePose facePose = {.px = 0.85838, .py = 0.56957, .pz = 0.163187,
                      .qx = -0.153116, .qy = 0.717486, .qz = 0.0830483, .qw = 0.674442};
 
-  currentEEPose = facePose;
+  ms->config.currentEEPose = facePose;
   ms->pushWord("waitUntilAtCurrentPosition");
 }
 END_WORD
@@ -885,7 +885,7 @@ REGISTER_WORD(DetectFaces)
 WORD(FaceServo)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  faceServoIterations = 0;
+  ms->config.faceServoIterations = 0;
   ms->pushWord("faceServoA");
 }
 END_WORD
@@ -894,7 +894,7 @@ REGISTER_WORD(FaceServo)
 WORD(FaceServoA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  faceServoIterations++;
+  ms->config.faceServoIterations++;
   ms->pushWord("endStackCollapseNoop");
   ms->pushWord("faceServoB");
   ms->pushWord("accumulatedDensity");
@@ -908,7 +908,7 @@ REGISTER_WORD(FaceServoA)
 WORD(FaceServoB)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  if (faceServoIterations > faceServoTimeout) {
+  if (ms->config.faceServoIterations > ms->config.faceServoTimeout) {
     cout << "faceServo timed out, continuing..." << endl;
     return;
   }
