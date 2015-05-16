@@ -122,17 +122,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-
-
-
-
-baxter_core_msgs::HeadPanCommand currentHeadPanCommand;
-std_msgs::Bool currentHeadNodCommand;
-std_msgs::UInt16 currentSonarCommand;
-
-int heartBeatCounter = 0;
-int heartBeatPeriod = 150;
-
 ros::Time lastAccelerometerCallbackRequest;
 ros::Time lastImageCallbackRequest;
 ros::Time lastGripperCallbackRequest;
@@ -3296,11 +3285,11 @@ void timercallback1(const ros::TimerEvent&) {
   int takeSymbol = 1;
   if (ms->config.shouldIMiscCallback) {
     c = cvWaitKey(1);
-  } else if ((heartBeatCounter % heartBeatPeriod) == 0) {
+  } else if ((ms->config.heartBeatCounter % ms->config.heartBeatPeriod) == 0) {
     c = cvWaitKey(1);
-    heartBeatCounter = 0;
+    ms->config.heartBeatCounter = 0;
   }
-  heartBeatCounter++;
+  ms->config.heartBeatCounter++;
 
   if (c != -1) {
     // don't print for capslock, shift, alt (for alt-tab)
@@ -12631,10 +12620,10 @@ int main(int argc, char **argv) {
   headPub = n.advertise<baxter_core_msgs::HeadPanCommand>("/robot/head/command_head_pan",10);
   nodPub = n.advertise<std_msgs::Bool>("/robot/head/command_head_nod",10);
 
-  currentHeadPanCommand.target = 0;
-  currentHeadPanCommand.speed = 50;
-  currentHeadNodCommand.data = 0;
-  currentSonarCommand.data = 0;
+  ms->config.currentHeadPanCommand.target = 0;
+  ms->config.currentHeadPanCommand.speed = 50;
+  ms->config.currentHeadNodCommand.data = 0;
+  ms->config.currentSonarCommand.data = 0;
 
 
   facePub = n.advertise<std_msgs::Int32>("/confusion/target/command", 10);
