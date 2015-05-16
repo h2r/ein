@@ -119,21 +119,7 @@ ros::Publisher markers_blue_memory;
 ros::Publisher ee_target_pub;
 
 
-double *gBoxIndicator;
-int gBoxW = 10;
-int gBoxH = 10;
 
-int gBoxStrideX;
-int gBoxStrideY;
-
-// pink box thresholds for the principle classes
-double *pBoxIndicator = NULL;
-double psPBT = 0.0;//5.0;
-double wsPBT = 0.0;//6.5;
-double gbPBT = 0.0;//6.0;
-double mbPBT = 0.0;//7.0;
-
-double pBoxThresh = 0;
 
 // gray box offset from the top and bottom of the screen
 int tGO = 30;
@@ -175,10 +161,6 @@ vector<Mat> classHeightMemoryTries;
 vector<Mat> classHeightMemoryPicks;
 
 
-
-// XXX this should probably be odd
-int aerialGradientWidth = 100;
-int aerialGradientReticleWidth = 200;
 
 // XXX TODO
 int softMaxGradientServoIterations = 4;//5;//3;//10;//3;
@@ -456,16 +438,16 @@ int doubleToByte(double in);
 
 
 
-void gridKeypoints(int gImW, int gImH, cv::Point top, cv::Point bot, int strideX, int strideY, vector<KeyPoint>& keypoints, int period);
+void gridKeypoints(shared_ptr<MachineState> ms, int gImW, int gImH, cv::Point top, cv::Point bot, int strideX, int strideY, vector<KeyPoint>& keypoints, int period);
 
 bool isFiniteNumber(double x);
 
 void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descriptors, Mat& descriptors2);
 void processImage(Mat &image, Mat& gray_image, Mat& yCrCb_image, double sigma);
 
-void bowGetFeatures(std::string classDir, const char *className, double sigma, int keypointPeriod, int * grandTotalDescriptors, DescriptorExtractor * extractor, BOWKMeansTrainer * bowTrainer);
+void bowGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const char *className, double sigma, int keypointPeriod, int * grandTotalDescriptors, DescriptorExtractor * extractor, BOWKMeansTrainer * bowTrainer);
 void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const char *className, int label, double sigma, Mat &kNNfeatures, Mat &kNNlabels, double sobel_sigma);
-void posekNNGetFeatures(std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
+void posekNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
                         vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, BOWImgDescriptorExtractor *bowExtractor, int lIndexStart = 0);
 
 
@@ -2429,8 +2411,8 @@ void rangeCallback(const sensor_msgs::Range& range) {
     guardedImshow(ms->config.mapBackgroundViewName, ms->config.mapBackgroundImage, ms->config.sirMapBackground);
     
     if (ms->config.targetClass > -1) {
-      if (classHeight0AerialGradients[ms->config.targetClass].rows == aerialGradientWidth) {
-	Mat crop0 = ms->config.aerialGradientViewerImage(cv::Rect(0, 3*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
+      if (classHeight0AerialGradients[ms->config.targetClass].rows == ms->config.aerialGradientWidth) {
+	Mat crop0 = ms->config.aerialGradientViewerImage(cv::Rect(0, 3*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, ms->config.aerialGradientWidth));
 	double min0 = 0;
 	double max0 = 0;
 	minMaxLoc(classHeight0AerialGradients[ms->config.targetClass], &min0, &max0);
@@ -2439,7 +2421,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  denom0 = 1;
 	crop0 = (classHeight0AerialGradients[ms->config.targetClass] - min0) / denom0;
 
-	Mat crop1 = ms->config.aerialGradientViewerImage(cv::Rect(0, 2*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
+	Mat crop1 = ms->config.aerialGradientViewerImage(cv::Rect(0, 2*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, ms->config.aerialGradientWidth));
 	double min1 = 0;
 	double max1 = 0;
 	minMaxLoc(classHeight1AerialGradients[ms->config.targetClass], &min1, &max1);
@@ -2448,7 +2430,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  denom1 = 1;
 	crop1 = (classHeight1AerialGradients[ms->config.targetClass] - min1) / denom1;
 
-	Mat crop2 = ms->config.aerialGradientViewerImage(cv::Rect(0, 1*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
+	Mat crop2 = ms->config.aerialGradientViewerImage(cv::Rect(0, 1*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, ms->config.aerialGradientWidth));
 	double min2 = 0;
 	double max2 = 0;
 	minMaxLoc(classHeight2AerialGradients[ms->config.targetClass], &min2, &max2);
@@ -2457,7 +2439,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  denom2 = 1;
 	crop2 = (classHeight2AerialGradients[ms->config.targetClass] - min2) / denom2;
 
-	Mat crop3 = ms->config.aerialGradientViewerImage(cv::Rect(0, 0*aerialGradientWidth, aerialGradientWidth, aerialGradientWidth));
+	Mat crop3 = ms->config.aerialGradientViewerImage(cv::Rect(0, 0*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, ms->config.aerialGradientWidth));
 	double min3 = 0;
 	double max3 = 0;
 	minMaxLoc(classHeight3AerialGradients[ms->config.targetClass], &min3, &max3);
@@ -3001,7 +2983,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     ms->config.densityViewerImage = ms->config.cv_ptr->image.clone();
     ms->config.densityViewerImage *= 0;
     ms->config.gradientViewerImage = Mat(2*ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, ms->config.cv_ptr->image.type());
-    ms->config.aerialGradientViewerImage = Mat(4*aerialGradientWidth, aerialGradientWidth, CV_64F);
+    ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
     ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();
   }
 
@@ -6414,7 +6396,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
 
   //cout << "computing scores... ";
 
-  Size toBecome(aerialGradientWidth, aerialGradientWidth);
+  Size toBecome(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth);
 
   int numOrientations = 37;
   vector<Mat> rotatedAerialGrads;
@@ -6456,7 +6438,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
       }
       
       // rotate the template and L1 normalize it
-      Point center = Point(aerialGradientWidth/2, aerialGradientWidth/2);
+      Point center = Point(ms->config.aerialGradientWidth/2, ms->config.aerialGradientWidth/2);
       double angle = thisOrient*360.0/numOrientations;
       
       //double scale = 1.0;
@@ -6468,13 +6450,13 @@ void gradientServo(shared_ptr<MachineState> ms) {
       
       processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations], rotatedAerialGrads[thisOrient + etaS*numOrientations]);
       
-      //double l1norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type()));
+      //double l1norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type()));
       //if (l1norm <= EPSILON)
       //l1norm = 1.0;
       //rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l1norm;
       //cout << "classOrientedGradients[ms->config.targetClass]: " << classAerialGradients[ms->config.targetClass] << "rotatedAerialGrads[thisOrient + etaS*numOrientations] " << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
       
-      double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(aerialGradientWidth*aerialGradientWidth);
+      double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
       rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
       double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations]);
       if (l2norm <= EPSILON)
@@ -6490,8 +6472,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
   int bestY = -1;
   int bestS = -1;
 
-  int crows = aerialGradientReticleWidth;
-  int ccols = aerialGradientReticleWidth;
+  int crows = ms->config.aerialGradientReticleWidth;
+  int ccols = ms->config.aerialGradientReticleWidth;
   int maxDim = max(crows, ccols);
   int tRy = (maxDim-crows)/2;
   int tRx = (maxDim-ccols)/2;
@@ -6518,8 +6500,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
     for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
       for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
         // get the patch
-        int topCornerX = etaX + ms->config.reticle.px - (aerialGradientReticleWidth/2);
-        int topCornerY = etaY + ms->config.reticle.py - (aerialGradientReticleWidth/2);
+        int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
+        int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
         Mat gCrop(maxDim, maxDim, CV_64F);
         
         for (int x = 0; x < maxDim; x++) {
@@ -6542,7 +6524,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
         processSaliency(gCrop, gCrop);
         
         {
-          double mean = gCrop.dot(Mat::ones(aerialGradientWidth, aerialGradientWidth, gCrop.type())) / double(aerialGradientWidth*aerialGradientWidth);
+          double mean = gCrop.dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, gCrop.type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
           gCrop = gCrop - mean;
           double l2norm = gCrop.dot(gCrop);
           // ATTN 17
@@ -6594,12 +6576,12 @@ void gradientServo(shared_ptr<MachineState> ms) {
     for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
       for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
         // get the patch
-        int topCornerX = etaX + ms->config.reticle.px - (aerialGradientReticleWidth/2);
-        int topCornerY = etaY + ms->config.reticle.py - (aerialGradientReticleWidth/2);
+        int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
+        int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
         Mat gCrop(maxDim, maxDim, CV_64F);
         
         // throw it out if it isn't contained in the image
-        //    if ( (topCornerX+aerialGradientWidth >= imW) || (topCornerY+aerialGradientWidth >= imH) )
+        //    if ( (topCornerX+ms->config.aerialGradientWidth >= imW) || (topCornerY+ms->config.aerialGradientWidth >= imH) )
         //      continue;
         //    if ( (topCornerX < 0) || (topCornerY < 0) )
         //      continue;
@@ -6683,8 +6665,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
         //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
         //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
         //cout << thisColor;
-        int thisTopCornerX = bestX + ms->config.reticle.px - (aerialGradientReticleWidth/2);
-        int thisTopCornerY = bestY + ms->config.reticle.py - (aerialGradientReticleWidth/2);
+        int thisTopCornerX = bestX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
+        int thisTopCornerY = bestY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
         
         int tgX = thisTopCornerX + tx;
         int tgY = thisTopCornerY + ty;
@@ -8338,7 +8320,7 @@ int doubleToByte(double in) {
 
 
 
-void gridKeypoints(int gImW, int gImH, cv::Point top, cv::Point bot, int strideX, int strideY, vector<KeyPoint>& keypoints, int period) {
+void gridKeypoints(shared_ptr<MachineState> ms, int gImW, int gImH, cv::Point top, cv::Point bot, int strideX, int strideY, vector<KeyPoint>& keypoints, int period) {
   keypoints.resize(0);
 
   // make sure feature pad is a multiple of the stride
@@ -8350,8 +8332,8 @@ void gridKeypoints(int gImW, int gImH, cv::Point top, cv::Point bot, int strideX
 
   int responseIndex = 1;
   
-  int mX = gBoxW / 2;
-  int mY = gBoxH / 2;
+  int mX = ms->config.gBoxW / 2;
+  int mY = ms->config.gBoxH / 2;
 
 
   for (int y = sTop.y; y <= sBot.y; y+=strideX*period) {
@@ -8363,7 +8345,7 @@ void gridKeypoints(int gImW, int gImH, cv::Point top, cv::Point bot, int strideX
       thisKeypoint.pt.x = x+mX;
       thisKeypoint.pt.y = y+mY;
       thisKeypoint.response = responseIndex;
-      thisKeypoint.size = min(gBoxW, gBoxH);
+      thisKeypoint.size = min(ms->config.gBoxW, ms->config.gBoxH);
       responseIndex++;
 
       double param_kpGreenThresh = 0;
@@ -8371,7 +8353,7 @@ void gridKeypoints(int gImW, int gImH, cv::Point top, cv::Point bot, int strideX
       const double param_kpProb = 1.0;
 
       if (gImW > 0) {
-	if ((pBoxIndicator[(top.y+y)*gImW+(top.x+x)] >= param_kpGreenThresh) && (drand48() < param_kpProb)) {
+	if ((ms->config.pBoxIndicator[(top.y+y)*gImW+(top.x+x)] >= param_kpGreenThresh) && (drand48() < param_kpProb)) {
 	  keypoints.push_back(thisKeypoint);
 	}
       } else {
@@ -8380,7 +8362,7 @@ void gridKeypoints(int gImW, int gImH, cv::Point top, cv::Point bot, int strideX
 	}
       }
       
-      //if ((pBoxIndicator[(top.y+y)*gImW+(top.x+x)] >= kpGreenThresh))
+      //if ((ms->config.pBoxIndicator[(top.y+y)*gImW+(top.x+x)] >= kpGreenThresh))
 	//keypoints.push_back(thisKeypoint);
     }
   }
@@ -8456,7 +8438,7 @@ void processImage(Mat &image, Mat& gray_image, Mat& yCrCb_image, double sigma) {
   GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), sigma);
 }
 
-void bowGetFeatures(std::string classDir, const char *className, double sigma, int keypointPeriod, int * grandTotalDescriptors, DescriptorExtractor * extractor, BOWKMeansTrainer * bowTrainer) {
+void bowGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const char *className, double sigma, int keypointPeriod, int * grandTotalDescriptors, DescriptorExtractor * extractor, BOWKMeansTrainer * bowTrainer) {
 
   int totalDescriptors = 0;
   DIR *dpdf;
@@ -8498,7 +8480,7 @@ void bowGetFeatures(std::string classDir, const char *className, double sigma, i
         int param_bowOverSampleFactor = 1;
 	for (int i = 0; i < param_bowOverSampleFactor; i++) {
 	  //ms->config.detector->detect(gray_image, keypoints1);
-	  gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints1, keypointPeriod);
+	  gridKeypoints(ms, 0, 0, cv::Point(0,0), bot, ms->config.gBoxStrideX, ms->config.gBoxStrideY, keypoints1, keypointPeriod);
 	  for (int kp = 0; kp < keypoints1.size(); kp++) {
 	    if (drand48() < param_bowSubSampleFactor)
 	      keypoints2.push_back(keypoints1[kp]);
@@ -8555,7 +8537,7 @@ void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const cha
 	  processImage(image, gray_image, yCrCb_image, sigma);
 	  for (int i = 0; i < param_kNNOverSampleFactor; i++) {
 	    //ms->config.detector->detect(gray_image, keypoints);
-	    gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints, ms->config.keypointPeriod);
+	    gridKeypoints(ms, 0, 0, cv::Point(0,0), bot, ms->config.gBoxStrideX, ms->config.gBoxStrideY, keypoints, ms->config.keypointPeriod);
 	    ms->config.bowExtractor->compute(gray_image, keypoints, descriptors);
 
 	    cout << className << ":  "  << epdf->d_name << "  " << descriptors.size() << " type: " << descriptors.type() << " tot: " << kNNfeatures.size() << endl;
@@ -8571,7 +8553,7 @@ void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const cha
 	  processImage(image, gray_image, yCrCb_image, sigma);
 	  for (int i = 0; i < param_kNNOverSampleFactor; i++) {
 	    //ms->config.detector->detect(gray_image, keypoints);
-	    gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints, ms->config.keypointPeriod);
+	    gridKeypoints(ms, 0, 0, cv::Point(0,0), bot, ms->config.gBoxStrideX, ms->config.gBoxStrideY, keypoints, ms->config.keypointPeriod);
 	    //ms->config.bowExtractor->compute(gray_image, keypoints, descriptors);
 
 	    Mat tmpC;
@@ -8779,7 +8761,7 @@ void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const cha
   }
 }
 
-void posekNNGetFeatures(std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
+void posekNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
                         vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, int lIndexStart, BOWImgDescriptorExtractor *bowExtractor) {
 
   string sClassName(className);
@@ -8841,7 +8823,7 @@ void posekNNGetFeatures(std::string classDir, const char *className, double sigm
         int param_poseOverSampleFactor = 1;
 	for (int i = 0; i < param_poseOverSampleFactor; i++) {
 	  //ms->config.detector->detect(gray_image, keypoints);
-	  gridKeypoints(0, 0, cv::Point(0,0), bot, gBoxStrideX, gBoxStrideY, keypoints, keypointPeriod);
+	  gridKeypoints(ms, 0, 0, cv::Point(0,0), bot, ms->config.gBoxStrideX, ms->config.gBoxStrideY, keypoints, keypointPeriod);
 	  bowExtractor->compute(gray_image, keypoints, descriptors);
 
 	  cout << className << ":  "  << epdf->d_name << "  "  << fileName << " " << descriptors.size() << 
@@ -8968,10 +8950,10 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   Mat yCbCrGradientImage = ms->config.objectViewerImage.clone();
 
   // determine table edges, i.e. the gray boxes
-  lGO = gBoxW*(lGO/gBoxW);
-  rGO = gBoxW*(rGO/gBoxW);
-  tGO = gBoxH*(tGO/gBoxH);
-  bGO = gBoxH*(bGO/gBoxH);
+  lGO = ms->config.gBoxW*(lGO/ms->config.gBoxW);
+  rGO = ms->config.gBoxW*(rGO/ms->config.gBoxW);
+  tGO = ms->config.gBoxH*(tGO/ms->config.gBoxH);
+  bGO = ms->config.gBoxH*(bGO/ms->config.gBoxH);
   grayTop = cv::Point(lGO, tGO);
   grayBot = cv::Point(imW-rGO-1, imH-bGO-1);
 
@@ -9367,8 +9349,8 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   ms->config.preFrameGraySobel = totalGraySobel.clone();
 
   { // temporal averaging of aerial gradient
-    if ( (ms->config.aerialGradientTemporalFrameAverage.rows < aerialGradientReticleWidth) ||
-	 (ms->config.aerialGradientTemporalFrameAverage.cols < aerialGradientReticleWidth) ) {
+    if ( (ms->config.aerialGradientTemporalFrameAverage.rows < ms->config.aerialGradientReticleWidth) ||
+	 (ms->config.aerialGradientTemporalFrameAverage.cols < ms->config.aerialGradientReticleWidth) ) {
       ms->config.aerialGradientTemporalFrameAverage = Mat(imH,imW,ms->config.frameGraySobel.type()); 
     }
 
@@ -9452,11 +9434,11 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
   int imW = sz.width;
   int imH = sz.height;
 
-  gBoxIndicator = new double[imW*imH];
+  ms->config.gBoxIndicator = new double[imW*imH];
   double *gBoxGrayNodes = new double[imW*imH];
   double *gBoxComponentLabels = new double[imW*imH];
-  if (pBoxIndicator == NULL)
-    pBoxIndicator = new double[imW*imH];
+  if (ms->config.pBoxIndicator == NULL)
+    ms->config.pBoxIndicator = new double[imW*imH];
 
   vector<int> parentX;
   vector<int> parentY;
@@ -9472,10 +9454,10 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
 
   // make sure that green boxes stay within the grey
   // box and stay on the canonical green matter grid
-  int xS = gBoxW*(grayTop.x/gBoxW);
-  int xF = min(grayBot.x-gBoxW, imW-gBoxW);
-  int yS = gBoxH*(grayTop.y/gBoxH);
-  int yF = min(grayBot.y-gBoxH, imH-gBoxH);
+  int xS = ms->config.gBoxW*(grayTop.x/ms->config.gBoxW);
+  int xF = min(grayBot.x-ms->config.gBoxW, imW-ms->config.gBoxW);
+  int yS = ms->config.gBoxH*(grayTop.y/ms->config.gBoxH);
+  int yF = min(grayBot.y-ms->config.gBoxH, imH-ms->config.gBoxH);
 
   // fine tune
   //double adjusted_canny_lo_thresh = ms->config.canny_lo_thresh * (1.0 + (double(ms->config.loTrackbarVariable-50) / 50.0));
@@ -9485,20 +9467,20 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
   double adjusted_canny_hi_thresh = ms->config.canny_hi_thresh * double(ms->config.hiTrackbarVariable)/100.0;
 
 //cout << "Here 1" << endl;
-  for (int x = xS; x <= xF; x+=gBoxStrideX) {
-    for (int y = yS; y <= yF; y+=gBoxStrideY) {
+  for (int x = xS; x <= xF; x+=ms->config.gBoxStrideX) {
+    for (int y = yS; y <= yF; y+=ms->config.gBoxStrideY) {
 
       int xt = x;
       int yt = y;
-      int xb = x+gBoxW;
-      int yb = y+gBoxH;
+      int xb = x+ms->config.gBoxW;
+      int yb = y+ms->config.gBoxH;
       cv::Point thisTop(xt,yt);
       cv::Point thisBot(xb,yb);
 
       gBoxComponentLabels[y*imW+x] = -1;
       gBoxGrayNodes[y*imW+x] = 0;
-      gBoxIndicator[y*imW+x] = 0;
-      pBoxIndicator[y*imW+x] = 0;
+      ms->config.gBoxIndicator[y*imW+x] = 0;
+      ms->config.pBoxIndicator[y*imW+x] = 0;
 
       double thisIntegral = ms->config.integralDensity[yb*imW+xb]-ms->config.integralDensity[yb*imW+xt]-
 	ms->config.integralDensity[yt*imW+xb]+ms->config.integralDensity[yt*imW+xt];
@@ -9506,28 +9488,28 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
 //cout << thisIntegral << " ";
 
       if (thisIntegral > adjusted_canny_lo_thresh) {
-	      gBoxIndicator[y*imW+x] = 1;
+	      ms->config.gBoxIndicator[y*imW+x] = 1;
 	      if (ms->config.drawGreen)
 		rectangle(ms->config.objectViewerImage, thisTop, thisBot, cv::Scalar(0,128,0));
       }
       if (thisIntegral > adjusted_canny_hi_thresh) {
-	      gBoxIndicator[y*imW+x] = 2;
+	      ms->config.gBoxIndicator[y*imW+x] = 2;
 	      if (ms->config.drawGreen)
 		rectangle(ms->config.objectViewerImage, thisTop, thisBot, cv::Scalar(0,255,0));
       }
-      pBoxIndicator[y*imW+x] = thisIntegral;
+      ms->config.pBoxIndicator[y*imW+x] = thisIntegral;
 
     }
   }
 //cout << "Here 2" << endl;
 
   // canny will start on a hi and spread on a lo or hi.
-  //{for (int x = 0; x < imW-gBoxW; x+=gBoxStrideX)}
-    //{for (int y = 0; y < imH-gBoxH; y+=gBoxStrideY)}
-  for (int x = xS; x <= xF; x+=gBoxStrideX) {
-    for (int y = yS; y <= yF; y+=gBoxStrideY) {
+  //{for (int x = 0; x < imW-ms->config.gBoxW; x+=ms->config.gBoxStrideX)}
+    //{for (int y = 0; y < imH-ms->config.gBoxH; y+=ms->config.gBoxStrideY)}
+  for (int x = xS; x <= xF; x+=ms->config.gBoxStrideX) {
+    for (int y = yS; y <= yF; y+=ms->config.gBoxStrideY) {
   
-      if (gBoxIndicator[y*imW+x] == 2 && gBoxGrayNodes[y*imW+x] == 0) {
+      if (ms->config.gBoxIndicator[y*imW+x] == 2 && gBoxGrayNodes[y*imW+x] == 0) {
 
       	gBoxGrayNodes[y*imW+x] = 1;
       	parentX.push_back(x);
@@ -9539,8 +9521,8 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
 
       	int xt = x;
       	int yt = y;
-      	int xb = x+gBoxW;
-      	int yb = y+gBoxH;
+      	int xb = x+ms->config.gBoxW;
+      	int yb = y+ms->config.gBoxH;
       	cv::Point thisTop(xt,yt);
       	cv::Point thisBot(xb,yb);
       	ms->config.cTops.push_back(thisTop);
@@ -9550,8 +9532,8 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       	  int index = parentX.size()-1;
       	  int direction = parentD[index];
       	  parentD[index]++;
-      	  int nextX = parentX[index] + gBoxStrideX*directionX[direction];
-      	  int nextY = parentY[index] + gBoxStrideY*directionY[direction];
+      	  int nextX = parentX[index] + ms->config.gBoxStrideX*directionX[direction];
+      	  int nextY = parentY[index] + ms->config.gBoxStrideY*directionY[direction];
 
       	  // if we have no more directions, then pop this parent 
       	  if (direction > 3) {
@@ -9561,9 +9543,9 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       	  } 
       	  // if the next direction is valid, push it on to the stack and increment direction counter
       	  //else if(nextX > -1 && nextX < imW && nextY > -1 && nextY < imH && 
-	    //gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0) 
+	    //ms->config.gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0) 
       	  else if(nextX >= xS && nextX <= xF && nextY >= yS && nextY <= yF && 
-	    gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0) 
+	    ms->config.gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0) 
 	    {
 
       	    gBoxGrayNodes[nextY*imW+nextX] = 1;
@@ -9571,8 +9553,8 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
 
       	    int nxt = nextX;
       	    int nyt = nextY;
-      	    int nxb = nextX+gBoxW;
-      	    int nyb = nextY+gBoxH;
+      	    int nxb = nextX+ms->config.gBoxW;
+      	    int nyb = nextY+ms->config.gBoxH;
       	    ms->config.cTops[gBoxComponentLabels[nextY*imW+nextX]].x = min(ms->config.cTops[gBoxComponentLabels[nextY*imW+nextX]].x, nxt);
       	    ms->config.cTops[gBoxComponentLabels[nextY*imW+nextX]].y = min(ms->config.cTops[gBoxComponentLabels[nextY*imW+nextX]].y, nyt);
       	    ms->config.cBots[gBoxComponentLabels[nextY*imW+nextX]].x = max(ms->config.cBots[gBoxComponentLabels[nextY*imW+nextX]].x, nxb);
@@ -9593,10 +9575,10 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
   ms->config.bBots.resize(0);
   ms->config.bCens.resize(0);
 
-  lARM = gBoxW*(lARM/gBoxW);
-  rARM = gBoxW*(rARM/gBoxW);
-  tARM = gBoxH*(tARM/gBoxH);
-  bARM = gBoxH*(bARM/gBoxH);
+  lARM = ms->config.gBoxW*(lARM/ms->config.gBoxW);
+  rARM = ms->config.gBoxW*(rARM/ms->config.gBoxW);
+  tARM = ms->config.gBoxH*(tARM/ms->config.gBoxH);
+  bARM = ms->config.gBoxH*(bARM/ms->config.gBoxH);
   armTop = cv::Point(lARM, tARM);
   armBot = cv::Point(imW-rARM, imH-bARM);
 
@@ -9613,7 +9595,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
   ms->config.pilotClosestTarget.py = -1;
 
   if (!all_range_mode) {
-    double rejectArea = ms->config.rejectAreaScale*gBoxW*gBoxH;
+    double rejectArea = ms->config.rejectAreaScale*ms->config.gBoxW*ms->config.gBoxH;
     for (int c = 0; c < total_components; c++) {
 
       ms->config.cTops[c].x = max(0,min(imW-1, ms->config.cTops[c].x));
@@ -9622,7 +9604,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       ms->config.cBots[c].y = max(0,min(imH-1, ms->config.cBots[c].y));
 
       int allow = 1;
-      if (ms->config.cBots[c].x - ms->config.cTops[c].x < ms->config.rejectScale*gBoxW || ms->config.cBots[c].y - ms->config.cTops[c].y < ms->config.rejectScale*gBoxH)
+      if (ms->config.cBots[c].x - ms->config.cTops[c].x < ms->config.rejectScale*ms->config.gBoxW || ms->config.cBots[c].y - ms->config.cTops[c].y < ms->config.rejectScale*ms->config.gBoxH)
 	allow = 0;
       if ((ms->config.cBots[c].x - ms->config.cTops[c].x)*(ms->config.cBots[c].y - ms->config.cTops[c].y) < rejectArea)
 	allow = 0;
@@ -9631,8 +9613,8 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
       
       // XXX for some reason there were spurious blue boxes outside of the gray box, with no green boxes,
       //  so we reject them here for now
-//      if ( (ms->config.cTops[c].x < max(grayTop.x-gBoxW, 0)) || (ms->config.cBots[c].x > min(grayBot.x+gBoxW, imW-1)) ||
-//	   (ms->config.cTops[c].y < max(grayTop.y-gBoxW, 0)) || (ms->config.cBots[c].y > min(grayBot.y+gBoxW, imH-1)) )
+//      if ( (ms->config.cTops[c].x < max(grayTop.x-ms->config.gBoxW, 0)) || (ms->config.cBots[c].x > min(grayBot.x+ms->config.gBoxW, imW-1)) ||
+//	   (ms->config.cTops[c].y < max(grayTop.y-ms->config.gBoxW, 0)) || (ms->config.cBots[c].y > min(grayBot.y+ms->config.gBoxW, imH-1)) )
 //	allow = 0;
 
       // ATTN 5
@@ -9754,7 +9736,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
     guardedImshow(ms->config.objectViewerName, ms->config.objectViewerImage, ms->config.sirObject);
   }
 
-  delete gBoxIndicator;
+  delete ms->config.gBoxIndicator;
   delete gBoxGrayNodes;
   delete gBoxComponentLabels;
 }
@@ -9801,7 +9783,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       processImage(crop, gray_image, yCrCb_image, ms->config.grayBlur);
 
       //ms->config.detector->detect(gray_image, keypoints);
-      gridKeypoints(imW, imH, ms->config.bTops[c], ms->config.bBots[c], gBoxStrideX, gBoxStrideY, keypoints, ms->config.keypointPeriod);
+      gridKeypoints(ms, imW, imH, ms->config.bTops[c], ms->config.bBots[c], ms->config.gBoxStrideX, ms->config.gBoxStrideY, keypoints, ms->config.keypointPeriod);
 
       ms->config.bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
 
@@ -9846,7 +9828,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
       processImage(crop, gray_image, yCrCb_image, ms->config.grayBlur);
 
       //ms->config.detector->detect(gray_image, keypoints);
-      gridKeypoints(imW, imH, ms->config.bTops[c], ms->config.bBots[c], gBoxStrideX, gBoxStrideY, keypoints, ms->config.keypointPeriod);
+      gridKeypoints(ms, imW, imH, ms->config.bTops[c], ms->config.bBots[c], ms->config.gBoxStrideX, ms->config.gBoxStrideY, keypoints, ms->config.keypointPeriod);
 
       //ms->config.bowExtractor->compute(gray_image, keypoints, descriptors, &pIoCbuffer);
 
@@ -10210,12 +10192,7 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 void loadROSParams(shared_ptr<MachineState> ms) {
   ros::NodeHandle nh("~");
 
-  nh.getParam("pink_box_threshold", pBoxThresh);
   nh.getParam("threshold_fraction", ms->config.threshFraction);
-  nh.getParam("plastic_spoon_normalizer", psPBT);
-  nh.getParam("wooden_spoon_normalizer", wsPBT);
-  nh.getParam("gyrobowl_normalizer", gbPBT);
-  nh.getParam("mixing_bowl_normalizer", mbPBT);
   nh.getParam("reject_scale", ms->config.rejectScale);
   nh.getParam("reject_area_scale", ms->config.rejectAreaScale);
   nh.getParam("density_decay", ms->config.densityDecay);
@@ -10254,12 +10231,7 @@ void loadROSParams(shared_ptr<MachineState> ms) {
 void saveROSParams(shared_ptr<MachineState> ms) {
   ros::NodeHandle nh("~");
 
-  nh.setParam("pink_box_threshold", pBoxThresh);
   nh.setParam("threshold_fraction", ms->config.threshFraction);
-  nh.setParam("plastic_spoon_normalizer", psPBT);
-  nh.setParam("wooden_spoon_normalizer", wsPBT);
-  nh.setParam("gyrobowl_normalizer", gbPBT);
-  nh.setParam("mixing_bowl_normalizer", mbPBT);
   nh.setParam("reject_scale", ms->config.rejectScale);
   nh.setParam("reject_area_scale", ms->config.rejectAreaScale);
   nh.setParam("density_decay", ms->config.densityDecay);
@@ -10306,8 +10278,8 @@ void spinlessNodeMain(shared_ptr<MachineState> ms) {
 }
 
 void nodeInit(shared_ptr<MachineState> ms) {
-  gBoxStrideX = gBoxW / 2.0;
-  gBoxStrideY = gBoxH / 2.0;
+  ms->config.gBoxStrideX = ms->config.gBoxW / 2.0;
+  ms->config.gBoxStrideY = ms->config.gBoxH / 2.0;
   ms->config.cropCounter = 0;
 
 }
@@ -10417,11 +10389,11 @@ void detectorsInit(shared_ptr<MachineState> ms) {
     for (unsigned int i = 0; i < ms->config.classLabels.size(); i++) {
       cout << "Getting BOW features for class " << ms->config.classLabels[i] 
 	   << " with pose model " << ms->config.classPoseModels[i] << " index " << i << endl;
-      bowGetFeatures(ms->config.class_crops_path, ms->config.classLabels[i].c_str(), ms->config.grayBlur, ms->config.keypointPeriod, &ms->config.grandTotalDescriptors,
+      bowGetFeatures(ms, ms->config.class_crops_path, ms->config.classLabels[i].c_str(), ms->config.grayBlur, ms->config.keypointPeriod, &ms->config.grandTotalDescriptors,
                      ms->config.extractor, ms->config.bowTrainer);
       if (ms->config.classPoseModels[i].compare("G") == 0) {
 	string thisPoseLabel = ms->config.classLabels[i] + "Poses";
-        bowGetFeatures(ms->config.class_crops_path, thisPoseLabel.c_str(), ms->config.grayBlur, ms->config.keypointPeriod, &ms->config.grandTotalDescriptors,
+        bowGetFeatures(ms, ms->config.class_crops_path, thisPoseLabel.c_str(), ms->config.grayBlur, ms->config.keypointPeriod, &ms->config.grandTotalDescriptors,
                        ms->config.extractor, ms->config.bowTrainer);
       }
     }
@@ -10475,7 +10447,7 @@ void detectorsInit(shared_ptr<MachineState> ms) {
       kNNGetFeatures(ms, ms->config.class_crops_path, ms->config.classLabels[i].c_str(), i, ms->config.grayBlur, kNNfeatures, kNNlabels, ms->config.sobel_sigma);
       if (ms->config.classPoseModels[i].compare("G") == 0) {
 	string thisPoseLabel = ms->config.classLabels[i] + "Poses";
-      posekNNGetFeatures(ms->config.class_crops_path, thisPoseLabel.c_str(), ms->config.grayBlur, ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i],
+      posekNNGetFeatures(ms, ms->config.class_crops_path, thisPoseLabel.c_str(), ms->config.grayBlur, ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i],
                          ms->config.classQuaternions[i], 0, ms->config.keypointPeriod, ms->config.bowExtractor);
       }
     }
@@ -11187,7 +11159,7 @@ void guardViewers(shared_ptr<MachineState> ms) {
     ms->config.gradientViewerImage = Mat(2*ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, ms->config.cv_ptr->image.type());
   }
   if ( isSketchyMat(ms->config.aerialGradientViewerImage) ) {
-    ms->config.aerialGradientViewerImage = Mat(4*aerialGradientWidth, aerialGradientWidth, CV_64F);
+    ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
   }
   if ( isSketchyMat(ms->config.objectViewerImage) ) {
     ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();

@@ -684,10 +684,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     //int hbb = ms->config.pilotTargetBlueBoxNumber;
     //int hbb = 0;
 
-    int topCornerX = ms->config.reticle.px - (aerialGradientReticleWidth/2);
-    int topCornerY = ms->config.reticle.py - (aerialGradientReticleWidth/2);
-    int crows = aerialGradientReticleWidth;
-    int ccols = aerialGradientReticleWidth;
+    int topCornerX = ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
+    int topCornerY = ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+    int crows = ms->config.aerialGradientReticleWidth;
+    int ccols = ms->config.aerialGradientReticleWidth;
 
     //int crows = ms->config.bBots[hbb].y - ms->config.bTops[hbb].y;
     //int ccols = ms->config.bBots[hbb].x - ms->config.bTops[hbb].x;
@@ -716,7 +716,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
     cout << "about to resize" << endl;
 
-    Size toBecome(aerialGradientWidth, aerialGradientWidth);
+    Size toBecome(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth);
     cv::resize(gCrop, gCrop, toBecome);
 
 
