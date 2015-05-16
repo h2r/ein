@@ -734,10 +734,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
     BoxMemory box;
-    box.bTop.x = ms->config.vanishingPointReticle.px-simulatedObjectHalfWidthPixels;
-    box.bTop.y = ms->config.vanishingPointReticle.py-simulatedObjectHalfWidthPixels;
-    box.bBot.x = ms->config.vanishingPointReticle.px+simulatedObjectHalfWidthPixels;
-    box.bBot.y = ms->config.vanishingPointReticle.py+simulatedObjectHalfWidthPixels;
+    box.bTop.x = ms->config.vanishingPointReticle.px-ms->config.simulatedObjectHalfWidthPixels;
+    box.bTop.y = ms->config.vanishingPointReticle.py-ms->config.simulatedObjectHalfWidthPixels;
+    box.bBot.x = ms->config.vanishingPointReticle.px+ms->config.simulatedObjectHalfWidthPixels;
+    box.bBot.y = ms->config.vanishingPointReticle.py+ms->config.simulatedObjectHalfWidthPixels;
     box.cameraPose = ms->config.currentEEPose;
     box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
     box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
@@ -764,11 +764,11 @@ REGISTER_WORD(SpawnTargetClassAtEndEffector)
 WORD(DestroyObjectInEndEffector)
 CODE(65535) // delete
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (objectInHandLabel >= 0) {
-    cout << "destroyObjectInEndEffector: The " << classLabels[objectInHandLabel] << " in your hand simply vanished." << endl;
-    objectInHandLabel = -1;
+  if (ms->config.objectInHandLabel >= 0) {
+    cout << "destroyObjectInEndEffector: The " << classLabels[ms->config.objectInHandLabel] << " in your hand simply vanished." << endl;
+    ms->config.objectInHandLabel = -1;
   } else {
-    cout << "destroyObjectInEndEffector: There is nothing in your hand so there is nothing to destroy." << objectInHandLabel << endl;
+    cout << "destroyObjectInEndEffector: There is nothing in your hand so there is nothing to destroy." << ms->config.objectInHandLabel << endl;
   }
 }
 END_WORD
@@ -794,33 +794,33 @@ REGISTER_WORD(PlaceObjectInEndEffector)
 
 WORD(SetCurrentCornellTableToZero)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "Setting currentCornellTableIndex to " << "0" << " out of " << numCornellTables << "." << endl;
-  currentCornellTableIndex = 0;
+  cout << "Setting currentCornellTableIndex to " << "0" << " out of " << ms->config.numCornellTables << "." << endl;
+  ms->config.currentCornellTableIndex = 0;
 }
 END_WORD
 REGISTER_WORD(SetCurrentCornellTableToZero)
 
 WORD(IncrementCurrentCornellTable)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentCornellTableIndex = (currentCornellTableIndex + 1 + numCornellTables) % numCornellTables;
-  cout << "Incrementing currentCornellTableIndex to " << currentCornellTableIndex << " out of " << numCornellTables << "." << endl;
+  ms->config.currentCornellTableIndex = (ms->config.currentCornellTableIndex + 1 + ms->config.numCornellTables) % ms->config.numCornellTables;
+  cout << "Incrementing currentCornellTableIndex to " << ms->config.currentCornellTableIndex << " out of " << ms->config.numCornellTables << "." << endl;
 }
 END_WORD
 REGISTER_WORD(IncrementCurrentCornellTable)
 
 WORD(DecrementCurrentCornellTable)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  currentCornellTableIndex = (currentCornellTableIndex - 1 + numCornellTables) % numCornellTables;
-  cout << "Decrementing currentCornellTableIndex to " << currentCornellTableIndex << " out of " << numCornellTables << "." << endl;
+  ms->config.currentCornellTableIndex = (ms->config.currentCornellTableIndex - 1 + ms->config.numCornellTables) % ms->config.numCornellTables;
+  cout << "Decrementing currentCornellTableIndex to " << ms->config.currentCornellTableIndex << " out of " << ms->config.numCornellTables << "." << endl;
 }
 END_WORD
 REGISTER_WORD(DecrementCurrentCornellTable)
 
 WORD(MoveToCurrentCornellTable)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (currentCornellTableIndex >= 0) {
-    ms->config.currentEEPose.px = cornellTables[currentCornellTableIndex].px;
-    ms->config.currentEEPose.py = cornellTables[currentCornellTableIndex].py;
+  if (ms->config.currentCornellTableIndex >= 0) {
+    ms->config.currentEEPose.px = ms->config.cornellTables[ms->config.currentCornellTableIndex].px;
+    ms->config.currentEEPose.py = ms->config.cornellTables[ms->config.currentCornellTableIndex].py;
   }
 }
 END_WORD
@@ -830,8 +830,8 @@ WORD(SpawnTargetMasterSpriteAtEndEffector)
 CODE(130915) // shift + insert
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "SpawnTargetMasterSpriteAtEndEffector called." << endl;
-  if (targetMasterSprite < 0) {
-    cout << "Not spawning because targetMasterSprite is " << targetMasterSprite << endl;
+  if (ms->config.targetMasterSprite < 0) {
+    cout << "Not spawning because targetMasterSprite is " << ms->config.targetMasterSprite << endl;
     return;
   }
 
@@ -843,9 +843,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
     Sprite sprite;
-    sprite.image = masterSprites[targetMasterSprite].image.clone();
-    sprite.name = masterSprites[targetMasterSprite].name;
-    sprite.scale = masterSprites[targetMasterSprite].scale;
+    sprite.image = masterSprites[ms->config.targetMasterSprite].image.clone();
+    sprite.name = masterSprites[ms->config.targetMasterSprite].name;
+    sprite.scale = masterSprites[ms->config.targetMasterSprite].scale;
     sprite.creationTime = ros::Time::now();
     sprite.pose = ms->config.currentEEPose;
     sprite.top = sprite.pose;
@@ -921,9 +921,9 @@ WORD(DestroyTargetInstanceSprite)
 CODE(131071) // shift + delete
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "DestroyTargetInstanceSprite called." << endl;
-  if ((targetInstanceSprite < 0) ||
-      (targetInstanceSprite >= instanceSprites.size())) {
-    cout << "Not destoying because targetInstanceSprite is " << targetInstanceSprite << " out of " << instanceSprites.size() << endl;
+  if ((ms->config.targetInstanceSprite < 0) ||
+      (ms->config.targetInstanceSprite >= instanceSprites.size())) {
+    cout << "Not destoying because targetInstanceSprite is " << ms->config.targetInstanceSprite << " out of " << instanceSprites.size() << endl;
     return;
   }
   
@@ -932,7 +932,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   } else if (ms->config.currentRobotMode == SIMULATED) {
     vector<Sprite> newInstanceSprites;
     for (int s = 0; s < instanceSprites.size(); s++) {
-      if (s != targetInstanceSprite) {
+      if (s != ms->config.targetInstanceSprite) {
 	newInstanceSprites.push_back(instanceSprites[s]);
       }
     }
@@ -952,8 +952,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
     int base = instanceSprites.size();
-    targetInstanceSprite = (targetInstanceSprite + 1 + base) % max(base, 1);
-    cout << "Incrementing targetInstanceSprite to " << targetInstanceSprite << " out of " << base << "." << endl;
+    ms->config.targetInstanceSprite = (ms->config.targetInstanceSprite + 1 + base) % max(base, 1);
+    cout << "Incrementing targetInstanceSprite to " << ms->config.targetInstanceSprite << " out of " << base << "." << endl;
   } else {
     assert(0);
   }
@@ -968,8 +968,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
     int base = instanceSprites.size();
-    targetInstanceSprite = (targetInstanceSprite - 1 + base) % max(base, 1);
-    cout << "Decrementing targetInstanceSprite to " << targetInstanceSprite << " out of " << base << "." << endl;
+    ms->config.targetInstanceSprite = (ms->config.targetInstanceSprite - 1 + base) % max(base, 1);
+    cout << "Decrementing targetInstanceSprite to " << ms->config.targetInstanceSprite << " out of " << base << "." << endl;
   } else {
     assert(0);
   }
@@ -984,8 +984,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
     int base = masterSprites.size();
-    targetMasterSprite = (targetMasterSprite + 1 + base) % max(base, 1);
-    cout << "Incrementing targetMasterSprite to " << targetMasterSprite << " out of " << base << "." << endl;
+    ms->config.targetMasterSprite = (ms->config.targetMasterSprite + 1 + base) % max(base, 1);
+    cout << "Incrementing targetMasterSprite to " << ms->config.targetMasterSprite << " out of " << base << "." << endl;
   } else {
     assert(0);
   }
@@ -1000,8 +1000,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
     int base = masterSprites.size();
-    targetMasterSprite = (targetMasterSprite - 1 + base) % max(base, 1);
-    cout << "Decrementing targetMasterSprite to " << targetMasterSprite << " out of " << base << "." << endl;
+    ms->config.targetMasterSprite = (ms->config.targetMasterSprite - 1 + base) % max(base, 1);
+    cout << "Decrementing targetMasterSprite to " << ms->config.targetMasterSprite << " out of " << base << "." << endl;
   } else {
     assert(0);
   }
