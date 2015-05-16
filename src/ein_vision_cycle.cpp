@@ -5,7 +5,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int class_idx = classIdxForName(ms, className);
   if (class_idx != -1) {
     changeTargetClass(ms, class_idx);
-    pMachineState->pushWord("deliverTargetObject");
+    ms->pushWord("deliverTargetObject");
   }
 }
 END_WORD
