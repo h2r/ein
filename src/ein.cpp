@@ -1965,8 +1965,8 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
   int weHavePoseData = getRingPoseAtTime(ms, eps.header.stamp, thisPose);
 
   {
-    double distance = squareDistanceEEPose(ms->config.trueEEPoseEEPose, ms->config.lastTrueEEPoseEEPose);
-    double distance2 = squareDistanceEEPose(ms->config.trueEEPoseEEPose, ms->config.currentEEPose);
+    double distance = eePose::squareDistance(ms->config.trueEEPoseEEPose, ms->config.lastTrueEEPoseEEPose);
+    double distance2 = eePose::squareDistance(ms->config.trueEEPoseEEPose, ms->config.currentEEPose);
 
     if (ms->config.currentMovementState == ARMED ) {
       if (distance2 > ms->config.armedThreshold*ms->config.armedThreshold) {
@@ -3003,8 +3003,8 @@ void update_baxter(ros::NodeHandle &n) {
 	  ROS_WARN_STREAM("___________________");
 	  ROS_ERROR_STREAM("Accepting perturbed IK result.");
 	  cout << "ikRetry: " << ikRetry << endl;
-	  printEEPose(originalCurrentEEPose);
-	  printEEPose(ms->config.currentEEPose);
+	  eePose::print(originalCurrentEEPose);
+	  eePose::print(ms->config.currentEEPose);
 	  ROS_WARN_STREAM("___________________");
 	}
       } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
@@ -3190,7 +3190,6 @@ void timercallback1(const ros::TimerEvent&) {
 
 
   int c = -1;
-  int takeSymbol = 1;
   if (ms->config.shouldIMiscCallback) {
     c = cvWaitKey(1);
   } else if ((ms->config.heartBeatCounter % ms->config.heartBeatPeriod) == 0) {
@@ -3198,6 +3197,7 @@ void timercallback1(const ros::TimerEvent&) {
     ms->config.heartBeatCounter = 0;
   }
   ms->config.heartBeatCounter++;
+  // XXX is heartBeatCounter even used?
 
   if (c != -1) {
     // don't print for capslock, shift, alt (for alt-tab)
@@ -3205,7 +3205,7 @@ void timercallback1(const ros::TimerEvent&) {
           c == 65513 || c == 196578)) {
       cout << "You pressed " << c << "." << endl;
 
-      takeSymbol = 0;
+      ms->execute_stack = 1;
       if (character_code_to_word.count(c) > 0) {
         ms->pushWord(character_code_to_word[c]);
       } else {
@@ -3236,7 +3236,7 @@ void timercallback1(const ros::TimerEvent&) {
     }
 
     // deal with the stack
-    if (ms->execute_stack && takeSymbol) {
+    if (ms->execute_stack) {
       if (ms->call_stack.size() > 0 && 
 	  !ms->call_stack[ms->call_stack.size() - 1]->is_value()) {
 	word = ms->popWord();
@@ -7225,7 +7225,7 @@ eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixe
   }
 
   eePose fakeEndEffector = ms->config.currentEEPose;
-  eePose fakeEndEffectorDeltaRPY = eePoseZero;
+  eePose fakeEndEffectorDeltaRPY = eePose::zero();
   fakeEndEffectorDeltaRPY.pz = ozAngle;
   endEffectorAngularUpdate(&fakeEndEffector, &fakeEndEffectorDeltaRPY);
   {
@@ -7579,8 +7579,8 @@ void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces) {
   eePose bestFacePose;
   double distance = VERYBIGNUMBER;
   for (int i = 0; i < faces.size(); i++) {
-    eePose faceImagePose = rectCentroidToEEPose(faces[i]);
-    double thisDistance = squareDistanceEEPose(ms->config.vanishingPointReticle, faceImagePose);
+    eePose faceImagePose = eePose::fromRectCentroid(faces[i]);
+    double thisDistance = eePose::squareDistance(ms->config.vanishingPointReticle, faceImagePose);
     if (thisDistance < distance) {
       distance = thisDistance;
       bestFacePose = faceImagePose;
@@ -8452,7 +8452,7 @@ void simulatorCallback(const ros::TimerEvent&) {
 
       //cout << "jjc: " << rotTopPx << " " << rotTopPy << " " << rotBotPx << " " << rotBotPy << endl; cout.flush();
       //cout << "jjd: " << localRotTopPx << " " << localRotTopPy << " " << localRotBotPx << " " << localRotBotPy << endl; cout.flush();
-      //printEEPose(ms->config.currentEEPose);
+      //eePose::print(ms->config.currentEEPose);
 
       Mat rotatedBackMapImage;
       warpAffine(ms->config.mapBackgroundImage, rotatedBackMapImage, un_rot_mat, ms->config.mapBackgroundImage.size(), INTER_LINEAR, BORDER_REPLICATE);
@@ -12228,7 +12228,7 @@ void fillRecognizedObjectArrayFromBlueBoxMemory(object_recognition_msgs::Recogni
 	    (blueBoxMemories[j].lockStatus == POSE_LOCK ||
 	     blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
 	  double square_dist = 
-	    squareDistanceEEPose(centroid, blueBoxMemories[j].centroid);
+	    eePose::squareDistance(centroid, blueBoxMemories[j].centroid);
 	  if (square_dist < min_square_dist) {
 	    min_square_dist = square_dist;
 	    closest_idx = j;
@@ -12430,9 +12430,9 @@ int main(int argc, char **argv) {
 	masterSprites[s].image = tmp;
 	masterSprites[s].scale = 15/.01;
 
-	masterSprites[s].top = eePoseZero;
-	masterSprites[s].bot = eePoseZero;
-	masterSprites[s].pose = eePoseZero;
+	masterSprites[s].top = eePose::zero();
+	masterSprites[s].bot = eePose::zero();
+	masterSprites[s].pose = eePose::zero();
 	cout << "loaded " << masterSprites[s].name << " as masterSprites[" << s << "] scale " << masterSprites[s].scale << " image size " << masterSprites[s].image.size() << endl;
       }
     }
