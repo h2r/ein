@@ -43,14 +43,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentEEPose = memory.aimedPose;
   lastPickPose = memory.pickedPose;
   lastPrePickPose = memory.aimedPose;
-  trZ = memory.trZ;
+  ms->config.trZ = memory.trZ;
 
   cout << "deliverObject, " << ms->config.classGraspZsSet.size() << " " << ms->config.classGraspZs.size() << endl;
   if ( (ms->config.classGraspZsSet.size() > targetClass) && 
        (ms->config.classGraspZs.size() > targetClass) ) {
     if (ms->config.classGraspZsSet[targetClass] == 1) {
-      trZ = ms->config.classGraspZs[targetClass];
-      cout << "delivering class " << classLabels[targetClass] << " with classGraspZ " << trZ << endl;
+      ms->config.trZ = ms->config.classGraspZs[targetClass];
+      cout << "delivering class " << classLabels[targetClass] << " with classGraspZ " << ms->config.trZ << endl;
     }
   }
 

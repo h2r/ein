@@ -402,6 +402,34 @@ class EinConfig {
   double thompsonTries = 50;
 
 
+
+  // the currently equipped depth reticle
+  double drX = .02; //.01;
+  double drY = .02;
+  
+  // target reticle
+  double trX = 0;
+  double trY = 0;
+  double trZ = 0;
+  
+  int maxX = 0;
+  int maxY = 0;
+  double maxD = 0;
+  int maxGG = 0;
+  int localMaxX = 0;
+  int localMaxY = 0;
+  int localMaxGG = 0;
+  
+  // grasp gear should always be even
+  static const int totalGraspGears = 8;
+  // XXX maybe we should initialize this to a reasonable value
+  //// reticles
+  double ggX[totalGraspGears];
+  double ggY[totalGraspGears];
+  double ggT[totalGraspGears];
+
+  
+  
   // config variables that don't seem to be used
 };
 
