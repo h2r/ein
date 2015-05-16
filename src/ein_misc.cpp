@@ -102,8 +102,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "mostRecentUntabledZ (remember this is inverted but correct): " << ms->config.mostRecentUntabledZ << endl;
   cout << "currentPickMode: " << pickModeToString(currentPickMode) << endl;
   cout << "currentBoundingBoxMode: " << pickModeToString(currentBoundingBoxMode) << endl;
-  cout << "gradientServoTakeClosest: " << gradientTakeClosest << endl;
-  cout << "synchronicTakeClosest: " << synchronicTakeClosest << endl;
+  cout << "gradientServoTakeClosest: " << ms->config.gradientTakeClosest << endl;
+  cout << "synchronicTakeClosest: " << ms->config.synchronicTakeClosest << endl;
   cout << "focusedClass: " << ms->config.focusedClass;
   if (ms->config.focusedClass != -1) {
     cout << " " << classLabels[ms->config.focusedClass];

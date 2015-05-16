@@ -123,20 +123,6 @@ ros::Publisher vmMarkerPublisher;
 
 
 
-// variables for survey during servoing
-vector<double> surveyHistogram;
-int surveyWinningClass = -1;
-int viewsWithNoise = 0;
-int publishObjects = 1;
-
-
-int histogramDuringClassification = 0;
-double surveyNoiseScale = 50;
-int synchronicTakeClosest = 0;
-int gradientTakeClosest = 0;
-int gradientServoDuringHeightLearning = 1;
-int bailAfterSynchronic = 1;
-int bailAfterGradient = 0;
 
 int gripperMoving = 0;
 double gripperPosition = 0;
@@ -7358,13 +7344,13 @@ void gradientServo(shared_ptr<MachineState> ms) {
 
         // ATTN 12
         if (ARE_GENERIC_HEIGHT_LEARNING()) {
-          cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << gradientServoDuringHeightLearning << endl;
+          cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << ms->config.gradientServoDuringHeightLearning << endl;
           cout << "bbLearning: returning from gradient servo." << endl;
           return;
         }
         
         // ATTN 17
-        if (bailAfterGradient) {
+        if (ms->config.bailAfterGradient) {
           cout << "gradient servo set to bail. returning." << endl;
           return;
         }
@@ -7374,8 +7360,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
         ms->config.lastPtheta = INFINITY;
         cout << "resetting lastPtheta: " << ms->config.lastPtheta << endl;
     
-        if (synchronicTakeClosest) {
-          if (gradientTakeClosest) {
+        if (ms->config.synchronicTakeClosest) {
+          if (ms->config.gradientTakeClosest) {
             if ((classRangeMaps[ms->config.targetClass].rows > 1) && (classRangeMaps[ms->config.targetClass].cols > 1))
               ms->pushWord("prepareForAndExecuteGraspFromMemoryLearning"); // prepare for and execute the best grasp from memory at the current location and target
             else {
@@ -7572,7 +7558,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
     return;
   }
 
-  if (synchronicTakeClosest) {
+  if (ms->config.synchronicTakeClosest) {
     if ((ms->config.pilotClosestTarget.px != -1) && (ms->config.pilotClosestTarget.py != -1)) {
       ms->config.pilotTarget.px = ms->config.pilotClosestTarget.px;
       ms->config.pilotTarget.py = ms->config.pilotClosestTarget.py;
@@ -7667,8 +7653,8 @@ void synchronicServo(shared_ptr<MachineState> ms) {
     if ((fabs(Px) < ms->config.synServoPixelThresh) && (fabs(Py) < ms->config.synServoPixelThresh)) {
       // ATTN 12
       if (ARE_GENERIC_HEIGHT_LEARNING()) {
-	cout << "bbLearning: synchronic servo succeeded. gradientServoDuringHeightLearning: " << gradientServoDuringHeightLearning << endl;
-	if (gradientServoDuringHeightLearning) {
+	cout << "bbLearning: synchronic servo succeeded. gradientServoDuringHeightLearning: " << ms->config.gradientServoDuringHeightLearning << endl;
+	if (ms->config.gradientServoDuringHeightLearning) {
 	  cout << "bbLearning: proceeding to gradient servo." << endl;
 	} else {
 	  cout << "bbLearning: returning from synchronic servo." << endl;
@@ -7677,7 +7663,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       }
 
       // ATTN 17
-      if (bailAfterSynchronic) {
+      if (ms->config.bailAfterSynchronic) {
 	cout << "synchronic servo set to bail. returning." << endl;
 	return;
       }
@@ -11256,7 +11242,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
     vector<cv::Point> pointCloudPoints;
 
     if (label >= 0) {
-      if (publishObjects) {
+      if (ms->config.publishObjects) {
 
 	fill_RO_and_M_arrays(roa_to_send_blue, 
 	  ma_to_send_blue, pointCloudPoints, c, label, winningO, poseIndex);

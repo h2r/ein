@@ -1095,7 +1095,7 @@ REGISTER_WORD(ResetAerialGradientTemporalFrameAverage)
 WORD(SynchronicServoDoNotTakeClosest)
 CODE(131139)  // capslock + c
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  synchronicTakeClosest = 0;
+  ms->config.synchronicTakeClosest = 0;
   cout << "synchronicTakeClosest = 0" << endl;
   ms->config.synServoLockFrames = 0;
 }
@@ -1105,7 +1105,7 @@ REGISTER_WORD(SynchronicServoDoNotTakeClosest)
 WORD(SynchronicServoTakeClosest)
 CODE(196707)     // capslock + C
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  synchronicTakeClosest = 1;
+  ms->config.synchronicTakeClosest = 1;
   cout << "synchronicTakeClosest = 1" << endl;
   ms->config.synServoLockFrames = 0;
 }
@@ -1117,7 +1117,7 @@ WORD(TwoDPatrolStart)
 CODE(131159)     // capslock + w
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->config.eepReg2 = ms->config.beeHome;
-  bailAfterSynchronic = 0;
+  ms->config.bailAfterSynchronic = 0;
   graspAttemptCounter = 0;
   graspSuccessCounter = 0;
   graspTrialStart = ros::Time::now();
@@ -1186,7 +1186,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   // check to see if the target class is around, or take closest
   if ( ((ms->config.pilotTarget.px != -1) && (ms->config.pilotTarget.py != -1)) ||
-       (synchronicTakeClosest && ((ms->config.pilotClosestTarget.px != -1) && (ms->config.pilotClosestTarget.py != -1))) )
+       (ms->config.synchronicTakeClosest && ((ms->config.pilotClosestTarget.px != -1) && (ms->config.pilotClosestTarget.py != -1))) )
     {
       // if so, push servoing command and set lock frames to 0
       ms->pushWord("synchronicServo"); // synchronic servo
@@ -1325,8 +1325,8 @@ WORD(GradientServoTakeClosest)
 CODE(1179720)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-    gradientTakeClosest = 1;
-    cout << "gradientTakeClosest = " << gradientTakeClosest << endl;
+    ms->config.gradientTakeClosest = 1;
+    cout << "gradientTakeClosest = " << ms->config.gradientTakeClosest << endl;
 }
 END_WORD
 REGISTER_WORD(GradientServoTakeClosest)

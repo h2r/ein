@@ -15,7 +15,7 @@ REGISTER_WORD(DeliverObject)
 WORD(DeliverTargetObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("idler"); 
-  bailAfterGradient = 1;
+  ms->config.bailAfterGradient = 1;
 
   ms->config.pilotTarget.px = -1;
   ms->config.pilotTarget.py = -1;
@@ -178,8 +178,8 @@ WORD(MappingPatrol)
 CODE(196727) // capslock + W
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Mapping patrol" << endl;
-  bailAfterSynchronic = 1;
-  bailAfterGradient = 1;
+  ms->config.bailAfterSynchronic = 1;
+  ms->config.bailAfterGradient = 1;
   ms->config.acceptingFetchCommands = 1;
 
   ms->pushWord("mappingPatrol");
