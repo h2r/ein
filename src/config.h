@@ -1090,6 +1090,12 @@ class EinConfig {
 
 class Word;
 
+
+/**
+ * MachineState represents the call stack for einl.  It consists of
+ * the call stack, the variables, the current instruction, and whether
+ * the stack is currently executing.
+ */
 class MachineState: public std::enable_shared_from_this<MachineState> {
  private:
  public:
