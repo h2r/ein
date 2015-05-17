@@ -2403,7 +2403,8 @@ void timercallback1(const ros::TimerEvent&) {
 
       if (character_code_to_word.count(c) > 0) {
         shared_ptr<Word> keycode_word = character_code_to_word[c];
-        ms->pushWord(keycode_word);
+        ms->execute(keycode_word);
+
       } else {
         cout  << "Could not find word for " << c << endl;
       }
