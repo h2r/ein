@@ -4357,6 +4357,9 @@ void guardHeightMemory(shared_ptr<MachineState> ms) {
 }
 
 int calibrateGripper(shared_ptr<MachineState> ms) {
+  if (ms->config.currentRobotMode == SIMULATED) {
+    return 0;
+  }
   for (int i = 0; i < 10; i++) {
     int return_value = doCalibrateGripper(ms);
     if (return_value == 0) {
