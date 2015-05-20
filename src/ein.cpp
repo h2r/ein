@@ -20,10 +20,12 @@
 
 #include "qtgui/mainwindow.h"
 #include <QApplication>
-
+#include <QTimer>
 
 MachineState machineState;
 shared_ptr<MachineState> pMachineState;
+
+
 
 
 ////////////////////////////////////////////////
@@ -10840,8 +10842,6 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut) {
 int main(int argc, char **argv) {
 
   QApplication a(argc, argv);
-  MainWindow w;
-  w.show();
 
   initializeWords();
   pMachineState = std::make_shared<MachineState>(machineState);
@@ -11136,9 +11136,16 @@ int main(int argc, char **argv) {
   ms->config.lastMovementStateSet = ros::Time::now();
 
 
-  a.exec();
 
-  ros::spin();
+
+  MainWindow w;
+  w.show();
+
+  QTimer *timer = new QTimer(&w);
+  w.connect(timer, SIGNAL(timeout()), &w, SLOT(rosSpin()));
+  timer->start(0);
+  a.exec();
+  //ros::spin();
 
   return 0;
 }
