@@ -51,6 +51,27 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -g -std=c++11 -fpermissiv
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -O3 -std=c++11 -fpermissive")
 set(CMAKE_BUILD_TYPE Debug)
 
+
+find_package (Qt5Widgets)
+
+set (CmakeLib_src ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.cpp)
+set (CmakeLib_hdr ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.h)
+set (CmakeLib_ui  ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.ui)
+
+qt5_wrap_cpp(CmakeLib_hdr_moc ${CmakeLib_hdr})
+qt5_wrap_ui (CmakeLib_ui_moc  ${CmakeLib_ui})
+
+include_directories (${PROJECT_SOURCE_DIR})
+include_directories (${PROJECT_BINARY_DIR})
+
+add_library (CmakeLib SHARED 
+    ${CmakeLib_src}
+    ${CmakeLib_hdr_moc}
+    ${CmakeLib_ui_moc}
+)
+
+
+
 add_executable(ein src/ein.cpp src/ein_words.cpp 
 src/ein_bandit.cpp src/ein_render.cpp src/ein_movement.cpp src/ein_servo.cpp src/ein_vision_cycle.cpp src/ein_scanning.cpp src/ein_misc.cpp
 src/word.cpp src/faces.cpp src/eePose.cpp src/eigen_util.cpp  src/ein_util.cpp 
@@ -81,8 +102,11 @@ target_link_libraries(ein
 	${OpenCV_LIBS}
 	opencv_nonfree
         ${GSL_LIBRARIES}
+        CmakeLib
 )
 
+
+qt5_use_modules(CmakeLib Core Gui Widgets)
 
 
 
@@ -107,29 +131,6 @@ endif(CTAGS_PATH)
 
 
 
-find_package (Qt5Widgets)
-
-set (CmakeLib_src ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.cpp)
-set (CmakeLib_hdr ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.h)
-set (CmakeLib_ui  ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.ui)
-set (CmakeBin_src ${PROJECT_SOURCE_DIR}/src/qtgui/main.cpp)
-
-qt5_wrap_cpp(CmakeLib_hdr_moc ${CmakeLib_hdr})
-qt5_wrap_ui (CmakeLib_ui_moc  ${CmakeLib_ui})
-
-include_directories (${PROJECT_SOURCE_DIR})
-include_directories (${PROJECT_BINARY_DIR})
-
-add_library (CmakeLib SHARED 
-    ${CmakeLib_src}
-    ${CmakeLib_hdr_moc}
-    ${CmakeLib_ui_moc}
-)
-
-add_executable(Cmake ${CmakeBin_src})
-target_link_libraries (Cmake CmakeLib)
-
-qt5_use_modules(CmakeLib Core Gui Widgets)
 
 
 
