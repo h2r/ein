@@ -103,3 +103,56 @@ if(CTAGS_PATH)
     message(STATUS "Found ctags: ${CTAGS_PATH}")
     add_dependencies(ein tags)
 endif(CTAGS_PATH)
+
+
+
+
+find_package (Qt5Widgets)
+
+set (CmakeLib_src ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.cpp)
+set (CmakeLib_hdr ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.h)
+set (CmakeLib_ui  ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.ui)
+set (CmakeBin_src ${PROJECT_SOURCE_DIR}/src/qtgui/main.cpp)
+
+qt5_wrap_cpp(CmakeLib_hdr_moc ${CmakeLib_hdr})
+qt5_wrap_ui (CmakeLib_ui_moc  ${CmakeLib_ui})
+
+include_directories (${PROJECT_SOURCE_DIR})
+include_directories (${PROJECT_BINARY_DIR})
+
+add_library (CmakeLib SHARED 
+    ${CmakeLib_src}
+    ${CmakeLib_hdr_moc}
+    ${CmakeLib_ui_moc}
+)
+
+add_executable(Cmake ${CmakeBin_src})
+target_link_libraries (Cmake CmakeLib)
+
+qt5_use_modules(CmakeLib Core Gui Widgets)
+
+
+
+# # Find includes in corresponding build directories
+# set(CMAKE_INCLUDE_CURRENT_DIR ON)
+# # Instruct CMake to run moc automatically when needed.
+
+# # Find the QtWidgets library
+# find_package(Qt5Widgets)
+
+# qt5_wrap_ui(Cmake_form_hdr mainwindow.ui)
+
+
+# qt5_wrap_cpp(helloworld_hdr_moc src/qtgui/mainwindow.h)
+# qt5_wrap_ui (helloworld_ui_moc  src/qtgui/mainwindow.ui)
+                                
+
+# include_directories (${PROJECT_SOURCE_DIR})
+# include_directories (${PROJECT_BINARY_DIR})
+
+
+# # Tell CMake to create the helloworld executable
+# add_executable(helloworld src/qtgui/main.cpp src/qtgui/mainwindow.cpp)
+
+# # Use the Widgets module from Qt 5.
+# target_link_libraries(helloworld Qt5::Widgets)
