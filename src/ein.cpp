@@ -18,6 +18,10 @@
 
 #include "ein.h"
 
+#include "qtgui/mainwindow.h"
+#include <QApplication>
+
+
 MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
@@ -10835,6 +10839,10 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut) {
 
 int main(int argc, char **argv) {
 
+  QApplication a(argc, argv);
+  MainWindow w;
+  w.show();
+
   initializeWords();
   pMachineState = std::make_shared<MachineState>(machineState);
   shared_ptr<MachineState> ms = pMachineState;
@@ -11126,6 +11134,9 @@ int main(int argc, char **argv) {
   } 
 
   ms->config.lastMovementStateSet = ros::Time::now();
+
+
+  a.exec();
 
   ros::spin();
 
