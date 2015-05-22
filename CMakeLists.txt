@@ -54,14 +54,14 @@ set(CMAKE_BUILD_TYPE Debug)
 
 find_package (Qt5Widgets)
 
-set (CmakeLib_src ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.cpp)
-set (CmakeLib_hdr ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.h)
-set (CmakeLib_ui  ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.ui)
+set (CmakeLib_src ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.cpp)
+set (CmakeLib_hdr ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.h)
+set (CmakeLib_ui  ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.ui ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.ui)
 
 qt5_wrap_cpp(CmakeLib_hdr_moc ${CmakeLib_hdr})
 qt5_wrap_ui (CmakeLib_ui_moc  ${CmakeLib_ui})
 
-include_directories (${PROJECT_SOURCE_DIR})
+include_directories (${PROJECT_SOURCE_DIR}/src)
 include_directories (${PROJECT_BINARY_DIR})
 
 add_library (CmakeLib SHARED 
