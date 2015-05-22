@@ -22,11 +22,6 @@ public:
 private:
     Ui::MainWindow *ui;
 
-public slots: 
-    void rosSpin() {
-//cout << "Spinning" << endl;
-      ros::spinOnce();
-    }
 };
 
 #endif // MAINWINDOW_H
