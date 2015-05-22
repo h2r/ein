@@ -11142,10 +11142,10 @@ int main(int argc, char **argv) {
   w.show();
 
   QTimer *timer = new QTimer(&w);
-  w.connect(timer, SIGNAL(timeout()), &w, SLOT(rosSpin()));
-  timer->start(0);
-  a.exec();
-  //ros::spin();
+  //w.connect(timer, SIGNAL(timeout()), &w, SLOT(rosSpin()));
+  //timer->start(0);
+  //a.exec();
+  ros::spin();
 
   return 0;
 }
