@@ -10169,8 +10169,6 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
       cout << "Failed to load rangeMap from " << this_range_path << endl; 
     }
   }
-  
-  // ATTN 16
   {
     {
       string thisLabelName(className);
@@ -10242,6 +10240,39 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     }
     cout << "Initializing classAerialGradients with classAerialHeight0Gradients." << endl;
     ms->config.classAerialGradients[i] = ms->config.classHeight0AerialGradients[i];
+    {
+      guard3dGrasps(ms);
+      string thisLabelName(className);
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
+      string this_grasp_path = dirToMakePath + "3dGrasps.yml";
+
+      FileStorage fsvI;
+      cout << "Reading grasp information from " << this_grasp_path << " ..."; cout.flush();
+      fsvI.open(this_grasp_path, FileStorage::READ);
+
+      FileNode anode = fsvI["grasps"];
+      {
+	FileNode bnode = anode["size"];
+	FileNodeIterator itb = bnode.begin();
+	int tng = *itb;
+	ms->config.class3dGrasps[i].resize(0);
+
+	FileNode cnode = anode["graspPoses"];
+	FileNodeIterator itc = cnode.begin(), itc_end = cnode.end();
+	int numLoadedPoses = 0;
+	for ( ; itc != itc_end; itc++, numLoadedPoses++) {
+	  eePose buf;
+	  buf.readFromFileNodeIterator(itc);
+	  cout << " read pose: " << buf; cout.flush();
+	  ms->config.class3dGrasps[i].push_back(buf);
+	}
+	if (numLoadedPoses != tng) {
+	  ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	}
+	cout << "Expected to load " << tng << " poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
+      }
+      cout << "done.";
+    }
   }
 }
 

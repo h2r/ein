@@ -771,8 +771,21 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 END_WORD
 REGISTER_WORD(PrepareForAndExecuteGraspFromMemoryLearning)
 
+WORD(SetGraspModeToCrane)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Setting grasp mode to GRASP_CRANE." << endl;
+  ms->config.currentGraspMode = GRASP_CRANE;
+}
+END_WORD
+REGISTER_WORD(SetGraspModeToCrane)
 
-
+WORD(SetGraspModeTo3D)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Setting grasp mode to GRASP_3D." << endl;
+  ms->config.currentGraspMode = GRASP_3D;
+}
+END_WORD
+REGISTER_WORD(SetGraspModeTo3D)
 
 WORD(PrepareForAndExecuteGraspFromMemory)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -798,6 +811,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   if (ms->config.currentGraspMode == GRASP_CRANE) {
     ms->pushWord("moveToTargetZAndGrasp"); 
   } else if (ms->config.currentGraspMode == GRASP_3D) {
+    ms->pushWord("closeGripper"); 
     ms->pushWord("assumeCurrent3dGrasp"); 
   } else {
     assert(0);

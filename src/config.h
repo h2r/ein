@@ -615,7 +615,7 @@ class EinConfig {
   //int gradServoPixelThresh = 2;
   //int gradServoThetaThresh = 1;
   // absolute
-  int synServoPixelThresh = 15;//15;//10;
+  int synServoPixelThresh = 30;//15;//15;//10;
   int gradServoPixelThresh = 5;
   int gradServoThetaThresh = 2;
   
@@ -988,7 +988,7 @@ class EinConfig {
   ros::Time lastScanStarted;
   int mapFreeSpacePixelSkirt = 25;
   int mapBlueBoxPixelSkirt = 50;
-  double mapBlueBoxCooldown = 240; // cooldown is a temporal skirt
+  double mapBlueBoxCooldown = 10; // cooldown is a temporal skirt
   int mapGrayBoxPixelSkirt = 50;
   int ikMap[mapWidth * mapHeight];
   int clearanceMap[mapWidth * mapHeight];

@@ -1970,42 +1970,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     fsvO << "}";
 
     fsvO.release();
-
-    if (1) {
-      guard3dGrasps(ms);
-      string thisLabelName = ms->config.focusedClassLabel;
-      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
-      string this_grasp_path = dirToMakePath + "3dGrasps.yml";
-
-      FileStorage fsvI;
-      cout << "Reading grasp information from " << this_grasp_path << " ...";
-      fsvI.open(this_grasp_path, FileStorage::READ);
-
-      FileNode anode = fsvI["grasps"];
-      {
-	FileNode bnode = anode["size"];
-	FileNodeIterator itb = bnode.begin();
-	int tng = *itb;
-	ms->config.class3dGrasps[ms->config.focusedClass].resize(0);
-
-	FileNode cnode = anode["graspPoses"];
-	FileNodeIterator itc = cnode.begin(), itc_end = cnode.end();
-	int numLoadedPoses = 0;
-	for ( ; itc != itc_end; itc++, numLoadedPoses++) {
-	  eePose buf;
-	  buf.readFromFileNodeIterator(itc);
-	  cout << " read pose: " << buf;
-	  ms->config.class3dGrasps[ms->config.focusedClass].push_back(buf);
-	}
-	if (numLoadedPoses != tng) {
-	  ROS_ERROR_STREAM("Did not load the expected number of poses.");
-	}
-	cout << "Expected to load " << tng << " poses, loaded " << numLoadedPoses << " ..." << endl;
-      }
-
-      cout << "done.";
-    }
-
   } 
 }
 END_WORD
@@ -2033,13 +1997,17 @@ REGISTER_WORD(Lock3dGraspBase)
 WORD(Add3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Adding 3d grasp" << endl;
-  eePose this3dGrasp = ms->config.currentEEPose;
-  this3dGrasp = this3dGrasp.minusP(ms->config.c3dPoseBase);
-  this3dGrasp = this3dGrasp.multQ( ms->config.c3dPoseBase.invQ() );
+  eePose thisAbsolute3dGrasp = ms->config.currentEEPose;
+  eePose txQ = ms->config.c3dPoseBase.invQ();
+  txQ = txQ.multQ(thisAbsolute3dGrasp);
+
+  eePose thisAbsoluteDeltaP = thisAbsolute3dGrasp.minusP(ms->config.c3dPoseBase);
+  eePose thisRelative3dGrasp = ms->config.c3dPoseBase.invQ().applyQTo(thisAbsoluteDeltaP);
+  thisRelative3dGrasp.copyQ(txQ);
 
   int tnc = ms->config.class3dGrasps.size();
   if ( (ms->config.targetClass > 0) && (ms->config.targetClass < tnc) ) {
-    ms->config.class3dGrasps[ms->config.targetClass].push_back(this3dGrasp);
+    ms->config.class3dGrasps[ms->config.targetClass].push_back(thisRelative3dGrasp);
   }
 }
 END_WORD
@@ -2051,22 +2019,40 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int t3dGraspIndex = ms->config.current3dGraspIndex;
   eePose toApply = ms->config.class3dGrasps[ms->config.targetClass][t3dGraspIndex];  
 
+  ms->config.currentEEPose = ms->config.lastPrePickPose;
+
   ms->config.currentEEPose.pz = -ms->config.currentTableZ;
-  ms->config.currentEEPose = ms->config.currentEEPose.plusP(toApply);
+
+  cout << "assumCurrent3dGrasp, t3dGraspIndex: " << t3dGraspIndex << endl;
+
+  // this order is important because quaternion multiplication is not commutative
+  //ms->config.currentEEPose = ms->config.currentEEPose.plusP(toApply);
+  ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.currentEEPose.applyQTo(toApply));
   ms->config.currentEEPose = ms->config.currentEEPose.multQ(toApply);
+
+  // XXX wrong
+  //ms->config.currentEEPose = ms->config.currentEEPose.plusP(toApply);
+  //eePose txQuat = toApply.multQ(ms->config.currentEEPose);
+  //ms->config.currentEEPose.copyQ(txQuat);
 
   Vector3d localUnitX;
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  ms->config.currentEEPose = ms->config.currentEEPose.plusP(p_backoffDistance * localUnitZ);
+  ms->config.currentEEPose = ms->config.currentEEPose.minusP(p_backoffDistance * localUnitZ);
 
   int increments = floor(p_backoffDistance / MOVE_FAST); 
 
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  ms->pushCopies("localZDown", increments);
+
+  ms->pushWord("pauseStackExecution"); // w1 wait until at current position
+
+  ms->pushCopies("localZUp", increments);
   ms->pushWord("setMovementSpeedMoveFast");
   ms->pushWord("approachSpeed");
+
+  ms->pushWord("pauseStackExecution"); // w1 wait until at current position
+
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 }
 END_WORD
