@@ -138,6 +138,32 @@ _eePose _eePose::invQ() const {
   return toReturn;
 }
 
+void _eePose::copyP(_eePose src) {
+  px = src.px;
+  py = src.py;
+  pz = src.pz;
+}
+
+void _eePose::copyQ(_eePose src) {
+  qx = src.qx;
+  qy = src.qy;
+  qz = src.qz;
+  qw = src.qw;
+}
+
+_eePose _eePose::applyQTo(_eePose in) const {
+  // Eigen says that when txing more than one point it is more efficient to first convert to Matrix3 then apply
+  Quaterniond thisQ(qw, qx, qy, qz); 
+  Vector3d inP(in.px, in.py, in.pz);
+  Vector3d result = thisQ._transformVector(inP);
+
+  _eePose outPose = eePose::zero();
+  outPose.px = result.x();
+  outPose.py = result.y();
+  outPose.pz = result.z();
+  return outPose;
+}
+
 void _eePose::writeToFileStorage(FileStorage& fsvO) const {
   fsvO << "{:";
   fsvO << "px" << px;
