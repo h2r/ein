@@ -65,7 +65,21 @@ REGISTER_WORD(ChangeToPantryTable)
 
 WORD(ExecuteStack)
 CODE('y')
+
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back(";");
+  return result;
+}
+
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  // XXX This word is special cased.  It needs to be special cased,
+  // because if the stack is paused, then the word to unpause the
+  // stack is never executed, because the stack is paused.  So the
+  // code that processes words checks if the top of the stack is
+  // executeStack, and always executes it, whether or not the stack is
+  // paused.
   ms->execute_stack = 1;
 }
 END_WORD
