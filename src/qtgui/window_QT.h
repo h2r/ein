@@ -107,7 +107,7 @@ public:
     virtual void readSettings(QSettings& settings) = 0;
 
 
-    virtual void updateImage(const CvArr* arr) = 0;
+    virtual void updateImage(const Mat arr) = 0;
 
     virtual void startDisplayInfo(QString text, int delayms) = 0;
 
@@ -167,7 +167,7 @@ class DefaultViewPort : public QGraphicsView, public ViewPort
     Q_OBJECT
 
 public:
-    DefaultViewPort(QWidget* centralWidget, int arg2);
+    DefaultViewPort(QWidget* centralWidget, int keep_ratio);
     ~DefaultViewPort();
 
     QWidget* getWidget();
