@@ -5,7 +5,12 @@ using namespace std;
 
 ostream & operator<<(ostream & os, const _eePose& toPrint)
 {
-  os << "[" << toPrint.px << " " << toPrint.py << " " << toPrint.pz << " | " << toPrint.qx << " " << toPrint.qy << " " << toPrint.qz << " " << toPrint.qw << "]";
+  FileStorage st;
+  st.open("tmp.yml", FileStorage::WRITE | FileStorage::MEMORY);
+  st << "eePose"; 
+  toPrint.writeToFileStorage(st);
+  string result = st.releaseAndGetString();
+  os << result.substr(10, result.size());
   return os;
 } 
 
