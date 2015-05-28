@@ -188,3 +188,17 @@ void _eePose::readFromFileNodeIterator(FileNodeIterator& it) {
 
 
 
+bool _eePose::equals(_eePose pose)
+{
+  if (pose.px == this->px &&
+      pose.py == this->py &&
+      pose.pz == this->pz &&
+      pose.qx == this->qx &&
+      pose.qy == this->qy &&
+      pose.qz == this->qz && 
+      pose.qw == this->qw) {
+    return true;
+  } else {
+    return false;
+  }
+}

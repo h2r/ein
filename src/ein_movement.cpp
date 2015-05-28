@@ -220,6 +220,23 @@ END_WORD
 REGISTER_WORD(OXUp)
 
 
+WORD(PushCurrentPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<EePoseWord> word = std::make_shared<EePoseWord>(ms->config.currentEEPose);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(PushCurrentPose)
+
+WORD(PushTruePose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<EePoseWord> word = std::make_shared<EePoseWord>(ms->config.trueEEPoseEEPose);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(PushTruePose)
+
+
 WORD(SaveRegister1)
 CODE(65568+1) // ! 
 virtual void execute(std::shared_ptr<MachineState> ms) {
