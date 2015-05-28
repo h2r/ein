@@ -25,7 +25,7 @@
 MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
-
+MainWindow * qtTestWindow;
 
 
 ////////////////////////////////////////////////
@@ -2961,6 +2961,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   if (ms->config.shouldIRender) {
     guardedImshow(ms->config.wristViewName, ms->config.wristViewImage, ms->config.sirWrist);
+    //qtTestWindow->updateImage(ms->config.wristViewImage);
   }
 }
 
@@ -11138,10 +11139,10 @@ int main(int argc, char **argv) {
 
 
 
-  MainWindow w;
-  w.show();
+  qtTestWindow = new MainWindow();
+  qtTestWindow->show();
 
-  QTimer *timer = new QTimer(&w);
+  //QTimer *timer = new QTimer(&w);
   //w.connect(timer, SIGNAL(timeout()), &w, SLOT(rosSpin()));
   //timer->start(0);
   //a.exec();

@@ -64,12 +64,12 @@ static const unsigned int threshold_zoom_img_region = 30;
 //////////////////////////////////////////////////////
 // DefaultViewPort
 
-DefaultViewPort::DefaultViewPort(QWidget* arg, int arg2) : QGraphicsView(arg)
+DefaultViewPort::DefaultViewPort(QWidget* arg, int keep_ratio) : QGraphicsView(arg)
 {
 
     image2Draw_mat = 0;
     centralWidget = arg;
-    param_keepRatio = arg2;
+    param_keepRatio = keep_ratio;
 
     setContentsMargins(0, 0, 0, 0);
     setMinimumSize(1, 1);
