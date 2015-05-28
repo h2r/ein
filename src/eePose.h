@@ -42,6 +42,8 @@ typedef struct _eePose{
 
   void readFromFileNodeIterator(FileNodeIterator& it);
 
+  bool equals(_eePose pose);
+
   static void print(_eePose toPrint);
   static double squareDistance(_eePose pose1, _eePose pose2);
   static _eePose fromRectCentroid(Rect rect);
