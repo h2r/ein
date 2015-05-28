@@ -3,6 +3,9 @@
 
 #include <QMainWindow>
 #include <iostream>
+#include <cv.h>
+
+
 #include "ein_util.h"
 
 using namespace std;
@@ -18,11 +21,11 @@ class EinWindow : public QMainWindow
 public:
     explicit EinWindow(QWidget *parent, shared_ptr<MachineState> _ms);
     ~EinWindow();
+    EinWindow::showImage(CvMat mat);
 
 private:
     Ui::EinWindow *ui;
     shared_ptr<MachineState> ms;
-    QImage image;
 
 };
 
