@@ -4,7 +4,7 @@
 //#define DEBUG_RING_BUFFER // ring buffer
 
 #define EPSILON 1.0e-9
-#define VERYBIGNUMBER 1e6
+#define VERYBIGNUMBER 1e12
 
 #define PROGRAM_NAME "ein"
 

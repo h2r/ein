@@ -2167,28 +2167,6 @@ void update_baxter(ros::NodeHandle &n) {
       int ikCallResult = 0;
       queryIK(ms, &ikCallResult, &thisIkRequest);
 
-      //ikResultFailed = (!ms->config.ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
-      //cout << "ik call result: " << ikCallResult << " joints: " << (thisIkRequest.response.joints.size()) << " "; 
-
-      //if (thisIkRequest.response.joints.size()) {
-	//cout << "position size: " << (thisIkRequest.response.joints[0].position.size()) << endl;
-      //}
-
-
-      //ikResultFailed = (!ikCallResult || (thisIkRequest.response.joints.size() == 0) || (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS));
-
-//      // XXX This is ridiculous
-//      if (ikCallResult && thisIkRequest.response.isValid[0]) {
-//	// set this here in case noise was added
-//	ms->config.currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
-//	ms->config.currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
-//	ms->config.currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
-//	ikResultFailed = 0;
-//      } else {
-//	ikResultFailed = 1;
-//	cout << "Initial IK result appears to be invalid." << endl;
-//      } 
-
       if (ikCallResult && thisIkRequest.response.isValid[0]) {
 	// set this here in case noise was added
 	ms->config.currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
@@ -10938,6 +10916,7 @@ int main(int argc, char **argv) {
   ms->config.objectViewerName = "Object Viewer " + ms->config.left_or_right_arm;
   ms->config.gradientViewerName = "Gradient Viewer " + ms->config.left_or_right_arm;
   ms->config.aerialGradientViewerName = "Aerial Gradient Viewer " + ms->config.left_or_right_arm;
+  ms->config.stereoViewerName = "Stereo Viewer " + ms->config.left_or_right_arm;
 
   cv::namedWindow(ms->config.gradientViewerName);
   cv::namedWindow(ms->config.aerialGradientViewerName);
