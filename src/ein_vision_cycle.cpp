@@ -817,7 +817,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   substituteAccumulatedImageQuantities(ms);
   goCalculateDensity(ms);
   renderAccumulatedImageAndDensity(ms);
-  //goAccumulateForAerial();
 }
 END_WORD
 REGISTER_WORD(AccumulatedDensity)
@@ -926,4 +925,139 @@ END_WORD
 REGISTER_WORD(FaceServoB)
 
 */
+
+WORD(StereoPair)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // display the result 
+  ms->pushWord("stereoDisplay");
+  // calculate disparity and depth
+  ms->pushWord("stereoCalculate");
+  // cache a second accumulated image
+  ms->pushWord("stereoPairCache2");
+  ms->pushWord("stereoPrep");
+  // move a tad
+  ms->pushWord("localYDown");
+  ms->pushWord("setMovementSpeedMoveFast");
+  // cache an accumulated image
+  ms->pushWord("stereoPairCache1");
+  ms->pushWord("stereoPrep");
 }
+END_WORD
+REGISTER_WORD(StereoPair)
+
+WORD(StereoPrep)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("setMovementStateToMoving");
+  ms->pushWord("comeToStop");
+}
+END_WORD
+REGISTER_WORD(StereoPrep)
+
+WORD(StereoPairCache1)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.stereoImage1 = ms->config.accumulatedImage.clone();
+}
+END_WORD
+REGISTER_WORD(StereoPairCache1)
+
+WORD(StereoPairCache2)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.stereoImage2 = ms->config.accumulatedImage.clone();
+}
+END_WORD
+REGISTER_WORD(StereoPairCache2)
+
+WORD(StereoCalculate)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // simplifying assumption that the movement between the two views
+  //  was along the x axis
+
+  // this can be made to run in time independent of patch size using
+  //  running sums over (Im1-Im2_shift)^2
+  // XXX should try this in RGB distance but also YCbCr distance
+  Size sz = ms->config.stereoImage1.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  // instead of guarding some places we should be calling create(), which checks
+  //  for existence.
+  ms->config.stereoDisparity.create(sz, CV_64F);
+  ms->config.stereoDepth.create(sz, CV_64F);
+
+  // patchWidth must be odd
+  int param_patchWidth = 7;
+  assert((param_patchWidth % 2) == 1);
+  int param_patchHalfWidth = (param_patchWidth-1)/2;
+  int param_disparityMax = 30;
+
+  Mat sIm1 = ms->config.stereoImage1;
+  Mat sIm2 = ms->config.stereoImage2;
+
+  Mat minDifferenceValues(sz, CV_64F);
+  minDifferenceValues = 0.0;
+
+  for (int d = 0; d < param_disparityMax; d++) {
+    Mat shiftedDifference(sz, CV_64F);
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	if (x < d) {
+	  shiftedDifference.at<double>(y,x) = VERYBIGNUMBER;
+	} else {
+	  shiftedDifference.at<double>(y,x) = 
+	    pow(sIm1.at<Vec3b>(y,x)[0] - sIm2.at<Vec3b>(y,x-d)[0], 2.0) +  
+	    pow(sIm1.at<Vec3b>(y,x)[1] - sIm2.at<Vec3b>(y,x-d)[1], 2.0) +  
+	    pow(sIm1.at<Vec3b>(y,x)[2] - sIm2.at<Vec3b>(y,x-d)[2], 2.0); 
+	}
+      }
+    }
+
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	if ( (x < param_patchHalfWidth) || (x > imW - 1 - param_patchHalfWidth) ||
+	     (y < param_patchHalfWidth) || (y > imH - 1 - param_patchHalfWidth) ) {
+	  ms->config.stereoDisparity.at<double>(y,x) = 0;
+	  continue;
+	}
+
+	// XXX todo
+
+      }
+    }
+  }
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      // XXX todo
+      //stereoDepth.at<double>(y,x) = VERYBIGNUMBER;
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(StereoCalculate)
+
+WORD(StereoDisplay)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  Size sz = ms->config.objectViewerYCbCrBlur.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      //ms->config.gradientViewerImage.at<cv::Vec3b>(y+imH,x) = oviInBGR.at<cv::Vec3b>(y,x);
+      // XXX
+     }
+  }
+
+  if (ms->config.shouldIRender) {
+    guardedImshow(ms->config.gradientViewerName, ms->config.gradientViewerImage, ms->config.sirGradient);
+  }
+}
+END_WORD
+REGISTER_WORD(StereoDisplay)
+
+}
+

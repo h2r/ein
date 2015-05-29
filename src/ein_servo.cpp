@@ -808,11 +808,12 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->pushWord("comeToHover"); 
   ms->pushWord("waitUntilGripperNotMoving");
 
-  if (ms->config.currentGraspMode == GRASP_CRANE) {
+  if (ms->config.currentGraspMode == GRASP_CRANE || ms->config.class3dGrasps[ms->config.targetClass].size() == 0) {
     ms->pushWord("moveToTargetZAndGrasp"); 
   } else if (ms->config.currentGraspMode == GRASP_3D) {
     ms->pushWord("closeGripper"); 
-    ms->pushWord("assumeCurrent3dGrasp"); 
+    //ms->pushWord("assumeCurrent3dGrasp"); 
+    ms->pushWord("assumeAny3dGrasp"); 
   } else {
     assert(0);
   }
@@ -1275,18 +1276,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // ATTN 8
   if (0) {
     ms->pushCopies("density", ms->config.densityIterationsForGradientServo); 
-    //ms->pushCopies("accumulateDensity", ms->config.densityIterationsForGradientServo); 
-    //ms->pushCopies("resetTemporalMap", 1); 
     ms->pushWord("resetAerialGradientTemporalFrameAverage"); 
     ms->pushCopies("density", 1); 
-    //ms->pushCopies("waitUntilAtCurrentPosition", 5); 
     ms->pushWord("hover");
   }
 
   // ATTN 23
   {
     ms->pushWord("accumulatedDensity");
-    //ms->pushCopies("waitUntilImageCallbackReceived", 10);
     ms->pushCopies("waitUntilImageCallbackReceived", 10);
     ms->pushWord("resetAccumulatedDensity");
     ms->pushWord("comeToStop");
