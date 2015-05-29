@@ -1287,21 +1287,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetPatrolModeToOnce)
 
-
-WORD(SetPlaceModeToHand)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentPlaceMode = HAND;
-}
-END_WORD
-REGISTER_WORD(SetPlaceModeToHand)
-
-WORD(SetPlaceModeToRegister)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentPlaceMode = PLACE_REGISTER;
-}
-END_WORD
-REGISTER_WORD(SetPlaceModeToRegister)
-
 WORD(SetIdleModeToCrane)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentIdleMode = CRANE;

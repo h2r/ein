@@ -2,6 +2,44 @@
 #include "ein.h"
 namespace ein_words {
 
+WORD(SetTheTable)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  eePose mugPose = {.px = 0.0, .py = 0.0, .pz = 0.0,
+                      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  ms->pushWord(std::make_shared<EePoseWord>(mugPose));
+  ms->pushWord("mug");
+  ms->pushWord("moveObjectToPose");
+
+  eePose bowlPose = {.px = 0.0, .py = 0.0, .pz = 0.0,
+                      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  ms->pushWord(std::make_shared<EePoseWord>(bowlPose));
+  ms->pushWord("bowl");
+  ms->pushWord("moveObjectToPose");
+
+  eePose knifePose = {.px = 0.0, .py = 0.0, .pz = 0.0,
+                      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  ms->pushWord(std::make_shared<EePoseWord>(knifePose));
+  ms->pushWord("knife");
+  ms->pushWord("moveObjectToPose");
+
+
+  eePose forkPose = {.px = 0.0, .py = 0.0, .pz = 0.0,
+                      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  ms->pushWord(std::make_shared<EePoseWord>(forkPose));
+  ms->pushWord("fork");
+  ms->pushWord("moveObjectToPose");
+
+
+  eePose spoonPose = {.px = 0.0, .py = 0.0, .pz = 0.0,
+                      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  ms->pushWord(std::make_shared<EePoseWord>(spoonPose));
+  ms->pushWord("spoon");
+  ms->pushWord("moveObjectToPose");
+}
+END_WORD
+REGISTER_WORD(SetTheTable)
+
 WORD(MoveObjectToPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   shared_ptr<Word> objectword = ms->popWord();
@@ -24,13 +62,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout <<" word: " << word->to_string() << endl;
   std::shared_ptr<EePoseWord> destWord = std::dynamic_pointer_cast<EePoseWord>(word);
   if (destWord == NULL) {
-    cout << "Must pass a pose as an argument to" << this->name() << endl;
+    cout << "Must pass a pose as an argument to " << this->name() << endl;
     return;
   }
-  eePose dest = destWord->value();
-  ms->pushWord("");
+  ms->config.placeTarget = destWord->value();
+  
+  ms->pushWord("deliverTargetObject");
+  ms->pushWord("setPlaceModeToRegister");
 
-  cout << "Actually do the move of " << ms->config.focusedClassLabel << " to " << dest << endl;
+  //cout << "Actually do the move of " << ms->config.focusedClassLabel << " to " << dest << endl;
 }
 END_WORD
 REGISTER_WORD(MoveTargetObjectToPose)
@@ -206,5 +246,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(AssumeDeliveryPose)
 
+  
+
+WORD(SetPlaceModeToHand)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentPlaceMode = HAND;
+}
+END_WORD
+REGISTER_WORD(SetPlaceModeToHand)
+
+WORD(SetPlaceModeToRegister)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentPlaceMode = PLACE_REGISTER;
+}
+END_WORD
+REGISTER_WORD(SetPlaceModeToRegister)
+
+
 
 }
+
+
