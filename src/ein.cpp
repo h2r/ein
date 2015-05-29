@@ -10916,6 +10916,7 @@ int main(int argc, char **argv) {
   ms->config.objectViewerName = "Object Viewer " + ms->config.left_or_right_arm;
   ms->config.gradientViewerName = "Gradient Viewer " + ms->config.left_or_right_arm;
   ms->config.aerialGradientViewerName = "Aerial Gradient Viewer " + ms->config.left_or_right_arm;
+  ms->config.stereoViewerName = "Stereo Viewer " + ms->config.left_or_right_arm;
 
   cv::namedWindow(ms->config.gradientViewerName);
   cv::namedWindow(ms->config.aerialGradientViewerName);

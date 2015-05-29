@@ -1025,19 +1025,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.stereoDisparity.create(sz, CV_64F);
   ms->config.stereoDepth.create(sz, CV_64F);
 
+  ms->config.stereoDisparity = 0.0;
+  ms->config.stereoDepth = double(VERYBIGNUMBER);
+
   // patchWidth must be odd
   int param_patchWidth = 7;
   assert((param_patchWidth % 2) == 1);
   int param_patchHalfWidth = (param_patchWidth-1)/2;
-  int param_disparityMax = 30;
+  int disparityMax = ms->config.stereoMaxDisparity;
 
   Mat sIm1 = ms->config.stereoImage1;
   Mat sIm2 = ms->config.stereoImage2;
 
   Mat minDifferenceValues(sz, CV_64F);
-  minDifferenceValues = 0.0;
+  minDifferenceValues = VERYBIGNUMBER;
 
-  for (int d = 0; d < param_disparityMax; d++) {
+  for (int d = 0; d < disparityMax; d++) {
     Mat shiftedDifference(sz, CV_64F);
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
@@ -1056,20 +1059,33 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       for (int y = 0; y < imH; y++) {
 	if ( (x < param_patchHalfWidth) || (x > imW - 1 - param_patchHalfWidth) ||
 	     (y < param_patchHalfWidth) || (y > imH - 1 - param_patchHalfWidth) ) {
-	  ms->config.stereoDisparity.at<double>(y,x) = 0;
 	  continue;
 	}
 
-	// XXX todo
-
+	double thisSSD = 0.0;
+	for (int px = -param_patchHalfWidth; px <= param_patchHalfWidth; px++) {
+	  for (int py = -param_patchHalfWidth; py <= param_patchHalfWidth; py++) {
+	    thisSSD = thisSSD + shiftedDifference.at<double>(y+py, x+px);
+	  }
+	}
+	if (thisSSD < minDifferenceValues.at<double>(y,x)) {
+	  ms->config.stereoDisparity.at<double>(y,x) = d;
+	  minDifferenceValues.at<double>(y,x) = thisSSD;
+	}
       }
     }
   }
 
+  double eff = ms->config.stereoFocal;
+  double bee = ms->config.stereoBaseline;
+
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      // XXX todo
-      //stereoDepth.at<double>(y,x) = VERYBIGNUMBER;
+      if (ms->config.stereoDisparity.at<double>(y,x) <= 0) {
+	ms->config.stereoDepth.at<double>(y,x) = VERYBIGNUMBER;
+      } else {
+	ms->config.stereoDepth.at<double>(y,x) = eff * bee / ms->config.stereoDisparity.at<double>(y,x);
+      }
     }
   }
 }
@@ -1082,15 +1098,25 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int imW = sz.width;
   int imH = sz.height;
 
+  ms->config.stereoViewerImage.create(sz.height*2, sz.width*2, CV_8UC3);
+
+  Mat sIm1 = ms->config.stereoImage1;
+  Mat sIm2 = ms->config.stereoImage2;
+
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      //ms->config.gradientViewerImage.at<cv::Vec3b>(y+imH,x) = oviInBGR.at<cv::Vec3b>(y,x);
-      // XXX
-     }
+      double disparityMax = ms->config.stereoMaxDisparity;
+      double thisDisparity = ms->config.stereoDisparity.at<double>(y,x);
+      double thisDepth = ms->config.stereoDepth.at<double>(y,x);
+      ms->config.stereoViewerImage.at<cv::Vec3b>(y,x) = sIm1.at<cv::Vec3b>(y,x);
+      ms->config.stereoViewerImage.at<cv::Vec3b>(y,x+imW) = sIm2.at<cv::Vec3b>(y,x);
+      ms->config.stereoViewerImage.at<cv::Vec3b>(y+imH,x) = Vec3b(255*(thisDisparity/disparityMax),0,0);
+      ms->config.stereoViewerImage.at<cv::Vec3b>(y+imH,x+imW) = Vec3b(0,0,255*(thisDepth/1.0));
+    }
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(ms->config.gradientViewerName, ms->config.gradientViewerImage, ms->config.sirGradient);
+    guardedImshow(ms->config.stereoViewerName, ms->config.stereoViewerImage, ms->config.sirStereo);
   }
 }
 END_WORD

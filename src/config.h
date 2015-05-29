@@ -309,6 +309,7 @@ class EinConfig {
   std::string objectMapViewerName = "Object Map View";
   std::string gradientViewerName = "Gradient Viewer";
   std::string aerialGradientViewerName = "Aerial Gradient Viewer";
+  std::string stereoViewerName = "Stereo Viewer";
 
 
   eePose calibrationPose;
@@ -818,6 +819,7 @@ class EinConfig {
   bool sirAerialGradient = 1;
   bool sirWrist = 1;
   bool sirCore = 1;
+  bool sirStereo = 1;
   
   bool use_simulator = false;
   
@@ -859,6 +861,7 @@ class EinConfig {
 
 
   cv_bridge::CvImagePtr cv_ptr = NULL;
+  Mat stereoViewerImage;
   Mat objectViewerImage;
   Mat objectMapViewerImage;
   Mat densityViewerImage;
@@ -1086,11 +1089,13 @@ class EinConfig {
   Mat accumulatedImage;
   Mat accumulatedImageMass;
 
+  double stereoFocal = 1.0; // needs to be tuned
+  double stereoBaseline = 0.01;
+  double stereoMaxDisparity = 30;
   Mat stereoImage1;
   Mat stereoImage2;
   Mat stereoDisparity;
   Mat stereoDepth;
-
 }; // config end
 
 class Word;
