@@ -1086,6 +1086,11 @@ class EinConfig {
   Mat accumulatedImage;
   Mat accumulatedImageMass;
 
+  Mat stereoImage1;
+  Mat stereoImage2;
+  Mat stereoDisparity;
+  Mat stereoDepth;
+
 }; // config end
 
 class Word;
