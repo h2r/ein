@@ -5,6 +5,41 @@
 
 namespace ein_words {
 
+WORD(MoveObjectToPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> objectword = ms->popWord();
+  string className = objectword->to_string();
+  int class_idx = classIdxForName(ms, className);
+  if (class_idx != -1) {
+    ms->pushWord("moveTargetObjectToPose");
+    changeTargetClass(ms, class_idx);
+  } else {
+    cout << "No class for " << className << " for " << this->name() << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(MoveObjectToPose)
+
+WORD(MoveTargetObjectToPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> word = ms->popWord();
+  cout << "Word: " << word << " null? " << (word == NULL) << endl;
+  cout <<" word: " << word->to_string() << endl;
+  std::shared_ptr<EePoseWord> destWord = std::dynamic_pointer_cast<EePoseWord>(word);
+  if (destWord == NULL) {
+    cout << "Must pass a pose as an argument to" << this->name() << endl;
+    return;
+  }
+  eePose dest = destWord->value();
+
+  cout << "Actually do the move of " << ms->config.focusedClassLabel << " to " << dest << endl;
+
+}
+END_WORD
+REGISTER_WORD(MoveTargetObjectToPose)
+
+
+
 WORD(DeliverObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   shared_ptr<Word> word = ms->popWord();
@@ -13,6 +48,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (class_idx != -1) {
     changeTargetClass(ms, class_idx);
     ms->pushWord("deliverTargetObject");
+  } else {
+    cout << "No class for " << className << " for " << this->name() << endl;
   }
 }
 END_WORD
