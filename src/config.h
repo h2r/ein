@@ -53,7 +53,6 @@ typedef enum {
 
 typedef enum {
   HAND = 0,
-  WAREHOUSE = 1,
   PLACE_REGISTER = 2
 } placeMode;
 

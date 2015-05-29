@@ -1287,12 +1287,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetPatrolModeToOnce)
 
-WORD(SetPlaceModeToWarehouse)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentPlaceMode = WAREHOUSE;
-}
-END_WORD
-REGISTER_WORD(SetPlaceModeToWarehouse)
 
 WORD(SetPlaceModeToHand)
 virtual void execute(std::shared_ptr<MachineState> ms) {
