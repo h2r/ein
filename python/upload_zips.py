@@ -17,6 +17,8 @@ def respond(response, *args, **kwargs):
     else:
         file_logger.error("An error ocurred: {} Status Code {} ".format(response.text, response.status_code))
 
+file_logger = None
+
 def main():
     # dest:  The object holds the argument values as attributes and can be accessed through
     #        e.g. args.dir (if name = 'dir')
@@ -24,7 +26,7 @@ def main():
     #        This is the default action taken if none is specified.
 
     parser = argparse.ArgumentParser("Welcome to the RoboDB interface!")
-    parser.add_argument('dir', nargs='?', default=os.getcwd(), action='store',
+    parser.add_argument('dir', nargs='+', default=os.getcwd(), action='store',
                         help='Source directory for file upload, default is current directory')
 
     group = parser.add_argument_group('authentication')
@@ -32,6 +34,7 @@ def main():
     group.add_argument('-p', '--password', dest='p', action='store')
 
     args = parser.parse_args()
+
     #print "Directory parent: ", args.dir
 
 
@@ -42,6 +45,7 @@ def main():
     USER = args.u
     PW = args.p
     LOG_FILENAME = 'uploaded.log'
+    print "dir", DIR
 
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s %(levelname)-8s %(message)s',
@@ -55,17 +59,18 @@ def main():
     logging.getLogger('').addHandler(console)
 
     # Log to file
+    global file_logger
     file_logger = logging.getLogger('Uploader')
 
 
 
     files = []
     # Find all directories, zip them and store their names
-    for item in sorted(glob.glob(os.path.join(DIR,'*'))):
-        full = os.path.join(DIR, item)
+    for full in DIR:  #sorted(glob.glob(os.path.join(DIR,'*'))):
+        
         if os.path.isdir(full) and not (os.path.exists(os.path.join(full + '.zip'))):
             zip_file = shutil.make_archive(full, 'zip', full)
-            file_logger.info('Zipped file %s' % item)
+            file_logger.info('Zipped file %s' % full)
             files.append(zip_file)
         else:
             logging.warning('Skipping file: %s' % full)
