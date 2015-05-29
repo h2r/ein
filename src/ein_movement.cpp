@@ -6,17 +6,6 @@
 namespace ein_words {
 
 
-WORD(AssumeDeliveryPose)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  double oldz = ms->config.currentEEPose.pz;
-  ms->config.currentEEPose = ms->config.deliveryPoses[ms->config.currentDeliveryPose];
-  ms->config.currentEEPose.pz = oldz;
-  ms->config.currentDeliveryPose = (ms->config.currentDeliveryPose + 1) % ms->config.deliveryPoses.size();
-  ms->pushWord("waitUntilAtCurrentPosition");
-}
-END_WORD
-REGISTER_WORD(AssumeDeliveryPose)
-
 WORD(WaitUntilAtCurrentPosition)
 CODE(131154)    // capslock + r
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1311,6 +1300,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SetPlaceModeToHand)
+
+WORD(SetPlaceModeToRegister)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentPlaceMode = PLACE_REGISTER;
+}
+END_WORD
+REGISTER_WORD(SetPlaceModeToRegister)
 
 WORD(SetIdleModeToCrane)
 virtual void execute(std::shared_ptr<MachineState> ms) {
