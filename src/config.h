@@ -53,7 +53,8 @@ typedef enum {
 
 typedef enum {
   HAND = 0,
-  WAREHOUSE = 1
+  WAREHOUSE = 1,
+  PLACE_REGISTER = 2
 } placeMode;
 
 typedef enum {
@@ -222,6 +223,8 @@ class EinConfig {
   idleMode currentIdleMode = CRANE;
   graspMode currentGraspMode = GRASP_CRANE;
   robotMode currentRobotMode = PHYSICAL;
+
+  eePose placeTarget;
 
   Vector3d eeLinearAcceleration;
 
