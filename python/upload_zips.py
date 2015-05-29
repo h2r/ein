@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 import argparse, logging, os, grequests, shutil, glob, json
 
