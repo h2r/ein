@@ -1,4 +1,3 @@
-
 #include "ein_words.h"
 #include "ein.h"
 namespace ein_words {
@@ -29,14 +28,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
   eePose dest = destWord->value();
+  ms->pushWord("");
 
   cout << "Actually do the move of " << ms->config.focusedClassLabel << " to " << dest << endl;
-
 }
 END_WORD
 REGISTER_WORD(MoveTargetObjectToPose)
-
-
 
 WORD(DeliverObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -52,7 +49,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(DeliverObject)
-
 
 WORD(DeliverTargetObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -172,7 +168,7 @@ REGISTER_WORD(DeliverTargetObject)
 
 WORD(PlaceObjectInDeliveryZone)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (ms->config.currentPlaceMode == WAREHOUSE || ms->config.currentPlaceMode == PLACE_REGISTER) {
+  if (ms->config.currentPlaceMode == PLACE_REGISTER) {
     ms->pushWord("openGripper"); 
     ms->pushWord("tryToMoveToTheLastPickHeight");   
     ms->pushWord("approachSpeed"); 
@@ -203,18 +199,9 @@ REGISTER_WORD(PlaceObjectInDeliveryZone)
 WORD(AssumeDeliveryPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double oldz = ms->config.currentEEPose.pz;
-  if (ms->config.currentPlaceMode == WAREHOUSE) {
-    ms->config.currentEEPose = ms->config.deliveryPoses[ms->config.currentDeliveryPose];
-    ms->config.currentDeliveryPose = (ms->config.currentDeliveryPose + 1) % ms->config.deliveryPoses.size();
-  } else if (ms->config.currentPlaceMode == PLACE_REGISTER) {
-    double oldz = ms->config.currentEEPose.pz;
-    ms->config.currentEEPose = ms->config.placeTarget;
-  } else {
-    assert(0);
-  }
+  ms->config.currentEEPose = ms->config.placeTarget;
   ms->config.currentEEPose.pz = oldz;
   ms->pushWord("waitUntilAtCurrentPosition");
-
 }
 END_WORD
 REGISTER_WORD(AssumeDeliveryPose)
