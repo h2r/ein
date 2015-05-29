@@ -618,7 +618,7 @@ class EinConfig {
   //int gradServoPixelThresh = 2;
   //int gradServoThetaThresh = 1;
   // absolute
-  int synServoPixelThresh = 30;//15;//15;//10;
+  int synServoPixelThresh = 15;//30;//15;//10;
   int gradServoPixelThresh = 5;
   int gradServoThetaThresh = 2;
   

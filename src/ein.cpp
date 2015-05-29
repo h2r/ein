@@ -6263,7 +6263,6 @@ void gradientServo(shared_ptr<MachineState> ms) {
     cout << "ATTN score, thresh, norm, product: " << bestOrientationScore << " " << ms->config.gradientServoResetThresh << " " << bestCropNorm << " " << (ms->config.gradientServoResetThresh * bestCropNorm) << endl;
     if (bestOrientationScore < (ms->config.gradientServoResetThresh * bestCropNorm) ) {
       ms->pushWord("synchronicServo"); 
-      ms->pushWord("visionCycle"); 
       cout << " XXX BAD GRADIENT SERVO SCORE, RETURN TO SYNCHRONIC XXX" << endl;
       return;
     }
@@ -6595,11 +6594,6 @@ void synchronicServo(shared_ptr<MachineState> ms) {
     ms->pushCopies("waitUntilAtCurrentPosition", 1); 
     ms->config.synServoLockFrames = 0;
     ms->pushWord("synchronicServo"); 
-    if (ms->config.currentBoundingBoxMode == MAPPING) {
-      ms->pushWord("visionCycleNoClassify");
-    } else {
-      ms->pushWord("visionCycle"); // vision cycle
-    }
   } else {
     if ((fabs(Px) < ms->config.synServoPixelThresh) && (fabs(Py) < ms->config.synServoPixelThresh)) {
       // ATTN 12
@@ -6690,16 +6684,6 @@ void synchronicServo(shared_ptr<MachineState> ms) {
         //ms->config.currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
         ms->config.currentEEPose.px = newx;
         ms->config.currentEEPose.py = newy;
-
-
-
-	if (ms->config.currentBoundingBoxMode == MAPPING) {
-	  ms->pushWord("visionCycleNoClassify");
-	} else {
-	  ms->pushWord("visionCycle"); // vision cycle
-	}
-
-        ms->pushWord("waitUntilAtCurrentPosition"); 
       }
     }
   }

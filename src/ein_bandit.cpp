@@ -103,9 +103,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
   ms->pushWord("synchronicServoDoNotTakeClosest"); // synchronic servo don't take closest
   ms->pushWord("synchronicServo"); // synchronic servo
-  ms->pushWord(196707); // synchronic servo take closest
-  ms->pushWord("visionCycle"); // vision cycle
-  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  ms->pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
   { // prepare to servo
     //ms->config.currentEEPose.pz = wholeFoodsCounter1.pz+.1;
     ms->pushWord(1245248); // change to height 1
@@ -159,9 +157,6 @@ CODE(1179707)     // capslock + numlock + ;
   ms->pushWord("synchronicServoDoNotTakeClosest"); 
   ms->pushWord("synchronicServo"); // synchronic servo
   ms->pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
-  ms->pushWord("visionCycle"); // vision cycle
-  //ms->pushWord(1179695); // check to see if bounding box is unique (early outting if not)
-  ms->pushWord("visionCycle"); // vision cycle
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   ms->pushWord("setRandomPositionAndOrientationForHeightLearning"); // set random position for bblearn
 
@@ -171,9 +166,6 @@ CODE(1179707)     // capslock + numlock + ;
   ms->pushWord("synchronicServoDoNotTakeClosest"); // synchronic servo don't take closest
   ms->pushWord("synchronicServo"); // synchronic servo
   ms->pushWord(196707); // synchronic servo take closest
-  ms->pushWord("visionCycle"); // vision cycle
-  //ms->pushWord(1179695); // check to see if bounding box is unique (early outting if not)
-  ms->pushWord("visionCycle"); // vision cycle
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   ms->pushWord("setRandomPositionAndOrientationForHeightLearning"); // set random position for bblearn
 

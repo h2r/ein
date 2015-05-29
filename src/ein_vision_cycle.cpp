@@ -46,7 +46,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("mapClosestBlueBox");
   ms->pushWord("goClassifyBlueBoxes"); 
   ms->pushWord("synchronicServo"); 
-  ms->pushWord("visionCycleNoClassify");
   ms->pushWord("synchronicServoTakeClosest");
   ms->pushWord("waitUntilAtCurrentPosition"); 
   ms->pushWord("moveToNextMapPosition");

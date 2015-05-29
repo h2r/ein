@@ -1248,9 +1248,15 @@ WORD(SynchronicServo)
 CODE(131156)    // capslock + t
 virtual void execute(std::shared_ptr<MachineState> ms) { 
   ms->pushWord("synchronicServoA");
+  if (ms->config.currentBoundingBoxMode == MAPPING) {
+    ms->pushWord("visionCycleNoClassify");
+  } else {
+    ms->pushWord("visionCycle"); // vision cycle
+  }
   ms->pushWord("comeToStop");
   ms->pushWord("setMovementStateToMoving");
   ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition"); 
 }
 END_WORD
 REGISTER_WORD(SynchronicServo)
