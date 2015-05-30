@@ -109,6 +109,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   double targetY = ms->config.trY;
 
   ms->config.trZ = ms->config.rangeMapReg1[ms->config.maxX + ms->config.maxY*ms->config.rmWidth];
+  cout << "trZ: " << ms->config.trZ << endl;
 
   ms->config.currentEEPose.px = targetX;
   ms->config.currentEEPose.py = targetY;
@@ -133,64 +134,54 @@ CODE(1048682)     // numlock + j
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->pushWord("closeGripper"); 
 
-  double threshedZ = min(ms->config.trZ, 0.0);
+  cout << this->name() <<": "  << ms->config.classGraspZsSet.size() << " " << ms->config.classGraspZs.size() << endl;
+  double pickZ;
 
-  double pickZpre = -(threshedZ + ms->config.currentTableZ) + ms->config.pickFlushFactor + ms->config.graspDepthOffset;
-  double flushZ = -(ms->config.currentTableZ) + ms->config.pickFlushFactor;
-  double pickZ = max(flushZ, pickZpre);
+  if ( (ms->config.classGraspZsSet.size() > ms->config.targetClass) && 
+       (ms->config.classGraspZs.size() > ms->config.targetClass) &&
+       (ms->config.classGraspZsSet[ms->config.targetClass] == 1)) {
+    // -(-trZ - graspDepthOffset)
+    // trZ holds the height above the table that we want the end effector to be. 
+    pickZ = -ms->config.currentTableZ + -ms->config.classGraspZs[ms->config.targetClass];
+    cout << "delivering class " << ms->config.classLabels[ms->config.targetClass] << " with classGraspZ " << ms->config.classGraspZs[ms->config.targetClass] << endl;
+  }  else {
+    double threshedZ = min(ms->config.trZ, 0.0);
+    
+    // trZ is the height of the object above the table. 
+    // pickFlushFactor is distance from the end effector Z to the tip of the gripper. 
+    double worldZOfObjectTop = -(threshedZ + ms->config.currentTableZ) ;
+    double pickZpre = worldZOfObjectTop + ms->config.pickFlushFactor + ms->config.graspDepthOffset;
+    double flushZ = -(ms->config.currentTableZ) + ms->config.pickFlushFactor;
+    pickZ = max(flushZ, pickZpre);
+    cout << "moveToTargetZAndGrasp trZ pickZ flushZ pickZpre: " << ms->config.trZ << " " << pickZ << " " << flushZ << " " << pickZpre << " " << endl;    
+  }
 
-  int useIncrementalPick = 0;
+  cout << "pickZ: " << pickZ << endl;
   bool useHybridPick = 1;
-
+  
   double deltaZ = pickZ - ms->config.currentEEPose.pz;
   ms->config.lastPickPose = ms->config.currentEEPose;
   ms->config.lastPickPose.pz = pickZ;
 
-
-
-  cout << "moveToTargetZAndGrasp trZ pickZ flushZ pickZpre: " << ms->config.trZ << " " << pickZ << " " << flushZ << " " << pickZpre << " " << endl;
-
-  if (useIncrementalPick) {
-    double zTimes = fabs(floor(deltaZ / ms->config.bDelta)); 
-
-    int numNoOps = 2;
-    if (deltaZ > 0) {
-      for (int zc = 0; zc < zTimes; zc++) {
-	for (int cc = 0; cc < numNoOps; cc++) {
-	  ms->pushWord('C');
-	}
-	ms->pushWord('w');
-      }
-    }
-    if (deltaZ < 0) {
-      for (int zc = 0; zc < zTimes; zc++) {
-	for (int cc = 0; cc < numNoOps; cc++) {
-	  ms->pushWord('C');
-	}
-	ms->pushWord('s');
-      }
-    }
+  if (useHybridPick) {
+    int pickNoops = 20;
+    int increments = 0.1/MOVE_FAST;
+    ms->config.currentEEPose.pz = pickZ+increments*MOVE_FAST;
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushCopies('s', increments);
+    ms->pushWord("setMovementSpeedMoveFast");
+    ms->pushWord("approachSpeed");
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    //ms->pushWord("quarterImpulse");
+    ms->pushWord("approachSpeed");
   } else {
-    if (useHybridPick) {
-      int pickNoops = 20;
-      int increments = 0.1/MOVE_FAST;
-      ms->config.currentEEPose.pz = pickZ+increments*MOVE_FAST;
-
-      //ms->pushCopies("endStackCollapseNoop", pickNoops);
-      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      ms->pushCopies('s', increments);
-      ms->pushWord("setMovementSpeedMoveFast");
-      ms->pushWord("approachSpeed");
-      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      //ms->pushWord("quarterImpulse");
-      ms->pushWord("approachSpeed");
-    } else {
-      ms->config.currentEEPose.pz = pickZ;
-      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    }
+    ms->config.currentEEPose.pz = pickZ;
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   }
+  
 }
 END_WORD
 REGISTER_WORD(MoveToTargetZAndGrasp)
@@ -1426,21 +1417,5 @@ END_WORD
 REGISTER_WORD(GoToLastPickPose)
 
 
-WORD(ReturnObject)
-virtual void execute(std::shared_ptr<MachineState> ms)
-{
-  cout << "Returning object." << endl;
-  ms->pushWord("goToPrePickPose");
-  ms->pushWord("waitUntilGripperNotMoving");
-  ms->pushWord("openGripper");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("goToLastPickPose");
-  ms->pushWord("approachSpeed");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("goToPrePickPose");
-
-}
-END_WORD
-REGISTER_WORD(ReturnObject)
 
 }
