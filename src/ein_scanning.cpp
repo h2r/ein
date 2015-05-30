@@ -548,14 +548,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double betweenSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
 
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
-  ms->pushWord(1114150); // prepare for search
+  ms->pushWord("prepareForSearch"); // prepare for search
 
   ms->pushCopies('q',4);
   ms->pushCopies('a',6);
 
-  ms->pushWord(1048683); // turn on scanning
+  ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
   ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord(1114155); // rotate gear
+  ms->pushWord("shiftGraspGear"); // rotate gear
 
   ms->pushWord("fullRender"); // full render
   ms->pushWord("paintReticles"); // render reticle
@@ -563,16 +563,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("drawMapRegisters"); // render register 1
   ms->pushWord("downsampleIrScan"); // load map to register 1
   {
-    ms->pushWord(1048678); // target best grasp
+    ms->pushWord("setTargetReticleToTheMaxMappedPosition"); // target best grasp
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     ms->pushWord("shiftIntoGraspGear1"); // change to first gear
   }
-  ms->pushWord(1048630); // find best grasp
+  ms->pushWord("selectBestAvailableGrasp"); // find best grasp
 
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
-  ms->pushWord(1114150); // prepare for search
+  ms->pushWord("prepareForSearch"); // prepare for search
 
-  ms->pushWord(1048683); // turn on scanning
+  ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
   ms->pushWord("initDepthScan"); // clear scan history
   ms->pushWord("waitUntilAtCurrentPosition"); 
   ms->pushWord("shiftIntoGraspGear1"); 
@@ -587,14 +587,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double betweenSpeed = ms->config.bDelta;
 
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
-  ms->pushWord(1114150); // prepare for search
+  ms->pushWord("prepareForSearch"); // prepare for search
 
   ms->pushCopies('q',4);
   ms->pushCopies('a',6);
 
-  ms->pushWord(1048683); // turn on scanning
+  ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
   ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord(1114155); // rotate gear
+  ms->pushWord("shiftGraspGear"); // rotate gear
 
   ms->pushWord("fullRender"); // full render
   ms->pushWord("paintReticles"); // render reticle
@@ -602,16 +602,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("drawMapRegisters"); // render register 1
   ms->pushWord("downsampleIrScan"); // load map to register 1
   {
-    ms->pushWord(1048678); // target best grasp
+    ms->pushWord("setTargetReticleToTheMaxMappedPosition"); // target best grasp
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     ms->pushWord("shiftIntoGraspGear1"); // change to first gear
   }
-  ms->pushWord(1048630); // find best grasp
+  ms->pushWord("selectBestAvailableGrasp"); // find best grasp
 
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
-  ms->pushWord(1114150); // prepare for search
+  ms->pushWord("prepareForSearch"); // prepare for search
 
-  ms->pushWord(1048683); // turn on scanning
+  ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
   ms->pushWord("initDepthScan"); // clear scan history
   ms->pushWord("waitUntilAtCurrentPosition"); 
   ms->pushWord("shiftIntoGraspGear1"); 
@@ -631,16 +631,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("drawMapRegisters"); // render register 1
   ms->pushWord("downsampleIrScan"); // load map to register 1
   {
-    ms->pushWord(1048678); // target best grasp
+    ms->pushWord("setTargetReticleToTheMaxMappedPosition"); // target best grasp
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     ms->pushWord("shiftIntoGraspGear1"); // change to first gear
   }
-  ms->pushWord(1048630); // find best grasp
+  ms->pushWord("selectBestAvailableGrasp"); // find best grasp
 
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
-  ms->pushWord(1114150); // prepare for search
+  ms->pushWord("prepareForSearch"); // prepare for search
 
-  ms->pushWord(1048683); // turn on scanning
+  ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
   ms->pushWord("initDepthScan"); // clear scan history
   ms->pushWord("waitUntilAtCurrentPosition"); 
   ms->pushWord("shiftIntoGraspGear1"); 
@@ -1824,14 +1824,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("preAnnotateCenterGrasp"); 
     //ms->pushWord("neutralScanB");  
     { // empty scan
-      ms->pushWord(1114150); // prepare for search
+      ms->pushWord("prepareForSearch"); // prepare for search
 
       //ms->pushCopies('q',4);
       //ms->pushCopies('a',6);
 
-      ms->pushWord(1048683); // turn on scanning
+      ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
       ms->pushWord("waitUntilAtCurrentPosition");
-      ms->pushWord(1114155); // rotate gear
+      ms->pushWord("shiftGraspGear"); // rotate gear
 
       ms->pushWord("fullRender"); // full render
       ms->pushWord("paintReticles"); // render reticle
@@ -1839,16 +1839,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("drawMapRegisters"); // render register 1
       ms->pushWord("downsampleIrScan"); // load map to register 1
       {
-	ms->pushWord(1048678); // target best grasp
+	ms->pushWord("setTargetReticleToTheMaxMappedPosition"); // target best grasp
 	ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 	ms->pushWord("shiftIntoGraspGear1"); // change to first gear
       }
-      ms->pushWord(1048630); // find best grasp
+      ms->pushWord("selectBestAvailableGrasp"); // find best grasp
 
       //scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
-      ms->pushWord(1114150); // prepare for search
+      ms->pushWord("prepareForSearch"); // prepare for search
 
-      ms->pushWord(1048683); // turn on scanning
+      ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
       ms->pushWord("initDepthScan"); // clear scan history
       ms->pushWord("waitUntilAtCurrentPosition"); 
       ms->pushWord("shiftIntoGraspGear1"); 
@@ -1890,7 +1890,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("changeToHeight0"); // change to height 0
     }
   }
-
 
   ms->pushWord("fullImpulse");
 
