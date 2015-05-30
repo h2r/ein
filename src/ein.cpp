@@ -3675,9 +3675,11 @@ void pilotInit(shared_ptr<MachineState> ms) {
     ms->config.eepReg2 = ms->config.beeHome; 
 
     ms->config.mapSearchFenceXMin = -0.75;
-    ms->config.mapSearchFenceXMax = 1.0;
+    ms->config.mapSearchFenceXMax = 0.25;
     ms->config.mapSearchFenceYMin = -1.25;
     ms->config.mapSearchFenceYMax = 1.25;
+
+    //.px = 0.278252, .py = 0.731958, .pz = -0.0533381,
 
     ms->config.mapRejectFenceXMin = ms->config.mapSearchFenceXMin;
     ms->config.mapRejectFenceXMax = ms->config.mapSearchFenceXMax;
@@ -6263,7 +6265,6 @@ void gradientServo(shared_ptr<MachineState> ms) {
     cout << "ATTN score, thresh, norm, product: " << bestOrientationScore << " " << ms->config.gradientServoResetThresh << " " << bestCropNorm << " " << (ms->config.gradientServoResetThresh * bestCropNorm) << endl;
     if (bestOrientationScore < (ms->config.gradientServoResetThresh * bestCropNorm) ) {
       ms->pushWord("synchronicServo"); 
-      ms->pushWord("visionCycle"); 
       cout << " XXX BAD GRADIENT SERVO SCORE, RETURN TO SYNCHRONIC XXX" << endl;
       return;
     }
@@ -6379,6 +6380,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
     eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
+    //double sqdistance = eePose::squareDistance(ms->config.currentEEPose, newGlobalTarget);
+
     ms->config.currentEEPose.px = newx;
     ms->config.currentEEPose.py = newy;
     
@@ -6595,11 +6598,6 @@ void synchronicServo(shared_ptr<MachineState> ms) {
     ms->pushCopies("waitUntilAtCurrentPosition", 1); 
     ms->config.synServoLockFrames = 0;
     ms->pushWord("synchronicServo"); 
-    if (ms->config.currentBoundingBoxMode == MAPPING) {
-      ms->pushWord("visionCycleNoClassify");
-    } else {
-      ms->pushWord("visionCycle"); // vision cycle
-    }
   } else {
     if ((fabs(Px) < ms->config.synServoPixelThresh) && (fabs(Py) < ms->config.synServoPixelThresh)) {
       // ATTN 12
@@ -6690,16 +6688,6 @@ void synchronicServo(shared_ptr<MachineState> ms) {
         //ms->config.currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
         ms->config.currentEEPose.px = newx;
         ms->config.currentEEPose.py = newy;
-
-
-
-	if (ms->config.currentBoundingBoxMode == MAPPING) {
-	  ms->pushWord("visionCycleNoClassify");
-	} else {
-	  ms->pushWord("visionCycle"); // vision cycle
-	}
-
-        ms->pushWord("waitUntilAtCurrentPosition"); 
       }
     }
   }
@@ -10833,6 +10821,11 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut) {
   stateOut->patrol_mode = ms->config.currentPatrolMode;
   stateOut->place_mode = ms->config.currentPlaceMode;
   stateOut->idle_mode = ms->config.currentIdleMode;
+  for (int i = 0; i < ms->call_stack.size(); i ++) {
+    shared_ptr<Word> w = ms->call_stack[i];
+    stateOut->stack.push_back(w->repr());
+  }
+
 
   object_recognition_msgs::RecognizedObjectArray roa;
   fillRecognizedObjectArrayFromBlueBoxMemory(ms, &roa);
