@@ -407,7 +407,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // start NO bag routine
   ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
 
-  ms->pushWord("synchronicServoDoNotTakeClosest"); // synchronic servo don't take closest
   ms->pushWord("synchronicServo"); // synchronic servo
   ms->pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
 
@@ -1821,7 +1820,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   { // do density and gradient, save gradient, do medium scan in two directions, save range map
     ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
-    ms->pushWord("preAnnotateCenterGrasp"); 
+    //ms->pushWord("preAnnotateCenterGrasp"); 
+    ms->pushWord("preAnnotateOffsetGrasp"); 
     //ms->pushWord("neutralScanB");  
     { // empty scan
       ms->pushWord("prepareForSearch"); // prepare for search
@@ -1890,6 +1890,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("changeToHeight0"); // change to height 0
     }
   }
+  ms->pushWord("synchronicServo");
+  ms->pushWord("synchronicServoTakeClosest");
 
   ms->pushWord("fullImpulse");
 
@@ -1906,8 +1908,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("shiftIntoGraspGear1");
   ms->pushWord("changeToHeight0");
-  ms->pushCopies("yDown", 25);
+  //ms->pushCopies("yDown", 25);
   ms->pushWord("setMovementSpeedMoveFast");
+  ms->pushWord("assumeBackScanningPose");
   ms->pushWord("assumeCalibrationPose");
   ms->pushWord("fullImpulse");
 }
@@ -2141,41 +2144,42 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(AssumeAny3dGrasp)
 
+
 WORD(PreAnnotateCenterGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  guardGraspMemory(ms);
-  for (int y = 0; y < ms->config.rmWidth; y++) {
-    for (int x = 0; x < ms->config.rmWidth; x++) {
-      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1;
-      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 0; 
-      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = 1;
-      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = 0; 
-      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 1;
-      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 0; 
-      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 1;
-      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 0; 
-      //ms->config.classGraspMemoryTries1[ms->config.targetClass].at<double>(y,x) = 1;
-      //ms->config.classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x) = 0;
-      //ms->config.classGraspMemoryTries2[ms->config.targetClass].at<double>(y,x) = 1;
-      //ms->config.classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x) = 0;
-      //ms->config.classGraspMemoryTries3[ms->config.targetClass].at<double>(y,x) = 1;
-      //ms->config.classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x) = 0;
-      //ms->config.classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x) = 1;
-      //ms->config.classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x) = 0;
-      ms->config.rangeMap[x + y*ms->config.rmWidth] = 0;
-      ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = 0;
-      //ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x) = 0;
-    } 
-  } 
-  //ms->config.classGraspMemoryTries1[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
-  //ms->config.classGraspMemoryPicks1[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
+  zeroGraspMemoryAndRangeMap(ms);
   ms->config.graspMemoryTries[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1;
   ms->config.graspMemoryPicks[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1; 
   ms->config.rangeMap[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth] = ms->config.currentGraspZ;
   ms->config.rangeMapReg1[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth] = ms->config.currentGraspZ;
-  //ms->config.classRangeMaps[ms->config.targetClass].at<double>(ms->config.rmHalfWidth,ms->config.rmHalfWidth) = 1;
 }
 END_WORD
 REGISTER_WORD(PreAnnotateCenterGrasp)
+
+
+
+WORD(PreAnnotateOffsetGrasp)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  zeroGraspMemoryAndRangeMap(ms);
+  eePose offsetPose = ms->config.eepReg1;
+  eePose difference = ms->config.currentEEPose.minusP(offsetPose);
+  double offsetX = difference.px / ms->config.rmDelta;
+  double offsetY = difference.py / ms->config.rmDelta;
+  int rx = (int) round(ms->config.rmHalfWidth + offsetX);
+  int ry = (int) round(ms->config.rmHalfWidth + offsetY);
+  
+  cout << "PreAnnotateOffsetGrasp: " << offsetPose << " " << ms->config.currentEEPose << " " << difference << endl <<
+    offsetX << " " << offsetY << " " << rx << " " << ry << endl;
+
+
+  ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth * ms->config.rmWidth * 0] = 1;
+  ms->config.graspMemoryPicks[rx + ry*ms->config.rmWidth + ms->config.rmWidth * ms->config.rmWidth * 0] = 1;
+
+  ms->config.rangeMap[rx + ry*ms->config.rmWidth + ms->config.rmWidth * ms->config.rmWidth * 0] = ms->config.currentGraspZ;
+  ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth + ms->config.rmWidth * ms->config.rmWidth * 0] = ms->config.currentGraspZ;
+}
+END_WORD
+REGISTER_WORD(PreAnnotateOffsetGrasp)
+
 
 }

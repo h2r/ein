@@ -220,6 +220,7 @@ void convertLocalGraspIdxToGlobal(shared_ptr<MachineState> ms, const int localX,
 
 void changeTargetClass(shared_ptr<MachineState> ms, int);
 
+void zeroGraspMemoryAndRangeMap(shared_ptr<MachineState> ms);
 void guard3dGrasps(shared_ptr<MachineState> ms);
 void guardGraspMemory(shared_ptr<MachineState> ms);
 void loadSampledGraspMemory(shared_ptr<MachineState> ms);
@@ -227,6 +228,7 @@ void loadMarginalGraspMemory(shared_ptr<MachineState> ms);
 void loadPriorGraspMemory(shared_ptr<MachineState> ms, priorType);
 void estimateGlobalGraspGear();
 void drawMapRegisters(shared_ptr<MachineState> ms);
+
 
 void guardHeightMemory(shared_ptr<MachineState> ms);
 void loadSampledHeightMemory(shared_ptr<MachineState> ms);
