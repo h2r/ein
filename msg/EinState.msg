@@ -14,3 +14,5 @@ int32 patrol_mode
 int32 idle_mode
 
 object_recognition_msgs/RecognizedObject[] objects
+
+string[] stack

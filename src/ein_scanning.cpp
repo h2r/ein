@@ -5,6 +5,15 @@
 
 namespace ein_words {
 
+WORD(SetTargetClass)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> objectword = ms->popWord();
+  string className = objectword->to_string();
+  int class_idx = classIdxForName(ms, className);
+  changeTargetClass(ms, class_idx);
+}
+END_WORD
+REGISTER_WORD(SetTargetClass)
 
 WORD(SetTargetClassToLastLabelLearned)
 CODE(1179730)     // capslock + numlock + r
@@ -401,7 +410,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("synchronicServoDoNotTakeClosest"); // synchronic servo don't take closest
   ms->pushWord("synchronicServo"); // synchronic servo
   ms->pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
-  ms->pushWord("visionCycle"); // vision cycle
 
   ms->pushWord("pauseStackExecution"); // pause stack execution
   ms->pushCopies("beep", 15); // beep
@@ -851,7 +859,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("rgbScan");
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   ms->pushWord("synchronicServo"); 
-  ms->pushWord("visionCycleNoClassify");
   ms->pushWord("synchronicServoTakeClosest");
   ms->pushWord("fillClearanceMap");
   ms->pushWord("loadIkMap");
@@ -1930,7 +1937,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("mapClosestBlueBox");
   ms->pushWord("goClassifyBlueBoxes"); 
   ms->pushWord("synchronicServo"); 
-  ms->pushWord("visionCycleNoClassify");
   ms->pushWord("synchronicServoTakeClosest");
   ms->pushWord("waitUntilAtCurrentPosition"); 
   ms->pushWord("sampleHeight"); 
