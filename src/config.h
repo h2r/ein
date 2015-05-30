@@ -654,7 +654,6 @@ class EinConfig {
   int gradientServoDuringHeightLearning = 1;
   int bailAfterSynchronic = 1;
   int bailAfterGradient = 0;
-  int useGradientServoThresh = 0;
   double gradientServoResetThresh = 0.7/(6.0e5);
   int densityIterationsForGradientServo = 10;//3;//10;
 

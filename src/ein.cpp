@@ -4245,6 +4245,33 @@ int ARE_GENERIC_HEIGHT_LEARNING(shared_ptr<MachineState> ms) {
 }
 
 
+void zeroGraspMemoryAndRangeMap(shared_ptr<MachineState> ms) {
+  guardGraspMemory(ms);
+  for (int y = 0; y < ms->config.rmWidth; y++) {
+    for (int x = 0; x < ms->config.rmWidth; x++) {
+      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1;
+      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 0; 
+      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = 1;
+      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = 0; 
+      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 1;
+      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 0; 
+      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 1;
+      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 0; 
+      //ms->config.classGraspMemoryTries1[ms->config.targetClass].at<double>(y,x) = 1;
+      //ms->config.classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x) = 0;
+      //ms->config.classGraspMemoryTries2[ms->config.targetClass].at<double>(y,x) = 1;
+      //ms->config.classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x) = 0;
+      //ms->config.classGraspMemoryTries3[ms->config.targetClass].at<double>(y,x) = 1;
+      //ms->config.classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x) = 0;
+      //ms->config.classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x) = 1;
+      //ms->config.classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x) = 0;
+      ms->config.rangeMap[x + y*ms->config.rmWidth] = 0;
+      ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = 0;
+      //ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x) = 0;
+    } 
+  } 
+
+}
 
 void guard3dGrasps(shared_ptr<MachineState> ms) {
   if (ms->config.class3dGrasps.size() < ms->config.numClasses) {
@@ -5860,6 +5887,61 @@ void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms) {
   }
 }
 
+Mat makeGCrop(shared_ptr<MachineState> ms, int etaX, int etaY) {
+  Size sz = ms->config.objectViewerImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  int crows = ms->config.aerialGradientReticleWidth;
+  int ccols = ms->config.aerialGradientReticleWidth;
+  int maxDim = max(crows, ccols);
+  int tRy = (maxDim-crows)/2;
+  int tRx = (maxDim-ccols)/2;
+
+
+  int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
+  int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+
+  Mat gCrop(maxDim, maxDim, CV_64F);
+  Size toBecome(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth);
+
+
+  
+  for (int x = 0; x < maxDim; x++) {
+    for (int y = 0; y < maxDim; y++) {
+      int tx = x - tRx;
+      int ty = y - tRy;
+      int tCtx = topCornerX + tx;
+      int tCty = topCornerY + ty;
+      if ( (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) &&
+           (tCtx > 0) && (tCty > 0) && (tCtx < imW) && (tCty < imH) ) {
+        gCrop.at<double>(y, x) = ms->config.frameGraySobel.at<double>(topCornerY + ty, topCornerX + tx);
+      } else {
+        gCrop.at<double>(y, x) = 0.0;
+      }
+    }
+  }
+  
+  cv::resize(gCrop, gCrop, toBecome);
+  
+  processSaliency(gCrop, gCrop);
+  
+  {
+    double mean = gCrop.dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, gCrop.type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
+    gCrop = gCrop - mean;
+    double l2norm = gCrop.dot(gCrop);
+    // ATTN 17
+    // removed normalization for discriminative servoing
+    // ATTN 15
+    // normalization hoses rejection
+    if (l2norm <= EPSILON) {
+      l2norm = 1.0;
+    }
+    gCrop = gCrop / l2norm;
+  }
+  return gCrop;
+}
+
 void gradientServo(shared_ptr<MachineState> ms) {
   Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
@@ -6037,50 +6119,15 @@ void gradientServo(shared_ptr<MachineState> ms) {
   //rotatedAerialGrads.resize(gradientServoScale*numOrientations);
   int gSTwidth = 2*gradientServoTranslation + 1;
   double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
+
   
   for (int etaS = 0; etaS < gradientServoScale; etaS++) {
 #pragma omp parallel for
     for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
       for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
         // get the patch
-        int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
-        int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
-        Mat gCrop(maxDim, maxDim, CV_64F);
+        Mat gCrop = makeGCrop(ms, etaX, etaY);
         
-        for (int x = 0; x < maxDim; x++) {
-          for (int y = 0; y < maxDim; y++) {
-            int tx = x - tRx;
-            int ty = y - tRy;
-            int tCtx = topCornerX + tx;
-            int tCty = topCornerY + ty;
-            if ( (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) &&
-                 (tCtx > 0) && (tCty > 0) && (tCtx < imW) && (tCty < imH) ) {
-              gCrop.at<double>(y, x) = ms->config.frameGraySobel.at<double>(topCornerY + ty, topCornerX + tx);
-            } else {
-              gCrop.at<double>(y, x) = 0.0;
-            }
-          }
-        }
-        
-        cv::resize(gCrop, gCrop, toBecome);
-        
-        processSaliency(gCrop, gCrop);
-        
-        {
-          double mean = gCrop.dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, gCrop.type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
-          gCrop = gCrop - mean;
-          double l2norm = gCrop.dot(gCrop);
-          // ATTN 17
-          // removed normalization for discriminative servoing
-          // ATTN 15
-          // normalization hoses rejection
-          if (ms->config.useGradientServoThresh) {
-          } else {
-            if (l2norm <= EPSILON)
-              l2norm = 1.0;
-            gCrop = gCrop / l2norm;
-          }
-        }
         
         for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
           // orientation cascade
@@ -6121,7 +6168,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
         // get the patch
         int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
         int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
-        Mat gCrop(maxDim, maxDim, CV_64F);
+        //Mat gCrop(maxDim, maxDim, CV_64F);
         
         // throw it out if it isn't contained in the image
         //    if ( (topCornerX+ms->config.aerialGradientWidth >= imW) || (topCornerY+ms->config.aerialGradientWidth >= imH) )
@@ -6156,7 +6203,6 @@ void gradientServo(shared_ptr<MachineState> ms) {
           if (thisScore > bestOrientationScore) {
             bestOrientation = thisOrient;
             bestOrientationScore = thisScore;
-            bestCropNorm = sqrt(gCrop.dot(gCrop));
             bestX = etaX;
             bestY = etaY;
             bestS = etaS;
@@ -6166,6 +6212,9 @@ void gradientServo(shared_ptr<MachineState> ms) {
       }
     }
   }
+
+  Mat bestGCrop = makeGCrop(ms, bestX, bestY); 
+
 
   // set the target reticle
   ms->config.pilotTarget.px = ms->config.reticle.px + bestX;
@@ -6180,19 +6229,25 @@ void gradientServo(shared_ptr<MachineState> ms) {
   //Ps = bestS - ((gradientServoScale-1)/2);
   Ps = 0;
   
-  Mat toShow;
+  Mat toShowModel;
+  Mat toShowImage;
   Size toUnBecome(maxDim, maxDim);
   //cv::resize(ms->config.classAerialGradients[ms->config.targetClass], toShow, toUnBecome);
   //cv::resize(rotatedAerialGrads[oneToDraw], toShow, toUnBecome);
-  cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations], toShow, toUnBecome);
+  cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations], toShowModel, toUnBecome);
+  cv::resize(bestGCrop, toShowImage, toUnBecome);
   //cout << rotatedAerialGrads[oneToDraw];
   
-  double maxTS = -INFINITY;
-  double minTS = INFINITY;
+  double maxTSImage = -INFINITY;
+  double minTSImage = INFINITY;
+  double maxTSModel = -INFINITY;
+  double minTSModel = INFINITY;
   for (int x = 0; x < maxDim; x++) {
     for (int y = 0; y < maxDim; y++) {
-      maxTS = max(maxTS, toShow.at<double>(y, x));
-      minTS = min(minTS, toShow.at<double>(y, x));
+      maxTSImage = max(maxTSImage, toShowImage.at<double>(y, x));
+      minTSImage = min(minTSImage, toShowImage.at<double>(y, x));
+      maxTSModel = max(maxTSModel, toShowModel.at<double>(y, x));
+      minTSModel = min(minTSModel, toShowModel.at<double>(y, x));
     }
   }
   
@@ -6204,7 +6259,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
       int tx = x - tRx;
       int ty = y - tRy;
       if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
-        Vec3b thisColor = Vec3b(0,0,min(255, int(floor(255.0*8*(toShow.at<double>(y, x)-minTS)/(maxTS-minTS)))));
+        Vec3b thisColorModel = Vec3b(0,0,min(255, int(floor(255.0*8*(toShowModel.at<double>(y, x)-minTSModel)/(maxTSModel-minTSModel)))));
+        Vec3b thisColorImage = Vec3b(min(255, int(floor(255.0*8*(toShowImage.at<double>(y, x)-minTSImage)/(maxTSImage-minTSImage)))), 0, 0);
         //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
         //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
         //cout << thisColor;
@@ -6214,7 +6270,9 @@ void gradientServo(shared_ptr<MachineState> ms) {
         int tgX = thisTopCornerX + tx;
         int tgY = thisTopCornerY + ty;
         if ((tgX > 0) && (tgX < imW) && (tgY > 0) && (tgY < imH)) {
-          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColor;
+          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) = 0;
+          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColorImage;
+          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColorModel;
         }
       }
     }
@@ -6259,16 +6317,6 @@ void gradientServo(shared_ptr<MachineState> ms) {
   double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
   double distance = dx*dx + dy*dy + dz*dz;
   
-  // ATTN 15
-  // return to synchronic if the match is poor
-  if (ms->config.useGradientServoThresh) {
-    cout << "ATTN score, thresh, norm, product: " << bestOrientationScore << " " << ms->config.gradientServoResetThresh << " " << bestCropNorm << " " << (ms->config.gradientServoResetThresh * bestCropNorm) << endl;
-    if (bestOrientationScore < (ms->config.gradientServoResetThresh * bestCropNorm) ) {
-      ms->pushWord("synchronicServo"); 
-      cout << " XXX BAD GRADIENT SERVO SCORE, RETURN TO SYNCHRONIC XXX" << endl;
-      return;
-    }
-  }
 
   if (distance > ms->config.w1GoThresh*ms->config.w1GoThresh) {
     
