@@ -1818,78 +1818,49 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("moveToRegister1");
 
-  { // do density and gradient, save gradient, do medium scan in two directions, save range map
-    ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
-    //ms->pushWord("preAnnotateCenterGrasp"); 
-    ms->pushWord("preAnnotateOffsetGrasp"); 
-    //ms->pushWord("neutralScanB");  
-    { // empty scan
-      ms->pushWord("prepareForSearch"); // prepare for search
 
-      //ms->pushCopies('q',4);
-      //ms->pushCopies('a',6);
 
-      ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
-      ms->pushWord("waitUntilAtCurrentPosition");
-      ms->pushWord("shiftGraspGear"); // rotate gear
-
-      ms->pushWord("fullRender"); // full render
-      ms->pushWord("paintReticles"); // render reticle
-      ms->pushWord("shiftIntoGraspGear1"); // change to first gear
-      ms->pushWord("drawMapRegisters"); // render register 1
-      ms->pushWord("downsampleIrScan"); // load map to register 1
-      {
-	ms->pushWord("setTargetReticleToTheMaxMappedPosition"); // target best grasp
-	ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-	ms->pushWord("shiftIntoGraspGear1"); // change to first gear
-      }
-      ms->pushWord("selectBestAvailableGrasp"); // find best grasp
-
-      //scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
-      ms->pushWord("prepareForSearch"); // prepare for search
-
-      ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
-      ms->pushWord("initDepthScan"); // clear scan history
-      ms->pushWord("waitUntilAtCurrentPosition"); 
-      ms->pushWord("shiftIntoGraspGear1"); 
-    }
-
-    ms->pushWord("setMovementSpeedMoveEvenFaster");
-    //ms->pushWord("fasterRasterScanningSpeed");
-
-    ms->pushWord("comeToStop");
+  ms->pushWord("setMovementSpeedMoveEvenFaster");
+  //ms->pushWord("fasterRasterScanningSpeed");
+  
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies("zDown", retractCm); 
+  ms->pushWord("comeToHover");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("moveToRegister1");
+  ms->pushWord("quarterImpulse");
+  
+  {
+    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("gradientServoPrep");
     ms->pushWord("waitUntilAtCurrentPosition");
-    ms->pushCopies("zDown", retractCm); 
-    ms->pushWord("comeToHover");
-    ms->pushWord("waitUntilAtCurrentPosition");
-    ms->pushWord("moveToRegister1");
-    ms->pushWord("quarterImpulse");
-
-    {
-      ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
-      ms->pushWord("gradientServoPrep");
-      ms->pushWord("waitUntilAtCurrentPosition");
-      ms->pushWord("changeToHeight3"); // change to height 3
-    }
-    {
-      ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
-      ms->pushWord("gradientServoPrep");
-      ms->pushWord("waitUntilAtCurrentPosition");
-      ms->pushWord("changeToHeight2"); // change to height 2
-    }
-    {
-      ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
-      ms->pushWord("gradientServoPrep");
-      ms->pushWord("waitUntilAtCurrentPosition");
-      ms->pushWord("changeToHeight1"); // change to height 1
-    }
-    {
-      ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
-      ms->pushWord("gradientServoPrep");
-      ms->pushWord("waitUntilAtCurrentPosition");
-      ms->pushWord("changeToHeight0"); // change to height 0
-    }
+    ms->pushWord("changeToHeight3"); // change to height 3
   }
+  {
+    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("gradientServoPrep");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight2"); // change to height 2
+  }
+  {
+    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("gradientServoPrep");
+    ms->pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord("changeToHeight1"); // change to height 1
+  }
+  {
+    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("gradientServoPrep");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight0"); // change to height 0
+  }
+  
+  
+  ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
+  ms->pushWord("preAnnotateOffsetGrasp"); 
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("synchronicServo");
   ms->pushWord("synchronicServoTakeClosest");
 

@@ -157,57 +157,31 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   }
 
   cout << "pickZ: " << pickZ << endl;
-  int useIncrementalPick = 0;
   bool useHybridPick = 1;
   
   double deltaZ = pickZ - ms->config.currentEEPose.pz;
   ms->config.lastPickPose = ms->config.currentEEPose;
   ms->config.lastPickPose.pz = pickZ;
 
-
-
-  if (useIncrementalPick) {
-    double zTimes = fabs(floor(deltaZ / ms->config.bDelta)); 
-
-    int numNoOps = 2;
-    if (deltaZ > 0) {
-      for (int zc = 0; zc < zTimes; zc++) {
-	for (int cc = 0; cc < numNoOps; cc++) {
-	  ms->pushWord('C');
-	}
-	ms->pushWord('w');
-      }
-    }
-    if (deltaZ < 0) {
-      for (int zc = 0; zc < zTimes; zc++) {
-	for (int cc = 0; cc < numNoOps; cc++) {
-	  ms->pushWord('C');
-	}
-	ms->pushWord('s');
-      }
-    }
+  if (useHybridPick) {
+    int pickNoops = 20;
+    int increments = 0.1/MOVE_FAST;
+    ms->config.currentEEPose.pz = pickZ+increments*MOVE_FAST;
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushCopies('s', increments);
+    ms->pushWord("setMovementSpeedMoveFast");
+    ms->pushWord("approachSpeed");
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    //ms->pushWord("quarterImpulse");
+    ms->pushWord("approachSpeed");
   } else {
-    if (useHybridPick) {
-      int pickNoops = 20;
-      int increments = 0.1/MOVE_FAST;
-      ms->config.currentEEPose.pz = pickZ+increments*MOVE_FAST;
-
-      //ms->pushCopies("endStackCollapseNoop", pickNoops);
-      ms->pushWord("comeToStop");
-      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      ms->pushCopies('s', increments);
-      ms->pushWord("setMovementSpeedMoveFast");
-      ms->pushWord("approachSpeed");
-      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      //ms->pushWord("quarterImpulse");
-      ms->pushWord("approachSpeed");
-    } else {
-      ms->config.currentEEPose.pz = pickZ;
-      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    }
+    ms->config.currentEEPose.pz = pickZ;
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   }
+  
 }
 END_WORD
 REGISTER_WORD(MoveToTargetZAndGrasp)
