@@ -2,43 +2,53 @@
 #include "ein.h"
 namespace ein_words {
 
-WORD(SetTheTable)
+WORD(SetTheYcbTable)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
-  eePose mugPose = {.px = 0.0, .py = 0.0, .pz = 0.0,
+  ms->pushWord("assumeCrane1"); 
+
+  eePose platePose = {.px = 0.602935, .py = 0.599482, .pz = -0.0395161,
+                      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  ms->pushWord(std::make_shared<EePoseWord>(platePose));
+  ms->pushWord("redPlate");
+  ms->pushWord("moveObjectToPose");
+
+
+
+  eePose mugPose = {.px = 0.428236, .py = 0.688348, .pz = -0.026571,
                       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
   ms->pushWord(std::make_shared<EePoseWord>(mugPose));
-  ms->pushWord("mug");
+  ms->pushWord("redMug");
   ms->pushWord("moveObjectToPose");
 
-  eePose bowlPose = {.px = 0.0, .py = 0.0, .pz = 0.0,
-                      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  eePose bowlPose = {.px = 0.429551, .py = 0.355954, .pz = -0.02713,
+                     .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
   ms->pushWord(std::make_shared<EePoseWord>(bowlPose));
-  ms->pushWord("bowl");
+  ms->pushWord("redBowl");
   ms->pushWord("moveObjectToPose");
 
-  eePose knifePose = {.px = 0.0, .py = 0.0, .pz = 0.0,
+  eePose knifePose = {.px = 0.801712, .py = 0.225337, .pz = -0.0840434,
                       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
   ms->pushWord(std::make_shared<EePoseWord>(knifePose));
-  ms->pushWord("knife");
+  ms->pushWord("redKnife");
   ms->pushWord("moveObjectToPose");
 
 
-  eePose forkPose = {.px = 0.0, .py = 0.0, .pz = 0.0,
+  eePose forkPose =  {.px = 0.632388, .py = 0.417448, .pz = -0.0487945,
                       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
   ms->pushWord(std::make_shared<EePoseWord>(forkPose));
-  ms->pushWord("fork");
+  ms->pushWord("redFork");
   ms->pushWord("moveObjectToPose");
 
 
-  eePose spoonPose = {.px = 0.0, .py = 0.0, .pz = 0.0,
+  eePose spoonPose = {.px = 0.769297, .py = 0.27031, .pz = -0.0771595,
                       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
   ms->pushWord(std::make_shared<EePoseWord>(spoonPose));
-  ms->pushWord("spoon");
+  ms->pushWord("redSpoon");
   ms->pushWord("moveObjectToPose");
 }
 END_WORD
-REGISTER_WORD(SetTheTable)
+REGISTER_WORD(SetTheYcbTable)
 
 WORD(MoveObjectToPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -92,7 +102,7 @@ REGISTER_WORD(DeliverObject)
 
 WORD(DeliverTargetObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->pushWord("idler"); 
+  //ms->pushWord("idler"); 
   ms->config.bailAfterGradient = 1;
 
   ms->config.pilotTarget.px = -1;
@@ -179,8 +189,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->config.blueBoxMemories = newMemories;
   }
 
-  ms->pushWord("moveToNextMapPosition");
-  ms->pushWord("synchronicServoDoNotTakeClosest"); 
+  //ms->pushWord("moveToNextMapPosition");
+  //ms->pushWord("synchronicServoDoNotTakeClosest"); 
   ms->pushWord("openGripper"); 
   ms->pushWord("cruisingSpeed"); 
   ms->pushWord("waitUntilAtCurrentPosition"); 

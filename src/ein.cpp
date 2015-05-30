@@ -3675,9 +3675,11 @@ void pilotInit(shared_ptr<MachineState> ms) {
     ms->config.eepReg2 = ms->config.beeHome; 
 
     ms->config.mapSearchFenceXMin = -0.75;
-    ms->config.mapSearchFenceXMax = 1.0;
+    ms->config.mapSearchFenceXMax = 0.25;
     ms->config.mapSearchFenceYMin = -1.25;
     ms->config.mapSearchFenceYMax = 1.25;
+
+    //.px = 0.278252, .py = 0.731958, .pz = -0.0533381,
 
     ms->config.mapRejectFenceXMin = ms->config.mapSearchFenceXMin;
     ms->config.mapRejectFenceXMax = ms->config.mapSearchFenceXMax;

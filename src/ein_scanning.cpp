@@ -5,6 +5,15 @@
 
 namespace ein_words {
 
+WORD(SetTargetClass)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> objectword = ms->popWord();
+  string className = objectword->to_string();
+  int class_idx = classIdxForName(ms, className);
+  changeTargetClass(ms, class_idx);
+}
+END_WORD
+REGISTER_WORD(SetTargetClass)
 
 WORD(SetTargetClassToLastLabelLearned)
 CODE(1179730)     // capslock + numlock + r
