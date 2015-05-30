@@ -41,7 +41,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("moveObjectToPose");
 
 
-  eePose spoonPose = {.px = 0.769297, .py = 0.27031, .pz = -0.0771595,
+  eePose spoonPose = {.px = 0.624147, .py = 0.811554, .pz = -0.0696885,
                       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
   ms->pushWord(std::make_shared<EePoseWord>(spoonPose));
   ms->pushWord("redSpoon");
