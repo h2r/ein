@@ -6380,7 +6380,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
     eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
-    double sqdistance = eePose::squareDistance(ms->config.currentEEPose, newGlobalTarget);
+    //double sqdistance = eePose::squareDistance(ms->config.currentEEPose, newGlobalTarget);
 
     ms->config.currentEEPose.px = newx;
     ms->config.currentEEPose.py = newy;

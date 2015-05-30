@@ -68,19 +68,17 @@ REGISTER_WORD(MoveObjectToPose)
 WORD(MoveTargetObjectToPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   shared_ptr<Word> word = ms->popWord();
-  cout << "Word: " << word << " null? " << (word == NULL) << endl;
-  cout <<" word: " << word->to_string() << endl;
   std::shared_ptr<EePoseWord> destWord = std::dynamic_pointer_cast<EePoseWord>(word);
   if (destWord == NULL) {
     cout << "Must pass a pose as an argument to " << this->name() << endl;
+    cout <<" Instead got word: " << word->name() << " repr: " << word->repr() << endl;
     return;
-  }
-  ms->config.placeTarget = destWord->value();
+  } else {
+    ms->config.placeTarget = destWord->value();
   
-  ms->pushWord("deliverTargetObject");
-  ms->pushWord("setPlaceModeToRegister");
-
-  //cout << "Actually do the move of " << ms->config.focusedClassLabel << " to " << dest << endl;
+    ms->pushWord("deliverTargetObject");
+    ms->pushWord("setPlaceModeToRegister");
+  }
 }
 END_WORD
 REGISTER_WORD(MoveTargetObjectToPose)
@@ -91,8 +89,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string className = word->to_string();
   int class_idx = classIdxForName(ms, className);
   if (class_idx != -1) {
-    changeTargetClass(ms, class_idx);
     ms->pushWord("deliverTargetObject");
+    changeTargetClass(ms, class_idx);
   } else {
     cout << "No class for " << className << " for " << this->name() << endl;
   }
@@ -127,6 +125,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
+  cout << "Aimed pose: " << memory.aimedPose << endl;
   //ms->config.currentEEPose = memory.cameraPose;
   ms->config.currentEEPose = memory.aimedPose;
   ms->config.lastPickPose = memory.pickedPose;
