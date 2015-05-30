@@ -6380,6 +6380,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
     eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
+    double sqdistance = eePose::squareDistance(ms->config.currentEEPose, newGlobalTarget);
+
     ms->config.currentEEPose.px = newx;
     ms->config.currentEEPose.py = newy;
     
@@ -10819,6 +10821,11 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut) {
   stateOut->patrol_mode = ms->config.currentPatrolMode;
   stateOut->place_mode = ms->config.currentPlaceMode;
   stateOut->idle_mode = ms->config.currentIdleMode;
+  for (int i = 0; i < ms->call_stack.size(); i ++) {
+    shared_ptr<Word> w = ms->call_stack[i];
+    stateOut->stack.push_back(w->repr());
+  }
+
 
   object_recognition_msgs::RecognizedObjectArray roa;
   fillRecognizedObjectArrayFromBlueBoxMemory(ms, &roa);

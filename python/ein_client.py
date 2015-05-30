@@ -5,6 +5,8 @@ import roslib
 #roslib.load_manifest("baxter_pick_and_place")
 import readline
 
+from ein.msg import EinState
+
 readline.parse_and_bind('tab: complete')
 readline.parse_and_bind('set editing-mode emacs')
 
@@ -37,19 +39,36 @@ class SimpleCompleter(object):
 
 
 class EinClient:
-    def __init__(self, words, topic):
-        print "topic: ", topic
+    def __init__(self, words, publish_topic, state_topic):
+        print "publish topic: ", publish_topic
+        print "state topic: ", state_topic
 
-        self.forth_command_publisher = rospy.Publisher(topic, 
+        self.forth_command_publisher = rospy.Publisher(publish_topic, 
                                                        std_msgs.msg.String, queue_size=10)
+
+        self.state_subscriber = rospy.Subscriber(state_topic, 
+                                                 EinState, self.state_callback)
+        self.state = None
+        self.stack = []
         
         readline.set_completer(SimpleCompleter(words).complete)
         save_history_hook()
+
+    def state_callback(self, msg):
+        self.state = msg
+        self.stack = self.state.stack
+
+    def printStack(self):
+        print "Call Stack: "
+        for word in reversed(self.stack):
+            print " ".rjust(15), word
 
 
     def ask(self):
 
         while True:
+            rospy.sleep(0.2)
+            self.printStack()
             line = raw_input('Prompt ("stop" to quit): ')
             if line == 'stop':
                 break
@@ -82,7 +101,10 @@ def main():
     print words
 
 
-    client = EinClient(words, "/ein/%s/forth_commands" % arm)
+    client = EinClient(words, 
+                       "/ein/%s/forth_commands" % arm,
+                       "/ein_%s/state" % arm,
+                       )
 
     client.ask()
 
