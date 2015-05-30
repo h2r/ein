@@ -1921,7 +1921,7 @@ WORD(RecordGraspZ)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // uses ms->config.currentEEPose instead of ms->config.trueEEPose so that we can set it below the table
   double flushZ = -(ms->config.currentTableZ) + ms->config.pickFlushFactor;
-  ms->config.currentGraspZ = ms->config.currentEEPose.pz - flushZ;
+  ms->config.currentGraspZ = -(ms->config.currentEEPose.pz - (-ms->config.currentTableZ));
   cout << "recordGraspZ flushZ currentGraspZ: " << flushZ << " " << ms->config.currentGraspZ << " " << endl;
 }
 END_WORD
@@ -2175,8 +2175,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth * ms->config.rmWidth * 0] = 1;
   ms->config.graspMemoryPicks[rx + ry*ms->config.rmWidth + ms->config.rmWidth * ms->config.rmWidth * 0] = 1;
 
-  ms->config.rangeMap[rx + ry*ms->config.rmWidth + ms->config.rmWidth * ms->config.rmWidth * 0] = ms->config.currentGraspZ;
-  ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth + ms->config.rmWidth * ms->config.rmWidth * 0] = ms->config.currentGraspZ;
+  ms->config.rangeMap[rx + ry*ms->config.rmWidth] = ms->config.currentGraspZ;
+  ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth] = ms->config.currentGraspZ;
 }
 END_WORD
 REGISTER_WORD(PreAnnotateOffsetGrasp)

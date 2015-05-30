@@ -132,15 +132,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.lastPrePickPose = memory.aimedPose;
   ms->config.trZ = memory.trZ;
 
-  cout << "deliverObject, " << ms->config.classGraspZsSet.size() << " " << ms->config.classGraspZs.size() << endl;
-  if ( (ms->config.classGraspZsSet.size() > ms->config.targetClass) && 
-       (ms->config.classGraspZs.size() > ms->config.targetClass) ) {
-    if (ms->config.classGraspZsSet[ms->config.targetClass] == 1) {
-      ms->config.trZ = ms->config.classGraspZs[ms->config.targetClass];
-      cout << "delivering class " << ms->config.classLabels[ms->config.targetClass] << " with classGraspZ " << ms->config.trZ << endl;
-    }
-  }
-
   { // set the old box's lastMappedTime to moments after the start of time
     int iStart=-1, iEnd=-1, jStart=-1, jEnd=-1;
     int iTop=-1, iBot=-1, jTop=-1, jBot=-1;
