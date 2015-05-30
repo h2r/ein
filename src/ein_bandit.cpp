@@ -436,6 +436,18 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(SetHeightMemoriesFromClassHeightMemories)
 
+
+WORD(MoveToMappingHeight)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.mappingHeightIdx);
+  ms->config.currentThompsonHeightIdx = ms->config.mappingHeightIdx;
+  ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
+  ms->config.currentEEPose.copyQ(ms->config.straightDown);
+}
+END_WORD
+REGISTER_WORD(MoveToMappingHeight)
+
+
 WORD(SampleHeight)
 CODE(1245247)   // capslock + numlock + ?
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -443,11 +455,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (ms->config.currentBoundingBoxMode != STATIC_PRIOR) {
     if (ms->config.currentBoundingBoxMode == MAPPING) {
       cout << "SampleHeight going to mappingHeightIdx: " << ms->config.mappingHeightIdx << endl;
-      ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.mappingHeightIdx);
-      ms->config.currentThompsonHeightIdx = ms->config.mappingHeightIdx;
-      ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
-      ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
-      ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+      ms->pushWord("moveToMappingHeight");
       return;
     } else if (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) {
       loadSampledHeightMemory(ms);
