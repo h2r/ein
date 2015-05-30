@@ -973,11 +973,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("stereoPairCache2");
   ms->pushWord("stereoPrep");
   // move a tad
-  ms->pushWord("localYDown");
-  ms->pushWord("setMovementSpeedMoveFast");
+  ms->pushWord("localYUp");
   // cache an accumulated image
   ms->pushWord("stereoPairCache1");
   ms->pushWord("stereoPrep");
+  ms->pushWord("setMovementSpeedMoveFast");
 }
 END_WORD
 REGISTER_WORD(StereoPair)
@@ -997,6 +997,18 @@ REGISTER_WORD(StereoPrep)
 WORD(StereoPairCache1)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.stereoImage1 = ms->config.accumulatedImage.clone();
+  Size sz = ms->config.stereoImage1.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      double denom = ms->config.accumulatedImageMass.at<double>(y,x);
+      assert(denom > 0);
+      ms->config.stereoImage1.at<Vec3d>(y,x)[0] = ms->config.stereoImage1.at<Vec3d>(y,x)[0] / denom;
+      ms->config.stereoImage1.at<Vec3d>(y,x)[1] = ms->config.stereoImage1.at<Vec3d>(y,x)[1] / denom;
+      ms->config.stereoImage1.at<Vec3d>(y,x)[2] = ms->config.stereoImage1.at<Vec3d>(y,x)[2] / denom;
+    }
+  }
 }
 END_WORD
 REGISTER_WORD(StereoPairCache1)
@@ -1004,6 +1016,18 @@ REGISTER_WORD(StereoPairCache1)
 WORD(StereoPairCache2)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.stereoImage2 = ms->config.accumulatedImage.clone();
+  Size sz = ms->config.stereoImage2.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      double denom = ms->config.accumulatedImageMass.at<double>(y,x);
+      assert(denom > 0);
+      ms->config.stereoImage2.at<Vec3d>(y,x)[0] = ms->config.stereoImage2.at<Vec3d>(y,x)[0] / denom;
+      ms->config.stereoImage2.at<Vec3d>(y,x)[1] = ms->config.stereoImage2.at<Vec3d>(y,x)[1] / denom;
+      ms->config.stereoImage2.at<Vec3d>(y,x)[2] = ms->config.stereoImage2.at<Vec3d>(y,x)[2] / denom;
+    }
+  }
 }
 END_WORD
 REGISTER_WORD(StereoPairCache2)
@@ -1029,7 +1053,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.stereoDepth = double(VERYBIGNUMBER);
 
   // patchWidth must be odd
-  int param_patchWidth = 7;
+  int param_patchWidth = 21;
   assert((param_patchWidth % 2) == 1);
   int param_patchHalfWidth = (param_patchWidth-1)/2;
   int disparityMax = ms->config.stereoMaxDisparity;
@@ -1048,9 +1072,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  shiftedDifference.at<double>(y,x) = VERYBIGNUMBER;
 	} else {
 	  shiftedDifference.at<double>(y,x) = 
-	    pow(sIm1.at<Vec3b>(y,x)[0] - sIm2.at<Vec3b>(y,x-d)[0], 2.0) +  
-	    pow(sIm1.at<Vec3b>(y,x)[1] - sIm2.at<Vec3b>(y,x-d)[1], 2.0) +  
-	    pow(sIm1.at<Vec3b>(y,x)[2] - sIm2.at<Vec3b>(y,x-d)[2], 2.0); 
+	    pow(sIm1.at<Vec3d>(y,x)[0] - sIm2.at<Vec3d>(y,x-d)[0], 2.0) +  
+	    pow(sIm1.at<Vec3d>(y,x)[1] - sIm2.at<Vec3d>(y,x-d)[1], 2.0) +  
+	    pow(sIm1.at<Vec3d>(y,x)[2] - sIm2.at<Vec3d>(y,x-d)[2], 2.0); 
 	}
       }
     }
@@ -1108,10 +1132,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double disparityMax = ms->config.stereoMaxDisparity;
       double thisDisparity = ms->config.stereoDisparity.at<double>(y,x);
       double thisDepth = ms->config.stereoDepth.at<double>(y,x);
-      ms->config.stereoViewerImage.at<cv::Vec3b>(y,x) = sIm1.at<cv::Vec3b>(y,x);
-      ms->config.stereoViewerImage.at<cv::Vec3b>(y,x+imW) = sIm2.at<cv::Vec3b>(y,x);
-      ms->config.stereoViewerImage.at<cv::Vec3b>(y+imH,x) = Vec3b(255*(thisDisparity/disparityMax),0,0);
-      ms->config.stereoViewerImage.at<cv::Vec3b>(y+imH,x+imW) = Vec3b(0,0,255*(thisDepth/1.0));
+      ms->config.stereoViewerImage.at<cv::Vec3b>(y,x) = sIm1.at<cv::Vec3d>(y,x);
+      ms->config.stereoViewerImage.at<cv::Vec3b>(y,x+imW) = sIm2.at<cv::Vec3d>(y,x);
+      ms->config.stereoViewerImage.at<cv::Vec3b>(y+imH,x) = Vec3d(255*(thisDisparity/disparityMax),0,0);
+      ms->config.stereoViewerImage.at<cv::Vec3b>(y+imH,x+imW) = Vec3d(0,0,255*(thisDepth/1.0));
     }
   }
 
