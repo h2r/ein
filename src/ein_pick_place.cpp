@@ -262,6 +262,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetPlaceModeToRegister)
 
+WORD(ReturnObject)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  cout << "Returning object." << endl;
+  ms->pushWord("goToPrePickPose");
+  ms->pushWord("waitUntilGripperNotMoving");
+  ms->pushWord("openGripper");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("goToLastPickPose");
+  ms->pushWord("approachSpeed");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("goToPrePickPose");
+
+}
+END_WORD
+REGISTER_WORD(ReturnObject)
 
 
 }
