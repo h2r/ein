@@ -27,7 +27,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("redBowl");
   ms->pushWord("moveObjectToPose");
 
-  eePose knifePose = {.px = 0.801712, .py = 0.225337, .pz = -0.0840434,
+  eePose knifePose = {.px = 0.645808, .py = 0.75673, .pz = -0.0605177,
                       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
   ms->pushWord(std::make_shared<EePoseWord>(knifePose));
   ms->pushWord("redKnife");
