@@ -2133,7 +2133,7 @@ WORD(PreAnnotateOffsetGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   zeroGraspMemoryAndRangeMap(ms);
   eePose offsetPose = ms->config.eepReg1;
-  eePose difference = ms->config.currentEEPose.minusP(offsetPose);
+  eePose difference = offsetPose.minusP(ms->config.currentEEPose);
   double offsetX = difference.px / ms->config.rmDelta;
   double offsetY = difference.py / ms->config.rmDelta;
   int rx = (int) round(ms->config.rmHalfWidth + offsetX);

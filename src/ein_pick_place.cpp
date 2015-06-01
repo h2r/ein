@@ -13,8 +13,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("redPlate");
   ms->pushWord("moveObjectToPose");
 
-
-
   eePose mugPose = {.px = 0.428236, .py = 0.688348, .pz = -0.026571,
                       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
   ms->pushWord(std::make_shared<EePoseWord>(mugPose));
