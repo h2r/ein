@@ -23,6 +23,20 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ClearStackAcceptFetchCommands)
 
+WORD(MapLocal)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
+  ms->pushWord("filterBoxMemories");
+  ms->pushWord("shiftIntoGraspGear1");
+  ms->pushWord("lockTargetIfBlueBoxes");
+  ms->pushWord("gradientServoIfBlueBoxes");
+  ms->pushWord("mapClosestBlueBox");
+  ms->pushWord("goClassifyBlueBoxes"); 
+  ms->pushWord("visionCycle"); 
+}
+END_WORD
+REGISTER_WORD(MapLocal)
+
 WORD(MappingPatrol)
 CODE(196727) // capslock + W
 virtual void execute(std::shared_ptr<MachineState> ms) {
