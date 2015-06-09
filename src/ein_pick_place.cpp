@@ -7,42 +7,42 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("assumeCrane1"); 
 
-  eePose platePose = {.px = 0.602935, .py = 0.599482, .pz = -0.0395161,
-                      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
-  ms->pushWord(std::make_shared<EePoseWord>(platePose));
-  ms->pushWord("redPlate");
-  ms->pushWord("moveObjectToPose");
+  //eePose platePose = {.px = 0.602935, .py = 0.599482, .pz = -0.0395161,
+                      //.qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  //ms->pushWord(std::make_shared<EePoseWord>(platePose));
+  //ms->pushWord("redPlate");
+  //ms->pushWord("moveObjectToPose");
 
   eePose mugPose = {.px = 0.428236, .py = 0.688348, .pz = -0.026571,
                       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
   ms->pushWord(std::make_shared<EePoseWord>(mugPose));
-  ms->pushWord("redMug");
+  ms->pushWord("redMugLow");
   ms->pushWord("moveObjectToPose");
 
   eePose bowlPose = {.px = 0.429551, .py = 0.355954, .pz = -0.02713,
                      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
   ms->pushWord(std::make_shared<EePoseWord>(bowlPose));
-  ms->pushWord("redBowl");
+  ms->pushWord("redBowlLow");
   ms->pushWord("moveObjectToPose");
 
   eePose knifePose = {.px = 0.645808, .py = 0.75673, .pz = -0.0605177,
                       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
   ms->pushWord(std::make_shared<EePoseWord>(knifePose));
-  ms->pushWord("redKnife");
+  ms->pushWord("redKnifeLow");
   ms->pushWord("moveObjectToPose");
 
 
   eePose forkPose =  {.px = 0.632388, .py = 0.417448, .pz = -0.0487945,
                       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
   ms->pushWord(std::make_shared<EePoseWord>(forkPose));
-  ms->pushWord("redFork");
+  ms->pushWord("redForkLow");
   ms->pushWord("moveObjectToPose");
 
 
   eePose spoonPose = {.px = 0.624147, .py = 0.811554, .pz = -0.0696885,
                       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
   ms->pushWord(std::make_shared<EePoseWord>(spoonPose));
-  ms->pushWord("redSpoon");
+  ms->pushWord("redSpoonLow");
   ms->pushWord("moveObjectToPose");
 }
 END_WORD

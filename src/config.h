@@ -728,6 +728,7 @@ class EinConfig {
   double m_y_h[4];
 
   int mappingServoTimeout = 5;
+  //const int mappingHeightIdx = 0;
   const int mappingHeightIdx = 1;
 
 
@@ -992,7 +993,7 @@ class EinConfig {
   ros::Time lastScanStarted;
   int mapFreeSpacePixelSkirt = 25;
   int mapBlueBoxPixelSkirt = 50;
-  double mapBlueBoxCooldown = 10; // cooldown is a temporal skirt
+  double mapBlueBoxCooldown = 1; // cooldown is a temporal skirt
   int mapGrayBoxPixelSkirt = 50;
   int ikMap[mapWidth * mapHeight];
   int clearanceMap[mapWidth * mapHeight];
@@ -1097,6 +1098,8 @@ class EinConfig {
   Mat stereoImage2;
   Mat stereoDisparity;
   Mat stereoDepth;
+
+  eePose photoPinPose;
 }; // config end
 
 class Word;

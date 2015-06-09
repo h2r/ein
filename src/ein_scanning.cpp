@@ -239,6 +239,24 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 END_WORD
 REGISTER_WORD(RgbScan)
 
+WORD(SetPhotoPinHere)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.photoPinPose = pixelToGlobalEEPose(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+}
+END_WORD
+REGISTER_WORD(SetPhotoPinHere)
+
+WORD(PutCameraOverPhotoPin)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // XXX TODO avoid two steps by using alternate pixelToGlobal and not waiting between
+  eePose underVanishingPointReticle = pixelToGlobalEEPose(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  eePose toMove = ms->config.photoPinPose.minusP(underVanishingPointReticle);
+  eePose nextCurrentPose = ms->config.currentEEPose.plusP(toMove);
+  ms->config.currentEEPose.px = nextCurrentPose.px;
+  ms->config.currentEEPose.py = nextCurrentPose.py;
+}
+END_WORD
+REGISTER_WORD(PutCameraOverPhotoPin)
 
 WORD(PhotoSpin)
 CODE(196711)      // capslock + G
@@ -247,6 +265,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     //ms->pushWord(131148); // save crop as focused class if there is only one
     ms->pushWord("recordAllExamplesFocusedClass");
     ms->pushWord(196721); // vision cycle no classify
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord("putCameraOverPhotoPin"); 
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     ms->pushWord(1310722); // set random orientation for photospin.
     ms->pushWord(196712); // increment grasp gear
@@ -343,7 +363,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("shiftIntoGraspGear1"); // change to first gear
   }
 
-  if (1) {
+  if (0) {
     ms->pushWord("saveLearnedModels");
     ms->pushWord("loadPriorGraspMemoryAnalytic");
     // set target class to the lastLabelLearned 
@@ -354,14 +374,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // set lastLabelLearned
   ms->pushWord("setLastLabelLearned");
 
-  if (0) {
-    ms->pushWord("rgbScan"); // 72 way scan
-    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    ms->pushWord("rgbScan"); // 72 way scan
-    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  }
-
-  ms->pushWord("scanCentered"); // 72 way scan
+  ms->pushWord("scanCentered"); 
+  ms->pushWord("setPhotoPinHere");
 
   // this is a good time to remove a contrast agent
   //ms->pushWord("pauseStackExecution"); // pause stack execution
@@ -407,8 +421,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // start NO bag routine
   ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
 
+  ms->pushWord("setPhotoPinHere");
   ms->pushWord("synchronicServo"); // synchronic servo
   ms->pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
+  ms->pushWord("sampleHeight"); 
 
   ms->pushWord("pauseStackExecution"); // pause stack execution
   ms->pushCopies("beep", 15); // beep
@@ -856,6 +872,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("rgbScan");
   ms->pushWord("rgbScan");
   ms->pushWord("rgbScan");
+  ms->pushWord("rgbScan");
+  ms->pushWord("rgbScan");
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   ms->pushWord("synchronicServo"); 
   ms->pushWord("synchronicServoTakeClosest");
@@ -1093,6 +1111,34 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(MoveCropToProperValue)
+
+WORD(FixCameraLighting)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  baxter_core_msgs::OpenCamera ocMessage;
+  ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
+  ocMessage.request.settings.controls.resize(2);
+  ocMessage.request.settings.controls[0].id = 105;
+  ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[1].id = 106;
+  ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
+  int testResult = ms->config.cameraClient.call(ocMessage);
+}
+END_WORD
+REGISTER_WORD(FixCameraLighting)
+
+WORD(UnFixCameraLighting)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  baxter_core_msgs::OpenCamera ocMessage;
+  ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
+  ocMessage.request.settings.controls.resize(2);
+  ocMessage.request.settings.controls[0].id = 105;
+  ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[1].id = 106;
+  ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
+  int testResult = ms->config.cameraClient.call(ocMessage);
+}
+END_WORD
+REGISTER_WORD(UnFixCameraLighting)
 
 WORD(MoveCropToCenterVanishingPoint)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1808,8 +1854,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("setMovementSpeedMoveFast");
   ms->config.currentBoundingBoxMode = MAPPING; // this is here because it is for the rgbScan
-  ms->pushWord("rgbScan");
-  ms->pushWord("rgbScan");
+  //ms->pushWord("rgbScan");
+  //ms->pushWord("rgbScan");
+  ms->pushWord("scanCentered");
   ms->pushWord("fullImpulse");
   ms->pushWord("setMovementSpeedMoveVerySlow");
 
@@ -1859,10 +1906,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
   ms->pushWord("preAnnotateOffsetGrasp"); 
+  ms->pushWord("setPhotoPinHere");
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("synchronicServo");
   ms->pushWord("synchronicServoTakeClosest");
+  ms->pushWord("sampleHeight"); 
 
   ms->pushWord("fullImpulse");
 
@@ -1984,7 +2033,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   thisRelative3dGrasp.copyQ(txQ);
 
   int tnc = ms->config.class3dGrasps.size();
-  if ( (ms->config.targetClass > 0) && (ms->config.targetClass < tnc) ) {
+  if ( (ms->config.targetClass >= 0) && (ms->config.targetClass < tnc) ) {
     ms->config.class3dGrasps[ms->config.targetClass].push_back(thisRelative3dGrasp);
   }
 }
