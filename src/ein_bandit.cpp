@@ -442,7 +442,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.mappingHeightIdx);
   ms->config.currentThompsonHeightIdx = ms->config.mappingHeightIdx;
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
-  //ms->config.currentEEPose.copyQ(ms->config.straightDown);
 }
 END_WORD
 REGISTER_WORD(MoveToMappingHeight)

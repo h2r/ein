@@ -212,6 +212,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 
   pushSpeedSign(ms, NOW_THATS_FAST);
+  ms->pushWord("fullImpulse");
 
 }
 END_WORD
@@ -727,7 +728,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     ms->pushWord("moveToRegister2"); // assume pose at register 2
   }
 
-  ms->pushWord("quarterImpulse"); 
+  ms->pushWord("fullImpulse"); 
   ms->pushNoOps(10);
 
   ms->pushWord("moveToTargetZAndGrasp"); 
@@ -1287,6 +1288,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("setMovementStateToMoving");
     ms->pushWord("comeToStop");
   }
+  
 
   ms->pushWord("waitUntilAtCurrentPosition"); 
 }
