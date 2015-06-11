@@ -3639,6 +3639,10 @@ void pilotInit(shared_ptr<MachineState> ms) {
 
   if (0 == ms->config.left_or_right_arm.compare("left")) {
     cout << "Possessing left arm..." << endl;
+
+    ms->config.backScanningPose = {.px = -0.304942, .py = 0.703968, .pz = 0.186738,
+                              .qx = 0.000508805, .qy = 1, .qz = 0.00056289, .qw = 0.000264451};
+
     ms->config.beeHome = {.px = 0.334217, .py = 0.75386, .pz = 0.0362593,
                           .qx = -0.00125253, .qy = 0.999999, .qz = -0.000146851, .qw = 0.000236656};
     
@@ -3774,6 +3778,9 @@ void pilotInit(shared_ptr<MachineState> ms) {
                  .qx = -0.370521, .qy = 0.381345, .qz = 0.578528, .qw = 0.618544};
   } else if (0 == ms->config.left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
+
+    ms->config.backScanningPose = {.px = -0.373806, .py = -0.640234, .pz = 0.219235,
+                      .qx = 0.00114192, .qy = 0.999999, .qz = -0.000387173, .qw = 0.000386456};
 
     ms->config.beeHome = {.px = 0.525866, .py = -0.710611, .pz = 0.0695764,
                           .qx = -0.00122177, .qy = 0.999998, .qz = 0.00116169, .qw = -0.001101};

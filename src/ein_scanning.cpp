@@ -1921,8 +1921,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setMovementSpeedMoveFast");
   ms->pushWord("recordGraspZ");
 
+  ms->pushWord("hundredthImpulse");
   ms->pushWord("pauseStackExecution"); // pause stack execution
-  ms->pushWord("quarterImpulse");
   ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
 
   ms->pushWord("waitUntilAtCurrentPosition");

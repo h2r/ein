@@ -344,6 +344,7 @@ class EinConfig {
   eePose eepReg6;
 
   eePose beeHome;
+  eePose backScanningPose;
   eePose pilotTarget;
   eePose pilotClosestTarget;
   eePose lastGoodEEPose;
