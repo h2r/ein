@@ -1921,6 +1921,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("recordGraspZ");
 
   ms->pushWord("hundredthImpulse");
+  ms->pushWord("setMovementStateToMoving");
   ms->pushWord("pauseStackExecution"); // pause stack execution
   ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
 
@@ -2177,6 +2178,10 @@ REGISTER_WORD(PreAnnotateCenterGrasp)
 
 WORD(CollectMoreCrops)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "About to collect more crops, make sure targetClass is set, i.e. you should have" << endl <<
+    " \"<target class name>\" setTargetClass " << endl <<
+    " in the repl before running this. " << endl;
+    
   ms->pushWord("scanCentered"); 
   ms->pushWord("setPhotoPinHere");
   ms->pushWord("comeToStop");
@@ -2185,6 +2190,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("synchronicServoTakeClosest");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("moveToMappingHeight");
+  ms->pushWord("pauseStackExecution"); 
 }
 END_WORD
 REGISTER_WORD(CollectMoreCrops)
