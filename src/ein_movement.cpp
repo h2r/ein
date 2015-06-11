@@ -8,10 +8,8 @@ namespace ein_words {
 
 WORD(AssumeBackScanningPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentEEPose = {.px = -0.304942, .py = 0.703968, .pz = 0.186738,
-                              .qx = 0.000508805, .qy = 1, .qz = 0.00056289, .qw = 0.000264451};
+  ms->config.currentEEPose = ms->config.backScanningPose;
   ms->pushWord("waitUntilAtCurrentPosition");
- 
 }
 END_WORD
 REGISTER_WORD(AssumeBackScanningPose)
