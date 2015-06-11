@@ -421,7 +421,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // start NO bag routine
   ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
 
-  ms->pushWord("setPhotoPinHere");
   ms->pushWord("synchronicServo"); // synchronic servo
   ms->pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
   ms->pushWord("sampleHeight"); 
@@ -2176,7 +2175,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(PreAnnotateCenterGrasp)
 
-
+WORD(CollectMoreCrops)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord("scanCentered"); 
+  ms->pushWord("setPhotoPinHere");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("synchronicServo");
+  ms->pushWord("synchronicServoTakeClosest");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("moveToMappingHeight");
+}
+END_WORD
+REGISTER_WORD(CollectMoreCrops)
 
 WORD(PreAnnotateOffsetGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
