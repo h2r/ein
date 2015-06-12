@@ -1837,10 +1837,10 @@ REGISTER_WORD(SetColorReticlesA)
 WORD(ScanObjectFast)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
-  int retractCm = 10;
+  int retractCm = 20;
   
   cout << "BEGINNING SCANOBJECTFAST" << endl;
-  cout << "Program will pause shortly. Please adjust height and object so that arm would grip if closed and so that the gripper will clear the object during a scan once raised 5cm." << endl;
+  cout << "Program will pause shortly. Please adjust height and object so that arm would grip if closed and so that the gripper will clear the object once raised 5cm." << endl;
 
   ms->config.eepReg2 = ms->config.beeHome;
   ms->config.eepReg4 = ms->config.beeHome;
@@ -1871,7 +1871,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushCopies("zDown", retractCm); 
   ms->pushWord("comeToHover");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("moveToRegister1");
@@ -1916,12 +1915,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("saveRegister1");
   ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushCopies("zUp", 2*retractCm); 
+
+  // dislodge. necessary because the robot takes a while to "spin up" at slow speeds, which interferes
+  //  with the state machine.
+  ms->pushCopies("dislodgeEndEffectorFromTable", retractCm);
+  ms->pushWord("setCurrentPoseToTruePose");
   ms->pushWord("setMovementSpeedMoveFast");
+
   ms->pushWord("recordGraspZ");
 
   ms->pushWord("hundredthImpulse");
-  ms->pushWord("setMovementStateToMoving");
   ms->pushWord("pauseStackExecution"); // pause stack execution
   ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
 

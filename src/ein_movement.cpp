@@ -1330,4 +1330,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetIdleModeToPatrol)
 
+WORD(SetCurrentPoseToTruePose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Setting current position to true position." << endl;
+  ms->config.endThisStackCollapse = 1;
+  ms->config.currentEEPose = ms->config.trueEEPoseEEPose;
+}
+END_WORD
+REGISTER_WORD(SetCurrentPoseToTruePose)
+
+WORD(DislodgeEndEffectorFromTable)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Dislodging end effector from table 1cm..." << endl;
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("zUp"); 
+}
+END_WORD
+REGISTER_WORD(DislodgeEndEffectorFromTable)
+
 }
