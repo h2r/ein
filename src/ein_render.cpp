@@ -152,29 +152,30 @@ REGISTER_WORD(DrawMapRegisters)
 WORD(GuiShowAll)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  destroyAllWindows();
   ms->config.rangeogramWindow->setVisible(true);
 
-  ms->config.sirRangemap = 1;
-  ms->config.sirGraspMemory = 1;
-  ms->config.sirGraspMemorySample = 1;
-  ms->config.sirHeightMemorySample = 1;
-  ms->config.sirHiRangemap = 1;
-  ms->config.sirHiColorRangemap = 1;
-  ms->config.sirObject = 1;
-  ms->config.sirObjectMap = 1;
-  ms->config.sirDensity = 1;
-  ms->config.sirGradient = 1;
-  ms->config.sirObjectness = 1;
-  ms->config.sirMapBackground = 1;
-  ms->config.sirAerialGradient = 1;
-  ms->config.sirWrist = 1;
-  ms->config.sirCore = 1;
-  cv::namedWindow(ms->config.objectViewerName);
-  cv::namedWindow(ms->config.graspMemoryViewName);
-  cv::namedWindow(ms->config.wristViewName);
-  cv::setMouseCallback(ms->config.wristViewName, pilotCallbackFunc, NULL);
-  cv::setMouseCallback(ms->config.graspMemoryViewName, graspMemoryCallbackFunc, NULL);
+  ms->config.rangemapWindow->setVisible(true);
+
+  ms->config.graspMemoryWindow->setVisible(true);
+
+  ms->config.graspMemorySampleWindow->setVisible(true);
+  ms->config.heightMemorySampleWindow->setVisible(true);
+
+  ms->config.hiRangemapWindow->setVisible(true);
+  ms->config.hiColorRangemapWindow->setVisible(true);
+
+  ms->config.objectViewerWindow->setVisible(true);
+
+  ms->config.objectMapViewerWindow->setVisible(true);
+
+  ms->config.densityViewerWindow->setVisible(true);
+  ms->config.gradientViewerWindow->setVisible(true);
+
+  ms->config.mapBackgroundViewWindow->setVisible(true);
+  ms->config.aerialGradientViewerWindow->setVisible(true);
+
+  ms->config.wristViewWindow->setVisible(true);
+  ms->config.coreViewWindow->setVisible(true);
 }
 END_WORD
 REGISTER_WORD(GuiShowAll)
@@ -182,24 +183,33 @@ REGISTER_WORD(GuiShowAll)
 WORD(GuiHideAll)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  destroyAllWindows();
+
   ms->config.rangeogramWindow->setVisible(false);
 
-  ms->config.sirRangemap = 0;
-  ms->config.sirGraspMemory = 0;
-  ms->config.sirGraspMemorySample = 0;
-  ms->config.sirHeightMemorySample = 0;
-  ms->config.sirHiRangemap = 0;
-  ms->config.sirHiColorRangemap = 0;
-  ms->config.sirObject = 0;
-  ms->config.sirObjectMap = 0;
-  ms->config.sirDensity = 0;
-  ms->config.sirGradient = 0;
-  ms->config.sirObjectness = 0;
-  ms->config.sirMapBackground = 0;
-  ms->config.sirAerialGradient = 0;
-  ms->config.sirWrist = 0;
-  ms->config.sirCore = 0;
+  ms->config.rangeogramWindow->setVisible(false);
+
+  ms->config.rangemapWindow->setVisible(false);
+
+  ms->config.graspMemoryWindow->setVisible(false);
+
+  ms->config.graspMemorySampleWindow->setVisible(false);
+  ms->config.heightMemorySampleWindow->setVisible(false);
+
+  ms->config.hiRangemapWindow->setVisible(false);
+  ms->config.hiColorRangemapWindow->setVisible(false);
+
+  ms->config.objectViewerWindow->setVisible(false);
+
+  ms->config.objectMapViewerWindow->setVisible(false);
+
+  ms->config.densityViewerWindow->setVisible(false);
+  ms->config.gradientViewerWindow->setVisible(false);
+
+  ms->config.mapBackgroundViewWindow->setVisible(false);
+  ms->config.aerialGradientViewerWindow->setVisible(false);
+
+  ms->config.wristViewWindow->setVisible(false);
+  ms->config.coreViewWindow->setVisible(false);
 }
 END_WORD
 REGISTER_WORD(GuiHideAll)
@@ -213,26 +223,21 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   destroyAllWindows();
   ms->config.rangeogramWindow->setVisible(false);
 
-  ms->config.sirRangemap = 0;
-  ms->config.sirGraspMemory = 0;
-  ms->config.sirGraspMemorySample = 0;
-  ms->config.sirHeightMemorySample = 0;
-  ms->config.sirHiRangemap = 0;
-  ms->config.sirHiColorRangemap = 0;
-  ms->config.sirObject = 1;
-  ms->config.sirObjectMap = 1;
-  ms->config.sirDensity = 0;
-  ms->config.sirGradient = 1;
-  ms->config.sirObjectness = 0;
-  ms->config.sirMapBackground = 0;
-  ms->config.sirAerialGradient = 0;
-  ms->config.sirWrist = 1;
-  ms->config.sirCore = 1;
 
-  //cv::namedWindow(ms->config.objectViewerName);
-  //cv::namedWindow(ms->config.graspMemoryViewName);
-  cv::namedWindow(ms->config.wristViewName);
-  cv::setMouseCallback(ms->config.wristViewName, pilotCallbackFunc, NULL);
+  ms->config.rangemapWindow->setVisible(false);
+  ms->config.graspMemoryWindow->setVisible(false);
+  ms->config.graspMemorySampleWindow->setVisible(false);
+  ms->config.heightMemorySampleWindow->setVisible(false);
+  ms->config.hiRangemapWindow->setVisible(false);
+  ms->config.hiColorRangemapWindow->setVisible(false);
+  ms->config.objectViewerWindow->setVisible(true);
+  ms->config.objectMapViewerWindow->setVisible(true);
+  ms->config.densityViewerWindow->setVisible(false);
+  ms->config.gradientViewerWindow->setVisible(true);
+  ms->config.mapBackgroundViewWindow->setVisible(false);
+  ms->config.aerialGradientViewerWindow->setVisible(false);
+  ms->config.wristViewWindow->setVisible(true);
+  ms->config.coreViewWindow->setVisible(true);
 }
 END_WORD
 REGISTER_WORD(GuiCustom1)

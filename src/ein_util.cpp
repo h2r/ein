@@ -42,11 +42,6 @@ void pushSpeedSign(shared_ptr<MachineState> ms, double speed) {
 }
 
 
-void guardedImshow(string name, Mat image, bool shouldIRender) {
-  if ( !isSketchyMat(image) && shouldIRender ) {
-    imshow(name, image);
-  }
-}
 
 bool isSketchyMat(Mat sketchy) {
   return ( (sketchy.rows <= 1) || (sketchy.rows <= 1) );

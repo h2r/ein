@@ -142,7 +142,8 @@ void initializeWords() {
 }
 
 
-void renderCoreView(shared_ptr<MachineState> ms, string name) {
+void renderCoreView(shared_ptr<MachineState> ms) {
+
   Mat coreImage(800, 800, CV_64F);
   coreImage = 0.0*coreImage;
 
@@ -228,6 +229,5 @@ void renderCoreView(shared_ptr<MachineState> ms, string name) {
 //    string fpslabel(buff);
 //    putText(coreImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
 //  }
- 
-  guardedImshow(name, coreImage, true);
+   ms->config.coreViewImage = coreImage;
 }
