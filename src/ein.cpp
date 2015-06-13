@@ -2377,11 +2377,9 @@ void timercallback1(const ros::TimerEvent&) {
 
   int c = -1;
   if (ms->config.shouldIMiscCallback) {
-    c = cvWaitKey(1);
     c = last_key;
     last_key = -1;
   } else if ((ms->config.heartBeatCounter % ms->config.heartBeatPeriod) == 0) {
-    c = cvWaitKey(1);
     c = last_key;
     last_key = -1;
     ms->config.heartBeatCounter = 0;
@@ -3381,16 +3379,16 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
   //}
   shared_ptr<MachineState> ms = pMachineState;
 
-  if ( event == EVENT_LBUTTONDOWN ) {
+  if ( event == EIN_EVENT_LBUTTONDOWN ) {
     cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
     ms->config.probeReticle.px = x;
     ms->config.probeReticle.py = y;
     cout << "x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << endl;
-  } else if ( event == EVENT_RBUTTONDOWN ) {
+  } else if ( event == EIN_EVENT_RBUTTONDOWN ) {
     //cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-  } else if  ( event == EVENT_MBUTTONDOWN ) {
+  } else if  ( event == EIN_EVENT_MBUTTONDOWN ) {
     //cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-  } else if ( event == EVENT_MOUSEMOVE ) {
+  } else if ( event == EIN_EVENT_MOUSEMOVE ) {
     //cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
   }
 }
@@ -3403,7 +3401,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     return;
   }
 
-  if ( event == EVENT_LBUTTONDOWN ) {
+  if ( event == EIN_EVENT_LBUTTONDOWN ) {
     int bigX = x / ms->config.rmiCellWidth;
     int bigY = y / ms->config.rmiCellWidth;
     if ((bigX >= ms->config.rmWidth) && (bigX < 2*ms->config.rmWidth) && (bigY < ms->config.rmWidth)) {
@@ -3428,7 +3426,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
-  } else if ( event == EVENT_RBUTTONDOWN ) {
+  } else if ( event == EIN_EVENT_RBUTTONDOWN ) {
     int bigX = x / ms->config.rmiCellWidth;
     int bigY = y / ms->config.rmiCellWidth;
     if ((bigX >= ms->config.rmWidth) && (bigX < 2*ms->config.rmWidth) && (bigY < ms->config.rmWidth)) {
@@ -3440,7 +3438,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
-  } else if  ( event == EVENT_MBUTTONDOWN ) {
+  } else if  ( event == EIN_EVENT_MBUTTONDOWN ) {
     int bigX = x / ms->config.rmiCellWidth;
     int bigY = y / ms->config.rmiCellWidth;
     if ((bigX >= ms->config.rmWidth) && (bigX < 2*ms->config.rmWidth) && (bigY < ms->config.rmWidth)) {
@@ -3458,7 +3456,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
-  } else if ( event == EVENT_MOUSEMOVE ) {
+  } else if ( event == EIN_EVENT_MOUSEMOVE ) {
     //cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
   }
 }
@@ -11259,14 +11257,10 @@ int main(int argc, char **argv) {
   saveROSParams(ms);
 
 
-
-
-
-
   int cudaCount = gpu::getCudaEnabledDeviceCount();
   cout << "cuda count: " << cudaCount << endl;;
 
-  cvWaitKey(1); // this might be good to init cv gui stuff
+  
   ms->config.lastImageCallbackReceived = ros::Time::now();
 
   {

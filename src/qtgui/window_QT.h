@@ -100,6 +100,44 @@ enum
     EIN_EVENT_MOUSEHWHEEL    =11
   };
 
+enum
+  {
+    EIN_EVENT_FLAG_LBUTTON   =1,
+    EIN_EVENT_FLAG_RBUTTON   =2,
+    EIN_EVENT_FLAG_MBUTTON   =4,
+    EIN_EVENT_FLAG_CTRLKEY   =8,
+    EIN_EVENT_FLAG_SHIFTKEY  =16,
+    EIN_EVENT_FLAG_ALTKEY    =32
+  };
+
+
+// ---------  YV ---------
+enum
+  {
+    //These 3 flags are used by cvSet/GetWindowProperty
+    EIN_WND_PROP_FULLSCREEN = 0, //to change/get window's fullscreen property
+    EIN_WND_PROP_AUTOSIZE   = 1, //to change/get window's autosize property
+    EIN_WND_PROP_ASPECTRATIO= 2, //to change/get window's aspectratio property
+    EIN_WND_PROP_OPENGL     = 3, //to change/get window's opengl support
+
+    //These 2 flags are used by cvNamedWindow and cvSet/GetWindowProperty
+    EIN_WINDOW_NORMAL       = 0x00000000, //the user can resize the window (no constraint)  / also use to switch a fullscreen window to a normal size
+    EIN_WINDOW_AUTOSIZE     = 0x00000001, //the user cannot resize the window, the size is constrainted by the image displayed
+    EIN_WINDOW_OPENGL       = 0x00001000, //window with opengl support
+
+    //Those flags are only for Qt
+    EIN_GUI_EXPANDED         = 0x00000000, //status bar and tool bar
+    EIN_GUI_NORMAL           = 0x00000010, //old fashious way
+
+    //These 3 flags are used by cvNamedWindow and cvSet/GetWindowProperty
+    EIN_WINDOW_FULLSCREEN   = 1,//change the window to fullscreen
+    EIN_WINDOW_FREERATIO    = 0x00000100,//the image expends as much as it can (no ratio constraint)
+    EIN_WINDOW_KEEPRATIO    = 0x00000000//the ration image is respected.
+  };
+
+
+
+
 
 static const int tableMouseButtons[][3]={
   {EIN_EVENT_LBUTTONUP, EIN_EVENT_RBUTTONUP, EIN_EVENT_MBUTTONUP},               //mouse_up

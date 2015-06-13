@@ -54,7 +54,6 @@ using namespace std;
 
 #include <opencv2/highgui/highgui_c.h>
 
-
 #ifdef HAVE_QT_OPENGL
     #ifdef Q_WS_X11
         #include <GL/glx.h>
@@ -329,7 +328,7 @@ void DefaultEinViewPort::resizeEvent(QResizeEvent* evnt)
     ratioX = width() / float(image2Draw_mat->cols);
     ratioY = height() / float(image2Draw_mat->rows);
 
-    if (param_keepRatio == CV_WINDOW_KEEPRATIO)//to keep the same aspect ratio
+    if (param_keepRatio == EIN_WINDOW_KEEPRATIO)//to keep the same aspect ratio
     {
         QSize newSize = QSize(image2Draw_mat->cols, image2Draw_mat->rows);
         newSize.scale(evnt->size(), Qt::KeepAspectRatio);
@@ -403,7 +402,7 @@ void DefaultEinViewPort::mouseDoubleClickEvent(QMouseEvent* evnt)
 
 void DefaultEinViewPort::mouseMoveEvent(QMouseEvent* evnt)
 {
-    int cv_event = CV_EVENT_MOUSEMOVE, flags = 0;
+    int cv_event = EIN_EVENT_MOUSEMOVE, flags = 0;
     QPoint pt = evnt->pos();
 
 
@@ -554,33 +553,33 @@ void DefaultEinViewPort::icvmouseHandler(QMouseEvent *evnt, type_mouse_event cat
 
   flags = 0;
   if(modifiers & Qt::ShiftModifier)
-    flags |= CV_EVENT_FLAG_SHIFTKEY;
+    flags |= EIN_EVENT_FLAG_SHIFTKEY;
   if(modifiers & Qt::ControlModifier)
-    flags |= CV_EVENT_FLAG_CTRLKEY;
+    flags |= EIN_EVENT_FLAG_CTRLKEY;
   if(modifiers & Qt::AltModifier)
-    flags |= CV_EVENT_FLAG_ALTKEY;
+    flags |= EIN_EVENT_FLAG_ALTKEY;
 
   if(buttons & Qt::LeftButton)
-    flags |= CV_EVENT_FLAG_LBUTTON;
+    flags |= EIN_EVENT_FLAG_LBUTTON;
   if(buttons & Qt::RightButton)
-    flags |= CV_EVENT_FLAG_RBUTTON;
+    flags |= EIN_EVENT_FLAG_RBUTTON;
   if(buttons & Qt::MidButton)
-    flags |= CV_EVENT_FLAG_MBUTTON;
+    flags |= EIN_EVENT_FLAG_MBUTTON;
 
-  cv_event = CV_EVENT_MOUSEMOVE;
+  cv_event = EIN_EVENT_MOUSEMOVE;
   switch(evnt->button())
     {
     case Qt::LeftButton:
       cv_event = tableMouseButtons[category][0];
-      flags |= CV_EVENT_FLAG_LBUTTON;
+      flags |= EIN_EVENT_FLAG_LBUTTON;
       break;
     case Qt::RightButton:
       cv_event = tableMouseButtons[category][1];
-      flags |= CV_EVENT_FLAG_RBUTTON;
+      flags |= EIN_EVENT_FLAG_RBUTTON;
       break;
     case Qt::MidButton:
       cv_event = tableMouseButtons[category][2];
-      flags |= CV_EVENT_FLAG_MBUTTON;
+      flags |= EIN_EVENT_FLAG_MBUTTON;
       break;
     default:;
     }
@@ -884,7 +883,7 @@ void OpenGlEinViewPort::mouseDoubleClickEvent(QMouseEvent* evnt)
 
 void OpenGlEinViewPort::mouseMoveEvent(QMouseEvent* evnt)
 {
-    int cv_event = CV_EVENT_MOUSEMOVE, flags = 0;
+    int cv_event = EIN_EVENT_MOUSEMOVE, flags = 0;
     QPoint pt = evnt->pos();
 
 

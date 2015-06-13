@@ -220,7 +220,6 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ROS_WARN_STREAM("___________________");
   ROS_ERROR_STREAM("Called word guiCustom1.");
   ROS_WARN_STREAM("___________________");
-  destroyAllWindows();
   ms->config.rangeogramWindow->setVisible(false);
 
 
