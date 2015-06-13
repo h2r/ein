@@ -52,24 +52,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -g -std=c++11 -fpermissiv
 set(CMAKE_BUILD_TYPE Debug)
 
 
-find_package (Qt5Widgets)
-
-set (CmakeLib_src ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/window_QT.cpp)
-set (CmakeLib_hdr ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/window_QT.h)
-set (CmakeLib_ui  ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.ui ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.ui)
-
-qt5_wrap_cpp(CmakeLib_hdr_moc ${CmakeLib_hdr})
-qt5_wrap_ui (CmakeLib_ui_moc  ${CmakeLib_ui})
-
 include_directories (${PROJECT_SOURCE_DIR}/src)
 include_directories (${PROJECT_BINARY_DIR})
-
-add_library (CmakeLib SHARED 
-    ${CmakeLib_src}
-    ${CmakeLib_hdr_moc}
-    ${CmakeLib_ui_moc}
-)
-
 
 
 add_executable(ein src/ein.cpp src/ein_words.cpp 
@@ -102,11 +86,7 @@ target_link_libraries(ein
 	${OpenCV_LIBS}
 	opencv_nonfree
         ${GSL_LIBRARIES}
-        CmakeLib
 )
-
-
-qt5_use_modules(CmakeLib Core Gui Widgets)
 
 
 
