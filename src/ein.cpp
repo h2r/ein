@@ -18,8 +18,14 @@
 
 #include "ein.h"
 
+#include "qtgui/mainwindow.h"
+#include <QApplication>
+#include <QTimer>
+
 MachineState machineState;
 shared_ptr<MachineState> pMachineState;
+
+MainWindow * qtTestWindow;
 
 
 ////////////////////////////////////////////////
@@ -2933,6 +2939,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   if (ms->config.shouldIRender) {
     guardedImshow(ms->config.wristViewName, ms->config.wristViewImage, ms->config.sirWrist);
+    qtTestWindow->updateImage(ms->config.wristViewImage);
+    
   }
 }
 
@@ -10894,6 +10902,8 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut) {
 
 int main(int argc, char **argv) {
 
+  QApplication a(argc, argv);
+
   initializeWords();
   pMachineState = std::make_shared<MachineState>(machineState);
   shared_ptr<MachineState> ms = pMachineState;
@@ -11187,7 +11197,18 @@ int main(int argc, char **argv) {
 
   ms->config.lastMovementStateSet = ros::Time::now();
 
-  ros::spin();
+
+
+
+  qtTestWindow = new MainWindow();
+  qtTestWindow->show();
+
+  QTimer *timer = new QTimer(qtTestWindow);
+  qtTestWindow->connect(timer, SIGNAL(timeout()), qtTestWindow, SLOT(rosSpin()));
+  timer->start(0);
+  
+  a.exec();
+  //ros::spin();
 
   return 0;
 }
