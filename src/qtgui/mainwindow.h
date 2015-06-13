@@ -20,8 +20,10 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
-
-    void updateImage(const Mat /*arr*/);
+    Q_INVOKABLE void updateImage(const Mat image) ;
+    void setup();
+public slots:
+    void rosSpin();
 
 private:
     Ui::MainWindow *ui;

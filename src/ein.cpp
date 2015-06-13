@@ -25,8 +25,7 @@
 MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
-MainWindow * qtTestWindow;
-
+MainWindow * qtTestWindow = NULL;
 
 ////////////////////////////////////////////////
 // start pilot includes, usings, and defines
@@ -2939,7 +2938,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   if (ms->config.shouldIRender) {
     guardedImshow(ms->config.wristViewName, ms->config.wristViewImage, ms->config.sirWrist);
-    qtTestWindow->updateImage(ms->config.wristViewImage);
+
+    QMetaObject::invokeMethod(qtTestWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
     
   }
 }
@@ -11198,17 +11198,16 @@ int main(int argc, char **argv) {
   ms->config.lastMovementStateSet = ros::Time::now();
 
 
-
-
   qtTestWindow = new MainWindow();
   qtTestWindow->show();
 
-  //QTimer *timer = new QTimer(qtTestWindow);
-  //qtTestWindow->connect(timer, SIGNAL(timeout()), qtTestWindow, SLOT(rosSpin()));
-  //timer->start(0);
+  QTimer *timer = new QTimer(qtTestWindow);
+  qtTestWindow->connect(timer, SIGNAL(timeout()), qtTestWindow, SLOT(rosSpin()));
+  timer->start(0);
+  qRegisterMetaType<Mat>("Mat");
+  a.exec();
   
-  //a.exec();
-  ros::spin();
+  //ros::spin();
 
   return 0;
 }
