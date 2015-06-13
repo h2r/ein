@@ -33,9 +33,16 @@ typedef struct _eePose{
   _eePose multQ(const _eePose& a) const;
   _eePose invQ() const;
 
+  void copyP(_eePose src);
+  void copyQ(_eePose src);
+
+  _eePose applyQTo(_eePose in) const;
+
   void writeToFileStorage(FileStorage& fsvO) const;
 
   void readFromFileNodeIterator(FileNodeIterator& it);
+
+  bool equals(_eePose pose);
 
   static void print(_eePose toPrint);
   static double squareDistance(_eePose pose1, _eePose pose2);

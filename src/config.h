@@ -53,7 +53,7 @@ typedef enum {
 
 typedef enum {
   HAND = 0,
-  WAREHOUSE = 1
+  PLACE_REGISTER = 2
 } placeMode;
 
 typedef enum {
@@ -223,6 +223,8 @@ class EinConfig {
   graspMode currentGraspMode = GRASP_CRANE;
   robotMode currentRobotMode = PHYSICAL;
 
+  eePose placeTarget;
+
   Vector3d eeLinearAcceleration;
 
   // set color reticles iterator
@@ -309,6 +311,7 @@ class EinConfig {
   std::string objectMapViewerName = "Object Map View";
   std::string gradientViewerName = "Gradient Viewer";
   std::string aerialGradientViewerName = "Aerial Gradient Viewer";
+  std::string stereoViewerName = "Stereo Viewer";
 
 
   eePose calibrationPose;
@@ -341,6 +344,7 @@ class EinConfig {
   eePose eepReg6;
 
   eePose beeHome;
+  eePose backScanningPose;
   eePose pilotTarget;
   eePose pilotClosestTarget;
   eePose lastGoodEEPose;
@@ -615,7 +619,7 @@ class EinConfig {
   //int gradServoPixelThresh = 2;
   //int gradServoThetaThresh = 1;
   // absolute
-  int synServoPixelThresh = 15;//15;//10;
+  int synServoPixelThresh = 15;//30;//15;//10;
   int gradServoPixelThresh = 5;
   int gradServoThetaThresh = 2;
   
@@ -651,7 +655,6 @@ class EinConfig {
   int gradientServoDuringHeightLearning = 1;
   int bailAfterSynchronic = 1;
   int bailAfterGradient = 0;
-  int useGradientServoThresh = 0;
   double gradientServoResetThresh = 0.7/(6.0e5);
   int densityIterationsForGradientServo = 10;//3;//10;
 
@@ -726,6 +729,7 @@ class EinConfig {
   double m_y_h[4];
 
   int mappingServoTimeout = 5;
+  //const int mappingHeightIdx = 0;
   const int mappingHeightIdx = 1;
 
 
@@ -818,6 +822,7 @@ class EinConfig {
   bool sirAerialGradient = 1;
   bool sirWrist = 1;
   bool sirCore = 1;
+  bool sirStereo = 1;
   
   bool use_simulator = false;
   
@@ -859,6 +864,7 @@ class EinConfig {
 
 
   cv_bridge::CvImagePtr cv_ptr = NULL;
+  Mat stereoViewerImage;
   Mat objectViewerImage;
   Mat objectMapViewerImage;
   Mat densityViewerImage;
@@ -988,7 +994,7 @@ class EinConfig {
   ros::Time lastScanStarted;
   int mapFreeSpacePixelSkirt = 25;
   int mapBlueBoxPixelSkirt = 50;
-  double mapBlueBoxCooldown = 240; // cooldown is a temporal skirt
+  double mapBlueBoxCooldown = 60; // cooldown is a temporal skirt
   int mapGrayBoxPixelSkirt = 50;
   int ikMap[mapWidth * mapHeight];
   int clearanceMap[mapWidth * mapHeight];
@@ -1086,6 +1092,15 @@ class EinConfig {
   Mat accumulatedImage;
   Mat accumulatedImageMass;
 
+  double stereoFocal = 1.0; // needs to be tuned
+  double stereoBaseline = 0.01;
+  double stereoMaxDisparity = 30;
+  Mat stereoImage1;
+  Mat stereoImage2;
+  Mat stereoDisparity;
+  Mat stereoDepth;
+
+  eePose photoPinPose;
 }; // config end
 
 class Word;
