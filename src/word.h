@@ -231,6 +231,66 @@ public:
   
 };
 
+class EePoseWord: public Word
+{
+private:
+  eePose pose;
+
+public:
+  eePose value() {
+    return pose;
+  }
+
+  virtual bool is_value() {
+    return true;
+  }
+
+  static std::shared_ptr<EePoseWord> parse(string token) {
+    
+    eePose pose;
+    return std::make_shared<EePoseWord>(pose);
+  }
+  virtual bool is_static() {
+    return false;
+  }
+  static bool isInteger(string token) {
+    if (token.substr(0,5) == "eePose") {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  
+  EePoseWord(eePose _pose) {
+    pose = _pose;
+  }
+  void execute(std::shared_ptr<MachineState> ms) {
+  }
+  string name() {
+    stringstream ss;
+    ss << pose;
+    return ss.str();
+  }
+
+  bool equals(Word * word) {
+    EePoseWord * w1 = dynamic_cast<EePoseWord *>(word);
+    if (w1 == NULL) {
+      return false;
+    } else {
+      return w1->value().equals(this->value());
+    }
+  }
+  
+  virtual bool to_bool() {
+    return true;
+  }
+  virtual int to_int() {
+    return 1;
+  }
+};
+
+
+
 
 class CompoundWord {
  private:

@@ -2173,28 +2173,6 @@ void update_baxter(ros::NodeHandle &n) {
       int ikCallResult = 0;
       queryIK(ms, &ikCallResult, &thisIkRequest);
 
-      //ikResultFailed = (!ms->config.ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
-      //cout << "ik call result: " << ikCallResult << " joints: " << (thisIkRequest.response.joints.size()) << " "; 
-
-      //if (thisIkRequest.response.joints.size()) {
-	//cout << "position size: " << (thisIkRequest.response.joints[0].position.size()) << endl;
-      //}
-
-
-      //ikResultFailed = (!ikCallResult || (thisIkRequest.response.joints.size() == 0) || (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS));
-
-//      // XXX This is ridiculous
-//      if (ikCallResult && thisIkRequest.response.isValid[0]) {
-//	// set this here in case noise was added
-//	ms->config.currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
-//	ms->config.currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
-//	ms->config.currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
-//	ikResultFailed = 0;
-//      } else {
-//	ikResultFailed = 1;
-//	cout << "Initial IK result appears to be invalid." << endl;
-//      } 
-
       if (ikCallResult && thisIkRequest.response.isValid[0]) {
 	// set this here in case noise was added
 	ms->config.currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
@@ -3669,6 +3647,10 @@ void pilotInit(shared_ptr<MachineState> ms) {
 
   if (0 == ms->config.left_or_right_arm.compare("left")) {
     cout << "Possessing left arm..." << endl;
+
+    ms->config.backScanningPose = {.px = -0.304942, .py = 0.703968, .pz = 0.186738,
+                              .qx = 0.000508805, .qy = 1, .qz = 0.00056289, .qw = 0.000264451};
+
     ms->config.beeHome = {.px = 0.334217, .py = 0.75386, .pz = 0.0362593,
                           .qx = -0.00125253, .qy = 0.999999, .qz = -0.000146851, .qw = 0.000236656};
     
@@ -3705,9 +3687,13 @@ void pilotInit(shared_ptr<MachineState> ms) {
     ms->config.eepReg2 = ms->config.beeHome; 
 
     ms->config.mapSearchFenceXMin = -0.75;
-    ms->config.mapSearchFenceXMax = 1.0;
+    //ms->config.mapSearchFenceXMin = 0.25;
+    //ms->config.mapSearchFenceXMax = 0.25;
+    ms->config.mapSearchFenceXMax = 1.00;
     ms->config.mapSearchFenceYMin = -1.25;
     ms->config.mapSearchFenceYMax = 1.25;
+
+    //.px = 0.278252, .py = 0.731958, .pz = -0.0533381,
 
     ms->config.mapRejectFenceXMin = ms->config.mapSearchFenceXMin;
     ms->config.mapRejectFenceXMax = ms->config.mapSearchFenceXMax;
@@ -3800,6 +3786,9 @@ void pilotInit(shared_ptr<MachineState> ms) {
                  .qx = -0.370521, .qy = 0.381345, .qz = 0.578528, .qw = 0.618544};
   } else if (0 == ms->config.left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
+
+    ms->config.backScanningPose = {.px = -0.373806, .py = -0.640234, .pz = 0.219235,
+                      .qx = 0.00114192, .qy = 0.999999, .qz = -0.000387173, .qw = 0.000386456};
 
     ms->config.beeHome = {.px = 0.525866, .py = -0.710611, .pz = 0.0695764,
                           .qx = -0.00122177, .qy = 0.999998, .qz = 0.00116169, .qw = -0.001101};
@@ -4273,6 +4262,33 @@ int ARE_GENERIC_HEIGHT_LEARNING(shared_ptr<MachineState> ms) {
 }
 
 
+void zeroGraspMemoryAndRangeMap(shared_ptr<MachineState> ms) {
+  guardGraspMemory(ms);
+  for (int y = 0; y < ms->config.rmWidth; y++) {
+    for (int x = 0; x < ms->config.rmWidth; x++) {
+      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1;
+      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 0; 
+      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = 1;
+      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = 0; 
+      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 1;
+      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 0; 
+      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 1;
+      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 0; 
+      //ms->config.classGraspMemoryTries1[ms->config.targetClass].at<double>(y,x) = 1;
+      //ms->config.classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x) = 0;
+      //ms->config.classGraspMemoryTries2[ms->config.targetClass].at<double>(y,x) = 1;
+      //ms->config.classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x) = 0;
+      //ms->config.classGraspMemoryTries3[ms->config.targetClass].at<double>(y,x) = 1;
+      //ms->config.classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x) = 0;
+      //ms->config.classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x) = 1;
+      //ms->config.classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x) = 0;
+      ms->config.rangeMap[x + y*ms->config.rmWidth] = 0;
+      ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = 0;
+      //ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x) = 0;
+    } 
+  } 
+
+}
 
 void guard3dGrasps(shared_ptr<MachineState> ms) {
   if (ms->config.class3dGrasps.size() < ms->config.numClasses) {
@@ -5888,6 +5904,61 @@ void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms) {
   }
 }
 
+Mat makeGCrop(shared_ptr<MachineState> ms, int etaX, int etaY) {
+  Size sz = ms->config.objectViewerImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  int crows = ms->config.aerialGradientReticleWidth;
+  int ccols = ms->config.aerialGradientReticleWidth;
+  int maxDim = max(crows, ccols);
+  int tRy = (maxDim-crows)/2;
+  int tRx = (maxDim-ccols)/2;
+
+
+  int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
+  int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+
+  Mat gCrop(maxDim, maxDim, CV_64F);
+  Size toBecome(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth);
+
+
+  
+  for (int x = 0; x < maxDim; x++) {
+    for (int y = 0; y < maxDim; y++) {
+      int tx = x - tRx;
+      int ty = y - tRy;
+      int tCtx = topCornerX + tx;
+      int tCty = topCornerY + ty;
+      if ( (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) &&
+           (tCtx > 0) && (tCty > 0) && (tCtx < imW) && (tCty < imH) ) {
+        gCrop.at<double>(y, x) = ms->config.frameGraySobel.at<double>(topCornerY + ty, topCornerX + tx);
+      } else {
+        gCrop.at<double>(y, x) = 0.0;
+      }
+    }
+  }
+  
+  cv::resize(gCrop, gCrop, toBecome);
+  
+  processSaliency(gCrop, gCrop);
+  
+  {
+    double mean = gCrop.dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, gCrop.type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
+    gCrop = gCrop - mean;
+    double l2norm = gCrop.dot(gCrop);
+    // ATTN 17
+    // removed normalization for discriminative servoing
+    // ATTN 15
+    // normalization hoses rejection
+    if (l2norm <= EPSILON) {
+      l2norm = 1.0;
+    }
+    gCrop = gCrop / l2norm;
+  }
+  return gCrop;
+}
+
 void gradientServo(shared_ptr<MachineState> ms) {
   Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
@@ -6065,50 +6136,15 @@ void gradientServo(shared_ptr<MachineState> ms) {
   //rotatedAerialGrads.resize(gradientServoScale*numOrientations);
   int gSTwidth = 2*gradientServoTranslation + 1;
   double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
+
   
   for (int etaS = 0; etaS < gradientServoScale; etaS++) {
 #pragma omp parallel for
     for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
       for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
         // get the patch
-        int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
-        int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
-        Mat gCrop(maxDim, maxDim, CV_64F);
+        Mat gCrop = makeGCrop(ms, etaX, etaY);
         
-        for (int x = 0; x < maxDim; x++) {
-          for (int y = 0; y < maxDim; y++) {
-            int tx = x - tRx;
-            int ty = y - tRy;
-            int tCtx = topCornerX + tx;
-            int tCty = topCornerY + ty;
-            if ( (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) &&
-                 (tCtx > 0) && (tCty > 0) && (tCtx < imW) && (tCty < imH) ) {
-              gCrop.at<double>(y, x) = ms->config.frameGraySobel.at<double>(topCornerY + ty, topCornerX + tx);
-            } else {
-              gCrop.at<double>(y, x) = 0.0;
-            }
-          }
-        }
-        
-        cv::resize(gCrop, gCrop, toBecome);
-        
-        processSaliency(gCrop, gCrop);
-        
-        {
-          double mean = gCrop.dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, gCrop.type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
-          gCrop = gCrop - mean;
-          double l2norm = gCrop.dot(gCrop);
-          // ATTN 17
-          // removed normalization for discriminative servoing
-          // ATTN 15
-          // normalization hoses rejection
-          if (ms->config.useGradientServoThresh) {
-          } else {
-            if (l2norm <= EPSILON)
-              l2norm = 1.0;
-            gCrop = gCrop / l2norm;
-          }
-        }
         
         for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
           // orientation cascade
@@ -6149,7 +6185,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
         // get the patch
         int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
         int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
-        Mat gCrop(maxDim, maxDim, CV_64F);
+        //Mat gCrop(maxDim, maxDim, CV_64F);
         
         // throw it out if it isn't contained in the image
         //    if ( (topCornerX+ms->config.aerialGradientWidth >= imW) || (topCornerY+ms->config.aerialGradientWidth >= imH) )
@@ -6184,7 +6220,6 @@ void gradientServo(shared_ptr<MachineState> ms) {
           if (thisScore > bestOrientationScore) {
             bestOrientation = thisOrient;
             bestOrientationScore = thisScore;
-            bestCropNorm = sqrt(gCrop.dot(gCrop));
             bestX = etaX;
             bestY = etaY;
             bestS = etaS;
@@ -6194,6 +6229,9 @@ void gradientServo(shared_ptr<MachineState> ms) {
       }
     }
   }
+
+  Mat bestGCrop = makeGCrop(ms, bestX, bestY); 
+
 
   // set the target reticle
   ms->config.pilotTarget.px = ms->config.reticle.px + bestX;
@@ -6208,19 +6246,25 @@ void gradientServo(shared_ptr<MachineState> ms) {
   //Ps = bestS - ((gradientServoScale-1)/2);
   Ps = 0;
   
-  Mat toShow;
+  Mat toShowModel;
+  Mat toShowImage;
   Size toUnBecome(maxDim, maxDim);
   //cv::resize(ms->config.classAerialGradients[ms->config.targetClass], toShow, toUnBecome);
   //cv::resize(rotatedAerialGrads[oneToDraw], toShow, toUnBecome);
-  cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations], toShow, toUnBecome);
+  cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations], toShowModel, toUnBecome);
+  cv::resize(bestGCrop, toShowImage, toUnBecome);
   //cout << rotatedAerialGrads[oneToDraw];
   
-  double maxTS = -INFINITY;
-  double minTS = INFINITY;
+  double maxTSImage = -INFINITY;
+  double minTSImage = INFINITY;
+  double maxTSModel = -INFINITY;
+  double minTSModel = INFINITY;
   for (int x = 0; x < maxDim; x++) {
     for (int y = 0; y < maxDim; y++) {
-      maxTS = max(maxTS, toShow.at<double>(y, x));
-      minTS = min(minTS, toShow.at<double>(y, x));
+      maxTSImage = max(maxTSImage, toShowImage.at<double>(y, x));
+      minTSImage = min(minTSImage, toShowImage.at<double>(y, x));
+      maxTSModel = max(maxTSModel, toShowModel.at<double>(y, x));
+      minTSModel = min(minTSModel, toShowModel.at<double>(y, x));
     }
   }
   
@@ -6232,7 +6276,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
       int tx = x - tRx;
       int ty = y - tRy;
       if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
-        Vec3b thisColor = Vec3b(0,0,min(255, int(floor(255.0*8*(toShow.at<double>(y, x)-minTS)/(maxTS-minTS)))));
+        Vec3b thisColorModel = Vec3b(0,0,min(255, int(floor(255.0*8*(toShowModel.at<double>(y, x)-minTSModel)/(maxTSModel-minTSModel)))));
+        Vec3b thisColorImage = Vec3b(min(255, int(floor(255.0*8*(toShowImage.at<double>(y, x)-minTSImage)/(maxTSImage-minTSImage)))), 0, 0);
         //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
         //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
         //cout << thisColor;
@@ -6242,7 +6287,9 @@ void gradientServo(shared_ptr<MachineState> ms) {
         int tgX = thisTopCornerX + tx;
         int tgY = thisTopCornerY + ty;
         if ((tgX > 0) && (tgX < imW) && (tgY > 0) && (tgY < imH)) {
-          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColor;
+          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) = 0;
+          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColorImage;
+          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColorModel;
         }
       }
     }
@@ -6287,17 +6334,6 @@ void gradientServo(shared_ptr<MachineState> ms) {
   double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
   double distance = dx*dx + dy*dy + dz*dz;
   
-  // ATTN 15
-  // return to synchronic if the match is poor
-  if (ms->config.useGradientServoThresh) {
-    cout << "ATTN score, thresh, norm, product: " << bestOrientationScore << " " << ms->config.gradientServoResetThresh << " " << bestCropNorm << " " << (ms->config.gradientServoResetThresh * bestCropNorm) << endl;
-    if (bestOrientationScore < (ms->config.gradientServoResetThresh * bestCropNorm) ) {
-      ms->pushWord("synchronicServo"); 
-      ms->pushWord("visionCycle"); 
-      cout << " XXX BAD GRADIENT SERVO SCORE, RETURN TO SYNCHRONIC XXX" << endl;
-      return;
-    }
-  }
 
   if (distance > ms->config.w1GoThresh*ms->config.w1GoThresh) {
     
@@ -6409,6 +6445,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
     eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
+    //double sqdistance = eePose::squareDistance(ms->config.currentEEPose, newGlobalTarget);
+
     ms->config.currentEEPose.px = newx;
     ms->config.currentEEPose.py = newy;
     
@@ -6625,11 +6663,6 @@ void synchronicServo(shared_ptr<MachineState> ms) {
     ms->pushCopies("waitUntilAtCurrentPosition", 1); 
     ms->config.synServoLockFrames = 0;
     ms->pushWord("synchronicServo"); 
-    if (ms->config.currentBoundingBoxMode == MAPPING) {
-      ms->pushWord("visionCycleNoClassify");
-    } else {
-      ms->pushWord("visionCycle"); // vision cycle
-    }
   } else {
     if ((fabs(Px) < ms->config.synServoPixelThresh) && (fabs(Py) < ms->config.synServoPixelThresh)) {
       // ATTN 12
@@ -6720,16 +6753,6 @@ void synchronicServo(shared_ptr<MachineState> ms) {
         //ms->config.currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
         ms->config.currentEEPose.px = newx;
         ms->config.currentEEPose.py = newy;
-
-
-
-	if (ms->config.currentBoundingBoxMode == MAPPING) {
-	  ms->pushWord("visionCycleNoClassify");
-	} else {
-	  ms->pushWord("visionCycle"); // vision cycle
-	}
-
-        ms->pushWord("waitUntilAtCurrentPosition"); 
       }
     }
   }
@@ -10186,8 +10209,6 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
       cout << "Failed to load rangeMap from " << this_range_path << endl; 
     }
   }
-  
-  // ATTN 16
   {
     {
       string thisLabelName(className);
@@ -10259,6 +10280,39 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     }
     cout << "Initializing classAerialGradients with classAerialHeight0Gradients." << endl;
     ms->config.classAerialGradients[i] = ms->config.classHeight0AerialGradients[i];
+    {
+      guard3dGrasps(ms);
+      string thisLabelName(className);
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
+      string this_grasp_path = dirToMakePath + "3dGrasps.yml";
+
+      FileStorage fsvI;
+      cout << "Reading grasp information from " << this_grasp_path << " ..."; cout.flush();
+      fsvI.open(this_grasp_path, FileStorage::READ);
+
+      FileNode anode = fsvI["grasps"];
+      {
+	FileNode bnode = anode["size"];
+	FileNodeIterator itb = bnode.begin();
+	int tng = *itb;
+	ms->config.class3dGrasps[i].resize(0);
+
+	FileNode cnode = anode["graspPoses"];
+	FileNodeIterator itc = cnode.begin(), itc_end = cnode.end();
+	int numLoadedPoses = 0;
+	for ( ; itc != itc_end; itc++, numLoadedPoses++) {
+	  eePose buf;
+	  buf.readFromFileNodeIterator(itc);
+	  cout << " read pose: " << buf; cout.flush();
+	  ms->config.class3dGrasps[i].push_back(buf);
+	}
+	if (numLoadedPoses != tng) {
+	  ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	}
+	cout << "Expected to load " << tng << " poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
+      }
+      cout << "done.";
+    }
   }
 }
 
@@ -10832,6 +10886,11 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut) {
   stateOut->patrol_mode = ms->config.currentPatrolMode;
   stateOut->place_mode = ms->config.currentPlaceMode;
   stateOut->idle_mode = ms->config.currentIdleMode;
+  for (int i = 0; i < ms->call_stack.size(); i ++) {
+    shared_ptr<Word> w = ms->call_stack[i];
+    stateOut->stack.push_back(w->repr());
+  }
+
 
   object_recognition_msgs::RecognizedObjectArray roa;
   fillRecognizedObjectArrayFromBlueBoxMemory(ms, &roa);
@@ -10917,6 +10976,7 @@ int main(int argc, char **argv) {
   ms->config.objectViewerName = "Object Viewer " + ms->config.left_or_right_arm;
   ms->config.gradientViewerName = "Gradient Viewer " + ms->config.left_or_right_arm;
   ms->config.aerialGradientViewerName = "Aerial Gradient Viewer " + ms->config.left_or_right_arm;
+  ms->config.stereoViewerName = "Stereo Viewer " + ms->config.left_or_right_arm;
 
   cv::namedWindow(ms->config.gradientViewerName);
   cv::namedWindow(ms->config.aerialGradientViewerName);
