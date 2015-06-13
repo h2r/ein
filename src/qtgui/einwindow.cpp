@@ -10,7 +10,7 @@ EinWindow::EinWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
     ms = _ms;
 }
 
-EinWindow::showImage(CvMat mat) {
+void EinWindow::showImage(CvMat mat) {
 
   
 }

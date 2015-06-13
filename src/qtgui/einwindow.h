@@ -21,7 +21,7 @@ class EinWindow : public QMainWindow
 public:
     explicit EinWindow(QWidget *parent, shared_ptr<MachineState> _ms);
     ~EinWindow();
-    EinWindow::showImage(CvMat mat);
+    void showImage(CvMat mat);
 
 private:
     Ui::EinWindow *ui;
