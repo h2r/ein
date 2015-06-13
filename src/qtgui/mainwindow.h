@@ -7,7 +7,7 @@
 
 #include "ein.h"
 #include "window_QT.h"
-
+#include "stackmodel.h"
 
 using namespace std;
 namespace Ui {
@@ -30,6 +30,7 @@ public slots:
 
 private:
     Ui::MainWindow *ui;
+    StackModel * stackModel;
 
     shared_ptr<MachineState> ms;
     DefaultEinViewPort myView;
