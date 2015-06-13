@@ -5,7 +5,12 @@ using namespace std;
 
 ostream & operator<<(ostream & os, const _eePose& toPrint)
 {
-  os << "[" << toPrint.px << " " << toPrint.py << " " << toPrint.pz << " | " << toPrint.qx << " " << toPrint.qy << " " << toPrint.qz << " " << toPrint.qw << "]";
+  FileStorage st;
+  st.open("tmp.yml", FileStorage::WRITE | FileStorage::MEMORY);
+  st << "eePose"; 
+  toPrint.writeToFileStorage(st);
+  string result = st.releaseAndGetString();
+  os << result.substr(10, result.size());
   return os;
 } 
 
@@ -138,6 +143,32 @@ _eePose _eePose::invQ() const {
   return toReturn;
 }
 
+void _eePose::copyP(_eePose src) {
+  px = src.px;
+  py = src.py;
+  pz = src.pz;
+}
+
+void _eePose::copyQ(_eePose src) {
+  qx = src.qx;
+  qy = src.qy;
+  qz = src.qz;
+  qw = src.qw;
+}
+
+_eePose _eePose::applyQTo(_eePose in) const {
+  // Eigen says that when txing more than one point it is more efficient to first convert to Matrix3 then apply
+  Quaterniond thisQ(qw, qx, qy, qz); 
+  Vector3d inP(in.px, in.py, in.pz);
+  Vector3d result = thisQ._transformVector(inP);
+
+  _eePose outPose = eePose::zero();
+  outPose.px = result.x();
+  outPose.py = result.y();
+  outPose.pz = result.z();
+  return outPose;
+}
+
 void _eePose::writeToFileStorage(FileStorage& fsvO) const {
   fsvO << "{:";
   fsvO << "px" << px;
@@ -162,3 +193,17 @@ void _eePose::readFromFileNodeIterator(FileNodeIterator& it) {
 
 
 
+bool _eePose::equals(_eePose pose)
+{
+  if (pose.px == this->px &&
+      pose.py == this->py &&
+      pose.pz == this->pz &&
+      pose.qx == this->qx &&
+      pose.qy == this->qy &&
+      pose.qz == this->qz && 
+      pose.qw == this->qw) {
+    return true;
+  } else {
+    return false;
+  }
+}

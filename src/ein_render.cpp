@@ -218,7 +218,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->config.sirObject = 1;
   ms->config.sirObjectMap = 1;
   ms->config.sirDensity = 0;
-  ms->config.sirGradient = 0;
+  ms->config.sirGradient = 1;
   ms->config.sirObjectness = 0;
   ms->config.sirMapBackground = 0;
   ms->config.sirAerialGradient = 0;

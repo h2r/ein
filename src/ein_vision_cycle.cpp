@@ -5,164 +5,6 @@
 
 namespace ein_words {
 
-WORD(DeliverObject)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  shared_ptr<Word> word = ms->popWord();
-  string className = word->to_string();
-  int class_idx = classIdxForName(ms, className);
-  if (class_idx != -1) {
-    changeTargetClass(ms, class_idx);
-    ms->pushWord("deliverTargetObject");
-  }
-}
-END_WORD
-REGISTER_WORD(DeliverObject)
-
-
-WORD(DeliverTargetObject)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->pushWord("idler"); 
-  ms->config.bailAfterGradient = 1;
-
-  ms->config.pilotTarget.px = -1;
-  ms->config.pilotTarget.py = -1;
-  ms->config.pilotClosestTarget.px = -1;
-  ms->config.pilotClosestTarget.py = -1;
-  
-  int idxOfFirst = -1;
-  vector<BoxMemory> focusedClassMemories = memoriesForClass(ms, ms->config.focusedClass, &idxOfFirst);
-  if (focusedClassMemories.size() == 0) {
-    cout << "No memories of the focused class. " << endl;
-    return;
-  }
-  if (focusedClassMemories.size() > 1) {
-    cout << "More than one bounding box for class.  Looking for first POSE_REPORTED." << focusedClassMemories.size() << endl;
-  }
-  //BoxMemory memory = focusedClassMemories[0];
-  BoxMemory memory = ms->config.blueBoxMemories[idxOfFirst];
-
-  if (idxOfFirst == -1) {
-    cout << "No POSE_REPORTED objects of the focused class." << endl;
-    return;
-  }
-
-  //ms->config.currentEEPose = memory.cameraPose;
-  ms->config.currentEEPose = memory.aimedPose;
-  ms->config.lastPickPose = memory.pickedPose;
-  ms->config.lastPrePickPose = memory.aimedPose;
-  ms->config.trZ = memory.trZ;
-
-  cout << "deliverObject, " << ms->config.classGraspZsSet.size() << " " << ms->config.classGraspZs.size() << endl;
-  if ( (ms->config.classGraspZsSet.size() > ms->config.targetClass) && 
-       (ms->config.classGraspZs.size() > ms->config.targetClass) ) {
-    if (ms->config.classGraspZsSet[ms->config.targetClass] == 1) {
-      ms->config.trZ = ms->config.classGraspZs[ms->config.targetClass];
-      cout << "delivering class " << ms->config.classLabels[ms->config.targetClass] << " with classGraspZ " << ms->config.trZ << endl;
-    }
-  }
-
-  { // set the old box's lastMappedTime to moments after the start of time
-    int iStart=-1, iEnd=-1, jStart=-1, jEnd=-1;
-    int iTop=-1, iBot=-1, jTop=-1, jBot=-1;
-    double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
-    {
-      double x, y;
-      int i, j;
-      pixelToGlobal(ms, memory.top.px-ms->config.mapBlueBoxPixelSkirt, memory.top.py-ms->config.mapBlueBoxPixelSkirt, z, &x, &y);
-      mapxyToij(ms,x, y, &i, &j);
-      iTop=i;
-      jTop=j;
-    }
-    {
-      double x, y;
-      int i, j;
-      pixelToGlobal(ms, memory.bot.px+ms->config.mapBlueBoxPixelSkirt, memory.bot.py+ms->config.mapBlueBoxPixelSkirt, z, &x, &y);
-      mapxyToij(ms,x, y, &i, &j);
-      iBot=i;
-      jBot=j;
-    }
-    iStart = min(iBot, iTop);
-    iEnd = max(iBot, iTop);
-    jStart = min(jBot, jTop);
-    jEnd = max(jBot, jTop);
-    cout << "DeliverObject erasing iStart iEnd jStart jEnd: " << iStart << " " << iEnd << " " << jStart << " " << jEnd << endl;
-    for (int i = iStart; i <= iEnd; i++) {
-      for (int j = jStart; j <= jEnd; j++) {
-	if (i >= 0 && i < ms->config.mapWidth && j >= 0 && j < ms->config.mapHeight) {
-	  ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime = ros::Time(0.001);
-	  randomizeNanos(ms, &ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime);
-	}
-      }
-    }
-  }
-  
-  { // remove this blue box; above stamping would cause it to be naturally eliminated IF it was 
-    // observed in a searched region...
-    vector<BoxMemory> newMemories;
-    for (int i = 0; i < ms->config.blueBoxMemories.size(); i++) {
-      if (i != idxOfFirst) {
-	cout << "Retaining blue box " << i << " while booting " << idxOfFirst << endl; 
-	newMemories.push_back(ms->config.blueBoxMemories[i]);
-      }
-    }
-    ms->config.blueBoxMemories = newMemories;
-  }
-
-  ms->pushWord("moveToNextMapPosition");
-  ms->pushWord("synchronicServoDoNotTakeClosest"); 
-  ms->pushWord("openGripper"); 
-  ms->pushWord("cruisingSpeed"); 
-  ms->pushWord("waitUntilAtCurrentPosition"); 
-  ms->pushWord("tryToMoveToTheLastPrePickHeight");   
-  ms->pushWord("departureSpeed");
-  ms->pushWord("placeObjectInDeliveryZone");
-  ms->pushWord("ifGrasp");
-  ms->pushWord("executePreparedGrasp"); 
-  //ms->pushWord("prepareForAndExecuteGraspFromMemory"); 
-  //ms->pushWord("gradientServo");
-  //ms->pushCopies("density", ms->config.densityIterationsForGradientServo); 
-  //ms->pushCopies("resetTemporalMap", 1); 
-  //ms->pushWord("synchronicServo"); 
-  //ms->pushWord("visionCycle");
-  //ms->pushWord("synchronicServoTakeClosest"); 
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("setPickModeToStaticMarginals"); 
-  ms->pushWord("sampleHeight"); 
-  ms->pushWord("setBoundingBoxModeToMapping"); 
-  ms->pushWord("openGripper");
-  ms->pushWord("setPatrolStateToPicking");
-}
-END_WORD
-REGISTER_WORD(DeliverTargetObject)
-
-WORD(PlaceObjectInDeliveryZone)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (ms->config.currentPlaceMode == WAREHOUSE) {
-    ms->pushWord("openGripper"); 
-    ms->pushWord("tryToMoveToTheLastPickHeight");   
-    ms->pushWord("approachSpeed"); 
-    ms->pushWord("waitUntilAtCurrentPosition"); 
-    ms->pushWord("assumeDeliveryPose");
-    ms->pushWord("setPatrolStateToPlacing");
-  } else if (ms->config.currentPlaceMode == HAND) {
-    ms->pushCopies("localZDown", 5);
-    ms->pushWord("setMovementSpeedMoveFast");
-    ms->pushWord("waitForTugThenOpenGripper");
-    ms->pushWord("waitUntilAtCurrentPosition"); 
-    ms->pushWord("assumeHandingPose");
-    ms->pushWord("setPatrolStateToHanding");
-  } else {
-    assert(0);
-  }
-
-  ms->pushWord("cruisingSpeed");
-  ms->pushWord("waitUntilAtCurrentPosition"); 
-  ms->pushWord("tryToMoveToTheLastPrePickHeight");   
-  ms->pushWord("departureSpeed");
-}
-END_WORD
-REGISTER_WORD(PlaceObjectInDeliveryZone)
-
 WORD(ClearStackIntoMappingPatrol)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->clearStack();
@@ -180,6 +22,20 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(ClearStackAcceptFetchCommands)
+
+WORD(MapLocal)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
+  ms->pushWord("filterBoxMemories");
+  ms->pushWord("shiftIntoGraspGear1");
+  ms->pushWord("lockTargetIfBlueBoxes");
+  ms->pushWord("gradientServoIfBlueBoxes");
+  ms->pushWord("mapClosestBlueBox");
+  ms->pushWord("goClassifyBlueBoxes"); 
+  ms->pushWord("visionCycle"); 
+}
+END_WORD
+REGISTER_WORD(MapLocal)
 
 WORD(MappingPatrol)
 CODE(196727) // capslock + W
@@ -204,7 +60,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("mapClosestBlueBox");
   ms->pushWord("goClassifyBlueBoxes"); 
   ms->pushWord("synchronicServo"); 
-  ms->pushWord("visionCycleNoClassify");
   ms->pushWord("synchronicServoTakeClosest");
   ms->pushWord("waitUntilAtCurrentPosition"); 
   ms->pushWord("moveToNextMapPosition");
@@ -817,7 +672,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   substituteAccumulatedImageQuantities(ms);
   goCalculateDensity(ms);
   renderAccumulatedImageAndDensity(ms);
-  //goAccumulateForAerial();
 }
 END_WORD
 REGISTER_WORD(AccumulatedDensity)
@@ -926,4 +780,189 @@ END_WORD
 REGISTER_WORD(FaceServoB)
 
 */
+
+WORD(StereoPair)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // display the result 
+  ms->pushWord("stereoDisplay");
+  // calculate disparity and depth
+  ms->pushWord("stereoCalculate");
+  // cache a second accumulated image
+  ms->pushWord("stereoPairCache2");
+  ms->pushWord("stereoPrep");
+  // move a tad
+  ms->pushWord("localYUp");
+  // cache an accumulated image
+  ms->pushWord("stereoPairCache1");
+  ms->pushWord("stereoPrep");
+  ms->pushWord("setMovementSpeedMoveFast");
 }
+END_WORD
+REGISTER_WORD(StereoPair)
+
+WORD(StereoPrep)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord("accumulatedDensity");
+  ms->pushCopies("waitUntilImageCallbackReceived", 10);
+  ms->pushWord("resetAccumulatedDensity");
+  ms->pushWord("comeToStop");
+  ms->pushWord("setMovementStateToMoving");
+  ms->pushWord("comeToStop");
+}
+END_WORD
+REGISTER_WORD(StereoPrep)
+
+WORD(StereoPairCache1)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.stereoImage1 = ms->config.accumulatedImage.clone();
+  Size sz = ms->config.stereoImage1.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      double denom = ms->config.accumulatedImageMass.at<double>(y,x);
+      assert(denom > 0);
+      ms->config.stereoImage1.at<Vec3d>(y,x)[0] = ms->config.stereoImage1.at<Vec3d>(y,x)[0] / denom;
+      ms->config.stereoImage1.at<Vec3d>(y,x)[1] = ms->config.stereoImage1.at<Vec3d>(y,x)[1] / denom;
+      ms->config.stereoImage1.at<Vec3d>(y,x)[2] = ms->config.stereoImage1.at<Vec3d>(y,x)[2] / denom;
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(StereoPairCache1)
+
+WORD(StereoPairCache2)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.stereoImage2 = ms->config.accumulatedImage.clone();
+  Size sz = ms->config.stereoImage2.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      double denom = ms->config.accumulatedImageMass.at<double>(y,x);
+      assert(denom > 0);
+      ms->config.stereoImage2.at<Vec3d>(y,x)[0] = ms->config.stereoImage2.at<Vec3d>(y,x)[0] / denom;
+      ms->config.stereoImage2.at<Vec3d>(y,x)[1] = ms->config.stereoImage2.at<Vec3d>(y,x)[1] / denom;
+      ms->config.stereoImage2.at<Vec3d>(y,x)[2] = ms->config.stereoImage2.at<Vec3d>(y,x)[2] / denom;
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(StereoPairCache2)
+
+WORD(StereoCalculate)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // simplifying assumption that the movement between the two views
+  //  was along the x axis
+
+  // this can be made to run in time independent of patch size using
+  //  running sums over (Im1-Im2_shift)^2
+  // XXX should try this in RGB distance but also YCbCr distance
+  Size sz = ms->config.stereoImage1.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  // instead of guarding some places we should be calling create(), which checks
+  //  for existence.
+  ms->config.stereoDisparity.create(sz, CV_64F);
+  ms->config.stereoDepth.create(sz, CV_64F);
+
+  ms->config.stereoDisparity = 0.0;
+  ms->config.stereoDepth = double(VERYBIGNUMBER);
+
+  // patchWidth must be odd
+  int param_patchWidth = 21;
+  assert((param_patchWidth % 2) == 1);
+  int param_patchHalfWidth = (param_patchWidth-1)/2;
+  int disparityMax = ms->config.stereoMaxDisparity;
+
+  Mat sIm1 = ms->config.stereoImage1;
+  Mat sIm2 = ms->config.stereoImage2;
+
+  Mat minDifferenceValues(sz, CV_64F);
+  minDifferenceValues = VERYBIGNUMBER;
+
+  for (int d = 0; d < disparityMax; d++) {
+    Mat shiftedDifference(sz, CV_64F);
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	if (x < d) {
+	  shiftedDifference.at<double>(y,x) = VERYBIGNUMBER;
+	} else {
+	  shiftedDifference.at<double>(y,x) = 
+	    pow(sIm1.at<Vec3d>(y,x)[0] - sIm2.at<Vec3d>(y,x-d)[0], 2.0) +  
+	    pow(sIm1.at<Vec3d>(y,x)[1] - sIm2.at<Vec3d>(y,x-d)[1], 2.0) +  
+	    pow(sIm1.at<Vec3d>(y,x)[2] - sIm2.at<Vec3d>(y,x-d)[2], 2.0); 
+	}
+      }
+    }
+
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+	if ( (x < param_patchHalfWidth) || (x > imW - 1 - param_patchHalfWidth) ||
+	     (y < param_patchHalfWidth) || (y > imH - 1 - param_patchHalfWidth) ) {
+	  continue;
+	}
+
+	double thisSSD = 0.0;
+	for (int px = -param_patchHalfWidth; px <= param_patchHalfWidth; px++) {
+	  for (int py = -param_patchHalfWidth; py <= param_patchHalfWidth; py++) {
+	    thisSSD = thisSSD + shiftedDifference.at<double>(y+py, x+px);
+	  }
+	}
+	if (thisSSD < minDifferenceValues.at<double>(y,x)) {
+	  ms->config.stereoDisparity.at<double>(y,x) = d;
+	  minDifferenceValues.at<double>(y,x) = thisSSD;
+	}
+      }
+    }
+  }
+
+  double eff = ms->config.stereoFocal;
+  double bee = ms->config.stereoBaseline;
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      if (ms->config.stereoDisparity.at<double>(y,x) <= 0) {
+	ms->config.stereoDepth.at<double>(y,x) = VERYBIGNUMBER;
+      } else {
+	ms->config.stereoDepth.at<double>(y,x) = eff * bee / ms->config.stereoDisparity.at<double>(y,x);
+      }
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(StereoCalculate)
+
+WORD(StereoDisplay)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  Size sz = ms->config.objectViewerYCbCrBlur.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  ms->config.stereoViewerImage.create(sz.height*2, sz.width*2, CV_8UC3);
+
+  Mat sIm1 = ms->config.stereoImage1;
+  Mat sIm2 = ms->config.stereoImage2;
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      double disparityMax = ms->config.stereoMaxDisparity;
+      double thisDisparity = ms->config.stereoDisparity.at<double>(y,x);
+      double thisDepth = ms->config.stereoDepth.at<double>(y,x);
+      ms->config.stereoViewerImage.at<cv::Vec3b>(y,x) = sIm1.at<cv::Vec3d>(y,x);
+      ms->config.stereoViewerImage.at<cv::Vec3b>(y,x+imW) = sIm2.at<cv::Vec3d>(y,x);
+      ms->config.stereoViewerImage.at<cv::Vec3b>(y+imH,x) = Vec3d(255*(thisDisparity/disparityMax),0,0);
+      ms->config.stereoViewerImage.at<cv::Vec3b>(y+imH,x+imW) = Vec3d(0,0,255*(thisDepth/1.0));
+    }
+  }
+
+  if (ms->config.shouldIRender) {
+    guardedImshow(ms->config.stereoViewerName, ms->config.stereoViewerImage, ms->config.sirStereo);
+  }
+}
+END_WORD
+REGISTER_WORD(StereoDisplay)
+
+}
+

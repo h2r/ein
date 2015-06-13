@@ -6,16 +6,13 @@
 namespace ein_words {
 
 
-WORD(AssumeDeliveryPose)
+WORD(AssumeBackScanningPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double oldz = ms->config.currentEEPose.pz;
-  ms->config.currentEEPose = ms->config.deliveryPoses[ms->config.currentDeliveryPose];
-  ms->config.currentEEPose.pz = oldz;
-  ms->config.currentDeliveryPose = (ms->config.currentDeliveryPose + 1) % ms->config.deliveryPoses.size();
+  ms->config.currentEEPose = ms->config.backScanningPose;
   ms->pushWord("waitUntilAtCurrentPosition");
 }
 END_WORD
-REGISTER_WORD(AssumeDeliveryPose)
+REGISTER_WORD(AssumeBackScanningPose)
 
 WORD(WaitUntilAtCurrentPosition)
 CODE(131154)    // capslock + r
@@ -218,6 +215,23 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(OXUp)
+
+
+WORD(PushCurrentPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<EePoseWord> word = std::make_shared<EePoseWord>(ms->config.currentEEPose);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(PushCurrentPose)
+
+WORD(PushTruePose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<EePoseWord> word = std::make_shared<EePoseWord>(ms->config.trueEEPoseEEPose);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(PushTruePose)
 
 
 WORD(SaveRegister1)
@@ -1281,20 +1295,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetPatrolModeToOnce)
 
-WORD(SetPlaceModeToWarehouse)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentPlaceMode = WAREHOUSE;
-}
-END_WORD
-REGISTER_WORD(SetPlaceModeToWarehouse)
-
-WORD(SetPlaceModeToHand)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentPlaceMode = HAND;
-}
-END_WORD
-REGISTER_WORD(SetPlaceModeToHand)
-
 WORD(SetIdleModeToCrane)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentIdleMode = CRANE;
@@ -1329,5 +1329,23 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SetIdleModeToPatrol)
+
+WORD(SetCurrentPoseToTruePose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Setting current position to true position." << endl;
+  ms->config.endThisStackCollapse = 1;
+  ms->config.currentEEPose = ms->config.trueEEPoseEEPose;
+}
+END_WORD
+REGISTER_WORD(SetCurrentPoseToTruePose)
+
+WORD(DislodgeEndEffectorFromTable)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Dislodging end effector from table 1cm..." << endl;
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("zUp"); 
+}
+END_WORD
+REGISTER_WORD(DislodgeEndEffectorFromTable)
 
 }

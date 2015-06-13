@@ -103,9 +103,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
   ms->pushWord("synchronicServoDoNotTakeClosest"); // synchronic servo don't take closest
   ms->pushWord("synchronicServo"); // synchronic servo
-  ms->pushWord(196707); // synchronic servo take closest
-  ms->pushWord("visionCycle"); // vision cycle
-  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  ms->pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
   { // prepare to servo
     //ms->config.currentEEPose.pz = wholeFoodsCounter1.pz+.1;
     ms->pushWord(1245248); // change to height 1
@@ -159,9 +157,6 @@ CODE(1179707)     // capslock + numlock + ;
   ms->pushWord("synchronicServoDoNotTakeClosest"); 
   ms->pushWord("synchronicServo"); // synchronic servo
   ms->pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
-  ms->pushWord("visionCycle"); // vision cycle
-  //ms->pushWord(1179695); // check to see if bounding box is unique (early outting if not)
-  ms->pushWord("visionCycle"); // vision cycle
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   ms->pushWord("setRandomPositionAndOrientationForHeightLearning"); // set random position for bblearn
 
@@ -171,9 +166,6 @@ CODE(1179707)     // capslock + numlock + ;
   ms->pushWord("synchronicServoDoNotTakeClosest"); // synchronic servo don't take closest
   ms->pushWord("synchronicServo"); // synchronic servo
   ms->pushWord(196707); // synchronic servo take closest
-  ms->pushWord("visionCycle"); // vision cycle
-  //ms->pushWord(1179695); // check to see if bounding box is unique (early outting if not)
-  ms->pushWord("visionCycle"); // vision cycle
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   ms->pushWord("setRandomPositionAndOrientationForHeightLearning"); // set random position for bblearn
 
@@ -444,6 +436,17 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(SetHeightMemoriesFromClassHeightMemories)
 
+
+WORD(MoveToMappingHeight)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.mappingHeightIdx);
+  ms->config.currentThompsonHeightIdx = ms->config.mappingHeightIdx;
+  ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
+}
+END_WORD
+REGISTER_WORD(MoveToMappingHeight)
+
+
 WORD(SampleHeight)
 CODE(1245247)   // capslock + numlock + ?
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -451,11 +454,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (ms->config.currentBoundingBoxMode != STATIC_PRIOR) {
     if (ms->config.currentBoundingBoxMode == MAPPING) {
       cout << "SampleHeight going to mappingHeightIdx: " << ms->config.mappingHeightIdx << endl;
-      ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.mappingHeightIdx);
-      ms->config.currentThompsonHeightIdx = ms->config.mappingHeightIdx;
-      ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
-      ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
-      ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+      ms->pushWord("moveToMappingHeight");
       return;
     } else if (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) {
       loadSampledHeightMemory(ms);

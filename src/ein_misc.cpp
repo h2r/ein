@@ -5,6 +5,21 @@
 
 namespace ein_words {
 
+WORD(UploadObjectToDatabase)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  stringstream cmd;
+  shared_ptr<Word> word = ms->popWord();
+  string className = word->to_string();
+
+  cmd << "bash -c \"rosrun ein upload_zips.py -u 'maria' -p 'maria' ";
+  cmd << ms->config.data_directory << "/objects/" << className << "\"";
+  cout << "Running: " << cmd.str() << endl;
+  system(cmd.str().c_str());
+  
+}
+END_WORD
+REGISTER_WORD(UploadObjectToDatabase)
+
 
 WORD(ZeroGToggle)
 CODE('z')
