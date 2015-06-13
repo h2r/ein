@@ -54,8 +54,8 @@ set(CMAKE_BUILD_TYPE Debug)
 
 find_package (Qt5Widgets)
 
-set (CmakeLib_src ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/window_QT.cpp)
-set (CmakeLib_hdr ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/window_QT.h)
+set (CmakeLib_src ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/window_QT.cpp  ${PROJECT_SOURCE_DIR}/src/qtgui/stackmodel.cpp)
+set (CmakeLib_hdr ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/window_QT.h ${PROJECT_SOURCE_DIR}/src/qtgui/stackmodel.h)
 set (CmakeLib_ui  ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.ui ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.ui)
 
 qt5_wrap_cpp(CmakeLib_hdr_moc ${CmakeLib_hdr})
@@ -72,7 +72,7 @@ add_library (CmakeLib SHARED
 
 
 
-add_executable(ein src/ein.cpp src/ein_words.cpp 
+add_executable(ein src/ein.cpp src/ein_words.cpp src/config.cpp
 src/ein_bandit.cpp src/ein_render.cpp src/ein_movement.cpp src/ein_servo.cpp src/ein_vision_cycle.cpp src/ein_scanning.cpp src/ein_misc.cpp src/ein_pick_place.cpp
 src/word.cpp src/faces.cpp src/eePose.cpp src/eigen_util.cpp  src/ein_util.cpp 
 src/slu/math2d.cpp src/slu/gsl_utilities.cpp  
