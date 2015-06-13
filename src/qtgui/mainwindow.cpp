@@ -16,6 +16,11 @@ MainWindow::MainWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
 
     ui->imageFrame->layout()->addWidget(myView.getWidget());
     ms = _ms;
+
+    stackModel = new StackModel(this);
+    stackModel->setMachineState(ms);
+    ui->stackTableView->setModel(stackModel);
+
 }
 
 MainWindow::~MainWindow()
@@ -43,6 +48,8 @@ void MainWindow::rosSpin()
   ros::spinOnce();
 
   ui->stateLabel->setText(QString::fromStdString(ms->currentState()));
+  stackModel->setMachineState(ms);
+
 }
 
 
