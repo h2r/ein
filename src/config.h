@@ -1134,41 +1134,8 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
 
   void execute(std::shared_ptr<Word> word);
 
-  string currentState() {
-    stringstream state;
-    
-    state << endl;
-    state << "Current EE Position (x,y,z): " << config.currentEEPose.px << " " << config.currentEEPose.py << " " << config.currentEEPose.pz << endl;
-    state << "Current EE Orientation (x,y,z,w): " << config.currentEEPose.qx << " " << config.currentEEPose.qy << " " << config.currentEEPose.qz << " " << config.currentEEPose.qw << endl;
-    state << "True EE Position (x,y,z): " << config.trueEEPose.position.x << " " << config.trueEEPose.position.y << " " << config.trueEEPose.position.z << endl;
-    state << "True EE Orientation (x,y,z,w): " << config.trueEEPose.orientation.x << " " << config.trueEEPose.orientation.y << " " << config.trueEEPose.orientation.z << " " << config.trueEEPose.orientation.w << endl;
-    state <<
-      "eePose = {.px = " << config.trueEEPose.position.x << ", .py = " << config.trueEEPose.position.y << ", .pz = " << config.trueEEPose.position.z << "," << endl <<
-      "		      .qx = " << config.trueEEPose.orientation.x << ", .qy = " << config.trueEEPose.orientation.y << ", .qz = " << config.trueEEPose.orientation.z << ", .qw = " << config.trueEEPose.orientation.w << "};" << endl;
-    state << "currentThompsonHeightIdx: " << config.currentThompsonHeightIdx << endl;
-    state << "mostRecentUntabledZ (remember this is inverted but correct): " << config.mostRecentUntabledZ << endl;
-    state << "currentPickMode: " << pickModeToString(config.currentPickMode) << endl;
-    state << "currentBoundingBoxMode: " << pickModeToString(config.currentBoundingBoxMode) << endl;
-    state << "gradientServoTakeClosest: " << config.gradientTakeClosest << endl;
-    state << "synchronicTakeClosest: " << config.synchronicTakeClosest << endl;
-    state << "focusedClass: " << config.focusedClass;
-    if (config.focusedClass != -1) {
-      state << " " << config.classLabels[config.focusedClass];
-    }
-    state << endl;
-    
-    state << "targetClass: " << config.targetClass;
-    if (config.targetClass != -1) {
-      state << " " << config.classLabels[config.targetClass];
-    }
+  string currentState();
 
-    
-    double wrenchNorm = sqrt( eePose::squareDistance(eePose::zero(), config.trueEEWrench) );
-    state << "wrenchNorm: " << wrenchNorm << endl;
-    
-    return state.str();
-
-  }
 };
 
 
