@@ -3,7 +3,8 @@
 
 #include <QTest>
 
-#include <opencv2/highgui/highgui_c.h>
+#include "ein.h"
+
 int last_key = -1;
 
 MainWindow::MainWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
@@ -40,6 +41,8 @@ void MainWindow::rosSpin()
   ros::TimerEvent e;
   timercallback1(e);
   ros::spinOnce();
+
+  ui->stateLabel->setText(QString::fromStdString(ms->currentState()));
 }
 
 
