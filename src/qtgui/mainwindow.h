@@ -5,10 +5,11 @@
 #include <iostream>
 #include <ros/ros.h>
 
+#include "ein.h"
 #include "window_QT.h"
 
-using namespace std;
 
+using namespace std;
 namespace Ui {
 class MainWindow;
 }
@@ -18,7 +19,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = 0, shared_ptr<MachineState> ms);
+    explicit MainWindow(QWidget *parent = 0, shared_ptr<MachineState> ms = 0);
     ~MainWindow();
     Q_INVOKABLE void updateImage(const Mat image) ;
     void setup();
@@ -30,7 +31,7 @@ public slots:
 private:
     Ui::MainWindow *ui;
 
-    <shared_ptr> MachineState ms;
+    shared_ptr<MachineState> ms;
     DefaultEinViewPort myView;
 };
 
