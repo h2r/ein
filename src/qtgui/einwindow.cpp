@@ -7,7 +7,7 @@
 EinWindow::EinWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
     QMainWindow(parent),
     ui(new Ui::EinWindow),
-    myView(parent, CV_WINDOW_KEEPRATIO)
+    myView(parent, EIN_WINDOW_KEEPRATIO)
 {
     ui->setupUi(this);
     ms = _ms;

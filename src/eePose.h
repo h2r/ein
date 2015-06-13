@@ -4,7 +4,6 @@
 #include <iostream>
 #include "eigen_util.h"
 #include <cv.h>
-#include <highgui.h>
 #include <ml.h>
 #include <opencv2/nonfree/nonfree.hpp>
 #include <opencv2/gpu/gpu.hpp>
