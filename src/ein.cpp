@@ -26,6 +26,7 @@ MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
 MainWindow * qtTestWindow = NULL;
+extern int last_key;
 
 ////////////////////////////////////////////////
 // start pilot includes, usings, and defines
@@ -2371,8 +2372,12 @@ void timercallback1(const ros::TimerEvent&) {
   int c = -1;
   if (ms->config.shouldIMiscCallback) {
     c = cvWaitKey(1);
+    c = last_key;
+    last_key = -1;
   } else if ((ms->config.heartBeatCounter % ms->config.heartBeatPeriod) == 0) {
     c = cvWaitKey(1);
+    c = last_key;
+    last_key = -1;
     ms->config.heartBeatCounter = 0;
   }
   ms->config.heartBeatCounter++;

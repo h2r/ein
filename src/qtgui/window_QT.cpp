@@ -61,6 +61,7 @@ using namespace std;
     #endif
 #endif
 
+
 static const unsigned int threshold_zoom_img_region = 30;
 
 

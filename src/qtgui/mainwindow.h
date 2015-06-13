@@ -23,6 +23,7 @@ public:
     Q_INVOKABLE void updateImage(const Mat image) ;
     void setup();
     void setMouseCallBack(EinMouseCallback m, void* param);
+    void keyPressEvent(QKeyEvent *evnt);
 public slots:
     void rosSpin();
 
