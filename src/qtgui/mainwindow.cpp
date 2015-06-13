@@ -4,6 +4,7 @@
 #include <QTest>
 
 #include "ein.h"
+#include "windowmanager.h"
 
 int last_key = -1;
 
@@ -20,6 +21,8 @@ MainWindow::MainWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
     stackModel = new StackModel(this);
     stackModel->setMachineState(ms);
     ui->stackTableView->setModel(stackModel);
+
+    windowManager.setMenu(ui->menuWindows);
 
 }
 
@@ -59,7 +62,12 @@ void MainWindow::setMouseCallBack(EinMouseCallback m, void* param) {
 
 
 void MainWindow::keyPressEvent(QKeyEvent *evnt) {
+  updateLastKey(evnt);
+  QWidget::keyPressEvent(evnt);
 
+}
+
+void updateLastKey(QKeyEvent * evnt) {
   int key = evnt->key();
 
   Qt::Key qtkey = static_cast<Qt::Key>(key);
@@ -75,5 +83,7 @@ void MainWindow::keyPressEvent(QKeyEvent *evnt) {
       last_key = key;
     }
 
-  QWidget::keyPressEvent(evnt);
+}
+void MainWindow::addWindow(EinWindow * window) {
+windowManager.addWindow(window);
 }

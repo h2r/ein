@@ -19,6 +19,7 @@
 #include "ein.h"
 
 #include "qtgui/mainwindow.h"
+#include "qtgui/einwindow.h"
 #include <QApplication>
 #include <QTimer>
 
@@ -1752,6 +1753,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
     }
   }
   guardedImshow(ms->config.rangeogramViewName, ms->config.rangeogramImage, ms->config.sirRangeogram);
+  ms->config.rangeogramWindow->updateImage(ms->config.rangeogramImage);
 
   if (!ms->config.shouldIRangeCallback) {
     return;
@@ -10910,10 +10912,13 @@ int main(int argc, char **argv) {
 
   QApplication a(argc, argv);
 
+
   initializeWords();
   pMachineState = std::make_shared<MachineState>(machineState);
   shared_ptr<MachineState> ms = pMachineState;
   initializeMachine(ms);
+
+
 
   initVectorArcTan(ms);
   srand(time(NULL));
@@ -11109,10 +11114,27 @@ int main(int argc, char **argv) {
   placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
   moveEndEfffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, moveEndEffectorCommandCallback);
 
+
+  qtTestWindow = new MainWindow(NULL, ms);
+  qtTestWindow->show();
+  qtTestWindow->setMouseCallBack(pilotCallbackFunc, NULL);
+  qtTestWindow->setWindowTitle(QString::fromStdString("Ein " + ms->config.left_or_right_arm));
+
+  QTimer *timer = new QTimer(qtTestWindow);
+  qtTestWindow->connect(timer, SIGNAL(timeout()), qtTestWindow, SLOT(rosSpin()));
+  timer->start(0);
+  qRegisterMetaType<Mat>("Mat");
+
+
+
   ms->config.wristViewName = "Wrist View " + ms->config.left_or_right_arm;
   ms->config.coreViewName = "Core View " + ms->config.left_or_right_arm;
   ms->config.faceViewName = "Face View " + ms->config.left_or_right_arm;
   ms->config.rangeogramViewName = "Rangeogram View " + ms->config.left_or_right_arm;
+  ms->config.rangeogramWindow = new EinWindow(qtTestWindow, ms);
+  ms->config.rangeogramWindow->setWindowTitle("Rangeogram View " + ms->config.left_or_right_arm);
+  ms->config.rangeogramWindow->show();
+  qtTestWindow->addWindow(ms->config.rangeogramWindow);
   ms->config.rangemapViewName = "Range Map View " + ms->config.left_or_right_arm;
   ms->config.graspMemoryViewName = "Grasp Memory View " + ms->config.left_or_right_arm;
   ms->config.graspMemorySampleViewName = "Grasp Memory Sample View " + ms->config.left_or_right_arm;
@@ -11203,15 +11225,6 @@ int main(int argc, char **argv) {
 
   ms->config.lastMovementStateSet = ros::Time::now();
 
-  qtTestWindow = new MainWindow(NULL, ms);
-  qtTestWindow->show();
-  qtTestWindow->setMouseCallBack(pilotCallbackFunc, NULL);
-  qtTestWindow->setWindowTitle(QString::fromStdString("Ein " + ms->config.left_or_right_arm));
-
-  QTimer *timer = new QTimer(qtTestWindow);
-  qtTestWindow->connect(timer, SIGNAL(timeout()), qtTestWindow, SLOT(rosSpin()));
-  timer->start(0);
-  qRegisterMetaType<Mat>("Mat");
   a.exec();
   
   //ros::spin();

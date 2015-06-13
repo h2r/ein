@@ -28,6 +28,7 @@
 
 #include "distributions.h"
 
+class EinWindow;
 
 typedef enum {
   ARMED = 0,
@@ -294,6 +295,8 @@ class EinConfig {
 
 
   double bDelta = MOVE_FAST;
+
+  EinWindow * rangeogramWindow;
 
   std::string wristViewName = "Wrist View";
   std::string coreViewName = "Core View";
