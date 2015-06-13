@@ -24,7 +24,6 @@
 #include <baxter_core_msgs/HeadPanCommand.h>
 
 
-#include "ein_util.h"
 #include "eigen_util.h"
 
 #include "distributions.h"

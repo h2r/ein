@@ -36,6 +36,7 @@
       <property name="frameShadow">
        <enum>QFrame::Raised</enum>
       </property>
+      <layout class="QHBoxLayout" name="horizontalLayout"/>
      </widget>
     </item>
    </layout>
@@ -53,13 +54,12 @@
     <bool>true</bool>
    </property>
    <property name="nativeMenuBar">
-    <bool>true</bool>
+    <bool>false</bool>
    </property>
    <widget class="QMenu" name="menuWindows">
     <property name="title">
      <string>Windows</string>
     </property>
-    <addaction name="actionTest"/>
    </widget>
    <addaction name="menuWindows"/>
   </widget>
@@ -74,7 +74,7 @@
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionTest">
    <property name="text">
-    <string>Test</string>
+    <string>Testtest</string>
    </property>
   </action>
  </widget>
