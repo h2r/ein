@@ -235,7 +235,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->config.gradientViewerWindow->setVisible(true);
   ms->config.mapBackgroundViewWindow->setVisible(false);
   ms->config.aerialGradientViewerWindow->setVisible(false);
-  ms->config.wristViewWindow->setVisible(true);
+  ms->config.wristViewWindow->setVisible(false);
   ms->config.coreViewWindow->setVisible(false);
 }
 END_WORD
