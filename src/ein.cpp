@@ -11203,11 +11203,10 @@ int main(int argc, char **argv) {
 
   ms->config.lastMovementStateSet = ros::Time::now();
 
-
   qtTestWindow = new MainWindow();
   qtTestWindow->show();
   qtTestWindow->setMouseCallBack(pilotCallbackFunc, NULL);
-
+  qtTestWindow->setWindowTitle(QString::fromStdString("Ein " + ms->config.left_or_right_arm));
 
   QTimer *timer = new QTimer(qtTestWindow);
   qtTestWindow->connect(timer, SIGNAL(timeout()), qtTestWindow, SLOT(rosSpin()));
