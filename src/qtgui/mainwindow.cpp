@@ -1,10 +1,10 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include <QTest>
+
 #include <opencv2/highgui/highgui_c.h>
-
-
-
+int last_key = -1;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -44,4 +44,25 @@ void MainWindow::rosSpin()
 
 void MainWindow::setMouseCallBack(EinMouseCallback m, void* param) {
   myView.setMouseCallBack(m, param);
+}
+
+
+void MainWindow::keyPressEvent(QKeyEvent *evnt) {
+
+  int key = evnt->key();
+
+  Qt::Key qtkey = static_cast<Qt::Key>(key);
+  char asciiCode = QTest::keyToAscii(qtkey);
+  if (asciiCode != 0)
+    key = static_cast<int>(asciiCode);
+  else
+    key = evnt->nativeVirtualKey(); //same codes as returned by GTK-based backend
+
+  //control plus (Z, +, -, up, down, left, right) are used for zoom/panning functions
+  if (evnt->modifiers() != Qt::ControlModifier)
+    {
+      last_key = key;
+    }
+
+  QWidget::keyPressEvent(evnt);
 }
