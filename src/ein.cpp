@@ -1752,7 +1752,6 @@ void rangeCallback(const sensor_msgs::Range& range) {
       putText(ms->config.rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  guardedImshow(ms->config.rangeogramViewName, ms->config.rangeogramImage, ms->config.sirRangeogram);
   ms->config.rangeogramWindow->updateImage(ms->config.rangeogramImage);
 
   if (!ms->config.shouldIRangeCallback) {
@@ -2478,7 +2477,10 @@ void timercallback1(const ros::TimerEvent&) {
   if (ms->config.sirCore) {
     renderCoreView(ms, ms->config.coreViewName);
   }
-  renderRangeogramView(ms);
+
+  if (ms->config.rangeogramWindow->isVisible()) {
+    renderRangeogramView(ms);
+  }
 
   if (ms->config.shouldIRender) {
     renderObjectMapView(ms);
@@ -3352,7 +3354,7 @@ void renderRangeogramView(shared_ptr<MachineState> ms) {
       putText(ms->config.rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  guardedImshow(ms->config.rangeogramViewName, ms->config.rangeogramImage, ms->config.sirRangeogram);
+  ms->config.rangeogramWindow->updateImage(ms->config.rangeogramImage);
 }
 
 void targetCallback(const geometry_msgs::Point& point) {
@@ -11130,11 +11132,11 @@ int main(int argc, char **argv) {
   ms->config.wristViewName = "Wrist View " + ms->config.left_or_right_arm;
   ms->config.coreViewName = "Core View " + ms->config.left_or_right_arm;
   ms->config.faceViewName = "Face View " + ms->config.left_or_right_arm;
-  ms->config.rangeogramViewName = "Rangeogram View " + ms->config.left_or_right_arm;
-  ms->config.rangeogramWindow = new EinWindow(qtTestWindow, ms);
+
+  ms->config.rangeogramWindow = new EinWindow(NULL, ms);
   ms->config.rangeogramWindow->setWindowTitle("Rangeogram View " + ms->config.left_or_right_arm);
-  ms->config.rangeogramWindow->show();
   qtTestWindow->addWindow(ms->config.rangeogramWindow);
+
   ms->config.rangemapViewName = "Range Map View " + ms->config.left_or_right_arm;
   ms->config.graspMemoryViewName = "Grasp Memory View " + ms->config.left_or_right_arm;
   ms->config.graspMemorySampleViewName = "Grasp Memory Sample View " + ms->config.left_or_right_arm;
@@ -11148,7 +11150,6 @@ int main(int argc, char **argv) {
   cv::namedWindow(ms->config.graspMemoryViewName);
   cv::setMouseCallback(ms->config.graspMemoryViewName, graspMemoryCallbackFunc, NULL);
   cv::namedWindow(ms->config.coreViewName);
-  cv::namedWindow(ms->config.rangeogramViewName);
   cv::namedWindow(ms->config.mapBackgroundViewName);
   cv::namedWindow(ms->config.faceViewName);
 
