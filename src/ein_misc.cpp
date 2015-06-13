@@ -124,38 +124,8 @@ REGISTER_WORD(PauseAndReset)
 
 WORD(PushState)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  stringstream state;
-
-  state << endl;
-  state << "Current EE Position (x,y,z): " << ms->config.currentEEPose.px << " " << ms->config.currentEEPose.py << " " << ms->config.currentEEPose.pz << endl;
-  state << "Current EE Orientation (x,y,z,w): " << ms->config.currentEEPose.qx << " " << ms->config.currentEEPose.qy << " " << ms->config.currentEEPose.qz << " " << ms->config.currentEEPose.qw << endl;
-  state << "True EE Position (x,y,z): " << ms->config.trueEEPose.position.x << " " << ms->config.trueEEPose.position.y << " " << ms->config.trueEEPose.position.z << endl;
-  state << "True EE Orientation (x,y,z,w): " << ms->config.trueEEPose.orientation.x << " " << ms->config.trueEEPose.orientation.y << " " << ms->config.trueEEPose.orientation.z << " " << ms->config.trueEEPose.orientation.w << endl;
-  state <<
-    "eePose = {.px = " << ms->config.trueEEPose.position.x << ", .py = " << ms->config.trueEEPose.position.y << ", .pz = " << ms->config.trueEEPose.position.z << "," << endl <<
-    "		      .qx = " << ms->config.trueEEPose.orientation.x << ", .qy = " << ms->config.trueEEPose.orientation.y << ", .qz = " << ms->config.trueEEPose.orientation.z << ", .qw = " << ms->config.trueEEPose.orientation.w << "};" << endl;
-  state << "currentThompsonHeightIdx: " << ms->config.currentThompsonHeightIdx << endl;
-  state << "mostRecentUntabledZ (remember this is inverted but correct): " << ms->config.mostRecentUntabledZ << endl;
-  state << "currentPickMode: " << pickModeToString(ms->config.currentPickMode) << endl;
-  state << "currentBoundingBoxMode: " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
-  state << "gradientServoTakeClosest: " << ms->config.gradientTakeClosest << endl;
-  state << "synchronicTakeClosest: " << ms->config.synchronicTakeClosest << endl;
-  state << "focusedClass: " << ms->config.focusedClass;
-  if (ms->config.focusedClass != -1) {
-    state << " " << ms->config.classLabels[ms->config.focusedClass];
-  }
-  state << endl;
-  
-  state << "targetClass: " << ms->config.targetClass;
-  if (ms->config.targetClass != -1) {
-    state << " " << ms->config.classLabels[ms->config.targetClass];
-  }
-
-  
-  double wrenchNorm = sqrt( eePose::squareDistance(eePose::zero(), ms->config.trueEEWrench) );
-  state << "wrenchNorm: " << wrenchNorm << endl;
-  
-  shared_ptr<StringWord> outword = std::make_shared<StringWord>(state.str());
+  string state = ms->currentState();
+  shared_ptr<StringWord> outword = std::make_shared<StringWord>(state);
   ms->pushWord(outword);
 }
 END_WORD

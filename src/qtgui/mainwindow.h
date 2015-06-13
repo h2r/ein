@@ -18,7 +18,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = 0);
+    explicit MainWindow(QWidget *parent = 0, shared_ptr<MachineState> ms);
     ~MainWindow();
     Q_INVOKABLE void updateImage(const Mat image) ;
     void setup();
@@ -30,7 +30,7 @@ public slots:
 private:
     Ui::MainWindow *ui;
 
-
+    <shared_ptr> MachineState ms;
     DefaultEinViewPort myView;
 };
 
