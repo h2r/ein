@@ -22,6 +22,7 @@ public:
     ~MainWindow();
     Q_INVOKABLE void updateImage(const Mat image) ;
     void setup();
+    void setMouseCallBack(EinMouseCallback m, void* param);
 public slots:
     void rosSpin();
 
