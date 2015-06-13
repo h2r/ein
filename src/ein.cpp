@@ -2961,7 +2961,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   if (ms->config.shouldIRender) {
     guardedImshow(ms->config.wristViewName, ms->config.wristViewImage, ms->config.sirWrist);
-    //qtTestWindow->updateImage(ms->config.wristViewImage);
+    qtTestWindow->updateImage(ms->config.wristViewImage);
+    
   }
 }
 
@@ -11142,11 +11143,12 @@ int main(int argc, char **argv) {
   qtTestWindow = new MainWindow();
   qtTestWindow->show();
 
-  //QTimer *timer = new QTimer(&w);
-  //w.connect(timer, SIGNAL(timeout()), &w, SLOT(rosSpin()));
-  //timer->start(0);
-  //a.exec();
-  ros::spin();
+  QTimer *timer = new QTimer(qtTestWindow);
+  qtTestWindow->connect(timer, SIGNAL(timeout()), qtTestWindow, SLOT(rosSpin()));
+  timer->start(0);
+  
+  a.exec();
+  //ros::spin();
 
   return 0;
 }
