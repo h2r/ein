@@ -34,3 +34,7 @@ EinWindow::~EinWindow()
 {
     delete ui;
 }
+
+void EinWindow::toggleVisible(bool show) {
+  setVisible(show);
+}
