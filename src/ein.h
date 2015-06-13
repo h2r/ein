@@ -156,6 +156,11 @@ void fetchCommandCallback(const std_msgs::String::ConstPtr& msg);
 void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
 int classIdxForName(shared_ptr<MachineState> ms, string name);
 
+void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folderName);
+void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, string servoCrop_file_path);
+void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path);
+void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
+
 void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
 void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);
 void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg);

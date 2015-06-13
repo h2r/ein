@@ -1978,25 +1978,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     string this_grasp_path = dirToMakePath + "3dGrasps.yml";
 
     mkdir(dirToMakePath.c_str(), 0777);
-
-    FileStorage fsvO;
-    cout << "save3dGrasps: Writing: " << this_grasp_path << endl;
-    fsvO.open(this_grasp_path, FileStorage::WRITE);
-
-    fsvO << "grasps" << "{";
-    {
-      int tng = ms->config.class3dGrasps[ms->config.focusedClass].size();
-      fsvO << "size" <<  tng;
-      fsvO << "graspPoses" << "[" ;
-      for (int i = 0; i < tng; i++) {
-	ms->config.class3dGrasps[ms->config.focusedClass][i].writeToFileStorage(fsvO);
-	cout << " wrote pose: " << ms->config.class3dGrasps[ms->config.focusedClass][i] << endl;
-      }
-      fsvO << "]";
-    }
-    fsvO << "}";
-
-    fsvO.release();
+    write3dGrasps(ms, ms->config.focusedClass, this_grasp_path);
   } 
 }
 END_WORD
@@ -2176,8 +2158,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(PreAnnotateCenterGrasp)
 
-
-
 WORD(PreAnnotateOffsetGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   zeroGraspMemoryAndRangeMap(ms);
@@ -2201,5 +2181,51 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(PreAnnotateOffsetGrasp)
 
+WORD(WriteAlphaObjectToBetaFolders)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> word1 = ms->popWord();
+  shared_ptr<Word> word2 = ms->popWord();
+
+  if ((word1== NULL) || (word2 == NULL)) {
+    cout << "Must pass a string as an argument to " << this->name() << endl;
+  } else {
+    string newClassName = word1->to_string();
+    string oldClassName = word2->to_string();
+    int class_idx = classIdxForName(ms, oldClassName);
+    if (class_idx != -1) {
+      cout << "About to write data for class \"" << ms->config.classLabels[class_idx] << "\" index " << class_idx << " to folder \"" << ms->config.data_directory + "/" + newClassName << "\", unpause to proceed." << endl;
+      ms->pushWord(oldClassName);
+      ms->pushWord(newClassName);
+      ms->pushWord("writeAlphaObjectToBetaFoldersA");
+      ms->pushWord("pauseStackExecution");
+    } else {
+      cout << "No class for " << oldClassName << " for " << this->name() << endl;
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(WriteAlphaObjectToBetaFolders)
+
+WORD(WriteAlphaObjectToBetaFoldersA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> word1 = ms->popWord();
+  shared_ptr<Word> word2 = ms->popWord();
+
+  if ((word1== NULL) || (word2 == NULL)) {
+    cout << "Must pass a string as an argument to " << this->name() << endl;
+  } else {
+    string newClassName = word1->to_string();
+    string oldClassName = word2->to_string();
+    int class_idx = classIdxForName(ms, oldClassName);
+    if (class_idx != -1) {
+      cout << "Writing data for class \"" << ms->config.classLabels[class_idx] << "\" index " << class_idx << " to folder \"" << ms->config.data_directory + "/" + newClassName << "\"." << endl;
+      writeClassToFolder(ms, class_idx, ms->config.data_directory + "/" + newClassName);
+    } else {
+      cout << "No class for " << oldClassName << " for " << this->name() << endl;
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(WriteAlphaObjectToBetaFoldersA)
 
 }
