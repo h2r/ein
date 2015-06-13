@@ -59,7 +59,7 @@
      <widget class="QLabel" name="stateLabel">
       <property name="minimumSize">
        <size>
-        <width>750</width>
+        <width>720</width>
         <height>0</height>
        </size>
       </property>
