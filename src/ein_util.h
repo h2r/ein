@@ -50,7 +50,6 @@ typedef enum {
 
 
 
-std::string pickModeToString(pickMode mode);
 
 
 #define ORIENTATIONS 180//12 
