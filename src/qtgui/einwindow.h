@@ -29,8 +29,14 @@ public:
     void setWindowTitle(string s) {
       QMainWindow::setWindowTitle(QString::fromStdString(s));
     }
+
+    void setVisible(bool);
+
 public slots:
     void toggleVisible(bool show);
+
+signals: 
+  void visibleChanged(bool visible);
 
 private:
     Ui::EinWindow *ui;

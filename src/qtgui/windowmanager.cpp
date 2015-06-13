@@ -19,5 +19,9 @@ void WindowManager::addWindow(EinWindow * window) {
   menu->addAction(windowAction);
 
   windowAction->connect(windowAction, SIGNAL(toggled(bool)), window, SLOT(toggleVisible(bool)));
+
+
+  window->connect(window, SIGNAL(visibleChanged(bool)), windowAction, SLOT(setChecked(bool)));
+
 }
 

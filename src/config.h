@@ -300,7 +300,6 @@ class EinConfig {
 
   std::string wristViewName = "Wrist View";
   std::string coreViewName = "Core View";
-  std::string rangeogramViewName = "Rangeogram View";
   std::string rangemapViewName = "Range Map View";
   std::string hiRangemapViewName = "Hi Range Map View";
   std::string hiColorRangemapViewName = "Hi Color Range Map View";
@@ -811,7 +810,6 @@ class EinConfig {
   vector<eePose> cornellTables;
   int currentCornellTableIndex = 0;
   
-  bool sirRangeogram = 1;
   bool sirRangemap = 1;
   bool sirGraspMemory = 1;
   bool sirGraspMemorySample = 1;

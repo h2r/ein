@@ -38,3 +38,9 @@ EinWindow::~EinWindow()
 void EinWindow::toggleVisible(bool show) {
   setVisible(show);
 }
+
+void EinWindow::setVisible(bool show) {
+  QMainWindow::setVisible(show);
+  emit visibleChanged(show);
+}
+

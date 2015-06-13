@@ -1,6 +1,7 @@
 
 #include "ein_words.h"
 #include "ein.h"
+#include "qtgui/einwindow.h"
 
 
 namespace ein_words {
@@ -152,7 +153,8 @@ WORD(GuiShowAll)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   destroyAllWindows();
-  ms->config.sirRangeogram = 1;
+  ms->config.rangeogramWindow->setVisible(true);
+
   ms->config.sirRangemap = 1;
   ms->config.sirGraspMemory = 1;
   ms->config.sirGraspMemorySample = 1;
@@ -181,7 +183,8 @@ WORD(GuiHideAll)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   destroyAllWindows();
-  ms->config.sirRangeogram = 0;
+  ms->config.rangeogramWindow->setVisible(false);
+
   ms->config.sirRangemap = 0;
   ms->config.sirGraspMemory = 0;
   ms->config.sirGraspMemorySample = 0;
@@ -208,7 +211,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ROS_ERROR_STREAM("Called word guiCustom1.");
   ROS_WARN_STREAM("___________________");
   destroyAllWindows();
-  ms->config.sirRangeogram = 0;
+  ms->config.rangeogramWindow->setVisible(false);
+
   ms->config.sirRangemap = 0;
   ms->config.sirGraspMemory = 0;
   ms->config.sirGraspMemorySample = 0;
