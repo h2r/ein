@@ -11203,12 +11203,12 @@ int main(int argc, char **argv) {
   qtTestWindow = new MainWindow();
   qtTestWindow->show();
 
-  QTimer *timer = new QTimer(qtTestWindow);
-  qtTestWindow->connect(timer, SIGNAL(timeout()), qtTestWindow, SLOT(rosSpin()));
-  timer->start(0);
+  //QTimer *timer = new QTimer(qtTestWindow);
+  //qtTestWindow->connect(timer, SIGNAL(timeout()), qtTestWindow, SLOT(rosSpin()));
+  //timer->start(0);
   
-  a.exec();
-  //ros::spin();
+  //a.exec();
+  ros::spin();
 
   return 0;
 }

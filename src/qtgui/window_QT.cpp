@@ -161,6 +161,8 @@ void DefaultEinViewPort::updateImage(const Mat arr)
         //the image in ipl (to do a deep copy with cvCvtColor)
         image2Draw_mat = cvCreateMat(mat->rows, mat->cols, CV_8UC3);
         image2Draw_qt = QImage(image2Draw_mat->data.ptr, image2Draw_mat->cols, image2Draw_mat->rows, image2Draw_mat->step, QImage::Format_RGB888);
+        setMaximumSize(image2Draw_qt.width(), image2Draw_qt.height());
+        setMinimumSize(image2Draw_qt.width(), image2Draw_qt.height());
 
         //use to compute mouse coordinate, I need to update the ratio here and in resizeEvent
         ratioX = width() / float(image2Draw_mat->cols);
