@@ -11,5 +11,13 @@ void WindowManager::setMenu(QMenu * _menu) {
 
 void WindowManager::addWindow(EinWindow * window) {
   windows.push_back(window);
-  menu->addAction(window->windowTitle());
+  QAction * windowAction  = new QAction(menu);
+  windowAction->setText(window->windowTitle());
+  windowAction->setCheckable(true);
+  windowAction->setChecked(window->isVisible());
+
+  menu->addAction(windowAction);
+
+  windowAction->connect(windowAction, SIGNAL(toggled(bool)), window, SLOT(toggleVisible(bool)));
 }
+
