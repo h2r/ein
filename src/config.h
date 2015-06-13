@@ -297,26 +297,24 @@ class EinConfig {
   double bDelta = MOVE_FAST;
 
   EinWindow * rangeogramWindow;
+  EinWindow * wristViewWindow;
+  EinWindow * coreViewWindow;
+  EinWindow * rangemapWindow;
+  EinWindow * hiRangemapWindow;
+  EinWindow * hiColorRangemapWindow;
+  EinWindow * graspMemoryWindow;
+  EinWindow * graspMemorySampleWindow;
+  EinWindow * mapBackgroundViewWindow;
+  EinWindow * faceViewWindow;
+  EinWindow * heightMemorySampleWindow;
 
-  std::string wristViewName = "Wrist View";
-  std::string coreViewName = "Core View";
-  std::string rangemapViewName = "Range Map View";
-  std::string hiRangemapViewName = "Hi Range Map View";
-  std::string hiColorRangemapViewName = "Hi Color Range Map View";
-  std::string graspMemoryViewName = "Grasp Memory View";
-  std::string graspMemorySampleViewName = "Grasp Memory Sample View";
-  std::string mapBackgroundViewName = "Map Background Vew";
-  std::string faceViewName = "Face View";
-  std::string heightMemorySampleViewName = "Height Memory Sample View";
 
-
-  std::string densityViewerName = "Density Viewer";
-  std::string objectViewerName = "Object Viewer";
-  std::string objectMapViewerName = "Object Map View";
-  std::string gradientViewerName = "Gradient Viewer";
-  std::string aerialGradientViewerName = "Aerial Gradient Viewer";
-  std::string stereoViewerName = "Stereo Viewer";
-
+  EinWindow * densityViewerWindow;
+  EinWindow * objectViewerWindow;
+  EinWindow * objectMapViewerWindow;
+  EinWindow * gradientViewerWindow;
+  EinWindow * aerialGradientViewerWindow;
+  EinWindow * stereoViewerWindow;
 
   eePose calibrationPose;
   eePose shrugPose;
@@ -400,7 +398,7 @@ class EinConfig {
   int bfc = 0;
   int bfc_period = 3;
 
-
+  Mat coreViewImage;
   Mat rangeogramImage;
   Mat rangemapImage;
   Mat hiRangemapImage;
@@ -810,22 +808,6 @@ class EinConfig {
   vector<eePose> cornellTables;
   int currentCornellTableIndex = 0;
   
-  bool sirRangemap = 1;
-  bool sirGraspMemory = 1;
-  bool sirGraspMemorySample = 1;
-  bool sirHeightMemorySample = 1;
-  bool sirHiRangemap = 1;
-  bool sirHiColorRangemap = 1;
-  bool sirObject = 1;
-  bool sirObjectMap = 1;
-  bool sirDensity = 1;
-  bool sirGradient = 1;
-  bool sirObjectness = 1;
-  bool sirMapBackground = 1;
-  bool sirAerialGradient = 1;
-  bool sirWrist = 1;
-  bool sirCore = 1;
-  bool sirStereo = 1;
   
   bool use_simulator = false;
   

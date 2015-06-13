@@ -15,7 +15,9 @@ EinWindow::EinWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
 }
 
 void EinWindow::updateImage(const Mat image)  {
-  myView.updateImage(image);
+  if ( !isSketchyMat(image)) {
+    myView.updateImage(image);
+  }
 }
 
 void EinWindow::setMouseCallBack(EinMouseCallback m, void* param) {

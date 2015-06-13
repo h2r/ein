@@ -59,7 +59,6 @@ typedef enum {
 
 
 void pushSpeedSign(shared_ptr<MachineState> ms, double speed);
-void guardedImshow(string name, Mat image, bool shouldIRender);
 bool isSketchyMat(Mat sketchy);
 eePose rosPoseToEEPose(geometry_msgs::Pose pose);
 
