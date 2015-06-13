@@ -95,10 +95,10 @@ enum type_mouse_event { mouse_up = 0, mouse_down = 1, mouse_dbclick = 2, mouse_m
 /*   //mouse_move */
 
 
-class ViewPort
+class EinViewPort
 {
 public:
-    virtual ~ViewPort() {}
+    virtual ~EinViewPort() {}
 
     virtual QWidget* getWidget() = 0;
 
@@ -121,11 +121,11 @@ public:
 
 #ifdef HAVE_QT_OPENGL
 
-class OpenGlViewPort : public QGLWidget, public ViewPort
+class OpenGlEinViewPort : public QGLWidget, public EinViewPort
 {
 public:
-    explicit OpenGlViewPort(QWidget* parent);
-    ~OpenGlViewPort();
+    explicit OpenGlEinViewPort(QWidget* parent);
+    ~OpenGlEinViewPort();
 
     QWidget* getWidget();
 
@@ -162,13 +162,13 @@ private:
 #endif // HAVE_QT_OPENGL
 
 
-class DefaultViewPort : public QGraphicsView, public ViewPort
+class DefaultEinViewPort : public QGraphicsView, public EinViewPort
 {
     Q_OBJECT
 
 public:
-    DefaultViewPort(QWidget* centralWidget, int keep_ratio);
-    ~DefaultViewPort();
+    DefaultEinViewPort(QWidget* centralWidget, int keep_ratio);
+    ~DefaultEinViewPort();
 
     QWidget* getWidget();
 

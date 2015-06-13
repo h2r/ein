@@ -27,7 +27,7 @@ private:
     Ui::MainWindow *ui;
 
 
-    DefaultViewPort myView;
+    DefaultEinViewPort myView;
 };
 
 #endif // MAINWINDOW_H

@@ -62,9 +62,9 @@
 static const unsigned int threshold_zoom_img_region = 30;
 
 //////////////////////////////////////////////////////
-// DefaultViewPort
+// DefaultEinViewPort
 
-DefaultViewPort::DefaultViewPort(QWidget* arg, int keep_ratio) : QGraphicsView(arg)
+DefaultEinViewPort::DefaultEinViewPort(QWidget* arg, int keep_ratio) : QGraphicsView(arg)
 {
 
     image2Draw_mat = 0;
@@ -101,21 +101,21 @@ DefaultViewPort::DefaultViewPort(QWidget* arg, int keep_ratio) : QGraphicsView(a
 }
 
 
-DefaultViewPort::~DefaultViewPort()
+DefaultEinViewPort::~DefaultEinViewPort()
 {
     if (image2Draw_mat)
         cvReleaseMat(&image2Draw_mat);
 }
 
 
-QWidget* DefaultViewPort::getWidget()
+QWidget* DefaultEinViewPort::getWidget()
 {
     return this;
 }
 
 
 
-void DefaultViewPort::writeSettings(QSettings& settings)
+void DefaultEinViewPort::writeSettings(QSettings& settings)
 {
     settings.setValue("matrix_view.m11", param_matrixWorld.m11());
     settings.setValue("matrix_view.m12", param_matrixWorld.m12());
@@ -129,7 +129,7 @@ void DefaultViewPort::writeSettings(QSettings& settings)
 }
 
 
-void DefaultViewPort::readSettings(QSettings& settings)
+void DefaultEinViewPort::readSettings(QSettings& settings)
 {
     qreal m11 = settings.value("matrix_view.m11", param_matrixWorld.m11()).toDouble();
     qreal m12 = settings.value("matrix_view.m12", param_matrixWorld.m12()).toDouble();
@@ -145,7 +145,7 @@ void DefaultViewPort::readSettings(QSettings& settings)
 }
 
 
-void DefaultViewPort::updateImage(const Mat arr)
+void DefaultEinViewPort::updateImage(const Mat arr)
 {
   CvMat cvimg = arr;
     CV_Assert(&cvimg);
@@ -176,7 +176,7 @@ void DefaultViewPort::updateImage(const Mat arr)
 }
 
 
-void DefaultViewPort::startDisplayInfo(QString text, int delayms)
+void DefaultEinViewPort::startDisplayInfo(QString text, int delayms)
 {
     if (timerDisplay->isActive())
         stopDisplayInfo();
@@ -188,20 +188,20 @@ void DefaultViewPort::startDisplayInfo(QString text, int delayms)
 
 
 
-void DefaultViewPort::makeCurrentOpenGlContext()
+void DefaultEinViewPort::makeCurrentOpenGlContext()
 {
     CV_Error(CV_OpenGlNotSupported, "Window doesn't support OpenGL");
 }
 
 
-void DefaultViewPort::updateGl()
+void DefaultEinViewPort::updateGl()
 {
     CV_Error(CV_OpenGlNotSupported, "Window doesn't support OpenGL");
 }
 
 
 //Note: move 2 percent of the window
-void DefaultViewPort::siftWindowOnLeft()
+void DefaultEinViewPort::siftWindowOnLeft()
 {
     float delta = 2 * width() / (100.0 * param_matrixWorld.m11());
     moveView(QPointF(delta, 0));
@@ -209,7 +209,7 @@ void DefaultViewPort::siftWindowOnLeft()
 
 
 //Note: move 2 percent of the window
-void DefaultViewPort::siftWindowOnRight()
+void DefaultEinViewPort::siftWindowOnRight()
 {
     float delta = -2 * width() / (100.0 * param_matrixWorld.m11());
     moveView(QPointF(delta, 0));
@@ -217,7 +217,7 @@ void DefaultViewPort::siftWindowOnRight()
 
 
 //Note: move 2 percent of the window
-void DefaultViewPort::siftWindowOnUp()
+void DefaultEinViewPort::siftWindowOnUp()
 {
     float delta = 2 * height() / (100.0 * param_matrixWorld.m11());
     moveView(QPointF(0, delta));
@@ -225,40 +225,40 @@ void DefaultViewPort::siftWindowOnUp()
 
 
 //Note: move 2 percent of the window
-void DefaultViewPort::siftWindowOnDown()
+void DefaultEinViewPort::siftWindowOnDown()
 {
     float delta = -2 * height() / (100.0 * param_matrixWorld.m11());
     moveView(QPointF(0, delta));
 }
 
 
-void DefaultViewPort::imgRegion()
+void DefaultEinViewPort::imgRegion()
 {
     scaleView((threshold_zoom_img_region / param_matrixWorld.m11() - 1) * 5, QPointF(size().width() / 2, size().height() / 2));
 }
 
 
-void DefaultViewPort::resetZoom()
+void DefaultEinViewPort::resetZoom()
 {
     param_matrixWorld.reset();
     controlImagePosition();
 }
 
 
-void DefaultViewPort::ZoomIn()
+void DefaultEinViewPort::ZoomIn()
 {
     scaleView(0.5, QPointF(size().width() / 2, size().height() / 2));
 }
 
 
-void DefaultViewPort::ZoomOut()
+void DefaultEinViewPort::ZoomOut()
 {
     scaleView(-0.5, QPointF(size().width() / 2, size().height() / 2));
 }
 
 
 //can save as JPG, JPEG, BMP, PNG
-void DefaultViewPort::saveView()
+void DefaultEinViewPort::saveView()
 {
     QDate date_d = QDate::currentDate();
     QString date_s = date_d.toString("dd.MM.yyyy");
@@ -305,7 +305,7 @@ void DefaultViewPort::saveView()
 
 
 
-void DefaultViewPort::resizeEvent(QResizeEvent* evnt)
+void DefaultEinViewPort::resizeEvent(QResizeEvent* evnt)
 {
     controlImagePosition();
 
@@ -337,14 +337,14 @@ void DefaultViewPort::resizeEvent(QResizeEvent* evnt)
 }
 
 
-void DefaultViewPort::wheelEvent(QWheelEvent* evnt)
+void DefaultEinViewPort::wheelEvent(QWheelEvent* evnt)
 {
     scaleView(evnt->delta() / 240.0, evnt->pos());
     viewport()->update();
 }
 
 
-void DefaultViewPort::mousePressEvent(QMouseEvent* evnt)
+void DefaultEinViewPort::mousePressEvent(QMouseEvent* evnt)
 {
     int cv_event = -1, flags = 0;
     QPoint pt = evnt->pos();
@@ -360,7 +360,7 @@ void DefaultViewPort::mousePressEvent(QMouseEvent* evnt)
 }
 
 
-void DefaultViewPort::mouseReleaseEvent(QMouseEvent* evnt)
+void DefaultEinViewPort::mouseReleaseEvent(QMouseEvent* evnt)
 {
     int cv_event = -1, flags = 0;
     QPoint pt = evnt->pos();
@@ -373,7 +373,7 @@ void DefaultViewPort::mouseReleaseEvent(QMouseEvent* evnt)
 }
 
 
-void DefaultViewPort::mouseDoubleClickEvent(QMouseEvent* evnt)
+void DefaultEinViewPort::mouseDoubleClickEvent(QMouseEvent* evnt)
 {
     int cv_event = -1, flags = 0;
     QPoint pt = evnt->pos();
@@ -383,7 +383,7 @@ void DefaultViewPort::mouseDoubleClickEvent(QMouseEvent* evnt)
 }
 
 
-void DefaultViewPort::mouseMoveEvent(QMouseEvent* evnt)
+void DefaultEinViewPort::mouseMoveEvent(QMouseEvent* evnt)
 {
     int cv_event = CV_EVENT_MOUSEMOVE, flags = 0;
     QPoint pt = evnt->pos();
@@ -401,7 +401,7 @@ void DefaultViewPort::mouseMoveEvent(QMouseEvent* evnt)
 }
 
 
-void DefaultViewPort::paintEvent(QPaintEvent* evnt)
+void DefaultEinViewPort::paintEvent(QPaintEvent* evnt)
 {
     QPainter myPainter(viewport());
     myPainter.setWorldTransform(param_matrixWorld);
@@ -433,20 +433,20 @@ void DefaultViewPort::paintEvent(QPaintEvent* evnt)
 }
 
 
-void DefaultViewPort::stopDisplayInfo()
+void DefaultEinViewPort::stopDisplayInfo()
 {
     timerDisplay->stop();
     drawInfo = false;
 }
 
 
-inline bool DefaultViewPort::isSameSize(IplImage* img1, IplImage* img2)
+inline bool DefaultEinViewPort::isSameSize(IplImage* img1, IplImage* img2)
 {
     return img1->width == img2->width && img1->height == img2->height;
 }
 
 
-void DefaultViewPort::controlImagePosition()
+void DefaultEinViewPort::controlImagePosition()
 {
     qreal left, top, right, bottom;
 
@@ -487,7 +487,7 @@ void DefaultViewPort::controlImagePosition()
     //viewport()->update();
 }
 
-void DefaultViewPort::moveView(QPointF delta)
+void DefaultEinViewPort::moveView(QPointF delta)
 {
     param_matrixWorld.translate(delta.x(),delta.y());
     controlImagePosition();
@@ -495,7 +495,7 @@ void DefaultViewPort::moveView(QPointF delta)
 }
 
 //factor is -0.5 (zoom out) or 0.5 (zoom in)
-void DefaultViewPort::scaleView(qreal factor,QPointF center)
+void DefaultEinViewPort::scaleView(qreal factor,QPointF center)
 {
     factor/=5;//-0.1 <-> 0.1
     factor+=1;//0.9 <-> 1.1
@@ -530,7 +530,7 @@ void DefaultViewPort::scaleView(qreal factor,QPointF center)
 
 
 
-QSize DefaultViewPort::sizeHint() const
+QSize DefaultEinViewPort::sizeHint() const
 {
     if(image2Draw_mat)
         return QSize(image2Draw_mat->cols, image2Draw_mat->rows);
@@ -539,14 +539,14 @@ QSize DefaultViewPort::sizeHint() const
 }
 
 
-void DefaultViewPort::draw2D(QPainter *painter)
+void DefaultEinViewPort::draw2D(QPainter *painter)
 {
     image2Draw_qt = QImage(image2Draw_mat->data.ptr, image2Draw_mat->cols, image2Draw_mat->rows,image2Draw_mat->step,QImage::Format_RGB888);
     painter->drawImage(QRect(0,0,viewport()->width(),viewport()->height()), image2Draw_qt, QRect(0,0, image2Draw_qt.width(), image2Draw_qt.height()) );
 }
 
 //only if CV_8UC1 or CV_8UC3
-void DefaultViewPort::drawStatusBar()
+void DefaultEinViewPort::drawStatusBar()
 {
     if (nbChannelOriginImage!=CV_8UC1 && nbChannelOriginImage!=CV_8UC3)
         return;
@@ -562,7 +562,7 @@ void DefaultViewPort::drawStatusBar()
 }
 
 //accept only CV_8UC1 and CV_8UC8 image for now
-void DefaultViewPort::drawImgRegion(QPainter *painter)
+void DefaultEinViewPort::drawImgRegion(QPainter *painter)
 {
     if (nbChannelOriginImage!=CV_8UC1 && nbChannelOriginImage!=CV_8UC3)
         return;
@@ -657,7 +657,7 @@ void DefaultViewPort::drawImgRegion(QPainter *painter)
 
 }
 
-void DefaultViewPort::drawViewOverview(QPainter *painter)
+void DefaultEinViewPort::drawViewOverview(QPainter *painter)
 {
     QSize viewSize = size();
     viewSize.scale ( 100, 100,Qt::KeepAspectRatio );
@@ -680,7 +680,7 @@ void DefaultViewPort::drawViewOverview(QPainter *painter)
         );
 }
 
-void DefaultViewPort::drawInstructions(QPainter *painter)
+void DefaultEinViewPort::drawInstructions(QPainter *painter)
 {
     QFontMetrics metrics = QFontMetrics(font());
     int border = qMax(4, metrics.leading());
@@ -700,17 +700,17 @@ void DefaultViewPort::drawInstructions(QPainter *painter)
 }
 
 
-void DefaultViewPort::setSize(QSize /*size_*/)
+void DefaultEinViewPort::setSize(QSize /*size_*/)
 {
 }
 
 
 //////////////////////////////////////////////////////
-// OpenGlViewPort
+// OpenGlEinViewPort
 
 #ifdef HAVE_QT_OPENGL
 
-OpenGlViewPort::OpenGlViewPort(QWidget* _parent) : QGLWidget(_parent), size(-1, -1)
+OpenGlEinViewPort::OpenGlEinViewPort(QWidget* _parent) : QGLWidget(_parent), size(-1, -1)
 {
     mouseCallback = 0;
     mouseData = 0;
@@ -719,61 +719,61 @@ OpenGlViewPort::OpenGlViewPort(QWidget* _parent) : QGLWidget(_parent), size(-1, 
     glDrawData = 0;
 }
 
-OpenGlViewPort::~OpenGlViewPort()
+OpenGlEinViewPort::~OpenGlEinViewPort()
 {
 }
 
-QWidget* OpenGlViewPort::getWidget()
+QWidget* OpenGlEinViewPort::getWidget()
 {
     return this;
 }
 
 
 
-void OpenGlViewPort::writeSettings(QSettings& /*settings*/)
+void OpenGlEinViewPort::writeSettings(QSettings& /*settings*/)
 {
 }
 
-void OpenGlViewPort::readSettings(QSettings& /*settings*/)
+void OpenGlEinViewPort::readSettings(QSettings& /*settings*/)
 {
 }
 
 
-void OpenGlViewPort::updateImage(const Mat /*arr*/)
+void OpenGlEinViewPort::updateImage(const Mat /*arr*/)
 {
 }
 
-void OpenGlViewPort::startDisplayInfo(QString /*text*/, int /*delayms*/)
+void OpenGlEinViewPort::startDisplayInfo(QString /*text*/, int /*delayms*/)
 {
 }
 
-void OpenGlViewPort::setOpenGlDrawCallback(CvOpenGlDrawCallback callback, void* userdata)
+void OpenGlEinViewPort::setOpenGlDrawCallback(CvOpenGlDrawCallback callback, void* userdata)
 {
     glDrawCallback = callback;
     glDrawData = userdata;
 }
 
-void OpenGlViewPort::makeCurrentOpenGlContext()
+void OpenGlEinViewPort::makeCurrentOpenGlContext()
 {
     makeCurrent();
 }
 
-void OpenGlViewPort::updateGl()
+void OpenGlEinViewPort::updateGl()
 {
     QGLWidget::updateGL();
 }
 
-void OpenGlViewPort::initializeGL()
+void OpenGlEinViewPort::initializeGL()
 {
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 }
 
-void OpenGlViewPort::resizeGL(int w, int h)
+void OpenGlEinViewPort::resizeGL(int w, int h)
 {
     glViewport(0, 0, w, h);
 }
 
-void OpenGlViewPort::paintGL()
+void OpenGlEinViewPort::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -781,7 +781,7 @@ void OpenGlViewPort::paintGL()
         glDrawCallback(glDrawData);
 }
 
-void OpenGlViewPort::mousePressEvent(QMouseEvent* evnt)
+void OpenGlEinViewPort::mousePressEvent(QMouseEvent* evnt)
 {
     int cv_event = -1, flags = 0;
     QPoint pt = evnt->pos();
@@ -790,7 +790,7 @@ void OpenGlViewPort::mousePressEvent(QMouseEvent* evnt)
 }
 
 
-void OpenGlViewPort::mouseReleaseEvent(QMouseEvent* evnt)
+void OpenGlEinViewPort::mouseReleaseEvent(QMouseEvent* evnt)
 {
     int cv_event = -1, flags = 0;
     QPoint pt = evnt->pos();
@@ -799,7 +799,7 @@ void OpenGlViewPort::mouseReleaseEvent(QMouseEvent* evnt)
 }
 
 
-void OpenGlViewPort::mouseDoubleClickEvent(QMouseEvent* evnt)
+void OpenGlEinViewPort::mouseDoubleClickEvent(QMouseEvent* evnt)
 {
     int cv_event = -1, flags = 0;
     QPoint pt = evnt->pos();
@@ -808,7 +808,7 @@ void OpenGlViewPort::mouseDoubleClickEvent(QMouseEvent* evnt)
 }
 
 
-void OpenGlViewPort::mouseMoveEvent(QMouseEvent* evnt)
+void OpenGlEinViewPort::mouseMoveEvent(QMouseEvent* evnt)
 {
     int cv_event = CV_EVENT_MOUSEMOVE, flags = 0;
     QPoint pt = evnt->pos();
@@ -818,7 +818,7 @@ void OpenGlViewPort::mouseMoveEvent(QMouseEvent* evnt)
 }
 
 
-QSize OpenGlViewPort::sizeHint() const
+QSize OpenGlEinViewPort::sizeHint() const
 {
     if (size.width() > 0 && size.height() > 0)
         return size;
@@ -826,7 +826,7 @@ QSize OpenGlViewPort::sizeHint() const
     return QGLWidget::sizeHint();
 }
 
-void OpenGlViewPort::setSize(QSize size_)
+void OpenGlEinViewPort::setSize(QSize size_)
 {
     size = size_;
     updateGeometry();
