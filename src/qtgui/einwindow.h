@@ -5,8 +5,8 @@
 #include <iostream>
 #include <cv.h>
 
-
-#include "ein_util.h"
+#include "ein.h"
+#include "window_QT.h"
 
 using namespace std;
 
@@ -22,11 +22,18 @@ public:
     explicit EinWindow(QWidget *parent, shared_ptr<MachineState> _ms);
     ~EinWindow();
     void showImage(CvMat mat);
+    Q_INVOKABLE void updateImage(const Mat image) ;
+    void setMouseCallBack(EinMouseCallback m, void* param);
+    void keyPressEvent(QKeyEvent *evnt);
+
+    void setWindowTitle(string s) {
+      QMainWindow::setWindowTitle(QString::fromStdString(s));
+    }
 
 private:
     Ui::EinWindow *ui;
     shared_ptr<MachineState> ms;
-
+    DefaultEinViewPort myView;
 };
 
 #endif // EINWINDOW_H
