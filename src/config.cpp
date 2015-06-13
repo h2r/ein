@@ -28,6 +28,13 @@ string MachineState::currentState()
     state << fixed;
     state << endl;
     state << setfill(' ');
+    state << "CI: ";
+    if (current_instruction != NULL) {
+      state << current_instruction->name();
+    } else {
+      state << "NULL";
+    }
+    state << endl;
     state << "Current EE Position (x,y,z): "  << setw(w) << config.currentEEPose.px << " " << setw(w) << config.currentEEPose.py << " " << setw(w) << config.currentEEPose.pz << endl;
     state << "Current EE Orientation (x,y,z,w): " << setw(w) << config.currentEEPose.qx << " " << setw(w) << config.currentEEPose.qy << " " << setw(w) << config.currentEEPose.qz << " " << setw(w) << config.currentEEPose.qw << endl;
     state << "True EE Position (x,y,z): " <<  setw(w) << config.trueEEPose.position.x << " " << setw(w) << config.trueEEPose.position.y << " " << setw(w) << config.trueEEPose.position.z << endl;
