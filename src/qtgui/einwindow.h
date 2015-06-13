@@ -42,6 +42,7 @@ private:
     Ui::EinWindow *ui;
     shared_ptr<MachineState> ms;
     DefaultEinViewPort myView;
+    //OpenGlEinViewPort myView;
 };
 
 #endif // EINWINDOW_H

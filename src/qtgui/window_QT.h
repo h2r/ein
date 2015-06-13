@@ -40,6 +40,7 @@
 #ifndef __OPENCV_HIGHGUI_QT_H__
 #define __OPENCV_HIGHGUI_QT_H__
 
+#define HAVE_QT_OPENGL
 #if defined( HAVE_QT_OPENGL )
 #include <QtOpenGL>
 #include <QGLWidget>
@@ -148,6 +149,8 @@ static const int tableMouseButtons[][3]={
 
 typedef void (*EinMouseCallback )(int event, int x, int y, int flags, void* param);
 
+typedef void (CV_CDECL *EinOpenGlDrawCallback)(void* userdata);
+
 
 class EinViewPort
 {
@@ -178,7 +181,7 @@ public:
 class OpenGlEinViewPort : public QGLWidget, public EinViewPort
 {
 public:
-    explicit OpenGlEinViewPort(QWidget* parent);
+  explicit OpenGlEinViewPort(QWidget* parent, int keep_ratio);
     ~OpenGlEinViewPort();
 
     QWidget* getWidget();
@@ -186,9 +189,14 @@ public:
     void writeSettings(QSettings& settings);
     void readSettings(QSettings& settings);
 
+    double getRatio();
+    void setRatio(int flags);
+
     void updateImage(const Mat arr);
 
     void startDisplayInfo(QString text, int delayms);
+
+    void setOpenGlDrawCallback(EinOpenGlDrawCallback callback, void* userdata);
 
     void makeCurrentOpenGlContext();
     void updateGl();
@@ -209,6 +217,17 @@ protected:
 
 private:
     QSize size;
+
+    EinMouseCallback mouseCallback;
+    void* mouseData;
+
+
+    EinOpenGlDrawCallback glDrawCallback;
+    void* glDrawData;
+
+
+    void icvmouseHandler(QMouseEvent* event, type_mouse_event category, int& cv_event, int& flags);
+    void icvmouseProcessing(QPointF pt, int cv_event, int flags);
 
     
 };

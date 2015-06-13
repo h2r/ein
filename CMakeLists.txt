@@ -106,7 +106,7 @@ target_link_libraries(ein
 )
 
 
-qt5_use_modules(CmakeLib Core Gui Widgets Test)
+qt5_use_modules(CmakeLib Core Gui Widgets Test OpenGL)
 
 
 

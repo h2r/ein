@@ -783,13 +783,13 @@ void DefaultEinViewPort::setSize(QSize /*size_*/)
 
 #ifdef HAVE_QT_OPENGL
 
-OpenGlEinViewPort::OpenGlEinViewPort(QWidget* _parent) : QGLWidget(_parent), size(-1, -1)
+OpenGlEinViewPort::OpenGlEinViewPort(QWidget* _parent, int keep_ratio) : QGLWidget(_parent), size(-1, -1)
 {
-    mouseCallback = 0;
-    mouseData = 0;
+  mouseCallback = 0;
+  mouseData = 0;
 
-    glDrawCallback = 0;
-    glDrawData = 0;
+  glDrawCallback = 0;
+  glDrawData = 0;
 }
 
 OpenGlEinViewPort::~OpenGlEinViewPort()
@@ -801,6 +801,11 @@ QWidget* OpenGlEinViewPort::getWidget()
     return this;
 }
 
+void OpenGlEinViewPort::setMouseCallBack(EinMouseCallback callback, void* param)
+{
+  mouseCallback = callback;
+  mouseData = param;
+}
 
 
 void OpenGlEinViewPort::writeSettings(QSettings& /*settings*/)
@@ -808,6 +813,15 @@ void OpenGlEinViewPort::writeSettings(QSettings& /*settings*/)
 }
 
 void OpenGlEinViewPort::readSettings(QSettings& /*settings*/)
+{
+}
+
+double OpenGlEinViewPort::getRatio()
+{
+  return (double)width() / height();
+}
+
+void OpenGlEinViewPort::setRatio(int /*flags*/)
 {
 }
 
@@ -820,7 +834,7 @@ void OpenGlEinViewPort::startDisplayInfo(QString /*text*/, int /*delayms*/)
 {
 }
 
-void OpenGlEinViewPort::setOpenGlDrawCallback(CvOpenGlDrawCallback callback, void* userdata)
+void OpenGlEinViewPort::setOpenGlDrawCallback(EinOpenGlDrawCallback callback, void* userdata)
 {
     glDrawCallback = callback;
     glDrawData = userdata;
@@ -859,6 +873,11 @@ void OpenGlEinViewPort::mousePressEvent(QMouseEvent* evnt)
     int cv_event = -1, flags = 0;
     QPoint pt = evnt->pos();
 
+
+    icvmouseHandler(evnt, mouse_down, cv_event, flags);
+    icvmouseProcessing(QPointF(pt), cv_event, flags);
+
+
     QGLWidget::mousePressEvent(evnt);
 }
 
@@ -868,6 +887,12 @@ void OpenGlEinViewPort::mouseReleaseEvent(QMouseEvent* evnt)
     int cv_event = -1, flags = 0;
     QPoint pt = evnt->pos();
 
+
+    icvmouseHandler(evnt, mouse_up, cv_event, flags);
+    icvmouseProcessing(QPointF(pt), cv_event, flags);
+
+    icvmouseHandler(evnt, mouse_dbclick, cv_event, flags);
+    icvmouseProcessing(QPointF(pt), cv_event, flags);
     QGLWidget::mouseReleaseEvent(evnt);
 }
 
@@ -876,6 +901,10 @@ void OpenGlEinViewPort::mouseDoubleClickEvent(QMouseEvent* evnt)
 {
     int cv_event = -1, flags = 0;
     QPoint pt = evnt->pos();
+
+    icvmouseHandler(evnt, mouse_dbclick, cv_event, flags);
+    icvmouseProcessing(QPointF(pt), cv_event, flags);
+
 
     QGLWidget::mouseDoubleClickEvent(evnt);
 }
@@ -886,9 +915,64 @@ void OpenGlEinViewPort::mouseMoveEvent(QMouseEvent* evnt)
     int cv_event = EIN_EVENT_MOUSEMOVE, flags = 0;
     QPoint pt = evnt->pos();
 
+    //icvmouseHandler: pass parameters for cv_event, flags
+    icvmouseHandler(evnt, mouse_move, cv_event, flags);
+    icvmouseProcessing(QPointF(pt), cv_event, flags);
+
 
     QGLWidget::mouseMoveEvent(evnt);
 }
+
+
+void OpenGlEinViewPort::icvmouseHandler(QMouseEvent* evnt, type_mouse_event category, int& cv_event, int& flags)
+{
+  Qt::KeyboardModifiers modifiers = evnt->modifiers();
+  Qt::MouseButtons buttons = evnt->buttons();
+
+  flags = 0;
+  if (modifiers & Qt::ShiftModifier)
+    flags |= EIN_EVENT_FLAG_SHIFTKEY;
+  if (modifiers & Qt::ControlModifier)
+    flags |= EIN_EVENT_FLAG_CTRLKEY;
+  if (modifiers & Qt::AltModifier)
+    flags |= EIN_EVENT_FLAG_ALTKEY;
+
+  if (buttons & Qt::LeftButton)
+    flags |= EIN_EVENT_FLAG_LBUTTON;
+  if (buttons & Qt::RightButton)
+    flags |= EIN_EVENT_FLAG_RBUTTON;
+  if (buttons & Qt::MidButton)
+    flags |= EIN_EVENT_FLAG_MBUTTON;
+
+  cv_event = EIN_EVENT_MOUSEMOVE;
+  switch (evnt->button())
+    {
+    case Qt::LeftButton:
+      cv_event = tableMouseButtons[category][0];
+      flags |= EIN_EVENT_FLAG_LBUTTON;
+      break;
+    case Qt::RightButton:
+      cv_event = tableMouseButtons[category][1];
+      flags |= EIN_EVENT_FLAG_RBUTTON;
+      break;
+
+    case Qt::MidButton:
+      cv_event = tableMouseButtons[category][2];
+      flags |= EIN_EVENT_FLAG_MBUTTON;
+      break;
+
+    default:
+      ;
+    }
+}
+
+
+void OpenGlEinViewPort::icvmouseProcessing(QPointF pt, int cv_event, int flags)
+{
+  if (mouseCallback)
+    mouseCallback(cv_event, pt.x(), pt.y(), flags, mouseData);
+}
+
 
 
 QSize OpenGlEinViewPort::sizeHint() const
