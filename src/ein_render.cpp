@@ -236,7 +236,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->config.mapBackgroundViewWindow->setVisible(false);
   ms->config.aerialGradientViewerWindow->setVisible(false);
   ms->config.wristViewWindow->setVisible(true);
-  ms->config.coreViewWindow->setVisible(true);
+  ms->config.coreViewWindow->setVisible(false);
 }
 END_WORD
 REGISTER_WORD(GuiCustom1)

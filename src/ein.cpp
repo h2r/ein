@@ -2370,6 +2370,7 @@ void update_baxter(ros::NodeHandle &n) {
 
 void timercallback1(const ros::TimerEvent&) {
 
+
   ros::NodeHandle n("~");
 
   shared_ptr<MachineState> ms = pMachineState;
@@ -2377,12 +2378,15 @@ void timercallback1(const ros::TimerEvent&) {
 
   int c = -1;
   if (ms->config.shouldIMiscCallback) {
+    //QApplication::instance()->processEvents();
     c = last_key;
     last_key = -1;
   } else if ((ms->config.heartBeatCounter % ms->config.heartBeatPeriod) == 0) {
+    //QApplication::instance()->processEvents();
     c = last_key;
     last_key = -1;
     ms->config.heartBeatCounter = 0;
+
   }
   ms->config.heartBeatCounter++;
   // XXX is heartBeatCounter even used?
@@ -2486,7 +2490,7 @@ void timercallback1(const ros::TimerEvent&) {
     renderRangeogramView(ms);
   }
 
-  if (ms->config.shouldIRender) {
+  if (ms->config.shouldIRender && ms->config.objectMapViewerWindow->isVisible()) {
     renderObjectMapView(ms);
   }
 }
@@ -11113,10 +11117,14 @@ int main(int argc, char **argv) {
   qtTestWindow->setMouseCallBack(pilotCallbackFunc, NULL);
   qtTestWindow->setWindowTitle(QString::fromStdString("Ein " + ms->config.left_or_right_arm));
 
+  // qt timer
   QTimer *timer = new QTimer(qtTestWindow);
   qtTestWindow->connect(timer, SIGNAL(timeout()), qtTestWindow, SLOT(rosSpin()));
   timer->start(0);
   qRegisterMetaType<Mat>("Mat");
+
+  // ros timer (remembe to call process events and switch to app.exec)
+  //ros::Timer timer1 = n.createTimer(ros::Duration(0.0001), timercallback1);
 
 
   ms->config.rangeogramWindow = new EinWindow(NULL, ms);
@@ -11215,7 +11223,7 @@ int main(int argc, char **argv) {
   forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1, 
                                        forthCommandCallback);
 
-  //ros::Timer timer1 = n.createTimer(ros::Duration(0.0001), timercallback1);
+
 
   ms->config.tfListener = new tf::TransformListener();
 
