@@ -42,16 +42,16 @@ stuff "./baxter.sh"
 stuff "gdb --args ./devel/lib/ein/ein  _data_directory:=\"$(rospack find ein)/default\" _vocab_file:=\"vocab.yml\" _knn_file:=\"knn.yml\" _label_file:=\"labels.yml\" _left_or_right_arm:=\"right\" _gray_box_left:=90 _gray_box_right:=90 _gray_box_bot:=60 _add_blinders:=0 _mask_gripper:=1 _use_simulator:=false right"
 screen -t " replR"
 stuff "./baxter.sh"
-stuff "rosrun ein ein_client.py right"
+stuff "rosrun ein ein_client.py right"
 screen -t " warehouseR"
 stuff "./baxter.sh"
-stuff "rosrun ein warehouse_client.py right"
+stuff "rosrun ein warehouse_client.py right"
 screen -t " vim"
 #stuff "unset STY"
 #stuff "screen"
 stuff "./baxter.sh"
 stuff "cd $(rospack find ein)/src"
-stuff "vim -p ein.cpp ein_words.cpp ein_vision_cycle.cpp ein_misc.cpp ein_servo.cpp ein_scanning.cpp ein_movement.cpp ein_bandit.cpp ein_render.cpp ../README.md"
+stuff "vim -p ein.cpp config.h word.h ein_pick_place.cpp ein_vision_cycle.cpp ein_misc.cpp ein_servo.cpp ein_scanning.cpp ein_movement.cpp eePose.h"
 screen -t " git"
 stuff "./baxter.sh"
 screen -t " emacs"
@@ -60,10 +60,10 @@ stuff "cd $(rospack find ein)"
 stuff "emacs -nw src/ein.cpp"
 screen -t " warehouseL"
 stuff "./baxter.sh"
-stuff "rosrun ein warehouse_client.py left"
+stuff "rosrun ein warehouse_client.py left"
 screen -t " replL"
 stuff "./baxter.sh"
-stuff "rosrun ein ein_client.py left"
+stuff "rosrun ein ein_client.py left"
 screen -t " einL"
 stuff "./baxter.sh"
 stuff "gdb --args ./devel/lib/ein/ein  _data_directory:=\"$(rospack find ein)/default\" _vocab_file:=\"vocab.yml\" _knn_file:=\"knn.yml\" _label_file:=\"labels.yml\" _left_or_right_arm:=\"left\" _gray_box_left:=90 _gray_box_right:=90 _gray_box_bot:=60 _add_blinders:=0 _mask_gripper:=1 _use_simulator:=false left"

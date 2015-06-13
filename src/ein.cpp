@@ -956,6 +956,222 @@ int classIdxForName(shared_ptr<MachineState> ms, string name) {
   return class_idx;
 }
 
+void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, string servoCrop_file_path) {
+  if ( (idx > -1) && (idx < ms->config.classHeight0AerialGradients.size()) && 
+       (idx > -1) && (idx < ms->config.classHeight1AerialGradients.size()) &&
+       (idx > -1) && (idx < ms->config.classHeight2AerialGradients.size()) &&
+       (idx > -1) && (idx < ms->config.classHeight3AerialGradients.size()) ) {
+    // do nothing
+  } else {
+    cout << "writeAerialGradientsToServoCrop: invalid idx, not writing." << endl;
+    return;
+  }
+
+  {
+    Mat this_grad = ms->config.classHeight0AerialGradients[idx];
+    string png_path = servoCrop_file_path + "0" + ".png";
+    cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
+    double minDepth = std::numeric_limits<double>::max();
+    double maxDepth = std::numeric_limits<double>::min();
+    for (int gx = 0; gx < this_grad.cols; gx++) {
+      for (int gy = 0; gy < this_grad.rows; gy++) {
+	minDepth = min(minDepth, this_grad.at<double>(gy,gx));
+	maxDepth = max(maxDepth, this_grad.at<double>(gy,gx));
+      }
+    }
+    double denom = maxDepth - minDepth;
+    if (denom <= EPSILON) {
+      denom = 1.0;
+    } else {
+      // do nothing
+    }
+    this_grad = 255.0 * (this_grad - minDepth) / denom;
+    imwrite(png_path, this_grad);
+  }
+  {
+    Mat this_grad = ms->config.classHeight1AerialGradients[idx];
+    string png_path = servoCrop_file_path + "1" + ".png";
+    cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
+    double minDepth = std::numeric_limits<double>::max();
+    double maxDepth = std::numeric_limits<double>::min();
+    for (int gx = 0; gx < this_grad.cols; gx++) {
+      for (int gy = 0; gy < this_grad.rows; gy++) {
+	minDepth = min(minDepth, this_grad.at<double>(gy,gx));
+	maxDepth = max(maxDepth, this_grad.at<double>(gy,gx));
+      }
+    }
+    double denom = maxDepth - minDepth;
+    if (denom <= EPSILON) {
+      denom = 1.0;
+    } else {
+      // do nothing
+    }
+    this_grad = 255.0 * (this_grad - minDepth) / denom;
+    imwrite(png_path, this_grad);
+  }
+  {
+    Mat this_grad = ms->config.classHeight2AerialGradients[idx];
+    string png_path = servoCrop_file_path + "2" + ".png";
+    cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
+    double minDepth = std::numeric_limits<double>::max();
+    double maxDepth = std::numeric_limits<double>::min();
+    for (int gx = 0; gx < this_grad.cols; gx++) {
+      for (int gy = 0; gy < this_grad.rows; gy++) {
+	minDepth = min(minDepth, this_grad.at<double>(gy,gx));
+	maxDepth = max(maxDepth, this_grad.at<double>(gy,gx));
+      }
+    }
+    double denom = maxDepth - minDepth;
+    if (denom <= EPSILON) {
+      denom = 1.0;
+    } else {
+      // do nothing
+    }
+    this_grad = 255.0 * (this_grad - minDepth) / denom;
+    imwrite(png_path, this_grad);
+  }
+  {
+    Mat this_grad = ms->config.classHeight3AerialGradients[idx];
+    string png_path = servoCrop_file_path + "3" + ".png";
+    cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
+    double minDepth = std::numeric_limits<double>::max();
+    double maxDepth = std::numeric_limits<double>::min();
+    for (int gx = 0; gx < this_grad.cols; gx++) {
+      for (int gy = 0; gy < this_grad.rows; gy++) {
+	minDepth = min(minDepth, this_grad.at<double>(gy,gx));
+	maxDepth = max(maxDepth, this_grad.at<double>(gy,gx));
+      }
+    }
+    double denom = maxDepth - minDepth;
+    if (denom <= EPSILON) {
+      denom = 1.0;
+    } else {
+      // do nothing
+    }
+    this_grad = 255.0 * (this_grad - minDepth) / denom;
+    imwrite(png_path, this_grad);
+  }
+}
+
+void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path) {
+  if ((idx > -1) && (idx < ms->config.classRangeMaps.size())) {
+    // do nothing
+  } else {
+    cout << "writeIr2D: invalid idx, not writing." << endl;
+    return;
+  }
+
+  Mat thisRangeMap = ms->config.classRangeMaps[idx];
+  // write yaml
+  FileStorage fsvO;
+  string yaml_path = this_range_path + ".yml";
+  cout << "writeIr2D: Writing: " << yaml_path << endl;
+  fsvO.open(this_range_path, FileStorage::WRITE);
+  fsvO << "rangeMap" << thisRangeMap;
+  fsvO.release();
+
+  // construct and write image
+  string png_path = this_range_path + ".png";
+  cout << "writeIr2D: Writing: " << png_path << endl;
+  Mat rmImageOut(ms->config.rmiHeight, ms->config.rmiWidth, CV_8UC3);
+  double minDepth = VERYBIGNUMBER;
+  double maxDepth = 0;
+  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
+      minDepth = min(minDepth, thisRangeMap.at<double>(ry,rx));
+      maxDepth = max(maxDepth, thisRangeMap.at<double>(ry,rx));
+    }
+  }
+  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
+      double denom2 = max(EPSILON,maxDepth-minDepth);
+      if (denom2 <= EPSILON) {
+	denom2 = VERYBIGNUMBER;
+      } else {
+	// do nothing
+      }
+      double intensity = 255 * (maxDepth - thisRangeMap.at<double>(ry,rx)) / denom2;
+      cv::Point outTop = cv::Point(ry*ms->config.rmiCellWidth,rx*ms->config.rmiCellWidth);
+      cv::Point outBot = cv::Point((ry+1)*ms->config.rmiCellWidth,(rx+1)*ms->config.rmiCellWidth);
+      for (int cx = outTop.x; cx < outBot.x; cx++) {
+	for (int cy = outTop.y; cy < outBot.y; cy++) {
+	  rmImageOut.at<Vec3b>(cy,cx) = Vec3b(0,0,ceil(intensity));
+	}
+      }
+    }
+  }
+  imwrite(png_path, rmImageOut);
+}
+
+void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path) {
+  if ((idx > -1) && (idx < ms->config.class3dGrasps.size())) {
+    // do nothing
+  } else {
+    cout << "write3dGrasps: invalid idx, not writing." << endl;
+    return;
+  }
+
+  FileStorage fsvO;
+  cout << "write3dGrasps: Writing: " << this_grasp_path << endl;
+  fsvO.open(this_grasp_path, FileStorage::WRITE);
+
+  fsvO << "grasps" << "{";
+  {
+    int tng = ms->config.class3dGrasps[idx].size();
+    fsvO << "size" <<  tng;
+    fsvO << "graspPoses" << "[" ;
+    for (int i = 0; i < tng; i++) {
+      ms->config.class3dGrasps[idx][i].writeToFileStorage(fsvO);
+      cout << " wrote pose: " << ms->config.class3dGrasps[idx][i] << endl;
+    }
+    fsvO << "]";
+  }
+  fsvO << "}";
+
+  fsvO.release();
+}
+
+
+void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folderName) {
+  string item = folderName + "/";
+    string raw = item + "raw/";
+      string images = raw + "images/";
+      string poseBatches = raw + "poseBatches/";
+      string rangeBatches = raw + "rangeBatches/";
+    string ein = item + "ein/";
+      string d3dGrasps = ein + "3dGrasps/";
+      string detectionCrops = ein + "detectionCrops/";
+      string gaussianColorMap = ein + "gaussianColorMap/";
+      string ir2D = ein + "ir2D/";
+      string pickMemories = ein + "pickMemories/";
+      string servoCrops = ein + "servoCrops/";
+      string servoImages = ein + "servoImages/";
+
+  mkdir(item.c_str(), 0777);
+    mkdir(raw.c_str(), 0777);
+      mkdir(images.c_str(), 0777);
+      mkdir(poseBatches.c_str(), 0777);
+      mkdir(rangeBatches.c_str(), 0777);
+    mkdir(ein.c_str(), 0777);
+      mkdir(d3dGrasps.c_str(), 0777);
+      mkdir(detectionCrops.c_str(), 0777);
+      mkdir(gaussianColorMap.c_str(), 0777);
+      mkdir(ir2D.c_str(), 0777);
+      mkdir(pickMemories.c_str(), 0777);
+      mkdir(servoCrops.c_str(), 0777);
+      mkdir(servoImages.c_str(), 0777);
+
+
+  string d3d_grasp_file_path = d3dGrasps + "3dGrasps.yml";
+  write3dGrasps(ms, idx, d3d_grasp_file_path);
+  
+  string ir2D_file_path = ir2D + "ir2D";
+  writeIr2D(ms, idx, ir2D_file_path);
+
+  string servoCrop_file_path = servoCrops + "servoCrop";
+  writeAerialGradientsToServoCrop(ms, idx, servoCrop_file_path);
+}
+
 void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
   shared_ptr<MachineState> ms = pMachineState;
 
@@ -10975,7 +11191,7 @@ int main(int argc, char **argv) {
     epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, endpointCallback);
     gripState = n.subscribe("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/state", 1, gripStateCallback);
     eeAccelerator =  n.subscribe("/robot/accelerometer/" + ms->config.left_or_right_arm + "_accelerometer/state", 1, accelerometerCallback);
-    eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, rangeCallback);
+    eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 100, rangeCallback);
     eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, targetCallback);
     jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
     image_sub = it.subscribe(ms->config.image_topic, 1, imageCallback);
