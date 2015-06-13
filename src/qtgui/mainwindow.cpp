@@ -32,9 +32,16 @@ void MainWindow::updateImage(const Mat image)
   
 }
 
+void timercallback1(const ros::TimerEvent&); 
+
 void MainWindow::rosSpin()
 {
+  ros::TimerEvent e;
+  timercallback1(e);
   ros::spinOnce();
 }
 
 
+void MainWindow::setMouseCallBack(EinMouseCallback m, void* param) {
+  myView.setMouseCallBack(m, param);
+}

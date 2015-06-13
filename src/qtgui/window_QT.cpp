@@ -43,6 +43,8 @@
 
 
 #include <memory>
+#include <iostream>
+using namespace std;
 
 #include "window_QT.h"
 
@@ -87,6 +89,7 @@ DefaultEinViewPort::DefaultEinViewPort(QWidget* arg, int keep_ratio) : QGraphics
     positionGrabbing = QPointF(0, 0);
     positionCorners = QRect(0, 0, size().width(), size().height());
 
+    on_mouse = 0;
     on_mouse_param = 0;
     mouseCoordinate = QPoint(-1, -1);
 
@@ -113,6 +116,13 @@ DefaultEinViewPort::~DefaultEinViewPort()
 QWidget* DefaultEinViewPort::getWidget()
 {
     return this;
+}
+
+
+void DefaultEinViewPort::setMouseCallBack(EinMouseCallback m, void* param)
+{
+  on_mouse = m;
+  on_mouse_param = param;
 }
 
 
@@ -354,6 +364,8 @@ void DefaultEinViewPort::mousePressEvent(QMouseEvent* evnt)
     int cv_event = -1, flags = 0;
     QPoint pt = evnt->pos();
 
+    icvmouseHandler(evnt, mouse_down, cv_event, flags);
+    icvmouseProcessing(QPointF(pt), cv_event, flags);
 
     if (param_matrixWorld.m11()>1)
     {
@@ -531,6 +543,62 @@ void DefaultEinViewPort::scaleView(qreal factor,QPointF center)
         setCursor(Qt::OpenHandCursor);
     else
         unsetCursor();
+}
+
+
+void DefaultEinViewPort::icvmouseHandler(QMouseEvent *evnt, type_mouse_event category, int &cv_event, int &flags)
+{
+  Qt::KeyboardModifiers modifiers = evnt->modifiers();
+  Qt::MouseButtons buttons = evnt->buttons();
+
+  flags = 0;
+  if(modifiers & Qt::ShiftModifier)
+    flags |= CV_EVENT_FLAG_SHIFTKEY;
+  if(modifiers & Qt::ControlModifier)
+    flags |= CV_EVENT_FLAG_CTRLKEY;
+  if(modifiers & Qt::AltModifier)
+    flags |= CV_EVENT_FLAG_ALTKEY;
+
+  if(buttons & Qt::LeftButton)
+    flags |= CV_EVENT_FLAG_LBUTTON;
+  if(buttons & Qt::RightButton)
+    flags |= CV_EVENT_FLAG_RBUTTON;
+  if(buttons & Qt::MidButton)
+    flags |= CV_EVENT_FLAG_MBUTTON;
+
+  cv_event = CV_EVENT_MOUSEMOVE;
+  switch(evnt->button())
+    {
+    case Qt::LeftButton:
+      cv_event = tableMouseButtons[category][0];
+      flags |= CV_EVENT_FLAG_LBUTTON;
+      break;
+    case Qt::RightButton:
+      cv_event = tableMouseButtons[category][1];
+      flags |= CV_EVENT_FLAG_RBUTTON;
+      break;
+    case Qt::MidButton:
+      cv_event = tableMouseButtons[category][2];
+      flags |= CV_EVENT_FLAG_MBUTTON;
+      break;
+    default:;
+    }
+}
+
+
+
+void DefaultEinViewPort::icvmouseProcessing(QPointF pt, int cv_event, int flags)
+{
+  //to convert mouse coordinate
+  qreal pfx, pfy;
+  matrixWorld_inv.map(pt.x(),pt.y(),&pfx,&pfy);
+
+  mouseCoordinate.rx()=floor(pfx/ratioX);
+  mouseCoordinate.ry()=floor(pfy/ratioY);
+  cout << "Mouse: " << on_mouse << endl;
+  if (on_mouse)
+    on_mouse( cv_event, mouseCoordinate.x(),
+              mouseCoordinate.y(), flags, on_mouse_param );
 }
 
 

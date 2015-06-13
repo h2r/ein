@@ -3358,6 +3358,7 @@ void targetCallback(const geometry_msgs::Point& point) {
 
 }
 
+
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
 
   //if (!ms->config.shouldIMiscCallback) {
@@ -11132,7 +11133,7 @@ int main(int argc, char **argv) {
   forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1, 
                                        forthCommandCallback);
 
-  ros::Timer timer1 = n.createTimer(ros::Duration(0.0001), timercallback1);
+  //ros::Timer timer1 = n.createTimer(ros::Duration(0.0001), timercallback1);
 
   ms->config.tfListener = new tf::TransformListener();
 
@@ -11200,6 +11201,8 @@ int main(int argc, char **argv) {
 
   qtTestWindow = new MainWindow();
   qtTestWindow->show();
+  qtTestWindow->setMouseCallBack(pilotCallbackFunc, NULL);
+
 
   QTimer *timer = new QTimer(qtTestWindow);
   qtTestWindow->connect(timer, SIGNAL(timeout()), qtTestWindow, SLOT(rosSpin()));

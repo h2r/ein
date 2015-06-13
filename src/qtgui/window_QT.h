@@ -84,15 +84,31 @@ enum { CV_MODE_NORMAL = 0, CV_MODE_OPENGL = 1 };
 
 enum type_mouse_event { mouse_up = 0, mouse_down = 1, mouse_dbclick = 2, mouse_move = 3 };
 
-/* static const int tableMouseButtons[][3]={ */
-/*   {CV_EVENT_LBUTTONUP, CV_EVENT_RBUTTONUP, CV_EVENT_MBUTTONUP},                */
-/*   //mouse_up */
-/*   {CV_EVENT_LBUTTONDOWN, CV_EVENT_RBUTTONDOWN, CV_EVENT_MBUTTONDOWN},          */
-/*   //mouse_down */
-/*   {CV_EVENT_LBUTTONDBLCLK, CV_EVENT_RBUTTONDBLCLK, CV_EVENT_MBUTTONDBLCLK},    */
-/*   //mouse_dbclick */
-/*   {CV_EVENT_MOUSEMOVE, CV_EVENT_MOUSEMOVE, CV_EVENT_MOUSEMOVE}                 */
-/*   //mouse_move */
+enum
+  {
+    EIN_EVENT_MOUSEMOVE      =0,
+    EIN_EVENT_LBUTTONDOWN    =1,
+    EIN_EVENT_RBUTTONDOWN    =2,
+    EIN_EVENT_MBUTTONDOWN    =3,
+    EIN_EVENT_LBUTTONUP      =4,
+    EIN_EVENT_RBUTTONUP      =5,
+    EIN_EVENT_MBUTTONUP      =6,
+    EIN_EVENT_LBUTTONDBLCLK  =7,
+    EIN_EVENT_RBUTTONDBLCLK  =8,
+    EIN_EVENT_MBUTTONDBLCLK  =9,
+    EIN_EVENT_MOUSEWHEEL     =10,
+    EIN_EVENT_MOUSEHWHEEL    =11
+  };
+
+
+static const int tableMouseButtons[][3]={
+  {EIN_EVENT_LBUTTONUP, EIN_EVENT_RBUTTONUP, EIN_EVENT_MBUTTONUP},               //mouse_up
+  {EIN_EVENT_LBUTTONDOWN, EIN_EVENT_RBUTTONDOWN, EIN_EVENT_MBUTTONDOWN},         //mouse_down
+  {EIN_EVENT_LBUTTONDBLCLK, EIN_EVENT_RBUTTONDBLCLK, EIN_EVENT_MBUTTONDBLCLK},   //mouse_dbclick
+  {EIN_EVENT_MOUSEMOVE, EIN_EVENT_MOUSEMOVE, EIN_EVENT_MOUSEMOVE}                //mouse_move
+};
+
+typedef void (*EinMouseCallback )(int event, int x, int y, int flags, void* param);
 
 
 class EinViewPort
@@ -102,7 +118,7 @@ public:
 
     virtual QWidget* getWidget() = 0;
 
-
+    virtual void setMouseCallBack(EinMouseCallback m, void* param) = 0;
     virtual void writeSettings(QSettings& settings) = 0;
     virtual void readSettings(QSettings& settings) = 0;
 
@@ -128,7 +144,7 @@ public:
     ~OpenGlEinViewPort();
 
     QWidget* getWidget();
-
+    void setMouseCallBack(EinMouseCallback m, void* param);
     void writeSettings(QSettings& settings);
     void readSettings(QSettings& settings);
 
@@ -156,7 +172,7 @@ protected:
 private:
     QSize size;
 
-    void icvmouseProcessing(QPointF pt, int cv_event, int flags);
+    
 };
 
 #endif // HAVE_QT_OPENGL
@@ -171,7 +187,7 @@ public:
     ~DefaultEinViewPort();
 
     QWidget* getWidget();
-
+    void setMouseCallBack(EinMouseCallback m, void* param);
     void writeSettings(QSettings& settings);
     void readSettings(QSettings& settings);
 
@@ -184,6 +200,8 @@ public:
     void updateGl();
 
     void setSize(QSize size_);
+    void icvmouseHandler(QMouseEvent *event, type_mouse_event category, int &cv_event, int &flags);
+    void icvmouseProcessing(QPointF pt, int cv_event, int flags);
 
 public slots:
     //reference:
@@ -222,8 +240,8 @@ private:
     int nbChannelOriginImage;
 
     //for mouse callback
+    EinMouseCallback on_mouse;
     void* on_mouse_param;
-
 
     void scaleView(qreal scaleFactor, QPointF center);
     void moveView(QPointF delta);
