@@ -69,7 +69,11 @@ class EinClient:
         while True:
             rospy.sleep(0.2)
             self.printStack()
-            line = raw_input('Prompt ("stop" to quit): ')
+            try:
+                line = raw_input('Prompt ("stop" to quit): ')
+            except EOFError:
+                break
+    
             if line == 'stop':
                 break
             print 'ENTERED: "%s"' % line
