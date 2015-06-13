@@ -2378,17 +2378,18 @@ void timercallback1(const ros::TimerEvent&) {
 
   int c = -1;
   if (ms->config.shouldIMiscCallback) {
-    //QApplication::instance()->processEvents();
+    QApplication::instance()->processEvents();
     c = last_key;
     last_key = -1;
   } else if ((ms->config.heartBeatCounter % ms->config.heartBeatPeriod) == 0) {
-    //QApplication::instance()->processEvents();
+    QApplication::instance()->processEvents();
     c = last_key;
     last_key = -1;
     ms->config.heartBeatCounter = 0;
 
   }
   ms->config.heartBeatCounter++;
+  qtTestWindow->update();
   // XXX is heartBeatCounter even used?
 
   if (c != -1) {
@@ -11120,11 +11121,11 @@ int main(int argc, char **argv) {
   // qt timer
   QTimer *timer = new QTimer(qtTestWindow);
   qtTestWindow->connect(timer, SIGNAL(timeout()), qtTestWindow, SLOT(rosSpin()));
-  timer->start(0);
+  //timer->start(0);
   qRegisterMetaType<Mat>("Mat");
 
-  // ros timer (remembe to call process events and switch to app.exec)
-  //ros::Timer timer1 = n.createTimer(ros::Duration(0.0001), timercallback1);
+  // ros timer (remember to call process events and switch to app.exec);
+  ros::Timer timer1 = n.createTimer(ros::Duration(0.0001), timercallback1);
 
 
   ms->config.rangeogramWindow = new EinWindow(NULL, ms);
@@ -11284,9 +11285,9 @@ int main(int argc, char **argv) {
 
   ms->config.lastMovementStateSet = ros::Time::now();
 
-  a.exec();
+  //a.exec();
   
-  //ros::spin();
+  ros::spin();
 
   return 0;
 }

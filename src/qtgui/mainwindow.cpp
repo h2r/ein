@@ -25,7 +25,7 @@ MainWindow::MainWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
     windowManager.setMenu(ui->menuWindows);
 
 }
-
+  
 MainWindow::~MainWindow()
 {
     delete ui;
@@ -50,11 +50,12 @@ void MainWindow::rosSpin()
   timercallback1(e);
   ros::spinOnce();
 
-  ui->stateLabel->setText(QString::fromStdString(ms->currentState()));
-  stackModel->setMachineState(ms);
-
 }
 
+void MainWindow::update() {
+  ui->stateLabel->setText(QString::fromStdString(ms->currentState()));
+  stackModel->setMachineState(ms);
+}
 
 void MainWindow::setMouseCallBack(EinMouseCallback m, void* param) {
   myView.setMouseCallBack(m, param);
