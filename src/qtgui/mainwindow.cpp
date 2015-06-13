@@ -6,7 +6,7 @@
 #include <opencv2/highgui/highgui_c.h>
 int last_key = -1;
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow::MainWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
     myView(parent, CV_WINDOW_KEEPRATIO)
@@ -14,6 +14,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     ui->imageFrame->layout()->addWidget(myView.getWidget());
+    ms = _ms;
 }
 
 MainWindow::~MainWindow()
