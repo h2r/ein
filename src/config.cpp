@@ -34,7 +34,7 @@ string MachineState::currentState()
     state << "True EE Orientation (x,y,z,w): "  << setw(w) << config.trueEEPose.orientation.x << " " << setw(w) << config.trueEEPose.orientation.y << " " << setw(w) << config.trueEEPose.orientation.z << " " << setw(w) << config.trueEEPose.orientation.w << endl;
     state <<
       "eePose = {.px = " << setw(w) << config.trueEEPose.position.x << ", .py = " << setw(w) << config.trueEEPose.position.y << ", .pz = " << setw(w) << config.trueEEPose.position.z << "," << endl <<
-      "		      .qx = " << setw(w) << config.trueEEPose.orientation.x << ", .qy = " << setw(w) << config.trueEEPose.orientation.y << ", .qz = " << setw(w) << config.trueEEPose.orientation.z << ", .qw = " << setw(w) << config.trueEEPose.orientation.w << "};" << endl;
+      "          .qx = " << setw(w) << config.trueEEPose.orientation.x << ", .qy = " << setw(w) << config.trueEEPose.orientation.y << ", .qz = " << setw(w) << config.trueEEPose.orientation.z << ", .qw = " << setw(w) << config.trueEEPose.orientation.w << "};" << endl;
     state << "currentThompsonHeightIdx: " << config.currentThompsonHeightIdx << endl;
     state << "mostRecentUntabledZ (remember this is inverted but correct): " << config.mostRecentUntabledZ << endl;
     state << "currentPickMode: " << pickModeToString(config.currentPickMode) << endl;
