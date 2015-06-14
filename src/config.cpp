@@ -26,7 +26,6 @@ string MachineState::currentState()
     state.precision(7);
     int w = 10;
     state << fixed;
-    state << endl;
     state << setfill(' ');
     state << "CI: ";
     if (current_instruction != NULL) {
