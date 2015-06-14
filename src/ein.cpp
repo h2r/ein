@@ -2958,7 +2958,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     //QMetaObject::invokeMethod(qtTestWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
     //QMetaObject::invokeMethod(ms-.config.wristViewWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
     ms->config.wristViewWindow->updateImage(ms->config.wristViewImage);
-    qtTestWindow->updateImage(ms->config.wristViewImage);
   }
 }
 
@@ -2971,12 +2970,13 @@ cv::Point worldToPixel(Mat mapImage, double xMin, double xMax, double yMin, doub
 
   cv::Point out = cv::Point((pyMax - pyMin) / (yMax - yMin) * y + center.y,
                             (pxMax - pxMin) / (xMax - xMin) * x + center.x);
+
   return out;
 }
 
 void renderObjectMapView(shared_ptr<MachineState> ms) {
   if (ms->config.objectMapViewerImage.rows <= 0 ) {
-    ms->config.objectMapViewerImage = Mat(800, 800, CV_8UC3);
+    ms->config.objectMapViewerImage = Mat(600, 600, CV_8UC3);
   }
 
   if (0) { // drawGrid
@@ -9758,6 +9758,7 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 
   cout << "nh namespace: " << nh.getNamespace() << endl;
 
+  nh.getParam("robot_serial", ms->config.robot_serial);
   nh.getParam("vocab_file", ms->config.vocab_file);
   nh.getParam("knn_file", ms->config.knn_file);
   nh.getParam("label_file", ms->config.label_file);
@@ -9802,44 +9803,6 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   } 
 }
 
-void loadROSParams(shared_ptr<MachineState> ms) {
-  ros::NodeHandle nh("~");
-
-  nh.getParam("threshold_fraction", ms->config.threshFraction);
-  nh.getParam("reject_scale", ms->config.rejectScale);
-  nh.getParam("reject_area_scale", ms->config.rejectAreaScale);
-  nh.getParam("density_decay", ms->config.densityDecay);
-
-  nh.getParam("data_directory", ms->config.data_directory);
-  nh.getParam("run_prefix", ms->config.run_prefix);
-  nh.getParam("all_range_mode", ms->config.all_range_mode);
-
-  nh.getParam("gray_box_top", ms->config.tGO);
-  nh.getParam("gray_box_bot", ms->config.bGO);
-  nh.getParam("gray_box_left", ms->config.lGO);
-  nh.getParam("gray_box_right", ms->config.rGO);
-
-  nh.getParam("arm_box_top", ms->config.tARM);
-  nh.getParam("arm_box_bot", ms->config.bARM);
-  nh.getParam("arm_box_left", ms->config.lARM);
-  nh.getParam("arm_box_right", ms->config.rARM);
-
-  nh.getParam("image_topic", ms->config.image_topic);
-
-  nh.getParam("retrain_vocab", ms->config.retrain_vocab);
-  nh.getParam("reextract_knn", ms->config.reextract_knn);
-  nh.getParam("rewrite_labels", ms->config.rewrite_labels);
-
-  nh.getParam("sobel_sigma", ms->config.sobel_sigma);
-  nh.getParam("canny_hi_thresh",ms->config.canny_hi_thresh);
-  nh.getParam("canny_lo_thresh",ms->config.canny_lo_thresh);
-  nh.getParam("sobel_scale_factor",ms->config.sobel_scale_factor);
-
-  nh.getParam("mask_gripper", ms->config.mask_gripper);
-
-  nh.getParam("left_or_right_arm", ms->config.left_or_right_arm);
-
-}
 
 void saveROSParams(shared_ptr<MachineState> ms) {
   ros::NodeHandle nh("~");
