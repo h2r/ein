@@ -341,7 +341,6 @@ void substituteAccumulatedImageQuantities(shared_ptr<MachineState> ms);
 void substituteLatestImageQuantities(shared_ptr<MachineState> ms);
 
 void loadROSParamsFromArgs(shared_ptr<MachineState> ms);
-void loadROSParams(shared_ptr<MachineState> ms);
 void saveROSParams(shared_ptr<MachineState> ms);
 
 void spinlessNodeMain(shared_ptr<MachineState> ms);

@@ -294,9 +294,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (j >= ms->config.mapHeight) {
     j = 0;
   }
-
+  
   currentI = i;
   currentJ = j;
+
+  ms->config.endThisStackCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(FillIkMap)

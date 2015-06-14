@@ -663,7 +663,14 @@ END_WORD
 REGISTER_WORD(EnableRobot)
 
 
-
+WORD(PushRobotSerial)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  shared_ptr<StringWord> outword = std::make_shared<StringWord>(ms->config.robot_serial);
+  ms->pushWord(outword);
+}
+END_WORD
+REGISTER_WORD(PushRobotSerial)
 
 
 }
