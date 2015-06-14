@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1328</width>
-    <height>549</height>
+    <width>1500</width>
+    <height>800</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -29,7 +29,7 @@
      </widget>
     </item>
     <item row="2" column="0">
-     <widget class="QFrame" name="imageFrame">
+     <widget class="QFrame" name="wristViewFrame">
       <property name="frameShape">
        <enum>QFrame::StyledPanel</enum>
       </property>
@@ -59,7 +59,7 @@
      <widget class="QLabel" name="stateLabel">
       <property name="minimumSize">
        <size>
-        <width>720</width>
+        <width>700</width>
         <height>0</height>
        </size>
       </property>
@@ -79,6 +79,12 @@
     </item>
     <item row="0" column="1">
      <widget class="QTableView" name="stackTableView">
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>200</height>
+       </size>
+      </property>
       <property name="font">
        <font>
         <family>Liberation Mono</family>
@@ -89,6 +95,68 @@
       </property>
      </widget>
     </item>
+    <item row="4" column="0">
+     <widget class="QFrame" name="objectViewFrame">
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+      </layout>
+     </widget>
+    </item>
+    <item row="3" column="0">
+     <widget class="QLabel" name="label_2">
+      <property name="text">
+       <string>Object View</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="1" rowspan="3">
+     <widget class="QFrame" name="objectMapViewFrame">
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+      </layout>
+     </widget>
+    </item>
+    <item row="1" column="1">
+     <widget class="QLabel" name="label_3">
+      <property name="text">
+       <string>Object Map View</string>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
@@ -96,7 +164,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1328</width>
+     <width>1500</width>
      <height>27</height>
     </rect>
    </property>
