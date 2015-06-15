@@ -994,7 +994,7 @@ class EinConfig {
   ros::Time lastScanStarted;
   int mapFreeSpacePixelSkirt = 25;
   int mapBlueBoxPixelSkirt = 50;
-  double mapBlueBoxCooldown = 60; // cooldown is a temporal skirt
+  double mapBlueBoxCooldown = 180; // cooldown is a temporal skirt
   int mapGrayBoxPixelSkirt = 50;
   int ikMap[mapWidth * mapHeight];
   int clearanceMap[mapWidth * mapHeight];
