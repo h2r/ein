@@ -6627,6 +6627,12 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       //int isUnmapped = (thisLastMappedTime < ms->config.lastScanStarted);
       int isCooldownComplete = (thisNow.sec - thisLastMappedTime.sec) > ms->config.mapBlueBoxCooldown;
 
+      if ((ms->config.currentPatrolMode == ONCE) && (thisLastMappedTime.sec > ms->config.lastScanStarted.sec)) {
+	isCooldownComplete = false;
+      } else {
+	// do nothing
+      }
+
       int isOutOfReach = ( !positionIsSearched(ms, tbx, tby) || 
                            !isBlueBoxIkPossible(ms, ms->config.bTops[c], ms->config.bBots[c]) ); 
 
