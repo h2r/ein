@@ -315,6 +315,6 @@ extern std::map<string, std::shared_ptr<Word> > name_to_word;
 
 void initializeWords();
 
-void renderCoreView(shared_ptr<MachineState> ms, string name);
+void renderCoreView(shared_ptr<MachineState> ms);
 
 #endif /* _WORD_H_ */

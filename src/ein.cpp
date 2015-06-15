@@ -18,9 +18,16 @@
 
 #include "ein.h"
 
+#include "qtgui/mainwindow.h"
+#include "qtgui/einwindow.h"
+#include <QApplication>
+#include <QTimer>
+
 MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
+MainWindow * qtTestWindow = NULL;
+extern int last_key;
 
 ////////////////////////////////////////////////
 // start pilot includes, usings, and defines
@@ -1745,7 +1752,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
       putText(ms->config.rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  guardedImshow(ms->config.rangeogramViewName, ms->config.rangeogramImage, ms->config.sirRangeogram);
+  ms->config.rangeogramWindow->updateImage(ms->config.rangeogramImage);
 
   if (!ms->config.shouldIRangeCallback) {
     return;
@@ -1926,25 +1933,30 @@ void rangeCallback(const sensor_msgs::Range& range) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(ms->config.rangemapViewName, ms->config.rangemapImage, ms->config.sirRangemap);
-    guardedImshow(ms->config.graspMemoryViewName, ms->config.graspMemoryImage, ms->config.sirGraspMemory);
-    guardedImshow(ms->config.graspMemorySampleViewName, ms->config.graspMemorySampleImage, ms->config.sirGraspMemorySample);
-    guardedImshow(ms->config.heightMemorySampleViewName, ms->config.heightMemorySampleImage, ms->config.sirHeightMemorySample);
+    ms->config.rangemapWindow->updateImage(ms->config.rangemapImage);
+    ms->config.graspMemoryWindow->updateImage(ms->config.graspMemoryImage);
+    ms->config.graspMemorySampleWindow->updateImage(ms->config.graspMemorySampleImage);
+    ms->config.heightMemorySampleWindow->updateImage(ms->config.heightMemorySampleImage);
+
     Mat hRIT;
     cv::resize(ms->config.hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
-    guardedImshow(ms->config.hiRangemapViewName, hRIT, ms->config.sirHiRangemap);
+    ms->config.hiRangemapWindow->updateImage(ms->config.hiRangemapImage);
+
     Mat hCRIT;
     cv::resize(ms->config.hiColorRangemapImage, hCRIT, cv::Size(0,0), 2, 2);
-    guardedImshow(ms->config.hiColorRangemapViewName, hCRIT, ms->config.sirHiColorRangemap);
+    ms->config.hiColorRangemapWindow->updateImage(ms->config.hiColorRangemapImage);
 
-    guardedImshow(ms->config.objectViewerName, ms->config.objectViewerImage, ms->config.sirObject);
-    guardedImshow(ms->config.objectMapViewerName, ms->config.objectMapViewerImage, ms->config.sirObjectMap);
-    //cv::moveWindow(ms->config.objectMapViewerName, 0, 0);
 
-    guardedImshow(ms->config.densityViewerName, ms->config.densityViewerImage, ms->config.sirDensity);
-    guardedImshow(ms->config.gradientViewerName, ms->config.gradientViewerImage, ms->config.sirGradient);
+    ms->config.objectViewerWindow->updateImage(ms->config.objectViewerImage);
 
-    guardedImshow(ms->config.mapBackgroundViewName, ms->config.mapBackgroundImage, ms->config.sirMapBackground);
+    ms->config.objectMapViewerWindow->updateImage(ms->config.objectMapViewerImage);
+
+    ms->config.densityViewerWindow->updateImage(ms->config.densityViewerImage);
+
+    ms->config.gradientViewerWindow->updateImage(ms->config.gradientViewerImage);
+
+    ms->config.mapBackgroundViewWindow->updateImage(ms->config.mapBackgroundImage);
+
     
     if (ms->config.targetClass > -1) {
       if (ms->config.classHeight0AerialGradients[ms->config.targetClass].rows == ms->config.aerialGradientWidth) {
@@ -1984,7 +1996,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
 	  denom3 = 1;
 	crop3 = (ms->config.classHeight3AerialGradients[ms->config.targetClass] - min3) / denom3;
 
-	guardedImshow(ms->config.aerialGradientViewerName, ms->config.aerialGradientViewerImage, ms->config.sirAerialGradient);
+	ms->config.aerialGradientViewerWindow->updateImage(ms->config.aerialGradientViewerImage);
       }
     }
   }
@@ -2358,6 +2370,7 @@ void update_baxter(ros::NodeHandle &n) {
 
 void timercallback1(const ros::TimerEvent&) {
 
+
   ros::NodeHandle n("~");
 
   shared_ptr<MachineState> ms = pMachineState;
@@ -2365,12 +2378,18 @@ void timercallback1(const ros::TimerEvent&) {
 
   int c = -1;
   if (ms->config.shouldIMiscCallback) {
-    c = cvWaitKey(1);
+    QApplication::instance()->processEvents();
+    c = last_key;
+    last_key = -1;
   } else if ((ms->config.heartBeatCounter % ms->config.heartBeatPeriod) == 0) {
-    c = cvWaitKey(1);
+    QApplication::instance()->processEvents();
+    c = last_key;
+    last_key = -1;
     ms->config.heartBeatCounter = 0;
+
   }
   ms->config.heartBeatCounter++;
+  qtTestWindow->update();
   // XXX is heartBeatCounter even used?
 
   if (c != -1) {
@@ -2463,12 +2482,16 @@ void timercallback1(const ros::TimerEvent&) {
     ms->config.currentEEPose.qw = ms->config.trueEEPose.orientation.w;
   }
 
-  if (ms->config.sirCore) {
-    renderCoreView(ms, ms->config.coreViewName);
+  if (ms->config.coreViewWindow->isVisible()) {
+    renderCoreView(ms);
+    ms->config.coreViewWindow->updateImage(ms->config.coreViewImage);
   }
-  renderRangeogramView(ms);
 
-  if (ms->config.shouldIRender) {
+  if (ms->config.rangeogramWindow->isVisible()) {
+    renderRangeogramView(ms);
+  }
+
+  if (ms->config.shouldIRender && ms->config.objectMapViewerWindow->isVisible()) {
     renderObjectMapView(ms);
   }
 }
@@ -2932,7 +2955,10 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(ms->config.wristViewName, ms->config.wristViewImage, ms->config.sirWrist);
+    //QMetaObject::invokeMethod(qtTestWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
+    //QMetaObject::invokeMethod(ms-.config.wristViewWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
+    ms->config.wristViewWindow->updateImage(ms->config.wristViewImage);
+    qtTestWindow->updateImage(ms->config.wristViewImage);
   }
 }
 
@@ -3285,7 +3311,7 @@ void renderObjectMapView(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(ms->config.objectMapViewerName, ms->config.objectMapViewerImage, ms->config.sirObjectMap);
+    ms->config.objectMapViewerWindow->updateImage(ms->config.objectMapViewerImage);
   }
 
 
@@ -3337,7 +3363,7 @@ void renderRangeogramView(shared_ptr<MachineState> ms) {
       putText(ms->config.rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  guardedImshow(ms->config.rangeogramViewName, ms->config.rangeogramImage, ms->config.sirRangeogram);
+  ms->config.rangeogramWindow->updateImage(ms->config.rangeogramImage);
 }
 
 void targetCallback(const geometry_msgs::Point& point) {
@@ -3350,6 +3376,7 @@ void targetCallback(const geometry_msgs::Point& point) {
 
 }
 
+
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
 
   //if (!ms->config.shouldIMiscCallback) {
@@ -3357,16 +3384,16 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
   //}
   shared_ptr<MachineState> ms = pMachineState;
 
-  if ( event == EVENT_LBUTTONDOWN ) {
+  if ( event == EIN_EVENT_LBUTTONDOWN ) {
     cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
     ms->config.probeReticle.px = x;
     ms->config.probeReticle.py = y;
     cout << "x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << endl;
-  } else if ( event == EVENT_RBUTTONDOWN ) {
+  } else if ( event == EIN_EVENT_RBUTTONDOWN ) {
     //cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-  } else if  ( event == EVENT_MBUTTONDOWN ) {
+  } else if  ( event == EIN_EVENT_MBUTTONDOWN ) {
     //cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-  } else if ( event == EVENT_MOUSEMOVE ) {
+  } else if ( event == EIN_EVENT_MOUSEMOVE ) {
     //cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
   }
 }
@@ -3379,7 +3406,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     return;
   }
 
-  if ( event == EVENT_LBUTTONDOWN ) {
+  if ( event == EIN_EVENT_LBUTTONDOWN ) {
     int bigX = x / ms->config.rmiCellWidth;
     int bigY = y / ms->config.rmiCellWidth;
     if ((bigX >= ms->config.rmWidth) && (bigX < 2*ms->config.rmWidth) && (bigY < ms->config.rmWidth)) {
@@ -3404,7 +3431,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
-  } else if ( event == EVENT_RBUTTONDOWN ) {
+  } else if ( event == EIN_EVENT_RBUTTONDOWN ) {
     int bigX = x / ms->config.rmiCellWidth;
     int bigY = y / ms->config.rmiCellWidth;
     if ((bigX >= ms->config.rmWidth) && (bigX < 2*ms->config.rmWidth) && (bigY < ms->config.rmWidth)) {
@@ -3416,7 +3443,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
-  } else if  ( event == EVENT_MBUTTONDOWN ) {
+  } else if  ( event == EIN_EVENT_MBUTTONDOWN ) {
     int bigX = x / ms->config.rmiCellWidth;
     int bigY = y / ms->config.rmiCellWidth;
     if ((bigX >= ms->config.rmWidth) && (bigX < 2*ms->config.rmWidth) && (bigY < ms->config.rmWidth)) {
@@ -3434,7 +3461,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 
     cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
-  } else if ( event == EVENT_MOUSEMOVE ) {
+  } else if ( event == EIN_EVENT_MOUSEMOVE ) {
     //cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
   }
 }
@@ -8486,7 +8513,7 @@ void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(ms->config.gradientViewerName, ms->config.gradientViewerImage, ms->config.sirGradient);
+    ms->config.gradientViewerWindow->updateImage(ms->config.gradientViewerImage);
   }
 
 }
@@ -9016,8 +9043,8 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(ms->config.densityViewerName, ms->config.densityViewerImage, ms->config.sirDensity);
-    guardedImshow(ms->config.gradientViewerName, ms->config.gradientViewerImage, ms->config.sirGradient);
+    ms->config.densityViewerWindow->updateImage(ms->config.densityViewerImage);
+    ms->config.gradientViewerWindow->updateImage(ms->config.gradientViewerImage);
   }
 }
 
@@ -9325,7 +9352,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
 //cout << "Here 4" << endl;
 
   if (ms->config.shouldIRender) {
-    guardedImshow(ms->config.objectViewerName, ms->config.objectViewerImage, ms->config.sirObject);
+    ms->config.objectViewerWindow->updateImage(ms->config.objectViewerImage);
   }
 
   delete ms->config.gBoxIndicator;
@@ -9724,7 +9751,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(ms->config.objectViewerName, ms->config.objectViewerImage, ms->config.sirObject);
+    ms->config.objectViewerWindow->updateImage(ms->config.objectViewerImage);
   }
 
 }
@@ -10900,10 +10927,15 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut) {
 
 int main(int argc, char **argv) {
 
+  QApplication a(argc, argv);
+
+
   initializeWords();
   pMachineState = std::make_shared<MachineState>(machineState);
   shared_ptr<MachineState> ms = pMachineState;
   initializeMachine(ms);
+
+
 
   initVectorArcTan(ms);
   srand(time(NULL));
@@ -10968,19 +11000,6 @@ int main(int argc, char **argv) {
 
   ms->config.ee_target_pub = n.advertise<geometry_msgs::Point>("pilot_target_" + ms->config.left_or_right_arm, 10);
 
-  ms->config.densityViewerName = "Density Viewer " + ms->config.left_or_right_arm;
-  ms->config.objectViewerName = "Object Viewer " + ms->config.left_or_right_arm;
-  ms->config.gradientViewerName = "Gradient Viewer " + ms->config.left_or_right_arm;
-  ms->config.aerialGradientViewerName = "Aerial Gradient Viewer " + ms->config.left_or_right_arm;
-  ms->config.stereoViewerName = "Stereo Viewer " + ms->config.left_or_right_arm;
-
-  cv::namedWindow(ms->config.gradientViewerName);
-  cv::namedWindow(ms->config.aerialGradientViewerName);
-  cv::namedWindow(ms->config.densityViewerName);
-
-  createTrackbar("post_density_sigma", ms->config.densityViewerName, &ms->config.postDensitySigmaTrackbarVariable, 40);
-  createTrackbar("canny_lo", ms->config.densityViewerName, &ms->config.loTrackbarVariable, 100);
-  createTrackbar("canny_hi", ms->config.densityViewerName, &ms->config.hiTrackbarVariable, 100);
 
   ros::Timer simulatorCallbackTimer;
 
@@ -11099,26 +11118,109 @@ int main(int argc, char **argv) {
   placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
   moveEndEfffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, moveEndEffectorCommandCallback);
 
-  ms->config.wristViewName = "Wrist View " + ms->config.left_or_right_arm;
-  ms->config.coreViewName = "Core View " + ms->config.left_or_right_arm;
-  ms->config.faceViewName = "Face View " + ms->config.left_or_right_arm;
-  ms->config.rangeogramViewName = "Rangeogram View " + ms->config.left_or_right_arm;
-  ms->config.rangemapViewName = "Range Map View " + ms->config.left_or_right_arm;
-  ms->config.graspMemoryViewName = "Grasp Memory View " + ms->config.left_or_right_arm;
-  ms->config.graspMemorySampleViewName = "Grasp Memory Sample View " + ms->config.left_or_right_arm;
-  ms->config.heightMemorySampleViewName = "Height Memory Sample View " + ms->config.left_or_right_arm;
-  ms->config.hiRangemapViewName = "Hi Range Map View " + ms->config.left_or_right_arm;
-  ms->config.hiColorRangemapViewName = "Hi Color Range Map View " + ms->config.left_or_right_arm;
-  ms->config.mapBackgroundViewName = "Map Background Viewer " + ms->config.left_or_right_arm;
 
-  cv::namedWindow(ms->config.wristViewName);
-  cv::setMouseCallback(ms->config.wristViewName, pilotCallbackFunc, NULL);
-  cv::namedWindow(ms->config.graspMemoryViewName);
-  cv::setMouseCallback(ms->config.graspMemoryViewName, graspMemoryCallbackFunc, NULL);
-  cv::namedWindow(ms->config.coreViewName);
-  cv::namedWindow(ms->config.rangeogramViewName);
-  cv::namedWindow(ms->config.mapBackgroundViewName);
-  cv::namedWindow(ms->config.faceViewName);
+  qtTestWindow = new MainWindow(NULL, ms);
+  qtTestWindow->show();
+  qtTestWindow->setMouseCallBack(pilotCallbackFunc, NULL);
+  qtTestWindow->setWindowTitle(QString::fromStdString("Ein " + ms->config.left_or_right_arm));
+
+  // qt timer
+  QTimer *timer = new QTimer(qtTestWindow);
+  qtTestWindow->connect(timer, SIGNAL(timeout()), qtTestWindow, SLOT(rosSpin()));
+  //timer->start(0);
+  qRegisterMetaType<Mat>("Mat");
+
+  // ros timer (remember to call process events and switch to app.exec);
+  ros::Timer timer1 = n.createTimer(ros::Duration(0.0001), timercallback1);
+
+
+  ms->config.rangeogramWindow = new EinWindow(NULL, ms);
+  ms->config.rangeogramWindow->setWindowTitle("Rangeogram View " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.rangeogramWindow);
+
+  ms->config.wristViewWindow = new EinWindow(NULL, ms);
+  ms->config.wristViewWindow->setWindowTitle("Wrist View " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.wristViewWindow);
+  ms->config.wristViewWindow->setMouseCallBack(pilotCallbackFunc, NULL);
+
+
+  ms->config.coreViewWindow = new EinWindow(NULL, ms);
+  ms->config.coreViewWindow->setWindowTitle("Core View " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.coreViewWindow);
+  
+  
+  ms->config.faceViewWindow = new EinWindow(NULL, ms);
+  ms->config.faceViewWindow->setWindowTitle("Face View " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.faceViewWindow);
+  
+  
+
+  ms->config.rangemapWindow = new EinWindow(NULL, ms);
+  ms->config.rangemapWindow->setWindowTitle("Range Map View " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.rangemapWindow);
+  
+  
+  ms->config.graspMemoryWindow = new EinWindow(NULL, ms);
+  ms->config.graspMemoryWindow->setWindowTitle("Grasp Memory View " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.graspMemoryWindow);
+  ms->config.graspMemoryWindow->setMouseCallBack(graspMemoryCallbackFunc, NULL);
+  
+  
+  
+  ms->config.graspMemorySampleWindow = new EinWindow(NULL, ms);
+  ms->config.graspMemorySampleWindow->setWindowTitle("Grasp Memory Sample View " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.graspMemorySampleWindow);
+
+  
+  ms->config.heightMemorySampleWindow = new EinWindow(NULL, ms);
+  ms->config.heightMemorySampleWindow->setWindowTitle("Height Memory Sample View " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.heightMemorySampleWindow);
+  
+  
+  ms->config.hiRangemapWindow = new EinWindow(NULL, ms);
+  ms->config.hiRangemapWindow->setWindowTitle("Hi Range Map View " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.hiRangemapWindow);
+  
+  ms->config.hiColorRangemapWindow = new EinWindow(NULL, ms);
+  ms->config.hiColorRangemapWindow->setWindowTitle("Hi Color Range Map View " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.hiColorRangemapWindow);
+
+
+  ms->config.mapBackgroundViewWindow = new EinWindow(NULL, ms);
+  ms->config.mapBackgroundViewWindow->setWindowTitle("Hi Color Range Map View " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.mapBackgroundViewWindow);
+
+
+  ms->config.densityViewerWindow = new EinWindow(NULL, ms);
+  ms->config.densityViewerWindow->setWindowTitle("Density Viewer " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.densityViewerWindow);
+
+  ms->config.objectViewerWindow = new EinWindow(NULL, ms);
+  ms->config.objectViewerWindow->setWindowTitle("Object Viewer " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.objectViewerWindow);
+
+  ms->config.objectMapViewerWindow = new EinWindow(NULL, ms);
+  ms->config.objectMapViewerWindow->setWindowTitle("Object Map Viewer " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.objectMapViewerWindow);
+
+
+  ms->config.gradientViewerWindow = new EinWindow(NULL, ms);
+  ms->config.gradientViewerWindow->setWindowTitle("Gradient Viewer " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.gradientViewerWindow);
+
+  ms->config.aerialGradientViewerWindow = new EinWindow(NULL, ms);
+  ms->config.aerialGradientViewerWindow->setWindowTitle("Aerial Gradient Viewer " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.aerialGradientViewerWindow);
+
+  ms->config.stereoViewerWindow = new EinWindow(NULL, ms);
+  ms->config.stereoViewerWindow->setWindowTitle("Stereo Viewer " + ms->config.left_or_right_arm);
+  qtTestWindow->addWindow(ms->config.stereoViewerWindow);
+
+  //createTrackbar("post_density_sigma", ms->config.densityViewerName, &ms->config.postDensitySigmaTrackbarVariable, 40);
+  //createTrackbar("canny_lo", ms->config.densityViewerName, &ms->config.loTrackbarVariable, 100);
+  //createTrackbar("canny_hi", ms->config.densityViewerName, &ms->config.hiTrackbarVariable, 100);
+
+
 
   ros::Subscriber fetchCommandSubscriber;
   fetchCommandSubscriber = n.subscribe("/fetch_commands", 1, 
@@ -11128,7 +11230,7 @@ int main(int argc, char **argv) {
   forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1, 
                                        forthCommandCallback);
 
-  ros::Timer timer1 = n.createTimer(ros::Duration(0.0001), timercallback1);
+
 
   ms->config.tfListener = new tf::TransformListener();
 
@@ -11170,14 +11272,10 @@ int main(int argc, char **argv) {
   saveROSParams(ms);
 
 
-
-
-
-
   int cudaCount = gpu::getCudaEnabledDeviceCount();
   cout << "cuda count: " << cudaCount << endl;;
 
-  cvWaitKey(1); // this might be good to init cv gui stuff
+  
   ms->config.lastImageCallbackReceived = ros::Time::now();
 
   {
@@ -11193,6 +11291,8 @@ int main(int argc, char **argv) {
 
   ms->config.lastMovementStateSet = ros::Time::now();
 
+  //a.exec();
+  
   ros::spin();
 
   return 0;
