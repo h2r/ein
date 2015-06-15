@@ -122,41 +122,23 @@ REGISTER_WORD(PauseAndReset)
 
 
 
+WORD(PushState)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string state = ms->currentState();
+  shared_ptr<StringWord> outword = std::make_shared<StringWord>(state);
+  ms->pushWord(outword);
+}
+END_WORD
+REGISTER_WORD(PushState)
+
+
 
 WORD(PrintState)
 CODE('u')
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << endl;
-  cout << "Current EE Position (x,y,z): " << ms->config.currentEEPose.px << " " << ms->config.currentEEPose.py << " " << ms->config.currentEEPose.pz << endl;
-  cout << "Current EE Orientation (x,y,z,w): " << ms->config.currentEEPose.qx << " " << ms->config.currentEEPose.qy << " " << ms->config.currentEEPose.qz << " " << ms->config.currentEEPose.qw << endl;
-  cout << "True EE Position (x,y,z): " << ms->config.trueEEPose.position.x << " " << ms->config.trueEEPose.position.y << " " << ms->config.trueEEPose.position.z << endl;
-  cout << "True EE Orientation (x,y,z,w): " << ms->config.trueEEPose.orientation.x << " " << ms->config.trueEEPose.orientation.y << " " << ms->config.trueEEPose.orientation.z << " " << ms->config.trueEEPose.orientation.w << endl;
-  cout <<
-    "eePose = {.px = " << ms->config.trueEEPose.position.x << ", .py = " << ms->config.trueEEPose.position.y << ", .pz = " << ms->config.trueEEPose.position.z << "," << endl <<
-    "		      .qx = " << ms->config.trueEEPose.orientation.x << ", .qy = " << ms->config.trueEEPose.orientation.y << ", .qz = " << ms->config.trueEEPose.orientation.z << ", .qw = " << ms->config.trueEEPose.orientation.w << "};" << endl;
-  cout << "currentThompsonHeightIdx: " << ms->config.currentThompsonHeightIdx << endl;
-  cout << "mostRecentUntabledZ (remember this is inverted but correct): " << ms->config.mostRecentUntabledZ << endl;
-  cout << "currentPickMode: " << pickModeToString(ms->config.currentPickMode) << endl;
-  cout << "currentBoundingBoxMode: " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
-  cout << "gradientServoTakeClosest: " << ms->config.gradientTakeClosest << endl;
-  cout << "synchronicTakeClosest: " << ms->config.synchronicTakeClosest << endl;
-  cout << "focusedClass: " << ms->config.focusedClass;
-  if (ms->config.focusedClass != -1) {
-    cout << " " << ms->config.classLabels[ms->config.focusedClass];
-  }
-  cout << endl;
-  
-  cout << "targetClass: " << ms->config.targetClass;
-  if (ms->config.targetClass != -1) {
-    cout << " " << ms->config.classLabels[ms->config.targetClass];
-  }
-
-  
-  double wrenchNorm = sqrt( eePose::squareDistance(eePose::zero(), ms->config.trueEEWrench) );
-  cout << "wrenchNorm: " << wrenchNorm << endl;
-  
-  cout << endl;
-  cout << endl;
+  shared_ptr<Word> pushState = nameToWord("pushState");
+  pushState->execute(ms);
+  ms->pushWord("print");
 }
 END_WORD
 REGISTER_WORD(PrintState)

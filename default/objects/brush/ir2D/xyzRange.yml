@@ -1,6 +1,6 @@
 %YAML:1.0
 graspZ:
-   - 0.
+   - -11.5e-02
 rangeMap: !!opencv-matrix
    rows: 21
    cols: 21

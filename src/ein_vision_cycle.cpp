@@ -1,7 +1,7 @@
 
 #include "ein_words.h"
 #include "ein.h"
-
+#include "qtgui/einwindow.h"
 
 namespace ein_words {
 
@@ -958,7 +958,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 
   if (ms->config.shouldIRender) {
-    guardedImshow(ms->config.stereoViewerName, ms->config.stereoViewerImage, ms->config.sirStereo);
+    ms->config.stereoViewerWindow->updateImage(ms->config.stereoViewerImage);
   }
 }
 END_WORD
