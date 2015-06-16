@@ -4,7 +4,7 @@
 typedef enum {
   IDX = 0,
   NAME = 1,
-  REPR = 2,
+  DESCRIPTION = 2,
 } columns;
 
 StackModel::StackModel(QObject *parent)
@@ -43,8 +43,8 @@ QVariant StackModel::data(const QModelIndex &index, int role) const
       return index.row();
     } else if (index.column() == NAME) {
       return QString::fromStdString(w->name());
-    } else if (index.column() == REPR) {
-      return QString::fromStdString(w->repr());
+    } else if (index.column() == DESCRIPTION) {
+      return QString::fromStdString(w->description());
     } else {
       assert(0);
     }
@@ -56,27 +56,33 @@ QVariant StackModel::headerData(int section /* section */,
                                 Qt::Orientation orientation /* orientation */,
                                 int role) const
 {
-  if (role == Qt::SizeHintRole) {
-    return QSize(1, 3);
-  }
-
   if (orientation == Qt::Vertical) {
     return QVariant();
-  } else  if (orientation == Qt::Horizontal) {
+  }
+
+  if (role == Qt::SizeHintRole) {
+    if (section == IDX) {
+      return QSize(10, 20);
+    } else if (section == NAME) {
+      return QSize(50, 20);
+    } else if (section == DESCRIPTION) {
+      return QSize(100, 1);
+    } else {
+      cout << "Unknown section: " << section << endl;
+      assert(0);
+    }
+  } else if (role == Qt::DisplayRole) {
     if (section == IDX) {
       return "Idx";
     } else if (section == NAME) {
       return "Name";
-    } else if (section == REPR) {
-      return "Repr";
+    } else if (section == DESCRIPTION) {
+      return "Description";
     } else {
       cout << "Unknown section: " << section << endl;
       assert(0);
     }
   } else {
-    cout << "Unknown orientation: " << orientation << endl;
-    assert(0);
+    return QVariant();
   }
-
-
 }
