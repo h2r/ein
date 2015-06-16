@@ -19,6 +19,10 @@ public:
   virtual void execute(std::shared_ptr<MachineState> ms) = 0;
   virtual string name() = 0;
 
+  virtual string description() {
+    return "";
+  }
+
   virtual vector<string> names() {
     vector<string> result;
     result.push_back(name());
