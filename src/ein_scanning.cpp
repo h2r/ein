@@ -341,6 +341,10 @@ REGISTER_WORD(DownsampleIrScan)
 
 WORD(ScanObject)
 CODE(196708)     // capslock + D
+virtual string description() {
+  return "Scans an object, including the IR scan.";
+}
+
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "ENTERING WHOLE FOODS VIDEO MAIN." << endl;
   cout << "Program will pause shortly. Please adjust height for bounding box servo before unpausing." << endl;
@@ -1835,6 +1839,11 @@ END_WORD
 REGISTER_WORD(SetColorReticlesA)
 
 WORD(ScanObjectFast)
+
+virtual string description() {
+  return "Scans an object without an IR scan, and with an annotated grasp.";
+}
+
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
   int retractCm = 20;
