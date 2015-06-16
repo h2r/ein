@@ -93,6 +93,9 @@
       <property name="selectionMode">
        <enum>QAbstractItemView::NoSelection</enum>
       </property>
+      <attribute name="horizontalHeaderStretchLastSection">
+       <bool>true</bool>
+      </attribute>
      </widget>
     </item>
     <item row="4" column="0">
