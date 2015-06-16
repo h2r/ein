@@ -73,6 +73,10 @@ REGISTER_WORD(SetLastLabelLearned)
 
 WORD(TrainModels)
 CODE(131142)     // capslock + f
+virtual string description() {
+  return "Rebuild the kNN model for the detectors.";
+}
+
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->config.classLabels.resize(0);
   ms->config.classPoseModels.resize(0);
