@@ -117,8 +117,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     cout << ms->config.classLabels[i] << " " << ms->config.classPoseModels[i] << endl;
   }
 
+  // XXX not retraining
   ms->config.rewrite_labels = 1;
-  ms->config.retrain_vocab = 1;
+  ms->config.retrain_vocab = 0;
   ms->config.reextract_knn = 1;
 
   // delete things that will be reallocated

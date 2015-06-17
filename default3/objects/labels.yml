@@ -1,0 +1,17 @@
+%YAML:1.0
+labels:
+   - table3
+   - table1
+   - metalMug
+   - table2
+   - redMug
+   - backup
+   - brownMug
+poseModels:
+   - B
+   - B
+   - B
+   - B
+   - B
+   - B
+   - B

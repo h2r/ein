@@ -669,7 +669,7 @@ class EinConfig {
 
   // XXX TODO
   int softMaxGradientServoIterations = 4;//5;//3;//10;//3;
-  int hardMaxGradientServoIterations = 10;//2;//5;//5;//3;//10;//20;//3;//10;
+  int hardMaxGradientServoIterations = 4;//10;//2;//5;//5;//3;//10;//20;//3;//10;
   int currentGradientServoIterations = 0;
 
 
