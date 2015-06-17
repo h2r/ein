@@ -1352,16 +1352,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     lastAdded->lockedPose = ms->config.currentEEPose;
     cout << "recordPreTargetLock saving lockedPose..." << endl;
 
+    int thisTargetClassIdx = ms->config.targetClass;
+
     // calculate the affordance poses post-lock
+cout << "about to calc 3d poses" << endl;
     {
       int tnc = ms->config.class3dGrasps.size();
-      if ( (ms->config.targetClass > -1) && (ms->config.targetClass < tnc) ) {
-	int tnp = ms->config.class3dGrasps[tnc].size();
+      if ( (thisTargetClassIdx > -1) && (thisTargetClassIdx < tnc) ) {
+	int tnp = ms->config.class3dGrasps[thisTargetClassIdx].size();
+cout << "tnc, tnp: " << tnc << " " << tnp << endl;
 	lastAdded->aff3dGraspPoses.resize(tnp);
 	for (int i = 0; i < tnp; i++) {
+	  eePose toApply = ms->config.class3dGrasps[thisTargetClassIdx][i];  
 	  eePose toWhichWasApplied = ms->config.currentEEPose;
-	  eePose toApply = ms->config.class3dGrasps[ms->config.targetClass][i];  
-	  toWhichWasApplied = ms->config.lastPrePickPose;
 	  toWhichWasApplied.pz = -ms->config.currentTableZ;
 	  // this order is important because quaternion multiplication is not commutative
 	  toWhichWasApplied = toWhichWasApplied.plusP(toWhichWasApplied.applyQTo(toApply));
@@ -1370,32 +1373,35 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	}
       }
     }
+cout << "about to calc pup poses" << endl;
     {
       int tnc = ms->config.classPlaceUnderPoints.size();
-      if ( (ms->config.targetClass > -1) && (ms->config.targetClass < tnc) ) {
-	int tnp = ms->config.classPlaceUnderPoints[tnc].size();
+      if ( (thisTargetClassIdx > -1) && (thisTargetClassIdx < tnc) ) {
+	int tnp = ms->config.classPlaceUnderPoints[thisTargetClassIdx].size();
+cout << "tnc, tnp: " << tnc << " " << tnp << endl;
 	lastAdded->affPlaceUnderPoses.resize(tnp);
 	for (int i = 0; i < tnp; i++) {
+	  eePose toApply = ms->config.classPlaceUnderPoints[thisTargetClassIdx][i];  
 	  eePose toWhichWasApplied = ms->config.currentEEPose;
-	  eePose toApply = ms->config.classPlaceUnderPoints[ms->config.targetClass][i];  
-	  toWhichWasApplied = ms->config.lastPrePickPose;
 	  toWhichWasApplied.pz = -ms->config.currentTableZ;
 	  // this order is important because quaternion multiplication is not commutative
 	  toWhichWasApplied = toWhichWasApplied.plusP(toWhichWasApplied.applyQTo(toApply));
 	  toWhichWasApplied = toWhichWasApplied.multQ(toApply);
 	  lastAdded->affPlaceUnderPoses[i] = toWhichWasApplied;
+cout << "added " << lastAdded->affPlaceUnderPoses[i] << endl << " and current is " << endl << ms->config.currentEEPose << endl;
 	}
       }
     }
+cout << "about to calc pop poses" << endl;
     {
       int tnc = ms->config.classPlaceOverPoints.size();
-      if ( (ms->config.targetClass > -1) && (ms->config.targetClass < tnc) ) {
-	int tnp = ms->config.classPlaceOverPoints[tnc].size();
+      if ( (thisTargetClassIdx > -1) && (thisTargetClassIdx < tnc) ) {
+	int tnp = ms->config.classPlaceOverPoints[thisTargetClassIdx].size();
+cout << "tnc, tnp: " << tnc << " " << tnp << endl;
 	lastAdded->affPlaceOverPoses.resize(tnp);
 	for (int i = 0; i < tnp; i++) {
+	  eePose toApply = ms->config.classPlaceOverPoints[thisTargetClassIdx][i];  
 	  eePose toWhichWasApplied = ms->config.currentEEPose;
-	  eePose toApply = ms->config.classPlaceOverPoints[ms->config.targetClass][i];  
-	  toWhichWasApplied = ms->config.lastPrePickPose;
 	  toWhichWasApplied.pz = -ms->config.currentTableZ;
 	  // this order is important because quaternion multiplication is not commutative
 	  toWhichWasApplied = toWhichWasApplied.plusP(toWhichWasApplied.applyQTo(toApply));

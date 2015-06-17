@@ -10627,7 +10627,9 @@ int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string la
     success = getBoxMemoryOfLabel(ms, label2, &label2Idx, &label2Mem);
     if (success) {
       //eePose label1PickOffset = label1Mem.aimedPose.minusP(label1Mem.lockedPose);
-      eePose label1PickOffset = label1Mem.aimedPose.minusP(label1Mem.centroid);
+      // works:
+      //eePose label1PickOffset = label1Mem.aimedPose.minusP(label1Mem.centroid);
+      eePose label1PickOffset = label1Mem.aimedPose.minusP(label1Mem.affPlaceUnderPoses[0]);
       //label2Pose = label2Mem.centroid.plusP(label1PickOffset);
       label2Pose = label2Mem.aimedPose.plusP(label1PickOffset);
       double thisPickZ = 0.0;
