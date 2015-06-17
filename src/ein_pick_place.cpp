@@ -85,6 +85,33 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(MoveObjectToObjectByAmount)
 
+WORD(MoveObjectBetweenObjectAndObject)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> firstObjectWord = ms->popWord();
+  shared_ptr<Word> secondObjectWord = ms->popWord();
+  shared_ptr<Word> thirdObjectWord = ms->popWord();
+
+  if( (firstObjectWord == NULL) || (secondObjectWord == NULL) || (thirdObjectWord == NULL) ) {
+    cout << "not enough words... clearing stack." << endl;
+    ms->clearStack();
+    return;
+  } else {
+    string firstObjectLabel = firstObjectWord->to_string();
+    string secondObjectLabel = secondObjectWord->to_string();
+    string thirdObjectLabel = thirdObjectWord->to_string();
+
+    eePose placePose;
+    int success = placementPoseLabel1BetweenLabel2AndLabel3(ms, firstObjectLabel, secondObjectLabel, thirdObjectLabel, &placePose);
+    if (success) {
+      ms->pushWord(std::make_shared<EePoseWord>(placePose));
+      ms->pushWord(firstObjectLabel);
+      ms->pushWord("moveObjectToPose");
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(MoveObjectBetweenObjectAndObject)
+
 WORD(SetTheYcbTable)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 

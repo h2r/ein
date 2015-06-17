@@ -10615,6 +10615,12 @@ int getBoxMemoryOfLabel(std::shared_ptr<MachineState> ms, string label, int * id
   }
 }
 
+int placementPoseLabel1BetweenLabel2AndLabel3(std::shared_ptr<MachineState> ms, string label1, 
+  string label2, string label3, eePose * out) {
+
+
+}
+
 int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string label1, string label2, double zAbove, eePose * out) {
   eePose label2Pose;
   int success = 0;
