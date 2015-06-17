@@ -9771,8 +9771,7 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 
   cout << "nh namespace: " << nh.getNamespace() << endl;
 
-  nh.getParam("robot_serial", ms->config.robot_serial);
-  cout << "XXX robot serial " << ms->config.robot_serial << endl;
+  nh.getParam("/manifest/robot_serial", ms->config.robot_serial);
   nh.getParam("vocab_file", ms->config.vocab_file);
   nh.getParam("knn_file", ms->config.knn_file);
   nh.getParam("label_file", ms->config.label_file);

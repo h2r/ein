@@ -26,6 +26,8 @@ MainWindow::MainWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
     stackModel->setMachineState(ms);
     ui->stackTableView->setModel(stackModel);
 
+    ui->stackTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+
     windowManager.setMenu(ui->menuWindows);
 
 }
