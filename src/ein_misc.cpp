@@ -253,7 +253,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   std::shared_ptr<Word> index_to = ms->popWord();
   std::shared_ptr<Word> index_from = ms->popWord();
   if (index_from == NULL || index_to == NULL) {
-    cout << "Warning, next requires two words on the stack." << endl;
+    cout << "Warning, next requires two words on the stack.  usage:  start words to from next" << endl;
     return;
   }
   cout << "looping: " << index_from->to_int() << " to " << index_to->to_int() << endl;
@@ -661,6 +661,24 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 }
 END_WORD
 REGISTER_WORD(EnableRobot)
+
+WORD(ReplicateWord)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  shared_ptr<Word> numWord = ms->popWord();
+  shared_ptr<Word> aWord = ms->popWord();
+  if ((numWord == NULL) || (aWord == NULL)) {
+    cout << "Must pass an int on top of another word to " << this->name() << endl;
+    return;
+  } else {
+    std::shared_ptr<IntegerWord> replicateTimes = std::dynamic_pointer_cast<IntegerWord>(numWord);
+    int rTimes = replicateTimes->value();
+    std::shared_ptr<Word> repWord = aWord;
+    ms->pushCopies(repWord, rTimes);
+  }
+}
+END_WORD
+REGISTER_WORD(ReplicateWord)
 
 
 WORD(PushRobotSerial)

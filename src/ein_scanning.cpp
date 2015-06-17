@@ -877,7 +877,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("synchronicServo"); 
   ms->pushWord("synchronicServoTakeClosest");
   ms->pushWord("fillClearanceMap");
-  ms->pushWord("loadIkMap");
   ms->config.currentBoundingBoxMode = MAPPING;
   ms->config.bDelta = 0.001;
 }
@@ -1837,7 +1836,7 @@ REGISTER_WORD(SetColorReticlesA)
 WORD(ScanObjectFast)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
-  int retractCm = 20;
+  int retractCm = 10;
   
   cout << "BEGINNING SCANOBJECTFAST" << endl;
   cout << "Program will pause shortly. Please adjust height and object so that arm would grip if closed and so that the gripper will clear the object once raised 5cm." << endl;
@@ -1917,7 +1916,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitUntilAtCurrentPosition");
 
   // dislodge. necessary because the robot takes a while to "spin up" at slow speeds, which interferes
-  //  with the state machine.
+ //  with the state machine.
   ms->pushCopies("dislodgeEndEffectorFromTable", retractCm);
   ms->pushWord("setCurrentPoseToTruePose");
   ms->pushWord("setMovementSpeedMoveFast");
@@ -1993,7 +1992,33 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       fsvO << "graspPoses" << "[" ;
       for (int i = 0; i < tng; i++) {
 	ms->config.class3dGrasps[ms->config.focusedClass][i].writeToFileStorage(fsvO);
-	cout << " wrote pose: " << ms->config.class3dGrasps[ms->config.focusedClass][i] << endl;
+	cout << " wrote 3d pose: " << ms->config.class3dGrasps[ms->config.focusedClass][i] << endl;
+      }
+      fsvO << "]";
+    }
+    fsvO << "}";
+
+    fsvO << "placeUnderPoints" << "{";
+    {
+      int tng = ms->config.classPlaceUnderPoints[ms->config.focusedClass].size();
+      fsvO << "size" <<  tng;
+      fsvO << "pupPoses" << "[" ;
+      for (int i = 0; i < tng; i++) {
+	ms->config.classPlaceUnderPoints[ms->config.focusedClass][i].writeToFileStorage(fsvO);
+	cout << " wrote pup pose: " << ms->config.classPlaceUnderPoints[ms->config.focusedClass][i] << endl;
+      }
+      fsvO << "]";
+    }
+    fsvO << "}";
+
+    fsvO << "placeOverPoints" << "{";
+    {
+      int tng = ms->config.classPlaceOverPoints[ms->config.focusedClass].size();
+      fsvO << "size" <<  tng;
+      fsvO << "popPoses" << "[" ;
+      for (int i = 0; i < tng; i++) {
+	ms->config.classPlaceOverPoints[ms->config.focusedClass][i].writeToFileStorage(fsvO);
+	cout << " wrote pop pose: " << ms->config.classPlaceOverPoints[ms->config.focusedClass][i] << endl;
       }
       fsvO << "]";
     }
@@ -2036,12 +2061,50 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   thisRelative3dGrasp.copyQ(txQ);
 
   int tnc = ms->config.class3dGrasps.size();
-  if ( (ms->config.targetClass >= 0) && (ms->config.targetClass < tnc) ) {
+  if ( (ms->config.targetClass > -1) && (ms->config.targetClass < tnc) ) {
     ms->config.class3dGrasps[ms->config.targetClass].push_back(thisRelative3dGrasp);
   }
 }
 END_WORD
 REGISTER_WORD(Add3dGrasp)
+
+WORD(AddPlaceUnderPoint)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Adding place under point." << endl;
+  eePose thisAbsolute3dGrasp = ms->config.currentEEPose;
+  eePose txQ = ms->config.c3dPoseBase.invQ();
+  txQ = txQ.multQ(thisAbsolute3dGrasp);
+
+  eePose thisAbsoluteDeltaP = thisAbsolute3dGrasp.minusP(ms->config.c3dPoseBase);
+  eePose thisRelative3dGrasp = ms->config.c3dPoseBase.invQ().applyQTo(thisAbsoluteDeltaP);
+  thisRelative3dGrasp.copyQ(txQ);
+
+  int tnc = ms->config.classPlaceUnderPoints.size();
+  if ( (ms->config.targetClass > -1) && (ms->config.targetClass < tnc) ) {
+    ms->config.classPlaceUnderPoints[ms->config.targetClass].push_back(thisRelative3dGrasp);
+  }
+}
+END_WORD
+REGISTER_WORD(AddPlaceUnderPoint)
+
+WORD(AddPlaceOverPoint)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Adding place over point." << endl;
+  eePose thisAbsolute3dGrasp = ms->config.currentEEPose;
+  eePose txQ = ms->config.c3dPoseBase.invQ();
+  txQ = txQ.multQ(thisAbsolute3dGrasp);
+
+  eePose thisAbsoluteDeltaP = thisAbsolute3dGrasp.minusP(ms->config.c3dPoseBase);
+  eePose thisRelative3dGrasp = ms->config.c3dPoseBase.invQ().applyQTo(thisAbsoluteDeltaP);
+  thisRelative3dGrasp.copyQ(txQ);
+
+  int tnc = ms->config.classPlaceOverPoints.size();
+  if ( (ms->config.targetClass > -1) && (ms->config.targetClass < tnc) ) {
+    ms->config.classPlaceOverPoints[ms->config.targetClass].push_back(thisRelative3dGrasp);
+  }
+}
+END_WORD
+REGISTER_WORD(AddPlaceOverPoint)
 
 WORD(AssumeCurrent3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {

@@ -2,9 +2,94 @@
 #include "ein.h"
 namespace ein_words {
 
+
+WORD(CornellMugsOnTables)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  
+  double cTableHeight = -0.045;//0.0;//0.025;
+  int amountMms = floor(cTableHeight / 0.001);
+
+  /*eePose table3Pose;
+  int success = 1;
+  success = success && placementPoseLabel1AboveLabel2By(ms, "brownMug", "table3", cTableHeight, &table3Pose);
+  if (success) {
+    ms->pushWord(std::make_shared<EePoseWord>(table3Pose));
+    ms->pushWord("brownMug");
+    ms->pushWord("moveObjectToPose");
+  }
+  */
+
+  ms->pushWord(std::make_shared<IntegerWord>(amountMms));
+  ms->pushWord("table3");
+  ms->pushWord("brownMug");
+  ms->pushWord("moveObjectToObjectByAmount");
+
+  ms->pushWord(std::make_shared<IntegerWord>(amountMms));
+  ms->pushWord("table2");
+  ms->pushWord("metalMug");
+  ms->pushWord("moveObjectToObjectByAmount");
+
+  ms->pushWord(std::make_shared<IntegerWord>(amountMms));
+  ms->pushWord("table1");
+  ms->pushWord("redMug");
+  ms->pushWord("moveObjectToObjectByAmount");
+
+
+  /*
+  if (success) {
+    ms->pushWord(std::make_shared<EePoseWord>(table3Pose));
+    ms->pushWord("brownMug");
+    ms->pushWord("moveObjectToPose");
+
+    ms->pushWord(std::make_shared<EePoseWord>(table2Pose));
+    ms->pushWord("metalMug");
+    ms->pushWord("moveObjectToPose");
+
+    ms->pushWord(std::make_shared<EePoseWord>(table1Pose));
+    ms->pushWord("redMug");
+    ms->pushWord("moveObjectToPose");
+  } else {
+    cout << "some objects not found.
+  */
+}
+END_WORD
+REGISTER_WORD(CornellMugsOnTables)
+
+WORD(MoveObjectToObjectByAmount)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> firstObjectWord = ms->popWord();
+  shared_ptr<Word> secondObjectWord = ms->popWord();
+  shared_ptr<Word> awPre = ms->popWord();
+  std::shared_ptr<IntegerWord> amountWord = std::dynamic_pointer_cast<IntegerWord>(awPre);
+
+  if( (firstObjectWord == NULL) || (secondObjectWord == NULL) || (amountWord == NULL) ) {
+    cout << "not enough words... clearing stack." << endl;
+    ms->clearStack();
+    return;
+  } else {
+    string firstObjectLabel = firstObjectWord->to_string();
+    string secondObjectLabel = secondObjectWord->to_string();
+    // this is specified in mm
+    int amountMms = amountWord->value();
+    double cTableHeight = 0.001 * amountMms;
+
+    eePose placePose;
+    int success = placementPoseLabel1AboveLabel2By(ms, firstObjectLabel, secondObjectLabel, cTableHeight, &placePose);
+    if (success) {
+      ms->pushWord(std::make_shared<EePoseWord>(placePose));
+      ms->pushWord(firstObjectLabel);
+      ms->pushWord("moveObjectToPose");
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(MoveObjectToObjectByAmount)
+
 WORD(SetTheYcbTable)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
+// XXX broken unless you do something with AssumeDeliveryPose
+// XXX ms->config.currentEEPose.pz = oldz;
   ms->pushWord("assumeCrane1"); 
 
   //eePose platePose = {.px = 0.602935, .py = 0.599482, .pz = -0.0395161,
@@ -107,25 +192,31 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.pilotClosestTarget.py = -1;
   
   int idxOfFirst = -1;
+  // we need to remove this from the blue box memories later
   vector<BoxMemory> focusedClassMemories = memoriesForClass(ms, ms->config.focusedClass, &idxOfFirst);
   if (focusedClassMemories.size() == 0) {
     cout << "No memories of the focused class. " << endl;
     return;
   }
+
   if (focusedClassMemories.size() > 1) {
     cout << "More than one bounding box for class.  Looking for first POSE_REPORTED." << focusedClassMemories.size() << endl;
-  }
-  //BoxMemory memory = focusedClassMemories[0];
-  BoxMemory memory = ms->config.blueBoxMemories[idxOfFirst];
+  } else {
+  } // do nothing
 
   if (idxOfFirst == -1) {
     cout << "No POSE_REPORTED objects of the focused class." << endl;
     return;
-  }
+  } else {
+  } // do nothing
+
+  BoxMemory memory = ms->config.blueBoxMemories[idxOfFirst];
+
 
   cout << "Aimed pose: " << memory.aimedPose << endl;
   //ms->config.currentEEPose = memory.cameraPose;
   ms->config.currentEEPose = memory.aimedPose;
+  // lastPickPose is suspect
   ms->config.lastPickPose = memory.pickedPose;
   ms->config.lastPrePickPose = memory.aimedPose;
   ms->config.trZ = memory.trZ;
@@ -238,7 +329,11 @@ WORD(AssumeDeliveryPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double oldz = ms->config.currentEEPose.pz;
   ms->config.currentEEPose = ms->config.placeTarget;
+  cout << "XXX assumeDeliveryPose: " << ms->config.currentEEPose << endl;
+  // so that we hover above where we want to be
   ms->config.currentEEPose.pz = oldz;
+  ms->config.currentEEPose.copyQ(ms->config.lastPrePickPose);
+  ms->config.lastPickPose.pz = ms->config.placeTarget.pz;
   ms->pushWord("waitUntilAtCurrentPosition");
 }
 END_WORD

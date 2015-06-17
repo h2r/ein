@@ -4312,6 +4312,8 @@ void zeroGraspMemoryAndRangeMap(shared_ptr<MachineState> ms) {
 void guard3dGrasps(shared_ptr<MachineState> ms) {
   if (ms->config.class3dGrasps.size() < ms->config.numClasses) {
     ms->config.class3dGrasps.resize(ms->config.numClasses);
+    ms->config.classPlaceUnderPoints.resize(ms->config.numClasses);
+    ms->config.classPlaceOverPoints.resize(ms->config.numClasses);
   }
 }
 
@@ -6941,9 +6943,14 @@ void initRangeMaps(shared_ptr<MachineState> ms) {
 
   ms->config.classGraspZs.resize(ms->config.numClasses);
   ms->config.classGraspZsSet.resize(ms->config.numClasses);
+
   ms->config.class3dGrasps.resize(ms->config.numClasses);
+  ms->config.classPlaceUnderPoints.resize(ms->config.numClasses);
+  ms->config.classPlaceOverPoints.resize(ms->config.numClasses);
   for(int i = 0; i < ms->config.numClasses; i++) {
     ms->config.class3dGrasps[i].resize(0);
+    ms->config.classPlaceUnderPoints[i].resize(0);
+    ms->config.classPlaceOverPoints[i].resize(0);
   }
 
   ms->config.classHeightMemoryTries.resize(ms->config.numClasses);
@@ -9765,6 +9772,7 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   cout << "nh namespace: " << nh.getNamespace() << endl;
 
   nh.getParam("robot_serial", ms->config.robot_serial);
+  cout << "XXX robot serial " << ms->config.robot_serial << endl;
   nh.getParam("vocab_file", ms->config.vocab_file);
   nh.getParam("knn_file", ms->config.knn_file);
   nh.getParam("label_file", ms->config.label_file);
@@ -10278,27 +10286,76 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
       cout << "Reading grasp information from " << this_grasp_path << " ..."; cout.flush();
       fsvI.open(this_grasp_path, FileStorage::READ);
 
-      FileNode anode = fsvI["grasps"];
       {
-	FileNode bnode = anode["size"];
-	FileNodeIterator itb = bnode.begin();
-	int tng = *itb;
-	ms->config.class3dGrasps[i].resize(0);
+	FileNode anode = fsvI["grasps"];
+	{
+	  FileNode bnode = anode["size"];
+	  FileNodeIterator itb = bnode.begin();
+	  int tng = *itb;
+	  ms->config.class3dGrasps[i].resize(0);
 
-	FileNode cnode = anode["graspPoses"];
-	FileNodeIterator itc = cnode.begin(), itc_end = cnode.end();
-	int numLoadedPoses = 0;
-	for ( ; itc != itc_end; itc++, numLoadedPoses++) {
-	  eePose buf;
-	  buf.readFromFileNodeIterator(itc);
-	  cout << " read pose: " << buf; cout.flush();
-	  ms->config.class3dGrasps[i].push_back(buf);
+	  FileNode cnode = anode["graspPoses"];
+	  FileNodeIterator itc = cnode.begin(), itc_end = cnode.end();
+	  int numLoadedPoses = 0;
+	  for ( ; itc != itc_end; itc++, numLoadedPoses++) {
+	    eePose buf;
+	    buf.readFromFileNodeIterator(itc);
+	    cout << " read 3d pose: " << buf; cout.flush();
+	    ms->config.class3dGrasps[i].push_back(buf);
+	  }
+	  if (numLoadedPoses != tng) {
+	    ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	  }
+	  cout << "Expected to load " << tng << " 3d poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
 	}
-	if (numLoadedPoses != tng) {
-	  ROS_ERROR_STREAM("Did not load the expected number of poses.");
-	}
-	cout << "Expected to load " << tng << " poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
       }
+      {
+	FileNode anode = fsvI["placeUnderPoints"];
+	{
+	  FileNode bnode = anode["size"];
+	  FileNodeIterator itb = bnode.begin();
+	  int tng = *itb;
+	  ms->config.classPlaceUnderPoints[i].resize(0);
+
+	  FileNode cnode = anode["pupPoses"];
+	  FileNodeIterator itc = cnode.begin(), itc_end = cnode.end();
+	  int numLoadedPoses = 0;
+	  for ( ; itc != itc_end; itc++, numLoadedPoses++) {
+	    eePose buf;
+	    buf.readFromFileNodeIterator(itc);
+	    cout << " read pup pose: " << buf; cout.flush();
+	    ms->config.classPlaceUnderPoints[i].push_back(buf);
+	  }
+	  if (numLoadedPoses != tng) {
+	    ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	  }
+	  cout << "Expected to load " << tng << " pup poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
+	}
+      }
+      {
+	FileNode anode = fsvI["placeOverPoints"];
+	{
+	  FileNode bnode = anode["size"];
+	  FileNodeIterator itb = bnode.begin();
+	  int tng = *itb;
+	  ms->config.classPlaceOverPoints[i].resize(0);
+
+	  FileNode cnode = anode["popPoses"];
+	  FileNodeIterator itc = cnode.begin(), itc_end = cnode.end();
+	  int numLoadedPoses = 0;
+	  for ( ; itc != itc_end; itc++, numLoadedPoses++) {
+	    eePose buf;
+	    buf.readFromFileNodeIterator(itc);
+	    cout << " read pop pose: " << buf; cout.flush();
+	    ms->config.classPlaceOverPoints[i].push_back(buf);
+	  }
+	  if (numLoadedPoses != tng) {
+	    ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	  }
+	  cout << "Expected to load " << tng << " pop poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
+	}
+      }
+
       cout << "done.";
     }
   }
@@ -10522,12 +10579,8 @@ bool boxMemoryIntersectCentroid(BoxMemory b1, BoxMemory b2) {
 
 
 vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx) {
-  vector<BoxMemory> results;
-  for (int j = 0; j < ms->config.blueBoxMemories.size(); j++) {
-    if (ms->config.blueBoxMemories[j].labeledClassIndex == ms->config.focusedClass) {
-      results.push_back(ms->config.blueBoxMemories[j]);
-    }
-  }
+  int unused = 0;
+  vector<BoxMemory> results = memoriesForClass(ms, classIdx, &unused);
   return results;
 }
 
@@ -10535,7 +10588,7 @@ vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx, in
   vector<BoxMemory> results;
   int haventFoundFirst = 1;
   for (int j = 0; j < ms->config.blueBoxMemories.size(); j++) {
-    if (ms->config.blueBoxMemories[j].labeledClassIndex == ms->config.focusedClass) {
+    if (ms->config.blueBoxMemories[j].labeledClassIndex == classIdx) {
       results.push_back(ms->config.blueBoxMemories[j]);
       if ( haventFoundFirst && (ms->config.blueBoxMemories[j].lockStatus == POSE_REPORTED) ) {
 	*memoryIdxOfFirst = j;
@@ -10544,6 +10597,75 @@ vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx, in
     }
   }
   return results;
+}
+
+int getBoxMemoryOfLabel(std::shared_ptr<MachineState> ms, string label, int * idxOfLabel, BoxMemory * out) {
+  // note that this function does not check for a lock
+  int class_idx = classIdxForName(ms, label);
+  if (class_idx != -1) {
+    vector<BoxMemory> focusedClassMemories = memoriesForClass(ms, class_idx);
+    if (focusedClassMemories.size() > 0) {
+      (*out) = focusedClassMemories[0];
+      (*idxOfLabel) = class_idx;
+      return 1;
+    } else {
+      return 0;
+    }
+  } else {
+    return 0;
+  }
+}
+
+int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string label1, string label2, double zAbove, eePose * out) {
+  eePose label2Pose;
+  int success = 0;
+  int label1Idx = -1;
+  BoxMemory label1Mem;
+  success = getBoxMemoryOfLabel(ms, label1, &label1Idx, &label1Mem);
+  if (success) {
+    int label2Idx = -1;
+    BoxMemory label2Mem;
+    success = getBoxMemoryOfLabel(ms, label2, &label2Idx, &label2Mem);
+    if (success) {
+      //eePose label1PickOffset = label1Mem.aimedPose.minusP(label1Mem.lockedPose);
+      eePose label1PickOffset = label1Mem.aimedPose.minusP(label1Mem.centroid);
+      //label2Pose = label2Mem.centroid.plusP(label1PickOffset);
+      label2Pose = label2Mem.aimedPose.plusP(label1PickOffset);
+      double thisPickZ = 0.0;
+      double label2TipZAtPick = 0;
+      if ( (ms->config.classGraspZsSet.size() > label2Idx) && 
+	   (ms->config.classGraspZs.size() > label2Idx) &&
+	   (ms->config.classGraspZsSet[label2Idx] == 1) ) {
+//cout << "YYY cGZ: " << -ms->config.classGraspZs[label2Idx] << endl;
+	label2TipZAtPick = -ms->config.classGraspZs[label2Idx] - ms->config.pickFlushFactor;
+      } else {
+	label2TipZAtPick = (-label2Mem.trZ) - ms->config.pickFlushFactor;
+      }
+cout << "RRR l2TZAP: " << label2TipZAtPick;
+      double totalZOffset = zAbove + label2TipZAtPick;
+      if ( (ms->config.classGraspZsSet.size() > label1Idx) && 
+	   (ms->config.classGraspZs.size() > label1Idx) &&
+	   (ms->config.classGraspZsSet[label1Idx] == 1) ) {
+//cout << "YYY cGZ: " << -ms->config.classGraspZs[label1Idx] << endl;
+	thisPickZ = -ms->config.currentTableZ + -ms->config.classGraspZs[label1Idx] + totalZOffset;
+      } else {
+	thisPickZ = -ms->config.currentTableZ + (-label1Mem.trZ) + totalZOffset;
+      }
+      label2Pose.pz = thisPickZ;
+      label2Pose.copyQ(ms->config.beeHome);
+//cout << "XXX currentTableZ: " << ms->config.currentTableZ << " thisPickZ: " << thisPickZ << endl; 
+      (*out) = label2Pose;
+      return 1;
+    } else {
+      cout << label2 << " not found, exiting and clearing stack." << endl;
+      ms->clearStack();
+      return 0;
+    }
+  } else {
+    cout << label1 << " not found, exiting and clearing stack." << endl;
+    ms->clearStack();
+    return 0;
+  }
 }
 
 bool cellIsMapped(shared_ptr<MachineState> ms, int i, int j) {
