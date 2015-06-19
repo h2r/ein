@@ -164,7 +164,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     Mat crop = ms->config.cam_img(cv::Rect(ms->config.bTops[0].x, ms->config.bTops[0].y, ms->config.bBots[0].x-ms->config.bTops[0].x, ms->config.bBots[0].y-ms->config.bTops[0].y));
     char buf[1000];
     string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
-    sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), ms->config.cropCounter);
+
+    ros::Time thisNow = ros::Time::now();
+    sprintf(buf, "%s%s%s_%f.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), thisNow.toSec());
     imwrite(buf, crop);
     ms->config.cropCounter++;
   }
@@ -180,7 +182,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       Mat crop = ms->config.cam_img(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
       char buf[1000];
       string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
-      sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), ms->config.cropCounter);
+
+      ros::Time thisNow = ros::Time::now();
+      sprintf(buf, "%s%s%s_%f.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), thisNow.toSec());
       imwrite(buf, crop);
       ms->config.cropCounter++;
     }
@@ -1869,21 +1873,21 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setMovementSpeedMoveVerySlow");
 
   ms->pushWord("changeToHeight1"); 
-  ms->pushWord("comeToHover");
+  //ms->pushWord("comeToHover");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("moveToRegister1");
 
 
 
-  ms->pushWord("setMovementSpeedMoveEvenFaster");
+  //ms->pushWord("setMovementSpeedMoveEvenFaster");
   //ms->pushWord("fasterRasterScanningSpeed");
   
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("comeToHover");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("moveToRegister1");
-  ms->pushWord("quarterImpulse");
+  //ms->pushWord("comeToStop");
+  //ms->pushWord("waitUntilAtCurrentPosition");
+  //ms->pushWord("comeToHover");
+  //ms->pushWord("waitUntilAtCurrentPosition");
+  //ms->pushWord("moveToRegister1");
+  //ms->pushWord("quarterImpulse");
   
   {
     ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
@@ -2293,6 +2297,178 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(PreAnnotateOffsetGrasp)
+
+WORD(HistogramDetectionIfBlueBoxes)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  if (ms->config.bTops.size() > 0) {
+    ms->pushWord("replaceBlueBoxesWithHistogramWinner"); 
+    ms->pushWord("histogramDetection");
+  } else {
+    cout << "No blue boxes detected, so not performing histogram detection." << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(HistogramDetectionIfBlueBoxes)
+
+
+
+WORD(HistogramDetection)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->pushWord("histogramDetectionReport");
+  ms->pushWord("histogramDetectionNormalize");
+
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("shiftIntoGraspGear1");
+  ms->pushWord("yDown");
+
+  /* 
+  ms->pushWord("detectionSpin");
+  ms->pushWord("yUp");
+  ms->pushWord("yUp");
+
+  ms->pushWord("detectionSpin");
+  ms->pushWord("yDown");
+  ms->pushWord("xDown");
+
+  ms->pushWord("detectionSpin");
+  ms->pushWord("xUp");
+  ms->pushWord("xUp");
+  */
+
+  ms->pushWord("detectionSpin");
+  ms->pushWord("setPhotoPinHere");
+  ms->pushWord("xDown");
+
+  
+  ms->pushWord("setPhotoPinHere");
+
+  ms->pushWord("histogramDetectionInit");
+}
+END_WORD
+REGISTER_WORD(HistogramDetection)
+
+WORD(DetectionSpin)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  for (int angleCounter = 0; angleCounter < ms->config.totalGraspGears; angleCounter++) {
+    //ms->pushWord("histgramAllExamplesFocusedClass");
+    ms->pushWord("histogramExampleAsFocusedClass");
+    ms->pushWord("visionCycle"); // vision cycle
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord("putCameraOverPhotoPin"); 
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord(1310722); // set random orientation for photospin.
+    ms->pushWord(196712); // increment grasp gear
+  }
+  ms->pushWord("shiftIntoGraspGear1"); // change gear to 1
+}
+END_WORD
+REGISTER_WORD(DetectionSpin)
+
+WORD(HistogramExampleAsFocusedClass)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+  recordBlueBoxInHistogram(ms, ms->config.pilotClosestBlueBoxNumber);
+  ms->pushWord("histogramDetectionReport");
+  ms->pushWord("histogramDetectionNormalize");
+}
+END_WORD
+REGISTER_WORD(HistogramExampleAsFocusedClass)
+
+WORD(HistgramAllExamplesFocusedClass)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+  for (int c = 0; c < ms->config.bTops.size(); c++) {
+    recordBlueBoxInHistogram(ms, c);
+  }
+  ms->pushWord("histogramDetectionReport");
+  ms->pushWord("histogramDetectionNormalize");
+}
+END_WORD
+REGISTER_WORD(HistgramAllExamplesFocusedClass)
+
+WORD(HistogramDetectionInit)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int thisNC = ms->config.classLabels.size(); 
+  ms->config.chHistogram.create(1, thisNC, CV_64F);
+  ms->config.chDistribution.create(1, thisNC, CV_64F);
+  ms->config.chWinner = -1;
+
+  for (int i = 0; i < thisNC; i++) {
+    ms->config.chHistogram.at<double>(0,i) = 0.0;
+  }
+}
+END_WORD
+REGISTER_WORD(HistogramDetectionInit)
+
+WORD(HistogramDetectionNormalize)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  computeClassificationDistributionFromHistogram(ms);
+}
+END_WORD
+REGISTER_WORD(HistogramDetectionNormalize)
+
+WORD(HistogramDetectionReport)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  cout << "Histogam Results: " << endl;
+  int thisNC = ms->config.chHistogram.cols; 
+  assert( thisNC == ms->config.chDistribution.cols );
+
+  int maxClass = -1;
+  double maxClassScore = -1;
+  for (int i = 0; i < thisNC; i++) {
+    double thisScore = ms->config.chDistribution.at<double>(0,i);
+    double thisCounts = ms->config.chHistogram.at<double>(0,i);
+    cout << ms->config.classLabels[i] << ": Probability " << thisScore << ", Counts " << thisCounts << endl;
+    if (thisScore > maxClassScore) {
+      maxClass = i;
+      maxClassScore = thisScore;
+    } else {
+    }
+  }
+
+  cout << endl << "Winner: " << ms->config.classLabels[maxClass] << ", " << maxClassScore << endl << endl;
+  ms->config.chWinner = maxClass;
+}
+END_WORD
+REGISTER_WORD(HistogramDetectionReport)
+
+WORD(ReplaceBlueBoxesWithHistogramWinner)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  if (ms->config.chWinner > -1) {
+    cout << "Replacing blue boxes with histogram winner..." << endl;
+    ms->config.bTops.resize(1);
+    ms->config.bBots.resize(1);
+    ms->config.bCens.resize(1);
+    ms->config.bLabels.resize(1);
+
+    int fakeBBWidth = 50;
+
+    ms->config.bTops[0].x = ms->config.vanishingPointReticle.px - fakeBBWidth;
+    ms->config.bTops[0].y = ms->config.vanishingPointReticle.py - fakeBBWidth;
+    ms->config.bBots[0].x = ms->config.vanishingPointReticle.px + fakeBBWidth;
+    ms->config.bBots[0].y = ms->config.vanishingPointReticle.py + fakeBBWidth;
+
+    ms->config.bCens[0].x = (ms->config.bTops[0].x + ms->config.bBots[0].x)/2.0;
+    ms->config.bCens[0].y = (ms->config.bTops[0].y + ms->config.bBots[0].y)/2.0;
+
+    ms->config.bLabels[0] = ms->config.chWinner;
+
+    ms->config.pilotClosestBlueBoxNumber = 0;
+  } else {
+    cout << "There is no histogram winner so clearing blue boxes..." << endl;
+    ms->config.bTops.resize(0);
+    ms->config.bBots.resize(0);
+    ms->config.bCens.resize(0);
+    ms->config.bLabels.resize(0);
+    ms->config.pilotClosestBlueBoxNumber = -1;
+  }
+}
+END_WORD
+REGISTER_WORD(ReplaceBlueBoxesWithHistogramWinner)
 
 
 }

@@ -1263,6 +1263,7 @@ REGISTER_WORD(SynchronicServoA)
 WORD(GradientServo)
 CODE(196728)   // capslock + X
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  // XXX currentGradientServoIterations should be set to 0 here and another wrapper layer introduced
   ms->pushWord("gradientServoA");
   ms->pushWord("gradientServoPrep");
 }
@@ -1407,6 +1408,7 @@ cout << "tnc, tnp: " << tnc << " " << tnp << endl;
 	  toWhichWasApplied = toWhichWasApplied.plusP(toWhichWasApplied.applyQTo(toApply));
 	  toWhichWasApplied = toWhichWasApplied.multQ(toApply);
 	  lastAdded->affPlaceOverPoses[i] = toWhichWasApplied;
+cout << "added " << lastAdded->affPlaceUnderPoses[i] << endl << " and current is " << endl << ms->config.currentEEPose << endl;
 	}
       }
     }
