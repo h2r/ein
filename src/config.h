@@ -668,8 +668,8 @@ class EinConfig {
   int densityIterationsForGradientServo = 10;//3;//10;
 
   // XXX TODO
-  int softMaxGradientServoIterations = 4;//5;//3;//10;//3;
-  int hardMaxGradientServoIterations = 4;//10;//2;//5;//5;//3;//10;//20;//3;//10;
+  int softMaxGradientServoIterations = 2;//5;//3;//10;//3;
+  int hardMaxGradientServoIterations = 5;//10;//2;//5;//5;//3;//10;//20;//3;//10;
   int currentGradientServoIterations = 0;
 
 
@@ -1093,6 +1093,14 @@ class EinConfig {
   Mat stereoDepth;
 
   eePose photoPinPose;
+
+  Mat chHistogram;
+  Mat chDistribution;
+  int chWinner;
+
+  eePose gshHistogram;
+  double gshCounts;
+  eePose gshPose;
 }; // config end
 
 class Word;

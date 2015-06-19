@@ -2224,62 +2224,47 @@ void update_baxter(ros::NodeHandle &n) {
       ROS_WARN_STREAM("Initial IK result invalid... adding noise and retrying.");
       cout << thisIkRequest.request.pose_stamp[0].pose << endl;
 
-      //eePose noisedCurrentEEPose = ms->config.currentEEPose;
-      //noisedCurrentEEPose.px = ms->config.currentEEPose.px + (drand48() - 0.5)*2.0*ikNoiseAmplitude*(1.0-useZOnly);
-      //noisedCurrentEEPose.py = ms->config.currentEEPose.py + (drand48() - 0.5)*2.0*ikNoiseAmplitude*(1.0-useZOnly);
-      //noisedCurrentEEPose.pz = ms->config.currentEEPose.pz + (drand48() - 0.5)*2.0*ikNoiseAmplitude*useZOnly;
-
-      //noisedCurrentEEPose.qx = ms->config.currentEEPose.qx + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
-      //noisedCurrentEEPose.qy = ms->config.currentEEPose.qy + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
-      //noisedCurrentEEPose.qz = ms->config.currentEEPose.qz + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
-      //noisedCurrentEEPose.qw = ms->config.currentEEPose.qw + (drand48() - 0.5)*2.0*ikNoiseAmplitudeQuat;
-      //fillIkRequest(&noisedCurrentEEPose, &thisIkRequest);
-
       reseedIkRequest(ms, &ms->config.currentEEPose, &thisIkRequest, ikRetry, numIkRetries);
       fillIkRequest(&ms->config.currentEEPose, &thisIkRequest);
     }
   }
+  
+  /*if ( ms->config.ikClient.waitForExistence(ros::Duration(1, 0)) ) {
+    ikResultFailed = (!ms->config.ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
+  } else {
+    cout << "waitForExistence timed out" << endl;
+    ikResultFailed = 1;
+  }*/
 
-  /*
-    if ( ms->config.ikClient.waitForExistence(ros::Duration(1, 0)) ) {
-  //cout << "block6.1" << endl;
-      ikResultFailed = (!ms->config.ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
-    } else {
-      cout << "waitForExistence timed out" << endl;
-      ikResultFailed = 1;
+  if (ikResultFailed) 
+  {
+    ROS_ERROR_STREAM("ikClient says pose request is invalid.");
+    ms->config.ik_reset_counter++;
+
+    cout << "ik_reset_counter, ik_reset_thresh: " << ms->config.ik_reset_counter << " " << ms->config.ik_reset_thresh << endl;
+    if (ms->config.ik_reset_counter > ms->config.ik_reset_thresh) {
+      ms->config.ik_reset_counter = 0;
+      ms->config.currentEEPose = ms->config.ik_reset_eePose;
+      ms->pushWord("pauseStackExecution"); // pause stack execution
+      ms->pushCopies("beep", 15); // beep
+      cout << "target position denied by ik, please reset the object.";
     }
-  */
+    else {
+      cout << "This pose was rejected by ikClient:" << endl;
+      cout << "Current EE Position (x,y,z): " << ms->config.currentEEPose.px << " " << ms->config.currentEEPose.py << " " << ms->config.currentEEPose.pz << endl;
+      cout << "Current EE Orientation (x,y,z,w): " << ms->config.currentEEPose.qx << " " << ms->config.currentEEPose.qy << " " << ms->config.currentEEPose.qz << " " << ms->config.currentEEPose.qw << endl;
 
-
-    if (ikResultFailed) 
-    {
-      ROS_ERROR_STREAM("ikClient says pose request is invalid.");
-      ms->config.ik_reset_counter++;
-
-      cout << "ik_reset_counter, ik_reset_thresh: " << ms->config.ik_reset_counter << " " << ms->config.ik_reset_thresh << endl;
-      if (ms->config.ik_reset_counter > ms->config.ik_reset_thresh) {
-	ms->config.ik_reset_counter = 0;
-	ms->config.currentEEPose = ms->config.ik_reset_eePose;
-	ms->pushWord("pauseStackExecution"); // pause stack execution
-	ms->pushCopies("beep", 15); // beep
-	cout << "target position denied by ik, please reset the object.";
-      }
-      else {
-	cout << "This pose was rejected by ikClient:" << endl;
-	cout << "Current EE Position (x,y,z): " << ms->config.currentEEPose.px << " " << ms->config.currentEEPose.py << " " << ms->config.currentEEPose.pz << endl;
-	cout << "Current EE Orientation (x,y,z,w): " << ms->config.currentEEPose.qx << " " << ms->config.currentEEPose.qy << " " << ms->config.currentEEPose.qz << " " << ms->config.currentEEPose.qw << endl;
-
-	ms->config.currentEEPose = ms->config.lastGoodEEPose;
-      }
-
-      return;
+      ms->config.currentEEPose = ms->config.lastGoodEEPose;
     }
 
-    ms->config.ik_reset_counter = max(ms->config.ik_reset_counter-1, 0);
+    return;
+  }
 
-    ms->config.lastGoodEEPose = ms->config.currentEEPose;
-    ms->config.ikRequest = thisIkRequest;
-    ms->config.ikInitialized = 1;
+  ms->config.ik_reset_counter = max(ms->config.ik_reset_counter-1, 0);
+
+  ms->config.lastGoodEEPose = ms->config.currentEEPose;
+  ms->config.ikRequest = thisIkRequest;
+  ms->config.ikInitialized = 1;
   
 
   // but in theory we can bypass the joint controllers by publishing to this topic
@@ -2315,9 +2300,7 @@ void update_baxter(ros::NodeHandle &n) {
 
     for (int j = 0; j < NUM_JOINTS; j++) {
       myCommand.names[j] = ms->config.ikRequest.response.joints[0].name[j];
-      //myCommand.command[j] = 0.0;
       myCommand.command[j] = spiralEta*rapidJointScales[j]*(ms->config.ikRequest.response.joints[0].position[j] - ms->config.trueJointPositions[j]);
-      //myCommand.command[j] = sin(rapidJointGlobalOmega[j]*howLong.toSec());
     }
     {
       double tim = howLong.toSec();
@@ -2325,14 +2308,9 @@ void update_baxter(ros::NodeHandle &n) {
       myCommand.command[4] += -rapidAmp1*rapidJointScales[4]*sin(rapidJointLocalBias[4] + (rapidJointLocalOmega[4]*rapidJointGlobalOmega[4]*tim));
       myCommand.command[3] +=  rapidAmp1*rapidJointScales[3]*cos(rapidJointLocalBias[3] + (rapidJointLocalOmega[3]*rapidJointGlobalOmega[3]*tim));
 
-      //myCommand.command[5] += -rapidAmp1*rapidJointScales[4]*sin(rapidJointLocalBias[4] + (rapidJointLocalOmega[4]*rapidJointGlobalOmega[4]*tim));
-      //myCommand.command[0] +=  rapidAmp1*rapidJointScales[3]*cos(rapidJointLocalBias[3] + (rapidJointLocalOmega[3]*rapidJointGlobalOmega[3]*tim));
-
       double rapidAmp2 = 0.00;
       myCommand.command[5] += -rapidAmp2*rapidJointScales[5]*sin(rapidJointLocalBias[5] + (rapidJointLocalOmega[5]*rapidJointGlobalOmega[5]*tim));
       myCommand.command[0] +=  rapidAmp2*rapidJointScales[0]*cos(rapidJointLocalBias[0] + (rapidJointLocalOmega[0]*rapidJointGlobalOmega[0]*tim));
-
-      //myCommand.command[6] +=  rapidAmp1*rapidJointScales[6]*2.0*((0 < cos(0.1*3.1415926*tim))-0.5);
     }
   } else {
     myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
@@ -6321,9 +6299,6 @@ void gradientServo(shared_ptr<MachineState> ms) {
   ms->config.lastPtheta = Ptheta;
   
   
-  // update after
-  ms->config.currentGradientServoIterations++;
-  
   // XXX this still might miss if it nails the correct orientation on the last try
   // TODO but we could set the bestOrientationEEPose here according to what it would have been`
   // but we don't want to move because we want all the numbers to be consistent
@@ -6356,88 +6331,95 @@ void gradientServo(shared_ptr<MachineState> ms) {
   double distance = dx*dx + dy*dy + dz*dz;
   
 
-  if (distance > ms->config.w1GoThresh*ms->config.w1GoThresh) {
+  // ATTN 5
+  // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
+  if (((fabs(Px) < ms->config.gradServoPixelThresh) && (fabs(Py) < ms->config.gradServoPixelThresh) && (fabs(Ptheta) < ms->config.gradServoThetaThresh)) ||
+      (ms->config.currentGradientServoIterations > (ms->config.hardMaxGradientServoIterations-1)))
+  {
+
+    if (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) {
+      ms->config.gshHistogram = ms->config.gshHistogram.plusP(ms->config.currentEEPose);
+      ms->config.gshCounts = 1.0 + ms->config.gshCounts;
+      cout << "Adding final gradient servo position estimate to histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
+    } else {
+    } // do nothing
+     
+    // turn off histogrammed code for now
+    if (ms->config.gshCounts > 0) {
+      cout << "Replacing final gradient servo position estimate with histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
+      ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
+      ms->config.currentEEPose.copyP(ms->config.gshPose);
+    }
+    ms->config.gshHistogram = eePose::zero();
+    ms->config.gshCounts = 0.0;
     
-    ms->pushWord("gradientServo"); 
-    // ATTN 8
-    //ms->pushCopies("density", ms->config.densityIterationsForGradientServo); 
-    //ms->pushCopies("accumulateDensity", ms->config.densityIterationsForGradientServo); 
-    //ms->pushCopies("resetTemporalMap", 1); 
-    //ms->pushWord("resetAerialGradientTemporalFrameAverage"); 
-    //ms->pushCopies("density", 1); 
-    //ms->pushCopies("waitUntilAtCurrentPosition", 5); 
-    cout << " XXX deprecated code path, gradient servo should not be responsible for enforcing distance 73825" << endl;
+cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
     ms->pushCopies("waitUntilAtCurrentPosition", 1); 
     
-  } else {
-    // ATTN 5
-    // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
-    if (((fabs(Px) < ms->config.gradServoPixelThresh) && (fabs(Py) < ms->config.gradServoPixelThresh) && (fabs(Ptheta) < ms->config.gradServoThetaThresh)) ||
-        (ms->config.currentGradientServoIterations > (ms->config.hardMaxGradientServoIterations-1)))
-      {
-	// ATTN 23
-	// move from vanishing point reticle to gripper reticle
-	//moveCurrentGripperRayToCameraVanishingRay();
-	//ms->config.bestOrientationEEPose = ms->config.currentEEPose;
-
-        // ATTN 12
-        if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
-          cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << ms->config.gradientServoDuringHeightLearning << endl;
-          cout << "bbLearning: returning from gradient servo." << endl;
-          return;
-        }
-        
-        // ATTN 17
-        if (ms->config.bailAfterGradient) {
-          cout << "gradient servo set to bail. returning." << endl;
-          return;
-        }
-        
-        //cout << "got within thresh, returning." << endl;
-        cout << "got within thresh, fetching." << endl;
-        ms->config.lastPtheta = INFINITY;
-        cout << "resetting lastPtheta: " << ms->config.lastPtheta << endl;
     
-        if (ms->config.synchronicTakeClosest) {
-          if (ms->config.gradientTakeClosest) {
-            if ((ms->config.classRangeMaps[ms->config.targetClass].rows > 1) && (ms->config.classRangeMaps[ms->config.targetClass].cols > 1))
-              ms->pushWord("prepareForAndExecuteGraspFromMemoryLearning"); // prepare for and execute the best grasp from memory at the current location and target
-            else {
-              ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
-            }
-          } else {
-            return;
-          }
-        } else {
-          if ((ms->config.classRangeMaps[ms->config.targetClass].rows > 1) && (ms->config.classRangeMaps[ms->config.targetClass].cols > 1)) {
-            ms->pushWord("prepareForAndExecuteGraspFromMemoryLearning"); 
-          } else {
-            ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
-          }
-        }
-        
-        return;
+    // ATTN 23
+    // move from vanishing point reticle to gripper reticle
+    //moveCurrentGripperRayToCameraVanishingRay();
+    //ms->config.bestOrientationEEPose = ms->config.currentEEPose;
+
+    // ATTN 12
+    if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
+      cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << ms->config.gradientServoDuringHeightLearning << endl;
+      cout << "bbLearning: returning from gradient servo." << endl;
+      return;
+    }
+    
+    // ATTN 17
+    if (ms->config.bailAfterGradient) {
+      cout << "gradient servo set to bail. returning." << endl;
+      return;
+    }
+    
+    //cout << "got within thresh, returning." << endl;
+    cout << "got within thresh, fetching." << endl;
+    ms->config.lastPtheta = INFINITY;
+    cout << "resetting lastPtheta: " << ms->config.lastPtheta << endl;
+
+    if (ms->config.synchronicTakeClosest) {
+      if (ms->config.gradientTakeClosest) {
+	if ((ms->config.classRangeMaps[ms->config.targetClass].rows > 1) && (ms->config.classRangeMaps[ms->config.targetClass].cols > 1))
+	  ms->pushWord("prepareForAndExecuteGraspFromMemoryLearning"); // prepare for and execute the best grasp from memory at the current location and target
+	else {
+	  ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
+	}
       } else {
-      
-      ms->pushWord("gradientServo"); 
-      
-      double pTermX = ms->config.gradKp*Px;
-      double pTermY = ms->config.gradKp*Py;
-      
-      double pTermS = Ps * .005;
-      ms->config.currentEEPose.pz += pTermS;
-      
-      // invert the current eePose orientation to decide which direction to move from POV
-      Eigen::Vector3f localUnitX;
-      {
-        Eigen::Quaternionf qin(0, 1, 0, 0);
-        Eigen::Quaternionf qout(0, 1, 0, 0);
-        Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-        qout = eeqform * qin * eeqform.conjugate();
-        localUnitX.x() = qout.x();
-        localUnitX.y() = qout.y();
-        localUnitX.z() = qout.z();
+	return;
       }
+    } else {
+      if ((ms->config.classRangeMaps[ms->config.targetClass].rows > 1) && (ms->config.classRangeMaps[ms->config.targetClass].cols > 1)) {
+	ms->pushWord("prepareForAndExecuteGraspFromMemoryLearning"); 
+      } else {
+	ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
+      }
+    }
+    
+    return;
+  } else {
+      
+    ms->pushWord("gradientServo"); 
+    
+    double pTermX = ms->config.gradKp*Px;
+    double pTermY = ms->config.gradKp*Py;
+    
+    double pTermS = Ps * .005;
+    ms->config.currentEEPose.pz += pTermS;
+    
+    // invert the current eePose orientation to decide which direction to move from POV
+    Eigen::Vector3f localUnitX;
+    {
+      Eigen::Quaternionf qin(0, 1, 0, 0);
+      Eigen::Quaternionf qout(0, 1, 0, 0);
+      Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+      qout = eeqform * qin * eeqform.conjugate();
+      localUnitX.x() = qout.x();
+      localUnitX.y() = qout.y();
+      localUnitX.z() = qout.z();
+    }
       
     Eigen::Vector3f localUnitY;
     {
@@ -6470,30 +6452,32 @@ void gradientServo(shared_ptr<MachineState> ms) {
 
     ms->config.currentEEPose.px = newx;
     ms->config.currentEEPose.py = newy;
-    
-    // ATTN 8
-    //ms->pushWord("visionCycle"); // vision cycle
-    //ms->pushWord(196721); // vision cycle no classify
-    //ms->pushCopies("density", ms->config.densityIterationsForGradientServo); // density
-    //ms->pushCopies("accumulateDensity", ms->config.densityIterationsForGradientServo); 
-    //ms->pushCopies("resetTemporalMap", 1); // reset temporal map
-    //ms->pushWord("resetAerialGradientTemporalFrameAverage"); // reset aerialGradientTemporalFrameAverage
-    //ms->pushCopies("density", 1); // density
-    //ms->pushWord("waitUntilAtCurrentPosition"); 
-    
-    // ATTN 7
-    // if you don't wait multiple times, it could get triggered early by weird ik or latency could cause a loop
-    // this is a very aggressive choice and we should also be using the ring buffers for Ode calls
-    //ms->pushCopies("waitUntilAtCurrentPosition", 40); 
-    //ms->pushCopies("waitUntilAtCurrentPosition", 5); 
+
+    // if we are at the soft max, take first histogram estimate.
+    // if we are above, add to it
+    // if we are below it 
+    if (ms->config.currentGradientServoIterations == (ms->config.softMaxGradientServoIterations-1)) {
+      ms->config.gshHistogram = ms->config.currentEEPose;
+      ms->config.gshCounts = 1.0;
+      cout << "Initializing gradient servo histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
+      ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
+      ms->config.currentEEPose.copyP(ms->config.gshPose);
+    } else if (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) {
+      ms->config.gshHistogram = ms->config.gshHistogram.plusP(ms->config.currentEEPose);
+      ms->config.gshCounts = 1.0 + ms->config.gshCounts;
+      cout << "Adding intermediate gradient servo position estimate to histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
+      ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
+      ms->config.currentEEPose.copyP(ms->config.gshPose);
+    } else {
+    } // do nothing
+
+cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
     ms->pushCopies("waitUntilAtCurrentPosition", 1); 
     
-    // ATTN 16
-    //	    { // prepare to servo
-    //	      ms->config.currentEEPose.pz = wholeFoodsCounter1.pz+.1;
-    //	    }
-    }
   }
+
+  // update after
+  ms->config.currentGradientServoIterations++;
 }
 
 // given pixel is the pixel in the current frame that you want to be at the vanishing point
@@ -10616,12 +10600,70 @@ int getBoxMemoryOfLabel(std::shared_ptr<MachineState> ms, string label, int * id
 }
 
 int placementPoseLabel1BetweenLabel2AndLabel3(std::shared_ptr<MachineState> ms, string label1, 
+  // XXX guard affPXPs
+  // XXX guard affPXPs
+  // XXX guard affPXPs
   string label2, string label3, eePose * out) {
 
+  eePose label1Pose;
+  int success = 0;
+  int label1Idx = -1;
+  BoxMemory label1Mem;
+  success = getBoxMemoryOfLabel(ms, label1, &label1Idx, &label1Mem);
+  if (success) {
+    int label2Idx = -1;
+    BoxMemory label2Mem;
+    success = getBoxMemoryOfLabel(ms, label2, &label2Idx, &label2Mem);
+    if (success) {
+      int label3Idx = -1;
+      BoxMemory label3Mem;
+      success = getBoxMemoryOfLabel(ms, label3, &label3Idx, &label3Mem);
+      if (success) {
 
+	eePose label1PickOffset = label1Mem.aimedPose.minusP(label1Mem.affPlaceUnderPoses[0]);
+	
+	eePose betweenL2AndL3PlaceOver = label2Mem.affPlaceOverPoses[0].plusP(label3Mem.affPlaceOverPoses[0]);
+	betweenL2AndL3PlaceOver = betweenL2AndL3PlaceOver.multP(0.5);
+
+	label1Pose = betweenL2AndL3PlaceOver.plusP(label1PickOffset);
+	double thisPickZ = 0.0;
+	double label2TipZAtPick = 0;
+	if ( (ms->config.classGraspZsSet.size() > label2Idx) && 
+	     (ms->config.classGraspZs.size() > label2Idx) &&
+	     (ms->config.classGraspZsSet[label2Idx] == 1) ) {
+	  label2TipZAtPick = -ms->config.classGraspZs[label2Idx] - ms->config.pickFlushFactor;
+	} else {
+	  label2TipZAtPick = (-label2Mem.trZ) - ms->config.pickFlushFactor;
+	}
+
+	double totalZOffset = label2TipZAtPick;
+	thisPickZ = -ms->config.currentTableZ + totalZOffset;
+
+	label1Pose.pz = thisPickZ;
+	label1Pose.copyQ(ms->config.beeHome);
+	(*out) = label1Pose;
+	return 1;
+      } else {
+	cout << label2 << " not found, exiting and clearing stack." << endl;
+	ms->clearStack();
+	return 0;
+      }
+    } else {
+      cout << label2 << " not found, exiting and clearing stack." << endl;
+      ms->clearStack();
+      return 0;
+    }
+  } else {
+    cout << label1 << " not found, exiting and clearing stack." << endl;
+    ms->clearStack();
+    return 0;
+  }
 }
 
 int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string label1, string label2, double zAbove, eePose * out) {
+  // XXX guard affPXPs
+  // XXX guard affPXPs
+  // XXX guard affPXPs
   eePose label2Pose;
   int success = 0;
   int label1Idx = -1;
@@ -10632,25 +10674,12 @@ int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string la
     BoxMemory label2Mem;
     success = getBoxMemoryOfLabel(ms, label2, &label2Idx, &label2Mem);
     if (success) {
-      //eePose label1PickOffset = label1Mem.aimedPose.minusP(label1Mem.lockedPose);
-      //eePose label1PickOffset = label1Mem.aimedPose.minusP(label1Mem.centroid);
-      // works:
       eePose label1PickOffset = label1Mem.aimedPose.minusP(label1Mem.affPlaceUnderPoses[0]);
-      //label2Pose = label2Mem.centroid.plusP(label1PickOffset);
-      // works :
-      //label2Pose = label2Mem.aimedPose.plusP(label1PickOffset);
       label2Pose = label2Mem.affPlaceOverPoses[0].plusP(label1PickOffset);
       double thisPickZ = 0.0;
       double label2TipZAtPick = 0;
-      if ( (ms->config.classGraspZsSet.size() > label2Idx) && 
-	   (ms->config.classGraspZs.size() > label2Idx) &&
-	   (ms->config.classGraspZsSet[label2Idx] == 1) ) {
-//cout << "YYY cGZ: " << -ms->config.classGraspZs[label2Idx] << endl;
-	label2TipZAtPick = -ms->config.classGraspZs[label2Idx] - ms->config.pickFlushFactor;
-      } else {
-	label2TipZAtPick = (-label2Mem.trZ) - ms->config.pickFlushFactor;
-      }
-cout << "RRR l2TZAP: " << label2TipZAtPick;
+      label2TipZAtPick = (label2Mem.affPlaceOverPoses[0].pz - (-ms->config.currentTableZ)) - ms->config.pickFlushFactor;
+
       double totalZOffset = zAbove + label2TipZAtPick;
       if ( (ms->config.classGraspZsSet.size() > label1Idx) && 
 	   (ms->config.classGraspZs.size() > label1Idx) &&
@@ -10660,9 +10689,12 @@ cout << "RRR l2TZAP: " << label2TipZAtPick;
       } else {
 	thisPickZ = -ms->config.currentTableZ + (-label1Mem.trZ) + totalZOffset;
       }
+
+
+
       label2Pose.pz = thisPickZ;
       label2Pose.copyQ(ms->config.beeHome);
-//cout << "XXX currentTableZ: " << ms->config.currentTableZ << " thisPickZ: " << thisPickZ << endl; 
+//cout << "ZZZ currentTableZ: " << ms->config.currentTableZ << " thisPickZ: " << thisPickZ << endl; 
       (*out) = label2Pose;
       return 1;
     } else {
@@ -10674,6 +10706,29 @@ cout << "RRR l2TZAP: " << label2TipZAtPick;
     cout << label1 << " not found, exiting and clearing stack." << endl;
     ms->clearStack();
     return 0;
+  }
+}
+
+void recordBlueBoxInHistogram(shared_ptr<MachineState> ms, int idx) {
+  if ( (idx > -1) && (idx < ms->config.bLabels.size()) ) {
+    int thisLabel = ms->config.bLabels[idx];
+    ms->config.chHistogram.at<double>(0,thisLabel)++;
+  }
+}
+
+void computeClassificationDistributionFromHistogram(shared_ptr<MachineState> ms) {
+  int thisNC = ms->config.chHistogram.cols; 
+  assert( thisNC == ms->config.chDistribution.cols );
+  double total = 0.0;
+  for (int i = 0; i < thisNC; i++) {
+    total = total + ms->config.chHistogram.at<double>(0,i);
+  }
+  if (total < EPSILON) {
+    total = 1.0;
+  } else {
+  } // do nothing
+  for (int i = 0; i < thisNC; i++) {
+    ms->config.chDistribution.at<double>(0,i) = ms->config.chHistogram.at<double>(0,i) / total;
   }
 }
 
