@@ -26,6 +26,8 @@ typedef struct _eePose{
   _eePose plusP(const _eePose& a) const;
   _eePose minusP(const _eePose& a) const;
 
+  _eePose multP(const double& a) const;
+
   _eePose negativeP() const;
   _eePose negativeQ() const;
 

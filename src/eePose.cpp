@@ -88,6 +88,18 @@ _eePose _eePose::minusP(const _eePose& a) const {
   return toReturn;
 }
 
+_eePose _eePose::multP(const double& a) const {
+  _eePose toReturn;
+  toReturn.px = px * a;
+  toReturn.py = py * a;
+  toReturn.pz = pz * a;
+  toReturn.qx = qx;
+  toReturn.qy = qy;
+  toReturn.qz = qz;
+  toReturn.qw = qw;
+  return toReturn;
+}
+
 _eePose _eePose::negativeP() const {
   _eePose toReturn;
   toReturn.px = -px;
