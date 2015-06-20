@@ -18,29 +18,6 @@ std::string operationStatusToString(operationStatusType mode)
 }
 
 
-
-
-string pickModeToString(pickMode mode) {
-  string result;
-  if (mode == STATIC_PRIOR) {
-    result = "static prior";
-  } else if (mode == LEARNING_SAMPLING) {
-    result = "learning sampling";
-  } else if (mode == LEARNING_ALGORITHMC) {
-    result = "learning algorithm C";
-  } else if (mode == STATIC_MARGINALS) {
-    result = "static marginals";
-  } else if (mode == MAPPING) {
-    result = "mapping";
-  } else {
-    cout << "Invalid pick mode: " << mode << endl;
-    assert(0);
-  }
-  return result;
-}
-
-
-
 void pushSpeedSign(shared_ptr<MachineState> ms, double speed) {
 
   if (speed == NOW_THATS_FAST) {
@@ -65,11 +42,6 @@ void pushSpeedSign(shared_ptr<MachineState> ms, double speed) {
 }
 
 
-void guardedImshow(string name, Mat image, bool shouldIRender) {
-  if ( !isSketchyMat(image) && shouldIRender ) {
-    imshow(name, image);
-  }
-}
 
 bool isSketchyMat(Mat sketchy) {
   return ( (sketchy.rows <= 1) || (sketchy.rows <= 1) );

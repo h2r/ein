@@ -4,7 +4,6 @@
 #include <iostream>
 #include "eigen_util.h"
 #include <cv.h>
-#include <highgui.h>
 #include <ml.h>
 #include <opencv2/nonfree/nonfree.hpp>
 #include <opencv2/gpu/gpu.hpp>
@@ -41,6 +40,7 @@ typedef struct _eePose{
   void writeToFileStorage(FileStorage& fsvO) const;
 
   void readFromFileNodeIterator(FileNodeIterator& it);
+  void readFromFileNode(FileNode& it);
 
   bool equals(_eePose pose);
 

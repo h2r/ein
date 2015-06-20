@@ -51,7 +51,6 @@ vector<Rect> faceDetectAndDisplay(string windowName, Mat frame ) {
         }
     }
   //-- Show what you got
-  guardedImshow(windowName, frame, true);
   return faces;
 }
 

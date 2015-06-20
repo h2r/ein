@@ -191,6 +191,16 @@ void _eePose::readFromFileNodeIterator(FileNodeIterator& it) {
   qz = (double)(*it)["qz"];
 }
 
+void _eePose::readFromFileNode(FileNode& it) {
+  px = (double)(it)["px"];
+  py = (double)(it)["py"];
+  pz = (double)(it)["pz"];
+  qw = (double)(it)["qw"];
+  qx = (double)(it)["qx"];
+  qy = (double)(it)["qy"];
+  qz = (double)(it)["qz"];
+}
+
 
 
 bool _eePose::equals(_eePose pose)

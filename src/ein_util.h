@@ -6,7 +6,6 @@
 #include <assert.h>
 
 #include <cv.h>
-#include <highgui.h>
 #include <ml.h>
 #include <opencv2/nonfree/nonfree.hpp>
 #include <opencv2/gpu/gpu.hpp>
@@ -51,7 +50,6 @@ typedef enum {
 
 
 
-std::string pickModeToString(pickMode mode);
 
 
 #define ORIENTATIONS 180//12 
@@ -61,7 +59,6 @@ std::string pickModeToString(pickMode mode);
 
 
 void pushSpeedSign(shared_ptr<MachineState> ms, double speed);
-void guardedImshow(string name, Mat image, bool shouldIRender);
 bool isSketchyMat(Mat sketchy);
 eePose rosPoseToEEPose(geometry_msgs::Pose pose);
 
