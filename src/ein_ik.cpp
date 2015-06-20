@@ -1,6 +1,12 @@
 #include "ein.h"
 #include <tf_conversions/tf_kdl.h>
 
+#define isnan std::isnan
+#define IKFAST_NO_MAIN // Don't include main() from IKFast
+#include "ikfast/baxter_left_arm_ikfast_solver.cpp"
+
+int query_ikfast(baxter_core_msgs::SolvePositionIK * thisRequest);
+
 void fillIkRequest(eePose * givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
   givenIkRequest->request.pose_stamp.resize(1);
 
@@ -86,7 +92,7 @@ bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositi
 void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
   if (ms->config.currentRobotMode == PHYSICAL) {
     *thisResult = ms->config.ikClient.call(*thisRequest);
-    /*cout << "Asking for IK: " << thisRequest->request.pose_stamp[0].pose.position.x << ",";
+    cout << "Asking for IK: " << thisRequest->request.pose_stamp[0].pose.position.x << ",";
     cout << thisRequest->request.pose_stamp[0].pose.position.y << ",";
     cout << thisRequest->request.pose_stamp[0].pose.position.z << endl;
     cout << "Result: ";
@@ -99,17 +105,52 @@ void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::So
     } else {
       cout << "invalid" << endl;
     }
-    */
-
-    //KDL::Frame frame;
-    //tf::poseMsgToKDL(ik_pose,frame);
-
-    //IkSolutionList<IkReal> solutions;
-    //int numsol = solve(frame,vfree,solutions);
+    
+    query_ikfast(thisRequest);
 
   } else if (ms->config.currentRobotMode == SIMULATED) {
     *thisResult = 1;
   } else {
     assert(0);
   }
+}
+
+
+int query_ikfast(baxter_core_msgs::SolvePositionIK * thisRequest) {
+    KDL::Frame pose_frame;
+    tf::poseMsgToKDL(thisRequest->request.pose_stamp[0].pose, pose_frame);
+
+    std::vector<double> vfree(1);
+    vfree[0] = 0;
+
+    IkSolutionList<IkReal> solutions;
+    
+    // For **Transform6D**, eerot is 9 values for the 3x3 rotation matrix.
+
+
+    KDL::Rotation mult;
+    KDL::Vector direction;
+
+    double trans[3];
+    trans[0] = pose_frame.p[0];//-.18;
+    trans[1] = pose_frame.p[1];
+    trans[2] = pose_frame.p[2];
+
+    mult = pose_frame.M;
+
+    double vals[9];
+    vals[0] = mult(0,0);
+    vals[1] = mult(0,1);
+    vals[2] = mult(0,2);
+    vals[3] = mult(1,0);
+    vals[4] = mult(1,1);
+    vals[5] = mult(1,2);
+    vals[6] = mult(2,0);
+    vals[7] = mult(2,1);
+    vals[8] = mult(2,2);
+
+    // IKFast56/61
+    ComputeIk(trans, vals, vfree.size() > 0 ? &vfree[0] : NULL, solutions);
+    return solutions.GetNumSolutions();
+
 }
