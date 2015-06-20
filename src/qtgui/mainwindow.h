@@ -37,7 +37,6 @@ private:
 
     shared_ptr<MachineState> ms;
     DefaultEinViewPort wristView;
-    DefaultEinViewPort objectView;
     DefaultEinViewPort objectMapView;
     WindowManager windowManager;
 };

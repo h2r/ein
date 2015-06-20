@@ -12,13 +12,11 @@ MainWindow::MainWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
   QMainWindow(parent),
   ui(new Ui::MainWindow),
   wristView(parent, EIN_WINDOW_KEEPRATIO),
-  objectView(parent, EIN_WINDOW_KEEPRATIO),
   objectMapView(parent, EIN_WINDOW_KEEPRATIO)
 {
     ui->setupUi(this);
 
     ui->wristViewFrame->layout()->addWidget(wristView.getWidget());
-    ui->objectViewFrame->layout()->addWidget(objectView.getWidget());
     ui->objectMapViewFrame->layout()->addWidget(objectMapView.getWidget());
     ms = _ms;
 
@@ -52,9 +50,6 @@ void MainWindow::update() {
   stackModel->setMachineState(ms);
   if ( !isSketchyMat(ms->config.wristViewImage)) {
      wristView.updateImage(ms->config.wristViewImage);
-  }
-  if ( !isSketchyMat(ms->config.objectViewerImage)) {
-    objectView.updateImage(ms->config.objectViewerImage);
   }
   if ( !isSketchyMat(ms->config.objectMapViewerImage)) {
     objectMapView.updateImage(ms->config.objectMapViewerImage);
