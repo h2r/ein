@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   object_recognition_msgs
   geometry_msgs
   visualization_msgs
+  tf_conversions
   genmsg
   cv_bridge
   image_transport
@@ -18,6 +19,8 @@ find_package(catkin REQUIRED COMPONENTS
   baxter_core_msgs
   control_msgs
 )
+
+find_package(LAPACK REQUIRED)
 find_package(GSL REQUIRED)
 
 add_message_files(
@@ -102,6 +105,7 @@ target_link_libraries(ein
 	${OpenCV_LIBS}
 	opencv_nonfree
         ${GSL_LIBRARIES}
+        ${LAPACK_LIBRARIES}
         CmakeLib
 )
 
