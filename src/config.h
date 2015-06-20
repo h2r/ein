@@ -112,6 +112,7 @@ struct BoxMemory {
   cv::Point bTop;
   cv::Point bBot;
   eePose cameraPose;
+  eePose lockedPose;
   eePose aimedPose;
   eePose pickedPose;
   eePose top;
@@ -121,6 +122,10 @@ struct BoxMemory {
   int labeledClassIndex;
   memoryLockType lockStatus;
   double trZ;
+
+  vector<eePose> aff3dGraspPoses;
+  vector<eePose> affPlaceOverPoses;
+  vector<eePose> affPlaceUnderPoses;
 };
 
 typedef struct MapCell {
@@ -238,8 +243,10 @@ class EinConfig {
   vector<double> classGraspZsSet;
 
   int current3dGraspIndex = 0;
-  vector< vector<eePose> > class3dGrasps;
   eePose c3dPoseBase;
+  vector< vector<eePose> > class3dGrasps;
+  vector< vector<eePose> > classPlaceOverPoints;
+  vector< vector<eePose> > classPlaceUnderPoints;
 
   double movingThreshold = 0.02;
   double hoverThreshold = 0.003; 
@@ -661,8 +668,8 @@ class EinConfig {
   int densityIterationsForGradientServo = 10;//3;//10;
 
   // XXX TODO
-  int softMaxGradientServoIterations = 4;//5;//3;//10;//3;
-  int hardMaxGradientServoIterations = 10;//2;//5;//5;//3;//10;//20;//3;//10;
+  int softMaxGradientServoIterations = 2;//5;//3;//10;//3;
+  int hardMaxGradientServoIterations = 5;//10;//2;//5;//5;//3;//10;//20;//3;//10;
   int currentGradientServoIterations = 0;
 
 
@@ -1086,6 +1093,14 @@ class EinConfig {
   Mat stereoDepth;
 
   eePose photoPinPose;
+
+  Mat chHistogram;
+  Mat chDistribution;
+  int chWinner;
+
+  eePose gshHistogram;
+  double gshCounts;
+  eePose gshPose;
 }; // config end
 
 class Word;
@@ -1114,6 +1129,7 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void pushNoOps(int n);
   void pushCopies(int symbol, int times);
   void pushCopies(string symbol, int times);
+  void pushCopies(std::shared_ptr<Word> word, int times);
 
   void execute(std::shared_ptr<Word> word);
 

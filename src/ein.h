@@ -103,6 +103,12 @@ void markMapAsCompleted(shared_ptr<MachineState> ms);
 
 vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx);
 vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx, int * memoryIdxOfFirst);
+int getBoxMemoryOfLabel(std::shared_ptr<MachineState> ms, string label, int * idxOfLabel, BoxMemory * out);
+int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string label1, string label2, double zAbove, eePose * out);
+int placementPoseLabel1BetweenLabel2AndLabel3(std::shared_ptr<MachineState> ms, string label1, 
+  string label2, string label3, eePose * out);
+void recordBlueBoxInHistogram(shared_ptr<MachineState> ms, int idx);
+void computeClassificationDistributionFromHistogram(shared_ptr<MachineState> ms);
 
 // XXX TODO searched and mapped are redundant. just need one to talk about the fence.
 bool cellIsMapped(int i, int j);
