@@ -160,12 +160,14 @@ void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folder
 void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, string servoCrop_file_path);
 void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path);
 void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
-bool streamRangeComparator (streamRange i, streamRange j);
-bool streamPoseComparator (streamEePose i, streamEePose j);
-bool streamImageComparator (streamImage i, streamImage j);
-void populateStreamImageBuffer();
-void populateStreamPoseBuffer();
-void populateStreamRangeBuffer();
+
+bool streamRangeComparator(streamRange i, streamRange j);
+bool streamPoseComparator(streamEePose i, streamEePose j);
+bool streamImageComparator(streamImage i, streamImage j);
+
+void populateStreamImageBuffer(std::shared_ptr<MachineState> ms);
+void populateStreamPoseBuffer(std::shared_ptr<MachineState> ms);
+void populateStreamRangeBuffer(std::shared_ptr<MachineState> ms);
 void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStreamIdx);
 void streamRangeAsClass(std::shared_ptr<MachineState> ms, double range, int classToStreamIdx);
 void writeRangeBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);

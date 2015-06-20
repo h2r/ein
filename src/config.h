@@ -25,11 +25,11 @@
 #include <baxter_core_msgs/HeadPanCommand.h>
 
 
-#include "ein_util.h"
 #include "eigen_util.h"
 
 #include "distributions.h"
 
+class EinWindow;
 
 typedef enum {
   ARMED = 0,
@@ -97,6 +97,9 @@ typedef enum {
   STATIC_MARGINALS = 4,
   MAPPING = 5
 } pickMode;
+
+std::string pickModeToString(pickMode mode);
+
 
 typedef enum {
   NO_LOCK = 0,
@@ -289,7 +292,6 @@ class EinConfig {
   time_t thisTimeRange = 0;
   time_t firstTimeRange = 0;
 
-  // this should be initted to 0 and set to its default setting only after an imageCallback has happened.
   int shouldIRenderDefault = 1;
   int shouldIRender = 0;
   int shouldIDoIK = 1;
@@ -310,6 +312,11 @@ class EinConfig {
   std::vector<streamEePose> streamPoseBuffer;
   std::vector<streamRange> streamRangeBuffer;
   std::vector<streamImage> streamImageBuffer;
+  int sibCurIdx = 0;
+  int srbCurIdx = 0;
+  int spbCurIdx = 0;
+
+
 
   int streamPoseBufferIdx = 0;
   int streamRangeBufferIdx = 0;
@@ -322,26 +329,25 @@ class EinConfig {
 
   double bDelta = MOVE_FAST;
 
-  std::string wristViewName = "Wrist View";
-  std::string coreViewName = "Core View";
-  std::string rangeogramViewName = "Rangeogram View";
-  std::string rangemapViewName = "Range Map View";
-  std::string hiRangemapViewName = "Hi Range Map View";
-  std::string hiColorRangemapViewName = "Hi Color Range Map View";
-  std::string graspMemoryViewName = "Grasp Memory View";
-  std::string graspMemorySampleViewName = "Grasp Memory Sample View";
-  std::string mapBackgroundViewName = "Map Background Vew";
-  std::string faceViewName = "Face View";
-  std::string heightMemorySampleViewName = "Height Memory Sample View";
+  EinWindow * rangeogramWindow;
+  EinWindow * wristViewWindow;
+  EinWindow * coreViewWindow;
+  EinWindow * rangemapWindow;
+  EinWindow * hiRangemapWindow;
+  EinWindow * hiColorRangemapWindow;
+  EinWindow * graspMemoryWindow;
+  EinWindow * graspMemorySampleWindow;
+  EinWindow * mapBackgroundViewWindow;
+  EinWindow * faceViewWindow;
+  EinWindow * heightMemorySampleWindow;
 
 
-  std::string densityViewerName = "Density Viewer";
-  std::string objectViewerName = "Object Viewer";
-  std::string objectMapViewerName = "Object Map View";
-  std::string gradientViewerName = "Gradient Viewer";
-  std::string aerialGradientViewerName = "Aerial Gradient Viewer";
-  std::string stereoViewerName = "Stereo Viewer";
-
+  EinWindow * densityViewerWindow;
+  EinWindow * objectViewerWindow;
+  EinWindow * objectMapViewerWindow;
+  EinWindow * gradientViewerWindow;
+  EinWindow * aerialGradientViewerWindow;
+  EinWindow * stereoViewerWindow;
 
   eePose calibrationPose;
   eePose shrugPose;
@@ -373,6 +379,7 @@ class EinConfig {
   eePose eepReg6;
 
   eePose beeHome;
+  eePose backScanningPose;
   eePose pilotTarget;
   eePose pilotClosestTarget;
   eePose lastGoodEEPose;
@@ -424,7 +431,7 @@ class EinConfig {
   int bfc = 0;
   int bfc_period = 3;
 
-
+  Mat coreViewImage;
   Mat rangeogramImage;
   Mat rangemapImage;
   Mat hiRangemapImage;
@@ -834,23 +841,6 @@ class EinConfig {
   vector<eePose> cornellTables;
   int currentCornellTableIndex = 0;
   
-  bool sirRangeogram = 1;
-  bool sirRangemap = 1;
-  bool sirGraspMemory = 1;
-  bool sirGraspMemorySample = 1;
-  bool sirHeightMemorySample = 1;
-  bool sirHiRangemap = 1;
-  bool sirHiColorRangemap = 1;
-  bool sirObject = 1;
-  bool sirObjectMap = 1;
-  bool sirDensity = 1;
-  bool sirGradient = 1;
-  bool sirObjectness = 1;
-  bool sirMapBackground = 1;
-  bool sirAerialGradient = 1;
-  bool sirWrist = 1;
-  bool sirCore = 1;
-  bool sirStereo = 1;
   
   bool use_simulator = false;
   
@@ -1163,6 +1153,9 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void pushCopies(string symbol, int times);
 
   void execute(std::shared_ptr<Word> word);
+
+  string currentState();
+
 };
 
 
