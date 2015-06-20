@@ -8,6 +8,7 @@
 
 #include <ros/package.h>
 #include <tf/transform_listener.h>
+#include <image_transport/image_transport.h>
 #include <object_recognition_msgs/RecognizedObjectArray.h>
 #include <object_recognition_msgs/RecognizedObject.h>
 #include <visualization_msgs/MarkerArray.h>
@@ -127,7 +128,6 @@ typedef struct MapCell {
   double pixelCount;
 } MapCell;
 
-
 typedef struct Sprite {
   // sprites are the objects which are rendered in the simulation,
   //   modeled physically as axis aligned bounding boxes
@@ -145,6 +145,22 @@ typedef struct Sprite {
   eePose pose;
 } Sprite;
 
+typedef struct streamEePose {
+  eePose arm_pose;
+  eePose base_pose;
+  double time;
+} streamEePose;
+
+typedef struct streamRange{
+  double range;
+  double time;
+} streamRange;
+
+typedef struct streamImage{
+  string filename;
+  Mat image;
+  double time;
+} streamImage;
 
 #define NOW_THATS_FAST 0.08
 #define MOVE_EVEN_FASTER 0.04
@@ -287,6 +303,19 @@ class EinConfig {
   int goodIkInitialized = 0;
   double ikShare = 1.0;
   int ik_reset_thresh = 20;
+
+  int sensorStreamOn = 0;
+  int streamPoseBatchSize = 100;
+  int streamRangeBatchSize = 100;
+  std::vector<streamEePose> streamPoseBuffer;
+  std::vector<streamRange> streamRangeBuffer;
+  std::vector<streamImage> streamImageBuffer;
+
+  int streamPoseBufferIdx = 0;
+  int streamRangeBufferIdx = 0;
+  int streamImageBufferIdx = 0;
+
+
 
   double eeRange = 0.0;
 
@@ -1100,6 +1129,10 @@ class EinConfig {
   Mat stereoDepth;
 
   eePose photoPinPose;
+
+  image_transport::Subscriber image_sub;
+  ros::Subscriber eeRanger;
+  ros::Subscriber epState;
 }; // config end
 
 class Word;
