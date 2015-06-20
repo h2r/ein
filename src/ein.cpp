@@ -2491,7 +2491,7 @@ void timercallback1(const ros::TimerEvent&) {
     renderRangeogramView(ms);
   }
 
-  if (ms->config.shouldIRender && ms->config.objectMapViewerWindow->isVisible()) {
+  if (ms->config.shouldIRender) { // && ms->config.objectMapViewerWindow->isVisible()) {
     renderObjectMapView(ms);
   }
 }
