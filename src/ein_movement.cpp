@@ -685,8 +685,8 @@ REGISTER_WORD(ApproachSpeed)
 
 WORD(DepartureSpeed)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  //w1GoThresh = 0.05;
-  ms->config.currentEESpeedRatio = 0.5;
+  //ms->config.currentEESpeedRatio = 0.5;
+  ms->config.currentEESpeedRatio = 0.05;
 }
 END_WORD
 REGISTER_WORD(DepartureSpeed)
@@ -1229,6 +1229,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(AssumeCrane1)
+
+WORD(AssumeBeeHome)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentEEPose = ms->config.beeHome;
+  ms->pushWord("waitUntilAtCurrentPosition");
+}
+END_WORD
+REGISTER_WORD(AssumeBeeHome)
 
 WORD(AssumeShrugPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {

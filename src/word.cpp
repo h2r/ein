@@ -102,6 +102,12 @@ void MachineState::pushCopies(string symbol, int times) {
   }
 }
 
+void MachineState::pushCopies(std::shared_ptr<Word> word, int times) {
+  for (int i = 0; i < times; i++) {
+    pushWord(word); 
+  }
+}
+
 
 
 

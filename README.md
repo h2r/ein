@@ -19,6 +19,10 @@ Then run
 ```
 sudo apt-get install libopencv-nonfree-\*
 ```
+and finally 
+```
+sudo apt-get install qt5-default
+```
 
 **Install** the package h2r/ein by going to catkin_ws/src and then cloning.
 ```
@@ -209,3 +213,8 @@ of ein_dataDefault. Since there are no RGB images for
 background, blueBowl, brownCup, and brush, models will be trained for those classes but with no positive examples
 for them, nothing will ever be classified as one of those objects. So those folders can be removed at this point
 (they were necessary earlier for picking to work with those classes and the pretrained knn and vocab).
+
+loop example:
+```
+ 0 10 start waitUntilAtCurrentPosition xDown xDown xDown xDown waitUntilAtCurrentPosition xUp xUp xUp xUp next ;
+```

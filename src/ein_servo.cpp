@@ -1263,6 +1263,7 @@ REGISTER_WORD(SynchronicServoA)
 WORD(GradientServo)
 CODE(196728)   // capslock + X
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  // XXX currentGradientServoIterations should be set to 0 here and another wrapper layer introduced
   ms->pushWord("gradientServoA");
   ms->pushWord("gradientServoPrep");
 }
@@ -1318,6 +1319,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (ms->config.bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
     ms->pushWord("recordTargetLock");
     ms->pushWord("prepareForGraspFromMemory");
+    ms->pushWord("recordPreTargetLock");
   }
 }
 END_WORD
@@ -1329,10 +1331,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     BoxMemory *lastAdded = &(ms->config.blueBoxMemories[ms->config.blueBoxMemories.size()-1]);
     lastAdded->cameraTime = ros::Time::now();
     lastAdded->aimedPose = ms->config.currentEEPose;
-    // XXX picked pose doesn't seem to mean anything here so likely doesn't matteer
+    // XXX picked pose doesn't seem to mean anything here so likely doesn't matter
     lastAdded->pickedPose = ms->config.currentEEPose;
     lastAdded->pickedPose.pz  = ms->config.lastPickPose.pz;
-    // XXX picked pose doesn't seem to mean anything here so likely doesn't matteer
+    // XXX picked pose doesn't seem to mean anything here so likely doesn't matter... actually px and py seem not to but .pz does
     lastAdded->trZ  = ms->config.trZ;
     cout << "recordTargetLock saving pickedPose..." << endl;
     cout << "trZ = " << ms->config.trZ << endl;
@@ -1344,6 +1346,77 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(RecordTargetLock)
+
+WORD(RecordPreTargetLock)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  if (ms->config.blueBoxMemories.size() > 0) {
+    BoxMemory *lastAdded = &(ms->config.blueBoxMemories[ms->config.blueBoxMemories.size()-1]);
+    lastAdded->lockedPose = ms->config.currentEEPose;
+    cout << "recordPreTargetLock saving lockedPose..." << endl;
+
+    int thisTargetClassIdx = ms->config.targetClass;
+
+    // calculate the affordance poses post-lock
+cout << "about to calc 3d poses" << endl;
+    {
+      int tnc = ms->config.class3dGrasps.size();
+      if ( (thisTargetClassIdx > -1) && (thisTargetClassIdx < tnc) ) {
+	int tnp = ms->config.class3dGrasps[thisTargetClassIdx].size();
+cout << "tnc, tnp: " << tnc << " " << tnp << endl;
+	lastAdded->aff3dGraspPoses.resize(tnp);
+	for (int i = 0; i < tnp; i++) {
+	  eePose toApply = ms->config.class3dGrasps[thisTargetClassIdx][i];  
+	  eePose toWhichWasApplied = ms->config.currentEEPose;
+	  toWhichWasApplied.pz = -ms->config.currentTableZ;
+	  // this order is important because quaternion multiplication is not commutative
+	  toWhichWasApplied = toWhichWasApplied.plusP(toWhichWasApplied.applyQTo(toApply));
+	  toWhichWasApplied = toWhichWasApplied.multQ(toApply);
+	  lastAdded->aff3dGraspPoses[i] = toWhichWasApplied;
+	}
+      }
+    }
+cout << "about to calc pup poses" << endl;
+    {
+      int tnc = ms->config.classPlaceUnderPoints.size();
+      if ( (thisTargetClassIdx > -1) && (thisTargetClassIdx < tnc) ) {
+	int tnp = ms->config.classPlaceUnderPoints[thisTargetClassIdx].size();
+cout << "tnc, tnp: " << tnc << " " << tnp << endl;
+	lastAdded->affPlaceUnderPoses.resize(tnp);
+	for (int i = 0; i < tnp; i++) {
+	  eePose toApply = ms->config.classPlaceUnderPoints[thisTargetClassIdx][i];  
+	  eePose toWhichWasApplied = ms->config.currentEEPose;
+	  toWhichWasApplied.pz = -ms->config.currentTableZ;
+	  // this order is important because quaternion multiplication is not commutative
+	  toWhichWasApplied = toWhichWasApplied.plusP(toWhichWasApplied.applyQTo(toApply));
+	  toWhichWasApplied = toWhichWasApplied.multQ(toApply);
+	  lastAdded->affPlaceUnderPoses[i] = toWhichWasApplied;
+cout << "added " << lastAdded->affPlaceUnderPoses[i] << endl << " and current is " << endl << ms->config.currentEEPose << endl;
+	}
+      }
+    }
+cout << "about to calc pop poses" << endl;
+    {
+      int tnc = ms->config.classPlaceOverPoints.size();
+      if ( (thisTargetClassIdx > -1) && (thisTargetClassIdx < tnc) ) {
+	int tnp = ms->config.classPlaceOverPoints[thisTargetClassIdx].size();
+cout << "tnc, tnp: " << tnc << " " << tnp << endl;
+	lastAdded->affPlaceOverPoses.resize(tnp);
+	for (int i = 0; i < tnp; i++) {
+	  eePose toApply = ms->config.classPlaceOverPoints[thisTargetClassIdx][i];  
+	  eePose toWhichWasApplied = ms->config.currentEEPose;
+	  toWhichWasApplied.pz = -ms->config.currentTableZ;
+	  // this order is important because quaternion multiplication is not commutative
+	  toWhichWasApplied = toWhichWasApplied.plusP(toWhichWasApplied.applyQTo(toApply));
+	  toWhichWasApplied = toWhichWasApplied.multQ(toApply);
+	  lastAdded->affPlaceOverPoses[i] = toWhichWasApplied;
+cout << "added " << lastAdded->affPlaceUnderPoses[i] << endl << " and current is " << endl << ms->config.currentEEPose << endl;
+	}
+      }
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(RecordPreTargetLock)
 
 
 
