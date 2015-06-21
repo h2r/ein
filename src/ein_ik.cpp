@@ -3,6 +3,10 @@
 #include <geometry_msgs/PoseStamped.h>
 
 #include "ikfast/ikfast_wrapper_left.h"
+#undef IKFAST_NAMESPACE
+#undef IKFAST_SOLVER_CPP
+#undef MY_NAMESPACE
+#include "ikfast/ikfast_wrapper_right.h"
 
 
 
@@ -111,9 +115,21 @@ void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::So
     if(ms->config.currentIKMode == IKSERVICE) {
       queryIKService(ms, thisResult, thisRequest);
     } else if (ms->config.currentIKMode == IKFAST) {
-      WRAPPER_queryIKFast(ms, thisResult, thisRequest);
+      if (ms->config.left_or_right_arm == "left") {
+        ikfast_left_ein::queryIKFast(ms, thisResult, thisRequest);
+      } else if (ms->config.left_or_right_arm == "right") {
+        ikfast_right_ein::queryIKFast(ms, thisResult, thisRequest);
+      } else {
+        assert(0);
+      }
     } else if (ms->config.currentIKMode == IKFASTDEBUG) {
-      WRAPPER_queryIKFastDebug(ms, thisResult, thisRequest);
+      if (ms->config.left_or_right_arm == "left") {
+        ikfast_left_ein::queryIKFastDebug(ms, thisResult, thisRequest);
+      } else if (ms->config.left_or_right_arm == "right") {
+        ikfast_right_ein::queryIKFastDebug(ms, thisResult, thisRequest);
+      } else {
+        assert(0);
+      }
     } else {
       assert(0);
     }
