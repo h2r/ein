@@ -4347,8 +4347,11 @@ void pilotInit(shared_ptr<MachineState> ms) {
     ms->config.m_y_h[2] = 0.92;
     ms->config.m_y_h[3] = 0.92;
 
-    ms->config.handingPose = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
-                   .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
+    //ms->config.handingPose = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
+    //               .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
+    ms->config.handingPose = {.px =  1.0858369, .py =  0.0495844, .pz =  0.2052459,
+                              .qx =  0.5398360, .qy = -0.5294786, .qz =  0.4481372, .qw = -0.4768674};
+
     ms->config.eepReg3 = ms->config.handingPose;
 
     // ir offset
