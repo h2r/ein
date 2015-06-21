@@ -225,16 +225,16 @@ bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, doubl
   int free_joint_idx = free_params[0];
   double step = (joint_max_vector[free_joint_idx] - joint_min_vector[free_joint_idx]) / 100;
 
-  if (vfree <= joint_min_vector[free_joint_idx] || vfree >= joint_max_vector[free_joint_idx]) {
+  if (vfree <= joint_min_vector[free_joint_idx] || vfree >= joint_max_vector[free_joint_idx] || true) {
     vfree = 0.5 * (joint_min_vector[free_joint_idx] + joint_max_vector[free_joint_idx]);
   }
 
   vector<double> free_params_up;
   vector<double> free_params_down;
-  for (double f = free; f <= joint_max_vector[free_joint_idx]; f+= step) {
+  for (double f = vfree; f <= joint_max_vector[free_joint_idx]; f+= step) {
     free_params_up.push_back(f);
   }
-  for (double f = joint_min_vector[free_joint_idx]; f < free; f+= step) {
+  for (double f = joint_min_vector[free_joint_idx]; f < vfree; f+= step) {
     free_params_down.push_back(f);
   }
 
@@ -253,6 +253,8 @@ bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, doubl
       ikfast_getSolution(solutions,s,solution);
       
       if (obeys_limits(solution, joint_min_vector, joint_max_vector, joint_safety)) {
+        outsol = solution;
+        return true;
         double error = joint_error(solution, current_joints);
         if (error < max_dist) {
           max_dist = error;
@@ -271,11 +273,15 @@ bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, doubl
       return false;
     }
     if (counter % 2 == 0) {
-      vfree = free_params_up[i_up];
-      i_up++;
+      if (i_up < free_params_up.size()) {
+        vfree = free_params_up[i_up];
+        i_up++;
+      }
     } else {
-      vfree = free_params_up[i_down];
-      i_down++;
+      if (i_down < free_params_down.size()) {
+        vfree = free_params_down[i_down];
+        i_down++;
+      }
     }
 
     //ROS_INFO_STREAM_NAMED("ikfast","Attempt " << counter << " with 0th free joint having value " << vfree);
