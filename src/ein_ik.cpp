@@ -1,10 +1,13 @@
 #include "ein.h"
 #include <tf_conversions/tf_kdl.h>
+#include <geometry_msgs/PoseStamped.h>
 
 #define isnan std::isnan
 #define IKFAST_NO_MAIN // Don't include main() from IKFast
-#include "ikfast/baxter_left_arm_ikfast_solver.cpp"
+//include "ikfast/baxter_left_arm_ikfast_solver.cpp"
+#include "ikfast/baxter_ikfast.w1.left.cpp"
 
+eePose ikfast_computeFK(shared_ptr<MachineState> ms, vector<double> joint_angles);
 void queryIKFast(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
 int ikfast_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, IkSolutionList<IkReal> &solutions);
 bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, std::vector<double>& solutions);
@@ -116,7 +119,40 @@ void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::So
     if(ms->config.currentIKMode == IKSERVICE) {
       queryIKService(ms, thisResult, thisRequest);
     } else if (ms->config.currentIKMode == IKFAST) {
-      queryIKFast(ms, thisResult, thisRequest);
+      
+      queryIKService(ms, thisResult, thisRequest);
+      
+      cout << "computing ikfast" << endl;
+      if (thisRequest->response.isValid[0]) {
+        vector<double> service_angles(NUM_JOINTS);
+        for (int i = 0; i < service_angles.size(); i++) {
+          service_angles[i] = thisRequest->response.joints[0].position[i];
+        }
+
+        eePose fk_service = ikfast_computeFK(ms, service_angles);
+      
+        queryIKFast(ms, thisResult, thisRequest);
+        vector<double> ikfast_angles(NUM_JOINTS);
+        for (int i = 0; i < ikfast_angles.size(); i++) {
+          ikfast_angles[i] = thisRequest->response.joints[0].position[i];
+        }
+
+
+        eePose fk_ikfast = ikfast_computeFK(ms, ikfast_angles);
+
+        eePose requested = eePose::fromGeometryMsgPose(thisRequest->request.pose_stamp[0].pose);
+
+        cout << "requested pose: " << requested << endl;
+        cout << "service pose: " << fk_service << endl;
+        cout << "ikfast pose: " << fk_ikfast << endl;
+        cout << "error (service, ikfast): " <<   eePose::distance(fk_service, fk_ikfast) << endl;
+        cout << "error (service, requested): " <<   eePose::distance(fk_service, requested) << endl;
+        cout << "error (ikfast, requested): " <<   eePose::distance(fk_ikfast, requested) << endl;
+        cout << "error (ikfast, true): " <<   eePose::distance(fk_ikfast, ms->config.trueEEPoseEEPose) << endl;
+
+        
+      }
+
     } else {
       assert(0);
     }
@@ -130,6 +166,7 @@ void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::So
 
 
 void queryIKFast(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
+
   string transform = ms->config.left_or_right_arm + "_arm_mount";
   int num = GetNumFreeParameters();
   int * free_params = GetFreeParameters();
@@ -352,4 +389,35 @@ int ikfast_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double 
   
   
   return solutions.GetNumSolutions();
+}
+
+/**
+ * Computes forward kinematics using IK fast and returns an eePose in base. 
+ */
+eePose ikfast_computeFK(shared_ptr<MachineState> ms, vector<double> joint_angles) {
+  bool valid = true;
+
+  IkReal eerot[9],eetrans[3];
+  IkReal angles[joint_angles.size()];
+  for (unsigned int i = 0; i < joint_angles.size(); i++) {
+    angles[i] = joint_angles[i];
+  }
+  ComputeFk(angles,eetrans,eerot);
+
+
+  geometry_msgs::PoseStamped pose;
+  pose.pose.position.x = eetrans[0];
+  pose.pose.position.y = eetrans[1];
+  pose.pose.position.z = eetrans[2];
+  pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(eerot[0], eerot[1], eerot[2]);
+
+  pose.header.stamp = ros::Time(0);
+  pose.header.frame_id =  ms->config.left_or_right_arm + "_arm_mount";
+  
+  geometry_msgs::PoseStamped transformed_pose;
+
+  ms->config.tfListener->transformPose("base", pose, transformed_pose);
+  
+  return eePose::fromGeometryMsgPose(transformed_pose.pose);
+
 }
