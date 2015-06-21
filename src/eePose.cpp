@@ -20,6 +20,20 @@ _eePose _eePose::zero() {
   return zeroOut;
 }
 
+
+_eePose _eePose::fromGeometryMsgPose(geometry_msgs::Pose pose) {
+  _eePose out;
+  out.px = pose.position.x;
+  out.py = pose.position.y;
+  out.pz = pose.position.z;
+
+  out.qx = pose.orientation.x;
+  out.qy = pose.orientation.y;
+  out.qz = pose.orientation.z;
+  out.qw = pose.orientation.w;
+  return out;
+}
+
 void _eePose::print(eePose toPrint) {
   cout << toPrint << endl;
 }
@@ -237,3 +251,4 @@ bool _eePose::equals(_eePose pose)
     return false;
   }
 }
+

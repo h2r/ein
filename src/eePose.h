@@ -10,6 +10,9 @@
 using namespace cv;
 using namespace std;
 
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Pose.h>
+
 typedef struct _eePose{
   double px;
   double py;
@@ -52,6 +55,8 @@ typedef struct _eePose{
   static _eePose fromRectCentroid(Rect rect);
 
   static _eePose zero();
+
+  static _eePose fromGeometryMsgPose(geometry_msgs::Pose);
 
   friend ostream & operator<<(ostream &, const _eePose &);
 
