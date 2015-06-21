@@ -1,7 +1,5 @@
 #include "ikfast_wrapper.h"
 
-
-
 #define isnan std::isnan
 #define IKFAST_NO_MAIN // Don't include main() from IKFast
 
@@ -10,18 +8,23 @@
 
 using namespace IKFAST_NAMESPACE;
 
-eePose WRAPPER_computeFK(shared_ptr<MachineState> ms, vector<double> joint_angles);
-int WRAPPER_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, IkSolutionListBase<IkReal> &solutions);
-bool WRAPPER_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, std::vector<double>& solutions);
 
-bool WRAPPER_obeys_limits(vector<double> joints, vector<double> joint_min_vector, vector<double> joint_max_vector, double tolerance);
-double WRAPPER_joint_error(vector<double> p1, vector<double> p2);
-void WRAPPER_getSolution(const IkSolutionList<IkReal> &solutions, int i, std::vector<double>& solution);
+void queryIKService(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
+
+namespace MY_NAMESPACE {
+
+eePose ikfast_computeFK(shared_ptr<MachineState> ms, vector<double> joint_angles);
+int ikfast_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, IkSolutionListBase<IkReal> &solutions);
+bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, std::vector<double>& solutions);
+
+bool ikfast_obeys_limits(vector<double> joints, vector<double> joint_min_vector, vector<double> joint_max_vector, double tolerance);
+double ikfast_joint_error(vector<double> p1, vector<double> p2);
+void ikfast_getSolution(const IkSolutionList<IkReal> &solutions, int i, std::vector<double>& solution);
 
 /**
  * Computes forward kinematics using IK fast and returns an eePose in base. 
  */
-eePose WRAPPER_computeFK(shared_ptr<MachineState> ms, vector<double> joint_angles) {
+eePose ikfast_computeFK(shared_ptr<MachineState> ms, vector<double> joint_angles) {
   bool valid = true;
 
   IkReal eerot[9],eetrans[3];
@@ -50,7 +53,7 @@ eePose WRAPPER_computeFK(shared_ptr<MachineState> ms, vector<double> joint_angle
 }
 
 
-int WRAPPER_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, IkSolutionList<IkReal> &solutions) {
+int ikfast_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, IkSolutionList<IkReal> &solutions) {
 
   KDL::Frame pose_frame;
   tf::poseMsgToKDL(pose, pose_frame);
@@ -92,7 +95,7 @@ int WRAPPER_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double
   return solutions.GetNumSolutions();
 }
 
-bool WRAPPER_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, std::vector<double>& outsol)  {
+bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, std::vector<double>& outsol)  {
   ROS_DEBUG_STREAM_NAMED("ikfast","searchPositionIK");
 
   
@@ -140,19 +143,19 @@ bool WRAPPER_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, doub
   while(true)
   {
     IkSolutionList<IkReal> solutions;
-    int numsol = WRAPPER_solve(ms, pose, vfree, solutions);
+    int numsol = ikfast_solve(ms, pose, vfree, solutions);
     double max_dist = VERYBIGNUMBER;
     int max_idx = -1;
     //ROS_INFO_STREAM_NAMED("ikfast","Found " << numsol << " solutions from IKFast");
     vector<double> solution;
 
     for(int s = 0; s < numsol; ++s) {
-      WRAPPER_getSolution(solutions,s,solution);
+      ikfast_getSolution(solutions,s,solution);
       
-      if (WRAPPER_obeys_limits(solution, joint_min_vector, joint_max_vector, joint_safety)) {
+      if (ikfast_obeys_limits(solution, joint_min_vector, joint_max_vector, joint_safety)) {
         outsol = solution;
         return true;
-        double error = WRAPPER_joint_error(solution, current_joints);
+        double error = ikfast_joint_error(solution, current_joints);
         if (error < max_dist) {
           max_dist = error;
           max_idx = s;
@@ -160,7 +163,7 @@ bool WRAPPER_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, doub
       }
     }
     if (max_idx != -1) {
-      WRAPPER_getSolution(solutions, max_idx, outsol);
+      ikfast_getSolution(solutions, max_idx, outsol);
       return true;
     }
     
@@ -190,7 +193,7 @@ bool WRAPPER_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, doub
 
 }
 
-void WRAPPER_getSolution(const IkSolutionList<IkReal> &solutions, int i, std::vector<double>& solution) {
+void ikfast_getSolution(const IkSolutionList<IkReal> &solutions, int i, std::vector<double>& solution) {
   solution.clear();
   solution.resize(NUM_JOINTS);
 
@@ -203,7 +206,7 @@ void WRAPPER_getSolution(const IkSolutionList<IkReal> &solutions, int i, std::ve
 
 
 
-void WRAPPER_queryIKFast(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
+void queryIKFast(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
 
   string transform = ms->config.left_or_right_arm + "_arm_mount";
   int num = GetNumFreeParameters();
@@ -225,7 +228,7 @@ void WRAPPER_queryIKFast(shared_ptr<MachineState> ms, int * thisResult, baxter_c
   ms->config.tfListener->transformPose(ms->config.left_or_right_arm + "_arm_mount", gripper_base_pose, transformed_pose);
   
   vector<double> solution;
-  bool result = WRAPPER_search(ms, transformed_pose.pose, free, solution);
+  bool result = ikfast_search(ms, transformed_pose.pose, free, solution);
   thisRequest->response.isValid.resize(1);
 
   if (result) {
@@ -272,7 +275,7 @@ void WRAPPER_queryIKFast(shared_ptr<MachineState> ms, int * thisResult, baxter_c
 
 
 
-bool WRAPPER_obeys_limits(vector<double> joints, vector<double> joint_min_vector, vector<double> joint_max_vector, double tolerance) {
+bool ikfast_obeys_limits(vector<double> joints, vector<double> joint_min_vector, vector<double> joint_max_vector, double tolerance) {
   for(unsigned int i = 0; i < joints.size(); i++) {
     if (joints[i] < joint_min_vector[i] + tolerance || joints[i] > joint_max_vector[i] - tolerance) {
       return false;
@@ -282,7 +285,7 @@ bool WRAPPER_obeys_limits(vector<double> joints, vector<double> joint_min_vector
 
 }
 
-double WRAPPER_joint_error(vector<double> p1, vector<double> p2) {
+double ikfast_joint_error(vector<double> p1, vector<double> p2) {
   double error = 0;
   assert(p1.size() == p2.size());
   for (int i = 0; i < p1.size(); i++) {
@@ -292,9 +295,8 @@ double WRAPPER_joint_error(vector<double> p1, vector<double> p2) {
 }
 
 
-void queryIKService(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
 
-void WRAPPER_queryIKFastDebug(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {      
+void queryIKFastDebug(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {      
   queryIKService(ms, thisResult, thisRequest);
   
   cout << "computing ikfast" << endl;
@@ -304,16 +306,16 @@ void WRAPPER_queryIKFastDebug(shared_ptr<MachineState> ms, int * thisResult, bax
       service_angles[i] = thisRequest->response.joints[0].position[i];
     }
     
-    eePose fk_service = WRAPPER_computeFK(ms, service_angles);
+    eePose fk_service = ikfast_computeFK(ms, service_angles);
     
-    WRAPPER_queryIKFast(ms, thisResult, thisRequest);
+    queryIKFast(ms, thisResult, thisRequest);
     vector<double> ikfast_angles(NUM_JOINTS);
     for (int i = 0; i < ikfast_angles.size(); i++) {
       ikfast_angles[i] = thisRequest->response.joints[0].position[i];
         }
     
     
-    eePose fk_ikfast = WRAPPER_computeFK(ms, ikfast_angles);
+    eePose fk_ikfast = ikfast_computeFK(ms, ikfast_angles);
     
     eePose requested = eePose::fromGeometryMsgPose(thisRequest->request.pose_stamp[0].pose);
     
@@ -328,4 +330,5 @@ void WRAPPER_queryIKFastDebug(shared_ptr<MachineState> ms, int * thisResult, bax
     
   }
   
+}
 }
