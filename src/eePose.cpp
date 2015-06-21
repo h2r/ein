@@ -33,6 +33,14 @@ double _eePose::squareDistance(eePose pose1, eePose pose2) {
   return squareDistance;
 }
 
+double _eePose::distance(eePose pose1, eePose pose2) {
+  double squareDistance = eePose::squareDistance(pose1, pose2);
+  double distance = pow(squareDistance, 0.5);
+
+  return distance;
+}
+
+
 eePose _eePose::fromRectCentroid(Rect rect) {
   eePose result;
   result.px = rect.x + rect.width * 0.5;
