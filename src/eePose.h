@@ -42,6 +42,7 @@ typedef struct _eePose{
   void writeToFileStorage(FileStorage& fsvO) const;
 
   void readFromFileNodeIterator(FileNodeIterator& it);
+  void readFromFileNode(FileNode& it);
 
   bool equals(_eePose pose);
 

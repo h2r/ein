@@ -163,13 +163,17 @@ REGISTER_WORD(SetTheYcbTable)
 WORD(MoveObjectToPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   shared_ptr<Word> objectword = ms->popWord();
-  string className = objectword->to_string();
-  int class_idx = classIdxForName(ms, className);
-  if (class_idx != -1) {
-    ms->pushWord("moveTargetObjectToPose");
-    changeTargetClass(ms, class_idx);
+  if (objectword == NULL) {
+    cout << "Must pass a string as an argument to " << this->name() << endl;
   } else {
-    cout << "No class for " << className << " for " << this->name() << endl;
+    string className = objectword->to_string();
+    int class_idx = classIdxForName(ms, className);
+    if (class_idx != -1) {
+      ms->pushWord("moveTargetObjectToPose");
+      changeTargetClass(ms, class_idx);
+    } else {
+      cout << "No class for " << className << " for " << this->name() << endl;
+    }
   }
 }
 END_WORD
@@ -196,13 +200,17 @@ REGISTER_WORD(MoveTargetObjectToPose)
 WORD(DeliverObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   shared_ptr<Word> word = ms->popWord();
-  string className = word->to_string();
-  int class_idx = classIdxForName(ms, className);
-  if (class_idx != -1) {
-    ms->pushWord("deliverTargetObject");
-    changeTargetClass(ms, class_idx);
+  if (word == NULL) {
+    cout << "Must pass a string as an argument to " << this->name() << endl;
   } else {
-    cout << "No class for " << className << " for " << this->name() << endl;
+    string className = word->to_string();
+    int class_idx = classIdxForName(ms, className);
+    if (class_idx != -1) {
+      ms->pushWord("deliverTargetObject");
+      changeTargetClass(ms, class_idx);
+    } else {
+      cout << "No class for " << className << " for " << this->name() << endl;
+    }
   }
 }
 END_WORD
