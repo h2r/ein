@@ -119,6 +119,8 @@ void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::So
     if(ms->config.currentIKMode == IKSERVICE) {
       queryIKService(ms, thisResult, thisRequest);
     } else if (ms->config.currentIKMode == IKFAST) {
+      queryIKFast(ms, thisResult, thisRequest);
+    } else if (ms->config.currentIKMode == IKFASTDEBUG) {
       
       queryIKService(ms, thisResult, thisRequest);
       
@@ -177,8 +179,15 @@ void queryIKFast(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs
   geometry_msgs::PoseStamped base_pose = thisRequest->request.pose_stamp[0];
   base_pose.header.stamp = ros::Time(0);
   geometry_msgs::PoseStamped transformed_pose;
+  geometry_msgs::PoseStamped gripper_base_pose;
 
   ms->config.tfListener->transformPose(transform, base_pose, transformed_pose);
+  transformed_pose.header.stamp = ros::Time(0);
+  ms->config.tfListener->transformPose(ms->config.left_or_right_arm + "_gripper_base", transformed_pose, gripper_base_pose);
+  gripper_base_pose.pose.position.z += 0.005;
+  gripper_base_pose.header.stamp = ros::Time(0);
+  ms->config.tfListener->transformPose(ms->config.left_or_right_arm + "_arm_mount", gripper_base_pose, transformed_pose);
+  
   vector<double> solution;
   bool result = ikfast_search(ms, transformed_pose.pose, free, solution);
   thisRequest->response.isValid.resize(1);
