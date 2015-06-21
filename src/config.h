@@ -162,6 +162,7 @@ typedef struct streamRange{
 typedef struct streamImage{
   string filename;
   Mat image;
+  int loaded;
   double time;
 } streamImage;
 
@@ -315,13 +316,6 @@ class EinConfig {
   int sibCurIdx = 0;
   int srbCurIdx = 0;
   int spbCurIdx = 0;
-
-
-
-  int streamPoseBufferIdx = 0;
-  int streamRangeBufferIdx = 0;
-  int streamImageBufferIdx = 0;
-
 
 
   double eeRange = 0.0;

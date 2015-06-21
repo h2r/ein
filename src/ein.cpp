@@ -1110,6 +1110,37 @@ void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path
   imwrite(png_path, rmImageOut);
 }
 
+streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx) {
+  if ( (idx > -1) && (idx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[idx];
+    int lastIdx = ms->config.sibCurIdx;
+    if ( (lastIdx > -1) && (lastIdx < ms->config.streamImageBuffer.size()) && (lastIdx != idx) ) {
+      streamImage &lsi = ms->config.streamImageBuffer[lastIdx];
+      lsi.image.create(1, 1, CV_8UC3);
+      lsi.loaded = 0;
+    } else {
+      if (tsi.loaded) {
+      } else {
+        tsi.image = imread(tsi.filename);
+	if (tsi.image.data == NULL) {
+	  tsi.loaded = 0;
+	  cout << "Tried to set ISB index but image failed to load: " << tsi.filename << endl;
+	  return NULL;
+	} else {
+	  tsi.loaded = 1;
+	  ms->config.sibCurIdx = idx;
+	}
+      } 
+    }
+    ms->config.sibCurIdx = idx;
+  } else {
+    cout << "Tried to set ISB index out of bounds: " << idx << endl;
+    return NULL;
+  }
+
+  return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
+}
+
 bool streamRangeComparator (streamRange i, streamRange j) {
  return (i.time < j.time);
 }
@@ -1201,7 +1232,7 @@ void populateStreamRangeBuffer(std::shared_ptr<MachineState> ms) {
 	    if (numLoadedRanges != tnp) {
 	      ROS_ERROR_STREAM("Did not load the expected number of poses.");
 	    }
-	    cout << "Expected to load " << tnp << " poses, loaded " << numLoadedRanges << " ..." << endl; cout.flush();
+	    cout << " Expected to load " << tnp << " poses, loaded " << numLoadedRanges << " ..." << endl; cout.flush();
 	  }
 	}
       }
@@ -1290,7 +1321,7 @@ void populateStreamPoseBuffer(std::shared_ptr<MachineState> ms) {
 	    if (numLoadedPoses != tnp) {
 	      ROS_ERROR_STREAM("Did not load the expected number of poses.");
 	    }
-	    cout << "Expected to load " << tnp << " poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
+	    cout << " Expected to load " << tnp << " poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
 	  }
 	}
       }
@@ -1324,10 +1355,17 @@ void populateStreamImageBuffer(std::shared_ptr<MachineState> ms) {
 
       if (!dotpng.compare(fextension) && dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
 
+	int loaded = 1;
+
         char filename[1024];
         sprintf(filename, "%s%s", this_image_path.c_str(), epdf->d_name);
         Mat image;
         image = imread(filename);
+
+	if (image.data != NULL) {
+	} else {
+	  loaded = 0;
+	}
 
         sprintf(filename, "%s%s.yml", this_image_path.c_str(), fnoextension.c_str());
 	string inFileName(filename);
@@ -1336,7 +1374,6 @@ void populateStreamImageBuffer(std::shared_ptr<MachineState> ms) {
 	fsvI.open(inFileName, FileStorage::READ);
 
 	double time = 0.0;
-	int loaded = 1;
 	{
 	  FileNode anode = fsvI["time"];
 	  FileNodeIterator it = anode.begin(), it_end = anode.end();
@@ -1350,7 +1387,8 @@ void populateStreamImageBuffer(std::shared_ptr<MachineState> ms) {
 	if (loaded) {
 	  streamImage toAdd;
 	  toAdd.time = time;
-	  toAdd.filename = this_image_path;
+	  toAdd.loaded = 0;
+	  toAdd.filename = string(filename);
 	  ms->config.streamImageBuffer.push_back(toAdd);
 	  cout << "done." << endl;
 	} else {
@@ -9168,6 +9206,29 @@ void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms) {
 
 }
 
+void substituteStreamImageQuantities(shared_ptr<MachineState> ms) {
+  double param_aerialGradientDecayImageAverage = 0.0;
+  ms->config.aerialGradientDecay = param_aerialGradientDecayImageAverage;
+
+  double param_sobel_sigma_substitute_stream = 4.0;//2.0; reflections are a problem for low sigma...
+  ms->config.sobel_sigma = param_sobel_sigma_substitute_stream;
+
+  int thisIdx = ms->config.sibCurIdx;
+  cout << "substituteStreamImageQuantities: " << thisIdx << endl;
+  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+    if (tsi.image.data == NULL) {
+      cout << "encountered NULL data in sib, clearing stack." << endl;
+      ms->clearStack();
+    } else {
+      ms->config.objectViewerImage = tsi.image;
+    }
+  } else {
+    cout << "sibCurIdx out of bounds, clearing stack." << endl;
+    ms->clearStack();
+  }
+}
+
 void substituteAccumulatedImageQuantities(shared_ptr<MachineState> ms) {
   double param_aerialGradientDecayImageAverage = 0.0;
   ms->config.aerialGradientDecay = param_aerialGradientDecayImageAverage;
@@ -11631,10 +11692,6 @@ int main(int argc, char **argv) {
   }
 
   image_transport::ImageTransport it(n);
-
-  //image_transport::Subscriber image_sub;
-  //ros::Subscriber eeRanger;
-  //ros::Subscriber epState;
 
   ros::Subscriber gripState;
   ros::Subscriber eeAccelerator;
