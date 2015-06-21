@@ -81,7 +81,8 @@ typedef enum {
 
 typedef enum {
   IKSERVICE,
-  IKFAST
+  IKFAST,
+  IKFASTDEBUG
 } ikMode;
 
 string ikModeToString(ikMode mode);
