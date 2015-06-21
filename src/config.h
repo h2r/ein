@@ -79,6 +79,14 @@ typedef enum {
 } robotMode;
 
 typedef enum {
+  IKSERVICE,
+  IKFAST
+} ikMode;
+
+string ikModeToString(ikMode mode);
+
+
+typedef enum {
   GRASP_CRANE,
   GRASP_3D
 } graspMode;
@@ -230,6 +238,7 @@ class EinConfig {
   idleMode currentIdleMode = CRANE;
   graspMode currentGraspMode = GRASP_CRANE;
   robotMode currentRobotMode = PHYSICAL;
+  ikMode currentIKMode = IKSERVICE;
 
   eePose placeTarget;
 
@@ -370,6 +379,7 @@ class EinConfig {
   int pilotClosestBlueBoxNumber = -1;
   string left_or_right_arm = "right";
   string robot_serial;
+
 
   geometry_msgs::Pose trueEEPose;
   eePose trueEEWrench;
