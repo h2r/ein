@@ -20,6 +20,20 @@ _eePose _eePose::zero() {
   return zeroOut;
 }
 
+
+_eePose _eePose::fromGeometryMsgPose(geometry_msgs::Pose pose) {
+  _eePose out;
+  out.px = pose.position.x;
+  out.py = pose.position.y;
+  out.pz = pose.position.z;
+
+  out.qx = pose.orientation.x;
+  out.qy = pose.orientation.y;
+  out.qz = pose.orientation.z;
+  out.qw = pose.orientation.w;
+  return out;
+}
+
 void _eePose::print(eePose toPrint) {
   cout << toPrint << endl;
 }
@@ -32,6 +46,14 @@ double _eePose::squareDistance(eePose pose1, eePose pose2) {
 
   return squareDistance;
 }
+
+double _eePose::distance(eePose pose1, eePose pose2) {
+  double squareDistance = eePose::squareDistance(pose1, pose2);
+  double distance = pow(squareDistance, 0.5);
+
+  return distance;
+}
+
 
 eePose _eePose::fromRectCentroid(Rect rect) {
   eePose result;
@@ -81,6 +103,18 @@ _eePose _eePose::minusP(const _eePose& a) const {
   toReturn.px = px - a.px;
   toReturn.py = py - a.py;
   toReturn.pz = pz - a.pz;
+  toReturn.qx = qx;
+  toReturn.qy = qy;
+  toReturn.qz = qz;
+  toReturn.qw = qw;
+  return toReturn;
+}
+
+_eePose _eePose::multP(const double& a) const {
+  _eePose toReturn;
+  toReturn.px = px * a;
+  toReturn.py = py * a;
+  toReturn.pz = pz * a;
   toReturn.qx = qx;
   toReturn.qy = qy;
   toReturn.qz = qz;
@@ -217,3 +251,4 @@ bool _eePose::equals(_eePose pose)
     return false;
   }
 }
+

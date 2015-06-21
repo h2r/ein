@@ -58,6 +58,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //ms->pushWord("collapseStack");
   ms->pushWord("gradientServoIfBlueBoxes");
   ms->pushWord("mapClosestBlueBox");
+
+  if (1) {
+    ms->pushWord("histogramDetectionIfBlueBoxes"); 
+  }
+
   ms->pushWord("goClassifyBlueBoxes"); 
   ms->pushWord("synchronicServo"); 
   ms->pushWord("synchronicServoTakeClosest");
@@ -294,9 +299,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (j >= ms->config.mapHeight) {
     j = 0;
   }
-
+  
   currentI = i;
   currentJ = j;
+
+  ms->config.endThisStackCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(FillIkMap)
@@ -544,9 +551,12 @@ REGISTER_WORD(MapEmptySpace)
 
 WORD(MapClosestBlueBox)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+
   if (ms->config.pilotClosestBlueBoxNumber == -1) {
-    cout << "Not changing because closest bbox is " << ms->config.pilotClosestBlueBoxNumber << endl;
+    cout << "Not mapping closest bbox since it is " << ms->config.pilotClosestBlueBoxNumber << endl;
     return;
+  } else {
+    cout << "Mapping closest blue box, number " << ms->config.pilotClosestBlueBoxNumber << endl;
   }
 
   int c = ms->config.pilotClosestBlueBoxNumber;

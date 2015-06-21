@@ -9,18 +9,22 @@
 int last_key = -1;
 
 MainWindow::MainWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow),
-    myView(parent, EIN_WINDOW_KEEPRATIO)
+  QMainWindow(parent),
+  ui(new Ui::MainWindow),
+  wristView(parent, EIN_WINDOW_KEEPRATIO),
+  objectMapView(parent, EIN_WINDOW_KEEPRATIO)
 {
     ui->setupUi(this);
 
-    ui->imageFrame->layout()->addWidget(myView.getWidget());
+    ui->wristViewFrame->layout()->addWidget(wristView.getWidget());
+    ui->objectMapViewFrame->layout()->addWidget(objectMapView.getWidget());
     ms = _ms;
 
     stackModel = new StackModel(this);
     stackModel->setMachineState(ms);
     ui->stackTableView->setModel(stackModel);
+
+    ui->stackTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
     windowManager.setMenu(ui->menuWindows);
 
@@ -29,17 +33,6 @@ MainWindow::MainWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
 MainWindow::~MainWindow()
 {
     delete ui;
-}
-void MainWindow::updateImage(const Mat image) 
-//void MainWindow::updateImage(void * arr) 
-{
-  //CvMat* mat, stub;
-    
-  //mat = cvGetMat(arr, &stub);
-
-  //cv::Mat im = cv::cvarrToMat(mat);
-  myView.updateImage(image);
-  
 }
 
 void timercallback1(const ros::TimerEvent&); 
@@ -55,10 +48,16 @@ void MainWindow::rosSpin()
 void MainWindow::update() {
   ui->stateLabel->setText(QString::fromStdString(ms->currentState()));
   stackModel->setMachineState(ms);
+  if ( !isSketchyMat(ms->config.wristViewImage)) {
+     wristView.updateImage(ms->config.wristViewImage);
+  }
+  if ( !isSketchyMat(ms->config.objectMapViewerImage)) {
+    objectMapView.updateImage(ms->config.objectMapViewerImage);
+  }
 }
 
 void MainWindow::setMouseCallBack(EinMouseCallback m, void* param) {
-  myView.setMouseCallBack(m, param);
+  wristView.setMouseCallBack(m, param);
 }
 
 
