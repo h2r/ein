@@ -17,6 +17,7 @@
 #include "eePose.h"
 
 #include "word.h"
+
 #include "config.h"
 
 using namespace std;

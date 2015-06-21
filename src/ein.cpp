@@ -964,6 +964,629 @@ int classIdxForName(shared_ptr<MachineState> ms, string name) {
   return class_idx;
 }
 
+void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, string servoCrop_file_path) {
+  if ( (idx > -1) && (idx < ms->config.classHeight0AerialGradients.size()) && 
+       (idx > -1) && (idx < ms->config.classHeight1AerialGradients.size()) &&
+       (idx > -1) && (idx < ms->config.classHeight2AerialGradients.size()) &&
+       (idx > -1) && (idx < ms->config.classHeight3AerialGradients.size()) ) {
+    // do nothing
+  } else {
+    cout << "writeAerialGradientsToServoCrop: invalid idx, not writing." << endl;
+    return;
+  }
+
+  {
+    Mat this_grad = ms->config.classHeight0AerialGradients[idx];
+    string png_path = servoCrop_file_path + "0" + ".png";
+    cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
+    double minDepth = std::numeric_limits<double>::max();
+    double maxDepth = std::numeric_limits<double>::min();
+    for (int gx = 0; gx < this_grad.cols; gx++) {
+      for (int gy = 0; gy < this_grad.rows; gy++) {
+	minDepth = min(minDepth, this_grad.at<double>(gy,gx));
+	maxDepth = max(maxDepth, this_grad.at<double>(gy,gx));
+      }
+    }
+    double denom = maxDepth - minDepth;
+    if (denom <= EPSILON) {
+      denom = 1.0;
+    } else {
+      // do nothing
+    }
+    this_grad = 255.0 * (this_grad - minDepth) / denom;
+    imwrite(png_path, this_grad);
+  }
+  {
+    Mat this_grad = ms->config.classHeight1AerialGradients[idx];
+    string png_path = servoCrop_file_path + "1" + ".png";
+    cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
+    double minDepth = std::numeric_limits<double>::max();
+    double maxDepth = std::numeric_limits<double>::min();
+    for (int gx = 0; gx < this_grad.cols; gx++) {
+      for (int gy = 0; gy < this_grad.rows; gy++) {
+	minDepth = min(minDepth, this_grad.at<double>(gy,gx));
+	maxDepth = max(maxDepth, this_grad.at<double>(gy,gx));
+      }
+    }
+    double denom = maxDepth - minDepth;
+    if (denom <= EPSILON) {
+      denom = 1.0;
+    } else {
+      // do nothing
+    }
+    this_grad = 255.0 * (this_grad - minDepth) / denom;
+    imwrite(png_path, this_grad);
+  }
+  {
+    Mat this_grad = ms->config.classHeight2AerialGradients[idx];
+    string png_path = servoCrop_file_path + "2" + ".png";
+    cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
+    double minDepth = std::numeric_limits<double>::max();
+    double maxDepth = std::numeric_limits<double>::min();
+    for (int gx = 0; gx < this_grad.cols; gx++) {
+      for (int gy = 0; gy < this_grad.rows; gy++) {
+	minDepth = min(minDepth, this_grad.at<double>(gy,gx));
+	maxDepth = max(maxDepth, this_grad.at<double>(gy,gx));
+      }
+    }
+    double denom = maxDepth - minDepth;
+    if (denom <= EPSILON) {
+      denom = 1.0;
+    } else {
+      // do nothing
+    }
+    this_grad = 255.0 * (this_grad - minDepth) / denom;
+    imwrite(png_path, this_grad);
+  }
+  {
+    Mat this_grad = ms->config.classHeight3AerialGradients[idx];
+    string png_path = servoCrop_file_path + "3" + ".png";
+    cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
+    double minDepth = std::numeric_limits<double>::max();
+    double maxDepth = std::numeric_limits<double>::min();
+    for (int gx = 0; gx < this_grad.cols; gx++) {
+      for (int gy = 0; gy < this_grad.rows; gy++) {
+	minDepth = min(minDepth, this_grad.at<double>(gy,gx));
+	maxDepth = max(maxDepth, this_grad.at<double>(gy,gx));
+      }
+    }
+    double denom = maxDepth - minDepth;
+    if (denom <= EPSILON) {
+      denom = 1.0;
+    } else {
+      // do nothing
+    }
+    this_grad = 255.0 * (this_grad - minDepth) / denom;
+    imwrite(png_path, this_grad);
+  }
+}
+
+void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path) {
+  if ((idx > -1) && (idx < ms->config.classRangeMaps.size())) {
+    // do nothing
+  } else {
+    cout << "writeIr2D: invalid idx, not writing." << endl;
+    return;
+  }
+
+  Mat thisRangeMap = ms->config.classRangeMaps[idx];
+  // write yaml
+  FileStorage fsvO;
+  string yaml_path = this_range_path + ".yml";
+  cout << "writeIr2D: Writing: " << yaml_path << endl;
+  fsvO.open(this_range_path, FileStorage::WRITE);
+  fsvO << "rangeMap" << thisRangeMap;
+  fsvO.release();
+
+  // construct and write image
+  string png_path = this_range_path + ".png";
+  cout << "writeIr2D: Writing: " << png_path << endl;
+  Mat rmImageOut(ms->config.rmiHeight, ms->config.rmiWidth, CV_8UC3);
+  double minDepth = VERYBIGNUMBER;
+  double maxDepth = 0;
+  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
+      minDepth = min(minDepth, thisRangeMap.at<double>(ry,rx));
+      maxDepth = max(maxDepth, thisRangeMap.at<double>(ry,rx));
+    }
+  }
+  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
+      double denom2 = max(EPSILON,maxDepth-minDepth);
+      if (denom2 <= EPSILON) {
+	denom2 = VERYBIGNUMBER;
+      } else {
+	// do nothing
+      }
+      double intensity = 255 * (maxDepth - thisRangeMap.at<double>(ry,rx)) / denom2;
+      cv::Point outTop = cv::Point(ry*ms->config.rmiCellWidth,rx*ms->config.rmiCellWidth);
+      cv::Point outBot = cv::Point((ry+1)*ms->config.rmiCellWidth,(rx+1)*ms->config.rmiCellWidth);
+      for (int cx = outTop.x; cx < outBot.x; cx++) {
+	for (int cy = outTop.y; cy < outBot.y; cy++) {
+	  rmImageOut.at<Vec3b>(cy,cx) = Vec3b(0,0,ceil(intensity));
+	}
+      }
+    }
+  }
+  imwrite(png_path, rmImageOut);
+}
+
+bool streamRangeComparator (streamRange i, streamRange j) {
+ return (i.time < j.time);
+}
+
+bool streamPoseComparator (streamEePose i, streamEePose j) {
+ return (i.time < j.time);
+}
+
+bool streamImageComparator (streamImage i, streamImage j) {
+ return (i.time < j.time);
+}
+
+void populateStreamRangeBuffer(std::shared_ptr<MachineState> ms) {
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+  string dotyml(".yml");
+
+  int classToStreamIdx = ms->config.focusedClass;
+  string thisLabelName = ms->config.classLabels[classToStreamIdx];
+  string this_range_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/range/";
+  dpdf = opendir(this_range_path.c_str());
+  cout << "Populating stream range buffer from " << this_range_path << endl;
+  if (dpdf != NULL) {
+    while (epdf = readdir(dpdf)) {
+
+      string fname(epdf->d_name);
+      string fextension;
+      string fnoextension;
+      if (fname.length() > 4) {
+	fextension = fname.substr(fname.length() - 4, 4);
+	fnoextension = fname.substr(0, fname.length() - 4);
+      } else {
+      } // do nothing
+
+      if (!dotyml.compare(fextension) && dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
+
+	string inFileName = this_range_path + fname;
+	cout << "Streaming ranges from " << inFileName << " ...";
+	FileStorage fsvI;
+	fsvI.open(inFileName, FileStorage::READ);
+
+	{
+	  FileNode anode = fsvI["ranges"];
+	  {
+	    FileNode bnode = anode["size"];
+	    FileNodeIterator itb = bnode.begin(), itb_end = bnode.end();
+	    int tnp = -1;
+	    if (itb != itb_end) {
+	      tnp = *(itb++);
+	    } else {
+	    }
+
+	    FileNode cnode = anode["streamRanges"];
+	    FileNodeIterator itc = cnode.begin(), itc_end = cnode.end();
+	    int numLoadedRanges = 0;
+	    for ( ; itc != itc_end; itc++, numLoadedRanges++) {
+	      streamRange toAdd;
+	      int loaded = 1;
+	      {
+		FileNode dnode = (*itc)["range"];
+		FileNodeIterator itd = dnode.begin(), itd_end = dnode.end();
+		if (itd != itd_end) {
+		  toAdd.range= (*itd);
+		  //cout << "Read range: " << toAdd.range<< " ." << endl;
+		} else {
+		  loaded = 0;
+		  cout << "Range not found :P" << endl;
+		}
+	      }
+	      {
+		FileNode dnode = (*itc)["time"];
+		FileNodeIterator itd = dnode.begin(), itd_end = dnode.end();
+		if (itd != itd_end) {
+		  toAdd.time = (*itd);
+		  //cout << "Read time: " << toAdd.time << " ." << endl;
+		} else {
+		  loaded = 0;
+		  cout << "Time not found :P" << endl;
+		}
+	      }
+	      if (loaded) {
+		ms->config.streamRangeBuffer.push_back(toAdd);
+	      } else {
+		cout << "failed :P" << endl;
+	      }
+	    }
+	    if (numLoadedRanges != tnp) {
+	      ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	    }
+	    cout << "Expected to load " << tnp << " poses, loaded " << numLoadedRanges << " ..." << endl; cout.flush();
+	  }
+	}
+      }
+    }
+  }
+}
+
+void populateStreamPoseBuffer(std::shared_ptr<MachineState> ms) {
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+  string dotyml(".yml");
+
+  int classToStreamIdx = ms->config.focusedClass;
+  string thisLabelName = ms->config.classLabels[classToStreamIdx];
+  string this_pose_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/pose/";
+  dpdf = opendir(this_pose_path.c_str());
+  cout << "Populating stream pose buffer from " << this_pose_path << endl;
+  if (dpdf != NULL) {
+    while (epdf = readdir(dpdf)) {
+
+      string fname(epdf->d_name);
+      string fextension;
+      string fnoextension;
+      if (fname.length() > 4) {
+	fextension = fname.substr(fname.length() - 4, 4);
+	fnoextension = fname.substr(0, fname.length() - 4);
+      } else {
+      } // do nothing
+
+      if (!dotyml.compare(fextension) && dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
+
+	string inFileName = this_pose_path + fname;
+	cout << "Streaming poses from " << inFileName << " ...";
+	FileStorage fsvI;
+	fsvI.open(inFileName, FileStorage::READ);
+
+	{
+	  FileNode anode = fsvI["poses"];
+	  {
+	    FileNode bnode = anode["size"];
+	    FileNodeIterator itb = bnode.begin(), itb_end = bnode.end();
+	    int tnp = -1;
+	    if (itb != itb_end) {
+	      tnp = *(itb++);
+	    } else {
+	    }
+
+	    FileNode cnode = anode["streamPoses"];
+	    FileNodeIterator itc = cnode.begin(), itc_end = cnode.end();
+	    int numLoadedPoses = 0;
+	    for ( ; itc != itc_end; itc++, numLoadedPoses++) {
+	      streamEePose toAdd;
+	      int loaded = 1;
+	      {
+		{
+		  FileNode dnode = (*itc)["arm_pose"];
+		  toAdd.arm_pose.readFromFileNode(dnode);
+		  //cout << "Read arm pose " << toAdd.arm_pose << endl;
+		}
+		{
+		  FileNode dnode = (*itc)["base_pose"];
+		  toAdd.base_pose.readFromFileNode(dnode);
+		  //cout << "Read base pose " << toAdd.base_pose << endl;
+		}
+	      }
+	      {
+		//cout << "about to get time..." << endl;
+		FileNode dnode = (*itc)["time"];
+		FileNodeIterator itd = dnode.begin(), itd_end = dnode.end();
+		if (itd != itd_end) {
+		  toAdd.time = (*itd);
+		  //cout << "Read time: " << toAdd.time << " ." << endl;
+		} else {
+		  loaded = 0;
+		  //cout << "Arm pose not found :P" << endl;
+		}
+	      }
+	      if (loaded) {
+		ms->config.streamPoseBuffer.push_back(toAdd);
+	      } else {
+		cout << "failed :P" << endl;
+	      }
+	    }
+	    if (numLoadedPoses != tnp) {
+	      ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	    }
+	    cout << "Expected to load " << tnp << " poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
+	  }
+	}
+      }
+    }
+  }
+}
+
+void populateStreamImageBuffer(std::shared_ptr<MachineState> ms) {
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+  string dotpng(".png");
+
+  int classToStreamIdx = ms->config.focusedClass;
+  string thisLabelName = ms->config.classLabels[classToStreamIdx];
+  string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/images/";
+  dpdf = opendir(this_image_path.c_str());
+  cout << "Populating stream image buffer from " << this_image_path << endl;
+  if (dpdf != NULL) {
+    while (epdf = readdir(dpdf)) {
+
+      string fname(epdf->d_name);
+      string fextension;
+      string fnoextension;
+      if (fname.length() > 4) {
+	fextension = fname.substr(fname.length() - 4, 4);
+	fnoextension = fname.substr(0, fname.length() - 4);
+      } else {
+      } // do nothing
+
+      if (!dotpng.compare(fextension) && dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
+
+        char filename[1024];
+        sprintf(filename, "%s%s", this_image_path.c_str(), epdf->d_name);
+        Mat image;
+        image = imread(filename);
+
+        sprintf(filename, "%s%s.yml", this_image_path.c_str(), fnoextension.c_str());
+	string inFileName(filename);
+	FileStorage fsvI;
+	cout << "Streaming image from " << inFileName << " ...";
+	fsvI.open(inFileName, FileStorage::READ);
+
+	double time = 0.0;
+	int loaded = 1;
+	{
+	  FileNode anode = fsvI["time"];
+	  FileNodeIterator it = anode.begin(), it_end = anode.end();
+	  if (it != it_end) {
+	    time = *(it++);
+	  } else {
+	    loaded = 0;
+	  }
+	}
+
+	if (loaded) {
+	  streamImage toAdd;
+	  toAdd.time = time;
+	  toAdd.filename = this_image_path;
+	  ms->config.streamImageBuffer.push_back(toAdd);
+	  cout << "done." << endl;
+	} else {
+	  cout << "failed :P" << endl;
+	}
+      }
+    }
+  }
+}
+
+void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStreamIdx) {
+  string thisLabelName = ms->config.classLabels[classToStreamIdx];
+  string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/images/";
+  ros::Time thisNow = ros::Time::now();
+  char buf[1024];
+  sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
+  string root_path(buf); 
+
+  string png_path = root_path + ".png";
+  string yaml_path = root_path + ".yml";
+  cout << "Streaming current frame to " << png_path << " " << yaml_path << endl;
+  // no compression!
+  std::vector<int> args;
+  args.push_back(CV_IMWRITE_PNG_COMPRESSION);
+  args.push_back(0);
+  imwrite(png_path, im, args);
+
+  // XXX take this cout out
+
+  // may want to save additional camera parameters
+  FileStorage fsvO;
+  fsvO.open(yaml_path, FileStorage::WRITE);
+  fsvO << "time" <<  thisNow.toSec();
+  fsvO.release();
+}
+
+void streamRangeAsClass(std::shared_ptr<MachineState> ms, double rangeIn, int classToStreamIdx) {
+  int cfClass = ms->config.focusedClass;
+  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
+    streamRange toAdd;
+    ros::Time thisNow = ros::Time::now();
+    toAdd.range = rangeIn;
+    toAdd.time = thisNow.toSec();
+    ms->config.streamRangeBuffer.push_back(toAdd);
+  } else {
+    cout << "streamRangeAsClass: invalid focused class, deactivating streaming." << endl;
+    ms->config.sensorStreamOn = 0;
+    return;
+  } 
+
+  if (ms->config.streamRangeBuffer.size() >= ms->config.streamRangeBatchSize) {
+      writeRangeBatchAsClass(ms, classToStreamIdx);	
+  } else {
+  } // do nothing
+}
+
+void streamPoseAsClass(std::shared_ptr<MachineState> ms, eePose poseIn, int classToStreamIdx) {
+  int cfClass = ms->config.focusedClass;
+  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
+    streamEePose toAdd;
+    ros::Time thisNow = ros::Time::now();
+    toAdd.arm_pose = poseIn;
+    toAdd.base_pose = ms->config.c3dPoseBase;
+    toAdd.time = thisNow.toSec();
+    ms->config.streamPoseBuffer.push_back(toAdd);
+  } else {
+    cout << "streamPoseAsClass: invalid focused class, deactivating streaming." << endl;
+    ms->config.sensorStreamOn = 0;
+  } 
+
+  if (ms->config.streamPoseBuffer.size() >= ms->config.streamPoseBatchSize) {
+      writePoseBatchAsClass(ms, classToStreamIdx);	
+  } else {
+  } // do nothing
+}
+
+void writeRangeBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx) {
+  if ((classToStreamIdx > -1) && (classToStreamIdx < ms->config.classLabels.size())) {
+    // do nothing
+  } else {
+    cout << "writeRangeBatchAsClass: invalid class, not writing." << endl;
+    return;
+  }
+
+  string thisLabelName = ms->config.classLabels[classToStreamIdx];
+  string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/range/";
+  ros::Time thisNow = ros::Time::now();
+  char buf[1024];
+  sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
+  string root_path(buf); 
+
+
+  string yaml_path = root_path + ".yml";
+  // XXX take this cout out
+  cout << "Streaming current range batch to " << yaml_path << endl;
+
+  // may want to save additional camera parameters
+  FileStorage fsvO;
+  fsvO.open(yaml_path, FileStorage::WRITE);
+
+  fsvO << "ranges" << "{";
+  {
+    int tng = ms->config.streamRangeBuffer.size();
+    fsvO << "size" <<  tng;
+    fsvO << "streamRanges" << "[" ;
+    for (int i = 0; i < tng; i++) {
+      fsvO << "{:";
+	fsvO << "range" << ms->config.streamRangeBuffer[i].range;
+	fsvO << "time" << ms->config.streamRangeBuffer[i].time;
+      fsvO << "}";
+      // XXX take this cout out
+      cout << " wrote range: " << ms->config.streamRangeBuffer[i].range << " and time: " << ms->config.streamRangeBuffer[i].time << endl;
+    }
+    fsvO << "]";
+  }
+  fsvO << "}";
+  ms->config.streamRangeBuffer.resize(0);
+}
+
+void writePoseBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx) {
+  if ((classToStreamIdx > -1) && (classToStreamIdx < ms->config.classLabels.size())) {
+    // do nothing
+  } else {
+    cout << "writePoseBatchAsClass: invalid class, not writing." << endl;
+    return;
+  }
+
+  string thisLabelName = ms->config.classLabels[classToStreamIdx];
+  string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/pose/";
+  ros::Time thisNow = ros::Time::now();
+  char buf[1024];
+  sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
+  string root_path(buf); 
+
+  string yaml_path = root_path + ".yml";
+  // XXX take this cout out
+  cout << "Streaming current pose batch to " << yaml_path << endl;
+
+  // may want to save additional camera parameters
+  FileStorage fsvO;
+  fsvO.open(yaml_path, FileStorage::WRITE);
+
+  fsvO << "poses" << "{";
+  {
+    int tng = ms->config.streamPoseBuffer.size();
+    fsvO << "size" <<  tng;
+    fsvO << "streamPoses" << "[" ;
+    for (int i = 0; i < tng; i++) {
+      fsvO << "{:";
+	fsvO << "arm_pose";
+	  ms->config.streamPoseBuffer[i].arm_pose.writeToFileStorage(fsvO);
+	fsvO << "base_pose";
+	  ms->config.streamPoseBuffer[i].base_pose.writeToFileStorage(fsvO);
+	fsvO << "time" << ms->config.streamPoseBuffer[i].time;
+      fsvO << "}";
+      // XXX take this cout out
+      cout << " wrote arm_pose: " << ms->config.streamPoseBuffer[i].arm_pose << " base pose: base_pose: " << ms->config.streamPoseBuffer[i].base_pose << " and time: " << ms->config.streamPoseBuffer[i].time << endl;
+    }
+    fsvO << "]";
+  }
+  fsvO << "}";
+  ms->config.streamPoseBuffer.resize(0);
+
+  fsvO.release();
+}
+
+void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path) {
+  if ((idx > -1) && (idx < ms->config.class3dGrasps.size())) {
+    // do nothing
+  } else {
+    cout << "write3dGrasps: invalid idx, not writing." << endl;
+    return;
+  }
+
+  FileStorage fsvO;
+  cout << "write3dGrasps: Writing: " << this_grasp_path << endl;
+  fsvO.open(this_grasp_path, FileStorage::WRITE);
+
+  fsvO << "grasps" << "{";
+  {
+    int tng = ms->config.class3dGrasps[idx].size();
+    fsvO << "size" <<  tng;
+    fsvO << "graspPoses" << "[" ;
+    for (int i = 0; i < tng; i++) {
+      ms->config.class3dGrasps[idx][i].writeToFileStorage(fsvO);
+      cout << " wrote pose: " << ms->config.class3dGrasps[idx][i] << endl;
+    }
+    fsvO << "]";
+  }
+  fsvO << "}";
+
+  fsvO.release();
+}
+
+
+void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folderName) {
+  string item = folderName + "/";
+    string raw = item + "raw/";
+      string images = raw + "images/";
+      string poseBatches = raw + "poseBatches/";
+      string rangeBatches = raw + "rangeBatches/";
+    string ein = item + "ein/";
+      string d3dGrasps = ein + "3dGrasps/";
+      string detectionCrops = ein + "detectionCrops/";
+      string gaussianColorMap = ein + "gaussianColorMap/";
+      string ir2D = ein + "ir2D/";
+      string pickMemories = ein + "pickMemories/";
+      string servoCrops = ein + "servoCrops/";
+      string servoImages = ein + "servoImages/";
+
+  mkdir(item.c_str(), 0777);
+    mkdir(raw.c_str(), 0777);
+      mkdir(images.c_str(), 0777);
+      mkdir(poseBatches.c_str(), 0777);
+      mkdir(rangeBatches.c_str(), 0777);
+    mkdir(ein.c_str(), 0777);
+      mkdir(d3dGrasps.c_str(), 0777);
+      mkdir(detectionCrops.c_str(), 0777);
+      mkdir(gaussianColorMap.c_str(), 0777);
+      mkdir(ir2D.c_str(), 0777);
+      mkdir(pickMemories.c_str(), 0777);
+      mkdir(servoCrops.c_str(), 0777);
+      mkdir(servoImages.c_str(), 0777);
+
+
+  string d3d_grasp_file_path = d3dGrasps + "3dGrasps.yml";
+  write3dGrasps(ms, idx, d3d_grasp_file_path);
+  
+  string ir2D_file_path = ir2D + "ir2D";
+  writeIr2D(ms, idx, ir2D_file_path);
+
+  string servoCrop_file_path = servoCrops + "servoCrop";
+  writeAerialGradientsToServoCrop(ms, idx, servoCrop_file_path);
+}
+
 void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
   shared_ptr<MachineState> ms = pMachineState;
 
@@ -1164,6 +1787,13 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
   ms->config.trueEEPoseEEPose.qy = eps.pose.orientation.y;
   ms->config.trueEEPoseEEPose.qz = eps.pose.orientation.z;
   ms->config.trueEEPoseEEPose.qw = eps.pose.orientation.w;
+
+  int cfClass = ms->config.focusedClass;
+  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn)) {
+    streamPoseAsClass(ms, ms->config.trueEEPoseEEPose, cfClass); 
+  } else {
+  } // do nothing
+
 
   setRingPoseAtTime(ms, eps.header.stamp, eps.pose);
   geometry_msgs::Pose thisPose;
@@ -1643,6 +2273,114 @@ void setCCRotation(shared_ptr<MachineState> ms, int thisGraspGear) {
   ms->config.currentEEPose.qw = eeBaseQuat.w();
 }
 
+// publish volumetric representation to a marker array
+void publishVolumetricMap(shared_ptr<MachineState> ms) {
+  int aI = 0;
+  int vmSubsampleStride = 10;
+  visualization_msgs::MarkerArray ma_to_send; 
+  for (int pz = 0; pz < ms->config.vmWidth; pz+=vmSubsampleStride) {
+    for (int py = 0; py < ms->config.vmWidth; py+=vmSubsampleStride) {
+      for (int px = 0; px < ms->config.vmWidth; px+=vmSubsampleStride) {
+	if (ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0) {
+	  aI++;
+	}
+      }
+    }
+  }
+  int numCubesToShow = aI;
+
+  /*
+  ma_to_send.markers.resize(aI);
+  aI = 0;
+  for (int pz = 0; pz < ms->config.vmWidth; pz+=vmSubsampleStride) {
+    for (int py = 0; py < ms->config.vmWidth; py+=vmSubsampleStride) {
+      for (int px = 0; px < ms->config.vmWidth; px+=vmSubsampleStride) {
+	if (ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0) {
+	  double denomC = max(ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth], EPSILON);
+	  int tRed = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
+	  int tGreen = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
+	  int tBlue = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
+
+//cout << tBlue << " " << ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] << " " <<  denomC << endl;
+	  ma_to_send.markers[aI].pose.position.x = rmcX + (px - ms->config.vmHalfWidth)*ms->config.vmDelta;
+	  ma_to_send.markers[aI].pose.position.y = ms->config.rmcY + (py - ms->config.vmHalfWidth)*ms->config.vmDelta;
+	  ma_to_send.markers[aI].pose.position.z = ms->config.rmcZ + (pz - ms->config.vmHalfWidth)*ms->config.vmDelta;
+	  ma_to_send.markers[aI].pose.orientation.w = 1.0;
+	  ma_to_send.markers[aI].pose.orientation.x = 0.0;
+	  ma_to_send.markers[aI].pose.orientation.y = 0.0;
+	  ma_to_send.markers[aI].pose.orientation.z = 0.0;
+	  ma_to_send.markers[aI].type =  visualization_msgs::Marker::CUBE;
+	  ma_to_send.markers[aI].scale.x = ms->config.vmDelta*vmSubsampleStride;
+	  ma_to_send.markers[aI].scale.y = ms->config.vmDelta*vmSubsampleStride;
+	  ma_to_send.markers[aI].scale.z = ms->config.vmDelta*vmSubsampleStride;
+	  ma_to_send.markers[aI].color.a = volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth];
+	  ma_to_send.markers[aI].color.r = double(tRed)/255.0;
+	  ma_to_send.markers[aI].color.g = double(tGreen)/255.0;
+	  ma_to_send.markers[aI].color.b = double(tBlue)/255.0;
+
+	  ma_to_send.markers[aI].header.stamp = ros::Time::now();
+	  ma_to_send.markers[aI].header.frame_id = "/base";
+	  ma_to_send.markers[aI].action = visualization_msgs::Marker::ADD;
+	  ma_to_send.markers[aI].id = aI;
+	  ma_to_send.markers[aI].lifetime = ros::Duration(1.0);
+
+	  aI++;
+	}
+      }
+    }
+  }
+  */
+
+  ma_to_send.markers.resize(1);
+
+  ma_to_send.markers[0].pose.orientation.w = 1.0;
+  ma_to_send.markers[0].pose.orientation.x = 0.0;
+  ma_to_send.markers[0].pose.orientation.y = 0.0;
+  ma_to_send.markers[0].pose.orientation.z = 0.0;
+  ma_to_send.markers[0].type =  visualization_msgs::Marker::CUBE_LIST;
+  ma_to_send.markers[0].scale.x = ms->config.vmDelta*vmSubsampleStride;
+  ma_to_send.markers[0].scale.y = ms->config.vmDelta*vmSubsampleStride;
+  ma_to_send.markers[0].scale.z = ms->config.vmDelta*vmSubsampleStride;
+
+  ma_to_send.markers[0].header.stamp = ros::Time::now();
+  ma_to_send.markers[0].header.frame_id = "/base";
+  ma_to_send.markers[0].action = visualization_msgs::Marker::ADD;
+  ma_to_send.markers[0].id = 0;
+  ma_to_send.markers[0].lifetime = ros::Duration(1.0);
+
+  double volumeRenderThresh = 0.333;
+
+  for (int pz = 0; pz < ms->config.vmWidth; pz+=vmSubsampleStride) {
+    for (int py = 0; py < ms->config.vmWidth; py+=vmSubsampleStride) {
+      for (int px = 0; px < ms->config.vmWidth; px+=vmSubsampleStride) {
+	if (ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0) {
+	  double denomC = max(ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth], EPSILON);
+	  int tRed = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
+	  int tGreen = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
+	  int tBlue = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
+
+	  std_msgs::ColorRGBA p;
+	  //p.a = volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0;
+	  //p.a = volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0.5;
+	  p.a = ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > volumeRenderThresh;
+	  //p.a = 4.0*volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth];
+	  p.r = double(tRed)/255.0;
+	  p.g = double(tGreen)/255.0;
+	  p.b = double(tBlue)/255.0;
+	  ma_to_send.markers[0].colors.push_back(p);
+
+	  geometry_msgs::Point temp;
+	  temp.x = ms->config.rmcX + (px - ms->config.vmHalfWidth)*ms->config.vmDelta;
+	  temp.y = ms->config.rmcY + (py - ms->config.vmHalfWidth)*ms->config.vmDelta;
+	  temp.z = ms->config.rmcZ + (pz - ms->config.vmHalfWidth)*ms->config.vmDelta;
+	  ma_to_send.markers[0].points.push_back(temp);
+	}
+      }
+    }
+  }
+  ms->config.vmMarkerPublisher.publish(ma_to_send);
+}
+
 void accelerometerCallback(const sensor_msgs::Imu& moment) {
   shared_ptr<MachineState> ms = pMachineState;
   ms->config.lastAccelerometerCallbackReceived = ros::Time::now();
@@ -1659,6 +2397,11 @@ void rangeCallback(const sensor_msgs::Range& range) {
   //double thisRange;
   //int weHaveRangeData = getRingRangeAtTime(range.header.stamp, thisRange);
 
+  int cfClass = ms->config.focusedClass;
+  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn)) {
+    streamRangeAsClass(ms, range.range, cfClass); 
+  } else {
+  } // do nothing
 
   time(&ms->config.thisTimeRange);
   double deltaTimeRange = difftime(ms->config.thisTimeRange, ms->config.firstTimeRange);
@@ -2401,8 +3144,24 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   shared_ptr<MachineState> ms = pMachineState;
   ms->config.lastImageCallbackReceived = ros::Time::now();
 
+  int converted = 0;
+  if(ms->config.sensorStreamOn) {
+    try{
+      ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+      int cfClass = ms->config.focusedClass;
+      if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
+	streamImageAsClass(ms, ms->config.cv_ptr->image, cfClass); 
+      } else {
+      } // do nothing
+      converted = 1;
+    }catch(cv_bridge::Exception& e){
+      ROS_ERROR("cv_bridge exception: %s", e.what());
+      return;
+    }
+  }
 
   if (!ms->config.shouldIImageCallback) {
+    cout << "Early exit image callback." << endl;
     return;
   }
 
@@ -2410,10 +3169,14 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     ms->config.renderInit = 1;
     ms->config.shouldIRender = ms->config.shouldIRenderDefault;
 
-    try{
-      ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    try {
+      if (!converted) {
+	ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+      } else {
+      } // do nothing 
+
       ms->config.cam_img = ms->config.cv_ptr->image.clone();
-    }catch(cv_bridge::Exception& e){
+    } catch(cv_bridge::Exception& e) {
       ROS_ERROR("cv_bridge exception: %s", e.what());
       return;
     }
@@ -2469,113 +3232,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   //if (ms->config.recordRangeMap) 
   recordReadyRangeReadings(ms);
 
-  // publish volumetric representation to a marker array
-  {
-    int aI = 0;
-    int vmSubsampleStride = 10;
-    visualization_msgs::MarkerArray ma_to_send; 
-    for (int pz = 0; pz < ms->config.vmWidth; pz+=vmSubsampleStride) {
-      for (int py = 0; py < ms->config.vmWidth; py+=vmSubsampleStride) {
-	for (int px = 0; px < ms->config.vmWidth; px+=vmSubsampleStride) {
-	  if (ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0) {
-	    aI++;
-	  }
-	}
-      }
-    }
-    int numCubesToShow = aI;
-
-    /*
-    ma_to_send.markers.resize(aI);
-    aI = 0;
-    for (int pz = 0; pz < ms->config.vmWidth; pz+=vmSubsampleStride) {
-      for (int py = 0; py < ms->config.vmWidth; py+=vmSubsampleStride) {
-	for (int px = 0; px < ms->config.vmWidth; px+=vmSubsampleStride) {
-	  if (ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0) {
-	    double denomC = max(ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth], EPSILON);
-	    int tRed = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-	    int tGreen = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-	    int tBlue = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-
-//cout << tBlue << " " << ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] << " " <<  denomC << endl;
-	    ma_to_send.markers[aI].pose.position.x = rmcX + (px - ms->config.vmHalfWidth)*ms->config.vmDelta;
-	    ma_to_send.markers[aI].pose.position.y = ms->config.rmcY + (py - ms->config.vmHalfWidth)*ms->config.vmDelta;
-	    ma_to_send.markers[aI].pose.position.z = ms->config.rmcZ + (pz - ms->config.vmHalfWidth)*ms->config.vmDelta;
-	    ma_to_send.markers[aI].pose.orientation.w = 1.0;
-	    ma_to_send.markers[aI].pose.orientation.x = 0.0;
-	    ma_to_send.markers[aI].pose.orientation.y = 0.0;
-	    ma_to_send.markers[aI].pose.orientation.z = 0.0;
-	    ma_to_send.markers[aI].type =  visualization_msgs::Marker::CUBE;
-	    ma_to_send.markers[aI].scale.x = ms->config.vmDelta*vmSubsampleStride;
-	    ma_to_send.markers[aI].scale.y = ms->config.vmDelta*vmSubsampleStride;
-	    ma_to_send.markers[aI].scale.z = ms->config.vmDelta*vmSubsampleStride;
-	    ma_to_send.markers[aI].color.a = volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth];
-	    ma_to_send.markers[aI].color.r = double(tRed)/255.0;
-	    ma_to_send.markers[aI].color.g = double(tGreen)/255.0;
-	    ma_to_send.markers[aI].color.b = double(tBlue)/255.0;
-
-	    ma_to_send.markers[aI].header.stamp = ros::Time::now();
-	    ma_to_send.markers[aI].header.frame_id = "/base";
-	    ma_to_send.markers[aI].action = visualization_msgs::Marker::ADD;
-	    ma_to_send.markers[aI].id = aI;
-	    ma_to_send.markers[aI].lifetime = ros::Duration(1.0);
-
-	    aI++;
-	  }
-	}
-      }
-    }
-    */
-
-    ma_to_send.markers.resize(1);
-
-    ma_to_send.markers[0].pose.orientation.w = 1.0;
-    ma_to_send.markers[0].pose.orientation.x = 0.0;
-    ma_to_send.markers[0].pose.orientation.y = 0.0;
-    ma_to_send.markers[0].pose.orientation.z = 0.0;
-    ma_to_send.markers[0].type =  visualization_msgs::Marker::CUBE_LIST;
-    ma_to_send.markers[0].scale.x = ms->config.vmDelta*vmSubsampleStride;
-    ma_to_send.markers[0].scale.y = ms->config.vmDelta*vmSubsampleStride;
-    ma_to_send.markers[0].scale.z = ms->config.vmDelta*vmSubsampleStride;
-
-    ma_to_send.markers[0].header.stamp = ros::Time::now();
-    ma_to_send.markers[0].header.frame_id = "/base";
-    ma_to_send.markers[0].action = visualization_msgs::Marker::ADD;
-    ma_to_send.markers[0].id = 0;
-    ma_to_send.markers[0].lifetime = ros::Duration(1.0);
-
-    double volumeRenderThresh = 0.333;
-
-    for (int pz = 0; pz < ms->config.vmWidth; pz+=vmSubsampleStride) {
-      for (int py = 0; py < ms->config.vmWidth; py+=vmSubsampleStride) {
-	for (int px = 0; px < ms->config.vmWidth; px+=vmSubsampleStride) {
-	  if (ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0) {
-	    double denomC = max(ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth], EPSILON);
-	    int tRed = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-	    int tGreen = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-	    int tBlue = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-
-	    std_msgs::ColorRGBA p;
-	    //p.a = volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0;
-	    //p.a = volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0.5;
-	    p.a = ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > volumeRenderThresh;
-	    //p.a = 4.0*volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth];
-	    p.r = double(tRed)/255.0;
-	    p.g = double(tGreen)/255.0;
-	    p.b = double(tBlue)/255.0;
-	    ma_to_send.markers[0].colors.push_back(p);
-
-	    geometry_msgs::Point temp;
-	    temp.x = ms->config.rmcX + (px - ms->config.vmHalfWidth)*ms->config.vmDelta;
-	    temp.y = ms->config.rmcY + (py - ms->config.vmHalfWidth)*ms->config.vmDelta;
-	    temp.z = ms->config.rmcZ + (pz - ms->config.vmHalfWidth)*ms->config.vmDelta;
-	    ma_to_send.markers[0].points.push_back(temp);
-	  }
-	}
-      }
-    }
-    ms->config.vmMarkerPublisher.publish(ma_to_send);
-  }
 
   // paint gripper reticle centerline
   if (1) {
@@ -11042,12 +11698,13 @@ int main(int argc, char **argv) {
   }
 
   image_transport::ImageTransport it(n);
-  image_transport::Subscriber image_sub;
 
-  ros::Subscriber epState;
+  //image_transport::Subscriber image_sub;
+  //ros::Subscriber eeRanger;
+  //ros::Subscriber epState;
+
   ros::Subscriber gripState;
   ros::Subscriber eeAccelerator;
-  ros::Subscriber eeRanger;
   ros::Subscriber eeTarget;
   ros::Subscriber jointSubscriber;
 
@@ -11065,13 +11722,14 @@ int main(int argc, char **argv) {
   ros::Timer simulatorCallbackTimer;
 
   if (ms->config.currentRobotMode == PHYSICAL) {
-    epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, endpointCallback);
+    ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, endpointCallback);
+    ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, rangeCallback);
+    ms->config.image_sub = it.subscribe(ms->config.image_topic, 1, imageCallback);
+
     gripState = n.subscribe("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/state", 1, gripStateCallback);
     eeAccelerator =  n.subscribe("/robot/accelerometer/" + ms->config.left_or_right_arm + "_accelerometer/state", 1, accelerometerCallback);
-    eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, rangeCallback);
     eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, targetCallback);
     jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
-    image_sub = it.subscribe(ms->config.image_topic, 1, imageCallback);
   } else if (ms->config.currentRobotMode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
     simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/ms->config.simulatorCallbackFrequency), simulatorCallback);
