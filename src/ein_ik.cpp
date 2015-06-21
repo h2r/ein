@@ -7,7 +7,7 @@
 
 int ikfast_query(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositionIK * thisRequest, double free, string frame);
 int ikfast_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, IkSolutionList<IkReal> &solutions);
-
+bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, std::vector<double>& solutions);
 
 void fillIkRequest(eePose * givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
   givenIkRequest->request.pose_stamp.resize(1);
@@ -90,14 +90,12 @@ bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositi
   return thisIkResultFailed;
 }
 
-
-void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
-  if (ms->config.currentRobotMode == PHYSICAL) {
+void queryIKService(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
     *thisResult = ms->config.ikClient.call(*thisRequest);
-    cout << "Asking for IK: " << thisRequest->request.pose_stamp[0].pose.position.x << ",";
-    cout << thisRequest->request.pose_stamp[0].pose.position.y << ",";
-    cout << thisRequest->request.pose_stamp[0].pose.position.z << endl;
-    cout << "Result: ";
+    //cout << "Asking for IK: " << thisRequest->request.pose_stamp[0].pose.position.x << ",";
+    //cout << thisRequest->request.pose_stamp[0].pose.position.y << ",";
+    //cout << thisRequest->request.pose_stamp[0].pose.position.z << endl;
+    //cout << "Result: ";
     if (*thisResult && thisRequest->response.isValid[0]) {
       for (int j = 0; j < NUM_JOINTS; j++) {
         cout << thisRequest->response.joints[0].name[j] << ": ";
@@ -113,14 +111,21 @@ void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::So
       //query_ikfast(ms, thisRequest, thisRequest->response.joints[0].position[5], "left_arm_mount");
       ikfast_query(ms, thisRequest, 1.52056, "left_arm_mount");
     }
+}
 
 
+void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
+  if (ms->config.currentRobotMode == PHYSICAL) {
+    queryIKService(ms, thisResult, thisRequest);
+    //queryIKFast(ms, thisResult, thisRequest);
   } else if (ms->config.currentRobotMode == SIMULATED) {
     *thisResult = 1;
   } else {
     assert(0);
   }
 }
+
+
 
 
 int ikfast_query(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositionIK * thisRequest, double free, string transform) {
@@ -131,29 +136,101 @@ int ikfast_query(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositionIK 
   geometry_msgs::PoseStamped transformed_pose;
 
   ms->config.tfListener->transformPose(transform, base_pose, transformed_pose);
-  IkSolutionList<IkReal> solutions;
-  ikfast_solve(ms, transformed_pose.pose, free, solutions);
+  vector<double> solution;
+  bool result = ikfast_search(ms, transformed_pose.pose, free, solution);
 
-  for (int i = 0; i < solutions.GetNumSolutions(); i++) {
-    vector<double> solution;
-    solution.clear();
-    solution.resize(GetNumJoints());
-
-    const IkSolutionBase<IkReal>& sol = solutions.GetSolution(i);
-    std::vector<IkReal> vsolfree( sol.GetFree().size() );
-    sol.GetSolution(&solution[0],vsolfree.size()>0?&vsolfree[0]:NULL);
-    cout << "ikfast: " ;
-    for (int j = 0; j < solution.size(); j++) {
-      cout << solution[j] << ", " ;
-    }
-    cout << endl;
+  if (result) {
     for (int j = 0; j < NUM_JOINTS; j++) {
-      //thisRequest->response.joints[0].position[j] = solution[j];
+      thisRequest->response.joints[0].position[j] = solution[j];
     }
-
   }
 
+  //IkSolutionList<IkReal> solutions;
+  //ikfast_solve(ms, transformed_pose.pose, free, solutions);
   
+
+  // for (int i = 0; i < solutions.GetNumSolutions(); i++) {
+  //   vector<double> solution;
+  //   solution.clear();
+  //   solution.resize(GetNumJoints());
+
+  //   const IkSolutionBase<IkReal>& sol = solutions.GetSolution(i);
+  //   std::vector<IkReal> vsolfree( sol.GetFree().size() );
+  //   sol.GetSolution(&solution[0],vsolfree.size()>0?&vsolfree[0]:NULL);
+  //   cout << "ikfast: " ;
+  //   for (int j = 0; j < solution.size(); j++) {
+  //     cout << solution[j] << ", " ;
+  //   }
+  //   cout << endl;
+  //   for (int j = 0; j < NUM_JOINTS; j++) {
+  //     //thisRequest->response.joints[0].position[j] = solution[j];
+  //   }
+
+  // }
+
+
+}
+
+void ikfast_getSolution(const IkSolutionList<IkReal> &solutions, int i, std::vector<double>& solution) {
+  solution.clear();
+  solution.resize(NUM_JOINTS);
+
+  // IKFast56/61
+  const IkSolutionBase<IkReal>& sol = solutions.GetSolution(i);
+  std::vector<IkReal> vsolfree( sol.GetFree().size() );
+  sol.GetSolution(&solution[0],vsolfree.size()>0?&vsolfree[0]:NULL);
+}
+
+bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, std::vector<double>& sol)  {
+  ROS_DEBUG_STREAM_NAMED("ikfast","searchPositionIK");
+
+  double vfree = free;
+  double search_discretization = 0.005;
+
+  double joint_min_vector[] = {-1.70168, -2.147, -3.05418, -0.05, -3.059, -1.5708, -3.059};
+  double joint_max_vector[] = {1.70168, 1.047, 3.05418, 2.618, 3.059, 2.094, 3.059};
+
+  int counter = 0;
+  int num_positive_increments;
+  int num_negative_increments;
+
+
+  while(true)
+  {
+    IkSolutionList<IkReal> solutions;
+    int numsol = ikfast_solve(ms, pose, vfree, solutions);
+
+    //ROS_INFO_STREAM_NAMED("ikfast","Found " << numsol << " solutions from IKFast");
+
+    if( numsol > 0 ) {
+      for(int s = 0; s < numsol; ++s) {
+
+        ikfast_getSolution(solutions,s,sol);
+
+        bool obeys_limits = true;
+        for(unsigned int i = 0; i < sol.size(); i++) {
+          if(sol[i] < joint_min_vector[i] || sol[i] > joint_max_vector[i]) {
+            obeys_limits = false;
+            break;
+          }
+          //ROS_INFO_STREAM_NAMED("ikfast","Num " << i << " value " << sol[i] << " has limits " << joint_has_limits_vector_[i] << " " << joint_min_vector_[i] << " " << joint_max_vector_[i]);
+        }
+        if(obeys_limits) {
+            return true;
+        }
+      }
+      if (counter > 100) {
+        return false;
+      }
+    }
+
+    vfree = free + search_discretization*counter;
+    //ROS_INFO_STREAM_NAMED("ikfast","Attempt " << counter << " with 0th free joint having value " << vfree);
+    counter += 1;
+  }
+
+  ROS_ERROR("Returning zero in ein ik fast, falling out of the while loop.");
+  return false;
 
 }
 
@@ -176,7 +253,7 @@ int ikfast_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double 
   trans[1] = pose_frame.p[1];
   trans[2] = pose_frame.p[2];
   
-  cout << "Trans: " << trans[0] << ", " << trans[1] << ", " << trans[2] << endl;
+  //cout << "Trans: " << trans[0] << ", " << trans[1] << ", " << trans[2] << endl;
   
   mult = pose_frame.M;
   
@@ -193,7 +270,7 @@ int ikfast_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double 
   
   // IKFast56/61
   ComputeIk(trans, vals, vfree.size() > 0 ? &vfree[0] : NULL, solutions);
-  cout <<  "Ik fast solution: " << solutions.GetNumSolutions() << endl;
+  //cout <<  "Ik fast solution: " << solutions.GetNumSolutions() << endl;
   
   
   return solutions.GetNumSolutions();
