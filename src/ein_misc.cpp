@@ -702,4 +702,24 @@ END_WORD
 REGISTER_WORD(Help)
 
 
+WORD(IkModeService)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->config.currentIKMode = IKSERVICE;
+}
+END_WORD
+REGISTER_WORD(IkModeService)
+
+
+WORD(IkModeIkFast)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->config.currentIKMode = IKFAST;
+}
+END_WORD
+REGISTER_WORD(IkModeIkFast)
+
+
+
+
 }

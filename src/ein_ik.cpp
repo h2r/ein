@@ -5,7 +5,7 @@
 #define IKFAST_NO_MAIN // Don't include main() from IKFast
 #include "ikfast/baxter_left_arm_ikfast_solver.cpp"
 
-int ikfast_query(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositionIK * thisRequest, double free, string frame);
+void queryIKFast(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
 int ikfast_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, IkSolutionList<IkReal> &solutions);
 bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, std::vector<double>& solutions);
 
@@ -96,28 +96,28 @@ void queryIKService(shared_ptr<MachineState> ms, int * thisResult, baxter_core_m
     //cout << thisRequest->request.pose_stamp[0].pose.position.y << ",";
     //cout << thisRequest->request.pose_stamp[0].pose.position.z << endl;
     //cout << "Result: ";
-    if (*thisResult && thisRequest->response.isValid[0]) {
-      for (int j = 0; j < NUM_JOINTS; j++) {
-        cout << thisRequest->response.joints[0].name[j] << ": ";
-        cout << thisRequest->response.joints[0].position[j] << ", ";
-      }
-      cout << endl;
-    } else {
-      cout << "invalid" << endl;
-    }
-    
-    //query_ikfast(ms, thisRequest, 1.13812, "left_arm_mount");
-    if (*thisResult && thisRequest->response.isValid[0])  {
-      //query_ikfast(ms, thisRequest, thisRequest->response.joints[0].position[5], "left_arm_mount");
-      ikfast_query(ms, thisRequest, 1.52056, "left_arm_mount");
-    }
+    // if (*thisResult && thisRequest->response.isValid[0]) {
+    //   for (int j = 0; j < NUM_JOINTS; j++) {
+    //     cout << thisRequest->response.joints[0].name[j] << ": ";
+    //     cout << thisRequest->response.joints[0].position[j] << ", ";
+    //   }
+    //   cout << endl;
+    // } else {
+    //   cout << "invalid" << endl;
+    // }
+ 
 }
 
 
 void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
   if (ms->config.currentRobotMode == PHYSICAL) {
-    queryIKService(ms, thisResult, thisRequest);
-    //queryIKFast(ms, thisResult, thisRequest);
+    if(ms->config.currentIKMode == IKSERVICE) {
+      queryIKService(ms, thisResult, thisRequest);
+    } else if (ms->config.currentIKMode == IKFAST) {
+      queryIKFast(ms, thisResult, thisRequest);
+    } else {
+      assert(0);
+    }
   } else if (ms->config.currentRobotMode == SIMULATED) {
     *thisResult = 1;
   } else {
@@ -127,9 +127,13 @@ void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::So
 
 
 
-
-int ikfast_query(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositionIK * thisRequest, double free, string transform) {
-
+void queryIKFast(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
+  string transform = ms->config.left_or_right_arm + "_arm_mount";
+  int num = GetNumFreeParameters();
+  int * free_params = GetFreeParameters();
+  assert(num == 1);
+  int free_joint_idx = free_params[0];
+  double free = ms->config.trueJointPositions[free_joint_idx];
 
   geometry_msgs::PoseStamped base_pose = thisRequest->request.pose_stamp[0];
   base_pose.header.stamp = ros::Time(0);
@@ -138,11 +142,19 @@ int ikfast_query(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositionIK 
   ms->config.tfListener->transformPose(transform, base_pose, transformed_pose);
   vector<double> solution;
   bool result = ikfast_search(ms, transformed_pose.pose, free, solution);
+  thisRequest->response.isValid.resize(1);
 
   if (result) {
+    thisRequest->response.isValid[0] = 1;
+    thisRequest->response.joints.resize(1);
+    thisRequest->response.joints[0].position.resize(NUM_JOINTS);
     for (int j = 0; j < NUM_JOINTS; j++) {
       thisRequest->response.joints[0].position[j] = solution[j];
     }
+    *thisResult = 1;
+  } else {
+    *thisResult = 0;
+    thisRequest->response.isValid[0] = 0;
   }
 
   //IkSolutionList<IkReal> solutions;
@@ -219,11 +231,11 @@ bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, doubl
             return true;
         }
       }
-      if (counter > 100) {
-        return false;
-      }
     }
 
+    if (counter > 100) {
+      return false;
+    }
     vfree = free + search_discretization*counter;
     //ROS_INFO_STREAM_NAMED("ikfast","Attempt " << counter << " with 0th free joint having value " << vfree);
     counter += 1;

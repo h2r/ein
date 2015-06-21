@@ -47,6 +47,7 @@ string MachineState::currentState()
     state << "currentBoundingBoxMode: " << pickModeToString(config.currentBoundingBoxMode) << endl;
     state << "gradientServoTakeClosest: " << config.gradientTakeClosest << endl;
     state << "synchronicTakeClosest: " << config.synchronicTakeClosest << endl;
+    state << "ikMode: " << ikModeToString(config.currentIKMode) << endl;
     state << "focusedClass: " << config.focusedClass;
     if (config.focusedClass != -1) {
       state << " " << config.classLabels[config.focusedClass];
@@ -57,11 +58,23 @@ string MachineState::currentState()
     if (config.targetClass != -1) {
       state << " " << config.classLabels[config.targetClass];
     }
-
     state << endl;
+
     double wrenchNorm = sqrt( eePose::squareDistance(eePose::zero(), config.trueEEWrench) );
     state << "wrenchNorm: " << setw(w) << wrenchNorm << endl;
     
     return state.str();
 
   }
+
+
+string ikModeToString(ikMode mode) {
+  if (mode == IKSERVICE) {
+    return "ikservice";
+  } else if (mode == IKFAST) {
+    return "ikfast";
+  } else {
+    cout << "Unknown IK Mode: " << mode << endl;
+    assert(0);
+  }
+}
