@@ -8,6 +8,8 @@
 void queryIKFast(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
 int ikfast_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, IkSolutionList<IkReal> &solutions);
 bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, std::vector<double>& solutions);
+double joint_error(vector<double> p1, vector<double> p2);
+bool obeys_limits(vector<double> joints, vector<double> joint_max_vector, vector<double> joint_min_vector, double tolerance);
 
 void fillIkRequest(eePose * givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
   givenIkRequest->request.pose_stamp.resize(1);
@@ -193,50 +195,89 @@ void ikfast_getSolution(const IkSolutionList<IkReal> &solutions, int i, std::vec
   sol.GetSolution(&solution[0],vsolfree.size()>0?&vsolfree[0]:NULL);
 }
 
-bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, std::vector<double>& sol)  {
+bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, std::vector<double>& outsol)  {
   ROS_DEBUG_STREAM_NAMED("ikfast","searchPositionIK");
 
+  
   double vfree = free;
-  double search_discretization = 0.005;
 
-  double joint_min_vector[] = {-1.70168, -2.147, -3.05418, -0.05, -3.059, -1.5708, -3.059};
-  double joint_max_vector[] = {1.70168, 1.047, 3.05418, 2.618, 3.059, 2.094, 3.059};
+  vector<double> current_joints;
+  for (int i = 0; i < NUM_JOINTS; i++) {
+    current_joints.push_back(ms->config.trueJointPositions[i]);
+  }
+  double joint_min[] = {-1.70168, -2.147, -3.05418, -0.05, -3.059, -1.5708, -3.059};
+  double joint_max[] = {1.70168, 1.047, 3.05418, 2.618, 3.059, 2.094, 3.059};
+  vector<double> joint_min_vector;
+  vector<double> joint_max_vector;
+
+  for (int i = 0; i < NUM_JOINTS; i++) {
+    joint_min_vector.push_back(joint_min[i]);
+    joint_max_vector.push_back(joint_max[i]);
+  }
+
+
+  double joint_safety = 0.01;
 
   int counter = 0;
-  int num_positive_increments;
-  int num_negative_increments;
+  int num = GetNumFreeParameters();
+  int * free_params = GetFreeParameters();
+  assert(num == 1);
+  int free_joint_idx = free_params[0];
+  double step = (joint_max_vector[free_joint_idx] - joint_min_vector[free_joint_idx]) / 100;
 
+  if (vfree <= joint_min_vector[free_joint_idx] || vfree >= joint_max_vector[free_joint_idx]) {
+    vfree = 0.5 * (joint_min_vector[free_joint_idx] + joint_max_vector[free_joint_idx]);
+  }
 
+  vector<double> free_params_up;
+  vector<double> free_params_down;
+  for (double f = free; f <= joint_max_vector[free_joint_idx]; f+= step) {
+    free_params_up.push_back(f);
+  }
+  for (double f = joint_min_vector[free_joint_idx]; f < free; f+= step) {
+    free_params_down.push_back(f);
+  }
+
+  int i_up = 0;
+  int i_down = 0;
   while(true)
   {
     IkSolutionList<IkReal> solutions;
     int numsol = ikfast_solve(ms, pose, vfree, solutions);
-
+    double max_dist = VERYBIGNUMBER;
+    int max_idx = -1;
     //ROS_INFO_STREAM_NAMED("ikfast","Found " << numsol << " solutions from IKFast");
+    vector<double> solution;
 
-    if( numsol > 0 ) {
-      for(int s = 0; s < numsol; ++s) {
-
-        ikfast_getSolution(solutions,s,sol);
-
-        bool obeys_limits = true;
-        for(unsigned int i = 0; i < sol.size(); i++) {
-          if(sol[i] < joint_min_vector[i] || sol[i] > joint_max_vector[i]) {
-            obeys_limits = false;
-            break;
-          }
-          //ROS_INFO_STREAM_NAMED("ikfast","Num " << i << " value " << sol[i] << " has limits " << joint_has_limits_vector_[i] << " " << joint_min_vector_[i] << " " << joint_max_vector_[i]);
-        }
-        if(obeys_limits) {
-            return true;
+    for(int s = 0; s < numsol; ++s) {
+      ikfast_getSolution(solutions,s,solution);
+      
+      if (obeys_limits(solution, joint_min_vector, joint_max_vector, joint_safety)) {
+        double error = joint_error(solution, current_joints);
+        if (error < max_dist) {
+          max_dist = error;
+          max_idx = s;
         }
       }
     }
+    if (max_idx != -1) {
+      ikfast_getSolution(solutions, max_idx, outsol);
+      return true;
+    }
+    
+      
 
     if (counter > 100) {
       return false;
     }
-    vfree = free + search_discretization*counter;
+    if (counter % 2 == 0) {
+      vfree = free_params_up[i_up];
+      i_up++;
+    } else {
+      vfree = free_params_up[i_down];
+      i_down++;
+    }
+
     //ROS_INFO_STREAM_NAMED("ikfast","Attempt " << counter << " with 0th free joint having value " << vfree);
     counter += 1;
   }
@@ -244,6 +285,25 @@ bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, doubl
   ROS_ERROR("Returning zero in ein ik fast, falling out of the while loop.");
   return false;
 
+}
+
+bool obeys_limits(vector<double> joints, vector<double> joint_min_vector, vector<double> joint_max_vector, double tolerance) {
+  for(unsigned int i = 0; i < joints.size(); i++) {
+    if (joints[i] < joint_min_vector[i] + tolerance || joints[i] > joint_max_vector[i] - tolerance) {
+      return false;
+    }
+  }
+  return true;
+
+}
+
+double joint_error(vector<double> p1, vector<double> p2) {
+  double error = 0;
+  assert(p1.size() == p2.size());
+  for (int i = 0; i < p1.size(); i++) {
+    error += fabs(p1[i] - p2[i]);
+  }
+  return error;
 }
 
 int ikfast_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, IkSolutionList<IkReal> &solutions) {

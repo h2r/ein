@@ -48,6 +48,7 @@ typedef struct _eePose{
 
   static void print(_eePose toPrint);
   static double squareDistance(_eePose pose1, _eePose pose2);
+  static double distance(_eePose pose1, _eePose pose2);
   static _eePose fromRectCentroid(Rect rect);
 
   static _eePose zero();

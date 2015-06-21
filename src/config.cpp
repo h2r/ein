@@ -41,6 +41,14 @@ string MachineState::currentState()
     state <<
       "eePose = {.px = " << setw(w) << config.trueEEPose.position.x << ", .py = " << setw(w) << config.trueEEPose.position.y << ", .pz = " << setw(w) << config.trueEEPose.position.z << "," << endl <<
       "          .qx = " << setw(w) << config.trueEEPose.orientation.x << ", .qy = " << setw(w) << config.trueEEPose.orientation.y << ", .qz = " << setw(w) << config.trueEEPose.orientation.z << ", .qw = " << setw(w) << config.trueEEPose.orientation.w << "};" << endl;
+
+    double poseError = eePose::distance(config.trueEEPoseEEPose, config.currentEEPose);
+    eePose difference = config.trueEEPoseEEPose.minusP(config.currentEEPose);
+    state << "position error distance: "  << poseError << endl;
+
+    state << "position error (x,y,z): "  << setw(w) << difference.px << " " << setw(w) << difference.py << " " << setw(w) << difference.pz << endl;
+    state << "position error (x,y,z,w): " << setw(w) << difference.qx << " " << setw(w) << difference.qy << " " << setw(w) << difference.qz << " " << setw(w) << difference.qw << endl;
+
     state << "currentThompsonHeightIdx: " << config.currentThompsonHeightIdx << endl;
     state << "mostRecentUntabledZ (remember this is inverted but correct): " << config.mostRecentUntabledZ << endl;
     state << "currentPickMode: " << pickModeToString(config.currentPickMode) << endl;
