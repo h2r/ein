@@ -163,7 +163,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     Mat crop = ms->config.cam_img(cv::Rect(ms->config.bTops[0].x, ms->config.bTops[0].y, ms->config.bBots[0].x-ms->config.bTops[0].x, ms->config.bBots[0].y-ms->config.bTops[0].y));
     char buf[1000];
     string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
-    sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), ms->config.cropCounter);
+    sprintf(buf, "%s%s%s_%d.png", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), ms->config.cropCounter);
     imwrite(buf, crop);
     ms->config.cropCounter++;
   }
@@ -179,7 +179,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       Mat crop = ms->config.cam_img(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
       char buf[1000];
       string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
-      sprintf(buf, "%s%s%s_%d.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), ms->config.cropCounter);
+      sprintf(buf, "%s%s%s_%d.png", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), ms->config.cropCounter);
       imwrite(buf, crop);
       ms->config.cropCounter++;
     }
