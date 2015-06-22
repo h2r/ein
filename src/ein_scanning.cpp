@@ -2029,12 +2029,12 @@ WORD(Add3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Adding 3d grasp" << endl;
   eePose thisAbsolute3dGrasp = ms->config.currentEEPose;
-  eePose txQ = ms->config.c3dPoseBase.invQ();
-  txQ = txQ.multQ(thisAbsolute3dGrasp);
-
-  eePose thisAbsoluteDeltaP = thisAbsolute3dGrasp.minusP(ms->config.c3dPoseBase);
-  eePose thisRelative3dGrasp = ms->config.c3dPoseBase.invQ().applyQTo(thisAbsoluteDeltaP);
-  thisRelative3dGrasp.copyQ(txQ);
+  //eePose txQ = ms->config.c3dPoseBase.invQ();
+  //txQ = txQ.multQ(thisAbsolute3dGrasp);
+  //eePose thisAbsoluteDeltaP = thisAbsolute3dGrasp.minusP(ms->config.c3dPoseBase);
+  //eePose thisRelative3dGrasp = ms->config.c3dPoseBase.invQ().applyQTo(thisAbsoluteDeltaP);
+  //thisRelative3dGrasp.copyQ(txQ);
+  eePose thisRelative3dGrasp = thisAbsolute3dGrasp.getPoseRelativeTo(ms->config.c3dPoseBase);
 
   int tnc = ms->config.class3dGrasps.size();
   if ( (ms->config.targetClass > -1) && (ms->config.targetClass < tnc) ) {
@@ -2048,12 +2048,12 @@ WORD(AddPlaceUnderPoint)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Adding place under point." << endl;
   eePose thisAbsolute3dGrasp = ms->config.currentEEPose;
-  eePose txQ = ms->config.c3dPoseBase.invQ();
-  txQ = txQ.multQ(thisAbsolute3dGrasp);
-
-  eePose thisAbsoluteDeltaP = thisAbsolute3dGrasp.minusP(ms->config.c3dPoseBase);
-  eePose thisRelative3dGrasp = ms->config.c3dPoseBase.invQ().applyQTo(thisAbsoluteDeltaP);
-  thisRelative3dGrasp.copyQ(txQ);
+  //eePose txQ = ms->config.c3dPoseBase.invQ();
+  //txQ = txQ.multQ(thisAbsolute3dGrasp);
+  //eePose thisAbsoluteDeltaP = thisAbsolute3dGrasp.minusP(ms->config.c3dPoseBase);
+  //eePose thisRelative3dGrasp = ms->config.c3dPoseBase.invQ().applyQTo(thisAbsoluteDeltaP);
+  //thisRelative3dGrasp.copyQ(txQ);
+  eePose thisRelative3dGrasp = thisAbsolute3dGrasp.getPoseRelativeTo(ms->config.c3dPoseBase);
 
   int tnc = ms->config.classPlaceUnderPoints.size();
   if ( (ms->config.targetClass > -1) && (ms->config.targetClass < tnc) ) {
@@ -2067,12 +2067,12 @@ WORD(AddPlaceOverPoint)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Adding place over point." << endl;
   eePose thisAbsolute3dGrasp = ms->config.currentEEPose;
-  eePose txQ = ms->config.c3dPoseBase.invQ();
-  txQ = txQ.multQ(thisAbsolute3dGrasp);
-
-  eePose thisAbsoluteDeltaP = thisAbsolute3dGrasp.minusP(ms->config.c3dPoseBase);
-  eePose thisRelative3dGrasp = ms->config.c3dPoseBase.invQ().applyQTo(thisAbsoluteDeltaP);
-  thisRelative3dGrasp.copyQ(txQ);
+  //eePose txQ = ms->config.c3dPoseBase.invQ();
+  //txQ = txQ.multQ(thisAbsolute3dGrasp);
+  //eePose thisAbsoluteDeltaP = thisAbsolute3dGrasp.minusP(ms->config.c3dPoseBase);
+  //eePose thisRelative3dGrasp = ms->config.c3dPoseBase.invQ().applyQTo(thisAbsoluteDeltaP);
+  //thisRelative3dGrasp.copyQ(txQ);
+  eePose thisRelative3dGrasp = thisAbsolute3dGrasp.getPoseRelativeTo(ms->config.c3dPoseBase);
 
   int tnc = ms->config.classPlaceOverPoints.size();
   if ( (ms->config.targetClass > -1) && (ms->config.targetClass < tnc) ) {
