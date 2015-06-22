@@ -169,7 +169,9 @@ void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path
 void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
 
 streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx);
-int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * out);
+int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase, eePose * outRel);
+void castRangeRay(std::shared_ptr<MachineState> ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut);
+void update2dRangeMaps(std::shared_ptr<MachineState> ms, Vector3d castPoint);
 
 bool streamRangeComparator(streamRange i, streamRange j);
 bool streamPoseComparator(streamEePose i, streamEePose j);
