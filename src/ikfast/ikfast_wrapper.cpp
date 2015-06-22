@@ -105,14 +105,12 @@ bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, doubl
   for (int i = 0; i < NUM_JOINTS; i++) {
     current_joints.push_back(ms->config.trueJointPositions[i]);
   }
-  double joint_min[] = {-1.70168, -2.147, -3.05418, -0.05, -3.059, -1.5708, -3.059};
-  double joint_max[] = {1.70168, 1.047, 3.05418, 2.618, 3.059, 2.094, 3.059};
   vector<double> joint_min_vector;
   vector<double> joint_max_vector;
 
   for (int i = 0; i < NUM_JOINTS; i++) {
-    joint_min_vector.push_back(joint_min[i]);
-    joint_max_vector.push_back(joint_max[i]);
+    joint_min_vector.push_back(ms->config.joint_min[i]);
+    joint_max_vector.push_back(ms->config.joint_max[i]);
   }
 
 
