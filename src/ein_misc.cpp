@@ -704,6 +704,15 @@ END_WORD
 REGISTER_WORD(IkModeIkFast)
 
 
+WORD(IkModeIkFastDebug)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->config.currentIKMode = IKFASTDEBUG;
+}
+END_WORD
+REGISTER_WORD(IkModeIkFastDebug)
+
+
 
 
 }
