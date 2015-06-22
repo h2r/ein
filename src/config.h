@@ -8,6 +8,7 @@
 
 #include <ros/package.h>
 #include <tf/transform_listener.h>
+#include <image_transport/image_transport.h>
 #include <object_recognition_msgs/RecognizedObjectArray.h>
 #include <object_recognition_msgs/RecognizedObject.h>
 #include <visualization_msgs/MarkerArray.h>
@@ -79,6 +80,15 @@ typedef enum {
 } robotMode;
 
 typedef enum {
+  IKSERVICE,
+  IKFAST,
+  IKFASTDEBUG
+} ikMode;
+
+string ikModeToString(ikMode mode);
+
+
+typedef enum {
   GRASP_CRANE,
   GRASP_3D
 } graspMode;
@@ -135,7 +145,6 @@ typedef struct MapCell {
   double pixelCount;
 } MapCell;
 
-
 typedef struct Sprite {
   // sprites are the objects which are rendered in the simulation,
   //   modeled physically as axis aligned bounding boxes
@@ -153,6 +162,22 @@ typedef struct Sprite {
   eePose pose;
 } Sprite;
 
+typedef struct streamEePose {
+  eePose arm_pose;
+  eePose base_pose;
+  double time;
+} streamEePose;
+
+typedef struct streamRange{
+  double range;
+  double time;
+} streamRange;
+
+typedef struct streamImage{
+  string filename;
+  Mat image;
+  double time;
+} streamImage;
 
 #define NOW_THATS_FAST 0.08
 #define MOVE_EVEN_FASTER 0.04
@@ -230,6 +255,7 @@ class EinConfig {
   idleMode currentIdleMode = CRANE;
   graspMode currentGraspMode = GRASP_CRANE;
   robotMode currentRobotMode = PHYSICAL;
+  ikMode currentIKMode = IKSERVICE;
 
   eePose placeTarget;
 
@@ -267,6 +293,10 @@ class EinConfig {
 
   double trueJointPositions[NUM_JOINTS] = {0, 0, 0, 0, 0, 0, 0};
 
+  double joint_min[NUM_JOINTS];
+  double joint_max[NUM_JOINTS];
+
+
   rk_state random_state;
 
   double aveTime = 0.0;
@@ -283,7 +313,6 @@ class EinConfig {
   time_t thisTimeRange = 0;
   time_t firstTimeRange = 0;
 
-  // this should be initted to 0 and set to its default setting only after an imageCallback has happened.
   int shouldIRenderDefault = 1;
   int shouldIRender = 0;
   int shouldIDoIK = 1;
@@ -297,6 +326,24 @@ class EinConfig {
   int goodIkInitialized = 0;
   double ikShare = 1.0;
   int ik_reset_thresh = 20;
+
+  int sensorStreamOn = 0;
+  int streamPoseBatchSize = 100;
+  int streamRangeBatchSize = 100;
+  std::vector<streamEePose> streamPoseBuffer;
+  std::vector<streamRange> streamRangeBuffer;
+  std::vector<streamImage> streamImageBuffer;
+  int sibCurIdx = 0;
+  int srbCurIdx = 0;
+  int spbCurIdx = 0;
+
+
+
+  int streamPoseBufferIdx = 0;
+  int streamRangeBufferIdx = 0;
+  int streamImageBufferIdx = 0;
+
+
 
   double eeRange = 0.0;
 
@@ -370,6 +417,7 @@ class EinConfig {
   int pilotClosestBlueBoxNumber = -1;
   string left_or_right_arm = "right";
   string robot_serial;
+
 
   geometry_msgs::Pose trueEEPose;
   eePose trueEEWrench;
@@ -1101,6 +1149,10 @@ class EinConfig {
   eePose gshHistogram;
   double gshCounts;
   eePose gshPose;
+
+  image_transport::Subscriber image_sub;
+  ros::Subscriber eeRanger;
+  ros::Subscriber epState;
 }; // config end
 
 class Word;

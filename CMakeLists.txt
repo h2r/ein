@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   object_recognition_msgs
   geometry_msgs
   visualization_msgs
+  tf_conversions
   genmsg
   cv_bridge
   image_transport
@@ -18,6 +19,8 @@ find_package(catkin REQUIRED COMPONENTS
   baxter_core_msgs
   control_msgs
 )
+
+find_package(LAPACK REQUIRED)
 find_package(GSL REQUIRED)
 
 add_message_files(
@@ -73,7 +76,7 @@ add_library (CmakeLib SHARED
 
 
 add_executable(ein src/ein.cpp src/ein_words.cpp src/config.cpp
-src/ein_bandit.cpp src/ein_render.cpp src/ein_movement.cpp src/ein_servo.cpp src/ein_vision_cycle.cpp src/ein_scanning.cpp src/ein_misc.cpp src/ein_pick_place.cpp src/ein_ik.cpp
+src/ein_bandit.cpp src/ein_render.cpp src/ein_movement.cpp src/ein_servo.cpp src/ein_vision_cycle.cpp src/ein_scanning.cpp src/ein_misc.cpp src/ein_pick_place.cpp src/ein_ik.cpp  src/ikfast/ikfast_wrapper_left.cpp
 src/word.cpp src/faces.cpp src/eePose.cpp src/eigen_util.cpp  src/ein_util.cpp 
 src/slu/math2d.cpp src/slu/gsl_utilities.cpp  
 src/distributions.c src/randomkit.c src/cephes/airy.c    src/cephes/fdtr.c    src/cephes/kn.c          src/cephes/scipy_iv.c
@@ -102,6 +105,7 @@ target_link_libraries(ein
 	${OpenCV_LIBS}
 	opencv_nonfree
         ${GSL_LIBRARIES}
+        ${LAPACK_LIBRARIES}
         CmakeLib
 )
 
