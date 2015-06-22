@@ -41,6 +41,8 @@ typedef struct _eePose{
   void copyQ(_eePose src);
 
   _eePose applyQTo(_eePose in) const;
+  _eePose getPoseRelativeTo(_eePose in) const;
+  _eePose getInterpolation(_eePose inB, double lambda) const; 
 
   void writeToFileStorage(FileStorage& fsvO) const;
 

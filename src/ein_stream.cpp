@@ -1,3 +1,7 @@
+#include "ein_words.h"
+#include "ein.h"
+namespace ein_words {
+
 WORD(RestoreIkShare)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
@@ -124,7 +128,22 @@ REGISTER_WORD(PopulateStreamBuffers)
 WORD(IntegrateRangeStreamBuffer)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
+  int thisFc = ms->config.focusedClass;
+  if ( (thisFc > -1) && (thisFc < ms->config.classLabels.size()) ) {
+  } else {
+    cout << "integrateRangeStreamBuffer sees an invalid focused class, clearing call stack." << endl;
+    ms->clearStack();
+    return;
+  }
 
+  initClassFolders(ms, ms->config.data_directory + "/objects/" + ms->config.classLabels[thisFc] + "/");
+
+  for (int i = 0; i < ms->config.streamRangeBuffer.size(); i++) {
+    streamRange &tsr = ms->config.streamRangeBuffer[i];
+    eePose thisPose;
+    int success = getStreamPoseAtTime(ms, tsr.time, &thisPose);
+    // XXX factor range callback
+  }
 }
 END_WORD
 REGISTER_WORD(IntegrateRangeStreamBuffer)
@@ -132,12 +151,25 @@ REGISTER_WORD(IntegrateRangeStreamBuffer)
 WORD(IntegrateImageStreamBuffer)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-    setIsbIdx(ms, 0);
+  int thisFc = ms->config.focusedClass;
+  if ( (thisFc > -1) && (thisFc < ms->config.classLabels.size()) ) {
+  } else {
+    cout << "integrateImageStreamBuffer sees an invalid focused class, clearing call stack." << endl;
+    ms->clearStack();
+    return;
+  }
 
+  initClassFolders(ms, ms->config.data_directory + "/objects/" + ms->config.classLabels[thisFc] + "/");
+
+  setIsbIdx(ms, 0);
+
+  for (int i = 0; i < ms->config.streamImageBuffer.size(); i++) {
+    ms->pushWord("waitUntilImageCallbackReceived");
     ms->pushWord("incrementImageStreamBuffer");
     ms->pushWord("streamCropsAsFocusedClass");
     ms->pushWord("goFindBlueBoxes"); 
     ms->pushWord("streamedDensity"); 
+  }
 }
 END_WORD
 REGISTER_WORD(IntegrateImageStreamBuffer)
@@ -146,8 +178,13 @@ WORD(IncrementImageStreamBuffer)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   int nextIdx = ms->config.sibCurIdx + 1;
+  cout << "Incrementing to " << nextIdx << endl;
   if ( (nextIdx > -1) && (nextIdx < ms->config.streamImageBuffer.size()) ) {
-    setIsbIdx(ms, nextIdx);  
+    streamImage * result = setIsbIdx(ms, nextIdx);  
+    if (result == NULL) {
+      cout << "increment failed :(" << endl;
+    } else {
+    }
   }
 }
 END_WORD
@@ -159,17 +196,24 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     for (int c = 0; c < ms->config.bTops.size(); c++) {
       // XXX TODO want to annotate these crops with a yaml file that includes pose and time
       string thisLabelName = ms->config.focusedClassLabel;
-      Mat crop = ms->config.cam_img(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
+      Mat thisTarget = ms->config.streamImageBuffer[ms->config.sibCurIdx].image;
+      Mat crop = thisTarget(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
+      char buf[1024];
+      string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/detectionCrops/";
 
-      char buf[1000];
-      string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
-      sprintf(buf, "%s%s%s_%d.png", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), ms->config.cropCounter);
-      imwrite(buf, crop);
+      ros::Time thisNow = ros::Time::now();
+      sprintf(buf, "%s%s%s_%f.png", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), thisNow.toSec());
+      // no compression!
+      std::vector<int> args;
+      args.push_back(CV_IMWRITE_PNG_COMPRESSION);
+      args.push_back(0);
+      imwrite(buf, crop, args);
       ms->config.cropCounter++;
     }
   }
 }
 END_WORD
-REGISTER_WORD(RecordAllExamplesFocusedClass)
+REGISTER_WORD(StreamCropsAsFocusedClass)
 
 
+}

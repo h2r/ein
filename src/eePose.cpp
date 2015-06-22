@@ -203,6 +203,42 @@ _eePose _eePose::applyQTo(_eePose in) const {
   return outPose;
 }
 
+_eePose _eePose::getPoseRelativeTo(_eePose in) const {
+  _eePose thisAbsolute3dGrasp = (*this);
+  _eePose txQ = in.invQ();
+  txQ = txQ.multQ(thisAbsolute3dGrasp);
+
+  _eePose thisAbsoluteDeltaP = thisAbsolute3dGrasp.minusP(in);
+  _eePose thisRelative3dGrasp = in.invQ().applyQTo(thisAbsoluteDeltaP);
+  thisRelative3dGrasp.copyQ(txQ);
+  return thisRelative3dGrasp;
+}
+
+_eePose _eePose::getInterpolation(_eePose inB, double mu) const {
+  mu = max(mu, 0.0);
+  mu = min(mu, 1.0);
+  double lambda = 1.0 - mu;
+
+  _eePose inA = (*this); 
+
+  Quaternionf q1(inA.qw, inA.qx, inA.qy, inA.qz);
+  Quaternionf q2(inB.qw, inB.qx, inB.qy, inB.qz);
+  Quaternionf tTerp = q1.slerp(mu, q2);
+
+  _eePose out;
+  
+  out.qw = tTerp.w();
+  out.qx = tTerp.x();
+  out.qy = tTerp.y();
+  out.qz = tTerp.z();
+
+  out.px = (lambda*inA.px) + (mu*inB.px);
+  out.py = (lambda*inA.py) + (mu*inB.py);
+  out.pz = (lambda*inA.pz) + (mu*inB.pz);
+
+  return out;
+}
+
 void _eePose::writeToFileStorage(FileStorage& fsvO) const {
   fsvO << "{:";
   fsvO << "px" << px;

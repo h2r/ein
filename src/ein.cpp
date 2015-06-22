@@ -994,7 +994,11 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
       // do nothing
     }
     this_grad = 255.0 * (this_grad - minDepth) / denom;
-    imwrite(png_path, this_grad);
+    // no compression!
+    std::vector<int> args;
+    args.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    args.push_back(0);
+    imwrite(png_path, this_grad, args);
   }
   {
     Mat this_grad = ms->config.classHeight1AerialGradients[idx];
@@ -1015,7 +1019,11 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
       // do nothing
     }
     this_grad = 255.0 * (this_grad - minDepth) / denom;
-    imwrite(png_path, this_grad);
+    // no compression!
+    std::vector<int> args;
+    args.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    args.push_back(0);
+    imwrite(png_path, this_grad, args);
   }
   {
     Mat this_grad = ms->config.classHeight2AerialGradients[idx];
@@ -1036,7 +1044,11 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
       // do nothing
     }
     this_grad = 255.0 * (this_grad - minDepth) / denom;
-    imwrite(png_path, this_grad);
+    // no compression!
+    std::vector<int> args;
+    args.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    args.push_back(0);
+    imwrite(png_path, this_grad, args);
   }
   {
     Mat this_grad = ms->config.classHeight3AerialGradients[idx];
@@ -1057,7 +1069,11 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
       // do nothing
     }
     this_grad = 255.0 * (this_grad - minDepth) / denom;
-    imwrite(png_path, this_grad);
+    // no compression!
+    std::vector<int> args;
+    args.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    args.push_back(0);
+    imwrite(png_path, this_grad, args);
   }
 }
 
@@ -1108,7 +1124,11 @@ void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path
       }
     }
   }
-  imwrite(png_path, rmImageOut);
+  // no compression!
+  std::vector<int> args;
+  args.push_back(CV_IMWRITE_PNG_COMPRESSION);
+  args.push_back(0);
+  imwrite(png_path, rmImageOut, args);
 }
 
 streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx) {
@@ -1119,20 +1139,26 @@ streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx) {
       streamImage &lsi = ms->config.streamImageBuffer[lastIdx];
       lsi.image.create(1, 1, CV_8UC3);
       lsi.loaded = 0;
+      cout << "setIsbIdx: last was valid and different." << endl;
     } else {
-      if (tsi.loaded) {
-      } else {
-        tsi.image = imread(tsi.filename);
-	if (tsi.image.data == NULL) {
-	  tsi.loaded = 0;
-	  cout << "Tried to set ISB index but image failed to load: " << tsi.filename << endl;
-	  return NULL;
-	} else {
-	  tsi.loaded = 1;
-	  ms->config.sibCurIdx = idx;
-	}
-      } 
+      cout << "setIsbIdx: last was invalid or the same." << endl;
     }
+
+    if (tsi.loaded) {
+      cout << "setIsbIdx: this was loaded." << endl;
+    } else {
+      cout << "setIsbIdx: this was not loaded." << endl;
+      tsi.image = imread(tsi.filename);
+      if (tsi.image.data == NULL) {
+	tsi.loaded = 0;
+	cout << "Tried to set ISB index but image failed to load: " << tsi.filename << endl;
+	return NULL;
+      } else {
+	tsi.loaded = 1;
+	ms->config.sibCurIdx = idx;
+      }
+    } 
+
     ms->config.sibCurIdx = idx;
   } else {
     cout << "Tried to set ISB index out of bounds: " << idx << endl;
@@ -1140,6 +1166,62 @@ streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx) {
   }
 
   return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
+}
+
+int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * out) {
+
+  int &thisIdx = ms->config.spbCurIdx;
+  vector<streamEePose> &tspb = ms->config.streamPoseBuffer;
+
+  if (tspb.size() < 1) {
+    cout << "tried to get stream pose but the buffer is empty." << endl;
+    return 0;
+  } else {
+  }
+
+  if ( (thisIdx > -1) && (thisIdx < tspb.size()) ) {
+  } else {
+    thisIdx = 0;
+  }
+
+  if (tin == tspb[thisIdx].time) {
+    (*out) = tspb[thisIdx].arm_pose.getPoseRelativeTo(tspb[thisIdx].base_pose); 
+    return 1;
+  } else if (tin > tspb[thisIdx].time) {
+    // checking between
+    for (int j = thisIdx; j < tspb.size()-1; j++) {
+      if ( (tspb[j].time < tin) && (tin < tspb[j+1].time) ) {
+	double w1 = tin - tspb[j].time;
+	double w2 = tspb[j+1].time - tin;
+	double totalWeight = w1 + w2;
+	w1 = w1 / totalWeight;
+	w2 = w2 / totalWeight;
+	eePose iBase = tspb[j].base_pose.getInterpolation(tspb[j+1].base_pose, w2);
+	eePose iArm = tspb[j].arm_pose.getInterpolation(tspb[j+1].arm_pose, w2);
+	(*out) = iArm.getPoseRelativeTo(iBase);	
+	return 1;
+      } else {
+      }
+    }
+  } else { // tin < tspb[thisIdx].time
+    // checking between
+    for (int j = thisIdx-1; j > -1; j--) {
+      if ( (tspb[j].time < tin) && (tin < tspb[j+1].time) ) {
+	double w1 = tin - tspb[j].time;
+	double w2 = tspb[j+1].time - tin;
+	double totalWeight = w1 + w2;
+	w1 = w1 / totalWeight;
+	w2 = w2 / totalWeight;
+	eePose iBase = tspb[j].base_pose.getInterpolation(tspb[j+1].base_pose, w2);
+	eePose iArm = tspb[j].arm_pose.getInterpolation(tspb[j+1].arm_pose, w2);
+	(*out) = iArm.getPoseRelativeTo(iBase);	
+	return 1;
+      } else {
+      }
+    }
+  }
+
+  return 0;
 }
 
 bool streamRangeComparator (streamRange i, streamRange j) {
@@ -1360,8 +1442,9 @@ void populateStreamImageBuffer(std::shared_ptr<MachineState> ms) {
 
         char filename[1024];
         sprintf(filename, "%s%s", this_image_path.c_str(), epdf->d_name);
+	string imfilename(filename);
         Mat image;
-        image = imread(filename);
+        image = imread(imfilename);
 
 	if (image.data != NULL) {
 	} else {
@@ -1389,7 +1472,7 @@ void populateStreamImageBuffer(std::shared_ptr<MachineState> ms) {
 	  streamImage toAdd;
 	  toAdd.time = time;
 	  toAdd.loaded = 0;
-	  toAdd.filename = string(filename);
+	  toAdd.filename = imfilename;
 	  ms->config.streamImageBuffer.push_back(toAdd);
 	  cout << "done." << endl;
 	} else {
@@ -1584,8 +1667,7 @@ void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_
   fsvO.release();
 }
 
-
-void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folderName) {
+void initClassFolders(std::shared_ptr<MachineState> ms, string folderName) {
   string item = folderName + "/";
     string raw = item + "raw/";
       string images = raw + "images/";
@@ -1613,7 +1695,24 @@ void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folder
       mkdir(pickMemories.c_str(), 0777);
       mkdir(servoCrops.c_str(), 0777);
       mkdir(servoImages.c_str(), 0777);
+}
 
+void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folderName) {
+  string item = folderName + "/";
+    string raw = item + "raw/";
+      string images = raw + "images/";
+      string poseBatches = raw + "poseBatches/";
+      string rangeBatches = raw + "rangeBatches/";
+    string ein = item + "ein/";
+      string d3dGrasps = ein + "3dGrasps/";
+      string detectionCrops = ein + "detectionCrops/";
+      string gaussianColorMap = ein + "gaussianColorMap/";
+      string ir2D = ein + "ir2D/";
+      string pickMemories = ein + "pickMemories/";
+      string servoCrops = ein + "servoCrops/";
+      string servoImages = ein + "servoImages/";
+
+  initClassFolders(ms, folderName);
 
   string d3d_grasp_file_path = d3dGrasps + "3dGrasps.yml";
   write3dGrasps(ms, idx, d3d_grasp_file_path);
@@ -8990,7 +9089,7 @@ void posekNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const
   struct dirent *epdf;
   string dot(".");
   string dotdot("..");
-  string ppm(".ppm");
+  string png(".png");
 
   char buf[1024];
   sprintf(buf, "%s%s/rgbPose", classDir.c_str(), className);
@@ -9002,14 +9101,14 @@ void posekNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const
       if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
 
 	string fext = fileName.substr(fileName.size()-4, 4);
-	if (fext.compare(ppm))
+	if (fext.compare(png))
 	  continue;
 
 	//string poseIndex = fileName.substr(sClassName.size()+1, string::npos);
 	//poseIndex = poseIndex.substr(0,  poseIndex.length()-4);
 	//label = std::atoi(poseIndex.c_str());
 
-	// remove .ppm to form key
+	// remove .png to form key
 	string thisCropLabel = fileName.substr(0,fileName.size()-4);
 	string poseLabelsPath =  classDir + className + "/poseLabels.yml";
 
@@ -9130,7 +9229,7 @@ void substituteStreamImageQuantities(shared_ptr<MachineState> ms) {
       cout << "encountered NULL data in sib, clearing stack." << endl;
       ms->clearStack();
     } else {
-      ms->config.objectViewerImage = tsi.image;
+      ms->config.objectViewerImage = tsi.image.clone();
     }
   } else {
     cout << "sibCurIdx out of bounds, clearing stack." << endl;

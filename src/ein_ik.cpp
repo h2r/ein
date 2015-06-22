@@ -4,8 +4,8 @@
 
 #define isnan std::isnan
 #define IKFAST_NO_MAIN // Don't include main() from IKFast
-//include "ikfast/baxter_left_arm_ikfast_solver.cpp"
-#include "ikfast/baxter_ikfast.w1.left.cpp"
+#include "ikfast/baxter_left_arm_ikfast_solver.cpp"
+//#include "ikfast/baxter_ikfast.w1.left.cpp"
 
 eePose ikfast_computeFK(shared_ptr<MachineState> ms, vector<double> joint_angles);
 void queryIKFast(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
