@@ -58,8 +58,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //ms->pushWord("collapseStack");
   ms->pushWord("gradientServoIfBlueBoxes");
   ms->pushWord("mapClosestBlueBox");
+  ms->pushWord("mapEmptySpace");
 
   if (1) {
+    ms->pushWord("shiftIntoGraspGear1"); 
     ms->pushWord("histogramDetectionIfBlueBoxes"); 
   }
 

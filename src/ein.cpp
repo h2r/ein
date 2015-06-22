@@ -4475,6 +4475,23 @@ void pilotInit(shared_ptr<MachineState> ms) {
   if (0 == ms->config.left_or_right_arm.compare("left")) {
     cout << "Possessing left arm..." << endl;
 
+    ms->config.joint_min[0] = -1.70168;
+    ms->config.joint_min[1] = -2.147;
+    ms->config.joint_min[2] = -3.05418;
+    ms->config.joint_min[3] = -0.05;
+    ms->config.joint_min[4] = -3.059;
+    ms->config.joint_min[5] = -1.5708;
+    ms->config.joint_min[6] = -3.059;
+
+
+    ms->config.joint_max[0] = 1.70168;
+    ms->config.joint_max[1] = 1.047;
+    ms->config.joint_max[2] = 3.05418;
+    ms->config.joint_max[3] = 2.618;
+    ms->config.joint_max[4] = 3.059;
+    ms->config.joint_max[5] = 2.094;
+    ms->config.joint_max[6] = 3.059;
+
     ms->config.backScanningPose = {.px = -0.304942, .py = 0.703968, .pz = 0.186738,
                               .qx = 0.000508805, .qy = 1, .qz = 0.00056289, .qw = 0.000264451};
 
@@ -4600,8 +4617,11 @@ void pilotInit(shared_ptr<MachineState> ms) {
     ms->config.m_y_h[2] = 0.92;
     ms->config.m_y_h[3] = 0.92;
 
-    ms->config.handingPose = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
-                   .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
+    //ms->config.handingPose = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
+    //               .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
+    ms->config.handingPose = {.px =  1.0858369, .py =  0.0495844, .pz =  0.2052459,
+                              .qx =  0.5398360, .qy = -0.5294786, .qz =  0.4481372, .qw = -0.4768674};
+
     ms->config.eepReg3 = ms->config.handingPose;
 
     // ir offset
@@ -4613,6 +4633,26 @@ void pilotInit(shared_ptr<MachineState> ms) {
                  .qx = -0.370521, .qy = 0.381345, .qz = 0.578528, .qw = 0.618544};
   } else if (0 == ms->config.left_or_right_arm.compare("right")) {
     cout << "Possessing right arm..." << endl;
+
+
+    ms->config.joint_min[0] = -1.70168;
+    ms->config.joint_min[1] = -2.147;
+    ms->config.joint_min[2] = -3.05418;
+    ms->config.joint_min[3] = -0.05;
+    ms->config.joint_min[4] = -3.059;
+    ms->config.joint_min[5] = -1.5708;
+    ms->config.joint_min[6] = -3.059;
+
+
+    ms->config.joint_max[0] = 1.70168;
+    ms->config.joint_max[1] = 1.047;
+    ms->config.joint_max[2] = 3.05418;
+    ms->config.joint_max[3] = 2.618;
+    ms->config.joint_max[4] = 3.059;
+    ms->config.joint_max[5] = 2.094;
+    ms->config.joint_max[6] = 3.059;
+
+
 
     ms->config.backScanningPose = {.px = -0.373806, .py = -0.640234, .pz = 0.219235,
                       .qx = 0.00114192, .qy = 0.999999, .qz = -0.000387173, .qw = 0.000386456};

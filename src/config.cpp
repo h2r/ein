@@ -81,6 +81,8 @@ string ikModeToString(ikMode mode) {
     return "ikservice";
   } else if (mode == IKFAST) {
     return "ikfast";
+  } else if (mode == IKFASTDEBUG) {
+    return "ikfastdebug";
   } else {
     cout << "Unknown IK Mode: " << mode << endl;
     assert(0);

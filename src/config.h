@@ -81,7 +81,8 @@ typedef enum {
 
 typedef enum {
   IKSERVICE,
-  IKFAST
+  IKFAST,
+  IKFASTDEBUG
 } ikMode;
 
 string ikModeToString(ikMode mode);
@@ -292,6 +293,10 @@ class EinConfig {
   std::vector<std::string> jointNames;
 
   double trueJointPositions[NUM_JOINTS] = {0, 0, 0, 0, 0, 0, 0};
+
+  double joint_min[NUM_JOINTS];
+  double joint_max[NUM_JOINTS];
+
 
   rk_state random_state;
 
