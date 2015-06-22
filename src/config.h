@@ -293,6 +293,10 @@ class EinConfig {
 
   double trueJointPositions[NUM_JOINTS] = {0, 0, 0, 0, 0, 0, 0};
 
+  double joint_min[NUM_JOINTS];
+  double joint_max[NUM_JOINTS];
+
+
   rk_state random_state;
 
   double aveTime = 0.0;
