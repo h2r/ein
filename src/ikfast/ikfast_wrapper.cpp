@@ -123,27 +123,15 @@ bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, doubl
   int free_joint_idx = free_params[0];
   double step = (joint_max_vector[free_joint_idx] - joint_min_vector[free_joint_idx]) / 100;
 
-  if (vfree <= joint_min_vector[free_joint_idx] || vfree >= joint_max_vector[free_joint_idx] || true) {
-    vfree = 0.5 * (joint_min_vector[free_joint_idx] + joint_max_vector[free_joint_idx]);
-  }
 
-  vector<double> free_params_up;
-  vector<double> free_params_down;
-  for (double f = vfree; f <= joint_max_vector[free_joint_idx]; f+= step) {
-    free_params_up.push_back(f);
-  }
-  for (double f = joint_min_vector[free_joint_idx]; f < vfree; f+= step) {
-    free_params_down.push_back(f);
-  }
+  double max_dist = VERYBIGNUMBER;
+  int max_idx = -1;
+  vector<double> max_solution;
 
-  int i_up = 0;
-  int i_down = 0;
-  while(true)
-  {
+
+  for (double f = joint_min_vector[free_joint_idx]; f < joint_max_vector[free_joint_idx]; f+= step) {
     IkSolutionList<IkReal> solutions;
-    int numsol = ikfast_solve(ms, pose, vfree, solutions);
-    double max_dist = VERYBIGNUMBER;
-    int max_idx = -1;
+    int numsol = ikfast_solve(ms, pose, f, solutions);
     //ROS_INFO_STREAM_NAMED("ikfast","Found " << numsol << " solutions from IKFast");
     vector<double> solution;
 
@@ -151,44 +139,23 @@ bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, doubl
       ikfast_getSolution(solutions,s,solution);
       
       if (ikfast_obeys_limits(solution, joint_min_vector, joint_max_vector, joint_safety)) {
-        outsol = solution;
-        return true;
         double error = ikfast_joint_error(solution, current_joints);
         if (error < max_dist) {
           max_dist = error;
           max_idx = s;
+          max_solution = solution;
         }
       }
     }
-    if (max_idx != -1) {
-      ikfast_getSolution(solutions, max_idx, outsol);
-      return true;
-    }
-    
-      
-
-    if (counter > 100) {
-      return false;
-    }
-    if (counter % 2 == 0) {
-      if (i_up < free_params_up.size()) {
-        vfree = free_params_up[i_up];
-        i_up++;
-      }
-    } else {
-      if (i_down < free_params_down.size()) {
-        vfree = free_params_down[i_down];
-        i_down++;
-      }
-    }
-
-    //ROS_INFO_STREAM_NAMED("ikfast","Attempt " << counter << " with 0th free joint having value " << vfree);
-    counter += 1;
   }
 
-  ROS_ERROR("Returning zero in ein ik fast, falling out of the while loop.");
-  return false;
-
+  if (max_idx == -1) {
+    ROS_ERROR("Returning zero in ein ik fast, falling out of the while loop.");
+    return false; 
+  } else {
+    outsol = max_solution;
+    return true;
+  }
 }
 
 void ikfast_getSolution(const IkSolutionList<IkReal> &solutions, int i, std::vector<double>& solution) {
