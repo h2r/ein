@@ -51,7 +51,7 @@ screen -t " vim"
 #stuff "screen"
 stuff "./baxter.sh"
 stuff "cd $(rospack find ein)/src"
-stuff "vim -p ein.cpp ein_words.cpp ein_vision_cycle.cpp ein_misc.cpp ein_servo.cpp ein_scanning.cpp ein_movement.cpp ein_bandit.cpp ein_render.cpp ../README.md"
+stuff "vim -p ein.cpp config.h word.h ein_pick_place.cpp ein_vision_cycle.cpp ein_misc.cpp ein_servo.cpp ein_scanning.cpp ein_movement.cpp eePose.h"
 screen -t " git"
 stuff "./baxter.sh"
 screen -t " emacs"

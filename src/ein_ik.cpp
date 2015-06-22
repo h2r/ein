@@ -1,5 +1,14 @@
 #include "ein.h"
 #include <tf_conversions/tf_kdl.h>
+#include <geometry_msgs/PoseStamped.h>
+
+#include "ikfast/ikfast_wrapper_left.h"
+#undef IKFAST_NAMESPACE
+#undef IKFAST_SOLVER_CPP
+#undef MY_NAMESPACE
+#include "ikfast/ikfast_wrapper_right.h"
+
+
 
 void fillIkRequest(eePose * givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
   givenIkRequest->request.pose_stamp.resize(1);
@@ -82,34 +91,54 @@ bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositi
   return thisIkResultFailed;
 }
 
+void queryIKService(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
+    *thisResult = ms->config.ikClient.call(*thisRequest);
+    //cout << "Asking for IK: " << thisRequest->request.pose_stamp[0].pose.position.x << ",";
+    //cout << thisRequest->request.pose_stamp[0].pose.position.y << ",";
+    //cout << thisRequest->request.pose_stamp[0].pose.position.z << endl;
+    //cout << "Result: ";
+    // if (*thisResult && thisRequest->response.isValid[0]) {
+    //   for (int j = 0; j < NUM_JOINTS; j++) {
+    //     cout << thisRequest->response.joints[0].name[j] << ": ";
+    //     cout << thisRequest->response.joints[0].position[j] << ", ";
+    //   }
+    //   cout << endl;
+    // } else {
+    //   cout << "invalid" << endl;
+    // }
+ 
+}
+
 
 void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
   if (ms->config.currentRobotMode == PHYSICAL) {
-    *thisResult = ms->config.ikClient.call(*thisRequest);
-    /*cout << "Asking for IK: " << thisRequest->request.pose_stamp[0].pose.position.x << ",";
-    cout << thisRequest->request.pose_stamp[0].pose.position.y << ",";
-    cout << thisRequest->request.pose_stamp[0].pose.position.z << endl;
-    cout << "Result: ";
-    if (*thisResult && thisRequest->response.isValid[0]) {
-      for (int j = 0; j < NUM_JOINTS; j++) {
-        cout << thisRequest->response.joints[0].name[j] << ": ";
-        cout << thisRequest->response.joints[0].position[j] << ", ";
+    if(ms->config.currentIKMode == IKSERVICE) {
+      queryIKService(ms, thisResult, thisRequest);
+    } else if (ms->config.currentIKMode == IKFAST) {
+      if (ms->config.left_or_right_arm == "left") {
+        ikfast_left_ein::queryIKFast(ms, thisResult, thisRequest);
+      } else if (ms->config.left_or_right_arm == "right") {
+        ikfast_right_ein::queryIKFast(ms, thisResult, thisRequest);
+      } else {
+        assert(0);
       }
-      cout << endl;
+    } else if (ms->config.currentIKMode == IKFASTDEBUG) {
+      if (ms->config.left_or_right_arm == "left") {
+        ikfast_left_ein::queryIKFastDebug(ms, thisResult, thisRequest);
+      } else if (ms->config.left_or_right_arm == "right") {
+        ikfast_right_ein::queryIKFastDebug(ms, thisResult, thisRequest);
+      } else {
+        assert(0);
+      }
     } else {
-      cout << "invalid" << endl;
+      assert(0);
     }
-    */
-
-    //KDL::Frame frame;
-    //tf::poseMsgToKDL(ik_pose,frame);
-
-    //IkSolutionList<IkReal> solutions;
-    //int numsol = solve(frame,vfree,solutions);
-
   } else if (ms->config.currentRobotMode == SIMULATED) {
     *thisResult = 1;
   } else {
     assert(0);
   }
 }
+
+
+
