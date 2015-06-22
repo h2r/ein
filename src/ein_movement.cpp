@@ -701,7 +701,7 @@ REGISTER_WORD(ResetW1ThreshToDefault)
 WORD(RasterScanningSpeed)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   //w1GoThresh = 0.05;
-  ms->config.currentEESpeedRatio = 0.02;
+  ms->config.currentEESpeedRatio = 0.05;//0.02;
 }
 END_WORD
 REGISTER_WORD(RasterScanningSpeed)

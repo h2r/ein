@@ -93,19 +93,51 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->config.image_sub = it.subscribe(ms->config.image_topic, 1, imageCallback);
 
   cout << "deactivateSensorStreams: About to write batches... ";
-  if (ms->config.streamRangeBuffer.size() >= ms->config.streamRangeBatchSize) {
-    int cfClass = ms->config.focusedClass;
-    if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
-      writeRangeBatchAsClass(ms, cfClass);	
-      writePoseBatchAsClass(ms, cfClass);	
-      cout << "Wrote batches." << endl;
-    } else {
-      cout << "Did not write batches, invalid focused class." << endl;
-    } 
-  }
+  int cfClass = ms->config.focusedClass;
+  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
+    writeRangeBatchAsClass(ms, cfClass);	
+    writePoseBatchAsClass(ms, cfClass);	
+    cout << "Wrote batches." << endl;
+  } else {
+    cout << "Did not write batches, invalid focused class." << endl;
+  } 
 }
 END_WORD
 REGISTER_WORD(DeactivateSensorStreaming)
+
+WORD(SetSisFlags)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  cout << "Setting should I stream flags...";
+  shared_ptr<Word> firstFlagWord = ms->popWord();
+  shared_ptr<Word> secondFlagWord = ms->popWord();
+  shared_ptr<Word> thirdFlagWord = ms->popWord();
+  std::shared_ptr<IntegerWord> fiWord = std::dynamic_pointer_cast<IntegerWord>(fiWord);
+  std::shared_ptr<IntegerWord> seWord = std::dynamic_pointer_cast<IntegerWord>(seWord);
+  std::shared_ptr<IntegerWord> thWord = std::dynamic_pointer_cast<IntegerWord>(thWord);
+
+  if( (fiWord == NULL) || (seWord == NULL) || (thWord == NULL) ) {
+    cout << "not enough words... clearing stack." << endl;
+    ms->clearStack();
+    return;
+  } else {
+    ms->config.sisImage = fiWord->value();
+    ms->config.sisRange = seWord->value();
+    ms->config.sisPose = thWord->value();
+    cout << "setting sis values, Pose Range Image: " << ms->config.sisPose << " " << ms->config.sisRange << " " << ms->config.sisRange << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(SetSisFlags)
+
+WORD(ClearStreamBuffers)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->config.streamPoseBuffer.resize(0);
+  ms->config.streamRangeBuffer.resize(0);
+}
+END_WORD
+REGISTER_WORD(ClearStreamBuffers)
 
 WORD(PopulateStreamBuffers)
 virtual void execute(std::shared_ptr<MachineState> ms)
@@ -138,11 +170,24 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
   initClassFolders(ms, ms->config.data_directory + "/objects/" + ms->config.classLabels[thisFc] + "/");
 
+  ms->config.rmcX = 0.0;
+  ms->config.rmcY = 0.0;
+  ms->config.rmcZ = -ms->config.currentTableZ; // actual z coordinate
+
   for (int i = 0; i < ms->config.streamRangeBuffer.size(); i++) {
     streamRange &tsr = ms->config.streamRangeBuffer[i];
-    eePose thisPose;
-    int success = getStreamPoseAtTime(ms, tsr.time, &thisPose);
-    // XXX factor range callback
+    eePose tArmP, tBaseP, tRelP;
+    int success = getStreamPoseAtTime(ms, tsr.time, &tArmP, &tBaseP, &tRelP);
+    double tRange = tsr.range;
+
+    cout << "got stream pose at time " << tsr.time << " " << tArmP << tBaseP << tRelP << endl;
+
+    Eigen::Vector3d rayDirection;
+    Eigen::Vector3d castPoint;
+    castRangeRay(ms, tRange, tRelP, &castPoint, &rayDirection);
+    update2dRangeMaps(ms, castPoint);
+
+    cout << "cast rays for measurement " << i << " " << castPoint << endl;
   }
 }
 END_WORD

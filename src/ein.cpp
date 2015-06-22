@@ -1168,7 +1168,7 @@ streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx) {
   return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
 }
 
-int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * out) {
+int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase, eePose * outRel) {
 
   int &thisIdx = ms->config.spbCurIdx;
   vector<streamEePose> &tspb = ms->config.streamPoseBuffer;
@@ -1185,7 +1185,9 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
   }
 
   if (tin == tspb[thisIdx].time) {
-    (*out) = tspb[thisIdx].arm_pose.getPoseRelativeTo(tspb[thisIdx].base_pose); 
+    (*outArm) = tspb[thisIdx].arm_pose;
+    (*outBase) = tspb[thisIdx].base_pose;
+    (*outRel) = tspb[thisIdx].arm_pose.getPoseRelativeTo(tspb[thisIdx].base_pose); 
     return 1;
   } else if (tin > tspb[thisIdx].time) {
     // checking between
@@ -1198,7 +1200,9 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
 	w2 = w2 / totalWeight;
 	eePose iBase = tspb[j].base_pose.getInterpolation(tspb[j+1].base_pose, w2);
 	eePose iArm = tspb[j].arm_pose.getInterpolation(tspb[j+1].arm_pose, w2);
-	(*out) = iArm.getPoseRelativeTo(iBase);	
+	(*outArm) = iArm;
+	(*outBase) = iBase;
+	(*outRel) = iArm.getPoseRelativeTo(iBase);	
 	return 1;
       } else {
       }
@@ -1214,7 +1218,9 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
 	w2 = w2 / totalWeight;
 	eePose iBase = tspb[j].base_pose.getInterpolation(tspb[j+1].base_pose, w2);
 	eePose iArm = tspb[j].arm_pose.getInterpolation(tspb[j+1].arm_pose, w2);
-	(*out) = iArm.getPoseRelativeTo(iBase);	
+	(*outArm) = iArm;
+	(*outBase) = iBase;
+	(*outRel) = iArm.getPoseRelativeTo(iBase);	
 	return 1;
       } else {
       }
@@ -1222,6 +1228,114 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
   }
 
   return 0;
+}
+
+// casts ray of length thisRange from end effector position thisPose to obtain castPointOut in direction rayDirectionOut 
+void castRangeRay(std::shared_ptr<MachineState> ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut) {
+
+  Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
+  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
+  Eigen::Quaternionf ceeQuat(thisPose.qw, thisPose.qx, thisPose.qy, thisPose.qz);
+  Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
+  Eigen::Quaternionf irSensorStartGlobal(
+					  0.0,
+					 (thisPose.px - irSensorStartLocal.x()),
+					 (thisPose.py - irSensorStartLocal.y()),
+					 (thisPose.pz - irSensorStartLocal.z())
+					);
+
+  Eigen::Quaternionf globalUnitZ(0, 0, 0, 1);
+  Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
+
+  Eigen::Vector3d irSensorEnd(
+			       (thisPose.px - irSensorStartLocal.x()) + thisRange*localUnitZ.x(),
+			       (thisPose.py - irSensorStartLocal.y()) + thisRange*localUnitZ.y(),
+			       (thisPose.pz - irSensorStartLocal.z()) + thisRange*localUnitZ.z()
+			      );
+
+  (*castPointOut)[0] = (irSensorEnd.x() - ms->config.rmcX); 
+  (*castPointOut)[1] = (irSensorEnd.y() - ms->config.rmcY); 
+  (*castPointOut)[2] = (irSensorEnd.z() - ms->config.rmcZ); 
+
+  double eX = (irSensorEnd.x() - ms->config.rmcX) / ms->config.hrmDelta;
+  double eY = (irSensorEnd.y() - ms->config.rmcY) / ms->config.hrmDelta;
+  int eeX = (int)round(eX + ms->config.hrmHalfWidth);
+  int eeY = (int)round(eY + ms->config.hrmHalfWidth);
+
+#ifdef DEBUG
+  cout << "irSensorEnd w x y z: " << irSensorEnd.w() << " " << 
+    irSensorEnd.x() << " " << irSensorEnd.y() << " " << irSensorEnd.z() << endl;
+  cout << "irSensorStartGlobal w x y z: " << irSensorStartGlobal.w() << " " << 
+    irSensorStartGlobal.x() << " " << irSensorStartGlobal.y() << " " << irSensorStartGlobal.z() << endl;
+  cout << "Corrected x y: " << (thisPose.px - ms->config.drX) << " " << (thisPose.py - ms->config.drY) << endl;
+  cout.flush();
+#endif
+
+  if ((fabs(eX) <= ms->config.hrmHalfWidth) && (fabs(eY) <= ms->config.hrmHalfWidth)) {
+    ms->config.hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(0,0,128);
+  } else {
+  }
+
+  (*rayDirectionOut) = Eigen::Vector3d(localUnitZ.x(), localUnitZ.y(), localUnitZ.z());
+}
+
+void update2dRangeMaps(std::shared_ptr<MachineState> ms, Vector3d castPoint) {
+  double dX = castPoint[0];
+  double dY = castPoint[1];
+  double dZ = castPoint[2];
+
+  double thisZmeasurement = -dZ;
+
+  double iX = dX / ms->config.rmDelta;
+  double iY = dY / ms->config.rmDelta;
+
+  double hiX = dX / ms->config.hrmDelta;
+  double hiY = dY / ms->config.hrmDelta;
+
+  if ((fabs(hiX) <= ms->config.hrmHalfWidth) && (fabs(hiY) <= ms->config.hrmHalfWidth)) {
+    int hiiX = (int)round(hiX + ms->config.hrmHalfWidth);
+    int hiiY = (int)round(hiY + ms->config.hrmHalfWidth);
+
+    cout << "hrmHalfWidth hiiX hiiY: " << ms->config.hrmHalfWidth << " " << hiiX << " " << hiiY << endl;
+
+    // 2D map
+    {
+      int pxMin = max(0, hiiX-ms->config.parzenKernelHalfWidth);
+      int pxMax = min(ms->config.hrmWidth-1, hiiX+ms->config.parzenKernelHalfWidth);
+      int pyMin = max(0, hiiY-ms->config.parzenKernelHalfWidth);
+      int pyMax = min(ms->config.hrmWidth-1, hiiY+ms->config.parzenKernelHalfWidth);
+      // correct loop order for cache coherency
+      for (int py = pyMin; py <= pyMax; py++) {
+	for (int px = pxMin; px <= pxMax; px++) {
+	  int kpx = px - (hiiX - ms->config.parzenKernelHalfWidth);
+	  int kpy = py - (hiiY - ms->config.parzenKernelHalfWidth);
+
+	  //cv::Vec3b thisSample = getCRColor(ms, thisImage); 
+	  //ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 0*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[0]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
+	  //ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 1*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[1]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
+	  //ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 2*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[2]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
+	  //ms->config.hiColorRangeMapMass[px + py*ms->config.hrmWidth] += ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
+
+	  double denomC = max(ms->config.hiColorRangeMapMass[px + py*ms->config.hrmWidth], EPSILON);
+	  int tRed = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 2*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
+	  int tGreen = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 1*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
+	  int tBlue = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 0*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
+
+	  ms->config.hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
+
+	  ms->config.hiRangeMapAccumulator[px + py*ms->config.hrmWidth] += thisZmeasurement*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
+	  ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth] += ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
+	  // nonexperimental
+	  //double denom = max(ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth], EPSILON);
+	  // XXX experimental
+	  double denom = 1.0;
+	  if (ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth] > 0)
+	    denom = ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth];
+	  ms->config.hiRangeMap[px + py*ms->config.hrmWidth] = ms->config.hiRangeMapAccumulator[px + py*ms->config.hrmWidth] / denom;
+	}
+      }
+    }
+  }
 }
 
 bool streamRangeComparator (streamRange i, streamRange j) {
@@ -1671,8 +1785,8 @@ void initClassFolders(std::shared_ptr<MachineState> ms, string folderName) {
   string item = folderName + "/";
     string raw = item + "raw/";
       string images = raw + "images/";
-      string poseBatches = raw + "poseBatches/";
-      string rangeBatches = raw + "rangeBatches/";
+      string poseBatches = raw + "pose/";
+      string rangeBatches = raw + "range/";
     string ein = item + "ein/";
       string d3dGrasps = ein + "3dGrasps/";
       string detectionCrops = ein + "detectionCrops/";
@@ -1926,7 +2040,7 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
   ms->config.trueEEPoseEEPose.qw = eps.pose.orientation.w;
 
   int cfClass = ms->config.focusedClass;
-  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn)) {
+  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisPose)) {
     streamPoseAsClass(ms, ms->config.trueEEPoseEEPose, cfClass); 
   } else {
   } // do nothing
@@ -2165,19 +2279,21 @@ void scanXdirection(shared_ptr<MachineState> ms, double speedOnLines, double spe
 
 // XXX TODO right now we need to exit after every increment to set a new position in case there was an IK error
 
-  double onLineGain = ms->config.rmDelta / speedOnLines;
-  double betweenLineGain = ms->config.rmDelta / speedBetweenLines;
+  //double onLineGain = ms->config.rmDelta / speedOnLines;
+  //double betweenLineGain = ms->config.rmDelta / speedBetweenLines;
+  double onLineGain = 1;
+  double betweenLineGain = 1;
 
   int scanPadding = int(floor(1 * onLineGain));
 
   ms->pushWord("waitUntilAtCurrentPosition"); 
   for (int g = 0; g < ((ms->config.rmWidth*onLineGain)-(ms->config.rmHalfWidth*onLineGain))+scanPadding; g++) {
     ms->pushWord('a');
-    ms->pushWord("endStackCollapseNoop");
+    //ms->pushWord("endStackCollapseNoop");
   }
   for (int g = 0; g < ms->config.rmHalfWidth*onLineGain+scanPadding; g++) {
     ms->pushWord('e');
-    ms->pushWord("endStackCollapseNoop");
+    //ms->pushWord("endStackCollapseNoop");
   }
 
   ms->pushWord("waitUntilAtCurrentPosition"); 
@@ -2190,23 +2306,23 @@ void scanXdirection(shared_ptr<MachineState> ms, double speedOnLines, double spe
     ms->pushWord("waitUntilAtCurrentPosition");
     for (int gg = 0; gg < ms->config.rmWidth*onLineGain+2*scanPadding; gg++) {
       ms->pushWord('q');
-      ms->pushWord("endStackCollapseNoop");
+      //ms->pushWord("endStackCollapseNoop");
     }
     ms->pushWord("waitUntilAtCurrentPosition"); 
     for (int gg = 0; gg < ms->config.rmWidth*onLineGain+2*scanPadding; gg++) {
       ms->pushWord('e');
-      ms->pushWord("endStackCollapseNoop");
+      //ms->pushWord("endStackCollapseNoop");
     }
   }
 
   ms->pushWord("waitUntilAtCurrentPosition"); 
   for (int g = 0; g < ms->config.rmHalfWidth*onLineGain+scanPadding; g++) {
     ms->pushWord('q');
-    ms->pushWord("endStackCollapseNoop");
+    //ms->pushWord("endStackCollapseNoop");
   }
   for (int g = 0; g < ms->config.rmHalfWidth*onLineGain+scanPadding; g++) {
     ms->pushWord('a');
-    ms->pushWord("endStackCollapseNoop");
+    //ms->pushWord("endStackCollapseNoop");
   }
 }
 
@@ -2535,7 +2651,7 @@ void rangeCallback(const sensor_msgs::Range& range) {
   //int weHaveRangeData = getRingRangeAtTime(range.header.stamp, thisRange);
 
   int cfClass = ms->config.focusedClass;
-  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn)) {
+  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisRange)) {
     streamRangeAsClass(ms, range.range, cfClass); 
   } else {
   } // do nothing
@@ -3282,7 +3398,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   ms->config.lastImageCallbackReceived = ros::Time::now();
 
   int converted = 0;
-  if(ms->config.sensorStreamOn) {
+  if((ms->config.sensorStreamOn) && (ms->config.sisImage)) {
     try{
       ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
       int cfClass = ms->config.focusedClass;
