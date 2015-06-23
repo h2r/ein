@@ -176,6 +176,7 @@ typedef struct streamRange{
 typedef struct streamImage{
   string filename;
   Mat image;
+  int loaded;
   double time;
 } streamImage;
 
@@ -328,21 +329,19 @@ class EinConfig {
   int ik_reset_thresh = 20;
 
   int sensorStreamOn = 0;
+  // should I stream
+  int sisPose = 0;
+  int sisRange = 0;
+  int sisImage = 0;
   int streamPoseBatchSize = 100;
   int streamRangeBatchSize = 100;
   std::vector<streamEePose> streamPoseBuffer;
   std::vector<streamRange> streamRangeBuffer;
   std::vector<streamImage> streamImageBuffer;
+  // stream image buffer current index
   int sibCurIdx = 0;
   int srbCurIdx = 0;
   int spbCurIdx = 0;
-
-
-
-  int streamPoseBufferIdx = 0;
-  int streamRangeBufferIdx = 0;
-  int streamImageBufferIdx = 0;
-
 
 
   double eeRange = 0.0;
