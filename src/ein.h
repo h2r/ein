@@ -162,10 +162,16 @@ void fetchCommandCallback(const std_msgs::String::ConstPtr& msg);
 void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
 int classIdxForName(shared_ptr<MachineState> ms, string name);
 
+void initClassFolders(std::shared_ptr<MachineState> ms, string folderName);
 void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folderName);
 void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, string servoCrop_file_path);
 void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path);
 void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
+
+streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx);
+int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase, eePose * outRel);
+void castRangeRay(std::shared_ptr<MachineState> ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut);
+void update2dRangeMaps(std::shared_ptr<MachineState> ms, Vector3d castPoint);
 
 bool streamRangeComparator(streamRange i, streamRange j);
 bool streamPoseComparator(streamEePose i, streamEePose j);
@@ -361,6 +367,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms);
 void goFindRedBoxes();
 
 void resetAccumulatedImageAndMass(shared_ptr<MachineState> ms);
+void substituteStreamImageQuantities(shared_ptr<MachineState> ms);
 void substituteAccumulatedImageQuantities(shared_ptr<MachineState> ms);
 void substituteLatestImageQuantities(shared_ptr<MachineState> ms);
 
