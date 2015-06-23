@@ -97,7 +97,7 @@ def main():
 
     arm = sys.argv[1]
 
-    rospy.init_node("ein_client_%s" % arm)
+    rospy.init_node("ein_client_%s" % arm, anonymous=True)
     words = []
     for wordline in open("ein_words.txt"):
         words.append(wordline.split(" ")[0])
