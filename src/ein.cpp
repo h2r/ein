@@ -1170,11 +1170,14 @@ streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx) {
 
 int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase, eePose * outRel) {
 
+  // if we are more than p_rejectThresh away from a measurement, reject it
+  double p_rejectThresh = 1.0;
   int &thisIdx = ms->config.spbCurIdx;
   vector<streamEePose> &tspb = ms->config.streamPoseBuffer;
 
-  if (tspb.size() < 1) {
-    cout << "tried to get stream pose but the buffer is empty." << endl;
+  if (tspb.size() < 2) {
+    // 2 guards for the for loop that searches down, plus we only want to look it up if its between 2 measurements
+    cout << "tried to get stream pose but the buffer is too small: " << tspb.size() << endl;
     return 0;
   } else {
   }
@@ -1195,6 +1198,10 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
       if ( (tspb[j].time < tin) && (tin < tspb[j+1].time) ) {
 	double w1 = tin - tspb[j].time;
 	double w2 = tspb[j+1].time - tin;
+	if ( (w1 > p_rejectThresh) || (w2 > p_rejectThresh) ) {
+	  return 0;
+	} else {
+	}
 	double totalWeight = w1 + w2;
 	w1 = w1 / totalWeight;
 	w2 = w2 / totalWeight;
@@ -1213,6 +1220,10 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
       if ( (tspb[j].time < tin) && (tin < tspb[j+1].time) ) {
 	double w1 = tin - tspb[j].time;
 	double w2 = tspb[j+1].time - tin;
+	if ( (w1 > p_rejectThresh) || (w2 > p_rejectThresh) ) {
+	  return 0;
+	} else {
+	}
 	double totalWeight = w1 + w2;
 	w1 = w1 / totalWeight;
 	w2 = w2 / totalWeight;
@@ -1257,25 +1268,6 @@ void castRangeRay(std::shared_ptr<MachineState> ms, double thisRange, eePose thi
   (*castPointOut)[1] = (irSensorEnd.y() - ms->config.rmcY); 
   (*castPointOut)[2] = (irSensorEnd.z() - ms->config.rmcZ); 
 
-  double eX = (irSensorEnd.x() - ms->config.rmcX) / ms->config.hrmDelta;
-  double eY = (irSensorEnd.y() - ms->config.rmcY) / ms->config.hrmDelta;
-  int eeX = (int)round(eX + ms->config.hrmHalfWidth);
-  int eeY = (int)round(eY + ms->config.hrmHalfWidth);
-
-#ifdef DEBUG
-  cout << "irSensorEnd w x y z: " << irSensorEnd.w() << " " << 
-    irSensorEnd.x() << " " << irSensorEnd.y() << " " << irSensorEnd.z() << endl;
-  cout << "irSensorStartGlobal w x y z: " << irSensorStartGlobal.w() << " " << 
-    irSensorStartGlobal.x() << " " << irSensorStartGlobal.y() << " " << irSensorStartGlobal.z() << endl;
-  cout << "Corrected x y: " << (thisPose.px - ms->config.drX) << " " << (thisPose.py - ms->config.drY) << endl;
-  cout.flush();
-#endif
-
-  if ((fabs(eX) <= ms->config.hrmHalfWidth) && (fabs(eY) <= ms->config.hrmHalfWidth)) {
-    ms->config.hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(0,0,128);
-  } else {
-  }
-
   (*rayDirectionOut) = Eigen::Vector3d(localUnitZ.x(), localUnitZ.y(), localUnitZ.z());
 }
 
@@ -1296,7 +1288,7 @@ void update2dRangeMaps(std::shared_ptr<MachineState> ms, Vector3d castPoint) {
     int hiiX = (int)round(hiX + ms->config.hrmHalfWidth);
     int hiiY = (int)round(hiY + ms->config.hrmHalfWidth);
 
-    cout << "hrmHalfWidth hiiX hiiY: " << ms->config.hrmHalfWidth << " " << hiiX << " " << hiiY << endl;
+    //cout << "hrmHalfWidth hiiX hiiY: " << ms->config.hrmHalfWidth << " " << hiiX << " " << hiiY << endl;
 
     // 2D map
     {
@@ -8980,7 +8972,7 @@ void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const cha
   string dotdot("..");
 
   char buf[1024];
-  sprintf(buf, "%s%s/rgb", classDir.c_str(), className);
+  sprintf(buf, "%s%s/ein/detectionCrops/", classDir.c_str(), className);
   dpdf = opendir(buf);
   if (dpdf != NULL){
     while (epdf = readdir(dpdf)){
@@ -8991,7 +8983,7 @@ void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const cha
         Mat descriptors2;
 
         char filename[1024];
-        sprintf(filename, "%s%s/rgb/%s", classDir.c_str(), className, epdf->d_name);
+        sprintf(filename, "%s%s/ein/detectionCrops/%s", classDir.c_str(), className, epdf->d_name);
         Mat image;
         image = imread(filename);
 	Size sz = image.size();
@@ -10987,13 +10979,18 @@ void detectorsInit(shared_ptr<MachineState> ms) {
   cout << "kNNfeatures dimensions: " << kNNfeatures.size().height << " by " << kNNfeatures.size().width << endl;
 
   cout << "Main kNN...";
-  ms->config.kNN = new CvKNearest(kNNfeatures, kNNlabels);
-  cout << "done." << endl;
-  for (int i = 0; i < ms->config.numClasses; i++) {
-    if (ms->config.classPoseModels[i].compare("G") == 0) {
-      cout << "Class " << i << " kNN..." << ms->config.classPosekNNfeatures[i].size() << ms->config.classPosekNNlabels[i].size() << endl;
-      ms->config.classPosekNNs[i] = new CvKNearest(ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i]);
-      cout << "Done" << endl;
+
+  if ( (kNNfeatures.data == NULL) || (kNNfeatures.rows < 1) || (kNNfeatures.cols < 1) ) {
+    cout << "There is a problem with kNN features, cannot initialize detector and files may be corrupt." << endl;
+  } else {
+    ms->config.kNN = new CvKNearest(kNNfeatures, kNNlabels);
+    cout << "done." << endl;
+    for (int i = 0; i < ms->config.numClasses; i++) {
+      if (ms->config.classPoseModels[i].compare("G") == 0) {
+	cout << "Class " << i << " kNN..." << ms->config.classPosekNNfeatures[i].size() << ms->config.classPosekNNlabels[i].size() << endl;
+	ms->config.classPosekNNs[i] = new CvKNearest(ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i]);
+	cout << "Done" << endl;
+      }
     }
   }
 }

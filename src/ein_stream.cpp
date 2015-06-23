@@ -14,8 +14,8 @@ WORD(ShutdownToSensorsAndMovement)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   ms->config.shouldIRender = 0;
-  ms->config.shouldIDoIK = 0;
-  ms->config.ikShare = 0.1;
+  ms->config.shouldIDoIK = 1;
+  ms->config.ikShare = 1.0;//0.1;
   ms->config.shouldIImageCallback = 0;
   ms->config.shouldIRangeCallback = 0;
   ms->config.shouldIMiscCallback = 0;
@@ -112,9 +112,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   shared_ptr<Word> firstFlagWord = ms->popWord();
   shared_ptr<Word> secondFlagWord = ms->popWord();
   shared_ptr<Word> thirdFlagWord = ms->popWord();
-  std::shared_ptr<IntegerWord> fiWord = std::dynamic_pointer_cast<IntegerWord>(fiWord);
-  std::shared_ptr<IntegerWord> seWord = std::dynamic_pointer_cast<IntegerWord>(seWord);
-  std::shared_ptr<IntegerWord> thWord = std::dynamic_pointer_cast<IntegerWord>(thWord);
+  std::shared_ptr<IntegerWord> fiWord = std::dynamic_pointer_cast<IntegerWord>(firstFlagWord);
+  std::shared_ptr<IntegerWord> seWord = std::dynamic_pointer_cast<IntegerWord>(secondFlagWord);
+  std::shared_ptr<IntegerWord> thWord = std::dynamic_pointer_cast<IntegerWord>(thirdFlagWord);
 
   if( (fiWord == NULL) || (seWord == NULL) || (thWord == NULL) ) {
     cout << "not enough words... clearing stack." << endl;
@@ -124,7 +124,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     ms->config.sisImage = fiWord->value();
     ms->config.sisRange = seWord->value();
     ms->config.sisPose = thWord->value();
-    cout << "setting sis values, Pose Range Image: " << ms->config.sisPose << " " << ms->config.sisRange << " " << ms->config.sisRange << endl;
+    cout << "setting sis values, Pose Range Image: " << ms->config.sisPose << " " << ms->config.sisRange << " " << ms->config.sisImage << endl;
   }
 }
 END_WORD
@@ -170,9 +170,6 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
   initClassFolders(ms, ms->config.data_directory + "/objects/" + ms->config.classLabels[thisFc] + "/");
 
-  ms->config.rmcX = 0.0;
-  ms->config.rmcY = 0.0;
-  ms->config.rmcZ = -ms->config.currentTableZ; // actual z coordinate
 
   for (int i = 0; i < ms->config.streamRangeBuffer.size(); i++) {
     streamRange &tsr = ms->config.streamRangeBuffer[i];
@@ -180,15 +177,35 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     int success = getStreamPoseAtTime(ms, tsr.time, &tArmP, &tBaseP, &tRelP);
     double tRange = tsr.range;
 
-    cout << "got stream pose at time " << tsr.time << " " << tArmP << tBaseP << tRelP << endl;
+    //cout << "got stream pose at time " << tsr.time << " " << tArmP << tBaseP << tRelP << endl;
 
-    Eigen::Vector3d rayDirection;
-    Eigen::Vector3d castPoint;
-    castRangeRay(ms, tRange, tRelP, &castPoint, &rayDirection);
-    update2dRangeMaps(ms, castPoint);
+    if (success) {
+      ms->config.rmcX = tBaseP.px;
+      ms->config.rmcY = tBaseP.py;
+      ms->config.rmcZ = tBaseP.pz;
 
-    cout << "cast rays for measurement " << i << " " << castPoint << endl;
+      // this allows us to stitch together readings from different scans
+      eePose thisCrane = tBaseP;
+      thisCrane.copyQ(ms->config.straightDown); 
+      eePose thisBaseRelativeThisCrane = tBaseP.getPoseRelativeTo(thisCrane);
+      eePose rebasedArm = thisBaseRelativeThisCrane.applyAsRelativePoseTo(tArmP);
+
+      Eigen::Vector3d rayDirection;
+      Eigen::Vector3d castPoint;
+      //castRangeRay(ms, tRange, tArmP, &castPoint, &rayDirection);
+      castRangeRay(ms, tRange, rebasedArm, &castPoint, &rayDirection);
+      update2dRangeMaps(ms, castPoint);
+      cout << "cast rays for measurement " << i << " z: " << castPoint[2] << " range: " << tRange << endl;// << tRelP;// << " " << castPoint << endl;
+    } else {
+      cout << "ray " << i << " failed to get pose, not casting." << endl;
+    }
   }
+
+  ms->pushWord("fullRender"); 
+  ms->pushWord("paintReticles"); 
+  ms->pushWord("shiftIntoGraspGear1"); 
+  ms->pushWord("drawMapRegisters"); 
+  ms->pushWord("downsampleIrScan"); 
 }
 END_WORD
 REGISTER_WORD(IntegrateRangeStreamBuffer)

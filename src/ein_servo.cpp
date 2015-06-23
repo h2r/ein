@@ -868,6 +868,24 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 END_WORD
 REGISTER_WORD(IncrementGraspGear)
 
+WORD(DecrementGraspGear)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+  cout << "decrement ms->config.currentGraspGear was is: " << ms->config.currentGraspGear << " ";
+  int thisGraspGear = (ms->config.currentGraspGear -1 + ms->config.totalGraspGears) % ms->config.totalGraspGears;
+  
+  //   set drX
+  ms->config.drX = ms->config.ggX[thisGraspGear];
+  ms->config.drY = ms->config.ggY[thisGraspGear];
+  
+  //   rotate
+  setGGRotation(ms, thisGraspGear);
+  ms->config.currentGraspGear = thisGraspGear;
+  
+  cout << ms->config.currentGraspGear << endl;
+}
+END_WORD
+REGISTER_WORD(DecrementGraspGear)
+
 
 
 
@@ -1096,14 +1114,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(ShiftIntoGraspGear4)
-
-WORD(TurnOffScanning)
-CODE(1048684)     // numlock + l
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.recordRangeMap = 0;
-}
-END_WORD
-REGISTER_WORD(TurnOffScanning)
 
 WORD(ResetAerialGradientTemporalFrameAverage)
 CODE(262237)      // ctrl + ]

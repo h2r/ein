@@ -279,8 +279,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     ms->pushWord("putCameraOverPhotoPin"); 
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    ms->pushWord(1310722); // set random orientation for photospin.
-    ms->pushWord(196712); // increment grasp gear
+    ms->pushWord("setRandomOrientationForPhotospin"); 
+    ms->pushWord("incrementGraspGear"); 
   }
   ms->pushWord("shiftIntoGraspGear1"); // change gear to 1
 }
@@ -475,6 +475,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(TurnOnRecordRangeMap)
 
+WORD(TurnOffScanning)
+CODE(1048684)     // numlock + l
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.recordRangeMap = 0;
+}
+END_WORD
+REGISTER_WORD(TurnOffScanning)
+
 WORD(SetRangeMapCenterFromCurrentEEPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Set rmcX and rmcY from ms->config.currentEEPose." << endl;
@@ -563,6 +571,7 @@ REGISTER_WORD(InitDepthScan)
 WORD(NeutralScan)
 CODE(1048622) // numlock + .
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord("shiftIntoGraspGear1"); 
   ms->pushWord("cruisingSpeed");
   ms->pushWord("neutralScanA");
   ms->pushWord("rasterScanningSpeed");
@@ -576,6 +585,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double lineSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
   double betweenSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
 
+  ms->pushWord("turnOffScanning"); // turn off scanning
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
   ms->pushWord("prepareForSearch"); // prepare for search
 
@@ -598,6 +608,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
   ms->pushWord("selectBestAvailableGrasp"); // find best grasp
 
+  ms->pushWord("turnOffScanning"); // turn off scanning
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
   ms->pushWord("prepareForSearch"); // prepare for search
 
@@ -897,6 +908,32 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(ScanCentered)
+
+WORD(StreamScanCentered)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  pushSpeedSign(ms, MOVE_FAST);
+  ms->pushWord("streamSpin");
+  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  ms->pushWord("streamImageSpeed"); // w1 wait until at current position
+  ms->config.currentBoundingBoxMode = MAPPING;
+}
+END_WORD
+REGISTER_WORD(StreamScanCentered)
+
+WORD(StreamSpin)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  for (int angleCounter = 0; angleCounter < ms->config.totalGraspGears; angleCounter++) {
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord("putCameraOverPhotoPin"); 
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    //ms->pushWord("setRandomOrientationForPhotospin"); 
+    ms->pushWord("decrementGraspGear"); 
+  }
+  ms->pushWord("incrementGraspGear"); 
+  ms->pushWord("shiftIntoGraspGear1"); // change gear to 1
+}
+END_WORD
+REGISTER_WORD(StreamSpin)
 
 WORD(SetTable)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1973,8 +2010,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.eepReg2 = ms->config.beeHome;
   ms->config.eepReg4 = ms->config.beeHome;
 
-  // so that closest servoing doesn't go into gradient servoing.
-  ms->config.targetClass = -1;
 
   // set lastLabelLearned
   ms->pushWord("setLastLabelLearned");
@@ -1983,38 +2018,28 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setMovementSpeedMoveFast");
   ms->config.currentBoundingBoxMode = MAPPING; // this is here because it is for the rgbScan
 
-  ms->pushWord("scanCentered");
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+
+  ms->pushWord("streamScanCentered");
 
   ms->pushWord("activateSensorStreaming"); 
   ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
 
   ms->pushWord("fullImpulse");
   ms->pushWord("setMovementSpeedMoveVerySlow");
   ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("shiftIntoGraspGear1"); 
   ms->pushWord("changeToHeight1"); 
   //ms->pushWord("comeToHover");
   ms->pushWord("moveToRegister1");
 
   ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord("setSisFlags"); 
-
-  ms->pushWord("deactivateSensorStreaming"); 
-  ms->pushWord("neutralScan"); 
-  ms->pushWord("lock3dGraspBase"); 
-  
-  ms->pushWord("activateSensorStreaming"); 
-  ms->pushWord("clearStreamBuffers"); 
-  //ms->pushWord("shutdownToSensorsAndMovement"); 
-  
-  ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord("setSisFlags"); 
 
-  ms->pushWord("pauseStackExecution"); 
-  
   {
     ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("gradientServoPrep");
@@ -2040,8 +2065,30 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("changeToHeight0"); // change to height 0
   }
   
-  
   ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
+
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+  ms->pushWord("neutralScan"); 
+  
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord("setSisFlags"); 
+
+  ms->pushWord("lock3dGraspBase"); 
+
+  ms->pushWord("pauseStackExecution"); 
+  
+
+
+
+  ms->pushWord("saveRegister1");
   ms->pushWord("preAnnotateOffsetGrasp"); 
   ms->pushWord("setPhotoPinHere");
   ms->pushWord("comeToStop");
@@ -2052,7 +2099,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("fullImpulse");
 
-  ms->pushWord("saveRegister1");
   ms->pushWord("waitUntilAtCurrentPosition");
 
   // dislodge. necessary because the robot takes a while to "spin up" at slow speeds, which interferes
@@ -2128,18 +2174,19 @@ REGISTER_WORD(Save3dGrasps)
 
 WORD(Lock3dGraspBase)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.c3dPoseBase = ms->config.currentEEPose;
+  ms->config.c3dPoseBase.pz = -ms->config.currentTableZ;
+  cout << endl
+       << "The base for 3d grasp annotation is now locked. You should now activate zero-G mode." << endl 
+       << "Please move the gripper to a valid grasping pose and use \"add3dGrasp\" to record a grasp point." << endl
+       << "You can record more than one grasp point in a row." << endl
+       << "When you are done, make sure to save to disk and to exit zero-G mode." << endl;
+
   if ( (ms->config.bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
-    ms->config.c3dPoseBase = ms->config.currentEEPose;
-    ms->config.c3dPoseBase.pz = -ms->config.currentTableZ;
-    cout << endl
-	 << "The base for 3d grasp annotation is now locked and you are in zero-G mode." << endl 
-	 << "Please move the gripper to a valid grasping pose and use \"add3dGrasp\" to record a grasp point." << endl
-	 << "You can record more than one grasp point in a row." << endl
-	 << "When you are done, make sure to save to disk and to exit zero-G mode." << endl;
-    ms->config.zero_g_toggle = 1;
   } else {
-    cout << "Tried to lock c3dPoseBase but failed. Clearing stack." << endl;
-    ms->clearStack();
+    cout << endl << "There don't seem to be detections present." << endl;    
+    //cout << "Tried to lock c3dPoseBase but failed. Clearing stack." << endl;
+    //ms->clearStack();
   }
 }
 END_WORD
@@ -2440,8 +2487,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     ms->pushWord("putCameraOverPhotoPin"); 
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    ms->pushWord(1310722); // set random orientation for photospin.
-    ms->pushWord(196712); // increment grasp gear
+    ms->pushWord("setRandomOrientationForPhotospin"); 
+    ms->pushWord("incrementGraspGear"); 
   }
   ms->pushWord("shiftIntoGraspGear1"); // change gear to 1
 }

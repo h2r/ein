@@ -214,6 +214,18 @@ _eePose _eePose::getPoseRelativeTo(_eePose in) const {
   return thisRelative3dGrasp;
 }
 
+
+_eePose _eePose::applyAsRelativePoseTo(_eePose in) const {
+  _eePose toApply = (*this);  
+  _eePose thisAbsoluteGrasp = in;
+
+  // this order is important because quaternion multiplication is not commutative
+  thisAbsoluteGrasp = thisAbsoluteGrasp.plusP(thisAbsoluteGrasp.applyQTo(toApply));
+  thisAbsoluteGrasp = thisAbsoluteGrasp.multQ(toApply);
+
+  return thisAbsoluteGrasp;
+}
+
 _eePose _eePose::getInterpolation(_eePose inB, double mu) const {
   mu = max(mu, 0.0);
   mu = min(mu, 1.0);
