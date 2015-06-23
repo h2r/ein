@@ -29,9 +29,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("filterBoxMemories");
   ms->pushWord("shiftIntoGraspGear1");
   ms->pushWord("lockTargetIfBlueBoxes");
+
   ms->pushWord("gradientServoIfBlueBoxes");
   ms->pushWord("mapClosestBlueBox");
+  ms->pushWord("mapEmptySpace");
+
+  if (1) {
+    ms->pushWord("histogramDetectionIfBlueBoxes"); 
+  }
   ms->pushWord("goClassifyBlueBoxes"); 
+
   ms->pushWord("visionCycle"); 
 }
 END_WORD
@@ -61,11 +68,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("mapEmptySpace");
 
   if (1) {
-    ms->pushWord("shiftIntoGraspGear1"); 
     ms->pushWord("histogramDetectionIfBlueBoxes"); 
   }
-
   ms->pushWord("goClassifyBlueBoxes"); 
+
   ms->pushWord("synchronicServo"); 
   ms->pushWord("synchronicServoTakeClosest");
   ms->pushWord("waitUntilAtCurrentPosition"); 
