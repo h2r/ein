@@ -296,6 +296,27 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetTargetReticleToTheMaxMappedPosition)
 
+WORD(ClassRangeMapFromRegister1)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  for (int y = 0; y < ms->config.rmWidth; y++) {
+    for (int x = 0; x < ms->config.rmWidth; x++) {
+      ms->config.rangeMap[x + y*ms->config.rmWidth] = ms->config.rangeMapReg1[x + y*ms->config.rmWidth];
+    } 
+  } 
+
+  int tfc = ms->config.focusedClass;
+  if ((tfc > -1) && (tfc < ms->config.classRangeMaps.size()) && (ms->config.classRangeMaps[tfc].rows > 1) && (ms->config.classRangeMaps[tfc].cols > 1)) {
+    for (int y = 0; y < ms->config.rmWidth; y++) {
+      for (int x = 0; x < ms->config.rmWidth; x++) {
+	ms->config.classRangeMaps[tfc].at<double>(y,x) = ms->config.rangeMapReg1[x + y*ms->config.rmWidth];
+      } 
+    } 
+  } else {
+  }
+}
+END_WORD
+REGISTER_WORD(ClassRangeMapFromRegister1)
+
 WORD(DownsampleIrScan)
 CODE(1048690) // numlock + r
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -500,70 +521,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.rmcX = ms->config.trueEEPose.position.x;
   ms->config.rmcY = ms->config.trueEEPose.position.y;
   ms->config.rmcZ = ms->config.trueEEPose.position.z - ms->config.eeRange;
-  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-      ms->config.rangeMap[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth] = 0;
-      // ATTN 17
-      //rangeMapReg2[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapMass[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapAccumulator[rx + ry*ms->config.rmWidth] = 0;
-    }
-  }
-  {
-    cv::Scalar backColor(128,0,0);
-    cv::Point outTop = cv::Point(0,0);
-    cv::Point outBot = cv::Point(ms->config.rmiWidth,ms->config.rmiHeight);
-    Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-    vCrop = backColor;
-  }
-  for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
-      ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapReg1[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapReg2[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapMass[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapAccumulator[rx + ry*ms->config.hrmWidth] = 0;
-    }
-  }
-  {
-    cv::Scalar backColor(128,0,0);
-    cv::Point outTop = cv::Point(0,0);
-    cv::Point outBot = cv::Point(ms->config.hrmiWidth,ms->config.hrmiHeight);
-    Mat vCrop = ms->config.hiRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-    vCrop = backColor;
-  }
-  for (int h = 0; h < ms->config.hrmWidth; h++) {
-    for (int i = 0; i < ms->config.hrmWidth; i++) {
-      ms->config.hiColorRangeMapMass[h + i*ms->config.hrmWidth] = 0;
-      for (int j = 0; j < 3; j++) {
-        ms->config.hiColorRangeMapAccumulator[h + i*ms->config.hrmWidth + j*ms->config.hrmWidth*ms->config.hrmWidth] = 0;
-      }
-    }
-  }
-  for (int pz = 0; pz < ms->config.vmWidth; pz++) {
-    for (int py = 0; py < ms->config.vmWidth; py++) {
-      for (int px = 0; px < ms->config.vmWidth; px++) {
-        ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-        ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-        ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-        ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-        for (int pc = 0; pc < 3; pc++) {
-          ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + pc*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] = 0;
-        }
-      }
-    }
-  }
-  {
-    cv::Scalar backColor(128,0,0);
-    cv::Point outTop = cv::Point(0,0);
-    cv::Point outBot = cv::Point(ms->config.hiColorRangemapImage.cols,ms->config.hiColorRangemapImage.rows);
-    Mat vCrop = ms->config.hiColorRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-    vCrop = backColor;
-  }
+
+  clearAllRangeMaps(ms);
 }
 END_WORD
 REGISTER_WORD(InitDepthScan)
+
+WORD(ClearAllRangeMaps)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Clearing all range maps." << endl;
+  clearAllRangeMaps(ms);
+}
+END_WORD
+REGISTER_WORD(ClearAllRangeMaps)
 
 
 
@@ -593,8 +563,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushCopies('a',6);
 
   ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
+
+  ms->pushWord("rasterScanningSpeed"); 
   ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("shiftGraspGear"); // rotate gear
+  ms->pushWord("shiftGraspGear"); 
+  ms->pushWord("fullImpulse"); 
 
   ms->pushWord("fullRender"); // full render
   ms->pushWord("paintReticles"); // render reticle
@@ -626,35 +599,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double lineSpeed = ms->config.bDelta;
   double betweenSpeed = ms->config.bDelta;
 
+  ms->pushWord("cruisingSpeed");
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
-  ms->pushWord("prepareForSearch"); // prepare for search
-
-  ms->pushCopies('q',4);
-  ms->pushCopies('a',6);
-
-  ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("shiftGraspGear"); // rotate gear
-
-  ms->pushWord("fullRender"); // full render
-  ms->pushWord("paintReticles"); // render reticle
-  ms->pushWord("shiftIntoGraspGear1"); // change to first gear
-  ms->pushWord("drawMapRegisters"); // render register 1
-  ms->pushWord("downsampleIrScan"); // load map to register 1
-  {
-    ms->pushWord("setTargetReticleToTheMaxMappedPosition"); // target best grasp
-    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    ms->pushWord("shiftIntoGraspGear1"); // change to first gear
-  }
-  ms->pushWord("selectBestAvailableGrasp"); // find best grasp
-
-  scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
-  ms->pushWord("prepareForSearch"); // prepare for search
-
-  ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
-  ms->pushWord("initDepthScan"); // clear scan history
-  ms->pushWord("waitUntilAtCurrentPosition"); 
-  ms->pushWord("shiftIntoGraspGear1"); 
+  ms->pushWord("rasterScanningSpeed");
 }
 END_WORD
 REGISTER_WORD(NeutralScanB)
@@ -903,8 +850,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("synchronicServo"); 
   ms->pushWord("synchronicServoTakeClosest");
   ms->pushWord("fillClearanceMap");
-  ms->config.currentBoundingBoxMode = MAPPING;
   ms->config.bDelta = 0.001;
+  ms->pushWord("setBoundingBoxModeToMapping"); 
 }
 END_WORD
 REGISTER_WORD(ScanCentered)
@@ -915,7 +862,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("streamSpin");
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   ms->pushWord("streamImageSpeed"); // w1 wait until at current position
-  ms->config.currentBoundingBoxMode = MAPPING;
+  ms->pushWord("setBoundingBoxModeToMapping"); 
 }
 END_WORD
 REGISTER_WORD(StreamScanCentered)
@@ -1908,7 +1855,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setLastLabelLearned");
 
   ms->pushWord("setMovementSpeedMoveFast");
-  ms->config.currentBoundingBoxMode = MAPPING; // this is here because it is for the rgbScan
   //ms->pushWord("rgbScan");
   //ms->pushWord("rgbScan");
   ms->pushWord("scanCentered");
@@ -1992,6 +1938,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("assumeBackScanningPose");
   ms->pushWord("assumeCalibrationPose");
   ms->pushWord("fullImpulse");
+  ms->pushWord("setBoundingBoxModeToMapping"); 
 }
 END_WORD
 REGISTER_WORD(ScanObjectFast)
@@ -2016,7 +1963,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
 
   ms->pushWord("setMovementSpeedMoveFast");
-  ms->config.currentBoundingBoxMode = MAPPING; // this is here because it is for the rgbScan
 
   ms->pushWord("bringUpAllNonessentialSystems"); 
   ms->pushWord("deactivateSensorStreaming"); 
@@ -2065,8 +2011,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("changeToHeight0"); // change to height 0
   }
   
-  ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("moveToRegister1");
 
+  ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
 
   ms->pushWord("bringUpAllNonessentialSystems"); 
   ms->pushWord("deactivateSensorStreaming"); 
@@ -2082,13 +2030,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setSisFlags"); 
 
   ms->pushWord("lock3dGraspBase"); 
+  ms->pushWord("saveRegister1");
 
   ms->pushWord("pauseStackExecution"); 
   
 
 
 
-  ms->pushWord("saveRegister1");
   ms->pushWord("preAnnotateOffsetGrasp"); 
   ms->pushWord("setPhotoPinHere");
   ms->pushWord("comeToStop");
@@ -2106,24 +2054,82 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushCopies("dislodgeEndEffectorFromTable", retractCm);
   ms->pushWord("setCurrentPoseToTruePose");
   ms->pushWord("setMovementSpeedMoveFast");
-
   ms->pushWord("recordGraspZ");
-
   ms->pushWord("hundredthImpulse");
+
   ms->pushWord("pauseStackExecution"); // pause stack execution
   ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
 
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("shiftIntoGraspGear1");
   ms->pushWord("changeToHeight0");
-  //ms->pushCopies("yDown", 25);
+
   ms->pushWord("setMovementSpeedMoveFast");
   ms->pushWord("assumeBackScanningPose");
-  ms->pushWord("assumeCalibrationPose");
   ms->pushWord("fullImpulse");
+  ms->pushWord("setBoundingBoxModeToMapping"); 
 }
 END_WORD
 REGISTER_WORD(ScanObjectStream)
+
+WORD(CollectMoreStreams)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "About to collect more streams, make sure targetClass is set, i.e. you should have" << endl <<
+    " \"<target class name>\" setTargetClass " << endl <<
+    " in the repl before running this. 3dGraspAnnotation will run, be sure it succeeds. If it fails to get a good lock, start over. Make sure to adjust to a safe scanning height before unpausing after the lock." << endl;
+
+
+  ms->pushWord("fullImpulse");
+  ms->pushWord("setMovementSpeedMoveFast");
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+
+  ms->pushWord("streamScanCentered");
+
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+
+  ms->pushWord("fullImpulse");
+  ms->pushWord("setMovementSpeedMoveVerySlow");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("shiftIntoGraspGear1"); 
+  ms->pushWord("changeToHeight1"); 
+
+  ms->pushWord("moveToRegister1");
+
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("setSisFlags"); 
+
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+  ms->pushWord("neutralScanB"); 
+  
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord("setSisFlags"); 
+
+
+  ms->pushWord("pauseStackExecution"); 
+  ms->pushWord("saveRegister1");
+  ms->pushWord("start3dGraspAnnotation"); 
+    
+  ms->pushWord("pauseStackExecution"); 
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("moveToMappingHeight");
+  ms->pushWord("setBoundingBoxModeToMapping"); 
+}
+END_WORD
+REGISTER_WORD(CollectMoreStreams)
 
 WORD(RecordGraspZ)
 virtual void execute(std::shared_ptr<MachineState> ms) {

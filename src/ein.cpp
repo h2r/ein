@@ -1168,7 +1168,7 @@ streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx) {
   return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
 }
 
-int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase, eePose * outRel) {
+int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase) {
 
   // if we are more than p_rejectThresh away from a measurement, reject it
   double p_rejectThresh = 1.0;
@@ -1190,7 +1190,6 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
   if (tin == tspb[thisIdx].time) {
     (*outArm) = tspb[thisIdx].arm_pose;
     (*outBase) = tspb[thisIdx].base_pose;
-    (*outRel) = tspb[thisIdx].arm_pose.getPoseRelativeTo(tspb[thisIdx].base_pose); 
     return 1;
   } else if (tin > tspb[thisIdx].time) {
     // checking between
@@ -1209,7 +1208,6 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
 	eePose iArm = tspb[j].arm_pose.getInterpolation(tspb[j+1].arm_pose, w2);
 	(*outArm) = iArm;
 	(*outBase) = iBase;
-	(*outRel) = iArm.getPoseRelativeTo(iBase);	
 	return 1;
       } else {
       }
@@ -1231,7 +1229,6 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
 	eePose iArm = tspb[j].arm_pose.getInterpolation(tspb[j+1].arm_pose, w2);
 	(*outArm) = iArm;
 	(*outBase) = iBase;
-	(*outRel) = iArm.getPoseRelativeTo(iBase);	
 	return 1;
       } else {
       }
@@ -1690,7 +1687,7 @@ void writeRangeBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamI
 	fsvO << "time" << ms->config.streamRangeBuffer[i].time;
       fsvO << "}";
       // XXX take this cout out
-      cout << " wrote range: " << ms->config.streamRangeBuffer[i].range << " and time: " << ms->config.streamRangeBuffer[i].time << endl;
+      //cout << " wrote range: " << ms->config.streamRangeBuffer[i].range << " and time: " << ms->config.streamRangeBuffer[i].time << endl;
     }
     fsvO << "]";
   }
@@ -1735,7 +1732,7 @@ void writePoseBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamId
 	fsvO << "time" << ms->config.streamPoseBuffer[i].time;
       fsvO << "}";
       // XXX take this cout out
-      cout << " wrote arm_pose: " << ms->config.streamPoseBuffer[i].arm_pose << " base pose: base_pose: " << ms->config.streamPoseBuffer[i].base_pose << " and time: " << ms->config.streamPoseBuffer[i].time << endl;
+      //cout << " wrote arm_pose: " << ms->config.streamPoseBuffer[i].arm_pose << " base pose: base_pose: " << ms->config.streamPoseBuffer[i].base_pose << " and time: " << ms->config.streamPoseBuffer[i].time << endl;
     }
     fsvO << "]";
   }
@@ -2298,12 +2295,14 @@ void scanXdirection(shared_ptr<MachineState> ms, double speedOnLines, double spe
     ms->pushWord("waitUntilAtCurrentPosition");
     for (int gg = 0; gg < ms->config.rmWidth*onLineGain+2*scanPadding; gg++) {
       ms->pushWord('q');
-      //ms->pushWord("endStackCollapseNoop");
+      ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord("endStackCollapseNoop");
     }
     ms->pushWord("waitUntilAtCurrentPosition"); 
     for (int gg = 0; gg < ms->config.rmWidth*onLineGain+2*scanPadding; gg++) {
       ms->pushWord('e');
-      //ms->pushWord("endStackCollapseNoop");
+      ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord("endStackCollapseNoop");
     }
   }
 
@@ -2316,6 +2315,8 @@ void scanXdirection(shared_ptr<MachineState> ms, double speedOnLines, double spe
     ms->pushWord('a');
     //ms->pushWord("endStackCollapseNoop");
   }
+
+  ms->pushWord("setMovementSpeedMoveFast");
 }
 
 
@@ -3406,7 +3407,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   if (!ms->config.shouldIImageCallback) {
-    cout << "Early exit image callback." << endl;
+    //cout << "Early exit image callback." << endl;
     return;
   }
 
@@ -5046,6 +5047,13 @@ void changeTargetClass(shared_ptr<MachineState> ms, int newTargetClass) {
   cout << "class " << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
   ms->execute_stack = 1;	
 
+  //cout << "BTTN 1" << endl;
+  for (int y = 0; y < ms->config.rmWidth; y++) {
+    for (int x = 0; x < ms->config.rmWidth; x++) {
+      ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.focusedClass].at<double>(y,x);
+      ms->config.rangeMap[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.focusedClass].at<double>(y,x);
+    } 
+  } 
 
   ms->pushWord("loadMarginalHeightMemory"); 
 
@@ -7802,6 +7810,7 @@ void initRangeMaps(shared_ptr<MachineState> ms) {
   ms->config.classHeightMemoryTries.resize(ms->config.numClasses);
   ms->config.classHeightMemoryPicks.resize(ms->config.numClasses);
   for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    cout << "Trying to load range map for class " << i << endl;
     tryToLoadRangeMap(ms, ms->config.class_crops_path, ms->config.classLabels[i].c_str(), i);
   }
 }
@@ -11003,6 +11012,8 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 
+    cout << "  tryToLoadRangeMap: " << this_range_path << endl;
+
     FileStorage fsfI;
     fsfI.open(this_range_path, FileStorage::READ);
     if (fsfI.isOpened()) {
@@ -11222,6 +11233,70 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
 
       cout << "done.";
     }
+  }
+}
+
+void clearAllRangeMaps(shared_ptr<MachineState> ms) {
+  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
+      ms->config.rangeMap[rx + ry*ms->config.rmWidth] = 0;
+      ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth] = 0;
+      // ATTN 17
+      //rangeMapReg2[rx + ry*ms->config.rmWidth] = 0;
+      ms->config.rangeMapMass[rx + ry*ms->config.rmWidth] = 0;
+      ms->config.rangeMapAccumulator[rx + ry*ms->config.rmWidth] = 0;
+    }
+  }
+  {
+    cv::Scalar backColor(128,0,0);
+    cv::Point outTop = cv::Point(0,0);
+    cv::Point outBot = cv::Point(ms->config.rmiWidth,ms->config.rmiHeight);
+    Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+    vCrop = backColor;
+  }
+  for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
+      ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapReg1[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapReg2[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapMass[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapAccumulator[rx + ry*ms->config.hrmWidth] = 0;
+    }
+  }
+  {
+    cv::Scalar backColor(128,0,0);
+    cv::Point outTop = cv::Point(0,0);
+    cv::Point outBot = cv::Point(ms->config.hrmiWidth,ms->config.hrmiHeight);
+    Mat vCrop = ms->config.hiRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+    vCrop = backColor;
+  }
+  for (int h = 0; h < ms->config.hrmWidth; h++) {
+    for (int i = 0; i < ms->config.hrmWidth; i++) {
+      ms->config.hiColorRangeMapMass[h + i*ms->config.hrmWidth] = 0;
+      for (int j = 0; j < 3; j++) {
+        ms->config.hiColorRangeMapAccumulator[h + i*ms->config.hrmWidth + j*ms->config.hrmWidth*ms->config.hrmWidth] = 0;
+      }
+    }
+  }
+  for (int pz = 0; pz < ms->config.vmWidth; pz++) {
+    for (int py = 0; py < ms->config.vmWidth; py++) {
+      for (int px = 0; px < ms->config.vmWidth; px++) {
+        ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+        ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+        ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+        ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+        for (int pc = 0; pc < 3; pc++) {
+          ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + pc*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] = 0;
+        }
+      }
+    }
+  }
+  {
+    cv::Scalar backColor(128,0,0);
+    cv::Point outTop = cv::Point(0,0);
+    cv::Point outBot = cv::Point(ms->config.hiColorRangemapImage.cols,ms->config.hiColorRangemapImage.rows);
+    Mat vCrop = ms->config.hiColorRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+    vCrop = backColor;
   }
 }
 
