@@ -171,10 +171,13 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   initClassFolders(ms, ms->config.data_directory + "/objects/" + ms->config.classLabels[thisFc] + "/");
 
 
+  int p_printSkip = 1000; 
+
   for (int i = 0; i < ms->config.streamRangeBuffer.size(); i++) {
     streamRange &tsr = ms->config.streamRangeBuffer[i];
     eePose tArmP, tBaseP, tRelP;
-    int success = getStreamPoseAtTime(ms, tsr.time, &tArmP, &tBaseP, &tRelP);
+    int success = getStreamPoseAtTime(ms, tsr.time, &tArmP, &tBaseP);
+    tRelP = tArmP.getPoseRelativeTo(tBaseP); 
     double tRange = tsr.range;
 
     //cout << "got stream pose at time " << tsr.time << " " << tArmP << tBaseP << tRelP << endl;
@@ -185,17 +188,22 @@ virtual void execute(std::shared_ptr<MachineState> ms)
       ms->config.rmcZ = tBaseP.pz;
 
       // this allows us to stitch together readings from different scans
+      //cout << "XXX: " << endl << tArmP << tBaseP << tRelP << tRelP.applyAsRelativePoseTo(tBaseP) << "YYY" << endl;
       eePose thisCrane = tBaseP;
       thisCrane.copyQ(ms->config.straightDown); 
-      eePose thisBaseRelativeThisCrane = tBaseP.getPoseRelativeTo(thisCrane);
-      eePose rebasedArm = thisBaseRelativeThisCrane.applyAsRelativePoseTo(tArmP);
+      eePose thisCraneRelativeThisBase = thisCrane.getPoseRelativeTo(tBaseP);
+
+      eePose rebasedRelative = tRelP.applyAsRelativePoseTo(thisCraneRelativeThisBase);
+      eePose rebasedArm = rebasedRelative.applyAsRelativePoseTo(tBaseP);
 
       Eigen::Vector3d rayDirection;
       Eigen::Vector3d castPoint;
-      //castRangeRay(ms, tRange, tArmP, &castPoint, &rayDirection);
       castRangeRay(ms, tRange, rebasedArm, &castPoint, &rayDirection);
       update2dRangeMaps(ms, castPoint);
-      cout << "cast rays for measurement " << i << " z: " << castPoint[2] << " range: " << tRange << endl;// << tRelP;// << " " << castPoint << endl;
+      if ((i % p_printSkip) == 0) {
+	cout << "cast rays for measurement " << i << " z: " << castPoint[2] << " range: " << tRange << endl;// << tRelP;// << " " << castPoint << endl;
+      } else {
+      }
     } else {
       cout << "ray " << i << " failed to get pose, not casting." << endl;
     }

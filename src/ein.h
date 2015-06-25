@@ -169,7 +169,7 @@ void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path
 void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
 
 streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx);
-int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase, eePose * outRel);
+int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase);
 void castRangeRay(std::shared_ptr<MachineState> ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut);
 void update2dRangeMaps(std::shared_ptr<MachineState> ms, Vector3d castPoint);
 
@@ -380,6 +380,7 @@ void detectorsInit(shared_ptr<MachineState> ms);
 void initRedBoxes();
 
 void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const char *className, int i);
+void clearAllRangeMaps(shared_ptr<MachineState> ms);
 
 void processSaliency(Mat in, Mat out);
 
