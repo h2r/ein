@@ -54,6 +54,12 @@ double _eePose::distance(eePose pose1, eePose pose2) {
   return distance;
 }
 
+double _eePose::distanceQ(eePose pose1, eePose pose2) {
+  double thisDot = fabs(pose1.qw*pose2.qw + pose1.qx*pose2.qx + pose1.qy*pose2.qy + pose1.qz*pose2.qz);
+  thisDot = max( 0.0, min( thisDot, 1.0) );
+  double distance = acos(thisDot);
+  return distance;
+}
 
 eePose _eePose::fromRectCentroid(Rect rect) {
   eePose result;

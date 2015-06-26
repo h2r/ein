@@ -1530,6 +1530,54 @@ void populateStreamPoseBuffer(std::shared_ptr<MachineState> ms) {
   }
 }
 
+void activateSensorStreaming(std::shared_ptr<MachineState> ms) {
+  ros::NodeHandle n("~");
+  image_transport::ImageTransport it(n);
+  int cfClass = ms->config.focusedClass;
+  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
+    string this_label_name = ms->config.classLabels[cfClass]; 
+    string this_raw_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/";
+    string this_image_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/images/";
+    string this_pose_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/pose/";
+    string this_range_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/range/";
+    mkdir(this_raw_path.c_str(), 0777);
+    mkdir(this_image_path.c_str(), 0777);
+    mkdir(this_pose_path.c_str(), 0777);
+    mkdir(this_range_path.c_str(), 0777);
+    ms->config.sensorStreamOn = 1;
+
+    // turn that queue size up!
+    ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 100, endpointCallback);
+    ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 100, rangeCallback);
+    ms->config.image_sub = it.subscribe(ms->config.image_topic, 30, imageCallback);
+    cout << "Activating sensor stream." << endl;
+    ros::Time thisTime = ros::Time::now();
+    ms->config.sensorStreamLastActivated = thisTime.toSec();
+  } else {
+    cout << "Cannot activate sensor stream: invalid focused class." << endl;
+  } 
+}
+
+void deactivateSensorStreaming(std::shared_ptr<MachineState> ms) {
+  ros::NodeHandle n("~");
+  image_transport::ImageTransport it(n);
+  ms->config.sensorStreamOn = 0;
+  // restore those queue sizes to defaults.
+  ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, endpointCallback);
+  ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, rangeCallback);
+  ms->config.image_sub = it.subscribe(ms->config.image_topic, 1, imageCallback);
+
+  cout << "deactivateSensorStreaming: About to write batches... ";
+  int cfClass = ms->config.focusedClass;
+  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
+    writeRangeBatchAsClass(ms, cfClass);	
+    writePoseBatchAsClass(ms, cfClass);	
+    cout << "Wrote batches." << endl;
+  } else {
+    cout << "Did not write batches, invalid focused class." << endl;
+  } 
+}
+
 void populateStreamImageBuffer(std::shared_ptr<MachineState> ms) {
   DIR *dpdf;
   struct dirent *epdf;
@@ -1601,11 +1649,23 @@ void populateStreamImageBuffer(std::shared_ptr<MachineState> ms) {
   }
 }
 
-void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStreamIdx, double now) {
-  if (now - ms->config.sensorStreamLastActivated > ms->config.sensorStreamTimeout) {
+int didSensorStreamTimeout(std::shared_ptr<MachineState> ms) {
+  ros::Time safetyNow =  ros::Time::now();
+  double sNow = safetyNow.toSec();
+  if (sNow - ms->config.sensorStreamLastActivated > ms->config.sensorStreamTimeout) {
     cout << "Whoops, sensor stream timed out, clearing stack and deactivating." << endl;
     ms->clearStack();
-    ms->pushWord("deactivateSensorStreaming");
+    deactivateSensorStreaming(ms);
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStreamIdx, double now) {
+
+  if (didSensorStreamTimeout(ms)) {
+    return;
   } else {
   }
 
@@ -1634,10 +1694,9 @@ void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStr
 }
 
 void streamRangeAsClass(std::shared_ptr<MachineState> ms, double rangeIn, int classToStreamIdx, double now) {
-  if (now - ms->config.sensorStreamLastActivated > ms->config.sensorStreamTimeout) {
-    cout << "Whoops, sensor stream timed out, clearing stack and deactivating." << endl;
-    ms->clearStack();
-    ms->pushWord("deactivateSensorStreaming");
+
+  if (didSensorStreamTimeout(ms)) {
+    return;
   } else {
   }
 
@@ -1660,10 +1719,9 @@ void streamRangeAsClass(std::shared_ptr<MachineState> ms, double rangeIn, int cl
 }
 
 void streamPoseAsClass(std::shared_ptr<MachineState> ms, eePose poseIn, int classToStreamIdx, double now) {
-  if (now - ms->config.sensorStreamLastActivated > ms->config.sensorStreamTimeout) {
-    cout << "Whoops, sensor stream timed out, clearing stack and deactivating." << endl;
-    ms->clearStack();
-    ms->pushWord("deactivateSensorStreaming");
+
+  if (didSensorStreamTimeout(ms)) {
+    return;
   } else {
   }
 
@@ -12089,6 +12147,14 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut) {
 
   for (int i = 0; i < roa.objects.size(); i++) {
     stateOut->objects.push_back(roa.objects[i]);
+  }
+}
+
+bool isFocusedClassValid(std::shared_ptr<MachineState> ms) {
+  if ((ms->config.focusedClass > -1) && (ms->config.focusedClass < ms->config.classLabels.size())) {
+    return true;
+  } else {
+    return false;
   }
 }
 
