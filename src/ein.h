@@ -178,9 +178,13 @@ bool streamRangeComparator(streamRange i, streamRange j);
 bool streamPoseComparator(streamEePose i, streamEePose j);
 bool streamImageComparator(streamImage i, streamImage j);
 
+void activateSensorStreaming(std::shared_ptr<MachineState> ms);
+void deactivateSensorStreaming(std::shared_ptr<MachineState> ms);
+
 void populateStreamImageBuffer(std::shared_ptr<MachineState> ms);
 void populateStreamPoseBuffer(std::shared_ptr<MachineState> ms);
 void populateStreamRangeBuffer(std::shared_ptr<MachineState> ms);
+int didSensorStreamTimeout(std::shared_ptr<MachineState> ms);
 void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStreamIdx, double now);
 void streamRangeAsClass(std::shared_ptr<MachineState> ms, double range, int classToStreamIdx, double now);
 void streamPoseAsClass(std::shared_ptr<MachineState> ms, eePose poseIn, int classToStreamIdx, double now);
@@ -396,6 +400,8 @@ void guardViewers(shared_ptr<MachineState> ms);
 
 void fillRecognizedObjectArrayFromBlueBoxMemory(shared_ptr<MachineState> ms, object_recognition_msgs::RecognizedObjectArray * roa);
 void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut);
+
+bool isFocusedClassValid(std::shared_ptr<MachineState> ms);
 
 ////////////////////////////////////////////////
 // end node prototypes 

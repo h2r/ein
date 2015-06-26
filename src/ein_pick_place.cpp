@@ -394,6 +394,7 @@ WORD(ReturnObject)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   cout << "Returning object." << endl;
+  ms->pushWord("cruisingSpeed");
   ms->pushWord("goToPrePickPose");
   ms->pushWord("waitUntilGripperNotMoving");
   ms->pushWord("openGripper");
