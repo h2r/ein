@@ -1138,6 +1138,7 @@ REGISTER_WORD(SynchronicServoDoNotTakeClosest)
 WORD(SynchronicServoTakeClosest)
 CODE(196707)     // capslock + C
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  // XXX deprecate
   ms->config.synchronicTakeClosest = 1;
   cout << "synchronicTakeClosest = 1" << endl;
   ms->config.synServoLockFrames = 0;
@@ -1317,6 +1318,7 @@ REGISTER_WORD(GradientServoA)
 WORD(GradientServoIfBlueBoxes)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (ms->config.bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
+    // XXX changeTargetClass should come after?
     changeTargetClass(ms, ms->config.bLabels[ms->config.pilotClosestBlueBoxNumber]);
     ms->pushWord("gradientServo");
   }
@@ -1435,6 +1437,7 @@ WORD(GradientServoTakeClosest)
 CODE(1179720)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
+    // XXX deprecate
     ms->config.gradientTakeClosest = 1;
     cout << "gradientTakeClosest = " << ms->config.gradientTakeClosest << endl;
 }

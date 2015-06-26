@@ -346,6 +346,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("waitUntilAtCurrentPosition"); 
     ms->pushWord("assumeHandingPose");
     ms->pushWord("setPatrolStateToHanding");
+  } else if (ms->config.currentPlaceMode == SHAKE) {
+    ms->config.placeTarget = ms->config.lastPickPose;
+    ms->pushWord("openGripper"); 
+    ms->pushWord("tryToMoveToTheLastPickHeight");   
+    ms->pushWord("approachSpeed"); 
+    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("assumeDeliveryPose");
+
+    ms->pushWord("checkAndCountGrasp");
+    ms->pushWord("waitUntilGripperNotMoving");
+    ms->pushWord("closeGripper"); 
+    ms->pushWord("shakeItUpAndDown"); 
+    ms->pushWord("setPatrolStateToPicking");
   } else {
     assert(0);
   }
@@ -375,6 +388,13 @@ END_WORD
 REGISTER_WORD(AssumeDeliveryPose)
 
   
+
+WORD(SetPlaceModeToShake)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentPlaceMode = SHAKE;
+}
+END_WORD
+REGISTER_WORD(SetPlaceModeToShake)
 
 WORD(SetPlaceModeToHand)
 virtual void execute(std::shared_ptr<MachineState> ms) {
