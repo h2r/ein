@@ -168,6 +168,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
 void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path);
 void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
 
+void saveAccumulatedStreamToPath(shared_ptr<MachineState> ms, string path);
 streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx);
 void resetAccumulatedStreamImage(std::shared_ptr<MachineState> ms);
 int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase);
@@ -375,6 +376,7 @@ void goFindRedBoxes();
 void resetAccumulatedImageAndMass(shared_ptr<MachineState> ms);
 void substituteStreamAccumulatedImageQuantities(shared_ptr<MachineState> ms);
 void substituteStreamImageQuantities(shared_ptr<MachineState> ms);
+
 void substituteAccumulatedImageQuantities(shared_ptr<MachineState> ms);
 void substituteLatestImageQuantities(shared_ptr<MachineState> ms);
 

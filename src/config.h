@@ -346,6 +346,8 @@ class EinConfig {
   int spbCurIdx = 0;
   Mat accumulatedStreamImage;
   Mat accumulatedStreamImageMass;
+  Mat accumulatedStreamImageBytes;
+
 
 
   double eeRange = 0.0;

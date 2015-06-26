@@ -9467,6 +9467,14 @@ void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms) {
 
 }
 
+void saveAccumulatedStreamToPath(shared_ptr<MachineState> ms, string path) {
+  // no compression!
+  std::vector<int> args;
+  args.push_back(CV_IMWRITE_PNG_COMPRESSION);
+  args.push_back(0);
+  imwrite(path, ms->config.accumulatedStreamImageBytes, args);
+}
+
 void substituteStreamAccumulatedImageQuantities(shared_ptr<MachineState> ms) {
   double param_aerialGradientDecayImageAverage = 0.0;
   ms->config.aerialGradientDecay = param_aerialGradientDecayImageAverage;
@@ -9489,6 +9497,8 @@ void substituteStreamAccumulatedImageQuantities(shared_ptr<MachineState> ms) {
       ms->config.objectViewerImage.at<Vec3b>(y,x)[2] = doubleToByte(ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[2] / denom);
     }
   }
+
+  ms->config.accumulatedStreamImageBytes = ms->config.objectViewerImage.clone();
 }
 
 void substituteStreamImageQuantities(shared_ptr<MachineState> ms) {
@@ -11129,7 +11139,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
   {
     string thisLabelName(className);
 
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ir2D/";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 
     cout << "  tryToLoadRangeMap: " << this_range_path << endl;
@@ -11204,7 +11214,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     {
       string thisLabelName(className);
 
-      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_ag_path = dirToMakePath + "aerialHeight0Gradients.yml";
 
       FileStorage fsfI;
@@ -11221,7 +11231,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     {
       string thisLabelName(className);
 
-      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_ag_path = dirToMakePath + "aerialHeight1Gradients.yml";
 
       FileStorage fsfI;
@@ -11238,7 +11248,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     {
       string thisLabelName(className);
 
-      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_ag_path = dirToMakePath + "aerialHeight2Gradients.yml";
 
       FileStorage fsfI;
@@ -11255,7 +11265,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     {
       string thisLabelName(className);
 
-      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_ag_path = dirToMakePath + "aerialHeight3Gradients.yml";
 
       FileStorage fsfI;
