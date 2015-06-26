@@ -400,7 +400,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 
   if (0) {
-    ms->pushWord("saveLearnedModels");
+    ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
     ms->pushWord("loadPriorGraspMemoryAnalytic");
     // set target class to the lastLabelLearned 
     ms->pushWord("setTargetClassToLastLabelLearned");
@@ -647,7 +647,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     string thisLabelName = ms->config.focusedClassLabel;
 
     char buf[1000];
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
     string this_range_path;
 
     // ATTN 16
@@ -754,6 +754,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       break;
     }
     fsvO.release();
+  } else {
   } 
 }
 END_WORD
@@ -788,7 +789,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     string thisLabelName = ms->config.focusedClassLabel;
 
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ir2D/";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/ir2D/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 
     Mat rangeMapTemp(ms->config.rmWidth, ms->config.rmWidth, CV_64F);

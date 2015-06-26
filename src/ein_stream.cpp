@@ -279,6 +279,54 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 END_WORD
 REGISTER_WORD(StreamCropsAsFocusedClass)
 
+WORD(SaveAccumulatedStreamToServoImage)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+  cout << "saveAccumulatedStreamToServoImage ";
+  if ((ms->config.focusedClass > -1) && (ms->config.accumulatedStreamImageBytes.rows >1) && (ms->config.accumulatedStreamImageBytes.cols > 1)) {
+    string thisLabelName = ms->config.classLabels[ms->config.focusedClass];
+
+    char buf[1000];
+    string folderPath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoImages/";
+    string filePath;
+
+    // ATTN 16
+    switch (ms->config.currentThompsonHeightIdx) {
+    case 0:
+      {
+        filePath = "aerialHeight0PreGradients.png";
+      }
+      break;
+    case 1:
+      {
+        filePath = "aerialHeight1PreGradients.png";
+      }
+      break;
+    case 2:
+      {
+        filePath = "aerialHeight2PreGradients.png";
+      }
+      break;
+    case 3:
+      {
+        filePath = "aerialHeight3PreGradients.png";
+      }
+      break;
+    default:
+      {
+        assert(0);
+        break;
+      }
+    }
+    string servoImagePath = folderPath + filePath;
+    cout << "saving to " << servoImagePath << endl;
+    saveAccumulatedStreamToPath(ms, servoImagePath);
+  } else {
+    cout << "FAILED." << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(SaveAccumulatedStreamToServoImage)
+
 WORD(IntegrateImageStreamBufferServoImages)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
 
@@ -286,8 +334,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
   int tNumHeights = ms->config.hmWidth;
   for (int hIdx = tNumHeights-1; hIdx > -1; hIdx--) {
-
     ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("saveAccumulatedStreamToServoImage");
     ms->pushWord("streamedAccumulatedDensity");
 
     ms->pushWord(std::make_shared<IntegerWord>(hIdx));
@@ -295,7 +343,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord(std::make_shared<IntegerWord>(hIdx));
-    ms->pushWord("changeToHeight"); // change to height 2
+    ms->pushWord("changeToHeight"); 
     ms->pushWord("rewindImageStreamBuffer"); 
     ms->pushWord("resetAccumulatedStreamImage");
   }
