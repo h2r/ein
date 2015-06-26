@@ -169,6 +169,7 @@ void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path
 void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
 
 streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx);
+void resetAccumulatedStreamImage(std::shared_ptr<MachineState> ms);
 int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase);
 void castRangeRay(std::shared_ptr<MachineState> ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut);
 void update2dRangeMaps(std::shared_ptr<MachineState> ms, Vector3d castPoint);
@@ -180,8 +181,9 @@ bool streamImageComparator(streamImage i, streamImage j);
 void populateStreamImageBuffer(std::shared_ptr<MachineState> ms);
 void populateStreamPoseBuffer(std::shared_ptr<MachineState> ms);
 void populateStreamRangeBuffer(std::shared_ptr<MachineState> ms);
-void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStreamIdx);
-void streamRangeAsClass(std::shared_ptr<MachineState> ms, double range, int classToStreamIdx);
+void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStreamIdx, double now);
+void streamRangeAsClass(std::shared_ptr<MachineState> ms, double range, int classToStreamIdx, double now);
+void streamPoseAsClass(std::shared_ptr<MachineState> ms, eePose poseIn, int classToStreamIdx, double now);
 void writeRangeBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
 void writePoseBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
 
@@ -367,6 +369,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms);
 void goFindRedBoxes();
 
 void resetAccumulatedImageAndMass(shared_ptr<MachineState> ms);
+void substituteStreamAccumulatedImageQuantities(shared_ptr<MachineState> ms);
 void substituteStreamImageQuantities(shared_ptr<MachineState> ms);
 void substituteAccumulatedImageQuantities(shared_ptr<MachineState> ms);
 void substituteLatestImageQuantities(shared_ptr<MachineState> ms);

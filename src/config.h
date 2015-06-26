@@ -329,6 +329,8 @@ class EinConfig {
   int ik_reset_thresh = 20;
 
   int sensorStreamOn = 0;
+  double sensorStreamLastActivated = 0.0;
+  double sensorStreamTimeout= 3600.0;
   // should I stream
   int sisPose = 0;
   int sisRange = 0;
@@ -342,6 +344,8 @@ class EinConfig {
   int sibCurIdx = 0;
   int srbCurIdx = 0;
   int spbCurIdx = 0;
+  Mat accumulatedStreamImage;
+  Mat accumulatedStreamImageMass;
 
 
   double eeRange = 0.0;
@@ -643,7 +647,7 @@ class EinConfig {
   double ggY[totalGraspGears];
   double ggT[totalGraspGears];
 
-  int recordRangeMap = 1;
+  int recordRangeMap = 0;
 
   Quaternionf irGlobalPositionEEFrame;
  
@@ -752,7 +756,7 @@ class EinConfig {
   Mat frameGraySobel;
 
 
-  double graspDepthOffset = -0.04;
+  double graspDepthOffset = -0.01;
   eePose lastPickPose;
   eePose lastPrePickPose;
   

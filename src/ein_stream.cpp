@@ -74,6 +74,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 100, rangeCallback);
     ms->config.image_sub = it.subscribe(ms->config.image_topic, 30, imageCallback);
     cout << "Activating sensor stream." << endl;
+    ros::Time thisTime = ros::Time::now();
+    ms->config.sensorStreamLastActivated = thisTime.toSec();
   } else {
     cout << "Cannot activate sensor stream: invalid focused class." << endl;
   } 
@@ -92,7 +94,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, rangeCallback);
   ms->config.image_sub = it.subscribe(ms->config.image_topic, 1, imageCallback);
 
-  cout << "deactivateSensorStreams: About to write batches... ";
+  cout << "deactivateSensorStreaming: About to write batches... ";
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
     writeRangeBatchAsClass(ms, cfClass);	
@@ -218,7 +220,17 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(IntegrateRangeStreamBuffer)
 
-WORD(IntegrateImageStreamBuffer)
+
+WORD(RewindImageStreamBuffer)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  cout << "RewindImageStreamBuffer" << endl;
+  setIsbIdx(ms, 0);
+}
+END_WORD
+REGISTER_WORD(RewindImageStreamBuffer)
+
+WORD(IntegrateImageStreamBufferCrops)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   int thisFc = ms->config.focusedClass;
@@ -231,18 +243,18 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
   initClassFolders(ms, ms->config.data_directory + "/objects/" + ms->config.classLabels[thisFc] + "/");
 
-  setIsbIdx(ms, 0);
 
   for (int i = 0; i < ms->config.streamImageBuffer.size(); i++) {
-    ms->pushWord("waitUntilImageCallbackReceived");
+    ms->pushWord("endStackCollapseNoop");
     ms->pushWord("incrementImageStreamBuffer");
     ms->pushWord("streamCropsAsFocusedClass");
     ms->pushWord("goFindBlueBoxes"); 
     ms->pushWord("streamedDensity"); 
   }
+  ms->pushWord("rewindImageStreamBuffer"); 
 }
 END_WORD
-REGISTER_WORD(IntegrateImageStreamBuffer)
+REGISTER_WORD(IntegrateImageStreamBufferCrops)
 
 WORD(IncrementImageStreamBuffer)
 virtual void execute(std::shared_ptr<MachineState> ms)
@@ -255,6 +267,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
       cout << "increment failed :(" << endl;
     } else {
     }
+  } else {
   }
 }
 END_WORD
@@ -262,11 +275,31 @@ REGISTER_WORD(IncrementImageStreamBuffer)
 
 WORD(StreamCropsAsFocusedClass)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
+
+  streamImage * tsi = setIsbIdx(ms, ms->config.sibCurIdx);
+
+  eePose tArmP, tBaseP;
+  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+
+  double thisZ = tArmP.pz - tBaseP.pz;
+  eePose thisVpBaseheight;
+  thisVpBaseheight.pz = tBaseP.pz;
+  pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
+
+  double p_dist_thresh = 0.07;
+  double dist_to_base = eePose::distance(tBaseP, thisVpBaseheight);
+  if (dist_to_base < p_dist_thresh) {
+    cout << "Stream crop vanishing point to base test SUCCESS, accepting, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
+  } else {
+    cout << "Stream crop vanishing point to base test FAILURE, skipping, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
+    return;
+  }
+
   if ( ms->config.focusedClass > -1 ) {
     for (int c = 0; c < ms->config.bTops.size(); c++) {
       // XXX TODO want to annotate these crops with a yaml file that includes pose and time
       string thisLabelName = ms->config.focusedClassLabel;
-      Mat thisTarget = ms->config.streamImageBuffer[ms->config.sibCurIdx].image;
+      Mat thisTarget = tsi->image;
       Mat crop = thisTarget(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
       char buf[1024];
       string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/detectionCrops/";
@@ -280,10 +313,127 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       imwrite(buf, crop, args);
       ms->config.cropCounter++;
     }
+  } else {
   }
 }
 END_WORD
 REGISTER_WORD(StreamCropsAsFocusedClass)
+
+WORD(IntegrateImageStreamBufferServoImages)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+
+  cout << "Searching image stream for servo images..." << endl;
+
+  int tNumHeights = ms->config.hmWidth;
+  for (int hIdx = tNumHeights-1; hIdx > -1; hIdx--) {
+
+    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("streamedAccumulatedDensity");
+
+    ms->pushWord(std::make_shared<IntegerWord>(hIdx));
+    ms->pushWord("iterateIsbAndAccumulateHeightImages");
+
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord(std::make_shared<IntegerWord>(hIdx));
+    ms->pushWord("changeToHeight"); // change to height 2
+    ms->pushWord("rewindImageStreamBuffer"); 
+    ms->pushWord("resetAccumulatedStreamImage");
+  }
+}
+END_WORD
+REGISTER_WORD(IntegrateImageStreamBufferServoImages)
+
+WORD(ResetAccumulatedStreamImage)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+  resetAccumulatedStreamImage(ms);
+}
+END_WORD
+REGISTER_WORD(ResetAccumulatedStreamImage)
+
+WORD(IterateIsbAndAccumulateHeightImages)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+  streamImage * tsi = setIsbIdx(ms, ms->config.sibCurIdx);
+  shared_ptr<Word> hWord = ms->popWord();
+
+  if (hWord == NULL) {
+    cout << "oops, iterateIsbAndAccumulateHeightImages requires an argument..." << endl;
+    ms->clearStack();
+  } else {
+  }
+  std::shared_ptr<IntegerWord> hIntWord = std::dynamic_pointer_cast<IntegerWord>(hWord);
+
+
+  int tNumHeights = ms->config.hmWidth;
+  int thisHeightIdx =  hIntWord->value();
+  double scaledHeight = (double(thisHeightIdx)/double(tNumHeights-1)) * (ms->config.maxHeight - ms->config.minHeight);
+
+  eePose tArmP, tBaseP;
+  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+  eePose thisServoPose = tBaseP;
+  thisServoPose.pz = tBaseP.pz + scaledHeight;
+
+  double p_dist_thresh = 0.01;
+  double dist_to_servo = eePose::distance(tArmP, thisServoPose);
+  if ( success && (dist_to_servo < p_dist_thresh) ) {
+    cout << "Stream servo image test SUCCESS, accepting, dist_to_servo, p_dist_thresh: " << dist_to_servo << " " << p_dist_thresh << endl;
+
+    Size sz = ms->config.accumulatedStreamImage.size();
+
+    if (sz == tsi->image.size()) {
+      int imW = sz.width;
+      int imH = sz.height;
+
+      for (int x = 0; x < imW; x++) {
+	for (int y = 0; y < imH; y++) {
+	  ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[0] = ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[0] + tsi->image.at<Vec3b>(y,x)[0];
+	  ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[1] = ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[1] + tsi->image.at<Vec3b>(y,x)[1];
+	  ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[2] = ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[2] + tsi->image.at<Vec3b>(y,x)[2];
+	  ms->config.accumulatedStreamImageMass.at<double>(y,x) += 1.0;
+	}
+      }
+    } else {
+      Size newSz = ms->config.accumulatedStreamImage.size(); 
+      cout << "iterateIsbAndAccumulateHeightImages resizing and setting accumulatedStreamImage and mass: " << sz << newSz << endl;
+      ms->config.accumulatedStreamImage.create(newSz, CV_64FC3);
+      ms->config.accumulatedStreamImageMass.create(newSz, CV_64F);
+      int imW = newSz.width;
+      int imH = newSz.height;
+      for (int x = 0; x < imW; x++) {
+	for (int y = 0; y < imH; y++) {
+	  ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[0] = tsi->image.at<Vec3b>(y,x)[0];
+	  ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[1] = tsi->image.at<Vec3b>(y,x)[1];
+	  ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[2] = tsi->image.at<Vec3b>(y,x)[2];
+	  ms->config.accumulatedStreamImageMass.at<double>(y,x) = 1.0;
+	}
+      }
+    }
+  } else {
+    //cout << "Stream servo image test FAILURE, skipping but recalling, dist_to_servo, p_dist_thresh: " << dist_to_servo << " " << p_dist_thresh << endl;
+  }
+
+  int recall = 1;
+  int nextIdx = ms->config.sibCurIdx + 1;
+  cout << "iterateIsbAndAccumulateHeightImages incrementing to " << nextIdx << endl;
+  if ( (nextIdx > -1) && (nextIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage * result = setIsbIdx(ms, nextIdx);  
+    if (result == NULL) {
+      cout << "iterateIsbAndAccumulateHeightImages increment failed :(, nextIdx: " << nextIdx << endl;
+      ms->clearStack();
+    } else {
+    }
+  } else {
+    recall = 0;
+  }
+
+  if (recall) {
+    ms->pushWord(std::make_shared<IntegerWord>(thisHeightIdx));
+    ms->pushWord("iterateIsbAndAccumulateHeightImages");
+  } else {
+    cout << "iterateIsbAndAccumulateHeightImages reached the end of the image stream buffer." << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(IterateIsbAndAccumulateHeightImages)
 
 
 }
