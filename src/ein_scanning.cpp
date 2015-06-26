@@ -1972,44 +1972,53 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("activateSensorStreaming"); 
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("setSisFlags"); 
 
   ms->pushWord("fullImpulse");
-  ms->pushWord("setMovementSpeedMoveVerySlow");
+
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("shiftIntoGraspGear1"); 
   ms->pushWord("changeToHeight1"); 
   //ms->pushWord("comeToHover");
   ms->pushWord("moveToRegister1");
 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord("setSisFlags"); 
 
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
   {
-    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("gradientServoPrep");
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("changeToHeight3"); // change to height 3
   }
   {
-    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("gradientServoPrep");
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("changeToHeight2"); // change to height 2
   }
   {
-    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("gradientServoPrep");
     ms->pushWord("waitUntilAtCurrentPosition");
-      ms->pushWord("changeToHeight1"); // change to height 1
+    ms->pushWord("changeToHeight1"); // change to height 1
   }
   {
-    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("gradientServoPrep");
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("changeToHeight0"); // change to height 0
   }
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("setSisFlags"); 
   
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("moveToRegister1");
@@ -2651,5 +2660,23 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(WriteAlphaObjectToBetaFoldersA)
+
+WORD(RetrainVocabOn)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "retrain_vocab turned on,  was: " << ms->config.retrain_vocab << ", is: ";
+  ms->config.retrain_vocab = 1;
+  cout << ms->config.retrain_vocab << endl;
+}
+END_WORD
+REGISTER_WORD(RetrainVocabOn)
+
+WORD(RetrainVocabOff)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "retrain_vocab turned off,  was: " << ms->config.retrain_vocab << ", is: ";
+  ms->config.retrain_vocab = 0;
+  cout << ms->config.retrain_vocab << endl;
+}
+END_WORD
+REGISTER_WORD(RetrainVocabOff)
 
 }

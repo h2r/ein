@@ -1139,15 +1139,15 @@ streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx) {
       streamImage &lsi = ms->config.streamImageBuffer[lastIdx];
       lsi.image.create(1, 1, CV_8UC3);
       lsi.loaded = 0;
-      cout << "setIsbIdx: last was valid and different." << endl;
+      //cout << "setIsbIdx: last was valid and different." << endl;
     } else {
-      cout << "setIsbIdx: last was invalid or the same." << endl;
+      //cout << "setIsbIdx: last was invalid or the same." << endl;
     }
 
     if (tsi.loaded) {
-      cout << "setIsbIdx: this was loaded." << endl;
+      //cout << "setIsbIdx: this was loaded." << endl;
     } else {
-      cout << "setIsbIdx: this was not loaded." << endl;
+      //cout << "setIsbIdx: this was not loaded." << endl;
       tsi.image = imread(tsi.filename);
       if (tsi.image.data == NULL) {
 	tsi.loaded = 0;
@@ -1166,6 +1166,21 @@ streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx) {
   }
 
   return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
+}
+
+void resetAccumulatedStreamImage(std::shared_ptr<MachineState> ms) {
+  Size sz = ms->config.accumulatedStreamImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[0] = 0.0;
+      ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[1] = 0.0;
+      ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[2] = 0.0;
+      ms->config.accumulatedStreamImageMass.at<double>(y,x) = 0.0;
+    }
+  }
 }
 
 int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase) {
@@ -1586,12 +1601,18 @@ void populateStreamImageBuffer(std::shared_ptr<MachineState> ms) {
   }
 }
 
-void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStreamIdx) {
+void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStreamIdx, double now) {
+  if (now - ms->config.sensorStreamLastActivated > ms->config.sensorStreamTimeout) {
+    cout << "Whoops, sensor stream timed out, clearing stack and deactivating." << endl;
+    ms->clearStack();
+    ms->pushWord("deactivateSensorStreaming");
+  } else {
+  }
+
   string thisLabelName = ms->config.classLabels[classToStreamIdx];
   string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/images/";
-  ros::Time thisNow = ros::Time::now();
   char buf[1024];
-  sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
+  sprintf(buf, "%s%f", this_image_path.c_str(), now);
   string root_path(buf); 
 
   string png_path = root_path + ".png";
@@ -1608,17 +1629,23 @@ void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStr
   // may want to save additional camera parameters
   FileStorage fsvO;
   fsvO.open(yaml_path, FileStorage::WRITE);
-  fsvO << "time" <<  thisNow.toSec();
+  fsvO << "time" <<  now;
   fsvO.release();
 }
 
-void streamRangeAsClass(std::shared_ptr<MachineState> ms, double rangeIn, int classToStreamIdx) {
+void streamRangeAsClass(std::shared_ptr<MachineState> ms, double rangeIn, int classToStreamIdx, double now) {
+  if (now - ms->config.sensorStreamLastActivated > ms->config.sensorStreamTimeout) {
+    cout << "Whoops, sensor stream timed out, clearing stack and deactivating." << endl;
+    ms->clearStack();
+    ms->pushWord("deactivateSensorStreaming");
+  } else {
+  }
+
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
     streamRange toAdd;
-    ros::Time thisNow = ros::Time::now();
     toAdd.range = rangeIn;
-    toAdd.time = thisNow.toSec();
+    toAdd.time = now;
     ms->config.streamRangeBuffer.push_back(toAdd);
   } else {
     cout << "streamRangeAsClass: invalid focused class, deactivating streaming." << endl;
@@ -1632,14 +1659,20 @@ void streamRangeAsClass(std::shared_ptr<MachineState> ms, double rangeIn, int cl
   } // do nothing
 }
 
-void streamPoseAsClass(std::shared_ptr<MachineState> ms, eePose poseIn, int classToStreamIdx) {
+void streamPoseAsClass(std::shared_ptr<MachineState> ms, eePose poseIn, int classToStreamIdx, double now) {
+  if (now - ms->config.sensorStreamLastActivated > ms->config.sensorStreamTimeout) {
+    cout << "Whoops, sensor stream timed out, clearing stack and deactivating." << endl;
+    ms->clearStack();
+    ms->pushWord("deactivateSensorStreaming");
+  } else {
+  }
+
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
     streamEePose toAdd;
-    ros::Time thisNow = ros::Time::now();
     toAdd.arm_pose = poseIn;
     toAdd.base_pose = ms->config.c3dPoseBase;
-    toAdd.time = thisNow.toSec();
+    toAdd.time = now;
     ms->config.streamPoseBuffer.push_back(toAdd);
   } else {
     cout << "streamPoseAsClass: invalid focused class, deactivating streaming." << endl;
@@ -2030,7 +2063,8 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
 
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisPose)) {
-    streamPoseAsClass(ms, ms->config.trueEEPoseEEPose, cfClass); 
+    double thisNow = eps.header.stamp.toSec();
+    streamPoseAsClass(ms, ms->config.trueEEPoseEEPose, cfClass, thisNow); 
   } else {
   } // do nothing
 
@@ -2645,7 +2679,8 @@ void rangeCallback(const sensor_msgs::Range& range) {
 
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisRange)) {
-    streamRangeAsClass(ms, range.range, cfClass); 
+    double thisNow = range.header.stamp.toSec();
+    streamRangeAsClass(ms, range.range, cfClass, thisNow); 
   } else {
   } // do nothing
 
@@ -3396,7 +3431,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
       int cfClass = ms->config.focusedClass;
       if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
-	streamImageAsClass(ms, ms->config.cv_ptr->image, cfClass); 
+	double thisNow = msg->header.stamp.toSec();
+	streamImageAsClass(ms, ms->config.cv_ptr->image, cfClass, thisNow); 
       } else {
       } // do nothing
       converted = 1;
@@ -3475,8 +3511,10 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   Mat thisImage;
   int weHaveImData = getRingImageAtTime(ms, msg->header.stamp, thisImage);
 
-  //if (ms->config.recordRangeMap) 
-  recordReadyRangeReadings(ms);
+  if (ms->config.recordRangeMap) {
+    recordReadyRangeReadings(ms);
+  } else {
+  }
 
 
   // paint gripper reticle centerline
@@ -9371,6 +9409,30 @@ void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms) {
 
 }
 
+void substituteStreamAccumulatedImageQuantities(shared_ptr<MachineState> ms) {
+  double param_aerialGradientDecayImageAverage = 0.0;
+  ms->config.aerialGradientDecay = param_aerialGradientDecayImageAverage;
+
+  double param_sobel_sigma_substitute_stream = 4.0;//2.0; reflections are a problem for low sigma...
+  ms->config.sobel_sigma = param_sobel_sigma_substitute_stream;
+
+  Size sz = ms->config.accumulatedStreamImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      double denom = ms->config.accumulatedStreamImageMass.at<double>(y,x);
+      if (denom <= 1.0) {
+	denom = 1.0;
+      }
+      ms->config.objectViewerImage.at<Vec3b>(y,x)[0] = doubleToByte(ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[0] / denom);
+      ms->config.objectViewerImage.at<Vec3b>(y,x)[1] = doubleToByte(ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[1] / denom);
+      ms->config.objectViewerImage.at<Vec3b>(y,x)[2] = doubleToByte(ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[2] / denom);
+    }
+  }
+}
+
 void substituteStreamImageQuantities(shared_ptr<MachineState> ms) {
   double param_aerialGradientDecayImageAverage = 0.0;
   ms->config.aerialGradientDecay = param_aerialGradientDecayImageAverage;
@@ -9379,7 +9441,7 @@ void substituteStreamImageQuantities(shared_ptr<MachineState> ms) {
   ms->config.sobel_sigma = param_sobel_sigma_substitute_stream;
 
   int thisIdx = ms->config.sibCurIdx;
-  cout << "substituteStreamImageQuantities: " << thisIdx << endl;
+  //cout << "substituteStreamImageQuantities: " << thisIdx << endl;
   if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
     streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
     if (tsi.image.data == NULL) {
@@ -10160,7 +10222,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
 	}
 
 	double thisDistance = sqrt((ms->config.bCens[t].x-ms->config.reticle.px)*(ms->config.bCens[t].x-ms->config.reticle.px) + (ms->config.bCens[t].y-ms->config.reticle.py)*(ms->config.bCens[t].y-ms->config.reticle.py));
-	cout << "   (density) Distance for box " << t << " : " << thisDistance << endl;
+	//cout << "   (density) Distance for box " << t << " : " << thisDistance << endl;
 	if (thisDistance < closestBBDistance) {
 	  closestBBDistance = thisDistance;
 	  closestBBToReticle = t;
