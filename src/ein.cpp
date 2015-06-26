@@ -1916,6 +1916,11 @@ void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folder
 
   string servoCrop_file_path = servoCrops + "servoCrop";
   writeAerialGradientsToServoCrop(ms, idx, servoCrop_file_path);
+
+  // notably missing are aerial gradients which are saved in the function that generates them
+
+  // XXX save grasp memories separately from range
+  // XXX load grasp memories separately 
 }
 
 void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
@@ -7335,6 +7340,9 @@ cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.cu
       return;
     }
     
+
+    // XXX Deprecated, no longer auto-picking
+    /*
     // ATTN 17
     if (ms->config.bailAfterGradient) {
       cout << "gradient servo set to bail. returning." << endl;
@@ -7363,6 +7371,7 @@ cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.cu
 	ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
       }
     }
+    */
     
     return;
   } else {
@@ -9015,7 +9024,7 @@ void bowGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const cha
   string dotdot("..");
 
   char buf[1024];
-  sprintf(buf, "%s%s/rgb", classDir.c_str(), className);
+  sprintf(buf, "%s%s/ein/detectionCrops/", classDir.c_str(), className);
   dpdf = opendir(buf);
   if (dpdf != NULL){
     while (epdf = readdir(dpdf)){
@@ -9026,7 +9035,7 @@ void bowGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const cha
         Mat descriptors;
 
         char filename[1024];
-        sprintf(filename, "%s%s/rgb/%s", classDir.c_str(), className, epdf->d_name);
+        sprintf(filename, "%s%s/ein/detectionCrops/%s", classDir.c_str(), className, epdf->d_name);
         Mat image;
         image = imread(filename);
 	Size sz = image.size();

@@ -771,8 +771,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.classLabels.push_back(thisLabelName);
   string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/";
   mkdir(dirToMakePath.c_str(), 0777);
-  string rgbDirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb";
-  mkdir(rgbDirToMakePath.c_str(), 0777);
   ms->config.newClassCounter++;
 }
 END_WORD

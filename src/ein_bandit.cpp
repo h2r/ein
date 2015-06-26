@@ -453,8 +453,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->clearStack();
   }
 
-  ms->pushWord("returnObject");
-
   StringWord::parse(ms->config.classLabels[ms->config.focusedClass]);
   ms->pushWord("deliverTargetObject");
 
@@ -465,7 +463,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("mapClosestBlueBox");
   ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
   ms->pushWord("synchronicServo"); 
+  ms->pushWord("synchronicServoDoNotTakeClosest"); 
   ms->pushWord("setBoundingBoxModeToMapping"); 
+  ms->pushWord("setPlaceModeToShake");
+  ms->pushWord("clearMapForPatrol");
+  ms->pushWord("clearBlueBoxMemories");
 }
 END_WORD
 REGISTER_WORD(PickFocusedClass)
