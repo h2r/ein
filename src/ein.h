@@ -165,6 +165,7 @@ int classIdxForName(shared_ptr<MachineState> ms, string name);
 void initClassFolders(std::shared_ptr<MachineState> ms, string folderName);
 void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folderName);
 void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, string servoCrop_file_path);
+void writeThumbnail(std::shared_ptr<MachineState> ms, int idx, string servoCrop_file_path);
 void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path);
 void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
 void writeGraspMemory(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
