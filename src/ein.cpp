@@ -1858,6 +1858,64 @@ void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_
   }
   fsvO << "}";
 
+  fsvO << "placeUnderPoints" << "{";
+  {
+    int tng = ms->config.classPlaceUnderPoints[idx].size();
+    fsvO << "size" <<  tng;
+    fsvO << "pupPoses" << "[" ;
+    for (int i = 0; i < tng; i++) {
+      ms->config.classPlaceUnderPoints[idx][i].writeToFileStorage(fsvO);
+      cout << " wrote pup pose: " << ms->config.classPlaceUnderPoints[idx][i] << endl;
+    }
+    fsvO << "]";
+  }
+  fsvO << "}";
+
+  fsvO << "placeOverPoints" << "{";
+  {
+    int tng = ms->config.classPlaceOverPoints[idx].size();
+    fsvO << "size" <<  tng;
+    fsvO << "popPoses" << "[" ;
+    for (int i = 0; i < tng; i++) {
+      ms->config.classPlaceOverPoints[idx][i].writeToFileStorage(fsvO);
+      cout << " wrote pop pose: " << ms->config.classPlaceOverPoints[idx][i] << endl;
+    }
+    fsvO << "]";
+  }
+
+  fsvO.release();
+}
+
+void writeGraspMemory(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path) {
+  // initialize this if we need to
+  guardGraspMemory(ms);
+  guardHeightMemory(ms);
+
+  if ((idx > -1) && (idx < ms->config.classGraspMemoryTries1.size())) {
+    // do nothing
+  } else {
+    cout << "writeGraspMemory: invalid idx, not writing." << endl;
+    return;
+  }
+
+  FileStorage fsvO;
+  cout << "writeGraspMemory: Writing: " << this_grasp_path << endl;
+  fsvO.open(this_grasp_path, FileStorage::WRITE);
+
+  copyGraspMemoryTriesToClassGraspMemoryTries(ms);
+  fsvO << "graspMemoryTries1" << ms->config.classGraspMemoryTries1[idx];
+  fsvO << "graspMemoryPicks1" << ms->config.classGraspMemoryPicks1[idx];
+  fsvO << "graspMemoryTries2" << ms->config.classGraspMemoryTries2[idx];
+  fsvO << "graspMemoryPicks2" << ms->config.classGraspMemoryPicks2[idx];
+  fsvO << "graspMemoryTries3" << ms->config.classGraspMemoryTries3[idx];
+  fsvO << "graspMemoryPicks3" << ms->config.classGraspMemoryPicks3[idx];
+  fsvO << "graspMemoryTries4" << ms->config.classGraspMemoryTries4[idx];
+  fsvO << "graspMemoryPicks4" << ms->config.classGraspMemoryPicks4[idx];
+
+  copyHeightMemoryTriesToClassHeightMemoryTries(ms);
+  fsvO << "heightMemoryTries" << ms->config.classHeightMemoryTries[idx];
+  fsvO << "heightMemoryPicks" << ms->config.classHeightMemoryPicks[idx];
+
   fsvO.release();
 }
 
@@ -1917,7 +1975,9 @@ void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folder
   string servoCrop_file_path = servoCrops + "servoCrop";
   writeAerialGradientsToServoCrop(ms, idx, servoCrop_file_path);
 
-  // notably missing are aerial gradients which are saved in the function that generates them
+  string grasp_memory_file_path = pickMemories + "graspMemories.yml";
+  writeGraspMemory(ms, idx, grasp_memory_file_path);
+
 
   // XXX save grasp memories separately from range
   // XXX load grasp memories separately 
