@@ -710,7 +710,6 @@ class EinConfig {
 
   // class focused for learning
   int focusedClass = -1;
-  int newClassCounter = 0;
   string focusedClassLabel;
 
   int synchronicTakeClosest = 0;

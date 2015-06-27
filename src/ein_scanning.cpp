@@ -140,8 +140,6 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   //  detectorsInit() will reset numClasses
   detectorsInit(ms);
 
-  // reset numNewClasses
-  ms->config.newClassCounter = 0;
 
   // XXX reset anything else
 }
@@ -311,7 +309,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	ms->config.classRangeMaps[tfc].at<double>(y,x) = ms->config.rangeMapReg1[x + y*ms->config.rmWidth];
       } 
     } 
+    cout << "classRangeMapFromRegister1: focused class inside of bounds, " << tfc << " " << ms->config.classRangeMaps.size() << endl;
   } else {
+    cout << "classRangeMapFromRegister1: focused class out of bounds, " << tfc << " " << ms->config.classRangeMaps.size() << endl;
   }
 }
 END_WORD
@@ -763,15 +763,19 @@ REGISTER_WORD(SaveAerialGradientMap)
 WORD(InitializeAndFocusOnNewClass)
 CODE(196720)     // capslock + P
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.focusedClass = ms->config.numClasses+ms->config.newClassCounter;
+  ms->config.focusedClass = ms->config.classLabels.size();
+  ms->config.targetClass = ms->config.focusedClass;
   char buf[1024];
   sprintf(buf, "autoClass%d_%s", ms->config.focusedClass, ms->config.left_or_right_arm.c_str());
   string thisLabelName(buf);
   ms->config.focusedClassLabel = thisLabelName;
   ms->config.classLabels.push_back(thisLabelName);
+  ms->config.numClasses = ms->config.classLabels.size();
   string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/";
   mkdir(dirToMakePath.c_str(), 0777);
-  ms->config.newClassCounter++;
+  initRangeMaps(ms);
+  guardGraspMemory(ms);
+  guardHeightMemory(ms);
 }
 END_WORD
 REGISTER_WORD(InitializeAndFocusOnNewClass)
@@ -1956,6 +1960,20 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.eepReg2 = ms->config.beeHome;
   ms->config.eepReg4 = ms->config.beeHome;
 
+/*
+
+reinitRangeMaps
+integrateImageStreamBufferCrops
+integrateImageStreamBufferServoImages
+loadMarginalGraspMemory 
+loadPriorGraspMemoryAnalytic 
+classRangeMapFromRegister1 
+"autoClass4_left" 
+setTargetClass 
+integrateRangeStreamBuffer 
+populateStreamBuffers 
+
+*/
 
   // set lastLabelLearned
   ms->pushWord("setLastLabelLearned");
@@ -2677,5 +2695,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(RetrainVocabOff)
+
+WORD(ReinitRangeMaps)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  initRangeMaps(ms);
+}
+END_WORD
+REGISTER_WORD(ReinitRangeMaps)
 
 }
