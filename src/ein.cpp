@@ -5297,6 +5297,10 @@ void guardGraspMemory(shared_ptr<MachineState> ms) {
       ms->config.classGraspMemoryPicks4.resize(ms->config.focusedClass + 1);
     }
 
+    if (ms->config.classRangeMaps.size() <= ms->config.focusedClass) {
+      ms->config.classRangeMaps.resize(ms->config.focusedClass + 1);
+    }
+
   }
 
   {
@@ -5324,6 +5328,9 @@ void guardGraspMemory(shared_ptr<MachineState> ms) {
       ms->config.classGraspMemoryTries4[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
       ms->config.classGraspMemoryPicks4[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
       loadPrior = true;
+    }
+    if (!( (ms->config.classRangeMaps[ms->config.focusedClass].rows > 1) && (ms->config.classRangeMaps[ms->config.focusedClass].cols > 1) )) {
+      ms->config.classRangeMaps[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
     }
     if (loadPrior) {
       loadPriorGraspMemory(ms, ANALYTIC_PRIOR);
