@@ -730,21 +730,25 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     case 0:
       {
         fsvO << "aerialHeight0Gradients" << gCrop;
+	ms->config.classHeight0AerialGradients[ms->config.focusedClass] = gCrop.clone();
       }
       break;
     case 1:
       {
         fsvO << "aerialHeight1Gradients" << gCrop;
+	ms->config.classHeight1AerialGradients[ms->config.focusedClass] = gCrop.clone();
       }
       break;
     case 2:
       {
         fsvO << "aerialHeight2Gradients" << gCrop;
+	ms->config.classHeight2AerialGradients[ms->config.focusedClass] = gCrop.clone();
       }
       break;
     case 3:
       {
         fsvO << "aerialHeight3Gradients" << gCrop;
+	ms->config.classHeight3AerialGradients[ms->config.focusedClass] = gCrop.clone();
       }
       break;
     default:
@@ -776,9 +780,31 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   initRangeMaps(ms);
   guardGraspMemory(ms);
   guardHeightMemory(ms);
+
+  int idx = ms->config.focusedClass;
+  string folderName = ms->config.data_directory + "/objects/" + ms->config.classLabels[idx] + "/";
+  initClassFolders(ms, folderName);
 }
 END_WORD
 REGISTER_WORD(InitializeAndFocusOnNewClass)
+
+
+WORD(WriteFocusedClass)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int idx = ms->config.focusedClass;
+
+  if ((idx > -1) && (idx < ms->config.classLabels.size())) {
+    // do nothing
+  } else {
+    cout << "writeFocusedClass: invalid idx, not writing." << endl;
+    return;
+  }
+
+  string outfolder = ms->config.data_directory + "/objects/" + ms->config.classLabels[idx] + "/";
+  writeClassToFolder(ms, idx, outfolder);
+}
+END_WORD
+REGISTER_WORD(WriteFocusedClass)
 
 WORD(SaveCurrentClassDepthAndGraspMaps)
 CODE(196705) // capslock + A
@@ -791,7 +817,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     string thisLabelName = ms->config.focusedClassLabel;
 
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/ir2D/";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/ir2d/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 
     Mat rangeMapTemp(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
@@ -1968,13 +1994,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("pickFocusedClass");
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord("changeToHeight"); 
-  ms->pushWord("reinitRangeMaps");
+  // XXX second writeFocusedClass because aerial gradients aren't loaded until re-init
+  //ms->pushWord("writeFocusedClass");
   //ms->pushWord("integrateImageStreamBufferCrops");
+  //ms->pushWord("reinitRangeMaps");
+  ms->pushWord("writeFocusedClass");
   ms->pushWord("integrateImageStreamBufferServoImages");
-  ms->pushWord("saveCurrentClassDepthAndGraspMaps");
-  ms->pushWord("loadMarginalGraspMemory");
+  //ms->pushWord("saveCurrentClassDepthAndGraspMaps");
+  //ms->pushWord("loadMarginalGraspMemory");
   ms->pushWord("loadPriorGraspMemoryAnalytic");
-  ms->pushWord("resetCurrentFocusedClass");
+  //ms->pushWord("resetCurrentFocusedClass");
   ms->pushWord("classRangeMapFromRegister1");
   ms->pushWord("integrateRangeStreamBuffer");
   ms->pushWord("populateStreamBuffers");

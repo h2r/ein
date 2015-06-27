@@ -1077,6 +1077,27 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
   }
 }
 
+void writeThumbnail(std::shared_ptr<MachineState> ms, int idx, string thumbnail_file_path) {
+  if ( (idx > -1) && (idx < ms->config.classLabels.size()) ) {
+    // do nothing
+  } else {
+    cout << "writeThumbnail: invalid idx, not writing." << endl;
+    return;
+  }
+
+  {
+    string loadPath = thumbnail_file_path + "/ein/servoImages/aerialHeight0PreGradients.png";
+    string outPath = thumbnail_file_path + "/thumbnail.png";
+    Mat tmp = imread(loadPath);
+
+    std::vector<int> args;
+    args.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    args.push_back(0);
+
+    imwrite(outPath, tmp, args);
+  }
+}
+
 void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path) {
   if ((idx > -1) && (idx < ms->config.classRangeMaps.size())) {
     // do nothing
@@ -1090,7 +1111,7 @@ void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path
   FileStorage fsvO;
   string yaml_path = this_range_path + ".yml";
   cout << "writeIr2D: Writing: " << yaml_path << endl;
-  fsvO.open(this_range_path, FileStorage::WRITE);
+  fsvO.open(yaml_path, FileStorage::WRITE);
   fsvO << "rangeMap" << thisRangeMap;
   fsvO.release();
 
@@ -1929,7 +1950,7 @@ void initClassFolders(std::shared_ptr<MachineState> ms, string folderName) {
       string d3dGrasps = ein + "3dGrasps/";
       string detectionCrops = ein + "detectionCrops/";
       string gaussianColorMap = ein + "gaussianColorMap/";
-      string ir2D = ein + "ir2D/";
+      string ir2d = ein + "ir2d/";
       string pickMemories = ein + "pickMemories/";
       string servoCrops = ein + "servoCrops/";
       string servoImages = ein + "servoImages/";
@@ -1943,13 +1964,21 @@ void initClassFolders(std::shared_ptr<MachineState> ms, string folderName) {
       mkdir(d3dGrasps.c_str(), 0777);
       mkdir(detectionCrops.c_str(), 0777);
       mkdir(gaussianColorMap.c_str(), 0777);
-      mkdir(ir2D.c_str(), 0777);
+      mkdir(ir2d.c_str(), 0777);
       mkdir(pickMemories.c_str(), 0777);
       mkdir(servoCrops.c_str(), 0777);
       mkdir(servoImages.c_str(), 0777);
 }
 
 void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folderName) {
+
+  if ((idx > -1) && (idx < ms->config.classLabels.size())) {
+    // do nothing
+  } else {
+    cout << "writeClassToFolder: invalid idx, not writing." << endl;
+    return;
+  }
+
   string item = folderName + "/";
     string raw = item + "raw/";
       string images = raw + "images/";
@@ -1959,7 +1988,7 @@ void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folder
       string d3dGrasps = ein + "3dGrasps/";
       string detectionCrops = ein + "detectionCrops/";
       string gaussianColorMap = ein + "gaussianColorMap/";
-      string ir2D = ein + "ir2D/";
+      string ir2d = ein + "ir2d/";
       string pickMemories = ein + "pickMemories/";
       string servoCrops = ein + "servoCrops/";
       string servoImages = ein + "servoImages/";
@@ -1969,11 +1998,14 @@ void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folder
   string d3d_grasp_file_path = d3dGrasps + "3dGrasps.yml";
   write3dGrasps(ms, idx, d3d_grasp_file_path);
   
-  string ir2D_file_path = ir2D + "ir2D";
-  writeIr2D(ms, idx, ir2D_file_path);
+  string ir2d_file_path = ir2d + "ir2d";
+  writeIr2D(ms, idx, ir2d_file_path);
 
   string servoCrop_file_path = servoCrops + "servoCrop";
   writeAerialGradientsToServoCrop(ms, idx, servoCrop_file_path);
+
+  string thumbnail_file_path = item;
+  writeThumbnail(ms, idx, thumbnail_file_path);
 
   string grasp_memory_file_path = pickMemories + "graspMemories.yml";
   writeGraspMemory(ms, idx, grasp_memory_file_path);
@@ -7022,10 +7054,6 @@ void gradientServo(shared_ptr<MachineState> ms) {
     cout << "bad target class, not servoing." << endl;
     return;
   }
-  if ((ms->config.classAerialGradients[ms->config.targetClass].rows <= 1) && (ms->config.classAerialGradients[ms->config.targetClass].cols <= 1)) {
-    cout << "no aerial gradients for this class, not servoing." << endl;
-    return;
-  }
 
   {
     int i, j;
@@ -7066,6 +7094,11 @@ void gradientServo(shared_ptr<MachineState> ms) {
       assert(0);
     }
     break;
+  }
+
+  if ((ms->config.classAerialGradients[ms->config.targetClass].rows <= 1) && (ms->config.classAerialGradients[ms->config.targetClass].cols <= 1)) {
+    cout << "no aerial gradients for this class, not servoing." << endl;
+    return;
   }
 
   double Px = 0;
@@ -11212,11 +11245,13 @@ void detectorsInit(shared_ptr<MachineState> ms) {
 
 
 void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const char *className, int i) {
+
+
   {
     string thisLabelName(className);
 
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/ir2D/";
-    string this_range_path = dirToMakePath + "xyzRange.yml";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/ir2d/";
+    string this_range_path = dirToMakePath + "ir2d.yml";
 
     cout << "  tryToLoadRangeMap: " << this_range_path << endl;
 
@@ -11244,6 +11279,28 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
 
       fsfI["rangeMap"] >> ms->config.classRangeMaps[i]; 
 
+      fsfI.release();
+      cout << "Loaded rangeMap from " << this_range_path << ms->config.classRangeMaps[i].size() << endl; 
+
+    } else {
+      ms->config.classRangeMaps[i] = Mat(1, 1, CV_64F);
+
+      cout << "Failed to load rangeMap from " << this_range_path << endl; 
+    }
+  }
+
+  {
+    string thisLabelName(className);
+
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/pickMemories/";
+    string this_grasp_path = dirToMakePath + "graspMemories.yml";
+
+    cout << "  tryToLoadRangeMap: " << this_grasp_path << endl;
+
+    FileStorage fsfI;
+    fsfI.open(this_grasp_path, FileStorage::READ);
+    if (fsfI.isOpened()) {
+
       fsfI["graspMemoryTries1"] >> ms->config.classGraspMemoryTries1[i];
       fsfI["graspMemoryPicks1"] >> ms->config.classGraspMemoryPicks1[i];
       fsfI["graspMemoryTries2"] >> ms->config.classGraspMemoryTries2[i];
@@ -11257,20 +11314,18 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
       fsfI["heightMemoryPicks"] >> ms->config.classHeightMemoryPicks[i];
 
       fsfI.release();
-      cout << "Loaded rangeMap from " << this_range_path << ms->config.classRangeMaps[i].size() << endl; 
-      cout << "Loaded classGraspMemoryTries1 from " << this_range_path << ms->config.classGraspMemoryTries1[i].size() << endl; 
-      cout << "Loaded classGraspMemoryPicks1 from " << this_range_path << ms->config.classGraspMemoryPicks1[i].size() << endl; 
-      cout << "Loaded classGraspMemoryTries2 from " << this_range_path << ms->config.classGraspMemoryTries2[i].size() << endl; 
-      cout << "Loaded classGraspMemoryPicks2 from " << this_range_path << ms->config.classGraspMemoryPicks2[i].size() << endl; 
-      cout << "Loaded classGraspMemoryTries3 from " << this_range_path << ms->config.classGraspMemoryTries3[i].size() << endl; 
-      cout << "Loaded classGraspMemoryPicks3 from " << this_range_path << ms->config.classGraspMemoryPicks3[i].size() << endl; 
-      cout << "Loaded classGraspMemoryTries4 from " << this_range_path << ms->config.classGraspMemoryTries4[i].size() << endl; 
-      cout << "Loaded classGraspMemoryPicks4 from " << this_range_path << ms->config.classGraspMemoryPicks4[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries1 from " << this_grasp_path << ms->config.classGraspMemoryTries1[i].size() << endl; 
+      cout << "Loaded classGraspMemoryPicks1 from " << this_grasp_path << ms->config.classGraspMemoryPicks1[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries2 from " << this_grasp_path << ms->config.classGraspMemoryTries2[i].size() << endl; 
+      cout << "Loaded classGraspMemoryPicks2 from " << this_grasp_path << ms->config.classGraspMemoryPicks2[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries3 from " << this_grasp_path << ms->config.classGraspMemoryTries3[i].size() << endl; 
+      cout << "Loaded classGraspMemoryPicks3 from " << this_grasp_path << ms->config.classGraspMemoryPicks3[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries4 from " << this_grasp_path << ms->config.classGraspMemoryTries4[i].size() << endl; 
+      cout << "Loaded classGraspMemoryPicks4 from " << this_grasp_path << ms->config.classGraspMemoryPicks4[i].size() << endl; 
 
-      cout << "Loaded classHeightMemoryTries from " << this_range_path << ms->config.classHeightMemoryTries[i].size() << endl;
-      cout << "Loaded classHeightMemoryPicks from " << this_range_path << ms->config.classHeightMemoryPicks[i].size() << endl;
+      cout << "Loaded classHeightMemoryTries from " << this_grasp_path << ms->config.classHeightMemoryTries[i].size() << endl;
+      cout << "Loaded classHeightMemoryPicks from " << this_grasp_path << ms->config.classHeightMemoryPicks[i].size() << endl;
     } else {
-      ms->config.classRangeMaps[i] = Mat(1, 1, CV_64F);
       ms->config.classGraspMemoryTries1[i] = Mat(1, 1, CV_64F);
       ms->config.classGraspMemoryPicks1[i] = Mat(1, 1, CV_64F);
       ms->config.classGraspMemoryTries2[i] = Mat(1, 1, CV_64F);
@@ -11283,9 +11338,12 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
       ms->config.classHeightMemoryTries[i] = Mat(1, 1, CV_64F);
       ms->config.classHeightMemoryPicks[i] = Mat(1, 1, CV_64F);
 
-      cout << "Failed to load rangeMap from " << this_range_path << endl; 
+      cout << "Failed to load grasp memories from " << this_grasp_path << endl; 
     }
   }
+
+
+
   {
     {
       string thisLabelName(className);
