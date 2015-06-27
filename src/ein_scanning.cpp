@@ -1960,20 +1960,25 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.eepReg2 = ms->config.beeHome;
   ms->config.eepReg4 = ms->config.beeHome;
 
-/*
+// XXX 
+//  save grasp information separately
+//  remove grasp annotation
+//  reinit range maps for one class at a time
 
-reinitRangeMaps
-integrateImageStreamBufferCrops
-integrateImageStreamBufferServoImages
-loadMarginalGraspMemory 
-loadPriorGraspMemoryAnalytic 
-classRangeMapFromRegister1 
-"autoClass4_left" 
-setTargetClass 
-integrateRangeStreamBuffer 
-populateStreamBuffers 
+  ms->pushWord("pickFocusedClass");
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("changeToHeight"); 
+  ms->pushWord("reinitRangeMaps");
+  //ms->pushWord("integrateImageStreamBufferCrops");
+  ms->pushWord("integrateImageStreamBufferServoImages");
+  ms->pushWord("saveCurrentClassDepthAndGraspMaps");
+  ms->pushWord("loadMarginalGraspMemory");
+  ms->pushWord("loadPriorGraspMemoryAnalytic");
+  ms->pushWord("resetCurrentFocusedClass");
+  ms->pushWord("classRangeMapFromRegister1");
+  ms->pushWord("integrateRangeStreamBuffer");
+  ms->pushWord("populateStreamBuffers");
 
-*/
 
   // set lastLabelLearned
   ms->pushWord("setLastLabelLearned");
@@ -2702,5 +2707,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(ReinitRangeMaps)
+
+WORD(ResetCurrentFocusedClass)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int class_idx = ms->config.focusedClass;
+  cout << "resetCurrentFocusedClass: " << class_idx << endl;
+  if ( (class_idx > -1) && (class_idx < ms->config.classLabels.size()) ) {
+    changeTargetClass(ms, class_idx);
+  } else {
+    cout << "  invalid focused class, not resetting." << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(ResetCurrentFocusedClass)
 
 }

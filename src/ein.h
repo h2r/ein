@@ -167,6 +167,7 @@ void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folder
 void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, string servoCrop_file_path);
 void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path);
 void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
+void writeGraspMemory(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
 
 void saveAccumulatedStreamToPath(shared_ptr<MachineState> ms, string path);
 streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx);
