@@ -888,6 +888,7 @@ REGISTER_WORD(ScanCentered)
 WORD(StreamScanCentered)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   pushSpeedSign(ms, MOVE_FAST);
+  ms->pushWord("cruisingSpeed");
   ms->pushWord("streamSpin");
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   ms->pushWord("streamImageSpeed"); // w1 wait until at current position
@@ -2096,8 +2097,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
 
 
-
+  // XXX
   ms->pushWord("preAnnotateOffsetGrasp"); 
+
+
+
   ms->pushWord("setPhotoPinHere");
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");

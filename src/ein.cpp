@@ -997,7 +997,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
     // no compression!
     std::vector<int> args;
     args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    args.push_back(0);
+    args.push_back(ms->config.globalPngCompression);
     imwrite(png_path, this_grad, args);
   }
   {
@@ -1022,7 +1022,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
     // no compression!
     std::vector<int> args;
     args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    args.push_back(0);
+    args.push_back(ms->config.globalPngCompression);
     imwrite(png_path, this_grad, args);
   }
   {
@@ -1047,7 +1047,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
     // no compression!
     std::vector<int> args;
     args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    args.push_back(0);
+    args.push_back(ms->config.globalPngCompression);
     imwrite(png_path, this_grad, args);
   }
   {
@@ -1072,7 +1072,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
     // no compression!
     std::vector<int> args;
     args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    args.push_back(0);
+    args.push_back(ms->config.globalPngCompression);
     imwrite(png_path, this_grad, args);
   }
 }
@@ -1092,7 +1092,7 @@ void writeThumbnail(std::shared_ptr<MachineState> ms, int idx, string thumbnail_
 
     std::vector<int> args;
     args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    args.push_back(0);
+    args.push_back(ms->config.globalPngCompression);
 
     imwrite(outPath, tmp, args);
   }
@@ -1148,7 +1148,7 @@ void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path
   // no compression!
   std::vector<int> args;
   args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-  args.push_back(0);
+  args.push_back(ms->config.globalPngCompression);
   imwrite(png_path, rmImageOut, args);
 }
 
@@ -1702,7 +1702,7 @@ void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStr
   // no compression!
   std::vector<int> args;
   args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-  args.push_back(0);
+  args.push_back(ms->config.globalPngCompression);
   imwrite(png_path, im, args);
 
   // XXX take this cout out
@@ -3666,7 +3666,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   Mat thisImage;
   int weHaveImData = getRingImageAtTime(ms, msg->header.stamp, thisImage);
 
-  if (ms->config.recordRangeMap) {
+  if (ms->config.castRecentRangeRay) {
     recordReadyRangeReadings(ms);
   } else {
   }
@@ -9580,7 +9580,7 @@ void saveAccumulatedStreamToPath(shared_ptr<MachineState> ms, string path) {
   // no compression!
   std::vector<int> args;
   args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-  args.push_back(0);
+  args.push_back(ms->config.globalPngCompression);
   imwrite(path, ms->config.accumulatedStreamImageBytes, args);
 }
 

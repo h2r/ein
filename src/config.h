@@ -349,6 +349,8 @@ class EinConfig {
   Mat accumulatedStreamImageMass;
   Mat accumulatedStreamImageBytes;
 
+  int globalPngCompression = 0;
+
 
 
   double eeRange = 0.0;
@@ -650,6 +652,7 @@ class EinConfig {
   double ggY[totalGraspGears];
   double ggT[totalGraspGears];
 
+  int castRecentRangeRay = 1;
   int recordRangeMap = 0;
 
   Quaternionf irGlobalPositionEEFrame;
