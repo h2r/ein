@@ -269,7 +269,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       // no compression!
       std::vector<int> args;
       args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-      args.push_back(0);
+      args.push_back(ms->config.globalPngCompression);
       imwrite(buf, crop, args);
       ms->config.cropCounter++;
     }

@@ -352,6 +352,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("tryToMoveToTheLastPickHeight");   
     ms->pushWord("approachSpeed"); 
     ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("setRandomPositionAndOrientationForHeightLearning");
     ms->pushWord("assumeDeliveryPose");
 
     ms->pushWord("checkAndCountGrasp");

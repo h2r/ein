@@ -9,19 +9,32 @@ WORD(SetRandomPositionAndOrientationForHeightLearning)
 CODE( 1179687)     // capslock + numlock + '
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
+  double param_numTries = 1000;
+
   double param_bbLearnPerturbScale = 0.07;//0.1;//.05;//
   double param_bbLearnPerturbBias = 0.01;  //0.04;//0.05;
 
+  for (int t = 0; t < param_numTries; t++) {
+    double noX = param_bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
+    double noY = param_bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
+    noX = noX + (((noX > 0) - 0.5) * 2) * param_bbLearnPerturbBias;
+    noY = noY + (((noY > 0) - 0.5) * 2) * param_bbLearnPerturbBias;
+    double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
 
-  double noX = param_bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
-  double noY = param_bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
-  noX = noX + (((noX > 0) - 0.5) * 2) * param_bbLearnPerturbBias;
-  noY = noY + (((noY > 0) - 0.5) * 2) * param_bbLearnPerturbBias;
-  double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
-  
-  ms->config.currentEEPose.px += noX;
-  ms->config.currentEEPose.py += noY;
-  ms->config.currentEEDeltaRPY.pz += noTheta;
+    double newX = ms->config.currentEEPose.px + noX;
+    double newY = ms->config.currentEEPose.px + noY;
+    
+    if (positionIsSearched(ms, newX, newY)) {
+      ms->config.currentEEPose.px = newX;
+      ms->config.currentEEPose.py = newY;
+      ms->config.currentEEDeltaRPY.pz += noTheta;
+      cout << "setRandomPositionAndOrientationForHeightLearning: found good position after " << t << " iterations, pose: " << ms->config.currentEEPose << endl;
+      return;
+    } else {
+      continue;
+    }
+  }
+  cout << "setRandomPositionAndOrientationForHeightLearning: failed to find good position after " << param_numTries << " iterations... continuing." << endl;
 }
 END_WORD
 REGISTER_WORD(SetRandomPositionAndOrientationForHeightLearning)
