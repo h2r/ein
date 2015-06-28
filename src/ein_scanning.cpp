@@ -2518,24 +2518,25 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->pushWord("histogramDetectionReport");
   ms->pushWord("histogramDetectionNormalize");
 
+  ms->pushWord("putCameraOverPhotoPin"); 
   ms->pushWord("waitUntilAtCurrentPosition"); 
   ms->pushWord("shiftIntoGraspGear1");
-  ms->pushWord("yDown");
 
   /* 
+  ms->pushWord("yDown");
   ms->pushWord("detectionSpin");
   ms->pushWord("yUp");
-  ms->pushWord("yUp");
 
+  ms->pushWord("yUp");
   ms->pushWord("detectionSpin");
   ms->pushWord("yDown");
-  ms->pushWord("xDown");
 
+  ms->pushWord("xDown");
   ms->pushWord("detectionSpin");
-  ms->pushWord("xUp");
   ms->pushWord("xUp");
   */
 
+  ms->pushWord("xUp");
   ms->pushWord("detectionSpin");
   ms->pushWord("setPhotoPinHere");
   ms->pushWord("xDown");
