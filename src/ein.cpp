@@ -1588,15 +1588,19 @@ void deactivateSensorStreaming(std::shared_ptr<MachineState> ms) {
   ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, rangeCallback);
   ms->config.image_sub = it.subscribe(ms->config.image_topic, 1, imageCallback);
 
-  cout << "deactivateSensorStreaming: About to write batches... ";
-  int cfClass = ms->config.focusedClass;
-  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
-    writeRangeBatchAsClass(ms, cfClass);	
-    writePoseBatchAsClass(ms, cfClass);	
-    cout << "Wrote batches." << endl;
+  if (ms->config.diskStreamingEnabled) {
+    cout << "deactivateSensorStreaming: About to write batches... ";
+    int cfClass = ms->config.focusedClass;
+    if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
+      writeRangeBatchAsClass(ms, cfClass);	
+      writePoseBatchAsClass(ms, cfClass);	
+      cout << "Wrote batches." << endl;
+    } else {
+      cout << "Did not write batches, invalid focused class." << endl;
+    } 
   } else {
-    cout << "Did not write batches, invalid focused class." << endl;
-  } 
+    cout << "deactivateSensorStreaming: Disk streaming not enabled, keeping range and pose stream buffers populated." << endl;
+  }
 }
 
 void populateStreamImageBuffer(std::shared_ptr<MachineState> ms) {
@@ -1690,28 +1694,30 @@ void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStr
   } else {
   }
 
-  string thisLabelName = ms->config.classLabels[classToStreamIdx];
-  string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/images/";
-  char buf[1024];
-  sprintf(buf, "%s%f", this_image_path.c_str(), now);
-  string root_path(buf); 
+  if (ms->config.diskStreamingEnabled) {
+    string thisLabelName = ms->config.classLabels[classToStreamIdx];
+    string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/images/";
+    char buf[1024];
+    sprintf(buf, "%s%f", this_image_path.c_str(), now);
+    string root_path(buf); 
 
-  string png_path = root_path + ".png";
-  string yaml_path = root_path + ".yml";
-  cout << "Streaming current frame to " << png_path << " " << yaml_path << endl;
-  // no compression!
-  std::vector<int> args;
-  args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-  args.push_back(ms->config.globalPngCompression);
-  imwrite(png_path, im, args);
+    string png_path = root_path + ".png";
+    string yaml_path = root_path + ".yml";
+    cout << "streamImageAsClass: Streaming current frame to " << png_path << " " << yaml_path << endl;
+    // no compression!
+    std::vector<int> args;
+    args.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    args.push_back(ms->config.globalPngCompression);
+    imwrite(png_path, im, args);
 
-  // XXX take this cout out
-
-  // may want to save additional camera parameters
-  FileStorage fsvO;
-  fsvO.open(yaml_path, FileStorage::WRITE);
-  fsvO << "time" <<  now;
-  fsvO.release();
+    // may want to save additional camera parameters
+    FileStorage fsvO;
+    fsvO.open(yaml_path, FileStorage::WRITE);
+    fsvO << "time" <<  now;
+    fsvO.release();
+  } else {
+    cout << "streamImageAsClass: disk streaming not enabled, not writing frame (not in RAM either)." << endl;
+  }
 }
 
 void streamRangeAsClass(std::shared_ptr<MachineState> ms, double rangeIn, int classToStreamIdx, double now) {
@@ -1733,10 +1739,18 @@ void streamRangeAsClass(std::shared_ptr<MachineState> ms, double rangeIn, int cl
     return;
   } 
 
-  if (ms->config.streamRangeBuffer.size() >= ms->config.streamRangeBatchSize) {
+
+  if (ms->config.diskStreamingEnabled) {
+    if (ms->config.streamRangeBuffer.size() >= ms->config.streamRangeBatchSize) {
       writeRangeBatchAsClass(ms, classToStreamIdx);	
+    } else {
+    } // do nothing
   } else {
-  } // do nothing
+    if ((ms->config.streamRangeBuffer.size() % ms->config.streamRangeBatchSize) == 0) {
+      cout << "streamRangeAsClass: disk streaming not enabled, buffer size: " << ms->config.streamRangeBuffer.size() << endl;
+    } else {
+    }
+  }
 }
 
 void streamPoseAsClass(std::shared_ptr<MachineState> ms, eePose poseIn, int classToStreamIdx, double now) {
@@ -1758,10 +1772,17 @@ void streamPoseAsClass(std::shared_ptr<MachineState> ms, eePose poseIn, int clas
     ms->config.sensorStreamOn = 0;
   } 
 
-  if (ms->config.streamPoseBuffer.size() >= ms->config.streamPoseBatchSize) {
-      writePoseBatchAsClass(ms, classToStreamIdx);	
+  if (ms->config.diskStreamingEnabled) {
+    if (ms->config.streamPoseBuffer.size() >= ms->config.streamPoseBatchSize) {
+	writePoseBatchAsClass(ms, classToStreamIdx);	
+    } else {
+    } // do nothing
   } else {
-  } // do nothing
+    if ((ms->config.streamPoseBuffer.size() % ms->config.streamPoseBatchSize) == 0) {
+      cout << "streamPoseAsClass: disk streaming not enabled, buffer size: " << ms->config.streamPoseBuffer.size() << endl;
+    } else {
+    }
+  }
 }
 
 void writeRangeBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx) {
@@ -4679,7 +4700,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
     ms->config.joint_max[6] = 3.059;
 
     ms->config.backScanningPose = {.px = -0.304942, .py = 0.703968, .pz = 0.186738,
-                              .qx = 0.000508805, .qy = 1, .qz = 0.00056289, .qw = 0.000264451};
+                              .qx = 0.0, .qy = 1, .qz = 0.0, .qw = 0.0};
 
     ms->config.beeHome = {.px = 0.334217, .py = 0.75386, .pz = 0.0362593,
                           .qx = -0.00125253, .qy = 0.999999, .qz = -0.000146851, .qw = 0.000236656};
@@ -4840,8 +4861,8 @@ void pilotInit(shared_ptr<MachineState> ms) {
 
 
 
-    ms->config.backScanningPose = {.px = -0.373806, .py = -0.640234, .pz = 0.219235,
-                      .qx = 0.00114192, .qy = 0.999999, .qz = -0.000387173, .qw = 0.000386456};
+    ms->config.backScanningPose = {.px = -0.304942, .py = -0.703968, .pz = 0.186738,
+			      .qx = 0.0, .qy = 1, .qz = 0.0, .qw = 0.0};
 
     ms->config.beeHome = {.px = 0.525866, .py = -0.710611, .pz = 0.0695764,
                           .qx = -0.00122177, .qy = 0.999998, .qz = 0.00116169, .qw = -0.001101};

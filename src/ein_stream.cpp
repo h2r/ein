@@ -92,6 +92,22 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(SetSisFlags)
 
+WORD(DisableDiskStreaming)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->config.diskStreamingEnabled= 0;
+}
+END_WORD
+REGISTER_WORD(DisableDiskStreaming)
+
+WORD(EnableDiskStreaming)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->config.diskStreamingEnabled = 1;
+}
+END_WORD
+REGISTER_WORD(EnableDiskStreaming)
+
 WORD(ClearStreamBuffers)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {

@@ -330,6 +330,7 @@ class EinConfig {
   int ik_reset_thresh = 20;
 
   int sensorStreamOn = 0;
+  int diskStreamingEnabled = 0;
   double sensorStreamLastActivated = 0.0;
   double sensorStreamTimeout= 3600.0;
   // should I stream
@@ -768,7 +769,7 @@ class EinConfig {
   // this needs to place the gripper BELOW the table
   //  by a margin, or it could prevent getting flush
   //  with the table near a sag
-  double pickFlushFactor = 0.08;//0.09;//0.11;
+  double pickFlushFactor = 0.108;//0.08;//0.09;//0.11;
 
 
   int useContinuousGraspTransform = 1;

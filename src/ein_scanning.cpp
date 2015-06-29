@@ -121,9 +121,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     cout << ms->config.classLabels[i] << " " << ms->config.classPoseModels[i] << endl;
   }
 
-  // XXX not retraining
   ms->config.rewrite_labels = 1;
-  ms->config.retrain_vocab = 0;
+  //ms->config.retrain_vocab = 0;
   ms->config.reextract_knn = 1;
 
   // delete things that will be reallocated
@@ -145,6 +144,21 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 }
 END_WORD
 REGISTER_WORD(TrainModels)
+
+
+WORD(SetClassLabels)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+
+}
+END_WORD
+REGISTER_WORD(SetClassLabels)
+
+WORD(TrainModelsFromLabels)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+
+}
+END_WORD
+REGISTER_WORD(TrainModelsFromLabels)
 
 
 WORD(VisionCycleNoClassify)
@@ -558,16 +572,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("turnOffScanning"); // turn off scanning
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
   ms->pushWord("prepareForSearch"); // prepare for search
-
-  ms->pushCopies('q',4);
-  ms->pushCopies('a',6);
+  ms->pushWord("rasterScanningSpeed"); 
 
   ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
 
-  ms->pushWord("rasterScanningSpeed"); 
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies('s',10);
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies('a',6);
+  ms->pushCopies('q',4);
+  ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("shiftGraspGear"); 
-  ms->pushWord("fullImpulse"); 
+
 
   ms->pushWord("fullRender"); // full render
   ms->pushWord("paintReticles"); // render reticle
@@ -580,6 +597,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("shiftIntoGraspGear1"); // change to first gear
   }
   ms->pushWord("selectBestAvailableGrasp"); // find best grasp
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies('w',10);
+  ms->pushWord("fullImpulse"); 
 
   ms->pushWord("turnOffScanning"); // turn off scanning
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
@@ -624,6 +645,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
   ms->pushWord("selectBestAvailableGrasp"); // find best grasp
 
+  ms->pushWord("turnOffScanning"); // turn off scanning
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
   ms->pushWord("prepareForSearch"); // prepare for search
 
@@ -952,9 +974,30 @@ WORD(SetIROffset)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setIROffsetA");
   ms->pushWord("cruisingSpeed");
+
+  
+  ms->pushWord("integrateRangeStreamBuffer");
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+
   ms->pushWord("neutralScanH");
+  
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord("setSisFlags"); 
+
+
   ms->pushWord("iRCalibrationSpeed");
+  ms->pushWord("lock3dGraspBase"); 
   cout << "Commencing HALF neutral scan for SetIROffset." << endl;
+
+  ms->pushWord("disableDiskStreaming");
 }
 END_WORD
 REGISTER_WORD(SetIROffset)
@@ -2075,7 +2118,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("moveToRegister1");
 
-  ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
+  //ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // XXX
 
   ms->pushWord("bringUpAllNonessentialSystems"); 
   ms->pushWord("deactivateSensorStreaming"); 
@@ -2097,8 +2140,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
 
 
-  // XXX
-  ms->pushWord("preAnnotateOffsetGrasp"); 
+  //ms->pushWord("preAnnotateOffsetGrasp"); // XXX
 
 
 
@@ -2118,7 +2160,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushCopies("dislodgeEndEffectorFromTable", retractCm);
   ms->pushWord("setCurrentPoseToTruePose");
   ms->pushWord("setMovementSpeedMoveFast");
-  ms->pushWord("recordGraspZ");
+  //ms->pushWord("recordGraspZ"); // XXX
   ms->pushWord("hundredthImpulse");
 
   ms->pushWord("pauseStackExecution"); // pause stack execution
@@ -2132,6 +2174,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("assumeBackScanningPose");
   ms->pushWord("fullImpulse");
   ms->pushWord("setBoundingBoxModeToMapping"); 
+
+  ms->pushWord("enableDiskStreaming"); 
 }
 END_WORD
 REGISTER_WORD(ScanObjectStream)

@@ -23,8 +23,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     double newX = ms->config.currentEEPose.px + noX;
     double newY = ms->config.currentEEPose.px + noY;
+    int cellI = -1, cellJ = -1;
+    mapxyToij(ms, newX, newY, &cellI, &cellJ);
     
-    if (positionIsSearched(ms, newX, newY)) {
+    if (isCellInPatrolZone(ms, cellI, cellJ)) {
       ms->config.currentEEPose.px = newX;
       ms->config.currentEEPose.py = newY;
       ms->config.currentEEDeltaRPY.pz += noTheta;
@@ -520,6 +522,56 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(ReplaceBlueBoxesWithFocusedClass)
 
+WORD(FocusedGraspLearning)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->config.graspAttemptCounter = 0;
+  ms->config.graspSuccessCounter = 0;
+  ms->config.graspTrialStart = ros::Time::now();
+  ms->config.thompsonPickHaltFlag = 0;
+  ms->config.thompsonHeightHaltFlag = 0;
+
+  ms->config.thisGraspPicked = UNKNOWN;
+  ms->config.thisGraspReleased = UNKNOWN;
+  neutral(ms);
+  
+  ms->pushWord("focusedGraspLearningA");
+  ms->pushWord("setPlaceModeToShake");
+  ms->pushWord("setIdleModeToEmpty");
+}
+END_WORD
+REGISTER_WORD(FocusedGraspLearning)
+
+WORD(FocusedGraspLearningA)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  if (ARE_GENERIC_PICK_LEARNING(ms)) {
+    if (ms->config.thompsonHardCutoff) {
+      if (ms->config.graspAttemptCounter >= ms->config.thompsonTries) {
+        cout << "Clearing call stack because we did " << ms->config.graspAttemptCounter << " tries." << endl;
+        ms->clearStack();
+        ms->pushCopies("beep", 15); // beep
+        return;
+      }
+    }
+    
+    if (ms->config.thompsonAdaptiveCutoff) {
+      if ( (ms->config.thompsonPickHaltFlag) ||
+           (ms->config.graspAttemptCounter >= ms->config.thompsonTries) ) {
+        cout << "Clearing call stack. thompsonPickHaltFlag = " << ms->config.thompsonPickHaltFlag << 
+          " and we did " << ms->config.graspAttemptCounter << " tries." << endl;
+        ms->clearStack();
+        ms->pushCopies("beep", 15); // beep
+        return;
+      }
+    }
+  }
+
+  ms->pushWord("focusedGraspLearningA");
+  ms->pushWord("pickFocusedClass");
+}
+END_WORD
+REGISTER_WORD(FocusedGraspLearningA)
 
 
 }

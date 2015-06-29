@@ -310,8 +310,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitUntilAtCurrentPosition"); 
   ms->pushWord("tryToMoveToTheLastPrePickHeight");   
   ms->pushWord("departureSpeed");
+
+  // order is crucial here
   ms->pushWord("placeObjectInDeliveryZone");
   ms->pushWord("ifGrasp");
+  ms->pushWord("checkAndCountGrasp");
+  ms->pushWord("ifNoGrasp");
+
   ms->pushWord("executePreparedGrasp"); 
   //ms->pushWord("prepareForAndExecuteGraspFromMemory"); 
   //ms->pushWord("gradientServo");
@@ -321,7 +326,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //ms->pushWord("visionCycle");
   //ms->pushWord("synchronicServoTakeClosest"); 
   ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("setPickModeToStaticMarginals"); 
+
+  // XXX
+  //ms->pushWord("setPickModeToStaticMarginals"); 
+
   ms->pushWord("sampleHeight"); 
   ms->pushWord("setBoundingBoxModeToMapping"); 
   ms->pushWord("openGripper");
