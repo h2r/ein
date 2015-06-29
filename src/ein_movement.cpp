@@ -1355,5 +1355,38 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(DislodgeEndEffectorFromTable)
+	
+WORD(MoveToEEPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+	// get 7 strings, make them into doubles, move there
+	// order px py pz qx qy qz qw
+	double vals[7]; 
+	for (int i = 6; i >= 0; i--) { 
+		shared_ptr<Word> word = ms->popWord(); 
+		if (word == NULL) {
+			// failed
+  	  cout << "not enough words" << endl;
+      return;
+		}
+		char* endptr;
+		string wordname = word->to_string(); 
+		double r = strtod(wordname.c_str(), &endptr); 
+		if (endptr == wordname && r == 0) { 
+			// failed to convert
+  		cout << "received not a number" << endl;
+			ms->clearStack(); 
+      return;
+		}
+		vals[i] = r;
+	}
+  // make them actually into an eepose
+  _eePose pose = {.px = vals[0], .py = vals[1], .pz = vals[2],
+      .qx = vals[3], .qy = vals[4], .qz = vals[5], .qw = vals[6]};
+  ms->config.currentEEPose = pose; 
+}
+END_WORD
+REGISTER_WORD(MoveToEEPose)
+		
+
 
 }
