@@ -45,10 +45,14 @@ def find_and_zip(folder):
     if not thumbs_to_upload:
         raise ValueError("A thumbnail wasn't provided.")
     
-    # Zip folder
-    zip_file = shutil.make_archive(folder, 'zip', folder)
+    # Zip folder, temporarily ignore the /raw subfolder
+    folder_n = os.path.basename(os.path.normpath(folder))
+    dest_folder = os.path.join(os.getcwd(), folder_n + "_tmp")
+    copied = shutil.copytree(folder, dest_folder, ignore=shutil.ignore_patterns( 'raw*'))
+    zip_file = shutil.make_archive(folder_n, 'zip', folder_n)
     file_logger.info('Zipped file %s' % folder)
     files_to_upload.append(zip_file)
+    shutil.rmtree(dest_folder)
 
     return files_to_upload, thumbs_to_upload
 
