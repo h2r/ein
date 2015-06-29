@@ -34,9 +34,12 @@ def yaml_loader(file_path):
 def find_and_zip(folder):
     files_to_upload = []
     thumbs_to_upload = []
+    raw = False
     
     # Find thumbnail
     for item in os.listdir(folder):
+        if item == "raw":
+            raw = True
         path_thumb = os.path.join(os.getcwd(), folder, item)
         # Ignore hidden files
         if not item.startswith('.') and os.path.isfile(path_thumb) and path_thumb.lower().endswith('.png'):
@@ -46,13 +49,17 @@ def find_and_zip(folder):
         raise ValueError("A thumbnail wasn't provided.")
     
     # Zip folder, temporarily ignore the /raw subfolder
-    folder_n = os.path.basename(os.path.normpath(folder))
-    dest_folder = os.path.join(os.getcwd(), folder_n + "_tmp")
-    copied = shutil.copytree(folder, dest_folder, ignore=shutil.ignore_patterns( 'raw*'))
-    zip_file = shutil.make_archive(folder_n, 'zip', folder_n)
+    if raw:
+        folder_n = os.path.basename(os.path.normpath(folder))
+        dest_folder = os.path.join(os.getcwd(), folder_n + "_tmp")
+        copied = shutil.copytree(folder, dest_folder, ignore=shutil.ignore_patterns( 'raw*'))
+        folder = folder_n
+        shutil.rmtree(dest_folder)
+    
+    zip_file = shutil.make_archive(folder, 'zip', folder)
     file_logger.info('Zipped file %s' % folder)
     files_to_upload.append(zip_file)
-    shutil.rmtree(dest_folder)
+
 
     return files_to_upload, thumbs_to_upload
 
