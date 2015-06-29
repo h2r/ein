@@ -149,13 +149,83 @@ REGISTER_WORD(TrainModels)
 WORD(SetClassLabels)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
 
+  cout << "entering setClassLabels." << endl;
+
+  shared_ptr<Word> aWord = ms->popWord();
+
+  if (aWord == NULL) {
+    cout << "oops, setClassLabels requires an IntegerWord argument followed by that number of StringWords..." << endl;
+    ms->clearStack();
+    return;
+  } else {
+  }
+  std::shared_ptr<IntegerWord> aIntWord = std::dynamic_pointer_cast<IntegerWord>(aWord);
+
+  int numArgs = aIntWord->value();
+
+  vector<string> newLabels;
+
+  for (int a = 0; a < numArgs; a++) {
+    shared_ptr<Word> bWord = ms->popWord();
+
+    if (bWord == NULL) {
+      cout << "oops, setClassLabels requires an IntegerWord argument followed by that number of StringWords..." << endl;
+      ms->clearStack();
+      return;
+    } else {
+    }
+    std::shared_ptr<StringWord> bStringWord = std::dynamic_pointer_cast<StringWord>(bWord);
+    string thisLabel = bStringWord->to_string();
+
+    if (thisLabel.length() > 0) {
+      cout << "accepting " << thisLabel << endl;
+      newLabels.push_back(thisLabel);
+    } else {
+      cout << "rejecting a word, not resetting labels, and clearing the stack." << endl;
+      ms->clearStack();
+      return;
+    }
+  }
+
+  if (newLabels.size() > 0) {
+    ms->config.classLabels.resize(0);
+    ms->config.classPoseModels.resize(0);
+    ms->pushWord("clearBlueBoxMemories");
+    for (int a = 0; a < newLabels.size(); a++) {
+      string thisLabel = newLabels[a];
+      ms->config.classLabels.push_back(thisLabel);
+      ms->config.classPoseModels.push_back("B");
+    }
+  } else {
+    cout << "didn't get any valid labels, clearing stack." << endl;
+    ms->clearStack();
+    return;
+  }
+
+
 }
 END_WORD
 REGISTER_WORD(SetClassLabels)
 
 WORD(TrainModelsFromLabels)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
+  ms->config.rewrite_labels = 1;
+  //ms->config.retrain_vocab = 0;
+  ms->config.reextract_knn = 1;
 
+  // delete things that will be reallocated
+  if (ms->config.bowTrainer)
+    delete ms->config.bowTrainer;
+  if (ms->config.kNN)
+    delete ms->config.kNN;
+
+  for (int i = 0; i < ms->config.classPosekNNs.size(); i++) {
+    if (ms->config.classPosekNNs[i])
+      delete ms->config.classPosekNNs[i];
+  }
+
+  //  detectorsInit() will reset numClasses
+  detectorsInit(ms);
 }
 END_WORD
 REGISTER_WORD(TrainModelsFromLabels)
@@ -578,6 +648,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushCopies('s',10);
+  ms->pushWord("approachSpeed");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushCopies('a',6);
   ms->pushCopies('q',4);
@@ -598,9 +669,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
   ms->pushWord("selectBestAvailableGrasp"); // find best grasp
 
+  ms->pushWord("cruisingSpeed"); 
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushCopies('w',10);
-  ms->pushWord("fullImpulse"); 
+  ms->pushWord("departureSpeed");
 
   ms->pushWord("turnOffScanning"); // turn off scanning
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
