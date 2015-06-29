@@ -34,17 +34,22 @@ def yaml_loader(file_path):
 def find_and_zip(folder):
     files_to_upload = []
     thumbs_to_upload = []
-    zip_file = shutil.make_archive(folder, 'zip', folder)
-    file_logger.info('Zipped file %s' % folder)
-    files_to_upload.append(zip_file)
-        
-        # Find thumbnail
+    
+    # Find thumbnail
     for item in os.listdir(folder):
         path_thumb = os.path.join(os.getcwd(), folder, item)
         # Ignore hidden files
         if not item.startswith('.') and os.path.isfile(path_thumb) and path_thumb.lower().endswith('.png'):
             thumbs_to_upload.append(path_thumb)
             break
+    if not thumbs_to_upload:
+        raise ValueError("A thumbnail wasn't provided.")
+    
+    # Zip folder
+    zip_file = shutil.make_archive(folder, 'zip', folder)
+    file_logger.info('Zipped file %s' % folder)
+    files_to_upload.append(zip_file)
+
     return files_to_upload, thumbs_to_upload
 
 #####################################################################################################################
@@ -59,6 +64,7 @@ def respond(response, *args, **kwargs):
         file_logger.info("Success. STATUS CODE {}{}".format(response.status_code, response.reason))
     elif response.status_code == 201: # Creating new resource
         resp_dict = response.json()
+        print resp_dict
         folder_name, ext = os.path.splitext(resp_dict['fname'])
         file_logger.info("201 Resource created with ID {}. Uploaded file.".format(resp_dict['id']))
         file_name = folder_name + '.yaml'
@@ -89,8 +95,8 @@ def main():
 
 
     # Logging setup
-    #URL = "http://robodb.cs.brown.edu:8001/api/files/"
-    URL = "http://127.0.0.1:8000/api/files/"
+    URL = "http://robodb.cs.brown.edu:8001/api/files/"
+    #URL = "http://127.0.0.1:8000/api/files/"
     #URL = "http://127.0.0.1:8000/api/files/2b87887937023b0a17098b8c09f88836/"
     
     DIR = args.dir
@@ -132,6 +138,7 @@ def main():
             yml_content = yaml_loader(yml_path)
             id = yml_content[-1]['id']
             update_urls.append(URL + id + '/')
+            print yml_path
         
             f_put, t_put = find_and_zip(full)
             file_updates += f_put
@@ -150,19 +157,20 @@ def main():
 
 
     # Asynchronous request to enable multiple file upload and resource creation
-    if files:
+    if files and thumbnails:
         print "Creating Resources ", files
         rs = (grequests.post(URL, files={'datafile': open(file, 'rb'), 'image': open(image, 'rb')},
                              auth=(USER, PW), hooks=dict(response=respond)) for file, image in zip(files, thumbnails))
         grequests.map(rs)
 
 
-    if update_urls:
+    if update_urls and file_updates:
         print "Updating resources ", update_urls
         rs = (grequests.put(url, files={'datafile': open(file, 'rb'), 'image': open(image, 'rb')},
         auth=(USER, PW), hooks=dict(response=respond)) for url, file, image in zip(update_urls, file_updates, thumbnail_updates))
         
         grequests.map(rs)
+
 
     for f in files:
         print "Removing ", f
