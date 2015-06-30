@@ -97,7 +97,6 @@ void initializeMachine(shared_ptr<MachineState> ms) {
   int devInit = 1;
   if (devInit) {
     ms->pushWord("incrementTargetClass"); 
-    ms->pushWord("gradientServoTakeClosest"); 
     ms->pushWord("synchronicServoTakeClosest");
   }
   ms->pushWord("silenceSonar");

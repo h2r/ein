@@ -571,6 +571,37 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetMovementSpeedMoveVerySlow)
 
+WORD(ChangeToHeight)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> hWord = ms->popWord();
+
+  if (hWord == NULL) {
+    cout << "oops, changeToHeight requires an argument..." << endl;
+    ms->clearStack();
+  } else {
+  }
+  std::shared_ptr<IntegerWord> hIntWord = std::dynamic_pointer_cast<IntegerWord>(hWord);
+  int nextHeight =  hIntWord->value();
+
+  if ( (nextHeight > -1) && (nextHeight < ms->config.hmWidth) ) {
+    ms->config.currentThompsonHeightIdx = nextHeight;
+    cout << "changeToHeight changing to height " << nextHeight << endl;
+  } else {
+    cout << "changeToHeight received invalid height, clearing stack." << endl;
+    ms->clearStack();
+  }
+
+  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
+  ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
+  // ATTN 23
+  ms->config.reticle = ms->config.vanishingPointReticle;
+  //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
+  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
+  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+}
+END_WORD
+REGISTER_WORD(ChangeToHeight)
+
 WORD(ChangeToHeight0)
 CODE(1245217) // capslock + numlock + !
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -701,10 +732,17 @@ REGISTER_WORD(ResetW1ThreshToDefault)
 WORD(RasterScanningSpeed)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   //w1GoThresh = 0.05;
-  ms->config.currentEESpeedRatio = 0.05;//0.02;
+  ms->config.currentEESpeedRatio = 0.025;//0.02;
 }
 END_WORD
 REGISTER_WORD(RasterScanningSpeed)
+
+WORD(StreamImageSpeed)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentEESpeedRatio = 0.05;
+}
+END_WORD
+REGISTER_WORD(StreamImageSpeed)
 
 WORD(FasterRasterScanningSpeed)
 virtual void execute(std::shared_ptr<MachineState> ms) {

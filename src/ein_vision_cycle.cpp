@@ -694,6 +694,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(StreamedDensity)
 
+WORD(StreamedAccumulatedDensity)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  substituteStreamAccumulatedImageQuantities(ms);
+  goCalculateDensity(ms);
+  renderAccumulatedImageAndDensity(ms);
+}
+END_WORD
+REGISTER_WORD(StreamedAccumulatedDensity)
+
 WORD(AccumulatedDensity)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   substituteAccumulatedImageQuantities(ms);

@@ -54,7 +54,8 @@ typedef enum {
 
 typedef enum {
   HAND = 0,
-  PLACE_REGISTER = 2
+  PLACE_REGISTER = 2,
+  SHAKE= 3
 } placeMode;
 
 typedef enum {
@@ -329,6 +330,9 @@ class EinConfig {
   int ik_reset_thresh = 20;
 
   int sensorStreamOn = 0;
+  int diskStreamingEnabled = 0;
+  double sensorStreamLastActivated = 0.0;
+  double sensorStreamTimeout= 3600.0;
   // should I stream
   int sisPose = 0;
   int sisRange = 0;
@@ -342,6 +346,12 @@ class EinConfig {
   int sibCurIdx = 0;
   int srbCurIdx = 0;
   int spbCurIdx = 0;
+  Mat accumulatedStreamImage;
+  Mat accumulatedStreamImageMass;
+  Mat accumulatedStreamImageBytes;
+
+  int globalPngCompression = 0;
+
 
 
   double eeRange = 0.0;
@@ -643,7 +653,8 @@ class EinConfig {
   double ggY[totalGraspGears];
   double ggT[totalGraspGears];
 
-  int recordRangeMap = 1;
+  int castRecentRangeRay = 1;
+  int recordRangeMap = 0;
 
   Quaternionf irGlobalPositionEEFrame;
  
@@ -703,7 +714,6 @@ class EinConfig {
 
   // class focused for learning
   int focusedClass = -1;
-  int newClassCounter = 0;
   string focusedClassLabel;
 
   int synchronicTakeClosest = 0;
@@ -752,14 +762,14 @@ class EinConfig {
   Mat frameGraySobel;
 
 
-  double graspDepthOffset = -0.04;
+  double graspDepthOffset = -0.01;
   eePose lastPickPose;
   eePose lastPrePickPose;
   
   // this needs to place the gripper BELOW the table
   //  by a margin, or it could prevent getting flush
   //  with the table near a sag
-  double pickFlushFactor = 0.08;//0.09;//0.11;
+  double pickFlushFactor = 0.108;//0.08;//0.09;//0.11;
 
 
   int useContinuousGraspTransform = 1;
