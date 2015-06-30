@@ -163,6 +163,7 @@ REGISTER_WORD(VisionCycleNoClassify)
 WORD(RecordExampleAsFocusedClass)
 CODE(131148)     // capslock + l 
 virtual void execute(std::shared_ptr<MachineState> ms)       {
+  cout << "recordExamplesFocusedClass is deprecated." << endl;
   if ((ms->config.focusedClass > -1) && (ms->config.bTops.size() == 1)) {
     string thisLabelName = ms->config.focusedClassLabel;
     Mat crop = ms->config.cam_img(cv::Rect(ms->config.bTops[0].x, ms->config.bTops[0].y, ms->config.bBots[0].x-ms->config.bTops[0].x, ms->config.bBots[0].y-ms->config.bTops[0].y));
@@ -170,7 +171,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
 
     ros::Time thisNow = ros::Time::now();
-    sprintf(buf, "%s%s%s_%f.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), thisNow.toSec());
+    sprintf(buf, "%s%s%s_%f.png", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), thisNow.toSec());
     imwrite(buf, crop);
     ms->config.cropCounter++;
   }
@@ -180,6 +181,7 @@ REGISTER_WORD(RecordExampleAsFocusedClass)
 
 WORD(RecordAllExamplesFocusedClass)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
+  cout << "recordAllExamplesFocusedClass is deprecated." << endl;
   if ( ms->config.focusedClass > -1 ) {
     for (int c = 0; c < ms->config.bTops.size(); c++) {
       string thisLabelName = ms->config.focusedClassLabel;
@@ -188,7 +190,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
 
       ros::Time thisNow = ros::Time::now();
-      sprintf(buf, "%s%s%s_%f.ppm", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), thisNow.toSec());
+      sprintf(buf, "%s%s%s_%f.png", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), thisNow.toSec());
       imwrite(buf, crop);
       ms->config.cropCounter++;
     }
@@ -1957,6 +1959,126 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ScanObjectFast)
 
+WORD(ScanObjectStream)
+virtual string description() {
+  return "Scans an object in stream mode with an annotated grasp.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  int retractCm = 10;
+  
+  cout << "BEGINNING SCANOBJECTSTREAM" << endl;
+  cout << "Program will pause shortly. Please adjust height and object so that arm would grip if closed and so that the gripper will clear the object once raised 5cm." << endl;
+
+  ms->config.eepReg2 = ms->config.beeHome;
+  ms->config.eepReg4 = ms->config.beeHome;
+
+  // so that closest servoing doesn't go into gradient servoing.
+  ms->config.targetClass = -1;
+
+  // set lastLabelLearned
+  ms->pushWord("setLastLabelLearned");
+
+
+  ms->pushWord("setMovementSpeedMoveFast");
+  ms->config.currentBoundingBoxMode = MAPPING; // this is here because it is for the rgbScan
+
+  ms->pushWord("scanCentered");
+
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+
+  ms->pushWord("fullImpulse");
+  ms->pushWord("setMovementSpeedMoveVerySlow");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("changeToHeight1"); 
+  //ms->pushWord("comeToHover");
+  ms->pushWord("moveToRegister1");
+
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord("setSisFlags"); 
+
+  ms->pushWord("deactivateSensorStreaming"); 
+  ms->pushWord("neutralScan"); 
+  ms->pushWord("lock3dGraspBase"); 
+  
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  //ms->pushWord("shutdownToSensorsAndMovement"); 
+  
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("setSisFlags"); 
+
+  ms->pushWord("pauseStackExecution"); 
+  
+  {
+    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("gradientServoPrep");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight3"); // change to height 3
+  }
+  {
+    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("gradientServoPrep");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight2"); // change to height 2
+  }
+  {
+    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("gradientServoPrep");
+    ms->pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord("changeToHeight1"); // change to height 1
+  }
+  {
+    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("gradientServoPrep");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight0"); // change to height 0
+  }
+  
+  
+  ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
+  ms->pushWord("preAnnotateOffsetGrasp"); 
+  ms->pushWord("setPhotoPinHere");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("synchronicServo");
+  ms->pushWord("synchronicServoTakeClosest");
+  ms->pushWord("sampleHeight"); 
+
+  ms->pushWord("fullImpulse");
+
+  ms->pushWord("saveRegister1");
+  ms->pushWord("waitUntilAtCurrentPosition");
+
+  // dislodge. necessary because the robot takes a while to "spin up" at slow speeds, which interferes
+  //  with the state machine while in contact with the table
+  ms->pushCopies("dislodgeEndEffectorFromTable", retractCm);
+  ms->pushWord("setCurrentPoseToTruePose");
+  ms->pushWord("setMovementSpeedMoveFast");
+
+  ms->pushWord("recordGraspZ");
+
+  ms->pushWord("hundredthImpulse");
+  ms->pushWord("pauseStackExecution"); // pause stack execution
+  ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("shiftIntoGraspGear1");
+  ms->pushWord("changeToHeight0");
+  //ms->pushCopies("yDown", 25);
+  ms->pushWord("setMovementSpeedMoveFast");
+  ms->pushWord("assumeBackScanningPose");
+  ms->pushWord("assumeCalibrationPose");
+  ms->pushWord("fullImpulse");
+}
+END_WORD
+REGISTER_WORD(ScanObjectStream)
+
 WORD(RecordGraspZ)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // uses ms->config.currentEEPose instead of ms->config.trueEEPose so that we can set it below the table
@@ -2027,12 +2149,12 @@ WORD(Add3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Adding 3d grasp" << endl;
   eePose thisAbsolute3dGrasp = ms->config.currentEEPose;
-  eePose txQ = ms->config.c3dPoseBase.invQ();
-  txQ = txQ.multQ(thisAbsolute3dGrasp);
-
-  eePose thisAbsoluteDeltaP = thisAbsolute3dGrasp.minusP(ms->config.c3dPoseBase);
-  eePose thisRelative3dGrasp = ms->config.c3dPoseBase.invQ().applyQTo(thisAbsoluteDeltaP);
-  thisRelative3dGrasp.copyQ(txQ);
+  //eePose txQ = ms->config.c3dPoseBase.invQ();
+  //txQ = txQ.multQ(thisAbsolute3dGrasp);
+  //eePose thisAbsoluteDeltaP = thisAbsolute3dGrasp.minusP(ms->config.c3dPoseBase);
+  //eePose thisRelative3dGrasp = ms->config.c3dPoseBase.invQ().applyQTo(thisAbsoluteDeltaP);
+  //thisRelative3dGrasp.copyQ(txQ);
+  eePose thisRelative3dGrasp = thisAbsolute3dGrasp.getPoseRelativeTo(ms->config.c3dPoseBase);
 
   int tnc = ms->config.class3dGrasps.size();
   if ( (ms->config.targetClass > -1) && (ms->config.targetClass < tnc) ) {
@@ -2046,12 +2168,12 @@ WORD(AddPlaceUnderPoint)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Adding place under point." << endl;
   eePose thisAbsolute3dGrasp = ms->config.currentEEPose;
-  eePose txQ = ms->config.c3dPoseBase.invQ();
-  txQ = txQ.multQ(thisAbsolute3dGrasp);
-
-  eePose thisAbsoluteDeltaP = thisAbsolute3dGrasp.minusP(ms->config.c3dPoseBase);
-  eePose thisRelative3dGrasp = ms->config.c3dPoseBase.invQ().applyQTo(thisAbsoluteDeltaP);
-  thisRelative3dGrasp.copyQ(txQ);
+  //eePose txQ = ms->config.c3dPoseBase.invQ();
+  //txQ = txQ.multQ(thisAbsolute3dGrasp);
+  //eePose thisAbsoluteDeltaP = thisAbsolute3dGrasp.minusP(ms->config.c3dPoseBase);
+  //eePose thisRelative3dGrasp = ms->config.c3dPoseBase.invQ().applyQTo(thisAbsoluteDeltaP);
+  //thisRelative3dGrasp.copyQ(txQ);
+  eePose thisRelative3dGrasp = thisAbsolute3dGrasp.getPoseRelativeTo(ms->config.c3dPoseBase);
 
   int tnc = ms->config.classPlaceUnderPoints.size();
   if ( (ms->config.targetClass > -1) && (ms->config.targetClass < tnc) ) {
@@ -2065,12 +2187,12 @@ WORD(AddPlaceOverPoint)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Adding place over point." << endl;
   eePose thisAbsolute3dGrasp = ms->config.currentEEPose;
-  eePose txQ = ms->config.c3dPoseBase.invQ();
-  txQ = txQ.multQ(thisAbsolute3dGrasp);
-
-  eePose thisAbsoluteDeltaP = thisAbsolute3dGrasp.minusP(ms->config.c3dPoseBase);
-  eePose thisRelative3dGrasp = ms->config.c3dPoseBase.invQ().applyQTo(thisAbsoluteDeltaP);
-  thisRelative3dGrasp.copyQ(txQ);
+  //eePose txQ = ms->config.c3dPoseBase.invQ();
+  //txQ = txQ.multQ(thisAbsolute3dGrasp);
+  //eePose thisAbsoluteDeltaP = thisAbsolute3dGrasp.minusP(ms->config.c3dPoseBase);
+  //eePose thisRelative3dGrasp = ms->config.c3dPoseBase.invQ().applyQTo(thisAbsoluteDeltaP);
+  //thisRelative3dGrasp.copyQ(txQ);
+  eePose thisRelative3dGrasp = thisAbsolute3dGrasp.getPoseRelativeTo(ms->config.c3dPoseBase);
 
   int tnc = ms->config.classPlaceOverPoints.size();
   if ( (ms->config.targetClass > -1) && (ms->config.targetClass < tnc) ) {
@@ -2279,24 +2401,25 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->pushWord("histogramDetectionReport");
   ms->pushWord("histogramDetectionNormalize");
 
+  ms->pushWord("putCameraOverPhotoPin"); 
   ms->pushWord("waitUntilAtCurrentPosition"); 
   ms->pushWord("shiftIntoGraspGear1");
-  ms->pushWord("yDown");
 
   /* 
+  ms->pushWord("yDown");
   ms->pushWord("detectionSpin");
   ms->pushWord("yUp");
-  ms->pushWord("yUp");
 
+  ms->pushWord("yUp");
   ms->pushWord("detectionSpin");
   ms->pushWord("yDown");
-  ms->pushWord("xDown");
 
+  ms->pushWord("xDown");
   ms->pushWord("detectionSpin");
-  ms->pushWord("xUp");
   ms->pushWord("xUp");
   */
 
+  ms->pushWord("xUp");
   ms->pushWord("detectionSpin");
   ms->pushWord("setPhotoPinHere");
   ms->pushWord("xDown");

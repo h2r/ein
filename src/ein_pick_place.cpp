@@ -218,7 +218,7 @@ REGISTER_WORD(DeliverObject)
 
 WORD(DeliverTargetObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  //ms->pushWord("idler"); 
+  ms->pushWord("idler"); 
   ms->config.bailAfterGradient = 1;
 
   ms->config.pilotTarget.px = -1;
