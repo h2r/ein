@@ -1975,6 +1975,7 @@ void initClassFolders(std::shared_ptr<MachineState> ms, string folderName) {
       string pickMemories = ein + "pickMemories/";
       string servoCrops = ein + "servoCrops/";
       string servoImages = ein + "servoImages/";
+      string knn = ein + "knn/";
 
   mkdir(item.c_str(), 0777);
     mkdir(raw.c_str(), 0777);
@@ -1989,6 +1990,7 @@ void initClassFolders(std::shared_ptr<MachineState> ms, string folderName) {
       mkdir(pickMemories.c_str(), 0777);
       mkdir(servoCrops.c_str(), 0777);
       mkdir(servoImages.c_str(), 0777);
+      mkdir(knn.c_str(), 0777);
 }
 
 void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folderName) {
