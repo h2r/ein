@@ -29,9 +29,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("filterBoxMemories");
   ms->pushWord("shiftIntoGraspGear1");
   ms->pushWord("lockTargetIfBlueBoxes");
+
   ms->pushWord("gradientServoIfBlueBoxes");
   ms->pushWord("mapClosestBlueBox");
+  ms->pushWord("mapEmptySpace");
+
+  if (1) {
+    ms->pushWord("histogramDetectionIfBlueBoxes"); 
+  }
   ms->pushWord("goClassifyBlueBoxes"); 
+
   ms->pushWord("visionCycle"); 
 }
 END_WORD
@@ -58,12 +65,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //ms->pushWord("collapseStack");
   ms->pushWord("gradientServoIfBlueBoxes");
   ms->pushWord("mapClosestBlueBox");
+  ms->pushWord("mapEmptySpace");
 
   if (1) {
     ms->pushWord("histogramDetectionIfBlueBoxes"); 
   }
-
   ms->pushWord("goClassifyBlueBoxes"); 
+
   ms->pushWord("synchronicServo"); 
   ms->pushWord("synchronicServoTakeClosest");
   ms->pushWord("waitUntilAtCurrentPosition"); 
@@ -676,6 +684,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(DensityA)
+
+WORD(StreamedDensity)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  substituteStreamImageQuantities(ms);
+  goCalculateDensity(ms);
+  renderAccumulatedImageAndDensity(ms);
+}
+END_WORD
+REGISTER_WORD(StreamedDensity)
 
 WORD(AccumulatedDensity)
 virtual void execute(std::shared_ptr<MachineState> ms) {

@@ -9,7 +9,6 @@
 #include "ikfast/ikfast_wrapper_right.h"
 
 
-
 void fillIkRequest(eePose * givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
   givenIkRequest->request.pose_stamp.resize(1);
 
