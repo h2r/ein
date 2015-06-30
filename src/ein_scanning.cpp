@@ -2336,6 +2336,170 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ScanObjectStream)
 
+WORD(ScanObjectStreamAnnotated)
+virtual string description() {
+  return "Scans an object in stream mode with an annotated grasp.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  int retractCm = 10;
+  
+  cout << "BEGINNING SCANOBJECTSTREAM" << endl;
+  cout << "Program will pause shortly. Please adjust height and object so that arm would grip if closed and so that the gripper will clear the object once raised 5cm." << endl;
+
+  ms->config.eepReg2 = ms->config.beeHome;
+  ms->config.eepReg4 = ms->config.beeHome;
+
+// XXX 
+//  save grasp information separately
+//  remove grasp annotation
+//  reinit range maps for one class at a time
+
+  ms->pushWord("pickFocusedClass");
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("changeToHeight"); 
+  // XXX second writeFocusedClass because aerial gradients aren't loaded until re-init
+  //ms->pushWord("writeFocusedClass");
+  //ms->pushWord("integrateImageStreamBufferCrops");
+  //ms->pushWord("reinitRangeMaps");
+  ms->pushWord("writeFocusedClass");
+  ms->pushWord("integrateImageStreamBufferServoImages");
+  //ms->pushWord("saveCurrentClassDepthAndGraspMaps");
+  //ms->pushWord("loadMarginalGraspMemory");
+  //ms->pushWord("loadPriorGraspMemoryAnalytic"); // XXX
+  //ms->pushWord("resetCurrentFocusedClass");
+  //ms->pushWord("classRangeMapFromRegister1"); // XXX
+  //ms->pushWord("integrateRangeStreamBuffer"); // XXX
+  ms->pushWord("populateStreamBuffers");
+
+
+  // set lastLabelLearned
+  ms->pushWord("setLastLabelLearned");
+
+
+  ms->pushWord("setMovementSpeedMoveFast");
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+
+  ms->pushWord("streamScanCentered");
+
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("setSisFlags"); 
+
+  ms->pushWord("fullImpulse");
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("shiftIntoGraspGear1"); 
+  ms->pushWord("changeToHeight1"); 
+  //ms->pushWord("comeToHover");
+  ms->pushWord("moveToRegister1");
+
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+  {
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("gradientServoPrep");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight3"); // change to height 3
+  }
+  {
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("gradientServoPrep");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight2"); // change to height 2
+  }
+  {
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("gradientServoPrep");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight1"); // change to height 1
+  }
+  {
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("gradientServoPrep");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight0"); // change to height 0
+  }
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("setSisFlags"); 
+  
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("moveToRegister1");
+
+  //ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // XXX
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+  //ms->pushWord("neutralScan"); 
+  
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord("setSisFlags"); 
+
+  ms->pushWord("lock3dGraspBase"); 
+  ms->pushWord("saveRegister1");
+
+  ms->pushWord("pauseStackExecution"); 
+  
+
+
+  ms->pushWord("preAnnotateOffsetGrasp"); // XXX
+
+
+
+  ms->pushWord("setPhotoPinHere");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("synchronicServo");
+  ms->pushWord("synchronicServoTakeClosest");
+  ms->pushWord("sampleHeight"); 
+
+  ms->pushWord("fullImpulse");
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+
+  // dislodge. necessary because the robot takes a while to "spin up" at slow speeds, which interferes
+  //  with the state machine while in contact with the table
+  ms->pushCopies("dislodgeEndEffectorFromTable", retractCm);
+  ms->pushWord("setCurrentPoseToTruePose");
+  ms->pushWord("setMovementSpeedMoveFast");
+  ms->pushWord("recordGraspZ"); // XXX
+  ms->pushWord("hundredthImpulse");
+
+  ms->pushWord("pauseStackExecution"); // pause stack execution
+  ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("shiftIntoGraspGear1");
+  ms->pushWord("changeToHeight0");
+
+  ms->pushWord("setMovementSpeedMoveFast");
+  ms->pushWord("assumeBackScanningPose");
+  ms->pushWord("fullImpulse");
+  ms->pushWord("setBoundingBoxModeToMapping"); 
+
+  ms->pushWord("enableDiskStreaming"); 
+}
+END_WORD
+REGISTER_WORD(ScanObjectStreamAnnotated)
+
 WORD(CollectMoreStreams)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "About to collect more streams, make sure targetClass is set, i.e. you should have" << endl <<
