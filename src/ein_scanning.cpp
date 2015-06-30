@@ -191,11 +191,12 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     ms->config.classLabels.resize(0);
     ms->config.classPoseModels.resize(0);
     ms->pushWord("clearBlueBoxMemories");
-    for (int a = 0; a < newLabels.size(); a++) {
-      string thisLabel = newLabels[a];
+    for (int b = 0; b < newLabels.size(); b++) {
+      string thisLabel = newLabels[b];
       ms->config.classLabels.push_back(thisLabel);
       ms->config.classPoseModels.push_back("B");
     }
+    ms->config.numClasses = ms->config.classLabels.size();
   } else {
     cout << "didn't get any valid labels, clearing stack." << endl;
     ms->clearStack();
@@ -230,6 +231,89 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 END_WORD
 REGISTER_WORD(TrainModelsFromLabels)
 
+WORD(TrainAndWriteFocusedClassKnn)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+  int tfc = ms->config.focusedClass;
+
+  if ( (tfc > -1) && (tfc < ms->config.classLabels.size()) ) {
+  } else {
+    cout << "trainAndWriteFocusedClassKnn: Invalid focused class, clearing stack." << endl;
+    ms->clearStack();
+    return;
+  }
+
+  string thisLabelName = ms->config.classLabels[tfc];
+  Mat kNNfeatures;
+  Mat kNNlabels;
+
+  kNNGetFeatures(ms, ms->config.class_crops_path, ms->config.classLabels[tfc].c_str(), tfc, ms->config.grayBlur, kNNfeatures, kNNlabels, ms->config.sobel_sigma);
+  
+  string dir_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/knn/";
+  mkdir(dir_path.c_str(), 0777);
+
+  // write yaml
+  FileStorage fsvO;
+  string yaml_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/knn/knn.yml";
+  cout << "trainAndWriteFocusedClassKnn: Writing: " << yaml_path << endl;
+  fsvO.open(yaml_path, FileStorage::WRITE);
+  fsvO << "knnFeatures" << kNNfeatures;
+  fsvO.release();
+}
+END_WORD
+REGISTER_WORD(TrainAndWriteFocusedClassKnn)
+
+WORD(CreateCachedClassifierFromClassLabels)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+
+  ms->config.numClasses = ms->config.classLabels.size();
+
+  Mat knnFeaturesAll;
+  Mat knnLabelsAll;
+
+  for (int idx = 0; idx < ms->config.classLabels.size(); idx++) {
+    Mat knnFeaturesThese;
+    string thisLabelName = ms->config.classLabels[idx];
+    string yaml_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/knn/knn.yml";
+    cout << "createCachedClassifierFromClassLabels: Reading: " << yaml_path << endl;
+    FileStorage fsfI;
+    fsfI.open(yaml_path, FileStorage::READ);
+
+    if (fsfI.isOpened()) {
+      cout << "opened features for class " << idx << endl;
+      fsfI["knnFeatures"] >> knnFeaturesThese;
+      knnFeaturesAll.push_back(knnFeaturesThese);
+      for (int l = 0; l < knnFeaturesThese.rows; l++) {
+	knnLabelsAll.push_back(idx);
+      }
+    } else {
+      cout << "unable to open features for class " << idx << endl;
+    }
+    
+    cout << knnFeaturesAll.size() << knnLabelsAll.size() << endl;
+  }
+  cout << "knnLabelsAll dimensions: " << knnLabelsAll.size().height << " by " << knnLabelsAll.size().width << endl;
+  cout << "knnFeaturesAll dimensions: " << knnFeaturesAll.size().height << " by " << knnFeaturesAll.size().width << endl;
+
+  cout << "Main kNN...";
+
+  if ( (knnFeaturesAll.data == NULL) || (knnFeaturesAll.rows < 1) || (knnFeaturesAll.cols < 1) ) {
+    cout << "There is a problem with kNN features, cannot initialize detector and files may be corrupt." << endl;
+  } else {
+    ms->config.kNN = new CvKNearest(knnFeaturesAll, knnLabelsAll);
+    cout << "done." << endl;
+    for (int i = 0; i < ms->config.numClasses; i++) {
+      if (ms->config.classPoseModels[i].compare("G") == 0) {
+	cout << "Class " << i << " kNN..." << ms->config.classPosekNNfeatures[i].size() << ms->config.classPosekNNlabels[i].size() << endl;
+	ms->config.classPosekNNs[i] = new CvKNearest(ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i]);
+	cout << "Done" << endl;
+      }
+    }
+  }
+
+  initRangeMaps(ms);
+}
+END_WORD
+REGISTER_WORD(CreateCachedClassifierFromClassLabels)
 
 WORD(VisionCycleNoClassify)
 CODE(196721)     // capslock + Q
