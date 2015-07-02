@@ -1112,6 +1112,20 @@ void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path
   string yaml_path = this_range_path + ".yml";
   cout << "writeIr2D: Writing: " << yaml_path << endl;
   fsvO.open(yaml_path, FileStorage::WRITE);
+  {
+    fsvO << "graspZ" << "[" 
+      << ms->config.currentGraspZ 
+    << "]";
+
+    if (ms->config.classGraspZs.size() > idx) {
+      ms->config.classGraspZs[idx] = ms->config.currentGraspZ;
+    }
+    if (ms->config.classGraspZsSet.size() > idx) {
+      ms->config.classGraspZsSet[idx] = 1;
+    }
+  }
+  fsvO << "rangeMap" << thisRangeMap;
+  fsvO.release();
   fsvO << "rangeMap" << thisRangeMap;
   fsvO.release();
 
