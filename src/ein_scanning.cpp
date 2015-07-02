@@ -2327,10 +2327,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("changeToHeight0");
 
   ms->pushWord("setMovementSpeedMoveFast");
-  ms->pushWord("assumeBackScanningPose");
   ms->pushWord("fullImpulse");
   ms->pushWord("setBoundingBoxModeToMapping"); 
 
+  ms->pushWord("clearBlueBoxMemories"); 
+  ms->pushWord("clearMapForPatrol"); 
   ms->pushWord("enableDiskStreaming"); 
 }
 END_WORD
@@ -2435,55 +2436,45 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord("setSisFlags"); 
   
+  //ms->pushWord("waitUntilAtCurrentPosition");
+  //ms->pushWord("moveToRegister1");
+  //ms->pushWord("saveRegister1");  // this is so we return to a reasonable place 
+
+  ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("moveToRegister1");
+  ms->pushWord("changeToHeight0"); // change to height 0
 
-  //ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // XXX
-
-  ms->pushWord("bringUpAllNonessentialSystems"); 
-  ms->pushWord("deactivateSensorStreaming"); 
-  //ms->pushWord("neutralScan"); 
-  
-  ms->pushWord("activateSensorStreaming"); 
-  ms->pushWord("clearStreamBuffers"); 
-  ms->pushWord("shutdownToSensorsAndMovement"); 
-  
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord("setSisFlags"); 
-
-  ms->pushWord("lock3dGraspBase"); 
-  ms->pushWord("saveRegister1");
-
-  ms->pushWord("pauseStackExecution"); 
-  
-
-
-  ms->pushWord("preAnnotateOffsetGrasp"); // XXX
-
-
+  ms->pushWord("fullImpulse");
 
   ms->pushWord("setPhotoPinHere");
+  ms->pushWord("writeFocusedClass");
+  ms->pushWord("lock3dGraspBase"); 
+  //ms->pushWord("preAnnotateCenterGrasp"); // XXX
+  ms->pushWord("preAnnotateOffsetGrasp"); // you need to saveRegister1 where the grasp should be before calling this
+  ms->pushWord("setPhotoPinHere");
+
+  ms->pushWord("pauseStackExecution"); // pause to ensure being centered
+
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("synchronicServo");
   ms->pushWord("synchronicServoTakeClosest");
   ms->pushWord("sampleHeight"); 
 
-  ms->pushWord("fullImpulse");
-
+  ms->pushWord("departureSpeed");
   ms->pushWord("waitUntilAtCurrentPosition");
-
   // dislodge. necessary because the robot takes a while to "spin up" at slow speeds, which interferes
   //  with the state machine while in contact with the table
   ms->pushCopies("dislodgeEndEffectorFromTable", retractCm);
   ms->pushWord("setCurrentPoseToTruePose");
   ms->pushWord("setMovementSpeedMoveFast");
-  ms->pushWord("recordGraspZ"); // XXX
   ms->pushWord("hundredthImpulse");
 
-  ms->pushWord("pauseStackExecution"); // pause stack execution
+  ms->pushWord("saveRegister1"); // for preAnnotateOffsetGrasp, which isn't use in this version but could be used where it is.
+  ms->pushWord("recordGraspZ"); // XXX
+
+  ms->pushWord("pauseStackExecution"); // pause for annotation positioning
+
   ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
 
   ms->pushWord("waitUntilAtCurrentPosition");
@@ -2491,10 +2482,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("changeToHeight0");
 
   ms->pushWord("setMovementSpeedMoveFast");
-  ms->pushWord("assumeBackScanningPose");
   ms->pushWord("fullImpulse");
   ms->pushWord("setBoundingBoxModeToMapping"); 
 
+  ms->pushWord("clearBlueBoxMemories"); 
+  ms->pushWord("clearMapForPatrol"); 
   ms->pushWord("enableDiskStreaming"); 
 }
 END_WORD
