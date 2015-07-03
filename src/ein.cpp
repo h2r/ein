@@ -1166,6 +1166,34 @@ void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path
   imwrite(png_path, rmImageOut, args);
 }
 
+streamImage * setIsbIdxNoLoad(std::shared_ptr<MachineState> ms, int idx) {
+  if ( (idx > -1) && (idx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[idx];
+    int lastIdx = ms->config.sibCurIdx;
+    if ( (lastIdx > -1) && (lastIdx < ms->config.streamImageBuffer.size()) && (lastIdx != idx) ) {
+      streamImage &lsi = ms->config.streamImageBuffer[lastIdx];
+      lsi.image.create(1, 1, CV_8UC3);
+      lsi.loaded = 0;
+      //cout << "setIsbIdx: last was valid and different." << endl;
+    } else {
+      //cout << "setIsbIdx: last was invalid or the same." << endl;
+    }
+
+    ms->config.sibCurIdx = idx;
+    if (tsi.loaded) {
+    } else {
+      tsi.loaded = 0;
+    } 
+
+    ms->config.sibCurIdx = idx;
+  } else {
+    cout << "Tried to set ISB index out of bounds: " << idx << endl;
+    return NULL;
+  }
+
+  return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
+}
+
 streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx) {
   if ( (idx > -1) && (idx < ms->config.streamImageBuffer.size()) ) {
     streamImage &tsi = ms->config.streamImageBuffer[idx];
@@ -5753,6 +5781,15 @@ double convertHeightIdxToGlobalZ(shared_ptr<MachineState> ms, int heightIdx) {
 
   double scaledHeight = (double(heightIdx)/double(ms->config.hmWidth-1)) * (tabledMaxHeight - tabledMinHeight);
   double scaledTranslatedHeight = scaledHeight + tabledMinHeight;
+  return scaledTranslatedHeight;
+}
+
+double convertHeightIdxToLocalZ(shared_ptr<MachineState> ms, int heightIdx) {
+  double unTabledMaxHeight = ms->config.maxHeight;
+  double unTabledMinHeight = ms->config.minHeight;
+
+  double scaledHeight = (double(heightIdx)/double(ms->config.hmWidth-1)) * (unTabledMaxHeight - unTabledMinHeight);
+  double scaledTranslatedHeight = scaledHeight + unTabledMinHeight;
   return scaledTranslatedHeight;
 }
 
@@ -11455,7 +11492,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     {
       guard3dGrasps(ms);
       string thisLabelName(className);
-      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/3dGrasps/";
       string this_grasp_path = dirToMakePath + "3dGrasps.yml";
 
       FileStorage fsvI;
@@ -11942,6 +11979,7 @@ int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string la
 	   (ms->config.classGraspZs.size() > label1Idx) &&
 	   (ms->config.classGraspZsSet[label1Idx] == 1) ) {
 //cout << "YYY cGZ: " << -ms->config.classGraspZs[label1Idx] << endl;
+cout <<  "YYY : " << label2Mem.affPlaceOverPoses[0] << ms->config.pickFlushFactor << endl;
 	thisPickZ = -ms->config.currentTableZ + -ms->config.classGraspZs[label1Idx] + totalZOffset;
       } else {
 	thisPickZ = -ms->config.currentTableZ + (-label1Mem.trZ) + totalZOffset;
@@ -11951,7 +11989,7 @@ int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string la
 
       label2Pose.pz = thisPickZ;
       label2Pose.copyQ(ms->config.beeHome);
-//cout << "ZZZ currentTableZ: " << ms->config.currentTableZ << " thisPickZ: " << thisPickZ << endl; 
+cout << "ZZZ currentTableZ: " << ms->config.currentTableZ << " thisPickZ: " << thisPickZ << endl; 
       (*out) = label2Pose;
       return 1;
     } else {
