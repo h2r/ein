@@ -203,7 +203,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     return;
   }
 
-
+  initRangeMaps(ms);
 }
 END_WORD
 REGISTER_WORD(SetClassLabels)

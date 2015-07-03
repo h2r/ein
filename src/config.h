@@ -55,7 +55,8 @@ typedef enum {
 typedef enum {
   HAND = 0,
   PLACE_REGISTER = 2,
-  SHAKE= 3
+  HOLD = 3,
+  SHAKE= 4
 } placeMode;
 
 typedef enum {

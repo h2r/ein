@@ -219,13 +219,39 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
   initClassFolders(ms, ms->config.data_directory + "/objects/" + ms->config.classLabels[thisFc] + "/");
 
-
-  for (int i = 0; i < ms->config.streamImageBuffer.size(); i++) {
-    ms->pushWord("endStackCollapseNoop");
+  // backwards because it's a stack
+  // XXX this should increment without loading and only load if it passes the test
+  for (int i = ms->config.streamImageBuffer.size()-1; i > -1; i--) {
+    //ms->pushWord("endStackCollapseNoop");
     ms->pushWord("incrementImageStreamBuffer");
-    ms->pushWord("streamCropsAsFocusedClass");
-    ms->pushWord("goFindBlueBoxes"); 
-    ms->pushWord("streamedDensity"); 
+
+    // should really check pose here and only process if it is good.
+    streamImage * tsi = setIsbIdxNoLoad(ms, i);
+    if (tsi == NULL) {
+      cout << "streamCropsAsFocusedClass: setIsbIdxNoLoad returned null. Returning." << endl;
+    } else {
+    }
+
+    eePose tArmP, tBaseP;
+    int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+
+    double thisZ = tArmP.pz - tBaseP.pz;
+    eePose thisVpBaseheight;
+    thisVpBaseheight.pz = tBaseP.pz + (thisZ - convertHeightIdxToLocalZ(ms, ms->config.mappingHeightIdx));
+    pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
+
+    double p_dist_thresh = 0.07;
+    double dist_to_base = eePose::distance(tBaseP, thisVpBaseheight);
+    // only load if we pass the distance test
+    if (dist_to_base < p_dist_thresh) {
+      cout << "Stream crop vanishing point to base test SUCCESS, accepting, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
+
+      //ms->pushWord("streamCropsAsFocusedClass");
+      ms->pushWord("streamCenterCropAsFocusedClass");
+      ms->pushWord("goFindBlueBoxes"); 
+      ms->pushWord("streamedDensity"); 
+    } else {
+    }
   }
   ms->pushWord("rewindImageStreamBuffer"); 
 }
@@ -236,7 +262,7 @@ WORD(IncrementImageStreamBuffer)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   int nextIdx = ms->config.sibCurIdx + 1;
-  cout << "Incrementing to " << nextIdx << endl;
+  cout << "incrementImageStreamBuffer: Incrementing to " << nextIdx << endl;
   if ( (nextIdx > -1) && (nextIdx < ms->config.streamImageBuffer.size()) ) {
     streamImage * result = setIsbIdx(ms, nextIdx);  
     if (result == NULL) {
@@ -249,23 +275,67 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(IncrementImageStreamBuffer)
 
+WORD(IncrementImageStreamBufferNoLoad)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int nextIdx = ms->config.sibCurIdx + 1;
+  cout << "incrementImageStreamBufferNoLoad: Incrementing to " << nextIdx << endl;
+  if ( (nextIdx > -1) && (nextIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage * result = setIsbIdxNoLoad(ms, nextIdx);  
+    if (result == NULL) {
+      cout << "increment failed :(" << endl;
+    } else {
+    }
+  } else {
+  }
+}
+END_WORD
+REGISTER_WORD(IncrementImageStreamBufferNoLoad)
+
+WORD(ImageStreamBufferLoadCurrent)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int thisIdx = ms->config.sibCurIdx;
+  cout << "imageStreamBufferLoadCurrent: reloading " << thisIdx << endl;
+  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage * result = setIsbIdxNoLoad(ms, thisIdx);  
+    if (result == NULL) {
+      cout << "increment failed :(" << endl;
+    } else {
+    }
+  } else {
+  }
+}
+END_WORD
+REGISTER_WORD(ImageStreamBufferLoadCurrent)
+
 WORD(StreamCropsAsFocusedClass)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
 
-  streamImage * tsi = setIsbIdx(ms, ms->config.sibCurIdx);
+  streamImage * tsi = setIsbIdxNoLoad(ms, ms->config.sibCurIdx);
+  if (tsi == NULL) {
+    cout << "streamCropsAsFocusedClass: setIsbIdxNoLoad returned null. Returning." << endl;
+  } else {
+  }
 
   eePose tArmP, tBaseP;
   int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
 
   double thisZ = tArmP.pz - tBaseP.pz;
   eePose thisVpBaseheight;
-  thisVpBaseheight.pz = tBaseP.pz;
+  thisVpBaseheight.pz = tBaseP.pz + (thisZ - convertHeightIdxToLocalZ(ms, ms->config.mappingHeightIdx));
   pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
 
   double p_dist_thresh = 0.07;
   double dist_to_base = eePose::distance(tBaseP, thisVpBaseheight);
+  // only load if we pass the distance test
   if (dist_to_base < p_dist_thresh) {
     cout << "Stream crop vanishing point to base test SUCCESS, accepting, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
+    tsi = setIsbIdx(ms, ms->config.sibCurIdx);
+    if (tsi == NULL) {
+      cout << "streamCropsAsFocusedClass: setIsbIdx returned null after distance check! Returning." << endl;
+    } else {
+    }
   } else {
     cout << "Stream crop vanishing point to base test FAILURE, skipping, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
     return;
@@ -294,6 +364,63 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 }
 END_WORD
 REGISTER_WORD(StreamCropsAsFocusedClass)
+
+WORD(StreamCenterCropAsFocusedClass)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+
+  streamImage * tsi = setIsbIdxNoLoad(ms, ms->config.sibCurIdx);
+  if (tsi == NULL) {
+    cout << "streamCenterCropAsFocusedClass: setIsbIdxNoLoad returned null. Returning." << endl;
+  } else {
+  }
+
+  eePose tArmP, tBaseP;
+  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+
+  double thisZ = tArmP.pz - tBaseP.pz;
+  eePose thisVpBaseheight;
+  thisVpBaseheight.pz = tBaseP.pz + (thisZ - convertHeightIdxToLocalZ(ms, ms->config.mappingHeightIdx));
+  pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
+
+  double p_dist_thresh = 0.07;
+  double dist_to_base = eePose::distance(tBaseP, thisVpBaseheight);
+  // only load if we pass the distance test
+  if (dist_to_base < p_dist_thresh) {
+    cout << "Stream crop vanishing point to base test SUCCESS, accepting, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
+    tsi = setIsbIdx(ms, ms->config.sibCurIdx);
+    if (tsi == NULL) {
+      cout << "streamCenterCropAsFocusedClass: setIsbIdx returned null after distance check! Returning." << endl;
+    } else {
+    }
+  } else {
+    cout << "Stream crop vanishing point to base test FAILURE, skipping, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
+    return;
+  }
+
+  if ( ms->config.focusedClass > -1 ) {
+    int c = ms->config.pilotClosestBlueBoxNumber;
+    if ( (c > -1) && (c < ms->config.bTops.size()) ) {
+      // XXX TODO want to annotate these crops with a yaml file that includes pose and time
+      string thisLabelName = ms->config.focusedClassLabel;
+      Mat thisTarget = tsi->image;
+      Mat crop = thisTarget(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
+      char buf[1024];
+      string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/detectionCrops/";
+
+      ros::Time thisNow = ros::Time::now();
+      sprintf(buf, "%s%s%s_%f.png", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), thisNow.toSec());
+      // no compression!
+      std::vector<int> args;
+      args.push_back(CV_IMWRITE_PNG_COMPRESSION);
+      args.push_back(ms->config.globalPngCompression);
+      imwrite(buf, crop, args);
+      ms->config.cropCounter++;
+    }
+  } else {
+  }
+}
+END_WORD
+REGISTER_WORD(StreamCenterCropAsFocusedClass)
 
 WORD(SaveAccumulatedStreamToServoImage)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
@@ -376,7 +503,12 @@ REGISTER_WORD(ResetAccumulatedStreamImage)
 
 WORD(IterateIsbAndAccumulateHeightImages)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
-  streamImage * tsi = setIsbIdx(ms, ms->config.sibCurIdx);
+  streamImage * tsi = setIsbIdxNoLoad(ms, ms->config.sibCurIdx);
+  if (tsi == NULL) {
+    cout << "iterateIsbAndAccumulateHeightImages: setIsbIdxNoLoad returned null. Returning." << endl;
+  } else {
+  }
+
   shared_ptr<Word> hWord = ms->popWord();
 
   if (hWord == NULL) {
@@ -401,8 +533,15 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   double p_dtq = 0.005;
   double dist_to_servo_q = eePose::distanceQ(tArmP, thisServoPose);
 
+  // only load if we pass the distance test
   if ( success && (dist_to_servo_p < p_dtp) && (dist_to_servo_q < p_dtq)) {
     cout << "Stream servo image test SUCCESS, accepting, dist_to_servo_p, p_dtp, dist_to_servo_q, p_dtq: " << dist_to_servo_p << " " << p_dtp << " " << dist_to_servo_q << " " << p_dtq << endl;
+
+    tsi = setIsbIdx(ms, ms->config.sibCurIdx);
+    if (tsi == NULL) {
+      cout << "iterateIsbAndAccumulateHeightImages: setIsbIdx returned null after pose check! Returning." << endl;
+    } else {
+    }
 
     Size sz = ms->config.accumulatedStreamImage.size();
 

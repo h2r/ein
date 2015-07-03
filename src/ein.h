@@ -172,6 +172,7 @@ void writeGraspMemory(std::shared_ptr<MachineState> ms, int idx, string this_gra
 
 void saveAccumulatedStreamToPath(shared_ptr<MachineState> ms, string path);
 streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx);
+streamImage * setIsbIdxNoLoad(std::shared_ptr<MachineState> ms, int idx);
 void resetAccumulatedStreamImage(std::shared_ptr<MachineState> ms);
 int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase);
 void castRangeRay(std::shared_ptr<MachineState> ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut);
@@ -274,6 +275,7 @@ void loadSampledHeightMemory(shared_ptr<MachineState> ms);
 void loadMarginalHeightMemory(shared_ptr<MachineState> ms);
 void loadPriorHeightMemory(shared_ptr<MachineState> ms, priorType);
 double convertHeightIdxToGlobalZ(shared_ptr<MachineState> ms, int);
+double convertHeightIdxToLocalZ(shared_ptr<MachineState> ms, int);
 int convertHeightGlobalZToIdx(shared_ptr<MachineState> ms, double);
 void testHeightConversion(shared_ptr<MachineState> ms);
 void drawHeightMemorySample(shared_ptr<MachineState> ms);
