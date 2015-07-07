@@ -109,6 +109,11 @@ typedef enum {
   MAPPING = 5
 } pickMode;
 
+typedef enum {
+  NOT_CENTERED = 0,
+  CENTERED = 1
+} scanMode;
+
 std::string pickModeToString(pickMode mode);
 
 
@@ -259,6 +264,7 @@ class EinConfig {
   graspMode currentGraspMode = GRASP_CRANE;
   robotMode currentRobotMode = PHYSICAL;
   ikMode currentIKMode = IKSERVICE;
+  scanMode currentScanMode = CENTERED;
 
   eePose placeTarget;
 
@@ -496,6 +502,7 @@ class EinConfig {
 
 
   constexpr static double rmDelta = 0.01;
+  int rangeMapTargetSearchPadding = 3;
   double rangeMap[rmWidth*rmWidth];
   double rangeMapAccumulator[rmWidth*rmWidth];
   double rangeMapMass[rmWidth*rmWidth];
@@ -1144,7 +1151,7 @@ class EinConfig {
 
   double stereoFocal = 1.0; // needs to be tuned
   double stereoBaseline = 0.01;
-  double stereoMaxDisparity = 30;
+  double stereoMaxDisparity = 128;
   Mat stereoImage1;
   Mat stereoImage2;
   Mat stereoDisparity;
@@ -1163,6 +1170,8 @@ class EinConfig {
   image_transport::Subscriber image_sub;
   ros::Subscriber eeRanger;
   ros::Subscriber epState;
+
+  ros::Time waitForSecondsTarget;
 }; // config end
 
 class Word;

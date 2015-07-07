@@ -6703,7 +6703,7 @@ void selectMaxTargetThompsonContinuous(shared_ptr<MachineState> ms, double minDe
 
 void selectMaxTargetThompsonContinuous2(shared_ptr<MachineState> ms, double minDepth) {
   // ATTN 2
-  int maxSearchPadding = 3;
+  int maxSearchPadding = ms->config.rangeMapTargetSearchPadding;
   //int maxSearchPadding = 4;
 
   for (int rx = maxSearchPadding; rx < ms->config.rmWidth-maxSearchPadding; rx++) {
@@ -11971,6 +11971,7 @@ int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string la
       eePose label1PickOffset = label1Mem.aimedPose.minusP(label1Mem.affPlaceUnderPoses[0]);
       label2Pose = label2Mem.affPlaceOverPoses[0].plusP(label1PickOffset);
       double thisPickZ = 0.0;
+      //. label2TipZAtPick is the height of the place over point above the table
       double label2TipZAtPick = 0;
       label2TipZAtPick = (label2Mem.affPlaceOverPoses[0].pz - (-ms->config.currentTableZ)) - ms->config.pickFlushFactor;
 
@@ -11979,7 +11980,7 @@ int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string la
 	   (ms->config.classGraspZs.size() > label1Idx) &&
 	   (ms->config.classGraspZsSet[label1Idx] == 1) ) {
 //cout << "YYY cGZ: " << -ms->config.classGraspZs[label1Idx] << endl;
-cout <<  "YYY : " << label2Mem.affPlaceOverPoses[0] << ms->config.pickFlushFactor << endl;
+//cout <<  "YYY : " << label2Mem.affPlaceOverPoses[0] << ms->config.pickFlushFactor << endl;
 	thisPickZ = -ms->config.currentTableZ + -ms->config.classGraspZs[label1Idx] + totalZOffset;
       } else {
 	thisPickZ = -ms->config.currentTableZ + (-label1Mem.trZ) + totalZOffset;
