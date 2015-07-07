@@ -948,7 +948,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.focusedClass = ms->config.classLabels.size();
   ms->config.targetClass = ms->config.focusedClass;
   char buf[1024];
-  sprintf(buf, "autoClass%d_%s", ms->config.focusedClass, ms->config.left_or_right_arm.c_str());
+  ros::Time thisNow = ros::Time::now();
+  sprintf(buf, "autoClass_%s_%s_%f", ms->config.robot_serial.c_str(), ms->config.left_or_right_arm.c_str(), thisNow.toSec());
   string thisLabelName(buf);
   ms->config.focusedClassLabel = thisLabelName;
   ms->config.classLabels.push_back(thisLabelName);
@@ -1340,6 +1341,25 @@ REGISTER_WORD(MoveCropToProperValue)
 
 WORD(FixCameraLighting)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+
+/*  :)
+
+int32   id
+int32   value
+
+int32 CAMERA_CONTROL_EXPOSURE=100
+int32 CAMERA_CONTROL_GAIN=101
+int32 CAMERA_CONTROL_WHITE_BALANCE_R=102
+int32 CAMERA_CONTROL_WHITE_BALANCE_G=103
+int32 CAMERA_CONTROL_WHITE_BALANCE_B=104
+int32 CAMERA_CONTROL_WINDOW_X=105
+int32 CAMERA_CONTROL_WINDOW_Y=106
+int32 CAMERA_CONTROL_FLIP=107
+int32 CAMERA_CONTROL_MIRROR=108
+int32 CAMERA_CONTROL_RESOLUTION_HALF=109
+
+*/
+
   baxter_core_msgs::OpenCamera ocMessage;
   ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
   ocMessage.request.settings.controls.resize(2);
@@ -1351,6 +1371,43 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(FixCameraLighting)
+
+WORD(FixCameraLightingExposureGain)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "fixCameraLightingExposureGain...";
+  shared_ptr<Word> firstFlagWord = ms->popWord();
+  shared_ptr<Word> secondFlagWord = ms->popWord();
+  std::shared_ptr<IntegerWord> fiWord = std::dynamic_pointer_cast<IntegerWord>(firstFlagWord);
+  std::shared_ptr<IntegerWord> seWord = std::dynamic_pointer_cast<IntegerWord>(secondFlagWord);
+
+  if( (fiWord == NULL) || (seWord == NULL) ) {
+    cout << "not enough words... clearing stack." << endl;
+    ms->clearStack();
+    return;
+  } else {
+    int thisExposure = max(0, min(seWord->value(),100));
+    int thisGain = max(0, min(fiWord->value(),100));
+
+    baxter_core_msgs::OpenCamera ocMessage;
+    ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
+    ocMessage.request.settings.controls.resize(4);
+    ocMessage.request.settings.controls[0].id = 105;
+    ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
+    ocMessage.request.settings.controls[1].id = 106;
+    ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
+    ocMessage.request.settings.controls[2].id = 100;
+    ocMessage.request.settings.controls[2].value = thisExposure;
+    ocMessage.request.settings.controls[3].id = 101;
+    ocMessage.request.settings.controls[3].value = thisGain;
+    int testResult = ms->config.cameraClient.call(ocMessage);
+
+    cout << "setting camera values, Exposure: " << thisExposure << " Gain: " << thisGain << " testResult: " << testResult << endl;
+  }
+
+}
+END_WORD
+REGISTER_WORD(FixCameraLightingExposureGain)
+
 
 WORD(UnFixCameraLighting)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -2406,30 +2463,61 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("deactivateSensorStreaming"); 
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
-    ms->pushWord("gradientServoPrep");
+    ms->pushWord("deactivateSensorStreaming"); 
+    ms->pushWord("4.0"); 
+    ms->pushWord("waitForSeconds"); 
+    ms->pushWord("activateSensorStreaming"); 
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("changeToHeight3"); // change to height 3
   }
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
-    ms->pushWord("gradientServoPrep");
+    ms->pushWord("deactivateSensorStreaming"); 
+    ms->pushWord("4.0"); 
+    ms->pushWord("waitForSeconds"); 
+    ms->pushWord("activateSensorStreaming"); 
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("changeToHeight2"); // change to height 2
   }
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
-    ms->pushWord("gradientServoPrep");
+    ms->pushWord("deactivateSensorStreaming"); 
+    ms->pushWord("4.0"); 
+    ms->pushWord("waitForSeconds"); 
+    ms->pushWord("activateSensorStreaming"); 
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("changeToHeight1"); // change to height 1
   }
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
-    ms->pushWord("gradientServoPrep");
+    ms->pushWord("deactivateSensorStreaming"); 
+    ms->pushWord("4.0"); 
+    ms->pushWord("waitForSeconds"); 
+    ms->pushWord("activateSensorStreaming"); 
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("changeToHeight0"); // change to height 0
   }
-  ms->pushWord("activateSensorStreaming"); 
-  ms->pushWord("clearStreamBuffers"); 
+
   ms->pushWord("shutdownToSensorsAndMovement"); 
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
@@ -2453,11 +2541,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("preAnnotateOffsetGrasp"); // you need to saveRegister1 where the grasp should be before calling this
   ms->pushWord("setPhotoPinHere");
 
-  ms->pushWord("pauseStackExecution"); // pause to ensure being centered
+  //ms->pushWord("pauseStackExecution"); // pause to ensure being centered
 
   ms->pushWord("comeToStop");
+  ms->pushWord("setMovementStateToMoving");
+  ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("synchronicServo");
+  if (ms->config.currentScanMode == CENTERED) {
+    ms->pushWord("synchronicServo");
+  } else if (ms->config.currentScanMode == NOT_CENTERED) {
+  } else {
+    assert(0);
+  }
   ms->pushWord("synchronicServoTakeClosest");
   ms->pushWord("sampleHeight"); 
 
@@ -2843,6 +2938,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "PreAnnotateOffsetGrasp: " << offsetPose << " " << ms->config.currentEEPose << " " << difference << endl <<
     offsetX << " " << offsetY << " " << rx << " " << ry << endl;
 
+  int padding = ms->config.rangeMapTargetSearchPadding;
+  if ( (rx < padding) || (ry < padding) || 
+       (rx > ms->config.rmWidth-1-padding) || (ry > ms->config.rmWidth-1-padding) ) {
+    ms->clearStack();
+    cout << "Oops, annotation put the grasp point out of bounds. Clearing stack; you should delete this model. Try using setScanModeNotCentered." << endl;
+    // we could push the other annotation here and go to eepReg1 to automatically recover from this
+    return;
+  } else {
+  }
+
 
   ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth * ms->config.rmWidth * 0] = 1;
   ms->config.graspMemoryPicks[rx + ry*ms->config.rmWidth + ms->config.rmWidth * ms->config.rmWidth * 0] = 1;
@@ -3110,5 +3215,21 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(ResetCurrentFocusedClass)
+
+WORD(SetScanModeCentered)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentScanMode = CENTERED;
+  cout << "Setting currentScanMode to CENTERED: " << ms->config.currentScanMode << endl;
+}
+END_WORD
+REGISTER_WORD(SetScanModeCentered)
+
+WORD(SetScanModeNotCentered)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentScanMode = NOT_CENTERED;
+  cout << "Setting currentScanMode to NOT_CENTERED: " << ms->config.currentScanMode << endl;
+}
+END_WORD
+REGISTER_WORD(SetScanModeNotCentered)
 
 }

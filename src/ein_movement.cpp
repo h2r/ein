@@ -1424,6 +1424,50 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(MoveToEEPose)
+
+WORD(WaitForSeconds)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  cout << "waitForSeconds: ";
+
+  shared_ptr<Word> word = ms->popWord(); 
+  if (word == NULL) {
+    // failed
+    cout << "not enough words" << endl;
+    return;
+  }
+  char* endptr;
+  string wordname = word->to_string(); 
+  double r = strtod(wordname.c_str(), &endptr); 
+  if (endptr == wordname && r == 0) { 
+    // failed to convert
+    cout << "received not a number" << endl;
+    ms->clearStack(); 
+    return;
+  }
+
+  double secondsToWait = r;
+  ms->config.waitForSecondsTarget = ros::Time::now() + ros::Duration(secondsToWait);
+  cout << "waiting " << secondsToWait << " seconds until " << ms->config.waitForSecondsTarget << endl;
+  ms->pushWord("waitForSecondsA");
+}
+END_WORD
+REGISTER_WORD(WaitForSeconds)
+
+WORD(WaitForSecondsA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "waitForSecondsA: ";
+  ros::Time thisNow = ros::Time::now();
+  if (thisNow.toSec() > ms->config.waitForSecondsTarget.toSec()) {
+    cout << "PASSED at time, target, delta: " << thisNow.toSec() << " " << ms->config.waitForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.waitForSecondsTarget.toSec() << endl;
+  } else {
+    //cout << "HELD at time, target, delta: " << thisNow.toSec() << " " << ms->config.waitForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.waitForSecondsTarget.toSec() << endl;
+    ms->pushWord("waitForSecondsA");
+    ms->config.endThisStackCollapse = 1;
+  }
+}
+END_WORD
+REGISTER_WORD(WaitForSecondsA)
 		
 
 
