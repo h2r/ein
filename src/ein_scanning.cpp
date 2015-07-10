@@ -2414,6 +2414,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 //  reinit range maps for one class at a time
 
   ms->pushWord("pickFocusedClass");
+  ms->pushWord("cruisingSpeed"); 
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord("changeToHeight"); 
   // XXX second writeFocusedClass because aerial gradients aren't loaded until re-init
@@ -2517,6 +2518,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("changeToHeight0"); // change to height 0
   }
+  ms->pushWord("departureSpeed");
 
   ms->pushWord("shutdownToSensorsAndMovement"); 
   ms->pushWord(std::make_shared<IntegerWord>(1));
@@ -2532,7 +2534,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("changeToHeight0"); // change to height 0
 
-  ms->pushWord("fullImpulse");
+  ms->pushWord("departureSpeed");
 
   ms->pushWord("setPhotoPinHere");
   ms->pushWord("writeFocusedClass");
