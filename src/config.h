@@ -227,7 +227,7 @@ class EinConfig {
 
 
 
-  int zero_g_toggle = 0;
+  int zero_g_toggle = 1;
 
   const int imRingBufferSize = 300;
   const int epRingBufferSize = 100;

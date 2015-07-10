@@ -91,6 +91,10 @@ void initializeMachine(shared_ptr<MachineState> ms) {
   if (ms->config.currentRobotMode != PHYSICAL) {
     return;
   }
+  
+  ms->pushWord("zeroGOff"); 
+  ms->pushWord("waitUntilEndpointCallbackReceived"); 
+
   ms->pushWord("guiCustom1"); 
   ms->pushWord("printState");
   ms->pushCopies("zUp", 15);
