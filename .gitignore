@@ -27,3 +27,6 @@ model.pdf
 
 *.out
 oomdp/bin
+
+default/objects/*/raw/*
+default/objects/*/ein/detectionCrops/
