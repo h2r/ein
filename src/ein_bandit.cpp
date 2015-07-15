@@ -480,7 +480,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("synchronicServo"); 
   ms->pushWord("synchronicServoDoNotTakeClosest"); 
   ms->pushWord("setBoundingBoxModeToMapping"); 
-  ms->pushWord("setPlaceModeToShake");
+  //ms->pushWord("setPlaceModeToShake");
   ms->pushWord("clearMapForPatrol");
   ms->pushWord("clearBlueBoxMemories");
 }

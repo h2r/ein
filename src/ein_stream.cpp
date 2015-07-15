@@ -475,6 +475,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
   cout << "Searching image stream for servo images..." << endl;
 
+  
   int tNumHeights = ms->config.hmWidth;
   for (int hIdx = tNumHeights-1; hIdx > -1; hIdx--) {
     ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
@@ -490,6 +491,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     ms->pushWord("rewindImageStreamBuffer"); 
     ms->pushWord("resetAccumulatedStreamImage");
   }
+
+  ms->pushWord("departureSpeed"); 
 }
 END_WORD
 REGISTER_WORD(IntegrateImageStreamBufferServoImages)
