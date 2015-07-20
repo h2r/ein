@@ -54,7 +54,9 @@ typedef enum {
 
 typedef enum {
   HAND = 0,
-  PLACE_REGISTER = 2
+  PLACE_REGISTER = 2,
+  HOLD = 3,
+  SHAKE= 4
 } placeMode;
 
 typedef enum {
@@ -106,6 +108,11 @@ typedef enum {
   STATIC_MARGINALS = 4,
   MAPPING = 5
 } pickMode;
+
+typedef enum {
+  NOT_CENTERED = 0,
+  CENTERED = 1
+} scanMode;
 
 std::string pickModeToString(pickMode mode);
 
@@ -220,7 +227,7 @@ class EinConfig {
 
 
 
-  int zero_g_toggle = 0;
+  int zero_g_toggle = 1;
 
   const int imRingBufferSize = 300;
   const int epRingBufferSize = 100;
@@ -257,6 +264,7 @@ class EinConfig {
   graspMode currentGraspMode = GRASP_CRANE;
   robotMode currentRobotMode = PHYSICAL;
   ikMode currentIKMode = IKSERVICE;
+  scanMode currentScanMode = CENTERED;
 
   eePose placeTarget;
 
@@ -329,6 +337,9 @@ class EinConfig {
   int ik_reset_thresh = 20;
 
   int sensorStreamOn = 0;
+  int diskStreamingEnabled = 0;
+  double sensorStreamLastActivated = 0.0;
+  double sensorStreamTimeout= 3600.0;
   // should I stream
   int sisPose = 0;
   int sisRange = 0;
@@ -342,6 +353,12 @@ class EinConfig {
   int sibCurIdx = 0;
   int srbCurIdx = 0;
   int spbCurIdx = 0;
+  Mat accumulatedStreamImage;
+  Mat accumulatedStreamImageMass;
+  Mat accumulatedStreamImageBytes;
+
+  int globalPngCompression = 0;
+
 
 
   double eeRange = 0.0;
@@ -485,6 +502,7 @@ class EinConfig {
 
 
   constexpr static double rmDelta = 0.01;
+  int rangeMapTargetSearchPadding = 3;
   double rangeMap[rmWidth*rmWidth];
   double rangeMapAccumulator[rmWidth*rmWidth];
   double rangeMapMass[rmWidth*rmWidth];
@@ -643,7 +661,8 @@ class EinConfig {
   double ggY[totalGraspGears];
   double ggT[totalGraspGears];
 
-  int recordRangeMap = 1;
+  int castRecentRangeRay = 1;
+  int recordRangeMap = 0;
 
   Quaternionf irGlobalPositionEEFrame;
  
@@ -703,7 +722,6 @@ class EinConfig {
 
   // class focused for learning
   int focusedClass = -1;
-  int newClassCounter = 0;
   string focusedClassLabel;
 
   int synchronicTakeClosest = 0;
@@ -752,14 +770,14 @@ class EinConfig {
   Mat frameGraySobel;
 
 
-  double graspDepthOffset = -0.04;
+  double graspDepthOffset = -0.01;
   eePose lastPickPose;
   eePose lastPrePickPose;
   
   // this needs to place the gripper BELOW the table
   //  by a margin, or it could prevent getting flush
   //  with the table near a sag
-  double pickFlushFactor = 0.08;//0.09;//0.11;
+  double pickFlushFactor = 0.108;//0.08;//0.09;//0.11;
 
 
   int useContinuousGraspTransform = 1;
@@ -1133,7 +1151,7 @@ class EinConfig {
 
   double stereoFocal = 1.0; // needs to be tuned
   double stereoBaseline = 0.01;
-  double stereoMaxDisparity = 30;
+  double stereoMaxDisparity = 128;
   Mat stereoImage1;
   Mat stereoImage2;
   Mat stereoDisparity;
@@ -1152,6 +1170,8 @@ class EinConfig {
   image_transport::Subscriber image_sub;
   ros::Subscriber eeRanger;
   ros::Subscriber epState;
+
+  ros::Time waitForSecondsTarget;
 }; // config end
 
 class Word;

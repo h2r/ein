@@ -121,9 +121,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     cout << ms->config.classLabels[i] << " " << ms->config.classPoseModels[i] << endl;
   }
 
-  // XXX not retraining
   ms->config.rewrite_labels = 1;
-  ms->config.retrain_vocab = 0;
+  //ms->config.retrain_vocab = 0;
   ms->config.reextract_knn = 1;
 
   // delete things that will be reallocated
@@ -140,14 +139,181 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   //  detectorsInit() will reset numClasses
   detectorsInit(ms);
 
-  // reset numNewClasses
-  ms->config.newClassCounter = 0;
 
   // XXX reset anything else
 }
 END_WORD
 REGISTER_WORD(TrainModels)
 
+
+WORD(SetClassLabels)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+
+  cout << "entering setClassLabels." << endl;
+
+  shared_ptr<Word> aWord = ms->popWord();
+
+  if (aWord == NULL) {
+    cout << "oops, setClassLabels requires an IntegerWord argument followed by that number of StringWords..." << endl;
+    ms->clearStack();
+    return;
+  } else {
+  }
+  std::shared_ptr<IntegerWord> aIntWord = std::dynamic_pointer_cast<IntegerWord>(aWord);
+
+  int numArgs = aIntWord->value();
+
+  vector<string> newLabels;
+
+  for (int a = 0; a < numArgs; a++) {
+    shared_ptr<Word> bWord = ms->popWord();
+
+    if (bWord == NULL) {
+      cout << "oops, setClassLabels requires an IntegerWord argument followed by that number of StringWords..." << endl;
+      ms->clearStack();
+      return;
+    } else {
+    }
+    std::shared_ptr<StringWord> bStringWord = std::dynamic_pointer_cast<StringWord>(bWord);
+    string thisLabel = bStringWord->to_string();
+
+    if (thisLabel.length() > 0) {
+      cout << "accepting " << thisLabel << endl;
+      newLabels.push_back(thisLabel);
+    } else {
+      cout << "rejecting a word, not resetting labels, and clearing the stack." << endl;
+      ms->clearStack();
+      return;
+    }
+  }
+
+  if (newLabels.size() > 0) {
+    ms->config.classLabels.resize(0);
+    ms->config.classPoseModels.resize(0);
+    ms->pushWord("clearBlueBoxMemories");
+    for (int b = 0; b < newLabels.size(); b++) {
+      string thisLabel = newLabels[b];
+      ms->config.classLabels.push_back(thisLabel);
+      ms->config.classPoseModels.push_back("B");
+    }
+    ms->config.numClasses = ms->config.classLabels.size();
+  } else {
+    cout << "didn't get any valid labels, clearing stack." << endl;
+    ms->clearStack();
+    return;
+  }
+
+  initRangeMaps(ms);
+}
+END_WORD
+REGISTER_WORD(SetClassLabels)
+
+WORD(TrainModelsFromLabels)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+  ms->config.rewrite_labels = 1;
+  //ms->config.retrain_vocab = 0;
+  ms->config.reextract_knn = 1;
+
+  // delete things that will be reallocated
+  if (ms->config.bowTrainer)
+    delete ms->config.bowTrainer;
+  if (ms->config.kNN)
+    delete ms->config.kNN;
+
+  for (int i = 0; i < ms->config.classPosekNNs.size(); i++) {
+    if (ms->config.classPosekNNs[i])
+      delete ms->config.classPosekNNs[i];
+  }
+
+  //  detectorsInit() will reset numClasses
+  detectorsInit(ms);
+}
+END_WORD
+REGISTER_WORD(TrainModelsFromLabels)
+
+WORD(TrainAndWriteFocusedClassKnn)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+  int tfc = ms->config.focusedClass;
+
+  if ( (tfc > -1) && (tfc < ms->config.classLabels.size()) ) {
+  } else {
+    cout << "trainAndWriteFocusedClassKnn: Invalid focused class, clearing stack." << endl;
+    ms->clearStack();
+    return;
+  }
+
+  string thisLabelName = ms->config.classLabels[tfc];
+  Mat kNNfeatures;
+  Mat kNNlabels;
+
+  kNNGetFeatures(ms, ms->config.class_crops_path, ms->config.classLabels[tfc].c_str(), tfc, ms->config.grayBlur, kNNfeatures, kNNlabels, ms->config.sobel_sigma);
+  
+  string dir_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/knn/";
+  mkdir(dir_path.c_str(), 0777);
+
+  // write yaml
+  FileStorage fsvO;
+  string yaml_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/knn/knn.yml";
+  cout << "trainAndWriteFocusedClassKnn: Writing: " << yaml_path << endl;
+  fsvO.open(yaml_path, FileStorage::WRITE);
+  fsvO << "knnFeatures" << kNNfeatures;
+  fsvO.release();
+}
+END_WORD
+REGISTER_WORD(TrainAndWriteFocusedClassKnn)
+
+WORD(CreateCachedClassifierFromClassLabels)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+
+  ms->config.numClasses = ms->config.classLabels.size();
+
+  Mat knnFeaturesAll;
+  Mat knnLabelsAll;
+
+  for (int idx = 0; idx < ms->config.classLabels.size(); idx++) {
+    Mat knnFeaturesThese;
+    string thisLabelName = ms->config.classLabels[idx];
+    string yaml_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/knn/knn.yml";
+    cout << "createCachedClassifierFromClassLabels: Reading: " << yaml_path << endl;
+    FileStorage fsfI;
+    fsfI.open(yaml_path, FileStorage::READ);
+
+    if (fsfI.isOpened()) {
+      cout << "opened features for class " << idx << endl;
+      fsfI["knnFeatures"] >> knnFeaturesThese;
+      knnFeaturesAll.push_back(knnFeaturesThese);
+      for (int l = 0; l < knnFeaturesThese.rows; l++) {
+	knnLabelsAll.push_back(idx);
+      }
+    } else {
+      cout << "unable to open features for class " << idx << endl;
+    }
+    
+    cout << knnFeaturesAll.size() << knnLabelsAll.size() << endl;
+  }
+  cout << "knnLabelsAll dimensions: " << knnLabelsAll.size().height << " by " << knnLabelsAll.size().width << endl;
+  cout << "knnFeaturesAll dimensions: " << knnFeaturesAll.size().height << " by " << knnFeaturesAll.size().width << endl;
+
+  cout << "Main kNN...";
+
+  if ( (knnFeaturesAll.data == NULL) || (knnFeaturesAll.rows < 1) || (knnFeaturesAll.cols < 1) ) {
+    cout << "There is a problem with kNN features, cannot initialize detector and files may be corrupt." << endl;
+  } else {
+    ms->config.kNN = new CvKNearest(knnFeaturesAll, knnLabelsAll);
+    cout << "done." << endl;
+    for (int i = 0; i < ms->config.numClasses; i++) {
+      if (ms->config.classPoseModels[i].compare("G") == 0) {
+	cout << "Class " << i << " kNN..." << ms->config.classPosekNNfeatures[i].size() << ms->config.classPosekNNlabels[i].size() << endl;
+	ms->config.classPosekNNs[i] = new CvKNearest(ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i]);
+	cout << "Done" << endl;
+      }
+    }
+  }
+
+  initRangeMaps(ms);
+}
+END_WORD
+REGISTER_WORD(CreateCachedClassifierFromClassLabels)
 
 WORD(VisionCycleNoClassify)
 CODE(196721)     // capslock + Q
@@ -279,8 +445,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     ms->pushWord("putCameraOverPhotoPin"); 
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    ms->pushWord(1310722); // set random orientation for photospin.
-    ms->pushWord(196712); // increment grasp gear
+    ms->pushWord("setRandomOrientationForPhotospin"); 
+    ms->pushWord("incrementGraspGear"); 
   }
   ms->pushWord("shiftIntoGraspGear1"); // change gear to 1
 }
@@ -295,6 +461,29 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SetTargetReticleToTheMaxMappedPosition)
+
+WORD(ClassRangeMapFromRegister1)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  for (int y = 0; y < ms->config.rmWidth; y++) {
+    for (int x = 0; x < ms->config.rmWidth; x++) {
+      ms->config.rangeMap[x + y*ms->config.rmWidth] = ms->config.rangeMapReg1[x + y*ms->config.rmWidth];
+    } 
+  } 
+
+  int tfc = ms->config.focusedClass;
+  if ((tfc > -1) && (tfc < ms->config.classRangeMaps.size()) && (ms->config.classRangeMaps[tfc].rows > 1) && (ms->config.classRangeMaps[tfc].cols > 1)) {
+    for (int y = 0; y < ms->config.rmWidth; y++) {
+      for (int x = 0; x < ms->config.rmWidth; x++) {
+	ms->config.classRangeMaps[tfc].at<double>(y,x) = ms->config.rangeMapReg1[x + y*ms->config.rmWidth];
+      } 
+    } 
+    cout << "classRangeMapFromRegister1: focused class inside of bounds, " << tfc << " " << ms->config.classRangeMaps.size() << endl;
+  } else {
+    cout << "classRangeMapFromRegister1: focused class out of bounds, " << tfc << " " << ms->config.classRangeMaps.size() << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(ClassRangeMapFromRegister1)
 
 WORD(DownsampleIrScan)
 CODE(1048690) // numlock + r
@@ -379,7 +568,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 
   if (0) {
-    ms->pushWord("saveLearnedModels");
+    ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
     ms->pushWord("loadPriorGraspMemoryAnalytic");
     // set target class to the lastLabelLearned 
     ms->pushWord("setTargetClassToLastLabelLearned");
@@ -475,6 +664,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(TurnOnRecordRangeMap)
 
+WORD(TurnOffScanning)
+CODE(1048684)     // numlock + l
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.recordRangeMap = 0;
+}
+END_WORD
+REGISTER_WORD(TurnOffScanning)
+
 WORD(SetRangeMapCenterFromCurrentEEPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Set rmcX and rmcY from ms->config.currentEEPose." << endl;
@@ -492,70 +689,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.rmcX = ms->config.trueEEPose.position.x;
   ms->config.rmcY = ms->config.trueEEPose.position.y;
   ms->config.rmcZ = ms->config.trueEEPose.position.z - ms->config.eeRange;
-  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-      ms->config.rangeMap[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth] = 0;
-      // ATTN 17
-      //rangeMapReg2[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapMass[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapAccumulator[rx + ry*ms->config.rmWidth] = 0;
-    }
-  }
-  {
-    cv::Scalar backColor(128,0,0);
-    cv::Point outTop = cv::Point(0,0);
-    cv::Point outBot = cv::Point(ms->config.rmiWidth,ms->config.rmiHeight);
-    Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-    vCrop = backColor;
-  }
-  for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
-      ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapReg1[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapReg2[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapMass[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapAccumulator[rx + ry*ms->config.hrmWidth] = 0;
-    }
-  }
-  {
-    cv::Scalar backColor(128,0,0);
-    cv::Point outTop = cv::Point(0,0);
-    cv::Point outBot = cv::Point(ms->config.hrmiWidth,ms->config.hrmiHeight);
-    Mat vCrop = ms->config.hiRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-    vCrop = backColor;
-  }
-  for (int h = 0; h < ms->config.hrmWidth; h++) {
-    for (int i = 0; i < ms->config.hrmWidth; i++) {
-      ms->config.hiColorRangeMapMass[h + i*ms->config.hrmWidth] = 0;
-      for (int j = 0; j < 3; j++) {
-        ms->config.hiColorRangeMapAccumulator[h + i*ms->config.hrmWidth + j*ms->config.hrmWidth*ms->config.hrmWidth] = 0;
-      }
-    }
-  }
-  for (int pz = 0; pz < ms->config.vmWidth; pz++) {
-    for (int py = 0; py < ms->config.vmWidth; py++) {
-      for (int px = 0; px < ms->config.vmWidth; px++) {
-        ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-        ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-        ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-        ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-        for (int pc = 0; pc < 3; pc++) {
-          ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + pc*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] = 0;
-        }
-      }
-    }
-  }
-  {
-    cv::Scalar backColor(128,0,0);
-    cv::Point outTop = cv::Point(0,0);
-    cv::Point outBot = cv::Point(ms->config.hiColorRangemapImage.cols,ms->config.hiColorRangemapImage.rows);
-    Mat vCrop = ms->config.hiColorRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-    vCrop = backColor;
-  }
+
+  clearAllRangeMaps(ms);
 }
 END_WORD
 REGISTER_WORD(InitDepthScan)
+
+WORD(ClearAllRangeMaps)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Clearing all range maps." << endl;
+  clearAllRangeMaps(ms);
+}
+END_WORD
+REGISTER_WORD(ClearAllRangeMaps)
 
 
 
@@ -563,6 +709,7 @@ REGISTER_WORD(InitDepthScan)
 WORD(NeutralScan)
 CODE(1048622) // numlock + .
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord("shiftIntoGraspGear1"); 
   ms->pushWord("cruisingSpeed");
   ms->pushWord("neutralScanA");
   ms->pushWord("rasterScanningSpeed");
@@ -576,15 +723,23 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double lineSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
   double betweenSpeed = MOVE_FAST;//MOVE_MEDIUM;//MOVE_FAST;
 
+  ms->pushWord("turnOffScanning"); // turn off scanning
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
   ms->pushWord("prepareForSearch"); // prepare for search
-
-  ms->pushCopies('q',4);
-  ms->pushCopies('a',6);
+  ms->pushWord("rasterScanningSpeed"); 
 
   ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
+
   ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("shiftGraspGear"); // rotate gear
+  ms->pushCopies('s',10);
+  ms->pushWord("approachSpeed");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies('a',6);
+  ms->pushCopies('q',4);
+  ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("shiftGraspGear"); 
+
 
   ms->pushWord("fullRender"); // full render
   ms->pushWord("paintReticles"); // render reticle
@@ -598,6 +753,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
   ms->pushWord("selectBestAvailableGrasp"); // find best grasp
 
+  ms->pushWord("cruisingSpeed"); 
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushCopies('w',10);
+  ms->pushWord("departureSpeed");
+
+  ms->pushWord("turnOffScanning"); // turn off scanning
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
   ms->pushWord("prepareForSearch"); // prepare for search
 
@@ -615,35 +776,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double lineSpeed = ms->config.bDelta;
   double betweenSpeed = ms->config.bDelta;
 
+  ms->pushWord("cruisingSpeed");
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
-  ms->pushWord("prepareForSearch"); // prepare for search
-
-  ms->pushCopies('q',4);
-  ms->pushCopies('a',6);
-
-  ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("shiftGraspGear"); // rotate gear
-
-  ms->pushWord("fullRender"); // full render
-  ms->pushWord("paintReticles"); // render reticle
-  ms->pushWord("shiftIntoGraspGear1"); // change to first gear
-  ms->pushWord("drawMapRegisters"); // render register 1
-  ms->pushWord("downsampleIrScan"); // load map to register 1
-  {
-    ms->pushWord("setTargetReticleToTheMaxMappedPosition"); // target best grasp
-    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    ms->pushWord("shiftIntoGraspGear1"); // change to first gear
-  }
-  ms->pushWord("selectBestAvailableGrasp"); // find best grasp
-
-  scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
-  ms->pushWord("prepareForSearch"); // prepare for search
-
-  ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
-  ms->pushWord("initDepthScan"); // clear scan history
-  ms->pushWord("waitUntilAtCurrentPosition"); 
-  ms->pushWord("shiftIntoGraspGear1"); 
+  ms->pushWord("rasterScanningSpeed");
 }
 END_WORD
 REGISTER_WORD(NeutralScanB)
@@ -666,6 +801,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
   ms->pushWord("selectBestAvailableGrasp"); // find best grasp
 
+  ms->pushWord("turnOffScanning"); // turn off scanning
   scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
   ms->pushWord("prepareForSearch"); // prepare for search
 
@@ -689,7 +825,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     string thisLabelName = ms->config.focusedClassLabel;
 
     char buf[1000];
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
     string this_range_path;
 
     // ATTN 16
@@ -772,21 +908,25 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     case 0:
       {
         fsvO << "aerialHeight0Gradients" << gCrop;
+	ms->config.classHeight0AerialGradients[ms->config.focusedClass] = gCrop.clone();
       }
       break;
     case 1:
       {
         fsvO << "aerialHeight1Gradients" << gCrop;
+	ms->config.classHeight1AerialGradients[ms->config.focusedClass] = gCrop.clone();
       }
       break;
     case 2:
       {
         fsvO << "aerialHeight2Gradients" << gCrop;
+	ms->config.classHeight2AerialGradients[ms->config.focusedClass] = gCrop.clone();
       }
       break;
     case 3:
       {
         fsvO << "aerialHeight3Gradients" << gCrop;
+	ms->config.classHeight3AerialGradients[ms->config.focusedClass] = gCrop.clone();
       }
       break;
     default:
@@ -796,6 +936,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       break;
     }
     fsvO.release();
+  } else {
   } 
 }
 END_WORD
@@ -804,20 +945,45 @@ REGISTER_WORD(SaveAerialGradientMap)
 WORD(InitializeAndFocusOnNewClass)
 CODE(196720)     // capslock + P
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.focusedClass = ms->config.numClasses+ms->config.newClassCounter;
+  ms->config.focusedClass = ms->config.classLabels.size();
+  ms->config.targetClass = ms->config.focusedClass;
   char buf[1024];
-  sprintf(buf, "autoClass%d_%s", ms->config.focusedClass, ms->config.left_or_right_arm.c_str());
+  ros::Time thisNow = ros::Time::now();
+  sprintf(buf, "autoClass_%s_%s_%f", ms->config.robot_serial.c_str(), ms->config.left_or_right_arm.c_str(), thisNow.toSec());
   string thisLabelName(buf);
   ms->config.focusedClassLabel = thisLabelName;
   ms->config.classLabels.push_back(thisLabelName);
+  ms->config.numClasses = ms->config.classLabels.size();
   string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/";
   mkdir(dirToMakePath.c_str(), 0777);
-  string rgbDirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb";
-  mkdir(rgbDirToMakePath.c_str(), 0777);
-  ms->config.newClassCounter++;
+  initRangeMaps(ms);
+  guardGraspMemory(ms);
+  guardHeightMemory(ms);
+
+  int idx = ms->config.focusedClass;
+  string folderName = ms->config.data_directory + "/objects/" + ms->config.classLabels[idx] + "/";
+  initClassFolders(ms, folderName);
 }
 END_WORD
 REGISTER_WORD(InitializeAndFocusOnNewClass)
+
+
+WORD(WriteFocusedClass)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int idx = ms->config.focusedClass;
+
+  if ((idx > -1) && (idx < ms->config.classLabels.size())) {
+    // do nothing
+  } else {
+    cout << "writeFocusedClass: invalid idx, not writing." << endl;
+    return;
+  }
+
+  string outfolder = ms->config.data_directory + "/objects/" + ms->config.classLabels[idx] + "/";
+  writeClassToFolder(ms, idx, outfolder);
+}
+END_WORD
+REGISTER_WORD(WriteFocusedClass)
 
 WORD(SaveCurrentClassDepthAndGraspMaps)
 CODE(196705) // capslock + A
@@ -830,7 +996,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     string thisLabelName = ms->config.focusedClassLabel;
 
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ir2D/";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/ir2d/";
     string this_range_path = dirToMakePath + "xyzRange.yml";
 
     Mat rangeMapTemp(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
@@ -892,11 +1058,38 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("synchronicServo"); 
   ms->pushWord("synchronicServoTakeClosest");
   ms->pushWord("fillClearanceMap");
-  ms->config.currentBoundingBoxMode = MAPPING;
   ms->config.bDelta = 0.001;
+  ms->pushWord("setBoundingBoxModeToMapping"); 
 }
 END_WORD
 REGISTER_WORD(ScanCentered)
+
+WORD(StreamScanCentered)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  pushSpeedSign(ms, MOVE_FAST);
+  ms->pushWord("cruisingSpeed");
+  ms->pushWord("streamSpin");
+  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  ms->pushWord("streamImageSpeed"); // w1 wait until at current position
+  ms->pushWord("setBoundingBoxModeToMapping"); 
+}
+END_WORD
+REGISTER_WORD(StreamScanCentered)
+
+WORD(StreamSpin)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  for (int angleCounter = 0; angleCounter < ms->config.totalGraspGears; angleCounter++) {
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    ms->pushWord("putCameraOverPhotoPin"); 
+    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+    //ms->pushWord("setRandomOrientationForPhotospin"); 
+    ms->pushWord("decrementGraspGear"); 
+  }
+  ms->pushWord("incrementGraspGear"); 
+  ms->pushWord("shiftIntoGraspGear1"); // change gear to 1
+}
+END_WORD
+REGISTER_WORD(StreamSpin)
 
 WORD(SetTable)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -938,9 +1131,30 @@ WORD(SetIROffset)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setIROffsetA");
   ms->pushWord("cruisingSpeed");
+
+  
+  ms->pushWord("integrateRangeStreamBuffer");
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+
   ms->pushWord("neutralScanH");
+  
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord("setSisFlags"); 
+
+
   ms->pushWord("iRCalibrationSpeed");
+  ms->pushWord("lock3dGraspBase"); 
   cout << "Commencing HALF neutral scan for SetIROffset." << endl;
+
+  ms->pushWord("disableDiskStreaming");
 }
 END_WORD
 REGISTER_WORD(SetIROffset)
@@ -1127,6 +1341,25 @@ REGISTER_WORD(MoveCropToProperValue)
 
 WORD(FixCameraLighting)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+
+/*  :)
+
+int32   id
+int32   value
+
+int32 CAMERA_CONTROL_EXPOSURE=100
+int32 CAMERA_CONTROL_GAIN=101
+int32 CAMERA_CONTROL_WHITE_BALANCE_R=102
+int32 CAMERA_CONTROL_WHITE_BALANCE_G=103
+int32 CAMERA_CONTROL_WHITE_BALANCE_B=104
+int32 CAMERA_CONTROL_WINDOW_X=105
+int32 CAMERA_CONTROL_WINDOW_Y=106
+int32 CAMERA_CONTROL_FLIP=107
+int32 CAMERA_CONTROL_MIRROR=108
+int32 CAMERA_CONTROL_RESOLUTION_HALF=109
+
+*/
+
   baxter_core_msgs::OpenCamera ocMessage;
   ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
   ocMessage.request.settings.controls.resize(2);
@@ -1138,6 +1371,43 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(FixCameraLighting)
+
+WORD(FixCameraLightingExposureGain)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "fixCameraLightingExposureGain...";
+  shared_ptr<Word> firstFlagWord = ms->popWord();
+  shared_ptr<Word> secondFlagWord = ms->popWord();
+  std::shared_ptr<IntegerWord> fiWord = std::dynamic_pointer_cast<IntegerWord>(firstFlagWord);
+  std::shared_ptr<IntegerWord> seWord = std::dynamic_pointer_cast<IntegerWord>(secondFlagWord);
+
+  if( (fiWord == NULL) || (seWord == NULL) ) {
+    cout << "not enough words... clearing stack." << endl;
+    ms->clearStack();
+    return;
+  } else {
+    int thisExposure = max(0, min(seWord->value(),100));
+    int thisGain = max(0, min(fiWord->value(),100));
+
+    baxter_core_msgs::OpenCamera ocMessage;
+    ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
+    ocMessage.request.settings.controls.resize(4);
+    ocMessage.request.settings.controls[0].id = 105;
+    ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
+    ocMessage.request.settings.controls[1].id = 106;
+    ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
+    ocMessage.request.settings.controls[2].id = 100;
+    ocMessage.request.settings.controls[2].value = thisExposure;
+    ocMessage.request.settings.controls[3].id = 101;
+    ocMessage.request.settings.controls[3].value = thisGain;
+    int testResult = ms->config.cameraClient.call(ocMessage);
+
+    cout << "setting camera values, Exposure: " << thisExposure << " Gain: " << thisGain << " testResult: " << testResult << endl;
+  }
+
+}
+END_WORD
+REGISTER_WORD(FixCameraLightingExposureGain)
+
 
 WORD(UnFixCameraLighting)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1871,7 +2141,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setLastLabelLearned");
 
   ms->pushWord("setMovementSpeedMoveFast");
-  ms->config.currentBoundingBoxMode = MAPPING; // this is here because it is for the rgbScan
   //ms->pushWord("rgbScan");
   //ms->pushWord("rgbScan");
   ms->pushWord("scanCentered");
@@ -1955,6 +2224,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("assumeBackScanningPose");
   ms->pushWord("assumeCalibrationPose");
   ms->pushWord("fullImpulse");
+  ms->pushWord("setBoundingBoxModeToMapping"); 
 }
 END_WORD
 REGISTER_WORD(ScanObjectFast)
@@ -1973,76 +2243,120 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.eepReg2 = ms->config.beeHome;
   ms->config.eepReg4 = ms->config.beeHome;
 
-  // so that closest servoing doesn't go into gradient servoing.
-  ms->config.targetClass = -1;
+// XXX 
+//  save grasp information separately
+//  remove grasp annotation
+//  reinit range maps for one class at a time
+
+  ms->pushWord("pickFocusedClass");
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("changeToHeight"); 
+  // XXX second writeFocusedClass because aerial gradients aren't loaded until re-init
+  //ms->pushWord("writeFocusedClass");
+  //ms->pushWord("integrateImageStreamBufferCrops");
+  //ms->pushWord("reinitRangeMaps");
+  ms->pushWord("writeFocusedClass");
+  ms->pushWord("integrateImageStreamBufferServoImages");
+  //ms->pushWord("saveCurrentClassDepthAndGraspMaps");
+  //ms->pushWord("loadMarginalGraspMemory");
+  ms->pushWord("loadPriorGraspMemoryAnalytic");
+  //ms->pushWord("resetCurrentFocusedClass");
+  ms->pushWord("classRangeMapFromRegister1");
+  ms->pushWord("integrateRangeStreamBuffer");
+  ms->pushWord("populateStreamBuffers");
+
 
   // set lastLabelLearned
   ms->pushWord("setLastLabelLearned");
 
 
   ms->pushWord("setMovementSpeedMoveFast");
-  ms->config.currentBoundingBoxMode = MAPPING; // this is here because it is for the rgbScan
 
-  ms->pushWord("scanCentered");
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+
+  ms->pushWord("streamScanCentered");
 
   ms->pushWord("activateSensorStreaming"); 
   ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("setSisFlags"); 
 
   ms->pushWord("fullImpulse");
-  ms->pushWord("setMovementSpeedMoveVerySlow");
+
   ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("shiftIntoGraspGear1"); 
   ms->pushWord("changeToHeight1"); 
   //ms->pushWord("comeToHover");
   ms->pushWord("moveToRegister1");
 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord("setSisFlags"); 
 
+  ms->pushWord("bringUpAllNonessentialSystems"); 
   ms->pushWord("deactivateSensorStreaming"); 
-  ms->pushWord("neutralScan"); 
-  ms->pushWord("lock3dGraspBase"); 
-  
-  ms->pushWord("activateSensorStreaming"); 
-  ms->pushWord("clearStreamBuffers"); 
-  //ms->pushWord("shutdownToSensorsAndMovement"); 
-  
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord("setSisFlags"); 
-
-  ms->pushWord("pauseStackExecution"); 
-  
   {
-    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("gradientServoPrep");
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("changeToHeight3"); // change to height 3
   }
   {
-    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("gradientServoPrep");
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("changeToHeight2"); // change to height 2
   }
   {
-    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("gradientServoPrep");
     ms->pushWord("waitUntilAtCurrentPosition");
-      ms->pushWord("changeToHeight1"); // change to height 1
+    ms->pushWord("changeToHeight1"); // change to height 1
   }
   {
-    ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("gradientServoPrep");
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("changeToHeight0"); // change to height 0
   }
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("setSisFlags"); 
   
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("moveToRegister1");
+
+  //ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // XXX
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+  ms->pushWord("neutralScan"); 
   
-  ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
-  ms->pushWord("preAnnotateOffsetGrasp"); 
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord("setSisFlags"); 
+
+  ms->pushWord("lock3dGraspBase"); 
+  ms->pushWord("saveRegister1");
+
+  ms->pushWord("pauseStackExecution"); 
+  
+
+
+  //ms->pushWord("preAnnotateOffsetGrasp"); // XXX
+
+
+
   ms->pushWord("setPhotoPinHere");
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
@@ -2052,7 +2366,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("fullImpulse");
 
-  ms->pushWord("saveRegister1");
   ms->pushWord("waitUntilAtCurrentPosition");
 
   // dislodge. necessary because the robot takes a while to "spin up" at slow speeds, which interferes
@@ -2060,24 +2373,280 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushCopies("dislodgeEndEffectorFromTable", retractCm);
   ms->pushWord("setCurrentPoseToTruePose");
   ms->pushWord("setMovementSpeedMoveFast");
-
-  ms->pushWord("recordGraspZ");
-
+  //ms->pushWord("recordGraspZ"); // XXX
   ms->pushWord("hundredthImpulse");
+
   ms->pushWord("pauseStackExecution"); // pause stack execution
   ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
 
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("shiftIntoGraspGear1");
   ms->pushWord("changeToHeight0");
-  //ms->pushCopies("yDown", 25);
+
   ms->pushWord("setMovementSpeedMoveFast");
-  ms->pushWord("assumeBackScanningPose");
-  ms->pushWord("assumeCalibrationPose");
   ms->pushWord("fullImpulse");
+  ms->pushWord("setBoundingBoxModeToMapping"); 
+
+  ms->pushWord("clearBlueBoxMemories"); 
+  ms->pushWord("clearMapForPatrol"); 
+  ms->pushWord("enableDiskStreaming"); 
 }
 END_WORD
 REGISTER_WORD(ScanObjectStream)
+
+WORD(ScanObjectStreamAnnotated)
+virtual string description() {
+  return "Scans an object in stream mode with an annotated grasp.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  int retractCm = 10;
+  
+  cout << "BEGINNING SCANOBJECTSTREAM" << endl;
+  cout << "Program will pause shortly. Please adjust height and object so that arm would grip if closed and so that the gripper will clear the object once raised 5cm." << endl;
+
+  ms->config.eepReg2 = ms->config.beeHome;
+  ms->config.eepReg4 = ms->config.beeHome;
+
+// XXX 
+//  save grasp information separately
+//  remove grasp annotation
+//  reinit range maps for one class at a time
+
+  ms->pushWord("pickFocusedClass");
+  ms->pushWord("cruisingSpeed"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("changeToHeight"); 
+  // XXX second writeFocusedClass because aerial gradients aren't loaded until re-init
+  //ms->pushWord("writeFocusedClass");
+  //ms->pushWord("integrateImageStreamBufferCrops");
+  //ms->pushWord("reinitRangeMaps");
+  ms->pushWord("writeFocusedClass");
+  ms->pushWord("integrateImageStreamBufferServoImages");
+  //ms->pushWord("saveCurrentClassDepthAndGraspMaps");
+  //ms->pushWord("loadMarginalGraspMemory");
+  //ms->pushWord("loadPriorGraspMemoryAnalytic"); // XXX
+  //ms->pushWord("resetCurrentFocusedClass");
+  //ms->pushWord("classRangeMapFromRegister1"); // XXX
+  //ms->pushWord("integrateRangeStreamBuffer"); // XXX
+  ms->pushWord("populateStreamBuffers");
+
+
+  // set lastLabelLearned
+  ms->pushWord("setLastLabelLearned");
+
+
+  ms->pushWord("setMovementSpeedMoveFast");
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+
+  ms->pushWord("streamScanCentered");
+
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("setSisFlags"); 
+
+  ms->pushWord("fullImpulse");
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("shiftIntoGraspGear1"); 
+  ms->pushWord("changeToHeight1"); 
+  //ms->pushWord("comeToHover");
+  ms->pushWord("moveToRegister1");
+
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+  {
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("deactivateSensorStreaming"); 
+    ms->pushWord("4.0"); 
+    ms->pushWord("waitForSeconds"); 
+    ms->pushWord("activateSensorStreaming"); 
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight3"); // change to height 3
+  }
+  {
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("deactivateSensorStreaming"); 
+    ms->pushWord("4.0"); 
+    ms->pushWord("waitForSeconds"); 
+    ms->pushWord("activateSensorStreaming"); 
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight2"); // change to height 2
+  }
+  {
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("deactivateSensorStreaming"); 
+    ms->pushWord("4.0"); 
+    ms->pushWord("waitForSeconds"); 
+    ms->pushWord("activateSensorStreaming"); 
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight1"); // change to height 1
+  }
+  {
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("deactivateSensorStreaming"); 
+    ms->pushWord("4.0"); 
+    ms->pushWord("waitForSeconds"); 
+    ms->pushWord("activateSensorStreaming"); 
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight0"); // change to height 0
+  }
+  ms->pushWord("departureSpeed");
+
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("setSisFlags"); 
+  
+  //ms->pushWord("waitUntilAtCurrentPosition");
+  //ms->pushWord("moveToRegister1");
+  //ms->pushWord("saveRegister1");  // this is so we return to a reasonable place 
+
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("changeToHeight0"); // change to height 0
+
+  ms->pushWord("departureSpeed");
+
+  ms->pushWord("setPhotoPinHere");
+  ms->pushWord("writeFocusedClass");
+  ms->pushWord("lock3dGraspBase"); 
+  //ms->pushWord("preAnnotateCenterGrasp"); // XXX
+  ms->pushWord("preAnnotateOffsetGrasp"); // you need to saveRegister1 where the grasp should be before calling this
+  ms->pushWord("setPhotoPinHere");
+
+  //ms->pushWord("pauseStackExecution"); // pause to ensure being centered
+
+  ms->pushWord("comeToStop");
+  ms->pushWord("setMovementStateToMoving");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  if (ms->config.currentScanMode == CENTERED) {
+    ms->pushWord("synchronicServo");
+  } else if (ms->config.currentScanMode == NOT_CENTERED) {
+  } else {
+    assert(0);
+  }
+  ms->pushWord("synchronicServoTakeClosest");
+  ms->pushWord("sampleHeight"); 
+
+  ms->pushWord("departureSpeed");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  // dislodge. necessary because the robot takes a while to "spin up" at slow speeds, which interferes
+  //  with the state machine while in contact with the table
+  ms->pushCopies("dislodgeEndEffectorFromTable", retractCm);
+  ms->pushWord("setCurrentPoseToTruePose");
+  ms->pushWord("setMovementSpeedMoveFast");
+  ms->pushWord("hundredthImpulse");
+
+  ms->pushWord("saveRegister1"); // for preAnnotateOffsetGrasp, which isn't use in this version but could be used where it is.
+  ms->pushWord("recordGraspZ"); // XXX
+
+  ms->pushWord("pauseStackExecution"); // pause for annotation positioning
+
+  ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("shiftIntoGraspGear1");
+  ms->pushWord("changeToHeight0");
+
+  ms->pushWord("setMovementSpeedMoveFast");
+  ms->pushWord("fullImpulse");
+  ms->pushWord("setBoundingBoxModeToMapping"); 
+
+  ms->pushWord("clearBlueBoxMemories"); 
+  ms->pushWord("clearMapForPatrol"); 
+  ms->pushWord("enableDiskStreaming"); 
+}
+END_WORD
+REGISTER_WORD(ScanObjectStreamAnnotated)
+
+WORD(CollectMoreStreams)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "About to collect more streams, make sure targetClass is set, i.e. you should have" << endl <<
+    " \"<target class name>\" setTargetClass " << endl <<
+    " in the repl before running this. 3dGraspAnnotation will run, be sure it succeeds. If it fails to get a good lock, start over. Make sure to adjust to a safe scanning height before unpausing after the lock." << endl;
+
+
+  ms->pushWord("fullImpulse");
+  ms->pushWord("setMovementSpeedMoveFast");
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+
+  ms->pushWord("streamScanCentered");
+
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+
+  ms->pushWord("fullImpulse");
+  ms->pushWord("setMovementSpeedMoveVerySlow");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("shiftIntoGraspGear1"); 
+  ms->pushWord("changeToHeight1"); 
+
+  ms->pushWord("moveToRegister1");
+
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("setSisFlags"); 
+
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+  ms->pushWord("neutralScanB"); 
+  
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord("setSisFlags"); 
+
+
+  ms->pushWord("pauseStackExecution"); 
+  ms->pushWord("saveRegister1");
+  ms->pushWord("start3dGraspAnnotation"); 
+    
+  ms->pushWord("pauseStackExecution"); 
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("moveToMappingHeight");
+  ms->pushWord("setBoundingBoxModeToMapping"); 
+}
+END_WORD
+REGISTER_WORD(CollectMoreStreams)
 
 WORD(RecordGraspZ)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -2128,18 +2697,19 @@ REGISTER_WORD(Save3dGrasps)
 
 WORD(Lock3dGraspBase)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.c3dPoseBase = ms->config.currentEEPose;
+  ms->config.c3dPoseBase.pz = -ms->config.currentTableZ;
+  cout << endl
+       << "The base for 3d grasp annotation is now locked. You should now activate zero-G mode." << endl 
+       << "Please move the gripper to a valid grasping pose and use \"add3dGrasp\" to record a grasp point." << endl
+       << "You can record more than one grasp point in a row." << endl
+       << "When you are done, make sure to save to disk and to exit zero-G mode." << endl;
+
   if ( (ms->config.bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
-    ms->config.c3dPoseBase = ms->config.currentEEPose;
-    ms->config.c3dPoseBase.pz = -ms->config.currentTableZ;
-    cout << endl
-	 << "The base for 3d grasp annotation is now locked and you are in zero-G mode." << endl 
-	 << "Please move the gripper to a valid grasping pose and use \"add3dGrasp\" to record a grasp point." << endl
-	 << "You can record more than one grasp point in a row." << endl
-	 << "When you are done, make sure to save to disk and to exit zero-G mode." << endl;
-    ms->config.zero_g_toggle = 1;
   } else {
-    cout << "Tried to lock c3dPoseBase but failed. Clearing stack." << endl;
-    ms->clearStack();
+    cout << endl << "There don't seem to be detections present." << endl;    
+    //cout << "Tried to lock c3dPoseBase but failed. Clearing stack." << endl;
+    //ms->clearStack();
   }
 }
 END_WORD
@@ -2370,6 +2940,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "PreAnnotateOffsetGrasp: " << offsetPose << " " << ms->config.currentEEPose << " " << difference << endl <<
     offsetX << " " << offsetY << " " << rx << " " << ry << endl;
 
+  int padding = ms->config.rangeMapTargetSearchPadding;
+  if ( (rx < padding) || (ry < padding) || 
+       (rx > ms->config.rmWidth-1-padding) || (ry > ms->config.rmWidth-1-padding) ) {
+    ms->clearStack();
+    cout << "Oops, annotation put the grasp point out of bounds. Clearing stack; you should delete this model. Try using setScanModeNotCentered." << endl;
+    // we could push the other annotation here and go to eepReg1 to automatically recover from this
+    return;
+  } else {
+  }
+
 
   ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth * ms->config.rmWidth * 0] = 1;
   ms->config.graspMemoryPicks[rx + ry*ms->config.rmWidth + ms->config.rmWidth * ms->config.rmWidth * 0] = 1;
@@ -2441,8 +3021,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     ms->pushWord("putCameraOverPhotoPin"); 
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    ms->pushWord(1310722); // set random orientation for photospin.
-    ms->pushWord(196712); // increment grasp gear
+    ms->pushWord("setRandomOrientationForPhotospin"); 
+    ms->pushWord("incrementGraspGear"); 
   }
   ms->pushWord("shiftIntoGraspGear1"); // change gear to 1
 }
@@ -2599,5 +3179,59 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(WriteAlphaObjectToBetaFoldersA)
+
+WORD(RetrainVocabOn)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "retrain_vocab turned on,  was: " << ms->config.retrain_vocab << ", is: ";
+  ms->config.retrain_vocab = 1;
+  cout << ms->config.retrain_vocab << endl;
+}
+END_WORD
+REGISTER_WORD(RetrainVocabOn)
+
+WORD(RetrainVocabOff)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "retrain_vocab turned off,  was: " << ms->config.retrain_vocab << ", is: ";
+  ms->config.retrain_vocab = 0;
+  cout << ms->config.retrain_vocab << endl;
+}
+END_WORD
+REGISTER_WORD(RetrainVocabOff)
+
+WORD(ReinitRangeMaps)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  initRangeMaps(ms);
+}
+END_WORD
+REGISTER_WORD(ReinitRangeMaps)
+
+WORD(ResetCurrentFocusedClass)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int class_idx = ms->config.focusedClass;
+  cout << "resetCurrentFocusedClass: " << class_idx << endl;
+  if ( (class_idx > -1) && (class_idx < ms->config.classLabels.size()) ) {
+    changeTargetClass(ms, class_idx);
+  } else {
+    cout << "  invalid focused class, not resetting." << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(ResetCurrentFocusedClass)
+
+WORD(SetScanModeCentered)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentScanMode = CENTERED;
+  cout << "Setting currentScanMode to CENTERED: " << ms->config.currentScanMode << endl;
+}
+END_WORD
+REGISTER_WORD(SetScanModeCentered)
+
+WORD(SetScanModeNotCentered)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentScanMode = NOT_CENTERED;
+  cout << "Setting currentScanMode to NOT_CENTERED: " << ms->config.currentScanMode << endl;
+}
+END_WORD
+REGISTER_WORD(SetScanModeNotCentered)
 
 }

@@ -997,7 +997,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
     // no compression!
     std::vector<int> args;
     args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    args.push_back(0);
+    args.push_back(ms->config.globalPngCompression);
     imwrite(png_path, this_grad, args);
   }
   {
@@ -1022,7 +1022,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
     // no compression!
     std::vector<int> args;
     args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    args.push_back(0);
+    args.push_back(ms->config.globalPngCompression);
     imwrite(png_path, this_grad, args);
   }
   {
@@ -1047,7 +1047,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
     // no compression!
     std::vector<int> args;
     args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    args.push_back(0);
+    args.push_back(ms->config.globalPngCompression);
     imwrite(png_path, this_grad, args);
   }
   {
@@ -1072,8 +1072,29 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
     // no compression!
     std::vector<int> args;
     args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    args.push_back(0);
+    args.push_back(ms->config.globalPngCompression);
     imwrite(png_path, this_grad, args);
+  }
+}
+
+void writeThumbnail(std::shared_ptr<MachineState> ms, int idx, string thumbnail_file_path) {
+  if ( (idx > -1) && (idx < ms->config.classLabels.size()) ) {
+    // do nothing
+  } else {
+    cout << "writeThumbnail: invalid idx, not writing." << endl;
+    return;
+  }
+
+  {
+    string loadPath = thumbnail_file_path + "/ein/servoImages/aerialHeight0PreGradients.png";
+    string outPath = thumbnail_file_path + "/thumbnail.png";
+    Mat tmp = imread(loadPath);
+
+    std::vector<int> args;
+    args.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    args.push_back(ms->config.globalPngCompression);
+
+    imwrite(outPath, tmp, args);
   }
 }
 
@@ -1090,7 +1111,21 @@ void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path
   FileStorage fsvO;
   string yaml_path = this_range_path + ".yml";
   cout << "writeIr2D: Writing: " << yaml_path << endl;
-  fsvO.open(this_range_path, FileStorage::WRITE);
+  fsvO.open(yaml_path, FileStorage::WRITE);
+  {
+    fsvO << "graspZ" << "[" 
+      << ms->config.currentGraspZ 
+    << "]";
+
+    if (ms->config.classGraspZs.size() > idx) {
+      ms->config.classGraspZs[idx] = ms->config.currentGraspZ;
+    }
+    if (ms->config.classGraspZsSet.size() > idx) {
+      ms->config.classGraspZsSet[idx] = 1;
+    }
+  }
+  fsvO << "rangeMap" << thisRangeMap;
+  fsvO.release();
   fsvO << "rangeMap" << thisRangeMap;
   fsvO.release();
 
@@ -1127,8 +1162,36 @@ void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path
   // no compression!
   std::vector<int> args;
   args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-  args.push_back(0);
+  args.push_back(ms->config.globalPngCompression);
   imwrite(png_path, rmImageOut, args);
+}
+
+streamImage * setIsbIdxNoLoad(std::shared_ptr<MachineState> ms, int idx) {
+  if ( (idx > -1) && (idx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[idx];
+    int lastIdx = ms->config.sibCurIdx;
+    if ( (lastIdx > -1) && (lastIdx < ms->config.streamImageBuffer.size()) && (lastIdx != idx) ) {
+      streamImage &lsi = ms->config.streamImageBuffer[lastIdx];
+      lsi.image.create(1, 1, CV_8UC3);
+      lsi.loaded = 0;
+      //cout << "setIsbIdx: last was valid and different." << endl;
+    } else {
+      //cout << "setIsbIdx: last was invalid or the same." << endl;
+    }
+
+    ms->config.sibCurIdx = idx;
+    if (tsi.loaded) {
+    } else {
+      tsi.loaded = 0;
+    } 
+
+    ms->config.sibCurIdx = idx;
+  } else {
+    cout << "Tried to set ISB index out of bounds: " << idx << endl;
+    return NULL;
+  }
+
+  return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
 }
 
 streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx) {
@@ -1139,15 +1202,15 @@ streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx) {
       streamImage &lsi = ms->config.streamImageBuffer[lastIdx];
       lsi.image.create(1, 1, CV_8UC3);
       lsi.loaded = 0;
-      cout << "setIsbIdx: last was valid and different." << endl;
+      //cout << "setIsbIdx: last was valid and different." << endl;
     } else {
-      cout << "setIsbIdx: last was invalid or the same." << endl;
+      //cout << "setIsbIdx: last was invalid or the same." << endl;
     }
 
     if (tsi.loaded) {
-      cout << "setIsbIdx: this was loaded." << endl;
+      //cout << "setIsbIdx: this was loaded." << endl;
     } else {
-      cout << "setIsbIdx: this was not loaded." << endl;
+      //cout << "setIsbIdx: this was not loaded." << endl;
       tsi.image = imread(tsi.filename);
       if (tsi.image.data == NULL) {
 	tsi.loaded = 0;
@@ -1168,13 +1231,31 @@ streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx) {
   return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
 }
 
-int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase, eePose * outRel) {
+void resetAccumulatedStreamImage(std::shared_ptr<MachineState> ms) {
+  Size sz = ms->config.accumulatedStreamImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
 
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[0] = 0.0;
+      ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[1] = 0.0;
+      ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[2] = 0.0;
+      ms->config.accumulatedStreamImageMass.at<double>(y,x) = 0.0;
+    }
+  }
+}
+
+int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase) {
+
+  // if we are more than p_rejectThresh away from a measurement, reject it
+  double p_rejectThresh = 1.0;
   int &thisIdx = ms->config.spbCurIdx;
   vector<streamEePose> &tspb = ms->config.streamPoseBuffer;
 
-  if (tspb.size() < 1) {
-    cout << "tried to get stream pose but the buffer is empty." << endl;
+  if (tspb.size() < 2) {
+    // 2 guards for the for loop that searches down, plus we only want to look it up if its between 2 measurements
+    cout << "tried to get stream pose but the buffer is too small: " << tspb.size() << endl;
     return 0;
   } else {
   }
@@ -1187,7 +1268,6 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
   if (tin == tspb[thisIdx].time) {
     (*outArm) = tspb[thisIdx].arm_pose;
     (*outBase) = tspb[thisIdx].base_pose;
-    (*outRel) = tspb[thisIdx].arm_pose.getPoseRelativeTo(tspb[thisIdx].base_pose); 
     return 1;
   } else if (tin > tspb[thisIdx].time) {
     // checking between
@@ -1195,6 +1275,10 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
       if ( (tspb[j].time < tin) && (tin < tspb[j+1].time) ) {
 	double w1 = tin - tspb[j].time;
 	double w2 = tspb[j+1].time - tin;
+	if ( (w1 > p_rejectThresh) || (w2 > p_rejectThresh) ) {
+	  return 0;
+	} else {
+	}
 	double totalWeight = w1 + w2;
 	w1 = w1 / totalWeight;
 	w2 = w2 / totalWeight;
@@ -1202,7 +1286,6 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
 	eePose iArm = tspb[j].arm_pose.getInterpolation(tspb[j+1].arm_pose, w2);
 	(*outArm) = iArm;
 	(*outBase) = iBase;
-	(*outRel) = iArm.getPoseRelativeTo(iBase);	
 	return 1;
       } else {
       }
@@ -1213,6 +1296,10 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
       if ( (tspb[j].time < tin) && (tin < tspb[j+1].time) ) {
 	double w1 = tin - tspb[j].time;
 	double w2 = tspb[j+1].time - tin;
+	if ( (w1 > p_rejectThresh) || (w2 > p_rejectThresh) ) {
+	  return 0;
+	} else {
+	}
 	double totalWeight = w1 + w2;
 	w1 = w1 / totalWeight;
 	w2 = w2 / totalWeight;
@@ -1220,7 +1307,6 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
 	eePose iArm = tspb[j].arm_pose.getInterpolation(tspb[j+1].arm_pose, w2);
 	(*outArm) = iArm;
 	(*outBase) = iBase;
-	(*outRel) = iArm.getPoseRelativeTo(iBase);	
 	return 1;
       } else {
       }
@@ -1257,25 +1343,6 @@ void castRangeRay(std::shared_ptr<MachineState> ms, double thisRange, eePose thi
   (*castPointOut)[1] = (irSensorEnd.y() - ms->config.rmcY); 
   (*castPointOut)[2] = (irSensorEnd.z() - ms->config.rmcZ); 
 
-  double eX = (irSensorEnd.x() - ms->config.rmcX) / ms->config.hrmDelta;
-  double eY = (irSensorEnd.y() - ms->config.rmcY) / ms->config.hrmDelta;
-  int eeX = (int)round(eX + ms->config.hrmHalfWidth);
-  int eeY = (int)round(eY + ms->config.hrmHalfWidth);
-
-#ifdef DEBUG
-  cout << "irSensorEnd w x y z: " << irSensorEnd.w() << " " << 
-    irSensorEnd.x() << " " << irSensorEnd.y() << " " << irSensorEnd.z() << endl;
-  cout << "irSensorStartGlobal w x y z: " << irSensorStartGlobal.w() << " " << 
-    irSensorStartGlobal.x() << " " << irSensorStartGlobal.y() << " " << irSensorStartGlobal.z() << endl;
-  cout << "Corrected x y: " << (thisPose.px - ms->config.drX) << " " << (thisPose.py - ms->config.drY) << endl;
-  cout.flush();
-#endif
-
-  if ((fabs(eX) <= ms->config.hrmHalfWidth) && (fabs(eY) <= ms->config.hrmHalfWidth)) {
-    ms->config.hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(0,0,128);
-  } else {
-  }
-
   (*rayDirectionOut) = Eigen::Vector3d(localUnitZ.x(), localUnitZ.y(), localUnitZ.z());
 }
 
@@ -1296,7 +1363,7 @@ void update2dRangeMaps(std::shared_ptr<MachineState> ms, Vector3d castPoint) {
     int hiiX = (int)round(hiX + ms->config.hrmHalfWidth);
     int hiiY = (int)round(hiY + ms->config.hrmHalfWidth);
 
-    cout << "hrmHalfWidth hiiX hiiY: " << ms->config.hrmHalfWidth << " " << hiiX << " " << hiiY << endl;
+    //cout << "hrmHalfWidth hiiX hiiY: " << ms->config.hrmHalfWidth << " " << hiiX << " " << hiiY << endl;
 
     // 2D map
     {
@@ -1526,6 +1593,58 @@ void populateStreamPoseBuffer(std::shared_ptr<MachineState> ms) {
   }
 }
 
+void activateSensorStreaming(std::shared_ptr<MachineState> ms) {
+  ros::NodeHandle n("~");
+  image_transport::ImageTransport it(n);
+  int cfClass = ms->config.focusedClass;
+  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
+    string this_label_name = ms->config.classLabels[cfClass]; 
+    string this_raw_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/";
+    string this_image_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/images/";
+    string this_pose_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/pose/";
+    string this_range_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/range/";
+    mkdir(this_raw_path.c_str(), 0777);
+    mkdir(this_image_path.c_str(), 0777);
+    mkdir(this_pose_path.c_str(), 0777);
+    mkdir(this_range_path.c_str(), 0777);
+    ms->config.sensorStreamOn = 1;
+
+    // turn that queue size up!
+    ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 100, endpointCallback);
+    ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 100, rangeCallback);
+    ms->config.image_sub = it.subscribe(ms->config.image_topic, 30, imageCallback);
+    cout << "Activating sensor stream." << endl;
+    ros::Time thisTime = ros::Time::now();
+    ms->config.sensorStreamLastActivated = thisTime.toSec();
+  } else {
+    cout << "Cannot activate sensor stream: invalid focused class." << endl;
+  } 
+}
+
+void deactivateSensorStreaming(std::shared_ptr<MachineState> ms) {
+  ros::NodeHandle n("~");
+  image_transport::ImageTransport it(n);
+  ms->config.sensorStreamOn = 0;
+  // restore those queue sizes to defaults.
+  ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, endpointCallback);
+  ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, rangeCallback);
+  ms->config.image_sub = it.subscribe(ms->config.image_topic, 1, imageCallback);
+
+  if (ms->config.diskStreamingEnabled) {
+    cout << "deactivateSensorStreaming: About to write batches... ";
+    int cfClass = ms->config.focusedClass;
+    if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
+      writeRangeBatchAsClass(ms, cfClass);	
+      writePoseBatchAsClass(ms, cfClass);	
+      cout << "Wrote batches." << endl;
+    } else {
+      cout << "Did not write batches, invalid focused class." << endl;
+    } 
+  } else {
+    cout << "deactivateSensorStreaming: Disk streaming not enabled, keeping range and pose stream buffers populated." << endl;
+  }
+}
+
 void populateStreamImageBuffer(std::shared_ptr<MachineState> ms) {
   DIR *dpdf;
   struct dirent *epdf;
@@ -1597,39 +1716,64 @@ void populateStreamImageBuffer(std::shared_ptr<MachineState> ms) {
   }
 }
 
-void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStreamIdx) {
-  string thisLabelName = ms->config.classLabels[classToStreamIdx];
-  string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/images/";
-  ros::Time thisNow = ros::Time::now();
-  char buf[1024];
-  sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
-  string root_path(buf); 
-
-  string png_path = root_path + ".png";
-  string yaml_path = root_path + ".yml";
-  cout << "Streaming current frame to " << png_path << " " << yaml_path << endl;
-  // no compression!
-  std::vector<int> args;
-  args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-  args.push_back(0);
-  imwrite(png_path, im, args);
-
-  // XXX take this cout out
-
-  // may want to save additional camera parameters
-  FileStorage fsvO;
-  fsvO.open(yaml_path, FileStorage::WRITE);
-  fsvO << "time" <<  thisNow.toSec();
-  fsvO.release();
+int didSensorStreamTimeout(std::shared_ptr<MachineState> ms) {
+  ros::Time safetyNow =  ros::Time::now();
+  double sNow = safetyNow.toSec();
+  if (sNow - ms->config.sensorStreamLastActivated > ms->config.sensorStreamTimeout) {
+    cout << "Whoops, sensor stream timed out, clearing stack and deactivating." << endl;
+    ms->clearStack();
+    deactivateSensorStreaming(ms);
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
-void streamRangeAsClass(std::shared_ptr<MachineState> ms, double rangeIn, int classToStreamIdx) {
+void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStreamIdx, double now) {
+
+  if (didSensorStreamTimeout(ms)) {
+    return;
+  } else {
+  }
+
+  if (ms->config.diskStreamingEnabled) {
+    string thisLabelName = ms->config.classLabels[classToStreamIdx];
+    string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/images/";
+    char buf[1024];
+    sprintf(buf, "%s%f", this_image_path.c_str(), now);
+    string root_path(buf); 
+
+    string png_path = root_path + ".png";
+    string yaml_path = root_path + ".yml";
+    cout << "streamImageAsClass: Streaming current frame to " << png_path << " " << yaml_path << endl;
+    // no compression!
+    std::vector<int> args;
+    args.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    args.push_back(ms->config.globalPngCompression);
+    imwrite(png_path, im, args);
+
+    // may want to save additional camera parameters
+    FileStorage fsvO;
+    fsvO.open(yaml_path, FileStorage::WRITE);
+    fsvO << "time" <<  now;
+    fsvO.release();
+  } else {
+    cout << "streamImageAsClass: disk streaming not enabled, not writing frame (not in RAM either)." << endl;
+  }
+}
+
+void streamRangeAsClass(std::shared_ptr<MachineState> ms, double rangeIn, int classToStreamIdx, double now) {
+
+  if (didSensorStreamTimeout(ms)) {
+    return;
+  } else {
+  }
+
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
     streamRange toAdd;
-    ros::Time thisNow = ros::Time::now();
     toAdd.range = rangeIn;
-    toAdd.time = thisNow.toSec();
+    toAdd.time = now;
     ms->config.streamRangeBuffer.push_back(toAdd);
   } else {
     cout << "streamRangeAsClass: invalid focused class, deactivating streaming." << endl;
@@ -1637,30 +1781,50 @@ void streamRangeAsClass(std::shared_ptr<MachineState> ms, double rangeIn, int cl
     return;
   } 
 
-  if (ms->config.streamRangeBuffer.size() >= ms->config.streamRangeBatchSize) {
+
+  if (ms->config.diskStreamingEnabled) {
+    if (ms->config.streamRangeBuffer.size() >= ms->config.streamRangeBatchSize) {
       writeRangeBatchAsClass(ms, classToStreamIdx);	
+    } else {
+    } // do nothing
   } else {
-  } // do nothing
+    if ((ms->config.streamRangeBuffer.size() % ms->config.streamRangeBatchSize) == 0) {
+      cout << "streamRangeAsClass: disk streaming not enabled, buffer size: " << ms->config.streamRangeBuffer.size() << endl;
+    } else {
+    }
+  }
 }
 
-void streamPoseAsClass(std::shared_ptr<MachineState> ms, eePose poseIn, int classToStreamIdx) {
+void streamPoseAsClass(std::shared_ptr<MachineState> ms, eePose poseIn, int classToStreamIdx, double now) {
+
+  if (didSensorStreamTimeout(ms)) {
+    return;
+  } else {
+  }
+
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
     streamEePose toAdd;
-    ros::Time thisNow = ros::Time::now();
     toAdd.arm_pose = poseIn;
     toAdd.base_pose = ms->config.c3dPoseBase;
-    toAdd.time = thisNow.toSec();
+    toAdd.time = now;
     ms->config.streamPoseBuffer.push_back(toAdd);
   } else {
     cout << "streamPoseAsClass: invalid focused class, deactivating streaming." << endl;
     ms->config.sensorStreamOn = 0;
   } 
 
-  if (ms->config.streamPoseBuffer.size() >= ms->config.streamPoseBatchSize) {
-      writePoseBatchAsClass(ms, classToStreamIdx);	
+  if (ms->config.diskStreamingEnabled) {
+    if (ms->config.streamPoseBuffer.size() >= ms->config.streamPoseBatchSize) {
+	writePoseBatchAsClass(ms, classToStreamIdx);	
+    } else {
+    } // do nothing
   } else {
-  } // do nothing
+    if ((ms->config.streamPoseBuffer.size() % ms->config.streamPoseBatchSize) == 0) {
+      cout << "streamPoseAsClass: disk streaming not enabled, buffer size: " << ms->config.streamPoseBuffer.size() << endl;
+    } else {
+    }
+  }
 }
 
 void writeRangeBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx) {
@@ -1698,7 +1862,7 @@ void writeRangeBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamI
 	fsvO << "time" << ms->config.streamRangeBuffer[i].time;
       fsvO << "}";
       // XXX take this cout out
-      cout << " wrote range: " << ms->config.streamRangeBuffer[i].range << " and time: " << ms->config.streamRangeBuffer[i].time << endl;
+      //cout << " wrote range: " << ms->config.streamRangeBuffer[i].range << " and time: " << ms->config.streamRangeBuffer[i].time << endl;
     }
     fsvO << "]";
   }
@@ -1743,7 +1907,7 @@ void writePoseBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamId
 	fsvO << "time" << ms->config.streamPoseBuffer[i].time;
       fsvO << "}";
       // XXX take this cout out
-      cout << " wrote arm_pose: " << ms->config.streamPoseBuffer[i].arm_pose << " base pose: base_pose: " << ms->config.streamPoseBuffer[i].base_pose << " and time: " << ms->config.streamPoseBuffer[i].time << endl;
+      //cout << " wrote arm_pose: " << ms->config.streamPoseBuffer[i].arm_pose << " base pose: base_pose: " << ms->config.streamPoseBuffer[i].base_pose << " and time: " << ms->config.streamPoseBuffer[i].time << endl;
     }
     fsvO << "]";
   }
@@ -1778,6 +1942,64 @@ void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_
   }
   fsvO << "}";
 
+  fsvO << "placeUnderPoints" << "{";
+  {
+    int tng = ms->config.classPlaceUnderPoints[idx].size();
+    fsvO << "size" <<  tng;
+    fsvO << "pupPoses" << "[" ;
+    for (int i = 0; i < tng; i++) {
+      ms->config.classPlaceUnderPoints[idx][i].writeToFileStorage(fsvO);
+      cout << " wrote pup pose: " << ms->config.classPlaceUnderPoints[idx][i] << endl;
+    }
+    fsvO << "]";
+  }
+  fsvO << "}";
+
+  fsvO << "placeOverPoints" << "{";
+  {
+    int tng = ms->config.classPlaceOverPoints[idx].size();
+    fsvO << "size" <<  tng;
+    fsvO << "popPoses" << "[" ;
+    for (int i = 0; i < tng; i++) {
+      ms->config.classPlaceOverPoints[idx][i].writeToFileStorage(fsvO);
+      cout << " wrote pop pose: " << ms->config.classPlaceOverPoints[idx][i] << endl;
+    }
+    fsvO << "]";
+  }
+
+  fsvO.release();
+}
+
+void writeGraspMemory(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path) {
+  // initialize this if we need to
+  guardGraspMemory(ms);
+  guardHeightMemory(ms);
+
+  if ((idx > -1) && (idx < ms->config.classGraspMemoryTries1.size())) {
+    // do nothing
+  } else {
+    cout << "writeGraspMemory: invalid idx, not writing." << endl;
+    return;
+  }
+
+  FileStorage fsvO;
+  cout << "writeGraspMemory: Writing: " << this_grasp_path << endl;
+  fsvO.open(this_grasp_path, FileStorage::WRITE);
+
+  copyGraspMemoryTriesToClassGraspMemoryTries(ms);
+  fsvO << "graspMemoryTries1" << ms->config.classGraspMemoryTries1[idx];
+  fsvO << "graspMemoryPicks1" << ms->config.classGraspMemoryPicks1[idx];
+  fsvO << "graspMemoryTries2" << ms->config.classGraspMemoryTries2[idx];
+  fsvO << "graspMemoryPicks2" << ms->config.classGraspMemoryPicks2[idx];
+  fsvO << "graspMemoryTries3" << ms->config.classGraspMemoryTries3[idx];
+  fsvO << "graspMemoryPicks3" << ms->config.classGraspMemoryPicks3[idx];
+  fsvO << "graspMemoryTries4" << ms->config.classGraspMemoryTries4[idx];
+  fsvO << "graspMemoryPicks4" << ms->config.classGraspMemoryPicks4[idx];
+
+  copyHeightMemoryTriesToClassHeightMemoryTries(ms);
+  fsvO << "heightMemoryTries" << ms->config.classHeightMemoryTries[idx];
+  fsvO << "heightMemoryPicks" << ms->config.classHeightMemoryPicks[idx];
+
   fsvO.release();
 }
 
@@ -1791,10 +2013,11 @@ void initClassFolders(std::shared_ptr<MachineState> ms, string folderName) {
       string d3dGrasps = ein + "3dGrasps/";
       string detectionCrops = ein + "detectionCrops/";
       string gaussianColorMap = ein + "gaussianColorMap/";
-      string ir2D = ein + "ir2D/";
+      string ir2d = ein + "ir2d/";
       string pickMemories = ein + "pickMemories/";
       string servoCrops = ein + "servoCrops/";
       string servoImages = ein + "servoImages/";
+      string knn = ein + "knn/";
 
   mkdir(item.c_str(), 0777);
     mkdir(raw.c_str(), 0777);
@@ -1805,13 +2028,22 @@ void initClassFolders(std::shared_ptr<MachineState> ms, string folderName) {
       mkdir(d3dGrasps.c_str(), 0777);
       mkdir(detectionCrops.c_str(), 0777);
       mkdir(gaussianColorMap.c_str(), 0777);
-      mkdir(ir2D.c_str(), 0777);
+      mkdir(ir2d.c_str(), 0777);
       mkdir(pickMemories.c_str(), 0777);
       mkdir(servoCrops.c_str(), 0777);
       mkdir(servoImages.c_str(), 0777);
+      mkdir(knn.c_str(), 0777);
 }
 
 void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folderName) {
+
+  if ((idx > -1) && (idx < ms->config.classLabels.size())) {
+    // do nothing
+  } else {
+    cout << "writeClassToFolder: invalid idx, not writing." << endl;
+    return;
+  }
+
   string item = folderName + "/";
     string raw = item + "raw/";
       string images = raw + "images/";
@@ -1821,7 +2053,7 @@ void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folder
       string d3dGrasps = ein + "3dGrasps/";
       string detectionCrops = ein + "detectionCrops/";
       string gaussianColorMap = ein + "gaussianColorMap/";
-      string ir2D = ein + "ir2D/";
+      string ir2d = ein + "ir2d/";
       string pickMemories = ein + "pickMemories/";
       string servoCrops = ein + "servoCrops/";
       string servoImages = ein + "servoImages/";
@@ -1831,11 +2063,21 @@ void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folder
   string d3d_grasp_file_path = d3dGrasps + "3dGrasps.yml";
   write3dGrasps(ms, idx, d3d_grasp_file_path);
   
-  string ir2D_file_path = ir2D + "ir2D";
-  writeIr2D(ms, idx, ir2D_file_path);
+  string ir2d_file_path = ir2d + "ir2d";
+  writeIr2D(ms, idx, ir2d_file_path);
 
   string servoCrop_file_path = servoCrops + "servoCrop";
   writeAerialGradientsToServoCrop(ms, idx, servoCrop_file_path);
+
+  string thumbnail_file_path = item;
+  writeThumbnail(ms, idx, thumbnail_file_path);
+
+  string grasp_memory_file_path = pickMemories + "graspMemories.yml";
+  writeGraspMemory(ms, idx, grasp_memory_file_path);
+
+
+  // XXX save grasp memories separately from range
+  // XXX load grasp memories separately 
 }
 
 void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
@@ -2041,7 +2283,8 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
 
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisPose)) {
-    streamPoseAsClass(ms, ms->config.trueEEPoseEEPose, cfClass); 
+    double thisNow = eps.header.stamp.toSec();
+    streamPoseAsClass(ms, ms->config.trueEEPoseEEPose, cfClass, thisNow); 
   } else {
   } // do nothing
 
@@ -2306,12 +2549,14 @@ void scanXdirection(shared_ptr<MachineState> ms, double speedOnLines, double spe
     ms->pushWord("waitUntilAtCurrentPosition");
     for (int gg = 0; gg < ms->config.rmWidth*onLineGain+2*scanPadding; gg++) {
       ms->pushWord('q');
-      //ms->pushWord("endStackCollapseNoop");
+      ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord("endStackCollapseNoop");
     }
     ms->pushWord("waitUntilAtCurrentPosition"); 
     for (int gg = 0; gg < ms->config.rmWidth*onLineGain+2*scanPadding; gg++) {
       ms->pushWord('e');
-      //ms->pushWord("endStackCollapseNoop");
+      ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord("endStackCollapseNoop");
     }
   }
 
@@ -2324,6 +2569,8 @@ void scanXdirection(shared_ptr<MachineState> ms, double speedOnLines, double spe
     ms->pushWord('a');
     //ms->pushWord("endStackCollapseNoop");
   }
+
+  ms->pushWord("setMovementSpeedMoveFast");
 }
 
 
@@ -2652,7 +2899,8 @@ void rangeCallback(const sensor_msgs::Range& range) {
 
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisRange)) {
-    streamRangeAsClass(ms, range.range, cfClass); 
+    double thisNow = range.header.stamp.toSec();
+    streamRangeAsClass(ms, range.range, cfClass, thisNow); 
   } else {
   } // do nothing
 
@@ -3403,7 +3651,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
       ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
       int cfClass = ms->config.focusedClass;
       if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
-	streamImageAsClass(ms, ms->config.cv_ptr->image, cfClass); 
+	double thisNow = msg->header.stamp.toSec();
+	streamImageAsClass(ms, ms->config.cv_ptr->image, cfClass, thisNow); 
       } else {
       } // do nothing
       converted = 1;
@@ -3414,7 +3663,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   if (!ms->config.shouldIImageCallback) {
-    cout << "Early exit image callback." << endl;
+    //cout << "Early exit image callback." << endl;
     return;
   }
 
@@ -3482,8 +3731,10 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   Mat thisImage;
   int weHaveImData = getRingImageAtTime(ms, msg->header.stamp, thisImage);
 
-  //if (ms->config.recordRangeMap) 
-  recordReadyRangeReadings(ms);
+  if (ms->config.castRecentRangeRay) {
+    recordReadyRangeReadings(ms);
+  } else {
+  }
 
 
   // paint gripper reticle centerline
@@ -4493,7 +4744,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
     ms->config.joint_max[6] = 3.059;
 
     ms->config.backScanningPose = {.px = -0.304942, .py = 0.703968, .pz = 0.186738,
-                              .qx = 0.000508805, .qy = 1, .qz = 0.00056289, .qw = 0.000264451};
+                              .qx = 0.0, .qy = 1, .qz = 0.0, .qw = 0.0};
 
     ms->config.beeHome = {.px = 0.334217, .py = 0.75386, .pz = 0.0362593,
                           .qx = -0.00125253, .qy = 0.999999, .qz = -0.000146851, .qw = 0.000236656};
@@ -4654,8 +4905,8 @@ void pilotInit(shared_ptr<MachineState> ms) {
 
 
 
-    ms->config.backScanningPose = {.px = -0.373806, .py = -0.640234, .pz = 0.219235,
-                      .qx = 0.00114192, .qy = 0.999999, .qz = -0.000387173, .qw = 0.000386456};
+    ms->config.backScanningPose = {.px = -0.304942, .py = -0.703968, .pz = 0.186738,
+			      .qx = 0.0, .qy = 1, .qz = 0.0, .qw = 0.0};
 
     ms->config.beeHome = {.px = 0.525866, .py = -0.710611, .pz = 0.0695764,
                           .qx = -0.00122177, .qy = 0.999998, .qz = 0.00116169, .qw = -0.001101};
@@ -5054,6 +5305,13 @@ void changeTargetClass(shared_ptr<MachineState> ms, int newTargetClass) {
   cout << "class " << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
   ms->execute_stack = 1;	
 
+  //cout << "BTTN 1" << endl;
+  for (int y = 0; y < ms->config.rmWidth; y++) {
+    for (int x = 0; x < ms->config.rmWidth; x++) {
+      ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.focusedClass].at<double>(y,x);
+      ms->config.rangeMap[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.focusedClass].at<double>(y,x);
+    } 
+  } 
 
   ms->pushWord("loadMarginalHeightMemory"); 
 
@@ -5196,6 +5454,10 @@ void guardGraspMemory(shared_ptr<MachineState> ms) {
       ms->config.classGraspMemoryPicks4.resize(ms->config.focusedClass + 1);
     }
 
+    if (ms->config.classRangeMaps.size() <= ms->config.focusedClass) {
+      ms->config.classRangeMaps.resize(ms->config.focusedClass + 1);
+    }
+
   }
 
   {
@@ -5223,6 +5485,9 @@ void guardGraspMemory(shared_ptr<MachineState> ms) {
       ms->config.classGraspMemoryTries4[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
       ms->config.classGraspMemoryPicks4[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
       loadPrior = true;
+    }
+    if (!( (ms->config.classRangeMaps[ms->config.focusedClass].rows > 1) && (ms->config.classRangeMaps[ms->config.focusedClass].cols > 1) )) {
+      ms->config.classRangeMaps[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
     }
     if (loadPrior) {
       loadPriorGraspMemory(ms, ANALYTIC_PRIOR);
@@ -5516,6 +5781,15 @@ double convertHeightIdxToGlobalZ(shared_ptr<MachineState> ms, int heightIdx) {
 
   double scaledHeight = (double(heightIdx)/double(ms->config.hmWidth-1)) * (tabledMaxHeight - tabledMinHeight);
   double scaledTranslatedHeight = scaledHeight + tabledMinHeight;
+  return scaledTranslatedHeight;
+}
+
+double convertHeightIdxToLocalZ(shared_ptr<MachineState> ms, int heightIdx) {
+  double unTabledMaxHeight = ms->config.maxHeight;
+  double unTabledMinHeight = ms->config.minHeight;
+
+  double scaledHeight = (double(heightIdx)/double(ms->config.hmWidth-1)) * (unTabledMaxHeight - unTabledMinHeight);
+  double scaledTranslatedHeight = scaledHeight + unTabledMinHeight;
   return scaledTranslatedHeight;
 }
 
@@ -6429,7 +6703,7 @@ void selectMaxTargetThompsonContinuous(shared_ptr<MachineState> ms, double minDe
 
 void selectMaxTargetThompsonContinuous2(shared_ptr<MachineState> ms, double minDepth) {
   // ATTN 2
-  int maxSearchPadding = 3;
+  int maxSearchPadding = ms->config.rangeMapTargetSearchPadding;
   //int maxSearchPadding = 4;
 
   for (int rx = maxSearchPadding; rx < ms->config.rmWidth-maxSearchPadding; rx++) {
@@ -6854,10 +7128,6 @@ void gradientServo(shared_ptr<MachineState> ms) {
     cout << "bad target class, not servoing." << endl;
     return;
   }
-  if ((ms->config.classAerialGradients[ms->config.targetClass].rows <= 1) && (ms->config.classAerialGradients[ms->config.targetClass].cols <= 1)) {
-    cout << "no aerial gradients for this class, not servoing." << endl;
-    return;
-  }
 
   {
     int i, j;
@@ -6898,6 +7168,11 @@ void gradientServo(shared_ptr<MachineState> ms) {
       assert(0);
     }
     break;
+  }
+
+  if ((ms->config.classAerialGradients[ms->config.targetClass].rows <= 1) && (ms->config.classAerialGradients[ms->config.targetClass].cols <= 1)) {
+    cout << "no aerial gradients for this class, not servoing." << endl;
+    return;
   }
 
   double Px = 0;
@@ -7239,6 +7514,9 @@ cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.cu
       return;
     }
     
+
+    // XXX Deprecated, no longer auto-picking
+    /*
     // ATTN 17
     if (ms->config.bailAfterGradient) {
       cout << "gradient servo set to bail. returning." << endl;
@@ -7267,6 +7545,7 @@ cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.cu
 	ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
       }
     }
+    */
     
     return;
   } else {
@@ -7810,6 +8089,7 @@ void initRangeMaps(shared_ptr<MachineState> ms) {
   ms->config.classHeightMemoryTries.resize(ms->config.numClasses);
   ms->config.classHeightMemoryPicks.resize(ms->config.numClasses);
   for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    cout << "Trying to load range map for class " << i << endl;
     tryToLoadRangeMap(ms, ms->config.class_crops_path, ms->config.classLabels[i].c_str(), i);
   }
 }
@@ -8918,7 +9198,7 @@ void bowGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const cha
   string dotdot("..");
 
   char buf[1024];
-  sprintf(buf, "%s%s/rgb", classDir.c_str(), className);
+  sprintf(buf, "%s%s/ein/detectionCrops/", classDir.c_str(), className);
   dpdf = opendir(buf);
   if (dpdf != NULL){
     while (epdf = readdir(dpdf)){
@@ -8929,7 +9209,7 @@ void bowGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const cha
         Mat descriptors;
 
         char filename[1024];
-        sprintf(filename, "%s%s/rgb/%s", classDir.c_str(), className, epdf->d_name);
+        sprintf(filename, "%s%s/ein/detectionCrops/%s", classDir.c_str(), className, epdf->d_name);
         Mat image;
         image = imread(filename);
 	Size sz = image.size();
@@ -8980,7 +9260,7 @@ void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const cha
   string dotdot("..");
 
   char buf[1024];
-  sprintf(buf, "%s%s/rgb", classDir.c_str(), className);
+  sprintf(buf, "%s%s/ein/detectionCrops/", classDir.c_str(), className);
   dpdf = opendir(buf);
   if (dpdf != NULL){
     while (epdf = readdir(dpdf)){
@@ -8991,7 +9271,7 @@ void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const cha
         Mat descriptors2;
 
         char filename[1024];
-        sprintf(filename, "%s%s/rgb/%s", classDir.c_str(), className, epdf->d_name);
+        sprintf(filename, "%s%s/ein/detectionCrops/%s", classDir.c_str(), className, epdf->d_name);
         Mat image;
         image = imread(filename);
 	Size sz = image.size();
@@ -9370,6 +9650,40 @@ void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms) {
 
 }
 
+void saveAccumulatedStreamToPath(shared_ptr<MachineState> ms, string path) {
+  // no compression!
+  std::vector<int> args;
+  args.push_back(CV_IMWRITE_PNG_COMPRESSION);
+  args.push_back(ms->config.globalPngCompression);
+  imwrite(path, ms->config.accumulatedStreamImageBytes, args);
+}
+
+void substituteStreamAccumulatedImageQuantities(shared_ptr<MachineState> ms) {
+  double param_aerialGradientDecayImageAverage = 0.0;
+  ms->config.aerialGradientDecay = param_aerialGradientDecayImageAverage;
+
+  double param_sobel_sigma_substitute_stream = 4.0;//2.0; reflections are a problem for low sigma...
+  ms->config.sobel_sigma = param_sobel_sigma_substitute_stream;
+
+  Size sz = ms->config.accumulatedStreamImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      double denom = ms->config.accumulatedStreamImageMass.at<double>(y,x);
+      if (denom <= 1.0) {
+	denom = 1.0;
+      }
+      ms->config.objectViewerImage.at<Vec3b>(y,x)[0] = doubleToByte(ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[0] / denom);
+      ms->config.objectViewerImage.at<Vec3b>(y,x)[1] = doubleToByte(ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[1] / denom);
+      ms->config.objectViewerImage.at<Vec3b>(y,x)[2] = doubleToByte(ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[2] / denom);
+    }
+  }
+
+  ms->config.accumulatedStreamImageBytes = ms->config.objectViewerImage.clone();
+}
+
 void substituteStreamImageQuantities(shared_ptr<MachineState> ms) {
   double param_aerialGradientDecayImageAverage = 0.0;
   ms->config.aerialGradientDecay = param_aerialGradientDecayImageAverage;
@@ -9378,7 +9692,7 @@ void substituteStreamImageQuantities(shared_ptr<MachineState> ms) {
   ms->config.sobel_sigma = param_sobel_sigma_substitute_stream;
 
   int thisIdx = ms->config.sibCurIdx;
-  cout << "substituteStreamImageQuantities: " << thisIdx << endl;
+  //cout << "substituteStreamImageQuantities: " << thisIdx << endl;
   if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
     streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
     if (tsi.image.data == NULL) {
@@ -10159,7 +10473,7 @@ void goFindBlueBoxes(shared_ptr<MachineState> ms) {
 	}
 
 	double thisDistance = sqrt((ms->config.bCens[t].x-ms->config.reticle.px)*(ms->config.bCens[t].x-ms->config.reticle.px) + (ms->config.bCens[t].y-ms->config.reticle.py)*(ms->config.bCens[t].y-ms->config.reticle.py));
-	cout << "   (density) Distance for box " << t << " : " << thisDistance << endl;
+	//cout << "   (density) Distance for box " << t << " : " << thisDistance << endl;
 	if (thisDistance < closestBBDistance) {
 	  closestBBDistance = thisDistance;
 	  closestBBToReticle = t;
@@ -10987,24 +11301,33 @@ void detectorsInit(shared_ptr<MachineState> ms) {
   cout << "kNNfeatures dimensions: " << kNNfeatures.size().height << " by " << kNNfeatures.size().width << endl;
 
   cout << "Main kNN...";
-  ms->config.kNN = new CvKNearest(kNNfeatures, kNNlabels);
-  cout << "done." << endl;
-  for (int i = 0; i < ms->config.numClasses; i++) {
-    if (ms->config.classPoseModels[i].compare("G") == 0) {
-      cout << "Class " << i << " kNN..." << ms->config.classPosekNNfeatures[i].size() << ms->config.classPosekNNlabels[i].size() << endl;
-      ms->config.classPosekNNs[i] = new CvKNearest(ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i]);
-      cout << "Done" << endl;
+
+  if ( (kNNfeatures.data == NULL) || (kNNfeatures.rows < 1) || (kNNfeatures.cols < 1) ) {
+    cout << "There is a problem with kNN features, cannot initialize detector and files may be corrupt." << endl;
+  } else {
+    ms->config.kNN = new CvKNearest(kNNfeatures, kNNlabels);
+    cout << "done." << endl;
+    for (int i = 0; i < ms->config.numClasses; i++) {
+      if (ms->config.classPoseModels[i].compare("G") == 0) {
+	cout << "Class " << i << " kNN..." << ms->config.classPosekNNfeatures[i].size() << ms->config.classPosekNNlabels[i].size() << endl;
+	ms->config.classPosekNNs[i] = new CvKNearest(ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i]);
+	cout << "Done" << endl;
+      }
     }
   }
 }
 
 
 void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const char *className, int i) {
+
+
   {
     string thisLabelName(className);
 
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ir2D/";
-    string this_range_path = dirToMakePath + "xyzRange.yml";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/ir2d/";
+    string this_range_path = dirToMakePath + "ir2d.yml";
+
+    cout << "  tryToLoadRangeMap: " << this_range_path << endl;
 
     FileStorage fsfI;
     fsfI.open(this_range_path, FileStorage::READ);
@@ -11030,6 +11353,28 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
 
       fsfI["rangeMap"] >> ms->config.classRangeMaps[i]; 
 
+      fsfI.release();
+      cout << "Loaded rangeMap from " << this_range_path << ms->config.classRangeMaps[i].size() << endl; 
+
+    } else {
+      ms->config.classRangeMaps[i] = Mat(1, 1, CV_64F);
+
+      cout << "Failed to load rangeMap from " << this_range_path << endl; 
+    }
+  }
+
+  {
+    string thisLabelName(className);
+
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/pickMemories/";
+    string this_grasp_path = dirToMakePath + "graspMemories.yml";
+
+    cout << "  tryToLoadRangeMap: " << this_grasp_path << endl;
+
+    FileStorage fsfI;
+    fsfI.open(this_grasp_path, FileStorage::READ);
+    if (fsfI.isOpened()) {
+
       fsfI["graspMemoryTries1"] >> ms->config.classGraspMemoryTries1[i];
       fsfI["graspMemoryPicks1"] >> ms->config.classGraspMemoryPicks1[i];
       fsfI["graspMemoryTries2"] >> ms->config.classGraspMemoryTries2[i];
@@ -11043,20 +11388,18 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
       fsfI["heightMemoryPicks"] >> ms->config.classHeightMemoryPicks[i];
 
       fsfI.release();
-      cout << "Loaded rangeMap from " << this_range_path << ms->config.classRangeMaps[i].size() << endl; 
-      cout << "Loaded classGraspMemoryTries1 from " << this_range_path << ms->config.classGraspMemoryTries1[i].size() << endl; 
-      cout << "Loaded classGraspMemoryPicks1 from " << this_range_path << ms->config.classGraspMemoryPicks1[i].size() << endl; 
-      cout << "Loaded classGraspMemoryTries2 from " << this_range_path << ms->config.classGraspMemoryTries2[i].size() << endl; 
-      cout << "Loaded classGraspMemoryPicks2 from " << this_range_path << ms->config.classGraspMemoryPicks2[i].size() << endl; 
-      cout << "Loaded classGraspMemoryTries3 from " << this_range_path << ms->config.classGraspMemoryTries3[i].size() << endl; 
-      cout << "Loaded classGraspMemoryPicks3 from " << this_range_path << ms->config.classGraspMemoryPicks3[i].size() << endl; 
-      cout << "Loaded classGraspMemoryTries4 from " << this_range_path << ms->config.classGraspMemoryTries4[i].size() << endl; 
-      cout << "Loaded classGraspMemoryPicks4 from " << this_range_path << ms->config.classGraspMemoryPicks4[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries1 from " << this_grasp_path << ms->config.classGraspMemoryTries1[i].size() << endl; 
+      cout << "Loaded classGraspMemoryPicks1 from " << this_grasp_path << ms->config.classGraspMemoryPicks1[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries2 from " << this_grasp_path << ms->config.classGraspMemoryTries2[i].size() << endl; 
+      cout << "Loaded classGraspMemoryPicks2 from " << this_grasp_path << ms->config.classGraspMemoryPicks2[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries3 from " << this_grasp_path << ms->config.classGraspMemoryTries3[i].size() << endl; 
+      cout << "Loaded classGraspMemoryPicks3 from " << this_grasp_path << ms->config.classGraspMemoryPicks3[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries4 from " << this_grasp_path << ms->config.classGraspMemoryTries4[i].size() << endl; 
+      cout << "Loaded classGraspMemoryPicks4 from " << this_grasp_path << ms->config.classGraspMemoryPicks4[i].size() << endl; 
 
-      cout << "Loaded classHeightMemoryTries from " << this_range_path << ms->config.classHeightMemoryTries[i].size() << endl;
-      cout << "Loaded classHeightMemoryPicks from " << this_range_path << ms->config.classHeightMemoryPicks[i].size() << endl;
+      cout << "Loaded classHeightMemoryTries from " << this_grasp_path << ms->config.classHeightMemoryTries[i].size() << endl;
+      cout << "Loaded classHeightMemoryPicks from " << this_grasp_path << ms->config.classHeightMemoryPicks[i].size() << endl;
     } else {
-      ms->config.classRangeMaps[i] = Mat(1, 1, CV_64F);
       ms->config.classGraspMemoryTries1[i] = Mat(1, 1, CV_64F);
       ms->config.classGraspMemoryPicks1[i] = Mat(1, 1, CV_64F);
       ms->config.classGraspMemoryTries2[i] = Mat(1, 1, CV_64F);
@@ -11069,14 +11412,17 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
       ms->config.classHeightMemoryTries[i] = Mat(1, 1, CV_64F);
       ms->config.classHeightMemoryPicks[i] = Mat(1, 1, CV_64F);
 
-      cout << "Failed to load rangeMap from " << this_range_path << endl; 
+      cout << "Failed to load grasp memories from " << this_grasp_path << endl; 
     }
   }
+
+
+
   {
     {
       string thisLabelName(className);
 
-      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_ag_path = dirToMakePath + "aerialHeight0Gradients.yml";
 
       FileStorage fsfI;
@@ -11093,7 +11439,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     {
       string thisLabelName(className);
 
-      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_ag_path = dirToMakePath + "aerialHeight1Gradients.yml";
 
       FileStorage fsfI;
@@ -11110,7 +11456,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     {
       string thisLabelName(className);
 
-      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_ag_path = dirToMakePath + "aerialHeight2Gradients.yml";
 
       FileStorage fsfI;
@@ -11127,7 +11473,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     {
       string thisLabelName(className);
 
-      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/aerialGradient/";
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_ag_path = dirToMakePath + "aerialHeight3Gradients.yml";
 
       FileStorage fsfI;
@@ -11146,7 +11492,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     {
       guard3dGrasps(ms);
       string thisLabelName(className);
-      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/3dGrasps/";
       string this_grasp_path = dirToMakePath + "3dGrasps.yml";
 
       FileStorage fsvI;
@@ -11225,6 +11571,70 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
 
       cout << "done.";
     }
+  }
+}
+
+void clearAllRangeMaps(shared_ptr<MachineState> ms) {
+  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
+      ms->config.rangeMap[rx + ry*ms->config.rmWidth] = 0;
+      ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth] = 0;
+      // ATTN 17
+      //rangeMapReg2[rx + ry*ms->config.rmWidth] = 0;
+      ms->config.rangeMapMass[rx + ry*ms->config.rmWidth] = 0;
+      ms->config.rangeMapAccumulator[rx + ry*ms->config.rmWidth] = 0;
+    }
+  }
+  {
+    cv::Scalar backColor(128,0,0);
+    cv::Point outTop = cv::Point(0,0);
+    cv::Point outBot = cv::Point(ms->config.rmiWidth,ms->config.rmiHeight);
+    Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+    vCrop = backColor;
+  }
+  for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
+      ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapReg1[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapReg2[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapMass[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapAccumulator[rx + ry*ms->config.hrmWidth] = 0;
+    }
+  }
+  {
+    cv::Scalar backColor(128,0,0);
+    cv::Point outTop = cv::Point(0,0);
+    cv::Point outBot = cv::Point(ms->config.hrmiWidth,ms->config.hrmiHeight);
+    Mat vCrop = ms->config.hiRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+    vCrop = backColor;
+  }
+  for (int h = 0; h < ms->config.hrmWidth; h++) {
+    for (int i = 0; i < ms->config.hrmWidth; i++) {
+      ms->config.hiColorRangeMapMass[h + i*ms->config.hrmWidth] = 0;
+      for (int j = 0; j < 3; j++) {
+        ms->config.hiColorRangeMapAccumulator[h + i*ms->config.hrmWidth + j*ms->config.hrmWidth*ms->config.hrmWidth] = 0;
+      }
+    }
+  }
+  for (int pz = 0; pz < ms->config.vmWidth; pz++) {
+    for (int py = 0; py < ms->config.vmWidth; py++) {
+      for (int px = 0; px < ms->config.vmWidth; px++) {
+        ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+        ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+        ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+        ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+        for (int pc = 0; pc < 3; pc++) {
+          ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + pc*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] = 0;
+        }
+      }
+    }
+  }
+  {
+    cv::Scalar backColor(128,0,0);
+    cv::Point outTop = cv::Point(0,0);
+    cv::Point outBot = cv::Point(ms->config.hiColorRangemapImage.cols,ms->config.hiColorRangemapImage.rows);
+    Mat vCrop = ms->config.hiColorRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
+    vCrop = backColor;
   }
 }
 
@@ -11561,6 +11971,7 @@ int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string la
       eePose label1PickOffset = label1Mem.aimedPose.minusP(label1Mem.affPlaceUnderPoses[0]);
       label2Pose = label2Mem.affPlaceOverPoses[0].plusP(label1PickOffset);
       double thisPickZ = 0.0;
+      //. label2TipZAtPick is the height of the place over point above the table
       double label2TipZAtPick = 0;
       label2TipZAtPick = (label2Mem.affPlaceOverPoses[0].pz - (-ms->config.currentTableZ)) - ms->config.pickFlushFactor;
 
@@ -11569,6 +11980,7 @@ int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string la
 	   (ms->config.classGraspZs.size() > label1Idx) &&
 	   (ms->config.classGraspZsSet[label1Idx] == 1) ) {
 //cout << "YYY cGZ: " << -ms->config.classGraspZs[label1Idx] << endl;
+//cout <<  "YYY : " << label2Mem.affPlaceOverPoses[0] << ms->config.pickFlushFactor << endl;
 	thisPickZ = -ms->config.currentTableZ + -ms->config.classGraspZs[label1Idx] + totalZOffset;
       } else {
 	thisPickZ = -ms->config.currentTableZ + (-label1Mem.trZ) + totalZOffset;
@@ -11578,7 +11990,7 @@ int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string la
 
       label2Pose.pz = thisPickZ;
       label2Pose.copyQ(ms->config.beeHome);
-//cout << "ZZZ currentTableZ: " << ms->config.currentTableZ << " thisPickZ: " << thisPickZ << endl; 
+cout << "ZZZ currentTableZ: " << ms->config.currentTableZ << " thisPickZ: " << thisPickZ << endl; 
       (*out) = label2Pose;
       return 1;
     } else {
@@ -11955,6 +12367,14 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut) {
 
   for (int i = 0; i < roa.objects.size(); i++) {
     stateOut->objects.push_back(roa.objects[i]);
+  }
+}
+
+bool isFocusedClassValid(std::shared_ptr<MachineState> ms) {
+  if ((ms->config.focusedClass > -1) && (ms->config.focusedClass < ms->config.classLabels.size())) {
+    return true;
+  } else {
+    return false;
   }
 }
 

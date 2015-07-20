@@ -165,11 +165,16 @@ int classIdxForName(shared_ptr<MachineState> ms, string name);
 void initClassFolders(std::shared_ptr<MachineState> ms, string folderName);
 void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folderName);
 void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, string servoCrop_file_path);
+void writeThumbnail(std::shared_ptr<MachineState> ms, int idx, string servoCrop_file_path);
 void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path);
 void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
+void writeGraspMemory(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
 
+void saveAccumulatedStreamToPath(shared_ptr<MachineState> ms, string path);
 streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx);
-int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase, eePose * outRel);
+streamImage * setIsbIdxNoLoad(std::shared_ptr<MachineState> ms, int idx);
+void resetAccumulatedStreamImage(std::shared_ptr<MachineState> ms);
+int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase);
 void castRangeRay(std::shared_ptr<MachineState> ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut);
 void update2dRangeMaps(std::shared_ptr<MachineState> ms, Vector3d castPoint);
 
@@ -177,11 +182,16 @@ bool streamRangeComparator(streamRange i, streamRange j);
 bool streamPoseComparator(streamEePose i, streamEePose j);
 bool streamImageComparator(streamImage i, streamImage j);
 
+void activateSensorStreaming(std::shared_ptr<MachineState> ms);
+void deactivateSensorStreaming(std::shared_ptr<MachineState> ms);
+
 void populateStreamImageBuffer(std::shared_ptr<MachineState> ms);
 void populateStreamPoseBuffer(std::shared_ptr<MachineState> ms);
 void populateStreamRangeBuffer(std::shared_ptr<MachineState> ms);
-void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStreamIdx);
-void streamRangeAsClass(std::shared_ptr<MachineState> ms, double range, int classToStreamIdx);
+int didSensorStreamTimeout(std::shared_ptr<MachineState> ms);
+void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStreamIdx, double now);
+void streamRangeAsClass(std::shared_ptr<MachineState> ms, double range, int classToStreamIdx, double now);
+void streamPoseAsClass(std::shared_ptr<MachineState> ms, eePose poseIn, int classToStreamIdx, double now);
 void writeRangeBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
 void writePoseBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
 
@@ -265,6 +275,7 @@ void loadSampledHeightMemory(shared_ptr<MachineState> ms);
 void loadMarginalHeightMemory(shared_ptr<MachineState> ms);
 void loadPriorHeightMemory(shared_ptr<MachineState> ms, priorType);
 double convertHeightIdxToGlobalZ(shared_ptr<MachineState> ms, int);
+double convertHeightIdxToLocalZ(shared_ptr<MachineState> ms, int);
 int convertHeightGlobalZToIdx(shared_ptr<MachineState> ms, double);
 void testHeightConversion(shared_ptr<MachineState> ms);
 void drawHeightMemorySample(shared_ptr<MachineState> ms);
@@ -367,7 +378,9 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms);
 void goFindRedBoxes();
 
 void resetAccumulatedImageAndMass(shared_ptr<MachineState> ms);
+void substituteStreamAccumulatedImageQuantities(shared_ptr<MachineState> ms);
 void substituteStreamImageQuantities(shared_ptr<MachineState> ms);
+
 void substituteAccumulatedImageQuantities(shared_ptr<MachineState> ms);
 void substituteLatestImageQuantities(shared_ptr<MachineState> ms);
 
@@ -380,6 +393,7 @@ void detectorsInit(shared_ptr<MachineState> ms);
 void initRedBoxes();
 
 void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const char *className, int i);
+void clearAllRangeMaps(shared_ptr<MachineState> ms);
 
 void processSaliency(Mat in, Mat out);
 
@@ -392,6 +406,8 @@ void guardViewers(shared_ptr<MachineState> ms);
 
 void fillRecognizedObjectArrayFromBlueBoxMemory(shared_ptr<MachineState> ms, object_recognition_msgs::RecognizedObjectArray * roa);
 void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut);
+
+bool isFocusedClassValid(std::shared_ptr<MachineState> ms);
 
 ////////////////////////////////////////////////
 // end node prototypes 

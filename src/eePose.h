@@ -42,6 +42,7 @@ typedef struct _eePose{
 
   _eePose applyQTo(_eePose in) const;
   _eePose getPoseRelativeTo(_eePose in) const;
+  _eePose applyAsRelativePoseTo(_eePose in) const;
   _eePose getInterpolation(_eePose inB, double lambda) const; 
 
   void writeToFileStorage(FileStorage& fsvO) const;
@@ -54,10 +55,11 @@ typedef struct _eePose{
   static void print(_eePose toPrint);
   static double squareDistance(_eePose pose1, _eePose pose2);
   static double distance(_eePose pose1, _eePose pose2);
+  static double distanceQ(_eePose pose1, _eePose pose2);
+
+
   static _eePose fromRectCentroid(Rect rect);
-
   static _eePose zero();
-
   static _eePose fromGeometryMsgPose(geometry_msgs::Pose);
 
   friend ostream & operator<<(ostream &, const _eePose &);

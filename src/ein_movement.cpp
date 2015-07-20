@@ -571,6 +571,37 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetMovementSpeedMoveVerySlow)
 
+WORD(ChangeToHeight)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> hWord = ms->popWord();
+
+  if (hWord == NULL) {
+    cout << "oops, changeToHeight requires an argument..." << endl;
+    ms->clearStack();
+  } else {
+  }
+  std::shared_ptr<IntegerWord> hIntWord = std::dynamic_pointer_cast<IntegerWord>(hWord);
+  int nextHeight =  hIntWord->value();
+
+  if ( (nextHeight > -1) && (nextHeight < ms->config.hmWidth) ) {
+    ms->config.currentThompsonHeightIdx = nextHeight;
+    cout << "changeToHeight changing to height " << nextHeight << endl;
+  } else {
+    cout << "changeToHeight received invalid height, clearing stack." << endl;
+    ms->clearStack();
+  }
+
+  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
+  ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
+  // ATTN 23
+  ms->config.reticle = ms->config.vanishingPointReticle;
+  //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
+  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
+  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+}
+END_WORD
+REGISTER_WORD(ChangeToHeight)
+
 WORD(ChangeToHeight0)
 CODE(1245217) // capslock + numlock + !
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -701,10 +732,17 @@ REGISTER_WORD(ResetW1ThreshToDefault)
 WORD(RasterScanningSpeed)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   //w1GoThresh = 0.05;
-  ms->config.currentEESpeedRatio = 0.05;//0.02;
+  ms->config.currentEESpeedRatio = 0.025;//0.02;
 }
 END_WORD
 REGISTER_WORD(RasterScanningSpeed)
+
+WORD(StreamImageSpeed)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentEESpeedRatio = 0.05;
+}
+END_WORD
+REGISTER_WORD(StreamImageSpeed)
 
 WORD(FasterRasterScanningSpeed)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1355,5 +1393,82 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(DislodgeEndEffectorFromTable)
+	
+WORD(MoveToEEPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+	// get 7 strings, make them into doubles, move there
+	// order px py pz qx qy qz qw
+	double vals[7]; 
+	for (int i = 6; i >= 0; i--) { 
+		shared_ptr<Word> word = ms->popWord(); 
+		if (word == NULL) {
+			// failed
+  	  cout << "not enough words" << endl;
+      return;
+		}
+		char* endptr;
+		string wordname = word->to_string(); 
+		double r = strtod(wordname.c_str(), &endptr); 
+		if (endptr == wordname && r == 0) { 
+			// failed to convert
+  		cout << "received not a number" << endl;
+			ms->clearStack(); 
+      return;
+		}
+		vals[i] = r;
+	}
+  // make them actually into an eepose
+  _eePose pose = {.px = vals[0], .py = vals[1], .pz = vals[2],
+      .qx = vals[3], .qy = vals[4], .qz = vals[5], .qw = vals[6]};
+  ms->config.currentEEPose = pose; 
+}
+END_WORD
+REGISTER_WORD(MoveToEEPose)
+
+WORD(WaitForSeconds)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  cout << "waitForSeconds: ";
+
+  shared_ptr<Word> word = ms->popWord(); 
+  if (word == NULL) {
+    // failed
+    cout << "not enough words" << endl;
+    return;
+  }
+  char* endptr;
+  string wordname = word->to_string(); 
+  double r = strtod(wordname.c_str(), &endptr); 
+  if (endptr == wordname && r == 0) { 
+    // failed to convert
+    cout << "received not a number" << endl;
+    ms->clearStack(); 
+    return;
+  }
+
+  double secondsToWait = r;
+  ms->config.waitForSecondsTarget = ros::Time::now() + ros::Duration(secondsToWait);
+  cout << "waiting " << secondsToWait << " seconds until " << ms->config.waitForSecondsTarget << endl;
+  ms->pushWord("waitForSecondsA");
+}
+END_WORD
+REGISTER_WORD(WaitForSeconds)
+
+WORD(WaitForSecondsA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "waitForSecondsA: ";
+  ros::Time thisNow = ros::Time::now();
+  if (thisNow.toSec() > ms->config.waitForSecondsTarget.toSec()) {
+    cout << "PASSED at time, target, delta: " << thisNow.toSec() << " " << ms->config.waitForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.waitForSecondsTarget.toSec() << endl;
+  } else {
+    //cout << "HELD at time, target, delta: " << thisNow.toSec() << " " << ms->config.waitForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.waitForSecondsTarget.toSec() << endl;
+    ms->pushWord("waitForSecondsA");
+    ms->config.endThisStackCollapse = 1;
+  }
+}
+END_WORD
+REGISTER_WORD(WaitForSecondsA)
+		
+
 
 }

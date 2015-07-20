@@ -2,6 +2,7 @@
 #include "ein_words.h"
 #include "ein.h"
 #include "qtgui/einwindow.h"
+#include "opencv2/contrib/contrib.hpp"
 
 namespace ein_words {
 
@@ -705,6 +706,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(StreamedDensity)
 
+WORD(StreamedAccumulatedDensity)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  substituteStreamAccumulatedImageQuantities(ms);
+  goCalculateDensity(ms);
+  renderAccumulatedImageAndDensity(ms);
+}
+END_WORD
+REGISTER_WORD(StreamedAccumulatedDensity)
+
 WORD(AccumulatedDensity)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   substituteAccumulatedImageQuantities(ms);
@@ -920,6 +930,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Mat minDifferenceValues(sz, CV_64F);
   minDifferenceValues = VERYBIGNUMBER;
 
+/*
   for (int d = 0; d < disparityMax; d++) {
     Mat shiftedDifference(sz, CV_64F);
     for (int x = 0; x < imW; x++) {
@@ -955,6 +966,46 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
     }
   }
+*/
+
+  StereoVar myStereoVar;
+  // set parameters for disparity
+  myStereoVar.levels = 3;
+  myStereoVar.pyrScale = 0.5;
+  myStereoVar.nIt = 25;
+  myStereoVar.minDisp = 0;
+  myStereoVar.maxDisp = ms->config.stereoMaxDisparity;
+  myStereoVar.poly_n = 7;
+  myStereoVar.poly_sigma = 0.0;
+  myStereoVar.fi = 15.0f;
+  myStereoVar.lambda = 0.03f;
+  myStereoVar.penalization = myStereoVar.PENALIZATION_TICHONOV;
+  myStereoVar.cycle = myStereoVar.CYCLE_V;
+  myStereoVar.flags = myStereoVar.USE_SMART_ID 
+		    | myStereoVar.USE_AUTO_PARAMS 
+		    | myStereoVar.USE_INITIAL_DISPARITY 
+		    | myStereoVar.USE_MEDIAN_FILTERING ;
+
+  Mat dispOut;
+  Mat sIm1Byte(sIm1.size(), CV_8UC3);
+  Mat sIm2Byte(sIm2.size(), CV_8UC3);
+
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      sIm1Byte.at<Vec3b>(y,x)[0] = floor(sIm1.at<Vec3d>(y,x)[0]);
+      sIm1Byte.at<Vec3b>(y,x)[1] = floor(sIm1.at<Vec3d>(y,x)[1]);
+      sIm1Byte.at<Vec3b>(y,x)[2] = floor(sIm1.at<Vec3d>(y,x)[2]);
+      sIm2Byte.at<Vec3b>(y,x)[0] = floor(sIm2.at<Vec3d>(y,x)[0]);
+      sIm2Byte.at<Vec3b>(y,x)[1] = floor(sIm2.at<Vec3d>(y,x)[1]);
+      sIm2Byte.at<Vec3b>(y,x)[2] = floor(sIm2.at<Vec3d>(y,x)[2]);
+cout << sIm2.at<Vec3d>(y,x)[0] << " ";
+    }
+  }
+
+  myStereoVar(sIm1Byte, sIm2Byte, dispOut);
+  ms->config.stereoDisparity = dispOut;
+//  cvFindStereoCorrespondenceGC(const CvArr *left, const CvArr *right, CvArr *disparityLeft, CvArr *disparityRight, CvStereoGCState *state, int useDisparityGuess = 0)
 
   double eff = ms->config.stereoFocal;
   double bee = ms->config.stereoBaseline;
@@ -964,7 +1015,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       if (ms->config.stereoDisparity.at<double>(y,x) <= 0) {
 	ms->config.stereoDepth.at<double>(y,x) = VERYBIGNUMBER;
       } else {
-	ms->config.stereoDepth.at<double>(y,x) = eff * bee / ms->config.stereoDisparity.at<double>(y,x);
+	ms->config.stereoDepth.at<double>(y,x) = eff * bee / ms->config.stereoDisparity.at<uchar>(y,x);
       }
     }
   }
@@ -986,7 +1037,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
       double disparityMax = ms->config.stereoMaxDisparity;
-      double thisDisparity = ms->config.stereoDisparity.at<double>(y,x);
+      double thisDisparity = ms->config.stereoDisparity.at<uchar>(y,x);
       double thisDepth = ms->config.stereoDepth.at<double>(y,x);
       ms->config.stereoViewerImage.at<cv::Vec3b>(y,x) = sIm1.at<cv::Vec3d>(y,x);
       ms->config.stereoViewerImage.at<cv::Vec3b>(y,x+imW) = sIm2.at<cv::Vec3d>(y,x);

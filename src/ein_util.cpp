@@ -91,13 +91,16 @@ void initializeMachine(shared_ptr<MachineState> ms) {
   if (ms->config.currentRobotMode != PHYSICAL) {
     return;
   }
+  
+  ms->pushWord("zeroGOff"); 
+  ms->pushWord("waitUntilEndpointCallbackReceived"); 
+
   ms->pushWord("guiCustom1"); 
   ms->pushWord("printState");
   ms->pushCopies("zUp", 15);
   int devInit = 1;
   if (devInit) {
     ms->pushWord("incrementTargetClass"); 
-    ms->pushWord("gradientServoTakeClosest"); 
     ms->pushWord("synchronicServoTakeClosest");
   }
   ms->pushWord("silenceSonar");

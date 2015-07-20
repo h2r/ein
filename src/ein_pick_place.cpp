@@ -6,7 +6,8 @@ namespace ein_words {
 WORD(CornellMugsOnTables)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   
-  double cTableHeight = -0.045;//0.0;//0.025;
+  // cTableHeight moves with the flush factor
+  double cTableHeight = -0.017;//-0.045;//0.0;//0.025;
   int amountMms = floor(cTableHeight / 0.001);
 
   /*eePose table3Pose;
@@ -50,6 +51,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("moveObjectToPose");
   } else {
     cout << "some objects not found.
+  }
   */
 }
 END_WORD
@@ -310,8 +312,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitUntilAtCurrentPosition"); 
   ms->pushWord("tryToMoveToTheLastPrePickHeight");   
   ms->pushWord("departureSpeed");
+
+  // order is crucial here
   ms->pushWord("placeObjectInDeliveryZone");
   ms->pushWord("ifGrasp");
+  ms->pushWord("checkAndCountGrasp");
+  ms->pushWord("ifNoGrasp");
+
   ms->pushWord("executePreparedGrasp"); 
   //ms->pushWord("prepareForAndExecuteGraspFromMemory"); 
   //ms->pushWord("gradientServo");
@@ -321,7 +328,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //ms->pushWord("visionCycle");
   //ms->pushWord("synchronicServoTakeClosest"); 
   ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("setPickModeToStaticMarginals"); 
+
+  // XXX
+  //ms->pushWord("setPickModeToStaticMarginals"); 
+
   ms->pushWord("sampleHeight"); 
   ms->pushWord("setBoundingBoxModeToMapping"); 
   ms->pushWord("openGripper");
@@ -346,6 +356,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("waitUntilAtCurrentPosition"); 
     ms->pushWord("assumeHandingPose");
     ms->pushWord("setPatrolStateToHanding");
+  } else if (ms->config.currentPlaceMode == HOLD) {
+    ms->pushWord("clearStack");
+    ms->pushWord("pauseStackExecution");
+    ms->pushWord("setPatrolStateToHanding");
+  } else if (ms->config.currentPlaceMode == SHAKE) {
+    ms->config.placeTarget = ms->config.lastPickPose;
+    ms->pushWord("openGripper"); 
+    ms->pushWord("tryToMoveToTheLastPickHeight");   
+    ms->pushWord("approachSpeed"); 
+    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("setRandomPositionAndOrientationForHeightLearning");
+    ms->pushWord("assumeDeliveryPose");
+
+    ms->pushWord("checkAndCountGrasp");
+    ms->pushWord("waitUntilGripperNotMoving");
+    ms->pushWord("closeGripper"); 
+    ms->pushWord("shakeItUpAndDown"); 
+    ms->pushWord("setPatrolStateToPicking");
   } else {
     assert(0);
   }
@@ -375,6 +403,19 @@ END_WORD
 REGISTER_WORD(AssumeDeliveryPose)
 
   
+WORD(SetPlaceModeToHold)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentPlaceMode = HOLD;
+}
+END_WORD
+REGISTER_WORD(SetPlaceModeToHold)
+
+WORD(SetPlaceModeToShake)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentPlaceMode = SHAKE;
+}
+END_WORD
+REGISTER_WORD(SetPlaceModeToShake)
 
 WORD(SetPlaceModeToHand)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -394,6 +435,7 @@ WORD(ReturnObject)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   cout << "Returning object." << endl;
+  ms->pushWord("cruisingSpeed");
   ms->pushWord("goToPrePickPose");
   ms->pushWord("waitUntilGripperNotMoving");
   ms->pushWord("openGripper");
