@@ -5,87 +5,38 @@
 
 namespace ein_words {
 
-WORD(SaveLearnedModels)
-CODE(1245281)     // capslock + numlock + A
-virtual void execute(std::shared_ptr<MachineState> ms)       {
-  if (ms->config.focusedClass > -1) {
-    // initialize this if we need to
-    guardGraspMemory(ms);
-    guardHeightMemory(ms);
-
-
-    string thisLabelName = ms->config.focusedClassLabel;
-
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ir2D/";
-    string this_range_path = dirToMakePath + "xyzRange.yml";
-
-    Mat rangeMapTemp(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-    for (int y = 0; y < ms->config.rmWidth; y++) {
-      for (int x = 0; x < ms->config.rmWidth; x++) {
-        rangeMapTemp.at<double>(y,x) = ms->config.classRangeMaps[ms->config.focusedClass].at<double>(y,x);
-      } 
-    } 
-
-    mkdir(dirToMakePath.c_str(), 0777);
-
-    FileStorage fsvO;
-    cout << "capslock + numlock + A: Writing: " << this_range_path << endl;
-    fsvO.open(this_range_path, FileStorage::WRITE);
-    fsvO << "rangeMap" << rangeMapTemp;
-
-    {
-      fsvO << "graspZ" << "[" 
-	<< ms->config.currentGraspZ 
-      << "]";
-
-      if (ms->config.classGraspZs.size() > ms->config.focusedClass) {
-	ms->config.classGraspZs[ms->config.focusedClass] = ms->config.currentGraspZ;
-      }
-      if (ms->config.classGraspZsSet.size() > ms->config.focusedClass) {
-	ms->config.classGraspZsSet[ms->config.focusedClass] = 1;
-      }
-    }
-
-    copyGraspMemoryTriesToClassGraspMemoryTries(ms);
-    fsvO << "graspMemoryTries1" << ms->config.classGraspMemoryTries1[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks1" << ms->config.classGraspMemoryPicks1[ms->config.focusedClass];
-    fsvO << "graspMemoryTries2" << ms->config.classGraspMemoryTries2[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks2" << ms->config.classGraspMemoryPicks2[ms->config.focusedClass];
-    fsvO << "graspMemoryTries3" << ms->config.classGraspMemoryTries3[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks3" << ms->config.classGraspMemoryPicks3[ms->config.focusedClass];
-    fsvO << "graspMemoryTries4" << ms->config.classGraspMemoryTries4[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks4" << ms->config.classGraspMemoryPicks4[ms->config.focusedClass];
-
-
-    copyHeightMemoryTriesToClassHeightMemoryTries(ms);
-    fsvO << "heightMemoryTries" << ms->config.classHeightMemoryTries[ms->config.focusedClass];
-    fsvO << "heightMemoryPicks" << ms->config.classHeightMemoryPicks[ms->config.focusedClass];
-
-    fsvO.release();
-  } 
-}
-END_WORD
-REGISTER_WORD(SaveLearnedModels)
-
-
-
 WORD(SetRandomPositionAndOrientationForHeightLearning)
 CODE( 1179687)     // capslock + numlock + '
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
+  double param_numTries = 1000;
+
   double param_bbLearnPerturbScale = 0.07;//0.1;//.05;//
   double param_bbLearnPerturbBias = 0.01;  //0.04;//0.05;
 
+  for (int t = 0; t < param_numTries; t++) {
+    double noX = param_bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
+    double noY = param_bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
+    noX = noX + (((noX > 0) - 0.5) * 2) * param_bbLearnPerturbBias;
+    noY = noY + (((noY > 0) - 0.5) * 2) * param_bbLearnPerturbBias;
+    double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
 
-  double noX = param_bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
-  double noY = param_bbLearnPerturbScale * ((drand48() - 0.5) * 2.0);
-  noX = noX + (((noX > 0) - 0.5) * 2) * param_bbLearnPerturbBias;
-  noY = noY + (((noY > 0) - 0.5) * 2) * param_bbLearnPerturbBias;
-  double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
-  
-  ms->config.currentEEPose.px += noX;
-  ms->config.currentEEPose.py += noY;
-  ms->config.currentEEDeltaRPY.pz += noTheta;
+    double newX = ms->config.currentEEPose.px + noX;
+    double newY = ms->config.currentEEPose.px + noY;
+    int cellI = -1, cellJ = -1;
+    mapxyToij(ms, newX, newY, &cellI, &cellJ);
+    
+    if (isCellInPatrolZone(ms, cellI, cellJ)) {
+      ms->config.currentEEPose.px = newX;
+      ms->config.currentEEPose.py = newY;
+      ms->config.currentEEDeltaRPY.pz += noTheta;
+      cout << "setRandomPositionAndOrientationForHeightLearning: found good position after " << t << " iterations, pose: " << ms->config.currentEEPose << endl;
+      return;
+    } else {
+      continue;
+    }
+  }
+  cout << "setRandomPositionAndOrientationForHeightLearning: failed to find good position after " << param_numTries << " iterations... continuing." << endl;
 }
 END_WORD
 REGISTER_WORD(SetRandomPositionAndOrientationForHeightLearning)
@@ -506,4 +457,121 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SampleHeight)
+
+WORD(PickFocusedClass)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  
+  if (isFocusedClassValid(ms)) {
+    cout << "pickFocusedClass: focused class valid, proceeding to pick." << endl;
+  } else {
+    cout << "pickFocusedClass: focused class invalid, clearing stack." << endl;
+    ms->clearStack();
+  }
+
+  StringWord::parse(ms->config.classLabels[ms->config.focusedClass]);
+  ms->pushWord("deliverTargetObject");
+
+  ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
+  ms->pushWord("filterBoxMemories");
+  ms->pushWord("lockTargetIfBlueBoxes");
+  ms->pushWord("gradientServoIfBlueBoxes");
+  ms->pushWord("mapClosestBlueBox");
+  ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
+  ms->pushWord("synchronicServo"); 
+  ms->pushWord("synchronicServoDoNotTakeClosest"); 
+  ms->pushWord("setBoundingBoxModeToMapping"); 
+  //ms->pushWord("setPlaceModeToShake");
+  ms->pushWord("clearMapForPatrol");
+  ms->pushWord("clearBlueBoxMemories");
+}
+END_WORD
+REGISTER_WORD(PickFocusedClass)
+
+WORD(ReplaceBlueBoxesWithFocusedClass)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  if (isFocusedClassValid(ms)) {
+    cout << "replaceBlueBoxesWithFocusedClass: Focused class is valid, replacing bTops etc." << endl;
+    ms->config.bTops.resize(1);
+    ms->config.bBots.resize(1);
+    ms->config.bCens.resize(1);
+    ms->config.bLabels.resize(1);
+
+    int fakeBBWidth = 50;
+
+    ms->config.bTops[0].x = ms->config.vanishingPointReticle.px - fakeBBWidth;
+    ms->config.bTops[0].y = ms->config.vanishingPointReticle.py - fakeBBWidth;
+    ms->config.bBots[0].x = ms->config.vanishingPointReticle.px + fakeBBWidth;
+    ms->config.bBots[0].y = ms->config.vanishingPointReticle.py + fakeBBWidth;
+
+    ms->config.bCens[0].x = (ms->config.bTops[0].x + ms->config.bBots[0].x)/2.0;
+    ms->config.bCens[0].y = (ms->config.bTops[0].y + ms->config.bBots[0].y)/2.0;
+
+    ms->config.bLabels[0] = ms->config.focusedClass;
+
+    ms->config.pilotClosestBlueBoxNumber = 0;
+  } else {
+    cout << "replaceBlueBoxesWithFocusedClass: Focused class invalid, clearing bTops etc." << endl;
+    ms->config.bTops.resize(0);
+    ms->config.bBots.resize(0);
+    ms->config.bCens.resize(0);
+    ms->config.bLabels.resize(0);
+    ms->config.pilotClosestBlueBoxNumber = -1;
+  }
+}
+END_WORD
+REGISTER_WORD(ReplaceBlueBoxesWithFocusedClass)
+
+WORD(FocusedGraspLearning)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->config.graspAttemptCounter = 0;
+  ms->config.graspSuccessCounter = 0;
+  ms->config.graspTrialStart = ros::Time::now();
+  ms->config.thompsonPickHaltFlag = 0;
+  ms->config.thompsonHeightHaltFlag = 0;
+
+  ms->config.thisGraspPicked = UNKNOWN;
+  ms->config.thisGraspReleased = UNKNOWN;
+  neutral(ms);
+  
+  ms->pushWord("focusedGraspLearningA");
+  ms->pushWord("setPlaceModeToShake");
+  ms->pushWord("setIdleModeToEmpty");
+}
+END_WORD
+REGISTER_WORD(FocusedGraspLearning)
+
+WORD(FocusedGraspLearningA)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  if (ARE_GENERIC_PICK_LEARNING(ms)) {
+    if (ms->config.thompsonHardCutoff) {
+      if (ms->config.graspAttemptCounter >= ms->config.thompsonTries) {
+        cout << "Clearing call stack because we did " << ms->config.graspAttemptCounter << " tries." << endl;
+        ms->clearStack();
+        ms->pushCopies("beep", 15); // beep
+        return;
+      }
+    }
+    
+    if (ms->config.thompsonAdaptiveCutoff) {
+      if ( (ms->config.thompsonPickHaltFlag) ||
+           (ms->config.graspAttemptCounter >= ms->config.thompsonTries) ) {
+        cout << "Clearing call stack. thompsonPickHaltFlag = " << ms->config.thompsonPickHaltFlag << 
+          " and we did " << ms->config.graspAttemptCounter << " tries." << endl;
+        ms->clearStack();
+        ms->pushCopies("beep", 15); // beep
+        return;
+      }
+    }
+  }
+
+  ms->pushWord("focusedGraspLearningA");
+  ms->pushWord("pickFocusedClass");
+}
+END_WORD
+REGISTER_WORD(FocusedGraspLearningA)
+
+
 }
