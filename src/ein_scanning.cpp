@@ -2528,7 +2528,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     ms->config.bCens.resize(1);
     ms->config.bLabels.resize(1);
 
-    int fakeBBWidth = 50;
+    int fakeBBWidth = 100;
 
     ms->config.bTops[0].x = ms->config.vanishingPointReticle.px - fakeBBWidth;
     ms->config.bTops[0].y = ms->config.vanishingPointReticle.py - fakeBBWidth;
