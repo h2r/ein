@@ -23,6 +23,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ClearStackAcceptFetchCommands)
 
+WORD(ClearStackAcceptFetchCommandsIntoIdler)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->clearStack();
+  ms->execute_stack = 1;
+  ms->config.acceptingFetchCommands = 1;
+  ms->pushWord("idler");
+}
+END_WORD
+REGISTER_WORD(ClearStackAcceptFetchCommandsIntoIdler)
+
 WORD(MapLocal)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
@@ -40,6 +50,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("goClassifyBlueBoxes"); 
 
   ms->pushWord("visionCycle"); 
+  ms->pushWord("cruisingSpeed"); 
 }
 END_WORD
 REGISTER_WORD(MapLocal)

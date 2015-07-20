@@ -1198,7 +1198,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   } else if (ms->config.currentIdleMode == PATROL) {
     ms->pushWord("clearStackIntoMappingPatrol"); 
   } else if (ms->config.currentIdleMode == CRANE) {
-    ms->pushWord("clearStackAcceptFetchCommands"); 
+    ms->pushWord("clearStackAcceptFetchCommandsIntoIdler"); 
     ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
     ms->pushWord("assumeCrane1"); 
   } else if (ms->config.currentIdleMode == SHRUG) {
