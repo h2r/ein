@@ -2147,6 +2147,19 @@ void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
   }
 }
 
+void armItbCallback(const baxter_core_msgs::ITBState& itbs) {
+  shared_ptr<MachineState> ms = pMachineState;
+
+  if (itbs.buttons[2] == 1) {
+    ms->pushWord(std::make_shared<EePoseWord>(ms->config.currentEEPose));
+  }
+
+  if (itbs.buttons[1] == 1) {
+    ms->clearStack();
+  }
+
+}
+
 void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
   shared_ptr<MachineState> ms = pMachineState;
   if (ms->config.currentRobotMode == PHYSICAL) {
@@ -12440,10 +12453,11 @@ int main(int argc, char **argv) {
   ros::Subscriber eeTarget;
   ros::Subscriber jointSubscriber;
 
-
   ros::Subscriber pickObjectUnderEndEffectorCommandCallbackSub;
   ros::Subscriber placeObjectInEndEffectorCommandCallbackSub;
-  ros::Subscriber moveEndEfffectorCommandCallbackSub;
+  ros::Subscriber moveEndEffectorCommandCallbackSub;
+
+  ros::Subscriber armItbCallbackSub;
 
   ms->config.rec_objs_blue_memory = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_memory_objects", 10);
   ms->config.markers_blue_memory = n.advertise<visualization_msgs::MarkerArray>("blue_memory_markers", 10);
@@ -12567,7 +12581,9 @@ int main(int argc, char **argv) {
 
   pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, pickObjectUnderEndEffectorCommandCallback);
   placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
-  moveEndEfffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, moveEndEffectorCommandCallback);
+  moveEndEffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, moveEndEffectorCommandCallback);
+
+  armItbCallbackSub = n.subscribe("/robot/itb/" + ms->config.left_or_right_arm + "_itb/state", 1, armItbCallback);
 
 
   qtTestWindow = new MainWindow(NULL, ms);

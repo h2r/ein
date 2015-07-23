@@ -513,6 +513,27 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(OpenGripper)
 
+WORD(OpenGripperInt)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "openGripperInt: ";
+
+  int amount = 0; GET_ARG_INT(amount,ms);
+
+  char buf[1024]; sprintf(buf, "{\"position\": %d.0}", amount);
+  string argString(buf);
+
+  cout << "opening gripper to " << amount << endl;
+
+  baxter_core_msgs::EndEffectorCommand command;
+  command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
+  command.args = argString.c_str();
+  command.id = 65538;
+  ms->config.gripperPub.publish(command);
+  ms->config.lastMeasuredClosed = ms->config.gripperPosition;
+}
+END_WORD
+REGISTER_WORD(OpenGripperInt)
+
 
 WORD(SetMovementSpeedNowThatsFast)
 CODE(1114193)    // numlock + Q
@@ -1469,6 +1490,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(WaitForSecondsA)
 		
-
+WORD(CurrentPoseToWord)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord(std::make_shared<EePoseWord>(ms->config.currentEEPose));
+}
+END_WORD
+REGISTER_WORD(CurrentPoseToWord)
 
 }
