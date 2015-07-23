@@ -57,6 +57,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(CornellMugsOnTables)
 
+
+WORD(SqueezeDuck)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  std_msgs::StringPtr forthCommand(new std_msgs::String());
+  forthCommand->data = string("returnObject .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt pickFocusedClass setPlaceModeToHold 1 changeToHeight assumeBeeHome \"duck\" 1 setClassLabels ;");
+  forthCommandCallback(forthCommand);
+}
+END_WORD
+REGISTER_WORD(SqueezeDuck)
+
 WORD(MoveObjectToObjectByAmount)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   shared_ptr<Word> firstObjectWord = ms->popWord();
@@ -220,7 +230,6 @@ REGISTER_WORD(DeliverObject)
 
 WORD(DeliverTargetObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->pushWord("idler"); 
   ms->config.bailAfterGradient = 1;
 
   ms->config.pilotTarget.px = -1;
@@ -305,13 +314,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->config.blueBoxMemories = newMemories;
   }
 
-  //ms->pushWord("moveToNextMapPosition");
-  //ms->pushWord("synchronicServoDoNotTakeClosest"); 
-  ms->pushWord("openGripper"); 
-  ms->pushWord("cruisingSpeed"); 
-  ms->pushWord("waitUntilAtCurrentPosition"); 
-  ms->pushWord("tryToMoveToTheLastPrePickHeight");   
-  ms->pushWord("departureSpeed");
 
   // order is crucial here
   ms->pushWord("placeObjectInDeliveryZone");
@@ -343,6 +345,12 @@ REGISTER_WORD(DeliverTargetObject)
 WORD(PlaceObjectInDeliveryZone)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if (ms->config.currentPlaceMode == PLACE_REGISTER) {
+  ms->pushWord("idler"); 
+  ms->pushWord("openGripper"); 
+  ms->pushWord("cruisingSpeed"); 
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("tryToMoveToTheLastPrePickHeight");   
+  ms->pushWord("departureSpeed");
     ms->pushWord("openGripper"); 
     ms->pushWord("tryToMoveToTheLastPickHeight");   
     ms->pushWord("approachSpeed"); 
@@ -350,6 +358,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("assumeDeliveryPose");
     ms->pushWord("setPatrolStateToPlacing");
   } else if (ms->config.currentPlaceMode == HAND) {
+  ms->pushWord("idler"); 
+  ms->pushWord("openGripper"); 
+  ms->pushWord("cruisingSpeed"); 
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("tryToMoveToTheLastPrePickHeight");   
+  ms->pushWord("departureSpeed");
+
     ms->pushCopies("localZDown", 5);
     ms->pushWord("setMovementSpeedMoveFast");
     ms->pushWord("waitForTugThenOpenGripper");
@@ -357,10 +372,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("assumeHandingPose");
     ms->pushWord("setPatrolStateToHanding");
   } else if (ms->config.currentPlaceMode == HOLD) {
-    ms->pushWord("clearStack");
-    ms->pushWord("pauseStackExecution");
+    //ms->pushWord("clearStack");
+    //ms->pushWord("pauseStackExecution");
     ms->pushWord("setPatrolStateToHanding");
   } else if (ms->config.currentPlaceMode == SHAKE) {
+  ms->pushWord("idler"); 
+  ms->pushWord("openGripper"); 
+  ms->pushWord("cruisingSpeed"); 
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("tryToMoveToTheLastPrePickHeight");   
+  ms->pushWord("departureSpeed");
+
     ms->config.placeTarget = ms->config.lastPickPose;
     ms->pushWord("openGripper"); 
     ms->pushWord("tryToMoveToTheLastPickHeight");   

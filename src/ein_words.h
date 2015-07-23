@@ -39,6 +39,19 @@ public: \
 #define REGISTER_WORD(gName) \
   int gName ## _register = register_word(make_shared<gName>());
 
+#define GET_ARG_INT(x,ms) \
+{\
+  shared_ptr<Word> hWord = ms->popWord();\
+  if (hWord == NULL) {\
+    cout << "oops, GET_ARG_INT " << #x << " " << #ms << " found no argument..." << endl;\
+    ms->clearStack();\
+    return;\
+  } else {\
+  }\
+  std::shared_ptr<IntegerWord> hIntWord = std::dynamic_pointer_cast<IntegerWord>(hWord);\
+  x =  hIntWord->value();\
+}\
+
 
 int register_word(shared_ptr<Word> word);
 
