@@ -2595,22 +2595,26 @@ virtual string description() {
 }
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
-  // XXX obtain eeposeword from stack or fail 
-  // set position, set register 1, remove movement business
+  cout << "Entering scanObjectStreamWaypoints" << endl;
 
-  shared_ptr<Word> word = ms->popWord();
-  std::shared_ptr<EePoseWord> destWord = std::dynamic_pointer_cast<EePoseWord>(word);
-  if (destWord == NULL) {
-    cout << "Must pass a pose as an argument to " << this->name() << endl;
-    cout <<" Instead got word: " << word->name() << " repr: " << word->repr() << endl;
-    return;
-  } else {
-    //destWord->value();
+  eePose destPose;
+  CONSUME_EEPOSE(destPose, ms);
+
+  ms->config.currentEEPose.px = destPose.px;
+  ms->config.currentEEPose.py = destPose.py;
+  double graspZGlobal = destPose.pz;
+
+  {
+    double flushZ = -(ms->config.currentTableZ) + ms->config.pickFlushFactor;
+    ms->config.currentGraspZ = -(graspZGlobal - (-ms->config.currentTableZ));
+    cout << "scanObjectStreamWaypoints flushZ currentGraspZ: " << flushZ << " " << ms->config.currentGraspZ << " " << endl;
   }
 
+  ms->config.eepReg1 = destPose;
+
+  ms->pushWord("scanObjectStreamWaypoints");
+
   int retractCm = 10;
-  
-  cout << "Entering ScanObjectStreamWaypoints" << endl;
 
   ms->config.eepReg2 = ms->config.beeHome;
   ms->config.eepReg4 = ms->config.beeHome;
@@ -2717,9 +2721,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord("setSisFlags"); 
   
-  //ms->pushWord("waitUntilAtCurrentPosition");
-  //ms->pushWord("moveToRegister1");
-  //ms->pushWord("saveRegister1");  // this is so we return to a reasonable place 
 
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
@@ -2730,7 +2731,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setPhotoPinHere");
   ms->pushWord("writeFocusedClass");
   ms->pushWord("lock3dGraspBase"); 
-  //ms->pushWord("preAnnotateCenterGrasp"); // XXX
+
   ms->pushWord("preAnnotateOffsetGrasp"); // you need to saveRegister1 where the grasp should be before calling this
   ms->pushWord("setPhotoPinHere");
 
@@ -2757,11 +2758,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setCurrentPoseToTruePose");
   ms->pushWord("setMovementSpeedMoveFast");
   ms->pushWord("hundredthImpulse");
+  
+  // register 1 comes from the stack in this version
+  //ms->pushWord("saveRegister1"); // for preAnnotateOffsetGrasp
+  // recordGraspZ is replaced with logic at the top
+  //ms->pushWord("recordGraspZ"); // XXX
 
-  ms->pushWord("saveRegister1"); // for preAnnotateOffsetGrasp, which isn't use in this version but could be used where it is.
-  ms->pushWord("recordGraspZ"); // XXX
-
-  ms->pushWord("pauseStackExecution"); // pause for annotation positioning
+  // don't pause because we're doing this from the stack
+  //ms->pushWord("pauseStackExecution"); // pause for annotation positioning
 
   ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
 
@@ -2773,6 +2777,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("fullImpulse");
   ms->pushWord("setBoundingBoxModeToMapping"); 
 
+  ms->pushWord("setIdleModeToEmpty"); 
+  ms->pushWord("setPlaceModeToShake"); 
   ms->pushWord("clearBlueBoxMemories"); 
   ms->pushWord("clearMapForPatrol"); 
   ms->pushWord("enableDiskStreaming"); 
@@ -2876,7 +2882,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (ms->config.focusedClass > -1) {
     guard3dGrasps(ms);
     string thisLabelName = ms->config.focusedClassLabel;
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/3dGrasps/";
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/3dGrasps/";
     string this_grasp_path = dirToMakePath + "3dGrasps.yml";
 
     mkdir(dirToMakePath.c_str(), 0777);
@@ -2965,37 +2971,34 @@ REGISTER_WORD(AddPlaceOverPoint)
 
 WORD(AssumeCurrent3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double p_backoffDistance = 0.05;
+  double p_backoffDistance = 0.10;
   int t3dGraspIndex = ms->config.current3dGraspIndex;
-  eePose toApply = ms->config.class3dGrasps[ms->config.targetClass][t3dGraspIndex];  
-
-  ms->config.currentEEPose = ms->config.lastPrePickPose;
-
-  ms->config.currentEEPose.pz = -ms->config.currentTableZ;
-
   cout << "assumCurrent3dGrasp, t3dGraspIndex: " << t3dGraspIndex << endl;
 
-  // this order is important because quaternion multiplication is not commutative
-  ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.currentEEPose.applyQTo(toApply));
-  ms->config.currentEEPose = ms->config.currentEEPose.multQ(toApply);
+  eePose toApply = ms->config.class3dGrasps[ms->config.targetClass][t3dGraspIndex];  
 
+  eePose thisBase = ms->config.lastLockedPose;
+  thisBase.pz = -ms->config.currentTableZ;
+  eePose graspPose = toApply.applyAsRelativePoseTo(thisBase);
+
+  int increments = floor(p_backoffDistance / MOVE_FAST); 
   Vector3d localUnitX;
   Vector3d localUnitY;
   Vector3d localUnitZ;
-  fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  ms->config.currentEEPose = ms->config.currentEEPose.minusP(p_backoffDistance * localUnitZ);
+  fillLocalUnitBasis(graspPose, &localUnitX, &localUnitY, &localUnitZ);
+  eePose retractedGraspPose = graspPose.minusP(p_backoffDistance * localUnitZ);
 
-  int increments = floor(p_backoffDistance / MOVE_FAST); 
+  ms->config.currentEEPose = retractedGraspPose;
 
+  ms->pushWord("comeToStop"); // w1 wait until at current position
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-
-  ms->pushWord("pauseStackExecution"); // w1 wait until at current position
+  //ms->pushWord("pauseStackExecution"); // w1 wait until at current position
 
   ms->pushCopies("localZUp", increments);
   ms->pushWord("setMovementSpeedMoveFast");
   ms->pushWord("approachSpeed");
 
-  ms->pushWord("pauseStackExecution"); // w1 wait until at current position
+  //ms->pushWord("pauseStackExecution"); // w1 wait until at current position
 
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 }
@@ -3004,85 +3007,120 @@ REGISTER_WORD(AssumeCurrent3dGrasp)
 
 WORD(AssumeAny3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double p_backoffDistance = 0.05;
-  int t3dGraspIndex = ms->config.current3dGraspIndex;
-
-  eePose toApply = ms->config.class3dGrasps[ms->config.targetClass][t3dGraspIndex];  
+  double p_backoffDistance = 0.10;
 
   for (int tc = 0; tc < ms->config.class3dGrasps[ms->config.targetClass].size(); tc++) {
-    cout << "Checking IK for 3D grasp number " << tc << "." << endl;
-    int ikCallResult = 0;
-    int ikResultFailed = 1;
-    baxter_core_msgs::SolvePositionIK thisIkRequest;
-    eePose toRequest = ms->config.class3dGrasps[ms->config.targetClass][tc];
-    fillIkRequest(&toRequest, &thisIkRequest);
-    queryIK(ms, &ikCallResult, &thisIkRequest);
+    eePose toApply = ms->config.class3dGrasps[ms->config.targetClass][tc];  
 
-    if (ikCallResult && thisIkRequest.response.isValid[0]) {
-      // set this here in case noise was added
-      ms->config.currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
-      ms->config.currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
-      ms->config.currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
-      ikResultFailed = 0;
-    } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
-      ikResultFailed = 1;
-      cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
-    } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
-      ikResultFailed = 1;
-      cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
-    } else if (thisIkRequest.response.joints.size() == 1) {
-      if( ms->config.usePotentiallyCollidingIK ) {
-	cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
-	cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
+    eePose thisBase = ms->config.lastLockedPose;
+    thisBase.pz = -ms->config.currentTableZ;
 
+    cout << "assumeAny3dGrasp, tc: " << tc << endl;
+
+    // this order is important because quaternion multiplication is not commutative
+    //ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.currentEEPose.applyQTo(toApply));
+    //ms->config.currentEEPose = ms->config.currentEEPose.multQ(toApply);
+
+    eePose graspPose = toApply.applyAsRelativePoseTo(thisBase);
+
+    int increments = floor(p_backoffDistance / MOVE_FAST); 
+    Vector3d localUnitX;
+    Vector3d localUnitY;
+    Vector3d localUnitZ;
+    fillLocalUnitBasis(graspPose, &localUnitX, &localUnitY, &localUnitZ);
+    eePose retractedGraspPose = graspPose.minusP(p_backoffDistance * localUnitZ);
+
+    int ikResultPassedBoth = 1;
+    {
+      cout << "Checking IK for 3D grasp number " << tc << ", "; 
+      int ikCallResult = 0;
+      baxter_core_msgs::SolvePositionIK thisIkRequest;
+      eePose toRequest = graspPose;
+      fillIkRequest(&toRequest, &thisIkRequest);
+      queryIK(ms, &ikCallResult, &thisIkRequest);
+
+      cout << ikCallResult << "." << endl;
+
+      int ikResultFailed = 1;
+      if (ikCallResult && thisIkRequest.response.isValid[0]) {
 	ikResultFailed = 0;
-	ms->config.currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
-	ms->config.currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
-	ms->config.currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
+      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
+      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
+      } else if (thisIkRequest.response.joints.size() == 1) {
+	if( ms->config.usePotentiallyCollidingIK ) {
+	  cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
+	  cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
+	  ikResultFailed = 0;
+	} else {
+	  ikResultFailed = 1;
+	  cout << "ik result was reported as colliding and we are sensibly rejecting it..." << endl;
+	}
       } else {
 	ikResultFailed = 1;
-	cout << "ik result was reported as colliding and we are sensibly rejecting it..." << endl;
+	cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
       }
-    } else {
-      ikResultFailed = 1;
-      cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
+
+      ikResultPassedBoth = ikResultPassedBoth && (!ikResultFailed);
+    }
+    {
+      cout << "Checking IK for 3D pre-grasp number " << tc << ", ";
+      int ikCallResult = 0;
+      baxter_core_msgs::SolvePositionIK thisIkRequest;
+      eePose toRequest = retractedGraspPose;
+      fillIkRequest(&toRequest, &thisIkRequest);
+      queryIK(ms, &ikCallResult, &thisIkRequest);
+
+      cout << ikCallResult << "." << endl;
+
+      int ikResultFailed = 1;
+      if (ikCallResult && thisIkRequest.response.isValid[0]) {
+	ikResultFailed = 0;
+      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
+      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
+      } else if (thisIkRequest.response.joints.size() == 1) {
+	if( ms->config.usePotentiallyCollidingIK ) {
+	  cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
+	  cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
+	  ikResultFailed = 0;
+	} else {
+	  ikResultFailed = 1;
+	  cout << "ik result was reported as colliding and we are sensibly rejecting it..." << endl;
+	}
+      } else {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
+      }
+
+      ikResultPassedBoth = ikResultPassedBoth && (!ikResultFailed);
     }
 
-    if (!ikResultFailed) {
-      toApply = toRequest;
-      break;
+    if (ikResultPassedBoth) {
+      cout << "Grasp and pre-grasp both passed, accepting." << endl;
+
+      ms->config.currentEEPose = retractedGraspPose;
+
+      ms->pushWord("comeToStop"); // w1 wait until at current position
+      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+      //ms->pushWord("pauseStackExecution"); // w1 wait until at current position
+      ms->pushCopies("localZUp", increments);
+      ms->pushWord("setMovementSpeedMoveFast");
+      ms->pushWord("approachSpeed");
+      //ms->pushWord("pauseStackExecution"); // w1 wait until at current position
+
+      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+      return;
     }
   }
 
-  ms->config.currentEEPose = ms->config.lastPrePickPose;
-
-  ms->config.currentEEPose.pz = -ms->config.currentTableZ;
-
-  cout << "assumCurrent3dGrasp, t3dGraspIndex: " << t3dGraspIndex << endl;
-
-  // this order is important because quaternion multiplication is not commutative
-  ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.currentEEPose.applyQTo(toApply));
-  ms->config.currentEEPose = ms->config.currentEEPose.multQ(toApply);
-
-  Vector3d localUnitX;
-  Vector3d localUnitY;
-  Vector3d localUnitZ;
-  fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  ms->config.currentEEPose = ms->config.currentEEPose.minusP(p_backoffDistance * localUnitZ);
-
-  int increments = floor(p_backoffDistance / MOVE_FAST); 
-
-  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-
-  ms->pushWord("pauseStackExecution"); // w1 wait until at current position
-
-  ms->pushCopies("localZUp", increments);
-  ms->pushWord("setMovementSpeedMoveFast");
-  ms->pushWord("approachSpeed");
-
-  ms->pushWord("pauseStackExecution"); // w1 wait until at current position
-
-  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+  cout << "No 3D grasps were feasible. Continuing." << endl;
 }
 END_WORD
 REGISTER_WORD(AssumeAny3dGrasp)

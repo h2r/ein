@@ -2150,13 +2150,19 @@ void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
 void armItbCallback(const baxter_core_msgs::ITBState& itbs) {
   shared_ptr<MachineState> ms = pMachineState;
 
-  if (itbs.buttons[2] == 1) {
+  if ((itbs.buttons[2]) && (!ms->config.lastItbs.buttons[2])) {
     ms->pushWord(std::make_shared<EePoseWord>(ms->config.currentEEPose));
   }
 
-  if (itbs.buttons[1] == 1) {
+  if ((itbs.buttons[1]) && (!ms->config.lastItbs.buttons[1])) {
     ms->clearStack();
   }
+
+  if ((itbs.buttons[0]) && (!ms->config.lastItbs.buttons[0])) {
+    ms->config.zero_g_toggle = !ms->config.zero_g_toggle;
+  }
+
+  ms->config.lastItbs = itbs;
 
 }
 

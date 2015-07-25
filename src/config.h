@@ -23,6 +23,7 @@
 #include <baxter_core_msgs/SolvePositionIK.h>
 #include <baxter_core_msgs/JointCommand.h>
 #include <baxter_core_msgs/HeadPanCommand.h>
+#include <baxter_core_msgs/ITBState.h>
 
 
 #include "eigen_util.h"
@@ -773,6 +774,7 @@ class EinConfig {
   double graspDepthOffset = -0.01;
   eePose lastPickPose;
   eePose lastPrePickPose;
+  eePose lastLockedPose;
   
   // this needs to place the gripper BELOW the table
   //  by a margin, or it could prevent getting flush
@@ -1172,6 +1174,8 @@ class EinConfig {
   ros::Subscriber epState;
 
   ros::Time waitForSecondsTarget;
+
+  baxter_core_msgs::ITBState lastItbs;
 }; // config end
 
 class Word;
