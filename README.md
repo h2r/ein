@@ -21,7 +21,8 @@ sudo apt-get install libopencv-nonfree-\*
 ```
 and finally 
 ```
-sudo apt-get install qt5-default
+sudo apt-get install qt5-default python-wstool ros-indigo-object-recognition-msgs libgsl0-dev exuberant-ctags  ros-indigo-serial
+
 ```
 
 **Install** the package h2r/ein by going to catkin_ws/src and then cloning.
