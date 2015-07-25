@@ -3,6 +3,35 @@
 namespace ein_words {
 
 
+WORD(DucksInARow)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose destPose;
+  CONSUME_EEPOSE(destPose,ms);
+
+  ms->pushWord("ducksInARow");
+
+  ms->pushWord(std::make_shared<EePoseWord>(destPose));
+  ms->pushWord("duck");
+  ms->pushWord("moveObjectToPose");
+  ms->pushWord("setIdleModeToEmpty");
+}
+END_WORD
+REGISTER_WORD(DucksInARow)
+
+WORD(FollowPath)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose destPose;
+  CONSUME_EEPOSE(destPose,ms);
+
+  ms->pushWord("followPath");
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord(std::make_shared<EePoseWord>(destPose));
+  ms->pushWord("moveEeToPose");
+}
+END_WORD
+REGISTER_WORD(FollowPath)
+
 WORD(CornellMugsOnTables)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   
@@ -66,6 +95,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SqueezeDuck)
+
+WORD(QuiveringPalm)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  std_msgs::StringPtr forthCommand(new std_msgs::String());
+  forthCommand->data = string("setMovementSpeedMoveFast \"0.03\" waitForSeconds oZDown 6 replicateWord \"0.03\" waitForSeconds oZUp 6 replicateWord \"0.03\" waitForSeconds oZDown 6 replicateWord \"0.03\" waitForSeconds oZUp 6 replicateWord \"0.03\" waitForSeconds oZDown 6 replicateWord \"0.03\" waitForSeconds oZUp 6 replicateWord \"0.03\" waitForSeconds oZDown 6 replicateWord \"0.03\" waitForSeconds oZUp 6 replicateWord \"0.03\" waitForSeconds oZDown 6 replicateWord \"0.03\" waitForSeconds oZUp 6 replicateWord setMovementSpeedMoveFast \"0.03\" waitForSeconds localXUp 4 replicateWord \"0.03\" waitForSeconds localXDown 8 replicateWord \"0.03\" waitForSeconds localXUp 4 replicateWord \"0.03\" waitForSeconds localXUp 4 replicateWord \"0.03\" waitForSeconds localXDown 8 replicateWord \"0.03\" waitForSeconds localXUp 4 replicateWord \"0.03\" waitForSeconds localYUp 4 replicateWord \"0.03\" waitForSeconds localYDown 8 replicateWord \"0.03\" waitForSeconds localYUp 4 replicateWord \"0.03\" waitForSeconds localYUp 4 replicateWord \"0.03\" waitForSeconds localYDown 8 replicateWord \"0.03\" waitForSeconds localYUp 4 replicateWord zDown setMovementSpeedMoveSlow");
+  forthCommandCallback(forthCommand);
+}
+END_WORD
+REGISTER_WORD(QuiveringPalm)
 
 WORD(MoveObjectToObjectByAmount)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -265,6 +303,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // lastPickPose is suspect
   ms->config.lastPickPose = memory.pickedPose;
   ms->config.lastPrePickPose = memory.aimedPose;
+  ms->config.lastLockedPose = memory.lockedPose;
   ms->config.trZ = memory.trZ;
 
   { // set the old box's lastMappedTime to moments after the start of time
@@ -322,6 +361,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("ifNoGrasp");
 
   ms->pushWord("executePreparedGrasp"); 
+  
   //ms->pushWord("prepareForAndExecuteGraspFromMemory"); 
   //ms->pushWord("gradientServo");
   //ms->pushCopies("density", ms->config.densityIterationsForGradientServo); 
@@ -331,7 +371,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //ms->pushWord("synchronicServoTakeClosest"); 
   ms->pushWord("waitUntilAtCurrentPosition");
 
-  // XXX
   //ms->pushWord("setPickModeToStaticMarginals"); 
 
   ms->pushWord("sampleHeight"); 
@@ -354,6 +393,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("openGripper"); 
     ms->pushWord("tryToMoveToTheLastPickHeight");   
     ms->pushWord("approachSpeed"); 
+//ms->pushWord("shiftIntoGraspGear1"); 
     ms->pushWord("waitUntilAtCurrentPosition"); 
     ms->pushWord("assumeDeliveryPose");
     ms->pushWord("setPatrolStateToPlacing");
@@ -372,8 +412,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("assumeHandingPose");
     ms->pushWord("setPatrolStateToHanding");
   } else if (ms->config.currentPlaceMode == HOLD) {
-    //ms->pushWord("clearStack");
-    //ms->pushWord("pauseStackExecution");
     ms->pushWord("setPatrolStateToHanding");
   } else if (ms->config.currentPlaceMode == SHAKE) {
   ms->pushWord("idler"); 

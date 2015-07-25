@@ -52,7 +52,6 @@
 #include <baxter_core_msgs/SolvePositionIK.h>
 #include <baxter_core_msgs/JointCommand.h>
 #include <baxter_core_msgs/HeadPanCommand.h>
-#include <baxter_core_msgs/ITBState.h>
 
 
 #include <cv.h>

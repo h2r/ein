@@ -488,6 +488,31 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(CalibrateGripper)
 
+WORD(SetGripperMovingForce)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// velocity - Velocity at which a position move will execute 
+// moving_force - Force threshold at which a move will stop 
+// holding_force - Force at which a grasp will continue holding 
+// dead_zone - Position deadband within move considered successful 
+// ALL PARAMETERS (0-100) 
+
+  int amount = 0; GET_ARG(IntegerWord,amount,ms);
+  amount = min(max(0,amount),100);
+
+  cout << "setGripperMovingForce, amount: " << amount << endl;
+
+  char buf[1024]; sprintf(buf, "{\"moving_force\": %d.0}", amount);
+  string argString(buf);
+
+  baxter_core_msgs::EndEffectorCommand command;
+  command.command = baxter_core_msgs::EndEffectorCommand::CMD_CONFIGURE;
+  command.args = argString.c_str();
+  command.id = 65538;
+  ms->config.gripperPub.publish(command);
+}
+END_WORD
+REGISTER_WORD(SetGripperMovingForce)
+
 WORD(CloseGripper)
 CODE('j')
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -518,6 +543,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "openGripperInt: ";
 
   int amount = 0; GET_ARG_INT(amount,ms);
+  amount = min(max(0,amount),100);
 
   char buf[1024]; sprintf(buf, "{\"position\": %d.0}", amount);
   string argString(buf);
@@ -1496,5 +1522,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(CurrentPoseToWord)
+
+WORD(MoveEeToPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose destPose;
+  GET_ARG(EePoseWord,destPose,ms);
+  ms->config.currentEEPose = destPose;
+}
+END_WORD
+REGISTER_WORD(MoveEeToPose)
+
+WORD(DiagnosticRelativePose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "diagnosticRelativePose: Applying eepReg2 relative to eepReg1 to currentEEPose." << endl;
+  eePose oldCurrent = ms->config.currentEEPose;
+  eePose reg2RelReg1 = ms->config.eepReg2.getPoseRelativeTo(ms->config.eepReg1);
+  ms->config.currentEEPose = reg2RelReg1.applyAsRelativePoseTo(oldCurrent);
+}
+END_WORD
+REGISTER_WORD(DiagnosticRelativePose)
 
 }
