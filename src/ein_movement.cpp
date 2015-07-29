@@ -561,62 +561,62 @@ END_WORD
 REGISTER_WORD(OpenGripperInt)
 
 
-WORD(SetMovementSpeedNowThatsFast)
+WORD(SetGridSizeNowThatsCoarse)
 CODE(1114193)    // numlock + Q
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.bDelta = NOW_THATS_FAST;
+  ms->config.bDelta = NOW_THATS_COARSE;
 }
 END_WORD
-REGISTER_WORD(SetMovementSpeedNowThatsFast)
+REGISTER_WORD(SetGridSizeNowThatsCoarse)
 
-WORD(SetMovementSpeedMoveEvenFaster)
+WORD(SetGridSizeEvenCoarser)
 CODE(1114199)     // numlock + W
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.bDelta = MOVE_EVEN_FASTER;
+  ms->config.bDelta = GRID_EVEN_COARSER;
 }
 END_WORD
-REGISTER_WORD(SetMovementSpeedMoveEvenFaster)
+REGISTER_WORD(SetGridSizeEvenCoarser)
 
 
-WORD(SetMovementSpeedMoveFaster)
+WORD(SetGridSizeCoarser)
 CODE(1114181)  // numlock + E
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.bDelta = MOVE_FASTER;
+  ms->config.bDelta = GRID_COARSER;
 }
 END_WORD
-REGISTER_WORD(SetMovementSpeedMoveFaster)
+REGISTER_WORD(SetGridSizeCoarser)
 
-WORD(SetMovementSpeedMoveFast)
+WORD(SetGridSizeCoarse)
 CODE(1048674)     // numlock + b
 virtual void execute(std::shared_ptr<MachineState> ms)  {
-  ms->config.bDelta = MOVE_FAST;
+  ms->config.bDelta = GRID_COARSE;
 }
 END_WORD
-REGISTER_WORD(SetMovementSpeedMoveFast)
+REGISTER_WORD(SetGridSizeCoarse)
 
-WORD(SetMovementSpeedMoveMedium)
+WORD(SetGridSizeMedium)
 CODE(1048686)   // numlock + n
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.bDelta = MOVE_MEDIUM;
+  ms->config.bDelta = GRID_MEDIUM;
 }
 END_WORD
-REGISTER_WORD(SetMovementSpeedMoveMedium)
+REGISTER_WORD(SetGridSizeMedium)
 
-WORD(SetMovementSpeedMoveSlow)
+WORD(SetGridSizeFine)
 CODE(1114190) // numlock + N
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.bDelta = MOVE_SLOW;
+  ms->config.bDelta = GRID_FINE;
 }
 END_WORD
-REGISTER_WORD(SetMovementSpeedMoveSlow)
+REGISTER_WORD(SetGridSizeFine)
 
-WORD(SetMovementSpeedMoveVerySlow)
+WORD(SetGridSizeVeryFine)
 CODE(1114178) // numlock + B
 virtual void execute(std::shared_ptr<MachineState> ms) {
-	ms->config.bDelta = MOVE_VERY_SLOW;
+	ms->config.bDelta = GRID_VERY_FINE;
 }
 END_WORD
-REGISTER_WORD(SetMovementSpeedMoveVerySlow)
+REGISTER_WORD(SetGridSizeVeryFine)
 
 WORD(ChangeToHeight)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1523,14 +1523,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(CurrentPoseToWord)
 
-WORD(MoveEeToPose)
+WORD(MoveEeToPoseWord)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   eePose destPose;
   GET_ARG(EePoseWord,destPose,ms);
   ms->config.currentEEPose = destPose;
 }
 END_WORD
-REGISTER_WORD(MoveEeToPose)
+REGISTER_WORD(MoveEeToPoseWord)
 
 WORD(DiagnosticRelativePose)
 virtual void execute(std::shared_ptr<MachineState> ms) {

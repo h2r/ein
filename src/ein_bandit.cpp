@@ -22,7 +22,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
 
     double newX = ms->config.currentEEPose.px + noX;
-    double newY = ms->config.currentEEPose.px + noY;
+    double newY = ms->config.currentEEPose.py + noY;
     int cellI = -1, cellJ = -1;
     mapxyToij(ms, newX, newY, &cellI, &cellJ);
     

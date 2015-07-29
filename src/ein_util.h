@@ -58,7 +58,7 @@ typedef enum {
 #define O_FILTER_SPOON_SHAFT_WIDTH 2
 
 
-void pushSpeedSign(shared_ptr<MachineState> ms, double speed);
+void pushGridSign(shared_ptr<MachineState> ms, double speed);
 bool isSketchyMat(Mat sketchy);
 eePose rosPoseToEEPose(geometry_msgs::Pose pose);
 

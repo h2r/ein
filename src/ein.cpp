@@ -2589,7 +2589,7 @@ void scanXdirection(shared_ptr<MachineState> ms, double speedOnLines, double spe
     //ms->pushWord("endStackCollapseNoop");
   }
 
-  ms->pushWord("setMovementSpeedMoveFast");
+  ms->pushWord("setGridSizeCoarse");
 }
 
 
@@ -2611,7 +2611,7 @@ void scanYdirection(shared_ptr<MachineState> ms, double speedOnLines, double spe
     ms->pushWord("waitUntilAtCurrentPosition"); 
     ms->pushWord('d');
   }
-  pushSpeedSign(ms, speedOnLines);
+  pushGridSign(ms, speedOnLines);
 
   //int gLimit = 1+((ms->config.rmWidth*betweenLineGain+2*scanPadding)/2);
   int gLimit = ((ms->config.rmWidth*betweenLineGain+2*scanPadding));
@@ -2619,17 +2619,17 @@ void scanYdirection(shared_ptr<MachineState> ms, double speedOnLines, double spe
     ms->pushWord("fullRender"); // full render
     //ms->pushWord(1048677);
     ms->pushWord("waitUntilAtCurrentPosition"); 
-    pushSpeedSign(ms, speedOnLines);
+    pushGridSign(ms, speedOnLines);
     ms->pushWord('e');
-    pushSpeedSign(ms, speedBetweenLines);
+    pushGridSign(ms, speedBetweenLines);
     for (int gg = 0; gg < ms->config.rmWidth*onLineGain+2*scanPadding; gg++) {
       //ms->pushWord(1048677);
       ms->pushWord("waitUntilAtCurrentPosition"); 
       ms->pushWord('a');
     }
-    //pushSpeedSign(ms, speedOnLines);
+    //pushGridSign(ms, speedOnLines);
     //ms->pushWord('e');
-    //pushSpeedSign(ms, speedBetweenLines);
+    //pushGridSign(ms, speedBetweenLines);
     for (int gg = 0; gg < ms->config.rmWidth*onLineGain+2*scanPadding; gg++) {
       //ms->pushWord(1048677);
       ms->pushWord("waitUntilAtCurrentPosition"); 
@@ -2647,7 +2647,7 @@ void scanYdirection(shared_ptr<MachineState> ms, double speedOnLines, double spe
     ms->pushWord("waitUntilAtCurrentPosition"); 
     ms->pushWord('a');
   }
-  pushSpeedSign(ms, speedOnLines);
+  pushGridSign(ms, speedOnLines);
 }
 
 Eigen::Quaternionf getGGRotation(shared_ptr<MachineState> ms, int givenGraspGear) {
@@ -11977,6 +11977,44 @@ int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string la
   // XXX guard affPXPs
   // XXX guard affPXPs
   // XXX guard affPXPs
+  eePose label1Out;
+  int success = 0;
+  int label1Idx = -1;
+  BoxMemory label1Mem;
+  success = getBoxMemoryOfLabel(ms, label1, &label1Idx, &label1Mem);
+  if (success) {
+    int label2Idx = -1;
+    BoxMemory label2Mem;
+    success = getBoxMemoryOfLabel(ms, label2, &label2Idx, &label2Mem);
+    if (success) {
+
+      eePose deltaXY = label2Mem.affPlaceOverPoses[0].minusP(label1Mem.affPlaceUnderPoses[0]);
+      label1Out = ms->config.lastPickPose.plusP(deltaXY);
+
+      double label2DeltaZ = 0;
+      label2DeltaZ = (label2Mem.affPlaceOverPoses[0].pz - (-ms->config.currentTableZ));
+      label1Out.pz = ms->config.lastPickPose.pz + label2DeltaZ;
+
+      label1Out.copyQ(ms->config.lastPickPose);
+
+      (*out) = label1Out;
+      return 1;
+    } else {
+      cout << label2 << " not found, exiting and clearing stack." << endl;
+      ms->clearStack();
+      return 0;
+    }
+  } else {
+    cout << label1 << " not found, exiting and clearing stack." << endl;
+    ms->clearStack();
+    return 0;
+  }
+}
+
+int placementPoseLabel1AboveLabel2ByCrane(std::shared_ptr<MachineState> ms, string label1, string label2, double zAbove, eePose * out) {
+  // XXX guard affPXPs
+  // XXX guard affPXPs
+  // XXX guard affPXPs
   eePose label2Pose;
   int success = 0;
   int label1Idx = -1;
@@ -12019,6 +12057,57 @@ cout << "ZZZ currentTableZ: " << ms->config.currentTableZ << " thisPickZ: " << t
     }
   } else {
     cout << label1 << " not found, exiting and clearing stack." << endl;
+    ms->clearStack();
+    return 0;
+  }
+}
+
+int placementPoseHeldAboveLabel2By(std::shared_ptr<MachineState> ms, string label2, double zAbove, eePose * out) {
+  // XXX guard affPXPs
+  // XXX guard affPXPs
+  // XXX guard affPXPs
+  eePose label1Out;
+  int success = 0;
+  int label1Idx = -1;
+  BoxMemory labelHeldMem;
+
+  int tbb = ms->config.targetBlueBox;
+  if (tbb < ms->config.blueBoxMemories.size()) {
+    labelHeldMem = ms->config.blueBoxMemories[tbb];  
+    success = 1;  
+  } else {
+    success = 0;  
+  }
+
+  eePose heldPickedPose = labelHeldMem.pickedPose;
+
+  if (success) {
+    int label2Idx = -1;
+    BoxMemory label2Mem;
+    success = getBoxMemoryOfLabel(ms, label2, &label2Idx, &label2Mem);
+    if (success) {
+
+      eePose deltaXY = label2Mem.affPlaceOverPoses[0].minusP(labelHeldMem.affPlaceUnderPoses[0]);
+      label1Out = heldPickedPose.plusP(deltaXY);
+
+
+      double label2DeltaZ = 0;
+      label2DeltaZ = (label2Mem.affPlaceOverPoses[0].pz - (-ms->config.currentTableZ)) - ms->config.pickFlushFactor;
+      label1Out.pz = heldPickedPose.pz + label2DeltaZ;
+
+      label1Out.copyQ(heldPickedPose);
+
+      cout << "placementPoseHeldAboveLabel2By   heldPickedPose, deltaXY, label2DeltaZ: " << heldPickedPose << " " << deltaXY << " " << label2DeltaZ << endl;
+
+      (*out) = label1Out;
+      return 1;
+    } else {
+      cout << label2 << " not found, exiting and clearing stack." << endl;
+      ms->clearStack();
+      return 0;
+    }
+  } else {
+    cout << "held object (target blue box)  not found, exiting and clearing stack." << endl;
     ms->clearStack();
     return 0;
   }
