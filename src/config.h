@@ -188,13 +188,13 @@ typedef struct streamImage{
   double time;
 } streamImage;
 
-#define NOW_THATS_FAST 0.08
-#define MOVE_EVEN_FASTER 0.04
-#define MOVE_FASTER 0.02
-#define MOVE_FAST 0.01
-#define MOVE_MEDIUM 0.005 //.005
-#define MOVE_SLOW 0.0025
-#define MOVE_VERY_SLOW 0.00125
+#define NOW_THATS_COARSE 0.08
+#define GRID_EVEN_COARSER 0.04
+#define GRID_COARSER 0.02
+#define GRID_COARSE 0.01
+#define GRID_MEDIUM 0.005 //.005
+#define GRID_FINE 0.0025
+#define GRID_VERY_FINE 0.00125
 
 #define NUM_JOINTS 7
 
@@ -262,7 +262,7 @@ class EinConfig {
   patrolMode currentPatrolMode = ONCE;
   placeMode currentPlaceMode = HAND;
   idleMode currentIdleMode = CRANE;
-  graspMode currentGraspMode = GRASP_CRANE;
+  graspMode currentGraspMode = GRASP_3D;
   robotMode currentRobotMode = PHYSICAL;
   ikMode currentIKMode = IKSERVICE;
   scanMode currentScanMode = CENTERED;
@@ -365,7 +365,7 @@ class EinConfig {
   double eeRange = 0.0;
 
 
-  double bDelta = MOVE_FAST;
+  double bDelta = GRID_COARSE;
 
   EinWindow * rangeogramWindow;
   EinWindow * wristViewWindow;
@@ -1054,7 +1054,8 @@ class EinConfig {
   int mapFreeSpacePixelSkirt = 25;
   int mapBlueBoxPixelSkirt = 50;
   double mapBlueBoxCooldown = 180; // cooldown is a temporal skirt
-  int mapGrayBoxPixelSkirt = 50;
+  int mapGrayBoxPixelSkirtRows = 60;
+  int mapGrayBoxPixelSkirtCols = 110;
   int ikMap[mapWidth * mapHeight];
   int clearanceMap[mapWidth * mapHeight];
   int drawClearanceMap = 1;
@@ -1063,6 +1064,7 @@ class EinConfig {
   int useFade = 1;
   
   vector<BoxMemory> blueBoxMemories;
+  int targetBlueBox = 0;
 
 
   // create the blue boxes from the parental green boxes

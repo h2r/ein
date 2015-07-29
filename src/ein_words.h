@@ -97,9 +97,9 @@ public: \
     return;\
   } else {\
   }\
-  std::shared_ptr<type> hIntWord = std::dynamic_pointer_cast<type>(hWord);\
+  std::shared_ptr<type> hTypeWord = std::dynamic_pointer_cast<type>(hWord);\
 \
-  if (hIntWord == NULL) {\
+  if (hTypeWord == NULL) {\
     cout << "Oops, GET_ARG " << #type << " " << #x << " " << #ms << " found an argument, but not " << #type << "..." << endl;\
     cout << "  Must pass " << #type << " as an argument to " << this->name() << endl;\
     cout << "  Instead got word: " << hWord->name() << " repr: " << hWord->repr() << endl;\
@@ -107,7 +107,7 @@ public: \
     ms->pushWord("pauseStackExecution");\
     return;\
   }\
-  x =  hIntWord->value();\
+  x =  hTypeWord->value();\
 }\
 
 int register_word(shared_ptr<Word> word);

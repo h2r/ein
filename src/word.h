@@ -140,6 +140,10 @@ private:
 
 public:
 
+  string value() {
+    return s;
+  }
+
   virtual bool is_value() {
     return true;
   }
