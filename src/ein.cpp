@@ -11973,7 +11973,8 @@ int placementPoseLabel1BetweenLabel2AndLabel3(std::shared_ptr<MachineState> ms, 
   }
 }
 
-int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string label1, string label2, double zAbove, eePose * out) {
+int placementPoseLabel1AboveLabel2By3dFirst(std::shared_ptr<MachineState> ms, string label1, string label2, double zAbove, eePose * out) {
+// XXX this is not correct
   // XXX guard affPXPs
   // XXX guard affPXPs
   // XXX guard affPXPs
@@ -11992,7 +11993,7 @@ int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string la
       label1Out = ms->config.lastPickPose.plusP(deltaXY);
 
       double label2DeltaZ = 0;
-      label2DeltaZ = (label2Mem.affPlaceOverPoses[0].pz - (-ms->config.currentTableZ));
+      label2DeltaZ = (label2Mem.affPlaceOverPoses[0].pz - (-ms->config.currentTableZ)) - ms->config.pickFlushFactor + zAbove;
       label1Out.pz = ms->config.lastPickPose.pz + label2DeltaZ;
 
       label1Out.copyQ(ms->config.lastPickPose);
@@ -12011,7 +12012,7 @@ int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string la
   }
 }
 
-int placementPoseLabel1AboveLabel2ByCrane(std::shared_ptr<MachineState> ms, string label1, string label2, double zAbove, eePose * out) {
+int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string label1, string label2, double zAbove, eePose * out) {
   // XXX guard affPXPs
   // XXX guard affPXPs
   // XXX guard affPXPs
@@ -12092,7 +12093,7 @@ int placementPoseHeldAboveLabel2By(std::shared_ptr<MachineState> ms, string labe
 
 
       double label2DeltaZ = 0;
-      label2DeltaZ = (label2Mem.affPlaceOverPoses[0].pz - (-ms->config.currentTableZ)) - ms->config.pickFlushFactor;
+      label2DeltaZ = (label2Mem.affPlaceOverPoses[0].pz - (-ms->config.currentTableZ)) - ms->config.pickFlushFactor + zAbove;
       label1Out.pz = heldPickedPose.pz + label2DeltaZ;
 
       label1Out.copyQ(heldPickedPose);
