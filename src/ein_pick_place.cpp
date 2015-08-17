@@ -356,6 +356,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   vector<BoxMemory> focusedClassMemories = memoriesForClass(ms, ms->config.focusedClass, &idxOfFirst);
   if (focusedClassMemories.size() == 0) {
     cout << "No memories of the focused class. " << endl;
+
+    if (ms->config.currentPlaceMode == PLACE_REGISTER) {
+      ms->pushWord("idler"); 
+    } else if (ms->config.currentPlaceMode == HAND) {
+      ms->pushWord("idler"); 
+    } else if (ms->config.currentPlaceMode == HOLD) {
+    } else if (ms->config.currentPlaceMode == SHAKE) {
+      ms->pushWord("idler"); 
+    } else {
+      assert(0);
+    }
+
     return;
   }
 
@@ -366,6 +378,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   if (idxOfFirst == -1) {
     cout << "No POSE_REPORTED objects of the focused class." << endl;
+
+    if (ms->config.currentPlaceMode == PLACE_REGISTER) {
+      ms->pushWord("idler"); 
+    } else if (ms->config.currentPlaceMode == HAND) {
+      ms->pushWord("idler"); 
+    } else if (ms->config.currentPlaceMode == HOLD) {
+    } else if (ms->config.currentPlaceMode == SHAKE) {
+      ms->pushWord("idler"); 
+    } else {
+      assert(0);
+    }
+
     return;
   } else {
   } // do nothing
