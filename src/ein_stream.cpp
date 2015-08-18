@@ -2,6 +2,31 @@
 #include "ein.h"
 namespace ein_words {
 
+WORD(StreamLabel)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  string thisLabel;
+  GET_ARG(StringWord, thisLabel, ms);
+
+  cout << "streamLabel: " << thisLabel << endl;
+
+  int cfClass = ms->config.focusedClass;
+  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisLabel)) {
+    ros::Time rNow = ros::Time::now();
+    double thisNow = rNow.toSec();
+    streamLabelAsClass(ms, thisLabel, cfClass, thisNow);
+
+    for (int i = 0; i < ms->config.streamLabelBuffer.size(); i++) {
+      cout << "  streamLabelBuffer[" << i << "] = " << ms->config.streamLabelBuffer[i].label << " " << ms->config.streamLabelBuffer[i].time << endl;;
+    }
+  } else {
+    cout << "  streamLabel failed " << thisLabel << endl;
+cout << " XXX " << (cfClass > -1)  << (cfClass < ms->config.classLabels.size()) << (ms->config.sensorStreamOn) << (ms->config.sisLabel) << endl;
+  } // do nothing
+}
+END_WORD
+REGISTER_WORD(StreamLabel)
+
 WORD(RestoreIkShare)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
@@ -71,23 +96,26 @@ WORD(SetSisFlags)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   cout << "Setting should I stream flags...";
-  shared_ptr<Word> firstFlagWord = ms->popWord();
-  shared_ptr<Word> secondFlagWord = ms->popWord();
-  shared_ptr<Word> thirdFlagWord = ms->popWord();
-  std::shared_ptr<IntegerWord> fiWord = std::dynamic_pointer_cast<IntegerWord>(firstFlagWord);
-  std::shared_ptr<IntegerWord> seWord = std::dynamic_pointer_cast<IntegerWord>(secondFlagWord);
-  std::shared_ptr<IntegerWord> thWord = std::dynamic_pointer_cast<IntegerWord>(thirdFlagWord);
+  int tSisLabel = 0;
+  int tSisWord = 0;
+  int tSisJoints = 0;
+  int tSisImage = 0;
+  int tSisRange = 0;
+  int tSisPose = 0;
+  GET_ARG(IntegerWord, tSisLabel, ms);
+  GET_ARG(IntegerWord, tSisWord, ms);
+  GET_ARG(IntegerWord, tSisJoints, ms);
+  GET_ARG(IntegerWord, tSisImage, ms);
+  GET_ARG(IntegerWord, tSisRange, ms);
+  GET_ARG(IntegerWord, tSisPose, ms);
 
-  if( (fiWord == NULL) || (seWord == NULL) || (thWord == NULL) ) {
-    cout << "not enough words... clearing stack." << endl;
-    ms->clearStack();
-    return;
-  } else {
-    ms->config.sisImage = fiWord->value();
-    ms->config.sisRange = seWord->value();
-    ms->config.sisPose = thWord->value();
-    cout << "setting sis values, Pose Range Image: " << ms->config.sisPose << " " << ms->config.sisRange << " " << ms->config.sisImage << endl;
-  }
+  ms->config.sisLabel = tSisLabel;
+  ms->config.sisWord = tSisWord;
+  ms->config.sisJoints = tSisJoints;
+  ms->config.sisImage = tSisImage;
+  ms->config.sisRange = tSisRange;
+  ms->config.sisPose = tSisPose;
+  cout << "setting sis values, Pose Range Image Joints Word Label: " << ms->config.sisPose << " " << ms->config.sisRange << " " << ms->config.sisImage << " " << ms->config.sisJoints<< " " << ms->config.sisWord << " " << ms->config.sisLabel <<endl;
 }
 END_WORD
 REGISTER_WORD(SetSisFlags)
@@ -127,10 +155,16 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   populateStreamImageBuffer(ms);
   populateStreamPoseBuffer(ms);
   populateStreamRangeBuffer(ms);
+  populateStreamJointsBuffer(ms);
+  populateStreamWordBuffer(ms);
+  populateStreamLabelBuffer(ms);
 
   sort(ms->config.streamImageBuffer.begin(), ms->config.streamImageBuffer.end(), streamImageComparator);
   sort(ms->config.streamRangeBuffer.begin(), ms->config.streamRangeBuffer.end(), streamRangeComparator);
   sort(ms->config.streamPoseBuffer.begin(), ms->config.streamPoseBuffer.end(), streamPoseComparator);
+  sort(ms->config.streamJointsBuffer.begin(), ms->config.streamJointsBuffer.end(), streamJointsComparator);
+  sort(ms->config.streamWordBuffer.begin(), ms->config.streamWordBuffer.end(), streamWordComparator);
+  sort(ms->config.streamLabelBuffer.begin(), ms->config.streamLabelBuffer.end(), streamLabelComparator);
 }
 END_WORD
 REGISTER_WORD(PopulateStreamBuffers)

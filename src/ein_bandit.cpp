@@ -29,7 +29,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     if (isCellInPatrolZone(ms, cellI, cellJ)) {
       ms->config.currentEEPose.px = newX;
       ms->config.currentEEPose.py = newY;
+
+      endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
       ms->config.currentEEDeltaRPY.pz += noTheta;
+      endEffectorAngularUpdateOuter(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
+
       cout << "setRandomPositionAndOrientationForHeightLearning: found good position after " << t << " iterations, pose: " << ms->config.currentEEPose << endl;
       return;
     } else {
