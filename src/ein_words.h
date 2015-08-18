@@ -39,7 +39,6 @@ public: \
 #define REGISTER_WORD(gName) \
   int gName ## _register = register_word(make_shared<gName>());
 
-// XXX todo make these general, essentially templated
 #define GET_ARG_INT(x,ms) \
 {\
   shared_ptr<Word> hWord = ms->popWord();\
