@@ -1190,6 +1190,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
 
 
@@ -2118,6 +2121,30 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SaveCalibration)
 
+WORD(SaveCalibrationToClass)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int tfc = ms->config.focusedClass; 
+
+  if ((tfc > -1) && (tfc < ms->config.classLabels.size())) {
+    // do nothing
+  } else {
+    cout << "saveCalibrationToClass: invalid focused class, not writing." << endl;
+    return;
+  }
+
+  string thisLabelName = ms->config.classLabels[tfc];
+  string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/calibration/";
+  ros::Time thisNow = ros::Time::now();
+  char buf[1024];
+  sprintf(buf, "%s%f.yml", this_image_path.c_str(), thisNow.toSec());
+  string fileName(buf); 
+
+  cout << "saveCalibrationToClass: Saving calibration file to " << fileName << endl;
+  saveCalibration(ms, fileName);
+}
+END_WORD
+REGISTER_WORD(SaveCalibrationToClass)
+
 WORD(SetColorReticles)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
@@ -2326,6 +2353,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
 
   ms->pushWord("fullImpulse");
@@ -2369,6 +2399,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
   
   ms->pushWord("waitUntilAtCurrentPosition");
@@ -2386,6 +2419,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
 
@@ -2492,6 +2528,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
 
   ms->pushWord("fullImpulse");
@@ -2567,6 +2606,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
   
   //ms->pushWord("waitUntilAtCurrentPosition");
@@ -2687,6 +2729,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
 
   ms->pushWord("fullImpulse");
@@ -2762,6 +2807,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
   
 
@@ -2847,7 +2895,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->config.eepReg1 = graspArg;
 
-  ms->pushWord("scanObjectStreamWaypoints3d");
+  ms->pushWord("scanObjectStreamWaypointsIR");
+
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("assumeCrane1");
+  ms->pushWord("openGripper");
+
 
   int retractCm = 10;
 
@@ -2885,6 +2938,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
 
   ms->pushWord("fullImpulse");
@@ -2892,8 +2948,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("shiftIntoGraspGear1"); 
   ms->pushWord("changeToHeight1"); 
-  //ms->pushWord("comeToHover");
-  ms->pushWord("moveToRegister1");
+  ms->pushWord("moveToRegister2");
 
 
   ms->pushWord("bringUpAllNonessentialSystems"); 
@@ -2954,23 +3009,27 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("changeToHeight0"); // change to height 0
   }
+
+  
+  // put yourself at the 3dGraspBase again
+  ms->pushWord("moveToRegister2");
   ms->pushWord("departureSpeed");
 
   ms->pushWord("shutdownToSensorsAndMovement"); 
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
-  
 
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("changeToHeight0"); // change to height 0
 
   ms->pushWord("departureSpeed");
 
-  ms->pushWord("setPhotoPinHere");
+  ms->pushWord("saveCalibrationToClass");
   ms->pushWord("writeFocusedClass");
+
 
   ms->pushWord("bringUpAllNonessentialSystems"); 
   ms->pushWord("deactivateSensorStreaming"); 
@@ -2983,10 +3042,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
 
-  ms->pushWord("comeToStop");
-  ms->pushWord("setSisFlags"); 
+  ms->pushWord("waitUntilAtCurrentPosition");
+
   ms->pushWord(std::make_shared<EePoseWord>(graspArg));
   ms->pushWord("assumeZOfPoseWord"); 
 
@@ -2995,6 +3057,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //ms->pushWord("add3dGraspPoseWord");
   ms->pushWord("lock3dGraspBase"); 
 
+  // set register 2 to the 3dGraspBase again
+  ms->pushWord("saveRegister2");
   ms->pushWord("setPhotoPinHere");
 
   //ms->pushWord("pauseStackExecution"); // pause to ensure being centered
@@ -3062,12 +3126,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("scanObjectStreamWaypoints3d");
 
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("assumeCrane1");
+  ms->pushWord("openGripper");
+
   int retractCm = 10;
 
   ms->config.eepReg2 = ms->config.beeHome;
   ms->config.eepReg4 = ms->config.beeHome;
 
   ms->pushWord("pickFocusedClass");
+  ms->pushWord("setGraspModeTo3D");
   ms->pushWord("cruisingSpeed"); 
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord("changeToHeight"); 
@@ -3092,6 +3161,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
 
   ms->pushWord("fullImpulse");
@@ -3167,6 +3239,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
   
 
@@ -3176,7 +3251,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("departureSpeed");
 
-  ms->pushWord("setPhotoPinHere");
   ms->pushWord("writeFocusedClass");
   ms->pushWord(std::make_shared<EePoseWord>(graspArg));
   ms->pushWord("add3dGraspPoseWord");
@@ -3268,6 +3342,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
 
 
@@ -3281,6 +3358,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
 

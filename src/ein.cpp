@@ -2419,6 +2419,7 @@ void initClassFolders(std::shared_ptr<MachineState> ms, string folderName) {
       string servoCrops = ein + "servoCrops/";
       string servoImages = ein + "servoImages/";
       string knn = ein + "knn/";
+      string calibration = ein + "calibration/";
 
   mkdir(item.c_str(), 0777);
     mkdir(raw.c_str(), 0777);
@@ -2434,6 +2435,7 @@ void initClassFolders(std::shared_ptr<MachineState> ms, string folderName) {
       mkdir(servoCrops.c_str(), 0777);
       mkdir(servoImages.c_str(), 0777);
       mkdir(knn.c_str(), 0777);
+      mkdir(calibration.c_str(), 0777);
 }
 
 void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folderName) {
@@ -5109,6 +5111,8 @@ void loadCalibration(shared_ptr<MachineState> ms, string inFileName) {
 
 void saveCalibration(shared_ptr<MachineState> ms, string outFileName) {
 
+  ros::Time savedTime = ros::Time::now();
+
   /* this works
   for (int i = 0; i < 5; i++) {
     char buf[256];
@@ -5122,6 +5126,10 @@ void saveCalibration(shared_ptr<MachineState> ms, string outFileName) {
   FileStorage fsvO;
   cout << "Writing calibration information to " << outFileName << " ...";
   fsvO.open(outFileName, FileStorage::WRITE);
+
+  fsvO << "savedTime" << "[" 
+    << savedTime.toSec() 
+  << "]";
 
   fsvO << "currentTableZ" << "[" 
     << ms->config.currentTableZ 
