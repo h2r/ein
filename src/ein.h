@@ -212,8 +212,8 @@ void streamJointsAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx,
 void writeJointsBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
 
 void populateStreamWordBuffer(std::shared_ptr<MachineState> ms);
-void checkAndStreamWord(std::shared_ptr<MachineState> ms, string wordIn);
-void streamWordAsClass(std::shared_ptr<MachineState> ms, string wordIn, int classToStreamIdx, double now);
+void checkAndStreamWord(std::shared_ptr<MachineState> ms, string wordIn, string commandIn);
+void streamWordAsClass(std::shared_ptr<MachineState> ms, string wordIn, string commandIn, int classToStreamIdx, double now);
 void writeWordBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
 
 

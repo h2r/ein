@@ -1,4 +1,5 @@
 #include "word.h"
+#include "ein.h"
 
 void CompoundWord::execute(std::shared_ptr<MachineState> ms) {
   for (unsigned int i = 0; i < stack.size(); i++) {
@@ -61,16 +62,22 @@ bool MachineState::pushWord(string token) {
 
 bool MachineState::pushWord(std::shared_ptr<Word> word) {
   call_stack.push_back(word);
+  std::shared_ptr<MachineState> ms = this->sharedThis;
+  checkAndStreamWord(ms, word->name(), "push");
   return true;
 }
 
 void MachineState::clearStack() {
   call_stack.resize(0);
+  std::shared_ptr<MachineState> ms = this->sharedThis;
+  checkAndStreamWord(ms, "", "clear");
 }
 
 void MachineState::execute(shared_ptr<Word> word) {
   if (word != NULL) {
     current_instruction = word;
+    std::shared_ptr<MachineState> ms = this->sharedThis;
+    checkAndStreamWord(ms, word->name(), "execute");
     word->execute(shared_from_this());
   }
 }
@@ -79,8 +86,17 @@ shared_ptr<Word> MachineState::popWord() {
   if (call_stack.size() > 0) {
     std::shared_ptr<Word> word = call_stack.back();
     call_stack.pop_back();
+    if (word != NULL) {
+      std::shared_ptr<MachineState> ms = this->sharedThis;
+      checkAndStreamWord(ms, word->name(), "pop");
+    } else {
+      std::shared_ptr<MachineState> ms = this->sharedThis;
+      checkAndStreamWord(ms, "", "pop");
+    }
     return word; 
   } else {
+    std::shared_ptr<MachineState> ms = this->sharedThis;
+    checkAndStreamWord(ms, "", "pop");
     return NULL;
   }
 }
