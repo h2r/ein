@@ -199,6 +199,7 @@ typedef struct streamJoints{
 
 typedef struct streamWord {
   string word;
+  string command;
   double time;
 } streamWord;
 
@@ -1224,6 +1225,8 @@ class Word;
 class MachineState: public std::enable_shared_from_this<MachineState> {
  private:
  public:
+  std::shared_ptr<MachineState> sharedThis;
+
   std::vector<std::shared_ptr<Word> > call_stack;
   std::map<string, std::shared_ptr<Word> > variables;
 

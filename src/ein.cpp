@@ -1503,6 +1503,18 @@ void populateStreamWordBuffer(std::shared_ptr<MachineState> ms) {
 		}
 	      }
 	      {
+		FileNode dnode = (*itc)["command"];
+		FileNodeIterator itd = dnode.begin(), itd_end = dnode.end();
+		if (itd != itd_end) {
+		  toAdd.command= (string)(*itd);
+// remove cout
+		  cout << "Read command: " << toAdd.command<< " ." << endl;
+		} else {
+		  loaded = 0;
+		  cout << "Word not found :P" << endl;
+		}
+	      }
+	      {
 		FileNode dnode = (*itc)["time"];
 		FileNodeIterator itd = dnode.begin(), itd_end = dnode.end();
 		if (itd != itd_end) {
@@ -1532,25 +1544,25 @@ void populateStreamWordBuffer(std::shared_ptr<MachineState> ms) {
 }
 
 
-void checkAndStreamWord(std::shared_ptr<MachineState> ms, string wordIn) {
-  cout << "checkAndStreamWord: " << wordIn << endl;
+void checkAndStreamWord(std::shared_ptr<MachineState> ms, string wordIn, string commandIn) {
+  //cout << "checkAndStreamWord: " << wordIn << " " << commandIn << endl;
 
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisWord)) {
     ros::Time rNow = ros::Time::now();
     double thisNow = rNow.toSec();
-    streamWordAsClass(ms, wordIn, cfClass, thisNow);
+    streamWordAsClass(ms, wordIn, commandIn, cfClass, thisNow);
 
-    for (int i = 0; i < ms->config.streamWordBuffer.size(); i++) {
-      cout << "  streamWordBuffer[" << i << "] = " << ms->config.streamWordBuffer[i].word << " " << ms->config.streamWordBuffer[i].time << endl;;
-    }
+    //for (int i = 0; i < ms->config.streamWordBuffer.size(); i++) {
+      //cout << "  streamWordBuffer[" << i << "] = " << ms->config.streamWordBuffer[i].word << " " << ms->config.streamWordBuffer[i].command << " " << ms->config.streamWordBuffer[i].time << endl;;
+    //}
   } else {
-    cout << "  streamWord failed " << wordIn << endl;
-cout << " XXX " << (cfClass > -1)  << (cfClass < ms->config.classLabels.size()) << (ms->config.sensorStreamOn) << (ms->config.sisWord) << endl;
+    //cout << "  streamWord failed " << wordIn << endl;
+    //cout << " XXX " << (cfClass > -1)  << (cfClass < ms->config.classLabels.size()) << (ms->config.sensorStreamOn) << (ms->config.sisWord) << endl;
   } // do nothing
 }
 
-void streamWordAsClass(std::shared_ptr<MachineState> ms, string wordIn, int classToStreamIdx, double now) {
+void streamWordAsClass(std::shared_ptr<MachineState> ms, string wordIn, string commandIn, int classToStreamIdx, double now) {
   if (didSensorStreamTimeout(ms)) {
     return;
   } else {
@@ -1560,8 +1572,10 @@ void streamWordAsClass(std::shared_ptr<MachineState> ms, string wordIn, int clas
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
     streamWord toAdd;
     toAdd.word = wordIn;
+    toAdd.command = commandIn;
     toAdd.time = now;
     ms->config.streamWordBuffer.push_back(toAdd);
+    cout << "streamWordAsClass pushed back " << toAdd.word << " " << toAdd.command << endl;
   } else {
     cout << "streamWordAsClass: invalid focused class, deactivating streaming." << endl;
     ms->config.sensorStreamOn = 0;
@@ -1614,6 +1628,7 @@ void writeWordBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamId
     for (int i = 0; i < tng; i++) {
       fsvO << "{:";
 	fsvO << "word" << ms->config.streamWordBuffer[i].word;
+	fsvO << "command" << ms->config.streamWordBuffer[i].command;
 	fsvO << "time" << ms->config.streamWordBuffer[i].time;
       fsvO << "}";
       // XXX take this cout out
@@ -4011,7 +4026,6 @@ void timercallback1(const ros::TimerEvent&) {
 
       if (character_code_to_word.count(c) > 0) {
         shared_ptr<Word> keycode_word = character_code_to_word[c];
-	checkAndStreamWord(ms, keycode_word->name());
         ms->execute(keycode_word);
 
       } else {
@@ -4024,7 +4038,6 @@ void timercallback1(const ros::TimerEvent&) {
   // always call execute stack, whether or not we are paused.
   if (ms->call_stack.size() > 0 && ms->call_stack.back()->name() == "executeStack") {
     shared_ptr<Word> execute_stack_word = ms->popWord();
-    checkAndStreamWord(ms, execute_stack_word ->name());
     ms->execute(execute_stack_word);
   }
 
@@ -4065,7 +4078,6 @@ void timercallback1(const ros::TimerEvent&) {
     }
 
     if (word != NULL) {
-      checkAndStreamWord(ms, word->name());
       ms->execute(word);
     }
 
@@ -12946,6 +12958,7 @@ int main(int argc, char **argv) {
 
   initializeWords();
   pMachineState = std::make_shared<MachineState>(machineState);
+  pMachineState->sharedThis = pMachineState;
   shared_ptr<MachineState> ms = pMachineState;
   initializeMachine(ms);
 

@@ -573,6 +573,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
   ms->pushWord("focusedGraspLearningA");
   ms->pushWord("pickFocusedClass");
+  ms->pushWord("sampleHeight");
+  ms->pushWord("setBoundingBoxModeToMapping");
+  ms->pushWord("openGripper");
 }
 END_WORD
 REGISTER_WORD(FocusedGraspLearningA)
