@@ -919,6 +919,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     cout << "crows ccols: " << crows << " " << ccols << " ";
 
+    int nanDisco = 0;
+
     for (int x = 0; x < maxDim; x++) {
       for (int y = 0; y < maxDim; y++) {
         int tx = x - tRx;
@@ -932,12 +934,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
         } else {
           gCrop.at<double>(y, x) = 0.0;
         }
+
+	if (isFiniteNumber(gCrop.at<double>(y, x))) {
+	} else {
+	  nanDisco = 1;
+          gCrop.at<double>(y, x) = 0.0;
+	}
       }
     }
+
+    if (nanDisco == 1) {
+      ROS_ERROR_STREAM("saveAerialGradientMap: NaN discovered. Setting to 0."); 
+    } else {
+    }
   
-    cout << "about to resize" << endl;
 
     Size toBecome(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth);
+    cout << "about to resize to " << toBecome << endl;
+
     cv::resize(gCrop, gCrop, toBecome);
 
 
