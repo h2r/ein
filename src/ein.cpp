@@ -7581,6 +7581,7 @@ Mat makeGCrop(shared_ptr<MachineState> ms, int etaX, int etaY) {
     double mean = gCrop.dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, gCrop.type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
     gCrop = gCrop - mean;
     double l2norm = gCrop.dot(gCrop);
+    l2norm = sqrt(l2norm);
     // ATTN 17
     // removed normalization for discriminative servoing
     // ATTN 15
@@ -7736,8 +7737,10 @@ void gradientServo(shared_ptr<MachineState> ms) {
       double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
       rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
       double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations]);
-      if (l2norm <= EPSILON)
+      l2norm = sqrt(l2norm);
+      if (l2norm <= EPSILON) {
         l2norm = 1.0;
+      }
       rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l2norm;
     }
   }
@@ -7773,6 +7776,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
 
   
+  // XXX should be etaY <= to cover whole array
   for (int etaS = 0; etaS < gradientServoScale; etaS++) {
 #pragma omp parallel for
     for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
@@ -7808,6 +7812,11 @@ void gradientServo(shared_ptr<MachineState> ms) {
           int tEtaX = etaX+gradientServoTranslation;
           int tEtaY = etaY+gradientServoTranslation;
           allScores[tEtaX][tEtaY][etaS][thisOrient] = thisScore;
+
+	  //cout << "  JJJ: gsDebug " << thisScore << endl << gCrop << endl << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
+	  //cout << "  JJJ: gsDebug " << thisScore << ms->config.frameGraySobel << endl;
+	  //cout << "  JJJ: gsDebug " << thisScore << ms->config.objectViewerImage << endl;
+
         }
       }
     }
@@ -10217,6 +10226,7 @@ void substituteAccumulatedImageQuantities(shared_ptr<MachineState> ms) {
       ms->config.objectViewerImage.at<Vec3b>(y,x)[0] = doubleToByte(ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
       ms->config.objectViewerImage.at<Vec3b>(y,x)[1] = doubleToByte(ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
       ms->config.objectViewerImage.at<Vec3b>(y,x)[2] = doubleToByte(ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+//cout << "JJJ: " << ms->config.objectViewerImage.at<Vec3b>(y,x) << endl;
     }
   }
 }
@@ -10647,6 +10657,8 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   ms->config.frameGraySobel = totalGraySobel.clone();
   ms->config.preFrameGraySobel = totalGraySobel.clone();
 
+// XXX remove this junk
+/*
   { // temporal averaging of aerial gradient
     if ( (ms->config.aerialGradientTemporalFrameAverage.rows < ms->config.aerialGradientReticleWidth) ||
 	 (ms->config.aerialGradientTemporalFrameAverage.cols < ms->config.aerialGradientReticleWidth) ) {
@@ -10663,6 +10675,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   }
 
   ms->config.frameGraySobel = ms->config.aerialGradientTemporalFrameAverage;
+*/
 
 
   double minGraySob = INFINITY;
