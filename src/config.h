@@ -433,6 +433,7 @@ class EinConfig {
   int pilotClosestBlueBoxNumber = -1;
   string left_or_right_arm = "right";
   string robot_serial;
+  string robot_description;
 
 
   geometry_msgs::Pose trueEEPose;
