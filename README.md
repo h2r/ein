@@ -63,3 +63,4 @@ catkin_make && gdb --args devel/lib/ein/ein _data_directory:="$(rospack find ein
 
 And enter 'r' to start the program from within gdb. For safety purposes, the arm should not move at startup.
 
+
