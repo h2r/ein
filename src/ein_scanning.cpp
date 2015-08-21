@@ -2093,19 +2093,20 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setVanishingPoint");
   ms->pushWord("moveCropToCenter");
 
-  int tablePeek = 5;
+  //int tablePeek = 5;
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushCopies("xUp", tablePeek);
-  ms->pushWord("setTable");
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushCopies("xDown", tablePeek);
-  ms->pushWord("setGridSizeCoarse");
-
   ms->pushWord("saveRegister1");
   ms->pushWord("comeToStop");
   ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("changeToHeight0"); 
+  //ms->pushCopies("xUp", tablePeek);
+  ms->pushWord("setTable");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  //ms->pushCopies("xDown", tablePeek);
+  ms->pushWord("setGridSizeCoarse");
+
 }
 END_WORD
 REGISTER_WORD(CalibrateRGBCameraIntrinsics)
