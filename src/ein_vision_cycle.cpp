@@ -504,8 +504,8 @@ REGISTER_WORD(InitializeMap)
 
 WORD(MapEmptySpace)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirt; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirt; px++) {
-    for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirt; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirt; py++) {
+  for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; px++) {
+    for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; py++) {
 
       if (isInGripperMask(ms, px, py)) {
 	continue;
@@ -843,7 +843,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // cache an accumulated image
   ms->pushWord("stereoPairCache1");
   ms->pushWord("stereoPrep");
-  ms->pushWord("setMovementSpeedMoveFast");
+  ms->pushWord("setGridSizeCoarse");
 }
 END_WORD
 REGISTER_WORD(StereoPair)
@@ -1053,5 +1053,29 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(StereoDisplay)
 
+WORD(MapWaypoints)
+virtual string description() {
+  return "Maps objects at locations specified by EePoseWords underneath.";
 }
+virtual void execute(std::shared_ptr<MachineState> ms) {
 
+  cout << "Entering mapWaypoints" << endl;
+
+  eePose destPose;
+  CONSUME_EEPOSE(destPose, ms);
+
+  ms->pushWord("mapWaypoints");
+
+  ms->pushWord("mapLocal");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("shiftIntoGraspGear1");
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("changeToHeight");
+  ms->pushWord(std::make_shared<EePoseWord>(destPose));
+  ms->pushWord("moveEeToPoseWord");
+
+}
+END_WORD
+REGISTER_WORD(MapWaypoints)
+
+}

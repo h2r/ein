@@ -50,7 +50,7 @@ string MachineState::currentState()
     state << "position error (x,y,z,w): " << setw(w) << difference.qx << " " << setw(w) << difference.qy << " " << setw(w) << difference.qz << " " << setw(w) << difference.qw << endl;
 
     state << "currentThompsonHeightIdx: " << config.currentThompsonHeightIdx << endl;
-    state << "mostRecentUntabledZ (remember this is inverted but correct): " << config.mostRecentUntabledZ << endl;
+    //state << "mostRecentUntabledZ (remember this is inverted but correct): " << config.mostRecentUntabledZ << endl;
     state << "currentPickMode: " << pickModeToString(config.currentPickMode) << endl;
     state << "currentBoundingBoxMode: " << pickModeToString(config.currentBoundingBoxMode) << endl;
     state << "gradientServoTakeClosest: " << config.gradientTakeClosest << endl;

@@ -2,6 +2,84 @@
 #include "ein.h"
 namespace ein_words {
 
+WORD(TwoPartPlaceObjectOnObject)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  
+  string firstObjectLabel;
+  GET_ARG(StringWord, firstObjectLabel, ms);
+  string secondObjectLabel;
+  GET_ARG(StringWord, secondObjectLabel, ms);
+  // this is specified in mm
+  int amountMms;
+  GET_ARG(IntegerWord, amountMms, ms);
+
+  ms->pushWord(std::make_shared<IntegerWord>(amountMms));
+  ms->pushWord(std::make_shared<StringWord>(secondObjectLabel));
+  ms->pushWord("placeHeldObjectOnObject");
+  ms->pushWord("setPlaceModeToRegister");
+
+  ms->pushWord(std::make_shared<StringWord>(firstObjectLabel));
+  ms->pushWord("deliverObject");
+  ms->pushWord("setPlaceModeToHold");
+
+  cout << "twoPartPlaceObjectOnObject: placing " << secondObjectLabel << " on " << firstObjectLabel << " by " << amountMms << endl;
+}
+END_WORD
+REGISTER_WORD(TwoPartPlaceObjectOnObject)
+
+WORD(PlaceHeldObjectOnObject)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string secondObjectLabel;
+  GET_ARG(StringWord, secondObjectLabel, ms);
+  // this is specified in mm
+  int amountMms;
+  GET_ARG(IntegerWord, amountMms, ms);
+  double cTableHeight = 0.001 * amountMms;
+
+
+  {
+    eePose placePose;
+    int success = placementPoseHeldAboveLabel2By(ms, secondObjectLabel, cTableHeight, &placePose);
+    if (success) {
+      cout << "placeHeldObjectOnObject: placing held object onto " << secondObjectLabel << " by " << amountMms << endl;
+      ms->config.placeTarget = placePose;
+      ms->pushWord("placeObjectInDeliveryZone");
+    } else {
+      cout << "placeHeldObjectOnObject: failed" << endl; 
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(PlaceHeldObjectOnObject)
+
+WORD(DucksInARow)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose destPose;
+  CONSUME_EEPOSE(destPose,ms);
+
+  ms->pushWord("ducksInARow");
+
+  ms->pushWord(std::make_shared<EePoseWord>(destPose));
+  ms->pushWord("duck");
+  ms->pushWord("moveObjectToPose");
+  ms->pushWord("setIdleModeToEmpty");
+}
+END_WORD
+REGISTER_WORD(DucksInARow)
+
+WORD(FollowPath)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose destPose;
+  CONSUME_EEPOSE(destPose,ms);
+
+  ms->pushWord("followPath");
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord(std::make_shared<EePoseWord>(destPose));
+  ms->pushWord("moveEeToPoseWord");
+}
+END_WORD
+REGISTER_WORD(FollowPath)
 
 WORD(CornellMugsOnTables)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -9,16 +87,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // cTableHeight moves with the flush factor
   double cTableHeight = -0.017;//-0.045;//0.0;//0.025;
   int amountMms = floor(cTableHeight / 0.001);
-
-  /*eePose table3Pose;
-  int success = 1;
-  success = success && placementPoseLabel1AboveLabel2By(ms, "brownMug", "table3", cTableHeight, &table3Pose);
-  if (success) {
-    ms->pushWord(std::make_shared<EePoseWord>(table3Pose));
-    ms->pushWord("brownMug");
-    ms->pushWord("moveObjectToPose");
-  }
-  */
 
   ms->pushWord(std::make_shared<IntegerWord>(amountMms));
   ms->pushWord("table3");
@@ -35,24 +103,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("redMug");
   ms->pushWord("moveObjectToObjectByAmount");
 
-
-  /*
-  if (success) {
-    ms->pushWord(std::make_shared<EePoseWord>(table3Pose));
-    ms->pushWord("brownMug");
-    ms->pushWord("moveObjectToPose");
-
-    ms->pushWord(std::make_shared<EePoseWord>(table2Pose));
-    ms->pushWord("metalMug");
-    ms->pushWord("moveObjectToPose");
-
-    ms->pushWord(std::make_shared<EePoseWord>(table1Pose));
-    ms->pushWord("redMug");
-    ms->pushWord("moveObjectToPose");
-  } else {
-    cout << "some objects not found.
-  }
-  */
 }
 END_WORD
 REGISTER_WORD(CornellMugsOnTables)
@@ -61,11 +111,20 @@ REGISTER_WORD(CornellMugsOnTables)
 WORD(SqueezeDuck)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   std_msgs::StringPtr forthCommand(new std_msgs::String());
-  forthCommand->data = string("returnObject .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt pickFocusedClass setPlaceModeToHold 1 changeToHeight assumeBeeHome \"duck\" 1 setClassLabels ;");
+  forthCommand->data = string("returnObject .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt pickFocusedClass setPlaceModeToHold 1 changeToHeight assumeBeeHome endArgs \"duck\" setClassLabels ;");
   forthCommandCallback(forthCommand);
 }
 END_WORD
 REGISTER_WORD(SqueezeDuck)
+
+WORD(QuiveringPalm)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  std_msgs::StringPtr forthCommand(new std_msgs::String());
+  forthCommand->data = string("setGridSizeCoarse \"0.03\" waitForSeconds oZDown 6 replicateWord \"0.03\" waitForSeconds oZUp 6 replicateWord \"0.03\" waitForSeconds oZDown 6 replicateWord \"0.03\" waitForSeconds oZUp 6 replicateWord \"0.03\" waitForSeconds oZDown 6 replicateWord \"0.03\" waitForSeconds oZUp 6 replicateWord \"0.03\" waitForSeconds oZDown 6 replicateWord \"0.03\" waitForSeconds oZUp 6 replicateWord \"0.03\" waitForSeconds oZDown 6 replicateWord \"0.03\" waitForSeconds oZUp 6 replicateWord setGridSizeCoarse \"0.03\" waitForSeconds localXUp 4 replicateWord \"0.03\" waitForSeconds localXDown 8 replicateWord \"0.03\" waitForSeconds localXUp 4 replicateWord \"0.03\" waitForSeconds localXUp 4 replicateWord \"0.03\" waitForSeconds localXDown 8 replicateWord \"0.03\" waitForSeconds localXUp 4 replicateWord \"0.03\" waitForSeconds localYUp 4 replicateWord \"0.03\" waitForSeconds localYDown 8 replicateWord \"0.03\" waitForSeconds localYUp 4 replicateWord \"0.03\" waitForSeconds localYUp 4 replicateWord \"0.03\" waitForSeconds localYDown 8 replicateWord \"0.03\" waitForSeconds localYUp 4 replicateWord zDown setMovementSpeedMoveSlow");
+  forthCommandCallback(forthCommand);
+}
+END_WORD
+REGISTER_WORD(QuiveringPalm)
 
 WORD(MoveObjectToObjectByAmount)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -228,44 +287,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(DeliverObject)
 
-WORD(DeliverTargetObject)
+WORD(UnmapTargetBlueBox)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.bailAfterGradient = 1;
-
-  ms->config.pilotTarget.px = -1;
-  ms->config.pilotTarget.py = -1;
-  ms->config.pilotClosestTarget.px = -1;
-  ms->config.pilotClosestTarget.py = -1;
-  
-  int idxOfFirst = -1;
-  // we need to remove this from the blue box memories later
-  vector<BoxMemory> focusedClassMemories = memoriesForClass(ms, ms->config.focusedClass, &idxOfFirst);
-  if (focusedClassMemories.size() == 0) {
-    cout << "No memories of the focused class. " << endl;
-    return;
-  }
-
-  if (focusedClassMemories.size() > 1) {
-    cout << "More than one bounding box for class.  Looking for first POSE_REPORTED." << focusedClassMemories.size() << endl;
-  } else {
-  } // do nothing
-
-  if (idxOfFirst == -1) {
-    cout << "No POSE_REPORTED objects of the focused class." << endl;
-    return;
-  } else {
-  } // do nothing
-
-  BoxMemory memory = ms->config.blueBoxMemories[idxOfFirst];
-
-
-  cout << "Aimed pose: " << memory.aimedPose << endl;
-  //ms->config.currentEEPose = memory.cameraPose;
-  ms->config.currentEEPose = memory.aimedPose;
-  // lastPickPose is suspect
-  ms->config.lastPickPose = memory.pickedPose;
-  ms->config.lastPrePickPose = memory.aimedPose;
-  ms->config.trZ = memory.trZ;
+  int idxToRemove = ms->config.targetBlueBox;
+  BoxMemory memory = ms->config.blueBoxMemories[idxToRemove];
 
   { // set the old box's lastMappedTime to moments after the start of time
     int iStart=-1, iEnd=-1, jStart=-1, jEnd=-1;
@@ -306,14 +331,80 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     // observed in a searched region...
     vector<BoxMemory> newMemories;
     for (int i = 0; i < ms->config.blueBoxMemories.size(); i++) {
-      if (i != idxOfFirst) {
-	cout << "Retaining blue box " << i << " while booting " << idxOfFirst << endl; 
+      if (i != idxToRemove) {
+	cout << "Retaining blue box " << i << " while booting " << idxToRemove << endl; 
 	newMemories.push_back(ms->config.blueBoxMemories[i]);
       }
     }
     ms->config.blueBoxMemories = newMemories;
   }
+}
+END_WORD
+REGISTER_WORD(UnmapTargetBlueBox)
 
+WORD(DeliverTargetObject)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.bailAfterGradient = 1;
+
+  ms->config.pilotTarget.px = -1;
+  ms->config.pilotTarget.py = -1;
+  ms->config.pilotClosestTarget.px = -1;
+  ms->config.pilotClosestTarget.py = -1;
+  
+  int idxOfFirst = -1;
+  // we need to remove this from the blue box memories later
+  vector<BoxMemory> focusedClassMemories = memoriesForClass(ms, ms->config.focusedClass, &idxOfFirst);
+  if (focusedClassMemories.size() == 0) {
+    cout << "No memories of the focused class. " << endl;
+
+    if (ms->config.currentPlaceMode == PLACE_REGISTER) {
+      ms->pushWord("idler"); 
+    } else if (ms->config.currentPlaceMode == HAND) {
+      ms->pushWord("idler"); 
+    } else if (ms->config.currentPlaceMode == HOLD) {
+    } else if (ms->config.currentPlaceMode == SHAKE) {
+      ms->pushWord("idler"); 
+    } else {
+      assert(0);
+    }
+
+    return;
+  }
+
+  if (focusedClassMemories.size() > 1) {
+    cout << "More than one bounding box for class.  Looking for first POSE_REPORTED." << focusedClassMemories.size() << endl;
+  } else {
+  } // do nothing
+
+  if (idxOfFirst == -1) {
+    cout << "No POSE_REPORTED objects of the focused class." << endl;
+
+    if (ms->config.currentPlaceMode == PLACE_REGISTER) {
+      ms->pushWord("idler"); 
+    } else if (ms->config.currentPlaceMode == HAND) {
+      ms->pushWord("idler"); 
+    } else if (ms->config.currentPlaceMode == HOLD) {
+    } else if (ms->config.currentPlaceMode == SHAKE) {
+      ms->pushWord("idler"); 
+    } else {
+      assert(0);
+    }
+
+    return;
+  } else {
+  } // do nothing
+
+  BoxMemory memory = ms->config.blueBoxMemories[idxOfFirst];
+  ms->config.targetBlueBox = idxOfFirst;
+
+  cout << "Aimed pose: " << memory.aimedPose << endl;
+  ms->config.currentEEPose = memory.aimedPose;
+  ms->config.lastPrePickPose = memory.aimedPose;
+  ms->config.lastLockedPose = memory.lockedPose;
+  ms->config.trZ = memory.trZ;
+
+
+  //ms->pushWord("unmapTargetBlueBox");
 
   // order is crucial here
   ms->pushWord("placeObjectInDeliveryZone");
@@ -322,17 +413,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("ifNoGrasp");
 
   ms->pushWord("executePreparedGrasp"); 
-  //ms->pushWord("prepareForAndExecuteGraspFromMemory"); 
-  //ms->pushWord("gradientServo");
-  //ms->pushCopies("density", ms->config.densityIterationsForGradientServo); 
-  //ms->pushCopies("resetTemporalMap", 1); 
-  //ms->pushWord("synchronicServo"); 
-  //ms->pushWord("visionCycle");
-  //ms->pushWord("synchronicServoTakeClosest"); 
+  
   ms->pushWord("waitUntilAtCurrentPosition");
-
-  // XXX
-  //ms->pushWord("setPickModeToStaticMarginals"); 
 
   ms->pushWord("sampleHeight"); 
   ms->pushWord("setBoundingBoxModeToMapping"); 
@@ -346,6 +428,7 @@ WORD(PlaceObjectInDeliveryZone)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if (ms->config.currentPlaceMode == PLACE_REGISTER) {
   ms->pushWord("idler"); 
+  ms->pushWord("unmapTargetBlueBox");
   ms->pushWord("openGripper"); 
   ms->pushWord("cruisingSpeed"); 
   ms->pushWord("waitUntilAtCurrentPosition"); 
@@ -354,29 +437,29 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("openGripper"); 
     ms->pushWord("tryToMoveToTheLastPickHeight");   
     ms->pushWord("approachSpeed"); 
+//ms->pushWord("shiftIntoGraspGear1"); 
     ms->pushWord("waitUntilAtCurrentPosition"); 
     ms->pushWord("assumeDeliveryPose");
     ms->pushWord("setPatrolStateToPlacing");
   } else if (ms->config.currentPlaceMode == HAND) {
   ms->pushWord("idler"); 
+  ms->pushWord("unmapTargetBlueBox");
   ms->pushWord("openGripper"); 
   ms->pushWord("cruisingSpeed"); 
   ms->pushWord("waitUntilAtCurrentPosition"); 
   ms->pushWord("tryToMoveToTheLastPrePickHeight");   
-  ms->pushWord("departureSpeed");
 
     ms->pushCopies("localZDown", 5);
-    ms->pushWord("setMovementSpeedMoveFast");
+    ms->pushWord("setGridSizeCoarse");
     ms->pushWord("waitForTugThenOpenGripper");
     ms->pushWord("waitUntilAtCurrentPosition"); 
     ms->pushWord("assumeHandingPose");
     ms->pushWord("setPatrolStateToHanding");
   } else if (ms->config.currentPlaceMode == HOLD) {
-    //ms->pushWord("clearStack");
-    //ms->pushWord("pauseStackExecution");
     ms->pushWord("setPatrolStateToHanding");
   } else if (ms->config.currentPlaceMode == SHAKE) {
   ms->pushWord("idler"); 
+  ms->pushWord("unmapTargetBlueBox");
   ms->pushWord("openGripper"); 
   ms->pushWord("cruisingSpeed"); 
   ms->pushWord("waitUntilAtCurrentPosition"); 
@@ -414,12 +497,13 @@ WORD(AssumeDeliveryPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double oldz = ms->config.currentEEPose.pz;
   ms->config.currentEEPose = ms->config.placeTarget;
-  cout << "XXX assumeDeliveryPose: " << ms->config.currentEEPose << endl;
+  cout << "assumeDeliveryPose: " << ms->config.currentEEPose << endl;
   // so that we hover above where we want to be
   ms->config.currentEEPose.pz = oldz;
-  ms->config.currentEEPose.copyQ(ms->config.lastPrePickPose);
   ms->config.lastPickPose.pz = ms->config.placeTarget.pz;
   ms->pushWord("waitUntilAtCurrentPosition");
+  //ms->config.currentEEPose.copyQ(ms->config.lastPrePickPose);
+  ms->pushWord("assumeLastPickOrientation");
 }
 END_WORD
 REGISTER_WORD(AssumeDeliveryPose)

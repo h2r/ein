@@ -23,11 +23,14 @@
 #include <baxter_core_msgs/SolvePositionIK.h>
 #include <baxter_core_msgs/JointCommand.h>
 #include <baxter_core_msgs/HeadPanCommand.h>
+#include <baxter_core_msgs/ITBState.h>
 
 
 #include "eigen_util.h"
 
 #include "distributions.h"
+
+#define NUM_JOINTS 7
 
 class EinWindow;
 
@@ -187,15 +190,32 @@ typedef struct streamImage{
   double time;
 } streamImage;
 
-#define NOW_THATS_FAST 0.08
-#define MOVE_EVEN_FASTER 0.04
-#define MOVE_FASTER 0.02
-#define MOVE_FAST 0.01
-#define MOVE_MEDIUM 0.005 //.005
-#define MOVE_SLOW 0.0025
-#define MOVE_VERY_SLOW 0.00125
+typedef struct streamJoints{
+  double jointPositions[NUM_JOINTS];
+  double jointVelocities[NUM_JOINTS];
+  double jointEfforts[NUM_JOINTS];
+  double time;
+} streamJoints;
 
-#define NUM_JOINTS 7
+typedef struct streamWord {
+  string word;
+  string command;
+  double time;
+} streamWord;
+
+typedef struct streamLabel {
+  string label;
+  double time;
+} streamLabel;
+
+#define NOW_THATS_COARSE 0.08
+#define GRID_EVEN_COARSER 0.04
+#define GRID_COARSER 0.02
+#define GRID_COARSE 0.01
+#define GRID_MEDIUM 0.005 //.005
+#define GRID_FINE 0.0025
+#define GRID_VERY_FINE 0.00125
+
 
 class EinConfig {
  public:
@@ -261,7 +281,7 @@ class EinConfig {
   patrolMode currentPatrolMode = ONCE;
   placeMode currentPlaceMode = HAND;
   idleMode currentIdleMode = CRANE;
-  graspMode currentGraspMode = GRASP_CRANE;
+  graspMode currentGraspMode = GRASP_3D;
   robotMode currentRobotMode = PHYSICAL;
   ikMode currentIKMode = IKSERVICE;
   scanMode currentScanMode = CENTERED;
@@ -301,6 +321,8 @@ class EinConfig {
   std::vector<std::string> jointNames;
 
   double trueJointPositions[NUM_JOINTS] = {0, 0, 0, 0, 0, 0, 0};
+  double trueJointVelocities[NUM_JOINTS] = {0, 0, 0, 0, 0, 0, 0};
+  double trueJointEfforts[NUM_JOINTS] = {0, 0, 0, 0, 0, 0, 0};
 
   double joint_min[NUM_JOINTS];
   double joint_max[NUM_JOINTS];
@@ -344,15 +366,28 @@ class EinConfig {
   int sisPose = 0;
   int sisRange = 0;
   int sisImage = 0;
+  int sisJoints= 0;
+  int sisWord = 0;
+  int sisLabel = 0;
   int streamPoseBatchSize = 100;
   int streamRangeBatchSize = 100;
+  int streamJointsBatchSize = 100;
+  int streamWordBatchSize = 100;
+  int streamLabelBatchSize = 5;
   std::vector<streamEePose> streamPoseBuffer;
   std::vector<streamRange> streamRangeBuffer;
   std::vector<streamImage> streamImageBuffer;
+  std::vector<streamJoints> streamJointsBuffer;
+  std::vector<streamWord> streamWordBuffer;
+  std::vector<streamLabel> streamLabelBuffer;
   // stream image buffer current index
   int sibCurIdx = 0;
   int srbCurIdx = 0;
   int spbCurIdx = 0;
+  int sjbCurIdx = 0;
+  int swbCurIdx = 0;
+  int slbCurIdx = 0;
+
   Mat accumulatedStreamImage;
   Mat accumulatedStreamImageMass;
   Mat accumulatedStreamImageBytes;
@@ -364,7 +399,7 @@ class EinConfig {
   double eeRange = 0.0;
 
 
-  double bDelta = MOVE_FAST;
+  double bDelta = GRID_COARSE;
 
   EinWindow * rangeogramWindow;
   EinWindow * wristViewWindow;
@@ -774,6 +809,7 @@ class EinConfig {
   double graspDepthOffset = -0.01;
   eePose lastPickPose;
   eePose lastPrePickPose;
+  eePose lastLockedPose;
   
   // this needs to place the gripper BELOW the table
   //  by a margin, or it could prevent getting flush
@@ -1053,7 +1089,8 @@ class EinConfig {
   int mapFreeSpacePixelSkirt = 25;
   int mapBlueBoxPixelSkirt = 50;
   double mapBlueBoxCooldown = 180; // cooldown is a temporal skirt
-  int mapGrayBoxPixelSkirt = 50;
+  int mapGrayBoxPixelSkirtRows = 60;
+  int mapGrayBoxPixelSkirtCols = 110;
   int ikMap[mapWidth * mapHeight];
   int clearanceMap[mapWidth * mapHeight];
   int drawClearanceMap = 1;
@@ -1062,6 +1099,7 @@ class EinConfig {
   int useFade = 1;
   
   vector<BoxMemory> blueBoxMemories;
+  int targetBlueBox = 0;
 
 
   // create the blue boxes from the parental green boxes
@@ -1173,6 +1211,8 @@ class EinConfig {
   ros::Subscriber epState;
 
   ros::Time waitForSecondsTarget;
+
+  baxter_core_msgs::ITBState lastItbs;
 }; // config end
 
 class Word;
@@ -1186,6 +1226,8 @@ class Word;
 class MachineState: public std::enable_shared_from_this<MachineState> {
  private:
  public:
+  std::shared_ptr<MachineState> sharedThis;
+
   std::vector<std::shared_ptr<Word> > call_stack;
   std::map<string, std::shared_ptr<Word> > variables;
 
