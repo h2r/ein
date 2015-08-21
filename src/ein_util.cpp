@@ -18,22 +18,22 @@ std::string operationStatusToString(operationStatusType mode)
 }
 
 
-void pushSpeedSign(shared_ptr<MachineState> ms, double speed) {
+void pushGridSign(shared_ptr<MachineState> ms, double speed) {
 
-  if (speed == NOW_THATS_FAST) {
-    ms->pushWord("setMovementSpeedNowThatsFast"); 
-  } else if (speed == MOVE_EVEN_FASTER) {
-    ms->pushWord("setMovementSpeedMoveEvenFaster"); 
-  } else  if (speed == MOVE_FASTER) {
-    ms->pushWord("setMovementSpeedMoveFaster"); 
-  } else if (speed == MOVE_FAST) {
-    ms->pushWord("setMovementSpeedMoveFast"); 
-  } else if (speed == MOVE_MEDIUM) {
-    ms->pushWord("setMovementSpeedMoveMedium"); 
-  } else if (speed == MOVE_SLOW) {
-    ms->pushWord("setMovementSpeedMoveSlow"); 
-  } else if (speed == MOVE_VERY_SLOW) {
-    ms->pushWord("setMovementSpeedMoveVerySlow"); 
+  if (speed == NOW_THATS_COARSE) {
+    ms->pushWord("setGridSizeNowThatsCoarse"); 
+  } else if (speed == GRID_EVEN_COARSER) {
+    ms->pushWord("setGridSizeEvenCoarser"); 
+  } else  if (speed == GRID_COARSER) {
+    ms->pushWord("setGridSizeCoarser"); 
+  } else if (speed == GRID_COARSE) {
+    ms->pushWord("setGridSizeCoarse"); 
+  } else if (speed == GRID_MEDIUM) {
+    ms->pushWord("setGridSizeMedium"); 
+  } else if (speed == GRID_FINE) {
+    ms->pushWord("setGridSizeFine"); 
+  } else if (speed == GRID_VERY_FINE) {
+    ms->pushWord("setGridSizeVeryFine"); 
   } else {
     ROS_ERROR_STREAM("Unknown speed: " << speed);
     assert(0);

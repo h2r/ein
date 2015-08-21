@@ -5,6 +5,13 @@
 
 namespace ein_words {
 
+WORD(EndArgs)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// marks the end of a list of arguments 
+}
+END_WORD
+REGISTER_WORD(EndArgs)
+
 WORD(UploadObjectToDatabase)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   stringstream cmd;

@@ -163,14 +163,21 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->config.lastPickPose = ms->config.currentEEPose;
   ms->config.lastPickPose.pz = pickZ;
 
+  int tbb = ms->config.targetBlueBox;
+  if (tbb < ms->config.blueBoxMemories.size()) {
+    ms->config.blueBoxMemories[tbb].pickedPose = ms->config.lastPickPose;  
+  } else {
+    assert(0);
+  }
+
   if (useHybridPick) {
     int pickNoops = 20;
-    int increments = 0.1/MOVE_FAST;
-    ms->config.currentEEPose.pz = pickZ+increments*MOVE_FAST;
+    int increments = 0.1/GRID_COARSE;
+    ms->config.currentEEPose.pz = pickZ+increments*GRID_COARSE;
     ms->pushWord("comeToStop");
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     ms->pushCopies('s', increments);
-    ms->pushWord("setMovementSpeedMoveFast");
+    ms->pushWord("setGridSizeCoarse");
     ms->pushWord("approachSpeed");
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
@@ -194,7 +201,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.eepReg6 = ms->config.currentEEPose;
   ms->config.eepReg6.pz += 0.2;
 
-  pushSpeedSign(ms, MOVE_FAST);    
+  pushGridSign(ms, GRID_COARSE);    
   if (isGripperGripping(ms)) {
     happy(ms);
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
@@ -211,7 +218,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   }
 
-  pushSpeedSign(ms, NOW_THATS_FAST);
+  pushGridSign(ms, NOW_THATS_COARSE);
   ms->pushWord("fullImpulse");
 
 }
@@ -255,13 +262,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   } else {
     if (useHybridPlace) {
       int pickNoops = 20;
-      int increments = 0.1/MOVE_FAST;
-      ms->config.currentEEPose.pz = ms->config.lastPickPose.pz+increments*MOVE_FAST;
+      int increments = 0.1/GRID_COARSE;
+      ms->config.currentEEPose.pz = ms->config.lastPickPose.pz+increments*GRID_COARSE;
 
       //ms->pushCopies("endStackCollapseNoop", pickNoops);
       ms->pushWord("waitUntilAtCurrentPosition"); 
       ms->pushCopies('s', increments);
-      ms->pushWord("setMovementSpeedMoveFast");
+      ms->pushWord("setGridSizeCoarse");
       ms->pushWord("approachSpeed");
       ms->pushWord("waitUntilAtCurrentPosition"); 
       ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
@@ -394,7 +401,7 @@ CODE( 131151)     // capslock + o
   //ms->pushCopies('w'+65504, flexThisFar); // rotate forward
 
   //ms->pushWord("moveToRegister2"); // assume pose at register 2
-  pushSpeedSign(ms, MOVE_FAST);
+  pushGridSign(ms, GRID_COARSE);
 
   // resets the gripper server
   //int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
@@ -1170,7 +1177,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->pushWord("visionCycle");
   // we want to move to a higher holding position for visual patrol
   // so we assume that we are at 20 cm = IR scan height and move to 30 cm
-  pushSpeedSign(ms, MOVE_FAST);
+  pushGridSign(ms, GRID_COARSE);
   ms->pushWord("changeToPantryTable"); // change to pantry table
   //ms->pushWord("setBoundingBoxModeToStaticMarginals"); 
   ms->pushWord("setBoundingBoxModeToStaticPrior"); 
@@ -1329,7 +1336,7 @@ REGISTER_WORD(GradientServoIfBlueBoxes)
 WORD(LockTargetIfBlueBoxes)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (ms->config.bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
-    ms->pushWord("recordTargetLock");
+    ms->pushWord("recordPostTargetLock");
     ms->pushWord("prepareForGraspFromMemory");
     ms->pushWord("recordPreTargetLock");
   }
@@ -1337,27 +1344,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(LockTargetIfBlueBoxes)
 
-WORD(RecordTargetLock)
+WORD(RecordPostTargetLock)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if (ms->config.blueBoxMemories.size() > 0) {
     BoxMemory *lastAdded = &(ms->config.blueBoxMemories[ms->config.blueBoxMemories.size()-1]);
     lastAdded->cameraTime = ros::Time::now();
     lastAdded->aimedPose = ms->config.currentEEPose;
-    // XXX picked pose doesn't seem to mean anything here so likely doesn't matter
-    lastAdded->pickedPose = ms->config.currentEEPose;
-    lastAdded->pickedPose.pz  = ms->config.lastPickPose.pz;
-    // XXX picked pose doesn't seem to mean anything here so likely doesn't matter... actually px and py seem not to but .pz does
     lastAdded->trZ  = ms->config.trZ;
-    cout << "recordTargetLock saving pickedPose..." << endl;
+    cout << "recordPostTargetLock saving pickedPose..." << endl;
     cout << "trZ = " << ms->config.trZ << endl;
     cout << "Current EE Position (x,y,z): " << ms->config.currentEEPose.px << " " << ms->config.currentEEPose.py << " " << ms->config.currentEEPose.pz << endl;
     cout << "Current EE Orientation (x,y,z,w): " << ms->config.currentEEPose.qx << " " << ms->config.currentEEPose.qy << " " << ms->config.currentEEPose.qz << " " << ms->config.currentEEPose.qw << endl;
     lastAdded->lockStatus = POSE_LOCK;
-    
   }
 }
 END_WORD
-REGISTER_WORD(RecordTargetLock)
+REGISTER_WORD(RecordPostTargetLock)
 
 WORD(RecordPreTargetLock)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1381,8 +1383,9 @@ cout << "tnc, tnp: " << tnc << " " << tnp << endl;
 	  eePose toWhichWasApplied = ms->config.currentEEPose;
 	  toWhichWasApplied.pz = -ms->config.currentTableZ;
 	  // this order is important because quaternion multiplication is not commutative
-	  toWhichWasApplied = toWhichWasApplied.plusP(toWhichWasApplied.applyQTo(toApply));
-	  toWhichWasApplied = toWhichWasApplied.multQ(toApply);
+	  //toWhichWasApplied = toWhichWasApplied.plusP(toWhichWasApplied.applyQTo(toApply));
+	  //toWhichWasApplied = toWhichWasApplied.multQ(toApply);
+	  toWhichWasApplied = toApply.applyAsRelativePoseTo(toWhichWasApplied);
 	  lastAdded->aff3dGraspPoses[i] = toWhichWasApplied;
 	}
       }
@@ -1399,8 +1402,9 @@ cout << "tnc, tnp: " << tnc << " " << tnp << endl;
 	  eePose toWhichWasApplied = ms->config.currentEEPose;
 	  toWhichWasApplied.pz = -ms->config.currentTableZ;
 	  // this order is important because quaternion multiplication is not commutative
-	  toWhichWasApplied = toWhichWasApplied.plusP(toWhichWasApplied.applyQTo(toApply));
-	  toWhichWasApplied = toWhichWasApplied.multQ(toApply);
+	  //toWhichWasApplied = toWhichWasApplied.plusP(toWhichWasApplied.applyQTo(toApply));
+	  //toWhichWasApplied = toWhichWasApplied.multQ(toApply);
+	  toWhichWasApplied = toApply.applyAsRelativePoseTo(toWhichWasApplied);
 	  lastAdded->affPlaceUnderPoses[i] = toWhichWasApplied;
 cout << "added " << lastAdded->affPlaceUnderPoses[i] << endl << " and current is " << endl << ms->config.currentEEPose << endl;
 	}
@@ -1418,8 +1422,9 @@ cout << "tnc, tnp: " << tnc << " " << tnp << endl;
 	  eePose toWhichWasApplied = ms->config.currentEEPose;
 	  toWhichWasApplied.pz = -ms->config.currentTableZ;
 	  // this order is important because quaternion multiplication is not commutative
-	  toWhichWasApplied = toWhichWasApplied.plusP(toWhichWasApplied.applyQTo(toApply));
-	  toWhichWasApplied = toWhichWasApplied.multQ(toApply);
+	  //toWhichWasApplied = toWhichWasApplied.plusP(toWhichWasApplied.applyQTo(toApply));
+	  //toWhichWasApplied = toWhichWasApplied.multQ(toApply);
+	  toWhichWasApplied = toApply.applyAsRelativePoseTo(toWhichWasApplied);
 	  lastAdded->affPlaceOverPoses[i] = toWhichWasApplied;
 cout << "added " << lastAdded->affPlaceUnderPoses[i] << endl << " and current is " << endl << ms->config.currentEEPose << endl;
 	}
@@ -1496,7 +1501,6 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(GoToPrePickPose)
 
-
 WORD(GoToLastPickPose)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
@@ -1504,6 +1508,14 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 }
 END_WORD
 REGISTER_WORD(GoToLastPickPose)
+
+WORD(AssumeLastPickOrientation)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->config.currentEEPose.copyQ(ms->config.lastPickPose);
+}
+END_WORD
+REGISTER_WORD(AssumeLastPickOrientation)
 
 
 

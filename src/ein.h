@@ -52,7 +52,6 @@
 #include <baxter_core_msgs/SolvePositionIK.h>
 #include <baxter_core_msgs/JointCommand.h>
 #include <baxter_core_msgs/HeadPanCommand.h>
-#include <baxter_core_msgs/ITBState.h>
 
 
 #include <cv.h>
@@ -105,7 +104,9 @@ void markMapAsCompleted(shared_ptr<MachineState> ms);
 vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx);
 vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx, int * memoryIdxOfFirst);
 int getBoxMemoryOfLabel(std::shared_ptr<MachineState> ms, string label, int * idxOfLabel, BoxMemory * out);
+int placementPoseLabel1AboveLabel2By3dFirst(std::shared_ptr<MachineState> ms, string label1, string label2, double zAbove, eePose * out);
 int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string label1, string label2, double zAbove, eePose * out);
+int placementPoseHeldAboveLabel2By(std::shared_ptr<MachineState> ms, string label2, double zAbove, eePose * out);
 int placementPoseLabel1BetweenLabel2AndLabel3(std::shared_ptr<MachineState> ms, string label1, 
   string label2, string label3, eePose * out);
 void recordBlueBoxInHistogram(shared_ptr<MachineState> ms, int idx);
@@ -182,19 +183,41 @@ void update2dRangeMaps(std::shared_ptr<MachineState> ms, Vector3d castPoint);
 bool streamRangeComparator(streamRange i, streamRange j);
 bool streamPoseComparator(streamEePose i, streamEePose j);
 bool streamImageComparator(streamImage i, streamImage j);
+bool streamJointsComparator(streamJoints i, streamJoints j);
+bool streamWordComparator(streamWord i, streamWord j);
+bool streamLabelComparator(streamLabel i, streamLabel j);
 
 void activateSensorStreaming(std::shared_ptr<MachineState> ms);
 void deactivateSensorStreaming(std::shared_ptr<MachineState> ms);
 
+int didSensorStreamTimeout(std::shared_ptr<MachineState> ms);
+
 void populateStreamImageBuffer(std::shared_ptr<MachineState> ms);
 void populateStreamPoseBuffer(std::shared_ptr<MachineState> ms);
 void populateStreamRangeBuffer(std::shared_ptr<MachineState> ms);
-int didSensorStreamTimeout(std::shared_ptr<MachineState> ms);
+void populateStreamLabelBuffer(std::shared_ptr<MachineState> ms);
+
 void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStreamIdx, double now);
 void streamRangeAsClass(std::shared_ptr<MachineState> ms, double range, int classToStreamIdx, double now);
 void streamPoseAsClass(std::shared_ptr<MachineState> ms, eePose poseIn, int classToStreamIdx, double now);
+void streamLabelAsClass(std::shared_ptr<MachineState> ms, string labelIn, int classToStreamIdx, double now);
+
 void writeRangeBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
 void writePoseBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
+void writeLabelBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
+
+
+void populateStreamJointsBuffer(std::shared_ptr<MachineState> ms);
+void streamJointsAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx, double now);
+void writeJointsBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
+
+void populateStreamWordBuffer(std::shared_ptr<MachineState> ms);
+void checkAndStreamWord(std::shared_ptr<MachineState> ms, string wordIn, string commandIn);
+void streamWordAsClass(std::shared_ptr<MachineState> ms, string wordIn, string commandIn, int classToStreamIdx, double now);
+void writeWordBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
+
+
+
 
 void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
 void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);
@@ -229,6 +252,7 @@ void publishVolumetricMap(shared_ptr<MachineState> ms);
 void accelerometerCallback(const sensor_msgs::Imu& moment);
 void rangeCallback(const sensor_msgs::Range& range);
 void endEffectorAngularUpdate(eePose *givenEEPose, eePose *deltaEEPose);
+void endEffectorAngularUpdateOuter(eePose *givenEEPose, eePose *deltaEEPose);
 void fillIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest);
 void reseedIkRequest(shared_ptr<MachineState> ms, eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest, int it, int itMax);
 bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositionIK thisIkRequest, int thisIkCallResult, bool * likelyInCollision);
