@@ -30,6 +30,8 @@
 
 #include "distributions.h"
 
+#define NUM_JOINTS 7
+
 class EinWindow;
 
 typedef enum {
@@ -188,6 +190,24 @@ typedef struct streamImage{
   double time;
 } streamImage;
 
+typedef struct streamJoints{
+  double jointPositions[NUM_JOINTS];
+  double jointVelocities[NUM_JOINTS];
+  double jointEfforts[NUM_JOINTS];
+  double time;
+} streamJoints;
+
+typedef struct streamWord {
+  string word;
+  string command;
+  double time;
+} streamWord;
+
+typedef struct streamLabel {
+  string label;
+  double time;
+} streamLabel;
+
 #define NOW_THATS_COARSE 0.08
 #define GRID_EVEN_COARSER 0.04
 #define GRID_COARSER 0.02
@@ -196,7 +216,6 @@ typedef struct streamImage{
 #define GRID_FINE 0.0025
 #define GRID_VERY_FINE 0.00125
 
-#define NUM_JOINTS 7
 
 class EinConfig {
  public:
@@ -302,6 +321,8 @@ class EinConfig {
   std::vector<std::string> jointNames;
 
   double trueJointPositions[NUM_JOINTS] = {0, 0, 0, 0, 0, 0, 0};
+  double trueJointVelocities[NUM_JOINTS] = {0, 0, 0, 0, 0, 0, 0};
+  double trueJointEfforts[NUM_JOINTS] = {0, 0, 0, 0, 0, 0, 0};
 
   double joint_min[NUM_JOINTS];
   double joint_max[NUM_JOINTS];
@@ -345,15 +366,28 @@ class EinConfig {
   int sisPose = 0;
   int sisRange = 0;
   int sisImage = 0;
+  int sisJoints= 0;
+  int sisWord = 0;
+  int sisLabel = 0;
   int streamPoseBatchSize = 100;
   int streamRangeBatchSize = 100;
+  int streamJointsBatchSize = 100;
+  int streamWordBatchSize = 100;
+  int streamLabelBatchSize = 5;
   std::vector<streamEePose> streamPoseBuffer;
   std::vector<streamRange> streamRangeBuffer;
   std::vector<streamImage> streamImageBuffer;
+  std::vector<streamJoints> streamJointsBuffer;
+  std::vector<streamWord> streamWordBuffer;
+  std::vector<streamLabel> streamLabelBuffer;
   // stream image buffer current index
   int sibCurIdx = 0;
   int srbCurIdx = 0;
   int spbCurIdx = 0;
+  int sjbCurIdx = 0;
+  int swbCurIdx = 0;
+  int slbCurIdx = 0;
+
   Mat accumulatedStreamImage;
   Mat accumulatedStreamImageMass;
   Mat accumulatedStreamImageBytes;
@@ -1191,6 +1225,8 @@ class Word;
 class MachineState: public std::enable_shared_from_this<MachineState> {
  private:
  public:
+  std::shared_ptr<MachineState> sharedThis;
+
   std::vector<std::shared_ptr<Word> > call_stack;
   std::map<string, std::shared_ptr<Word> > variables;
 

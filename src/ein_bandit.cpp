@@ -29,7 +29,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     if (isCellInPatrolZone(ms, cellI, cellJ)) {
       ms->config.currentEEPose.px = newX;
       ms->config.currentEEPose.py = newY;
+
+      endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
       ms->config.currentEEDeltaRPY.pz += noTheta;
+      endEffectorAngularUpdateOuter(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
+
       cout << "setRandomPositionAndOrientationForHeightLearning: found good position after " << t << " iterations, pose: " << ms->config.currentEEPose << endl;
       return;
     } else {
@@ -569,6 +573,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
   ms->pushWord("focusedGraspLearningA");
   ms->pushWord("pickFocusedClass");
+  ms->pushWord("sampleHeight");
+  ms->pushWord("setBoundingBoxModeToMapping");
+  ms->pushWord("openGripper");
 }
 END_WORD
 REGISTER_WORD(FocusedGraspLearningA)

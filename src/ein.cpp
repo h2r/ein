@@ -943,6 +943,8 @@ void jointCallback(const sensor_msgs::JointState& js) {
       for (int j = 0; j < NUM_JOINTS; j++) {
 	if (0 == js.name[i].compare(ms->config.jointNames[j]))
 	  ms->config.trueJointPositions[j] = js.position[i];
+	  ms->config.trueJointVelocities[j] = js.velocity[i];
+	  ms->config.trueJointEfforts[j] = js.effort[i];
 	//cout << "tJP[" << j << "]: " << trueJointPositions[j] << endl;
       }
     }
@@ -1408,14 +1410,404 @@ void update2dRangeMaps(std::shared_ptr<MachineState> ms, Vector3d castPoint) {
 bool streamRangeComparator (streamRange i, streamRange j) {
  return (i.time < j.time);
 }
-
 bool streamPoseComparator (streamEePose i, streamEePose j) {
  return (i.time < j.time);
 }
-
 bool streamImageComparator (streamImage i, streamImage j) {
  return (i.time < j.time);
 }
+bool streamJointsComparator(streamJoints i, streamJoints j) {
+ return (i.time < j.time);
+}
+bool streamWordComparator(streamWord i, streamWord j) {
+ return (i.time < j.time);
+}
+bool streamLabelComparator(streamLabel i, streamLabel j) {
+ return (i.time < j.time);
+}
+
+
+
+void populateStreamJointsBuffer(std::shared_ptr<MachineState> ms) {
+// XXX TODO
+}
+
+void streamJointAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx, double now) {
+// XXX TODO
+}
+
+void writeJointsBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx) {
+// XXX TODO
+}
+
+
+void populateStreamWordBuffer(std::shared_ptr<MachineState> ms) {
+// XXX TODO
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+  string dotyml(".yml");
+
+  int classToStreamIdx = ms->config.focusedClass;
+  string thisLabelName = ms->config.classLabels[classToStreamIdx];
+  string this_word_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/word/";
+  dpdf = opendir(this_word_path.c_str());
+  cout << "Populating stream word buffer from " << this_word_path << endl;
+  if (dpdf != NULL) {
+    while (epdf = readdir(dpdf)) {
+
+      string fname(epdf->d_name);
+      string fextension;
+      string fnoextension;
+      if (fname.length() > 4) {
+	fextension = fname.substr(fname.length() - 4, 4);
+	fnoextension = fname.substr(0, fname.length() - 4);
+      } else {
+      } // do nothing
+
+      if (!dotyml.compare(fextension) && dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
+
+	string inFileName = this_word_path + fname;
+	cout << "Streaming words from " << inFileName << " ...";
+	FileStorage fsvI;
+	fsvI.open(inFileName, FileStorage::READ);
+
+	{
+	  FileNode anode = fsvI["words"];
+	  {
+	    FileNode bnode = anode["size"];
+	    FileNodeIterator itb = bnode.begin(), itb_end = bnode.end();
+	    int tnp = -1;
+	    if (itb != itb_end) {
+	      tnp = *(itb++);
+	    } else {
+	    }
+
+	    FileNode cnode = anode["streamWords"];
+	    FileNodeIterator itc = cnode.begin(), itc_end = cnode.end();
+	    int numLoadedWords = 0;
+	    for ( ; itc != itc_end; itc++, numLoadedWords++) {
+	      streamWord toAdd;
+	      int loaded = 1;
+	      {
+		FileNode dnode = (*itc)["word"];
+		FileNodeIterator itd = dnode.begin(), itd_end = dnode.end();
+		if (itd != itd_end) {
+		  toAdd.word= (string)(*itd);
+// remove cout
+		  cout << "Read word: " << toAdd.word<< " ." << endl;
+		} else {
+		  loaded = 0;
+		  cout << "Word not found :P" << endl;
+		}
+	      }
+	      {
+		FileNode dnode = (*itc)["command"];
+		FileNodeIterator itd = dnode.begin(), itd_end = dnode.end();
+		if (itd != itd_end) {
+		  toAdd.command= (string)(*itd);
+// remove cout
+		  cout << "Read command: " << toAdd.command<< " ." << endl;
+		} else {
+		  loaded = 0;
+		  cout << "Word not found :P" << endl;
+		}
+	      }
+	      {
+		FileNode dnode = (*itc)["time"];
+		FileNodeIterator itd = dnode.begin(), itd_end = dnode.end();
+		if (itd != itd_end) {
+		  toAdd.time = (*itd);
+// remove cout
+		  cout << "Read time: " << toAdd.time << " ." << endl;
+		} else {
+		  loaded = 0;
+		  cout << "Time not found :P" << endl;
+		}
+	      }
+	      if (loaded) {
+		ms->config.streamWordBuffer.push_back(toAdd);
+	      } else {
+		cout << "failed :P" << endl;
+	      }
+	    }
+	    if (numLoadedWords != tnp) {
+	      ROS_ERROR_STREAM("Did not load the expected number of words.");
+	    }
+	    cout << " Expected to load " << tnp << " words, loaded " << numLoadedWords << " ..." << endl; cout.flush();
+	  }
+	}
+      }
+    }
+  }
+}
+
+
+void checkAndStreamWord(std::shared_ptr<MachineState> ms, string wordIn, string commandIn) {
+  //cout << "checkAndStreamWord: " << wordIn << " " << commandIn << endl;
+
+  int cfClass = ms->config.focusedClass;
+  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisWord)) {
+    ros::Time rNow = ros::Time::now();
+    double thisNow = rNow.toSec();
+    streamWordAsClass(ms, wordIn, commandIn, cfClass, thisNow);
+
+    //for (int i = 0; i < ms->config.streamWordBuffer.size(); i++) {
+      //cout << "  streamWordBuffer[" << i << "] = " << ms->config.streamWordBuffer[i].word << " " << ms->config.streamWordBuffer[i].command << " " << ms->config.streamWordBuffer[i].time << endl;;
+    //}
+  } else {
+    //cout << "  streamWord failed " << wordIn << endl;
+    //cout << " XXX " << (cfClass > -1)  << (cfClass < ms->config.classLabels.size()) << (ms->config.sensorStreamOn) << (ms->config.sisWord) << endl;
+  } // do nothing
+}
+
+void streamWordAsClass(std::shared_ptr<MachineState> ms, string wordIn, string commandIn, int classToStreamIdx, double now) {
+  if (didSensorStreamTimeout(ms)) {
+    return;
+  } else {
+  }
+
+  int cfClass = ms->config.focusedClass;
+  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
+    streamWord toAdd;
+    toAdd.word = wordIn;
+    toAdd.command = commandIn;
+    toAdd.time = now;
+    ms->config.streamWordBuffer.push_back(toAdd);
+    cout << "streamWordAsClass pushed back " << toAdd.word << " " << toAdd.command << endl;
+  } else {
+    cout << "streamWordAsClass: invalid focused class, deactivating streaming." << endl;
+    ms->config.sensorStreamOn = 0;
+    return;
+  } 
+
+
+  if (ms->config.diskStreamingEnabled) {
+    if (ms->config.streamWordBuffer.size() >= ms->config.streamWordBatchSize) {
+      writeWordBatchAsClass(ms, classToStreamIdx);	
+    } else {
+    } // do nothing
+  } else {
+    if ((ms->config.streamWordBuffer.size() % ms->config.streamWordBatchSize) == 0) {
+      cout << "streamWordAsClass: disk streaming not enabled, buffer size: " << ms->config.streamWordBuffer.size() << endl;
+    } else {
+    }
+  }
+}
+
+void writeWordBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx) {
+  if ((classToStreamIdx > -1) && (classToStreamIdx < ms->config.classLabels.size())) {
+    // do nothing
+  } else {
+    cout << "writeWordBatchAsClass: invalid class, not writing." << endl;
+    return;
+  }
+
+  string thisWordName = ms->config.classLabels[classToStreamIdx];
+  string this_image_path = ms->config.data_directory + "/objects/" + thisWordName + "/raw/word/";
+  ros::Time thisNow = ros::Time::now();
+  char buf[1024];
+  sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
+  string root_path(buf); 
+
+
+  string yaml_path = root_path + ".yml";
+  // XXX take this cout out
+  cout << "Streaming current word batch to " << yaml_path << endl;
+
+  // may want to save additional camera parameters
+  FileStorage fsvO;
+  fsvO.open(yaml_path, FileStorage::WRITE);
+
+  fsvO << "words" << "{";
+  {
+    int tng = ms->config.streamWordBuffer.size();
+    fsvO << "size" <<  tng;
+    fsvO << "streamWords" << "[" ;
+    for (int i = 0; i < tng; i++) {
+      fsvO << "{:";
+	fsvO << "word" << ms->config.streamWordBuffer[i].word;
+	fsvO << "command" << ms->config.streamWordBuffer[i].command;
+	fsvO << "time" << ms->config.streamWordBuffer[i].time;
+      fsvO << "}";
+      // XXX take this cout out
+      //cout << " wrote word: " << ms->config.streamWordBuffer[i].word << " and time: " << ms->config.streamWordBuffer[i].time << endl;
+    }
+    fsvO << "]";
+  }
+  fsvO << "}";
+  ms->config.streamWordBuffer.resize(0);
+}
+
+
+void populateStreamLabelBuffer(std::shared_ptr<MachineState> ms) {
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+  string dotyml(".yml");
+
+  int classToStreamIdx = ms->config.focusedClass;
+  string thisLabelName = ms->config.classLabels[classToStreamIdx];
+  string this_label_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/label/";
+  dpdf = opendir(this_label_path.c_str());
+  cout << "Populating stream label buffer from " << this_label_path << endl;
+  if (dpdf != NULL) {
+    while (epdf = readdir(dpdf)) {
+
+      string fname(epdf->d_name);
+      string fextension;
+      string fnoextension;
+      if (fname.length() > 4) {
+	fextension = fname.substr(fname.length() - 4, 4);
+	fnoextension = fname.substr(0, fname.length() - 4);
+      } else {
+      } // do nothing
+
+      if (!dotyml.compare(fextension) && dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
+
+	string inFileName = this_label_path + fname;
+	cout << "Streaming labels from " << inFileName << " ...";
+	FileStorage fsvI;
+	fsvI.open(inFileName, FileStorage::READ);
+
+	{
+	  FileNode anode = fsvI["labels"];
+	  {
+	    FileNode bnode = anode["size"];
+	    FileNodeIterator itb = bnode.begin(), itb_end = bnode.end();
+	    int tnp = -1;
+	    if (itb != itb_end) {
+	      tnp = *(itb++);
+	    } else {
+	    }
+
+	    FileNode cnode = anode["streamLabels"];
+	    FileNodeIterator itc = cnode.begin(), itc_end = cnode.end();
+	    int numLoadedLabels = 0;
+	    for ( ; itc != itc_end; itc++, numLoadedLabels++) {
+	      streamLabel toAdd;
+	      int loaded = 1;
+	      {
+		FileNode dnode = (*itc)["label"];
+		FileNodeIterator itd = dnode.begin(), itd_end = dnode.end();
+		if (itd != itd_end) {
+		  toAdd.label= (string)(*itd);
+// remove cout
+		  cout << "Read label: " << toAdd.label<< " ." << endl;
+		} else {
+		  loaded = 0;
+		  cout << "Label not found :P" << endl;
+		}
+	      }
+	      {
+		FileNode dnode = (*itc)["time"];
+		FileNodeIterator itd = dnode.begin(), itd_end = dnode.end();
+		if (itd != itd_end) {
+		  toAdd.time = (*itd);
+// remove cout
+		  cout << "Read time: " << toAdd.time << " ." << endl;
+		} else {
+		  loaded = 0;
+		  cout << "Time not found :P" << endl;
+		}
+	      }
+	      if (loaded) {
+		ms->config.streamLabelBuffer.push_back(toAdd);
+	      } else {
+		cout << "failed :P" << endl;
+	      }
+	    }
+	    if (numLoadedLabels != tnp) {
+	      ROS_ERROR_STREAM("Did not load the expected number of labels.");
+	    }
+	    cout << " Expected to load " << tnp << " labels, loaded " << numLoadedLabels << " ..." << endl; cout.flush();
+	  }
+	}
+      }
+    }
+  }
+}
+
+void streamLabelAsClass(std::shared_ptr<MachineState> ms, string labelIn, int classToStreamIdx, double now) {
+
+  if (didSensorStreamTimeout(ms)) {
+    return;
+  } else {
+  }
+
+  int cfClass = ms->config.focusedClass;
+  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
+    streamLabel toAdd;
+    toAdd.label = labelIn;
+    toAdd.time = now;
+    ms->config.streamLabelBuffer.push_back(toAdd);
+  } else {
+    cout << "streamLabelAsClass: invalid focused class, deactivating streaming." << endl;
+    ms->config.sensorStreamOn = 0;
+    return;
+  } 
+
+
+  if (ms->config.diskStreamingEnabled) {
+    if (ms->config.streamLabelBuffer.size() >= ms->config.streamLabelBatchSize) {
+      writeLabelBatchAsClass(ms, classToStreamIdx);	
+    } else {
+    } // do nothing
+  } else {
+    if ((ms->config.streamLabelBuffer.size() % ms->config.streamLabelBatchSize) == 0) {
+      cout << "streamLabelAsClass: disk streaming not enabled, buffer size: " << ms->config.streamLabelBuffer.size() << endl;
+    } else {
+    }
+  }
+}
+
+void writeLabelBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx) {
+// XXX TODO
+  if ((classToStreamIdx > -1) && (classToStreamIdx < ms->config.classLabels.size())) {
+    // do nothing
+  } else {
+    cout << "writeLabelBatchAsClass: invalid class, not writing." << endl;
+    return;
+  }
+
+  string thisLabelName = ms->config.classLabels[classToStreamIdx];
+  string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/label/";
+  ros::Time thisNow = ros::Time::now();
+  char buf[1024];
+  sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
+  string root_path(buf); 
+
+
+  string yaml_path = root_path + ".yml";
+  // XXX take this cout out
+  cout << "Streaming current label batch to " << yaml_path << endl;
+
+  // may want to save additional camera parameters
+  FileStorage fsvO;
+  fsvO.open(yaml_path, FileStorage::WRITE);
+
+  fsvO << "labels" << "{";
+  {
+    int tng = ms->config.streamLabelBuffer.size();
+    fsvO << "size" <<  tng;
+    fsvO << "streamLabels" << "[" ;
+    for (int i = 0; i < tng; i++) {
+      fsvO << "{:";
+	fsvO << "label" << ms->config.streamLabelBuffer[i].label;
+	fsvO << "time" << ms->config.streamLabelBuffer[i].time;
+      fsvO << "}";
+      // XXX take this cout out
+      //cout << " wrote label: " << ms->config.streamLabelBuffer[i].label << " and time: " << ms->config.streamLabelBuffer[i].time << endl;
+    }
+    fsvO << "]";
+  }
+  fsvO << "}";
+  ms->config.streamLabelBuffer.resize(0);
+}
+
+
 
 void populateStreamRangeBuffer(std::shared_ptr<MachineState> ms) {
   DIR *dpdf;
@@ -1494,9 +1886,9 @@ void populateStreamRangeBuffer(std::shared_ptr<MachineState> ms) {
 	      }
 	    }
 	    if (numLoadedRanges != tnp) {
-	      ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	      ROS_ERROR_STREAM("Did not load the expected number of ranges.");
 	    }
-	    cout << " Expected to load " << tnp << " poses, loaded " << numLoadedRanges << " ..." << endl; cout.flush();
+	    cout << " Expected to load " << tnp << " ranges, loaded " << numLoadedRanges << " ..." << endl; cout.flush();
 	  }
 	}
       }
@@ -1603,10 +1995,16 @@ void activateSensorStreaming(std::shared_ptr<MachineState> ms) {
     string this_image_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/images/";
     string this_pose_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/pose/";
     string this_range_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/range/";
+    string this_joints_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/joints/";
+    string this_word_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/word/";
+    string this_label_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/label/";
     mkdir(this_raw_path.c_str(), 0777);
     mkdir(this_image_path.c_str(), 0777);
     mkdir(this_pose_path.c_str(), 0777);
     mkdir(this_range_path.c_str(), 0777);
+    mkdir(this_joints_path.c_str(), 0777);
+    mkdir(this_word_path.c_str(), 0777);
+    mkdir(this_label_path.c_str(), 0777);
     ms->config.sensorStreamOn = 1;
 
     // turn that queue size up!
@@ -1636,6 +2034,9 @@ void deactivateSensorStreaming(std::shared_ptr<MachineState> ms) {
     if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
       writeRangeBatchAsClass(ms, cfClass);	
       writePoseBatchAsClass(ms, cfClass);	
+      writeJointsBatchAsClass(ms, cfClass);	
+      writeWordBatchAsClass(ms, cfClass);	
+      writeLabelBatchAsClass(ms, cfClass);	
       cout << "Wrote batches." << endl;
     } else {
       cout << "Did not write batches, invalid focused class." << endl;
@@ -2018,6 +2419,7 @@ void initClassFolders(std::shared_ptr<MachineState> ms, string folderName) {
       string servoCrops = ein + "servoCrops/";
       string servoImages = ein + "servoImages/";
       string knn = ein + "knn/";
+      string calibration = ein + "calibration/";
 
   mkdir(item.c_str(), 0777);
     mkdir(raw.c_str(), 0777);
@@ -2033,6 +2435,7 @@ void initClassFolders(std::shared_ptr<MachineState> ms, string folderName) {
       mkdir(servoCrops.c_str(), 0777);
       mkdir(servoImages.c_str(), 0777);
       mkdir(knn.c_str(), 0777);
+      mkdir(calibration.c_str(), 0777);
 }
 
 void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folderName) {
@@ -3319,10 +3722,73 @@ void endEffectorAngularUpdate(eePose *givenEEPose, eePose *deltaEEPose) {
   eeRotatorX.normalize();
   eeRotatorY.normalize();
   eeRotatorZ.normalize();
+
+  eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * eeBaseQuat;
+  eeBaseQuat.normalize();
+
+  givenEEPose->qx = eeBaseQuat.x();
+  givenEEPose->qy = eeBaseQuat.y();
+  givenEEPose->qz = eeBaseQuat.z();
+  givenEEPose->qw = eeBaseQuat.w();
+}
+
+void endEffectorAngularUpdateOuter(eePose *givenEEPose, eePose *deltaEEPose) {
+
+  /* end effector local angular update */
+  Eigen::Vector3f localUnitX;
+  {
+    Eigen::Quaternionf qin(0, 1, 0, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitX.x() = qout.x();
+    localUnitX.y() = qout.y();
+    localUnitX.z() = qout.z();
+  }
+
+  Eigen::Vector3f localUnitY;
+  {
+    Eigen::Quaternionf qin(0, 0, 1, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitY.x() = qout.x();
+    localUnitY.y() = qout.y();
+    localUnitY.z() = qout.z();
+  }
+
+  Eigen::Vector3f localUnitZ;
+  {
+    Eigen::Quaternionf qin(0, 0, 0, 1);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitZ.x() = qout.x();
+    localUnitZ.y() = qout.y();
+    localUnitZ.z() = qout.z();
+  }
+
+  double sinBuff = 0.0;
+  double angleRate = 1.0;
+  Eigen::Quaternionf eeBaseQuat(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
+  sinBuff = sin(angleRate*deltaEEPose->px/2.0);
+  Eigen::Quaternionf eeRotatorX(cos(angleRate*deltaEEPose->px/2.0), localUnitX.x()*sinBuff, localUnitX.y()*sinBuff, localUnitX.z()*sinBuff);
+  sinBuff = sin(angleRate*deltaEEPose->py/2.0);
+  Eigen::Quaternionf eeRotatorY(cos(angleRate*deltaEEPose->py/2.0), localUnitY.x()*sinBuff, localUnitY.y()*sinBuff, localUnitY.z()*sinBuff);
+  sinBuff = sin(angleRate*deltaEEPose->pz/2.0);
+  Eigen::Quaternionf eeRotatorZ(cos(angleRate*deltaEEPose->pz/2.0), localUnitZ.x()*sinBuff, localUnitZ.y()*sinBuff, localUnitZ.z()*sinBuff);
+  deltaEEPose->px = 0;
+  deltaEEPose->py = 0;
+  deltaEEPose->pz = 0;
+
+
+  eeRotatorX.normalize();
+  eeRotatorY.normalize();
+  eeRotatorZ.normalize();
   //eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * 
 		//eeBaseQuat * 
 	      //eeRotatorZ.conjugate() * eeRotatorY.conjugate() * eeRotatorX.conjugate();
-  eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * eeBaseQuat;
+  eeBaseQuat = eeBaseQuat * eeRotatorX * eeRotatorY * eeRotatorZ;
   eeBaseQuat.normalize();
 
   givenEEPose->qx = eeBaseQuat.x();
@@ -4645,6 +5111,8 @@ void loadCalibration(shared_ptr<MachineState> ms, string inFileName) {
 
 void saveCalibration(shared_ptr<MachineState> ms, string outFileName) {
 
+  ros::Time savedTime = ros::Time::now();
+
   /* this works
   for (int i = 0; i < 5; i++) {
     char buf[256];
@@ -4658,6 +5126,10 @@ void saveCalibration(shared_ptr<MachineState> ms, string outFileName) {
   FileStorage fsvO;
   cout << "Writing calibration information to " << outFileName << " ...";
   fsvO.open(outFileName, FileStorage::WRITE);
+
+  fsvO << "savedTime" << "[" 
+    << savedTime.toSec() 
+  << "]";
 
   fsvO << "currentTableZ" << "[" 
     << ms->config.currentTableZ 
@@ -7109,6 +7581,7 @@ Mat makeGCrop(shared_ptr<MachineState> ms, int etaX, int etaY) {
     double mean = gCrop.dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, gCrop.type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
     gCrop = gCrop - mean;
     double l2norm = gCrop.dot(gCrop);
+    l2norm = sqrt(l2norm);
     // ATTN 17
     // removed normalization for discriminative servoing
     // ATTN 15
@@ -7264,8 +7737,10 @@ void gradientServo(shared_ptr<MachineState> ms) {
       double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
       rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
       double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations]);
-      if (l2norm <= EPSILON)
+      l2norm = sqrt(l2norm);
+      if (l2norm <= EPSILON) {
         l2norm = 1.0;
+      }
       rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l2norm;
     }
   }
@@ -7301,6 +7776,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
 
   
+  // XXX should be etaY <= to cover whole array
   for (int etaS = 0; etaS < gradientServoScale; etaS++) {
 #pragma omp parallel for
     for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
@@ -7336,6 +7812,11 @@ void gradientServo(shared_ptr<MachineState> ms) {
           int tEtaX = etaX+gradientServoTranslation;
           int tEtaY = etaY+gradientServoTranslation;
           allScores[tEtaX][tEtaY][etaS][thisOrient] = thisScore;
+
+	  //cout << "  JJJ: gsDebug " << thisScore << endl << gCrop << endl << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
+	  //cout << "  JJJ: gsDebug " << thisScore << ms->config.frameGraySobel << endl;
+	  //cout << "  JJJ: gsDebug " << thisScore << ms->config.objectViewerImage << endl;
+
         }
       }
     }
@@ -9745,6 +10226,7 @@ void substituteAccumulatedImageQuantities(shared_ptr<MachineState> ms) {
       ms->config.objectViewerImage.at<Vec3b>(y,x)[0] = doubleToByte(ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
       ms->config.objectViewerImage.at<Vec3b>(y,x)[1] = doubleToByte(ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
       ms->config.objectViewerImage.at<Vec3b>(y,x)[2] = doubleToByte(ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+//cout << "JJJ: " << ms->config.objectViewerImage.at<Vec3b>(y,x) << endl;
     }
   }
 }
@@ -10175,6 +10657,8 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   ms->config.frameGraySobel = totalGraySobel.clone();
   ms->config.preFrameGraySobel = totalGraySobel.clone();
 
+// XXX remove this junk
+/*
   { // temporal averaging of aerial gradient
     if ( (ms->config.aerialGradientTemporalFrameAverage.rows < ms->config.aerialGradientReticleWidth) ||
 	 (ms->config.aerialGradientTemporalFrameAverage.cols < ms->config.aerialGradientReticleWidth) ) {
@@ -10191,6 +10675,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   }
 
   ms->config.frameGraySobel = ms->config.aerialGradientTemporalFrameAverage;
+*/
 
 
   double minGraySob = INFINITY;
@@ -12494,6 +12979,7 @@ int main(int argc, char **argv) {
 
   initializeWords();
   pMachineState = std::make_shared<MachineState>(machineState);
+  pMachineState->sharedThis = pMachineState;
   shared_ptr<MachineState> ms = pMachineState;
   initializeMachine(ms);
 
