@@ -12374,8 +12374,8 @@ vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx, in
     if (ms->config.blueBoxMemories[j].labeledClassIndex == classIdx) {
       results.push_back(ms->config.blueBoxMemories[j]);
       if ( haventFoundFirst && (ms->config.blueBoxMemories[j].lockStatus == POSE_REPORTED) ) {
-	*memoryIdxOfFirst = j;
-	haventFoundFirst = 0;
+		*memoryIdxOfFirst = j;
+		haventFoundFirst = 0;
       }
     }
   }
@@ -12871,6 +12871,8 @@ void fillRecognizedObjectArrayFromBlueBoxMemory(shared_ptr<MachineState> ms, obj
   roa->header.stamp = ros::Time::now();
   roa->header.frame_id = "/base";
 
+
+  // this sets all locked or reported boxes to lock
   for (int j = 0; j < ms->config.blueBoxMemories.size(); j++) {
     if (ms->config.blueBoxMemories[j].lockStatus == POSE_LOCK ||
 	ms->config.blueBoxMemories[j].lockStatus == POSE_REPORTED) {
@@ -12878,6 +12880,8 @@ void fillRecognizedObjectArrayFromBlueBoxMemory(shared_ptr<MachineState> ms, obj
     }
   }
 
+  // for each class, this finds the centroid of the blue boxes of that class and
+  //   selects the nearest one to report
   for (int class_i = 0; class_i < ms->config.classLabels.size(); class_i++) {
     string class_label = ms->config.classLabels[class_i];
     if (class_label != "background") {
@@ -12940,6 +12944,67 @@ void fillRecognizedObjectArrayFromBlueBoxMemory(shared_ptr<MachineState> ms, obj
 
 	roa->objects[aI].header = roa->header;
       }
+    }
+  }
+}
+
+// set exactly one blue box of each class to be reported
+void promoteBlueBoxes(shared_ptr<MachineState> ms) {
+  // this sets all locked or reported boxes to lock
+  for (int j = 0; j < ms->config.blueBoxMemories.size(); j++) {
+    if (ms->config.blueBoxMemories[j].lockStatus == POSE_LOCK ||
+	ms->config.blueBoxMemories[j].lockStatus == POSE_REPORTED) {
+      ms->config.blueBoxMemories[j].lockStatus = POSE_LOCK;
+    }
+  }
+
+  // for each class, this finds the centroid of the blue boxes of that class and
+  //   selects the nearest one to report
+  for (int class_i = 0; class_i < ms->config.classLabels.size(); class_i++) {
+    string class_label = ms->config.classLabels[class_i];
+    if (class_label != "background") {
+      eePose centroid;
+      centroid.px = 0;
+      centroid.py = 0;
+      centroid.pz = 0;
+      int class_count = 0;
+      for (int j = 0; j < ms->config.blueBoxMemories.size(); j++) {
+	    if (ms->config.blueBoxMemories[j].labeledClassIndex == class_i &&
+	        (ms->config.blueBoxMemories[j].lockStatus == POSE_LOCK ||
+	         ms->config.blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
+	      centroid.px += ms->config.blueBoxMemories[j].centroid.px;
+	      centroid.py += ms->config.blueBoxMemories[j].centroid.py;
+	      centroid.pz += ms->config.blueBoxMemories[j].centroid.pz;
+	      class_count += 1;
+	    }
+      }
+      if (class_count == 0) {
+		cout << "promoteBlueBoxes: none to report of class " << class_i << endl;
+	    continue;
+      }
+      centroid.px = centroid.px / class_count;
+      centroid.py = centroid.py / class_count;
+      centroid.pz = centroid.pz / class_count;
+      int closest_idx = -1;
+      double min_square_dist = VERYBIGNUMBER;
+
+      for (int j = 0; j < ms->config.blueBoxMemories.size(); j++) {
+	    if (ms->config.blueBoxMemories[j].labeledClassIndex == class_i &&
+	        (ms->config.blueBoxMemories[j].lockStatus == POSE_LOCK ||
+	         ms->config.blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
+	      double square_dist = 
+	        eePose::squareDistance(centroid, ms->config.blueBoxMemories[j].centroid);
+	      if (square_dist < min_square_dist) {
+	        min_square_dist = square_dist;
+	        closest_idx = j;
+	      }
+	    }
+      }
+
+      if (closest_idx != -1) {
+		ms->config.blueBoxMemories[closest_idx].lockStatus = POSE_REPORTED;
+		cout << "promoteBlueBoxes: promoting index " << closest_idx << " for class "  << class_i << endl;
+	  }
     }
   }
 }

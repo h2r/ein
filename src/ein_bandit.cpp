@@ -472,6 +472,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->clearStack();
   }
 
+  // XXX this is not quite correct 
   StringWord::parse(ms->config.classLabels[ms->config.focusedClass]);
   ms->pushWord("deliverTargetObject");
 

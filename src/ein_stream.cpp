@@ -639,4 +639,72 @@ END_WORD
 REGISTER_WORD(IterateIsbAndAccumulateHeightImages)
 
 
+WORD(MapAndPickL)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+    ms->pushWord("mapAndPickL");
+    ms->pushWord("mapAndPick");
+    ms->pushWord("clearMapForPatrol");
+    ms->pushWord("clearBlueBoxMemories");
+
+	ms->pushWord("setPlaceModeToShake");
+    ms->pushWord("setBoundingBoxModeToMapping"); 
+    ms->pushWord("setIdleModeToEmpty"); 
+}
+END_WORD
+REGISTER_WORD(MapAndPickL)
+
+WORD(MapAndPick)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+    ms->pushWord("pickAllBlueBoxes");
+    ms->pushWord("mappingPatrol");
+}
+END_WORD
+REGISTER_WORD(MapAndPick)
+
+WORD(PickAllBlueBoxes)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+	int foundOne = 0;
+	int foundClass = -1;
+	cout << "pickAllBlueBoxes: promoting blue boxes" << endl;
+	promoteBlueBoxes(ms);
+
+	// loop through blue boxes
+	int nc = ms->config.classLabels.size();
+	for (int i = 0; i < nc; i++) {
+      int idxOfFirst = -1;
+      vector<BoxMemory> focusedClassMemories = memoriesForClass(ms, i, &idxOfFirst);
+
+      if (idxOfFirst == -1) {
+        cout << "No POSE_REPORTED objects of class" << i << "." << endl;
+      } else {
+        cout << "Found a POSE_REPORTED object of class" << i << ". Picking it." << endl;
+
+        ms->pushWord("pickAllBlueBoxes");
+        ms->pushWord(ms->config.classLabels[i]);
+        ms->pushWord("deliverObject");
+		ms->config.endThisStackCollapse = 1;
+		return;
+      }
+	}
+
+    cout << "Found no POSE_REPORTED objects of any class" << endl;
+}
+END_WORD
+REGISTER_WORD(PickAllBlueBoxes)
+
+WORD(SetRandomPositionAfterPick)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int valToSet = 0;
+  GET_ARG(IntegerWord, valToSet, ms);
+
+  cout << "setRandomPositionAfterPickTrue: " << valToSet << endl;
+  ms->config.setRandomPositionAfterPick = valToSet;
+}
+END_WORD
+REGISTER_WORD(SetRandomPositionAfterPick)
+
 }
