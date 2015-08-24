@@ -547,7 +547,10 @@ CODE(196713)     // capslock + I
   int i = ms->config.localMaxX + ms->config.localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.localMaxGG;
   int j = ms->config.localMaxX + ms->config.localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0;
   if (ms->config.gripperMoving) {
-    ms->pushWord(196713); // check and count grasp
+    //ms->pushWord(196713); // check and count grasp
+	cout << "checkAndCountGrasp: repushing because gripper is moving." << endl;
+    ms->pushWord("checkAndCountGrasp"); 
+	ms->pushWord("waitUntilGripperNotMoving");
   } else {
     ms->config.graspAttemptCounter++;
     switch (ms->config.currentPickMode) {

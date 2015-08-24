@@ -285,6 +285,7 @@ class EinConfig {
   robotMode currentRobotMode = PHYSICAL;
   ikMode currentIKMode = IKSERVICE;
   scanMode currentScanMode = CENTERED;
+  bool setRandomPositionAfterPick = false;
 
   eePose placeTarget;
 

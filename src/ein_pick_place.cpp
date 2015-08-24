@@ -409,6 +409,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // order is crucial here
   ms->pushWord("placeObjectInDeliveryZone");
   ms->pushWord("ifGrasp");
+
+  ms->pushWord("unmapTargetBlueBox");
+  ms->pushWord("ifNoGrasp");
+
   ms->pushWord("checkAndCountGrasp");
   ms->pushWord("ifNoGrasp");
 
@@ -471,7 +475,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("tryToMoveToTheLastPickHeight");   
     ms->pushWord("approachSpeed"); 
     ms->pushWord("waitUntilAtCurrentPosition"); 
-    ms->pushWord("setRandomPositionAndOrientationForHeightLearning");
+
+	if (ms->config.setRandomPositionAfterPick) {
+	  ms->pushWord("setRandomPositionAndOrientationForHeightLearning");
+	} else {
+	} // do nothing
+
     ms->pushWord("assumeDeliveryPose");
 
     ms->pushWord("checkAndCountGrasp");

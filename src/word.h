@@ -325,4 +325,14 @@ void initializeWords();
 
 void renderCoreView(shared_ptr<MachineState> ms);
 
+/*
+WORD()
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+    ms->pushWord("");
+}
+END_WORD
+REGISTER_WORD()
+*/
+
 #endif /* _WORD_H_ */

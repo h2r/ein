@@ -59,15 +59,21 @@ REGISTER_WORD(MapLocal)
 WORD(MappingPatrol)
 CODE(196727) // capslock + W
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "Mapping patrol" << endl;
+  cout << "mappingPatrol" << endl;
+  ms->pushWord("moveToNextMapPosition");
+}
+END_WORD
+REGISTER_WORD(MappingPatrol)
+
+WORD(MappingPatrolA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "mappingPatrolA" << endl;
   ms->config.bailAfterSynchronic = 1;
   ms->config.bailAfterGradient = 1;
   ms->config.acceptingFetchCommands = 1;
 
-  ms->pushWord("mappingPatrol");
-  //ms->pushWord("bringUpAllNonessentialSystems");
-  //ms->pushWord("endStackCollapse");
   ms->pushWord("moveToNextMapPosition");
+ 
   ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
   //ms->pushWord("setRandomPositionAndOrientationForHeightLearning");
   //ms->pushWord("recordAllBlueBoxes");
@@ -87,7 +93,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("synchronicServo"); 
   ms->pushWord("synchronicServoTakeClosest");
   ms->pushWord("waitUntilAtCurrentPosition"); 
-  ms->pushWord("moveToNextMapPosition");
   ms->pushWord("sampleHeight"); 
   ms->pushWord("setBoundingBoxModeToMapping");
   ms->pushWord("shiftIntoGraspGear1");
@@ -97,7 +102,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setPatrolStateToPatrolling");
 }
 END_WORD
-REGISTER_WORD(MappingPatrol)
+REGISTER_WORD(MappingPatrolA)
 
 WORD(ToggleShouldIDoIK)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -142,11 +147,11 @@ END_WORD
 REGISTER_WORD(ToggleUseFade)
 
 WORD(FillClearanceMap)
-int pursuitProximity = 5;
-int searchProximity = 15;//20;
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  int p_pursuitProximity = 5;
+  int p_searchProximity = 15;//10;
   {
-    int proximity = pursuitProximity;
+    int proximity = p_pursuitProximity;
     for (int i = 0; i < ms->config.mapWidth; i++) {
       for (int j = 0; j < ms->config.mapHeight; j++) {
 	if ( cellIsSearched(ms, i, j) ) {
@@ -178,7 +183,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }
   {
-    int proximity = searchProximity;
+    int proximity = p_searchProximity;
     for (int i = 0; i < ms->config.mapWidth; i++) {
       for (int j = 0; j < ms->config.mapHeight; j++) {
 	if ( cellIsSearched(ms, i, j) ) {
@@ -329,26 +334,26 @@ END_WORD
 REGISTER_WORD(FillIkMap)
 
 WORD(MoveToNextMapPosition)
-int maxNextTries = 100;
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  for (int tries = 0; tries < maxNextTries; tries++) {
+  int p_maxNextTries = 100;
+  for (int tries = 0; tries < p_maxNextTries; tries++) {
     //ros::Time oldestTime = ros::Time::now();
     int oldestI=-1, oldestJ=-1;
     int foundASpot = 0;
     for (int scanRestarter = 0; scanRestarter < 2; scanRestarter++) {
       ros::Time oldestTime = ms->config.lastScanStarted;
       for (int i = 0; i < ms->config.mapWidth; i++) {
-	for (int j = 0; j < ms->config.mapHeight; j++) {
-	  if (cellIsSearched(ms, i, j) &&
-	      (ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime <= oldestTime) &&
-	      (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2) &&
-	      (ms->config.ikMap[i + ms->config.mapWidth * j] == 0) ) {
-	    oldestTime = ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
-	    oldestI = i;
-	    oldestJ = j;
-	    foundASpot = 1;
-	  }
-	}
+	    for (int j = 0; j < ms->config.mapHeight; j++) {
+	      if (cellIsSearched(ms, i, j) &&
+	          (ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime <= oldestTime) &&
+	          (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2) &&
+	          (ms->config.ikMap[i + ms->config.mapWidth * j] == 0) ) {
+	        oldestTime = ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
+	        oldestI = i;
+	        oldestJ = j;
+	        foundASpot = 1;
+	      }
+	    }
       }
 
       if (!foundASpot) {
@@ -358,7 +363,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  cout << "Restarting mappingPatrol." << endl;
 	} else if (ms->config.currentPatrolMode == ONCE) {
 	  cout << "Patrolled once, idling." << endl;
-	  ms->clearStack();
 	  ms->execute_stack = 1;
 	  ms->config.acceptingFetchCommands = 1;
 	  ms->pushWord("idler");
@@ -370,7 +374,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
 
     if (oldestI == -1 || oldestJ == -1) {
-      cout << "moveToNextMapPosition failed to find a position. Clearing callstack." << endl;
+      cout << "moveToNextMapPosition: failed to find a position but is looping, logical error. Clearing callstack." << endl;
       ms->clearStack();
       ms->pushCopies("beep", 15); // beep
       return;
@@ -434,6 +438,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   // puts it back at the right height for scanning in
   //  case coming from exotic pose
+  ms->pushWord("mappingPatrolA");
   ms->pushWord("sampleHeight");
 }
 END_WORD

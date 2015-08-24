@@ -430,6 +430,7 @@ void neutral(shared_ptr<MachineState> ms);
 void guardViewers(shared_ptr<MachineState> ms);
 
 void fillRecognizedObjectArrayFromBlueBoxMemory(shared_ptr<MachineState> ms, object_recognition_msgs::RecognizedObjectArray * roa);
+void promoteBlueBoxes(shared_ptr<MachineState> ms);
 void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut);
 
 bool isFocusedClassValid(std::shared_ptr<MachineState> ms);
