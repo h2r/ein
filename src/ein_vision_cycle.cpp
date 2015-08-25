@@ -149,36 +149,37 @@ REGISTER_WORD(ToggleUseFade)
 WORD(FillClearanceMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int p_pursuitProximity = 5;
-  int p_searchProximity = 15;//10;
+  int p_searchProximity = 23;//15;//10;
   {
     int proximity = p_pursuitProximity;
     for (int i = 0; i < ms->config.mapWidth; i++) {
       for (int j = 0; j < ms->config.mapHeight; j++) {
-	if ( cellIsSearched(ms, i, j) ) {
-	  int iIStart = max(0, i-proximity);
-	  int iIEnd = min(ms->config.mapWidth-1, i+proximity);
-	  int iJStart = max(0, j-proximity);
-	  int iJEnd = min(ms->config.mapHeight-1, j+proximity);
+	    if ( cellIsSearched(ms, i, j) ) {
+	      int iIStart = max(0, i-proximity);
+	      int iIEnd = min(ms->config.mapWidth-1, i+proximity);
+	      int iJStart = max(0, j-proximity);
+	      int iJEnd = min(ms->config.mapHeight-1, j+proximity);
 
-	  int reject = 0;
-	  for (int iI = iIStart; iI <= iIEnd; iI++) {
-	    for (int iJ = iJStart; iJ <= iJEnd; iJ++) {
-	      if (  ( cellIsSearched(ms, iI, iJ) ) && 
-		    ( ms->config.ikMap[iI + ms->config.mapWidth * iJ] != 0 ) &&
-		    ( sqrt((iI-i)*(iI-i) + (iJ-j)*(iJ-j)) < proximity )  ) {
-		reject = 1;
+	      int reject = 0;
+	      for (int iI = iIStart; iI <= iIEnd; iI++) {
+	        for (int iJ = iJStart; iJ <= iJEnd; iJ++) {
+	          if (  ( !cellIsSearched(ms, iI, iJ) ) || 
+	    	    (( ms->config.ikMap[iI + ms->config.mapWidth * iJ] != 0 ) &&
+	    	    ( sqrt((iI-i)*(iI-i) + (iJ-j)*(iJ-j)) < proximity ))  ) {
+	    	    reject = 1;
+	          } else {
+			  }
+	        }
 	      }
-	    }
-	  }
 
-	  if (reject) {
-	    ms->config.clearanceMap[i + ms->config.mapWidth * j] = 0;
-	  } else {
-	    ms->config.clearanceMap[i + ms->config.mapWidth * j] = 1;
-	  }
-	} else {
-	  ms->config.clearanceMap[i + ms->config.mapWidth * j] = 0;
-	}
+	      if (reject) {
+	        ms->config.clearanceMap[i + ms->config.mapWidth * j] = 0;
+	      } else {
+	        ms->config.clearanceMap[i + ms->config.mapWidth * j] = 1;
+	      }
+	    } else {
+	      ms->config.clearanceMap[i + ms->config.mapWidth * j] = 0;
+	    }
       }
     }
   }
@@ -186,29 +187,29 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     int proximity = p_searchProximity;
     for (int i = 0; i < ms->config.mapWidth; i++) {
       for (int j = 0; j < ms->config.mapHeight; j++) {
-	if ( cellIsSearched(ms, i, j) ) {
-	  int iIStart = max(0, i-proximity);
-	  int iIEnd = min(ms->config.mapWidth-1, i+proximity);
-	  int iJStart = max(0, j-proximity);
-	  int iJEnd = min(ms->config.mapHeight-1, j+proximity);
+	    if ( cellIsSearched(ms, i, j) ) {
+	      int iIStart = max(0, i-proximity);
+	      int iIEnd = min(ms->config.mapWidth-1, i+proximity);
+	      int iJStart = max(0, j-proximity);
+	      int iJEnd = min(ms->config.mapHeight-1, j+proximity);
 
-	  int reject = 0;
-	  for (int iI = iIStart; iI <= iIEnd; iI++) {
-	    for (int iJ = iJStart; iJ <= iJEnd; iJ++) {
-	      if (  ( cellIsSearched(ms, iI, iJ) ) && 
-		    ( ms->config.ikMap[iI + ms->config.mapWidth * iJ] != 0 ) &&
-		    ( sqrt((iI-i)*(iI-i) + (iJ-j)*(iJ-j)) < proximity )  ) {
-		reject = 1;
+	      int reject = 0;
+	      for (int iI = iIStart; iI <= iIEnd; iI++) {
+	        for (int iJ = iJStart; iJ <= iJEnd; iJ++) {
+	          if (  ( !cellIsSearched(ms, iI, iJ) ) || 
+	    	    (( ms->config.ikMap[iI + ms->config.mapWidth * iJ] != 0 ) &&
+	    	    ( sqrt((iI-i)*(iI-i) + (iJ-j)*(iJ-j)) < proximity ))  ) {
+	    	     reject = 1;
+	          }
+	        }
 	      }
-	    }
-	  }
 
-	  if (reject) {
-	  } else {
-	    ms->config.clearanceMap[i + ms->config.mapWidth * j] = 2;
-	  }
-	} else {
-	}
+	      if (reject) {
+	      } else {
+	        ms->config.clearanceMap[i + ms->config.mapWidth * j] = 2;
+	      }
+	    } else {
+	    }
       }
     }
   }

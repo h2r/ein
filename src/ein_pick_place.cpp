@@ -416,11 +416,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("checkAndCountGrasp");
   ms->pushWord("ifNoGrasp");
 
+  ms->pushWord("streamGraspResult");
+
   ms->pushWord("executePreparedGrasp"); 
   
   ms->pushWord("waitUntilAtCurrentPosition");
 
   ms->pushWord("sampleHeight"); 
+  ms->pushWord("assumeAimedPose"); 
+
+  ms->pushWord("moveAndStreamAimedShot"); 
+
   ms->pushWord("setBoundingBoxModeToMapping"); 
   ms->pushWord("openGripper");
   ms->pushWord("setPatrolStateToPicking");
