@@ -701,10 +701,109 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   int valToSet = 0;
   GET_ARG(IntegerWord, valToSet, ms);
 
-  cout << "setRandomPositionAfterPickTrue: " << valToSet << endl;
+  cout << "setRandomPositionAfterPick: got value " << valToSet << endl;
   ms->config.setRandomPositionAfterPick = valToSet;
 }
 END_WORD
 REGISTER_WORD(SetRandomPositionAfterPick)
+
+WORD(SetStreamPicks)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int valToSet = 0;
+  GET_ARG(IntegerWord, valToSet, ms);
+
+  cout << "setStreamPicks: got value " << valToSet << endl;
+  ms->config.streamPicks = valToSet;
+}
+END_WORD
+REGISTER_WORD(SetStreamPicks)
+
+WORD(MoveAndStreamAimedShot)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  if (ms->config.streamPicks) {
+	cout << "Looking down the barrel." << endl;
+
+    ms->pushWord("bringUpAllNonessentialSystems"); 
+
+    ms->pushWord("deactivateSensorStreaming"); 
+	{
+	  stringstream ss;
+	  ss << "\"aimed for pick, end\"";
+	  string result = ss.str();
+      ms->pushWord(result);
+      ms->pushWord("streamLabel");
+    }
+    ms->pushWord("activateSensorStreaming"); 
+
+    {
+      ms->pushWord("deactivateSensorStreaming"); 
+      ms->pushWord("4.0"); 
+      ms->pushWord("waitForSeconds"); 
+      ms->pushWord("activateSensorStreaming"); 
+
+      ms->pushWord("comeToStop");
+      ms->pushWord("setMovementStateToMoving");
+      ms->pushWord("comeToStop");
+      ms->pushWord("waitUntilAtCurrentPosition");
+    }
+
+    ms->pushWord("deactivateSensorStreaming"); 
+	{
+	  stringstream ss;
+	  ss << "\"aimed for pick, start\"";
+	  string result = ss.str();
+      ms->pushWord(result);
+      ms->pushWord("streamLabel");
+	}
+    ms->pushWord("activateSensorStreaming"); 
+
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("shutdownToSensorsAndMovement"); 
+    ms->pushWord(std::make_shared<IntegerWord>(1));
+    ms->pushWord(std::make_shared<IntegerWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(1));
+    ms->pushWord(std::make_shared<IntegerWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(1));
+    ms->pushWord("setSisFlags"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("sampleHeight"); 
+    ms->pushWord("assumeAimedPose");
+
+    ms->pushWord("saveCalibrationToClass");
+  } else {
+  }
+}
+END_WORD
+REGISTER_WORD(MoveAndStreamAimedShot)
+
+WORD(StreamGraspResult)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  if (ms->config.streamPicks) {
+    ms->pushWord("deactivateSensorStreaming"); 
+
+	stringstream ss;
+	ss << "\"pickSuccess " << isGripperGripping(ms) << "\"";
+	string result = ss.str();
+    ms->pushWord(result);
+    ms->pushWord("streamLabel");
+
+    ms->pushWord(std::make_shared<IntegerWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(1));
+    ms->pushWord("setSisFlags"); 
+  } else {
+  }
+}
+END_WORD
+REGISTER_WORD(StreamGraspResult)
 
 }

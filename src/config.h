@@ -286,6 +286,7 @@ class EinConfig {
   ikMode currentIKMode = IKSERVICE;
   scanMode currentScanMode = CENTERED;
   bool setRandomPositionAfterPick = false;
+  bool streamPicks = false;
 
   eePose placeTarget;
 
@@ -474,6 +475,9 @@ class EinConfig {
 
   geometry_msgs::Pose trueEEPose;
   eePose trueEEWrench;
+  double averagedWrechAcc = 0;
+  double averagedWrechMass = 0;
+  double averagedWrechDecay = 0.95;
   eePose trueEEPoseEEPose;
   std::string fetchCommand;
   ros::Time fetchCommandTime;

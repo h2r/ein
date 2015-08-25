@@ -2693,6 +2693,13 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
   ms->config.trueEEWrench.qy = eps.wrench.torque.y;
   ms->config.trueEEWrench.qz = eps.wrench.torque.z;
 
+  double thisWrenchNorm = eePose::distance(eePose::zero(), ms->config.trueEEWrench);
+  double td = ms->config.averagedWrechDecay;
+  //cout << "JJJ theWrenchNorm " << thisWrenchNorm << " " << td << endl;
+  ms->config.averagedWrechAcc = (1.0-td)*thisWrenchNorm + (td)*ms->config.averagedWrechAcc;
+  ms->config.averagedWrechMass =  (1.0-td)*1 + (td)*ms->config.averagedWrechMass;
+  //cout << "JJJ " << ms->config.averagedWrechMass << " " << ms->config.averagedWrechAcc << endl;
+
   //cout << "endpoint frame_id: " << eps.header.frame_id << endl;
   ms->config.trueEEPose = eps.pose;
   ms->config.trueEEPoseEEPose.px = eps.pose.position.x;

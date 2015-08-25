@@ -70,6 +70,15 @@ string MachineState::currentState()
 
     double wrenchNorm = sqrt( eePose::squareDistance(eePose::zero(), config.trueEEWrench) );
     state << "wrenchNorm: " << setw(w) << wrenchNorm << endl;
+
+	if (config.averagedWrechMass < EPSILON) {
+      config.averagedWrechMass = 1.0;
+	} else {
+	}
+
+	double thisAveWN = config.averagedWrechAcc / config.averagedWrechMass;
+
+    state << "averagedWrechNorm: " << setw(w) << thisAveWN << endl;
     
     return state.str();
 

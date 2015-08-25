@@ -719,6 +719,14 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(IkModeIkFastDebug)
 
+WORD(ResetAveragedWrenchNorm)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->config.averagedWrechAcc = 0;
+  ms->config.averagedWrechMass = 0;
+}
+END_WORD
+REGISTER_WORD(ResetAveragedWrenchNorm)
 
 
 
