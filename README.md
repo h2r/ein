@@ -58,7 +58,7 @@ sudo apt-get install libgsl0-dev
 To run the program, from the root of your catkin workspace, run the
 following command:
 ```
-catkin_make && gdb --args ./devel/lib/ein/ein  _data_directory:=\"$(rospack find ein)/default\" _use_simulator:=false left
+catkin_make && gdb --args ./devel/lib/ein/ein  _data_directory:="$(rospack find ein)/default" _use_simulator:=false left
 ```
 
 And enter 'r' to start the program from within gdb. For safety purposes, the arm should not move at startup.
