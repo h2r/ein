@@ -11467,9 +11467,9 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 
   nh.getParam("/robot_description", ms->config.robot_description);
   nh.getParam("/manifest/robot_serial", ms->config.robot_serial);
-  nh.getParam("vocab_file", ms->config.vocab_file);
-  nh.getParam("knn_file", ms->config.knn_file);
-  nh.getParam("label_file", ms->config.label_file);
+  nh.param<string>("vocab_file", ms->config.vocab_file, "vocab.yml");
+  nh.param<string>("knn_file", ms->config.knn_file, "knn.yml");
+  nh.param<string>("label_file", ms->config.label_file, "labels.yml");
 
   nh.getParam("data_directory", ms->config.data_directory);
 
@@ -11477,10 +11477,10 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 
   nh.getParam("all_range_mode", ms->config.all_range_mode);
 
-  nh.getParam("gray_box_top", ms->config.tGO);
-  nh.getParam("gray_box_bot", ms->config.bGO);
-  nh.getParam("gray_box_left", ms->config.lGO);
-  nh.getParam("gray_box_right", ms->config.rGO);
+  nh.param<int>("gray_box_top", ms->config.tGO, 0);
+  nh.param<int>("gray_box_bot", ms->config.bGO, 60);
+  nh.param<int>("gray_box_left", ms->config.lGO, 90);
+  nh.param<int>("gray_box_right", ms->config.rGO, 90);
 
   nh.getParam("arm_box_top", ms->config.tARM);
   nh.getParam("arm_box_bot", ms->config.bARM);
@@ -11495,9 +11495,7 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 
   nh.getParam("cache_prefix", ms->config.cache_prefix);
 
-  nh.getParam("mask_gripper", ms->config.mask_gripper);
-
-  nh.getParam("left_or_right_arm", ms->config.left_or_right_arm);
+  nh.param<int>("mask_gripper", ms->config.mask_gripper, 1);
 
   //nh.getParam("ms->config.chosen_feature", cfi);
   //ms->config.chosen_feature = static_cast<featureType>(cfi);
@@ -11547,8 +11545,6 @@ void saveROSParams(shared_ptr<MachineState> ms) {
   nh.setParam("sobel_scale_factor",ms->config.sobel_scale_factor);
 
   nh.setParam("mask_gripper", ms->config.mask_gripper);
-
-  nh.setParam("left_or_right_arm", ms->config.left_or_right_arm);
 
   //nh.setParam("ms->config.chosen_feature", cfi);
   //ms->config.chosen_feature = static_cast<featureType>(cfi);
@@ -13070,9 +13066,11 @@ int main(int argc, char **argv) {
   }
   cout << endl << endl;
 
+  ms->config.left_or_right_arm = argv[argc-1];
+
   string programName;
   if (argc > 1) {
-    programName = string(PROGRAM_NAME) + "_" + argv[argc-1];
+    programName = string(PROGRAM_NAME) + "_" + ms->config.left_or_right_arm;
     cout << "programName: " << programName << endl;
   }
   else {
