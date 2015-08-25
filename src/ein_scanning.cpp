@@ -156,6 +156,22 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 END_WORD
 REGISTER_WORD(PrintClassLabels)
 
+
+WORD(PushClassLabels)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+  stringstream ss;
+
+  ss << "classLabels: " << ms->config.classLabels.size() << endl;
+
+  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    ss << i << ": " << ms->config.classLabels[i] << endl;
+  }
+  shared_ptr<StringWord> outword = std::make_shared<StringWord>(ss.str());
+  ms->pushWord(outword);
+}
+END_WORD
+REGISTER_WORD(PushClassLabels)
+
 WORD(SetClassLabels)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
 
