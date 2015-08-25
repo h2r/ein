@@ -11490,8 +11490,6 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 
   nh.param<int>("mask_gripper", ms->config.mask_gripper, 1);
 
-  nh.getParam("left_or_right_arm", ms->config.left_or_right_arm);
-
   //nh.getParam("ms->config.chosen_feature", cfi);
   //ms->config.chosen_feature = static_cast<featureType>(cfi);
 
@@ -11540,8 +11538,6 @@ void saveROSParams(shared_ptr<MachineState> ms) {
   nh.setParam("sobel_scale_factor",ms->config.sobel_scale_factor);
 
   nh.setParam("mask_gripper", ms->config.mask_gripper);
-
-  nh.setParam("left_or_right_arm", ms->config.left_or_right_arm);
 
   //nh.setParam("ms->config.chosen_feature", cfi);
   //ms->config.chosen_feature = static_cast<featureType>(cfi);
@@ -13063,9 +13059,11 @@ int main(int argc, char **argv) {
   }
   cout << endl << endl;
 
+  ms->config.left_or_right_arm = argv[argc-1];
+
   string programName;
   if (argc > 1) {
-    programName = string(PROGRAM_NAME) + "_" + argv[argc-1];
+    programName = string(PROGRAM_NAME) + "_" + ms->config.left_or_right_arm;
     cout << "programName: " << programName << endl;
   }
   else {
