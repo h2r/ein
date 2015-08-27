@@ -255,6 +255,35 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
   // backwards because it's a stack
   // XXX this should increment without loading and only load if it passes the test
+
+  int keptSamples = 0;
+  for (int i = ms->config.streamImageBuffer.size()-1; i > -1; i--) {
+    // should really check pose here and only process if it is good.
+    streamImage * tsi = setIsbIdxNoLoad(ms, i);
+    if (tsi == NULL) {
+      cout << "streamCropsAsFocusedClass: setIsbIdxNoLoad returned null. Returning." << endl;
+    } else {
+    }
+
+    eePose tArmP, tBaseP;
+    int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+
+    double thisZ = tArmP.pz - tBaseP.pz;
+    eePose thisVpBaseheight;
+    thisVpBaseheight.pz = tBaseP.pz + (thisZ - convertHeightIdxToLocalZ(ms, ms->config.mappingHeightIdx));
+    pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
+
+    double p_dist_thresh = 0.07;
+    double dist_to_base = eePose::distance(tBaseP, thisVpBaseheight);
+    // only load if we pass the distance test
+	
+    if (dist_to_base < p_dist_thresh) {
+      cout << "Counting stream crop vanishing point to base test SUCCESS, accepting, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
+	  keptSamples++;
+    } else {
+    }
+  }
+
   for (int i = ms->config.streamImageBuffer.size()-1; i > -1; i--) {
     //ms->pushWord("endStackCollapseNoop");
     ms->pushWord("incrementImageStreamBuffer");
@@ -277,8 +306,12 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     double p_dist_thresh = 0.07;
     double dist_to_base = eePose::distance(tBaseP, thisVpBaseheight);
     // only load if we pass the distance test
-    if (dist_to_base < p_dist_thresh) {
+	
+	double keepFraction = ms->config.expectedCropsToStream / double(keptSamples);
+	int keepSample = ( (drand48()) < (keepFraction) );
+    if ((dist_to_base < p_dist_thresh) && keepSample) {
       cout << "Stream crop vanishing point to base test SUCCESS, accepting, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
+	  cout << keepFraction << " " << ms->config.expectedCropsToStream << " " << keptSamples << endl;
 
       //ms->pushWord("streamCropsAsFocusedClass");
       ms->pushWord("streamCenterCropAsFocusedClass");
@@ -292,11 +325,23 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(IntegrateImageStreamBufferCrops)
 
+WORD(SetExpectedCropsToStream)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int valToSet = 0;
+  GET_ARG(IntegerWord, valToSet, ms);
+
+  cout << "setExpectedCropsToStream: got value " << valToSet << endl;
+  ms->config.expectedCropsToStream = valToSet;
+}
+END_WORD
+REGISTER_WORD(SetExpectedCropsToStream)
+
 WORD(IncrementImageStreamBuffer)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   int nextIdx = ms->config.sibCurIdx + 1;
-  cout << "incrementImageStreamBuffer: Incrementing to " << nextIdx << endl;
+  cout << "incrementImageStreamBuffer: Incrementing to " << nextIdx << " out of " << ms->config.streamImageBuffer.size() << endl;
   if ( (nextIdx > -1) && (nextIdx < ms->config.streamImageBuffer.size()) ) {
     streamImage * result = setIsbIdx(ms, nextIdx);  
     if (result == NULL) {
@@ -364,14 +409,14 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   double dist_to_base = eePose::distance(tBaseP, thisVpBaseheight);
   // only load if we pass the distance test
   if (dist_to_base < p_dist_thresh) {
-    cout << "Stream crop vanishing point to base test SUCCESS, accepting, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
+    cout << "streamCropsAsFocusedClass: vanishing point to base test SUCCESS, accepting, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
     tsi = setIsbIdx(ms, ms->config.sibCurIdx);
     if (tsi == NULL) {
       cout << "streamCropsAsFocusedClass: setIsbIdx returned null after distance check! Returning." << endl;
     } else {
     }
   } else {
-    cout << "Stream crop vanishing point to base test FAILURE, skipping, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
+    cout << "streamCropsAsFocusedClass: vanishing point to base test FAILURE, skipping, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
     return;
   }
 
@@ -420,14 +465,14 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   double dist_to_base = eePose::distance(tBaseP, thisVpBaseheight);
   // only load if we pass the distance test
   if (dist_to_base < p_dist_thresh) {
-    cout << "Stream crop vanishing point to base test SUCCESS, accepting, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
+    cout << "streamCenterCropAsFocusedClass: vanishing point to base test SUCCESS, accepting, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
     tsi = setIsbIdx(ms, ms->config.sibCurIdx);
     if (tsi == NULL) {
       cout << "streamCenterCropAsFocusedClass: setIsbIdx returned null after distance check! Returning." << endl;
     } else {
     }
   } else {
-    cout << "Stream crop vanishing point to base test FAILURE, skipping, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
+    cout << "streamCenterCropAsFocusedClass: vanishing point to base test FAILURE, skipping, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
     return;
   }
 
@@ -739,8 +784,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
     {
       ms->pushWord("deactivateSensorStreaming"); 
-      ms->pushWord("4.0"); 
+      ms->pushWord("1.0"); 
       ms->pushWord("waitForSeconds"); 
+      ms->pushWord("waitUntilImageCallbackReceived"); 
       ms->pushWord("activateSensorStreaming"); 
 
       ms->pushWord("comeToStop");
@@ -784,14 +830,17 @@ REGISTER_WORD(MoveAndStreamAimedShot)
 WORD(StreamGraspResult)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
+  cout << "streamGraspResult: " << endl;
   if (ms->config.streamPicks) {
-    ms->pushWord("deactivateSensorStreaming"); 
+    cout << "  streaming picks: " << endl;
 
+    ms->pushWord("deactivateSensorStreaming"); 
 	stringstream ss;
 	ss << "\"pickSuccess " << isGripperGripping(ms) << "\"";
 	string result = ss.str();
     ms->pushWord(result);
     ms->pushWord("streamLabel");
+    ms->pushWord("activateSensorStreaming"); 
 
     ms->pushWord(std::make_shared<IntegerWord>(0));
     ms->pushWord(std::make_shared<IntegerWord>(0));
@@ -801,6 +850,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     ms->pushWord(std::make_shared<IntegerWord>(1));
     ms->pushWord("setSisFlags"); 
   } else {
+	cout << "  not streaming picks: " << endl;
   }
 }
 END_WORD

@@ -1562,6 +1562,37 @@ void checkAndStreamWord(std::shared_ptr<MachineState> ms, string wordIn, string 
   } // do nothing
 }
 
+void writeSideAndSerialToFileStorage(std::shared_ptr<MachineState> ms, FileStorage& fsvO) {
+  fsvO << "serial" <<  ms->config.robot_serial;
+  fsvO << "side" << ms->config.left_or_right_arm;
+}
+
+void readSideAndSerialFromFileStorage(std::shared_ptr<MachineState> ms, FileStorage fsvI, string * serial, string * side) {
+  FileNode anode = fsvI["words"];
+
+  {
+    FileNode bnode = anode["serial"];
+    FileNodeIterator itb = bnode.begin(), itb_end = bnode.end();
+    if (itb != itb_end) {
+      (*serial) = (string)(*(itb++));
+    } else {
+    }
+  }
+  {
+    FileNode bnode = anode["side"];
+    FileNodeIterator itb = bnode.begin(), itb_end = bnode.end();
+    if (itb != itb_end) {
+      (*side) = (string)(*(itb++));
+    } else {
+    }
+  }
+}
+
+string appendSideAndSerial(std::shared_ptr<MachineState> ms, string root) {
+  string toReturn = root + "_" + ms->config.robot_serial + "_" + ms->config.left_or_right_arm;
+  return toReturn;
+}
+
 void streamWordAsClass(std::shared_ptr<MachineState> ms, string wordIn, string commandIn, int classToStreamIdx, double now) {
   if (didSensorStreamTimeout(ms)) {
     return;
@@ -1597,6 +1628,12 @@ void streamWordAsClass(std::shared_ptr<MachineState> ms, string wordIn, string c
 }
 
 void writeWordBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx) {
+  if (ms->config.streamWordBuffer.size() > 0) {
+  } else {
+    cout << "writeWordBatchAsClass: buffer empty, returning." << endl;
+    return;
+  }
+
   if ((classToStreamIdx > -1) && (classToStreamIdx < ms->config.classLabels.size())) {
     // do nothing
   } else {
@@ -1610,6 +1647,7 @@ void writeWordBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamId
   char buf[1024];
   sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
   string root_path(buf); 
+  root_path = appendSideAndSerial(ms, root_path);
 
 
   string yaml_path = root_path + ".yml";
@@ -1622,6 +1660,8 @@ void writeWordBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamId
 
   fsvO << "words" << "{";
   {
+	writeSideAndSerialToFileStorage(ms, fsvO);
+
     int tng = ms->config.streamWordBuffer.size();
     fsvO << "size" <<  tng;
     fsvO << "streamWords" << "[" ;
@@ -1765,6 +1805,13 @@ void streamLabelAsClass(std::shared_ptr<MachineState> ms, string labelIn, int cl
 
 void writeLabelBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx) {
 // XXX TODO
+
+  if (ms->config.streamLabelBuffer.size() > 0) {
+  } else {
+    cout << "writeLabelBatchAsClass: buffer empty, returning." << endl;
+    return;
+  }
+
   if ((classToStreamIdx > -1) && (classToStreamIdx < ms->config.classLabels.size())) {
     // do nothing
   } else {
@@ -1778,6 +1825,7 @@ void writeLabelBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamI
   char buf[1024];
   sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
   string root_path(buf); 
+  root_path = appendSideAndSerial(ms, root_path);
 
 
   string yaml_path = root_path + ".yml";
@@ -1790,6 +1838,8 @@ void writeLabelBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamI
 
   fsvO << "labels" << "{";
   {
+	writeSideAndSerialToFileStorage(ms, fsvO);
+
     int tng = ms->config.streamLabelBuffer.size();
     fsvO << "size" <<  tng;
     fsvO << "streamLabels" << "[" ;
@@ -1998,6 +2048,7 @@ void activateSensorStreaming(std::shared_ptr<MachineState> ms) {
     string this_joints_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/joints/";
     string this_word_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/word/";
     string this_label_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/label/";
+    string this_calibration_path = ms->config.data_directory + "/objects/" + this_label_name + "/ein/calibration/";
     mkdir(this_raw_path.c_str(), 0777);
     mkdir(this_image_path.c_str(), 0777);
     mkdir(this_pose_path.c_str(), 0777);
@@ -2005,6 +2056,7 @@ void activateSensorStreaming(std::shared_ptr<MachineState> ms) {
     mkdir(this_joints_path.c_str(), 0777);
     mkdir(this_word_path.c_str(), 0777);
     mkdir(this_label_path.c_str(), 0777);
+    mkdir(this_calibration_path.c_str(), 0777);
     ms->config.sensorStreamOn = 1;
 
     // turn that queue size up!
@@ -2077,6 +2129,8 @@ void populateStreamImageBuffer(std::shared_ptr<MachineState> ms) {
         char filename[1024];
         sprintf(filename, "%s%s", this_image_path.c_str(), epdf->d_name);
 	string imfilename(filename);
+
+	/* this is slow
         Mat image;
         image = imread(imfilename);
 
@@ -2084,6 +2138,7 @@ void populateStreamImageBuffer(std::shared_ptr<MachineState> ms) {
 	} else {
 	  loaded = 0;
 	}
+	*/
 
         sprintf(filename, "%s%s.yml", this_image_path.c_str(), fnoextension.c_str());
 	string inFileName(filename);
@@ -2143,6 +2198,7 @@ void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStr
     char buf[1024];
     sprintf(buf, "%s%f", this_image_path.c_str(), now);
     string root_path(buf); 
+	root_path = appendSideAndSerial(ms, root_path);
 
     string png_path = root_path + ".png";
     string yaml_path = root_path + ".yml";
@@ -2156,6 +2212,9 @@ void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStr
     // may want to save additional camera parameters
     FileStorage fsvO;
     fsvO.open(yaml_path, FileStorage::WRITE);
+
+	writeSideAndSerialToFileStorage(ms, fsvO);
+
     fsvO << "time" <<  now;
     fsvO.release();
   } else {
@@ -2229,6 +2288,12 @@ void streamPoseAsClass(std::shared_ptr<MachineState> ms, eePose poseIn, int clas
 }
 
 void writeRangeBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx) {
+  if (ms->config.streamRangeBuffer.size() > 0) {
+  } else {
+    cout << "writeRangeBatchAsClass: buffer empty, returning." << endl;
+    return;
+  }
+
   if ((classToStreamIdx > -1) && (classToStreamIdx < ms->config.classLabels.size())) {
     // do nothing
   } else {
@@ -2242,6 +2307,7 @@ void writeRangeBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamI
   char buf[1024];
   sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
   string root_path(buf); 
+  root_path = appendSideAndSerial(ms, root_path);
 
 
   string yaml_path = root_path + ".yml";
@@ -2254,6 +2320,8 @@ void writeRangeBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamI
 
   fsvO << "ranges" << "{";
   {
+	writeSideAndSerialToFileStorage(ms, fsvO);
+
     int tng = ms->config.streamRangeBuffer.size();
     fsvO << "size" <<  tng;
     fsvO << "streamRanges" << "[" ;
@@ -2272,6 +2340,12 @@ void writeRangeBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamI
 }
 
 void writePoseBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx) {
+  if (ms->config.streamPoseBuffer.size() > 0) {
+  } else {
+    cout << "writePoseBatchAsClass: buffer empty, returning." << endl;
+    return;
+  }
+
   if ((classToStreamIdx > -1) && (classToStreamIdx < ms->config.classLabels.size())) {
     // do nothing
   } else {
@@ -2285,6 +2359,7 @@ void writePoseBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamId
   char buf[1024];
   sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
   string root_path(buf); 
+  root_path = appendSideAndSerial(ms, root_path);
 
   string yaml_path = root_path + ".yml";
   // XXX take this cout out
@@ -2296,6 +2371,8 @@ void writePoseBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamId
 
   fsvO << "poses" << "{";
   {
+	writeSideAndSerialToFileStorage(ms, fsvO);
+
     int tng = ms->config.streamPoseBuffer.size();
     fsvO << "size" <<  tng;
     fsvO << "streamPoses" << "[" ;
@@ -3826,7 +3903,7 @@ void update_baxter(ros::NodeHandle &n) {
   // do not start in a state with ikShare 
   if ((drand48() <= ms->config.ikShare) || !ms->config.ikInitialized) {
 
-    int numIkRetries = 100; //5000;//100;
+    int numIkRetries = 2;//100; //5000;//100;
     double ikNoiseAmplitude = 0.01;//0.1;//0.03;
     double useZOnly = 1;
     double ikNoiseAmplitudeQuat = 0;
@@ -7000,203 +7077,7 @@ void copyGraspMemoryTriesToClassGraspMemoryTries(shared_ptr<MachineState> ms) {
 }
 
 void selectMaxTarget(shared_ptr<MachineState> ms, double minDepth) {
-  // ATTN 10
-  //selectMaxTargetLinearFilter(minDepth);
-  //selectMaxTargetThompsonRotated(minDepth);
-  //selectMaxTargetThompsonRotated2(minDepth);
-  // ATTN 19
-  //selectMaxTargetThompson(minDepth);
-  //selectMaxTargetThompsonContinuous(minDepth);
   selectMaxTargetThompsonContinuous2(ms, minDepth);
-}
-
-void selectMaxTargetLinearFilter(shared_ptr<MachineState> ms, double minDepth) {
-  // ATTN 2
-  int maxSearchPadding = 3;
-  //int maxSearchPadding = 4;
-
-  for (int rx = maxSearchPadding; rx < ms->config.rmWidth-maxSearchPadding; rx++) {
-    for (int ry = maxSearchPadding; ry < ms->config.rmWidth-maxSearchPadding; ry++) {
-
-      // ATTN 5
-      double graspMemoryWeight = 0.0;
-      double graspMemoryBias = VERYBIGNUMBER;
-      int localIntThX = -1; 
-      int localIntThY = -1; 
-      {
-        // find global coordinate of current point
-        double thX = (rx-ms->config.rmHalfWidth) * ms->config.rmDelta;
-        double thY = (ry-ms->config.rmHalfWidth) * ms->config.rmDelta;
-        // transform it into local coordinates
-        double unangle = -ms->config.bestOrientationAngle;
-        double unscale = 1.0;
-        Point uncenter = Point(0, 0);
-        Mat un_rot_mat = getRotationMatrix2D(uncenter, unangle, unscale);
-        Mat toUn(3,1,CV_64F);
-        toUn.at<double>(0,0)=thX;
-        toUn.at<double>(1,0)=thY;
-        toUn.at<double>(2,0)=1.0;
-        Mat didUn = un_rot_mat*toUn;
-        double localThX = didUn.at<double>(0,0);
-        double localThY = didUn.at<double>(1,0);
-        localIntThX = ((localThX)/ms->config.rmDelta) + ms->config.rmHalfWidth; 
-        localIntThY = ((localThY)/ms->config.rmDelta) + ms->config.rmHalfWidth; 
-        // retrieve its value
-        double mDenom = max(ms->config.graspMemoryTries[localIntThX + localIntThY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)], 1.0);
-        if ((localIntThX < ms->config.rmWidth) && (localIntThY < ms->config.rmWidth)) {
-
-          // Thompson
-          //graspMemoryWeight = (graspMemorySample[localIntThX + localIntThY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)]) * -1;  
-
-          // Original
-          //graspMemoryWeight = ms->config.graspMemoryPicks[localIntThX + localIntThY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)] / mDenom;
-          //graspMemoryWeight = graspMemoryWeight * ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth]);  
-           
-          // No memory; just linear filter
-          graspMemoryWeight = ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth];
-          graspMemoryBias = 0;
-        } else {
-          graspMemoryWeight = 0;
-        }
-      }
-
-
-      //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << " " << ms->config.graspMemoryPicks[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)] << endl;
-	    
-      // 
-      if (graspMemoryBias + graspMemoryWeight < minDepth) 
-      //if (graspMemoryBias + graspMemoryWeight < minDepth)  // thompson
-      {
-	minDepth = ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth];
-	ms->config.maxX = rx;
-        ms->config.maxY = ry;
-	ms->config.localMaxX = localIntThX;
-	ms->config.localMaxY = localIntThY;
-	ms->config.localMaxGG = getLocalGraspGear(ms, ms->config.currentGraspGear);
-	ms->config.maxD = ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth];
-	ms->config.maxGG = ms->config.currentGraspGear;
-	ms->config.useContinuousGraspTransform = 0;
-      }
-    }
-  }
-  cout << "non-cumulative maxX: " << ms->config.maxX << " maxY: " << ms->config.maxY <<  " maxD: " << ms->config.maxD << " maxGG: " << ms->config.maxGG << endl;
-}
-
-void selectMaxTargetThompson(shared_ptr<MachineState> ms, double minDepth) {
-  // ATTN 2
-  int maxSearchPadding = 3;
-  //int maxSearchPadding = 4;
-
-  for (int localX = 0; localX < ms->config.rmWidth; localX++) {
-    for (int localY = 0; localY < ms->config.rmWidth; localY++) {
-      // ATTN 5
-      double graspMemoryWeight = 0.0;
-      double graspMemoryBias = VERYBIGNUMBER;
-      int rx, ry;
-      convertLocalGraspIdxToGlobal(ms, localX, localY, &rx, &ry);
-      if ((rx < ms->config.rmWidth) && (ry < ms->config.rmWidth)) {
-        
-        // Thompson
-        graspMemoryWeight = (ms->config.graspMemorySample[localX + localY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)]) * -1;  
-        
-        graspMemoryBias = 0;
-      } else {
-        graspMemoryWeight = 0;
-      }
-      
-      //cout << "graspMemory Thompson incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localX << " " << localY << " " << graspMemoryWeight << endl;
-      
-      // ATTN 19
-      int i = localX + localY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear);
-      int maxedOutTries = isThisGraspMaxedOut(ms, i);
-
-      //if (graspMemoryBias + graspMemoryWeight < minDepth) 
-      if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
-	minDepth = graspMemoryWeight;
-	ms->config.maxX = rx;
-        ms->config.maxY = ry;
-	ms->config.localMaxX = localX;
-	ms->config.localMaxY = localY;
-	ms->config.localMaxGG = getLocalGraspGear(ms, ms->config.currentGraspGear);
-	ms->config.maxD = graspMemoryWeight;
-	ms->config.maxGG = ms->config.currentGraspGear;
-	ms->config.useContinuousGraspTransform = 0;
-      }
-    }
-  }
-  cout << "non-cumulative Thompson maxX: " << ms->config.maxX << " ms->config.maxY: " << ms->config.maxY <<  " maxD: " << ms->config.maxD << " maxGG: " << ms->config.maxGG << endl;
-}
-
-void selectMaxTargetThompsonContinuous(shared_ptr<MachineState> ms, double minDepth) {
-  // ATTN 2
-  int maxSearchPadding = 3;
-  //int maxSearchPadding = 4;
-
-  for (int rx = maxSearchPadding; rx < ms->config.rmWidth-maxSearchPadding; rx++) {
-    for (int ry = maxSearchPadding; ry < ms->config.rmWidth-maxSearchPadding; ry++) {
-
-      // ATTN 5
-      double graspMemoryWeight = 0.0;
-      double graspMemoryBias = VERYBIGNUMBER;
-      int localIntThX = -1; 
-      int localIntThY = -1; 
-      {
-        // find global coordinate of current point
-        double thX = (rx-ms->config.rmHalfWidth) * ms->config.rmDelta;
-        double thY = (ry-ms->config.rmHalfWidth) * ms->config.rmDelta;
-        // transform it into local coordinates
-        double unangle = -ms->config.bestOrientationAngle;
-        double unscale = 1.0;
-        Point uncenter = Point(0, 0);
-        Mat un_rot_mat = getRotationMatrix2D(uncenter, unangle, unscale);
-        Mat toUn(3,1,CV_64F);
-        toUn.at<double>(0,0)=thX;
-        toUn.at<double>(1,0)=thY;
-        toUn.at<double>(2,0)=1.0;
-        Mat didUn = un_rot_mat*toUn;
-        double localThX = didUn.at<double>(0,0);
-        double localThY = didUn.at<double>(1,0);
-        localIntThX = ((localThX)/ms->config.rmDelta) + ms->config.rmHalfWidth; 
-        localIntThY = ((localThY)/ms->config.rmDelta) + ms->config.rmHalfWidth; 
-        // retrieve its value
-        double mDenom = max(ms->config.graspMemoryTries[localIntThX + localIntThY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)], 1.0);
-        if ((localIntThX < ms->config.rmWidth) && (localIntThY < ms->config.rmWidth)) {
-
-          // Thompson
-          graspMemoryWeight = (ms->config.graspMemorySample[localIntThX + localIntThY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)]) * -1;  
-
-          graspMemoryBias = 0;
-        } else {
-          graspMemoryWeight = 0;
-        }
-      }
-
-      //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << " " << ms->config.graspMemoryPicks[ms->config.gmTargetX + ms->config.gmTargetY*rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)] << endl;
-	    
-      // ATTN 19
-      int i = localIntThX + localIntThY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear);
-      int maxedOutTries = isThisGraspMaxedOut(ms, i);
-
-      //if (graspMemoryBias + graspMemoryWeight < minDepth) 
-      if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
-	minDepth = graspMemoryWeight;
-	ms->config.maxX = rx;
-	ms->config.maxY = ry;
-	ms->config.localMaxX = localIntThX;
-	ms->config.localMaxY = localIntThY;
-	//ms->config.localMaxGG = ms->config.currentGraspGear;
-	ms->config.localMaxGG = getLocalGraspGear(ms, ms->config.currentGraspGear);
-	ms->config.maxD = graspMemoryWeight;
-	//ms->config.maxGG = ms->config.currentGraspGear;
-	ms->config.maxGG = getLocalGraspGear(ms, ms->config.currentGraspGear);
-	ms->config.useContinuousGraspTransform = 1;
-	//ms->config.useContinuousGraspTransform = 0;
-      }
-    }
-  }
-  cout << "non-cumulative maxX: " << ms->config.maxX << " maxY: " << ms->config.maxY <<  " maxD: " << ms->config.maxD << " maxGG: " << ms->config.maxGG << endl;
 }
 
 void selectMaxTargetThompsonContinuous2(shared_ptr<MachineState> ms, double minDepth) {
@@ -7248,6 +7129,14 @@ void selectMaxTargetThompsonContinuous2(shared_ptr<MachineState> ms, double minD
 
       //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
       //cout << "  gmTargetX gmTargetY eval: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << " " << ms->config.graspMemoryPicks[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear)] << endl;
+	  
+	  // this breaks ties
+	  if (ms->config.breakGraspTiesWithNoise) {
+		double p_noiseAmp = 0.00001;  
+		double tnoise = drand48() * p_noiseAmp;
+        graspMemoryWeight = graspMemoryWeight - tnoise;
+	  } else {
+	  }
 	    
       // ATTN 19
       int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear);
@@ -7262,164 +7151,15 @@ void selectMaxTargetThompsonContinuous2(shared_ptr<MachineState> ms, double minD
           ms->config.localMaxY = ry;
           ms->config.localMaxGG = (ms->config.currentGraspGear);
           ms->config.maxD = graspMemoryWeight;
-          //ms->config.maxGG = getGlobalGraspGear(ms, ms->config.currentGraspGear);
           ms->config.maxGG = (ms->config.currentGraspGear);
-	  //ms->config.useContinuousGraspTransform = 0;
-	  ms->config.useContinuousGraspTransform = 1;
-	  cout << "ZZZ ZZZ ZZZ" << endl;
+	      ms->config.useContinuousGraspTransform = 1;
+	      cout << "ZZZ ZZZ ZZZ" << endl;
         }
     }
   }
   cout << "non-cumulative maxX: " << ms->config.maxX << " ms->config.maxY: " << ms->config.maxY <<  " maxD: " << 
     ms->config.maxD << " maxGG: " << ms->config.maxGG << " localMaxGG: " << ms->config.localMaxGG << endl;
 }
-
-void selectMaxTargetThompsonRotated(shared_ptr<MachineState> ms, double minDepth) {
-  // ATTN 2
-  int maxSearchPadding = 3;
-  //int maxSearchPadding = 4;
-
-  for (int rx = maxSearchPadding; rx < ms->config.rmWidth-maxSearchPadding; rx++) {
-    for (int ry = maxSearchPadding; ry < ms->config.rmWidth-maxSearchPadding; ry++) {
-
-      // ATTN 5
-      double graspMemoryWeight = 0.0;
-      double graspMemoryBias = VERYBIGNUMBER;
-      int localIntThX = -1; 
-      int localIntThY = -1; 
-      {
-        // find global coordinate of current point
-        double thX = (rx-ms->config.rmHalfWidth) * ms->config.rmDelta;
-        double thY = (ry-ms->config.rmHalfWidth) * ms->config.rmDelta;
-        // transform it into local coordinates
-        double unangle = -ms->config.bestOrientationAngle;
-        double unscale = 1.0;
-        Point uncenter = Point(0, 0);
-        Mat un_rot_mat = getRotationMatrix2D(uncenter, unangle, unscale);
-        Mat toUn(3,1,CV_64F);
-        toUn.at<double>(0,0)=thX;
-        toUn.at<double>(1,0)=thY;
-        toUn.at<double>(2,0)=1.0;
-        Mat didUn = un_rot_mat*toUn;
-        double localThX = didUn.at<double>(0,0);
-        double localThY = didUn.at<double>(1,0);
-        localIntThX = ((localThX)/ms->config.rmDelta) + ms->config.rmHalfWidth; 
-        localIntThY = ((localThY)/ms->config.rmDelta) + ms->config.rmHalfWidth; 
-        // retrieve its value
-        double mDenom = max(ms->config.graspMemoryTries[localIntThX + localIntThY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)], 1.0);
-        if ((localIntThX < ms->config.rmWidth) && (localIntThY < ms->config.rmWidth)) {
-
-          // Thompson
-          graspMemoryWeight = (ms->config.graspMemorySample[localIntThX + localIntThY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)]) * -1;  
-
-          // Original
-          //graspMemoryWeight = ms->config.graspMemoryPicks[localIntThX + localIntThY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)] / mDenom;
-          //graspMemoryWeight = graspMemoryWeight * ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth]);  
-           
-          // No memory; just linear filter
-          // graspMemoryWeight = ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth];
-          graspMemoryBias = 0;
-        } else {
-          graspMemoryWeight = 0;
-        }
-      }
-
-
-      //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << " " << ms->config.graspMemoryPicks[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear)] << endl;
-	    
-      // ATTN 19
-      int i = localIntThX + localIntThY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*getLocalGraspGear(ms, ms->config.currentGraspGear);
-      int maxedOutTries = isThisGraspMaxedOut(ms, i);
-
-      //if (graspMemoryBias + graspMemoryWeight < minDepth) 
-      if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
-          minDepth = graspMemoryWeight;
-          ms->config.maxX = rx;
-          ms->config.maxY = ry;
-          ms->config.localMaxX = localIntThX;
-          ms->config.localMaxY = localIntThY;
-          ms->config.localMaxGG = getLocalGraspGear(ms, ms->config.currentGraspGear);
-          ms->config.maxD = graspMemoryWeight;
-          ms->config.maxGG = ms->config.currentGraspGear;
-	  ms->config.useContinuousGraspTransform = 0;
-        }
-    }
-  }
-  cout << "non-cumulative maxX: " << ms->config.maxX << " maxY: " << ms->config.maxY <<  " maxD: " << ms->config.maxD << " maxGG: " << ms->config.maxGG << endl;
-}
-
-void selectMaxTargetThompsonRotated2(shared_ptr<MachineState> ms, double minDepth) {
-  // ATTN 2
-  int maxSearchPadding = 3;
-  //int maxSearchPadding = 4;
-
-  for (int rx = maxSearchPadding; rx < ms->config.rmWidth-maxSearchPadding; rx++) {
-    for (int ry = maxSearchPadding; ry < ms->config.rmWidth-maxSearchPadding; ry++) {
-
-      // ATTN 5
-      double graspMemoryWeight = 0.0;
-      double graspMemoryBias = VERYBIGNUMBER;
-      int localIntThX = -1; 
-      int localIntThY = -1; 
-      double localThX = 0.0;
-      double localThY = 0.0;
-      {
-        // find local coordinate of current point
-        double thX = (rx-ms->config.rmHalfWidth) * ms->config.rmDelta;
-        double thY = (ry-ms->config.rmHalfWidth) * ms->config.rmDelta;
-        // transform it into global coordinates
-        double angle = ms->config.bestOrientationAngle;
-        double unscale = 1.0;
-        Point uncenter = Point(0, 0);
-        Mat un_rot_mat = getRotationMatrix2D(uncenter, angle, unscale);
-        Mat toUn(3,1,CV_64F);
-        toUn.at<double>(0,0)=thX;
-        toUn.at<double>(1,0)=thY;
-        toUn.at<double>(2,0)=1.0;
-        Mat didUn = un_rot_mat*toUn;
-        localThX = didUn.at<double>(0,0);
-        localThY = didUn.at<double>(1,0);
-        localIntThX = ((localThX)/ms->config.rmDelta) + ms->config.rmHalfWidth; 
-        localIntThY = ((localThY)/ms->config.rmDelta) + ms->config.rmHalfWidth; 
-        // retrieve its value
-        double mDenom = max(ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear)], 1.0);
-        if ((rx < ms->config.rmWidth) && (ry < ms->config.rmWidth)) {
-
-          // Thompson
-          graspMemoryWeight = (ms->config.graspMemorySample[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear)]) * -1;  
-
-          graspMemoryBias = 0;
-        } else {
-          graspMemoryWeight = 0;
-        }
-      }
-
-
-      //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << " " << ms->config.graspMemoryPicks[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear)] << endl;
-	    
-      // ATTN 19
-      int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear);
-      int maxedOutTries = isThisGraspMaxedOut(ms, i);
-
-      //if (graspMemoryBias + graspMemoryWeight < minDepth) 
-      if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
-          minDepth = graspMemoryWeight;
-          ms->config.maxX = localIntThX;
-          ms->config.maxY = localIntThY;
-          ms->config.localMaxX = rx;
-          ms->config.localMaxY = ry;
-          ms->config.localMaxGG = (ms->config.currentGraspGear);
-          ms->config.maxD = graspMemoryWeight;
-          ms->config.maxGG = getGlobalGraspGear(ms, ms->config.currentGraspGear);
-	  ms->config.useContinuousGraspTransform = 0;
-        }
-    }
-  }
-  cout << "non-cumulative maxX: " << ms->config.maxX << " maxY: " << ms->config.maxY <<  " maxD: " << ms->config.maxD << " maxGG: " << ms->config.maxGG << endl;
-}
-
 
 void recordBoundingBoxSuccess(shared_ptr<MachineState> ms) {
   ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx]++;
@@ -8105,6 +7845,501 @@ cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.cu
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
     //double sqdistance = eePose::squareDistance(ms->config.currentEEPose, newGlobalTarget);
+
+    ms->config.currentEEPose.px = newx;
+    ms->config.currentEEPose.py = newy;
+
+    // if we are at the soft max, take first histogram estimate.
+    // if we are above, add to it
+    // if we are below it 
+    if (ms->config.currentGradientServoIterations == (ms->config.softMaxGradientServoIterations-1)) {
+      ms->config.gshHistogram = ms->config.currentEEPose;
+      ms->config.gshCounts = 1.0;
+      cout << "Initializing gradient servo histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
+      ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
+      ms->config.currentEEPose.copyP(ms->config.gshPose);
+    } else if (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) {
+      ms->config.gshHistogram = ms->config.gshHistogram.plusP(ms->config.currentEEPose);
+      ms->config.gshCounts = 1.0 + ms->config.gshCounts;
+      cout << "Adding intermediate gradient servo position estimate to histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
+      ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
+      ms->config.currentEEPose.copyP(ms->config.gshPose);
+    } else {
+    } // do nothing
+
+cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
+    ms->pushCopies("waitUntilAtCurrentPosition", 1); 
+    
+  }
+
+  // update after
+  ms->config.currentGradientServoIterations++;
+}
+
+void continuousServo(shared_ptr<MachineState> ms) {
+  Size sz = ms->config.objectViewerImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  // XXX
+  //geometry_msgs::Pose thisPose;
+  //int weHavePoseData = getRingPoseAtTime(ms, eps.header.stamp, thisPose);
+  //ms->config.lastImageCallbackReceived = ros::Time::now();
+
+  // ATTN 23
+  //reticle = ms->config.heightReticles[ms->config.currentThompsonHeightIdx];
+  eePose thisGripperReticle;
+  double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
+  int xOut=-1, yOut=-1;
+  globalToPixel(ms, &xOut, &yOut, zToUse, ms->config.trueEEPoseEEPose.px, ms->config.trueEEPoseEEPose.py);
+  thisGripperReticle.px = xOut;
+  thisGripperReticle.py = yOut;
+  ms->config.reticle = ms->config.vanishingPointReticle;
+
+  // ATTN 12
+  //        if ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) && (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING)) {
+  //          cout << "bbLearning: synchronic servo timed out, early outting." << endl;
+  //          restartBBLearning(ms);
+  //        }
+
+  cout << "entered gradient servo... iteration " << ms->config.currentGradientServoIterations << endl;
+  if (ms->config.targetClass < 0 || ms->config.targetClass >= ms->config.numClasses) {
+    cout << "bad target class, not servoing." << endl;
+    return;
+  }
+
+  {
+    int i, j;
+    mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
+    int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
+    if (!doWeHaveClearance) {
+      //ms->pushWord("clearStackIntoMappingPatrol"); 
+      cout << ">>>> Gradient servo strayed out of clearance area during mapping. <<<<" << endl;
+      ms->pushWord("endStackCollapseNoop");
+      return;
+    }
+  }
+
+  // ATTN 16
+  switch (ms->config.currentThompsonHeightIdx) {
+  case 0:
+    {
+      ms->config.classAerialGradients[ms->config.targetClass] = ms->config.classHeight0AerialGradients[ms->config.targetClass];
+    }
+    break;
+  case 1:
+    {
+      ms->config.classAerialGradients[ms->config.targetClass] = ms->config.classHeight1AerialGradients[ms->config.targetClass];
+    }
+    break;
+  case 2:
+    {
+      ms->config.classAerialGradients[ms->config.targetClass] = ms->config.classHeight2AerialGradients[ms->config.targetClass];
+    }
+    break;
+  case 3:
+    {
+      ms->config.classAerialGradients[ms->config.targetClass] = ms->config.classHeight3AerialGradients[ms->config.targetClass];
+    }
+    break;
+  default:
+    {
+      assert(0);
+    }
+    break;
+  }
+
+  if ((ms->config.classAerialGradients[ms->config.targetClass].rows <= 1) && (ms->config.classAerialGradients[ms->config.targetClass].cols <= 1)) {
+    cout << "no aerial gradients for this class, not servoing." << endl;
+    return;
+  }
+
+  double Px = 0;
+  double Py = 0;
+
+  double Ps = 0;
+
+  //cout << "computing scores... ";
+
+  Size toBecome(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth);
+
+  int numOrientations = 37;
+  vector<Mat> rotatedAerialGrads;
+
+  // ATTN 3
+  // gradientServoScale should be even
+  int gradientServoScale = 3;//11;
+  double gradientServoScaleStep = 1.02;
+  if (ms->config.orientationCascade) {
+    if (ms->config.lastPtheta < ms->config.lPTthresh) {
+      //gradientServoScale = 1;
+      //gradientServoScaleStep = 1.0;
+    }
+  }
+  double startScale = pow(gradientServoScaleStep, -(gradientServoScale-1)/2);
+
+  //rotatedAerialGrads.resize(numOrientations);
+  rotatedAerialGrads.resize(gradientServoScale*numOrientations);
+
+  if ((ms->config.lastPtheta < ms->config.lPTthresh) && ms->config.orientationCascade) {
+    cout << "orientation cascade activated" << endl;
+  }
+
+  for (int etaS = 0; etaS < gradientServoScale; etaS++) {
+    double thisScale = startScale * pow(gradientServoScaleStep, etaS);
+    for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
+      // orientation cascade
+      if (ms->config.orientationCascade) {
+        if (ms->config.lastPtheta < ms->config.lPTthresh) {
+          if (thisOrient < ms->config.orientationCascadeHalfWidth) {
+            //cout << "skipping orientation " << thisOrient << endl;
+            continue;
+          }
+          if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
+            //cout << "skipping orientation " << thisOrient << endl;
+            continue;
+          }
+        }
+      }
+      
+      // rotate the template and L1 normalize it
+      Point center = Point(ms->config.aerialGradientWidth/2, ms->config.aerialGradientWidth/2);
+      double angle = thisOrient*360.0/numOrientations;
+      
+      //double scale = 1.0;
+      double scale = thisScale;
+      
+      // Get the rotation matrix with the specifications above
+      Mat rot_mat = getRotationMatrix2D(center, angle, scale);
+      warpAffine(ms->config.classAerialGradients[ms->config.targetClass], rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
+      
+      processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations], rotatedAerialGrads[thisOrient + etaS*numOrientations]);
+      
+      //double l1norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type()));
+      //if (l1norm <= EPSILON)
+      //l1norm = 1.0;
+      //rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l1norm;
+      //cout << "classOrientedGradients[ms->config.targetClass]: " << ms->config.classAerialGradients[ms->config.targetClass] << "rotatedAerialGrads[thisOrient + etaS*numOrientations] " << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
+      
+      double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
+      rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
+      double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations]);
+      l2norm = sqrt(l2norm);
+      if (l2norm <= EPSILON) {
+        l2norm = 1.0;
+      }
+      rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l2norm;
+    }
+  }
+
+  int bestOrientation = -1;
+  double bestOrientationScore = -INFINITY;
+  double bestCropNorm = 1.0;
+  int bestX = -1;
+  int bestY = -1;
+  int bestS = -1;
+
+  int crows = ms->config.aerialGradientReticleWidth;
+  int ccols = ms->config.aerialGradientReticleWidth;
+  int maxDim = max(crows, ccols);
+  int tRy = (maxDim-crows)/2;
+  int tRx = (maxDim-ccols)/2;
+
+  //int gradientServoTranslation = 40;
+  //int gsStride = 2;
+  int gradientServoTranslation = 40;
+  int gsStride = 2;
+  if (ms->config.orientationCascade) {
+    if (ms->config.lastPtheta < ms->config.lPTthresh) {
+      //int gradientServoTranslation = 20;
+      //int gsStride = 2;
+      int gradientServoTranslation = 40;
+      int gsStride = 2;
+    }
+  }
+  
+  //rotatedAerialGrads.resize(gradientServoScale*numOrientations);
+  int gSTwidth = 2*gradientServoTranslation + 1;
+  double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
+
+  
+  // XXX should be etaY <= to cover whole array
+  for (int etaS = 0; etaS < gradientServoScale; etaS++) {
+#pragma omp parallel for
+    for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
+      for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
+        // get the patch
+        Mat gCrop = makeGCrop(ms, etaX, etaY);
+        
+        
+        for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
+          // orientation cascade
+          if (ms->config.orientationCascade) {
+            if (ms->config.lastPtheta < ms->config.lPTthresh) {
+              if (thisOrient < ms->config.orientationCascadeHalfWidth) {
+                //cout << "skipping orientation " << thisOrient << endl;
+                continue;
+              }
+              if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
+                //cout << "skipping orientation " << thisOrient << endl;
+                continue;
+              }
+            }
+          }
+  // ATTN 25
+  if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
+       (thisOrient != 0) ) {
+    continue;
+  }
+          
+          // compute the score
+          double thisScore = 0;
+          thisScore = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(gCrop);
+          
+          int tEtaX = etaX+gradientServoTranslation;
+          int tEtaY = etaY+gradientServoTranslation;
+          allScores[tEtaX][tEtaY][etaS][thisOrient] = thisScore;
+
+	  //cout << "  JJJ: gsDebug " << thisScore << endl << gCrop << endl << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
+	  //cout << "  JJJ: gsDebug " << thisScore << ms->config.frameGraySobel << endl;
+	  //cout << "  JJJ: gsDebug " << thisScore << ms->config.objectViewerImage << endl;
+
+        }
+      }
+    }
+  }
+  
+  // perform max
+  for (int etaS = 0; etaS < gradientServoScale; etaS++) {
+    for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
+      for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
+        // get the patch
+        int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
+        int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+        //Mat gCrop(maxDim, maxDim, CV_64F);
+        
+        // throw it out if it isn't contained in the image
+        //    if ( (topCornerX+ms->config.aerialGradientWidth >= imW) || (topCornerY+ms->config.aerialGradientWidth >= imH) )
+        //      continue;
+        //    if ( (topCornerX < 0) || (topCornerY < 0) )
+        //      continue;
+        
+        for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
+          // orientation cascade
+          if (ms->config.orientationCascade) {
+            if (ms->config.lastPtheta < ms->config.lPTthresh) {
+              if (thisOrient < ms->config.orientationCascadeHalfWidth) {
+                //cout << "skipping orientation " << thisOrient << endl;
+                continue;
+              }
+              if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
+                //cout << "skipping orientation " << thisOrient << endl;
+                continue;
+              }
+            }
+          }
+  // ATTN 25
+  if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
+       (thisOrient != 0) ) {
+    continue;
+  }
+          
+          int tEtaX = etaX+gradientServoTranslation;
+          int tEtaY = etaY+gradientServoTranslation;
+          double thisScore = allScores[tEtaX][tEtaY][etaS][thisOrient];
+          
+          if (thisScore > bestOrientationScore) {
+            bestOrientation = thisOrient;
+            bestOrientationScore = thisScore;
+            bestX = etaX;
+            bestY = etaY;
+            bestS = etaS;
+          }
+          //cout << " this best: " << thisScore << " " << bestOrientationScore << " " << bestX << " " << bestY << endl;
+        } 
+      }
+    }
+  }
+
+  Mat bestGCrop = makeGCrop(ms, bestX, bestY); 
+
+
+  // set the target reticle
+  ms->config.pilotTarget.px = ms->config.reticle.px + bestX;
+  ms->config.pilotTarget.py = ms->config.reticle.py + bestY;
+  
+  ms->config.bestOrientationEEPose = ms->config.currentEEPose;
+  
+  int oneToDraw = bestOrientation;
+  Px = -bestX;
+  Py = -bestY;
+  
+  //Ps = bestS - ((gradientServoScale-1)/2);
+  Ps = 0;
+  
+  Mat toShowModel;
+  Mat toShowImage;
+  Size toUnBecome(maxDim, maxDim);
+  //cv::resize(ms->config.classAerialGradients[ms->config.targetClass], toShow, toUnBecome);
+  //cv::resize(rotatedAerialGrads[oneToDraw], toShow, toUnBecome);
+  cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations], toShowModel, toUnBecome);
+  cv::resize(bestGCrop, toShowImage, toUnBecome);
+  //cout << rotatedAerialGrads[oneToDraw];
+  
+  double maxTSImage = -INFINITY;
+  double minTSImage = INFINITY;
+  double maxTSModel = -INFINITY;
+  double minTSModel = INFINITY;
+  for (int x = 0; x < maxDim; x++) {
+    for (int y = 0; y < maxDim; y++) {
+      maxTSImage = max(maxTSImage, toShowImage.at<double>(y, x));
+      minTSImage = min(minTSImage, toShowImage.at<double>(y, x));
+      maxTSModel = max(maxTSModel, toShowModel.at<double>(y, x));
+      minTSModel = min(minTSModel, toShowModel.at<double>(y, x));
+    }
+  }
+  
+  // draw the winning score in place
+  for (int x = 0; x < maxDim; x++) {
+    for (int y = 0; y < maxDim; y++) {
+      //int tx = x - tRx;
+      //int ty = y - tRy;
+      int tx = x - tRx;
+      int ty = y - tRy;
+      if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+        Vec3b thisColorModel = Vec3b(0,0,min(255, int(floor(255.0*8*(toShowModel.at<double>(y, x)-minTSModel)/(maxTSModel-minTSModel)))));
+        Vec3b thisColorImage = Vec3b(min(255, int(floor(255.0*8*(toShowImage.at<double>(y, x)-minTSImage)/(maxTSImage-minTSImage)))), 0, 0);
+        //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
+        //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
+        //cout << thisColor;
+        int thisTopCornerX = bestX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
+        int thisTopCornerY = bestY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+        
+        int tgX = thisTopCornerX + tx;
+        int tgY = thisTopCornerY + ty;
+        if ((tgX > 0) && (tgX < imW) && (tgY > 0) && (tgY < imH)) {
+          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) = 0;
+          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColorImage;
+          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColorModel;
+        }
+      }
+    }
+  }
+  
+  oneToDraw = oneToDraw % numOrientations;
+  double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
+  ms->config.lastPtheta = Ptheta;
+  
+  
+  // XXX this still might miss if it nails the correct orientation on the last try
+  // TODO but we could set the bestOrientationEEPose here according to what it would have been`
+  // but we don't want to move because we want all the numbers to be consistent
+  if (ms->config.currentGradientServoIterations > (ms->config.hardMaxGradientServoIterations-1)) {
+    //cout << "LAST ITERATION indefinite orientation ";
+  } else {
+    double kPtheta = 0.0;
+    if (Ptheta < ms->config.kPThresh)
+      kPtheta = ms->config.kPtheta2;
+    else
+      kPtheta = ms->config.kPtheta1;
+    
+    if (bestOrientation <= numOrientations/2) {
+      ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
+      
+    } else {
+      ms->config.currentEEDeltaRPY.pz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
+    }
+  }
+  
+  double doublePtheta =   ms->config.currentEEDeltaRPY.pz;
+
+  //cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << 
+  //ms->config.pilotTarget.px << " " << reticle.py << " " << ms->config.pilotTarget.py << " " <<
+  //bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
+  
+  double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
+  double dy = (ms->config.currentEEPose.py - ms->config.trueEEPose.position.y);
+  double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
+  double distance = dx*dx + dy*dy + dz*dz;
+  
+
+  // ATTN 5
+  // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
+  if (((fabs(Px) < ms->config.gradServoPixelThresh) && (fabs(Py) < ms->config.gradServoPixelThresh) && (fabs(Ptheta) < ms->config.gradServoThetaThresh)) ||
+      (ms->config.currentGradientServoIterations > (ms->config.hardMaxGradientServoIterations-1)))
+  {
+
+    if (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) {
+      ms->config.gshHistogram = ms->config.gshHistogram.plusP(ms->config.currentEEPose);
+      ms->config.gshCounts = 1.0 + ms->config.gshCounts;
+      cout << "Adding final gradient servo position estimate to histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
+    } else {
+    } // do nothing
+     
+    // turn off histogrammed code for now
+    if (ms->config.gshCounts > 0) {
+      cout << "Replacing final gradient servo position estimate with histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
+      ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
+      ms->config.currentEEPose.copyP(ms->config.gshPose);
+    }
+    ms->config.gshHistogram = eePose::zero();
+    ms->config.gshCounts = 0.0;
+    
+cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
+    ms->pushCopies("waitUntilAtCurrentPosition", 1); 
+    
+    
+    // ATTN 23
+    // move from vanishing point reticle to gripper reticle
+    //moveCurrentGripperRayToCameraVanishingRay();
+    //ms->config.bestOrientationEEPose = ms->config.currentEEPose;
+
+    // ATTN 12
+    if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
+      cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << ms->config.gradientServoDuringHeightLearning << endl;
+      cout << "bbLearning: returning from gradient servo." << endl;
+      return;
+    }
+    
+    return;
+  } else {
+      
+    ms->pushWord("gradientServo"); 
+    
+    double pTermX = ms->config.gradKp*Px;
+    double pTermY = ms->config.gradKp*Py;
+    
+    double pTermS = Ps * .005;
+    ms->config.currentEEPose.pz += pTermS;
+    
+    // invert the current eePose orientation to decide which direction to move from POV
+    Eigen::Vector3f localUnitX;
+    {
+      Eigen::Quaternionf qin(0, 1, 0, 0);
+      Eigen::Quaternionf qout(0, 1, 0, 0);
+      Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+      qout = eeqform * qin * eeqform.conjugate();
+      localUnitX.x() = qout.x();
+      localUnitX.y() = qout.y();
+      localUnitX.z() = qout.z();
+    }
+      
+    Eigen::Vector3f localUnitY;
+    {
+      Eigen::Quaternionf qin(0, 0, 1, 0);
+      Eigen::Quaternionf qout(0, 1, 0, 0);
+      Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+      qout = eeqform * qin * eeqform.conjugate();
+      localUnitY.x() = qout.x();
+      localUnitY.y() = qout.y();
+      localUnitY.z() = qout.z();
+    }
+    
+    double newx = 0;
+    double newy = 0;
+    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz);
+    newx = newGlobalTarget.px;
+    newy = newGlobalTarget.py;
 
     ms->config.currentEEPose.px = newx;
     ms->config.currentEEPose.py = newy;

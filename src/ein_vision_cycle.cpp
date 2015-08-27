@@ -535,6 +535,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 //          ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount = 0;
 //        }
 
+		// if we are mapping too close to the table these can exceed bounds
+		if ( (i < 0) || (j < 0) || (i >= ms->config.mapWidth) || (j >= ms->config.mapWidth) ) {
+		  continue;
+		} else {
+		}
+
 
         ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime = ros::Time::now();
         randomizeNanos(ms, &ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime);

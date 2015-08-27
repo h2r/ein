@@ -2167,7 +2167,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/calibration/";
   ros::Time thisNow = ros::Time::now();
   char buf[1024];
-  sprintf(buf, "%s%f.yml", this_image_path.c_str(), thisNow.toSec());
+  sprintf(buf, "%s%f_%s_%s.yml", this_image_path.c_str(), thisNow.toSec(), ms->config.robot_serial.c_str(), ms->config.left_or_right_arm.c_str());
   string fileName(buf); 
 
   cout << "saveCalibrationToClass: Saving calibration file to " << fileName << endl;

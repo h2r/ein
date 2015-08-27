@@ -364,6 +364,7 @@ class EinConfig {
   int diskStreamingEnabled = 0;
   double sensorStreamLastActivated = 0.0;
   double sensorStreamTimeout= 3600.0;
+  double expectedCropsToStream = 500;
   // should I stream
   int sisPose = 0;
   int sisRange = 0;
@@ -691,6 +692,7 @@ class EinConfig {
   int localMaxX = 0;
   int localMaxY = 0;
   int localMaxGG = 0;
+  bool breakGraspTiesWithNoise = true;
   
   // grasp gear should always be even
   static const int totalGraspGears = 8;
@@ -811,7 +813,7 @@ class EinConfig {
   Mat frameGraySobel;
 
 
-  double graspDepthOffset = -0.01;
+  double graspDepthOffset = -0.04;//-0.01;
   eePose lastPickPose;
   eePose lastPrePickPose;
   eePose lastLockedPose;
