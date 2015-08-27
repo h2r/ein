@@ -195,26 +195,30 @@ int didSensorStreamTimeout(std::shared_ptr<MachineState> ms);
 void populateStreamImageBuffer(std::shared_ptr<MachineState> ms);
 void populateStreamPoseBuffer(std::shared_ptr<MachineState> ms);
 void populateStreamRangeBuffer(std::shared_ptr<MachineState> ms);
+void populateStreamWordBuffer(std::shared_ptr<MachineState> ms);
 void populateStreamLabelBuffer(std::shared_ptr<MachineState> ms);
 
 void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStreamIdx, double now);
 void streamRangeAsClass(std::shared_ptr<MachineState> ms, double range, int classToStreamIdx, double now);
 void streamPoseAsClass(std::shared_ptr<MachineState> ms, eePose poseIn, int classToStreamIdx, double now);
+void streamWordAsClass(std::shared_ptr<MachineState> ms, string wordIn, string commandIn, int classToStreamIdx, double now);
 void streamLabelAsClass(std::shared_ptr<MachineState> ms, string labelIn, int classToStreamIdx, double now);
 
 void writeRangeBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
 void writePoseBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
+void writeWordBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
 void writeLabelBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
 
+void checkAndStreamWord(std::shared_ptr<MachineState> ms, string wordIn, string commandIn);
+
+void writeSideAndSerialToFileStorage(FileStorage& fsvO);
+void readSideAndSerialFromFileStorage(std::shared_ptr<MachineState> ms, FileStorage fsvI, string * serial, string * side);
+string appendSideAndSerial(std::shared_ptr<MachineState> ms, string root);
 
 void populateStreamJointsBuffer(std::shared_ptr<MachineState> ms);
 void streamJointsAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx, double now);
 void writeJointsBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
 
-void populateStreamWordBuffer(std::shared_ptr<MachineState> ms);
-void checkAndStreamWord(std::shared_ptr<MachineState> ms, string wordIn, string commandIn);
-void streamWordAsClass(std::shared_ptr<MachineState> ms, string wordIn, string commandIn, int classToStreamIdx, double now);
-void writeWordBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
 
 
 
@@ -321,12 +325,7 @@ void copyGraspMemoryTriesToClassGraspMemoryTries(shared_ptr<MachineState> ms);
 void copyClassGraspMemoryTriesToGraspMemoryTries(shared_ptr<MachineState> ms);
 
 void selectMaxTarget(shared_ptr<MachineState> ms, double minDepth);
-void selectMaxTargetThompson(shared_ptr<MachineState> ms, double minDepth);
-void selectMaxTargetThompsonContinuous(shared_ptr<MachineState> ms, double minDepth);
 void selectMaxTargetThompsonContinuous2(shared_ptr<MachineState> ms, double minDepth);
-void selectMaxTargetThompsonRotated(shared_ptr<MachineState> ms, double minDepth);
-void selectMaxTargetThompsonRotated2(shared_ptr<MachineState> ms, double minDepth);
-void selectMaxTargetLinearFilter(shared_ptr<MachineState> ms, double minDepth);
 
 void recordBoundingBoxSuccess(shared_ptr<MachineState> ms);
 void recordBoundingBoxFailure(shared_ptr<MachineState> ms);
@@ -336,6 +335,7 @@ void restartBBLearning(shared_ptr<MachineState> ms);
 eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixel, eePose givenReticle, double angle);
 void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms);
 void gradientServo(shared_ptr<MachineState> ms);
+void continuousServo(shared_ptr<MachineState> ms);
 void synchronicServo(shared_ptr<MachineState> ms);
 void darkServo(shared_ptr<MachineState> ms);
 void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces);

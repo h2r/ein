@@ -405,6 +405,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
 
   //ms->pushWord("unmapTargetBlueBox");
+  ms->pushWord("openGripper");
 
   // order is crucial here
   ms->pushWord("placeObjectInDeliveryZone");
@@ -417,6 +418,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("ifNoGrasp");
 
   ms->pushWord("streamGraspResult");
+  ms->pushWord("ifNoGrasp");
 
   ms->pushWord("executePreparedGrasp"); 
   
@@ -490,6 +492,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("assumeDeliveryPose");
 
     ms->pushWord("checkAndCountGrasp");
+    ms->pushWord("streamGraspResult");
+
     ms->pushWord("waitUntilGripperNotMoving");
     ms->pushWord("closeGripper"); 
     ms->pushWord("shakeItUpAndDown"); 
@@ -569,6 +573,18 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 }
 END_WORD
 REGISTER_WORD(ReturnObject)
+
+WORD(SetBreakGraspTiesWithNoise)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int valToSet = 0;
+  GET_ARG(IntegerWord, valToSet, ms);
+
+  cout << "setBreakGraspTiesWithNoise: got value " << valToSet << endl;
+  ms->config.breakGraspTiesWithNoise = valToSet;
+}
+END_WORD
+REGISTER_WORD(SetBreakGraspTiesWithNoise)
 
 
 }
