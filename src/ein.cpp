@@ -5974,20 +5974,28 @@ void zeroGraspMemoryAndRangeMap(shared_ptr<MachineState> ms) {
       ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 0; 
       ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 1;
       ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 0; 
-      //ms->config.classGraspMemoryTries1[ms->config.targetClass].at<double>(y,x) = 1;
-      //ms->config.classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x) = 0;
-      //ms->config.classGraspMemoryTries2[ms->config.targetClass].at<double>(y,x) = 1;
-      //ms->config.classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x) = 0;
-      //ms->config.classGraspMemoryTries3[ms->config.targetClass].at<double>(y,x) = 1;
-      //ms->config.classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x) = 0;
-      //ms->config.classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x) = 1;
-      //ms->config.classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x) = 0;
       ms->config.rangeMap[x + y*ms->config.rmWidth] = 0;
       ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = 0;
       //ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x) = 0;
     } 
   } 
 
+}
+
+void zeroClassGraspMemory(shared_ptr<MachineState> ms) {
+  guardGraspMemory(ms);
+  for (int y = 0; y < ms->config.rmWidth; y++) {
+    for (int x = 0; x < ms->config.rmWidth; x++) {
+      ms->config.classGraspMemoryTries1[ms->config.targetClass].at<double>(y,x) = 1;
+      ms->config.classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x) = 0;
+      ms->config.classGraspMemoryTries2[ms->config.targetClass].at<double>(y,x) = 1;
+      ms->config.classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x) = 0;
+      ms->config.classGraspMemoryTries3[ms->config.targetClass].at<double>(y,x) = 1;
+      ms->config.classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x) = 0;
+      ms->config.classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x) = 1;
+      ms->config.classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x) = 0;
+    } 
+  } 
 }
 
 void guard3dGrasps(shared_ptr<MachineState> ms) {

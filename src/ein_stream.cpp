@@ -784,7 +784,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
     {
       ms->pushWord("deactivateSensorStreaming"); 
-      ms->pushWord("1.0"); 
+      ms->pushWord("0.1"); 
       ms->pushWord("waitForSeconds"); 
       ms->pushWord("waitUntilImageCallbackReceived"); 
       ms->pushWord("activateSensorStreaming"); 
