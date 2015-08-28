@@ -137,6 +137,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   cout << this->name() <<": "  << ms->config.classGraspZsSet.size() << " " << ms->config.classGraspZs.size() << endl;
   double pickZ;
 
+/* Don't use for now.
   if ( (ms->config.classGraspZsSet.size() > ms->config.targetClass) && 
        (ms->config.classGraspZs.size() > ms->config.targetClass) &&
        (ms->config.classGraspZsSet[ms->config.targetClass] == 1)) {
@@ -144,7 +145,10 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     // trZ holds the height above the table that we want the end effector to be. 
     pickZ = -ms->config.currentTableZ + -ms->config.classGraspZs[ms->config.targetClass];
     cout << "delivering class " << ms->config.classLabels[ms->config.targetClass] << " with classGraspZ " << ms->config.classGraspZs[ms->config.targetClass] << endl;
-  }  else {
+  }  
+  else 
+*/
+  {
     double threshedZ = min(ms->config.trZ, 0.0);
     
     // trZ is the height of the object above the table. 

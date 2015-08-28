@@ -405,11 +405,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
 
   //ms->pushWord("unmapTargetBlueBox");
-  ms->pushWord("openGripper");
 
   // order is crucial here
   ms->pushWord("placeObjectInDeliveryZone");
   ms->pushWord("ifGrasp");
+
+
+  ms->pushWord("openGripper");
+  ms->pushWord("ifNoGrasp");
+
+  ms->pushWord("tryToMoveToTheLastPrePickHeight");   
+  ms->pushWord("ifNoGrasp");
 
   ms->pushWord("unmapTargetBlueBox");
   ms->pushWord("ifNoGrasp");

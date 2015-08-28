@@ -3745,6 +3745,48 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(PreAnnotateCenterGrasp)
 
+WORD(Annotate2dGrasp)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  // this is in mm's for now
+  int gheight = 0;
+  int tgg = 0;
+  int x = ms->config.rmHalfWidth;
+  int y = ms->config.rmHalfWidth;
+
+  GET_ARG(IntegerWord, gheight, ms);
+  GET_ARG(IntegerWord, tgg, ms);
+  GET_ARG(IntegerWord, y, ms);
+  GET_ARG(IntegerWord, x, ms);
+
+  tgg = min(max(0, tgg), 3);
+  x = min(max(0, x), ms->config.rmWidth-1);
+  y = min(max(0, y), ms->config.rmWidth-1);
+
+  int class_idx = ms->config.focusedClass;
+  cout << "annotate2dGrasp, class: " << class_idx << endl;
+  if ( (class_idx > -1) && (class_idx < ms->config.classLabels.size()) ) {
+    cout << "  annotating x y tgg gheight: " << x << " " << y << " " << tgg << " " << gheight << endl;
+    guardGraspMemory(ms);
+    zeroGraspMemoryAndRangeMap(ms);
+    zeroClassGraspMemory(ms);
+    ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tgg] = 1;
+    ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tgg] = 1; 
+    ms->config.rangeMap[x + y*ms->config.rmWidth] = gheight;
+    ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = gheight;
+
+    ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x) = -double(gheight)*0.001;
+    ms->config.classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x) = 1;
+    ms->config.classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x) = 1;
+    ms->config.classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x) = 1;
+    ms->config.classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x) = 1;
+  } else {
+    cout << "  invalid focused class, not annotating." << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(Annotate2dGrasp)
+
 WORD(CollectMoreCrops)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "About to collect more crops, make sure targetClass is set, i.e. you should have" << endl <<

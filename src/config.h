@@ -813,7 +813,7 @@ class EinConfig {
   Mat frameGraySobel;
 
 
-  double graspDepthOffset = -0.04;//-0.01;
+  double graspDepthOffset = -0.02;//-0.01;
   eePose lastPickPose;
   eePose lastPrePickPose;
   eePose lastLockedPose;

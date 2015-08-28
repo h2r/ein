@@ -290,6 +290,7 @@ void convertLocalGraspIdxToGlobal(shared_ptr<MachineState> ms, const int localX,
 void changeTargetClass(shared_ptr<MachineState> ms, int);
 
 void zeroGraspMemoryAndRangeMap(shared_ptr<MachineState> ms);
+void zeroClassGraspMemory(shared_ptr<MachineState> ms);
 void guard3dGrasps(shared_ptr<MachineState> ms);
 void guardGraspMemory(shared_ptr<MachineState> ms);
 void loadSampledGraspMemory(shared_ptr<MachineState> ms);
