@@ -2844,6 +2844,21 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
   }
 }
 
+void collisionDetectionStateCallback(const baxter_core_msgs::CollisionDetectionState& cds) {
+  shared_ptr<MachineState> ms = pMachineState;
+  CollisionDetection detection;
+  
+  detection.inCollision = cds.collision_state;
+  detection.time = cds.header.stamp;
+
+  ms->config.collisionStateBuffer.push_front(detection);
+  while (ms->config.collisionStateBuffer.size() > 100) {
+    ms->config.collisionStateBuffer.pop_back();
+  }
+
+}
+
+
 void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees) {
 
   shared_ptr<MachineState> ms = pMachineState;
@@ -13345,6 +13360,7 @@ int main(int argc, char **argv) {
 
   image_transport::ImageTransport it(n);
 
+  ros::Subscriber collisionDetectionState;
   ros::Subscriber gripState;
   ros::Subscriber eeAccelerator;
   ros::Subscriber eeTarget;
@@ -13369,6 +13385,8 @@ int main(int argc, char **argv) {
     ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, rangeCallback);
     ms->config.image_sub = it.subscribe(ms->config.image_topic, 1, imageCallback);
 
+
+    collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, collisionDetectionStateCallback);
     gripState = n.subscribe("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/state", 1, gripStateCallback);
     eeAccelerator =  n.subscribe("/robot/accelerometer/" + ms->config.left_or_right_arm + "_accelerometer/state", 1, accelerometerCallback);
     eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, targetCallback);
