@@ -172,22 +172,12 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> p1 = ms->popWord();
-  std::shared_ptr<Word> p2 = ms->popWord();
-  if (p1 == NULL || p2 == NULL) {
-    cout << "Warning, requires two words on the stack." << endl;
-    return;
-  }
+  double v1;
+  GET_NUMERIC_ARG(v1, ms);
+  double v2;
+  GET_NUMERIC_ARG(v2, ms);
 
-  std::shared_ptr<IntegerWord> w1 = std::dynamic_pointer_cast<IntegerWord>(p1);
-  std::shared_ptr<IntegerWord> w2 = std::dynamic_pointer_cast<IntegerWord>(p2);
-
-  if (w1 == NULL || w2 == NULL) {
-    cout << "Warning, requires two integers on the stack." << endl;
-    return;
-  }
-
-  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(w1->value() + w2->value());
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(v1 + v2);
   ms->pushWord(newWord);
 
 }
