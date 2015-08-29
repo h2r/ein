@@ -184,9 +184,33 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(Plus)
 
+
+
+WORD(Minus)
+CODE('-') 
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("-");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(v1, ms);
+  double v2;
+  GET_NUMERIC_ARG(v2, ms);
+
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(v2 - v1);
+  ms->pushWord(newWord);
+
+}
+END_WORD
+REGISTER_WORD(Minus)
+
 WORD(Equals)
 CODE('=') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
+
   std::shared_ptr<Word> p1 = ms->popWord();
   std::shared_ptr<Word> p2 = ms->popWord();
   if (p1 == NULL || p2 == NULL) {
