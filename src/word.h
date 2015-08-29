@@ -69,6 +69,80 @@ public:
 
 };
 
+class DoubleWord: public Word
+{
+private:
+  double n;
+
+public:
+
+  double value() {
+    return n;
+  }
+
+  virtual bool is_value() {
+    return true;
+  }
+
+  static std::shared_ptr<DoubleWord> parse(string token) {
+    char* endptr;
+    //double r = strtod(token.c_str(), &endptr); 
+    double r = stod(token); 
+    /* try to do this with exceptions
+    if (endptr == token && r == 0) { 
+      // failed to convert
+      cout << "double parse failed to convert" << endl;
+      ms->pushWord("pauseStackExecution");
+      return;
+    }
+    */
+    return std::make_shared<DoubleWord>(r);
+  }
+  virtual bool is_static() {
+    return false;
+  }
+  static bool isDouble(string token) {
+    try {
+      parse(token);
+      return true;
+    } catch (...) {
+      return false;
+    }
+  }
+  
+  DoubleWord(double _n) {
+    n = _n;
+  }
+  void execute(std::shared_ptr<MachineState> ms) {
+  }
+  string name() {
+    stringstream ss;
+    ss << scientific;
+    ss << n;
+    return ss.str();
+  }
+
+  bool equals(Word * word) {
+    DoubleWord * w1 = dynamic_cast<DoubleWord *>(word);
+    if (w1 == NULL) {
+      return false;
+    } else {
+      return w1->value() == this->value();
+    }
+  }
+  
+  virtual bool to_bool() {
+    if (n == 0) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+  virtual double to_double() {
+    return n;
+  }
+};
+
 
 class IntegerWord: public Word
 {
@@ -86,7 +160,13 @@ public:
   }
 
   static std::shared_ptr<IntegerWord> parse(string token) {
-    return std::make_shared<IntegerWord>(stoi(token));
+    size_t idx;
+    int i = stoi(token, &idx);
+    if (idx != token.size()) {
+      throw 7;
+    } else {
+      return std::make_shared<IntegerWord>(i);
+    }
   }
   virtual bool is_static() {
     return false;
