@@ -130,6 +130,8 @@ void MachineState::pushCopies(std::shared_ptr<Word> word, int times) {
 std::shared_ptr<Word> forthletParse(string token) {
   if (IntegerWord::isInteger(token)) {
     return IntegerWord::parse(token);
+  } else if (DoubleWord::isDouble(token)) {
+    return DoubleWord::parse(token);
   } else if (StringWord::isString(token)) {
     return StringWord::parse(token);
   } else if (name_to_word.count(token) > 0) {
