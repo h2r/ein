@@ -79,7 +79,10 @@ string MachineState::currentState()
 	double thisAveWN = config.averagedWrechAcc / config.averagedWrechMass;
 
     state << "averagedWrechNorm: " << setw(w) << thisAveWN << endl;
+
     
+    state << "collision: " << config.collisionStateBuffer.front().inCollision <<  " buffer: " << config.numCollisions() << "/" << config.collisionStateBuffer.size() << endl;
+
     return state.str();
 
   }
