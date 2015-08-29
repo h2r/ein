@@ -109,6 +109,37 @@ public: \
   x =  hTypeWord->value();\
 }\
 
+
+#define GET_NUMERIC_ARG(x,ms) \
+{\
+  shared_ptr<Word> hWord = ms->popWord();\
+  if (hWord == NULL) {\
+    cout << "Oops, GET_NUMERIC_ARG " << " " << #x << " " << #ms << " found no argument..." << endl;\
+    cout << "  Must pass a numeric argument to " << this->name() << endl;\
+    cout << "  Pausing." << endl;\
+    ms->pushWord("pauseStackExecution");\
+    return;\
+  } else {\
+  std::shared_ptr<IntegerWord> intWord = std::dynamic_pointer_cast<IntegerWord>(hWord);\
+\
+  if (intWord != NULL) {\
+    x = intWord->value();			\
+  } else { \
+    std::shared_ptr<DoubleWord> doubleWord = std::dynamic_pointer_cast<DoubleWord>(hWord);\
+    if (doubleWord != NULL) {\
+      x =  doubleWord->value();\
+    } else { \
+      cout << "Oops, GET_NUMERIC_ARG " << #x << " " << #ms << " found an argument, but not a number..." << endl;\
+      cout << "  Must pass a number as an argument to " << this->name() << endl;\
+      cout << "  Instead got word: " << hWord->name() << " repr: " << hWord->repr() << endl;\
+      cout << "  Pausing." << endl;\
+      ms->pushWord("pauseStackExecution");	\
+      return;\
+    }	     \
+  }	     \
+  }	     \
+   }
+
 int register_word(shared_ptr<Word> word);
 
 
