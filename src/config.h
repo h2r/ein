@@ -127,6 +127,11 @@ typedef enum {
   POSE_REPORTED = 3
 } memoryLockType;
 
+struct CollisionDetection {
+  ros::Time time;
+  bool inCollision;
+};
+
 
 struct BoxMemory {
   cv::Point bTop;
@@ -1212,6 +1217,18 @@ class EinConfig {
   eePose gshHistogram;
   double gshCounts;
   eePose gshPose;
+
+  list<CollisionDetection> collisionStateBuffer;
+
+  int numCollisions() {
+    int numCollisions = 0;
+    for (std::list<CollisionDetection>::iterator it=collisionStateBuffer.begin(); it != collisionStateBuffer.end(); ++it) {
+      if (it->inCollision) {
+	numCollisions++;
+      }
+    }
+    return numCollisions;
+  }
 
   image_transport::Subscriber image_sub;
   ros::Subscriber eeRanger;
