@@ -4619,7 +4619,8 @@ cv::Point worldToPixel(Mat mapImage, double xMin, double xMax, double yMin, doub
 
 void renderObjectMapView(shared_ptr<MachineState> ms) {
   if (ms->config.objectMapViewerImage.rows <= 0 ) {
-    ms->config.objectMapViewerImage = Mat(600, 600, CV_8UC3);
+    //ms->config.objectMapViewerImage = Mat(600, 600, CV_8UC3);
+    ms->config.objectMapViewerImage = Mat(400, 400, CV_8UC3);
   }
 
   if (0) { // drawGrid
