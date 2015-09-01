@@ -670,14 +670,16 @@ REGISTER_WORD(EnableRobot)
 WORD(ReplicateWord)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  shared_ptr<Word> numWord = ms->popWord();
+
+  double v1;
+  GET_NUMERIC_ARG(v1, ms);
+
   shared_ptr<Word> aWord = ms->popWord();
-  if ((numWord == NULL) || (aWord == NULL)) {
-    cout << "Must pass an int on top of another word to " << this->name() << endl;
+  if (aWord == NULL) {
+    cout << "Must pass an int and a word to " << this->name() << endl;
     return;
   } else {
-    std::shared_ptr<IntegerWord> replicateTimes = std::dynamic_pointer_cast<IntegerWord>(numWord);
-    int rTimes = replicateTimes->value();
+    int rTimes = (int) v1;
     std::shared_ptr<Word> repWord = aWord;
     ms->pushCopies(repWord, rTimes);
   }
