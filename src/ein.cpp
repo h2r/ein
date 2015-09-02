@@ -13562,7 +13562,7 @@ int main(int argc, char **argv) {
   ms->config.headPub = n.advertise<baxter_core_msgs::HeadPanCommand>("/robot/head/command_head_pan",10);
   ms->config.nodPub = n.advertise<std_msgs::Bool>("/robot/head/command_head_nod",10);
 
-  ms->config.stiffPub = n.advertise<std_msgs::UInt32>("/robot/limb/right/command_stiffness",10);
+  ms->config.stiffPub = n.advertise<std_msgs::UInt32>("/robot/limb/" + ms->config.left_or_right_arm + "/command_stiffness",10);
 
   ms->config.currentHeadPanCommand.target = 0;
   ms->config.currentHeadPanCommand.speed = 50;

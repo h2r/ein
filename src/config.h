@@ -3,6 +3,7 @@
 
 #include <baxter_core_msgs/HeadPanCommand.h>
 #include <std_msgs/UInt16.h>
+#include <std_msgs/UInt32.h>
 #include <std_msgs/Bool.h>
 #include <cv_bridge/cv_bridge.h>
 
@@ -239,6 +240,7 @@ class EinConfig {
   baxter_core_msgs::HeadPanCommand currentHeadPanCommand;
   std_msgs::Bool currentHeadNodCommand;
   std_msgs::UInt16 currentSonarCommand;
+  std_msgs::UInt32 currentStiffnessCommand;
   
   tf::TransformListener* tfListener;
   

@@ -644,8 +644,13 @@ REGISTER_WORD(PressAndRelease)
 WORD(SetStiffness)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
+/*
+Don't use this code, if stiff == 1 the robot flails dangerously...
   int stiff = 0;
   GET_ARG(ms, IntegerWord, stiff);
+  ms->config.currentStiffnessCommand.data = stiff;
+  ms->config.stiffPub.publish(ms->config.currentStiffnessCommand);
+*/
 }
 END_WORD
 REGISTER_WORD(SetStiffness)
