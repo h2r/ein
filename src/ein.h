@@ -335,6 +335,7 @@ void recordBoundingBoxFailure(shared_ptr<MachineState> ms);
 void restartBBLearning(shared_ptr<MachineState> ms);
 
 eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixel, eePose givenReticle, double angle);
+eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixel, eePose givenReticle, double angle, eePose givenCameraPose);
 void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms);
 void gradientServo(shared_ptr<MachineState> ms);
 void continuousServo(shared_ptr<MachineState> ms);

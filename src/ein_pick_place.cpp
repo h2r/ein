@@ -592,6 +592,107 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(SetBreakGraspTiesWithNoise)
 
+WORD(TurnAboutY)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("oYDown");
+    ms->pushWord("160");
+    ms->pushWord("replicateWord");
+
+
+//    ms->pushWord("waitUntilAtCurrentPosition");
+//    ms->pushWord("setGridSizeCoarse");
+//    ms->pushWord("shiftIntoGraspGear1");
+//    ms->pushWord("1");
+//    ms->pushWord("changeToHeight");
+//    ms->pushWord("assumeBeeHome");
+}
+END_WORD
+REGISTER_WORD(TurnAboutY)
+
+WORD(UnTurnAboutY)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("oYUp");
+    ms->pushWord("160");
+    ms->pushWord("replicateWord");
+
+
+//    ms->pushWord("waitUntilAtCurrentPosition");
+//    ms->pushWord("setGridSizeCoarse");
+//    ms->pushWord("shiftIntoGraspGear1");
+//    ms->pushWord("1");
+//    ms->pushWord("changeToHeight");
+//    ms->pushWord("assumeBeeHome");
+}
+END_WORD
+REGISTER_WORD(UnTurnAboutY)
+
+
+WORD(PressAndRelease)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+    ms->pushWord("pressAndReleaseA");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("approachSpeed");
+}
+END_WORD
+REGISTER_WORD(PressAndRelease)
+
+WORD(SetStiffness)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int stiff = 0;
+  GET_ARG(IntegerWord, stiff, ms);
+}
+END_WORD
+REGISTER_WORD(SetStiffness)
+
+WORD(PressAndReleaseA)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+
+  if (ms->config.currentMovementState == BLOCKED) {
+
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilEndpointCallbackReceived");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+
+    ms->pushWord("openGripper");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilEndpointCallbackReceived");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("zDown");
+    ms->pushWord("zDown");
+    ms->pushWord("zDown");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilEndpointCallbackReceived");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("zUp");
+    ms->pushWord("zUp");
+    ms->pushWord("zUp");
+    ms->pushWord("zeroGOff");
+    ms->pushWord("waitUntilEndpointCallbackReceived");
+    ms->pushWord("zeroGOn");
+  } else {
+    ms->pushWord("pressAndReleaseA");
+    ms->pushWord("\"1.0\""); 
+    ms->pushWord("waitForSeconds");
+    ms->pushWord("zDown");
+    ms->pushWord("setGridSizeCoarse");
+  }
+}
+END_WORD
+REGISTER_WORD(PressAndReleaseA)
 
 }
 
