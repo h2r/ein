@@ -6,12 +6,12 @@ WORD(TwoPartPlaceObjectOnObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   
   string firstObjectLabel;
-  GET_ARG(StringWord, firstObjectLabel, ms);
+  GET_ARG(ms, StringWord, firstObjectLabel);
   string secondObjectLabel;
-  GET_ARG(StringWord, secondObjectLabel, ms);
+  GET_ARG(ms, StringWord, secondObjectLabel);
   // this is specified in mm
   int amountMms;
-  GET_ARG(IntegerWord, amountMms, ms);
+  GET_ARG(ms, IntegerWord, amountMms);
 
   ms->pushWord(std::make_shared<IntegerWord>(amountMms));
   ms->pushWord(std::make_shared<StringWord>(secondObjectLabel));
@@ -30,10 +30,10 @@ REGISTER_WORD(TwoPartPlaceObjectOnObject)
 WORD(PlaceHeldObjectOnObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   string secondObjectLabel;
-  GET_ARG(StringWord, secondObjectLabel, ms);
+  GET_ARG(ms, StringWord, secondObjectLabel);
   // this is specified in mm
   int amountMms;
-  GET_ARG(IntegerWord, amountMms, ms);
+  GET_ARG(ms, IntegerWord, amountMms);
   double cTableHeight = 0.001 * amountMms;
 
 
@@ -584,7 +584,7 @@ WORD(SetBreakGraspTiesWithNoise)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   int valToSet = 0;
-  GET_ARG(IntegerWord, valToSet, ms);
+  GET_ARG(ms, IntegerWord, valToSet);
 
   cout << "setBreakGraspTiesWithNoise: got value " << valToSet << endl;
   ms->config.breakGraspTiesWithNoise = valToSet;
@@ -645,7 +645,7 @@ WORD(SetStiffness)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   int stiff = 0;
-  GET_ARG(IntegerWord, stiff, ms);
+  GET_ARG(ms, IntegerWord, stiff);
 }
 END_WORD
 REGISTER_WORD(SetStiffness)
