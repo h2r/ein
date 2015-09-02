@@ -172,31 +172,45 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> p1 = ms->popWord();
-  std::shared_ptr<Word> p2 = ms->popWord();
-  if (p1 == NULL || p2 == NULL) {
-    cout << "Warning, requires two words on the stack." << endl;
-    return;
-  }
+  double v1;
+  GET_NUMERIC_ARG(v1, ms);
+  double v2;
+  GET_NUMERIC_ARG(v2, ms);
 
-  std::shared_ptr<IntegerWord> w1 = std::dynamic_pointer_cast<IntegerWord>(p1);
-  std::shared_ptr<IntegerWord> w2 = std::dynamic_pointer_cast<IntegerWord>(p2);
-
-  if (w1 == NULL || w2 == NULL) {
-    cout << "Warning, requires two integers on the stack." << endl;
-    return;
-  }
-
-  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(w1->value() + w2->value());
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(v1 + v2);
   ms->pushWord(newWord);
 
 }
 END_WORD
 REGISTER_WORD(Plus)
 
+
+
+WORD(Minus)
+CODE('-') 
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("-");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(v1, ms);
+  double v2;
+  GET_NUMERIC_ARG(v2, ms);
+
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(v2 - v1);
+  ms->pushWord(newWord);
+
+}
+END_WORD
+REGISTER_WORD(Minus)
+
 WORD(Equals)
 CODE('=') 
 virtual void execute(std::shared_ptr<MachineState> ms) {
+
   std::shared_ptr<Word> p1 = ms->popWord();
   std::shared_ptr<Word> p2 = ms->popWord();
   if (p1 == NULL || p2 == NULL) {
@@ -656,14 +670,16 @@ REGISTER_WORD(EnableRobot)
 WORD(ReplicateWord)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  shared_ptr<Word> numWord = ms->popWord();
+
+  double v1;
+  GET_NUMERIC_ARG(v1, ms);
+
   shared_ptr<Word> aWord = ms->popWord();
-  if ((numWord == NULL) || (aWord == NULL)) {
-    cout << "Must pass an int on top of another word to " << this->name() << endl;
+  if (aWord == NULL) {
+    cout << "Must pass an int and a word to " << this->name() << endl;
     return;
   } else {
-    std::shared_ptr<IntegerWord> replicateTimes = std::dynamic_pointer_cast<IntegerWord>(numWord);
-    int rTimes = replicateTimes->value();
+    int rTimes = (int) v1;
     std::shared_ptr<Word> repWord = aWord;
     ms->pushCopies(repWord, rTimes);
   }
