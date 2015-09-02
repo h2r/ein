@@ -646,11 +646,14 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
 /*
 Don't use this code, if stiff == 1 the robot flails dangerously...
+*/
   int stiff = 0;
+  // this is a safety value, do not go below 50. have e-stop ready.
+  stiff = max(50, stiff);
+
   GET_ARG(ms, IntegerWord, stiff);
   ms->config.currentStiffnessCommand.data = stiff;
   ms->config.stiffPub.publish(ms->config.currentStiffnessCommand);
-*/
 }
 END_WORD
 REGISTER_WORD(SetStiffness)
@@ -679,9 +682,13 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     ms->pushWord("zDown");
     ms->pushWord("zDown");
     ms->pushWord("zDown");
+    ms->pushWord("zDown");
+    ms->pushWord("zDown");
     ms->pushWord("comeToStop");
     ms->pushWord("waitUntilEndpointCallbackReceived");
     ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("zUp");
+    ms->pushWord("zUp");
     ms->pushWord("zUp");
     ms->pushWord("zUp");
     ms->pushWord("zUp");
