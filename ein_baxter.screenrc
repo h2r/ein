@@ -39,7 +39,7 @@ hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{= kw}%?%-Lw%?%{r}(%{W}%n*%f%t%?(%u
 
 screen -t " einR"
 stuff "./baxter.sh"
-stuff "catkin_make && gdb --args ./devel/lib/ein/ein  _data_directory:=\"$(rospack find ein)/default\" _vocab_file:=\"vocab.yml\" _knn_file:=\"knn.yml\" _label_file:=\"labels.yml\" _left_or_right_arm:=\"right\" _gray_box_left:=90 _gray_box_right:=90 _gray_box_bot:=60 _add_blinders:=0 _mask_gripper:=1 _use_simulator:=false right"
+stuff "catkin_make && gdb --args ./devel/lib/ein/ein  _data_directory:=\"$(rospack find ein)/default\" _use_simulator:=false right"
 screen -t " replR"
 stuff "./baxter.sh"
 stuff "rosrun ein ein_client.py right"
