@@ -68,7 +68,7 @@ REGISTER_WORD(MappingPatrol)
 WORD(SetMapServoMode)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int modeGot = 0;
-  GET_ARG(IntegerWord, modeGot, ms);
+  GET_ARG(ms, IntegerWord, modeGot);
   cout << "setMapServoMode was: " << ms->config.currentMapServoMode << " setting " << modeGot << endl;
   ms->config.currentMapServoMode = (mapServoMode)modeGot;
 }

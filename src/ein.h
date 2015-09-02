@@ -33,6 +33,7 @@
 #include <std_msgs/String.h>
 #include <std_msgs/Int32.h>
 #include <std_msgs/UInt16.h>
+#include <std_msgs/UInt32.h>
 #include <std_msgs/Float64.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <geometry_msgs/Point.h>

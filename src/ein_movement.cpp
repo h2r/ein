@@ -505,7 +505,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 // dead_zone - Position deadband within move considered successful 
 // ALL PARAMETERS (0-100) 
 
-  int amount = 0; GET_ARG(IntegerWord,amount,ms);
+  int amount = 0; GET_ARG(ms,IntegerWord,amount);
   amount = min(max(0,amount),100);
 
   cout << "setGripperMovingForce, amount: " << amount << endl;
@@ -551,7 +551,7 @@ WORD(OpenGripperInt)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "openGripperInt: ";
 
-  int amount = 0; GET_ARG_INT(amount,ms);
+  int amount = 0; GET_ARG(ms,IntegerWord,amount);
   amount = min(max(0,amount),100);
 
   char buf[1024]; sprintf(buf, "{\"position\": %d.0}", amount);
@@ -1535,7 +1535,7 @@ REGISTER_WORD(CurrentPoseToWord)
 WORD(MoveEeToPoseWord)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   eePose destPose;
-  GET_ARG(EePoseWord,destPose,ms);
+  GET_ARG(ms,EePoseWord,destPose);
   ms->config.currentEEPose = destPose;
 }
 END_WORD
