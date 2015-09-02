@@ -24,6 +24,8 @@
 #include <QApplication>
 #include <QTimer>
 
+//#define DEBUG_RING_BUFFER
+
 MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
@@ -318,7 +320,10 @@ int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::P
 	  w1 = w1 / totalWeight;
 	  w2 = w2 / totalWeight;
 
-	  Quaternionf tTerp = q1.slerp(w2, q2);
+	  // XXX check this
+	  //Quaternionf tTerp = q1.slerp(w2, q2);
+	  Quaternionf tTerp = q1.slerp(w1, q2);
+
 	  value.orientation.w = tTerp.w();
 	  value.orientation.x = tTerp.x();
 	  value.orientation.y = tTerp.y();
@@ -327,9 +332,10 @@ int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::P
 	  value.position.y = ms->config.epRingBuffer[s].position.y*w1 + ms->config.epRingBuffer[s+1].position.y*w2;
 	  value.position.z = ms->config.epRingBuffer[s].position.z*w1 + ms->config.epRingBuffer[s+1].position.z*w2;
 #ifdef DEBUG_RING_BUFFER
-          cout << value << endl;
-          cout << "33333c " << ms->config.epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
-          cout << "44444c " << ms->config.epRingBuffer[s+1] << endl;
+          //cout << value << endl;
+          //cout << "33333c " << ms->config.epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+          //cout << "44444c " << ms->config.epRingBuffer[s+1] << endl;
+          //cout << "555c " << ms->config.epRBTimes[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
 #endif
 
 	  int newStart = s;
@@ -338,10 +344,14 @@ int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::P
 	  }
 	  return 1;
 	}
+#ifdef DEBUG_RING_BUFFER
+          cout << "777c " << ms->config.epRBTimes[s] << endl;
+#endif
       }
       // if we didn't find it we should return failure
 #ifdef DEBUG_RING_BUFFER
-      cout << "Denied out of order range value in getRingPoseAtTime(): Too large." << endl;
+      cout << "Denied out of order range value in getRingPoseAtTime() Upper: Too large. " << t << endl;
+      cout << "rbStart: " << ms->config.epRingBufferStart << " rbEnd: " << ms->config.epRingBufferEnd << endl;
 #endif
       return -2;
     } else {
@@ -444,7 +454,7 @@ int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::P
       }
       // if we didn't find it we should return failure
 #ifdef DEBUG_RING_BUFFER
-      cout << "Denied out of order range value in getRingPoseAtTime(): Too large." << endl;
+      cout << "Denied out of order range value in getRingPoseAtTime() Lower: Too large. " << t << endl;
 #endif
       return -2;
     }
@@ -466,7 +476,7 @@ void setRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& imToSet) 
     ros::Duration deltaTdur = t - ms->config.imRBTimes[ms->config.imRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER 
-      cout << "Dropped out of order range value in setRingImageAtTime(). " << ms->config.imRBTimes[ms->config.ms->config.imRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+      cout << "Dropped out of order range value in setRingImageAtTime(). " << ms->config.imRBTimes[ms->config.imRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
 #endif
     } else {
       int slot = ms->config.imRingBufferEnd;
@@ -529,7 +539,7 @@ void setRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double rgToSet
 }
 void setRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::Pose epToSet) {
 #ifdef DEBUG_RING_BUFFER
-  cout << "setRingPoseAtTime() start end size: " << ms->config.epRingBufferStart << " " << ms->config.epRingBufferEnd << " " << ms->config.epRingBufferSize << endl;
+  cout << "setRingPoseAtTime() start end size time: " << ms->config.epRingBufferStart << " " << ms->config.epRingBufferEnd << " " << ms->config.epRingBufferSize << " " << t << endl;
 #endif
 
   // if the ring buffer is empty, always re-initialize
@@ -918,7 +928,8 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 	}
     
 	rgRingBufferAdvance(ms);
-	allRingBuffersAdvance(ms, thisTime);
+	// XXX
+	//allRingBuffersAdvance(ms, thisTime);
 	IShouldContinue = 1; // not strictly necessary
       } else {
 	IShouldContinue = 0;
@@ -927,7 +938,7 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
     }
   }
 #ifdef DEBUG_RING_BUFFER
-  cout << "recordReadyRangeReadings()  ms->config.rgRingBufferStart ms->config.rgRingBufferEnd: " << rgRingBufferStart << " " << ms->config.rgRingBufferEnd << endl;
+  cout << "recordReadyRangeReadings()  ms->config.rgRingBufferStart ms->config.rgRingBufferEnd: " << ms->config.rgRingBufferStart << " " << ms->config.rgRingBufferEnd << endl;
 #endif
 }
 
@@ -4228,6 +4239,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   shared_ptr<MachineState> ms = pMachineState;
   ms->config.lastImageCallbackReceived = ros::Time::now();
+
+  ms->config.lastImageStamp = msg->header.stamp;
 
   int converted = 0;
   if((ms->config.sensorStreamOn) && (ms->config.sisImage)) {
@@ -7905,27 +7918,23 @@ void continuousServo(shared_ptr<MachineState> ms) {
   int imH = sz.height;
 
   // XXX
-  //geometry_msgs::Pose thisPose;
-  //int weHavePoseData = getRingPoseAtTime(ms, eps.header.stamp, thisPose);
-  //ms->config.lastImageCallbackReceived = ros::Time::now();
+  geometry_msgs::Pose thisPose;
+  int weHavePoseData = getRingPoseAtTime(ms, ms->config.lastImageFromDensityReceived, thisPose);
+  eePose poseOfImage = eePose::fromGeometryMsgPose(thisPose);
 
-  // ATTN 23
+/*
+cout << "AAA: " << weHavePoseData << " " << poseOfImage << " " << ms->config.currentEEPose << endl;
+cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl 
+     << ms->config.lastImageCallbackReceived << endl 
+     << ms->config.lastEndpointCallbackReceived << endl 
+     << ros::Time::now() << endl;
+*/
+
   //reticle = ms->config.heightReticles[ms->config.currentThompsonHeightIdx];
-  eePose thisGripperReticle;
-  double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-  int xOut=-1, yOut=-1;
-  globalToPixel(ms, &xOut, &yOut, zToUse, ms->config.trueEEPoseEEPose.px, ms->config.trueEEPoseEEPose.py);
-  thisGripperReticle.px = xOut;
-  thisGripperReticle.py = yOut;
+  // ATTN a1
   ms->config.reticle = ms->config.vanishingPointReticle;
 
-  // ATTN 12
-  //        if ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) && (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING)) {
-  //          cout << "bbLearning: synchronic servo timed out, early outting." << endl;
-  //          restartBBLearning(ms);
-  //        }
-
-  cout << "entered gradient servo... iteration " << ms->config.currentGradientServoIterations << endl;
+  cout << "entered continuous servo... iteration " << endl;
   if (ms->config.targetClass < 0 || ms->config.targetClass >= ms->config.numClasses) {
     cout << "bad target class, not servoing." << endl;
     return;
@@ -7936,8 +7945,11 @@ void continuousServo(shared_ptr<MachineState> ms) {
     mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
     int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
     if (!doWeHaveClearance) {
-      //ms->pushWord("clearStackIntoMappingPatrol"); 
-      cout << ">>>> Gradient servo strayed out of clearance area during mapping. <<<<" << endl;
+      cout << ">>>> continuous servo strayed out of clearance area during mapping. Going home. <<<<" << endl;
+      ms->pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord("1");
+      ms->pushWord("changeToHeight");
+      ms->pushWord("assumeBeeHome");
       ms->pushWord("endStackCollapseNoop");
       return;
     }
@@ -7991,7 +8003,7 @@ void continuousServo(shared_ptr<MachineState> ms) {
 
   // ATTN 3
   // gradientServoScale should be even
-  int gradientServoScale = 3;//11;
+  int gradientServoScale = 1;//3;//11;
   double gradientServoScaleStep = 1.02;
   if (ms->config.orientationCascade) {
     if (ms->config.lastPtheta < ms->config.lPTthresh) {
@@ -8010,6 +8022,7 @@ void continuousServo(shared_ptr<MachineState> ms) {
 
   for (int etaS = 0; etaS < gradientServoScale; etaS++) {
     double thisScale = startScale * pow(gradientServoScaleStep, etaS);
+#pragma omp parallel for
     for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
       // orientation cascade
       if (ms->config.orientationCascade) {
@@ -8109,11 +8122,12 @@ void continuousServo(shared_ptr<MachineState> ms) {
               }
             }
           }
-  // ATTN 25
-  if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
-       (thisOrient != 0) ) {
-    continue;
-  }
+
+	  // ATTN 25
+	  if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
+	       (thisOrient != 0) ) {
+	    continue;
+	  }
           
           // compute the score
           double thisScore = 0;
@@ -8161,11 +8175,12 @@ void continuousServo(shared_ptr<MachineState> ms) {
               }
             }
           }
-  // ATTN 25
-  if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
-       (thisOrient != 0) ) {
-    continue;
-  }
+
+	  // ATTN 25
+	  if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
+	       (thisOrient != 0) ) {
+	    continue;
+	  }
           
           int tEtaX = etaX+gradientServoTranslation;
           int tEtaY = etaY+gradientServoTranslation;
@@ -8197,6 +8212,7 @@ void continuousServo(shared_ptr<MachineState> ms) {
   Px = -bestX;
   Py = -bestY;
   
+  // don't servo in Z
   //Ps = bestS - ((gradientServoScale-1)/2);
   Ps = 0;
   
@@ -8254,144 +8270,36 @@ void continuousServo(shared_ptr<MachineState> ms) {
   ms->config.lastPtheta = Ptheta;
   
   
-  // XXX this still might miss if it nails the correct orientation on the last try
-  // TODO but we could set the bestOrientationEEPose here according to what it would have been`
-  // but we don't want to move because we want all the numbers to be consistent
-  if (ms->config.currentGradientServoIterations > (ms->config.hardMaxGradientServoIterations-1)) {
-    //cout << "LAST ITERATION indefinite orientation ";
+  double kPtheta = 0.0;
+  if (Ptheta < ms->config.kPThresh) {
+    kPtheta = ms->config.kPtheta2;
   } else {
-    double kPtheta = 0.0;
-    if (Ptheta < ms->config.kPThresh)
-      kPtheta = ms->config.kPtheta2;
-    else
-      kPtheta = ms->config.kPtheta1;
+    kPtheta = ms->config.kPtheta1;
+  }
+  
+  if (bestOrientation <= numOrientations/2) {
+    ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
     
-    if (bestOrientation <= numOrientations/2) {
-      ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
-      
-    } else {
-      ms->config.currentEEDeltaRPY.pz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
-    }
+  } else {
+    ms->config.currentEEDeltaRPY.pz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
   }
   
   double doublePtheta =   ms->config.currentEEDeltaRPY.pz;
 
-  //cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << 
+  //cout << "continuous servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << 
   //ms->config.pilotTarget.px << " " << reticle.py << " " << ms->config.pilotTarget.py << " " <<
   //bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
   
-  double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
-  double dy = (ms->config.currentEEPose.py - ms->config.trueEEPose.position.y);
-  double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
-  double distance = dx*dx + dy*dy + dz*dz;
-  
-
-  // ATTN 5
-  // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
-  if (((fabs(Px) < ms->config.gradServoPixelThresh) && (fabs(Py) < ms->config.gradServoPixelThresh) && (fabs(Ptheta) < ms->config.gradServoThetaThresh)) ||
-      (ms->config.currentGradientServoIterations > (ms->config.hardMaxGradientServoIterations-1)))
   {
-
-    if (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) {
-      ms->config.gshHistogram = ms->config.gshHistogram.plusP(ms->config.currentEEPose);
-      ms->config.gshCounts = 1.0 + ms->config.gshCounts;
-      cout << "Adding final gradient servo position estimate to histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
-    } else {
-    } // do nothing
-     
-    // turn off histogrammed code for now
-    if (ms->config.gshCounts > 0) {
-      cout << "Replacing final gradient servo position estimate with histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
-      ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
-      ms->config.currentEEPose.copyP(ms->config.gshPose);
-    }
-    ms->config.gshHistogram = eePose::zero();
-    ms->config.gshCounts = 0.0;
-    
-cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
-    ms->pushCopies("waitUntilAtCurrentPosition", 1); 
-    
-    
-    // ATTN 23
-    // move from vanishing point reticle to gripper reticle
-    //moveCurrentGripperRayToCameraVanishingRay();
-    //ms->config.bestOrientationEEPose = ms->config.currentEEPose;
-
-    // ATTN 12
-    if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
-      cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << ms->config.gradientServoDuringHeightLearning << endl;
-      cout << "bbLearning: returning from gradient servo." << endl;
-      return;
-    }
-    
-    return;
-  } else {
-      
-    ms->pushWord("gradientServo"); 
-    
-    double pTermX = ms->config.gradKp*Px;
-    double pTermY = ms->config.gradKp*Py;
-    
-    double pTermS = Ps * .005;
-    ms->config.currentEEPose.pz += pTermS;
-    
-    // invert the current eePose orientation to decide which direction to move from POV
-    Eigen::Vector3f localUnitX;
-    {
-      Eigen::Quaternionf qin(0, 1, 0, 0);
-      Eigen::Quaternionf qout(0, 1, 0, 0);
-      Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-      qout = eeqform * qin * eeqform.conjugate();
-      localUnitX.x() = qout.x();
-      localUnitX.y() = qout.y();
-      localUnitX.z() = qout.z();
-    }
-      
-    Eigen::Vector3f localUnitY;
-    {
-      Eigen::Quaternionf qin(0, 0, 1, 0);
-      Eigen::Quaternionf qout(0, 1, 0, 0);
-      Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-      qout = eeqform * qin * eeqform.conjugate();
-      localUnitY.x() = qout.x();
-      localUnitY.y() = qout.y();
-      localUnitY.z() = qout.z();
-    }
-    
     double newx = 0;
     double newy = 0;
-    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz);
+    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz, poseOfImage);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
 
     ms->config.currentEEPose.px = newx;
     ms->config.currentEEPose.py = newy;
-
-    // if we are at the soft max, take first histogram estimate.
-    // if we are above, add to it
-    // if we are below it 
-    if (ms->config.currentGradientServoIterations == (ms->config.softMaxGradientServoIterations-1)) {
-      ms->config.gshHistogram = ms->config.currentEEPose;
-      ms->config.gshCounts = 1.0;
-      cout << "Initializing gradient servo histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
-      ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
-      ms->config.currentEEPose.copyP(ms->config.gshPose);
-    } else if (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) {
-      ms->config.gshHistogram = ms->config.gshHistogram.plusP(ms->config.currentEEPose);
-      ms->config.gshCounts = 1.0 + ms->config.gshCounts;
-      cout << "Adding intermediate gradient servo position estimate to histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
-      ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
-      ms->config.currentEEPose.copyP(ms->config.gshPose);
-    } else {
-    } // do nothing
-
-cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
-    ms->pushCopies("waitUntilAtCurrentPosition", 1); 
-    
   }
-
-  // update after
-  ms->config.currentGradientServoIterations++;
 }
 
 // given pixel is the pixel in the current frame that you want to be at the vanishing point
@@ -8416,6 +8324,31 @@ eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixe
   endEffectorAngularUpdate(&fakeEndEffector, &fakeEndEffectorDeltaRPY);
   {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
+    pixelToGlobal(ms, givenReticle.px, givenReticle.py, zToUse, &(grGlobalPostRotation.px), &(grGlobalPostRotation.py), fakeEndEffector);
+  }
+  double  postRotationTranslationX = (gpGlobalPreRotation.px - grGlobalPostRotation.px);
+  double  postRotationTranslationY = (gpGlobalPreRotation.py - grGlobalPostRotation.py);
+
+  toReturn.px += postRotationTranslationX;
+  toReturn.py += postRotationTranslationY;
+  return toReturn;
+}
+
+eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixel, eePose givenReticle, double ozAngle, eePose givenCameraPose) {
+  eePose toReturn = givenCameraPose;
+  eePose grGlobalPostRotation = givenCameraPose;
+  eePose gpGlobalPreRotation = givenCameraPose;
+  {
+    double zToUse = givenCameraPose.pz+ms->config.currentTableZ;
+    pixelToGlobal(ms, givenPixel.px, givenPixel.py, zToUse, &(gpGlobalPreRotation.px), &(gpGlobalPreRotation.py), givenCameraPose);
+  }
+
+  eePose fakeEndEffector = givenCameraPose;
+  eePose fakeEndEffectorDeltaRPY = eePose::zero();
+  fakeEndEffectorDeltaRPY.pz = ozAngle;
+  endEffectorAngularUpdate(&fakeEndEffector, &fakeEndEffectorDeltaRPY);
+  {
+    double zToUse = givenCameraPose.pz+ms->config.currentTableZ;
     pixelToGlobal(ms, givenReticle.px, givenReticle.py, zToUse, &(grGlobalPostRotation.px), &(grGlobalPostRotation.py), fakeEndEffector);
   }
   double  postRotationTranslationX = (gpGlobalPreRotation.px - grGlobalPostRotation.px);
@@ -10515,6 +10448,8 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
+
+  ms->config.lastImageFromDensityReceived = ms->config.lastImageStamp;
 
   // XXX TODO might be able to pick up some time here if their allocation is slow
   // by making these global
@@ -13625,6 +13560,8 @@ int main(int argc, char **argv) {
   ms->config.sonarPub = n.advertise<std_msgs::UInt16>("/robot/sonar/head_sonar/set_sonars_enabled",10);
   ms->config.headPub = n.advertise<baxter_core_msgs::HeadPanCommand>("/robot/head/command_head_pan",10);
   ms->config.nodPub = n.advertise<std_msgs::Bool>("/robot/head/command_head_nod",10);
+
+  ms->config.stiffPub = n.advertise<std_msgs::UInt32>("/robot/limb/right/command_stiffness",10);
 
   ms->config.currentHeadPanCommand.target = 0;
   ms->config.currentHeadPanCommand.speed = 50;
