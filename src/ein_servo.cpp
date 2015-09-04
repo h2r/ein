@@ -1295,6 +1295,46 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(GradientServo)
 
+WORD(ContinuousServoL)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord("continuousServoL");
+  ms->pushWord("continuousServo");
+  //ms->pushWord("comeToStop");
+}
+END_WORD
+REGISTER_WORD(ContinuousServoL)
+
+WORD(ContinuousServo)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // XXX there is some issue when the orientation is changing, 
+  //  convergence isn't instantaneous unless waitUntilAtCurrentPosition is called
+  //ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("\"0.2\"");
+  ms->pushWord("waitForSeconds");
+  //ms->pushWord("endStackCollapseNoop");
+  ms->pushWord("waitUntilEndpointCallbackReceived");
+  ms->pushWord("continuousServoA");
+  ms->pushWord("continuousServoPrep");
+}
+END_WORD
+REGISTER_WORD(ContinuousServo)
+
+WORD(ContinuousServoPrep)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord("densityA");
+  ms->pushWord("waitUntilEndpointCallbackReceived");
+  ms->pushWord("waitUntilImageCallbackReceived");
+}
+END_WORD
+REGISTER_WORD(ContinuousServoPrep)
+
+WORD(ContinuousServoA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  continuousServo(ms);
+}
+END_WORD
+REGISTER_WORD(ContinuousServoA)
+
 WORD(GradientServoPrep)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // ATTN 8

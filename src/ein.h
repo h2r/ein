@@ -33,6 +33,7 @@
 #include <std_msgs/String.h>
 #include <std_msgs/Int32.h>
 #include <std_msgs/UInt16.h>
+#include <std_msgs/UInt32.h>
 #include <std_msgs/Float64.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <geometry_msgs/Point.h>
@@ -335,6 +336,7 @@ void recordBoundingBoxFailure(shared_ptr<MachineState> ms);
 void restartBBLearning(shared_ptr<MachineState> ms);
 
 eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixel, eePose givenReticle, double angle);
+eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixel, eePose givenReticle, double angle, eePose givenCameraPose);
 void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms);
 void gradientServo(shared_ptr<MachineState> ms);
 void continuousServo(shared_ptr<MachineState> ms);
