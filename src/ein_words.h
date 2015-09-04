@@ -85,7 +85,7 @@ public: \
   x = destWord->value();\
 }\
 
-#define GET_ARG(type,x,ms) \
+#define GET_ARG(ms,type,x) \
 {\
   shared_ptr<Word> hWord = ms->popWord();\
   if (hWord == NULL) {\
@@ -110,7 +110,7 @@ public: \
 }\
 
 
-#define GET_NUMERIC_ARG(x,ms) \
+#define GET_NUMERIC_ARG(ms,x) \
 {\
   shared_ptr<Word> hWord = ms->popWord();\
   if (hWord == NULL) {\

@@ -65,6 +65,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(MappingPatrol)
 
+WORD(SetMapServoMode)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int modeGot = 0;
+  GET_ARG(ms, IntegerWord, modeGot);
+  cout << "setMapServoMode was: " << ms->config.currentMapServoMode << " setting " << modeGot << endl;
+  ms->config.currentMapServoMode = (mapServoMode)modeGot;
+}
+END_WORD
+REGISTER_WORD(SetMapServoMode)
+
 WORD(MappingPatrolA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "mappingPatrolA" << endl;
@@ -81,17 +91,59 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("shiftIntoGraspGear1");
   ms->pushWord("lockTargetIfBlueBoxes");
   //ms->pushWord("collapseStack");
-  ms->pushWord("gradientServoIfBlueBoxes");
-  ms->pushWord("mapClosestBlueBox");
-  ms->pushWord("mapEmptySpace");
 
-  if (1) {
+  if (ms->config.currentMapServoMode == HISTOGRAM_CLASSIFY) {
+    ms->pushWord("gradientServoIfBlueBoxes");
+    ms->pushWord("mapClosestBlueBox");
+    ms->pushWord("mapEmptySpace");
     ms->pushWord("histogramDetectionIfBlueBoxes"); 
+    ms->pushWord("synchronicServo"); 
+    ms->pushWord("synchronicServoTakeClosest");
+  } else if (ms->config.currentMapServoMode == ONCE_CLASSIFY) {
+    ms->pushWord("gradientServoIfBlueBoxes");
+    ms->pushWord("mapClosestBlueBox");
+    ms->pushWord("mapEmptySpace");
+    ms->pushWord("goClassifyBlueBoxes"); 
+    ms->pushWord("synchronicServo"); 
+    ms->pushWord("synchronicServoTakeClosest");
+  } else if (ms->config.currentMapServoMode == FIXED_CLASS_ACCUMULATED) {
+    ms->pushWord("lockTargetIfBlueBoxes");
+    ms->pushWord("gradientServoIfBlueBoxes");
+    ms->pushWord("mapClosestBlueBox");
+    ms->pushWord("mapEmptySpace");
+    ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
+    ms->pushWord("synchronicServo"); 
+    ms->pushWord("synchronicServoTakeClosest");
+  } else if (ms->config.currentMapServoMode == FIXED_CLASS_CONTINUOUS) {
+    ms->pushWord("lockTargetIfBlueBoxes");
+    ms->pushWord("comeToStop");
+    ms->pushWord("continuousServo");
+    ms->pushWord("comeToStop");
+    ms->pushWord("continuousServo");
+    ms->pushWord("comeToStop");
+    ms->pushWord("continuousServo");
+    ms->pushWord("mapClosestBlueBox");
+    ms->pushWord("mapEmptySpace");
+    ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
+    ms->pushWord("synchronicServo"); 
+    ms->pushWord("synchronicServoTakeClosest");
+  } else if (ms->config.currentMapServoMode == FIXED_CLASS_ACCACCUMULATED_NOSYN) {
+    ms->pushWord("lockTargetIfBlueBoxes");
+    ms->pushWord("gradientServoIfBlueBoxes");
+    ms->pushWord("mapClosestBlueBox");
+    ms->pushWord("mapEmptySpace");
+    ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
+  } else if (ms->config.currentMapServoMode == FIXED_CLASS_CONTINUOUS_NOSYN) {
+    ms->pushWord("lockTargetIfBlueBoxes");
+    ms->pushCopies("continuousServo", 5);
+    ms->pushWord("mapClosestBlueBox");
+    ms->pushWord("mapEmptySpace");
+    ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
+  } else {
+    assert(0);
   }
-  ms->pushWord("goClassifyBlueBoxes"); 
+  
 
-  ms->pushWord("synchronicServo"); 
-  ms->pushWord("synchronicServoTakeClosest");
   ms->pushWord("waitUntilAtCurrentPosition"); 
   ms->pushWord("sampleHeight"); 
   ms->pushWord("setBoundingBoxModeToMapping");
@@ -1011,7 +1063,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       sIm2Byte.at<Vec3b>(y,x)[0] = floor(sIm2.at<Vec3d>(y,x)[0]);
       sIm2Byte.at<Vec3b>(y,x)[1] = floor(sIm2.at<Vec3d>(y,x)[1]);
       sIm2Byte.at<Vec3b>(y,x)[2] = floor(sIm2.at<Vec3d>(y,x)[2]);
-cout << sIm2.at<Vec3d>(y,x)[0] << " ";
+//cout << sIm2.at<Vec3d>(y,x)[0] << " ";
     }
   }
 

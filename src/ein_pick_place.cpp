@@ -6,12 +6,12 @@ WORD(TwoPartPlaceObjectOnObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   
   string firstObjectLabel;
-  GET_ARG(StringWord, firstObjectLabel, ms);
+  GET_ARG(ms, StringWord, firstObjectLabel);
   string secondObjectLabel;
-  GET_ARG(StringWord, secondObjectLabel, ms);
+  GET_ARG(ms, StringWord, secondObjectLabel);
   // this is specified in mm
   int amountMms;
-  GET_ARG(IntegerWord, amountMms, ms);
+  GET_ARG(ms, IntegerWord, amountMms);
 
   ms->pushWord(std::make_shared<IntegerWord>(amountMms));
   ms->pushWord(std::make_shared<StringWord>(secondObjectLabel));
@@ -30,10 +30,10 @@ REGISTER_WORD(TwoPartPlaceObjectOnObject)
 WORD(PlaceHeldObjectOnObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   string secondObjectLabel;
-  GET_ARG(StringWord, secondObjectLabel, ms);
+  GET_ARG(ms, StringWord, secondObjectLabel);
   // this is specified in mm
   int amountMms;
-  GET_ARG(IntegerWord, amountMms, ms);
+  GET_ARG(ms, IntegerWord, amountMms);
   double cTableHeight = 0.001 * amountMms;
 
 
@@ -584,7 +584,7 @@ WORD(SetBreakGraspTiesWithNoise)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   int valToSet = 0;
-  GET_ARG(IntegerWord, valToSet, ms);
+  GET_ARG(ms, IntegerWord, valToSet);
 
   cout << "setBreakGraspTiesWithNoise: got value " << valToSet << endl;
   ms->config.breakGraspTiesWithNoise = valToSet;
@@ -592,6 +592,119 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(SetBreakGraspTiesWithNoise)
 
+WORD(TurnAboutY)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("oYDown");
+    ms->pushWord("160");
+    ms->pushWord("replicateWord");
+
+
+//    ms->pushWord("waitUntilAtCurrentPosition");
+//    ms->pushWord("setGridSizeCoarse");
+//    ms->pushWord("shiftIntoGraspGear1");
+//    ms->pushWord("1");
+//    ms->pushWord("changeToHeight");
+//    ms->pushWord("assumeBeeHome");
+}
+END_WORD
+REGISTER_WORD(TurnAboutY)
+
+WORD(UnTurnAboutY)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("oYUp");
+    ms->pushWord("160");
+    ms->pushWord("replicateWord");
+
+
+//    ms->pushWord("waitUntilAtCurrentPosition");
+//    ms->pushWord("setGridSizeCoarse");
+//    ms->pushWord("shiftIntoGraspGear1");
+//    ms->pushWord("1");
+//    ms->pushWord("changeToHeight");
+//    ms->pushWord("assumeBeeHome");
+}
+END_WORD
+REGISTER_WORD(UnTurnAboutY)
+
+
+WORD(PressAndRelease)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+    ms->pushWord("pressAndReleaseA");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("approachSpeed");
+}
+END_WORD
+REGISTER_WORD(PressAndRelease)
+
+WORD(SetStiffness)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+/*
+Don't use this code, if stiff == 1 the robot flails dangerously...
+*/
+  int stiff = 0;
+  // this is a safety value, do not go below 50. have e-stop ready.
+  stiff = max(50, stiff);
+
+  GET_ARG(ms, IntegerWord, stiff);
+  ms->config.currentStiffnessCommand.data = stiff;
+  ms->config.stiffPub.publish(ms->config.currentStiffnessCommand);
+}
+END_WORD
+REGISTER_WORD(SetStiffness)
+
+WORD(PressAndReleaseA)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+
+  if (ms->config.currentMovementState == BLOCKED) {
+
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilEndpointCallbackReceived");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+
+    ms->pushWord("openGripper");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilEndpointCallbackReceived");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("zDown");
+    ms->pushWord("zDown");
+    ms->pushWord("zDown");
+    ms->pushWord("zDown");
+    ms->pushWord("zDown");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilEndpointCallbackReceived");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("zUp");
+    ms->pushWord("zUp");
+    ms->pushWord("zUp");
+    ms->pushWord("zUp");
+    ms->pushWord("zUp");
+    ms->pushWord("zeroGOff");
+    ms->pushWord("waitUntilEndpointCallbackReceived");
+    ms->pushWord("zeroGOn");
+  } else {
+    ms->pushWord("pressAndReleaseA");
+    ms->pushWord("\"1.0\""); 
+    ms->pushWord("waitForSeconds");
+    ms->pushWord("zDown");
+    ms->pushWord("setGridSizeCoarse");
+  }
+}
+END_WORD
+REGISTER_WORD(PressAndReleaseA)
 
 }
 

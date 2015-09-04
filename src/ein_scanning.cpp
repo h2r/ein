@@ -3500,7 +3500,7 @@ REGISTER_WORD(Add3dGrasp)
 WORD(AssumeZOfPoseWord)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   eePose thisAbsolute3dGrasp;
-  GET_ARG(EePoseWord, thisAbsolute3dGrasp, ms);
+  GET_ARG(ms, EePoseWord, thisAbsolute3dGrasp);
 
   cout << "assumeZOfPoseWord: " << thisAbsolute3dGrasp << endl;
   
@@ -3512,7 +3512,7 @@ REGISTER_WORD(AssumeZOfPoseWord)
 WORD(Add3dGraspPoseWord)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   eePose thisAbsolute3dGrasp ;
-  GET_ARG(EePoseWord, thisAbsolute3dGrasp, ms);
+  GET_ARG(ms, EePoseWord, thisAbsolute3dGrasp);
 
   cout << "Adding 3d grasp from below, global: " << thisAbsolute3dGrasp << endl;
 
@@ -3754,10 +3754,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int x = ms->config.rmHalfWidth;
   int y = ms->config.rmHalfWidth;
 
-  GET_ARG(IntegerWord, gheight, ms);
-  GET_ARG(IntegerWord, tgg, ms);
-  GET_ARG(IntegerWord, y, ms);
-  GET_ARG(IntegerWord, x, ms);
+  GET_ARG(ms, IntegerWord, gheight);
+  GET_ARG(ms, IntegerWord, tgg);
+  GET_ARG(ms, IntegerWord, y);
+  GET_ARG(ms, IntegerWord, x);
 
   tgg = min(max(0, tgg), 3);
   x = min(max(0, x), ms->config.rmWidth-1);

@@ -3,6 +3,7 @@
 
 #include <baxter_core_msgs/HeadPanCommand.h>
 #include <std_msgs/UInt16.h>
+#include <std_msgs/UInt32.h>
 #include <std_msgs/Bool.h>
 #include <cv_bridge/cv_bridge.h>
 
@@ -117,6 +118,16 @@ typedef enum {
   CENTERED = 1
 } scanMode;
 
+typedef enum {
+  HISTOGRAM_CLASSIFY = 0,
+  ONCE_CLASSIFY = 1,
+  FIXED_CLASS_ACCUMULATED = 2,
+  FIXED_CLASS_CONTINUOUS = 3,
+  FIXED_CLASS_ACCACCUMULATED_NOSYN = 4,
+  FIXED_CLASS_CONTINUOUS_NOSYN = 5
+} mapServoMode;
+
+
 std::string pickModeToString(pickMode mode);
 
 
@@ -229,6 +240,7 @@ class EinConfig {
   baxter_core_msgs::HeadPanCommand currentHeadPanCommand;
   std_msgs::Bool currentHeadNodCommand;
   std_msgs::UInt16 currentSonarCommand;
+  std_msgs::UInt32 currentStiffnessCommand;
   
   tf::TransformListener* tfListener;
   
@@ -244,6 +256,7 @@ class EinConfig {
   ros::Publisher sonarPub;
   ros::Publisher headPub;
   ros::Publisher nodPub;
+  ros::Publisher stiffPub;
   ros::Publisher einPub;
   ros::Publisher vmMarkerPublisher;
   ros::Publisher rec_objs_blue_memory;
@@ -255,7 +268,7 @@ class EinConfig {
   int zero_g_toggle = 1;
 
   const int imRingBufferSize = 300;
-  const int epRingBufferSize = 100;
+  const int epRingBufferSize = 10000;
   const int rgRingBufferSize = 100;
 
   // we make use of a monotonicity assumption
@@ -290,6 +303,7 @@ class EinConfig {
   robotMode currentRobotMode = PHYSICAL;
   ikMode currentIKMode = IKSERVICE;
   scanMode currentScanMode = CENTERED;
+  mapServoMode currentMapServoMode = HISTOGRAM_CLASSIFY;
   bool setRandomPositionAfterPick = false;
   bool streamPicks = false;
 
@@ -889,6 +903,9 @@ class EinConfig {
   ros::Time lastImageCallbackReceived;
   ros::Time lastGripperCallbackReceived;
   ros::Time lastEndpointCallbackReceived;
+
+  ros::Time lastImageStamp;
+  ros::Time lastImageFromDensityReceived;
 
   bool usePotentiallyCollidingIK = 0;
 

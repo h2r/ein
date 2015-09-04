@@ -6,7 +6,7 @@ WORD(StreamLabel)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   string thisLabel;
-  GET_ARG(StringWord, thisLabel, ms);
+  GET_ARG(ms, StringWord, thisLabel);
 
   cout << "streamLabel: " << thisLabel << endl;
 
@@ -102,12 +102,12 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   int tSisImage = 0;
   int tSisRange = 0;
   int tSisPose = 0;
-  GET_ARG(IntegerWord, tSisLabel, ms);
-  GET_ARG(IntegerWord, tSisWord, ms);
-  GET_ARG(IntegerWord, tSisJoints, ms);
-  GET_ARG(IntegerWord, tSisImage, ms);
-  GET_ARG(IntegerWord, tSisRange, ms);
-  GET_ARG(IntegerWord, tSisPose, ms);
+  GET_ARG(ms, IntegerWord, tSisLabel);
+  GET_ARG(ms, IntegerWord, tSisWord);
+  GET_ARG(ms, IntegerWord, tSisJoints);
+  GET_ARG(ms, IntegerWord, tSisImage);
+  GET_ARG(ms, IntegerWord, tSisRange);
+  GET_ARG(ms, IntegerWord, tSisPose);
 
   ms->config.sisLabel = tSisLabel;
   ms->config.sisWord = tSisWord;
@@ -329,7 +329,7 @@ WORD(SetExpectedCropsToStream)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   int valToSet = 0;
-  GET_ARG(IntegerWord, valToSet, ms);
+  GET_ARG(ms, IntegerWord, valToSet);
 
   cout << "setExpectedCropsToStream: got value " << valToSet << endl;
   ms->config.expectedCropsToStream = valToSet;
@@ -744,7 +744,7 @@ WORD(SetRandomPositionAfterPick)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   int valToSet = 0;
-  GET_ARG(IntegerWord, valToSet, ms);
+  GET_ARG(ms, IntegerWord, valToSet);
 
   cout << "setRandomPositionAfterPick: got value " << valToSet << endl;
   ms->config.setRandomPositionAfterPick = valToSet;
@@ -756,7 +756,7 @@ WORD(SetStreamPicks)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   int valToSet = 0;
-  GET_ARG(IntegerWord, valToSet, ms);
+  GET_ARG(ms, IntegerWord, valToSet);
 
   cout << "setStreamPicks: got value " << valToSet << endl;
   ms->config.streamPicks = valToSet;

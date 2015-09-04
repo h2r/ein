@@ -173,9 +173,9 @@ virtual vector<string> names() {
 }
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double v1;
-  GET_NUMERIC_ARG(v1, ms);
+  GET_NUMERIC_ARG(ms, v1);
   double v2;
-  GET_NUMERIC_ARG(v2, ms);
+  GET_NUMERIC_ARG(ms, v2);
 
   std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(v1 + v2);
   ms->pushWord(newWord);
@@ -196,9 +196,9 @@ virtual vector<string> names() {
 }
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double v1;
-  GET_NUMERIC_ARG(v1, ms);
+  GET_NUMERIC_ARG(ms, v1);
   double v2;
-  GET_NUMERIC_ARG(v2, ms);
+  GET_NUMERIC_ARG(ms, v2);
 
   std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(v2 - v1);
   ms->pushWord(newWord);
@@ -672,7 +672,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
 
   double v1;
-  GET_NUMERIC_ARG(v1, ms);
+  GET_NUMERIC_ARG(ms, v1);
 
   shared_ptr<Word> aWord = ms->popWord();
   if (aWord == NULL) {
