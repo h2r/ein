@@ -10246,7 +10246,7 @@ void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const cha
 }
 
 void posekNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
-                        vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, int lIndexStart, BOWImgDescriptorExtractor *bowExtractor) {
+                        vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, BOWImgDescriptorExtractor *bowExtractor, int lIndexStart) {
 
   string sClassName(className);
 
@@ -11955,7 +11955,7 @@ void detectorsInit(shared_ptr<MachineState> ms) {
       if (ms->config.classPoseModels[i].compare("G") == 0) {
 	string thisPoseLabel = ms->config.classLabels[i] + "Poses";
       posekNNGetFeatures(ms, ms->config.class_crops_path, thisPoseLabel.c_str(), ms->config.grayBlur, ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i],
-                         ms->config.classQuaternions[i], 0, ms->config.keypointPeriod, ms->config.bowExtractor);
+                         ms->config.classQuaternions[i], ms->config.keypointPeriod, ms->config.bowExtractor);
       }
     }
 
