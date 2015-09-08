@@ -4284,7 +4284,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     ms->config.wristCamInit = 1;
     ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
     ms->config.faceViewImage = ms->config.cv_ptr->image.clone();
-
+    cout << "Wrist Image: " << ms->config.cv_ptr->image.rows << ", " << ms->config.cv_ptr->image.cols << endl;
     ms->config.accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
     ms->config.accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
 
@@ -4619,9 +4619,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
 cv::Point worldToPixel(Mat mapImage, double xMin, double xMax, double yMin, double yMax, double x, double y) {
   double pxMin = 0;
-  double pxMax = mapImage.cols;
+  double pxMax = mapImage.rows;
   double pyMin = 0;
-  double pyMax = mapImage.rows;
+  double pyMax = mapImage.cols;
   cv::Point center = cv::Point(pxMax/2, pyMax/2);
 
   cv::Point out = cv::Point((pyMax - pyMin) / (yMax - yMin) * y + center.y,
@@ -4633,7 +4633,8 @@ cv::Point worldToPixel(Mat mapImage, double xMin, double xMax, double yMin, doub
 void renderObjectMapView(shared_ptr<MachineState> ms) {
   if (ms->config.objectMapViewerImage.rows <= 0 ) {
     //ms->config.objectMapViewerImage = Mat(600, 600, CV_8UC3);
-    ms->config.objectMapViewerImage = Mat(400, 400, CV_8UC3);
+    //ms->config.objectMapViewerImage = Mat(400, 400, CV_8UC3);
+    ms->config.objectMapViewerImage = Mat(400, 640, CV_8UC3);
   }
 
   if (0) { // drawGrid
@@ -5388,7 +5389,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
     ms->config.mapSearchFenceXMin = -0.75;
     //ms->config.mapSearchFenceXMin = 0.25;
     //ms->config.mapSearchFenceXMax = 0.25;
-    ms->config.mapSearchFenceXMax = 1.00;
+    ms->config.mapSearchFenceXMax = 0.9; //1.0;
     ms->config.mapSearchFenceYMin = 0.1;//-1.25;
     ms->config.mapSearchFenceYMax = 1.25;
 
@@ -5554,7 +5555,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
 
     // full workspace
     ms->config.mapSearchFenceXMin = -0.75;
-    ms->config.mapSearchFenceXMax = 1.00;
+    ms->config.mapSearchFenceXMax = 0.9;
     ms->config.mapSearchFenceYMin = -1.25;
     ms->config.mapSearchFenceYMax = -0.1;//1.25;
     ms->config.mapRejectFenceXMin = ms->config.mapSearchFenceXMin;
