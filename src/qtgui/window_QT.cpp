@@ -394,7 +394,10 @@ void DefaultEinViewPort::mouseDoubleClickEvent(QMouseEvent* evnt)
 {
     int cv_event = -1, flags = 0;
     QPoint pt = evnt->pos();
+    icvmouseHandler(evnt, mouse_dbclick, cv_event, flags);
+    icvmouseProcessing(QPointF(pt), cv_event, flags);
 
+    cout << "Qt double click" << endl;
 
     QWidget::mouseDoubleClickEvent(evnt);
 }
@@ -595,7 +598,6 @@ void DefaultEinViewPort::icvmouseProcessing(QPointF pt, int cv_event, int flags)
 
   mouseCoordinate.rx()=floor(pfx/ratioX);
   mouseCoordinate.ry()=floor(pfy/ratioY);
-  cout << "Mouse: " << on_mouse << endl;
   if (on_mouse)
     on_mouse( cv_event, mouseCoordinate.x(),
               mouseCoordinate.y(), flags, on_mouse_param );
@@ -901,7 +903,6 @@ void OpenGlEinViewPort::mouseDoubleClickEvent(QMouseEvent* evnt)
 {
     int cv_event = -1, flags = 0;
     QPoint pt = evnt->pos();
-
     icvmouseHandler(evnt, mouse_dbclick, cv_event, flags);
     icvmouseProcessing(QPointF(pt), cv_event, flags);
 
