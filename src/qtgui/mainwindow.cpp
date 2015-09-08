@@ -56,8 +56,12 @@ void MainWindow::update() {
   }
 }
 
-void MainWindow::setMouseCallBack(EinMouseCallback m, void* param) {
+void MainWindow::setWristViewMouseCallBack(EinMouseCallback m, void* param) {
   wristView.setMouseCallBack(m, param);
+}
+
+void MainWindow::setObjectMapViewMouseCallBack(EinMouseCallback m, void* param) {
+  objectMapView.setMouseCallBack(m, param);
 }
 
 

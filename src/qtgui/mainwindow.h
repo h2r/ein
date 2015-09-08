@@ -24,7 +24,8 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0, shared_ptr<MachineState> ms = 0);
     ~MainWindow();
-    void setMouseCallBack(EinMouseCallback m, void* param);
+    void setWristViewMouseCallBack(EinMouseCallback m, void* param);
+    void setObjectMapViewMouseCallBack(EinMouseCallback m, void* param);
     void keyPressEvent(QKeyEvent *evnt);
     void addWindow(EinWindow * window);
     void update();
