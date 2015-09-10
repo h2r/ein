@@ -1327,7 +1327,8 @@ REGISTER_WORD(AssumeCrane1)
 WORD(AssumeBeeHome)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentEEPose = ms->config.beeHome;
-  ms->pushWord("waitUntilAtCurrentPosition");
+  // XXX consider changing the standard
+  //ms->pushWord("waitUntilAtCurrentPosition");
 }
 END_WORD
 REGISTER_WORD(AssumeBeeHome)

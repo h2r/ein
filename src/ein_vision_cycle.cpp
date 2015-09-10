@@ -83,6 +83,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.acceptingFetchCommands = 1;
 
   ms->pushWord("moveToNextMapPosition");
+
+  if (ms->config.mapAutoPick) {
+    ms->pushWord("pickAllBlueBoxes");
+  } else {
+  }
  
   ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
   //ms->pushWord("setRandomPositionAndOrientationForHeightLearning");
@@ -107,7 +112,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("synchronicServo"); 
     ms->pushWord("synchronicServoTakeClosest");
   } else if (ms->config.currentMapServoMode == FIXED_CLASS_ACCUMULATED) {
-    ms->pushWord("lockTargetIfBlueBoxes");
     ms->pushWord("gradientServoIfBlueBoxes");
     ms->pushWord("mapClosestBlueBox");
     ms->pushWord("mapEmptySpace");
@@ -115,12 +119,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("synchronicServo"); 
     ms->pushWord("synchronicServoTakeClosest");
   } else if (ms->config.currentMapServoMode == FIXED_CLASS_CONTINUOUS) {
-    ms->pushWord("lockTargetIfBlueBoxes");
-    ms->pushWord("comeToStop");
     ms->pushWord("continuousServo");
-    ms->pushWord("comeToStop");
     ms->pushWord("continuousServo");
-    ms->pushWord("comeToStop");
+    ms->pushWord("continuousServo");
+    ms->pushWord("continuousServo");
+    ms->pushWord("continuousServo");
     ms->pushWord("continuousServo");
     ms->pushWord("mapClosestBlueBox");
     ms->pushWord("mapEmptySpace");
@@ -128,14 +131,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("synchronicServo"); 
     ms->pushWord("synchronicServoTakeClosest");
   } else if (ms->config.currentMapServoMode == FIXED_CLASS_ACCACCUMULATED_NOSYN) {
-    ms->pushWord("lockTargetIfBlueBoxes");
     ms->pushWord("gradientServoIfBlueBoxes");
     ms->pushWord("mapClosestBlueBox");
     ms->pushWord("mapEmptySpace");
     ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
   } else if (ms->config.currentMapServoMode == FIXED_CLASS_CONTINUOUS_NOSYN) {
-    ms->pushWord("lockTargetIfBlueBoxes");
-    ms->pushCopies("continuousServo", 5);
+    ms->pushCopies("continuousServo", 10);
     ms->pushWord("mapClosestBlueBox");
     ms->pushWord("mapEmptySpace");
     ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
@@ -1141,5 +1142,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(MapWaypoints)
+
+WORD(SetTrackbarLoHi)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int newLo = 0;
+  int newHi = 0;
+  GET_ARG(ms, IntegerWord, newHi);
+  GET_ARG(ms, IntegerWord, newLo);
+  cout << "setTrackbarLoHi oldLo oldHi newLo newHi: " << ms->config.loTrackbarVariable << " " << ms->config.hiTrackbarVariable << " " << newLo << " " << newHi << endl;
+  ms->config.loTrackbarVariable = newLo;
+  ms->config.hiTrackbarVariable = newHi;
+}
+END_WORD
+REGISTER_WORD(SetTrackbarLoHi)
 
 }

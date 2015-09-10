@@ -5903,6 +5903,16 @@ int getGlobalGraspGear(shared_ptr<MachineState> ms, int localGraspGearIn) {
 }
 
 void changeTargetClass(shared_ptr<MachineState> ms, int newTargetClass) {
+
+  if ( (newTargetClass < 0) || (newTargetClass > ms->config.classLabels.size()) ) {
+    cout << "changeTargetClass: tried to change to an invalid class. setting class to 0 and pausing." << endl; 
+    ms->pushWord("pauseStackExecution");
+    ms->config.targetClass = 0;
+    ms->config.focusedClass = 0;
+    return ;
+  } else {
+  }
+
   ms->config.targetClass = newTargetClass;
   ms->config.focusedClass = ms->config.targetClass;
   ms->config.focusedClassLabel = ms->config.classLabels[ms->config.focusedClass];
@@ -13062,6 +13072,41 @@ void guardViewers(shared_ptr<MachineState> ms) {
 // start ein 
 ////////////////////////////////////////////////
 
+int findClosestBlueBoxMemory(shared_ptr<MachineState> ms, eePose targetPose, int classToSearch) {
+  int closest_idx = -1;
+  double min_square_dist = VERYBIGNUMBER;
+
+  // either constrain to a class or do not
+  if (classToSearch == -1) {
+    for (int j = 0; j < ms->config.blueBoxMemories.size(); j++) {
+      if (ms->config.blueBoxMemories[j].lockStatus == POSE_LOCK ||
+	   ms->config.blueBoxMemories[j].lockStatus == POSE_REPORTED) {
+	  double square_dist = 
+	    eePose::squareDistance(targetPose, ms->config.blueBoxMemories[j].centroid);
+	if (square_dist < min_square_dist) {
+	  min_square_dist = square_dist;
+	  closest_idx = j;
+	}
+      }
+    }
+  } else {
+    for (int j = 0; j < ms->config.blueBoxMemories.size(); j++) {
+      if (ms->config.blueBoxMemories[j].labeledClassIndex == classToSearch &&
+	  (ms->config.blueBoxMemories[j].lockStatus == POSE_LOCK ||
+	   ms->config.blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
+	  double square_dist = 
+	    eePose::squareDistance(targetPose, ms->config.blueBoxMemories[j].centroid);
+	if (square_dist < min_square_dist) {
+	  min_square_dist = square_dist;
+	  closest_idx = j;
+	}
+      }
+    }
+  }
+
+  return closest_idx;
+}
+
 void fillRecognizedObjectArrayFromBlueBoxMemory(shared_ptr<MachineState> ms, object_recognition_msgs::RecognizedObjectArray * roa) {
   roa->objects.resize(0);
 
@@ -13103,6 +13148,7 @@ void fillRecognizedObjectArrayFromBlueBoxMemory(shared_ptr<MachineState> ms, obj
       centroid.px = centroid.px / class_count;
       centroid.py = centroid.py / class_count;
       centroid.pz = centroid.pz / class_count;
+/*
       int closest_idx = -1;
       double min_square_dist = VERYBIGNUMBER;
 
@@ -13118,6 +13164,8 @@ void fillRecognizedObjectArrayFromBlueBoxMemory(shared_ptr<MachineState> ms, obj
 	  }
 	}
       }
+*/
+      int closest_idx = findClosestBlueBoxMemory(ms, centroid);
 
 
       if (closest_idx != -1) {
@@ -13182,6 +13230,9 @@ void promoteBlueBoxes(shared_ptr<MachineState> ms) {
       centroid.px = centroid.px / class_count;
       centroid.py = centroid.py / class_count;
       centroid.pz = centroid.pz / class_count;
+
+      int closest_idx = findClosestBlueBoxMemory(ms, centroid);
+      /*
       int closest_idx = -1;
       double min_square_dist = VERYBIGNUMBER;
 
@@ -13197,6 +13248,8 @@ void promoteBlueBoxes(shared_ptr<MachineState> ms) {
 	      }
 	    }
       }
+      */
+
 
       if (closest_idx != -1) {
 		ms->config.blueBoxMemories[closest_idx].lockStatus = POSE_REPORTED;

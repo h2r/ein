@@ -683,6 +683,17 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 END_WORD
 REGISTER_WORD(IterateIsbAndAccumulateHeightImages)
 
+WORD(SetMapAutoPick)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int valToSet = 0;
+  GET_ARG(ms, IntegerWord, valToSet);
+
+  cout << "setMapAutoPick: was " << ms->config.mapAutoPick << " will be " << valToSet << endl;
+  ms->config.mapAutoPick = valToSet;
+}
+END_WORD
+REGISTER_WORD(SetMapAutoPick)
 
 WORD(MapAndPickL)
 virtual void execute(std::shared_ptr<MachineState> ms)

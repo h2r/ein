@@ -306,6 +306,8 @@ class EinConfig {
   mapServoMode currentMapServoMode = HISTOGRAM_CLASSIFY;
   bool setRandomPositionAfterPick = false;
   bool streamPicks = false;
+  bool mapAutoPick = false;
+  bool snapToFlushGrasp = false;
 
   eePose placeTarget;
 
@@ -1254,6 +1256,8 @@ class EinConfig {
   ros::Time waitForSecondsTarget;
 
   baxter_core_msgs::ITBState lastItbs;
+
+  eePose pressPose;
 }; // config end
 
 class Word;

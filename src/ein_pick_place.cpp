@@ -592,6 +592,24 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(SetBreakGraspTiesWithNoise)
 
+WORD(SetStiffness)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+/*
+Don't use this code, if stiff == 1 the robot flails dangerously...
+*/
+  int stiff = 0;
+  // this is a safety value, do not go below 50. have e-stop ready.
+  stiff = max(50, stiff);
+
+  GET_ARG(ms, IntegerWord, stiff);
+  ms->config.currentStiffnessCommand.data = stiff;
+  ms->config.stiffPub.publish(ms->config.currentStiffnessCommand);
+}
+END_WORD
+REGISTER_WORD(SetStiffness)
+
+
 WORD(TurnAboutY)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
@@ -630,6 +648,75 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(UnTurnAboutY)
 
+WORD(PressAndGrasp)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  double p_rushToHeight = 0.05;
+  ms->config.currentEEPose.pz = -ms->config.currentTableZ + ms->config.pickFlushFactor + p_rushToHeight;
+  ms->pushWord("pressAndGraspA");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("setMovementStateToMoving");
+  ms->pushWord("approachSpeed");
+}
+END_WORD
+REGISTER_WORD(PressAndGrasp)
+
+WORD(PressAndGraspA)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+
+  if (ms->config.currentMovementState == BLOCKED) {
+
+    /*
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilEndpointCallbackReceived");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    ms->pushWord("localZDown");
+    */
+
+    ms->pushWord("waitUntilGripperNotMoving");
+    ms->pushWord("closeGripper");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilEndpointCallbackReceived");
+    ms->pushWord("setMovementStateToMoving");
+
+    ms->pushWord("setGridSizeCoarse");
+    ms->pushWord("zDown");
+    ms->pushWord("zDown");
+    ms->pushWord("zDown");
+    ms->pushWord("setGridSizeFine");
+
+    ms->pushWord("zDown");
+    ms->pushWord("zDown");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilEndpointCallbackReceived");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("zUp");
+    ms->pushWord("zUp");
+    ms->pushWord("zeroGOff");
+    ms->pushWord("waitUntilEndpointCallbackReceived");
+    ms->pushWord("zeroGOn");
+  } else {
+    ms->pushWord("pressAndGraspA");
+    ms->pushWord("waitUntilEndpointCallbackReceived");
+    ms->pushWord("\"1.0\""); 
+    ms->pushWord("waitForSeconds");
+    ms->pushWord("zDown");
+    ms->pushWord("setGridSizeCoarse");
+  }
+}
+END_WORD
+REGISTER_WORD(PressAndGraspA)
 
 WORD(PressAndRelease)
 virtual void execute(std::shared_ptr<MachineState> ms)
@@ -637,32 +724,23 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     ms->pushWord("pressAndReleaseA");
     ms->pushWord("setMovementStateToMoving");
     ms->pushWord("approachSpeed");
+
+    ms->config.pressPose = ms->config.currentEEPose;
 }
 END_WORD
 REGISTER_WORD(PressAndRelease)
-
-WORD(SetStiffness)
-virtual void execute(std::shared_ptr<MachineState> ms)
-{
-/*
-Don't use this code, if stiff == 1 the robot flails dangerously...
-*/
-  int stiff = 0;
-  // this is a safety value, do not go below 50. have e-stop ready.
-  stiff = max(50, stiff);
-
-  GET_ARG(ms, IntegerWord, stiff);
-  ms->config.currentStiffnessCommand.data = stiff;
-  ms->config.stiffPub.publish(ms->config.currentStiffnessCommand);
-}
-END_WORD
-REGISTER_WORD(SetStiffness)
 
 WORD(PressAndReleaseA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
 
-  if (ms->config.currentMovementState == BLOCKED) {
+  double p_thresh = 0.01;
+  double qdistance = eePose::distanceQ(ms->config.pressPose, ms->config.trueEEPoseEEPose);
+
+cout << "pressAndReleaseA: qdistance " << qdistance << endl;
+
+  // qdistance might actually be enough by itself
+  if ( (ms->config.currentMovementState == BLOCKED) || (qdistance > p_thresh) ){
 
 
     ms->pushWord("comeToStop");
@@ -674,6 +752,10 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     ms->pushWord("localZDown");
     ms->pushWord("localZDown");
     ms->pushWord("localZDown");
+
+    ms->pushWord("\"0.50\""); 
+    ms->pushWord("waitForSeconds");
+    ms->pushWord("waitUntilGripperNotMoving");
 
     ms->pushWord("openGripper");
     ms->pushWord("comeToStop");
@@ -681,17 +763,12 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     ms->pushWord("setMovementStateToMoving");
     ms->pushWord("zDown");
     ms->pushWord("zDown");
-    ms->pushWord("zDown");
-    ms->pushWord("zDown");
-    ms->pushWord("zDown");
     ms->pushWord("comeToStop");
     ms->pushWord("waitUntilEndpointCallbackReceived");
     ms->pushWord("setMovementStateToMoving");
     ms->pushWord("zUp");
     ms->pushWord("zUp");
-    ms->pushWord("zUp");
-    ms->pushWord("zUp");
-    ms->pushWord("zUp");
+
     ms->pushWord("zeroGOff");
     ms->pushWord("waitUntilEndpointCallbackReceived");
     ms->pushWord("zeroGOn");
