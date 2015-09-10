@@ -1089,11 +1089,25 @@ class EinConfig {
   vector<cv::Point> cBots;
 
 
-  constexpr static double mapXMin = -1.5;
-  constexpr static double mapXMax = 1.5;
+  constexpr static double mapXMin = -0.9375;
+  constexpr static double mapXMax = 0.9375;
   constexpr static double mapYMin = -1.5;
   constexpr static double mapYMax = 1.5;
   constexpr static double mapStep = 0.01;
+
+
+  //  constexpr static double mapXMin = -1.5;
+  //  constexpr static double mapXMax = 1.5; 
+  //  constexpr static double mapYMin = -1.5;
+  //  constexpr static double mapYMax = 1.5; 
+  //  constexpr static double mapStep = 0.01;
+
+
+  //constexpr static double mapXMin = -0.75;
+  //constexpr static double mapXMax = 1.0; 
+  //constexpr static double mapYMin = -0.1;
+  //constexpr static double mapYMax = 1.25; 
+  //constexpr static double mapStep = 0.01; 
   
   double mapSearchFenceXMin;
   double mapSearchFenceXMax;
