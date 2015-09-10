@@ -4284,7 +4284,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     ms->config.wristCamInit = 1;
     ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
     ms->config.faceViewImage = ms->config.cv_ptr->image.clone();
-
+    cout << "Wrist Image: " << ms->config.cv_ptr->image.rows << ", " << ms->config.cv_ptr->image.cols << endl;
     ms->config.accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
     ms->config.accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
 
@@ -4619,9 +4619,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
 cv::Point worldToPixel(Mat mapImage, double xMin, double xMax, double yMin, double yMax, double x, double y) {
   double pxMin = 0;
-  double pxMax = mapImage.cols;
+  double pxMax = mapImage.rows;
   double pyMin = 0;
-  double pyMax = mapImage.rows;
+  double pyMax = mapImage.cols;
   cv::Point center = cv::Point(pxMax/2, pyMax/2);
 
   cv::Point out = cv::Point((pyMax - pyMin) / (yMax - yMin) * y + center.y,
@@ -4630,10 +4630,25 @@ cv::Point worldToPixel(Mat mapImage, double xMin, double xMax, double yMin, doub
   return out;
 }
 
+
+
+void pixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double yMax, int px, int py, double &x, double &y) {
+  double pxMin = 0;
+  double pxMax = mapImage.rows;
+  double pyMin = 0;
+  double pyMax = mapImage.cols;
+  cv::Point center = cv::Point(pxMax/2, pyMax/2);
+
+  y = (px - center.y) * (yMax - yMin) / (pyMax - pyMin);
+  x = (py - center.x) * (xMax - xMin) / (pxMax - pxMin);
+}
+
+
 void renderObjectMapView(shared_ptr<MachineState> ms) {
   if (ms->config.objectMapViewerImage.rows <= 0 ) {
     //ms->config.objectMapViewerImage = Mat(600, 600, CV_8UC3);
-    ms->config.objectMapViewerImage = Mat(400, 400, CV_8UC3);
+    //ms->config.objectMapViewerImage = Mat(400, 400, CV_8UC3);
+    ms->config.objectMapViewerImage = Mat(400, 640, CV_8UC3);
   }
 
   if (0) { // drawGrid
@@ -5055,6 +5070,25 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
   }
 }
 
+
+void objectMapCallbackFunc(int event, int x, int y, int flags, void* userdata) {
+
+  //if (!ms->config.shouldIMiscCallback) {
+    //return;
+  //}
+  shared_ptr<MachineState> ms = pMachineState;
+  if ( event == EIN_EVENT_LBUTTONDBLCLK ) {
+    double worldX, worldY;
+    pixelToWorld(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y, worldX, worldY);
+    ms->config.currentEEPose.px = worldX;  
+    ms->config.currentEEPose.py = worldY;  
+
+
+  }
+}
+
+
+
 void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata) {
 
   shared_ptr<MachineState> ms = pMachineState;
@@ -5388,7 +5422,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
     ms->config.mapSearchFenceXMin = -0.75;
     //ms->config.mapSearchFenceXMin = 0.25;
     //ms->config.mapSearchFenceXMax = 0.25;
-    ms->config.mapSearchFenceXMax = 1.00;
+    ms->config.mapSearchFenceXMax = 0.9; //1.0;
     ms->config.mapSearchFenceYMin = 0.1;//-1.25;
     ms->config.mapSearchFenceYMax = 1.25;
 
@@ -5554,7 +5588,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
 
     // full workspace
     ms->config.mapSearchFenceXMin = -0.75;
-    ms->config.mapSearchFenceXMax = 1.00;
+    ms->config.mapSearchFenceXMax = 0.9;
     ms->config.mapSearchFenceYMin = -1.25;
     ms->config.mapSearchFenceYMax = -0.1;//1.25;
     ms->config.mapRejectFenceXMin = ms->config.mapSearchFenceXMin;
@@ -10222,7 +10256,7 @@ void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const cha
 }
 
 void posekNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
-                        vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, int lIndexStart, BOWImgDescriptorExtractor *bowExtractor) {
+                        vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, BOWImgDescriptorExtractor *bowExtractor, int lIndexStart) {
 
   string sClassName(className);
 
@@ -11931,7 +11965,7 @@ void detectorsInit(shared_ptr<MachineState> ms) {
       if (ms->config.classPoseModels[i].compare("G") == 0) {
 	string thisPoseLabel = ms->config.classLabels[i] + "Poses";
       posekNNGetFeatures(ms, ms->config.class_crops_path, thisPoseLabel.c_str(), ms->config.grayBlur, ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i],
-                         ms->config.classQuaternions[i], 0, ms->config.keypointPeriod, ms->config.bowExtractor);
+                         ms->config.classQuaternions[i], ms->config.keypointPeriod, ms->config.bowExtractor);
       }
     }
 
@@ -13492,7 +13526,8 @@ int main(int argc, char **argv) {
 
   qtTestWindow = new MainWindow(NULL, ms);
   qtTestWindow->show();
-  qtTestWindow->setMouseCallBack(pilotCallbackFunc, NULL);
+  qtTestWindow->setWristViewMouseCallBack(pilotCallbackFunc, NULL);
+  qtTestWindow->setObjectMapViewMouseCallBack(objectMapCallbackFunc, NULL);
   qtTestWindow->setWindowTitle(QString::fromStdString("Ein " + ms->config.left_or_right_arm));
 
   // qt timer
@@ -13573,6 +13608,7 @@ int main(int argc, char **argv) {
   ms->config.objectMapViewerWindow = new EinWindow(NULL, ms);
   ms->config.objectMapViewerWindow->setWindowTitle("Object Map Viewer " + ms->config.left_or_right_arm);
   qtTestWindow->addWindow(ms->config.objectMapViewerWindow);
+
 
 
   ms->config.gradientViewerWindow = new EinWindow(NULL, ms);
