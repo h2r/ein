@@ -129,7 +129,32 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 END_WORD
 REGISTER_WORD(AssumeWinningGgAndXyInLocalPose)
 
+WORD(SetSnapToFlushGrasp)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+  int valToSet = 0;
+  GET_ARG(ms, IntegerWord, valToSet);
+
+  cout << "setSnapToFlushGrasp: was " << ms->config.snapToFlushGrasp << " will be " << valToSet << endl;
+  ms->config.snapToFlushGrasp = valToSet;
+}
+END_WORD
+REGISTER_WORD(SetSnapToFlushGrasp)
+
 WORD(MoveToTargetZAndGrasp)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+  //ms->pushWord("moveToTargetZAndGraspA");
+
+  cout << "moveToTargetZAndGrasp: snapToFlushGrasp is " << ms->config.snapToFlushGrasp << endl;
+  if (ms->config.snapToFlushGrasp) {
+    ms->pushWord("pressAndGrasp");
+  } else {
+    ms->pushWord("moveToTargetZAndGraspA");
+  }
+}
+END_WORD
+REGISTER_WORD(MoveToTargetZAndGrasp)
+
+WORD(MoveToTargetZAndGraspA)
 CODE(1048682)     // numlock + j
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->pushWord("closeGripper"); 
@@ -195,7 +220,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   
 }
 END_WORD
-REGISTER_WORD(MoveToTargetZAndGrasp)
+REGISTER_WORD(MoveToTargetZAndGraspA)
 
 WORD(ShakeItUpAndDown)
 CODE(131081)   // capslock + tab
@@ -1308,9 +1333,9 @@ WORD(ContinuousServo)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // XXX there is some issue when the orientation is changing, 
   //  convergence isn't instantaneous unless waitUntilAtCurrentPosition is called
-  //ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("\"0.2\"");
-  ms->pushWord("waitForSeconds");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  //ms->pushWord("\"0.2\"");
+  //ms->pushWord("waitForSeconds");
   //ms->pushWord("endStackCollapseNoop");
   ms->pushWord("waitUntilEndpointCallbackReceived");
   ms->pushWord("continuousServoA");

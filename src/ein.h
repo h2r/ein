@@ -433,6 +433,7 @@ void neutral(shared_ptr<MachineState> ms);
 
 void guardViewers(shared_ptr<MachineState> ms);
 
+int findClosestBlueBoxMemory(shared_ptr<MachineState> ms, eePose targetPose, int classToSearch = -1);
 void fillRecognizedObjectArrayFromBlueBoxMemory(shared_ptr<MachineState> ms, object_recognition_msgs::RecognizedObjectArray * roa);
 void promoteBlueBoxes(shared_ptr<MachineState> ms);
 void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut);
