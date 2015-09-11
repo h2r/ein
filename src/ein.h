@@ -440,6 +440,7 @@ int findClosestBlueBoxMemory(shared_ptr<MachineState> ms, eePose targetPose, int
 void fillRecognizedObjectArrayFromBlueBoxMemory(shared_ptr<MachineState> ms, object_recognition_msgs::RecognizedObjectArray * roa);
 void promoteBlueBoxes(shared_ptr<MachineState> ms);
 void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut);
+void targetBoxMemory(shared_ptr<MachineState> ms, int idx);
 
 bool isFocusedClassValid(std::shared_ptr<MachineState> ms);
 

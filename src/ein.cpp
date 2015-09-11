@@ -5084,6 +5084,28 @@ void objectMapCallbackFunc(int event, int x, int y, int flags, void* userdata) {
     ms->config.currentEEPose.py = worldY;  
 
 
+    for (int i = 0; i < ms->config.blueBoxMemories.size(); i++) {
+      BoxMemory memory = ms->config.blueBoxMemories[i];
+      string class_name = ms->config.classLabels[memory.labeledClassIndex];
+       
+      cv::Point outTop = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+				      memory.top.px, memory.top.py);
+      cv::Point outBot = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+				      memory.bot.px, memory.bot.py);
+      
+      cout <<" Top: " << outTop.x << ", " << outTop.y << endl;
+      cout <<" Bot: " << outBot.x << ", " << outBot.y << endl;
+      if ((outBot.x <= x && x <= outTop.x) && 
+	  (outBot.y <= y && y <= outTop.y)) {
+
+	cout << "Got: " << memory.labeledClassIndex << ": " << ms->config.classLabels[memory.labeledClassIndex] << endl;
+	targetBoxMemory(ms, i);
+	ms->pushWord("deliverTargetBoxMemory");
+	ms->execute_stack = 1;
+
+	
+      }
+    }
   }
 }
 
