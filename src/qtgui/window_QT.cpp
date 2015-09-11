@@ -396,9 +396,6 @@ void DefaultEinViewPort::mouseDoubleClickEvent(QMouseEvent* evnt)
     QPoint pt = evnt->pos();
     icvmouseHandler(evnt, mouse_dbclick, cv_event, flags);
     icvmouseProcessing(QPointF(pt), cv_event, flags);
-
-    cout << "Qt double click" << endl;
-
     QWidget::mouseDoubleClickEvent(evnt);
 }
 

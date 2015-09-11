@@ -1,5 +1,19 @@
 #include "ein_words.h"
 #include "ein.h"
+
+void targetBoxMemory(shared_ptr<MachineState> ms, int memoryIdx) {
+  BoxMemory memory = ms->config.blueBoxMemories[memoryIdx];
+  ms->config.targetBlueBox = memoryIdx;
+
+  cout << "Aimed pose: " << memory.aimedPose << endl;
+  ms->config.currentEEPose = memory.aimedPose;
+  ms->config.lastPrePickPose = memory.aimedPose;
+  ms->config.lastLockedPose = memory.lockedPose;
+  ms->config.trZ = memory.trZ;
+}
+
+
+
 namespace ein_words {
 
 WORD(TwoPartPlaceObjectOnObject)
@@ -394,14 +408,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   } else {
   } // do nothing
 
-  BoxMemory memory = ms->config.blueBoxMemories[idxOfFirst];
-  ms->config.targetBlueBox = idxOfFirst;
+  targetBoxMemory(ms, idxOfFirst);
+  ms->pushWord("deliverTargetBoxMemory");
+}
+END_WORD
+REGISTER_WORD(DeliverTargetObject)
 
-  cout << "Aimed pose: " << memory.aimedPose << endl;
-  ms->config.currentEEPose = memory.aimedPose;
-  ms->config.lastPrePickPose = memory.aimedPose;
-  ms->config.lastLockedPose = memory.lockedPose;
-  ms->config.trZ = memory.trZ;
+
+WORD(DeliverTargetBoxMemory)
+virtual void execute(std::shared_ptr<MachineState> ms) {
 
 
   //ms->pushWord("unmapTargetBlueBox");
@@ -440,7 +455,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("setPatrolStateToPicking");
 }
 END_WORD
-REGISTER_WORD(DeliverTargetObject)
+REGISTER_WORD(DeliverTargetBoxMemory)
 
 WORD(PlaceObjectInDeliveryZone)
 virtual void execute(std::shared_ptr<MachineState> ms) {
