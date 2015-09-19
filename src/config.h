@@ -25,6 +25,7 @@
 #include <baxter_core_msgs/JointCommand.h>
 #include <baxter_core_msgs/HeadPanCommand.h>
 #include <baxter_core_msgs/ITBState.h>
+#include <baxter_core_msgs/DigitalIOState.h>
 
 
 #include "eigen_util.h"
@@ -350,6 +351,9 @@ class EinConfig {
   double joint_min[NUM_JOINTS];
   double joint_max[NUM_JOINTS];
 
+  double last_joint_actual_effort[NUM_JOINTS];
+  double actual_effort_thresh = 0.0; 
+  double target_joint_actual_effort[NUM_JOINTS];
 
   rk_state random_state;
 
@@ -1266,6 +1270,9 @@ class EinConfig {
   image_transport::Subscriber image_sub;
   ros::Subscriber eeRanger;
   ros::Subscriber epState;
+  ros::Subscriber gravity_comp_sub;
+  ros::Subscriber cuff_grasp_sub;
+  ros::Subscriber cuff_ok_sub;
 
   ros::Time waitForSecondsTarget;
 

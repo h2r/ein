@@ -4617,6 +4617,43 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 }
 
+void gravityCompCallback(const baxter_core_msgs::SEAJointState& seaJ) {
+  shared_ptr<MachineState> ms = pMachineState;
+
+  for (int i = 0; i < NUM_JOINTS; i++) {
+    ms->config.last_joint_actual_effort[i] = seaJ.actual_effort[i];
+  }
+}
+
+void cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
+  shared_ptr<MachineState> ms = pMachineState;
+
+  if (cuffDIOS.state) {
+    baxter_core_msgs::EndEffectorCommand command;
+    command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
+    command.args = "{\"position\": 0.0}";
+    command.id = 65538;
+    ms->config.gripperPub.publish(command);
+  } else {
+  }
+
+}
+
+void cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
+  shared_ptr<MachineState> ms = pMachineState;
+
+  if (cuffDIOS.state) {
+    baxter_core_msgs::EndEffectorCommand command;
+    command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
+    command.args = "{\"position\": 100.0}";
+    command.id = 65538;
+    ms->config.gripperPub.publish(command);
+    ms->config.lastMeasuredClosed = ms->config.gripperPosition;
+  } else {
+  }
+
+}
+
 cv::Point worldToPixel(Mat mapImage, double xMin, double xMax, double yMin, double yMax, double x, double y) {
   double pxMin = 0;
   double pxMax = mapImage.rows;
@@ -13429,6 +13466,11 @@ int main(int argc, char **argv) {
     ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, endpointCallback);
     ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, rangeCallback);
     ms->config.image_sub = it.subscribe(ms->config.image_topic, 1, imageCallback);
+
+    ms->config.gravity_comp_sub = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/gravity_compensation_torques", 1, gravityCompCallback);
+
+    ms->config.cuff_grasp_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_upper_button/state", 1, cuffGraspCallback);
+    ms->config.cuff_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_lower_button/state", 1, cuffOkCallback);
 
 
     collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, collisionDetectionStateCallback);
