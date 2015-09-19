@@ -54,6 +54,7 @@
 #include <baxter_core_msgs/SolvePositionIK.h>
 #include <baxter_core_msgs/JointCommand.h>
 #include <baxter_core_msgs/HeadPanCommand.h>
+#include <baxter_core_msgs/SEAJointState.h>
 
 
 #include <cv.h>
@@ -274,6 +275,10 @@ void targetCallback(const geometry_msgs::Point& point);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata);
 gsl_matrix * mapCellToPolygon(shared_ptr<MachineState> ms, int map_i, int map_j) ;
+
+void gravityCompCallback(const baxter_core_msgs::SEAJointState& seaJ);
+void cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS);
+void cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS);
 
 void pilotInit(shared_ptr<MachineState> ms);
 void spinlessPilotMain(shared_ptr<MachineState> ms);
