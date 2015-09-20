@@ -172,6 +172,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentEEPose.py += noY;
 
   ms->config.currentEEDeltaRPY.pz += noTheta;
+  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
 }
 END_WORD
 REGISTER_WORD(PerturbPosition)
@@ -180,6 +181,7 @@ WORD(OYDown)
 CODE('w'+65504) 
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentEEDeltaRPY.py -= ms->config.bDelta;
+  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
 }
 END_WORD
 REGISTER_WORD(OYDown)
@@ -188,6 +190,7 @@ WORD(OYUp)
 CODE('s'+65504) 
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentEEDeltaRPY.py += ms->config.bDelta;
+  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
 }
 END_WORD
 REGISTER_WORD(OYUp)
@@ -196,6 +199,7 @@ WORD(OZDown)
 CODE('q'+65504) 
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentEEDeltaRPY.pz -= ms->config.bDelta;
+  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
 }
 END_WORD
 REGISTER_WORD(OZDown)
@@ -205,6 +209,7 @@ CODE('e'+65504)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "Changing pose. " << endl;
   ms->config.currentEEDeltaRPY.pz += ms->config.bDelta;
+  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
 }
 END_WORD
 REGISTER_WORD(OZUp)
@@ -213,6 +218,7 @@ WORD(OXDown)
 CODE('a'+65504) 
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentEEDeltaRPY.px -= ms->config.bDelta;
+  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
 }
 END_WORD
 REGISTER_WORD(OXDown)
@@ -221,6 +227,7 @@ WORD(OXUp)
 CODE('d'+65504) 
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentEEDeltaRPY.px += ms->config.bDelta;
+  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
 }
 END_WORD
 REGISTER_WORD(OXUp)
@@ -355,7 +362,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Vector3d localUnitX;
   Vector3d localUnitY;
   Vector3d localUnitZ;
-  fillLocalUnitBasis(ms->config.trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
   ms->config.currentEEPose = ms->config.currentEEPose.minusP(ms->config.bDelta * localUnitX);
 }
 END_WORD
@@ -367,7 +374,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Vector3d localUnitX;
   Vector3d localUnitY;
   Vector3d localUnitZ;
-  fillLocalUnitBasis(ms->config.trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
   ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.bDelta * localUnitX);
 }
 END_WORD
@@ -378,7 +385,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Vector3d localUnitX;
   Vector3d localUnitY;
   Vector3d localUnitZ;
-  fillLocalUnitBasis(ms->config.trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
   ms->config.currentEEPose = ms->config.currentEEPose.minusP(ms->config.bDelta * localUnitY);
 }
 END_WORD
@@ -390,7 +397,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Vector3d localUnitX;
   Vector3d localUnitY;
   Vector3d localUnitZ;
-  fillLocalUnitBasis(ms->config.trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
   ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.bDelta * localUnitY);
 }
 END_WORD
@@ -403,7 +410,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   Vector3d localUnitX;
   Vector3d localUnitY;
   Vector3d localUnitZ;
-  fillLocalUnitBasis(ms->config.trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
   ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.bDelta * localUnitZ);
 }
 END_WORD
@@ -415,7 +422,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   Vector3d localUnitX;
   Vector3d localUnitY;
   Vector3d localUnitZ;
-  fillLocalUnitBasis(ms->config.trueEEPoseEEPose, &localUnitX, &localUnitY, &localUnitZ);
+  fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
   ms->config.currentEEPose = ms->config.currentEEPose.minusP(ms->config.bDelta * localUnitZ);
 }
 END_WORD
@@ -1222,6 +1229,7 @@ WORD(WaitForTugThenOpenGripper)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitForTugThenOpenGripperA");
   ms->pushWord("waitUntilEndpointCallbackReceived");
+  ms->pushWord("comeToStop");
   ms->pushWord("comeToHover");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->config.waitForTugStart = ros::Time::now();

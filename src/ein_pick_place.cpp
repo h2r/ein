@@ -798,6 +798,56 @@ cout << "pressAndReleaseA: qdistance " << qdistance << endl;
 END_WORD
 REGISTER_WORD(PressAndReleaseA)
 
+WORD(RegisterEffort)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  for (int i = 0; i < NUM_JOINTS; i++) {
+    ms->config.target_joint_actual_effort[i] = ms->config.last_joint_actual_effort[i];
+  }
+
+  ms->pushWord("registerEffortA");
+}
+END_WORD
+REGISTER_WORD(RegisterEffort)
+
+WORD(RegisterEffortA)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  cout << "registerEffortA: ";
+  double totalDiff = 0.0;
+  for (int i = 0; i < NUM_JOINTS; i++) {
+    double thisDiff = (ms->config.target_joint_actual_effort[i] - ms->config.last_joint_actual_effort[i]);
+    cout << ms->config.target_joint_actual_effort[i] << " " << ms->config.last_joint_actual_effort[i] << " " << thisDiff << " ";
+    totalDiff = totalDiff + (thisDiff * thisDiff);
+  }
+
+  cout << endl << "  totalDiff: " << totalDiff << "   actual_effort_thresh: " << ms->config.actual_effort_thresh << endl;
+
+  if (totalDiff > ms->config.actual_effort_thresh) {
+    cout << "~~~~~~~~" << endl << endl << endl << endl;
+    //ms->pushWord("registerEffort");
+    ms->pushWord("registerEffortA");
+  } else {
+    ms->pushWord("registerEffortA");
+  }
+
+  ms->pushWord("endStackCollapseNoop");
+}
+END_WORD
+REGISTER_WORD(RegisterEffortA)
+
+WORD(SetEffortThresh)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  double valToSet = 0;
+  GET_ARG(ms, DoubleWord, valToSet);
+
+  cout << "setEffortThresh: got value " << valToSet << endl;
+  ms->config.actual_effort_thresh = valToSet;
+}
+END_WORD
+REGISTER_WORD(SetEffortThresh)
+
 }
 
 
