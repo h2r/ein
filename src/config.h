@@ -1267,6 +1267,23 @@ class EinConfig {
   ros::Subscriber eeRanger;
   ros::Subscriber epState;
 
+
+
+  shared_ptr<image_transport::ImageTransport> it;
+
+  ros::Subscriber collisionDetectionState;
+  ros::Subscriber gripState;
+  ros::Subscriber eeAccelerator;
+  ros::Subscriber eeTarget;
+  ros::Subscriber jointSubscriber;
+
+  ros::Subscriber pickObjectUnderEndEffectorCommandCallbackSub;
+  ros::Subscriber placeObjectInEndEffectorCommandCallbackSub;
+  ros::Subscriber moveEndEffectorCommandCallbackSub;
+
+  ros::Subscriber armItbCallbackSub;
+
+
   ros::Time waitForSecondsTarget;
 
   baxter_core_msgs::ITBState lastItbs;

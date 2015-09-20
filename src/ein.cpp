@@ -13382,6 +13382,7 @@ int main(int argc, char **argv) {
 
   ros::init(argc, argv, programName);
   ros::NodeHandle n("~");
+  ms->config.it = make_shared<image_transport::ImageTransport>(n);
 
   cout << "n namespace: " << n.getNamespace() << endl;
 
@@ -13403,19 +13404,6 @@ int main(int argc, char **argv) {
     ms->config.image_topic = "/cameras/" + ms->config.left_or_right_arm + "_hand_camera/image";
   }
 
-  image_transport::ImageTransport it(n);
-
-  ros::Subscriber collisionDetectionState;
-  ros::Subscriber gripState;
-  ros::Subscriber eeAccelerator;
-  ros::Subscriber eeTarget;
-  ros::Subscriber jointSubscriber;
-
-  ros::Subscriber pickObjectUnderEndEffectorCommandCallbackSub;
-  ros::Subscriber placeObjectInEndEffectorCommandCallbackSub;
-  ros::Subscriber moveEndEffectorCommandCallbackSub;
-
-  ros::Subscriber armItbCallbackSub;
 
   ms->config.rec_objs_blue_memory = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_memory_objects", 10);
   ms->config.markers_blue_memory = n.advertise<visualization_msgs::MarkerArray>("blue_memory_markers", 10);
@@ -13428,14 +13416,14 @@ int main(int argc, char **argv) {
   if (ms->config.currentRobotMode == PHYSICAL) {
     ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, endpointCallback);
     ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, rangeCallback);
-    ms->config.image_sub = it.subscribe(ms->config.image_topic, 1, imageCallback);
+    ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 1, imageCallback);
 
 
-    collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, collisionDetectionStateCallback);
-    gripState = n.subscribe("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/state", 1, gripStateCallback);
-    eeAccelerator =  n.subscribe("/robot/accelerometer/" + ms->config.left_or_right_arm + "_accelerometer/state", 1, accelerometerCallback);
-    eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, targetCallback);
-    jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
+    ms->config.collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, collisionDetectionStateCallback);
+    ms->config.gripState = n.subscribe("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/state", 1, gripStateCallback);
+    ms->config.eeAccelerator =  n.subscribe("/robot/accelerometer/" + ms->config.left_or_right_arm + "_accelerometer/state", 1, accelerometerCallback);
+    ms->config.eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, targetCallback);
+    ms->config.jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
   } else if (ms->config.currentRobotMode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
     simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/ms->config.simulatorCallbackFrequency), simulatorCallback);
@@ -13539,11 +13527,11 @@ int main(int argc, char **argv) {
     assert(0);
   }
 
-  pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, pickObjectUnderEndEffectorCommandCallback);
-  placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
-  moveEndEffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, moveEndEffectorCommandCallback);
+  ms->config.pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, pickObjectUnderEndEffectorCommandCallback);
+  ms->config.placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
+  ms->config.moveEndEffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, moveEndEffectorCommandCallback);
 
-  armItbCallbackSub = n.subscribe("/robot/itb/" + ms->config.left_or_right_arm + "_itb/state", 1, armItbCallback);
+  ms->config.armItbCallbackSub = n.subscribe("/robot/itb/" + ms->config.left_or_right_arm + "_itb/state", 1, armItbCallback);
 
 
   qtTestWindow = new MainWindow(NULL, ms);
