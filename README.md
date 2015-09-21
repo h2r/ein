@@ -54,6 +54,10 @@ sudo apt-get install ros-indigo-object-recognition-msgs
 sudo apt-get install ros-indigo-pcl-ros
 sudo apt-get install libgsl0-dev
 ```
+Before running Ein, you should sync your workstation with your baxter:
+```
+sudo ntpdate <baxter name>
+```
 
 To run the program, from the root of your catkin workspace, run the
 following command:
