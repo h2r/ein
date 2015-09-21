@@ -821,6 +821,34 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(IRCalibrationSpeed)
 
+WORD(SetSpeed)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+
+  double newspeed = min( max(0.0, v1), 1.0);
+
+  cout << "setSpeed got " << v1 << " setting " << newspeed << endl;
+  
+  ms->config.currentEESpeedRatio = newspeed;
+}
+END_WORD
+REGISTER_WORD(SetSpeed)
+
+WORD(SetGridSize)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+
+  double newgrid = min( max(0.0, v1), 1.0);
+
+  cout << "setGridSize got " << v1 << " setting " << newgrid << endl;
+  
+  ms->config.bDelta = newgrid;
+}
+END_WORD
+REGISTER_WORD(SetGridSize)
+
 WORD(Hover)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.lastHoverTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;

@@ -1279,6 +1279,9 @@ class EinConfig {
   baxter_core_msgs::ITBState lastItbs;
 
   eePose pressPose;
+
+  double rockDiffA = 0.0;
+  double rockDiffB = 0.0;
 }; // config end
 
 class Word;
