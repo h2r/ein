@@ -1289,7 +1289,8 @@ class EinConfig {
   ros::Subscriber moveEndEffectorCommandCallbackSub;
 
   ros::Subscriber armItbCallbackSub;
-
+  ros::Subscriber fetchCommandSubscriber;
+  ros::Subscriber forthCommandSubscriber;
 
   ros::Time waitForSecondsTarget;
 

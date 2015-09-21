@@ -565,14 +565,14 @@ WORD(MapEmptySpace)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; px++) {
     for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; py++) {
-
+      
       if (isInGripperMask(ms, px, py)) {
 	continue;
       }
-
+      
       //int blueBoxIdx = blueBoxForPixel(px, py);
       int blueBoxIdx = skirtedBlueBoxForPixel(ms, px, py, ms->config.mapFreeSpacePixelSkirt);
-
+      
       if (blueBoxIdx == -1) {
         double x, y;
         double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
@@ -580,19 +580,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
         pixelToGlobal(ms, px, py, z, &x, &y);
         int i, j;
         mapxyToij(ms, x, y, &i, &j);
-
-//        if (ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime > mapMemoryTimeout) {
-//          ms->config.objectMap[i + ms->config.mapWidth * j].b = 0;
-//          ms->config.objectMap[i + ms->config.mapWidth * j].g = 0;
-//          ms->config.objectMap[i + ms->config.mapWidth * j].r = 0;
-//          ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount = 0;
-//        }
-
-		// if we are mapping too close to the table these can exceed bounds
-		if ( (i < 0) || (j < 0) || (i >= ms->config.mapWidth) || (j >= ms->config.mapWidth) ) {
-		  continue;
-		} else {
-		}
+	
+	//        if (ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime > mapMemoryTimeout) {
+	//          ms->config.objectMap[i + ms->config.mapWidth * j].b = 0;
+	//          ms->config.objectMap[i + ms->config.mapWidth * j].g = 0;
+	//          ms->config.objectMap[i + ms->config.mapWidth * j].r = 0;
+	//          ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount = 0;
+	//        }
+	
+	// if we are mapping too close to the table these can exceed bounds
+	if ( (i < 0) || (j < 0) || (i >= ms->config.mapWidth) || (j >= ms->config.mapHeight) ) {
+	  continue;
+	}
 
 
         ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime = ros::Time::now();
