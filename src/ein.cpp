@@ -13682,6 +13682,28 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm, r
   einMainWindow->setWindowTitle(QString::fromStdString("Ein " + ms->config.left_or_right_arm));
 
 
+
+  spinlessNodeMain(ms);
+  spinlessPilotMain(ms);
+
+  saveROSParams(ms);
+
+  ms->config.lastImageCallbackReceived = ros::Time::now();
+  ms->config.lastMovementStateSet = ros::Time::now();
+
+  {
+    for (int i = 0; i < ms->config.numCornellTables; i++) {
+      double yDelta = (ms->config.mapSearchFenceYMax - ms->config.mapSearchFenceXMin) / (double(i));
+      eePose thisTablePose = ms->config.beeHome;
+      thisTablePose.px = 0.75*(ms->config.mapSearchFenceXMax - ms->config.mapSearchFenceXMin) + ms->config.mapSearchFenceXMin; 
+      thisTablePose.py = ms->config.mapSearchFenceYMin + (double(i) + 0.5)*yDelta;
+      thisTablePose.pz = ms->config.currentTableZ; 
+      ms->config.cornellTables.push_back(thisTablePose);
+    }
+  } 
+
+
+
 }
 
 
@@ -13728,8 +13750,6 @@ int main(int argc, char **argv) {
   initializeArm(ms, left_or_right_arm, n, einMainWindow);
 
 
-
-  // qt timer
   QTimer *timer = new QTimer(einMainWindow);
   einMainWindow->connect(timer, SIGNAL(timeout()), einMainWindow, SLOT(rosSpin()));
   //timer->start(0);
@@ -13739,31 +13759,8 @@ int main(int argc, char **argv) {
   ros::Timer timer1 = n.createTimer(ros::Duration(0.0001), timercallback1);
 
 
-
-  spinlessNodeMain(ms);
-  spinlessPilotMain(ms);
-
-  saveROSParams(ms);
-
-
   int cudaCount = gpu::getCudaEnabledDeviceCount();
   cout << "cuda count: " << cudaCount << endl;;
-
-  
-  ms->config.lastImageCallbackReceived = ros::Time::now();
-
-  {
-    for (int i = 0; i < ms->config.numCornellTables; i++) {
-      double yDelta = (ms->config.mapSearchFenceYMax - ms->config.mapSearchFenceXMin) / (double(i));
-      eePose thisTablePose = ms->config.beeHome;
-      thisTablePose.px = 0.75*(ms->config.mapSearchFenceXMax - ms->config.mapSearchFenceXMin) + ms->config.mapSearchFenceXMin; 
-      thisTablePose.py = ms->config.mapSearchFenceYMin + (double(i) + 0.5)*yDelta;
-      thisTablePose.pz = ms->config.currentTableZ; 
-      ms->config.cornellTables.push_back(thisTablePose);
-    }
-  } 
-
-  ms->config.lastMovementStateSet = ros::Time::now();
 
   //a.exec();
   
