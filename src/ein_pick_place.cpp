@@ -836,6 +836,17 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(RegisterEffortA)
 
+WORD(SetEffortHere)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  for (int i = 0; i < NUM_JOINTS; i++) {
+    ms->config.target_joint_actual_effort[i] = ms->config.last_joint_actual_effort[i];
+  }
+  cout << "setEffortHere" << endl;
+}
+END_WORD
+REGISTER_WORD(SetEffortHere)
+
 WORD(SetEffortThresh)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
@@ -847,6 +858,221 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 }
 END_WORD
 REGISTER_WORD(SetEffortThresh)
+
+WORD(PressUntilEffortInit)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->pushWord("10.0");
+  ms->pushWord("setEffortThresh");
+  ms->pushWord("setGridSizeCoarse");
+  ms->pushWord("hundredthImpulse");
+}
+END_WORD
+REGISTER_WORD(PressUntilEffortInit)
+
+WORD(PressUntilEffort)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->pushWord("pressUntilEffortA");
+  ms->pushWord("setEffortHere");
+}
+END_WORD
+REGISTER_WORD(PressUntilEffort)
+
+WORD(PressUntilEffortA)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  cout << "pressUntilEffortA: ";
+  double totalDiff = 0.0;
+  for (int i = 0; i < NUM_JOINTS; i++) {
+    double thisDiff = (ms->config.target_joint_actual_effort[i] - ms->config.last_joint_actual_effort[i]);
+    cout << ms->config.target_joint_actual_effort[i] << " " << ms->config.last_joint_actual_effort[i] << " " << thisDiff << " ";
+    totalDiff = totalDiff + (thisDiff * thisDiff);
+  }
+
+  cout << endl << "  totalDiff: " << totalDiff << "   actual_effort_thresh: " << ms->config.actual_effort_thresh << endl;
+
+  if (totalDiff > ms->config.actual_effort_thresh) {
+    cout << "~~~~~~~~" << endl << "crossed effort thresh" << endl << endl;
+    ms->pushWord("stay");
+  } else {
+    ms->pushWord("pressUntilEffortA");
+    if (eePose::distance(ms->config.currentEEPose, ms->config.trueEEPoseEEPose) < ms->config.w1GoThresh) {
+      cout << "nudging" << endl;
+      // the effort measurement drifts natural when the arm moves, even under no load,
+      //  and one way of dealing with this is to reset the effort every so often. It would be
+      //  smoother to do this in a continuous way, like exponential average, but it is not
+      //  clear what the most natural way is.
+      //ms->pushWord("localZUp");
+      //ms->pushWord("5");
+      //ms->pushWord("replicateWord");
+      ms->pushWord("zDown");
+      ms->pushWord("5");
+      ms->pushWord("replicateWord");
+      ms->pushWord("setEffortHere");
+    } else {
+    }
+  }
+
+  ms->pushWord("endStackCollapseNoop");
+}
+END_WORD
+REGISTER_WORD(PressUntilEffortA)
+
+WORD(Stay)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  cout << "Stay!" << endl;
+  ms->config.currentEEPose = ms->config.trueEEPoseEEPose;
+}
+END_WORD
+REGISTER_WORD(Stay)
+
+WORD(RockInit)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->pushWord("0.07");
+  ms->pushWord("setSpeed");
+  //ms->pushWord("setEffortHere");
+}
+END_WORD
+REGISTER_WORD(RockInit)
+
+WORD(Rock)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->pushWord("stay");
+  ms->pushWord("pressUntilEffort");
+  ms->pushWord("pressUntilEffortInit");
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("zUp");
+  ms->pushWord("5");
+  ms->pushWord("replicateWord");
+
+  ms->pushWord("rockC");
+
+  ms->pushWord("oXUp");
+  ms->pushWord("10");
+  ms->pushWord("replicateWord");
+  ms->pushWord("setGridSizeCoarse");
+
+
+  //ms->pushWord("oXDown");
+  //ms->pushWord("10");
+  //ms->pushWord("replicateWord");
+
+  ms->pushWord("rockB");
+  //ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("1.0");
+  ms->pushWord("waitForSeconds");
+  ms->pushWord("oXDown");
+  ms->pushWord("20");
+  ms->pushWord("replicateWord");
+  ms->pushWord("setGridSizeCoarse");
+
+
+  //ms->pushWord("oXUp");
+  //ms->pushWord("10");
+  //ms->pushWord("replicateWord");
+
+  ms->pushWord("rockA");
+  //ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("1.0");
+  ms->pushWord("waitForSeconds");
+  ms->pushWord("oXUp");
+  ms->pushWord("10");
+  ms->pushWord("replicateWord");
+  ms->pushWord("setGridSizeCoarse");
+  
+
+  if (eePose::distance(ms->config.currentEEPose, ms->config.trueEEPoseEEPose) < ms->config.w1GoThresh) {
+    cout << "nudging" << endl;
+//    ms->pushWord("localZUp");
+    //ms->pushWord("setEffortHere");
+//   ms->pushWord("0.004");
+    //ms->pushWord("setGridSize");
+  } else {
+  }
+}
+END_WORD
+REGISTER_WORD(Rock)
+
+WORD(RockA)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  double totalDiff = 0.0;
+  for (int i = 0; i < NUM_JOINTS; i++) {
+    double thisDiff = (ms->config.target_joint_actual_effort[i] - ms->config.last_joint_actual_effort[i]);
+    totalDiff = totalDiff + (thisDiff * thisDiff);
+  }
+
+//  double rockAmp= 2.0 * 0.01;
+//  double rockMax = 200.0;
+//
+//  double rockSnapped = min( max(0.0, totalDiff), rockMax);
+//
+//  ms->config.bDelta = min( max(0.0, rockAmp * (rockMax - rockSnapped) / rockMax), 0.02);
+//
+//
+//  cout << "rockA set bDelta to " << ms->config.bDelta << endl << "  totalDiff: " << totalDiff << endl;;
+  ms->config.rockDiffA = totalDiff;
+
+  cout << "rockA totalDiff: " << totalDiff << endl;
+}
+END_WORD
+REGISTER_WORD(RockA)
+
+WORD(RockB)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  double totalDiff = 0.0;
+  for (int i = 0; i < NUM_JOINTS; i++) {
+    double thisDiff = (ms->config.target_joint_actual_effort[i] - ms->config.last_joint_actual_effort[i]);
+    totalDiff = totalDiff + (thisDiff * thisDiff);
+  }
+
+  ms->config.rockDiffB = totalDiff;
+  cout << "rockB totalDiff: " << totalDiff << endl;
+}
+END_WORD
+REGISTER_WORD(RockB)
+
+WORD(RockC)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  if (ms->config.rockDiffB  > ms->config.rockDiffA) {
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("1.0");
+    ms->pushWord("waitForSeconds");
+    ms->pushWord("oXUp");
+    ms->pushWord("5");
+    ms->pushWord("replicateWord");
+    ms->pushWord("setGridSizeCoarse");
+
+    cout << "rockC: A won" << endl;
+  } else {
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("1.0");
+    ms->pushWord("waitForSeconds");
+    ms->pushWord("oXDown");
+    ms->pushWord("5");
+    ms->pushWord("replicateWord");
+    ms->pushWord("setGridSizeCoarse");
+
+    cout << "rockC: B won" << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(RockC)
+
+WORD(Roll)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+}
+END_WORD
+REGISTER_WORD(Roll)
+
 
 }
 
