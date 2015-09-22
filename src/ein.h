@@ -252,7 +252,8 @@ void reseedIkRequest(shared_ptr<MachineState> ms, eePose *givenEEPose, baxter_co
 bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositionIK thisIkRequest, int thisIkCallResult, bool * likelyInCollision);
 
 void renderRangeogramView(shared_ptr<MachineState> ms);
-void renderObjectMapView(shared_ptr<MachineState> ms);
+void renderObjectMapView(shared_ptr<MachineState> leftArm, shared_ptr<MachineState> rightArm);
+void renderObjectMapViewOneArm(shared_ptr<MachineState> ms);
 void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms);
 void drawMapPolygon(Mat mapImage, double mapXMin, double mapXMax, double mapYMin, double mapYMax, gsl_matrix * poly, cv::Scalar color);
 gsl_matrix * mapCellToPolygon(shared_ptr<MachineState> ms, int map_i, int map_j) ;

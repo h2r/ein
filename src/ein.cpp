@@ -30,7 +30,7 @@
 extern int last_key;
 
 vector<MainWindow *> windows;
-
+vector< shared_ptr<MachineState> > machineStates;
 
 ////////////////////////////////////////////////
 // start pilot includes, usings, and defines
@@ -4222,7 +4222,12 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
   }
 
   if (ms->config.shouldIRender) { // && ms->config.objectMapViewerWindow->isVisible()) {
-    renderObjectMapView(ms);
+    if (machineStates.size() == 2) {
+      renderObjectMapView(machineStates[0], machineStates[1]);
+    } else {
+      renderObjectMapView(machineStates[0], machineStates[0]);
+    }
+    
   }
 }
 
@@ -4673,25 +4678,22 @@ void pixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double yM
 }
 
 
-void renderObjectMapView(shared_ptr<MachineState> ms) {
-  if (ms->config.objectMapViewerImage.rows <= 0 ) {
+void renderObjectMapView(shared_ptr<MachineState> leftArm, shared_ptr<MachineState> rightArm) {
+  if (leftArm->config.objectMapViewerImage.rows <= 0 ) {
     //ms->config.objectMapViewerImage = Mat(600, 600, CV_8UC3);
     //ms->config.objectMapViewerImage = Mat(400, 400, CV_8UC3);
-    ms->config.objectMapViewerImage = Mat(400, 640, CV_8UC3);
+    leftArm->config.objectMapViewerImage = Mat(400, 640, CV_8UC3);
+    rightArm->config.objectMapViewerImage = leftArm->config.objectMapViewerImage;
   }
 
-  if (0) { // drawGrid
-    for (int i = 0; i < ms->config.mapWidth; i++) {
-      for (int j = 0; j < ms->config.mapHeight; j++) {
-        gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
-        drawMapPolygon(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
-                       mapcell, CV_RGB(0, 255, 0));
-        gsl_matrix_free(mapcell);
-      }
-    }
-  }
 
-  ms->config.objectMapViewerImage = CV_RGB(0, 0, 0);
+  leftArm->config.objectMapViewerImage = CV_RGB(0, 0, 0);
+  renderObjectMapViewOneArm(leftArm);
+  renderObjectMapViewOneArm(rightArm);
+}
+
+void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
+
   double pxMin = 0;
   double pxMax = ms->config.objectMapViewerImage.cols;
   double pyMin = 0;
@@ -13722,7 +13724,7 @@ int main(int argc, char **argv) {
     ROS_ERROR("Must pass left, right, or both.");
   }
   
-  vector< shared_ptr<MachineState> > machineStates;
+
 
 
   cout << "argc: " << argc << endl;
@@ -13764,6 +13766,7 @@ int main(int argc, char **argv) {
 
     ms->config.timer1 = n.createTimer(ros::Duration(0.0001), &MachineState::timercallback1, ms.get());
   }
+
 
 
   //timer->start(0);
