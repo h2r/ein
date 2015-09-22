@@ -29,8 +29,9 @@
 MachineState machineState;
 shared_ptr<MachineState> pMachineState;
 
-MainWindow * qtTestWindow = NULL;
 extern int last_key;
+
+MainWindow * einMainWindow;
 
 ////////////////////////////////////////////////
 // start pilot includes, usings, and defines
@@ -4127,7 +4128,7 @@ void timercallback1(const ros::TimerEvent&) {
 
   }
   ms->config.heartBeatCounter++;
-  qtTestWindow->update();
+  einMainWindow->update();
   // XXX is heartBeatCounter even used?
 
   if (c != -1) {
@@ -13382,43 +13383,10 @@ bool isFocusedClassValid(std::shared_ptr<MachineState> ms) {
   }
 }
 
-int main(int argc, char **argv) {
+void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm, ros::NodeHandle & n, MainWindow * einMainWindow) {
+  ms->config.left_or_right_arm = left_or_right_arm;
 
-  QApplication a(argc, argv);
-
-
-  initializeWords();
-  pMachineState = std::make_shared<MachineState>(machineState);
-  pMachineState->sharedThis = pMachineState;
-  shared_ptr<MachineState> ms = pMachineState;
-  initializeMachine(ms);
-
-
-
-  initVectorArcTan(ms);
-  srand(time(NULL));
-  time(&ms->config.firstTime);
-  time(&ms->config.firstTimeRange);
-
-  cout << "argc: " << argc << endl;
-  for (int ccc = 0; ccc < argc; ccc++) {
-    cout << argv[ccc] << endl;
-  }
-  cout << endl << endl;
-
-  ms->config.left_or_right_arm = argv[argc-1];
-
-  string programName;
-  if (argc > 1) {
-    programName = string(PROGRAM_NAME) + "_" + ms->config.left_or_right_arm;
-    cout << "programName: " << programName << endl;
-  }
-  else {
-    programName = string(PROGRAM_NAME);
-  }
-
-  ros::init(argc, argv, programName);
-  ros::NodeHandle n("~");
+  ms->config.it = make_shared<image_transport::ImageTransport>(n);
 
   cout << "n namespace: " << n.getNamespace() << endl;
 
@@ -13440,19 +13408,6 @@ int main(int argc, char **argv) {
     ms->config.image_topic = "/cameras/" + ms->config.left_or_right_arm + "_hand_camera/image";
   }
 
-  image_transport::ImageTransport it(n);
-
-  ros::Subscriber collisionDetectionState;
-  ros::Subscriber gripState;
-  ros::Subscriber eeAccelerator;
-  ros::Subscriber eeTarget;
-  ros::Subscriber jointSubscriber;
-
-  ros::Subscriber pickObjectUnderEndEffectorCommandCallbackSub;
-  ros::Subscriber placeObjectInEndEffectorCommandCallbackSub;
-  ros::Subscriber moveEndEffectorCommandCallbackSub;
-
-  ros::Subscriber armItbCallbackSub;
 
   ms->config.rec_objs_blue_memory = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_memory_objects", 10);
   ms->config.markers_blue_memory = n.advertise<visualization_msgs::MarkerArray>("blue_memory_markers", 10);
@@ -13465,7 +13420,7 @@ int main(int argc, char **argv) {
   if (ms->config.currentRobotMode == PHYSICAL) {
     ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, endpointCallback);
     ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, rangeCallback);
-    ms->config.image_sub = it.subscribe(ms->config.image_topic, 1, imageCallback);
+    ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 1, imageCallback);
 
     ms->config.gravity_comp_sub = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/gravity_compensation_torques", 1, gravityCompCallback);
 
@@ -13473,11 +13428,11 @@ int main(int argc, char **argv) {
     ms->config.cuff_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_lower_button/state", 1, cuffOkCallback);
 
 
-    collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, collisionDetectionStateCallback);
-    gripState = n.subscribe("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/state", 1, gripStateCallback);
-    eeAccelerator =  n.subscribe("/robot/accelerometer/" + ms->config.left_or_right_arm + "_accelerometer/state", 1, accelerometerCallback);
-    eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, targetCallback);
-    jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
+    ms->config.collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, collisionDetectionStateCallback);
+    ms->config.gripState = n.subscribe("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/state", 1, gripStateCallback);
+    ms->config.eeAccelerator =  n.subscribe("/robot/accelerometer/" + ms->config.left_or_right_arm + "_accelerometer/state", 1, accelerometerCallback);
+    ms->config.eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, targetCallback);
+    ms->config.jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
   } else if (ms->config.currentRobotMode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
     simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/ms->config.simulatorCallbackFrequency), simulatorCallback);
@@ -13581,125 +13536,19 @@ int main(int argc, char **argv) {
     assert(0);
   }
 
-  pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, pickObjectUnderEndEffectorCommandCallback);
-  placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
-  moveEndEffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, moveEndEffectorCommandCallback);
+  ms->config.pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, pickObjectUnderEndEffectorCommandCallback);
+  ms->config.placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
+  ms->config.moveEndEffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, moveEndEffectorCommandCallback);
 
-  armItbCallbackSub = n.subscribe("/robot/itb/" + ms->config.left_or_right_arm + "_itb/state", 1, armItbCallback);
-
-
-  qtTestWindow = new MainWindow(NULL, ms);
-  qtTestWindow->show();
-  qtTestWindow->setWristViewMouseCallBack(pilotCallbackFunc, NULL);
-  qtTestWindow->setObjectMapViewMouseCallBack(objectMapCallbackFunc, NULL);
-  qtTestWindow->setWindowTitle(QString::fromStdString("Ein " + ms->config.left_or_right_arm));
-
-  // qt timer
-  QTimer *timer = new QTimer(qtTestWindow);
-  qtTestWindow->connect(timer, SIGNAL(timeout()), qtTestWindow, SLOT(rosSpin()));
-  //timer->start(0);
-  qRegisterMetaType<Mat>("Mat");
-
-  // ros timer (remember to call process events and switch to app.exec);
-  ros::Timer timer1 = n.createTimer(ros::Duration(0.0001), timercallback1);
-
-
-  ms->config.rangeogramWindow = new EinWindow(NULL, ms);
-  ms->config.rangeogramWindow->setWindowTitle("Rangeogram View " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.rangeogramWindow);
-
-  ms->config.wristViewWindow = new EinWindow(NULL, ms);
-  ms->config.wristViewWindow->setWindowTitle("Wrist View " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.wristViewWindow);
-  ms->config.wristViewWindow->setMouseCallBack(pilotCallbackFunc, NULL);
-
-
-  ms->config.coreViewWindow = new EinWindow(NULL, ms);
-  ms->config.coreViewWindow->setWindowTitle("Core View " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.coreViewWindow);
-  
-  
-  ms->config.faceViewWindow = new EinWindow(NULL, ms);
-  ms->config.faceViewWindow->setWindowTitle("Face View " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.faceViewWindow);
-  
-  
-
-  ms->config.rangemapWindow = new EinWindow(NULL, ms);
-  ms->config.rangemapWindow->setWindowTitle("Range Map View " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.rangemapWindow);
-  
-  
-  ms->config.graspMemoryWindow = new EinWindow(NULL, ms);
-  ms->config.graspMemoryWindow->setWindowTitle("Grasp Memory View " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.graspMemoryWindow);
-  ms->config.graspMemoryWindow->setMouseCallBack(graspMemoryCallbackFunc, NULL);
-  
-  
-  
-  ms->config.graspMemorySampleWindow = new EinWindow(NULL, ms);
-  ms->config.graspMemorySampleWindow->setWindowTitle("Grasp Memory Sample View " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.graspMemorySampleWindow);
-
-  
-  ms->config.heightMemorySampleWindow = new EinWindow(NULL, ms);
-  ms->config.heightMemorySampleWindow->setWindowTitle("Height Memory Sample View " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.heightMemorySampleWindow);
-  
-  
-  ms->config.hiRangemapWindow = new EinWindow(NULL, ms);
-  ms->config.hiRangemapWindow->setWindowTitle("Hi Range Map View " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.hiRangemapWindow);
-  
-  ms->config.hiColorRangemapWindow = new EinWindow(NULL, ms);
-  ms->config.hiColorRangemapWindow->setWindowTitle("Hi Color Range Map View " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.hiColorRangemapWindow);
-
-
-  ms->config.mapBackgroundViewWindow = new EinWindow(NULL, ms);
-  ms->config.mapBackgroundViewWindow->setWindowTitle("Hi Color Range Map View " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.mapBackgroundViewWindow);
-
-
-  ms->config.densityViewerWindow = new EinWindow(NULL, ms);
-  ms->config.densityViewerWindow->setWindowTitle("Density Viewer " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.densityViewerWindow);
-
-  ms->config.objectViewerWindow = new EinWindow(NULL, ms);
-  ms->config.objectViewerWindow->setWindowTitle("Object Viewer " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.objectViewerWindow);
-
-  ms->config.objectMapViewerWindow = new EinWindow(NULL, ms);
-  ms->config.objectMapViewerWindow->setWindowTitle("Object Map Viewer " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.objectMapViewerWindow);
+  ms->config.armItbCallbackSub = n.subscribe("/robot/itb/" + ms->config.left_or_right_arm + "_itb/state", 1, armItbCallback);
 
 
 
-  ms->config.gradientViewerWindow = new EinWindow(NULL, ms);
-  ms->config.gradientViewerWindow->setWindowTitle("Gradient Viewer " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.gradientViewerWindow);
+  ms->config.fetchCommandSubscriber = n.subscribe("/fetch_commands", 1, 
+						  fetchCommandCallback);
 
-  ms->config.aerialGradientViewerWindow = new EinWindow(NULL, ms);
-  ms->config.aerialGradientViewerWindow->setWindowTitle("Aerial Gradient Viewer " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.aerialGradientViewerWindow);
-
-  ms->config.stereoViewerWindow = new EinWindow(NULL, ms);
-  ms->config.stereoViewerWindow->setWindowTitle("Stereo Viewer " + ms->config.left_or_right_arm);
-  qtTestWindow->addWindow(ms->config.stereoViewerWindow);
-
-  //createTrackbar("post_density_sigma", ms->config.densityViewerName, &ms->config.postDensitySigmaTrackbarVariable, 40);
-  //createTrackbar("canny_lo", ms->config.densityViewerName, &ms->config.loTrackbarVariable, 100);
-  //createTrackbar("canny_hi", ms->config.densityViewerName, &ms->config.hiTrackbarVariable, 100);
-
-
-
-  ros::Subscriber fetchCommandSubscriber;
-  fetchCommandSubscriber = n.subscribe("/fetch_commands", 1, 
-                                       fetchCommandCallback);
-
-  ros::Subscriber forthCommandSubscriber;
-  forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1, 
-                                       forthCommandCallback);
+  ms->config.forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1, 
+						  forthCommandCallback);
 
 
 
@@ -13739,6 +13588,158 @@ int main(int argc, char **argv) {
 
   initializeMap(ms);
 
+
+  ms->config.rangeogramWindow = new EinWindow(NULL, ms);
+  ms->config.rangeogramWindow->setWindowTitle("Rangeogram View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.rangeogramWindow);
+
+  ms->config.wristViewWindow = new EinWindow(NULL, ms);
+  ms->config.wristViewWindow->setWindowTitle("Wrist View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.wristViewWindow);
+  ms->config.wristViewWindow->setMouseCallBack(pilotCallbackFunc, NULL);
+
+
+  ms->config.coreViewWindow = new EinWindow(NULL, ms);
+  ms->config.coreViewWindow->setWindowTitle("Core View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.coreViewWindow);
+  
+  
+  ms->config.faceViewWindow = new EinWindow(NULL, ms);
+  ms->config.faceViewWindow->setWindowTitle("Face View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.faceViewWindow);
+  
+  
+
+  ms->config.rangemapWindow = new EinWindow(NULL, ms);
+  ms->config.rangemapWindow->setWindowTitle("Range Map View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.rangemapWindow);
+  
+  
+  ms->config.graspMemoryWindow = new EinWindow(NULL, ms);
+  ms->config.graspMemoryWindow->setWindowTitle("Grasp Memory View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.graspMemoryWindow);
+  ms->config.graspMemoryWindow->setMouseCallBack(graspMemoryCallbackFunc, NULL);
+  
+  
+  
+  ms->config.graspMemorySampleWindow = new EinWindow(NULL, ms);
+  ms->config.graspMemorySampleWindow->setWindowTitle("Grasp Memory Sample View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.graspMemorySampleWindow);
+
+  
+  ms->config.heightMemorySampleWindow = new EinWindow(NULL, ms);
+  ms->config.heightMemorySampleWindow->setWindowTitle("Height Memory Sample View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.heightMemorySampleWindow);
+  
+  
+  ms->config.hiRangemapWindow = new EinWindow(NULL, ms);
+  ms->config.hiRangemapWindow->setWindowTitle("Hi Range Map View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.hiRangemapWindow);
+  
+  ms->config.hiColorRangemapWindow = new EinWindow(NULL, ms);
+  ms->config.hiColorRangemapWindow->setWindowTitle("Hi Color Range Map View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.hiColorRangemapWindow);
+
+
+  ms->config.mapBackgroundViewWindow = new EinWindow(NULL, ms);
+  ms->config.mapBackgroundViewWindow->setWindowTitle("Hi Color Range Map View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.mapBackgroundViewWindow);
+
+
+  ms->config.densityViewerWindow = new EinWindow(NULL, ms);
+  ms->config.densityViewerWindow->setWindowTitle("Density Viewer " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.densityViewerWindow);
+
+  ms->config.objectViewerWindow = new EinWindow(NULL, ms);
+  ms->config.objectViewerWindow->setWindowTitle("Object Viewer " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.objectViewerWindow);
+
+  ms->config.objectMapViewerWindow = new EinWindow(NULL, ms);
+  ms->config.objectMapViewerWindow->setWindowTitle("Object Map Viewer " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.objectMapViewerWindow);
+
+
+
+  ms->config.gradientViewerWindow = new EinWindow(NULL, ms);
+  ms->config.gradientViewerWindow->setWindowTitle("Gradient Viewer " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.gradientViewerWindow);
+
+  ms->config.aerialGradientViewerWindow = new EinWindow(NULL, ms);
+  ms->config.aerialGradientViewerWindow->setWindowTitle("Aerial Gradient Viewer " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.aerialGradientViewerWindow);
+
+  ms->config.stereoViewerWindow = new EinWindow(NULL, ms);
+  ms->config.stereoViewerWindow->setWindowTitle("Stereo Viewer " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.stereoViewerWindow);
+
+  //createTrackbar("post_density_sigma", ms->config.densityViewerName, &ms->config.postDensitySigmaTrackbarVariable, 40);
+  //createTrackbar("canny_lo", ms->config.densityViewerName, &ms->config.loTrackbarVariable, 100);
+  //createTrackbar("canny_hi", ms->config.densityViewerName, &ms->config.hiTrackbarVariable, 100);
+
+  einMainWindow->show();
+  einMainWindow->setWristViewMouseCallBack(pilotCallbackFunc, NULL);
+  einMainWindow->setObjectMapViewMouseCallBack(objectMapCallbackFunc, NULL);
+  einMainWindow->setWindowTitle(QString::fromStdString("Ein " + ms->config.left_or_right_arm));
+
+
+}
+
+
+int main(int argc, char **argv) {
+
+  QApplication a(argc, argv);
+
+
+  initializeWords();
+  pMachineState = std::make_shared<MachineState>(machineState);
+  pMachineState->sharedThis = pMachineState;
+  shared_ptr<MachineState> ms = pMachineState;
+  initializeMachine(ms);
+
+
+
+  initVectorArcTan(ms);
+  srand(time(NULL));
+  time(&ms->config.firstTime);
+  time(&ms->config.firstTimeRange);
+
+  cout << "argc: " << argc << endl;
+  for (int ccc = 0; ccc < argc; ccc++) {
+    cout << argv[ccc] << endl;
+  }
+  cout << endl << endl;
+
+  string left_or_right_arm = argv[argc-1];
+
+  einMainWindow = new MainWindow(NULL, ms);
+
+  string programName;
+  if (argc > 1) {
+    programName = string(PROGRAM_NAME) + "_" + left_or_right_arm;
+    cout << "programName: " << programName << endl;
+  }
+  else {
+    programName = string(PROGRAM_NAME);
+  }
+
+  ros::init(argc, argv, programName);
+  ros::NodeHandle n("~");
+
+  initializeArm(ms, left_or_right_arm, n, einMainWindow);
+
+
+
+  // qt timer
+  QTimer *timer = new QTimer(einMainWindow);
+  einMainWindow->connect(timer, SIGNAL(timeout()), einMainWindow, SLOT(rosSpin()));
+  //timer->start(0);
+  qRegisterMetaType<Mat>("Mat");
+
+  // ros timer (remember to call process events and switch to app.exec);
+  ros::Timer timer1 = n.createTimer(ros::Duration(0.0001), timercallback1);
+
+
+
   spinlessNodeMain(ms);
   spinlessPilotMain(ms);
 
@@ -13766,7 +13767,14 @@ int main(int argc, char **argv) {
 
   //a.exec();
   
-  ros::spin();
+  try {
+    ros::spin();
+  } catch( ... ) {
+
+    std::exception_ptr p = std::current_exception();
+    std::clog <<(p ? p.__cxa_exception_type()->name() : "null") << std::endl;
+    throw;
+  }
 
   return 0;
 }
