@@ -894,7 +894,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
   if (totalDiff > ms->config.actual_effort_thresh) {
     cout << "~~~~~~~~" << endl << "crossed effort thresh" << endl << endl;
-    ms->pushWord("stay");
+    ms->pushWord("stayNoRoll");
   } else {
     ms->pushWord("pressUntilEffortA");
     if (eePose::distance(ms->config.currentEEPose, ms->config.trueEEPoseEEPose) < ms->config.w1GoThresh) {
@@ -903,12 +903,12 @@ virtual void execute(std::shared_ptr<MachineState> ms)
       //  and one way of dealing with this is to reset the effort every so often. It would be
       //  smoother to do this in a continuous way, like exponential average, but it is not
       //  clear what the most natural way is.
-      //ms->pushWord("localZUp");
-      //ms->pushWord("5");
-      //ms->pushWord("replicateWord");
-      ms->pushWord("zDown");
+      ms->pushWord("localZUp");
       ms->pushWord("5");
       ms->pushWord("replicateWord");
+      //ms->pushWord("zDown");
+      //ms->pushWord("5");
+      //ms->pushWord("replicateWord");
       ms->pushWord("setEffortHere");
     } else {
     }
@@ -928,12 +928,22 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(Stay)
 
+WORD(StayNoRoll)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  cout << "StayNoRoll!" << endl;
+  ms->config.currentEEPose.copyP(ms->config.trueEEPoseEEPose);
+}
+END_WORD
+REGISTER_WORD(StayNoRoll)
+
 WORD(RockInit)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   ms->pushWord("0.07");
   ms->pushWord("setSpeed");
   //ms->pushWord("setEffortHere");
+  ms->pushWord("saveRegister1");
 }
 END_WORD
 REGISTER_WORD(RockInit)
@@ -941,14 +951,13 @@ REGISTER_WORD(RockInit)
 WORD(Rock)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  ms->pushWord("stay");
-  ms->pushWord("pressUntilEffort");
-  ms->pushWord("pressUntilEffortInit");
 
   ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("zUp");
-  ms->pushWord("5");
-  ms->pushWord("replicateWord");
+  //ms->pushWord("zUp");
+  //ms->pushWord("5");
+  //ms->pushWord("replicateWord");
+  ms->pushWord("tenthImpulse");
+  ms->pushWord("rockD");
 
   ms->pushWord("rockC");
 
@@ -971,6 +980,16 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->pushWord("replicateWord");
   ms->pushWord("setGridSizeCoarse");
 
+  ms->pushWord("stayNoRoll");
+  ms->pushWord("pressUntilEffort");
+  ms->pushWord("pressUntilEffortInit");
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+  //ms->pushWord("zUp");
+  //ms->pushWord("5");
+  //ms->pushWord("replicateWord");
+  ms->pushWord("tenthImpulse");
+  ms->pushWord("rockD");
 
   //ms->pushWord("oXUp");
   //ms->pushWord("10");
@@ -985,6 +1004,17 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->pushWord("replicateWord");
   ms->pushWord("setGridSizeCoarse");
   
+
+  ms->pushWord("stayNoRoll");
+  ms->pushWord("pressUntilEffort");
+  ms->pushWord("pressUntilEffortInit");
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+  //ms->pushWord("zUp");
+  //ms->pushWord("5");
+  //ms->pushWord("replicateWord");
+  ms->pushWord("tenthImpulse");
+  ms->pushWord("rockD");
 
   if (eePose::distance(ms->config.currentEEPose, ms->config.trueEEPoseEEPose) < ms->config.w1GoThresh) {
     cout << "nudging" << endl;
@@ -1062,9 +1092,31 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
     cout << "rockC: B won" << endl;
   }
+
 }
 END_WORD
 REGISTER_WORD(RockC)
+
+WORD(RockDA)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->config.currentEEPose.copyP(ms->config.eepReg1);
+}
+END_WORD
+REGISTER_WORD(RockDA)
+
+WORD(RockD)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->pushWord("rockDA");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("zUp");
+  ms->pushWord("7");
+  ms->pushWord("replicateWord");
+  ms->pushWord("tenthImpulse");
+}
+END_WORD
+REGISTER_WORD(RockD)
 
 WORD(Roll)
 virtual void execute(std::shared_ptr<MachineState> ms)
