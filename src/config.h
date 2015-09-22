@@ -1274,6 +1274,24 @@ class EinConfig {
   ros::Subscriber cuff_grasp_sub;
   ros::Subscriber cuff_ok_sub;
 
+
+
+  shared_ptr<image_transport::ImageTransport> it;
+
+  ros::Subscriber collisionDetectionState;
+  ros::Subscriber gripState;
+  ros::Subscriber eeAccelerator;
+  ros::Subscriber eeTarget;
+  ros::Subscriber jointSubscriber;
+
+  ros::Subscriber pickObjectUnderEndEffectorCommandCallbackSub;
+  ros::Subscriber placeObjectInEndEffectorCommandCallbackSub;
+  ros::Subscriber moveEndEffectorCommandCallbackSub;
+
+  ros::Subscriber armItbCallbackSub;
+  ros::Subscriber fetchCommandSubscriber;
+  ros::Subscriber forthCommandSubscriber;
+
   ros::Time waitForSecondsTarget;
 
   baxter_core_msgs::ITBState lastItbs;
