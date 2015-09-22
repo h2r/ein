@@ -13586,7 +13586,7 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm, M
   ms->config.wristViewWindow = new EinWindow(NULL, ms);
   ms->config.wristViewWindow->setWindowTitle("Wrist View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.wristViewWindow);
-  ms->config.wristViewWindow->setMouseCallBack(pilotCallbackFunc, NULL);
+  ms->config.wristViewWindow->setMouseCallBack(pilotCallbackFunc, ms.get());
 
 
   ms->config.coreViewWindow = new EinWindow(NULL, ms);
@@ -13667,7 +13667,7 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm, M
   //createTrackbar("canny_hi", ms->config.densityViewerName, &ms->config.hiTrackbarVariable, 100);
 
   einMainWindow->show();
-  einMainWindow->setWristViewMouseCallBack(pilotCallbackFunc, NULL);
+  einMainWindow->setWristViewMouseCallBack(pilotCallbackFunc, ms.get());
   einMainWindow->setObjectMapViewMouseCallBack(objectMapCallbackFunc, ms.get());
   einMainWindow->setWindowTitle(QString::fromStdString("Ein " + ms->config.left_or_right_arm));
 
@@ -13758,7 +13758,7 @@ int main(int argc, char **argv) {
 
     MainWindow * einMainWindow = new MainWindow(NULL, ms);
     windows.push_back(einMainWindow);
-    initializeArm(ms, left_or_right_arm, einMainWindow);
+    initializeArm(ms, left_or_right, einMainWindow);
     QTimer *timer = new QTimer(einMainWindow);
     einMainWindow->connect(timer, SIGNAL(timeout()), einMainWindow, SLOT(rosSpin()));
 
