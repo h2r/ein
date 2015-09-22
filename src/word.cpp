@@ -40,8 +40,6 @@ std::map<string, std::shared_ptr<Word> > create_name_to_word(std::vector<std::sh
 }
 
 
-
-
 bool MachineState::pushWord(int code) {
   if (character_code_to_word.count(code) > 0) {
     std::shared_ptr<Word> word = character_code_to_word[code];      

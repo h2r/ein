@@ -970,6 +970,8 @@ class EinConfig {
 
   double simulatorCallbackFrequency = 30.0;
   ros::Timer simulatorCallbackTimer;
+
+  ros::Timer timer1;
   
   int mbiWidth = 2000;
   int mbiHeight = 2000;
@@ -1353,6 +1355,7 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   EinConfig config;
 
   int execute_stack = 0;
+
   bool pushWord(int code);
   bool pushWord(string name);
   bool pushWord(std::shared_ptr<Word> word);
