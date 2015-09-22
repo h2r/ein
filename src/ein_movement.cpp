@@ -1492,6 +1492,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	// get 7 strings, make them into doubles, move there
 	// order px py pz qx qy qz qw
 	double vals[7]; 
+
+
+/*
 	for (int i = 6; i >= 0; i--) { 
 		shared_ptr<Word> word = ms->popWord(); 
 		if (word == NULL) {
@@ -1510,7 +1513,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 		}
 		vals[i] = r;
 	}
+*/
+
+  for (int i = 6; i >= 0; i--) { 
+    GET_NUMERIC_ARG(ms, vals[i]);
+  }
+
+
+
   // make them actually into an eepose
+
   _eePose pose = {.px = vals[0], .py = vals[1], .pz = vals[2],
       .qx = vals[3], .qy = vals[4], .qz = vals[5], .qw = vals[6]};
   ms->config.currentEEPose = pose; 
