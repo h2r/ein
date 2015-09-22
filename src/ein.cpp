@@ -29,7 +29,7 @@
 
 extern int last_key;
 
-MainWindow * einMainWindow;
+vector<MainWindow *> windows;
 
 
 ////////////////////////////////////////////////
@@ -4117,7 +4117,9 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
 
   }
   ms->config.heartBeatCounter++;
-  einMainWindow->update();
+  for (int i = 0; i < windows.size(); i++) {
+    windows[i]->update();
+  }
   // XXX is heartBeatCounter even used?
 
   if (c != -1) {
@@ -13360,7 +13362,14 @@ bool isFocusedClassValid(std::shared_ptr<MachineState> ms) {
   }
 }
 
-void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm, ros::NodeHandle & n, MainWindow * einMainWindow) {
+void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm, MainWindow * einMainWindow) {
+
+  ros::NodeHandle n("~");
+
+  time(&ms->config.firstTime);
+  time(&ms->config.firstTimeRange);
+
+
   initializeMachine(ms);
 
   ms->config.left_or_right_arm = left_or_right_arm;
@@ -13694,17 +13703,27 @@ int main(int argc, char **argv) {
 
   initializeWords();
 
-  shared_ptr<MachineState> ms = std::make_shared<MachineState>();
-  ms->sharedThis = ms;
-  cout << "ms: " << ms << ms.get() << endl;
-
-
-
-
-  initVectorArcTan(ms);
   srand(time(NULL));
-  time(&ms->config.firstTime);
-  time(&ms->config.firstTimeRange);
+
+
+
+  string left_or_right_arm = argv[argc-1];
+
+  vector<string> arm_names;
+
+  if (left_or_right_arm == "both") {
+    arm_names.push_back("left");
+    arm_names.push_back("right");
+  } else if (left_or_right_arm == "left") {
+    arm_names.push_back("left");
+  } else if (left_or_right_arm == "right") {
+    arm_names.push_back("right");
+  } else {
+    ROS_ERROR("Must pass left, right, or both.");
+  }
+  
+  vector< shared_ptr<MachineState> > machineStates;
+
 
   cout << "argc: " << argc << endl;
   for (int ccc = 0; ccc < argc; ccc++) {
@@ -13712,12 +13731,9 @@ int main(int argc, char **argv) {
   }
   cout << endl << endl;
 
-  string left_or_right_arm = argv[argc-1];
-  if (left_or_right_arm == "both") {
-    
-  }
 
-  einMainWindow = new MainWindow(NULL, ms);
+
+
 
   string programName;
   if (argc > 1) {
@@ -13731,17 +13747,27 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, programName);
   ros::NodeHandle n("~");
 
-  initializeArm(ms, left_or_right_arm, n, einMainWindow);
+
+  for(int i = 0; i < arm_names.size(); i++) {
+    string left_or_right = arm_names[i];
+    shared_ptr<MachineState> ms = std::make_shared<MachineState>();
+    ms->sharedThis = ms;
+    machineStates.push_back(ms);
+
+    initVectorArcTan(ms);
+
+    MainWindow * einMainWindow = new MainWindow(NULL, ms);
+    windows.push_back(einMainWindow);
+    initializeArm(ms, left_or_right_arm, einMainWindow);
+    QTimer *timer = new QTimer(einMainWindow);
+    einMainWindow->connect(timer, SIGNAL(timeout()), einMainWindow, SLOT(rosSpin()));
+
+    ms->config.timer1 = n.createTimer(ros::Duration(0.0001), &MachineState::timercallback1, ms.get());
+  }
 
 
-  QTimer *timer = new QTimer(einMainWindow);
-  einMainWindow->connect(timer, SIGNAL(timeout()), einMainWindow, SLOT(rosSpin()));
   //timer->start(0);
   qRegisterMetaType<Mat>("Mat");
-
-  // ros timer (remember to call process events and switch to app.exec);
-  ros::Timer timer1 = n.createTimer(ros::Duration(0.0001), &MachineState::timercallback1, ms.get());
-
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();
   cout << "cuda count: " << cudaCount << endl;;
@@ -13751,7 +13777,7 @@ int main(int argc, char **argv) {
   try {
     ros::spin();
   } catch( ... ) {
-
+    ROS_ERROR("In the weird sketchy exception block in ein main.");    
     std::exception_ptr p = std::current_exception();
     std::clog <<(p ? p.__cxa_exception_type()->name() : "null") << std::endl;
     throw;
