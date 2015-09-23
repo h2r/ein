@@ -884,6 +884,8 @@ class EinConfig {
 
   int waitUntilAtCurrentPositionCounter = 0;
   int waitUntilAtCurrentPositionCounterTimeout = 300;
+  int waitUntilEffortCounter = 0;
+  int waitUntilEffortCounterTimeout = 3000;
   int waitUntilGripperNotMovingCounter = 0;
   int waitUntilGripperNotMovingTimeout = 100;
   ros::Time waitUntilGripperNotMovingStamp;
@@ -1300,6 +1302,8 @@ class EinConfig {
 
   double rockDiffA = 0.0;
   double rockDiffB = 0.0;
+
+  eePose targetWrench;
 }; // config end
 
 class Word;
