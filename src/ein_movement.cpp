@@ -56,25 +56,26 @@ REGISTER_WORD(WaitUntilAtCurrentPosition)
 
 WORD(WaitUntilAtCurrentPositionB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  if (ms->config.waitUntilAtCurrentPositionCounter < ms->config.waitUntilAtCurrentPositionCounterTimeout) {
 
-  if ( (ms->config.currentMovementState == STOPPED) ||
-       (ms->config.currentMovementState == BLOCKED) ) {
+    if ( (ms->config.currentMovementState == STOPPED) ||
+	 (ms->config.currentMovementState == BLOCKED) ) {
 
-    if (ms->config.currentMovementState == STOPPED) {
-      cout << "Warning: waitUntilAtCurrentPosition ms->config.currentMovementState = STOPPED, moving on." << endl;
-      ms->config.endThisStackCollapse = ms->config.endCollapse;
+      if (ms->config.currentMovementState == STOPPED) {
+	cout << "Warning: waitUntilAtCurrentPosition ms->config.currentMovementState = STOPPED, moving on." << endl;
+	ms->config.endThisStackCollapse = ms->config.endCollapse;
+      }
+      if (ms->config.currentMovementState == BLOCKED) {
+	cout << "Warning: waitUntilAtCurrentPosition ms->config.currentMovementState = BLOCKED, moving on." << endl;
+	ms->config.endThisStackCollapse = ms->config.endCollapse;
+      }
+      
+      ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
+      cout << "  backing up just a little to dislodge, then waiting again." << endl;
+
+      ms->pushWord("waitUntilAtCurrentPosition"); 
+      return;
     }
-    if (ms->config.currentMovementState == BLOCKED) {
-      cout << "Warning: waitUntilAtCurrentPosition ms->config.currentMovementState = BLOCKED, moving on." << endl;
-      ms->config.endThisStackCollapse = ms->config.endCollapse;
-    }
-    
-    ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
-    cout << "  backing up just a little to dislodge, then waiting again." << endl;
-
-    ms->pushWord("waitUntilAtCurrentPosition"); 
-    return;
-  }
 
   double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
   double dy = (ms->config.currentEEPose.py - ms->config.trueEEPose.position.y);
@@ -86,8 +87,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double qz = (fabs(ms->config.currentEEPose.qz) - fabs(ms->config.trueEEPose.orientation.z));
   double qw = (fabs(ms->config.currentEEPose.qw) - fabs(ms->config.trueEEPose.orientation.w));
   double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
-  
-  if (ms->config.waitUntilAtCurrentPositionCounter < ms->config.waitUntilAtCurrentPositionCounterTimeout) {
+
+
+
+
     ms->config.waitUntilAtCurrentPositionCounter++;
     if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
       ms->pushWord("waitUntilAtCurrentPositionB"); 

@@ -484,7 +484,32 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     ms->pushCopies("localZDown", 5);
     ms->pushWord("setGridSizeCoarse");
-    ms->pushWord("waitForTugThenOpenGripper");
+
+    if (0) {
+      ms->pushWord("waitForTugThenOpenGripper");
+    } else {
+      // enchanced handoff
+      ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord("waitUntilGripperNotMoving"); 
+      ms->pushWord("openGripper");
+      ms->pushWord("oXUp"); 
+      ms->pushWord("80"); 
+      ms->pushWord("replicateWord"); 
+      ms->pushWord("waitUntilEffort");
+      ms->pushWord("2.0");
+      ms->pushWord("setEffortThresh");
+      ms->pushWord("4.0");
+      ms->pushWord("waitForSeconds");
+      ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord("oXDown"); 
+      ms->pushWord("80"); 
+      ms->pushWord("replicateWord"); 
+      ms->pushWord("localZDown"); 
+      ms->pushWord("10"); 
+      ms->pushWord("replicateWord"); 
+      ms->pushWord("setGridSizeCoarse"); 
+    }
+
     ms->pushWord("waitUntilAtCurrentPosition"); 
     ms->pushWord("assumeHandingPose");
     ms->pushWord("setPatrolStateToHanding");
@@ -798,14 +823,87 @@ cout << "pressAndReleaseA: qdistance " << qdistance << endl;
 END_WORD
 REGISTER_WORD(PressAndReleaseA)
 
+WORD(RegisterWrench)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->config.targetWrench = ms->config.trueEEWrench; 
+
+  ms->pushWord("registerWrenchA");
+}
+END_WORD
+REGISTER_WORD(RegisterWrench)
+
+WORD(RegisterWrenchA)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  cout << "registerWrenchA: ";
+  double totalDiff = 0.0;
+
+  totalDiff = eePose::distance(ms->config.targetWrench, ms->config.trueEEWrench);
+
+  cout << endl << "  totalDiff: " << totalDiff << "   actual_effort_thresh: " << ms->config.actual_effort_thresh << endl;
+
+  if (totalDiff > ms->config.actual_effort_thresh) {
+    cout << "~~~~~~~~" << endl << endl << endl << endl;
+    //ms->pushWord("registerWrench");
+    ms->pushWord("registerWrenchA");
+  } else {
+    ms->pushWord("registerWrenchA");
+  }
+
+  ms->pushWord("endStackCollapseNoop");
+}
+END_WORD
+REGISTER_WORD(RegisterWrenchA)
+
+WORD(WaitUntilEffort)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->config.waitUntilEffortCounter = 0;
+  ms->pushWord("waitUntilEffortA");
+  ms->pushWord("setEffortHere");
+}
+END_WORD
+REGISTER_WORD(WaitUntilEffort)
+
+WORD(WaitUntilEffortA)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  if (ms->config.waitUntilEffortCounter < ms->config.waitUntilEffortCounterTimeout) {
+
+    double totalDiff = 0.0;
+    for (int i = 0; i < NUM_JOINTS; i++) {
+      double thisDiff = (ms->config.target_joint_actual_effort[i] - ms->config.last_joint_actual_effort[i]);
+      //cout << ms->config.target_joint_actual_effort[i] << " " << ms->config.last_joint_actual_effort[i] << " " << thisDiff << " ";
+      totalDiff = totalDiff + (thisDiff * thisDiff);
+    }
+
+    //cout << endl << "  totalDiff: " << totalDiff << "   actual_effort_thresh: " << ms->config.actual_effort_thresh << endl;
+
+  ms->config.waitUntilEffortCounter++;
+
+    if (totalDiff > ms->config.actual_effort_thresh) {
+      //cout << "~~~~~~~~" << endl << endl << endl << endl;
+      cout << "~~~~~~~~ felt effort" << endl;
+    } else {
+      ms->pushWord("waitUntilEffortA");
+    }
+  } else {
+    cout << "Warning: waitUntilEffort timed out, moving on." << endl;
+    cout << "Warning: not moving on so we don't drop objects..." << endl;
+    ms->pushWord("waitUntilEffortA");
+  }
+
+  ms->pushWord("endStackCollapseNoop");
+}
+END_WORD
+REGISTER_WORD(WaitUntilEffortA)
+
 WORD(RegisterEffort)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  for (int i = 0; i < NUM_JOINTS; i++) {
-    ms->config.target_joint_actual_effort[i] = ms->config.last_joint_actual_effort[i];
-  }
-
   ms->pushWord("registerEffortA");
+  ms->pushWord("setEffortHere");
 }
 END_WORD
 REGISTER_WORD(RegisterEffort)
