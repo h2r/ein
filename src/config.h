@@ -294,6 +294,15 @@ class EinConfig {
   ros::Publisher markers_blue_memory;
   ros::Publisher ee_target_pub;
 
+  ros::Publisher digital_io_pub;
+
+  ros::Publisher sonar_pub;
+  ros::Publisher red_halo_pub;
+  ros::Publisher green_halo_pub;
+
+  int sonar_led_state = 0;
+  double red_halo_state = 100.0;
+  double green_halo_state = 100.0;
 
 
   int zero_g_toggle = 1;
