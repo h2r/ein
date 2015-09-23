@@ -1,11 +1,41 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
-#include <baxter_core_msgs/HeadPanCommand.h>
+
+#include <ros/package.h>
+#include <tf/transform_listener.h>
+#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/Range.h>
+#include <actionlib/client/simple_action_client.h>
+#include <control_msgs/FollowJointTrajectoryAction.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/String.h>
+#include <std_msgs/Int32.h>
 #include <std_msgs/UInt16.h>
 #include <std_msgs/UInt32.h>
-#include <std_msgs/Bool.h>
+#include <std_msgs/Float64.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <geometry_msgs/Point.h>
+#include <geometry_msgs/Pose.h>
+#include <object_recognition_msgs/RecognizedObjectArray.h>
+#include <object_recognition_msgs/RecognizedObject.h>
+#include <image_transport/image_transport.h>
+#include <sensor_msgs/image_encodings.h>
 #include <cv_bridge/cv_bridge.h>
+
+
+#include <baxter_core_msgs/CameraControl.h>
+#include <baxter_core_msgs/OpenCamera.h>
+#include <baxter_core_msgs/EndpointState.h>
+#include <baxter_core_msgs/EndEffectorState.h>
+#include <baxter_core_msgs/CollisionDetectionState.h>
+#include <baxter_core_msgs/EndEffectorCommand.h>
+#include <baxter_core_msgs/SolvePositionIK.h>
+#include <baxter_core_msgs/JointCommand.h>
+#include <baxter_core_msgs/HeadPanCommand.h>
+#include <baxter_core_msgs/SEAJointState.h>
+
+
 
 #include <ros/package.h>
 #include <tf/transform_listener.h>
@@ -941,6 +971,9 @@ class EinConfig {
 
 
   double simulatorCallbackFrequency = 30.0;
+  ros::Timer simulatorCallbackTimer;
+
+  ros::Timer timer1;
   
   int mbiWidth = 2000;
   int mbiHeight = 2000;
@@ -1326,6 +1359,7 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   EinConfig config;
 
   int execute_stack = 0;
+
   bool pushWord(int code);
   bool pushWord(string name);
   bool pushWord(std::shared_ptr<Word> word);
@@ -1340,6 +1374,26 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
 
   string currentState();
 
+  void jointCallback(const sensor_msgs::JointState& js);
+  void fetchCommandCallback(const std_msgs::String::ConstPtr& msg);
+  void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
+  void armItbCallback(const baxter_core_msgs::ITBState& itbs);
+  void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);
+  void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg);
+  void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
+  void endpointCallback(const baxter_core_msgs::EndpointState& eps);
+  void collisionDetectionStateCallback(const baxter_core_msgs::CollisionDetectionState& cds);
+  void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees);
+  void accelerometerCallback(const sensor_msgs::Imu& moment);
+  void rangeCallback(const sensor_msgs::Range& range);
+  void update_baxter(ros::NodeHandle &n);
+  void timercallback1(const ros::TimerEvent&);
+  void imageCallback(const sensor_msgs::ImageConstPtr& msg);
+  void gravityCompCallback(const baxter_core_msgs::SEAJointState& seaJ) ;
+  void cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) ;
+  void cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) ;
+  void targetCallback(const geometry_msgs::Point& point);
+  void simulatorCallback(const ros::TimerEvent&);
 };
 
 

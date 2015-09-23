@@ -958,7 +958,7 @@ WORD(PickObjectUnderEndEffector)
 CODE(65365) // page up
 virtual void execute(std::shared_ptr<MachineState> ms) {
   std_msgs::Empty msg;
-  pickObjectUnderEndEffectorCommandCallback(msg);
+  ms->pickObjectUnderEndEffectorCommandCallback(msg);
 }
 END_WORD
 REGISTER_WORD(PickObjectUnderEndEffector)
@@ -967,7 +967,7 @@ WORD(PlaceObjectInEndEffector)
 CODE(65366) // page down
 virtual void execute(std::shared_ptr<MachineState> ms) {
   std_msgs::Empty msg;
-  placeObjectInEndEffectorCommandCallback(msg);
+  ms->placeObjectInEndEffectorCommandCallback(msg);
 }
 END_WORD
 REGISTER_WORD(PlaceObjectInEndEffector)
