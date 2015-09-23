@@ -35,12 +35,12 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void timercallback1(const ros::TimerEvent&); 
+
 
 void MainWindow::rosSpin()
 {
   ros::TimerEvent e;
-  timercallback1(e);
+  ms->timercallback1(e);
   ros::spinOnce();
 
 }

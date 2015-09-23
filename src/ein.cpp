@@ -26,12 +26,11 @@
 
 //#define DEBUG_RING_BUFFER
 
-MachineState machineState;
-shared_ptr<MachineState> pMachineState;
 
 extern int last_key;
 
-MainWindow * einMainWindow;
+vector<MainWindow *> windows;
+vector< shared_ptr<MachineState> > machineStates;
 
 ////////////////////////////////////////////////
 // start pilot includes, usings, and defines
@@ -943,12 +942,9 @@ void recordReadyRangeReadings(shared_ptr<MachineState> ms) {
 #endif
 }
 
-void jointCallback(const sensor_msgs::JointState& js) {
+void MachineState::jointCallback(const sensor_msgs::JointState& js) {
+  MachineState * ms = this;
 
-//  if (!ms->config.shouldIMiscCallback) {
-//    return;
-//  }
-  shared_ptr<MachineState> ms = pMachineState;
   if (ms->config.jointNamesInit) {
     int limit = js.position.size();
     for (int i = 0; i < limit; i++) {
@@ -2072,9 +2068,9 @@ void activateSensorStreaming(std::shared_ptr<MachineState> ms) {
     ms->config.sensorStreamOn = 1;
 
     // turn that queue size up!
-    ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 100, endpointCallback);
-    ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 100, rangeCallback);
-    ms->config.image_sub = it.subscribe(ms->config.image_topic, 30, imageCallback);
+    ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 100, &MachineState::endpointCallback, ms.get());
+    ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 100, &MachineState::rangeCallback, ms.get());
+    ms->config.image_sub = it.subscribe(ms->config.image_topic, 30, &MachineState::imageCallback, ms.get());
     cout << "Activating sensor stream." << endl;
     ros::Time thisTime = ros::Time::now();
     ms->config.sensorStreamLastActivated = thisTime.toSec();
@@ -2088,9 +2084,9 @@ void deactivateSensorStreaming(std::shared_ptr<MachineState> ms) {
   image_transport::ImageTransport it(n);
   ms->config.sensorStreamOn = 0;
   // restore those queue sizes to defaults.
-  ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, endpointCallback);
-  ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, rangeCallback);
-  ms->config.image_sub = it.subscribe(ms->config.image_topic, 1, imageCallback);
+  ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, &MachineState::endpointCallback, ms.get());
+  ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, &MachineState::rangeCallback, ms.get());
+  ms->config.image_sub = it.subscribe(ms->config.image_topic, 1, &MachineState::imageCallback, ms.get());
 
   if (ms->config.diskStreamingEnabled) {
     cout << "deactivateSensorStreaming: About to write batches... ";
@@ -2572,9 +2568,8 @@ void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folder
   // XXX load grasp memories separately 
 }
 
-void fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
-  shared_ptr<MachineState> ms = pMachineState;
-
+void MachineState::fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
+  shared_ptr<MachineState> ms = this->sharedThis;
   if (ros::Time::now() - ms->config.fetchCommandTime < ros::Duration(ms->config.fetchCommandCooldown)) {
     cout << "Received a fetch command but the fetchCommandCooldown hasn't expired so returning." << endl;
     return;
@@ -2625,9 +2620,9 @@ vector<string> split(const char *str, char c = ' ')
 }
 
 
-void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
+void MachineState::moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
   cout << "moveEndEffectorCommandCallback" << endl << msg.position << msg.orientation << endl;
-  shared_ptr<MachineState> ms = pMachineState;
+  MachineState * ms = this;
   if (ms->config.currentRobotMode == PHYSICAL) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
@@ -2639,8 +2634,8 @@ void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
   }
 }
 
-void armItbCallback(const baxter_core_msgs::ITBState& itbs) {
-  shared_ptr<MachineState> ms = pMachineState;
+void MachineState::armItbCallback(const baxter_core_msgs::ITBState& itbs) {
+  MachineState * ms = this;
 
   if ((itbs.buttons[2]) && (!ms->config.lastItbs.buttons[2])) {
     ms->pushWord(std::make_shared<EePoseWord>(ms->config.currentEEPose));
@@ -2658,8 +2653,8 @@ void armItbCallback(const baxter_core_msgs::ITBState& itbs) {
 
 }
 
-void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
-  shared_ptr<MachineState> ms = pMachineState;
+void MachineState::pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
+  shared_ptr<MachineState> ms = this->sharedThis;
   if (ms->config.currentRobotMode == PHYSICAL) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
@@ -2710,8 +2705,8 @@ void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
   }
 }
 
-void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
-  shared_ptr<MachineState> ms = pMachineState;
+void MachineState::placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
+  shared_ptr<MachineState> ms = this->sharedThis;
   if (ms->config.currentRobotMode == PHYSICAL) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
@@ -2747,10 +2742,11 @@ void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg) {
   }
 }
 
-void forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
+void MachineState::forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
 
   // disabling this would be unwise
-  shared_ptr<MachineState> ms = pMachineState;
+  shared_ptr<MachineState> ms = this->sharedThis;
+
   ms->config.forthCommand = msg->data;
   ROS_INFO_STREAM("Received " << ms->config.forthCommand << endl);
   vector<string> tokens = split(ms->config.forthCommand.c_str(), ' ');
@@ -2762,15 +2758,8 @@ void forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
   }
 }
 
-void endpointCallback(const baxter_core_msgs::EndpointState& eps) {
-  doEndpointCallback(pMachineState, eps);
-}
-
-void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::EndpointState& eps) {
-
-//  if (!ms->config.shouldIMiscCallback) {
-//    return;
-//  }
+void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& eps) {
+  shared_ptr<MachineState> ms = this->sharedThis;
 
   ms->config.lastEndpointCallbackReceived = ros::Time::now();
 
@@ -2856,8 +2845,8 @@ void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::End
   }
 }
 
-void collisionDetectionStateCallback(const baxter_core_msgs::CollisionDetectionState& cds) {
-  shared_ptr<MachineState> ms = pMachineState;
+void MachineState::collisionDetectionStateCallback(const baxter_core_msgs::CollisionDetectionState& cds) {
+  shared_ptr<MachineState> ms = this->sharedThis;
   CollisionDetection detection;
   
   detection.inCollision = cds.collision_state;
@@ -2871,9 +2860,9 @@ void collisionDetectionStateCallback(const baxter_core_msgs::CollisionDetectionS
 }
 
 
-void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees) {
+void MachineState::gripStateCallback(const baxter_core_msgs::EndEffectorState& ees) {
 
-  shared_ptr<MachineState> ms = pMachineState;
+  shared_ptr<MachineState> ms = this->sharedThis;
   ms->config.lastGripperCallbackReceived = ros::Time::now();
   ms->config.gripperLastUpdated = ros::Time::now();
   ms->config.gripperPosition  = ees.position;
@@ -3414,8 +3403,8 @@ void publishVolumetricMap(shared_ptr<MachineState> ms) {
   ms->config.vmMarkerPublisher.publish(ma_to_send);
 }
 
-void accelerometerCallback(const sensor_msgs::Imu& moment) {
-  shared_ptr<MachineState> ms = pMachineState;
+void MachineState::accelerometerCallback(const sensor_msgs::Imu& moment) {
+  shared_ptr<MachineState> ms = this->sharedThis;
   ms->config.lastAccelerometerCallbackReceived = ros::Time::now();
   ms->config.eeLinearAcceleration = Vector3d(
     moment.linear_acceleration.x,
@@ -3423,8 +3412,8 @@ void accelerometerCallback(const sensor_msgs::Imu& moment) {
     moment.linear_acceleration.z );
 }
 
-void rangeCallback(const sensor_msgs::Range& range) {
-  shared_ptr<MachineState> ms = pMachineState;
+void MachineState::rangeCallback(const sensor_msgs::Range& range) {
+  shared_ptr<MachineState> ms = this->sharedThis;
   //cout << "range frame_id: " << range.header.frame_id << endl;
   setRingRangeAtTime(ms, range.header.stamp, range.range);
   //double thisRange;
@@ -3909,9 +3898,9 @@ void endEffectorAngularUpdateOuter(eePose *givenEEPose, eePose *deltaEEPose) {
 }
 
 
-void update_baxter(ros::NodeHandle &n) {
+void MachineState::update_baxter(ros::NodeHandle &n) {
 
-  shared_ptr<MachineState> ms = pMachineState;
+  shared_ptr<MachineState> ms = this->sharedThis;
   ms->config.bfc = ms->config.bfc % ms->config.bfc_period;
   if (!ms->config.shouldIDoIK) {
     return;
@@ -4107,12 +4096,12 @@ void update_baxter(ros::NodeHandle &n) {
 
 
 
-void timercallback1(const ros::TimerEvent&) {
+void MachineState::timercallback1(const ros::TimerEvent&) {
 
 
   ros::NodeHandle n("~");
 
-  shared_ptr<MachineState> ms = pMachineState;
+  shared_ptr<MachineState> ms = this->sharedThis;
 
 
   int c = -1;
@@ -4128,7 +4117,9 @@ void timercallback1(const ros::TimerEvent&) {
 
   }
   ms->config.heartBeatCounter++;
-  einMainWindow->update();
+  for (int i = 0; i < windows.size(); i++) {
+    windows[i]->update();
+  }
   // XXX is heartBeatCounter even used?
 
   if (c != -1) {
@@ -4231,14 +4222,19 @@ void timercallback1(const ros::TimerEvent&) {
   }
 
   if (ms->config.shouldIRender) { // && ms->config.objectMapViewerWindow->isVisible()) {
-    renderObjectMapView(ms);
+    if (machineStates.size() == 2) {
+      renderObjectMapView(machineStates[0], machineStates[1]);
+    } else {
+      renderObjectMapView(machineStates[0], machineStates[0]);
+    }
+    
   }
 }
 
 
-void imageCallback(const sensor_msgs::ImageConstPtr& msg){
+void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
-  shared_ptr<MachineState> ms = pMachineState;
+  shared_ptr<MachineState> ms = this->sharedThis;
   ms->config.lastImageCallbackReceived = ros::Time::now();
 
   ms->config.lastImageStamp = msg->header.stamp;
@@ -4618,16 +4614,16 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 }
 
-void gravityCompCallback(const baxter_core_msgs::SEAJointState& seaJ) {
-  shared_ptr<MachineState> ms = pMachineState;
+void MachineState::gravityCompCallback(const baxter_core_msgs::SEAJointState& seaJ) {
+  shared_ptr<MachineState> ms = this->sharedThis;
 
   for (int i = 0; i < NUM_JOINTS; i++) {
     ms->config.last_joint_actual_effort[i] = seaJ.actual_effort[i];
   }
 }
 
-void cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
-  shared_ptr<MachineState> ms = pMachineState;
+void MachineState::cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
+  shared_ptr<MachineState> ms = this->sharedThis;
 
   if (cuffDIOS.state) {
     baxter_core_msgs::EndEffectorCommand command;
@@ -4640,8 +4636,8 @@ void cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
 
 }
 
-void cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
-  shared_ptr<MachineState> ms = pMachineState;
+void MachineState::cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
+  shared_ptr<MachineState> ms = this->sharedThis;
 
   if (cuffDIOS.state) {
     baxter_core_msgs::EndEffectorCommand command;
@@ -4682,25 +4678,22 @@ void pixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double yM
 }
 
 
-void renderObjectMapView(shared_ptr<MachineState> ms) {
-  if (ms->config.objectMapViewerImage.rows <= 0 ) {
+void renderObjectMapView(shared_ptr<MachineState> leftArm, shared_ptr<MachineState> rightArm) {
+  if (leftArm->config.objectMapViewerImage.rows <= 0 ) {
     //ms->config.objectMapViewerImage = Mat(600, 600, CV_8UC3);
     //ms->config.objectMapViewerImage = Mat(400, 400, CV_8UC3);
-    ms->config.objectMapViewerImage = Mat(400, 640, CV_8UC3);
+    leftArm->config.objectMapViewerImage = Mat(400, 640, CV_8UC3);
+    rightArm->config.objectMapViewerImage = leftArm->config.objectMapViewerImage;
   }
 
-  if (0) { // drawGrid
-    for (int i = 0; i < ms->config.mapWidth; i++) {
-      for (int j = 0; j < ms->config.mapHeight; j++) {
-        gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
-        drawMapPolygon(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
-                       mapcell, CV_RGB(0, 255, 0));
-        gsl_matrix_free(mapcell);
-      }
-    }
-  }
 
-  ms->config.objectMapViewerImage = CV_RGB(0, 0, 0);
+  leftArm->config.objectMapViewerImage = CV_RGB(0, 0, 0);
+  renderObjectMapViewOneArm(leftArm);
+  renderObjectMapViewOneArm(rightArm);
+}
+
+void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
+
   double pxMin = 0;
   double pxMax = ms->config.objectMapViewerImage.cols;
   double pyMin = 0;
@@ -5076,9 +5069,9 @@ void renderRangeogramView(shared_ptr<MachineState> ms) {
   ms->config.rangeogramWindow->updateImage(ms->config.rangeogramImage);
 }
 
-void targetCallback(const geometry_msgs::Point& point) {
+void MachineState::targetCallback(const geometry_msgs::Point& point) {
 
-  shared_ptr<MachineState> ms = pMachineState;
+  shared_ptr<MachineState> ms = this->sharedThis;
 
   if (!ms->config.shouldIMiscCallback) {
     return;
@@ -5086,13 +5079,12 @@ void targetCallback(const geometry_msgs::Point& point) {
 
 }
 
-
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
+  shared_ptr<MachineState> ms = ((MachineState *) userdata)->sharedThis;
 
   //if (!ms->config.shouldIMiscCallback) {
     //return;
   //}
-  shared_ptr<MachineState> ms = pMachineState;
 
   if ( event == EIN_EVENT_LBUTTONDOWN ) {
     cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
@@ -5108,13 +5100,10 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
   }
 }
 
-
 void objectMapCallbackFunc(int event, int x, int y, int flags, void* userdata) {
+  shared_ptr<MachineState> ms = ((MachineState *) userdata)->sharedThis;
+  
 
-  //if (!ms->config.shouldIMiscCallback) {
-    //return;
-  //}
-  shared_ptr<MachineState> ms = pMachineState;
   if ( event == EIN_EVENT_LBUTTONDBLCLK ) {
     double worldX, worldY;
     pixelToWorld(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y, worldX, worldY);
@@ -5148,10 +5137,9 @@ void objectMapCallbackFunc(int event, int x, int y, int flags, void* userdata) {
 }
 
 
-
 void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata) {
+  shared_ptr<MachineState> ms = ((MachineState *) userdata)->sharedThis;
 
-  shared_ptr<MachineState> ms = pMachineState;
 
   if (!ms->config.shouldIMiscCallback) {
     return;
@@ -9468,16 +9456,9 @@ void globalToMapBackground(shared_ptr<MachineState> ms, double gX, double gY, do
   *mapGpPy = min(max(0, *mapGpPy), ms->config.mbiHeight-1);
 }
 
-void simulatorCallback(const ros::TimerEvent&) {
-    //imageCallback
-    //rangeCallback
-    //endpointCallback
+void MachineState::simulatorCallback(const ros::TimerEvent&) {
 
-    //gripStateCallback
-
-    //jointCallback
-    //targetCallback
-  shared_ptr<MachineState> ms = pMachineState;
+  shared_ptr<MachineState> ms = this->sharedThis;
 
   {
     sensor_msgs::Range myRange;
@@ -13383,7 +13364,16 @@ bool isFocusedClassValid(std::shared_ptr<MachineState> ms) {
   }
 }
 
-void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm, ros::NodeHandle & n, MainWindow * einMainWindow) {
+void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm, MainWindow * einMainWindow) {
+
+  ros::NodeHandle n("~");
+
+  time(&ms->config.firstTime);
+  time(&ms->config.firstTimeRange);
+
+
+  initializeMachine(ms);
+
   ms->config.left_or_right_arm = left_or_right_arm;
 
   ms->config.it = make_shared<image_transport::ImageTransport>(n);
@@ -13415,27 +13405,29 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm, r
   ms->config.ee_target_pub = n.advertise<geometry_msgs::Point>("pilot_target_" + ms->config.left_or_right_arm, 10);
 
 
-  ros::Timer simulatorCallbackTimer;
+
 
   if (ms->config.currentRobotMode == PHYSICAL) {
-    ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, endpointCallback);
-    ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, rangeCallback);
-    ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 1, imageCallback);
+    ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, &MachineState::endpointCallback, ms.get());
+    ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, &MachineState::rangeCallback, ms.get());
+    ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 1, &MachineState::imageCallback, ms.get());
 
-    ms->config.gravity_comp_sub = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/gravity_compensation_torques", 1, gravityCompCallback);
+    ms->config.gravity_comp_sub = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/gravity_compensation_torques", 1, &MachineState::gravityCompCallback, ms.get());
 
-    ms->config.cuff_grasp_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_upper_button/state", 1, cuffGraspCallback);
-    ms->config.cuff_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_lower_button/state", 1, cuffOkCallback);
+    ms->config.cuff_grasp_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_upper_button/state", 1, &MachineState::cuffGraspCallback, ms.get());
+    ms->config.cuff_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_lower_button/state", 1, &MachineState::cuffOkCallback, ms.get());
 
 
-    ms->config.collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, collisionDetectionStateCallback);
-    ms->config.gripState = n.subscribe("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/state", 1, gripStateCallback);
-    ms->config.eeAccelerator =  n.subscribe("/robot/accelerometer/" + ms->config.left_or_right_arm + "_accelerometer/state", 1, accelerometerCallback);
-    ms->config.eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, targetCallback);
-    ms->config.jointSubscriber = n.subscribe("/robot/joint_states", 1, jointCallback);
+    ms->config.collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, &MachineState::collisionDetectionStateCallback, ms.get());
+    ms->config.gripState = n.subscribe("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/state", 1, &MachineState::gripStateCallback, ms.get());
+    ms->config.eeAccelerator =  n.subscribe("/robot/accelerometer/" + ms->config.left_or_right_arm + "_accelerometer/state", 1, &MachineState::accelerometerCallback, ms.get());
+    ms->config.eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, &MachineState::targetCallback, ms.get());
+    ms->config.jointSubscriber = n.subscribe("/robot/joint_states", 1, &MachineState::jointCallback, ms.get());
+
   } else if (ms->config.currentRobotMode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
-    simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/ms->config.simulatorCallbackFrequency), simulatorCallback);
+
+    ms->config.simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/ms->config.simulatorCallbackFrequency), &MachineState::simulatorCallback, ms.get());
 
 
     { // load sprites
@@ -13536,19 +13528,19 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm, r
     assert(0);
   }
 
-  ms->config.pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, pickObjectUnderEndEffectorCommandCallback);
-  ms->config.placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, placeObjectInEndEffectorCommandCallback);
-  ms->config.moveEndEffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, moveEndEffectorCommandCallback);
+  ms->config.pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, &MachineState::pickObjectUnderEndEffectorCommandCallback, ms.get());
+  ms->config.placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, &MachineState::placeObjectInEndEffectorCommandCallback, ms.get());
+  ms->config.moveEndEffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, &MachineState::moveEndEffectorCommandCallback, ms.get());
 
-  ms->config.armItbCallbackSub = n.subscribe("/robot/itb/" + ms->config.left_or_right_arm + "_itb/state", 1, armItbCallback);
+  ms->config.armItbCallbackSub = n.subscribe("/robot/itb/" + ms->config.left_or_right_arm + "_itb/state", 1, &MachineState::armItbCallback, ms.get());
 
 
 
   ms->config.fetchCommandSubscriber = n.subscribe("/fetch_commands", 1, 
-						  fetchCommandCallback);
+						  &MachineState::fetchCommandCallback, ms.get());
 
   ms->config.forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1, 
-						  forthCommandCallback);
+						  &MachineState::forthCommandCallback, ms.get());
 
 
 
@@ -13596,7 +13588,7 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm, r
   ms->config.wristViewWindow = new EinWindow(NULL, ms);
   ms->config.wristViewWindow->setWindowTitle("Wrist View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.wristViewWindow);
-  ms->config.wristViewWindow->setMouseCallBack(pilotCallbackFunc, NULL);
+  ms->config.wristViewWindow->setMouseCallBack(pilotCallbackFunc, ms.get());
 
 
   ms->config.coreViewWindow = new EinWindow(NULL, ms);
@@ -13677,9 +13669,31 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm, r
   //createTrackbar("canny_hi", ms->config.densityViewerName, &ms->config.hiTrackbarVariable, 100);
 
   einMainWindow->show();
-  einMainWindow->setWristViewMouseCallBack(pilotCallbackFunc, NULL);
-  einMainWindow->setObjectMapViewMouseCallBack(objectMapCallbackFunc, NULL);
+  einMainWindow->setWristViewMouseCallBack(pilotCallbackFunc, ms.get());
+  einMainWindow->setObjectMapViewMouseCallBack(objectMapCallbackFunc, ms.get());
   einMainWindow->setWindowTitle(QString::fromStdString("Ein " + ms->config.left_or_right_arm));
+
+
+
+  spinlessNodeMain(ms);
+  spinlessPilotMain(ms);
+
+  saveROSParams(ms);
+
+  ms->config.lastImageCallbackReceived = ros::Time::now();
+  ms->config.lastMovementStateSet = ros::Time::now();
+
+  {
+    for (int i = 0; i < ms->config.numCornellTables; i++) {
+      double yDelta = (ms->config.mapSearchFenceYMax - ms->config.mapSearchFenceXMin) / (double(i));
+      eePose thisTablePose = ms->config.beeHome;
+      thisTablePose.px = 0.75*(ms->config.mapSearchFenceXMax - ms->config.mapSearchFenceXMin) + ms->config.mapSearchFenceXMin; 
+      thisTablePose.py = ms->config.mapSearchFenceYMin + (double(i) + 0.5)*yDelta;
+      thisTablePose.pz = ms->config.currentTableZ; 
+      ms->config.cornellTables.push_back(thisTablePose);
+    }
+  } 
+
 
 
 }
@@ -13689,19 +13703,29 @@ int main(int argc, char **argv) {
 
   QApplication a(argc, argv);
 
-
   initializeWords();
-  pMachineState = std::make_shared<MachineState>(machineState);
-  pMachineState->sharedThis = pMachineState;
-  shared_ptr<MachineState> ms = pMachineState;
-  initializeMachine(ms);
 
-
-
-  initVectorArcTan(ms);
   srand(time(NULL));
-  time(&ms->config.firstTime);
-  time(&ms->config.firstTimeRange);
+
+
+
+  string left_or_right_arm = argv[argc-1];
+
+  vector<string> arm_names;
+
+  if (left_or_right_arm == "both") {
+    arm_names.push_back("left");
+    arm_names.push_back("right");
+  } else if (left_or_right_arm == "left") {
+    arm_names.push_back("left");
+  } else if (left_or_right_arm == "right") {
+    arm_names.push_back("right");
+  } else {
+    ROS_ERROR("Must pass left, right, or both.");
+  }
+  
+
+
 
   cout << "argc: " << argc << endl;
   for (int ccc = 0; ccc < argc; ccc++) {
@@ -13709,9 +13733,9 @@ int main(int argc, char **argv) {
   }
   cout << endl << endl;
 
-  string left_or_right_arm = argv[argc-1];
 
-  einMainWindow = new MainWindow(NULL, ms);
+
+
 
   string programName;
   if (argc > 1) {
@@ -13725,52 +13749,38 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, programName);
   ros::NodeHandle n("~");
 
-  initializeArm(ms, left_or_right_arm, n, einMainWindow);
+
+  for(int i = 0; i < arm_names.size(); i++) {
+    string left_or_right = arm_names[i];
+    shared_ptr<MachineState> ms = std::make_shared<MachineState>();
+    ms->sharedThis = ms;
+    machineStates.push_back(ms);
+
+    initVectorArcTan(ms);
+
+    MainWindow * einMainWindow = new MainWindow(NULL, ms);
+    windows.push_back(einMainWindow);
+    initializeArm(ms, left_or_right, einMainWindow);
+    QTimer *timer = new QTimer(einMainWindow);
+    einMainWindow->connect(timer, SIGNAL(timeout()), einMainWindow, SLOT(rosSpin()));
+
+    ms->config.timer1 = n.createTimer(ros::Duration(0.0001), &MachineState::timercallback1, ms.get());
+  }
 
 
 
-  // qt timer
-  QTimer *timer = new QTimer(einMainWindow);
-  einMainWindow->connect(timer, SIGNAL(timeout()), einMainWindow, SLOT(rosSpin()));
   //timer->start(0);
   qRegisterMetaType<Mat>("Mat");
 
-  // ros timer (remember to call process events and switch to app.exec);
-  ros::Timer timer1 = n.createTimer(ros::Duration(0.0001), timercallback1);
-
-
-
-  spinlessNodeMain(ms);
-  spinlessPilotMain(ms);
-
-  saveROSParams(ms);
-
-
   int cudaCount = gpu::getCudaEnabledDeviceCount();
   cout << "cuda count: " << cudaCount << endl;;
-
-  
-  ms->config.lastImageCallbackReceived = ros::Time::now();
-
-  {
-    for (int i = 0; i < ms->config.numCornellTables; i++) {
-      double yDelta = (ms->config.mapSearchFenceYMax - ms->config.mapSearchFenceXMin) / (double(i));
-      eePose thisTablePose = ms->config.beeHome;
-      thisTablePose.px = 0.75*(ms->config.mapSearchFenceXMax - ms->config.mapSearchFenceXMin) + ms->config.mapSearchFenceXMin; 
-      thisTablePose.py = ms->config.mapSearchFenceYMin + (double(i) + 0.5)*yDelta;
-      thisTablePose.pz = ms->config.currentTableZ; 
-      ms->config.cornellTables.push_back(thisTablePose);
-    }
-  } 
-
-  ms->config.lastMovementStateSet = ros::Time::now();
 
   //a.exec();
   
   try {
     ros::spin();
   } catch( ... ) {
-
+    ROS_ERROR("In the weird sketchy exception block in ein main.");    
     std::exception_ptr p = std::current_exception();
     std::clog <<(p ? p.__cxa_exception_type()->name() : "null") << std::endl;
     throw;

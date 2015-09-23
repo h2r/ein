@@ -159,12 +159,7 @@ void epRingBufferAdvance(shared_ptr<MachineState> ms);
 void allRingBuffersAdvance(shared_ptr<MachineState> ms, ros::Time t);
 
 void recordReadyRangeReadings(shared_ptr<MachineState> ms);
-void jointCallback(const sensor_msgs::JointState& js);
-void endpointCallback(const baxter_core_msgs::EndpointState& eps);
 void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::EndpointState& eps);
-void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees);
-void fetchCommandCallback(const std_msgs::String::ConstPtr& msg);
-void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
 int classIdxForName(shared_ptr<MachineState> ms, string name);
 
 void initClassFolders(std::shared_ptr<MachineState> ms, string folderName);
@@ -224,12 +219,6 @@ void writeJointsBatchAsClass(std::shared_ptr<MachineState> ms, int classToStream
 
 
 
-
-
-void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
-void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);
-void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg);
-
 bool isInGripperMask(shared_ptr<MachineState> ms, int x, int y);
 bool isInGripperMaskBlocks(shared_ptr<MachineState> ms, int x, int y);
 bool isGripperGripping(shared_ptr<MachineState> ms);
@@ -256,29 +245,18 @@ Eigen::Quaternionf getCCRotation(shared_ptr<MachineState> ms, int givenGraspGear
 void setCCRotation(shared_ptr<MachineState> ms, int thisGraspGear);
 void publishVolumetricMap(shared_ptr<MachineState> ms);
 
-void accelerometerCallback(const sensor_msgs::Imu& moment);
-void rangeCallback(const sensor_msgs::Range& range);
 void endEffectorAngularUpdate(eePose *givenEEPose, eePose *deltaEEPose);
 void endEffectorAngularUpdateOuter(eePose *givenEEPose, eePose *deltaEEPose);
 void fillIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest);
 void reseedIkRequest(shared_ptr<MachineState> ms, eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest, int it, int itMax);
 bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositionIK thisIkRequest, int thisIkCallResult, bool * likelyInCollision);
 
-void update_baxter(ros::NodeHandle &n);
-void timercallback1(const ros::TimerEvent&);
-void imageCallback(const sensor_msgs::ImageConstPtr& msg);
 void renderRangeogramView(shared_ptr<MachineState> ms);
-void renderObjectMapView(shared_ptr<MachineState> ms);
+void renderObjectMapView(shared_ptr<MachineState> leftArm, shared_ptr<MachineState> rightArm);
+void renderObjectMapViewOneArm(shared_ptr<MachineState> ms);
 void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms);
 void drawMapPolygon(Mat mapImage, double mapXMin, double mapXMax, double mapYMin, double mapYMax, gsl_matrix * poly, cv::Scalar color);
-void targetCallback(const geometry_msgs::Point& point);
-void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
-void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata);
 gsl_matrix * mapCellToPolygon(shared_ptr<MachineState> ms, int map_i, int map_j) ;
-
-void gravityCompCallback(const baxter_core_msgs::SEAJointState& seaJ);
-void cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS);
-void cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS);
 
 void pilotInit(shared_ptr<MachineState> ms);
 void spinlessPilotMain(shared_ptr<MachineState> ms);
@@ -374,7 +352,6 @@ void mapBox(shared_ptr<MachineState> ms, BoxMemory boxMemory);
 void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
 
 void globalToMapBackground(shared_ptr<MachineState> ms, double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
-void simulatorCallback(const ros::TimerEvent&);
 
 void loadCalibration(shared_ptr<MachineState> ms, string inFileName);
 void saveCalibration(shared_ptr<MachineState> ms, string outFileName);
