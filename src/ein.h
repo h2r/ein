@@ -35,6 +35,7 @@
 #include <std_msgs/UInt16.h>
 #include <std_msgs/UInt32.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Float32.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Pose.h>
@@ -55,6 +56,7 @@
 #include <baxter_core_msgs/JointCommand.h>
 #include <baxter_core_msgs/HeadPanCommand.h>
 #include <baxter_core_msgs/SEAJointState.h>
+#include <baxter_core_msgs/DigitalOutputCommand.h>
 
 
 #include <cv.h>

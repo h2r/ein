@@ -4085,6 +4085,22 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
   for (int r = 0; r < param_resend_times; r++) {
     ms->config.joint_mover.publish(myCommand);
     ms->config.moveSpeedPub.publish(speedCommand);
+
+    {
+      std_msgs::UInt16 thisCommand;
+      thisCommand.data = ms->config.sonar_led_state;
+      ms->config.sonar_pub.publish(thisCommand);
+    }
+    {
+      std_msgs::Float32 thisCommand;
+      thisCommand.data = ms->config.red_halo_state;
+      ms->config.red_halo_pub.publish(thisCommand);
+    }
+    {
+      std_msgs::Float32 thisCommand;
+      thisCommand.data = ms->config.green_halo_state;
+      ms->config.green_halo_pub.publish(thisCommand);
+    }
   }
 
   ms->config.bfc++;
@@ -13557,6 +13573,12 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm, M
   ms->config.nodPub = n.advertise<std_msgs::Bool>("/robot/head/command_head_nod",10);
 
   ms->config.stiffPub = n.advertise<std_msgs::UInt32>("/robot/limb/" + ms->config.left_or_right_arm + "/command_stiffness",10);
+
+  ms->config.digital_io_pub = n.advertise<baxter_core_msgs::DigitalOutputCommand>("/robot/digital_io/command",10);
+
+  ms->config.sonar_pub = n.advertise<std_msgs::UInt16>("/robot/sonar/head_sonar/lights/set_lights",10);
+  ms->config.red_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/lights/set_red_level",10);
+  ms->config.green_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/lights/set_green_level",10);
 
   ms->config.currentHeadPanCommand.target = 0;
   ms->config.currentHeadPanCommand.speed = 50;

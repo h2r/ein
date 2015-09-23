@@ -744,6 +744,92 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(ResetAveragedWrenchNorm)
 
+WORD(DigitalIOCommand)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  string component;
+  int value;
+  GET_ARG(ms, StringWord, component);
+  GET_ARG(ms, IntegerWord, value);
+
+  baxter_core_msgs::DigitalOutputCommand thisCommand;
+
+  thisCommand.name = component;
+  thisCommand.value = value;
+
+  ms->config.digital_io_pub.publish(thisCommand);
+}
+END_WORD
+REGISTER_WORD(DigitalIOCommand)
+
+WORD(SetRedHalo)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  double value;
+  GET_NUMERIC_ARG(ms, value);
+  ms->config.red_halo_state = value;
+
+  {
+    std_msgs::Float32 thisCommand;
+    thisCommand.data = ms->config.red_halo_state;
+    ms->config.red_halo_pub.publish(thisCommand);
+  }
+}
+END_WORD
+REGISTER_WORD(SetRedHalo)
+
+WORD(SetGreenHalo)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  double value;
+  GET_NUMERIC_ARG(ms, value);
+  ms->config.green_halo_state = value;
+
+  {
+    std_msgs::Float32 thisCommand;
+    thisCommand.data = ms->config.green_halo_state;
+    ms->config.green_halo_pub.publish(thisCommand);
+  }
+}
+END_WORD
+REGISTER_WORD(SetGreenHalo)
+
+WORD(SetSonarLed)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int value;
+  GET_NUMERIC_ARG(ms, value);
+  ms->config.sonar_led_state = value;
+
+  {
+    std_msgs::UInt16 thisCommand;
+    thisCommand.data = ms->config.sonar_led_state;
+    ms->config.sonar_pub.publish(thisCommand);
+  }
+}
+END_WORD
+REGISTER_WORD(SetSonarLed)
+
+WORD(SwitchSonarLed)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int value;
+  int led;
+  GET_ARG(ms, IntegerWord, led);
+  GET_ARG(ms, IntegerWord, value);
+
+  int blanked_sls = (~(1<<led)) & ms->config.sonar_led_state;
+
+  ms->config.sonar_led_state = blanked_sls | (1<<15) | (value * (1<<led));
+
+  {
+    std_msgs::UInt16 thisCommand;
+    thisCommand.data = ms->config.sonar_led_state;
+    ms->config.sonar_pub.publish(thisCommand);
+  }
+}
+END_WORD
+REGISTER_WORD(SwitchSonarLed)
 
 
 }
