@@ -158,6 +158,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       ms->pushWord("0.03");
       ms->pushWord("setSpeed");
       ms->pushWord("pressUntilEffortInit");
+      ms->pushWord("comeToStop");
       ms->pushWord("waitUntilAtCurrentPosition");
       ms->pushWord("0.05");
       ms->pushWord("setSpeed");
