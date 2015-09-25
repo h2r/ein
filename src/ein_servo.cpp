@@ -146,7 +146,23 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
   cout << "moveToTargetZAndGrasp: snapToFlushGrasp is " << ms->config.snapToFlushGrasp << endl;
   if (ms->config.snapToFlushGrasp) {
-    ms->pushWord("pressAndGrasp");
+    if (0) {
+      // using position
+      ms->pushWord("pressAndGrasp");
+    } else {
+      // using force 
+      ms->pushWord("closeGripper");
+      ms->pushWord("pressUntilEffort");
+      ms->pushWord("8.0");
+      ms->pushWord("setEffortThresh");
+      ms->pushWord("0.05");
+      ms->pushWord("setSpeed");
+      ms->pushWord("pressUntilEffortInit");
+      ms->pushWord("localZUp");
+      ms->pushWord("8");
+      ms->pushWord("replicateWord");
+      ms->pushWord("setGridSizeCoarse");
+    }
   } else {
     ms->pushWord("moveToTargetZAndGraspA");
   }

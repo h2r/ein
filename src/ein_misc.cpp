@@ -831,5 +831,170 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(SwitchSonarLed)
 
+WORD(SetCurrentExecutionMode)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int value;
+  GET_ARG(ms, IntegerWord, value);
+
+  cout << "setCurrentExecutionMode: was " << ms->config.currentExecutionMode << " will be " << value << endl;
+  ms->config.currentExecutionMode = (executionMode)value;
+}
+END_WORD
+REGISTER_WORD(SetCurrentExecutionMode)
+
+WORD(PrintStacks)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+
+  cout << endl << "~~~~~~~~~ printing stacks ~~~~~~~~~" << endl << endl ;
+
+  for (int i = 0; i < ms->data_stack.size(); i++) {
+    cout << "  " << ms->data_stack[i]->name() << "  " << i << endl;
+  }
+  cout << endl << " --- " << endl << endl;
+  for (int i = ms->call_stack.size()-1; i >= 0; i--) {
+    cout << "  " << ms->call_stack[i]->name() << "  " << i << endl;
+  }
+
+  cout << endl << "~~~~~~~~~ ~~~~~~~~~~~~~~~ ~~~~~~~~~" << endl << endl ;
+
+}
+END_WORD
+REGISTER_WORD(PrintStacks)
+
+WORD(ClearData)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->clearData();
+}
+END_WORD
+REGISTER_WORD(ClearData)
+
+WORD(OP)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back(")");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  cout << "Out parenthesis executing." << endl;
+  ms->pushWord("1");
+  ms->pushWord("sP");
+
+  ms->pushData("oP");
+
+  ms->pushWord("printStacks");
+}
+END_WORD
+REGISTER_WORD(OP)
+
+WORD(IP)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("(");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  cout << "In parenthesis should never execute." << endl;
+  assert(0);
+}
+END_WORD
+REGISTER_WORD(IP)
+
+WORD(SP)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("|");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int scopeLevel = 0;
+  GET_ARG(ms, IntegerWord, scopeLevel);
+
+  if (scopeLevel < 0) {
+    cout << "sP scope error." << endl;
+    ms->pushWord("pauseStackExecution");
+    return;
+  } else if (scopeLevel == 0) {
+    return;
+  } else {
+    // continue
+  }
+
+  std::shared_ptr<Word> word = ms->popWord();
+
+  if (word == NULL) {
+    cout << "sP found no word... pausing stack execution." << endl;
+    ms->pushWord("pauseStackExecution");
+    return;
+  } else {
+    if (word->is_value()) {
+      // data goes to the data stack
+      ms->pushData(word);
+
+      ms->pushWord(std::make_shared<IntegerWord>(scopeLevel));
+      ms->pushWord("sP");
+    } else {
+      // handle commands specially
+      if(0 == word->name().compare("iP")) {
+	cout << "sP found iP!!! scopeLevel " << scopeLevel << " " << endl;
+	ms->pushWord(std::make_shared<IntegerWord>(scopeLevel-1));
+	ms->pushWord("sP");
+	// unwind until matching oP
+	int outs_needed = 1;
+	while (outs_needed > 0) {
+	  std::shared_ptr<Word> datum = ms->popData();
+	  if (datum == NULL) {
+	    cout << "sP found no datum... pausing stack execution." << endl;
+	    ms->pushWord("pauseStackExecution");
+	    return;
+	  } else {
+	    if (datum->is_value()) {
+	      // data goes to the data stack
+	      ms->pushWord(datum);
+	    } else {
+	      if(0 == datum->name().compare("iP")) {
+		outs_needed = outs_needed+1;
+		cout << " outs needed +1: " << outs_needed << endl;
+		ms->pushWord(datum);
+	      } else if(0 == datum->name().compare("oP")) {
+		outs_needed = outs_needed-1;
+		cout << " outs needed -1: " << outs_needed << endl;
+		if (outs_needed > 0) {
+		  ms->pushWord(datum);
+		} else {
+		}
+	      } else {
+		ms->pushWord(datum);
+	      }
+	    }
+	  }
+	}
+      } else if(0 == word->name().compare("oP")) {
+	ms->pushData(word);
+
+	ms->pushWord(std::make_shared<IntegerWord>(scopeLevel+1));
+	ms->pushWord("sP");
+      } else {
+	// other things go on the data stack
+	ms->pushData(word);
+
+	ms->pushWord(std::make_shared<IntegerWord>(scopeLevel));
+	ms->pushWord("sP");
+      }
+    }
+  }
+  ms->pushWord("printStacks");
+}
+END_WORD
+REGISTER_WORD(SP)
+
 
 }

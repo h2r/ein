@@ -158,6 +158,11 @@ typedef enum {
   FIXED_CLASS_CONTINUOUS_NOSYN = 5
 } mapServoMode;
 
+typedef enum {
+  SINGLE_STACK = 0,
+  DOUBLE_STACK = 1
+} executionMode;
+
 
 std::string pickModeToString(pickMode mode);
 
@@ -344,6 +349,7 @@ class EinConfig {
   ikMode currentIKMode = IKSERVICE;
   scanMode currentScanMode = CENTERED;
   mapServoMode currentMapServoMode = HISTOGRAM_CLASSIFY;
+  executionMode currentExecutionMode = SINGLE_STACK;
   bool setRandomPositionAfterPick = false;
   bool streamPicks = false;
   bool mapAutoPick = false;
@@ -1362,6 +1368,7 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   std::shared_ptr<MachineState> sharedThis;
 
   std::vector<std::shared_ptr<Word> > call_stack;
+  std::vector<std::shared_ptr<Word> > data_stack;
   std::map<string, std::shared_ptr<Word> > variables;
 
   std::shared_ptr<Word> current_instruction = NULL;
@@ -1372,8 +1379,13 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   bool pushWord(int code);
   bool pushWord(string name);
   bool pushWord(std::shared_ptr<Word> word);
+  bool pushData(int code);
+  bool pushData(string name);
+  bool pushData(std::shared_ptr<Word> word);
   std::shared_ptr<Word> popWord();
+  std::shared_ptr<Word> popData();
   void clearStack();
+  void clearData();
   void pushNoOps(int n);
   void pushCopies(int symbol, int times);
   void pushCopies(string symbol, int times);
