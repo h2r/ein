@@ -57,7 +57,6 @@ bool MachineState::pushWord(string token) {
   }
 }
 
-
 bool MachineState::pushWord(std::shared_ptr<Word> word) {
   call_stack.push_back(word);
   std::shared_ptr<MachineState> ms = this->sharedThis;
@@ -65,10 +64,59 @@ bool MachineState::pushWord(std::shared_ptr<Word> word) {
   return true;
 }
 
+bool MachineState::pushData(int code) {
+  if (character_code_to_word.count(code) > 0) {
+    std::shared_ptr<Word> word = character_code_to_word[code];      
+    return pushData(word);
+  } else {
+    cout << "No word for code " << code << endl;
+    return false;
+  }
+}
+
+bool MachineState::pushData(string token) {
+  std:shared_ptr<Word> word = forthletParse(token);
+  if (word != NULL) {
+    return pushData(word);
+  }
+}
+
+bool MachineState::pushData(std::shared_ptr<Word> word) {
+  data_stack.push_back(word);
+  std::shared_ptr<MachineState> ms = this->sharedThis;
+  checkAndStreamWord(ms, word->name(), "pushData");
+  return true;
+}
+
+shared_ptr<Word> MachineState::popData() {
+  if (data_stack.size() > 0) {
+    std::shared_ptr<Word> word = data_stack.back();
+    data_stack.pop_back();
+    if (word != NULL) {
+      std::shared_ptr<MachineState> ms = this->sharedThis;
+      checkAndStreamWord(ms, word->name(), "popData");
+    } else {
+      std::shared_ptr<MachineState> ms = this->sharedThis;
+      checkAndStreamWord(ms, "", "popData");
+    }
+    return word; 
+  } else {
+    std::shared_ptr<MachineState> ms = this->sharedThis;
+    checkAndStreamWord(ms, "", "popData");
+    return NULL;
+  }
+}
+
 void MachineState::clearStack() {
   call_stack.resize(0);
   std::shared_ptr<MachineState> ms = this->sharedThis;
   checkAndStreamWord(ms, "", "clear");
+}
+
+void MachineState::clearData() {
+  data_stack.resize(0);
+  std::shared_ptr<MachineState> ms = this->sharedThis;
+  checkAndStreamWord(ms, "", "clearData");
 }
 
 void MachineState::execute(shared_ptr<Word> word) {

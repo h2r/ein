@@ -102,6 +102,26 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(PlayLoopP)
 
+WORD(ScanLoop)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+
+// if clear, start over
+// if not clear, sweep object out of space to done pile.
+// check to see if learning space is clear
+// try to pick and place object to done pile
+// pick it 30 times, scanning a new component if you miss 5 times in a row.
+// scan it 
+// take it to the learning area
+// servo and pick an object
+// set target to kdash
+// move to the input pile
+
+
+}
+END_WORD
+REGISTER_WORD(ScanLoop)
+
 
 }
 

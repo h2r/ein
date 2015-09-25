@@ -4185,16 +4185,35 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
     // deal with the stack
 
 
-    if (ms->execute_stack) {
-      if (ms->call_stack.size() > 0 && 
-	  !ms->call_stack[ms->call_stack.size() - 1]->is_value()) {
-	word = ms->popWord();
+    if (ms->config.currentExecutionMode == SINGLE_STACK) {
+      if (ms->execute_stack) {
+	if (ms->call_stack.size() > 0 && 
+	    !ms->call_stack[ms->call_stack.size() - 1]->is_value()) {
+	  word = ms->popWord();
+	} else {
+	  ms->execute_stack = 0;
+	  ms->config.endThisStackCollapse = 1;
+	}
       } else {
-	ms->execute_stack = 0;
+	ms->config.endThisStackCollapse = 1;
+      }
+    } else if (ms->config.currentExecutionMode == DOUBLE_STACK) {
+      if (ms->execute_stack) {
+	if (ms->call_stack.size() > 0 && 
+	    !ms->call_stack[ms->call_stack.size() - 1]->is_value()) {
+	  word = ms->popWord();
+	} else if (ms->call_stack.size() > 0 && ms->call_stack[ms->call_stack.size() - 1]->is_value()) {
+	  word = ms->popWord();
+	  ms->pushData(word);
+	} else {
+	  ms->execute_stack = 0;
+	  ms->config.endThisStackCollapse = 1;
+	}
+      } else {
 	ms->config.endThisStackCollapse = 1;
       }
     } else {
-      ms->config.endThisStackCollapse = 1;
+      assert(0);
     }
 
     if (word != NULL) {
