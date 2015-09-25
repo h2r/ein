@@ -31,6 +31,9 @@ extern int last_key;
 
 MainWindow * einMainWindow;
 vector< shared_ptr<MachineState> > machineStates;
+shared_ptr<MachineState> left_arm;
+shared_ptr<MachineState> right_arm;
+
 
 ////////////////////////////////////////////////
 // start pilot includes, usings, and defines
@@ -4241,12 +4244,7 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
   }
 
   if (ms->config.shouldIRender) { // && ms->config.objectMapViewerWindow->isVisible()) {
-    if (machineStates.size() == 2) {
-      renderObjectMapView(machineStates[0], machineStates[1]);
-    } else {
-      renderObjectMapView(machineStates[0], machineStates[0]);
-    }
-    
+    renderObjectMapView(left_arm, right_arm);
   }
 }
 
@@ -4698,21 +4696,43 @@ void pixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double yM
 
 
 void renderObjectMapView(shared_ptr<MachineState> leftArm, shared_ptr<MachineState> rightArm) {
-  if (leftArm->config.objectMapViewerImage.rows <= 0 ) {
+  return;
+
+  if (leftArm != NULL && leftArm->config.objectMapViewerImage.rows <= 0 ) {
     //ms->config.objectMapViewerImage = Mat(600, 600, CV_8UC3);
     //ms->config.objectMapViewerImage = Mat(400, 400, CV_8UC3);
     leftArm->config.objectMapViewerImage = Mat(400, 640, CV_8UC3);
-    rightArm->config.objectMapViewerImage = leftArm->config.objectMapViewerImage;
+    if (rightArm != NULL) {
+      rightArm->config.objectMapViewerImage = leftArm->config.objectMapViewerImage;
+    }
+  } else if (rightArm != NULL && rightArm->config.objectMapViewerImage.rows <= 0 ) {
+    //ms->config.objectMapViewerImage = Mat(600, 600, CV_8UC3);
+    //ms->config.objectMapViewerImage = Mat(400, 400, CV_8UC3);
+    rightArm->config.objectMapViewerImage = Mat(400, 640, CV_8UC3);
+    if (leftArm != NULL) {
+      leftArm->config.objectMapViewerImage = rightArm->config.objectMapViewerImage;
+    }
+  } else {
+    // no need to recreate the image
+  }
+
+  if (leftArm != NULL) {
+    leftArm->config.objectMapViewerImage = CV_RGB(0, 0, 0);
+  } else if (rightArm != NULL) {
+    rightArm->config.objectMapViewerImage = CV_RGB(0, 0, 0);
+  } else {
+    assert(0);
   }
 
 
-  leftArm->config.objectMapViewerImage = CV_RGB(0, 0, 0);
-  renderObjectMapViewOneArm(leftArm);
-  renderObjectMapViewOneArm(rightArm);
+  //renderObjectMapViewOneArm(leftArm);
+  //renderObjectMapViewOneArm(rightArm);
 }
 
 void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
-
+  if (ms == NULL) {
+    return;
+  }
   double pxMin = 0;
   double pxMax = ms->config.objectMapViewerImage.cols;
   double pyMin = 0;
@@ -13784,8 +13804,6 @@ int main(int argc, char **argv) {
   ros::NodeHandle n("~");
 
 
-  shared_ptr<MachineState> left_arm;
-  shared_ptr<MachineState> right_arm;
 
   for(int i = 0; i < arm_names.size(); i++) {
     string left_or_right = arm_names[i];
