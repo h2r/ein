@@ -29,8 +29,11 @@
 
 extern int last_key;
 
-vector<MainWindow *> windows;
+MainWindow * einMainWindow;
 vector< shared_ptr<MachineState> > machineStates;
+shared_ptr<MachineState> left_arm;
+shared_ptr<MachineState> right_arm;
+
 
 ////////////////////////////////////////////////
 // start pilot includes, usings, and defines
@@ -4133,9 +4136,12 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
 
   }
   ms->config.heartBeatCounter++;
-  for (int i = 0; i < windows.size(); i++) {
-    windows[i]->update();
+
+  if (ms->config.armWidget) {
+    ms->config.armWidget->update();
   }
+  einMainWindow->update();
+
   // XXX is heartBeatCounter even used?
 
   if (c != -1) {
@@ -4257,12 +4263,7 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
   }
 
   if (ms->config.shouldIRender) { // && ms->config.objectMapViewerWindow->isVisible()) {
-    if (machineStates.size() == 2) {
-      renderObjectMapView(machineStates[0], machineStates[1]);
-    } else {
-      renderObjectMapView(machineStates[0], machineStates[0]);
-    }
-    
+    renderObjectMapView(left_arm, right_arm);
   }
 }
 
@@ -4714,21 +4715,43 @@ void pixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double yM
 
 
 void renderObjectMapView(shared_ptr<MachineState> leftArm, shared_ptr<MachineState> rightArm) {
-  if (leftArm->config.objectMapViewerImage.rows <= 0 ) {
+  return;
+
+  if (leftArm != NULL && leftArm->config.objectMapViewerImage.rows <= 0 ) {
     //ms->config.objectMapViewerImage = Mat(600, 600, CV_8UC3);
     //ms->config.objectMapViewerImage = Mat(400, 400, CV_8UC3);
     leftArm->config.objectMapViewerImage = Mat(400, 640, CV_8UC3);
-    rightArm->config.objectMapViewerImage = leftArm->config.objectMapViewerImage;
+    if (rightArm != NULL) {
+      rightArm->config.objectMapViewerImage = leftArm->config.objectMapViewerImage;
+    }
+  } else if (rightArm != NULL && rightArm->config.objectMapViewerImage.rows <= 0 ) {
+    //ms->config.objectMapViewerImage = Mat(600, 600, CV_8UC3);
+    //ms->config.objectMapViewerImage = Mat(400, 400, CV_8UC3);
+    rightArm->config.objectMapViewerImage = Mat(400, 640, CV_8UC3);
+    if (leftArm != NULL) {
+      leftArm->config.objectMapViewerImage = rightArm->config.objectMapViewerImage;
+    }
+  } else {
+    // no need to recreate the image
+  }
+
+  if (leftArm != NULL) {
+    leftArm->config.objectMapViewerImage = CV_RGB(0, 0, 0);
+  } else if (rightArm != NULL) {
+    rightArm->config.objectMapViewerImage = CV_RGB(0, 0, 0);
+  } else {
+    assert(0);
   }
 
 
-  leftArm->config.objectMapViewerImage = CV_RGB(0, 0, 0);
-  renderObjectMapViewOneArm(leftArm);
-  renderObjectMapViewOneArm(rightArm);
+  //renderObjectMapViewOneArm(leftArm);
+  //renderObjectMapViewOneArm(rightArm);
 }
 
 void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
-
+  if (ms == NULL) {
+    return;
+  }
   double pxMin = 0;
   double pxMax = ms->config.objectMapViewerImage.cols;
   double pyMin = 0;
@@ -5136,7 +5159,16 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
 }
 
 void objectMapCallbackFunc(int event, int x, int y, int flags, void* userdata) {
-  shared_ptr<MachineState> ms = ((MachineState *) userdata)->sharedThis;
+  vector<shared_ptr<MachineState> > machineStates = *((vector<shared_ptr<MachineState> > *) userdata);
+  for(int i = 0; i < machineStates.size(); i++) {
+    doObjectMapCallbackFunc(event, x, y, flags, machineStates[i]);
+  }
+
+  
+
+}
+void doObjectMapCallbackFunc(int event, int x, int y, int flags, shared_ptr<MachineState> ms) {
+
   
 
   if ( event == EIN_EVENT_LBUTTONDBLCLK ) {
@@ -13399,7 +13431,7 @@ bool isFocusedClassValid(std::shared_ptr<MachineState> ms) {
   }
 }
 
-void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm, MainWindow * einMainWindow) {
+void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
 
   ros::NodeHandle n("~");
 
@@ -13622,6 +13654,33 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm, M
   initializeMap(ms);
 
 
+
+
+  spinlessNodeMain(ms);
+  spinlessPilotMain(ms);
+
+  saveROSParams(ms);
+
+  ms->config.lastImageCallbackReceived = ros::Time::now();
+  ms->config.lastMovementStateSet = ros::Time::now();
+
+  {
+    for (int i = 0; i < ms->config.numCornellTables; i++) {
+      double yDelta = (ms->config.mapSearchFenceYMax - ms->config.mapSearchFenceXMin) / (double(i));
+      eePose thisTablePose = ms->config.beeHome;
+      thisTablePose.px = 0.75*(ms->config.mapSearchFenceXMax - ms->config.mapSearchFenceXMin) + ms->config.mapSearchFenceXMin; 
+      thisTablePose.py = ms->config.mapSearchFenceYMin + (double(i) + 0.5)*yDelta;
+      thisTablePose.pz = ms->config.currentTableZ; 
+      ms->config.cornellTables.push_back(thisTablePose);
+    }
+  } 
+
+
+
+}
+
+void initializeArmGui(shared_ptr<MachineState> ms, MainWindow * einMainWindow) {
+
   ms->config.rangeogramWindow = new EinWindow(NULL, ms);
   ms->config.rangeogramWindow->setWindowTitle("Rangeogram View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.rangeogramWindow);
@@ -13709,33 +13768,6 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm, M
   //createTrackbar("canny_lo", ms->config.densityViewerName, &ms->config.loTrackbarVariable, 100);
   //createTrackbar("canny_hi", ms->config.densityViewerName, &ms->config.hiTrackbarVariable, 100);
 
-  einMainWindow->show();
-  einMainWindow->setWristViewMouseCallBack(pilotCallbackFunc, ms.get());
-  einMainWindow->setObjectMapViewMouseCallBack(objectMapCallbackFunc, ms.get());
-  einMainWindow->setWindowTitle(QString::fromStdString("Ein " + ms->config.left_or_right_arm));
-
-
-
-  spinlessNodeMain(ms);
-  spinlessPilotMain(ms);
-
-  saveROSParams(ms);
-
-  ms->config.lastImageCallbackReceived = ros::Time::now();
-  ms->config.lastMovementStateSet = ros::Time::now();
-
-  {
-    for (int i = 0; i < ms->config.numCornellTables; i++) {
-      double yDelta = (ms->config.mapSearchFenceYMax - ms->config.mapSearchFenceXMin) / (double(i));
-      eePose thisTablePose = ms->config.beeHome;
-      thisTablePose.px = 0.75*(ms->config.mapSearchFenceXMax - ms->config.mapSearchFenceXMin) + ms->config.mapSearchFenceXMin; 
-      thisTablePose.py = ms->config.mapSearchFenceYMin + (double(i) + 0.5)*yDelta;
-      thisTablePose.pz = ms->config.currentTableZ; 
-      ms->config.cornellTables.push_back(thisTablePose);
-    }
-  } 
-
-
 
 }
 
@@ -13791,22 +13823,38 @@ int main(int argc, char **argv) {
   ros::NodeHandle n("~");
 
 
+
   for(int i = 0; i < arm_names.size(); i++) {
     string left_or_right = arm_names[i];
     shared_ptr<MachineState> ms = std::make_shared<MachineState>();
     ms->sharedThis = ms;
     machineStates.push_back(ms);
+    if (left_or_right == "left") {
+      left_arm = ms;
+    } else if (left_or_right == "right") {
+      right_arm = ms;
+    } else {
+      assert(0);
+    }
 
     initVectorArcTan(ms);
 
-    MainWindow * einMainWindow = new MainWindow(NULL, ms);
-    windows.push_back(einMainWindow);
-    initializeArm(ms, left_or_right, einMainWindow);
-    QTimer *timer = new QTimer(einMainWindow);
-    einMainWindow->connect(timer, SIGNAL(timeout()), einMainWindow, SLOT(rosSpin()));
+    initializeArm(ms, left_or_right);
 
     ms->config.timer1 = n.createTimer(ros::Duration(0.0001), &MachineState::timercallback1, ms.get());
   }
+
+  
+
+  einMainWindow = new MainWindow(NULL, right_arm, left_arm);
+
+  for(int i = 0; i < machineStates.size(); i++) {
+    initializeArmGui(machineStates[i], einMainWindow);
+  }
+
+  einMainWindow->show();
+  einMainWindow->setObjectMapViewMouseCallBack(objectMapCallbackFunc, &machineStates);
+  einMainWindow->setWindowTitle(QString::fromStdString("Ein " + left_or_right_arm));
 
 
 

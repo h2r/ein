@@ -5,60 +5,55 @@
 
 #include "ein.h"
 #include "windowmanager.h"
+#include "wordaction.h"
 
 int last_key = -1;
 
-MainWindow::MainWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
-  QMainWindow(parent),
-  ui(new Ui::MainWindow),
-  wristView(parent, EIN_WINDOW_KEEPRATIO),
+MainWindow::MainWindow(QWidget *parent, shared_ptr<MachineState> _right_arm, shared_ptr<MachineState> _left_arm) :
+  QMainWindow(parent), ui(new Ui::MainWindow), rightArmWidget(this, _right_arm), leftArmWidget(this, _left_arm), right_arm(_right_arm), left_arm(_left_arm), 
   objectMapView(parent, EIN_WINDOW_KEEPRATIO)
 {
-    ui->setupUi(this);
+  ui->setupUi(this);
 
-    ui->wristViewFrame->layout()->addWidget(wristView.getWidget());
-    ui->objectMapViewFrame->layout()->addWidget(objectMapView.getWidget());
-    ms = _ms;
+  windowManager.setMenu(ui->menuWindows);
 
-    stackModel = new StackModel(this);
-    stackModel->setMachineState(ms);
-    ui->stackTableView->setModel(stackModel);
+  ui->objectMapViewFrame->layout()->addWidget(objectMapView.getWidget());
+  ui->rightArmFrame->layout()->addWidget(&rightArmWidget);
+  ui->leftArmFrame->layout()->addWidget(&leftArmWidget);
 
-    ui->stackTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
-    windowManager.setMenu(ui->menuWindows);
+
+
+  
+
+  if (right_arm != NULL) {
+    WordAction * rightClearStackAction  = new WordAction(ui->menuRightWords, right_arm, name_to_word["clearStack"]);
+    ui->menuRightWords->addAction(rightClearStackAction);
+  }
+
+  if (left_arm != NULL) {
+    WordAction * leftClearStackAction  = new WordAction(ui->menuLeftWords, left_arm, name_to_word["clearStack"]);
+    ui->menuLeftWords->addAction(leftClearStackAction);
+  }
+
 
 }
-  
+
 MainWindow::~MainWindow()
 {
     delete ui;
 }
 
-
-
-void MainWindow::rosSpin()
-{
-  ros::TimerEvent e;
-  ms->timercallback1(e);
-  ros::spinOnce();
-
-}
-
 void MainWindow::update() {
-  ui->stateLabel->setText(QString::fromStdString(ms->currentState()));
-  stackModel->setMachineState(ms);
-  if ( !isSketchyMat(ms->config.wristViewImage)) {
-     wristView.updateImage(ms->config.wristViewImage);
-  }
-  if ( !isSketchyMat(ms->config.objectMapViewerImage)) {
-    objectMapView.updateImage(ms->config.objectMapViewerImage);
+  if ( right_arm != NULL && !isSketchyMat(right_arm->config.objectMapViewerImage)) {
+    objectMapView.updateImage(right_arm->config.objectMapViewerImage);
+  } else if (left_arm != NULL && !isSketchyMat(left_arm->config.objectMapViewerImage)) {
+    objectMapView.updateImage(left_arm->config.objectMapViewerImage);
+  } else {
+    // no update. 
   }
 }
 
-void MainWindow::setWristViewMouseCallBack(EinMouseCallback m, void* param) {
-  wristView.setMouseCallBack(m, param);
-}
 
 void MainWindow::setObjectMapViewMouseCallBack(EinMouseCallback m, void* param) {
   objectMapView.setMouseCallBack(m, param);
@@ -88,6 +83,8 @@ void updateLastKey(QKeyEvent * evnt) {
     }
 
 }
+
+
 void MainWindow::addWindow(EinWindow * window) {
 windowManager.addWindow(window);
 }
