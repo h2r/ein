@@ -490,18 +490,20 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     } else {
       // enchanced handoff
       ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord("assumeHandingPose"); 
+      ms->pushWord("waitUntilAtCurrentPosition"); 
       ms->pushWord("waitUntilGripperNotMoving"); 
       ms->pushWord("openGripper");
-      ms->pushWord("oXUp"); 
+      ms->pushWord("oXDown"); 
       ms->pushWord("80"); 
       ms->pushWord("replicateWord"); 
       ms->pushWord("waitUntilEffort");
-      ms->pushWord("2.0");
+      ms->pushWord("5.0");
       ms->pushWord("setEffortThresh");
       ms->pushWord("4.0");
       ms->pushWord("waitForSeconds");
       ms->pushWord("waitUntilAtCurrentPosition"); 
-      ms->pushWord("oXDown"); 
+      ms->pushWord("oXUp"); 
       ms->pushWord("80"); 
       ms->pushWord("replicateWord"); 
       ms->pushWord("localZDown"); 
