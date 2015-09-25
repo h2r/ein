@@ -256,6 +256,10 @@ bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositi
 void renderRangeogramView(shared_ptr<MachineState> ms);
 void renderObjectMapView(shared_ptr<MachineState> leftArm, shared_ptr<MachineState> rightArm);
 void renderObjectMapViewOneArm(shared_ptr<MachineState> ms);
+void objectMapCallbackFunc(int event, int x, int y, int flags, void* userdata);
+void doObjectMapCallbackFunc(int event, int x, int y, int flags, shared_ptr<MachineState> ms);
+
+
 void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms);
 void drawMapPolygon(Mat mapImage, double mapXMin, double mapXMax, double mapYMin, double mapYMax, gsl_matrix * poly, cv::Scalar color);
 gsl_matrix * mapCellToPolygon(shared_ptr<MachineState> ms, int map_i, int map_j) ;
@@ -427,6 +431,8 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut);
 void targetBoxMemory(shared_ptr<MachineState> ms, int idx);
 
 bool isFocusedClassValid(std::shared_ptr<MachineState> ms);
+
+void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 
 ////////////////////////////////////////////////
 // end node prototypes 
