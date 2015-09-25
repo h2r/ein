@@ -29,7 +29,7 @@ int StackModel::rowCount(const QModelIndex & /* parent */) const
 
 int StackModel::columnCount(const QModelIndex & /* parent */) const
 {
-  return 3;
+  return 2;
 }
 
 
