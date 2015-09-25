@@ -15,62 +15,6 @@
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="1">
-     <widget class="QTableView" name="stackTableView">
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>200</height>
-       </size>
-      </property>
-      <property name="font">
-       <font>
-        <family>Liberation Mono</family>
-       </font>
-      </property>
-      <property name="selectionMode">
-       <enum>QAbstractItemView::NoSelection</enum>
-      </property>
-      <attribute name="horizontalHeaderStretchLastSection">
-       <bool>true</bool>
-      </attribute>
-     </widget>
-    </item>
-    <item row="1" column="0">
-     <widget class="QLabel" name="label">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="text">
-       <string>Wrist View</string>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="0">
-     <widget class="QLabel" name="stateLabel">
-      <property name="minimumSize">
-       <size>
-        <width>700</width>
-        <height>0</height>
-       </size>
-      </property>
-      <property name="font">
-       <font>
-        <family>Liberation Mono</family>
-        <pointsize>10</pointsize>
-       </font>
-      </property>
-      <property name="text">
-       <string>No state received.</string>
-      </property>
-      <property name="textInteractionFlags">
-       <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
-      </property>
-     </widget>
-    </item>
     <item row="2" column="1" rowspan="2">
      <widget class="QFrame" name="objectMapViewFrame">
       <property name="frameShape">
@@ -102,60 +46,26 @@
       </property>
      </widget>
     </item>
-    <item row="2" column="0" rowspan="2">
-     <widget class="QFrame" name="wristViewFrame">
+    <item row="1" column="0" rowspan="3">
+     <widget class="QFrame" name="rightArmFrame">
       <property name="frameShape">
        <enum>QFrame::StyledPanel</enum>
       </property>
       <property name="frameShadow">
        <enum>QFrame::Raised</enum>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <property name="spacing">
-        <number>0</number>
-       </property>
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="topMargin">
-        <number>0</number>
-       </property>
-       <property name="rightMargin">
-        <number>0</number>
-       </property>
-       <property name="bottomMargin">
-        <number>0</number>
-       </property>
-      </layout>
+      <layout class="QVBoxLayout" name="verticalLayout"/>
      </widget>
     </item>
-    <item row="0" column="2" rowspan="4">
-     <widget class="QFrame" name="frame">
+    <item row="1" column="2" rowspan="3">
+     <widget class="QFrame" name="leftArmFrame">
       <property name="frameShape">
        <enum>QFrame::StyledPanel</enum>
       </property>
       <property name="frameShadow">
        <enum>QFrame::Raised</enum>
       </property>
-      <layout class="QVBoxLayout" name="verticalLayout">
-       <item>
-        <widget class="QLabel" name="label_2">
-         <property name="text">
-          <string>TextLabel</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QFrame" name="gradientViewFrame">
-         <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
-         </property>
-         <property name="frameShadow">
-          <enum>QFrame::Raised</enum>
-         </property>
-        </widget>
-       </item>
-      </layout>
+      <layout class="QVBoxLayout" name="verticalLayout_2"/>
      </widget>
     </item>
    </layout>
@@ -180,7 +90,19 @@
      <string>Windows</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuRightWords">
+    <property name="title">
+     <string>Right Words</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuLeftWords">
+    <property name="title">
+     <string>Left Words</string>
+    </property>
+   </widget>
    <addaction name="menuWindows"/>
+   <addaction name="menuRightWords"/>
+   <addaction name="menuLeftWords"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -194,6 +116,11 @@
   <action name="actionTest">
    <property name="text">
     <string>Testtest</string>
+   </property>
+  </action>
+  <action name="actionRight_Words">
+   <property name="text">
+    <string>Right Words</string>
    </property>
   </action>
  </widget>
