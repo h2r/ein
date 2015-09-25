@@ -65,6 +65,7 @@
 #define NUM_JOINTS 7
 
 class EinWindow;
+class ArmWidget;
 
 typedef enum {
   ARMED = 0,
@@ -487,6 +488,7 @@ class EinConfig {
   EinWindow * gradientViewerWindow;
   EinWindow * aerialGradientViewerWindow;
   EinWindow * stereoViewerWindow;
+  ArmWidget * armWidget;
 
   eePose calibrationPose;
   eePose shrugPose;
