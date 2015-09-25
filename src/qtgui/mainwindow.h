@@ -29,6 +29,7 @@ public:
     void keyPressEvent(QKeyEvent *evnt);
     void addWindow(EinWindow * window);
     void update();
+
 public slots:
     void rosSpin();
 

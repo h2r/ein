@@ -129,35 +129,6 @@
       </layout>
      </widget>
     </item>
-    <item row="0" column="2" rowspan="4">
-     <widget class="QFrame" name="frame">
-      <property name="frameShape">
-       <enum>QFrame::StyledPanel</enum>
-      </property>
-      <property name="frameShadow">
-       <enum>QFrame::Raised</enum>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout">
-       <item>
-        <widget class="QLabel" name="label_2">
-         <property name="text">
-          <string>TextLabel</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QFrame" name="gradientViewFrame">
-         <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
-         </property>
-         <property name="frameShadow">
-          <enum>QFrame::Raised</enum>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
@@ -180,7 +151,13 @@
      <string>Windows</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuWords">
+    <property name="title">
+     <string>Words</string>
+    </property>
+   </widget>
    <addaction name="menuWindows"/>
+   <addaction name="menuWords"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">

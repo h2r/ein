@@ -5,6 +5,7 @@
 
 #include "ein.h"
 #include "windowmanager.h"
+#include "wordaction.h"
 
 int last_key = -1;
 
@@ -28,8 +29,12 @@ MainWindow::MainWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
 
     windowManager.setMenu(ui->menuWindows);
 
+    WordAction * wordAction  = new WordAction(ui->menuWords, ms, name_to_word["clearStack"]);
+    ui->menuWords->addAction(wordAction);
+
+
 }
-  
+
 MainWindow::~MainWindow()
 {
     delete ui;
@@ -88,6 +93,8 @@ void updateLastKey(QKeyEvent * evnt) {
     }
 
 }
+
+
 void MainWindow::addWindow(EinWindow * window) {
 windowManager.addWindow(window);
 }
