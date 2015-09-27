@@ -21,7 +21,8 @@ void update();
 
 private:
     Ui::ArmWidget *ui;
-    StackModel * stackModel;
+    StackModel * dataStackModel;
+    StackModel * callStackModel;
 
     shared_ptr<MachineState> ms;
 

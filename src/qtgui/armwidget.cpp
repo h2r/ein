@@ -15,11 +15,11 @@ ArmWidget::ArmWidget(QWidget * parent, shared_ptr<MachineState> _ms) : QWidget(p
     }
     ms->config.armWidget = this;
 
-    stackModel = new StackModel(this);
-    stackModel->setMachineState(ms);
-    ui->stackTableView->setModel(stackModel);
+    callStackModel = new StackModel(this);
+    callStackModel->setMachineState(ms);
+    ui->callStackTableView->setModel(callStackModel);
 
-    ui->stackTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    ui->callStackTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
     wristView.setMouseCallBack(pilotCallbackFunc, ms.get());
 
@@ -31,7 +31,7 @@ void ArmWidget::update() {
     return;
   }
   ui->stateLabel->setText(QString::fromStdString(ms->currentState()));
-  stackModel->setMachineState(ms);
+  callStackModel->setMachineState(ms);
   if ( !isSketchyMat(ms->config.wristViewImage)) {
      wristView.updateImage(ms->config.wristViewImage);
   }
