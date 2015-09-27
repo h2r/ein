@@ -4715,8 +4715,6 @@ void pixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double yM
 
 
 void renderObjectMapView(shared_ptr<MachineState> leftArm, shared_ptr<MachineState> rightArm) {
-  return;
-
   if (leftArm != NULL && leftArm->config.objectMapViewerImage.rows <= 0 ) {
     //ms->config.objectMapViewerImage = Mat(600, 600, CV_8UC3);
     //ms->config.objectMapViewerImage = Mat(400, 400, CV_8UC3);
@@ -4743,9 +4741,8 @@ void renderObjectMapView(shared_ptr<MachineState> leftArm, shared_ptr<MachineSta
     assert(0);
   }
 
-
-  //renderObjectMapViewOneArm(leftArm);
-  //renderObjectMapViewOneArm(rightArm);
+  renderObjectMapViewOneArm(leftArm);
+  renderObjectMapViewOneArm(rightArm);
 }
 
 void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
