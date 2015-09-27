@@ -4719,6 +4719,7 @@ void renderObjectMapView(shared_ptr<MachineState> leftArm, shared_ptr<MachineSta
     //ms->config.objectMapViewerImage = Mat(600, 600, CV_8UC3);
     //ms->config.objectMapViewerImage = Mat(400, 400, CV_8UC3);
     leftArm->config.objectMapViewerImage = Mat(300, 480, CV_8UC3);
+
     if (rightArm != NULL) {
       rightArm->config.objectMapViewerImage = leftArm->config.objectMapViewerImage;
     }
