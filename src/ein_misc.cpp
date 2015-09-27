@@ -128,7 +128,6 @@ END_WORD
 REGISTER_WORD(PauseAndReset)
 
 
-
 WORD(PushState)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   string state = ms->currentState();
