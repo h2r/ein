@@ -1,11 +1,20 @@
 #include "word.h"
 #include "ein.h"
 
-void CompoundWord::execute(std::shared_ptr<MachineState> ms) {
-  for (unsigned int i = 0; i < stack.size(); i++) {
-    ms->pushWord(stack[i]);
-  }
+
+void Word::execute(std::shared_ptr<MachineState> ms) {
+  cout << "Pushing: " << this << endl;
+  shared_ptr<Word> shared_this = shared_ptr<Word>(this);
+  cout << "shared_this: " << shared_this->name() << endl;
+  cout << "repr: " << shared_this->repr() << endl;
+  ms->pushData(shared_this);
 }
+
+//void exec_word(std::shared_ptr<MachineState> ms) {
+//  for (unsigned int i = 0; i < mstack.size(); i++) {
+//    ms->pushWord(stack[i]);
+//  }
+//}
 
 std::map<int, std::shared_ptr<Word> > character_code_to_word;
 std::map<string, std::shared_ptr<Word> > name_to_word;

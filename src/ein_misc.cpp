@@ -15,8 +15,8 @@ REGISTER_WORD(EndArgs)
 WORD(UploadObjectToDatabase)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   stringstream cmd;
-  shared_ptr<Word> word = ms->popWord();
-  string className = word->to_string();
+  string className;
+  GET_ARG(ms, StringWord, className);
 
   cmd << "bash -c \"rosrun ein upload_zips.py -u 'maria' -p 'maria' ";
   cmd << ms->config.data_directory << "/objects/" << className << "\"";
@@ -270,20 +270,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     words_in_loop.push_back(word);
   }
   
-  std::shared_ptr<Word> index_to = ms->popWord();
-  std::shared_ptr<Word> index_from = ms->popWord();
-  if (index_from == NULL || index_to == NULL) {
-    cout << "Warning, next requires two words on the stack.  usage:  start words to from next" << endl;
-    return;
-  }
-  cout << "looping: " << index_from->to_int() << " to " << index_to->to_int() << endl;
+  int to_i = 0;
+  int from_i = 0;
+  GET_ARG(ms, IntegerWord, to_i);
+  GET_ARG(ms, IntegerWord, from_i);
 
-  for (int i = index_from->to_int(); i < index_to->to_int(); i++) {
+  cout << "looping: " << from_i << " to " << to_i << endl;
+
+  for (int i = from_i; i < to_i; i++) {
     for (int j = 0; j < words_in_loop.size(); j++) {
       ms->pushWord(words_in_loop[j]);
     }
   }
-  
 }
 END_WORD
 REGISTER_WORD(Next)
@@ -809,7 +807,7 @@ WORD(SetSonarLed)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   int value;
-  GET_NUMERIC_ARG(ms, value);
+  GET_ARG(ms, IntegerWord, value);
   ms->config.sonar_led_state = value;
 
   {
@@ -841,18 +839,6 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 }
 END_WORD
 REGISTER_WORD(SwitchSonarLed)
-
-WORD(SetCurrentExecutionMode)
-virtual void execute(std::shared_ptr<MachineState> ms)
-{
-  int value;
-  GET_ARG(ms, IntegerWord, value);
-
-  cout << "setCurrentExecutionMode: was " << ms->config.currentExecutionMode << " will be " << value << endl;
-  ms->config.currentExecutionMode = (executionMode)value;
-}
-END_WORD
-REGISTER_WORD(SetCurrentExecutionMode)
 
 WORD(PrintStacks)
 virtual void execute(std::shared_ptr<MachineState> ms)
