@@ -100,19 +100,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   // cTableHeight moves with the flush factor
   double cTableHeight = -0.017;//-0.045;//0.0;//0.025;
-  int amountMms = floor(cTableHeight / 0.001);
 
-  ms->pushWord(std::make_shared<IntegerWord>(amountMms));
+  ms->pushWord(std::make_shared<IntegerWord>(cTableHeight));
   ms->pushWord("table3");
   ms->pushWord("brownMug");
   ms->pushWord("moveObjectToObjectByAmount");
 
-  ms->pushWord(std::make_shared<IntegerWord>(amountMms));
+  ms->pushWord(std::make_shared<IntegerWord>(cTableHeight));
   ms->pushWord("table2");
   ms->pushWord("metalMug");
   ms->pushWord("moveObjectToObjectByAmount");
 
-  ms->pushWord(std::make_shared<IntegerWord>(amountMms));
+  ms->pushWord(std::make_shared<IntegerWord>(cTableHeight));
   ms->pushWord("table1");
   ms->pushWord("redMug");
   ms->pushWord("moveObjectToObjectByAmount");
@@ -138,22 +137,14 @@ REGISTER_WORD(QuiveringPalm)
 
 WORD(MoveObjectToObjectByAmount)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  shared_ptr<Word> firstObjectWord = ms->popWord();
-  shared_ptr<Word> secondObjectWord = ms->popWord();
-  shared_ptr<Word> awPre = ms->popWord();
-  std::shared_ptr<IntegerWord> amountWord = std::dynamic_pointer_cast<IntegerWord>(awPre);
-
-  if( (firstObjectWord == NULL) || (secondObjectWord == NULL) || (amountWord == NULL) ) {
-    cout << "not enough words... clearing stack." << endl;
-    ms->clearStack();
-    return;
-  } else {
-    string firstObjectLabel = firstObjectWord->to_string();
-    string secondObjectLabel = secondObjectWord->to_string();
-    // this is specified in mm
-    int amountMms = amountWord->value();
-    double cTableHeight = 0.001 * amountMms;
-
+  string firstObjectLabel;
+  string secondObjectLabel;
+  double cTableHeight = 0;
+  // cTableHeight is specified in meters 
+  GET_ARG(ms, StringWord, firstObjectLabel);
+  GET_ARG(ms, StringWord, secondObjectLabel);
+  GET_NUMERIC_ARG(ms, cTableHeight);
+  {
     eePose placePose;
     int success = placementPoseLabel1AboveLabel2By(ms, firstObjectLabel, secondObjectLabel, cTableHeight, &placePose);
     if (success) {
@@ -168,19 +159,13 @@ REGISTER_WORD(MoveObjectToObjectByAmount)
 
 WORD(MoveObjectBetweenObjectAndObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  shared_ptr<Word> firstObjectWord = ms->popWord();
-  shared_ptr<Word> secondObjectWord = ms->popWord();
-  shared_ptr<Word> thirdObjectWord = ms->popWord();
-
-  if( (firstObjectWord == NULL) || (secondObjectWord == NULL) || (thirdObjectWord == NULL) ) {
-    cout << "not enough words... clearing stack." << endl;
-    ms->clearStack();
-    return;
-  } else {
-    string firstObjectLabel = firstObjectWord->to_string();
-    string secondObjectLabel = secondObjectWord->to_string();
-    string thirdObjectLabel = thirdObjectWord->to_string();
-
+  string firstObjectLabel;
+  string secondObjectLabel;
+  string thirdObjectLabel;
+  GET_ARG(ms, StringWord, firstObjectLabel);
+  GET_ARG(ms, StringWord, secondObjectLabel);
+  GET_ARG(ms, StringWord, thirdObjectLabel);
+  {
     eePose placePose;
     int success = placementPoseLabel1BetweenLabel2AndLabel3(ms, firstObjectLabel, secondObjectLabel, thirdObjectLabel, &placePose);
     if (success) {
@@ -243,11 +228,9 @@ REGISTER_WORD(SetTheYcbTable)
 
 WORD(MoveObjectToPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  shared_ptr<Word> objectword = ms->popWord();
-  if (objectword == NULL) {
-    cout << "Must pass a string as an argument to " << this->name() << endl;
-  } else {
-    string className = objectword->to_string();
+  string className;
+  GET_ARG(ms, StringWord, className);
+  {
     int class_idx = classIdxForName(ms, className);
     if (class_idx != -1) {
       ms->pushWord("moveTargetObjectToPose");
@@ -262,14 +245,10 @@ REGISTER_WORD(MoveObjectToPose)
 
 WORD(MoveTargetObjectToPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  shared_ptr<Word> word = ms->popWord();
-  std::shared_ptr<EePoseWord> destWord = std::dynamic_pointer_cast<EePoseWord>(word);
-  if (destWord == NULL) {
-    cout << "Must pass a pose as an argument to " << this->name() << endl;
-    cout <<" Instead got word: " << word->name() << " repr: " << word->repr() << endl;
-    return;
-  } else {
-    ms->config.placeTarget = destWord->value();
+  eePose destPose;
+  GET_ARG(ms, EePoseWord, destPose);
+  {
+    ms->config.placeTarget = destPose;
   
     ms->pushWord("deliverTargetObject");
     ms->pushWord("setPlaceModeToRegister");
@@ -280,11 +259,9 @@ REGISTER_WORD(MoveTargetObjectToPose)
 
 WORD(DeliverObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  shared_ptr<Word> word = ms->popWord();
-  if (word == NULL) {
-    cout << "Must pass a string as an argument to " << this->name() << endl;
-  } else {
-    string className = word->to_string();
+  string className;
+  GET_ARG(ms, StringWord, className);
+  {
     int class_idx = classIdxForName(ms, className);
     if (class_idx != -1) {
       ms->pushWord("deliverTargetObject");
