@@ -51,7 +51,7 @@ bool MachineState::pushWord(int code) {
 }
 
 bool MachineState::pushWord(string token) {
-  std:shared_ptr<Word> word = forthletParse(token);
+  std:shared_ptr<Word> word = parseToken(token);
   if (word != NULL) {
     return pushWord(word);
   }
@@ -75,7 +75,7 @@ bool MachineState::pushData(int code) {
 }
 
 bool MachineState::pushData(string token) {
-  std:shared_ptr<Word> word = forthletParse(token);
+  std:shared_ptr<Word> word = parseToken(token);
   if (word != NULL) {
     return pushData(word);
   }
@@ -173,7 +173,7 @@ void MachineState::pushCopies(std::shared_ptr<Word> word, int times) {
 
 
 
-std::shared_ptr<Word> forthletParse(string token) {
+std::shared_ptr<Word> parseToken(string token) {
   if (IntegerWord::isInteger(token)) {
     return IntegerWord::parse(token);
   } else if (DoubleWord::isDouble(token)) {
