@@ -288,10 +288,9 @@ REGISTER_WORD(SaveRegister4)
 
 WORD(MoveToRegister)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  int register_num = 0;
+  GET_ARG(ms, IntegerWord, register_num);
 
-  std::shared_ptr<Word> registerword = ms->popWord();
-
-  int register_num = registerword->to_int();
   if (register_num == 1) {
     ms->config.currentEEPose = ms->config.eepReg1;
   } else if (register_num == 2) {
@@ -305,7 +304,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   } else if (register_num == 6) {
     ms->config.currentEEPose = ms->config.eepReg6;
   } else {
-    cout << "Bad register number: " << registerword << " int: " << register_num << endl;
+    cout << "Bad register number: " << " int: " << register_num << endl;
   }
 }
 END_WORD
@@ -515,7 +514,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 // dead_zone - Position deadband within move considered successful 
 // ALL PARAMETERS (0-100) 
 
-  int amount = 0; GET_ARG(ms,IntegerWord,amount);
+  int amount = 0; 
+  GET_ARG(ms,IntegerWord,amount);
+
   amount = min(max(0,amount),100);
 
   cout << "setGripperMovingForce, amount: " << amount << endl;
@@ -561,7 +562,9 @@ WORD(OpenGripperInt)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "openGripperInt: ";
 
-  int amount = 0; GET_ARG(ms,IntegerWord,amount);
+  int amount = 0; 
+  GET_ARG(ms,IntegerWord,amount);
+
   amount = min(max(0,amount),100);
 
   char buf[1024]; sprintf(buf, "{\"position\": %d.0}", amount);
@@ -639,15 +642,8 @@ REGISTER_WORD(SetGridSizeVeryFine)
 
 WORD(ChangeToHeight)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  shared_ptr<Word> hWord = ms->popWord();
-
-  if (hWord == NULL) {
-    cout << "oops, changeToHeight requires an argument..." << endl;
-    ms->clearStack();
-  } else {
-  }
-  std::shared_ptr<IntegerWord> hIntWord = std::dynamic_pointer_cast<IntegerWord>(hWord);
-  int nextHeight =  hIntWord->value();
+  int nextHeight = 0;
+  GET_ARG(ms, IntegerWord, nextHeight);
 
   if ( (nextHeight > -1) && (nextHeight < ms->config.hmWidth) ) {
     ms->config.currentThompsonHeightIdx = nextHeight;
@@ -1492,40 +1488,15 @@ REGISTER_WORD(DislodgeEndEffectorFromTable)
 	
 WORD(MoveToEEPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-	// get 7 strings, make them into doubles, move there
-	// order px py pz qx qy qz qw
-	double vals[7]; 
-
-
-/*
-	for (int i = 6; i >= 0; i--) { 
-		shared_ptr<Word> word = ms->popWord(); 
-		if (word == NULL) {
-			// failed
-  	  cout << "not enough words" << endl;
-      return;
-		}
-		char* endptr;
-		string wordname = word->to_string(); 
-		double r = strtod(wordname.c_str(), &endptr); 
-		if (endptr == wordname && r == 0) { 
-			// failed to convert
-  		cout << "received not a number" << endl;
-			ms->clearStack(); 
-      return;
-		}
-		vals[i] = r;
-	}
-*/
+  // get 7 strings, make them into doubles, move there
+  // order px py pz qx qy qz qw
+  double vals[7]; 
 
   for (int i = 6; i >= 0; i--) { 
     GET_NUMERIC_ARG(ms, vals[i]);
   }
 
-
-
   // make them actually into an eepose
-
   _eePose pose = {.px = vals[0], .py = vals[1], .pz = vals[2],
       .qx = vals[3], .qy = vals[4], .qz = vals[5], .qw = vals[6]};
   ms->config.currentEEPose = pose; 
@@ -1535,26 +1506,10 @@ REGISTER_WORD(MoveToEEPose)
 
 WORD(WaitForSeconds)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-
   cout << "waitForSeconds: ";
+  double secondsToWait = 0;
+  GET_NUMERIC_ARG(ms, secondsToWait);
 
-  shared_ptr<Word> word = ms->popWord(); 
-  if (word == NULL) {
-    // failed
-    cout << "not enough words" << endl;
-    return;
-  }
-  char* endptr;
-  string wordname = word->to_string(); 
-  double r = strtod(wordname.c_str(), &endptr); 
-  if (endptr == wordname && r == 0) { 
-    // failed to convert
-    cout << "received not a number" << endl;
-    ms->clearStack(); 
-    return;
-  }
-
-  double secondsToWait = r;
   ms->config.waitForSecondsTarget = ros::Time::now() + ros::Duration(secondsToWait);
   cout << "waiting " << secondsToWait << " seconds until " << ms->config.waitForSecondsTarget << endl;
   ms->pushWord("waitForSecondsA");
