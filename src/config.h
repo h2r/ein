@@ -350,7 +350,6 @@ class EinConfig {
   ikMode currentIKMode = IKSERVICE;
   scanMode currentScanMode = CENTERED;
   mapServoMode currentMapServoMode = HISTOGRAM_CLASSIFY;
-  executionMode currentExecutionMode = SINGLE_STACK;
   bool setRandomPositionAfterPick = false;
   bool streamPicks = false;
   bool mapAutoPick = false;

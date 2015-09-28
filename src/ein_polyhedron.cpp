@@ -110,13 +110,19 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 // if not clear, sweep object out of space to done pile.
 // check to see if learning space is clear
 // try to pick and place object to done pile
+  ms->pushWord("assumeCalibrationPose");
 // pick it 30 times, scanning a new component if you miss 5 times in a row.
 // scan it 
 // take it to the learning area
+  ms->pushWord("1");
+  ms->pushWord("changeToHeight");
+  ms->pushWord("shiftIntoGraspGear1");
+  ms->pushWord("assumeCrane1");
 // servo and pick an object
 // set target to kdash
 // move to the input pile
 
+  ms->pushWord("assumeBackScanningPose");
 
 }
 END_WORD

@@ -16,7 +16,7 @@ class Word {
   
 public:
 
-  virtual void execute(std::shared_ptr<MachineState> ms) = 0;
+  virtual void execute(std::shared_ptr<MachineState> ms);
   virtual string name() = 0;
 
   virtual string description() {
@@ -113,8 +113,6 @@ public:
   DoubleWord(double _n) {
     n = _n;
   }
-  void execute(std::shared_ptr<MachineState> ms) {
-  }
   string name() {
     stringstream ss;
     ss << scientific;
@@ -182,8 +180,6 @@ public:
   
   IntegerWord(int _n) {
     n = _n;
-  }
-  void execute(std::shared_ptr<MachineState> ms) {
   }
   string name() {
     stringstream ss;
@@ -255,8 +251,6 @@ public:
   StringWord(string _s) {
     s = _s;
   }
-  void execute(std::shared_ptr<MachineState> ms) {
-  }
 
   string name() {
     stringstream ss;
@@ -304,8 +298,6 @@ public:
   SymbolWord(string _s) {
     s = _s;
   }
-  void execute(std::shared_ptr<MachineState> ms) {
-  }
 
   string name() {
     stringstream ss;
@@ -352,8 +344,6 @@ public:
   EePoseWord(eePose _pose) {
     pose = _pose;
   }
-  void execute(std::shared_ptr<MachineState> ms) {
-  }
   string name() {
     stringstream ss;
     ss << pose;
@@ -387,7 +377,6 @@ class CompoundWord {
   CompoundWord(vector<std::shared_ptr<Word> > _stack) {
     stack = _stack;
   }
-  virtual void execute(std::shared_ptr<MachineState> ms);
 };
 
 

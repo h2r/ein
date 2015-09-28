@@ -7,8 +7,9 @@ namespace ein_words {
 
 WORD(SetTargetClass)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  shared_ptr<Word> objectword = ms->popWord();
-  string className = objectword->to_string();
+  string className;
+  GET_ARG(ms, StringWord, className);
+
   int class_idx = classIdxForName(ms, className);
   changeTargetClass(ms, class_idx);
 }
@@ -1451,18 +1452,14 @@ REGISTER_WORD(FixCameraLighting)
 WORD(FixCameraLightingExposureGain)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "fixCameraLightingExposureGain...";
-  shared_ptr<Word> firstFlagWord = ms->popWord();
-  shared_ptr<Word> secondFlagWord = ms->popWord();
-  std::shared_ptr<IntegerWord> fiWord = std::dynamic_pointer_cast<IntegerWord>(firstFlagWord);
-  std::shared_ptr<IntegerWord> seWord = std::dynamic_pointer_cast<IntegerWord>(secondFlagWord);
 
-  if( (fiWord == NULL) || (seWord == NULL) ) {
-    cout << "not enough words... clearing stack." << endl;
-    ms->clearStack();
-    return;
-  } else {
-    int thisExposure = max(0, min(seWord->value(),100));
-    int thisGain = max(0, min(fiWord->value(),100));
+  int fiWordVal = 0;
+  int seWordVal = 0;
+  GET_ARG(ms, IntegerWord, fiWordVal);
+  GET_ARG(ms, IntegerWord, seWordVal);
+  {
+    int thisExposure = max(0, min(seWordVal,100));
+    int thisGain = max(0, min(fiWordVal,100));
 
     baxter_core_msgs::OpenCamera ocMessage;
     ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
@@ -4014,14 +4011,11 @@ REGISTER_WORD(ReplaceBlueBoxesWithHistogramWinner)
 
 WORD(WriteAlphaObjectToBetaFolders)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  shared_ptr<Word> word1 = ms->popWord();
-  shared_ptr<Word> word2 = ms->popWord();
-
-  if ((word1== NULL) || (word2 == NULL)) {
-    cout << "Must pass a string as an argument to " << this->name() << endl;
-  } else {
-    string newClassName = word1->to_string();
-    string oldClassName = word2->to_string();
+  string newClassName;
+  string oldClassName;
+  GET_ARG(ms, StringWord, newClassName);
+  GET_ARG(ms, StringWord, oldClassName);
+  {
     int class_idx = classIdxForName(ms, oldClassName);
     if (class_idx != -1) {
       cout << "About to write data for class \"" << ms->config.classLabels[class_idx] << "\" index " << class_idx << " to folder \"" << ms->config.data_directory + "/" + newClassName << "\", unpause to proceed." << endl;
@@ -4039,14 +4033,11 @@ REGISTER_WORD(WriteAlphaObjectToBetaFolders)
 
 WORD(WriteAlphaObjectToBetaFoldersA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  shared_ptr<Word> word1 = ms->popWord();
-  shared_ptr<Word> word2 = ms->popWord();
-
-  if ((word1== NULL) || (word2 == NULL)) {
-    cout << "Must pass a string as an argument to " << this->name() << endl;
-  } else {
-    string newClassName = word1->to_string();
-    string oldClassName = word2->to_string();
+  string newClassName;
+  string oldClassName;
+  GET_ARG(ms, StringWord, newClassName);
+  GET_ARG(ms, StringWord, oldClassName);
+  {
     int class_idx = classIdxForName(ms, oldClassName);
     if (class_idx != -1) {
       cout << "Writing data for class \"" << ms->config.classLabels[class_idx] << "\" index " << class_idx << " to folder \"" << ms->config.data_directory + "/" + newClassName << "\"." << endl;
