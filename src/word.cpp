@@ -51,7 +51,7 @@ bool MachineState::pushWord(int code) {
 }
 
 bool MachineState::pushWord(string token) {
-  std:shared_ptr<Word> word = parseToken(token);
+  std:shared_ptr<Word> word = parseToken(this->sharedThis, token);
   if (word != NULL) {
     return pushWord(word);
   }
@@ -75,7 +75,7 @@ bool MachineState::pushData(int code) {
 }
 
 bool MachineState::pushData(string token) {
-  std:shared_ptr<Word> word = parseToken(token);
+  std:shared_ptr<Word> word = parseToken(this->sharedThis, token);
   if (word != NULL) {
     return pushData(word);
   }
@@ -173,7 +173,7 @@ void MachineState::pushCopies(std::shared_ptr<Word> word, int times) {
 
 
 
-std::shared_ptr<Word> parseToken(string token) {
+std::shared_ptr<Word> parseToken(std::shared_ptr<MachineState> ms, string token) {
   if (IntegerWord::isInteger(token)) {
     return IntegerWord::parse(token);
   } else if (DoubleWord::isDouble(token)) {
@@ -182,6 +182,9 @@ std::shared_ptr<Word> parseToken(string token) {
     return StringWord::parse(token);
   } else if (name_to_word.count(token) > 0) {
     std::shared_ptr<Word> word = name_to_word[token];
+    return word;
+  } else if (ms->variables.count(token) > 0) {
+    std::shared_ptr<Word> word = ms->variables[token];
     return word;
   } else if (SymbolWord::isSymbol(token)) {
     std::shared_ptr<Word> word = SymbolWord::parse(token);
