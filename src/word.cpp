@@ -3,10 +3,7 @@
 
 
 void Word::execute(std::shared_ptr<MachineState> ms) {
-  cout << "Pushing: " << this << endl;
-  shared_ptr<Word> shared_this = shared_ptr<Word>(this);
-  cout << "shared_this: " << shared_this->name() << endl;
-  cout << "repr: " << shared_this->repr() << endl;
+  shared_ptr<Word> shared_this = this->shared_from_this();
   ms->pushData(shared_this);
 }
 

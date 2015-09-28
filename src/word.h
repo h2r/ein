@@ -12,7 +12,7 @@ class MachineState;
 
 using namespace boost::algorithm;
 
-class Word {
+class Word:  public enable_shared_from_this<Word> {
   
 public:
 
