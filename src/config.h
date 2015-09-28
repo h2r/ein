@@ -496,6 +496,8 @@ class EinConfig {
   EinWindow * stereoViewerWindow;
   ArmWidget * armWidget;
 
+  int last_key;
+
   eePose calibrationPose;
   eePose shrugPose;
   eePose handingPose;
