@@ -23,6 +23,15 @@ ArmWidget::ArmWidget(QWidget * parent, shared_ptr<MachineState> _ms) : QWidget(p
 
     wristView.setMouseCallBack(pilotCallbackFunc, ms.get());
 
+    
+    connect(ui->replEdit, SIGNAL(returnPressed()), this, SLOT(replReturnPressed()));
+}
+
+void ArmWidget::replReturnPressed() {
+  string text = ui->replEdit->text().toStdString();
+  cout << "Text: " << text << endl;
+  ui->replEdit->setText("");
+  ms->evaluateProgram(text);
 }
 
 

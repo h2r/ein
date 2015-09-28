@@ -29,7 +29,7 @@
    <property name="spacing">
     <number>0</number>
    </property>
-   <item row="5" column="0" colspan="2">
+   <item row="5" column="0" colspan="3">
     <widget class="QTableView" name="callStackTableView">
      <property name="maximumSize">
       <size>
@@ -39,9 +39,6 @@
      </property>
     </widget>
    </item>
-   <item row="8" column="1">
-    <widget class="QLineEdit" name="commandEdit"/>
-   </item>
    <item row="8" column="0">
     <widget class="QLabel" name="label_2">
      <property name="text">
@@ -49,7 +46,7 @@
      </property>
     </widget>
    </item>
-   <item row="7" column="0" colspan="2">
+   <item row="7" column="0" colspan="3">
     <widget class="QFrame" name="wristViewFrame">
      <property name="frameShape">
       <enum>QFrame::NoFrame</enum>
@@ -76,7 +73,7 @@
      </layout>
     </widget>
    </item>
-   <item row="6" column="0" colspan="2">
+   <item row="6" column="0" colspan="3">
     <widget class="QLabel" name="label">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -89,7 +86,7 @@
      </property>
     </widget>
    </item>
-   <item row="3" column="0" colspan="2">
+   <item row="3" column="0" colspan="3">
     <widget class="QTableView" name="dataStackTableView">
      <property name="maximumSize">
       <size>
@@ -110,7 +107,7 @@
      </attribute>
     </widget>
    </item>
-   <item row="0" column="0" colspan="2">
+   <item row="0" column="0" colspan="3">
     <widget class="QLabel" name="stateLabel">
      <property name="minimumSize">
       <size>
@@ -132,10 +129,10 @@
      </property>
     </widget>
    </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="label_3">
+   <item row="9" column="0">
+    <widget class="QLabel" name="label_5">
      <property name="text">
-      <string>Data Stack</string>
+      <string>Repl:</string>
      </property>
     </widget>
    </item>
@@ -145,6 +142,19 @@
       <string>Call Stack</string>
      </property>
     </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>Data Stack</string>
+     </property>
+    </widget>
+   </item>
+   <item row="9" column="1">
+    <widget class="QLineEdit" name="replEdit"/>
+   </item>
+   <item row="8" column="1">
+    <widget class="QLineEdit" name="commandEdit"/>
    </item>
   </layout>
  </widget>

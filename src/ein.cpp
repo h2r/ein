@@ -2747,10 +2747,13 @@ void MachineState::placeObjectInEndEffectorCommandCallback(const std_msgs::Empty
 
 void MachineState::forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
 
-  // disabling this would be unwise
+  evaluateProgram(msg->data);
+}
+
+void MachineState::evaluateProgram(const string program)  {
   shared_ptr<MachineState> ms = this->sharedThis;
 
-  ms->config.forthCommand = msg->data;
+  ms->config.forthCommand = program;
   ROS_INFO_STREAM("Received " << ms->config.forthCommand << endl);
   vector<string> tokens = split(ms->config.forthCommand.c_str(), ' ');
   for (unsigned int i = 0; i < tokens.size(); i++) {
