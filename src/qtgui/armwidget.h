@@ -29,6 +29,8 @@ private:
 
     CaptureLineEdit * captureLineEdit;
     shared_ptr<MachineState> ms;
+    
+    QCompleter * completer;
 
 };
 
