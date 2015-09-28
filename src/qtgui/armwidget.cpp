@@ -32,6 +32,12 @@ ArmWidget::ArmWidget(QWidget * parent, shared_ptr<MachineState> _ms) : QWidget(p
 
     wristView.setMouseCallBack(pilotCallbackFunc, ms.get());
 
+    QStringList wordList;
+    for (int i = 0; i < words.size(); i++) {
+      wordList.push_back(QString::fromStdString(words[i]->name()));
+    }
+    completer = new QCompleter(wordList);
+    ui->replEdit->setCompleter(completer);
     
     connect(ui->replEdit, SIGNAL(returnPressed()), this, SLOT(replReturnPressed()));
 
