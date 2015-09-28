@@ -15,9 +15,12 @@ class ArmWidget : public QWidget
   Q_OBJECT
   
 public: 
-ArmWidget(QWidget * parent, shared_ptr<MachineState> ms);
-void update();
-    DefaultEinViewPort wristView;
+  ArmWidget(QWidget * parent, shared_ptr<MachineState> ms);
+  void update();
+  DefaultEinViewPort wristView;
+
+public slots:
+  void replReturnPressed();
 
 private:
     Ui::ArmWidget *ui;
