@@ -41,7 +41,7 @@ public: \
 
 #define CONSUME_EEPOSE(x,ms) \
 {\
-  shared_ptr<Word> word = ms->popWord();\
+  shared_ptr<Word> word = ms->popData();\
   if (word == NULL) {\
     cout << "Stack empty, returning." << endl;\
     return;\
@@ -63,7 +63,7 @@ public: \
 
 #define GET_ARG(ms,type,x) \
 {\
-  shared_ptr<Word> hWord = ms->popWord();\
+  shared_ptr<Word> hWord = ms->popData();\
   if (hWord == NULL) {\
     cout << "Oops, GET_ARG " << #type << " " << #x << " " << #ms << " found no argument..." << endl;\
     cout << "  Must pass " << #type << " as an argument to " << this->name() << endl;\
@@ -88,7 +88,7 @@ public: \
 
 #define GET_NUMERIC_ARG(ms,x) \
 {\
-  shared_ptr<Word> hWord = ms->popWord();\
+  shared_ptr<Word> hWord = ms->popData();\
   if (hWord == NULL) {\
     cout << "Oops, GET_NUMERIC_ARG " << " " << #x << " " << #ms << " found no argument..." << endl;\
     cout << "  Must pass a numeric argument to " << this->name() << endl;\

@@ -2756,7 +2756,8 @@ void MachineState::evaluateProgram(const string program)  {
   ms->config.forthCommand = program;
   ROS_INFO_STREAM("Received " << ms->config.forthCommand << endl);
   vector<string> tokens = split(ms->config.forthCommand.c_str(), ' ');
-  for (unsigned int i = 0; i < tokens.size(); i++) {
+  for (unsigned int j = 0; j < tokens.size(); j++) {
+    int i = tokens.size() - j - 1;
     trim(tokens[i]);
     if (!ms->pushWord(tokens[i])) {
       cout << "Warning, ignoring unknown word from the forth topic: " << tokens[i] << endl;
