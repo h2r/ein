@@ -39,30 +39,6 @@ public: \
 #define REGISTER_WORD(gName) \
   int gName ## _register = register_word(make_shared<gName>());
 
-#define GET_ARG_INT(x,ms) \
-{\
-  shared_ptr<Word> hWord = ms->popWord();\
-  if (hWord == NULL) {\
-    cout << "Oops, GET_ARG_INT " << #x << " " << #ms << " found no argument..." << endl;\
-    cout << "  Must pass an integer word as an argument to " << this->name() << endl;\
-    cout << "  Pausing." << endl;\
-    ms->pushWord("pauseStackExecution");\
-    return;\
-  } else {\
-  }\
-  std::shared_ptr<IntegerWord> hIntWord = std::dynamic_pointer_cast<IntegerWord>(hWord);\
-\
-  if (hIntWord == NULL) {\
-    cout << "Oops, GET_ARG_INT " << #x << " " << #ms << " found an argument, but not an integer..." << endl;\
-    cout << "  Must pass an integer word as an argument to " << this->name() << endl;\
-    cout << "  Instead got word: " << hWord->name() << " repr: " << hWord->repr() << endl;\
-    cout << "  Pausing." << endl;\
-    ms->pushWord("pauseStackExecution");\
-    return;\
-  }\
-  x =  hIntWord->value();\
-}\
-
 #define CONSUME_EEPOSE(x,ms) \
 {\
   shared_ptr<Word> word = ms->popWord();\

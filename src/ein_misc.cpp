@@ -830,18 +830,6 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(SwitchSonarLed)
 
-WORD(SetCurrentExecutionMode)
-virtual void execute(std::shared_ptr<MachineState> ms)
-{
-  int value;
-  GET_ARG(ms, IntegerWord, value);
-
-  cout << "setCurrentExecutionMode: was " << ms->config.currentExecutionMode << " will be " << value << endl;
-  ms->config.currentExecutionMode = (executionMode)value;
-}
-END_WORD
-REGISTER_WORD(SetCurrentExecutionMode)
-
 WORD(PrintStacks)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
