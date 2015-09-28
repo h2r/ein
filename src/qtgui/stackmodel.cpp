@@ -62,9 +62,9 @@ QVariant StackModel::headerData(int section /* section */,
 
   if (role == Qt::SizeHintRole) {
     if (section == IDX) {
-      return QSize(10, 30);
+      return QSize(30, 1);
     } else if (section == NAME) {
-      return QSize(50, 20);
+      return QSize(50, 1);
     } else if (section == DESCRIPTION) {
       return QSize(100, 1);
     } else {
