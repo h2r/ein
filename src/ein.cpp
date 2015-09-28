@@ -27,7 +27,7 @@
 //#define DEBUG_RING_BUFFER
 
 
-extern int last_key;
+
 
 MainWindow * einMainWindow;
 vector< shared_ptr<MachineState> > machineStates;
@@ -4129,12 +4129,12 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
   int c = -1;
   if (ms->config.shouldIMiscCallback) {
     QApplication::instance()->processEvents();
-    c = last_key;
-    last_key = -1;
+    c = ms->config.last_key;
+    ms->config.last_key = -1;
   } else if ((ms->config.heartBeatCounter % ms->config.heartBeatPeriod) == 0) {
     QApplication::instance()->processEvents();
-    c = last_key;
-    last_key = -1;
+    c = ms->config.last_key;
+    ms->config.last_key = -1;
     ms->config.heartBeatCounter = 0;
 
   }

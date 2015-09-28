@@ -8,7 +8,7 @@
 
 #include "ui_armwidget.h"
 
-
+#include "capturelineedit.h"
 
 class ArmWidget : public QWidget
 {
@@ -27,6 +27,7 @@ private:
     StackModel * dataStackModel;
     StackModel * callStackModel;
 
+    CaptureLineEdit * captureLineEdit;
     shared_ptr<MachineState> ms;
 
 };

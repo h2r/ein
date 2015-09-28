@@ -7,7 +7,6 @@
 #include "windowmanager.h"
 #include "wordaction.h"
 
-int last_key = -1;
 
 MainWindow::MainWindow(QWidget *parent, shared_ptr<MachineState> _right_arm, shared_ptr<MachineState> _left_arm) :
   QMainWindow(parent), ui(new Ui::MainWindow), rightArmWidget(this, _right_arm), leftArmWidget(this, _left_arm), right_arm(_right_arm), left_arm(_left_arm), 
@@ -60,29 +59,11 @@ void MainWindow::setObjectMapViewMouseCallBack(EinMouseCallback m, void* param) 
 }
 
 
-void MainWindow::keyPressEvent(QKeyEvent *evnt) {
-  updateLastKey(evnt);
-  QWidget::keyPressEvent(evnt);
+void MainWindow::keyPressEvent(QKeyEvent *event) {
+  QWidget::keyPressEvent(event);
 
 }
 
-void updateLastKey(QKeyEvent * evnt) {
-  int key = evnt->key();
-
-  Qt::Key qtkey = static_cast<Qt::Key>(key);
-  char asciiCode = QTest::keyToAscii(qtkey);
-  if (asciiCode != 0)
-    key = static_cast<int>(asciiCode);
-  else
-    key = evnt->nativeVirtualKey(); //same codes as returned by GTK-based backend
-
-  //control plus (Z, +, -, up, down, left, right) are used for zoom/panning functions
-  if (evnt->modifiers() != Qt::ControlModifier)
-    {
-      last_key = key;
-    }
-
-}
 
 
 void MainWindow::addWindow(EinWindow * window) {

@@ -10,6 +10,10 @@ ArmWidget::ArmWidget(QWidget * parent, shared_ptr<MachineState> _ms) : QWidget(p
     ui->setupUi(this);
     ui->wristViewFrame->layout()->addWidget(wristView.getWidget());
 
+    captureLineEdit = new CaptureLineEdit();
+
+    ui->captureLineEditFrame->layout()->addWidget(captureLineEdit);
+
     if (ms == NULL) {
       return;
     }
@@ -25,7 +29,9 @@ ArmWidget::ArmWidget(QWidget * parent, shared_ptr<MachineState> _ms) : QWidget(p
 
     
     connect(ui->replEdit, SIGNAL(returnPressed()), this, SLOT(replReturnPressed()));
+
 }
+
 
 void ArmWidget::replReturnPressed() {
   string text = ui->replEdit->text().toStdString();
@@ -38,6 +44,10 @@ void ArmWidget::replReturnPressed() {
 void ArmWidget::update() {
   if (ms == NULL) {
     return;
+  }
+  if (captureLineEdit->last_key != -1) {
+    ms->config.last_key = captureLineEdit->last_key;
+    captureLineEdit->last_key = -1;
   }
   ui->stateLabel->setText(QString::fromStdString(ms->currentState()));
   callStackModel->setMachineState(ms);
