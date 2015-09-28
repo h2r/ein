@@ -591,18 +591,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   } else {
   }
 
-  shared_ptr<Word> hWord = ms->popWord();
+  int thisHeightIdx =  0;
+  GET_ARG(ms, IntegerWord, thisHeightIdx); int tNumHeights = ms->config.hmWidth;
 
-  if (hWord == NULL) {
-    cout << "oops, iterateIsbAndAccumulateHeightImages requires an argument..." << endl;
-    ms->clearStack();
-  } else {
-  }
-  std::shared_ptr<IntegerWord> hIntWord = std::dynamic_pointer_cast<IntegerWord>(hWord);
-
-
-  int tNumHeights = ms->config.hmWidth;
-  int thisHeightIdx =  hIntWord->value();
   double scaledHeight = ms->config.minHeight + ( (double(thisHeightIdx)/double(tNumHeights-1)) * (ms->config.maxHeight - ms->config.minHeight) ) ;
 
   eePose tArmP, tBaseP;
