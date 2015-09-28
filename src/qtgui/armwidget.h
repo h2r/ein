@@ -8,22 +8,29 @@
 
 #include "ui_armwidget.h"
 
-
+#include "capturelineedit.h"
 
 class ArmWidget : public QWidget
 {
   Q_OBJECT
   
 public: 
-ArmWidget(QWidget * parent, shared_ptr<MachineState> ms);
-void update();
-    DefaultEinViewPort wristView;
+  ArmWidget(QWidget * parent, shared_ptr<MachineState> ms);
+  void update();
+  DefaultEinViewPort wristView;
+
+public slots:
+  void replReturnPressed();
 
 private:
     Ui::ArmWidget *ui;
-    StackModel * stackModel;
+    StackModel * dataStackModel;
+    StackModel * callStackModel;
 
+    CaptureLineEdit * captureLineEdit;
     shared_ptr<MachineState> ms;
+    
+    QCompleter * completer;
 
 };
 

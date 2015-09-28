@@ -26,7 +26,6 @@ void EinWindow::setMouseCallBack(EinMouseCallback m, void* param) {
 
 
 void EinWindow::keyPressEvent(QKeyEvent *evnt) {
-  updateLastKey(evnt);
   QWidget::keyPressEvent(evnt);
 
 }

@@ -12,10 +12,10 @@ StackModel::StackModel(QObject *parent)
 {
 }
 
-void StackModel::setMachineState(shared_ptr<MachineState> _ms)
+void StackModel::setStack(vector<shared_ptr<Word> > _stack)
 {
   beginResetModel();
-  ms = _ms;
+  stack = _stack;
   endResetModel();
 }
 
@@ -24,7 +24,7 @@ void StackModel::setMachineState(shared_ptr<MachineState> _ms)
 
 int StackModel::rowCount(const QModelIndex & /* parent */) const
 {
-  return ms->call_stack.size();
+  return stack.size();
 }
 
 int StackModel::columnCount(const QModelIndex & /* parent */) const
@@ -38,7 +38,7 @@ QVariant StackModel::data(const QModelIndex &index, int role) const
   if (!index.isValid() || role != Qt::DisplayRole) {
     return QVariant();
   } else {
-    shared_ptr<Word> w = ms->call_stack[ms->call_stack.size() - index.row() - 1];
+    shared_ptr<Word> w = stack[stack.size() - index.row() - 1];
     if (index.column() == IDX) {
       return index.row();
     } else if (index.column() == NAME) {
@@ -62,9 +62,9 @@ QVariant StackModel::headerData(int section /* section */,
 
   if (role == Qt::SizeHintRole) {
     if (section == IDX) {
-      return QSize(10, 20);
+      return QSize(30, 1);
     } else if (section == NAME) {
-      return QSize(50, 20);
+      return QSize(50, 1);
     } else if (section == DESCRIPTION) {
       return QSize(100, 1);
     } else {
