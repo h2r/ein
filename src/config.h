@@ -495,6 +495,8 @@ class EinConfig {
   EinWindow * stereoViewerWindow;
   ArmWidget * armWidget;
 
+  int last_key;
+
   eePose calibrationPose;
   eePose shrugPose;
   eePose handingPose;
@@ -1403,6 +1405,7 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);
   void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg);
   void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
+  void evaluateProgram(const string program);
   void endpointCallback(const baxter_core_msgs::EndpointState& eps);
   void collisionDetectionStateCallback(const baxter_core_msgs::CollisionDetectionState& cds);
   void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees);

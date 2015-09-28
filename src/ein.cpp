@@ -27,7 +27,7 @@
 //#define DEBUG_RING_BUFFER
 
 
-extern int last_key;
+
 
 MainWindow * einMainWindow;
 vector< shared_ptr<MachineState> > machineStates;
@@ -2747,10 +2747,13 @@ void MachineState::placeObjectInEndEffectorCommandCallback(const std_msgs::Empty
 
 void MachineState::forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
 
-  // disabling this would be unwise
+  evaluateProgram(msg->data);
+}
+
+void MachineState::evaluateProgram(const string program)  {
   shared_ptr<MachineState> ms = this->sharedThis;
 
-  ms->config.forthCommand = msg->data;
+  ms->config.forthCommand = program;
   ROS_INFO_STREAM("Received " << ms->config.forthCommand << endl);
   vector<string> tokens = split(ms->config.forthCommand.c_str(), ' ');
   for (unsigned int i = 0; i < tokens.size(); i++) {
@@ -4126,12 +4129,12 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
   int c = -1;
   if (ms->config.shouldIMiscCallback) {
     QApplication::instance()->processEvents();
-    c = last_key;
-    last_key = -1;
+    c = ms->config.last_key;
+    ms->config.last_key = -1;
   } else if ((ms->config.heartBeatCounter % ms->config.heartBeatPeriod) == 0) {
     QApplication::instance()->processEvents();
-    c = last_key;
-    last_key = -1;
+    c = ms->config.last_key;
+    ms->config.last_key = -1;
     ms->config.heartBeatCounter = 0;
 
   }

@@ -383,7 +383,7 @@ class CompoundWord {
 std::map<int, std::shared_ptr<Word> > create_character_code_to_word(std::vector<std::shared_ptr<Word> > words);
 std::map<string, std::shared_ptr<Word> > create_name_to_word(std::vector<std::shared_ptr<Word> > words);
 
-std::shared_ptr<Word> forthletParse(string token);
+std::shared_ptr<Word> parseToken(std::shared_ptr<MachineState> ms, string token);
 std::shared_ptr<Word> nameToWord(string name);
 
 extern std::vector<std::shared_ptr<Word> > words;

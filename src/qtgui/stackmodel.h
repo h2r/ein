@@ -14,7 +14,7 @@ class StackModel : public QAbstractTableModel
  public:
     StackModel(QObject *parent = 0);
 
-    void setMachineState(shared_ptr<MachineState> _ms);
+    void setStack(vector<shared_ptr<Word> > stack);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const Q_DECL_OVERRIDE;
     int columnCount(const QModelIndex &parent = QModelIndex()) const Q_DECL_OVERRIDE;
@@ -23,7 +23,7 @@ class StackModel : public QAbstractTableModel
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const Q_DECL_OVERRIDE;
 
  private:
-    shared_ptr<MachineState> ms;
+    vector<shared_ptr<Word> > stack;
 };
 
 

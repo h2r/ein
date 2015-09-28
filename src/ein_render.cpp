@@ -229,10 +229,10 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->config.heightMemorySampleWindow->setVisible(false);
   ms->config.hiRangemapWindow->setVisible(false);
   ms->config.hiColorRangemapWindow->setVisible(false);
-  ms->config.objectViewerWindow->setVisible(true);
+  ms->config.objectViewerWindow->setVisible(false);
   ms->config.objectMapViewerWindow->setVisible(false);
   ms->config.densityViewerWindow->setVisible(false);
-  ms->config.gradientViewerWindow->setVisible(true);
+  ms->config.gradientViewerWindow->setVisible(false);
   ms->config.mapBackgroundViewWindow->setVisible(false);
   ms->config.aerialGradientViewerWindow->setVisible(false);
   ms->config.wristViewWindow->setVisible(false);

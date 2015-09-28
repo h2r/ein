@@ -16,7 +16,6 @@ namespace Ui {
 class MainWindow;
 }
 
-void updateLastKey(QKeyEvent * evnt);
 
 class MainWindow : public QMainWindow
 {
