@@ -295,7 +295,7 @@ REGISTER_WORD(Next)
 
 WORD(Print)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> word = ms->popWord();
+  std::shared_ptr<Word> word = ms->popData();
   if (word != NULL) {
     cout << word->repr() << endl;
   }
