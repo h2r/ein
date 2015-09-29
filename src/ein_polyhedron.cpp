@@ -44,8 +44,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
   ms->pushWord("quarterImpulse");
 
-  ms->pushWord("1");
+
   ms->pushWord("changeToHeight");
+  ms->pushWord("1");
   ms->pushWord("assumeBeeHome");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("shiftIntoGraspGear1");
@@ -54,11 +55,13 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->pushWord("ifGrasp");
 
   ms->pushWord("deliverTargetObject");
-  ms->pushWord(std::make_shared<EePoseWord>(ms->config.currentEEPose));
+
   ms->pushWord("setClosestBlueBoxMemoryToFocusedClass");
+  ms->pushWord(std::make_shared<EePoseWord>(ms->config.currentEEPose));
+
   ms->pushWord("mapLocal");
-  ms->pushWord("1");
   ms->pushWord("changeToHeight");
+  ms->pushWord("1");
   ms->pushWord("synchronicServo"); 
   ms->pushWord("synchronicServoTakeClosest");
 
@@ -94,8 +97,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushCopies("yUp", 7);
   ms->pushCopies("xDown", 15);
-  ms->pushWord("1");
   ms->pushWord("changeToHeight");
+  ms->pushWord("1");
   ms->pushWord("shiftIntoGraspGear1");
   ms->pushWord("assumeBeeHome");
 }
@@ -114,8 +117,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 // pick it 30 times, scanning a new component if you miss 5 times in a row.
 // scan it 
 // take it to the learning area
-  ms->pushWord("1");
   ms->pushWord("changeToHeight");
+  ms->pushWord("1");
   ms->pushWord("shiftIntoGraspGear1");
   ms->pushWord("assumeCrane1");
 // servo and pick an object

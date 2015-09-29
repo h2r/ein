@@ -561,12 +561,13 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     ms->pushWord("saveAccumulatedStreamToServoImage");
     ms->pushWord("streamedAccumulatedDensity");
 
-    ms->pushWord(std::make_shared<IntegerWord>(hIdx));
     ms->pushWord("iterateIsbAndAccumulateHeightImages");
+    ms->pushWord(std::make_shared<IntegerWord>(hIdx));
+
 
     ms->pushWord("waitUntilAtCurrentPosition");
-    ms->pushWord(std::make_shared<IntegerWord>(hIdx));
     ms->pushWord("changeToHeight"); 
+    ms->pushWord(std::make_shared<IntegerWord>(hIdx));
     ms->pushWord("rewindImageStreamBuffer"); 
     ms->pushWord("resetAccumulatedStreamImage");
   }
@@ -665,8 +666,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   }
 
   if (recall) {
-    ms->pushWord(std::make_shared<IntegerWord>(thisHeightIdx));
     ms->pushWord("iterateIsbAndAccumulateHeightImages");
+    ms->pushWord(std::make_shared<IntegerWord>(thisHeightIdx));
+
   } else {
     cout << "iterateIsbAndAccumulateHeightImages reached the end of the image stream buffer." << endl;
   }
@@ -730,10 +732,10 @@ virtual void execute(std::shared_ptr<MachineState> ms)
         cout << "Found a POSE_REPORTED object of class" << i << ". Picking it." << endl;
 
         ms->pushWord("pickAllBlueBoxes");
-        ms->pushWord(ms->config.classLabels[i]);
         ms->pushWord("deliverObject");
-		ms->config.endThisStackCollapse = 1;
-		return;
+	ms->pushWord(ms->config.classLabels[i]);
+	ms->config.endThisStackCollapse = 1;
+	return;
       }
 	}
 
@@ -775,19 +777,21 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     ms->pushWord("bringUpAllNonessentialSystems"); 
 
     ms->pushWord("deactivateSensorStreaming"); 
-	{
-	  stringstream ss;
-	  ss << "\"aimed for pick, end\"";
-	  string result = ss.str();
-      ms->pushWord(result);
+    {
+      stringstream ss;
+      ss << "\"aimed for pick, end\"";
+      string result = ss.str();
       ms->pushWord("streamLabel");
+      ms->pushWord(result);
     }
     ms->pushWord("activateSensorStreaming"); 
 
     {
       ms->pushWord("deactivateSensorStreaming"); 
-      ms->pushWord("0.1"); 
+
       ms->pushWord("waitForSeconds"); 
+      ms->pushWord("0.1"); 
+
       ms->pushWord("waitUntilImageCallbackReceived"); 
       ms->pushWord("activateSensorStreaming"); 
 
@@ -798,25 +802,26 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     }
 
     ms->pushWord("deactivateSensorStreaming"); 
-	{
-	  stringstream ss;
-	  ss << "\"aimed for pick, start\"";
-	  string result = ss.str();
-      ms->pushWord(result);
+    {
+      stringstream ss;
+      ss << "\"aimed for pick, start\"";
+      string result = ss.str();
       ms->pushWord("streamLabel");
-	}
+      ms->pushWord(result);
+    }
     ms->pushWord("activateSensorStreaming"); 
 
     ms->pushWord("clearStreamBuffers"); 
 
     ms->pushWord("shutdownToSensorsAndMovement"); 
-    ms->pushWord(std::make_shared<IntegerWord>(1));
-    ms->pushWord(std::make_shared<IntegerWord>(0));
-    ms->pushWord(std::make_shared<IntegerWord>(1));
-    ms->pushWord(std::make_shared<IntegerWord>(0));
-    ms->pushWord(std::make_shared<IntegerWord>(0));
-    ms->pushWord(std::make_shared<IntegerWord>(1));
     ms->pushWord("setSisFlags"); 
+    ms->pushWord(std::make_shared<IntegerWord>(1));
+    ms->pushWord(std::make_shared<IntegerWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(1));
+    ms->pushWord(std::make_shared<IntegerWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(1));
+
 
     ms->pushWord("comeToStop");
     ms->pushWord("sampleHeight"); 
@@ -840,17 +845,19 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 	stringstream ss;
 	ss << "\"pickSuccess " << isGripperGripping(ms) << "\"";
 	string result = ss.str();
-    ms->pushWord(result);
+
     ms->pushWord("streamLabel");
+    ms->pushWord(result);
     ms->pushWord("activateSensorStreaming"); 
 
+    ms->pushWord("setSisFlags"); 
     ms->pushWord(std::make_shared<IntegerWord>(0));
     ms->pushWord(std::make_shared<IntegerWord>(0));
     ms->pushWord(std::make_shared<IntegerWord>(0));
     ms->pushWord(std::make_shared<IntegerWord>(0));
     ms->pushWord(std::make_shared<IntegerWord>(0));
     ms->pushWord(std::make_shared<IntegerWord>(1));
-    ms->pushWord("setSisFlags"); 
+
   } else {
 	cout << "  not streaming picks: " << endl;
   }

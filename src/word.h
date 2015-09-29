@@ -7,12 +7,14 @@ using namespace std;
 #include <sstream>
 #include <map>
 #include <boost/algorithm/string.hpp>
+#include <regex>
+
 
 class MachineState;
 
 using namespace boost::algorithm;
 
-class Word {
+class Word:  public enable_shared_from_this<Word> {
   
 public:
 
@@ -120,8 +122,8 @@ public:
     return ss.str();
   }
 
-  bool equals(Word * word) {
-    DoubleWord * w1 = dynamic_cast<DoubleWord *>(word);
+  bool equals(shared_ptr<Word> word) {
+    shared_ptr<DoubleWord> w1 = dynamic_pointer_cast<DoubleWord>(word);
     if (w1 == NULL) {
       return false;
     } else {
@@ -187,8 +189,8 @@ public:
     return ss.str();
   }
 
-  bool equals(Word * word) {
-    IntegerWord * w1 = dynamic_cast<IntegerWord *>(word);
+  bool equals(shared_ptr<Word> word) {
+    shared_ptr<IntegerWord> w1 = dynamic_pointer_cast<IntegerWord>(word);
     if (w1 == NULL) {
       return false;
     } else {
@@ -287,17 +289,23 @@ public:
       return NULL;
     }
   }
+
+  
   static bool isSymbol(string token) {
-    if (! IntegerWord::isInteger(token) && ! StringWord::isString(token)) {
-      return true;
+    
+    smatch match;
+    regex symbol_regex("[a-zA-Z_]+", std::regex_constants::basic);
+    if (regex_match(token, match, symbol_regex)) {
+	return true;
     } else {
       return false;
-    }
+    } 
   }
   
   SymbolWord(string _s) {
     s = _s;
   }
+  virtual void execute(std::shared_ptr<MachineState> ms);
 
   string name() {
     stringstream ss;
@@ -350,8 +358,8 @@ public:
     return ss.str();
   }
 
-  bool equals(Word * word) {
-    EePoseWord * w1 = dynamic_cast<EePoseWord *>(word);
+  bool equals(shared_ptr<Word> word) {
+    shared_ptr<EePoseWord> w1 = dynamic_pointer_cast<EePoseWord>(word);
     if (w1 == NULL) {
       return false;
     } else {
@@ -370,13 +378,19 @@ public:
 
 
 
-class CompoundWord {
+class CompoundWord : public Word {
  private:
   vector<std::shared_ptr<Word> > stack;
  public:
-  CompoundWord(vector<std::shared_ptr<Word> > _stack) {
-    stack = _stack;
+  CompoundWord() {
   }
+  void pushWord(shared_ptr<Word> word) {
+    stack.push_back(word);
+  }
+  virtual void execute(std::shared_ptr<MachineState> ms);
+  string repr();
+  string name();
+  string to_string();
 };
 
 

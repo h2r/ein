@@ -1218,13 +1218,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
   
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+
 
 
   ms->pushWord("iRCalibrationSpeed");
@@ -2347,8 +2348,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 //  reinit range maps for one class at a time
 
   ms->pushWord("pickFocusedClass");
-  ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord("changeToHeight"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
   // XXX second writeFocusedClass because aerial gradients aren't loaded until re-init
   //ms->pushWord("writeFocusedClass");
   //ms->pushWord("integrateImageStreamBufferCrops");
@@ -2378,13 +2379,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("activateSensorStreaming"); 
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+
 
   ms->pushWord("fullImpulse");
 
@@ -2424,13 +2426,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("activateSensorStreaming"); 
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+
   
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("moveToRegister1");
@@ -2444,14 +2447,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("activateSensorStreaming"); 
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
-  
+
+  ms->pushWord("setSisFlags");   
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord("setSisFlags"); 
+
 
   ms->pushWord("lock3dGraspBase"); 
   ms->pushWord("saveRegister1");
@@ -2522,8 +2526,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("pickFocusedClass");
   ms->pushWord("cruisingSpeed"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord("changeToHeight"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
   // XXX second writeFocusedClass because aerial gradients aren't loaded until re-init
   //ms->pushWord("writeFocusedClass");
   //ms->pushWord("integrateImageStreamBufferCrops");
@@ -2553,13 +2557,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("activateSensorStreaming"); 
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+
 
   ms->pushWord("fullImpulse");
 
@@ -2575,8 +2580,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("deactivateSensorStreaming"); 
-    ms->pushWord("4.0"); 
+
     ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
     ms->pushWord("activateSensorStreaming"); 
     ms->pushWord("clearStreamBuffers"); 
 
@@ -2589,8 +2595,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("deactivateSensorStreaming"); 
-    ms->pushWord("4.0"); 
+
     ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
     ms->pushWord("activateSensorStreaming"); 
     ms->pushWord("clearStreamBuffers"); 
 
@@ -2603,8 +2611,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("deactivateSensorStreaming"); 
-    ms->pushWord("4.0"); 
+
     ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
     ms->pushWord("activateSensorStreaming"); 
     ms->pushWord("clearStreamBuffers"); 
 
@@ -2617,8 +2627,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("deactivateSensorStreaming"); 
-    ms->pushWord("4.0"); 
+
     ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
     ms->pushWord("activateSensorStreaming"); 
     ms->pushWord("clearStreamBuffers"); 
 
@@ -2631,13 +2643,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("departureSpeed");
 
   ms->pushWord("shutdownToSensorsAndMovement"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+
   
   //ms->pushWord("waitUntilAtCurrentPosition");
   //ms->pushWord("moveToRegister1");
@@ -2734,8 +2747,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("pickFocusedClass");
   ms->pushWord("cruisingSpeed"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord("changeToHeight"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord("writeFocusedClass");
   ms->pushWord("integrateImageStreamBufferServoImages");
   ms->pushWord("populateStreamBuffers");
@@ -2754,13 +2767,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("activateSensorStreaming"); 
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+
 
   ms->pushWord("fullImpulse");
 
@@ -2776,8 +2790,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("deactivateSensorStreaming"); 
-    ms->pushWord("4.0"); 
+
     ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
     ms->pushWord("activateSensorStreaming"); 
     ms->pushWord("clearStreamBuffers"); 
 
@@ -2790,8 +2806,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("deactivateSensorStreaming"); 
-    ms->pushWord("4.0"); 
+
     ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
     ms->pushWord("activateSensorStreaming"); 
     ms->pushWord("clearStreamBuffers"); 
 
@@ -2804,8 +2821,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("deactivateSensorStreaming"); 
-    ms->pushWord("4.0"); 
+
     ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
     ms->pushWord("activateSensorStreaming"); 
     ms->pushWord("clearStreamBuffers"); 
 
@@ -2818,8 +2837,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("deactivateSensorStreaming"); 
-    ms->pushWord("4.0"); 
+
     ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
     ms->pushWord("activateSensorStreaming"); 
     ms->pushWord("clearStreamBuffers"); 
 
@@ -2832,13 +2853,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("departureSpeed");
 
   ms->pushWord("shutdownToSensorsAndMovement"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+
   
 
   ms->pushWord("comeToStop");
@@ -2938,8 +2960,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("pickFocusedClass");
   ms->pushWord("setGraspModeToCrane");
   ms->pushWord("cruisingSpeed"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord("changeToHeight"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord("writeFocusedClass");
 
   ms->pushWord("loadPriorGraspMemoryAnalytic");
@@ -2963,13 +2985,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("activateSensorStreaming"); 
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+
 
   ms->pushWord("fullImpulse");
 
@@ -2984,8 +3007,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("deactivateSensorStreaming"); 
-    ms->pushWord("4.0"); 
+
     ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
     ms->pushWord("activateSensorStreaming"); 
     ms->pushWord("clearStreamBuffers"); 
 
@@ -2998,8 +3023,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("deactivateSensorStreaming"); 
-    ms->pushWord("4.0"); 
+
     ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
     ms->pushWord("activateSensorStreaming"); 
     ms->pushWord("clearStreamBuffers"); 
 
@@ -3012,8 +3039,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("deactivateSensorStreaming"); 
-    ms->pushWord("4.0"); 
+
     ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
     ms->pushWord("activateSensorStreaming"); 
     ms->pushWord("clearStreamBuffers"); 
 
@@ -3026,8 +3055,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("deactivateSensorStreaming"); 
-    ms->pushWord("4.0"); 
+
     ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
     ms->pushWord("activateSensorStreaming"); 
     ms->pushWord("clearStreamBuffers"); 
 
@@ -3044,13 +3075,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("departureSpeed");
 
   ms->pushWord("shutdownToSensorsAndMovement"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+
 
 
   ms->pushWord("departureSpeed");
@@ -3066,23 +3098,23 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("activateSensorStreaming"); 
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
-  
+  ms->pushWord("setSisFlags");   
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord("setSisFlags"); 
+
 
   ms->pushWord("waitUntilAtCurrentPosition");
 
-  ms->pushWord(std::make_shared<EePoseWord>(graspArg));
   ms->pushWord("assumeZOfPoseWord"); 
+  ms->pushWord(std::make_shared<EePoseWord>(graspArg));
 
   // IR scan, don't record 3d grasp 
-  //ms->pushWord(std::make_shared<EePoseWord>(graspArg));
   //ms->pushWord("add3dGraspPoseWord");
+  //ms->pushWord(std::make_shared<EePoseWord>(graspArg));
   ms->pushWord("lock3dGraspBase"); 
 
   // set register 2 to the 3dGraspBase again
@@ -3166,8 +3198,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("pickFocusedClass");
   ms->pushWord("setGraspModeTo3D");
   ms->pushWord("cruisingSpeed"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord("changeToHeight"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord("writeFocusedClass");
   ms->pushWord("integrateImageStreamBufferServoImages");
   ms->pushWord("populateStreamBuffers");
@@ -3186,13 +3218,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("activateSensorStreaming"); 
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+
 
   ms->pushWord("fullImpulse");
 
@@ -3208,8 +3241,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("deactivateSensorStreaming"); 
-    ms->pushWord("4.0"); 
+
     ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
     ms->pushWord("activateSensorStreaming"); 
     ms->pushWord("clearStreamBuffers"); 
 
@@ -3222,8 +3257,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("deactivateSensorStreaming"); 
-    ms->pushWord("4.0"); 
+
     ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
     ms->pushWord("activateSensorStreaming"); 
     ms->pushWord("clearStreamBuffers"); 
 
@@ -3236,8 +3273,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("deactivateSensorStreaming"); 
-    ms->pushWord("4.0"); 
+
     ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
     ms->pushWord("activateSensorStreaming"); 
     ms->pushWord("clearStreamBuffers"); 
 
@@ -3250,8 +3289,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
     ms->pushWord("deactivateSensorStreaming"); 
-    ms->pushWord("4.0"); 
+
     ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
     ms->pushWord("activateSensorStreaming"); 
     ms->pushWord("clearStreamBuffers"); 
 
@@ -3264,13 +3305,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("departureSpeed");
 
   ms->pushWord("shutdownToSensorsAndMovement"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+
   
 
   ms->pushWord("comeToStop");
@@ -3280,8 +3322,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("departureSpeed");
 
   ms->pushWord("writeFocusedClass");
-  ms->pushWord(std::make_shared<EePoseWord>(graspArg));
   ms->pushWord("add3dGraspPoseWord");
+  ms->pushWord(std::make_shared<EePoseWord>(graspArg));
   ms->pushWord("lock3dGraspBase"); 
 
   // unneeded for 3d grasps
@@ -3367,13 +3409,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("moveToRegister1");
 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord("setSisFlags"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+
 
 
   ms->pushWord("bringUpAllNonessentialSystems"); 
@@ -3383,14 +3426,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("activateSensorStreaming"); 
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
-  
+  ms->pushWord("setSisFlags");   
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord("setSisFlags"); 
+
 
 
   ms->pushWord("pauseStackExecution"); 
@@ -4019,9 +4062,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     int class_idx = classIdxForName(ms, oldClassName);
     if (class_idx != -1) {
       cout << "About to write data for class \"" << ms->config.classLabels[class_idx] << "\" index " << class_idx << " to folder \"" << ms->config.data_directory + "/" + newClassName << "\", unpause to proceed." << endl;
+      ms->pushWord("writeAlphaObjectToBetaFoldersA");
       ms->pushWord(oldClassName);
       ms->pushWord(newClassName);
-      ms->pushWord("writeAlphaObjectToBetaFoldersA");
+
       ms->pushWord("pauseStackExecution");
     } else {
       cout << "No class for " << oldClassName << " for " << this->name() << endl;

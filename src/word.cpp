@@ -3,10 +3,7 @@
 
 
 void Word::execute(std::shared_ptr<MachineState> ms) {
-  cout << "Pushing: " << this << endl;
-  shared_ptr<Word> shared_this = shared_ptr<Word>(this);
-  cout << "shared_this: " << shared_this->name() << endl;
-  cout << "repr: " << shared_this->repr() << endl;
+  shared_ptr<Word> shared_this = this->shared_from_this();
   ms->pushData(shared_this);
 }
 
@@ -201,7 +198,8 @@ void MachineState::evaluateProgram(const string program)  {
 
   ms->config.forthCommand = program;
   vector<string> tokens = split(ms->config.forthCommand.c_str(), ' ');
-  for (unsigned int i = 0; i < tokens.size(); i++) {
+  for (unsigned int j = 0; j < tokens.size(); j++) {
+    int i = tokens.size() - j - 1;
     trim(tokens[i]);
     if (!ms->pushWord(tokens[i])) {
       cout << "Warning, ignoring unknown word from the forth topic: " << tokens[i] << endl;
@@ -217,12 +215,13 @@ std::shared_ptr<Word> parseToken(std::shared_ptr<MachineState> ms, string token)
     return DoubleWord::parse(token);
   } else if (StringWord::isString(token)) {
     return StringWord::parse(token);
-  } else if (name_to_word.count(token) > 0) {
+      } else if (name_to_word.count(token) > 0) {
     std::shared_ptr<Word> word = name_to_word[token];
     return word;
-  } else if (ms->variables.count(token) > 0) {
-    std::shared_ptr<Word> word = ms->variables[token];
-    return word;
+    //}
+  //else if (ms->variables.count(token) > 0) {
+  ///std::shared_ptr<Word> word = ms->variables[token];
+    //return word;
   } else if (SymbolWord::isSymbol(token)) {
     std::shared_ptr<Word> word = SymbolWord::parse(token);
     return word;
@@ -340,4 +339,45 @@ void renderCoreView(shared_ptr<MachineState> ms) {
 //    putText(coreImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
 //  }
    ms->config.coreViewImage = coreImage;
+}
+
+
+
+
+void SymbolWord::execute(std::shared_ptr<MachineState> ms) {
+  if (name_to_word.count(s) > 0) {
+    std::shared_ptr<Word> word = name_to_word[s];
+    ms->pushWord(word);
+  } else if (ms->variables.count(s) > 0) {
+    std::shared_ptr<Word> word = ms->variables[s];
+    ms->pushWord(word);
+  } else {
+    cout << "No value for " << repr() << endl;
+  }
+}
+
+
+
+void CompoundWord::execute(std::shared_ptr<MachineState> ms) {
+  for (int i = 0; i < stack.size(); i++) {
+    ms->pushWord(stack[i]);
+  }
+}
+
+string CompoundWord::repr()  {
+  stringstream state;
+  state << "( "; 
+  for (int i = 0; i < stack.size(); i++) {
+    state << stack[i]->repr() << " ";
+  }
+  state << ")";
+  return state.str();
+}
+
+string CompoundWord::to_string() {
+  return repr();
+}
+
+string CompoundWord::name() {
+  return "compound word";
 }
