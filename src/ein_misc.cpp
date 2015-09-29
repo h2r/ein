@@ -325,15 +325,18 @@ END_WORD
 REGISTER_WORD(Store)
 
 
-// WORD(Import)
-// virtual void execute(std::shared_ptr<MachineState> ms) {
-//   std::shared_ptr<Word> filename = ms->popWord();
-//   string name = nameword->to_string();
-//   cout << "Storing " << name << " value " << valueword << endl;
-//   ms->variables[name] = valueword;
-// }
-// END_WORD
-// REGISTER_WORD(Import)
+WORD(Import)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string filename;
+  GET_ARG(ms, StringWord, filename);
+  std::ifstream t(filename);
+  std::stringstream buffer;
+  buffer << t.rdbuf();
+  cout << "got: " << buffer.str() << endl;
+  ms->evaluateProgram(buffer.str());
+ }
+END_WORD
+REGISTER_WORD(Import)
 
 
 

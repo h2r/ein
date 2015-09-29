@@ -179,7 +179,35 @@ void MachineState::pushCopies(std::shared_ptr<Word> word, int times) {
   }
 }
 
+vector<string> split(const char *str, char c = ' ')
+{
+    vector<string> result;
+    do
+    {
+      const char *begin = str;
+      
+      while(*str != c && *str)
+        str++;
+      
+      result.push_back(string(begin, str));
+    } while (0 != *str++);
+    
+    return result;
+}
 
+
+void MachineState::evaluateProgram(const string program)  {
+  shared_ptr<MachineState> ms = this->sharedThis;
+
+  ms->config.forthCommand = program;
+  vector<string> tokens = split(ms->config.forthCommand.c_str(), ' ');
+  for (unsigned int i = 0; i < tokens.size(); i++) {
+    trim(tokens[i]);
+    if (!ms->pushWord(tokens[i])) {
+      cout << "Warning, ignoring unknown word from the forth topic: " << tokens[i] << endl;
+    }
+  }
+}
 
 
 std::shared_ptr<Word> parseToken(std::shared_ptr<MachineState> ms, string token) {

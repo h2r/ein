@@ -2606,21 +2606,6 @@ void MachineState::fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
   }
 }
 
-vector<string> split(const char *str, char c = ' ')
-{
-    vector<string> result;
-    do
-    {
-      const char *begin = str;
-      
-      while(*str != c && *str)
-        str++;
-      
-      result.push_back(string(begin, str));
-    } while (0 != *str++);
-    
-    return result;
-}
 
 
 void MachineState::moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
@@ -2746,23 +2731,11 @@ void MachineState::placeObjectInEndEffectorCommandCallback(const std_msgs::Empty
 }
 
 void MachineState::forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
-
+  shared_ptr<MachineState> ms = this->sharedThis;
+  ROS_INFO_STREAM("Received " << ms->config.forthCommand << endl);
   evaluateProgram(msg->data);
 }
 
-void MachineState::evaluateProgram(const string program)  {
-  shared_ptr<MachineState> ms = this->sharedThis;
-
-  ms->config.forthCommand = program;
-  ROS_INFO_STREAM("Received " << ms->config.forthCommand << endl);
-  vector<string> tokens = split(ms->config.forthCommand.c_str(), ' ');
-  for (unsigned int i = 0; i < tokens.size(); i++) {
-    trim(tokens[i]);
-    if (!ms->pushWord(tokens[i])) {
-      cout << "Warning, ignoring unknown word from the forth topic: " << tokens[i] << endl;
-    }
-  }
-}
 
 void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& eps) {
   shared_ptr<MachineState> ms = this->sharedThis;
