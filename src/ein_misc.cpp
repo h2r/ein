@@ -240,15 +240,15 @@ REGISTER_WORD(Equals)
 
 WORD(Ift)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> then = ms->popWord();
-  std::shared_ptr<Word> condition = ms->popWord();
+  std::shared_ptr<Word> then = ms->popData();
+  std::shared_ptr<Word> condition = ms->popData();
   if (then == NULL || condition == NULL) {
     cout << "Warning, requires two words on the stack." << endl;
     return;
   }
 
   if (condition->to_bool()) {
-    ms->pushWord(then);
+    ms->pushData(then);
   }
 
 }

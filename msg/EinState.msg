@@ -15,4 +15,6 @@ int32 idle_mode
 
 object_recognition_msgs/RecognizedObject[] objects
 
-string[] stack
+string[] call_stack
+
+string[] data_stack
