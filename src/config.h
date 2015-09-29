@@ -160,8 +160,8 @@ typedef enum {
 } mapServoMode;
 
 typedef enum {
-  SINGLE_STACK = 0,
-  DOUBLE_STACK = 1
+  INSTANT = 0,
+  STEP = 1
 } executionMode;
 
 
@@ -1378,6 +1378,8 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   EinConfig config;
 
   int execute_stack = 0;
+
+  executionMode execution_mode = INSTANT;
 
   bool pushWord(int code);
   bool pushWord(string name);

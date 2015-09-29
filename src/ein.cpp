@@ -4145,6 +4145,7 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
     ms->execute(execute_stack_word);
   }
 
+
   ms->config.endThisStackCollapse = ms->config.endCollapse;
   while (1) {
     std::shared_ptr<Word> word = NULL;
@@ -4182,6 +4183,10 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
 
     if (word != NULL) {
       ms->execute(word);
+    }
+
+    if (ms->execution_mode == STEP) {
+      ms->execute_stack = 0;
     }
 
     if (ms->config.endThisStackCollapse || (ms->call_stack.size() == 0)) {
