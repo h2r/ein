@@ -870,7 +870,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(ClearData)
 
-WORD(OP)
+WORD(CP)
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -879,18 +879,13 @@ virtual vector<string> names() {
 }
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  cout << "Out parenthesis executing." << endl;
-  ms->pushWord("1");
-  ms->pushWord("sP");
-
-  ms->pushData("oP");
-
-  ms->pushWord("printStacks");
+  cout << "Close parenthesis should never execute." << endl;
+  assert(0);
 }
 END_WORD
-REGISTER_WORD(OP)
+REGISTER_WORD(CP)
 
-WORD(IP)
+WORD(OP)
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -899,11 +894,18 @@ virtual vector<string> names() {
 }
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  cout << "In parenthesis should never execute." << endl;
-  assert(0);
+
+  cout << "Open parenthesis executing." << endl;
+  ms->pushWord("sP");
+  ms->pushWord("1");
+
+  ms->pushData("oP");
+
+  ms->pushWord("printStacks");
+
 }
 END_WORD
-REGISTER_WORD(IP)
+REGISTER_WORD(OP)
 
 WORD(SP)
 virtual vector<string> names() {
@@ -938,55 +940,62 @@ virtual void execute(std::shared_ptr<MachineState> ms)
       // data goes to the data stack
       ms->pushData(word);
 
-      ms->pushWord(std::make_shared<IntegerWord>(scopeLevel));
       ms->pushWord("sP");
+      ms->pushWord(std::make_shared<IntegerWord>(scopeLevel));
     } else {
       // handle commands specially
-      if(0 == word->name().compare("iP")) {
-	cout << "sP found iP!!! scopeLevel " << scopeLevel << " " << endl;
-	ms->pushWord(std::make_shared<IntegerWord>(scopeLevel-1));
-	ms->pushWord("sP");
-	// unwind until matching oP
-	int outs_needed = 1;
-	while (outs_needed > 0) {
-	  std::shared_ptr<Word> datum = ms->popData();
-	  if (datum == NULL) {
-	    cout << "sP found no datum... pausing stack execution." << endl;
-	    ms->pushWord("pauseStackExecution");
-	    return;
-	  } else {
-	    if (datum->is_value()) {
-	      // data goes to the data stack
-	      ms->pushWord(datum);
+      if(0 == word->name().compare("cP")) {
+	if (scopeLevel != 1) {
+	  cout << "sP found cP!!! scopeLevel " << scopeLevel << " " << endl;
+	  ms->pushWord("sP");
+	  ms->pushWord(std::make_shared<IntegerWord>(scopeLevel-1));
+	} else {
+	  // unwind until matching oP
+	  int open_needed = 1;
+	  shared_ptr<CompoundWord> cp = make_shared<CompoundWord>();
+
+	  while (open_needed > 0) {
+	    std::shared_ptr<Word> datum = ms->popData();
+	    if (datum == NULL) {
+	      cout << "sP found no datum... pausing stack execution." << endl;
+	      ms->pushWord("pauseStackExecution");
+	      return;
 	    } else {
-	      if(0 == datum->name().compare("iP")) {
-		outs_needed = outs_needed+1;
-		cout << " outs needed +1: " << outs_needed << endl;
-		ms->pushWord(datum);
-	      } else if(0 == datum->name().compare("oP")) {
-		outs_needed = outs_needed-1;
-		cout << " outs needed -1: " << outs_needed << endl;
-		if (outs_needed > 0) {
-		  ms->pushWord(datum);
-		} else {
-		}
+	      if (datum->is_value()) {
+		// data goes to the data stack
+		cp->pushWord(datum);
 	      } else {
-		ms->pushWord(datum);
+		if(0 == datum->name().compare("oP")) {
+		  open_needed = open_needed-1;
+		  cout << " open needed -1: " << open_needed << endl;
+		  if (open_needed > 0) {
+		    cp->pushWord(datum);
+		  } else {
+		  }
+		} else if(0 == datum->name().compare("cP")) {
+		  open_needed = open_needed+1;
+		  cout << " open needed +1: " << open_needed << endl;
+		} else {
+		  cp->pushWord(datum);
+		}
 	      }
 	    }
 	  }
+	  ms->pushData(cp);
+
 	}
-      } else if(0 == word->name().compare("oP")) {
+      } else if (0 == word->name().compare("oP")) {
 	ms->pushData(word);
 
-	ms->pushWord(std::make_shared<IntegerWord>(scopeLevel+1));
+
 	ms->pushWord("sP");
+	ms->pushWord(std::make_shared<IntegerWord>(scopeLevel+1));
       } else {
 	// other things go on the data stack
 	ms->pushData(word);
 
-	ms->pushWord(std::make_shared<IntegerWord>(scopeLevel));
 	ms->pushWord("sP");
+	ms->pushWord(std::make_shared<IntegerWord>(scopeLevel));
       }
     }
   }
