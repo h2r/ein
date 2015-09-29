@@ -13393,7 +13393,12 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut) {
   stateOut->idle_mode = ms->config.currentIdleMode;
   for (int i = 0; i < ms->call_stack.size(); i ++) {
     shared_ptr<Word> w = ms->call_stack[i];
-    stateOut->stack.push_back(w->repr());
+    stateOut->call_stack.push_back(w->repr());
+  }
+
+  for (int i = 0; i < ms->data_stack.size(); i ++) {
+    shared_ptr<Word> w = ms->data_stack[i];
+    stateOut->data_stack.push_back(w->repr());
   }
 
 
