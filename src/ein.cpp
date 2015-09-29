@@ -8089,8 +8089,8 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
     if (!doWeHaveClearance) {
       cout << ">>>> continuous servo strayed out of clearance area during mapping. Going home. <<<<" << endl;
       ms->pushWord("waitUntilAtCurrentPosition");
-      ms->pushWord("1");
       ms->pushWord("changeToHeight");
+      ms->pushWord("1");
       ms->pushWord("assumeBeeHome");
       ms->pushWord("endStackCollapseNoop");
       return;
