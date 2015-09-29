@@ -153,15 +153,21 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       // using force 
       ms->pushWord("closeGripper");
       ms->pushWord("pressUntilEffort");
-      ms->pushWord("8.0");
+
       ms->pushWord("setEffortThresh");
-      ms->pushWord("0.03");
+      ms->pushWord("8.0");
+
+
       ms->pushWord("setSpeed");
+      ms->pushWord("0.03");
+
       ms->pushWord("pressUntilEffortInit");
       ms->pushWord("comeToStop");
       ms->pushWord("waitUntilAtCurrentPosition");
-      ms->pushWord("0.05");
+
       ms->pushWord("setSpeed");
+      ms->pushWord("0.05");
+
       ms->pushWord("localZUp");
       ms->pushWord("8");
       ms->pushWord("replicateWord");
@@ -334,33 +340,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(TryToMoveToTheLastPickHeight)
 
-WORD(AssertYesGrasp)
-CODE( 131157)     // capslock + u
-    // if gripper is empty, pop next instruction and return. if not, just return
-    // pull from bag will push itself and assert yes grasp
-    // assert yes grasp
-  virtual void execute(std::shared_ptr<MachineState> ms)       {
-  cout << "assert yes grasp: " << ms->config.gripperMoving << " " << ms->config.gripperGripping << " " << ms->config.gripperPosition << endl;
-  // TODO push this and then a calibration message if uncalibrated
-  // push this again if moving
-  if (ms->config.gripperMoving) {
-    ms->pushWord("assertYesGrasp"); // assert yes grasp
-  } else {
-    if (isGripperGripping(ms))
-      {
-        ms->popWord();
-        // leave gripper in released state
-        cout << "  assert yes pops back instruction." << endl;
-      } else {
-      cout << "  assert yes merely returns." << endl;
-      // resets the gripper server
-      //int sis = system("bash -c \"echo -e \'cC\003\' | rosrun baxter_examples gripper_keyboard.py\"");
-      //calibrateGripper();
-    }
-  }
-}
-END_WORD
-REGISTER_WORD(AssertYesGrasp)
 
 WORD(IfNoGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -382,45 +361,6 @@ REGISTER_WORD(IfGrasp)
 
 
 
-WORD(AssertNoGrasp)
-CODE(196649)     // capslock + i
-// if gripper is full, pop next instruction and return. if not, just return
-// shake it off will push itself and then assert no grasp
-  virtual void execute(std::shared_ptr<MachineState> ms) {
-  // TODO push this and then a calibration message if uncalibrated
-  // push this again if moving
-
-  cout << "assert no grasp: " << ms->config.gripperMoving << " " << ms->config.gripperGripping << " " << ms->config.gripperPosition << endl;
-
-  if (ms->config.gripperMoving) {
-    ms->pushWord("assertNoGrasp"); // assert no grasp
-  } else {
-    if (!isGripperGripping(ms))  {
-      ms->popWord();
-      // leave gripper in released state
-      cout << "  assert no pops back instruction." << endl;
-      if (ms->config.thisGraspReleased == UNKNOWN) {
-        ms->config.thisGraspReleased = SUCCESS;
-      }
-    } else {
-      // stuck
-      ms->pushWord("pauseStackExecution"); // pause stack execution
-      ms->pushCopies("beep", 15); // beep
-      cout << "Stuck, please reset the object. ";
-      cout << " gripperPosition: " << ms->config.gripperPosition;
-      cout << " gripperThresh: " << ms->config.gripperThresh << endl;
-      if (ms->config.thisGraspReleased == UNKNOWN) {
-        ms->config.thisGraspReleased = FAILURE;
-        sad(ms);
-      }
-    }
-    ms->pushWord("openGripper"); // open gripper
-
-  }
-
-}
-END_WORD
-REGISTER_WORD(AssertNoGrasp)
 
 WORD(ShakeItOff1)
 CODE( 131151)     // capslock + o
@@ -428,8 +368,6 @@ CODE( 131151)     // capslock + o
   int depthToPlunge = 24;
   int flexThisFar = 80;
   cout << "SHAKING IT OFF!!!" << endl;
-  ms->pushWord(196719); // shake it off 2
-  ms->pushWord("assertNoGrasp"); // assert no grasp
 
   ms->pushNoOps(60);
   //ms->pushWord("moveToRegister2"); // assume pose at register 2
@@ -744,8 +682,6 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->pushWord("countGrasp"); //count grasp
 
   ms->pushWord("openGripper"); // open gripper
-  ms->pushWord("shakeItOff1"); // shake it off 1
-  ms->pushWord("assertNoGrasp"); // assert no grasp
 
   ms->pushNoOps(30);
   ms->pushWord("closeGripper"); 
@@ -1354,8 +1290,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // XXX there is some issue when the orientation is changing, 
   //  convergence isn't instantaneous unless waitUntilAtCurrentPosition is called
   ms->pushWord("waitUntilAtCurrentPosition");
-  //ms->pushWord("\"0.2\"");
   //ms->pushWord("waitForSeconds");
+  //ms->pushWord("\"0.2\"");
   //ms->pushWord("endStackCollapseNoop");
   ms->pushWord("waitUntilEndpointCallbackReceived");
   ms->pushWord("continuousServoA");

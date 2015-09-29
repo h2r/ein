@@ -27,13 +27,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int amountMms;
   GET_ARG(ms, IntegerWord, amountMms);
 
+  ms->pushWord("placeHeldObjectOnObject");
   ms->pushWord(std::make_shared<IntegerWord>(amountMms));
   ms->pushWord(std::make_shared<StringWord>(secondObjectLabel));
-  ms->pushWord("placeHeldObjectOnObject");
+
   ms->pushWord("setPlaceModeToRegister");
 
-  ms->pushWord(std::make_shared<StringWord>(firstObjectLabel));
+
   ms->pushWord("deliverObject");
+  ms->pushWord(std::make_shared<StringWord>(firstObjectLabel));
+
   ms->pushWord("setPlaceModeToHold");
 
   cout << "twoPartPlaceObjectOnObject: placing " << secondObjectLabel << " on " << firstObjectLabel << " by " << amountMms << endl;
@@ -73,9 +76,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("ducksInARow");
 
+  ms->pushWord("moveObjectToPose");
   ms->pushWord(std::make_shared<EePoseWord>(destPose));
   ms->pushWord("duck");
-  ms->pushWord("moveObjectToPose");
+
   ms->pushWord("setIdleModeToEmpty");
 }
 END_WORD
@@ -89,8 +93,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("followPath");
 
   ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord(std::make_shared<EePoseWord>(destPose));
   ms->pushWord("moveEeToPoseWord");
+  ms->pushWord(std::make_shared<EePoseWord>(destPose));
 }
 END_WORD
 REGISTER_WORD(FollowPath)
@@ -101,20 +105,23 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // cTableHeight moves with the flush factor
   double cTableHeight = -0.017;//-0.045;//0.0;//0.025;
 
+  ms->pushWord("moveObjectToObjectByAmount");
   ms->pushWord(std::make_shared<IntegerWord>(cTableHeight));
   ms->pushWord("table3");
   ms->pushWord("brownMug");
-  ms->pushWord("moveObjectToObjectByAmount");
 
+
+  ms->pushWord("moveObjectToObjectByAmount");
   ms->pushWord(std::make_shared<IntegerWord>(cTableHeight));
   ms->pushWord("table2");
   ms->pushWord("metalMug");
-  ms->pushWord("moveObjectToObjectByAmount");
 
+
+  ms->pushWord("moveObjectToObjectByAmount");
   ms->pushWord(std::make_shared<IntegerWord>(cTableHeight));
   ms->pushWord("table1");
   ms->pushWord("redMug");
-  ms->pushWord("moveObjectToObjectByAmount");
+
 
 }
 END_WORD
@@ -148,9 +155,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     eePose placePose;
     int success = placementPoseLabel1AboveLabel2By(ms, firstObjectLabel, secondObjectLabel, cTableHeight, &placePose);
     if (success) {
+      ms->pushWord("moveObjectToPose");
       ms->pushWord(std::make_shared<EePoseWord>(placePose));
       ms->pushWord(firstObjectLabel);
-      ms->pushWord("moveObjectToPose");
     }
   }
 }
@@ -169,9 +176,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     eePose placePose;
     int success = placementPoseLabel1BetweenLabel2AndLabel3(ms, firstObjectLabel, secondObjectLabel, thirdObjectLabel, &placePose);
     if (success) {
+      ms->pushWord("moveObjectToPose");
       ms->pushWord(std::make_shared<EePoseWord>(placePose));
       ms->pushWord(firstObjectLabel);
-      ms->pushWord("moveObjectToPose");
+
     }
   }
 }
@@ -187,41 +195,47 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   //eePose platePose = {.px = 0.602935, .py = 0.599482, .pz = -0.0395161,
                       //.qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  //ms->pushWord("moveObjectToPose");
   //ms->pushWord(std::make_shared<EePoseWord>(platePose));
   //ms->pushWord("redPlate");
-  //ms->pushWord("moveObjectToPose");
+
 
   eePose mugPose = {.px = 0.428236, .py = 0.688348, .pz = -0.026571,
                       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  ms->pushWord("moveObjectToPose");
   ms->pushWord(std::make_shared<EePoseWord>(mugPose));
   ms->pushWord("redMugLow");
-  ms->pushWord("moveObjectToPose");
+
 
   eePose bowlPose = {.px = 0.429551, .py = 0.355954, .pz = -0.02713,
                      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  ms->pushWord("moveObjectToPose");
   ms->pushWord(std::make_shared<EePoseWord>(bowlPose));
   ms->pushWord("redBowlLow");
-  ms->pushWord("moveObjectToPose");
+
 
   eePose knifePose = {.px = 0.645808, .py = 0.75673, .pz = -0.0605177,
                       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  ms->pushWord("moveObjectToPose");
   ms->pushWord(std::make_shared<EePoseWord>(knifePose));
   ms->pushWord("redKnifeLow");
-  ms->pushWord("moveObjectToPose");
+
 
 
   eePose forkPose =  {.px = 0.632388, .py = 0.417448, .pz = -0.0487945,
                       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  ms->pushWord("moveObjectToPose");
   ms->pushWord(std::make_shared<EePoseWord>(forkPose));
   ms->pushWord("redForkLow");
-  ms->pushWord("moveObjectToPose");
+
 
 
   eePose spoonPose = {.px = 0.624147, .py = 0.811554, .pz = -0.0696885,
                       .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  ms->pushWord("moveObjectToPose");
   ms->pushWord(std::make_shared<EePoseWord>(spoonPose));
   ms->pushWord("redSpoonLow");
-  ms->pushWord("moveObjectToPose");
+
 }
 END_WORD
 REGISTER_WORD(SetTheYcbTable)
@@ -471,10 +485,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("80"); 
       ms->pushWord("replicateWord"); 
       ms->pushWord("waitUntilEffort");
-      ms->pushWord("5.0");
+
+
       ms->pushWord("setEffortThresh");
-      ms->pushWord("4.0");
+      ms->pushWord("5.0");
+
+
       ms->pushWord("waitForSeconds");
+      ms->pushWord("4.0");
+
       ms->pushWord("waitUntilAtCurrentPosition"); 
       ms->pushWord("oXUp"); 
       ms->pushWord("80"); 
@@ -637,8 +656,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 //    ms->pushWord("waitUntilAtCurrentPosition");
 //    ms->pushWord("setGridSizeCoarse");
 //    ms->pushWord("shiftIntoGraspGear1");
-//    ms->pushWord("1");
 //    ms->pushWord("changeToHeight");
+//    ms->pushWord("1");
 //    ms->pushWord("assumeBeeHome");
 }
 END_WORD
@@ -656,8 +675,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 //    ms->pushWord("waitUntilAtCurrentPosition");
 //    ms->pushWord("setGridSizeCoarse");
 //    ms->pushWord("shiftIntoGraspGear1");
-//    ms->pushWord("1");
 //    ms->pushWord("changeToHeight");
+//    ms->pushWord("1");
 //    ms->pushWord("assumeBeeHome");
 }
 END_WORD
@@ -724,8 +743,10 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   } else {
     ms->pushWord("pressAndGraspA");
     ms->pushWord("waitUntilEndpointCallbackReceived");
-    ms->pushWord("\"1.0\""); 
+
     ms->pushWord("waitForSeconds");
+    ms->pushWord("1.0"); 
+
     ms->pushWord("zDown");
     ms->pushWord("setGridSizeCoarse");
   }
@@ -768,8 +789,10 @@ cout << "pressAndReleaseA: qdistance " << qdistance << endl;
     ms->pushWord("localZDown");
     ms->pushWord("localZDown");
 
-    ms->pushWord("\"0.50\""); 
+
     ms->pushWord("waitForSeconds");
+    ms->pushWord("0.50"); 
+
     ms->pushWord("waitUntilGripperNotMoving");
 
     ms->pushWord("openGripper");
@@ -789,8 +812,9 @@ cout << "pressAndReleaseA: qdistance " << qdistance << endl;
     ms->pushWord("zeroGOn");
   } else {
     ms->pushWord("pressAndReleaseA");
-    ms->pushWord("\"1.0\""); 
+
     ms->pushWord("waitForSeconds");
+    ms->pushWord("1.0"); 
     ms->pushWord("zDown");
     ms->pushWord("setGridSizeCoarse");
   }
@@ -935,8 +959,10 @@ REGISTER_WORD(SetEffortThresh)
 WORD(PressUntilEffortInit)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  ms->pushWord("10.0");
+
   ms->pushWord("setEffortThresh");
+  ms->pushWord("10.0");
+
   ms->pushWord("setGridSizeCoarse");
   ms->pushWord("hundredthImpulse");
 }
@@ -1013,8 +1039,9 @@ REGISTER_WORD(StayNoRoll)
 WORD(RockInit)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  ms->pushWord("0.07");
+
   ms->pushWord("setSpeed");
+  ms->pushWord("0.07");
   //ms->pushWord("setEffortHere");
   ms->pushWord("saveRegister1");
 }
@@ -1046,8 +1073,10 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
   ms->pushWord("rockB");
   //ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("1.0");
+
   ms->pushWord("waitForSeconds");
+  ms->pushWord("1.0");
+
   ms->pushWord("oXDown");
   ms->pushWord("20");
   ms->pushWord("replicateWord");
@@ -1070,8 +1099,10 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
   ms->pushWord("rockA");
   //ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("1.0");
+
   ms->pushWord("waitForSeconds");
+  ms->pushWord("1.0");
+
   ms->pushWord("oXUp");
   ms->pushWord("10");
   ms->pushWord("replicateWord");
@@ -1093,8 +1124,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     cout << "nudging" << endl;
 //    ms->pushWord("localZUp");
     //ms->pushWord("setEffortHere");
-//   ms->pushWord("0.004");
     //ms->pushWord("setGridSize");
+    //   ms->pushWord("0.004");
+
   } else {
   }
 }
@@ -1146,8 +1178,10 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
   if (ms->config.rockDiffB  > ms->config.rockDiffA) {
     ms->pushWord("waitUntilAtCurrentPosition");
-    ms->pushWord("1.0");
+
     ms->pushWord("waitForSeconds");
+    ms->pushWord("1.0");
+
     ms->pushWord("oXUp");
     ms->pushWord("5");
     ms->pushWord("replicateWord");
@@ -1156,8 +1190,10 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     cout << "rockC: A won" << endl;
   } else {
     ms->pushWord("waitUntilAtCurrentPosition");
-    ms->pushWord("1.0");
+
     ms->pushWord("waitForSeconds");
+    ms->pushWord("1.0");
+
     ms->pushWord("oXDown");
     ms->pushWord("5");
     ms->pushWord("replicateWord");

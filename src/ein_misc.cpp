@@ -132,7 +132,7 @@ WORD(PushState)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   string state = ms->currentState();
   shared_ptr<StringWord> outword = std::make_shared<StringWord>(state);
-  ms->pushWord(outword);
+  ms->pushData(outword);
 }
 END_WORD
 REGISTER_WORD(PushState)
@@ -142,9 +142,8 @@ REGISTER_WORD(PushState)
 WORD(PrintState)
 CODE('u')
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  shared_ptr<Word> pushState = nameToWord("pushState");
-  pushState->execute(ms);
   ms->pushWord("print");
+  ms->pushWord("pushState");
 }
 END_WORD
 REGISTER_WORD(PrintState)
@@ -208,10 +207,17 @@ REGISTER_WORD(Minus)
 
 WORD(Equals)
 CODE('=') 
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("=");
+  return result;
+}
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
-  std::shared_ptr<Word> p1 = ms->popWord();
-  std::shared_ptr<Word> p2 = ms->popWord();
+  std::shared_ptr<Word> p1 = ms->popData();
+  std::shared_ptr<Word> p2 = ms->popData();
+
   if (p1 == NULL || p2 == NULL) {
     cout << "Warning, requires two words on the stack." << endl;
     return;
@@ -223,7 +229,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     new_value = 0;
   }
   std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(new_value);
-  ms->pushWord(newWord);
+  ms->pushData(newWord);
 
 }
 END_WORD
@@ -233,8 +239,8 @@ REGISTER_WORD(Equals)
 
 WORD(Ift)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> then = ms->popWord();
-  std::shared_ptr<Word> condition = ms->popWord();
+  std::shared_ptr<Word> then = ms->popData();
+  std::shared_ptr<Word> condition = ms->popData();
   if (then == NULL || condition == NULL) {
     cout << "Warning, requires two words on the stack." << endl;
     return;
@@ -288,7 +294,7 @@ REGISTER_WORD(Next)
 
 WORD(Print)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> word = ms->popWord();
+  std::shared_ptr<Word> word = ms->popData();
   if (word != NULL) {
     cout << word->repr() << endl;
   }
@@ -298,16 +304,20 @@ REGISTER_WORD(Print)
 
 WORD(Dup)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> word = ms->popWord();
-  ms->pushWord(word);
-  ms->pushWord(word);
+  std::shared_ptr<Word> word = ms->popData();
+  if (word == NULL) {
+    cout << "Must take an argument." << endl;
+  } else {
+    ms->pushData(word);
+    ms->pushData(word);
+  }
 }
 END_WORD
 REGISTER_WORD(Dup)
 
 WORD(Pop)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> word = ms->popWord();
+  std::shared_ptr<Word> word = ms->popData();
 }
 END_WORD
 REGISTER_WORD(Pop)
@@ -315,8 +325,12 @@ REGISTER_WORD(Pop)
 
 WORD(Store)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> nameword = ms->popWord();
-  std::shared_ptr<Word> valueword = ms->popWord();
+  std::shared_ptr<Word> nameword = ms->popData();
+  std::shared_ptr<Word> valueword = ms->popData();
+  if (nameword == NULL || valueword == NULL) {
+    cout << " Store takes two arguments." << endl;
+  }
+
   string name = nameword->to_string();
   cout << "Storing " << name << " value " << valueword << endl;
   ms->variables[name] = valueword;
@@ -686,15 +700,13 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   double v1;
   GET_NUMERIC_ARG(ms, v1);
 
-  shared_ptr<Word> aWord = ms->popWord();
-  if (aWord == NULL) {
-    cout << "Must pass an int and a word to " << this->name() << endl;
-    return;
-  } else {
-    int rTimes = (int) v1;
-    std::shared_ptr<Word> repWord = aWord;
-    ms->pushCopies(repWord, rTimes);
-  }
+  shared_ptr<Word> aWord;
+  GET_WORD_ARG(ms, Word, aWord);
+
+  int rTimes = (int) v1;
+  std::shared_ptr<Word> repWord = aWord;
+  ms->pushCopies(repWord, rTimes);
+
 }
 END_WORD
 REGISTER_WORD(ReplicateWord)
@@ -871,7 +883,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(ClearData)
 
-WORD(OP)
+WORD(CP)
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -880,18 +892,13 @@ virtual vector<string> names() {
 }
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  cout << "Out parenthesis executing." << endl;
-  ms->pushWord("1");
-  ms->pushWord("sP");
-
-  ms->pushData("oP");
-
-  ms->pushWord("printStacks");
+  cout << "Close parenthesis should never execute." << endl;
+  assert(0);
 }
 END_WORD
-REGISTER_WORD(OP)
+REGISTER_WORD(CP)
 
-WORD(IP)
+WORD(OP)
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -900,11 +907,18 @@ virtual vector<string> names() {
 }
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  cout << "In parenthesis should never execute." << endl;
-  assert(0);
+
+  cout << "Open parenthesis executing." << endl;
+  ms->pushWord("sP");
+  ms->pushWord("1");
+
+  ms->pushData("oP");
+
+  ms->pushWord("printStacks");
+
 }
 END_WORD
-REGISTER_WORD(IP)
+REGISTER_WORD(OP)
 
 WORD(SP)
 virtual vector<string> names() {
@@ -939,55 +953,62 @@ virtual void execute(std::shared_ptr<MachineState> ms)
       // data goes to the data stack
       ms->pushData(word);
 
-      ms->pushWord(std::make_shared<IntegerWord>(scopeLevel));
       ms->pushWord("sP");
+      ms->pushWord(std::make_shared<IntegerWord>(scopeLevel));
     } else {
       // handle commands specially
-      if(0 == word->name().compare("iP")) {
-	cout << "sP found iP!!! scopeLevel " << scopeLevel << " " << endl;
-	ms->pushWord(std::make_shared<IntegerWord>(scopeLevel-1));
-	ms->pushWord("sP");
-	// unwind until matching oP
-	int outs_needed = 1;
-	while (outs_needed > 0) {
-	  std::shared_ptr<Word> datum = ms->popData();
-	  if (datum == NULL) {
-	    cout << "sP found no datum... pausing stack execution." << endl;
-	    ms->pushWord("pauseStackExecution");
-	    return;
-	  } else {
-	    if (datum->is_value()) {
-	      // data goes to the data stack
-	      ms->pushWord(datum);
+      if(0 == word->name().compare("cP")) {
+	if (scopeLevel != 1) {
+	  cout << "sP found cP!!! scopeLevel " << scopeLevel << " " << endl;
+	  ms->pushWord("sP");
+	  ms->pushWord(std::make_shared<IntegerWord>(scopeLevel-1));
+	} else {
+	  // unwind until matching oP
+	  int open_needed = 1;
+	  shared_ptr<CompoundWord> cp = make_shared<CompoundWord>();
+
+	  while (open_needed > 0) {
+	    std::shared_ptr<Word> datum = ms->popData();
+	    if (datum == NULL) {
+	      cout << "sP found no datum... pausing stack execution." << endl;
+	      ms->pushWord("pauseStackExecution");
+	      return;
 	    } else {
-	      if(0 == datum->name().compare("iP")) {
-		outs_needed = outs_needed+1;
-		cout << " outs needed +1: " << outs_needed << endl;
-		ms->pushWord(datum);
-	      } else if(0 == datum->name().compare("oP")) {
-		outs_needed = outs_needed-1;
-		cout << " outs needed -1: " << outs_needed << endl;
-		if (outs_needed > 0) {
-		  ms->pushWord(datum);
-		} else {
-		}
+	      if (datum->is_value()) {
+		// data goes to the data stack
+		cp->pushWord(datum);
 	      } else {
-		ms->pushWord(datum);
+		if(0 == datum->name().compare("oP")) {
+		  open_needed = open_needed-1;
+		  cout << " open needed -1: " << open_needed << endl;
+		  if (open_needed > 0) {
+		    cp->pushWord(datum);
+		  } else {
+		  }
+		} else if(0 == datum->name().compare("cP")) {
+		  open_needed = open_needed+1;
+		  cout << " open needed +1: " << open_needed << endl;
+		} else {
+		  cp->pushWord(datum);
+		}
 	      }
 	    }
 	  }
+	  ms->pushData(cp);
+
 	}
-      } else if(0 == word->name().compare("oP")) {
+      } else if (0 == word->name().compare("oP")) {
 	ms->pushData(word);
 
-	ms->pushWord(std::make_shared<IntegerWord>(scopeLevel+1));
+
 	ms->pushWord("sP");
+	ms->pushWord(std::make_shared<IntegerWord>(scopeLevel+1));
       } else {
 	// other things go on the data stack
 	ms->pushData(word);
 
-	ms->pushWord(std::make_shared<IntegerWord>(scopeLevel));
 	ms->pushWord("sP");
+	ms->pushWord(std::make_shared<IntegerWord>(scopeLevel));
       }
     }
   }

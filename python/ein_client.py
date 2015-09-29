@@ -49,18 +49,25 @@ class EinClient:
         self.state_subscriber = rospy.Subscriber(state_topic, 
                                                  EinState, self.state_callback)
         self.state = None
-        self.stack = []
+        self.call_stack = []
+        self.data_stack = []
         
         readline.set_completer(SimpleCompleter(words).complete)
         save_history_hook()
 
     def state_callback(self, msg):
         self.state = msg
-        self.stack = self.state.stack
+        self.call_stack = self.state.call_stack
+        self.data_stack = self.state.data_stack
 
-    def printStack(self):
+    def printCallStack(self):
         print "Call Stack: "
-        for word in reversed(self.stack):
+        for word in reversed(self.call_stack):
+            print " ".rjust(15), word
+
+    def printDataStack(self):
+        print "Data Stack: "
+        for word in reversed(self.data_stack):
             print " ".rjust(15), word
 
 
@@ -68,7 +75,8 @@ class EinClient:
 
         while True:
             rospy.sleep(0.2)
-            self.printStack()
+            self.printCallStack()
+            self.printDataStack()
             try:
                 line = raw_input('Prompt ("stop" to quit): ')
             except EOFError:

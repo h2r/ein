@@ -2733,7 +2733,9 @@ void MachineState::placeObjectInEndEffectorCommandCallback(const std_msgs::Empty
 void MachineState::forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
   shared_ptr<MachineState> ms = this->sharedThis;
   ROS_INFO_STREAM("Received " << ms->config.forthCommand << endl);
+  ms->config.forthCommand = msg->data;
   evaluateProgram(msg->data);
+
 }
 
 
@@ -8061,8 +8063,8 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
     if (!doWeHaveClearance) {
       cout << ">>>> continuous servo strayed out of clearance area during mapping. Going home. <<<<" << endl;
       ms->pushWord("waitUntilAtCurrentPosition");
-      ms->pushWord("1");
       ms->pushWord("changeToHeight");
+      ms->pushWord("1");
       ms->pushWord("assumeBeeHome");
       ms->pushWord("endStackCollapseNoop");
       return;
@@ -13365,7 +13367,12 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut) {
   stateOut->idle_mode = ms->config.currentIdleMode;
   for (int i = 0; i < ms->call_stack.size(); i ++) {
     shared_ptr<Word> w = ms->call_stack[i];
-    stateOut->stack.push_back(w->repr());
+    stateOut->call_stack.push_back(w->repr());
+  }
+
+  for (int i = 0; i < ms->data_stack.size(); i ++) {
+    shared_ptr<Word> w = ms->data_stack[i];
+    stateOut->data_stack.push_back(w->repr());
   }
 
 
@@ -13824,6 +13831,8 @@ int main(int argc, char **argv) {
     ros::spin();
   } catch( ... ) {
     ROS_ERROR("In the weird sketchy exception block in ein main.");    
+    cout << "In the weird sketchy exception block in ein main." << endl;    
+    
     std::exception_ptr p = std::current_exception();
     std::clog <<(p ? p.__cxa_exception_type()->name() : "null") << std::endl;
     throw;
