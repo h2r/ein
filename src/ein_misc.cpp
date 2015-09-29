@@ -208,10 +208,17 @@ REGISTER_WORD(Minus)
 
 WORD(Equals)
 CODE('=') 
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("=");
+  return result;
+}
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
-  std::shared_ptr<Word> p1 = ms->popWord();
-  std::shared_ptr<Word> p2 = ms->popWord();
+  std::shared_ptr<Word> p1 = ms->popData();
+  std::shared_ptr<Word> p2 = ms->popData();
+
   if (p1 == NULL || p2 == NULL) {
     cout << "Warning, requires two words on the stack." << endl;
     return;
@@ -223,7 +230,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     new_value = 0;
   }
   std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(new_value);
-  ms->pushWord(newWord);
+  ms->pushData(newWord);
 
 }
 END_WORD
@@ -307,7 +314,7 @@ REGISTER_WORD(Dup)
 
 WORD(Pop)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> word = ms->popWord();
+  std::shared_ptr<Word> word = ms->popData();
 }
 END_WORD
 REGISTER_WORD(Pop)

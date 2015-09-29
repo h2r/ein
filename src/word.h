@@ -120,8 +120,8 @@ public:
     return ss.str();
   }
 
-  bool equals(Word * word) {
-    DoubleWord * w1 = dynamic_cast<DoubleWord *>(word);
+  bool equals(shared_ptr<Word> word) {
+    shared_ptr<DoubleWord> w1 = dynamic_pointer_cast<DoubleWord>(word);
     if (w1 == NULL) {
       return false;
     } else {
@@ -187,8 +187,8 @@ public:
     return ss.str();
   }
 
-  bool equals(Word * word) {
-    IntegerWord * w1 = dynamic_cast<IntegerWord *>(word);
+  bool equals(shared_ptr<Word> word) {
+    shared_ptr<IntegerWord> w1 = dynamic_pointer_cast<IntegerWord>(word);
     if (w1 == NULL) {
       return false;
     } else {
@@ -350,8 +350,8 @@ public:
     return ss.str();
   }
 
-  bool equals(Word * word) {
-    EePoseWord * w1 = dynamic_cast<EePoseWord *>(word);
+  bool equals(shared_ptr<Word> word) {
+    shared_ptr<EePoseWord> w1 = dynamic_pointer_cast<EePoseWord>(word);
     if (w1 == NULL) {
       return false;
     } else {
