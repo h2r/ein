@@ -132,7 +132,7 @@ WORD(PushState)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   string state = ms->currentState();
   shared_ptr<StringWord> outword = std::make_shared<StringWord>(state);
-  ms->pushWord(outword);
+  ms->pushData(outword);
 }
 END_WORD
 REGISTER_WORD(PushState)
@@ -142,9 +142,8 @@ REGISTER_WORD(PushState)
 WORD(PrintState)
 CODE('u')
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  shared_ptr<Word> pushState = nameToWord("pushState");
-  pushState->execute(ms);
   ms->pushWord("print");
+  ms->pushWord("pushState");
 }
 END_WORD
 REGISTER_WORD(PrintState)
@@ -248,7 +247,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 
   if (condition->to_bool()) {
-    ms->pushData(then);
+    ms->pushWord(then);
   }
 
 }
@@ -305,9 +304,13 @@ REGISTER_WORD(Print)
 
 WORD(Dup)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> word = ms->popWord();
-  ms->pushWord(word);
-  ms->pushWord(word);
+  std::shared_ptr<Word> word = ms->popData();
+  if (word == NULL) {
+    cout << "Must take an argument." << endl;
+  } else {
+    ms->pushData(word);
+    ms->pushData(word);
+  }
 }
 END_WORD
 REGISTER_WORD(Dup)
@@ -322,8 +325,12 @@ REGISTER_WORD(Pop)
 
 WORD(Store)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> nameword = ms->popWord();
-  std::shared_ptr<Word> valueword = ms->popWord();
+  std::shared_ptr<Word> nameword = ms->popData();
+  std::shared_ptr<Word> valueword = ms->popData();
+  if (nameword == NULL || valueword == NULL) {
+    cout << " Store takes two arguments." << endl;
+  }
+
   string name = nameword->to_string();
   cout << "Storing " << name << " value " << valueword << endl;
   ms->variables[name] = valueword;
