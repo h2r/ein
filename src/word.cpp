@@ -326,3 +326,29 @@ void SymbolWord::execute(std::shared_ptr<MachineState> ms) {
     cout << "No value for " << repr() << endl;
   }
 }
+
+
+
+void CompoundWord::execute(std::shared_ptr<MachineState> ms) {
+  for (int i = 0; i < stack.size(); i++) {
+    ms->pushWord(stack[i]);
+  }
+}
+
+string CompoundWord::repr()  {
+  stringstream state;
+  state << "( "; 
+  for (int i = 0; i < stack.size(); i++) {
+    state << stack[i]->repr() << " ";
+  }
+  state << ")";
+  return state.str();
+}
+
+string CompoundWord::to_string() {
+  return repr();
+}
+
+string CompoundWord::name() {
+  return "compound word";
+}

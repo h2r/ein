@@ -378,13 +378,19 @@ public:
 
 
 
-class CompoundWord {
+class CompoundWord : public Word {
  private:
   vector<std::shared_ptr<Word> > stack;
  public:
-  CompoundWord(vector<std::shared_ptr<Word> > _stack) {
-    stack = _stack;
+  CompoundWord() {
   }
+  void pushWord(shared_ptr<Word> word) {
+    stack.push_back(word);
+  }
+  virtual void execute(std::shared_ptr<MachineState> ms);
+  string repr();
+  string name();
+  string to_string();
 };
 
 
