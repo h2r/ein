@@ -1133,10 +1133,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("mapLocal");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("shiftIntoGraspGear1");
-  ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord("changeToHeight");
-  ms->pushWord(std::make_shared<EePoseWord>(destPose));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+
   ms->pushWord("moveEeToPoseWord");
+  ms->pushWord(std::make_shared<EePoseWord>(destPose));
 
 }
 END_WORD

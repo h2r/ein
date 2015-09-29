@@ -153,15 +153,21 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       // using force 
       ms->pushWord("closeGripper");
       ms->pushWord("pressUntilEffort");
-      ms->pushWord("8.0");
+
       ms->pushWord("setEffortThresh");
-      ms->pushWord("0.03");
+      ms->pushWord("8.0");
+
+
       ms->pushWord("setSpeed");
+      ms->pushWord("0.03");
+
       ms->pushWord("pressUntilEffortInit");
       ms->pushWord("comeToStop");
       ms->pushWord("waitUntilAtCurrentPosition");
-      ms->pushWord("0.05");
+
       ms->pushWord("setSpeed");
+      ms->pushWord("0.05");
+
       ms->pushWord("localZUp");
       ms->pushWord("8");
       ms->pushWord("replicateWord");
@@ -1354,8 +1360,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // XXX there is some issue when the orientation is changing, 
   //  convergence isn't instantaneous unless waitUntilAtCurrentPosition is called
   ms->pushWord("waitUntilAtCurrentPosition");
-  //ms->pushWord("\"0.2\"");
   //ms->pushWord("waitForSeconds");
+  //ms->pushWord("\"0.2\"");
   //ms->pushWord("endStackCollapseNoop");
   ms->pushWord("waitUntilEndpointCallbackReceived");
   ms->pushWord("continuousServoA");
