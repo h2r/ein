@@ -13857,6 +13857,8 @@ int main(int argc, char **argv) {
     ros::spin();
   } catch( ... ) {
     ROS_ERROR("In the weird sketchy exception block in ein main.");    
+    cout << "In the weird sketchy exception block in ein main." << endl;    
+    
     std::exception_ptr p = std::current_exception();
     std::clog <<(p ? p.__cxa_exception_type()->name() : "null") << std::endl;
     throw;

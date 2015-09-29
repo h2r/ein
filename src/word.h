@@ -7,6 +7,8 @@ using namespace std;
 #include <sstream>
 #include <map>
 #include <boost/algorithm/string.hpp>
+#include <regex>
+
 
 class MachineState;
 
@@ -287,17 +289,23 @@ public:
       return NULL;
     }
   }
+
+  
   static bool isSymbol(string token) {
-    if (! IntegerWord::isInteger(token) && ! StringWord::isString(token)) {
-      return true;
+    
+    smatch match;
+    regex symbol_regex("[a-zA-Z_]+", std::regex_constants::basic);
+    if (regex_match(token, match, symbol_regex)) {
+	return true;
     } else {
       return false;
-    }
+    } 
   }
   
   SymbolWord(string _s) {
     s = _s;
   }
+  virtual void execute(std::shared_ptr<MachineState> ms);
 
   string name() {
     stringstream ss;
