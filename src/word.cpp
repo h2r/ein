@@ -205,6 +205,7 @@ void MachineState::evaluateProgram(const string program)  {
       cout << "Warning, ignoring unknown word from the forth topic: " << tokens[i] << endl;
     }
   }
+  ms->pushWord("executeStack");
 }
 
 

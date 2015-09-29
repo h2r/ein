@@ -1018,4 +1018,20 @@ END_WORD
 REGISTER_WORD(SP)
 
 
+WORD(ExecutionModeInstant)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->execution_mode = INSTANT;
 }
+END_WORD
+REGISTER_WORD(ExecutionModeInstant)
+
+WORD(ExecutionModeStep)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->execution_mode = STEP;
+}
+END_WORD
+REGISTER_WORD(ExecutionModeStep)
+
+}
+
+
