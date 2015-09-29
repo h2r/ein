@@ -2759,7 +2759,7 @@ void MachineState::evaluateProgram(const string program)  {
   for (unsigned int j = 0; j < tokens.size(); j++) {
     int i = tokens.size() - j - 1;
     trim(tokens[i]);
-    if (!ms->pushWord(tokens[i])) {
+    if (tokens[i] != "" && !ms->pushWord(tokens[i])) {
       cout << "Warning, ignoring unknown word from the forth topic: " << tokens[i] << endl;
     }
   }
