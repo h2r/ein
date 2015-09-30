@@ -400,11 +400,14 @@ string CompoundWord::name() {
 bool SymbolWord::isSymbol(string token)
  {
     
-    boost::smatch match;
-    boost::regex symbol_regex("[a-zA-Z_]+", boost::regex_constants::basic);
-    if (boost::regex_match(token, match, symbol_regex)) {
-	return true;
-    } else {
-      return false;
-    } 
+   cout << "Testing if symbol: " << token << endl;
+   boost::smatch match;
+   boost::regex symbol_regex("[a-zA-Z_]+");
+   if (boost::regex_match(token, match, symbol_regex)) {
+     cout << "yes symbol" << endl;
+     return true;
+   } else {
+     cout << "no symbol" << endl;
+     return false;
+   } 
   }
