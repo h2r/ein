@@ -1,0 +1,85 @@
+( 
+  ( 
+    oXDown 
+  ) 30 replicateWord 
+) "sweep_windup" store
+
+( 
+  ( 
+    oXUp
+  ) 30 replicateWord 
+) "sweep_unwind" store
+
+( 
+  ( 
+    oXUp 
+  ) 30 replicateWord 
+  
+  ( 
+    localYDown 
+  ) 20 replicateWord 
+
+  ( 
+    oXUp 
+  ) 30 replicateWord 
+  waitUntilAtCurrentPosition 
+
+  ( 
+    zUp 
+  ) 10 replicateWord 
+  waitUntilAtCurrentPosition 
+  
+  ( 
+    oXDown 
+  ) 30 replicateWord 
+  
+  ( 
+    localYUp 
+  ) 20 replicateWord 
+  
+  ( 
+    oXDown 
+  ) 30 replicateWord 
+  waitUntilAtCurrentPosition 
+  
+  ( 
+    zDown 
+  ) 10 replicateWord 
+) "sweep_noadvance" store
+
+( 
+  ( 
+    oXUp 
+  ) 30 replicateWord 
+  
+  ( 
+    localYDown 
+  ) 25 replicateWord 
+
+  ( 
+    oXUp 
+  ) 30 replicateWord 
+  waitUntilAtCurrentPosition 
+
+  ( 
+    zUp 
+  ) 10 replicateWord 
+  waitUntilAtCurrentPosition 
+  
+  ( 
+    oXDown 
+  ) 30 replicateWord 
+  
+  ( 
+    localYUp 
+  ) 20 replicateWord 
+  
+  ( 
+    oXDown 
+  ) 30 replicateWord 
+  waitUntilAtCurrentPosition 
+  
+  ( 
+    zDown 
+  ) 10 replicateWord 
+) "sweep_advance" store
