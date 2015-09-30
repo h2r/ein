@@ -1,0 +1,6 @@
+"hello_world"
+dup
+print
+
+
+ ( "hello_world" dup print ) "hello" store
