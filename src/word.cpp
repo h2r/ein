@@ -1,6 +1,7 @@
 #include "word.h"
 #include "ein.h"
 
+#include <boost/regex.hpp>
 
 void Word::execute(std::shared_ptr<MachineState> ms) {
   shared_ptr<Word> shared_this = this->shared_from_this();
@@ -197,7 +198,19 @@ void MachineState::evaluateProgram(const string program)  {
   shared_ptr<MachineState> ms = this->sharedThis;
 
   ms->config.forthCommand = program;
-  vector<string> tokens = split(ms->config.forthCommand.c_str(), ' ');
+
+
+  boost::regex rgx("\\s+");
+  boost::sregex_token_iterator iter(program.begin(),
+				  program.end(),
+				  rgx,
+				  -1);
+  boost::sregex_token_iterator end;
+  vector<string> tokens;
+  for ( ; iter != end; ++iter) {
+    tokens.push_back(*iter);
+  }
+
   for (unsigned int j = 0; j < tokens.size(); j++) {
     int i = tokens.size() - j - 1;
     trim(tokens[i]);
@@ -216,7 +229,7 @@ std::shared_ptr<Word> parseToken(std::shared_ptr<MachineState> ms, string token)
     return DoubleWord::parse(token);
   } else if (StringWord::isString(token)) {
     return StringWord::parse(token);
-      } else if (name_to_word.count(token) > 0) {
+  } else if (name_to_word.count(token) > 0) {
     std::shared_ptr<Word> word = name_to_word[token];
     return word;
     //}
@@ -382,3 +395,16 @@ string CompoundWord::to_string() {
 string CompoundWord::name() {
   return "compound word";
 }
+
+
+bool SymbolWord::isSymbol(string token)
+ {
+    
+    boost::smatch match;
+    boost::regex symbol_regex("[a-zA-Z_]+", boost::regex_constants::basic);
+    if (boost::regex_match(token, match, symbol_regex)) {
+	return true;
+    } else {
+      return false;
+    } 
+  }

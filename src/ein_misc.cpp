@@ -343,10 +343,17 @@ WORD(Import)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   string filename;
   GET_ARG(ms, StringWord, filename);
-  std::ifstream t(filename);
+  std::stringstream fname;
+  fname << "src/ein/back/" << filename << ".back";
+  cout << "fname: " << fname.str() << endl;
+  std::ifstream t(fname.str());
+  if (!t.is_open()) {
+    cout << "Ooops, import tried to read " << fname.str() << " but it couldn't open..." << endl;
+    ms->pushWord("pauseStackExecution");	\
+    return;
+  }
   std::stringstream buffer;
   buffer << t.rdbuf();
-  cout << "got: " << buffer.str() << endl;
   ms->evaluateProgram(buffer.str());
  }
 END_WORD
@@ -1032,6 +1039,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ExecutionModeStep)
 
+WORD(Exec)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> aWord;
+  GET_WORD_ARG(ms, Word, aWord);
+  ms->pushWord(aWord);
 }
+END_WORD
+REGISTER_WORD(Exec)
 
 
+}
