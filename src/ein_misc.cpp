@@ -966,6 +966,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
       // handle commands specially
       if(0 == word->name().compare("cP")) {
 	if (scopeLevel != 1) {
+	  ms->pushData(word);
+
 	  cout << "sP found cP!!! scopeLevel " << scopeLevel << " " << endl;
 	  ms->pushWord("sP");
 	  ms->pushWord(std::make_shared<IntegerWord>(scopeLevel-1));
@@ -994,6 +996,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 		  }
 		} else if(0 == datum->name().compare("cP")) {
 		  open_needed = open_needed+1;
+		  cp->pushWord(datum);
 		  cout << " open needed +1: " << open_needed << endl;
 		} else {
 		  cp->pushWord(datum);
@@ -1006,7 +1009,6 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 	}
       } else if (0 == word->name().compare("oP")) {
 	ms->pushData(word);
-
 
 	ms->pushWord("sP");
 	ms->pushWord(std::make_shared<IntegerWord>(scopeLevel+1));
