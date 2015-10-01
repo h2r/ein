@@ -1219,13 +1219,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("shutdownToSensorsAndMovement"); 
   
   ms->pushWord("setSisFlags"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
 
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
 
 
   ms->pushWord("iRCalibrationSpeed");
@@ -2380,12 +2386,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
   ms->pushWord("setSisFlags"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
 
 
   ms->pushWord("fullImpulse");
@@ -2427,12 +2440,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
   ms->pushWord("setSisFlags"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
 
   
   ms->pushWord("waitUntilAtCurrentPosition");
@@ -2449,12 +2469,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("shutdownToSensorsAndMovement"); 
 
   ms->pushWord("setSisFlags");   
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
 
 
   ms->pushWord("lock3dGraspBase"); 
@@ -2558,12 +2585,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
   ms->pushWord("setSisFlags"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
 
 
   ms->pushWord("fullImpulse");
@@ -2644,12 +2678,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("shutdownToSensorsAndMovement"); 
   ms->pushWord("setSisFlags"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
 
   
   //ms->pushWord("waitUntilAtCurrentPosition");
@@ -2768,12 +2809,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
   ms->pushWord("setSisFlags"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
 
 
   ms->pushWord("fullImpulse");
@@ -2854,13 +2902,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("shutdownToSensorsAndMovement"); 
   ms->pushWord("setSisFlags"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
 
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
   
 
   ms->pushWord("comeToStop");
@@ -2986,12 +3040,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
   ms->pushWord("setSisFlags"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
 
 
   ms->pushWord("fullImpulse");
@@ -3076,13 +3137,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("shutdownToSensorsAndMovement"); 
   ms->pushWord("setSisFlags"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
 
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
 
 
   ms->pushWord("departureSpeed");
@@ -3099,12 +3166,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
   ms->pushWord("setSisFlags");   
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
 
 
   ms->pushWord("waitUntilAtCurrentPosition");
@@ -3219,12 +3293,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
   ms->pushWord("setSisFlags"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(0));
   ms->pushWord(std::make_shared<IntegerWord>(1));
   ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
 
 
   ms->pushWord("fullImpulse");
@@ -3306,13 +3387,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("shutdownToSensorsAndMovement"); 
   ms->pushWord("setSisFlags"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
 
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
   
 
   ms->pushWord("comeToStop");
@@ -3410,13 +3497,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("moveToRegister1");
 
   ms->pushWord("setSisFlags"); 
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
 
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
 
 
   ms->pushWord("bringUpAllNonessentialSystems"); 
@@ -3427,13 +3520,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("clearStreamBuffers"); 
   ms->pushWord("shutdownToSensorsAndMovement"); 
   ms->pushWord("setSisFlags");   
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(1));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
-  ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
 
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
 
 
   ms->pushWord("pauseStackExecution"); 
@@ -4063,8 +4162,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     if (class_idx != -1) {
       cout << "About to write data for class \"" << ms->config.classLabels[class_idx] << "\" index " << class_idx << " to folder \"" << ms->config.data_directory + "/" + newClassName << "\", unpause to proceed." << endl;
       ms->pushWord("writeAlphaObjectToBetaFoldersA");
-      ms->pushWord(oldClassName);
       ms->pushWord(newClassName);
+      ms->pushWord(oldClassName);
 
       ms->pushWord("pauseStackExecution");
     } else {
