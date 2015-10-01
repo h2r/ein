@@ -2626,11 +2626,12 @@ void MachineState::armItbCallback(const baxter_core_msgs::ITBState& itbs) {
   MachineState * ms = this;
 
   if ((itbs.buttons[2]) && (!ms->config.lastItbs.buttons[2])) {
-    ms->pushWord(std::make_shared<EePoseWord>(ms->config.currentEEPose));
+    ms->pushData(std::make_shared<EePoseWord>(ms->config.currentEEPose));
   }
 
   if ((itbs.buttons[1]) && (!ms->config.lastItbs.buttons[1])) {
     ms->clearStack();
+    ms->clearData();
   }
 
   if ((itbs.buttons[0]) && (!ms->config.lastItbs.buttons[0])) {

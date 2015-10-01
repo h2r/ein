@@ -46,6 +46,11 @@ public: \
     cout << "Stack empty, returning." << endl;\
     return;\
   } else {\
+    if (word->name().compare("endArgs") == 0) {\
+      cout << " found endArgs, discarding and returning." << endl;\
+      return;\
+    } else {\
+    }\
   }\
 \
   std::shared_ptr<EePoseWord> destWord = std::dynamic_pointer_cast<EePoseWord>(word);\

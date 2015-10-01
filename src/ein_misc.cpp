@@ -5,9 +5,37 @@
 
 namespace ein_words {
 
+WORD(PushTime)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushData(std::make_shared<DoubleWord>(ros::Time::now().toSec()));
+}
+END_WORD
+REGISTER_WORD(PushTime)
+
+WORD(SeeHz)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  double its = 0;
+  GET_NUMERIC_ARG(ms, its);
+  
+  double start = ros::Time::now().toSec();
+  int i = 0;
+  for (i = 0; i < its; ) {
+    i++;
+  }
+  double end = ros::Time::now().toSec();
+
+  double hz = double(i) / (end-start);
+
+  ms->pushData(std::make_shared<DoubleWord>(hz));
+}
+END_WORD
+REGISTER_WORD(SeeHz)
+
 WORD(EndArgs)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-// marks the end of a list of arguments 
+  // marks the end of a list of arguments 
+  ms->pushData("endArgs");
 }
 END_WORD
 REGISTER_WORD(EndArgs)

@@ -28,8 +28,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   GET_ARG(ms, IntegerWord, amountMms);
 
   ms->pushWord("placeHeldObjectOnObject");
-  ms->pushWord(std::make_shared<IntegerWord>(amountMms));
   ms->pushWord(std::make_shared<StringWord>(secondObjectLabel));
+  ms->pushWord(std::make_shared<IntegerWord>(amountMms));
 
   ms->pushWord("setPlaceModeToRegister");
 
@@ -106,21 +106,21 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double cTableHeight = -0.017;//-0.045;//0.0;//0.025;
 
   ms->pushWord("moveObjectToObjectByAmount");
-  ms->pushWord(std::make_shared<IntegerWord>(cTableHeight));
-  ms->pushWord("table3");
   ms->pushWord("brownMug");
+  ms->pushWord("table3");
+  ms->pushWord(std::make_shared<IntegerWord>(cTableHeight));
 
 
   ms->pushWord("moveObjectToObjectByAmount");
-  ms->pushWord(std::make_shared<IntegerWord>(cTableHeight));
-  ms->pushWord("table2");
   ms->pushWord("metalMug");
+  ms->pushWord("table2");
+  ms->pushWord(std::make_shared<IntegerWord>(cTableHeight));
 
 
   ms->pushWord("moveObjectToObjectByAmount");
-  ms->pushWord(std::make_shared<IntegerWord>(cTableHeight));
-  ms->pushWord("table1");
   ms->pushWord("redMug");
+  ms->pushWord("table1");
+  ms->pushWord(std::make_shared<IntegerWord>(cTableHeight));
 
 
 }
@@ -482,8 +482,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("waitUntilGripperNotMoving"); 
       ms->pushWord("openGripper");
       ms->pushWord("replicateWord"); 
-      ms->pushData("oXDown"); 
       ms->pushWord("80"); 
+      ms->pushData("oXDown"); 
       ms->pushWord("waitUntilEffort");
 
 
@@ -496,11 +496,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
       ms->pushWord("waitUntilAtCurrentPosition"); 
       ms->pushWord("replicateWord"); 
-      ms->pushData("oXUp"); 
       ms->pushWord("80"); 
+      ms->pushData("oXUp"); 
       ms->pushWord("replicateWord"); 
-      ms->pushData("localZDown"); 
       ms->pushWord("10"); 
+      ms->pushData("localZDown"); 
       ms->pushWord("setGridSizeCoarse"); 
     }
 
@@ -649,8 +649,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("replicateWord");
-    ms->pushData("oYDown");
     ms->pushWord("160");
+    ms->pushData("oYDown");
 
 
 //    ms->pushWord("waitUntilAtCurrentPosition");
@@ -668,8 +668,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("replicateWord");
-    ms->pushData("oYUp");
     ms->pushWord("160");
+    ms->pushData("oYUp");
 
 
 //    ms->pushWord("waitUntilAtCurrentPosition");
@@ -1003,11 +1003,11 @@ virtual void execute(std::shared_ptr<MachineState> ms)
       //  smoother to do this in a continuous way, like exponential average, but it is not
       //  clear what the most natural way is.
       ms->pushWord("replicateWord");
-      ms->pushData("localZUp");
       ms->pushWord("5");
+      ms->pushData("localZUp");
       //ms->pushWord("replicateWord");
-      //ms->pushData("zDown");
       //ms->pushWord("5");
+      //ms->pushData("zDown");
       ms->pushWord("setEffortHere");
     } else {
     }
@@ -1054,22 +1054,22 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
   ms->pushWord("waitUntilAtCurrentPosition");
   //ms->pushWord("replicateWord");
-  //ms->pushData("zUp");
   //ms->pushWord("5");
+  //ms->pushData("zUp");
   ms->pushWord("tenthImpulse");
   ms->pushWord("rockD");
 
   ms->pushWord("rockC");
 
   ms->pushWord("replicateWord");
-  ms->pushData("oXUp");
   ms->pushWord("10");
+  ms->pushData("oXUp");
   ms->pushWord("setGridSizeCoarse");
 
 
   //ms->pushWord("replicateWord");
-  //ms->pushData("oXDown");
   //ms->pushWord("10");
+  //ms->pushData("oXDown");
 
   ms->pushWord("rockB");
   //ms->pushWord("waitUntilAtCurrentPosition");
@@ -1078,8 +1078,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->pushWord("1.0");
 
   ms->pushWord("replicateWord");
-  ms->pushData("oXDown");
   ms->pushWord("20");
+  ms->pushData("oXDown");
   ms->pushWord("setGridSizeCoarse");
 
   ms->pushWord("stayNoRoll");
@@ -1088,14 +1088,14 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
   ms->pushWord("waitUntilAtCurrentPosition");
   //ms->pushWord("replicateWord");
-  //ms->pushData("zUp");
   //ms->pushWord("5");
+  //ms->pushData("zUp");
   ms->pushWord("tenthImpulse");
   ms->pushWord("rockD");
 
   //ms->pushWord("replicateWord");
-  //ms->pushData("oXUp");
   //ms->pushWord("10");
+  //ms->pushData("oXUp");
 
   ms->pushWord("rockA");
   //ms->pushWord("waitUntilAtCurrentPosition");
@@ -1104,8 +1104,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->pushWord("1.0");
 
   ms->pushWord("replicateWord");
-  ms->pushData("oXUp");
   ms->pushWord("10");
+  ms->pushData("oXUp");
   ms->pushWord("setGridSizeCoarse");
   
 
@@ -1115,8 +1115,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
   ms->pushWord("waitUntilAtCurrentPosition");
   //ms->pushWord("replicateWord");
-  //ms->pushData("zUp");
   //ms->pushWord("5");
+  //ms->pushData("zUp");
   ms->pushWord("tenthImpulse");
   ms->pushWord("rockD");
 
@@ -1183,8 +1183,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     ms->pushWord("1.0");
 
     ms->pushWord("replicateWord");
-    ms->pushData("oXUp");
     ms->pushWord("5");
+    ms->pushData("oXUp");
     ms->pushWord("setGridSizeCoarse");
 
     cout << "rockC: A won" << endl;
@@ -1195,8 +1195,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     ms->pushWord("1.0");
 
     ms->pushWord("replicateWord");
-    ms->pushData("oXDown");
     ms->pushWord("5");
+    ms->pushData("oXDown");
     ms->pushWord("setGridSizeCoarse");
 
     cout << "rockC: B won" << endl;
@@ -1220,8 +1220,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->pushWord("rockDA");
   ms->pushWord("waitUntilAtCurrentPosition");
   ms->pushWord("replicateWord");
-  ms->pushData("zUp");
   ms->pushWord("7");
+  ms->pushData("zUp");
   ms->pushWord("tenthImpulse");
 }
 END_WORD

@@ -815,10 +815,17 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
     ms->pushWord("shutdownToSensorsAndMovement"); 
     ms->pushWord("setSisFlags"); 
+    //ms->pushWord(std::make_shared<IntegerWord>(1));
+    //ms->pushWord(std::make_shared<IntegerWord>(0));
+    //ms->pushWord(std::make_shared<IntegerWord>(1));
+    //ms->pushWord(std::make_shared<IntegerWord>(0));
+    //ms->pushWord(std::make_shared<IntegerWord>(0));
+    //ms->pushWord(std::make_shared<IntegerWord>(1));
+
     ms->pushWord(std::make_shared<IntegerWord>(1));
     ms->pushWord(std::make_shared<IntegerWord>(0));
-    ms->pushWord(std::make_shared<IntegerWord>(1));
     ms->pushWord(std::make_shared<IntegerWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(1));
     ms->pushWord(std::make_shared<IntegerWord>(0));
     ms->pushWord(std::make_shared<IntegerWord>(1));
 
@@ -851,12 +858,19 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     ms->pushWord("activateSensorStreaming"); 
 
     ms->pushWord("setSisFlags"); 
-    ms->pushWord(std::make_shared<IntegerWord>(0));
-    ms->pushWord(std::make_shared<IntegerWord>(0));
-    ms->pushWord(std::make_shared<IntegerWord>(0));
-    ms->pushWord(std::make_shared<IntegerWord>(0));
-    ms->pushWord(std::make_shared<IntegerWord>(0));
+    //ms->pushWord(std::make_shared<IntegerWord>(0));
+    //ms->pushWord(std::make_shared<IntegerWord>(0));
+    //ms->pushWord(std::make_shared<IntegerWord>(0));
+    //ms->pushWord(std::make_shared<IntegerWord>(0));
+    //ms->pushWord(std::make_shared<IntegerWord>(0));
+    //ms->pushWord(std::make_shared<IntegerWord>(1));
+
     ms->pushWord(std::make_shared<IntegerWord>(1));
+    ms->pushWord(std::make_shared<IntegerWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(0));
 
   } else {
 	cout << "  not streaming picks: " << endl;

@@ -169,8 +169,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       ms->pushWord("0.05");
 
       ms->pushWord("replicateWord");
-      ms->pushData("localZUp");
       ms->pushWord("8");
+      ms->pushData("localZUp");
 
       ms->pushWord("setGridSizeCoarse");
     }
