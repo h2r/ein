@@ -2,7 +2,7 @@
 #include "ein.h"
 
 #include <boost/regex.hpp>
-
+#include "tokenizer.hpp"
 void Word::execute(std::shared_ptr<MachineState> ms) {
   shared_ptr<Word> shared_this = this->shared_from_this();
   ms->pushData(shared_this);
@@ -193,7 +193,7 @@ vector<string> split(const char *str, char c = ' ')
     return result;
 }
 
-vector<string> tokenize(const string program) {
+vector<string> tokenize_basic(const string program) {
 
   boost::regex rgx("\\s+");
   boost::sregex_token_iterator iter(program.begin(),
@@ -208,11 +208,24 @@ vector<string> tokenize(const string program) {
   return tokens;
 }
 
+
+vector<string> tokenize_string(const string program) { 
+  escaped_forth_separator<char> els("\\", "\n\t ", "\"");
+
+  boost::tokenizer<escaped_forth_separator<char> > tok(program, els);
+  vector<string> tokens;
+  for(boost::tokenizer<escaped_forth_separator<char> >::iterator beg=tok.begin(); beg!=tok.end();++beg){
+    tokens.push_back(*beg);
+    cout << *beg << "\n";
+  }
+  return tokens;
+}
+
 void MachineState::evaluateProgram(const string program)  {
   shared_ptr<MachineState> ms = this->sharedThis;
 
   ms->config.forthCommand = program;
-  vector<string> tokens = tokenize(program);
+  vector<string> tokens = tokenize_string(program);
 
   for (unsigned int j = 0; j < tokens.size(); j++) {
     int i = tokens.size() - j - 1;
