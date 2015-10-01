@@ -182,7 +182,45 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(Plus)
 
+WORD(Times)
+CODE('*') 
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("*");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+  double v2;
+  GET_NUMERIC_ARG(ms, v2);
 
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(v2 * v1);
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Times)
+
+WORD(Divide)
+CODE('/') 
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("/");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+  double v2;
+  GET_NUMERIC_ARG(ms, v2);
+
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(v2 / v1);
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Divide)
 
 WORD(Minus)
 CODE('-') 
@@ -200,7 +238,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(v2 - v1);
   ms->pushWord(newWord);
-
 }
 END_WORD
 REGISTER_WORD(Minus)
@@ -230,7 +267,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
   std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(new_value);
   ms->pushData(newWord);
-
 }
 END_WORD
 REGISTER_WORD(Equals)
@@ -1049,6 +1085,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(Exec)
+
+WORD(CastToInteger)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double number = 0.0;
+  GET_NUMERIC_ARG(ms, number);
+  ms->pushData(std::make_shared<IntegerWord>(number));
+}
+END_WORD
+REGISTER_WORD(CastToInteger)
 
 
 }
