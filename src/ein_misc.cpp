@@ -768,7 +768,10 @@ REGISTER_WORD(PushRobotSerial)
 WORD(Help)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  shared_ptr<Word> word = ms->popWord();
+  
+  shared_ptr<Word> word;
+  GET_WORD_ARG(ms, Word, word);
+  
   shared_ptr<StringWord> outword = std::make_shared<StringWord>(word->description());
   ms->pushWord(outword);
 }

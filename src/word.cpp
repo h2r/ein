@@ -193,12 +193,7 @@ vector<string> split(const char *str, char c = ' ')
     return result;
 }
 
-
-void MachineState::evaluateProgram(const string program)  {
-  shared_ptr<MachineState> ms = this->sharedThis;
-
-  ms->config.forthCommand = program;
-
+vector<string> tokenize(const string program) {
 
   boost::regex rgx("\\s+");
   boost::sregex_token_iterator iter(program.begin(),
@@ -210,6 +205,14 @@ void MachineState::evaluateProgram(const string program)  {
   for ( ; iter != end; ++iter) {
     tokens.push_back(*iter);
   }
+  return tokens;
+}
+
+void MachineState::evaluateProgram(const string program)  {
+  shared_ptr<MachineState> ms = this->sharedThis;
+
+  ms->config.forthCommand = program;
+  vector<string> tokens = tokenize(program);
 
   for (unsigned int j = 0; j < tokens.size(); j++) {
     int i = tokens.size() - j - 1;
