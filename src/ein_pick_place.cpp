@@ -412,6 +412,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("placeObjectInDeliveryZone");
   ms->pushWord("ifGrasp");
 
+  if (ms->config.currentPlaceMode == PLACE_REGISTER) {
+  } else if (ms->config.currentPlaceMode == HAND) {
+    ms->pushWord("idler"); 
+    ms->pushWord("ifNoGrasp");
+  } else if (ms->config.currentPlaceMode == HOLD) {
+  } else if (ms->config.currentPlaceMode == SHAKE) {
+  } else {
+    assert(0);
+  }
 
   ms->pushWord("openGripper");
   ms->pushWord("ifNoGrasp");
@@ -481,11 +490,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("waitUntilAtCurrentPosition"); 
       ms->pushWord("waitUntilGripperNotMoving"); 
       ms->pushWord("openGripper");
+      /*
       ms->pushWord("replicateWord"); 
       ms->pushWord("80"); 
       ms->pushData("oXUp"); 
       ms->pushWord("waitUntilEffort");
+      */
 
+      // XXX TODO move this into waitForTugThenOpenGripper
 
       ms->pushWord("setEffortThresh");
       ms->pushWord("5.0");
@@ -494,6 +506,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("waitForSeconds");
       ms->pushWord("4.0");
 
+      /*
       ms->pushWord("waitUntilAtCurrentPosition"); 
       ms->pushWord("replicateWord"); 
       ms->pushWord("80"); 
@@ -502,6 +515,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("10"); 
       ms->pushData("localZDown"); 
       ms->pushWord("setGridSizeCoarse"); 
+      */
     }
 
     ms->pushWord("waitUntilAtCurrentPosition"); 
@@ -529,7 +543,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	} else {
 	} // do nothing
 
-    ms->pushWord("assumeDeliveryPose");
+    // XXX if SHAKE still works this should be removed
+    //ms->pushWord("assumeDeliveryPose");
 
     ms->pushWord("checkAndCountGrasp");
     ms->pushWord("streamGraspResult");
