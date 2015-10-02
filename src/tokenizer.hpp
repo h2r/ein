@@ -23,6 +23,8 @@ private:
   string_type  escape_;
   string_type  c_;
   string_type  quote_;
+  string_type  comment_in = "<";
+  string_type  comment_out = ">";
   bool last_;
 
   bool is_escape(Char e) {
@@ -37,6 +39,7 @@ private:
     char_eq f(e);
     return std::find_if(quote_.begin(),quote_.end(),f)!=quote_.end();
   }
+
   template <typename iterator, typename Token>
   void do_escape(iterator& next,iterator end,Token& tok) {
     if (++next == end)
@@ -75,6 +78,7 @@ public:
   template <typename InputIterator, typename Token>
   bool operator()(InputIterator& next,InputIterator end,Token& tok) {
     bool bInQuote = false;
+    bool bInComment = false;
     tok = Token();
 
     if (next == end) {
@@ -91,7 +95,7 @@ public:
 	do_escape(next,end,tok);
       }
       else if (is_c(*next)) {
-	if (!bInQuote) {
+	if (!bInQuote && !bInComment) {
 	  // If we are not in quote, then we are done
 	  ++next;
 	  // The last character was a c, that means there is
@@ -101,7 +105,28 @@ public:
 	}
 	else tok+=*next;
       }
-      else if (is_quote(*next)) {
+      else if (*next == '/') {
+	tok += *next;
+	if (++next == end) {
+	  return true;
+	}
+	if (*next == '*') {
+	  bInComment = true;
+	}
+	tok += *next;
+      }
+      else if (*next == '*') {
+	tok += *next;
+	if (++next == end) {
+	  return true;
+	}
+
+	if (*next == '/') {
+	  bInComment = false;
+	}
+	tok += *next;
+      }
+      else if (is_quote(*next) && !bInComment) {
 	bInQuote=!bInQuote;
 	tok += *next;
       }

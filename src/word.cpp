@@ -3,6 +3,8 @@
 
 #include <boost/regex.hpp>
 #include "tokenizer.hpp"
+
+
 void Word::execute(std::shared_ptr<MachineState> ms) {
   shared_ptr<Word> shared_this = this->shared_from_this();
   ms->pushData(shared_this);
@@ -245,6 +247,12 @@ std::shared_ptr<Word> parseToken(std::shared_ptr<MachineState> ms, string token)
     return DoubleWord::parse(token);
   } else if (StringWord::isString(token)) {
     return StringWord::parse(token);
+  } else if (CommentWord::isComment(token)) {
+    
+    shared_ptr<Word> word = CommentWord::parse(token);
+    cout << "Word: " << word << " name: " << word->name() << " desc: " << word->description() << endl;
+    return word;
+    
   } else if (name_to_word.count(token) > 0) {
     std::shared_ptr<Word> word = name_to_word[token];
     return word;
