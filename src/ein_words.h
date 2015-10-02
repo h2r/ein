@@ -85,6 +85,8 @@ public: \
     cout << "  Instead got word: " << hWord->name() << " repr: " << hWord->repr() << endl;\
     cout << "  Pausing." << endl;\
     ms->pushWord("pauseStackExecution");\
+    cout << "Pushing the bad word back on the data stack." << endl;\
+    ms->pushData(hWord);\
     return;\
   }\
   x =  hTypeWord->value();\
@@ -115,6 +117,8 @@ public: \
       cout << "  Instead got word: " << hWord->name() << " repr: " << hWord->repr() << endl;\
       cout << "  Pausing." << endl;\
       ms->pushWord("pauseStackExecution");	\
+      cout << "Pushing the bad word back on the data stack." << endl;\
+      ms->pushData(hWord);\
       return;\
     }	     \
   }	     \
@@ -141,6 +145,8 @@ public: \
     cout << "  Instead got word: " << hWord->name() << " repr: " << hWord->repr() << endl;\
     cout << "  Pausing." << endl;\
     ms->pushWord("pauseStackExecution");\
+    cout << "Pushing the bad word back on the data stack." << endl;\
+    ms->pushData(hWord);\
     return;\
   }\
 }\

@@ -406,6 +406,9 @@ public:
   EePoseWord(eePose _pose) {
     pose = _pose;
   }
+
+  virtual string repr();
+
   string name() {
     stringstream ss;
     ss << pose;

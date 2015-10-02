@@ -715,31 +715,31 @@ REGISTER_WORD(MapAndPick)
 WORD(PickAllBlueBoxes)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-	int foundOne = 0;
-	int foundClass = -1;
-	cout << "pickAllBlueBoxes: promoting blue boxes" << endl;
-	promoteBlueBoxes(ms);
+  int foundOne = 0;
+  int foundClass = -1;
+  cout << "pickAllBlueBoxes: promoting blue boxes" << endl;
+  promoteBlueBoxes(ms);
 
-	// loop through blue boxes
-	int nc = ms->config.classLabels.size();
-	for (int i = 0; i < nc; i++) {
-      int idxOfFirst = -1;
-      vector<BoxMemory> focusedClassMemories = memoriesForClass(ms, i, &idxOfFirst);
+  // loop through blue boxes
+  int nc = ms->config.classLabels.size();
+  for (int i = 0; i < nc; i++) {
+    int idxOfFirst = -1;
+    vector<BoxMemory> focusedClassMemories = memoriesForClass(ms, i, &idxOfFirst);
 
-      if (idxOfFirst == -1) {
-        cout << "No POSE_REPORTED objects of class" << i << "." << endl;
-      } else {
-        cout << "Found a POSE_REPORTED object of class" << i << ". Picking it." << endl;
+    if (idxOfFirst == -1) {
+      cout << "No POSE_REPORTED objects of class" << i << "." << endl;
+    } else {
+      cout << "Found a POSE_REPORTED object of class" << i << ". Picking it." << endl;
 
-        ms->pushWord("pickAllBlueBoxes");
-        ms->pushWord("deliverObject");
-	ms->pushWord(ms->config.classLabels[i]);
-	ms->config.endThisStackCollapse = 1;
-	return;
-      }
-	}
+      ms->pushWord("pickAllBlueBoxes");
+      ms->pushWord("deliverObject");
+      ms->pushWord(std::make_shared<StringWord>(ms->config.classLabels[i]));
+      ms->config.endThisStackCollapse = 1;
+      return;
+    }
+  }
 
-    cout << "Found no POSE_REPORTED objects of any class" << endl;
+  cout << "Found no POSE_REPORTED objects of any class" << endl;
 }
 END_WORD
 REGISTER_WORD(PickAllBlueBoxes)

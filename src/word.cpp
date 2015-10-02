@@ -426,7 +426,7 @@ bool SymbolWord::isSymbol(string token)
     
    cout << "Testing if symbol: " << token << endl;
    boost::smatch match;
-   boost::regex symbol_regex("[a-zA-Z_]+");
+   boost::regex symbol_regex("[a-zA-Z_][a-zA-Z0-9_]+");
    if (boost::regex_match(token, match, symbol_regex)) {
      cout << "yes symbol" << endl;
      return true;
@@ -434,4 +434,10 @@ bool SymbolWord::isSymbol(string token)
      cout << "no symbol" << endl;
      return false;
    } 
-  }
+}
+
+string EePoseWord::repr() {
+  return std::to_string(pose.px) + " " + std::to_string(pose.py) + " " + std::to_string(pose.pz) + " " + std::to_string(pose.qx) + " " + std::to_string(pose.qy) + " " + std::to_string(pose.qz) + " " + std::to_string(pose.qw) + " createEEPose";
+}
+
+

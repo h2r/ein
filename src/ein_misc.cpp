@@ -402,6 +402,27 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(Store)
 
+WORD(Expand)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  std::shared_ptr<Word> nameword = ms->popWord();
+  string name = nameword->to_string();
+  shared_ptr<Word> value = ms->variables[name];
+  cout << "Expanding " << nameword << " " << name << " value " << value << endl;
+  if (value != NULL) {
+    cout << " value: " << value->to_string() << endl;
+    std::shared_ptr<CompoundWord> hTypeWord = std::dynamic_pointer_cast<CompoundWord>(value);
+    if (hTypeWord == NULL) {
+      ms->pushWord(value);
+    } else {
+      hTypeWord->execute(ms);
+    }
+  } else {
+    cout << "No value for variable" << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(Expand)
+
 
 WORD(Import)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1126,5 +1147,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(CastToInteger)
 
+WORD(Assert)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double number = 0.0;
+  GET_NUMERIC_ARG(ms, number);
+  if (number != 0) {
+  } else {
+    ROS_ERROR_STREAM("Failed assert. Pausing." << endl);
+    //ms->pushWord("pauseStackExecution");
+  }
+}
+END_WORD
+REGISTER_WORD(Assert)
 
 }
