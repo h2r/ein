@@ -444,6 +444,12 @@ class CompoundWord : public Word {
   void pushWord(shared_ptr<Word> word) {
     stack.push_back(word);
   }
+  void pushWord(shared_ptr<MachineState> ms, string word);
+
+  int size();
+  shared_ptr<Word> popWord();
+  shared_ptr<Word> getWord(int i);
+
   virtual void execute(std::shared_ptr<MachineState> ms);
   string repr();
   string name();

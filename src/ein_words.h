@@ -126,6 +126,23 @@ public: \
    }
 
 
+
+
+#define GET_BOOLEAN_ARG(ms,x) \
+{\
+  shared_ptr<Word> hWord = ms->popData();\
+  if (hWord == NULL) {\
+    cout << "Oops, GET_NUMERIC_ARG " << " " << #x << " " << #ms << " found no argument..." << endl;\
+    cout << "  Must pass a numeric argument to " << this->name() << endl;\
+    cout << "  Pausing." << endl;\
+    ms->pushWord("pauseStackExecution");\
+    return;\
+  }  \
+  x =  hWord->to_bool();			\
+ }
+
+
+
 #define GET_WORD_ARG(ms,type,x) \
 {\
   shared_ptr<Word> hWord = ms->popData();\
