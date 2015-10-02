@@ -97,6 +97,10 @@ bool MachineState::pushData(std::shared_ptr<Word> word) {
   return true;
 }
 
+
+
+
+
 shared_ptr<Word> MachineState::popData() {
   if (data_stack.size() > 0) {
     std::shared_ptr<Word> word = data_stack.back();
@@ -115,6 +119,32 @@ shared_ptr<Word> MachineState::popData() {
     return NULL;
   }
 }
+
+
+bool MachineState::pushControl(int code) {
+  if (character_code_to_word.count(code) > 0) {
+    std::shared_ptr<Word> word = character_code_to_word[code];      
+    return pushControl(word);
+  } else {
+    cout << "No word for code " << code << endl;
+    return false;
+  }
+}
+
+bool MachineState::pushControl(string token) {
+  std:shared_ptr<Word> word = parseToken(this->sharedThis, token);
+  if (word != NULL) {
+    return pushControl(word);
+  }
+}
+
+bool MachineState::pushControl(std::shared_ptr<Word> word) {
+  control_stack.push_back(word);
+  std::shared_ptr<MachineState> ms = this->sharedThis;
+  checkAndStreamWord(ms, word->name(), "pushControl");
+  return true;
+}
+
 
 void MachineState::clearStack() {
   call_stack.resize(0);
@@ -401,6 +431,33 @@ void CompoundWord::execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord(stack[i]);
   }
 }
+
+
+
+int CompoundWord::size() {
+  return stack.size();
+}
+
+shared_ptr<Word> CompoundWord::popWord() {
+    std::shared_ptr<Word> word = stack.back();
+    stack.pop_back();
+    return word;
+}
+
+shared_ptr<Word> CompoundWord::getWord(int i) {
+  return stack[i];
+}
+void CompoundWord::pushWord(shared_ptr<MachineState> ms, string token)
+ {
+    shared_ptr<Word> word = parseToken(ms, token);
+    if (word != NULL) {
+      return pushWord(word);
+    }
+  }
+
+
+
+
 
 string CompoundWord::repr()  {
   stringstream state;

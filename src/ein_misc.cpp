@@ -140,6 +140,7 @@ CODE('Y')
 virtual void execute(std::shared_ptr<MachineState> ms)  {
   cout << "STACK EXECUTION PAUSED, press 'y' to continue." << endl;
   ms->execute_stack = 0;
+  ms->config.endThisStackCollapse = 1;
 }
 END_WORD
 REGISTER_WORD(PauseStackExecution)
@@ -209,6 +210,46 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(Plus)
+
+WORD(Langle)
+CODE('<') 
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("<");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+  double v2;
+  GET_NUMERIC_ARG(ms, v2);
+
+  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(v2 < v1);
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Langle)
+
+WORD(Rangle)
+CODE('>') 
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back(">");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+  double v2;
+  GET_NUMERIC_ARG(ms, v2);
+
+  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(v2 > v1);
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Rangle)
 
 WORD(Times)
 CODE('*') 
@@ -303,14 +344,14 @@ REGISTER_WORD(Equals)
 
 WORD(Ift)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  std::shared_ptr<Word> then = ms->popData();
-  std::shared_ptr<Word> condition = ms->popData();
-  if (then == NULL || condition == NULL) {
-    cout << "Warning, requires two words on the stack." << endl;
-    return;
-  }
+  std::shared_ptr<Word> then;
+  bool condition;
+  
+  GET_WORD_ARG(ms, Word, then);
 
-  if (condition->to_bool()) {
+  GET_BOOLEAN_ARG(ms, condition);
+
+  if (condition) {
     ms->pushWord(then);
   }
 
@@ -1159,5 +1200,38 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(Assert)
+
+
+WORD(While)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<CompoundWord> block;
+  shared_ptr<CompoundWord> condition;
+  GET_WORD_ARG(ms, CompoundWord, block);
+  GET_WORD_ARG(ms, CompoundWord, condition);
+
+  shared_ptr<CompoundWord> whileblock = make_shared<CompoundWord>();
+
+  whileblock->pushWord(ms, "(");
+  for (int i = 0; i < condition->size(); i++) {
+    whileblock->pushWord(condition->getWord(i));
+  }
+  whileblock->pushWord(ms, ")");
+
+  whileblock->pushWord(ms, "(");
+  for (int i = 0; i < block->size(); i++) {
+    whileblock->pushWord(block->getWord(i));
+  }
+  whileblock->pushWord(ms, ")");
+  whileblock->pushWord(ms, "while");
+
+
+  ms->pushWord("ift");
+  ms->pushWord(whileblock);
+  ms->pushWord(condition);
+}
+END_WORD
+REGISTER_WORD(While)
+
+
 
 }
