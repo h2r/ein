@@ -266,6 +266,71 @@ public:
 };
 
 
+class CommentWord: public Word
+{
+private:
+  string s;
+
+public:
+
+  string value() {
+    return s;
+  }
+
+  virtual bool is_value() {
+    return true;
+  }
+
+  virtual bool is_static() {
+    return false;
+  }
+
+  virtual void execute(std::shared_ptr<MachineState> ms) {
+    
+  }
+
+  static std::shared_ptr<CommentWord> parse(string token) {
+    if (token.size() < 4) {
+      return NULL;
+    }
+    if (token[0] == '/' && token[1] == '*' && token[token.size() - 2] == '*'  && token[token.size() - 1] == '/') {
+      return std::make_shared<CommentWord>(token.substr(2, token.size() - 4));      
+    } else {
+      return NULL;
+    }
+
+  }
+  static bool isComment(string token) {
+    try {
+      if (parse(token) != NULL) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (...) {
+      return false;
+    }
+  }
+  
+  CommentWord(string _s) {
+    s = _s;
+  }
+
+  string name() {
+    stringstream ss;
+    ss << "/*" << s << "*/";
+    return ss.str();
+  }
+
+  string to_string() {
+    return s;
+  }
+  
+};
+
+
+
+
 class SymbolWord: public Word
 {
 private:
