@@ -182,7 +182,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
   int more_args = 1;
   while(more_args) {
-    shared_ptr<Word> bWord = ms->popWord();
+    shared_ptr<Word> bWord = ms->popData();
 
     if (bWord == NULL) {
       cout << "oops, setClassLabels requires a number of StringWords followed by endArgs..." << endl;
