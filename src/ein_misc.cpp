@@ -1044,13 +1044,13 @@ virtual vector<string> names() {
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
 
-  cout << "Open parenthesis executing." << endl;
+  //cout << "Open parenthesis executing." << endl;
   ms->pushWord("sP");
   ms->pushWord("1");
 
   ms->pushData("oP");
 
-  ms->pushWord("printStacks");
+  //ms->pushWord("printStacks");
 
 }
 END_WORD
@@ -1097,7 +1097,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 	if (scopeLevel != 1) {
 	  ms->pushData(word);
 
-	  cout << "sP found cP!!! scopeLevel " << scopeLevel << " " << endl;
+	  //cout << "sP found cP!!! scopeLevel " << scopeLevel << " " << endl;
 	  ms->pushWord("sP");
 	  ms->pushWord(std::make_shared<IntegerWord>(scopeLevel-1));
 	} else {
@@ -1118,7 +1118,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 	      } else {
 		if(0 == datum->name().compare("oP")) {
 		  open_needed = open_needed-1;
-		  cout << " open needed -1: " << open_needed << endl;
+		  //cout << " open needed -1: " << open_needed << endl;
 		  if (open_needed > 0) {
 		    cp->pushWord(datum);
 		  } else {
@@ -1126,7 +1126,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 		} else if(0 == datum->name().compare("cP")) {
 		  open_needed = open_needed+1;
 		  cp->pushWord(datum);
-		  cout << " open needed +1: " << open_needed << endl;
+		  //cout << " open needed +1: " << open_needed << endl;
 		} else {
 		  cp->pushWord(datum);
 		}
@@ -1150,7 +1150,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
       }
     }
   }
-  ms->pushWord("printStacks");
+  //ms->pushWord("printStacks");
 }
 END_WORD
 REGISTER_WORD(SP)
