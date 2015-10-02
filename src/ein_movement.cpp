@@ -1504,6 +1504,25 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(MoveToEEPose)
 
+WORD(CreateEEPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // get 7 strings, make them into doubles, move there
+  // order px py pz qx qy qz qw
+  double vals[7]; 
+
+  for (int i = 6; i >= 0; i--) { 
+    GET_NUMERIC_ARG(ms, vals[i]);
+  }
+
+  // make them actually into an eepose
+  _eePose pose = {.px = vals[0], .py = vals[1], .pz = vals[2],
+      .qx = vals[3], .qy = vals[4], .qz = vals[5], .qw = vals[6]};
+
+  ms->pushWord(std::make_shared<EePoseWord>(pose));
+}
+END_WORD
+REGISTER_WORD(CreateEEPose)
+
 WORD(WaitForSeconds)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "waitForSeconds: ";

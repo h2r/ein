@@ -483,7 +483,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("openGripper");
       ms->pushWord("replicateWord"); 
       ms->pushWord("80"); 
-      ms->pushData("oXDown"); 
+      ms->pushData("oXUp"); 
       ms->pushWord("waitUntilEffort");
 
 
@@ -497,7 +497,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("waitUntilAtCurrentPosition"); 
       ms->pushWord("replicateWord"); 
       ms->pushWord("80"); 
-      ms->pushData("oXUp"); 
+      ms->pushData("oXDown"); 
       ms->pushWord("replicateWord"); 
       ms->pushWord("10"); 
       ms->pushData("localZDown"); 
