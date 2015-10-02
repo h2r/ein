@@ -1,6 +1,4 @@
-"hello_world"
-dup
-print
+ ( "hello world" dup print ) "hello" store
 
+hello
 
- ( "hello_world" dup print ) "hello" store
