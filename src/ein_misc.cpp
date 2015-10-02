@@ -1211,22 +1211,28 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   shared_ptr<CompoundWord> whileblock = make_shared<CompoundWord>();
 
-  whileblock->pushWord(ms, "(");
-  for (int i = 0; i < condition->size(); i++) {
-    whileblock->pushWord(condition->getWord(i));
-  }
+  whileblock->pushWord(ms, "while");
   whileblock->pushWord(ms, ")");
-
-  whileblock->pushWord(ms, "(");
   for (int i = 0; i < block->size(); i++) {
     whileblock->pushWord(block->getWord(i));
   }
+  whileblock->pushWord(ms, "(");
   whileblock->pushWord(ms, ")");
-  whileblock->pushWord(ms, "while");
+  for (int i = 0; i < condition->size(); i++) {
+    whileblock->pushWord(condition->getWord(i));
+  }
+  whileblock->pushWord(ms, "(");
 
+  for (int i = 0; i < block->size(); i++) {
+    whileblock->pushWord(block->getWord(i));
+  }
 
   ms->pushWord("ift");
-  ms->pushWord(whileblock);
+  ms->pushWord(")");
+  for (int i = 0; i < whileblock->size(); i++) {
+    ms->pushWord(whileblock->getWord(i));
+  }
+  ms->pushWord("(");
   ms->pushWord(condition);
 }
 END_WORD

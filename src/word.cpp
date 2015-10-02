@@ -483,7 +483,7 @@ bool SymbolWord::isSymbol(string token)
     
    cout << "Testing if symbol: " << token << endl;
    boost::smatch match;
-   boost::regex symbol_regex("[a-zA-Z_][a-zA-Z0-9_]+");
+   boost::regex symbol_regex("[a-zA-Z_][a-zA-Z0-9_]*");
    if (boost::regex_match(token, match, symbol_regex)) {
      cout << "yes symbol" << endl;
      return true;
