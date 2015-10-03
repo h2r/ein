@@ -1326,6 +1326,7 @@ class EinConfig {
   ros::Subscriber gravity_comp_sub;
   ros::Subscriber cuff_grasp_sub;
   ros::Subscriber cuff_ok_sub;
+  ros::Subscriber shoulder_sub;
 
 
 
@@ -1346,6 +1347,7 @@ class EinConfig {
   ros::Subscriber forthCommandSubscriber;
 
   ros::Time waitForSecondsTarget;
+  ros::Time spinForSecondsTarget;
 
   baxter_core_msgs::ITBState lastItbs;
 
@@ -1355,6 +1357,9 @@ class EinConfig {
   double rockDiffB = 0.0;
 
   eePose targetWrench;
+
+  int intendedEnableState = 1;
+  int lastShoulderState = 1;
 }; // config end
 
 class Word;
@@ -1426,6 +1431,7 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void gravityCompCallback(const baxter_core_msgs::SEAJointState& seaJ) ;
   void cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) ;
   void cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) ;
+  void shoulderCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
   void targetCallback(const geometry_msgs::Point& point);
   void simulatorCallback(const ros::TimerEvent&);
 };

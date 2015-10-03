@@ -1538,7 +1538,7 @@ REGISTER_WORD(WaitForSeconds)
 
 WORD(WaitForSecondsA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "waitForSecondsA: ";
+  //cout << "waitForSecondsA: ";
   ros::Time thisNow = ros::Time::now();
   if (thisNow.toSec() > ms->config.waitForSecondsTarget.toSec()) {
     cout << "PASSED at time, target, delta: " << thisNow.toSec() << " " << ms->config.waitForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.waitForSecondsTarget.toSec() << endl;
@@ -1550,6 +1550,34 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(WaitForSecondsA)
+
+WORD(SpinForSeconds)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  //cout << "spinForSeconds: ";
+  double secondsToSpin = 0;
+  GET_NUMERIC_ARG(ms, secondsToSpin);
+
+  ms->config.spinForSecondsTarget = ros::Time::now() + ros::Duration(secondsToSpin);
+  //cout << "spinning " << secondsToSpin << " seconds until " << ms->config.spinForSecondsTarget << endl;
+  ms->pushWord("spinForSecondsA");
+}
+END_WORD
+REGISTER_WORD(SpinForSeconds)
+
+WORD(SpinForSecondsA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  //cout << "spinForSecondsA: ";
+  ros::Time thisNow = ros::Time::now();
+  if (thisNow.toSec() > ms->config.spinForSecondsTarget.toSec()) {
+    //cout << "PASSED at time, target, delta: " << thisNow.toSec() << " " << ms->config.spinForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.spinForSecondsTarget.toSec() << endl;
+  } else {
+    //cout << "HELD at time, target, delta: " << thisNow.toSec() << " " << ms->config.spinForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.spinForSecondsTarget.toSec() << endl;
+    ms->pushWord("spinForSecondsA");
+    // does not end stack collapse
+  }
+}
+END_WORD
+REGISTER_WORD(SpinForSecondsA)
 		
 WORD(CurrentPoseToWord)
 virtual void execute(std::shared_ptr<MachineState> ms) {
