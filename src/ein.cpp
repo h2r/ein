@@ -4652,6 +4652,27 @@ void MachineState::cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDI
 
 }
 
+void MachineState::shoulderCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
+  shared_ptr<MachineState> ms = this->sharedThis;
+
+  // this is backwards, probably a bug
+  if (cuffDIOS.state) {
+    ms->config.lastShoulderState = 1;
+  } else {
+    // only if this is the first of recent presses
+    if (ms->config.lastShoulderState == 1) {
+      ms->config.intendedEnableState = !ms->config.intendedEnableState;
+      if (ms->config.intendedEnableState) {
+	int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -e\"");
+      } else {
+	int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -d\"");
+      }
+    } else {
+    }
+    ms->config.lastShoulderState = 0;
+  }
+}
+
 cv::Point worldToPixel(Mat mapImage, double xMin, double xMax, double yMin, double yMax, double x, double y) {
   double pxMin = 0;
   double pxMax = mapImage.rows;
@@ -13451,6 +13472,7 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
 
     ms->config.cuff_grasp_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_upper_button/state", 1, &MachineState::cuffGraspCallback, ms.get());
     ms->config.cuff_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_lower_button/state", 1, &MachineState::cuffOkCallback, ms.get());
+    ms->config.shoulder_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_shoulder_button/state", 1, &MachineState::shoulderCallback, ms.get());
 
 
     ms->config.collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, &MachineState::collisionDetectionStateCallback, ms.get());
@@ -13596,8 +13618,8 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
   ms->config.digital_io_pub = n.advertise<baxter_core_msgs::DigitalOutputCommand>("/robot/digital_io/command",10);
 
   ms->config.sonar_pub = n.advertise<std_msgs::UInt16>("/robot/sonar/head_sonar/lights/set_lights",10);
-  ms->config.red_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/lights/set_red_level",10);
-  ms->config.green_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/lights/set_green_level",10);
+  ms->config.red_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/head_sonar/lights/set_red_level",10);
+  ms->config.green_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/head_sonar/lights/set_green_level",10);
 
   ms->config.currentHeadPanCommand.target = 0;
   ms->config.currentHeadPanCommand.speed = 50;

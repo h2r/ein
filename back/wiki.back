@@ -88,9 +88,9 @@
 0.5 "blink_deltaT" store
 (
   (
-    blink_deltaT waitForSeconds 
+    blink_deltaT spinForSeconds 
     4095 setSonarLed
-    blink_deltaT waitForSeconds 
+    blink_deltaT spinForSeconds 
     0 setSonarLed 
   ) blink_times replicateWord
 ) "blink_sonar_times" store
@@ -98,30 +98,29 @@
 0.25 "blink_easeT" store
 0.05 "blink_swoopT" store
 (
-  blink_easeT waitForSeconds 
+  blink_easeT spinForSeconds 
   1 0 switchSonarLed 
 
-  blink_easeT waitForSeconds 
+  blink_easeT spinForSeconds 
   1 1 switchSonarLed 
 
-  blink_easeT waitForSeconds
+  blink_easeT spinForSeconds
   1 2 switchSonarLed 
 
-  0 "blink_x" store
-  (
-    blink_swoopT waitForSeconds 
+  0 "blink_x" store (
+    blink_swoopT spinForSeconds 
     0 blink_x switchSonarLed
     1  blink_x 3 + castToInteger switchSonarLed
     blink_x 1 + castToInteger "blink_x" store 
   ) 9 replicateWord 
 
-  blink_easeT waitForSeconds 
+  blink_easeT spinForSeconds 
   0 9 switchSonarLed 
 
-  blink_easeT waitForSeconds 
+  blink_easeT spinForSeconds 
   0 10 switchSonarLed 
 
-  blink_easeT waitForSeconds
+  blink_easeT spinForSeconds
   0 11 switchSonarLed 
 
 ) "blink_sonar_swoop" store
@@ -130,43 +129,81 @@
 (
   1 "left_itb_light_inner" digitalIOCommand
   1 "right_itb_light_inner" digitalIOCommand
-  0.5 blink_scale * waitForSeconds 
+  0.5 blink_scale times spinForSeconds 
 
   1 "left_itb_light_outer" digitalIOCommand 
   1 "right_itb_light_outer" digitalIOCommand 
-  0.5 blink_scale * waitForSeconds 
+  0.5 blink_scale times spinForSeconds 
 
   0 "left_itb_light_inner" digitalIOCommand 
   0 "right_itb_light_inner" digitalIOCommand 
-  0.5 blink_scale * waitForSeconds 
+  1 "torso_left_itb_light_inner" digitalIOCommand
+  1 "torso_right_itb_light_inner" digitalIOCommand
+  0.5 blink_scale times spinForSeconds 
 
   0 "left_itb_light_outer" digitalIOCommand 
   0 "right_itb_light_outer" digitalIOCommand 
+  1 "torso_left_itb_light_outer" digitalIOCommand 
+  1 "torso_right_itb_light_outer" digitalIOCommand 
+  0.5 blink_scale times spinForSeconds 
 
-  1.0 blink_scale * waitForSeconds 
+  0 "torso_left_itb_light_inner" digitalIOCommand 
+  0 "torso_right_itb_light_inner" digitalIOCommand 
+  0.5 blink_scale times spinForSeconds 
+
+  0 "torso_left_itb_light_outer" digitalIOCommand 
+  0 "torso_right_itb_light_outer" digitalIOCommand 
+
+  1.0 blink_scale times spinForSeconds 
 
 ) "blink_arms" store
 
 (
-  5 "blink_times" store
+  0 setGreenHalo
+  0 setRedHalo
+  0.5 "blink_scale" store
+  ( blink_arms ) 1 replicateWord
+  10 "blink_times" store
   0.05 "blink_deltaT" store
   blink_sonar_times
 
-  0.25 "blink_easeT" store
+  3 "blink_times" store
+  0.01 "blink_deltaT" store
+  blink_sonar_times
+
+  0 setGreenHalo
+  100 setRedHalo
+  0.05 "blink_easeT" store
   0.05 "blink_swoopT" store
   ( blink_sonar_swoop ) 1 replicateWord
 
-  0.05 "blink_easeT" store 
+  0.01 "blink_easeT" store 
   0.01 "blink_swoopT" store
-  ( blink_sonar_swoop ) 3 replicateWord
+  50 setGreenHalo
+  50 setRedHalo
+  blink_sonar_swoop 
+  0 setGreenHalo
+  50 setRedHalo
+  blink_sonar_swoop 
+  25 setGreenHalo
+  25 setRedHalo
+  blink_sonar_swoop 
 
-  1.0 "blink_scale" store
-  ( blink_arms ) 1 replicateWord
-  0.5 "blink_scale" store
-  ( blink_arms ) 2 replicateWord
+  10 setGreenHalo
   0.25 "blink_scale" store
-  ( blink_arms ) 4 replicateWord
-  0.05 "blink_scale" store
-  ( blink_arms ) 5 replicateWord
+  ( blink_arms blink_sonar_times ) 1 replicateWord
+  25 setGreenHalo
+  50 setRedHalo
+  0.1 "blink_scale" store
+  ( blink_arms blink_sonar_times ) 5 replicateWord
+  0 setGreenHalo
+  100 setRedHalo
+  0.01 "blink_scale" store
+  ( blink_arms ) 25 replicateWord
+  ( 100 setGreenHalo 0 setRedHalo blink_arms 0 setGreenHalo 100 setRedHalo blink_arms ) 10 replicateWord
+  ( 100 setGreenHalo 0 setRedHalo blink_arms 0 setGreenHalo 0 setRedHalo blink_arms ) 10 replicateWord
+  ( 0 setGreenHalo 0 setRedHalo blink_arms 0 setGreenHalo 100 setRedHalo blink_arms ) 20 replicateWord
+  100 setGreenHalo
+  0 setRedHalo
 ) "blink_lightshow" store
 
