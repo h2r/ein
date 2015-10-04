@@ -86,6 +86,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ClearStack)
 
+WORD(ClearStacks)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->clearData();
+  ms->clearStack();
+}
+END_WORD
+REGISTER_WORD(ClearStacks)
 
 WORD(Beep)
 CODE(1245308)     // capslock + numlock + |
@@ -339,6 +346,29 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(Equals)
+
+
+
+WORD(Not)
+CODE('!') 
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("!");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  bool condition;
+  GET_BOOLEAN_ARG(ms, condition);
+
+  if (condition) {
+    ms->pushWord(std::make_shared<IntegerWord>(0));
+  } else {
+    ms->pushWord(std::make_shared<IntegerWord>(1));
+  }
+}
+END_WORD
+REGISTER_WORD(Not)
 
 
 
@@ -1270,12 +1300,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(LeftOrRightArm)
 
-WORD(ClearStacks)
+WORD(IsGripperGripping)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->clearData();
-  ms->clearStack();
+  shared_ptr<IntegerWord> isGripping = make_shared<IntegerWord>(isGripperGripping(ms));
+  ms->pushWord(isGripping);
 }
 END_WORD
-REGISTER_WORD(ClearStacks)
-
+REGISTER_WORD(IsGripperGripping)
 }
