@@ -18,3 +18,5 @@ object_recognition_msgs/RecognizedObject[] objects
 string[] call_stack
 
 string[] data_stack
+
+string[] words
