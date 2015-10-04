@@ -85,20 +85,8 @@ public:
     return true;
   }
 
-  static std::shared_ptr<DoubleWord> parse(string token) {
-    char* endptr;
-    //double r = strtod(token.c_str(), &endptr); 
-    double r = stod(token); 
-    /* try to do this with exceptions
-    if (endptr == token && r == 0) { 
-      // failed to convert
-      cout << "double parse failed to convert" << endl;
-      ms->pushWord("pauseStackExecution");
-      return;
-    }
-    */
-    return std::make_shared<DoubleWord>(r);
-  }
+  static std::shared_ptr<DoubleWord> parse(string token);
+
   virtual bool is_static() {
     return false;
   }
@@ -158,15 +146,7 @@ public:
     return true;
   }
 
-  static std::shared_ptr<IntegerWord> parse(string token) {
-    size_t idx;
-    int i = stoi(token, &idx);
-    if (idx != token.size()) {
-      throw 7;
-    } else {
-      return std::make_shared<IntegerWord>(i);
-    }
-  }
+  static std::shared_ptr<IntegerWord> parse(string token);
   virtual bool is_static() {
     return false;
   }

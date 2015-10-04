@@ -31,3 +31,8 @@ assert
 assert
 
 
+inf inf = 
+assert
+
+1 "infinite" store
+1 infinite = assert

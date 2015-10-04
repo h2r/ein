@@ -8,10 +8,10 @@ leftOrRightArm "right" =
 0.575000 -0.368750 0.201245 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace4" store )
 ( 
 leftOrRightArm "left" = 
-( -0.350000 -0.568750 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace1" store
--0.068750 -0.712500 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace2" store
-0.281250 -0.681250 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose  "workspace3" store
-0.575000 -0.368750 0.201245 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace4" store  )
+( -0.350000 0.568750 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace1" store
+-0.068750 0.712500 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace2" store
+0.281250 0.681250 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose  "workspace3" store
+0.575000 0.368750 0.201245 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace4" store  )
  ( "Neither left or right arm." leftOrRighArm pauseStackExecution ) 
 ifte
 )
@@ -22,10 +22,21 @@ workspace1 "inputPileWorkspace" store
 workspace2 "playWorkspace" store
 workspace4 "outputPileWorkspace" store
 
+(
+  inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
 
+  endArgs "kr_dash2" setClassLabels createCachedClassifierFromClassLabels
 
-/* move to input */
-/* switch to kr_dash2 */
-/* */
-/* */
-/* */
+  setSnapToFlushGrasp
+  1 setMapServoMode
+  setPlaceModeToHold
+  mapLocal
+  "kr_dash2" setTargetClass
+  deliverTargetObject
+  0.01 setGridSize
+  zUp 15 replicateWord
+
+  playWorkspace moveEeToPoseWord
+  waitUntilAtCurrentPosition
+
+) "infiniteScan" store
