@@ -508,3 +508,23 @@ bool StringWord::equals(shared_ptr<Word> word) {
   }
 }
   
+std::shared_ptr<DoubleWord> DoubleWord::parse(string token) {
+    size_t idx;
+    double r = stod(token.c_str(), &idx); 
+
+    if (idx != token.size()) {
+      throw 7;
+    } else {
+      return std::make_shared<DoubleWord>(r);
+    }
+}
+
+std::shared_ptr<IntegerWord> IntegerWord::parse(string token) {
+  size_t idx;
+  int i = stoi(token, &idx);
+  if (idx != token.size()) {
+    throw 7;
+  } else {
+    return std::make_shared<IntegerWord>(i);
+  }
+}
