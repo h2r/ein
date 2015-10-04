@@ -23,30 +23,53 @@ workspace2 "playWorkspace" store
 workspace4 "outputPileWorkspace" store
 
 (
-  endArgs "kr_dash2" setClassLabels createCachedClassifierFromClassLabels
-  1 setSnapToFlushGrasp
-  1 setMapServoMode
-  setPlaceModeToHold
-  clearMapForPatrol
-  openGripper
-
   ( isGripperGripping ! ) (
     quarterImpulse
     inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
     perturbPosition
     mapLocal
-    "kr_dash2" setTargetClass
     deliverTargetObject
     0.01 setGridSize
     ( zUp ) 15 replicateWord
   ) while
+) "pickFromInputPile" store
 
+(
+  pickFocusedClass
+  0.01 setGridSize
+  ( zUp ) 15 replicateWord
+  quarterImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
+  comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper 
+  ( zUp ) 15 replicateWord
+) "moveToOutputPile" store
+
+( 
   playWorkspace moveEeToPoseWord
   waitUntilAtCurrentPosition
-
   /* this is where the scanning loop starts */
   ( zDown ) 10 replicateWord
   comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper 
   ( zUp ) 15 replicateWord
+  setScanModeCentered  
+  /*  scanObjectStreamWaypointsIR */
+) "playWithObject" store
+
+(
+  endArgs "kr_dash2" setClassLabels createCachedClassifierFromClassLabels
+  1 setSnapToFlushGrasp
+  2 setMapServoMode
+  1 setGradientServoHardMaxIterations
+  1 setGradientServoSoftMaxIterations
+  setPlaceModeToHold
+  clearMapForPatrol
+  openGripper
+  "kr_dash2" setTargetClass
+
+  ( 1 )
+  (
+    pickFromInputPile
+    playWithObject
+    moveToOutputPile
+  ) while
 
 ) "infiniteScan" store
