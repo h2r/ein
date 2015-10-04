@@ -3,4 +3,7 @@
  * tab complete variables in the repl
  * fix parsing of *
  * compound words repr
+ * ints and doubles math. 
+ * think about enums in C and back
+ * string concat
  */

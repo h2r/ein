@@ -128,6 +128,9 @@ public:
   virtual double to_double() {
     return n;
   }
+  virtual int to_int() {
+    return (int) n;
+  }
 };
 
 
