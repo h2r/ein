@@ -36,3 +36,7 @@ assert
 
 1 "infinite" store
 1 infinite = assert
+
+
+1 not assertNo
+0 not assert

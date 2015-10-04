@@ -2,5 +2,5 @@
  * asserts
  * tab complete variables in the repl
  * fix parsing of *
- * 
+ * compound words repr
  */

@@ -23,20 +23,30 @@ workspace2 "playWorkspace" store
 workspace4 "outputPileWorkspace" store
 
 (
-  inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
-
   endArgs "kr_dash2" setClassLabels createCachedClassifierFromClassLabels
-
-  setSnapToFlushGrasp
+  1 setSnapToFlushGrasp
   1 setMapServoMode
   setPlaceModeToHold
-  mapLocal
-  "kr_dash2" setTargetClass
-  deliverTargetObject
-  0.01 setGridSize
-  zUp 15 replicateWord
+  clearMapForPatrol
+  openGripper
+
+  ( isGripperGripping ! ) (
+    quarterImpulse
+    inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
+    perturbPosition
+    mapLocal
+    "kr_dash2" setTargetClass
+    deliverTargetObject
+    0.01 setGridSize
+    ( zUp ) 15 replicateWord
+  ) while
 
   playWorkspace moveEeToPoseWord
   waitUntilAtCurrentPosition
+
+  /* this is where the scanning loop starts */
+  ( zDown ) 10 replicateWord
+  comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper 
+  ( zUp ) 15 replicateWord
 
 ) "infiniteScan" store

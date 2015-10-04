@@ -34,6 +34,58 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ClearStackAcceptFetchCommandsIntoIdler)
 
+WORD(MapServo)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  if (ms->config.currentMapServoMode == HISTOGRAM_CLASSIFY) {
+    ms->pushWord("gradientServoIfBlueBoxes");
+    ms->pushWord("mapClosestBlueBox");
+    ms->pushWord("mapEmptySpace");
+    ms->pushWord("histogramDetectionIfBlueBoxes"); 
+    ms->pushWord("synchronicServo"); 
+    ms->pushWord("synchronicServoTakeClosest");
+  } else if (ms->config.currentMapServoMode == ONCE_CLASSIFY) {
+    ms->pushWord("gradientServoIfBlueBoxes");
+    ms->pushWord("mapClosestBlueBox");
+    ms->pushWord("mapEmptySpace");
+    ms->pushWord("goClassifyBlueBoxes"); 
+    ms->pushWord("synchronicServo"); 
+    ms->pushWord("synchronicServoTakeClosest");
+  } else if (ms->config.currentMapServoMode == FIXED_CLASS_ACCUMULATED) {
+    ms->pushWord("gradientServoIfBlueBoxes");
+    ms->pushWord("mapClosestBlueBox");
+    ms->pushWord("mapEmptySpace");
+    ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
+    ms->pushWord("synchronicServo"); 
+    ms->pushWord("synchronicServoTakeClosest");
+  } else if (ms->config.currentMapServoMode == FIXED_CLASS_CONTINUOUS) {
+    ms->pushWord("continuousServo");
+    ms->pushWord("continuousServo");
+    ms->pushWord("continuousServo");
+    ms->pushWord("continuousServo");
+    ms->pushWord("continuousServo");
+    ms->pushWord("continuousServo");
+    ms->pushWord("mapClosestBlueBox");
+    ms->pushWord("mapEmptySpace");
+    ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
+    ms->pushWord("synchronicServo"); 
+    ms->pushWord("synchronicServoTakeClosest");
+  } else if (ms->config.currentMapServoMode == FIXED_CLASS_ACCACCUMULATED_NOSYN) {
+    ms->pushWord("gradientServoIfBlueBoxes");
+    ms->pushWord("mapClosestBlueBox");
+    ms->pushWord("mapEmptySpace");
+    ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
+  } else if (ms->config.currentMapServoMode == FIXED_CLASS_CONTINUOUS_NOSYN) {
+    ms->pushCopies("continuousServo", 10);
+    ms->pushWord("mapClosestBlueBox");
+    ms->pushWord("mapEmptySpace");
+    ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
+  } else {
+    assert(0);
+  }
+}
+END_WORD
+REGISTER_WORD(MapServo)
+
 WORD(MapLocal)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
@@ -45,10 +97,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("mapClosestBlueBox");
   ms->pushWord("mapEmptySpace");
 
-  if (1) {
-    ms->pushWord("histogramDetectionIfBlueBoxes"); 
-  }
-  ms->pushWord("goClassifyBlueBoxes"); 
+  ms->pushWord("mapServo"); 
 
   ms->pushWord("visionCycle"); 
   ms->pushWord("cruisingSpeed"); 
@@ -97,53 +146,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("lockTargetIfBlueBoxes");
   //ms->pushWord("collapseStack");
 
-  if (ms->config.currentMapServoMode == HISTOGRAM_CLASSIFY) {
-    ms->pushWord("gradientServoIfBlueBoxes");
-    ms->pushWord("mapClosestBlueBox");
-    ms->pushWord("mapEmptySpace");
-    ms->pushWord("histogramDetectionIfBlueBoxes"); 
-    ms->pushWord("synchronicServo"); 
-    ms->pushWord("synchronicServoTakeClosest");
-  } else if (ms->config.currentMapServoMode == ONCE_CLASSIFY) {
-    ms->pushWord("gradientServoIfBlueBoxes");
-    ms->pushWord("mapClosestBlueBox");
-    ms->pushWord("mapEmptySpace");
-    ms->pushWord("goClassifyBlueBoxes"); 
-    ms->pushWord("synchronicServo"); 
-    ms->pushWord("synchronicServoTakeClosest");
-  } else if (ms->config.currentMapServoMode == FIXED_CLASS_ACCUMULATED) {
-    ms->pushWord("gradientServoIfBlueBoxes");
-    ms->pushWord("mapClosestBlueBox");
-    ms->pushWord("mapEmptySpace");
-    ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
-    ms->pushWord("synchronicServo"); 
-    ms->pushWord("synchronicServoTakeClosest");
-  } else if (ms->config.currentMapServoMode == FIXED_CLASS_CONTINUOUS) {
-    ms->pushWord("continuousServo");
-    ms->pushWord("continuousServo");
-    ms->pushWord("continuousServo");
-    ms->pushWord("continuousServo");
-    ms->pushWord("continuousServo");
-    ms->pushWord("continuousServo");
-    ms->pushWord("mapClosestBlueBox");
-    ms->pushWord("mapEmptySpace");
-    ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
-    ms->pushWord("synchronicServo"); 
-    ms->pushWord("synchronicServoTakeClosest");
-  } else if (ms->config.currentMapServoMode == FIXED_CLASS_ACCACCUMULATED_NOSYN) {
-    ms->pushWord("gradientServoIfBlueBoxes");
-    ms->pushWord("mapClosestBlueBox");
-    ms->pushWord("mapEmptySpace");
-    ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
-  } else if (ms->config.currentMapServoMode == FIXED_CLASS_CONTINUOUS_NOSYN) {
-    ms->pushCopies("continuousServo", 10);
-    ms->pushWord("mapClosestBlueBox");
-    ms->pushWord("mapEmptySpace");
-    ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
-  } else {
-    assert(0);
-  }
-  
+  ms->pushWord("mapServo");
 
   ms->pushWord("waitUntilAtCurrentPosition"); 
   ms->pushWord("sampleHeight"); 
