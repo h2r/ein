@@ -123,7 +123,7 @@ qt5_use_modules(CmakeLib Core Gui Widgets Test OpenGL)
 # the build and source versions of src/*.
 set_source_files_properties(tags PROPERTIES GENERATED true)
 add_custom_target(tags
-    COMMAND ctags -R --c++-kinds=+p --fields=+iaS --extra=+q  -e
+    COMMAND ctags -R --c++-kinds=+p --fields=+iaS --extra=+q  -e --exclude='.\#*'
         ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND ln -sf ${CMAKE_CURRENT_BINARY_DIR}/tags ${CMAKE_BINARY_DIR}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
