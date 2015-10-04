@@ -1309,11 +1309,10 @@ END_WORD
 REGISTER_WORD(IsGripperGripping)
 
 
-WORD(GradientServoSoftMaxIterations)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->pushWord(make_shared<IntegerWord>(ms->config.softMaxGradientServoIterations));
-}
-END_WORD
-REGISTER_WORD(GradientServoSoftMaxIterations)
+CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
+CONFIG_SETTER_INT(SetGradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
+
+CONFIG_GETTER_INT(GradientServoHardMaxIterations, ms->config.hardMaxGradientServoIterations)
+CONFIG_SETTER_INT(SetGradientServoHardMaxIterations, ms->config.hardMaxGradientServoIterations)
 
 }

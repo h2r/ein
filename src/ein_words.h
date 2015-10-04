@@ -132,13 +132,28 @@ public: \
 {\
   shared_ptr<Word> hWord = ms->popData();\
   if (hWord == NULL) {\
-    cout << "Oops, GET_NUMERIC_ARG " << " " << #x << " " << #ms << " found no argument..." << endl;\
-    cout << "  Must pass a numeric argument to " << this->name() << endl;\
+    cout << "Oops, GET_BOOLEAN_ARG " << " " << #x << " " << #ms << " found no argument..." << endl;\
+    cout << "  Must pass a boolean argument to " << this->name() << endl;\
     cout << "  Pausing." << endl;\
     ms->pushWord("pauseStackExecution");\
     return;\
   }  \
   x =  hWord->to_bool();			\
+ }
+
+
+
+#define GET_INT_ARG(ms,x) \
+{\
+  shared_ptr<Word> hWord = ms->popData();\
+  if (hWord == NULL) {\
+    cout << "Oops, GET_INT_ARG " << " " << #x << " " << #ms << " found no argument..." << endl;\
+    cout << "  Must pass a numeric argument to " << this->name() << endl;\
+    cout << "  Pausing." << endl;\
+    ms->pushWord("pauseStackExecution");\
+    return;\
+  }  \
+  x =  hWord->to_int();			\
  }
 
 
@@ -167,6 +182,25 @@ public: \
     return;\
   }\
 }\
+
+#define CONFIG_GETTER_INT(backName, configName)	\
+WORD(backName) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  ms->pushWord(make_shared<IntegerWord>(configName)); \
+} \
+END_WORD \
+REGISTER_WORD(backName) 
+
+#define CONFIG_SETTER_INT(backName, configName)	\
+WORD(backName) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  int value; \
+  GET_INT_ARG(ms, value); \
+  configName = value;	\
+} \
+END_WORD \
+REGISTER_WORD(backName) 
+
 
 
 int register_word(shared_ptr<Word> word);
