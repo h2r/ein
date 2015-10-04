@@ -359,6 +359,29 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(Ift)
 
+
+WORD(Ifte)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  std::shared_ptr<Word> then;
+  std::shared_ptr<Word> else_;
+  bool condition;
+  
+  GET_WORD_ARG(ms, Word, else_);
+  GET_WORD_ARG(ms, Word, then);
+
+  GET_BOOLEAN_ARG(ms, condition);
+
+  if (condition) {
+    ms->pushWord(then);
+  } else {
+    ms->pushWord(else_);
+  }
+
+}
+END_WORD
+REGISTER_WORD(Ifte)
+
+
 WORD(Start)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 }
@@ -1239,5 +1262,20 @@ END_WORD
 REGISTER_WORD(While)
 
 
+WORD(LeftOrRightArm)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<StringWord> left_or_right = make_shared<StringWord>(ms->config.left_or_right_arm);
+  ms->pushWord(left_or_right);
+}
+END_WORD
+REGISTER_WORD(LeftOrRightArm)
+
+WORD(ClearStacks)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->clearData();
+  ms->clearStack();
+}
+END_WORD
+REGISTER_WORD(ClearStacks)
 
 }

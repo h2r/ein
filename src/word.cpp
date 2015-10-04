@@ -498,3 +498,13 @@ string EePoseWord::repr() {
 }
 
 
+
+bool StringWord::equals(shared_ptr<Word> word) {
+  shared_ptr<StringWord> w1 = dynamic_pointer_cast<StringWord>(word);
+  if (w1 == NULL) {
+    return false;
+  } else {
+    return w1->value() == (this->value());
+  }
+}
+  

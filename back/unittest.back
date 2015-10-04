@@ -1,0 +1,33 @@
+3.342000 7.540000 3.620000 2.370000 -1.250000 0.990000 3.630000 createEEPose
+3.342000 7.540000 3.620000 2.370000 -1.250000 0.990000 3.620000 createEEPose
+=
+0
+=
+assert
+
+3.342000 7.540000 3.620000 2.370000 -1.250000 0.990000 3.620000 createEEPose
+3.342000 7.540000 3.620000 2.370000 -1.250000 0.990000 3.620000 createEEPose
+!=
+assert
+
+
+"right" "right1" !=
+assert
+
+"right" "right" =
+assert
+
+"right" "right1" =
+assertNo
+
+"right" "right" !=
+assertNo
+
+
+"right" "right" = "right" "left" ifte  "right" =
+assert
+
+"rightx" "right" = "right" "left" ifte  "left" =
+assert
+
+

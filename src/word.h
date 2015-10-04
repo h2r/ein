@@ -262,6 +262,9 @@ public:
   string to_string() {
     return s;
   }
+
+  bool equals(shared_ptr<Word> word);
+
   
 };
 
@@ -372,6 +375,7 @@ public:
   }
   
 };
+
 
 class EePoseWord: public Word
 {
