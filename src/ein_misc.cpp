@@ -1307,4 +1307,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(IsGripperGripping)
+
+
+WORD(GradientServoSoftMaxIterations)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord(make_shared<IntegerWord>(ms->config.softMaxGradientServoIterations));
+}
+END_WORD
+REGISTER_WORD(GradientServoSoftMaxIterations)
+
 }
