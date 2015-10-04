@@ -166,10 +166,12 @@
   10 "blink_times" store
   0.05 "blink_deltaT" store
   blink_sonar_times
+  endStackCollapseNoop
 
   3 "blink_times" store
   0.01 "blink_deltaT" store
   blink_sonar_times
+  endStackCollapseNoop
 
   0 setGreenHalo
   100 setRedHalo
@@ -188,10 +190,12 @@
   25 setGreenHalo
   25 setRedHalo
   blink_sonar_swoop 
+  endStackCollapseNoop
 
   10 setGreenHalo
   0.25 "blink_scale" store
   ( blink_arms blink_sonar_times ) 1 replicateWord
+  endStackCollapseNoop
   25 setGreenHalo
   50 setRedHalo
   0.1 "blink_scale" store
@@ -205,5 +209,6 @@
   ( 0 setGreenHalo 0 setRedHalo blink_arms 0 setGreenHalo 100 setRedHalo blink_arms ) 20 replicateWord
   100 setGreenHalo
   0 setRedHalo
+  endStackCollapseNoop
 ) "blink_lightshow" store
 
