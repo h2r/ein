@@ -104,7 +104,7 @@ void initializeMachine(shared_ptr<MachineState> ms) {
     ms->pushWord("synchronicServoTakeClosest");
   }
   ms->pushWord("silenceSonar");
-  ms->pushWord("printWords");
+  ms->pushWord("exportWords");
   ms->pushWord("openGripper");
   ms->pushWord("calibrateGripper");
   ms->pushWord("shiftIntoGraspGear1"); 
