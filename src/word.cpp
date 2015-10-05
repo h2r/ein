@@ -464,7 +464,7 @@ string CompoundWord::repr()  {
   stringstream state;
   state << "( "; 
   for (int i = 0; i < stack.size(); i++) {
-    state << stack[i]->repr() << " ";
+    state << stack[stack.size() - i - 1]->repr() << " ";
   }
   state << ")";
   return state.str();
