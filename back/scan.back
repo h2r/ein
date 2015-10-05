@@ -44,9 +44,10 @@ workspace4 "outputPileWorkspace" store
   /* this is where the scanning loop starts */
   ( zDown ) 10 replicateWord
   comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper 
-  liftArm
-  setScanModeCentered  
-  /*  scanObjectStreamWaypointsIR */
+  ( zUp ) 8 replicateWord
+  waitUntilAtCurrentPosition
+  setScanModeCentered
+  pushCurrentPose scanObjectStreamWaypointsIR
 ) "playWithObject" store
 
 
@@ -54,6 +55,7 @@ workspace4 "outputPileWorkspace" store
   ( isGripperGripping ! ) (
     openGripper
     quarterImpulse
+    changeToHeight1
     pickFocusedClass
     liftArm
   ) while
