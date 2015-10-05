@@ -1554,15 +1554,21 @@ REGISTER_WORD(WaitForSecondsA)
 WORD(SpinForSeconds)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   //cout << "spinForSeconds: ";
-  double secondsToSpin = 0;
-  GET_NUMERIC_ARG(ms, secondsToSpin);
-
-  ms->config.spinForSecondsTarget = ros::Time::now() + ros::Duration(secondsToSpin);
   //cout << "spinning " << secondsToSpin << " seconds until " << ms->config.spinForSecondsTarget << endl;
   ms->pushWord("spinForSecondsA");
+  ms->pushWord("spinForSecondsInit");
 }
 END_WORD
 REGISTER_WORD(SpinForSeconds)
+
+WORD(SpinForSecondsInit)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double secondsToSpin = 0;
+  GET_NUMERIC_ARG(ms, secondsToSpin);
+  ms->config.spinForSecondsTarget = ros::Time::now() + ros::Duration(secondsToSpin);
+}
+END_WORD
+REGISTER_WORD(SpinForSecondsInit)
 
 WORD(SpinForSecondsA)
 virtual void execute(std::shared_ptr<MachineState> ms) {

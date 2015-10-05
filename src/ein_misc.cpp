@@ -1309,10 +1309,33 @@ END_WORD
 REGISTER_WORD(IsGripperGripping)
 
 
+
+WORD(TwistWords)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(TwistWords)
+
+
+/*
+
+&|3|&= $  $| @ !! !|
+9|4| * * * | * * * |
+
+*/
+
+
+
+
 CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
 CONFIG_SETTER_INT(SetGradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
 
 CONFIG_GETTER_INT(GradientServoHardMaxIterations, ms->config.hardMaxGradientServoIterations)
 CONFIG_SETTER_INT(SetGradientServoHardMaxIterations, ms->config.hardMaxGradientServoIterations)
+
+
+
+
+
 
 }

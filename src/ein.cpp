@@ -7528,12 +7528,6 @@ void gradientServo(shared_ptr<MachineState> ms) {
 
   // ATTN 23
   //reticle = ms->config.heightReticles[ms->config.currentThompsonHeightIdx];
-  eePose thisGripperReticle;
-  double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-  int xOut=-1, yOut=-1;
-  globalToPixel(ms, &xOut, &yOut, zToUse, ms->config.trueEEPoseEEPose.px, ms->config.trueEEPoseEEPose.py);
-  thisGripperReticle.px = xOut;
-  thisGripperReticle.py = yOut;
   ms->config.reticle = ms->config.vanishingPointReticle;
 
   // ATTN 12
@@ -7705,7 +7699,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
   
   // XXX should be etaY <= to cover whole array
   for (int etaS = 0; etaS < gradientServoScale; etaS++) {
-#pragma omp parallel for
+    #pragma omp parallel for
     for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
       for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
         // get the patch
@@ -7726,11 +7720,11 @@ void gradientServo(shared_ptr<MachineState> ms) {
               }
             }
           }
-  // ATTN 25
-  if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
-       (thisOrient != 0) ) {
-    continue;
-  }
+	  // ATTN 25
+	  if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
+	       (thisOrient != 0) ) {
+	    continue;
+	  }
           
           // compute the score
           double thisScore = 0;
@@ -7778,11 +7772,11 @@ void gradientServo(shared_ptr<MachineState> ms) {
               }
             }
           }
-  // ATTN 25
-  if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
-       (thisOrient != 0) ) {
-    continue;
-  }
+	  // ATTN 25
+	  if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
+	       (thisOrient != 0) ) {
+	    continue;
+	  }
           
           int tEtaX = etaX+gradientServoTranslation;
           int tEtaY = etaY+gradientServoTranslation;
@@ -7802,14 +7796,6 @@ void gradientServo(shared_ptr<MachineState> ms) {
   }
 
   Mat bestGCrop = makeGCrop(ms, bestX, bestY); 
-
-
-  // set the target reticle
-  ms->config.pilotTarget.px = ms->config.reticle.px + bestX;
-  ms->config.pilotTarget.py = ms->config.reticle.py + bestY;
-  
-  ms->config.bestOrientationEEPose = ms->config.currentEEPose;
-  
   int oneToDraw = bestOrientation;
   Px = -bestX;
   Py = -bestY;
@@ -7868,7 +7854,13 @@ void gradientServo(shared_ptr<MachineState> ms) {
   
   oneToDraw = oneToDraw % numOrientations;
   double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
+  //double Ptheta = bestOrientation;
   ms->config.lastPtheta = Ptheta;
+
+  // set the target reticle
+  ms->config.pilotTarget.px = ms->config.reticle.px + bestX;
+  ms->config.pilotTarget.py = ms->config.reticle.py + bestY;
+  
   
   int is_this_last = ms->config.currentGradientServoIterations >= (ms->config.hardMaxGradientServoIterations-1);
 
@@ -7877,51 +7869,56 @@ void gradientServo(shared_ptr<MachineState> ms) {
   // of a single iteration.
   {
     double kPtheta = 0.0;
+    /*
     if (Ptheta < ms->config.kPThresh)
       kPtheta = ms->config.kPtheta2;
     else
       kPtheta = ms->config.kPtheta1;
+    */
+    kPtheta = ms->config.kPtheta1;
     
+
     if (bestOrientation <= numOrientations/2) {
       ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
       
     } else {
       ms->config.currentEEDeltaRPY.pz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
     }
+
+    //ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
   }
   
-  double doublePtheta =   ms->config.currentEEDeltaRPY.pz;
-
   // position update
   {
-    double pTermX = ms->config.gradKp*Px;
-    double pTermY = ms->config.gradKp*Py;
+    //double pTermX = ms->config.gradKp*Px;
+    //double pTermY = ms->config.gradKp*Py;
     
-    double pTermS = Ps * .005;
-    ms->config.currentEEPose.pz += pTermS;
+    // servoing in z
+    //double pTermS = Ps * .005;
+    //ms->config.currentEEPose.pz += pTermS;
     
     // invert the current eePose orientation to decide which direction to move from POV
-    Eigen::Vector3f localUnitX;
-    {
-      Eigen::Quaternionf qin(0, 1, 0, 0);
-      Eigen::Quaternionf qout(0, 1, 0, 0);
-      Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-      qout = eeqform * qin * eeqform.conjugate();
-      localUnitX.x() = qout.x();
-      localUnitX.y() = qout.y();
-      localUnitX.z() = qout.z();
-    }
+    //Eigen::Vector3f localUnitX;
+    //{
+      //Eigen::Quaternionf qin(0, 1, 0, 0);
+      //Eigen::Quaternionf qout(0, 1, 0, 0);
+      //Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+      //qout = eeqform * qin * eeqform.conjugate();
+      //localUnitX.x() = qout.x();
+      //localUnitX.y() = qout.y();
+      //localUnitX.z() = qout.z();
+    //}
       
-    Eigen::Vector3f localUnitY;
-    {
-      Eigen::Quaternionf qin(0, 0, 1, 0);
-      Eigen::Quaternionf qout(0, 1, 0, 0);
-      Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-      qout = eeqform * qin * eeqform.conjugate();
-      localUnitY.x() = qout.x();
-      localUnitY.y() = qout.y();
-      localUnitY.z() = qout.z();
-    }
+    //Eigen::Vector3f localUnitY;
+    //{
+      //Eigen::Quaternionf qin(0, 0, 1, 0);
+      //Eigen::Quaternionf qout(0, 1, 0, 0);
+      //Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+      //qout = eeqform * qin * eeqform.conjugate();
+      //localUnitY.x() = qout.x();
+      //localUnitY.y() = qout.y();
+      //localUnitY.z() = qout.z();
+    //}
     
     // ATTN 21
     //double newx = ms->config.currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
@@ -7936,7 +7933,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
     //ms->config.currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
     // ATTN 23
     // second analytic
-    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz);
+    // use trueEEPoseEEPose here so that its attention will shift if the arm is moved by external means
+    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
     //double sqdistance = eePose::squareDistance(ms->config.currentEEPose, newGlobalTarget);
@@ -7944,6 +7942,13 @@ void gradientServo(shared_ptr<MachineState> ms) {
     ms->config.currentEEPose.px = newx;
     ms->config.currentEEPose.py = newy;
   }
+
+  // this must happen in order for getCCRotation to work, maybe it should be refactored
+  // this should happen after position update so that position update could use currentEePose if it wanted (possibly the right thing to do)
+  double doublePtheta =   ms->config.currentEEDeltaRPY.pz;
+  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
+  ms->config.bestOrientationEEPose = ms->config.currentEEPose;
+
   
   // if we are at the soft max, take first histogram estimate.
   // if we are above, add to it
@@ -7965,9 +7970,9 @@ void gradientServo(shared_ptr<MachineState> ms) {
   } else {
   } // do nothing
 
-  //cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << 
-  //ms->config.pilotTarget.px << " " << reticle.py << " " << ms->config.pilotTarget.py << " " <<
-  //bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
+  cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << ms->config.reticle.px << " " << 
+  ms->config.pilotTarget.px << " " << ms->config.reticle.py << " " << ms->config.pilotTarget.py << " " <<
+  bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
 
   // ATTN 5
   // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
@@ -7986,7 +7991,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
     cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
 
     //ms->pushWord("pauseStackExecution"); 
-    ms->pushWord("waitUntilAtCurrentPosition"); 
+    //ms->pushWord("waitUntilEndpointCallbackReceived");
+    //ms->pushWord("waitUntilAtCurrentPosition"); 
     
     // ATTN 12
     if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
@@ -7999,7 +8005,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
   } else {
     ms->pushWord("gradientServoA"); 
     //ms->pushWord("pauseStackExecution"); 
-    ms->pushWord("waitUntilAtCurrentPosition"); 
+    //ms->pushWord("waitUntilEndpointCallbackReceived");
+    //ms->pushWord("waitUntilAtCurrentPosition"); 
     cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
   }
 
@@ -8301,8 +8308,6 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
   ms->config.pilotTarget.px = ms->config.reticle.px + bestX;
   ms->config.pilotTarget.py = ms->config.reticle.py + bestY;
   
-  ms->config.bestOrientationEEPose = ms->config.currentEEPose;
-  
   int oneToDraw = bestOrientation;
   Px = -bestX;
   Py = -bestY;
@@ -8364,13 +8369,15 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
   double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
   ms->config.lastPtheta = Ptheta;
   
-  
   double kPtheta = 0.0;
+  /*
   if (Ptheta < ms->config.kPThresh) {
     kPtheta = ms->config.kPtheta2;
   } else {
     kPtheta = ms->config.kPtheta1;
   }
+  */
+  kPtheta = ms->config.kPtheta1;
   
   if (bestOrientation <= numOrientations/2) {
     ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
@@ -8378,12 +8385,6 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
   } else {
     ms->config.currentEEDeltaRPY.pz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
   }
-  
-  double doublePtheta =   ms->config.currentEEDeltaRPY.pz;
-
-  //cout << "continuous servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << 
-  //ms->config.pilotTarget.px << " " << reticle.py << " " << ms->config.pilotTarget.py << " " <<
-  //bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
   
   {
     double newx = 0;
@@ -8395,40 +8396,17 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
     ms->config.currentEEPose.px = newx;
     ms->config.currentEEPose.py = newy;
   }
+
+  double doublePtheta =   ms->config.currentEEDeltaRPY.pz;
+  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
+  ms->config.bestOrientationEEPose = ms->config.currentEEPose;
+  //cout << "continuous servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << 
+  //ms->config.pilotTarget.px << " " << reticle.py << " " << ms->config.pilotTarget.py << " " <<
+  //bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
 }
 
 // given pixel is the pixel in the current frame that you want to be at the vanishing point
 //  after undergoing a rotaion of ozAngle about the end effector Z axis
-eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixel, eePose givenReticle, double ozAngle) {
-  eePose toReturn = ms->config.trueEEPoseEEPose;
-  eePose grGlobalPostRotation = ms->config.trueEEPoseEEPose;
-  eePose grGlobalPreRotation = ms->config.trueEEPoseEEPose;
-  eePose gpGlobalPreRotation = ms->config.trueEEPoseEEPose;
-  {
-    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-    pixelToGlobal(ms, givenPixel.px, givenPixel.py, zToUse, &(gpGlobalPreRotation.px), &(gpGlobalPreRotation.py));
-  }
-  {
-    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-    pixelToGlobal(ms, givenReticle.px, givenReticle.py, zToUse, &(grGlobalPreRotation.px), &(grGlobalPreRotation.py));
-  }
-
-  eePose fakeEndEffector = ms->config.currentEEPose;
-  eePose fakeEndEffectorDeltaRPY = eePose::zero();
-  fakeEndEffectorDeltaRPY.pz = ozAngle;
-  endEffectorAngularUpdate(&fakeEndEffector, &fakeEndEffectorDeltaRPY);
-  {
-    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-    pixelToGlobal(ms, givenReticle.px, givenReticle.py, zToUse, &(grGlobalPostRotation.px), &(grGlobalPostRotation.py), fakeEndEffector);
-  }
-  double  postRotationTranslationX = (gpGlobalPreRotation.px - grGlobalPostRotation.px);
-  double  postRotationTranslationY = (gpGlobalPreRotation.py - grGlobalPostRotation.py);
-
-  toReturn.px += postRotationTranslationX;
-  toReturn.py += postRotationTranslationY;
-  return toReturn;
-}
-
 eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixel, eePose givenReticle, double ozAngle, eePose givenCameraPose) {
   eePose toReturn = givenCameraPose;
   eePose grGlobalPostRotation = givenCameraPose;
@@ -8655,32 +8633,32 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       return;	
     } else {
 
-      double thisKp = ms->config.synKp;
-      double pTermX = thisKp*Px;
-      double pTermY = thisKp*Py;
+      //double thisKp = ms->config.synKp;
+      //double pTermX = thisKp*Px;
+      //double pTermY = thisKp*Py;
 
       // invert the current eePose orientation to decide which direction to move from POV
-      Eigen::Vector3f localUnitX;
-      {
-	Eigen::Quaternionf qin(0, 1, 0, 0);
-	Eigen::Quaternionf qout(0, 1, 0, 0);
-	Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-	qout = eeqform * qin * eeqform.conjugate();
-	localUnitX.x() = qout.x();
-	localUnitX.y() = qout.y();
-	localUnitX.z() = qout.z();
-      }
+      //Eigen::Vector3f localUnitX;
+      //{
+	//Eigen::Quaternionf qin(0, 1, 0, 0);
+	//Eigen::Quaternionf qout(0, 1, 0, 0);
+	//Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+	//qout = eeqform * qin * eeqform.conjugate();
+	//localUnitX.x() = qout.x();
+	//localUnitX.y() = qout.y();
+	//localUnitX.z() = qout.z();
+      //}
 
-      Eigen::Vector3f localUnitY;
-      {
-	Eigen::Quaternionf qin(0, 0, 1, 0);
-	Eigen::Quaternionf qout(0, 1, 0, 0);
-	Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-	qout = eeqform * qin * eeqform.conjugate();
-	localUnitY.x() = qout.x();
-	localUnitY.y() = qout.y();
-	localUnitY.z() = qout.z();
-      }
+      //Eigen::Vector3f localUnitY;
+      //{
+	//Eigen::Quaternionf qin(0, 0, 1, 0);
+	//Eigen::Quaternionf qout(0, 1, 0, 0);
+	//Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+	//qout = eeqform * qin * eeqform.conjugate();
+	//localUnitY.x() = qout.x();
+	//localUnitY.y() = qout.y();
+	//localUnitY.z() = qout.z();
+      //}
 
       // ATTN 21
       // old PID
@@ -8692,7 +8670,8 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       //double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
       //pixelToGlobal(ms, ms->config.pilotTarget.px, ms->config.pilotTarget.py, zToUse, &newx, &newy);
       // ATTN 23
-      eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, 0);
+      // use trueEEPoseEEPose here so that its attention will shift if the arm is moved by external means
+      eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, 0, ms->config.trueEEPoseEEPose);
       newx = newGlobalTarget.px;
       newy = newGlobalTarget.py;
 
