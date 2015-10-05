@@ -1,4 +1,5 @@
 /* 
+ * we'd really like to shake after every pick, and *then* move to the output workspace
  * implement flicking
  * figure out what to do to keep him in the play workspace. 
  * detect when gradient landed on nothing or something random
@@ -16,4 +17,4 @@
 
 Done:
 * tab complete variables in the repl
- 
+* unit tests

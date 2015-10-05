@@ -1320,6 +1320,16 @@ END_WORD
 REGISTER_WORD(IsGripperGripping)
 
 
+WORD(NumBlueBoxes)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<IntegerWord> numBlueBoxes = make_shared<IntegerWord>(ms->config.bTops.size());
+  ms->pushWord(numBlueBoxes);  
+}
+END_WORD
+REGISTER_WORD(NumBlueBoxes)
+
+
+
 CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
 CONFIG_SETTER_INT(SetGradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
 

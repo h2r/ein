@@ -25,8 +25,14 @@ workspace4 "outputPileWorkspace" store
 "utils" import
 
 (
-  1 setGradientServoHardMaxIterations
-  1 setGradientServoSoftMaxIterations
+moveEeToPoseWord waitUntilAtCurrentPosition
+setMovementStateToMoving comeToStop visionCycleNoClassify
+numBlueBoxes 0 = 1 0 ifte
+) "workspaceIsClear" store
+
+(
+  2 setGradientServoHardMaxIterations
+  2 setGradientServoSoftMaxIterations
   ( isGripperGripping ! ) (
     openGripper
     halfImpulse
