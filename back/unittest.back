@@ -1,17 +1,15 @@
 3.342000 7.540000 3.620000 2.370000 -1.250000 0.990000 3.630000 createEEPose
 3.342000 7.540000 3.620000 2.370000 -1.250000 0.990000 3.620000 createEEPose
-=
-0
-=
-assert
+= 
+assertNo`8
 
 3.342000 7.540000 3.620000 2.370000 -1.250000 0.990000 3.620000 createEEPose
 3.342000 7.540000 3.620000 2.370000 -1.250000 0.990000 3.620000 createEEPose
-!=
+= 
 assert
 
 
-"right" "right1" !=
+"right" "right1" = !
 assert
 
 "right" "right" =
@@ -20,7 +18,7 @@ assert
 "right" "right1" =
 assertNo
 
-"right" "right" !=
+"right" "right" = !
 assertNo
 
 
@@ -37,6 +35,9 @@ assert
 1 "infinite" store
 1 infinite = assert
 
-
 1 not assertNo
 0 not assert
+
+1 "x" store
+( x 10 < ) ( x 1 + "x" store ) while
+x 10 = assert

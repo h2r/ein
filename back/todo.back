@@ -1,6 +1,9 @@
 /* 
+ * implement flicking
+ * figure out what to do to keep him in the play workspace. 
+ * detect when gradient landed on nothing or something random
+ * setClassLabels without endArgs
  * asserts
- * tab complete variables in the repl
  * fix parsing of *
  * compound words repr
  * ints and doubles math. 
@@ -9,3 +12,8 @@
  * make a repl program end with escape; it currently seg faults ein
  * clear dirty blue boxes
  */
+
+
+Done:
+* tab complete variables in the repl
+ 
