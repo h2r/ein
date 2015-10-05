@@ -4,6 +4,6 @@
 (
   0.01 setGridSize
   ( zUp ) 15 replicateWord
-  waitUntilCurrentPosition
+  waitUntilAtCurrentPosition
 ) "liftArm" store
 
