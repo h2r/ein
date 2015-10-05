@@ -603,7 +603,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(EndStackCollapseNoop)
 
-WORD(PrintWords)
+WORD(ExportWords)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   string wordFileName = "ein_words.txt";
@@ -616,7 +616,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   wordFile.close();
 }
 END_WORD
-REGISTER_WORD(PrintWords)
+REGISTER_WORD(ExportWords)
 
 
 WORD(PixelGlobalTest)
