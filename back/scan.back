@@ -25,6 +25,8 @@ workspace4 "outputPileWorkspace" store
 "utils" import
 
 (
+  1 setGradientServoHardMaxIterations
+  1 setGradientServoSoftMaxIterations
   ( isGripperGripping ! ) (
     openGripper
     halfImpulse
@@ -53,6 +55,10 @@ workspace4 "outputPileWorkspace" store
 
 (
   setPickModeToLearningAlgorithmC
+  1 setSnapToFlushGrasp
+  3 setGradientServoHardMaxIterations
+  3 setGradientServoSoftMaxIterations
+
   ( isGripperGripping ! ) (
     halfImpulse playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
     openGripper
@@ -73,8 +79,6 @@ workspace4 "outputPileWorkspace" store
   endArgs "kr_dash2" setClassLabels createCachedClassifierFromClassLabels
   1 setSnapToFlushGrasp
   2 setMapServoMode
-  1 setGradientServoHardMaxIterations
-  1 setGradientServoSoftMaxIterations
   setPlaceModeToHold
   clearMapForPatrol
   openGripper
