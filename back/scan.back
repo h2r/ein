@@ -19,33 +19,23 @@ ifte
 
 
 workspace1 "inputPileWorkspace" store
-workspace2 "playWorkspace" store
+workspace3 "playWorkspace" store
 workspace4 "outputPileWorkspace" store
 
 "utils" import
 
 (
   ( isGripperGripping ! ) (
+    openGripper
     quarterImpulse
     inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
     perturbPosition
     1 changeToHeight 
-    mapLocal
+    clearMapForPatrol clearBlueBoxMemories mapLocal
     deliverTargetObject
     liftArm
   ) while
 ) "pickFromInputPile" store
-
-(
- ( isGripperGripping ! ) (
-  quarterImpulse
-  pickFocusedClass
-  liftArm
-) while
-  quarterImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
-  comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper 
-  liftArm
-) "moveToOutputPile" store
 
 ( 
   quarterImpulse
@@ -54,10 +44,24 @@ workspace4 "outputPileWorkspace" store
   /* this is where the scanning loop starts */
   ( zDown ) 10 replicateWord
   comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper 
-  ( zUp ) 15 replicateWord
+  liftArm
   setScanModeCentered  
   /*  scanObjectStreamWaypointsIR */
 ) "playWithObject" store
+
+
+(
+  ( isGripperGripping ! ) (
+    openGripper
+    quarterImpulse
+    pickFocusedClass
+    liftArm
+  ) while
+  quarterImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
+  comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper 
+  liftArm
+) "moveToOutputPile" store
+
 
 (
   endArgs "kr_dash2" setClassLabels createCachedClassifierFromClassLabels
