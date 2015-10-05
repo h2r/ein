@@ -13361,6 +13361,16 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut) {
   for (int i = 0; i < roa.objects.size(); i++) {
     stateOut->objects.push_back(roa.objects[i]);
   }
+
+  std::map<std::string, shared_ptr<Word> >::iterator iter;
+
+  for (iter = ms->variables.begin(); iter != ms->variables.end(); ++iter) {
+    stateOut->words.push_back(iter->first);
+  }
+
+  for (int i = 0; i < words.size(); i++) {
+    stateOut->words.push_back(words[i]->repr());
+  }
 }
 
 bool isFocusedClassValid(std::shared_ptr<MachineState> ms) {

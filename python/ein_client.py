@@ -52,13 +52,16 @@ class EinClient:
         self.call_stack = []
         self.data_stack = []
         
-        readline.set_completer(SimpleCompleter(words).complete)
         save_history_hook()
 
     def state_callback(self, msg):
         self.state = msg
         self.call_stack = self.state.call_stack
         self.data_stack = self.state.data_stack
+        if len(msg.words) != 0:
+            readline.set_completer(SimpleCompleter(msg.words).complete)
+
+
 
     def printCallStack(self):
         print "Call Stack: "
