@@ -1,6 +1,19 @@
 /* 
+ * we'd really like to shake after every pick, and *then* move to the output workspace.  Right now it does one pick, shakes, then moves to the output.
+ * 
+ * I think it counts the second (non-shook) pick as part of a grasp learning trial.
+ * 
+ * don't allow the moveToOutput word to stray too far from its home workspace.
+ * 
+ * check the play workspace and make sure it's clear before moving on
+ * 
+ * 
+ *
+ * implement flicking
+ * figure out what to do to keep him in the play workspace. 
+ * detect when gradient landed on nothing or something random
+ * setClassLabels without endArgs
  * asserts
- * tab complete variables in the repl
  * fix parsing of *
  * compound words repr
  * ints and doubles math. 
@@ -9,3 +22,8 @@
  * make a repl program end with escape; it currently seg faults ein
  * clear dirty blue boxes
  */
+
+
+Done:
+* tab complete variables in the repl
+* unit tests

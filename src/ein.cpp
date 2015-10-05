@@ -13640,7 +13640,7 @@ void initializeArmGui(shared_ptr<MachineState> ms, MainWindow * einMainWindow) {
   ms->config.graspMemoryWindow = new EinWindow(NULL, ms);
   ms->config.graspMemoryWindow->setWindowTitle("Grasp Memory View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.graspMemoryWindow);
-  ms->config.graspMemoryWindow->setMouseCallBack(graspMemoryCallbackFunc, NULL);
+  ms->config.graspMemoryWindow->setMouseCallBack(graspMemoryCallbackFunc, ms.get());
   
   
   
