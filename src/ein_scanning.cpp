@@ -3890,13 +3890,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // this is in mm's for now
   int gheight = 0;
   int tgg = 0;
+  int Utgg = 0;
   int x = ms->config.rmHalfWidth;
   int y = ms->config.rmHalfWidth;
 
   GET_ARG(ms, IntegerWord, gheight);
-  GET_ARG(ms, IntegerWord, tgg);
+  GET_ARG(ms, IntegerWord, Utgg);
   GET_ARG(ms, IntegerWord, y);
   GET_ARG(ms, IntegerWord, x);
+
+  tgg = Utgg-1;
 
   tgg = min(max(0, tgg), 3);
   x = min(max(0, x), ms->config.rmWidth-1);
@@ -3905,7 +3908,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int class_idx = ms->config.focusedClass;
   cout << "annotate2dGrasp, class: " << class_idx << endl;
   if ( (class_idx > -1) && (class_idx < ms->config.classLabels.size()) ) {
-    cout << "  annotating x y tgg gheight: " << x << " " << y << " " << tgg << " " << gheight << endl;
+    cout << "  annotating x y Utgg gheight, tgg: " << x << " " << y << " " << Utgg << " " << gheight << ", " << tgg << endl;
     guardGraspMemory(ms);
     zeroGraspMemoryAndRangeMap(ms);
     zeroClassGraspMemory(ms);

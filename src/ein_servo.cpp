@@ -1274,7 +1274,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.gshHistogram = eePose::zero();
   ms->config.gshCounts = 0.0;
 
-  ms->pushWord("gradientServoB");
+  ms->pushWord("gradientServoA");
 }
 END_WORD
 REGISTER_WORD(GradientServo)
@@ -1331,6 +1331,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   // ATTN 23
   {
+    ms->pushWord("waitUntilEndpointCallbackReceived");
     ms->pushWord("accumulatedDensity");
     ms->pushCopies("waitUntilImageCallbackReceived", 10);
     ms->pushWord("resetAccumulatedDensity");
@@ -1364,8 +1365,8 @@ WORD(GradientServoIfBlueBoxes)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (ms->config.bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
     // XXX changeTargetClass should come after?
-    changeTargetClass(ms, ms->config.bLabels[ms->config.pilotClosestBlueBoxNumber]);
     ms->pushWord("gradientServo");
+    changeTargetClass(ms, ms->config.bLabels[ms->config.pilotClosestBlueBoxNumber]);
   }
 }
 END_WORD
