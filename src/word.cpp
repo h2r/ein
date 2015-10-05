@@ -420,7 +420,8 @@ void SymbolWord::execute(std::shared_ptr<MachineState> ms) {
     std::shared_ptr<Word> word = ms->variables[s];
     ms->pushWord(word);
   } else {
-    cout << "No value for " << repr() << endl;
+    cout << "No value for symbol word " << repr() << endl;
+    ms->pushWord("pauseStackExecution"); 
   }
 }
 
