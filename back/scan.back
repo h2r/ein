@@ -52,15 +52,16 @@ workspace4 "outputPileWorkspace" store
 
 
 (
-  halfImpulse playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
   setPickModeToLearningAlgorithmC
   ( isGripperGripping ! ) (
+    halfImpulse playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
     openGripper
     halfImpulse
     changeToHeight1
     setPlaceModeToHold
     pickFocusedClass
-    liftArm
+    isGripperGripping ( liftArm ) ift
+
   ) while
   halfImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
   comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper 
