@@ -495,7 +495,7 @@ REGISTER_WORD(PickFocusedClass)
 WORD(ReplaceBlueBoxesWithFocusedClass)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  if (isFocusedClassValid(ms)) {
+  if (isFocusedClassValid(ms) && ms->config.bTops.size() > 0) {
     cout << "replaceBlueBoxesWithFocusedClass: Focused class is valid, replacing bTops etc." << endl;
     ms->config.bTops.resize(1);
     ms->config.bBots.resize(1);

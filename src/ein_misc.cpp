@@ -348,7 +348,6 @@ END_WORD
 REGISTER_WORD(Equals)
 
 
-
 WORD(Not)
 CODE('!') 
 virtual vector<string> names() {
@@ -1243,16 +1242,28 @@ REGISTER_WORD(CastToInteger)
 
 WORD(Assert)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double number = 0.0;
-  GET_NUMERIC_ARG(ms, number);
-  if (number != 0) {
-  } else {
+  bool value;
+  GET_BOOLEAN_ARG(ms, value);
+  if (!value) {
     ROS_ERROR_STREAM("Failed assert. Pausing." << endl);
-    //ms->pushWord("pauseStackExecution");
+    ms->pushWord("pauseStackExecution");
   }
 }
 END_WORD
 REGISTER_WORD(Assert)
+
+
+WORD(AssertNo)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  bool value;
+  GET_BOOLEAN_ARG(ms, value);
+  if (value) {
+    ROS_ERROR_STREAM("Failed assertNo. Pausing." << endl);
+    ms->pushWord("pauseStackExecution");
+  }
+}
+END_WORD
+REGISTER_WORD(AssertNo)
 
 
 WORD(While)
@@ -1324,6 +1335,13 @@ REGISTER_WORD(TwistWords)
 
 */
 
+WORD(NumBlueBoxes)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<IntegerWord> numBlueBoxes = make_shared<IntegerWord>(ms->config.bTops.size());
+  ms->pushWord(numBlueBoxes);  
+}
+END_WORD
+REGISTER_WORD(NumBlueBoxes)
 
 
 

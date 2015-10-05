@@ -25,9 +25,17 @@ workspace4 "outputPileWorkspace" store
 "utils" import
 
 (
+moveEeToPoseWord waitUntilAtCurrentPosition
+setMovementStateToMoving comeToStop visionCycleNoClassify
+numBlueBoxes 0 = 1 0 ifte
+) "workspaceIsClear" store
+
+(
+  2 setGradientServoHardMaxIterations
+  2 setGradientServoSoftMaxIterations
   ( isGripperGripping ! ) (
     openGripper
-    quarterImpulse
+    halfImpulse
     inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
     perturbPosition
     1 changeToHeight 
@@ -38,26 +46,36 @@ workspace4 "outputPileWorkspace" store
 ) "pickFromInputPile" store
 
 ( 
-  quarterImpulse
+  halfImpulse
   playWorkspace moveEeToPoseWord
   waitUntilAtCurrentPosition
   /* this is where the scanning loop starts */
-  ( zDown ) 10 replicateWord
+  ( zDown ) 15 replicateWord
   comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper 
-  liftArm
-  setScanModeCentered  
-  /*  scanObjectStreamWaypointsIR */
+  ( zUp ) 8 replicateWord
+  waitUntilAtCurrentPosition
+  setScanModeCentered
+  pushCurrentPose scanObjectStreamWaypointsIR
 ) "playWithObject" store
 
 
 (
+  setPickModeToLearningAlgorithmC
+  1 setSnapToFlushGrasp
+  3 setGradientServoHardMaxIterations
+  3 setGradientServoSoftMaxIterations
+
   ( isGripperGripping ! ) (
+    halfImpulse playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
     openGripper
-    quarterImpulse
+    halfImpulse
+    changeToHeight1
+    setPlaceModeToHold
     pickFocusedClass
-    liftArm
+    isGripperGripping ( liftArm ) ift
+
   ) while
-  quarterImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
+  halfImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
   comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper 
   liftArm
 ) "moveToOutputPile" store
@@ -67,8 +85,6 @@ workspace4 "outputPileWorkspace" store
   endArgs "kr_dash2" setClassLabels createCachedClassifierFromClassLabels
   1 setSnapToFlushGrasp
   2 setMapServoMode
-  1 setGradientServoHardMaxIterations
-  1 setGradientServoSoftMaxIterations
   setPlaceModeToHold
   clearMapForPatrol
   openGripper
