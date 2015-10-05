@@ -987,6 +987,7 @@ REGISTER_WORD(PressUntilEffortInit)
 WORD(PressUntilEffort)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
+  ms->config.pressUntilEffortCounter = 0;
   ms->pushWord("pressUntilEffortA");
   ms->pushWord("setEffortHere");
 }
@@ -996,37 +997,44 @@ REGISTER_WORD(PressUntilEffort)
 WORD(PressUntilEffortA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  cout << "pressUntilEffortA: ";
-  double totalDiff = 0.0;
-  for (int i = 0; i < NUM_JOINTS; i++) {
-    double thisDiff = (ms->config.target_joint_actual_effort[i] - ms->config.last_joint_actual_effort[i]);
-    cout << ms->config.target_joint_actual_effort[i] << " " << ms->config.last_joint_actual_effort[i] << " " << thisDiff << " ";
-    totalDiff = totalDiff + (thisDiff * thisDiff);
-  }
-
-  cout << endl << "  totalDiff: " << totalDiff << "   actual_effort_thresh: " << ms->config.actual_effort_thresh << endl;
-
-  if (totalDiff > ms->config.actual_effort_thresh) {
-    cout << "~~~~~~~~" << endl << "crossed effort thresh" << endl << endl;
-    ms->pushWord("stayNoRoll");
-  } else {
-    ms->pushWord("pressUntilEffortA");
-    if (eePose::distance(ms->config.currentEEPose, ms->config.trueEEPoseEEPose) < ms->config.w1GoThresh) {
-      cout << "nudging" << endl;
-      // the effort measurement drifts natural when the arm moves, even under no load,
-      //  and one way of dealing with this is to reset the effort every so often. It would be
-      //  smoother to do this in a continuous way, like exponential average, but it is not
-      //  clear what the most natural way is.
-      ms->pushWord("replicateWord");
-      ms->pushWord("5");
-      ms->pushData("localZUp");
-      //ms->pushWord("replicateWord");
-      //ms->pushWord("5");
-      //ms->pushData("zDown");
-      ms->pushWord("setEffortHere");
-    } else {
+  if (ms->config.pressUntilEffortCounter < ms->config.pressUntilEffortCounterTimeout) {
+    ms->config.pressUntilEffortCounter++;
+    cout << "pressUntilEffortA: ";
+    double totalDiff = 0.0;
+    for (int i = 0; i < NUM_JOINTS; i++) {
+      double thisDiff = (ms->config.target_joint_actual_effort[i] - ms->config.last_joint_actual_effort[i]);
+      cout << ms->config.target_joint_actual_effort[i] << " " << ms->config.last_joint_actual_effort[i] << " " << thisDiff << " ";
+      totalDiff = totalDiff + (thisDiff * thisDiff);
     }
+
+    cout << endl << "  totalDiff: " << totalDiff << "   actual_effort_thresh: " << ms->config.actual_effort_thresh << endl;
+
+    if (totalDiff > ms->config.actual_effort_thresh) {
+      cout << "~~~~~~~~" << endl << "crossed effort thresh" << endl << endl;
+      ms->pushWord("stayNoRoll");
+    } else {
+      ms->pushWord("pressUntilEffortA");
+      if (eePose::distance(ms->config.currentEEPose, ms->config.trueEEPoseEEPose) < ms->config.w1GoThresh) {
+	cout << "nudging" << endl;
+	// the effort measurement drifts natural when the arm moves, even under no load,
+	//  and one way of dealing with this is to reset the effort every so often. It would be
+	//  smoother to do this in a continuous way, like exponential average, but it is not
+	//  clear what the most natural way is.
+	ms->pushWord("replicateWord");
+	ms->pushWord("5");
+	ms->pushData("localZUp");
+	//ms->pushWord("replicateWord");
+	//ms->pushWord("5");
+	//ms->pushData("zDown");
+	ms->pushWord("setEffortHere");
+      } else {
+      }
+    }
+  } else {
+    cout << "Warning: pressUntilEffort timed out, moving on." << endl;
   }
+
+  ms->pushWord("endStackCollapseNoop");
 
   ms->pushWord("endStackCollapseNoop");
 }

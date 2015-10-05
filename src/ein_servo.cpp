@@ -1270,9 +1270,11 @@ REGISTER_WORD(SynchronicServoA)
 WORD(GradientServo)
 CODE(196728)   // capslock + X
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  // XXX currentGradientServoIterations should be set to 0 here and another wrapper layer introduced
-  ms->pushWord("gradientServoA");
-  ms->pushWord("gradientServoPrep");
+  ms->config.currentGradientServoIterations = 0;
+  ms->config.gshHistogram = eePose::zero();
+  ms->config.gshCounts = 0.0;
+
+  ms->pushWord("gradientServoB");
 }
 END_WORD
 REGISTER_WORD(GradientServo)
@@ -1337,19 +1339,26 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("comeToStop");
   }
   
-
-
   ms->pushWord("waitUntilAtCurrentPosition"); 
 }
 END_WORD
 REGISTER_WORD(GradientServoPrep)
 
-WORD(GradientServoA)
+WORD(GradientServoB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   gradientServo(ms);
 }
 END_WORD
+REGISTER_WORD(GradientServoB)
+
+WORD(GradientServoA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord("gradientServoB");
+  ms->pushWord("gradientServoPrep");
+}
+END_WORD
 REGISTER_WORD(GradientServoA)
+
 
 WORD(GradientServoIfBlueBoxes)
 virtual void execute(std::shared_ptr<MachineState> ms) {
