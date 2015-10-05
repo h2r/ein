@@ -6,4 +6,6 @@
  * ints and doubles math. 
  * think about enums in C and back
  * string concat
+
+* make a repl program end with escape; it currently seg faults ein
  */
