@@ -528,7 +528,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   std::ifstream t(fname.str());
   if (!t.is_open()) {
     cout << "Ooops, import tried to read " << fname.str() << " but it couldn't open..." << endl;
-    ms->pushWord("pauseStackExecution");	\
+    ms->pushWord("pauseStackExecution");   
     return;
   }
   std::stringstream buffer;
