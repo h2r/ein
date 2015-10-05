@@ -22,28 +22,33 @@ workspace1 "inputPileWorkspace" store
 workspace2 "playWorkspace" store
 workspace4 "outputPileWorkspace" store
 
+"utils" import
+
 (
   ( isGripperGripping ! ) (
     quarterImpulse
     inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
     perturbPosition
+    1 changeToHeight 
     mapLocal
     deliverTargetObject
-    0.01 setGridSize
-    ( zUp ) 15 replicateWord
+    liftArm
   ) while
 ) "pickFromInputPile" store
 
 (
+ ( isGripperGripping ! ) (
+  quarterImpulse
   pickFocusedClass
-  0.01 setGridSize
-  ( zUp ) 15 replicateWord
+  liftArm
+) while
   quarterImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
   comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper 
-  ( zUp ) 15 replicateWord
+  liftArm
 ) "moveToOutputPile" store
 
 ( 
+  quarterImpulse
   playWorkspace moveEeToPoseWord
   waitUntilAtCurrentPosition
   /* this is where the scanning loop starts */

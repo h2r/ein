@@ -1,3 +1,10 @@
 
 ( ( 1 ) ( dup exec 1 waitForSeconds pop ) while ) "watch" store
 
+
+(
+  0.01 setGridSize
+  ( zUp ) 15 replicateWord
+  waitUntilCurrentPosition
+) "liftArm"
+

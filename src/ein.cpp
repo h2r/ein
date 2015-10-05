@@ -7870,13 +7870,12 @@ void gradientServo(shared_ptr<MachineState> ms) {
   double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
   ms->config.lastPtheta = Ptheta;
   
-  
-  // XXX this still might miss if it nails the correct orientation on the last try
-  // TODO but we could set the bestOrientationEEPose here according to what it would have been`
-  // but we don't want to move because we want all the numbers to be consistent
-  if (ms->config.currentGradientServoIterations > (ms->config.hardMaxGradientServoIterations-1)) {
-    //cout << "LAST ITERATION indefinite orientation ";
-  } else {
+  int is_this_last = ms->config.currentGradientServoIterations >= (ms->config.hardMaxGradientServoIterations-1);
+
+  // Note: you might not want to adjust the orientation on the last iteration because the perspective changes
+  // and you would like to have the best translation from this perspective. But this is incompatible with the notion
+  // of a single iteration.
+  {
     double kPtheta = 0.0;
     if (Ptheta < ms->config.kPThresh)
       kPtheta = ms->config.kPtheta2;
@@ -7893,92 +7892,8 @@ void gradientServo(shared_ptr<MachineState> ms) {
   
   double doublePtheta =   ms->config.currentEEDeltaRPY.pz;
 
-  //cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << 
-  //ms->config.pilotTarget.px << " " << reticle.py << " " << ms->config.pilotTarget.py << " " <<
-  //bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
-  
-  double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
-  double dy = (ms->config.currentEEPose.py - ms->config.trueEEPose.position.y);
-  double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
-  double distance = dx*dx + dy*dy + dz*dz;
-  
-
-  // ATTN 5
-  // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
-  if (((fabs(Px) < ms->config.gradServoPixelThresh) && (fabs(Py) < ms->config.gradServoPixelThresh) && (fabs(Ptheta) < ms->config.gradServoThetaThresh)) ||
-      (ms->config.currentGradientServoIterations > (ms->config.hardMaxGradientServoIterations-1)))
+  // position update
   {
-
-    if (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) {
-      ms->config.gshHistogram = ms->config.gshHistogram.plusP(ms->config.currentEEPose);
-      ms->config.gshCounts = 1.0 + ms->config.gshCounts;
-      cout << "Adding final gradient servo position estimate to histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
-    } else {
-    } // do nothing
-     
-    // turn off histogrammed code for now
-    if (ms->config.gshCounts > 0) {
-      cout << "Replacing final gradient servo position estimate with histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
-      ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
-      ms->config.currentEEPose.copyP(ms->config.gshPose);
-    }
-    ms->config.gshHistogram = eePose::zero();
-    ms->config.gshCounts = 0.0;
-    
-cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
-    ms->pushCopies("waitUntilAtCurrentPosition", 1); 
-    
-    
-    // ATTN 23
-    // move from vanishing point reticle to gripper reticle
-    //moveCurrentGripperRayToCameraVanishingRay();
-    //ms->config.bestOrientationEEPose = ms->config.currentEEPose;
-
-    // ATTN 12
-    if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
-      cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << ms->config.gradientServoDuringHeightLearning << endl;
-      cout << "bbLearning: returning from gradient servo." << endl;
-      return;
-    }
-    
-
-    // XXX Deprecated, no longer auto-picking
-    /*
-    // ATTN 17
-    if (ms->config.bailAfterGradient) {
-      cout << "gradient servo set to bail. returning." << endl;
-      return;
-    }
-    
-    //cout << "got within thresh, returning." << endl;
-    cout << "got within thresh, fetching." << endl;
-    ms->config.lastPtheta = INFINITY;
-    cout << "resetting lastPtheta: " << ms->config.lastPtheta << endl;
-
-    if (ms->config.synchronicTakeClosest) {
-      if (ms->config.gradientTakeClosest) {
-	if ((ms->config.classRangeMaps[ms->config.targetClass].rows > 1) && (ms->config.classRangeMaps[ms->config.targetClass].cols > 1))
-	  ms->pushWord("prepareForAndExecuteGraspFromMemoryLearning"); // prepare for and execute the best grasp from memory at the current location and target
-	else {
-	  ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
-	}
-      } else {
-	return;
-      }
-    } else {
-      if ((ms->config.classRangeMaps[ms->config.targetClass].rows > 1) && (ms->config.classRangeMaps[ms->config.targetClass].cols > 1)) {
-	ms->pushWord("prepareForAndExecuteGraspFromMemoryLearning"); 
-      } else {
-	ROS_ERROR_STREAM("Cannot pick object with incomplete map.");
-      }
-    }
-    */
-    
-    return;
-  } else {
-      
-    ms->pushWord("gradientServo"); 
-    
     double pTermX = ms->config.gradKp*Px;
     double pTermY = ms->config.gradKp*Py;
     
@@ -8028,28 +7943,64 @@ cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.cu
 
     ms->config.currentEEPose.px = newx;
     ms->config.currentEEPose.py = newy;
+  }
+  
+  // if we are at the soft max, take first histogram estimate.
+  // if we are above, add to it
+  // if we are below it, we behave as if there is no histogram 
+  // That is, to disable histogramming, set softmax to hardmax.
+  if (ms->config.currentGradientServoIterations == (ms->config.softMaxGradientServoIterations-1)) {
+    ms->config.gshHistogram = ms->config.currentEEPose;
+    ms->config.gshCounts = 1.0;
+    cout << "Initializing gradient servo histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
+    ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
+    ms->config.currentEEPose.copyP(ms->config.gshPose);
+  } else if (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) {
+    ms->config.gshHistogram = ms->config.gshHistogram.plusP(ms->config.currentEEPose);
+    ms->config.gshCounts = 1.0 + ms->config.gshCounts;
+    cout << "Adding intermediate gradient servo position estimate to histogrammed position estimate, counts: " << 
+      ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
+    ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
+    ms->config.currentEEPose.copyP(ms->config.gshPose);
+  } else {
+  } // do nothing
 
-    // if we are at the soft max, take first histogram estimate.
-    // if we are above, add to it
-    // if we are below it 
-    if (ms->config.currentGradientServoIterations == (ms->config.softMaxGradientServoIterations-1)) {
-      ms->config.gshHistogram = ms->config.currentEEPose;
-      ms->config.gshCounts = 1.0;
-      cout << "Initializing gradient servo histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
-      ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
-      ms->config.currentEEPose.copyP(ms->config.gshPose);
-    } else if (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) {
-      ms->config.gshHistogram = ms->config.gshHistogram.plusP(ms->config.currentEEPose);
-      ms->config.gshCounts = 1.0 + ms->config.gshCounts;
-      cout << "Adding intermediate gradient servo position estimate to histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
+  //cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << 
+  //ms->config.pilotTarget.px << " " << reticle.py << " " << ms->config.pilotTarget.py << " " <<
+  //bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
+
+  // ATTN 5
+  // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
+  if (((fabs(Px) < ms->config.gradServoPixelThresh) && (fabs(Py) < ms->config.gradServoPixelThresh) && (fabs(Ptheta) < ms->config.gradServoThetaThresh)) ||
+      ( is_this_last ))
+  {
+
+    if (ms->config.gshCounts > 0) {
+      cout << "Replacing final gradient servo position estimate with histogrammed position estimate, counts: " << 
+	ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
       ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
       ms->config.currentEEPose.copyP(ms->config.gshPose);
     } else {
-    } // do nothing
-
-cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
-    ms->pushCopies("waitUntilAtCurrentPosition", 1); 
+    }
     
+    cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
+
+    //ms->pushWord("pauseStackExecution"); 
+    ms->pushWord("waitUntilAtCurrentPosition"); 
+    
+    // ATTN 12
+    if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
+      cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << ms->config.gradientServoDuringHeightLearning << endl;
+      cout << "bbLearning: returning from gradient servo." << endl;
+      return;
+    }
+    
+    return;
+  } else {
+    ms->pushWord("gradientServoA"); 
+    //ms->pushWord("pauseStackExecution"); 
+    ms->pushWord("waitUntilAtCurrentPosition"); 
+    cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
   }
 
   // update after
