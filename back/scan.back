@@ -27,7 +27,7 @@ workspace4 "outputPileWorkspace" store
 (
   ( isGripperGripping ! ) (
     openGripper
-    quarterImpulse
+    halfImpulse
     inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
     perturbPosition
     1 changeToHeight 
@@ -38,11 +38,11 @@ workspace4 "outputPileWorkspace" store
 ) "pickFromInputPile" store
 
 ( 
-  quarterImpulse
+  halfImpulse
   playWorkspace moveEeToPoseWord
   waitUntilAtCurrentPosition
   /* this is where the scanning loop starts */
-  ( zDown ) 10 replicateWord
+  ( zDown ) 15 replicateWord
   comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper 
   ( zUp ) 8 replicateWord
   waitUntilAtCurrentPosition
@@ -52,14 +52,17 @@ workspace4 "outputPileWorkspace" store
 
 
 (
+  halfImpulse playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
+  setPickModeToLearningAlgorithmC
   ( isGripperGripping ! ) (
     openGripper
-    quarterImpulse
+    halfImpulse
     changeToHeight1
+    setPlaceModeToHold
     pickFocusedClass
     liftArm
   ) while
-  quarterImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
+  halfImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
   comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper 
   liftArm
 ) "moveToOutputPile" store
