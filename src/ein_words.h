@@ -201,6 +201,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) { \
 END_WORD \
 REGISTER_WORD(backName) 
 
+#define CONFIG_GETTER_DOUBLE(backName, configName)	\
+WORD(backName) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  ms->pushWord(make_shared<DoubleWord>(configName)); \
+} \
+END_WORD \
+REGISTER_WORD(backName) 
+
+#define CONFIG_SETTER_DOUBLE(backName, configName)	\
+WORD(backName) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  double value; \
+  GET_NUMERIC_ARG(ms, value); \
+  configName = value;	\
+} \
+END_WORD \
+REGISTER_WORD(backName) 
+
 
 
 int register_word(shared_ptr<Word> word);

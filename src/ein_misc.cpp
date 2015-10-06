@@ -479,6 +479,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(Pop)
 
+WORD(Slide)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  std::shared_ptr<Word> word = ms->popWord();
+  if (word == NULL) {
+    cout << "Slide Must take an argument from the call stack." << endl;
+  } else {
+    ms->pushData(word);
+  }
+}
+END_WORD
+REGISTER_WORD(Slide)
+
 
 WORD(Store)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1321,11 +1333,6 @@ REGISTER_WORD(IsGripperGripping)
 
 
 
-WORD(TwistWords)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-}
-END_WORD
-REGISTER_WORD(TwistWords)
 
 
 /*
