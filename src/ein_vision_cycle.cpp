@@ -59,11 +59,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("synchronicServoTakeClosest");
   } else if (ms->config.currentMapServoMode == FIXED_CLASS_CONTINUOUS) {
     ms->pushWord("continuousServo");
-    ms->pushWord("continuousServo");
-    ms->pushWord("continuousServo");
-    ms->pushWord("continuousServo");
-    ms->pushWord("continuousServo");
-    ms->pushWord("continuousServo");
+    //ms->pushWord("continuousServo");
+    //ms->pushWord("continuousServo");
+    //ms->pushWord("continuousServo");
+    //ms->pushWord("continuousServo");
+    //ms->pushWord("continuousServo");
     ms->pushWord("mapClosestBlueBox");
     ms->pushWord("mapEmptySpace");
     ms->pushWord("replaceBlueBoxesWithFocusedClass"); 

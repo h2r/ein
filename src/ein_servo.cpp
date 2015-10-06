@@ -163,13 +163,15 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 
       ms->pushWord("pressUntilEffortInit");
       ms->pushWord("comeToStop");
+      ms->pushWord("setMovementStateToMoving");
+      ms->pushWord("comeToStop");
       ms->pushWord("waitUntilAtCurrentPosition");
 
       ms->pushWord("setSpeed");
       ms->pushWord("0.05");
 
       ms->pushWord("replicateWord");
-      ms->pushWord("8");
+      ms->pushWord("16");
       ms->pushData("localZUp");
 
       ms->pushWord("setGridSizeCoarse");

@@ -1351,6 +1351,10 @@ class EinConfig {
   ros::Time waitForSecondsTarget;
   ros::Time spinForSecondsTarget;
 
+  ros::Time measureTimeTarget;
+  ros::Time measureTimeStart;
+  double measureTimePeriod = 1.0;
+
   baxter_core_msgs::ITBState lastItbs;
 
   eePose pressPose;

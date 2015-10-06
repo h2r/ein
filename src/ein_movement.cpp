@@ -5,6 +5,9 @@
 
 namespace ein_words {
 
+CONFIG_GETTER_DOUBLE(W1GoThresh, ms->config.w1GoThresh)
+CONFIG_SETTER_DOUBLE(SetW1GoThresh, ms->config.w1GoThresh)
+
 WORD(AssumeAimedPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int idxToRemove = ms->config.targetBlueBox;
@@ -1610,5 +1613,108 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(DiagnosticRelativePose)
+
+
+
+
+WORD(MeasureTimeStart)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ros::Time tNow = ros::Time::now();
+  ms->config.measureTimeTarget = tNow;
+  ms->config.measureTimeStart = tNow;
+  ms->config.measureTimePeriod = 1.0;
+}
+END_WORD
+REGISTER_WORD(MeasureTimeStart)
+
+WORD(MeasureTimeEnd)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // this word is a marker for the end of a sequence
+}
+END_WORD
+REGISTER_WORD(MeasureTimeEnd)
+
+WORD(MeasureTimeSetPeriod)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double periodin = 0;
+  GET_NUMERIC_ARG(ms, periodin);
+  ms->config.measureTimePeriod = periodin;
+}
+END_WORD
+REGISTER_WORD(MeasureTimeSetPeriod)
+
+WORD(MeasureTime)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord("measureTimeA");
+  ms->pushWord("measureTimeInit");
+}
+END_WORD
+REGISTER_WORD(MeasureTime)
+
+WORD(MeasureTimeSinceStart)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord("measureTimeA");
+  ms->pushWord("measureTimeInitSinceStart");
+}
+END_WORD
+REGISTER_WORD(MeasureTimeSinceStart)
+
+WORD(MeasureTimeInit)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double secondsToMeasure = 0;
+  GET_NUMERIC_ARG(ms, secondsToMeasure);
+  ms->config.measureTimeTarget = ms->config.measureTimeTarget + ros::Duration(secondsToMeasure * ms->config.measureTimePeriod);
+}
+END_WORD
+REGISTER_WORD(MeasureTimeInit)
+
+WORD(MeasureTimeInitSinceStart)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double secondsToMeasure = 0;
+  GET_NUMERIC_ARG(ms, secondsToMeasure);
+  ms->config.measureTimeTarget = ms->config.measureTimeStart + ros::Duration(secondsToMeasure * ms->config.measureTimePeriod);
+}
+END_WORD
+REGISTER_WORD(MeasureTimeInitSinceStart)
+
+WORD(MeasureTimeA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  //cout << "measureTimeA: ";
+  ros::Time thisNow = ros::Time::now();
+  if (thisNow.toSec() > ms->config.measureTimeTarget.toSec()) {
+    //cout << "PASSED at time, target, delta: " << thisNow.toSec() << " " << ms->config.measureTimeTarget.toSec() << " " << thisNow.toSec() - ms->config.measureTimeTarget.toSec() << endl;
+  } else {
+    //cout << "HELD at time, target, delta: " << thisNow.toSec() << " " << ms->config.measureTimeTarget.toSec() << " " << thisNow.toSec() - ms->config.measureTimeTarget.toSec() << endl;
+    ms->pushWord("measureTimeA");
+    // does not end stack collapse
+  }
+}
+END_WORD
+REGISTER_WORD(MeasureTimeA)
+
+
+WORD(Interlace)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(Interlace)
+
+WORD(ScaleMeasures)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // parse a compound word and rewrite the measureTime statements
+  // XXX OR this should be written into hardInterlace vs softInterlace
+}
+END_WORD
+REGISTER_WORD(ScaleMeasures)
+
+// twistWords takes two compound words A and B as arguments. 
+// A and B must start with MeasureTimeStart
+WORD(TwistWords)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(TwistWords)
+
+
 
 }
