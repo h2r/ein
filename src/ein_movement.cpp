@@ -51,7 +51,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->config.endThisStackCollapse = 1;
     ms->config.shouldIDoIK = 1;
   } else {
-    ms->config.endThisStackCollapse = 1;
+    //ms->config.endThisStackCollapse = 1;
   }
 }
 END_WORD
