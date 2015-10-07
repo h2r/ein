@@ -53,6 +53,9 @@ public:
   virtual int to_int() {
     return 1;
   }
+  virtual double to_double() {
+    return 1;
+  }
 
   /**
    * Returns it as a string in the repl (e.g., quotes, back ticks for strings and symbols)
@@ -178,6 +181,9 @@ public:
     }
   }
   virtual int to_int() {
+    return n;
+  }
+  virtual double to_double() {
     return n;
   }
 };
