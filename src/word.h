@@ -110,7 +110,7 @@ public:
   }
 
   bool equals(shared_ptr<Word> word) {
-    return w1->to_double()== this->to_double();
+    return word->to_double()== this->to_double();
   }
   
   virtual bool to_bool() {
@@ -167,7 +167,7 @@ public:
   }
 
   bool equals(shared_ptr<Word> word) {
-    return w1->to_int() == this->to_int();
+    return word->to_int() == this->to_int();
   }
   
   virtual bool to_bool() {
