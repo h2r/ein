@@ -291,6 +291,12 @@ REGISTER_WORD(DeliverObject)
 WORD(UnmapTargetBlueBox)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int idxToRemove = ms->config.targetBlueBox;
+  if ((idxToRemove >= 0) && (idxToRemove < ms->config.blueBoxMemories.size())) {
+  } else {
+    cout << "unmapTargetBlueBox: invalid blue box, returning." << endl;
+    return;
+  }
+
   BoxMemory memory = ms->config.blueBoxMemories[idxToRemove];
 
   { // set the old box's lastMappedTime to moments after the start of time
@@ -471,19 +477,30 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("assumeDeliveryPose");
     ms->pushWord("setPatrolStateToPlacing");
   } else if (ms->config.currentPlaceMode == HAND) {
-  ms->pushWord("idler"); 
-  ms->pushWord("unmapTargetBlueBox");
-  ms->pushWord("openGripper"); 
-  ms->pushWord("cruisingSpeed"); 
-  ms->pushWord("waitUntilAtCurrentPosition"); 
-  ms->pushWord("tryToMoveToTheLastPrePickHeight");   
+    ms->pushWord("idler"); 
+    ms->pushWord("unmapTargetBlueBox");
+    ms->pushWord("openGripper"); 
+    ms->pushWord("cruisingSpeed"); 
+    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("tryToMoveToTheLastPrePickHeight");   
 
     ms->pushCopies("localZDown", 5);
     ms->pushWord("setGridSizeCoarse");
 
-    if (0) {
+    if (1) {
       ms->pushWord("waitForTugThenOpenGripper");
+
+      ms->pushWord("setEffortHere");
+      ms->pushWord("setEffortThresh");
+      ms->pushWord("7.0");
+      ms->pushWord("waitForSeconds");
+      ms->pushWord("4.0");
+      ms->pushWord("comeToHover");
+      ms->pushWord("waitUntilAtCurrentPosition");
+
     } else {
+      // effort logic was moved into waitForTugThenOpenGripper since it
+      //  incorporates knowledge about the gripper. 
       // enchanced handoff
       ms->pushWord("waitUntilAtCurrentPosition"); 
       ms->pushWord("assumeHandingPose"); 
@@ -494,11 +511,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("replicateWord"); 
       ms->pushWord("80"); 
       ms->pushData("oXUp"); 
-      ms->pushWord("waitUntilEffort");
       */
 
-      // XXX TODO move this into waitForTugThenOpenGripper
 
+      ms->pushWord("waitUntilEffort");
       ms->pushWord("setEffortThresh");
       ms->pushWord("5.0");
 
@@ -523,6 +539,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("setPatrolStateToHanding");
   } else if (ms->config.currentPlaceMode == HOLD) {
     ms->pushWord("setPatrolStateToHanding");
+    ms->pushWord("checkAndCountGrasp");
   } else if (ms->config.currentPlaceMode == SHAKE) {
   ms->pushWord("idler"); 
   ms->pushWord("unmapTargetBlueBox");
@@ -894,7 +911,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
     //cout << endl << "  totalDiff: " << totalDiff << "   actual_effort_thresh: " << ms->config.actual_effort_thresh << endl;
 
-  ms->config.waitUntilEffortCounter++;
+    ms->config.waitUntilEffortCounter++;
 
     if (totalDiff > ms->config.actual_effort_thresh) {
       //cout << "~~~~~~~~" << endl << endl << endl << endl;
@@ -1021,8 +1038,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 	//  smoother to do this in a continuous way, like exponential average, but it is not
 	//  clear what the most natural way is.
 	ms->pushWord("replicateWord");
-	ms->pushWord("5");
+	ms->pushWord("2");
 	ms->pushData("localZUp");
+	ms->pushWord("setGridSizeCoarse");
 	//ms->pushWord("replicateWord");
 	//ms->pushWord("5");
 	//ms->pushData("zDown");

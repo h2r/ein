@@ -986,7 +986,7 @@ class EinConfig {
   double comeToStopTimeout = 30.0;
   ros::Time waitForTugStart;
   double waitForTugTimeout = 1e10;
-  double armedThreshold = 0.01;
+  double armedThreshold = 0.02;
 
 
 
@@ -1363,6 +1363,7 @@ class EinConfig {
   double rockDiffB = 0.0;
 
   eePose targetWrench;
+  double wrenchThresh = 15.0;
 
   int intendedEnableState = 1;
   int lastShoulderState = 1;
