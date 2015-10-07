@@ -110,12 +110,7 @@ public:
   }
 
   bool equals(shared_ptr<Word> word) {
-    shared_ptr<DoubleWord> w1 = dynamic_pointer_cast<DoubleWord>(word);
-    if (w1 == NULL) {
-      return false;
-    } else {
-      return w1->value() == this->value();
-    }
+    return w1->to_double()== this->to_double();
   }
   
   virtual bool to_bool() {
@@ -172,12 +167,7 @@ public:
   }
 
   bool equals(shared_ptr<Word> word) {
-    shared_ptr<IntegerWord> w1 = dynamic_pointer_cast<IntegerWord>(word);
-    if (w1 == NULL) {
-      return false;
-    } else {
-      return w1->value() == this->value();
-    }
+    return w1->to_int() == this->to_int();
   }
   
   virtual bool to_bool() {

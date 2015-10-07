@@ -13,9 +13,8 @@
  * figure out what to do to keep him in the play workspace. 
  * detect when gradient landed on nothing or something random
  * setClassLabels without endArgs
- * asserts
  * fix parsing of *
- * compound words repr
+
  * ints and doubles math. 
  * think about enums in C and back
  * string concat
@@ -27,3 +26,5 @@
 Done:
 * tab complete variables in the repl
 * unit tests
+* asserts
+* compound words repr
