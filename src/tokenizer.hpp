@@ -23,8 +23,6 @@ private:
   string_type  escape_;
   string_type  c_;
   string_type  quote_;
-  string_type  comment_in = "<";
-  string_type  comment_out = ">";
   bool last_;
 
   bool is_escape(Char e) {
@@ -123,8 +121,9 @@ public:
 
 	if (*next == '/') {
 	  bInComment = false;
+	} else {
+	  next--;
 	}
-	tok += *next;
       }
       else if (is_quote(*next) && !bInComment) {
 	bInQuote=!bInQuote;

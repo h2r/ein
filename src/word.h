@@ -53,6 +53,9 @@ public:
   virtual int to_int() {
     return 1;
   }
+  virtual double to_double() {
+    return 1;
+  }
 
   /**
    * Returns it as a string in the repl (e.g., quotes, back ticks for strings and symbols)
@@ -110,12 +113,7 @@ public:
   }
 
   bool equals(shared_ptr<Word> word) {
-    shared_ptr<DoubleWord> w1 = dynamic_pointer_cast<DoubleWord>(word);
-    if (w1 == NULL) {
-      return false;
-    } else {
-      return w1->value() == this->value();
-    }
+    return word->to_double()== this->to_double();
   }
   
   virtual bool to_bool() {
@@ -172,12 +170,7 @@ public:
   }
 
   bool equals(shared_ptr<Word> word) {
-    shared_ptr<IntegerWord> w1 = dynamic_pointer_cast<IntegerWord>(word);
-    if (w1 == NULL) {
-      return false;
-    } else {
-      return w1->value() == this->value();
-    }
+    return word->to_int() == this->to_int();
   }
   
   virtual bool to_bool() {
@@ -188,6 +181,9 @@ public:
     }
   }
   virtual int to_int() {
+    return n;
+  }
+  virtual double to_double() {
     return n;
   }
 };
