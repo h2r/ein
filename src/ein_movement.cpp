@@ -51,7 +51,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->config.endThisStackCollapse = 1;
     ms->config.shouldIDoIK = 1;
   } else {
-    //ms->config.endThisStackCollapse = 1;
+    // try not collapsing if you are where you want to be
+    ms->config.endThisStackCollapse = 1;
   }
 }
 END_WORD
@@ -1259,9 +1260,9 @@ WORD(WaitForTugThenOpenGripper)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitForTugThenOpenGripperA");
   ms->pushWord("waitUntilEndpointCallbackReceived");
-  ms->pushWord("comeToStop");
-  ms->pushWord("comeToHover");
-  ms->pushWord("waitUntilAtCurrentPosition");
+  //ms->pushWord("comeToStop");
+  //ms->pushWord("comeToHover");
+  //ms->pushWord("waitUntilAtCurrentPosition");
   ms->config.waitForTugStart = ros::Time::now();
   cout << "Waiting to feel a tug... " << ARMED << " " << ms->config.currentMovementState << endl;
 }
@@ -1292,18 +1293,61 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	ROS_WARN_STREAM("_____*____*________");
       }
     }
-  } else { // wrench based
+  } else if (0) { // wrench based
     double wrenchNorm = sqrt( eePose::squareDistance(eePose::zero(), ms->config.trueEEWrench) );
-    double wrenchThresh = 15;
-    bool wrenchOverThresh = ( wrenchNorm > wrenchThresh );
-    if ( wrenchOverThresh ||
+    bool wrenchOverThresh = ( wrenchNorm > ms->config.wrenchThresh );
+
+    if ( wrenchOverThresh || 
 	 ( !ms->config.gripperGripping ) ) {
       if ( !ms->config.gripperGripping ) {
 	cout << "There is nothing in the gripper so we should move on..." << endl;
       }
       if ( wrenchOverThresh ) {
-	cout << "Felt a tug, opening gripper; wrenchNorm wrenchThresh: " << wrenchNorm << " " << wrenchThresh << " " << endl;
+	cout << "Felt a tug, opening gripper; wrenchNorm wrenchThresh: " << wrenchNorm << " " << ms->config.wrenchThresh << " " << endl;
       }
+      ms->pushWord("openGripper");
+    } else {
+      ms->config.currentMovementState = ARMED;
+      ros::Duration timeSinceWFT = ros::Time::now() - ms->config.waitForTugStart;
+      if (timeSinceWFT.toSec() < ms->config.waitForTugTimeout) {
+	ms->pushWord("waitForTugThenOpenGripperA");
+      } else {
+	ROS_WARN_STREAM("_____*____*________");
+	ROS_ERROR_STREAM("waitForTugThenOpenGripper timeout reached, moving on.");
+	ROS_WARN_STREAM("_____*____*________");
+      }
+    }
+  } else {
+    // triple trigger, position disabled
+    double wrenchNorm = sqrt( eePose::squareDistance(eePose::zero(), ms->config.trueEEWrench) );
+    bool wrenchOverThresh = ( wrenchNorm > ms->config.wrenchThresh );
+
+
+    bool effortOverThresh = false;
+    {
+      double totalDiff = 0.0;
+      for (int i = 0; i < NUM_JOINTS; i++) {
+	double thisDiff = (ms->config.target_joint_actual_effort[i] - ms->config.last_joint_actual_effort[i]);
+	//cout << ms->config.target_joint_actual_effort[i] << " " << ms->config.last_joint_actual_effort[i] << " " << thisDiff << " ";
+	totalDiff = totalDiff + (thisDiff * thisDiff);
+      }
+
+      //cout << endl << "  totalDiff: " << totalDiff << "   actual_effort_thresh: " << ms->config.actual_effort_thresh << endl;
+      effortOverThresh = (totalDiff > ms->config.actual_effort_thresh);
+    }
+
+    //bool positionTrigger = ( ms->config.currentMovementState == MOVING );
+    bool positionTrigger = false;
+
+    if ( wrenchOverThresh || effortOverThresh || positionTrigger ||
+	 ( !ms->config.gripperGripping ) ) {
+      if ( !ms->config.gripperGripping ) {
+	cout << "There is nothing in the gripper so we should move on..." << endl;
+      }
+      if ( wrenchOverThresh ) {
+	cout << "Felt a tug, opening gripper; wrenchNorm wrenchThresh: " << wrenchNorm << " " << ms->config.wrenchThresh << " " << endl;
+      }
+      cout << "position trigger disabled --> wrenchOverThresh, effortOverThresh, positionTrigger: " << wrenchOverThresh << " " << effortOverThresh << " " << positionTrigger << endl;
       ms->pushWord("openGripper");
     } else {
       ms->config.currentMovementState = ARMED;
