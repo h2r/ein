@@ -4074,15 +4074,18 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
       thisCommand.data = ms->config.sonar_led_state;
       ms->config.sonar_pub.publish(thisCommand);
     }
-    {
-      std_msgs::Float32 thisCommand;
-      thisCommand.data = ms->config.red_halo_state;
-      ms->config.red_halo_pub.publish(thisCommand);
-    }
-    {
-      std_msgs::Float32 thisCommand;
-      thisCommand.data = ms->config.green_halo_state;
-      ms->config.green_halo_pub.publish(thisCommand);
+    if (ms->config.repeat_halo) {
+      {
+	std_msgs::Float32 thisCommand;
+	thisCommand.data = ms->config.red_halo_state;
+	ms->config.red_halo_pub.publish(thisCommand);
+      }
+      {
+	std_msgs::Float32 thisCommand;
+	thisCommand.data = ms->config.green_halo_state;
+	ms->config.green_halo_pub.publish(thisCommand);
+      }
+    } else {
     }
   }
 
@@ -8875,10 +8878,10 @@ int isThisGraspMaxedOut(shared_ptr<MachineState> ms, int i) {
     // ATTN 20
     double successes = ms->config.graspMemoryPicks[i];
     double failures = ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i];
-    cout << "YYY failures, successes: " << failures << " " << successes << endl;
+    //cout << "YYY failures, successes: " << failures << " " << successes << endl;
     successes = round(successes);
     failures = round(failures);
-    cout << "XXX failures, successes: " << failures << " " << successes << endl;
+    //cout << "XXX failures, successes: " << failures << " " << successes << endl;
     // returns probability that mu <= d given successes and failures.
     double result = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget);
     toReturn = (result > ms->config.algorithmCRT);

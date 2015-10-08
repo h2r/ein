@@ -196,6 +196,47 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(DecrementTargetClass)
 
+WORD(Or)
+CODE('|') 
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("||");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+  double v2;
+  GET_NUMERIC_ARG(ms, v2);
+
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(int(v1) || int(v2));
+  ms->pushWord(newWord);
+
+}
+END_WORD
+REGISTER_WORD(Or)
+
+WORD(And)
+CODE('&') 
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("&&");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+  double v2;
+  GET_NUMERIC_ARG(ms, v2);
+
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(int(v1) && int(v2));
+  ms->pushWord(newWord);
+
+}
+END_WORD
+REGISTER_WORD(And)
 
 WORD(Plus)
 CODE('+') 
@@ -1358,6 +1399,8 @@ CONFIG_SETTER_INT(SetGradientServoSoftMaxIterations, ms->config.softMaxGradientS
 CONFIG_GETTER_INT(GradientServoHardMaxIterations, ms->config.hardMaxGradientServoIterations)
 CONFIG_SETTER_INT(SetGradientServoHardMaxIterations, ms->config.hardMaxGradientServoIterations)
 
+CONFIG_GETTER_INT(RepeatHalo, ms->config.repeat_halo)
+CONFIG_SETTER_INT(SetRepeatHalo, ms->config.repeat_halo)
 
 
 
