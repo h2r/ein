@@ -309,6 +309,7 @@ class EinConfig {
   int sonar_led_state = 0;
   double red_halo_state = 100.0;
   double green_halo_state = 100.0;
+  int repeat_halo = 1;
 
 
   int zero_g_toggle = 1;
