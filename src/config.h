@@ -987,7 +987,7 @@ class EinConfig {
   double comeToStopTimeout = 30.0;
   ros::Time waitForTugStart;
   double waitForTugTimeout = 1e10;
-  double armedThreshold = 0.02;
+  double armedThreshold = 0.05;
 
 
 
