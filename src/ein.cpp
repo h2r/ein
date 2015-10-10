@@ -11740,11 +11740,6 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 
   nh.getParam("all_range_mode", ms->config.all_range_mode);
 
-  nh.param<int>("gray_box_top", ms->config.tGO, 0);
-  nh.param<int>("gray_box_bot", ms->config.bGO, 60);
-  nh.param<int>("gray_box_left", ms->config.lGO, 90);
-  nh.param<int>("gray_box_right", ms->config.rGO, 90);
-
   nh.getParam("arm_box_top", ms->config.tARM);
   nh.getParam("arm_box_bot", ms->config.bARM);
   nh.getParam("arm_box_left", ms->config.lARM);

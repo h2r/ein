@@ -1318,7 +1318,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
     }
   } else {
-    // triple trigger, position disabled
+    // triple trigger, position enabled
     double wrenchNorm = sqrt( eePose::squareDistance(eePose::zero(), ms->config.trueEEWrench) );
     bool wrenchOverThresh = ( wrenchNorm > ms->config.wrenchThresh );
 
@@ -1336,8 +1336,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       effortOverThresh = (totalDiff > ms->config.actual_effort_thresh);
     }
 
-    //bool positionTrigger = ( ms->config.currentMovementState == MOVING );
-    bool positionTrigger = false;
+    bool positionTrigger = ( ms->config.currentMovementState == MOVING );
+    //bool positionTrigger = false;
 
     if ( wrenchOverThresh || effortOverThresh || positionTrigger ||
 	 ( !ms->config.gripperGripping ) ) {

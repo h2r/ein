@@ -1133,8 +1133,8 @@ virtual vector<string> names() {
 }
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  cout << "Close parenthesis should never execute." << endl;
-  assert(0);
+  ROS_ERROR_STREAM("Close parenthesis should never execute." << endl);
+  ms->pushWord("pauseStackExecution");
 }
 END_WORD
 REGISTER_WORD(CP)
