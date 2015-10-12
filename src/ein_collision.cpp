@@ -14,19 +14,20 @@ namespace ein_words {
 WORD(InitializeKdlTree)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  if (!kdl_parser::treeFromString(ms->config.robot_description, ms->config.kdl_tree)){
+  KDL::Tree tree;
+  if (!kdl_parser::treeFromString(ms->config.robot_description, tree)){
     ROS_ERROR("Failed to construct kdl tree");
   }
-  cout << "KDL Joints: " << ms->config.kdl_tree.getNrOfJoints() << endl;
+  cout << "KDL Joints: " << tree.getNrOfJoints() << endl;
 
 
-  KDL::SegmentMap::const_iterator root = ms->config.kdl_tree.getRootSegment();
+  KDL::SegmentMap::const_iterator root = tree.getRootSegment();
 
-  KDL::SegmentMap::const_iterator arm = ms->config.kdl_tree.getSegment(ms->config.left_or_right_arm + "_arm_mount");
+  KDL::SegmentMap::const_iterator arm = tree.getSegment(ms->config.left_or_right_arm + "_arm_mount");
 
   // XX:  consider storing the arm chain in config
   KDL::Chain chain;
-  bool result = ms->config.kdl_tree.getChain(ms->config.left_or_right_arm + "_arm_mount", ms->config.left_or_right_arm + "_gripper_base", chain);
+  bool result = tree.getChain(ms->config.left_or_right_arm + "_arm_mount", ms->config.left_or_right_arm + "_gripper_base", chain);
   if (! result) {
     ROS_ERROR("Couldn't get chain.");
   }
