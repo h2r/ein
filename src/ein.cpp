@@ -8586,18 +8586,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
   double Px = ms->config.reticle.px - ms->config.pilotTarget.px;
   double Py = ms->config.reticle.py - ms->config.pilotTarget.py;
 
-  double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
-  double dy = (ms->config.currentEEPose.py - ms->config.trueEEPose.position.y);
-  double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
-  double distance = dx*dx + dy*dy + dz*dz;
-
-  // if we are not there yet, continue
-  if (distance > ms->config.w1GoThresh*ms->config.w1GoThresh) {
-    cout << " XXX deprecated code path, synchronci servo should not be responsible for enforcing distance 4812675" << endl;
-    ms->pushCopies("waitUntilAtCurrentPosition", 1); 
-    ms->config.synServoLockFrames = 0;
-    ms->pushWord("synchronicServo"); 
-  } else {
+  {
     if ((fabs(Px) < ms->config.synServoPixelThresh) && (fabs(Py) < ms->config.synServoPixelThresh)) {
       // ATTN 12
       if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
