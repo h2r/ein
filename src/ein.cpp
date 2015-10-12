@@ -2770,6 +2770,7 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& eps) 
   ms->config.trueEEPoseEEPose.qy = eps.pose.orientation.y;
   ms->config.trueEEPoseEEPose.qz = eps.pose.orientation.z;
   ms->config.trueEEPoseEEPose.qw = eps.pose.orientation.w;
+  //cout << "Setting true pose: " << ms->config.trueEEPoseEEPose << endl;
 
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisPose)) {
@@ -7856,10 +7857,10 @@ void gradientServo(shared_ptr<MachineState> ms) {
     }
   }
 
-  cv::Point text_anchor = cv::Point(0, ms->config.gradientViewerImage.rows-1);
+  cv::Point text_anchor = cv::Point(0, imH - 10);
   stringstream txt;
   txt << "Score: " << bestOrientationScore;
-  putText(ms->config.gradientViewerImage, txt.str(), text_anchor, MY_FONT, 1.0, Scalar(160,0,0), 1.0);
+  putText(ms->config.gradientViewerImage, txt.str(), text_anchor, MY_FONT, 1.0, Scalar(255,255,255), 1.0);
 
   
   oneToDraw = oneToDraw % numOrientations;
