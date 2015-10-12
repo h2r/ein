@@ -7798,6 +7798,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
     }
   }
 
+
   Mat bestGCrop = makeGCrop(ms, bestX, bestY); 
   int oneToDraw = bestOrientation;
   Px = -bestX;
@@ -7854,6 +7855,12 @@ void gradientServo(shared_ptr<MachineState> ms) {
       }
     }
   }
+
+  cv::Point text_anchor = cv::Point(0, ms->config.gradientViewerImage.rows-1);
+  stringstream txt;
+  txt << "Score: " << bestOrientationScore;
+  putText(ms->config.gradientViewerImage, txt.str(), text_anchor, MY_FONT, 1.0, Scalar(160,0,0), 1.0);
+
   
   oneToDraw = oneToDraw % numOrientations;
   double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
@@ -11720,7 +11727,7 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 }
 
 
-// TODO probably don't need two separate functions for this
+
 void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   ros::NodeHandle nh("~");
 
@@ -11735,6 +11742,7 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   nh.param<string>("label_file", ms->config.label_file, "labels.yml");
 
   nh.getParam("data_directory", ms->config.data_directory);
+  cout << "Using data directory: " << ms->config.data_directory << endl;
 
   nh.getParam("run_prefix", ms->config.run_prefix);
 
@@ -11762,6 +11770,12 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   nh.getParam("use_simulator", ms->config.use_simulator);
   if (ms->config.use_simulator) {
     ms->config.currentRobotMode = SIMULATED;
+
+    std::ifstream ifs("src/ein/baxter.urdf");
+    std::string content( (std::istreambuf_iterator<char>(ifs) ),
+			 (std::istreambuf_iterator<char>()    ) );
+    ms->config.robot_description = content;
+    
   } else {
     ms->config.currentRobotMode = PHYSICAL;
   } 
