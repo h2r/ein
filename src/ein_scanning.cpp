@@ -173,6 +173,17 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 END_WORD
 REGISTER_WORD(PushClassLabels)
 
+WORD(ClearClassLabels)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.classLabels.resize(0);
+  ms->config.classPoseModels.resize(0);
+  ms->pushWord("clearBlueBoxMemories");
+  ms->config.numClasses = ms->config.classLabels.size();
+}
+END_WORD
+REGISTER_WORD(ClearClassLabels)
+
+
 WORD(SetClassLabels)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
 
