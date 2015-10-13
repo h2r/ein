@@ -520,6 +520,20 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(Pop)
 
+
+WORD(Swap)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  std::shared_ptr<Word> word1;
+  std::shared_ptr<Word> word2;
+  GET_WORD_ARG(ms, Word, word1);
+  GET_WORD_ARG(ms, Word, word2);
+  ms->pushData(word1);
+  ms->pushData(word2);
+
+}
+END_WORD
+REGISTER_WORD(Swap)
+
 WORD(Slide)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   std::shared_ptr<Word> word = ms->popWord();
@@ -531,6 +545,20 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(Slide)
+
+WORD(Slip)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  std::shared_ptr<Word> word = ms->popData();
+  if (word == NULL) {
+    cout << "Slide Must take an argument from the call stack." << endl;
+  } else {
+    ms->pushWord(word);
+  }
+}
+END_WORD
+REGISTER_WORD(Slip)
+
+
 
 
 WORD(Store)
