@@ -79,8 +79,30 @@ workspace4 "outputPileWorkspace" store
   comeToStop
   setScanModeCentered
   pushCurrentPose
-  scanObjectStreamWaypointsIR
+  /* scanObjectStreamWaypointsIR */
 ) "playWithObject" store
+
+
+(
+
+  (
+    scanObjectStreamWaypointsIR
+    integrateImageStreamBufferCrops
+    trainAndWriteFocusedClassKnn
+    1 changeToHeight
+    setPlaceModeToHold
+    pickFocusedClass
+    playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
+    comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort 0.01 setGridSize ( zUp ) 4 replicateWord waitUntilAtCurrentPosition 
+    openGripper
+  ) 5 replicateWord
+
+  createCachedClassifierFromClassLabels
+
+  setPickModeToLearningAlgorithmC
+  mapLocal
+
+) "catScan" store
 
 
 (
@@ -110,7 +132,7 @@ workspace4 "outputPileWorkspace" store
     pickFocusedClass
     /* if you got it, lift it, if you didn't, try clearing the workspace */
     /* this covers the case where the object is there but out of reach. */
-    isGripperGripping ( liftArm ) ( playWorkspace cw_clearWorkspace ) ifte
+    isGripperGripping ( liftArm ) ( openGripper playWorkspace cw_clearWorkspace ) ifte
   ) while
 
   somethingsThere isGripperGripping and (
