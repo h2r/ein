@@ -158,6 +158,27 @@
 
 ) "blink_arms" store
 
+0.01 "blink_breathe_delta" store
+(
+
+  0 setGreenHalo
+  0 setRedHalo
+  0 "blink_breathe_x" store
+  (
+    blink_breathe_x 1 + "blink_breathe_x" store
+    blink_breathe_x setGreenHalo
+    blink_breathe_delta spinForSeconds 
+  ) 100 replicateWord
+
+  (
+    blink_breathe_x 1 - "blink_breathe_x" store
+    blink_breathe_x setGreenHalo
+    blink_breathe_delta spinForSeconds 
+  ) 100 replicateWord
+
+
+) "blink_breathe_halo" store
+
 (
   0 setGreenHalo
   0 setRedHalo
@@ -210,5 +231,6 @@
   100 setGreenHalo
   0 setRedHalo
   endStackCollapseNoop
+  ( blink_breathe_halo endStackCollapseNoop ) 3 replicateWord
 ) "blink_lightshow" store
 
