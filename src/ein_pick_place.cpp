@@ -1276,6 +1276,34 @@ END_WORD
 REGISTER_WORD(Roll)
 
 
+WORD(PickClosestBlueBox)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double bestDistance = VERYBIGNUMBER;
+  BoxMemory bestBox;
+  int bestI;
+
+  for (int i = 0; i < ms->config.blueBoxMemories.size(); i++) {
+    BoxMemory memory = ms->config.blueBoxMemories[i];
+    string class_name = ms->config.classLabels[memory.labeledClassIndex];
+    double newDistance = eePose::distance(memory.aimedPose, ms->config.currentEEPose);
+    if (newDistance < bestDistance) {
+      bestBox = memory;
+      bestDistance = newDistance;
+      bestI = i;
+    }
+  }
+
+  if (bestDistance < VERYBIGNUMBER) {
+    cout << "Got: " << bestBox.labeledClassIndex << ": " << ms->config.classLabels[bestBox.labeledClassIndex] << endl;
+    targetBoxMemory(ms, bestI);
+    ms->pushWord("deliverTargetBoxMemory");
+    ms->execute_stack = 1;
+  }
+}
+END_WORD
+REGISTER_WORD(PickClosestBlueBox)
+
+
 }
 
 
