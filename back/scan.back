@@ -84,9 +84,18 @@ workspace4 "outputPileWorkspace" store
 
 
 (
+  clearClassLabels
+  setScanModeCentered
+
 
   (
+    dup
+    moveEeToPoseWord
+    endArgs
+    pushCurrentPose
     scanObjectStreamWaypointsIR
+
+    pop
     integrateImageStreamBufferCrops
     trainAndWriteFocusedClassKnn
     1 changeToHeight
@@ -95,15 +104,19 @@ workspace4 "outputPileWorkspace" store
     playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
     comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort 0.01 setGridSize ( zUp ) 4 replicateWord waitUntilAtCurrentPosition 
     openGripper
-  ) 5 replicateWord
+  ) 2 replicateWord
 
   createCachedClassifierFromClassLabels
 
   setPickModeToLearningAlgorithmC
-  mapLocal
+  setPlaceModeToShake
+
+  (
+    mapLocal
+    pickClosestBlueBox
+  ) 50 replicateWord
 
 ) "catScan" store
-
 
 (
   setPickModeToLearningAlgorithmC
