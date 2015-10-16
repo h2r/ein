@@ -3895,7 +3895,7 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
   }
 
   baxter_core_msgs::SolvePositionIK thisIkRequest;
-  fillIkRequest(&ms->config.currentEEPose, &thisIkRequest);
+  fillIkRequest(ms->config.currentEEPose, &thisIkRequest);
 
   int ikResultFailed = 0;
   eePose originalCurrentEEPose = ms->config.currentEEPose;
@@ -3959,7 +3959,7 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
       cout << thisIkRequest.request.pose_stamp[0].pose << endl;
 
       reseedIkRequest(ms, &ms->config.currentEEPose, &thisIkRequest, ikRetry, numIkRetries);
-      fillIkRequest(&ms->config.currentEEPose, &thisIkRequest);
+      fillIkRequest(ms->config.currentEEPose, &thisIkRequest);
     }
   }
   

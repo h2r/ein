@@ -9,7 +9,7 @@
 #include "ikfast/ikfast_wrapper_right.h"
 
 
-void fillIkRequest(eePose * givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
+void fillIkRequest(eePose givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
   givenIkRequest->request.pose_stamp.resize(1);
 
   givenIkRequest->request.pose_stamp[0].header.seq = 0;
@@ -17,21 +17,14 @@ void fillIkRequest(eePose * givenEEPose, baxter_core_msgs::SolvePositionIK * giv
   givenIkRequest->request.pose_stamp[0].header.frame_id = "/base";
 
   
-  givenIkRequest->request.pose_stamp[0].pose.position.x = givenEEPose->px;
-  givenIkRequest->request.pose_stamp[0].pose.position.y = givenEEPose->py;
-  givenIkRequest->request.pose_stamp[0].pose.position.z = givenEEPose->pz;
+  givenIkRequest->request.pose_stamp[0].pose.position.x = givenEEPose.px;
+  givenIkRequest->request.pose_stamp[0].pose.position.y = givenEEPose.py;
+  givenIkRequest->request.pose_stamp[0].pose.position.z = givenEEPose.pz;
 
-//  Eigen::Quaternionf normalizer(givenEEPose->qw, givenEEPose->qx, givenEEPose->qy, givenEEPose->qz);
-//  normalizer.normalize();
-//  givenEEPose->qx = normalizer.x();
-//  givenEEPose->qy = normalizer.y();
-//  givenEEPose->qz = normalizer.z();
-//  givenEEPose->qw = normalizer.w();
-
-  givenIkRequest->request.pose_stamp[0].pose.orientation.x = givenEEPose->qx;
-  givenIkRequest->request.pose_stamp[0].pose.orientation.y = givenEEPose->qy;
-  givenIkRequest->request.pose_stamp[0].pose.orientation.z = givenEEPose->qz;
-  givenIkRequest->request.pose_stamp[0].pose.orientation.w = givenEEPose->qw;
+  givenIkRequest->request.pose_stamp[0].pose.orientation.x = givenEEPose.qx;
+  givenIkRequest->request.pose_stamp[0].pose.orientation.y = givenEEPose.qy;
+  givenIkRequest->request.pose_stamp[0].pose.orientation.z = givenEEPose.qz;
+  givenIkRequest->request.pose_stamp[0].pose.orientation.w = givenEEPose.qw;
 }
 
 void reseedIkRequest(shared_ptr<MachineState> ms, eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest, int it, int itMax) {
@@ -141,3 +134,40 @@ void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::So
 
 
 
+
+
+ikMapState ikAtPose(shared_ptr<MachineState> ms, eePose pose) {
+
+  baxter_core_msgs::SolvePositionIK thisIkRequest;
+  fillIkRequest(pose, &thisIkRequest);
+  
+  bool likelyInCollision = 0;
+  // ATTN 24
+  //int thisIkCallResult = ms->config.ikClient.call(thisIkRequest);
+  int thisIkCallResult = 0;
+  queryIK(ms, &thisIkCallResult, &thisIkRequest);
+  
+  int ikResultFailed = 1;
+  if (ms->config.currentRobotMode == PHYSICAL) {
+    ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision);
+  } else if (ms->config.currentRobotMode == SIMULATED) {
+    ikResultFailed = !positionIsSearched(ms, pose.px, pose.py);
+  } else {
+    assert(0);
+  }
+  
+  int foundGoodPosition = !ikResultFailed;
+  //ms->config.ikMap[i + ms->config.mapWidth * j] = ikResultFailed;
+  //ms->config.ikMap[i + ms->config.mapWidth * j] = 1;
+  //cout << i << " " << j << endl;
+  if (ikResultFailed) {
+    return IK_FAILED;
+  } else {
+    if (likelyInCollision) {
+      return IK_LIKELY_IN_COLLISION;
+    } else {
+      return IK_GOOD;
+    }
+  }
+
+}
