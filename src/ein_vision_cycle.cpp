@@ -296,7 +296,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(LoadIkMap)
 
-WORD(FillIkMap)
+WORD(FillIkMapAtCurrentHeight)
+
+virtual string description() {
+  return "Fill the IK map using data at the current EE height.  We run at height 2 usually.";
+}
+
 // store these here and create accessors if they need to change
 int currentI = 0;
 int currentJ = 0;
@@ -315,39 +320,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	    eePose nextEEPose = ms->config.currentEEPose;
 	    nextEEPose.px = X;
 	    nextEEPose.py = Y;
-
-	    baxter_core_msgs::SolvePositionIK thisIkRequest;
 	    endEffectorAngularUpdate(&nextEEPose, &ms->config.currentEEDeltaRPY);
-	    fillIkRequest(&nextEEPose, &thisIkRequest);
 
-	    bool likelyInCollision = 0;
-	    // ATTN 24
-	    //int thisIkCallResult = ms->config.ikClient.call(thisIkRequest);
-	    int thisIkCallResult = 0;
-	    queryIK(ms, &thisIkCallResult, &thisIkRequest);
-
-	    int ikResultFailed = 1;
-	    if (ms->config.currentRobotMode == PHYSICAL) {
-	      ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision);
-	    } else if (ms->config.currentRobotMode == SIMULATED) {
-	      ikResultFailed = !positionIsSearched(ms, nextEEPose.px, nextEEPose.py);
-	    } else {
-              assert(0);
-            }
-
-	    int foundGoodPosition = !ikResultFailed;
-	    //ms->config.ikMap[i + ms->config.mapWidth * j] = ikResultFailed;
-	    //ms->config.ikMap[i + ms->config.mapWidth * j] = 1;
-	    //cout << i << " " << j << endl;
-	    if (ikResultFailed) {
-	      ms->config.ikMap[i + ms->config.mapWidth * j] = 1;
-	    } else {
-	      if (likelyInCollision) {
-		ms->config.ikMap[i + ms->config.mapWidth * j] = 2;
-	      } else {
-		ms->config.ikMap[i + ms->config.mapWidth * j] = 0;
-	      }
-	    }
+	    ms->config.ikMap[i + ms->config.mapWidth * j] = ikAtPose(ms, nextEEPose);
 	    queries++;
 	  }
 	} else {
@@ -372,7 +347,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (i >= ms->config.mapWidth) {
     i = 0;
   } else {
-    ms->pushWord("fillIkMap");
+    ms->pushWord("fillIkMapAtCurrentHeight");
   }
   if (j >= ms->config.mapHeight) {
     j = 0;
@@ -384,7 +359,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.endThisStackCollapse = 1;
 }
 END_WORD
-REGISTER_WORD(FillIkMap)
+REGISTER_WORD(FillIkMapAtCurrentHeight)
 
 WORD(MoveToNextMapPosition)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -441,7 +416,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     nextEEPose.py = oldestY;
 
     baxter_core_msgs::SolvePositionIK thisIkRequest;
-    fillIkRequest(&nextEEPose, &thisIkRequest);
+    fillIkRequest(nextEEPose, &thisIkRequest);
 
     bool likelyInCollision = 0;
     // ATTN 24

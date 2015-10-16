@@ -3789,7 +3789,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       int ikCallResult = 0;
       baxter_core_msgs::SolvePositionIK thisIkRequest;
       eePose toRequest = graspPose;
-      fillIkRequest(&toRequest, &thisIkRequest);
+      fillIkRequest(toRequest, &thisIkRequest);
       queryIK(ms, &ikCallResult, &thisIkRequest);
 
       cout << ikCallResult << "." << endl;
@@ -3824,7 +3824,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       int ikCallResult = 0;
       baxter_core_msgs::SolvePositionIK thisIkRequest;
       eePose toRequest = retractedGraspPose;
-      fillIkRequest(&toRequest, &thisIkRequest);
+      fillIkRequest(toRequest, &thisIkRequest);
       queryIK(ms, &ikCallResult, &thisIkRequest);
 
       cout << ikCallResult << "." << endl;

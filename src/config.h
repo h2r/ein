@@ -68,6 +68,12 @@ class EinWindow;
 class ArmWidget;
 
 typedef enum {
+  IK_GOOD = 0,
+  IK_LIKELY_IN_COLLISION = 2,
+  IK_FAILED = 1
+} ikMapState;
+
+typedef enum {
   ARMED = 0,
   BLOCKED = 1,
   STOPPED = 2,
@@ -1204,6 +1210,11 @@ class EinConfig {
   int drawIKMap = 1;
   int useGlow = 0;
   int useFade = 1;
+
+  double ikMapStartHeight;
+  double ikMapEndHeight;
+  int numIkMapHeights;
+  
   
   vector<BoxMemory> blueBoxMemories;
   int targetBlueBox = 0;
