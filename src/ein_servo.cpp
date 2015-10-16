@@ -1248,6 +1248,15 @@ REGISTER_WORD(TwoDPatrolContinue)
 WORD(SynchronicServo)
 CODE(131156)    // capslock + t
 virtual void execute(std::shared_ptr<MachineState> ms) { 
+  ms->pushWord("synchronicServoRepeat");
+  ms->pushWord("synchronicServoTakeClosest");
+  // XXX TODO take closest needs to be set to the default and a better way of selecting the target factored.
+}
+END_WORD
+REGISTER_WORD(SynchronicServo)
+
+WORD(SynchronicServoRepeat)
+virtual void execute(std::shared_ptr<MachineState> ms) { 
   ms->pushWord("synchronicServoA");
   if (ms->config.currentBoundingBoxMode == MAPPING) {
     ms->pushWord("visionCycleNoClassify");
@@ -1260,7 +1269,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitUntilAtCurrentPosition"); 
 }
 END_WORD
-REGISTER_WORD(SynchronicServo)
+REGISTER_WORD(SynchronicServoRepeat)
 
 WORD(SynchronicServoA)
 virtual void execute(std::shared_ptr<MachineState> ms) { 
