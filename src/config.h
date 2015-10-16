@@ -430,6 +430,8 @@ class EinConfig {
   int goodIkInitialized = 0;
   double ikShare = 1.0;
   int ik_reset_thresh = 20;
+  bool lastIkWasSuccessful = true;
+
 
   int sensorStreamOn = 0;
   int diskStreamingEnabled = 0;

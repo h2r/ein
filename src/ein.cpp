@@ -3974,6 +3974,7 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
   {
     ROS_ERROR_STREAM("ikClient says pose request is invalid.");
     ms->config.ik_reset_counter++;
+    ms->config.lastIkWasSuccessful = false;
 
     cout << "ik_reset_counter, ik_reset_thresh: " << ms->config.ik_reset_counter << " " << ms->config.ik_reset_thresh << endl;
     if (ms->config.ik_reset_counter > ms->config.ik_reset_thresh) {
@@ -3993,7 +3994,7 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
 
     return;
   }
-
+  ms->config.lastIkWasSuccessful = true;
   ms->config.ik_reset_counter = max(ms->config.ik_reset_counter-1, 0);
 
   ms->config.lastGoodEEPose = ms->config.currentEEPose;
@@ -4997,13 +4998,21 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
 
     putText(ms->config.objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, CV_RGB(196, 196, 255), 2.0);
   }
+
+  cv::Scalar color;
+  if (ms->config.lastIkWasSuccessful) {
+    color = cv::Scalar(255, 255, 255);
+  } else {
+    color = cv::Scalar(0, 0, 255);
+  }
+
   
   { // drawRobot
     double radius = 20;
     cv::Point orientation_point = cv::Point(pxMax/2, pyMax/2 + radius);
     
-    circle(ms->config.objectMapViewerImage, center, radius, cv::Scalar(0, 0, 255));
-    line(ms->config.objectMapViewerImage, center, orientation_point, cv::Scalar(0, 0, 255));
+    circle(ms->config.objectMapViewerImage, center, radius, color);
+    line(ms->config.objectMapViewerImage, center, orientation_point, color);
   }
   { // drawHand
     eePose tp = rosPoseToEEPose(ms->config.trueEEPose);
@@ -5022,9 +5031,9 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
                                                tp.py + rotated[1]);
 
 
-    circle(ms->config.objectMapViewerImage, handPoint, radius, cv::Scalar(0, 0, 255));
+    circle(ms->config.objectMapViewerImage, handPoint, radius, color);
 
-    line(ms->config.objectMapViewerImage, handPoint, orientation_point, cv::Scalar(0, 0, 255));
+    line(ms->config.objectMapViewerImage, handPoint, orientation_point, color);
 
   }
 
