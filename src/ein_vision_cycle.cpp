@@ -376,8 +376,8 @@ virtual string description() {
   return "Fill the IK map using data at the current EE height.  We run at height 2 usually.";
 }
 
-
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("0 0 currentPose eePosePZ fillIkMap");
 }
 END_WORD
 REGISTER_WORD(FillIkMapAtCurrentHeight)
@@ -396,7 +396,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	      if (cellIsSearched(ms, i, j) &&
 	          (ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime <= oldestTime) &&
 	          (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2) &&
-	          (ms->config.ikMap[i + ms->config.mapWidth * j] == 0) ) {
+	          (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_GOOD) ) {
 	        oldestTime = ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
 	        oldestI = i;
 	        oldestJ = j;
@@ -473,12 +473,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       cout << "moveToNextMapPosition tries foundGoodPosition oldestI oldestJ: "  << tries << " " << foundGoodPosition << " "  << oldestI << " " << oldestJ << " " << oldestX << " " << oldestY << endl;
       cout << "Try number try: " << tries << ", adding point to ikMap oldestI oldestJ ikMap[.]: " << " " << oldestI << " " << oldestJ;
       if (ikResultFailed) {
-	ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] = 1;
+	ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] = IK_FAILED;
       } else {
 	if (likelyInCollision) {
-	  ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] = 2;
+	  ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] = IK_LIKELY_IN_COLLISION;
 	} else {
-	  ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] = 0;
+	  ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] = IK_GOOD;
 	}
       }
       cout << " " << ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] << endl;
