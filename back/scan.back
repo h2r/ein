@@ -4,13 +4,13 @@ leftOrRightArm "right" =
 ( 
 -0.350000 -0.568750 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace1" store
 -0.068750 -0.712500 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace2" store
-0.281250 -0.681250 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose  "workspace3" store
+0.281250 -0.741250 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose  "workspace3" store
 0.575000 -0.368750 0.201245 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace4" store )
 ( 
 leftOrRightArm "left" = 
 ( -0.350000 0.568750 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace1" store
 -0.068750 0.712500 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace2" store
-0.281250 0.681250 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose  "workspace3" store
+0.281250 0.741250 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose  "workspace3" store
 0.575000 0.368750 0.201245 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace4" store  )
  ( "Neither left or right arm." leftOrRighArm pauseStackExecution ) 
 ifte
@@ -21,80 +21,120 @@ ifte
 workspace1 "inputPileWorkspace" store
 workspace3 "playWorkspace" store
 workspace4 "outputPileWorkspace" store
+100 "pileSwitchThreshold" store
 
 "utils" import
 
-(
-moveEeToPoseWord waitUntilAtCurrentPosition
-setMovementStateToMoving comeToStop visionCycleNoClassify
-numBlueBoxes 0 = 1 0 ifte
-) "workspaceIsClear" store
+"clearWorkspace" import
 
 (
-  2 setGradientServoHardMaxIterations
-  2 setGradientServoSoftMaxIterations
+  playWorkspace cw_clearWorkspace
+  openGripper waitUntilGripperNotMoving
+  ">>>> entering pickFromInputPile <<<<" print
+
   ( isGripperGripping ! ) (
-    openGripper
+    endArgs "kr_dash2" setClassLabels createCachedClassifierFromClassLabels "kr_dash2" setTargetClass setPickModeToStaticMarginals
+    2 setGradientServoHardMaxIterations
+    2 setGradientServoSoftMaxIterations
+
+    0 "pileSwitchCounter" store
+
+    ( isGripperGripping ! ) (
+      ">>>> re-entering pickFromInputPile <<<<" print
+      openGripper
+      halfImpulse
+      inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
+      ( perturbPosition ) 5 replicateWord 
+      1 changeToHeight 
+      waitUntilAtCurrentPosition
+      clearMapForPatrol clearBlueBoxMemories mapLocal
+      deliverTargetObject
+      liftArm
+      pileSwitchCounter 1 + "pileSwitchCounter" store
+      pileSwitchCounter pileSwitchThreshold > ( 
+	"  >>>> switching piles " print
+	inputPileWorkspace "temp" store 
+	outputPileWorkspace "inputPileWorkspace" store
+	temp "outputPileWorkspace" store
+	0 "pileSwitchCounter" store
+      ) ift
+    ) while
+
     halfImpulse
-    inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
-    perturbPosition
-    1 changeToHeight 
-    clearMapForPatrol clearBlueBoxMemories mapLocal
-    deliverTargetObject
-    liftArm
+    playWorkspace moveEeToPoseWord
+    waitUntilAtCurrentPosition
+    /* this is where the scanning loop starts */
+    ( zDown ) 15 replicateWord
+
+    isGripperGripping ! ( playWorkspace cw_clearWorkspace ) ift 
   ) while
 ) "pickFromInputPile" store
 
 ( 
-  halfImpulse
-  playWorkspace moveEeToPoseWord
-  waitUntilAtCurrentPosition
-  /* this is where the scanning loop starts */
-  ( zDown ) 15 replicateWord
-  comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper 
+  ">>>> entering playWithObject <<<<" print
+  comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper
+  stay /* stay ensures that we actually rise */
+  0.01 setGridSize
   ( zUp ) 8 replicateWord
-  waitUntilAtCurrentPosition
+  comeToStop
   setScanModeCentered
-  pushCurrentPose scanObjectStreamWaypointsIR
+  pushCurrentPose
+  scanObjectStreamWaypointsIR
 ) "playWithObject" store
 
 
 (
   setPickModeToLearningAlgorithmC
   1 setSnapToFlushGrasp
-  3 setGradientServoHardMaxIterations
-  3 setGradientServoSoftMaxIterations
+  2 setGradientServoHardMaxIterations
+  2 setGradientServoSoftMaxIterations
 
-  ( isGripperGripping ! ) (
+  1 "somethingsThere" store
+
+  ( isGripperGripping ! somethingsThere and ) (
+    ">>>> entering moveToOutputPile <<<<" print
     halfImpulse playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
+    ( perturbPosition ) 5 replicateWord 
     openGripper
     halfImpulse
-    changeToHeight1
+    1 changeToHeight
     setPlaceModeToHold
-    pickFocusedClass
-    isGripperGripping ( liftArm ) ift
 
+    /* check in this loop - if there are no blue boxes, it will hang */
+    /* instead, it should skip the rest of this function */
+    playWorkspace cw_workspaceIsClear ( 0 "somethingsThere" store ) ift
+
+    "somethingsThere: " print somethingsThere print
+
+    1 changeToHeight
+    pickFocusedClass
+    /* if you got it, lift it, if you didn't, try clearing the workspace */
+    /* this covers the case where the object is there but out of reach. */
+    isGripperGripping ( liftArm ) ( playWorkspace cw_clearWorkspace ) ifte
   ) while
-  halfImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
-  comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper 
-  liftArm
+
+  somethingsThere isGripperGripping and (
+    halfImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
+    isGripperGripping ( comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper liftArm ) ift 
+  ) ( openGripper ) ifte
+
+  playWorkspace cw_clearWorkspace
 ) "moveToOutputPile" store
 
-
 (
-  endArgs "kr_dash2" setClassLabels createCachedClassifierFromClassLabels
   1 setSnapToFlushGrasp
-  2 setMapServoMode
+  /* 2 setMapServoMode */
+  4 setMapServoMode
   setPlaceModeToHold
+  setBoundingBoxModeToMapping
   clearMapForPatrol
   openGripper
-  "kr_dash2" setTargetClass
 
   ( 1 )
   (
     pickFromInputPile
     playWithObject
-    moveToOutputPile
+    moveToOutputPile 
   ) while
 
 ) "infiniteScan" store

@@ -1,0 +1,106 @@
+(
+  moveEeToPoseWord waitUntilAtCurrentPosition
+  1 changeToHeight
+  0.01 setGridSize ( zDown ) 10 replicateWord
+
+  setMovementStateToMoving comeToStop visionCycleNoClassify
+  numBlueBoxes 0 = 1 0 ifte
+) "cw_workspaceIsClear" store
+
+(
+  1 changeToHeight 
+  quarterImpulse 
+  clearMapForPatrol
+  synchronicServoTakeClosest
+  setBoundingBoxModeToStaticPrior
+  synchronicServo 
+  setBoundingBoxModeToMapping
+) "cw_servo_for_flick" store
+
+(
+  halfImpulse 
+  moveEeToPoseWord 
+
+  0.01 setGridSize 
+  ( 
+    localXUp localZUp 
+    endStackCollapseNoop
+  ) 20 replicateWord 
+  waitUntilAtCurrentPosition 
+  comeToStop
+  pressUntilEffortInit 0.05 setSpeed pressUntilEffort 
+
+  fullImpulse 
+  ( 
+    localZDown 
+  ) 3 replicateWord 
+  comeToHover 
+  ( 
+    localZUp 
+  ) 2 replicateWord  
+  setMovementStateToMoving comeToHover 
+  0.05 setSpeed 
+
+  ( 
+    localXDown 
+    endStackCollapseNoop
+  ) 30 replicateWord 
+  ( 
+    closeGripper waitUntilGripperNotMoving 
+    isGripperGripping ! ( openGripper waitUntilGripperNotMoving ) ift
+  ) 3 replicateWord
+
+  waitUntilAtCurrentPosition
+  openGripper
+
+  /* this could be modified to remember the center and do a radial lawnmower */
+) "cw_flick" store
+
+(
+  cw_servo_for_flick
+  pushCurrentPose
+
+  dup
+  moveEeToPoseWord 0.01 setGridSize ( yUp ) 4 replicateWord pushCurrentPose
+  cw_flick
+
+  dup
+  cw_flick
+
+  dup
+  moveEeToPoseWord 0.01 setGridSize ( yDown ) 4 replicateWord pushCurrentPose
+  cw_flick
+
+  pop
+) "cw_tri_flick" store
+
+(
+  ">>>> clearing workspace a <<<<" print
+  ( dup quarterImpulse cw_workspaceIsClear ! ) ( 
+    "Workspace not clear, flicking..." print
+    /* cw_flick */
+    cw_tri_flick
+  ) while 
+  pop
+) "cw_clearWorkspace_a" store
+
+(
+  ">>>> clearing workspace <<<<" print
+  dup 
+  moveEeToPoseWord 0.01 setGridSize ( xDown ) 10 replicateWord pushCurrentPose
+  cw_clearWorkspace_a
+
+  dup 
+  cw_clearWorkspace_a
+
+  dup 
+  moveEeToPoseWord 0.01 setGridSize ( xUp ) 10 replicateWord pushCurrentPose
+  cw_clearWorkspace_a
+
+  dup 
+  moveEeToPoseWord 0.01 setGridSize ( xUp ) 15 replicateWord pushCurrentPose
+  cw_clearWorkspace_a
+
+  pop
+) "cw_clearWorkspace" store
+
