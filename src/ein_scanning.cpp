@@ -1038,6 +1038,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string thisLabelName(buf);
   ms->config.focusedClassLabel = thisLabelName;
   ms->config.classLabels.push_back(thisLabelName);
+  ms->config.classPoseModels.push_back("B");
   ms->config.numClasses = ms->config.classLabels.size();
   string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/";
   mkdir(dirToMakePath.c_str(), 0777);
@@ -4260,5 +4261,42 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SetScanModeNotCentered)
+
+
+
+
+WORD(BuildClassSimilarityMatrix)
+virtual string description() {
+  return "Builds the matrix of gradients of the current class labels.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double * result =  new double[ms->config.numClasses * ms->config.numClasses];
+  int nc = ms->config.numClasses;
+
+  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    for (int j = 0; j < ms->config.classLabels.size(); j++) {
+      result[i + nc * j] = computeSimilarity(ms, i, j);
+    }
+  }
+
+  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+    cout << std::setw(3) << j << ": " << ms->config.classLabels[j] << endl;
+  }
+  cout << "   " ;
+  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+    cout << std::setw(10) << j ;
+  }
+  cout << endl;
+
+  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    cout << std::setw(3) << i;
+    for (int j = 0; j < ms->config.classLabels.size(); j++) {
+      cout << std::setw(10) << result[i + nc * j];
+    }
+    cout << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(BuildClassSimilarityMatrix)
 
 }

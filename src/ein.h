@@ -431,6 +431,9 @@ void targetBoxMemory(shared_ptr<MachineState> ms, int idx);
 
 bool isFocusedClassValid(std::shared_ptr<MachineState> ms);
 
+double computeSimilarity(std::shared_ptr<MachineState> ms, int class1, int class2);
+
+void prepareForCrossCorrelation(std::shared_ptr<MachineState> ms, Mat input, Mat& output, int thisOrient, int numOrientations, double thisScale, Size toBecome);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 
 ////////////////////////////////////////////////
