@@ -7525,6 +7525,100 @@ Mat makeGCrop(shared_ptr<MachineState> ms, int etaX, int etaY) {
   return gCrop;
 }
 
+
+void prepareForCrossCorrelation(std::shared_ptr<MachineState> ms, Mat input, Mat& output, int thisOrient, int numOrientations, double thisScale, Size toBecome) {
+  Point center = Point(ms->config.aerialGradientWidth/2, ms->config.aerialGradientWidth/2);
+  double angle = thisOrient*360.0/numOrientations;
+  
+  //double scale = 1.0;
+  double scale = thisScale;
+
+  // Get the rotation matrix with the specifications above
+  Mat rot_mat = getRotationMatrix2D(center, angle, scale);
+  warpAffine(input, output, rot_mat, toBecome);
+  
+  processSaliency(output, output);
+
+  double mean = output.dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, output.type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
+  output = output - mean;
+  double l2norm = output.dot(output);
+  l2norm = sqrt(l2norm);
+  if (l2norm <= EPSILON) {
+    l2norm = 1.0;
+  }
+  output = output / l2norm;
+
+}
+
+
+double computeSimilarity(std::shared_ptr<MachineState> ms, int class1, int class2) {
+
+  cout << "computeSimilarity on classes " << class1 << " " << class2 << endl;
+
+  int tnc = ms->config.classLabels.size();
+  if ( (class1 >=0) && (class1 < tnc) &&
+       (class2 >=0) && (class2 < tnc) ) {
+  } else {
+    cout << "  unable to computeSimilarity: invalid class." << endl;
+    assert(0);
+  }
+
+  vector<Mat> rotatedAerialGrads;
+  int gradientServoScale = 1;//11;
+  int numOrientations = 37;
+  double gradientServoScaleStep = 1.02;
+  int etaS = 0;
+  Size toBecome(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth);
+  rotatedAerialGrads.resize(gradientServoScale*numOrientations);
+  double startScale = pow(gradientServoScaleStep, -(gradientServoScale-1)/2);  
+  double thisScale = startScale * pow(gradientServoScaleStep, etaS);
+
+  Mat preparedClass1;
+  {
+    int thisOrient = 0;
+    prepareForCrossCorrelation(ms, ms->config.classAerialGradients[class1], preparedClass1, thisOrient, numOrientations, thisScale, toBecome);
+  }
+
+  double globalMax = 0.0;
+  for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
+/*
+    // rotate the template and L1 normalize it
+    Point center = Point(ms->config.aerialGradientWidth/2, ms->config.aerialGradientWidth/2);
+    double angle = thisOrient*360.0/numOrientations;
+    
+    //double scale = 1.0;
+    double scale = thisScale;
+    
+    // Get the rotation matrix with the specifications above
+    Mat rot_mat = getRotationMatrix2D(center, angle, scale);
+    warpAffine(ms->config.classAerialGradients[class2], rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
+    
+    processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations], rotatedAerialGrads[thisOrient + etaS*numOrientations]);
+    
+    double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
+    rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
+    double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations]);
+    l2norm = sqrt(l2norm);
+    if (l2norm <= EPSILON) {
+      l2norm = 1.0;
+    }
+    rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l2norm;
+*/
+
+    prepareForCrossCorrelation(ms, ms->config.classAerialGradients[class2], rotatedAerialGrads[thisOrient + etaS*numOrientations], thisOrient, numOrientations, thisScale, toBecome);
+
+    Mat output = preparedClass1.clone(); 
+    filter2D(preparedClass1, output, -1, rotatedAerialGrads[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
+    double minValue, maxValue;
+    minMaxLoc(output, &minValue, &maxValue);
+    globalMax = max(maxValue, globalMax);
+  }
+
+  cout << globalMax << endl;
+  return globalMax;
+}
+
+
 void gradientServo(shared_ptr<MachineState> ms) {
   Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
@@ -8679,7 +8773,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
         cout << "Returning because position is out of map bounds." << endl;
         return;
       } else {
-        ms->pushWord("synchronicServo"); 
+        ms->pushWord("synchronicServoRepeat"); 
 	// ATTN 21
         //ms->config.currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
         //ms->config.currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();

@@ -1427,6 +1427,9 @@ CONFIG_SETTER_INT(SetGradientServoSoftMaxIterations, ms->config.softMaxGradientS
 CONFIG_GETTER_INT(GradientServoHardMaxIterations, ms->config.hardMaxGradientServoIterations)
 CONFIG_SETTER_INT(SetGradientServoHardMaxIterations, ms->config.hardMaxGradientServoIterations)
 
+CONFIG_GETTER_INT(MappingServoTimeout, ms->config.mappingServoTimeout)
+CONFIG_SETTER_INT(SetMappingServoTimeout, ms->config.mappingServoTimeout)
+
 CONFIG_GETTER_INT(RepeatHalo, ms->config.repeat_halo)
 CONFIG_SETTER_INT(SetRepeatHalo, ms->config.repeat_halo)
 
