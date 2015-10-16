@@ -49,3 +49,9 @@ x "*" = assert
 
 
 10 10.0 = assert
+
+
+/* This one should do 'x' because ift doesn't take a compound word */
+( 0 ) ( "x" ) ift 
+
+ 0 ( "x" ) ift 
