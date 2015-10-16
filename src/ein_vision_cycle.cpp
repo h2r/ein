@@ -296,17 +296,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(LoadIkMap)
 
-WORD(FillIkMapAtCurrentHeight)
+WORD(FillIkMap)
 
 virtual string description() {
-  return "Fill the IK map using data at the current EE height.  We run at height 2 usually.";
+  return "Fill the IK map for the current range starting at the i and j and height on the stack.";
 }
-
-// store these here and create accessors if they need to change
-int currentI = 0;
-int currentJ = 0;
-int cellsPerQuery = 100;
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  int cellsPerQuery = 100;
+
+  int currentI, currentJ;
+  double height;
+  GET_NUMERIC_ARG(ms, height);
+  GET_INT_ARG(ms, currentJ);
+  GET_INT_ARG(ms, currentI);
+
+
+
   int queries = 0;
   int i=currentI, j=currentJ;
   for (; i < ms->config.mapWidth; i++) {
@@ -344,19 +349,35 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }
 
-  if (i >= ms->config.mapWidth) {
-    i = 0;
-  } else {
-    ms->pushWord("fillIkMapAtCurrentHeight");
-  }
   if (j >= ms->config.mapHeight) {
     j = 0;
   }
-  
-  currentI = i;
-  currentJ = j;
+
+  if (i >= ms->config.mapWidth) {
+    i = 0;
+  } else {
+
+    ms->pushWord("fillIkMap");
+    ms->pushWord(make_shared<DoubleWord>(height));  
+    ms->pushWord(make_shared<IntegerWord>(j));  
+    ms->pushWord(make_shared<IntegerWord>(i));  
+  }
 
   ms->config.endThisStackCollapse = 1;
+
+
+}
+END_WORD
+REGISTER_WORD(FillIkMap)
+
+WORD(FillIkMapAtCurrentHeight)
+
+virtual string description() {
+  return "Fill the IK map using data at the current EE height.  We run at height 2 usually.";
+}
+
+
+virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(FillIkMapAtCurrentHeight)
