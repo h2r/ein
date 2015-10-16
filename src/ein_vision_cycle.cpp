@@ -269,6 +269,34 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(FillClearanceMap)
 
+WORD(SaveIkMapAtHeight)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ofstream ofile;
+  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "IkMapAtHeight";
+  cout << "Saving ikMapAtHeight to " << fileName << endl;
+  ofile.open(fileName, ios::trunc | ios::binary);
+  ofile.write((char*)ms->config.ikMapAtHeight, sizeof(int)*ms->config.mapWidth*ms->config.mapHeight*ms->config.numIkMapHeights);
+  ofile.close();
+}
+END_WORD
+REGISTER_WORD(SaveIkMapAtHeight)
+
+WORD(LoadIkMapAtHeight)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // binary seems overkill but consider that this map is
+  //  for only one height and is 360kB in binary... how
+  //  big would it be in yml, and what if we want another height?
+  ifstream ifile;
+  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "IkMapAtHeight";
+  cout << "Loading ikMapAtHeight from " << fileName << endl;
+  ifile.open(fileName, ios::binary);
+  ifile.read((char*)ms->config.ikMapAtHeight, sizeof(int)*ms->config.mapWidth*ms->config.mapHeight*ms->config.numIkMapHeights);
+  ifile.close();
+}
+END_WORD
+REGISTER_WORD(LoadIkMapAtHeight)
+
+
 WORD(SaveIkMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ofstream ofile;
@@ -295,6 +323,94 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(LoadIkMap)
+
+
+
+
+WORD(FillIkMapAtHeights)
+virtual string description() {
+  return "Fill the IK map at different heights.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double ikStep = (ms->config.ikMapEndHeight - ms->config.ikMapStartHeight) / (ms->config.numIkMapHeights - 1);
+
+  for (int i = 0; i < ms->config.numIkMapHeights; i++) {
+    
+    double height = ms->config.ikMapStartHeight + ikStep * i;
+    stringstream program;
+    program << "0 0 " << height << " fillIkMap " << i << " copyIkMapToHeightIdx";
+    ms->evaluateProgram(program.str());
+  }
+}
+END_WORD
+REGISTER_WORD(FillIkMapAtHeights)
+
+WORD(FillIkMapFromCachedHeights)
+virtual string description() {
+  return "Fill the IK map by taking the and of the result at all the different heights.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  for (int i = 0; i < ms->config.mapWidth; i++) {
+    for (int j = 0; j < ms->config.mapHeight; j++) {
+      bool result = IK_GOOD;
+      for (int heightIdx = 0; heightIdx < ms->config.numIkMapHeights; heightIdx++) {
+	if (ms->config.ikMapAtHeight[i  + ms->config.mapWidth * j + ms->config.mapWidth * ms->config.mapHeight * heightIdx] == IK_FAILED ||
+	    ms->config.ikMapAtHeight[i  + ms->config.mapWidth * j + ms->config.mapWidth * ms->config.mapHeight * heightIdx] == IK_LIKELY_IN_COLLISION) {
+	  result = IK_FAILED;
+	  break;
+	}
+      }
+      ms->config.ikMap[i + ms->config.mapWidth * j] = result;
+    }
+  }
+}
+
+END_WORD
+REGISTER_WORD(FillIkMapFromCachedHeights)
+
+
+WORD(FillIkMapFromCachedHeightIdx)
+virtual string description() {
+  return "Fill the IK map by taking the height idx from the cache.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int heightIdx;
+  GET_INT_ARG(ms, heightIdx);
+  if (heightIdx >= ms->config.numIkMapHeights) {
+    cout << "Ooops, height out of bounds. " << heightIdx << endl;
+    ms->pushWord("pauseStackExecution");   
+    return;
+  }
+  
+  for (int i = 0; i < ms->config.mapWidth; i++) {
+    for (int j = 0; j < ms->config.mapHeight; j++) {
+      ms->config.ikMap[i + ms->config.mapWidth * j] = ms->config.ikMapAtHeight[i  + ms->config.mapWidth * j + ms->config.mapWidth * ms->config.mapHeight * heightIdx];
+    }
+  }
+}
+
+END_WORD
+REGISTER_WORD(FillIkMapFromCachedHeightIdx)
+
+
+
+
+WORD(CopyIkMapToHeightIdx)
+virtual string description() {
+  return "Copy the ik map to the height index.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int heightIdx;
+  GET_INT_ARG(ms, heightIdx);
+  for (int i = 0; i < ms->config.mapWidth; i++) {
+    for (int j = 0; j < ms->config.mapHeight; j++) {
+      ms->config.ikMapAtHeight[i  + ms->config.mapWidth * j + ms->config.mapWidth * ms->config.mapHeight * heightIdx] = ms->config.ikMap[i + ms->config.mapWidth * j];
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(CopyIkMapToHeightIdx)
+
 
 WORD(FillIkMap)
 
