@@ -13192,7 +13192,18 @@ void initializeMap(shared_ptr<MachineState> ms) {
       ms->config.clearanceMap[i + ms->config.mapWidth * j] = 0;
     }
   }
+
+  for (int i = 0; i < ms->config.mapWidth; i++) {
+    for (int j = 0; j < ms->config.mapHeight; j++) {
+      for (int heightIdx = 0; heightIdx < ms->config.numIkMapHeights; heightIdx++) {
+	ms->config.ikMapAtHeight[i  + ms->config.mapWidth * j + ms->config.mapWidth * ms->config.mapHeight * heightIdx] = IK_GOOD;
+      }
+    }
+  }
+
   ms->config.lastScanStarted = ros::Time::now();
+  ms->config.ikMapStartHeight = -ms->config.currentTableZ + ms->config.pickFlushFactor;
+  ms->config.ikMapEndHeight = convertHeightIdxToGlobalZ(ms, ms->config.mappingHeightIdx);
 }
 
 

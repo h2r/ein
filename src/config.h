@@ -1213,7 +1213,8 @@ class EinConfig {
 
   double ikMapStartHeight;
   double ikMapEndHeight;
-  int numIkMapHeights;
+  const static int numIkMapHeights = 3;
+  int ikMapAtHeight[mapWidth * mapHeight * numIkMapHeights];
   
   
   vector<BoxMemory> blueBoxMemories;

@@ -1645,6 +1645,12 @@ CONFIG_SETTER_INT(SetRepeatHalo, ms->config.repeat_halo)
 
 
 
+CONFIG_GETTER_DOUBLE(IkMapStartHeight, ms->config.ikMapStartHeight)
+
+CONFIG_GETTER_DOUBLE(IkMapEndHeight, ms->config.ikMapEndHeight)
+
+//CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
+
 
 
 }
