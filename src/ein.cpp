@@ -4800,7 +4800,7 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
 	    mapijToxy(ms, i, j, &x, &y);
 	    cv::Point cvp1 = worldToPixel(ms->config.objectMapViewerImage, 
 	      ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
-	    if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == 1) ) {
+	    if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_FAILED) ) {
 	      Scalar tColor = CV_RGB(192, 32, 32);
 	      cv::Vec3b cColor;
 	      cColor[0] = tColor[0]*glowFraction;
@@ -4812,7 +4812,7 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
 	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
 	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
 		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
-	    } else if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == 2) ) {
+	    } else if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_LIKELY_IN_COLLISION) ) {
 	      Scalar tColor = CV_RGB(224, 64, 64);
 	      cv::Vec3b cColor;
 	      cColor[0] = tColor[0]*glowFraction;
@@ -13043,13 +13043,13 @@ void markCellAsNotInteresting(shared_ptr<MachineState> ms, int i, int j) {
 } 
 
 bool isCellIkColliding(shared_ptr<MachineState> ms, int i, int j) {
-  return (ms->config.ikMap[i + ms->config.mapWidth * j] == 2);
+  return (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_LIKELY_IN_COLLISION);
 } 
 bool isCellIkPossible(shared_ptr<MachineState> ms, int i, int j) {
-  return (ms->config.ikMap[i + ms->config.mapWidth * j] == 0);
+  return (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_GOOD);
 } 
 bool isCellIkImpossible(shared_ptr<MachineState> ms, int i, int j) {
-  return (ms->config.ikMap[i + ms->config.mapWidth * j] == 1);
+  return (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_FAILED);
 } 
 
 
@@ -13188,7 +13188,7 @@ void initializeMap(shared_ptr<MachineState> ms) {
       ms->config.objectMap[i + ms->config.mapWidth * j].g = 0;
       ms->config.objectMap[i + ms->config.mapWidth * j].b = 0;
 
-      ms->config.ikMap[i + ms->config.mapWidth * j] = 0;
+      ms->config.ikMap[i + ms->config.mapWidth * j] = IK_GOOD;
       ms->config.clearanceMap[i + ms->config.mapWidth * j] = 0;
     }
   }
