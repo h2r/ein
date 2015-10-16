@@ -561,6 +561,216 @@ REGISTER_WORD(Slip)
 
 
 
+WORD(SetEEPosePX)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double value;
+  GET_NUMERIC_ARG(ms, value);
+
+  shared_ptr<EePoseWord> word ;
+  GET_WORD_ARG(ms, EePoseWord, word);
+  
+  eePose newPose = word->value();
+  newPose.px = value;
+
+  shared_ptr<EePoseWord> newWord = make_shared<EePoseWord>(newPose);
+
+  ms->pushData(newWord);
+}
+END_WORD
+REGISTER_WORD(SetEEPosePX)
+
+WORD(SetEEPosePY)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double value;
+  GET_NUMERIC_ARG(ms, value);
+
+  shared_ptr<EePoseWord> word ;
+  GET_WORD_ARG(ms, EePoseWord, word);
+  
+  eePose newPose = word->value();
+  newPose.py = value;
+
+  shared_ptr<EePoseWord> newWord = make_shared<EePoseWord>(newPose);
+
+  ms->pushData(newWord);
+}
+END_WORD
+REGISTER_WORD(SetEEPosePY)
+
+
+WORD(SetEEPosePZ)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double value;
+  GET_NUMERIC_ARG(ms, value);
+
+  shared_ptr<EePoseWord> word ;
+  GET_WORD_ARG(ms, EePoseWord, word);
+  
+  eePose newPose = word->value();
+  newPose.pz = value;
+
+  shared_ptr<EePoseWord> newWord = make_shared<EePoseWord>(newPose);
+
+  ms->pushData(newWord);
+}
+END_WORD
+REGISTER_WORD(SetEEPosePZ)
+
+
+
+WORD(SetEEPoseQX)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double value;
+  GET_NUMERIC_ARG(ms, value);
+
+  shared_ptr<EePoseWord> word ;
+  GET_WORD_ARG(ms, EePoseWord, word);
+  
+  eePose newPose = word->value();
+  newPose.qx = value;
+
+  shared_ptr<EePoseWord> newWord = make_shared<EePoseWord>(newPose);
+
+  ms->pushData(newWord);
+}
+END_WORD
+REGISTER_WORD(SetEEPoseQX)
+
+WORD(SetEEPoseQY)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double value;
+  GET_NUMERIC_ARG(ms, value);
+
+  shared_ptr<EePoseWord> word ;
+  GET_WORD_ARG(ms, EePoseWord, word);
+  
+  eePose newPose = word->value();
+  newPose.qy = value;
+
+  shared_ptr<EePoseWord> newWord = make_shared<EePoseWord>(newPose);
+
+  ms->pushData(newWord);
+}
+END_WORD
+REGISTER_WORD(SetEEPoseQY)
+
+WORD(SetEEPoseQZ)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double value;
+  GET_NUMERIC_ARG(ms, value);
+
+  shared_ptr<EePoseWord> word ;
+  GET_WORD_ARG(ms, EePoseWord, word);
+  
+  eePose newPose = word->value();
+  newPose.qz = value;
+
+  shared_ptr<EePoseWord> newWord = make_shared<EePoseWord>(newPose);
+
+  ms->pushData(newWord);
+}
+END_WORD
+REGISTER_WORD(SetEEPoseQZ)
+
+WORD(SetEEPoseQW)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double value;
+  GET_NUMERIC_ARG(ms, value);
+
+  shared_ptr<EePoseWord> word ;
+  GET_WORD_ARG(ms, EePoseWord, word);
+  
+  eePose newPose = word->value();
+  newPose.qw = value;
+
+  shared_ptr<EePoseWord> newWord = make_shared<EePoseWord>(newPose);
+
+  ms->pushData(newWord);
+}
+END_WORD
+REGISTER_WORD(SetEEPoseQW)
+
+
+
+WORD(EePosePX)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<EePoseWord> word ;
+  GET_WORD_ARG(ms, EePoseWord, word);
+  shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(word->value().px);
+  ms->pushData(vword);
+}
+END_WORD
+REGISTER_WORD(EePosePX)
+
+
+WORD(EePosePY)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<EePoseWord> word ;
+  GET_WORD_ARG(ms, EePoseWord, word);
+  shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(word->value().py);
+  ms->pushData(vword);
+}
+END_WORD
+REGISTER_WORD(EePosePY)
+
+
+WORD(EePosePZ)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<EePoseWord> word ;
+  GET_WORD_ARG(ms, EePoseWord, word);
+  shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(word->value().pz);
+  ms->pushData(vword);
+}
+END_WORD
+REGISTER_WORD(EePosePZ)
+
+
+WORD(EePoseQX)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<EePoseWord> word ;
+  GET_WORD_ARG(ms, EePoseWord, word);
+  shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(word->value().qx);
+  ms->pushData(vword);
+}
+END_WORD
+REGISTER_WORD(EePoseQX)
+
+
+WORD(EePoseQY)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<EePoseWord> word ;
+  GET_WORD_ARG(ms, EePoseWord, word);
+  shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(word->value().qy);
+  ms->pushData(vword);
+}
+END_WORD
+REGISTER_WORD(EePoseQY)
+
+
+WORD(EePoseQZ)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<EePoseWord> word ;
+  GET_WORD_ARG(ms, EePoseWord, word);
+  shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(word->value().qz);
+  ms->pushData(vword);
+}
+END_WORD
+REGISTER_WORD(EePoseQZ)
+
+
+WORD(EePoseQW)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<EePoseWord> word ;
+  GET_WORD_ARG(ms, EePoseWord, word);
+  shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(word->value().qw);
+  ms->pushData(vword);
+}
+END_WORD
+REGISTER_WORD(EePoseQW)
+
+
+
+
 WORD(Store)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   std::shared_ptr<Word> nameword = ms->popData();
