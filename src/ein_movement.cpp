@@ -7,6 +7,8 @@ namespace ein_words {
 
 CONFIG_GETTER_DOUBLE(W1GoThresh, ms->config.w1GoThresh)
 CONFIG_SETTER_DOUBLE(SetW1GoThresh, ms->config.w1GoThresh)
+CONFIG_GETTER_DOUBLE(W1AngleThresh, ms->config.w1AngleThresh)
+CONFIG_SETTER_DOUBLE(SetW1AngleThresh, ms->config.w1AngleThresh)
 
 WORD(AssumeAimedPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -25,6 +27,35 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(AssumeBackScanningPose)
+
+WORD(WaitUntilAtCurrentPositionCollapse)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  ms->config.currentMovementState = MOVING;
+  ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
+  ms->config.lastMovementStateSet = ros::Time::now();
+
+  ms->config.waitUntilAtCurrentPositionCounter = 0;
+  double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
+  double dy = (ms->config.currentEEPose.py - ms->config.trueEEPose.position.y);
+  double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
+  double distance = dx*dx + dy*dy + dz*dz;
+  
+  double qx = (fabs(ms->config.currentEEPose.qx) - fabs(ms->config.trueEEPose.orientation.x));
+  double qy = (fabs(ms->config.currentEEPose.qy) - fabs(ms->config.trueEEPose.orientation.y));
+  double qz = (fabs(ms->config.currentEEPose.qz) - fabs(ms->config.trueEEPose.orientation.z));
+  double qw = (fabs(ms->config.currentEEPose.qw) - fabs(ms->config.trueEEPose.orientation.w));
+  double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
+  
+  if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
+    ms->pushWord("waitUntilAtCurrentPositionB"); 
+    ms->config.endThisStackCollapse = 1;
+    ms->config.shouldIDoIK = 1;
+  } else {
+  }
+}
+END_WORD
+REGISTER_WORD(WaitUntilAtCurrentPositionCollapse)
 
 WORD(WaitUntilAtCurrentPosition)
 CODE(131154)    // capslock + r
