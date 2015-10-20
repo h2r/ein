@@ -1648,7 +1648,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   buf.imbue(std::locale(std::cout.getloc(), facet));
   buf << p;
-  cout << "Printing: " << buf.str() << endl;
   ms->pushWord(make_shared<StringWord>(buf.str()));
 }
 END_WORD
