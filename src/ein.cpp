@@ -7550,18 +7550,7 @@ void prepareForCrossCorrelation(std::shared_ptr<MachineState> ms, Mat input, Mat
 
 }
 
-
-double computeSimilarity(std::shared_ptr<MachineState> ms, int class1, int class2) {
-
-  cout << "computeSimilarity on classes " << class1 << " " << class2 << endl;
-
-  int tnc = ms->config.classLabels.size();
-  if ( (class1 >=0) && (class1 < tnc) &&
-       (class2 >=0) && (class2 < tnc) ) {
-  } else {
-    cout << "  unable to computeSimilarity: invalid class." << endl;
-    assert(0);
-  }
+double computeSimilarity(std::shared_ptr<MachineState> ms, Mat im1, Mat im2) {
 
   vector<Mat> rotatedAerialGrads;
   int gradientServoScale = 1;//11;
@@ -7576,7 +7565,7 @@ double computeSimilarity(std::shared_ptr<MachineState> ms, int class1, int class
   Mat preparedClass1;
   {
     int thisOrient = 0;
-    prepareForCrossCorrelation(ms, ms->config.classAerialGradients[class1], preparedClass1, thisOrient, numOrientations, thisScale, toBecome);
+    prepareForCrossCorrelation(ms, im1, preparedClass1, thisOrient, numOrientations, thisScale, toBecome);
   }
 
   double globalMax = 0.0;
@@ -7591,7 +7580,7 @@ double computeSimilarity(std::shared_ptr<MachineState> ms, int class1, int class
     
     // Get the rotation matrix with the specifications above
     Mat rot_mat = getRotationMatrix2D(center, angle, scale);
-    warpAffine(ms->config.classAerialGradients[class2], rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
+    warpAffine(im2, rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
     
     processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations], rotatedAerialGrads[thisOrient + etaS*numOrientations]);
     
@@ -7605,7 +7594,7 @@ double computeSimilarity(std::shared_ptr<MachineState> ms, int class1, int class
     rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l2norm;
 */
 
-    prepareForCrossCorrelation(ms, ms->config.classAerialGradients[class2], rotatedAerialGrads[thisOrient + etaS*numOrientations], thisOrient, numOrientations, thisScale, toBecome);
+    prepareForCrossCorrelation(ms, im2, rotatedAerialGrads[thisOrient + etaS*numOrientations], thisOrient, numOrientations, thisScale, toBecome);
 
     Mat output = preparedClass1.clone(); 
     filter2D(preparedClass1, output, -1, rotatedAerialGrads[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
@@ -7616,6 +7605,22 @@ double computeSimilarity(std::shared_ptr<MachineState> ms, int class1, int class
 
   cout << globalMax << endl;
   return globalMax;
+
+}
+
+double computeSimilarity(std::shared_ptr<MachineState> ms, int class1, int class2) {
+
+  cout << "computeSimilarity on classes " << class1 << " " << class2 << endl;
+
+  int tnc = ms->config.classLabels.size();
+  if ( (class1 >=0) && (class1 < tnc) &&
+       (class2 >=0) && (class2 < tnc) ) {
+  } else {
+    cout << "  unable to computeSimilarity: invalid class." << endl;
+    assert(0);
+  }
+
+  return computeSimilarity(ms, ms->config.classHeight1AerialGradients[class1], ms->config.classHeight1AerialGradients[class2]);
 }
 
 
