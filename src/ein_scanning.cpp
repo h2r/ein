@@ -1,4 +1,4 @@
-
+#include <boost/filesystem.hpp>
 #include "ein_words.h"
 #include "ein.h"
 
@@ -1034,24 +1034,44 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.targetClass = ms->config.focusedClass;
 
   ros::Time thisNow = ros::Time::now();
+  string formattedTime = formatTime(thisNow);
   stringstream buf;
-  buf << ms->config.scan_group << "autoClass_" << ms->config.robot_serial << "_" <<  ms->config.left_or_right_arm << "_" << thisNow.toSec();
+  buf << ms->config.scan_group << "autoClass_" << ms->config.robot_serial << "_" <<  ms->config.left_or_right_arm << "_" << formattedTime;
   string thisLabelName = buf.str();
 
   string thisLabelNameGroup = ms->config.scan_group;
 
-  ms->config.focusedClassLabel = thisLabelName;
-  ms->config.classLabels.push_back(thisLabelName);
   ms->config.classPoseModels.push_back("B");
-  ms->config.numClasses = ms->config.classLabels.size();
   {
     string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelNameGroup + "/";
-    mkdir(dirToMakePath.c_str(), 0777);
+    if ( boost::filesystem::exists(dirToMakePath) ) {
+      cout << "Group folder exists: " << dirToMakePath << endl;
+    } else {
+      mkdir(dirToMakePath.c_str(), 0777);
+    }
   }
-  {
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/";
-    mkdir(dirToMakePath.c_str(), 0777);
+  bool collision = 1;
+  int suffix_counter = 0;
+  string the_suffix = "";
+  while (collision) {
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + the_suffix + "/";
+    if ( boost::filesystem::exists(dirToMakePath) ) {
+      cout << "Whole label name already exists: " << dirToMakePath << endl << "Looking for a name that isn't in use..." << endl;
+      stringstream buf1;
+      buf1 << "." << suffix_counter;
+      the_suffix = buf1.str(); 
+      suffix_counter++;
+      collision = 1;
+    } else {
+      mkdir(dirToMakePath.c_str(), 0777);
+      collision = 0;
+      thisLabelName = thisLabelName + the_suffix;  
+    }
   }
+  ms->config.focusedClassLabel = thisLabelName;
+  ms->config.classLabels.push_back(thisLabelName);
+  ms->config.numClasses = ms->config.classLabels.size();
+
   initRangeMaps(ms);
   guardGraspMemory(ms);
   guardHeightMemory(ms);
@@ -4329,11 +4349,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   cout << endl;
 
+  double max_of_classes = 0;
+
   for (int i = 0; i < ms->config.classLabels.size(); i++) {
     cout << std::setw(3) << i;
     cout << std::setw(10) << result[i];
     cout << endl;
+    max_of_classes = max(max_of_classes, result[i]);
   }
+
+  ms->pushWord(make_shared<DoubleWord>(max_of_classes));
 }
 END_WORD
 REGISTER_WORD(BuildClassSimilarityMatrixFromDensity)

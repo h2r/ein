@@ -1,6 +1,10 @@
 #include "ein_util.h"
 #include <ros/console.h>
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/c_local_time_adjustor.hpp>
+
+
 std::string operationStatusToString(operationStatusType mode) 
 {
     string result;
@@ -120,3 +124,20 @@ void initializeMachine(shared_ptr<MachineState> ms) {
   ms->execute_stack = 1;
 }
 
+
+
+string formatTime(ros::Time time) {
+  stringstream buf;
+
+  boost::posix_time::ptime old = time.toBoost();
+
+  typedef boost::date_time::c_local_adjustor<boost::posix_time::ptime> local_adj;
+  boost::posix_time::ptime p =  local_adj::utc_to_local(old);
+
+  boost::posix_time::time_facet * facet = new boost::posix_time::time_facet();
+  facet->format("%Y-%m-%d_%H:%M:%S %Z");
+
+  buf.imbue(std::locale(std::cout.getloc(), facet));
+  buf << p;
+  return buf.str();
+}

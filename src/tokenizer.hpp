@@ -103,7 +103,7 @@ public:
 	}
 	else tok+=*next;
       }
-      else if (*next == '/') {
+      else if (*next == '\\') {
 	tok += *next;
 	if (++next == end) {
 	  return true;
@@ -119,7 +119,7 @@ public:
 	  return true;
 	}
 
-	if (*next == '/') {
+	if (*next == '\\') {
 	  bInComment = false;
 	} else {
 	  next--;
