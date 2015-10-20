@@ -2572,41 +2572,6 @@ void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folder
   // XXX load grasp memories separately 
 }
 
-void MachineState::fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
-  shared_ptr<MachineState> ms = this->sharedThis;
-  if (ros::Time::now() - ms->config.fetchCommandTime < ros::Duration(ms->config.fetchCommandCooldown)) {
-    cout << "Received a fetch command but the fetchCommandCooldown hasn't expired so returning." << endl;
-    return;
-  }
-
-  if (!ms->config.acceptingFetchCommands) {
-    cout << "Received a fetch command but not accepting fetch commands so returning." << endl;
-    return;
-  }
-  //ms->config.acceptingFetchCommands = 0;
-
-  ms->config.fetchCommand = msg->data;
-  ms->config.fetchCommandTime = ros::Time::now();
-  ROS_INFO_STREAM("Received " << ms->config.fetchCommand << endl);
-
-  int class_idx = classIdxForName(ms, ms->config.fetchCommand);
-
-  if (class_idx == -1) {
-    cout << "Could not find class " << ms->config.fetchCommand << endl; 
-    // ATTN 25
-    ms->pushWord("clearStackAcceptFetchCommands"); 
-  } else {
-    ms->clearStack();
-
-    changeTargetClass(ms, class_idx);
-    // ATTN 25
-    //ms->pushWord("mappingPatrol");
-    ms->pushWord("deliverTargetObject");
-    ms->execute_stack = 1;
-    ms->config.acceptingFetchCommands = 0;
-  }
-}
-
 
 
 void MachineState::moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
@@ -2618,6 +2583,8 @@ void MachineState::moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg
     ms->config.currentEEPose.px = msg.position.x;
     ms->config.currentEEPose.py = msg.position.y;
     ms->config.currentEEPose.pz = msg.position.z;
+  } else if (ms->config.currentRobotMode == SNOOP) {
+    return;
   } else {
     assert(0);
   }
@@ -2690,6 +2657,8 @@ void MachineState::pickObjectUnderEndEffectorCommandCallback(const std_msgs::Emp
 	cout << "pickObjectUnderEndEffectorCommandCallback: Not picking because objectInHandLabel is " << ms->config.objectInHandLabel << "." << endl;
       }
     }
+  } else if (ms->config.currentRobotMode == SNOOP) {
+    return;
   } else {
     assert(0);
   }
@@ -2727,6 +2696,8 @@ void MachineState::placeObjectInEndEffectorCommandCallback(const std_msgs::Empty
       cout << "placeObjectInEndEffectorCommandCallback: Not placing because objectInHandLabel is " << ms->config.objectInHandLabel << "." << endl;
     }
     ms->config.objectInHandLabel = -1;
+  } else if (ms->config.currentRobotMode == SNOOP) {
+    return;
   } else {
     assert(0);
   }
@@ -3891,6 +3862,9 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
   }
 
   if (ms->config.currentRobotMode == SIMULATED) {
+    return;
+  }
+  if (ms->config.currentRobotMode == SNOOP) {
     return;
   }
 
@@ -6285,17 +6259,20 @@ void guardHeightMemory(shared_ptr<MachineState> ms) {
 int calibrateGripper(shared_ptr<MachineState> ms) {
   if (ms->config.currentRobotMode == SIMULATED) {
     return 0;
-  }
-  for (int i = 0; i < 10; i++) {
-    int return_value = doCalibrateGripper(ms);
-    if (return_value == 0) {
-      return return_value;
+  } else if (ms->config.currentRobotMode == SNOOP) {
+    return 0;
+  } else if (ms->config.currentRobotMode == PHYSICAL) {
+    for (int i = 0; i < 10; i++) {
+      int return_value = doCalibrateGripper(ms);
+      if (return_value == 0) {
+	return return_value;
+      }
     }
+    cout << "Gripper could not calibrate!" << endl;
+    ms->pushWord("pauseStackExecution"); // pause stack execution
+    ms->pushCopies("beep", 15); // beep
+    return -1;
   }
-  cout << "Gripper could not calibrate!" << endl;
-  ms->pushWord("pauseStackExecution"); // pause stack execution
-  ms->pushCopies("beep", 15); // beep
-  return -1;
 }
 int doCalibrateGripper(shared_ptr<MachineState> ms) {
   int return_value;
@@ -11860,15 +11837,16 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   //ms->config.chosen_feature = static_cast<featureType>(cfi);
 
 
-  nh.getParam("use_simulator", ms->config.use_simulator);
-  if (ms->config.use_simulator) {
+  nh.getParam("robot_mode", ms->config.robot_mode);
+  if (ms->config.robot_mode == "simulated") {
     ms->config.currentRobotMode = SIMULATED;
 
     std::ifstream ifs("src/ein/baxter.urdf");
     std::string content( (std::istreambuf_iterator<char>(ifs) ),
 			 (std::istreambuf_iterator<char>()    ) );
     ms->config.robot_description = content;
-    
+  } else if (ms->config.robot_mode == "snoop") {    
+    ms->config.currentRobotMode = SNOOP;
   } else {
     ms->config.currentRobotMode = PHYSICAL;
   } 
@@ -13519,7 +13497,7 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
 
 
 
-  if (ms->config.currentRobotMode == PHYSICAL) {
+  if (ms->config.currentRobotMode == PHYSICAL || ms->config.currentRobotMode == SNOOP) {
     ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, &MachineState::endpointCallback, ms.get());
     ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, &MachineState::rangeCallback, ms.get());
     ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 1, &MachineState::imageCallback, ms.get());
@@ -13637,6 +13615,7 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
       cout << "done. " << ms->config.mapBackgroundImage.size() << endl; cout.flush();
     }
     ms->config.originalMapBackgroundImage = ms->config.mapBackgroundImage.clone();
+
   }  else {
     assert(0);
   }
@@ -13647,13 +13626,12 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
 
   ms->config.armItbCallbackSub = n.subscribe("/robot/itb/" + ms->config.left_or_right_arm + "_itb/state", 1, &MachineState::armItbCallback, ms.get());
 
-
-
-  ms->config.fetchCommandSubscriber = n.subscribe("/fetch_commands", 1, 
-						  &MachineState::fetchCommandCallback, ms.get());
-
-  ms->config.forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1, 
-						  &MachineState::forthCommandCallback, ms.get());
+  if (ms->config.currentRobotMode == PHYSICAL || ms->config.currentRobotMode == SIMULATED) {
+    ms->config.forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1, 
+						    &MachineState::forthCommandCallback, ms.get());
+  } else {
+    ms->config.forthCommandPublisher = n.advertise<std_msgs::String>("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 10);
+  }
 
 
 
