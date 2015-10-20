@@ -120,5 +120,3 @@ void initializeMachine(shared_ptr<MachineState> ms) {
   ms->execute_stack = 1;
 }
 
-
-

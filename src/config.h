@@ -68,6 +68,12 @@ class EinWindow;
 class ArmWidget;
 
 typedef enum {
+  IK_GOOD = 0,
+  IK_LIKELY_IN_COLLISION = 2,
+  IK_FAILED = 1
+} ikMapState;
+
+typedef enum {
   ARMED = 0,
   BLOCKED = 1,
   STOPPED = 2,
@@ -114,7 +120,8 @@ typedef enum {
 
 typedef enum {
   PHYSICAL,
-  SIMULATED
+  SIMULATED,
+  SNOOP
 } robotMode;
 
 typedef enum {
@@ -430,6 +437,8 @@ class EinConfig {
   int goodIkInitialized = 0;
   double ikShare = 1.0;
   int ik_reset_thresh = 20;
+  bool lastIkWasSuccessful = true;
+
 
   int sensorStreamOn = 0;
   int diskStreamingEnabled = 0;
@@ -554,10 +563,6 @@ class EinConfig {
   double averagedWrechMass = 0;
   double averagedWrechDecay = 0.95;
   eePose trueEEPoseEEPose;
-  std::string fetchCommand;
-  ros::Time fetchCommandTime;
-  double fetchCommandCooldown = 5;
-  int acceptingFetchCommands = 0;
 
   std::string forthCommand;
 
@@ -1009,7 +1014,7 @@ class EinConfig {
   int currentCornellTableIndex = 0;
   
   
-  bool use_simulator = false;
+  string robot_mode = "";
   
   int targetInstanceSprite = 0;
   int targetMasterSprite = 0;
@@ -1203,6 +1208,12 @@ class EinConfig {
   int drawIKMap = 1;
   int useGlow = 0;
   int useFade = 1;
+
+  double ikMapStartHeight;
+  double ikMapEndHeight;
+  const static int numIkMapHeights = 3;
+  int ikMapAtHeight[mapWidth * mapHeight * numIkMapHeights];
+  
   
   vector<BoxMemory> blueBoxMemories;
   int targetBlueBox = 0;
@@ -1347,8 +1358,8 @@ class EinConfig {
   ros::Subscriber moveEndEffectorCommandCallbackSub;
 
   ros::Subscriber armItbCallbackSub;
-  ros::Subscriber fetchCommandSubscriber;
   ros::Subscriber forthCommandSubscriber;
+  ros::Publisher forthCommandPublisher;
 
   ros::Time waitForSecondsTarget;
   ros::Time spinForSecondsTarget;
@@ -1423,7 +1434,6 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   string currentState();
 
   void jointCallback(const sensor_msgs::JointState& js);
-  void fetchCommandCallback(const std_msgs::String::ConstPtr& msg);
   void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
   void armItbCallback(const baxter_core_msgs::ITBState& itbs);
   void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);

@@ -2,6 +2,9 @@
 #include "ein_words.h"
 #include "ein.h"
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/c_local_time_adjustor.hpp>
+
 
 namespace ein_words {
 
@@ -1630,6 +1633,27 @@ END_WORD
 REGISTER_WORD(NumBlueBoxes)
 
 
+WORD(DateString)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  stringstream buf;
+  ros::Time thisNow = ros::Time::now();
+  boost::posix_time::ptime old = thisNow.toBoost();
+
+  typedef boost::date_time::c_local_adjustor<boost::posix_time::ptime> local_adj;
+  boost::posix_time::ptime p =  local_adj::utc_to_local(old);
+
+
+  boost::posix_time::time_facet * facet = new boost::posix_time::time_facet();
+  facet->format("%Y-%m-%d_%H:%M:%S %Z");
+
+  buf.imbue(std::locale(std::cout.getloc(), facet));
+  buf << p;
+  ms->pushWord(make_shared<StringWord>(buf.str()));
+}
+END_WORD
+REGISTER_WORD(DateString)
+
+
 
 CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
 CONFIG_SETTER_INT(SetGradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
@@ -1648,6 +1672,12 @@ CONFIG_SETTER_DOUBLE(SetTwistThresh, ms->config.twistThresh)
 
 CONFIG_GETTER_STRING(ScanGroup, ms->config.scan_group)
 CONFIG_SETTER_STRING(SetScanGroup, ms->config.scan_group)
+
+CONFIG_GETTER_DOUBLE(IkMapStartHeight, ms->config.ikMapStartHeight)
+
+CONFIG_GETTER_DOUBLE(IkMapEndHeight, ms->config.ikMapEndHeight)
+
+//CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
 
 
 

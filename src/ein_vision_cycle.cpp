@@ -15,24 +15,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ClearStackIntoMappingPatrol)
 
-WORD(ClearStackAcceptFetchCommands)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->clearStack();
-  ms->execute_stack = 1;
-  ms->config.acceptingFetchCommands = 1;
-}
-END_WORD
-REGISTER_WORD(ClearStackAcceptFetchCommands)
 
-WORD(ClearStackAcceptFetchCommandsIntoIdler)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->clearStack();
-  ms->execute_stack = 1;
-  ms->config.acceptingFetchCommands = 1;
-  ms->pushWord("idler");
-}
-END_WORD
-REGISTER_WORD(ClearStackAcceptFetchCommandsIntoIdler)
 
 WORD(MapServo)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -125,7 +108,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "mappingPatrolA" << endl;
   ms->config.bailAfterSynchronic = 1;
   ms->config.bailAfterGradient = 1;
-  ms->config.acceptingFetchCommands = 1;
 
   ms->pushWord("moveToNextMapPosition");
 
@@ -269,6 +251,34 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(FillClearanceMap)
 
+WORD(SaveIkMapAtHeight)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ofstream ofile;
+  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "IkMapAtHeight";
+  cout << "Saving ikMapAtHeight to " << fileName << endl;
+  ofile.open(fileName, ios::trunc | ios::binary);
+  ofile.write((char*)ms->config.ikMapAtHeight, sizeof(int)*ms->config.mapWidth*ms->config.mapHeight*ms->config.numIkMapHeights);
+  ofile.close();
+}
+END_WORD
+REGISTER_WORD(SaveIkMapAtHeight)
+
+WORD(LoadIkMapAtHeight)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // binary seems overkill but consider that this map is
+  //  for only one height and is 360kB in binary... how
+  //  big would it be in yml, and what if we want another height?
+  ifstream ifile;
+  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "IkMapAtHeight";
+  cout << "Loading ikMapAtHeight from " << fileName << endl;
+  ifile.open(fileName, ios::binary);
+  ifile.read((char*)ms->config.ikMapAtHeight, sizeof(int)*ms->config.mapWidth*ms->config.mapHeight*ms->config.numIkMapHeights);
+  ifile.close();
+}
+END_WORD
+REGISTER_WORD(LoadIkMapAtHeight)
+
+
 WORD(SaveIkMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ofstream ofile;
@@ -296,12 +306,110 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(LoadIkMap)
 
-WORD(FillIkMap)
-// store these here and create accessors if they need to change
-int currentI = 0;
-int currentJ = 0;
-int cellsPerQuery = 100;
+
+
+
+WORD(FillIkMapAtHeights)
+virtual string description() {
+  return "Fill the IK map at different heights.";
+}
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  double ikStep = (ms->config.ikMapEndHeight - ms->config.ikMapStartHeight) / (ms->config.numIkMapHeights - 1);
+
+  for (int i = 0; i < ms->config.numIkMapHeights; i++) {
+    
+    double height = ms->config.ikMapStartHeight + ikStep * i;
+    stringstream program;
+    program << "0 0 " << height << " fillIkMap " << i << " copyIkMapToHeightIdx";
+    ms->evaluateProgram(program.str());
+  }
+}
+END_WORD
+REGISTER_WORD(FillIkMapAtHeights)
+
+WORD(FillIkMapFromCachedHeights)
+virtual string description() {
+  return "Fill the IK map by taking the and of the result at all the different heights.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  for (int i = 0; i < ms->config.mapWidth; i++) {
+    for (int j = 0; j < ms->config.mapHeight; j++) {
+      bool result = IK_GOOD;
+      for (int heightIdx = 0; heightIdx < ms->config.numIkMapHeights; heightIdx++) {
+	if (ms->config.ikMapAtHeight[i  + ms->config.mapWidth * j + ms->config.mapWidth * ms->config.mapHeight * heightIdx] == IK_FAILED ||
+	    ms->config.ikMapAtHeight[i  + ms->config.mapWidth * j + ms->config.mapWidth * ms->config.mapHeight * heightIdx] == IK_LIKELY_IN_COLLISION) {
+	  result = IK_FAILED;
+	  break;
+	}
+      }
+      ms->config.ikMap[i + ms->config.mapWidth * j] = result;
+    }
+  }
+}
+
+END_WORD
+REGISTER_WORD(FillIkMapFromCachedHeights)
+
+
+WORD(FillIkMapFromCachedHeightIdx)
+virtual string description() {
+  return "Fill the IK map by taking the height idx from the cache.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int heightIdx;
+  GET_INT_ARG(ms, heightIdx);
+  if (heightIdx >= ms->config.numIkMapHeights) {
+    cout << "Ooops, height out of bounds. " << heightIdx << endl;
+    ms->pushWord("pauseStackExecution");   
+    return;
+  }
+  
+  for (int i = 0; i < ms->config.mapWidth; i++) {
+    for (int j = 0; j < ms->config.mapHeight; j++) {
+      ms->config.ikMap[i + ms->config.mapWidth * j] = ms->config.ikMapAtHeight[i  + ms->config.mapWidth * j + ms->config.mapWidth * ms->config.mapHeight * heightIdx];
+    }
+  }
+}
+
+END_WORD
+REGISTER_WORD(FillIkMapFromCachedHeightIdx)
+
+
+
+
+WORD(CopyIkMapToHeightIdx)
+virtual string description() {
+  return "Copy the ik map to the height index.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int heightIdx;
+  GET_INT_ARG(ms, heightIdx);
+  for (int i = 0; i < ms->config.mapWidth; i++) {
+    for (int j = 0; j < ms->config.mapHeight; j++) {
+      ms->config.ikMapAtHeight[i  + ms->config.mapWidth * j + ms->config.mapWidth * ms->config.mapHeight * heightIdx] = ms->config.ikMap[i + ms->config.mapWidth * j];
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(CopyIkMapToHeightIdx)
+
+
+WORD(FillIkMap)
+
+virtual string description() {
+  return "Fill the IK map for the current range starting at the i and j and height on the stack.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int cellsPerQuery = 100;
+
+  int currentI, currentJ;
+  double height;
+  GET_NUMERIC_ARG(ms, height);
+  GET_INT_ARG(ms, currentJ);
+  GET_INT_ARG(ms, currentI);
+
+
+
   int queries = 0;
   int i=currentI, j=currentJ;
   for (; i < ms->config.mapWidth; i++) {
@@ -315,39 +423,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	    eePose nextEEPose = ms->config.currentEEPose;
 	    nextEEPose.px = X;
 	    nextEEPose.py = Y;
-
-	    baxter_core_msgs::SolvePositionIK thisIkRequest;
 	    endEffectorAngularUpdate(&nextEEPose, &ms->config.currentEEDeltaRPY);
-	    fillIkRequest(&nextEEPose, &thisIkRequest);
 
-	    bool likelyInCollision = 0;
-	    // ATTN 24
-	    //int thisIkCallResult = ms->config.ikClient.call(thisIkRequest);
-	    int thisIkCallResult = 0;
-	    queryIK(ms, &thisIkCallResult, &thisIkRequest);
-
-	    int ikResultFailed = 1;
-	    if (ms->config.currentRobotMode == PHYSICAL) {
-	      ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision);
-	    } else if (ms->config.currentRobotMode == SIMULATED) {
-	      ikResultFailed = !positionIsSearched(ms, nextEEPose.px, nextEEPose.py);
-	    } else {
-              assert(0);
-            }
-
-	    int foundGoodPosition = !ikResultFailed;
-	    //ms->config.ikMap[i + ms->config.mapWidth * j] = ikResultFailed;
-	    //ms->config.ikMap[i + ms->config.mapWidth * j] = 1;
-	    //cout << i << " " << j << endl;
-	    if (ikResultFailed) {
-	      ms->config.ikMap[i + ms->config.mapWidth * j] = 1;
-	    } else {
-	      if (likelyInCollision) {
-		ms->config.ikMap[i + ms->config.mapWidth * j] = 2;
-	      } else {
-		ms->config.ikMap[i + ms->config.mapWidth * j] = 0;
-	      }
-	    }
+	    ms->config.ikMap[i + ms->config.mapWidth * j] = ikAtPose(ms, nextEEPose);
 	    queries++;
 	  }
 	} else {
@@ -369,22 +447,38 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }
 
-  if (i >= ms->config.mapWidth) {
-    i = 0;
-  } else {
-    ms->pushWord("fillIkMap");
-  }
   if (j >= ms->config.mapHeight) {
     j = 0;
   }
-  
-  currentI = i;
-  currentJ = j;
+
+  if (i >= ms->config.mapWidth) {
+    i = 0;
+  } else {
+
+    ms->pushWord("fillIkMap");
+    ms->pushWord(make_shared<DoubleWord>(height));  
+    ms->pushWord(make_shared<IntegerWord>(j));  
+    ms->pushWord(make_shared<IntegerWord>(i));  
+  }
 
   ms->config.endThisStackCollapse = 1;
+
+
 }
 END_WORD
 REGISTER_WORD(FillIkMap)
+
+WORD(FillIkMapAtCurrentHeight)
+
+virtual string description() {
+  return "Fill the IK map using data at the current EE height.  We run at height 2 usually.";
+}
+
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("0 0 currentPose eePosePZ fillIkMap");
+}
+END_WORD
+REGISTER_WORD(FillIkMapAtCurrentHeight)
 
 WORD(MoveToNextMapPosition)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -400,7 +494,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	      if (cellIsSearched(ms, i, j) &&
 	          (ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime <= oldestTime) &&
 	          (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2) &&
-	          (ms->config.ikMap[i + ms->config.mapWidth * j] == 0) ) {
+	          (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_GOOD) ) {
 	        oldestTime = ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
 	        oldestI = i;
 	        oldestJ = j;
@@ -417,7 +511,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	} else if (ms->config.currentPatrolMode == ONCE) {
 	  cout << "Patrolled once, idling." << endl;
 	  ms->execute_stack = 1;
-	  ms->config.acceptingFetchCommands = 1;
 	  ms->pushWord("idler");
 	  return;
 	} else {
@@ -441,7 +534,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     nextEEPose.py = oldestY;
 
     baxter_core_msgs::SolvePositionIK thisIkRequest;
-    fillIkRequest(&nextEEPose, &thisIkRequest);
+    fillIkRequest(nextEEPose, &thisIkRequest);
 
     bool likelyInCollision = 0;
     // ATTN 24
@@ -477,12 +570,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       cout << "moveToNextMapPosition tries foundGoodPosition oldestI oldestJ: "  << tries << " " << foundGoodPosition << " "  << oldestI << " " << oldestJ << " " << oldestX << " " << oldestY << endl;
       cout << "Try number try: " << tries << ", adding point to ikMap oldestI oldestJ ikMap[.]: " << " " << oldestI << " " << oldestJ;
       if (ikResultFailed) {
-	ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] = 1;
+	ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] = IK_FAILED;
       } else {
 	if (likelyInCollision) {
-	  ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] = 2;
+	  ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] = IK_LIKELY_IN_COLLISION;
 	} else {
-	  ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] = 0;
+	  ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] = IK_GOOD;
 	}
       }
       cout << " " << ms->config.ikMap[oldestI + ms->config.mapWidth * oldestJ] << endl;
