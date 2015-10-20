@@ -2572,41 +2572,6 @@ void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folder
   // XXX load grasp memories separately 
 }
 
-void MachineState::fetchCommandCallback(const std_msgs::String::ConstPtr& msg) {
-  shared_ptr<MachineState> ms = this->sharedThis;
-  if (ros::Time::now() - ms->config.fetchCommandTime < ros::Duration(ms->config.fetchCommandCooldown)) {
-    cout << "Received a fetch command but the fetchCommandCooldown hasn't expired so returning." << endl;
-    return;
-  }
-
-  if (!ms->config.acceptingFetchCommands) {
-    cout << "Received a fetch command but not accepting fetch commands so returning." << endl;
-    return;
-  }
-  //ms->config.acceptingFetchCommands = 0;
-
-  ms->config.fetchCommand = msg->data;
-  ms->config.fetchCommandTime = ros::Time::now();
-  ROS_INFO_STREAM("Received " << ms->config.fetchCommand << endl);
-
-  int class_idx = classIdxForName(ms, ms->config.fetchCommand);
-
-  if (class_idx == -1) {
-    cout << "Could not find class " << ms->config.fetchCommand << endl; 
-    // ATTN 25
-    ms->pushWord("clearStackAcceptFetchCommands"); 
-  } else {
-    ms->clearStack();
-
-    changeTargetClass(ms, class_idx);
-    // ATTN 25
-    //ms->pushWord("mappingPatrol");
-    ms->pushWord("deliverTargetObject");
-    ms->execute_stack = 1;
-    ms->config.acceptingFetchCommands = 0;
-  }
-}
-
 
 
 void MachineState::moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg) {
@@ -2618,6 +2583,8 @@ void MachineState::moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg
     ms->config.currentEEPose.px = msg.position.x;
     ms->config.currentEEPose.py = msg.position.y;
     ms->config.currentEEPose.pz = msg.position.z;
+  } else if (ms->config.currentRobotMode == SNOOP) {
+    return;
   } else {
     assert(0);
   }
@@ -2690,6 +2657,8 @@ void MachineState::pickObjectUnderEndEffectorCommandCallback(const std_msgs::Emp
 	cout << "pickObjectUnderEndEffectorCommandCallback: Not picking because objectInHandLabel is " << ms->config.objectInHandLabel << "." << endl;
       }
     }
+  } else if (ms->config.currentRobotMode == SNOOP) {
+    return;
   } else {
     assert(0);
   }
@@ -2727,6 +2696,8 @@ void MachineState::placeObjectInEndEffectorCommandCallback(const std_msgs::Empty
       cout << "placeObjectInEndEffectorCommandCallback: Not placing because objectInHandLabel is " << ms->config.objectInHandLabel << "." << endl;
     }
     ms->config.objectInHandLabel = -1;
+  } else if (ms->config.currentRobotMode == SNOOP) {
+    return;
   } else {
     assert(0);
   }
@@ -3893,9 +3864,12 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
   if (ms->config.currentRobotMode == SIMULATED) {
     return;
   }
+  if (ms->config.currentRobotMode == SNOOP) {
+    return;
+  }
 
   baxter_core_msgs::SolvePositionIK thisIkRequest;
-  fillIkRequest(&ms->config.currentEEPose, &thisIkRequest);
+  fillIkRequest(ms->config.currentEEPose, &thisIkRequest);
 
   int ikResultFailed = 0;
   eePose originalCurrentEEPose = ms->config.currentEEPose;
@@ -3959,7 +3933,7 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
       cout << thisIkRequest.request.pose_stamp[0].pose << endl;
 
       reseedIkRequest(ms, &ms->config.currentEEPose, &thisIkRequest, ikRetry, numIkRetries);
-      fillIkRequest(&ms->config.currentEEPose, &thisIkRequest);
+      fillIkRequest(ms->config.currentEEPose, &thisIkRequest);
     }
   }
   
@@ -3974,6 +3948,7 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
   {
     ROS_ERROR_STREAM("ikClient says pose request is invalid.");
     ms->config.ik_reset_counter++;
+    ms->config.lastIkWasSuccessful = false;
 
     cout << "ik_reset_counter, ik_reset_thresh: " << ms->config.ik_reset_counter << " " << ms->config.ik_reset_thresh << endl;
     if (ms->config.ik_reset_counter > ms->config.ik_reset_thresh) {
@@ -3993,7 +3968,7 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
 
     return;
   }
-
+  ms->config.lastIkWasSuccessful = true;
   ms->config.ik_reset_counter = max(ms->config.ik_reset_counter-1, 0);
 
   ms->config.lastGoodEEPose = ms->config.currentEEPose;
@@ -4799,7 +4774,7 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
 	    mapijToxy(ms, i, j, &x, &y);
 	    cv::Point cvp1 = worldToPixel(ms->config.objectMapViewerImage, 
 	      ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
-	    if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == 1) ) {
+	    if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_FAILED) ) {
 	      Scalar tColor = CV_RGB(192, 32, 32);
 	      cv::Vec3b cColor;
 	      cColor[0] = tColor[0]*glowFraction;
@@ -4811,7 +4786,7 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
 	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
 	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
 		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
-	    } else if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == 2) ) {
+	    } else if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_LIKELY_IN_COLLISION) ) {
 	      Scalar tColor = CV_RGB(224, 64, 64);
 	      cv::Vec3b cColor;
 	      cColor[0] = tColor[0]*glowFraction;
@@ -4997,13 +4972,21 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
 
     putText(ms->config.objectMapViewerImage, class_name, objectPoint, MY_FONT, 0.5, CV_RGB(196, 196, 255), 2.0);
   }
+
+  cv::Scalar color;
+  if (ms->config.lastIkWasSuccessful) {
+    color = cv::Scalar(255, 255, 255);
+  } else {
+    color = cv::Scalar(0, 0, 255);
+  }
+
   
   { // drawRobot
     double radius = 20;
     cv::Point orientation_point = cv::Point(pxMax/2, pyMax/2 + radius);
     
-    circle(ms->config.objectMapViewerImage, center, radius, cv::Scalar(0, 0, 255));
-    line(ms->config.objectMapViewerImage, center, orientation_point, cv::Scalar(0, 0, 255));
+    circle(ms->config.objectMapViewerImage, center, radius, color);
+    line(ms->config.objectMapViewerImage, center, orientation_point, color);
   }
   { // drawHand
     eePose tp = rosPoseToEEPose(ms->config.trueEEPose);
@@ -5022,9 +5005,9 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
                                                tp.py + rotated[1]);
 
 
-    circle(ms->config.objectMapViewerImage, handPoint, radius, cv::Scalar(0, 0, 255));
+    circle(ms->config.objectMapViewerImage, handPoint, radius, color);
 
-    line(ms->config.objectMapViewerImage, handPoint, orientation_point, cv::Scalar(0, 0, 255));
+    line(ms->config.objectMapViewerImage, handPoint, orientation_point, color);
 
   }
 
@@ -6276,17 +6259,20 @@ void guardHeightMemory(shared_ptr<MachineState> ms) {
 int calibrateGripper(shared_ptr<MachineState> ms) {
   if (ms->config.currentRobotMode == SIMULATED) {
     return 0;
-  }
-  for (int i = 0; i < 10; i++) {
-    int return_value = doCalibrateGripper(ms);
-    if (return_value == 0) {
-      return return_value;
+  } else if (ms->config.currentRobotMode == SNOOP) {
+    return 0;
+  } else if (ms->config.currentRobotMode == PHYSICAL) {
+    for (int i = 0; i < 10; i++) {
+      int return_value = doCalibrateGripper(ms);
+      if (return_value == 0) {
+	return return_value;
+      }
     }
+    cout << "Gripper could not calibrate!" << endl;
+    ms->pushWord("pauseStackExecution"); // pause stack execution
+    ms->pushCopies("beep", 15); // beep
+    return -1;
   }
-  cout << "Gripper could not calibrate!" << endl;
-  ms->pushWord("pauseStackExecution"); // pause stack execution
-  ms->pushCopies("beep", 15); // beep
-  return -1;
 }
 int doCalibrateGripper(shared_ptr<MachineState> ms) {
   int return_value;
@@ -11856,15 +11842,16 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   //ms->config.chosen_feature = static_cast<featureType>(cfi);
 
 
-  nh.getParam("use_simulator", ms->config.use_simulator);
-  if (ms->config.use_simulator) {
+  nh.getParam("robot_mode", ms->config.robot_mode);
+  if (ms->config.robot_mode == "simulated") {
     ms->config.currentRobotMode = SIMULATED;
 
     std::ifstream ifs("src/ein/baxter.urdf");
     std::string content( (std::istreambuf_iterator<char>(ifs) ),
 			 (std::istreambuf_iterator<char>()    ) );
     ms->config.robot_description = content;
-    
+  } else if (ms->config.robot_mode == "snoop") {    
+    ms->config.currentRobotMode = SNOOP;
   } else {
     ms->config.currentRobotMode = PHYSICAL;
   } 
@@ -13039,13 +13026,13 @@ void markCellAsNotInteresting(shared_ptr<MachineState> ms, int i, int j) {
 } 
 
 bool isCellIkColliding(shared_ptr<MachineState> ms, int i, int j) {
-  return (ms->config.ikMap[i + ms->config.mapWidth * j] == 2);
+  return (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_LIKELY_IN_COLLISION);
 } 
 bool isCellIkPossible(shared_ptr<MachineState> ms, int i, int j) {
-  return (ms->config.ikMap[i + ms->config.mapWidth * j] == 0);
+  return (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_GOOD);
 } 
 bool isCellIkImpossible(shared_ptr<MachineState> ms, int i, int j) {
-  return (ms->config.ikMap[i + ms->config.mapWidth * j] == 1);
+  return (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_FAILED);
 } 
 
 
@@ -13184,11 +13171,22 @@ void initializeMap(shared_ptr<MachineState> ms) {
       ms->config.objectMap[i + ms->config.mapWidth * j].g = 0;
       ms->config.objectMap[i + ms->config.mapWidth * j].b = 0;
 
-      ms->config.ikMap[i + ms->config.mapWidth * j] = 0;
+      ms->config.ikMap[i + ms->config.mapWidth * j] = IK_GOOD;
       ms->config.clearanceMap[i + ms->config.mapWidth * j] = 0;
     }
   }
+
+  for (int i = 0; i < ms->config.mapWidth; i++) {
+    for (int j = 0; j < ms->config.mapHeight; j++) {
+      for (int heightIdx = 0; heightIdx < ms->config.numIkMapHeights; heightIdx++) {
+	ms->config.ikMapAtHeight[i  + ms->config.mapWidth * j + ms->config.mapWidth * ms->config.mapHeight * heightIdx] = IK_GOOD;
+      }
+    }
+  }
+
   ms->config.lastScanStarted = ros::Time::now();
+  ms->config.ikMapStartHeight = -ms->config.currentTableZ + ms->config.pickFlushFactor;
+  ms->config.ikMapEndHeight = convertHeightIdxToGlobalZ(ms, ms->config.mappingHeightIdx);
 }
 
 
@@ -13504,7 +13502,7 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
 
 
 
-  if (ms->config.currentRobotMode == PHYSICAL) {
+  if (ms->config.currentRobotMode == PHYSICAL || ms->config.currentRobotMode == SNOOP) {
     ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, &MachineState::endpointCallback, ms.get());
     ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, &MachineState::rangeCallback, ms.get());
     ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 1, &MachineState::imageCallback, ms.get());
@@ -13622,6 +13620,7 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
       cout << "done. " << ms->config.mapBackgroundImage.size() << endl; cout.flush();
     }
     ms->config.originalMapBackgroundImage = ms->config.mapBackgroundImage.clone();
+
   }  else {
     assert(0);
   }
@@ -13632,13 +13631,12 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
 
   ms->config.armItbCallbackSub = n.subscribe("/robot/itb/" + ms->config.left_or_right_arm + "_itb/state", 1, &MachineState::armItbCallback, ms.get());
 
-
-
-  ms->config.fetchCommandSubscriber = n.subscribe("/fetch_commands", 1, 
-						  &MachineState::fetchCommandCallback, ms.get());
-
-  ms->config.forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1, 
-						  &MachineState::forthCommandCallback, ms.get());
+  if (ms->config.currentRobotMode == PHYSICAL || ms->config.currentRobotMode == SIMULATED) {
+    ms->config.forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1, 
+						    &MachineState::forthCommandCallback, ms.get());
+  } else {
+    ms->config.forthCommandPublisher = n.advertise<std_msgs::String>("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 10);
+  }
 
 
 

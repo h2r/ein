@@ -74,6 +74,7 @@
 #include "eePose.h"
 #include "eigen_util.h"
 #include "ein_util.h"
+#include "ein_ik.h"
 //#include "faces.h"
 
 using namespace std;
@@ -249,9 +250,8 @@ void publishVolumetricMap(shared_ptr<MachineState> ms);
 
 void endEffectorAngularUpdate(eePose *givenEEPose, eePose *deltaEEPose);
 void endEffectorAngularUpdateOuter(eePose *givenEEPose, eePose *deltaEEPose);
-void fillIkRequest(eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest);
-void reseedIkRequest(shared_ptr<MachineState> ms, eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest, int it, int itMax);
-bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositionIK thisIkRequest, int thisIkCallResult, bool * likelyInCollision);
+
+
 
 void renderRangeogramView(shared_ptr<MachineState> ms);
 void renderObjectMapView(shared_ptr<MachineState> leftArm, shared_ptr<MachineState> rightArm);

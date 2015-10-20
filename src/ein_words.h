@@ -70,7 +70,7 @@ public: \
 {\
   shared_ptr<Word> hWord = ms->popData();\
   if (hWord == NULL) {\
-    cout << "Oops, GET_ARG " << #type << " " << #x << " " << #ms << " found no argument..." << endl;\
+    cout << "Oops, GET_ARG " << #type << " " << #x << " found no argument..." << endl;\
     cout << "  Must pass " << #type << " as an argument to " << this->name() << endl;\
     cout << "  Pausing." << endl;\
     ms->pushWord("pauseStackExecution");\
@@ -80,7 +80,7 @@ public: \
   std::shared_ptr<type> hTypeWord = std::dynamic_pointer_cast<type>(hWord);\
 \
   if (hTypeWord == NULL) {\
-    cout << "Oops, GET_ARG " << #type << " " << #x << " " << #ms << " found an argument, but not " << #type << "..." << endl;\
+    cout << "Oops, GET_ARG " << #type << " " << #x << " found an argument, but not " << #type << "..." << endl;\
     cout << "  Must pass " << #type << " as an argument to " << this->name() << endl;\
     cout << "  Instead got word: " << hWord->name() << " repr: " << hWord->repr() << endl;\
     cout << "  Pausing." << endl;\
@@ -97,7 +97,7 @@ public: \
 {\
   shared_ptr<Word> hWord = ms->popData();\
   if (hWord == NULL) {\
-    cout << "Oops, GET_NUMERIC_ARG " << " " << #x << " " << #ms << " found no argument..." << endl;\
+    cout << "Oops, GET_NUMERIC_ARG " << " " << #x << " found no argument..." << endl;\
     cout << "  Must pass a numeric argument to " << this->name() << endl;\
     cout << "  Pausing." << endl;\
     ms->pushWord("pauseStackExecution");\
@@ -112,7 +112,7 @@ public: \
     if (doubleWord != NULL) {\
       x =  doubleWord->value();\
     } else { \
-      cout << "Oops, GET_NUMERIC_ARG " << #x << " " << #ms << " found an argument, but not a number..." << endl;\
+      cout << "Oops, GET_NUMERIC_ARG " << #x << " found an argument, but not a number..." << endl;\
       cout << "  Must pass a number as an argument to " << this->name() << endl;\
       cout << "  Instead got word: " << hWord->name() << " repr: " << hWord->repr() << endl;\
       cout << "  Pausing." << endl;\
@@ -132,7 +132,7 @@ public: \
 {\
   shared_ptr<Word> hWord = ms->popData();\
   if (hWord == NULL) {\
-    cout << "Oops, GET_BOOLEAN_ARG " << " " << #x << " " << #ms << " found no argument..." << endl;\
+    cout << "Oops, GET_BOOLEAN_ARG " << " " << #x << " found no argument..." << endl;\
     cout << "  Must pass a boolean argument to " << this->name() << endl;\
     cout << "  Pausing." << endl;\
     ms->pushWord("pauseStackExecution");\
@@ -159,7 +159,7 @@ public: \
 {\
   shared_ptr<Word> hWord = ms->popData();\
   if (hWord == NULL) {\
-    cout << "Oops, GET_INT_ARG " << " " << #x << " " << #ms << " found no argument..." << endl;\
+    cout << "Oops, GET_INT_ARG " << " " << #x <<  " found no argument..." << endl;\
     cout << "  Must pass a numeric argument to " << this->name() << endl;\
     cout << "  Pausing." << endl;\
     ms->pushWord("pauseStackExecution");\
@@ -174,7 +174,7 @@ public: \
 {\
   shared_ptr<Word> hWord = ms->popData();\
   if (hWord == NULL) {\
-    cout << "Oops, GET_WORD_ARG " << #type << " " << #x << " " << #ms << " found no argument..." << endl;\
+    cout << "Oops, GET_WORD_ARG " << #type << " " << #x << " found no argument..." << endl;\
     cout << "  Must pass " << #type << " as an argument to " << this->name() << endl;\
     cout << "  Pausing." << endl;\
     ms->pushWord("pauseStackExecution");\
