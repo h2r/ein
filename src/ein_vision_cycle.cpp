@@ -15,24 +15,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ClearStackIntoMappingPatrol)
 
-WORD(ClearStackAcceptFetchCommands)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->clearStack();
-  ms->execute_stack = 1;
-  ms->config.acceptingFetchCommands = 1;
-}
-END_WORD
-REGISTER_WORD(ClearStackAcceptFetchCommands)
 
-WORD(ClearStackAcceptFetchCommandsIntoIdler)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->clearStack();
-  ms->execute_stack = 1;
-  ms->config.acceptingFetchCommands = 1;
-  ms->pushWord("idler");
-}
-END_WORD
-REGISTER_WORD(ClearStackAcceptFetchCommandsIntoIdler)
 
 WORD(MapServo)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -125,7 +108,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "mappingPatrolA" << endl;
   ms->config.bailAfterSynchronic = 1;
   ms->config.bailAfterGradient = 1;
-  ms->config.acceptingFetchCommands = 1;
 
   ms->pushWord("moveToNextMapPosition");
 
@@ -529,7 +511,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	} else if (ms->config.currentPatrolMode == ONCE) {
 	  cout << "Patrolled once, idling." << endl;
 	  ms->execute_stack = 1;
-	  ms->config.acceptingFetchCommands = 1;
 	  ms->pushWord("idler");
 	  return;
 	} else {
