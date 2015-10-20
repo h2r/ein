@@ -1643,7 +1643,11 @@ CONFIG_SETTER_INT(SetMappingServoTimeout, ms->config.mappingServoTimeout)
 CONFIG_GETTER_INT(RepeatHalo, ms->config.repeat_halo)
 CONFIG_SETTER_INT(SetRepeatHalo, ms->config.repeat_halo)
 
+CONFIG_GETTER_DOUBLE(TwistThresh, ms->config.twistThresh)
+CONFIG_SETTER_DOUBLE(SetTwistThresh, ms->config.twistThresh)
 
+CONFIG_GETTER_STRING(ScanGroup, ms->config.scan_group)
+CONFIG_SETTER_STRING(SetScanGroup, ms->config.scan_group)
 
 
 
