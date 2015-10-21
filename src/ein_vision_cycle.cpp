@@ -251,6 +251,56 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(FillClearanceMap)
 
+WORD(PointToClearanceMap)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  int currentI, currentJ;
+  mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &currentI, &currentJ);
+
+  int minI, minJ;
+  double minDistanceToGreen = INFINITY;
+
+  for (int i = 0; i < ms->config.mapWidth; i++) {
+    for (int j = 0; j < ms->config.mapHeight; j++) {
+      if (ms->config.clearanceMap[i + ms->config.mapWidth * j] == CLEARANCE_SEARCH) {
+	double thisDistSq = ((i-currentI)*(i-currentI)+(j-currentJ)*(j-currentJ));
+	if ( thisDistSq < minDistanceToGreen ) {
+	  minDistanceToGreen = thisDistSq;
+	  minI = i;
+	  minJ = j; 
+	} else {
+	}
+      } else {
+      }
+    }
+  }
+
+  double minX, minY;
+  mapijToxy(ms, minI, minJ, &minX, &minY);
+  
+  double crane1I = 1;
+  double crane1J = 0;
+  double craneAngle = vectorArcTan(ms, crane1I, crane1J);
+
+  double maxDirI = (minI-currentI);
+  double maxDirJ = (minJ-currentJ);
+  double maxDirAngle = vectorArcTan(ms, maxDirI, maxDirJ);
+
+  ms->config.currentEEPose.px = minX;
+  ms->config.currentEEPose.py = minY;
+
+  // XXX NOT DONE
+  ms->config.currentEEDeltaRPY = eePose::zero();
+  ms->config.currentEEDeltaRPY.pz = ( maxDirAngle - craneAngle );
+  ms->config.currentEEPose.qx = 0.0;
+  ms->config.currentEEPose.qy = 1.0;
+  ms->config.currentEEPose.qz = 0.0;
+  ms->config.currentEEPose.qw = 0.0;
+  endEffectorAngularUpdate( &ms->config.currentEEPose, &ms->config.currentEEDeltaRPY );
+}
+END_WORD
+REGISTER_WORD(PointToClearanceMap)
+
 WORD(SaveIkMapAtHeight)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ofstream ofile;
@@ -652,6 +702,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(InitializeMap)
+
+CONFIG_GETTER_INT(MapGrayBoxPixelSkirtCols, ms->config.mapGrayBoxPixelSkirtCols)
+CONFIG_SETTER_INT(SetMapGrayBoxPixelSkirtCols, ms->config.mapGrayBoxPixelSkirtCols)
+
+CONFIG_GETTER_INT(MapGrayBoxPixelSkirtRows, ms->config.mapGrayBoxPixelSkirtRows)
+CONFIG_SETTER_INT(SetMapGrayBoxPixelSkirtRows, ms->config.mapGrayBoxPixelSkirtRows)
 
 WORD(MapEmptySpace)
 virtual void execute(std::shared_ptr<MachineState> ms) {

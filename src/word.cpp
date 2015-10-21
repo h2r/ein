@@ -448,13 +448,14 @@ shared_ptr<Word> CompoundWord::popWord() {
 shared_ptr<Word> CompoundWord::getWord(int i) {
   return stack[i];
 }
+
 void CompoundWord::pushWord(shared_ptr<MachineState> ms, string token)
- {
-    shared_ptr<Word> word = parseToken(ms, token);
-    if (word != NULL) {
-      return pushWord(word);
-    }
+{
+  shared_ptr<Word> word = parseToken(ms, token);
+  if (word != NULL) {
+    return pushWord(word);
   }
+}
 
 
 
