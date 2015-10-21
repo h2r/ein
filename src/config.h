@@ -1217,6 +1217,10 @@ class EinConfig {
   int useGlow = 0;
   int useFade = 1;
 
+  int pursuitProximity = 5;
+  int searchProximity = 23;//15;//10;
+
+
   double ikMapStartHeight;
   double ikMapEndHeight;
   const static int numIkMapHeights = 3;

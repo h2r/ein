@@ -180,12 +180,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ToggleUseFade)
 
+CONFIG_GETTER_INT(PursuitProximity, ms->config.pursuitProximity)
+CONFIG_SETTER_INT(SetPursuitProximity, ms->config.pursuitProximity)
+
+CONFIG_GETTER_INT(SearchProximity, ms->config.searchProximity)
+CONFIG_SETTER_INT(SetSearchProximity, ms->config.searchProximity)
+
+
 WORD(FillClearanceMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  int p_pursuitProximity = 5;
-  int p_searchProximity = 23;//15;//10;
   {
-    int proximity = p_pursuitProximity;
+    int proximity = ms->config.pursuitProximity;
     for (int i = 0; i < ms->config.mapWidth; i++) {
       for (int j = 0; j < ms->config.mapHeight; j++) {
 	    if ( cellIsSearched(ms, i, j) ) {
@@ -218,7 +223,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }
   {
-    int proximity = p_searchProximity;
+    int proximity = ms->config.searchProximity;
     for (int i = 0; i < ms->config.mapWidth; i++) {
       for (int j = 0; j < ms->config.mapHeight; j++) {
 	    if ( cellIsSearched(ms, i, j) ) {
