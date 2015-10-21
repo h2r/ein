@@ -59,7 +59,7 @@
 
 
 #include "eigen_util.h"
-
+#include <ein/EinState.h>
 #include "distributions.h"
 
 #define NUM_JOINTS 7
@@ -1364,6 +1364,7 @@ class EinConfig {
   ros::Subscriber pickObjectUnderEndEffectorCommandCallbackSub;
   ros::Subscriber placeObjectInEndEffectorCommandCallbackSub;
   ros::Subscriber moveEndEffectorCommandCallbackSub;
+  ros::Subscriber einSub;
 
   ros::Subscriber armItbCallbackSub;
   ros::Subscriber forthCommandSubscriber;
@@ -1462,6 +1463,7 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void shoulderCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
   void targetCallback(const geometry_msgs::Point& point);
   void simulatorCallback(const ros::TimerEvent&);
+  void einStateCallback(const ein::EinState & msg);
 };
 
 
