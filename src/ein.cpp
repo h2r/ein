@@ -9517,6 +9517,10 @@ void globalToMapBackground(shared_ptr<MachineState> ms, double gX, double gY, do
   *mapGpPy = min(max(0, *mapGpPy), ms->config.mbiHeight-1);
 }
 
+void MachineState::einStateCallback(const EinState & msg) {
+  cout << "Received state msg." << endl;
+}
+
 void MachineState::simulatorCallback(const ros::TimerEvent&) {
 
   shared_ptr<MachineState> ms = this->sharedThis;
@@ -13629,8 +13633,11 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
   if (ms->config.currentRobotMode == PHYSICAL || ms->config.currentRobotMode == SIMULATED) {
     ms->config.forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1, 
 						    &MachineState::forthCommandCallback, ms.get());
-  } else {
+  } else if (ms->config.currentRobotMode == SNOOP) {
     ms->config.forthCommandPublisher = n.advertise<std_msgs::String>("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 10);
+    ms->config.einSub = n.subscribe("/ein_" + ms->config.left_or_right_arm + "/state", 1, &MachineState::einStateCallback, ms.get());
+  } else {
+    assert(0);
   }
 
 
@@ -13804,7 +13811,18 @@ int main(int argc, char **argv) {
 
   srand(time(NULL));
 
+  if (argc < 3) {
+    cout << "Must pass at least three arguments.  Received " << argc;
+    ROS_ERROR("ein <physical|simulated|snoop> <left|right|both>");
+    return -1;
+  }
 
+  string robot_mode = argv[argc-2];
+  if (robot_mode != "simulated" && robot_mode != "physical" && robot_mode != "snoop")  {
+    cout << "Invalid mode: " << robot_mode << endl;
+    ROS_ERROR("Must pass ein <physical|simulated|snoop> <left|right|both>");
+    return -1;
+  }
 
   string left_or_right_arm = argv[argc-1];
 
@@ -13823,17 +13841,6 @@ int main(int argc, char **argv) {
   
 
 
-
-  cout << "argc: " << argc << endl;
-  for (int ccc = 0; ccc < argc; ccc++) {
-    cout << argv[ccc] << endl;
-  }
-  cout << endl << endl;
-
-
-
-
-
   string programName;
   if (argc > 1) {
     programName = string(PROGRAM_NAME) + "_" + left_or_right_arm;
@@ -13843,7 +13850,11 @@ int main(int argc, char **argv) {
     programName = string(PROGRAM_NAME);
   }
 
-  ros::init(argc, argv, programName);
+  if (robot_mode == "snoop" || robot_mode == "simulated") {
+    ros::init(argc, argv, programName, ros::init_options::AnonymousName);
+  } else {
+    ros::init(argc, argv, programName);
+  }
   ros::NodeHandle n("~");
 
 
@@ -13852,6 +13863,18 @@ int main(int argc, char **argv) {
     string left_or_right = arm_names[i];
     shared_ptr<MachineState> ms = std::make_shared<MachineState>();
     ms->sharedThis = ms;
+    ms->config.robot_mode = robot_mode;
+    if (ms->config.robot_mode == "simulated") {
+      ms->config.currentRobotMode = SIMULATED;
+    } else if (ms->config.robot_mode == "physical") {
+      ms->config.currentRobotMode = PHYSICAL;
+    } else if (ms->config.robot_mode == "snoop") {
+      ms->config.currentRobotMode = SNOOP;
+    } else {
+      cout << "bad mode: " << ms->config.robot_mode << endl;
+      assert(0);
+    }
+    
     machineStates.push_back(ms);
     if (left_or_right == "left") {
       left_arm = ms;
@@ -13878,7 +13901,7 @@ int main(int argc, char **argv) {
 
   einMainWindow->show();
   einMainWindow->setObjectMapViewMouseCallBack(objectMapCallbackFunc, &machineStates);
-  einMainWindow->setWindowTitle(QString::fromStdString("Ein " + left_or_right_arm));
+  einMainWindow->setWindowTitle(QString::fromStdString("Ein " + robot_mode + " " + left_or_right_arm));
 
 
 
