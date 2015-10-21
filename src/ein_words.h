@@ -139,8 +139,20 @@ public: \
     return;\
   }  \
   x =  hWord->to_bool();			\
- }
+}
 
+#define GET_STRING_ARG(ms,x) \
+{\
+  shared_ptr<Word> hWord = ms->popData();\
+  if (hWord == NULL) {\
+    cout << "Oops, GET_STRING_ARG " << " " << #x << " " << #ms << " found no argument..." << endl;\
+    cout << "  Must pass a string argument to " << this->name() << endl;\
+    cout << "  Pausing." << endl;\
+    ms->pushWord("pauseStackExecution");\
+    return;\
+  }  \
+  x =  hWord->to_string();			\
+ }
 
 
 #define GET_INT_ARG(ms,x) \
@@ -219,6 +231,23 @@ virtual void execute(std::shared_ptr<MachineState> ms) { \
 END_WORD \
 REGISTER_WORD(backName) 
 
+#define CONFIG_GETTER_STRING(backName, configName)	\
+WORD(backName) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  ms->pushWord(make_shared<StringWord>(configName)); \
+} \
+END_WORD \
+REGISTER_WORD(backName) 
+
+#define CONFIG_SETTER_STRING(backName, configName)	\
+WORD(backName) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  string value; \
+  GET_ARG(ms, StringWord, value); \
+  configName = value;	\
+} \
+END_WORD \
+REGISTER_WORD(backName) 
 
 
 int register_word(shared_ptr<Word> word);

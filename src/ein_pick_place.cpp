@@ -516,7 +516,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
       ms->pushWord("waitUntilEffort");
       ms->pushWord("setEffortThresh");
-      ms->pushWord("5.0");
+      ms->pushWord("8.0");
 
 
       ms->pushWord("waitForSeconds");
@@ -786,14 +786,21 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(PressAndGraspA)
 
+WORD(SetPressPose)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->config.pressPose = ms->config.currentEEPose;
+}
+END_WORD
+REGISTER_WORD(SetPressPose)
+
 WORD(PressAndRelease)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-    ms->pushWord("pressAndReleaseA");
-    ms->pushWord("setMovementStateToMoving");
-    ms->pushWord("approachSpeed");
-
-    ms->config.pressPose = ms->config.currentEEPose;
+  ms->pushWord("pressAndReleaseA");
+  ms->pushWord("setMovementStateToMoving");
+  ms->pushWord("approachSpeed");
+  ms->pushWord("setPressPose");
 }
 END_WORD
 REGISTER_WORD(PressAndRelease)
@@ -802,13 +809,12 @@ WORD(PressAndReleaseA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
 
-  double p_thresh = 0.01;
   double qdistance = eePose::distanceQ(ms->config.pressPose, ms->config.trueEEPoseEEPose);
 
 cout << "pressAndReleaseA: qdistance " << qdistance << endl;
 
   // qdistance might actually be enough by itself
-  if ( (ms->config.currentMovementState == BLOCKED) || (qdistance > p_thresh) ){
+  if ( (ms->config.currentMovementState == BLOCKED) || (qdistance > ms->config.twistThresh) ){
 
 
     ms->pushWord("comeToStop");
@@ -991,7 +997,6 @@ REGISTER_WORD(SetEffortThresh)
 WORD(PressUntilEffortInit)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-
   ms->pushWord("setEffortThresh");
   ms->pushWord("10.0");
 
@@ -1053,11 +1058,85 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   }
 
   ms->pushWord("endStackCollapseNoop");
-
-  ms->pushWord("endStackCollapseNoop");
 }
 END_WORD
 REGISTER_WORD(PressUntilEffortA)
+
+WORD(PressUntilEffortOrTwistInit)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->pushWord("setEffortThresh");
+  ms->pushWord("10.0");
+
+  ms->pushWord("setGridSizeCoarse");
+  ms->pushWord("hundredthImpulse");
+}
+END_WORD
+REGISTER_WORD(PressUntilEffortOrTwistInit)
+
+WORD(PressUntilEffortOrTwist)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->config.pressUntilEffortCounter = 0;
+  ms->pushWord("pressUntilEffortOrTwistA");
+  ms->pushWord("setEffortHere");
+  ms->pushWord("setPressPose");
+}
+END_WORD
+REGISTER_WORD(PressUntilEffortOrTwist)
+
+WORD(PressUntilEffortOrTwistA)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  double qdistance = eePose::distanceQ(ms->config.pressPose, ms->config.trueEEPoseEEPose);
+
+cout << "pressUntilEffortOrTwistA: qdistance " << qdistance << endl;
+
+
+  if (ms->config.pressUntilEffortCounter < ms->config.pressUntilEffortCounterTimeout) {
+    ms->config.pressUntilEffortCounter++;
+    cout << "pressUntilEffortOrTwistA: ";
+    double totalDiff = 0.0;
+    for (int i = 0; i < NUM_JOINTS; i++) {
+      double thisDiff = (ms->config.target_joint_actual_effort[i] - ms->config.last_joint_actual_effort[i]);
+      cout << ms->config.target_joint_actual_effort[i] << " " << ms->config.last_joint_actual_effort[i] << " " << thisDiff << " ";
+      totalDiff = totalDiff + (thisDiff * thisDiff);
+    }
+
+    cout << endl << "  totalDiff: " << totalDiff << "   actual_effort_thresh: " << ms->config.actual_effort_thresh << endl;
+
+    if (totalDiff > ms->config.actual_effort_thresh) {
+      cout << "~~~~~~~~" << endl << "crossed effort thresh" << endl << endl;
+      ms->pushWord("stayNoRoll");
+    } else if (qdistance > ms->config.twistThresh) {
+      cout << "^^^^^^^^" << endl << "crossed twist thresh" << endl << endl;
+      ms->pushWord("stayNoRoll");
+    } else {
+      ms->pushWord("pressUntilEffortOrTwistA");
+      if (eePose::distance(ms->config.currentEEPose, ms->config.trueEEPoseEEPose) < ms->config.w1GoThresh) {
+	cout << "nudging" << endl;
+	// the effort measurement drifts natural when the arm moves, even under no load,
+	//  and one way of dealing with this is to reset the effort every so often. It would be
+	//  smoother to do this in a continuous way, like exponential average, but it is not
+	//  clear what the most natural way is.
+	ms->pushWord("replicateWord");
+	ms->pushWord("2");
+	ms->pushData("localZUp");
+	ms->pushWord("setGridSizeCoarse");
+	//ms->pushWord("replicateWord");
+	//ms->pushWord("5");
+	//ms->pushData("zDown");
+	ms->pushWord("setEffortHere");
+      } else {
+      }
+    }
+  } else {
+    cout << "Warning: pressUntilEffortOrTwist timed out, moving on." << endl;
+  }
+  ms->pushWord("endStackCollapseNoop");
+}
+END_WORD
+REGISTER_WORD(PressUntilEffortOrTwistA)
 
 WORD(Stay)
 virtual void execute(std::shared_ptr<MachineState> ms)

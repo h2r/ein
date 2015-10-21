@@ -1,4 +1,4 @@
-
+#include <boost/filesystem.hpp>
 #include "ein_words.h"
 #include "ein.h"
 
@@ -1032,16 +1032,46 @@ CODE(196720)     // capslock + P
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.focusedClass = ms->config.classLabels.size();
   ms->config.targetClass = ms->config.focusedClass;
-  char buf[1024];
+
   ros::Time thisNow = ros::Time::now();
-  sprintf(buf, "autoClass_%s_%s_%f", ms->config.robot_serial.c_str(), ms->config.left_or_right_arm.c_str(), thisNow.toSec());
-  string thisLabelName(buf);
+  string formattedTime = formatTime(thisNow);
+  stringstream buf;
+  buf << ms->config.scan_group << "autoClass_" << ms->config.robot_serial << "_" <<  ms->config.left_or_right_arm << "_" << formattedTime;
+  string thisLabelName = buf.str();
+
+  string thisLabelNameGroup = ms->config.scan_group;
+
+  ms->config.classPoseModels.push_back("B");
+  {
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelNameGroup + "/";
+    if ( boost::filesystem::exists(dirToMakePath) ) {
+      cout << "Group folder exists: " << dirToMakePath << endl;
+    } else {
+      mkdir(dirToMakePath.c_str(), 0777);
+    }
+  }
+  bool collision = 1;
+  int suffix_counter = 0;
+  string the_suffix = "";
+  while (collision) {
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + the_suffix + "/";
+    if ( boost::filesystem::exists(dirToMakePath) ) {
+      cout << "Whole label name already exists: " << dirToMakePath << endl << "Looking for a name that isn't in use..." << endl;
+      stringstream buf1;
+      buf1 << "." << suffix_counter;
+      the_suffix = buf1.str(); 
+      suffix_counter++;
+      collision = 1;
+    } else {
+      mkdir(dirToMakePath.c_str(), 0777);
+      collision = 0;
+      thisLabelName = thisLabelName + the_suffix;  
+    }
+  }
   ms->config.focusedClassLabel = thisLabelName;
   ms->config.classLabels.push_back(thisLabelName);
-  ms->config.classPoseModels.push_back("B");
   ms->config.numClasses = ms->config.classLabels.size();
-  string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/";
-  mkdir(dirToMakePath.c_str(), 0777);
+
   initRangeMaps(ms);
   guardGraspMemory(ms);
   guardHeightMemory(ms);
@@ -4298,5 +4328,39 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(BuildClassSimilarityMatrix)
+
+WORD(BuildClassSimilarityMatrixFromDensity)
+virtual string description() {
+  return "Builds the matrix of gradients of the current class labels.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double * result =  new double[ms->config.numClasses];
+  int nc = ms->config.numClasses;
+
+  Mat frameFromDensity = makeGCrop(ms, 0, 0);
+
+  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    result[i] = computeSimilarity(ms, frameFromDensity, ms->config.classHeight1AerialGradients[i]);
+  }
+
+  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+    cout << std::setw(3) << j << ": " << ms->config.classLabels[j] << endl;
+  }
+
+  cout << endl;
+
+  double max_of_classes = 0;
+
+  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    cout << std::setw(3) << i;
+    cout << std::setw(10) << result[i];
+    cout << endl;
+    max_of_classes = max(max_of_classes, result[i]);
+  }
+
+  ms->pushWord(make_shared<DoubleWord>(max_of_classes));
+}
+END_WORD
+REGISTER_WORD(BuildClassSimilarityMatrixFromDensity)
 
 }

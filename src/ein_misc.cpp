@@ -2,8 +2,6 @@
 #include "ein_words.h"
 #include "ein.h"
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/date_time/c_local_time_adjustor.hpp>
 
 
 namespace ein_words {
@@ -250,14 +248,34 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double v1;
-  GET_NUMERIC_ARG(ms, v1);
-  double v2;
-  GET_NUMERIC_ARG(ms, v2);
+  //double v1;
+  //GET_NUMERIC_ARG(ms, v1);
+  //double v2;
+  //GET_NUMERIC_ARG(ms, v2);
+  //std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(v1 + v2);
+  //ms->pushWord(newWord);
 
-  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(v1 + v2);
-  ms->pushWord(newWord);
+  shared_ptr<Word> w1;
+  GET_WORD_ARG(ms, Word, w1);
+  shared_ptr<Word> w2;
+  GET_WORD_ARG(ms, Word, w2);
 
+  std::shared_ptr<StringWord> s1 = std::dynamic_pointer_cast<StringWord>(w1);
+  std::shared_ptr<StringWord> s2 = std::dynamic_pointer_cast<StringWord>(w2);
+  std::shared_ptr<IntegerWord> i1 = std::dynamic_pointer_cast<IntegerWord>(w1);
+  std::shared_ptr<IntegerWord> i2 = std::dynamic_pointer_cast<IntegerWord>(w2);
+  std::shared_ptr<DoubleWord> d1 = std::dynamic_pointer_cast<DoubleWord>(w1);
+  std::shared_ptr<DoubleWord> d2 = std::dynamic_pointer_cast<DoubleWord>(w2);
+
+  if (i1 != NULL && i2 != NULL) {
+    ms->pushWord(make_shared<IntegerWord>(w1->to_int() + w2->to_int()));
+  } else if ((i1 != NULL && d2 != NULL) || (d1 != NULL && i2 != NULL) || (d1 != NULL && d2 != NULL)) {
+    ms->pushWord(make_shared<DoubleWord>(w1->to_double() + w2->to_double()));
+  } else {
+    stringstream buf;
+    buf << w2->to_string() << w1->to_string();
+    ms->pushWord(make_shared<StringWord>(buf.str()));
+  }
 }
 END_WORD
 REGISTER_WORD(Plus)
@@ -1191,16 +1209,6 @@ END_WORD
 REGISTER_WORD(ReplicateWord)
 
 
-WORD(PushRobotSerial)
-virtual void execute(std::shared_ptr<MachineState> ms)
-{
-  shared_ptr<StringWord> outword = std::make_shared<StringWord>(ms->config.robot_serial);
-  ms->pushWord(outword);
-}
-END_WORD
-REGISTER_WORD(PushRobotSerial)
-
-
 WORD(Help)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
@@ -1635,20 +1643,8 @@ REGISTER_WORD(NumBlueBoxes)
 
 WORD(DateString)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  stringstream buf;
   ros::Time thisNow = ros::Time::now();
-  boost::posix_time::ptime old = thisNow.toBoost();
-
-  typedef boost::date_time::c_local_adjustor<boost::posix_time::ptime> local_adj;
-  boost::posix_time::ptime p =  local_adj::utc_to_local(old);
-
-
-  boost::posix_time::time_facet * facet = new boost::posix_time::time_facet();
-  facet->format("%Y-%m-%d_%H:%M:%S %Z");
-
-  buf.imbue(std::locale(std::cout.getloc(), facet));
-  buf << p;
-  ms->pushWord(make_shared<StringWord>(buf.str()));
+  ms->pushWord(make_shared<StringWord>(formatTime(thisNow)));
 }
 END_WORD
 REGISTER_WORD(DateString)
@@ -1667,7 +1663,13 @@ CONFIG_SETTER_INT(SetMappingServoTimeout, ms->config.mappingServoTimeout)
 CONFIG_GETTER_INT(RepeatHalo, ms->config.repeat_halo)
 CONFIG_SETTER_INT(SetRepeatHalo, ms->config.repeat_halo)
 
+CONFIG_GETTER_DOUBLE(TwistThresh, ms->config.twistThresh)
+CONFIG_SETTER_DOUBLE(SetTwistThresh, ms->config.twistThresh)
 
+CONFIG_GETTER_STRING(RobotSerial, ms->config.robot_serial)
+
+CONFIG_GETTER_STRING(ScanGroup, ms->config.scan_group)
+CONFIG_SETTER_STRING(SetScanGroup, ms->config.scan_group)
 
 CONFIG_GETTER_DOUBLE(IkMapStartHeight, ms->config.ikMapStartHeight)
 

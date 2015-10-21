@@ -361,7 +361,7 @@ class EinConfig {
   bool setRandomPositionAfterPick = false;
   bool streamPicks = false;
   bool mapAutoPick = false;
-  bool snapToFlushGrasp = false;
+  bool snapToFlushGrasp = true;
 
   eePose placeTarget;
 
@@ -1096,7 +1096,8 @@ class EinConfig {
   std::string knn_file = "unspecified_kf";
   std::string label_file = "unspecified_lf";
   
-  std::string run_prefix = "unspecified_rp";
+  std::string run_prefix = "";
+  std::string scan_group = "";
   //std::string class_name = "unspecified_cn";
   //std::string class_labels= "unspecified_cl1 unspecified_cl2";
   //std::string class_pose_models = "unspecified_pm1 unspecified_pm2";
@@ -1371,6 +1372,7 @@ class EinConfig {
   baxter_core_msgs::ITBState lastItbs;
 
   eePose pressPose;
+  double twistThresh = 0.01;
 
   double rockDiffA = 0.0;
   double rockDiffB = 0.0;
