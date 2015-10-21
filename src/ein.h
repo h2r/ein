@@ -326,6 +326,7 @@ void restartBBLearning(shared_ptr<MachineState> ms);
 
 eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixel, eePose givenReticle, double angle, eePose givenCameraPose);
 void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms);
+Mat makeGCrop(shared_ptr<MachineState> ms, int etaX, int etaY);
 void gradientServo(shared_ptr<MachineState> ms);
 void continuousServo(shared_ptr<MachineState> ms);
 void synchronicServo(shared_ptr<MachineState> ms);
@@ -432,6 +433,7 @@ void targetBoxMemory(shared_ptr<MachineState> ms, int idx);
 bool isFocusedClassValid(std::shared_ptr<MachineState> ms);
 
 double computeSimilarity(std::shared_ptr<MachineState> ms, int class1, int class2);
+double computeSimilarity(std::shared_ptr<MachineState> ms, Mat im1, Mat im2);
 
 void prepareForCrossCorrelation(std::shared_ptr<MachineState> ms, Mat input, Mat& output, int thisOrient, int numOrientations, double thisScale, Size toBecome);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
