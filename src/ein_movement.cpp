@@ -1405,12 +1405,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   } else if (ms->config.currentIdleMode == PATROL) {
     ms->pushWord("clearStackIntoMappingPatrol"); 
   } else if (ms->config.currentIdleMode == CRANE) {
-    ms->pushWord("clearStack"); 
     ms->pushWord("idler"); 
     ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
     ms->pushWord("assumeCrane1"); 
   } else if (ms->config.currentIdleMode == SHRUG) {
-    ms->pushWord("clearStack"); 
     ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
     ms->pushWord("assumeShrugPose"); 
   } else {
@@ -1791,6 +1789,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(TwistWords)
 
+WORD(AboutFace)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentEEDeltaRPY.pz = ( 3.1415926 );
+  endEffectorAngularUpdate( &ms->config.currentEEPose, &ms->config.currentEEDeltaRPY );
+}
+END_WORD
+REGISTER_WORD(AboutFace)
 
 
 }

@@ -492,41 +492,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(PickFocusedClass)
 
-WORD(ReplaceBlueBoxesWithFocusedClass)
-virtual void execute(std::shared_ptr<MachineState> ms)
-{
-  if (isFocusedClassValid(ms) && ms->config.bTops.size() > 0) {
-    cout << "replaceBlueBoxesWithFocusedClass: Focused class is valid, replacing bTops etc." << endl;
-    ms->config.bTops.resize(1);
-    ms->config.bBots.resize(1);
-    ms->config.bCens.resize(1);
-    ms->config.bLabels.resize(1);
-
-    int fakeBBWidth = 50;
-
-    ms->config.bTops[0].x = ms->config.vanishingPointReticle.px - fakeBBWidth;
-    ms->config.bTops[0].y = ms->config.vanishingPointReticle.py - fakeBBWidth;
-    ms->config.bBots[0].x = ms->config.vanishingPointReticle.px + fakeBBWidth;
-    ms->config.bBots[0].y = ms->config.vanishingPointReticle.py + fakeBBWidth;
-
-    ms->config.bCens[0].x = (ms->config.bTops[0].x + ms->config.bBots[0].x)/2.0;
-    ms->config.bCens[0].y = (ms->config.bTops[0].y + ms->config.bBots[0].y)/2.0;
-
-    ms->config.bLabels[0] = ms->config.focusedClass;
-
-    ms->config.pilotClosestBlueBoxNumber = 0;
-  } else {
-    cout << "replaceBlueBoxesWithFocusedClass: Focused class invalid, clearing bTops etc." << endl;
-    ms->config.bTops.resize(0);
-    ms->config.bBots.resize(0);
-    ms->config.bCens.resize(0);
-    ms->config.bLabels.resize(0);
-    ms->config.pilotClosestBlueBoxNumber = -1;
-  }
-}
-END_WORD
-REGISTER_WORD(ReplaceBlueBoxesWithFocusedClass)
-
 WORD(FocusedGraspLearning)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {

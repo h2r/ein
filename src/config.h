@@ -74,6 +74,12 @@ typedef enum {
 } ikMapState;
 
 typedef enum {
+  CLEARANCE_DO_NOT_PURSUE = 0,
+  CLEARANCE_PURSUE = 1,
+  CLEARANCE_SEARCH = 2
+} clearanceMapState;
+
+typedef enum {
   ARMED = 0,
   BLOCKED = 1,
   STOPPED = 2,
@@ -362,6 +368,8 @@ class EinConfig {
   bool streamPicks = false;
   bool mapAutoPick = false;
   bool snapToFlushGrasp = true;
+
+  int fakeBBWidth = 50;
 
   eePose placeTarget;
 
