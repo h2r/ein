@@ -11846,7 +11846,6 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   //ms->config.chosen_feature = static_cast<featureType>(cfi);
 
 
-  nh.getParam("robot_mode", ms->config.robot_mode);
   if (ms->config.robot_mode == "simulated") {
     ms->config.currentRobotMode = SIMULATED;
 
@@ -11854,10 +11853,6 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
     std::string content( (std::istreambuf_iterator<char>(ifs) ),
 			 (std::istreambuf_iterator<char>()    ) );
     ms->config.robot_description = content;
-  } else if (ms->config.robot_mode == "snoop") {    
-    ms->config.currentRobotMode = SNOOP;
-  } else {
-    ms->config.currentRobotMode = PHYSICAL;
   } 
 }
 

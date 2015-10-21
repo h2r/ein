@@ -43,7 +43,7 @@ acladd stefie10
 
 screen -t " einR"
 stuff "./baxter_local.sh"
-stuff "catkin_make && gdb --args ./devel/lib/ein/ein  _data_directory:=\"$(rospack find ein)/default\" _robot_mode:=simulated right"
+stuff "catkin_make && gdb --args ./devel/lib/ein/ein  _data_directory:=\"$(rospack find ein)/default\" simulated right"
 screen -t " replR"
 stuff "./baxter_local.sh"
 stuff "rosrun ein ein_client.py right"
@@ -93,7 +93,7 @@ stuff "./baxter_local.sh"
 stuff "rosrun ein ein_client.py left"
 screen -t " einL"
 stuff "./baxter_local.sh"
-stuff "catkin_make && gdb --args ./devel/lib/ein/ein  _data_directory:=\"$(rospack find ein)/default\" _robot_mode:=simulated left"
+stuff "catkin_make && gdb --args ./devel/lib/ein/ein  _data_directory:=\"$(rospack find ein)/default\" simulated left"
 
 
 # Now the focus is in the newly created screen.
