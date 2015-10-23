@@ -146,6 +146,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 END_WORD
 REGISTER_WORD(TrainModels)
 
+CONFIG_GETTER_INT(NumClasses, ms->config.numClasses)
+CONFIG_SETTER_INT(SetNumClasses, ms->config.numClasses)
+
 WORD(PrintClassLabels)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   cout << "printClassLabels: " << ms->config.classLabels.size() << endl;
