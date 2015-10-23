@@ -13,6 +13,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(PushTime)
 
+WORD(Throw)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  throw runtime_error("test");
+  
+}
+END_WORD
+REGISTER_WORD(Throw)
+
+WORD(ThrowOpenCV)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  Mat m;
+  m.rowRange(100, 100);
+}
+END_WORD
+REGISTER_WORD(ThrowOpenCV)
+
 WORD(SeeHz)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
