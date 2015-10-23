@@ -103,7 +103,7 @@ public:
 	}
 	else tok+=*next;
       }
-      else if (*next == '\\') {
+      else if (*next == '/' && !bInQuote) {
 	tok += *next;
 	if (++next == end) {
 	  return true;
@@ -113,13 +113,13 @@ public:
 	}
 	tok += *next;
       }
-      else if (*next == '*') {
+      else if (*next == '*' && !bInQuote) {
 	tok += *next;
 	if (++next == end) {
 	  return true;
 	}
 
-	if (*next == '\\') {
+	if (*next == '/') {
 	  bInComment = false;
 	} else {
 	  next--;

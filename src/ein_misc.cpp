@@ -13,6 +13,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(PushTime)
 
+WORD(Throw)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  throw runtime_error("test");
+  
+}
+END_WORD
+REGISTER_WORD(Throw)
+
+WORD(ThrowOpenCV)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  Mat m;
+  m.rowRange(100, 100);
+}
+END_WORD
+REGISTER_WORD(ThrowOpenCV)
+
 WORD(SeeHz)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
@@ -1674,6 +1690,20 @@ CONFIG_SETTER_STRING(SetScanGroup, ms->config.scan_group)
 CONFIG_GETTER_DOUBLE(IkMapStartHeight, ms->config.ikMapStartHeight)
 
 CONFIG_GETTER_DOUBLE(IkMapEndHeight, ms->config.ikMapEndHeight)
+
+
+CONFIG_GETTER_DOUBLE(MapSearchFenceXMin, ms->config.mapSearchFenceXMin)
+CONFIG_SETTER_DOUBLE(SetMapSearchFenceXmin, ms->config.mapSearchFenceXMin)
+
+CONFIG_GETTER_DOUBLE(MapSearchFenceYMin, ms->config.mapSearchFenceYMin)
+CONFIG_SETTER_DOUBLE(SetMapSearchFenceYMin, ms->config.mapSearchFenceYMin)
+
+CONFIG_GETTER_DOUBLE(MapSearchFenceXMax, ms->config.mapSearchFenceXMax)
+CONFIG_SETTER_DOUBLE(SetMapSearchFenceXMax, ms->config.mapSearchFenceXMax)
+
+CONFIG_GETTER_DOUBLE(MapSearchFenceYMax, ms->config.mapSearchFenceYMax)
+CONFIG_SETTER_DOUBLE(SetMapSearchFenceYMax, ms->config.mapSearchFenceYMax)
+
 
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
 
