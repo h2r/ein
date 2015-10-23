@@ -309,7 +309,7 @@ REGISTER_WORD(PointToClearanceMap)
 WORD(SaveIkMapAtHeight)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ofstream ofile;
-  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "IkMapAtHeight";
+  string fileName = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "IkMapAtHeight";
   cout << "Saving ikMapAtHeight to " << fileName << endl;
   ofile.open(fileName, ios::trunc | ios::binary);
   ofile.write((char*)ms->config.ikMapAtHeight, sizeof(int)*ms->config.mapWidth*ms->config.mapHeight*ms->config.numIkMapHeights);
@@ -324,7 +324,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //  for only one height and is 360kB in binary... how
   //  big would it be in yml, and what if we want another height?
   ifstream ifile;
-  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "IkMapAtHeight";
+  string fileName = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "IkMapAtHeight";
   cout << "Loading ikMapAtHeight from " << fileName << endl;
   ifile.open(fileName, ios::binary);
   ifile.read((char*)ms->config.ikMapAtHeight, sizeof(int)*ms->config.mapWidth*ms->config.mapHeight*ms->config.numIkMapHeights);
@@ -337,7 +337,7 @@ REGISTER_WORD(LoadIkMapAtHeight)
 WORD(SaveIkMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ofstream ofile;
-  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "IkMap";
+  string fileName = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "IkMap";
   cout << "Saving ikMap to " << fileName << endl;
   ofile.open(fileName, ios::trunc | ios::binary);
   ofile.write((char*)ms->config.ikMap, sizeof(int)*ms->config.mapWidth*ms->config.mapHeight);
@@ -352,7 +352,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //  for only one height and is 360kB in binary... how
   //  big would it be in yml, and what if we want another height?
   ifstream ifile;
-  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "IkMap";
+  string fileName = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "IkMap";
   cout << "Loading ikMap from " << fileName << endl;
   ifile.open(fileName, ios::binary);
   ifile.read((char*)ms->config.ikMap, sizeof(int)*ms->config.mapWidth*ms->config.mapHeight);

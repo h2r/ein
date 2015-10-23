@@ -2495,36 +2495,36 @@ void writeGraspMemory(std::shared_ptr<MachineState> ms, int idx, string this_gra
 
 void initClassFolders(std::shared_ptr<MachineState> ms, string folderName) {
   string item = folderName + "/";
-    string raw = item + "raw/";
-      string images = raw + "images/";
-      string poseBatches = raw + "pose/";
-      string rangeBatches = raw + "range/";
-    string ein = item + "ein/";
-      string d3dGrasps = ein + "3dGrasps/";
-      string detectionCrops = ein + "detectionCrops/";
-      string gaussianColorMap = ein + "gaussianColorMap/";
-      string ir2d = ein + "ir2d/";
-      string pickMemories = ein + "pickMemories/";
-      string servoCrops = ein + "servoCrops/";
-      string servoImages = ein + "servoImages/";
-      string knn = ein + "knn/";
-      string calibration = ein + "calibration/";
-
+  string raw = item + "raw/";
+  string images = raw + "images/";
+  string poseBatches = raw + "pose/";
+  string rangeBatches = raw + "range/";
+  string ein = item + "ein/";
+  string d3dGrasps = ein + "3dGrasps/";
+  string detectionCrops = ein + "detectionCrops/";
+  string gaussianColorMap = ein + "gaussianColorMap/";
+  string ir2d = ein + "ir2d/";
+  string pickMemories = ein + "pickMemories/";
+  string servoCrops = ein + "servoCrops/";
+  string servoImages = ein + "servoImages/";
+  string knn = ein + "knn/";
+  string calibration = ein + "calibration/";
+  
   mkdir(item.c_str(), 0777);
-    mkdir(raw.c_str(), 0777);
-      mkdir(images.c_str(), 0777);
-      mkdir(poseBatches.c_str(), 0777);
-      mkdir(rangeBatches.c_str(), 0777);
-    mkdir(ein.c_str(), 0777);
-      mkdir(d3dGrasps.c_str(), 0777);
-      mkdir(detectionCrops.c_str(), 0777);
-      mkdir(gaussianColorMap.c_str(), 0777);
-      mkdir(ir2d.c_str(), 0777);
-      mkdir(pickMemories.c_str(), 0777);
-      mkdir(servoCrops.c_str(), 0777);
-      mkdir(servoImages.c_str(), 0777);
-      mkdir(knn.c_str(), 0777);
-      mkdir(calibration.c_str(), 0777);
+  mkdir(raw.c_str(), 0777);
+  mkdir(images.c_str(), 0777);
+  mkdir(poseBatches.c_str(), 0777);
+  mkdir(rangeBatches.c_str(), 0777);
+  mkdir(ein.c_str(), 0777);
+  mkdir(d3dGrasps.c_str(), 0777);
+  mkdir(detectionCrops.c_str(), 0777);
+  mkdir(gaussianColorMap.c_str(), 0777);
+  mkdir(ir2d.c_str(), 0777);
+  mkdir(pickMemories.c_str(), 0777);
+  mkdir(servoCrops.c_str(), 0777);
+  mkdir(servoImages.c_str(), 0777);
+  mkdir(knn.c_str(), 0777);
+  mkdir(calibration.c_str(), 0777);
 }
 
 void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folderName) {
@@ -4067,7 +4067,6 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
 
   ms->config.bfc++;
 }
-
 
 
 
@@ -11830,6 +11829,7 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
   nh.getParam("arm_box_top", ms->config.tARM);
   nh.getParam("arm_box_bot", ms->config.bARM);
   nh.getParam("arm_box_left", ms->config.lARM);
+
   nh.getParam("arm_box_right", ms->config.rARM);
 
   nh.getParam("image_topic", ms->config.image_topic);
@@ -11853,7 +11853,12 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
     std::string content( (std::istreambuf_iterator<char>(ifs) ),
 			 (std::istreambuf_iterator<char>()    ) );
     ms->config.robot_description = content;
+    ms->config.robot_serial = "simulatedserial";
   } 
+
+  //ms->config.config_directory = "/config_" + ms->config.robot_serial + "/";
+  ms->config.config_directory = "/config/";
+
 }
 
 
@@ -13913,16 +13918,17 @@ int main(int argc, char **argv) {
 
   //a.exec();
   
-  //try {
+  ros::spin();
+  /*  try {
     ros::spin();
-    //} catch( ... ) {
-    //ROS_ERROR("In the weird sketchy exception block in ein main.");    
-    //cout << "In the weird sketchy exception block in ein main." << endl;    
+  } catch( ... ) {
+    ROS_ERROR("In the weird sketchy exception block in ein main.");    
+    cout << "In the weird sketchy exception block in ein main." << endl;    
     
-    //std::exception_ptr p = std::current_exception();
-    //std::clog <<(p ? p.__cxa_exception_type()->name() : "null") << std::endl;
-    //throw;
-    // }
+    std::exception_ptr p = std::current_exception();
+    std::clog <<(p ? p.__cxa_exception_type()->name() : "null") << std::endl;
+    throw;
+    }*/
 
   return 0;
 }

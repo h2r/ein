@@ -51,7 +51,13 @@ x "*" = assert
 10 10.0 = assert
 
 
-/* This one should do 'x' because ift doesn't take a compound word */
-( 0 ) ( "x" ) ift 
+/* This one should do 'x' because the truth value of a compound word is true */
+( 0 ) ( "x" ) ift  "x" = assert
 
- 0 ( "x" ) ift 
+/* This one should do 'x' because ift doesn't take a compound word */
+1
+0 ( "x" ) ift 
+1 = assert
+
+"/" 1 1 + 2 = assert
+"/" = assert
