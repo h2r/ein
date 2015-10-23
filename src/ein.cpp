@@ -11856,8 +11856,8 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
     ms->config.robot_serial = "simulatedserial";
   } 
 
-  //ms->config.config_directory = "/config_" + ms->config.robot_serial + "/";
-  ms->config.config_directory = "/config/";
+  ms->config.config_directory = "/config_" + ms->config.robot_serial + "/";
+  //ms->config.config_directory = "/config/";
 
 }
 
@@ -13807,6 +13807,12 @@ void initializeArmGui(shared_ptr<MachineState> ms, MainWindow * einMainWindow) {
 
 }
 
+int opencvError (int status, const char *func_name, const char *err_msg, const char *file_name, int line, void *userdata) {
+  cout << "OpenCV error: " << func_name << " with message " << err_msg << endl;
+  cout << "File: " << file_name << " line: " << line << endl;
+  assert(0);
+}
+
 
 int main(int argc, char **argv) {
 
@@ -13915,6 +13921,8 @@ int main(int argc, char **argv) {
 
   int cudaCount = gpu::getCudaEnabledDeviceCount();
   cout << "cuda count: " << cudaCount << endl;;
+
+  cv::redirectError(opencvError, NULL, NULL);
 
   //a.exec();
   
