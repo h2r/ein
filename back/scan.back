@@ -1,4 +1,5 @@
-
+8 "scan_IRheight" store
+10 "catScan_dropHeight" store
 
 leftOrRightArm "right" =
 ( 
@@ -23,9 +24,42 @@ workspace3 "playWorkspace" store
 workspace4 "outputPileWorkspace" store
 100 "pileSwitchThreshold" store
 
+"catScan_" robotSerial "_" leftOrRightArm "_" dateString + + + + + "scan_catScanObjectName" store
+
 "utils" import
 
 "clearWorkspace" import
+
+(
+  clearMapForPatrol
+  synchronicServo gradientServoPrep
+  buildClassSimilarityMatrixFromDensity
+  0.8 > (
+    0.0
+    " **** not a new component " print
+  ) (
+    1.0
+    " **** is a new component " print
+  ) ifte
+) "scan_isNewComponent" store
+
+
+(
+  setIdleModeToEmpty
+  openGripper
+  
+  ( 1 changeToHeight scan_isNewComponent ! ) (
+    pickFocusedClass
+
+    isGripperGripping (
+      playWorkspace moveEeToPoseWord
+      comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight setMovementStateToMoving replicateWord comeToStop 
+    ) ift
+    openGripper
+
+  ) while
+
+) "scan_findNewComponent" store
 
 (
   playWorkspace cw_clearWorkspace
@@ -63,7 +97,6 @@ workspace4 "outputPileWorkspace" store
     halfImpulse
     playWorkspace moveEeToPoseWord
     waitUntilAtCurrentPosition
-    /* this is where the scanning loop starts */
     ( zDown ) 15 replicateWord
 
     isGripperGripping ! ( playWorkspace cw_clearWorkspace ) ift 
@@ -73,48 +106,135 @@ workspace4 "outputPileWorkspace" store
 ( 
   ">>>> entering playWithObject <<<<" print
   comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper
-  stay /* stay ensures that we actually rise */
+  stay 
   0.01 setGridSize
-  ( zUp ) 8 replicateWord
+  ( zUp ) scan_IRheight replicateWord
   comeToStop
   setScanModeCentered
-  pushCurrentPose
-  /* scanObjectStreamWaypointsIR */
+  currentPose
+  catScan
 ) "playWithObject" store
 
 
-(
+( 
+  moveEeToPoseWord
+  waitUntilAtCurrentPosition
+
+  0 "scan_pointCounter" store
+  0 "scan_breakInd" store
+
+  0.01 setGridSize ( xDown ) 20 replicateWord
+  ( yDown ) 5 replicateWord
+
+  ( scan_pointCounter 4 <   scan_breakInd not   and ) (
+    ( yUp ) 10 replicateWord
+    cw_viewIsClear (
+      ( yDown ) 10 replicateWord
+      cw_viewIsClear (
+	( xUp ) 10 replicateWord
+      ) (
+	1 "scan_breakInd" store
+      ) ifte
+    ) (
+      1 "scan_breakInd" store
+    ) ifte
+
+    scan_pointCounter 1 + "scan_pointCounter" store
+  ) while
+
+  scan_breakInd
+) "scan_findObjectAfterDrop" store
+
+
+( 
+
   clearClassLabels
   setScanModeCentered
 
+  tenthImpulse
+  moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
+  currentPose
 
-  (
-    dup
-    moveEeToPoseWord
+  0 "scan_catScanCounter" store
+
+  "catScan_" robotSerial leftOrRightArm dateString "/" + + + + "scan_catScanObjectName" store
+  scan_catScanObjectName setScanGroup
+  
+  scan_findObjectAfterDrop "scan_catScanSees" store
+  setBoundingBoxModeToMapping
+  clearMapForPatrol
+  1 changeToHeight waitUntilAtCurrentPosition
+  synchronicServo 
+  comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort 0.01 setGridSize ( zUp ) scan_IRheight replicateWord comeToStop 
+
+
+  setPickModeToLearningAlgorithmC
+
+  ( scan_catScanCounter 50 <   scan_catScanSees   and ) (
+    currentPose
+
     endArgs
-    pushCurrentPose
-    scanObjectStreamWaypointsIR
+    currentPose
+    1 changeToHeight scan_isNewComponent (
+      scanObjectStreamWaypointsIR
 
-    pop
-    integrateImageStreamBufferCrops
-    trainAndWriteFocusedClassKnn
+      integrateImageStreamBufferCrops
+      trainAndWriteFocusedClassKnn
+
+      moveEeToPoseWord
+      1 changeToHeight
+
+      setPlaceModeToHold
+      pickFocusedClass
+
+      playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
+      comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight replicateWord setMovementStateToMoving comeToStop 
+      openGripper
+    ) (
+      pop pop pop
+
+      clearMapForPatrol clearBlueBoxMemories mapLocal
+      deliverTargetObject
+
+      isGripperGripping (
+	playWorkspace moveEeToPoseWord
+	comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight replicateWord setMovementStateToMoving comeToStop 
+      ) ift
+      openGripper
+    ) ifte
+
     1 changeToHeight
-    setPlaceModeToHold
-    pickFocusedClass
-    playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
-    comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort 0.01 setGridSize ( zUp ) 4 replicateWord waitUntilAtCurrentPosition 
-    openGripper
-  ) 2 replicateWord
+    currentPose
+    scan_findObjectAfterDrop "scan_catScanSees" store
+
+    scan_catScanSees (
+      setBoundingBoxModeToMapping
+      clearMapForPatrol
+      synchronicServo 
+      comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort 0.01 setGridSize ( zUp ) scan_IRheight replicateWord comeToStop 
+    ) ift
+
+    scan_catScanCounter 1 + "scan_catScanCounter" store
+  ) while 
 
   createCachedClassifierFromClassLabels
-
   setPickModeToLearningAlgorithmC
   setPlaceModeToShake
 
-  (
+  0 "scan_catPickCounter" store
+  playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
+  scan_findObjectAfterDrop "scan_catScanSees" store
+
+  ( scan_catPickCounter 20 <   scan_catScanSees   and ) (
+    1 changeToHeight
+    clearMapForPatrol clearBlueBoxMemories
     mapLocal
     pickClosestBlueBox
-  ) 50 replicateWord
+
+    playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
+    scan_findObjectAfterDrop "scan_catScanSees" store
+    scan_catPickCounter 1 + "scan_catPickCounter" store
+  ) while
 
 ) "catScan" store
 
@@ -135,16 +255,12 @@ workspace4 "outputPileWorkspace" store
     1 changeToHeight
     setPlaceModeToHold
 
-    /* check in this loop - if there are no blue boxes, it will hang */
-    /* instead, it should skip the rest of this function */
     playWorkspace cw_workspaceIsClear ( 0 "somethingsThere" store ) ift
 
     "somethingsThere: " print somethingsThere print
 
     1 changeToHeight
     pickFocusedClass
-    /* if you got it, lift it, if you didn't, try clearing the workspace */
-    /* this covers the case where the object is there but out of reach. */
     isGripperGripping ( liftArm ) ( openGripper playWorkspace cw_clearWorkspace ) ifte
   ) while
 
@@ -158,8 +274,7 @@ workspace4 "outputPileWorkspace" store
 
 (
   1 setSnapToFlushGrasp
-  /* 2 setMapServoMode */
-  4 setMapServoMode
+  2 setMapServoMode
   setPlaceModeToHold
   setBoundingBoxModeToMapping
   clearMapForPatrol
