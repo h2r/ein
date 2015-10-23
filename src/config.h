@@ -1103,6 +1103,7 @@ class EinConfig {
   std::string vocab_file = "unspecified_vf";
   std::string knn_file = "unspecified_kf";
   std::string label_file = "unspecified_lf";
+  std::string config_directory = "/config/";
   
   std::string run_prefix = "";
   std::string scan_group = "";

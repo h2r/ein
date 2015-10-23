@@ -163,7 +163,15 @@ void MachineState::execute(shared_ptr<Word> word) {
     current_instruction = word;
     std::shared_ptr<MachineState> ms = this->sharedThis;
     checkAndStreamWord(ms, word->name(), "execute");
-    word->execute(shared_from_this());
+    try {
+      word->execute(shared_from_this());
+    } catch( ... ) {
+      ROS_ERROR("Exception in word");
+      cout << "Word: " << word->name() << endl;
+      std::exception_ptr p = std::current_exception();
+      rethrow_exception(p);
+    }
+
   }
 }
 

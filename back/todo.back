@@ -1,4 +1,16 @@
-/* 
+/*
+ * repr for strings doesn't escape
+ * hidden bug in backslash or forward slash or strings or something
+ * spaces after quotes and comments
+ * check that close comment does the right thing
+ 
+ * 
+ * breakpoints
+ * display IK errors in the gui
+ * local IR grasp proposal
+ * IK map at multiple heights
+ * 
+ * 
  * we'd really like to shake after every pick, and *then* move to the output workspace.  Right now it does one pick, shakes, then moves to the output.
  * 
  * I think it counts the second (non-shook) pick as part of a grasp learning trial.
@@ -13,8 +25,6 @@
  * figure out what to do to keep him in the play workspace. 
  * detect when gradient landed on nothing or something random
  * setClassLabels without endArgs
- * fix parsing of *
-
  * ints and doubles math. 
  * think about enums in C and back
  * string concat
@@ -28,3 +38,5 @@ Done:
 * unit tests
 * asserts
 * compound words repr
+* fix parsing of *
+* getting and setting parts of eePose

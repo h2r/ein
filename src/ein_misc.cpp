@@ -1675,6 +1675,20 @@ CONFIG_GETTER_DOUBLE(IkMapStartHeight, ms->config.ikMapStartHeight)
 
 CONFIG_GETTER_DOUBLE(IkMapEndHeight, ms->config.ikMapEndHeight)
 
+
+CONFIG_GETTER_DOUBLE(MapSearchFenceXMin, ms->config.mapSearchFenceXMin)
+CONFIG_SETTER_DOUBLE(SetMapSearchFenceXmin, ms->config.mapSearchFenceXMin)
+
+CONFIG_GETTER_DOUBLE(MapSearchFenceYMin, ms->config.mapSearchFenceYMin)
+CONFIG_SETTER_DOUBLE(SetMapSearchFenceYMin, ms->config.mapSearchFenceYMin)
+
+CONFIG_GETTER_DOUBLE(MapSearchFenceXMax, ms->config.mapSearchFenceXMax)
+CONFIG_SETTER_DOUBLE(SetMapSearchFenceXMax, ms->config.mapSearchFenceXMax)
+
+CONFIG_GETTER_DOUBLE(MapSearchFenceYMax, ms->config.mapSearchFenceYMax)
+CONFIG_SETTER_DOUBLE(SetMapSearchFenceYMax, ms->config.mapSearchFenceYMax)
+
+
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
 
 
