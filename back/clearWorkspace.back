@@ -1,11 +1,19 @@
 (
+  pointToClearanceMap aboutFace currentPose cw_clearWorkspace
+) "cw_sweepToGreen" store
+
+(
   moveEeToPoseWord waitUntilAtCurrentPosition
   1 changeToHeight
   0.01 setGridSize ( zDown ) 10 replicateWord
 
+  cw_viewIsClear
+) "cw_workspaceIsClear" store
+
+(
   setMovementStateToMoving comeToStop visionCycleNoClassify
   numBlueBoxes 0 = 1 0 ifte
-) "cw_workspaceIsClear" store
+) "cw_viewIsClear" store
 
 (
   1 changeToHeight 
@@ -14,7 +22,6 @@
   synchronicServoTakeClosest
   setBoundingBoxModeToStaticPrior
   synchronicServo 
-  setBoundingBoxModeToMapping
 ) "cw_servo_for_flick" store
 
 (
@@ -53,22 +60,21 @@
   waitUntilAtCurrentPosition
   openGripper
 
-  /* this could be modified to remember the center and do a radial lawnmower */
 ) "cw_flick" store
 
 (
   cw_servo_for_flick
-  pushCurrentPose
+  currentPose
 
   dup
-  moveEeToPoseWord 0.01 setGridSize ( yUp ) 4 replicateWord pushCurrentPose
+  moveEeToPoseWord 0.01 setGridSize ( yUp ) 4 replicateWord currentPose
   cw_flick
 
   dup
   cw_flick
 
   dup
-  moveEeToPoseWord 0.01 setGridSize ( yDown ) 4 replicateWord pushCurrentPose
+  moveEeToPoseWord 0.01 setGridSize ( yDown ) 4 replicateWord currentPose
   cw_flick
 
   pop
@@ -78,7 +84,6 @@
   ">>>> clearing workspace a <<<<" print
   ( dup quarterImpulse cw_workspaceIsClear ! ) ( 
     "Workspace not clear, flicking..." print
-    /* cw_flick */
     cw_tri_flick
   ) while 
   pop
@@ -87,18 +92,18 @@
 (
   ">>>> clearing workspace <<<<" print
   dup 
-  moveEeToPoseWord 0.01 setGridSize ( xDown ) 10 replicateWord pushCurrentPose
+  moveEeToPoseWord 0.01 setGridSize ( xDown ) 10 replicateWord currentPose
   cw_clearWorkspace_a
 
   dup 
   cw_clearWorkspace_a
 
   dup 
-  moveEeToPoseWord 0.01 setGridSize ( xUp ) 10 replicateWord pushCurrentPose
+  moveEeToPoseWord 0.01 setGridSize ( xUp ) 10 replicateWord currentPose
   cw_clearWorkspace_a
 
   dup 
-  moveEeToPoseWord 0.01 setGridSize ( xUp ) 15 replicateWord pushCurrentPose
+  moveEeToPoseWord 0.01 setGridSize ( xUp ) 15 replicateWord currentPose
   cw_clearWorkspace_a
 
   pop
