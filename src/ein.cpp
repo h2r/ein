@@ -4355,12 +4355,10 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   // paint transform reticles
   if (ms->config.paintEEandReg1OnWrist) {
-    eePose teePose;
-    teePose.px = ms->config.trueEEPose.position.x;
-    teePose.py = ms->config.trueEEPose.position.y;
-    teePose.pz = ms->config.trueEEPose.position.z;
-    paintEEPoseOnWrist(ms, teePose, cv::Scalar(0,0,255));
+    paintEEPoseOnWrist(ms, ms->config.trueEEPoseEEPose, cv::Scalar(0,0,255));
     paintEEPoseOnWrist(ms, ms->config.eepReg1, cv::Scalar(0,255,0));
+
+    paintEEPoseOnWrist(ms, ms->config.currentEEPose, cv::Scalar(255,255,0));
 
     {
       eePose irPose;
