@@ -156,7 +156,7 @@ workspace4 "outputPileWorkspace" store
 
   0 "scan_catScanCounter" store
 
-  "catScan_" robotSerial leftOrRightArm dateString  + + + + "scan_catScanObjectName" store
+  "catScan_" robotSerial leftOrRightArm dateString "/" + + + + "scan_catScanObjectName" store
   scan_catScanObjectName setScanGroup
   
   scan_findObjectAfterDrop "scan_catScanSees" store
