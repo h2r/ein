@@ -65,5 +65,6 @@ eePose rosPoseToEEPose(geometry_msgs::Pose pose);
 gsl_matrix * boxMemoryToPolygon(BoxMemory b);
 void initializeMachine(shared_ptr<MachineState> ms);
 string formatTime(ros::Time time);
+bool copyDir(string src, string dest);
 
 #endif /* _EIN_UTIL_H_ */

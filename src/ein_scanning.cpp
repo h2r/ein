@@ -1,6 +1,10 @@
-#include <boost/filesystem.hpp>
 #include "ein_words.h"
 #include "ein.h"
+
+
+#include <boost/filesystem.hpp>
+using namespace std;
+using namespace boost::filesystem;
 
 
 namespace ein_words {
@@ -2182,6 +2186,21 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(AssumeCalibrationPose)
+
+WORD(InitializeConfig)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string config_dir = ms->config.data_directory + ms->config.config_directory;
+  string default_config_dir = ms->config.data_directory + "/config/";
+  if (! exists(config_dir)) {
+    bool result = copyDir(default_config_dir, config_dir);
+    if (! result) {
+      cout << "Couldn't initialize config " << config_dir << endl;
+      assert(0);
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(InitializeConfig)
 
 WORD(LoadCalibration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
