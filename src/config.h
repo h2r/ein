@@ -1052,7 +1052,7 @@ class EinConfig {
   int gripperMaskCounts;
   Mat gripperMask;
   Mat cumulativeGripperMask;
-  double gripperMaskThresh = 5;
+  double gripperMaskThresh = 0.02;
 
   int darkServoIterations = 0;
   int darkServoTimeout = 20;
