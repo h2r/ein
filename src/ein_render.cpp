@@ -237,7 +237,18 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->config.aerialGradientViewerWindow->setVisible(false);
   ms->config.wristViewWindow->setVisible(false);
   ms->config.coreViewWindow->setVisible(false);
+  ms->config.gripperMaskFirstContrastWindow->setVisible(true);
+  ms->config.gripperMaskSecondContrastWindow->setVisible(true);
+  ms->config.gripperMaskDifferenceWindow->setVisible(true);
+
+  ms->config.gripperMaskVarianceWindow->setVisible(true);
+  ms->config.gripperMaskMeanWindow->setVisible(true);
+  ms->config.gripperMaskSquaresWindow->setVisible(true);
+
+
+  
 }
+
 END_WORD
 REGISTER_WORD(GuiCustom1)
 

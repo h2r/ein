@@ -1,7 +1,7 @@
 #include "ein_words.h"
 #include "ein.h"
 
-
+#include "qtgui/einwindow.h"
 #include <boost/filesystem.hpp>
 using namespace std;
 using namespace boost::filesystem;
@@ -1927,6 +1927,11 @@ WORD(SetGripperMaskAA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.gripperMaskFirstContrast = ms->config.accumulatedImage.clone();
   ms->config.gripperMaskSecondContrast = ms->config.gripperMaskFirstContrast.clone();
+  ms->config.gripperMaskMean = ms->config.gripperMaskFirstContrast.clone();
+  ms->config.gripperMaskMean = 0.0;
+  ms->config.gripperMaskSquares = ms->config.gripperMaskFirstContrast.clone();
+  ms->config.gripperMaskSquares = 0.0;
+  ms->config.gripperMaskCounts = 0;
 
   ms->config.gripperMask.create(ms->config.gripperMaskFirstContrast.size(), CV_8U);
 
@@ -1934,6 +1939,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int imW = sz.width;
   int imH = sz.height;
 
+  cout << "Updating image" << endl;
+  //ms->config.gripperMaskFirstContrastWindow->updateImage(ms->config.wristViewImage);
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
@@ -1948,6 +1955,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->config.gripperMask.at<uchar>(y,x) = 0;
     }
   }
+  ms->config.gripperMaskFirstContrastWindow->updateImage(ms->config.gripperMaskFirstContrast / 255.0);
 }
 END_WORD
 REGISTER_WORD(SetGripperMaskAA)
@@ -2013,11 +2021,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
       ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
       ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+
+      ms->config.gripperMaskMean.at<Vec3d>(y,x)[0] += (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      ms->config.gripperMaskMean.at<Vec3d>(y,x)[1] += (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      ms->config.gripperMaskMean.at<Vec3d>(y,x)[2] += (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+
+      ms->config.gripperMaskSquares.at<Vec3d>(y,x)[0] += pow((ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom), 2);
+      ms->config.gripperMaskSquares.at<Vec3d>(y,x)[1] += pow((ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom), 2);
+      ms->config.gripperMaskSquares.at<Vec3d>(y,x)[2] += pow((ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom), 2);
     }
   }
-
+  ms->config.gripperMaskCounts += 1;
+  ms->config.gripperMaskSecondContrastWindow->updateImage(ms->config.gripperMaskSecondContrast / 255.0);
   Mat firstFloat; Mat firstYCBCR;  ms->config.gripperMaskFirstContrast.convertTo(firstFloat, CV_32FC3); cvtColor(firstFloat, firstYCBCR, CV_BGR2YCrCb);
   Mat secondFloat; Mat secondYCBCR;  ms->config.gripperMaskSecondContrast.convertTo(secondFloat, CV_32FC3); cvtColor(secondFloat, secondYCBCR, CV_BGR2YCrCb);
+
+  Mat varianceImage = ms->config.gripperMaskFirstContrast.clone();
+
+  Mat differenceImage = ms->config.gripperMaskFirstContrast.clone();
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
@@ -2033,11 +2054,23 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ((firstYCBCR.at<Vec3f>(y,x)[1] - secondYCBCR.at<Vec3f>(y,x)[1])*
       (firstYCBCR.at<Vec3f>(y,x)[1] - secondYCBCR.at<Vec3f>(y,x)[1])) +
       ((firstYCBCR.at<Vec3f>(y,x)[2] - secondYCBCR.at<Vec3f>(y,x)[2])*
-      (firstYCBCR.at<Vec3f>(y,x)[2] - secondYCBCR.at<Vec3f>(y,x)[2]));
+      (firstYCBCR.at<Vec3f>(y,x)[2] - secondYCBCR.at<Vec3f>(y,x)[2])) 
+	//+
+	//((firstYCBCR.at<Vec3f>(y,x)[0] - secondYCBCR.at<Vec3f>(y,x)[0])*
+	//(firstYCBCR.at<Vec3f>(y,x)[0] - secondYCBCR.at<Vec3f>(y,x)[0]))
+	;
 
-      if(maskDiff < 1000) {
-	//cout << multiThresh << " " << maskDiff << endl;
-      }
+      differenceImage.at<Vec3d>(y,x)[0] = maskDiff;
+      differenceImage.at<Vec3d>(y,x)[1] = 0.0;
+      differenceImage.at<Vec3d>(y,x)[2] = 0.0;
+
+      varianceImage.at<Vec3d>(y,x)[0] = ms->config.gripperMaskSquares.at<Vec3d>(y, x)[0] / ms->config.gripperMaskCounts - pow(ms->config.gripperMaskMean.at<Vec3d>(y, x)[0] / ms->config.gripperMaskCounts, 2) ;
+      varianceImage.at<Vec3d>(y,x)[1] = ms->config.gripperMaskSquares.at<Vec3d>(y, x)[1] / ms->config.gripperMaskCounts - pow(ms->config.gripperMaskMean.at<Vec3d>(y, x)[1] / ms->config.gripperMaskCounts, 2) ;
+      varianceImage.at<Vec3d>(y,x)[2] = ms->config.gripperMaskSquares.at<Vec3d>(y, x)[2] / ms->config.gripperMaskCounts - pow(ms->config.gripperMaskMean.at<Vec3d>(y, x)[2] / ms->config.gripperMaskCounts, 2) ;
+
+      varianceImage.at<Vec3d>(y,x)[0] = 0;//varianceImage.at<Vec3d>(y,x)[0] / pow(255.0, 2);
+      varianceImage.at<Vec3d>(y,x)[1] = varianceImage.at<Vec3d>(y,x)[1] / pow(255.0, 2);
+      varianceImage.at<Vec3d>(y,x)[2] = varianceImage.at<Vec3d>(y,x)[2] / pow(255.0, 2);
 
       if (maskDiff > multiThresh) {
 	ms->config.gripperMask.at<uchar>(y,x) = 1;
@@ -2046,6 +2079,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
     }
   }
+
+  ms->config.gripperMaskDifferenceWindow->updateImage(differenceImage / 255.0);
+  ms->config.gripperMaskVarianceWindow->updateImage(varianceImage * 10);
+  ms->config.gripperMaskMeanWindow->updateImage(ms->config.gripperMaskMean /  ms->config.gripperMaskCounts / 255.0);
+  ms->config.gripperMaskSquaresWindow->updateImage(ms->config.gripperMaskSquares /  ms->config.gripperMaskCounts / (255.0 * 255.0));
 
   Mat tmpMask = ms->config.gripperMask.clone();
 
