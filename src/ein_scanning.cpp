@@ -1994,11 +1994,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int imH = sz.height;
 
   int dilationPixels = 10;
-  double baseThresh = 5;
-  double multiThresh = 3*baseThresh*baseThresh;
+  double baseThresh = ms->config.gripperMaskThresh;
+  //double multiThresh = 3*baseThresh*baseThresh; // for rgb
+  double multiThresh = 2*baseThresh*baseThresh; // for ycbcr
 
   cout << "  multiThresh dilationPixels: " << multiThresh << " " << dilationPixels << endl;
-
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
@@ -2009,14 +2009,27 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
       ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
       ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+    }
+  }
+
+  Mat firstFloat; Mat firstYCBCR;  ms->config.gripperMaskFirstContrast.convertTo(firstFloat, CV_32FC3); cvtColor(firstFloat, firstYCBCR, CV_BGR2YCrCb);
+  Mat secondFloat; Mat secondYCBCR;  ms->config.gripperMaskSecondContrast.convertTo(secondFloat, CV_32FC3); cvtColor(secondFloat, secondYCBCR, CV_BGR2YCrCb);
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      //double maskDiff = 
+      //((ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0])*
+      //(ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0])) +
+      //((ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[1] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1])*
+      //(ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[1] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1])) +
+      //((ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2])*
+      //(ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2]));
 
       double maskDiff = 
-      ((ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0])*
-      (ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0])) +
-      ((ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[1] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1])*
-      (ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[1] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1])) +
-      ((ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2])*
-      (ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2]));
+      ((firstYCBCR.at<Vec3f>(y,x)[1] - secondYCBCR.at<Vec3f>(y,x)[1])*
+      (firstYCBCR.at<Vec3f>(y,x)[1] - secondYCBCR.at<Vec3f>(y,x)[1])) +
+      ((firstYCBCR.at<Vec3f>(y,x)[2] - secondYCBCR.at<Vec3f>(y,x)[2])*
+      (firstYCBCR.at<Vec3f>(y,x)[2] - secondYCBCR.at<Vec3f>(y,x)[2]));
 
       if(maskDiff < 1000) {
 	//cout << multiThresh << " " << maskDiff << endl;
@@ -3174,6 +3187,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("changeToHeight0"); // change to height 0
   }
+  // results in lost frames if robot chooses to unwind
+  //ms->pushWord("departureSpeed");
+  ms->pushWord("quarterImpulse");
 
   
   // put yourself at the 3dGraspBase again
@@ -3428,7 +3444,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("changeToHeight0"); // change to height 0
   }
-  ms->pushWord("departureSpeed");
+  // results in lost frames if robot chooses to unwind
+  //ms->pushWord("departureSpeed");
+  ms->pushWord("quarterImpulse");
 
   ms->pushWord("shutdownToSensorsAndMovement"); 
   ms->pushWord("setSisFlags"); 

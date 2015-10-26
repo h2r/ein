@@ -10,6 +10,9 @@ CONFIG_SETTER_DOUBLE(SetW1GoThresh, ms->config.w1GoThresh)
 CONFIG_GETTER_DOUBLE(W1AngleThresh, ms->config.w1AngleThresh)
 CONFIG_SETTER_DOUBLE(SetW1AngleThresh, ms->config.w1AngleThresh)
 
+CONFIG_GETTER_INT(CurrentIKBoundaryMode, ms->config.currentIKBoundaryMode)
+CONFIG_SETTER_ENUM(SetCurrentIKBoundaryMode, ms->config.currentIKBoundaryMode, (ikBoundaryMode))
+
 WORD(AssumeAimedPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int idxToRemove = ms->config.targetBlueBox;
@@ -1642,7 +1645,8 @@ WORD(SpinForSecondsInit)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double secondsToSpin = 0;
   GET_NUMERIC_ARG(ms, secondsToSpin);
-  ms->config.spinForSecondsTarget = ros::Time::now() + ros::Duration(secondsToSpin);
+  ros::Time spinForSecondsTarget = ros::Time::now() + ros::Duration(secondsToSpin);
+  ms->pushData(make_shared<DoubleWord>(spinForSecondsTarget.toSec())); 
 }
 END_WORD
 REGISTER_WORD(SpinForSecondsInit)
@@ -1650,12 +1654,15 @@ REGISTER_WORD(SpinForSecondsInit)
 WORD(SpinForSecondsA)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   //cout << "spinForSecondsA: ";
+  double spinForSecondsTargetDouble = 0;
+  GET_NUMERIC_ARG(ms, spinForSecondsTargetDouble);
   ros::Time thisNow = ros::Time::now();
-  if (thisNow.toSec() > ms->config.spinForSecondsTarget.toSec()) {
+  if (thisNow.toSec() > spinForSecondsTargetDouble) {
     //cout << "PASSED at time, target, delta: " << thisNow.toSec() << " " << ms->config.spinForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.spinForSecondsTarget.toSec() << endl;
   } else {
     //cout << "HELD at time, target, delta: " << thisNow.toSec() << " " << ms->config.spinForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.spinForSecondsTarget.toSec() << endl;
     ms->pushWord("spinForSecondsA");
+    ms->pushData(make_shared<DoubleWord>(spinForSecondsTargetDouble)); 
     // does not end stack collapse
   }
 }
@@ -1783,8 +1790,16 @@ REGISTER_WORD(ScaleMeasures)
 
 // twistWords takes two compound words A and B as arguments. 
 // A and B must start with MeasureTimeStart
+WORD(ReverseCompound)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX 
+}
+END_WORD
+REGISTER_WORD(ReverseCompound)
+
 WORD(TwistWords)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX 
 }
 END_WORD
 REGISTER_WORD(TwistWords)

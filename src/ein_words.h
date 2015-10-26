@@ -213,6 +213,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) { \
 END_WORD \
 REGISTER_WORD(backName) 
 
+
+#define CONFIG_SETTER_ENUM(backName, configName, cast)	\
+WORD(backName) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  int value; \
+  GET_INT_ARG(ms, value); \
+  configName = cast value;	\
+} \
+END_WORD \
+REGISTER_WORD(backName) 
+
 #define CONFIG_GETTER_DOUBLE(backName, configName)	\
 WORD(backName) \
 virtual void execute(std::shared_ptr<MachineState> ms) { \
