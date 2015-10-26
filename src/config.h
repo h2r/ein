@@ -510,6 +510,14 @@ class EinConfig {
   EinWindow * faceViewWindow;
   EinWindow * heightMemorySampleWindow;
 
+  EinWindow * gripperMaskFirstContrastWindow;
+  EinWindow * gripperMaskSecondContrastWindow;
+  EinWindow * gripperMaskDifferenceWindow;
+
+  EinWindow * gripperMaskMeanWindow;
+  EinWindow * gripperMaskVarianceWindow;
+  EinWindow * gripperMaskSquaresWindow;
+
 
   EinWindow * densityViewerWindow;
   EinWindow * objectViewerWindow;
@@ -1039,6 +1047,9 @@ class EinConfig {
 
   Mat gripperMaskFirstContrast;
   Mat gripperMaskSecondContrast;
+  Mat gripperMaskMean;
+  Mat gripperMaskSquares;
+  int gripperMaskCounts;
   Mat gripperMask;
   Mat cumulativeGripperMask;
   double gripperMaskThresh = 5;
