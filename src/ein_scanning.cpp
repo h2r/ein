@@ -2050,7 +2050,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       //((ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2])*
       //(ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2]));
 
-      double maskDiff = 
+      double maskDiffFromFirst = 
       ((firstYCBCR.at<Vec3f>(y,x)[1] - secondYCBCR.at<Vec3f>(y,x)[1])*
       (firstYCBCR.at<Vec3f>(y,x)[1] - secondYCBCR.at<Vec3f>(y,x)[1])) +
       ((firstYCBCR.at<Vec3f>(y,x)[2] - secondYCBCR.at<Vec3f>(y,x)[2])*
@@ -2060,7 +2060,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	//(firstYCBCR.at<Vec3f>(y,x)[0] - secondYCBCR.at<Vec3f>(y,x)[0]))
 	;
 
-      differenceImage.at<Vec3d>(y,x)[0] = maskDiff;
+      differenceImage.at<Vec3d>(y,x)[0] = maskDiffFromFirst;
       differenceImage.at<Vec3d>(y,x)[1] = 0.0;
       differenceImage.at<Vec3d>(y,x)[2] = 0.0;
 
@@ -2072,7 +2072,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       varianceImage.at<Vec3d>(y,x)[1] = varianceImage.at<Vec3d>(y,x)[1] / pow(255.0, 2);
       varianceImage.at<Vec3d>(y,x)[2] = varianceImage.at<Vec3d>(y,x)[2] / pow(255.0, 2);
 
-      if (maskDiff > multiThresh) {
+      double maskDiffVariance = sqrt( pow(varianceImage.at<Vec3d>(y,x)[1],2) + pow(varianceImage.at<Vec3d>(y,x)[2],2) );
+      if (maskDiffVariance > multiThresh) {
 	ms->config.gripperMask.at<uchar>(y,x) = 1;
       } else {
 	ms->config.gripperMask.at<uchar>(y,x) = 0;
