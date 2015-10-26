@@ -131,6 +131,11 @@ typedef enum {
 } robotMode;
 
 typedef enum {
+  IK_BOUNDARY_STOP = 0,
+  IK_BOUNDARY_PASS = 1
+} ikBoundaryMode;
+
+typedef enum {
   IKSERVICE,
   IKFAST,
   IKFASTDEBUG
@@ -168,7 +173,7 @@ typedef enum {
   ONCE_CLASSIFY = 1,
   FIXED_CLASS_ACCUMULATED = 2,
   FIXED_CLASS_CONTINUOUS = 3,
-  FIXED_CLASS_ACCACCUMULATED_NOSYN = 4,
+  FIXED_CLASS_ACCUMULATED_NOSYN = 4,
   FIXED_CLASS_CONTINUOUS_NOSYN = 5
 } mapServoMode;
 
@@ -362,6 +367,7 @@ class EinConfig {
   graspMode currentGraspMode = GRASP_3D;
   robotMode currentRobotMode = PHYSICAL;
   ikMode currentIKMode = IKSERVICE;
+  ikBoundaryMode currentIKBoundaryMode = IK_BOUNDARY_STOP;
   scanMode currentScanMode = CENTERED;
   mapServoMode currentMapServoMode = HISTOGRAM_CLASSIFY;
   bool setRandomPositionAfterPick = false;
@@ -1035,6 +1041,7 @@ class EinConfig {
   Mat gripperMaskSecondContrast;
   Mat gripperMask;
   Mat cumulativeGripperMask;
+  double gripperMaskThresh = 5;
 
   int darkServoIterations = 0;
   int darkServoTimeout = 20;

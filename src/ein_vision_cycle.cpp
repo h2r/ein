@@ -52,16 +52,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
     ms->pushWord("synchronicServo"); 
     ms->pushWord("synchronicServoTakeClosest");
-  } else if (ms->config.currentMapServoMode == FIXED_CLASS_ACCACCUMULATED_NOSYN) {
+  } else if (ms->config.currentMapServoMode == FIXED_CLASS_ACCUMULATED_NOSYN) {
     ms->pushWord("gradientServoIfBlueBoxes");
     ms->pushWord("mapClosestBlueBox");
     ms->pushWord("mapEmptySpace");
     ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
+    ms->pushWord("visionCycleNoClassify"); 
   } else if (ms->config.currentMapServoMode == FIXED_CLASS_CONTINUOUS_NOSYN) {
     ms->pushCopies("continuousServo", 10);
     ms->pushWord("mapClosestBlueBox");
     ms->pushWord("mapEmptySpace");
     ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
+    ms->pushWord("visionCycleNoClassify"); 
   } else {
     assert(0);
   }

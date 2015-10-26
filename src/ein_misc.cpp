@@ -817,7 +817,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 
   string name = nameword->to_string();
-  cout << "Storing " << name << " value " << valueword << endl;
+  //cout << "Storing " << name << " value " << valueword << endl;
   ms->variables[name] = valueword;
 }
 END_WORD
@@ -1430,7 +1430,7 @@ WORD(SP)
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
-  result.push_back("|");
+  result.push_back("|S");
   return result;
 }
 virtual void execute(std::shared_ptr<MachineState> ms)
@@ -1666,6 +1666,194 @@ END_WORD
 REGISTER_WORD(DateString)
 
 
+WORD(OB)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("{");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  ms->pushData("oP");
+  ms->pushData("oB");
+
+  /* 
+    XXX do this all in [, discard sB?
+     push ( onto data stack
+     
+     slide all data to the data stack, this gives each [] its own stack
+      >>> consider calling {} instead, scope
+     execute first non-data word on stack 
+     slide and parse to the paired ], consume
+     push cB 1 sP cP to data to rewind 
+  */
+
+
+  int cb_needed = 1;
+  bool can_execute = false;
+  while (cb_needed > 0) {
+
+    std::shared_ptr<Word> word = ms->popWord();
+
+    if (word == NULL) {
+      cout << "oB found no word... pausing stack execution." << endl;
+      ms->pushWord("pauseStackExecution");
+      return;
+    } else {
+
+      if ( 0 == word->name().compare("cB") ) {
+	//cout << " oB: pushing cB " << word->name() << endl;
+	ms->pushData(word);
+	cb_needed = cb_needed - 1;
+      } else if ( 0 == word->name().compare("oB") ) {
+	if (can_execute) {
+	  //cout << " oB: executing oB " << word->name() << endl;
+	  ms->execute(word);
+	  ms->pushData("sB");
+	  can_execute = false;
+	  // this one will account for itself
+	} else {
+	  //cout << " oB: pushing oB " << word->name() << endl;
+	  ms->pushData(word);
+	  // this one will NOT account for itself
+	  cb_needed = cb_needed + 1;
+	}
+      } else if ( 0 == word->name().compare("sB") ) {
+	if (cb_needed <= 1) {
+	  can_execute = true;
+	} else {
+	  ms->pushData(word);
+	}
+      } else if (can_execute) {
+	//cout << " oB: executing " << word->name() << endl;
+	ms->execute(word);
+	ms->pushData("sB");
+	can_execute = false;
+      } else {
+	//cout << " oB: cannot execute so pushing " << word->name() << endl;
+	ms->pushData(word);
+      }
+    }
+  }
+
+  // if you hit the bottom and can still execute, put sB back at the top
+  if (can_execute) {
+    //cout << "    ob: hit bottom, reinserting sB" << endl;
+
+    // take the one you just pushed, make sure it is cB
+    std::shared_ptr<Word> word = ms->popData();
+    if (word == NULL) {
+      cout << "oB found no word during sB reinsert a... pausing stack execution." << endl;
+      ms->pushWord("pauseStackExecution");
+      return;
+    } else if ( 0 == word->name().compare("cB") ) {
+      // good, should always happen
+    } else {
+      cout << "oB found no cB during sB reinsert a... pausing stack execution." << endl;
+      ms->pushWord("pauseStackExecution");
+      return;
+    }
+    // put it on the stack
+    ms->pushWord(word);
+
+    // slip until you find the top and put in an sB
+    int ob_needed = 1;
+    while (ob_needed > 0) {
+      std::shared_ptr<Word> word = ms->popData();
+
+      if (word == NULL) {
+	cout << "oB found no word during sB reinsert b... pausing stack execution." << endl;
+	ms->pushWord("pauseStackExecution");
+	return;
+      } else if ( 0 == word->name().compare("cB") ) {
+	ob_needed = ob_needed + 1;
+	ms->pushWord(word);
+      } else if ( 0 == word->name().compare("oB") ) {
+	ob_needed = ob_needed - 1;
+	if (ob_needed <= 0) {
+	  ms->pushData(word);
+	  ms->pushData("sB");
+	  break;
+	} else {
+	  ms->pushWord(word);
+	}
+      } else {
+	ms->pushWord(word);
+      }
+    }
+
+    // slide until you are back down where you were
+    int cb_needed = 1;
+    while (cb_needed > 0) {
+      std::shared_ptr<Word> word = ms->popWord();
+
+      if (word == NULL) {
+	cout << "oB found no word during sB reinsert c... pausing stack execution." << endl;
+	ms->pushWord("pauseStackExecution");
+	return;
+      } else {
+	if ( 0 == word->name().compare("cB") ) {
+	  ms->pushData(word);
+	  cb_needed = cb_needed - 1;
+	} else if ( 0 == word->name().compare("oB") ) {
+	  ms->pushData(word);
+	  cb_needed = cb_needed + 1;
+	} else {
+	  ms->pushData(word);
+	}
+      }
+    }
+  } else {
+  }
+
+  ms->pushWord("cP");
+
+  // this needs to happen immediately so that cBs from below don't affect above
+  ms->pushData(std::make_shared<IntegerWord>(1));
+  ms->pushWord("sP");
+  std::shared_ptr<Word> word = ms->popWord();
+  if (word == NULL) {
+    cout << "oB found no word on rewind... pausing stack execution." << endl;
+    ms->pushWord("pauseStackExecution");
+    return;
+  } else {
+    ms->execute(word);
+  }
+}
+END_WORD
+REGISTER_WORD(OB)
+
+WORD(SB)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("|B");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ROS_ERROR_STREAM("sB should never execute." << endl);
+  ms->pushWord("pauseStackExecution");
+}
+END_WORD
+REGISTER_WORD(SB)
+
+WORD(CB)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("}");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ROS_ERROR_STREAM("Close bracket should never execute." << endl);
+  ms->pushWord("pauseStackExecution");
+}
+END_WORD
+REGISTER_WORD(CB)
+
+
+
 
 CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
 CONFIG_SETTER_INT(SetGradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
@@ -1703,6 +1891,9 @@ CONFIG_SETTER_DOUBLE(SetMapSearchFenceXMax, ms->config.mapSearchFenceXMax)
 
 CONFIG_GETTER_DOUBLE(MapSearchFenceYMax, ms->config.mapSearchFenceYMax)
 CONFIG_SETTER_DOUBLE(SetMapSearchFenceYMax, ms->config.mapSearchFenceYMax)
+
+CONFIG_GETTER_DOUBLE(GripperMaskThresh, ms->config.gripperMaskThresh)
+CONFIG_SETTER_DOUBLE(SetGripperMaskThresh, ms->config.gripperMaskThresh)
 
 
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)

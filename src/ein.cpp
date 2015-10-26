@@ -3954,7 +3954,8 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
     if (ms->config.ik_reset_counter > ms->config.ik_reset_thresh) {
       ms->config.ik_reset_counter = 0;
       ms->config.currentEEPose = ms->config.ik_reset_eePose;
-      ms->pushWord("pauseStackExecution"); // pause stack execution
+      //ms->pushWord("pauseStackExecution"); // pause stack execution
+      cout << "  pausing disabled!" << endl;
       ms->pushCopies("beep", 15); // beep
       cout << "target position denied by ik, please reset the object.";
     }
@@ -3963,7 +3964,12 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
       cout << "Current EE Position (x,y,z): " << ms->config.currentEEPose.px << " " << ms->config.currentEEPose.py << " " << ms->config.currentEEPose.pz << endl;
       cout << "Current EE Orientation (x,y,z,w): " << ms->config.currentEEPose.qx << " " << ms->config.currentEEPose.qy << " " << ms->config.currentEEPose.qz << " " << ms->config.currentEEPose.qw << endl;
 
-      ms->config.currentEEPose = ms->config.lastGoodEEPose;
+      if (ms->config.currentIKBoundaryMode == IK_BOUNDARY_STOP) {
+	ms->config.currentEEPose = ms->config.lastGoodEEPose;
+      } else if (ms->config.currentIKBoundaryMode == IK_BOUNDARY_PASS) {
+      } else {
+	assert(0);
+      }
     }
 
     return;
@@ -4588,6 +4594,8 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     //QMetaObject::invokeMethod(qtTestWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
     //QMetaObject::invokeMethod(ms-.config.wristViewWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
     ms->config.wristViewWindow->updateImage(ms->config.wristViewImage);
+    //Mat firstYCBCR;  cvtColor(ms->config.wristViewImage, firstYCBCR, CV_BGR2YCrCb);
+    //ms->config.wristViewWindow->updateImage(firstYCBCR);
   }
 }
 
