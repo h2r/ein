@@ -5250,8 +5250,13 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
 
 void loadCalibration(shared_ptr<MachineState> ms, string inFileName) {
   FileStorage fsvI;
-  cout << "Reading calibration information from " << inFileName << " ...";
+  cout << "Reading calibration information from " << inFileName << " ..." << endl;
   fsvI.open(inFileName, FileStorage::READ);
+
+  if (!fsvI.isOpened()) {
+    cout << "Couldn't open calibration." << endl;
+    assert(0);
+  }
 
   {
     FileNode anode = fsvI["currentTableZ"];
