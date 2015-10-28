@@ -469,11 +469,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("waitUntilAtCurrentPosition"); 
   ms->pushWord("tryToMoveToTheLastPrePickHeight");   
   ms->pushWord("departureSpeed");
+
+  if (ms->config.snapToFlushGrasp) {
+    ms->evaluateProgram("comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper quarterImpulse 0.01 setGridSize ( zUp ) 5 setMovementStateToMoving replicateWord comeToHover");
+  } else {
     ms->pushWord("openGripper"); 
     ms->pushWord("tryToMoveToTheLastPickHeight");   
     ms->pushWord("approachSpeed"); 
-//ms->pushWord("shiftIntoGraspGear1"); 
+    //ms->pushWord("shiftIntoGraspGear1"); 
     ms->pushWord("waitUntilAtCurrentPosition"); 
+  }
+
     ms->pushWord("assumeDeliveryPose");
     ms->pushWord("setPatrolStateToPlacing");
   } else if (ms->config.currentPlaceMode == HAND) {
@@ -549,11 +555,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("tryToMoveToTheLastPrePickHeight");   
   ms->pushWord("departureSpeed");
 
-    ms->config.placeTarget = ms->config.lastPickPose;
+  ms->config.placeTarget = ms->config.lastPickPose;
+
+  if (ms->config.snapToFlushGrasp) {
+    ms->evaluateProgram("comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper quarterImpulse 0.01 setGridSize ( zUp ) 5 setMovementStateToMoving replicateWord comeToHover");
+  } else {
     ms->pushWord("openGripper"); 
     ms->pushWord("tryToMoveToTheLastPickHeight");   
     ms->pushWord("approachSpeed"); 
     ms->pushWord("waitUntilAtCurrentPosition"); 
+  }
 
 	if (ms->config.setRandomPositionAfterPick) {
 	  ms->pushWord("pointToClearanceMap");
