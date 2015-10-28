@@ -655,6 +655,10 @@ class EinConfig {
   double rangeMapReg3[rmWidth*rmWidth];
   double rangeMapReg4[rmWidth*rmWidth];
 
+  constexpr static int pfmWidth = 70;
+  double pickFixMap[pfmWidth];
+  eePose pfmAnchorPose;
+
   // grasp Thompson parameters
   double graspMemoryTries[4*rmWidth*rmWidth];
   double graspMemoryPicks[4*rmWidth*rmWidth];

@@ -877,7 +877,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double v1;
   GET_NUMERIC_ARG(ms, v1);
 
-  double newgrid = min( max(0.0, v1), 1.0);
+  //double newgrid = min( max(0.0, v1), 1.0);
+  double newgrid = v1;
 
   cout << "setGridSize got " << v1 << " setting " << newgrid << endl;
   

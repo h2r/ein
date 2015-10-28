@@ -426,16 +426,16 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       string thisLabelName = ms->config.focusedClassLabel;
       Mat thisTarget = tsi->image;
       Mat crop = thisTarget(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
-      char buf[1024];
+      std::stringstream buf;
       string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/detectionCrops/";
 
       ros::Time thisNow = ros::Time::now();
-      sprintf(buf, "%s%s%s_%f.png", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), thisNow.toSec());
+      buf << this_crops_path << ms->config.run_prefix << ms->config.robot_serial << ms->config.left_or_right_arm << std::setprecision (std::numeric_limits<double>::digits10 + 1) << thisNow << ".png";
       // no compression!
       std::vector<int> args;
       args.push_back(CV_IMWRITE_PNG_COMPRESSION);
       args.push_back(ms->config.globalPngCompression);
-      imwrite(buf, crop, args);
+      imwrite(buf.str(), crop, args);
       ms->config.cropCounter++;
     }
   } else {
@@ -483,16 +483,17 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       string thisLabelName = ms->config.focusedClassLabel;
       Mat thisTarget = tsi->image;
       Mat crop = thisTarget(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
-      char buf[1024];
+      std::stringstream buf;
       string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/detectionCrops/";
 
       ros::Time thisNow = ros::Time::now();
-      sprintf(buf, "%s%s%s_%f.png", this_crops_path.c_str(), thisLabelName.c_str(), ms->config.run_prefix.c_str(), thisNow.toSec());
+      buf << this_crops_path << ms->config.run_prefix << ms->config.robot_serial << ms->config.left_or_right_arm << std::setprecision (std::numeric_limits<double>::digits10 + 1) << thisNow.toSec() << ".png";
+cout << "  saving to " << buf.str() << " with this_crops_path " << this_crops_path;
       // no compression!
       std::vector<int> args;
       args.push_back(CV_IMWRITE_PNG_COMPRESSION);
       args.push_back(ms->config.globalPngCompression);
-      imwrite(buf, crop, args);
+      imwrite(buf.str(), crop, args);
       ms->config.cropCounter++;
     }
   } else {
@@ -507,7 +508,6 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   if ((ms->config.focusedClass > -1) && (ms->config.accumulatedStreamImageBytes.rows >1) && (ms->config.accumulatedStreamImageBytes.cols > 1)) {
     string thisLabelName = ms->config.classLabels[ms->config.focusedClass];
 
-    char buf[1000];
     string folderPath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoImages/";
     string filePath;
 

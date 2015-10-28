@@ -11445,6 +11445,19 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
 
   double label = -1;
 
+  if (ms->config.kNN == NULL) {
+    ROS_ERROR_STREAM("Oops, kNN is NULL, so we better stop here..." << endl);
+    assert(0);
+  } else {
+  }
+
+  if (ms->config.kNN->get_sample_count() < 1) {
+    ROS_ERROR_STREAM("Oops, kNN has no samples, so we better stop here..." << endl);
+    assert(0);
+  } else {
+  }
+
+
   for (int c = 0; c < ms->config.bTops.size(); c++) {
     vector<KeyPoint>& keypoints = ms->config.bKeypoints[c];
     Mat descriptors;
