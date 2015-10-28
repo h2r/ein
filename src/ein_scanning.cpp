@@ -4479,4 +4479,73 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(BuildClassSimilarityMatrixFromDensity)
 
+WORD(IrFixPick)
+virtual string description() {
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Commencing IR pick fix." << endl;
+
+  // move back to the pose we were in 
+  //ms->pushWord("moveEeToPoseWord");
+
+
+  // XXX move to the best point and stay there, or whatever should be done to substitute the grasp
+
+  // XXX todo write the little integrator
+  //ms->pushWord("integrateRangeStreamBuffer");
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+
+  //ms->pushWord("neutralScanH");
+  // XXX todo write the little scan program
+  
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  
+  ms->pushWord("setSisFlags"); 
+
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+
+
+
+  ms->pushWord("disableDiskStreaming");
+
+
+  ms->pushWord("setPickFixMapAnchor");
+
+
+
+  // move IR sensor onto trajectory line in correct orientation
+  ms->pushWord("comeToStop");
+  ms->pushWord("setGridSize");
+  ms->pushWord(make_shared<DoubleWord>(0.01));
+
+  ms->pushWord("oZUp");
+  ms->pushWord("setGridSize");
+  ms->pushWord(make_shared<DoubleWord>(3.1415926 / 2.0));
+  
+  // push current pose so we can return
+  //ms->pushWord("currentPose");
+}
+END_WORD
+REGISTER_WORD(IrFixPick)
+
+WORD(SetPickFixMapAnchor)
+virtual string description() {
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.pfmAnchorPose = ms->config.currentEEPose;
+}
+END_WORD
+REGISTER_WORD(SetPickFixMapAnchor)
+
+
+
 }
