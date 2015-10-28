@@ -556,6 +556,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("waitUntilAtCurrentPosition"); 
 
 	if (ms->config.setRandomPositionAfterPick) {
+	  ms->pushWord("pointToClearanceMap");
 	  ms->pushWord("setRandomPositionAndOrientationForHeightLearning");
 	} else {
 	} // do nothing
