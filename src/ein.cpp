@@ -13690,6 +13690,8 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
   ms->config.sonar_pub = n.advertise<std_msgs::UInt16>("/robot/sonar/head_sonar/lights/set_lights",10);
   ms->config.red_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/head_sonar/lights/set_red_level",10);
   ms->config.green_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/head_sonar/lights/set_green_level",10);
+  ms->config.face_screen_pub = n.advertise<sensor_msgs::Image>("/robot/xdisplay",10);
+
 
   ms->config.currentHeadPanCommand.target = 0;
   ms->config.currentHeadPanCommand.speed = 50;
@@ -13741,30 +13743,29 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
 
 void initializeArmGui(shared_ptr<MachineState> ms, MainWindow * einMainWindow) {
 
-  ms->config.gripperMaskFirstContrastWindow = new EinWindow(NULL, ms);
-  ms->config.gripperMaskFirstContrastWindow->setWindowTitle("Gripper Mask First Contrast " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.gripperMaskFirstContrastWindow);
-
-  ms->config.gripperMaskSecondContrastWindow = new EinWindow(NULL, ms);
-  ms->config.gripperMaskSecondContrastWindow->setWindowTitle("Gripper Mask Second Contrast " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.gripperMaskSecondContrastWindow);
-
-
-  ms->config.gripperMaskDifferenceWindow = new EinWindow(NULL, ms);
-  ms->config.gripperMaskDifferenceWindow->setWindowTitle("Gripper Mask Difference " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.gripperMaskDifferenceWindow);
-
-  ms->config.gripperMaskVarianceWindow = new EinWindow(NULL, ms);
-  ms->config.gripperMaskVarianceWindow->setWindowTitle("Gripper Mask Variance " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.gripperMaskVarianceWindow);
-
-  ms->config.gripperMaskMeanWindow = new EinWindow(NULL, ms);
-  ms->config.gripperMaskMeanWindow->setWindowTitle("Gripper Mask Mean " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.gripperMaskMeanWindow);
-
-  ms->config.gripperMaskSquaresWindow = new EinWindow(NULL, ms);
-  ms->config.gripperMaskSquaresWindow->setWindowTitle("Gripper Mask Squares " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.gripperMaskSquaresWindow);
+//  ms->config.gripperMaskFirstContrastWindow = new EinWindow(NULL, ms);
+//  ms->config.gripperMaskFirstContrastWindow->setWindowTitle("Gripper Mask First Contrast " + ms->config.left_or_right_arm);
+//  einMainWindow->addWindow(ms->config.gripperMaskFirstContrastWindow);
+//
+//  ms->config.gripperMaskSecondContrastWindow = new EinWindow(NULL, ms);
+//  ms->config.gripperMaskSecondContrastWindow->setWindowTitle("Gripper Mask Second Contrast " + ms->config.left_or_right_arm);
+//  einMainWindow->addWindow(ms->config.gripperMaskSecondContrastWindow);
+//
+//  ms->config.gripperMaskDifferenceWindow = new EinWindow(NULL, ms);
+//  ms->config.gripperMaskDifferenceWindow->setWindowTitle("Gripper Mask Difference " + ms->config.left_or_right_arm);
+//  einMainWindow->addWindow(ms->config.gripperMaskDifferenceWindow);
+//
+//  ms->config.gripperMaskVarianceWindow = new EinWindow(NULL, ms);
+//  ms->config.gripperMaskVarianceWindow->setWindowTitle("Gripper Mask Variance " + ms->config.left_or_right_arm);
+//  einMainWindow->addWindow(ms->config.gripperMaskVarianceWindow);
+//
+//  ms->config.gripperMaskMeanWindow = new EinWindow(NULL, ms);
+//  ms->config.gripperMaskMeanWindow->setWindowTitle("Gripper Mask Mean " + ms->config.left_or_right_arm);
+//  einMainWindow->addWindow(ms->config.gripperMaskMeanWindow);
+//
+//  ms->config.gripperMaskSquaresWindow = new EinWindow(NULL, ms);
+//  ms->config.gripperMaskSquaresWindow->setWindowTitle("Gripper Mask Squares " + ms->config.left_or_right_arm);
+//  einMainWindow->addWindow(ms->config.gripperMaskSquaresWindow);
 
 
 

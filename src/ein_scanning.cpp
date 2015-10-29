@@ -1955,7 +1955,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->config.gripperMask.at<uchar>(y,x) = 0;
     }
   }
-  ms->config.gripperMaskFirstContrastWindow->updateImage(ms->config.gripperMaskFirstContrast / 255.0);
+  //ms->config.gripperMaskFirstContrastWindow->updateImage(ms->config.gripperMaskFirstContrast / 255.0);
 }
 END_WORD
 REGISTER_WORD(SetGripperMaskAA)
@@ -2032,7 +2032,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }
   ms->config.gripperMaskCounts += 1;
-  ms->config.gripperMaskSecondContrastWindow->updateImage(ms->config.gripperMaskSecondContrast / 255.0);
+  //ms->config.gripperMaskSecondContrastWindow->updateImage(ms->config.gripperMaskSecondContrast / 255.0);
   Mat firstFloat; Mat firstYCBCR;  ms->config.gripperMaskFirstContrast.convertTo(firstFloat, CV_32FC3); cvtColor(firstFloat, firstYCBCR, CV_BGR2YCrCb);
   Mat secondFloat; Mat secondYCBCR;  ms->config.gripperMaskSecondContrast.convertTo(secondFloat, CV_32FC3); cvtColor(secondFloat, secondYCBCR, CV_BGR2YCrCb);
 
@@ -2081,10 +2081,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }
 
-  ms->config.gripperMaskDifferenceWindow->updateImage(differenceImage / 255.0);
-  ms->config.gripperMaskVarianceWindow->updateImage(varianceImage * 10);
-  ms->config.gripperMaskMeanWindow->updateImage(ms->config.gripperMaskMean /  ms->config.gripperMaskCounts / 255.0);
-  ms->config.gripperMaskSquaresWindow->updateImage(ms->config.gripperMaskSquares /  ms->config.gripperMaskCounts / (255.0 * 255.0));
+  //ms->config.gripperMaskDifferenceWindow->updateImage(differenceImage / 255.0);
+  //ms->config.gripperMaskVarianceWindow->updateImage(varianceImage * 10);
+  //ms->config.gripperMaskMeanWindow->updateImage(ms->config.gripperMaskMean /  ms->config.gripperMaskCounts / 255.0);
+  //ms->config.gripperMaskSquaresWindow->updateImage(ms->config.gripperMaskSquares /  ms->config.gripperMaskCounts / (255.0 * 255.0));
 
   Mat tmpMask = ms->config.gripperMask.clone();
 

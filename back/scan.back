@@ -27,8 +27,44 @@ workspace4 "outputPileWorkspace" store
 "catScan_" robotSerial "_" leftOrRightArm "_" dateString + + + + + "scan_catScanObjectName" store
 
 "utils" import
+"wiki" import
 
 "clearWorkspace" import
+
+(
+  { |B 
+    { |B 
+      ( 1 ) ( 
+	blink_lightshow 
+      ) while 
+    } 
+    { |B 
+      ( 
+	playWorkspace catScan 
+      ) 5 replicateWord 
+    } 
+    { |B 
+      ( 1 ) ( 
+	drand48 -0.5 plus 4.0 times 5 setHeadPanTargetSpeed 
+	drand48 20 times spinForSeconds 
+	drand48 0.5 > ( 
+	  "ursula_yes.tif" publishImageFileToFace 
+	) ( 
+	  "ursula_no.tif" publishImageFileToFace 
+	) ifte 
+	endStackCollapseNoop 
+      ) while 
+    } 
+    { |B 
+      ( 1 ) ( 
+	isGripperGripping ( 
+	  nod 
+	) ift 
+	endStackCollapseNoop 
+      ) while 
+    } 
+  } ( 1 ) ( slip ) while
+) "scan_threaded_catScan" store
 
 (
   clearMapForPatrol
@@ -179,6 +215,7 @@ workspace4 "outputPileWorkspace" store
 
       integrateImageStreamBufferCrops
       trainAndWriteFocusedClassKnn
+      createCachedClassifierFromClassLabels
 
       moveEeToPoseWord
       1 changeToHeight
@@ -216,7 +253,6 @@ workspace4 "outputPileWorkspace" store
     scan_catScanCounter 1 + "scan_catScanCounter" store
   ) while 
 
-  createCachedClassifierFromClassLabels
   setPickModeToLearningAlgorithmC
   setPlaceModeToShake
 
