@@ -6,6 +6,13 @@
 
 namespace ein_words {
 
+WORD(Drand48)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushData(std::make_shared<DoubleWord>(drand48()));
+}
+END_WORD
+REGISTER_WORD(Drand48)
+
 WORD(PushTime)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushData(std::make_shared<DoubleWord>(ros::Time::now().toSec()));
@@ -1045,6 +1052,23 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 }
 END_WORD
 REGISTER_WORD(CenterHead)
+
+WORD(SetHeadPanTargetSpeed)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  double t_target;
+  double t_speed;
+  GET_NUMERIC_ARG(ms, t_speed);
+  GET_NUMERIC_ARG(ms, t_target);
+
+  cout << "setHeadPanTargetSpeed: " << t_target << " " << t_speed << endl;
+
+  ms->config.currentHeadPanCommand.target = t_target;
+  ms->config.currentHeadPanCommand.speed = floor(t_speed);
+  ms->config.headPub.publish(ms->config.currentHeadPanCommand);
+}
+END_WORD
+REGISTER_WORD(SetHeadPanTargetSpeed)
 
 WORD(SilenceSonar)
 virtual void execute(std::shared_ptr<MachineState> ms)

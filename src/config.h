@@ -324,6 +324,8 @@ class EinConfig {
   ros::Publisher red_halo_pub;
   ros::Publisher green_halo_pub;
 
+  ros::Publisher face_screen_pub;
+
   int sonar_led_state = 0;
   double red_halo_state = 100.0;
   double green_halo_state = 100.0;
@@ -510,13 +512,12 @@ class EinConfig {
   EinWindow * faceViewWindow;
   EinWindow * heightMemorySampleWindow;
 
-  EinWindow * gripperMaskFirstContrastWindow;
-  EinWindow * gripperMaskSecondContrastWindow;
-  EinWindow * gripperMaskDifferenceWindow;
-
-  EinWindow * gripperMaskMeanWindow;
-  EinWindow * gripperMaskVarianceWindow;
-  EinWindow * gripperMaskSquaresWindow;
+  //EinWindow * gripperMaskFirstContrastWindow;
+  //EinWindow * gripperMaskSecondContrastWindow;
+  //EinWindow * gripperMaskDifferenceWindow;
+  //EinWindow * gripperMaskMeanWindow;
+  //EinWindow * gripperMaskVarianceWindow;
+  //EinWindow * gripperMaskSquaresWindow;
 
 
   EinWindow * densityViewerWindow;

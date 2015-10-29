@@ -237,13 +237,13 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->config.aerialGradientViewerWindow->setVisible(false);
   ms->config.wristViewWindow->setVisible(false);
   ms->config.coreViewWindow->setVisible(false);
-  ms->config.gripperMaskFirstContrastWindow->setVisible(true);
-  ms->config.gripperMaskSecondContrastWindow->setVisible(true);
-  ms->config.gripperMaskDifferenceWindow->setVisible(true);
 
-  ms->config.gripperMaskVarianceWindow->setVisible(true);
-  ms->config.gripperMaskMeanWindow->setVisible(true);
-  ms->config.gripperMaskSquaresWindow->setVisible(true);
+  //ms->config.gripperMaskFirstContrastWindow->setVisible(true);
+  //ms->config.gripperMaskSecondContrastWindow->setVisible(true);
+  //ms->config.gripperMaskDifferenceWindow->setVisible(true);
+  //ms->config.gripperMaskVarianceWindow->setVisible(true);
+  //ms->config.gripperMaskMeanWindow->setVisible(true);
+  //ms->config.gripperMaskSquaresWindow->setVisible(true);
 
 
   
@@ -251,6 +251,49 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
 END_WORD
 REGISTER_WORD(GuiCustom1)
+
+WORD(PublishWristViewToFace)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  sensor_msgs::Image msg;
+  Mat topub = ms->config.wristViewImage.clone();
+  msg.header.stamp = ros::Time::now();
+  msg.width = topub.cols;
+  msg.height = topub.rows;
+  msg.step = topub.cols * topub.elemSize();
+  msg.is_bigendian = false;
+  msg.encoding = sensor_msgs::image_encodings::BGR8;
+  msg.data.assign(topub.data, topub.data + size_t(topub.rows * msg.step));
+  ms->config.face_screen_pub.publish(msg);
+}
+END_WORD
+REGISTER_WORD(PublishWristViewToFace)
+
+WORD(PublishImageFileToFace)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string imfilename_post;
+  GET_STRING_ARG(ms, imfilename_post);
+  
+  string imfilename = "src/ein/images/" + imfilename_post;
+  Mat topub = imread(imfilename);
+
+  if (isSketchyMat(topub)) {
+    cout << "publishImageFileToFace: cannot load file " << imfilename << endl;
+    return;
+  } else {
+    sensor_msgs::Image msg;
+    msg.header.stamp = ros::Time::now();
+    msg.width = topub.cols;
+    msg.height = topub.rows;
+    msg.step = topub.cols * topub.elemSize();
+    msg.is_bigendian = false;
+    msg.encoding = sensor_msgs::image_encodings::BGR8;
+    msg.data.assign(topub.data, topub.data + size_t(topub.rows * msg.step));
+    ms->config.face_screen_pub.publish(msg);
+  }
+}
+END_WORD
+REGISTER_WORD(PublishImageFileToFace)
+
 
 
 
