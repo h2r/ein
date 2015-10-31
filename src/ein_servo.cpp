@@ -1567,6 +1567,43 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(AssumeLastPickOrientation)
 
+WORD(SetAerialGradientsToBarsLengthWidthGap)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int barHalfLength = 0;
+  int barWidth = 0;
+  int barHalfGap = 0;
 
+  GET_NUMERIC_ARG(ms, barHalfGap);
+  GET_NUMERIC_ARG(ms, barWidth);
+  GET_NUMERIC_ARG(ms, barHalfLength);
+
+  int f_width = 100;
+  int f_half_width = f_width/2;
+  Mat t_gradient(f_width, f_width, CV_64F);
+  t_gradient = 0.0;
+
+  // evidently this is the fast order
+  for (int y = (f_half_width - barHalfGap - barWidth); y < (f_half_width - barHalfGap) ; y++) {
+    for (int x = (f_half_width - barHalfLength); x < (f_half_width + barHalfLength); x++) {
+      t_gradient.at<double>(y,x) = 1.0;
+    }
+  }
+
+  for (int y = (f_half_width + barHalfGap); y < (f_half_width + barHalfGap + barWidth) ; y++) {
+    for (int x = (f_half_width - barHalfLength); x < (f_half_width + barHalfLength); x++) {
+      t_gradient.at<double>(y,x) = 1.0;
+    }
+  }
+
+  
+  ms->config.classAerialGradients[ms->config.targetClass] = t_gradient; 
+  ms->config.classHeight0AerialGradients[ms->config.targetClass] = t_gradient;
+  ms->config.classHeight1AerialGradients[ms->config.targetClass] = t_gradient;
+  ms->config.classHeight2AerialGradients[ms->config.targetClass] = t_gradient;
+  ms->config.classHeight3AerialGradients[ms->config.targetClass] = t_gradient;
+}
+END_WORD
+REGISTER_WORD(SetAerialGradientsToBarsLengthWidthGap)
 
 }
