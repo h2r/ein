@@ -92,7 +92,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("followPath");
 
-  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("waitUntilAtCurrentPositionCollapse");
   ms->pushWord("moveEeToPoseWord");
   ms->pushWord(std::make_shared<EePoseWord>(destPose));
 }

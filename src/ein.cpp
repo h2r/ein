@@ -1013,6 +1013,18 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
     args.push_back(CV_IMWRITE_PNG_COMPRESSION);
     args.push_back(ms->config.globalPngCompression);
     imwrite(png_path, this_grad, args);
+
+    {
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
+      string this_range_path;
+      this_range_path = dirToMakePath + "aerialHeight0Gradients.yml";
+      cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
+
+      FileStorage fsvO;
+      fsvO.open(this_range_path, FileStorage::WRITE);
+      fsvO << "aerialHeight0Gradients" << ms->config.classHeight0AerialGradients[idx];
+      fsvO.release();
+    }
   }
   {
     Mat this_grad = ms->config.classHeight1AerialGradients[idx];
@@ -1038,6 +1050,17 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
     args.push_back(CV_IMWRITE_PNG_COMPRESSION);
     args.push_back(ms->config.globalPngCompression);
     imwrite(png_path, this_grad, args);
+    {
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
+      string this_range_path;
+      this_range_path = dirToMakePath + "aerialHeight1Gradients.yml";
+      cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
+
+      FileStorage fsvO;
+      fsvO.open(this_range_path, FileStorage::WRITE);
+      fsvO << "aerialHeight1Gradients" << ms->config.classHeight1AerialGradients[idx];
+      fsvO.release();
+    }
   }
   {
     Mat this_grad = ms->config.classHeight2AerialGradients[idx];
@@ -1063,6 +1086,17 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
     args.push_back(CV_IMWRITE_PNG_COMPRESSION);
     args.push_back(ms->config.globalPngCompression);
     imwrite(png_path, this_grad, args);
+    {
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
+      string this_range_path;
+      this_range_path = dirToMakePath + "aerialHeight2Gradients.yml";
+      cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
+
+      FileStorage fsvO;
+      fsvO.open(this_range_path, FileStorage::WRITE);
+      fsvO << "aerialHeight2Gradients" << ms->config.classHeight2AerialGradients[idx];
+      fsvO.release();
+    }
   }
   {
     Mat this_grad = ms->config.classHeight3AerialGradients[idx];
@@ -1088,6 +1122,17 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
     args.push_back(CV_IMWRITE_PNG_COMPRESSION);
     args.push_back(ms->config.globalPngCompression);
     imwrite(png_path, this_grad, args);
+    {
+      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
+      string this_range_path;
+      this_range_path = dirToMakePath + "aerialHeight3Gradients.yml";
+      cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
+
+      FileStorage fsvO;
+      fsvO.open(this_range_path, FileStorage::WRITE);
+      fsvO << "aerialHeight3Gradients" << ms->config.classHeight3AerialGradients[idx];
+      fsvO.release();
+    }
   }
 }
 

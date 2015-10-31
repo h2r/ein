@@ -1794,6 +1794,18 @@ REGISTER_WORD(ScaleMeasures)
 WORD(ReverseCompound)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 // XXX 
+  shared_ptr<CompoundWord> toReverse;
+  GET_WORD_ARG(ms, CompoundWord, toReverse);
+
+  shared_ptr<CompoundWord> reversedWord = std::make_shared<CompoundWord>();
+
+  std::shared_ptr<Word> word = toReverse->popWord();
+  while (word != NULL) {
+    reversedWord->pushWord(word);
+    word = toReverse->popWord();
+  }
+  
+  ms->pushWord(reversedWord);
 }
 END_WORD
 REGISTER_WORD(ReverseCompound)
