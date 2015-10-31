@@ -989,6 +989,12 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
     return;
   }
 
+  string thisLabelName;
+  if ( (idx > -1) && (idx < ms->config.classLabels.size()) ) {
+    thisLabelName = ms->config.classLabels[idx];
+  } else {
+  }
+
   {
     Mat this_grad = ms->config.classHeight0AerialGradients[idx];
     string png_path = servoCrop_file_path + "0" + ".png";
