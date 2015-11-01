@@ -151,8 +151,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     if (0) {
       // using position
       ms->pushWord("pressAndGrasp");
-    } else {
-      // using force 
+    } else if (0) {
+      // using effort only 
       ms->pushWord("closeGripper");
       ms->pushWord("pressUntilEffort");
 
@@ -177,6 +177,35 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       ms->pushData("localZUp");
 
       ms->pushWord("setGridSizeCoarse");
+    } else {
+      // using twist and effort
+      ms->pushWord("closeGripper");
+      ms->pushWord("pressUntilEffortOrTwist");
+
+      ms->pushWord("setTwistThresh");
+      ms->pushWord("0.006");
+
+      ms->pushWord("setEffortThresh");
+      ms->pushWord("20.0");
+
+      ms->pushWord("setSpeed");
+      ms->pushWord("0.03");
+
+      ms->pushWord("pressUntilEffortOrTwistInit");
+      ms->pushWord("comeToStop");
+      ms->pushWord("setMovementStateToMoving");
+      ms->pushWord("comeToStop");
+      ms->pushWord("waitUntilAtCurrentPosition");
+
+      ms->pushWord("setSpeed");
+      ms->pushWord("0.05");
+
+      ms->pushWord("replicateWord");
+      ms->pushWord("16");
+      ms->pushData("localZUp");
+
+      ms->pushWord("setGridSizeCoarse");
+    
     }
   } else {
     ms->pushWord("moveToTargetZAndGraspA");

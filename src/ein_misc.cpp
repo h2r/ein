@@ -1894,6 +1894,10 @@ CONFIG_SETTER_INT(SetRepeatHalo, ms->config.repeat_halo)
 CONFIG_GETTER_DOUBLE(TwistThresh, ms->config.twistThresh)
 CONFIG_SETTER_DOUBLE(SetTwistThresh, ms->config.twistThresh)
 
+CONFIG_GETTER_DOUBLE(EffortThresh, ms->config.actual_effort_thresh);
+CONFIG_SETTER_DOUBLE(SetEffortThresh, ms->config.actual_effort_thresh);
+
+
 CONFIG_GETTER_STRING(RobotSerial, ms->config.robot_serial)
 
 CONFIG_GETTER_STRING(ScanGroup, ms->config.scan_group)
