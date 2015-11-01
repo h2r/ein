@@ -8550,6 +8550,7 @@ void gradientServoLatentClass(shared_ptr<MachineState> ms) {
   
   
   int is_this_last = ms->config.currentGradientServoIterations >= (ms->config.hardMaxGradientServoIterations-1);
+  cout << "    is_this_last: " << is_this_last << endl;
 
   // Note: you might not want to adjust the orientation on the last iteration because the perspective changes
   // and you would like to have the best translation from this perspective. But this is incompatible with the notion
