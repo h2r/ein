@@ -8171,6 +8171,536 @@ void gradientServo(shared_ptr<MachineState> ms) {
   ms->config.currentGradientServoIterations++;
 }
 
+void gradientServoLatentClass(shared_ptr<MachineState> ms) {
+  Size sz = ms->config.objectViewerImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  // ATTN 23
+  //reticle = ms->config.heightReticles[ms->config.currentThompsonHeightIdx];
+  ms->config.reticle = ms->config.vanishingPointReticle;
+
+  // ATTN 12
+  //        if ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) && (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING)) {
+  //          cout << "bbLearning: synchronic servo timed out, early outting." << endl;
+  //          restartBBLearning(ms);
+  //        }
+
+  cout << "entered gradient servo... iteration " << ms->config.currentGradientServoIterations << endl;
+  if (ms->config.targetClass < 0 || ms->config.targetClass >= ms->config.numClasses) {
+    cout << "bad target class, not servoing." << endl;
+    return;
+  }
+
+
+  int numOrientations = 37;
+  int gradientServoScale = 3;
+  vector<Mat> rotatedAerialGrads;
+  rotatedAerialGrads.resize(gradientServoScale*numOrientations*ms->config.numClasses);
+  int tnc = ms->config.numClasses;
+
+  int bestOrientation = -1;
+  double bestOrientationScore = -INFINITY;
+  double bestCropNorm = 1.0;
+  int bestX = -1;
+  int bestY = -1;
+  int bestS = -1;
+  int bestC = -1;
+
+  vector<double> classScores; classScores.resize(tnc);
+
+  int crows = ms->config.aerialGradientReticleWidth;
+  int ccols = ms->config.aerialGradientReticleWidth;
+  int maxDim = max(crows, ccols);
+  int tRy = (maxDim-crows)/2;
+  int tRx = (maxDim-ccols)/2;
+
+
+  for (int t_class = 0; t_class < tnc; t_class++) {
+    classScores[t_class] = 0;
+
+    // ATTN 16
+    switch (ms->config.currentThompsonHeightIdx) {
+    case 0:
+      {
+	ms->config.classAerialGradients[t_class] = ms->config.classHeight0AerialGradients[t_class];
+      }
+      break;
+    case 1:
+      {
+	ms->config.classAerialGradients[t_class] = ms->config.classHeight1AerialGradients[t_class];
+      }
+      break;
+    case 2:
+      {
+	ms->config.classAerialGradients[t_class] = ms->config.classHeight2AerialGradients[t_class];
+      }
+      break;
+    case 3:
+      {
+	ms->config.classAerialGradients[t_class] = ms->config.classHeight3AerialGradients[t_class];
+      }
+      break;
+    default:
+      {
+	assert(0);
+      }
+      break;
+    }
+
+    if ((ms->config.classAerialGradients[t_class].rows <= 1) && (ms->config.classAerialGradients[t_class].cols <= 1)) {
+      cout << "no aerial gradients for this class, not servoing." << endl;
+      continue;
+    }
+
+
+    //cout << "computing scores... ";
+
+    Size toBecome(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth);
+
+
+    // ATTN 3
+    // gradientServoScale should be even
+    double gradientServoScaleStep = 1.02;
+    if (ms->config.orientationCascade) {
+      if (ms->config.lastPtheta < ms->config.lPTthresh) {
+	//gradientServoScale = 1;
+	//gradientServoScaleStep = 1.0;
+      }
+    }
+    double startScale = pow(gradientServoScaleStep, -(gradientServoScale-1)/2);
+
+
+    if ((ms->config.lastPtheta < ms->config.lPTthresh) && ms->config.orientationCascade) {
+      cout << "orientation cascade activated" << endl;
+    }
+
+    for (int etaS = 0; etaS < gradientServoScale; etaS++) {
+      double thisScale = startScale * pow(gradientServoScaleStep, etaS);
+      for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
+	// orientation cascade
+	if (ms->config.orientationCascade) {
+	  if (ms->config.lastPtheta < ms->config.lPTthresh) {
+	    if (thisOrient < ms->config.orientationCascadeHalfWidth) {
+	      //cout << "skipping orientation " << thisOrient << endl;
+	      continue;
+	    }
+	    if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
+	      //cout << "skipping orientation " << thisOrient << endl;
+	      continue;
+	    }
+	  }
+	}
+	
+	// rotate the template and L1 normalize it
+	Point center = Point(ms->config.aerialGradientWidth/2, ms->config.aerialGradientWidth/2);
+	double angle = thisOrient*360.0/numOrientations;
+	
+	//double scale = 1.0;
+	double scale = thisScale;
+	
+	// Get the rotation matrix with the specifications above
+	Mat rot_mat = getRotationMatrix2D(center, angle, scale);
+	warpAffine(ms->config.classAerialGradients[t_class], rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale], rot_mat, toBecome);
+	
+	processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale], rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale]);
+	
+	//double l1norm = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].type()));
+	//if (l1norm <= EPSILON)
+	//l1norm = 1.0;
+	//rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] / l1norm;
+	//cout << "classOrientedGradients[t_class]: " << ms->config.classAerialGradients[t_class] << "rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] " << rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] << endl;
+	
+	double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
+	rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] - mean;
+	double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale]);
+	l2norm = sqrt(l2norm);
+	if (l2norm <= EPSILON) {
+	  l2norm = 1.0;
+	}
+	rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] / l2norm;
+      }
+    }
+
+
+    //int gradientServoTranslation = 40;
+    //int gsStride = 2;
+    int gradientServoTranslation = 40;
+    int gsStride = 2;
+    if (ms->config.orientationCascade) {
+      if (ms->config.lastPtheta < ms->config.lPTthresh) {
+	//int gradientServoTranslation = 20;
+	//int gsStride = 2;
+	int gradientServoTranslation = 40;
+	int gsStride = 2;
+      }
+    }
+    
+    //rotatedAerialGrads.resize(gradientServoScale*numOrientations);
+    int gSTwidth = 2*gradientServoTranslation + 1;
+    double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
+
+    
+    // XXX should be etaY <= to cover whole array
+    for (int etaS = 0; etaS < gradientServoScale; etaS++) {
+      #pragma omp parallel for
+      for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
+	for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
+	  // get the patch
+	  Mat gCrop = makeGCrop(ms, etaX, etaY);
+	  
+	  
+	  for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
+	    // orientation cascade
+	    if (ms->config.orientationCascade) {
+	      if (ms->config.lastPtheta < ms->config.lPTthresh) {
+		if (thisOrient < ms->config.orientationCascadeHalfWidth) {
+		  //cout << "skipping orientation " << thisOrient << endl;
+		  continue;
+		}
+		if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
+		  //cout << "skipping orientation " << thisOrient << endl;
+		  continue;
+		}
+	      }
+	    }
+	    // ATTN 25
+	    if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
+		 (thisOrient != 0) ) {
+	      continue;
+	    }
+	    
+	    // compute the score
+	    double thisScore = 0;
+	    thisScore = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].dot(gCrop);
+	    
+	    int tEtaX = etaX+gradientServoTranslation;
+	    int tEtaY = etaY+gradientServoTranslation;
+	    allScores[tEtaX][tEtaY][etaS][thisOrient] = thisScore;
+
+	    //cout << "  JJJ: gsDebug " << thisScore << endl << gCrop << endl << rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] << endl;
+	    //cout << "  JJJ: gsDebug " << thisScore << ms->config.frameGraySobel << endl;
+	    //cout << "  JJJ: gsDebug " << thisScore << ms->config.objectViewerImage << endl;
+
+	  }
+	}
+      }
+    }
+    
+    // perform max
+    for (int etaS = 0; etaS < gradientServoScale; etaS++) {
+      for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
+	for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
+	  // get the patch
+	  int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
+	  int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+	  //Mat gCrop(maxDim, maxDim, CV_64F);
+	  
+	  // throw it out if it isn't contained in the image
+	  //    if ( (topCornerX+ms->config.aerialGradientWidth >= imW) || (topCornerY+ms->config.aerialGradientWidth >= imH) )
+	  //      continue;
+	  //    if ( (topCornerX < 0) || (topCornerY < 0) )
+	  //      continue;
+	  
+	  for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
+	    // orientation cascade
+	    if (ms->config.orientationCascade) {
+	      if (ms->config.lastPtheta < ms->config.lPTthresh) {
+		if (thisOrient < ms->config.orientationCascadeHalfWidth) {
+		  //cout << "skipping orientation " << thisOrient << endl;
+		  continue;
+		}
+		if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
+		  //cout << "skipping orientation " << thisOrient << endl;
+		  continue;
+		}
+	      }
+	    }
+	    // ATTN 25
+	    if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
+		 (thisOrient != 0) ) {
+	      continue;
+	    }
+	    
+	    int tEtaX = etaX+gradientServoTranslation;
+	    int tEtaY = etaY+gradientServoTranslation;
+	    double thisScore = allScores[tEtaX][tEtaY][etaS][thisOrient];
+	    
+	    if (thisScore > bestOrientationScore) {
+	      bestOrientation = thisOrient;
+	      bestOrientationScore = thisScore;
+	      bestX = etaX;
+	      bestY = etaY;
+	      bestS = etaS;
+	      bestC = t_class;
+	    }
+	    classScores[t_class] = classScores[t_class] + thisScore;
+	    //cout << " this best: " << thisScore << " " << bestOrientationScore << " " << bestX << " " << bestY << endl;
+	  } 
+	}
+      }
+    }
+
+  }
+
+  cout << "gradientServoLatentClass report: winning class and score " << bestC << " ";
+  if ( (bestC > -1) && (bestC < ms->config.classLabels.size()) ) {
+    cout << ms->config.classLabels[bestC] << " ";
+  } else {
+  }
+  cout << bestOrientationScore << " " << endl;
+
+  int maxClassScoreClass = -1;
+  int maxClassScoreScore = -INFINITY;
+  for (int t_class = 0; t_class < tnc; t_class++) {
+    cout << "    sum of scores class " << t_class << ": " << classScores[t_class] << endl;
+    if (classScores[t_class] > maxClassScoreScore) {
+      maxClassScoreClass = t_class;
+      maxClassScoreScore = classScores[t_class];
+    } else {
+    }
+  }
+  cout << "      max sum scoring class: " << maxClassScoreClass << "  ";
+  if ( (bestC > -1) && (bestC < ms->config.classLabels.size()) ) {
+    cout << ms->config.classLabels[maxClassScoreClass] << " ";
+  } else {
+  }
+  cout << endl;
+
+  for (int t_class = 0; t_class < tnc; t_class++) {
+  }
+
+
+  double Px = 0;
+  double Py = 0;
+
+  double Ps = 0;
+ 
+  Mat bestGCrop = makeGCrop(ms, bestX, bestY); 
+  int oneToDraw = bestOrientation;
+  Px = -bestX;
+  Py = -bestY;
+  
+  //Ps = bestS - ((gradientServoScale-1)/2);
+  Ps = 0;
+  
+  Mat toShowModel;
+  Mat toShowImage;
+  Size toUnBecome(maxDim, maxDim);
+  //cv::resize(ms->config.classAerialGradients[ms->config.targetClass], toShow, toUnBecome);
+  //cv::resize(rotatedAerialGrads[oneToDraw], toShow, toUnBecome);
+  cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations + bestC*numOrientations*gradientServoScale], toShowModel, toUnBecome);
+  cv::resize(bestGCrop, toShowImage, toUnBecome);
+  //cout << rotatedAerialGrads[oneToDraw];
+  
+  double maxTSImage = -INFINITY;
+  double minTSImage = INFINITY;
+  double maxTSModel = -INFINITY;
+  double minTSModel = INFINITY;
+  for (int x = 0; x < maxDim; x++) {
+    for (int y = 0; y < maxDim; y++) {
+      maxTSImage = max(maxTSImage, toShowImage.at<double>(y, x));
+      minTSImage = min(minTSImage, toShowImage.at<double>(y, x));
+      maxTSModel = max(maxTSModel, toShowModel.at<double>(y, x));
+      minTSModel = min(minTSModel, toShowModel.at<double>(y, x));
+    }
+  }
+  
+  // draw the winning score in place
+  for (int x = 0; x < maxDim; x++) {
+    for (int y = 0; y < maxDim; y++) {
+      //int tx = x - tRx;
+      //int ty = y - tRy;
+      int tx = x - tRx;
+      int ty = y - tRy;
+      if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
+        Vec3b thisColorModel = Vec3b(0,0,min(255, int(floor(255.0*8*(toShowModel.at<double>(y, x)-minTSModel)/(maxTSModel-minTSModel)))));
+        Vec3b thisColorImage = Vec3b(min(255, int(floor(255.0*8*(toShowImage.at<double>(y, x)-minTSImage)/(maxTSImage-minTSImage)))), 0, 0);
+        //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
+        //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
+        //cout << thisColor;
+        int thisTopCornerX = bestX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
+        int thisTopCornerY = bestY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+        
+        int tgX = thisTopCornerX + tx;
+        int tgY = thisTopCornerY + ty;
+        if ((tgX > 0) && (tgX < imW) && (tgY > 0) && (tgY < imH)) {
+          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) = 0;
+          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColorImage;
+          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColorModel;
+        }
+      }
+    }
+  }
+
+  cv::Point text_anchor = cv::Point(0, imH - 10);
+  stringstream txt;
+  txt << "Score: " << bestOrientationScore;
+  putText(ms->config.gradientViewerImage, txt.str(), text_anchor, MY_FONT, 1.0, Scalar(255,255,255), 1.0);
+
+  
+  oneToDraw = oneToDraw % numOrientations;
+  double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
+  //double Ptheta = bestOrientation;
+  ms->config.lastPtheta = Ptheta;
+
+  // set the target reticle
+  ms->config.pilotTarget.px = ms->config.reticle.px + bestX;
+  ms->config.pilotTarget.py = ms->config.reticle.py + bestY;
+  
+  
+  int is_this_last = ms->config.currentGradientServoIterations >= (ms->config.hardMaxGradientServoIterations-1);
+
+  // Note: you might not want to adjust the orientation on the last iteration because the perspective changes
+  // and you would like to have the best translation from this perspective. But this is incompatible with the notion
+  // of a single iteration.
+  {
+    double kPtheta = 0.0;
+    /*
+    if (Ptheta < ms->config.kPThresh)
+      kPtheta = ms->config.kPtheta2;
+    else
+      kPtheta = ms->config.kPtheta1;
+    */
+    kPtheta = ms->config.kPtheta1;
+    
+
+    if (bestOrientation <= numOrientations/2) {
+      ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
+      
+    } else {
+      ms->config.currentEEDeltaRPY.pz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
+    }
+
+    //ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
+  }
+  
+  // position update
+  {
+    //double pTermX = ms->config.gradKp*Px;
+    //double pTermY = ms->config.gradKp*Py;
+    
+    // servoing in z
+    //double pTermS = Ps * .005;
+    //ms->config.currentEEPose.pz += pTermS;
+    
+    // invert the current eePose orientation to decide which direction to move from POV
+    //Eigen::Vector3f localUnitX;
+    //{
+      //Eigen::Quaternionf qin(0, 1, 0, 0);
+      //Eigen::Quaternionf qout(0, 1, 0, 0);
+      //Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+      //qout = eeqform * qin * eeqform.conjugate();
+      //localUnitX.x() = qout.x();
+      //localUnitX.y() = qout.y();
+      //localUnitX.z() = qout.z();
+    //}
+      
+    //Eigen::Vector3f localUnitY;
+    //{
+      //Eigen::Quaternionf qin(0, 0, 1, 0);
+      //Eigen::Quaternionf qout(0, 1, 0, 0);
+      //Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+      //qout = eeqform * qin * eeqform.conjugate();
+      //localUnitY.x() = qout.x();
+      //localUnitY.y() = qout.y();
+      //localUnitY.z() = qout.z();
+    //}
+    
+    // ATTN 21
+    //double newx = ms->config.currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
+    //double newy = ms->config.currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
+    double newx = 0;
+    double newy = 0;
+    // first analytic
+    //double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
+    //pixelToGlobal(ms->config.pilotTarget.px, ms->config.pilotTarget.py, zToUse, &newx, &newy);
+    // old PID
+    //ms->config.currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
+    //ms->config.currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
+    // ATTN 23
+    // second analytic
+    // use trueEEPoseEEPose here so that its attention will shift if the arm is moved by external means
+    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
+    newx = newGlobalTarget.px;
+    newy = newGlobalTarget.py;
+    //double sqdistance = eePose::squareDistance(ms->config.currentEEPose, newGlobalTarget);
+
+    ms->config.currentEEPose.px = newx;
+    ms->config.currentEEPose.py = newy;
+  }
+
+  // this must happen in order for getCCRotation to work, maybe it should be refactored
+  // this should happen after position update so that position update could use currentEePose if it wanted (possibly the right thing to do)
+  double doublePtheta =   ms->config.currentEEDeltaRPY.pz;
+  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
+  ms->config.bestOrientationEEPose = ms->config.currentEEPose;
+
+  
+  // if we are at the soft max, take first histogram estimate.
+  // if we are above, add to it
+  // if we are below it, we behave as if there is no histogram 
+  // That is, to disable histogramming, set softmax to hardmax.
+  if (ms->config.currentGradientServoIterations == (ms->config.softMaxGradientServoIterations-1)) {
+    ms->config.gshHistogram = ms->config.currentEEPose;
+    ms->config.gshCounts = 1.0;
+    cout << "Initializing gradient servo histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
+    ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
+    ms->config.currentEEPose.copyP(ms->config.gshPose);
+  } else if (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) {
+    ms->config.gshHistogram = ms->config.gshHistogram.plusP(ms->config.currentEEPose);
+    ms->config.gshCounts = 1.0 + ms->config.gshCounts;
+    cout << "Adding intermediate gradient servo position estimate to histogrammed position estimate, counts: " << 
+      ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
+    ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
+    ms->config.currentEEPose.copyP(ms->config.gshPose);
+  } else {
+  } // do nothing
+
+  cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << ms->config.reticle.px << " " << 
+  ms->config.pilotTarget.px << " " << ms->config.reticle.py << " " << ms->config.pilotTarget.py << " " <<
+  bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
+
+  // ATTN 5
+  // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
+  if (((fabs(Px) < ms->config.gradServoPixelThresh) && (fabs(Py) < ms->config.gradServoPixelThresh) && (fabs(Ptheta) < ms->config.gradServoThetaThresh)) ||
+      ( is_this_last ))
+  {
+
+    if (ms->config.gshCounts > 0) {
+      cout << "Replacing final gradient servo position estimate with histogrammed position estimate, counts: " << 
+	ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
+      ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
+      ms->config.currentEEPose.copyP(ms->config.gshPose);
+    } else {
+    }
+    
+    cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
+
+    //ms->pushWord("pauseStackExecution"); 
+    //ms->pushWord("waitUntilEndpointCallbackReceived");
+    //ms->pushWord("waitUntilAtCurrentPosition"); 
+    
+    // ATTN 12
+    if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
+      cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << ms->config.gradientServoDuringHeightLearning << endl;
+      cout << "bbLearning: returning from gradient servo." << endl;
+      return;
+    }
+    
+    return;
+  } else {
+    ms->pushWord("gradientServoA"); 
+    //ms->pushWord("pauseStackExecution"); 
+    //ms->pushWord("waitUntilEndpointCallbackReceived");
+    //ms->pushWord("waitUntilAtCurrentPosition"); 
+    cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
+  }
+
+  // update after
+  ms->config.currentGradientServoIterations++;
+}
+
 void continuousServo(shared_ptr<MachineState> ms) {
   Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;

@@ -328,6 +328,7 @@ eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixe
 void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms);
 Mat makeGCrop(shared_ptr<MachineState> ms, int etaX, int etaY);
 void gradientServo(shared_ptr<MachineState> ms);
+void gradientServoLatentClass(shared_ptr<MachineState> ms);
 void continuousServo(shared_ptr<MachineState> ms);
 void synchronicServo(shared_ptr<MachineState> ms);
 void darkServo(shared_ptr<MachineState> ms);

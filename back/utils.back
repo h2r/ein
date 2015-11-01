@@ -7,3 +7,14 @@
   comeToStop 
 ) "liftArm" store
 
+
+
+(
+
+  endArgs "kr_bars/10_5_2" "kr_bars/10_5_4" "kr_bars/10_5_6" "kr_bars/10_5_8" "kr_bars/10_5_10" setClassLabels incrementTargetClass 4 setMapServoMode 1 setCurrentGradientServoMode setIdleModeToEmpty
+  assumeBeeHome 1 changeToHeight
+  clearMapForPatrol clearBlueBoxMemories mapLocal
+  deliverTargetObject
+
+) "utils_practice_bars" store
+

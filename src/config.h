@@ -178,6 +178,11 @@ typedef enum {
 } mapServoMode;
 
 typedef enum {
+  FOCUSED_CLASS = 0,
+  LATENT_CLASS = 1
+} gradientServoMode;
+
+typedef enum {
   INSTANT = 0,
   STEP = 1
 } executionMode;
@@ -372,6 +377,7 @@ class EinConfig {
   ikBoundaryMode currentIKBoundaryMode = IK_BOUNDARY_STOP;
   scanMode currentScanMode = CENTERED;
   mapServoMode currentMapServoMode = HISTOGRAM_CLASSIFY;
+  gradientServoMode currentGradientServoMode = FOCUSED_CLASS;
   bool setRandomPositionAfterPick = false;
   bool streamPicks = false;
   bool mapAutoPick = false;

@@ -5,6 +5,8 @@
 
 namespace ein_words {
 
+CONFIG_SETTER_ENUM(SetGradientServoMode, ms->config.currentGradientServoMode, (gradientServoMode));
+CONFIG_GETTER_INT(GradientServoMode, ms->config.currentGradientServoMode);
 
 WORD(FindBestOfFourGraspsUsingMemory)
 CODE(1048620)     // numlock + ,
@@ -1358,7 +1360,13 @@ REGISTER_WORD(GradientServoPrep)
 
 WORD(GradientServoB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  gradientServo(ms);
+  if (ms->config.currentGradientServoMode == FOCUSED_CLASS) {
+    gradientServo(ms);
+  } else if (ms->config.currentGradientServoMode == LATENT_CLASS) {
+    gradientServoLatentClass(ms);
+  } else {
+    assert(0);
+  }
 }
 END_WORD
 REGISTER_WORD(GradientServoB)
