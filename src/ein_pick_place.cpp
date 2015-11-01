@@ -994,18 +994,6 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(SetEffortHere)
 
-WORD(SetEffortThresh)
-virtual void execute(std::shared_ptr<MachineState> ms)
-{
-  double valToSet = 0;
-  GET_ARG(ms, DoubleWord, valToSet);
-
-  cout << "setEffortThresh: got value " << valToSet << endl;
-  ms->config.actual_effort_thresh = valToSet;
-}
-END_WORD
-REGISTER_WORD(SetEffortThresh)
-
 WORD(PressUntilEffortInit)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
@@ -1078,7 +1066,9 @@ WORD(PressUntilEffortOrTwistInit)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   ms->pushWord("setEffortThresh");
-  ms->pushWord("10.0");
+  ms->pushWord("30.0");
+  ms->pushWord("setTwistThresh");
+  ms->pushWord("0.005");
 
   ms->pushWord("setGridSizeCoarse");
   ms->pushWord("hundredthImpulse");
@@ -1102,7 +1092,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 {
   double qdistance = eePose::distanceQ(ms->config.pressPose, ms->config.trueEEPoseEEPose);
 
-cout << "pressUntilEffortOrTwistA: qdistance " << qdistance << endl;
+cout << "pressUntilEffortOrTwistA: qdistance, twistThresh" << qdistance << ", " << ms->config.twistThresh << endl;
 
 
   if (ms->config.pressUntilEffortCounter < ms->config.pressUntilEffortCounterTimeout) {

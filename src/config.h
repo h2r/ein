@@ -1414,7 +1414,7 @@ class EinConfig {
   baxter_core_msgs::ITBState lastItbs;
 
   eePose pressPose;
-  double twistThresh = 0.01;
+  double twistThresh = 0.005;
 
   double rockDiffA = 0.0;
   double rockDiffB = 0.0;
