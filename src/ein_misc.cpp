@@ -1909,7 +1909,7 @@ CONFIG_GETTER_DOUBLE(IkMapEndHeight, ms->config.ikMapEndHeight)
 
 
 CONFIG_GETTER_DOUBLE(MapSearchFenceXMin, ms->config.mapSearchFenceXMin)
-CONFIG_SETTER_DOUBLE(SetMapSearchFenceXmin, ms->config.mapSearchFenceXMin)
+CONFIG_SETTER_DOUBLE(SetMapSearchFenceXMin, ms->config.mapSearchFenceXMin)
 
 CONFIG_GETTER_DOUBLE(MapSearchFenceYMin, ms->config.mapSearchFenceYMin)
 CONFIG_SETTER_DOUBLE(SetMapSearchFenceYMin, ms->config.mapSearchFenceYMin)
