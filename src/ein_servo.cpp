@@ -183,7 +183,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       ms->pushWord("pressUntilEffortOrTwist");
 
       ms->pushWord("setTwistThresh");
-      ms->pushWord("0.01");
+      ms->pushWord("0.015");
 
       ms->pushWord("setEffortThresh");
       ms->pushWord("20.0");
