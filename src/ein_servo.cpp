@@ -5,8 +5,11 @@
 
 namespace ein_words {
 
-CONFIG_SETTER_ENUM(SetGradientServoMode, ms->config.currentGradientServoMode, (gradientServoMode));
-CONFIG_GETTER_INT(GradientServoMode, ms->config.currentGradientServoMode);
+CONFIG_SETTER_ENUM(SetGradientServoMode, ms->config.currentGradientServoMode, (gradientServoMode))
+CONFIG_GETTER_INT(GradientServoMode, ms->config.currentGradientServoMode)
+
+CONFIG_GETTER_DOUBLE(PickFlushFactor, ms->config.pickFlushFactor)
+CONFIG_SETTER_DOUBLE(SetPickFlushFactor, ms->config.pickFlushFactor)
 
 WORD(FindBestOfFourGraspsUsingMemory)
 CODE(1048620)     // numlock + ,

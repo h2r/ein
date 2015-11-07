@@ -292,6 +292,7 @@ typedef struct streamLabel {
 #define GRID_FINE 0.0025
 #define GRID_VERY_FINE 0.00125
 
+class Word;
 
 class EinConfig {
  public:
@@ -1414,7 +1415,7 @@ class EinConfig {
   baxter_core_msgs::ITBState lastItbs;
 
   eePose pressPose;
-  double twistThresh = 0.005;
+  double twistThresh = 0.01;
 
   double rockDiffA = 0.0;
   double rockDiffB = 0.0;
@@ -1424,9 +1425,15 @@ class EinConfig {
 
   int intendedEnableState = 1;
   int lastShoulderState = 1;
+
+  // numClasses is apt to change so we should store the numbers as they were when the matrix was last initialized
+  std::vector<string> transitionClasses;
+  std::vector<std::shared_ptr<Word> > transitionActions;
+  int transitionsNumActions = 3;
+  int transitionNumClasses = 0;
+  int * transitionCounts = NULL;
 }; // config end
 
-class Word;
 
 
 /**

@@ -260,6 +260,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) { \
 END_WORD \
 REGISTER_WORD(backName) 
 
+#define CONFIG_GETTER_POSE(backName, configName)	\
+WORD(backName) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  ms->pushWord(make_shared<EePoseWord>(configName)); \
+} \
+END_WORD \
+REGISTER_WORD(backName) 
+
+#define CONFIG_SETTER_POSE(backName, configName)	\
+WORD(backName) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  eePose value; \
+  GET_ARG(ms, EePoseWord, value); \
+  configName = value;	\
+} \
+END_WORD \
+REGISTER_WORD(backName) 
+
 
 int register_word(shared_ptr<Word> word);
 
