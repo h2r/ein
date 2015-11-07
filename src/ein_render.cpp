@@ -254,8 +254,13 @@ REGISTER_WORD(GuiCustom1)
 
 WORD(PublishWristViewToFace)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  Size toBecome(1024,600);
   sensor_msgs::Image msg;
-  Mat topub = ms->config.wristViewImage.clone();
+
+  Mat toresize = ms->config.wristViewImage.clone();
+  Mat topub;
+  cv::resize(toresize, topub, toBecome);
+
   msg.header.stamp = ros::Time::now();
   msg.width = topub.cols;
   msg.height = topub.rows;
