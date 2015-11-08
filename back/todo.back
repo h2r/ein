@@ -1,3 +1,44 @@
+
+use accessors for scan height, remove some presses
+
+what if servoing fails because the object is out of reach? right now, a new component will be detected and scanning will proceed erroneously
+  happened again
+  happened again, this seems to be the primary cause of failure at this point.
+>> add word that checks if last servo was allowed, use to ignore inaccessible objects
+>>>> last ik allowed, as well.
+
+
+put IK_BOUNDARY_STOP in right places
+
+try alternative dropping techniques
+
+servoCrops with nothing in front of them register as new because the averaged fault lines never match up
+  >>> this is related to servoing and then having things out of reach; can check blue boxes or similar to determine emptiness
+
+lighting variation causes scissors (reflecting blade) and green spoon (weird shadows) to duplicate components
+
+object clipping due to size can cause long objects (spoon, scissors) to duplicate components
+  ->> this could be addressed with current model by retaining entire processed image and normalizing on the fly during correlation
+      which will probably need to happen for the new model
+
+
+IR scans are bad from a distance, and they can run into the cradle
+ ->> they should try to stay a constant distance above the object, try with {} 
+ --> they should be aware of the block / force state.
+
+
+pressUntilEffortOrTwist could support a gaussian model for whether it has encountered something, looking over the past few frames if necessary
+  ->> this is the sort of thing that might want to adjust which callbacks are answered to get higher temporal resolution
+
+variantial background segmentation facilitates something like pedestal balancing. if it falls and you can't get it, then just rescan the background.
+
+
+done:
+use pointToClearanceMap as an option for how to place the object after a pick, this will keep things generall in the green strip
+{ } should data stack
+
+
+
 /*
  * repr for strings doesn't escape
  * hidden bug in backslash or forward slash or strings or something
