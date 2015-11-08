@@ -174,16 +174,16 @@
   0 setRedHalo
   0 "blink_breathe_x" store
   (
-    blink_breathe_x 1 + "blink_breathe_x" store
+    blink_breathe_x 2 + "blink_breathe_x" store
     blink_breathe_x setGreenHalo
     blink_breathe_delta spinForSeconds 
-  ) 100 replicateWord
+  ) 50 replicateWord
 
   (
-    blink_breathe_x 1 - "blink_breathe_x" store
+    blink_breathe_x 2 - "blink_breathe_x" store
     blink_breathe_x setGreenHalo
     blink_breathe_delta spinForSeconds 
-  ) 100 replicateWord
+  ) 50 replicateWord
 
 
 ) "blink_breathe_halo" store
@@ -244,8 +244,40 @@
 ) "blink_lightshow" store
 
 
+(
+
+  { |B noop
+    { |B noop
+      (
+	0.25 "blink_scale" store
+	0.01 "blink_deltaT" store
+	( blink_arms blink_sonar_times ) 1 replicateWord
+	endStackCollapseNoop
+	0.1 "blink_scale" store
+	( blink_arms blink_sonar_times ) 5 replicateWord
+      ) 3 replicateWord
+    }
+
+    { |B noop
+      ( blink_breathe_halo ) 3 replicateWord
+    }
+  }
+
+) "blink_lightshow_scoped_load" store
 
 
+(
+  0 "sco_counter" store
+  (
+    sco_counter 1 + 
+    dup 
+    "sco_counter" store 
+    40000 <
+  ) (
+    slip  
+  ) while
+  sco_counter print
+) "blink_lightshow_scoped_continue" store
 
 
 

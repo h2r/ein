@@ -165,7 +165,7 @@ END_WORD
 REGISTER_WORD(PrintClassLabels)
 
 
-WORD(PushClassLabels)
+WORD(PushClassLabelsReport)
 virtual void execute(std::shared_ptr<MachineState> ms)       {
   stringstream ss;
 
@@ -176,6 +176,18 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   }
   shared_ptr<StringWord> outword = std::make_shared<StringWord>(ss.str());
   ms->pushWord(outword);
+}
+END_WORD
+REGISTER_WORD(PushClassLabelsReport)
+
+CONFIG_GETTER_STRING(FocusedClassLabel, ms->config.focusedClassLabel)
+
+WORD(PushClassLabels)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    shared_ptr<StringWord> outword = std::make_shared<StringWord>(ms->config.classLabels[i]);
+    ms->pushWord(outword);
+  }
 }
 END_WORD
 REGISTER_WORD(PushClassLabels)
@@ -3590,6 +3602,235 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ScanObjectStreamWaypoints3d)
 
+WORD(ScanObjectStreamWaypoints3dNoPick)
+virtual string description() {
+  return "Scans a stack of objects in stream mode with an annotated 3d grasps in stack.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  cout << "Entering scanObjectStreamWaypoints" << endl;
+
+  eePose graspArg;
+  CONSUME_EEPOSE(graspArg, ms);
+
+  ms->config.currentEEPose.px = graspArg.px;
+  ms->config.currentEEPose.py = graspArg.py;
+
+  ms->config.eepReg1 = graspArg;
+
+  ms->pushWord("scanObjectStreamWaypoints3dNoPick");
+
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("assumeCrane1");
+  ms->pushWord("openGripper");
+
+  int retractCm = 10;
+
+  ms->config.eepReg2 = ms->config.beeHome;
+  ms->config.eepReg4 = ms->config.beeHome;
+
+  //ms->pushWord("pickFocusedClass");
+  ms->pushWord("setGraspModeTo3D");
+  ms->pushWord("cruisingSpeed"); 
+  ms->pushWord("changeToHeight"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("writeFocusedClass");
+  ms->pushWord("integrateImageStreamBufferServoImages");
+  ms->pushWord("populateStreamBuffers");
+
+  // set lastLabelLearned
+  ms->pushWord("setLastLabelLearned");
+
+
+  ms->pushWord("setGridSizeCoarse");
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+
+  ms->pushWord("streamScanCentered");
+
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  ms->pushWord("setSisFlags"); 
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+
+
+  ms->pushWord("fullImpulse");
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("shiftIntoGraspGear1"); 
+  ms->pushWord("changeToHeight1"); 
+  //ms->pushWord("comeToHover");
+  ms->pushWord("moveToRegister1");
+
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+  {
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("deactivateSensorStreaming"); 
+
+    ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
+    ms->pushWord("activateSensorStreaming"); 
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight3"); // change to height 3
+  }
+  {
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("deactivateSensorStreaming"); 
+
+    ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
+    ms->pushWord("activateSensorStreaming"); 
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight2"); // change to height 2
+  }
+  {
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("deactivateSensorStreaming"); 
+
+    ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
+    ms->pushWord("activateSensorStreaming"); 
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight1"); // change to height 1
+  }
+  {
+    //ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
+    ms->pushWord("deactivateSensorStreaming"); 
+
+    ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
+    ms->pushWord("activateSensorStreaming"); 
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight0"); // change to height 0
+  }
+  // results in lost frames if robot chooses to unwind
+  //ms->pushWord("departureSpeed");
+  ms->pushWord("quarterImpulse");
+
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  ms->pushWord("setSisFlags"); 
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(1));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+  //ms->pushWord(std::make_shared<IntegerWord>(0));
+
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  
+
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("changeToHeight0"); // change to height 0
+
+  ms->pushWord("departureSpeed");
+
+  ms->pushWord("writeFocusedClass");
+  ms->pushWord("add3dGraspPoseWord");
+  ms->pushWord(std::make_shared<EePoseWord>(graspArg));
+  ms->pushWord("lock3dGraspBase"); 
+
+  // unneeded for 3d grasps
+  // ms->pushWord("preAnnotateOffsetGrasp"); // you need to saveRegister1 where the grasp should be before calling this
+  ms->pushWord("setPhotoPinHere");
+
+  //ms->pushWord("pauseStackExecution"); // pause to ensure being centered
+
+  ms->pushWord("comeToStop");
+  ms->pushWord("setMovementStateToMoving");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  if (ms->config.currentScanMode == CENTERED) {
+    ms->pushWord("synchronicServo");
+  } else if (ms->config.currentScanMode == NOT_CENTERED) {
+  } else {
+    assert(0);
+  }
+  ms->pushWord("synchronicServoTakeClosest");
+  ms->pushWord("sampleHeight"); 
+
+  ms->pushWord("departureSpeed");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  // dislodge. necessary because the robot takes a while to "spin up" at slow speeds, which interferes
+  //  with the state machine while in contact with the table
+  ms->pushCopies("dislodgeEndEffectorFromTable", retractCm);
+  ms->pushWord("setCurrentPoseToTruePose");
+  ms->pushWord("setGridSizeCoarse");
+  ms->pushWord("hundredthImpulse");
+  
+  // register 1 comes from the stack in this version
+  //ms->pushWord("saveRegister1"); // for preAnnotateOffsetGrasp
+  // recordGraspZ is replaced with logic at the top
+  //ms->pushWord("recordGraspZ"); // XXX
+
+  // don't pause because we're doing this from the stack
+  //ms->pushWord("pauseStackExecution"); // pause for annotation positioning
+
+  ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("shiftIntoGraspGear1");
+  ms->pushWord("changeToHeight0");
+
+  ms->pushWord("setGridSizeCoarse");
+  ms->pushWord("fullImpulse");
+  ms->pushWord("setBoundingBoxModeToMapping"); 
+
+  ms->pushWord("setIdleModeToEmpty"); 
+  ms->pushWord("setPlaceModeToShake"); 
+  ms->pushWord("clearBlueBoxMemories"); 
+  ms->pushWord("clearMapForPatrol"); 
+  ms->pushWord("enableDiskStreaming"); 
+  ms->pushWord("zeroGOff"); 
+}
+END_WORD
+REGISTER_WORD(ScanObjectStreamWaypoints3dNoPick)
+
 WORD(CollectMoreStreams)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "About to collect more streams, make sure targetClass is set, i.e. you should have" << endl <<
@@ -3700,6 +3941,26 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(Start3dGraspAnnotation)
 
+WORD(Start3dGraspAnnotationNoChange)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Starting 3d Grasp Annotation No Change" << endl;
+  ms->config.bailAfterSynchronic = 1;
+  ms->config.bailAfterGradient = 1;
+
+  ms->pushWord("lock3dGraspBase");
+
+  ms->pushWord("gradientServo");
+  ms->pushWord("synchronicServo"); 
+  ms->pushWord("synchronicServoTakeClosest");
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("sampleHeight"); 
+  ms->pushWord("setBoundingBoxModeToMapping");
+  ms->pushWord("shiftIntoGraspGear1");
+  ms->pushWord("cruisingSpeed");
+}
+END_WORD
+REGISTER_WORD(Start3dGraspAnnotationNoChange)
+
 WORD(Save3dGrasps)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if (ms->config.focusedClass > -1) {
@@ -3714,6 +3975,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(Save3dGrasps)
+
+
+CONFIG_GETTER_POSE(C3dPoseBase, ms->config.c3dPoseBase)
+CONFIG_SETTER_POSE(SetC3dPoseBase, ms->config.c3dPoseBase)
 
 WORD(Lock3dGraspBase)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -3746,7 +4011,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //thisRelative3dGrasp.copyQ(txQ);
   eePose thisRelative3dGrasp = thisAbsolute3dGrasp.getPoseRelativeTo(ms->config.c3dPoseBase);
 
-  int tnc = ms->config.class3dGrasps.size();
+  int tnc = ms->config.classLabels.size();
   if ( (ms->config.targetClass > -1) && (ms->config.targetClass < tnc) ) {
     ms->config.class3dGrasps[ms->config.targetClass].push_back(thisRelative3dGrasp);
     cout << " added " << thisRelative3dGrasp << endl;
@@ -3778,7 +4043,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   eePose thisRelative3dGrasp = thisAbsolute3dGrasp.getPoseRelativeTo(ms->config.c3dPoseBase);
 
-  int tnc = ms->config.class3dGrasps.size();
+  int tnc = ms->config.classLabels.size();
   if ( (ms->config.targetClass > -1) && (ms->config.targetClass < tnc) ) {
     ms->config.class3dGrasps[ms->config.targetClass].push_back(thisRelative3dGrasp);
     cout << " added relative grasp: " << thisRelative3dGrasp << endl;
@@ -3976,12 +4241,38 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	assert(0);
       }
 
-      ms->pushWord("comeToStop"); 
-      ms->pushWord("waitUntilAtCurrentPosition"); 
+      if (ms->config.snapToFlushGrasp) {
+	// using twist and effort
+	ms->pushWord("closeGripper");
+	ms->pushWord("pressUntilEffortOrTwist");
 
-      ms->pushCopies("localZUp", increments);
-      ms->pushWord("setGridSizeCoarse");
-      ms->pushWord("approachSpeed");
+	ms->pushWord("setTwistThresh");
+	ms->pushWord("0.015");
+
+	ms->pushWord("setEffortThresh");
+	ms->pushWord("20.0");
+
+	ms->pushWord("setSpeed");
+	ms->pushWord("0.03");
+
+	ms->pushWord("pressUntilEffortOrTwistInit");
+	ms->pushWord("comeToStop");
+	ms->pushWord("setMovementStateToMoving");
+	ms->pushWord("comeToStop");
+	ms->pushWord("waitUntilAtCurrentPosition");
+
+	ms->pushWord("setSpeed");
+	ms->pushWord("0.05");
+
+	ms->pushWord("setGridSizeCoarse");
+      } else {
+	ms->pushWord("comeToStop"); 
+	ms->pushWord("waitUntilAtCurrentPosition"); 
+
+	ms->pushCopies("localZUp", increments);
+	ms->pushWord("setGridSizeCoarse");
+	ms->pushWord("approachSpeed");
+      }
 
       ms->pushWord("waitUntilAtCurrentPosition"); 
       return;
@@ -4545,6 +4836,21 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SetPickFixMapAnchor)
+
+WORD(ClearClass3dGrasps)
+virtual string description() {
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int class_idx = ms->config.focusedClass;
+  cout << "clearClass3dGrasps: " << class_idx << endl;
+  if ( (class_idx > -1) && (class_idx < ms->config.classLabels.size()) ) {
+    ms->config.class3dGrasps[class_idx].resize(0);
+  } else {
+    cout << "  invalid focused class, not clearing." << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(ClearClass3dGrasps)
 
 
 

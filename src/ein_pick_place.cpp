@@ -1385,6 +1385,34 @@ END_WORD
 REGISTER_WORD(PickClosestBlueBox)
 
 
+WORD(ClearTransitionTable)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// zero it out
+}
+END_WORD
+REGISTER_WORD(ClearTransitionTable)
+
+WORD(CountTransitionInTable)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// pass strings for classes and action, increment
+}
+END_WORD
+REGISTER_WORD(CountTransitionInTable)
+
+WORD(UpdateTransitionTable)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// make sure it is consistent with the number of classes
+}
+END_WORD
+REGISTER_WORD(UpdateTransitionTable)
+
+WORD(PlanWithTransitionTable)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// make sure it is consistent with the number of classes
+}
+END_WORD
+REGISTER_WORD(PlanWithTransitionTable)
+
 }
 
 
