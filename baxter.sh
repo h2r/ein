@@ -19,20 +19,22 @@ unset your_hostname
 # will be overwritten by any variables set here.
 
 # Specify Baxter's hostname
-baxter_hostname="iorek"
+#baxter_hostname="iorek"
 #baxter_hostname="localhost"
+baxter_hostname="$BAXTER"
 
 # Set *Either* your computers ip address or hostname. Please note if using
 # your_hostname that this must be resolvable to Baxter.
 #your_ip="192.168.XXX.XXX"
-#your_hostname="my_computer.local"
-your_hostname="aoi"
+your_hostname="$HOSTNAME"
+#your_ip="128.30.27.9"
+
 
 # Specify ROS distribution (e.g. indigo, hydro, etc.)
 ros_version="indigo"
 #-----------------------------------------------------------------------------#
 
-tf=$(tempfile)
+tf=$(mktemp)
 trap "rm -f -- '${tf}'" EXIT
 
 # If this file specifies an ip address or hostname - unset any previously set

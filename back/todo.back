@@ -40,14 +40,13 @@ use pointToClearanceMap as an option for how to place the object after a pick, t
 
 
 /*
+ * setTable.  When ein starts, it sets a bunch of variables from table height.  But if you rerun setTable those variables don't get reset.  Refactor so it happens that way. 
+ *
  * repr for strings doesn't escape
  * hidden bug in backslash or forward slash or strings or something
  * spaces after quotes and comments
  * check that close comment does the right thing
- 
  * 
- * breakpoints
- * display IK errors in the gui
  * local IR grasp proposal
  * IK map at multiple heights
  * 
@@ -81,3 +80,5 @@ Done:
 * compound words repr
 * fix parsing of *
 * getting and setting parts of eePose
+ * breakpoints
+ * display IK errors in the gui
