@@ -68,11 +68,9 @@ catkin_make && gdb --args ./devel/lib/ein/ein  _data_directory:="$(rospack find 
 And enter 'r' to start the program from within gdb. For safety purposes, the arm should not move at startup.
 
 
-We usually run ein from inside of screen.  To this, first copy
-ein/baxter.sh to the home directory and change it to use your IP
-address.  Then run
+We usually run ein from inside of screen.  Go to the root of your catkin workspace and run
 ```
-BAXTER=<your baxter's IP> screen -c src/ein/ein_baxter.screenrc
+screen -c src/ein/ein_baxter.screenrc
 
 ```
 
