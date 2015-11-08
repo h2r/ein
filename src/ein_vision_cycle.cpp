@@ -477,10 +477,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	    double X, Y;
 	    mapijToxy(ms, i, j, &X, &Y);
 
-	    eePose nextEEPose = ms->config.currentEEPose;
+	    eePose nextEEPose = ms->config.straightDown;
 	    nextEEPose.px = X;
 	    nextEEPose.py = Y;
-	    endEffectorAngularUpdate(&nextEEPose, &ms->config.currentEEDeltaRPY);
+	    nextEEPose.pz = height;
 
 	    ms->config.ikMap[i + ms->config.mapWidth * j] = ikAtPose(ms, nextEEPose);
 	    queries++;

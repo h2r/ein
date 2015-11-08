@@ -1924,6 +1924,10 @@ CONFIG_GETTER_DOUBLE(GripperMaskThresh, ms->config.gripperMaskThresh)
 CONFIG_SETTER_DOUBLE(SetGripperMaskThresh, ms->config.gripperMaskThresh)
 
 
+CONFIG_GETTER_DOUBLE(CurrentTableZ, ms->config.currentTableZ)
+CONFIG_SETTER_DOUBLE(SetCurrentTableZ, ms->config.currentTableZ)
+
+
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
 
 
