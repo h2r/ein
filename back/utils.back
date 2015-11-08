@@ -11,10 +11,121 @@
 
 (
 
-  endArgs "kr_bars/10_5_2" "kr_bars/10_5_4" "kr_bars/10_5_6" "kr_bars/10_5_8" "kr_bars/10_5_10" setClassLabels incrementTargetClass 4 setMapServoMode 1 setCurrentGradientServoMode setIdleModeToEmpty
+  endArgs "kr_bars/10_5_2" "kr_bars/10_5_4" "kr_bars/10_5_6" "kr_bars/10_5_8" "kr_bars/10_5_10" setClassLabels incrementTargetClass 4 setMapServoMode 1 setGradientServoMode setIdleModeToEmpty
+  /* 
   assumeBeeHome 1 changeToHeight
   clearMapForPatrol clearBlueBoxMemories mapLocal
   deliverTargetObject
+  */
+
+  leftOrRightArm "left" equals (
+    -0.4 setMapSearchFenceXMin
+    0.5 setMapSearchFenceXMax
+    0.42 setMapSearchFenceYMin
+    1.0 setMapSearchFenceYMax
+  ) ift
+
+  leftOrRightArm "right" (
+    -0.4 setMapSearchFenceXMin
+    0.5 setMapSearchFenceXMax
+    -0.42 setMapSearchFenceYMax
+    -1.0 setMapSearchFenceYMin
+  ) ift
+
+  140 setMapGrayBoxPixelSkirtCols
+  70 setMapGrayBoxPixelSkirtRows
+
+
+  100 setGripperMovingForce
+
+  2 setGradientServoSoftMaxIterations 2 setGradientServoHardMaxIterations 1 mappingServoTimeout 
+  createCachedClassifierFromClassLabels 
+  1 setMapAutoPick 2 setMapServoMode 1 setSnapToFlushGrasp 1 setRandomPositionAfterPick 
+
+  { |B 
+    0.1 "gazeDelta" store
+    { |B 
+      ( 1 ) ( 
+	blink_lightshow 
+      ) while 
+    } 
+    { |B 
+      mapAndPickL
+    } 
+    { |B 
+      ( 1 ) ( 
+	drand48 -0.5 plus 4.0 times 5 setHeadPanTargetSpeed 
+	drand48 20 times spinForSeconds 
+	endStackCollapseNoop 
+      ) while 
+    } 
+    { |B 
+      ( 1 ) ( 
+	30006 "gazeNumber" store
+	"gaze" gazeNumber ".tif" + + publishImageFileToFace 
+	gazeDelta spinForSeconds
+
+	(
+	  gazeNumber 1 + "gazeNumber" store
+	  "gaze" gazeNumber ".tif" + + publishImageFileToFace 
+	  gazeDelta spinForSeconds
+	) 6 replicateWord
+
+	(
+	  gazeNumber -1 + "gazeNumber" store
+	  "gaze" gazeNumber ".tif" + + publishImageFileToFace 
+	  gazeDelta spinForSeconds
+	) 5 replicateWord
+	endStackCollapseNoop 
+      ) while 
+    } 
+    { |B 
+      ( 1 ) ( 
+	isGripperGripping ( 
+	  nod 
+	) ift 
+      ) while 
+    } 
+  } ( 1 ) ( slip ) while
 
 ) "utils_practice_bars" store
+
+( 
+  0.01 setGridSize 1 setCurrentIKBoundaryMode 
+  assumeBeeHome 
+  ( yUp ) 15 replicateWord 
+  ( xUp ) 30 replicateWord 
+  ( 
+    ( yDown ) 5 replicateWord 
+    ( 
+      ( xDown ) 10 replicateWord 
+      waitUntilAtCurrentPosition 
+      temp_mapFrame 
+    ) 11 replicateWord 
+    ( xUp ) 110 replicateWord 
+    waitUntilAtCurrentPosition 
+  ) 7 replicateWord 
+) "temp_backScan" store
+
+( 
+  0.01 setGridSize 
+  1 setCurrentIKBoundaryMode assumeBeeHome 0 changeToHeight
+  ( yUp ) 15 replicateWord 
+  ( xUp ) 10 replicateWord 
+  ( 
+    ( yDown ) 5 replicateWord 
+    ( 
+      ( xDown ) 10 replicateWord 
+      comeToStop 
+      temp_mapFrame 
+      setMovementStateToMoving 
+    ) 5 replicateWord 
+    ( xUp ) 50 replicateWord 
+    comeToStop 
+  ) 7 replicateWord 
+) "temp_backScan2" store
+
+( density mapEmptySpace mapClosestBlueBox ) "temp_mapFrame" store
+
+
 

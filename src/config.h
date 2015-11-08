@@ -370,7 +370,7 @@ class EinConfig {
   movementState currentMovementState = STOPPED;
   patrolState currentPatrolState = IDLING;
   patrolMode currentPatrolMode = ONCE;
-  placeMode currentPlaceMode = HAND;
+  placeMode currentPlaceMode = HOLD;
   idleMode currentIdleMode = CRANE;
   graspMode currentGraspMode = GRASP_3D;
   robotMode currentRobotMode = PHYSICAL;
