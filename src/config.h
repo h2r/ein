@@ -1253,7 +1253,7 @@ class EinConfig {
 
   double ikMapStartHeight;
   double ikMapEndHeight;
-  const static int numIkMapHeights = 3;
+  const static int numIkMapHeights = 10;
   int ikMapAtHeight[mapWidth * mapHeight * numIkMapHeights];
   
   
