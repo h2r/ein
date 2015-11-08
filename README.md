@@ -68,3 +68,16 @@ catkin_make && gdb --args ./devel/lib/ein/ein  _data_directory:="$(rospack find 
 And enter 'r' to start the program from within gdb. For safety purposes, the arm should not move at startup.
 
 
+We usually run ein from inside of screen.  To this, first copy
+ein/baxter.sh to the home directory and change it to use your IP
+address.  Then run
+```
+BAXTER=<your baxter's IP> screen -c src/ein/ein_baxter.screenrc
+
+```
+
+This command will start a screen session preloaded with useful
+windows.  The ein program for the left arm is primed in window 8; for
+the right arm is primed in window 0.  The repl is primed in window 1
+and 7.  You can switch windows by using backtick-number.  For example,
+typing "`1" switches to window 1.
