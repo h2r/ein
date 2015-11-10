@@ -544,6 +544,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(CalibrateGripper)
 
+WORD(TuckArms)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int return_value;
+  return_value = system("rosrun baxter_tools tuck_arms.py -t");
+}
+END_WORD
+REGISTER_WORD(TuckArms)
+
+WORD(UntuckArms)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int return_value;
+  return_value = system("rosrun baxter_tools tuck_arms.py -u");
+}
+END_WORD
+REGISTER_WORD(UntuckArms)
+
+
+
 WORD(SetGripperMovingForce)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 // velocity - Velocity at which a position move will execute 
