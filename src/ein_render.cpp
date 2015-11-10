@@ -300,6 +300,16 @@ END_WORD
 REGISTER_WORD(PublishImageFileToFace)
 
 
+WORD(BlankFace)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  std::stringstream program;
+  program << "\"black.tif\" publishImageFileToFace";
+  ms->evaluateProgram(program.str());  
+}
+END_WORD
+REGISTER_WORD(BlankFace)
+
+
 
 
 }
