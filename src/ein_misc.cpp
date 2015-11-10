@@ -1364,6 +1364,28 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(SetSonarLed)
 
+WORD(LightsOn)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  std::stringstream program;
+  program << "100 setGreenHalo 100 setRedHalo 4095 setSonarLed ";
+  program << "1 \"left_itb_light_inner\" digitalIOCommand 1 \"right_itb_light_inner\" digitalIOCommand 1 \"torso_left_itb_light_inner\" digitalIOCommand 1 \"torso_right_itb_light_inner\" digitalIOCommand 1 \"left_itb_light_outer\" digitalIOCommand 1 \"right_itb_light_outer\" digitalIOCommand 1 \"torso_left_itb_light_outer\" digitalIOCommand 1 \"torso_right_itb_light_outer\" digitalIOCommand";
+  ms->evaluateProgram(program.str());
+}
+END_WORD
+REGISTER_WORD(LightsOn)
+
+WORD(LightsOff)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  std::stringstream program;
+  program << "0 setGreenHalo 0 setRedHalo 32768 setSonarLed ";
+  program << "0 \"left_itb_light_inner\" digitalIOCommand 0 \"right_itb_light_inner\" digitalIOCommand 0 \"torso_left_itb_light_inner\" digitalIOCommand 0 \"torso_right_itb_light_inner\" digitalIOCommand 0 \"left_itb_light_outer\" digitalIOCommand 0 \"right_itb_light_outer\" digitalIOCommand 0 \"torso_left_itb_light_outer\" digitalIOCommand 0 \"torso_right_itb_light_outer\" digitalIOCommand";
+  ms->evaluateProgram(program.str());
+}
+END_WORD
+REGISTER_WORD(LightsOff)
+
 WORD(SwitchSonarLed)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
