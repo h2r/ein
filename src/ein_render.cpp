@@ -310,6 +310,36 @@ END_WORD
 REGISTER_WORD(BlankFace)
 
 
+WORD(HappyFace)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  std::stringstream program;
+  program << "\"ursula_yes.tif\" publishImageFileToFace";
+  ms->evaluateProgram(program.str());  
+}
+END_WORD
+REGISTER_WORD(HappyFace)
+
+
+WORD(SadFace)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  std::stringstream program;
+  program << "\"ursula_no.tif\" publishImageFileToFace";
+  ms->evaluateProgram(program.str());  
+}
+END_WORD
+REGISTER_WORD(SadFace)
+
+
+WORD(NeutralFace)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  std::stringstream program;
+  program << "\"ursula_neutral.tif\" publishImageFileToFace";
+  ms->evaluateProgram(program.str());  
+}
+END_WORD
+REGISTER_WORD(NeutralFace)
+
+
 
 
 }

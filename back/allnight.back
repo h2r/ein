@@ -1,0 +1,14 @@
+(
+blankFace
+lightsOff
+untuckArms
+disableRobot
+)
+"robotOff" store
+
+(
+happyFace
+lightsOn
+untuckArms
+)
+"robotOn" store
