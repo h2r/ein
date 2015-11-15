@@ -12,3 +12,19 @@ lightsOn
 untuckArms
 )
 "robotOn" store
+
+
+
+(
+sadFace
+lightsOff
+untuckArms
+disableRobot
+)
+"robotDroop" store
+
+
+(
+ pressUntilEffortInit 0.2 setSpeed  pressUntilEffort closeGripper sadFace
+
+) "attemptPick" store
