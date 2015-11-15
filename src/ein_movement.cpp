@@ -23,6 +23,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(AssumeAimedPose)
 
+WORD(AssumePose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<EePoseWord> word ;
+  GET_WORD_ARG(ms, EePoseWord, word);
+
+  ms->config.currentEEPose = word->value();
+  ms->pushWord("waitUntilAtCurrentPosition");
+}
+END_WORD
+REGISTER_WORD(AssumePose)
+
+
 WORD(AssumeBackScanningPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentEEPose = ms->config.backScanningPose;
