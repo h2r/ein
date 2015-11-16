@@ -28,11 +28,48 @@ disableRobot
 
 (
  fullImpulse assumeBeeHome  waitUntilAtCurrentPosition
- /*pressUntilEffortInit 0.2 setSpeed  pressUntilEffort closeGripper sadFace */
  zDown zDown zDown zDown zDown zDown zDown zDown waitUntilAtCurrentPosition closeGripper zUp zUp zUp zUp sadFace lightsOff
 ) "attemptPick" store
 
+(
+ 0.01 setGridSize
+ 0.04 setW1GoThresh 0.1 setW1AngleThresh
+ 0.2 setSpeed
+ openGripper 
+) "pressPick_init" store
 
+
+(
+ touchDown zUp zUp zUp waitUntilAtCurrentPosition closeGripper waitUntilGripperNotMoving assumeBeeHome
+) "pressPick" store
+
+(
+  0.01 setGridSize
+  0.1 setW1GoThresh 0.2 setW1AngleThresh
+  ( zUp  ) 30 replicateWord waitUntilAtCurrentPosition
+  ( zDown  ) 30 replicateWord waitUntilAtCurrentPosition
+) "shake" store
+
+(
+  pressPick_init pressPick 0.5 setSpeed ( shake ) 3 replicateWord openGripper
+) "grabShake" store
+
+
+(
+ 0.05 setW1GoThresh 0.05 setW1AngleThresh
+ 0.04 setGridSize
+ 0.2 setSpeed
+ leftOrRightArm "right" = ( assumeBeeHome  xDown xDown xDown xDown  xDown xDown xDown xDown ) ift
+ leftOrRightArm "left" = ( assumeBeeHome xDown yDown xDown yDown xDown yDown ) ift
+) "fakeIrScan_init" store
+
+
+(
+ ( ( xUp ) 10 replicateWord waitUntilAtCurrentPosition 
+   yUp waitUntilAtCurrentPosition
+   ( xDown  ) 10 replicateWord waitUntilAtCurrentPosition
+   yUp waitUntilAtCurrentPosition ) 3 replicateWord
+) "fakeIrScan" store
 
 
 (
