@@ -1,3 +1,5 @@
+
+
 (
 blankFace
 lightsOff
@@ -25,6 +27,16 @@ disableRobot
 
 
 (
- pressUntilEffortInit 0.2 setSpeed  pressUntilEffort closeGripper sadFace
-
+ fullImpulse assumeBeeHome  waitUntilAtCurrentPosition
+ /*pressUntilEffortInit 0.2 setSpeed  pressUntilEffort closeGripper sadFace */
+ zDown zDown zDown zDown zDown zDown zDown zDown waitUntilAtCurrentPosition closeGripper zUp zUp zUp zUp sadFace lightsOff
 ) "attemptPick" store
+
+
+
+
+(
+happyFace fullImpulse openGripper
+assumeCrane1 waitUntilCurrentPosition
+)
+"intro_init" store
