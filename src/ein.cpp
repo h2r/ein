@@ -5176,10 +5176,52 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
     ms->config.probeReticle.px = x;
     ms->config.probeReticle.py = y;
     cout << "x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << endl;
+
+    // form a rotation about the vanishing point, measured from positive x axis
+    // window is inverted
+    double thisTheta = vectorArcTan(ms, ms->config.vanishingPointReticle.py - y, x - ms->config.vanishingPointReticle.px);
+
+    ms->pushWord("pixelServoA");
+    ms->pushWord(std::make_shared<DoubleWord>(thisTheta));
+    ms->pushWord(std::make_shared<IntegerWord>(ms->config.vanishingPointReticle.py));
+    ms->pushWord(std::make_shared<IntegerWord>(ms->config.vanishingPointReticle.px));
+    ms->execute_stack = 1;
   } else if ( event == EIN_EVENT_RBUTTONDOWN ) {
     //cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+    ms->pushWord("pixelServoA");
+    ms->pushWord(std::make_shared<DoubleWord>(0));
+    ms->pushWord(std::make_shared<IntegerWord>(y));
+    ms->pushWord(std::make_shared<IntegerWord>(x));
+    ms->execute_stack = 1;
   } else if  ( event == EIN_EVENT_MBUTTONDOWN ) {
     //cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+    ms->evaluateProgram("tenthImpulse ( zUp ) 10 replicateWord waitUntilAtCurrentPosition 1 changeToHeight");
+    ms->pushWord("waitUntilGripperNotMoving");
+    
+    ms->pushWord("closeGripper");
+    ms->pushWord("pressUntilEffortOrTwist");
+
+    ms->pushWord("setTwistThresh");
+    ms->pushWord("0.015");
+
+    ms->pushWord("setEffortThresh");
+    ms->pushWord("20.0");
+
+    ms->pushWord("setSpeed");
+    ms->pushWord("0.03");
+
+    ms->pushWord("pressUntilEffortOrTwistInit");
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+
+    ms->pushWord("setSpeed");
+    ms->pushWord("0.05");
+
+    ms->pushWord("setGridSizeCoarse");
+    ms->pushWord("pixelServoPutVanishingPointUnderGripper");
+    ms->execute_stack = 1;
   } else if ( event == EIN_EVENT_MOUSEMOVE ) {
     //cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
   }
@@ -7670,6 +7712,51 @@ double computeSimilarity(std::shared_ptr<MachineState> ms, int class1, int class
   return computeSimilarity(ms, ms->config.classHeight1AerialGradients[class1], ms->config.classHeight1AerialGradients[class2]);
 }
 
+void pixelServo(shared_ptr<MachineState> ms, int servoDeltaX, int servoDeltaY, double servoDeltaTheta) {
+
+  ms->config.reticle = ms->config.vanishingPointReticle;
+
+  cout << "entered pixel servo..." << endl;
+  cout << "  servoDeltaX, servoDeltaY, servoDeltaTheta: " << servoDeltaX << " " << servoDeltaY << " " << servoDeltaTheta << endl;
+  {
+    int i, j;
+    mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
+    int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
+    if (!doWeHaveClearance) {
+      cout << ">>>> pixelServo strayed out of clearance area during mapping. <<<<" << endl;
+    }
+  }
+
+  //double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
+  //ms->config.lastPtheta = Ptheta;
+
+  // set the target reticle
+  ms->config.pilotTarget.px = servoDeltaX;
+  ms->config.pilotTarget.py = servoDeltaY;
+  ms->config.currentEEDeltaRPY.pz -= servoDeltaTheta;
+  
+  // position update
+  {
+    double newx = 0;
+    double newy = 0;
+
+    // ATTN 23
+    // second analytic
+    // use trueEEPoseEEPose here so that its attention will shift if the arm is moved by external means
+    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
+    newx = newGlobalTarget.px;
+    newy = newGlobalTarget.py;
+
+    ms->config.currentEEPose.px = newx;
+    ms->config.currentEEPose.py = newy;
+  }
+
+  // orientation update
+  // this must happen in order for getCCRotation to work, maybe it should be refactored
+  // this should happen after position update so that position update could use currentEePose if it wanted (possibly the right thing to do)
+  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
+  ms->config.bestOrientationEEPose = ms->config.currentEEPose;
+}
 
 void gradientServo(shared_ptr<MachineState> ms) {
   Size sz = ms->config.objectViewerImage.size();

@@ -327,6 +327,7 @@ void restartBBLearning(shared_ptr<MachineState> ms);
 eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixel, eePose givenReticle, double angle, eePose givenCameraPose);
 void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms);
 Mat makeGCrop(shared_ptr<MachineState> ms, int etaX, int etaY);
+void pixelServo(shared_ptr<MachineState> ms, int servoDeltaX, int servoDeltaY, double servoDeltaTheta);
 void gradientServo(shared_ptr<MachineState> ms);
 void gradientServoLatentClass(shared_ptr<MachineState> ms);
 void continuousServo(shared_ptr<MachineState> ms);

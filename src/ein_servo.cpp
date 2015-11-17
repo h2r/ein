@@ -1423,6 +1423,74 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(GradientServoIfBlueBoxes)
 
+WORD(PixelServo)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  //ms->pushWord("comeToStop");
+  ms->pushWord("pixelServoA");
+}
+END_WORD
+REGISTER_WORD(PixelServo)
+
+WORD(PixelServoA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double servoDeltaX = 0.0;
+  double servoDeltaY = 0.0;
+  double servoDeltaTheta = 0.0;
+
+  GET_NUMERIC_ARG(ms, servoDeltaTheta);
+  GET_NUMERIC_ARG(ms, servoDeltaY);
+  GET_NUMERIC_ARG(ms, servoDeltaX);
+
+  pixelServo(ms, servoDeltaX, servoDeltaY, servoDeltaTheta);
+}
+END_WORD
+REGISTER_WORD(PixelServoA)
+
+WORD(PixelServoPutVanishingPointUnderGripper)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double vpx = 0.0;
+  double vpy = 0.0;
+  double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
+  pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &vpx, &vpy);
+
+  ms->config.currentEEPose.px = vpx;
+  ms->config.currentEEPose.py = vpy;
+}
+END_WORD
+REGISTER_WORD(PixelServoPutVanishingPointUnderGripper)
+
+WORD(PixelServoPickUnderVanishingPoint)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("tenthImpulse ( zUp ) 10 replicateWord waitUntilAtCurrentPosition 1 changeToHeight");
+  ms->pushWord("waitUntilGripperNotMoving");
+  
+  ms->pushWord("closeGripper");
+  ms->pushWord("pressUntilEffortOrTwist");
+
+  ms->pushWord("setTwistThresh");
+  ms->pushWord("0.015");
+
+  ms->pushWord("setEffortThresh");
+  ms->pushWord("20.0");
+
+  ms->pushWord("setSpeed");
+  ms->pushWord("0.03");
+
+  ms->pushWord("pressUntilEffortOrTwistInit");
+  ms->pushWord("comeToStop");
+  ms->pushWord("setMovementStateToMoving");
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+
+  ms->pushWord("setSpeed");
+  ms->pushWord("0.05");
+
+  ms->pushWord("setGridSizeCoarse");
+  ms->pushWord("pixelServoPutVanishingPointUnderGripper");
+}
+END_WORD
+REGISTER_WORD(PixelServoPickUnderVanishingPoint)
+
 WORD(LockTargetIfBlueBoxes)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (ms->config.bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {

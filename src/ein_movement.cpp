@@ -1855,6 +1855,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(AboutFace)
 
+WORD(QuarterTurn)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentEEDeltaRPY.pz = ( 1.5707963 );
+  endEffectorAngularUpdate( &ms->config.currentEEPose, &ms->config.currentEEDeltaRPY );
+}
+END_WORD
+REGISTER_WORD(QuarterTurn)
+
 WORD(TouchDown)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->evaluateProgram("currentPose  0 currentTableZ - pickFlushFactor +  setEEPosePZ assumePose");
