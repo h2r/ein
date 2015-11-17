@@ -644,16 +644,23 @@ WORD(ReturnObject)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   cout << "Returning object." << endl;
-  ms->pushWord("cruisingSpeed");
-  ms->pushWord("goToPrePickPose");
-  ms->pushWord("waitUntilGripperNotMoving");
-  ms->pushWord("openGripper");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("goToLastPickPose");
-  ms->pushWord("approachSpeed");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("goToPrePickPose");
-
+  if (ms->config.snapToFlushGrasp) {
+    ms->pushWord("cruisingSpeed");
+    ms->pushWord("goToPrePickPose");
+    ms->evaluateProgram("comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper quarterImpulse 0.01 setGridSize ( zUp ) 5 setMovementStateToMoving replicateWord comeToHover");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("goToPrePickPose");
+  } else {
+    ms->pushWord("cruisingSpeed");
+    ms->pushWord("goToPrePickPose");
+    ms->pushWord("waitUntilGripperNotMoving");
+    ms->pushWord("openGripper");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("goToLastPickPose");
+    ms->pushWord("approachSpeed");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("goToPrePickPose");
+  }
 }
 END_WORD
 REGISTER_WORD(ReturnObject)
