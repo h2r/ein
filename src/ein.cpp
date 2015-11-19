@@ -4046,7 +4046,7 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
     ms->config.jointNamesInit = 1;
   }
 
-  if (ms->config.driveVelocities) {
+  if (ms->config.currentControlMode == VELOCITY) {
 
     double l2Gravity = 0.0;
 
@@ -4078,21 +4078,50 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
       myCommand.command[5] += -rapidAmp2*rapidJointScales[5]*sin(rapidJointLocalBias[5] + (rapidJointLocalOmega[5]*rapidJointGlobalOmega[5]*tim));
       myCommand.command[0] +=  rapidAmp2*rapidJointScales[0]*cos(rapidJointLocalBias[0] + (rapidJointLocalOmega[0]*rapidJointGlobalOmega[0]*tim));
     }
-  } else {
+  } else if (ms->config.currentControlMode == EEPOSITION) {
     myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
     myCommand.command.resize(NUM_JOINTS);
     myCommand.names.resize(NUM_JOINTS);
+
     ms->config.lastGoodIkRequest.response.joints.resize(1);
     ms->config.lastGoodIkRequest.response.joints[0].name.resize(NUM_JOINTS);
     ms->config.lastGoodIkRequest.response.joints[0].position.resize(NUM_JOINTS);
+
+    ms->config.currentJointPositions.response.joints.resize(1);
+    ms->config.currentJointPositions.response.joints[0].name.resize(NUM_JOINTS);
+    ms->config.currentJointPositions.response.joints[0].position.resize(NUM_JOINTS);
 
     for (int j = 0; j < NUM_JOINTS; j++) {
       myCommand.names[j] = ms->config.ikRequest.response.joints[0].name[j];
       myCommand.command[j] = ms->config.ikRequest.response.joints[0].position[j];
       ms->config.lastGoodIkRequest.response.joints[0].name[j] = ms->config.ikRequest.response.joints[0].name[j];
       ms->config.lastGoodIkRequest.response.joints[0].position[j] = ms->config.ikRequest.response.joints[0].position[j];
+
+      ms->config.currentJointPositions.response.joints[0].name[j] = myCommand.names[j];
+      ms->config.currentJointPositions.response.joints[0].position[j] = myCommand.command[j];
     }
     ms->config.goodIkInitialized = 1;
+  } else if (ms->config.currentControlMode == ANGLES) {
+    myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
+    myCommand.command.resize(NUM_JOINTS);
+    myCommand.names.resize(NUM_JOINTS);
+
+    ms->config.lastGoodIkRequest.response.joints.resize(1);
+    ms->config.lastGoodIkRequest.response.joints[0].name.resize(NUM_JOINTS);
+    ms->config.lastGoodIkRequest.response.joints[0].position.resize(NUM_JOINTS);
+
+    ms->config.currentJointPositions.response.joints.resize(1);
+    ms->config.currentJointPositions.response.joints[0].name.resize(NUM_JOINTS);
+    ms->config.currentJointPositions.response.joints[0].position.resize(NUM_JOINTS);
+
+    for (int j = 0; j < NUM_JOINTS; j++) {
+      myCommand.names[j] = ms->config.currentJointPositions.response.joints[0].name[j];
+      myCommand.command[j] = ms->config.currentJointPositions.response.joints[0].position[j];
+      //ms->config.lastGoodIkRequest.response.joints[0].name[j] = ms->config.ikRequest.response.joints[0].name[j];
+      //ms->config.lastGoodIkRequest.response.joints[0].position[j] = ms->config.ikRequest.response.joints[0].position[j];
+    }
+  } else {
+    assert(0);
   }
 
   std_msgs::Float64 speedCommand;
