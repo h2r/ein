@@ -4288,6 +4288,12 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
     ms->config.currentEEPose.qy = ms->config.trueEEPose.orientation.y;
     ms->config.currentEEPose.qz = ms->config.trueEEPose.orientation.z;
     ms->config.currentEEPose.qw = ms->config.trueEEPose.orientation.w;
+
+    if ( (ms->config.currentJointPositions.response.joints.size() > 0) && (ms->config.currentJointPositions.response.joints[0].position.size() == NUM_JOINTS) ) {
+      for (int j = 0; j < NUM_JOINTS; j++) {
+	ms->config.currentJointPositions.response.joints[0].position[j] = ms->config.trueJointPositions[j];
+      }
+    }
   }
 
   if (ms->config.coreViewWindow->isVisible()) {
