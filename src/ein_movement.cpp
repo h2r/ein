@@ -1908,11 +1908,11 @@ REGISTER_WORD(MoveJointsByAngles)
 
 WORD(PrintJointAngles)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "currentJointPositions: ";
+  cout << "currentJointPositions: " << endl;;
   for (int i = 0; i < NUM_JOINTS; i++) {
     cout << ms->config.currentJointPositions.response.joints[0].position[i] << " ";
   }
-  cout << endl;
+  cout << "moveJointsToAngles" << endl;
 }
 END_WORD
 REGISTER_WORD(PrintJointAngles)
