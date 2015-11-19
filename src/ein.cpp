@@ -4102,6 +4102,14 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
     }
     ms->config.goodIkInitialized = 1;
   } else if (ms->config.currentControlMode == ANGLES) {
+    ms->config.currentEEPose.px = ms->config.trueEEPose.position.x;
+    ms->config.currentEEPose.py = ms->config.trueEEPose.position.y;
+    ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z;
+    ms->config.currentEEPose.qx = ms->config.trueEEPose.orientation.x;
+    ms->config.currentEEPose.qy = ms->config.trueEEPose.orientation.y;
+    ms->config.currentEEPose.qz = ms->config.trueEEPose.orientation.z;
+    ms->config.currentEEPose.qw = ms->config.trueEEPose.orientation.w;
+
     myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
     myCommand.command.resize(NUM_JOINTS);
     myCommand.names.resize(NUM_JOINTS);
@@ -4280,6 +4288,12 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
     ms->config.currentEEPose.qy = ms->config.trueEEPose.orientation.y;
     ms->config.currentEEPose.qz = ms->config.trueEEPose.orientation.z;
     ms->config.currentEEPose.qw = ms->config.trueEEPose.orientation.w;
+
+    if ( (ms->config.currentJointPositions.response.joints.size() > 0) && (ms->config.currentJointPositions.response.joints[0].position.size() == NUM_JOINTS) ) {
+      for (int j = 0; j < NUM_JOINTS; j++) {
+	ms->config.currentJointPositions.response.joints[0].position[j] = ms->config.trueJointPositions[j];
+      }
+    }
   }
 
   if (ms->config.coreViewWindow->isVisible()) {
