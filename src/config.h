@@ -187,6 +187,12 @@ typedef enum {
   STEP = 1
 } executionMode;
 
+typedef enum {
+  EEPOSITION = 0,
+  ANGLES = 1,
+  VELOCITY = 2
+} controlMode;
+
 
 std::string pickModeToString(pickMode mode);
 
@@ -305,6 +311,7 @@ class EinConfig {
   
   tf::TransformListener* tfListener;
   
+  baxter_core_msgs::SolvePositionIK currentJointPositions;
   baxter_core_msgs::SolvePositionIK ikRequest;
   baxter_core_msgs::SolvePositionIK lastGoodIkRequest;
   
@@ -379,6 +386,7 @@ class EinConfig {
   scanMode currentScanMode = CENTERED;
   mapServoMode currentMapServoMode = HISTOGRAM_CLASSIFY;
   gradientServoMode currentGradientServoMode = FOCUSED_CLASS;
+  controlMode currentControlMode = EEPOSITION;
   bool setRandomPositionAfterPick = false;
   bool streamPicks = false;
   bool mapAutoPick = false;

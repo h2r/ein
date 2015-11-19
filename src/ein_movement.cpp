@@ -1870,7 +1870,52 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(TouchDown)
 
+WORD(SetControlModeEePosition)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentControlMode = EEPOSITION;
+}
+END_WORD
+REGISTER_WORD(SetControlModeEePosition)
 
+WORD(SetControlModeAngles)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentControlMode = ANGLES;
+}
+END_WORD
+REGISTER_WORD(SetControlModeAngles)
+
+WORD(MoveJointsToAngles)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double an[NUM_JOINTS];
+  for (int i = NUM_JOINTS-1; i >= 0; i--) {
+    GET_NUMERIC_ARG(ms, an[i]);
+    ms->config.currentJointPositions.response.joints[0].position[i] = an[i];
+  }
+}
+END_WORD
+REGISTER_WORD(MoveJointsToAngles)
+
+WORD(MoveJointsByAngles)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double an[NUM_JOINTS];
+  for (int i = NUM_JOINTS-1; i >= 0; i--) {
+    GET_NUMERIC_ARG(ms, an[i]);
+    ms->config.currentJointPositions.response.joints[0].position[i] += an[i];
+  }
+}
+END_WORD
+REGISTER_WORD(MoveJointsByAngles)
+
+WORD(PrintJointAngles)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "currentJointPositions: ";
+  for (int i = 0; i < NUM_JOINTS; i++) {
+    cout << ms->config.currentJointPositions.response.joints[0].position[i] << " ";
+  }
+  cout << endl;
+}
+END_WORD
+REGISTER_WORD(PrintJointAngles)
 
 
 }
