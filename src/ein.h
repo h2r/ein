@@ -1,6 +1,7 @@
 #ifndef _EIN_H_
 #define _EIN_H_
 
+
 //#define DEBUG_RING_BUFFER // ring buffer
 
 #define EPSILON 1.0e-9

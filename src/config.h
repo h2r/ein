@@ -1,6 +1,10 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
+#include "ein_aibo.h"
+#include<sys/socket.h>
+#include<arpa/inet.h> 
+#include <sys/poll.h>
 
 #include <ros/package.h>
 #include <tf/transform_listener.h>
@@ -1434,12 +1438,20 @@ class EinConfig {
   int intendedEnableState = 1;
   int lastShoulderState = 1;
 
+  // XXX incomplete
   // numClasses is apt to change so we should store the numbers as they were when the matrix was last initialized
   std::vector<string> transitionClasses;
   std::vector<std::shared_ptr<Word> > transitionActions;
   int transitionsNumActions = 3;
   int transitionNumClasses = 0;
   int * transitionCounts = NULL;
+
+
+  // sockets for AIBO
+  int aibo_socket_desc;
+  struct sockaddr_in aibo_server;
+  const static int aibo_sock_buf_size = 1024*1024*3;
+  char aibo_sock_buf[aibo_sock_buf_size];
 }; // config end
 
 

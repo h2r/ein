@@ -1917,5 +1917,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(PrintJointAngles)
 
+WORD(PushCurrentJointAngle)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int jointToPush = 0; 
+  GET_INT_ARG(ms, jointToPush);
+  ms->pushWord(make_shared<DoubleWord>(ms->config.currentJointPositions.response.joints[0].position[jointToPush]));
+}
+END_WORD
+REGISTER_WORD(PushCurrentJointAngle)
+
 
 }
