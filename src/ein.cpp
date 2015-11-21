@@ -4293,6 +4293,10 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
       for (int j = 0; j < NUM_JOINTS; j++) {
 	ms->config.currentJointPositions.response.joints[0].position[j] = ms->config.trueJointPositions[j];
       }
+    } else {
+      ms->config.currentJointPositions.response.joints.resize(1);
+      ms->config.currentJointPositions.response.joints[0].name.resize(NUM_JOINTS);
+      ms->config.currentJointPositions.response.joints[0].position.resize(NUM_JOINTS);
     }
   }
 

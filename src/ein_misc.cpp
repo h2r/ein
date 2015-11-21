@@ -1898,6 +1898,20 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(CB)
 
+// data stack reserve
+WORD(Dsr)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int numToReserve = 0;
+  GET_INT_ARG(ms, numToReserve);
+  ms->pushCopies(std::make_shared<IntegerWord>(0), max(int(numToReserve - ms->data_stack.size()), int(0)));
+}
+END_WORD
+REGISTER_WORD(Dsr)
 
 
 
