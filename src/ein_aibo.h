@@ -1,6 +1,8 @@
 #ifndef _EIN_AIBO_H_
 #define _EIN_AIBO_H_
 
+#include <ros/ros.h>
+
 #include<sys/socket.h>
 #include<arpa/inet.h> 
 #include <sys/poll.h>
@@ -12,7 +14,7 @@ class EinAiboJoints {
 class EinAiboConfig {
 
   public:
-  //ros::Publisher aibo_snout_pub;
+  ros::Publisher aibo_snout_pub;
 
   Mat snoutImage;
 

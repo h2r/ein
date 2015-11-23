@@ -552,6 +552,12 @@ REGISTER_WORD(DogSetWalkSpeed)
 
 WORD(DogFormatImageDefault)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+  ros::NodeHandle n("~");
+  stringstream ss;
+  ss << "dog_" << ms->focusedMember << "_snout"; 
+  ms->pack[this_dog].aibo_snout_pub = n.advertise<sensor_msgs::Image>(ss.str(),10);
+
   ms->evaluateProgram("\"camera.format = 0; camera.reconstruct = 0; camera.resolution = 0;\" socketSend 0.5 waitForSeconds");
 }
 END_WORD
@@ -606,6 +612,26 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(DogGetImage)
 
+WORD(DogPublishSnout)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+  {
+    sensor_msgs::Image msg;
+    Mat topub = ms->pack[this_dog].snoutImage;
+
+    msg.header.stamp = ros::Time::now();
+    msg.width = topub.cols;
+    msg.height = topub.rows;
+    msg.step = topub.cols * topub.elemSize();
+    msg.is_bigendian = false;
+    msg.encoding = sensor_msgs::image_encodings::RGB8;
+    msg.data.assign(topub.data, topub.data + size_t(topub.rows * msg.step));
+
+    ms->pack[this_dog].aibo_snout_pub.publish(msg);
+  }
+}
+END_WORD
+REGISTER_WORD(DogPublishSnout)
 
 
 
