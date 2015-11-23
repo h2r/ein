@@ -38,7 +38,6 @@
 
 
 
-#include <ros/package.h>
 #include <tf/transform_listener.h>
 #include <image_transport/image_transport.h>
 #include <object_recognition_msgs/RecognizedObjectArray.h>
