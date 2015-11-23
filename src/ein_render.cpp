@@ -152,6 +152,8 @@ REGISTER_WORD(DrawMapRegisters)
 WORD(GuiShowAll)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
+  ms->config.dogSnoutViewWindow->setVisible(true);
+
   ms->config.rangeogramWindow->setVisible(true);
 
   ms->config.rangemapWindow->setVisible(true);
@@ -183,6 +185,7 @@ REGISTER_WORD(GuiShowAll)
 WORD(GuiHideAll)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
+  ms->config.dogSnoutViewWindow->setVisible(false);
 
   ms->config.rangeogramWindow->setVisible(false);
 
@@ -222,6 +225,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ROS_WARN_STREAM("___________________");
   ms->config.rangeogramWindow->setVisible(false);
 
+  ms->config.dogSnoutViewWindow->setVisible(true);
 
   ms->config.rangemapWindow->setVisible(false);
   ms->config.graspMemoryWindow->setVisible(false);

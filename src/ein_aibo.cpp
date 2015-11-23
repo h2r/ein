@@ -1,6 +1,9 @@
-#include "ein_aibo.h"
 #include "ein_words.h"
 #include "ein.h"
+
+#include "qtgui/einwindow.h"
+
+#include "ein_aibo.h"
 
 /*
 
@@ -16,6 +19,9 @@ Looked briefly for the source since we can cross compile for Aibo.
 The image is an URBI server for the dog. 
 
 Wrapped some URBI in Back. 
+
+XXX be careful, some of these actions can cause Aibo to hit the ground
+harder than I would allow...
 
 ///////////// Start Original forward to motion.u ///////////////////////
 
@@ -95,11 +101,160 @@ USE_DHCP=1
 SSDP_ENABLE=1
 ///////
 
-
 */
 
+void sendOnDogSocket(std::shared_ptr<MachineState> ms, int member, string message) {
+  // append return
+  message = message;
+
+  if( send(ms->pack[member].aibo_socket_desc, message.c_str(), message.size(), 0) < 0) {
+    cout << "send failed..." << endl;
+    return;
+  } else {
+    cout << "sent: " << endl << message << endl;
+  }
+}
+
+void flushDogBuffer(std::shared_ptr<MachineState> ms, int member) {
+  int p_flush_wait_milliseconds = 250;
+
+  int read_size = 1;
+  while (read_size > 0) {
+    // return if not ready to read.
+    struct pollfd fd;
+    int ret;
+
+    fd.fd = ms->pack[member].aibo_socket_desc;  
+    fd.events = POLLIN;
+    ret = poll(&fd, 1, p_flush_wait_milliseconds);  
+    switch (ret) {
+      case -1:
+	// Error
+	cout << "file descriptor error during poll in flush..." << endl;
+	read_size = -1;
+	break;
+      case 0:
+	// Timeout 
+	cout << "timeout during poll in flush..." << endl;
+	read_size = 0;
+	break;
+      default:
+	// read from dog
+	read_size = read(ms->pack[member].aibo_socket_desc, ms->pack[member].aibo_sock_buf, ms->pack[member].aibo_sock_buf_size);
+	if (read_size <= 0) {
+	  cout << "oops, read failed, closing socket..." << endl;
+	  close(ms->pack[member].aibo_socket_desc);
+	  return;
+	} else {
+	  cout << "read " << read_size << " bytes during poll in flush..." << endl;
+	  break;
+	}
+    }
+  }
+}
+
+int getBytesFromDog(std::shared_ptr<MachineState> ms, int member, int bytesToGet, int timeout) {
+  int read_size = 1;
+  ms->pack[member].aibo_sock_buf_valid_bytes = 0;
+  int sbStart = ms->pack[member].aibo_sock_buf_valid_bytes;
+
+  while ( (read_size > 0) && (sbStart < bytesToGet) ){
+    // return if not ready to read.
+    struct pollfd fd;
+    int ret;
+
+    fd.fd = ms->pack[member].aibo_socket_desc;  
+    fd.events = POLLIN;
+    ret = poll(&fd, 1, timeout);  
+    switch (ret) {
+      case -1:
+	// Error
+	cout << "file descriptor error during poll in gbfd..." << endl;
+	read_size = -1;
+	break;
+      case 0:
+	// Timeout 
+	cout << "timeout during poll in gbfd..." << endl;
+	read_size = 0;
+	break;
+      default:
+	// read from dog
+	sbStart = ms->pack[member].aibo_sock_buf_valid_bytes;
+	read_size = read(ms->pack[member].aibo_socket_desc, &(ms->pack[member].aibo_sock_buf[sbStart]), ms->pack[member].aibo_sock_buf_size-sbStart);
+	if (read_size <= 0) {
+	  cout << "oops, read failed, closing socket..." << endl;
+	  close(ms->pack[member].aibo_socket_desc);
+	  return ms->pack[member].aibo_sock_buf_valid_bytes;
+	} else {
+	  ms->pack[member].aibo_sock_buf_valid_bytes += read_size;
+	}
+	cout << "read " << read_size << " bytes during poll in gbfd..." << endl;
+	break;
+    }
+  }
+  return ms->pack[member].aibo_sock_buf_valid_bytes;
+}
+
+// XXX REQUIRE_FOCUSED_DOG macro
 
 namespace ein_words {
+
+WORD(DogFormPack)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("2 dogSetPackSize \
+		       0 dogSetFocusedMember \"192.168.1.127\" 54000 socketOpen \
+		       1 dogSetFocusedMember \"192.168.1.128\" 54000 socketOpen");
+}
+END_WORD
+REGISTER_WORD(DogFormPack)
+
+WORD(DogSetPackSize)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int toSet = 0;
+  GET_INT_ARG(ms, toSet);
+
+  if (toSet >= 0) {
+    cout << "dogSetPackSize setting pack size: " << toSet << endl;
+    ms->pack.resize(toSet);
+  } else {
+    cout << "dogSetPackSize: invalid size..." << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(DogSetPackSize)
+
+WORD(DogDispersePack)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pack.resize(2);
+  for (int m = 0; m < ms->pack.size(); m++) {
+    stringstream ss;
+    ss << m << " dogSetFocusedMember socketClose";
+    ms->evaluateProgram(ss.str());
+  }
+}
+END_WORD
+REGISTER_WORD(DogDispersePack)
+
+WORD(DogSetFocusedMember)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int toSet = 0;
+  GET_INT_ARG(ms, toSet);
+  if ((toSet >= 0) && (toSet < ms->pack.size())) {
+    ms->focusedMember = toSet;
+    cout << "dogSetFocusedMember focusedMember: " << ms->focusedMember << endl;
+  } else {
+    cout << "dogSetFocusedMember invalid selection: " << toSet << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(DogSetFocusedMember)
+
+WORD(DogFocusedMember)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord(make_shared<IntegerWord>(ms->focusedMember));
+}
+END_WORD
+REGISTER_WORD(DogFocusedMember)
 
 WORD(SocketOpen)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -113,22 +268,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "opening socket to IP, port: " << t_ip << " " << t_port << endl;
 
   // destroy old socket
-  shutdown(ms->config.aibo_socket_desc, 2);
+  shutdown(ms->pack[ms->focusedMember].aibo_socket_desc, 2);
   // create socket
-  ms->config.aibo_socket_desc = socket(AF_INET, SOCK_STREAM, 0);
-  if (ms->config.aibo_socket_desc == -1) {
+  ms->pack[ms->focusedMember].aibo_socket_desc = socket(AF_INET, SOCK_STREAM, 0);
+  if (ms->pack[ms->focusedMember].aibo_socket_desc == -1) {
     cout <<("could not create socket");
     return;
   }
 
   cout << "created socket..." << endl;
        
-  ms->config.aibo_server.sin_addr.s_addr = inet_addr(t_ip.c_str());
-  ms->config.aibo_server.sin_family = AF_INET;
-  ms->config.aibo_server.sin_port = htons(t_port);
+  ms->pack[ms->focusedMember].aibo_server.sin_addr.s_addr = inet_addr(t_ip.c_str());
+  ms->pack[ms->focusedMember].aibo_server.sin_family = AF_INET;
+  ms->pack[ms->focusedMember].aibo_server.sin_port = htons(t_port);
 
   //Connect to remote aibo_server
-  if (connect(ms->config.aibo_socket_desc , (struct sockaddr *)&ms->config.aibo_server , sizeof(ms->config.aibo_server)) < 0) {
+  if (connect(ms->pack[ms->focusedMember].aibo_socket_desc , (struct sockaddr *)&ms->pack[ms->focusedMember].aibo_server , sizeof(ms->pack[ms->focusedMember].aibo_server)) < 0) {
     cout << "connect error" << endl;
     return;
   }
@@ -138,20 +293,21 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SocketOpen)
 
+WORD(SocketClose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // destroy old socket
+  shutdown(ms->pack[ms->focusedMember].aibo_socket_desc, 2);
+}
+END_WORD
+REGISTER_WORD(SocketClose)
+
 WORD(SocketSend)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // send to dog
   string message;
   GET_STRING_ARG(ms, message);
 
-  // append return
-  message = message;
-
-  if( send(ms->config.aibo_socket_desc, message.c_str(), message.size(), 0) < 0) {
-    cout << "send failed..." << endl;
-    return;
-  }
-  cout << "sent: " << endl << message << endl;
+  sendOnDogSocket(ms, ms->focusedMember, message);
 }
 END_WORD
 REGISTER_WORD(SocketSend)
@@ -163,7 +319,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   struct pollfd fd;
   int ret;
 
-  fd.fd = ms->config.aibo_socket_desc;  
+  fd.fd = ms->pack[ms->focusedMember].aibo_socket_desc;  
   fd.events = POLLIN;
   ret = poll(&fd, 1, 1);  
   switch (ret) {
@@ -180,16 +336,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 
   // read from dog
-  int read_size = read(ms->config.aibo_socket_desc, ms->config.aibo_sock_buf, ms->config.aibo_sock_buf_size);
+  int read_size = read(ms->pack[ms->focusedMember].aibo_socket_desc, ms->pack[ms->focusedMember].aibo_sock_buf, ms->pack[ms->focusedMember].aibo_sock_buf_size);
   if (read_size <= 0) {
     cout << "oops, read failed, closing socket..." << endl;
-    close(ms->config.aibo_socket_desc);
+    close(ms->pack[ms->focusedMember].aibo_socket_desc);
     return;
   }
 
-  ms->config.aibo_sock_buf[read_size] = '\0';
+  ms->pack[ms->focusedMember].aibo_sock_buf[read_size] = '\0';
 
-  string message(ms->config.aibo_sock_buf);
+  string message(ms->pack[ms->focusedMember].aibo_sock_buf);
 
   cout << "socketRead read " << read_size << " bytes and contained: " << endl << message << endl;
 }
@@ -392,24 +548,68 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(DogSetWalkSpeed)
 
-
-
-
 //// end motion.u wrappers
+
+WORD(DogFormatImageDefault)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("\"camera.format = 0; camera.reconstruct = 0; camera.resolution = 0;\" socketSend 0.5 waitForSeconds");
+}
+END_WORD
+REGISTER_WORD(DogFormatImageDefault)
+
+WORD(DogGetImage)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  int this_dog = ms->focusedMember;
+
+  // read until there is nothing
+  flushDogBuffer(ms, this_dog); 
+
+  // request the image
+  string image_request("camera.val;");
+  sendOnDogSocket(ms, this_dog, image_request);
+
+  // get specs, verify format, ready image
+  int rows = 160;
+  int cols = 208;
+  ms->pack[this_dog].snoutImage = Mat(rows, cols, CV_8UC3);
+
+  int yCbCr208x160MessageLength = 99875;
+  int chosenFormatLength = yCbCr208x160MessageLength;
+
+  int dogGottenBytes = getBytesFromDog(ms, this_dog, chosenFormatLength, 250);
+  if (dogGottenBytes == chosenFormatLength) {
+    cout << "dogGetImage: got " << dogGottenBytes << endl;
+    // start immediately before the good stuff
+    int dataIdx = chosenFormatLength - (rows * cols * 3);
+    for (int y = 0; y < rows; y++) {
+      for (int x = 0; x < cols; x++) {
+	ms->pack[this_dog].snoutImage.at<Vec3b>(y,x)[0] = ms->pack[this_dog].aibo_sock_buf[dataIdx];
+	//cout << int( ms->pack[this_dog].snoutImage.at<Vec3b>(y,x)[0] ) << " ";
+	dataIdx++;
+	ms->pack[this_dog].snoutImage.at<Vec3b>(y,x)[1] = ms->pack[this_dog].aibo_sock_buf[dataIdx];
+	//cout << int( ms->pack[this_dog].snoutImage.at<Vec3b>(y,x)[1] ) << " ";
+	dataIdx++;
+	ms->pack[this_dog].snoutImage.at<Vec3b>(y,x)[2] = ms->pack[this_dog].aibo_sock_buf[dataIdx];
+	//cout << int( ms->pack[this_dog].snoutImage.at<Vec3b>(y,x)[2] ) << " ";
+	dataIdx++;
+      }
+    }
+
+    cvtColor(ms->pack[this_dog].snoutImage, ms->pack[this_dog].snoutImage, CV_YCrCb2RGB);
+
+    ms->config.dogSnoutViewWindow->updateImage(ms->pack[this_dog].snoutImage);
+  } else {
+    ROS_ERROR_STREAM("dogGetImage: Failed to get dog image... got " << dogGottenBytes << " bytes." << endl);
+  }
+}
+END_WORD
+REGISTER_WORD(DogGetImage)
+
+
 
 
 /*
-
-  robot.walkspeed      : speed of walk, the smaller the faster: 
-                         period of a step. Defaults to 1s
-  robot.turnspeed      : speed of turn, the smaller the faster:
-                         period of a step. Defaults to 1s
-  robot.initial()   : initial position sitting down (strech and lay)
-  robot.stretch()   : stretching like in the morning...
-  robot.lay()       : laying (sitting down)
-  robot.sit()       : sit on the back
-  robot.beg()       : stand up with knees bent
-  robot.stand()     : stand up
 
 WORD(Dog)
 virtual void execute(std::shared_ptr<MachineState> ms) {
