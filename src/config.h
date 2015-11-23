@@ -2,9 +2,6 @@
 #define _CONFIG_H_
 
 #include "ein_aibo.h"
-#include<sys/socket.h>
-#include<arpa/inet.h> 
-#include <sys/poll.h>
 
 #include <ros/package.h>
 #include <tf/transform_listener.h>
@@ -518,6 +515,8 @@ class EinConfig {
 
 
   double bDelta = GRID_COARSE;
+
+  EinWindow * dogSnoutViewWindow;
 
   EinWindow * rangeogramWindow;
   EinWindow * wristViewWindow;
@@ -1447,11 +1446,6 @@ class EinConfig {
   int * transitionCounts = NULL;
 
 
-  // sockets for AIBO
-  int aibo_socket_desc;
-  struct sockaddr_in aibo_server;
-  const static int aibo_sock_buf_size = 1024*1024*3;
-  char aibo_sock_buf[aibo_sock_buf_size];
 }; // config end
 
 
@@ -1473,7 +1467,11 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   std::map<string, std::shared_ptr<Word> > variables;
 
   std::shared_ptr<Word> current_instruction = NULL;
+
   EinConfig config;
+
+  int focusedMember = 0;
+  std::vector<EinAiboConfig> pack;
 
   int execute_stack = 0;
 

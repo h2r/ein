@@ -14483,7 +14483,10 @@ void initializeArmGui(shared_ptr<MachineState> ms, MainWindow * einMainWindow) {
 //  ms->config.gripperMaskSquaresWindow->setWindowTitle("Gripper Mask Squares " + ms->config.left_or_right_arm);
 //  einMainWindow->addWindow(ms->config.gripperMaskSquaresWindow);
 
-
+  ms->config.dogSnoutViewWindow = new EinWindow(NULL, ms);
+  ms->config.dogSnoutViewWindow->setWindowTitle("Dog Snout View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.dogSnoutViewWindow);
+  ms->config.dogSnoutViewWindow->setVisible(true);
 
 
   ms->config.rangeogramWindow = new EinWindow(NULL, ms);
