@@ -107,7 +107,7 @@ SSDP_ENABLE=1
   nextCoreMessage = findStringInDogBuffer(ms, this_dog, string("] "), nextCoreMessage); \
   r = stod(&(ms->pack[this_dog].aibo_sock_buf[nextCoreMessage]), &idx);  \
   x = r; \
-  cout << "dgbi got: " << r << endl; 
+  cout << "dgbi got: " << r << " for " << #x << endl; 
 
 
 void sendOnDogSocket(std::shared_ptr<MachineState> ms, int member, string message) {
@@ -260,7 +260,8 @@ int readBytesFromDogUntilString(std::shared_ptr<MachineState> ms, int member, in
 
 // returns the byte after the searched string
 int findStringInDogBuffer(std::shared_ptr<MachineState> ms, int member, string toFind, int start) {
-  for (int searchedBytes = start; searchedBytes < (ms->pack[member].aibo_sock_buf_valid_bytes - int(toFind.size()) + 1); searchedBytes++) {
+  int searchedBytes = 0;
+  for (searchedBytes = start; searchedBytes < (ms->pack[member].aibo_sock_buf_valid_bytes - int(toFind.size()) + 1); searchedBytes++) {
     if (toFind.compare(0, toFind.size(), &(ms->pack[member].aibo_sock_buf[searchedBytes]), toFind.size()) == 0) {
       searchedBytes += toFind.size();
       cout << "findStringInDogBuffer found " << toFind << " at " << searchedBytes << endl;
@@ -268,6 +269,10 @@ int findStringInDogBuffer(std::shared_ptr<MachineState> ms, int member, string t
     } else {
     }
   }
+
+  cout << "findStringInDogBuffer failed to find " << toFind << " at " << searchedBytes << endl;
+  string searchedText(ms->pack[member].aibo_sock_buf, searchedBytes);
+  cout << "  searched: " << endl << searchedText << endl;
 
   return -1;
 }
@@ -365,6 +370,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(DogFocusedMember)
+
+WORD(DogBark)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("socketSend");
+  ms->pushWord(make_shared<StringWord>("speaker.play(\"bark.wav\");"));
+}
+END_WORD
+REGISTER_WORD(DogBark)
 
 WORD(SocketOpen)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -476,6 +489,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(DogMotorsOn)
+
+WORD(DogMotorsOff)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("\"motors off;\" socketSend");
+}
+END_WORD
+REGISTER_WORD(DogMotorsOff)
 
 //// start swtrans.u wrappers
 
@@ -753,12 +773,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   flushDogBuffer(ms, this_dog); 
 
   // request the info 
-  string request(" dgsms +begin:   legLF1.val; legLF2.val; legLF3.val; legLH1.val; legLH2.val; legLH3.val; legRH1.val; legRH2.val; legRH3.val; legRF1.val; legRF2.val; legRF3.val; neck.val; headPan.val; headTilt.val; tailPan.val; tailTilt.val; mouth.val; legLF1.PGain; legLF2.PGain; legLF3.PGain; legLH1.PGain; legLH2.PGain; legLH3.PGain; legRH1.PGain; legRH2.PGain; legRH3.PGain; legRF1.PGain; legRF2.PGain; legRF3.PGain; neck.PGain; headPan.PGain; headTilt.PGain; tailPan.PGain; tailTilt.PGain; mouth.PGain; legLF1.IGain; legLF2.IGain; legLF3.IGain; legLH1.IGain; legLH2.IGain; legLH3.IGain; legRH1.IGain; legRH2.IGain; legRH3.IGain; legRF1.IGain; legRF2.IGain; legRF3.IGain; neck.IGain; headPan.IGain; headTilt.IGain; tailPan.IGain; tailTilt.IGain; mouth.IGain; legLF1.DGain; legLF2.DGain; legLF3.DGain; legLH1.DGain; legLH2.DGain; legLH3.DGain; legRH1.DGain; legRH2.DGain; legRH3.DGain; legRF1.DGain; legRF2.DGain; legRF3.DGain; neck.DGain; headPan.DGain; headTilt.DGain; tailPan.DGain; tailTilt.DGain; mouth.DGain; distanceNear; distance; distanceChest; accelX; accelY; accelZ; pawLF; pawLH; pawRF; pawRH; chinSensor; headSensor; backSensorR; backSensorM; dgsms +end: backSensorF;");
+  string request("dgsms +begin: legLF1.val; legLF2.val; legLF3.val; legLH1.val; legLH2.val; legLH3.val; legRH1.val; legRH2.val; legRH3.val; legRF1.val; legRF2.val; legRF3.val; neck.val; headPan.val; headTilt.val; tailPan.val; tailTilt.val; mouth.val; legLF1.PGain; legLF2.PGain; legLF3.PGain; legLH1.PGain; legLH2.PGain; legLH3.PGain; legRH1.PGain; legRH2.PGain; legRH3.PGain; legRF1.PGain; legRF2.PGain; legRF3.PGain; neck.PGain; headPan.PGain; headTilt.PGain; tailPan.PGain; tailTilt.PGain; mouth.PGain; legLF1.IGain; legLF2.IGain; legLF3.IGain; legLH1.IGain; legLH2.IGain; legLH3.IGain; legRH1.IGain; legRH2.IGain; legRH3.IGain; legRF1.IGain; legRF2.IGain; legRF3.IGain; neck.IGain; headPan.IGain; headTilt.IGain; tailPan.IGain; tailTilt.IGain; mouth.IGain; legLF1.DGain; legLF2.DGain; legLF3.DGain; legLH1.DGain; legLH2.DGain; legLH3.DGain; legRH1.DGain; legRH2.DGain; legRH3.DGain; legRF1.DGain; legRF2.DGain; legRF3.DGain; neck.DGain; headPan.DGain; headTilt.DGain; tailPan.DGain; tailTilt.DGain; mouth.DGain; distanceNear.val; distance.val; distanceChest.val; accelX.val; accelY.val; accelZ.val; pawLF.val; pawLH.val; pawRF.val; pawRH.val; chinSensor.val; headSensor.val; backSensorR.val; backSensorM.val; dgsms +end: backSensorF.val;");
 
   sendOnDogSocket(ms, this_dog, request);
 
   // read until all info is in
-  readBytesFromDogUntilString(ms, this_dog, 250, string(":dgsms] *** end\n"));
+  readBytesFromDogUntilString(ms, this_dog, 5000, string(":dgsms] *** end\n"));
 
   int startCoreMessage = findStringInDogBuffer(ms, this_dog, string(":dgsms] *** begin\n"), 0);
   cout << ms->pack[this_dog].aibo_sock_buf[startCoreMessage] << endl;
@@ -921,8 +941,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(DogGetIndicators)
 
-#define DOG_SEND_JOINT_VAR(x) << "x.val = " << ms->pack[this_dog].intendedPose.x << "; "
-#define DOG_SEND_INDICATOR_VAR(x) << "x.val = " << ms->pack[this_dog].intendedIndicators.x << "; "
+#define DOG_SEND_JOINT_VAR(x) << " " << #x << ".val = " << ms->pack[this_dog].intendedPose.x << ","
+#define DOG_SEND_INDICATOR_VAR(x) << " " << #x << ".val = " << ms->pack[this_dog].intendedIndicators.x << ","
 
 WORD(DogSendMotorState)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -950,7 +970,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   "tailTilt.val = " << ms->pack[this_dog].intendedPose.tailTilt << "; " <<
   "mouth.val = " << ms->pack[this_dog].intendedPose.mouth << "; "
 */
-  ss
+  ss  
     DOG_SEND_JOINT_VAR(legLF1)
     DOG_SEND_JOINT_VAR(legLF2)
     DOG_SEND_JOINT_VAR(legLF3)
@@ -982,7 +1002,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int this_dog = ms->focusedMember;
 
   stringstream ss;
-  ss
+  ss 
     DOG_SEND_INDICATOR_VAR(ledBFC)
     DOG_SEND_INDICATOR_VAR(ledBFW)
     DOG_SEND_INDICATOR_VAR(ledBMC)
@@ -1016,6 +1036,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(DogSendIndicators)
+
+WORD(DogStay)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+  ms->pack[this_dog].intendedPose = ms->pack[this_dog].truePose;
+}
+END_WORD
+REGISTER_WORD(DogStay)
 
 /*
 
