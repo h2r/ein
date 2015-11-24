@@ -103,6 +103,13 @@ SSDP_ENABLE=1
 
 */
 
+#define DOG_READ_VAR(x) \
+  nextCoreMessage = findStringInDogBuffer(ms, this_dog, string("] "), nextCoreMessage); \
+  r = stod(&(ms->pack[this_dog].aibo_sock_buf[nextCoreMessage]), &idx);  \
+  x = r; \
+  cout << "dgbi got: " << r << endl; 
+
+
 void sendOnDogSocket(std::shared_ptr<MachineState> ms, int member, string message) {
   // append return
   message = message;
@@ -195,18 +202,121 @@ int getBytesFromDog(std::shared_ptr<MachineState> ms, int member, int bytesToGet
   return ms->pack[member].aibo_sock_buf_valid_bytes;
 }
 
+// returns the byte after the searched string
+int readBytesFromDogUntilString(std::shared_ptr<MachineState> ms, int member, int timeout, string toFind) {
+  int read_size = 1;
+  ms->pack[member].aibo_sock_buf_valid_bytes = 0;
+  int sbStart = ms->pack[member].aibo_sock_buf_valid_bytes;
+
+  int searchedBytes = 0;
+
+  while ( (read_size > 0) ){
+
+    for (; searchedBytes < (ms->pack[member].aibo_sock_buf_valid_bytes - int(toFind.size()) + 1); searchedBytes++) {
+      //cout << searchedBytes << " " << ms->pack[member].aibo_sock_buf[searchedBytes] << " " << ms->pack[member].aibo_sock_buf_valid_bytes << " " << toFind.size() << " " << (ms->pack[member].aibo_sock_buf_valid_bytes - int(toFind.size()) + 1) << endl;
+      if (toFind.compare(0, toFind.size(), &(ms->pack[member].aibo_sock_buf[searchedBytes]), toFind.size()) == 0) {
+	searchedBytes += toFind.size();
+	cout << "readBytesFromDogUntilString found " << toFind << " at " << searchedBytes << endl;
+	return searchedBytes;
+      } else {
+      }
+    }
+
+    // return if not ready to read.
+    struct pollfd fd;
+    int ret;
+
+    fd.fd = ms->pack[member].aibo_socket_desc;  
+    fd.events = POLLIN;
+    ret = poll(&fd, 1, timeout);  
+    switch (ret) {
+      case -1:
+	// Error
+	cout << "file descriptor error during poll in rbfdus..." << endl;
+	read_size = -1;
+	break;
+      case 0:
+	// Timeout 
+	cout << "timeout during poll in rbfdus..." << endl;
+	read_size = 0;
+	break;
+      default:
+	// read from dog
+	sbStart = ms->pack[member].aibo_sock_buf_valid_bytes;
+	read_size = read(ms->pack[member].aibo_socket_desc, &(ms->pack[member].aibo_sock_buf[sbStart]), ms->pack[member].aibo_sock_buf_size-sbStart);
+	if (read_size <= 0) {
+	  cout << "oops, read failed, closing socket..." << endl;
+	  close(ms->pack[member].aibo_socket_desc);
+	  return -1;
+	} else {
+	  ms->pack[member].aibo_sock_buf_valid_bytes += read_size;
+	}
+	cout << "read " << read_size << " bytes during poll in rbfdus..." << endl;
+	break;
+    }
+  }
+  return -1;
+}
+
+// returns the byte after the searched string
+int findStringInDogBuffer(std::shared_ptr<MachineState> ms, int member, string toFind, int start) {
+  for (int searchedBytes = start; searchedBytes < (ms->pack[member].aibo_sock_buf_valid_bytes - int(toFind.size()) + 1); searchedBytes++) {
+    if (toFind.compare(0, toFind.size(), &(ms->pack[member].aibo_sock_buf[searchedBytes]), toFind.size()) == 0) {
+      searchedBytes += toFind.size();
+      cout << "findStringInDogBuffer found " << toFind << " at " << searchedBytes << endl;
+      return searchedBytes;
+    } else {
+    }
+  }
+
+  return -1;
+}
+
+
+
 // XXX REQUIRE_FOCUSED_DOG macro
 
 namespace ein_words {
 
-WORD(DogFormPack)
+WORD(DogSendPack)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->evaluateProgram("2 dogSetPackSize \
-		       0 dogSetFocusedMember \"192.168.1.127\" 54000 socketOpen \
-		       1 dogSetFocusedMember \"192.168.1.128\" 54000 socketOpen");
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  for (int m = 0; m < ms->pack.size(); m++) {
+    sendOnDogSocket(ms, m, message);
+  }
 }
 END_WORD
-REGISTER_WORD(DogFormPack)
+REGISTER_WORD(DogSendPack)
+
+WORD(DogDoPack)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> w1;
+  GET_WORD_ARG(ms, Word, w1);
+
+  for (int m = 0; m < ms->pack.size(); m++) {
+    ms->pushWord(w1);
+    ms->pushWord("dogIncrementFocusedMember");
+  }
+}
+END_WORD
+REGISTER_WORD(DogDoPack)
+
+WORD(DogIncrementFocusedMember)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->focusedMember = (ms->focusedMember + 1) % ms->pack.size();
+}
+END_WORD
+REGISTER_WORD(DogIncrementFocusedMember)
+
+WORD(DogDecrementPackMember)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->focusedMember = (ms->focusedMember - 1) % ms->pack.size();
+}
+END_WORD
+REGISTER_WORD(DogDecrementPackMember)
+
 
 WORD(DogSetPackSize)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -590,19 +700,21 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     int dataIdx = chosenFormatLength - (rows * cols * 3);
     for (int y = 0; y < rows; y++) {
       for (int x = 0; x < cols; x++) {
+	// dog is in YCbCr and opencv uses YCrCb
 	ms->pack[this_dog].snoutImage.at<Vec3b>(y,x)[0] = ms->pack[this_dog].aibo_sock_buf[dataIdx];
 	//cout << int( ms->pack[this_dog].snoutImage.at<Vec3b>(y,x)[0] ) << " ";
 	dataIdx++;
-	ms->pack[this_dog].snoutImage.at<Vec3b>(y,x)[1] = ms->pack[this_dog].aibo_sock_buf[dataIdx];
+	ms->pack[this_dog].snoutImage.at<Vec3b>(y,x)[2] = ms->pack[this_dog].aibo_sock_buf[dataIdx];
 	//cout << int( ms->pack[this_dog].snoutImage.at<Vec3b>(y,x)[1] ) << " ";
 	dataIdx++;
-	ms->pack[this_dog].snoutImage.at<Vec3b>(y,x)[2] = ms->pack[this_dog].aibo_sock_buf[dataIdx];
+	ms->pack[this_dog].snoutImage.at<Vec3b>(y,x)[1] = ms->pack[this_dog].aibo_sock_buf[dataIdx];
 	//cout << int( ms->pack[this_dog].snoutImage.at<Vec3b>(y,x)[2] ) << " ";
 	dataIdx++;
       }
     }
 
-    cvtColor(ms->pack[this_dog].snoutImage, ms->pack[this_dog].snoutImage, CV_YCrCb2RGB);
+    // convert YCrCb explicity to BGR
+    cvtColor(ms->pack[this_dog].snoutImage, ms->pack[this_dog].snoutImage, CV_YCrCb2BGR);
 
     ms->config.dogSnoutViewWindow->updateImage(ms->pack[this_dog].snoutImage);
   } else {
@@ -633,7 +745,277 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(DogPublishSnout)
 
+WORD(DogGetSensoryMotorStates)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
 
+  // read until there is nothing
+  flushDogBuffer(ms, this_dog); 
+
+  // request the info 
+  string request(" dgsms +begin:   legLF1.val; legLF2.val; legLF3.val; legLH1.val; legLH2.val; legLH3.val; legRH1.val; legRH2.val; legRH3.val; legRF1.val; legRF2.val; legRF3.val; neck.val; headPan.val; headTilt.val; tailPan.val; tailTilt.val; mouth.val; legLF1.PGain; legLF2.PGain; legLF3.PGain; legLH1.PGain; legLH2.PGain; legLH3.PGain; legRH1.PGain; legRH2.PGain; legRH3.PGain; legRF1.PGain; legRF2.PGain; legRF3.PGain; neck.PGain; headPan.PGain; headTilt.PGain; tailPan.PGain; tailTilt.PGain; mouth.PGain; legLF1.IGain; legLF2.IGain; legLF3.IGain; legLH1.IGain; legLH2.IGain; legLH3.IGain; legRH1.IGain; legRH2.IGain; legRH3.IGain; legRF1.IGain; legRF2.IGain; legRF3.IGain; neck.IGain; headPan.IGain; headTilt.IGain; tailPan.IGain; tailTilt.IGain; mouth.IGain; legLF1.DGain; legLF2.DGain; legLF3.DGain; legLH1.DGain; legLH2.DGain; legLH3.DGain; legRH1.DGain; legRH2.DGain; legRH3.DGain; legRF1.DGain; legRF2.DGain; legRF3.DGain; neck.DGain; headPan.DGain; headTilt.DGain; tailPan.DGain; tailTilt.DGain; mouth.DGain; distanceNear; distance; distanceChest; accelX; accelY; accelZ; pawLF; pawLH; pawRF; pawRH; chinSensor; headSensor; backSensorR; backSensorM; dgsms +end: backSensorF;");
+
+  sendOnDogSocket(ms, this_dog, request);
+
+  // read until all info is in
+  readBytesFromDogUntilString(ms, this_dog, 250, string(":dgsms] *** end\n"));
+
+  int startCoreMessage = findStringInDogBuffer(ms, this_dog, string(":dgsms] *** begin\n"), 0);
+  cout << ms->pack[this_dog].aibo_sock_buf[startCoreMessage] << endl;
+
+  size_t idx;
+  int nextCoreMessage = startCoreMessage; 
+  double r = 0.0;
+
+  DOG_READ_VAR(ms->pack[this_dog].truePose.legLF1);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.legLF2);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.legLF3);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.legLH1);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.legLH2);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.legLH3);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.legRH1);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.legRH2);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.legRH3);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.legRF1);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.legRF2);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.legRF3);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.neck);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.headPan);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.headTilt);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.tailPan);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.tailTilt);
+  DOG_READ_VAR(ms->pack[this_dog].truePose.mouth);
+
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].legLF1);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].legLF2);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].legLF3);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].legLH1);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].legLH2);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].legLH3);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].legRH1);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].legRH2);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].legRH3);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].legRF1);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].legRF2);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].legRF3);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].neck);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].headPan);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].headTilt);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].tailPan);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].tailTilt);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[0].mouth);
+
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].legLF1);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].legLF2);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].legLF3);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].legLH1);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].legLH2);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].legLH3);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].legRH1);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].legRH2);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].legRH3);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].legRF1);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].legRF2);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].legRF3);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].neck);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].headPan);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].headTilt);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].tailPan);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].tailTilt);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[1].mouth);
+
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].legLF1);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].legLF2);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].legLF3);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].legLH1);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].legLH2);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].legLH3);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].legRH1);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].legRH2);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].legRH3);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].legRF1);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].legRF2);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].legRF3);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].neck);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].headPan);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].headTilt);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].tailPan);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].tailTilt);
+  DOG_READ_VAR(ms->pack[this_dog].trueGain[2].mouth);
+
+  DOG_READ_VAR(ms->pack[this_dog].trueSensors.distanceNearSnout);
+  DOG_READ_VAR(ms->pack[this_dog].trueSensors.distanceFarSnout);
+  DOG_READ_VAR(ms->pack[this_dog].trueSensors.distanceChest);
+  DOG_READ_VAR(ms->pack[this_dog].trueSensors.accelerometer[0]);
+  DOG_READ_VAR(ms->pack[this_dog].trueSensors.accelerometer[1]);
+  DOG_READ_VAR(ms->pack[this_dog].trueSensors.accelerometer[2]);
+  DOG_READ_VAR(ms->pack[this_dog].trueSensors.pawLF);
+  DOG_READ_VAR(ms->pack[this_dog].trueSensors.pawLH);
+  DOG_READ_VAR(ms->pack[this_dog].trueSensors.pawRF);
+  DOG_READ_VAR(ms->pack[this_dog].trueSensors.pawRH);
+  DOG_READ_VAR(ms->pack[this_dog].trueSensors.chinSensor);
+  DOG_READ_VAR(ms->pack[this_dog].trueSensors.headTouch);
+  DOG_READ_VAR(ms->pack[this_dog].trueSensors.backTouchR);
+  DOG_READ_VAR(ms->pack[this_dog].trueSensors.backTouchM);
+  DOG_READ_VAR(ms->pack[this_dog].trueSensors.backTouchF);
+
+  cout << "dogGetSensoryMotorStates: finished" << endl;
+}
+END_WORD
+REGISTER_WORD(DogGetSensoryMotorStates)
+
+WORD(DogGetIndicators)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  // read until there is nothing
+  flushDogBuffer(ms, this_dog); 
+
+  // request the info 
+  string request("dgbi +begin:  ledBFC.val; ledBFW.val; ledBMC.val; ledBMW.val; ledBRC.val; ledBRW.val; ledF1.val; ledF2.val; ledF3.val; ledF4.val; ledF5.val; ledF6.val; ledF7.val; ledF8.val; ledF9.val; ledF10.val; ledF11.val; ledF12.val; ledF13.val; ledF14.val; ledHC.val; modeR.val; modeG.val; modeB.val; earL.val; dgbi +end: earR.val;");
+  sendOnDogSocket(ms, this_dog, request);
+
+  // read until all info is in
+  readBytesFromDogUntilString(ms, this_dog, 250, string(":dgbi] *** end\n"));
+
+  int startCoreMessage = findStringInDogBuffer(ms, this_dog, string(":dgbi] *** begin\n"), 0);
+  cout << ms->pack[this_dog].aibo_sock_buf[startCoreMessage] << endl;
+
+  size_t idx;
+  int nextCoreMessage = startCoreMessage; 
+  double r = 0.0;
+
+  //cout << ms->pack[this_dog].aibo_sock_buf[nextCoreMessage] << endl;
+  //cout << "dgbi got: " << r << endl;
+
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledBFC);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledBFW);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledBMC);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledBMW);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledBRC);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledBRW);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledF1);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledF2);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledF3);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledF4);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledF5);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledF6);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledF7);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledF8);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledF9);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledF10);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledF11);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledF12);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledF13);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledF14);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.ledHC);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.modeR);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.modeG);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.modeB);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.earL);
+  DOG_READ_VAR(ms->pack[this_dog].trueIndicators.earR);
+
+  cout << "dogGetIndicators: finished" << endl;
+  // parse the info
+}
+END_WORD
+REGISTER_WORD(DogGetIndicators)
+
+#define DOG_SEND_JOINT_VAR(x) << "x.val = " << ms->pack[this_dog].intendedPose.x << "; "
+#define DOG_SEND_INDICATOR_VAR(x) << "x.val = " << ms->pack[this_dog].intendedIndicators.x << "; "
+
+WORD(DogSendMotorState)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  stringstream ss;
+/*
+  ss <<
+  "legLF1.val = " << ms->pack[this_dog].intendedPose.legLF1 << "; " <<
+  "legLF2.val = " << ms->pack[this_dog].intendedPose.legLF2 << "; " <<
+  "legLF3.val = " << ms->pack[this_dog].intendedPose.legLF3 << "; " <<
+  "legLH1.val = " << ms->pack[this_dog].intendedPose.legLH1 << "; " <<
+  "legLH2.val = " << ms->pack[this_dog].intendedPose.legLH2 << "; " <<
+  "legLH3.val = " << ms->pack[this_dog].intendedPose.legLH3 << "; " <<
+  "legRH1.val = " << ms->pack[this_dog].intendedPose.legRH1 << "; " <<
+  "legRH2.val = " << ms->pack[this_dog].intendedPose.legRH2 << "; " <<
+  "legRH3.val = " << ms->pack[this_dog].intendedPose.legRH3 << "; " <<
+  "legRF1.val = " << ms->pack[this_dog].intendedPose.legRF1 << "; " <<
+  "legRF2.val = " << ms->pack[this_dog].intendedPose.legRF2  << "; " <<
+  "legRF3.val = " << ms->pack[this_dog].intendedPose.legRF3  << "; " <<
+  "neck.val = " << ms->pack[this_dog].intendedPose.neck << "; " <<
+  "headPan.val = " << ms->pack[this_dog].intendedPose.headPan << "; " <<
+  "headTilt.val = " << ms->pack[this_dog].intendedPose.headTilt << "; " <<
+  "tailPan.val = " << ms->pack[this_dog].intendedPose.tailPan << "; " <<
+  "tailTilt.val = " << ms->pack[this_dog].intendedPose.tailTilt << "; " <<
+  "mouth.val = " << ms->pack[this_dog].intendedPose.mouth << "; "
+*/
+  ss
+    DOG_SEND_JOINT_VAR(legLF1)
+    DOG_SEND_JOINT_VAR(legLF2)
+    DOG_SEND_JOINT_VAR(legLF3)
+    DOG_SEND_JOINT_VAR(legLH1)
+    DOG_SEND_JOINT_VAR(legLH2)
+    DOG_SEND_JOINT_VAR(legLH3)
+    DOG_SEND_JOINT_VAR(legRH1)
+    DOG_SEND_JOINT_VAR(legRH2)
+    DOG_SEND_JOINT_VAR(legRH3)
+    DOG_SEND_JOINT_VAR(legRF1)
+    DOG_SEND_JOINT_VAR(legRF2)
+    DOG_SEND_JOINT_VAR(legRF3)
+    DOG_SEND_JOINT_VAR(neck)
+    DOG_SEND_JOINT_VAR(headPan)
+    DOG_SEND_JOINT_VAR(headTilt)
+    DOG_SEND_JOINT_VAR(tailPan)
+    DOG_SEND_JOINT_VAR(tailTilt)
+    DOG_SEND_JOINT_VAR(mouth) 
+  ;
+
+  string message = ss.str();
+  sendOnDogSocket(ms, this_dog, message);
+}
+END_WORD
+REGISTER_WORD(DogSendMotorState)
+
+WORD(DogSendIndicators)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  stringstream ss;
+  ss
+    DOG_SEND_INDICATOR_VAR(ledBFC)
+    DOG_SEND_INDICATOR_VAR(ledBFW)
+    DOG_SEND_INDICATOR_VAR(ledBMC)
+    DOG_SEND_INDICATOR_VAR(ledBMW)
+    DOG_SEND_INDICATOR_VAR(ledBRC)
+    DOG_SEND_INDICATOR_VAR(ledBRW)
+    DOG_SEND_INDICATOR_VAR(ledF1)
+    DOG_SEND_INDICATOR_VAR(ledF2)
+    DOG_SEND_INDICATOR_VAR(ledF3)
+    DOG_SEND_INDICATOR_VAR(ledF4)
+    DOG_SEND_INDICATOR_VAR(ledF5)
+    DOG_SEND_INDICATOR_VAR(ledF6)
+    DOG_SEND_INDICATOR_VAR(ledF7)
+    DOG_SEND_INDICATOR_VAR(ledF8)
+    DOG_SEND_INDICATOR_VAR(ledF9)
+    DOG_SEND_INDICATOR_VAR(ledF10)
+    DOG_SEND_INDICATOR_VAR(ledF11)
+    DOG_SEND_INDICATOR_VAR(ledF12)
+    DOG_SEND_INDICATOR_VAR(ledF13)
+    DOG_SEND_INDICATOR_VAR(ledF14)
+    DOG_SEND_INDICATOR_VAR(ledHC)
+    DOG_SEND_INDICATOR_VAR(modeR)
+    DOG_SEND_INDICATOR_VAR(modeG)
+    DOG_SEND_INDICATOR_VAR(modeB)
+    DOG_SEND_INDICATOR_VAR(earL)
+    DOG_SEND_INDICATOR_VAR(earR)
+  ;
+
+  string message = ss.str();
+  sendOnDogSocket(ms, this_dog, message);
+}
+END_WORD
+REGISTER_WORD(DogSendIndicators)
 
 /*
 
