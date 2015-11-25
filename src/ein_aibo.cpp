@@ -942,6 +942,9 @@ END_WORD
 REGISTER_WORD(DogGetIndicators)
 
 #define DOG_SEND_JOINT_VAR(x) << " " << #x << ".val = " << ms->pack[this_dog].intendedPose.x << ","
+#define DOG_SEND_JOINT_PGAIN_VAR(x) << " " << #x << ".PGain = " << ms->pack[this_dog].intendedGain[0].x << ","
+#define DOG_SEND_JOINT_IGAIN_VAR(x) << " " << #x << ".IGain = " << ms->pack[this_dog].intendedGain[1].x << ","
+#define DOG_SEND_JOINT_DGAIN_VAR(x) << " " << #x << ".DGain = " << ms->pack[this_dog].intendedGain[2].x << ","
 #define DOG_SEND_INDICATOR_VAR(x) << " " << #x << ".val = " << ms->pack[this_dog].intendedIndicators.x << ","
 
 WORD(DogSendMotorState)
@@ -989,6 +992,60 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     DOG_SEND_JOINT_VAR(tailPan)
     DOG_SEND_JOINT_VAR(tailTilt)
     DOG_SEND_JOINT_VAR(mouth) 
+    DOG_SEND_JOINT_PGAIN_VAR(legLF1)
+    DOG_SEND_JOINT_PGAIN_VAR(legLF2)
+    DOG_SEND_JOINT_PGAIN_VAR(legLF3)
+    DOG_SEND_JOINT_PGAIN_VAR(legLH1)
+    DOG_SEND_JOINT_PGAIN_VAR(legLH2)
+    DOG_SEND_JOINT_PGAIN_VAR(legLH3)
+    DOG_SEND_JOINT_PGAIN_VAR(legRH1)
+    DOG_SEND_JOINT_PGAIN_VAR(legRH2)
+    DOG_SEND_JOINT_PGAIN_VAR(legRH3)
+    DOG_SEND_JOINT_PGAIN_VAR(legRF1)
+    DOG_SEND_JOINT_PGAIN_VAR(legRF2)
+    DOG_SEND_JOINT_PGAIN_VAR(legRF3)
+    DOG_SEND_JOINT_PGAIN_VAR(neck)
+    DOG_SEND_JOINT_PGAIN_VAR(headPan)
+    DOG_SEND_JOINT_PGAIN_VAR(headTilt)
+    DOG_SEND_JOINT_PGAIN_VAR(tailPan)
+    DOG_SEND_JOINT_PGAIN_VAR(tailTilt)
+    DOG_SEND_JOINT_PGAIN_VAR(mouth) 
+    DOG_SEND_JOINT_IGAIN_VAR(legLF1)
+    DOG_SEND_JOINT_IGAIN_VAR(legLF2)
+    DOG_SEND_JOINT_IGAIN_VAR(legLF3)
+    DOG_SEND_JOINT_IGAIN_VAR(legLH1)
+    DOG_SEND_JOINT_IGAIN_VAR(legLH2)
+    DOG_SEND_JOINT_IGAIN_VAR(legLH3)
+    DOG_SEND_JOINT_IGAIN_VAR(legRH1)
+    DOG_SEND_JOINT_IGAIN_VAR(legRH2)
+    DOG_SEND_JOINT_IGAIN_VAR(legRH3)
+    DOG_SEND_JOINT_IGAIN_VAR(legRF1)
+    DOG_SEND_JOINT_IGAIN_VAR(legRF2)
+    DOG_SEND_JOINT_IGAIN_VAR(legRF3)
+    DOG_SEND_JOINT_IGAIN_VAR(neck)
+    DOG_SEND_JOINT_IGAIN_VAR(headPan)
+    DOG_SEND_JOINT_IGAIN_VAR(headTilt)
+    DOG_SEND_JOINT_IGAIN_VAR(tailPan)
+    DOG_SEND_JOINT_IGAIN_VAR(tailTilt)
+    DOG_SEND_JOINT_IGAIN_VAR(mouth) 
+    DOG_SEND_JOINT_DGAIN_VAR(legLF1)
+    DOG_SEND_JOINT_DGAIN_VAR(legLF2)
+    DOG_SEND_JOINT_DGAIN_VAR(legLF3)
+    DOG_SEND_JOINT_DGAIN_VAR(legLH1)
+    DOG_SEND_JOINT_DGAIN_VAR(legLH2)
+    DOG_SEND_JOINT_DGAIN_VAR(legLH3)
+    DOG_SEND_JOINT_DGAIN_VAR(legRH1)
+    DOG_SEND_JOINT_DGAIN_VAR(legRH2)
+    DOG_SEND_JOINT_DGAIN_VAR(legRH3)
+    DOG_SEND_JOINT_DGAIN_VAR(legRF1)
+    DOG_SEND_JOINT_DGAIN_VAR(legRF2)
+    DOG_SEND_JOINT_DGAIN_VAR(legRF3)
+    DOG_SEND_JOINT_DGAIN_VAR(neck)
+    DOG_SEND_JOINT_DGAIN_VAR(headPan)
+    DOG_SEND_JOINT_DGAIN_VAR(headTilt)
+    DOG_SEND_JOINT_DGAIN_VAR(tailPan)
+    DOG_SEND_JOINT_DGAIN_VAR(tailTilt)
+    DOG_SEND_JOINT_DGAIN_VAR(mouth) 
   ;
 
   string message = ss.str();
@@ -1041,9 +1098,270 @@ WORD(DogStay)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int this_dog = ms->focusedMember;
   ms->pack[this_dog].intendedPose = ms->pack[this_dog].truePose;
+  ms->pack[this_dog].intendedGain[0] = ms->pack[this_dog].trueGain[0];
+  ms->pack[this_dog].intendedGain[1] = ms->pack[this_dog].trueGain[1];
+  ms->pack[this_dog].intendedGain[2] = ms->pack[this_dog].trueGain[2];
 }
 END_WORD
 REGISTER_WORD(DogStay)
+
+WORD(DogPushIntendedPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  shared_ptr<AiboPoseWord> word = std::make_shared<AiboPoseWord>(ms->pack[this_dog].intendedPose);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(DogPushIntendedPose)
+
+WORD(DogPushTruePose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  shared_ptr<AiboPoseWord> word = std::make_shared<AiboPoseWord>(ms->pack[this_dog].truePose);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(DogPushTruePose)
+
+WORD(DogCreatePose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  EinAiboJoints toPush;
+
+  GET_NUMERIC_ARG(ms, toPush.mouth);
+  GET_NUMERIC_ARG(ms, toPush.tailTilt);
+  GET_NUMERIC_ARG(ms, toPush.tailPan);
+  GET_NUMERIC_ARG(ms, toPush.headTilt);
+  GET_NUMERIC_ARG(ms, toPush.headPan);
+  GET_NUMERIC_ARG(ms, toPush.neck);
+  GET_NUMERIC_ARG(ms, toPush.legRF3);
+  GET_NUMERIC_ARG(ms, toPush.legRF2);
+  GET_NUMERIC_ARG(ms, toPush.legRF1);
+  GET_NUMERIC_ARG(ms, toPush.legRH3);
+  GET_NUMERIC_ARG(ms, toPush.legRH2);
+  GET_NUMERIC_ARG(ms, toPush.legRH1);
+  GET_NUMERIC_ARG(ms, toPush.legLH3);
+  GET_NUMERIC_ARG(ms, toPush.legLH2);
+  GET_NUMERIC_ARG(ms, toPush.legLH1);
+  GET_NUMERIC_ARG(ms, toPush.legLF3);
+  GET_NUMERIC_ARG(ms, toPush.legLF2);
+  GET_NUMERIC_ARG(ms, toPush.legLF1);
+
+  shared_ptr<AiboPoseWord> word = std::make_shared<AiboPoseWord>(toPush);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(DogCreatePose)
+
+WORD(DogSetIntendedPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  shared_ptr<AiboPoseWord> word ;
+  GET_WORD_ARG(ms, AiboPoseWord, word);
+
+  ms->pack[this_dog].intendedPose = word->value();
+}
+END_WORD
+REGISTER_WORD(DogSetIntendedPose)
+
+// XXX
+#define AIBO_POSE_ACCESSOR(J, C, D) \
+WORD(AiboPose ## J) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  shared_ptr<AiboPoseWord> word ; \
+  GET_WORD_ARG(ms, AiboPoseWord, word); \
+  shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(C); \
+  ms->pushData(vword); \
+} \
+END_WORD \
+REGISTER_WORD(AiboPose ## J) \
+\
+WORD(SetAiboPose ## J) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  double value; \
+  GET_NUMERIC_ARG(ms, value); \
+   \
+  shared_ptr<AiboPoseWord> word; \
+  GET_WORD_ARG(ms, AiboPoseWord, word); \
+   \
+  EinAiboJoints newPose = word->value(); \
+  D = value; \
+ \
+  shared_ptr<AiboPoseWord> newWord = make_shared<AiboPoseWord>(newPose); \
+ \
+  ms->pushData(newWord); \
+} \
+END_WORD \
+REGISTER_WORD(SetAiboPose ## J) \
+/*
+*/
+
+AIBO_POSE_ACCESSOR(LegRH1, word->value().legRH1, newPose.legRH1)
+
+#define AIBO_POSE_DELTAS(J, C, D) \
+WORD(Dog ## J ## Up) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  int this_dog = ms->focusedMember; \
+  C += D; \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J ## Up) \
+\
+WORD(Dog ## J ## Down) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  int this_dog = ms->focusedMember; \
+  C -= D; \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J ## Down) \
+\
+WORD(Dog ## J ## By) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  int this_dog = ms->focusedMember; \
+\
+  double amount = 0.0; \
+  GET_NUMERIC_ARG(ms, amount); \
+  C += amount; \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J ## By) \
+
+#define AIBO_POSE_DELTAS_GAIN(J, C, D) \
+WORD(Dog ## J ## Up) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  int this_dog = ms->focusedMember; \
+  C += D; \
+  C = min( max( 0.0, C ), 18.0 ); \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J ## Up) \
+\
+WORD(Dog ## J ## Down) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  int this_dog = ms->focusedMember; \
+  C -= D; \
+  C = min( max( 0.0, C ), 18.0 ); \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J ## Down) \
+\
+WORD(Dog ## J ## By) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  int this_dog = ms->focusedMember; \
+\
+  double amount = 0.0; \
+  GET_NUMERIC_ARG(ms, amount); \
+  C += amount; \
+  C = min( max( 0.0, C ), 18.0 ); \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J ## By) \
+
+
+AIBO_POSE_DELTAS(LegLF1, ms->pack[this_dog].intendedPose.legLF1, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(LegLF2, ms->pack[this_dog].intendedPose.legLF2, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(LegLF3, ms->pack[this_dog].intendedPose.legLF3, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(LegLH1, ms->pack[this_dog].intendedPose.legLH1, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(LegLH2, ms->pack[this_dog].intendedPose.legLH2, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(LegLH3, ms->pack[this_dog].intendedPose.legLH3, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(LegRH1, ms->pack[this_dog].intendedPose.legRH1, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(LegRH2, ms->pack[this_dog].intendedPose.legRH2, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(LegRH3, ms->pack[this_dog].intendedPose.legRH3, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(LegRF1, ms->pack[this_dog].intendedPose.legRF1, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(LegRF2, ms->pack[this_dog].intendedPose.legRF2, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(LegRF3, ms->pack[this_dog].intendedPose.legRF3, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(Neck, ms->pack[this_dog].intendedPose. neck, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(HeadPan, ms->pack[this_dog].intendedPose.headPan, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(HeadTilt, ms->pack[this_dog].intendedPose.headTilt, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(TailPan, ms->pack[this_dog].intendedPose.tailPan, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(TailTilt, ms->pack[this_dog].intendedPose.tailTilt, ms->pack[this_dog].dogPoseGridSize)
+AIBO_POSE_DELTAS(Mouth, ms->pack[this_dog].intendedPose.mouth, ms->pack[this_dog].dogPoseGridSize)
+
+AIBO_POSE_DELTAS_GAIN(LegLF1PGain, ms->pack[this_dog].intendedGain[0].legLF1, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLF2PGain, ms->pack[this_dog].intendedGain[0].legLF2, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLF3PGain, ms->pack[this_dog].intendedGain[0].legLF3, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH1PGain, ms->pack[this_dog].intendedGain[0].legLH1, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH2PGain, ms->pack[this_dog].intendedGain[0].legLH2, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH3PGain, ms->pack[this_dog].intendedGain[0].legLH3, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH1PGain, ms->pack[this_dog].intendedGain[0].legRH1, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH2PGain, ms->pack[this_dog].intendedGain[0].legRH2, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH3PGain, ms->pack[this_dog].intendedGain[0].legRH3, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF1PGain, ms->pack[this_dog].intendedGain[0].legRF1, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF2PGain, ms->pack[this_dog].intendedGain[0].legRF2, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF3PGain, ms->pack[this_dog].intendedGain[0].legRF3, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(NeckPGain, ms->pack[this_dog].intendedGain[0]. neck, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(HeadPanPGain, ms->pack[this_dog].intendedGain[0].headPan, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(HeadTiltPGain, ms->pack[this_dog].intendedGain[0].headTilt, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(TailPanPGain, ms->pack[this_dog].intendedGain[0].tailPan, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(TailTiltPGain, ms->pack[this_dog].intendedGain[0].tailTilt, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(MouthPGain, ms->pack[this_dog].intendedGain[0].mouth, ms->pack[this_dog].dogGainGridSize)
+
+AIBO_POSE_DELTAS_GAIN(LegLF1IGain, ms->pack[this_dog].intendedGain[1].legLF1, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLF2IGain, ms->pack[this_dog].intendedGain[1].legLF2, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLF3IGain, ms->pack[this_dog].intendedGain[1].legLF3, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH1IGain, ms->pack[this_dog].intendedGain[1].legLH1, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH2IGain, ms->pack[this_dog].intendedGain[1].legLH2, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH3IGain, ms->pack[this_dog].intendedGain[1].legLH3, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH1IGain, ms->pack[this_dog].intendedGain[1].legRH1, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH2IGain, ms->pack[this_dog].intendedGain[1].legRH2, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH3IGain, ms->pack[this_dog].intendedGain[1].legRH3, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF1IGain, ms->pack[this_dog].intendedGain[1].legRF1, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF2IGain, ms->pack[this_dog].intendedGain[1].legRF2, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF3IGain, ms->pack[this_dog].intendedGain[1].legRF3, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(NeckIGain, ms->pack[this_dog].intendedGain[1]. neck, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(HeadPanIGain, ms->pack[this_dog].intendedGain[1].headPan, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(HeadTiltIGain, ms->pack[this_dog].intendedGain[1].headTilt, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(TailPanIGain, ms->pack[this_dog].intendedGain[1].tailPan, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(TailTiltIGain, ms->pack[this_dog].intendedGain[1].tailTilt, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(MouthIGain, ms->pack[this_dog].intendedGain[1].mouth, ms->pack[this_dog].dogGainGridSize)
+
+AIBO_POSE_DELTAS_GAIN(LegLF1DGain, ms->pack[this_dog].intendedGain[2].legLF1, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLF2DGain, ms->pack[this_dog].intendedGain[2].legLF2, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLF3DGain, ms->pack[this_dog].intendedGain[2].legLF3, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH1DGain, ms->pack[this_dog].intendedGain[2].legLH1, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH2DGain, ms->pack[this_dog].intendedGain[2].legLH2, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH3DGain, ms->pack[this_dog].intendedGain[2].legLH3, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH1DGain, ms->pack[this_dog].intendedGain[2].legRH1, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH2DGain, ms->pack[this_dog].intendedGain[2].legRH2, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH3DGain, ms->pack[this_dog].intendedGain[2].legRH3, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF1DGain, ms->pack[this_dog].intendedGain[2].legRF1, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF2DGain, ms->pack[this_dog].intendedGain[2].legRF2, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF3DGain, ms->pack[this_dog].intendedGain[2].legRF3, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(NeckDGain, ms->pack[this_dog].intendedGain[2]. neck, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(HeadPanDGain, ms->pack[this_dog].intendedGain[2].headPan, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(HeadTiltDGain, ms->pack[this_dog].intendedGain[2].headTilt, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(TailPanDGain, ms->pack[this_dog].intendedGain[2].tailPan, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(TailTiltDGain, ms->pack[this_dog].intendedGain[2].tailTilt, ms->pack[this_dog].dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(MouthDGain, ms->pack[this_dog].intendedGain[2].mouth, ms->pack[this_dog].dogGainGridSize)
+
+WORD(DogSetPoseGridSize)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  double newgrid = 0.0;
+  GET_NUMERIC_ARG(ms, newgrid);
+  ms->pack[this_dog].dogPoseGridSize = newgrid;
+  cout << "dogSetPoseGridSize: " << ms->pack[this_dog].dogPoseGridSize << endl;
+}
+END_WORD
+REGISTER_WORD(DogSetPoseGridSize)
+
+WORD(DogSetGainGridSize)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  double newgrid = 0.0;
+  GET_NUMERIC_ARG(ms, newgrid);
+  ms->pack[this_dog].dogGainGridSize = newgrid;
+  cout << "dogSetGainGridSize: " << ms->pack[this_dog].dogGainGridSize << endl;
+}
+END_WORD
+REGISTER_WORD(DogSetGainGridSize)
+
 
 /*
 
@@ -1063,7 +1381,5 @@ END_WORD
 REGISTER_WORD(Dog)
 
 */
-
-
 
 }
