@@ -63,4 +63,8 @@ REGISTER_WORD(PlanWithTransitionTable)
 
 // XXX when training from crops, render from the stream buffer into the observedMap then crop out
 
+// XXX evaluate string word 
+
+// XXX sample action word
+
 

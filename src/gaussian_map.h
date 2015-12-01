@@ -122,13 +122,33 @@ class TransitionTable {
   public:
 
   // numClasses is apt to change so we should store the numbers as they were when the matrix was last initialized
-  std::vector<string> classLabels;
+  std::vector<string> class_labels;
   // XXX maybe these should be strings
-  std::vector<std::shared_ptr<Word> > actions;
-  int sNumActions = 3;
-  int NumClasses = 0;
-  int * counts = NULL;
+  std::vector<string> actions;
+  std::vector<double> action_probabilities;
+  int sNumActions;
+  int NumClasses;
+  shared_ptr<int> counts;
 
+  shared_ptr<Scene> prescene;
+  shared_ptr<Scene> postscene;
+  string performed_action;
+
+  // XXX word
+  void setPrescene(shared_ptr<Scene> s);
+  // XXX word
+  void setPostscene(shared_ptr<Scene> s);
+  // XXX word
+  void recordTransition();
+
+  // XXX word
+  // XXX word setter
+  // XXX word getter
+  void setActions(std::vector<string> * actions);
+  // XXX word
+  // XXX word setter
+  // XXX word getter
+  void setActionProbabilities(std::vector<double> * actions);
 };
 
 #endif /* _EIN_SCENE_H_ */
