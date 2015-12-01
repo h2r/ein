@@ -98,7 +98,10 @@ class EinAiboConfig {
   EinAiboJoints trueJoints;
 
   // socket stuff for AIBO
+  string ip_string;
+  int dog_needs_reinit = 0;
   int aibo_socket_desc;
+  int aibo_socket_did_connect = 0;
   struct sockaddr_in aibo_server;
   const static int aibo_sock_buf_size = 1024*1024*3;
   char aibo_sock_buf[aibo_sock_buf_size];

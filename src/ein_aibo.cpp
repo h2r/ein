@@ -109,16 +109,28 @@ SSDP_ENABLE=1
   x = r; \
   cout << "dgbi got: " << r << " for " << #x << endl; 
 
+void dogReconnect(std::shared_ptr<MachineState> ms) {
+  ms->pack[ms->focusedMember].aibo_socket_did_connect = 0;
+  ms->pack[ms->focusedMember].dog_needs_reinit = 1;
+  close(ms->pack[ms->focusedMember].aibo_socket_desc);
+  ms->evaluateProgram("dogFocusedIP 54000 socketOpen ( endStackCollapseNoop dogSocketDidConnect not ) ( dogFocusedIP 54000 socketOpen ) while 15.0 waitForSeconds dogMotorsOn 1.0 waitForSeconds");
+}
 
 void sendOnDogSocket(std::shared_ptr<MachineState> ms, int member, string message) {
-  // append return
-  message = message;
-
-  if( send(ms->pack[member].aibo_socket_desc, message.c_str(), message.size(), 0) < 0) {
-    cout << "send failed..." << endl;
+  int p_send_poll_timeout = 5000;
+  struct pollfd fd = { ms->pack[member].aibo_socket_desc, POLLOUT, 0 };
+  if (poll(&fd, 1, p_send_poll_timeout) != 1) {
+    ROS_ERROR_STREAM("poll says unavailable for sending after " << p_send_poll_timeout << " ms" << endl);
+    dogReconnect(ms);
     return;
   } else {
-    cout << "sent: " << endl << message << endl;
+    if( send(ms->pack[member].aibo_socket_desc, message.c_str(), message.size(), 0) != message.size() ) {
+      ROS_ERROR_STREAM("send failed..." << endl);
+      dogReconnect(ms);
+      return;
+    } else {
+      cout << "sent: " << endl << message << endl;
+    }
   }
 }
 
@@ -150,7 +162,7 @@ void flushDogBuffer(std::shared_ptr<MachineState> ms, int member) {
 	read_size = read(ms->pack[member].aibo_socket_desc, ms->pack[member].aibo_sock_buf, ms->pack[member].aibo_sock_buf_size);
 	if (read_size <= 0) {
 	  cout << "oops, read failed, closing socket..." << endl;
-	  close(ms->pack[member].aibo_socket_desc);
+	  dogReconnect(ms);
 	  return;
 	} else {
 	  cout << "read " << read_size << " bytes during poll in flush..." << endl;
@@ -190,11 +202,12 @@ int getBytesFromDog(std::shared_ptr<MachineState> ms, int member, int bytesToGet
 	read_size = read(ms->pack[member].aibo_socket_desc, &(ms->pack[member].aibo_sock_buf[sbStart]), ms->pack[member].aibo_sock_buf_size-sbStart);
 	if (read_size <= 0) {
 	  cout << "oops, read failed, closing socket..." << endl;
-	  close(ms->pack[member].aibo_socket_desc);
+	  dogReconnect(ms);
 	  return ms->pack[member].aibo_sock_buf_valid_bytes;
 	} else {
 	  ms->pack[member].aibo_sock_buf_valid_bytes += read_size;
 	}
+	sbStart = ms->pack[member].aibo_sock_buf_valid_bytes;
 	cout << "read " << read_size << " bytes during poll in gbfd..." << endl;
 	break;
     }
@@ -246,7 +259,7 @@ int readBytesFromDogUntilString(std::shared_ptr<MachineState> ms, int member, in
 	read_size = read(ms->pack[member].aibo_socket_desc, &(ms->pack[member].aibo_sock_buf[sbStart]), ms->pack[member].aibo_sock_buf_size-sbStart);
 	if (read_size <= 0) {
 	  cout << "oops, read failed, closing socket..." << endl;
-	  close(ms->pack[member].aibo_socket_desc);
+	  dogReconnect(ms);
 	  return -1;
 	} else {
 	  ms->pack[member].aibo_sock_buf_valid_bytes += read_size;
@@ -307,6 +320,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(DogDoPack)
+
+WORD(DogStop)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  string message("stopall;");
+  sendOnDogSocket(ms, this_dog, message);
+}
+END_WORD
+REGISTER_WORD(DogStop)
 
 WORD(DogIncrementFocusedMember)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -379,6 +402,27 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(DogBark)
 
+WORD(DogFocusedIP)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord(make_shared<StringWord>(ms->pack[ms->focusedMember].ip_string));
+}
+END_WORD
+REGISTER_WORD(DogFocusedIP)
+
+WORD(DogNeedsReinit)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord(make_shared<IntegerWord>(ms->pack[ms->focusedMember].dog_needs_reinit));
+}
+END_WORD
+REGISTER_WORD(DogNeedsReinit)
+
+WORD(DogSignalReinitDone)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pack[ms->focusedMember].dog_needs_reinit = 0;
+}
+END_WORD
+REGISTER_WORD(DogSignalReinitDone)
+
 WORD(SocketOpen)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   signal(SIGCHLD,SIG_IGN);
@@ -391,7 +435,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "opening socket to IP, port: " << t_ip << " " << t_port << endl;
 
   // destroy old socket
-  shutdown(ms->pack[ms->focusedMember].aibo_socket_desc, 2);
+  close(ms->pack[ms->focusedMember].aibo_socket_desc);
   // create socket
   ms->pack[ms->focusedMember].aibo_socket_desc = socket(AF_INET, SOCK_STREAM, 0);
   if (ms->pack[ms->focusedMember].aibo_socket_desc == -1) {
@@ -401,6 +445,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   cout << "created socket..." << endl;
        
+  ms->pack[ms->focusedMember].ip_string = t_ip;
   ms->pack[ms->focusedMember].aibo_server.sin_addr.s_addr = inet_addr(t_ip.c_str());
   ms->pack[ms->focusedMember].aibo_server.sin_family = AF_INET;
   ms->pack[ms->focusedMember].aibo_server.sin_port = htons(t_port);
@@ -408,7 +453,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //Connect to remote aibo_server
   if (connect(ms->pack[ms->focusedMember].aibo_socket_desc , (struct sockaddr *)&ms->pack[ms->focusedMember].aibo_server , sizeof(ms->pack[ms->focusedMember].aibo_server)) < 0) {
     cout << "connect error" << endl;
+    ms->pack[ms->focusedMember].aibo_socket_did_connect = 0;
+    ms->pack[ms->focusedMember].dog_needs_reinit = 1;
+    close(ms->pack[ms->focusedMember].aibo_socket_desc);
     return;
+  } else {
+    ms->pack[ms->focusedMember].aibo_socket_did_connect = 1;
   }
    
   cout << "connected!" << endl;
@@ -416,10 +466,21 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SocketOpen)
 
+
+WORD(DogSocketDidConnect)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<IntegerWord> word = std::make_shared<IntegerWord>(ms->pack[ms->focusedMember].aibo_socket_did_connect);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(DogSocketDidConnect)
+
 WORD(SocketClose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // destroy old socket
-  shutdown(ms->pack[ms->focusedMember].aibo_socket_desc, 2);
+  close(ms->pack[ms->focusedMember].aibo_socket_desc);
+  // XXX whick?
+  //close(ms->pack[ms->focusedMember].aibo_socket_desc);
 }
 END_WORD
 REGISTER_WORD(SocketClose)
@@ -462,7 +523,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int read_size = read(ms->pack[ms->focusedMember].aibo_socket_desc, ms->pack[ms->focusedMember].aibo_sock_buf, ms->pack[ms->focusedMember].aibo_sock_buf_size);
   if (read_size <= 0) {
     cout << "oops, read failed, closing socket..." << endl;
-    close(ms->pack[ms->focusedMember].aibo_socket_desc);
+    dogReconnect(ms);
     return;
   }
 
@@ -603,12 +664,12 @@ END_WORD
 REGISTER_WORD(DogTurnRadians)
 
 // this might not work...
-WORD(DogStop)
+WORD(DogStopWalkTurn)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->evaluateProgram("\"robot.stopturn(), robot.stopwalk();\" socketSend");
 }
 END_WORD
-REGISTER_WORD(DogStop)
+REGISTER_WORD(DogStopWalkTurn)
 
 WORD(DogInitial)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -693,10 +754,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(DogFormatImageDefault)
 
+// XXX this should be redone to detect and handle format using new dog read methods
 WORD(DogGetImage)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
   int this_dog = ms->focusedMember;
+
+  int p_get_image_timeout = 1000;
 
   // read until there is nothing
   flushDogBuffer(ms, this_dog); 
@@ -704,6 +768,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // request the image
   string image_request("camera.val;");
   sendOnDogSocket(ms, this_dog, image_request);
+
+  //usleep(400*1000);
 
   // get specs, verify format, ready image
   int rows = 160;
@@ -713,7 +779,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int yCbCr208x160MessageLength = 99875;
   int chosenFormatLength = yCbCr208x160MessageLength;
 
-  int dogGottenBytes = getBytesFromDog(ms, this_dog, chosenFormatLength, 250);
+  int dogGottenBytes = getBytesFromDog(ms, this_dog, chosenFormatLength, p_get_image_timeout);
   if (dogGottenBytes == chosenFormatLength) {
     cout << "dogGetImage: got " << dogGottenBytes << endl;
     // start immediately before the good stuff
@@ -735,6 +801,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     // convert YCrCb explicity to BGR
     cvtColor(ms->pack[this_dog].snoutImage, ms->pack[this_dog].snoutImage, CV_YCrCb2BGR);
+
+    // for now this is done for display purposes only
+    Size p_toBecome(640, 400);
+    cv::resize(ms->pack[this_dog].snoutImage, ms->pack[this_dog].snoutImage, p_toBecome);
 
     ms->config.dogSnoutViewWindow->updateImage(ms->pack[this_dog].snoutImage);
   } else {
@@ -1115,15 +1185,31 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(DogPushIntendedPose)
 
-WORD(DogPushTruePose)
+WORD(DogPushIntendedGain)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  int t_gain= 0;
+  GET_INT_ARG(ms, t_gain);
+
   int this_dog = ms->focusedMember;
 
-  shared_ptr<AiboPoseWord> word = std::make_shared<AiboPoseWord>(ms->pack[this_dog].truePose);
+  shared_ptr<AiboPoseWord> word = std::make_shared<AiboPoseWord>(ms->pack[this_dog].intendedGain[t_gain]);
   ms->pushWord(word);
 }
 END_WORD
-REGISTER_WORD(DogPushTruePose)
+REGISTER_WORD(DogPushIntendedGain)
+
+WORD(DogPushTrueGain)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int t_gain= 0;
+  GET_INT_ARG(ms, t_gain);
+
+  int this_dog = ms->focusedMember;
+
+  shared_ptr<AiboPoseWord> word = std::make_shared<AiboPoseWord>(ms->pack[this_dog].trueGain[t_gain]);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(DogPushTrueGain)
 
 WORD(DogCreatePose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1168,7 +1254,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(DogSetIntendedPose)
 
-// XXX
+WORD(DogSetIntendedGain)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int t_gain= 0;
+  GET_INT_ARG(ms, t_gain);
+
+  shared_ptr<AiboPoseWord> word ;
+  GET_WORD_ARG(ms, AiboPoseWord, word);
+
+  int this_dog = ms->focusedMember;
+
+  ms->pack[this_dog].trueGain[t_gain] = word->value();
+}
+END_WORD
+REGISTER_WORD(DogSetIntendedGain)
+
+
 #define AIBO_POSE_ACCESSOR(J, C, D) \
 WORD(AiboPose ## J) \
 virtual void execute(std::shared_ptr<MachineState> ms) { \
@@ -1200,7 +1301,25 @@ REGISTER_WORD(SetAiboPose ## J) \
 /*
 */
 
-AIBO_POSE_ACCESSOR(LegRH1, word->value().legRH1, newPose.legRH1)
+
+AIBO_POSE_ACCESSOR(LegLF1  , word->value().legLF1  , newPose.legLF1  )                  
+AIBO_POSE_ACCESSOR(LegLF2  , word->value().legLF2  , newPose.legLF2  )                  
+AIBO_POSE_ACCESSOR(LegLF3  , word->value().legLF3  , newPose.legLF3  )                  
+AIBO_POSE_ACCESSOR(LegLH1  , word->value().legLH1  , newPose.legLH1  )                  
+AIBO_POSE_ACCESSOR(LegLH2  , word->value().legLH2  , newPose.legLH2  )                  
+AIBO_POSE_ACCESSOR(LegLH3  , word->value().legLH3  , newPose.legLH3  )                  
+AIBO_POSE_ACCESSOR(LegRH1  , word->value().legRH1  , newPose.legRH1  )                  
+AIBO_POSE_ACCESSOR(LegRH2  , word->value().legRH2  , newPose.legRH2  )                  
+AIBO_POSE_ACCESSOR(LegRH3  , word->value().legRH3  , newPose.legRH3  )                  
+AIBO_POSE_ACCESSOR(LegRF1  , word->value().legRF1  , newPose.legRF1  )                  
+AIBO_POSE_ACCESSOR(LegRF2  , word->value().legRF2  , newPose.legRF2  )                  
+AIBO_POSE_ACCESSOR(LegRF3  , word->value().legRF3  , newPose.legRF3  )                  
+AIBO_POSE_ACCESSOR(Neck    , word->value().neck    , newPose.neck    )                  
+AIBO_POSE_ACCESSOR(HeadPan , word->value().headPan , newPose.headPan )                  
+AIBO_POSE_ACCESSOR(HeadTilt, word->value().headTilt, newPose.headTilt)                  
+AIBO_POSE_ACCESSOR(TailPan , word->value().tailPan , newPose.tailPan )                  
+AIBO_POSE_ACCESSOR(TailTilt, word->value().tailTilt, newPose.tailTilt)                  
+AIBO_POSE_ACCESSOR(Mouth   , word->value().mouth   , newPose.mouth   )                  
 
 #define AIBO_POSE_DELTAS(J, C, D) \
 WORD(Dog ## J ## Up) \
@@ -1362,6 +1481,106 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(DogSetGainGridSize)
 
+#define AIBO_INDICATOR_ACCESSORS(J, C) \
+WORD(Dog ## J) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  int this_dog = ms->focusedMember; \
+  shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(C); \
+  ms->pushData(vword); \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J) \
+WORD(DogSet ## J) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  int this_dog = ms->focusedMember; \
+  double value; \
+  GET_NUMERIC_ARG(ms, value); \
+   \
+  C = value; \
+} \
+END_WORD \
+REGISTER_WORD(DogSet ## J) \
+
+AIBO_INDICATOR_ACCESSORS(IntendedLedBFC, ms->pack[this_dog].intendedIndicators.ledBFC);
+AIBO_INDICATOR_ACCESSORS(IntendedLedBFW, ms->pack[this_dog].intendedIndicators.ledBFW);
+AIBO_INDICATOR_ACCESSORS(IntendedLedBMC, ms->pack[this_dog].intendedIndicators.ledBMC);
+AIBO_INDICATOR_ACCESSORS(IntendedLedBMW, ms->pack[this_dog].intendedIndicators.ledBMW);
+AIBO_INDICATOR_ACCESSORS(IntendedLedBRC, ms->pack[this_dog].intendedIndicators.ledBRC);
+AIBO_INDICATOR_ACCESSORS(IntendedLedBRW, ms->pack[this_dog].intendedIndicators.ledBRW);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF1, ms->pack[this_dog].intendedIndicators.ledF1);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF2, ms->pack[this_dog].intendedIndicators.ledF2);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF3, ms->pack[this_dog].intendedIndicators.ledF3);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF4, ms->pack[this_dog].intendedIndicators.ledF4);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF5, ms->pack[this_dog].intendedIndicators.ledF5);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF6, ms->pack[this_dog].intendedIndicators.ledF6);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF7, ms->pack[this_dog].intendedIndicators.ledF7);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF8, ms->pack[this_dog].intendedIndicators.ledF8);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF9, ms->pack[this_dog].intendedIndicators.ledF9);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF10, ms->pack[this_dog].intendedIndicators.ledF10);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF11, ms->pack[this_dog].intendedIndicators.ledF11);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF12, ms->pack[this_dog].intendedIndicators.ledF12);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF13, ms->pack[this_dog].intendedIndicators.ledF13);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF14, ms->pack[this_dog].intendedIndicators.ledF14);
+AIBO_INDICATOR_ACCESSORS(IntendedLedHC, ms->pack[this_dog].intendedIndicators.ledHC);
+AIBO_INDICATOR_ACCESSORS(IntendedModeR, ms->pack[this_dog].intendedIndicators.modeR);
+AIBO_INDICATOR_ACCESSORS(IntendedModeG, ms->pack[this_dog].intendedIndicators.modeG);
+AIBO_INDICATOR_ACCESSORS(IntendedModeB, ms->pack[this_dog].intendedIndicators.modeB);
+AIBO_INDICATOR_ACCESSORS(IntendedEarL, ms->pack[this_dog].intendedIndicators.earL);
+AIBO_INDICATOR_ACCESSORS(IntendedEarR, ms->pack[this_dog].intendedIndicators.earR);
+
+#define AIBO_SENSOR_ACCESSORS(J, C) \
+WORD(Dog ## J) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  int this_dog = ms->focusedMember; \
+  shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(C); \
+  ms->pushData(vword); \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J) \
+
+AIBO_SENSOR_ACCESSORS(TrueLedBFC, ms->pack[this_dog].trueIndicators.ledBFC);
+AIBO_SENSOR_ACCESSORS(TrueLedBFW, ms->pack[this_dog].trueIndicators.ledBFW);
+AIBO_SENSOR_ACCESSORS(TrueLedBMC, ms->pack[this_dog].trueIndicators.ledBMC);
+AIBO_SENSOR_ACCESSORS(TrueLedBMW, ms->pack[this_dog].trueIndicators.ledBMW);
+AIBO_SENSOR_ACCESSORS(TrueLedBRC, ms->pack[this_dog].trueIndicators.ledBRC);
+AIBO_SENSOR_ACCESSORS(TrueLedBRW, ms->pack[this_dog].trueIndicators.ledBRW);
+AIBO_SENSOR_ACCESSORS(TrueLedF1, ms->pack[this_dog].trueIndicators.ledF1);
+AIBO_SENSOR_ACCESSORS(TrueLedF2, ms->pack[this_dog].trueIndicators.ledF2);
+AIBO_SENSOR_ACCESSORS(TrueLedF3, ms->pack[this_dog].trueIndicators.ledF3);
+AIBO_SENSOR_ACCESSORS(TrueLedF4, ms->pack[this_dog].trueIndicators.ledF4);
+AIBO_SENSOR_ACCESSORS(TrueLedF5, ms->pack[this_dog].trueIndicators.ledF5);
+AIBO_SENSOR_ACCESSORS(TrueLedF6, ms->pack[this_dog].trueIndicators.ledF6);
+AIBO_SENSOR_ACCESSORS(TrueLedF7, ms->pack[this_dog].trueIndicators.ledF7);
+AIBO_SENSOR_ACCESSORS(TrueLedF8, ms->pack[this_dog].trueIndicators.ledF8);
+AIBO_SENSOR_ACCESSORS(TrueLedF9, ms->pack[this_dog].trueIndicators.ledF9);
+AIBO_SENSOR_ACCESSORS(TrueLedF10, ms->pack[this_dog].trueIndicators.ledF10);
+AIBO_SENSOR_ACCESSORS(TrueLedF11, ms->pack[this_dog].trueIndicators.ledF11);
+AIBO_SENSOR_ACCESSORS(TrueLedF12, ms->pack[this_dog].trueIndicators.ledF12);
+AIBO_SENSOR_ACCESSORS(TrueLedF13, ms->pack[this_dog].trueIndicators.ledF13);
+AIBO_SENSOR_ACCESSORS(TrueLedF14, ms->pack[this_dog].trueIndicators.ledF14);
+AIBO_SENSOR_ACCESSORS(TrueLedHC, ms->pack[this_dog].trueIndicators.ledHC);
+AIBO_SENSOR_ACCESSORS(TrueModeR, ms->pack[this_dog].trueIndicators.modeR);
+AIBO_SENSOR_ACCESSORS(TrueModeG, ms->pack[this_dog].trueIndicators.modeG);
+AIBO_SENSOR_ACCESSORS(TrueModeB, ms->pack[this_dog].trueIndicators.modeB);
+AIBO_SENSOR_ACCESSORS(TrueEarL, ms->pack[this_dog].trueIndicators.earL);
+AIBO_SENSOR_ACCESSORS(TrueEarR, ms->pack[this_dog].trueIndicators.earR);
+
+AIBO_SENSOR_ACCESSORS(DistanceNearSnout, ms->pack[this_dog].trueSensors.distanceNearSnout);
+AIBO_SENSOR_ACCESSORS(DistanceFarSnout, ms->pack[this_dog].trueSensors.distanceFarSnout);
+AIBO_SENSOR_ACCESSORS(DistanceChest, ms->pack[this_dog].trueSensors.distanceChest);
+AIBO_SENSOR_ACCESSORS(PawLF, ms->pack[this_dog].trueSensors.pawLF);
+AIBO_SENSOR_ACCESSORS(PawLH, ms->pack[this_dog].trueSensors.pawLH);
+AIBO_SENSOR_ACCESSORS(PawRF, ms->pack[this_dog].trueSensors.pawRF);
+AIBO_SENSOR_ACCESSORS(PawRH, ms->pack[this_dog].trueSensors.pawRH);
+AIBO_SENSOR_ACCESSORS(ChinSensor, ms->pack[this_dog].trueSensors.chinSensor);
+AIBO_SENSOR_ACCESSORS(HeadTouch, ms->pack[this_dog].trueSensors.headTouch ); 
+AIBO_SENSOR_ACCESSORS(BackTouchR, ms->pack[this_dog].trueSensors.backTouchR);
+AIBO_SENSOR_ACCESSORS(BackTouchM, ms->pack[this_dog].trueSensors.backTouchM);
+AIBO_SENSOR_ACCESSORS(BackTouchF, ms->pack[this_dog].trueSensors.backTouchF);
+
+AIBO_SENSOR_ACCESSORS(AccelerometerX, ms->pack[this_dog].trueSensors.accelerometer[0]);
+AIBO_SENSOR_ACCESSORS(AccelerometerY, ms->pack[this_dog].trueSensors.accelerometer[1]);
+AIBO_SENSOR_ACCESSORS(AccelerometerZ, ms->pack[this_dog].trueSensors.accelerometer[2]);
 
 /*
 
@@ -1381,5 +1600,18 @@ END_WORD
 REGISTER_WORD(Dog)
 
 */
+ 
+
+  // convert dog image 
+  // loop over relevant pixels
+  // fill out gaussian map
+
+  // convert dog image
+  // loop over relevant pixels
+  // lay down density at parts probably not background
+
+
+
+
 
 }
