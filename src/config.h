@@ -2,6 +2,10 @@
 #define _CONFIG_H_
 
 #include "ein_aibo.h"
+#include "gaussian_map.h"
+
+class TransitionTable;
+class Scene;
 
 #include <ros/package.h>
 #include <tf/transform_listener.h>
@@ -898,7 +902,6 @@ class EinConfig {
   double gradientServoResetThresh = 0.7/(6.0e5);
   int densityIterationsForGradientServo = 10;//3;//10;
 
-  // XXX TODO
   int softMaxGradientServoIterations = 2;//5;//3;//10;//3;
   int hardMaxGradientServoIterations = 5;//10;//2;//5;//5;//3;//10;//20;//3;//10;
   int currentGradientServoIterations = 0;
@@ -1436,15 +1439,9 @@ class EinConfig {
   int intendedEnableState = 1;
   int lastShoulderState = 1;
 
-  // XXX incomplete
-  // numClasses is apt to change so we should store the numbers as they were when the matrix was last initialized
-  std::vector<string> transitionClasses;
-  std::vector<std::shared_ptr<Word> > transitionActions;
-  int transitionsNumActions = 3;
-  int transitionNumClasses = 0;
-  int * transitionCounts = NULL;
+  shared_ptr<TransitionTable> myTransitionTable;
 
-
+  shared_ptr<Scene> myScene;
 }; // config end
 
 
