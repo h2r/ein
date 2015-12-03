@@ -4,6 +4,7 @@
 #include "ein_aibo.h"
 #include "gaussian_map.h"
 
+class GaussianMap;
 class TransitionTable;
 class Scene;
 
@@ -1440,8 +1441,11 @@ class EinConfig {
   int lastShoulderState = 1;
 
   shared_ptr<TransitionTable> myTransitionTable;
-
   shared_ptr<Scene> myScene;
+
+  shared_ptr<GaussianMap> classSceneModels;
+
+
 }; // config end
 
 
