@@ -5,6 +5,10 @@ software. We start by describing the underlying functionality and ROS
 nodes and proceed to describe a convenient operating strategy and some
 utility scripts which you may find helpful.
 
+Install Ubuntu Trusty 14.04 LTS.
+
+Install ROS Indigo as per http://wiki.ros.org/indigo/Installation/Ubuntu
+
 If you are on Trusty 14.04 LTS with Indigo, you need the non-free functionality of opencv.
 
 Install the ppa at https://launchpad.net/~xqms/+archive/ubuntu/opencv-nonfree:
@@ -53,6 +57,7 @@ Some other stuff you might need to do when installing fresh:
 sudo apt-get install ros-indigo-object-recognition-msgs
 sudo apt-get install ros-indigo-pcl-ros
 sudo apt-get install libgsl0-dev
+sudo apt-get install qt5-default
 ```
 Before running Ein, you should sync your workstation with your baxter:
 ```

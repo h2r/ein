@@ -9,10 +9,18 @@ class Word;
 
 typedef struct _GaussianMapCell {
   // mus and sigmas should be updated whenever anything else is modified
-  double rcounts, gcounts, bcounts;
-  double rsquaredcounts, gsquaredcounts, bsquaredcounts;
-  double rmus, gmus, bmus;
-  double rsigmas, gsigmas, bsigmas;
+  double rcounts;
+  double gcounts;
+  double bcounts;
+  double rsquaredcounts;
+  double gsquaredcounts;
+  double bsquaredcounts;
+  double rmus;
+  double gmus;
+  double bmus;
+  double rsigmas;
+  double gsigmas;
+  double bsigmas;
   double rgbsamples;
   double zcounts;
   double zsquaredcounts;

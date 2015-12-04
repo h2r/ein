@@ -30,9 +30,52 @@ GaussianMapCell GaussianMap::valAtCell(int x, int y) {
   return *(cells + x + width*y);
 }
 
-GaussianMapCell GaussianMap::bilinValAtCell(double x, double y) {
-  // XXX
+#define BILIN_MAPCELL(field) \
+  toReturn.field = wx0*wy0*refAtCell(x0,y0)->field + wx1*wy0*refAtCell(x1,y0)->field + wx0*wy1*refAtCell(x0,y1)->field + wx1*wy1*refAtCell(x1,y1)->field;
 
+GaussianMapCell GaussianMap::bilinValAtCell(double _x, double _y) {
+
+  double x = min( max(0.0, _x), width-1);
+  double y = min( max(0.0, _y), height-1);
+
+  // -2 makes for appropriate behavior on the upper boundary
+  double x0 = min( max(0.0, floor(x)), width-2);
+  double x1 = x0+1;
+
+  double y0 = min( max(0.0, floor(y), height-2));
+  double y1 = y0+1;
+
+  wx0 = x1-x;
+  wx1 = x-x0;
+
+  wy0 = y1-y;
+  wy1 = y-y0;
+
+  GaussianMapCell toReturn;
+
+  // wx0*wy0*val(x0,y0) + wx1*wy0*val(x1,y0) + wx1*wy1*val(x1,y1) + wx0*wy1*val(x0,y1) ~sub 1 for vals =~
+  // wx0*(wy0+wy1) + wx1*(wy0 + wy1) = wx0 + wx1 = 1
+
+  BILIN_MAPCELL(rcounts);
+  BILIN_MAPCELL(gcounts);
+  BILIN_MAPCELL(bcounts);
+  BILIN_MAPCELL(rsquaredcounts);
+  BILIN_MAPCELL(gsquaredcounts);
+  BILIN_MAPCELL(bsquaredcounts);
+  BILIN_MAPCELL(rmus);
+  BILIN_MAPCELL(gmus);
+  BILIN_MAPCELL(bmus);
+  BILIN_MAPCELL(rsigmas);
+  BILIN_MAPCELL(gsigmas);
+  BILIN_MAPCELL(bsigmas);
+  BILIN_MAPCELL(rgbsamples);
+  BILIN_MAPCELL(zcounts);
+  BILIN_MAPCELL(zsquaredcounts);
+  BILIN_MAPCELL(zmus);
+  BILIN_MAPCELL(zsigmas);
+  BILIN_MAPCELL(zsamples);
+
+  return toReturn;
 }
 
 GaussianMapCell GaussianMap::bilinValAtMeters(double x, double y) {
