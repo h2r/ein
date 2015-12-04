@@ -1,18 +1,47 @@
 #include "gaussian_map.h"
 #include "ein_words.h"
 
+void GaussianMapCell::zero() {
+  rcounts = 0.0;
+  gcounts = 0.0;
+  bcounts = 0.0;
+  rsquaredcounts = 0.0;
+  gsquaredcounts = 0.0;
+  bsquaredcounts = 0.0;
+  rmu = 0.0;
+  gmu = 0.0;
+  bmu = 0.0;
+  rsigmasquared = 0.0;
+  gsigmasquared = 0.0;
+  bsigmasquared = 0.0;
+  rgbsamples = 0.0;
+  zcounts = 0.0;
+  zsquaredcounts = 0.0;
+  zmu = 0.0;
+  zsigmasquared = 0.0;
+  zsamples = 0.0;
+}
+
 void GaussianMap::reallocate() {
-  if (cells == NULL) {
-    cells = new GaussianMapCell[width*height];
+  if (width <= 0 || height <= 0) {
+    cout << "GaussianMap area error: tried to allocate width, height: " << width << " " << height << endl;
+  } else if ((width % 2 == 0) || (height % 2 == 0)) {
+    cout << "GaussianMap parity error: tried to allocate width, height: " << width << " " << height << endl;
   } else {
-    delete cells;
-    cells = new GaussianMapCell[width*height];
+    if (cells == NULL) {
+      cells = new GaussianMapCell[width*height];
+    } else {
+      delete cells;
+      cells = new GaussianMapCell[width*height];
+    }
   }
 }
 
 GaussianMap::GaussianMap(int w, int h, double cw) {
   width = w;
   height = h;
+  x_center_cell = (width-1)/2;
+  y_center_cell = (height-1)/2;
   cell_width = cw;
   cells = NULL;
   reallocate();
@@ -62,34 +91,37 @@ GaussianMapCell GaussianMap::bilinValAtCell(double _x, double _y) {
   BILIN_MAPCELL(rsquaredcounts);
   BILIN_MAPCELL(gsquaredcounts);
   BILIN_MAPCELL(bsquaredcounts);
-  BILIN_MAPCELL(rmus);
-  BILIN_MAPCELL(gmus);
-  BILIN_MAPCELL(bmus);
-  BILIN_MAPCELL(rsigmas);
-  BILIN_MAPCELL(gsigmas);
-  BILIN_MAPCELL(bsigmas);
+  BILIN_MAPCELL(rmu);
+  BILIN_MAPCELL(gmu);
+  BILIN_MAPCELL(bmu);
+  BILIN_MAPCELL(rsigmasquared);
+  BILIN_MAPCELL(gsigmasquared);
+  BILIN_MAPCELL(bsigmasquared);
   BILIN_MAPCELL(rgbsamples);
   BILIN_MAPCELL(zcounts);
   BILIN_MAPCELL(zsquaredcounts);
-  BILIN_MAPCELL(zmus);
-  BILIN_MAPCELL(zsigmas);
+  BILIN_MAPCELL(zmu);
+  BILIN_MAPCELL(zsigmasquared);
   BILIN_MAPCELL(zsamples);
 
   return toReturn;
 }
 
 GaussianMapCell GaussianMap::bilinValAtMeters(double x, double y) {
-  // XXX
-  // call bilinValAtCell
-
+  int cell_x;
+  int cell_y;
+  metersToCell(x, y, &cell_x, &cell_y);
+  return bilinValAtCell(cell_x, cell_y);
 }
 
 void GaussianMap::metersToCell(double xm, double ym, int * xc, int * yc) {
-  // XXX
+  (*xc) = round(xm / cell_width) + x_center_cell;
+  (*yc) = round(ym / cell_width) + y_center_cell;
 } 
 
-void GaussianMap::cellToMeters(double xc, double yc, int * xm, int * ym) {
-  // XXX
+void GaussianMap::cellToMeters(int xc, int yc, double * xm, double * ym) {
+  (*xm) = (xc - x_center_cell) * cell_width; 
+  (*ym) = (yc - y_center_cell) * cell_width; 
 } 
 
 // XXX write to file
@@ -100,22 +132,122 @@ void GaussianMap::saveToFile(string filename) {
 void GaussianMap::loadFromFile(string filename) {
 }
 
-// XXX 
-Mat GaussianMap::rgbToMat() {
+#define GAUSSIAN_MAP_UPDATE_MU_SIGMA(para, samples) \
+refAtCell(x,y)->para ## mu = refAtCell(x,y)->para ## counts / samples; \
+refAtCell(x,y)->para ## sigmasquared = (refAtCell(x,y)->para ## squaredcounts / samples) - ((refAtCell(x,y)->para ## mu) * (refAtCell(x,y)->para ## mu)); 
+
+void GaussianMap::recalculateMusAndSigmas() {
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      double safe_rgbsamples = max(refAtCell(x,y)->rgbsamples, 1.0);
+      double safe_zsamples = max(refAtCell(x,y)->zsamples, 1.0);
+
+      GAUSSIAN_MAP_UPDATE_MU_SIGMA(z, safe_zsamples);
+      GAUSSIAN_MAP_UPDATE_MU_SIGMA(r, safe_rgbsamples);
+      GAUSSIAN_MAP_UPDATE_MU_SIGMA(g, safe_rgbsamples);
+      GAUSSIAN_MAP_UPDATE_MU_SIGMA(b, safe_rgbsamples);
+    }
+  }
 }
 
-// XXX 
-Mat GaussianMap::zToMat() {
+void GaussianMap::rgbMuToMat(Mat& out) {
+  out = Mat(height, width, CV_64FC3);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->bmu;
+      out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->gmu;
+      out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->rmu;
+    }
+  }
 }
 
-// XXX extract a bounding box at specified corners top left (x1,y1) bottom right (x2,y2)
-shared_ptr<GaussianMap> GaussianMap::copyBox(int x1, int y1, int x2, int y2) {
+void GaussianMap::rgbSigmaSquaredToMat(Mat& out) {
+  out = Mat(height, width, CV_64FC3);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->bsigmasquared;
+      out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->gsigmasquared;
+      out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->rsigmasquared;
+    }
+  }
 }
 
-void GaussianMap::invalidateBox(int x1, int y1, int x2, int y2) {
+void GaussianMap::rgbCountsToMat(Mat& out) {
+  out = Mat(height, width, CV_64FC3);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->bcounts;
+      out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->gcounts;
+      out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->rcounts;
+    }
+  }
 }
 
-void GaussianMap::invalidate() {
+void GaussianMap::zMuToMat(Mat& out) {
+  out = Mat(height, width, CV_64F);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      out.at<double>(y,x) = refAtCell(x,y)->zmu;
+    }
+  }
+}
+
+void GaussianMap::zSigmaSquaredToMat(Mat& out) {
+  out = Mat(height, width, CV_64F);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      out.at<double>(y,x) = refAtCell(x,y)->zsigmasquared;
+    }
+  }
+}
+
+void GaussianMap::zCountsToMat(Mat& out) {
+  out = Mat(height, width, CV_64F);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      out.at<double>(y,x) = refAtCell(x,y)->zcounts;
+    }
+  }
+}
+
+
+// extract a bounding box at specified corners top left (x1,y1) bottom right (x2,y2)
+shared_ptr<GaussianMap> GaussianMap::copyBox(int _x1, int _y1, int _x2, int _y2) {
+  int x1 = min(_x1, _x2);
+  int x2 = max(_x1, _x2);
+  int y1 = min(_y1, _y2);
+  int y2 = max(_y1, _y2);
+
+  x1 = min( max(0,x1), width-1);
+  x2 = min( max(0,x2), width-1);
+  y1 = min( max(0,y1), height-1);
+  y2 = min( max(0,y2), height-1);
+
+  shared_ptr<GaussianMap> toReturn = std::make_shared<GaussianMap>(x2-x1, y2-y1, cell_width);
+  for (int y = y1; y <= y2; y++) {
+    for (int x = x1; x <= x2; x++) {
+      *(toReturn->refAtCell(x-x1,y-y1)) = *(refAtCell(x,y));
+    }
+  }
+  
+  return toReturn;
+}
+
+void GaussianMap::zeroBox(int _x1, int _y1, int _x2, int _y2) {
+  int x1 = min( max(0,x1), width-1);
+  int x2 = min( max(0,x2), width-1);
+  int y1 = min( max(0,y1), height-1);
+  int y2 = min( max(0,y2), height-1);
+  
+  for (int y = y1; y <= y2; y++) {
+    for (int x = x1; x <= x2; x++) {
+      refAtCell(x,y)->zero();
+    }
+  }
+}
+
+void GaussianMap::zero() {
+  zeroBox(0,0,width-1,height-1);
 }
 
 
@@ -222,8 +354,8 @@ void TransitionTable::initCounts() {
 // XXX word to add objects to scene until evidence is accounted for
 
 // XXX words to save and load current background and current object maps
-// XXX word to remove object from scene and invalidate region around it
-// XXX word to invalidate entire observedMap
+// XXX word to remove object from scene and zero region around it
+// XXX word to zero entire observedMap
 // XXX word to search clearance area for the cell with lowest number of counts, push its eePose
 
 

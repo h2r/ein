@@ -15,26 +15,31 @@ typedef struct _GaussianMapCell {
   double rsquaredcounts;
   double gsquaredcounts;
   double bsquaredcounts;
-  double rmus;
-  double gmus;
-  double bmus;
-  double rsigmas;
-  double gsigmas;
-  double bsigmas;
+  double rmu;
+  double gmu;
+  double bmu;
+  double rsigmasquared;
+  double gsigmasquared;
+  double bsigmasquared;
   double rgbsamples;
   double zcounts;
   double zsquaredcounts;
-  double zmus;
-  double zsigmas;
+  double zmu;
+  double zsigmasquared;
   double zsamples;
+
+  void zero();
 } GaussianMapCell;
 
 class GaussianMap {
   private:
-  public:
-
   int width; // or columns
   int height; // or rows
+  int x_center_cell;
+  int y_center_cell;
+
+  public:
+
   double cell_width = 0.01;
   GaussianMapCell *cells = NULL;
 
@@ -48,17 +53,25 @@ class GaussianMap {
   GaussianMapCell bilinValAtMeters(double x, double y);
 
   void metersToCell(double xm, double ym, int * xc, int * yc);
-  void cellToMeters(double xc, double yc, int * xm, int * ym);
+  void cellToMeters(int xc, int yc, double * xm, double * ym);
 
   void saveToFile(string filename);
   void loadFromFile(string filename);
-  Mat rgbToMat();
-  Mat zToMat();
 
-  shared_ptr<GaussianMap> copyBox(int x1, int y1, int x2, int y2);
+  void recalculateMusAndSigmas();
 
-  void invalidateBox(int x1, int y1, int x2, int y2);
-  void invalidate();
+  void rgbMuToMat(Mat& out);
+  void rgbSigmaSquaredToMat(Mat& out);
+  void rgbCountsToMat(Mat& out);
+
+  void zMuToMat(Mat& out);
+  void zSigmaSquaredToMat(Mat& out);
+  void zCountsToMat(Mat& out);
+
+  shared_ptr<GaussianMap> copyBox(int _x1, int _y1, int _x2, int _y2);
+
+  void zeroBox(int _x1, int _y1, int _x2, int _y2);
+  void zero();
 };
 
 typedef enum {
