@@ -35,21 +35,21 @@ GaussianMapCell GaussianMap::valAtCell(int x, int y) {
 
 GaussianMapCell GaussianMap::bilinValAtCell(double _x, double _y) {
 
-  double x = min( max(0.0, _x), width-1);
-  double y = min( max(0.0, _y), height-1);
+  double x = min( max(0.0, _x), double(width-1));
+  double y = min( max(0.0, _y), double(height-1));
 
   // -2 makes for appropriate behavior on the upper boundary
-  double x0 = min( max(0.0, floor(x)), width-2);
+  double x0 = std::min( std::max(0.0, floor(x)), double(width-2));
   double x1 = x0+1;
 
-  double y0 = min( max(0.0, floor(y), height-2));
+  double y0 = std::min( std::max(0.0, floor(y)), double(height-2));
   double y1 = y0+1;
 
-  wx0 = x1-x;
-  wx1 = x-x0;
+  double wx0 = x1-x;
+  double wx1 = x-x0;
 
-  wy0 = y1-y;
-  wy1 = y-y0;
+  double wy0 = y1-y;
+  double wy1 = y-y0;
 
   GaussianMapCell toReturn;
 
