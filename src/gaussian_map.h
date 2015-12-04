@@ -39,6 +39,9 @@ class GaussianMap {
   GaussianMapCell bilinValAtCell(double x, double y);
   GaussianMapCell bilinValAtMeters(double x, double y);
 
+  void metersToCell(double xm, double ym, int * xc, int * yc);
+  void cellToMeters(double xc, double yc, int * xm, int * ym);
+
   void saveToFile(string filename);
   void loadFromFile(string filename);
   Mat rgbToMat();
@@ -74,6 +77,7 @@ class Scene {
   eePose background_pose;
   shared_ptr<GaussianMap> background_map;
   shared_ptr<GaussianMap> predicted_map;
+  Mat predicted_segmentation;
   shared_ptr<GaussianMap> observed_map;
   // differeces between predicted mean and variance are approximately equally relevant,
   //   consider the kl divergence of two gaussians
