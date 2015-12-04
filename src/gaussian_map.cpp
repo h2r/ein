@@ -41,6 +41,14 @@ GaussianMapCell GaussianMap::bilinValAtMeters(double x, double y) {
 
 }
 
+void GaussianMap::metersToCell(double xm, double ym, int * xc, int * yc) {
+  // XXX
+} 
+
+void GaussianMap::cellToMeters(double xc, double yc, int * xm, int * ym) {
+  // XXX
+} 
+
 // XXX write to file
 void GaussianMap::saveToFile(string filename) {
 }
@@ -160,8 +168,13 @@ void TransitionTable::initCounts() {
 
 /*
 
+// XXX Scene Viewer
+// Observed    Predicted    Segmentation
+// Background  Discrepancy  Discrepancy Density
+// update with words
 
-// XXX accessors for sceneObjects
+
+// XXX accessors for sceneObjects: number, pose...
 
 // XXX word to add objects to scene until evidence is accounted for
 
