@@ -1,7 +1,7 @@
 #include "gaussian_map.h"
 #include "ein_words.h"
 
-void GaussianMapCell::zero() {
+void _GaussianMapCell::zero() {
   rcounts = 0.0;
   gcounts = 0.0;
   bcounts = 0.0;
@@ -20,6 +20,71 @@ void GaussianMapCell::zero() {
   zmu = 0.0;
   zsigmasquared = 0.0;
   zsamples = 0.0;
+}
+
+void _GaussianMapCell::writeToFileStorage(FileStorage& fsvO) const {
+  fsvO << "{:";
+  fsvO << "rcounts" << rcounts;
+  fsvO << "gcounts" << gcounts;
+  fsvO << "bcounts" << bcounts;
+  fsvO << "rsquaredcounts" << rsquaredcounts;
+  fsvO << "gsquaredcounts" << gsquaredcounts;
+  fsvO << "bsquaredcounts" << bsquaredcounts;
+  fsvO << "rmu" << rmu;
+  fsvO << "gmu" << gmu;
+  fsvO << "bmu" << bmu;
+  fsvO << "rsigmasquared" << rsigmasquared;
+  fsvO << "gsigmasquared" << gsigmasquared;
+  fsvO << "bsigmasquared" << bsigmasquared;
+  fsvO << "rgbsamples" << rgbsamples;
+  fsvO << "zcounts" << zcounts;
+  fsvO << "zsquaredcounts" << zsquaredcounts;
+  fsvO << "zmu" << zmu;
+  fsvO << "zsigmasquared" << zsigmasquared;
+  fsvO << "zsamples" << zsamples;
+  fsvO << "}";
+}
+
+void _GaussianMapCell::readFromFileNodeIterator(FileNodeIterator& it) {
+  rcounts         =  (double)(*it)["rcounts"];         
+  gcounts         =  (double)(*it)["gcounts"];         
+  bcounts         =  (double)(*it)["bcounts"];         
+  rsquaredcounts  =  (double)(*it)["rsquaredcounts"];                
+  gsquaredcounts  =  (double)(*it)["gsquaredcounts"];                
+  bsquaredcounts  =  (double)(*it)["bsquaredcounts"];                
+  rmu             =  (double)(*it)["rmu"];     
+  gmu             =  (double)(*it)["gmu"];     
+  bmu             =  (double)(*it)["bmu"];     
+  rsigmasquared   =  (double)(*it)["rsigmasquared"];               
+  gsigmasquared   =  (double)(*it)["gsigmasquared"];               
+  bsigmasquared   =  (double)(*it)["bsigmasquared"];               
+  rgbsamples      =  (double)(*it)["rgbsamples"];            
+  zcounts         =  (double)(*it)["zcounts"];         
+  zsquaredcounts  =  (double)(*it)["zsquaredcounts"];                
+  zmu             =  (double)(*it)["zmu"];     
+  zsigmasquared   =  (double)(*it)["zsigmasquared"];               
+  zsamples        =  (double)(*it)["zsamples"];          
+}
+
+void _GaussianMapCell::readFromFileNode(FileNode& it) {
+  rcounts         =  (double)(it)["rcounts"];         
+  gcounts         =  (double)(it)["gcounts"];         
+  bcounts         =  (double)(it)["bcounts"];         
+  rsquaredcounts  =  (double)(it)["rsquaredcounts"];                
+  gsquaredcounts  =  (double)(it)["gsquaredcounts"];                
+  bsquaredcounts  =  (double)(it)["bsquaredcounts"];                
+  rmu             =  (double)(it)["rmu"];     
+  gmu             =  (double)(it)["gmu"];     
+  bmu             =  (double)(it)["bmu"];     
+  rsigmasquared   =  (double)(it)["rsigmasquared"];               
+  gsigmasquared   =  (double)(it)["gsigmasquared"];               
+  bsigmasquared   =  (double)(it)["bsigmasquared"];               
+  rgbsamples      =  (double)(it)["rgbsamples"];            
+  zcounts         =  (double)(it)["zcounts"];         
+  zsquaredcounts  =  (double)(it)["zsquaredcounts"];                
+  zmu             =  (double)(it)["zmu"];     
+  zsigmasquared   =  (double)(it)["zsigmasquared"];               
+  zsamples        =  (double)(it)["zsamples"];          
 }
 
 void GaussianMap::reallocate() {
@@ -45,6 +110,14 @@ GaussianMap::GaussianMap(int w, int h, double cw) {
   cell_width = cw;
   cells = NULL;
   reallocate();
+}
+
+GaussianMap::~GaussianMap() {
+  if (cells != NULL) {
+    delete cells;
+    cells = NULL;
+  } else {
+  }
 }
 
 int GaussianMap::safeAt(int x, int y) {
@@ -124,12 +197,97 @@ void GaussianMap::cellToMeters(int xc, int yc, double * xm, double * ym) {
   (*ym) = (yc - y_center_cell) * cell_width; 
 } 
 
-// XXX write to file
-void GaussianMap::saveToFile(string filename) {
+void GaussianMap::writeToFileStorage(FileStorage& fsvO) {
+  fsvO << "{";
+  {
+    fsvO << "width" << width;
+    fsvO << "height" << height;
+    fsvO << "x_center_cell" << x_center_cell;
+    fsvO << "y_center_cell" << y_center_cell;
+    fsvO << "cell_width" << cell_width;
+
+    fsvO << "cells" << "[" ;
+
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+	refAtCell(x,y)->writeToFileStorage(fsvO);
+      }
+    }
+    fsvO << "]";
+  }
+  fsvO << "}";
 }
 
-// XXX read from file
+void GaussianMap::saveToFile(string filename) {
+  FileStorage fsvO;
+  cout << "GaussianMap::saveToFile writing: " << filename << endl;
+  fsvO.open(filename, FileStorage::WRITE);
+  fsvO << "GaussianMap";
+  writeToFileStorage(fsvO);
+  fsvO.release();
+}
+
+void GaussianMap::readFromFileNodeIterator(FileNodeIterator& it) {
+  {
+    (*it)["width"] >> width;
+    (*it)["height"] >> height;
+    (*it)["x_center_cell"] >> x_center_cell;
+    (*it)["y_center_cell"] >> y_center_cell;
+    (*it)["cell_width"] >> cell_width;
+  }
+  reallocate();
+  {
+    FileNode bnode = (*it)["cells"];
+
+    int numLoadedCells= 0;
+    FileNodeIterator itc = bnode.begin(), itc_end = bnode.end();
+    for ( ; (itc != itc_end) && (numLoadedCells < width*height); itc++, numLoadedCells++) {
+      cells[numLoadedCells].readFromFileNodeIterator(itc);
+    }
+
+    if (numLoadedCells != width*height) {
+      ROS_ERROR_STREAM("Error, GaussianMap loaded " << numLoadedCells << " but expected " << width*height << endl);
+    } else {
+      cout << "successfully loaded " << numLoadedCells << " GaussianMapCells." << endl;
+    }
+  }
+}
+
+void GaussianMap::readFromFileNode(FileNode& it) {
+  {
+    it["width"] >> width;
+    it["height"] >> height;
+    it["x_center_cell"] >> x_center_cell;
+    it["y_center_cell"] >> y_center_cell;
+    it["cell_width"] >> cell_width;
+  }
+  reallocate();
+  {
+    FileNode bnode = it["cells"];
+
+    int numLoadedCells= 0;
+    FileNodeIterator itc = bnode.begin(), itc_end = bnode.end();
+    for ( ; (itc != itc_end) && (numLoadedCells < width*height); itc++, numLoadedCells++) {
+      cells[numLoadedCells].readFromFileNodeIterator(itc);
+    }
+
+    if (numLoadedCells != width*height) {
+      ROS_ERROR_STREAM("Error, GaussianMap loaded " << numLoadedCells << " but expected " << width*height << endl);
+    } else {
+      cout << "successfully loaded " << numLoadedCells << " GaussianMapCells." << endl;
+    }
+  }
+}
+
 void GaussianMap::loadFromFile(string filename) {
+  FileStorage fsvI;
+  cout << "GaussianMap::loadFromFile reading: " << filename<< " ..." << endl;
+  fsvI.open(filename, FileStorage::READ);
+
+  FileNode anode = fsvI["GaussianMap"];
+  readFromFileNode(anode);
+
+  cout << "done." << endl;
 }
 
 #define GAUSSIAN_MAP_UPDATE_MU_SIGMA(para, samples) \

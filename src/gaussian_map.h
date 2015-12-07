@@ -29,6 +29,10 @@ typedef struct _GaussianMapCell {
   double zsamples;
 
   void zero();
+
+  void writeToFileStorage(FileStorage& fsvO) const;
+  void readFromFileNodeIterator(FileNodeIterator& it);
+  void readFromFileNode(FileNode& it);
 } GaussianMapCell;
 
 class GaussianMap {
@@ -44,6 +48,7 @@ class GaussianMap {
   GaussianMapCell *cells = NULL;
 
   GaussianMap(int w, int h, double cw);
+  ~GaussianMap();
   void reallocate();
 
   int safeAt(int x, int y);
@@ -55,6 +60,9 @@ class GaussianMap {
   void metersToCell(double xm, double ym, int * xc, int * yc);
   void cellToMeters(int xc, int yc, double * xm, double * ym);
 
+  void writeToFileStorage(FileStorage& fsvO);
+  void readFromFileNodeIterator(FileNodeIterator& it);
+  void readFromFileNode(FileNode& it);
   void saveToFile(string filename);
   void loadFromFile(string filename);
 
