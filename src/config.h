@@ -1440,10 +1440,10 @@ class EinConfig {
   int intendedEnableState = 1;
   int lastShoulderState = 1;
 
-  shared_ptr<TransitionTable> myTransitionTable;
-  shared_ptr<Scene> myScene;
+  shared_ptr<TransitionTable> my_transition_table;
+  shared_ptr<Scene> my_scene;
 
-  shared_ptr<GaussianMap> classSceneModels;
+  shared_ptr<GaussianMap> class_scene_models;
 
 
 }; // config end
