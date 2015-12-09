@@ -1,6 +1,8 @@
 #include "gaussian_map.h"
 #include "ein_words.h"
 #include "ein.h"
+#include "qtgui/einwindow.h"
+
 
 void _GaussianMapCell::zero() {
   rcounts = 0.0;
@@ -86,6 +88,16 @@ void _GaussianMapCell::readFromFileNode(FileNode& it) {
   zmu             =  (double)(it)["zmu"];     
   zsigmasquared   =  (double)(it)["zsigmasquared"];               
   zsamples        =  (double)(it)["zsamples"];          
+}
+
+void _GaussianMapCell::newObservation(Vec3d vec) {
+  rcounts += vec[0];
+  gcounts += vec[1];
+  bcounts += vec[2];
+  rsquaredcounts += pow(vec[0], 2);
+  gsquaredcounts += pow(vec[1], 2);
+  bsquaredcounts += pow(vec[2], 2);
+  rgbsamples += 1;
 }
 
 void GaussianMap::reallocate() {
@@ -710,7 +722,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
-  ms->config.my_scene->background_map->saveToFile(message);
+  ms->config.scene->background_map->saveToFile(message);
 }
 END_WORD
 REGISTER_WORD(SceneSaveBackgroundMap)
@@ -720,7 +732,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
-  ms->config.my_scene->background_map->loadFromFile(message);
+  ms->config.scene->background_map->loadFromFile(message);
 }
 END_WORD
 REGISTER_WORD(SceneLoadBackgroundMap)
@@ -730,7 +742,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
-  ms->config.my_scene->observed_map->saveToFile(message);
+  ms->config.scene->observed_map->saveToFile(message);
 }
 END_WORD
 REGISTER_WORD(SceneSaveObservedMap)
@@ -740,14 +752,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
-  ms->config.my_scene->observed_map->loadFromFile(message);
+  ms->config.scene->observed_map->loadFromFile(message);
 }
 END_WORD
 REGISTER_WORD(SceneLoadObservedMap)
 
 WORD(SceneClearPredictedObjects)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.my_scene->predicted_objects.resize(0);
+  ms->config.scene->predicted_objects.resize(0);
 }
 END_WORD
 REGISTER_WORD(SceneClearPredictedObjects)
@@ -757,21 +769,21 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int p_cell_width = 0.01;
   int p_width = 300;
   double p_height = 300;
-  ms->config.my_scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
+  ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
 }
 END_WORD
 REGISTER_WORD(SceneInit)
 
 WORD(SceneClearObservedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.my_scene->observed_map->zero();
+  ms->config.scene->observed_map->zero();
 }
 END_WORD
 REGISTER_WORD(SceneClearObservedMap)
 
 WORD(SceneSetBackgroundFromObserved)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.my_scene->background_map->zero();
+  ms->config.scene->background_map->zero();
 }
 END_WORD
 REGISTER_WORD(SceneSetBackgroundFromObserved)
@@ -785,21 +797,42 @@ REGISTER_WORD(SceneUpdateObservedFromSnout)
 
 WORD(SceneUpdateObservedFromWrist)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-//XXX 
+  for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; px++) {
+    for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; py++) {
+      cout << "Iterating through pixels." << endl;
+      if (isInGripperMask(ms, px, py)) {
+	continue;
+      }
+      double x, y;
+      double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
+      pixelToGlobal(ms, px, py, z, &x, &y);
+      int i, j;
+      ms->config.scene->background_map->metersToCell(x, y, &i, &j);
+      GaussianMapCell * cell = ms->config.scene->background_map->refAtCell(i, j);
+      Vec3d pixel = ms->config.wristViewImage.at<Vec3d>(py, px);
+      cell->newObservation(pixel);
+    }
+  }  
+  Mat backgroundImage;
+  ms->config.scene->background_map->rgbMuToMat(backgroundImage);
+  ms->config.backgroundWindow->updateImage(backgroundImage);
+
+
+  
 }
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromWrist)
 
 WORD(SceneComposePredictedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.my_scene->composePredictedMap();
+  ms->config.scene->composePredictedMap();
 }
 END_WORD
 REGISTER_WORD(SceneComposePredictedMap)
 
 WORD(SceneUpdateDiscrepancy)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.my_scene->measureDiscrepancy();
+  ms->config.scene->measureDiscrepancy();
 }
 END_WORD
 REGISTER_WORD(SceneUpdateDiscrepancy)
@@ -832,8 +865,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int ul_cell_y = 0;
   int br_cell_x = 0;
   int br_cell_y = 0;
-  ms->config.my_scene->discrepancy->metersToCell(ul_meter_x, ul_meter_y, &ul_cell_x, &ul_cell_y);
-  ms->config.my_scene->discrepancy->metersToCell(br_meter_x, br_meter_y, &br_cell_x, &br_cell_y);
+  ms->config.scene->discrepancy->metersToCell(ul_meter_x, ul_meter_y, &ul_cell_x, &ul_cell_y);
+  ms->config.scene->discrepancy->metersToCell(br_meter_x, br_meter_y, &br_cell_x, &br_cell_y);
 
   double t_width_x = br_cell_x - ul_cell_x;
   double t_width_y = br_cell_y - ul_cell_y;
@@ -844,7 +877,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double t_fraction_y = double(y) / double(imH);
       int t_cell_x = round( ul_cell_x + (t_fraction_x * t_width_x) );
       int t_cell_y = round( ul_cell_y + (t_fraction_y * t_width_y) );
-      ms->config.density[y*imW+x] = ms->config.my_scene->discrepancy_density.at<double>(t_cell_y,t_cell_x);
+      ms->config.density[y*imW+x] = ms->config.scene->discrepancy_density.at<double>(t_cell_y,t_cell_x);
     }
   }
 }

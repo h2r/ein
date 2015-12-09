@@ -548,6 +548,7 @@ class EinConfig {
   EinWindow * gradientViewerWindow;
   EinWindow * aerialGradientViewerWindow;
   EinWindow * stereoViewerWindow;
+  EinWindow * backgroundWindow;
   ArmWidget * armWidget;
 
   int last_key;
@@ -1440,8 +1441,8 @@ class EinConfig {
   int intendedEnableState = 1;
   int lastShoulderState = 1;
 
-  shared_ptr<TransitionTable> my_transition_table;
-  shared_ptr<Scene> my_scene;
+  shared_ptr<TransitionTable> transition_table;
+  shared_ptr<Scene> scene;
 
   shared_ptr<GaussianMap> class_scene_models;
 
