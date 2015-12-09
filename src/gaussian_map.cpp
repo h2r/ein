@@ -835,9 +835,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.my_scene->discrepancy->metersToCell(ul_meter_x, ul_meter_y, &ul_cell_x, &ul_cell_y);
   ms->config.my_scene->discrepancy->metersToCell(br_meter_x, br_meter_y, &br_cell_x, &br_cell_y);
 
+  double t_width_x = br_cell_x - ul_cell_x;
+  double t_width_y = br_cell_y - ul_cell_y;
+
   for (int y = 0; y < imH; y++) {
     for (int x = 0; x < imW; x++) {
-      ms->config.density[y*imW+x] = ms->config.my_scene->discrepancy_density.at<double>(y,x);
+      double t_fraction_x = double(x) / double(imW);
+      double t_fraction_y = double(y) / double(imH);
+      int t_cell_x = round( ul_cell_x + (t_fraction_x * t_width_x) );
+      int t_cell_y = round( ul_cell_y + (t_fraction_y * t_width_y) );
+      ms->config.density[y*imW+x] = ms->config.my_scene->discrepancy_density.at<double>(t_cell_y,t_cell_x);
     }
   }
 }
