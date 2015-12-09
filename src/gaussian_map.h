@@ -39,13 +39,14 @@ typedef struct _GaussianMapCell {
 } GaussianMapCell;
 
 class GaussianMap {
-  private:
+
+  public:
   int width; // or columns
   int height; // or rows
   int x_center_cell;
   int y_center_cell;
 
-  public:
+  
 
   double cell_width = 0.01;
   GaussianMapCell *cells = NULL;
