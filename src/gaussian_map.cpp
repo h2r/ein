@@ -1,5 +1,6 @@
 #include "gaussian_map.h"
 #include "ein_words.h"
+#include "ein.h"
 
 void _GaussianMapCell::zero() {
   rcounts = 0.0;
@@ -410,22 +411,136 @@ void GaussianMap::zero() {
 
 
 
+void SceneObject::writeToFileStorage(FileStorage& fsvO) {
+// XXX
+}
 
-Scene::Scene(shared_ptr<MachineState> _ms) {
+void SceneObject::readFromFileNodeIterator(FileNodeIterator& it) {
+// XXX
+}
+
+void SceneObject::readFromFileNode(FileNode& it) {
+// XXX
+}
+
+
+
+
+Scene::Scene(shared_ptr<MachineState> _ms, int w, int h, double cw) {
   ms = _ms;
+  width = w;
+  height = h;
+  x_center_cell = (width-1)/2;
+  y_center_cell = (height-1)/2;
+  cell_width = cw;
+  background_pose = eePose::zero();
+  score = 0;
+  predicted_objects.resize(0);
+  reallocate();
+}
+
+void Scene::reallocate() {
+  background_map = make_shared<GaussianMap>(width, height, cell_width);
+  predicted_map = make_shared<GaussianMap>(width, height, cell_width);
+  predicted_segmentation = Mat(height, width, CV_64F);
+  observed_map = make_shared<GaussianMap>(width, height, cell_width);
+  discrepancy = make_shared<GaussianMap>(width, height, cell_width);
+
+  discrepancy_magnitude = Mat(height, width, CV_64F);
+  discrepancy_density = Mat(height, width, CV_64F);
 }
 
 // XXX 
 void Scene::composePredictedMap() {
+  // choose the argMAP distribution
+  //   assign that color to the predicted map
+  //   assign the source to the segmentation
 }
-// XXX 
+
 void Scene::measureDiscrepancy() {
+  // close to kl-divergence
+  // for now this only does rgb
+  for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      if ((predicted_map->refAtCell(x,y)->rgbsamples > 0) && (observed_map->refAtCell(x,y)->rgbsamples > 0)) {
+
+	double rmu_diff = (predicted_map->refAtCell(x,y)->rmu - observed_map->refAtCell(x,y)->rmu);
+	double gmu_diff = (predicted_map->refAtCell(x,y)->gmu - observed_map->refAtCell(x,y)->gmu);
+	double bmu_diff = (predicted_map->refAtCell(x,y)->bmu - observed_map->refAtCell(x,y)->bmu);
+	
+	double oos = 1.0 / predicted_map->refAtCell(x,y)->rgbsamples;
+
+	double rd_observed = max(oos, observed_map->refAtCell(x,y)->rsigmasquared);
+	double rd_predicted = max(oos, predicted_map->refAtCell(x,y)->rsigmasquared);
+	double rvar_quot = (predicted_map->refAtCell(x,y)->rsigmasquared / rd_observed) + 
+			   (observed_map->refAtCell(x,y)->rsigmasquared / rd_predicted);
+
+	double gd_observed = max(oos, observed_map->refAtCell(x,y)->gsigmasquared);
+	double gd_predicted = max(oos, predicted_map->refAtCell(x,y)->gsigmasquared);
+	double gvar_quot = (predicted_map->refAtCell(x,y)->gsigmasquared / gd_observed) + 
+			   (observed_map->refAtCell(x,y)->gsigmasquared / gd_predicted);
+
+	double bd_observed = max(oos, observed_map->refAtCell(x,y)->bsigmasquared);
+	double bd_predicted = max(oos, predicted_map->refAtCell(x,y)->bsigmasquared);
+	double bvar_quot = (predicted_map->refAtCell(x,y)->bsigmasquared / bd_observed) + 
+			   (observed_map->refAtCell(x,y)->bsigmasquared / bd_predicted);
+
+	discrepancy->refAtCell(x,y)->rgbsamples = observed_map->refAtCell(x,y)->rgbsamples;
+	discrepancy->refAtCell(x,y)->rmu = rmu_diff;
+	discrepancy->refAtCell(x,y)->gmu = gmu_diff;
+	discrepancy->refAtCell(x,y)->bmu = bmu_diff;
+	discrepancy->refAtCell(x,y)->rsigmasquared = rvar_quot;
+	discrepancy->refAtCell(x,y)->gsigmasquared = gvar_quot;
+	discrepancy->refAtCell(x,y)->bsigmasquared = bvar_quot;
+  
+	discrepancy_magnitude.at<double>(y,x) = rmu_diff*rmu_diff + gmu_diff*gmu_diff + bmu_diff*bmu_diff +
+					    + rvar_quot + gvar_quot + bvar_quot;
+
+	discrepancy_density.at<double>(y,x) = discrepancy_magnitude.at<double>(y,x); 
+
+      } else {
+	discrepancy->refAtCell(x,y)->rgbsamples = 0.0;
+	discrepancy->refAtCell(x,y)->rmu = 0.0;
+	discrepancy->refAtCell(x,y)->gmu = 0.0;
+	discrepancy->refAtCell(x,y)->bmu = 0.0;
+	discrepancy->refAtCell(x,y)->rsigmasquared = 0.0;
+	discrepancy->refAtCell(x,y)->gsigmasquared = 0.0;
+	discrepancy->refAtCell(x,y)->bsigmasquared = 0.0;
+  
+	discrepancy_magnitude.at<double>(y,x) = 0.0;
+	discrepancy_density.at<double>(y,x) = 0.0;
+      }
+    }
+  }
 }
-// XXX 
-void Scene::assignScore() {
+
+double Scene::assignScore() {
+  score = measureScoreRegion(0,0,width-1,height-1);
+  return score;
 }
-// XXX 
-void Scene::assignScoreRegion() {
+
+double Scene::measureScoreRegion(int _x1, int _y1, int _x2, int _y2) {
+  int x1 = min(_x1, _x2);
+  int x2 = max(_x1, _x2);
+  int y1 = min(_y1, _y2);
+  int y2 = max(_y1, _y2);
+
+  x1 = min( max(0,x1), width-1);
+  x2 = min( max(0,x2), width-1);
+  y1 = min( max(0,y1), height-1);
+  y2 = min( max(0,y2), height-1);
+
+  double totalScore = 0.0;
+  for (int y = y1; y <= y2; y++) {
+    for (int x = x1; x <= x2; x++) {
+      if (discrepancy->refAtCell(x,y)->rgbsamples > 0) {
+	totalScore += discrepancy_magnitude.at<double>(y,x); 
+      } else {
+      }
+    }
+  }
+  
+  return totalScore;
 }
 
 // XXX 
@@ -437,6 +552,14 @@ void Scene::proposeObject() {
 
 // XXX 
 void Scene::tryToAddObjectToScene() {
+}
+
+// XXX 
+void Scene::removeObjectFromPredictedMap() {
+}
+
+// XXX 
+void Scene::addObjectToPredictedMap() {
 }
 
 // XXX 
@@ -454,6 +577,27 @@ void Scene::reregisterBackground() {
 // XXX 
 void Scene::reregisterObject(int i) {
 }
+
+void Scene::writeToFileStorage(FileStorage& fsvO) {
+// XXX 
+}
+
+void Scene::readFromFileNodeIterator(FileNodeIterator& it) {
+// XXX 
+}
+
+void Scene::readFromFileNode(FileNode& it) {
+// XXX
+}
+
+void Scene::saveToFile(string filename) {
+// XXX
+}
+
+void Scene::loadFromFile(string filename) {
+// XXX
+}
+
 
 
 
@@ -495,6 +639,25 @@ void TransitionTable::setActionProbabilities(std::vector<double> * actions) {
 void TransitionTable::initCounts() {
 }
 
+void TransitionTable::writeToFileStorage(FileStorage& fsvO) {
+// XXX 
+}
+
+void TransitionTable::readFromFileNodeIterator(FileNodeIterator& it) {
+// XXX 
+}
+
+void TransitionTable::readFromFileNode(FileNode& it) {
+// XXX
+}
+
+void TransitionTable::saveToFile(string filename) {
+// XXX
+}
+
+void TransitionTable::loadFromFile(string filename) {
+// XXX
+}
 
 
 
@@ -533,6 +696,7 @@ void TransitionTable::initCounts() {
 
 // XXX word to fly on a path over all the sceneObjects, streaming images
 // XXX word to densely explore map streaming images and IR 
+// XXX init checker MACRO for Scene and TransitionTable 
 */
 
 
@@ -543,38 +707,74 @@ namespace ein_words {
 
 WORD(SceneSaveBackgroundMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-//XXX 
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  ms->config.my_scene->background_map->saveToFile(message);
 }
 END_WORD
 REGISTER_WORD(SceneSaveBackgroundMap)
 
 WORD(SceneLoadBackgroundMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-//XXX 
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  ms->config.my_scene->background_map->loadFromFile(message);
 }
 END_WORD
 REGISTER_WORD(SceneLoadBackgroundMap)
 
 WORD(SceneSaveObservedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-//XXX 
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  ms->config.my_scene->observed_map->saveToFile(message);
 }
 END_WORD
 REGISTER_WORD(SceneSaveObservedMap)
 
 WORD(SceneLoadObservedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-//XXX 
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  ms->config.my_scene->observed_map->loadFromFile(message);
 }
 END_WORD
 REGISTER_WORD(SceneLoadObservedMap)
 
-WORD(SceneInitObservedMap)
+WORD(SceneClearPredictedObjects)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-//XXX 
+  ms->config.my_scene->predicted_objects.resize(0);
 }
 END_WORD
-REGISTER_WORD(SceneInitObservedMap)
+REGISTER_WORD(SceneClearPredictedObjects)
+
+WORD(SceneInit)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int p_cell_width = 0.01;
+  int p_width = 300;
+  double p_height = 300;
+  ms->config.my_scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
+}
+END_WORD
+REGISTER_WORD(SceneInit)
+
+WORD(SceneClearObservedMap)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.my_scene->observed_map->zero();
+}
+END_WORD
+REGISTER_WORD(SceneClearObservedMap)
+
+WORD(SceneSetBackgroundFromObserved)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.my_scene->background_map->zero();
+}
+END_WORD
+REGISTER_WORD(SceneSetBackgroundFromObserved)
 
 WORD(SceneUpdateObservedFromSnout)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -583,9 +783,23 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromSnout)
 
-WORD(SceneUpdateDiscrepancy)
+WORD(SceneUpdateObservedFromWrist)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 //XXX 
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromWrist)
+
+WORD(SceneComposePredictedMap)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.my_scene->composePredictedMap();
+}
+END_WORD
+REGISTER_WORD(SceneComposePredictedMap)
+
+WORD(SceneUpdateDiscrepancy)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.my_scene->measureDiscrepancy();
 }
 END_WORD
 REGISTER_WORD(SceneUpdateDiscrepancy)
@@ -593,6 +807,7 @@ REGISTER_WORD(SceneUpdateDiscrepancy)
 WORD(SceneGrabCenterCropAsClass)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 //XXX 
+  //shared_ptr<GaussianMap> camera_frame = copyBox(ul_cell_x, ul_cell_y, br_cell_x, br_cell_y);
 }
 END_WORD
 REGISTER_WORD(SceneGrabCenterCropAsClass)
@@ -600,7 +815,31 @@ REGISTER_WORD(SceneGrabCenterCropAsClass)
 WORD(SceneDensityFromDiscrepancy)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 // this enables denisty based models to use the new channel
-//XXX 
+  Size sz = ms->config.objectViewerImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  double ul_meter_x = 0;
+  double ul_meter_y = 0;
+  double br_meter_x = 0;
+  double br_meter_y = 0;
+
+  double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
+  pixelToGlobal(ms, 0, 0, zToUse, &ul_meter_x, &ul_meter_y, ms->config.currentEEPose);
+  pixelToGlobal(ms, imW-1, imH-1, zToUse, &br_meter_x, &br_meter_y, ms->config.currentEEPose);
+
+  int ul_cell_x = 0;
+  int ul_cell_y = 0;
+  int br_cell_x = 0;
+  int br_cell_y = 0;
+  ms->config.my_scene->discrepancy->metersToCell(ul_meter_x, ul_meter_y, &ul_cell_x, &ul_cell_y);
+  ms->config.my_scene->discrepancy->metersToCell(br_meter_x, br_meter_y, &br_cell_x, &br_cell_y);
+
+  for (int y = 0; y < imH; y++) {
+    for (int x = 0; x < imW; x++) {
+      ms->config.density[y*imW+x] = ms->config.my_scene->discrepancy_density.at<double>(y,x);
+    }
+  }
 }
 END_WORD
 REGISTER_WORD(SceneDensityFromDiscrepancy)

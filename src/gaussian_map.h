@@ -93,46 +93,65 @@ class SceneObject {
   // pose within the scene
   eePose scene_pose;
   int labeledClassIndex;
+  string objectLabel;
   sceneObjectType sot;
+
+  void writeToFileStorage(FileStorage& fsvO);
+  void readFromFileNodeIterator(FileNodeIterator& it);
+  void readFromFileNode(FileNode& it);
 };
 
 class Scene {
   public:
+  int width; // or columns
+  int height; // or rows
+  int x_center_cell;
+  int y_center_cell;
+
+  double cell_width = 0.01;
 
   std::shared_ptr<MachineState> ms;
 
-  Scene(shared_ptr<MachineState> ms);
+  Scene(shared_ptr<MachineState> ms, int w, int h, double cw);
+  void reallocate();
 
   eePose background_pose;
   shared_ptr<GaussianMap> background_map;
   shared_ptr<GaussianMap> predicted_map;
   Mat predicted_segmentation;
   shared_ptr<GaussianMap> observed_map;
-  // differeces between predicted mean and variance are approximately equally relevant,
-  //   consider the kl divergence of two gaussians
   shared_ptr<GaussianMap> discrepancy;
+  Mat discrepancy_magnitude;
   // transform image to find hot spots
-  Mat discrepancyDensity;
+  Mat discrepancy_density;
 
-  vector<SceneObject> predictedObjects;
+  vector<SceneObject> predicted_objects;
 
   double score;
 
   void composePredictedMap();
   void measureDiscrepancy();
-  void assignScore();
-  void assignScoreRegion();
+  double assignScore();
+  double measureScoreRegion(int _x1, int _y1, int _x2, int _y2);
 
   void proposeRegion();
   // object only makes map better, but must "win" on at least a fraction of its pixels (prior on number of parts)
   void proposeObject();
 
   void tryToAddObjectToScene();
+  void addObjectToPredictedMap();
+  void removeObjectFromPredictedMap();
 
   void removeSpaceObjects();
   void addSpaceObjects();
   void reregisterBackground();
   void reregisterObject(int i);
+
+  void writeToFileStorage(FileStorage& fsvO);
+  void readFromFileNodeIterator(FileNodeIterator& it);
+  void readFromFileNode(FileNode& it);
+  void saveToFile(string filename);
+  void loadFromFile(string filename);
 };
 
 // transition tables can be instanced for particular settings; transitions may differ in low gravity, high wind, or soft ground, 
@@ -161,6 +180,12 @@ class TransitionTable {
   void setActionProbabilities(std::vector<double> * actions);
 
   void initCounts();
+
+  void writeToFileStorage(FileStorage& fsvO);
+  void readFromFileNodeIterator(FileNodeIterator& it);
+  void readFromFileNode(FileNode& it);
+  void saveToFile(string filename);
+  void loadFromFile(string filename);
 };
 
 #endif /* _EIN_SCENE_H_ */

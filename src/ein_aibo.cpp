@@ -479,8 +479,6 @@ WORD(SocketClose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // destroy old socket
   close(ms->pack[ms->focusedMember].aibo_socket_desc);
-  // XXX whick?
-  //close(ms->pack[ms->focusedMember].aibo_socket_desc);
 }
 END_WORD
 REGISTER_WORD(SocketClose)
