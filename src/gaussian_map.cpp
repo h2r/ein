@@ -462,11 +462,16 @@ void Scene::reallocate() {
   discrepancy_density = Mat(height, width, CV_64F);
 }
 
-// XXX 
 void Scene::composePredictedMap() {
   // choose the argMAP distribution
   //   assign that color to the predicted map
   //   assign the source to the segmentation
+  for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      *(predicted_map->refAtCell(x,y)) = *(background_map->refAtCell(x,y));
+    }
+  }
+  // XXX  currently only incorporates background
 }
 
 void Scene::measureDiscrepancy() {
@@ -722,7 +727,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
-  ms->config.scene->background_map->saveToFile(message);
+  stringstream ss;
+  ss << ms->config.data_directory + "/maps/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/maps/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  ms->config.scene->background_map->saveToFile(ss.str());
+
 }
 END_WORD
 REGISTER_WORD(SceneSaveBackgroundMap)
@@ -732,7 +744,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
-  ms->config.scene->background_map->loadFromFile(message);
+  stringstream ss;
+  ss << ms->config.data_directory + "/maps/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/maps/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  ms->config.scene->background_map->loadFromFile(ss.str());
+
 }
 END_WORD
 REGISTER_WORD(SceneLoadBackgroundMap)
@@ -742,7 +761,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
-  ms->config.scene->observed_map->saveToFile(message);
+  stringstream ss;
+  ss << ms->config.data_directory + "/maps/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/maps/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  ms->config.scene->observed_map->saveToFile(ss.str());
+
 }
 END_WORD
 REGISTER_WORD(SceneSaveObservedMap)
@@ -752,10 +778,49 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
-  ms->config.scene->observed_map->loadFromFile(message);
+  stringstream ss;
+  ss << ms->config.data_directory + "/maps/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/maps/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  ms->config.scene->observed_map->loadFromFile(ss.str());
+
 }
 END_WORD
 REGISTER_WORD(SceneLoadObservedMap)
+
+WORD(SceneSaveDiscrepancyMap)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  stringstream ss;
+  ss << ms->config.data_directory + "/maps/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/maps/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  ms->config.scene->discrepancy->saveToFile(ss.str());
+}
+END_WORD
+REGISTER_WORD(SceneSaveDiscrepancyMap)
+
+WORD(SceneLoadDiscrepancyMap)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  stringstream ss;
+  ss << ms->config.data_directory + "/maps/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/maps/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  ms->config.scene->discrepancy->loadFromFile(ss.str());
+}
+END_WORD
+REGISTER_WORD(SceneLoadDiscrepancyMap)
 
 WORD(SceneClearPredictedObjects)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -767,9 +832,10 @@ REGISTER_WORD(SceneClearPredictedObjects)
 WORD(SceneInit)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int p_cell_width = 0.01;
-  int p_width = 300;
-  double p_height = 300;
+  int p_width = 301;
+  int p_height = 301;
   ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
+
 }
 END_WORD
 REGISTER_WORD(SceneInit)
