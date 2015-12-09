@@ -328,6 +328,7 @@ void GaussianMap::rgbMuToMat(Mat& out) {
       out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->bmu;
       out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->gmu;
       out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->rmu;
+      
     }
   }
 }
@@ -831,11 +832,12 @@ REGISTER_WORD(SceneClearPredictedObjects)
 
 WORD(SceneInit)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  int p_cell_width = 0.01;
+  double p_cell_width = 0.01;
   int p_width = 301;
   int p_height = 301;
   ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
-
+  cout << "Scene: " << ms->config.scene << endl;
+  cout << "Background map: " << ms->config.scene->background_map << endl;
 }
 END_WORD
 REGISTER_WORD(SceneInit)
@@ -863,9 +865,13 @@ REGISTER_WORD(SceneUpdateObservedFromSnout)
 
 WORD(SceneUpdateObservedFromWrist)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Scene: " << ms->config.scene << endl;
+  cout << "Background map: " << ms->config.scene->background_map << endl;
+  cout << "x center: " << ms->config.scene->background_map->x_center_cell << ", ";
+  cout << "y center: " << ms->config.scene->background_map->y_center_cell << ", ";
+  cout << "cell width: " << ms->config.scene->background_map->cell_width << ", " << endl;
   for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; px++) {
     for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; py++) {
-      cout << "Iterating through pixels." << endl;
       if (isInGripperMask(ms, px, py)) {
 	continue;
       }
@@ -878,13 +884,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       Vec3d pixel = ms->config.wristViewImage.at<Vec3d>(py, px);
       cell->newObservation(pixel);
     }
+    ms->config.scene->background_map->recalculateMusAndSigmas();
   }  
   Mat backgroundImage;
   ms->config.scene->background_map->rgbMuToMat(backgroundImage);
   ms->config.backgroundWindow->updateImage(backgroundImage);
-
-
-  
 }
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromWrist)
