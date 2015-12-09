@@ -774,6 +774,38 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneLoadObservedMap)
 
+WORD(SceneSaveDiscrepancyMap)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  stringstream ss;
+  ss << ms->config.data_directory + "/maps/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/maps/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  ms->config.my_scene->discrepancy->saveToFile(ss.str());
+}
+END_WORD
+REGISTER_WORD(SceneSaveDiscrepancyMap)
+
+WORD(SceneLoadDiscrepancyMap)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  stringstream ss;
+  ss << ms->config.data_directory + "/maps/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/maps/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  ms->config.my_scene->discrepancy->loadFromFile(ss.str());
+}
+END_WORD
+REGISTER_WORD(SceneLoadDiscrepancyMap)
+
 WORD(SceneClearPredictedObjects)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.my_scene->predicted_objects.resize(0);
