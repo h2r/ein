@@ -100,7 +100,7 @@ void initializeMachine(shared_ptr<MachineState> ms) {
   if (ms->config.currentRobotMode != PHYSICAL) {
     return;
   }
-  
+  ms->pushWord("sceneInit"); 
   ms->pushWord("zeroGOff"); 
   ms->pushWord("waitUntilEndpointCallbackReceived"); 
 

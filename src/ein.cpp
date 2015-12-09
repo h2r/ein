@@ -4373,6 +4373,26 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     ms->config.gradientViewerImage = Mat(2*ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, ms->config.cv_ptr->image.type());
     ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
     ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();
+
+
+    int imW = ms->config.wristViewImage.cols;
+    int imH = ms->config.wristViewImage.rows;
+
+    // determine table edges, i.e. the gray boxes
+    ms->config.lGO = ms->config.gBoxW*(ms->config.lGO/ms->config.gBoxW);
+    ms->config.rGO = ms->config.gBoxW*(ms->config.rGO/ms->config.gBoxW);
+    ms->config.tGO = ms->config.gBoxH*(ms->config.tGO/ms->config.gBoxH);
+    ms->config.bGO = ms->config.gBoxH*(ms->config.bGO/ms->config.gBoxH);
+    
+
+    ms->config.grayTop = cv::Point(ms->config.lGO, ms->config.tGO);
+    ms->config.grayBot = cv::Point(imW-ms->config.rGO-1, imH-ms->config.bGO-1);
+
+    if (ms->config.all_range_mode) {
+      ms->config.grayTop = ms->config.armTop;
+      ms->config.grayBot = ms->config.armBot;
+    }
+
   }
 
   try{
@@ -11340,18 +11360,6 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
 
   Mat yCbCrGradientImage = ms->config.objectViewerImage.clone();
 
-  // determine table edges, i.e. the gray boxes
-  ms->config.lGO = ms->config.gBoxW*(ms->config.lGO/ms->config.gBoxW);
-  ms->config.rGO = ms->config.gBoxW*(ms->config.rGO/ms->config.gBoxW);
-  ms->config.tGO = ms->config.gBoxH*(ms->config.tGO/ms->config.gBoxH);
-  ms->config.bGO = ms->config.gBoxH*(ms->config.bGO/ms->config.gBoxH);
-  ms->config.grayTop = cv::Point(ms->config.lGO, ms->config.tGO);
-  ms->config.grayBot = cv::Point(imW-ms->config.rGO-1, imH-ms->config.bGO-1);
-
-  if (ms->config.all_range_mode) {
-    ms->config.grayTop = ms->config.armTop;
-    ms->config.grayBot = ms->config.armBot;
-  }
 
   // Sobel business
   Mat sobelGrayBlur;
@@ -14571,6 +14579,13 @@ void initializeArmGui(shared_ptr<MachineState> ms, MainWindow * einMainWindow) {
   ms->config.stereoViewerWindow = new EinWindow(NULL, ms);
   ms->config.stereoViewerWindow->setWindowTitle("Stereo Viewer " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.stereoViewerWindow);
+
+
+  ms->config.backgroundWindow = new EinWindow(NULL, ms);
+  ms->config.backgroundWindow->setWindowTitle("Gaussian Map Background View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.backgroundWindow);
+  ms->config.backgroundWindow->setVisible(true);
+
 
   //createTrackbar("post_density_sigma", ms->config.densityViewerName, &ms->config.postDensitySigmaTrackbarVariable, 40);
   //createTrackbar("canny_lo", ms->config.densityViewerName, &ms->config.loTrackbarVariable, 100);

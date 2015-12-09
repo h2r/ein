@@ -33,6 +33,9 @@ typedef struct _GaussianMapCell {
   void writeToFileStorage(FileStorage& fsvO) const;
   void readFromFileNodeIterator(FileNodeIterator& it);
   void readFromFileNode(FileNode& it);
+
+  void newObservation(Vec3d obs);
+  
 } GaussianMapCell;
 
 class GaussianMap {
