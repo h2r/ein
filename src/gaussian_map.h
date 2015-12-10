@@ -72,6 +72,7 @@ class GaussianMap {
 
   void recalculateMusAndSigmas();
 
+  void rgbDiscrepancyMuToMat(Mat& out);
   void rgbMuToMat(Mat& out);
   void rgbSigmaSquaredToMat(Mat& out);
   void rgbCountsToMat(Mat& out);
