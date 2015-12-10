@@ -321,13 +321,15 @@ void GaussianMap::recalculateMusAndSigmas() {
   }
 }
 
+
 void GaussianMap::rgbMuToMat(Mat& out) {
-  out = Mat(height, width, CV_64FC3);
+  //out = Mat(height, width, CV_64FC3);
+  out = Mat(height, width, CV_8UC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->bmu;
-      out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->gmu;
-      out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->rmu;
+      out.at<Vec3b>(y,x)[0] = refAtCell(x,y)->bmu;
+      out.at<Vec3b>(y,x)[1] = refAtCell(x,y)->gmu;
+      out.at<Vec3b>(y,x)[2] = refAtCell(x,y)->rmu;
       
     }
   }
@@ -511,8 +513,8 @@ void Scene::measureDiscrepancy() {
 	discrepancy->refAtCell(x,y)->gsigmasquared = gvar_quot;
 	discrepancy->refAtCell(x,y)->bsigmasquared = bvar_quot;
   
-	discrepancy_magnitude.at<double>(y,x) = rmu_diff*rmu_diff + gmu_diff*gmu_diff + bmu_diff*bmu_diff +
-					    + rvar_quot + gvar_quot + bvar_quot;
+	discrepancy_magnitude.at<double>(y,x) = rmu_diff*rmu_diff + gmu_diff*gmu_diff + bmu_diff*bmu_diff ;
+	//+ rvar_quot + gvar_quot + bvar_quot;
 
 	discrepancy_density.at<double>(y,x) = sqrt(discrepancy_magnitude.at<double>(y,x) / 3.0) / 255.0; 
 
@@ -753,6 +755,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->config.scene->background_map->loadFromFile(ss.str());
 
+  Mat backgroundImage;
+  ms->config.scene->background_map->rgbMuToMat(backgroundImage);
+  Mat rgb = backgroundImage.clone();  
+  cvtColor(backgroundImage, rgb, CV_YCrCb2BGR);
+  ms->config.backgroundWindow->updateImage(rgb);
+
 }
 END_WORD
 REGISTER_WORD(SceneLoadBackgroundMap)
@@ -845,8 +853,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.scene->observed_map->zero();
   Mat observedImage;
   ms->config.scene->observed_map->rgbMuToMat(observedImage);
-  observedImage = observedImage / 255.0;
-  ms->config.observedWindow->updateImage(observedImage);
+  //observedImage = observedImage / 255.0;
+  Mat rgb = observedImage.clone();  
+  cvtColor(observedImage, rgb, CV_YCrCb2BGR);
+  ms->config.observedWindow->updateImage(rgb);
 }
 END_WORD
 REGISTER_WORD(SceneClearObservedMap)
@@ -867,6 +877,9 @@ REGISTER_WORD(SceneUpdateObservedFromSnout)
 
 WORD(SceneUpdateObservedFromWrist)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  Mat wristViewYCbCr = ms->config.wristViewImage.clone();  
+  cvtColor(ms->config.wristViewImage, wristViewYCbCr, CV_BGR2YCrCb);
+    
   for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; px++) {
     for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; py++) {
       if (isInGripperMask(ms, px, py)) {
@@ -878,16 +891,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       int i, j;
       ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
       GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
-      Vec3b pixel = ms->config.wristViewImage.at<Vec3b>(py, px);
-      cout << "Pixel: " << pixel << endl;
+      Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
       cell->newObservation(pixel);
     }
   }  
   ms->config.scene->observed_map->recalculateMusAndSigmas();
   Mat observedImage;
   ms->config.scene->observed_map->rgbMuToMat(observedImage);
-  observedImage = observedImage / 255.0;
-  ms->config.observedWindow->updateImage(observedImage);
+  //observedImage = observedImage / 255.0;
+  Mat rgb = observedImage.clone();  
+  cvtColor(observedImage, rgb, CV_YCrCb2BGR);
+  ms->config.observedWindow->updateImage(rgb);
 }
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromWrist)
@@ -904,9 +918,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.scene->measureDiscrepancy();
   Mat image;
   ms->config.scene->discrepancy->rgbMuToMat(image);
-  image = image / 255.0;
-  ms->config.observedWindow->updateImage(image);
-
+  //image = image / 255.0;
+  Mat rgb;  cvtColor(image, rgb, CV_YCrCb2BGR);
+  ms->config.discrepancyWindow->updateImage(rgb);
 }
 END_WORD
 REGISTER_WORD(SceneUpdateDiscrepancy)

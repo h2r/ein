@@ -549,7 +549,7 @@ class EinConfig {
   EinWindow * aerialGradientViewerWindow;
   EinWindow * stereoViewerWindow;
   EinWindow * backgroundWindow;
-  EinWindow * discrepencyWindow;
+  EinWindow * discrepancyWindow;
   EinWindow * observedWindow;
   ArmWidget * armWidget;
 
