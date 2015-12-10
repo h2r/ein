@@ -925,11 +925,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }  
   ms->config.scene->observed_map->recalculateMusAndSigmas();
-  Mat observedImage;
-  ms->config.scene->observed_map->rgbMuToMat(observedImage);
-  //observedImage = observedImage / 255.0;
-  Mat rgb = observedImage.clone();  
-  cvtColor(observedImage, rgb, CV_YCrCb2BGR);
+  Mat image;
+  ms->config.scene->observed_map->rgbMuToMat(image);
+  Mat rgb = image.clone();  
+  cvtColor(image, rgb, CV_YCrCb2BGR);
   ms->config.observedWindow->updateImage(rgb);
 }
 END_WORD
@@ -938,6 +937,12 @@ REGISTER_WORD(SceneUpdateObservedFromWrist)
 WORD(SceneComposePredictedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.scene->composePredictedMap();
+
+  Mat image;
+  ms->config.scene->predicted_map->rgbMuToMat(image);
+  Mat rgb = image.clone();  
+  cvtColor(image, rgb, CV_YCrCb2BGR);
+  ms->config.predictedWindow->updateImage(rgb);
 }
 END_WORD
 REGISTER_WORD(SceneComposePredictedMap)
