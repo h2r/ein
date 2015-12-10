@@ -14601,10 +14601,10 @@ void initializeArmGui(shared_ptr<MachineState> ms, MainWindow * einMainWindow) {
   einMainWindow->addWindow(ms->config.observedWindow);
   ms->config.observedWindow->setVisible(true);
 
-  ms->config.discrepencyWindow = new EinWindow(NULL, ms);
-  ms->config.discrepencyWindow->setWindowTitle("Gaussian Map Discrepency View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.discrepencyWindow);
-  ms->config.discrepencyWindow->setVisible(true);
+  ms->config.discrepancyWindow = new EinWindow(NULL, ms);
+  ms->config.discrepancyWindow->setWindowTitle("Gaussian Map Discrepancy View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.discrepancyWindow);
+  ms->config.discrepancyWindow->setVisible(true);
 
 
 
