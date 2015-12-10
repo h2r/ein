@@ -4393,6 +4393,20 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
       ms->config.grayBot = ms->config.armBot;
     }
 
+    if (ms->config.integralDensity == NULL)
+      ms->config.integralDensity = new double[imW*imH];
+    if (ms->config.density == NULL)
+      ms->config.density = new double[imW*imH];
+    if (ms->config.preDensity == NULL)
+      ms->config.preDensity = new double[imW*imH];
+    if (ms->config.temporalDensity == NULL) {
+      ms->config.temporalDensity = new double[imW*imH];
+      for (int x = 0; x < imW; x++) {
+	for (int y = 0; y < imH; y++) {
+	  ms->config.temporalDensity[y*imW + x] = 0;
+	}
+      }
+    }
   }
 
   try{
@@ -11346,6 +11360,20 @@ void substituteLatestImageQuantities(shared_ptr<MachineState> ms) {
   ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();
 }
 
+void drawDensity(shared_ptr<MachineState> ms, double scale) {
+  Size sz = ms->config.objectViewerImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      uchar val = uchar(min( 255.0 * ms->config.density[y*imW+x] / scale, 255.0));
+      ms->config.densityViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
+    }
+  }
+
+}
+
 void goCalculateDensity(shared_ptr<MachineState> ms) {
   Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
@@ -11501,20 +11529,6 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   // input image is noisy so blurring is a good idea
   //GaussianBlur(ms->config.densityViewerImage, ms->config.densityViewerImage, cv::Size(0,0), 1.0);
 
-  if (ms->config.integralDensity == NULL)
-    ms->config.integralDensity = new double[imW*imH];
-  if (ms->config.density == NULL)
-    ms->config.density = new double[imW*imH];
-  if (ms->config.preDensity == NULL)
-    ms->config.preDensity = new double[imW*imH];
-  if (ms->config.temporalDensity == NULL) {
-    ms->config.temporalDensity = new double[imW*imH];
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	ms->config.temporalDensity[y*imW + x] = 0;
-      }
-    }
-  }
 
   int replaceDensityWithGrad = 1;
   if (replaceDensityWithGrad) {
@@ -11736,12 +11750,7 @@ void goCalculateDensity(shared_ptr<MachineState> ms) {
   }
 
   // copy the density map to the rendered image
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      uchar val = uchar(min( 255.0 * ms->config.density[y*imW+x] / ms->config.maxDensity, 255.0));
-      ms->config.densityViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
-    }
-  }
+  drawDensity(ms, ms->config.maxDensity);
 
   // masked this too
   ms->config.frameGraySobel = totalGraySobel.clone();
@@ -14585,6 +14594,18 @@ void initializeArmGui(shared_ptr<MachineState> ms, MainWindow * einMainWindow) {
   ms->config.backgroundWindow->setWindowTitle("Gaussian Map Background View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.backgroundWindow);
   ms->config.backgroundWindow->setVisible(true);
+
+
+  ms->config.observedWindow = new EinWindow(NULL, ms);
+  ms->config.observedWindow->setWindowTitle("Gaussian Map Observed View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.observedWindow);
+  ms->config.observedWindow->setVisible(true);
+
+  ms->config.discrepencyWindow = new EinWindow(NULL, ms);
+  ms->config.discrepencyWindow->setWindowTitle("Gaussian Map Discrepency View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.discrepencyWindow);
+  ms->config.discrepencyWindow->setVisible(true);
+
 
 
   //createTrackbar("post_density_sigma", ms->config.densityViewerName, &ms->config.postDensitySigmaTrackbarVariable, 40);

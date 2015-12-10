@@ -549,6 +549,8 @@ class EinConfig {
   EinWindow * aerialGradientViewerWindow;
   EinWindow * stereoViewerWindow;
   EinWindow * backgroundWindow;
+  EinWindow * discrepencyWindow;
+  EinWindow * observedWindow;
   ArmWidget * armWidget;
 
   int last_key;
