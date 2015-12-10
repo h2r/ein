@@ -324,16 +324,45 @@ void GaussianMap::recalculateMusAndSigmas() {
 
 void GaussianMap::rgbMuToMat(Mat& out) {
   //out = Mat(height, width, CV_64FC3);
+  Mat big = Mat(height, width, CV_8UC3);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+
+      if (refAtCell(x, y)->rgbsamples > 0) {
+	big.at<Vec3b>(y,x)[0] = uchar(refAtCell(x,y)->bmu);
+	big.at<Vec3b>(y,x)[1] = uchar(refAtCell(x,y)->gmu);
+	big.at<Vec3b>(y,x)[2] = uchar(refAtCell(x,y)->rmu);
+      } else {
+	big.at<Vec3b>(y,x)[0] = 0;
+	big.at<Vec3b>(y,x)[1] = 128;
+	big.at<Vec3b>(y,x)[2] = 128;
+      }
+    }
+  }
+
+  cv::resize(big, out, cv::Size(301, 301), 2, 2);
+
+}
+
+void GaussianMap::rgbDiscrepancyMuToMat(Mat& out) {
+  //out = Mat(height, width, CV_64FC3);
   out = Mat(height, width, CV_8UC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<Vec3b>(y,x)[0] = refAtCell(x,y)->bmu;
-      out.at<Vec3b>(y,x)[1] = refAtCell(x,y)->gmu;
-      out.at<Vec3b>(y,x)[2] = refAtCell(x,y)->rmu;
-      
+
+      if (refAtCell(x, y)->rgbsamples > 0) {
+	out.at<Vec3b>(y,x)[0] = fabs(refAtCell(x,y)->bmu);
+	out.at<Vec3b>(y,x)[1] = refAtCell(x,y)->gmu * 0.5 + 128;
+	out.at<Vec3b>(y,x)[2] = refAtCell(x,y)->rmu * 0.5 + 128;
+      } else {
+	out.at<Vec3b>(y,x)[0] = 0;
+	out.at<Vec3b>(y,x)[1] = 128;
+	out.at<Vec3b>(y,x)[2] = 128;
+      }
     }
   }
 }
+
 
 void GaussianMap::rgbSigmaSquaredToMat(Mat& out) {
   out = Mat(height, width, CV_64FC3);
@@ -840,9 +869,9 @@ REGISTER_WORD(SceneClearPredictedObjects)
 
 WORD(SceneInit)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double p_cell_width = 0.01;
-  int p_width = 301;
-  int p_height = 301;
+  double p_cell_width = 0.005; //0.01;
+  int p_width = 601;
+  int p_height = 601;
   ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
 }
 END_WORD
@@ -877,8 +906,8 @@ REGISTER_WORD(SceneUpdateObservedFromSnout)
 
 WORD(SceneUpdateObservedFromWrist)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  Mat wristViewYCbCr = ms->config.wristViewImage.clone();  
-  cvtColor(ms->config.wristViewImage, wristViewYCbCr, CV_BGR2YCrCb);
+  Mat wristViewYCbCr = ms->config.wristCamImage.clone();  
+  cvtColor(ms->config.wristCamImage, wristViewYCbCr, CV_BGR2YCrCb);
     
   for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; px++) {
     for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; py++) {
@@ -917,7 +946,7 @@ WORD(SceneUpdateDiscrepancy)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.scene->measureDiscrepancy();
   Mat image;
-  ms->config.scene->discrepancy->rgbMuToMat(image);
+  ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(image);
   //image = image / 255.0;
   Mat rgb;  cvtColor(image, rgb, CV_YCrCb2BGR);
   ms->config.discrepancyWindow->updateImage(rgb);
@@ -937,7 +966,7 @@ WORD(SceneDensityFromDiscrepancy)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 // this enables denisty based models to use the new channel
 // XXX this does not take the rotation of the wrist into account
-  Size sz = ms->config.wristViewImage.size();
+  Size sz = ms->config.wristCamImage.size();
   int imW = sz.width;
   int imH = sz.height;
 
