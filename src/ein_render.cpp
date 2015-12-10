@@ -235,7 +235,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->config.hiColorRangemapWindow->setVisible(false);
   ms->config.objectViewerWindow->setVisible(true);
   ms->config.objectMapViewerWindow->setVisible(false);
-  ms->config.densityViewerWindow->setVisible(false);
+  ms->config.densityViewerWindow->setVisible(true);
   ms->config.gradientViewerWindow->setVisible(true);
   ms->config.mapBackgroundViewWindow->setVisible(false);
   ms->config.aerialGradientViewerWindow->setVisible(false);
