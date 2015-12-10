@@ -927,36 +927,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int imW = sz.width;
   int imH = sz.height;
 
-  double ul_meter_x = 0;
-  double ul_meter_y = 0;
-  double br_meter_x = 0;
-  double br_meter_y = 0;
-
-  double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
-  pixelToGlobal(ms, 0, 0, zToUse, &ul_meter_x, &ul_meter_y, ms->config.currentEEPose);
-  pixelToGlobal(ms, imW-1, imH-1, zToUse, &br_meter_x, &br_meter_y, ms->config.currentEEPose);
-
-  int ul_cell_x = 0;
-  int ul_cell_y = 0;
-  int br_cell_x = 0;
-  int br_cell_y = 0;
-  ms->config.scene->discrepancy->metersToCell(ul_meter_x, ul_meter_y, &ul_cell_x, &ul_cell_y);
-  ms->config.scene->discrepancy->metersToCell(br_meter_x, br_meter_y, &br_cell_x, &br_cell_y);
-
-  double t_width_x = br_cell_x - ul_cell_x;
-  double t_width_y = br_cell_y - ul_cell_y;
-
   for (int y = 0; y < imH; y++) {
     for (int x = 0; x < imW; x++) {
-      double t_fraction_x = double(x) / double(imW);
-      double t_fraction_y = double(y) / double(imH);
-      int t_cell_x = round( ul_cell_x + (t_fraction_x * t_width_x) );
-      int t_cell_y = round( ul_cell_y + (t_fraction_y * t_width_y) );
-      ms->config.density[y*imW+x] = ms->config.scene->discrepancy_density.at<double>(t_cell_y,t_cell_x);
+      double meter_x = 0;
+      double meter_y = 0;
+      double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
+      pixelToGlobal(ms, x, y, zToUse, &meter_x, &meter_y, ms->config.currentEEPose);
+      int cell_x = 0;
+      int cell_y = 0;
+      ms->config.scene->discrepancy->metersToCell(br_meter_x, br_meter_y, &br_cell_x, &br_cell_y);
+      ms->config.density[y*imW+x] = ms->config.scene->discrepancy_density.at<double>(cell_y,cell_x);
     }
   }
   drawDensity(ms, 1);
-
 }
 END_WORD
 REGISTER_WORD(SceneDensityFromDiscrepancy)
