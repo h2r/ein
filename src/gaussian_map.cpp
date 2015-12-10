@@ -918,6 +918,7 @@ REGISTER_WORD(SceneGrabCenterCropAsClass)
 WORD(SceneDensityFromDiscrepancy)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 // this enables denisty based models to use the new channel
+// XXX this does not take the rotation of the wrist into account
   Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
