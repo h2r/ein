@@ -935,7 +935,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       pixelToGlobal(ms, x, y, zToUse, &meter_x, &meter_y, ms->config.currentEEPose);
       int cell_x = 0;
       int cell_y = 0;
-      ms->config.scene->discrepancy->metersToCell(meter_x, meter_y, &br_cell_x, &br_cell_y);
+      ms->config.scene->discrepancy->metersToCell(meter_x, meter_y, &cell_x, &cell_y);
       ms->config.density[y*imW+x] = ms->config.scene->discrepancy_density.at<double>(cell_y,cell_x);
     }
   }
