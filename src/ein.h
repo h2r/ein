@@ -394,7 +394,7 @@ void posekNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const
                         vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, BOWImgDescriptorExtractor *bowExtractor, int lIndexStart = 0);
 
 
-
+void drawDensity(shared_ptr<MachineState> ms, double scale);
 void goCalculateDensity(shared_ptr<MachineState> ms);
 void goFindBlueBoxes(shared_ptr<MachineState> ms);
 void goClassifyBlueBoxes(shared_ptr<MachineState> ms);

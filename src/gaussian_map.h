@@ -34,7 +34,7 @@ typedef struct _GaussianMapCell {
   void readFromFileNodeIterator(FileNodeIterator& it);
   void readFromFileNode(FileNode& it);
 
-  void newObservation(Vec3d obs);
+  void newObservation(Vec3b obs);
   
 } GaussianMapCell;
 

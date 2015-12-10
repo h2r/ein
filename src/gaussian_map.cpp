@@ -90,13 +90,13 @@ void _GaussianMapCell::readFromFileNode(FileNode& it) {
   zsamples        =  (double)(it)["zsamples"];          
 }
 
-void _GaussianMapCell::newObservation(Vec3d vec) {
-  rcounts += vec[0];
+void _GaussianMapCell::newObservation(Vec3b vec) {
+  rcounts += vec[2];
   gcounts += vec[1];
-  bcounts += vec[2];
-  rsquaredcounts += pow(vec[0], 2);
+  bcounts += vec[0];
+  rsquaredcounts += pow(vec[2], 2);
   gsquaredcounts += pow(vec[1], 2);
-  bsquaredcounts += pow(vec[2], 2);
+  bsquaredcounts += pow(vec[0], 2);
   rgbsamples += 1;
 }
 
@@ -406,10 +406,10 @@ shared_ptr<GaussianMap> GaussianMap::copyBox(int _x1, int _y1, int _x2, int _y2)
 }
 
 void GaussianMap::zeroBox(int _x1, int _y1, int _x2, int _y2) {
-  int x1 = min( max(0,x1), width-1);
-  int x2 = min( max(0,x2), width-1);
-  int y1 = min( max(0,y1), height-1);
-  int y2 = min( max(0,y2), height-1);
+  int x1 = min( max(0,_x1), width-1);
+  int x2 = min( max(0,_x2), width-1);
+  int y1 = min( max(0,_y1), height-1);
+  int y2 = min( max(0,_y2), height-1);
   
   for (int y = y1; y <= y2; y++) {
     for (int x = x1; x <= x2; x++) {
@@ -514,7 +514,7 @@ void Scene::measureDiscrepancy() {
 	discrepancy_magnitude.at<double>(y,x) = rmu_diff*rmu_diff + gmu_diff*gmu_diff + bmu_diff*bmu_diff +
 					    + rvar_quot + gvar_quot + bvar_quot;
 
-	discrepancy_density.at<double>(y,x) = discrepancy_magnitude.at<double>(y,x); 
+	discrepancy_density.at<double>(y,x) = sqrt(discrepancy_magnitude.at<double>(y,x) / 3.0) / 255.0; 
 
       } else {
 	discrepancy->refAtCell(x,y)->rgbsamples = 0.0;
@@ -836,8 +836,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int p_width = 301;
   int p_height = 301;
   ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
-  cout << "Scene: " << ms->config.scene << endl;
-  cout << "Background map: " << ms->config.scene->background_map << endl;
 }
 END_WORD
 REGISTER_WORD(SceneInit)
@@ -845,6 +843,10 @@ REGISTER_WORD(SceneInit)
 WORD(SceneClearObservedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.scene->observed_map->zero();
+  Mat observedImage;
+  ms->config.scene->observed_map->rgbMuToMat(observedImage);
+  observedImage = observedImage / 255.0;
+  ms->config.observedWindow->updateImage(observedImage);
 }
 END_WORD
 REGISTER_WORD(SceneClearObservedMap)
@@ -865,11 +867,6 @@ REGISTER_WORD(SceneUpdateObservedFromSnout)
 
 WORD(SceneUpdateObservedFromWrist)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "Scene: " << ms->config.scene << endl;
-  cout << "Background map: " << ms->config.scene->background_map << endl;
-  cout << "x center: " << ms->config.scene->background_map->x_center_cell << ", ";
-  cout << "y center: " << ms->config.scene->background_map->y_center_cell << ", ";
-  cout << "cell width: " << ms->config.scene->background_map->cell_width << ", " << endl;
   for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; px++) {
     for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; py++) {
       if (isInGripperMask(ms, px, py)) {
@@ -879,16 +876,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
       pixelToGlobal(ms, px, py, z, &x, &y);
       int i, j;
-      ms->config.scene->background_map->metersToCell(x, y, &i, &j);
-      GaussianMapCell * cell = ms->config.scene->background_map->refAtCell(i, j);
-      Vec3d pixel = ms->config.wristViewImage.at<Vec3d>(py, px);
+      ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+      GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+      Vec3b pixel = ms->config.wristViewImage.at<Vec3b>(py, px);
+      cout << "Pixel: " << pixel << endl;
       cell->newObservation(pixel);
     }
-    ms->config.scene->background_map->recalculateMusAndSigmas();
   }  
-  Mat backgroundImage;
-  ms->config.scene->background_map->rgbMuToMat(backgroundImage);
-  ms->config.backgroundWindow->updateImage(backgroundImage);
+  ms->config.scene->observed_map->recalculateMusAndSigmas();
+  Mat observedImage;
+  ms->config.scene->observed_map->rgbMuToMat(observedImage);
+  observedImage = observedImage / 255.0;
+  ms->config.observedWindow->updateImage(observedImage);
 }
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromWrist)
@@ -903,6 +902,11 @@ REGISTER_WORD(SceneComposePredictedMap)
 WORD(SceneUpdateDiscrepancy)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.scene->measureDiscrepancy();
+  Mat image;
+  ms->config.scene->discrepancy->rgbMuToMat(image);
+  image = image / 255.0;
+  ms->config.observedWindow->updateImage(image);
+
 }
 END_WORD
 REGISTER_WORD(SceneUpdateDiscrepancy)
@@ -919,7 +923,7 @@ WORD(SceneDensityFromDiscrepancy)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 // this enables denisty based models to use the new channel
 // XXX this does not take the rotation of the wrist into account
-  Size sz = ms->config.objectViewerImage.size();
+  Size sz = ms->config.wristViewImage.size();
   int imW = sz.width;
   int imH = sz.height;
 
@@ -951,6 +955,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->config.density[y*imW+x] = ms->config.scene->discrepancy_density.at<double>(t_cell_y,t_cell_x);
     }
   }
+  drawDensity(ms, 1);
+
 }
 END_WORD
 REGISTER_WORD(SceneDensityFromDiscrepancy)
