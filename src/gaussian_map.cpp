@@ -30,6 +30,7 @@ double normal_pdf(double mu, double sigma, double x) {
   return 1 / (sigma * sqrt(2 * M_PI)) * exp(-pow(x - mu, 2) / (2 * sigma * sigma));
 }
 
+
 void computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * channel_term_out) {
   double normalizer = 0.0;				       
   double newsigmasquared = 1 / (1 / channel1.sigmasquared + 1 / channel2.sigmasquared); 
@@ -60,7 +61,16 @@ double _GaussianMapCell::pointDiscrepancy(_GaussianMapCell * other, double * rte
   computePointDiscrepancy(red, other->red, rterm_out);
   computePointDiscrepancy(green, other->green, gterm_out);
   computePointDiscrepancy(blue, other->blue, bterm_out);
-  return *rterm_out * *bterm_out * *gterm_out;
+  //return *rterm_out * *bterm_out * *gterm_out;
+  double prior = 0.5;
+  double rlikelihood = normal_pdf(red.mu, sqrt(red.sigmasquared), other->red.mu);
+  double glikelihood = normal_pdf(green.mu, sqrt(green.sigmasquared), other->green.mu);
+  double blikelihood = normal_pdf(blue.mu, sqrt(blue.sigmasquared), other->blue.mu);
+
+  double likelihood = rlikelihood * glikelihood * blikelihood;
+
+  double normalizer = likelihood * prior + pow(1.0/256, 3) * (1 - prior);
+  return likelihood * prior / normalizer;
 }
 
 
@@ -958,6 +968,20 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneSetBackgroundFromObserved)
+
+WORD(SceneSetBackgroundStdDev)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double stddev = 0;
+  GET_NUMERIC_ARG(ms, stddev);
+
+  for (int y = 0; y < ms->config.scene->background_map->height; y++) {
+    for (int x = 0; x < ms->config.scene->background_map->width; x++) {
+      ms->config.scene->background_map->refAtCell(x,y)->blue.sigmasquared = pow(stddev, 2);
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneSetBackgroundStdDev)
 
 WORD(SceneUpdateObservedFromSnout)
 virtual void execute(std::shared_ptr<MachineState> ms) {
