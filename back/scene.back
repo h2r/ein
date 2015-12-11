@@ -1,0 +1,5 @@
+
+( ( sceneUpdateObservedFromWrist  ( xUp ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXUp" store
+( ( sceneUpdateObservedFromWrist  ( xDown ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXDown" store
+
+( sceneScanXUp ( yUp ) 20 replicateWord sceneScanXDown ) "sceneScanLocal" store
