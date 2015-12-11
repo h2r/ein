@@ -40,7 +40,10 @@ disableRobot
 
 
 (
- touchDown zUp zUp zUp waitUntilAtCurrentPosition closeGripper waitUntilGripperNotMoving assumeBeeHome
+ openGripper touchDown zUp zUp zUp waitUntilAtCurrentPosition closeGripper waitUntilGripperNotMoving 
+
+ 0 changeToHeight zDown zDown zDown 
+  /* assumeBeeHome */
 ) "pressPick" store
 
 (
@@ -77,3 +80,15 @@ happyFace fullImpulse openGripper
 assumeCrane1 waitUntilCurrentPosition
 )
 "intro_init" store
+
+
+
+
+(
+  .20 waitForSeconds 
+  40 openGripperInt
+  .20 waitForSeconds 
+  0 openGripperInt 
+) "squeakDuck" store
+
+

@@ -1,5 +1,9 @@
 8 "scan_IRheight" store
 10 "catScan_dropHeight" store
+100 "pileSwitchThreshold" store
+
+1 "scan_catScanLimit" store
+0 "scan_catPickLimit" store
 
 leftOrRightArm "right" =
 ( 
@@ -22,7 +26,6 @@ ifte
 workspace1 "inputPileWorkspace" store
 workspace3 "playWorkspace" store
 workspace4 "outputPileWorkspace" store
-100 "pileSwitchThreshold" store
 
 "catScan_" robotSerial "_" leftOrRightArm "_" dateString + + + + + "scan_catScanObjectName" store
 
@@ -221,9 +224,12 @@ workspace4 "outputPileWorkspace" store
   ">>>> entering pickFromInputPile <<<<" print
 
   ( isGripperGripping ! ) (
+    /*
     endArgs "kr_dash2" setClassLabels createCachedClassifierFromClassLabels "kr_dash2" setTargetClass setPickModeToStaticMarginals
     2 setGradientServoHardMaxIterations
     2 setGradientServoSoftMaxIterations
+    */
+    scan_swapToBars
 
     0 "pileSwitchCounter" store
 
@@ -266,7 +272,7 @@ workspace4 "outputPileWorkspace" store
   comeToStop
   setScanModeCentered
   currentPose
-  catScan
+  catScan2
 ) "playWithObject" store
 
 
@@ -475,8 +481,12 @@ workspace4 "outputPileWorkspace" store
   1 changeToHeight waitUntilAtCurrentPosition
   synchronicServo 
 
-  comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort 
-  currentPose eePosePZ "scan_gripperTouchTableZ" store
+
+  /* comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort 
+  currentPose eePosePZ "scan_gripperTouchTableZ" store */
+
+  0 currentTableZ - pickFlushFactor + "scan_gripperTouchTableZ" store
+
 
   currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
   0.01 setGridSize ( zUp ) scan_IRheight replicateWord comeToStop 
@@ -485,7 +495,7 @@ workspace4 "outputPileWorkspace" store
 
   setPickModeToLearningAlgorithmC
 
-  ( scan_catScanCounter 50 <   scan_catScanSees   and ) (
+  ( scan_catScanCounter scan_catScanLimit <   scan_catScanSees   and ) (
     currentPose
 
     endArgs
@@ -560,7 +570,7 @@ workspace4 "outputPileWorkspace" store
   playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
   scan_findObjectAfterDrop "scan_catScanSees" store
 
-  ( scan_catPickCounter 20 <   scan_catScanSees   and ) (
+  ( scan_catPickCounter scan_catPickLimit <   scan_catScanSees   and ) (
     1 changeToHeight
     clearMapForPatrol clearBlueBoxMemories
     mapLocal
