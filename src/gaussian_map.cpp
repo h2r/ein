@@ -4,6 +4,7 @@
 #include "qtgui/einwindow.h"
 
 void checkProb(string label, double prob) {
+  cout << "Checking " << label << " " << prob << endl;
   if (prob > 1.0) {
     cout << label << " greater than 1: " << prob << endl;
   }
@@ -29,7 +30,7 @@ double normal_pdf(double mu, double sigma, double x) {
   return 1 / (sigma * sqrt(2 * M_PI)) * exp(-pow(x - mu, 2) / (2 * sigma * sigma));
 }
 
-double computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * channel_term_out) {
+void computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * channel_term_out) {
   double normalizer = 0.0;				       
   double newsigmasquared = 1 / (1 / channel1.sigmasquared + 1 / channel2.sigmasquared); 
   double newmu = newsigmasquared * (channel1.mu / channel1.sigmasquared + channel2.mu / channel2.sigmasquared); 
@@ -37,16 +38,15 @@ double computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & c
     normalizer += normal_pdf(newmu, sqrt(newsigmasquared), i);
   }
   double channel_term = exp(  -0.5*pow(channel1.mu-channel2.mu, 2)/( channel1.sigmasquared + channel2.sigmasquared )  ) / sqrt( 2.0*M_PI*(channel1.sigmasquared + channel2.sigmasquared) ); 
-  channel_term = channel_term * normalizer * 0.5;
+  channel_term = channel_term * normalizer * 0.5 * 256;
   *(channel_term_out) = channel_term;
 }
 
 double _GaussianMapCell::innerProduct(_GaussianMapCell * other, double * rterm_out, double * gterm_out, double * bterm_out) {
-  double rterm, bterm, gterm; 
-  computeInnerProduct(red, other->red, &rterm);
-  computeInnerProduct(green, other->green, &gterm);
-  computeInnerProduct(blue, other->blue, &bterm);
-  return rterm * bterm * gterm;
+  computeInnerProduct(red, other->red, rterm_out);
+  computeInnerProduct(green, other->green, gterm_out);
+  computeInnerProduct(blue, other->blue, bterm_out);
+  return *rterm_out * *bterm_out * *gterm_out;
 }
 
 
@@ -999,7 +999,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.scene->measureDiscrepancy();
   Mat image;
   ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(image);
-  image = image * 255.0;
+  image = image;
 
   ms->config.discrepancyWindow->updateImage(image);
 }
