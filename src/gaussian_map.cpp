@@ -25,6 +25,17 @@ void _GaussianMapCell::zero() {
   zsamples = 0.0;
 }
 
+#define GMC_IP_TERM(channel) \
+double channel ## term = exp(  -0.5*pow(channel ## mu-other->channel ## mu, 2)/( channel ## sigmasquared + other->channel ## sigmasquared )  ) / sqrt( 2.0*M_PI*(channel ## sigmasquared + other->channel ## sigmasquared) ); \
+*(channel ## term_out) = channel ## term;\
+
+double _GaussianMapCell::innerProduct(_GaussianMapCell * other, double * rterm_out, double * gterm_out, double * bterm_out) {
+  GMC_IP_TERM(r);
+  GMC_IP_TERM(g);
+  GMC_IP_TERM(b);
+  return rterm * bterm * gterm;
+}
+
 void _GaussianMapCell::writeToFileStorage(FileStorage& fsvO) const {
   fsvO << "{:";
   fsvO << "rcounts" << rcounts;
@@ -513,6 +524,7 @@ void Scene::measureDiscrepancy() {
     for (int y = 0; y < height; y++) {
       if ((predicted_map->refAtCell(x,y)->rgbsamples > 0) && (observed_map->refAtCell(x,y)->rgbsamples > 0)) {
 
+/*
 	double rmu_diff = (predicted_map->refAtCell(x,y)->rmu - observed_map->refAtCell(x,y)->rmu);
 	double gmu_diff = (predicted_map->refAtCell(x,y)->gmu - observed_map->refAtCell(x,y)->gmu);
 	double bmu_diff = (predicted_map->refAtCell(x,y)->bmu - observed_map->refAtCell(x,y)->bmu);
@@ -534,18 +546,42 @@ void Scene::measureDiscrepancy() {
 	double bvar_quot = (predicted_map->refAtCell(x,y)->bsigmasquared / bd_observed) + 
 			   (observed_map->refAtCell(x,y)->bsigmasquared / bd_predicted);
 
+*/
+	double p_pgb = 0.5;
+
+	double rmu_diff = 0.0;
+	double gmu_diff = 0.0;
+	double bmu_diff = 0.0;
+
+	double total_discrepancy = predicted_map->refAtCell(x,y)->innerProduct(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
+
 	discrepancy->refAtCell(x,y)->rgbsamples = observed_map->refAtCell(x,y)->rgbsamples;
-	discrepancy->refAtCell(x,y)->rmu = rmu_diff;
-	discrepancy->refAtCell(x,y)->gmu = gmu_diff;
-	discrepancy->refAtCell(x,y)->bmu = bmu_diff;
-	discrepancy->refAtCell(x,y)->rsigmasquared = rvar_quot;
-	discrepancy->refAtCell(x,y)->gsigmasquared = gvar_quot;
-	discrepancy->refAtCell(x,y)->bsigmasquared = bvar_quot;
+	discrepancy->refAtCell(x,y)->rmu = (1.0 - rmu_diff * 256.0 * p_pgb)*255;
+	discrepancy->refAtCell(x,y)->gmu = (1.0 - gmu_diff * 256.0 * p_pgb)*255;
+	discrepancy->refAtCell(x,y)->bmu = (1.0 - bmu_diff * 256.0 * p_pgb)*255;
+	discrepancy->refAtCell(x,y)->rsigmasquared = 0;
+	discrepancy->refAtCell(x,y)->gsigmasquared = 0;
+	discrepancy->refAtCell(x,y)->bsigmasquared = 0;
   
-	discrepancy_magnitude.at<double>(y,x) = rmu_diff*rmu_diff + gmu_diff*gmu_diff + bmu_diff*bmu_diff ;
+	discrepancy_magnitude.at<double>(y,x) = (1.0 - total_discrepancy * pow(256.0,3.0) * p_pgb);
+
+	if (total_discrepancy > 1.0 || total_discrepancy < 0.0) {
+	  cout << total_discrepancy << endl;
+	}
+	if (discrepancy->refAtCell(x,y)->rmu > 1.0 || discrepancy->refAtCell(x,y)->rmu < 0.0) {
+	  cout << discrepancy->refAtCell(x,y)->rmu << endl;
+	}
+	if (discrepancy->refAtCell(x,y)->bmu > 1.0 || discrepancy->refAtCell(x,y)->bmu < 0.0) {
+	  cout << discrepancy->refAtCell(x,y)->bmu << endl;
+	}
+	if (discrepancy->refAtCell(x,y)->gmu > 1.0 || discrepancy->refAtCell(x,y)->gmu < 0.0) {
+	  cout << discrepancy->refAtCell(x,y)->gmu << endl;
+	}
+	//rmu_diff*rmu_diff + gmu_diff*gmu_diff + bmu_diff*bmu_diff ;
 	//+ rvar_quot + gvar_quot + bvar_quot;
 
-	discrepancy_density.at<double>(y,x) = sqrt(discrepancy_magnitude.at<double>(y,x) / 3.0) / 255.0; 
+	discrepancy_density.at<double>(y,x) = discrepancy_magnitude.at<double>(y,x);
+	//sqrt(discrepancy_magnitude.at<double>(y,x) / 3.0) / 255.0; 
 
       } else {
 	discrepancy->refAtCell(x,y)->rgbsamples = 0.0;
