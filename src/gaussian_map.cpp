@@ -31,15 +31,24 @@ double normal_pdf(double mu, double sigma, double x) {
 }
 
 void computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * channel_term_out) {
-  double normalizer = 0.0;				       
+  double ip_normalizer = 0.0;				       
   double newsigmasquared = 1 / (1 / channel1.sigmasquared + 1 / channel2.sigmasquared); 
   double newmu = newsigmasquared * (channel1.mu / channel1.sigmasquared + channel2.mu / channel2.sigmasquared); 
   for (int i = 0; i < 256; i++) {
-    normalizer += normal_pdf(newmu, sqrt(newsigmasquared), i);
+    ip_normalizer += normal_pdf(newmu, sqrt(newsigmasquared), i);
   }
+/*
   double channel_term = exp(  -0.5*pow(channel1.mu-channel2.mu, 2)/( channel1.sigmasquared + channel2.sigmasquared )  ) / sqrt( 2.0*M_PI*(channel1.sigmasquared + channel2.sigmasquared) ); 
-  channel_term = channel_term * normalizer * 0.5 * 256;
+  channel_term = channel_term * ip_normalizer * 0.5 * 256;
   *(channel_term_out) = channel_term;
+*/
+
+  double ip_val = exp(  -0.5*pow(channel1.mu-channel2.mu, 2)/( channel1.sigmasquared + channel2.sigmasquared )  ) / sqrt( 2.0*M_PI*(channel1.sigmasquared + channel2.sigmasquared) ); 
+  double likelihood = ip_normalizer * ip_val;
+  double prior = 0.5;
+  double nb_normalizer = likelihood * prior +  (1.0/256.0) * (1 - prior);
+
+  *(channel_term_out) = likelihood * prior / nb_normalizer; 
 }
 
 double _GaussianMapCell::innerProduct(_GaussianMapCell * other, double * rterm_out, double * gterm_out, double * bterm_out) {
@@ -581,14 +590,17 @@ void Scene::measureDiscrepancy() {
 			   (observed_map->refAtCell(x,y)->bsigmasquared / bd_predicted);
 
 */
-	double p_pgb = 0.5;
-
 	double rmu_diff = 0.0;
 	double gmu_diff = 0.0;
 	double bmu_diff = 0.0;
 
 	//double total_discrepancy = predicted_map->refAtCell(x,y)->innerProduct(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
-	double total_discrepancy = predicted_map->refAtCell(x,y)->pointDiscrepancy(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
+	//double total_discrepancy = predicted_map->refAtCell(x,y)->pointDiscrepancy(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
+
+	predicted_map->refAtCell(x,y)->pointDiscrepancy(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
+	//predicted_map->refAtCell(x,y)->innerProduct(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
+	double total_discrepancy = 0.0;
+
 	checkProb("rmu_diff", rmu_diff);
 	checkProb("bmu_diff", bmu_diff);
 	checkProb("gmu_diff", gmu_diff);
@@ -603,7 +615,8 @@ void Scene::measureDiscrepancy() {
 	discrepancy->refAtCell(x,y)->green.sigmasquared = 0;
 	discrepancy->refAtCell(x,y)->blue.sigmasquared = 0;
   
-	discrepancy_magnitude.at<double>(y,x) = (1.0 - total_discrepancy);
+	total_discrepancy = discrepancy->refAtCell(x,y)->red.mu * discrepancy->refAtCell(x,y)->green.mu * discrepancy->refAtCell(x,y)->blue.mu;
+	discrepancy_magnitude.at<double>(y,x) = total_discrepancy;
 
 	checkProb("total_discrepancy", total_discrepancy);
 	checkProb("rmu", discrepancy->refAtCell(x,y)->red.mu);
