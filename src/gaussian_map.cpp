@@ -3,112 +3,135 @@
 #include "ein.h"
 #include "qtgui/einwindow.h"
 
-
+void checkProb(string label, double prob) {
+  if (prob > 1.0) {
+    cout << label << " greater than 1: " << prob << endl;
+  }
+  if (prob < 0.0) {
+    cout << label << " less than 0: " << prob << endl;
+  }
+}
+void _GaussianMapChannel::zero() {
+  counts = 0.0;
+  squaredcounts = 0.0;
+  mu = 0.0;
+  sigmasquared = 0.0;
+  samples = 0.0;
+}
 void _GaussianMapCell::zero() {
-  rcounts = 0.0;
-  gcounts = 0.0;
-  bcounts = 0.0;
-  rsquaredcounts = 0.0;
-  gsquaredcounts = 0.0;
-  bsquaredcounts = 0.0;
-  rmu = 0.0;
-  gmu = 0.0;
-  bmu = 0.0;
-  rsigmasquared = 0.0;
-  gsigmasquared = 0.0;
-  bsigmasquared = 0.0;
-  rgbsamples = 0.0;
-  zcounts = 0.0;
-  zsquaredcounts = 0.0;
-  zmu = 0.0;
-  zsigmasquared = 0.0;
-  zsamples = 0.0;
+  red.zero();
+  green.zero();
+  blue.zero();
+  z.zero();
 }
 
-#define GMC_IP_TERM(channel) \
-double channel ## term = exp(  -0.5*pow(channel ## mu-other->channel ## mu, 2)/( channel ## sigmasquared + other->channel ## sigmasquared )  ) / sqrt( 2.0*M_PI*(channel ## sigmasquared + other->channel ## sigmasquared) ); \
-*(channel ## term_out) = channel ## term;\
+double normal_pdf(double mu, double sigma, double x) {
+  return 1 / (sigma * sqrt(2 * M_PI)) * exp(-pow(x - mu, 2) / (2 * sigma * sigma));
+}
+
+double computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * channel_term_out) {
+  double normalizer = 0.0;				       
+  double newsigmasquared = 1 / (1 / channel1.sigmasquared + 1 / channel2.sigmasquared); 
+  double newmu = newsigmasquared * (channel1.mu / channel1.sigmasquared + channel2.mu / channel2.sigmasquared); 
+  for (int i = 0; i < 256; i++) {
+    normalizer += normal_pdf(newmu, sqrt(newsigmasquared), i);
+  }
+  double channel_term = exp(  -0.5*pow(channel1.mu-channel2.mu, 2)/( channel1.sigmasquared + channel2.sigmasquared )  ) / sqrt( 2.0*M_PI*(channel1.sigmasquared + channel2.sigmasquared) ); 
+  channel_term = channel_term * normalizer * 0.5;
+  *(channel_term_out) = channel_term;
+}
 
 double _GaussianMapCell::innerProduct(_GaussianMapCell * other, double * rterm_out, double * gterm_out, double * bterm_out) {
-  GMC_IP_TERM(r);
-  GMC_IP_TERM(g);
-  GMC_IP_TERM(b);
+  double rterm, bterm, gterm; 
+  computeInnerProduct(red, other->red, &rterm);
+  computeInnerProduct(green, other->green, &gterm);
+  computeInnerProduct(blue, other->blue, &bterm);
   return rterm * bterm * gterm;
 }
 
+
+
 void _GaussianMapCell::writeToFileStorage(FileStorage& fsvO) const {
   fsvO << "{:";
-  fsvO << "rcounts" << rcounts;
-  fsvO << "gcounts" << gcounts;
-  fsvO << "bcounts" << bcounts;
-  fsvO << "rsquaredcounts" << rsquaredcounts;
-  fsvO << "gsquaredcounts" << gsquaredcounts;
-  fsvO << "bsquaredcounts" << bsquaredcounts;
-  fsvO << "rmu" << rmu;
-  fsvO << "gmu" << gmu;
-  fsvO << "bmu" << bmu;
-  fsvO << "rsigmasquared" << rsigmasquared;
-  fsvO << "gsigmasquared" << gsigmasquared;
-  fsvO << "bsigmasquared" << bsigmasquared;
-  fsvO << "rgbsamples" << rgbsamples;
-  fsvO << "zcounts" << zcounts;
-  fsvO << "zsquaredcounts" << zsquaredcounts;
-  fsvO << "zmu" << zmu;
-  fsvO << "zsigmasquared" << zsigmasquared;
-  fsvO << "zsamples" << zsamples;
+  fsvO << "rcounts" << red.counts;
+  fsvO << "gcounts" << green.counts;
+  fsvO << "bcounts" << blue.counts;
+  fsvO << "rsquaredcounts" << red.squaredcounts;
+  fsvO << "gsquaredcounts" << green.squaredcounts;
+  fsvO << "bsquaredcounts" << blue.squaredcounts;
+  fsvO << "rmu" << red.mu;
+  fsvO << "gmu" << green.mu;
+  fsvO << "bmu" << blue.mu;
+  fsvO << "rsigmasquared" << red.sigmasquared;
+  fsvO << "gsigmasquared" << green.sigmasquared;
+  fsvO << "bsigmasquared" << blue.sigmasquared;
+  fsvO << "rsamples" << red.samples;
+  fsvO << "gsamples" << green.samples;
+  fsvO << "bsamples" << blue.samples;
+  fsvO << "zcounts" << z.counts;
+  fsvO << "zsquaredcounts" << z.squaredcounts;
+  fsvO << "zmu" << z.mu;
+  fsvO << "zsigmasquared" << z.sigmasquared;
+  fsvO << "zsamples" << z.samples;
   fsvO << "}";
 }
 
 void _GaussianMapCell::readFromFileNodeIterator(FileNodeIterator& it) {
-  rcounts         =  (double)(*it)["rcounts"];         
-  gcounts         =  (double)(*it)["gcounts"];         
-  bcounts         =  (double)(*it)["bcounts"];         
-  rsquaredcounts  =  (double)(*it)["rsquaredcounts"];                
-  gsquaredcounts  =  (double)(*it)["gsquaredcounts"];                
-  bsquaredcounts  =  (double)(*it)["bsquaredcounts"];                
-  rmu             =  (double)(*it)["rmu"];     
-  gmu             =  (double)(*it)["gmu"];     
-  bmu             =  (double)(*it)["bmu"];     
-  rsigmasquared   =  (double)(*it)["rsigmasquared"];               
-  gsigmasquared   =  (double)(*it)["gsigmasquared"];               
-  bsigmasquared   =  (double)(*it)["bsigmasquared"];               
-  rgbsamples      =  (double)(*it)["rgbsamples"];            
-  zcounts         =  (double)(*it)["zcounts"];         
-  zsquaredcounts  =  (double)(*it)["zsquaredcounts"];                
-  zmu             =  (double)(*it)["zmu"];     
-  zsigmasquared   =  (double)(*it)["zsigmasquared"];               
-  zsamples        =  (double)(*it)["zsamples"];          
+  red.counts         =  (double)(*it)["rcounts"];         
+  green.counts         =  (double)(*it)["gcounts"];         
+  blue.counts         =  (double)(*it)["bcounts"];         
+  red.squaredcounts  =  (double)(*it)["rsquaredcounts"];                
+  green.squaredcounts  =  (double)(*it)["gsquaredcounts"];                
+  blue.squaredcounts  =  (double)(*it)["bsquaredcounts"];                
+  red.mu             =  (double)(*it)["rmu"];     
+  green.mu             =  (double)(*it)["gmu"];     
+  blue.mu             =  (double)(*it)["bmu"];     
+  red.sigmasquared   =  (double)(*it)["rsigmasquared"];               
+  green.sigmasquared   =  (double)(*it)["gsigmasquared"];               
+  blue.sigmasquared   =  (double)(*it)["bsigmasquared"];               
+  red.samples      =  (double)(*it)["rsamples"];            
+  green.samples      =  (double)(*it)["gsamples"];            
+  blue.samples      =  (double)(*it)["bsamples"];            
+  z.counts         =  (double)(*it)["zcounts"];         
+  z.squaredcounts  =  (double)(*it)["zsquaredcounts"];                
+  z.mu             =  (double)(*it)["zmu"];     
+  z.sigmasquared   =  (double)(*it)["zsigmasquared"];               
+  z.samples        =  (double)(*it)["zsamples"];          
 }
 
 void _GaussianMapCell::readFromFileNode(FileNode& it) {
-  rcounts         =  (double)(it)["rcounts"];         
-  gcounts         =  (double)(it)["gcounts"];         
-  bcounts         =  (double)(it)["bcounts"];         
-  rsquaredcounts  =  (double)(it)["rsquaredcounts"];                
-  gsquaredcounts  =  (double)(it)["gsquaredcounts"];                
-  bsquaredcounts  =  (double)(it)["bsquaredcounts"];                
-  rmu             =  (double)(it)["rmu"];     
-  gmu             =  (double)(it)["gmu"];     
-  bmu             =  (double)(it)["bmu"];     
-  rsigmasquared   =  (double)(it)["rsigmasquared"];               
-  gsigmasquared   =  (double)(it)["gsigmasquared"];               
-  bsigmasquared   =  (double)(it)["bsigmasquared"];               
-  rgbsamples      =  (double)(it)["rgbsamples"];            
-  zcounts         =  (double)(it)["zcounts"];         
-  zsquaredcounts  =  (double)(it)["zsquaredcounts"];                
-  zmu             =  (double)(it)["zmu"];     
-  zsigmasquared   =  (double)(it)["zsigmasquared"];               
-  zsamples        =  (double)(it)["zsamples"];          
+  red.counts         =  (double)(it)["rcounts"];         
+  green.counts         =  (double)(it)["gcounts"];         
+  blue.counts         =  (double)(it)["bcounts"];         
+  red.squaredcounts  =  (double)(it)["rsquaredcounts"];                
+  green.squaredcounts  =  (double)(it)["gsquaredcounts"];                
+  blue.squaredcounts  =  (double)(it)["bsquaredcounts"];                
+  red.mu             =  (double)(it)["rmu"];     
+  green.mu             =  (double)(it)["gmu"];     
+  blue.mu             =  (double)(it)["bmu"];     
+  red.sigmasquared   =  (double)(it)["rsigmasquared"];               
+  green.sigmasquared   =  (double)(it)["gsigmasquared"];               
+  blue.sigmasquared   =  (double)(it)["bsigmasquared"];               
+  red.samples      =  (double)(it)["rgbsamples"];
+  green.samples      =  (double)(it)["rgbsamples"];            
+  blue.samples      =  (double)(it)["rgbsamples"];            
+  z.counts         =  (double)(it)["zcounts"];         
+  z.squaredcounts  =  (double)(it)["zsquaredcounts"];                
+  z.mu             =  (double)(it)["zmu"];     
+  z.sigmasquared   =  (double)(it)["zsigmasquared"];               
+  z.samples        =  (double)(it)["zsamples"];          
 }
 
 void _GaussianMapCell::newObservation(Vec3b vec) {
-  rcounts += vec[2];
-  gcounts += vec[1];
-  bcounts += vec[0];
-  rsquaredcounts += pow(vec[2], 2);
-  gsquaredcounts += pow(vec[1], 2);
-  bsquaredcounts += pow(vec[0], 2);
-  rgbsamples += 1;
+  red.counts += vec[2];
+  green.counts += vec[1];
+  blue.counts += vec[0];
+  red.squaredcounts += pow(vec[2], 2);
+  green.squaredcounts += pow(vec[1], 2);
+  blue.squaredcounts += pow(vec[0], 2);
+  red.samples += 1;
+  green.samples += 1;
+  blue.samples += 1;
 }
 
 void GaussianMap::reallocate() {
@@ -182,24 +205,26 @@ GaussianMapCell GaussianMap::bilinValAtCell(double _x, double _y) {
   // wx0*wy0*val(x0,y0) + wx1*wy0*val(x1,y0) + wx1*wy1*val(x1,y1) + wx0*wy1*val(x0,y1) ~sub 1 for vals =~
   // wx0*(wy0+wy1) + wx1*(wy0 + wy1) = wx0 + wx1 = 1
 
-  BILIN_MAPCELL(rcounts);
-  BILIN_MAPCELL(gcounts);
-  BILIN_MAPCELL(bcounts);
-  BILIN_MAPCELL(rsquaredcounts);
-  BILIN_MAPCELL(gsquaredcounts);
-  BILIN_MAPCELL(bsquaredcounts);
-  BILIN_MAPCELL(rmu);
-  BILIN_MAPCELL(gmu);
-  BILIN_MAPCELL(bmu);
-  BILIN_MAPCELL(rsigmasquared);
-  BILIN_MAPCELL(gsigmasquared);
-  BILIN_MAPCELL(bsigmasquared);
-  BILIN_MAPCELL(rgbsamples);
-  BILIN_MAPCELL(zcounts);
-  BILIN_MAPCELL(zsquaredcounts);
-  BILIN_MAPCELL(zmu);
-  BILIN_MAPCELL(zsigmasquared);
-  BILIN_MAPCELL(zsamples);
+  BILIN_MAPCELL(red.counts);
+  BILIN_MAPCELL(green.counts);
+  BILIN_MAPCELL(blue.counts);
+  BILIN_MAPCELL(red.squaredcounts);
+  BILIN_MAPCELL(green.squaredcounts);
+  BILIN_MAPCELL(blue.squaredcounts);
+  BILIN_MAPCELL(red.mu);
+  BILIN_MAPCELL(green.mu);
+  BILIN_MAPCELL(blue.mu);
+  BILIN_MAPCELL(red.sigmasquared);
+  BILIN_MAPCELL(green.sigmasquared);
+  BILIN_MAPCELL(blue.sigmasquared);
+  BILIN_MAPCELL(red.samples);
+  BILIN_MAPCELL(green.samples);
+  BILIN_MAPCELL(blue.samples);
+  BILIN_MAPCELL(z.counts);
+  BILIN_MAPCELL(z.squaredcounts);
+  BILIN_MAPCELL(z.mu);
+  BILIN_MAPCELL(z.sigmasquared);
+  BILIN_MAPCELL(z.samples);
 
   return toReturn;
 }
@@ -314,20 +339,22 @@ void GaussianMap::loadFromFile(string filename) {
   cout << "done." << endl;
 }
 
-#define GAUSSIAN_MAP_UPDATE_MU_SIGMA(para, samples) \
-refAtCell(x,y)->para ## mu = refAtCell(x,y)->para ## counts / samples; \
-refAtCell(x,y)->para ## sigmasquared = (refAtCell(x,y)->para ## squaredcounts / samples) - ((refAtCell(x,y)->para ## mu) * (refAtCell(x,y)->para ## mu)); 
+
+void GaussianMapChannel::recalculateMusAndSigmas() {
+  double safe_samples = max(samples, 1.0);
+  mu = counts / samples;			
+  sigmasquared = (squaredcounts / samples) - (mu * mu); 
+}
 
 void GaussianMap::recalculateMusAndSigmas() {
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      double safe_rgbsamples = max(refAtCell(x,y)->rgbsamples, 1.0);
-      double safe_zsamples = max(refAtCell(x,y)->zsamples, 1.0);
 
-      GAUSSIAN_MAP_UPDATE_MU_SIGMA(z, safe_zsamples);
-      GAUSSIAN_MAP_UPDATE_MU_SIGMA(r, safe_rgbsamples);
-      GAUSSIAN_MAP_UPDATE_MU_SIGMA(g, safe_rgbsamples);
-      GAUSSIAN_MAP_UPDATE_MU_SIGMA(b, safe_rgbsamples);
+      refAtCell(x, y)->red.recalculateMusAndSigmas();
+      refAtCell(x, y)->green.recalculateMusAndSigmas();
+      refAtCell(x, y)->blue.recalculateMusAndSigmas();
+      refAtCell(x, y)->z.recalculateMusAndSigmas();
+      
     }
   }
 }
@@ -339,10 +366,10 @@ void GaussianMap::rgbMuToMat(Mat& out) {
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
 
-      if (refAtCell(x, y)->rgbsamples > 0) {
-	big.at<Vec3b>(y,x)[0] = uchar(refAtCell(x,y)->bmu);
-	big.at<Vec3b>(y,x)[1] = uchar(refAtCell(x,y)->gmu);
-	big.at<Vec3b>(y,x)[2] = uchar(refAtCell(x,y)->rmu);
+      if (refAtCell(x, y)->red.samples > 0) {
+	big.at<Vec3b>(y,x)[0] = uchar(refAtCell(x,y)->blue.mu);
+	big.at<Vec3b>(y,x)[1] = uchar(refAtCell(x,y)->green.mu);
+	big.at<Vec3b>(y,x)[2] = uchar(refAtCell(x,y)->red.mu);
       } else {
 	big.at<Vec3b>(y,x)[0] = 0;
 	big.at<Vec3b>(y,x)[1] = 128;
@@ -360,16 +387,9 @@ void GaussianMap::rgbDiscrepancyMuToMat(Mat& out) {
   out = Mat(height, width, CV_8UC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-
-      if (refAtCell(x, y)->rgbsamples > 0) {
-	out.at<Vec3b>(y,x)[0] = fabs(refAtCell(x,y)->bmu);
-	out.at<Vec3b>(y,x)[1] = refAtCell(x,y)->gmu * 0.5 + 128;
-	out.at<Vec3b>(y,x)[2] = refAtCell(x,y)->rmu * 0.5 + 128;
-      } else {
-	out.at<Vec3b>(y,x)[0] = 0;
-	out.at<Vec3b>(y,x)[1] = 128;
-	out.at<Vec3b>(y,x)[2] = 128;
-      }
+      out.at<Vec3b>(y,x)[0] = refAtCell(x,y)->blue.mu;
+      out.at<Vec3b>(y,x)[1] = refAtCell(x,y)->green.mu;
+      out.at<Vec3b>(y,x)[2] = refAtCell(x,y)->red.mu;
     }
   }
 }
@@ -379,9 +399,9 @@ void GaussianMap::rgbSigmaSquaredToMat(Mat& out) {
   out = Mat(height, width, CV_64FC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->bsigmasquared;
-      out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->gsigmasquared;
-      out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->rsigmasquared;
+      out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->blue.sigmasquared;
+      out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->green.sigmasquared;
+      out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->red.sigmasquared;
     }
   }
 }
@@ -390,9 +410,9 @@ void GaussianMap::rgbCountsToMat(Mat& out) {
   out = Mat(height, width, CV_64FC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->bcounts;
-      out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->gcounts;
-      out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->rcounts;
+      out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->blue.counts;
+      out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->green.counts;
+      out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->red.counts;
     }
   }
 }
@@ -401,7 +421,7 @@ void GaussianMap::zMuToMat(Mat& out) {
   out = Mat(height, width, CV_64F);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<double>(y,x) = refAtCell(x,y)->zmu;
+      out.at<double>(y,x) = refAtCell(x,y)->z.mu;
     }
   }
 }
@@ -410,7 +430,7 @@ void GaussianMap::zSigmaSquaredToMat(Mat& out) {
   out = Mat(height, width, CV_64F);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<double>(y,x) = refAtCell(x,y)->zsigmasquared;
+      out.at<double>(y,x) = refAtCell(x,y)->z.sigmasquared;
     }
   }
 }
@@ -419,7 +439,7 @@ void GaussianMap::zCountsToMat(Mat& out) {
   out = Mat(height, width, CV_64F);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<double>(y,x) = refAtCell(x,y)->zcounts;
+      out.at<double>(y,x) = refAtCell(x,y)->z.counts;
     }
   }
 }
@@ -522,7 +542,7 @@ void Scene::measureDiscrepancy() {
   // for now this only does rgb
   for (int x = 0; x < width; x++) {
     for (int y = 0; y < height; y++) {
-      if ((predicted_map->refAtCell(x,y)->rgbsamples > 0) && (observed_map->refAtCell(x,y)->rgbsamples > 0)) {
+      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 
 /*
 	double rmu_diff = (predicted_map->refAtCell(x,y)->rmu - observed_map->refAtCell(x,y)->rmu);
@@ -554,29 +574,26 @@ void Scene::measureDiscrepancy() {
 	double bmu_diff = 0.0;
 
 	double total_discrepancy = predicted_map->refAtCell(x,y)->innerProduct(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
+	checkProb("rmu_diff", rmu_diff);
+	checkProb("bmu_diff", bmu_diff);
+	checkProb("gmu_diff", gmu_diff);
 
-	discrepancy->refAtCell(x,y)->rgbsamples = observed_map->refAtCell(x,y)->rgbsamples;
-	discrepancy->refAtCell(x,y)->rmu = (1.0 - rmu_diff * 256.0 * p_pgb)*255;
-	discrepancy->refAtCell(x,y)->gmu = (1.0 - gmu_diff * 256.0 * p_pgb)*255;
-	discrepancy->refAtCell(x,y)->bmu = (1.0 - bmu_diff * 256.0 * p_pgb)*255;
-	discrepancy->refAtCell(x,y)->rsigmasquared = 0;
-	discrepancy->refAtCell(x,y)->gsigmasquared = 0;
-	discrepancy->refAtCell(x,y)->bsigmasquared = 0;
+	discrepancy->refAtCell(x,y)->red.samples = observed_map->refAtCell(x,y)->red.samples;
+	discrepancy->refAtCell(x,y)->green.samples = observed_map->refAtCell(x,y)->green.samples;
+	discrepancy->refAtCell(x,y)->blue.samples = observed_map->refAtCell(x,y)->blue.samples;
+	discrepancy->refAtCell(x,y)->red.mu = rmu_diff; //(1.0 - rmu_diff * 256.0 * p_pgb);
+	discrepancy->refAtCell(x,y)->green.mu = gmu_diff; //(1.0 - gmu_diff * 256.0 * p_pgb);
+	discrepancy->refAtCell(x,y)->blue.mu = bmu_diff; //(1.0 - bmu_diff * 256.0 * p_pgb);
+	discrepancy->refAtCell(x,y)->red.sigmasquared = 0;
+	discrepancy->refAtCell(x,y)->green.sigmasquared = 0;
+	discrepancy->refAtCell(x,y)->blue.sigmasquared = 0;
   
 	discrepancy_magnitude.at<double>(y,x) = (1.0 - total_discrepancy * pow(256.0,3.0) * p_pgb);
 
-	if (total_discrepancy > 1.0 || total_discrepancy < 0.0) {
-	  cout << total_discrepancy << endl;
-	}
-	if (discrepancy->refAtCell(x,y)->rmu > 1.0 || discrepancy->refAtCell(x,y)->rmu < 0.0) {
-	  cout << discrepancy->refAtCell(x,y)->rmu << endl;
-	}
-	if (discrepancy->refAtCell(x,y)->bmu > 1.0 || discrepancy->refAtCell(x,y)->bmu < 0.0) {
-	  cout << discrepancy->refAtCell(x,y)->bmu << endl;
-	}
-	if (discrepancy->refAtCell(x,y)->gmu > 1.0 || discrepancy->refAtCell(x,y)->gmu < 0.0) {
-	  cout << discrepancy->refAtCell(x,y)->gmu << endl;
-	}
+	checkProb("total_discrepancy", total_discrepancy);
+	checkProb("rmu", discrepancy->refAtCell(x,y)->red.mu);
+	checkProb("bmu", discrepancy->refAtCell(x,y)->blue.mu);
+	checkProb("gmu", discrepancy->refAtCell(x,y)->green.mu);
 	//rmu_diff*rmu_diff + gmu_diff*gmu_diff + bmu_diff*bmu_diff ;
 	//+ rvar_quot + gvar_quot + bvar_quot;
 
@@ -584,13 +601,7 @@ void Scene::measureDiscrepancy() {
 	//sqrt(discrepancy_magnitude.at<double>(y,x) / 3.0) / 255.0; 
 
       } else {
-	discrepancy->refAtCell(x,y)->rgbsamples = 0.0;
-	discrepancy->refAtCell(x,y)->rmu = 0.0;
-	discrepancy->refAtCell(x,y)->gmu = 0.0;
-	discrepancy->refAtCell(x,y)->bmu = 0.0;
-	discrepancy->refAtCell(x,y)->rsigmasquared = 0.0;
-	discrepancy->refAtCell(x,y)->gsigmasquared = 0.0;
-	discrepancy->refAtCell(x,y)->bsigmasquared = 0.0;
+	discrepancy->refAtCell(x,y)->zero();
   
 	discrepancy_magnitude.at<double>(y,x) = 0.0;
 	discrepancy_density.at<double>(y,x) = 0.0;
@@ -618,7 +629,7 @@ double Scene::measureScoreRegion(int _x1, int _y1, int _x2, int _y2) {
   double totalScore = 0.0;
   for (int y = y1; y <= y2; y++) {
     for (int x = x1; x <= x2; x++) {
-      if (discrepancy->refAtCell(x,y)->rgbsamples > 0) {
+      if (discrepancy->refAtCell(x,y)->red.samples > 0) {
 	totalScore += discrepancy_magnitude.at<double>(y,x); 
       } else {
       }
@@ -988,9 +999,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.scene->measureDiscrepancy();
   Mat image;
   ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(image);
-  //image = image / 255.0;
-  Mat rgb;  cvtColor(image, rgb, CV_YCrCb2BGR);
-  ms->config.discrepancyWindow->updateImage(rgb);
+  image = image * 255.0;
+
+  ms->config.discrepancyWindow->updateImage(image);
 }
 END_WORD
 REGISTER_WORD(SceneUpdateDiscrepancy)
