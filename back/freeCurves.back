@@ -1,0 +1,153 @@
+
+0.1 "freeSpeed" store
+
+(
+  setControlModeAngles
+  brandish
+
+) "equipFreeCurves" store
+
+
+(
+  -0.112277 
+  -0.483173 
+  0.0530297 
+  0.511892 
+  -0.117036 
+  0.672303 
+  -0.113986 
+  moveJointsToAngles
+) "brandish" store
+
+/* takes a double on the stack */
+(
+  1 dsr
+  "sliceSpeed" store
+  0 
+  0.1 sliceSpeed times 
+  0 
+  0.15 sliceSpeed times 
+  0 
+  0.15 sliceSpeed times 
+  0 
+  moveJointsByAngles
+) "slice" store
+
+
+/* takes a double on the stack */
+(
+  1 dsr
+  "slapSpeed" store
+  0.1 slapSpeed times 
+  0 
+  0 
+  0 
+  0 
+  0 
+  0 
+  moveJointsByAngles
+) "slap" store
+
+/* takes a double on the stack */
+(
+  1 dsr
+  "swingSpeed" store
+  0.1 swingSpeed times 
+  0 
+  0.1 swingSpeed times 
+  0 
+  0.1 swingSpeed times 
+  0 
+  0 
+  moveJointsByAngles
+) "swing" store
+
+
+(
+/*
+  0
+  -0.483173 1 pushCurrentJointAngle minus
+  0
+  0.511892 3 pushCurrentJointAngle minus
+  0
+  0.672303 5 pushCurrentJointAngle minus
+  0
+  moveJointsByAngles
+*/
+
+  0
+  0
+  0
+  -0.0490874 3 pushCurrentJointAngle minus 
+  0
+  0.11083 5 pushCurrentJointAngle minus 
+  0
+  moveJointsByAngles
+) "stab" store
+
+(
+/*
+  -0.112277 0 pushCurrentJointAngle minus 
+  0
+  0.0530297 2 pushCurrentJointAngle minus 
+  0
+  -0.117036 4 pushCurrentJointAngle minus 
+  0
+  -0.113986 6 pushCurrentJointAngle minus 
+  moveJointsByAngles
+*/
+
+  0
+  0
+  0.0530297 2 pushCurrentJointAngle minus 
+  0
+  -0.117036 4 pushCurrentJointAngle minus 
+  0
+  -0.113986 6 pushCurrentJointAngle minus 
+  moveJointsByAngles
+) "swat" store
+
+(
+  swat stab -2.0 slice stab
+) "raise" store
+
+(
+  0
+  -0.483173 1 pushCurrentJointAngle minus
+  0
+  0
+  0
+  0
+  0
+  moveJointsByAngles
+) "levelOut" store
+
+/* takes two doubles on the stack */
+(
+  2 dsr
+  "cutSharp" store
+  "cutLength" store
+
+    .6 cutLength times 
+  slice 
+
+      1.0 cutLength times 
+    cutSharp times 
+  swing 
+
+      .2 cutLength times 
+      cutSharp 0 < (
+	-1.0
+      ) (
+	1.0
+      ) ifte 
+    times 
+  slap
+
+) "cut" store
+
+
+
+
+
+

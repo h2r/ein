@@ -1,18 +1,4 @@
 (
-  { noop 1 2 3 4 5 6 print print print print print print } "test1" store { noop a b c d e f print print print print print print } "test2" store
-  test1 "test1" store test2 "test2" store
-
-  ( { 1 2 3 4 5 6 print print print print print print } { a b c d e f print print print print print print } )
-  slide ( swap slip 1 sP )
-
-
-  { |B { |B 1 2 3 4 5 6 print print print print print print } { |B a b c d e f print print print print print print } }
-  0 "cc" store ( cc 1 + dup "cc" store 36 < ) ( slip ) while cc print
-
-) "cw_test" store
-
-
-(
   pointToClearanceMap aboutFace currentPose cw_clearWorkspace
 ) "cw_sweepToGreen" store
 
@@ -24,7 +10,7 @@
   cw_viewIsClear
 ) "cw_workspaceIsClear" store
 
-( 
+(
   setMovementStateToMoving comeToStop visionCycleNoClassify
   numBlueBoxes 0 = 1 0 ifte
 ) "cw_viewIsClear" store
@@ -35,6 +21,7 @@
   clearMapForPatrol
   synchronicServoTakeClosest
   setBoundingBoxModeToStaticPrior
+  ( /* setBoundingBoxModeToMapping */ ) "aComment" store
   synchronicServo 
 ) "cw_servo_for_flick" store
 
@@ -74,6 +61,7 @@
   waitUntilAtCurrentPosition
   openGripper
 
+  ( /* this could be modified to remember the center and do a radial lawnmower */ ) "aComment" store
 ) "cw_flick" store
 
 (
@@ -98,13 +86,13 @@
   ">>>> clearing workspace a <<<<" print
   ( dup quarterImpulse cw_workspaceIsClear ! ) ( 
     "Workspace not clear, flicking..." print
+    ( /* cw_flick */ ) "aComment" store
     cw_tri_flick
   ) while 
   pop
 ) "cw_clearWorkspace_a" store
 
 (
-  1 setCurrentIKBoundaryMode
   ">>>> clearing workspace <<<<" print
   dup 
   moveEeToPoseWord 0.01 setGridSize ( xDown ) 10 replicateWord currentPose
