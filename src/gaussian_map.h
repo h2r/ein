@@ -7,26 +7,22 @@
 class MachineState;
 class Word;
 
+typedef struct _GaussianMapChannel {
+  double counts;
+  double squaredcounts;
+  double mu;
+  double sigmasquared;
+  double samples;
+  void zero();
+  void recalculateMusAndSigmas();
+} GaussianMapChannel;
+
 typedef struct _GaussianMapCell {
   // mus and sigmas should be updated whenever anything else is modified
-  double rcounts;
-  double gcounts;
-  double bcounts;
-  double rsquaredcounts;
-  double gsquaredcounts;
-  double bsquaredcounts;
-  double rmu;
-  double gmu;
-  double bmu;
-  double rsigmasquared;
-  double gsigmasquared;
-  double bsigmasquared;
-  double rgbsamples;
-  double zcounts;
-  double zsquaredcounts;
-  double zmu;
-  double zsigmasquared;
-  double zsamples;
+  GaussianMapChannel red;
+  GaussianMapChannel green;
+  GaussianMapChannel blue;
+  GaussianMapChannel z;
 
   void zero();
 
