@@ -1,4 +1,19 @@
 
+/*
+dogMotorsOn
+5.0 dogWalkSeconds 
+-3.0 dogTurnSeconds
+5.0 dogWalkMeters 
+-3.0 dogTurnMeters
+
+dogSitDown
+dogSit
+dogStandUp
+dogStand
+
+dogBark
+
+*/
 
 
 
@@ -11,7 +26,21 @@
   1 dogSetFocusedMember "192.168.1.131" 54000 socketOpen
 ) "dogFormPack" store
 
+(
+  1 dogSetPackSize
+  0 dogSetFocusedMember "192.168.160.130" 54000 socketOpen
+  dogMotorsOn
+) "dogSummonElla" store
 
+
+(
+  dogFormatImageDefault
+  ( 1 ) (
+    dogGetImage 
+    dogPublishSnout
+    endStackCollapseNoop
+  ) while 
+) "dogStreamSnoutImages" store
 
 
 
