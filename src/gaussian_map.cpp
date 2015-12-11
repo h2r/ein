@@ -50,6 +50,20 @@ double _GaussianMapCell::innerProduct(_GaussianMapCell * other, double * rterm_o
 }
 
 
+void computePointDiscrepancy(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * channel_term_out) {
+  double likelihood = normal_pdf(channel1.mu, sqrt(channel1.sigmasquared), channel2.mu);
+  double prior = 0.5;
+  double normalizer = likelihood * prior +  (1.0/256.0) * (1 - prior);
+  *channel_term_out = likelihood * prior / normalizer;
+}
+double _GaussianMapCell::pointDiscrepancy(_GaussianMapCell * other, double * rterm_out, double * gterm_out, double * bterm_out) {
+  computePointDiscrepancy(red, other->red, rterm_out);
+  computePointDiscrepancy(green, other->green, gterm_out);
+  computePointDiscrepancy(blue, other->blue, bterm_out);
+  return *rterm_out * *bterm_out * *gterm_out;
+}
+
+
 
 void _GaussianMapCell::writeToFileStorage(FileStorage& fsvO) const {
   fsvO << "{:";
@@ -573,7 +587,8 @@ void Scene::measureDiscrepancy() {
 	double gmu_diff = 0.0;
 	double bmu_diff = 0.0;
 
-	double total_discrepancy = predicted_map->refAtCell(x,y)->innerProduct(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
+	//double total_discrepancy = predicted_map->refAtCell(x,y)->innerProduct(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
+	double total_discrepancy = predicted_map->refAtCell(x,y)->pointDiscrepancy(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
 	checkProb("rmu_diff", rmu_diff);
 	checkProb("bmu_diff", bmu_diff);
 	checkProb("gmu_diff", gmu_diff);
@@ -581,14 +596,14 @@ void Scene::measureDiscrepancy() {
 	discrepancy->refAtCell(x,y)->red.samples = observed_map->refAtCell(x,y)->red.samples;
 	discrepancy->refAtCell(x,y)->green.samples = observed_map->refAtCell(x,y)->green.samples;
 	discrepancy->refAtCell(x,y)->blue.samples = observed_map->refAtCell(x,y)->blue.samples;
-	discrepancy->refAtCell(x,y)->red.mu = rmu_diff; //(1.0 - rmu_diff * 256.0 * p_pgb);
-	discrepancy->refAtCell(x,y)->green.mu = gmu_diff; //(1.0 - gmu_diff * 256.0 * p_pgb);
-	discrepancy->refAtCell(x,y)->blue.mu = bmu_diff; //(1.0 - bmu_diff * 256.0 * p_pgb);
+	discrepancy->refAtCell(x,y)->red.mu = (1 - rmu_diff); 
+	discrepancy->refAtCell(x,y)->green.mu = (1 - gmu_diff); 
+	discrepancy->refAtCell(x,y)->blue.mu = (1 - bmu_diff);
 	discrepancy->refAtCell(x,y)->red.sigmasquared = 0;
 	discrepancy->refAtCell(x,y)->green.sigmasquared = 0;
 	discrepancy->refAtCell(x,y)->blue.sigmasquared = 0;
   
-	discrepancy_magnitude.at<double>(y,x) = (1.0 - total_discrepancy * pow(256.0,3.0) * p_pgb);
+	discrepancy_magnitude.at<double>(y,x) = (1.0 - total_discrepancy);
 
 	checkProb("total_discrepancy", total_discrepancy);
 	checkProb("rmu", discrepancy->refAtCell(x,y)->red.mu);
@@ -999,7 +1014,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.scene->measureDiscrepancy();
   Mat image;
   ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(image);
-  image = image;
+  image = image * 255;
 
   ms->config.discrepancyWindow->updateImage(image);
 }
