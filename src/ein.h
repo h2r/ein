@@ -173,6 +173,7 @@ void writeThumbnail(std::shared_ptr<MachineState> ms, int idx, string servoCrop_
 void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path);
 void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
 void writeGraspMemory(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
+void writeSceneModel(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
 
 void saveAccumulatedStreamToPath(shared_ptr<MachineState> ms, string path);
 streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx);
@@ -284,6 +285,7 @@ void changeTargetClass(shared_ptr<MachineState> ms, int);
 void zeroGraspMemoryAndRangeMap(shared_ptr<MachineState> ms);
 void zeroClassGraspMemory(shared_ptr<MachineState> ms);
 void guard3dGrasps(shared_ptr<MachineState> ms);
+void guardSceneModels(shared_ptr<MachineState> ms);
 void guardGraspMemory(shared_ptr<MachineState> ms);
 void loadSampledGraspMemory(shared_ptr<MachineState> ms);
 void loadMarginalGraspMemory(shared_ptr<MachineState> ms);

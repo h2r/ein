@@ -52,6 +52,50 @@ void computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & cha
   *(channel_term_out) = likelihood * prior / nb_normalizer; 
 }
 
+void _GaussianMapChannel::multS(double scalar) {
+  counts *= scalar;
+  squaredcounts *= scalar;
+  mu *= scalar;
+  sigmasquared *= scalar;
+  samples *= scalar;
+}  
+
+void _GaussianMapChannel::addC(_GaussianMapChannel * channel) {
+  counts += channel->counts;
+  squaredcounts += channel->squaredcounts;
+  mu += channel->mu;
+  sigmasquared += channel->sigmasquared;
+  samples += channel->samples;
+}  
+
+void _GaussianMapCell::multS(double scalar) {
+  red.multS(scalar);
+  green.multS(scalar);
+  blue.multS(scalar);
+}  
+
+void _GaussianMapCell::addC(_GaussianMapCell * cell) {
+  red.addC(&(cell->red));
+  green.addC(&(cell->green));
+  blue.addC(&(cell->blue));
+}  
+
+void GaussianMap::multS(double scalar) {
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      refAtCell(x,y)->multS(scalar);
+    }
+  }
+}  
+
+void GaussianMap::addM(shared_ptr<GaussianMap> map) {
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      refAtCell(x,y)->addC(map->refAtCell(x,y));
+    }
+  }
+} 
+
 double _GaussianMapCell::innerProduct(_GaussianMapCell * other, double * rterm_out, double * gterm_out, double * bterm_out) {
   computeInnerProduct(red, other->red, rterm_out);
   computeInnerProduct(green, other->green, gterm_out);
@@ -263,8 +307,8 @@ GaussianMapCell GaussianMap::bilinValAtCell(double _x, double _y) {
 }
 
 GaussianMapCell GaussianMap::bilinValAtMeters(double x, double y) {
-  int cell_x;
-  int cell_y;
+  double cell_x;
+  double cell_y;
   metersToCell(x, y, &cell_x, &cell_y);
   return bilinValAtCell(cell_x, cell_y);
 }
@@ -273,6 +317,12 @@ void GaussianMap::metersToCell(double xm, double ym, int * xc, int * yc) {
   (*xc) = round(xm / cell_width) + x_center_cell;
   (*yc) = round(ym / cell_width) + y_center_cell;
 } 
+
+void GaussianMap::metersToCell(double xm, double ym, double * xc, double * yc) {
+  (*xc) = (xm / cell_width) + x_center_cell;
+  (*yc) = (ym / cell_width) + y_center_cell;
+} 
+
 
 void GaussianMap::cellToMeters(int xc, int yc, double * xm, double * ym) {
   (*xm) = (xc - x_center_cell) * cell_width; 
@@ -563,16 +613,88 @@ void Scene::reallocate() {
   discrepancy_density = Mat(height, width, CV_64F);
 }
 
-void Scene::composePredictedMap() {
+bool Scene::isDiscrepantCell(double threshold, int x, int y) {
+  if (!safeAt(x,y)) {
+    return false;
+  } else {
+    return (discrepancy_density.at<double>(y,x) > threshold);
+  }
+} 
+bool Scene::isDiscrepantCellBilin(double threshold, double x, double y) {
+  int x1 = floor(x);
+  int x2 = x1+1;
+  int y1 = floor(y);
+  int y2 = y1+1;
+
+  x1 = min( max(0,x1), width-1);
+  x2 = min( max(0,x2), width-1);
+  y1 = min( max(0,y1), height-1);
+  y2 = min( max(0,y2), height-1);
+
+  return ( (discrepancy_density.at<double>(y1,x1) > threshold) || 
+	   (discrepancy_density.at<double>(y1,x2) > threshold) ||
+	   (discrepancy_density.at<double>(y2,x1) > threshold) ||
+	   (discrepancy_density.at<double>(y2,x2) > threshold) );
+} 
+bool Scene::isDiscrepantMetersBilin(double threshold, double x, double y) {
+  double cell_x;
+  double cell_y;
+  metersToCell(x, y, &cell_x, &cell_y);
+  return isDiscrepantCellBilin(threshold, cell_x, cell_y);
+} 
+
+void Scene::composePredictedMap(double threshold) {
+  // XXX
   // choose the argMAP distribution
   //   assign that color to the predicted map
   //   assign the source to the segmentation
+  //
+  // Currently uses a "fallen leaves" model of composition, assuming objects
+  //   are painted onto the scene in reverse order of discovery 
   for (int x = 0; x < width; x++) {
     for (int y = 0; y < height; y++) {
       *(predicted_map->refAtCell(x,y)) = *(background_map->refAtCell(x,y));
     }
   }
-  // XXX  currently only incorporates background
+
+  for (int i = predicted_objects.size()-1; i >= 0; i--) {
+    shared_ptr<SceneObject> tsob = predicted_objects[i];
+    shared_ptr<Scene> tos = ms->config.class_scene_models[ tsob->labeledClassIndex ];
+
+    int center_x, center_y;
+    metersToCell(tsob->scene_pose.px, tsob->scene_pose.py, &center_x, &center_y);
+    int top_x, top_y;
+    metersToCell(tsob->scene_pose.px - tos->width*cell_width, tsob->scene_pose.py - tos->height*cell_width, &top_x, &top_y);
+    int bot_x, bot_y;
+    metersToCell(tsob->scene_pose.px + tos->width*cell_width, tsob->scene_pose.py + tos->height*cell_width, &bot_x, &bot_y);
+
+    for (int x = top_x; x < bot_x; x++) {
+      for (int y = top_y; y < bot_y; y++) {
+	if (!safeAt(x,y)) {
+	  continue;
+	} 
+
+	double meters_scene_x, meters_scene_y;
+	cellToMeters(x, y, &meters_scene_x, &meters_scene_y);
+
+	
+	double meters_object_x, meters_object_y;
+	eePose eep_object = eePose::identity().getPoseRelativeTo(tsob->scene_pose);
+	meters_object_x = eep_object.px;
+	meters_object_y = eep_object.py;
+
+	if (tos->isDiscrepantMetersBilin(threshold, meters_object_x, meters_object_y)) {
+	  *(predicted_map->refAtCell(x,y)) = tos->observed_map->bilinValAtMeters(meters_object_x, meters_object_y);
+	} else {
+	}
+	
+	// take exaggerated bounding box of object in scene
+	//   look up each scene cell in the object's frame
+	//   if one of the contributors is valid, replace this scene cell with the interpolated object cell 
+      }
+    }
+
+  }
 }
 
 void Scene::measureDiscrepancy() {
@@ -683,6 +805,30 @@ double Scene::measureScoreRegion(int _x1, int _y1, int _x2, int _y2) {
   return totalScore;
 }
 
+shared_ptr<Scene> Scene::copyBox(int _x1, int _y1, int _x2, int _y2) {
+  int x1 = min(_x1, _x2);
+  int x2 = max(_x1, _x2);
+  int y1 = min(_y1, _y2);
+  int y2 = max(_y1, _y2);
+
+  x1 = min( max(0,x1), width-1);
+  x2 = min( max(0,x2), width-1);
+  y1 = min( max(0,y1), height-1);
+  y2 = min( max(0,y2), height-1);
+
+  shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, x2-x1, y2-y1, cell_width);
+  toReturn->background_map = background_map->copyBox(x1,y1,x2,y2);
+  toReturn->predicted_map = predicted_map->copyBox(x1,y1,x2,y2);
+  toReturn->observed_map = observed_map->copyBox(x1,y1,x2,y2);
+  toReturn->discrepancy= discrepancy->copyBox(x1,y1,x2,y2);
+
+  toReturn->discrepancy_magnitude = discrepancy_magnitude(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
+  toReturn->discrepancy_density = discrepancy_density(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
+  toReturn->predicted_segmentation = predicted_segmentation(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
+
+  return toReturn;
+}
+
 shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double pad_meters) {
   int xmin = width;
   int xmax = 0;
@@ -702,16 +848,19 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
 
   int new_width = xmax - xmin;
   int new_height = ymax - ymin;
+  // make sure the crop is odd dimensioned
   if ((new_width % 2) == 0) {
+    xmax = xmax-1;
   } else {}
-
   if ((new_height % 2) == 0) {
+    ymax = ymax-1;
   } else {}
+  new_width = xmax - xmin;
+  new_height = ymax - ymin;
 
   shared_ptr<Scene> scene_to_return;
   if ((xmin <= xmax) && (ymin <= ymax)) {
-
-    shared_ptr<Scene> scene_to_return = make_shared<Scene>(ms, new_width, new_height, cell_width); 
+    shared_ptr<Scene> scene_to_return = copyBox(xmin,ymin,xmax,ymax);
   } else {
     ROS_ERROR_STREAM("region contained no discrepant cells." << endl);
   }
@@ -777,6 +926,27 @@ void Scene::reregisterBackground() {
 // XXX 
 void Scene::reregisterObject(int i) {
 }
+
+int Scene::safeAt(int x, int y) {
+  return ( (x >= 0) && (x < width) && (y >= 0) && (y < height) );
+}
+
+void Scene::metersToCell(double xm, double ym, int * xc, int * yc) {
+  (*xc) = round(xm / cell_width) + x_center_cell;
+  (*yc) = round(ym / cell_width) + y_center_cell;
+} 
+
+void Scene::metersToCell(double xm, double ym, double * xc, double * yc) {
+  (*xc) = (xm / cell_width) + x_center_cell;
+  (*yc) = (ym / cell_width) + y_center_cell;
+} 
+
+
+void Scene::cellToMeters(int xc, int yc, double * xm, double * ym) {
+  (*xm) = (xc - x_center_cell) * cell_width; 
+  (*ym) = (yc - y_center_cell) * cell_width; 
+} 
+
 
 void Scene::writeToFileStorage(FileStorage& fsvO) {
 // XXX 
@@ -1110,7 +1280,8 @@ REGISTER_WORD(SceneUpdateObservedFromWrist)
 
 WORD(SceneComposePredictedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.scene->composePredictedMap();
+  double p_threshold = 0.5;
+  ms->config.scene->composePredictedMap(p_threshold);
 
   Mat image;
   ms->config.scene->predicted_map->rgbMuToMat(image);
@@ -1133,13 +1304,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneUpdateDiscrepancy)
 
-WORD(SceneGrabCenterCropAsClass)
+WORD(SceneGrabDiscrepantCropAsClass)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-//XXX 
-  //shared_ptr<GaussianMap> camera_frame = copyBox(ul_cell_x, ul_cell_y, br_cell_x, br_cell_y);
+  int tfc = ms->config.focusedClass;
+  if ( (tfc > -1) && (tfc < ms->config.classLabels.size()) ) {
+    ROS_ERROR_STREAM("Invalid focused class, not grabbing..." << endl);
+    return;
+  }
+
+  double p_crop_pad = 0.05;
+  guardSceneModels(ms);
+  double threshold = 0.0;
+  GET_NUMERIC_ARG(ms, threshold);
+  shared_ptr<Scene> scene_crop = ms->config.scene->copyPaddedDiscrepancySupport(threshold, p_crop_pad);
+
+  ms->config.class_scene_models[tfc] = scene_crop;
 }
 END_WORD
-REGISTER_WORD(SceneGrabCenterCropAsClass)
+REGISTER_WORD(SceneGrabDiscrepantCropAsClass)
 
 WORD(SceneDensityFromDiscrepancy)
 virtual void execute(std::shared_ptr<MachineState> ms) {
