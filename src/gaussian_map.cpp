@@ -401,6 +401,12 @@ void GaussianMap::loadFromFile(string filename) {
   FileStorage fsvI;
   cout << "GaussianMap::loadFromFile reading: " << filename<< " ..." << endl;
   fsvI.open(filename, FileStorage::READ);
+  if (fsvI.isOpened()) {
+    FileNode anode = fsvI["Scene"];
+    readFromFileNode(anode);
+  } else {
+    ROS_ERROR_STREAM("Could not open file " << filename);
+  }
 
   FileNode anode = fsvI["GaussianMap"];
   readFromFileNode(anode);
@@ -1068,8 +1074,12 @@ void Scene::loadFromFile(string filename) {
   FileStorage fsvI;
   cout << "Scene::loadFromFile reading: " << filename<< " ..." << endl;
   fsvI.open(filename, FileStorage::READ);
-  FileNode anode = fsvI["Scene"];
-  readFromFileNode(anode);
+  if (fsvI.isOpened()) {
+    FileNode anode = fsvI["Scene"];
+    readFromFileNode(anode);
+  } else {
+    ROS_ERROR_STREAM("Could not open file " << filename);
+  }
   cout << "done." << endl;
 }
 
