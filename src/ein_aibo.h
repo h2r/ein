@@ -125,6 +125,7 @@ class EinAiboConfig {
 
   EinAiboSensors trueSensors;
   Mat snoutImage;
+  Mat snoutCamImage;
 };
 
 
