@@ -93,6 +93,9 @@ typedef enum {
   SPACE = 2
 } sceneObjectType;
 
+sceneObjectType sceneObjectTypeFromString(string str);
+string sceneObjectTypeToString(sceneObjectType sot);
+
 class SceneObject {
   public:
   // pose within the scene
