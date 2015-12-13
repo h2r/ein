@@ -15,6 +15,9 @@ typedef struct _GaussianMapChannel {
   double samples;
   void zero();
   void recalculateMusAndSigmas();
+
+  void multS(double scalar); 
+  void addC(_GaussianMapChannel * channel); 
 } GaussianMapChannel;
 
 typedef struct _GaussianMapCell {
@@ -25,6 +28,8 @@ typedef struct _GaussianMapCell {
   GaussianMapChannel z;
 
   void zero();
+  void multS(double scalar); 
+  void addC(_GaussianMapCell * cell); 
 
   void writeToFileStorage(FileStorage& fsvO) const;
   void readFromFileNodeIterator(FileNodeIterator& it);
@@ -53,13 +58,14 @@ class GaussianMap {
   ~GaussianMap();
   void reallocate();
 
-  int safeAt(int x, int y);
   GaussianMapCell *refAtCell(int x, int y);  
   GaussianMapCell valAtCell(int x, int y);
   GaussianMapCell bilinValAtCell(double x, double y);
   GaussianMapCell bilinValAtMeters(double x, double y);
 
+  int safeAt(int x, int y);
   void metersToCell(double xm, double ym, int * xc, int * yc);
+  void metersToCell(double xm, double ym, double * xc, double * yc);
   void cellToMeters(int xc, int yc, double * xm, double * ym);
 
   void writeToFileStorage(FileStorage& fsvO);
@@ -82,6 +88,8 @@ class GaussianMap {
 
   void zeroBox(int _x1, int _y1, int _x2, int _y2);
   void zero();
+  void multS(double scalar);
+  void addM(shared_ptr<GaussianMap> map);
 
   shared_ptr<GaussianMap> copyBox(int _x1, int _y1, int _x2, int _y2);
 };
@@ -129,16 +137,20 @@ class Scene {
   // transform image to find hot spots
   Mat discrepancy_density;
 
-  vector<SceneObject> predicted_objects;
+  vector<shared_ptr<SceneObject> > predicted_objects;
 
   double score;
 
-  void composePredictedMap();
+  bool isDiscrepantCell(double threshold, int x, int y);
+  bool isDiscrepantCellBilin(double threshold, double x, double y);
+  bool isDiscrepantMetersBilin(double threshold, double x, double y);
+  void composePredictedMap(double threshold);
   void measureDiscrepancy();
   double assignScore();
   double measureScoreRegion(int _x1, int _y1, int _x2, int _y2);
 
   shared_ptr<Scene> copyPaddedDiscrepancySupport(double threshold, double pad_meters);
+  shared_ptr<Scene> copyBox(int _x1, int _y1, int _x2, int _y2);
   int countDiscrepantCells(double threshold, int _x1, int _y1, int _x2, int _y2);
 
   void proposeRegion();
@@ -153,6 +165,11 @@ class Scene {
   void addSpaceObjects();
   void reregisterBackground();
   void reregisterObject(int i);
+
+  int safeAt(int x, int y);
+  void metersToCell(double xm, double ym, int * xc, int * yc);
+  void metersToCell(double xm, double ym, double * xc, double * yc);
+  void cellToMeters(int xc, int yc, double * xm, double * ym);
 
   void writeToFileStorage(FileStorage& fsvO);
   void readFromFileNodeIterator(FileNodeIterator& it);

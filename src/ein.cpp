@@ -2544,6 +2544,20 @@ void writeGraspMemory(std::shared_ptr<MachineState> ms, int idx, string this_gra
   fsvO.release();
 }
 
+void writeSceneModel(std::shared_ptr<MachineState> ms, int idx, string this_scene_path) {
+  // initialize this if we need to
+  guardSceneModels(ms);
+
+  if ((idx > -1) && (idx < ms->config.class_scene_models.size())) {
+    // do nothing
+  } else {
+    cout << "writeSceneModel: invalid idx, not writing." << endl;
+    return;
+  }
+
+  ms->config.class_scene_models[idx]->saveToFile(this_scene_path);
+}
+
 void initClassFolders(std::shared_ptr<MachineState> ms, string folderName) {
   string item = folderName + "/";
   string raw = item + "raw/";
@@ -2553,7 +2567,7 @@ void initClassFolders(std::shared_ptr<MachineState> ms, string folderName) {
   string ein = item + "ein/";
   string d3dGrasps = ein + "3dGrasps/";
   string detectionCrops = ein + "detectionCrops/";
-  string gaussianColorMap = ein + "gaussianColorMap/";
+  string sceneModel = ein + "sceneModel/";
   string ir2d = ein + "ir2d/";
   string pickMemories = ein + "pickMemories/";
   string servoCrops = ein + "servoCrops/";
@@ -2569,7 +2583,7 @@ void initClassFolders(std::shared_ptr<MachineState> ms, string folderName) {
   mkdir(ein.c_str(), 0777);
   mkdir(d3dGrasps.c_str(), 0777);
   mkdir(detectionCrops.c_str(), 0777);
-  mkdir(gaussianColorMap.c_str(), 0777);
+  mkdir(sceneModel.c_str(), 0777);
   mkdir(ir2d.c_str(), 0777);
   mkdir(pickMemories.c_str(), 0777);
   mkdir(servoCrops.c_str(), 0777);
@@ -2595,7 +2609,7 @@ void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folder
     string ein = item + "ein/";
       string d3dGrasps = ein + "3dGrasps/";
       string detectionCrops = ein + "detectionCrops/";
-      string gaussianColorMap = ein + "gaussianColorMap/";
+      string sceneModel = ein + "sceneModel/";
       string ir2d = ein + "ir2d/";
       string pickMemories = ein + "pickMemories/";
       string servoCrops = ein + "servoCrops/";
@@ -2618,6 +2632,8 @@ void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folder
   string grasp_memory_file_path = pickMemories + "graspMemories.yml";
   writeGraspMemory(ms, idx, grasp_memory_file_path);
 
+  string scene_model_file_path = sceneModel + "model.yml";
+  writeSceneModel(ms, idx, scene_model_file_path);
 
   // XXX save grasp memories separately from range
   // XXX load grasp memories separately 
@@ -6346,6 +6362,12 @@ void guard3dGrasps(shared_ptr<MachineState> ms) {
     ms->config.class3dGrasps.resize(ms->config.numClasses);
     ms->config.classPlaceUnderPoints.resize(ms->config.numClasses);
     ms->config.classPlaceOverPoints.resize(ms->config.numClasses);
+  }
+}
+
+void guardSceneModels(shared_ptr<MachineState> ms) {
+  if (ms->config.class_scene_models.size() < ms->config.numClasses) {
+    ms->config.class_scene_models.resize(ms->config.numClasses);
   }
 }
 
@@ -12938,10 +12960,9 @@ void detectorsInit(shared_ptr<MachineState> ms) {
 
 void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const char *className, int i) {
 
+  string thisLabelName(className);
 
   {
-    string thisLabelName(className);
-
     string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/ir2d/";
     string this_range_path = dirToMakePath + "ir2d.yml";
 
@@ -12982,8 +13003,6 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
   }
 
   {
-    string thisLabelName(className);
-
     string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/pickMemories/";
     string this_grasp_path = dirToMakePath + "graspMemories.yml";
 
@@ -13034,12 +13053,8 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     }
   }
 
-
-
   {
     {
-      string thisLabelName(className);
-
       string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_ag_path = dirToMakePath + "aerialHeight0Gradients.yml";
 
@@ -13055,8 +13070,6 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
       }
     }
     {
-      string thisLabelName(className);
-
       string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_ag_path = dirToMakePath + "aerialHeight1Gradients.yml";
 
@@ -13072,8 +13085,6 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
       }
     }
     {
-      string thisLabelName(className);
-
       string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_ag_path = dirToMakePath + "aerialHeight2Gradients.yml";
 
@@ -13089,8 +13100,6 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
       }
     }
     {
-      string thisLabelName(className);
-
       string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_ag_path = dirToMakePath + "aerialHeight3Gradients.yml";
 
@@ -13109,7 +13118,6 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
     ms->config.classAerialGradients[i] = ms->config.classHeight0AerialGradients[i];
     {
       guard3dGrasps(ms);
-      string thisLabelName(className);
       string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/3dGrasps/";
       string this_grasp_path = dirToMakePath + "3dGrasps.yml";
 
@@ -13189,6 +13197,12 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
 
       cout << "done.";
     }
+  }
+
+  {
+    guardSceneModels(ms);
+    string scene_model_file_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/sceneModel/model.yml";
+    ms->config.class_scene_models[i]->loadFromFile(scene_model_file_path);
   }
 }
 

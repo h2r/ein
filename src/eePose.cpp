@@ -20,6 +20,12 @@ _eePose _eePose::zero() {
   return zeroOut;
 }
 
+_eePose _eePose::identity() {
+  _eePose idOut = {.px = 0.0, .py = 0.0, .pz = 0.0,
+		     .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 1.0};
+  return idOut;
+}
+
 
 _eePose _eePose::fromGeometryMsgPose(geometry_msgs::Pose pose) {
   _eePose out;

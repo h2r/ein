@@ -60,6 +60,7 @@ typedef struct _eePose{
 
   static _eePose fromRectCentroid(Rect rect);
   static _eePose zero();
+  static _eePose identity();
   static _eePose fromGeometryMsgPose(geometry_msgs::Pose);
 
   friend ostream & operator<<(ostream &, const _eePose &);

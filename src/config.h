@@ -1447,9 +1447,7 @@ class EinConfig {
   shared_ptr<TransitionTable> transition_table;
   shared_ptr<Scene> scene;
 
-  shared_ptr<GaussianMap> class_scene_models;
-
-
+  vector<shared_ptr<Scene> > class_scene_models;
 }; // config end
 
 
