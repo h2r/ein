@@ -508,18 +508,57 @@ void GaussianMap::zero() {
   zeroBox(0,0,width-1,height-1);
 }
 
+string sceneObjectTypeToString(sceneObjectType sot) {
+  if (sot == BACKGROUND) {
+    return "background";
+  } else if (sot == PREDICTED) {
+    return "predicted";
+  } else if (sot == SPACE) {
+    return "space";
+  } else {
+    cout << "bad sot: " << sot << endl;
+    assert(0);
+  }
+}
+
+sceneObjectType sceneObjectTypeFromString(string str) {
+  if (str == "background") {
+    return BACKGROUND;
+  } else if (str == "predicted") {
+    return PREDICTED;
+  } else if (str == "space") {
+    return SPACE;
+  } else {
+    cout << "bad string: " << str << endl;
+    assert(0);
+  }
+}
 
 
 void SceneObject::writeToFileStorage(FileStorage& fsvO) {
-// XXX
+  fsvO << "{";
+  fsvO << "scene_pose"; scene_pose.writeToFileStorage(fsvO);
+  fsvO << "labeledClassIndex" << labeledClassIndex;
+  fsvO << "objectLabel" << objectLabel;
+  fsvO << "sceneObjectType" << sceneObjectTypeToString(sot);
+  fsvO << "}";
 }
 
 void SceneObject::readFromFileNodeIterator(FileNodeIterator& it) {
-// XXX
+  FileNode node = *it;
+  readFromFileNode(node);
 }
 
 void SceneObject::readFromFileNode(FileNode& it) {
-// XXX
+  FileNode p = (it)["scene_pose"];
+  scene_pose.readFromFileNode(p);
+  (it)["labeledClassIndex"] >> labeledClassIndex;
+  (it)["objectLabel"] >> objectLabel;
+  string sotString;
+  
+  (it)["sceneObjectType"] >> sotString;
+  sot = sceneObjectTypeFromString(sotString);
+  
 }
 
 
