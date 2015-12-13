@@ -67,7 +67,8 @@ class GaussianMap {
   void readFromFileNode(FileNode& it);
   void saveToFile(string filename);
   void loadFromFile(string filename);
-
+  
+  void writeCells(FileStorage & fsvO);
   void recalculateMusAndSigmas();
 
   void rgbDiscrepancyMuToMat(Mat& out);
