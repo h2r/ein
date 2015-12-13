@@ -97,10 +97,12 @@ eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
 
 
 void initializeMachine(shared_ptr<MachineState> ms) {
+  ms->pushWord("sceneInit"); 
+
   if (ms->config.currentRobotMode != PHYSICAL) {
     return;
   }
-  ms->pushWord("sceneInit"); 
+
   ms->pushWord("zeroGOff"); 
   ms->pushWord("waitUntilEndpointCallbackReceived"); 
 

@@ -78,9 +78,9 @@ You can send URBI directly or use the Back wrappers.
 # WLAN
 #
 HOSTNAME=peregrin
-ESSID=tinesWorld
+ESSID=arachna
 WEPENABLE=1
-WEPKEY=0xAD4278E4A4
+WEPKEY=0xDEADBEEF00
 # 0=ad-hoc ; 1=infrastructure ; 2=inf || ad
 APMODE=1
 CHANNEL=8
@@ -778,10 +778,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int chosenFormatLength = yCbCr208x160MessageLength;
 
   int dogGottenBytes = getBytesFromDog(ms, this_dog, chosenFormatLength, p_get_image_timeout);
-  if (dogGottenBytes == chosenFormatLength) {
+  if (dogGottenBytes >= chosenFormatLength) {
     cout << "dogGetImage: got " << dogGottenBytes << endl;
+
+    if (dogGottenBytes > chosenFormatLength) {
+      cout << "dogGetImage: got " << dogGottenBytes << " bytes, so the message index is probably more than eight digits. This dog must be tired." << endl;
+    } else {}
+
     // start immediately before the good stuff
-    int dataIdx = chosenFormatLength - (rows * cols * 3);
+    int dataIdx = dogGottenBytes - (rows * cols * 3);
     for (int y = 0; y < rows; y++) {
       for (int x = 0; x < cols; x++) {
 	// dog is in YCbCr and opencv uses YCrCb
@@ -802,9 +807,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     // for now this is done for display purposes only
     Size p_toBecome(640, 400);
-    cv::resize(ms->pack[this_dog].snoutImage, ms->pack[this_dog].snoutImage, p_toBecome);
-
-    ms->config.dogSnoutViewWindow->updateImage(ms->pack[this_dog].snoutImage);
+    cv::resize(ms->pack[this_dog].snoutImage, ms->pack[this_dog].snoutCamImage, p_toBecome);
+    ms->config.dogSnoutViewWindow->updateImage(ms->pack[this_dog].snoutCamImage);
   } else {
     ROS_ERROR_STREAM("dogGetImage: Failed to get dog image... got " << dogGottenBytes << " bytes." << endl);
   }
@@ -1579,6 +1583,27 @@ AIBO_SENSOR_ACCESSORS(BackTouchF, ms->pack[this_dog].trueSensors.backTouchF);
 AIBO_SENSOR_ACCESSORS(AccelerometerX, ms->pack[this_dog].trueSensors.accelerometer[0]);
 AIBO_SENSOR_ACCESSORS(AccelerometerY, ms->pack[this_dog].trueSensors.accelerometer[1]);
 AIBO_SENSOR_ACCESSORS(AccelerometerZ, ms->pack[this_dog].trueSensors.accelerometer[2]);
+
+WORD(DogReplaceWristImageWithSnoutImage)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+  if (!isSketchyMat(ms->pack[this_dog].snoutCamImage)) {
+    if ( (ms->pack[this_dog].snoutCamImage.rows == 400) && 
+	 (ms->pack[this_dog].snoutCamImage.cols== 600) ) {
+      ms->config.wristCamImage = ms->pack[this_dog].snoutCamImage.clone();
+    } else {
+      Mat tobo;
+      Size p_toBecome(640, 400);
+      cv::resize(ms->pack[this_dog].snoutCamImage, tobo, p_toBecome);
+      ms->config.wristCamImage = tobo;
+    }
+  } else {
+    ROS_ERROR_STREAM("dogReplaceWristImageWithSnoutImage: snoutCamImage was sketchy..." << ms->pack[this_dog].snoutCamImage.size() << endl);
+  }
+}
+END_WORD
+REGISTER_WORD(DogReplaceWristImageWithSnoutImage)
+
 
 /*
 

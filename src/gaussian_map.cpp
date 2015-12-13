@@ -501,11 +501,16 @@ shared_ptr<GaussianMap> GaussianMap::copyBox(int _x1, int _y1, int _x2, int _y2)
 }
 
 void GaussianMap::zeroBox(int _x1, int _y1, int _x2, int _y2) {
-  int x1 = min( max(0,_x1), width-1);
-  int x2 = min( max(0,_x2), width-1);
-  int y1 = min( max(0,_y1), height-1);
-  int y2 = min( max(0,_y2), height-1);
-  
+  int x1 = min(_x1, _x2);
+  int x2 = max(_x1, _x2);
+  int y1 = min(_y1, _y2);
+  int y2 = max(_y1, _y2);
+
+  x1 = min( max(0,x1), width-1);
+  x2 = min( max(0,x2), width-1);
+  y1 = min( max(0,y1), height-1);
+  y2 = min( max(0,y2), height-1);
+
   for (int y = y1; y <= y2; y++) {
     for (int x = x1; x <= x2; x++) {
       refAtCell(x,y)->zero();
@@ -607,7 +612,7 @@ void Scene::measureDiscrepancy() {
 	//double total_discrepancy = predicted_map->refAtCell(x,y)->innerProduct(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
 	//double total_discrepancy = predicted_map->refAtCell(x,y)->pointDiscrepancy(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
 
-	predicted_map->refAtCell(x,y)->pointDiscrepancy(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
+	double point_discrepancy = predicted_map->refAtCell(x,y)->pointDiscrepancy(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
 	//predicted_map->refAtCell(x,y)->innerProduct(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
 	double total_discrepancy = 0.0;
 
@@ -625,7 +630,8 @@ void Scene::measureDiscrepancy() {
 	discrepancy->refAtCell(x,y)->green.sigmasquared = 0;
 	discrepancy->refAtCell(x,y)->blue.sigmasquared = 0;
   
-	total_discrepancy = discrepancy->refAtCell(x,y)->red.mu * discrepancy->refAtCell(x,y)->green.mu * discrepancy->refAtCell(x,y)->blue.mu;
+	//total_discrepancy = discrepancy->refAtCell(x,y)->red.mu * discrepancy->refAtCell(x,y)->green.mu * discrepancy->refAtCell(x,y)->blue.mu;
+	total_discrepancy = 1.0 - point_discrepancy;
 	discrepancy_magnitude.at<double>(y,x) = total_discrepancy;
 
 	checkProb("total_discrepancy", total_discrepancy);
@@ -675,6 +681,66 @@ double Scene::measureScoreRegion(int _x1, int _y1, int _x2, int _y2) {
   }
   
   return totalScore;
+}
+
+shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double pad_meters) {
+  int xmin = width;
+  int xmax = 0;
+  int ymin = height;
+  int ymax = 0;
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (discrepancy_density.at<double>(y,x) > threshold)) {
+	xmin = min(xmin, x);
+	xmax = max(xmax, x);
+	ymin = min(ymin, y);
+	ymax = max(ymax, y);
+      } else {
+      }
+    }
+  }
+
+  int new_width = xmax - xmin;
+  int new_height = ymax - ymin;
+  if ((new_width % 2) == 0) {
+  } else {}
+
+  if ((new_height % 2) == 0) {
+  } else {}
+
+  shared_ptr<Scene> scene_to_return;
+  if ((xmin <= xmax) && (ymin <= ymax)) {
+
+    shared_ptr<Scene> scene_to_return = make_shared<Scene>(ms, new_width, new_height, cell_width); 
+  } else {
+    ROS_ERROR_STREAM("region contained no discrepant cells." << endl);
+  }
+  
+  return scene_to_return;
+}
+
+int Scene::countDiscrepantCells(double threshold, int _x1, int _y1, int _x2, int _y2) {
+  int x1 = min(_x1, _x2);
+  int x2 = max(_x1, _x2);
+  int y1 = min(_y1, _y2);
+  int y2 = max(_y1, _y2);
+
+  x1 = min( max(0,x1), width-1);
+  x2 = min( max(0,x2), width-1);
+  y1 = min( max(0,y1), height-1);
+  y2 = min( max(0,y2), height-1);
+
+  int discrepant_cells = 0;
+  for (int y = y1; y <= y2; y++) {
+    for (int x = x1; x <= x2; x++) {
+      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (discrepancy_density.at<double>(y,x) > threshold)) {
+	discrepant_cells++;
+      } else {
+      }
+    }
+  }
+
+  return discrepant_cells;
 }
 
 // XXX 
@@ -831,6 +897,9 @@ void TransitionTable::loadFromFile(string filename) {
 // XXX word to fly on a path over all the sceneObjects, streaming images
 // XXX word to densely explore map streaming images and IR 
 // XXX init checker MACRO for Scene and TransitionTable 
+
+// XXX samples logic is no longer correct since samples is stored per channel
+
 */
 
 
@@ -1007,9 +1076,15 @@ WORD(SceneUpdateObservedFromWrist)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   Mat wristViewYCbCr = ms->config.wristCamImage.clone();  
   cvtColor(ms->config.wristCamImage, wristViewYCbCr, CV_BGR2YCrCb);
+
+  Size sz = ms->config.wristCamImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
     
-  for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; px++) {
-    for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; py++) {
+  //for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; px++) 
+    //for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; py++) 
+  for (int px = 0; px < imW; px++) {
+    for (int py = 0; py < imH; py++) {
       if (isInGripperMask(ms, px, py)) {
 	continue;
       }
@@ -1090,6 +1165,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneDensityFromDiscrepancy)
+
+WORD(SceneCountDiscrepantCells)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int width = ms->config.scene->width;
+  int height = ms->config.scene->height;
+  double threshold = 0.0;
+  GET_NUMERIC_ARG(ms, threshold);
+  int nc = ms->config.scene->countDiscrepantCells(threshold,0,0,width-1,height-1); 
+  ms->pushWord(make_shared<IntegerWord>(nc));
+}
+END_WORD
+REGISTER_WORD(SceneCountDiscrepantCells)
 
 /* 
 WORD()

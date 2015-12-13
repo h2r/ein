@@ -79,10 +79,11 @@ class GaussianMap {
   void zSigmaSquaredToMat(Mat& out);
   void zCountsToMat(Mat& out);
 
-  shared_ptr<GaussianMap> copyBox(int _x1, int _y1, int _x2, int _y2);
 
   void zeroBox(int _x1, int _y1, int _x2, int _y2);
   void zero();
+
+  shared_ptr<GaussianMap> copyBox(int _x1, int _y1, int _x2, int _y2);
 };
 
 typedef enum {
@@ -136,6 +137,9 @@ class Scene {
   void measureDiscrepancy();
   double assignScore();
   double measureScoreRegion(int _x1, int _y1, int _x2, int _y2);
+
+  shared_ptr<Scene> copyPaddedDiscrepancySupport(double threshold, double pad_meters);
+  int countDiscrepantCells(double threshold, int _x1, int _y1, int _x2, int _y2);
 
   void proposeRegion();
   // object only makes map better, but must "win" on at least a fraction of its pixels (prior on number of parts)
