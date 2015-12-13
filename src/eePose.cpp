@@ -270,13 +270,8 @@ void _eePose::writeToFileStorage(FileStorage& fsvO) const {
 }
 
 void _eePose::readFromFileNodeIterator(FileNodeIterator& it) {
-  px = (double)(*it)["px"];
-  py = (double)(*it)["py"];
-  pz = (double)(*it)["pz"];
-  qw = (double)(*it)["qw"];
-  qx = (double)(*it)["qx"];
-  qy = (double)(*it)["qy"];
-  qz = (double)(*it)["qz"];
+  FileNode node = *it;
+  readFromFileNode(node);
 }
 
 void _eePose::readFromFileNode(FileNode& it) {

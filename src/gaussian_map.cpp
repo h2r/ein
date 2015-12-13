@@ -110,28 +110,9 @@ void _GaussianMapCell::writeToFileStorage(FileStorage& fsvO) const {
 }
 
 void _GaussianMapCell::readFromFileNodeIterator(FileNodeIterator& it) {
-  red.counts         =  (double)(*it)["rcounts"];         
-  green.counts         =  (double)(*it)["gcounts"];         
-  blue.counts         =  (double)(*it)["bcounts"];         
-  red.squaredcounts  =  (double)(*it)["rsquaredcounts"];                
-  green.squaredcounts  =  (double)(*it)["gsquaredcounts"];                
-  blue.squaredcounts  =  (double)(*it)["bsquaredcounts"];                
-  red.mu             =  (double)(*it)["rmu"];     
-  green.mu             =  (double)(*it)["gmu"];     
-  blue.mu             =  (double)(*it)["bmu"];     
-  red.sigmasquared   =  (double)(*it)["rsigmasquared"];               
-  green.sigmasquared   =  (double)(*it)["gsigmasquared"];               
-  blue.sigmasquared   =  (double)(*it)["bsigmasquared"];               
-  red.samples      =  (double)(*it)["rsamples"];            
-  green.samples      =  (double)(*it)["gsamples"];            
-  blue.samples      =  (double)(*it)["bsamples"];            
-  z.counts         =  (double)(*it)["zcounts"];         
-  z.squaredcounts  =  (double)(*it)["zsquaredcounts"];                
-  z.mu             =  (double)(*it)["zmu"];     
-  z.sigmasquared   =  (double)(*it)["zsigmasquared"];               
-  z.samples        =  (double)(*it)["zsamples"];          
+  FileNode node = *it;
+  readFromFileNode(node);
 }
-
 void _GaussianMapCell::readFromFileNode(FileNode& it) {
   red.counts         =  (double)(it)["rcounts"];         
   green.counts         =  (double)(it)["gcounts"];         
@@ -310,29 +291,8 @@ void GaussianMap::saveToFile(string filename) {
 }
 
 void GaussianMap::readFromFileNodeIterator(FileNodeIterator& it) {
-  {
-    (*it)["width"] >> width;
-    (*it)["height"] >> height;
-    (*it)["x_center_cell"] >> x_center_cell;
-    (*it)["y_center_cell"] >> y_center_cell;
-    (*it)["cell_width"] >> cell_width;
-  }
-  reallocate();
-  {
-    FileNode bnode = (*it)["cells"];
-
-    int numLoadedCells= 0;
-    FileNodeIterator itc = bnode.begin(), itc_end = bnode.end();
-    for ( ; (itc != itc_end) && (numLoadedCells < width*height); itc++, numLoadedCells++) {
-      cells[numLoadedCells].readFromFileNodeIterator(itc);
-    }
-
-    if (numLoadedCells != width*height) {
-      ROS_ERROR_STREAM("Error, GaussianMap loaded " << numLoadedCells << " but expected " << width*height << endl);
-    } else {
-      cout << "successfully loaded " << numLoadedCells << " GaussianMapCells." << endl;
-    }
-  }
+  FileNode node = *it;
+  readFromFileNode(node);
 }
 
 void GaussianMap::readFromFileNode(FileNode& it) {
@@ -779,23 +739,59 @@ void Scene::reregisterObject(int i) {
 }
 
 void Scene::writeToFileStorage(FileStorage& fsvO) {
-// XXX 
+  fsvO << "{";
+  fsvO << "width" << width;
+  fsvO << "height" << height;
+  fsvO << "x_center_cell" << x_center_cell;
+  fsvO << "y_center_cell" << y_center_cell;
+  fsvO << "cell_width" << cell_width;
+  fsvO << "background_pose";
+  background_pose.writeToFileStorage(fsvO);
+
+  fsvO << "background_map";
+  background_map->writeToFileStorage(fsvO);
+
+  fsvO << "}";
 }
 
 void Scene::readFromFileNodeIterator(FileNodeIterator& it) {
-// XXX 
+  FileNode node = *it;
+  readFromFileNode(node);
 }
 
 void Scene::readFromFileNode(FileNode& it) {
-// XXX
+
+  (it)["width"] >> width;
+  (it)["height"] >> height;
+  (it)["x_center_cell"] >> x_center_cell;
+  (it)["y_center_cell"] >> y_center_cell;
+  (it)["cell_width"] >> cell_width;
+
+  FileNode bg_pose_node = (it)["background_pose"];
+  background_pose.readFromFileNode(bg_pose_node);
+  
+  FileNode bg_map_node = (it)["background_map"];
+  background_map->readFromFileNode(bg_map_node);
+
 }
 
 void Scene::saveToFile(string filename) {
-// XXX
+  FileStorage fsvO;
+  cout << "Scene::saveToFile writing: " << filename << endl;
+  fsvO.open(filename, FileStorage::WRITE);
+  fsvO << "Scene";
+  writeToFileStorage(fsvO);
+  fsvO.release();
+
 }
 
 void Scene::loadFromFile(string filename) {
-// XXX
+  FileStorage fsvI;
+  cout << "Scene::loadFromFile reading: " << filename<< " ..." << endl;
+  fsvI.open(filename, FileStorage::READ);
+  FileNode anode = fsvI["Scene"];
+  readFromFileNode(anode);
+  cout << "done." << endl;
 }
 
 
@@ -907,6 +903,41 @@ void TransitionTable::loadFromFile(string filename) {
 
 
 namespace ein_words {
+
+WORD(SceneSaveScene)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  stringstream ss;
+  ss << ms->config.data_directory + "/scenes/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/scenes/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  ms->config.scene->saveToFile(ss.str());
+
+}
+END_WORD
+REGISTER_WORD(SceneSaveScene)
+
+WORD(SceneLoadScene)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  stringstream ss;
+  ss << ms->config.data_directory + "/scenes/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/scenes/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  ms->config.scene->loadFromFile(ss.str());
+
+}
+END_WORD
+REGISTER_WORD(SceneLoadScene)
+
 
 WORD(SceneSaveBackgroundMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
