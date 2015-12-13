@@ -155,6 +155,8 @@ class Scene {
   void reregisterBackground();
   void reregisterObject(int i);
 
+  void readPredictedObjects(FileNode & fn);
+  void writePredictedObjects(FileStorage & fsvO);
   void writeToFileStorage(FileStorage& fsvO);
   void readFromFileNodeIterator(FileNodeIterator& it);
   void readFromFileNode(FileNode& it);
