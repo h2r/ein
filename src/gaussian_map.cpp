@@ -2,6 +2,7 @@
 #include "ein_words.h"
 #include "ein.h"
 #include "qtgui/einwindow.h"
+#include "base64.h"
 
 void checkProb(string label, double prob) {
   cout << "Checking " << label << " " << prob << endl;
@@ -85,6 +86,7 @@ double _GaussianMapCell::pointDiscrepancy(_GaussianMapCell * other, double * rte
 
 
 void _GaussianMapCell::writeToFileStorage(FileStorage& fsvO) const {
+
   fsvO << "{:";
   fsvO << "rcounts" << red.counts;
   fsvO << "gcounts" << green.counts;
@@ -269,16 +271,35 @@ void GaussianMap::writeToFileStorage(FileStorage& fsvO) {
     fsvO << "y_center_cell" << y_center_cell;
     fsvO << "cell_width" << cell_width;
 
-    fsvO << "cells" << "[" ;
+    fsvO << "cells";
+    writeCells(fsvO);
+    //fsvO << "cells" << "[" ;
 
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
-	refAtCell(x,y)->writeToFileStorage(fsvO);
-      }
-    }
-    fsvO << "]";
+    //for (int y = 0; y < height; y++) {
+    //  for (int x = 0; x < width; x++) {
+    //refAtCell(x,y)->writeToFileStorage(fsvO);
+    //}
+    //}
+    //fsvO << "]";
   }
   fsvO << "}";
+}
+
+void GaussianMap::writeCells(FileStorage & fsvO) {
+  
+
+  fsvO << "[:";
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      GaussianMapCell * cell = refAtCell(x, y);
+      unsigned char * data  = (unsigned char * ) refAtCell(x, y);
+      int length = sizeof(GaussianMapCell);
+      string result = base64_encode(data, length);
+      fsvO << result;
+
+    }
+  }
+  fsvO << "]";
 }
 
 void GaussianMap::saveToFile(string filename) {
@@ -310,7 +331,12 @@ void GaussianMap::readFromFileNode(FileNode& it) {
     int numLoadedCells= 0;
     FileNodeIterator itc = bnode.begin(), itc_end = bnode.end();
     for ( ; (itc != itc_end) && (numLoadedCells < width*height); itc++, numLoadedCells++) {
-      cells[numLoadedCells].readFromFileNodeIterator(itc);
+      string encoded_data = (string) (*itc);
+      string decoded_data = base64_decode(encoded_data);
+      GaussianMapCell * data = (GaussianMapCell * ) decoded_data.data();
+      
+      memcpy(&cells[numLoadedCells], data, sizeof(GaussianMapCell));
+      
     }
 
     if (numLoadedCells != width*height) {
