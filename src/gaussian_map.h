@@ -73,7 +73,8 @@ class GaussianMap {
   void readFromFileNode(FileNode& it);
   void saveToFile(string filename);
   void loadFromFile(string filename);
-
+  
+  void writeCells(FileStorage & fsvO);
   void recalculateMusAndSigmas();
 
   void rgbDiscrepancyMuToMat(Mat& out);
@@ -99,6 +100,9 @@ typedef enum {
   PREDICTED = 1,
   SPACE = 2
 } sceneObjectType;
+
+sceneObjectType sceneObjectTypeFromString(string str);
+string sceneObjectTypeToString(sceneObjectType sot);
 
 class SceneObject {
   public:
@@ -170,12 +174,14 @@ class Scene {
   void metersToCell(double xm, double ym, int * xc, int * yc);
   void metersToCell(double xm, double ym, double * xc, double * yc);
   void cellToMeters(int xc, int yc, double * xm, double * ym);
-
   void writeToFileStorage(FileStorage& fsvO);
   void readFromFileNodeIterator(FileNodeIterator& it);
   void readFromFileNode(FileNode& it);
   void saveToFile(string filename);
   void loadFromFile(string filename);
+
+  void readPredictedObjects(FileNode & fn);
+  void writePredictedObjects(FileStorage & fsvO);
 };
 
 // transition tables can be instanced for particular settings; transitions may differ in low gravity, high wind, or soft ground, 

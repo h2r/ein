@@ -2,6 +2,7 @@
 #include "ein_words.h"
 #include "ein.h"
 #include "qtgui/einwindow.h"
+#include "base64.h"
 
 void checkProb(string label, double prob) {
   cout << "Checking " << label << " " << prob << endl;
@@ -129,6 +130,7 @@ double _GaussianMapCell::pointDiscrepancy(_GaussianMapCell * other, double * rte
 
 
 void _GaussianMapCell::writeToFileStorage(FileStorage& fsvO) const {
+
   fsvO << "{:";
   fsvO << "rcounts" << red.counts;
   fsvO << "gcounts" << green.counts;
@@ -154,28 +156,9 @@ void _GaussianMapCell::writeToFileStorage(FileStorage& fsvO) const {
 }
 
 void _GaussianMapCell::readFromFileNodeIterator(FileNodeIterator& it) {
-  red.counts         =  (double)(*it)["rcounts"];         
-  green.counts         =  (double)(*it)["gcounts"];         
-  blue.counts         =  (double)(*it)["bcounts"];         
-  red.squaredcounts  =  (double)(*it)["rsquaredcounts"];                
-  green.squaredcounts  =  (double)(*it)["gsquaredcounts"];                
-  blue.squaredcounts  =  (double)(*it)["bsquaredcounts"];                
-  red.mu             =  (double)(*it)["rmu"];     
-  green.mu             =  (double)(*it)["gmu"];     
-  blue.mu             =  (double)(*it)["bmu"];     
-  red.sigmasquared   =  (double)(*it)["rsigmasquared"];               
-  green.sigmasquared   =  (double)(*it)["gsigmasquared"];               
-  blue.sigmasquared   =  (double)(*it)["bsigmasquared"];               
-  red.samples      =  (double)(*it)["rsamples"];            
-  green.samples      =  (double)(*it)["gsamples"];            
-  blue.samples      =  (double)(*it)["bsamples"];            
-  z.counts         =  (double)(*it)["zcounts"];         
-  z.squaredcounts  =  (double)(*it)["zsquaredcounts"];                
-  z.mu             =  (double)(*it)["zmu"];     
-  z.sigmasquared   =  (double)(*it)["zsigmasquared"];               
-  z.samples        =  (double)(*it)["zsamples"];          
+  FileNode node = *it;
+  readFromFileNode(node);
 }
-
 void _GaussianMapCell::readFromFileNode(FileNode& it) {
   red.counts         =  (double)(it)["rcounts"];         
   green.counts         =  (double)(it)["gcounts"];         
@@ -338,16 +321,35 @@ void GaussianMap::writeToFileStorage(FileStorage& fsvO) {
     fsvO << "y_center_cell" << y_center_cell;
     fsvO << "cell_width" << cell_width;
 
-    fsvO << "cells" << "[" ;
+    fsvO << "cells";
+    writeCells(fsvO);
+    //fsvO << "cells" << "[" ;
 
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
-	refAtCell(x,y)->writeToFileStorage(fsvO);
-      }
-    }
-    fsvO << "]";
+    //for (int y = 0; y < height; y++) {
+    //  for (int x = 0; x < width; x++) {
+    //refAtCell(x,y)->writeToFileStorage(fsvO);
+    //}
+    //}
+    //fsvO << "]";
   }
   fsvO << "}";
+}
+
+void GaussianMap::writeCells(FileStorage & fsvO) {
+  
+
+  fsvO << "[:";
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      GaussianMapCell * cell = refAtCell(x, y);
+      unsigned char * data  = (unsigned char * ) refAtCell(x, y);
+      int length = sizeof(GaussianMapCell);
+      string result = base64_encode(data, length);
+      fsvO << result;
+
+    }
+  }
+  fsvO << "]";
 }
 
 void GaussianMap::saveToFile(string filename) {
@@ -360,29 +362,8 @@ void GaussianMap::saveToFile(string filename) {
 }
 
 void GaussianMap::readFromFileNodeIterator(FileNodeIterator& it) {
-  {
-    (*it)["width"] >> width;
-    (*it)["height"] >> height;
-    (*it)["x_center_cell"] >> x_center_cell;
-    (*it)["y_center_cell"] >> y_center_cell;
-    (*it)["cell_width"] >> cell_width;
-  }
-  reallocate();
-  {
-    FileNode bnode = (*it)["cells"];
-
-    int numLoadedCells= 0;
-    FileNodeIterator itc = bnode.begin(), itc_end = bnode.end();
-    for ( ; (itc != itc_end) && (numLoadedCells < width*height); itc++, numLoadedCells++) {
-      cells[numLoadedCells].readFromFileNodeIterator(itc);
-    }
-
-    if (numLoadedCells != width*height) {
-      ROS_ERROR_STREAM("Error, GaussianMap loaded " << numLoadedCells << " but expected " << width*height << endl);
-    } else {
-      cout << "successfully loaded " << numLoadedCells << " GaussianMapCells." << endl;
-    }
-  }
+  FileNode node = *it;
+  readFromFileNode(node);
 }
 
 void GaussianMap::readFromFileNode(FileNode& it) {
@@ -400,7 +381,12 @@ void GaussianMap::readFromFileNode(FileNode& it) {
     int numLoadedCells= 0;
     FileNodeIterator itc = bnode.begin(), itc_end = bnode.end();
     for ( ; (itc != itc_end) && (numLoadedCells < width*height); itc++, numLoadedCells++) {
-      cells[numLoadedCells].readFromFileNodeIterator(itc);
+      string encoded_data = (string) (*itc);
+      string decoded_data = base64_decode(encoded_data);
+      GaussianMapCell * data = (GaussianMapCell * ) decoded_data.data();
+      
+      memcpy(&cells[numLoadedCells], data, sizeof(GaussianMapCell));
+      
     }
 
     if (numLoadedCells != width*height) {
@@ -572,18 +558,57 @@ void GaussianMap::zero() {
   zeroBox(0,0,width-1,height-1);
 }
 
+string sceneObjectTypeToString(sceneObjectType sot) {
+  if (sot == BACKGROUND) {
+    return "background";
+  } else if (sot == PREDICTED) {
+    return "predicted";
+  } else if (sot == SPACE) {
+    return "space";
+  } else {
+    cout << "bad sot: " << sot << endl;
+    assert(0);
+  }
+}
+
+sceneObjectType sceneObjectTypeFromString(string str) {
+  if (str == "background") {
+    return BACKGROUND;
+  } else if (str == "predicted") {
+    return PREDICTED;
+  } else if (str == "space") {
+    return SPACE;
+  } else {
+    cout << "bad string: " << str << endl;
+    assert(0);
+  }
+}
 
 
 void SceneObject::writeToFileStorage(FileStorage& fsvO) {
-// XXX
+  fsvO << "{";
+  fsvO << "scene_pose"; scene_pose.writeToFileStorage(fsvO);
+  fsvO << "labeledClassIndex" << labeledClassIndex;
+  fsvO << "objectLabel" << objectLabel;
+  fsvO << "sceneObjectType" << sceneObjectTypeToString(sot);
+  fsvO << "}";
 }
 
 void SceneObject::readFromFileNodeIterator(FileNodeIterator& it) {
-// XXX
+  FileNode node = *it;
+  readFromFileNode(node);
 }
 
 void SceneObject::readFromFileNode(FileNode& it) {
-// XXX
+  FileNode p = (it)["scene_pose"];
+  scene_pose.readFromFileNode(p);
+  (it)["labeledClassIndex"] >> labeledClassIndex;
+  (it)["objectLabel"] >> objectLabel;
+  string sotString;
+  
+  (it)["sceneObjectType"] >> sotString;
+  sot = sceneObjectTypeFromString(sotString);
+  
 }
 
 
@@ -949,23 +974,103 @@ void Scene::cellToMeters(int xc, int yc, double * xm, double * ym) {
 
 
 void Scene::writeToFileStorage(FileStorage& fsvO) {
-// XXX 
+  fsvO << "{";
+  fsvO << "width" << width;
+  fsvO << "height" << height;
+  fsvO << "x_center_cell" << x_center_cell;
+  fsvO << "y_center_cell" << y_center_cell;
+  fsvO << "cell_width" << cell_width;
+  fsvO << "score" << score;
+  fsvO << "background_pose";
+  background_pose.writeToFileStorage(fsvO);
+
+  fsvO << "background_map";
+  background_map->writeToFileStorage(fsvO);
+
+  fsvO << "predicted_map";
+  predicted_map->writeToFileStorage(fsvO);
+
+  fsvO << "observed_map";
+  observed_map->writeToFileStorage(fsvO);
+
+  fsvO << "discrepancy_map";
+  discrepancy->writeToFileStorage(fsvO);
+
+  fsvO << "predicted_objects";
+  writePredictedObjects(fsvO);
+
+  fsvO << "}";
+}
+
+void Scene::writePredictedObjects(FileStorage & fsvO) {
+  for (int i = 0; i < predicted_objects.size(); i++) {
+    predicted_objects[i]->writeToFileStorage(fsvO);
+  }
+}
+
+void Scene::readPredictedObjects(FileNode & fn) {
+  predicted_objects.resize(0);
+
+  for (FileNodeIterator it = fn.begin(); it != fn.end(); it++) {
+    shared_ptr<SceneObject> obj = make_shared<SceneObject>();
+    FileNode node = *it;
+    obj->readFromFileNode(node);
+    predicted_objects.push_back(obj);
+  }
 }
 
 void Scene::readFromFileNodeIterator(FileNodeIterator& it) {
-// XXX 
+  FileNode node = *it;
+  readFromFileNode(node);
 }
 
 void Scene::readFromFileNode(FileNode& it) {
-// XXX
+
+  (it)["width"] >> width;
+  (it)["height"] >> height;
+  (it)["x_center_cell"] >> x_center_cell;
+  (it)["y_center_cell"] >> y_center_cell;
+  (it)["cell_width"] >> cell_width;
+  (it)["score"] >> score;
+  
+  FileNode bg_pose_node = (it)["background_pose"];
+  background_pose.readFromFileNode(bg_pose_node);
+  
+  FileNode bg_map_node = (it)["background_map"];
+  background_map->readFromFileNode(bg_map_node);
+
+  FileNode predicted_map_node = (it)["predicted_map"];
+  predicted_map->readFromFileNode(predicted_map_node);
+
+  FileNode observed_map_node = (it)["observed_map"];
+  observed_map->readFromFileNode(observed_map_node);
+
+  FileNode discrepancy_map_node = (it)["discrepancy_map"];
+  discrepancy->readFromFileNode(discrepancy_map_node);
+
+  FileNode node = it["predicted_objects"];
+  readPredictedObjects(node);
+
 }
 
 void Scene::saveToFile(string filename) {
-// XXX
+  FileStorage fsvO;
+  cout << "Scene::saveToFile writing: " << filename << "...." << endl;
+  fsvO.open(filename, FileStorage::WRITE);
+  fsvO << "Scene";
+  writeToFileStorage(fsvO);
+  fsvO.release();
+  cout << "done." << endl;
+
 }
 
 void Scene::loadFromFile(string filename) {
-// XXX
+  FileStorage fsvI;
+  cout << "Scene::loadFromFile reading: " << filename<< " ..." << endl;
+  fsvI.open(filename, FileStorage::READ);
+  FileNode anode = fsvI["Scene"];
+  readFromFileNode(anode);
+  cout << "done." << endl;
 }
 
 
@@ -1078,6 +1183,41 @@ void TransitionTable::loadFromFile(string filename) {
 
 namespace ein_words {
 
+WORD(SceneSaveScene)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  stringstream ss;
+  ss << ms->config.data_directory + "/scenes/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/scenes/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  ms->config.scene->saveToFile(ss.str());
+
+}
+END_WORD
+REGISTER_WORD(SceneSaveScene)
+
+WORD(SceneLoadScene)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  stringstream ss;
+  ss << ms->config.data_directory + "/scenes/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/scenes/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  ms->config.scene->loadFromFile(ss.str());
+  ms->evaluateProgram("sceneRenderObservedMap sceneRenderBackgroundMap sceneRenderPredictedMap sceneRenderDiscrepancy");
+}
+END_WORD
+REGISTER_WORD(SceneLoadScene)
+
+
 WORD(SceneSaveBackgroundMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   string message;
@@ -1108,6 +1248,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->config.scene->background_map->loadFromFile(ss.str());
 
+  ms->pushWord("sceneRenderBackgroundMap");
+}
+END_WORD
+REGISTER_WORD(SceneLoadBackgroundMap)
+
+
+WORD(SceneRenderBackgroundMap)
+virtual void execute(std::shared_ptr<MachineState> ms) {
   Mat backgroundImage;
   ms->config.scene->background_map->rgbMuToMat(backgroundImage);
   Mat rgb = backgroundImage.clone();  
@@ -1116,7 +1264,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
 }
 END_WORD
-REGISTER_WORD(SceneLoadBackgroundMap)
+REGISTER_WORD(SceneRenderBackgroundMap)
+
 
 WORD(SceneSaveObservedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1269,6 +1418,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }  
   ms->config.scene->observed_map->recalculateMusAndSigmas();
+  ms->pushWord("sceneRenderObservedMap");
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromWrist)
+
+
+WORD(SceneRenderObservedMap)
+virtual void execute(std::shared_ptr<MachineState> ms) {
   Mat image;
   ms->config.scene->observed_map->rgbMuToMat(image);
   Mat rgb = image.clone();  
@@ -1276,13 +1433,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.observedWindow->updateImage(rgb);
 }
 END_WORD
-REGISTER_WORD(SceneUpdateObservedFromWrist)
+REGISTER_WORD(SceneRenderObservedMap)
 
 WORD(SceneComposePredictedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double p_threshold = 0.5;
   ms->config.scene->composePredictedMap(p_threshold);
+  ms->pushWord("sceneRenderPredictedMap");
+}
+END_WORD
+REGISTER_WORD(SceneComposePredictedMap)
 
+WORD(SceneRenderPredictedMap)
+virtual void execute(std::shared_ptr<MachineState> ms) {
   Mat image;
   ms->config.scene->predicted_map->rgbMuToMat(image);
   Mat rgb = image.clone();  
@@ -1290,19 +1453,29 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.predictedWindow->updateImage(rgb);
 }
 END_WORD
-REGISTER_WORD(SceneComposePredictedMap)
+REGISTER_WORD(SceneRenderPredictedMap)
+
 
 WORD(SceneUpdateDiscrepancy)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.scene->measureDiscrepancy();
-  Mat image;
-  ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(image);
-  image = image * 255;
-
-  ms->config.discrepancyWindow->updateImage(image);
+  ms->pushWord("sceneRenderDiscrepancy");
 }
 END_WORD
 REGISTER_WORD(SceneUpdateDiscrepancy)
+
+
+WORD(SceneRenderDiscrepancy)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  Mat image;
+  ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(image);
+  image = image * 255;
+  ms->config.discrepancyWindow->updateImage(image);
+}
+END_WORD
+REGISTER_WORD(SceneRenderDiscrepancy)
+
+
 
 WORD(SceneGrabDiscrepantCropAsClass)
 virtual void execute(std::shared_ptr<MachineState> ms) {
