@@ -19,6 +19,7 @@
 #include "word.h"
 
 #include "config.h"
+#include "base64.h"
 
 using namespace std;
 using namespace cv;
@@ -66,5 +67,8 @@ gsl_matrix * boxMemoryToPolygon(BoxMemory b);
 void initializeMachine(shared_ptr<MachineState> ms);
 string formatTime(ros::Time time);
 bool copyDir(string src, string dest);
+
+string readBinaryFromYaml(FileNode & fn);
+void writeBinaryToYaml(unsigned char * data, int length, FileStorage & fsvO);
 
 #endif /* _EIN_UTIL_H_ */

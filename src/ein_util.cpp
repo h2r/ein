@@ -9,6 +9,37 @@
 using namespace boost::filesystem;
 
 
+void writeBinaryToYaml(unsigned char * data, int length, FileStorage & fsvO) {
+  int max_string_length = 3000;
+  
+  vector<string> strings;
+  int current_idx = 0;
+
+  while (current_idx < length) {
+    int end_idx = min(current_idx + max_string_length, length); 
+    int current_length = end_idx - current_idx;
+    string result = base64_encode(&data[current_idx], current_length);
+    //cout << "result: " << result.size() << endl;
+    strings.push_back(result);
+    
+    current_idx = end_idx;
+  }
+
+  fsvO << "[:";
+  for (int i = 0; i < strings.size(); i++) {
+    fsvO << strings[i];
+  }
+  fsvO << "]";
+}
+
+string readBinaryFromYaml(FileNode & fn) {
+  stringstream result;
+  for (FileNodeIterator it = fn.begin(); it != fn.end(); it++) {
+    FileNode node = *it;
+    result << (string) node;
+  }
+  return result.str();
+}
 
 std::string operationStatusToString(operationStatusType mode) 
 {
