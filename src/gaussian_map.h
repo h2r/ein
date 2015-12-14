@@ -106,10 +106,13 @@ string sceneObjectTypeToString(sceneObjectType sot);
 
 class SceneObject {
   public:
+  SceneObject(eePose _eep, int _lci, string _ol, sceneObjectType _sot);
+  SceneObject();
+
   // pose within the scene
   eePose scene_pose;
-  int labeledClassIndex;
-  string objectLabel;
+  int labeled_class_index;
+  string object_label;
   sceneObjectType sot;
 
   void writeToFileStorage(FileStorage& fsvO);

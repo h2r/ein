@@ -279,6 +279,18 @@ END_WORD \
 REGISTER_WORD(backName) 
 
 
+
+
+#define REQUIRE_FOCUSED_CLASS(ms, tfc) \
+int tfc = ms->config.focusedClass;\
+if ( (tfc > -1) && (tfc < ms->config.classLabels.size()) ) {\
+} else {\
+  ROS_ERROR_STREAM("Invalid focused class, not grabbing..." << endl);\
+  return;\
+}\
+
+
+
 int register_word(shared_ptr<Word> word);
 
 

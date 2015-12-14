@@ -45,6 +45,8 @@ typedef struct _eePose{
   _eePose applyAsRelativePoseTo(_eePose in) const;
   _eePose getInterpolation(_eePose inB, double lambda) const; 
 
+  _eePose applyRPYTo(double roll, double pitch, double yaw) const;
+
   void writeToFileStorage(FileStorage& fsvO) const;
 
   void readFromFileNodeIterator(FileNodeIterator& it);
