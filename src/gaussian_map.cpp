@@ -232,6 +232,15 @@ int GaussianMap::safeAt(int x, int y) {
 }
 
 GaussianMapCell *GaussianMap::refAtCell(int x, int y) {
+  if (x < 0 || x >= width) {
+    ROS_ERROR_STREAM("Bad x. " << x);
+    assert (0);
+  }
+  if (y < 0 || y >= height) {
+    ROS_ERROR_STREAM("Bad y. " << y);
+    assert (0);
+  }
+  
   return (cells + x + width*y);
 }
 
@@ -533,8 +542,8 @@ shared_ptr<GaussianMap> GaussianMap::copyBox(int _x1, int _y1, int _x2, int _y2)
   y2 = min( max(0,y2), height-1);
 
   shared_ptr<GaussianMap> toReturn = std::make_shared<GaussianMap>(x2-x1, y2-y1, cell_width);
-  for (int y = y1; y <= y2; y++) {
-    for (int x = x1; x <= x2; x++) {
+  for (int y = y1; y < y2; y++) {
+    for (int x = x1; x < x2; x++) {
       *(toReturn->refAtCell(x-x1,y-y1)) = *(refAtCell(x,y));
     }
   }
@@ -591,11 +600,25 @@ sceneObjectType sceneObjectTypeFromString(string str) {
 }
 
 
+SceneObject::SceneObject(eePose _eep, int _lci, string _ol, sceneObjectType _sot) {
+  scene_pose = _eep;
+  labeled_class_index = _lci;
+  object_label = _ol;
+  sot = _sot;
+}
+
+SceneObject::SceneObject() {
+  scene_pose = eePose::identity();
+  labeled_class_index = -1;
+  object_label = string("");
+  sot = BACKGROUND;
+}
+
 void SceneObject::writeToFileStorage(FileStorage& fsvO) {
   fsvO << "{";
   fsvO << "scene_pose"; scene_pose.writeToFileStorage(fsvO);
-  fsvO << "labeledClassIndex" << labeledClassIndex;
-  fsvO << "objectLabel" << objectLabel;
+  fsvO << "labeled_class_index" << labeled_class_index;
+  fsvO << "object_label" << object_label;
   fsvO << "sceneObjectType" << sceneObjectTypeToString(sot);
   fsvO << "}";
 }
@@ -608,8 +631,8 @@ void SceneObject::readFromFileNodeIterator(FileNodeIterator& it) {
 void SceneObject::readFromFileNode(FileNode& it) {
   FileNode p = (it)["scene_pose"];
   scene_pose.readFromFileNode(p);
-  (it)["labeledClassIndex"] >> labeledClassIndex;
-  (it)["objectLabel"] >> objectLabel;
+  (it)["labeled_class_index"] >> labeled_class_index;
+  (it)["object_label"] >> object_label;
   string sotString;
   
   (it)["sceneObjectType"] >> sotString;
@@ -690,14 +713,17 @@ void Scene::composePredictedMap(double threshold) {
 
   for (int i = predicted_objects.size()-1; i >= 0; i--) {
     shared_ptr<SceneObject> tsob = predicted_objects[i];
-    shared_ptr<Scene> tos = ms->config.class_scene_models[ tsob->labeledClassIndex ];
+    shared_ptr<Scene> tos = ms->config.class_scene_models[ tsob->labeled_class_index ];
 
     int center_x, center_y;
     metersToCell(tsob->scene_pose.px, tsob->scene_pose.py, &center_x, &center_y);
+
+    int mdim = max(tos->width, tos->height);
+    int mpad = ceil(mdim*sqrt(2.0)/2.0);
     int top_x, top_y;
-    metersToCell(tsob->scene_pose.px - tos->width*cell_width, tsob->scene_pose.py - tos->height*cell_width, &top_x, &top_y);
+    metersToCell(tsob->scene_pose.px - mpad*cell_width, tsob->scene_pose.py - mpad*cell_width, &top_x, &top_y);
     int bot_x, bot_y;
-    metersToCell(tsob->scene_pose.px + tos->width*cell_width, tsob->scene_pose.py + tos->height*cell_width, &bot_x, &bot_y);
+    metersToCell(tsob->scene_pose.px + mpad*cell_width, tsob->scene_pose.py + mpad*cell_width, &bot_x, &bot_y);
 
     for (int x = top_x; x < bot_x; x++) {
       for (int y = top_y; y < bot_y; y++) {
@@ -710,7 +736,11 @@ void Scene::composePredictedMap(double threshold) {
 
 	
 	double meters_object_x, meters_object_y;
-	eePose eep_object = eePose::identity().getPoseRelativeTo(tsob->scene_pose);
+	eePose cell_eep = eePose::identity();
+	cell_eep.px = meters_scene_x;
+	cell_eep.py = meters_scene_y;
+	cell_eep.pz = 0.0;
+	eePose eep_object = cell_eep.getPoseRelativeTo(tsob->scene_pose);
 	meters_object_x = eep_object.px;
 	meters_object_y = eep_object.py;
 
@@ -848,6 +878,7 @@ shared_ptr<Scene> Scene::copyBox(int _x1, int _y1, int _x2, int _y2) {
   y2 = min( max(0,y2), height-1);
 
   shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, x2-x1, y2-y1, cell_width);
+
   toReturn->background_map = background_map->copyBox(x1,y1,x2,y2);
   toReturn->predicted_map = predicted_map->copyBox(x1,y1,x2,y2);
   toReturn->observed_map = observed_map->copyBox(x1,y1,x2,y2);
@@ -865,8 +896,13 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
   int xmax = 0;
   int ymin = height;
   int ymax = 0;
+  cout << xmin << " " << xmax << " " << ymin << " " << ymax << " initial " << endl;
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
+      if (discrepancy_density.at<double>(y,x) != 0) {
+	cout << discrepancy_density.at<double>(y,x) << endl;
+      }
+
       if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (discrepancy_density.at<double>(y,x) > threshold)) {
 	xmin = min(xmin, x);
 	xmax = max(xmax, x);
@@ -876,6 +912,12 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
       }
     }
   }
+  cout << xmin << " " << xmax << " " << ymin << " " << ymax << " secondary " << endl;
+
+  xmin = xmin - ceil(pad_meters/cell_width);
+  xmax = xmax + ceil(pad_meters/cell_width);
+  ymin = ymin - ceil(pad_meters/cell_width);
+  ymax = ymax + ceil(pad_meters/cell_width);
 
   int new_width = xmax - xmin;
   int new_height = ymax - ymin;
@@ -889,11 +931,14 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
   new_width = xmax - xmin;
   new_height = ymax - ymin;
 
+  cout << xmin << " " << xmax << " " << ymin << " " << ymax << " third " << endl;
+
   shared_ptr<Scene> scene_to_return;
   if ((xmin <= xmax) && (ymin <= ymax)) {
-    shared_ptr<Scene> scene_to_return = copyBox(xmin,ymin,xmax,ymax);
+    scene_to_return = copyBox(xmin,ymin,xmax,ymax);
   } else {
     ROS_ERROR_STREAM("region contained no discrepant cells." << endl);
+    cout << xmin << " " << xmax << " " << ymin << " " << ymax << endl;
   }
   
   return scene_to_return;
@@ -1343,12 +1388,68 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneLoadDiscrepancyMap)
 
+WORD(SceneSaveFocusedSceneModel)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+  guardSceneModels(ms);
+
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  stringstream ss;
+  ss << ms->config.data_directory + "/scenes/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/scenes/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  ms->config.class_scene_models[tfc]->saveToFile(ss.str());
+}
+END_WORD
+REGISTER_WORD(SceneSaveFocusedSceneModel)
+
+WORD(SceneLoadFocusedSceneModel)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+  guardSceneModels(ms);
+
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  stringstream ss;
+  ss << ms->config.data_directory + "/scenes/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/scenes/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  ms->config.class_scene_models[tfc]->loadFromFile(ss.str());
+}
+END_WORD
+REGISTER_WORD(SceneLoadFocusedSceneModel)
+
 WORD(SceneClearPredictedObjects)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.scene->predicted_objects.resize(0);
 }
 END_WORD
 REGISTER_WORD(SceneClearPredictedObjects)
+
+WORD(SceneAddPredictedFocusedObject)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+  guardSceneModels(ms);
+
+  double x_in=0, y_in=0, theta_in=0;
+  GET_NUMERIC_ARG(ms, theta_in);
+  GET_NUMERIC_ARG(ms, y_in);
+  GET_NUMERIC_ARG(ms, x_in);
+
+  eePose topass = eePose::identity().applyRPYTo(theta_in,0,0); 
+  shared_ptr<SceneObject> topush = make_shared<SceneObject>(topass, tfc, ms->config.classLabels[tfc], PREDICTED);
+
+  ms->config.scene->predicted_objects.push_back(topush);
+}
+END_WORD
+REGISTER_WORD(SceneAddPredictedFocusedObject)
 
 WORD(SceneInit)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1491,6 +1592,7 @@ WORD(SceneGrabDiscrepantCropAsClass)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int tfc = ms->config.focusedClass;
   if ( (tfc > -1) && (tfc < ms->config.classLabels.size()) ) {
+  } else {
     ROS_ERROR_STREAM("Invalid focused class, not grabbing..." << endl);
     return;
   }

@@ -263,6 +263,70 @@ _eePose _eePose::getInterpolation(_eePose inB, double mu) const {
   return out;
 }
 
+_eePose _eePose::applyRPYTo(double roll_z, double pitch_y, double yaw_x) const {
+
+  Eigen::Vector3f localUnitX;
+  {
+    Eigen::Quaternionf qin(0, 1, 0, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(qw, qx, qy, qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitX.x() = qout.x();
+    localUnitX.y() = qout.y();
+    localUnitX.z() = qout.z();
+  }
+
+  Eigen::Vector3f localUnitY;
+  {
+    Eigen::Quaternionf qin(0, 0, 1, 0);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(qw, qx, qy, qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitY.x() = qout.x();
+    localUnitY.y() = qout.y();
+    localUnitY.z() = qout.z();
+  }
+
+  Eigen::Vector3f localUnitZ;
+  {
+    Eigen::Quaternionf qin(0, 0, 0, 1);
+    Eigen::Quaternionf qout(0, 1, 0, 0);
+    Eigen::Quaternionf eeqform(qw, qx, qy, qz);
+    qout = eeqform * qin * eeqform.conjugate();
+    localUnitZ.x() = qout.x();
+    localUnitZ.y() = qout.y();
+    localUnitZ.z() = qout.z();
+  }
+
+  double sinBuff = 0.0;
+  double angleRate = 1.0;
+  Eigen::Quaternionf eeBaseQuat(qw, qx, qy, qz);
+  sinBuff = sin(angleRate*yaw_x/2.0);
+  Eigen::Quaternionf eeRotatorX(cos(angleRate*yaw_x/2.0), localUnitX.x()*sinBuff, localUnitX.y()*sinBuff, localUnitX.z()*sinBuff);
+  sinBuff = sin(angleRate*pitch_y/2.0);
+  Eigen::Quaternionf eeRotatorY(cos(angleRate*pitch_y/2.0), localUnitY.x()*sinBuff, localUnitY.y()*sinBuff, localUnitY.z()*sinBuff);
+  sinBuff = sin(angleRate*roll_z/2.0);
+  Eigen::Quaternionf eeRotatorZ(cos(angleRate*roll_z/2.0), localUnitZ.x()*sinBuff, localUnitZ.y()*sinBuff, localUnitZ.z()*sinBuff);
+
+  eeRotatorX.normalize();
+  eeRotatorY.normalize();
+  eeRotatorZ.normalize();
+
+  eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * eeBaseQuat;
+  eeBaseQuat.normalize();
+
+  _eePose toreturn;
+  toreturn.px = px;
+  toreturn.py = py;
+  toreturn.pz = pz;
+  toreturn.qw = eeBaseQuat.w();
+  toreturn.qx = eeBaseQuat.x();
+  toreturn.qy = eeBaseQuat.y();
+  toreturn.qz = eeBaseQuat.z();
+
+  return toreturn;
+}
+
 void _eePose::writeToFileStorage(FileStorage& fsvO) const {
   fsvO << "{:";
   fsvO << "px" << px;
