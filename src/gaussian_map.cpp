@@ -345,9 +345,13 @@ void GaussianMap::writeToFileStorage(FileStorage& fsvO) {
 }
 
 void GaussianMap::writeCells(FileStorage & fsvO) {
+
+  unsigned char * data = (unsigned char *) cells;
+  int length = sizeof(GaussianMapCell) * width * height;
+  writeBinaryToYaml(data, length, fsvO);
   
 
-  fsvO << "[:";
+  /*fsvO << "[:";
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       GaussianMapCell * cell = refAtCell(x, y);
@@ -358,7 +362,8 @@ void GaussianMap::writeCells(FileStorage & fsvO) {
 
     }
   }
-  fsvO << "]";
+  fsvO << "]";*/
+  
 }
 
 void GaussianMap::saveToFile(string filename) {
@@ -383,11 +388,25 @@ void GaussianMap::readFromFileNode(FileNode& it) {
     it["y_center_cell"] >> y_center_cell;
     it["cell_width"] >> cell_width;
   }
+  cout << "width: " << width << " height: " << height << endl;
   reallocate();
   {
     FileNode bnode = it["cells"];
 
-    int numLoadedCells= 0;
+    string encoded_data = readBinaryFromYaml(bnode);
+    string decoded_data = base64_decode(encoded_data);
+    GaussianMapCell * data = (GaussianMapCell * ) decoded_data.data();
+    int numLoadedCells = decoded_data.size() / sizeof(GaussianMapCell);
+    if (decoded_data.size() != width * height * sizeof(GaussianMapCell)) {
+      ROS_ERROR_STREAM("Inconsistency in saved data.");
+      ROS_ERROR_STREAM("Read width: " << width << " height: " << height << " but got " << decoded_data.size() << " from the base64 data.");
+    } else  {
+      memcpy(cells, data, sizeof(GaussianMapCell) * width * height);
+    }
+      
+    
+
+    /*int numLoadedCells= 0;
     FileNodeIterator itc = bnode.begin(), itc_end = bnode.end();
     for ( ; (itc != itc_end) && (numLoadedCells < width*height); itc++, numLoadedCells++) {
       string encoded_data = (string) (*itc);
@@ -396,7 +415,7 @@ void GaussianMap::readFromFileNode(FileNode& it) {
       
       memcpy(&cells[numLoadedCells], data, sizeof(GaussianMapCell));
       
-    }
+      }*/
 
     if (numLoadedCells != width*height) {
       ROS_ERROR_STREAM("Error, GaussianMap loaded " << numLoadedCells << " but expected " << width*height << endl);
@@ -408,18 +427,14 @@ void GaussianMap::readFromFileNode(FileNode& it) {
 
 void GaussianMap::loadFromFile(string filename) {
   FileStorage fsvI;
-  cout << "GaussianMap::loadFromFile reading: " << filename<< " ..." << endl;
+  cout << "GaussianMap::loadFromFile reading: " << filename << " ..." << endl;
   fsvI.open(filename, FileStorage::READ);
   if (fsvI.isOpened()) {
-    FileNode anode = fsvI["Scene"];
+    FileNode anode = fsvI["GaussianMap"];
     readFromFileNode(anode);
   } else {
     ROS_ERROR_STREAM("Could not open file " << filename);
   }
-
-  FileNode anode = fsvI["GaussianMap"];
-  readFromFileNode(anode);
-
   cout << "done." << endl;
 }
 
