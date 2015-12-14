@@ -164,7 +164,7 @@ class Scene {
   // object only makes map better, but must "win" on at least a fraction of its pixels (prior on number of parts)
   void proposeObject();
 
-  void tryToAddObjectToScene();
+  void tryToAddObjectToScene(int class_idx);
   void addObjectToPredictedMap();
   void removeObjectFromPredictedMap();
 
