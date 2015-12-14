@@ -462,8 +462,8 @@ void GaussianMap::rgbMuToMat(Mat& out) {
     }
   }
 
-  cv::resize(big, out, cv::Size(301, 301), 2, 2);
-
+  //cv::resize(big, out, cv::Size(301, 301), 2, 2);
+  out = big;
 }
 
 void GaussianMap::rgbDiscrepancyMuToMat(Mat& out) {
@@ -650,7 +650,7 @@ Scene::Scene(shared_ptr<MachineState> _ms, int w, int h, double cw) {
   x_center_cell = (width-1)/2;
   y_center_cell = (height-1)/2;
   cell_width = cw;
-  background_pose = eePose::zero();
+  background_pose = eePose::identity();
   score = 0;
   predicted_objects.resize(0);
   reallocate();
@@ -799,9 +799,9 @@ void Scene::measureDiscrepancy() {
 	//predicted_map->refAtCell(x,y)->innerProduct(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
 	double total_discrepancy = 0.0;
 
-	checkProb("rmu_diff", rmu_diff);
-	checkProb("bmu_diff", bmu_diff);
-	checkProb("gmu_diff", gmu_diff);
+	//identitycheckProb("rmu_diff", rmu_diff);
+	//identitycheckProb("bmu_diff", bmu_diff);
+	//identitycheckProb("gmu_diff", gmu_diff);
 
 	discrepancy->refAtCell(x,y)->red.samples = observed_map->refAtCell(x,y)->red.samples;
 	discrepancy->refAtCell(x,y)->green.samples = observed_map->refAtCell(x,y)->green.samples;
@@ -817,10 +817,10 @@ void Scene::measureDiscrepancy() {
 	total_discrepancy = 1.0 - point_discrepancy;
 	discrepancy_magnitude.at<double>(y,x) = total_discrepancy;
 
-	checkProb("total_discrepancy", total_discrepancy);
-	checkProb("rmu", discrepancy->refAtCell(x,y)->red.mu);
-	checkProb("bmu", discrepancy->refAtCell(x,y)->blue.mu);
-	checkProb("gmu", discrepancy->refAtCell(x,y)->green.mu);
+	//identitycheckProb("total_discrepancy", total_discrepancy);
+	//identitycheckProb("rmu", discrepancy->refAtCell(x,y)->red.mu);
+	//identitycheckProb("bmu", discrepancy->refAtCell(x,y)->blue.mu);
+	//identitycheckProb("gmu", discrepancy->refAtCell(x,y)->green.mu);
 	//rmu_diff*rmu_diff + gmu_diff*gmu_diff + bmu_diff*bmu_diff ;
 	//+ rvar_quot + gvar_quot + bvar_quot;
 
@@ -1454,6 +1454,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   GET_NUMERIC_ARG(ms, x_in);
 
   eePose topass = eePose::identity().applyRPYTo(theta_in,0,0); 
+  topass.px = x_in;
+  topass.py = y_in;
   shared_ptr<SceneObject> topush = make_shared<SceneObject>(topass, tfc, ms->config.classLabels[tfc], PREDICTED);
 
   ms->config.scene->predicted_objects.push_back(topush);
