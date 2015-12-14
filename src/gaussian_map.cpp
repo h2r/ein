@@ -976,7 +976,147 @@ void Scene::proposeObject() {
 }
 
 // XXX 
-void Scene::tryToAddObjectToScene() {
+void Scene::tryToAddObjectToScene(int class_idx) {
+  REQUIRE_VALID_CLASS(ms,class_idx);
+  guardSceneModels(ms);
+
+  vector<Mat> rotated_object_imgs;
+  int numScales = 1;//11;
+  int numOrientations = 37;
+  double scaleStepSize = 1.02;
+  int etaS = 0;
+
+  rotated_object_imgs.resize(numScales*numOrientations);
+  double startScale = pow(scaleStepSize, -(numScales-1)/2);  
+  double thisScale = startScale * pow(scaleStepSize, etaS);
+
+  Mat prepared_discrepancy;
+  {
+    prepared_discrepancy = discrepancy_density.clone();
+  }
+  Mat prepared_object = ms->config.class_scene_models[class_idx]->discrepancy_density.clone();
+
+  double max_dim = max(prepared_object.rows, prepared_object.cols);
+  Size toBecome(max_dim, max_dim);
+
+  //double globalMax = 0.0;
+  int max_x = -1;
+  int max_y = -1;
+  int max_orient = -1;
+  double max_score = -1;
+
+  #pragma omp parallel for
+  for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
+/*
+    // rotate the template and L1 normalize it
+    Point center = Point(ms->config.aerialGradientWidth/2, ms->config.aerialGradientWidth/2);
+    double angle = thisOrient*360.0/numOrientations;
+    
+    //double scale = 1.0;
+    double scale = thisScale;
+    
+    // Get the rotation matrix with the specifications above
+    Mat rot_mat = getRotationMatrix2D(center, angle, scale);
+    warpAffine(im2, rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
+    
+    processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations], rotatedAerialGrads[thisOrient + etaS*numOrientations]);
+    
+    double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
+    rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
+    double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations]);
+    l2norm = sqrt(l2norm);
+    if (l2norm <= EPSILON) {
+      l2norm = 1.0;
+    }
+    rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l2norm;
+*/
+
+/*
+    prepareForCrossCorrelation(ms, im2, rotatedAerialGrads[thisOrient + etaS*numOrientations], thisOrient, numOrientations, thisScale, toBecome);
+
+    Mat output = preparedClass1.clone(); 
+    filter2D(preparedClass1, output, -1, rotatedAerialGrads[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
+    double minValue, maxValue;
+    minMaxLoc(output, &minValue, &maxValue);
+    globalMax = max(maxValue, globalMax);
+*/
+    Point center = Point(max_dim/2, max_dim/2);
+    double angle = thisOrient*360.0/numOrientations;
+    
+    //double scale = 1.0;
+    double scale = thisScale;
+    
+    // Get the rotation matrix with the specifications above
+    Mat rot_mat = getRotationMatrix2D(center, angle, scale);
+    warpAffine(prepared_object, rotated_object_imgs[thisOrient + etaS*numOrientations], rot_mat, toBecome);
+
+    Mat output = prepared_discrepancy.clone(); 
+    //filter2D(prepared_discrepancy, output, -1, rotated_object_imgs[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
+
+    Mat tob = rotated_object_imgs[thisOrient + etaS*numOrientations];
+    int tob_half_width = ceil(tob.cols/2.0);
+    int tob_half_height = ceil(tob.rows/2.0);
+
+    cout << "tob " << tob_half_width << " " << tob_half_height << endl;
+
+    for (int ys = 0; ys < output.rows; ys++) {
+      for (int xs = 0; xs < output.cols; xs++) {
+	output.at<double>(ys,xs) = 0.0;
+	//if (prepared_discrepancy.at<double>(ys,xs) > 0) 
+	if (discrepancy->refAtCell(xs,ys)->red.samples > 0) 
+	//if ( 1 ) 
+	{
+	  for (int yo = 0; yo < tob.rows; yo++) {
+	    for (int xo = 0; xo < tob.cols; xo++) {
+	      int xst = xs-tob_half_width+xo;
+	      int yst = ys-tob_half_height+yo;
+	      int xot = xo;
+	      int yot = yo;
+	      if ( 
+		  (xst >= 0 && xst < output.cols) &&
+		  (yst >= 0 && yst < output.rows) &&
+		  (xot >= 0 && xot < tob.cols) &&
+		  (yot >= 0 && yot < tob.rows) 
+		 ) {
+		output.at<double>(ys,xs) += prepared_discrepancy.at<double>(yst,xst) * tob.at<double>(yot,xot);
+	      }
+	    }
+	  }
+	}
+      }
+    }
+
+    //cout << output ;
+    for (int y = 0; y < output.rows; y++) {
+      for (int x = 0; x < output.cols; x++) {
+	//cout << output.at<double>(y,x) << "  ";
+	if (output.at<double>(y,x) > max_score) {
+	  max_score = output.at<double>(y,x);
+	  max_x = x;
+	  max_y = y;
+	  max_orient = thisOrient;
+	}
+      }
+    }
+  }
+
+  //cout << prepared_discrepancy << prepared_object ;
+
+  double max_theta = -max_orient * 2.0 * M_PI / numOrientations;
+
+  double max_x_meters, max_y_meters;
+  cellToMeters(max_x, max_y, &max_x_meters, &max_y_meters);
+
+  cout << max_x << " " << max_y << " " << max_orient << " " << max_x_meters << " " << max_y_meters << " " << max_theta << endl;
+
+  if (max_x > -1) {
+    ms->pushWord("sceneAddPredictedFocusedObject");
+    ms->pushWord(make_shared<DoubleWord>(max_theta));
+    ms->pushWord(make_shared<DoubleWord>(max_y_meters));
+    ms->pushWord(make_shared<DoubleWord>(max_x_meters));
+  } else {
+    cout << "Did not find a valid cell... not adding object." << endl;
+  }
 }
 
 // XXX 
@@ -1462,6 +1602,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneAddPredictedFocusedObject)
+
+WORD(ScenePredictFocusedObject)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+  guardSceneModels(ms);
+  ms->config.scene->tryToAddObjectToScene(tfc);
+}
+END_WORD
+REGISTER_WORD(ScenePredictFocusedObject)
 
 WORD(SceneInit)
 virtual void execute(std::shared_ptr<MachineState> ms) {

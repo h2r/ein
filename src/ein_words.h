@@ -289,6 +289,13 @@ if ( (tfc > -1) && (tfc < ms->config.classLabels.size()) ) {\
   return;\
 }\
 
+#define REQUIRE_VALID_CLASS(ms, tfc) \
+if ( (tfc > -1) && (tfc < ms->config.classLabels.size()) ) {\
+} else {\
+  ROS_ERROR_STREAM("Invalid focused class, not grabbing..." << endl);\
+  return;\
+}\
+
 
 
 int register_word(shared_ptr<Word> word);
