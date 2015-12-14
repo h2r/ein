@@ -2,7 +2,6 @@
 #include "ein_words.h"
 #include "ein.h"
 #include "qtgui/einwindow.h"
-#include "base64.h"
 
 void checkProb(string label, double prob) {
   cout << "Checking " << label << " " << prob << endl;
@@ -393,13 +392,12 @@ void GaussianMap::readFromFileNode(FileNode& it) {
   {
     FileNode bnode = it["cells"];
 
-    string encoded_data = readBinaryFromYaml(bnode);
-    string decoded_data = base64_decode(encoded_data);
-    GaussianMapCell * data = (GaussianMapCell * ) decoded_data.data();
-    int numLoadedCells = decoded_data.size() / sizeof(GaussianMapCell);
-    if (decoded_data.size() != width * height * sizeof(GaussianMapCell)) {
+    string stringdata = readBinaryFromYaml(bnode);
+    GaussianMapCell * data = (GaussianMapCell * ) stringdata.data();
+    int numLoadedCells = stringdata.size() / sizeof(GaussianMapCell);
+    if (stringdata.size() != width * height * sizeof(GaussianMapCell)) {
       ROS_ERROR_STREAM("Inconsistency in saved data.");
-      ROS_ERROR_STREAM("Read width: " << width << " height: " << height << " but got " << decoded_data.size() << " from the base64 data.");
+      ROS_ERROR_STREAM("Read width: " << width << " height: " << height << " but got " << stringdata.size() << " from the file.");
     } else  {
       memcpy(cells, data, sizeof(GaussianMapCell) * width * height);
     }
