@@ -1005,13 +1005,19 @@ void Scene::writeToFileStorage(FileStorage& fsvO) {
   fsvO << "predicted_objects";
   writePredictedObjects(fsvO);
 
+  fsvO << "predicted_segmentation" << predicted_segmentation;
+  fsvO << "discrepancy_magnitude" << discrepancy_magnitude;
+  fsvO << "discrepancy_density" << discrepancy_density;
+
   fsvO << "}";
 }
 
 void Scene::writePredictedObjects(FileStorage & fsvO) {
+  fsvO << "[";
   for (int i = 0; i < predicted_objects.size(); i++) {
     predicted_objects[i]->writeToFileStorage(fsvO);
   }
+  fsvO << "]";
 }
 
 void Scene::readPredictedObjects(FileNode & fn) {
@@ -1056,6 +1062,10 @@ void Scene::readFromFileNode(FileNode& it) {
 
   FileNode node = it["predicted_objects"];
   readPredictedObjects(node);
+
+  it["predicted_segmentation"] >> predicted_segmentation;
+  it["discrepancy_magnitutde"] >> discrepancy_magnitude;
+  it["discrepancy_density"] >> discrepancy_density;
 
 }
 
