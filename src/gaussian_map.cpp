@@ -30,7 +30,27 @@ double normal_pdf(double mu, double sigma, double x) {
   return 1 / (sigma * sqrt(2 * M_PI)) * exp(-pow(x - mu, 2) / (2 * sigma * sigma));
 }
 
+double safeSigmaSquared(double sigmasquared) {
+  if (sigmasquared == 0.0) {
+    return 1.0;
+  } else {
+    return sigmasquared;
+  }
+}
 
+
+double computeLogLikelihood(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
+  double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
+  double safesigmasquared2 = safeSigmaSquared(channel2.sigmasquared);
+
+  double term1 = - pow((channel2.mu - channel1.mu), 2)  / (2 * safesigmasquared1);
+
+  double term2 = -log(sqrt(safesigmasquared1) * sqrt(2 * M_PI));
+  double result = term1 + term2; 
+  cout << "term: " << term1 << " term2: " << term2 << endl;
+  cout << "result: " << result << endl;
+  return result;
+}
 void computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * channel_term_out) {
   double ip_normalizer = 0.0;				       
   double newsigmasquared = 1 / (1 / channel1.sigmasquared + 1 / channel2.sigmasquared); 
@@ -770,7 +790,21 @@ void Scene::composePredictedMap(double threshold) {
 
   }
 }
-
+double Scene::computeScore() { 
+  double score = 0.0;
+  for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
+	GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
+	GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
+	score += computeLogLikelihood(predicted_cell->red, observed_cell->red);
+	score += computeLogLikelihood(predicted_cell->green, observed_cell->green);
+	score += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+      }
+    }
+  }
+  return score;
+}
 void Scene::measureDiscrepancy() {
   // close to kl-divergence
   // for now this only does rgb
@@ -1260,6 +1294,18 @@ void TransitionTable::loadFromFile(string filename) {
 
 
 namespace ein_words {
+
+WORD(SceneComputeScore)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double score = ms->config.scene->computeScore();
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(score);
+  ms->pushWord(newWord);
+
+}
+END_WORD
+REGISTER_WORD(SceneComputeScore)
+
+
 
 WORD(SceneSaveScene)
 virtual void execute(std::shared_ptr<MachineState> ms) {
