@@ -1008,6 +1008,9 @@ void Scene::tryToAddObjectToScene(int class_idx) {
     prepared_discrepancy = discrepancy_density.clone();
   }
   Mat prepared_object = ms->config.class_scene_models[class_idx]->discrepancy_density.clone();
+  double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
+  cout << "  po_l1norm: " << po_l1norm << endl;
+  double overlap_thresh = 0.5;
 
   double max_dim = max(prepared_object.rows, prepared_object.cols);
   Size toBecome(max_dim, max_dim);
@@ -1018,7 +1021,6 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   int max_orient = -1;
   double max_score = -1;
 
-  #pragma omp parallel for
   for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
 /*
     // rotate the template and L1 normalize it
@@ -1061,48 +1063,59 @@ void Scene::tryToAddObjectToScene(int class_idx) {
     
     // Get the rotation matrix with the specifications above
     Mat rot_mat = getRotationMatrix2D(center, angle, scale);
+    cout << rot_mat << rot_mat.size() << endl;
+    rot_mat.at<double>(0,2) += ((max_dim - prepared_object.cols)/2.0);
+    rot_mat.at<double>(1,2) += ((max_dim - prepared_object.rows)/2.0);
     warpAffine(prepared_object, rotated_object_imgs[thisOrient + etaS*numOrientations], rot_mat, toBecome);
 
     Mat output = prepared_discrepancy.clone(); 
-    //filter2D(prepared_discrepancy, output, -1, rotated_object_imgs[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
+    filter2D(prepared_discrepancy, output, -1, rotated_object_imgs[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
 
+/*
     Mat tob = rotated_object_imgs[thisOrient + etaS*numOrientations];
     int tob_half_width = ceil(tob.cols/2.0);
     int tob_half_height = ceil(tob.rows/2.0);
 
     cout << "tob " << tob_half_width << " " << tob_half_height << endl;
 
-    for (int ys = 0; ys < output.rows; ys++) {
-      for (int xs = 0; xs < output.cols; xs++) {
+    #pragma omp parallel for
+    for (int ys = tob_half_height; ys < output.rows-tob_half_height; ys++) {
+      for (int xs = tob_half_width; xs < output.cols-tob_half_width; xs++) {
 	output.at<double>(ys,xs) = 0.0;
 	//if (prepared_discrepancy.at<double>(ys,xs) > 0) 
 	if (discrepancy->refAtCell(xs,ys)->red.samples > 0) 
+	//if ( 0 ) 
 	//if ( 1 ) 
 	{
+	  int xst_part = xs-tob_half_width;
+	  int yst_part = ys-tob_half_height;
 	  for (int yo = 0; yo < tob.rows; yo++) {
 	    for (int xo = 0; xo < tob.cols; xo++) {
-	      int xst = xs-tob_half_width+xo;
-	      int yst = ys-tob_half_height+yo;
-	      int xot = xo;
-	      int yot = yo;
-	      if ( 
-		  (xst >= 0 && xst < output.cols) &&
-		  (yst >= 0 && yst < output.rows) &&
-		  (xot >= 0 && xot < tob.cols) &&
-		  (yot >= 0 && yot < tob.rows) 
-		 ) {
-		output.at<double>(ys,xs) += prepared_discrepancy.at<double>(yst,xst) * tob.at<double>(yot,xot);
-	      }
+	      int xst = xst_part+xo;
+	      int yst = yst_part+yo;
+	      //int xst = xs-tob_half_width+xo;
+	      //int yst = ys-tob_half_height+yo;
+	      //if ( 
+		  //(xo >= 0 && xo < tob.cols) &&
+		  //(yo >= 0 && yo < tob.rows) &&
+		  //(xst >= 0 && xst < output.cols) &&
+		  //(yst >= 0 && yst < output.rows) 
+		 //) {
+		output.at<double>(ys,xs) += prepared_discrepancy.at<double>(yst,xst) * tob.at<double>(yo,xo);
+	      //}
 	    }
 	  }
 	}
       }
     }
+*/
 
     //cout << output ;
     for (int y = 0; y < output.rows; y++) {
       for (int x = 0; x < output.cols; x++) {
-	//cout << output.at<double>(y,x) << "  ";
+	if (output.at<double>(y,x) > overlap_thresh * po_l1norm) {
+	  cout << output.at<double>(y,x) << "  ";
+	}
 	if (output.at<double>(y,x) > max_score) {
 	  max_score = output.at<double>(y,x);
 	  max_x = x;
@@ -1655,7 +1668,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneSetBackgroundFromObserved)
 
-WORD(SceneSetBackgroundStdDev)
+WORD(SceneSetBackgroundStdDevY)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double stddev = 0;
   GET_NUMERIC_ARG(ms, stddev);
@@ -1667,7 +1680,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 }
 END_WORD
-REGISTER_WORD(SceneSetBackgroundStdDev)
+REGISTER_WORD(SceneSetBackgroundStdDevY)
+
+WORD(SceneSetBackgroundStdDevColor)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double stddev = 0;
+  GET_NUMERIC_ARG(ms, stddev);
+
+  for (int y = 0; y < ms->config.scene->background_map->height; y++) {
+    for (int x = 0; x < ms->config.scene->background_map->width; x++) {
+      ms->config.scene->background_map->refAtCell(x,y)->red.sigmasquared = pow(stddev, 2);
+      ms->config.scene->background_map->refAtCell(x,y)->green.sigmasquared = pow(stddev, 2);
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneSetBackgroundStdDevColor)
 
 WORD(SceneUpdateObservedFromSnout)
 virtual void execute(std::shared_ptr<MachineState> ms) {
