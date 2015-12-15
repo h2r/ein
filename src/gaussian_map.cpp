@@ -1203,6 +1203,7 @@ void Scene::tryToAddObjectToScene(int class_idx) {
       for (int x = 0; x < output.cols; x++) {
 	double model_score = 0.0;
 
+/*
 	if (output.at<double>(y,x) > overlap_thresh * po_l1norm) {
 	  cout << output.at<double>(y,x) << "  running inference...";
 	  double this_theta = -thisOrient * 2.0 * M_PI / numOrientations;
@@ -1211,14 +1212,13 @@ void Scene::tryToAddObjectToScene(int class_idx) {
 	  model_score = -ms->config.scene->scoreObjectAtPose(x_m_tt, y_m_tt, this_theta, class_idx);
 	  cout << " score " << score << " max_score " << max_score << endl;
 	}
-/*
 */
   
-	if (model_score > max_score) 
-	//if (output.at<double>(y,x) > max_score) 
+	//if (model_score > max_score) 
+	if (output.at<double>(y,x) > max_score) 
 	{
-	  max_score = model_score;
-	  //max_score = output.at<double>(y,x);
+	  //max_score = model_score;
+	  max_score = output.at<double>(y,x);
 	  max_x = x;
 	  max_y = y;
 	  max_orient = thisOrient;
