@@ -1446,6 +1446,7 @@ class EinConfig {
 
   shared_ptr<TransitionTable> transition_table;
   shared_ptr<Scene> scene;
+  double sceneMinSigmaSquared = 10;
 
   vector<shared_ptr<Scene> > class_scene_models;
 }; // config end
