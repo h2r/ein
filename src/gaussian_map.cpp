@@ -41,14 +41,9 @@ double safeSigmaSquared(double sigmasquared) {
 
 double computeLogLikelihood(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
   double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
-  double safesigmasquared2 = safeSigmaSquared(channel2.sigmasquared);
-
   double term1 = - pow((channel2.mu - channel1.mu), 2)  / (2 * safesigmasquared1);
-
-  double term2 = -log(sqrt(safesigmasquared1) * sqrt(2 * M_PI));
+  double term2 = -log(sqrt(2 * M_PI * safesigmasquared1));
   double result = term1 + term2; 
-  cout << "term: " << term1 << " term2: " << term2 << endl;
-  cout << "result: " << result << endl;
   return result;
 }
 void computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * channel_term_out) {
