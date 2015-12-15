@@ -1130,9 +1130,10 @@ void Scene::tryToAddObjectToScene(int class_idx) {
     warpAffine(prepared_object, rotated_object_imgs[thisOrient + etaS*numOrientations], rot_mat, toBecome);
 
     Mat output = prepared_discrepancy.clone(); 
-    filter2D(prepared_discrepancy, output, -1, rotated_object_imgs[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
-
 /*
+    filter2D(prepared_discrepancy, output, -1, rotated_object_imgs[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
+*/
+
     Mat tob = rotated_object_imgs[thisOrient + etaS*numOrientations];
     int tob_half_width = ceil(tob.cols/2.0);
     int tob_half_height = ceil(tob.rows/2.0);
@@ -1169,7 +1170,6 @@ void Scene::tryToAddObjectToScene(int class_idx) {
 	}
       }
     }
-*/
 
     //cout << output ;
     for (int y = 0; y < output.rows; y++) {
