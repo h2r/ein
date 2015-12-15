@@ -485,7 +485,7 @@ void GaussianMapChannel::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
     sigmasquared = ms->config.sceneMinSigmaSquared;
   }
 }
-
+ 
 void GaussianMap::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
