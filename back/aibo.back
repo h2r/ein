@@ -30,6 +30,7 @@ dogBark
   1 dogSetPackSize
   0 dogSetFocusedMember "192.168.160.130" 54000 socketOpen
   dogMotorsOn
+  dogFormatImageDefault
 ) "dogSummonElla" store
 
 
@@ -45,8 +46,107 @@ dogBark
 
 
 
+(
+  sceneClearObservedMap 
+  ( dogGetImage dogReplaceWristImageWithSnoutImage sceneUpdateObservedFromWrist endStackCollapseNoop ) 10 replicateWord
+  "bgdog" sceneSaveObservedMap
+  "bgdog" sceneLoadBackgroundMap
+  30 sceneSetBackgroundStdDevY
+) "dogWatchImprint" store
+
+(
+  4 dogHeadPanPGainTo 
+  4 dogHeadTiltPGainTo 
+  10 dogTailPanPGainTo 
+  4 dogTailTiltPGainTo 
+  10 dogNeckPGainTo 
+  4 dogMouthPGainTo 
+
+  1 dogHeadPanIGainTo 
+  1 dogHeadTiltIGainTo 
+  1 dogTailPanIGainTo 
+  1 dogTailTiltIGainTo 
+  1 dogNeckIGainTo 
+  0 dogMouthIGainTo 
+
+  1 dogHeadPanDGainTo 
+  1 dogHeadTiltDGainTo 
+  1 dogTailPanDGainTo 
+  1 dogTailTiltDGainTo 
+  1 dogNeckDGainTo 
+  1 dogMouthDGainTo 
+
+  0 dogHeadPanTo 
+  10 dogHeadTiltTo 
+  0 dogTailPanTo 
+  60 dogTailTiltTo 
+  75 dogNeckTo 
+  0 dogNeckTo 
+  0 dogMouthTo 
+
+  dogSendMotorState
+
+  sceneClearObservedMap 
+  dogGetImage
+  dogReplaceWristImageWithSnoutImage
+  sceneUpdateObservedFromWrist
+  sceneComposePredictedMap
+  sceneUpdateDiscrepancy
+  sceneDensityFromDiscrepancy
+
+  
+      0.5 
+    sceneCountDiscrepantCells 
+  dup
+  print
+  dup
+  0 > (
+    5 > (
+      dogBark
+      1.0 dogSetIntendedModeR 
+      0.0 dogSetIntendedModeG 
+      0.0 dogSetIntendedModeB 
+      -60 dogMouthTo 
+      0 dogTailTiltTo 
+      drand48 0.5 - 2.0 60.0 times times dogTailPanTo
+    ) (
+      1.0 dogSetIntendedModeR 
+      1.0 dogSetIntendedModeG 
+      0.0 dogSetIntendedModeB 
+      -30 dogMouthTo 
+      30 dogTailTiltTo 
+      drand48 0.5 - 2.0 30.0 times times dogTailPanTo
+    ) ifte
+  ) (
+    pop
+    1.0 dogSetIntendedModeR 
+    0.0 dogSetIntendedModeG 
+    1.0 dogSetIntendedModeB 
+    0 dogMouthTo 
+    60 dogTailTiltTo 
+    0 dogTailPanTo
+  ) ifte
+  dogSendIndicators
+  dogSendMotorState
+
+) "dogWatchOnce" store
+
+(
+  ( 1 ) ( dogFormatImageDefault dogWatchImprint ( dogWatchOnce endStackCollapseNoop ) 10 replicateWord endStackCollapseNoop ) while
+) "dogWatchForFrameChanges" store
+
+(
+  ( 1 ) ( dogFormatImageDefault dogWatchOnce endStackCollapseNoop ) while
+) "dogWatchForPermanentChanges" store
+
+(
+  dogWatchOnce sceneSetBackgroundFromObserved sceneSetBackgroundFromObserved
+  ( 1 ) ( pushTime dogFormatImageDefault dogWatchOnce 0.7 sceneExponentialAverageObservedIntoBackground pushTime minus print endStackCollapseNoop ) while
+) "dogWatchForAveragedChanges" store
 
 
-
+(
+  ( 1 ) ( frontOfDog moveEeToPoseWord waitUntilAtCurrentPosition 7 waitForSeconds assumeBeeHome 30 waitForSeconds endStackCollapseNoop ) while
+) "baxterTeaseDog" store
 
 
