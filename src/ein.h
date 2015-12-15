@@ -441,6 +441,7 @@ double computeSimilarity(std::shared_ptr<MachineState> ms, int class1, int class
 double computeSimilarity(std::shared_ptr<MachineState> ms, Mat im1, Mat im2);
 
 void prepareForCrossCorrelation(std::shared_ptr<MachineState> ms, Mat input, Mat& output, int thisOrient, int numOrientations, double thisScale, Size toBecome);
+void normalizeForCrossCorrelation(std::shared_ptr<MachineState> ms, Mat input, Mat& output);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 
 ////////////////////////////////////////////////

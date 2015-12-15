@@ -7742,6 +7742,19 @@ void prepareForCrossCorrelation(std::shared_ptr<MachineState> ms, Mat input, Mat
 
 }
 
+void normalizeForCrossCorrelation(std::shared_ptr<MachineState> ms, Mat input, Mat& output) {
+  processSaliency(input, output);
+
+  double mean = output.dot(Mat::ones(output.rows, output.cols, output.type())) / double(output.rows*output.cols);
+  output = output - mean;
+  double l2norm = output.dot(output);
+  l2norm = sqrt(l2norm);
+  if (l2norm <= EPSILON) {
+    l2norm = 1.0;
+  }
+  output = output / l2norm;
+}
+
 double computeSimilarity(std::shared_ptr<MachineState> ms, Mat im1, Mat im2) {
 
   vector<Mat> rotatedAerialGrads;
