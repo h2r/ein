@@ -130,6 +130,7 @@ void sendOnDogSocket(std::shared_ptr<MachineState> ms, int member, string messag
       return;
     } else {
       cout << "sent: " << endl << message << endl;
+      //cout << "sent: " << message.size() << endl;
     }
   }
 }
@@ -1350,6 +1351,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) { \
 } \
 END_WORD \
 REGISTER_WORD(Dog ## J ## By) \
+WORD(Dog ## J ## To) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  int this_dog = ms->focusedMember; \
+\
+  double amount = 0.0; \
+  GET_NUMERIC_ARG(ms, amount); \
+  C = amount; \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J ## To) \
 
 #define AIBO_POSE_DELTAS_GAIN(J, C, D) \
 WORD(Dog ## J ## Up) \
@@ -1381,6 +1392,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) { \
 } \
 END_WORD \
 REGISTER_WORD(Dog ## J ## By) \
+\
+WORD(Dog ## J ## To) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  int this_dog = ms->focusedMember; \
+\
+  double amount = 0.0; \
+  GET_NUMERIC_ARG(ms, amount); \
+  C = amount; \
+  C = min( max( 0.0, C ), 18.0 ); \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J ## To) \
 
 
 AIBO_POSE_DELTAS(LegLF1, ms->pack[this_dog].intendedPose.legLF1, ms->pack[this_dog].dogPoseGridSize)
