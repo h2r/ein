@@ -14,7 +14,7 @@ typedef struct _GaussianMapChannel {
   double sigmasquared;
   double samples;
   void zero();
-  void recalculateMusAndSigmas();
+  void recalculateMusAndSigmas(shared_ptr<MachineState> ms);
 
   void multS(double scalar); 
   void addC(_GaussianMapChannel * channel); 
@@ -75,7 +75,7 @@ class GaussianMap {
   void loadFromFile(string filename);
   
   void writeCells(FileStorage & fsvO);
-  void recalculateMusAndSigmas();
+  void recalculateMusAndSigmas(shared_ptr<MachineState> ms);
 
   void rgbDiscrepancyMuToMat(Mat& out);
   void rgbMuToMat(Mat& out);
@@ -153,6 +153,7 @@ class Scene {
   bool isDiscrepantMetersBilin(double threshold, double x, double y);
   void composePredictedMap(double threshold);
   void measureDiscrepancy();
+  double computeScore();
   double assignScore();
   double measureScoreRegion(int _x1, int _y1, int _x2, int _y2);
 
