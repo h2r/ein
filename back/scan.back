@@ -583,6 +583,20 @@ workspace4 "outputPileWorkspace" store
 
 ) "catScan2"  store
 
+(
+  ( 1 ) (
+    setPlaceModeToShake
+    1 changeToHeight
+    clearMapForPatrol clearBlueBoxMemories
+    mapLocal
+    pickClosestBlueBox
+
+    playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
+    scan_findObjectAfterDrop "scan_catScanSees" store
+    scan_catPickCounter 1 + "scan_catPickCounter" store
+  ) while
+) "catPlayLoop" store
+
 
 (
   setPickModeToLearningAlgorithmC

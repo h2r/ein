@@ -93,6 +93,7 @@ class GaussianMap {
   void addM(shared_ptr<GaussianMap> map);
 
   shared_ptr<GaussianMap> copyBox(int _x1, int _y1, int _x2, int _y2);
+  shared_ptr<GaussianMap> copy();
 };
 
 typedef enum {

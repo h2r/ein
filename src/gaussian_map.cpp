@@ -592,7 +592,7 @@ shared_ptr<GaussianMap> GaussianMap::copyBox(int _x1, int _y1, int _x2, int _y2)
   y1 = min( max(0,y1), height-1);
   y2 = min( max(0,y2), height-1);
 
-  shared_ptr<GaussianMap> toReturn = std::make_shared<GaussianMap>(x2-x1, y2-y1, cell_width);
+  shared_ptr<GaussianMap> toReturn = std::make_shared<GaussianMap>(x2-x1+1, y2-y1+1, cell_width);
   for (int y = y1; y < y2; y++) {
     for (int x = x1; x < x2; x++) {
       *(toReturn->refAtCell(x-x1,y-y1)) = *(refAtCell(x,y));
@@ -600,6 +600,10 @@ shared_ptr<GaussianMap> GaussianMap::copyBox(int _x1, int _y1, int _x2, int _y2)
   }
   
   return toReturn;
+}
+
+shared_ptr<GaussianMap> GaussianMap::copy() {
+  return copyBox(0,0,width-1,height-1);
 }
 
 void GaussianMap::zeroBox(int _x1, int _y1, int _x2, int _y2) {
@@ -1817,7 +1821,7 @@ REGISTER_WORD(SceneClearObservedMap)
 
 WORD(SceneSetBackgroundFromObserved)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.scene->background_map->zero();
+  ms->config.scene->background_map = ms->config.scene->observed_map->copy();
 }
 END_WORD
 REGISTER_WORD(SceneSetBackgroundFromObserved)
@@ -1999,6 +2003,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneCountDiscrepantCells)
+
+WORD(SceneExponentialAverageObservedIntoBackground)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double fraction;
+  GET_NUMERIC_ARG(ms, fraction);
+
+  ms->config.scene->background_map->multS(1.0-fraction);
+  shared_ptr<GaussianMap> temp = ms->config.scene->observed_map->copy();
+  temp->multS(fraction);
+  ms->config.scene->background_map->addM(temp);
+}
+END_WORD
+REGISTER_WORD(SceneExponentialAverageObservedIntoBackground)
 
 /* 
 WORD()
