@@ -151,7 +151,7 @@ class Scene {
   bool isDiscrepantCell(double threshold, int x, int y);
   bool isDiscrepantCellBilin(double threshold, double x, double y);
   bool isDiscrepantMetersBilin(double threshold, double x, double y);
-  void composePredictedMap(double threshold);
+  void composePredictedMap(double threshold=0.5);
   void measureDiscrepancy();
   double computeScore();
   double assignScore();
@@ -166,8 +166,9 @@ class Scene {
   void proposeObject();
 
   void tryToAddObjectToScene(int class_idx);
-  void addObjectToPredictedMap();
-  void removeObjectFromPredictedMap();
+  shared_ptr<SceneObject> addPredictedObject(double x, double y, double theta, int class_idx);
+  void removeObjectFromPredictedMap(shared_ptr<SceneObject>);
+  double scoreObjectAtPose(double x, double y, double theta, int class_idx);
 
   void removeSpaceObjects();
   void addSpaceObjects();

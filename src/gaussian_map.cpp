@@ -41,14 +41,9 @@ double safeSigmaSquared(double sigmasquared) {
 
 double computeLogLikelihood(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
   double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
-  double safesigmasquared2 = safeSigmaSquared(channel2.sigmasquared);
-
   double term1 = - pow((channel2.mu - channel1.mu), 2)  / (2 * safesigmasquared1);
-
-  double term2 = -log(sqrt(safesigmasquared1) * sqrt(2 * M_PI));
+  double term2 = -log(sqrt(2 * M_PI * safesigmasquared1));
   double result = term1 + term2; 
-  cout << "term: " << term1 << " term2: " << term2 << endl;
-  cout << "result: " << result << endl;
   return result;
 }
 void computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * channel_term_out) {
@@ -1064,16 +1059,47 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   double startScale = pow(scaleStepSize, -(numScales-1)/2);  
   double thisScale = startScale * pow(scaleStepSize, etaS);
 
+  double p_scene_sigma = 2.0;
+
   Mat prepared_discrepancy;
   {
     prepared_discrepancy = discrepancy_density.clone();
+    GaussianBlur(prepared_discrepancy, prepared_discrepancy, cv::Size(0,0), p_scene_sigma);
+    //normalizeForCrossCorrelation(ms, prepared_discrepancy, prepared_discrepancy);
   }
-  Mat prepared_object = ms->config.class_scene_models[class_idx]->discrepancy_density.clone();
+
+  Mat object_to_prepare = ms->config.class_scene_models[class_idx]->discrepancy_density.clone();
+  double max_dim = max(object_to_prepare.rows, object_to_prepare.cols);
+  Mat prepared_object = Mat(max_dim, max_dim, CV_64F);
+  {
+    int crows = object_to_prepare.rows;
+    int ccols = object_to_prepare.cols;
+    int tRy = (max_dim-crows)/2;
+    int tRx = (max_dim-ccols)/2;
+    
+    for (int x = 0; x < max_dim; x++) {
+      for (int y = 0; y < max_dim; y++) {
+	int tx = x - tRx;
+	int ty = y - tRy;
+	if ( tx >= 0 && ty >= 0 && ty < crows && tx < ccols )  {
+	  prepared_object.at<double>(y, x) = object_to_prepare.at<double>(ty, tx);
+	} else {
+	  prepared_object.at<double>(y, x) = 0.0;
+	}
+      }
+    }
+    GaussianBlur(prepared_object, prepared_object, cv::Size(0,0), p_scene_sigma);
+    //normalizeForCrossCorrelation(ms, prepared_object, prepared_object);
+  }
+  //imshow("test", prepared_object);
+  //waitKey(0);
+// XXX
+  //prepared_object = object_to_prepare;
+  
   double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
   cout << "  po_l1norm: " << po_l1norm << endl;
-  double overlap_thresh = 0.5;
+  double overlap_thresh = 0.10;
 
-  double max_dim = max(prepared_object.rows, prepared_object.cols);
   Size toBecome(max_dim, max_dim);
 
   //double globalMax = 0.0;
@@ -1116,7 +1142,8 @@ void Scene::tryToAddObjectToScene(int class_idx) {
     minMaxLoc(output, &minValue, &maxValue);
     globalMax = max(maxValue, globalMax);
 */
-    Point center = Point(max_dim/2, max_dim/2);
+    Point center = Point(max_dim/2.0, max_dim/2.0);
+    //Point center = Point(prepared_object.cols/2.0, prepared_object.rows/2.0);
     double angle = thisOrient*360.0/numOrientations;
     
     //double scale = 1.0;
@@ -1125,15 +1152,14 @@ void Scene::tryToAddObjectToScene(int class_idx) {
     // Get the rotation matrix with the specifications above
     Mat rot_mat = getRotationMatrix2D(center, angle, scale);
     cout << rot_mat << rot_mat.size() << endl;
-    rot_mat.at<double>(0,2) += ((max_dim - prepared_object.cols)/2.0);
-    rot_mat.at<double>(1,2) += ((max_dim - prepared_object.rows)/2.0);
+    //rot_mat.at<double>(0,2) += ((max_dim - prepared_object.cols)/2.0);
+    //rot_mat.at<double>(1,2) += ((max_dim - prepared_object.rows)/2.0);
     warpAffine(prepared_object, rotated_object_imgs[thisOrient + etaS*numOrientations], rot_mat, toBecome);
 
     Mat output = prepared_discrepancy.clone(); 
-/*
     filter2D(prepared_discrepancy, output, -1, rotated_object_imgs[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
-*/
 
+/*
     Mat tob = rotated_object_imgs[thisOrient + etaS*numOrientations];
     int tob_half_width = ceil(tob.cols/2.0);
     int tob_half_height = ceil(tob.rows/2.0);
@@ -1170,15 +1196,29 @@ void Scene::tryToAddObjectToScene(int class_idx) {
 	}
       }
     }
+*/
 
     //cout << output ;
     for (int y = 0; y < output.rows; y++) {
       for (int x = 0; x < output.cols; x++) {
+	double model_score = 0.0;
+
 	if (output.at<double>(y,x) > overlap_thresh * po_l1norm) {
-	  cout << output.at<double>(y,x) << "  ";
+	  cout << output.at<double>(y,x) << "  running inference...";
+	  double this_theta = -thisOrient * 2.0 * M_PI / numOrientations;
+	  double x_m_tt, y_m_tt;
+	  ms->config.scene->cellToMeters(x,y,&x_m_tt,&y_m_tt);
+	  model_score = -ms->config.scene->scoreObjectAtPose(x_m_tt, y_m_tt, this_theta, class_idx);
+	  cout << " score " << score << " max_score " << max_score << endl;
 	}
-	if (output.at<double>(y,x) > max_score) {
-	  max_score = output.at<double>(y,x);
+/*
+*/
+  
+	if (model_score > max_score) 
+	//if (output.at<double>(y,x) > max_score) 
+	{
+	  max_score = model_score;
+	  //max_score = output.at<double>(y,x);
 	  max_x = x;
 	  max_y = y;
 	  max_orient = thisOrient;
@@ -1194,7 +1234,7 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   double max_x_meters, max_y_meters;
   cellToMeters(max_x, max_y, &max_x_meters, &max_y_meters);
 
-  cout << max_x << " " << max_y << " " << max_orient << " " << max_x_meters << " " << max_y_meters << " " << max_theta << endl;
+  cout << max_x << " " << max_y << " " << max_orient << " " << max_x_meters << " " << max_y_meters << " " << max_theta << endl << "max_score: " << max_score << endl;
 
   if (max_x > -1) {
     ms->pushWord("sceneAddPredictedFocusedObject");
@@ -1206,12 +1246,18 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   }
 }
 
-// XXX 
-void Scene::removeObjectFromPredictedMap() {
-}
 
-// XXX 
-void Scene::addObjectToPredictedMap() {
+void Scene::removeObjectFromPredictedMap(shared_ptr<SceneObject> obj) {
+  int idx = -1;
+  for (int i = 0; i < predicted_objects.size(); i++) {
+    if (predicted_objects[i] == obj) {
+      idx = i;
+      break;
+    }
+  } 
+  if (idx != -1) {
+    predicted_objects.erase(predicted_objects.begin() + idx);
+  }
 }
 
 // XXX 
@@ -1228,6 +1274,26 @@ void Scene::reregisterBackground() {
 
 // XXX 
 void Scene::reregisterObject(int i) {
+}
+
+shared_ptr<SceneObject> Scene::addPredictedObject(double x, double y, double theta, int class_idx) {
+  eePose topass = eePose::identity().applyRPYTo(theta,0,0); 
+  topass.px = x;
+  topass.py = y;
+  shared_ptr<SceneObject> topush = make_shared<SceneObject>(topass, class_idx,  ms->config.classLabels[class_idx], PREDICTED);
+  predicted_objects.push_back(topush);
+  return topush;
+}
+
+double Scene::scoreObjectAtPose(double x, double y, double theta, int class_idx) {
+  shared_ptr<Scene> object_scene = ms->config.class_scene_models[class_idx];
+
+  shared_ptr<SceneObject> obj = addPredictedObject(x, y, theta, class_idx);
+  composePredictedMap();
+  double score = ms->config.scene->computeScore();
+  removeObjectFromPredictedMap(obj);
+  return score;
+  
 }
 
 int Scene::safeAt(int x, int y) {
@@ -1475,6 +1541,26 @@ void TransitionTable::loadFromFile(string filename) {
 
 namespace ein_words {
 
+WORD(SceneScoreObjectAtPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+  guardSceneModels(ms);
+
+  double x_in=0, y_in=0, theta_in=0;
+  GET_NUMERIC_ARG(ms, theta_in);
+  GET_NUMERIC_ARG(ms, y_in);
+  GET_NUMERIC_ARG(ms, x_in);
+
+  double score = ms->config.scene->scoreObjectAtPose(x_in, y_in, theta_in, tfc);
+
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(score);
+  ms->pushWord(newWord);
+  
+}
+END_WORD
+REGISTER_WORD(SceneScoreObjectAtPose)
+
+
 WORD(SceneComputeScore)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double score = ms->config.scene->computeScore();
@@ -1639,7 +1725,7 @@ REGISTER_WORD(SceneLoadDiscrepancyMap)
 
 WORD(SceneSaveFocusedSceneModel)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  REQUIRE_FOCUSED_CLASS(ms,tfc);
+  REQUIRE_FOCUSED_CLASS(ms, tfc);
   guardSceneModels(ms);
 
   string message;
@@ -1692,12 +1778,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   GET_NUMERIC_ARG(ms, y_in);
   GET_NUMERIC_ARG(ms, x_in);
 
-  eePose topass = eePose::identity().applyRPYTo(theta_in,0,0); 
-  topass.px = x_in;
-  topass.py = y_in;
-  shared_ptr<SceneObject> topush = make_shared<SceneObject>(topass, tfc, ms->config.classLabels[tfc], PREDICTED);
-
-  ms->config.scene->predicted_objects.push_back(topush);
+  ms->config.scene->addPredictedObject(x_in, y_in, theta_in, tfc);
 }
 END_WORD
 REGISTER_WORD(SceneAddPredictedFocusedObject)
@@ -1823,8 +1904,7 @@ REGISTER_WORD(SceneRenderObservedMap)
 
 WORD(SceneComposePredictedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double p_threshold = 0.5;
-  ms->config.scene->composePredictedMap(p_threshold);
+  ms->config.scene->composePredictedMap();
   ms->pushWord("sceneRenderPredictedMap");
 }
 END_WORD
