@@ -1048,12 +1048,18 @@ void Scene::proposeObject() {
 void Scene::tryToAddObjectToScene() {
 }
 
-// XXX 
-void Scene::removeObjectFromPredictedMap() {
-}
 
-// XXX 
-void Scene::addObjectToPredictedMap() {
+void Scene::removeObjectFromPredictedMap(shared_ptr<SceneObject> obj) {
+  int idx = -1;
+  for (int i = 0; i < predicted_objects.size(); i++) {
+    if (predicted_objects[i] == obj) {
+      idx = i;
+      break;
+    }
+  } 
+  if (idx != -1) {
+    predicted_objects.erase(predicted_objects.begin() + idx);
+  }
 }
 
 // XXX 
@@ -1070,6 +1076,26 @@ void Scene::reregisterBackground() {
 
 // XXX 
 void Scene::reregisterObject(int i) {
+}
+
+shared_ptr<SceneObject> Scene::addPredictedObject(double x, double y, double theta, int class_idx) {
+  eePose topass = eePose::identity().applyRPYTo(theta,0,0); 
+  topass.px = x;
+  topass.py = y;
+  shared_ptr<SceneObject> topush = make_shared<SceneObject>(topass, class_idx,  ms->config.classLabels[class_idx], PREDICTED);
+  predicted_objects.push_back(topush);
+  return topush;
+}
+
+double Scene::scoreObjectAtPose(double x, double y, double theta, int class_idx) {
+  shared_ptr<Scene> object_scene = ms->config.class_scene_models[class_idx];
+
+  shared_ptr<SceneObject> obj = addPredictedObject(x, y, theta, class_idx);
+  composePredictedMap();
+  double score = ms->config.scene->computeScore();
+  removeObjectFromPredictedMap(obj);
+  return score;
+  
 }
 
 int Scene::safeAt(int x, int y) {
@@ -1317,6 +1343,26 @@ void TransitionTable::loadFromFile(string filename) {
 
 namespace ein_words {
 
+WORD(SceneScoreObjectAtPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+  guardSceneModels(ms);
+
+  double x_in=0, y_in=0, theta_in=0;
+  GET_NUMERIC_ARG(ms, theta_in);
+  GET_NUMERIC_ARG(ms, y_in);
+  GET_NUMERIC_ARG(ms, x_in);
+
+  double score = ms->config.scene->scoreObjectAtPose(x_in, y_in, theta_in, tfc);
+
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(score);
+  ms->pushWord(newWord);
+  
+}
+END_WORD
+REGISTER_WORD(SceneScoreObjectAtPose)
+
+
 WORD(SceneComputeScore)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double score = ms->config.scene->computeScore();
@@ -1481,7 +1527,7 @@ REGISTER_WORD(SceneLoadDiscrepancyMap)
 
 WORD(SceneSaveFocusedSceneModel)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  REQUIRE_FOCUSED_CLASS(ms,tfc);
+  REQUIRE_FOCUSED_CLASS(ms, tfc);
   guardSceneModels(ms);
 
   string message;
@@ -1534,12 +1580,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   GET_NUMERIC_ARG(ms, y_in);
   GET_NUMERIC_ARG(ms, x_in);
 
-  eePose topass = eePose::identity().applyRPYTo(theta_in,0,0); 
-  topass.px = x_in;
-  topass.py = y_in;
-  shared_ptr<SceneObject> topush = make_shared<SceneObject>(topass, tfc, ms->config.classLabels[tfc], PREDICTED);
-
-  ms->config.scene->predicted_objects.push_back(topush);
+  ms->config.scene->addPredictedObject(x_in, y_in, theta_in, tfc);
 }
 END_WORD
 REGISTER_WORD(SceneAddPredictedFocusedObject)
@@ -1641,8 +1682,7 @@ REGISTER_WORD(SceneRenderObservedMap)
 
 WORD(SceneComposePredictedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double p_threshold = 0.5;
-  ms->config.scene->composePredictedMap(p_threshold);
+  ms->config.scene->composePredictedMap();
   ms->pushWord("sceneRenderPredictedMap");
 }
 END_WORD
