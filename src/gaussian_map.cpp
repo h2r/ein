@@ -267,7 +267,7 @@ int GaussianMap::safeAt(int x, int y) {
   return ( (cells != NULL) && (x >= 0) && (x < width) && (y >= 0) && (y < height) );
 }
 int GaussianMap::safeBilinAt(int x, int y) {
-  return ( (cells != NULL) && (x >= 1) && (x < width-1) && (y >= 1) && (y < height-1) );
+  return ( (cells != NULL) && (x >= 2) && (x < width-2) && (y >= 2) && (y < height-2) );
 }
 
 GaussianMapCell *GaussianMap::refAtCell(int x, int y) {
@@ -668,6 +668,7 @@ SceneObject::SceneObject(eePose _eep, int _lci, string _ol, sceneObjectType _sot
   labeled_class_index = _lci;
   object_label = _ol;
   sot = _sot;
+  scores.resize(0);
 }
 
 SceneObject::SceneObject() {
@@ -675,6 +676,7 @@ SceneObject::SceneObject() {
   labeled_class_index = -1;
   object_label = string("");
   sot = BACKGROUND;
+  scores.resize(0);
 }
 
 void SceneObject::writeToFileStorage(FileStorage& fsvO) {
@@ -1094,9 +1096,13 @@ void Scene::tryToAddObjectToScene(int class_idx) {
     //GaussianBlur(prepared_discrepancy, prepared_discrepancy, cv::Size(0,0), p_scene_sigma);
     //normalizeForCrossCorrelation(ms, prepared_discrepancy, prepared_discrepancy);
   }
-
   Mat object_to_prepare = ms->config.class_scene_models[class_idx]->discrepancy_density.clone();
+
   double max_dim = max(object_to_prepare.rows, object_to_prepare.cols);
+
+  Mat prepared_object = object_to_prepare;
+
+/*
   Mat prepared_object = Mat(max_dim, max_dim, CV_64F);
   {
     int crows = object_to_prepare.rows;
@@ -1118,10 +1124,7 @@ void Scene::tryToAddObjectToScene(int class_idx) {
     //GaussianBlur(prepared_object, prepared_object, cv::Size(0,0), p_scene_sigma);
     //normalizeForCrossCorrelation(ms, prepared_object, prepared_object);
   }
-  //imshow("test", prepared_object);
-  //waitKey(0);
-// XXX
-  //prepared_object = object_to_prepare;
+*/
   
   double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
   cout << "  po_l1norm: " << po_l1norm << endl;
@@ -1134,6 +1137,9 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   int max_y = -1;
   int max_orient = -1;
   double max_score = -1;
+
+
+  vector<SceneObjectScore> local_scores;
 
   for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
 /*
@@ -1169,8 +1175,8 @@ void Scene::tryToAddObjectToScene(int class_idx) {
     minMaxLoc(output, &minValue, &maxValue);
     globalMax = max(maxValue, globalMax);
 */
-    Point center = Point(max_dim/2.0, max_dim/2.0);
-    //Point center = Point(prepared_object.cols/2.0, prepared_object.rows/2.0);
+    //Point center = Point(max_dim/2.0, max_dim/2.0);
+    Point center = Point(prepared_object.cols/2.0, prepared_object.rows/2.0);
     double angle = thisOrient*360.0/numOrientations;
     
     //double scale = 1.0;
@@ -1179,12 +1185,15 @@ void Scene::tryToAddObjectToScene(int class_idx) {
     // Get the rotation matrix with the specifications above
     Mat rot_mat = getRotationMatrix2D(center, angle, scale);
     cout << rot_mat << rot_mat.size() << endl;
-    //rot_mat.at<double>(0,2) += ((max_dim - prepared_object.cols)/2.0);
-    //rot_mat.at<double>(1,2) += ((max_dim - prepared_object.rows)/2.0);
+    rot_mat.at<double>(0,2) += ((max_dim - prepared_object.cols)/2.0);
+    rot_mat.at<double>(1,2) += ((max_dim - prepared_object.rows)/2.0);
     warpAffine(prepared_object, rotated_object_imgs[thisOrient + etaS*numOrientations], rot_mat, toBecome);
 
     Mat output = prepared_discrepancy.clone(); 
     filter2D(prepared_discrepancy, output, -1, rotated_object_imgs[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
+
+  //imshow("test", rotated_object_imgs[thisOrient + etaS*numOrientations]);
+  //waitKey(0);
 
 /*
     Mat tob = rotated_object_imgs[thisOrient + etaS*numOrientations];
@@ -1240,6 +1249,19 @@ void Scene::tryToAddObjectToScene(int class_idx) {
 	  cout << " score " << score << " max_score " << max_score << endl;
 	}
 */
+	if (output.at<double>(y,x) > overlap_thresh * po_l1norm) {
+	  SceneObjectScore to_push;
+	  to_push.x_c;
+	  to_push.y_c;
+	  cellToMeters(to_push.x_c, to_push.y_c, &(to_push.x_m), &(to_push.y_m));
+	  to_push.orient_i = thisOrient;
+	  to_push.theta_r = -(to_push.orient_i)* 2.0 * M_PI / numOrientations;
+	  to_push.discrepancy_valid = true;
+	  to_push.discrepancy_score = output.at<double>(y,x);
+	  to_push.loglikelihood_valid = false;
+	  to_push.loglikelihood_score = 0.0;
+	  local_scores.push_back(to_push);
+	}
   
 	//if (model_score > max_score) 
 	if (output.at<double>(y,x) > max_score) 
@@ -1255,13 +1277,41 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   }
 
   //cout << prepared_discrepancy << prepared_object ;
-
   double max_theta = -max_orient * 2.0 * M_PI / numOrientations;
 
   double max_x_meters, max_y_meters;
   cellToMeters(max_x, max_y, &max_x_meters, &max_y_meters);
 
+  cout << "  discrepancy says: " << endl;
   cout << max_x << " " << max_y << " " << max_orient << " " << max_x_meters << " " << max_y_meters << " " << max_theta << endl << "max_score: " << max_score << endl;
+/*
+  double l_max_x = -1;
+  double l_max_y = -1;
+  double l_max_score = -inf;
+  double l_max_orient = -inf;
+  std::sort (local_scores.begin(), local_scores.end(), );
+  int p_to_check = 40;
+  int to_check = min(p_to_check, local_scores.size());
+  for (int i = 0; i < to_check); i++) {
+    if ( ! local_scores[i].loglikelihood_valid ) {
+      cout << "  running inference on " << i << "...";
+      local_scores[i].loglikelihood_score = -ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx);
+      local_scores[i].loglikelihood_valid = true;
+      cout << " score " << score << " max_score " << max_score << endl;
+    }
+  }
+
+  for (int i = 0; i < local_scores.size(); i++) {
+    if ( local_scores[i].loglikelihood_valid ) {
+      cout << "  running inference on " << i << "...";
+      local_scores[i].loglikelihood_score = -ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx);
+      local_scores[i].loglikelihood_valid = true;
+      cout << " score " << score << " max_score " << max_score << endl;
+    }
+  }
+
+  double l_max_theta = -l_max_orient * 2.0 * M_PI / numOrientations;
+*/
 
   if (max_x > -1) {
     ms->pushWord("sceneAddPredictedFocusedObject");
@@ -1327,7 +1377,7 @@ int Scene::safeAt(int x, int y) {
   return ( (x >= 0) && (x < width) && (y >= 0) && (y < height) );
 }
 int Scene::safeBilinAt(int x, int y) {
-  return ( (x >= 0) && (x < width) && (y >= 0) && (y < height) );
+  return ( (x >= 2) && (x < width-2) && (y >= 2) && (y < height-2) );
 }
 
 void Scene::metersToCell(double xm, double ym, int * xc, int * yc) {
