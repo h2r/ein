@@ -3,3 +3,41 @@
 ( ( sceneUpdateObservedFromWrist  ( xDown ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXDown" store
 
 ( sceneScanXUp ( yUp ) 20 replicateWord sceneScanXDown ) "sceneScanLocal" store
+
+
+
+
+
+
+( 
+  sceneClearObservedMap 
+  ( sceneUpdateObservedFromWrist ) 10 replicateWord 
+  sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy 0.5 sceneGrabDiscrepantCropAsClass 
+) "tempCaptureAsFocused" store
+
+
+( 
+  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 10 replicateWord "bg1" sceneSaveObservedMap "bg1" sceneLoadBackgroundMap 
+) "tempSetBackground" store
+
+( 
+  50 20 fixCameraLightingExposureGain 
+  "bg1" sceneLoadBackgroundMap 
+  30.0 sceneSetBackgroundStdDevY
+  3.0 sceneSetBackgroundStdDevColor
+  sceneClearObservedMap sceneClearPredictedObjects 
+) "tempInit" store
+
+
+(
+  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 2 replicateWord 0.2 sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+) "tempShortTakeScene" store
+
+(
+  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 5 replicateWord 0.2 sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+) "tempLongTakeScene" store
+
+(
+  /* takes a string */
+  sceneLoadFocusedSceneModel tempShortTakeScene scenePredictFocusedObject tempShortTakeScene
+) "tempPredictAndRender" store
