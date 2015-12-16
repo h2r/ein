@@ -83,6 +83,9 @@ dogBark
   75 dogNeckTo 
   0 dogNeckTo 
   0 dogMouthTo 
+  0.0 dogSetIntendedEarR
+  0.0 dogSetIntendedEarL
+  dogSendIndicators
 
   dogSendMotorState
 
@@ -106,6 +109,8 @@ dogBark
       1.0 dogSetIntendedModeR 
       0.0 dogSetIntendedModeG 
       0.0 dogSetIntendedModeB 
+      1.0 dogSetIntendedEarR
+      1.0 dogSetIntendedEarL
       -60 dogMouthTo 
       0 dogTailTiltTo 
       drand48 0.5 - 2.0 60.0 times times dogTailPanTo
@@ -113,6 +118,8 @@ dogBark
       1.0 dogSetIntendedModeR 
       1.0 dogSetIntendedModeG 
       0.0 dogSetIntendedModeB 
+      0.0 dogSetIntendedEarR
+      0.0 dogSetIntendedEarL
       -30 dogMouthTo 
       30 dogTailTiltTo 
       drand48 0.5 - 2.0 30.0 times times dogTailPanTo
@@ -122,6 +129,8 @@ dogBark
     1.0 dogSetIntendedModeR 
     0.0 dogSetIntendedModeG 
     1.0 dogSetIntendedModeB 
+    0.0 dogSetIntendedEarR
+    0.0 dogSetIntendedEarL
     0 dogMouthTo 
     60 dogTailTiltTo 
     0 dogTailPanTo

@@ -42,6 +42,7 @@ double safeSigmaSquared(double sigmasquared) {
 double computeLogLikelihood(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
   double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
   double term1 = - pow((channel2.mu - channel1.mu), 2)  / (2 * safesigmasquared1);
+  // XXX term2 should be cached in the map
   double term2 = -log(sqrt(2 * M_PI * safesigmasquared1));
   double result = term1 + term2; 
   return result;
@@ -662,6 +663,9 @@ sceneObjectType sceneObjectTypeFromString(string str) {
   }
 }
 
+bool compareDiscrepancyDescending(const SceneObjectScore &i, const SceneObjectScore &j) {
+  return (i.discrepancy_score > j.discrepancy_score);
+}
 
 SceneObject::SceneObject(eePose _eep, int _lci, string _ol, sceneObjectType _sot) {
   scene_pose = _eep;
@@ -790,6 +794,7 @@ void Scene::composePredictedMap(double threshold) {
     int center_x, center_y;
     metersToCell(tsob->scene_pose.px, tsob->scene_pose.py, &center_x, &center_y);
 
+    // XXX optimize by transforming corners 
     int mdim = max(tos->width, tos->height);
     int mpad = ceil(mdim*sqrt(2.0)/2.0);
     int top_x, top_y;
@@ -962,6 +967,93 @@ double Scene::measureScoreRegion(int _x1, int _y1, int _x2, int _y2) {
   return totalScore;
 }
 
+double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
+
+  double score = 0.0;
+  {
+    shared_ptr<SceneObject> tsob = obj;
+    shared_ptr<Scene> tos = ms->config.class_scene_models[ tsob->labeled_class_index ];
+
+    int center_x, center_y;
+    metersToCell(tsob->scene_pose.px, tsob->scene_pose.py, &center_x, &center_y);
+
+    // XXX optimize by transforming corners 
+    int mdim = max(tos->width, tos->height);
+    int mpad = ceil(mdim*sqrt(2.0)/2.0);
+    int top_x, top_y;
+    metersToCell(tsob->scene_pose.px - mpad*cell_width, tsob->scene_pose.py - mpad*cell_width, &top_x, &top_y);
+    int bot_x, bot_y;
+    metersToCell(tsob->scene_pose.px + mpad*cell_width, tsob->scene_pose.py + mpad*cell_width, &bot_x, &bot_y);
+
+    for (int x = top_x; x < bot_x; x++) {
+      for (int y = top_y; y < bot_y; y++) {
+	if (!safeAt(x,y)) {
+	  continue;
+	} 
+
+	double meters_scene_x, meters_scene_y;
+	cellToMeters(x, y, &meters_scene_x, &meters_scene_y);
+
+	
+	double meters_object_x, meters_object_y;
+	eePose cell_eep = eePose::identity();
+	cell_eep.px = meters_scene_x;
+	cell_eep.py = meters_scene_y;
+	cell_eep.pz = 0.0;
+	eePose eep_object = cell_eep.getPoseRelativeTo(tsob->scene_pose);
+	meters_object_x = eep_object.px;
+	meters_object_y = eep_object.py;
+
+	double cells_object_x, cells_object_y;
+	tos->metersToCell(meters_object_x, meters_object_y, &cells_object_x, &cells_object_y);
+	if ( tos->safeBilinAt(cells_object_x, cells_object_y) ) {
+	  if (tos->isDiscrepantMetersBilin(threshold, meters_object_x, meters_object_y)) {
+	    //*(predicted_map->refAtCell(x,y)) = tos->observed_map->bilinValAtMeters(meters_object_x, meters_object_y);
+/*
+	    if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
+	      GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
+	      GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
+	      score += computeLogLikelihood(predicted_cell->red, observed_cell->red);
+	      score += computeLogLikelihood(predicted_cell->green, observed_cell->green);
+	      score += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+	    }
+*/
+	    if ( 
+		(predicted_map->refAtCell(x,y)->red.samples > 0) &&   
+		(observed_map->refAtCell(x,y)->red.samples > 0) &&
+		(tos->observed_map->refAtCell(cells_object_x,cells_object_y)->red.samples > 0) 
+	       ) {
+	      GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
+	      GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
+	      GaussianMapCell * object_cell = tos->observed_map->refAtCell(cells_object_x, cells_object_y);
+
+//cout << "score " << score << " ";
+	      score += computeLogLikelihood(object_cell->red, observed_cell->red);
+	      score += computeLogLikelihood(object_cell->green, observed_cell->green);
+	      score += computeLogLikelihood(object_cell->blue, observed_cell->blue);
+
+//cout << "score " << score << " ";
+	      score -= computeLogLikelihood(predicted_cell->red, observed_cell->red);
+	      score -= computeLogLikelihood(predicted_cell->green, observed_cell->green);
+	      score -= computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+	    }
+	  } else {
+	  }
+	} else {
+	}
+	
+	// take exaggerated bounding box of object in scene
+	//   look up each scene cell in the object's frame
+	//   if one of the contributors is valid, replace this scene cell with the interpolated object cell 
+      }
+    }
+  }
+
+//cout << "score " << score << " ";
+  return score;
+}
+
+
 shared_ptr<Scene> Scene::copyBox(int _x1, int _y1, int _x2, int _y2) {
   int x1 = min(_x1, _x2);
   int x2 = max(_x1, _x2);
@@ -1126,9 +1218,10 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   }
 */
   
-  double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
-  cout << "  po_l1norm: " << po_l1norm << endl;
-  double overlap_thresh = 0.10;
+  //double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
+  double po_l2norm = prepared_object.dot(prepared_object);
+  cout << "  po_l2norm: " << po_l2norm << endl;
+  double overlap_thresh = 0.50;
 
   Size toBecome(max_dim, max_dim);
 
@@ -1240,7 +1333,7 @@ void Scene::tryToAddObjectToScene(int class_idx) {
 	double model_score = 0.0;
 
 /*
-	if (output.at<double>(y,x) > overlap_thresh * po_l1norm) {
+	if (output.at<double>(y,x) > overlap_thresh * po_l2norm) {
 	  cout << output.at<double>(y,x) << "  running inference...";
 	  double this_theta = -thisOrient * 2.0 * M_PI / numOrientations;
 	  double x_m_tt, y_m_tt;
@@ -1249,10 +1342,10 @@ void Scene::tryToAddObjectToScene(int class_idx) {
 	  cout << " score " << score << " max_score " << max_score << endl;
 	}
 */
-	if (output.at<double>(y,x) > overlap_thresh * po_l1norm) {
+	if (output.at<double>(y,x) > overlap_thresh * po_l2norm) {
 	  SceneObjectScore to_push;
-	  to_push.x_c;
-	  to_push.y_c;
+	  to_push.x_c = x;
+	  to_push.y_c = y;
 	  cellToMeters(to_push.x_c, to_push.y_c, &(to_push.x_m), &(to_push.y_m));
 	  to_push.orient_i = thisOrient;
 	  to_push.theta_r = -(to_push.orient_i)* 2.0 * M_PI / numOrientations;
@@ -1278,46 +1371,60 @@ void Scene::tryToAddObjectToScene(int class_idx) {
 
   //cout << prepared_discrepancy << prepared_object ;
   double max_theta = -max_orient * 2.0 * M_PI / numOrientations;
-
   double max_x_meters, max_y_meters;
   cellToMeters(max_x, max_y, &max_x_meters, &max_y_meters);
-
   cout << "  discrepancy says: " << endl;
   cout << max_x << " " << max_y << " " << max_orient << " " << max_x_meters << " " << max_y_meters << " " << max_theta << endl << "max_score: " << max_score << endl;
-/*
+
+  int p_to_check = 40000;
   double l_max_x = -1;
   double l_max_y = -1;
-  double l_max_score = -inf;
-  double l_max_orient = -inf;
-  std::sort (local_scores.begin(), local_scores.end(), );
-  int p_to_check = 40;
-  int to_check = min(p_to_check, local_scores.size());
-  for (int i = 0; i < to_check); i++) {
+  double l_max_score = -DBL_MAX;
+  double l_max_orient = -1;
+  std::sort (local_scores.begin(), local_scores.end(), compareDiscrepancyDescending);
+  int to_check = min( int(p_to_check), int(local_scores.size()) );
+  for (int i = 0; i < to_check; i++) {
     if ( ! local_scores[i].loglikelihood_valid ) {
-      cout << "  running inference on " << i << "...";
-      local_scores[i].loglikelihood_score = -ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx);
+      // XXX score should return the delta of including vs not including
+      local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, overlap_thresh);
       local_scores[i].loglikelihood_valid = true;
-      cout << " score " << score << " max_score " << max_score << endl;
+      cout << "  running inference on " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << endl;
     }
   }
 
   for (int i = 0; i < local_scores.size(); i++) {
-    if ( local_scores[i].loglikelihood_valid ) {
-      cout << "  running inference on " << i << "...";
-      local_scores[i].loglikelihood_score = -ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx);
-      local_scores[i].loglikelihood_valid = true;
-      cout << " score " << score << " max_score " << max_score << endl;
+    if ( (local_scores[i].loglikelihood_valid) && (local_scores[i].loglikelihood_score > l_max_score) ) {
+      cout << " score " << local_scores[i].loglikelihood_score << " l_max_score " << l_max_score << endl;
+      l_max_score = local_scores[i].loglikelihood_score;
+      l_max_x = local_scores[i].x_c;
+      l_max_y = local_scores[i].y_c;
+      l_max_orient = local_scores[i].orient_i;
     }
   }
 
   double l_max_theta = -l_max_orient * 2.0 * M_PI / numOrientations;
-*/
+  double l_max_x_meters, l_max_y_meters;
+  cellToMeters(l_max_x, l_max_y, &l_max_x_meters, &l_max_y_meters);
+  cout << "  loglikelihood says: " << endl;
+  cout << l_max_x << " " << l_max_y << " " << l_max_orient << " " << l_max_x_meters << " " << l_max_y_meters << " " << l_max_theta << endl << "l_max_score: " << l_max_score << endl;
 
-  if (max_x > -1) {
+  //if (max_x > -1)
+  if (l_max_x > -1)
+  {
+    if (l_max_score > 0) {
+      cout << "best detection made an improvement..." << endl;
+    } else {
+      cout << "best detection made things worse alone..." << endl;
+    }
     ms->pushWord("sceneAddPredictedFocusedObject");
+/*
     ms->pushWord(make_shared<DoubleWord>(max_theta));
     ms->pushWord(make_shared<DoubleWord>(max_y_meters));
     ms->pushWord(make_shared<DoubleWord>(max_x_meters));
+*/
+    ms->pushWord(make_shared<DoubleWord>(l_max_theta));
+    ms->pushWord(make_shared<DoubleWord>(l_max_y_meters));
+    ms->pushWord(make_shared<DoubleWord>(l_max_x_meters));
   } else {
     cout << "Did not find a valid cell... not adding object." << endl;
   }
@@ -1362,15 +1469,23 @@ shared_ptr<SceneObject> Scene::addPredictedObject(double x, double y, double the
   return topush;
 }
 
-double Scene::scoreObjectAtPose(double x, double y, double theta, int class_idx) {
+double Scene::scoreObjectAtPose(double x, double y, double theta, int class_idx, double threshold) {
   shared_ptr<Scene> object_scene = ms->config.class_scene_models[class_idx];
 
+/*
   shared_ptr<SceneObject> obj = addPredictedObject(x, y, theta, class_idx);
   composePredictedMap();
   double score = ms->config.scene->computeScore();
   removeObjectFromPredictedMap(obj);
+*/
+
+  shared_ptr<SceneObject> obj = addPredictedObject(x, y, theta, class_idx);
+  double score = recomputeScore(obj, threshold);
+  removeObjectFromPredictedMap(obj);
+
+  //cout << "zzz: " << score << endl;
+
   return score;
-  
 }
 
 int Scene::safeAt(int x, int y) {

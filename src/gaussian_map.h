@@ -120,11 +120,9 @@ struct SceneObjectScore {
 
   bool loglikelihood_valid;
   double loglikelihood_score;
-
-  bool compareDiscrepancyDescending(SceneObjectScore &i, SceneObjectScore &j) {
-    return (i.discrepancy_score > j.discrepancy_score);
-  }
 };
+
+bool compareDiscrepancyDescending(const SceneObjectScore &i, const SceneObjectScore &j);
 
 class SceneObject {
   public:
@@ -183,6 +181,8 @@ class Scene {
   double assignScore();
   double measureScoreRegion(int _x1, int _y1, int _x2, int _y2);
 
+  double recomputeScore(shared_ptr<SceneObject> obj, double threshold);
+
   shared_ptr<Scene> copyPaddedDiscrepancySupport(double threshold, double pad_meters);
   shared_ptr<Scene> copyBox(int _x1, int _y1, int _x2, int _y2);
   int countDiscrepantCells(double threshold, int _x1, int _y1, int _x2, int _y2);
@@ -194,7 +194,7 @@ class Scene {
   void tryToAddObjectToScene(int class_idx);
   shared_ptr<SceneObject> addPredictedObject(double x, double y, double theta, int class_idx);
   void removeObjectFromPredictedMap(shared_ptr<SceneObject>);
-  double scoreObjectAtPose(double x, double y, double theta, int class_idx);
+  double scoreObjectAtPose(double x, double y, double theta, int class_idx, double threshold = 0.5);
 
   void removeSpaceObjects();
   void addSpaceObjects();
