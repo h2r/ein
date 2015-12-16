@@ -131,9 +131,14 @@ double _GaussianMapCell::pointDiscrepancy(_GaussianMapCell * other, double * rte
   computePointDiscrepancy(blue, other->blue, bterm_out);
   //return *rterm_out * *bterm_out * *gterm_out;
   double prior = 0.5;
-  double rlikelihood = normal_pdf(red.mu, sqrt(red.sigmasquared), other->red.mu);
-  double glikelihood = normal_pdf(green.mu, sqrt(green.sigmasquared), other->green.mu);
-  double blikelihood = normal_pdf(blue.mu, sqrt(blue.sigmasquared), other->blue.mu);
+
+  double redsafesigmasquared = safeSigmaSquared(red.sigmasquared);
+  double greensafesigmasquared = safeSigmaSquared(green.sigmasquared);
+  double bluesafesigmasquared = safeSigmaSquared(blue.sigmasquared);
+
+  double rlikelihood = normal_pdf(red.mu, sqrt(redsafesigmasquared), other->red.mu);
+  double glikelihood = normal_pdf(green.mu, sqrt(greensafesigmasquared), other->green.mu);
+  double blikelihood = normal_pdf(blue.mu, sqrt(bluesafesigmasquared), other->blue.mu);
 
   double likelihood = rlikelihood * glikelihood * blikelihood;
 
@@ -260,6 +265,9 @@ GaussianMap::~GaussianMap() {
 
 int GaussianMap::safeAt(int x, int y) {
   return ( (cells != NULL) && (x >= 0) && (x < width) && (y >= 0) && (y < height) );
+}
+int GaussianMap::safeBilinAt(int x, int y) {
+  return ( (cells != NULL) && (x >= 1) && (x < width-1) && (y >= 1) && (y < height-1) );
 }
 
 GaussianMapCell *GaussianMap::refAtCell(int x, int y) {
@@ -722,6 +730,13 @@ void Scene::reallocate() {
   discrepancy_density = Mat(height, width, CV_64F);
 }
 
+void Scene::smoothDiscrepancyDensity(double sigma) {
+  GaussianBlur(discrepancy_density, discrepancy_density, cv::Size(0,0), sigma);
+}
+void Scene::setDiscrepancyDensityFromMagnitude(double sigma) {
+  GaussianBlur(discrepancy_magnitude, discrepancy_density, cv::Size(0,0), sigma);
+}
+
 bool Scene::isDiscrepantCell(double threshold, int x, int y) {
   if (!safeAt(x,y)) {
     return false;
@@ -799,8 +814,13 @@ void Scene::composePredictedMap(double threshold) {
 	meters_object_x = eep_object.px;
 	meters_object_y = eep_object.py;
 
-	if (tos->isDiscrepantMetersBilin(threshold, meters_object_x, meters_object_y)) {
-	  *(predicted_map->refAtCell(x,y)) = tos->observed_map->bilinValAtMeters(meters_object_x, meters_object_y);
+	double cells_object_x, cells_object_y;
+	tos->metersToCell(meters_object_x, meters_object_y, &cells_object_x, &cells_object_y);
+	if ( tos->safeBilinAt(cells_object_x, cells_object_y) ) {
+	  if (tos->isDiscrepantMetersBilin(threshold, meters_object_x, meters_object_y)) {
+	    *(predicted_map->refAtCell(x,y)) = tos->observed_map->bilinValAtMeters(meters_object_x, meters_object_y);
+	  } else {
+	  }
 	} else {
 	}
 	
@@ -897,17 +917,18 @@ void Scene::measureDiscrepancy() {
 	//rmu_diff*rmu_diff + gmu_diff*gmu_diff + bmu_diff*bmu_diff ;
 	//+ rvar_quot + gvar_quot + bvar_quot;
 
-	discrepancy_density.at<double>(y,x) = discrepancy_magnitude.at<double>(y,x);
 	//sqrt(discrepancy_magnitude.at<double>(y,x) / 3.0) / 255.0; 
 
       } else {
 	discrepancy->refAtCell(x,y)->zero();
   
 	discrepancy_magnitude.at<double>(y,x) = 0.0;
-	discrepancy_density.at<double>(y,x) = 0.0;
       }
     }
   }
+
+  double p_density_sigma = 2.0;
+  setDiscrepancyDensityFromMagnitude(p_density_sigma);
 }
 
 double Scene::assignScore() {
@@ -950,7 +971,7 @@ shared_ptr<Scene> Scene::copyBox(int _x1, int _y1, int _x2, int _y2) {
   y1 = min( max(0,y1), height-1);
   y2 = min( max(0,y2), height-1);
 
-  shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, x2-x1, y2-y1, cell_width);
+  shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, x2-x1+1, y2-y1+1, cell_width);
 
   toReturn->background_map = background_map->copyBox(x1,y1,x2,y2);
   toReturn->predicted_map = predicted_map->copyBox(x1,y1,x2,y2);
@@ -992,8 +1013,9 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
   ymin = ymin - ceil(pad_meters/cell_width);
   ymax = ymax + ceil(pad_meters/cell_width);
 
-  int new_width = xmax - xmin;
-  int new_height = ymax - ymin;
+  int new_width = xmax - xmin + 1;
+  int new_height = ymax - ymin + 1;
+  cout << " new_width, new_height: " << new_width << " " << new_height << endl;
   // make sure the crop is odd dimensioned
   if ((new_width % 2) == 0) {
     xmax = xmax-1;
@@ -1001,10 +1023,11 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
   if ((new_height % 2) == 0) {
     ymax = ymax-1;
   } else {}
-  new_width = xmax - xmin;
-  new_height = ymax - ymin;
+  new_width = xmax - xmin + 1;
+  new_height = ymax - ymin + 1;
 
   cout << xmin << " " << xmax << " " << ymin << " " << ymax << " third " << endl;
+  cout << " new_width, new_height: " << new_width << " " << new_height << endl;
 
   shared_ptr<Scene> scene_to_return;
   if ((xmin <= xmax) && (ymin <= ymax)) {
@@ -1068,7 +1091,7 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   Mat prepared_discrepancy;
   {
     prepared_discrepancy = discrepancy_density.clone();
-    GaussianBlur(prepared_discrepancy, prepared_discrepancy, cv::Size(0,0), p_scene_sigma);
+    //GaussianBlur(prepared_discrepancy, prepared_discrepancy, cv::Size(0,0), p_scene_sigma);
     //normalizeForCrossCorrelation(ms, prepared_discrepancy, prepared_discrepancy);
   }
 
@@ -1092,7 +1115,7 @@ void Scene::tryToAddObjectToScene(int class_idx) {
 	}
       }
     }
-    GaussianBlur(prepared_object, prepared_object, cv::Size(0,0), p_scene_sigma);
+    //GaussianBlur(prepared_object, prepared_object, cv::Size(0,0), p_scene_sigma);
     //normalizeForCrossCorrelation(ms, prepared_object, prepared_object);
   }
   //imshow("test", prepared_object);
@@ -1301,6 +1324,9 @@ double Scene::scoreObjectAtPose(double x, double y, double theta, int class_idx)
 }
 
 int Scene::safeAt(int x, int y) {
+  return ( (x >= 0) && (x < width) && (y >= 0) && (y < height) );
+}
+int Scene::safeBilinAt(int x, int y) {
   return ( (x >= 0) && (x < width) && (y >= 0) && (y < height) );
 }
 
@@ -1914,6 +1940,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneComposePredictedMap)
 
+WORD(SceneComposePredictedMapThreshed)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double threshold = 0.0;
+  GET_NUMERIC_ARG(ms, threshold);
+  ms->config.scene->composePredictedMap(threshold);
+  ms->pushWord("sceneRenderPredictedMap");
+}
+END_WORD
+REGISTER_WORD(SceneComposePredictedMapThreshed)
+
 WORD(SceneRenderPredictedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   Mat image;
@@ -2016,6 +2052,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneExponentialAverageObservedIntoBackground)
+
+WORD(SceneSmoothDiscrepancyDensity)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double sigma;
+  GET_NUMERIC_ARG(ms, sigma);
+  ms->config.scene->smoothDiscrepancyDensity(sigma);
+}
+END_WORD
+REGISTER_WORD(SceneSmoothDiscrepancyDensity)
 
 /* 
 WORD()

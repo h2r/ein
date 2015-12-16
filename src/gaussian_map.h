@@ -64,6 +64,7 @@ class GaussianMap {
   GaussianMapCell bilinValAtMeters(double x, double y);
 
   int safeAt(int x, int y);
+  int safeBilinAt(int x, int y);
   void metersToCell(double xm, double ym, int * xc, int * yc);
   void metersToCell(double xm, double ym, double * xc, double * yc);
   void cellToMeters(int xc, int yc, double * xm, double * ym);
@@ -121,6 +122,13 @@ class SceneObject {
   void readFromFileNode(FileNode& it);
 };
 
+struct SceneObjectScore {
+  double x_m;
+  double y_m;
+  double theta_r;
+  double score;
+};
+
 class Scene {
   public:
   int width; // or columns
@@ -149,6 +157,8 @@ class Scene {
 
   double score;
 
+  void smoothDiscrepancyDensity(double sigma);
+  void setDiscrepancyDensityFromMagnitude(double sigma);
   bool isDiscrepantCell(double threshold, int x, int y);
   bool isDiscrepantCellBilin(double threshold, double x, double y);
   bool isDiscrepantMetersBilin(double threshold, double x, double y);
@@ -177,6 +187,7 @@ class Scene {
   void reregisterObject(int i);
 
   int safeAt(int x, int y);
+  int safeBilinAt(int x, int y);
   void metersToCell(double xm, double ym, int * xc, int * yc);
   void metersToCell(double xm, double ym, double * xc, double * yc);
   void cellToMeters(int xc, int yc, double * xm, double * ym);
