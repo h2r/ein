@@ -1027,10 +1027,22 @@ double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
 	      GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
 	      GaussianMapCell * object_cell = tos->observed_map->refAtCell(cells_object_x, cells_object_y);
 
+	      double temp = 0.0;
 //cout << "score " << score << " ";
+	      //temp = object_cell->red.sigmasquared;
+	      //object_cell->red.sigmasquared = predicted_cell->red.sigmasquared;
 	      score += computeLogLikelihood(object_cell->red, observed_cell->red);
+	      //object_cell->red.sigmasquared = temp;
+
+	      //temp = object_cell->green.sigmasquared;
+	      //object_cell->green.sigmasquared = predicted_cell->green.sigmasquared;
 	      score += computeLogLikelihood(object_cell->green, observed_cell->green);
+	      //object_cell->green.sigmasquared = temp;
+
+	      //temp = object_cell->blue.sigmasquared;
+	      //object_cell->blue.sigmasquared = predicted_cell->blue.sigmasquared;
 	      score += computeLogLikelihood(object_cell->blue, observed_cell->blue);
+	      //object_cell->blue.sigmasquared = temp;
 
 //cout << "score " << score << " ";
 	      score -= computeLogLikelihood(predicted_cell->red, observed_cell->red);
@@ -1413,18 +1425,20 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   {
     if (l_max_score > 0) {
       cout << "best detection made an improvement..." << endl;
+      cout << "adding object." << endl;
+      ms->pushWord("sceneAddPredictedFocusedObject");
+  /*
+      ms->pushWord(make_shared<DoubleWord>(max_theta));
+      ms->pushWord(make_shared<DoubleWord>(max_y_meters));
+      ms->pushWord(make_shared<DoubleWord>(max_x_meters));
+  */
+      ms->pushWord(make_shared<DoubleWord>(l_max_theta));
+      ms->pushWord(make_shared<DoubleWord>(l_max_y_meters));
+      ms->pushWord(make_shared<DoubleWord>(l_max_x_meters));
     } else {
       cout << "best detection made things worse alone..." << endl;
+      cout << "NOT adding object." << endl;
     }
-    ms->pushWord("sceneAddPredictedFocusedObject");
-/*
-    ms->pushWord(make_shared<DoubleWord>(max_theta));
-    ms->pushWord(make_shared<DoubleWord>(max_y_meters));
-    ms->pushWord(make_shared<DoubleWord>(max_x_meters));
-*/
-    ms->pushWord(make_shared<DoubleWord>(l_max_theta));
-    ms->pushWord(make_shared<DoubleWord>(l_max_y_meters));
-    ms->pushWord(make_shared<DoubleWord>(l_max_x_meters));
   } else {
     cout << "Did not find a valid cell... not adding object." << endl;
   }
@@ -2045,6 +2059,45 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneSetBackgroundStdDevColor)
+
+WORD(SceneSetFocusedSceneStdDevY)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+  guardSceneModels(ms);
+
+  double stddev = 0;
+  GET_NUMERIC_ARG(ms, stddev);
+
+  int t_height = ms->config.class_scene_models[tfc]->observed_map->height;
+  int t_width = ms->config.class_scene_models[tfc]->observed_map->width;
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->blue.sigmasquared = pow(stddev, 2);
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneSetFocusedSceneStdDevY)
+
+WORD(SceneSetFocusedSceneStdDevColor)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+  guardSceneModels(ms);
+
+  double stddev = 0;
+  GET_NUMERIC_ARG(ms, stddev);
+
+  int t_height = ms->config.class_scene_models[tfc]->observed_map->height;
+  int t_width = ms->config.class_scene_models[tfc]->observed_map->width;
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->red.sigmasquared = pow(stddev, 2);
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.sigmasquared = pow(stddev, 2);
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneSetFocusedSceneStdDevColor)
 
 WORD(SceneUpdateObservedFromSnout)
 virtual void execute(std::shared_ptr<MachineState> ms) {
