@@ -30,11 +30,11 @@
 
 
 (
-  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 2 replicateWord 0.2 sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 2 replicateWord 0.5 sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
 ) "tempShortTakeScene" store
 
 (
-  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 5 replicateWord 0.2 sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 5 replicateWord 0.5 sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
 ) "tempLongTakeScene" store
 
 (
