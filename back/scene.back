@@ -30,14 +30,21 @@
 
 
 (
-  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 2 replicateWord 0.5 sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 2 replicateWord 0.01 sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
 ) "tempShortTakeScene" store
 
 (
-  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 5 replicateWord 0.5 sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 5 replicateWord 0.01 sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
 ) "tempLongTakeScene" store
 
 (
   /* takes a string */
-  sceneLoadFocusedSceneModel tempShortTakeScene scenePredictFocusedObject tempShortTakeScene
+  tempLoadAndPrepareFocusedModel tempShortTakeScene scenePredictFocusedObject tempShortTakeScene
 ) "tempPredictAndRender" store
+
+(
+  /* takes a string */
+  sceneLoadFocusedSceneModel 
+  30.0 sceneSetFocusedSceneStdDevY 
+  3.0 sceneSetFocusedSceneStdDevColor 
+) "tempLoadAndPrepareFocusedModel" store
