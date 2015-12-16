@@ -106,6 +106,26 @@ typedef enum {
 sceneObjectType sceneObjectTypeFromString(string str);
 string sceneObjectTypeToString(sceneObjectType sot);
 
+struct SceneObjectScore {
+  int x_c;
+  int y_c;
+  double x_m;
+  double y_m;
+  int orient_i;
+  double theta_r;
+
+
+  bool discrepancy_valid;
+  double discrepancy_score;
+
+  bool loglikelihood_valid;
+  double loglikelihood_score;
+
+  bool compareDiscrepancyDescending(SceneObjectScore &i, SceneObjectScore &j) {
+    return (i.discrepancy_score > j.discrepancy_score);
+  }
+};
+
 class SceneObject {
   public:
   SceneObject(eePose _eep, int _lci, string _ol, sceneObjectType _sot);
@@ -117,16 +137,11 @@ class SceneObject {
   string object_label;
   sceneObjectType sot;
 
+  vector<SceneObjectScore> scores;
+
   void writeToFileStorage(FileStorage& fsvO);
   void readFromFileNodeIterator(FileNodeIterator& it);
   void readFromFileNode(FileNode& it);
-};
-
-struct SceneObjectScore {
-  double x_m;
-  double y_m;
-  double theta_r;
-  double score;
 };
 
 class Scene {
