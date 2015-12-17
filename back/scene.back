@@ -12,8 +12,12 @@
 ( 
   sceneClearObservedMap 
   ( sceneUpdateObservedFromWrist ) 10 replicateWord 
-  sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy 0.5 sceneGrabDiscrepantCropAsClass 
+  tempCaptureCore
 ) "tempCaptureAsFocused" store
+
+( 
+  sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy 0.5 sceneGrabDiscrepantCropAsClass 
+) "tempCaptureCore" store
 
 
 ( 
@@ -23,8 +27,10 @@
 ( 
   50 20 fixCameraLightingExposureGain 
   "bg1" sceneLoadBackgroundMap 
+/*
   30.0 sceneSetBackgroundStdDevY
   3.0 sceneSetBackgroundStdDevColor
+*/
   sceneClearObservedMap sceneClearPredictedObjects 
 ) "tempInit" store
 
@@ -40,18 +46,38 @@
 (
   /* takes a string */
   tempLoadAndPrepareFocusedModel tempShortTakeScene scenePredictFocusedObject tempShortTakeScene
-) "tempPredictAndRender" store
+) "tempPredictAndRenderFile" store
+
+(
+/*
+  30.0 sceneSetFocusedSceneStdDevY 
+  3.0 sceneSetFocusedSceneStdDevColor 
+*/
+  tempShortTakeScene scenePredictFocusedObject tempShortTakeScene
+) "tempPredictAndRenderFocused" store
 
 (
   /* takes a string */
   sceneLoadFocusedSceneModel 
+/*
   30.0 sceneSetFocusedSceneStdDevY 
   3.0 sceneSetFocusedSceneStdDevColor 
+*/
 ) "tempLoadAndPrepareFocusedModel" store
 
 (
   /* takes a scene object idx */
 
+  tempMoveToSceneObject
+
+  ( zDown ) 15 replicateWord
+  ( oZUp ) 150 replicateWord
+  ( localXUp ) 4 replicateWord
+
+) "tempPointToSceneObject" store
+
+(
+  /* takes a scene object idx */
   1 changeToHeight
 
   scenePushNumSceneObjects print
@@ -66,11 +92,18 @@
 
   moveEeToPoseWord
 
-  ( zDown ) 15 replicateWord
-  ( oZUp ) 150 replicateWord
-  ( localXUp ) 4 replicateWord
+) "tempMoveToSceneObject" store
 
-) "tempPointToSceneObject" store
+(
+    currentPose
+  tempShortTakeScene
+  sceneClearPredictedObjects tempPredictAndRenderFocused
+    0
+  tempMoveToSceneObject
+    currentPose
+  print 
+  print
+) "tempServoToFocusedSceneObject" store
 
 (
 /* demos relative transforms */
@@ -86,10 +119,94 @@
 ) "demoRelativeTransformations" store
 
 (
-  "scene" import tempInit tempShortTakeScene
-  sceneClearPredictedObjects "brush" tempPredictAndRender
+  "scene" import tempInit assumeBackScanningPose 1 changeToHeight tempShortTakeScene 
+  sceneClearPredictedObjects "brush" tempPredictAndRenderFile
 ) "tempLocalizeBrush" store
   
+(
+  "bg1" sceneLoadBackgroundMap 
+  30.0 sceneSetBackgroundStdDevY
+  3.0 sceneSetBackgroundStdDevColor
+
+  sceneClearPredictedObjects
+  tempShortTakeScene
+  tempCaptureCore
+
+  "bg1" sceneLoadBackgroundMap 
+
+  tempServoToFocusedSceneObject
+) "tempRecaptureServo" store
+
+(
+  setMovementStateToMoving
+
+  xUp
+  yUp
+  waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
+  ( sceneUpdateObservedFromWrist ) 2 replicateWord
+  
+  yDown yDown
+  waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
+  ( sceneUpdateObservedFromWrist ) 2 replicateWord
+
+  xDown xDown
+  waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
+  ( sceneUpdateObservedFromWrist ) 2 replicateWord
+
+  yUp yUp
+  waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
+  ( sceneUpdateObservedFromWrist ) 2 replicateWord
+
+  xUp
+  yDown
+  waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
+  ( sceneUpdateObservedFromWrist ) 2 replicateWord
+) "tempUpdateObservedFromWristFivePoint" store
+
+(
+  zeroGOff
+  setPlaceModeToHold setIdleModeToEmpty setBoundingBoxModeToMapping
+  tenthImpulse 1 changeToHeight shiftIntoGraspGear1 waitUntilAtCurrentPosition
+
+  clearClassLabels
+  initializeAndFocusOnNewClass
+
+  tempRecaptureServo
+  waitUntilAtCurrentPosition
+/*
+  tempRecaptureServo
+  waitUntilAtCurrentPosition
+  tempRecaptureServo
+  waitUntilAtCurrentPosition
+*/
+
+  sceneClearObservedMap sceneClearPredictedObjects 
+/* it appears to be somewhat important that the observed frames be contained within the background, else discrepancy creeps at the boundary
+  0.07 setGridSize
+  tempUpdateObservedFromWristFivePoint
+*/
+  0.03 setGridSize
+  tempUpdateObservedFromWristFivePoint
+  0.01 setGridSize
+  tempUpdateObservedFromWristFivePoint
+  tempCaptureCore
+  "tempQuickScanObjectModel" sceneSaveFocusedSceneModel
+
+  clearClassLabels
+  setScanModeNotCentered
+
+  endArgs
+  currentPose
+  scanObjectStreamWaypoints3dNoPick
+
+  "tempQuickScanObjectModel" sceneLoadFocusedSceneModel
+  writeFocusedClass
+) "tempQuickScan" store
+
+
+
+
+
 
 
 
