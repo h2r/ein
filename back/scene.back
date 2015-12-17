@@ -48,3 +48,48 @@
   30.0 sceneSetFocusedSceneStdDevY 
   3.0 sceneSetFocusedSceneStdDevColor 
 ) "tempLoadAndPrepareFocusedModel" store
+
+(
+  /* takes a scene object idx */
+
+  1 changeToHeight
+
+  scenePushNumSceneObjects print
+
+	scenePushSceneObjectPose 
+	  currentPose 
+	eePosePZ  
+      setEEPosePZ 
+      0 0 0 0 1.0 0 0 createEEPose 
+      swap
+    eePoseApplyRelativePoseTo 
+
+  moveEeToPoseWord
+
+  ( zDown ) 15 replicateWord
+  ( oZUp ) 150 replicateWord
+  ( localXUp ) 4 replicateWord
+
+) "tempPointToSceneObject" store
+
+(
+/* demos relative transforms */
+
+  /* this prints current pose */
+      0 0 0 0 1.0 0 0 createEEPose 
+      currentPose 0 0 0 0 1.0 0 0 createEEPose eePoseGetPoseRelativeTo 
+    eePoseApplyRelativePoseTo
+  print
+    currentPose
+  print
+
+) "demoRelativeTransformations" store
+
+(
+  "scene" import tempInit tempShortTakeScene
+  sceneClearPredictedObjects "brush" tempPredictAndRender
+) "tempLocalizeBrush" store
+  
+
+
+

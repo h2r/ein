@@ -42,7 +42,7 @@ double safeSigmaSquared(double sigmasquared) {
 double computeLogLikelihood(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
   double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
   double term1 = - pow((channel2.mu - channel1.mu), 2)  / (2 * safesigmasquared1);
-  // XXX term2 should be cached in the map
+  // XXX maybe term2 should be cached in the map
   double term2 = -log(sqrt(2 * M_PI * safesigmasquared1));
   double result = term1 + term2; 
   return result;
@@ -1388,11 +1388,12 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   cout << "  discrepancy says: " << endl;
   cout << max_x << " " << max_y << " " << max_orient << " " << max_x_meters << " " << max_y_meters << " " << max_theta << endl << "max_score: " << max_score << endl;
 
-  int p_to_check = 40000;
+  int p_to_check = 40;
   double l_max_x = -1;
   double l_max_y = -1;
   double l_max_score = -DBL_MAX;
   double l_max_orient = -1;
+  int l_max_i = -1;
   std::sort (local_scores.begin(), local_scores.end(), compareDiscrepancyDescending);
   int to_check = min( int(p_to_check), int(local_scores.size()) );
   for (int i = 0; i < to_check; i++) {
@@ -1411,6 +1412,7 @@ void Scene::tryToAddObjectToScene(int class_idx) {
       l_max_x = local_scores[i].x_c;
       l_max_y = local_scores[i].y_c;
       l_max_orient = local_scores[i].orient_i;
+      l_max_i = i;
     }
   }
 
@@ -1418,7 +1420,8 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   double l_max_x_meters, l_max_y_meters;
   cellToMeters(l_max_x, l_max_y, &l_max_x_meters, &l_max_y_meters);
   cout << "  loglikelihood says: " << endl;
-  cout << l_max_x << " " << l_max_y << " " << l_max_orient << " " << l_max_x_meters << " " << l_max_y_meters << " " << l_max_theta << endl << "l_max_score: " << l_max_score << endl;
+  cout << l_max_x << " " << l_max_y << " " << l_max_orient << " " << l_max_x_meters << " " << l_max_y_meters << " " << 
+    l_max_theta << endl << "l_max_score: " << l_max_score << " l_max_i: " << l_max_i << endl;
 
   //if (max_x > -1)
   if (l_max_x > -1)
@@ -2280,6 +2283,51 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneSmoothDiscrepancyDensity)
 
+WORD(ScenePushSceneObjectPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int so_idx = 0;
+  GET_INT_ARG(ms, so_idx);
+  so_idx = min( max( int(0), int(so_idx)), int(ms->config.scene->predicted_objects.size())-1 );
+  cout << "scenePushSceneObjectPose: there are " << ms->config.scene->predicted_objects.size() << " objects so using idx " << so_idx << endl;
+  ms->pushWord(make_shared<EePoseWord>(ms->config.scene->predicted_objects[so_idx]->scene_pose));
+}
+END_WORD
+REGISTER_WORD(ScenePushSceneObjectPose)
+
+WORD(ScenePushNumSceneObjects)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord(make_shared<IntegerWord>(ms->config.scene->predicted_objects.size()));
+}
+END_WORD
+REGISTER_WORD(ScenePushNumSceneObjects)
+
+WORD(EePoseGetPoseRelativeTo)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+/* call with "base_pose to_apply EePoseGetPoseRelativeTo" */
+  eePose to_apply;
+  GET_ARG(ms, EePoseWord, to_apply);
+
+  eePose base_pose;
+  GET_ARG(ms, EePoseWord, base_pose);
+
+  ms->pushWord(make_shared<EePoseWord>(base_pose.getPoseRelativeTo(to_apply)));
+}
+END_WORD
+REGISTER_WORD(EePoseGetPoseRelativeTo)
+
+WORD(EePoseApplyRelativePoseTo)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+/* call with "to_apply base_pose EePoseApplyRelativePoseTo" */
+  eePose base_pose;
+  GET_ARG(ms, EePoseWord, base_pose);
+
+  eePose to_apply;
+  GET_ARG(ms, EePoseWord, to_apply);
+
+  ms->pushWord(make_shared<EePoseWord>(to_apply.applyAsRelativePoseTo(base_pose)));
+}
+END_WORD
+REGISTER_WORD(EePoseApplyRelativePoseTo)
 /* 
 WORD()
 virtual void execute(std::shared_ptr<MachineState> ms) {
