@@ -42,6 +42,7 @@ double safeSigmaSquared(double sigmasquared) {
 double computeLogLikelihood(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
   double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
   double term1 = - pow((channel2.mu - channel1.mu), 2)  / (2 * safesigmasquared1);
+  // XXX maybe term2 should be cached in the map
   double term2 = -log(sqrt(2 * M_PI * safesigmasquared1));
   double result = term1 + term2; 
   return result;
@@ -131,9 +132,14 @@ double _GaussianMapCell::pointDiscrepancy(_GaussianMapCell * other, double * rte
   computePointDiscrepancy(blue, other->blue, bterm_out);
   //return *rterm_out * *bterm_out * *gterm_out;
   double prior = 0.5;
-  double rlikelihood = normal_pdf(red.mu, sqrt(red.sigmasquared), other->red.mu);
-  double glikelihood = normal_pdf(green.mu, sqrt(green.sigmasquared), other->green.mu);
-  double blikelihood = normal_pdf(blue.mu, sqrt(blue.sigmasquared), other->blue.mu);
+
+  double redsafesigmasquared = safeSigmaSquared(red.sigmasquared);
+  double greensafesigmasquared = safeSigmaSquared(green.sigmasquared);
+  double bluesafesigmasquared = safeSigmaSquared(blue.sigmasquared);
+
+  double rlikelihood = normal_pdf(red.mu, sqrt(redsafesigmasquared), other->red.mu);
+  double glikelihood = normal_pdf(green.mu, sqrt(greensafesigmasquared), other->green.mu);
+  double blikelihood = normal_pdf(blue.mu, sqrt(bluesafesigmasquared), other->blue.mu);
 
   double likelihood = rlikelihood * glikelihood * blikelihood;
 
@@ -260,6 +266,9 @@ GaussianMap::~GaussianMap() {
 
 int GaussianMap::safeAt(int x, int y) {
   return ( (cells != NULL) && (x >= 0) && (x < width) && (y >= 0) && (y < height) );
+}
+int GaussianMap::safeBilinAt(int x, int y) {
+  return ( (cells != NULL) && (x >= 2) && (x < width-2) && (y >= 2) && (y < height-2) );
 }
 
 GaussianMapCell *GaussianMap::refAtCell(int x, int y) {
@@ -654,12 +663,16 @@ sceneObjectType sceneObjectTypeFromString(string str) {
   }
 }
 
+bool compareDiscrepancyDescending(const SceneObjectScore &i, const SceneObjectScore &j) {
+  return (i.discrepancy_score > j.discrepancy_score);
+}
 
 SceneObject::SceneObject(eePose _eep, int _lci, string _ol, sceneObjectType _sot) {
   scene_pose = _eep;
   labeled_class_index = _lci;
   object_label = _ol;
   sot = _sot;
+  scores.resize(0);
 }
 
 SceneObject::SceneObject() {
@@ -667,6 +680,7 @@ SceneObject::SceneObject() {
   labeled_class_index = -1;
   object_label = string("");
   sot = BACKGROUND;
+  scores.resize(0);
 }
 
 void SceneObject::writeToFileStorage(FileStorage& fsvO) {
@@ -722,6 +736,13 @@ void Scene::reallocate() {
   discrepancy_density = Mat(height, width, CV_64F);
 }
 
+void Scene::smoothDiscrepancyDensity(double sigma) {
+  GaussianBlur(discrepancy_density, discrepancy_density, cv::Size(0,0), sigma);
+}
+void Scene::setDiscrepancyDensityFromMagnitude(double sigma) {
+  GaussianBlur(discrepancy_magnitude, discrepancy_density, cv::Size(0,0), sigma);
+}
+
 bool Scene::isDiscrepantCell(double threshold, int x, int y) {
   if (!safeAt(x,y)) {
     return false;
@@ -773,6 +794,7 @@ void Scene::composePredictedMap(double threshold) {
     int center_x, center_y;
     metersToCell(tsob->scene_pose.px, tsob->scene_pose.py, &center_x, &center_y);
 
+    // XXX optimize by transforming corners 
     int mdim = max(tos->width, tos->height);
     int mpad = ceil(mdim*sqrt(2.0)/2.0);
     int top_x, top_y;
@@ -799,8 +821,13 @@ void Scene::composePredictedMap(double threshold) {
 	meters_object_x = eep_object.px;
 	meters_object_y = eep_object.py;
 
-	if (tos->isDiscrepantMetersBilin(threshold, meters_object_x, meters_object_y)) {
-	  *(predicted_map->refAtCell(x,y)) = tos->observed_map->bilinValAtMeters(meters_object_x, meters_object_y);
+	double cells_object_x, cells_object_y;
+	tos->metersToCell(meters_object_x, meters_object_y, &cells_object_x, &cells_object_y);
+	if ( tos->safeBilinAt(cells_object_x, cells_object_y) ) {
+	  if (tos->isDiscrepantMetersBilin(threshold, meters_object_x, meters_object_y)) {
+	    *(predicted_map->refAtCell(x,y)) = tos->observed_map->bilinValAtMeters(meters_object_x, meters_object_y);
+	  } else {
+	  }
 	} else {
 	}
 	
@@ -897,17 +924,18 @@ void Scene::measureDiscrepancy() {
 	//rmu_diff*rmu_diff + gmu_diff*gmu_diff + bmu_diff*bmu_diff ;
 	//+ rvar_quot + gvar_quot + bvar_quot;
 
-	discrepancy_density.at<double>(y,x) = discrepancy_magnitude.at<double>(y,x);
 	//sqrt(discrepancy_magnitude.at<double>(y,x) / 3.0) / 255.0; 
 
       } else {
 	discrepancy->refAtCell(x,y)->zero();
   
 	discrepancy_magnitude.at<double>(y,x) = 0.0;
-	discrepancy_density.at<double>(y,x) = 0.0;
       }
     }
   }
+
+  double p_density_sigma = 2.0;
+  setDiscrepancyDensityFromMagnitude(p_density_sigma);
 }
 
 double Scene::assignScore() {
@@ -939,6 +967,105 @@ double Scene::measureScoreRegion(int _x1, int _y1, int _x2, int _y2) {
   return totalScore;
 }
 
+double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
+
+  double score = 0.0;
+  {
+    shared_ptr<SceneObject> tsob = obj;
+    shared_ptr<Scene> tos = ms->config.class_scene_models[ tsob->labeled_class_index ];
+
+    int center_x, center_y;
+    metersToCell(tsob->scene_pose.px, tsob->scene_pose.py, &center_x, &center_y);
+
+    // XXX optimize by transforming corners 
+    int mdim = max(tos->width, tos->height);
+    int mpad = ceil(mdim*sqrt(2.0)/2.0);
+    int top_x, top_y;
+    metersToCell(tsob->scene_pose.px - mpad*cell_width, tsob->scene_pose.py - mpad*cell_width, &top_x, &top_y);
+    int bot_x, bot_y;
+    metersToCell(tsob->scene_pose.px + mpad*cell_width, tsob->scene_pose.py + mpad*cell_width, &bot_x, &bot_y);
+
+    for (int x = top_x; x < bot_x; x++) {
+      for (int y = top_y; y < bot_y; y++) {
+	if (!safeAt(x,y)) {
+	  continue;
+	} 
+
+	double meters_scene_x, meters_scene_y;
+	cellToMeters(x, y, &meters_scene_x, &meters_scene_y);
+
+	
+	double meters_object_x, meters_object_y;
+	eePose cell_eep = eePose::identity();
+	cell_eep.px = meters_scene_x;
+	cell_eep.py = meters_scene_y;
+	cell_eep.pz = 0.0;
+	eePose eep_object = cell_eep.getPoseRelativeTo(tsob->scene_pose);
+	meters_object_x = eep_object.px;
+	meters_object_y = eep_object.py;
+
+	double cells_object_x, cells_object_y;
+	tos->metersToCell(meters_object_x, meters_object_y, &cells_object_x, &cells_object_y);
+	if ( tos->safeBilinAt(cells_object_x, cells_object_y) ) {
+	  if (tos->isDiscrepantMetersBilin(threshold, meters_object_x, meters_object_y)) {
+	    //*(predicted_map->refAtCell(x,y)) = tos->observed_map->bilinValAtMeters(meters_object_x, meters_object_y);
+/*
+	    if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
+	      GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
+	      GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
+	      score += computeLogLikelihood(predicted_cell->red, observed_cell->red);
+	      score += computeLogLikelihood(predicted_cell->green, observed_cell->green);
+	      score += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+	    }
+*/
+	    if ( 
+		(predicted_map->refAtCell(x,y)->red.samples > 0) &&   
+		(observed_map->refAtCell(x,y)->red.samples > 0) &&
+		(tos->observed_map->refAtCell(cells_object_x,cells_object_y)->red.samples > 0) 
+	       ) {
+	      GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
+	      GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
+	      GaussianMapCell * object_cell = tos->observed_map->refAtCell(cells_object_x, cells_object_y);
+
+	      double temp = 0.0;
+//cout << "score " << score << " ";
+	      //temp = object_cell->red.sigmasquared;
+	      //object_cell->red.sigmasquared = predicted_cell->red.sigmasquared;
+	      score += computeLogLikelihood(object_cell->red, observed_cell->red);
+	      //object_cell->red.sigmasquared = temp;
+
+	      //temp = object_cell->green.sigmasquared;
+	      //object_cell->green.sigmasquared = predicted_cell->green.sigmasquared;
+	      score += computeLogLikelihood(object_cell->green, observed_cell->green);
+	      //object_cell->green.sigmasquared = temp;
+
+	      //temp = object_cell->blue.sigmasquared;
+	      //object_cell->blue.sigmasquared = predicted_cell->blue.sigmasquared;
+	      score += computeLogLikelihood(object_cell->blue, observed_cell->blue);
+	      //object_cell->blue.sigmasquared = temp;
+
+//cout << "score " << score << " ";
+	      score -= computeLogLikelihood(predicted_cell->red, observed_cell->red);
+	      score -= computeLogLikelihood(predicted_cell->green, observed_cell->green);
+	      score -= computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+	    }
+	  } else {
+	  }
+	} else {
+	}
+	
+	// take exaggerated bounding box of object in scene
+	//   look up each scene cell in the object's frame
+	//   if one of the contributors is valid, replace this scene cell with the interpolated object cell 
+      }
+    }
+  }
+
+//cout << "score " << score << " ";
+  return score;
+}
+
+
 shared_ptr<Scene> Scene::copyBox(int _x1, int _y1, int _x2, int _y2) {
   int x1 = min(_x1, _x2);
   int x2 = max(_x1, _x2);
@@ -950,7 +1077,7 @@ shared_ptr<Scene> Scene::copyBox(int _x1, int _y1, int _x2, int _y2) {
   y1 = min( max(0,y1), height-1);
   y2 = min( max(0,y2), height-1);
 
-  shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, x2-x1, y2-y1, cell_width);
+  shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, x2-x1+1, y2-y1+1, cell_width);
 
   toReturn->background_map = background_map->copyBox(x1,y1,x2,y2);
   toReturn->predicted_map = predicted_map->copyBox(x1,y1,x2,y2);
@@ -992,8 +1119,9 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
   ymin = ymin - ceil(pad_meters/cell_width);
   ymax = ymax + ceil(pad_meters/cell_width);
 
-  int new_width = xmax - xmin;
-  int new_height = ymax - ymin;
+  int new_width = xmax - xmin + 1;
+  int new_height = ymax - ymin + 1;
+  cout << " new_width, new_height: " << new_width << " " << new_height << endl;
   // make sure the crop is odd dimensioned
   if ((new_width % 2) == 0) {
     xmax = xmax-1;
@@ -1001,10 +1129,11 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
   if ((new_height % 2) == 0) {
     ymax = ymax-1;
   } else {}
-  new_width = xmax - xmin;
-  new_height = ymax - ymin;
+  new_width = xmax - xmin + 1;
+  new_height = ymax - ymin + 1;
 
   cout << xmin << " " << xmax << " " << ymin << " " << ymax << " third " << endl;
+  cout << " new_width, new_height: " << new_width << " " << new_height << endl;
 
   shared_ptr<Scene> scene_to_return;
   if ((xmin <= xmax) && (ymin <= ymax)) {
@@ -1068,12 +1197,16 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   Mat prepared_discrepancy;
   {
     prepared_discrepancy = discrepancy_density.clone();
-    GaussianBlur(prepared_discrepancy, prepared_discrepancy, cv::Size(0,0), p_scene_sigma);
+    //GaussianBlur(prepared_discrepancy, prepared_discrepancy, cv::Size(0,0), p_scene_sigma);
     //normalizeForCrossCorrelation(ms, prepared_discrepancy, prepared_discrepancy);
   }
-
   Mat object_to_prepare = ms->config.class_scene_models[class_idx]->discrepancy_density.clone();
+
   double max_dim = max(object_to_prepare.rows, object_to_prepare.cols);
+
+  Mat prepared_object = object_to_prepare;
+
+/*
   Mat prepared_object = Mat(max_dim, max_dim, CV_64F);
   {
     int crows = object_to_prepare.rows;
@@ -1092,17 +1225,15 @@ void Scene::tryToAddObjectToScene(int class_idx) {
 	}
       }
     }
-    GaussianBlur(prepared_object, prepared_object, cv::Size(0,0), p_scene_sigma);
+    //GaussianBlur(prepared_object, prepared_object, cv::Size(0,0), p_scene_sigma);
     //normalizeForCrossCorrelation(ms, prepared_object, prepared_object);
   }
-  //imshow("test", prepared_object);
-  //waitKey(0);
-// XXX
-  //prepared_object = object_to_prepare;
+*/
   
-  double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
-  cout << "  po_l1norm: " << po_l1norm << endl;
-  double overlap_thresh = 0.10;
+  //double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
+  double po_l2norm = prepared_object.dot(prepared_object);
+  cout << "  po_l2norm: " << po_l2norm << endl;
+  double overlap_thresh = 0.50;
 
   Size toBecome(max_dim, max_dim);
 
@@ -1111,6 +1242,9 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   int max_y = -1;
   int max_orient = -1;
   double max_score = -1;
+
+
+  vector<SceneObjectScore> local_scores;
 
   for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
 /*
@@ -1146,8 +1280,8 @@ void Scene::tryToAddObjectToScene(int class_idx) {
     minMaxLoc(output, &minValue, &maxValue);
     globalMax = max(maxValue, globalMax);
 */
-    Point center = Point(max_dim/2.0, max_dim/2.0);
-    //Point center = Point(prepared_object.cols/2.0, prepared_object.rows/2.0);
+    //Point center = Point(max_dim/2.0, max_dim/2.0);
+    Point center = Point(prepared_object.cols/2.0, prepared_object.rows/2.0);
     double angle = thisOrient*360.0/numOrientations;
     
     //double scale = 1.0;
@@ -1156,12 +1290,15 @@ void Scene::tryToAddObjectToScene(int class_idx) {
     // Get the rotation matrix with the specifications above
     Mat rot_mat = getRotationMatrix2D(center, angle, scale);
     cout << rot_mat << rot_mat.size() << endl;
-    //rot_mat.at<double>(0,2) += ((max_dim - prepared_object.cols)/2.0);
-    //rot_mat.at<double>(1,2) += ((max_dim - prepared_object.rows)/2.0);
+    rot_mat.at<double>(0,2) += ((max_dim - prepared_object.cols)/2.0);
+    rot_mat.at<double>(1,2) += ((max_dim - prepared_object.rows)/2.0);
     warpAffine(prepared_object, rotated_object_imgs[thisOrient + etaS*numOrientations], rot_mat, toBecome);
 
     Mat output = prepared_discrepancy.clone(); 
     filter2D(prepared_discrepancy, output, -1, rotated_object_imgs[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
+
+  //imshow("test", rotated_object_imgs[thisOrient + etaS*numOrientations]);
+  //waitKey(0);
 
 /*
     Mat tob = rotated_object_imgs[thisOrient + etaS*numOrientations];
@@ -1208,7 +1345,7 @@ void Scene::tryToAddObjectToScene(int class_idx) {
 	double model_score = 0.0;
 
 /*
-	if (output.at<double>(y,x) > overlap_thresh * po_l1norm) {
+	if (output.at<double>(y,x) > overlap_thresh * po_l2norm) {
 	  cout << output.at<double>(y,x) << "  running inference...";
 	  double this_theta = -thisOrient * 2.0 * M_PI / numOrientations;
 	  double x_m_tt, y_m_tt;
@@ -1217,6 +1354,19 @@ void Scene::tryToAddObjectToScene(int class_idx) {
 	  cout << " score " << score << " max_score " << max_score << endl;
 	}
 */
+	if (output.at<double>(y,x) > overlap_thresh * po_l2norm) {
+	  SceneObjectScore to_push;
+	  to_push.x_c = x;
+	  to_push.y_c = y;
+	  cellToMeters(to_push.x_c, to_push.y_c, &(to_push.x_m), &(to_push.y_m));
+	  to_push.orient_i = thisOrient;
+	  to_push.theta_r = -(to_push.orient_i)* 2.0 * M_PI / numOrientations;
+	  to_push.discrepancy_valid = true;
+	  to_push.discrepancy_score = output.at<double>(y,x);
+	  to_push.loglikelihood_valid = false;
+	  to_push.loglikelihood_score = 0.0;
+	  local_scores.push_back(to_push);
+	}
   
 	//if (model_score > max_score) 
 	if (output.at<double>(y,x) > max_score) 
@@ -1232,19 +1382,66 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   }
 
   //cout << prepared_discrepancy << prepared_object ;
-
   double max_theta = -max_orient * 2.0 * M_PI / numOrientations;
-
   double max_x_meters, max_y_meters;
   cellToMeters(max_x, max_y, &max_x_meters, &max_y_meters);
-
+  cout << "  discrepancy says: " << endl;
   cout << max_x << " " << max_y << " " << max_orient << " " << max_x_meters << " " << max_y_meters << " " << max_theta << endl << "max_score: " << max_score << endl;
 
-  if (max_x > -1) {
-    ms->pushWord("sceneAddPredictedFocusedObject");
-    ms->pushWord(make_shared<DoubleWord>(max_theta));
-    ms->pushWord(make_shared<DoubleWord>(max_y_meters));
-    ms->pushWord(make_shared<DoubleWord>(max_x_meters));
+  int p_to_check = 40;
+  double l_max_x = -1;
+  double l_max_y = -1;
+  double l_max_score = -DBL_MAX;
+  double l_max_orient = -1;
+  int l_max_i = -1;
+  std::sort (local_scores.begin(), local_scores.end(), compareDiscrepancyDescending);
+  int to_check = min( int(p_to_check), int(local_scores.size()) );
+  for (int i = 0; i < to_check; i++) {
+    if ( ! local_scores[i].loglikelihood_valid ) {
+      // XXX score should return the delta of including vs not including
+      local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, overlap_thresh);
+      local_scores[i].loglikelihood_valid = true;
+      cout << "  running inference on " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << endl;
+    }
+  }
+
+  for (int i = 0; i < local_scores.size(); i++) {
+    if ( (local_scores[i].loglikelihood_valid) && (local_scores[i].loglikelihood_score > l_max_score) ) {
+      cout << " score " << local_scores[i].loglikelihood_score << " l_max_score " << l_max_score << endl;
+      l_max_score = local_scores[i].loglikelihood_score;
+      l_max_x = local_scores[i].x_c;
+      l_max_y = local_scores[i].y_c;
+      l_max_orient = local_scores[i].orient_i;
+      l_max_i = i;
+    }
+  }
+
+  double l_max_theta = -l_max_orient * 2.0 * M_PI / numOrientations;
+  double l_max_x_meters, l_max_y_meters;
+  cellToMeters(l_max_x, l_max_y, &l_max_x_meters, &l_max_y_meters);
+  cout << "  loglikelihood says: " << endl;
+  cout << l_max_x << " " << l_max_y << " " << l_max_orient << " " << l_max_x_meters << " " << l_max_y_meters << " " << 
+    l_max_theta << endl << "l_max_score: " << l_max_score << " l_max_i: " << l_max_i << endl;
+
+  //if (max_x > -1)
+  if (l_max_x > -1)
+  {
+    if (l_max_score > 0) {
+      cout << "best detection made an improvement..." << endl;
+      cout << "adding object." << endl;
+      ms->pushWord("sceneAddPredictedFocusedObject");
+  /*
+      ms->pushWord(make_shared<DoubleWord>(max_theta));
+      ms->pushWord(make_shared<DoubleWord>(max_y_meters));
+      ms->pushWord(make_shared<DoubleWord>(max_x_meters));
+  */
+      ms->pushWord(make_shared<DoubleWord>(l_max_theta));
+      ms->pushWord(make_shared<DoubleWord>(l_max_y_meters));
+      ms->pushWord(make_shared<DoubleWord>(l_max_x_meters));
+    } else {
+      cout << "best detection made things worse alone..." << endl;
+      cout << "NOT adding object." << endl;
+    }
   } else {
     cout << "Did not find a valid cell... not adding object." << endl;
   }
@@ -1289,19 +1486,30 @@ shared_ptr<SceneObject> Scene::addPredictedObject(double x, double y, double the
   return topush;
 }
 
-double Scene::scoreObjectAtPose(double x, double y, double theta, int class_idx) {
+double Scene::scoreObjectAtPose(double x, double y, double theta, int class_idx, double threshold) {
   shared_ptr<Scene> object_scene = ms->config.class_scene_models[class_idx];
 
+/*
   shared_ptr<SceneObject> obj = addPredictedObject(x, y, theta, class_idx);
   composePredictedMap();
   double score = ms->config.scene->computeScore();
   removeObjectFromPredictedMap(obj);
+*/
+
+  shared_ptr<SceneObject> obj = addPredictedObject(x, y, theta, class_idx);
+  double score = recomputeScore(obj, threshold);
+  removeObjectFromPredictedMap(obj);
+
+  //cout << "zzz: " << score << endl;
+
   return score;
-  
 }
 
 int Scene::safeAt(int x, int y) {
   return ( (x >= 0) && (x < width) && (y >= 0) && (y < height) );
+}
+int Scene::safeBilinAt(int x, int y) {
+  return ( (x >= 2) && (x < width-2) && (y >= 2) && (y < height-2) );
 }
 
 void Scene::metersToCell(double xm, double ym, int * xc, int * yc) {
@@ -1855,6 +2063,45 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneSetBackgroundStdDevColor)
 
+WORD(SceneSetFocusedSceneStdDevY)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+  guardSceneModels(ms);
+
+  double stddev = 0;
+  GET_NUMERIC_ARG(ms, stddev);
+
+  int t_height = ms->config.class_scene_models[tfc]->observed_map->height;
+  int t_width = ms->config.class_scene_models[tfc]->observed_map->width;
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->blue.sigmasquared = pow(stddev, 2);
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneSetFocusedSceneStdDevY)
+
+WORD(SceneSetFocusedSceneStdDevColor)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+  guardSceneModels(ms);
+
+  double stddev = 0;
+  GET_NUMERIC_ARG(ms, stddev);
+
+  int t_height = ms->config.class_scene_models[tfc]->observed_map->height;
+  int t_width = ms->config.class_scene_models[tfc]->observed_map->width;
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->red.sigmasquared = pow(stddev, 2);
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.sigmasquared = pow(stddev, 2);
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneSetFocusedSceneStdDevColor)
+
 WORD(SceneUpdateObservedFromSnout)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 //XXX 
@@ -1881,11 +2128,53 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double x, y;
       double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
       pixelToGlobal(ms, px, py, z, &x, &y);
-      int i, j;
-      ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
-      GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
-      Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
-      cell->newObservation(pixel);
+      if (1) {
+	// single sample update
+	int i, j;
+	ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+	GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+	Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+	cell->newObservation(pixel);
+      } else {
+/*
+	Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+
+	// bilinear update
+	double _i, _j;
+	ms->config.scene->observed_map->metersToCell(x, y, &_i, &_j);
+
+	if (ms->config.scene->safeBilinAt(_i,_j)) {
+
+	  double i = min( max(0.0, _i), double(width-1));
+	  double j = min( max(0.0, _j), double(height-1));
+
+	  // -2 makes for appropriate behavior on the upper boundary
+	  double i0 = std::min( std::max(0.0, floor(i)), double(width-2));
+	  double i1 = i0+1;
+
+	  double j0 = std::min( std::max(0.0, floor(j)), double(height-2));
+	  double j1 = j0+1;
+
+	  double wi0 = i1-i;
+	  double wi1 = i-i0;
+
+	  double wj0 = j1-j;
+	  double wj1 = j-j0;
+
+	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i0, j0);
+	  cell->newObservation(pixel, wi0*wj0);
+
+	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i1, j0);
+	  cell->newObservation(pixel, wi1*wj0);
+
+	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i0, j1);
+	  cell->newObservation(pixel, wi0*wj1);
+
+	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i1, j1);
+	  cell->newObservation(pixel, wi1*wj1);
+	}
+*/
+      }
     }
   }  
   ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
@@ -1913,6 +2202,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneComposePredictedMap)
+
+WORD(SceneComposePredictedMapThreshed)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double threshold = 0.0;
+  GET_NUMERIC_ARG(ms, threshold);
+  ms->config.scene->composePredictedMap(threshold);
+  ms->pushWord("sceneRenderPredictedMap");
+}
+END_WORD
+REGISTER_WORD(SceneComposePredictedMapThreshed)
 
 WORD(SceneRenderPredictedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -2017,6 +2316,65 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneExponentialAverageObservedIntoBackground)
 
+WORD(SceneSmoothDiscrepancyDensity)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double sigma;
+  GET_NUMERIC_ARG(ms, sigma);
+  ms->config.scene->smoothDiscrepancyDensity(sigma);
+}
+END_WORD
+REGISTER_WORD(SceneSmoothDiscrepancyDensity)
+
+WORD(ScenePushSceneObjectPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int so_idx = 0;
+  GET_INT_ARG(ms, so_idx);
+  so_idx = min( max( int(0), int(so_idx)), int(ms->config.scene->predicted_objects.size())-1 );
+
+  if ( so_idx < ms->config.scene->predicted_objects.size() ) {
+    cout << "scenePushSceneObjectPose: there are " << ms->config.scene->predicted_objects.size() << " objects so using idx " << so_idx << endl;
+    ms->pushWord(make_shared<EePoseWord>(ms->config.scene->predicted_objects[so_idx]->scene_pose));
+  } else {
+    cout << "scenePushSceneObjectPose: there are " << ms->config.scene->predicted_objects.size() << " objects so " << so_idx << " is invalid..." << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(ScenePushSceneObjectPose)
+
+WORD(ScenePushNumSceneObjects)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord(make_shared<IntegerWord>(ms->config.scene->predicted_objects.size()));
+}
+END_WORD
+REGISTER_WORD(ScenePushNumSceneObjects)
+
+WORD(EePoseGetPoseRelativeTo)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+/* call with "base_pose to_apply EePoseGetPoseRelativeTo" */
+  eePose to_apply;
+  GET_ARG(ms, EePoseWord, to_apply);
+
+  eePose base_pose;
+  GET_ARG(ms, EePoseWord, base_pose);
+
+  ms->pushWord(make_shared<EePoseWord>(base_pose.getPoseRelativeTo(to_apply)));
+}
+END_WORD
+REGISTER_WORD(EePoseGetPoseRelativeTo)
+
+WORD(EePoseApplyRelativePoseTo)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+/* call with "to_apply base_pose EePoseApplyRelativePoseTo" */
+  eePose base_pose;
+  GET_ARG(ms, EePoseWord, base_pose);
+
+  eePose to_apply;
+  GET_ARG(ms, EePoseWord, to_apply);
+
+  ms->pushWord(make_shared<EePoseWord>(to_apply.applyAsRelativePoseTo(base_pose)));
+}
+END_WORD
+REGISTER_WORD(EePoseApplyRelativePoseTo)
 /* 
 WORD()
 virtual void execute(std::shared_ptr<MachineState> ms) {
