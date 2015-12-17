@@ -250,15 +250,22 @@ vector<string> tokenize_basic(const string program) {
 
 
 vector<string> tokenize_string(const string program) { 
-  escaped_forth_separator<char> els("\\", "\n\t ", "\"");
-
-  boost::tokenizer<escaped_forth_separator<char> > tok(program, els);
-  vector<string> tokens;
-  for(boost::tokenizer<escaped_forth_separator<char> >::iterator beg=tok.begin(); beg!=tok.end();++beg){
-    tokens.push_back(*beg);
-    cout << *beg << "\n";
+  try {
+    escaped_forth_separator<char> els("\\", "\n\t ", "\"");
+    
+    boost::tokenizer<escaped_forth_separator<char> > tok(program, els);
+    vector<string> tokens;
+    for(boost::tokenizer<escaped_forth_separator<char> >::iterator beg=tok.begin(); beg!=tok.end();++beg){
+      tokens.push_back(*beg);
+      cout << *beg << "\n";
+    }
+    return tokens;
+  } catch(escaped_forth_error &e) {
+    ROS_ERROR_STREAM("Error tokenizing: " << e.what() << endl);
+    vector<string> empty;
+    return empty;
   }
-  return tokens;
+
 }
 
 void MachineState::evaluateProgram(const string program)  {
