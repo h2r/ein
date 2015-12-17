@@ -124,7 +124,7 @@
 ) "demoRelativeTransformations" store
 
 (
-  "scene" import tempInit assumeBackScanningPose 1 changeToHeight tempShortTakeScene 
+  "scene" import tempInit 0.499618 -0.493828 0.175922 0.000000 1.000000 0.000000 0.000000 createEEPose moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition tempShortTakeScene 
   sceneClearPredictedObjects "brush" tempPredictAndRenderFile
 ) "tempLocalizeBrush" store
   
@@ -167,6 +167,10 @@
   waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
 ) "tempUpdateObservedFromWristFivePoint" store
+
+(
+  0.07 setGridSize tempUpdateObservedFromWristFivePoint 0.05 setGridSize tempUpdateObservedFromWristFivePoint 0.01 setGridSize tempUpdateObservedFromWristFivePoint
+) "tempUpdateFivePointThreeWidth" store
 
 (
   zeroGOff
