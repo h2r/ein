@@ -3,3 +3,28 @@
 ( ( sceneUpdateObservedFromWrist  ( xDown ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXDown" store
 
 ( sceneScanXUp ( yUp ) 20 replicateWord sceneScanXDown ) "sceneScanLocal" store
+
+
+
+
+
+
+
+
+(
+  sceneClearPredictedObjects 0.26 0.795 1.5 sceneAddPredictedFocusedObject sceneClearObservedMap sceneUpdateObservedFromWrist 30 sceneSetBackgroundStdDev sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy
+
+60 20 fixCameraLightingExposureGain
+
+0.5 sceneGrabDiscrepantCropAsClass
+) "sceneRenderTest" store
+
+
+
+
+
+
+
+
+
+
