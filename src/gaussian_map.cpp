@@ -2128,11 +2128,53 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double x, y;
       double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
       pixelToGlobal(ms, px, py, z, &x, &y);
-      int i, j;
-      ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
-      GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
-      Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
-      cell->newObservation(pixel);
+      if (1) {
+	// single sample update
+	int i, j;
+	ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+	GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+	Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+	cell->newObservation(pixel);
+      } else {
+/*
+	Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+
+	// bilinear update
+	double _i, _j;
+	ms->config.scene->observed_map->metersToCell(x, y, &_i, &_j);
+
+	if (ms->config.scene->safeBilinAt(_i,_j)) {
+
+	  double i = min( max(0.0, _i), double(width-1));
+	  double j = min( max(0.0, _j), double(height-1));
+
+	  // -2 makes for appropriate behavior on the upper boundary
+	  double i0 = std::min( std::max(0.0, floor(i)), double(width-2));
+	  double i1 = i0+1;
+
+	  double j0 = std::min( std::max(0.0, floor(j)), double(height-2));
+	  double j1 = j0+1;
+
+	  double wi0 = i1-i;
+	  double wi1 = i-i0;
+
+	  double wj0 = j1-j;
+	  double wj1 = j-j0;
+
+	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i0, j0);
+	  cell->newObservation(pixel, wi0*wj0);
+
+	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i1, j0);
+	  cell->newObservation(pixel, wi1*wj0);
+
+	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i0, j1);
+	  cell->newObservation(pixel, wi0*wj1);
+
+	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i1, j1);
+	  cell->newObservation(pixel, wi1*wj1);
+	}
+*/
+      }
     }
   }  
   ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
@@ -2288,8 +2330,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int so_idx = 0;
   GET_INT_ARG(ms, so_idx);
   so_idx = min( max( int(0), int(so_idx)), int(ms->config.scene->predicted_objects.size())-1 );
-  cout << "scenePushSceneObjectPose: there are " << ms->config.scene->predicted_objects.size() << " objects so using idx " << so_idx << endl;
-  ms->pushWord(make_shared<EePoseWord>(ms->config.scene->predicted_objects[so_idx]->scene_pose));
+
+  if ( so_idx < ms->config.scene->predicted_objects.size() ) {
+    cout << "scenePushSceneObjectPose: there are " << ms->config.scene->predicted_objects.size() << " objects so using idx " << so_idx << endl;
+    ms->pushWord(make_shared<EePoseWord>(ms->config.scene->predicted_objects[so_idx]->scene_pose));
+  } else {
+    cout << "scenePushSceneObjectPose: there are " << ms->config.scene->predicted_objects.size() << " objects so " << so_idx << " is invalid..." << endl;
+  }
 }
 END_WORD
 REGISTER_WORD(ScenePushSceneObjectPose)
