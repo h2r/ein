@@ -64,6 +64,7 @@ class GaussianMap {
   GaussianMapCell bilinValAtMeters(double x, double y);
 
   int safeAt(int x, int y);
+  int safeBilinAt(int x, int y);
   void metersToCell(double xm, double ym, int * xc, int * yc);
   void metersToCell(double xm, double ym, double * xc, double * yc);
   void cellToMeters(int xc, int yc, double * xm, double * ym);
@@ -105,6 +106,24 @@ typedef enum {
 sceneObjectType sceneObjectTypeFromString(string str);
 string sceneObjectTypeToString(sceneObjectType sot);
 
+struct SceneObjectScore {
+  int x_c;
+  int y_c;
+  double x_m;
+  double y_m;
+  int orient_i;
+  double theta_r;
+
+
+  bool discrepancy_valid;
+  double discrepancy_score;
+
+  bool loglikelihood_valid;
+  double loglikelihood_score;
+};
+
+bool compareDiscrepancyDescending(const SceneObjectScore &i, const SceneObjectScore &j);
+
 class SceneObject {
   public:
   SceneObject(eePose _eep, int _lci, string _ol, sceneObjectType _sot);
@@ -115,6 +134,8 @@ class SceneObject {
   int labeled_class_index;
   string object_label;
   sceneObjectType sot;
+
+  vector<SceneObjectScore> scores;
 
   void writeToFileStorage(FileStorage& fsvO);
   void readFromFileNodeIterator(FileNodeIterator& it);
@@ -149,6 +170,8 @@ class Scene {
 
   double score;
 
+  void smoothDiscrepancyDensity(double sigma);
+  void setDiscrepancyDensityFromMagnitude(double sigma);
   bool isDiscrepantCell(double threshold, int x, int y);
   bool isDiscrepantCellBilin(double threshold, double x, double y);
   bool isDiscrepantMetersBilin(double threshold, double x, double y);
@@ -157,6 +180,8 @@ class Scene {
   double computeScore();
   double assignScore();
   double measureScoreRegion(int _x1, int _y1, int _x2, int _y2);
+
+  double recomputeScore(shared_ptr<SceneObject> obj, double threshold);
 
   shared_ptr<Scene> copyPaddedDiscrepancySupport(double threshold, double pad_meters);
   shared_ptr<Scene> copyBox(int _x1, int _y1, int _x2, int _y2);
@@ -169,7 +194,7 @@ class Scene {
   void tryToAddObjectToScene(int class_idx);
   shared_ptr<SceneObject> addPredictedObject(double x, double y, double theta, int class_idx);
   void removeObjectFromPredictedMap(shared_ptr<SceneObject>);
-  double scoreObjectAtPose(double x, double y, double theta, int class_idx);
+  double scoreObjectAtPose(double x, double y, double theta, int class_idx, double threshold = 0.5);
 
   void removeSpaceObjects();
   void addSpaceObjects();
@@ -177,6 +202,7 @@ class Scene {
   void reregisterObject(int i);
 
   int safeAt(int x, int y);
+  int safeBilinAt(int x, int y);
   void metersToCell(double xm, double ym, int * xc, int * yc);
   void metersToCell(double xm, double ym, double * xc, double * yc);
   void cellToMeters(int xc, int yc, double * xm, double * ym);
