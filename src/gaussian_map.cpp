@@ -2348,6 +2348,81 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ScenePushNumSceneObjects)
 
+WORD(SceneMapSceneObject)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int to_map = 0;
+  GET_INT_ARG(ms, to_map);
+  REQUIRE_VALID_SCENE_OBJECT(ms, to_map);
+
+  BoxMemory box;
+  box.cameraPose = ms->config.scene->predicted_objects[to_map]->scene_pose;
+
+  shared_ptr<SceneObject> tso = ms->config.scene->predicted_objects[to_map];
+  shared_ptr<Scene> tso_s = ms->config.class_scene_models[ tso->labeled_class_index ];
+  box.top = ms->config.scene->predicted_objects[to_map]->scene_pose.minusP(eePose(tso_s->width * tso_s->cell_width, tso_s->height * tso_s->cell_width, 0, 0,0,0,0));
+  box.bot = ms->config.scene->predicted_objects[to_map]->scene_pose.plusP(eePose(tso_s->width * tso_s->cell_width, tso_s->height * tso_s->cell_width, 0, 0,0,0,0));
+
+  box.bTop = cv::Point(0,0);
+  box.bBot = cv::Point(1,1);
+  mapxyToij(ms, box.top.px, box.top.py, &(box.bTop.x), &(box.bTop.y));
+  mapxyToij(ms, box.bot.px, box.bot.py, &(box.bBot.x), &(box.bBot.y));
+
+  box.centroid.px = (box.top.px + box.bot.px) * 0.5;
+  box.centroid.py = (box.top.py + box.bot.py) * 0.5;
+  box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
+  box.cameraTime = ros::Time::now();
+
+  box.labeledClassIndex = tso->labeled_class_index;
+
+  box.lockStatus = CENTROID_LOCK;
+  
+  int i, j;
+  mapxyToij(ms, box.centroid.px, box.centroid.py, &i, &j);
+
+  // this only does the timestamp to avoid obsessive behavior
+  mapBox(ms, box);
+  
+  if ( !positionIsSearched(ms, box.centroid.px, box.centroid.py) || 
+       !isBoxMemoryIkPossible(ms, box) ) 
+  {
+    return;
+  } else {
+    vector<BoxMemory> newMemories;
+    for (int i = 0; i < ms->config.blueBoxMemories.size(); i++) {
+      if (!boxMemoryIntersectCentroid(box, ms->config.blueBoxMemories[i])) {
+	newMemories.push_back(ms->config.blueBoxMemories[i]);
+      }
+    }
+    newMemories.push_back(box);
+    ms->config.blueBoxMemories = newMemories;
+  }
+}
+END_WORD
+REGISTER_WORD(SceneMapSceneObject)
+
+WORD(SceneZeroBox)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // point width height sceneZeroBox
+  eePose g_pose;
+  GET_ARG(ms, EePoseWord, g_pose);
+
+  double g_width, g_height;
+  GET_NUMERIC_ARG(ms, g_height);
+  GET_NUMERIC_ARG(ms, g_width);
+
+  int t_x_c, t_y_c;
+  ms->config.scene->metersToCell(g_pose.px - g_width/2.0, g_pose.py - g_height/2.0, &t_x_c, &t_y_c);
+  int b_x_c, b_y_c;
+  ms->config.scene->metersToCell(g_pose.px + g_width/2.0, g_pose.py + g_height/2.0, &b_x_c, &b_y_c);
+
+  cout << "sceneZeroBox: " << g_pose << " " << g_width << " " << g_height << endl;
+
+  ms->config.scene->observed_map->zeroBox(t_x_c, t_y_c, b_x_c, b_y_c);
+}
+END_WORD
+REGISTER_WORD(SceneZeroBox)
+
+
 WORD(EePoseGetPoseRelativeTo)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 /* call with "base_pose to_apply EePoseGetPoseRelativeTo" */
@@ -2375,6 +2450,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(EePoseApplyRelativePoseTo)
+
 /* 
 WORD()
 virtual void execute(std::shared_ptr<MachineState> ms) {
