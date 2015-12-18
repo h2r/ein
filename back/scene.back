@@ -30,7 +30,18 @@
 ) "tempSetBackground" store
 
 ( 
-  50 20 fixCameraLightingExposureGain 
+
+  leftOrRightArm "right" =
+  ( 50 20 fixCameraLightingExposureGain )
+  ( 
+  leftOrRightArm "left" = 
+  ( 90 30 fixCameraLightingExposureGain ) 
+  ( "Neither left or right arm." leftOrRighArm pauseStackExecution ) 
+  ifte
+  )
+  ifte
+
+
   "bg1" sceneLoadBackgroundMap 
   3.0 sceneSetBackgroundStdDevY
   3.0 sceneSetBackgroundStdDevColor
@@ -166,6 +177,11 @@
 (
   0.07 setGridSize tempUpdateObservedFromWristFivePoint 0.05 setGridSize tempUpdateObservedFromWristFivePoint 0.01 setGridSize tempUpdateObservedFromWristFivePoint
 ) "tempUpdateFivePointThreeWidth" store
+
+(
+  sceneClearObservedMap tempUpdateFivePointThreeWidth "bg1" sceneSaveBackgroundMap
+) "tempUpdateBg1" store
+
 
 (
   zeroGOff
