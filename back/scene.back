@@ -120,6 +120,7 @@
 (
   "scene" import tempInit assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition tempShortTakeScene 
   sceneClearPredictedObjects "brush" tempPredictAndRenderFile
+  clearMapForPatrol clearBlueBoxMemories tempMapFocusedClass waitUntilAtCurrentPosition setMovementStateToMoving comeToStop tempMapFocusedClass deliverTargetObject
 ) "tempLocalizeBrush" store
   
 (
@@ -251,6 +252,14 @@
   recordPostTargetLock
   publishRecognizedObjectArrayFromBlueBoxMemory
 ) "tempMapFocusedClass" store
+
+(
+  setGraspModeTo3D
+  setIdleModeToEmpty
+  setPlaceModeToShake
+
+  clearMapForPatrol clearBlueBoxMemories tempMapFocusedClass waitUntilAtCurrentPosition setMovementStateToMoving comeToStop tempMapFocusedClass deliverTargetObject
+) "tempMapAndPick" store
 
 
 
