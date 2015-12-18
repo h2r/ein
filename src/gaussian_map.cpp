@@ -273,12 +273,12 @@ int GaussianMap::safeBilinAt(int x, int y) {
 
 GaussianMapCell *GaussianMap::refAtCell(int x, int y) {
   if (x < 0 || x >= width) {
-    ROS_ERROR_STREAM("Bad x. " << x);
-    assert (0);
+    ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad x. " << x);
+    return NULL;
   }
   if (y < 0 || y >= height) {
-    ROS_ERROR_STREAM("Bad y. " << y);
-    assert (0);
+    ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad y. " << y);
+    return NULL;
   }
   
   return (cells + x + width*y);
@@ -2144,8 +2144,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	int i, j;
 	ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
 	GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
-	Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
-	cell->newObservation(pixel);
+	if (cell != NULL) {
+	  Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+	  cell->newObservation(pixel);
+	}
       } else {
 /*
 	Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
