@@ -21,7 +21,7 @@
 ) "tempCaptureAsFocused" store
 
 ( 
-  sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy 0.5 sceneGrabDiscrepantCropAsClass 
+  sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy 0.1 sceneGrabDiscrepantCropAsClass 
 ) "tempCaptureCore" store
 
 
@@ -32,20 +32,18 @@
 ( 
   50 20 fixCameraLightingExposureGain 
   "bg1" sceneLoadBackgroundMap 
-/*
-  30.0 sceneSetBackgroundStdDevY
+  3.0 sceneSetBackgroundStdDevY
   3.0 sceneSetBackgroundStdDevColor
-*/
   sceneClearObservedMap sceneClearPredictedObjects 
 ) "tempInit" store
 
 
 (
-  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 2 replicateWord 0.01 sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 2 replicateWord 0.1 sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
 ) "tempShortTakeScene" store
 
 (
-  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 5 replicateWord 0.01 sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 5 replicateWord 0.1 sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
 ) "tempLongTakeScene" store
 
 (
@@ -54,20 +52,16 @@
 ) "tempPredictAndRenderFile" store
 
 (
-/*
-  30.0 sceneSetFocusedSceneStdDevY 
+  3.0 sceneSetFocusedSceneStdDevY 
   3.0 sceneSetFocusedSceneStdDevColor 
-*/
   tempShortTakeScene scenePredictFocusedObject tempShortTakeScene
 ) "tempPredictAndRenderFocused" store
 
 (
   /* takes a string */
   sceneLoadFocusedSceneModel 
-/*
-  30.0 sceneSetFocusedSceneStdDevY 
+  3.0 sceneSetFocusedSceneStdDevY 
   3.0 sceneSetFocusedSceneStdDevColor 
-*/
 ) "tempLoadAndPrepareFocusedModel" store
 
 (
@@ -124,13 +118,13 @@
 ) "demoRelativeTransformations" store
 
 (
-  "scene" import tempInit 0.499618 -0.493828 0.175922 0.000000 1.000000 0.000000 0.000000 createEEPose moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition tempShortTakeScene 
+  "scene" import tempInit assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition tempShortTakeScene 
   sceneClearPredictedObjects "brush" tempPredictAndRenderFile
 ) "tempLocalizeBrush" store
   
 (
   "bg1" sceneLoadBackgroundMap 
-  30.0 sceneSetBackgroundStdDevY
+  3.0 sceneSetBackgroundStdDevY
   3.0 sceneSetBackgroundStdDevColor
 
   sceneClearPredictedObjects
@@ -193,9 +187,9 @@
 /* it appears to be somewhat important that the observed frames be contained within the background, else discrepancy creeps at the boundary
   0.07 setGridSize
   tempUpdateObservedFromWristFivePoint
-*/
   0.03 setGridSize
   tempUpdateObservedFromWristFivePoint
+*/
   0.01 setGridSize
   tempUpdateObservedFromWristFivePoint
   tempCaptureCore
@@ -212,7 +206,51 @@
   writeFocusedClass
 ) "tempQuickScan" store
 
+(
+  clearMapForPatrol
 
+  lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
+  tempServoToFocusedSceneObject
+  waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  tempServoToFocusedSceneObject
+  waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  tempServoToFocusedSceneObject
+  waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  currentPose tempScanBasePZ setEEPosePZ "tempScanBase" store
+
+  scan_swapToBars
+  gradientServo
+  prepareForGraspFromMemory
+  currentPose tempScanBasePZ pickFlushFactor + setEEPosePZ "tempScanNewGrasp" store
+  scan_restoreFromBars
+
+  tempScanBase setC3dPoseBase
+  tempScanNewGrasp add3dGraspPoseWord
+  writeFocusedClass
+) "tempAddBarGrasp" store
+
+(
+  lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
+  tempServoToFocusedSceneObject
+  waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  tempServoToFocusedSceneObject
+  waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  tempServoToFocusedSceneObject
+  waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  currentPose tempScanBasePZ setEEPosePZ "tempScanBase" store
+
+  tempScanBase setC3dPoseBase
+) "tempSceneLock3dGrasp" store
+
+
+(
+  tempServoToFocusedSceneObject
+  0 sceneMapSceneObject
+  recordPreTargetLock
+  /* prepareForGraspFromMemory */
+  recordPostTargetLock
+  publishRecognizedObjectArrayFromBlueBoxMemory
+) "tempMapFocusedClass" store
 
 
 
