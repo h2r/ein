@@ -1139,8 +1139,13 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
   if ((xmin <= xmax) && (ymin <= ymax)) {
     scene_to_return = copyBox(xmin,ymin,xmax,ymax);
   } else {
-    ROS_ERROR_STREAM("region contained no discrepant cells." << endl);
+    ROS_ERROR_STREAM("region contained no discrepant cells, grabbing one cell." << endl);
     cout << xmin << " " << xmax << " " << ymin << " " << ymax << endl;
+    xmax = min(width-1, 2);
+    ymax = min(height-1, 2);
+    xmin = 0;
+    ymin = 0;
+    scene_to_return = copyBox(xmin,ymin,xmax,ymax);
   }
   
   return scene_to_return;
@@ -1233,7 +1238,7 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   //double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
   double po_l2norm = prepared_object.dot(prepared_object);
   cout << "  po_l2norm: " << po_l2norm << endl;
-  double overlap_thresh = 0.50;
+  double overlap_thresh = 0.05;
 
   Size toBecome(max_dim, max_dim);
 
@@ -1440,7 +1445,11 @@ void Scene::tryToAddObjectToScene(int class_idx) {
       ms->pushWord(make_shared<DoubleWord>(l_max_x_meters));
     } else {
       cout << "best detection made things worse alone..." << endl;
-      cout << "NOT adding object." << endl;
+      cout << "should NOT adding object but for now we are..." << endl;
+      ms->pushWord("sceneAddPredictedFocusedObject");
+      ms->pushWord(make_shared<DoubleWord>(l_max_theta));
+      ms->pushWord(make_shared<DoubleWord>(l_max_y_meters));
+      ms->pushWord(make_shared<DoubleWord>(l_max_x_meters));
     }
   } else {
     cout << "Did not find a valid cell... not adding object." << endl;
@@ -2120,8 +2129,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     
   //for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; px++) 
     //for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; py++) 
-  for (int px = 0; px < imW; px++) {
-    for (int py = 0; py < imH; py++) {
+  for (int px = ms->config.grayTop.x; px < ms->config.grayBot.x; px++) {
+    for (int py = ms->config.grayTop.y; py < ms->config.grayBot.y; py++) {
+  //for (int px = 0; px < imW; px++) 
+    //for (int py = 0; py < imH; py++) 
       if (isInGripperMask(ms, px, py)) {
 	continue;
       }
@@ -2359,8 +2370,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   shared_ptr<SceneObject> tso = ms->config.scene->predicted_objects[to_map];
   shared_ptr<Scene> tso_s = ms->config.class_scene_models[ tso->labeled_class_index ];
-  box.top = ms->config.scene->predicted_objects[to_map]->scene_pose.minusP(eePose(tso_s->width * tso_s->cell_width, tso_s->height * tso_s->cell_width, 0, 0,0,0,0));
-  box.bot = ms->config.scene->predicted_objects[to_map]->scene_pose.plusP(eePose(tso_s->width * tso_s->cell_width, tso_s->height * tso_s->cell_width, 0, 0,0,0,0));
+  box.top = ms->config.scene->predicted_objects[to_map]->scene_pose.minusP(eePose(0.5 * tso_s->width * tso_s->cell_width, 0.5 * tso_s->height * tso_s->cell_width, 0, 0,0,0,0));
+  box.bot = ms->config.scene->predicted_objects[to_map]->scene_pose.plusP(eePose(0.5 * tso_s->width * tso_s->cell_width, 0.5 * tso_s->height * tso_s->cell_width, 0, 0,0,0,0));
 
   box.bTop = cv::Point(0,0);
   box.bBot = cv::Point(1,1);
@@ -2385,6 +2396,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( !positionIsSearched(ms, box.centroid.px, box.centroid.py) || 
        !isBoxMemoryIkPossible(ms, box) ) 
   {
+    cout << "Not mapping box... " << positionIsSearched(ms, box.centroid.px, box.centroid.py) << " " << isBoxMemoryIkPossible(ms, box) << " " << box.cameraPose << endl;
     return;
   } else {
     vector<BoxMemory> newMemories;
