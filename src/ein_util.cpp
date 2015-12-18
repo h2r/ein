@@ -162,7 +162,7 @@ void initializeMachine(shared_ptr<MachineState> ms) {
     ms->pushWord("loadGripperMask"); 
     ms->pushWord("initializeConfig");
   }
-
+  ms->evaluateProgram("\"init\" import");
   ms->execute_stack = 1;
 }
 
