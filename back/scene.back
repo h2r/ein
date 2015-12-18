@@ -179,7 +179,7 @@
 ) "tempUpdateFivePointThreeWidth" store
 
 (
-  sceneClearObservedMap tempUpdateFivePointThreeWidth "bg1" sceneSaveBackgroundMap
+  sceneClearObservedMap tempUpdateFivePointThreeWidth "bg1" sceneSaveObservedMap 
 ) "tempUpdateBg1" store
 
 
@@ -193,6 +193,7 @@
 
   tempRecaptureServo
   waitUntilAtCurrentPosition
+  endStackCollapseNoop
 /*
   tempRecaptureServo
   waitUntilAtCurrentPosition

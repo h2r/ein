@@ -1,0 +1,35 @@
+
+leftOrRightArm "right" =
+( 
+0.852186 -0.694436 0.494315 0.000207 0.367980 -0.276971 0.887625 createEEPose "wavePose" store
+0.879307 -0.023933 -0.076161 0.459157 0.527586 0.489220 0.521049 createEEPose "lowShakePose" store
+0.660164 -0.061894 -0.029110 -0.044431 0.828624 -0.021404 0.557629 createEEPose "kidPicturePose" store
+)
+( 
+leftOrRightArm "left" = 
+(
+0.930691 0.378035 0.498006 0.028296 0.179526 0.039754 0.982542 createEEPose "wavePose" store
+0.995837 0.049584 -0.044754 0.539836 -0.529479 0.448137 -0.476867 createEEPose "lowShakePose" store
+0.832231 0.098156 -0.016543 -0.178823 0.760640 -0.028450 0.623409 createEEPose "kidPicturePose" store
+)
+ ( "Neither left or right arm." leftOrRighArm pauseStackExecution ) 
+ifte
+)
+ifte
+
+
+( wavePose moveEeToPoseWord waitUntilAtCurrentPosition
+ ( 
+ ( yUp ) 10 replicateWord waitUntilAtCurrentPosition
+ ( yDown ) 10 replicateWord waitUntilAtCurrentPosition
+) 6 replicateWord
+) "wave" store
+
+
+( lowShakePose moveEeToPoseWord waitUntilAtCurrentPosition ) "assumeLowShakePose" store
+
+( kidPicturePose moveEeToPoseWord waitUntilAtCurrentPosition ) "assumeKidPicturePose" store
+
+
+( assumeKidPicturePose ( 1 ) ( publishWristViewToFace 0.1 waitForSeconds ) while ) "lookAtKids" store
+
