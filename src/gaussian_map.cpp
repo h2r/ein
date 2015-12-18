@@ -1811,6 +1811,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneSaveScene)
 
+WORD(SceneRenderScene)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("sceneRenderObservedMap sceneRenderBackgroundMap sceneRenderPredictedMap sceneRenderDiscrepancy");
+}
+END_WORD
+REGISTER_WORD(SceneRenderScene)
+
 WORD(SceneLoadScene)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   string message;
@@ -1823,7 +1830,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   mkdir(ss_dir.str().c_str(), 0777);
 
   ms->config.scene->loadFromFile(ss.str());
-  ms->evaluateProgram("sceneRenderObservedMap sceneRenderBackgroundMap sceneRenderPredictedMap sceneRenderDiscrepancy");
+  ms->pushWord("sceneRenderScene");
 }
 END_WORD
 REGISTER_WORD(SceneLoadScene)
@@ -2019,6 +2026,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int p_width = 601;
   int p_height = 601;
   ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
+  ms->pushWord("sceneRenderScene");
 }
 END_WORD
 REGISTER_WORD(SceneInit)
