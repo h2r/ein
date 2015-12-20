@@ -28,6 +28,7 @@ class Scene;
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
 #include <cv_bridge/cv_bridge.h>
+#include <rosgraph_msgs/Log.h>
 
 
 #include <baxter_core_msgs/CameraControl.h>
@@ -1108,6 +1109,17 @@ class EinConfig {
   int drawGray = 1;
   int drawBlueKP = 1;
 
+  ros::Time lastCameraLogTime;
+  bool cameraFlip;
+  bool cameraMirror;
+  int cameraExposure = -1;
+  int cameraGain = -1;
+  int cameraWhiteBalanceRed = -1;
+  int cameraWhiteBalanceGreen = -1;
+  int cameraWhiteBalanceBlue = -1;
+  int cameraWindowX = -1;
+  int cameraWindowY = -1;
+
 
   cv_bridge::CvImagePtr cv_ptr = NULL;
   Mat stereoViewerImage;
@@ -1403,7 +1415,7 @@ class EinConfig {
   ros::Subscriber cuff_grasp_sub;
   ros::Subscriber cuff_ok_sub;
   ros::Subscriber shoulder_sub;
-
+  ros::Subscriber rosout_sub;
 
 
   shared_ptr<image_transport::ImageTransport> it;
@@ -1526,6 +1538,8 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void targetCallback(const geometry_msgs::Point& point);
   void simulatorCallback(const ros::TimerEvent&);
   void einStateCallback(const ein::EinState & msg);
+
+  void rosoutCallback(const rosgraph_msgs::Log& js);
 };
 
 
