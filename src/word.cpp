@@ -277,8 +277,10 @@ void MachineState::evaluateProgram(const string program)  {
   for (unsigned int j = 0; j < tokens.size(); j++) {
     int i = tokens.size() - j - 1;
     trim(tokens[i]);
-    if (!ms->pushWord(tokens[i])) {
-      cout << "Warning, ignoring unknown word from the forth topic: " << tokens[i] << endl;
+    if (tokens[i].length() != 0) {
+      if (!ms->pushWord(tokens[i])) {
+	cout << "Warning, ignoring unknown word from the forth topic: " << tokens[i] << endl;
+      }
     }
   }
   ms->pushWord("executeStack");
@@ -498,14 +500,14 @@ string CompoundWord::name() {
 bool SymbolWord::isSymbol(string token)
  {
     
-   cout << "Testing if symbol: " << token << endl;
+   //cout << "Testing if symbol: " << token << endl;
    boost::smatch match;
    boost::regex symbol_regex("[a-zA-Z_][a-zA-Z0-9_]*");
    if (boost::regex_match(token, match, symbol_regex)) {
-     cout << "yes symbol" << endl;
+     //cout << "yes symbol" << endl;
      return true;
    } else {
-     cout << "no symbol" << endl;
+     //cout << "no symbol" << endl;
      return false;
    } 
 }
