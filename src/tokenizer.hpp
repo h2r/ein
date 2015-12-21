@@ -121,6 +121,7 @@ public:
 
 	if (*next == '/') {
 	  bInComment = false;
+	  tok += *next;
 	} else {
 	  next--;
 	}

@@ -5538,6 +5538,14 @@ void loadCalibration(shared_ptr<MachineState> ms, string inFileName) {
     ms->config.gear0offset.z() = *(it++);
     ms->config.gear0offset.w() = *(it++);
   }
+  {
+    ms->config.cameraExposure = (int) fsvI["cameraExposure"];
+    ms->config.cameraGain = (int) fsvI["cameraGain"];
+    ms->config.cameraWhiteBalanceRed = (int) fsvI["cameraWhiteBalanceRed"];
+    ms->config.cameraWhiteBalanceGreen = (int) fsvI["cameraWhiteBalanceGreen"];
+    ms->config.cameraWhiteBalanceBlue = (int) fsvI["cameraWhiteBalanceBlue"];
+
+  }
 
   cout << "done." << endl;
 }
@@ -5640,6 +5648,11 @@ void saveCalibration(shared_ptr<MachineState> ms, string outFileName) {
     << ms->config.gear0offset.z()
     << ms->config.gear0offset.w()
   << "]";
+  fsvO << "cameraExposure" << ms->config.cameraExposure;
+  fsvO << "cameraGain" << ms->config.cameraGain;
+  fsvO << "cameraWhiteBalanceRed" << ms->config.cameraWhiteBalanceRed;
+  fsvO << "cameraWhiteBalanceGreen" << ms->config.cameraWhiteBalanceGreen;
+  fsvO << "cameraWhiteBalanceBlue" << ms->config.cameraWhiteBalanceBlue;
 
   fsvO.release();
   cout << "done." << endl;
@@ -10319,6 +10332,62 @@ void globalToMapBackground(shared_ptr<MachineState> ms, double gX, double gY, do
 
 void MachineState::einStateCallback(const EinState & msg) {
   cout << "Received state msg." << endl;
+}
+
+void MachineState::rosoutCallback(const rosgraph_msgs::Log & msg) {
+
+  if (msg.name == "/baxter_cams") {
+    shared_ptr<MachineState> ms = this->sharedThis;
+    cout << "Received cam msg." << msg.name << " " << msg.line << " " << msg.msg << endl;
+    size_t loc = msg.msg.find(':');
+
+    if (loc != std::string::npos) {
+      string key = msg.msg.substr(0, loc);
+      string strvalue = msg.msg.substr(loc + 2, msg.msg.length());
+      if (key == "mirror" || key == "flip") {
+	bool value;
+	if (strvalue == "true") {
+	  value = true;
+	} else if (strvalue == "false") {
+	  value = false;
+	} else {
+	  ROS_ERROR_STREAM("Bad message: " << msg);
+	}
+	//cout << "boolean key: " << key << " value: " << value << endl;
+	if (key == "mirror") {
+	  ms->config.cameraMirror = value;
+	} else if (key == "flip") {
+	  ms->config.cameraFlip = value;
+	} else {
+	  assert(0);
+	}
+      } else {
+	int value;
+	stringstream ss(strvalue);
+	ss >> std::skipws >>  value;
+	//cout << "key: " << key << " value: " << value << endl;
+	if (key == "exposure") {
+	  ms->config.cameraExposure = value;
+	} else if (key == "gain") {
+	  ms->config.cameraGain = value;
+	} else if (key == "white balance red") {
+	  ms->config.cameraWhiteBalanceRed = value;
+	} else if (key == "white balance green") {
+	  ms->config.cameraWhiteBalanceGreen = value;
+	} else if (key == "white balance blue") {
+	  ms->config.cameraWhiteBalanceBlue = value;
+	} else if (key == "window x") {
+	  ms->config.cameraWindowX = value;
+	} else if (key == "window y") {
+	  ms->config.cameraWindowY = value;
+	} else {
+	  // ignoring keys for now for now.
+	}
+      }
+
+
+    }
+  }
 }
 
 void MachineState::simulatorCallback(const ros::TimerEvent&) {

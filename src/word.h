@@ -272,29 +272,10 @@ public:
     
   }
 
-  static std::shared_ptr<CommentWord> parse(string token) {
-    if (token.size() < 4) {
-      return NULL;
-    }
-    if (token[0] == '/' && token[1] == '*' && token[token.size() - 2] == '*'  && token[token.size() - 1] == '/') {
-      return std::make_shared<CommentWord>(token.substr(2, token.size() - 4));      
-    } else {
-      return NULL;
-    }
+  static std::shared_ptr<CommentWord> parse(string token);
 
-  }
-  static bool isComment(string token) {
-    try {
-      if (parse(token) != NULL) {
-        return true;
-      } else {
-        return false;
-      }
-    } catch (...) {
-      return false;
-    }
-  }
-  
+  static bool isComment(string token);
+
   CommentWord(string _s) {
     s = _s;
   }

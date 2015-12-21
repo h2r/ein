@@ -30,18 +30,6 @@
 ) "tempSetBackground" store
 
 ( 
-
-  leftOrRightArm "right" =
-  ( 50 20 fixCameraLightingExposureGain )
-  ( 
-  leftOrRightArm "left" = 
-  ( 90 30 fixCameraLightingExposureGain ) 
-  ( "Neither left or right arm." leftOrRighArm pauseStackExecution ) 
-  ifte
-  )
-  ifte
-
-
   "bg1" sceneLoadBackgroundMap 
   3.0 sceneSetBackgroundStdDevY
   3.0 sceneSetBackgroundStdDevColor
@@ -180,6 +168,7 @@
 
 (
   sceneClearObservedMap tempUpdateFivePointThreeWidth "bg1" sceneSaveObservedMap 
+  tempInit
 ) "tempUpdateBg1" store
 
 
