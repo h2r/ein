@@ -1,3 +1,5 @@
+"bg_" leftOrRightArm + "bg" store
+
 ( assumeBeeHome waitUntilAtCurrentPosition 1 changeToHeight
 ) "tempGoHome" store
 
@@ -28,11 +30,11 @@
 
 
 ( 
-  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 10 replicateWord "bg1" sceneSaveObservedMap "bg1" sceneLoadBackgroundMap 
+  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 10 replicateWord bg sceneSaveObservedMap bg sceneLoadBackgroundMap 
 ) "tempSetBackground" store
 
 ( 
-  "bg1" sceneLoadBackgroundMap 
+  bg sceneLoadBackgroundMap 
   3.0 sceneSetBackgroundStdDevY
   3.0 sceneSetBackgroundStdDevColor
   sceneClearObservedMap sceneClearPredictedObjects 
@@ -125,7 +127,7 @@
 ) "tempUsefulPhrases" store
   
 (
-  "bg1" sceneLoadBackgroundMap 
+  bg sceneLoadBackgroundMap 
   3.0 sceneSetBackgroundStdDevY
   3.0 sceneSetBackgroundStdDevColor
 
@@ -133,7 +135,7 @@
   tempShortTakeScene
   tempCaptureCore
 
-  "bg1" sceneLoadBackgroundMap 
+  bg sceneLoadBackgroundMap 
 
   tempServoToFocusedSceneObject
 ) "tempRecaptureServo" store
@@ -169,9 +171,9 @@
 ) "tempUpdateFivePointThreeWidth" store
 
 (
-  sceneClearObservedMap tempUpdateFivePointThreeWidth "bg1" sceneSaveObservedMap 
+  sceneClearObservedMap tempUpdateFivePointThreeWidth bg sceneSaveObservedMap 
   tempInit
-) "tempUpdateBg1" store
+) "tempUpdateBg" store
 
 
 (
