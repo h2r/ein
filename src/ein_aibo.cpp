@@ -135,6 +135,25 @@ void sendOnDogSocket(std::shared_ptr<MachineState> ms, int member, string messag
   }
 }
 
+void sendOnDogSocket(std::shared_ptr<MachineState> ms, int member, char *buf, int size) {
+  int p_send_poll_timeout = 5000;
+  struct pollfd fd = { ms->pack[member].aibo_socket_desc, POLLOUT, 0 };
+  if (poll(&fd, 1, p_send_poll_timeout) != 1) {
+    ROS_ERROR_STREAM("poll says unavailable for sending after " << p_send_poll_timeout << " ms" << endl);
+    dogReconnect(ms);
+    return;
+  } else {
+    if( send(ms->pack[member].aibo_socket_desc, buf, size, 0) != size ) {
+      ROS_ERROR_STREAM("send failed..." << endl);
+      dogReconnect(ms);
+      return;
+    } else {
+      cout << "sent: " << endl << size << " bytes." << endl;
+      //cout << "sent: " << message.size() << endl;
+    }
+  }
+}
+
 void flushDogBuffer(std::shared_ptr<MachineState> ms, int member) {
   int p_flush_wait_milliseconds = 250;
 
@@ -1626,6 +1645,193 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(DogReplaceWristImageWithSnoutImage)
+
+WORD(DogSendToneSin)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  double d = 0.0;
+  GET_NUMERIC_ARG(ms, d);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples = ceil(16000*d);
+  int tone_length = 2*tone_samples;
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < tone_samples; i++) {
+    int intended = int16_t(v * sin(i * f * 2.0 * M_PI / 16000) );
+    currentSample[i] = int16_t(intended);
+    cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogSendToneSin)
+
+WORD(DogMorse)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  //double dmp = ms->pack[this_dog].dog_morse_period;
+  double dmp = 0.1;
+  GET_NUMERIC_ARG(ms, dmp);
+
+  double f = 400.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double _v = 128.0;
+  GET_NUMERIC_ARG(ms, _v);
+
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  stringstream binarizedss;
+
+  for (int l = 0; l < message.size(); l++) {
+    if (message[l] == ' ') {
+      binarizedss << "0000";
+    } else if ( (message[l] == 'a') || (message[l] == 'A') ) {
+      binarizedss << "10111";
+    } else if ( (message[l] == 'b') || (message[l] == 'B') ) {
+      binarizedss << "111010101";
+    } else if ( (message[l] == 'c') || (message[l] == 'C') ) {
+      binarizedss << "11101011101";
+    } else if ( (message[l] == 'd') || (message[l] == 'D') ) {
+      binarizedss << "1110101";
+    } else if ( (message[l] == 'e') || (message[l] == 'E') ) {
+      binarizedss << "1";
+    } else if ( (message[l] == 'f') || (message[l] == 'F') ) {
+      binarizedss << "101011101";
+    } else if ( (message[l] == 'g') || (message[l] == 'G') ) {
+      binarizedss << "111011101";
+    } else if ( (message[l] == 'h') || (message[l] == 'H') ) {
+      binarizedss << "1010101";
+    } else if ( (message[l] == 'i') || (message[l] == 'I') ) {
+      binarizedss << "101";
+    } else if ( (message[l] == 'j') || (message[l] == 'J') ) {
+      binarizedss << "1011101110111";
+    } else if ( (message[l] == 'k') || (message[l] == 'K') ) {
+      binarizedss << "1110111";
+    } else if ( (message[l] == 'l') || (message[l] == 'L') ) {
+      binarizedss << "101110101";
+    } else if ( (message[l] == 'm') || (message[l] == 'M') ) {
+      binarizedss << "1110111";
+    } else if ( (message[l] == 'n') || (message[l] == 'N') ) {
+      binarizedss << "11101";
+    } else if ( (message[l] == 'o') || (message[l] == 'O') ) {
+      binarizedss << "11101110111";
+    } else if ( (message[l] == 'p') || (message[l] == 'P') ) {
+      binarizedss << "10111011101";
+    } else if ( (message[l] == 'q') || (message[l] == 'Q') ) {
+      binarizedss << "1110111010111";
+    } else if ( (message[l] == 'r') || (message[l] == 'R') ) {
+      binarizedss << "1011101";
+    } else if ( (message[l] == 's') || (message[l] == 'S') ) {
+      binarizedss << "10101";
+    } else if ( (message[l] == 't') || (message[l] == 'T') ) {
+      binarizedss << "111";
+    } else if ( (message[l] == 'u') || (message[l] == 'U') ) {
+      binarizedss << "1010111";
+    } else if ( (message[l] == 'v') || (message[l] == 'V') ) {
+      binarizedss << "101010111";
+    } else if ( (message[l] == 'w') || (message[l] == 'W') ) {
+      binarizedss << "101110111";
+    } else if ( (message[l] == 'x') || (message[l] == 'X') ) {
+      binarizedss << "11101010111";
+    } else if ( (message[l] == 'y') || (message[l] == 'Y') ) {
+      binarizedss << "1110101110111";
+    } else if ( (message[l] == 'z') || (message[l] == 'Z') ) {
+      binarizedss << "11101110101";
+    } else if ( (message[l] == '0') ) {
+      binarizedss << "1110111011101110111";
+    } else if ( (message[l] == '1') ) {
+      binarizedss << "10111011101110111";
+    } else if ( (message[l] == '2') ) {
+      binarizedss << "101011101110111";
+    } else if ( (message[l] == '3') ) {
+      binarizedss << "1010101110111";
+    } else if ( (message[l] == '4') ) {
+      binarizedss << "10101010111";
+    } else if ( (message[l] == '5') ) {
+      binarizedss << "101010101";
+    } else if ( (message[l] == '6') ) {
+      binarizedss << "11101010101";
+    } else if ( (message[l] == '7') ) {
+      binarizedss << "1110111010101";
+    } else if ( (message[l] == '8') ) {
+      binarizedss << "111011101110101";
+    } else if ( (message[l] == '9') ) {
+      binarizedss << "11101110111011101";
+    } else {
+    }
+    binarizedss << "000";
+  }
+
+  string binarized = binarizedss.str();
+
+  double samples_per_dmp = 16000 * dmp;
+  double d = dmp * binarized.size();
+
+  int tone_samples = ceil(16000*d);
+  int tone_length = 2*tone_samples;
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  double v = _v;
+
+  for (int i = 0; i < tone_samples; i++) {
+    int this_slot = floor(i / samples_per_dmp);
+    this_slot = max(0, min((int)this_slot, (int)binarized.size()-1));
+
+    if (binarized[this_slot] == '0') {
+      v = 0;
+    } else if (binarized[this_slot] == '1') {
+      v = _v;
+    } else {
+      ROS_ERROR_STREAM("Oops, dogMorse encountered an error during encoding." << endl);
+    }
+
+    int intended = int16_t(v * sin(i * f * 2.0 * M_PI / 16000) );
+    currentSample[i] = int16_t(intended);
+    //cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+}
+END_WORD
+REGISTER_WORD(DogMorse)
+
+
+
+
+
+
+
 
 
 /*
