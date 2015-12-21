@@ -2271,12 +2271,7 @@ REGISTER_WORD(SceneRenderDiscrepancy)
 
 WORD(SceneGrabDiscrepantCropAsClass)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  int tfc = ms->config.focusedClass;
-  if ( (tfc > -1) && (tfc < ms->config.classLabels.size()) ) {
-  } else {
-    ROS_ERROR_STREAM("Invalid focused class, not grabbing..." << endl);
-    return;
-  }
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
 
   double p_crop_pad = 0.05;
   guardSceneModels(ms);
