@@ -888,6 +888,7 @@ void Scene::measureDiscrepancy() {
 	double gmu_diff = 0.0;
 	double bmu_diff = 0.0;
 
+	// XXX investigate inner product performance
 	//double total_discrepancy = predicted_map->refAtCell(x,y)->innerProduct(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
 	//double total_discrepancy = predicted_map->refAtCell(x,y)->pointDiscrepancy(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
 
@@ -2465,7 +2466,49 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(EePoseApplyRelativePoseTo)
 
+
 /* 
+WORD(GaussianMapCalibrateVanishingPoint)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX
+}
+END_WORD
+REGISTER_WORD(GaussianMapCalibrateVanishingPoint)
+
+WORD(GaussianMapCalibrateMagnifications)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX
+}
+END_WORD
+REGISTER_WORD(GaussianMapCalibrateMagnifications)
+
+WORD(GaussianMapCompilePointCloud)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX
+}
+END_WORD
+REGISTER_WORD(GaussianMapCompilePointCloud)
+
+
+
+WORD(GaussianMap)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(GaussianMap)
+
+WORD(GaussianMap)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(GaussianMap)
+
+WORD(GaussianMap)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(GaussianMap)
+
 WORD()
 virtual void execute(std::shared_ptr<MachineState> ms) {
 }
