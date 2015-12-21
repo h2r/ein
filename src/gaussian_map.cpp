@@ -2261,6 +2261,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(image);
   image = image * 255;
   ms->config.discrepancyWindow->updateImage(image);
+
+  ms->config.discrepancyDensityWindow->updateImage(ms->config.scene->discrepancy_density);
 }
 END_WORD
 REGISTER_WORD(SceneRenderDiscrepancy)
