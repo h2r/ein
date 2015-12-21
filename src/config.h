@@ -296,6 +296,8 @@ typedef struct streamLabel {
   double time;
 } streamLabel;
 
+
+
 #define NOW_THATS_COARSE 0.08
 #define GRID_EVEN_COARSER 0.04
 #define GRID_COARSER 0.02
@@ -551,6 +553,7 @@ class EinConfig {
   EinWindow * stereoViewerWindow;
   EinWindow * backgroundWindow;
   EinWindow * discrepancyWindow;
+  EinWindow * discrepancyDensityWindow;
   EinWindow * observedWindow;
   EinWindow * predictedWindow;
   ArmWidget * armWidget;
@@ -1110,15 +1113,22 @@ class EinConfig {
   int drawBlueKP = 1;
 
   ros::Time lastCameraLogTime;
-  bool cameraFlip;
-  bool cameraMirror;
+  bool observedCameraFlip;
+  bool observedCameraMirror;
+  int observedCameraExposure = -1;
+  int observedCameraGain = -1;
+  int observedCameraWhiteBalanceRed = -1;
+  int observedCameraWhiteBalanceGreen = -1;
+  int observedCameraWhiteBalanceBlue = -1;
+  int observedCameraWindowX = -1;
+  int observedCameraWindowY = -1;
+
   int cameraExposure = -1;
   int cameraGain = -1;
   int cameraWhiteBalanceRed = -1;
   int cameraWhiteBalanceGreen = -1;
   int cameraWhiteBalanceBlue = -1;
-  int cameraWindowX = -1;
-  int cameraWindowY = -1;
+
 
 
   cv_bridge::CvImagePtr cv_ptr = NULL;

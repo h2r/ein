@@ -9,6 +9,7 @@ using namespace boost::filesystem;
 
 namespace ein_words {
 
+
 WORD(SetTargetClass)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   string className;
@@ -1454,29 +1455,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
-
   ms->config.cropUpperLeftCorner.px = 320;
   ms->config.cropUpperLeftCorner.py = 200;
-
-  baxter_core_msgs::OpenCamera ocMessage;
-  ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
-  ocMessage.request.settings.controls.resize(4);
-  ocMessage.request.settings.controls[0].id = 105;
-  ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
-  ocMessage.request.settings.controls[1].id = 106;
-  ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
-  ocMessage.request.settings.controls[2].id = 100;
-  ocMessage.request.settings.controls[2].value = ms->config.cameraExposure;
-  ocMessage.request.settings.controls[3].id = 101;
-  ocMessage.request.settings.controls[3].value = ms->config.cameraGain;
-  ocMessage.request.settings.controls[3].id = 102;
-  ocMessage.request.settings.controls[3].value = ms->config.cameraWhiteBalanceRed;
-  ocMessage.request.settings.controls[3].id = 103;
-  ocMessage.request.settings.controls[3].value = ms->config.cameraWhiteBalanceGreen;
-  ocMessage.request.settings.controls[3].id = 104;
-  ocMessage.request.settings.controls[3].value = ms->config.cameraWhiteBalanceBlue;
-
-  int testResult = ms->config.cameraClient.call(ocMessage);
+  ms->pushWord("moveCropToProperValue");
 }
 END_WORD
 REGISTER_WORD(MoveCropToCenter)
@@ -1491,9 +1472,11 @@ REGISTER_WORD(MoveCropToProperValue)
 
 WORD(MoveCropToProperValueNoUpdate)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "Setting exposure " << ms->config.cameraExposure << " gain: " << ms->config.cameraGain;
+  cout << " wbr: " << ms->config.cameraWhiteBalanceRed << " wbg: " << ms->config.cameraWhiteBalanceGreen << " wbb: " << ms->config.cameraWhiteBalanceBlue << endl;
   baxter_core_msgs::OpenCamera ocMessage;
   ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
-  ocMessage.request.settings.controls.resize(4);
+  ocMessage.request.settings.controls.resize(7);
   ocMessage.request.settings.controls[0].id = 105;
   ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
@@ -1502,12 +1485,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ocMessage.request.settings.controls[2].value = ms->config.cameraExposure;
   ocMessage.request.settings.controls[3].id = 101;
   ocMessage.request.settings.controls[3].value = ms->config.cameraGain;
-  ocMessage.request.settings.controls[3].id = 102;
-  ocMessage.request.settings.controls[3].value = ms->config.cameraWhiteBalanceRed;
-  ocMessage.request.settings.controls[3].id = 103;
-  ocMessage.request.settings.controls[3].value = ms->config.cameraWhiteBalanceGreen;
-  ocMessage.request.settings.controls[3].id = 104;
-  ocMessage.request.settings.controls[3].value = ms->config.cameraWhiteBalanceBlue;
+  ocMessage.request.settings.controls[4].id = 102;
+  ocMessage.request.settings.controls[4].value = ms->config.cameraWhiteBalanceRed;
+  ocMessage.request.settings.controls[5].id = 103;
+  ocMessage.request.settings.controls[5].value = ms->config.cameraWhiteBalanceGreen;
+  ocMessage.request.settings.controls[6].id = 104;
+  ocMessage.request.settings.controls[6].value = ms->config.cameraWhiteBalanceBlue;
 
   int testResult = ms->config.cameraClient.call(ocMessage);
 }
@@ -1519,7 +1502,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   stringstream p;
   p << "subscribeCameraParameterTrackerToRosOut 0.25 waitForSeconds ";
   p << "unFixCameraLightingNoUpdate 0.5 waitForSeconds ";
-  p << "cameraExposure cameraGain cameraWhiteBalanceRed cameraWhiteBalanceGreen cameraWhiteBalanceBlue fixCameraLightingNoUpdate ";
+  p << "observedCameraExposure observedCameraGain observedCameraWhiteBalanceRed observedCameraWhiteBalanceGreen observedCameraWhiteBalanceBlue fixCameraLightingNoUpdate ";
   p << "0.5 waitForSeconds unsubscribeCameraParameterTrackerToRosOut ";
   ms->evaluateProgram(p.str());
 }
@@ -1535,31 +1518,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   GET_ARG(ms, IntegerWord, fiWordVal);
   GET_ARG(ms, IntegerWord, seWordVal);
 
-  {
-    int thisExposure = max(0, min(seWordVal,100));
-    int thisGain = max(0, min(fiWordVal,100));
-    baxter_core_msgs::OpenCamera ocMessage;
-    ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
-    ocMessage.request.settings.controls.resize(4);
-    ocMessage.request.settings.controls[0].id = 105;
-    ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
-    ocMessage.request.settings.controls[1].id = 106;
-    ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
-    ocMessage.request.settings.controls[2].id = 100;
-    ocMessage.request.settings.controls[2].value = thisExposure;
-    ocMessage.request.settings.controls[3].id = 101;
-    ocMessage.request.settings.controls[3].value = thisGain;
-    ocMessage.request.settings.controls[3].id = 102;
-    ocMessage.request.settings.controls[3].value = ms->config.cameraWhiteBalanceRed;
-    ocMessage.request.settings.controls[3].id = 103;
-    ocMessage.request.settings.controls[3].value = ms->config.cameraWhiteBalanceGreen;
-    ocMessage.request.settings.controls[3].id = 104;
-    ocMessage.request.settings.controls[3].value = ms->config.cameraWhiteBalanceBlue;
-    int testResult = ms->config.cameraClient.call(ocMessage);
-
-    cout << "setting camera values, Exposure: " << thisExposure << " Gain: " << thisGain << " testResult: " << testResult << endl;
-  }
-
+  ms->config.cameraExposure = max(0, min(seWordVal,100));
+  ms->config.cameraGain = max(0, min(fiWordVal,100));
+  cout << "setting camera values, Exposure: " << ms->config.cameraExposure << " Gain: " << ms->config.cameraGain << endl;
 }
 END_WORD
 REGISTER_WORD(FixCameraLightingExposureGainNoUpdate)
@@ -1589,31 +1550,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   GET_INT_ARG(ms, gain);
   GET_INT_ARG(ms, exposure);
 
-  {
-    int thisExposure = max(2, min(exposure,100));
-    int thisGain = max(2, min(gain,100));
-    baxter_core_msgs::OpenCamera ocMessage;
-    ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
-    ocMessage.request.settings.controls.resize(4);
-    ocMessage.request.settings.controls[0].id = 105;
-    ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
-    ocMessage.request.settings.controls[1].id = 106;
-    ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
-    ocMessage.request.settings.controls[2].id = 100;
-    ocMessage.request.settings.controls[2].value = thisExposure;
-    ocMessage.request.settings.controls[3].id = 101;
-    ocMessage.request.settings.controls[3].value = thisGain;
-    ocMessage.request.settings.controls[3].id = 102;
-    ocMessage.request.settings.controls[3].value = wbRed;
-    ocMessage.request.settings.controls[3].id = 103;
-    ocMessage.request.settings.controls[3].value = wbGreen;
-    ocMessage.request.settings.controls[3].id = 104;
-    ocMessage.request.settings.controls[3].value = wbBlue;
-    int testResult = ms->config.cameraClient.call(ocMessage);
+  ms->config.cameraGain = gain;
+  ms->config.cameraExposure = exposure;
+  ms->config.cameraWhiteBalanceRed = wbRed;
+  ms->config.cameraWhiteBalanceGreen = wbGreen;
+  ms->config.cameraWhiteBalanceBlue = wbBlue;
 
-    cout << "setting camera values, Exposure: " << thisExposure << " Gain: " << thisGain; 
-    cout << " white balance r: " << wbRed << " g: " << wbGreen << " b: " << wbBlue << " testResult: " << testResult << endl;
-  }
+  ms->pushWord("moveCropToProperValueNoUpdate");
 
 }
 END_WORD
@@ -1644,7 +1587,7 @@ REGISTER_WORD(SubscribeCameraParameterTrackerToRosOut)
 
 WORD(UnsubscribeCameraParameterTrackerToRosOut)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.rosout_sub.shutdown();
+  //ms->config.rosout_sub.shutdown();
 }
 END_WORD
 REGISTER_WORD(UnsubscribeCameraParameterTrackerToRosOut)
@@ -1690,33 +1633,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.vanishingPointReticle.py -= Vy;
 
   cout << "MoveCropToCenterVanishingPoint Vx Vy: " << Vx << " " << Vy << endl;
-
-  baxter_core_msgs::OpenCamera ocMessage;
-  ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
-  ocMessage.request.settings.controls.resize(4);
-  ocMessage.request.settings.controls[0].id = 105;
-  ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
-  ocMessage.request.settings.controls[1].id = 106;
-  ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
-  ocMessage.request.settings.controls[2].id = 100;
-  ocMessage.request.settings.controls[2].value = ms->config.cameraExposure;
-  ocMessage.request.settings.controls[3].id = 101;
-  ocMessage.request.settings.controls[3].value = ms->config.cameraGain;
-  ocMessage.request.settings.controls[3].id = 102;
-  ocMessage.request.settings.controls[3].value = ms->config.cameraWhiteBalanceRed;
-  ocMessage.request.settings.controls[3].id = 103;
-  ocMessage.request.settings.controls[3].value = ms->config.cameraWhiteBalanceGreen;
-  ocMessage.request.settings.controls[3].id = 104;
-  ocMessage.request.settings.controls[3].value = ms->config.cameraWhiteBalanceBlue;
-
-
-
-  int testResult = ms->config.cameraClient.call(ocMessage);
-  //cout << "centerVanishingPoint testResult: " << testResult << endl;
-  //cout << ocMessage.response.name << endl;
-  //cout << ocMessage.response.name << " " << ocMessage.response.settings.controls.size() << endl;
-
-  //cout << "MoveCropToCenterVanishingPoint moving region of interest and vanishing point. Recalibrate vanishing point, height reticles, and magnification factors." << endl;
+  ms->pushWord("moveCropToProperValue");
 }
 END_WORD
 REGISTER_WORD(MoveCropToCenterVanishingPoint)

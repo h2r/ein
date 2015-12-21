@@ -10355,9 +10355,9 @@ void MachineState::rosoutCallback(const rosgraph_msgs::Log & msg) {
 	}
 	//cout << "boolean key: " << key << " value: " << value << endl;
 	if (key == "mirror") {
-	  ms->config.cameraMirror = value;
+	  ms->config.observedCameraMirror = value;
 	} else if (key == "flip") {
-	  ms->config.cameraFlip = value;
+	  ms->config.observedCameraFlip = value;
 	} else {
 	  assert(0);
 	}
@@ -10367,19 +10367,19 @@ void MachineState::rosoutCallback(const rosgraph_msgs::Log & msg) {
 	ss >> std::skipws >>  value;
 	//cout << "key: " << key << " value: " << value << endl;
 	if (key == "exposure") {
-	  ms->config.cameraExposure = value;
+	  ms->config.observedCameraExposure = value;
 	} else if (key == "gain") {
-	  ms->config.cameraGain = value;
+	  ms->config.observedCameraGain = value;
 	} else if (key == "white balance red") {
-	  ms->config.cameraWhiteBalanceRed = value;
+	  ms->config.observedCameraWhiteBalanceRed = value;
 	} else if (key == "white balance green") {
-	  ms->config.cameraWhiteBalanceGreen = value;
+	  ms->config.observedCameraWhiteBalanceGreen = value;
 	} else if (key == "white balance blue") {
-	  ms->config.cameraWhiteBalanceBlue = value;
+	  ms->config.observedCameraWhiteBalanceBlue = value;
 	} else if (key == "window x") {
-	  ms->config.cameraWindowX = value;
+	  ms->config.observedCameraWindowX = value;
 	} else if (key == "window y") {
-	  ms->config.cameraWindowY = value;
+	  ms->config.observedCameraWindowY = value;
 	} else {
 	  // ignoring keys for now for now.
 	}
@@ -14707,6 +14707,11 @@ void initializeArmGui(shared_ptr<MachineState> ms, MainWindow * einMainWindow) {
   ms->config.discrepancyWindow->setWindowTitle("Gaussian Map Discrepancy View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.discrepancyWindow);
   ms->config.discrepancyWindow->setVisible(true);
+
+  ms->config.discrepancyDensityWindow = new EinWindow(NULL, ms);
+  ms->config.discrepancyDensityWindow->setWindowTitle("Gaussian Map Discrepancy Density View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.discrepancyDensityWindow);
+  ms->config.discrepancyDensityWindow->setVisible(true);
 
 
 
