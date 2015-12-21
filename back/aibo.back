@@ -33,6 +33,13 @@ dogBark
   dogFormatImageDefault
 ) "dogSummonElla" store
 
+(
+  1 dogSetPackSize
+  0 dogSetFocusedMember "10.0.1.4" 54000 socketOpen
+  dogMotorsOn
+  dogFormatImageDefault
+) "dogSummonEars" store
+
 
 (
   dogFormatImageDefault
@@ -104,7 +111,7 @@ dogBark
   print
   dup
   0 > (
-    5 > (
+    20 > (
       dogBark
       1.0 dogSetIntendedModeR 
       0.0 dogSetIntendedModeG 

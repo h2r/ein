@@ -122,7 +122,7 @@
   "scene" import tempInit assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition tempShortTakeScene 
   sceneClearPredictedObjects "brush" tempPredictAndRenderFile
   clearMapForPatrol clearBlueBoxMemories tempMapFocusedClass waitUntilAtCurrentPosition setMovementStateToMoving comeToStop tempMapFocusedClass deliverTargetObject
-) "tempLocalizeBrush" store
+) "tempUsefulPhrases" store
   
 (
   "bg1" sceneLoadBackgroundMap 
