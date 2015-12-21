@@ -1,4 +1,4 @@
-"bg_" leftOrRightArm + "bg" store
+robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 ( assumeBeeHome waitUntilAtCurrentPosition 1 changeToHeight
 ) "tempGoHome" store
