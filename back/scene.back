@@ -1,3 +1,5 @@
+( assumeBeeHome waitUntilAtCurrentPosition 1 changeToHeight
+) "tempGoHome" store
 
 ( ( sceneUpdateObservedFromWrist  ( xUp ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXUp" store
 ( ( sceneUpdateObservedFromWrist  ( xDown ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXDown" store
@@ -205,10 +207,10 @@
   clearClassLabels
   setScanModeNotCentered
 
-  endArgs
+  /*endArgs
   currentPose
-  scanObjectStreamWaypoints3dNoPick
-
+  scanObjectStreamWaypoints3dNoPick*/
+  initializeAndFocusOnNewClass
   "tempQuickScanObjectModel" sceneLoadFocusedSceneModel
   writeFocusedClass
 ) "tempQuickScan" store

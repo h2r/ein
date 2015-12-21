@@ -285,21 +285,21 @@ REGISTER_WORD(backName)
 int tfc = ms->config.focusedClass;\
 if ( (tfc > -1) && (tfc < ms->config.classLabels.size()) ) {\
 } else {\
-  ROS_ERROR_STREAM("Invalid focused class, not grabbing..." << endl);\
+  ROS_ERROR_STREAM(this->name() << ": Invalid focused class, not grabbing..." << endl); \
   return;\
 }\
 
 #define REQUIRE_VALID_CLASS(ms, tfc) \
 if ( (tfc > -1) && (tfc < ms->config.classLabels.size()) ) {\
 } else {\
-  ROS_ERROR_STREAM("Invalid focused class, not grabbing..." << endl);\
+  ROS_ERROR_STREAM("Invalid focused class, not grabbing..." << endl); \
   return;\
 }\
 
 #define REQUIRE_VALID_SCENE_OBJECT(ms, tfc) \
 if ( (tfc > -1) && (tfc < ms->config.scene->predicted_objects.size()) ) {\
 } else {\
-  ROS_ERROR_STREAM("Invalid scene object, class, not grabbing..." << endl);\
+  ROS_ERROR_STREAM(this->name() << "Invalid scene object, class, not grabbing..." << endl); \
   return;\
 }\
 
