@@ -2406,7 +2406,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( !positionIsSearched(ms, box.centroid.px, box.centroid.py) || 
        !isBoxMemoryIkPossible(ms, box) ) 
   {
-    cout << "Not mapping box... " << positionIsSearched(ms, box.centroid.px, box.centroid.py) << " " << isBoxMemoryIkPossible(ms, box) << " " << box.cameraPose << endl;
+    cout << "Not mapping box... " << " searched: " << positionIsSearched(ms, box.centroid.px, box.centroid.py) << " ikPossible: " << isBoxMemoryIkPossible(ms, box) << " " << box.cameraPose << endl;
     return;
   } else {
     vector<BoxMemory> newMemories;
