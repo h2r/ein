@@ -1,3 +1,5 @@
+( assumeBeeHome waitUntilAtCurrentPosition 1 changeToHeight
+) "tempGoHome" store
 
 ( ( sceneUpdateObservedFromWrist  ( xUp ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXUp" store
 ( ( sceneUpdateObservedFromWrist  ( xDown ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXDown" store
@@ -30,18 +32,6 @@
 ) "tempSetBackground" store
 
 ( 
-
-  leftOrRightArm "right" =
-  ( 50 20 fixCameraLightingExposureGain )
-  ( 
-  leftOrRightArm "left" = 
-  ( 90 30 fixCameraLightingExposureGain ) 
-  ( "Neither left or right arm." leftOrRighArm pauseStackExecution ) 
-  ifte
-  )
-  ifte
-
-
   "bg1" sceneLoadBackgroundMap 
   3.0 sceneSetBackgroundStdDevY
   3.0 sceneSetBackgroundStdDevColor
@@ -180,6 +170,7 @@
 
 (
   sceneClearObservedMap tempUpdateFivePointThreeWidth "bg1" sceneSaveObservedMap 
+  tempInit
 ) "tempUpdateBg1" store
 
 
@@ -216,10 +207,10 @@
   clearClassLabels
   setScanModeNotCentered
 
-  endArgs
+  /*endArgs
   currentPose
-  scanObjectStreamWaypoints3dNoPick
-
+  scanObjectStreamWaypoints3dNoPick*/
+  initializeAndFocusOnNewClass
   "tempQuickScanObjectModel" sceneLoadFocusedSceneModel
   writeFocusedClass
 ) "tempQuickScan" store

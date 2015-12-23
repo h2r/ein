@@ -5538,6 +5538,14 @@ void loadCalibration(shared_ptr<MachineState> ms, string inFileName) {
     ms->config.gear0offset.z() = *(it++);
     ms->config.gear0offset.w() = *(it++);
   }
+  {
+    ms->config.cameraExposure = (int) fsvI["cameraExposure"];
+    ms->config.cameraGain = (int) fsvI["cameraGain"];
+    ms->config.cameraWhiteBalanceRed = (int) fsvI["cameraWhiteBalanceRed"];
+    ms->config.cameraWhiteBalanceGreen = (int) fsvI["cameraWhiteBalanceGreen"];
+    ms->config.cameraWhiteBalanceBlue = (int) fsvI["cameraWhiteBalanceBlue"];
+
+  }
 
   cout << "done." << endl;
 }
@@ -5640,6 +5648,11 @@ void saveCalibration(shared_ptr<MachineState> ms, string outFileName) {
     << ms->config.gear0offset.z()
     << ms->config.gear0offset.w()
   << "]";
+  fsvO << "cameraExposure" << ms->config.cameraExposure;
+  fsvO << "cameraGain" << ms->config.cameraGain;
+  fsvO << "cameraWhiteBalanceRed" << ms->config.cameraWhiteBalanceRed;
+  fsvO << "cameraWhiteBalanceGreen" << ms->config.cameraWhiteBalanceGreen;
+  fsvO << "cameraWhiteBalanceBlue" << ms->config.cameraWhiteBalanceBlue;
 
   fsvO.release();
   cout << "done." << endl;
@@ -10321,6 +10334,62 @@ void MachineState::einStateCallback(const EinState & msg) {
   cout << "Received state msg." << endl;
 }
 
+void MachineState::rosoutCallback(const rosgraph_msgs::Log & msg) {
+
+  if (msg.name == "/baxter_cams") {
+    shared_ptr<MachineState> ms = this->sharedThis;
+    cout << "Received cam msg." << msg.name << " " << msg.line << " " << msg.msg << endl;
+    size_t loc = msg.msg.find(':');
+
+    if (loc != std::string::npos) {
+      string key = msg.msg.substr(0, loc);
+      string strvalue = msg.msg.substr(loc + 2, msg.msg.length());
+      if (key == "mirror" || key == "flip") {
+	bool value;
+	if (strvalue == "true") {
+	  value = true;
+	} else if (strvalue == "false") {
+	  value = false;
+	} else {
+	  ROS_ERROR_STREAM("Bad message: " << msg);
+	}
+	//cout << "boolean key: " << key << " value: " << value << endl;
+	if (key == "mirror") {
+	  ms->config.observedCameraMirror = value;
+	} else if (key == "flip") {
+	  ms->config.observedCameraFlip = value;
+	} else {
+	  assert(0);
+	}
+      } else {
+	int value;
+	stringstream ss(strvalue);
+	ss >> std::skipws >>  value;
+	//cout << "key: " << key << " value: " << value << endl;
+	if (key == "exposure") {
+	  ms->config.observedCameraExposure = value;
+	} else if (key == "gain") {
+	  ms->config.observedCameraGain = value;
+	} else if (key == "white balance red") {
+	  ms->config.observedCameraWhiteBalanceRed = value;
+	} else if (key == "white balance green") {
+	  ms->config.observedCameraWhiteBalanceGreen = value;
+	} else if (key == "white balance blue") {
+	  ms->config.observedCameraWhiteBalanceBlue = value;
+	} else if (key == "window x") {
+	  ms->config.observedCameraWindowX = value;
+	} else if (key == "window y") {
+	  ms->config.observedCameraWindowY = value;
+	} else {
+	  // ignoring keys for now for now.
+	}
+      }
+
+
+    }
+  }
+}
+
 void MachineState::simulatorCallback(const ros::TimerEvent&) {
 
   shared_ptr<MachineState> ms = this->sharedThis;
@@ -14638,6 +14707,11 @@ void initializeArmGui(shared_ptr<MachineState> ms, MainWindow * einMainWindow) {
   ms->config.discrepancyWindow->setWindowTitle("Gaussian Map Discrepancy View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.discrepancyWindow);
   ms->config.discrepancyWindow->setVisible(true);
+
+  ms->config.discrepancyDensityWindow = new EinWindow(NULL, ms);
+  ms->config.discrepancyDensityWindow->setWindowTitle("Gaussian Map Discrepancy Density View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.discrepancyDensityWindow);
+  ms->config.discrepancyDensityWindow->setVisible(true);
 
 
 

@@ -2262,6 +2262,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(image);
   image = image * 255;
   ms->config.discrepancyWindow->updateImage(image);
+
+  ms->config.discrepancyDensityWindow->updateImage(ms->config.scene->discrepancy_density);
 }
 END_WORD
 REGISTER_WORD(SceneRenderDiscrepancy)
@@ -2270,12 +2272,7 @@ REGISTER_WORD(SceneRenderDiscrepancy)
 
 WORD(SceneGrabDiscrepantCropAsClass)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  int tfc = ms->config.focusedClass;
-  if ( (tfc > -1) && (tfc < ms->config.classLabels.size()) ) {
-  } else {
-    ROS_ERROR_STREAM("Invalid focused class, not grabbing..." << endl);
-    return;
-  }
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
 
   double p_crop_pad = 0.05;
   guardSceneModels(ms);
@@ -2407,7 +2404,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( !positionIsSearched(ms, box.centroid.px, box.centroid.py) || 
        !isBoxMemoryIkPossible(ms, box) ) 
   {
-    cout << "Not mapping box... " << positionIsSearched(ms, box.centroid.px, box.centroid.py) << " " << isBoxMemoryIkPossible(ms, box) << " " << box.cameraPose << endl;
+    cout << "Not mapping box... " << " searched: " << positionIsSearched(ms, box.centroid.px, box.centroid.py) << " ikPossible: " << isBoxMemoryIkPossible(ms, box) << " " << box.cameraPose << endl;
     return;
   } else {
     vector<BoxMemory> newMemories;
