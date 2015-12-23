@@ -6,6 +6,17 @@
 
 namespace ein_words {
 
+WORD(PublishState)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  {
+    EinState state;
+    fillEinStateMsg(ms, &state);
+    ms->config.einPub.publish(state);
+  }
+}
+END_WORD
+REGISTER_WORD(PublishState)
+
 WORD(Drand48)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushData(std::make_shared<DoubleWord>(drand48()));

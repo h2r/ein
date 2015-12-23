@@ -1555,7 +1555,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // camera tracker messages.  So we need a big message buffer to make
   // sure we didn't drop any.
   ros::NodeHandle n("~");
-  ms->config.rosout_sub = n.subscribe("/rosout", 100, &MachineState::rosoutCallback, ms.get());
+  //ms->config.rosout_sub = n.subscribe("/rosout", 100, &MachineState::rosoutCallback, ms.get());
 }
 END_WORD
 REGISTER_WORD(SubscribeCameraParameterTrackerToRosOut)
@@ -1563,7 +1563,7 @@ REGISTER_WORD(SubscribeCameraParameterTrackerToRosOut)
 
 WORD(UnsubscribeCameraParameterTrackerToRosOut)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.rosout_sub.shutdown();
+  //ms->config.rosout_sub.shutdown();
 }
 END_WORD
 REGISTER_WORD(UnsubscribeCameraParameterTrackerToRosOut)
