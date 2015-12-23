@@ -131,6 +131,7 @@ eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
 
 
 void initializeMachine(shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("\"init\" import");
   ms->pushWord("sceneInit"); 
 
   if (ms->config.currentRobotMode != PHYSICAL) {
@@ -162,7 +163,7 @@ void initializeMachine(shared_ptr<MachineState> ms) {
     ms->pushWord("loadGripperMask"); 
     ms->pushWord("initializeConfig");
   }
-  ms->evaluateProgram("\"init\" import");
+
   ms->execute_stack = 1;
 }
 
