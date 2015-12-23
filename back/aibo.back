@@ -166,3 +166,54 @@ dogBark
 ) "baxterTeaseDog" store
 
 
+(
+64 128 times  440 1.0 dogSendToneSin
+128 128 times 440 1.0 1000.0 dogChirp
+
+  128 128 times 440 2.0 1000.0 0.5 dogWarbleSin /* beacon */
+  128 128 1.0 times times 220 2.0 25.0 0.1 dogWarbleSin /* click */
+  128 128 1.0 times times 220 2.0 5.0 0.05 dogWarbleSin /* purr */
+  128 128 2.0 times times 440 2.0 40.0 0.02 dogWarbleSin /* phone */
+  128 128 2.0 times times 880 2.0 40.0 0.02 dogWarbleSin /* modem  */
+  128 128 2.0 times times 1660 2.0 40.0 0.02 dogWarbleSin /* insect */
+
+  128 128 2.0 times times 10000 2.0 200.0 0.2 dogWarbleSin /* throw voice */
+  128 128 2.0 times times 138 5 1 .08 dogWarbleSin /* beats purr */
+  128 128 2.0 times times 500 2 600 .1 dogWarbleSin /* flute vibrato */
+
+128 128 times 440 1.0 20.0 dogChirpSquare /* mule */
+128 128 times 1760 1.0 1600.0 dogChirpSquare /* scanning */
+128 128 890.0 times times 880 8.0 8000 dogChirpSquare /* weird wrapping */
+
+/* suggests that there should be two boundary modes, clip and wrap */
+
+128 128 2.0 times times 422 2 700 .222 dogWarbleSin /* alien distress signal */
+
+120 426 times 110 1.26 50 0.009 dogWarbleSquare /* robotron */
+
+2 "trackLength" store trackLength dogVoiceInit dogVoiceClear 255 255 4 times times 440 0 trackLength 1 0.8 dogVoiceTrackWarble dogVoiceSing
+
+) "dogPurr" store
+
+(
+  0.5 "bp" store 
+  5 "measures" store
+  4 "tsNumerator" store
+  tsNumerator measures bp times times "trackLength" store 
+  trackLength dogVoiceInit 
+  dogVoiceClear 
+
+  /* 16 255 1 times times 440 0 trackLength 1000 bp          "C5 D5 E5 F5 G5 A5 B5 C6 C6 B5 A5 G5 F5 E5 D5 C5" dogVoiceTrackWarbleNotes 
+  16 255 1 times times 440 0 trackLength 10   0.5 bp times  "A4 B4 C5" dogVoiceTrackWarbleNotes */
+
+  16 255 1 times times 440 0 trackLength 10   1 bp times  "A4 B4 C5" dogVoiceTrackWarbleNotes 
+
+  32 255 1 times times 440 0 trackLength 3000 bp 0.5 times          "C5 C5 C5 C5 C5 r G4 G4 C5 A4# A4b A4# A4# a4# a4# r r r r r r" dogVoiceTrackWarbleNotes 
+  8 255 1 times times 440 0 trackLength 3000 bp 1 times          "C5 E5 G5" dogVoiceTrackWarbleNotes 
+
+  16 255 1 times times 220 0 trackLength 3000 bp 0.5 times          "C5 C5 C5 C5 C5 r G4 G4 C5 A4# A4b A4# A4# a4# a4# r r r r r r" dogVoiceTrackWarbleNotes 
+  8 255 1 times times 220 0 trackLength 6000 bp 2 times          "C5 E5 G5" dogVoiceTrackWarbleNotes 
+
+  dogVoiceSing
+) "dogTestSong" store
+
