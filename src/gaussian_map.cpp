@@ -12,6 +12,7 @@ void checkProb(string label, double prob) {
     cout << label << " less than 0: " << prob << endl;
   }
 }
+
 void _GaussianMapChannel::zero() {
   counts = 0.0;
   squaredcounts = 0.0;
@@ -1818,6 +1819,33 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneRenderScene)
+
+WORD(SceneLoadObjectModel)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string object_name;
+  GET_STRING_ARG(ms, object_name);
+  
+  std::stringstream buffer;
+  buffer << "\"" << object_name << "\" sceneLoadScene";
+  ms->evaluateProgram(buffer.str());
+}
+END_WORD
+REGISTER_WORD(SceneLoadObjectModel)
+
+
+
+WORD(SceneLoadFocusedObjectModel)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string object_name;
+  GET_STRING_ARG(ms, object_name);
+  
+  std::stringstream buffer;
+  buffer << "\"" << ms->config.focusedClassLabel << "\" sceneLoadScene";
+  ms->evaluateProgram(buffer.str());
+}
+END_WORD
+REGISTER_WORD(SceneLoadFocusedObjectModel)
+
 
 WORD(SceneLoadScene)
 virtual void execute(std::shared_ptr<MachineState> ms) {
