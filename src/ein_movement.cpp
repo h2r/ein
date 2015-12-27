@@ -1927,4 +1927,16 @@ END_WORD
 REGISTER_WORD(PushCurrentJointAngle)
 
 
+WORD(PushCurrentJointAngles)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<CompoundWord> angles = make_shared<CompoundWord>();
+  for (int i = 0; i < ms->config.currentJointPositions.response.joints[0].position.size(); i++) {
+    angles->pushWord(make_shared<DoubleWord>(ms->config.currentJointPositions.response.joints[0].position[i]));
+  }
+  ms->pushWord(angles);
+}
+END_WORD
+REGISTER_WORD(PushCurrentJointAngles)
+
+
 }
