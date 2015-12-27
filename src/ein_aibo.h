@@ -126,6 +126,9 @@ class EinAiboConfig {
   EinAiboSensors trueSensors;
   Mat snoutImage;
   Mat snoutCamImage;
+
+  double * voice_buffer = NULL;
+  int voice_buffer_size = -1;
 };
 
 

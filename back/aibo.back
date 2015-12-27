@@ -35,7 +35,7 @@ dogBark
 
 (
   1 dogSetPackSize
-  0 dogSetFocusedMember "10.0.1.4" 54000 socketOpen
+  0 dogSetFocusedMember "10.0.1.2" 54000 socketOpen
   dogMotorsOn
   dogFormatImageDefault
 ) "dogSummonEars" store
@@ -165,4 +165,222 @@ dogBark
   ( 1 ) ( frontOfDog moveEeToPoseWord waitUntilAtCurrentPosition 7 waitForSeconds assumeBeeHome 30 waitForSeconds endStackCollapseNoop ) while
 ) "baxterTeaseDog" store
 
+
+(
+64 128 times  440 1.0 dogSendToneSin
+128 128 times 440 1.0 1000.0 dogChirp
+
+  128 128 times 440 2.0 1000.0 0.5 dogWarbleSin /* beacon */
+  128 128 1.0 times times 220 2.0 25.0 0.1 dogWarbleSin /* click */
+  128 128 1.0 times times 220 2.0 5.0 0.05 dogWarbleSin /* purr */
+  128 128 2.0 times times 440 2.0 40.0 0.02 dogWarbleSin /* phone */
+  128 128 2.0 times times 880 2.0 40.0 0.02 dogWarbleSin /* modem  */
+  128 128 2.0 times times 1660 2.0 40.0 0.02 dogWarbleSin /* insect */
+
+  128 128 2.0 times times 10000 2.0 200.0 0.2 dogWarbleSin /* throw voice */
+  128 128 2.0 times times 138 5 1 .08 dogWarbleSin /* beats purr */
+  128 128 2.0 times times 500 2 600 .1 dogWarbleSin /* flute vibrato */
+
+128 128 times 440 1.0 20.0 dogChirpSquare /* mule */
+128 128 times 1760 1.0 1600.0 dogChirpSquare /* scanning */
+128 128 890.0 times times 880 8.0 8000 dogChirpSquare /* weird wrapping */
+
+/* suggests that there should be two boundary modes, clip and wrap */
+
+128 128 2.0 times times 422 2 700 .222 dogWarbleSin /* alien distress signal */
+
+120 426 times 110 1.26 50 0.009 dogWarbleSquare /* robotron */
+
+2 "trackLength" store trackLength dogVoiceInit dogVoiceClear 255 255 4 times times 440 0 trackLength 1 0.8 dogVoiceTrackWarble dogVoiceSing
+
+) "dogPurr" store
+
+(
+  0.5 "bp" store 
+  4 "measures" store
+  4 "tsNumerator" store
+  tsNumerator measures bp times times "trackLength" store 
+  trackLength dogVoiceInit 
+  dogVoiceClear 
+
+  0.5 "adv" store
+
+  /* 16 255 1 times times 440 0 trackLength 1000 bp          0.0 "C5 D5 E5 F5 G5 A5 B5 C6 C6 B5 A5 G5 F5 E5 D5 C5" dogVoiceTrackWarbleNotes 
+  16 255 8 times times 440 0 trackLength 10   0.5 bp times  0.0 "A4 B4 C5" dogVoiceTrackWarbleNotes  */
+
+/*
+  16 255 1 times times 440 0 trackLength 10   1 bp times  0.0 "A4 B4 C5" dogVoiceTrackWarbleNotes 
+
+  32 255 1 times times 440 0 trackLength 3000 bp 0.5 times          0.0 "C5 C5 C5 C5 C5 r G4 G4 C5 A4# A4b A4# A4# a4# a4# r r r r r r" dogVoiceTrackWarbleNotes 
+  8 255 1 times times 440 0 trackLength 3000 bp 1 times          0.0 "C5 E5 G5" dogVoiceTrackWarbleNotes 
+
+  64 255 1 times times 220 0 trackLength 3000 bp 0.5 times          0.0 "C5 C5 C5 C5 C5 r G4 G4 C5 A4# A4b A4# A4# a4# a4# r r r r r r" dogVoiceTrackWarbleNotes 
+  16 255 1 times times 220 0 trackLength 6000 bp 2 times          0.0 "C5 E5 G5" dogVoiceTrackWarbleNotes 
+*/
+
+/*
+  32 255 1 times times 880 0 trackLength 3000 bp 0.5 times          adv "C5 C5 C5 C5 c5 c5 c5 c5 r G4 G4 G4 C5 A4# A4b A4# A4# a4# a4# r r r r r" dogVoiceTrackWarbleNotes 
+  32 255 1 times times 440 0 trackLength 3000 bp 0.5 times          adv "C5 C5 C5 C5 c5 c5 c5 c5 r G4 G4 G4 C5 A4# A4b A4# A4# a4# a4# r r r r r" dogVoiceTrackWarbleNotes 
+*/
+
+  /* 32 255 2 times times 220 0 trackLength 1200 bp 1 times          adv "tC5 tE5 tG5 E5 tC5 tE5 tG5 hE5 hC5 E5 tG5 tE5 tC5 hE5 hG5 E5" dogVoiceTimeTrackWarbleNotes */
+  /* 32 255 2 times times 220 0 trackLength 1200 bp 1 times          adv "C5 E5 G5 E5 C5 E5 G5 E5 C5 E5 G5 E5 C5 E5 G5 E5" dogVoiceTimeTrackWarbleNotes */
+  /* 16 255 1 times times 440 0 trackLength 3000 bp 1 times          adv "C5 E5 G5 E5" dogVoiceTimeTrackWarbleNotes */
+
+/* 
+  32 255 1 times times 880 0 trackLength 3000 bp 0.5 times          0.0 "C5 C5 C5 C5 c5 c5 c5 r G4 G4 r G4 C5 c5 A4# A4b A4# A4# a4# a4# r r r r" dogVoiceTrackWarbleNotes 
+  32 255 1 times times 440 0 trackLength 3000 bp 0.5 times          0.0 "C5 C5 C5 C5 c5 c5 c5 r G4 G4 r G4 G4 C5 c5 A4# A4b A4# A4# a4# a4# r r r r" dogVoiceTrackWarbleNotes 
+  8 255 1 times times 220 0 trackLength 6000 bp 2 times          0.0 "C5 E5 G5 E5" dogVoiceTrackWarbleNotes 
+  8 255 1 times times 440 0 trackLength 3000 bp 1 times          0.0 "C5 E5 G5 E5" dogVoiceTrackWarbleNotes
+*/
+
+
+  1500 "nsigma" store /* 15000 30000 */
+
+/*
+  16 255 1 times times 392 0 trackLength nsigma bp 0.5 times          adv "HC5 HC5 C5 G4 G4 C5 hA4# hA4p A4# A4# A4# A4# A4# hA4# hr r HC5 HC5 C5 A4p A4p C5 hB4 hA4 B4 B4 B4 B4 B4 hB4 hr r" dogVoiceTimeTrackWarbleSinNotes
+  8 255 1 times times 440 0 trackLength nsigma bp 1.0 times          adv "B3p F4 HB4p   A3p E4p HA4p   G3p D4p HG4p    F3 C4 HF4" dogVoiceTimeTrackWarbleSinNotes 
+
+  16 255 1 times times 392 0 trackLength nsigma bp 0.5 times          adv "b3 b3 b3 a2" dogVoiceTimeTrackWarbleSquareNotes
+  8 255 1 times times 440 0 trackLength nsigma bp 1.0 times          adv "B3p F4 HB4p   A3p E4p HA4p   G3p D4p HG4p    F3 C4 HF4" dogVoiceTimeTrackWarbleSquareNotes 
+*/
+
+
+
+  "triangle" "wav" store
+  "triangle" "wav2" store
+
+  8 "vol" store
+
+  /* vol 2 times 255 1 times times 392 0 trackLength nsigma bp 0.5 times          adv wav "A4 hB4 C5 D5 hTE5 D5 E5 G5 hTA5 A5 hTr hTA5 A5 hTr" dogVoiceTetraTrackWarbleNotes */
+
+
+  /* vol 5 times 255 1 times times 440 0 trackLength nsigma bp 1.0 times          adv wav "A3# F3 G3 A3# G3 F3 E3 G3" dogVoiceTetraTrackWarbleNotes */
+
+/*
+Forground
+  vol 5 times 255 1 times times 440 0 trackLength nsigma bp 0.5 times          adv wav "G4 hA4 A4# C5 hTD5 C5 D5 F5 hTG5 G5 hTr hTG5 G5 hTr" dogVoiceTetraTrackWarbleNotes 
+
+*/
+  vol 5 times 255 1 times times 440 0 trackLength nsigma bp 0.5 times          adv wav "G4 hA4 A4# C5 hTD5 C5 D5 F5 hTG5 G5 hTr hTG5 G5 hTr   G4 hA4 A4# C5 hTD5 C5 D5 F5 hTG4 G4 hTr hTG4 G4 hTr" dogVoiceTetraTrackWarbleNotes 
+
+/*
+Bass A wrong
+  vol 5 times 255 1 times times 220 0 trackLength nsigma bp 1.0 times          adv wav "ThhG3 ThhC4 hG4 ThhG3 ThhC4 hG4  ThhC4 ThhG4 hC5 ThhC4 ThhG4 hC5" dogVoiceTetraTrackWarbleNotes 
+Bass A right
+  vol 5 times 255 1 times times 220 0 trackLength nsigma bp 1.0 times          adv wav "ThhG3 ThhD4 hG4 ThhG3 ThhD4 hG4  ThhC4 ThhG4 hC5 ThhC4 ThhG4 hC5" dogVoiceTetraTrackWarbleNotes 
+*/
+  vol 0.75 times 255 1 times times 220 0 trackLength nsigma bp 1.0 times          adv "square" "ThhG3 ThhD4 hG4 ThhG3 ThhD4 hG4  ThhC4 ThhG4 hC5 ThhC4 ThhG4 hC5" dogVoiceTetraTrackWarbleNotes 
+
+
+/*
+Snare 
+*/
+  vol 4 times 255 1 times times 220 0 trackLength 60 bp 1.0 times          adv "sawtooth" "hhG4 hC4 hhG5 hC6 hhr hhr " dogVoiceTetraTrackWarbleNotes 
+
+/*
+  vol 1 times 255 1 times times 440 0 trackLength nsigma bp 1.0 times          adv wav " hhr hhG3 hhD4 hhG4 hhG3 hhD4 hhG4 hhC4 hhG4 hhC5 hhC4 hhG4 " dogVoiceTetraTrackWarbleNotes 
+*/
+  vol 2 times 255 1 times times 440 0 trackLength nsigma bp 0.5 times          adv "sin" "G4 hA4 G4 F4 hTG4 A4 G4 F4 E4 hG4 C4 hE4   hTG4 hE4 C4 E4 G4      " dogVoiceTetraTrackWarbleNotes 
+
+
+  dogVoiceSing
+) "dogTestSong" store
+
+(
+  0.75 "bp" store 
+  4 "measures" store
+  4 "tsNumerator" store
+  tsNumerator measures bp times times "trackLength" store 
+  trackLength dogVoiceInit 
+  dogVoiceClear 
+
+  0.5 "adv" store
+
+  15000 "nsigma" store /* 15000 30000 */
+
+  "triangle" "wav" store
+  "triangle" "wav2" store
+
+  32 "vol" store
+
+  vol 2 times 255 1 times times 392 0 trackLength nsigma bp 0.5 times          adv wav "HC5 HC5 C5 G4 G4 C5 hA4# hA4p A4# A4# A4# A4# A4# hA4# hr r HC5 HC5 C5 A4p A4p C5 hB4 hA4 B4 B4 B4 B4 B4 hB4 hr r" dogVoiceTetraTrackWarbleNotes
+  vol 255 1 times times 440 0 trackLength nsigma bp 1.0 times          adv wav2 "B3p F4 HB4p   A3p E4p HA4p   G3p D4p HG4p    F3 C4 HF4" dogVoiceTetraTrackWarbleNotes 
+
+/*
+  vol 2 times 255 1 times times 392 0 trackLength nsigma bp 0.5 times          adv wav2 "HC5 HC5 C5 G4 G4 C5 hA4# hA4p A4# A4# A4# A4# A4# hA4# hr r HC5 HC5 C5 A4p A4p C5 hB4 hA4 B4 B4 B4 B4 B4 hB4 hr r" dogVoiceTetraTrackWarbleNotes
+  vol 255 1 times times 440 0 trackLength nsigma bp 1.0 times          adv wav2 "B3p F4 HB4p   A3p E4p HA4p   G3p D4p HG4p    F3 C4 HF4" dogVoiceTetraTrackWarbleNotes 
+*/
+
+  dogVoiceSing
+) "dogSongZelda" store
+
+(
+  0.5 "bp" store 
+  4 "measures" store
+  4 "tsNumerator" store
+  tsNumerator measures bp times times "trackLength" store 
+  trackLength dogVoiceInit 
+  dogVoiceClear 
+
+  0.5 "adv" store
+
+  1500 "nsigma" store /* 15000 30000 */
+  "triangle" "wav" store
+  "triangle" "wav2" store
+
+  8 "vol" store
+
+  /* vol 2 times 255 1 times times 392 0 trackLength nsigma bp 0.5 times          adv wav "A4 hB4 C5 D5 hTE5 D5 E5 G5 hTA5 A5 hTr hTA5 A5 hTr" dogVoiceTetraTrackWarbleNotes */
+
+
+  /* vol 5 times 255 1 times times 440 0 trackLength nsigma bp 1.0 times          adv wav "A3# F3 G3 A3# G3 F3 E3 G3" dogVoiceTetraTrackWarbleNotes */
+
+/*
+Forground
+  vol 5 times 255 1 times times 440 0 trackLength nsigma bp 0.5 times          adv wav "G4 hA4 A4# C5 hTD5 C5 D5 F5 hTG5 G5 hTr hTG5 G5 hTr" dogVoiceTetraTrackWarbleNotes 
+
+*/
+  vol 5 times 255 1 times times 440 0 trackLength nsigma bp 0.5 times          adv "triangle" "G4 hA4 A4# C5 hTD5 C5 D5 F5 hTG5 G5 hTr hTG5 G5 hTr   G4 hA4 A4# C5 hTD5 C5 D5 F5 hTG4 G4 hTr hTG4 G4 hTr" dogVoiceTetraTrackWarbleNotes 
+
+/*
+Bass A wrong
+  vol 5 times 255 1 times times 220 0 trackLength nsigma bp 1.0 times          adv wav "ThhG3 ThhC4 hG4 ThhG3 ThhC4 hG4  ThhC4 ThhG4 hC5 ThhC4 ThhG4 hC5" dogVoiceTetraTrackWarbleNotes 
+Bass A right
+  vol 5 times 255 1 times times 220 0 trackLength nsigma bp 1.0 times          adv wav "ThhG3 ThhD4 hG4 ThhG3 ThhD4 hG4  ThhC4 ThhG4 hC5 ThhC4 ThhG4 hC5" dogVoiceTetraTrackWarbleNotes 
+*/
+  vol 0.75 times 255 1 times times 220 0 trackLength nsigma bp 1.0 times          adv "square" "ThhG3 ThhD4 hG4 ThhG3 ThhD4 hG4  ThhC4 ThhG4 hC5 ThhC4 ThhG4 hC5" dogVoiceTetraTrackWarbleNotes 
+
+
+/*
+Snare 
+*/
+  vol 4 times 255 1 times times 220 0 trackLength 60 bp 1.0 times          adv "sawtooth" "hhG4 hC4 hhG5 hC6 hhr hhr " dogVoiceTetraTrackWarbleNotes 
+
+/*
+  vol 1 times 255 1 times times 440 0 trackLength nsigma bp 1.0 times          adv wav " hhr hhG3 hhD4 hhG4 hhG3 hhD4 hhG4 hhC4 hhG4 hhC5 hhC4 hhG4 " dogVoiceTetraTrackWarbleNotes 
+*/
+  vol 1 times 255 1 times times 440 0 trackLength nsigma bp 0.5 times          adv "sin" "G4 hA4 G4 F4 hTG4 A4 G4 F4 E4 hG4 C4 hE4   hTG4 hE4 C4 E4 G4      " dogVoiceTetraTrackWarbleNotes 
+
+
+  dogVoiceSing
+) "dogSongStarTropics" store
+
+(
+  1.25 "bp" store 
+  4 "measures" store
+  4 "tsNumerator" store
+  tsNumerator measures bp times times "trackLength" store 
+  trackLength dogVoiceInit 
+  dogVoiceClear 
+
+  0.0 "adv" store
+  1500 "nsigma" store /* 15000 30000 */
+
+  64 255 1 times times 440 0 trackLength nsigma bp 0.5 times          adv "b4 b4 Hb4 g4 d5 b4 r f5 f5" dogVoiceTimeTrackWarbleSinNotes
+ 
+
+
+  dogVoiceSing
+) "dogTomSong" store
 
