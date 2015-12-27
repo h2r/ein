@@ -858,9 +858,13 @@ double Scene::computeScore() {
 void Scene::measureDiscrepancy() {
   // close to kl-divergence
   // for now this only does rgb
+  int p_count_thresh = 40;
+  int c_enough = 0;
+  int c_total = 0;
   for (int x = 0; x < width; x++) {
     for (int y = 0; y < height; y++) {
-      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
+      if ((predicted_map->refAtCell(x,y)->red.samples > p_count_thresh) && (observed_map->refAtCell(x,y)->red.samples > p_count_thresh)) {
+
 
 /*
 	double rmu_diff = (predicted_map->refAtCell(x,y)->rmu - observed_map->refAtCell(x,y)->rmu);
@@ -928,13 +932,21 @@ void Scene::measureDiscrepancy() {
 
 	//sqrt(discrepancy_magnitude.at<double>(y,x) / 3.0) / 255.0; 
 
+	c_enough++;
+	//cout << " enough ";
+	//cout << predicted_map->refAtCell(x,y)->red.samples << " " << observed_map->refAtCell(x,y)->red.samples << " ";
       } else {
 	discrepancy->refAtCell(x,y)->zero();
-  
 	discrepancy_magnitude.at<double>(y,x) = 0.0;
+      }
+      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
+	c_total++;
+      } else {
       }
     }
   }
+
+  cout << "p_count_thresh: " << p_count_thresh << "   c_enough / c_total: " << c_enough << " / " << c_total << " = " << double(c_enough) / double(c_total) << endl;
 
   double p_density_sigma = 2.0;
   setDiscrepancyDensityFromMagnitude(p_density_sigma);

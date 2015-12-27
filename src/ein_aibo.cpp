@@ -2853,6 +2853,99 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(DogVoiceSing)
 
+void write_little_endian(unsigned int word, int num_bytes, uchar *out) {
+  if (num_bytes > 0) {
+    uchar buf;
+    while( num_bytes > 0 ) {   
+      buf = word & 0xff;
+      *out = buf;
+      out++;
+      num_bytes--;
+      word >>= 8;
+    }
+  } else {}
+}
+
+WORD(DogVoiceToPCM)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+  int tone_samples = ms->pack[this_dog].voice_buffer_size;
+  int tone_length = 2*tone_samples;
+
+  string filename;
+  GET_STRING_ARG(ms, filename);
+
+  stringstream ss;
+  //ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  // 'RIFF'
+  // 4:(overall size - 8 bytes):
+  // 'WAVE'
+  // 'fmt\0'
+  // 4:length of above header:16 
+  // 2:format type, PCM=1:1 
+  // 2:channels:1 
+  // 4:rate:16000 
+  // 4:(sample rate * bits per sample * number of channels) / 8:
+  // 2:(bits per sample * channel)/8:2 
+  // 2:bits per sample:16   
+  // 'data' 
+  // 4:size of data:
+  ss << "RIFF    WAVEfmt                     data    ";
+  string header = ss.str();
+
+  int buf_size = max(int(tone_length + header.size()), int(1 + header.size()));
+  uchar * buf = new uchar[buf_size];
+  sprintf((char*)buf, "%s", header.c_str());
+
+  /*
+  *(int*)(&buf[4]) = buf_size - 8;
+  *(int*)(&buf[16]) = 16;
+  *(uchar*)(&buf[20]) = 1; *(uchar*)(&buf[21]) = 0;
+  *(uchar*)(&buf[22]) = 1; *(uchar*)(&buf[23]) = 0;
+  *(int*)(&buf[24]) = 16000;
+  *(int*)(&buf[28]) = 32000;
+  *(uchar*)(&buf[33]) = 2; *(uchar*)(&buf[34]) = 0;
+  *(uchar*)(&buf[35]) = 16; *(uchar*)(&buf[36]) = 0;
+  *(int*)(&buf[40]) = tone_length;
+  */
+
+  write_little_endian(buf_size-8, 4, &(buf[4])); 
+  write_little_endian(16, 4, &(buf[16])); 
+  write_little_endian(1, 2, &(buf[20])); 
+  write_little_endian(1, 2, &(buf[22])); 
+  write_little_endian(16000, 4, &(buf[24])); 
+  write_little_endian(32000, 4, &(buf[28])); 
+  write_little_endian(2, 2, &(buf[32])); 
+  write_little_endian(16, 2, &(buf[34])); 
+  write_little_endian(tone_length, 4, &(buf[40])); 
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < ms->pack[this_dog].voice_buffer_size; i++) {
+    // clip
+    //currentSample[i] = int16_t( max( double(INT16_MIN), min( ms->pack[this_dog].voice_buffer[i], double(INT16_MAX) ) ) );
+    int16_t val = int16_t( max( double(INT16_MIN), min( ms->pack[this_dog].voice_buffer[i], double(INT16_MAX) ) ) );
+    write_little_endian(val, 2, (uchar*)&(currentSample[i]));
+    //cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  //sendOnDogSocket(ms, this_dog, buf, buf_size);
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/wav/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  stringstream ssf;
+  ssf << ms->config.data_directory + "/wav/" + filename + ".wav";
+
+  FILE *out = fopen(ssf.str().c_str(), "wb");
+  fwrite(buf, 1, buf_size, out);
+  fclose(out);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogVoiceToPCM)
+
 
 
 
