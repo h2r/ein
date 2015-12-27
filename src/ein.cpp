@@ -13283,9 +13283,8 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
 
   {
     guardSceneModels(ms);
-    string scene_model_file_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/sceneModel/model.yml";
     ms->config.class_scene_models[i] = make_shared<Scene>(ms, 3, 3, 0.005);
-    ms->config.class_scene_models[i]->loadFromFile(scene_model_file_path);
+    ms->config.class_scene_models[i]->loadFromFile(sceneModelFile(ms, thisLabelName));
   }
 }
 

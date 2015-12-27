@@ -1509,30 +1509,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(FixCameraLightingToAutomaticParameters)
 
-WORD(FixCameraLightingExposureGainNoUpdate)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "fixCameraLightingExposureGain...";
-
-  int fiWordVal = 0;
-  int seWordVal = 0;
-  GET_ARG(ms, IntegerWord, fiWordVal);
-  GET_ARG(ms, IntegerWord, seWordVal);
-
-  ms->config.cameraExposure = max(0, min(seWordVal,100));
-  ms->config.cameraGain = max(0, min(fiWordVal,100));
-  cout << "setting camera values, Exposure: " << ms->config.cameraExposure << " Gain: " << ms->config.cameraGain << endl;
-}
-END_WORD
-REGISTER_WORD(FixCameraLightingExposureGainNoUpdate)
-
-WORD(FixCameraLightingExposureGain)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->evaluateProgram("subscribeCameraParameterTrackerToRosOut 0.5 waitForSeconds fixCameraLightingExposureGainNoUpdate 0.5 waitForSeconds unsubscribeCameraParameterTrackerToRosOut");
-
-}
-END_WORD
-REGISTER_WORD(FixCameraLightingExposureGain)
-
 
 
 WORD(FixCameraLightingNoUpdate)

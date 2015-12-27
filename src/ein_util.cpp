@@ -274,3 +274,7 @@ bool copyDir(string src, string dest) {
   return true;
 
 }
+
+string sceneModelFile(shared_ptr<MachineState> ms, string label) {
+  return ms->config.data_directory + "/objects/" + label + "/ein/sceneModel/model.yml";
+}
