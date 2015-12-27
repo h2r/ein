@@ -1,6 +1,6 @@
 %YAML:1.0
 savedTime:
-   - 1.4504633247474997e+09
+   - 1.4507279734052119e+09
 currentTableZ:
    - 2.0856713490342138e-01
 cropUpperLeftCorner:
@@ -61,3 +61,8 @@ gear0offset:
    - 2.3000000044703484e-02
    - 1.6722800210118294e-02
    - 0.
+cameraExposure: 100
+cameraGain: 8
+cameraWhiteBalanceRed: 1024
+cameraWhiteBalanceGreen: 1184
+cameraWhiteBalanceBlue: 4063
