@@ -1826,7 +1826,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   GET_STRING_ARG(ms, object_name);
   
   std::stringstream buffer;
-  buffer << "\"" << object_name << "\" sceneLoadScene";
+  buffer << "\"" << sceneModelFile(ms, object_name) << "\" sceneLoadSceneRaw";
   ms->evaluateProgram(buffer.str());
 }
 END_WORD
@@ -1840,11 +1840,23 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   GET_STRING_ARG(ms, object_name);
   
   std::stringstream buffer;
-  buffer << "\"" << ms->config.focusedClassLabel << "\" sceneLoadScene";
+  buffer << "\"" << sceneModelFile(ms, ms->config.focusedClassLabel) << "\" sceneLoadSceneRaw";
   ms->evaluateProgram(buffer.str());
 }
 END_WORD
 REGISTER_WORD(SceneLoadFocusedObjectModel)
+
+WORD(SceneLoadSceneRaw)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string file;
+  GET_STRING_ARG(ms, file);
+  cout << "Loading scene " << file << endl;
+  ms->config.scene->loadFromFile(file);
+  ms->pushWord("sceneRenderScene");
+}
+END_WORD
+REGISTER_WORD(SceneLoadSceneRaw)
+
 
 
 WORD(SceneLoadScene)
