@@ -1474,6 +1474,7 @@ class EinConfig {
   shared_ptr<TransitionTable> transition_table;
   shared_ptr<Scene> scene;
   double sceneMinSigmaSquared = 10;
+  int sceneCellCountThreshold = 20;
   discrepancyModeState discrepancyMode = DISCREPANCY_POINT;
 
   vector<shared_ptr<Scene> > class_scene_models;
