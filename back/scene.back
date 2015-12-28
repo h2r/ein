@@ -37,31 +37,29 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   sceneClearObservedMap sceneClearPredictedObjects 
 ) "tempInit" store
 
+0.05 "scenePredictedMapThresh" store
 
 (
-  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 2 replicateWord 0.1 sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 2 replicateWord scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
 ) "tempShortTakeScene" store
 
 (
-  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 5 replicateWord 0.1 sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 5 replicateWord scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
 ) "tempLongTakeScene" store
+
+(
+  sceneClearObservedMap tempUpdateFivePointThreeWidth scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+) "tempFivePointThreeWidthTakeScene" store
 
 (
   /* takes a string */
   tempLoadAndPrepareFocusedModel tempShortTakeScene scenePredictFocusedObject tempShortTakeScene
 ) "tempPredictAndRenderFile" store
 
-(
-  3.0 sceneSetFocusedSceneStdDevY 
-  3.0 sceneSetFocusedSceneStdDevColor 
-  tempShortTakeScene scenePredictFocusedObject tempShortTakeScene
-) "tempPredictAndRenderFocused" store
 
 (
   /* takes a string */
   sceneLoadFocusedSceneModel 
-  3.0 sceneSetFocusedSceneStdDevY 
-  3.0 sceneSetFocusedSceneStdDevColor 
 ) "tempLoadAndPrepareFocusedModel" store
 
 (
@@ -97,13 +95,13 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempMoveToSceneObject" store
 
 (
-  currentPose
-  tempShortTakeScene
-  sceneClearPredictedObjects tempPredictAndRenderFocused
+
+  tempShortTakeScene tempServoToFocusedSceneObject
+) "tempShortServoToFocusedSceneObject" store
+
+(
+  sceneClearPredictedObjects scenePredictFocusedObject
   0 tempMoveToSceneObject
-  currentPose
-  print 
-  print
 ) "tempServoToFocusedSceneObject" store
 
 (
@@ -130,7 +128,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   tempShortTakeScene
   tempCaptureCore
 
-  tempServoToFocusedSceneObject
+  tempShortServoToFocusedSceneObject
 ) "tempRecaptureServo" store
 
 (
@@ -177,9 +175,8 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   clearClassLabels
   initializeAndFocusOnNewClass
 
-  tempRecaptureServo
-  waitUntilAtCurrentPosition
-  endStackCollapseNoop
+  ( tempRecaptureServo waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord
+
 /*
   tempRecaptureServo
   waitUntilAtCurrentPosition
@@ -195,7 +192,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   tempUpdateObservedFromWristFivePoint
 */
   0.01 setGridSize
-  tempUpdateObservedFromWristFivePoint
+  tempUpdateFivePointThreeWidth
   tempCaptureCore
   "tempQuickScanObjectModel" sceneSaveFocusedSceneModel
 
@@ -257,11 +254,11 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   clearMapForPatrol
 
   lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
-  tempServoToFocusedSceneObject
+  tempShortServoToFocusedSceneObject
   waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
-  tempServoToFocusedSceneObject
+  tempShortServoToFocusedSceneObject
   waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
-  tempServoToFocusedSceneObject
+  tempShortServoToFocusedSceneObject
   waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
   currentPose tempScanBasePZ setEEPosePZ "tempScanBase" store
 
@@ -290,11 +287,11 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 (
   lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
-  tempServoToFocusedSceneObject
+  tempShortServoToFocusedSceneObject
   waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
-  tempServoToFocusedSceneObject
+  tempShortServoToFocusedSceneObject
   waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
-  tempServoToFocusedSceneObject
+  tempShortServoToFocusedSceneObject
   waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
   currentPose tempScanBasePZ setEEPosePZ "tempScanBase" store
 
@@ -303,7 +300,9 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 
 (
-  ( tempServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 4 replicateWord
+  ( tempShortServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord
+
+  tempFivePointThreeWidthTakeScene tempServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
 
   0 sceneMapSceneObject
   recordPreTargetLock
