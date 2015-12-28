@@ -80,6 +80,11 @@ typedef enum {
 } ikMapState;
 
 typedef enum {
+  DISCREPANCY_POINT = 0,
+  DISCREPANCY_DOT = 1,
+} discrepancyModeState;
+
+typedef enum {
   CLEARANCE_DO_NOT_PURSUE = 0,
   CLEARANCE_PURSUE = 1,
   CLEARANCE_SEARCH = 2
@@ -1469,6 +1474,7 @@ class EinConfig {
   shared_ptr<TransitionTable> transition_table;
   shared_ptr<Scene> scene;
   double sceneMinSigmaSquared = 10;
+  discrepancyModeState discrepancyMode = DISCREPANCY_POINT;
 
   vector<shared_ptr<Scene> > class_scene_models;
 }; // config end
