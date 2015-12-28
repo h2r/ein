@@ -82,7 +82,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   
 
   scenePushNumSceneObjects 0 = 
-  ( "tempMoveToSceneObject: no scene objects." print ) 
+  ( pop "tempMoveToSceneObject: no scene objects." print ) 
   ( 
     scenePushSceneObjectPose 
     currentPose 
@@ -97,12 +97,11 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempMoveToSceneObject" store
 
 (
-    currentPose
+  currentPose
   tempShortTakeScene
   sceneClearPredictedObjects tempPredictAndRenderFocused
-    0
-  tempMoveToSceneObject
-    currentPose
+  0 tempMoveToSceneObject
+  currentPose
   print 
   print
 ) "tempServoToFocusedSceneObject" store
