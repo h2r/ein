@@ -866,12 +866,11 @@ double Scene::computeScore() {
 void Scene::measureDiscrepancy() {
   // close to kl-divergence
   // for now this only does rgb
-  int p_count_thresh = 40;
   int c_enough = 0;
   int c_total = 0;
   for (int x = 0; x < width; x++) {
     for (int y = 0; y < height; y++) {
-      if ((predicted_map->refAtCell(x,y)->red.samples > p_count_thresh) && (observed_map->refAtCell(x,y)->red.samples > p_count_thresh)) {
+      if ((predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
 
 
 /*
@@ -963,7 +962,7 @@ void Scene::measureDiscrepancy() {
     }
   }
 
-  cout << "p_count_thresh: " << p_count_thresh << "   c_enough / c_total: " << c_enough << " / " << c_total << " = " << double(c_enough) / double(c_total) << endl;
+  cout << "sceneCellCountThreshold: " << ms->config.sceneCellCountThreshold << "   c_enough / c_total: " << c_enough << " / " << c_total << " = " << double(c_enough) / double(c_total) << endl;
 
   double p_density_sigma = 2.0;
   setDiscrepancyDensityFromMagnitude(p_density_sigma);
@@ -1131,7 +1130,7 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       if (discrepancy_density.at<double>(y,x) != 0) {
-	cout << discrepancy_density.at<double>(y,x) << endl;
+	//cout << discrepancy_density.at<double>(y,x) << endl;
       }
 
       if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (discrepancy_density.at<double>(y,x) > threshold)) {
@@ -2089,9 +2088,9 @@ REGISTER_WORD(ScenePredictFocusedObject)
 
 WORD(SceneInit)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double p_cell_width = 0.005; //0.01;
-  int p_width = 601;
-  int p_height = 601;
+  double p_cell_width = 0.0025; //0.01;
+  int p_width = 1001;
+  int p_height = 1001;
   ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
   ms->pushWord("sceneRenderScene");
 }
