@@ -1865,9 +1865,6 @@ REGISTER_WORD(SceneLoadObjectModel)
 
 WORD(SceneLoadFocusedObjectModel)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  string object_name;
-  GET_STRING_ARG(ms, object_name);
-  
   std::stringstream buffer;
   buffer << "\"" << sceneModelFile(ms, ms->config.focusedClassLabel) << "\" sceneLoadSceneRaw";
   ms->evaluateProgram(buffer.str());
