@@ -79,18 +79,21 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   /* takes a scene object idx */
   1 changeToHeight
 
-  scenePushNumSceneObjects print
+  
 
-	scenePushSceneObjectPose 
-	  currentPose 
-	eePosePZ  
+  scenePushNumSceneObjects 0 = 
+  ( "tempMoveToSceneObject: no scene objects." print ) 
+  ( 
+    scenePushSceneObjectPose 
+    currentPose 
+      eePosePZ  
       setEEPosePZ 
       0 0 0 0 1.0 0 0 createEEPose 
       swap
     eePoseApplyRelativePoseTo 
-
-  moveEeToPoseWord
-
+    moveEeToPoseWord
+  )
+  ifte
 ) "tempMoveToSceneObject" store
 
 (
