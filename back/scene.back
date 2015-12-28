@@ -218,6 +218,49 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempQuickScan" store
 
 (
+  zeroGOff
+  setPlaceModeToHold setIdleModeToEmpty setBoundingBoxModeToMapping
+  tenthImpulse 1 changeToHeight shiftIntoGraspGear1 waitUntilAtCurrentPosition
+
+  clearClassLabels
+  initializeAndFocusOnNewClass
+
+  tempRecaptureServo
+  waitUntilAtCurrentPosition
+  endStackCollapseNoop
+/*
+  tempRecaptureServo
+  waitUntilAtCurrentPosition
+  tempRecaptureServo
+  waitUntilAtCurrentPosition
+*/
+
+  sceneClearObservedMap sceneClearPredictedObjects 
+/* it appears to be somewhat important that the observed frames be contained within the background, else discrepancy creeps at the boundary
+  0.07 setGridSize
+  tempUpdateObservedFromWristFivePoint
+*/
+  0.03 setGridSize
+  tempUpdateObservedFromWristFivePoint
+  0.01 setGridSize
+  tempUpdateObservedFromWristFivePoint
+  tempCaptureCore
+  "tempQuickScanObjectModel" sceneSaveFocusedSceneModel
+
+  clearClassLabels
+  setScanModeNotCentered
+
+  endArgs
+  currentPose
+  scanObjectStreamWaypoints3dNoPick
+/*
+  initializeAndFocusOnNewClass
+*/
+  "tempQuickScanObjectModel" sceneLoadFocusedSceneModel
+  writeFocusedClass
+) "tempFullScan" store
+
+(
   clearMapForPatrol
 
   lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
@@ -239,6 +282,18 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   tempScanNewGrasp add3dGraspPoseWord
   writeFocusedClass
 ) "tempAddBarGrasp" store
+
+(
+  0 sceneMapSceneObject
+  recordPreTargetLock
+  /* prepareForGraspFromMemory */
+  recordPostTargetLock
+  publishRecognizedObjectArrayFromBlueBoxMemory
+
+  setGraspModeTo3D
+
+  deliverTargetObject
+) "tempPickWithAddedGrasp" store
 
 (
   lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
@@ -270,7 +325,6 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
   clearMapForPatrol clearBlueBoxMemories tempMapFocusedClass waitUntilAtCurrentPosition setMovementStateToMoving comeToStop tempMapFocusedClass deliverTargetObject
 ) "tempMapAndPick" store
-
 
 
 
