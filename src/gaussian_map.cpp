@@ -48,10 +48,12 @@ double computeLogLikelihood(GaussianMapChannel & channel1, GaussianMapChannel & 
   double result = term1 + term2; 
   return result;
 }
-void computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * channel_term_out) {
-  double ip_normalizer = 0.0;				       
-  double newsigmasquared = 1 / (1 / channel1.sigmasquared + 1 / channel2.sigmasquared); 
-  double newmu = newsigmasquared * (channel1.mu / channel1.sigmasquared + channel2.mu / channel2.sigmasquared); 
+void computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * likelihood, double * channel_term_out) {
+  double ip_normalizer = 0.0;
+  double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
+  double safesigmasquared2 = safeSigmaSquared(channel1.sigmasquared);
+  double newsigmasquared = 1.0 / (1.0 / safesigmasquared1 + 1.0 / safesigmasquared2); 
+  double newmu = newsigmasquared * (channel1.mu / safesigmasquared1 + channel2.mu / safesigmasquared2); 
   for (int i = 0; i < 256; i++) {
     ip_normalizer += normal_pdf(newmu, sqrt(newsigmasquared), i);
   }
@@ -61,12 +63,12 @@ void computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & cha
   *(channel_term_out) = channel_term;
 */
 
-  double ip_val = exp(  -0.5*pow(channel1.mu-channel2.mu, 2)/( channel1.sigmasquared + channel2.sigmasquared )  ) / sqrt( 2.0*M_PI*(channel1.sigmasquared + channel2.sigmasquared) ); 
-  double likelihood = ip_normalizer * ip_val;
+  double ip_val = exp(  -0.5*pow(channel1.mu-channel2.mu, 2)/( safesigmasquared1 + safesigmasquared2 )  ) / sqrt( 2.0*M_PI*(safesigmasquared1 + safesigmasquared2) ); 
+  *likelihood = ip_normalizer * ip_val;
   double prior = 0.5;
-  double nb_normalizer = likelihood * prior +  (1.0/256.0) * (1 - prior);
+  double nb_normalizer = *likelihood * prior +  (1.0/256.0) * (1 - prior);
 
-  *(channel_term_out) = likelihood * prior / nb_normalizer; 
+  *(channel_term_out) = *likelihood * prior / nb_normalizer; 
 }
 
 void _GaussianMapChannel::multS(double scalar) {
@@ -114,33 +116,37 @@ void GaussianMap::addM(shared_ptr<GaussianMap> map) {
 } 
 
 double _GaussianMapCell::innerProduct(_GaussianMapCell * other, double * rterm_out, double * gterm_out, double * bterm_out) {
-  computeInnerProduct(red, other->red, rterm_out);
-  computeInnerProduct(green, other->green, gterm_out);
-  computeInnerProduct(blue, other->blue, bterm_out);
-  return *rterm_out * *bterm_out * *gterm_out;
+  double rlikelihood, glikelihood, blikelihood;
+  computeInnerProduct(red, other->red, &rlikelihood, rterm_out);
+  computeInnerProduct(green, other->green, &glikelihood, gterm_out);
+  computeInnerProduct(blue, other->blue, &blikelihood, bterm_out);
+  return normalizeDiscrepancy(rlikelihood, glikelihood, blikelihood);
+
 }
 
+void computePointDiscrepancy(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * likelihood, double * channel_term_normalized) {
+  double safesigmasquared = safeSigmaSquared(channel1.sigmasquared);
+  *likelihood = normal_pdf(channel1.mu, sqrt(safesigmasquared), channel2.mu);
 
-void computePointDiscrepancy(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * channel_term_out) {
-  double likelihood = normal_pdf(channel1.mu, sqrt(channel1.sigmasquared), channel2.mu);
   double prior = 0.5;
-  double normalizer = likelihood * prior +  (1.0/256.0) * (1 - prior);
-  *channel_term_out = likelihood * prior / normalizer;
+  double normalizer = *likelihood * prior +  (1.0/256.0) * (1 - prior);
+  *channel_term_normalized = *likelihood * prior / normalizer;
 }
+
 double _GaussianMapCell::pointDiscrepancy(_GaussianMapCell * other, double * rterm_out, double * gterm_out, double * bterm_out) {
-  computePointDiscrepancy(red, other->red, rterm_out);
-  computePointDiscrepancy(green, other->green, gterm_out);
-  computePointDiscrepancy(blue, other->blue, bterm_out);
+  double rlikelihood, glikelihood, blikelihood;
+  computePointDiscrepancy(red, other->red, &rlikelihood, rterm_out);
+  computePointDiscrepancy(green, other->green, &glikelihood, gterm_out);
+  computePointDiscrepancy(blue, other->blue, &blikelihood, bterm_out);
+  return normalizeDiscrepancy(rlikelihood, glikelihood, blikelihood);
+}
+
+double _GaussianMapCell::normalizeDiscrepancy(double rlikelihood,  double glikelihood, double blikelihood) {
+
   //return *rterm_out * *bterm_out * *gterm_out;
   double prior = 0.5;
 
-  double redsafesigmasquared = safeSigmaSquared(red.sigmasquared);
-  double greensafesigmasquared = safeSigmaSquared(green.sigmasquared);
-  double bluesafesigmasquared = safeSigmaSquared(blue.sigmasquared);
 
-  double rlikelihood = normal_pdf(red.mu, sqrt(redsafesigmasquared), other->red.mu);
-  double glikelihood = normal_pdf(green.mu, sqrt(greensafesigmasquared), other->green.mu);
-  double blikelihood = normal_pdf(blue.mu, sqrt(bluesafesigmasquared), other->blue.mu);
 
   double likelihood = rlikelihood * glikelihood * blikelihood;
 
@@ -150,13 +156,13 @@ double _GaussianMapCell::pointDiscrepancy(_GaussianMapCell * other, double * rte
     cout << "b: " << blikelihood << endl;
 
     if (std::isnan(rlikelihood)) {
-      cout << "rmu: " << red.mu << " sigma: " << red.sigmasquared << " other: " << other->red.mu << endl;
+      cout << "rmu: " << red.mu << " sigma: " << red.sigmasquared << " rlikelihood: " << rlikelihood << endl;
     }
     if (std::isnan(glikelihood)) {
-      cout << "gmu: " << green.mu << " sigma: " << green.sigmasquared << " other: " << other->green.mu << endl;
+      cout << "gmu: " << green.mu << " sigma: " << green.sigmasquared << " glikelihood: " << glikelihood << endl;
     }
     if (std::isnan(blikelihood)) {
-      cout << "bmu: " << blue.mu << " sigma: " << blue.sigmasquared << " other: " << other->blue.mu << endl;
+      cout << "bmu: " << blue.mu << " sigma: " << blue.sigmasquared << " blikelihood: " << blikelihood << endl;
     }
   }
 
@@ -164,6 +170,8 @@ double _GaussianMapCell::pointDiscrepancy(_GaussianMapCell * other, double * rte
   assert(normalizer != 0);
   return likelihood * prior / normalizer;
 }
+
+
 
 
 
@@ -892,8 +900,17 @@ void Scene::measureDiscrepancy() {
 	// XXX investigate inner product performance
 	//double total_discrepancy = predicted_map->refAtCell(x,y)->innerProduct(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
 	//double total_discrepancy = predicted_map->refAtCell(x,y)->pointDiscrepancy(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
+	double discrepancy_value;
+	if (ms->config.discrepancyMode == DISCREPANCY_POINT) {
+	  discrepancy_value = predicted_map->refAtCell(x,y)->pointDiscrepancy(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
+	} else if (ms->config.discrepancyMode == DISCREPANCY_DOT) {
+	  discrepancy_value = predicted_map->refAtCell(x,y)->innerProduct(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
+	} else {
+	  cout << "Invalid discrepancy mode: " << ms->config.discrepancyMode << endl;
+	  assert(0);
+	}
 
-	double point_discrepancy = predicted_map->refAtCell(x,y)->pointDiscrepancy(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
+	//double point_discrepancy = predicted_map->refAtCell(x,y)->pointDiscrepancy(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
 	//predicted_map->refAtCell(x,y)->innerProduct(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
 	double total_discrepancy = 0.0;
 
@@ -912,7 +929,7 @@ void Scene::measureDiscrepancy() {
 	discrepancy->refAtCell(x,y)->blue.sigmasquared = 0;
   
 	//total_discrepancy = discrepancy->refAtCell(x,y)->red.mu * discrepancy->refAtCell(x,y)->green.mu * discrepancy->refAtCell(x,y)->blue.mu;
-	total_discrepancy = 1.0 - point_discrepancy;
+	total_discrepancy = 1.0 - discrepancy_value;
 	if (std::isnan((double) total_discrepancy)) {
 	  cout << "Total discrepancy is nan. " << total_discrepancy << endl;
 	  total_discrepancy = 0.0;
@@ -2510,6 +2527,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(EePoseApplyRelativePoseTo)
+
+
+
+WORD(SceneSetDiscrepancyModeDot)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.discrepancyMode = DISCREPANCY_DOT;
+}
+END_WORD
+REGISTER_WORD(SceneSetDiscrepancyModeDot)
+
+WORD(SceneSetDiscrepancyModePoint)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.discrepancyMode = DISCREPANCY_POINT;
+}
+END_WORD
+REGISTER_WORD(SceneSetDiscrepancyModePoint)
+
+
 
 
 /* 
