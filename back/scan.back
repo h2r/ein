@@ -33,6 +33,7 @@ workspace4 "outputPileWorkspace" store
 "wiki" import
 
 "clearWorkspace" import
+"scene" import
 
 (
   70 30 fixCameraLightingExposureGain
@@ -219,6 +220,8 @@ workspace4 "outputPileWorkspace" store
 ) "scan_findNewComponent" store
 
 (
+  playWorkspace moveEeToPoseWord 
+  tempUpdateBg
   playWorkspace cw_clearWorkspace
   openGripper waitUntilGripperNotMoving
   ">>>> entering pickFromInputPile <<<<" print
