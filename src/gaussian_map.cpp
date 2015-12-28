@@ -2328,6 +2328,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   image = image * 255;
   ms->config.discrepancyWindow->updateImage(image);
 
+  Mat densityImage = ms->config.scene->discrepancy_density.clone();
+
+  for (int x = 0; x < ms->config.scene->width; x++) {
+    for (int y = 0; y < ms->config.scene->height; y++) {
+      if ((ms->config.scene->predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
+      } else {
+	densityImage.at<double>(y, x) = 0;
+      }
+    }
+  }
+
+  
   ms->config.discrepancyDensityWindow->updateImage(ms->config.scene->discrepancy_density);
 }
 END_WORD
