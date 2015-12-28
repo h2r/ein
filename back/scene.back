@@ -309,6 +309,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempMapFocusedClass" store
 
 (
+  openGripper waitUntilGripperNotMoving
   setGraspModeTo3D
   setIdleModeToEmpty
   setPlaceModeToShake
