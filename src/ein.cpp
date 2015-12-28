@@ -4020,7 +4020,9 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
     cout << "ik_reset_counter, ik_reset_thresh: " << ms->config.ik_reset_counter << " " << ms->config.ik_reset_thresh << endl;
     if (ms->config.ik_reset_counter > ms->config.ik_reset_thresh) {
       ms->config.ik_reset_counter = 0;
-      ms->config.currentEEPose = ms->config.ik_reset_eePose;
+      //ms->config.currentEEPose = ms->config.ik_reset_eePose;
+      cout << "  reset pose disabled! setting current position to true position." << endl;
+      ms->config.currentEEPose = ms->config.trueEEPoseEEPose;
       //ms->pushWord("pauseStackExecution"); // pause stack execution
       cout << "  pausing disabled!" << endl;
       ms->pushCopies("beep", 15); // beep
