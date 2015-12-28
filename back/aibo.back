@@ -283,8 +283,9 @@ Snare
 */
   vol 2 times 255 1 times times 440 0 trackLength nsigma bp 0.5 times          adv "sin" "G4 hA4 G4 F4 hTG4 A4 G4 F4 E4 hG4 C4 hE4   hTG4 hE4 C4 E4 G4      " dogVoiceTetraTrackWarbleNotes 
 
+  "test" dogVoiceToPCM
 
-  dogVoiceSing
+  /* dogVoiceSing */
 ) "dogTestSong" store
 
 (
