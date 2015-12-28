@@ -535,14 +535,14 @@ void GaussianMap::rgbMuToMat(Mat& out) {
   out = big;
 }
 
-void GaussianMap::rgbDiscrepancyMuToMat(Mat& out) {
+void GaussianMap::rgbDiscrepancyMuToMat(shared_ptr<MachineState> ms, Mat& out) {
   //out = Mat(height, width, CV_64FC3);
   out = Mat(height, width, CV_8UC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<Vec3b>(y,x)[0] = refAtCell(x,y)->blue.mu;
-      out.at<Vec3b>(y,x)[1] = refAtCell(x,y)->green.mu;
-      out.at<Vec3b>(y,x)[2] = refAtCell(x,y)->red.mu;
+      out.at<Vec3b>(y,x)[0] = uchar(refAtCell(x,y)->blue.mu * 255);
+      out.at<Vec3b>(y,x)[1] = uchar(refAtCell(x,y)->green.mu * 255);
+      out.at<Vec3b>(y,x)[2] = uchar(refAtCell(x,y)->red.mu * 255); 
     }
   }
 }
@@ -2134,8 +2134,8 @@ REGISTER_WORD(ScenePredictFocusedObject)
 WORD(SceneInit)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double p_cell_width = 0.0025; //0.01;
-  int p_width = 1001;
-  int p_height = 1001;
+  int p_width = 1001; // 601;
+  int p_height = 1001; // 601;
   ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
   ms->pushWord("sceneRenderScene");
 }
@@ -2369,10 +2369,21 @@ REGISTER_WORD(SceneUpdateDiscrepancy)
 WORD(SceneRenderDiscrepancy)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   Mat image;
-  ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(image);
-  image = image * 255;
+  ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(ms, image);
   ms->config.discrepancyWindow->updateImage(image);
 
+  Mat densityImage = ms->config.scene->discrepancy_density.clone();
+
+  for (int x = 0; x < ms->config.scene->width; x++) {
+    for (int y = 0; y < ms->config.scene->height; y++) {
+      if ((ms->config.scene->predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
+      } else {
+	densityImage.at<double>(y, x) = 0;
+      }
+    }
+  }
+
+  
   ms->config.discrepancyDensityWindow->updateImage(ms->config.scene->discrepancy_density);
 }
 END_WORD
