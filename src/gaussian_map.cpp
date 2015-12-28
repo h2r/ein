@@ -1212,14 +1212,13 @@ void Scene::proposeRegion() {
 void Scene::proposeObject() {
 }
 
-// XXX 
-void Scene::tryToAddObjectToScene(int class_idx) {
+void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_score, int * l_max_i) {
   REQUIRE_VALID_CLASS(ms,class_idx);
   guardSceneModels(ms);
 
   vector<Mat> rotated_object_imgs;
   int numScales = 1;//11;
-  int numOrientations = 37;
+  int numOrientations = num_orientations;
   double scaleStepSize = 1.02;
   int etaS = 0;
 
@@ -1276,7 +1275,7 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   int max_x = -1;
   int max_y = -1;
   int max_orient = -1;
-  double max_score = -1;
+  int max_score = -1;
 
 
   vector<SceneObjectScore> local_scores;
@@ -1424,11 +1423,11 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   cout << max_x << " " << max_y << " " << max_orient << " " << max_x_meters << " " << max_y_meters << " " << max_theta << endl << "max_score: " << max_score << endl;
 
   int p_to_check = 40;
-  double l_max_x = -1;
-  double l_max_y = -1;
-  double l_max_score = -DBL_MAX;
-  double l_max_orient = -1;
-  int l_max_i = -1;
+  *l_max_x = -1;
+  *l_max_y = -1;
+  *l_max_score = -DBL_MAX;
+  *l_max_orient = -1;
+  *l_max_i = -1;
   std::sort (local_scores.begin(), local_scores.end(), compareDiscrepancyDescending);
   int to_check = min( int(p_to_check), int(local_scores.size()) );
   for (int i = 0; i < to_check; i++) {
@@ -1441,17 +1440,32 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   }
 
   for (int i = 0; i < local_scores.size(); i++) {
-    if ( (local_scores[i].loglikelihood_valid) && (local_scores[i].loglikelihood_score > l_max_score) ) {
-      cout << " score " << local_scores[i].loglikelihood_score << " l_max_score " << l_max_score << endl;
-      l_max_score = local_scores[i].loglikelihood_score;
-      l_max_x = local_scores[i].x_c;
-      l_max_y = local_scores[i].y_c;
-      l_max_orient = local_scores[i].orient_i;
-      l_max_i = i;
+    if ( (local_scores[i].loglikelihood_valid) && (local_scores[i].loglikelihood_score > *l_max_score) ) {
+      cout << " score " << local_scores[i].loglikelihood_score << " l_max_score " << *l_max_score << endl;
+      *l_max_score = local_scores[i].loglikelihood_score;
+      *l_max_x = local_scores[i].x_c;
+      *l_max_y = local_scores[i].y_c;
+      *l_max_orient = local_scores[i].orient_i;
+      *l_max_i = i;
     }
   }
+}
 
-  double l_max_theta = -l_max_orient * 2.0 * M_PI / numOrientations;
+void Scene::tryToAddObjectToScene(int class_idx) {
+  REQUIRE_VALID_CLASS(ms,class_idx);
+  guardSceneModels(ms);
+
+  int num_orientations = 37;
+
+  int l_max_x = -1;
+  int l_max_y = -1;
+  int l_max_orient = -1;
+  double l_max_score = -1;
+  int l_max_i = -1;
+
+  findBestScoreForObject(class_idx, num_orientations, &l_max_x, &l_max_y, &l_max_orient, &l_max_score, &l_max_i);
+
+  double l_max_theta = -l_max_orient * 2.0 * M_PI / num_orientations;
   double l_max_x_meters, l_max_y_meters;
   cellToMeters(l_max_x, l_max_y, &l_max_x_meters, &l_max_y_meters);
   cout << "  loglikelihood says: " << endl;
@@ -1483,6 +1497,37 @@ void Scene::tryToAddObjectToScene(int class_idx) {
     }
   } else {
     cout << "Did not find a valid cell... not adding object." << endl;
+  }
+}
+
+void Scene::findBestObjectAndScore(int * class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_score, int * l_max_i) {
+  guardSceneModels(ms);
+
+  *l_max_x = -1;
+  *l_max_y = -1;
+  *l_max_orient = -1;
+  *l_max_score = -1;
+  *l_max_i = -1;
+
+  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+    int j_max_x = -1;
+    int j_max_y = -1;
+    int j_max_orient = -1;
+    double j_max_score = -1;
+    int j_max_i = -1;
+
+    findBestScoreForObject(j, num_orientations, &j_max_x, &j_max_y, &j_max_orient, &j_max_score, &j_max_i);
+    if (j_max_score > *l_max_score) {
+      *l_max_score = j_max_score;
+      *l_max_x = j_max_x;
+      *l_max_y = j_max_y;
+      *l_max_orient = j_max_orient;
+      *l_max_i = j_max_i;
+
+      cout << "  findBestObjectAndScore, class " << j << " " << ms->config.classLabels[j] << " : " << endl;
+      cout << l_max_x << " " << l_max_y << " " << *l_max_orient << " " << "l_max_score: " << *l_max_score << " l_max_i: " << *l_max_i << endl;
+    } else {
+    }
   }
 }
 
