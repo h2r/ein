@@ -79,7 +79,7 @@ class GaussianMap {
   void writeCells(FileStorage & fsvO);
   void recalculateMusAndSigmas(shared_ptr<MachineState> ms);
 
-  void rgbDiscrepancyMuToMat(Mat& out);
+  void rgbDiscrepancyMuToMat(shared_ptr<MachineState> ms, Mat& out);
   void rgbMuToMat(Mat& out);
   void rgbSigmaSquaredToMat(Mat& out);
   void rgbCountsToMat(Mat& out);

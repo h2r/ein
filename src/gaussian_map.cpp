@@ -535,14 +535,14 @@ void GaussianMap::rgbMuToMat(Mat& out) {
   out = big;
 }
 
-void GaussianMap::rgbDiscrepancyMuToMat(Mat& out) {
+void GaussianMap::rgbDiscrepancyMuToMat(shared_ptr<MachineState> ms, Mat& out) {
   //out = Mat(height, width, CV_64FC3);
   out = Mat(height, width, CV_8UC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       out.at<Vec3b>(y,x)[0] = refAtCell(x,y)->blue.mu;
       out.at<Vec3b>(y,x)[1] = refAtCell(x,y)->green.mu;
-      out.at<Vec3b>(y,x)[2] = refAtCell(x,y)->red.mu;
+      out.at<Vec3b>(y,x)[2] = refAtCell(x,y)->red.mu;      
     }
   }
 }
@@ -2089,8 +2089,8 @@ REGISTER_WORD(ScenePredictFocusedObject)
 WORD(SceneInit)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double p_cell_width = 0.0025; //0.01;
-  int p_width = 1001;
-  int p_height = 1001;
+  int p_width = 1001; // 601;
+  int p_height = 1001; // 601;
   ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
   ms->pushWord("sceneRenderScene");
 }
@@ -2324,7 +2324,7 @@ REGISTER_WORD(SceneUpdateDiscrepancy)
 WORD(SceneRenderDiscrepancy)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   Mat image;
-  ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(image);
+  ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(ms, image);
   image = image * 255;
   ms->config.discrepancyWindow->updateImage(image);
 
