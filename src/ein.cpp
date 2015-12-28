@@ -2772,7 +2772,7 @@ void MachineState::placeObjectInEndEffectorCommandCallback(const std_msgs::Empty
 
 void MachineState::forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
   shared_ptr<MachineState> ms = this->sharedThis;
-  ROS_INFO_STREAM("Received " << ms->config.forthCommand << endl);
+  cout << "Received " << ms->config.forthCommand << endl;
   ms->config.forthCommand = msg->data;
   evaluateProgram(msg->data);
 
