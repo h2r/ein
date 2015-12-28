@@ -30,4 +30,4 @@ oomdp/bin
 
 default/objects/*/raw/*
 default/objects/*/ein/detectionCrops/
-back/practice.back
+*.svz

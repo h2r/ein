@@ -30,13 +30,9 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 
 ( 
-  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 10 replicateWord bg sceneSaveObservedMap bg sceneLoadBackgroundMap 
-) "tempSetBackground" store
-
-( 
   bg sceneLoadBackgroundMap 
   10.0 sceneSetBackgroundStdDevY
-  3.0 sceneSetBackgroundStdDevColor
+  10.0 sceneSetBackgroundStdDevColor
   sceneClearObservedMap sceneClearPredictedObjects 
 ) "tempInit" store
 
@@ -127,15 +123,9 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempUsefulPhrases" store
   
 (
-  bg sceneLoadBackgroundMap 
-  3.0 sceneSetBackgroundStdDevY
-  3.0 sceneSetBackgroundStdDevColor
-
   sceneClearPredictedObjects
   tempShortTakeScene
   tempCaptureCore
-
-  bg sceneLoadBackgroundMap 
 
   tempServoToFocusedSceneObject
 ) "tempRecaptureServo" store
