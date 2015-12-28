@@ -300,7 +300,8 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 
 (
-  tempServoToFocusedSceneObject
+  ( tempServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord
+
   0 sceneMapSceneObject
   recordPreTargetLock
   /* prepareForGraspFromMemory */
@@ -314,7 +315,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   setIdleModeToEmpty
   setPlaceModeToShake
 
-  clearMapForPatrol clearBlueBoxMemories tempMapFocusedClass waitUntilAtCurrentPosition setMovementStateToMoving comeToStop tempMapFocusedClass deliverTargetObject
+  clearMapForPatrol clearBlueBoxMemories tempMapFocusedClass deliverTargetObject
 ) "tempMapAndPick" store
 
 
