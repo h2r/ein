@@ -36,7 +36,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ( 
   bg sceneLoadBackgroundMap 
   10.0 sceneSetBackgroundStdDevY
-  3.0 sceneSetBackgroundStdDevColor
+  10.0 sceneSetBackgroundStdDevColor
   sceneClearObservedMap sceneClearPredictedObjects 
 ) "tempInit" store
 
