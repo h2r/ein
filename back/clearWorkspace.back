@@ -1,3 +1,5 @@
+"scene" import
+
 (
   { noop 1 2 3 4 5 6 print print print print print print } "test1" store { noop a b c d e f print print print print print print } "test2" store
   test1 "test1" store test2 "test2" store
