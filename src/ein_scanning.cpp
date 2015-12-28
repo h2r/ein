@@ -258,6 +258,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
       ms->config.classPoseModels.push_back("B");
     }
     ms->config.numClasses = ms->config.classLabels.size();
+    changeTargetClass(ms, 0);
   } else {
     cout << "didn't get any valid labels, clearing stack." << endl;
     ms->clearStack();
@@ -265,6 +266,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   }
 
   initRangeMaps(ms);
+
+
 }
 END_WORD
 REGISTER_WORD(SetClassLabels)
