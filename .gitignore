@@ -31,3 +31,5 @@ oomdp/bin
 default/objects/*/raw/*
 default/objects/*/ein/detectionCrops/
 *.svz
+*.svy
+

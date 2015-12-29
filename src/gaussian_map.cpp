@@ -26,6 +26,12 @@ void _GaussianMapCell::zero() {
   blue.zero();
   z.zero();
 }
+void GaussianMapCell::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
+  red.recalculateMusAndSigmas(ms);
+  green.recalculateMusAndSigmas(ms);
+  blue.recalculateMusAndSigmas(ms);
+  z.recalculateMusAndSigmas(ms);
+}
 
 double normal_pdf(double mu, double sigma, double x) {
   return 1 / (sigma * sqrt(2 * M_PI)) * exp(-pow(x - mu, 2) / (2 * sigma * sigma));
@@ -326,22 +332,16 @@ GaussianMapCell GaussianMap::bilinValAtCell(double _x, double _y) {
   BILIN_MAPCELL(red.counts);
   BILIN_MAPCELL(green.counts);
   BILIN_MAPCELL(blue.counts);
+  BILIN_MAPCELL(z.counts);
+
   BILIN_MAPCELL(red.squaredcounts);
   BILIN_MAPCELL(green.squaredcounts);
   BILIN_MAPCELL(blue.squaredcounts);
-  BILIN_MAPCELL(red.mu);
-  BILIN_MAPCELL(green.mu);
-  BILIN_MAPCELL(blue.mu);
-  BILIN_MAPCELL(red.sigmasquared);
-  BILIN_MAPCELL(green.sigmasquared);
-  BILIN_MAPCELL(blue.sigmasquared);
+  BILIN_MAPCELL(z.squaredcounts);
+
   BILIN_MAPCELL(red.samples);
   BILIN_MAPCELL(green.samples);
   BILIN_MAPCELL(blue.samples);
-  BILIN_MAPCELL(z.counts);
-  BILIN_MAPCELL(z.squaredcounts);
-  BILIN_MAPCELL(z.mu);
-  BILIN_MAPCELL(z.sigmasquared);
   BILIN_MAPCELL(z.samples);
 
   return toReturn;
@@ -502,12 +502,7 @@ void GaussianMapChannel::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
 void GaussianMap::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-
-      refAtCell(x, y)->red.recalculateMusAndSigmas(ms);
-      refAtCell(x, y)->green.recalculateMusAndSigmas(ms);
-      refAtCell(x, y)->blue.recalculateMusAndSigmas(ms);
-      refAtCell(x, y)->z.recalculateMusAndSigmas(ms);
-      
+      refAtCell(x, y)->recalculateMusAndSigmas(ms);
     }
   }
 }
@@ -835,6 +830,7 @@ void Scene::composePredictedMap(double threshold) {
 	if ( tos->safeBilinAt(cells_object_x, cells_object_y) ) {
 	  if (tos->isDiscrepantMetersBilin(threshold, meters_object_x, meters_object_y)) {
 	    *(predicted_map->refAtCell(x,y)) = tos->observed_map->bilinValAtMeters(meters_object_x, meters_object_y);
+	    predicted_map->refAtCell(x,y)->recalculateMusAndSigmas(ms);
 	  } else {
 	  }
 	} else {
@@ -845,7 +841,6 @@ void Scene::composePredictedMap(double threshold) {
 	//   if one of the contributors is valid, replace this scene cell with the interpolated object cell 
       }
     }
-
   }
 }
 double Scene::computeScore() { 
