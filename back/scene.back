@@ -37,7 +37,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   sceneClearObservedMap sceneClearPredictedObjects 
 ) "tempInit" store
 
-0.05 "scenePredictedMapThresh" store
+0.001 "scenePredictedMapThresh" store
 
 (
 scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
