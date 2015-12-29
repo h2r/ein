@@ -2215,7 +2215,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->config.scene->findBestObjectAndScore(&l_max_class, num_orientations, &l_max_x, &l_max_y, &l_max_orient, &l_max_score, &l_max_i);
 
-  cout << "sceneIsNewConfiguration: best score is " << l_max_score << endl;
+  if ( (l_max_class > -1) && (l_max_class < ms->config.classLabels.size()) ) {
+    Mat best_object_density = ms->config.class_scene_models[l_max_class]->discrepancy_density;
+    double best_density_l1 =  best_object_density.dot(Mat::ones(best_object_density.rows, best_object_density.cols, best_object_density.type()));
+    cout << "sceneIsNewConfiguration best score, best l1, ratio:" << l_max_score << " " << best_density_l1 << " " << l_max_score / best_density_l1 << endl;
+  } else {
+    cout << "sceneIsNewConfiguration: oops, bad class won..." << endl;
+  }
   ms->pushWord(make_shared<DoubleWord>(l_max_score));
 }
 END_WORD
