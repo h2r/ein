@@ -1997,7 +1997,12 @@ CONFIG_GETTER_INT(CameraWhiteBalanceBlue, ms->config.cameraWhiteBalanceBlue)
 CONFIG_GETTER_INT(SceneCellCountThreshold, ms->config.sceneCellCountThreshold)
 CONFIG_SETTER_INT(SceneSetCellCountThreshold, ms->config.sceneCellCountThreshold)
 
+
+CONFIG_GETTER_INT(SceneDiscrepancySearchDepth, ms->config.sceneDiscrepancySearchDepth)
+CONFIG_SETTER_INT(SceneSetDiscrepancySearchDepth, ms->config.sceneDiscrepancySearchDepth)
+
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
+
 
 
 

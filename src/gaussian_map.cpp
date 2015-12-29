@@ -1422,14 +1422,14 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   cout << "  discrepancy says: " << endl;
   cout << max_x << " " << max_y << " " << max_orient << " " << max_x_meters << " " << max_y_meters << " " << max_theta << endl << "max_score: " << max_score << endl;
 
-  int p_to_check = 40;
+
   *l_max_x = -1;
   *l_max_y = -1;
   *l_max_score = -DBL_MAX;
   *l_max_orient = -1;
   *l_max_i = -1;
   std::sort (local_scores.begin(), local_scores.end(), compareDiscrepancyDescending);
-  int to_check = min( int(p_to_check), int(local_scores.size()) );
+  int to_check = min( int(ms->config.sceneDiscrepancySearchDepth), int(local_scores.size()) );
   for (int i = 0; i < to_check; i++) {
     if ( ! local_scores[i].loglikelihood_valid ) {
       // XXX score should return the delta of including vs not including
@@ -1448,6 +1448,9 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
       *l_max_orient = local_scores[i].orient_i;
       *l_max_i = i;
     }
+  }
+  if (*l_max_i >= ms->config.sceneDiscrepancySearchDepth - 25) {
+    ROS_ERROR_STREAM("Take note that the best one was near our search limit; maybe you need to increase the search depth.  l_max_i: " << *l_max_i << " search depth: " << ms->config.sceneDiscrepancySearchDepth);
   }
 }
 
@@ -2067,7 +2070,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   mkdir(ss_dir.str().c_str(), 0777);
 
   ms->config.scene->observed_map->loadFromFile(ss.str());
-
+  ms->pushWord("sceneRenderObservedMap");
 }
 END_WORD
 REGISTER_WORD(SceneLoadObservedMap)
