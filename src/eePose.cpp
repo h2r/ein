@@ -371,3 +371,23 @@ bool _eePose::equals(_eePose pose)
   }
 }
 
+_eePose::_eePose(double _px, double _py, double _pz, double _qx, double _qy, double _qz, double _qw) {
+  px = _px;
+  py = _py;
+  pz = _pz;
+  qx = _qx;
+  qy = _qy;
+  qz = _qz;
+  qw = _qw;
+}
+
+_eePose::_eePose() {
+  px = 0;
+  py = 0;
+  pz = 0;
+  qx = 0;
+  qy = 0;
+  qz = 0;
+  qw = 0;
+}
+

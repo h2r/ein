@@ -67,6 +67,9 @@ typedef struct _eePose{
 
   friend ostream & operator<<(ostream &, const _eePose &);
 
+  _eePose(double _px, double _py, double _pz, double _qx, double _qy, double _qz, double _qw);
+  _eePose();
+
 } eePose;
 
 
