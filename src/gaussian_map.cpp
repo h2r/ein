@@ -994,6 +994,7 @@ double Scene::measureScoreRegion(int _x1, int _y1, int _x2, int _y2) {
 
 double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
 
+
   double score = 0.0;
   {
     shared_ptr<SceneObject> tsob = obj;
