@@ -103,8 +103,8 @@ dogBark
   dup
   print
   dup
-  0 > (
-    5 > (
+  5 > (
+    10 > (
       dogBark
       1.0 dogSetIntendedModeR 
       0.0 dogSetIntendedModeG 
