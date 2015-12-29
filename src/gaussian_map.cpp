@@ -326,22 +326,16 @@ GaussianMapCell GaussianMap::bilinValAtCell(double _x, double _y) {
   BILIN_MAPCELL(red.counts);
   BILIN_MAPCELL(green.counts);
   BILIN_MAPCELL(blue.counts);
+  BILIN_MAPCELL(z.counts);
+
   BILIN_MAPCELL(red.squaredcounts);
   BILIN_MAPCELL(green.squaredcounts);
   BILIN_MAPCELL(blue.squaredcounts);
-  BILIN_MAPCELL(red.mu);
-  BILIN_MAPCELL(green.mu);
-  BILIN_MAPCELL(blue.mu);
-  BILIN_MAPCELL(red.sigmasquared);
-  BILIN_MAPCELL(green.sigmasquared);
-  BILIN_MAPCELL(blue.sigmasquared);
+  BILIN_MAPCELL(z.squaredcounts);
+
   BILIN_MAPCELL(red.samples);
   BILIN_MAPCELL(green.samples);
   BILIN_MAPCELL(blue.samples);
-  BILIN_MAPCELL(z.counts);
-  BILIN_MAPCELL(z.squaredcounts);
-  BILIN_MAPCELL(z.mu);
-  BILIN_MAPCELL(z.sigmasquared);
   BILIN_MAPCELL(z.samples);
 
   return toReturn;
@@ -845,8 +839,8 @@ void Scene::composePredictedMap(double threshold) {
 	//   if one of the contributors is valid, replace this scene cell with the interpolated object cell 
       }
     }
-
   }
+  predicted_map->recalculateMusAndSigmas(ms);
 }
 double Scene::computeScore() { 
   double score = 0.0;
