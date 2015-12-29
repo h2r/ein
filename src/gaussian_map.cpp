@@ -1422,7 +1422,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   cout << "  discrepancy says: " << endl;
   cout << max_x << " " << max_y << " " << max_orient << " " << max_x_meters << " " << max_y_meters << " " << max_theta << endl << "max_score: " << max_score << endl;
 
-  int p_to_check = 40;
+  int p_to_check = 400;
   *l_max_x = -1;
   *l_max_y = -1;
   *l_max_score = -DBL_MAX;
@@ -2025,7 +2025,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   mkdir(ss_dir.str().c_str(), 0777);
 
   ms->config.scene->observed_map->loadFromFile(ss.str());
-
+  ms->pushWord("sceneRenderObservedMap");
 }
 END_WORD
 REGISTER_WORD(SceneLoadObservedMap)

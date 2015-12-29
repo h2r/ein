@@ -40,20 +40,24 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 0.05 "scenePredictedMapThresh" store
 
 (
-  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 2 replicateWord scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+) "tempUpdateMaps" store
+
+(
+  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 2 replicateWord tempUpdateMaps
 ) "tempShortTakeScene" store
 
 (
-  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 5 replicateWord scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 5 replicateWord tempUpdateMaps
 ) "tempLongTakeScene" store
 
 (
-  sceneClearObservedMap tempUpdateFivePointThreeWidth scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+  sceneClearObservedMap tempUpdateFivePointThreeWidth tempUpdateMaps
 ) "tempFivePointThreeWidthTakeScene" store
 
 (
   /* takes a string */
-  tempLoadAndPrepareFocusedModel tempShortTakeScene scenePredictFocusedObject tempShortTakeScene
+  tempLoadAndPrepareFocusedModel tempShortTakeScene scenePredictFocusedObject tempUpdateMaps
 ) "tempPredictAndRenderFile" store
 
 
@@ -100,7 +104,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempShortServoToFocusedSceneObject" store
 
 (
-  sceneClearPredictedObjects scenePredictFocusedObject
+  sceneClearPredictedObjects tempUpdateMaps scenePredictFocusedObject  tempUpdateMaps
   0 tempMoveToSceneObject
 ) "tempServoToFocusedSceneObject" store
 
