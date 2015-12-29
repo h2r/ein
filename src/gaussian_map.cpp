@@ -26,6 +26,12 @@ void _GaussianMapCell::zero() {
   blue.zero();
   z.zero();
 }
+void GaussianMapCell::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
+  red.recalculateMusAndSigmas(ms);
+  green.recalculateMusAndSigmas(ms);
+  blue.recalculateMusAndSigmas(ms);
+  z.recalculateMusAndSigmas(ms);
+}
 
 double normal_pdf(double mu, double sigma, double x) {
   return 1 / (sigma * sqrt(2 * M_PI)) * exp(-pow(x - mu, 2) / (2 * sigma * sigma));
@@ -496,12 +502,7 @@ void GaussianMapChannel::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
 void GaussianMap::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-
-      refAtCell(x, y)->red.recalculateMusAndSigmas(ms);
-      refAtCell(x, y)->green.recalculateMusAndSigmas(ms);
-      refAtCell(x, y)->blue.recalculateMusAndSigmas(ms);
-      refAtCell(x, y)->z.recalculateMusAndSigmas(ms);
-      
+      refAtCell(x, y)->recalculateMusAndSigmas(ms);
     }
   }
 }
@@ -829,6 +830,7 @@ void Scene::composePredictedMap(double threshold) {
 	if ( tos->safeBilinAt(cells_object_x, cells_object_y) ) {
 	  if (tos->isDiscrepantMetersBilin(threshold, meters_object_x, meters_object_y)) {
 	    *(predicted_map->refAtCell(x,y)) = tos->observed_map->bilinValAtMeters(meters_object_x, meters_object_y);
+	    predicted_map->refAtCell(x,y)->recalculateMusAndSigmas(ms);
 	  } else {
 	  }
 	} else {
@@ -840,7 +842,6 @@ void Scene::composePredictedMap(double threshold) {
       }
     }
   }
-  predicted_map->recalculateMusAndSigmas(ms);
 }
 double Scene::computeScore() { 
   double score = 0.0;
