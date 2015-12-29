@@ -1531,6 +1531,48 @@ void Scene::findBestObjectAndScore(int * class_idx, int num_orientations, int * 
   }
 }
 
+void Scene::tryToAddBestObjectToScene() {
+  guardSceneModels(ms);
+
+  int num_orientations = 37;
+
+  int l_max_class = -1;
+  int l_max_x = -1;
+  int l_max_y = -1;
+  int l_max_orient = -1;
+  double l_max_score = -1;
+  int l_max_i = -1;
+
+  findBestObjectAndScore(&l_max_class, num_orientations, &l_max_x, &l_max_y, &l_max_orient, &l_max_score, &l_max_i);
+
+  double l_max_theta = -l_max_orient * 2.0 * M_PI / num_orientations;
+  double l_max_x_meters, l_max_y_meters;
+  cellToMeters(l_max_x, l_max_y, &l_max_x_meters, &l_max_y_meters);
+
+  if (l_max_x > -1)
+  {
+    if (l_max_score > 0) {
+      cout << "best detection made an improvement..." << endl;
+      cout << "adding object." << endl;
+      ms->pushWord("sceneAddPredictedObject");
+
+      ms->pushWord(make_shared<IntegerWord>(l_max_class));
+      ms->pushWord(make_shared<DoubleWord>(l_max_theta));
+      ms->pushWord(make_shared<DoubleWord>(l_max_y_meters));
+      ms->pushWord(make_shared<DoubleWord>(l_max_x_meters));
+    } else {
+      cout << "best detection made things worse alone..." << endl;
+      cout << "should NOT adding object but for now we are..." << endl;
+      ms->pushWord("sceneAddPredictedObject");
+      ms->pushWord(make_shared<IntegerWord>(l_max_class));
+      ms->pushWord(make_shared<DoubleWord>(l_max_theta));
+      ms->pushWord(make_shared<DoubleWord>(l_max_y_meters));
+      ms->pushWord(make_shared<DoubleWord>(l_max_x_meters));
+    }
+  } else {
+    cout << "Did not find a valid cell... not adding object." << endl;
+  }
+}
 
 void Scene::removeObjectFromPredictedMap(shared_ptr<SceneObject> obj) {
   int idx = -1;
@@ -2122,6 +2164,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneAddPredictedFocusedObject)
 
+WORD(SceneAddPredictedObject)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  guardSceneModels(ms);
+
+  double x_in=0, y_in=0, theta_in=0; 
+  int class_in=0;
+  GET_INT_ARG(ms, class_in);
+  GET_NUMERIC_ARG(ms, theta_in);
+  GET_NUMERIC_ARG(ms, y_in);
+  GET_NUMERIC_ARG(ms, x_in);
+
+  ms->config.scene->addPredictedObject(x_in, y_in, theta_in, class_in);
+}
+END_WORD
+REGISTER_WORD(SceneAddPredictedObject)
+
 WORD(ScenePredictFocusedObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
@@ -2130,6 +2188,35 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(ScenePredictFocusedObject)
+
+WORD(ScenePredictBestObject)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  guardSceneModels(ms);
+  ms->config.scene->tryToAddBestObjectToScene();
+}
+END_WORD
+REGISTER_WORD(ScenePredictBestObject)
+
+WORD(SceneIsNewConfiguration)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  guardSceneModels(ms);
+
+  int num_orientations = 37;
+
+  int l_max_class = -1;
+  int l_max_x = -1;
+  int l_max_y = -1;
+  int l_max_orient = -1;
+  double l_max_score = -1;
+  int l_max_i = -1;
+
+  ms->config.scene->findBestObjectAndScore(&l_max_class, num_orientations, &l_max_x, &l_max_y, &l_max_orient, &l_max_score, &l_max_i);
+
+  cout << "sceneIsNewConfiguration: best score is " << l_max_score << endl;
+  ms->pushWord(make_shared<DoubleWord>(l_max_score));
+}
+END_WORD
+REGISTER_WORD(SceneIsNewConfiguration)
 
 WORD(SceneInit)
 virtual void execute(std::shared_ptr<MachineState> ms) {

@@ -4021,8 +4021,10 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
     if (ms->config.ik_reset_counter > ms->config.ik_reset_thresh) {
       ms->config.ik_reset_counter = 0;
       //ms->config.currentEEPose = ms->config.ik_reset_eePose;
-      cout << "  reset pose disabled! setting current position to true position." << endl;
-      ms->config.currentEEPose = ms->config.trueEEPoseEEPose;
+      //cout << "  reset pose disabled! setting current position to true position." << endl;
+      //ms->config.currentEEPose = ms->config.trueEEPoseEEPose;
+      cout << "  reset pose disabled! setting current position to last good position." << endl;
+      ms->config.currentEEPose = ms->config.lastGoodEEPose;
       //ms->pushWord("pauseStackExecution"); // pause stack execution
       cout << "  pausing disabled!" << endl;
       ms->pushCopies("beep", 15); // beep
@@ -12285,14 +12287,22 @@ void goClassifyBlueBoxes(shared_ptr<MachineState> ms) {
   double label = -1;
 
   if (ms->config.kNN == NULL) {
-    ROS_ERROR_STREAM("Oops, kNN is NULL, so we better stop here..." << endl);
-    assert(0);
+    ROS_ERROR_STREAM("Oops, kNN is NULL, so we better stop here... but we'll continue, setting all labels to 0." << endl);
+    for (int i = 0; i < ms->config.bLabels.size(); i++) {
+      ms->config.bLabels[i] = 0;
+    }
+    return;
+    //assert(0);
   } else {
   }
 
   if (ms->config.kNN->get_sample_count() < 1) {
-    ROS_ERROR_STREAM("Oops, kNN has no samples, so we better stop here..." << endl);
-    assert(0);
+    ROS_ERROR_STREAM("Oops, kNN has no samples, so we better stop here... but we'll continue, setting all labels to 0." << endl);
+    for (int i = 0; i < ms->config.bLabels.size(); i++) {
+      ms->config.bLabels[i] = 0;
+    }
+    return;
+    //assert(0);
   } else {
   }
 
