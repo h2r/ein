@@ -306,7 +306,7 @@ scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy 
 (
   ( tempShortServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord
 
-  tempFivePointThreeWidthTakeScene tempServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  /* tempFivePointThreeWidthTakeScene tempServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop */
 
   0 sceneMapSceneObject
   recordPreTargetLock
