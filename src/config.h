@@ -28,6 +28,7 @@ class Scene;
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
 #include <cv_bridge/cv_bridge.h>
+#include <rosgraph_msgs/Log.h>
 
 
 #include <baxter_core_msgs/CameraControl.h>
@@ -77,6 +78,11 @@ typedef enum {
   IK_LIKELY_IN_COLLISION = 2,
   IK_FAILED = 1
 } ikMapState;
+
+typedef enum {
+  DISCREPANCY_POINT = 0,
+  DISCREPANCY_DOT = 1,
+} discrepancyModeState;
 
 typedef enum {
   CLEARANCE_DO_NOT_PURSUE = 0,
@@ -294,6 +300,8 @@ typedef struct streamLabel {
   string label;
   double time;
 } streamLabel;
+
+
 
 #define NOW_THATS_COARSE 0.08
 #define GRID_EVEN_COARSER 0.04
@@ -550,6 +558,7 @@ class EinConfig {
   EinWindow * stereoViewerWindow;
   EinWindow * backgroundWindow;
   EinWindow * discrepancyWindow;
+  EinWindow * discrepancyDensityWindow;
   EinWindow * observedWindow;
   EinWindow * predictedWindow;
   ArmWidget * armWidget;
@@ -1108,6 +1117,24 @@ class EinConfig {
   int drawGray = 1;
   int drawBlueKP = 1;
 
+  ros::Time lastCameraLogTime;
+  bool observedCameraFlip;
+  bool observedCameraMirror;
+  int observedCameraExposure = -1;
+  int observedCameraGain = -1;
+  int observedCameraWhiteBalanceRed = -1;
+  int observedCameraWhiteBalanceGreen = -1;
+  int observedCameraWhiteBalanceBlue = -1;
+  int observedCameraWindowX = -1;
+  int observedCameraWindowY = -1;
+
+  int cameraExposure = -1;
+  int cameraGain = -1;
+  int cameraWhiteBalanceRed = -1;
+  int cameraWhiteBalanceGreen = -1;
+  int cameraWhiteBalanceBlue = -1;
+
+
 
   cv_bridge::CvImagePtr cv_ptr = NULL;
   Mat stereoViewerImage;
@@ -1403,7 +1430,7 @@ class EinConfig {
   ros::Subscriber cuff_grasp_sub;
   ros::Subscriber cuff_ok_sub;
   ros::Subscriber shoulder_sub;
-
+  ros::Subscriber rosout_sub;
 
 
   shared_ptr<image_transport::ImageTransport> it;
@@ -1447,6 +1474,9 @@ class EinConfig {
   shared_ptr<TransitionTable> transition_table;
   shared_ptr<Scene> scene;
   double sceneMinSigmaSquared = 10;
+  int sceneCellCountThreshold = 20;
+  int sceneDiscrepancySearchDepth = 200;
+  discrepancyModeState discrepancyMode = DISCREPANCY_POINT;
 
   vector<shared_ptr<Scene> > class_scene_models;
 }; // config end
@@ -1526,6 +1556,8 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void targetCallback(const geometry_msgs::Point& point);
   void simulatorCallback(const ros::TimerEvent&);
   void einStateCallback(const ein::EinState & msg);
+
+  void rosoutCallback(const rosgraph_msgs::Log& js);
 };
 
 

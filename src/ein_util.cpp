@@ -131,6 +131,7 @@ eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
 
 
 void initializeMachine(shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("\"init\" import");
   ms->pushWord("sceneInit"); 
 
   if (ms->config.currentRobotMode != PHYSICAL) {
@@ -272,4 +273,8 @@ bool copyDir(string src, string dest) {
     }
   return true;
 
+}
+
+string sceneModelFile(shared_ptr<MachineState> ms, string label) {
+  return ms->config.data_directory + "/objects/" + label + "/ein/sceneModel/model.yml";
 }

@@ -6,6 +6,17 @@
 
 namespace ein_words {
 
+WORD(PublishState)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  {
+    EinState state;
+    fillEinStateMsg(ms, &state);
+    ms->config.einPub.publish(state);
+  }
+}
+END_WORD
+REGISTER_WORD(PublishState)
+
 WORD(Drand48)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushData(std::make_shared<DoubleWord>(drand48()));
@@ -1964,7 +1975,34 @@ CONFIG_GETTER_DOUBLE(CurrentTableZ, ms->config.currentTableZ)
 CONFIG_SETTER_DOUBLE(SetCurrentTableZ, ms->config.currentTableZ)
 
 
+
+CONFIG_GETTER_INT(ObservedCameraFlip, ms->config.observedCameraFlip)
+CONFIG_GETTER_INT(ObservedCameraMirror, ms->config.observedCameraMirror)
+
+CONFIG_GETTER_INT(ObservedCameraExposure, ms->config.observedCameraExposure)
+CONFIG_GETTER_INT(ObservedCameraGain, ms->config.observedCameraGain)
+CONFIG_GETTER_INT(ObservedCameraWhiteBalanceRed, ms->config.observedCameraWhiteBalanceRed)
+CONFIG_GETTER_INT(ObservedCameraWhiteBalanceGreen, ms->config.observedCameraWhiteBalanceGreen)
+CONFIG_GETTER_INT(ObservedCameraWhiteBalanceBlue, ms->config.observedCameraWhiteBalanceBlue)
+CONFIG_GETTER_INT(ObservedCameraWindowX, ms->config.observedCameraWindowX)
+CONFIG_GETTER_INT(ObservedCameraWindowY, ms->config.observedCameraWindowY)
+
+CONFIG_GETTER_INT(CameraExposure, ms->config.cameraExposure)
+CONFIG_GETTER_INT(CameraGain, ms->config.cameraGain)
+CONFIG_GETTER_INT(CameraWhiteBalanceRed, ms->config.cameraWhiteBalanceRed)
+CONFIG_GETTER_INT(CameraWhiteBalanceGreen, ms->config.cameraWhiteBalanceGreen)
+CONFIG_GETTER_INT(CameraWhiteBalanceBlue, ms->config.cameraWhiteBalanceBlue)
+
+
+CONFIG_GETTER_INT(SceneCellCountThreshold, ms->config.sceneCellCountThreshold)
+CONFIG_SETTER_INT(SceneSetCellCountThreshold, ms->config.sceneCellCountThreshold)
+
+
+CONFIG_GETTER_INT(SceneDiscrepancySearchDepth, ms->config.sceneDiscrepancySearchDepth)
+CONFIG_SETTER_INT(SceneSetDiscrepancySearchDepth, ms->config.sceneDiscrepancySearchDepth)
+
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
+
 
 
 

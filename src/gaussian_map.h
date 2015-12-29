@@ -39,6 +39,8 @@ typedef struct _GaussianMapCell {
   
   double innerProduct(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
   double pointDiscrepancy(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
+  double normalizeDiscrepancy(double rlikelihood,  double glikelihood, double blikelihood);
+  void recalculateMusAndSigmas(shared_ptr<MachineState> ms);
 } GaussianMapCell;
 
 class GaussianMap {
@@ -78,7 +80,7 @@ class GaussianMap {
   void writeCells(FileStorage & fsvO);
   void recalculateMusAndSigmas(shared_ptr<MachineState> ms);
 
-  void rgbDiscrepancyMuToMat(Mat& out);
+  void rgbDiscrepancyMuToMat(shared_ptr<MachineState> ms, Mat& out);
   void rgbMuToMat(Mat& out);
   void rgbSigmaSquaredToMat(Mat& out);
   void rgbCountsToMat(Mat& out);
@@ -191,7 +193,10 @@ class Scene {
   // object only makes map better, but must "win" on at least a fraction of its pixels (prior on number of parts)
   void proposeObject();
 
+  void findBestScoreForObject(int class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_score, int * l_max_i);
   void tryToAddObjectToScene(int class_idx);
+  void findBestObjectAndScore(int * class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_score, int * l_max_i);
+  void tryToAddBestObjectToScene();
   shared_ptr<SceneObject> addPredictedObject(double x, double y, double theta, int class_idx);
   void removeObjectFromPredictedMap(shared_ptr<SceneObject>);
   double scoreObjectAtPose(double x, double y, double theta, int class_idx, double threshold = 0.5);

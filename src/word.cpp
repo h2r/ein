@@ -166,8 +166,8 @@ void MachineState::execute(shared_ptr<Word> word) {
     try {
       word->execute(shared_from_this());
     } catch( ... ) {
-      ROS_ERROR("Exception in word");
-      cout << "Word: " << word->name() << endl;
+      cout << "Exception in Word: ";
+      cout <<  word->name() << endl;
       std::exception_ptr p = std::current_exception();
       rethrow_exception(p);
     }
@@ -250,15 +250,23 @@ vector<string> tokenize_basic(const string program) {
 
 
 vector<string> tokenize_string(const string program) { 
-  escaped_forth_separator<char> els("\\", "\n\t ", "\"");
-
-  boost::tokenizer<escaped_forth_separator<char> > tok(program, els);
-  vector<string> tokens;
-  for(boost::tokenizer<escaped_forth_separator<char> >::iterator beg=tok.begin(); beg!=tok.end();++beg){
-    tokens.push_back(*beg);
-    cout << *beg << "\n";
+  try {
+    escaped_forth_separator<char> els("\\", "\n\t ", "\"");
+    
+    boost::tokenizer<escaped_forth_separator<char> > tok(program, els);
+    vector<string> tokens;
+    for(boost::tokenizer<escaped_forth_separator<char> >::iterator beg=tok.begin(); beg!=tok.end();++beg){
+      tokens.push_back(*beg);
+      cout << *beg << " ";
+    }
+    cout << endl;
+    return tokens;
+  } catch(escaped_forth_error &e) {
+    ROS_ERROR_STREAM("Error tokenizing: " << e.what() << endl);
+    vector<string> empty;
+    return empty;
   }
-  return tokens;
+
 }
 
 void MachineState::evaluateProgram(const string program)  {
@@ -270,8 +278,10 @@ void MachineState::evaluateProgram(const string program)  {
   for (unsigned int j = 0; j < tokens.size(); j++) {
     int i = tokens.size() - j - 1;
     trim(tokens[i]);
-    if (!ms->pushWord(tokens[i])) {
-      cout << "Warning, ignoring unknown word from the forth topic: " << tokens[i] << endl;
+    if (tokens[i].length() != 0) {
+      if (!ms->pushWord(tokens[i])) {
+	cout << "Warning, ignoring unknown word from the forth topic: " << tokens[i] << endl;
+      }
     }
   }
   ms->pushWord("executeStack");
@@ -286,11 +296,8 @@ std::shared_ptr<Word> parseToken(std::shared_ptr<MachineState> ms, string token)
   } else if (StringWord::isString(token)) {
     return StringWord::parse(token);
   } else if (CommentWord::isComment(token)) {
-    
     shared_ptr<Word> word = CommentWord::parse(token);
-    cout << "Word: " << word << " name: " << word->name() << " desc: " << word->description() << endl;
     return word;
-    
   } else if (name_to_word.count(token) > 0) {
     std::shared_ptr<Word> word = name_to_word[token];
     return word;
@@ -487,18 +494,41 @@ string CompoundWord::name() {
   return "compound word";
 }
 
+bool CommentWord::isComment(string token) {
+  try {
+    if (parse(token) != NULL) {
+      return true;
+    } else {
+      return false;
+    }
+  } catch (...) {
+    cout << "Comment exception on " << token << endl;
+    return false;
+  }
+}
+
+std::shared_ptr<CommentWord> CommentWord::parse(string token)  {
+  if (token.length() < 4) {
+    return NULL;
+  }
+  if (token[0] == '/' && token[1] == '*' && token[token.size() - 2] == '*'  && token[token.size() - 1] == '/') {
+    return std::make_shared<CommentWord>(token.substr(2, token.size() - 4));      
+  } else {
+    return NULL;
+  }
+}  
 
 bool SymbolWord::isSymbol(string token)
  {
     
-   cout << "Testing if symbol: " << token << endl;
+   //cout << "Testing if symbol: " << token << endl;
    boost::smatch match;
    boost::regex symbol_regex("[a-zA-Z_][a-zA-Z0-9_]*");
    if (boost::regex_match(token, match, symbol_regex)) {
-     cout << "yes symbol" << endl;
+     //cout << "yes symbol" << endl;
      return true;
    } else {
-     cout << "no symbol" << endl;
+     //cout << "no symbol" << endl;
      return false;
    } 
 }

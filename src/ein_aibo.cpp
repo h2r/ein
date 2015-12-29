@@ -135,6 +135,25 @@ void sendOnDogSocket(std::shared_ptr<MachineState> ms, int member, string messag
   }
 }
 
+void sendOnDogSocket(std::shared_ptr<MachineState> ms, int member, char *buf, int size) {
+  int p_send_poll_timeout = 5000;
+  struct pollfd fd = { ms->pack[member].aibo_socket_desc, POLLOUT, 0 };
+  if (poll(&fd, 1, p_send_poll_timeout) != 1) {
+    ROS_ERROR_STREAM("poll says unavailable for sending after " << p_send_poll_timeout << " ms" << endl);
+    dogReconnect(ms);
+    return;
+  } else {
+    if( send(ms->pack[member].aibo_socket_desc, buf, size, 0) != size ) {
+      ROS_ERROR_STREAM("send failed..." << endl);
+      dogReconnect(ms);
+      return;
+    } else {
+      cout << "sent: " << endl << size << " bytes." << endl;
+      //cout << "sent: " << message.size() << endl;
+    }
+  }
+}
+
 void flushDogBuffer(std::shared_ptr<MachineState> ms, int member) {
   int p_flush_wait_milliseconds = 250;
 
@@ -1259,7 +1278,7 @@ REGISTER_WORD(DogSetIntendedPose)
 
 WORD(DogSetIntendedGain)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  int t_gain= 0;
+  int t_gain = 0;
   GET_INT_ARG(ms, t_gain);
 
   shared_ptr<AiboPoseWord> word ;
@@ -1627,8 +1646,1317 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(DogReplaceWristImageWithSnoutImage)
 
+WORD(DogSendToneSin)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  double d = 0.0;
+  GET_NUMERIC_ARG(ms, d);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples = ceil(16000*d);
+  int tone_length = 2*tone_samples;
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < tone_samples; i++) {
+    int16_t intended = int16_t(v * sin(i * f * 2.0 * M_PI / 16000) );
+    currentSample[i] = intended;
+    cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogSendToneSin)
+
+double squareWave(double t) {
+  t = t - floor(t / (2.0*M_PI))*2.0*M_PI;
+  if (t > 0) {
+    if (t > M_PI) {
+      return -1.0;
+    } else {
+      return 1.0;
+    }
+  } else {
+    if (t > -M_PI) {
+      return -1.0;
+    } else {
+      return 1.0;
+    }
+  }
+}
+
+double sawtoothWave(double t) {
+  t = t - floor(t / (2.0*M_PI))*2.0*M_PI;
+  if (t > 0) {
+    return ( t/M_PI ) - 1.0;
+  } else {
+    double t2 = t + ( 2.0*M_PI );
+    return ( t2/M_PI ) - 1.0;
+  }
+}
+
+double triangleWave(double t) {
+  t = t - floor(t / (2.0*M_PI))*2.0*M_PI;
+  if (t > 0) {
+    double t2 = max( double(M_PI-t), double(t-M_PI) );
+    return ( 2*t2/M_PI ) - 1.0;
+  } else {
+    double t2 = max( double(-M_PI-t), double(t-(-M_PI)) );
+    return ( 2*t2/M_PI ) - 1.0;
+  }
+}
+
+WORD(DogSendToneSquare)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  double d = 0.0;
+  GET_NUMERIC_ARG(ms, d);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples = ceil(16000*d);
+  int tone_length = 2*tone_samples;
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < tone_samples; i++) {
+    int16_t intended = int16_t(v * squareWave(i * f * 2.0 * M_PI / 16000) );
+    currentSample[i] = intended;
+    cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogSendToneSquare)
+
+WORD(DogMorse)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  //double dmp = ms->pack[this_dog].dog_morse_period;
+  double dmp = 0.1;
+  GET_NUMERIC_ARG(ms, dmp);
+
+  double f = 400.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double _v = 128.0;
+  GET_NUMERIC_ARG(ms, _v);
+
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  stringstream binarizedss;
+
+  for (int l = 0; l < message.size(); l++) {
+    if (message[l] == ' ') {
+      binarizedss << "0000";
+    } else if ( (message[l] == 'a') || (message[l] == 'A') ) {
+      binarizedss << "10111";
+    } else if ( (message[l] == 'b') || (message[l] == 'B') ) {
+      binarizedss << "111010101";
+    } else if ( (message[l] == 'c') || (message[l] == 'C') ) {
+      binarizedss << "11101011101";
+    } else if ( (message[l] == 'd') || (message[l] == 'D') ) {
+      binarizedss << "1110101";
+    } else if ( (message[l] == 'e') || (message[l] == 'E') ) {
+      binarizedss << "1";
+    } else if ( (message[l] == 'f') || (message[l] == 'F') ) {
+      binarizedss << "101011101";
+    } else if ( (message[l] == 'g') || (message[l] == 'G') ) {
+      binarizedss << "111011101";
+    } else if ( (message[l] == 'h') || (message[l] == 'H') ) {
+      binarizedss << "1010101";
+    } else if ( (message[l] == 'i') || (message[l] == 'I') ) {
+      binarizedss << "101";
+    } else if ( (message[l] == 'j') || (message[l] == 'J') ) {
+      binarizedss << "1011101110111";
+    } else if ( (message[l] == 'k') || (message[l] == 'K') ) {
+      binarizedss << "1110111";
+    } else if ( (message[l] == 'l') || (message[l] == 'L') ) {
+      binarizedss << "101110101";
+    } else if ( (message[l] == 'm') || (message[l] == 'M') ) {
+      binarizedss << "1110111";
+    } else if ( (message[l] == 'n') || (message[l] == 'N') ) {
+      binarizedss << "11101";
+    } else if ( (message[l] == 'o') || (message[l] == 'O') ) {
+      binarizedss << "11101110111";
+    } else if ( (message[l] == 'p') || (message[l] == 'P') ) {
+      binarizedss << "10111011101";
+    } else if ( (message[l] == 'q') || (message[l] == 'Q') ) {
+      binarizedss << "1110111010111";
+    } else if ( (message[l] == 'r') || (message[l] == 'R') ) {
+      binarizedss << "1011101";
+    } else if ( (message[l] == 's') || (message[l] == 'S') ) {
+      binarizedss << "10101";
+    } else if ( (message[l] == 't') || (message[l] == 'T') ) {
+      binarizedss << "111";
+    } else if ( (message[l] == 'u') || (message[l] == 'U') ) {
+      binarizedss << "1010111";
+    } else if ( (message[l] == 'v') || (message[l] == 'V') ) {
+      binarizedss << "101010111";
+    } else if ( (message[l] == 'w') || (message[l] == 'W') ) {
+      binarizedss << "101110111";
+    } else if ( (message[l] == 'x') || (message[l] == 'X') ) {
+      binarizedss << "11101010111";
+    } else if ( (message[l] == 'y') || (message[l] == 'Y') ) {
+      binarizedss << "1110101110111";
+    } else if ( (message[l] == 'z') || (message[l] == 'Z') ) {
+      binarizedss << "11101110101";
+    } else if ( (message[l] == '0') ) {
+      binarizedss << "1110111011101110111";
+    } else if ( (message[l] == '1') ) {
+      binarizedss << "10111011101110111";
+    } else if ( (message[l] == '2') ) {
+      binarizedss << "101011101110111";
+    } else if ( (message[l] == '3') ) {
+      binarizedss << "1010101110111";
+    } else if ( (message[l] == '4') ) {
+      binarizedss << "10101010111";
+    } else if ( (message[l] == '5') ) {
+      binarizedss << "101010101";
+    } else if ( (message[l] == '6') ) {
+      binarizedss << "11101010101";
+    } else if ( (message[l] == '7') ) {
+      binarizedss << "1110111010101";
+    } else if ( (message[l] == '8') ) {
+      binarizedss << "111011101110101";
+    } else if ( (message[l] == '9') ) {
+      binarizedss << "11101110111011101";
+    } else {
+    }
+    binarizedss << "000";
+  }
+
+  string binarized = binarizedss.str();
+
+  double samples_per_dmp = 16000 * dmp;
+  double d = dmp * binarized.size();
+
+  int tone_samples = ceil(16000*d);
+  int tone_length = 2*tone_samples;
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  double v = _v;
+
+  for (int i = 0; i < tone_samples; i++) {
+    int this_slot = floor(i / samples_per_dmp);
+    this_slot = max(0, min((int)this_slot, (int)binarized.size()-1));
+
+    if (binarized[this_slot] == '0') {
+      v = 0;
+    } else if (binarized[this_slot] == '1') {
+      v = _v;
+    } else {
+      ROS_ERROR_STREAM("Oops, dogMorse encountered an error during encoding." << endl);
+    }
+
+    int16_t intended = int16_t(v * sin(i * f * 2.0 * M_PI / 16000) );
+    currentSample[i] = intended;
+    //cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+}
+END_WORD
+REGISTER_WORD(DogMorse)
+
+WORD(DogChirpSin)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double d = 0.0;
+  GET_NUMERIC_ARG(ms, d);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples = ceil(16000*d);
+  int tone_length = 2*tone_samples;
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < tone_samples; i++) {
+    int16_t intended = int16_t(  v * sin(i * f * 2.0 * M_PI / 16000) * exp( -pow((tone_samples/2.0)-i,2)/(2.0*pow(sigma,2.0)) )  );
+    currentSample[i] = intended;
+    cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogChirpSin)
+
+WORD(DogChirpSquare)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double d = 0.0;
+  GET_NUMERIC_ARG(ms, d);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples = ceil(16000*d);
+  int tone_length = 2*tone_samples;
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < tone_samples; i++) {
+    int16_t intended = int16_t(  v * squareWave(i * f * 2.0 * M_PI / 16000) * exp( -pow((tone_samples/2.0)-i,2)/(2.0*pow(sigma,2.0)) )  );
+    currentSample[i] = intended;
+    cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogChirpSquare)
+
+
+WORD(DogWarbleSin)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  double warb_width_seconds = 1.0;
+  GET_NUMERIC_ARG(ms, warb_width_seconds);
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double d = 0.0;
+  GET_NUMERIC_ARG(ms, d);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples = ceil(16000*d);
+  int tone_length = 2*tone_samples;
+
+  int warb_width_samples = ceil(warb_width_seconds * 16000);
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < tone_samples; i++) {
+    int sample_idx = i % warb_width_samples;
+    int16_t intended = int16_t(  v * sin(i * f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) )  );
+    currentSample[i] = intended;
+    cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogWarbleSin)
+
+WORD(DogWarbleSquare)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  double warb_width_seconds = 1.0;
+  GET_NUMERIC_ARG(ms, warb_width_seconds);
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double d = 0.0;
+  GET_NUMERIC_ARG(ms, d);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples = ceil(16000*d);
+  int tone_length = 2*tone_samples;
+
+  int warb_width_samples = ceil(warb_width_seconds * 16000);
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < tone_samples; i++) {
+    int sample_idx = i % warb_width_samples;
+    int16_t intended = int16_t(  v * squareWave(i * f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) )  );
+    currentSample[i] = intended;
+    cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogWarbleSquare)
+
+
+WORD(DogVoiceInit)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  double seconds = 0;
+  GET_NUMERIC_ARG(ms, seconds);
+
+  if ( ms->pack[this_dog].voice_buffer != NULL ) {
+    delete ms->pack[this_dog].voice_buffer;
+  } else {}
+
+  ms->pack[this_dog].voice_buffer_size = 16000*seconds;
+  ms->pack[this_dog].voice_buffer = new double[ms->pack[this_dog].voice_buffer_size];
+
+  cout << "dogVoiceInit made buffer of " << ms->pack[this_dog].voice_buffer_size << " samples." << endl;
+}
+END_WORD
+REGISTER_WORD(DogVoiceInit)
+
+WORD(DogVoiceClear)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+
+  if (ms->pack[this_dog].voice_buffer != NULL) {
+    for (int i = 0; i < ms->pack[this_dog].voice_buffer_size; i++) {
+      ms->pack[this_dog].voice_buffer[i] = 0.0;
+    }
+  }
+  cout << "dogVoiceClear: clearing." << endl;
+}
+END_WORD
+REGISTER_WORD(DogVoiceClear)
+
+WORD(DogVoiceTrackTone)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// volume frequency start end dogVoiceTrackTone
+  int this_dog = ms->focusedMember;
+
+  double e = 0.0;
+  GET_NUMERIC_ARG(ms, e);
+
+  double s = 0.0;
+  GET_NUMERIC_ARG(ms, s);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples_start = max( 0, min( int(ceil(16000*s)), ms->pack[this_dog].voice_buffer_size-1 ) );
+  int tone_samples_end = max( 0, min( int(ceil(16000*e)), ms->pack[this_dog].voice_buffer_size-1 ) );
+
+  for (int i = tone_samples_start; i <= tone_samples_end; i++) {
+    ms->pack[this_dog].voice_buffer[i] += v * sin(i * f * 2.0 * M_PI / 16000);
+  }
+}
+END_WORD
+REGISTER_WORD(DogVoiceTrackTone)
+
+WORD(DogVoiceTrackWarble)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// volume frequency start end window_sigma repetition_period dogVoiceTrackWarble
+  int this_dog = ms->focusedMember;
+
+  double warb_width_seconds = 1.0;
+  GET_NUMERIC_ARG(ms, warb_width_seconds);
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double e = 0.0;
+  GET_NUMERIC_ARG(ms, e);
+
+  double s = 0.0;
+  GET_NUMERIC_ARG(ms, s);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples_start = max( 0, min( int(ceil(16000*s)), ms->pack[this_dog].voice_buffer_size-1 ) );
+  int tone_samples_end = max( 0, min( int(ceil(16000*e)), ms->pack[this_dog].voice_buffer_size-1 ) );
+
+  int warb_width_samples = ceil(warb_width_seconds * 16000);
+
+  for (int i = tone_samples_start; i <= tone_samples_end; i++) {
+    int sample_idx = i % warb_width_samples;
+    ms->pack[this_dog].voice_buffer[i] += v * sin(i * f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) );
+  }
+}
+END_WORD
+REGISTER_WORD(DogVoiceTrackWarble)
+
+WORD(DogVoiceTrackWarbleNotes)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// volume a4_frequency start end window_sigma repetition_period advance_fraction "A3# B2 C4b R R" dogVoiceTrackWarbleNotes
+  int this_dog = ms->focusedMember;
+
+  string notes;
+  GET_STRING_ARG(ms, notes);
+
+  double a = 0.0;
+  GET_NUMERIC_ARG(ms, a);
+
+  double warb_width_seconds = 1.0;
+  GET_NUMERIC_ARG(ms, warb_width_seconds);
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double e = 0.0;
+  GET_NUMERIC_ARG(ms, e);
+
+  double s = 0.0;
+  GET_NUMERIC_ARG(ms, s);
+
+  double f = 440.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  vector<double> note_fs;
+  for (int c = 0; c < notes.size(); c++) {
+    double this_f = f;
+
+    if (notes[c] == 'R' || notes[c] == 'r') {
+      this_f *= 0;
+    } else if (notes[c] == 'a' || notes[c] == 'A') {
+    } else if (notes[c] == 'b' || notes[c] == 'B') {
+      this_f *= pow(2.0, 2.0/12.0);
+    } else if (notes[c] == 'c' || notes[c] == 'C') {
+      this_f *= pow(2.0, -9.0/12.0);
+    } else if (notes[c] == 'd' || notes[c] == 'D') {
+      this_f *= pow(2.0, -7/12.0);
+    } else if (notes[c] == 'e' || notes[c] == 'E') {
+      this_f *= pow(2.0, -5.0/12.0);
+    } else if (notes[c] == 'f' || notes[c] == 'F') {
+      this_f *= pow(2.0, -4.0/12.0);
+    } else if (notes[c] == 'g' || notes[c] == 'G') {
+      this_f *= pow(2.0, -2.0/12.0);
+    } else if (notes[c] == ' ') {
+      continue;
+    } else {
+    }
+
+    c++;
+    if ( !(c < notes.size()) ) {
+      note_fs.push_back(this_f);
+      cout << "pushing " << this_f << " ran out first" << endl;
+      break;
+    }
+
+    if (notes[c] == ' ') {
+      note_fs.push_back(this_f);
+      cout << "pushing " << this_f << " hit space first" << endl;
+      continue;
+    } else if (notes[c] == '0') {
+      this_f *= pow(2.0,-4);
+    } else if (notes[c] == '1') {
+      this_f *= pow(2.0,-3);
+    } else if (notes[c] == '2') {
+      this_f *= pow(2.0,-2);
+    } else if (notes[c] == '3') {
+      this_f *= pow(2.0,-1);
+    } else if (notes[c] == '4') {
+    } else if (notes[c] == '5') {
+      this_f *= 2;
+    } else if (notes[c] == '6') {
+      this_f *= 4;
+    } else if (notes[c] == '7') {
+      this_f *= 8;
+    } else if (notes[c] == '8') {
+      this_f *= 16;
+    } else if (notes[c] == '9') {
+      this_f *= 32;
+    } else if (notes[c] == '#') {
+      this_f *= pow(2.0, 1.0/12.0);
+    } else if (notes[c] == 'b') {
+      this_f *= pow(2.0, -1.0/12.0);
+    } else {
+    }
+
+    c++;
+    if ( !(c < notes.size()) ) {
+      note_fs.push_back(this_f);
+      cout << "pushing " << this_f << " ran out second" << endl;
+      break;
+    }
+
+    if (notes[c] == ' ') {
+      note_fs.push_back(this_f);
+      cout << "pushing " << this_f << " hit space second" << endl;
+      continue;
+    } else if (notes[c] == '0') {
+      this_f *= pow(2.0,-4);
+    } else if (notes[c] == '1') {
+      this_f *= pow(2.0,-3);
+    } else if (notes[c] == '2') {
+      this_f *= pow(2.0,-2);
+    } else if (notes[c] == '3') {
+      this_f *= pow(2.0,-1);
+    } else if (notes[c] == '4') {
+    } else if (notes[c] == '5') {
+      this_f *= 2;
+    } else if (notes[c] == '6') {
+      this_f *= 4;
+    } else if (notes[c] == '7') {
+      this_f *= 8;
+    } else if (notes[c] == '8') {
+      this_f *= 16;
+    } else if (notes[c] == '9') {
+      this_f *= 32;
+    } else if (notes[c] == '#') {
+      this_f *= pow(2.0, 1.0/12.0);
+    } else if (notes[c] == 'b') {
+      this_f *= pow(2.0, -1.0/12.0);
+    } else {
+    }
+
+    note_fs.push_back(this_f);
+    cout << "pushing " << this_f << " finished" << endl;
+  }
+
+  if (note_fs.size() == 0) {
+    double this_f = f;
+    note_fs.push_back(this_f);
+    cout << "pushing " << this_f << " by default" << endl;
+  } else {}
+
+
+  int tone_samples_start = max( 0, min( int(ceil(16000*s)), ms->pack[this_dog].voice_buffer_size-1 ) );
+  int tone_samples_end = max( 0, min( int(ceil(16000*e)), ms->pack[this_dog].voice_buffer_size-1 ) );
+
+  int warb_width_samples = ceil(warb_width_seconds * 16000);
+
+  int advance_samples = a * double(warb_width_samples);
+
+  cout << advance_samples << " adv samp " << endl;
+
+  for (int i = tone_samples_start; i <= tone_samples_end; i++) {
+    int advanced_i = (i + advance_samples);
+    int sample_idx = advanced_i % warb_width_samples;
+    int freq_idx = ( i / warb_width_samples ) % note_fs.size();
+    int this_f = note_fs[ freq_idx ];
+
+    //int sample_arg = min(warb_width_samples-1-sample_idx, sample_idx);
+    //int sample_arg = sample_idx;
+    //int16_t intended = int16_t(  v * sin(advanced_i * f * 2.0 * M_PI / 16000) * exp( -pow(sample_arg,2)/(2.0*pow(sigma,2.0)) )  );
+
+
+//cout << "this_f synth " << this_f << endl;
+    ms->pack[this_dog].voice_buffer[i] += v * sin(i * this_f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) );
+    //ms->pack[this_dog].voice_buffer[i] += v * sin(i * this_f * 2.0 * M_PI / 16000) * exp( -pow(sample_arg,2)/(2.0*pow(sigma,2.0)) );
+  }
+}
+END_WORD
+REGISTER_WORD(DogVoiceTrackWarbleNotes)
+
+WORD(DogVoiceTimeTrackWarbleSinNotes)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// volume a4_frequency start end window_sigma repetition_period advance_fraction "A3# B2 C4b R R" dogVoiceTrackWarbleNotes
+  int this_dog = ms->focusedMember;
+
+  string notes;
+  GET_STRING_ARG(ms, notes);
+
+  double a = 0.0;
+  GET_NUMERIC_ARG(ms, a);
+
+  double warb_width_seconds = 1.0;
+  GET_NUMERIC_ARG(ms, warb_width_seconds);
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double e = 0.0;
+  GET_NUMERIC_ARG(ms, e);
+
+  double s = 0.0;
+  GET_NUMERIC_ARG(ms, s);
+
+  double f = 440.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  vector<double> note_fs;
+  vector<double> note_ws;
+  for (int c = 0; c < notes.size(); c++) {
+    double this_f = f;
+    double this_w = warb_width_seconds;
+
+    int parsed = 0;
+
+    while ( (c < notes.size()) ) {
+      cout << notes[c] << " note " << endl;
+      if (notes[c] == ' ') {
+	cout << "breaking " << this_f << " hit space" << endl;
+	break;
+      } else if (notes[c] == 'R' || notes[c] == 'r') {
+	this_f *= 0;
+      } else if (notes[c] == 'a' || notes[c] == 'A') {
+      } else if (notes[c] == 'b' || notes[c] == 'B') {
+	this_f *= pow(2.0, 2.0/12.0);
+      } else if (notes[c] == 'c' || notes[c] == 'C') {
+	this_f *= pow(2.0, -9.0/12.0);
+      } else if (notes[c] == 'd' || notes[c] == 'D') {
+	this_f *= pow(2.0, -7/12.0);
+      } else if (notes[c] == 'e' || notes[c] == 'E') {
+	this_f *= pow(2.0, -5.0/12.0);
+      } else if (notes[c] == 'f' || notes[c] == 'F') {
+	this_f *= pow(2.0, -4.0/12.0);
+      } else if (notes[c] == 'g' || notes[c] == 'G') {
+	this_f *= pow(2.0, -2.0/12.0);
+      } else if (notes[c] == '0') {
+	this_f *= pow(2.0,-4);
+      } else if (notes[c] == '1') {
+	this_f *= pow(2.0,-3);
+      } else if (notes[c] == '2') {
+	this_f *= pow(2.0,-2);
+      } else if (notes[c] == '3') {
+	this_f *= pow(2.0,-1);
+      } else if (notes[c] == '4') {
+      } else if (notes[c] == '5') {
+	this_f *= 2;
+      } else if (notes[c] == '6') {
+	this_f *= 4;
+      } else if (notes[c] == '7') {
+	this_f *= 8;
+      } else if (notes[c] == '8') {
+	this_f *= 16;
+      } else if (notes[c] == '9') {
+	this_f *= 32;
+      } else if (notes[c] == '#') {
+	this_f *= pow(2.0, 1.0/12.0);
+      } else if (notes[c] == 'p') {
+	this_f *= pow(2.0, -1.0/12.0);
+      } else if (notes[c] == 'h') {
+	this_w *= 0.5;
+      } else if (notes[c] == 'H') {
+	this_w *= 2;
+      } else if (notes[c] == 't') {
+	this_w *= 1.0/3.0;
+      } else if (notes[c] == 'T') {
+	this_w *= 3.0;
+      } else {
+      }
+      parsed++;
+      c++;
+    }
+
+    if (parsed > 0) {
+      note_fs.push_back(this_f);
+      note_ws.push_back(this_w);
+      cout << "pushing f w: " << this_f << " " << this_w << " finished" << endl;
+    } else {
+      cout << "did not parse non-whitespace, not pushing" << endl;
+    }
+  }
+
+  if (note_fs.size() == 0) {
+    double this_f = f;
+    note_fs.push_back(this_f);
+    cout << "pushing " << this_f << " by default" << endl;
+  } else {}
+
+
+  int tone_samples_start = max( 0, min( int(ceil(16000*s)), ms->pack[this_dog].voice_buffer_size-1 ) );
+  int tone_samples_end = max( 0, min( int(ceil(16000*e)), ms->pack[this_dog].voice_buffer_size-1 ) );
+
+
+  int current_note = 0;
+  int num_notes = note_fs.size();
+  int cn_sample_offset = 0;
+  int played_samples = 0;
+
+  for (int i = tone_samples_start; i <= tone_samples_end; i++) {
+    int freq_idx = current_note;
+    double this_f = note_fs[ freq_idx ];
+    double this_w = note_ws[ freq_idx ];
+
+    int warb_width_samples = ceil(this_w * 16000);
+    int advance_samples = a * double(warb_width_samples);
+
+    int advanced_i = (i + advance_samples);
+    int sample_idx = advanced_i - cn_sample_offset;
+
+    //int sample_arg = min(warb_width_samples-1-sample_idx, sample_idx);
+    //int sample_arg = sample_idx;
+    //int16_t intended = int16_t(  v * sin(advanced_i * f * 2.0 * M_PI / 16000) * exp( -pow(sample_arg,2)/(2.0*pow(sigma,2.0)) )  );
+
+
+//cout << "this_f synth " << this_f << endl;
+    ms->pack[this_dog].voice_buffer[i] += v * sin(i * this_f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) );
+    //ms->pack[this_dog].voice_buffer[i] += v * sin(i * this_f * 2.0 * M_PI / 16000) * exp( -pow(sample_arg,2)/(2.0*pow(sigma,2.0)) );
+  
+    played_samples++;
+    if (played_samples - cn_sample_offset >= warb_width_samples) {
+      current_note++;
+      cn_sample_offset = cn_sample_offset + warb_width_samples;
+      cout << advance_samples << " adv samp, " << played_samples << " " << current_note << endl;
+    } else {}
+  
+    current_note = current_note % num_notes;
+  }
+}
+END_WORD
+REGISTER_WORD(DogVoiceTimeTrackWarbleSinNotes)
+
+WORD(DogVoiceTimeTrackWarbleSquareNotes)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// volume a4_frequency start end window_sigma repetition_period advance_fraction "A3# B2 C4b R R" dogVoiceTrackWarbleNotes
+  int this_dog = ms->focusedMember;
+
+  string notes;
+  GET_STRING_ARG(ms, notes);
+
+  double a = 0.0;
+  GET_NUMERIC_ARG(ms, a);
+
+  double warb_width_seconds = 1.0;
+  GET_NUMERIC_ARG(ms, warb_width_seconds);
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double e = 0.0;
+  GET_NUMERIC_ARG(ms, e);
+
+  double s = 0.0;
+  GET_NUMERIC_ARG(ms, s);
+
+  double f = 440.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  vector<double> note_fs;
+  vector<double> note_ws;
+  for (int c = 0; c < notes.size(); c++) {
+    double this_f = f;
+    double this_w = warb_width_seconds;
+
+    int parsed = 0;
+
+    while ( (c < notes.size()) ) {
+      cout << notes[c] << " note " << endl;
+      if (notes[c] == ' ') {
+	cout << "breaking " << this_f << " hit space" << endl;
+	break;
+      } else if (notes[c] == 'R' || notes[c] == 'r') {
+	this_f *= 0;
+      } else if (notes[c] == 'a' || notes[c] == 'A') {
+      } else if (notes[c] == 'b' || notes[c] == 'B') {
+	this_f *= pow(2.0, 2.0/12.0);
+      } else if (notes[c] == 'c' || notes[c] == 'C') {
+	this_f *= pow(2.0, -9.0/12.0);
+      } else if (notes[c] == 'd' || notes[c] == 'D') {
+	this_f *= pow(2.0, -7/12.0);
+      } else if (notes[c] == 'e' || notes[c] == 'E') {
+	this_f *= pow(2.0, -5.0/12.0);
+      } else if (notes[c] == 'f' || notes[c] == 'F') {
+	this_f *= pow(2.0, -4.0/12.0);
+      } else if (notes[c] == 'g' || notes[c] == 'G') {
+	this_f *= pow(2.0, -2.0/12.0);
+      } else if (notes[c] == '0') {
+	this_f *= pow(2.0,-4);
+      } else if (notes[c] == '1') {
+	this_f *= pow(2.0,-3);
+      } else if (notes[c] == '2') {
+	this_f *= pow(2.0,-2);
+      } else if (notes[c] == '3') {
+	this_f *= pow(2.0,-1);
+      } else if (notes[c] == '4') {
+      } else if (notes[c] == '5') {
+	this_f *= 2;
+      } else if (notes[c] == '6') {
+	this_f *= 4;
+      } else if (notes[c] == '7') {
+	this_f *= 8;
+      } else if (notes[c] == '8') {
+	this_f *= 16;
+      } else if (notes[c] == '9') {
+	this_f *= 32;
+      } else if (notes[c] == '#') {
+	this_f *= pow(2.0, 1.0/12.0);
+      } else if (notes[c] == 'p') {
+	this_f *= pow(2.0, -1.0/12.0);
+      } else if (notes[c] == 'h') {
+	this_w *= 0.5;
+      } else if (notes[c] == 'H') {
+	this_w *= 2;
+      } else if (notes[c] == 't') {
+	this_w *= 1.0/3.0;
+      } else if (notes[c] == 'T') {
+	this_w *= 3.0;
+      } else {
+      }
+      parsed++;
+      c++;
+    }
+
+    if (parsed > 0) {
+      note_fs.push_back(this_f);
+      note_ws.push_back(this_w);
+      cout << "pushing f w: " << this_f << " " << this_w << " finished" << endl;
+    } else {
+      cout << "did not parse non-whitespace, not pushing" << endl;
+    }
+  }
+
+  if (note_fs.size() == 0) {
+    double this_f = f;
+    note_fs.push_back(this_f);
+    cout << "pushing " << this_f << " by default" << endl;
+  } else {}
+
+
+  int tone_samples_start = max( 0, min( int(ceil(16000*s)), ms->pack[this_dog].voice_buffer_size-1 ) );
+  int tone_samples_end = max( 0, min( int(ceil(16000*e)), ms->pack[this_dog].voice_buffer_size-1 ) );
+
+
+  int current_note = 0;
+  int num_notes = note_fs.size();
+  int cn_sample_offset = 0;
+  int played_samples = 0;
+
+  for (int i = tone_samples_start; i <= tone_samples_end; i++) {
+    int freq_idx = current_note;
+    double this_f = note_fs[ freq_idx ];
+    double this_w = note_ws[ freq_idx ];
+
+    int warb_width_samples = ceil(this_w * 16000);
+    int advance_samples = a * double(warb_width_samples);
+
+    int advanced_i = (i + advance_samples);
+    int sample_idx = advanced_i - cn_sample_offset;
+
+    //int sample_arg = min(warb_width_samples-1-sample_idx, sample_idx);
+    //int sample_arg = sample_idx;
+    //int16_t intended = int16_t(  v * sin(advanced_i * f * 2.0 * M_PI / 16000) * exp( -pow(sample_arg,2)/(2.0*pow(sigma,2.0)) )  );
+
+
+//cout << "this_f synth " << this_f << endl;
+    ms->pack[this_dog].voice_buffer[i] += v * squareWave(i * this_f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) );
+    //ms->pack[this_dog].voice_buffer[i] += v * sin(i * this_f * 2.0 * M_PI / 16000) * exp( -pow(sample_arg,2)/(2.0*pow(sigma,2.0)) );
+  
+    played_samples++;
+    if (played_samples - cn_sample_offset >= warb_width_samples) {
+      current_note++;
+      cn_sample_offset = cn_sample_offset + warb_width_samples;
+      cout << advance_samples << " adv samp, " << played_samples << " " << current_note << endl;
+    } else {}
+  
+    current_note = current_note % num_notes;
+  }
+}
+END_WORD
+REGISTER_WORD(DogVoiceTimeTrackWarbleSquareNotes)
+
+WORD(DogVoiceTetraTrackWarbleNotes)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// volume a4_frequency start end window_sigma repetition_period advance_fraction "A3# B2 C4b R R" dogVoiceTrackWarbleNotes
+  int this_dog = ms->focusedMember;
+
+  string notes;
+  GET_STRING_ARG(ms, notes);
+
+  string wave;
+  GET_STRING_ARG(ms, wave);
+
+  // XXX set wave
+  double (*waveFunction)(double) = &sin;
+  if (wave.compare("sin") == 0) {
+    waveFunction = &sin;
+  } else if (wave.compare("square") == 0) {
+    waveFunction = &squareWave;
+  } else if (wave.compare("triangle") == 0) {
+    waveFunction = &triangleWave;
+  } else if (wave.compare("sawtooth") == 0) {
+    waveFunction = &sawtoothWave;
+  } else {
+    cout << "Unrecognized wave, using sin" << endl;
+    waveFunction = &sin;
+  }
+
+  double a = 0.0;
+  GET_NUMERIC_ARG(ms, a);
+
+  double warb_width_seconds = 1.0;
+  GET_NUMERIC_ARG(ms, warb_width_seconds);
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double e = 0.0;
+  GET_NUMERIC_ARG(ms, e);
+
+  double s = 0.0;
+  GET_NUMERIC_ARG(ms, s);
+
+  double f = 440.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  vector<double> note_fs;
+  vector<double> note_ws;
+  vector<double> note_vs;
+  for (int c = 0; c < notes.size(); c++) {
+    double this_f = f;
+    double this_w = warb_width_seconds;
+    double this_v = v;
+
+    int parsed = 0;
+
+    while ( (c < notes.size()) ) {
+      cout << notes[c] << " note " << endl;
+      if (notes[c] == ' ') {
+	cout << "breaking " << this_f << " hit space" << endl;
+	break;
+      } else if (notes[c] == 'R' || notes[c] == 'r') {
+	this_f *= 0;
+	this_v *= 0;
+      } else if (notes[c] == 'a' || notes[c] == 'A') {
+      } else if (notes[c] == 'b' || notes[c] == 'B') {
+	this_f *= pow(2.0, 2.0/12.0);
+      } else if (notes[c] == 'c' || notes[c] == 'C') {
+	this_f *= pow(2.0, -9.0/12.0);
+      } else if (notes[c] == 'd' || notes[c] == 'D') {
+	this_f *= pow(2.0, -7/12.0);
+      } else if (notes[c] == 'e' || notes[c] == 'E') {
+	this_f *= pow(2.0, -5.0/12.0);
+      } else if (notes[c] == 'f' || notes[c] == 'F') {
+	this_f *= pow(2.0, -4.0/12.0);
+      } else if (notes[c] == 'g' || notes[c] == 'G') {
+	this_f *= pow(2.0, -2.0/12.0);
+      } else if (notes[c] == '0') {
+	this_f *= pow(2.0,-4);
+      } else if (notes[c] == '1') {
+	this_f *= pow(2.0,-3);
+      } else if (notes[c] == '2') {
+	this_f *= pow(2.0,-2);
+      } else if (notes[c] == '3') {
+	this_f *= pow(2.0,-1);
+      } else if (notes[c] == '4') {
+      } else if (notes[c] == '5') {
+	this_f *= 2;
+      } else if (notes[c] == '6') {
+	this_f *= 4;
+      } else if (notes[c] == '7') {
+	this_f *= 8;
+      } else if (notes[c] == '8') {
+	this_f *= 16;
+      } else if (notes[c] == '9') {
+	this_f *= 32;
+      } else if (notes[c] == '#') {
+	this_f *= pow(2.0, 1.0/12.0);
+      } else if (notes[c] == 'p') {
+	this_f *= pow(2.0, -1.0/12.0);
+      } else if (notes[c] == 'h') {
+	this_w *= 0.5;
+      } else if (notes[c] == 'H') {
+	this_w *= 2;
+      } else if (notes[c] == 't') {
+	this_w *= 1.0/3.0;
+      } else if (notes[c] == 'T') {
+	this_w *= 3.0;
+      } else {
+      }
+      parsed++;
+      c++;
+    }
+
+    if (parsed > 0) {
+      note_fs.push_back(this_f);
+      note_ws.push_back(this_w);
+      note_vs.push_back(this_v);
+      cout << "pushing f w: " << this_f << " " << this_w << " finished" << endl;
+    } else {
+      cout << "did not parse non-whitespace, not pushing" << endl;
+    }
+  }
+
+  if (note_fs.size() == 0) {
+    double this_f = f;
+    double this_w = warb_width_seconds;
+    double this_v = v;
+    note_fs.push_back(this_f);
+    note_ws.push_back(this_w);
+    note_vs.push_back(this_v);
+    cout << "pushing " << this_f << " by default" << endl;
+  } else {}
+
+
+  int tone_samples_start = max( 0, min( int(ceil(16000*s)), ms->pack[this_dog].voice_buffer_size-1 ) );
+  int tone_samples_end = max( 0, min( int(ceil(16000*e)), ms->pack[this_dog].voice_buffer_size-1 ) );
+
+
+  int current_note = 0;
+  int num_notes = note_fs.size();
+  int cn_sample_offset = 0;
+  int played_samples = 0;
+
+  for (int i = tone_samples_start; i <= tone_samples_end; i++) {
+    int freq_idx = current_note;
+    double this_f = note_fs[ freq_idx ];
+    double this_w = note_ws[ freq_idx ];
+    double this_v = note_vs[ freq_idx ];
+
+    int warb_width_samples = ceil(this_w * 16000);
+    int advance_samples = a * double(warb_width_samples);
+
+    int advanced_i = (i + advance_samples);
+    int sample_idx = advanced_i - cn_sample_offset;
+
+    //ms->pack[this_dog].voice_buffer[i] += v * squareWave(i * this_f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) );
+    ms->pack[this_dog].voice_buffer[i] += this_v * (*waveFunction)(i * this_f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) );
+  
+    played_samples++;
+    if (played_samples - cn_sample_offset >= warb_width_samples) {
+      current_note++;
+      cn_sample_offset = cn_sample_offset + warb_width_samples;
+      cout << advance_samples << " adv samp, " << played_samples << " " << current_note << endl;
+    } else {}
+  
+    current_note = current_note % num_notes;
+  }
+}
+END_WORD
+REGISTER_WORD(DogVoiceTetraTrackWarbleNotes)
+
+WORD(DogVoiceSing)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+  int tone_samples = ms->pack[this_dog].voice_buffer_size;
+  int tone_length = 2*tone_samples;
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < ms->pack[this_dog].voice_buffer_size; i++) {
+    // clip
+    currentSample[i] = int16_t( max( double(INT16_MIN), min( ms->pack[this_dog].voice_buffer[i], double(INT16_MAX) ) ) );
+    //cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogVoiceSing)
+
+void write_little_endian(unsigned int word, int num_bytes, uchar *out) {
+  if (num_bytes > 0) {
+    uchar buf;
+    while( num_bytes > 0 ) {   
+      buf = word & 0xff;
+      *out = buf;
+      out++;
+      num_bytes--;
+      word >>= 8;
+    }
+  } else {}
+}
+
+WORD(DogVoiceToPCM)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+  int tone_samples = ms->pack[this_dog].voice_buffer_size;
+  int tone_length = 2*tone_samples;
+
+  string filename;
+  GET_STRING_ARG(ms, filename);
+
+  stringstream ss;
+  //ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  // 'RIFF'
+  // 4:(overall size - 8 bytes):
+  // 'WAVE'
+  // 'fmt\0'
+  // 4:length of above header:16 
+  // 2:format type, PCM=1:1 
+  // 2:channels:1 
+  // 4:rate:16000 
+  // 4:(sample rate * bits per sample * number of channels) / 8:
+  // 2:(bits per sample * channel)/8:2 
+  // 2:bits per sample:16   
+  // 'data' 
+  // 4:size of data:
+  ss << "RIFF    WAVEfmt                     data    ";
+  string header = ss.str();
+
+  int buf_size = max(int(tone_length + header.size()), int(1 + header.size()));
+  uchar * buf = new uchar[buf_size];
+  sprintf((char*)buf, "%s", header.c_str());
+
+  /*
+  *(int*)(&buf[4]) = buf_size - 8;
+  *(int*)(&buf[16]) = 16;
+  *(uchar*)(&buf[20]) = 1; *(uchar*)(&buf[21]) = 0;
+  *(uchar*)(&buf[22]) = 1; *(uchar*)(&buf[23]) = 0;
+  *(int*)(&buf[24]) = 16000;
+  *(int*)(&buf[28]) = 32000;
+  *(uchar*)(&buf[33]) = 2; *(uchar*)(&buf[34]) = 0;
+  *(uchar*)(&buf[35]) = 16; *(uchar*)(&buf[36]) = 0;
+  *(int*)(&buf[40]) = tone_length;
+  */
+
+  write_little_endian(buf_size-8, 4, &(buf[4])); 
+  write_little_endian(16, 4, &(buf[16])); 
+  write_little_endian(1, 2, &(buf[20])); 
+  write_little_endian(1, 2, &(buf[22])); 
+  write_little_endian(16000, 4, &(buf[24])); 
+  write_little_endian(32000, 4, &(buf[28])); 
+  write_little_endian(2, 2, &(buf[32])); 
+  write_little_endian(16, 2, &(buf[34])); 
+  write_little_endian(tone_length, 4, &(buf[40])); 
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < ms->pack[this_dog].voice_buffer_size; i++) {
+    // clip
+    //currentSample[i] = int16_t( max( double(INT16_MIN), min( ms->pack[this_dog].voice_buffer[i], double(INT16_MAX) ) ) );
+    int16_t val = int16_t( max( double(INT16_MIN), min( ms->pack[this_dog].voice_buffer[i], double(INT16_MAX) ) ) );
+    write_little_endian(val, 2, (uchar*)&(currentSample[i]));
+    //cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  //sendOnDogSocket(ms, this_dog, buf, buf_size);
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/wav/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  stringstream ssf;
+  ssf << ms->config.data_directory + "/wav/" + filename + ".wav";
+
+  FILE *out = fopen(ssf.str().c_str(), "wb");
+  fwrite(buf, 1, buf_size, out);
+  fclose(out);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogVoiceToPCM)
+
+
+
+
 
 /*
+
+WORD(DogVoice)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(DogVoice)
 
 WORD(Dog)
 virtual void execute(std::shared_ptr<MachineState> ms) {
