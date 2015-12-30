@@ -100,6 +100,7 @@ dogBark
   dogGetImage
   dogReplaceWristImageWithSnoutImage
   sceneUpdateObservedFromWrist
+  60 sceneSetBackgroundStdDevY
   sceneComposePredictedMap
   sceneUpdateDiscrepancy
   sceneDensityFromDiscrepancy

@@ -1224,6 +1224,9 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 
   double p_scene_sigma = 2.0;
 
+  // XXX this should be passed, probably
+  double p_discrepancy_thresh = 0.5;
+
   Mat prepared_discrepancy;
   {
     prepared_discrepancy = discrepancy_density.clone();
@@ -1271,7 +1274,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   int max_x = -1;
   int max_y = -1;
   int max_orient = -1;
-  int max_score = -1;
+  double max_score = -DBL_MAX;
 
 
   vector<SceneObjectScore> local_scores;
@@ -1319,7 +1322,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
     
     // Get the rotation matrix with the specifications above
     Mat rot_mat = getRotationMatrix2D(center, angle, scale);
-    cout << rot_mat << rot_mat.size() << endl;
+//cout << rot_mat << rot_mat.size() << endl;
     rot_mat.at<double>(0,2) += ((max_dim - prepared_object.cols)/2.0);
     rot_mat.at<double>(1,2) += ((max_dim - prepared_object.rows)/2.0);
     warpAffine(prepared_object, rotated_object_imgs[thisOrient + etaS*numOrientations], rot_mat, toBecome);
@@ -1335,7 +1338,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
     int tob_half_width = ceil(tob.cols/2.0);
     int tob_half_height = ceil(tob.rows/2.0);
 
-    cout << "tob " << tob_half_width << " " << tob_half_height << endl;
+cout << "tob " << tob_half_width << " " << tob_half_height << endl;
 
     #pragma omp parallel for
     for (int ys = tob_half_height; ys < output.rows-tob_half_height; ys++) {
@@ -1369,7 +1372,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
     }
 */
 
-    //cout << output ;
+//cout << output ;
     for (int y = 0; y < output.rows; y++) {
       for (int x = 0; x < output.cols; x++) {
 	double model_score = 0.0;
@@ -1421,7 +1424,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 
   *l_max_x = -1;
   *l_max_y = -1;
-  *l_max_score = -DBL_MAX;
+  //*l_max_score = -DBL_MAX;
   *l_max_orient = -1;
   *l_max_i = -1;
   std::sort (local_scores.begin(), local_scores.end(), compareDiscrepancyDescending);
@@ -1429,15 +1432,15 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   for (int i = 0; i < to_check; i++) {
     if ( ! local_scores[i].loglikelihood_valid ) {
       // XXX score should return the delta of including vs not including
-      local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, overlap_thresh);
+      local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
       local_scores[i].loglikelihood_valid = true;
-      cout << "  running inference on " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << endl;
+      cout << "  running inference on class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << endl;
     }
   }
 
   for (int i = 0; i < local_scores.size(); i++) {
     if ( (local_scores[i].loglikelihood_valid) && (local_scores[i].loglikelihood_score > *l_max_score) ) {
-      cout << " score " << local_scores[i].loglikelihood_score << " l_max_score " << *l_max_score << endl;
+      cout << " score " << local_scores[i].loglikelihood_score << " old l_max_score " << *l_max_score << endl;
       *l_max_score = local_scores[i].loglikelihood_score;
       *l_max_x = local_scores[i].x_c;
       *l_max_y = local_scores[i].y_c;
@@ -1459,7 +1462,7 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   int l_max_x = -1;
   int l_max_y = -1;
   int l_max_orient = -1;
-  double l_max_score = -1;
+  double l_max_score = -DBL_MAX;
   int l_max_i = -1;
 
   findBestScoreForObject(class_idx, num_orientations, &l_max_x, &l_max_y, &l_max_orient, &l_max_score, &l_max_i);
@@ -1505,17 +1508,21 @@ void Scene::findBestObjectAndScore(int * class_idx, int num_orientations, int * 
   *l_max_x = -1;
   *l_max_y = -1;
   *l_max_orient = -1;
-  *l_max_score = -1;
+  //*l_max_score = -DBL_MAX;
   *l_max_i = -1;
+
+  *class_idx = -1;
+  
 
   for (int j = 0; j < ms->config.classLabels.size(); j++) {
     int j_max_x = -1;
     int j_max_y = -1;
     int j_max_orient = -1;
-    double j_max_score = -1;
+    double j_max_score = -DBL_MAX;
     int j_max_i = -1;
 
     findBestScoreForObject(j, num_orientations, &j_max_x, &j_max_y, &j_max_orient, &j_max_score, &j_max_i);
+
     if (j_max_score > *l_max_score) {
       *l_max_score = j_max_score;
       *l_max_x = j_max_x;
@@ -1523,10 +1530,12 @@ void Scene::findBestObjectAndScore(int * class_idx, int num_orientations, int * 
       *l_max_orient = j_max_orient;
       *l_max_i = j_max_i;
 
-      cout << "  findBestObjectAndScore, class " << j << " " << ms->config.classLabels[j] << " : " << endl;
-      cout << l_max_x << " " << l_max_y << " " << *l_max_orient << " " << "l_max_score: " << *l_max_score << " l_max_i: " << *l_max_i << endl;
+      *class_idx = j;
     } else {
     }
+
+    cout << "  findBestObjectAndScore, class " << j << " " << ms->config.classLabels[j] << " : " << endl;
+    cout << *l_max_x << " " << *l_max_y << " " << *l_max_orient << " " << "l_max_score: " << *l_max_score << " l_max_i: " << *l_max_i << " -DBL_MAX: " << -DBL_MAX << endl;
   }
 }
 
@@ -1539,7 +1548,7 @@ void Scene::tryToAddBestObjectToScene() {
   int l_max_x = -1;
   int l_max_y = -1;
   int l_max_orient = -1;
-  double l_max_score = -1;
+  double l_max_score = -DBL_MAX;
   int l_max_i = -1;
 
   findBestObjectAndScore(&l_max_class, num_orientations, &l_max_x, &l_max_y, &l_max_orient, &l_max_score, &l_max_i);
@@ -1548,7 +1557,8 @@ void Scene::tryToAddBestObjectToScene() {
   double l_max_x_meters, l_max_y_meters;
   cellToMeters(l_max_x, l_max_y, &l_max_x_meters, &l_max_y_meters);
 
-  if (l_max_x > -1)
+  //if (l_max_x > -1)
+  if (l_max_score > -DBL_MAX)
   {
     if (l_max_score > 0) {
       cout << "best detection made an improvement..." << endl;
@@ -2206,7 +2216,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int l_max_x = -1;
   int l_max_y = -1;
   int l_max_orient = -1;
-  double l_max_score = -1;
+  double l_max_score = -DBL_MAX;
   int l_max_i = -1;
 
   ms->config.scene->findBestObjectAndScore(&l_max_class, num_orientations, &l_max_x, &l_max_y, &l_max_orient, &l_max_score, &l_max_i);
