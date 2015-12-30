@@ -37,10 +37,10 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   sceneClearObservedMap sceneClearPredictedObjects 
 ) "tempInit" store
 
-0.001 "scenePredictedMapThresh" store
+0.01 "scenePredictedMapThresh" store
 
 (
-scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+  scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
 ) "tempUpdateMaps" store
 
 (
@@ -60,6 +60,9 @@ scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy 
   tempLoadAndPrepareFocusedModel tempShortTakeScene scenePredictFocusedObject tempUpdateMaps
 ) "tempPredictAndRenderFile" store
 
+(
+  tempShortTakeScene scenePredictBestObject tempUpdateMaps
+) "tempPredictAndRenderBest" store
 
 (
   /* takes a string */
@@ -176,17 +179,12 @@ scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy 
   setPlaceModeToHold setIdleModeToEmpty setBoundingBoxModeToMapping
   tenthImpulse 1 changeToHeight shiftIntoGraspGear1 waitUntilAtCurrentPosition
 
+/*
+*/
   clearClassLabels
   initializeAndFocusOnNewClass
 
   ( tempRecaptureServo waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord
-
-/*
-  tempRecaptureServo
-  waitUntilAtCurrentPosition
-  tempRecaptureServo
-  waitUntilAtCurrentPosition
-*/
 
   sceneClearObservedMap sceneClearPredictedObjects 
 /* it appears to be somewhat important that the observed frames be contained within the background, else discrepancy creeps at the boundary
@@ -198,16 +196,18 @@ scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy 
   0.01 setGridSize
   tempUpdateFivePointThreeWidth
   tempCaptureCore
-  "tempQuickScanObjectModel" sceneSaveFocusedSceneModel
+  "tempQuickScanObjectModel" robotSerial leftOrRightArm + + "tempScanFileName" store 
+  tempScanFileName sceneSaveFocusedSceneModel
 
-  clearClassLabels
   setScanModeNotCentered
 
-  /*endArgs
+  /*
+  endArgs
   currentPose
-  scanObjectStreamWaypoints3dNoPick*/
-  initializeAndFocusOnNewClass
-  "tempQuickScanObjectModel" sceneLoadFocusedSceneModel
+  scanObjectStreamWaypoints3dNoPick
+  */
+
+  tempScanFileName sceneLoadFocusedSceneModel
   writeFocusedClass
 ) "tempQuickScan" store
 
@@ -216,41 +216,36 @@ scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy 
   setPlaceModeToHold setIdleModeToEmpty setBoundingBoxModeToMapping
   tenthImpulse 1 changeToHeight shiftIntoGraspGear1 waitUntilAtCurrentPosition
 
+/*
   clearClassLabels
   initializeAndFocusOnNewClass
-
-  tempRecaptureServo
-  waitUntilAtCurrentPosition
-  endStackCollapseNoop
-/*
-  tempRecaptureServo
-  waitUntilAtCurrentPosition
-  tempRecaptureServo
-  waitUntilAtCurrentPosition
 */
+
+  ( tempRecaptureServo waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord
 
   sceneClearObservedMap sceneClearPredictedObjects 
 /* it appears to be somewhat important that the observed frames be contained within the background, else discrepancy creeps at the boundary
   0.07 setGridSize
   tempUpdateObservedFromWristFivePoint
-*/
   0.03 setGridSize
   tempUpdateObservedFromWristFivePoint
+*/
   0.01 setGridSize
-  tempUpdateObservedFromWristFivePoint
+  tempUpdateFivePointThreeWidth
   tempCaptureCore
-  "tempQuickScanObjectModel" sceneSaveFocusedSceneModel
+  "tempQuickScanObjectModel" robotSerial leftOrRightArm + + "tempScanFileName" store 
+  tempScanFileName sceneSaveFocusedSceneModel
 
   clearClassLabels
   setScanModeNotCentered
 
+  /*
+  */
   endArgs
   currentPose
   scanObjectStreamWaypoints3dNoPick
-/*
-  initializeAndFocusOnNewClass
-*/
-  "tempQuickScanObjectModel" sceneLoadFocusedSceneModel
+
+  tempScanFileName sceneLoadFocusedSceneModel
   writeFocusedClass
 ) "tempFullScan" store
 
@@ -325,6 +320,10 @@ scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy 
 ) "tempMapAndPick" store
 
 
+(
+  endArgs "banana" "mediumClamp" "redScrewdriver" "yellowEyeDuplo" setClassLabels
+
+) "tempSetClassesSS1" store
 
 
 
