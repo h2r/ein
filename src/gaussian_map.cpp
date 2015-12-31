@@ -867,7 +867,6 @@ void Scene::measureDiscrepancy() {
     for (int y = 0; y < height; y++) {
       if ((predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
 
-
 /*
 	double rmu_diff = (predicted_map->refAtCell(x,y)->rmu - observed_map->refAtCell(x,y)->rmu);
 	double gmu_diff = (predicted_map->refAtCell(x,y)->gmu - observed_map->refAtCell(x,y)->gmu);
@@ -1011,25 +1010,94 @@ double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
     int bot_x, bot_y;
     metersToCell(tsob->scene_pose.px + mpad*cell_width, tsob->scene_pose.py + mpad*cell_width, &bot_x, &bot_y);
 
+
+
+    double top_meters_object_x;
+    double top_meters_object_y;
+    double top_meters_scene_x, top_meters_scene_y;
+    cellToMeters(top_x, top_y, &top_meters_scene_x, &top_meters_scene_y);
+    eePose top_cell_eep = eePose::identity();
+    top_cell_eep.px = top_meters_scene_x;
+    top_cell_eep.py = top_meters_scene_y;
+    top_cell_eep.pz = 0.0;
+    eePose top_eep_object = top_cell_eep.getPoseRelativeTo(tsob->scene_pose);
+    top_meters_object_x = top_eep_object.px;
+    top_meters_object_y = top_eep_object.py;
+
+
+    double nextx_meters_object_x;
+    double nextx_meters_object_y;
+    double nextx_meters_scene_x, nextx_meters_scene_y;
+    cellToMeters(top_x + 1, top_y + 0, &nextx_meters_scene_x, &nextx_meters_scene_y);
+    eePose nextx_cell_eep = eePose::identity();
+    nextx_cell_eep.px = nextx_meters_scene_x;
+    nextx_cell_eep.py = nextx_meters_scene_y;
+    nextx_cell_eep.pz = 0.0;
+    eePose nextx_eep_object = nextx_cell_eep.getPoseRelativeTo(tsob->scene_pose);
+    nextx_meters_object_x = nextx_eep_object.px;
+    nextx_meters_object_y = nextx_eep_object.py;
+
+    double nexty_meters_object_x;
+    double nexty_meters_object_y;
+    double nexty_meters_scene_x, nexty_meters_scene_y;
+    cellToMeters(top_x + 0, top_y + 1, &nexty_meters_scene_x, &nexty_meters_scene_y);
+    eePose nexty_cell_eep = eePose::identity();
+    nexty_cell_eep.px = nexty_meters_scene_x;
+    nexty_cell_eep.py = nexty_meters_scene_y;
+    nexty_cell_eep.pz = 0.0;
+    eePose nexty_eep_object = nexty_cell_eep.getPoseRelativeTo(tsob->scene_pose);
+    nexty_meters_object_x = nexty_eep_object.px;
+    nexty_meters_object_y = nexty_eep_object.py;
+
+    double diffx_x = nextx_meters_object_x - top_meters_object_x;
+    double diffx_y = nextx_meters_object_y - top_meters_object_y;
+
+    double diffy_x = nexty_meters_object_x - top_meters_object_x;
+    double diffy_y = nexty_meters_object_y - top_meters_object_y;
+
+
+    int xidx = -1;
+    int nerrors = 0;
+
     for (int x = top_x; x < bot_x; x++) {
+      xidx++;
+      int yidx = -1;
       for (int y = top_y; y < bot_y; y++) {
+	yidx++;
 	if (!safeAt(x,y)) {
 	  continue;
 	} 
 
-	double meters_scene_x, meters_scene_y;
+	/*double meters_scene_x, meters_scene_y;
 	cellToMeters(x, y, &meters_scene_x, &meters_scene_y);
 
 	
-	double meters_object_x, meters_object_y;
+
 	eePose cell_eep = eePose::identity();
 	cell_eep.px = meters_scene_x;
 	cell_eep.py = meters_scene_y;
 	cell_eep.pz = 0.0;
 	eePose eep_object = cell_eep.getPoseRelativeTo(tsob->scene_pose);
-	meters_object_x = eep_object.px;
-	meters_object_y = eep_object.py;
+	double meters_object_x1 = eep_object.px;
+	double meters_object_y1 = eep_object.py;*/
 
+	double meters_object_x = top_meters_object_x + diffx_x * xidx + diffy_x * yidx;
+	double meters_object_y = top_meters_object_y + diffx_y * xidx + diffy_y * yidx;
+	
+	/*if (fabs(meters_object_x1 - meters_object_x) > EPSILON) {
+	  cout << "xidx: " << xidx << " yidx: " << yidx << " meters_object_x1: " << meters_object_x1 << " new: " << meters_object_x << endl;
+	  //cout << "diffx_x: " << diffx_x << " diffx_y: " << diffx_y << " diffy_x: " << diffy_x << " diffy_y: " << diffy_y << endl;
+	  nerrors += 1;
+	}
+
+	if (fabs(meters_object_y1 - meters_object_y) > EPSILON) {
+	  cout << "xidx: " << xidx << " yidx: " << yidx << " meters_object_y1: " << meters_object_y1 << " new: " << meters_object_y << endl;
+	  nerrors += 1;
+	}
+
+	if (nerrors > 100) {
+	  assert(0);
+	  }*/
 	double cells_object_x, cells_object_y;
 	tos->metersToCell(meters_object_x, meters_object_y, &cells_object_x, &cells_object_y);
 	if ( tos->safeBilinAt(cells_object_x, cells_object_y) ) {
@@ -1079,7 +1147,6 @@ double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
 	  }
 	} else {
 	}
-	
 	// take exaggerated bounding box of object in scene
 	//   look up each scene cell in the object's frame
 	//   if one of the contributors is valid, replace this scene cell with the interpolated object cell 
