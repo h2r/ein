@@ -502,7 +502,9 @@ void GaussianMapChannel::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
 void GaussianMap::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      refAtCell(x, y)->recalculateMusAndSigmas(ms);
+      if (refAtCell(x, y)->red.samples > 0) {
+	refAtCell(x, y)->recalculateMusAndSigmas(ms);
+      }
     }
   }
 }
@@ -2414,11 +2416,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Size sz = ms->config.wristCamImage.size();
   int imW = sz.width;
   int imH = sz.height;
+
+  int topx = ms->config.grayTop.x;  //ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols
+  int botx = ms->config.grayBot.x;  //ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols
+  int topy = ms->config.grayTop.y;  //ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows
+  int boty = ms->config.grayBot.y;  //ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows
     
-  //for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; px++) 
-    //for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; py++) 
-  for (int px = ms->config.grayTop.x; px < ms->config.grayBot.x; px++) {
-    for (int py = ms->config.grayTop.y; py < ms->config.grayBot.y; py++) {
+  //for (int px = ; px < ; px++) 
+    //for (int py = ; py < ; py++) 
+  for (int px = topx; px < botx; px++) {
+    for (int py = topy; py < boty; py++) {
   //for (int px = 0; px < imW; px++) 
     //for (int py = 0; py < imH; py++) 
       if (isInGripperMask(ms, px, py)) {
