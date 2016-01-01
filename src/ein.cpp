@@ -9842,53 +9842,55 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
   pixelToGlobal(ms, pX, pY, gZ, gX, gY, ms->config.trueEEPoseEEPose);
 }
 
-void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose) {
+
+
+void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache) {
   interpolateM_xAndM_yFromZ(ms, gZ, &ms->config.m_x, &ms->config.m_y);
 
-  int x1 = ms->config.heightReticles[0].px;
-  int x2 = ms->config.heightReticles[1].px;
-  int x3 = ms->config.heightReticles[2].px;
-  int x4 = ms->config.heightReticles[3].px;
+  cache->x1 = ms->config.heightReticles[0].px;
+  cache->x2 = ms->config.heightReticles[1].px;
+  cache->x3 = ms->config.heightReticles[2].px;
+  cache->x4 = ms->config.heightReticles[3].px;
 
-  int y1 = ms->config.heightReticles[0].py;
-  int y2 = ms->config.heightReticles[1].py;
-  int y3 = ms->config.heightReticles[2].py;
-  int y4 = ms->config.heightReticles[3].py;
+  cache->y1 = ms->config.heightReticles[0].py;
+  cache->y2 = ms->config.heightReticles[1].py;
+  cache->y3 = ms->config.heightReticles[2].py;
+  cache->y4 = ms->config.heightReticles[3].py;
 
-  double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
-  double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
-  double z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
-  double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
+  cache->z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+  cache->z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+  cache->z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+  cache->z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
-  double reticlePixelX = 0.0;
-  double reticlePixelY = 0.0;
+  cache->reticlePixelX = 0.0;
+  cache->reticlePixelY = 0.0;
   {
     double d = ms->config.d_x;
-    double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
+    double c = ((cache->z4*cache->x4-cache->z2*cache->x2)*(cache->x3-cache->x1)-(cache->z3*cache->x3-cache->z1*cache->x1)*(cache->x4-cache->x2))/((cache->z1-cache->z3)*(cache->x4-cache->x2)-(cache->z2-cache->z4)*(cache->x3-cache->x1));
 
-    double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
-    double b31 = (z3*x3-z1*x1+(z1-z3)*c)/(x3-x1);
+    double b42 = (cache->z4*cache->x4-cache->z2*cache->x2+(cache->z2-cache->z4)*c)/(cache->x4-cache->x2);
+    double b31 = (cache->z3*cache->x3-cache->z1*cache->x1+(cache->z1-cache->z3)*c)/(cache->x3-cache->x1);
 
     double bDiff = b42-b31;
     double b = (b42+b31)/2.0;
 
-    int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
+    int x_thisZ = c + ( (cache->x1-c)*(cache->z1-b) )/(gZ-b);
     x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
-    reticlePixelX = x_thisZ;
+    cache->reticlePixelX = x_thisZ;
   }
   {
     double d = ms->config.d_y;
-    double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
+    double c = ((cache->z4*cache->y4-cache->z2*cache->y2)*(cache->y3-cache->y1)-(cache->z3*cache->y3-cache->z1*cache->y1)*(cache->y4-cache->y2))/((cache->z1-cache->z3)*(cache->y4-cache->y2)-(cache->z2-cache->z4)*(cache->y3-cache->y1));
 
-    double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
-    double b31 = (z3*y3-z1*y1+(z1-z3)*c)/(y3-y1);
+    double b42 = (cache->z4*cache->y4-cache->z2*cache->y2+(cache->z2-cache->z4)*c)/(cache->y4-cache->y2);
+    double b31 = (cache->z3*cache->y3-cache->z1*cache->y1+(cache->z1-cache->z3)*c)/(cache->y3-cache->y1);
 
     double bDiff = b42-b31;
     double b = (b42+b31)/2.0;
 
-    int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
+    int y_thisZ = c + ( (cache->y1-c)*(cache->z1-b) )/(gZ-b);
     y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
-    reticlePixelY = y_thisZ;
+    cache->reticlePixelY = y_thisZ;
   }
 
   // account for rotation of the end effector 
@@ -9908,29 +9910,39 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
   double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
   angle = (angle);
   double scale = 1.0;
-  Point center = Point(reticlePixelX, reticlePixelY);
+  Point center = Point(cache->reticlePixelX, cache->reticlePixelY);
 
-  Mat un_rot_mat = getRotationMatrix2D( center, angle, scale );
+  cache->un_rot_mat = getRotationMatrix2D( center, angle, scale );
+}
+
+
+void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose) {
+  pixelToGlobalCache data;
+  computePixelToGlobalCache(ms, gZ, givenEEPose, &data);
+  pixelToGlobalFromCache(ms, pX, pY, gZ, gX, gY, givenEEPose, &data);
+}
+
+void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose, pixelToGlobalCache * cache) {
 
   Mat toUn(3,1,CV_64F);
   toUn.at<double>(0,0)=pX;
   toUn.at<double>(1,0)=pY;
   toUn.at<double>(2,0)=1.0;
-  Mat didUn = un_rot_mat*toUn;
+  Mat didUn = cache->un_rot_mat*toUn;
   pX = didUn.at<double>(0,0);
   pY = didUn.at<double>(1,0);
 
   double oldPx = pX;
   double oldPy = pY;
-  pX = reticlePixelX + (oldPy - reticlePixelY) - ms->config.offX;
-  pY = reticlePixelY + (oldPx - reticlePixelX) - ms->config.offY;
+  pX = cache->reticlePixelX + (oldPy - cache->reticlePixelY) - ms->config.offX;
+  pY = cache->reticlePixelY + (oldPx - cache->reticlePixelX) - ms->config.offY;
 
   {
     double d = ms->config.d_x/ms->config.m_x;
-    double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
+    double c = ((cache->z4*cache->x4-cache->z2*cache->x2)*(cache->x3-cache->x1)-(cache->z3*cache->x3-cache->z1*cache->x1)*(cache->x4-cache->x2))/((cache->z1-cache->z3)*(cache->x4-cache->x2)-(cache->z2-cache->z4)*(cache->x3-cache->x1));
 
-    double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
-    double b31 = (z3*x3-z1*x1+(z1-z3)*c)/(x3-x1);
+    double b42 = (cache->z4*cache->x4-cache->z2*cache->x2+(cache->z2-cache->z4)*c)/(cache->x4-cache->x2);
+    double b31 = (cache->z3*cache->x3-cache->z1*cache->x1+(cache->z1-cache->z3)*c)/(cache->x3-cache->x1);
 
     double bDiff = b42-b31;
     //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
@@ -9939,7 +9951,7 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
     double b = (b42+b31)/2.0;
 
-    int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
+    int x_thisZ = c + ( (cache->x1-c)*(cache->z1-b) )/(gZ-b);
     //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
     //*gX = d + ( (pX-c)*(ms->config.currentEEPose.px-d) )/(x1-c) ;
     //*gX = givenEEPose.px - d + ( (pX-c)*(d) )/( (x_thisZ-c)*ms->config.m_x ) ;
@@ -9948,10 +9960,10 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
   }
   {
     double d = ms->config.d_y/ms->config.m_y;
-    double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
+    double c = ((cache->z4*cache->y4-cache->z2*cache->y2)*(cache->y3-cache->y1)-(cache->z3*cache->y3-cache->z1*cache->y1)*(cache->y4-cache->y2))/((cache->z1-cache->z3)*(cache->y4-cache->y2)-(cache->z2-cache->z4)*(cache->y3-cache->y1));
 
-    double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
-    double b31 = (z3*y3-z1*y1+(z1-z3)*c)/(y3-y1);
+    double b42 = (cache->z4*cache->y4-cache->z2*cache->y2+(cache->z2-cache->z4)*c)/(cache->y4-cache->y2);
+    double b31 = (cache->z3*cache->y3-cache->z1*cache->y1+(cache->z1-cache->z3)*c)/(cache->y3-cache->y1);
 
     double bDiff = b42-b31;
     //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
@@ -9960,7 +9972,7 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
     double b = (b42+b31)/2.0;
 
-    int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
+    int y_thisZ = c + ( (cache->y1-c)*(cache->z1-b) )/(gZ-b);
     //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
     //*gY = d + ( (pY-c)*(ms->config.currentEEPose.py-d) )/(y1-c) ;
     //*gY = givenEEPose.py - d + ( (pY-c)*(d) )/( (y_thisZ-c)*ms->config.m_y ) ;
