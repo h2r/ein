@@ -59,6 +59,8 @@ typedef struct _eePose{
   static double distance(_eePose pose1, _eePose pose2);
   static double distanceQ(_eePose pose1, _eePose pose2);
 
+  static void distanceXYZAndAngle(_eePose pose1, _eePose pose2, double * distance, double * angleDistance);
+
 
   static _eePose fromRectCentroid(Rect rect);
   static _eePose zero();
