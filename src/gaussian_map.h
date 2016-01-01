@@ -170,8 +170,6 @@ class Scene {
 
   vector<shared_ptr<SceneObject> > predicted_objects;
 
-  double score;
-
   void smoothDiscrepancyDensity(double sigma);
   void setDiscrepancyDensityFromMagnitude(double sigma);
   bool isDiscrepantCell(double threshold, int x, int y);
@@ -180,6 +178,7 @@ class Scene {
   void composePredictedMap(double threshold=0.5);
   void measureDiscrepancy();
   double computeProbabilityOfMap();
+  double computeProbabilityOfMapDouble();
   double computeScore();
   double assignScore();
   double measureScoreRegion(int _x1, int _y1, int _x2, int _y2);
