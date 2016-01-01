@@ -2410,7 +2410,19 @@ REGISTER_WORD(SceneUpdateObservedFromSnout)
 
 WORD(SceneUpdateObservedFromWrist)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  Mat wristViewYCbCr = ms->config.wristCamImage.clone();  
+  Mat ringImage;
+  eePose thisPose;
+  ros::Time time;
+  int result = getMostRecentRingImageAndPose(ms, &ringImage, &thisPose, &time);
+
+  if (result != 1) {
+    ROS_ERROR("Not doing update because of ring buffer errors.");
+    return;
+  }
+
+  Mat wristViewYCbCr = ringImage.clone(); //ms->config.wristCamImage.clone();  
+  //Mat wristViewYCbCr = ms->config.wristCamImage.clone();  
+  //thisPose = ms->config.trueEEPoseEEPose;
   cvtColor(ms->config.wristCamImage, wristViewYCbCr, CV_BGR2YCrCb);
 
   Size sz = ms->config.wristCamImage.size();
@@ -2426,7 +2438,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     //for (int py = ; py < ; py++) 
   pixelToGlobalCache data;
   double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
-  computePixelToGlobalCache(ms, z, ms->config.trueEEPoseEEPose, &data);
+  computePixelToGlobalCache(ms, z, thisPose, &data);
 
   for (int px = topx; px < botx; px++) {
     for (int py = topy; py < boty; py++) {
@@ -2436,7 +2448,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	continue;
       }
       double x, y;
-      pixelToGlobalFromCache(ms, px, py, z, &x, &y, ms->config.trueEEPoseEEPose, &data);
+      pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
 
       if (1) {
 	// single sample update
@@ -2596,7 +2608,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   pixelToGlobalCache data;
   double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
   computePixelToGlobalCache(ms, zToUse, ms->config.currentEEPose, &data);
-
 
   for (int y = 0; y < imH; y++) {
     for (int x = 0; x < imW; x++) {
