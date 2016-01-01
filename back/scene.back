@@ -34,6 +34,12 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   15.0 sceneSetBackgroundStdDevY
   11.0 sceneSetBackgroundStdDevColor
   5 sceneSetCellCountThreshold 
+
+/* orion's left arm.
+  10.0 sceneSetBackgroundStdDevY
+  10.0 sceneSetBackgroundStdDevColor
+  2 sceneSetCellCountThreshold 
+*/
   sceneClearObservedMap sceneClearPredictedObjects 
 ) "tempInit" store
 

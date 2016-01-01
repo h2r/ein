@@ -345,6 +345,8 @@ int isThisGraspMaxedOut(shared_ptr<MachineState> ms, int i);
 
 void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY);
 void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose);
+void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose, pixelToGlobalCache * cache);
+void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache);
 void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY);
 void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY);
 eePose pixelToGlobalEEPose(shared_ptr<MachineState> ms, int pX, int pY, double gZ);

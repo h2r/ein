@@ -24,12 +24,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(Drand48)
 
-WORD(PushTime)
+WORD(Now)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushData(std::make_shared<DoubleWord>(ros::Time::now().toSec()));
 }
 END_WORD
-REGISTER_WORD(PushTime)
+REGISTER_WORD(Now)
 
 WORD(Throw)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1924,6 +1924,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(Dsr)
 
+
+
+
+WORD(Time)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<CompoundWord> block;
+  GET_WORD_ARG(ms, CompoundWord, block);
+
+  ms->pushWord("-");
+  ms->pushWord("swap");
+  ms->pushWord("now");
+  ms->pushWord(block);
+  ms->pushWord("now");
+}
+END_WORD
+REGISTER_WORD(Time)
 
 
 CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)

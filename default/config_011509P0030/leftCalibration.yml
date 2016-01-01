@@ -62,7 +62,7 @@ gear0offset:
    - 1.6722800210118294e-02
    - 0.
 cameraExposure: 100
-cameraGain: 12
+cameraGain: 20
 cameraWhiteBalanceRed: 1024
 cameraWhiteBalanceGreen: 1024
 cameraWhiteBalanceBlue: 2700
