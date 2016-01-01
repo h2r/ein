@@ -1479,6 +1479,7 @@ class EinConfig {
   discrepancyModeState discrepancyMode = DISCREPANCY_POINT;
 
   vector<shared_ptr<Scene> > class_scene_models;
+  double scene_score_thresh = 0.01;
 }; // config end
 
 
