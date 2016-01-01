@@ -832,11 +832,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   std::shared_ptr<Word> valueword = ms->popData();
   if (nameword == NULL || valueword == NULL) {
     cout << " Store takes two arguments." << endl;
+    ms->pushWord("pauseStackExecution");   
+  } else {
+    string name = nameword->to_string();
+    //cout << "Storing " << name << " value " << valueword << endl;
+    ms->variables[name] = valueword;
   }
-
-  string name = nameword->to_string();
-  //cout << "Storing " << name << " value " << valueword << endl;
-  ms->variables[name] = valueword;
 }
 END_WORD
 REGISTER_WORD(Store)
@@ -1207,7 +1208,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   Mat ringImage;
   eePose thisPose;
   ros::Time time;
-  int result = getMostRecentRingImageAndPose(ms, &ringImage, &thisPose, &time, true);
+  int result = getMostRecentRingImageAndPose(ms, &ringImage, &thisPose, &time, false);
   double distance, angleDistance;
   eePose::distanceXYZAndAngle(ms->config.currentEEPose, thisPose, &distance, &angleDistance);
   if (result != 1) { 
