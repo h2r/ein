@@ -2424,6 +2424,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     
   //for (int px = ; px < ; px++) 
     //for (int py = ; py < ; py++) 
+  pixelToGlobalCache data;
+  double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
+  computePixelToGlobalCache(ms, z, ms->config.trueEEPoseEEPose, &data);
+
   for (int px = topx; px < botx; px++) {
     for (int py = topy; py < boty; py++) {
   //for (int px = 0; px < imW; px++) 
@@ -2432,8 +2436,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	continue;
       }
       double x, y;
-      double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
-      pixelToGlobal(ms, px, py, z, &x, &y);
+      pixelToGlobalFromCache(ms, px, py, z, &x, &y, ms->config.trueEEPoseEEPose, &data);
+
       if (1) {
 	// single sample update
 	int i, j;
@@ -2589,13 +2593,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Size sz = ms->config.wristCamImage.size();
   int imW = sz.width;
   int imH = sz.height;
+  pixelToGlobalCache data;
+  double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
+  computePixelToGlobalCache(ms, zToUse, ms->config.currentEEPose, &data);
+
 
   for (int y = 0; y < imH; y++) {
     for (int x = 0; x < imW; x++) {
       double meter_x = 0;
       double meter_y = 0;
-      double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
-      pixelToGlobal(ms, x, y, zToUse, &meter_x, &meter_y, ms->config.currentEEPose);
+      pixelToGlobalFromCache(ms, x, y, zToUse, &meter_x, &meter_y, ms->config.currentEEPose, &data);
       int cell_x = 0;
       int cell_y = 0;
       ms->config.scene->discrepancy->metersToCell(meter_x, meter_y, &cell_x, &cell_y);
