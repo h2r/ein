@@ -280,8 +280,10 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 (
   sceneClearObservedMap 
+/*   
   tempUpdateFivePointThreeWidth  
-  /*   0.02 setGridSize  11  tempUpdateSpiral */
+*/
+  0.02 setGridSize  11  tempUpdateSpiral
   bg sceneSaveObservedMap 
   tempInit
 ) "tempUpdateBg" store
