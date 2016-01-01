@@ -62,7 +62,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempFivePointThreeWidthTakeScene" store
 
 (
-  sceneClearObservedMap 10 tempUpdateSpiral tempUpdateMaps
+  sceneClearObservedMap 0.01 setGridSize 10 tempUpdateSpiralStop tempUpdateMaps
 ) "tempSpiralTakeScene" store
 
 
@@ -174,7 +174,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
 ) "tempUpdateObservedFromWristFivePoint" store
 
-( waitUntilRingBufferImageAtCurrentPosition setMovementStateToMoving comeToStop ) "waitWord" store
+( waitUntilRingBufferImageAtCurrentPosition setMovementStateToMoving comeToStop setMovementStateToMoving comeToStop ) "waitWord" store
 
 (
   fullImpulse
@@ -185,20 +185,16 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 (
   0.05 setSpeed
-  0.01 setW1GoThresh
-
-  "hello" print
+  0.03 setW1GoThresh
 
   "tempUpdateSpiralN" store
   1 "tempUpdateSpiralIdx" store
 
-  tempUpdateSpiralIdx tempUpdateSpiralN <  print
-
   ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
-  ( ( xUp ) tempUpdateSpiralIdx replicateWord ( sceneUpdateObservedFromWrist 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( yUp ) tempUpdateSpiralIdx replicateWord ( sceneUpdateObservedFromWrist 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( xDown ) tempUpdateSpiralIdx 1 + replicateWord ( sceneUpdateObservedFromWrist 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( yDown ) tempUpdateSpiralIdx 1 + replicateWord ( sceneUpdateObservedFromWrist 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+  ( ( xUp ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
+    ( yUp ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
+    ( xDown ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
+    ( yDown ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
     "test " print
     tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
   ) while
@@ -206,14 +202,10 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 (
   0.05 setSpeed
-  0.01 setW1GoThresh
-
-  "hello" print
+  0.03 setW1GoThresh
 
   "tempUpdateSpiralN" store
   1 "tempUpdateSpiralIdx" store
-
-  tempUpdateSpiralIdx tempUpdateSpiralN <  print
 
   ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
   ( ( xUp ) tempUpdateSpiralIdx replicateWord waitWord sceneUpdateObservedFromWrist
@@ -232,7 +224,10 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempUpdateFivePointThreeWidth" store
 
 (
-  sceneClearObservedMap tempUpdateFivePointThreeWidth bg sceneSaveObservedMap 
+  sceneClearObservedMap 
+  /* tempUpdateFivePointThreeWidth  */
+  0.02 setGridSize  11  tempUpdateSpiral
+  bg sceneSaveObservedMap 
   tempInit
 ) "tempUpdateBg" store
 
