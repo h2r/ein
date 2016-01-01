@@ -80,50 +80,61 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempFivePointThreeWidthPredictAndRenderBest" store
 
 (
-  0.5 "tempNewComponentThresh" store
-  sceneClearPredictedObjects
-  sceneClearObservedMap
+  numClasses 0 > (
+    0.5 "tempNewComponentThresh" store
+    sceneClearPredictedObjects
+    sceneClearObservedMap
 
-  tempFivePointThreeWidthTakeScene
-  /*
-  tempShortTakeScene
-  */
-  tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
-  /* pauseStackExecution */
+    tempFivePointThreeWidthTakeScene
+    /*
+    tempShortTakeScene
+    */
+    tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+    /* pauseStackExecution */
 
-	scenePushTotalDiscrepancy 
-      dup 
-      "tempFivePointThreeWidthIsNewComponent: total discrepancy before " 
-    swap + print 
+    /*
+	  scenePushTotalDiscrepancy 
+    */
+	  scenePushTotalDiscrepancyMagnitude 
+	dup 
+	"tempFivePointThreeWidthIsNewComponent: total discrepancy before " 
+      swap + print 
 
-  scenePredictBestObject tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+    scenePredictBestObject tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
 
-	scenePushTotalDiscrepancy 
-      dup 
-      "tempFivePointThreeWidthIsNewComponent: total discrepancy after " 
-    swap + print 
+    /*
+	  scenePushTotalDiscrepancy 
+    */
+	  scenePushTotalDiscrepancyMagnitude 
+	dup 
+	"tempFivePointThreeWidthIsNewComponent: total discrepancy after " 
+      swap + print 
 
-	  swap
-	divide
+	    swap
+	  divide
+	  dup
+	"tempFivePointThreeWidthIsNewComponent: after / before ratio is " 
+      swap + print
+
+    tempNewComponentThresh > (
+	    1
+	  dup
+	"tempFivePointThreeWidthIsNewComponent: IS a new component, returning " 
+      swap + print
+    ) (
+	    0
+	  dup
+	"tempFivePointThreeWidthIsNewComponent: AIN'T a new component, returning " 
+      swap + print
+    ) ifte
+
 	dup
-      "tempFivePointThreeWidthIsNewComponent: after / before ratio is " 
-    swap + print
-
-  tempNewComponentThresh > (
-	  1
-	dup
-      "tempFivePointThreeWidthIsNewComponent: IS a new component, returning " 
+      "tempFivePointThreeWidthIsNewComponent: returning " 
     swap + print
   ) (
-	  0
-	dup
-      "tempFivePointThreeWidthIsNewComponent: AIN'T a new component, returning " 
-    swap + print
+    "tempFivePointThreeWidthIsNewComponent: numClasses is 0 so returning 1"
+    1
   ) ifte
-
-      dup
-    "tempFivePointThreeWidthIsNewComponent: returning " 
-  swap + print
 
 ) "tempFivePointThreeWidthIsNewComponent" store
 
@@ -274,7 +285,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 
 (
-  currentPose 0.07 setGridSize tempUpdateObservedFromWristFivePoint eighthTurn 0.05 setGridSize tempUpdateObservedFromWristFivePoint eighthTurn 0.01 setGridSize tempUpdateObservedFromWristFivePoint moveEeToPoseWord
+  currentPose 0.03 setGridSize tempUpdateObservedFromWristFivePoint eighthTurn 0.02 setGridSize tempUpdateObservedFromWristFivePoint eighthTurn 0.01 setGridSize tempUpdateObservedFromWristFivePoint moveEeToPoseWord
 ) "tempUpdateFivePointThreeWidth" store
 
 
@@ -449,7 +460,8 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   /* endArgs "scene_set_1/duplo" "scene_set_1/icraStandardDucky" "scene_set_1/lock" "scene_set_1/strawberry" setClassLabels */
   /* endArgs "scene_set_1/lock" setClassLabels */
   /* endArgs "pond_duck" setClassLabels */
-  endArgs "scissors_blue" setClassLabels
+  /* endArgs "scissors_blue" setClassLabels */
+  endArgs "narrow_duck_osp" setClassLabels
 
 ) "tempSetClassesSS2" store
 
