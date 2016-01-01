@@ -46,14 +46,32 @@ double safeSigmaSquared(double sigmasquared) {
 }
 
 
-double computeEnergy(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
+
+double computeEnergy(GaussianMapChannel & channel1, double p) {
   double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
-  double term1 = - pow((channel2.mu - channel1.mu), 2)  / (2 * safesigmasquared1);
+  double term1 = - pow((p - channel1.mu), 2)  / (2 * safesigmasquared1);
   // XXX maybe term2 should be cached in the map
   double term2 = -log(sqrt(2 * M_PI * safesigmasquared1));
   double result = term1 + term2; 
   return result;
 }
+double computeEnergy(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
+  return computeEnergy(channel1, channel2.mu);
+}
+
+
+
+
+double computeLogLikelihood(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
+  double total = 0.0;
+  for (int i = 0; i < 256; i++) {
+    total += exp(computeEnergy(channel1, i));
+  }
+  double likelihood = computeEnergy(channel1, channel2);
+
+  return likelihood - log(total);
+}
+
 void computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * likelihood, double * channel_term_out) {
   double ip_normalizer = 0.0;
   double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
@@ -726,7 +744,6 @@ Scene::Scene(shared_ptr<MachineState> _ms, int w, int h, double cw) {
   y_center_cell = (height-1)/2;
   cell_width = cw;
   background_pose = eePose::identity();
-  score = 0;
   predicted_objects.resize(0);
   reallocate();
 }
@@ -965,8 +982,7 @@ void Scene::measureDiscrepancy() {
 }
 
 double Scene::assignScore() {
-  score = measureScoreRegion(0,0,width-1,height-1);
-  return score;
+  return measureScoreRegion(0,0,width-1,height-1);
 }
 
 double Scene::measureScoreRegion(int _x1, int _y1, int _x2, int _y2) {
@@ -1571,7 +1587,53 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   }
 }
 
+
+
+#include <boost/multiprecision/cpp_dec_float.hpp>
+
+typedef boost::multiprecision::number<boost::multiprecision::cpp_dec_float<1000> > doubleWithLotsOfDigits;
+
 double Scene::computeProbabilityOfMap() {
+  int numCells = 0;
+  doubleWithLotsOfDigits logLikelihood = 0.0;
+  for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
+	GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
+	GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
+	logLikelihood += computeLogLikelihood(predicted_cell->red, observed_cell->red);
+	logLikelihood += computeLogLikelihood(predicted_cell->green, observed_cell->green);
+	logLikelihood += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+	numCells += 1;
+      }
+    }
+  }
+  cout << "total likelihood: " << logLikelihood << endl;
+  doubleWithLotsOfDigits prior = 0.5;
+  doubleWithLotsOfDigits logNumerator = logLikelihood + log(prior);
+
+  
+  doubleWithLotsOfDigits logNormalizer = numCells * 3 * log(1.0/256);
+  
+  doubleWithLotsOfDigits t1 = logLikelihood - logNormalizer;
+  doubleWithLotsOfDigits t1Prob = exp(t1);
+  //checkProb("t1Prob", t1Prob);
+  doubleWithLotsOfDigits t2Prob = 1-prior;
+  //checkProb("t2Prob", t2Prob);
+
+  doubleWithLotsOfDigits logDenominator = logNormalizer + log(t1Prob + t2Prob);
+
+  doubleWithLotsOfDigits result = logNumerator - logDenominator;
+  
+  doubleWithLotsOfDigits resultProb = exp(result);
+  //checkProb("result", resultProb);
+  cout << "result: " << resultProb << endl;
+  assert(0);
+  return 0;
+}
+
+
+double Scene::computeProbabilityOfMapDouble() {
   int numCells = 0;
   double logLikelihood = 0.0;
   for (int x = 0; x < width; x++) {
@@ -1579,33 +1641,34 @@ double Scene::computeProbabilityOfMap() {
       if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
 	GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
-	logLikelihood += computeEnergy(predicted_cell->red, observed_cell->red);
-	logLikelihood += computeEnergy(predicted_cell->green, observed_cell->green);
-	logLikelihood += computeEnergy(predicted_cell->blue, observed_cell->blue);
+	logLikelihood += computeLogLikelihood(predicted_cell->red, observed_cell->red);
+	logLikelihood += computeLogLikelihood(predicted_cell->green, observed_cell->green);
+	logLikelihood += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
 	numCells += 1;
       }
     }
   }
+  cout << "total likelihood: " << logLikelihood << endl;
   double prior = 0.5;
   double logNumerator = logLikelihood + log(prior);
 
   
-  double logNormalizer = -numCells * 3 * log(256);
+  double logNormalizer = numCells * 3 * log(1.0/256);
   
   double t1 = logLikelihood - logNormalizer;
   double t1Prob = exp(t1);
   checkProb("t1Prob", t1Prob);
-  double t2Prob = exp(1-prior);
+  double t2Prob = 1-prior;
   checkProb("t2Prob", t2Prob);
 
-  double logDenominator = t1 + log(t1Prob + t2Prob);
+  double logDenominator = logNormalizer + log(t1Prob + t2Prob);
 
   double result = logNumerator - logDenominator;
   
   double resultProb = exp(result);
   checkProb("result", resultProb);
   assert(0);
-  return score;
+  return resultProb;
 }
 
 void Scene::findBestObjectAndScore(int * class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_score, int * l_max_i) {
@@ -1777,7 +1840,6 @@ void Scene::writeToFileStorage(FileStorage& fsvO) {
   fsvO << "x_center_cell" << x_center_cell;
   fsvO << "y_center_cell" << y_center_cell;
   fsvO << "cell_width" << cell_width;
-  fsvO << "score" << score;
   fsvO << "background_pose";
   background_pose.writeToFileStorage(fsvO);
 
@@ -1834,7 +1896,6 @@ void Scene::readFromFileNode(FileNode& it) {
   (it)["x_center_cell"] >> x_center_cell;
   (it)["y_center_cell"] >> y_center_cell;
   (it)["cell_width"] >> cell_width;
-  (it)["score"] >> score;
   
   FileNode bg_pose_node = (it)["background_pose"];
   background_pose.readFromFileNode(bg_pose_node);
@@ -1994,7 +2055,7 @@ void TransitionTable::loadFromFile(string filename) {
 
 namespace ein_words {
 
-WORD(SceneScoreObjectAtPose)
+ WORD(SceneScoreObjectAtPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
   guardSceneModels(ms);
