@@ -2429,10 +2429,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int imW = sz.width;
   int imH = sz.height;
 
-  int topx = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; // ms->config.grayTop.x;  
-  int botx = ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; // ms->config.grayBot.x;  
-  int topy = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; // ms->config.grayTop.y;
-  int boty = ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; // ms->config.grayBot.y;  
+  int topx = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols + 20; // ms->config.grayTop.x;  
+  int botx = ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols - 20; // ms->config.grayBot.x;  
+  int topy = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows + 50; // ms->config.grayTop.y;
+  int boty = ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows - 50; // ms->config.grayBot.y;  
     
   //for (int px = ; px < ; px++) 
     //for (int py = ; py < ; py++) 
