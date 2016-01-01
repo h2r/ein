@@ -1,4 +1,3 @@
-
 //
 //  // start Tips
 //  // it's dangerous to go alone. take this.
@@ -63,23 +62,23 @@ void neutral(shared_ptr<MachineState> ms) {
 }
 
 
-int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int drawSlack) {
+int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int drawSlack, bool debug) {
   if (ms->config.imRingBufferStart == ms->config.imRingBufferEnd) {
     
-#ifdef DEBUG_RING_BUFFER
-    cout << "Denied request in getRingImageAtTime(): Buffer empty." << endl;
-#endif
+    if (debug) {
+      cout << "Denied request in getRingImageAtTime(): Buffer empty." << endl;
+    }
     return 0;
   } else {
     int earliestSlot = ms->config.imRingBufferStart;
     ros::Duration deltaTdur = t - ms->config.imRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
     if (deltaTdur.toSec() <= 0.0) {
-#ifdef DEBUG_RING_BUFFER
-      cout << "Denied out of order range value in getRingImageAtTime(): Too small." << endl;
-      cout << "  getRingImageAtTime() ms->config.imRingBufferStart ms->config.imRingBufferEnd t ms->config.imRBTimes[earliestSlot]: " << 
-	ms->config.imRingBufferStart << " " << ms->config.imRingBufferEnd << " " << t << " " << ms->config.imRBTimes[earliestSlot] << endl;
-#endif
+      if (debug) {
+	cout << "Denied out of order range value in getRingImageAtTime(): Too small." << endl;
+	cout << "  getRingImageAtTime() ms->config.imRingBufferStart ms->config.imRingBufferEnd t ms->config.imRBTimes[earliestSlot]: " << 
+	  ms->config.imRingBufferStart << " " << ms->config.imRingBufferEnd << " " << t << " " << ms->config.imRBTimes[earliestSlot] << endl;
+      }
       return -1;
     } else if (ms->config.imRingBufferStart < ms->config.imRingBufferEnd) {
       for (int s = ms->config.imRingBufferStart; s < ms->config.imRingBufferEnd; s++) {
@@ -108,9 +107,9 @@ int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int
 	}
       }
       // if we didn't find it we should return failure
-#ifdef DEBUG_RING_BUFFER
-      cout << "Denied out of order range value in getRingImageAtTime(): Too large." << endl;
-#endif
+      if (debug) {
+	cout << "Denied out of order range value in getRingImageAtTime(): Too large." << endl;
+      }
       return -2;
     } else {
       for (int s = ms->config.imRingBufferStart; s < ms->config.imRingBufferSize-1; s++) {
@@ -181,9 +180,10 @@ int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int
 	}
       }
       // if we didn't find it we should return failure
-#ifdef DEBUG_RING_BUFFER
-      cout << "Denied out of order range value in getRingImageAtTime(): Too large." << endl;
-#endif
+      if (debug) {
+	cout << "Denied out of order range value in getRingImageAtTime(): Too large." << endl;
+      }
+
       return -2;
     }
   }
@@ -296,20 +296,53 @@ int getRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double &value, 
     }
   }
 }
-int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::Pose &value, int drawSlack) {
+
+
+int getMostRecentRingImageAndPose(shared_ptr<MachineState> ms, Mat * image, eePose * pose, ros::Time * time, bool debug) {
+  if (ms->config.epRingBufferEnd > ms->config.epRBTimes.size()) {
+    cout << "Ring buffer not yet initialized. " << ms->config.epRingBufferEnd << " times: " << ms->config.epRBTimes.size() << endl;
+    assert(0);
+  }
+  ros::Time poseTime = ms->config.epRBTimes[ms->config.epRingBufferEnd - 1];
+  ros::Time imageTime = ms->config.imRBTimes[ms->config.imRingBufferEnd - 1];
+
+  * time = min(poseTime, imageTime);
+  geometry_msgs::Pose thisPose;
+  bool error = false;
+  int result = getRingPoseAtTime(ms, *time, thisPose, 0, debug);
+  if (result != 1) {
+    ROS_ERROR_STREAM("Pose ring buffer error: " << result);
+    error = true;
+  }
+  *pose = eePose::fromGeometryMsgPose(thisPose);
+  result = getRingImageAtTime(ms, *time, *image, 0, debug);
+  if (result != 1) {
+    ROS_ERROR_STREAM("Image ring buffer error: " << result);
+    error = true;
+  }
+  if (error) {
+    return -1;
+  } else {
+    return 1;
+  }
+  
+}
+
+
+int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::Pose &value, int drawSlack, bool debug) {
   if (ms->config.epRingBufferStart == ms->config.epRingBufferEnd) {
-#ifdef DEBUG_RING_BUFFER
-    cout << "Denied request in getRingPoseAtTime(): Buffer empty." << endl;
-#endif
-    return 0;
+    if (debug) {
+      cout << "Denied request in getRingPoseAtTime(): Buffer empty." << endl;
+    }
+    return -1;
   } else {
     int earliestSlot = ms->config.epRingBufferStart;
     ros::Duration deltaTdur = t - ms->config.epRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
     if (deltaTdur.toSec() <= 0.0) {
-#ifdef DEBUG_RING_BUFFER
-      cout << "Denied out of order range value in getRingPoseAtTime(): Too small." << endl;
-#endif
+      if (debug) {
+	cout << "Denied out of order range value in getRingPoseAtTime(): Too small." << endl;
+      }
       return -1;
     } else if (ms->config.epRingBufferStart < ms->config.epRingBufferEnd) {
       for (int s = ms->config.epRingBufferStart; s < ms->config.epRingBufferEnd; s++) {
@@ -325,8 +358,8 @@ int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::P
 	  w2 = w2 / totalWeight;
 
 	  // XXX check this
-	  //Quaternionf tTerp = q1.slerp(w2, q2);
-	  Quaternionf tTerp = q1.slerp(w1, q2);
+	  Quaternionf tTerp = q1.slerp(w2, q2);
+	  //Quaternionf tTerp = q1.slerp(w1, q2);
 
 	  value.orientation.w = tTerp.w();
 	  value.orientation.x = tTerp.x();
@@ -348,15 +381,15 @@ int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::P
 	  }
 	  return 1;
 	}
-#ifdef DEBUG_RING_BUFFER
-          cout << "777c " << ms->config.epRBTimes[s] << endl;
-#endif
+	if (debug) {
+	  cout << "777c " << ms->config.epRBTimes[s] << endl;
+	}
       }
       // if we didn't find it we should return failure
-#ifdef DEBUG_RING_BUFFER
-      cout << "Denied out of order range value in getRingPoseAtTime() Upper: Too large. " << t << endl;
-      cout << "rbStart: " << ms->config.epRingBufferStart << " rbEnd: " << ms->config.epRingBufferEnd << endl;
-#endif
+      if (debug) {
+	cout << "Denied out of order range value in getRingPoseAtTime() Upper: Too large. " << t << endl;
+	cout << "rbStart: " << ms->config.epRingBufferStart << " rbEnd: " << ms->config.epRingBufferEnd << endl;
+      }
       return -2;
     } else {
       for (int s = ms->config.epRingBufferStart; s < ms->config.epRingBufferSize-1; s++) {
@@ -379,11 +412,11 @@ int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::P
 	  value.position.x = ms->config.epRingBuffer[s].position.x*w1 + ms->config.epRingBuffer[s+1].position.x*w2;
 	  value.position.y = ms->config.epRingBuffer[s].position.y*w1 + ms->config.epRingBuffer[s+1].position.y*w2;
 	  value.position.z = ms->config.epRingBuffer[s].position.z*w1 + ms->config.epRingBuffer[s+1].position.z*w2;
-#ifdef DEBUG_RING_BUFFER
-          cout << value << endl;
-          cout << "33333b " << ms->config.epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
-          cout << "44444b " << ms->config.epRingBuffer[s+1] << endl;
-#endif
+	  if (debug) {
+	    cout << value << endl;
+	    cout << "33333b " << ms->config.epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+	    cout << "44444b " << ms->config.epRingBuffer[s+1] << endl;
+	  }
 
 	  int newStart = s;
 	  if(drawSlack) {
@@ -411,11 +444,11 @@ int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::P
 	  value.position.x = ms->config.epRingBuffer[ms->config.epRingBufferSize-1].position.x*w1 + ms->config.epRingBuffer[0].position.x*w2;
 	  value.position.y = ms->config.epRingBuffer[ms->config.epRingBufferSize-1].position.y*w1 + ms->config.epRingBuffer[0].position.y*w2;
 	  value.position.z = ms->config.epRingBuffer[ms->config.epRingBufferSize-1].position.z*w1 + ms->config.epRingBuffer[0].position.z*w2;
-#ifdef DEBUG_RING_BUFFER
-          cout << value << endl;
-          cout << "33333a " << ms->config.epRingBuffer[ms->config.epRingBufferSize-1] << " " << w1 << " " << w2 << " " << totalWeight << endl;
-          cout << "44444a " << ms->config.epRingBuffer[0] << endl;
-#endif
+	  if (debug) {
+	    cout << value << endl;
+	    cout << "33333a " << ms->config.epRingBuffer[ms->config.epRingBufferSize-1] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+	    cout << "44444a " << ms->config.epRingBuffer[0] << endl;
+	  }
 
 	  int newStart = ms->config.epRingBufferSize-1;
 	  if(drawSlack) {
@@ -443,11 +476,11 @@ int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::P
 	  value.position.x = ms->config.epRingBuffer[s].position.x*w1 + ms->config.epRingBuffer[s+1].position.x*w2;
 	  value.position.y = ms->config.epRingBuffer[s].position.y*w1 + ms->config.epRingBuffer[s+1].position.y*w2;
 	  value.position.z = ms->config.epRingBuffer[s].position.z*w1 + ms->config.epRingBuffer[s+1].position.z*w2;
-#ifdef DEBUG_RING_BUFFER
-          cout << value << endl;
-          cout << "33333d " << ms->config.epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
-          cout << "44444d " << ms->config.epRingBuffer[s+1] << endl;
-#endif
+	  if (debug) {
+	    cout << value << endl;
+	    cout << "33333d " << ms->config.epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
+	    cout << "44444d " << ms->config.epRingBuffer[s+1] << endl;
+	  }
           
 	  int newStart = s;
 	  if(drawSlack) {
@@ -457,9 +490,10 @@ int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::P
 	}
       }
       // if we didn't find it we should return failure
-#ifdef DEBUG_RING_BUFFER
-      cout << "Denied out of order range value in getRingPoseAtTime() Lower: Too large. " << t << endl;
-#endif
+      if (debug) {
+	cout << "Denied out of order range value in getRingPoseAtTime() Lower: Too large. " << t << endl;
+      }
+
       return -2;
     }
   }
@@ -467,7 +501,7 @@ int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::P
 
 void setRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& imToSet) {
 #ifdef DEBUG_RING_BUFFER
-  cout << "setRingImageAtTime() start end size: " << ms->config.imRingBufferStart << " " << ms->config.imRingBufferEnd << " " << ms->config.imRingBufferSize << endl;
+  //cout << "setRingImageAtTime() start end size: " << ms->config.imRingBufferStart << " " << ms->config.imRingBufferEnd << " " << ms->config.imRingBufferSize << endl;
 #endif
 
   // if the ring buffer is empty, always re-initialize
@@ -480,7 +514,7 @@ void setRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& imToSet) 
     ros::Duration deltaTdur = t - ms->config.imRBTimes[ms->config.imRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER 
-      cout << "Dropped out of order range value in setRingImageAtTime(). " << ms->config.imRBTimes[ms->config.imRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+      //cout << "Dropped out of order range value in setRingImageAtTime(). " << ms->config.imRBTimes[ms->config.imRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
 #endif
     } else {
       int slot = ms->config.imRingBufferEnd;
@@ -505,7 +539,7 @@ void setRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& imToSet) 
 }
 void setRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double rgToSet) {
 #ifdef DEBUG_RING_BUFFER
-  cout << "setRingRangeAtTime() start end size: " << ms->config.rgRingBufferStart << " " << ms->config.rgRingBufferEnd << " " << ms->config.rgRingBufferSize << endl;
+  //cout << "setRingRangeAtTime() start end size: " << ms->config.rgRingBufferStart << " " << ms->config.rgRingBufferEnd << " " << ms->config.rgRingBufferSize << endl;
 #endif
 
   // if the ring buffer is empty, always re-initialize
@@ -518,7 +552,7 @@ void setRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double rgToSet
     ros::Duration deltaTdur = t - ms->config.rgRBTimes[ms->config.rgRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER 
-      cout << "Dropped out of order range value in setRingRangeAtTime(). " << ms->config.rgRBTimes[ms->config.rgRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+      //cout << "Dropped out of order range value in setRingRangeAtTime(). " << ms->config.rgRBTimes[ms->config.rgRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
 #endif
     } else {
       int slot = ms->config.rgRingBufferEnd;
@@ -543,7 +577,7 @@ void setRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double rgToSet
 }
 void setRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::Pose epToSet) {
 #ifdef DEBUG_RING_BUFFER
-  cout << "setRingPoseAtTime() start end size time: " << ms->config.epRingBufferStart << " " << ms->config.epRingBufferEnd << " " << ms->config.epRingBufferSize << " " << t << endl;
+  //cout << "setRingPoseAtTime() start end size time: " << ms->config.epRingBufferStart << " " << ms->config.epRingBufferEnd << " " << ms->config.epRingBufferSize << " " << t << endl;
 #endif
 
   // if the ring buffer is empty, always re-initialize
@@ -552,22 +586,22 @@ void setRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::
     ms->config.epRingBufferEnd = 1;
     ms->config.epRingBuffer[0] = epToSet;
 #ifdef DEBUG_RING_BUFFER
-    cout << epToSet << endl;
-    cout << "11111 " << ms->config.epRingBuffer[0] << endl;
+    //cout << epToSet << endl;
+    //cout << "11111 " << ms->config.epRingBuffer[0] << endl;
 #endif
     ms->config.epRBTimes[0] = t;
   } else {
     ros::Duration deltaTdur = t - ms->config.epRBTimes[ms->config.epRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER 
-      cout << "Dropped out of order range value in setRingPoseAtTime(). " << ms->config.epRBTimes[ms->config.epRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+      //cout << "Dropped out of order range value in setRingPoseAtTime(). " << ms->config.epRBTimes[ms->config.epRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
 #endif
     } else {
       int slot = ms->config.epRingBufferEnd;
       ms->config.epRingBuffer[slot] = epToSet;
 #ifdef DEBUG_RING_BUFFER
-      cout << epToSet << endl;
-      cout << "22222" << ms->config.epRingBuffer[slot] << endl;
+      //cout << epToSet << endl;
+      //cout << "22222" << ms->config.epRingBuffer[slot] << endl;
 #endif
       ms->config.epRBTimes[slot] = t;
 
