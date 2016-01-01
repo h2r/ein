@@ -44,6 +44,21 @@ void _eePose::print(eePose toPrint) {
   cout << toPrint << endl;
 }
 
+void _eePose::distanceXYZAndAngle(_eePose pose1, _eePose pose2, double * distance, double * angleDistance)
+{
+  double dx = (pose1.px - pose2.px);
+  double dy = (pose1.py - pose2.py);
+  double dz = (pose1.pz - pose2.pz);
+  *distance = dx*dx + dy*dy + dz*dz;
+  
+  double qx = (fabs(pose1.qx) - fabs(pose2.qx));
+  double qy = (fabs(pose1.qy) - fabs(pose2.qy));
+  double qz = (fabs(pose1.qz) - fabs(pose2.qz));
+  double qw = (fabs(pose1.qw) - fabs(pose2.qw));
+  *angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
+
+}
+
 double _eePose::squareDistance(eePose pose1, eePose pose2) {
   double dx = (pose1.px - pose2.px);
   double dy = (pose1.py - pose2.py);
