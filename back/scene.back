@@ -1,6 +1,6 @@
 robotSerial "_bg_" leftOrRightArm + + "bg" store
 
-( assumeBeeHome waitUntilAtCurrentPosition 1 changeToHeight
+( assumeBeeHome waitUntilAtCurrentPosition 1 changeToHeight waitUntilAtCurrentPosition
 ) "tempGoHome" store
 
 ( ( sceneUpdateObservedFromWrist  ( xUp ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXUp" store
@@ -60,6 +60,11 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 (
   sceneClearObservedMap tempUpdateFivePointThreeWidth tempUpdateMaps
 ) "tempFivePointThreeWidthTakeScene" store
+
+(
+  sceneClearObservedMap tempUpdateLawnmower tempUpdateMaps
+) "tempLawnmowerTakeScene" store
+
 
 (
   /* takes a string */
@@ -146,29 +151,38 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 (
   setMovementStateToMoving
-
   xUp
   yUp
-  waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
+  waitWord
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
   
   yDown yDown
-  waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
+  waitWord
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
 
   xDown xDown
-  waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
+  waitWord
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
 
   yUp yUp
-  waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
+  waitWord
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
 
   xUp
   yDown
-  waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
+  waitWord
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
 ) "tempUpdateObservedFromWristFivePoint" store
+
+( waitUntilRingBufferImageAtCurrentPosition setMovementStateToMoving comeToStop ) "waitWord" store
+
+(
+  fullImpulse
+  0.1 setGridSize xUp yUp waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  0.03 setSpeed
+  ( yDown waitUntilAtCurrentPosition xDown xDown ( sceneUpdateObservedFromWrist 0.2 waitForSeconds ) 10 replicateWord ) 2 replicateWord 
+) "tempUpdateLawnmower" store
+
 
 (
   0.07 setGridSize tempUpdateObservedFromWristFivePoint 0.05 setGridSize tempUpdateObservedFromWristFivePoint 0.01 setGridSize tempUpdateObservedFromWristFivePoint
