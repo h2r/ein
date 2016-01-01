@@ -302,6 +302,29 @@ typedef struct streamLabel {
 } streamLabel;
 
 
+typedef struct pixelToGlobalCache {
+  int x1;
+  int x2;
+  int x3;
+  int x4;
+
+  int y1;
+  int y2;
+  int y3;
+  int y4;
+
+  double z1;
+  double z2;
+  double z3;
+  double z4;
+
+  double reticlePixelX;
+  double reticlePixelY;
+
+  Mat un_rot_mat;
+} pixelToGlobalCache;
+
+
 
 #define NOW_THATS_COARSE 0.08
 #define GRID_EVEN_COARSER 0.04
