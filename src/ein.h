@@ -148,9 +148,12 @@ bool isCellIkImpossible(shared_ptr<MachineState> ms, int i, int j);
 // start pilot prototypes 
 ////////////////////////////////////////////////
 
-int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int drawSlack = 0);
+int getMostRecentRingImageAndPose(shared_ptr<MachineState> ms, Mat * image, eePose * pose, ros::Time * time, bool debug=false);
+int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int drawSlack = 0, bool debug=false);
 int getRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double &value, int drawSlack = 0);
-int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::Pose &value, int drawSlack = 0);
+int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::Pose &value, int drawSlack = 0, bool debug=false);
+
+
 extern "C" {
 double cephes_incbet(double a, double b, double x) ;
 }
