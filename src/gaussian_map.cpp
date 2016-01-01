@@ -46,7 +46,7 @@ double safeSigmaSquared(double sigmasquared) {
 }
 
 
-double computeLogLikelihood(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
+double computeEnergy(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
   double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
   double term1 = - pow((channel2.mu - channel1.mu), 2)  / (2 * safesigmasquared1);
   // XXX maybe term2 should be cached in the map
@@ -852,9 +852,9 @@ double Scene::computeScore() {
       if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
 	GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
-	score += computeLogLikelihood(predicted_cell->red, observed_cell->red);
-	score += computeLogLikelihood(predicted_cell->green, observed_cell->green);
-	score += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+	score += computeEnergy(predicted_cell->red, observed_cell->red);
+	score += computeEnergy(predicted_cell->green, observed_cell->green);
+	score += computeEnergy(predicted_cell->blue, observed_cell->blue);
       }
     }
   }
@@ -1109,9 +1109,9 @@ double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
 	    if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	      GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
 	      GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
-	      score += computeLogLikelihood(predicted_cell->red, observed_cell->red);
-	      score += computeLogLikelihood(predicted_cell->green, observed_cell->green);
-	      score += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+	      score += computeEnergy(predicted_cell->red, observed_cell->red);
+	      score += computeEnergy(predicted_cell->green, observed_cell->green);
+	      score += computeEnergy(predicted_cell->blue, observed_cell->blue);
 	    }
 */
 	    if ( 
@@ -1127,23 +1127,23 @@ double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
 //cout << "score " << score << " ";
 	      //temp = object_cell->red.sigmasquared;
 	      //object_cell->red.sigmasquared = predicted_cell->red.sigmasquared;
-	      score += computeLogLikelihood(object_cell->red, observed_cell->red);
+	      score += computeEnergy(object_cell->red, observed_cell->red);
 	      //object_cell->red.sigmasquared = temp;
 
 	      //temp = object_cell->green.sigmasquared;
 	      //object_cell->green.sigmasquared = predicted_cell->green.sigmasquared;
-	      score += computeLogLikelihood(object_cell->green, observed_cell->green);
+	      score += computeEnergy(object_cell->green, observed_cell->green);
 	      //object_cell->green.sigmasquared = temp;
 
 	      //temp = object_cell->blue.sigmasquared;
 	      //object_cell->blue.sigmasquared = predicted_cell->blue.sigmasquared;
-	      score += computeLogLikelihood(object_cell->blue, observed_cell->blue);
+	      score += computeEnergy(object_cell->blue, observed_cell->blue);
 	      //object_cell->blue.sigmasquared = temp;
 
 //cout << "score " << score << " ";
-	      score -= computeLogLikelihood(predicted_cell->red, observed_cell->red);
-	      score -= computeLogLikelihood(predicted_cell->green, observed_cell->green);
-	      score -= computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+	      score -= computeEnergy(predicted_cell->red, observed_cell->red);
+	      score -= computeEnergy(predicted_cell->green, observed_cell->green);
+	      score -= computeEnergy(predicted_cell->blue, observed_cell->blue);
 	    }
 	  } else {
 	  }
@@ -1544,7 +1544,7 @@ void Scene::tryToAddObjectToScene(int class_idx) {
     l_max_theta << endl << "l_max_score: " << l_max_score << " l_max_i: " << l_max_i << endl;
 
   //if (max_x > -1)
-  if (l_max_x > -1)
+  if (l_max_score > -DBL_MAX)
   {
     if (l_max_score > 0) {
       cout << "best detection made an improvement..." << endl;
@@ -1569,6 +1569,43 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   } else {
     cout << "Did not find a valid cell... not adding object." << endl;
   }
+}
+
+double Scene::computeProbabilityOfMap() {
+  int numCells = 0;
+  double logLikelihood = 0.0;
+  for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
+	GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
+	GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
+	logLikelihood += computeEnergy(predicted_cell->red, observed_cell->red);
+	logLikelihood += computeEnergy(predicted_cell->green, observed_cell->green);
+	logLikelihood += computeEnergy(predicted_cell->blue, observed_cell->blue);
+	numCells += 1;
+      }
+    }
+  }
+  double prior = 0.5;
+  double logNumerator = logLikelihood + log(prior);
+
+  
+  double logNormalizer = -numCells * 3 * log(256);
+  
+  double t1 = logLikelihood - logNormalizer;
+  double t1Prob = exp(t1);
+  checkProb("t1Prob", t1Prob);
+  double t2Prob = exp(1-prior);
+  checkProb("t2Prob", t2Prob);
+
+  double logDenominator = t1 + log(t1Prob + t2Prob);
+
+  double result = logNumerator - logDenominator;
+  
+  double resultProb = exp(result);
+  checkProb("result", resultProb);
+  assert(0);
+  return score;
 }
 
 void Scene::findBestObjectAndScore(int * class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_score, int * l_max_i) {
@@ -1986,6 +2023,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneComputeScore)
+
+WORD(SceneComputeProbabilityOfMap)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double score = ms->config.scene->computeProbabilityOfMap();
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(score);
+  ms->pushWord(newWord);
+
+}
+END_WORD
+REGISTER_WORD(SceneComputeProbabilityOfMap)
 
 
 
