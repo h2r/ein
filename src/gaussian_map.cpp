@@ -1208,6 +1208,9 @@ void Scene::proposeRegion() {
 void Scene::proposeObject() {
 }
 
+CONFIG_GETTER_DOUBLE(SceneScoreThresh, ms->config.scene_score_thresh)
+CONFIG_SETTER_DOUBLE(SceneSetScoreThresh, ms->config.scene_score_thresh)
+
 void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_score, int * l_max_i) {
   REQUIRE_VALID_CLASS(ms,class_idx);
   guardSceneModels(ms);
@@ -1224,8 +1227,8 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 
   double p_scene_sigma = 2.0;
 
-  // XXX this should be passed, probably
-  double p_discrepancy_thresh = 0.5;
+  // XXX this should be passed, probably, and using .01 so some objects don't get washed out
+  double p_discrepancy_thresh = ms->config.scene_score_thresh;
 
   Mat prepared_discrepancy;
   {
@@ -1434,7 +1437,7 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
       // XXX score should return the delta of including vs not including
       local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
       local_scores[i].loglikelihood_valid = true;
-      cout << "  running inference on class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << endl;
+      cout << "  running inference on class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
     }
   }
 
@@ -2206,10 +2209,81 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ScenePredictBestObject)
 
+WORD(ScenePushTotalDiscrepancy)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  guardSceneModels(ms);
+
+  Mat tsd = ms->config.scene->discrepancy_density;
+  double tsd_l1 = tsd.dot(Mat::ones(tsd.rows, tsd.cols, tsd.type()));
+  ms->pushWord(make_shared<DoubleWord>(tsd_l1));
+
+/*
+  //---> seems solidly discriminative, counts the difference it makes. should stay in the log and normalize by the 
+  //number norm of the chosen object
+  Mat tsd_log;
+  log(1.0 - tsd, tsd_log);
+  double tsd_log_l1 = tsd_log.dot(Mat::ones(tsd_log.rows, tsd_log.cols, tsd_log.type()));
+  double tsd_prob = exp(tsd_log_l1);
+  ms->pushWord(make_shared<DoubleWord>(tsd_prob));
+*/
+
+/*
+  double totalProb = 1.0;
+  int W = tsd.cols;
+  int H = tsd.rows;
+  for (int y = 0; y < H; y++) {
+    for (int x = 0; x < W; x++) {
+      double val = tsd.at<double>(y,x);
+      if (val > 1.0) {
+	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
+      } else if (val < 0.0) {
+	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
+      } else {
+	double p_safe_discrepancy_min = 1e-10;
+	double safeVal = max(p_safe_discrepancy_min, val);
+	totalProb *= (1.0 - safeVal);
+      }
+    }
+  }
+  ms->pushWord(make_shared<DoubleWord>(totalProb));
+*/
+
+/*
+  double totalProb = 1.0;
+  int W = tsd.cols;
+  int H = tsd.rows;
+  double root = 0.0;
+  for (int y = 0; y < H; y++) {
+    for (int x = 0; x < W; x++) {
+      double val = tsd.at<double>(y,x);
+      if (val > 1.0) {
+	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
+      } else if (val < 0.0) {
+	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
+      } else {
+	double p_safe_discrepancy_min = 1e-10;
+	if (val > p_safe_discrepancy_min) {
+	  double safeVal = max(p_safe_discrepancy_min, val);
+	  totalProb *= (1.0 - safeVal);
+	  root += 1.0;
+	} else {
+	}
+      }
+    }
+  }
+  double safe_root = max(root, 1.0);
+  double geometrically_rectified = pow(totalProb, 1.0/safe_root);
+  ms->pushWord(make_shared<DoubleWord>(geometrically_rectified));
+*/
+}
+END_WORD
+REGISTER_WORD(ScenePushTotalDiscrepancy)
+
 WORD(SceneIsNewConfiguration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   guardSceneModels(ms);
 
+  /*
   int num_orientations = 37;
 
   int l_max_class = -1;
@@ -2221,14 +2295,36 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->config.scene->findBestObjectAndScore(&l_max_class, num_orientations, &l_max_x, &l_max_y, &l_max_orient, &l_max_score, &l_max_i);
 
+  double best_density_l1 = 0.0;  
+  double best_ll_l1_ratio = 0.0;  
+
   if ( (l_max_class > -1) && (l_max_class < ms->config.classLabels.size()) ) {
     Mat best_object_density = ms->config.class_scene_models[l_max_class]->discrepancy_density;
-    double best_density_l1 =  best_object_density.dot(Mat::ones(best_object_density.rows, best_object_density.cols, best_object_density.type()));
-    cout << "sceneIsNewConfiguration best score, best l1, ratio:" << l_max_score << " " << best_density_l1 << " " << l_max_score / best_density_l1 << endl;
+    best_density_l1 =  best_object_density.dot(Mat::ones(best_object_density.rows, best_object_density.cols, best_object_density.type()));
+    best_ll_l1_ratio = l_max_score / best_density_l1;
+    cout << "sceneIsNewConfiguration best score, best l1, ratio:" << l_max_score << " " << best_density_l1 << " " << best_ll_l1_ratio << endl;
   } else {
     cout << "sceneIsNewConfiguration: oops, bad class won..." << endl;
   }
-  ms->pushWord(make_shared<DoubleWord>(l_max_score));
+  ms->pushWord(make_shared<DoubleWord>(best_ll_l1_ratio));
+  */
+
+  int to_map = 0;
+  REQUIRE_VALID_SCENE_OBJECT(ms, to_map);
+
+  shared_ptr<SceneObject> tso = ms->config.scene->predicted_objects[to_map];
+  shared_ptr<Scene> tso_s = ms->config.class_scene_models[ tso->labeled_class_index ];
+  Mat tod = tso_s->discrepancy_density;
+  double tod_l1 =  tod.dot(Mat::ones(tod.rows, tod.cols, tod.type()));
+
+  Mat tsd = ms->config.scene->discrepancy_density;
+  double tsd_l1 = tsd.dot(Mat::ones(tsd.rows, tsd.cols, tsd.type()));
+  
+  double d_ratio = tod_l1 / tsd_l1;
+  cout << "sceneIsNewConfiguration tod_l1, tsd_l1, ratio:" << tod_l1 << " " << tsd_l1 << " " << d_ratio << endl;
+
+  ms->pushWord(make_shared<DoubleWord>(d_ratio));
+
 }
 END_WORD
 REGISTER_WORD(SceneIsNewConfiguration)

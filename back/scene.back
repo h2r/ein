@@ -65,6 +65,41 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempPredictAndRenderBest" store
 
 (
+  tempFivePointThreeWidthTakeScene scenePredictBestObject tempUpdateMaps
+) "tempFivePointThreeWidthPredictAndRenderBest" store
+
+(
+  sceneClearPredictedObjects
+  sceneClearObservedMap
+
+  tempFivePointThreeWidthTakeScene
+  /*
+  tempShortTakeScene
+  */
+  tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+  /* pauseStackExecution */
+
+	scenePushTotalDiscrepancy 
+      dup 
+      "tempFivePointThreeWidthIsNewComponent: total discrepancy before " 
+    swap + print 
+
+  scenePredictBestObject tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+
+	scenePushTotalDiscrepancy 
+      dup 
+      "tempFivePointThreeWidthIsNewComponent: total discrepancy after " 
+    swap + print 
+
+	  swap
+	divide
+	dup
+      "tempFivePointThreeWidthIsNewComponent: after / before ratio is " 
+    swap + print
+
+) "tempFivePointThreeWidthIsNewComponent" store
+
+(
   /* takes a string */
   sceneLoadFocusedSceneModel 
 ) "tempLoadAndPrepareFocusedModel" store
@@ -141,31 +176,31 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 (
   setMovementStateToMoving
 
-  xUp
-  yUp
+  localXUp
+  localYUp
   waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
   
-  yDown yDown
+  localYDown localYDown
   waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
 
-  xDown xDown
+  localXDown localXDown
   waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
 
-  yUp yUp
+  localYUp localYUp
   waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
 
-  xUp
-  yDown
+  localXUp
+  localYDown
   waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
 ) "tempUpdateObservedFromWristFivePoint" store
 
 (
-  0.07 setGridSize tempUpdateObservedFromWristFivePoint 0.05 setGridSize tempUpdateObservedFromWristFivePoint 0.01 setGridSize tempUpdateObservedFromWristFivePoint
+  currentPose 0.07 setGridSize tempUpdateObservedFromWristFivePoint eighthTurn 0.05 setGridSize tempUpdateObservedFromWristFivePoint eighthTurn 0.01 setGridSize tempUpdateObservedFromWristFivePoint moveEeToPoseWord
 ) "tempUpdateFivePointThreeWidth" store
 
 (
@@ -321,9 +356,24 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 
 (
-  endArgs "banana" "mediumClamp" "redScrewdriver" "yellowEyeDuplo" setClassLabels
+  /* endArgs "banana" "mediumClamp" "redScrewdriver" setClassLabels */
+  /* endArgs "blueScrewdriver" "scissors" "wrench" setClassLabels */
+  /* endArgs "scene_set_1/duplo" "scene_set_1/icraStandardDucky" "scene_set_1/lock" "scene_set_1/strawberry" setClassLabels */
+  endArgs "scene_set_1/lock" setClassLabels
 
 ) "tempSetClassesSS1" store
 
+(
+  /* endArgs "banana" "mediumClamp" "redScrewdriver" setClassLabels */
+  /* endArgs "blueScrewdriver" "scissors" "wrench" setClassLabels */
+  /* endArgs "scene_set_1/duplo" "scene_set_1/icraStandardDucky" "scene_set_1/lock" "scene_set_1/strawberry" setClassLabels */
+  /* endArgs "scene_set_1/lock" setClassLabels */
+  endArgs "pond_duck" setClassLabels
+
+) "tempSetClassesSS2" store
+
+(
+  sceneClearPredictedObjects tempPredictAndRenderBest clearBlueBoxMemories 0 sceneMapSceneObject
+) "tempClassifyOne" store
 
 
