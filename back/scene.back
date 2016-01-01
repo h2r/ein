@@ -1,6 +1,6 @@
 robotSerial "_bg_" leftOrRightArm + + "bg" store
 
-( assumeBeeHome waitUntilAtCurrentPosition 1 changeToHeight
+( assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition
 ) "tempGoHome" store
 
 ( ( sceneUpdateObservedFromWrist  ( xUp ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXUp" store
@@ -60,6 +60,11 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 (
   sceneClearObservedMap tempUpdateFivePointThreeWidth tempUpdateMaps
 ) "tempFivePointThreeWidthTakeScene" store
+
+(
+  sceneClearObservedMap 0.01 setGridSize 10 tempUpdateSpiralStop tempUpdateMaps
+) "tempSpiralTakeScene" store
+
 
 (
   /* takes a string */
@@ -199,35 +204,85 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 (
   setMovementStateToMoving
 
-  localXUp
-  localYUp
-  waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
+  xUp
+  yUp
+  waitWord
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
   
-  localYDown localYDown
-  waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
+  yDown yDown
+  waitWord
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
 
-  localXDown localXDown
-  waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
+  xDown xDown
+  waitWord
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
 
-  localYUp localYUp
-  waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
+  yUp yUp
+  waitWord
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
 
-  localXUp
-  localYDown
-  waitUntilAtCurrentPosition comeToStop setMovementStateToMoving comeToStop
+  xUp
+  yDown
+  waitWord
+
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
 ) "tempUpdateObservedFromWristFivePoint" store
+
+( waitUntilRingBufferImageAtCurrentPosition setMovementStateToMoving comeToStop setMovementStateToMoving comeToStop ) "waitWord" store
+
+(
+  fullImpulse
+  0.1 setGridSize xUp yUp waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  0.03 setSpeed
+  ( yDown waitUntilAtCurrentPosition xDown xDown ( sceneUpdateObservedFromWrist 0.2 waitForSeconds ) doUntilAtCurrentPosition ) 2 replicateWord 
+) "tempUpdateLawnmower" store
+
+(
+  0.05 setSpeed
+  0.03 setW1GoThresh
+
+  "tempUpdateSpiralN" store
+  1 "tempUpdateSpiralIdx" store
+
+  ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
+  ( ( xUp ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
+    ( yUp ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
+    ( xDown ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
+    ( yDown ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
+    "test " print
+    tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
+  ) while
+) "tempUpdateSpiral" store
+
+(
+  0.05 setSpeed
+  0.03 setW1GoThresh
+
+  "tempUpdateSpiralN" store
+  1 "tempUpdateSpiralIdx" store
+
+  ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
+  ( ( xUp ) tempUpdateSpiralIdx replicateWord waitWord sceneUpdateObservedFromWrist
+    ( yUp ) tempUpdateSpiralIdx replicateWord waitWord sceneUpdateObservedFromWrist
+    ( xDown ) tempUpdateSpiralIdx 1 + replicateWord waitWord sceneUpdateObservedFromWrist
+    ( yDown ) tempUpdateSpiralIdx 1 + replicateWord waitWord sceneUpdateObservedFromWrist
+    "test " print
+    tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
+  ) while
+) "tempUpdateSpiralStop" store
+
+
 
 (
   currentPose 0.07 setGridSize tempUpdateObservedFromWristFivePoint eighthTurn 0.05 setGridSize tempUpdateObservedFromWristFivePoint eighthTurn 0.01 setGridSize tempUpdateObservedFromWristFivePoint moveEeToPoseWord
 ) "tempUpdateFivePointThreeWidth" store
 
+
 (
-  sceneClearObservedMap tempUpdateFivePointThreeWidth bg sceneSaveObservedMap 
+  sceneClearObservedMap 
+  tempUpdateFivePointThreeWidth  
+  /*   0.02 setGridSize  11  tempUpdateSpiral */
+  bg sceneSaveObservedMap 
   tempInit
 ) "tempUpdateBg" store
 
