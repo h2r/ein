@@ -81,17 +81,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.lastMovementStateSet = ros::Time::now();
 
   ms->config.waitUntilAtCurrentPositionCounter = 0;
-  double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
-  double dy = (ms->config.currentEEPose.py - ms->config.trueEEPose.position.y);
-  double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
-  double distance = dx*dx + dy*dy + dz*dz;
-  
-  double qx = (fabs(ms->config.currentEEPose.qx) - fabs(ms->config.trueEEPose.orientation.x));
-  double qy = (fabs(ms->config.currentEEPose.qy) - fabs(ms->config.trueEEPose.orientation.y));
-  double qz = (fabs(ms->config.currentEEPose.qz) - fabs(ms->config.trueEEPose.orientation.z));
-  double qw = (fabs(ms->config.currentEEPose.qw) - fabs(ms->config.trueEEPose.orientation.w));
-  double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
-  
+
+  double distance, angleDistance;
+  eePose::distanceXYZAndAngle(ms->config.currentEEPose, ms->config.trueEEPoseEEPose, &distance, &angleDistance);
+
   if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
     ms->pushWord("waitUntilAtCurrentPositionB"); 
     ms->config.endThisStackCollapse = 1;
@@ -103,6 +96,31 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(WaitUntilAtCurrentPosition)
+
+
+WORD(IsAtCurrentPosition)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  ms->config.currentMovementState = MOVING;
+  ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
+  ms->config.lastMovementStateSet = ros::Time::now();
+
+  ms->config.waitUntilAtCurrentPositionCounter = 0;
+
+  double distance, angleDistance;
+  eePose::distanceXYZAndAngle(ms->config.currentEEPose, ms->config.trueEEPoseEEPose, &distance, &angleDistance);
+
+  std::shared_ptr<IntegerWord> newWord;
+  if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
+    newWord = std::make_shared<IntegerWord>(0);
+  } else {
+    newWord = std::make_shared<IntegerWord>(1);
+  }
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(IsAtCurrentPosition)
+
 
 WORD(WaitUntilAtCurrentPositionB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
