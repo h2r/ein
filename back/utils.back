@@ -7,7 +7,7 @@
   comeToStop 
 ) "liftArm" store
 
-
+( "doUntilAtCurrentPositionTemp" store ( isAtCurrentPosition not )  ( doUntilAtCurrentPositionTemp endStackCollapseNoop )  while  ) "doUntilAtCurrentPosition" store
 
 (
 

@@ -605,7 +605,7 @@ WORD(Slip)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   std::shared_ptr<Word> word = ms->popData();
   if (word == NULL) {
-    cout << "Slide Must take an argument from the call stack." << endl;
+    cout << "Slide Must take an argument from the data stack." << endl;
   } else {
     ms->pushWord(word);
   }
@@ -832,11 +832,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   std::shared_ptr<Word> valueword = ms->popData();
   if (nameword == NULL || valueword == NULL) {
     cout << " Store takes two arguments." << endl;
+    ms->pushWord("pauseStackExecution");   
+  } else {
+    string name = nameword->to_string();
+    //cout << "Storing " << name << " value " << valueword << endl;
+    ms->variables[name] = valueword;
   }
-
-  string name = nameword->to_string();
-  //cout << "Storing " << name << " value " << valueword << endl;
-  ms->variables[name] = valueword;
 }
 END_WORD
 REGISTER_WORD(Store)
@@ -1197,6 +1198,35 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 }
 END_WORD
 REGISTER_WORD(WaitUntilEndpointCallbackReceivedA)
+
+
+
+WORD(WaitUntilRingBufferImageAtCurrentPosition)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+
+  Mat ringImage;
+  eePose thisPose;
+  ros::Time time;
+  int result = getMostRecentRingImageAndPose(ms, &ringImage, &thisPose, &time, false);
+  double distance, angleDistance;
+  eePose::distanceXYZAndAngle(ms->config.currentEEPose, thisPose, &distance, &angleDistance);
+  if (result != 1) { 
+    ROS_ERROR("Warning:  waitUntilRingBufferImageAtCurrentPosition got an error when accessing the ring buffer.");
+    ms->pushWord("waitUntilRingBufferImageAtCurrentPosition");
+    ms->config.endThisStackCollapse = 1;
+    return;
+  }
+  if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
+    ms->pushWord("waitUntilRingBufferImageAtCurrentPosition");
+    ms->config.endThisStackCollapse = 1;
+  } else {
+    ms->config.endThisStackCollapse = ms->config.endCollapse;
+  }
+}
+END_WORD
+REGISTER_WORD(WaitUntilRingBufferImageAtCurrentPosition)
+
 
 WORD(WriteXMLEnvironment)
 virtual void execute(std::shared_ptr<MachineState> ms)

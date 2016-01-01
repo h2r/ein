@@ -179,6 +179,7 @@ class Scene {
   bool isDiscrepantMetersBilin(double threshold, double x, double y);
   void composePredictedMap(double threshold=0.5);
   void measureDiscrepancy();
+  double computeProbabilityOfMap();
   double computeScore();
   double assignScore();
   double measureScoreRegion(int _x1, int _y1, int _x2, int _y2);
