@@ -75,6 +75,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempFivePointThreeWidthPredictAndRenderBest" store
 
 (
+  0.5 "tempNewComponentThresh" store
   sceneClearPredictedObjects
   sceneClearObservedMap
 
@@ -102,6 +103,22 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 	dup
       "tempFivePointThreeWidthIsNewComponent: after / before ratio is " 
     swap + print
+
+  tempNewComponentThresh > (
+	  1
+	dup
+      "tempFivePointThreeWidthIsNewComponent: IS a new component, returning " 
+    swap + print
+  ) (
+	  0
+	dup
+      "tempFivePointThreeWidthIsNewComponent: AIN'T a new component, returning " 
+    swap + print
+  ) ifte
+
+      dup
+    "tempFivePointThreeWidthIsNewComponent: returning " 
+  swap + print
 
 ) "tempFivePointThreeWidthIsNewComponent" store
 
@@ -374,7 +391,8 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   /* endArgs "blueScrewdriver" "scissors" "wrench" setClassLabels */
   /* endArgs "scene_set_1/duplo" "scene_set_1/icraStandardDucky" "scene_set_1/lock" "scene_set_1/strawberry" setClassLabels */
   /* endArgs "scene_set_1/lock" setClassLabels */
-  endArgs "pond_duck" setClassLabels
+  /* endArgs "pond_duck" setClassLabels */
+  endArgs "scissors_blue" setClassLabels
 
 ) "tempSetClassesSS2" store
 
