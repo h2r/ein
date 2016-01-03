@@ -544,7 +544,7 @@ REGISTER_WORD(CountGrasp)
 
 WORD(CheckGrasp)
 CODE(196718)     // capslock + N 
-  virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(std::shared_ptr<MachineState> ms)       {
   if (ms->config.gripperMoving) {
     ms->pushWord("checkGrasp"); // check grasp
   } else {
@@ -565,101 +565,324 @@ CODE(196718)     // capslock + N
 END_WORD
 REGISTER_WORD(CheckGrasp)
 
+WORD(CheckIfJammed)
+virtual void execute(std::shared_ptr<MachineState> ms)       {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+
+  if (ms->config.gripperMoving) {
+    ms->pushWord("checkIfJammed"); // check grasp
+  } else {
+    cout << "gripperPosition: " << ms->config.gripperPosition << " gripperThresh: " << ms->config.gripperThresh << endl;
+    cout << "gripperGripping: " << ms->config.gripperGripping << endl;
+    if (isGripperGripping(ms)) {
+      cout << "STUCK!!!!!!" << endl;
+      sad(ms);
+
+      ms->pushWord("pauseStackExecution");
+      ms->pushCopies("beep", 15); // beep
+
+      int t3dgi = ms->config.current3dGraspIndex;
+      if ( (t3dgi > -1) && (t3dgi < ms->config.class3dGrasps.size()) ) {
+	cout << "checkIfJammed: using t3dgi " << t3dgi << endl;
+	Grasp *thisGrasp = &(ms->config.class3dGrasps[tfc][t3dgi]);
+	thisGrasp->jams++;
+	// NOTE: true successes is successes - jams, this seems like it is more error tolerant.
+      } else {
+	cout << "checkIfJammed: bad t3dgi, doing nothing... " << t3dgi << endl;
+      }
+
+    } else {
+      cout << "Not stuck :)" << endl;
+      happy(ms);
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(CheckIfJammed)
+
 WORD(CheckAndCountGrasp)
 CODE(196713)     // capslock + I
-  virtual void execute(std::shared_ptr<MachineState> ms)       {
-  int i = ms->config.localMaxX + ms->config.localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.localMaxGG;
-  int j = ms->config.localMaxX + ms->config.localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0;
-  if (ms->config.gripperMoving) {
-    //ms->pushWord(196713); // check and count grasp
-	cout << "checkAndCountGrasp: repushing because gripper is moving." << endl;
-    ms->pushWord("checkAndCountGrasp"); 
-	ms->pushWord("waitUntilGripperNotMoving");
-  } else {
-    ms->config.graspAttemptCounter++;
-    switch (ms->config.currentPickMode) {
-    case STATIC_PRIOR:
-      {
-      }
-      break;
-    case LEARNING_ALGORITHMC:
-    case LEARNING_SAMPLING:
-      {
-        if (ms->config.graspMemoryTries[i] <= 1.0) {
-          ms->config.graspMemoryTries[i] = 1.001;
-          ms->config.graspMemoryPicks[i] = 0.0;
-        } else {
-          ms->config.graspMemoryTries[i]++;
-        }
-        //ms->config.graspMemoryTries[j+0*ms->config.rmWidth*ms->config.rmWidth]++;
-        //ms->config.graspMemoryTries[j+1*ms->config.rmWidth*ms->config.rmWidth]++;
-        //ms->config.graspMemoryTries[j+2*ms->config.rmWidth*ms->config.rmWidth]++;
-        //ms->config.graspMemoryTries[j+3*ms->config.rmWidth*ms->config.rmWidth]++;
-      }
-      break;
-    case STATIC_MARGINALS:
-      {
-      }
-      break;
-    default:
-      {
-        assert(0);
-      }
-      break;
-    }
-    cout << "gripperPosition: " << ms->config.gripperPosition << " gripperThresh: " << ms->config.gripperThresh << endl;
-    if (!isGripperGripping(ms)) {
-      if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
-        recordBoundingBoxFailure(ms);
-      }
-      cout << "Failed grasp." << endl;
-      //ms->pushWord("pauseStackExecution"); // pause stack execution
-      ms->pushCopies("beep", 15); // beep
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+
+  if (ms->config.currentGraspMode == GRASP_3D) {
+    int t3dgi = ms->config.current3dGraspIndex;
+    if ( (t3dgi > -1) && (t3dgi < ms->config.class3dGrasps.size()) ) {
+      cout << "checkAndCountGrasp: using t3dgi " << t3dgi << endl;
     } else {
-      if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
-        recordBoundingBoxSuccess(ms);
-      }
-      ms->config.graspSuccessCounter++;
-      cout << "Successful grasp." << endl;
-      //ms->config.graspMemoryPicks[i]++;
+      cout << "checkAndCountGrasp: bad t3dgi, returning... " << t3dgi << endl;
+      return;
+    }
+
+    Grasp *thisGrasp = &(ms->config.class3dGrasps[tfc][t3dgi]);
+
+    if (ms->config.gripperMoving) {
+      cout << "checkAndCountGrasp: repushing because gripper is moving." << endl;
+
+      ms->pushWord("checkAndCountGrasp"); 
+      ms->pushWord("waitUntilGripperNotMoving");
+    } else {
+      ms->config.graspAttemptCounter++;
       switch (ms->config.currentPickMode) {
       case STATIC_PRIOR:
-        {
-        }
-        break;
+	{
+	}
+	break;
       case LEARNING_ALGORITHMC:
       case LEARNING_SAMPLING:
-        {
-          ms->config.graspMemoryPicks[i]++;
-          //ms->config.graspMemoryPicks[j]++;
-          //ms->config.graspMemoryPicks[j+1*ms->config.rmWidth*ms->config.rmWidth]++;
-          //ms->config.graspMemoryPicks[j+2*ms->config.rmWidth*ms->config.rmWidth]++;
-          //ms->config.graspMemoryPicks[j+3*ms->config.rmWidth*ms->config.rmWidth]++;
-        }
-        break;
+	{
+	  if (thisGrasp->tries <= 1.0) {
+	    thisGrasp->tries = 1.001;
+	    thisGrasp->successes = 0.0;
+	    thisGrasp->failures = 0.0;
+	  } else {
+	    thisGrasp->tries++;
+	  }
+	}
+	break;
       case STATIC_MARGINALS:
-        {
-        }
-        break;
+	{
+	}
+	break;
       default:
-        {
-          assert(0);
-        }
-        break;
+	{
+	  assert(0);
+	}
+	break;
       }
+      cout << "gripperPosition: " << ms->config.gripperPosition << " gripperThresh: " << ms->config.gripperThresh << endl;
+      if (!isGripperGripping(ms)) {
+	if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
+	  recordBoundingBoxFailure(ms);
+	}
+	switch (ms->config.currentPickMode) {
+	  case STATIC_PRIOR:
+	  {
+	  }
+	  break;
+	  case LEARNING_ALGORITHMC:
+	  case LEARNING_SAMPLING:
+	  {
+	    thisGrasp->failures++;
+	  }
+	  break;
+	  case STATIC_MARGINALS:
+	  {
+	  }
+	  break;
+	  default:
+	  {
+	    assert(0);
+	  }
+	  break;
+	}
+	cout << "3D !!! Failed grasp." << endl;
+	//ms->pushWord("pauseStackExecution"); // pause stack execution
+	ms->pushCopies("beep", 15); // beep
+      } else {
+	if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
+	  recordBoundingBoxSuccess(ms);
+	}
+	ms->config.graspSuccessCounter++;
+	cout << "3D !!! Successful grasp." << endl;
+	switch (ms->config.currentPickMode) {
+	  case STATIC_PRIOR:
+	  {
+	  }
+	  break;
+	  case LEARNING_ALGORITHMC:
+	  case LEARNING_SAMPLING:
+	  {
+	    thisGrasp->successes++;
+	  }
+	  break;
+	  case STATIC_MARGINALS:
+	  {
+	  }
+	  break;
+	  default:
+	  {
+	    assert(0);
+	  }
+	  break;
+	}
+      }
+
+      double thisPickRate = double(thisGrasp->successes) / double(thisGrasp->tries);
+      int thisNumTries = thisGrasp->tries;
+      cout << "3D !!! Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
+
+      if (ms->config.currentPickMode == LEARNING_SAMPLING) {
+	if ( (thisNumTries >= ms->config.thompsonMinTryCutoff) && 
+	     (thisPickRate >= ms->config.thompsonMinPassRate) ) {
+	  ms->config.thompsonPickHaltFlag = 1;
+	}
+      }
+      // ATTN 20
+      {
+	double successes = thisGrasp->successes;
+	double failures =  thisGrasp->tries - thisGrasp->successes;
+	if (failures != thisGrasp->failures) {
+	  ROS_ERROR_STREAM("3D !!! grasp COUNTING ERROR: " << failures << " " << thisGrasp->failures << endl;);
+	} else {}
+	
+	cout << "3D !!! YYY failures, successes: " << failures << " " << successes << endl;
+	successes = round(successes);
+	failures = round(failures);
+	cout << "3D !!! XXX failures, successes: " << failures << " " << successes << endl;
+	// returns probability that mu <= d given successes and failures.
+	double presult = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget);
+	// we want probability that mu > d
+	double result = 1.0 - presult;
+
+	double presult2a = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget + ms->config.algorithmCEPS);
+	double presult2b = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget - ms->config.algorithmCEPS);
+	// we want probability that 
+	//  ms->config.algorithmCTarget - ms->config.algorithmCEPS < mu < ms->config.algorithmCTarget + ms->config.algorithmCEPS
+	double result2 = presult2a - presult2b;
+
+	cout << "3D !!! prob that mu > d: " << result << " algorithmCAT: " << ms->config.algorithmCAT << endl;
+	if (ms->config.currentPickMode == LEARNING_ALGORITHMC) {
+	  ms->config.thompsonPickHaltFlag = (result > ms->config.algorithmCAT);
+	  if (result2 > ms->config.algorithmCAT) {
+	    ms->config.thompsonPickHaltFlag = 1;
+	  }
+	}
+      }
+
+      ms->config.graspSuccessRate = ms->config.graspSuccessCounter / ms->config.graspAttemptCounter;
+      ros::Time thisTime = ros::Time::now();
+      ros::Duration sinceStartOfTrial = thisTime - ms->config.graspTrialStart;
+      cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << ms->config.graspSuccessCounter << "/" << ms->config.graspAttemptCounter << " " << ms->config.graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << ms->config.gripperPosition << " " << pickModeToString(ms->config.currentPickMode) << endl;
     }
 
-    double thisPickRate = double(ms->config.graspMemoryPicks[i]) / double(ms->config.graspMemoryTries[i]);
-    int thisNumTries = ms->config.graspMemoryTries[i];
-    cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
 
-    if (ms->config.currentPickMode == LEARNING_SAMPLING) {
-      if ( (thisNumTries >= ms->config.thompsonMinTryCutoff) && 
-           (thisPickRate >= ms->config.thompsonMinPassRate) ) {
-        ms->config.thompsonPickHaltFlag = 1;
+  } else if (ms->config.currentGraspMode == GRASP_CRANE) {
+    int i = ms->config.localMaxX + ms->config.localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.localMaxGG;
+    int j = ms->config.localMaxX + ms->config.localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0;
+    if (ms->config.gripperMoving) {
+      //ms->pushWord(196713); // check and count grasp
+	  cout << "checkAndCountGrasp: repushing because gripper is moving." << endl;
+      ms->pushWord("checkAndCountGrasp"); 
+	  ms->pushWord("waitUntilGripperNotMoving");
+    } else {
+      ms->config.graspAttemptCounter++;
+      switch (ms->config.currentPickMode) {
+      case STATIC_PRIOR:
+	{
+	}
+	break;
+      case LEARNING_ALGORITHMC:
+      case LEARNING_SAMPLING:
+	{
+	  if (ms->config.graspMemoryTries[i] <= 1.0) {
+	    ms->config.graspMemoryTries[i] = 1.001;
+	    ms->config.graspMemoryPicks[i] = 0.0;
+	  } else {
+	    ms->config.graspMemoryTries[i]++;
+	  }
+	  //ms->config.graspMemoryTries[j+0*ms->config.rmWidth*ms->config.rmWidth]++;
+	  //ms->config.graspMemoryTries[j+1*ms->config.rmWidth*ms->config.rmWidth]++;
+	  //ms->config.graspMemoryTries[j+2*ms->config.rmWidth*ms->config.rmWidth]++;
+	  //ms->config.graspMemoryTries[j+3*ms->config.rmWidth*ms->config.rmWidth]++;
+	}
+	break;
+      case STATIC_MARGINALS:
+	{
+	}
+	break;
+      default:
+	{
+	  assert(0);
+	}
+	break;
       }
+      cout << "gripperPosition: " << ms->config.gripperPosition << " gripperThresh: " << ms->config.gripperThresh << endl;
+      if (!isGripperGripping(ms)) {
+	if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
+	  recordBoundingBoxFailure(ms);
+	}
+	cout << "Failed grasp." << endl;
+	//ms->pushWord("pauseStackExecution"); // pause stack execution
+	ms->pushCopies("beep", 15); // beep
+      } else {
+	if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
+	  recordBoundingBoxSuccess(ms);
+	}
+	ms->config.graspSuccessCounter++;
+	cout << "Successful grasp." << endl;
+	//ms->config.graspMemoryPicks[i]++;
+	switch (ms->config.currentPickMode) {
+	case STATIC_PRIOR:
+	  {
+	  }
+	  break;
+	case LEARNING_ALGORITHMC:
+	case LEARNING_SAMPLING:
+	  {
+	    ms->config.graspMemoryPicks[i]++;
+	    //ms->config.graspMemoryPicks[j]++;
+	    //ms->config.graspMemoryPicks[j+1*ms->config.rmWidth*ms->config.rmWidth]++;
+	    //ms->config.graspMemoryPicks[j+2*ms->config.rmWidth*ms->config.rmWidth]++;
+	    //ms->config.graspMemoryPicks[j+3*ms->config.rmWidth*ms->config.rmWidth]++;
+	  }
+	  break;
+	case STATIC_MARGINALS:
+	  {
+	  }
+	  break;
+	default:
+	  {
+	    assert(0);
+	  }
+	  break;
+	}
+      }
+
+      double thisPickRate = double(ms->config.graspMemoryPicks[i]) / double(ms->config.graspMemoryTries[i]);
+      int thisNumTries = ms->config.graspMemoryTries[i];
+      cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
+
+      if (ms->config.currentPickMode == LEARNING_SAMPLING) {
+	if ( (thisNumTries >= ms->config.thompsonMinTryCutoff) && 
+	     (thisPickRate >= ms->config.thompsonMinPassRate) ) {
+	  ms->config.thompsonPickHaltFlag = 1;
+	}
+      }
+      // ATTN 20
+      {
+	double successes = ms->config.graspMemoryPicks[i];
+	double failures =  ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i];
+	cout << "YYY failures, successes: " << failures << " " << successes << endl;
+	successes = round(successes);
+	failures = round(failures);
+	cout << "XXX failures, successes: " << failures << " " << successes << endl;
+	// returns probability that mu <= d given successes and failures.
+	double presult = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget);
+	// we want probability that mu > d
+	double result = 1.0 - presult;
+
+	double presult2a = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget + ms->config.algorithmCEPS);
+	double presult2b = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget - ms->config.algorithmCEPS);
+	// we want probability that 
+	//  ms->config.algorithmCTarget - ms->config.algorithmCEPS < mu < ms->config.algorithmCTarget + ms->config.algorithmCEPS
+	double result2 = presult2a - presult2b;
+
+	cout << "prob that mu > d: " << result << " algorithmCAT: " << ms->config.algorithmCAT << endl;
+	if (ms->config.currentPickMode == LEARNING_ALGORITHMC) {
+	  ms->config.thompsonPickHaltFlag = (result > ms->config.algorithmCAT);
+	  if (result2 > ms->config.algorithmCAT) {
+	    ms->config.thompsonPickHaltFlag = 1;
+	  }
+	}
+      }
+
+      copyGraspMemoryTriesToClassGraspMemoryTries(ms);
+      ms->config.graspSuccessRate = ms->config.graspSuccessCounter / ms->config.graspAttemptCounter;
+      ros::Time thisTime = ros::Time::now();
+      ros::Duration sinceStartOfTrial = thisTime - ms->config.graspTrialStart;
+      cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << ms->config.graspSuccessCounter << "/" << ms->config.graspAttemptCounter << " " << ms->config.graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << ms->config.gripperPosition << " " << pickModeToString(ms->config.currentPickMode) << endl;
     }
-    // ATTN 20
     {
       double successes = ms->config.graspMemoryPicks[i];
       double failures =  ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i];
@@ -667,39 +890,10 @@ CODE(196713)     // capslock + I
       successes = round(successes);
       failures = round(failures);
       cout << "XXX failures, successes: " << failures << " " << successes << endl;
-      // returns probability that mu <= d given successes and failures.
-      double presult = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget);
-      // we want probability that mu > d
-      double result = 1.0 - presult;
-
-      double presult2a = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget + ms->config.algorithmCEPS);
-      double presult2b = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget - ms->config.algorithmCEPS);
-      // we want probability that 
-      //  ms->config.algorithmCTarget - ms->config.algorithmCEPS < mu < ms->config.algorithmCTarget + ms->config.algorithmCEPS
-      double result2 = presult2a - presult2b;
-
-      cout << "prob that mu > d: " << result << " algorithmCAT: " << ms->config.algorithmCAT << endl;
-      if (ms->config.currentPickMode == LEARNING_ALGORITHMC) {
-        ms->config.thompsonPickHaltFlag = (result > ms->config.algorithmCAT);
-        if (result2 > ms->config.algorithmCAT) {
-          ms->config.thompsonPickHaltFlag = 1;
-        }
-      }
     }
-
-    copyGraspMemoryTriesToClassGraspMemoryTries(ms);
-    ms->config.graspSuccessRate = ms->config.graspSuccessCounter / ms->config.graspAttemptCounter;
-    ros::Time thisTime = ros::Time::now();
-    ros::Duration sinceStartOfTrial = thisTime - ms->config.graspTrialStart;
-    cout << "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << ms->config.graspSuccessCounter << "/" << ms->config.graspAttemptCounter << " " << ms->config.graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << ms->config.gripperPosition << " " << pickModeToString(ms->config.currentPickMode) << endl;
-  }
-  {
-    double successes = ms->config.graspMemoryPicks[i];
-    double failures =  ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i];
-    cout << "YYY failures, successes: " << failures << " " << successes << endl;
-    successes = round(successes);
-    failures = round(failures);
-    cout << "XXX failures, successes: " << failures << " " << successes << endl;
+  } else {
+   cout << "bad grasp mode..." << endl;
+   assert(0); 
   }
 }
 END_WORD
@@ -837,7 +1031,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   } else if (ms->config.currentGraspMode == GRASP_3D) {
     ms->pushWord("closeGripper"); 
     //ms->pushWord("assumeCurrent3dGrasp"); 
-    ms->pushWord("assumeAny3dGrasp"); 
+    //ms->pushWord("assumeAny3dGrasp"); 
+    ms->pushWord("assumeBest3dGrasp"); 
   } else {
     assert(0);
   }
@@ -1537,7 +1732,7 @@ cout << "about to calc 3d poses" << endl;
 cout << "tnc, tnp: " << tnc << " " << tnp << endl;
 	lastAdded->aff3dGraspPoses.resize(tnp);
 	for (int i = 0; i < tnp; i++) {
-	  eePose toApply = ms->config.class3dGrasps[thisTargetClassIdx][i];  
+	  eePose toApply = ms->config.class3dGrasps[thisTargetClassIdx][i].grasp_pose;  
 	  eePose toWhichWasApplied = ms->config.currentEEPose;
 	  toWhichWasApplied.pz = -ms->config.currentTableZ;
 	  // this order is important because quaternion multiplication is not commutative

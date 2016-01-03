@@ -273,6 +273,29 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(And)
 
+WORD(Exp)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(exp(v1));
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Exp)
+
+WORD(Pow)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+  double v2;
+  GET_NUMERIC_ARG(ms, v2);
+
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(pow(v2,v1));
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Pow)
+
 WORD(Plus)
 CODE('+') 
 virtual vector<string> names() {

@@ -464,6 +464,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (ms->config.currentPlaceMode == PLACE_REGISTER) {
   ms->pushWord("idler"); 
   ms->pushWord("unmapTargetBlueBox");
+  ms->pushWord("checkIfJammed"); 
   ms->pushWord("openGripper"); 
   ms->pushWord("cruisingSpeed"); 
   ms->pushWord("waitUntilAtCurrentPosition"); 
@@ -549,6 +550,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   } else if (ms->config.currentPlaceMode == SHAKE) {
   ms->pushWord("idler"); 
   ms->pushWord("unmapTargetBlueBox");
+  ms->pushWord("checkIfJammed"); 
   ms->pushWord("openGripper"); 
   ms->pushWord("cruisingSpeed"); 
   ms->pushWord("waitUntilAtCurrentPosition"); 
