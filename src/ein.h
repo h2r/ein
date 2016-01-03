@@ -181,6 +181,7 @@ void writeSceneModel(std::shared_ptr<MachineState> ms, int idx, string this_gras
 void saveAccumulatedStreamToPath(shared_ptr<MachineState> ms, string path);
 streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx);
 streamImage * setIsbIdxNoLoad(std::shared_ptr<MachineState> ms, int idx);
+streamImage * setIsbIdxNoLoadNoKick(std::shared_ptr<MachineState> ms, int idx);
 void resetAccumulatedStreamImage(std::shared_ptr<MachineState> ms);
 int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase);
 void castRangeRay(std::shared_ptr<MachineState> ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut);

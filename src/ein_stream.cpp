@@ -139,6 +139,7 @@ REGISTER_WORD(EnableDiskStreaming)
 WORD(ClearStreamBuffers)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
+  ms->config.streamImageBuffer.resize(0);
   ms->config.streamPoseBuffer.resize(0);
   ms->config.streamRangeBuffer.resize(0);
 }
@@ -230,15 +231,39 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(IntegrateRangeStreamBuffer)
 
+WORD(StreamPushImageStreamIndex)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->pushWord( make_shared<DoubleWord>(ms->config.sibCurIdx) );
+}
+END_WORD
+REGISTER_WORD(StreamPushImageStreamIndex)
+
+WORD(StreamPushImageStreamSize)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->pushWord( make_shared<DoubleWord>(ms->config.streamImageBuffer.size()) );
+}
+END_WORD
+REGISTER_WORD(StreamPushImageStreamSize)
 
 WORD(RewindImageStreamBuffer)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  cout << "RewindImageStreamBuffer" << endl;
+  cout << "rewindImageStreamBuffer" << endl;
   setIsbIdx(ms, 0);
 }
 END_WORD
 REGISTER_WORD(RewindImageStreamBuffer)
+
+WORD(RewindImageStreamBufferNLNK)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  cout << "rewindImageStreamBufferNLNK" << endl;
+  setIsbIdxNoLoadNoKick(ms, 0);
+}
+END_WORD
+REGISTER_WORD(RewindImageStreamBufferNLNK)
 
 WORD(IntegrateImageStreamBufferCrops)
 virtual void execute(std::shared_ptr<MachineState> ms)
@@ -353,6 +378,23 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 }
 END_WORD
 REGISTER_WORD(IncrementImageStreamBuffer)
+
+WORD(IncrementImageStreamBufferNoLoadNoKick)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  int nextIdx = ms->config.sibCurIdx + 1;
+  cout << "incrementImageStreamBufferNoLoadNoKick: Incrementing to " << nextIdx << endl;
+  if ( (nextIdx > -1) && (nextIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage * result = setIsbIdxNoLoadNoKick(ms, nextIdx);  
+    if (result == NULL) {
+      cout << "increment failed :(" << endl;
+    } else {
+    }
+  } else {
+  }
+}
+END_WORD
+REGISTER_WORD(IncrementImageStreamBufferNoLoadNoKick)
 
 WORD(IncrementImageStreamBufferNoLoad)
 virtual void execute(std::shared_ptr<MachineState> ms)
