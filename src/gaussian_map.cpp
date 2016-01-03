@@ -1293,6 +1293,9 @@ void Scene::proposeRegion() {
 void Scene::proposeObject() {
 }
 
+CONFIG_GETTER_DOUBLE(SceneScoreThresh, ms->config.scene_score_thresh)
+CONFIG_SETTER_DOUBLE(SceneSetScoreThresh, ms->config.scene_score_thresh)
+
 void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_score, int * l_max_i) {
   REQUIRE_VALID_CLASS(ms,class_idx);
   guardSceneModels(ms);
@@ -1309,8 +1312,8 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 
   double p_scene_sigma = 2.0;
 
-  // XXX this should be passed, probably
-  double p_discrepancy_thresh = 0.5;
+  // XXX this should be passed, probably, and using .01 so some objects don't get washed out
+  double p_discrepancy_thresh = ms->config.scene_score_thresh;
 
   Mat prepared_discrepancy;
   {
@@ -1519,7 +1522,7 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
       // XXX score should return the delta of including vs not including
       local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
       local_scores[i].loglikelihood_valid = true;
-      cout << "  running inference on class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << endl;
+      cout << "  running inference on class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
     }
   }
 
@@ -2383,10 +2386,311 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ScenePredictBestObject)
 
+WORD(ScenePushTotalDiscrepancy)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  guardSceneModels(ms);
+
+  Mat tsd = ms->config.scene->discrepancy_density;
+  double tsd_l1 = tsd.dot(Mat::ones(tsd.rows, tsd.cols, tsd.type()));
+  ms->pushWord(make_shared<DoubleWord>(tsd_l1));
+
+/*
+  //---> seems solidly discriminative, counts the difference it makes. should stay in the log and normalize by the 
+  //number norm of the chosen object
+  Mat tsd_log;
+  log(1.0 - tsd, tsd_log);
+  double tsd_log_l1 = tsd_log.dot(Mat::ones(tsd_log.rows, tsd_log.cols, tsd_log.type()));
+  double tsd_prob = exp(tsd_log_l1);
+  ms->pushWord(make_shared<DoubleWord>(tsd_prob));
+*/
+
+/*
+  double totalProb = 1.0;
+  int W = tsd.cols;
+  int H = tsd.rows;
+  for (int y = 0; y < H; y++) {
+    for (int x = 0; x < W; x++) {
+      double val = tsd.at<double>(y,x);
+      if (val > 1.0) {
+	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
+      } else if (val < 0.0) {
+	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
+      } else {
+	double p_safe_discrepancy_min = 1e-10;
+	double safeVal = max(p_safe_discrepancy_min, val);
+	totalProb *= (1.0 - safeVal);
+      }
+    }
+  }
+  ms->pushWord(make_shared<DoubleWord>(totalProb));
+*/
+
+/*
+  double totalProb = 1.0;
+  int W = tsd.cols;
+  int H = tsd.rows;
+  double root = 0.0;
+  for (int y = 0; y < H; y++) {
+    for (int x = 0; x < W; x++) {
+      double val = tsd.at<double>(y,x);
+      if (val > 1.0) {
+	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
+      } else if (val < 0.0) {
+	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
+      } else {
+	double p_safe_discrepancy_min = 1e-10;
+	if (val > p_safe_discrepancy_min) {
+	  double safeVal = max(p_safe_discrepancy_min, val);
+	  totalProb *= (1.0 - safeVal);
+	  root += 1.0;
+	} else {
+	}
+      }
+    }
+  }
+  double safe_root = max(root, 1.0);
+  double geometrically_rectified = pow(totalProb, 1.0/safe_root);
+  ms->pushWord(make_shared<DoubleWord>(geometrically_rectified));
+*/
+}
+END_WORD
+REGISTER_WORD(ScenePushTotalDiscrepancy)
+
+WORD(ScenePushTotalLogDiscrepancy)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  guardSceneModels(ms);
+
+  Mat tsd = ms->config.scene->discrepancy_density;
+/*
+  double tsd_l1 = tsd.dot(Mat::ones(tsd.rows, tsd.cols, tsd.type()));
+  ms->pushWord(make_shared<DoubleWord>(tsd_l1));
+*/
+
+  //---> seems solidly discriminative, counts the difference it makes. should stay in the log and normalize by the 
+  //number norm of the chosen object
+  Mat tsd_log;
+  //log(1.0 - tsd, tsd_log);
+  log(1.0 + tsd, tsd_log);
+/*
+  double p_epsilon = DBL_MIN;
+  log(min(tsd, p_epsilon), tsd_log);
+  int W = tsd.cols;
+  int H = tsd.rows;
+  for (int y = 0; y < H; y++) {
+    for (int x = 0; x < W; x++) {
+      if (tsd.at<double>(y,x) <= 0) {
+	tsd_log.at<double>(y,x) = 0.0;
+      } else {
+      }
+    }
+  }
+*/
+
+  double tsd_log_l1 = tsd_log.dot(Mat::ones(tsd_log.rows, tsd_log.cols, tsd_log.type()));
+  //double tsd_prob = exp(tsd_log_l1);
+  ms->pushWord(make_shared<DoubleWord>(tsd_log_l1));
+
+/*
+  double totalProb = 1.0;
+  int W = tsd.cols;
+  int H = tsd.rows;
+  for (int y = 0; y < H; y++) {
+    for (int x = 0; x < W; x++) {
+      double val = tsd.at<double>(y,x);
+      if (val > 1.0) {
+	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
+      } else if (val < 0.0) {
+	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
+      } else {
+	double p_safe_discrepancy_min = 1e-10;
+	double safeVal = max(p_safe_discrepancy_min, val);
+	totalProb *= (1.0 - safeVal);
+      }
+    }
+  }
+  ms->pushWord(make_shared<DoubleWord>(totalProb));
+*/
+
+/*
+  double totalProb = 1.0;
+  int W = tsd.cols;
+  int H = tsd.rows;
+  double root = 0.0;
+  for (int y = 0; y < H; y++) {
+    for (int x = 0; x < W; x++) {
+      double val = tsd.at<double>(y,x);
+      if (val > 1.0) {
+	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
+      } else if (val < 0.0) {
+	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
+      } else {
+	double p_safe_discrepancy_min = 1e-10;
+	if (val > p_safe_discrepancy_min) {
+	  double safeVal = max(p_safe_discrepancy_min, val);
+	  totalProb *= (1.0 - safeVal);
+	  root += 1.0;
+	} else {
+	}
+      }
+    }
+  }
+  double safe_root = max(root, 1.0);
+  double geometrically_rectified = pow(totalProb, 1.0/safe_root);
+  ms->pushWord(make_shared<DoubleWord>(geometrically_rectified));
+*/
+}
+END_WORD
+REGISTER_WORD(ScenePushTotalLogDiscrepancy)
+
+WORD(ScenePushTotalDiscrepancyMagnitude)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  guardSceneModels(ms);
+
+  Mat tsd = ms->config.scene->discrepancy_magnitude;
+  double tsd_l1 = tsd.dot(Mat::ones(tsd.rows, tsd.cols, tsd.type()));
+  ms->pushWord(make_shared<DoubleWord>(tsd_l1));
+}
+END_WORD
+REGISTER_WORD(ScenePushTotalDiscrepancyMagnitude)
+
+WORD(SceneTakeBeforeDensity)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  guardSceneModels(ms);
+  ms->config.scene->discrepancy_before = ms->config.scene->discrepancy_density;
+}
+END_WORD
+REGISTER_WORD(SceneTakeBeforeDensity)
+
+
+WORD(SceneTakeAfterDensity)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  guardSceneModels(ms);
+  ms->config.scene->discrepancy_after = ms->config.scene->discrepancy_density;
+}
+END_WORD
+REGISTER_WORD(SceneTakeAfterDensity)
+
+bool doubleDescending(const double &i, const double &j) {
+  return (i > j);
+}
+bool doubleAscending(const double &i, const double &j) {
+  return (i < j);
+}
+
+WORD(SceneHighPrecisionBeforeAfterDiffOfLogs)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  guardSceneModels(ms);
+
+  Mat tsd_b = ms->config.scene->discrepancy_before;
+  Mat tsd_a = ms->config.scene->discrepancy_after;
+
+  vector<double> before_scores;
+  vector<double> after_scores;
+
+  int W = tsd_a.cols;
+  int H = tsd_a.rows;
+  for (int y = 0; y < H; y++) {
+    for (int x = 0; x < W; x++) {
+      before_scores.push_back( tsd_b.at<double>(y,x) );
+      after_scores.push_back( tsd_a.at<double>(y,x) );
+    }
+  }
+
+  std::sort (before_scores.begin(), before_scores.end(), doubleAscending);
+  std::sort (after_scores.begin(), after_scores.end(), doubleAscending);
+
+
+  double hp_total = 0.0;
+
+  // deal with all the pairs
+  int total_left = std::min( before_scores.size(), after_scores.size() );
+  while (total_left > 0) {
+
+    double t_before = before_scores.back(); before_scores.pop_back();
+    double t_after = after_scores.back(); after_scores.pop_back();
+
+    if (t_before > t_after) {
+
+      if (before_scores.size() == 0) {
+	// use these two
+	hp_total += t_after - t_before;
+      } else {
+
+	double t_before_second = before_scores.back(); before_scores.pop_back();
+	if (t_before_second > t_after) {
+	  // accumulate before and return after
+	  double t_new = t_before + t_before_second;
+	  before_scores.push_back(t_new);
+	  after_scores.push_back(t_after);
+	} else if (t_before_second == t_after ) {
+	  // annihilate the equal values and push the before back on the stack 
+	  before_scores.push_back(t_before);
+	} else {
+	  // t_before_second < t_after
+	  // subtract first before and first after, return second before
+	  hp_total += t_after - t_before;
+	  before_scores.push_back(t_before_second);
+	}
+
+      }
+    } else if (t_before == t_after ) {
+      // do nothing, they cancel eachother out
+    } else {
+      // t_before < t_after
+
+      if (after_scores.size() == 0) {
+	// use these two
+	hp_total += t_after - t_before;
+      } else {
+
+	double t_after_second = after_scores.back(); after_scores.pop_back();
+	if (t_after_second > t_before ) {
+	  // accumulate after and return before
+	  double t_new = t_after + t_after_second;
+	  after_scores.push_back(t_new);
+	  before_scores.push_back(t_before);
+	} else if (t_after_second == t_before ) {
+	  // annihilate equal values and push the after back on the stack
+	  after_scores.push_back(t_after);
+	} else {
+	  // t_after_second < t_before
+	  // subtract first before and first after, return second after 
+	  hp_total += t_after - t_before;
+	  after_scores.push_back(t_after_second);
+	}
+      }
+    }
+    total_left = std::min( before_scores.size(), after_scores.size() );
+  }
+
+  // cleanup befores
+  total_left = before_scores.size();
+  while (total_left > 0) {
+    double t_before = before_scores.back(); before_scores.pop_back();
+    hp_total += - t_before;
+    total_left = before_scores.size();
+  }
+
+  // cleanup afters
+  total_left = after_scores.size();
+  while (total_left > 0) {
+    double t_after = after_scores.back(); after_scores.pop_back();
+    hp_total += t_after;
+    total_left = after_scores.size();
+  }
+
+  // push result
+  cout << "sceneHighPrecisionBeforeAfterDiffOfLogs: pushing " << hp_total << endl;
+  ms->pushWord(make_shared<DoubleWord>(hp_total));
+}
+END_WORD
+REGISTER_WORD(SceneHighPrecisionBeforeAfterDiffOfLogs)
+
 WORD(SceneIsNewConfiguration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   guardSceneModels(ms);
 
+  /*
   int num_orientations = 37;
 
   int l_max_class = -1;
@@ -2398,14 +2702,36 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->config.scene->findBestObjectAndScore(&l_max_class, num_orientations, &l_max_x, &l_max_y, &l_max_orient, &l_max_score, &l_max_i);
 
+  double best_density_l1 = 0.0;  
+  double best_ll_l1_ratio = 0.0;  
+
   if ( (l_max_class > -1) && (l_max_class < ms->config.classLabels.size()) ) {
     Mat best_object_density = ms->config.class_scene_models[l_max_class]->discrepancy_density;
-    double best_density_l1 =  best_object_density.dot(Mat::ones(best_object_density.rows, best_object_density.cols, best_object_density.type()));
-    cout << "sceneIsNewConfiguration best score, best l1, ratio:" << l_max_score << " " << best_density_l1 << " " << l_max_score / best_density_l1 << endl;
+    best_density_l1 =  best_object_density.dot(Mat::ones(best_object_density.rows, best_object_density.cols, best_object_density.type()));
+    best_ll_l1_ratio = l_max_score / best_density_l1;
+    cout << "sceneIsNewConfiguration best score, best l1, ratio:" << l_max_score << " " << best_density_l1 << " " << best_ll_l1_ratio << endl;
   } else {
     cout << "sceneIsNewConfiguration: oops, bad class won..." << endl;
   }
-  ms->pushWord(make_shared<DoubleWord>(l_max_score));
+  ms->pushWord(make_shared<DoubleWord>(best_ll_l1_ratio));
+  */
+
+  int to_map = 0;
+  REQUIRE_VALID_SCENE_OBJECT(ms, to_map);
+
+  shared_ptr<SceneObject> tso = ms->config.scene->predicted_objects[to_map];
+  shared_ptr<Scene> tso_s = ms->config.class_scene_models[ tso->labeled_class_index ];
+  Mat tod = tso_s->discrepancy_density;
+  double tod_l1 =  tod.dot(Mat::ones(tod.rows, tod.cols, tod.type()));
+
+  Mat tsd = ms->config.scene->discrepancy_density;
+  double tsd_l1 = tsd.dot(Mat::ones(tsd.rows, tsd.cols, tsd.type()));
+  
+  double d_ratio = tod_l1 / tsd_l1;
+  cout << "sceneIsNewConfiguration tod_l1, tsd_l1, ratio:" << tod_l1 << " " << tsd_l1 << " " << d_ratio << endl;
+
+  ms->pushWord(make_shared<DoubleWord>(d_ratio));
+
 }
 END_WORD
 REGISTER_WORD(SceneIsNewConfiguration)
@@ -2614,6 +2940,120 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromWrist)
+
+// XXX TODO NOT DONE
+WORD(SceneUpdateObservedFromStreamBuffer)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int thisIdx = ms->config.sibCurIdx;
+  cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
+
+  Mat bufferImage;
+  eePose thisPose, tBaseP;
+
+  int success = 1;
+  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+    if (tsi.image.data == NULL) {
+      cout << "  encountered NULL data in sib, returning." << endl;
+      return;
+    } else {
+      bufferImage = tsi.image.clone();
+    }
+    success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+  }
+
+  if (success != 1) {
+    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    return;
+  } else {
+    Mat wristViewYCbCr = bufferImage.clone();
+    cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+
+    Size sz = bufferImage.size();
+    int imW = sz.width;
+    int imH = sz.height;
+
+    int topx = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; //+ 20; // ms->config.grayTop.x;  
+    int botx = ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; //- 20; // ms->config.grayBot.x;  
+    int topy = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; //+ 50; // ms->config.grayTop.y;
+    int boty = ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; //- 50; // ms->config.grayBot.y;  
+      
+    //for (int px = ; px < ; px++) 
+      //for (int py = ; py < ; py++) 
+    pixelToGlobalCache data;
+    double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
+    computePixelToGlobalCache(ms, z, thisPose, &data);
+
+    for (int px = topx; px < botx; px++) {
+      for (int py = topy; py < boty; py++) {
+    //for (int px = 0; px < imW; px++) 
+      //for (int py = 0; py < imH; py++) 
+	if (isInGripperMask(ms, px, py)) {
+	  continue;
+	}
+	double x, y;
+	pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
+
+	if (1) {
+	  // single sample update
+	  int i, j;
+	  ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+	  if (cell != NULL) {
+	    Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+	    cell->newObservation(pixel);
+	  }
+	} else {
+  /*
+	  Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+
+	  // bilinear update
+	  double _i, _j;
+	  ms->config.scene->observed_map->metersToCell(x, y, &_i, &_j);
+
+	  if (ms->config.scene->safeBilinAt(_i,_j)) {
+
+	    double i = min( max(0.0, _i), double(width-1));
+	    double j = min( max(0.0, _j), double(height-1));
+
+	    // -2 makes for appropriate behavior on the upper boundary
+	    double i0 = std::min( std::max(0.0, floor(i)), double(width-2));
+	    double i1 = i0+1;
+
+	    double j0 = std::min( std::max(0.0, floor(j)), double(height-2));
+	    double j1 = j0+1;
+
+	    double wi0 = i1-i;
+	    double wi1 = i-i0;
+
+	    double wj0 = j1-j;
+	    double wj1 = j-j0;
+
+	    GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i0, j0);
+	    cell->newObservation(pixel, wi0*wj0);
+
+	    GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i1, j0);
+	    cell->newObservation(pixel, wi1*wj0);
+
+	    GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i0, j1);
+	    cell->newObservation(pixel, wi0*wj1);
+
+	    GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i1, j1);
+	    cell->newObservation(pixel, wi1*wj1);
+	  }
+  */
+	}
+      }
+    }  
+  }
+
+
+
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+  ms->pushWord("sceneRenderObservedMap");
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBuffer)
 
 
 WORD(SceneRenderObservedMap)

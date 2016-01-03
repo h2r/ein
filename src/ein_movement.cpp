@@ -1867,7 +1867,7 @@ REGISTER_WORD(TwistWords)
 
 WORD(AboutFace)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentEEDeltaRPY.pz = ( 3.1415926 );
+  ms->config.currentEEDeltaRPY.pz = ( M_PI );
   endEffectorAngularUpdate( &ms->config.currentEEPose, &ms->config.currentEEDeltaRPY );
 }
 END_WORD
@@ -1875,11 +1875,19 @@ REGISTER_WORD(AboutFace)
 
 WORD(QuarterTurn)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.currentEEDeltaRPY.pz = ( 1.5707963 );
+  ms->config.currentEEDeltaRPY.pz = ( M_PI/2.0 );
   endEffectorAngularUpdate( &ms->config.currentEEPose, &ms->config.currentEEDeltaRPY );
 }
 END_WORD
 REGISTER_WORD(QuarterTurn)
+
+WORD(EighthTurn)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.currentEEDeltaRPY.pz = ( M_PI/4.0 );
+  endEffectorAngularUpdate( &ms->config.currentEEPose, &ms->config.currentEEDeltaRPY );
+}
+END_WORD
+REGISTER_WORD(EighthTurn)
 
 WORD(TouchDown)
 virtual void execute(std::shared_ptr<MachineState> ms) {
