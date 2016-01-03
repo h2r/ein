@@ -215,6 +215,21 @@ typedef enum {
   POSE_REPORTED = 3
 } memoryLockType;
 
+struct Grasp {
+  eePose grasp_pose;
+  double tries;
+  double successes;
+  double failures;
+  double jams;
+
+  void writeToFileStorage(FileStorage& fsvO) const;
+
+  void readFromFileNodeIterator(FileNodeIterator& it);
+  void readFromFileNode(FileNode& it);
+
+  friend ostream & operator<<(ostream &, const Grasp&);
+};
+
 struct CollisionDetection {
   ros::Time time;
   bool inCollision;
@@ -441,9 +456,9 @@ class EinConfig {
   vector<double> classGraspZs;
   vector<double> classGraspZsSet;
 
-  int current3dGraspIndex = 0;
+  int current3dGraspIndex = -1;
   eePose c3dPoseBase;
-  vector< vector<eePose> > class3dGrasps;
+  vector< vector<Grasp> > class3dGrasps;
   vector< vector<eePose> > classPlaceOverPoints;
   vector< vector<eePose> > classPlaceUnderPoints;
 
@@ -1502,6 +1517,7 @@ class EinConfig {
   discrepancyModeState discrepancyMode = DISCREPANCY_POINT;
 
   vector<shared_ptr<Scene> > class_scene_models;
+  double scene_score_thresh = 0.01;
 }; // config end
 
 
