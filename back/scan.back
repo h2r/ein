@@ -937,8 +937,8 @@ workspace4 "outputPileWorkspace" store
 ) "catScan4" store
 
 5 "catScan5NumVarianceTrials" store
-pushTime "catScan5VarianceTrialBatchTime" store
-pushTime "catScan5VarianceTrialThisTime" store
+now "catScan5VarianceTrialBatchTime" store
+now "catScan5VarianceTrialThisTime" store
 (
   sceneClearPredictedObjects tempUpdateMaps 
   1 sceneSetDiscrepancySearchDepth tempShortServoToFocusedSceneObject 
@@ -948,7 +948,7 @@ pushTime "catScan5VarianceTrialThisTime" store
   tempFivePointThreeWidthIsNewComponentNormalizedSumOfLogs 
   pop
 
-  pushTime "catScan5VarianceTrialThisTime" store
+  now "catScan5VarianceTrialThisTime" store
 
   "../objects/" focusedClassLabel "/ein/sceneModel/" catScan5VarianceTrialBatchTime "_" catScan5VarianceTrialThisTime + + + + +
   "catScan5VarianceTrialThisFileName" store

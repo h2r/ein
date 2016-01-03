@@ -2883,26 +2883,32 @@ REGISTER_WORD(SceneUpdateObservedFromWrist)
 // XXX TODO NOT DONE
 WORD(SceneUpdateObservedFromStreamBuffer)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  int thisIdx = ms->config.sibCurIdx;
+  cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
 
-  // XXX loop over stream buffer
-  {
-    Mat ringImage;
-    eePose thisPose;
-    ros::Time time;
-    // XXX STREAM not RING
-    int result = getMostRecentRingImageAndPose(ms, &ringImage, &thisPose, &time);
+  Mat bufferImage;
+  eePose thisPose, tBaseP;
 
-    if (result != 1) {
-      ROS_ERROR("Not doing update because of ring buffer errors.");
+  int success = 1;
+  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+    if (tsi.image.data == NULL) {
+      cout << "  encountered NULL data in sib, returning." << endl;
       return;
+    } else {
+      bufferImage = tsi.image.clone();
     }
+    success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+  }
 
-    Mat wristViewYCbCr = ringImage.clone(); //ms->config.wristCamImage.clone();  
-    //Mat wristViewYCbCr = ms->config.wristCamImage.clone();  
-    //thisPose = ms->config.trueEEPoseEEPose;
-    cvtColor(ms->config.wristCamImage, wristViewYCbCr, CV_BGR2YCrCb);
+  if (success != 1) {
+    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    return;
+  } else {
+    Mat wristViewYCbCr = bufferImage.clone();
+    cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
 
-    Size sz = ms->config.wristCamImage.size();
+    Size sz = bufferImage.size();
     int imW = sz.width;
     int imH = sz.height;
 

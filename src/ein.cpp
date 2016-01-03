@@ -1265,6 +1265,30 @@ void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path
   imwrite(png_path, rmImageOut, args);
 }
 
+streamImage * setIsbIdxNoLoadNoKick(std::shared_ptr<MachineState> ms, int idx) {
+  if ( (idx > -1) && (idx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[idx];
+    int lastIdx = ms->config.sibCurIdx;
+    if ( (lastIdx > -1) && (lastIdx < ms->config.streamImageBuffer.size()) && (lastIdx != idx) ) {
+      //cout << "setIsbIdx: last was valid and different." << endl;
+    } else {
+      //cout << "setIsbIdx: last was invalid or the same." << endl;
+    }
+
+    if (tsi.loaded) {
+    } else {
+      tsi.loaded = 0;
+    } 
+
+    ms->config.sibCurIdx = idx;
+  } else {
+    cout << "Tried to set ISB index out of bounds: " << idx << endl;
+    return NULL;
+  }
+
+  return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
+}
+
 streamImage * setIsbIdxNoLoad(std::shared_ptr<MachineState> ms, int idx) {
   if ( (idx > -1) && (idx < ms->config.streamImageBuffer.size()) ) {
     streamImage &tsi = ms->config.streamImageBuffer[idx];
@@ -1278,7 +1302,6 @@ streamImage * setIsbIdxNoLoad(std::shared_ptr<MachineState> ms, int idx) {
       //cout << "setIsbIdx: last was invalid or the same." << endl;
     }
 
-    ms->config.sibCurIdx = idx;
     if (tsi.loaded) {
     } else {
       tsi.loaded = 0;
@@ -2315,7 +2338,14 @@ void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStr
     fsvO << "time" <<  now;
     fsvO.release();
   } else {
-    cout << "streamImageAsClass: disk streaming not enabled, not writing frame (not in RAM either)." << endl;
+    streamImage toAdd;
+    toAdd.image = im;
+    toAdd.time = now;
+    toAdd.loaded = 1;
+    toAdd.filename = "CAMERA";
+    ms->config.streamImageBuffer.push_back(toAdd);
+
+    cout << "streamImageAsClass: WARNING disk streaming not enabled, there are " << ms->config.streamImageBuffer.size() << " images in the buffer and growing..." << endl;
   }
 }
 
