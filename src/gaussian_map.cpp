@@ -47,29 +47,32 @@ double safeSigmaSquared(double sigmasquared) {
 
 
 
-double computeEnergy(GaussianMapChannel & channel1, double p) {
-  double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
-  double term1 = - pow((p - channel1.mu), 2)  / (2 * safesigmasquared1);
-  // XXX maybe term2 should be cached in the map
-  double term2 = -log(sqrt(2 * M_PI * safesigmasquared1));
-  double result = term1 + term2; 
-  return result;
-}
-double computeEnergy(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
-  return computeEnergy(channel1, channel2.mu);
-}
-
-
+// double computeEnergy(GaussianMapChannel & channel1, double p) {
+//   double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
+//   double term1 = - pow((p - channel1.mu), 2)  / (2 * safesigmasquared1);
+//   // XXX maybe term2 should be cached in the map
+//   double term2 = -log(sqrt(2 * M_PI * safesigmasquared1));
+//   double result = term1 + term2; 
+//   return result;
+// }
+// double computeEnergy(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
+//   return computeEnergy(channel1, channel2.mu);
+// }
 
 
 double computeLogLikelihood(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
-  double total = 0.0;
+  /*double total = 0.0;
   for (int i = 0; i < 256; i++) {
     total += exp(computeEnergy(channel1, i));
   }
   double likelihood = computeEnergy(channel1, channel2);
 
-  return likelihood - log(total);
+  return likelihood - log(total);*/
+  double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
+  double energy = 1.0 / (2.0 * safesigmasquared1) * pow(channel2.mu - channel1.mu, 2);
+  double normalized = -0.5 * log(2 * M_PI) - 0.5 * log(safesigmasquared1) - energy;
+  return normalized;
+  
 }
 
 void computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * likelihood, double * channel_term_out) {
@@ -869,9 +872,9 @@ double Scene::computeScore() {
       if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
 	GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
-	score += computeEnergy(predicted_cell->red, observed_cell->red);
-	score += computeEnergy(predicted_cell->green, observed_cell->green);
-	score += computeEnergy(predicted_cell->blue, observed_cell->blue);
+	score += computeLogLikelihood(predicted_cell->red, observed_cell->red);
+	score += computeLogLikelihood(predicted_cell->green, observed_cell->green);
+	score += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
       }
     }
   }
@@ -1125,9 +1128,9 @@ double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
 	    if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	      GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
 	      GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
-	      score += computeEnergy(predicted_cell->red, observed_cell->red);
-	      score += computeEnergy(predicted_cell->green, observed_cell->green);
-	      score += computeEnergy(predicted_cell->blue, observed_cell->blue);
+	      score += computeLogLikelihood(predicted_cell->red, observed_cell->red);
+	      score += computeLogLikelihood(predicted_cell->green, observed_cell->green);
+	      score += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
 	    }
 */
 	    if ( 
@@ -1143,23 +1146,23 @@ double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
 //cout << "score " << score << " ";
 	      //temp = object_cell->red.sigmasquared;
 	      //object_cell->red.sigmasquared = predicted_cell->red.sigmasquared;
-	      score += computeEnergy(object_cell->red, observed_cell->red);
+	      score += computeLogLikelihood(object_cell->red, observed_cell->red);
 	      //object_cell->red.sigmasquared = temp;
 
 	      //temp = object_cell->green.sigmasquared;
 	      //object_cell->green.sigmasquared = predicted_cell->green.sigmasquared;
-	      score += computeEnergy(object_cell->green, observed_cell->green);
+	      score += computeLogLikelihood(object_cell->green, observed_cell->green);
 	      //object_cell->green.sigmasquared = temp;
 
 	      //temp = object_cell->blue.sigmasquared;
 	      //object_cell->blue.sigmasquared = predicted_cell->blue.sigmasquared;
-	      score += computeEnergy(object_cell->blue, observed_cell->blue);
+	      score += computeLogLikelihood(object_cell->blue, observed_cell->blue);
 	      //object_cell->blue.sigmasquared = temp;
 
 //cout << "score " << score << " ";
-	      score -= computeEnergy(predicted_cell->red, observed_cell->red);
-	      score -= computeEnergy(predicted_cell->green, observed_cell->green);
-	      score -= computeEnergy(predicted_cell->blue, observed_cell->blue);
+	      score -= computeLogLikelihood(predicted_cell->red, observed_cell->red);
+	      score -= computeLogLikelihood(predicted_cell->green, observed_cell->green);
+	      score -= computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
 	    }
 	  } else {
 	  }
@@ -1594,45 +1597,81 @@ void Scene::tryToAddObjectToScene(int class_idx) {
 
 #include <boost/multiprecision/cpp_dec_float.hpp>
 
-typedef boost::multiprecision::number<boost::multiprecision::cpp_dec_float<1000> > doubleWithLotsOfDigits;
+typedef boost::multiprecision::number<boost::multiprecision::cpp_dec_float<2000> > doubleWithLotsOfDigits;
 
 double Scene::computeProbabilityOfMap() {
   int numCells = 0;
   doubleWithLotsOfDigits logLikelihood = 0.0;
+  doubleWithLotsOfDigits normalizerLogLikelihood = 0.0;
+
   for (int x = 0; x < width; x++) {
     for (int y = 0; y < height; y++) {
       if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
 	GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
+	GaussianMapCell * background_cell = background_map->refAtCell(x, y);
 	logLikelihood += computeLogLikelihood(predicted_cell->red, observed_cell->red);
 	logLikelihood += computeLogLikelihood(predicted_cell->green, observed_cell->green);
 	logLikelihood += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+
+
+	normalizerLogLikelihood += computeLogLikelihood(background_cell->red, observed_cell->red);
+	normalizerLogLikelihood += computeLogLikelihood(background_cell->green, observed_cell->green);
+	normalizerLogLikelihood += computeLogLikelihood(background_cell->blue, observed_cell->blue);
+
 	numCells += 1;
       }
     }
   }
-  cout << "total likelihood: " << logLikelihood << endl;
+  cout << std::setprecision(50);
+  cout << "*************************************" << endl;
+  cout << "numCells: " << numCells << endl;
+  cout << "logLikelihood: " << logLikelihood << endl;
   doubleWithLotsOfDigits prior = 0.5;
-  doubleWithLotsOfDigits logNumerator = logLikelihood + log(prior);
+  doubleWithLotsOfDigits logPrior = boost::multiprecision::log(prior);
+  doubleWithLotsOfDigits logNotPrior = boost::multiprecision::log(1-prior);
+  
+  doubleWithLotsOfDigits logNumerator = logLikelihood + logPrior;
 
   
-  doubleWithLotsOfDigits logNormalizer = numCells * 3 * log(1.0/256);
+  doubleWithLotsOfDigits normalizer = 1.0/256.0;
+  //doubleWithLotsOfDigits logNormalizer = numCells * 3 * boost::multiprecision::log(normalizer);
+  doubleWithLotsOfDigits logNormalizer = normalizerLogLikelihood;
   
-  doubleWithLotsOfDigits t1 = logLikelihood - logNormalizer;
-  doubleWithLotsOfDigits t1Prob = exp(t1);
+  doubleWithLotsOfDigits t1 = logNumerator - logNormalizer;
+  doubleWithLotsOfDigits t1Prob = boost::multiprecision::exp(t1);
   //checkProb("t1Prob", t1Prob);
-  doubleWithLotsOfDigits t2Prob = 1-prior;
+  doubleWithLotsOfDigits t2Prob = 1.0-prior;
   //checkProb("t2Prob", t2Prob);
 
-  doubleWithLotsOfDigits logDenominator = logNormalizer + log(t1Prob + t2Prob);
+  doubleWithLotsOfDigits logDenominatorLog = logNormalizer + boost::multiprecision::log(t1Prob + t2Prob);
 
-  doubleWithLotsOfDigits result = logNumerator - logDenominator;
+  doubleWithLotsOfDigits probNumerator = boost::multiprecision::exp(logNumerator);
+  doubleWithLotsOfDigits probNormalizer = boost::multiprecision::exp(logNormalizer + logNotPrior);
+  doubleWithLotsOfDigits probSum = probNumerator + probNormalizer;
+  doubleWithLotsOfDigits logDenominator = boost::multiprecision::log(probSum);
+
+  doubleWithLotsOfDigits logResult = logNumerator - logDenominator;
   
-  doubleWithLotsOfDigits resultProb = exp(result);
+  doubleWithLotsOfDigits resultProb = boost::multiprecision::exp(logResult);
   //checkProb("result", resultProb);
-  cout << "result: " << resultProb << endl;
-  assert(0);
-  return 0;
+
+  cout << "prior: " << prior << endl;
+  cout << "    logLikelihood: " << logLikelihood << endl;
+  cout << "     logNumerator: " << logNumerator << endl;
+  cout << "    logNormalizer: " << logNormalizer << endl;
+  cout << "    probNumerator: " << probNumerator << endl;
+  cout << "   probNormalizer: " << probNormalizer << endl;
+  cout << "          probSum: " << probSum << endl;
+  cout << "               t1: " << t1 << endl;
+  cout << "           t1Prob: " << t1Prob << endl;
+  cout << "   logDenominator: " << logDenominator << endl;
+  cout << "logDenominatorLog: " << logDenominatorLog << endl;
+  cout << "        logResult: " << logResult << endl;
+  cout << "       resultProb: " << resultProb << endl;
+  double resultDouble = (double) resultProb;
+  cout << " resultProbDouble: " << resultDouble << endl;
+  return resultDouble;
 }
 
 
