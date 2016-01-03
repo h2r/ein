@@ -13277,7 +13277,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
 	  FileNodeIterator itc = cnode.begin(), itc_end = cnode.end();
 	  int numLoadedPoses = 0;
 	  for ( ; itc != itc_end; itc++, numLoadedPoses++) {
-	    eePose buf;
+	    Grasp buf;
 	    buf.readFromFileNodeIterator(itc);
 	    cout << " read 3d pose: " << buf; cout.flush();
 	    ms->config.class3dGrasps[i].push_back(buf);

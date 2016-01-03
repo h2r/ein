@@ -80,6 +80,9 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempFivePointThreeWidthPredictAndRenderBest" store
 
 (
+  tempFivePointThreeWidthIsNewComponentNormalizedSumOfLogs
+) "tempFivePointThreeWidthIsNewComponent" store
+(
   numClasses 0 > (
     0.5 "tempNewComponentThresh" store
     sceneClearPredictedObjects
@@ -136,7 +139,187 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
     1
   ) ifte
 
-) "tempFivePointThreeWidthIsNewComponent" store
+) "tempFivePointThreeWidthIsNewComponentBeforeAfter" store
+
+(
+  numClasses 0 > (
+    0.5 "tempNewComponentThresh" store
+    sceneClearPredictedObjects
+    sceneClearObservedMap
+
+    tempFivePointThreeWidthTakeScene
+    /*
+    tempShortTakeScene
+    */
+    tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+    /* pauseStackExecution */
+
+    /*
+	  scenePushTotalDiscrepancy 
+    */
+	  scenePushTotalDiscrepancyMagnitude 
+	dup 
+	"tempFivePointThreeWidthIsNewComponent: total discrepancy before " 
+      swap + print 
+
+    scenePredictBestObject tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+
+    /*
+	  scenePushTotalDiscrepancy 
+    */
+	  scenePushTotalDiscrepancyMagnitude 
+	dup 
+	"tempFivePointThreeWidthIsNewComponent: total discrepancy after " 
+      swap + print 
+
+    "tempFivePointThreeWidthIsNewComponentNormalizedSum_after" store
+    "tempFivePointThreeWidthIsNewComponentNormalizedSum_before" store
+
+      tempFivePointThreeWidthIsNewComponentNormalizedSum_before
+      "tempFivePointThreeWidthIsNewComponent: total discrepancy before is " 
+    swap + print
+
+
+	tempFivePointThreeWidthIsNewComponentNormalizedSum_after
+	tempFivePointThreeWidthIsNewComponentNormalizedSum_before
+      +
+    "tempFivePointThreeWidthIsNewComponentNormalizedSum_sum" store
+
+      tempFivePointThreeWidthIsNewComponentNormalizedSum_sum
+      "tempFivePointThreeWidthIsNewComponent: before after sum is" 
+    swap + print
+    
+
+
+	tempFivePointThreeWidthIsNewComponentNormalizedSum_after
+	tempFivePointThreeWidthIsNewComponentNormalizedSum_sum
+      divide
+    "tempFivePointThreeWidthIsNewComponentNormalizedSum_ratio" store
+
+      tempFivePointThreeWidthIsNewComponentNormalizedSum_ratio
+      "tempFivePointThreeWidthIsNewComponent: after / sum ratio is " 
+    swap + print
+
+      tempFivePointThreeWidthIsNewComponentNormalizedSum_ratio
+      tempNewComponentThresh 
+    > (
+	    1
+	  dup
+	"tempFivePointThreeWidthIsNewComponent: IS a new component, returning " 
+      swap + print
+    ) (
+	    0
+	  dup
+	"tempFivePointThreeWidthIsNewComponent: AIN'T a new component, returning " 
+      swap + print
+    ) ifte
+
+	dup
+      "tempFivePointThreeWidthIsNewComponent: returning " 
+    swap + print
+  ) (
+    "tempFivePointThreeWidthIsNewComponent: numClasses is 0 so returning 1"
+    1
+  ) ifte
+
+) "tempFivePointThreeWidthIsNewComponentNormalizedSum" store
+
+(
+  /* this probably has a name, like pseudo-likelihood or something */
+  numClasses 0 > (
+    0.5 "tempNewComponentThresh" store
+    sceneClearPredictedObjects
+    sceneClearObservedMap
+
+    /*
+    tempFivePointThreeWidthTakeScene
+    */
+    tempShortTakeScene
+
+    tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+    /* pauseStackExecution */
+
+    /*
+	  scenePushTotalDiscrepancy 
+	  scenePushTotalDiscrepancyMagnitude 
+    */
+	  scenePushTotalLogDiscrepancy
+	  exp
+	  sceneTakeBeforeDensity
+	dup 
+	"tempFivePointThreeWidthIsNewComponent: total log discrepancy before " 
+      swap + print 
+
+    scenePredictBestObject tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+
+    /*
+	  scenePushTotalDiscrepancy 
+	  scenePushTotalDiscrepancyMagnitude 
+    */
+	  scenePushTotalLogDiscrepancy
+	  exp
+	  sceneTakeAfterDensity
+	dup 
+	"tempFivePointThreeWidthIsNewComponent: total log discrepancy after " 
+      swap + print 
+
+    "tempFivePointThreeWidthIsNewComponentNormalizedSum_after" store
+    "tempFivePointThreeWidthIsNewComponentNormalizedSum_before" store
+
+      tempFivePointThreeWidthIsNewComponentNormalizedSum_before
+      "tempFivePointThreeWidthIsNewComponent: total discrepancy before is " 
+    swap + print
+
+
+	tempFivePointThreeWidthIsNewComponentNormalizedSum_after
+	tempFivePointThreeWidthIsNewComponentNormalizedSum_before
+      +
+    "tempFivePointThreeWidthIsNewComponentNormalizedSum_sum" store
+
+      tempFivePointThreeWidthIsNewComponentNormalizedSum_sum
+      "tempFivePointThreeWidthIsNewComponent: before after sum is" 
+    swap + print
+    
+
+
+	tempFivePointThreeWidthIsNewComponentNormalizedSum_after
+	tempFivePointThreeWidthIsNewComponentNormalizedSum_sum
+      divide
+    "tempFivePointThreeWidthIsNewComponentNormalizedSum_ratio" store
+
+      tempFivePointThreeWidthIsNewComponentNormalizedSum_ratio
+      "tempFivePointThreeWidthIsNewComponent: after / sum ratio is " 
+    swap + print
+
+      tempFivePointThreeWidthIsNewComponentNormalizedSum_ratio
+      tempNewComponentThresh 
+    > (
+	    1
+	  dup
+	"tempFivePointThreeWidthIsNewComponent: IS a new component, returning " 
+      swap + print
+    ) (
+	    0
+	  dup
+	"tempFivePointThreeWidthIsNewComponent: AIN'T a new component, returning " 
+      swap + print
+    ) ifte
+
+	dup
+      "tempFivePointThreeWidthIsNewComponent: returning " 
+    swap + print
+  ) (
+    "tempFivePointThreeWidthIsNewComponent: numClasses is 0 so returning 1"
+    1
+  ) ifte
+
+
+   
+      sceneHighPrecisionBeforeAfterDiffOfLogs
+    "tempFivePointThreeWidthIsNewComponent: high precision diff " 
+  swap + print
+
+) "tempFivePointThreeWidthIsNewComponentNormalizedSumOfLogs" store
 
 (
   /* takes a string */

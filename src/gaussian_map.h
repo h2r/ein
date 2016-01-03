@@ -167,6 +167,8 @@ class Scene {
   Mat discrepancy_magnitude;
   // transform image to find hot spots
   Mat discrepancy_density;
+  Mat discrepancy_before;
+  Mat discrepancy_after;
 
   vector<shared_ptr<SceneObject> > predicted_objects;
 

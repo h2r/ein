@@ -98,3 +98,52 @@ string ikModeToString(ikMode mode) {
     assert(0);
   }
 }
+
+
+void Grasp::writeToFileStorage(FileStorage& fsvO) const {
+  fsvO << "{:";
+  fsvO << "px" << grasp_pose.px;
+  fsvO << "py" << grasp_pose.py;
+  fsvO << "pz" << grasp_pose.pz;
+  fsvO << "qw" << grasp_pose.qw;
+  fsvO << "qx" << grasp_pose.qx;
+  fsvO << "qy" << grasp_pose.qy;
+  fsvO << "qz" << grasp_pose.qz;
+  fsvO << "tries" << tries;
+  fsvO << "successes" << successes;
+  fsvO << "failures" << failures;
+  fsvO << "jams" << jams;
+  fsvO << "}";
+}
+
+void Grasp::readFromFileNodeIterator(FileNodeIterator& it) {
+  FileNode node = *it;
+  readFromFileNode(node);
+}
+
+void Grasp::readFromFileNode(FileNode& it) {
+  grasp_pose.px = (double)(it)["px"];
+  grasp_pose.py = (double)(it)["py"];
+  grasp_pose.pz = (double)(it)["pz"];
+  grasp_pose.qw = (double)(it)["qw"];
+  grasp_pose.qx = (double)(it)["qx"];
+  grasp_pose.qy = (double)(it)["qy"];
+  grasp_pose.qz = (double)(it)["qz"];
+  tries = (double)(it)["tries"];
+  successes = (double)(it)["successes"];
+  failures = (double)(it)["failures"];
+  jams = (double)(it)["jams"];
+}
+
+ostream & operator<<(ostream & os, const Grasp& toPrint)
+{
+  FileStorage st;
+  st.open("tmp.yml", FileStorage::WRITE | FileStorage::MEMORY);
+  st << "GraspO"; 
+  toPrint.writeToFileStorage(st);
+  string result = st.releaseAndGetString();
+  os << result.substr(10, result.size());
+  return os;
+} 
+
+
