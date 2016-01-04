@@ -1,3 +1,5 @@
+"scene" import
+
 (
   { noop 1 2 3 4 5 6 print print print print print print } "test1" store { noop a b c d e f print print print print print print } "test2" store
   test1 "test1" store test2 "test2" store
@@ -25,9 +27,17 @@
 ) "cw_workspaceIsClear" store
 
 ( 
+  setMovementStateToMoving comeToStop 
+  sceneClearObservedMap sceneClearPredictedObjects
+  tempShortTakeScene
+  tempPredictAndRenderBest 
+  scenePushNumSceneObjects 0 = 1 0 ifte
+) "cw_viewIsClear" store
+
+( 
   setMovementStateToMoving comeToStop visionCycleNoClassify
   numBlueBoxes 0 = 1 0 ifte
-) "cw_viewIsClear" store
+) "cw_viewIsClear_old" store
 
 (
   1 changeToHeight 
@@ -35,6 +45,7 @@
   clearMapForPatrol
   synchronicServoTakeClosest
   setBoundingBoxModeToStaticPrior
+
   synchronicServo 
 ) "cw_servo_for_flick" store
 
