@@ -134,6 +134,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 (
   tempFivePointThreeWidthIsNewComponentNormalizedSumOfLogs
 ) "tempFivePointThreeWidthIsNewComponent" store
+
 (
   numClasses 0 > (
     0.5 "tempNewComponentThresh" store
@@ -299,7 +300,6 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 	  scenePushTotalDiscrepancyMagnitude 
     */
 	  scenePushTotalLogDiscrepancy
-	  exp
 	  sceneTakeBeforeDensity
 	dup 
 	"tempFivePointThreeWidthIsNewComponent: total log discrepancy before " 
@@ -312,7 +312,6 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 	  scenePushTotalDiscrepancyMagnitude 
     */
 	  scenePushTotalLogDiscrepancy
-	  exp
 	  sceneTakeAfterDensity
 	dup 
 	"tempFivePointThreeWidthIsNewComponent: total log discrepancy after " 
@@ -452,7 +451,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 (
   sceneClearPredictedObjects
-  sceneClearObservedMap 0.01 setGridSize 10 tempUpdateSpiralStop tempUpdateMaps
+  sceneClearObservedMap 0.01 setGridSize 10 tempUpdateSpiral tempUpdateMaps
   tempCaptureCore
 
   tempShortServoToFocusedSceneObject
