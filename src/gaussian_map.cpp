@@ -3290,9 +3290,19 @@ END_WORD
 REGISTER_WORD(SceneSetDiscrepancyModePoint)
 
 
+WORD(SceneCalculateVariances)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(SceneCalculateVariances)
 
 
 /* 
+
+
+
+
+
 WORD(GaussianMapCalibrateVanishingPoint)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 // XXX
@@ -3316,17 +3326,11 @@ REGISTER_WORD(GaussianMapCompilePointCloud)
 
 
 
-WORD(GaussianMap)
+WORD(Scene)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
-REGISTER_WORD(GaussianMap)
-
-WORD(GaussianMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-}
-END_WORD
-REGISTER_WORD(GaussianMap)
+REGISTER_WORD(Scene)
 
 WORD(GaussianMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -3352,7 +3356,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(TransitionTableCount)
-
 
 WORD(PlanWithTransitionTable)
 virtual void execute(std::shared_ptr<MachineState> ms) {
