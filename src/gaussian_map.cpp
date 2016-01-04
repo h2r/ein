@@ -20,12 +20,15 @@ void _GaussianMapChannel::zero() {
   sigmasquared = 0.0;
   samples = 0.0;
 }
+
+
 void _GaussianMapCell::zero() {
   red.zero();
   green.zero();
   blue.zero();
   z.zero();
 }
+
 void GaussianMapCell::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
   red.recalculateMusAndSigmas(ms);
   green.recalculateMusAndSigmas(ms);
@@ -46,14 +49,35 @@ double safeSigmaSquared(double sigmasquared) {
 }
 
 
-double computeEnergy(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
+
+// double computeEnergy(GaussianMapChannel & channel1, double p) {
+//   double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
+//   double term1 = - pow((p - channel1.mu), 2)  / (2 * safesigmasquared1);
+//   // XXX maybe term2 should be cached in the map
+//   double term2 = -log(sqrt(2 * M_PI * safesigmasquared1));
+//   double result = term1 + term2; 
+//   return result;
+// }
+// double computeEnergy(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
+//   return computeEnergy(channel1, channel2.mu);
+// }
+
+
+double computeLogLikelihood(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
+  /*double total = 0.0;
+  for (int i = 0; i < 256; i++) {
+    total += exp(computeEnergy(channel1, i));
+  }
+  double likelihood = computeEnergy(channel1, channel2);
+
+  return likelihood - log(total);*/
   double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
-  double term1 = - pow((channel2.mu - channel1.mu), 2)  / (2 * safesigmasquared1);
-  // XXX maybe term2 should be cached in the map
-  double term2 = -log(sqrt(2 * M_PI * safesigmasquared1));
-  double result = term1 + term2; 
-  return result;
+  double energy = 1.0 / (2.0 * safesigmasquared1) * pow(channel2.mu - channel1.mu, 2);
+  double normalized = -0.5 * log(2 * M_PI) - 0.5 * log(safesigmasquared1) - energy;
+  return normalized;
+  
 }
+
 void computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * likelihood, double * channel_term_out) {
   double ip_normalizer = 0.0;
   double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
@@ -621,6 +645,26 @@ shared_ptr<GaussianMap> GaussianMap::copy() {
   return copyBox(0,0,width-1,height-1);
 }
 
+shared_ptr<Scene> Scene::copy() {
+  shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, width, height, cell_width);
+  toReturn->background_map = background_map->copy();
+  toReturn->predicted_map = predicted_map->copy();
+  toReturn->observed_map = observed_map->copy();
+  toReturn->discrepancy = discrepancy->copy();
+
+  toReturn->predicted_segmentation = predicted_segmentation.clone();
+  toReturn->discrepancy_magnitude = discrepancy_magnitude.clone();
+  toReturn->discrepancy_density = discrepancy_density.clone();
+  toReturn->background_pose = background_pose;
+  toReturn->discrepancy_before = discrepancy_before.clone();
+  toReturn->discrepancy_after = discrepancy_after.clone();
+  
+  toReturn->predicted_objects.reserve(predicted_objects.size());
+  std::copy(predicted_objects.begin(), predicted_objects.end(), back_inserter(toReturn->predicted_objects));
+
+  return toReturn;
+}
+
 void GaussianMap::zeroBox(int _x1, int _y1, int _x2, int _y2) {
   int x1 = min(_x1, _x2);
   int x2 = max(_x1, _x2);
@@ -726,7 +770,6 @@ Scene::Scene(shared_ptr<MachineState> _ms, int w, int h, double cw) {
   y_center_cell = (height-1)/2;
   cell_width = cw;
   background_pose = eePose::identity();
-  score = 0;
   predicted_objects.resize(0);
   reallocate();
 }
@@ -779,6 +822,17 @@ bool Scene::isDiscrepantMetersBilin(double threshold, double x, double y) {
   return isDiscrepantCellBilin(threshold, cell_x, cell_y);
 } 
 
+
+
+void Scene::initializePredictedMapWithBackground() {
+ for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      *(predicted_map->refAtCell(x,y)) = *(background_map->refAtCell(x,y));
+    }
+  }
+}
+
+
 void Scene::composePredictedMap(double threshold) {
   // XXX
   // choose the argMAP distribution
@@ -787,12 +841,9 @@ void Scene::composePredictedMap(double threshold) {
   //
   // Currently uses a "fallen leaves" model of composition, assuming objects
   //   are painted onto the scene in reverse order of discovery 
-  for (int x = 0; x < width; x++) {
-    for (int y = 0; y < height; y++) {
-      *(predicted_map->refAtCell(x,y)) = *(background_map->refAtCell(x,y));
-    }
-  }
 
+  initializePredictedMapWithBackground();
+ 
   for (int i = predicted_objects.size()-1; i >= 0; i--) {
     shared_ptr<SceneObject> tsob = predicted_objects[i];
     shared_ptr<Scene> tos = ms->config.class_scene_models[ tsob->labeled_class_index ];
@@ -852,9 +903,9 @@ double Scene::computeScore() {
       if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
 	GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
-	score += computeEnergy(predicted_cell->red, observed_cell->red);
-	score += computeEnergy(predicted_cell->green, observed_cell->green);
-	score += computeEnergy(predicted_cell->blue, observed_cell->blue);
+	score += computeLogLikelihood(predicted_cell->red, observed_cell->red);
+	score += computeLogLikelihood(predicted_cell->green, observed_cell->green);
+	score += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
       }
     }
   }
@@ -965,8 +1016,7 @@ void Scene::measureDiscrepancy() {
 }
 
 double Scene::assignScore() {
-  score = measureScoreRegion(0,0,width-1,height-1);
-  return score;
+  return measureScoreRegion(0,0,width-1,height-1);
 }
 
 double Scene::measureScoreRegion(int _x1, int _y1, int _x2, int _y2) {
@@ -1109,9 +1159,9 @@ double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
 	    if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	      GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
 	      GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
-	      score += computeEnergy(predicted_cell->red, observed_cell->red);
-	      score += computeEnergy(predicted_cell->green, observed_cell->green);
-	      score += computeEnergy(predicted_cell->blue, observed_cell->blue);
+	      score += computeLogLikelihood(predicted_cell->red, observed_cell->red);
+	      score += computeLogLikelihood(predicted_cell->green, observed_cell->green);
+	      score += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
 	    }
 */
 	    if ( 
@@ -1127,23 +1177,23 @@ double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
 //cout << "score " << score << " ";
 	      //temp = object_cell->red.sigmasquared;
 	      //object_cell->red.sigmasquared = predicted_cell->red.sigmasquared;
-	      score += computeEnergy(object_cell->red, observed_cell->red);
+	      score += computeLogLikelihood(object_cell->red, observed_cell->red);
 	      //object_cell->red.sigmasquared = temp;
 
 	      //temp = object_cell->green.sigmasquared;
 	      //object_cell->green.sigmasquared = predicted_cell->green.sigmasquared;
-	      score += computeEnergy(object_cell->green, observed_cell->green);
+	      score += computeLogLikelihood(object_cell->green, observed_cell->green);
 	      //object_cell->green.sigmasquared = temp;
 
 	      //temp = object_cell->blue.sigmasquared;
 	      //object_cell->blue.sigmasquared = predicted_cell->blue.sigmasquared;
-	      score += computeEnergy(object_cell->blue, observed_cell->blue);
+	      score += computeLogLikelihood(object_cell->blue, observed_cell->blue);
 	      //object_cell->blue.sigmasquared = temp;
 
 //cout << "score " << score << " ";
-	      score -= computeEnergy(predicted_cell->red, observed_cell->red);
-	      score -= computeEnergy(predicted_cell->green, observed_cell->green);
-	      score -= computeEnergy(predicted_cell->blue, observed_cell->blue);
+	      score -= computeLogLikelihood(predicted_cell->red, observed_cell->red);
+	      score -= computeLogLikelihood(predicted_cell->green, observed_cell->green);
+	      score -= computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
 	    }
 	  } else {
 	  }
@@ -1552,29 +1602,216 @@ void Scene::tryToAddObjectToScene(int class_idx) {
     if (l_max_score > 0) {
       cout << "best detection made an improvement..." << endl;
       cout << "adding object." << endl;
-      ms->pushWord("sceneAddPredictedFocusedObject");
-  /*
-      ms->pushWord(make_shared<DoubleWord>(max_theta));
-      ms->pushWord(make_shared<DoubleWord>(max_y_meters));
-      ms->pushWord(make_shared<DoubleWord>(max_x_meters));
-  */
-      ms->pushWord(make_shared<DoubleWord>(l_max_theta));
-      ms->pushWord(make_shared<DoubleWord>(l_max_y_meters));
-      ms->pushWord(make_shared<DoubleWord>(l_max_x_meters));
+      this->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, class_idx);
     } else {
       cout << "best detection made things worse alone..." << endl;
       cout << "should NOT adding object but for now we are..." << endl;
-      ms->pushWord("sceneAddPredictedFocusedObject");
-      ms->pushWord(make_shared<DoubleWord>(l_max_theta));
-      ms->pushWord(make_shared<DoubleWord>(l_max_y_meters));
-      ms->pushWord(make_shared<DoubleWord>(l_max_x_meters));
+      this->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, class_idx);
     }
   } else {
     cout << "Did not find a valid cell... not adding object." << endl;
   }
 }
 
+
+
+#include <boost/multiprecision/cpp_dec_float.hpp>
+
+typedef boost::multiprecision::number<boost::multiprecision::cpp_dec_float<2000> > doubleWithLotsOfDigits;
+
 double Scene::computeProbabilityOfMap() {
+  int numCells = 0;
+  doubleWithLotsOfDigits logLikelihood = 0.0;
+  doubleWithLotsOfDigits normalizerLogLikelihood = 0.0;
+
+  double p_crop_pad = 0.05;
+  double threshold = 0.1;
+
+  shared_ptr<Scene> new_component_scene = this->copy();
+  new_component_scene->predicted_objects.resize(0);
+  new_component_scene->composePredictedMap(0.01);
+  new_component_scene->measureDiscrepancy();
+  shared_ptr<Scene> new_class_crop = new_component_scene->copyPaddedDiscrepancySupport(threshold, p_crop_pad);
+
+  initializeAndFocusOnTempClass(ms);
+  ms->config.class_scene_models[ms->config.focusedClass] = new_class_crop;
+
+  new_component_scene->tryToAddObjectToScene(ms->config.focusedClass);
+  new_component_scene->composePredictedMap(0.01);
+
+  for (int y = 0; y < new_component_scene->background_map->height; y++) {
+    for (int x = 0; x < new_component_scene->background_map->width; x++) {
+      //ms->config.scene->background_map->refAtCell(x,y)->blue.sigmasquared = pow(stddev, 2);
+    }
+  }  
+  
+  for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
+	GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
+	GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
+	GaussianMapCell * background_cell = background_map->refAtCell(x, y);
+	GaussianMapCell * new_scene_cell = new_component_scene->predicted_map->refAtCell(x, y);
+
+	double rmu_diff, gmu_diff, bmu_diff;
+	doubleWithLotsOfDigits discrepancy = background_map->refAtCell(x, y)->pointDiscrepancy(observed_map->refAtCell(x, y), &rmu_diff, &gmu_diff, &bmu_diff);
+	
+
+	if (discrepancy > 0.01) {
+	  logLikelihood += computeLogLikelihood(predicted_cell->red, observed_cell->red);
+	  logLikelihood += computeLogLikelihood(predicted_cell->green, observed_cell->green);
+	  logLikelihood += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+	  
+	  //normalizerLogLikelihood += computeLogLikelihood(background_cell->red, observed_cell->red);
+	  //normalizerLogLikelihood += computeLogLikelihood(background_cell->green, observed_cell->green);
+	  //normalizerLogLikelihood += computeLogLikelihood(background_cell->blue, observed_cell->blue);
+
+	  //normalizerLogLikelihood += log(1.0/256.0) * 3;
+
+	  normalizerLogLikelihood += computeLogLikelihood(new_scene_cell->red, observed_cell->red);
+	  normalizerLogLikelihood += computeLogLikelihood(new_scene_cell->green, observed_cell->green);
+	  normalizerLogLikelihood += computeLogLikelihood(new_scene_cell->blue, observed_cell->blue);
+
+	} else {
+	  
+	}
+	numCells += 1;
+      }
+    }
+  }
+  cout << std::setprecision(50);
+  cout << "*************************************" << endl;
+  cout << "numCells: " << numCells << endl;
+  cout << "logLikelihood: " << logLikelihood << endl;
+  doubleWithLotsOfDigits prior = 0.5;
+  doubleWithLotsOfDigits logPrior = boost::multiprecision::log(prior);
+  doubleWithLotsOfDigits logNotPrior = boost::multiprecision::log(1-prior);
+  
+  doubleWithLotsOfDigits logNumerator = logLikelihood + logPrior;
+
+  
+  //doubleWithLotsOfDigits normalizer = 1.0/256.0;
+  //doubleWithLotsOfDigits logNormalizer = numCells * 3 * boost::multiprecision::log(normalizer);
+  doubleWithLotsOfDigits logNormalizer = normalizerLogLikelihood;
+  
+  doubleWithLotsOfDigits t1 = logNumerator - logNormalizer;
+  doubleWithLotsOfDigits t1Prob = boost::multiprecision::exp(t1);
+  //checkProb("t1Prob", t1Prob);
+  doubleWithLotsOfDigits t2Prob = 1.0-prior;
+  //checkProb("t2Prob", t2Prob);
+
+  doubleWithLotsOfDigits logDenominatorLog = logNormalizer + boost::multiprecision::log(t1Prob + t2Prob);
+
+  doubleWithLotsOfDigits probNumerator = boost::multiprecision::exp(logNumerator);
+  doubleWithLotsOfDigits probNormalizer = boost::multiprecision::exp(logNormalizer + logNotPrior);
+  doubleWithLotsOfDigits probSum = probNumerator + probNormalizer;
+  doubleWithLotsOfDigits logDenominator = boost::multiprecision::log(probSum);
+
+  doubleWithLotsOfDigits logResult = logNumerator - logDenominator;
+  
+  doubleWithLotsOfDigits resultProb = boost::multiprecision::exp(logResult);
+  //checkProb("result", resultProb);
+
+  cout << "prior: " << prior << endl;
+  cout << "    logLikelihood: " << logLikelihood << endl;
+  cout << "     logNumerator: " << logNumerator << endl;
+  cout << "    logNormalizer: " << logNormalizer << endl;
+  cout << "    probNumerator: " << probNumerator << endl;
+  cout << "   probNormalizer: " << probNormalizer << endl;
+  cout << "          probSum: " << probSum << endl;
+  cout << "               t1: " << t1 << endl;
+  cout << "           t1Prob: " << t1Prob << endl;
+  cout << "   logDenominator: " << logDenominator << endl;
+  cout << "logDenominatorLog: " << logDenominatorLog << endl;
+  cout << "        logResult: " << logResult << endl;
+  cout << "       resultProb: " << resultProb << endl;
+  double resultDouble = (double) resultProb;
+  cout << " resultProbDouble: " << resultDouble << endl;
+  ms->config.scene = new_component_scene;
+  //ms->config.scene = new_class_crop;
+  return resultDouble;
+
+  
+  
+}
+
+double Scene::computeProbabilityOfMap1() {
+  int numCells = 0;
+  doubleWithLotsOfDigits logLikelihood = 0.0;
+  doubleWithLotsOfDigits normalizerLogLikelihood = 0.0;
+
+  for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
+	GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
+	GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
+	GaussianMapCell * background_cell = background_map->refAtCell(x, y);
+	logLikelihood += computeLogLikelihood(predicted_cell->red, observed_cell->red);
+	logLikelihood += computeLogLikelihood(predicted_cell->green, observed_cell->green);
+	logLikelihood += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+
+
+	normalizerLogLikelihood += computeLogLikelihood(background_cell->red, observed_cell->red);
+	normalizerLogLikelihood += computeLogLikelihood(background_cell->green, observed_cell->green);
+	normalizerLogLikelihood += computeLogLikelihood(background_cell->blue, observed_cell->blue);
+
+	numCells += 1;
+      }
+    }
+  }
+  cout << std::setprecision(50);
+  cout << "*************************************" << endl;
+  cout << "numCells: " << numCells << endl;
+  cout << "logLikelihood: " << logLikelihood << endl;
+  doubleWithLotsOfDigits prior = 0.5;
+  doubleWithLotsOfDigits logPrior = boost::multiprecision::log(prior);
+  doubleWithLotsOfDigits logNotPrior = boost::multiprecision::log(1-prior);
+  
+  doubleWithLotsOfDigits logNumerator = logLikelihood + logPrior;
+
+  
+  doubleWithLotsOfDigits normalizer = 1.0/256.0;
+  //doubleWithLotsOfDigits logNormalizer = numCells * 3 * boost::multiprecision::log(normalizer);
+  doubleWithLotsOfDigits logNormalizer = normalizerLogLikelihood;
+  
+  doubleWithLotsOfDigits t1 = logNumerator - logNormalizer;
+  doubleWithLotsOfDigits t1Prob = boost::multiprecision::exp(t1);
+  //checkProb("t1Prob", t1Prob);
+  doubleWithLotsOfDigits t2Prob = 1.0-prior;
+  //checkProb("t2Prob", t2Prob);
+
+  doubleWithLotsOfDigits logDenominatorLog = logNormalizer + boost::multiprecision::log(t1Prob + t2Prob);
+
+  doubleWithLotsOfDigits probNumerator = boost::multiprecision::exp(logNumerator);
+  doubleWithLotsOfDigits probNormalizer = boost::multiprecision::exp(logNormalizer + logNotPrior);
+  doubleWithLotsOfDigits probSum = probNumerator + probNormalizer;
+  doubleWithLotsOfDigits logDenominator = boost::multiprecision::log(probSum);
+
+  doubleWithLotsOfDigits logResult = logNumerator - logDenominator;
+  
+  doubleWithLotsOfDigits resultProb = boost::multiprecision::exp(logResult);
+  //checkProb("result", resultProb);
+
+  cout << "prior: " << prior << endl;
+  cout << "    logLikelihood: " << logLikelihood << endl;
+  cout << "     logNumerator: " << logNumerator << endl;
+  cout << "    logNormalizer: " << logNormalizer << endl;
+  cout << "    probNumerator: " << probNumerator << endl;
+  cout << "   probNormalizer: " << probNormalizer << endl;
+  cout << "          probSum: " << probSum << endl;
+  cout << "               t1: " << t1 << endl;
+  cout << "           t1Prob: " << t1Prob << endl;
+  cout << "   logDenominator: " << logDenominator << endl;
+  cout << "logDenominatorLog: " << logDenominatorLog << endl;
+  cout << "        logResult: " << logResult << endl;
+  cout << "       resultProb: " << resultProb << endl;
+  double resultDouble = (double) resultProb;
+  cout << " resultProbDouble: " << resultDouble << endl;
+  return resultDouble;
+}
+
+
+double Scene::computeProbabilityOfMapDouble() {
   int numCells = 0;
   double logLikelihood = 0.0;
   for (int x = 0; x < width; x++) {
@@ -1582,33 +1819,34 @@ double Scene::computeProbabilityOfMap() {
       if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
 	GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
-	logLikelihood += computeEnergy(predicted_cell->red, observed_cell->red);
-	logLikelihood += computeEnergy(predicted_cell->green, observed_cell->green);
-	logLikelihood += computeEnergy(predicted_cell->blue, observed_cell->blue);
+	logLikelihood += computeLogLikelihood(predicted_cell->red, observed_cell->red);
+	logLikelihood += computeLogLikelihood(predicted_cell->green, observed_cell->green);
+	logLikelihood += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
 	numCells += 1;
       }
     }
   }
+  cout << "total likelihood: " << logLikelihood << endl;
   double prior = 0.5;
   double logNumerator = logLikelihood + log(prior);
 
   
-  double logNormalizer = -numCells * 3 * log(256);
+  double logNormalizer = numCells * 3 * log(1.0/256);
   
   double t1 = logLikelihood - logNormalizer;
   double t1Prob = exp(t1);
   checkProb("t1Prob", t1Prob);
-  double t2Prob = exp(1-prior);
+  double t2Prob = 1-prior;
   checkProb("t2Prob", t2Prob);
 
-  double logDenominator = t1 + log(t1Prob + t2Prob);
+  double logDenominator = logNormalizer + log(t1Prob + t2Prob);
 
   double result = logNumerator - logDenominator;
   
   double resultProb = exp(result);
   checkProb("result", resultProb);
   assert(0);
-  return score;
+  return resultProb;
 }
 
 void Scene::findBestObjectAndScore(int * class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_score, int * l_max_i) {
@@ -1649,6 +1887,9 @@ void Scene::findBestObjectAndScore(int * class_idx, int num_orientations, int * 
 }
 
 void Scene::tryToAddBestObjectToScene() {
+  int tfc = ms->config.focusedClass;
+  assert(tfc != -1);
+
   guardSceneModels(ms);
 
   int num_orientations = 37;
@@ -1672,20 +1913,11 @@ void Scene::tryToAddBestObjectToScene() {
     if (l_max_score > 0) {
       cout << "best detection made an improvement..." << endl;
       cout << "adding object." << endl;
-      ms->pushWord("sceneAddPredictedObject");
-
-      ms->pushWord(make_shared<IntegerWord>(l_max_class));
-      ms->pushWord(make_shared<DoubleWord>(l_max_theta));
-      ms->pushWord(make_shared<DoubleWord>(l_max_y_meters));
-      ms->pushWord(make_shared<DoubleWord>(l_max_x_meters));
+      this->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, tfc);
     } else {
       cout << "best detection made things worse alone..." << endl;
       cout << "should NOT adding object but for now we are..." << endl;
-      ms->pushWord("sceneAddPredictedObject");
-      ms->pushWord(make_shared<IntegerWord>(l_max_class));
-      ms->pushWord(make_shared<DoubleWord>(l_max_theta));
-      ms->pushWord(make_shared<DoubleWord>(l_max_y_meters));
-      ms->pushWord(make_shared<DoubleWord>(l_max_x_meters));
+      this->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, tfc);
     }
   } else {
     cout << "Did not find a valid cell... not adding object." << endl;
@@ -1780,7 +2012,6 @@ void Scene::writeToFileStorage(FileStorage& fsvO) {
   fsvO << "x_center_cell" << x_center_cell;
   fsvO << "y_center_cell" << y_center_cell;
   fsvO << "cell_width" << cell_width;
-  fsvO << "score" << score;
   fsvO << "background_pose";
   background_pose.writeToFileStorage(fsvO);
 
@@ -1837,7 +2068,6 @@ void Scene::readFromFileNode(FileNode& it) {
   (it)["x_center_cell"] >> x_center_cell;
   (it)["y_center_cell"] >> y_center_cell;
   (it)["cell_width"] >> cell_width;
-  (it)["score"] >> score;
   
   FileNode bg_pose_node = (it)["background_pose"];
   background_pose.readFromFileNode(bg_pose_node);
@@ -1997,7 +2227,7 @@ void TransitionTable::loadFromFile(string filename) {
 
 namespace ein_words {
 
-WORD(SceneScoreObjectAtPose)
+ WORD(SceneScoreObjectAtPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
   guardSceneModels(ms);
@@ -2036,6 +2266,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneComputeProbabilityOfMap)
+
+
+WORD(SceneSaveSceneAbsolute)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string dir;
+  GET_STRING_ARG(ms, dir);
+  ms->config.scene->saveToFile(dir);
+  // XX check return code
+}
+END_WORD
+REGISTER_WORD(SceneSaveSceneAbsolute)
 
 
 

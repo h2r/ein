@@ -172,16 +172,17 @@ class Scene {
 
   vector<shared_ptr<SceneObject> > predicted_objects;
 
-  double score;
-
   void smoothDiscrepancyDensity(double sigma);
   void setDiscrepancyDensityFromMagnitude(double sigma);
   bool isDiscrepantCell(double threshold, int x, int y);
   bool isDiscrepantCellBilin(double threshold, double x, double y);
   bool isDiscrepantMetersBilin(double threshold, double x, double y);
   void composePredictedMap(double threshold=0.5);
+  void initializePredictedMapWithBackground();
   void measureDiscrepancy();
   double computeProbabilityOfMap();
+  double computeProbabilityOfMap1();
+  double computeProbabilityOfMapDouble();
   double computeScore();
   double assignScore();
   double measureScoreRegion(int _x1, int _y1, int _x2, int _y2);
@@ -219,6 +220,8 @@ class Scene {
   void readFromFileNode(FileNode& it);
   void saveToFile(string filename);
   void loadFromFile(string filename);
+
+  shared_ptr<Scene> copy();
 
   void readPredictedObjects(FileNode & fn);
   void writePredictedObjects(FileStorage & fsvO);
