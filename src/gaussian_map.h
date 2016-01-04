@@ -178,8 +178,10 @@ class Scene {
   bool isDiscrepantCellBilin(double threshold, double x, double y);
   bool isDiscrepantMetersBilin(double threshold, double x, double y);
   void composePredictedMap(double threshold=0.5);
+  void initializePredictedMapWithBackground();
   void measureDiscrepancy();
   double computeProbabilityOfMap();
+  double computeProbabilityOfMap1();
   double computeProbabilityOfMapDouble();
   double computeScore();
   double assignScore();
@@ -218,6 +220,8 @@ class Scene {
   void readFromFileNode(FileNode& it);
   void saveToFile(string filename);
   void loadFromFile(string filename);
+
+  shared_ptr<Scene> copy();
 
   void readPredictedObjects(FileNode & fn);
   void writePredictedObjects(FileStorage & fsvO);
