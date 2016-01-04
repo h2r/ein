@@ -952,6 +952,9 @@ dateString "catScan5VarianceTrialBatchTime" store
 dateString "catScan5VarianceTrialThisTime" store
 
 (
+  dataDirectory "/objects/" scan_catScanObjectName "/catScan5VarianceTrials/" + + + "catScan5VarianceTrialDir" store
+  catScan5VarianceTrialDir mkdirs
+
   "catScan5VarianceTrial BEGINNING" print
 
   sceneClearPredictedObjects tempUpdateMaps 
@@ -969,11 +972,11 @@ dateString "catScan5VarianceTrialThisTime" store
      dateString
   "catScan5VarianceTrialThisTime" store
 
-    "../objects/" focusedClassLabel "/ein/sceneModel/" catScan5VarianceTrialBatchTime "_" catScan5VarianceTrialThisTime + + + + +
+  catScan5VarianceTrialDir "scene_" catScan5VarianceTrialBatchTime "_" catScan5VarianceTrialThisTime + + + + 
   "catScan5VarianceTrialThisFileName" store
 
-    catScan5VarianceTrialThisFileName 
-  sceneSaveScene
+    catScan5VarianceTrialThisFileName ".yml" +
+  sceneSaveSceneAbsolute
 
   clearBlueBoxMemories 
 

@@ -1,10 +1,12 @@
 
 #include "ein_words.h"
 #include "ein.h"
-
+#include <boost/filesystem.hpp>
+using namespace boost::filesystem;
 
 
 namespace ein_words {
+
 
 WORD(Mkdir)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -15,7 +17,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     int result = mkdir(dirname.c_str(), 0777);
     if (result != 0) {
       stringstream buf;
-      buf << "Could not create directory: " << dirname << endl;
+      buf << "Could not create directory: " << dirname;
       perror(buf.str().c_str());
       ms->pushWord("pauseStackExecution"); 
     } else {
@@ -25,6 +27,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(Mkdir)
+
+WORD(Mkdirs)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  {
+    string dirname;
+    GET_STRING_ARG(ms, dirname);
+
+    try {
+      boost::filesystem::create_directories(dirname);
+    } catch(std::exception const&  ex) {
+      cout << "Can't make directory: " << ex.what() << endl;
+      ms->pushWord("pauseStackExecution"); 
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(Mkdirs)
+
 
 
 WORD(PublishState)
@@ -2034,6 +2054,8 @@ CONFIG_SETTER_DOUBLE(SetTwistThresh, ms->config.twistThresh)
 CONFIG_GETTER_DOUBLE(EffortThresh, ms->config.actual_effort_thresh);
 CONFIG_SETTER_DOUBLE(SetEffortThresh, ms->config.actual_effort_thresh);
 
+
+CONFIG_GETTER_STRING(DataDirectory, ms->config.data_directory)
 
 CONFIG_GETTER_STRING(RobotSerial, ms->config.robot_serial)
 
