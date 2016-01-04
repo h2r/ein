@@ -203,13 +203,15 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
     /*
     tempShortTakeScene
     */
+
     tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+
     /* pauseStackExecution */
 
     /*
-	  scenePushTotalDiscrepancy 
-    */
 	  scenePushTotalDiscrepancyMagnitude 
+    */
+	  scenePushTotalDiscrepancy 
 	dup 
 	"tempFivePointThreeWidthIsNewComponent: total discrepancy before " 
       swap + print 
@@ -217,9 +219,9 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
     scenePredictBestObject tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
 
     /*
-	  scenePushTotalDiscrepancy 
-    */
 	  scenePushTotalDiscrepancyMagnitude 
+    */
+	  scenePushTotalDiscrepancy 
 	dup 
 	"tempFivePointThreeWidthIsNewComponent: total discrepancy after " 
       swap + print 
@@ -270,7 +272,8 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
       "tempFivePointThreeWidthIsNewComponent: returning " 
     swap + print
   ) (
-    "tempFivePointThreeWidthIsNewComponent: numClasses is 0 so returning 1"
+      "tempFivePointThreeWidthIsNewComponent: numClasses is 0 so returning 1"
+    print
     1
   ) ifte
 
@@ -448,6 +451,14 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempRecaptureServo" store
 
 (
+  sceneClearPredictedObjects
+  sceneClearObservedMap 0.01 setGridSize 10 tempUpdateSpiralStop tempUpdateMaps
+  tempCaptureCore
+
+  tempShortServoToFocusedSceneObject
+) "tempRecaptureServoSpiral" store
+
+(
   setMovementStateToMoving
 
   xUp
@@ -540,35 +551,18 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   setPlaceModeToHold setIdleModeToEmpty setBoundingBoxModeToMapping
   tenthImpulse 1 changeToHeight shiftIntoGraspGear1 waitUntilAtCurrentPosition
 
-/*
-*/
-  clearClassLabels
   initializeAndFocusOnNewClass
 
   ( tempRecaptureServo waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord
 
   sceneClearObservedMap sceneClearPredictedObjects 
-/* it appears to be somewhat important that the observed frames be contained within the background, else discrepancy creeps at the boundary
-  0.07 setGridSize
-  tempUpdateObservedFromWristFivePoint
-  0.03 setGridSize
-  tempUpdateObservedFromWristFivePoint
-*/
+
   0.01 setGridSize
   tempUpdateFivePointThreeWidth
   tempCaptureCore
-  "tempQuickScanObjectModel" robotSerial leftOrRightArm + + "tempScanFileName" store 
-  tempScanFileName sceneSaveFocusedSceneModel
 
-  setScanModeNotCentered
+  /* no additional scan */
 
-  /*
-  endArgs
-  currentPose
-  scanObjectStreamWaypoints3dNoPick
-  */
-
-  tempScanFileName sceneLoadFocusedSceneModel
   writeFocusedClass
 ) "tempQuickScan" store
 
@@ -577,36 +571,18 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   setPlaceModeToHold setIdleModeToEmpty setBoundingBoxModeToMapping
   tenthImpulse 1 changeToHeight shiftIntoGraspGear1 waitUntilAtCurrentPosition
 
-/*
-  clearClassLabels
   initializeAndFocusOnNewClass
-*/
 
   ( tempRecaptureServo waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord
 
   sceneClearObservedMap sceneClearPredictedObjects 
-/* it appears to be somewhat important that the observed frames be contained within the background, else discrepancy creeps at the boundary
-  0.07 setGridSize
-  tempUpdateObservedFromWristFivePoint
-  0.03 setGridSize
-  tempUpdateObservedFromWristFivePoint
-*/
+
   0.01 setGridSize
   tempUpdateFivePointThreeWidth
   tempCaptureCore
-  "tempQuickScanObjectModel" robotSerial leftOrRightArm + + "tempScanFileName" store 
-  tempScanFileName sceneSaveFocusedSceneModel
 
-  clearClassLabels
-  setScanModeNotCentered
+  scanObjectScene
 
-  /*
-  */
-  endArgs
-  currentPose
-  scanObjectStreamWaypoints3dNoPick
-
-  tempScanFileName sceneLoadFocusedSceneModel
   writeFocusedClass
 ) "tempFullScan" store
 

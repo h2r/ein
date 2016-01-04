@@ -1106,6 +1106,57 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(InitializeAndFocusOnNewClass)
 
+WORD(InitializeAndFocusOnTempClass)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.focusedClass = ms->config.classLabels.size();
+  ms->config.targetClass = ms->config.focusedClass;
+
+  ros::Time thisNow = ros::Time::now();
+  string formattedTime = formatTime(thisNow);
+  stringstream buf;
+  buf << ms->config.scan_group << "autoClass_" << ms->config.robot_serial << "_" <<  ms->config.left_or_right_arm << "_" << formattedTime;
+  string thisLabelName = buf.str();
+
+  string thisLabelNameGroup = ms->config.scan_group;
+
+  ms->config.classPoseModels.push_back("B");
+  {
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelNameGroup + "/";
+    if ( boost::filesystem::exists(dirToMakePath) ) {
+      cout << "Group folder exists: " << dirToMakePath << endl;
+    } else {
+      mkdir(dirToMakePath.c_str(), 0777);
+    }
+  }
+  bool collision = 1;
+  int suffix_counter = 0;
+  string the_suffix = "";
+  while (collision) {
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + the_suffix + "/";
+    if ( boost::filesystem::exists(dirToMakePath) ) {
+      cout << "Whole label name already exists: " << dirToMakePath << endl << "Looking for a name that isn't in use..." << endl;
+      stringstream buf1;
+      buf1 << "." << suffix_counter;
+      the_suffix = buf1.str(); 
+      suffix_counter++;
+      collision = 1;
+    } else {
+      mkdir(dirToMakePath.c_str(), 0777);
+      collision = 0;
+      thisLabelName = thisLabelName + the_suffix;  
+    }
+  }
+  ms->config.focusedClassLabel = thisLabelName;
+  ms->config.classLabels.push_back(thisLabelName);
+  ms->config.numClasses = ms->config.classLabels.size();
+
+  initRangeMaps(ms);
+  guardGraspMemory(ms);
+  guardHeightMemory(ms);
+}
+END_WORD
+REGISTER_WORD(InitializeAndFocusOnTempClass)
+
 
 WORD(WriteFocusedClass)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -3850,6 +3901,165 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(ScanObjectStreamWaypoints3dNoPick)
+
+WORD(ScanObjectScene)
+virtual string description() {
+  return "Scans a stack of objects in stream mode with an annotated 3d grasps in stack.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  cout << "scanObjectScene: start" << endl;
+
+  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("assumeCrane1");
+  ms->pushWord("openGripper");
+
+  //ms->pushWord("pickFocusedClass");
+  ms->pushWord("setGraspModeTo3D");
+  ms->pushWord("cruisingSpeed"); 
+  ms->pushWord("changeToHeight"); 
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord("writeFocusedClass");
+  ms->pushWord("integrateImageStreamBufferServoImages");
+  ms->pushWord("populateStreamBuffers");
+
+  // set lastLabelLearned
+  ms->pushWord("setLastLabelLearned");
+
+
+  ms->pushWord("setGridSizeCoarse");
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+
+  ms->pushWord("streamScanCentered");
+
+  ms->pushWord("activateSensorStreaming"); 
+  ms->pushWord("clearStreamBuffers"); 
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  ms->pushWord("setSisFlags"); 
+
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+
+
+  ms->pushWord("fullImpulse");
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("shiftIntoGraspGear1"); 
+  ms->pushWord("changeToHeight1"); 
+  ms->pushWord("moveToRegister1");
+
+
+  ms->pushWord("bringUpAllNonessentialSystems"); 
+  ms->pushWord("deactivateSensorStreaming"); 
+  {
+    ms->pushWord("deactivateSensorStreaming"); 
+
+    ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
+    ms->pushWord("activateSensorStreaming"); 
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight3"); // change to height 3
+  }
+  {
+    ms->pushWord("deactivateSensorStreaming"); 
+
+    ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
+    ms->pushWord("activateSensorStreaming"); 
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight2"); // change to height 2
+  }
+  {
+    ms->pushWord("deactivateSensorStreaming"); 
+
+    ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
+    ms->pushWord("activateSensorStreaming"); 
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight1"); // change to height 1
+  }
+  {
+    ms->pushWord("deactivateSensorStreaming"); 
+
+    ms->pushWord("waitForSeconds"); 
+    ms->pushWord("4.0"); 
+
+    ms->pushWord("activateSensorStreaming"); 
+    ms->pushWord("clearStreamBuffers"); 
+
+    ms->pushWord("comeToStop");
+    ms->pushWord("setMovementStateToMoving");
+    ms->pushWord("comeToStop");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("changeToHeight0"); // change to height 0
+  }
+  // slow speed here results in lost frames if robot chooses to unwind
+  ms->pushWord("quarterImpulse");
+
+  ms->pushWord("shutdownToSensorsAndMovement"); 
+  ms->pushWord("setSisFlags"); 
+
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+  ms->pushWord(std::make_shared<IntegerWord>(0));
+  ms->pushWord(std::make_shared<IntegerWord>(1));
+
+  ms->pushWord("comeToStop");
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("changeToHeight0"); // change to height 0
+
+  ms->pushWord("departureSpeed");
+
+  ms->pushWord("writeFocusedClass");
+  ms->pushWord("lock3dGraspBase"); 
+
+  // unneeded for 3d grasps
+  // ms->pushWord("preAnnotateOffsetGrasp"); // you need to saveRegister1 where the grasp should be before calling this
+  ms->pushWord("setPhotoPinHere");
+
+  //ms->pushWord("pauseStackExecution"); // pause to ensure being centered
+
+  // don't make a new class, scene does it outside 
+
+  ms->pushWord("tenthImpulse");
+  ms->pushWord("setGridSizeCoarse");
+  ms->pushWord("setBoundingBoxModeToMapping"); 
+
+  ms->pushWord("setIdleModeToEmpty"); 
+  ms->pushWord("setPlaceModeToShake"); 
+  ms->pushWord("clearBlueBoxMemories"); 
+  ms->pushWord("clearMapForPatrol"); 
+  ms->pushWord("enableDiskStreaming"); 
+  ms->pushWord("zeroGOff"); 
+}
+END_WORD
+REGISTER_WORD(ScanObjectScene)
 
 WORD(CollectMoreStreams)
 virtual void execute(std::shared_ptr<MachineState> ms) {
