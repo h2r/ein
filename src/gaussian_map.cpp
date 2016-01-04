@@ -655,6 +655,13 @@ shared_ptr<Scene> Scene::copy() {
   toReturn->predicted_segmentation = predicted_segmentation.clone();
   toReturn->discrepancy_magnitude = discrepancy_magnitude.clone();
   toReturn->discrepancy_density = discrepancy_density.clone();
+  toReturn->background_pose = background_pose;
+  toReturn->discrepancy_before = discrepancy_before.clone();
+  toReturn->discrepancy_after = discrepancy_after.clone();
+  
+  toReturn->predicted_objects.reserve(predicted_objects.size());
+  std::copy(predicted_objects.begin(), predicted_objects.end(), back_inserter(toReturn->predicted_objects));
+
   return toReturn;
 }
 
@@ -1595,22 +1602,11 @@ void Scene::tryToAddObjectToScene(int class_idx) {
     if (l_max_score > 0) {
       cout << "best detection made an improvement..." << endl;
       cout << "adding object." << endl;
-      ms->pushWord("sceneAddPredictedFocusedObject");
-  /*
-      ms->pushWord(make_shared<DoubleWord>(max_theta));
-      ms->pushWord(make_shared<DoubleWord>(max_y_meters));
-      ms->pushWord(make_shared<DoubleWord>(max_x_meters));
-  */
-      ms->pushWord(make_shared<DoubleWord>(l_max_theta));
-      ms->pushWord(make_shared<DoubleWord>(l_max_y_meters));
-      ms->pushWord(make_shared<DoubleWord>(l_max_x_meters));
+      this->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, class_idx);
     } else {
       cout << "best detection made things worse alone..." << endl;
       cout << "should NOT adding object but for now we are..." << endl;
-      ms->pushWord("sceneAddPredictedFocusedObject");
-      ms->pushWord(make_shared<DoubleWord>(l_max_theta));
-      ms->pushWord(make_shared<DoubleWord>(l_max_y_meters));
-      ms->pushWord(make_shared<DoubleWord>(l_max_x_meters));
+      this->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, class_idx);
     }
   } else {
     cout << "Did not find a valid cell... not adding object." << endl;
@@ -1630,24 +1626,38 @@ double Scene::computeProbabilityOfMap() {
 
   double p_crop_pad = 0.05;
   double threshold = 0.1;
-  shared_ptr<Scene> new_class_crop = ms->config.scene->copyPaddedDiscrepancySupport(threshold, p_crop_pad);
+
   shared_ptr<Scene> new_component_scene = this->copy();
+  new_component_scene->predicted_objects.resize(0);
+  new_component_scene->composePredictedMap(0.01);
+  new_component_scene->measureDiscrepancy();
+  shared_ptr<Scene> new_class_crop = new_component_scene->copyPaddedDiscrepancySupport(threshold, p_crop_pad);
 
+  initializeAndFocusOnTempClass(ms);
+  ms->config.class_scene_models[ms->config.focusedClass] = new_class_crop;
 
+  new_component_scene->tryToAddObjectToScene(ms->config.focusedClass);
+  new_component_scene->composePredictedMap(0.01);
 
-
+  for (int y = 0; y < new_component_scene->background_map->height; y++) {
+    for (int x = 0; x < new_component_scene->background_map->width; x++) {
+      //ms->config.scene->background_map->refAtCell(x,y)->blue.sigmasquared = pow(stddev, 2);
+    }
+  }  
+  
   for (int x = 0; x < width; x++) {
     for (int y = 0; y < height; y++) {
       if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
 	GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
 	GaussianMapCell * background_cell = background_map->refAtCell(x, y);
+	GaussianMapCell * new_scene_cell = new_component_scene->predicted_map->refAtCell(x, y);
 
 	double rmu_diff, gmu_diff, bmu_diff;
 	doubleWithLotsOfDigits discrepancy = background_map->refAtCell(x, y)->pointDiscrepancy(observed_map->refAtCell(x, y), &rmu_diff, &gmu_diff, &bmu_diff);
 	
 
-	if (discrepancy > 0.5) {
+	if (discrepancy > 0.01) {
 	  logLikelihood += computeLogLikelihood(predicted_cell->red, observed_cell->red);
 	  logLikelihood += computeLogLikelihood(predicted_cell->green, observed_cell->green);
 	  logLikelihood += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
@@ -1658,17 +1668,14 @@ double Scene::computeProbabilityOfMap() {
 
 	  //normalizerLogLikelihood += log(1.0/256.0) * 3;
 
-	  normalizerLogLikelihood += computeLogLikelihood(observed_cell->red, observed_cell->red);
-	  normalizerLogLikelihood += computeLogLikelihood(observed_cell->green, observed_cell->green);
-	  normalizerLogLikelihood += computeLogLikelihood(observed_cell->blue, observed_cell->blue);
+	  normalizerLogLikelihood += computeLogLikelihood(new_scene_cell->red, observed_cell->red);
+	  normalizerLogLikelihood += computeLogLikelihood(new_scene_cell->green, observed_cell->green);
+	  normalizerLogLikelihood += computeLogLikelihood(new_scene_cell->blue, observed_cell->blue);
 
 	} else {
 	  
 	}
 	numCells += 1;
-	if (numCells >= 10) {
-	  break;
-	}
       }
     }
   }
@@ -1720,6 +1727,8 @@ double Scene::computeProbabilityOfMap() {
   cout << "       resultProb: " << resultProb << endl;
   double resultDouble = (double) resultProb;
   cout << " resultProbDouble: " << resultDouble << endl;
+  ms->config.scene = new_component_scene;
+  //ms->config.scene = new_class_crop;
   return resultDouble;
 
   
@@ -1878,6 +1887,9 @@ void Scene::findBestObjectAndScore(int * class_idx, int num_orientations, int * 
 }
 
 void Scene::tryToAddBestObjectToScene() {
+  int tfc = ms->config.focusedClass;
+  assert(tfc != -1);
+
   guardSceneModels(ms);
 
   int num_orientations = 37;
@@ -1901,11 +1913,11 @@ void Scene::tryToAddBestObjectToScene() {
     if (l_max_score > 0) {
       cout << "best detection made an improvement..." << endl;
       cout << "adding object." << endl;
-      ms->config.scene->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, l_max_class);
+      this->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, tfc);
     } else {
       cout << "best detection made things worse alone..." << endl;
       cout << "should NOT adding object but for now we are..." << endl;
-      ms->config.scene->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, l_max_class);
+      this->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, tfc);
     }
   } else {
     cout << "Did not find a valid cell... not adding object." << endl;

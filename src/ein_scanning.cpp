@@ -7,6 +7,110 @@ using namespace std;
 using namespace boost::filesystem;
 
 
+
+
+void initializeAndFocusOnTempClass(shared_ptr<MachineState> ms) {
+  ms->config.focusedClass = ms->config.classLabels.size();
+  ms->config.targetClass = ms->config.focusedClass;
+
+  ros::Time thisNow = ros::Time::now();
+  string formattedTime = formatTime(thisNow);
+  stringstream buf;
+  buf << ms->config.scan_group << "autoClass_" << ms->config.robot_serial << "_" <<  ms->config.left_or_right_arm << "_" << formattedTime;
+  string thisLabelName = buf.str();
+
+  string thisLabelNameGroup = ms->config.scan_group;
+
+  ms->config.classPoseModels.push_back("B");
+  {
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelNameGroup + "/";
+    if ( boost::filesystem::exists(dirToMakePath) ) {
+      cout << "Group folder exists: " << dirToMakePath << endl;
+    } else {
+      mkdir(dirToMakePath.c_str(), 0777);
+    }
+  }
+  bool collision = 1;
+  int suffix_counter = 0;
+  string the_suffix = "";
+  while (collision) {
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + the_suffix + "/";
+    if ( boost::filesystem::exists(dirToMakePath) ) {
+      cout << "Whole label name already exists: " << dirToMakePath << endl << "Looking for a name that isn't in use..." << endl;
+      stringstream buf1;
+      buf1 << "." << suffix_counter;
+      the_suffix = buf1.str(); 
+      suffix_counter++;
+      collision = 1;
+    } else {
+      mkdir(dirToMakePath.c_str(), 0777);
+      collision = 0;
+      thisLabelName = thisLabelName + the_suffix;  
+    }
+  }
+  ms->config.focusedClassLabel = thisLabelName;
+  ms->config.classLabels.push_back(thisLabelName);
+  ms->config.numClasses = ms->config.classLabels.size();
+
+  initRangeMaps(ms);
+  guardGraspMemory(ms);
+  guardHeightMemory(ms);
+}
+
+
+void initializeAndFocusOnNewClass(shared_ptr<MachineState> ms) {
+  ms->config.focusedClass = ms->config.classLabels.size();
+  ms->config.targetClass = ms->config.focusedClass;
+
+  ros::Time thisNow = ros::Time::now();
+  string formattedTime = formatTime(thisNow);
+  stringstream buf;
+  buf << ms->config.scan_group << "autoClass_" << ms->config.robot_serial << "_" <<  ms->config.left_or_right_arm << "_" << formattedTime;
+  string thisLabelName = buf.str();
+
+  string thisLabelNameGroup = ms->config.scan_group;
+
+  ms->config.classPoseModels.push_back("B");
+  {
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelNameGroup + "/";
+    if ( boost::filesystem::exists(dirToMakePath) ) {
+      cout << "Group folder exists: " << dirToMakePath << endl;
+    } else {
+      mkdir(dirToMakePath.c_str(), 0777);
+    }
+  }
+  bool collision = 1;
+  int suffix_counter = 0;
+  string the_suffix = "";
+  while (collision) {
+    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + the_suffix + "/";
+    if ( boost::filesystem::exists(dirToMakePath) ) {
+      cout << "Whole label name already exists: " << dirToMakePath << endl << "Looking for a name that isn't in use..." << endl;
+      stringstream buf1;
+      buf1 << "." << suffix_counter;
+      the_suffix = buf1.str(); 
+      suffix_counter++;
+      collision = 1;
+    } else {
+      mkdir(dirToMakePath.c_str(), 0777);
+      collision = 0;
+      thisLabelName = thisLabelName + the_suffix;  
+    }
+  }
+  ms->config.focusedClassLabel = thisLabelName;
+  ms->config.classLabels.push_back(thisLabelName);
+  ms->config.numClasses = ms->config.classLabels.size();
+
+  initRangeMaps(ms);
+  guardGraspMemory(ms);
+  guardHeightMemory(ms);
+
+  int idx = ms->config.focusedClass;
+  string folderName = ms->config.data_directory + "/objects/" + ms->config.classLabels[idx] + "/";
+  initClassFolders(ms, folderName);
+}
+
+
 namespace ein_words {
 
 
@@ -1053,106 +1157,14 @@ REGISTER_WORD(SaveAerialGradientMap)
 WORD(InitializeAndFocusOnNewClass)
 CODE(196720)     // capslock + P
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.focusedClass = ms->config.classLabels.size();
-  ms->config.targetClass = ms->config.focusedClass;
-
-  ros::Time thisNow = ros::Time::now();
-  string formattedTime = formatTime(thisNow);
-  stringstream buf;
-  buf << ms->config.scan_group << "autoClass_" << ms->config.robot_serial << "_" <<  ms->config.left_or_right_arm << "_" << formattedTime;
-  string thisLabelName = buf.str();
-
-  string thisLabelNameGroup = ms->config.scan_group;
-
-  ms->config.classPoseModels.push_back("B");
-  {
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelNameGroup + "/";
-    if ( boost::filesystem::exists(dirToMakePath) ) {
-      cout << "Group folder exists: " << dirToMakePath << endl;
-    } else {
-      mkdir(dirToMakePath.c_str(), 0777);
-    }
-  }
-  bool collision = 1;
-  int suffix_counter = 0;
-  string the_suffix = "";
-  while (collision) {
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + the_suffix + "/";
-    if ( boost::filesystem::exists(dirToMakePath) ) {
-      cout << "Whole label name already exists: " << dirToMakePath << endl << "Looking for a name that isn't in use..." << endl;
-      stringstream buf1;
-      buf1 << "." << suffix_counter;
-      the_suffix = buf1.str(); 
-      suffix_counter++;
-      collision = 1;
-    } else {
-      mkdir(dirToMakePath.c_str(), 0777);
-      collision = 0;
-      thisLabelName = thisLabelName + the_suffix;  
-    }
-  }
-  ms->config.focusedClassLabel = thisLabelName;
-  ms->config.classLabels.push_back(thisLabelName);
-  ms->config.numClasses = ms->config.classLabels.size();
-
-  initRangeMaps(ms);
-  guardGraspMemory(ms);
-  guardHeightMemory(ms);
-
-  int idx = ms->config.focusedClass;
-  string folderName = ms->config.data_directory + "/objects/" + ms->config.classLabels[idx] + "/";
-  initClassFolders(ms, folderName);
+  initializeAndFocusOnNewClass(ms);
 }
 END_WORD
 REGISTER_WORD(InitializeAndFocusOnNewClass)
 
 WORD(InitializeAndFocusOnTempClass)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.focusedClass = ms->config.classLabels.size();
-  ms->config.targetClass = ms->config.focusedClass;
-
-  ros::Time thisNow = ros::Time::now();
-  string formattedTime = formatTime(thisNow);
-  stringstream buf;
-  buf << ms->config.scan_group << "autoClass_" << ms->config.robot_serial << "_" <<  ms->config.left_or_right_arm << "_" << formattedTime;
-  string thisLabelName = buf.str();
-
-  string thisLabelNameGroup = ms->config.scan_group;
-
-  ms->config.classPoseModels.push_back("B");
-  {
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelNameGroup + "/";
-    if ( boost::filesystem::exists(dirToMakePath) ) {
-      cout << "Group folder exists: " << dirToMakePath << endl;
-    } else {
-      mkdir(dirToMakePath.c_str(), 0777);
-    }
-  }
-  bool collision = 1;
-  int suffix_counter = 0;
-  string the_suffix = "";
-  while (collision) {
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + the_suffix + "/";
-    if ( boost::filesystem::exists(dirToMakePath) ) {
-      cout << "Whole label name already exists: " << dirToMakePath << endl << "Looking for a name that isn't in use..." << endl;
-      stringstream buf1;
-      buf1 << "." << suffix_counter;
-      the_suffix = buf1.str(); 
-      suffix_counter++;
-      collision = 1;
-    } else {
-      mkdir(dirToMakePath.c_str(), 0777);
-      collision = 0;
-      thisLabelName = thisLabelName + the_suffix;  
-    }
-  }
-  ms->config.focusedClassLabel = thisLabelName;
-  ms->config.classLabels.push_back(thisLabelName);
-  ms->config.numClasses = ms->config.classLabels.size();
-
-  initRangeMaps(ms);
-  guardGraspMemory(ms);
-  guardHeightMemory(ms);
+  initializeAndFocusOnTempClass(ms);
 }
 END_WORD
 REGISTER_WORD(InitializeAndFocusOnTempClass)
