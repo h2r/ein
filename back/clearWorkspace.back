@@ -27,11 +27,18 @@
 ) "cw_workspaceIsClear" store
 
 ( 
+  slide ( pushClassLabels 1 sP ) "cw_swap_classLabels" store
+  focusedClassLabel "cw_swap_targetClass" store
+
   setMovementStateToMoving comeToStop 
   sceneClearObservedMap sceneClearPredictedObjects
-  tempShortTakeScene
-  tempPredictAndRenderBest 
+
+  initializeAndFocusOnTempClass
+  tempRecaptureServo
   scenePushNumSceneObjects 0 = 1 0 ifte
+
+  endArgs cw_swap_classLabels setClassLabels 
+  cw_swap_targetClass setTargetClass
 ) "cw_viewIsClear" store
 
 ( 
@@ -40,13 +47,14 @@
 ) "cw_viewIsClear_old" store
 
 (
-  1 changeToHeight 
-  quarterImpulse 
-  clearMapForPatrol
-  synchronicServoTakeClosest
-  setBoundingBoxModeToStaticPrior
+  slide ( pushClassLabels 1 sP ) "cw_swap_classLabels" store
+  focusedClassLabel "cw_swap_targetClass" store
 
-  synchronicServo 
+  initializeAndFocusOnTempClass
+  ( tempRecaptureServo ) 2 replicateWord
+
+  endArgs cw_swap_classLabels setClassLabels 
+  cw_swap_targetClass setTargetClass
 ) "cw_servo_for_flick" store
 
 (

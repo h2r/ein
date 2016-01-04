@@ -27,7 +27,7 @@ void initializeAndFocusOnTempClass(shared_ptr<MachineState> ms) {
     if ( boost::filesystem::exists(dirToMakePath) ) {
       cout << "Group folder exists: " << dirToMakePath << endl;
     } else {
-      mkdir(dirToMakePath.c_str(), 0777);
+      // do not make dir
     }
   }
   bool collision = 1;
@@ -43,7 +43,7 @@ void initializeAndFocusOnTempClass(shared_ptr<MachineState> ms) {
       suffix_counter++;
       collision = 1;
     } else {
-      mkdir(dirToMakePath.c_str(), 0777);
+      // do not make dir
       collision = 0;
       thisLabelName = thisLabelName + the_suffix;  
     }
@@ -364,8 +364,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
     ms->config.numClasses = ms->config.classLabels.size();
     changeTargetClass(ms, 0);
   } else {
-    cout << "didn't get any valid labels, clearing stack." << endl;
-    ms->clearStack();
+    cout << "didn't get any valid labels, are you sure this is what you want?" << endl;
     return;
   }
 
@@ -1164,7 +1163,9 @@ REGISTER_WORD(InitializeAndFocusOnNewClass)
 
 WORD(InitializeAndFocusOnTempClass)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+
   initializeAndFocusOnTempClass(ms);
+
 }
 END_WORD
 REGISTER_WORD(InitializeAndFocusOnTempClass)
@@ -4363,7 +4364,33 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     int max_index = -1;
     for (int mc = 0; mc < ms->config.class3dGrasps[ms->config.targetClass].size(); mc++) {
       if (feasible_indeces[mc] == 1) {
+
 	Grasp *thisGrasp = &(ms->config.class3dGrasps[tfc][mc]);
+
+	int is_maxed_out = 0;
+	{
+	  if (ms->config.currentPickMode == LEARNING_SAMPLING) {
+	    is_maxed_out = ( (thisGrasp->tries >= ms->config.graspLearningMaxTries) );
+	  } else if (ms->config.currentPickMode == LEARNING_ALGORITHMC) {
+	    // ATTN 20
+	    double successes = thisGrasp->successes;
+	    double failures = thisGrasp->tries - thisGrasp->successes;
+
+	    successes = round(successes);
+	    failures = round(failures);
+
+	    double result = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget);
+	    is_maxed_out = (result > ms->config.algorithmCRT);
+	  } else if (ms->config.currentPickMode == STATIC_MARGINALS) {
+	    //is_maxed_out = (ms->config.graspMemoryTries[i] <= 1);
+	  }
+	}
+	if (is_maxed_out) {
+	  feasible_indeces[mc] = 0;
+	  continue;
+	} else {
+	}
+
 	double thisScore = thisGrasp->successes / thisGrasp->tries;
 	if (thisScore > max_score) {
 	  max_index = mc;
