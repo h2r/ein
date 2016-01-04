@@ -2268,6 +2268,17 @@ END_WORD
 REGISTER_WORD(SceneComputeProbabilityOfMap)
 
 
+WORD(SceneSaveSceneAbsolute)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string dir;
+  GET_STRING_ARG(ms, dir);
+  ms->config.scene->saveToFile(dir);
+  // XX check return code
+}
+END_WORD
+REGISTER_WORD(SceneSaveSceneAbsolute)
+
+
 
 WORD(SceneSaveScene)
 virtual void execute(std::shared_ptr<MachineState> ms) {
