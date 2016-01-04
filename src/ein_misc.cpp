@@ -6,6 +6,27 @@
 
 namespace ein_words {
 
+WORD(Mkdir)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  {
+    string dirname;
+    GET_STRING_ARG(ms, dirname);
+
+    int result = mkdir(dirname.c_str(), 0777);
+    if (result != 0) {
+      stringstream buf;
+      buf << "Could not create directory: " << dirname << endl;
+      perror(buf.str().c_str());
+      ms->pushWord("pauseStackExecution"); 
+    } else {
+      cout << "Created '" << dirname << "'" << endl;
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(Mkdir)
+
+
 WORD(PublishState)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   {
