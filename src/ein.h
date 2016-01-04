@@ -442,6 +442,9 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut);
 void targetBoxMemory(shared_ptr<MachineState> ms, int idx);
 
 bool isFocusedClassValid(std::shared_ptr<MachineState> ms);
+void initializeAndFocusOnTempClass(shared_ptr<MachineState> ms);
+void initializeAndFocusOnNewClass(shared_ptr<MachineState> ms);
+
 
 double computeSimilarity(std::shared_ptr<MachineState> ms, int class1, int class2);
 double computeSimilarity(std::shared_ptr<MachineState> ms, Mat im1, Mat im2);
