@@ -3751,7 +3751,7 @@ REGISTER_WORD(CatScan5VarianceTrialAuditClassNames)
 
 WORD(CatScan5VarianceTrialCalculateConfigurationAccuracy)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-// XXX TODO
+// XXX 
   /* loop over all variance trial files and classify under all classes all configurations.
        pre-requisite: you should use setClassLabelsBaseClassAbsolute to load
        configurations for the object whose variance trial folder you pass to this word. */
@@ -3842,6 +3842,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   /* loop over all variance trial files and classify under all classes all configurations.
        pre-requisite: you should use setClassLabelsObjectFolderAbsolute to load all
        configurations for all objects whose base dirs are in the folder passed to this word. */
+  double * result =  new double[ms->config.numClasses * ms->config.numClasses];
+  int nc = ms->config.numClasses;
+
   string objectFolderAbsolute;
   GET_STRING_ARG(ms, objectFolderAbsolute);
 
@@ -3894,6 +3897,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 		cout << " is a directory." << endl;
 	      } else {
 		cout << " is NOT a directory." << endl;
+		cout << "catScan5VarianceTrialCalculateAllClassesAccuracy report: row (i) is true label, column (j) is assigned label" << endl;
+
+		for (int j = 0; j < ms->config.classLabels.size(); j++) {
+		  cout << std::setw(3) << j << ": " << ms->config.classLabels[j] << endl;
+		}
+		cout << "   " ;
+		for (int j = 0; j < ms->config.classLabels.size(); j++) {
+		  cout << std::setw(10) << j ;
+		}
+		cout << endl;
+
+		for (int i = 0; i < ms->config.classLabels.size(); i++) {
+		  cout << std::setw(3) << i;
+		  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+		    cout << std::setw(10) << result[i + nc * j];
+		  }
+		  cout << endl;
+		}
 	      }
 	    }
 	  } else {
@@ -3909,6 +3930,24 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ROS_ERROR_STREAM("catScan5VarianceTrialCalculateAllClassesAccuracy level 1: could not open base class dir " << objectFolderAbsolute << " ." << endl);
   } 
 
+  cout << "catScan5VarianceTrialCalculateAllClassesAccuracy report: row (i) is true label, column (j) is assigned label" << endl;
+
+  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+    cout << std::setw(3) << j << ": " << ms->config.classLabels[j] << endl;
+  }
+  cout << "   " ;
+  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+    cout << std::setw(10) << j ;
+  }
+  cout << endl;
+
+  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    cout << std::setw(3) << i;
+    for (int j = 0; j < ms->config.classLabels.size(); j++) {
+      cout << std::setw(10) << result[i + nc * j];
+    }
+    cout << endl;
+  }
 }
 END_WORD
 REGISTER_WORD(CatScan5VarianceTrialCalculateAllClassesAccuracy)
