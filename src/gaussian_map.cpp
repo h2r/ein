@@ -3563,7 +3563,7 @@ int equalChars(string first, string second) {
 
 WORD(CatScan5VarianceTrialCalculatePoseVariances)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-// XXX TODO
+// XXX 
   /* loop over all variance trial files, estimate poses and configurations, 
      and calculate the variance of those estimates.
        pre-requisite: you should use setClassLabelsBaseClassAbsolute to load
@@ -3698,7 +3698,7 @@ REGISTER_WORD(CatScan5VarianceTrialCalculatePoseVariances)
 
 WORD(CatScan5VarianceTrialAuditClassNames)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-// XXX TODO
+// XXX 
   /* loop over all variance trial files, estimate poses and configurations, 
      and pause to allow a human to set the true label.
        pre-requisite: you should use setClassLabelsBaseClassAbsolute to load
@@ -3709,9 +3709,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   string baseClassTrialFolderName;
   GET_STRING_ARG(ms, baseClassTrialFolderName);
-
-  vector<string> scene_files;
-  vector<string>::iterator it;
 
   DIR *dpdf;
   struct dirent *epdf;
@@ -3748,7 +3745,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ROS_ERROR_STREAM("catScan5VarianceTrialCalculatePoseVariances: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
   } 
 
-
 }
 END_WORD
 REGISTER_WORD(CatScan5VarianceTrialAuditClassNames)
@@ -3759,8 +3755,83 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   /* loop over all variance trial files and classify under all classes all configurations.
        pre-requisite: you should use setClassLabelsBaseClassAbsolute to load
        configurations for the object whose variance trial folder you pass to this word. */
-  string baseClassName;
-  GET_STRING_ARG(ms, baseClassName);
+
+  double * result =  new double[ms->config.numClasses * ms->config.numClasses];
+  int nc = ms->config.numClasses;
+
+  string baseClassTrialFolderName;
+  GET_STRING_ARG(ms, baseClassTrialFolderName);
+
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+
+  dpdf = opendir(baseClassTrialFolderName.c_str());
+  if (dpdf != NULL){
+    cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << baseClassTrialFolderName << " during snoop...";
+    while (epdf = readdir(dpdf)){
+      string thisFileName(epdf->d_name);
+
+      string thisFullFileName(baseClassTrialFolderName.c_str());
+      thisFullFileName = thisFullFileName + "/" + thisFileName;
+      cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << thisFullFileName << " during snoop...";
+
+      struct stat buf2;
+      stat(thisFullFileName.c_str(), &buf2);
+
+      int itIsADir = S_ISDIR(buf2.st_mode);
+      if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+	cout << " is a directory." << endl;
+      } else {
+	cout << " is NOT a directory." << endl;
+	// load scene and detect 
+	// XXX
+	int num_orientations = 37;
+	int this_class = -1;
+	double this_score = -DBL_MAX;
+	int this_i = -1;
+	int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
+	Scene this_scene(ms, 2, 2, 0.02);
+	this_scene.loadFromFile(thisFullFileName);
+	this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
+	int thisSceneLabelIdx = -1;
+	for (int i = 0; i < nc; i++) {
+	  if ( 0 == ms->config.classLabels[i].compare(this_scene.className) ) {
+	    thisSceneLabelIdx = i;
+	    break;
+	  } else {
+	  }
+	}
+	if ( (this_class != -1) && (thisSceneLabelIdx != -1) ) {
+	  result[thisSceneLabelIdx + nc * this_class]++;
+	} else {
+	  cout << "catScan5VarianceTrialCalculatePoseVariances: could not find match for label " << this_scene.className << " for file " << thisFullFileName << endl;
+	}
+      }
+    }
+  } else {
+    ROS_ERROR_STREAM("catScan5VarianceTrialCalculatePoseVariances: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
+  } 
+
+  cout << "catScan5VarianceTrialCalculateConfigurationAccuracy report: row (i) is true label, column (j) is assigned label" << endl;
+
+  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+    cout << std::setw(3) << j << ": " << ms->config.classLabels[j] << endl;
+  }
+  cout << "   " ;
+  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+    cout << std::setw(10) << j ;
+  }
+  cout << endl;
+
+  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    cout << std::setw(3) << i;
+    for (int j = 0; j < ms->config.classLabels.size(); j++) {
+      cout << std::setw(10) << result[i + nc * j];
+    }
+    cout << endl;
+  }
 }
 END_WORD
 REGISTER_WORD(CatScan5VarianceTrialCalculateConfigurationAccuracy)
