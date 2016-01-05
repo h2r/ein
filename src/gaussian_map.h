@@ -146,6 +146,7 @@ class SceneObject {
 
 class Scene {
   public:
+  string className;
   int width; // or columns
   int height; // or rows
   int x_center_cell;
