@@ -309,7 +309,7 @@ REGISTER_WORD(ClearClassLabels)
 
 
 WORD(SetClassLabels)
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(std::shared_ptr<MachineState> ms)  {
 
   cout << "entering setClassLabels." << endl;
 
@@ -369,11 +369,131 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   }
 
   initRangeMaps(ms);
-
-
 }
 END_WORD
 REGISTER_WORD(SetClassLabels)
+
+WORD(SetClassLabelsBaseClassAbsolute)
+virtual void execute(std::shared_ptr<MachineState> ms)  {
+  string baseClassPath;
+  GET_STRING_ARG(ms, baseClassPath);
+
+  ms->pushWord("setClassLabels");
+
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+
+  dpdf = opendir(baseClassPath.c_str());
+  if (dpdf != NULL){
+    cout << "setClassLabelsBaseClassAbsolute: checking " << baseClassPath << " during snoop...";
+    while (epdf = readdir(dpdf)){
+      string thisFileName(epdf->d_name);
+
+      string thisFullFileName(baseClassPath.c_str());
+      thisFullFileName = thisFullFileName + "/" + thisFileName;
+      cout << "setClassLabelsBaseClassAbsolute: checking " << thisFullFileName << " during snoop...";
+
+      struct stat buf2;
+      stat(thisFullFileName.c_str(), &buf2);
+
+      string varianceTrials("catScan5VarianceTrials");
+
+      int itIsADir = S_ISDIR(buf2.st_mode);
+      if (varianceTrials.compare(epdf->d_name) && dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+	cout << " is a directory." << endl;
+	ms->pushWord(make_shared<StringWord>(epdf->d_name));
+      } else {
+	cout << " is NOT a directory." << endl;
+      }
+    }
+  } else {
+    ROS_ERROR_STREAM("setClassLabelsBaseClassAbsolute: could not open base class dir " << baseClassPath << " ." << endl);
+  } 
+
+  ms->pushWord("endArgs");
+}
+END_WORD
+REGISTER_WORD(SetClassLabelsBaseClassAbsolute)
+
+WORD(SetClassLabelsObjectFolderAbsolute)
+virtual void execute(std::shared_ptr<MachineState> ms)  {
+  string objectFolderAbsolute;
+  GET_STRING_ARG(ms, objectFolderAbsolute);
+
+  ms->pushWord("setClassLabels");
+
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+
+  dpdf = opendir(objectFolderAbsolute.c_str());
+  if (dpdf != NULL){
+    cout << "setClassLabelsObjectFolderAbsolute level 1: checking " << objectFolderAbsolute << " during snoop...";
+    while (epdf = readdir(dpdf)){
+      string thisFileName(epdf->d_name);
+
+      string thisFullFileName(objectFolderAbsolute.c_str());
+      thisFullFileName = thisFullFileName + "/" + thisFileName;
+      cout << "setClassLabelsObjectFolderAbsolute level 1: checking " << thisFullFileName << " during snoop...";
+
+      struct stat buf2;
+      stat(thisFullFileName.c_str(), &buf2);
+
+      int itIsADir = S_ISDIR(buf2.st_mode);
+      if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+	cout << " is a directory." << endl;
+
+	{
+	  string thisFolderName = thisFullFileName;
+	  DIR *dpdf_2;
+	  struct dirent *epdf_2;
+
+	  dpdf_2 = opendir(thisFolderName.c_str());
+	  if (dpdf_2 != NULL){
+	    cout << "setClassLabelsObjectFolderAbsolute level 2: checking " << thisFolderName << " during snoop...";
+	    while (epdf_2 = readdir(dpdf_2)){
+	      string thisFileName_2(epdf_2->d_name);
+
+	      string thisFullFileName_2(thisFolderName.c_str());
+	      thisFullFileName_2 = thisFullFileName_2 + "/" + thisFileName_2;
+	      cout << "setClassLabelsObjectFolderAbsolute level 2: checking " << thisFullFileName_2 << " during snoop...";
+
+	      struct stat buf2;
+	      stat(thisFullFileName_2.c_str(), &buf2);
+
+	      string varianceTrials("catScan5VarianceTrials");
+
+	      int itIsADir_2 = S_ISDIR(buf2.st_mode);
+	      if (varianceTrials.compare(epdf_2->d_name) && dot.compare(epdf_2->d_name) && dotdot.compare(epdf_2->d_name) && itIsADir_2) {
+		cout << " is a directory." << endl;
+		stringstream ss;
+		ss << epdf->d_name << "/" << epdf_2->d_name;
+		ms->pushWord(make_shared<StringWord>(ss.str()));
+	      } else {
+		cout << " is NOT a directory." << endl;
+	      }
+	    }
+	  } else {
+	    ROS_ERROR_STREAM("setClassLabelsObjectFolderAbsolute level 2: could not open base class dir " << objectFolderAbsolute << " ." << endl);
+	  } 
+	}
+
+      } else {
+	cout << " is NOT a directory." << endl;
+      }
+    }
+  } else {
+    ROS_ERROR_STREAM("setClassLabelsObjectFolderAbsolute level 1: could not open base class dir " << objectFolderAbsolute << " ." << endl);
+  } 
+
+  ms->pushWord("endArgs");
+}
+END_WORD
+REGISTER_WORD(SetClassLabelsObjectFolderAbsolute)
+
 
 WORD(TrainModelsFromLabels)
 virtual void execute(std::shared_ptr<MachineState> ms)       {

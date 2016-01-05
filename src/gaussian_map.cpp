@@ -647,6 +647,7 @@ shared_ptr<GaussianMap> GaussianMap::copy() {
 
 shared_ptr<Scene> Scene::copy() {
   shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, width, height, cell_width);
+  toReturn->className = className;
   toReturn->background_map = background_map->copy();
   toReturn->predicted_map = predicted_map->copy();
   toReturn->observed_map = observed_map->copy();
@@ -763,6 +764,7 @@ void SceneObject::readFromFileNode(FileNode& it) {
 
 
 Scene::Scene(shared_ptr<MachineState> _ms, int w, int h, double cw) {
+  className = string("NONAME");
   ms = _ms;
   width = w;
   height = h;
@@ -3531,18 +3533,168 @@ END_WORD
 REGISTER_WORD(SceneSetDiscrepancyModePoint)
 
 
-WORD(SceneCalculateVariances)
+
+
+
+
+WORD(SceneSetClassNameToFocusedClass)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.scene->className = ms->config.focusedClassLabel;
+  cout << "sceneSetClassNameToFocusedClass: setting to " << ms->config.scene->className << endl;
 }
 END_WORD
-REGISTER_WORD(SceneCalculateVariances)
+REGISTER_WORD(SceneSetClassNameToFocusedClass)
+
+
+WORD(CatScan5VarianceTrialCalculatePoseVariances)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX TODO
+  /* loop over all variance trial files, estimate poses and configurations, 
+     and calculate the variance of those estimates.
+       pre-requisite: you should use setClassLabelsBaseClassAbsolute to load
+       configurations for the object whose base folder you pass to this word. */
+  string baseClassTrialFolderName;
+  GET_STRING_ARG(ms, baseClassTrialFolderName);
+
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+
+  dpdf = opendir(baseClassTrialFolderName.c_str());
+  if (dpdf != NULL){
+    cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << baseClassTrialFolderName << " during snoop...";
+    while (epdf = readdir(dpdf)){
+      string thisFileName(epdf->d_name);
+
+      string thisFullFileName(baseClassTrialFolderName.c_str());
+      thisFullFileName = thisFullFileName + "/" + thisFileName;
+      cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << thisFullFileName << " during snoop...";
+
+      struct stat buf2;
+      stat(thisFullFileName.c_str(), &buf2);
+
+      string varianceTrials("catScan5VarianceTrials");
+
+      int itIsADir = S_ISDIR(buf2.st_mode);
+      if (varianceTrials.compare(epdf->d_name) && dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+	cout << " is a directory." << endl;
+      } else {
+	cout << " is NOT a directory." << endl;
+      }
+    }
+  } else {
+    ROS_ERROR_STREAM("catScan5VarianceTrialCalculatePoseVariances: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
+  } 
+}
+END_WORD
+REGISTER_WORD(CatScan5VarianceTrialCalculatePoseVariances)
+
+WORD(CatScan5VarianceTrialAuditClassNames)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX TODO
+  /* loop over all variance trial files, estimate poses and configurations, 
+     and ask a human for true labels.
+       pre-requisite: you should use setClassLabelsBaseClassAbsolute to load
+       configurations for the object whose base folder you pass to this word. */
+  string baseClassName;
+  GET_STRING_ARG(ms, baseClassName);
+}
+END_WORD
+REGISTER_WORD(CatScan5VarianceTrialAuditClassNames)
+
+WORD(CatScan5VarianceTrialCalculateConfigurationAccuracy)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX TODO
+  /* loop over all variance trial files and classify under all classes all configurations.
+       pre-requisite: you should use setClassLabelsBaseClassAbsolute to load
+       configurations for the object whose base folder you pass to this word. */
+  string baseClassName;
+  GET_STRING_ARG(ms, baseClassName);
+}
+END_WORD
+REGISTER_WORD(CatScan5VarianceTrialCalculateConfigurationAccuracy)
+
+WORD(CatScan5VarianceTrialCalculateAllClassesAccuracy)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX TODO
+  /* loop over all variance trial files and classify under all classes all configurations.
+       pre-requisite: you should use setClassLabelsObjectFolderAbsolute to load all
+       configurations for all objects whose base dirs are in the folder passed to this word. */
+  string objectFolderAbsolute;
+  GET_STRING_ARG(ms, objectFolderAbsolute);
+
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+
+  dpdf = opendir(objectFolderAbsolute.c_str());
+  if (dpdf != NULL){
+    cout << "catScan5VarianceTrialCalculateAllClassesAccuracy level 1: checking " << objectFolderAbsolute << " during snoop...";
+    while (epdf = readdir(dpdf)){
+      string thisFileName(epdf->d_name);
+
+      string thisFullFileName(objectFolderAbsolute.c_str());
+      thisFullFileName = thisFullFileName + "/" + thisFileName;
+      cout << "catScan5VarianceTrialCalculateAllClassesAccuracy level 1: checking " << thisFullFileName << " during snoop...";
+
+      struct stat buf2;
+      stat(thisFullFileName.c_str(), &buf2);
+
+      //string varianceTrials("catScan5VarianceTrials");
+
+      int itIsADir = S_ISDIR(buf2.st_mode);
+      if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+	cout << " is a directory." << endl;
+
+	{
+	  string thisFolderName = thisFullFileName;
+	  DIR *dpdf_2;
+	  struct dirent *epdf_2;
+
+	  dpdf_2 = opendir(thisFolderName.c_str());
+	  if (dpdf_2 != NULL){
+	    cout << "catScan5VarianceTrialCalculateAllClassesAccuracy level 2: checking " << thisFolderName << " during snoop...";
+	    while (epdf_2 = readdir(dpdf_2)){
+	      string thisFileName_2(epdf_2->d_name);
+
+	      string thisFullFileName_2(thisFolderName.c_str());
+	      thisFullFileName_2 = thisFullFileName_2 + "/" + thisFileName_2;
+	      cout << "catScan5VarianceTrialCalculateAllClassesAccuracy level 2: checking " << thisFullFileName_2 << " during snoop...";
+
+	      struct stat buf2;
+	      stat(thisFullFileName_2.c_str(), &buf2);
+
+	      string varianceTrials("catScan5VarianceTrials");
+
+	      int itIsADir = S_ISDIR(buf2.st_mode);
+	      if (varianceTrials.compare(epdf_2->d_name) && dot.compare(epdf_2->d_name) && dotdot.compare(epdf_2->d_name) && itIsADir) {
+		cout << " is a directory." << endl;
+	      } else {
+		cout << " is NOT a directory." << endl;
+	      }
+	    }
+	  } else {
+	    ROS_ERROR_STREAM("catScan5VarianceTrialCalculateAllClassesAccuracy level 2: could not open base class dir " << objectFolderAbsolute << " ." << endl);
+	  } 
+	}
+
+      } else {
+	cout << " is NOT a directory." << endl;
+      }
+    }
+  } else {
+    ROS_ERROR_STREAM("catScan5VarianceTrialCalculateAllClassesAccuracy level 1: could not open base class dir " << objectFolderAbsolute << " ." << endl);
+  } 
+
+}
+END_WORD
+REGISTER_WORD(CatScan5VarianceTrialCalculateAllClassesAccuracy)
+
 
 
 /* 
-
-
-
-
 
 WORD(GaussianMapCalibrateVanishingPoint)
 virtual void execute(std::shared_ptr<MachineState> ms) {
