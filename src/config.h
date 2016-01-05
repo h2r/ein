@@ -204,6 +204,10 @@ typedef enum {
   VELOCITY = 2
 } controlMode;
 
+typedef enum {
+  SC_DISCREPANCY_ONLY = 0,
+  SC_DISCREPANCY_THEN_LOGLIKELIHOOD = 1
+} sceneClassificationMode;
 
 std::string pickModeToString(pickMode mode);
 
@@ -438,6 +442,7 @@ class EinConfig {
   mapServoMode currentMapServoMode = HISTOGRAM_CLASSIFY;
   gradientServoMode currentGradientServoMode = FOCUSED_CLASS;
   controlMode currentControlMode = EEPOSITION;
+  sceneClassificationMode currentSceneClassificationMode = SC_DISCREPANCY_THEN_LOGLIKELIHOOD;
   bool setRandomPositionAfterPick = false;
   bool streamPicks = false;
   bool mapAutoPick = false;
@@ -1518,6 +1523,7 @@ class EinConfig {
 
   vector<shared_ptr<Scene> > class_scene_models;
   double scene_score_thresh = 0.01;
+  
 }; // config end
 
 
