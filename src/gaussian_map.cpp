@@ -1520,8 +1520,15 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
 	  to_push.theta_r = -(to_push.orient_i)* 2.0 * M_PI / numOrientations;
 	  to_push.discrepancy_valid = true;
 	  to_push.discrepancy_score = output.at<double>(y,x);
-	  to_push.loglikelihood_valid = false;
-	  to_push.loglikelihood_score = 0.0;
+
+	  if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
+	    to_push.loglikelihood_valid = false;
+	    to_push.loglikelihood_score = 0.0;
+	  } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
+	    to_push.loglikelihood_valid = true;
+	    to_push.loglikelihood_score = to_push.discrepancy_score;
+	  }
+
 	  local_scores.push_back(to_push);
 	}
   
@@ -1544,6 +1551,7 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
   cellToMeters(max_x, max_y, &max_x_meters, &max_y_meters);
   cout << "  discrepancy says: " << endl;
   cout << max_x << " " << max_y << " " << max_orient << " " << max_x_meters << " " << max_y_meters << " " << max_theta << endl << "max_score: " << max_score << endl;
+  cout << "  currentSceneClassificationMode: " << ms->config.currentSceneClassificationMode << endl;
 
 
   *l_max_x = -1;
@@ -1558,7 +1566,7 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
       // XXX score should return the delta of including vs not including
       local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
       local_scores[i].loglikelihood_valid = true;
-      cout << "  running inference on class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
+      //cout << "  running inference on class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
     }
   }
 
@@ -3838,7 +3846,7 @@ REGISTER_WORD(CatScan5VarianceTrialCalculateConfigurationAccuracy)
 
 WORD(CatScan5VarianceTrialCalculateAllClassesAccuracy)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-// XXX TODO
+// XXX 
   /* loop over all variance trial files and classify under all classes all configurations.
        pre-requisite: you should use setClassLabelsObjectFolderAbsolute to load all
        configurations for all objects whose base dirs are in the folder passed to this word. */
@@ -3952,6 +3960,79 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(CatScan5VarianceTrialCalculateAllClassesAccuracy)
 
+CONFIG_SETTER_ENUM(SceneSetClassificationMode, ms->config.currentSceneClassificationMode, (sceneClassificationMode))
+CONFIG_GETTER_INT(SceneGetClassificationMode, ms->config.currentSceneClassificationMode)
+
+WORD(SceneFabricateIdealBlockModel)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  /* the density filter will not be accurately updated if it is recomposed
+      because it contains negative values to enforce comparability. 
+     this should only be used with SC_DISCREPANCY_ONLY */
+  // these could be passed an additional weighting term to change the favor 
+
+  // XXX TODO
+  double breadth_m, length_m;
+  GET_NUMERIC_ARG(ms, breadth_m);
+  GET_NUMERIC_ARG(ms, length_m);
+
+  stringstream ss;
+  ss << "ideal_block_" << length_m << "_" << breadth_m;
+
+  initializeAndFocusOnTempClass(ms);
+  REQUIRE_FOCUSED_CLASS(ms, tfc);
+  ms->config.classLabels[tfc] = ss.str();
+
+  double this_collar_width_m = 0.01;
+  double this_cw = ms->config.scene->cell_width; 
+  int this_w = 3.0 * this_collar_width_m + ceil(breadth_m / this_cw);
+  int this_h = 3.0 * this_collar_width_m + ceil(length_m / this_cw);
+  ms->config.class_scene_models[tfc] = make_shared<Scene>(ms, this_w, this_h, this_cw);
+
+  // fill in the magnitude and density maps; positive region sums to 1, negative collar sums to -1
+  Mat fake_filter = ms->config.class_scene_models[tfc]->discrepancy_magnitude;
+  int w = fake_filter.cols;
+  int h = fake_filter.rows;
+  // count cells
+  double num_pos = 0;
+  double num_neg = 0;
+  for (int y = 0; y < h; y++) {
+    for (int x = 0; x < w; x++) {
+      double this_x_m, this_y_m;
+      ms->config.class_scene_models[tfc]->cellToMeters(x, y, &this_x_m, &this_y_m);
+      if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/2.0)) ) {
+	num_pos++;
+      } else if ( (fabs(this_y_m) <= (length_m/2.0)) && (  fabs(this_x_m) <= (this_collar_width_m + (   breadth_m/2.0   ))  ) ) {
+	num_neg++;
+      } else {
+      }
+    }
+  }
+  // fill out proper values
+  for (int y = 0; y < h; y++) {
+    for (int x = 0; x < w; x++) {
+      double this_x_m, this_y_m;
+      ms->config.class_scene_models[tfc]->cellToMeters(x, y, &this_x_m, &this_y_m);
+      if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/2.0)) ) {
+	fake_filter.at<double>(y,x) = 1.0/num_pos;
+      } else if ( (fabs(this_y_m) <= (length_m/2.0)) && (  fabs(this_x_m) <= (this_collar_width_m + (   breadth_m/2.0   ))  ) ) {
+	fake_filter.at<double>(y,x) = -1.0/num_neg;
+      } else {
+	fake_filter.at<double>(y,x) = 0.0;
+      }
+    }
+  }
+  ms->config.class_scene_models[tfc]->discrepancy_density = fake_filter.clone();
+  // XXX push a table flush 3d crane grasp at the center
+  Grasp toPush;
+  double flushGraspZ = -ms->config.currentTableZ + ms->config.pickFlushFactor;
+  toPush.grasp_pose = eePose(0,0,flushGraspZ,0,1,0,0);
+  toPush.tries = 1;
+  toPush.successes = 1;
+  toPush.failures = 0;
+  ms->config.class3dGrasps[tfc].push_back(toPush);
+}
+END_WORD
+REGISTER_WORD(SceneFabricateIdealBlockModel)
 
 
 /* 
