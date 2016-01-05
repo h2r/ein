@@ -1551,7 +1551,7 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
   //*l_max_score = -DBL_MAX;
   *l_max_orient = -1;
   *l_max_i = -1;
-  std::sort (local_scores.begin(), local_scores.end(), compareDiscrepancyDescending);
+  std::sort(local_scores.begin(), local_scores.end(), compareDiscrepancyDescending);
   int to_check = min( int(ms->config.sceneDiscrepancySearchDepth), int(local_scores.size()) );
   for (int i = 0; i < to_check; i++) {
     if ( ! local_scores[i].loglikelihood_valid ) {
@@ -2778,8 +2778,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }
 
-  std::sort (before_scores.begin(), before_scores.end(), doubleAscending);
-  std::sort (after_scores.begin(), after_scores.end(), doubleAscending);
+  std::sort(before_scores.begin(), before_scores.end(), doubleAscending);
+  std::sort(after_scores.begin(), after_scores.end(), doubleAscending);
 
 
   double hp_total = 0.0;
@@ -3546,15 +3546,33 @@ END_WORD
 REGISTER_WORD(SceneSetClassNameToFocusedClass)
 
 
+// count the number of equal digits
+int equalChars(string first, string second) {
+  int i = 0;
+  while ( (i<first.length()) && (i<second.length()) ) {
+    if (first[i] < second[i]) {
+      break;
+    } else if (first[i] > second[i]) {
+      break;
+    } else {
+      i++;
+    }
+  }
+  return i;
+}
+
 WORD(CatScan5VarianceTrialCalculatePoseVariances)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 // XXX TODO
   /* loop over all variance trial files, estimate poses and configurations, 
      and calculate the variance of those estimates.
        pre-requisite: you should use setClassLabelsBaseClassAbsolute to load
-       configurations for the object whose base folder you pass to this word. */
+       configurations for the object whose variance trial folder you pass to this word. */
   string baseClassTrialFolderName;
   GET_STRING_ARG(ms, baseClassTrialFolderName);
+
+  vector<string> scene_files;
+  vector<string>::iterator it;
 
   DIR *dpdf;
   struct dirent *epdf;
@@ -3574,11 +3592,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       struct stat buf2;
       stat(thisFullFileName.c_str(), &buf2);
 
-      string varianceTrials("catScan5VarianceTrials");
-
       int itIsADir = S_ISDIR(buf2.st_mode);
-      if (varianceTrials.compare(epdf->d_name) && dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+      if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && !itIsADir) {
 	cout << " is a directory." << endl;
+	scene_files.push_back(thisFullFileName);
       } else {
 	cout << " is NOT a directory." << endl;
       }
@@ -3586,6 +3603,95 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   } else {
     ROS_ERROR_STREAM("catScan5VarianceTrialCalculatePoseVariances: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
   } 
+
+  std::sort(scene_files.begin(), scene_files.end(), less<string>());
+
+  cout << "catScan5VarianceTrialCalculatePoseVariances found the following files:" << endl;;
+  for (it=scene_files.begin(); it!=scene_files.end(); ++it) {
+    cout << *it << endl;
+  }
+  cout << endl;
+
+
+  // XXX this should be von mises or something instead for theta, but for now leave it at this
+  double sum_x = 0.0;
+  double sum_y = 0.0;
+  double sum_theta = 0.0;
+  double sum_x_squared = 0.0;
+  double sum_y_squared = 0.0;
+  double sum_theta_squared = 0.0;
+  double counts = 0.0;
+
+  bool initialized = false;
+  int batch_same_chars = 0;
+  int batch_id = 0;
+  while ( scene_files.size() > 1 ) {
+    int last = scene_files.size()-1;
+    if (initialized) { 
+      // load scene and detect 
+      int num_orientations = 37;
+      int this_class = -1;
+      double this_score = -DBL_MAX;
+      int this_i = -1;
+      int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
+      Scene this_scene(ms, 2, 2, 0.02);
+      this_scene.loadFromFile(scene_files[last]);
+      this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
+
+      double this_theta = -this_orient * 2.0 * M_PI / num_orientations;
+      double this_x, this_y;
+      this_scene.cellToMeters(this_x_cell, this_y_cell, &this_x, &this_y);
+
+      // integrate
+      sum_x += this_x;
+      sum_y += this_y;
+      sum_theta += this_theta;
+      sum_x_squared += this_x*this_x;
+      sum_y_squared += this_y*this_y;
+      sum_theta_squared += this_theta*this_theta;
+      counts++;
+
+      int this_same_chars = -1;
+      if ( scene_files.size() > 1 ) {
+	this_same_chars = equalChars(scene_files[last], scene_files[last-1]);
+      } else {
+      }
+
+      if ( (this_same_chars == batch_same_chars) && (this_same_chars != -1) ) {
+	// continue the batch
+      } else {
+	// end this batch if the next one differs in length or if this is the last batch
+	initialized = false;
+	double safe_counts = std::min(counts, 1.0);
+
+	double mean_x = sum_x / safe_counts;
+	double mean_y = sum_y / safe_counts;
+	double mean_theta = sum_theta / safe_counts;
+
+	double variance_x = ( sum_x_squared / safe_counts ) - ( mean_x * mean_x ); 
+	double variance_y = ( sum_y_squared / safe_counts ) - ( mean_y * mean_y ); 
+	double variance_theta = ( sum_theta_squared / safe_counts ) - ( mean_theta * mean_theta ); 
+    
+	cout << "Report for batch " << batch_id << " with prefix " << scene_files[last] << " : " << endl;
+	cout << "mu_x: " << mean_x << " sigma_squared_x: " << variance_x << endl;
+	cout << "mu_y: " << mean_y << " sigma_squared_y: " << variance_y << endl;
+	cout << "mu_theta: " << mean_theta << " sigma_squared_theta: " << variance_theta << endl;
+      }
+    } else {
+      sum_x = 0.0;
+      sum_y = 0.0;
+      sum_theta = 0.0;
+      sum_x_squared = 0.0;
+      sum_y_squared = 0.0;
+      sum_theta_squared = 0.0;
+      counts = 0.0;
+      initialized = true;
+      batch_same_chars = equalChars(scene_files[last], scene_files[last-1]);
+      batch_id++;
+      continue;
+    }
+    scene_files.pop_back();
+  }
 }
 END_WORD
 REGISTER_WORD(CatScan5VarianceTrialCalculatePoseVariances)
@@ -3594,9 +3700,13 @@ WORD(CatScan5VarianceTrialAuditClassNames)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 // XXX TODO
   /* loop over all variance trial files, estimate poses and configurations, 
-     and ask a human for true labels.
+     and pause to allow a human to set the true label.
        pre-requisite: you should use setClassLabelsBaseClassAbsolute to load
-       configurations for the object whose base folder you pass to this word. */
+       configurations for the object whose variance trial folder you pass to this word. 
+       use note: stack will pause between each example, allowing you to relabel the scene
+       before proceeding, at which point the scene will be saved to disk and the next scene
+       loaded, pausing again. */
+       
   string baseClassName;
   GET_STRING_ARG(ms, baseClassName);
 }
@@ -3608,7 +3718,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 // XXX TODO
   /* loop over all variance trial files and classify under all classes all configurations.
        pre-requisite: you should use setClassLabelsBaseClassAbsolute to load
-       configurations for the object whose base folder you pass to this word. */
+       configurations for the object whose variance trial folder you pass to this word. */
   string baseClassName;
   GET_STRING_ARG(ms, baseClassName);
 }
