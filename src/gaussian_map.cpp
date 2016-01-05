@@ -3593,11 +3593,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       stat(thisFullFileName.c_str(), &buf2);
 
       int itIsADir = S_ISDIR(buf2.st_mode);
-      if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && !itIsADir) {
+      if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
 	cout << " is a directory." << endl;
-	scene_files.push_back(thisFullFileName);
       } else {
 	cout << " is NOT a directory." << endl;
+	scene_files.push_back(thisFullFileName);
       }
     }
   } else {
@@ -3706,9 +3706,49 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
        use note: stack will pause between each example, allowing you to relabel the scene
        before proceeding, at which point the scene will be saved to disk and the next scene
        loaded, pausing again. */
+
+  string baseClassTrialFolderName;
+  GET_STRING_ARG(ms, baseClassTrialFolderName);
+
+  vector<string> scene_files;
+  vector<string>::iterator it;
+
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+
+  dpdf = opendir(baseClassTrialFolderName.c_str());
+  if (dpdf != NULL){
+    cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << baseClassTrialFolderName << " during snoop...";
+    while (epdf = readdir(dpdf)){
+      string thisFileName(epdf->d_name);
+
+      string thisFullFileName(baseClassTrialFolderName.c_str());
+      thisFullFileName = thisFullFileName + "/" + thisFileName;
+      cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << thisFullFileName << " during snoop...";
+
+      struct stat buf2;
+      stat(thisFullFileName.c_str(), &buf2);
+
+      int itIsADir = S_ISDIR(buf2.st_mode);
+      if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+	cout << " is a directory." << endl;
+      } else {
+	cout << " is NOT a directory." << endl;
+	ms->pushWord("pauseStackExecution");
+	ms->pushWord("tempUpdateMaps");
+	ms->pushWord("scenePredictBestObject");
+	ms->pushWord("sceneLoadScene");
+	ms->pushWord( make_shared<StringWord>(thisFullFileName) );
        
-  string baseClassName;
-  GET_STRING_ARG(ms, baseClassName);
+      }
+    }
+  } else {
+    ROS_ERROR_STREAM("catScan5VarianceTrialCalculatePoseVariances: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
+  } 
+
+
 }
 END_WORD
 REGISTER_WORD(CatScan5VarianceTrialAuditClassNames)
