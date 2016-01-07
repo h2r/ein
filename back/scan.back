@@ -727,7 +727,7 @@ workspace4 "outputPileWorkspace" store
 /*
       pickFocusedClass
 */
-      tempMapAndPick
+      tempMapFocusedAndPick
 
       playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
 
@@ -794,7 +794,7 @@ workspace4 "outputPileWorkspace" store
     mapLocal
     pickClosestBlueBox
 */
-    tempMapAndPick
+    tempMapFocusedAndPick
 
     playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
     scan_findObjectAfterDrop "scan_catScanSees" store
@@ -871,7 +871,7 @@ workspace4 "outputPileWorkspace" store
 
       setPlaceModeToHold
       clearMapForPatrol
-      tempMapAndPick
+      tempMapFocusedAndPick
 
       playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
 
@@ -931,7 +931,7 @@ workspace4 "outputPileWorkspace" store
     mapLocal
     pickClosestBlueBox
 */
-    tempMapAndPick
+    tempMapFocusedAndPick
 
     playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
     scan_findObjectAfterDrop "scan_catScanSees" store
@@ -957,17 +957,17 @@ dateString "catScan5VarianceTrialThisTime" store
 
   "catScan5VarianceTrial BEGINNING" print
 
+  perturbPosition 
+  ( setRandomOrientationForPhotospin ) 10 replicateWord
+
   sceneClearPredictedObjects tempUpdateMaps 
 
     1 
   sceneSetDiscrepancySearchDepth 
-  tempShortServoToFocusedSceneObject waitUntilAtCurrentPosition 
+  ( tempShortServoToFocusedSceneObject waitUntilAtCurrentPosition ) 3 replicateWord
 
     3000 
   sceneSetDiscrepancySearchDepth 
-
-  tempFivePointThreeWidthIsNewComponentNormalizedSumOfLogs 
-  pop
 
      dateString
   "catScan5VarianceTrialThisTime" store
@@ -1000,7 +1000,7 @@ dateString "catScan5VarianceTrialThisTime" store
     0 
   "scan_catScanCounter" store
 
-    "catScan_" robotSerial leftOrRightArm dateString "/" + + + + 
+    "catScan5_" robotSerial leftOrRightArm dateString "/" + + + + 
   "scan_catScanObjectName" store
     scan_catScanObjectName 
   setScanGroup
@@ -1060,7 +1060,7 @@ dateString "catScan5VarianceTrialThisTime" store
 
       setPlaceModeToHold
       clearMapForPatrol
-      tempMapAndPick
+      tempMapFocusedAndPick
 
 	playWorkspace 
       moveEeToPoseWord waitUntilAtCurrentPosition
@@ -1133,7 +1133,7 @@ dateString "catScan5VarianceTrialThisTime" store
       catScan5VarianceTrial 
     ) catScan5NumVarianceTrials replicateWord
 
-    tempMapAndPick
+    tempMapFocusedAndPick
 
       playWorkspace 
     moveEeToPoseWord 
@@ -1153,6 +1153,87 @@ dateString "catScan5VarianceTrialThisTime" store
     redundant servoing and collect data for localization and classification studies
   */
 ) "catScan5" store
+
+(
+  playWorkspace moveEeToPoseWord 
+  tempUpdateBg
+  playWorkspace cw_clearWorkspace
+  openGripper waitUntilGripperNotMoving
+  ">>>> entering pickFromInputPile <<<<" print
+
+  ( isGripperGripping ! ) (
+    /*
+    endArgs "kr_dash2" setClassLabels createCachedClassifierFromClassLabels "kr_dash2" setTargetClass setPickModeToStaticMarginals
+    2 setGradientServoHardMaxIterations
+    2 setGradientServoSoftMaxIterations
+    */
+    scan_swapToBars
+
+    0 "pileSwitchCounter" store
+
+    ( isGripperGripping ! ) (
+      ">>>> re-entering pickFromInputPile <<<<" print
+      openGripper
+      halfImpulse
+      inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
+      ( perturbPosition ) 5 replicateWord 
+      1 changeToHeight 
+      waitUntilAtCurrentPosition
+      clearMapForPatrol clearBlueBoxMemories mapLocal
+      deliverTargetObject
+      liftArm
+      pileSwitchCounter 1 + "pileSwitchCounter" store
+      pileSwitchCounter pileSwitchThreshold > ( 
+	"  >>>> switching piles " print
+	inputPileWorkspace "temp" store 
+	outputPileWorkspace "inputPileWorkspace" store
+	temp "outputPileWorkspace" store
+	0 "pileSwitchCounter" store
+      ) ift
+    ) while
+
+    halfImpulse
+    playWorkspace moveEeToPoseWord
+    waitUntilAtCurrentPosition
+    ( zDown ) 15 replicateWord
+
+    isGripperGripping ! ( playWorkspace cw_clearWorkspace ) ift 
+  ) while
+) "pickFromInputPile2" store
+
+(
+  setPickModeToLearningAlgorithmC
+  1 setSnapToFlushGrasp
+  2 setGradientServoHardMaxIterations
+  2 setGradientServoSoftMaxIterations
+
+  1 "somethingsThere" store
+
+  ( isGripperGripping ! somethingsThere and ) (
+    ">>>> entering moveToOutputPile <<<<" print
+    halfImpulse playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
+    ( perturbPosition ) 5 replicateWord 
+    openGripper
+    halfImpulse
+    1 changeToHeight
+    setPlaceModeToHold
+
+    playWorkspace cw_workspaceIsClear ( 0 "somethingsThere" store ) ift
+
+    "somethingsThere: " print somethingsThere print
+
+    1 changeToHeight
+    pickFocusedClass
+    isGripperGripping ( liftArm ) ( openGripper playWorkspace cw_clearWorkspace ) ifte
+  ) while
+
+  somethingsThere isGripperGripping and (
+    halfImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
+    isGripperGripping ( comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper liftArm ) ift 
+  ) ( openGripper ) ifte
+
+  playWorkspace cw_clearWorkspace
+) "moveToOutputPile2" store
 
 
 

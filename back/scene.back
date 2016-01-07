@@ -114,6 +114,11 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) 20 replicateWord endStackCollapseNoop ) 80 replicateWord
 */
 
+  50 "tempSpiralStreamTakeSceneSamples" store
+  streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
+
+  rewindImageStreamBufferNLNK 
+  ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) tempSpiralStreamTakeSceneStride replicateWord endStackCollapseNoop ) tempSpiralStreamTakeSceneSamples replicateWord
 
 ) "tempSpiralStreamTakeScene" store
 
@@ -196,7 +201,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 (
   numClasses 0 > (
-    0.5 "tempNewComponentThresh" store
+    0.15 "tempNewComponentThresh" store
     sceneClearPredictedObjects
     sceneClearObservedMap
 
@@ -283,7 +288,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 (
   /* this probably has a name, like pseudo-likelihood or something */
   numClasses 0 > (
-    0.5 "tempNewComponentThresh" store
+    0.15 "tempNewComponentThresh" store
     sceneClearPredictedObjects
     sceneClearObservedMap
 
@@ -413,7 +418,10 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempMoveToSceneObject" store
 
 (
+  tempShortTakeScene tempServoToBestObject
+) "tempShortServoToBestSceneObject" store
 
+(
   tempShortTakeScene tempServoToFocusedSceneObject
 ) "tempShortServoToFocusedSceneObject" store
 
@@ -421,6 +429,11 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   sceneClearPredictedObjects tempUpdateMaps scenePredictFocusedObject  tempUpdateMaps
   0 tempMoveToSceneObject
 ) "tempServoToFocusedSceneObject" store
+
+(
+  sceneClearPredictedObjects tempUpdateMaps scenePredictBestObject tempUpdateMaps
+  0 tempMoveToSceneObject
+) "tempServoToBestObject" store
 
 (
 /* demos relative transforms */
@@ -609,6 +622,53 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempAddBarGrasp" store
 
 (
+  clearMapForPatrol
+
+  lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
+  (
+    tempShortServoToFocusedSceneObject
+    waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  ) 3 replicateWord
+  currentPose tempScanBasePZ setEEPosePZ "tempScanBase" store
+
+  tempSwapToBlocks 
+  (
+    tempShortServoToBestSceneObject
+    waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  ) 3 replicateWord
+  quarterTurn /* this gets into orientation to pick, since this is a block grasp */
+  currentPose tempScanBasePZ pickFlushFactor + setEEPosePZ "tempScanNewGrasp" store
+  tempRestoreFromBlocks 
+
+  tempScanBase setC3dPoseBase
+  tempScanNewGrasp add3dGraspPoseWord
+  writeFocusedClass
+) "tempAddBlockGrasp" store
+
+(
+  slide ( pushClassLabels 1 sP ) "tempSwapClassLabels" store
+  focusedClassLabel "tempSwapTargetClass" store
+  setPickModeToStaticMarginals
+
+  clearClassLabels 
+  0.01 0.005 sceneFabricateIdealBlockModel 
+  0.02 0.01 sceneFabricateIdealBlockModel 
+  0.04 0.02 sceneFabricateIdealBlockModel  
+  0.06 0.03 sceneFabricateIdealBlockModel 
+  0.08 0.04 sceneFabricateIdealBlockModel
+  0.10 0.05 sceneFabricateIdealBlockModel
+
+  setGraspModeTo3D
+) "tempSwapToBlocks" store
+
+(
+  endArgs tempSwapClassLabels setClassLabels 
+  tempSwapTargetClass setTargetClass
+  createCachedClassifierFromClassLabels
+  setGraspModeTo3D
+) "tempRestoreFromBlocks" store
+
+(
   0 sceneMapSceneObject
   recordPreTargetLock
   /* prepareForGraspFromMemory */
@@ -647,13 +707,32 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempMapFocusedClass" store
 
 (
+  ( tempShortServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord
+
+  0 sceneMapSceneObject
+  recordPreTargetLock
+  /* prepareForGraspFromMemory */
+  recordPostTargetLock
+  publishRecognizedObjectArrayFromBlueBoxMemory
+) "tempMapBestClass" store
+
+(
   openGripper waitUntilGripperNotMoving
   setGraspModeTo3D
   setIdleModeToEmpty
   setPlaceModeToShake
 
   clearMapForPatrol clearBlueBoxMemories tempMapFocusedClass deliverTargetObject
-) "tempMapAndPick" store
+) "tempMapFocusedAndPick" store
+
+(
+  openGripper waitUntilGripperNotMoving
+  setGraspModeTo3D
+  setIdleModeToEmpty
+  setPlaceModeToShake
+
+  clearMapForPatrol clearBlueBoxMemories tempMapBestClass deliverTargetObject
+) "tempMapBestAndPick" store
 
 
 (

@@ -380,6 +380,31 @@ virtual void execute(std::shared_ptr<MachineState> ms)  {
   string baseClassPath;
   GET_STRING_ARG(ms, baseClassPath);
 
+  int last = baseClassPath.size()-1;
+  // find last non-slash character
+  if (baseClassPath[last] == '/') {
+    last = last-1;
+    while (last > -1) {
+      if (baseClassPath[last] == '/') {
+	last = last-1;
+      } else {
+	break;
+      }
+    }
+  }
+  // then find the character after the next slash
+  int first = last-1;
+  while (first > -1) {
+    if (baseClassPath[first] == '/') {
+      break;
+    } else {
+      first = first-1;
+    }
+  }
+  first = first+1;
+  // then take substring
+  string baseClassName = baseClassPath.substr(first, last-first+1);
+
   ms->pushWord("setClassLabels");
 
   DIR *dpdf;
@@ -401,11 +426,14 @@ virtual void execute(std::shared_ptr<MachineState> ms)  {
       stat(thisFullFileName.c_str(), &buf2);
 
       string varianceTrials("catScan5VarianceTrials");
+      stringstream ss;
+      ss << baseClassName << "/" << epdf->d_name;
+      string newClassName = ss.str();
 
       int itIsADir = S_ISDIR(buf2.st_mode);
       if (varianceTrials.compare(epdf->d_name) && dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
 	cout << " is a directory." << endl;
-	ms->pushWord(make_shared<StringWord>(epdf->d_name));
+	ms->pushWord(make_shared<StringWord>(newClassName));
       } else {
 	cout << " is NOT a directory." << endl;
       }
@@ -423,6 +451,32 @@ WORD(SetClassLabelsObjectFolderAbsolute)
 virtual void execute(std::shared_ptr<MachineState> ms)  {
   string objectFolderAbsolute;
   GET_STRING_ARG(ms, objectFolderAbsolute);
+
+  int last = objectFolderAbsolute.size()-1;
+  // find last non-slash character
+  if (objectFolderAbsolute[last] == '/') {
+    last = last-1;
+    while (last > -1) {
+      if (objectFolderAbsolute[last] == '/') {
+	last = last-1;
+      } else {
+	break;
+      }
+    }
+  }
+  // then find the character after the next slash
+  int first = last-1;
+  while (first > -1) {
+    if (objectFolderAbsolute[first] == '/') {
+      break;
+    } else {
+      first = first-1;
+    }
+  }
+  first = first+1;
+  // then take substring
+  string objectFolderName = objectFolderAbsolute.substr(first, last-first+1);
+
 
   ms->pushWord("setClassLabels");
 
@@ -472,7 +526,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)  {
 	      if (varianceTrials.compare(epdf_2->d_name) && dot.compare(epdf_2->d_name) && dotdot.compare(epdf_2->d_name) && itIsADir_2) {
 		cout << " is a directory." << endl;
 		stringstream ss;
-		ss << epdf->d_name << "/" << epdf_2->d_name;
+		ss << objectFolderName << "/" << epdf->d_name << "/" << epdf_2->d_name;
 		ms->pushWord(make_shared<StringWord>(ss.str()));
 	      } else {
 		cout << " is NOT a directory." << endl;
@@ -5302,31 +5356,32 @@ virtual string description() {
   return "Builds the matrix of gradients of the current class labels.";
 }
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double * result =  new double[ms->config.numClasses * ms->config.numClasses];
   int nc = ms->config.numClasses;
+  double * result =  new double[nc * nc];
 
-  for (int i = 0; i < ms->config.classLabels.size(); i++) {
-    for (int j = 0; j < ms->config.classLabels.size(); j++) {
+  for (int i = 0; i < nc; i++) {
+    for (int j = 0; j < nc; j++) {
       result[i + nc * j] = computeSimilarity(ms, i, j);
     }
   }
 
-  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+  for (int j = 0; j < nc; j++) {
     cout << std::setw(3) << j << ": " << ms->config.classLabels[j] << endl;
   }
   cout << "   " ;
-  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+  for (int j = 0; j < nc; j++) {
     cout << std::setw(10) << j ;
   }
   cout << endl;
 
-  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+  for (int i = 0; i < nc; i++) {
     cout << std::setw(3) << i;
-    for (int j = 0; j < ms->config.classLabels.size(); j++) {
+    for (int j = 0; j < nc; j++) {
       cout << std::setw(10) << result[i + nc * j];
     }
     cout << endl;
   }
+  delete result;
 }
 END_WORD
 REGISTER_WORD(BuildClassSimilarityMatrix)
@@ -5336,16 +5391,16 @@ virtual string description() {
   return "Builds the matrix of gradients of the current class labels.";
 }
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double * result =  new double[ms->config.numClasses];
   int nc = ms->config.numClasses;
+  double * result =  new double[nc];
 
   Mat frameFromDensity = makeGCrop(ms, 0, 0);
 
-  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+  for (int i = 0; i < nc; i++) {
     result[i] = computeSimilarity(ms, frameFromDensity, ms->config.classHeight1AerialGradients[i]);
   }
 
-  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+  for (int j = 0; j < nc; j++) {
     cout << std::setw(3) << j << ": " << ms->config.classLabels[j] << endl;
   }
 
@@ -5353,7 +5408,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   double max_of_classes = 0;
 
-  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+  for (int i = 0; i < nc; i++) {
     cout << std::setw(3) << i;
     cout << std::setw(10) << result[i];
     cout << endl;
@@ -5361,6 +5416,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 
   ms->pushWord(make_shared<DoubleWord>(max_of_classes));
+
+  delete result;
 }
 END_WORD
 REGISTER_WORD(BuildClassSimilarityMatrixFromDensity)
