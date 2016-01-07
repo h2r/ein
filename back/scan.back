@@ -975,7 +975,8 @@ dateString "catScan5VarianceTrialThisTime" store
   catScan5VarianceTrialDir "scene_" catScan5VarianceTrialBatchTime "_" catScan5VarianceTrialThisTime + + + + 
   "catScan5VarianceTrialThisFileName" store
 
-  sceneSetClassNameToFocusedClass
+  sceneSetAnnotatedClassNameToFocusedClass
+  sceneSetPredictedClassNameToFocusedClass
 
     catScan5VarianceTrialThisFileName ".yml" +
   sceneSaveSceneAbsolute

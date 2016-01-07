@@ -655,7 +655,8 @@ shared_ptr<GaussianMap> GaussianMap::copy() {
 
 shared_ptr<Scene> Scene::copy() {
   shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, width, height, cell_width);
-  toReturn->className = className;
+  toReturn->annotated_class_name = annotated_class_name;
+  toReturn->predicted_class_name = predicted_class_name;
   toReturn->background_map = background_map->copy();
   toReturn->predicted_map = predicted_map->copy();
   toReturn->observed_map = observed_map->copy();
@@ -783,7 +784,8 @@ Scene::Scene(shared_ptr<MachineState> _ms, int w, int h, double cw) {
   } else {}
 
 
-  className = string("NONAME");
+  predicted_class_name = string("NONAME");
+  annotated_class_name = string("NONAME");
   ms = _ms;
   width = w;
   height = h;
@@ -1387,6 +1389,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
 
     /* 
+    // l2 normalizing might mess up comparison on the positive regions vs negative... 
     double po_safe_l2norm = sqrt( std::max(1.0e-12, prepared_object.dot(prepared_object)) );
     prepared_object = prepared_object / po_safe_l2norm;
     {
@@ -1402,8 +1405,8 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
       double pd_meanless_l2norm = std::max(1.0e-12, prepared_discrepancy.dot(prepared_discrepancy));
       prepared_discrepancy = prepared_discrepancy / pd_meanless_l2norm;
     }
+    overlap_thresh = -DBL_MAX; 
     */
-    //overlap_thresh = -DBL_MAX; 
   } else {
     assert(0);
   }
@@ -1446,6 +1449,8 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 
 
   vector<SceneObjectScore> local_scores;
+  local_scores.reserve(1e5);
+  int pushed = 0;
 
   for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
 /*
@@ -1590,6 +1595,8 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
       }
     }
   }
+
+  cout << "  local_scores size:  " << local_scores.size() << endl;
 
   //cout << prepared_discrepancy << prepared_object ;
   double max_theta = -max_orient * 2.0 * M_PI / numOrientations;
@@ -2072,7 +2079,8 @@ void Scene::cellToMeters(int xc, int yc, double * xm, double * ym) {
 
 void Scene::writeToFileStorage(FileStorage& fsvO) {
   fsvO << "{";
-  fsvO << "className" << className;
+  fsvO << "predicted_class_name" << predicted_class_name;
+  fsvO << "annotated_class_name" << annotated_class_name;
   fsvO << "width" << width;
   fsvO << "height" << height;
   fsvO << "x_center_cell" << x_center_cell;
@@ -2129,7 +2137,8 @@ void Scene::readFromFileNodeIterator(FileNodeIterator& it) {
 
 void Scene::readFromFileNode(FileNode& it) {
 
-  (it)["className"] >> className;
+  (it)["predicted_class_name"] >> predicted_class_name;
+  (it)["annotated_class_name"] >> annotated_class_name;
   (it)["width"] >> width;
   (it)["height"] >> height;
   (it)["x_center_cell"] >> x_center_cell;
@@ -3617,16 +3626,26 @@ REGISTER_WORD(SceneSetDiscrepancyModePoint)
 
 
 
-WORD(SceneSetClassNameToFocusedClass)
+WORD(SceneSetPredictedClassNameToFocusedClass)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.scene->className = ms->config.focusedClassLabel;
-  cout << "sceneSetClassNameToFocusedClass: setting to " << ms->config.scene->className << endl;
+  ms->config.scene->predicted_class_name = ms->config.focusedClassLabel;
+  cout << "sceneSetPredictedClassNameToFocusedClass: setting to " << ms->config.scene->predicted_class_name << endl;
 }
 END_WORD
-REGISTER_WORD(SceneSetClassNameToFocusedClass)
+REGISTER_WORD(SceneSetPredictedClassNameToFocusedClass)
 
-CONFIG_GETTER_STRING(SceneGetClassName, ms->config.scene->className)
-CONFIG_SETTER_STRING(SceneSetClassName, ms->config.scene->className)
+WORD(SceneSetAnnotatedClassNameToFocusedClass)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.scene->annotated_class_name = ms->config.focusedClassLabel;
+  cout << "sceneSetAnnotatedClassNameToFocusedClass: setting to " << ms->config.scene->annotated_class_name << endl;
+}
+END_WORD
+REGISTER_WORD(SceneSetAnnotatedClassNameToFocusedClass)
+
+CONFIG_GETTER_STRING(SceneGetPredictedClassName, ms->config.scene->predicted_class_name)
+CONFIG_SETTER_STRING(SceneSetPredictedClassName, ms->config.scene->predicted_class_name)
+CONFIG_GETTER_STRING(SceneGetAnnotatedClassName, ms->config.scene->annotated_class_name)
+CONFIG_SETTER_STRING(SceneSetAnnotatedClassName, ms->config.scene->annotated_class_name)
 
 // count the number of equal digits
 int equalChars(string first, string second) {
@@ -3948,7 +3967,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
 	int thisSceneLabelIdx = -1;
 	for (int i = 0; i < nc; i++) {
-	  if ( 0 == ms->config.classLabels[i].compare(this_scene.className) ) {
+	  if ( 0 == ms->config.classLabels[i].compare(this_scene.annotated_class_name) ) {
 	    thisSceneLabelIdx = i;
 	    break;
 	  } else {
@@ -3957,7 +3976,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	if ( (this_class != -1) && (thisSceneLabelIdx != -1) ) {
 	  result[thisSceneLabelIdx + nc * this_class]++;
 	} else {
-	  cout << "catScan5VarianceTrialCalculateConfigurationAccuracy: could not find match for label " << this_scene.className << " for file " << thisFullFileName << endl;
+	  cout << "catScan5VarianceTrialCalculateConfigurationAccuracy: could not find match for label " << this_scene.annotated_class_name << " for file " << thisFullFileName << endl;
 	}
       }
     }
@@ -4106,9 +4125,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 		  std::min(after_next_series, int(class_label_to_trim.size()-1));
 		  // then take substring
 		  string trimmed_class_label = class_label_to_trim.substr(after_next_series, class_label_to_trim.size()-after_next_series);
-		  //cout << "TTTTTT: " << trimmed_class_label << "    " << this_scene.className << endl;
+		  //cout << "TTTTTT: " << trimmed_class_label << "    " << this_scene.annotated_class_name << endl;
 
-		  if ( 0 == trimmed_class_label.compare(this_scene.className) ) {
+		  if ( 0 == trimmed_class_label.compare(this_scene.annotated_class_name) ) {
 		    thisSceneLabelIdx = i;
 		    break;
 		  } else {
@@ -4117,7 +4136,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 		if ( (this_class != -1) && (thisSceneLabelIdx != -1) ) {
 		  result[thisSceneLabelIdx + nc * this_class]++;
 		} else {
-		  cout << "catScan5VarianceTrialCalculateConfigurationAccuracy: could not find match for label " << this_scene.className << " for file " << thisFullFileName << endl;
+		  cout << "catScan5VarianceTrialCalculateConfigurationAccuracy: could not find match for label " << this_scene.annotated_class_name << " for file " << thisFullFileName << endl;
 		}
 	      }
 	    }
@@ -4212,45 +4231,50 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   num_pos = std::max(num_pos, 1.0);
   num_neg = std::max(num_neg, 1.0);
 
+  // l2 norm is sqrt(num_pos)
+  //double pos_factor = 1.0/sqrt(num_pos);
+  //double neg_factor = 10.0/sqrt(num_neg);
+  double pos_factor = 1.0/(num_pos);
+  double neg_factor = 3.0/(num_neg);
+
+  double counts_scale = 1e4;
+
   // fill out proper values
   for (int y = 0; y < h; y++) {
     for (int x = 0; x < w; x++) {
       double this_x_m, this_y_m;
       ms->config.class_scene_models[tfc]->cellToMeters(x, y, &this_x_m, &this_y_m);
       if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/2.0)) ) {
-	fake_filter.at<double>(y,x) = scale/num_pos;
+	fake_filter.at<double>(y,x) = scale*pos_factor;
 	if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/4.0)) ) {
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.mu = 128;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.mu = 128;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.mu = 128;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = 1e4;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = 1e4;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = 1e4;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*192;
 	} else {
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.mu = 128;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.mu = 128;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.mu = 128;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = 1e4;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = 1e4;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = 1e4;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*64;
 	}
       } else if ( (fabs(this_y_m) <= (length_m/2.0)) && (  fabs(this_x_m) <= (this_collar_width_m + (   breadth_m/2.0   ))  ) ) {
-	fake_filter.at<double>(y,x) = -negative_space_weight_ratio*scale/num_neg;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.mu = 128;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.mu = 128;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.mu = 128;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = 1e4;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = 1e4;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = 1e4;
+	fake_filter.at<double>(y,x) = -negative_space_weight_ratio*scale*neg_factor;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*128;
       } else {
 	fake_filter.at<double>(y,x) = 0.0;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.mu = 128;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.mu = 128;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.mu = 128;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = 1e4;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = 1e4;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = 1e4;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*128;
       }
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.samples = counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.samples = counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.samples = counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.squaredcounts = 
+	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts / counts_scale, 2.0)*counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.squaredcounts = 
+	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts / counts_scale, 2.0)*counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.squaredcounts = 
+	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts / counts_scale, 2.0)*counts_scale;
     }
   }
   ms->config.class_scene_models[tfc]->discrepancy_density = fake_filter.clone();
@@ -4258,9 +4282,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Grasp toPush;
   double flushGraspZ = -ms->config.currentTableZ + ms->config.pickFlushFactor;
   toPush.grasp_pose = eePose(0,0,flushGraspZ,0.0,0.0,0.707106,0.7071068);
+  //toPush.grasp_pose = eePose(0,0,flushGraspZ,0.0,0.0,0.0,1.0);
   toPush.tries = 1;
   toPush.successes = 1;
   toPush.failures = 0;
+  ms->config.class3dGrasps[tfc].resize(0);
   ms->config.class3dGrasps[tfc].push_back(toPush);
 }
 END_WORD
