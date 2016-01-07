@@ -9790,6 +9790,14 @@ void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces) {
 
 
 void initRangeMaps(shared_ptr<MachineState> ms) {
+  initRangeMapsNoLoad(ms);
+  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    cout << "Trying to load range map for class " << i << endl;
+    tryToLoadRangeMap(ms, ms->config.class_crops_path, ms->config.classLabels[i].c_str(), i);
+  }
+}
+
+void initRangeMapsNoLoad(shared_ptr<MachineState> ms) {
   ms->config.classRangeMaps.resize(ms->config.numClasses);
   ms->config.classGraspMemoryTries1.resize(ms->config.numClasses);
   ms->config.classGraspMemoryPicks1.resize(ms->config.numClasses);
@@ -9821,10 +9829,6 @@ void initRangeMaps(shared_ptr<MachineState> ms) {
 
   ms->config.classHeightMemoryTries.resize(ms->config.numClasses);
   ms->config.classHeightMemoryPicks.resize(ms->config.numClasses);
-  for (int i = 0; i < ms->config.classLabels.size(); i++) {
-    cout << "Trying to load range map for class " << i << endl;
-    tryToLoadRangeMap(ms, ms->config.class_crops_path, ms->config.classLabels[i].c_str(), i);
-  }
 }
 
 int isThisGraspMaxedOut(shared_ptr<MachineState> ms, int i) {

@@ -1368,8 +1368,6 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 
   double p_scene_sigma = 2.0;
 
-  // XXX this should be passed, probably, and using .01 so some objects don't get washed out
-  double p_discrepancy_thresh = ms->config.scene_score_thresh;
 
   Mat prepared_discrepancy;
   {
@@ -1382,6 +1380,33 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   double max_dim = max(object_to_prepare.rows, object_to_prepare.cols);
 
   Mat prepared_object = object_to_prepare;
+
+  double p_discrepancy_thresh = ms->config.scene_score_thresh;
+  double overlap_thresh = 0.05;
+  if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
+  } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
+
+    /* 
+    double po_safe_l2norm = sqrt( std::max(1.0e-12, prepared_object.dot(prepared_object)) );
+    prepared_object = prepared_object / po_safe_l2norm;
+    {
+      double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
+      prepared_object = prepared_object - po_l1norm;
+      double po_meanless_l2norm = std::max(1.0e-12, prepared_object.dot(prepared_object));
+      prepared_object = prepared_object / po_meanless_l2norm;
+      cout << "TTTTTT: " << po_l1norm << " " << po_meanless_l2norm << endl;
+    }
+    {
+      double pd_l1norm = prepared_discrepancy.dot(Mat::ones(prepared_discrepancy.rows, prepared_discrepancy.cols, prepared_discrepancy.type()));
+      prepared_discrepancy = prepared_discrepancy - pd_l1norm;
+      double pd_meanless_l2norm = std::max(1.0e-12, prepared_discrepancy.dot(prepared_discrepancy));
+      prepared_discrepancy = prepared_discrepancy / pd_meanless_l2norm;
+    }
+    */
+    //overlap_thresh = -DBL_MAX; 
+  } else {
+    assert(0);
+  }
 
 /*
   Mat prepared_object = Mat(max_dim, max_dim, CV_64F);
@@ -1410,7 +1435,6 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   //double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
   double po_l2norm = prepared_object.dot(prepared_object);
   cout << "  po_l2norm: " << po_l2norm << endl;
-  double overlap_thresh = 0.05;
 
   Size toBecome(max_dim, max_dim);
 
@@ -1547,6 +1571,8 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
 	  } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
 	    to_push.loglikelihood_valid = true;
 	    to_push.loglikelihood_score = to_push.discrepancy_score;
+	  } else {
+	    assert(0);
 	  }
 
 	  local_scores.push_back(to_push);
@@ -1579,16 +1605,23 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
   //*l_max_score = -DBL_MAX;
   *l_max_orient = -1;
   *l_max_i = -1;
-  std::sort(local_scores.begin(), local_scores.end(), compareDiscrepancyDescending);
-  int to_check = min( int(ms->config.sceneDiscrepancySearchDepth), int(local_scores.size()) );
-  for (int i = 0; i < to_check; i++) {
-    if ( ! local_scores[i].loglikelihood_valid ) {
-      // XXX score should return the delta of including vs not including
-      local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
-      local_scores[i].loglikelihood_valid = true;
-      //cout << "  running inference on class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
+
+  if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
+    std::sort(local_scores.begin(), local_scores.end(), compareDiscrepancyDescending);
+    int to_check = min( int(ms->config.sceneDiscrepancySearchDepth), int(local_scores.size()) );
+    for (int i = 0; i < to_check; i++) {
+      if ( ! local_scores[i].loglikelihood_valid ) {
+	// XXX score should return the delta of including vs not including
+	local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
+	local_scores[i].loglikelihood_valid = true;
+	//cout << "  running inference on class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
+      }
     }
+  } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
+  } else {
+    assert(0);
   }
+
 
   for (int i = 0; i < local_scores.size(); i++) {
     if ( (local_scores[i].loglikelihood_valid) && (local_scores[i].loglikelihood_score > *l_max_score) ) {
@@ -1937,17 +1970,19 @@ void Scene::tryToAddBestObjectToScene() {
   double l_max_x_meters, l_max_y_meters;
   cellToMeters(l_max_x, l_max_y, &l_max_x_meters, &l_max_y_meters);
 
+  cout << "findBestObjectAndScore: best object was class " << l_max_class << endl;
+
   //if (l_max_x > -1)
   if (l_max_score > -DBL_MAX)
   {
     if (l_max_score > 0) {
       cout << "best detection made an improvement..." << endl;
       cout << "adding object." << endl;
-      this->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, tfc);
+      this->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, l_max_class);
     } else {
       cout << "best detection made things worse alone..." << endl;
       cout << "should NOT adding object but for now we are..." << endl;
-      this->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, tfc);
+      this->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, l_max_class);
     }
   } else {
     cout << "Did not find a valid cell... not adding object." << endl;
@@ -3445,6 +3480,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ScenePushNumSceneObjects)
 
+WORD(ScenePushSceneObjectLabel)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int to_map = 0;
+  GET_INT_ARG(ms, to_map);
+  REQUIRE_VALID_SCENE_OBJECT(ms, to_map);
+  shared_ptr<SceneObject> tso = ms->config.scene->predicted_objects[to_map];
+  REQUIRE_VALID_CLASS(ms, tso->labeled_class_index);
+  ms->pushWord( make_shared<StringWord>(ms->config.classLabels[ tso->labeled_class_index ]) );
+}
+END_WORD
+REGISTER_WORD(ScenePushSceneObjectLabel)
+
 WORD(SceneMapSceneObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int to_map = 0;
@@ -4133,7 +4180,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.classLabels[tfc] = ss.str();
 
   double scale = 1;
-  double this_collar_width_m = 0.00;
+  double negative_space_weight_ratio = 1.0;
+  double this_collar_width_m = 0.02;
   double this_cw = ms->config.scene->cell_width; 
   int this_w = ceil( (3.0 * this_collar_width_m + breadth_m) / this_cw);
   int this_h = ceil( (3.0 * this_collar_width_m + length_m) / this_cw);
@@ -4161,8 +4209,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   cout << "w: " << w << " h: " << h << " num_pos: " << num_pos << " num_neg: " << num_neg << " this_w: " << this_w << " this_h: " << this_h << " this_cw: " << this_cw << endl;
 
-  num_neg = std::max(num_neg, 1.0);
   num_pos = std::max(num_pos, 1.0);
+  num_neg = std::max(num_neg, 1.0);
 
   // fill out proper values
   for (int y = 0; y < h; y++) {
@@ -4172,24 +4220,36 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/2.0)) ) {
 	fake_filter.at<double>(y,x) = scale/num_pos;
 	if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/4.0)) ) {
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.mu = 255;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.mu = 255;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.mu = 128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.mu = 128;
 	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.mu = 128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = 1e4;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = 1e4;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = 1e4;
 	} else {
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.mu = 0;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.mu = 255;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.mu = 128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.mu = 128;
 	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.mu = 128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = 1e4;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = 1e4;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = 1e4;
 	}
       } else if ( (fabs(this_y_m) <= (length_m/2.0)) && (  fabs(this_x_m) <= (this_collar_width_m + (   breadth_m/2.0   ))  ) ) {
-	fake_filter.at<double>(y,x) = -scale/num_neg;
+	fake_filter.at<double>(y,x) = -negative_space_weight_ratio*scale/num_neg;
 	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.mu = 128;
 	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.mu = 128;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.mu = 255;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.mu = 128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = 1e4;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = 1e4;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = 1e4;
       } else {
 	fake_filter.at<double>(y,x) = 0.0;
 	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.mu = 128;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.mu = 255;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.mu = 255;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.mu = 128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.mu = 128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = 1e4;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = 1e4;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = 1e4;
       }
     }
   }
