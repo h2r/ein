@@ -52,7 +52,8 @@ void initializeAndFocusOnTempClass(shared_ptr<MachineState> ms) {
   ms->config.classLabels.push_back(thisLabelName);
   ms->config.numClasses = ms->config.classLabels.size();
 
-  initRangeMaps(ms);
+  // normal initRangeMaps here would try to load nonexistant material for and clobber previous temp objects
+  initRangeMapsNoLoad(ms);
   guardGraspMemory(ms);
   guardHeightMemory(ms);
   guardSceneModels(ms);
