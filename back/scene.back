@@ -66,6 +66,8 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempSpiralTakeScene" store
 
 (
+  "tempUpdateSpiralN" store
+
   /* clear it all */
   sceneClearObservedMap
   clearStreamBuffers
@@ -83,7 +85,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   0.05 setSpeed
   0.03 setW1GoThresh
 
-  "tempUpdateSpiralN" store
+
   1 "tempUpdateSpiralIdx" store
 
   ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
@@ -570,7 +572,8 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   sceneClearObservedMap sceneClearPredictedObjects 
 
   0.01 setGridSize
-  tempUpdateFivePointThreeWidth
+  /* tempUpdateFivePointThreeWidth */
+  14 tempSpiralStreamTakeScene
   tempCaptureCore
 
   /* no additional scan */

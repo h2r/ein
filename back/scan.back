@@ -957,17 +957,12 @@ dateString "catScan5VarianceTrialThisTime" store
 
   "catScan5VarianceTrial BEGINNING" print
 
-  perturbPosition 
-  ( setRandomOrientationForPhotospin ) 10 replicateWord
+  0.1 perturbPositionScale waitUntilAtCurrentPosition
 
   sceneClearPredictedObjects tempUpdateMaps 
 
-    1 
-  sceneSetDiscrepancySearchDepth 
   ( tempShortServoToFocusedSceneObject waitUntilAtCurrentPosition ) 3 replicateWord
 
-    3000 
-  sceneSetDiscrepancySearchDepth 
 
      dateString
   "catScan5VarianceTrialThisTime" store
