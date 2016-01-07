@@ -1027,6 +1027,9 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
   ms->pushWord("waitUntilGripperNotMoving");
 
   if (ms->config.currentGraspMode == GRASP_CRANE || ms->config.class3dGrasps[ms->config.targetClass].size() == 0) {
+    if (ms->config.currentGraspMode == GRASP_3D) {
+      ROS_ERROR_STREAM("executePreparedGrasp: grasp mode GRASP_3D but class3dGrasps[*].size() = 0!" << endl);
+    } else {}
     ms->pushWord("moveToTargetZAndGrasp"); 
   } else if (ms->config.currentGraspMode == GRASP_3D) {
     ms->pushWord("closeGripper"); 

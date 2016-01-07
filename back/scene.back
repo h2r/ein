@@ -647,7 +647,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 0.055 "tempBlockMaxGraspThickness" store
 0.04 "tempBlockGripperThrow" store
-0.01 "tempBlockGraspResolution" store
+0.005 "tempBlockGraspResolution" store
 0.03 "tempBlockTargetContactWidth" store
 (
   0.00 "scenePredictedMapThresh" store

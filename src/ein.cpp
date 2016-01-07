@@ -9791,6 +9791,16 @@ void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces) {
 
 void initRangeMaps(shared_ptr<MachineState> ms) {
   initRangeMapsNoLoad(ms);
+
+  ms->config.class3dGrasps.resize(ms->config.numClasses);
+  ms->config.classPlaceUnderPoints.resize(ms->config.numClasses);
+  ms->config.classPlaceOverPoints.resize(ms->config.numClasses);
+  for(int i = 0; i < ms->config.numClasses; i++) {
+    ms->config.class3dGrasps[i].resize(0);
+    ms->config.classPlaceUnderPoints[i].resize(0);
+    ms->config.classPlaceOverPoints[i].resize(0);
+  }
+
   for (int i = 0; i < ms->config.classLabels.size(); i++) {
     cout << "Trying to load range map for class " << i << endl;
     tryToLoadRangeMap(ms, ms->config.class_crops_path, ms->config.classLabels[i].c_str(), i);
@@ -9817,15 +9827,6 @@ void initRangeMapsNoLoad(shared_ptr<MachineState> ms) {
 
   ms->config.classGraspZs.resize(ms->config.numClasses);
   ms->config.classGraspZsSet.resize(ms->config.numClasses);
-
-  ms->config.class3dGrasps.resize(ms->config.numClasses);
-  ms->config.classPlaceUnderPoints.resize(ms->config.numClasses);
-  ms->config.classPlaceOverPoints.resize(ms->config.numClasses);
-  for(int i = 0; i < ms->config.numClasses; i++) {
-    ms->config.class3dGrasps[i].resize(0);
-    ms->config.classPlaceUnderPoints[i].resize(0);
-    ms->config.classPlaceOverPoints[i].resize(0);
-  }
 
   ms->config.classHeightMemoryTries.resize(ms->config.numClasses);
   ms->config.classHeightMemoryPicks.resize(ms->config.numClasses);
