@@ -57,6 +57,7 @@ void initializeAndFocusOnTempClass(shared_ptr<MachineState> ms) {
   guardGraspMemory(ms);
   guardHeightMemory(ms);
   guardSceneModels(ms);
+  guard3dGrasps(ms);
 }
 
 
@@ -107,6 +108,7 @@ void initializeAndFocusOnNewClass(shared_ptr<MachineState> ms) {
   guardGraspMemory(ms);
   guardHeightMemory(ms);
   guardSceneModels(ms);
+  guard3dGrasps(ms);
 
   int idx = ms->config.focusedClass;
   string folderName = ms->config.data_directory + "/objects/" + ms->config.classLabels[idx] + "/";
