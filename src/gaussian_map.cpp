@@ -273,9 +273,17 @@ void _GaussianMapCell::newObservation(Vec3b vec) {
 void GaussianMap::reallocate() {
   if (width <= 0 || height <= 0) {
     cout << "GaussianMap area error: tried to allocate width, height: " << width << " " << height << endl;
-  } else if ((width % 2 == 0) || (height % 2 == 0)) {
-    cout << "GaussianMap parity error: tried to allocate width, height: " << width << " " << height << endl;
   } else {
+
+    if (width % 2 == 0) {
+      cout << "GaussianMap parity error: tried to allocate width: " << width << " " << height << endl;
+      width = width+1;
+    } else {}
+    if (height % 2 == 0) {
+      cout << "GaussianMap parity error: tried to allocate height: " << width << " " << height << endl;
+      height = height+1;
+    } else {}
+
     if (cells == NULL) {
       cells = new GaussianMapCell[width*height];
     } else {
@@ -764,6 +772,17 @@ void SceneObject::readFromFileNode(FileNode& it) {
 
 
 Scene::Scene(shared_ptr<MachineState> _ms, int w, int h, double cw) {
+
+  if (w % 2 == 0) {
+    cout << "GaussianMap parity error: tried to allocate width: " << w << " so adding 1..." << endl;
+    w = w+1;
+  } else {}
+  if (h % 2 == 0) {
+    cout << "GaussianMap parity error: tried to allocate height: " << h << " so adding 1..." << endl;
+    h = h+1;
+  } else {}
+
+
   className = string("NONAME");
   ms = _ms;
   width = w;
@@ -836,6 +855,7 @@ void Scene::initializePredictedMapWithBackground() {
 
 
 void Scene::composePredictedMap(double threshold) {
+  //REQUIRE_FOCUSED_CLASS(ms, tfc);
   // XXX
   // choose the argMAP distribution
   //   assign that color to the predicted map
@@ -2017,6 +2037,7 @@ void Scene::cellToMeters(int xc, int yc, double * xm, double * ym) {
 
 void Scene::writeToFileStorage(FileStorage& fsvO) {
   fsvO << "{";
+  fsvO << "className" << className;
   fsvO << "width" << width;
   fsvO << "height" << height;
   fsvO << "x_center_cell" << x_center_cell;
@@ -2073,6 +2094,7 @@ void Scene::readFromFileNodeIterator(FileNodeIterator& it) {
 
 void Scene::readFromFileNode(FileNode& it) {
 
+  (it)["className"] >> className;
   (it)["width"] >> width;
   (it)["height"] >> height;
   (it)["x_center_cell"] >> x_center_cell;
@@ -2098,8 +2120,11 @@ void Scene::readFromFileNode(FileNode& it) {
   readPredictedObjects(node);
 
   it["predicted_segmentation"] >> predicted_segmentation;
-  it["discrepancy_magnitutde"] >> discrepancy_magnitude;
+  it["discrepancy_magnitude"] >> discrepancy_magnitude;
   it["discrepancy_density"] >> discrepancy_density;
+
+
+  cout << discrepancy_density.size() << discrepancy_magnitude.size() << width << " " << height << endl;
 
 }
 
@@ -3553,6 +3578,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneSetClassNameToFocusedClass)
 
+CONFIG_GETTER_STRING(SceneGetClassName, ms->config.scene->className)
+CONFIG_SETTER_STRING(SceneSetClassName, ms->config.scene->className)
 
 // count the number of equal digits
 int equalChars(string first, string second) {
@@ -3603,7 +3630,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       int itIsADir = S_ISDIR(buf2.st_mode);
       if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
 	cout << " is a directory." << endl;
-      } else {
+      } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
 	cout << " is NOT a directory." << endl;
 	scene_files.push_back(thisFullFileName);
       }
@@ -3619,7 +3646,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     cout << *it << endl;
   }
   cout << endl;
-
 
   // XXX this should be von mises or something instead for theta, but for now leave it at this
   double sum_x = 0.0;
@@ -3644,6 +3670,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
       Scene this_scene(ms, 2, 2, 0.02);
       this_scene.loadFromFile(scene_files[last]);
+      this_scene.predicted_objects.resize(0);
+      this_scene.composePredictedMap(0.01);
+      this_scene.measureDiscrepancy();
+
       this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
 
       double this_theta = -this_orient * 2.0 * M_PI / num_orientations;
@@ -3704,6 +3734,63 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(CatScan5VarianceTrialCalculatePoseVariances)
 
+WORD(CatScan5VarianceTrialAutolabelClassNames)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX 
+  /* loop over all variance trial files, estimate poses and configurations, 
+     and pause to allow a human to set the true label.
+       pre-requisite: you should use setClassLabelsBaseClassAbsolute to load
+       configurations for the object whose variance trial folder you pass to this word. 
+       use note: stack will pause between each example, allowing you to relabel the scene
+       before proceeding, at which point the scene will be saved to disk and the next scene
+       loaded, pausing again. */
+
+  string baseClassTrialFolderName;
+  GET_STRING_ARG(ms, baseClassTrialFolderName);
+
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+
+  dpdf = opendir(baseClassTrialFolderName.c_str());
+  if (dpdf != NULL){
+    cout << "catScan5VarianceTrialAutolabelClassNames: checking " << baseClassTrialFolderName << " during snoop...";
+    while (epdf = readdir(dpdf)){
+      string thisFileName(epdf->d_name);
+
+      string thisFullFileName(baseClassTrialFolderName.c_str());
+      thisFullFileName = thisFullFileName + "/" + thisFileName;
+      cout << "catScan5VarianceTrialAutolabelClassNames: checking " << thisFullFileName << " during snoop...";
+
+      struct stat buf2;
+      stat(thisFullFileName.c_str(), &buf2);
+
+      int itIsADir = S_ISDIR(buf2.st_mode);
+      if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+	cout << " is a directory." << endl;
+      } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
+	cout << " is NOT a directory." << endl;
+	ms->pushWord("sceneSaveSceneAbsolute");
+	ms->pushWord( make_shared<StringWord>(thisFullFileName) );
+	ms->pushWord("endStackCollapseNoop");
+	ms->pushWord("tempUpdateMaps");
+	// labels and leaves these detections in the scene
+	ms->pushWord("sceneSetClassNameToFocusedClass");
+	ms->pushWord("scenePredictBestObject");
+	ms->pushWord("tempUpdateMaps");
+	ms->pushWord("sceneClearPredictedObjects");
+	ms->pushWord("sceneLoadSceneRaw");
+	ms->pushWord( make_shared<StringWord>(thisFullFileName) );
+      }
+    }
+  } else {
+    ROS_ERROR_STREAM("catScan5VarianceTrialAutolabelClassNames: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
+  } 
+}
+END_WORD
+REGISTER_WORD(CatScan5VarianceTrialAutolabelClassNames)
+
 WORD(CatScan5VarianceTrialAuditClassNames)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 // XXX 
@@ -3725,13 +3812,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   dpdf = opendir(baseClassTrialFolderName.c_str());
   if (dpdf != NULL){
-    cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << baseClassTrialFolderName << " during snoop...";
+    cout << "catScan5VarianceTrialAuditClassNames: checking " << baseClassTrialFolderName << " during snoop...";
     while (epdf = readdir(dpdf)){
       string thisFileName(epdf->d_name);
 
       string thisFullFileName(baseClassTrialFolderName.c_str());
       thisFullFileName = thisFullFileName + "/" + thisFileName;
-      cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << thisFullFileName << " during snoop...";
+      cout << "catScan5VarianceTrialAuditClassNames: checking " << thisFullFileName << " during snoop...";
 
       struct stat buf2;
       stat(thisFullFileName.c_str(), &buf2);
@@ -3739,18 +3826,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       int itIsADir = S_ISDIR(buf2.st_mode);
       if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
 	cout << " is a directory." << endl;
-      } else {
+      } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
 	cout << " is NOT a directory." << endl;
 	ms->pushWord("pauseStackExecution");
 	ms->pushWord("tempUpdateMaps");
-	ms->pushWord("scenePredictBestObject");
-	ms->pushWord("sceneLoadScene");
+	// preserves the prediction that was last saved
+	ms->pushWord("sceneLoadSceneRaw");
 	ms->pushWord( make_shared<StringWord>(thisFullFileName) );
        
       }
     }
   } else {
-    ROS_ERROR_STREAM("catScan5VarianceTrialCalculatePoseVariances: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
+    ROS_ERROR_STREAM("catScan5VarianceTrialAuditClassNames: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
   } 
 
 }
@@ -3764,8 +3851,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
        pre-requisite: you should use setClassLabelsBaseClassAbsolute to load
        configurations for the object whose variance trial folder you pass to this word. */
 
-  double * result =  new double[ms->config.numClasses * ms->config.numClasses];
   int nc = ms->config.numClasses;
+  double * result =  new double[nc * nc];
+  for (int i = 0; i < nc; i++) {
+    for (int j = 0; j < nc; j++) {
+      result[i + nc * j] = 0;
+    }
+  }
 
   string baseClassTrialFolderName;
   GET_STRING_ARG(ms, baseClassTrialFolderName);
@@ -3777,13 +3869,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   dpdf = opendir(baseClassTrialFolderName.c_str());
   if (dpdf != NULL){
-    cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << baseClassTrialFolderName << " during snoop...";
+    cout << "catScan5VarianceTrialCalculateConfigurationAccuracy: checking " << baseClassTrialFolderName << " during snoop...";
     while (epdf = readdir(dpdf)){
       string thisFileName(epdf->d_name);
 
       string thisFullFileName(baseClassTrialFolderName.c_str());
       thisFullFileName = thisFullFileName + "/" + thisFileName;
-      cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << thisFullFileName << " during snoop...";
+      cout << "catScan5VarianceTrialCalculateConfigurationAccuracy: checking " << thisFullFileName << " during snoop...";
 
       struct stat buf2;
       stat(thisFullFileName.c_str(), &buf2);
@@ -3791,7 +3883,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       int itIsADir = S_ISDIR(buf2.st_mode);
       if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
 	cout << " is a directory." << endl;
-      } else {
+      } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
 	cout << " is NOT a directory." << endl;
 	// load scene and detect 
 	// XXX
@@ -3802,6 +3894,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
 	Scene this_scene(ms, 2, 2, 0.02);
 	this_scene.loadFromFile(thisFullFileName);
+	this_scene.predicted_objects.resize(0);
+	this_scene.composePredictedMap(0.01);
+	this_scene.measureDiscrepancy();
+
 	this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
 	int thisSceneLabelIdx = -1;
 	for (int i = 0; i < nc; i++) {
@@ -3814,32 +3910,34 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	if ( (this_class != -1) && (thisSceneLabelIdx != -1) ) {
 	  result[thisSceneLabelIdx + nc * this_class]++;
 	} else {
-	  cout << "catScan5VarianceTrialCalculatePoseVariances: could not find match for label " << this_scene.className << " for file " << thisFullFileName << endl;
+	  cout << "catScan5VarianceTrialCalculateConfigurationAccuracy: could not find match for label " << this_scene.className << " for file " << thisFullFileName << endl;
 	}
       }
     }
   } else {
-    ROS_ERROR_STREAM("catScan5VarianceTrialCalculatePoseVariances: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
+    ROS_ERROR_STREAM("catScan5VarianceTrialCalculateConfigurationAccuracy: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
   } 
 
   cout << "catScan5VarianceTrialCalculateConfigurationAccuracy report: row (i) is true label, column (j) is assigned label" << endl;
 
-  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+  for (int j = 0; j < nc; j++) {
     cout << std::setw(3) << j << ": " << ms->config.classLabels[j] << endl;
   }
   cout << "   " ;
-  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+  for (int j = 0; j < nc; j++) {
     cout << std::setw(10) << j ;
   }
   cout << endl;
 
-  for (int i = 0; i < ms->config.classLabels.size(); i++) {
-    cout << std::setw(3) << i;
-    for (int j = 0; j < ms->config.classLabels.size(); j++) {
-      cout << std::setw(10) << result[i + nc * j];
+  for (int i = 0; i < nc; i++) {
+    cout << std::setw(3) << i << " ";
+    for (int j = 0; j < nc; j++) {
+      cout << std::setw(10) << result[i + nc * j] << " ";
     }
     cout << endl;
   }
+
+  delete result;
 }
 END_WORD
 REGISTER_WORD(CatScan5VarianceTrialCalculateConfigurationAccuracy)
@@ -3850,8 +3948,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   /* loop over all variance trial files and classify under all classes all configurations.
        pre-requisite: you should use setClassLabelsObjectFolderAbsolute to load all
        configurations for all objects whose base dirs are in the folder passed to this word. */
-  double * result =  new double[ms->config.numClasses * ms->config.numClasses];
   int nc = ms->config.numClasses;
+  double * result =  new double[nc * nc];
+  for (int i = 0; i < nc; i++) {
+    for (int j = 0; j < nc; j++) {
+      result[i + nc * j] = 0;
+    }
+  }
 
   string objectFolderAbsolute;
   GET_STRING_ARG(ms, objectFolderAbsolute);
@@ -3868,7 +3971,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       string thisFileName(epdf->d_name);
 
       string thisFullFileName(objectFolderAbsolute.c_str());
-      thisFullFileName = thisFullFileName + "/" + thisFileName;
+      thisFullFileName = thisFullFileName + "/" + thisFileName + "/catScan5VarianceTrials/";
       cout << "catScan5VarianceTrialCalculateAllClassesAccuracy level 1: checking " << thisFullFileName << " during snoop...";
 
       struct stat buf2;
@@ -3901,27 +4004,73 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	      string varianceTrials("catScan5VarianceTrials");
 
 	      int itIsADir = S_ISDIR(buf2.st_mode);
-	      if (varianceTrials.compare(epdf_2->d_name) && dot.compare(epdf_2->d_name) && dotdot.compare(epdf_2->d_name) && itIsADir) {
+	      if (dot.compare(epdf_2->d_name) && dotdot.compare(epdf_2->d_name) && itIsADir) {
 		cout << " is a directory." << endl;
-	      } else {
+	      } else if (dot.compare(epdf_2->d_name) && dotdot.compare(epdf_2->d_name)) {
 		cout << " is NOT a directory." << endl;
-		cout << "catScan5VarianceTrialCalculateAllClassesAccuracy report: row (i) is true label, column (j) is assigned label" << endl;
+		// load scene and detect 
+		// XXX
+		int num_orientations = 37;
+		int this_class = -1;
+		double this_score = -DBL_MAX;
+		int this_i = -1;
+		int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
+		Scene this_scene(ms, 2, 2, 0.02);
+		this_scene.loadFromFile(thisFullFileName_2);
+		this_scene.predicted_objects.resize(0);
+		this_scene.composePredictedMap(0.01);
+		this_scene.measureDiscrepancy();
 
-		for (int j = 0; j < ms->config.classLabels.size(); j++) {
-		  cout << std::setw(3) << j << ": " << ms->config.classLabels[j] << endl;
-		}
-		cout << "   " ;
-		for (int j = 0; j < ms->config.classLabels.size(); j++) {
-		  cout << std::setw(10) << j ;
-		}
-		cout << endl;
-
-		for (int i = 0; i < ms->config.classLabels.size(); i++) {
-		  cout << std::setw(3) << i;
-		  for (int j = 0; j < ms->config.classLabels.size(); j++) {
-		    cout << std::setw(10) << result[i + nc * j];
+		this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
+		int thisSceneLabelIdx = -1;
+		for (int i = 0; i < nc; i++) {
+		  // remove object folder token from front
+		  string class_label_to_trim = ms->config.classLabels[i]; 
+		  int first = 0;
+		  // find first non-slash character
+		  if (class_label_to_trim[first] == '/') {
+		    first = first+1;
+		    while (first < class_label_to_trim.size()) {
+		      if (class_label_to_trim[first] == '/') {
+			first = first+1;
+		      } else {
+			break;
+		      }
+		    }
 		  }
-		  cout << endl;
+		  // then find the next slash
+		  int next = first;
+		  while (next < class_label_to_trim.size()) {
+		    if (class_label_to_trim[next] == '/') {
+		      break;
+		    } else {
+		      next = next+1;
+		    }
+		  }
+		  // and the character after that series of slashes
+		  int after_next_series = next;
+		  while (after_next_series < class_label_to_trim.size()) {
+		    if (class_label_to_trim[after_next_series] == '/') {
+		      after_next_series = after_next_series+1;
+		    } else {
+		      break;
+		    }
+		  }
+		  std::min(after_next_series, int(class_label_to_trim.size()-1));
+		  // then take substring
+		  string trimmed_class_label = class_label_to_trim.substr(after_next_series, class_label_to_trim.size()-after_next_series);
+		  //cout << "TTTTTT: " << trimmed_class_label << "    " << this_scene.className << endl;
+
+		  if ( 0 == trimmed_class_label.compare(this_scene.className) ) {
+		    thisSceneLabelIdx = i;
+		    break;
+		  } else {
+		  }
+		}
+		if ( (this_class != -1) && (thisSceneLabelIdx != -1) ) {
+		  result[thisSceneLabelIdx + nc * this_class]++;
+		} else {
+		  cout << "catScan5VarianceTrialCalculateConfigurationAccuracy: could not find match for label " << this_scene.className << " for file " << thisFullFileName << endl;
 		}
 	      }
 	    }
@@ -3930,7 +4079,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  } 
 	}
 
-      } else {
+      } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
 	cout << " is NOT a directory." << endl;
       }
     }
@@ -3940,22 +4089,23 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   cout << "catScan5VarianceTrialCalculateAllClassesAccuracy report: row (i) is true label, column (j) is assigned label" << endl;
 
-  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+  for (int j = 0; j < nc; j++) {
     cout << std::setw(3) << j << ": " << ms->config.classLabels[j] << endl;
   }
   cout << "   " ;
-  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+  for (int j = 0; j < nc; j++) {
     cout << std::setw(10) << j ;
   }
   cout << endl;
 
-  for (int i = 0; i < ms->config.classLabels.size(); i++) {
-    cout << std::setw(3) << i;
-    for (int j = 0; j < ms->config.classLabels.size(); j++) {
-      cout << std::setw(10) << result[i + nc * j];
+  for (int i = 0; i < nc; i++) {
+    cout << std::setw(3) << i << " ";
+    for (int j = 0; j < nc; j++) {
+      cout << std::setw(10) << result[i + nc * j] << " ";
     }
     cout << endl;
   }
+  delete result;
 }
 END_WORD
 REGISTER_WORD(CatScan5VarianceTrialCalculateAllClassesAccuracy)
@@ -3982,10 +4132,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   REQUIRE_FOCUSED_CLASS(ms, tfc);
   ms->config.classLabels[tfc] = ss.str();
 
-  double this_collar_width_m = 0.01;
+  double scale = 1;
+  double this_collar_width_m = 0.00;
   double this_cw = ms->config.scene->cell_width; 
-  int this_w = 3.0 * this_collar_width_m + ceil(breadth_m / this_cw);
-  int this_h = 3.0 * this_collar_width_m + ceil(length_m / this_cw);
+  int this_w = ceil( (3.0 * this_collar_width_m + breadth_m) / this_cw);
+  int this_h = ceil( (3.0 * this_collar_width_m + length_m) / this_cw);
   ms->config.class_scene_models[tfc] = make_shared<Scene>(ms, this_w, this_h, this_cw);
 
   // fill in the magnitude and density maps; positive region sums to 1, negative collar sums to -1
@@ -4007,17 +4158,38 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
     }
   }
+
+  cout << "w: " << w << " h: " << h << " num_pos: " << num_pos << " num_neg: " << num_neg << " this_w: " << this_w << " this_h: " << this_h << " this_cw: " << this_cw << endl;
+
+  num_neg = std::max(num_neg, 1.0);
+  num_pos = std::max(num_pos, 1.0);
+
   // fill out proper values
   for (int y = 0; y < h; y++) {
     for (int x = 0; x < w; x++) {
       double this_x_m, this_y_m;
       ms->config.class_scene_models[tfc]->cellToMeters(x, y, &this_x_m, &this_y_m);
       if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/2.0)) ) {
-	fake_filter.at<double>(y,x) = 1.0/num_pos;
+	fake_filter.at<double>(y,x) = scale/num_pos;
+	if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/4.0)) ) {
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.mu = 255;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.mu = 255;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.mu = 128;
+	} else {
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.mu = 0;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.mu = 255;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.mu = 128;
+	}
       } else if ( (fabs(this_y_m) <= (length_m/2.0)) && (  fabs(this_x_m) <= (this_collar_width_m + (   breadth_m/2.0   ))  ) ) {
-	fake_filter.at<double>(y,x) = -1.0/num_neg;
+	fake_filter.at<double>(y,x) = -scale/num_neg;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.mu = 128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.mu = 128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.mu = 255;
       } else {
 	fake_filter.at<double>(y,x) = 0.0;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.mu = 128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.mu = 255;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.mu = 255;
       }
     }
   }
@@ -4025,7 +4197,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // XXX push a table flush 3d crane grasp at the center
   Grasp toPush;
   double flushGraspZ = -ms->config.currentTableZ + ms->config.pickFlushFactor;
-  toPush.grasp_pose = eePose(0,0,flushGraspZ,0,1,0,0);
+  toPush.grasp_pose = eePose(0,0,flushGraspZ,0.0,0.0,0.707106,0.7071068);
   toPush.tries = 1;
   toPush.successes = 1;
   toPush.failures = 0;
