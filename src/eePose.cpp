@@ -406,3 +406,15 @@ _eePose::_eePose() {
   qw = 0;
 }
 
+
+void _eePose::getRollPitchYaw(double * roll, double * pitch, double * yaw) {
+  Eigen::Quaternionf quat(qw, qx, qy, qz);
+
+  Eigen::Matrix3f matrix = quat.toRotationMatrix();
+  Eigen::Vector3f angles = matrix.eulerAngles(0,1,2);
+  *roll = ((double) angles(0));
+  *pitch = ((double) angles(1));
+  *yaw = ((double) angles(2));
+
+  
+}

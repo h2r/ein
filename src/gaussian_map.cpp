@@ -469,7 +469,7 @@ void GaussianMap::readFromFileNode(FileNode& it) {
     it["y_center_cell"] >> y_center_cell;
     it["cell_width"] >> cell_width;
   }
-  cout << "width: " << width << " height: " << height << endl;
+
   reallocate();
   {
     FileNode bnode = it["cells"];
@@ -500,7 +500,8 @@ void GaussianMap::readFromFileNode(FileNode& it) {
     if (numLoadedCells != width*height) {
       ROS_ERROR_STREAM("Error, GaussianMap loaded " << numLoadedCells << " but expected " << width*height << endl);
     } else {
-      cout << "successfully loaded " << numLoadedCells << " GaussianMapCells." << endl;
+      cout << "successfully loaded " << numLoadedCells << " GaussianMapCells. ";
+      cout << "width: " << width << " height: " << height << endl;
     }
   }
 }
@@ -774,13 +775,13 @@ void SceneObject::readFromFileNode(FileNode& it) {
 Scene::Scene(shared_ptr<MachineState> _ms, int w, int h, double cw) {
 
   if (w % 2 == 0) {
-    cout << "GaussianMap parity error: tried to allocate width: " << w << " so adding 1..." << endl;
+    cout << "Scene parity error: tried to allocate width: " << w << " so adding 1..." << endl;
     w = w+1;
-  } else {}
+  }
   if (h % 2 == 0) {
-    cout << "GaussianMap parity error: tried to allocate height: " << h << " so adding 1..." << endl;
+    cout << "Scene parity error: tried to allocate height: " << h << " so adding 1..." << endl;
     h = h+1;
-  } else {}
+  }
 
 
   className = string("NONAME");
@@ -2159,7 +2160,7 @@ void Scene::readFromFileNode(FileNode& it) {
   it["discrepancy_density"] >> discrepancy_density;
 
 
-  cout << discrepancy_density.size() << discrepancy_magnitude.size() << width << " " << height << endl;
+  //cout << discrepancy_density.size() << discrepancy_magnitude.size() << width << " " << height << endl;
 
 }
 
@@ -3629,7 +3630,7 @@ CONFIG_GETTER_STRING(SceneGetClassName, ms->config.scene->className)
 CONFIG_SETTER_STRING(SceneSetClassName, ms->config.scene->className)
 
 // count the number of equal digits
-int equalChars(string first, string second) {
+int numberOfEqualCharacters(string first, string second) {
   int i = 0;
   while ( (i<first.length()) && (i<second.length()) ) {
     if (first[i] < second[i]) {
@@ -3641,6 +3642,80 @@ int equalChars(string first, string second) {
     }
   }
   return i;
+}
+
+void poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vector<string> scene_files) {
+
+  double sum_x = 0.0;
+  double sum_y = 0.0;
+  double sum_theta = 0.0;
+  double sum_x_squared = 0.0;
+  double sum_y_squared = 0.0;
+  double sum_theta_squared = 0.0;
+  double counts = 0.0;
+  int idx = 0;
+  while ( scene_files.size() != 0 ) {
+    int last = scene_files.size() - 1;
+    if (idx > 3) {
+      break;
+    }
+    // load scene and detect 
+    int num_orientations = 37;
+    int this_class = -1;
+    double this_score = -DBL_MAX;
+    int this_i = -1;
+    int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
+    Scene this_scene(ms, 3, 3, 0.02);
+    this_scene.loadFromFile(scene_files[last]);
+    //this_scene.predicted_objects.resize(0);
+    //this_scene.composePredictedMap(0.01);
+    //this_scene.measureDiscrepancy();
+    if (this_scene.predicted_objects.size() != 1) {
+      ROS_ERROR("Must be exactly one predicted object in these scenes.");
+    }
+    shared_ptr<SceneObject> predictedObject = this_scene.predicted_objects[0];
+
+    eePose scene_pose = predictedObject->scene_pose;
+    double roll, pitch, yaw;
+    scene_pose.getRollPitchYaw(&roll, &pitch, &yaw);
+    //this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
+
+    double this_theta = yaw;
+    double this_x = scene_pose.px;
+    double this_y = scene_pose.py;
+    cout << "Got pose: " << this_x << ", " << this_y << " and theta " << this_theta << endl;
+    
+    // integrate
+    sum_x += this_x;
+    sum_y += this_y;
+    sum_theta += this_theta;
+    sum_x_squared += this_x*this_x;
+    sum_y_squared += this_y*this_y;
+    sum_theta_squared += this_theta*this_theta;
+    counts++;
+    scene_files.pop_back();
+    idx++;
+  }
+
+  double safe_counts = std::max(counts, 1.0);
+  
+  double mean_x = sum_x / safe_counts;
+  double mean_y = sum_y / safe_counts;
+  double mean_theta = sum_theta / safe_counts;
+  
+  double variance_x = ( sum_x_squared / safe_counts ) - ( mean_x * mean_x ); 
+  double variance_y = ( sum_y_squared / safe_counts ) - ( mean_y * mean_y ); 
+  double variance_theta = ( sum_theta_squared / safe_counts ) - ( mean_theta * mean_theta ); 
+
+  double stddev_x = sqrt(variance_x);
+  double stddev_y = sqrt(variance_y);
+  double stddev_theta = sqrt(variance_theta);
+
+  cout << "variance report: " << endl;
+  cout << "mu_x: " << mean_x << " sigma_squared_x: " << variance_x << " stddev_x: " << stddev_x << endl;
+  cout << "mu_y: " << mean_y << " sigma_squared_y: " << variance_y << " stddev_y: " << stddev_y << endl;
+  cout << "mu_theta: " << mean_theta << " sigma_squared_theta: " << variance_theta << " stddev_theta: " << stddev_y << endl;
+
 }
 
 WORD(CatScan5VarianceTrialCalculatePoseVariances)
@@ -3684,6 +3759,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   } else {
     ROS_ERROR_STREAM("catScan5VarianceTrialCalculatePoseVariances: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
+    return;
   } 
 
   std::sort(scene_files.begin(), scene_files.end(), less<string>());
@@ -3693,90 +3769,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     cout << *it << endl;
   }
   cout << endl;
+  poseVarianceOfEvaluationScenes(ms, scene_files);
 
   // XXX this should be von mises or something instead for theta, but for now leave it at this
-  double sum_x = 0.0;
-  double sum_y = 0.0;
-  double sum_theta = 0.0;
-  double sum_x_squared = 0.0;
-  double sum_y_squared = 0.0;
-  double sum_theta_squared = 0.0;
-  double counts = 0.0;
-
-  bool initialized = false;
-  int batch_same_chars = 0;
-  int batch_id = 0;
-  while ( scene_files.size() > 1 ) {
-    int last = scene_files.size()-1;
-    if (initialized) { 
-      // load scene and detect 
-      int num_orientations = 37;
-      int this_class = -1;
-      double this_score = -DBL_MAX;
-      int this_i = -1;
-      int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
-      Scene this_scene(ms, 2, 2, 0.02);
-      this_scene.loadFromFile(scene_files[last]);
-      this_scene.predicted_objects.resize(0);
-      this_scene.composePredictedMap(0.01);
-      this_scene.measureDiscrepancy();
-
-      this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
-
-      double this_theta = -this_orient * 2.0 * M_PI / num_orientations;
-      double this_x, this_y;
-      this_scene.cellToMeters(this_x_cell, this_y_cell, &this_x, &this_y);
-
-      // integrate
-      sum_x += this_x;
-      sum_y += this_y;
-      sum_theta += this_theta;
-      sum_x_squared += this_x*this_x;
-      sum_y_squared += this_y*this_y;
-      sum_theta_squared += this_theta*this_theta;
-      counts++;
-
-      int this_same_chars = -1;
-      if ( scene_files.size() > 1 ) {
-	this_same_chars = equalChars(scene_files[last], scene_files[last-1]);
-      } else {
-      }
-
-      if ( (this_same_chars == batch_same_chars) && (this_same_chars != -1) ) {
-	// continue the batch
-      } else {
-	// end this batch if the next one differs in length or if this is the last batch
-	initialized = false;
-	double safe_counts = std::min(counts, 1.0);
-
-	double mean_x = sum_x / safe_counts;
-	double mean_y = sum_y / safe_counts;
-	double mean_theta = sum_theta / safe_counts;
-
-	double variance_x = ( sum_x_squared / safe_counts ) - ( mean_x * mean_x ); 
-	double variance_y = ( sum_y_squared / safe_counts ) - ( mean_y * mean_y ); 
-	double variance_theta = ( sum_theta_squared / safe_counts ) - ( mean_theta * mean_theta ); 
-    
-	cout << "Report for batch " << batch_id << " with prefix " << scene_files[last] << " : " << endl;
-	cout << "mu_x: " << mean_x << " sigma_squared_x: " << variance_x << endl;
-	cout << "mu_y: " << mean_y << " sigma_squared_y: " << variance_y << endl;
-	cout << "mu_theta: " << mean_theta << " sigma_squared_theta: " << variance_theta << endl;
-      }
-    } else {
-      sum_x = 0.0;
-      sum_y = 0.0;
-      sum_theta = 0.0;
-      sum_x_squared = 0.0;
-      sum_y_squared = 0.0;
-      sum_theta_squared = 0.0;
-      counts = 0.0;
-      initialized = true;
-      batch_same_chars = equalChars(scene_files[last], scene_files[last-1]);
-      batch_id++;
-      continue;
-    }
-    scene_files.pop_back();
-  }
 }
 END_WORD
 REGISTER_WORD(CatScan5VarianceTrialCalculatePoseVariances)

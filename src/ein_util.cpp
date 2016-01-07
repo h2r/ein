@@ -40,7 +40,7 @@ string readBinaryFromYaml(FileNode & fn) {
     result << (string) node;
   }
   string decoded_data = base64_decode(result.str());
-  cout << "decode: " << decoded_data.size() << endl;
+  //cout << "decode: " << decoded_data.size() << endl;
   return decompress_string(decoded_data);
 }
 

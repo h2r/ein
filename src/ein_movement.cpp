@@ -231,10 +231,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(WaitUntilGripperNotMovingC)
 
-WORD(PerturbPosition)
-CODE(1048623)     // numlock + /
+WORD(PerturbPositionScale)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double param_perturbScale = 0.05;//0.1;
+  GET_NUMERIC_ARG(ms, param_perturbScale);
+
   double noX = param_perturbScale * ((drand48() - 0.5) * 2.0);
   double noY = param_perturbScale * ((drand48() - 0.5) * 2.0);
   double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
@@ -244,6 +245,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->config.currentEEDeltaRPY.pz += noTheta;
   endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
+}
+END_WORD
+REGISTER_WORD(PerturbPositionScale)
+
+
+WORD(PerturbPosition)
+CODE(1048623)     // numlock + /
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  stringstream cmd;
+  cmd << "0.05 perturbPositionScale";
+  ms->evaluateProgram(cmd.str());
 }
 END_WORD
 REGISTER_WORD(PerturbPosition)
