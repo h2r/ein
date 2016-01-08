@@ -11,6 +11,36 @@
 using namespace boost::filesystem;
 
 
+
+Mat readMatFromYaml(FileNode & fs) {
+  int rows = fs["rows"];
+  int cols = fs["cols"];
+  int type = fs["type"];
+  
+  Mat m(rows, cols, type);
+  FileNode n = fs["data"];
+  string stringdata = readBinaryFromYaml(n);
+  uchar * data = (uchar *) stringdata.data();
+
+  if (stringdata != "") {
+    cout << "Memcopying." << endl;
+    memcpy(m.data, data, m.rows * m.cols * m.elemSize());
+  }
+  return m;
+}
+
+void writeMatToYaml(Mat m, FileStorage & fs) {
+  fs <<  "{";
+  fs << "rows" << m.rows;
+  fs << "cols" << m.cols;
+  fs << "type" << m.type();
+  fs << "data";
+  writeBinaryToYaml(m.data, m.rows * m.cols * m.elemSize(), fs);
+  fs << "}";
+}
+
+
+
 void writeBinaryToYaml(unsigned char * data, int length, FileStorage & fsvO) {
   int max_string_length = 4095;
 
@@ -33,6 +63,8 @@ void writeBinaryToYaml(unsigned char * data, int length, FileStorage & fsvO) {
   fsvO << "]";
 }
 
+
+
 string readBinaryFromYaml(FileNode & fn) {
   stringstream result;
   for (FileNodeIterator it = fn.begin(); it != fn.end(); it++) {
@@ -41,7 +73,15 @@ string readBinaryFromYaml(FileNode & fn) {
   }
   string decoded_data = base64_decode(result.str());
   //cout << "decode: " << decoded_data.size() << endl;
-  return decompress_string(decoded_data);
+  try { 
+    return decompress_string(decoded_data);
+  } catch( ... ) {
+    ROS_ERROR("Exception uncompressing a binary yaml file.");
+    std::exception_ptr p = std::current_exception();
+    std::clog <<(p ? p.__cxa_exception_type()->name() : "null") << std::endl;
+    return "";
+  }
+
 }
 
 std::string operationStatusToString(operationStatusType mode) 

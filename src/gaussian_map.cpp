@@ -2105,9 +2105,15 @@ void Scene::writeToFileStorage(FileStorage& fsvO) {
   fsvO << "predicted_objects";
   writePredictedObjects(fsvO);
 
-  fsvO << "predicted_segmentation" << predicted_segmentation;
-  fsvO << "discrepancy_magnitude" << discrepancy_magnitude;
-  fsvO << "discrepancy_density" << discrepancy_density;
+  fsvO << "predicted_segmentation";
+  writeMatToYaml(predicted_segmentation, fsvO);
+
+  
+  fsvO << "discrepancy_magnitude";
+  writeMatToYaml(discrepancy_magnitude, fsvO);
+
+  fsvO << "discrepancy_density";
+  writeMatToYaml(discrepancy_density, fsvO);
 
   fsvO << "}";
 }
@@ -2163,10 +2169,15 @@ void Scene::readFromFileNode(FileNode& it) {
 
   FileNode node = it["predicted_objects"];
   readPredictedObjects(node);
+  
+  node = it["predicted_segmentation"];
+  predicted_segmentation = readMatFromYaml(node);
 
-  it["predicted_segmentation"] >> predicted_segmentation;
-  it["discrepancy_magnitude"] >> discrepancy_magnitude;
-  it["discrepancy_density"] >> discrepancy_density;
+  node = it["discrepancy_magnitude"];
+  discrepancy_magnitude = readMatFromYaml(node);
+
+  node = it["discrepancy_density"];
+  discrepancy_density = readMatFromYaml(node);
 
 
   //cout << discrepancy_density.size() << discrepancy_magnitude.size() << width << " " << height << endl;
@@ -3210,6 +3221,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   Mat bufferImage;
   eePose thisPose, tBaseP;
 
+
+
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
     streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
@@ -3225,64 +3238,70 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if (success != 1) {
     ROS_ERROR("  Not doing update because of stream buffer errors.");
     return;
-  } else {
-    Mat wristViewYCbCr = bufferImage.clone();
-    cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+  }
 
-    Size sz = bufferImage.size();
-    int imW = sz.width;
-    int imH = sz.height;
+  if (fabs(thisPose.qz) > 0.005 || fabs(thisPose.qw) > 0.005) {
+    ROS_ERROR("  Not doing update because arm not vertical.");
+    return;
+  }
 
-    int topx = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; //+ 20; // ms->config.grayTop.x;  
-    int botx = ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; //- 20; // ms->config.grayBot.x;  
-    int topy = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; //+ 50; // ms->config.grayTop.y;
-    int boty = ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; //- 50; // ms->config.grayBot.y;  
-      
-    //for (int px = ; px < ; px++) 
-      //for (int py = ; py < ; py++) 
-    pixelToGlobalCache data;
-    double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
-    computePixelToGlobalCache(ms, z, thisPose, &data);
-
-    for (int px = topx; px < botx; px++) {
-      for (int py = topy; py < boty; py++) {
-    //for (int px = 0; px < imW; px++) 
+  Mat wristViewYCbCr = bufferImage.clone();
+  cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+  
+  Size sz = bufferImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int topx = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; //+ 20; // ms->config.grayTop.x;  
+  int botx = ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; //- 20; // ms->config.grayBot.x;  
+  int topy = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; //+ 50; // ms->config.grayTop.y;
+  int boty = ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; //- 50; // ms->config.grayBot.y;  
+  
+  //for (int px = ; px < ; px++) 
+  //for (int py = ; py < ; py++) 
+  pixelToGlobalCache data;
+  double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
+  computePixelToGlobalCache(ms, z, thisPose, &data);
+  
+  for (int px = topx; px < botx; px++) {
+    for (int py = topy; py < boty; py++) {
+      //for (int px = 0; px < imW; px++) 
       //for (int py = 0; py < imH; py++) 
-	if (isInGripperMask(ms, px, py)) {
-	  continue;
-	}
-	double x, y;
-	pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
-
-	if (1) {
-	  // single sample update
-	  int i, j;
-	  ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
-	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
-	  if (cell != NULL) {
+      if (isInGripperMask(ms, px, py)) {
+	continue;
+      }
+      double x, y;
+      pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
+      
+      if (1) {
+	// single sample update
+	int i, j;
+	ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+	GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+	if (cell != NULL) {
 	    Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
 	    cell->newObservation(pixel);
-	  }
-	} else {
-  /*
+	}
+      } else {
+	/*
 	  Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
-
+	  
 	  // bilinear update
 	  double _i, _j;
 	  ms->config.scene->observed_map->metersToCell(x, y, &_i, &_j);
-
+	  
 	  if (ms->config.scene->safeBilinAt(_i,_j)) {
-
-	    double i = min( max(0.0, _i), double(width-1));
+	  
+	  double i = min( max(0.0, _i), double(width-1));
 	    double j = min( max(0.0, _j), double(height-1));
 
 	    // -2 makes for appropriate behavior on the upper boundary
 	    double i0 = std::min( std::max(0.0, floor(i)), double(width-2));
 	    double i1 = i0+1;
-
+	    
 	    double j0 = std::min( std::max(0.0, floor(j)), double(height-2));
 	    double j1 = j0+1;
-
+	    
 	    double wi0 = i1-i;
 	    double wi1 = i-i0;
 
@@ -3302,13 +3321,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	    cell->newObservation(pixel, wi1*wj1);
 	  }
   */
-	}
       }
-    }  
+    }
   }
-
-
-
   ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
   ms->pushWord("sceneRenderObservedMap");
 }
@@ -3672,23 +3687,31 @@ void poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vector<string> 
   double sum_y_squared = 0.0;
   double sum_theta_squared = 0.0;
   double counts = 0.0;
-  int idx = 0;
-  while ( scene_files.size() != 0 ) {
-    int last = scene_files.size() - 1;
-    if (idx > 3) {
-      break;
-    }
-    // load scene and detect 
-    int num_orientations = 37;
-    int this_class = -1;
-    double this_score = -DBL_MAX;
-    int this_i = -1;
-    int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
+
+  vector<Scene> scenes;
+
+  try {
+
+  for (int i = 0; i < scene_files.size(); i++) {
+    cout << " i " << i << " size: " << scene_files.size() << endl;
     Scene this_scene(ms, 3, 3, 0.02);
-    this_scene.loadFromFile(scene_files[last]);
-    //this_scene.predicted_objects.resize(0);
-    //this_scene.composePredictedMap(0.01);
-    //this_scene.measureDiscrepancy();
+    this_scene.loadFromFile(scene_files[i]);
+    //scenes.push_back(this_scene);
+  }
+  } catch( ... ) {
+        ROS_ERROR("In the weird sketchy exception block in ein main.");    
+    cout << "In the weird sketchy exception block in ein main." << endl;    
+    
+    std::exception_ptr p = std::current_exception();
+    std::clog <<(p ? p.__cxa_exception_type()->name() : "null") << std::endl;
+    throw;
+  }
+  cout << "Finished loop." << endl;
+
+
+  for (int i = 0; i < scenes.size(); i++) {
+    cout << "Scene " << i << endl;
+    Scene this_scene = scenes[i];
     if (this_scene.predicted_objects.size() != 1) {
       ROS_ERROR("Must be exactly one predicted object in these scenes.");
     }
@@ -3712,28 +3735,84 @@ void poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vector<string> 
     sum_y_squared += this_y*this_y;
     sum_theta_squared += this_theta*this_theta;
     counts++;
-    scene_files.pop_back();
-    idx++;
   }
 
   double safe_counts = std::max(counts, 1.0);
-  
   double mean_x = sum_x / safe_counts;
   double mean_y = sum_y / safe_counts;
   double mean_theta = sum_theta / safe_counts;
+
+
+  double sum_dist = 0.0;
+  double sum_dist_squared = 0.0;
+
+  for (int i = 0; i < scenes.size(); i++) {
+    Scene this_scene = scenes[i];
+    shared_ptr<SceneObject> predictedObject = this_scene.predicted_objects[0];
+
+    eePose scene_pose = predictedObject->scene_pose;
+    double roll, pitch, yaw;
+    scene_pose.getRollPitchYaw(&roll, &pitch, &yaw);
+    //this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
+
+    double this_theta = yaw;
+    double this_x = scene_pose.px;
+    double this_y = scene_pose.py;
+
+
+    double squaredist = pow(mean_x  - this_x, 2) + pow(mean_y - this_y, 2);
+    double dist = sqrt(squaredist);
+    sum_dist_squared += squaredist;
+    sum_dist += dist;
+      
+  }
+
+
+  
+  double mean_dist = sum_dist / safe_counts;
   
   double variance_x = ( sum_x_squared / safe_counts ) - ( mean_x * mean_x ); 
   double variance_y = ( sum_y_squared / safe_counts ) - ( mean_y * mean_y ); 
   double variance_theta = ( sum_theta_squared / safe_counts ) - ( mean_theta * mean_theta ); 
+  double variance_dist = ( sum_dist_squared / safe_counts ) - ( mean_dist * mean_dist );
 
   double stddev_x = sqrt(variance_x);
   double stddev_y = sqrt(variance_y);
   double stddev_theta = sqrt(variance_theta);
+  double stddev_dist = sqrt(variance_dist);
+
+  double stderror_x = stddev_x / safe_counts;
+  double stderror_y = stddev_y / safe_counts;
+  double stderror_theta = stddev_theta / safe_counts;
+  double stderror_dist = stddev_dist / safe_counts;
+
+  double muconf95_x = stderror_x / 1.96;
+  double muconf95_y = stderror_theta / 1.96;
+  double muconf95_theta = stderror_theta / 1.96;
+  double muconf95_dist = stderror_dist / 1.96;
+
+
+  double stddevconf95_xlow = sqrt(pow((safe_counts - 1), 2) * variance_x) / 13.844;
+  double stddevconf95_xhigh = sqrt(pow((safe_counts - 1), 2) * variance_x) / 41.923;
+
+  double stddevconf95_ylow = sqrt(pow((safe_counts - 1), 2) * variance_y) / 13.844;
+  double stddevconf95_yhigh = sqrt(pow((safe_counts - 1), 2) * variance_y) / 41.923;
+
+  double stddevconf95_thetalow = sqrt(pow((safe_counts - 1), 2) * variance_theta) / 13.844;
+  double stddevconf95_thetahigh = sqrt(pow((safe_counts - 1), 2) * variance_theta) / 41.923;
+
+  double stddevconf95_distlow = sqrt(pow((safe_counts - 1), 2) * variance_dist) / 13.844;
+  double stddevconf95_disthigh = sqrt(pow((safe_counts - 1), 2) * variance_dist) / 41.923;
+
+
+
 
   cout << "variance report: " << endl;
-  cout << "mu_x: " << mean_x << " sigma_squared_x: " << variance_x << " stddev_x: " << stddev_x << endl;
-  cout << "mu_y: " << mean_y << " sigma_squared_y: " << variance_y << " stddev_y: " << stddev_y << endl;
-  cout << "mu_theta: " << mean_theta << " sigma_squared_theta: " << variance_theta << " stddev_theta: " << stddev_y << endl;
+  cout << "mu_x: " << mean_x << "+/-" << muconf95_x << " sigma_squared_x: " << variance_x << " stddev_x: " << stddev_x << "+/-" << stddevconf95_xlow << "-" << stddevconf95_xhigh << endl;
+  cout << "mu_y: " << mean_y << "+/-" << muconf95_y << " sigma_squared_y: " << variance_y << " stddev_y: " << stddev_y << "+/-" << stddevconf95_ylow << "-" << stddevconf95_yhigh << endl;
+  cout << "mu_theta: " << mean_theta << "+/-" << muconf95_theta << " sigma_squared_theta: " << variance_theta << " stddev_theta: " << stddev_theta << "+/-" << stddevconf95_thetalow << "-" << stddevconf95_thetahigh << endl;
+  cout << "mu_dist: " << mean_dist << "+/-" << muconf95_dist << " sigma_squared_dist: " << variance_dist << " stddev_dist: " << stddev_dist << "+/-" << stddevconf95_distlow << "-" << stddevconf95_disthigh << endl;
+
 
 }
 
