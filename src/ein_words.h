@@ -299,7 +299,7 @@ if ( (tfc > -1) && (tfc < ms->config.classLabels.size()) ) {\
 #define REQUIRE_VALID_SCENE_OBJECT(ms, tfc) \
 if ( (tfc > -1) && (tfc < ms->config.scene->predicted_objects.size()) ) {\
 } else {\
-  ROS_ERROR_STREAM(this->name() << "Invalid scene object, class, not grabbing..." << endl); \
+  ROS_ERROR_STREAM(this->name() << ": Invalid scene object, class, not grabbing..." << endl); \
   return;\
 }\
 
