@@ -122,7 +122,70 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   rewindImageStreamBufferNLNK 
   ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) tempSpiralStreamTakeSceneStride replicateWord endStackCollapseNoop ) tempSpiralStreamTakeSceneSamples replicateWord
 
+  tempUpdateMaps
 ) "tempSpiralStreamTakeScene" store
+
+(
+  "tempUpdateSpiralN" store
+  "tempUpdateSpiralYNum" store
+  "tempUpdateSpiralXNum" store
+
+  /* clear it all */
+  sceneClearObservedMap
+  sceneClearPredictedObjects
+  clearStreamBuffers
+
+  /* turn streaming on, no disk streaming */ 
+  shutdownToSensorsAndMovement
+  disableDiskStreaming
+
+    /* Pose Range Image Joints Word Label */
+    1 0 1 0 0 0 
+  setSisFlags
+  activateSensorStreaming
+
+  /* spiral scan pattern */
+  0.05 setSpeed
+  0.03 setW1GoThresh
+
+  1 "tempUpdateSpiralIdx" store
+
+  ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
+  ( ( xUp ) tempUpdateSpiralIdx tempUpdateSpiralXNum times replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( yUp ) tempUpdateSpiralIdx tempUpdateSpiralYNum times replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( xDown ) tempUpdateSpiralIdx tempUpdateSpiralXNum times 1 tempUpdateSpiralXNum times + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( yDown ) tempUpdateSpiralIdx tempUpdateSpiralYNum times 1 tempUpdateSpiralYNum times + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    "test " print
+    tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
+  ) while
+
+  /* turn streaming off */
+  deactivateSensorStreaming
+  
+  /* integrate results */
+  rewindImageStreamBufferNLNK
+
+  bringUpAllNonessentialSystems
+
+  tempUpdateMaps
+
+/*
+  streamPushImageStreamIndex
+  streamPushImageStreamSize
+  incrementImageStreamBufferNoLoadNoKick:
+
+  rewindImageStreamBufferNLNK sceneClearObservedMap
+  ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) 20 replicateWord endStackCollapseNoop ) 80 replicateWord
+*/
+
+  50 "tempSpiralStreamTakeSceneSamples" store
+  streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
+
+  rewindImageStreamBufferNLNK 
+  ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) tempSpiralStreamTakeSceneStride replicateWord endStackCollapseNoop ) tempSpiralStreamTakeSceneSamples replicateWord
+
+  tempUpdateMaps
+) "tempSpiralStreamTakeSceneEccentric" store
 
 
 (
@@ -554,7 +617,11 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 /*   
   tempUpdateFivePointThreeWidth  
 */
+/*   
   0.02 setGridSize  11  tempUpdateSpiral
+*/
+  waitUntilAtCurrentPosition
+  14 tempSpiralStreamTakeScene
   bg sceneSaveObservedMap 
   tempInit
 ) "tempUpdateBg" store
@@ -639,7 +706,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
     tempShortServoToBestSceneObject
     waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
   ) 3 replicateWord
-  quarterTurn /* this gets into orientation to pick, since this is a block grasp */
+  quarterTurn /* this gets into orientation to pick so it will be saved next, since this is a block grasp */
   currentPose tempScanBasePZ pickFlushFactor + setEEPosePZ "tempScanNewGrasp" store
   tempRestoreFromBlocks 
 
@@ -648,37 +715,50 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   writeFocusedClass
 ) "tempAddBlockGrasp" store
 
+0 "tempBlockUsingBlocks" store
 0.055 "tempBlockMaxGraspThickness" store
 0.04 "tempBlockGripperThrow" store
 0.005 "tempBlockGraspResolution" store
 0.03 "tempBlockTargetContactWidth" store
 (
-  0.00 "scenePredictedMapThresh" store
-  slide ( pushClassLabels 1 sP ) "tempSwapClassLabels" store
-  focusedClassLabel "tempSwapTargetClass" store
+  tempBlockUsingBlocks not (
+    0.00 "scenePredictedMapThresh" store
+    slide ( pushClassLabels 1 sP ) "tempSwapClassLabels" store
+    focusedClassLabel "tempSwapTargetClass" store
 
-  clearClassLabels 
+    clearClassLabels 
 
-  tempBlockMaxGraspThickness "thisBlockGraspThickness" store
-  ( 
-    tempBlockMaxGraspThickness thisBlockGraspThickness - tempBlockGripperThrow < 
-    tempBlockMaxGraspThickness thisBlockGraspThickness - tempBlockGripperThrow = or
-  ) ( 
-    tempBlockTargetContactWidth thisBlockGraspThickness sceneFabricateIdealBlockModel 
-    thisBlockGraspThickness tempBlockGraspResolution minus "thisBlockGraspThickness" store
-  ) while
+    tempBlockMaxGraspThickness "thisBlockGraspThickness" store
+    ( 
+      tempBlockMaxGraspThickness thisBlockGraspThickness - tempBlockGripperThrow < 
+      tempBlockMaxGraspThickness thisBlockGraspThickness - tempBlockGripperThrow = or
+    ) ( 
+      tempBlockTargetContactWidth thisBlockGraspThickness sceneFabricateIdealBlockModel 
+      thisBlockGraspThickness tempBlockGraspResolution minus "thisBlockGraspThickness" store
+    ) while
 
-  setGraspModeTo3D
-  0 sceneSetClassificationMode
+    setGraspModeTo3D
+    0 sceneSetClassificationMode
+    1 "tempBlockUsingBlocks" store
+    "tempSwapToBlocks: swapped to blocks." print
+  ) (
+    "tempSwapToBlocks: swapped to blocks but already holding blocks." print    
+  ) ifte
 ) "tempSwapToBlocks" store
 
 (
-  0.01 "scenePredictedMapThresh" store
-  endArgs tempSwapClassLabels setClassLabels 
-  tempSwapTargetClass setTargetClass
-  createCachedClassifierFromClassLabels
-  setGraspModeTo3D
-  1 sceneSetClassificationMode
+  tempBlockUsingBlocks (
+    0.01 "scenePredictedMapThresh" store
+    endArgs tempSwapClassLabels setClassLabels 
+    tempSwapTargetClass setTargetClass
+    createCachedClassifierFromClassLabels
+    setGraspModeTo3D
+    1 sceneSetClassificationMode
+    0 "tempBlockUsingBlocks" store
+    "tempRestoreFromBlocks: restoring from blocks." print    
+  ) (
+    "tempRestoreFromBlocks: restoring from blocks but not holding blocks." print    
+  ) ifte
 ) "tempRestoreFromBlocks" store
 
 (
@@ -740,9 +820,11 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 (
   openGripper waitUntilGripperNotMoving
+  /*
   setGraspModeTo3D
   setIdleModeToEmpty
   setPlaceModeToShake
+  */
 
   clearMapForPatrol clearBlueBoxMemories tempMapBestClass 0 scenePushSceneObjectLabel setTargetClass deliverTargetObject
 ) "tempMapBestAndPick" store
