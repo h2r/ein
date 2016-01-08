@@ -3696,7 +3696,7 @@ void poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vector<string> 
     cout << " i " << i << " size: " << scene_files.size() << endl;
     Scene this_scene(ms, 3, 3, 0.02);
     this_scene.loadFromFile(scene_files[i]);
-    //scenes.push_back(this_scene);
+    scenes.push_back(this_scene);
   }
   } catch( ... ) {
         ROS_ERROR("In the weird sketchy exception block in ein main.");    
