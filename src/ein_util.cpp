@@ -23,7 +23,6 @@ Mat readMatFromYaml(FileNode & fs) {
   uchar * data = (uchar *) stringdata.data();
 
   if (stringdata != "") {
-    cout << "Memcopying." << endl;
     memcpy(m.data, data, m.rows * m.cols * m.elemSize());
   }
   return m;

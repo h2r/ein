@@ -961,9 +961,13 @@ dateString "catScan5VarianceTrialThisTime" store
 
   sceneClearPredictedObjects tempUpdateMaps 
 
-  ( tempShortServoToFocusedSceneObject waitUntilAtCurrentPosition ) 3 replicateWord
+    ( tempShortTakeScene tempServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord 
+/*  ( 14 tempSpiralStreamTakeScene tempServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord  */
 
-
+    scenePushNumSceneObjects
+    1
+  = 
+  (
      dateString
   "catScan5VarianceTrialThisTime" store
 
@@ -980,9 +984,18 @@ dateString "catScan5VarianceTrialThisTime" store
 
     0 
   sceneMapSceneObject
+  ) ift
 
   "catScan5VarianceTrial ENDING" print
 ) "catScan5VarianceTrial" store
+
+( 
+halfImpulse 
+( tempShortServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord
+currentPose 
+( catScan5VarianceTrial dup moveEeToPoseWord waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 5 replicateWord
+pop
+) "catScan5VarianceTrials" store
 
 ( /* expects an eePose on the stack */
   clearClassLabels
