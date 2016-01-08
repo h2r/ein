@@ -320,11 +320,11 @@ int GaussianMap::safeBilinAt(int x, int y) {
 
 GaussianMapCell *GaussianMap::refAtCell(int x, int y) {
   if (x < 0 || x >= width) {
-    ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad x. " << x);
+    ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad x. " << x << " width: " << width);
     return NULL;
   }
   if (y < 0 || y >= height) {
-    ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad y. " << y);
+    ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad y. " << y << " height: " << height);
     return NULL;
   }
   
