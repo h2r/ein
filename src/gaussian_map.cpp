@@ -3233,6 +3233,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       bufferImage = tsi.image.clone();
     }
     success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+  } else {
+    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    return;
   }
 
   if (success != 1) {
@@ -3240,12 +3243,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  if (fabs(thisPose.qz) > 0.005 || fabs(thisPose.qw) > 0.005) {
+  if (fabs(thisPose.qz) > 0.01) {
     ROS_ERROR("  Not doing update because arm not vertical.");
     return;
   }
 
   Mat wristViewYCbCr = bufferImage.clone();
+
   cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
   
   Size sz = bufferImage.size();
