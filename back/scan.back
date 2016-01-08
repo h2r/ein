@@ -275,7 +275,7 @@ workspace4 "outputPileWorkspace" store
   comeToStop
   setScanModeCentered
   currentPose
-  catScan2
+  catScan5
 ) "playWithObject" store
 
 
@@ -645,7 +645,7 @@ workspace4 "outputPileWorkspace" store
 
   ( 1 )
   (
-    pickFromInputPile
+    pickFromInputPile2
     playWithObject
     moveToOutputPile 
   ) while
@@ -1052,7 +1052,7 @@ dateString "catScan5VarianceTrialThisTime" store
       clearClass3dGrasps
       writeFocusedClass
 
-      tempAddBarGrasp
+      tempAddBlockGrasp
 
       setPlaceModeToHold
       clearMapForPatrol
@@ -1072,7 +1072,7 @@ dateString "catScan5VarianceTrialThisTime" store
       setPlaceModeToHold
       clearMapForPatrol
 
-      tempAddBarGrasp
+      tempAddBlockGrasp
       setPickModeToLearningAlgorithmC
       tempPickWithAddedGrasp
 
@@ -1144,7 +1144,6 @@ dateString "catScan5VarianceTrialThisTime" store
   ) while
 
   /*
-    XXX unverified
     catScan5 uses bandits over 3d grasps to select the best grasp, perform
     redundant servoing and collect data for localization and classification studies
   */
@@ -1152,18 +1151,16 @@ dateString "catScan5VarianceTrialThisTime" store
 
 (
   playWorkspace moveEeToPoseWord 
-  tempUpdateBg
+  catScan5UpdatePlayBg
   playWorkspace cw_clearWorkspace
   openGripper waitUntilGripperNotMoving
-  ">>>> entering pickFromInputPile <<<<" print
+  ">>>> entering pickFromInputPile2 <<<<" print
 
   ( isGripperGripping ! ) (
     /*
-    endArgs "kr_dash2" setClassLabels createCachedClassifierFromClassLabels "kr_dash2" setTargetClass setPickModeToStaticMarginals
-    2 setGradientServoHardMaxIterations
-    2 setGradientServoSoftMaxIterations
-    */
     scan_swapToBars
+    */
+    tempSwapToBlocks
 
     0 "pileSwitchCounter" store
 
@@ -1175,8 +1172,18 @@ dateString "catScan5VarianceTrialThisTime" store
       ( perturbPosition ) 5 replicateWord 
       1 changeToHeight 
       waitUntilAtCurrentPosition
-      clearMapForPatrol clearBlueBoxMemories mapLocal
-      deliverTargetObject
+
+      "catScan5InputBg" sceneLoadBackgroundMap
+      catScan5InputPileTakeScene
+      quarterImpulse
+      tempServoToBestObject waitUntilAtCurrentPosition
+      tempMapBestAndPick
+      
+      /* 
+	clearMapForPatrol clearBlueBoxMemories mapLocal
+	deliverTargetObject
+      */
+
       liftArm
       pileSwitchCounter 1 + "pileSwitchCounter" store
       pileSwitchCounter pileSwitchThreshold > ( 
@@ -1230,6 +1237,29 @@ dateString "catScan5VarianceTrialThisTime" store
 
   playWorkspace cw_clearWorkspace
 ) "moveToOutputPile2" store
+
+(
+  inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
+  catScan5InputPileTakeScene
+  "catScan5InputBg" sceneSaveObservedMap
+  "catScan5InputBg" sceneLoadBackgroundMap
+) "catScan5UpdateInputBg" store
+
+(
+  playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
+  catScan5PlayTakeScene
+  "catScan5PlayBg" sceneSaveObservedMap
+  "catScan5PlayBg" sceneLoadBackgroundMap
+) "catScan5UpdatePlayBg" store
+
+(
+  1 5 8 tempSpiralStreamTakeSceneEccentric
+) "catScan5InputPileTakeScene" store
+
+(
+  5 1 8 tempSpiralStreamTakeSceneEccentric
+) "catScan5PlayTakeScene" store
+
 
 
 
