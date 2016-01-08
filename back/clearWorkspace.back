@@ -141,5 +141,66 @@
   cw_clearWorkspace_a
 
   pop
+) "cw_clearWorkspace_old" store
+
+0.35 "cw_clearWorkspace_discrepancy_thresh_val" store
+20 "cw_clearWorkspace_discrepancy_thresh_cells" store
+10 "cw_clearWorkspace_max" store
+(
+  tempSwapToBlocks
+  "catScan5PlayBg" sceneLoadBackgroundMap
+
+  1 setCurrentIKBoundaryMode
+  ">>>> clearing workspace scene <<<<" print
+
+  0 "cw_clearWorkspace_counter" store
+  1 "cw_clearWorkspace_rescan" store
+  ( 
+    cw_clearWorkspace_counter cw_clearWorkspace_max < 
+  ) (
+      dup
+    moveEeToPoseWord waitUntilAtCurrentPosition
+    1 changeToHeight
+
+
+    sceneClearPredictedObjects 
+    catScan5PlayTakeScene
+  
+    "Attempt " cw_clearWorkspace_counter " out of " cw_clearWorkspace_max + + + print
+	cw_clearWorkspace_discrepancy_thresh_val sceneCountDiscrepantCells " discrepant cells at val threshold " 
+	cw_clearWorkspace_discrepancy_thresh_val " cell threshold " cw_clearWorkspace_discrepancy_thresh_cells 
+      + + + +
+    print
+
+    cw_clearWorkspace_discrepancy_thresh_val sceneCountDiscrepantCells cw_clearWorkspace_discrepancy_thresh_cells < (
+      "Great! Workspace clear, moving on." print
+      cw_clearWorkspace_max "cw_clearWorkspace_counter" store
+      0 "cw_clearWorkspace_rescan" store
+    ) (
+      "Workspace not clear, attempting to flick object." print
+      
+      tempServoToBestObject waitUntilAtCurrentPosition
+      cw_tri_flick
+
+      cw_clearWorkspace_counter 1 + "cw_clearWorkspace_counter" store
+    ) ifte
+  ) while
+
+
+  cw_clearWorkspace_rescan (
+    "Sadly, we timed out and the workspace is not clear. Updating the play workspace background map." print
+    catScan5UpdatePlayBg
+  ) ift
+  
+  tempRestoreFromBlocks
+
+  print
 ) "cw_clearWorkspace" store
+
+
+
+
+
+
+
 
