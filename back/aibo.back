@@ -158,7 +158,7 @@ dogBark
 
 (
   dogWatchOnce sceneSetBackgroundFromObserved sceneSetBackgroundFromObserved
-  ( 1 ) ( pushTime dogFormatImageDefault dogWatchOnce 0.7 sceneExponentialAverageObservedIntoBackground pushTime minus print endStackCollapseNoop ) while
+  ( 1 ) ( now dogFormatImageDefault dogWatchOnce 0.7 sceneExponentialAverageObservedIntoBackground now minus print endStackCollapseNoop ) while
 ) "dogWatchForAveragedChanges" store
 
 
