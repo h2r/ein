@@ -3233,6 +3233,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       bufferImage = tsi.image.clone();
     }
     success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+  } else {
+    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    return;
   }
 
   if (success != 1) {
@@ -3240,12 +3243,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  if (fabs(thisPose.qz) > 0.005 || fabs(thisPose.qw) > 0.005) {
+  if (fabs(thisPose.qz) > 0.01) {
     ROS_ERROR("  Not doing update because arm not vertical.");
     return;
   }
 
   Mat wristViewYCbCr = bufferImage.clone();
+
   cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
   
   Size sz = bufferImage.size();
@@ -3696,7 +3700,7 @@ void poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vector<string> 
     cout << " i " << i << " size: " << scene_files.size() << endl;
     Scene this_scene(ms, 3, 3, 0.02);
     this_scene.loadFromFile(scene_files[i]);
-    //scenes.push_back(this_scene);
+    scenes.push_back(this_scene);
   }
   } catch( ... ) {
         ROS_ERROR("In the weird sketchy exception block in ein main.");    
