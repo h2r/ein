@@ -1748,7 +1748,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   stringstream p;
   p << "subscribeCameraParameterTrackerToRosOut 0.25 waitForSeconds ";
   p << "unFixCameraLightingNoUpdate 0.5 waitForSeconds ";
-  p << "observedCameraExposure observedCameraGain observedCameraWhiteBalanceRed observedCameraWhiteBalanceGreen observedCameraWhiteBalanceBlue fixCameraLightingNoUpdate ";
+  stringstream cameracmd;
+  cameracmd << ms->config.observedCameraExposure << " " << ms->config.observedCameraGain << " " << ms->config.observedCameraWhiteBalanceRed << " " << ms->config.observedCameraWhiteBalanceGreen << " " << ms->config.observedCameraWhiteBalanceBlue << " fixCameraLightingNoUpdate ";
+  cout << cameracmd.str() << endl;
+  p << cameracmd.str();
   p << "0.5 waitForSeconds unsubscribeCameraParameterTrackerToRosOut ";
   ms->evaluateProgram(p.str());
 }
