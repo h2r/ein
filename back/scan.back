@@ -950,9 +950,9 @@ workspace4 "outputPileWorkspace" store
 5 "catScan5NumVarianceTrials" store
 dateString "catScan5VarianceTrialBatchTime" store
 dateString "catScan5VarianceTrialThisTime" store
-
+"trial" "catScan5VarianceTrialName" store
 (
-  dataDirectory "/objects/" scan_catScanObjectName "/catScan5VarianceTrials/" + + + "catScan5VarianceTrialDir" store
+  dataDirectory "/objects/" scan_catScanObjectName "/" catScan5VarianceTrialName "/" + + + + + "catScan5VarianceTrialDir" store
   catScan5VarianceTrialDir mkdirs
 
   "catScan5VarianceTrial BEGINNING" print
@@ -990,6 +990,7 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5VarianceTrial" store
 
 ( 
+"catScan5VarianceTrialName" store
 halfImpulse 
 ( tempShortServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord
 currentPose 
