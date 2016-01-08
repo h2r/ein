@@ -621,7 +621,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   0.02 setGridSize  11  tempUpdateSpiral
 */
   waitUntilAtCurrentPosition
-  14 tempSpiralStreamTakeScene
+  17 tempSpiralStreamTakeScene
   bg sceneSaveObservedMap 
   tempInit
 ) "tempUpdateBg" store
