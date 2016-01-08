@@ -71,6 +71,10 @@ bool copyDir(string src, string dest);
 string readBinaryFromYaml(FileNode & fn);
 void writeBinaryToYaml(unsigned char * data, int length, FileStorage & fsvO);
 
+Mat readMatFromYaml(FileNode & fsvO);
+void writeMatToYaml(Mat m, FileStorage & fsvO);
+
 string sceneModelFile(shared_ptr<MachineState> ms, string label);
+
 
 #endif /* _EIN_UTIL_H_ */
