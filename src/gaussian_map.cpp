@@ -3682,7 +3682,7 @@ int numberOfEqualCharacters(string first, string second) {
   return i;
 }
 
-void poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vector<string> scene_files) {
+vector<double> poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vector<string> scene_files) {
 
   double sum_x = 0.0;
   double sum_y = 0.0;
@@ -3692,14 +3692,14 @@ void poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vector<string> 
   double sum_theta_squared = 0.0;
   double counts = 0.0;
 
-  vector<Scene> scenes;
+  vector<shared_ptr<Scene> > scenes;
 
   try {
 
   for (int i = 0; i < scene_files.size(); i++) {
     cout << " i " << i << " size: " << scene_files.size() << endl;
-    Scene this_scene(ms, 3, 3, 0.02);
-    this_scene.loadFromFile(scene_files[i]);
+    shared_ptr<Scene> this_scene = make_shared<Scene>(ms, 3, 3, 0.02);
+    this_scene->loadFromFile(scene_files[i]);
     scenes.push_back(this_scene);
   }
   } catch( ... ) {
@@ -3715,11 +3715,11 @@ void poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vector<string> 
 
   for (int i = 0; i < scenes.size(); i++) {
     cout << "Scene " << i << endl;
-    Scene this_scene = scenes[i];
-    if (this_scene.predicted_objects.size() != 1) {
+    shared_ptr<Scene> this_scene = scenes[i];
+    if (this_scene->predicted_objects.size() != 1) {
       ROS_ERROR("Must be exactly one predicted object in these scenes.");
     }
-    shared_ptr<SceneObject> predictedObject = this_scene.predicted_objects[0];
+    shared_ptr<SceneObject> predictedObject = this_scene->predicted_objects[0];
 
     eePose scene_pose = predictedObject->scene_pose;
     double roll, pitch, yaw;
@@ -3749,10 +3749,10 @@ void poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vector<string> 
 
   double sum_dist = 0.0;
   double sum_dist_squared = 0.0;
-
+  vector<double> result;
   for (int i = 0; i < scenes.size(); i++) {
-    Scene this_scene = scenes[i];
-    shared_ptr<SceneObject> predictedObject = this_scene.predicted_objects[0];
+    shared_ptr<Scene> this_scene = scenes[i];
+    shared_ptr<SceneObject> predictedObject = this_scene->predicted_objects[0];
 
     eePose scene_pose = predictedObject->scene_pose;
     double roll, pitch, yaw;
@@ -3766,6 +3766,7 @@ void poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vector<string> 
 
     double squaredist = pow(mean_x  - this_x, 2) + pow(mean_y - this_y, 2);
     double dist = sqrt(squaredist);
+    result.push_back(dist);
     sum_dist_squared += squaredist;
     sum_dist += dist;
       
@@ -3817,7 +3818,7 @@ void poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vector<string> 
   cout << "mu_theta: " << mean_theta << "+/-" << muconf95_theta << " sigma_squared_theta: " << variance_theta << " stddev_theta: " << stddev_theta << "+/-" << stddevconf95_thetalow << "-" << stddevconf95_thetahigh << endl;
   cout << "mu_dist: " << mean_dist << "+/-" << muconf95_dist << " sigma_squared_dist: " << variance_dist << " stddev_dist: " << stddev_dist << "+/-" << stddevconf95_distlow << "-" << stddevconf95_disthigh << endl;
 
-
+  return result;
 }
 
 WORD(CatScan5VarianceTrialCalculatePoseVariances)
@@ -3829,9 +3830,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
        configurations for the object whose variance trial folder you pass to this word. */
   string baseClassTrialFolderName;
   GET_STRING_ARG(ms, baseClassTrialFolderName);
-
-  vector<string> scene_files;
-  vector<string>::iterator it;
+  vector< string > dir_files;
+  vector< vector<string> > scene_files;
 
   DIR *dpdf;
   struct dirent *epdf;
@@ -3839,41 +3839,85 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string dotdot("..");
 
   dpdf = opendir(baseClassTrialFolderName.c_str());
-  if (dpdf != NULL){
-    cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << baseClassTrialFolderName << " during snoop...";
-    while (epdf = readdir(dpdf)){
-      string thisFileName(epdf->d_name);
-
-      string thisFullFileName(baseClassTrialFolderName.c_str());
-      thisFullFileName = thisFullFileName + "/" + thisFileName;
-      cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << thisFullFileName << " during snoop...";
-
-      struct stat buf2;
-      stat(thisFullFileName.c_str(), &buf2);
-
-      int itIsADir = S_ISDIR(buf2.st_mode);
-      if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
-	cout << " is a directory." << endl;
-      } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
-	cout << " is NOT a directory." << endl;
-	scene_files.push_back(thisFullFileName);
-      }
-    }
-  } else {
+  if (dpdf == NULL){
     ROS_ERROR_STREAM("catScan5VarianceTrialCalculatePoseVariances: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
     return;
-  } 
+  }
 
-  std::sort(scene_files.begin(), scene_files.end(), less<string>());
+  while (epdf = readdir(dpdf)){
+    string thisFileName(epdf->d_name);
+    
+    string thisFullFileName(baseClassTrialFolderName.c_str());
+    thisFullFileName = thisFullFileName + "/" + thisFileName;
+    
+    struct stat buf2;
+    stat(thisFullFileName.c_str(), &buf2);
+    
+    int itIsADir = S_ISDIR(buf2.st_mode);
+    if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+      cout << " is a directory." << endl;
+      dir_files.push_back(thisFullFileName);
+    } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
+      cout << " is NOT a directory." << endl;
+	//scene_files.push_back(thisFullFileName);
+    }
+  }
+  closedir(dpdf);
+  
+  for (int i = 0; i < dir_files.size(); i++){
+    vector<string> thisdir_files;
+    dpdf = opendir(dir_files[i].c_str());
+    cout << "Opening: " << dir_files[i] << endl;
+    while (epdf = readdir(dpdf)){
+      string thisFileName(epdf->d_name);
+      string thisFullFileName(dir_files[i].c_str());
+      thisFullFileName = thisFullFileName + "/" + thisFileName;
+      struct stat buf2;
+      stat(thisFullFileName.c_str(), &buf2);
+      int itIsADir = S_ISDIR(buf2.st_mode);
+      if (itIsADir) {
+	cout << " is a directory." << endl;
+	//dir_files.push_back(thisFullFileName);
+      } else {
+	cout << " is NOT a directory." << endl;
+	thisdir_files.push_back(thisFullFileName);
+      }
+    }
+    closedir(dpdf);
+    scene_files.push_back(thisdir_files);
+  }
 
   cout << "catScan5VarianceTrialCalculatePoseVariances found the following files:" << endl;;
-  for (it=scene_files.begin(); it!=scene_files.end(); ++it) {
-    cout << *it << endl;
+  for (int i = 0; i < scene_files.size(); i++) {
+    for (int j = 0; j < scene_files[i].size(); j++) {
+      cout << "File: " << scene_files[i][j] << endl;
+    }
   }
   cout << endl;
-  poseVarianceOfEvaluationScenes(ms, scene_files);
+  vector<double> distances;
+  for (int i = 0; i < scene_files.size(); i++) {
+    vector<double> batch_distances = poseVarianceOfEvaluationScenes(ms, scene_files[i]);
+    for (int j = 0; j < batch_distances.size(); j++) {
+      distances.push_back(batch_distances[j]);
+    }
+  }
+  double sum_squared = 0;
+  double sum = 0;
+  for (int i = 0; i < distances.size(); i++) {
+    cout << "dist: " << distances[i] << endl;
+    sum += distances[i];
+    sum_squared += pow(distances[i], 2);
+  }
+  cout << "Sum: " << sum << endl;
+  double safe_counts = std::max((double) distances.size(), 1.0);
+  double mean = sum / safe_counts;
+  double variance = ( sum_squared / safe_counts ) - ( mean * mean ); 
+  double stddev = sqrt(variance);
+  double stderror = stddev / safe_counts;
+  double muconf95 = stderror / 1.96;
+  cout << "overall variance report: " << endl;
+  cout << "mu_d: " << mean << "+/-" << muconf95 << " sigma_squared: " << variance << " stddev: " << stddev << endl;
 
-  // XXX this should be von mises or something instead for theta, but for now leave it at this
 }
 END_WORD
 REGISTER_WORD(CatScan5VarianceTrialCalculatePoseVariances)
