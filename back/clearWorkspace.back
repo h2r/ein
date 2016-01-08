@@ -26,6 +26,24 @@
   cw_viewIsClear
 ) "cw_workspaceIsClear" store
 
+(
+  catScan5PlayTakeScene
+
+  "cw_playWorkspaceIsClear..." print
+      cw_clearWorkspace_discrepancy_thresh_val sceneCountDiscrepantCells " discrepant cells at val threshold " 
+      cw_clearWorkspace_discrepancy_thresh_val " cell threshold " cw_clearWorkspace_discrepancy_thresh_cells 
+    + + + +
+  print
+
+  cw_clearWorkspace_discrepancy_thresh_val sceneCountDiscrepantCells cw_clearWorkspace_discrepancy_thresh_cells < (
+    "Workspace clear." print
+    1
+  ) (
+    "Workspace not clear." print
+    0
+  ) ifte
+) "cw_playWorkspaceIsClear" store
+
 ( 
   slide ( pushClassLabels 1 sP ) "cw_swap_classLabels" store
   focusedClassLabel "cw_swap_targetClass" store
@@ -148,7 +166,7 @@
 10 "cw_clearWorkspace_max" store
 (
   tempSwapToBlocks
-  "catScan5PlayBg" sceneLoadBackgroundMap
+  catScan5LoadPlayBg
 
   1 setCurrentIKBoundaryMode
   ">>>> clearing workspace scene <<<<" print
