@@ -332,117 +332,13 @@ workspace4 "outputPileWorkspace" store
   ) (
     "Found an object, moving to it." print
     1 "scan_breakInd" store
-    tempServoToBestSceneObject waitUntilAtCurrentPosition
+    tempSpiralServoToAnonymousObject waitUntilAtCurrentPosition
   ) ifte
 
   scan_breakInd
 
   tempRestoreFromBlocks
 ) "scan_findObjectAfterDrop" store
-
-( 
-
-  clearClassLabels
-  setScanModeCentered
-
-  tenthImpulse
-  moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
-  currentPose
-
-  0 "scan_catScanCounter" store
-
-  "catScan_" robotSerial leftOrRightArm dateString "/" + + + + "scan_catScanObjectName" store
-  scan_catScanObjectName setScanGroup
-  
-  scan_findObjectAfterDrop "scan_catScanSees" store
-  setBoundingBoxModeToMapping
-  clearMapForPatrol
-  1 changeToHeight waitUntilAtCurrentPosition
-  synchronicServo 
-
-  comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort 
-  currentPose eePosePZ "scan_gripperTouchTableZ" store
-
-  currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-  0.01 setGridSize ( zUp ) scan_IRheight replicateWord comeToStop 
-
-
-
-  setPickModeToLearningAlgorithmC
-
-  ( scan_catScanCounter 50 <   scan_catScanSees   and ) (
-    currentPose
-
-    endArgs
-    currentPose
-    1 changeToHeight scan_isNewComponent (
-      scanObjectStreamWaypointsIR
-
-      integrateImageStreamBufferCrops
-      trainAndWriteFocusedClassKnn
-      createCachedClassifierFromClassLabels
-
-      moveEeToPoseWord
-      1 changeToHeight
-
-      setPlaceModeToHold
-      pickFocusedClass
-
-      playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
-
-      currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-      quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight replicateWord setMovementStateToMoving comeToStop 
-      openGripper
-    ) (
-      pop pop pop
-
-      clearMapForPatrol clearBlueBoxMemories mapLocal
-      deliverTargetObject
-
-      isGripperGripping (
-	playWorkspace moveEeToPoseWord
-
-	currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-	quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight replicateWord setMovementStateToMoving comeToStop 
-      ) ift
-      openGripper
-    ) ifte
-
-    1 changeToHeight
-    currentPose
-    scan_findObjectAfterDrop "scan_catScanSees" store
-
-    scan_catScanSees (
-      setBoundingBoxModeToMapping
-      clearMapForPatrol
-      synchronicServo 
-
-      currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-      0.01 setGridSize ( zUp ) scan_IRheight replicateWord comeToStop 
-    ) ift
-
-    scan_catScanCounter 1 + "scan_catScanCounter" store
-  ) while 
-
-  setPickModeToLearningAlgorithmC
-  setPlaceModeToShake
-
-  0 "scan_catPickCounter" store
-  playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
-  scan_findObjectAfterDrop "scan_catScanSees" store
-
-  ( scan_catPickCounter 20 <   scan_catScanSees   and ) (
-    1 changeToHeight
-    clearMapForPatrol clearBlueBoxMemories
-    mapLocal
-    pickClosestBlueBox
-
-    playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
-    scan_findObjectAfterDrop "scan_catScanSees" store
-    scan_catPickCounter 1 + "scan_catPickCounter" store
-  ) while
-
-) "catScan"  store
 
 (
   slide ( pushClassLabels 1 sP ) "scan_swap_classLabels" store
@@ -494,143 +390,18 @@ workspace4 "outputPileWorkspace" store
   writeFocusedClass
 ) "scan_addBar3dGrasp" store
 
-( 
-
-  clearClassLabels
-  setScanModeCentered
-  setGraspModeTo3D
-
-  tenthImpulse
-  moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
-  currentPose
-
-  0 "scan_catScanCounter" store
-
-  "catScan_" robotSerial leftOrRightArm dateString "/" + + + + "scan_catScanObjectName" store
-  scan_catScanObjectName setScanGroup
-  
-  scan_findObjectAfterDrop "scan_catScanSees" store
-  setBoundingBoxModeToMapping
-  clearMapForPatrol
-  1 changeToHeight waitUntilAtCurrentPosition
-  synchronicServo 
-
-
-  /* comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort 
-  currentPose eePosePZ "scan_gripperTouchTableZ" store */
-
-  0 currentTableZ - pickFlushFactor + "scan_gripperTouchTableZ" store
-
-
-  currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-  0.01 setGridSize ( zUp ) scan_IRheight replicateWord comeToStop 
-
-
-
-  setPickModeToLearningAlgorithmC
-
-  ( scan_catScanCounter scan_catScanLimit <   scan_catScanSees   and ) (
-    currentPose
-
-    endArgs
-    currentPose
-    1 changeToHeight scan_isNewComponent (
-      scanObjectStreamWaypoints3dNoPick
-      playWorkspace moveEeToPoseWord
-
-      integrateImageStreamBufferCrops
-      trainAndWriteFocusedClassKnn
-      createCachedClassifierFromClassLabels
-
-      moveEeToPoseWord
-      1 changeToHeight
-
-      clearClass3dGrasps
-      writeFocusedClass
-      scan_addBar3dGrasp
-
-      setPlaceModeToHold
-      clearMapForPatrol
-      pickFocusedClass
-
-      playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
-
-      isGripperGripping (
-	currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-	quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight replicateWord setMovementStateToMoving comeToStop 
-      ) ift
-      openGripper
-    ) (
-      pop pop pop
-
-      /* sets the target class */
-      clearMapForPatrol
-      mapLocal
-      clearBlueBoxMemories
-
-      scan_addBar3dGrasp
-      moveToTargetZAndGrasp
-      setGridSizeCoarse departureSpeed ( zUp ) 10 replicateWord setMovementStateToMoving comeToStop
-
-      isGripperGripping (
-	playWorkspace moveEeToPoseWord
-
-	currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-	quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight replicateWord setMovementStateToMoving comeToStop 
-      ) ift
-      openGripper
-    ) ifte
-
-    1 changeToHeight
-    currentPose
-    scan_findObjectAfterDrop "scan_catScanSees" store
-
-    scan_catScanSees (
-      setBoundingBoxModeToMapping
-      clearMapForPatrol
-      synchronicServo 
-
-      currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-      0.01 setGridSize ( zUp ) scan_IRheight replicateWord comeToStop 
-    ) ift
-
-    scan_catScanCounter 1 + "scan_catScanCounter" store
-  ) while 
-
-  setPickModeToLearningAlgorithmC
-  setPlaceModeToShake
-
-  0 "scan_catPickCounter" store
-  playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
-  scan_findObjectAfterDrop "scan_catScanSees" store
-
-  ( scan_catPickCounter scan_catPickLimit <   scan_catScanSees   and ) (
-    1 changeToHeight
-    clearMapForPatrol clearBlueBoxMemories
-    mapLocal
-    pickClosestBlueBox
-
-    playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
-    scan_findObjectAfterDrop "scan_catScanSees" store
-    scan_catPickCounter 1 + "scan_catPickCounter" store
-  ) while
-
-) "catScan2"  store
-
 (
   ( 1 ) (
     setPlaceModeToShake
     1 changeToHeight
     clearMapForPatrol clearBlueBoxMemories
-    mapLocal
-    pickClosestBlueBox
+    tempMapBestAndPick
 
     playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
     scan_findObjectAfterDrop "scan_catScanSees" store
     scan_catPickCounter 1 + "scan_catPickCounter" store
   ) while
 ) "catPlayLoop" store
-
 
 (
   setPickModeToLearningAlgorithmC
@@ -684,300 +455,6 @@ workspace4 "outputPileWorkspace" store
 ) "infiniteScan" store
 
 
-
-
-
-
-(
-  clearClassLabels
-  setGraspModeTo3D
-
-  tenthImpulse
-  moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
-  currentPose
-
-  0 "scan_catScanCounter" store
-
-  "catScan_" robotSerial leftOrRightArm dateString "/" + + + + "scan_catScanObjectName" store
-  scan_catScanObjectName setScanGroup
-  
-  scan_findObjectAfterDrop "scan_catScanSees" store
-  setBoundingBoxModeToMapping
-  clearMapForPatrol
-  1 changeToHeight waitUntilAtCurrentPosition
-  synchronicServo 
-
-
-  /* comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort 
-  currentPose eePosePZ "scan_gripperTouchTableZ" store */
-
-  0 currentTableZ - pickFlushFactor + "scan_gripperTouchTableZ" store
-
-
-  currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-  0.01 setGridSize ( zUp ) scan_IRheight replicateWord comeToStop 
-
-
-
-  setPickModeToLearningAlgorithmC
-
-  ( scan_catScanCounter scan_catScanLimit <   scan_catScanSees   and ) (
-    currentPose
-
-    endArgs
-    currentPose
-    1 changeToHeight scan_isNewComponent (
-/*
-      scanObjectStreamWaypoints3dNoPick
-*/
-      moveEeToPoseWord
-      tempFullScan
-
-
-
-      playWorkspace moveEeToPoseWord
-
-      integrateImageStreamBufferCrops
-      trainAndWriteFocusedClassKnn
-/*
-      createCachedClassifierFromClassLabels
-*/
-
-      moveEeToPoseWord
-      1 changeToHeight
-
-      clearClass3dGrasps
-      writeFocusedClass
-/*
-      scan_addBar3dGrasp
-*/
-      tempAddBarGrasp
-
-      setPlaceModeToHold
-      clearMapForPatrol
-/*
-      pickFocusedClass
-*/
-      tempMapFocusedAndPick
-
-      playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
-
-      isGripperGripping (
-	currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-	quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight replicateWord setMovementStateToMoving comeToStop 
-      ) ift
-      openGripper
-    ) (
-      pop pop pop
-
-      /* sets the target class */
-      setPlaceModeToHold
-      clearMapForPatrol
-/*
-      mapLocal
-      clearBlueBoxMemories
-
-      scan_addBar3dGrasp
-      moveToTargetZAndGrasp
-*/
-      tempAddBarGrasp
-      tempPickWithAddedGrasp
-
-
-      setGridSizeCoarse departureSpeed ( zUp ) 10 replicateWord setMovementStateToMoving comeToStop
-
-      isGripperGripping (
-	playWorkspace moveEeToPoseWord
-
-	currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-	quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight replicateWord setMovementStateToMoving comeToStop 
-      ) ift
-      openGripper
-    ) ifte
-
-    1 changeToHeight
-    currentPose
-    scan_findObjectAfterDrop "scan_catScanSees" store
-
-    scan_catScanSees (
-      setBoundingBoxModeToMapping
-      clearMapForPatrol
-      synchronicServo 
-
-      currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-      0.01 setGridSize ( zUp ) scan_IRheight replicateWord comeToStop 
-    ) ift
-
-    scan_catScanCounter 1 + "scan_catScanCounter" store
-  ) while 
-
-  setPickModeToLearningAlgorithmC
-  setPlaceModeToShake
-
-  0 "scan_catPickCounter" store
-  playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
-  scan_findObjectAfterDrop "scan_catScanSees" store
-
-  ( scan_catPickCounter scan_catPickLimit <   scan_catScanSees   and ) (
-    1 changeToHeight
-    clearMapForPatrol clearBlueBoxMemories
-/*
-    mapLocal
-    pickClosestBlueBox
-*/
-    tempMapFocusedAndPick
-
-    playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
-    scan_findObjectAfterDrop "scan_catScanSees" store
-    scan_catPickCounter 1 + "scan_catPickCounter" store
-  ) while
-
-) "catScan3" store
-
-
-(
-  clearClassLabels
-  setGraspModeTo3D
-
-  tenthImpulse
-  moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
-
-    currentPose
-
-    0 
-  "scan_catScanCounter" store
-
-    "catScan_" robotSerial leftOrRightArm dateString "/" + + + + 
-  "scan_catScanObjectName" store
-
-  scan_catScanObjectName setScanGroup
-  
-    scan_findObjectAfterDrop 
-  "scan_catScanSees" store
-  setBoundingBoxModeToMapping
-  clearMapForPatrol
-  1 changeToHeight waitUntilAtCurrentPosition
-
-  synchronicServo 
-
-
-  /* comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort 
-  currentPose eePosePZ "scan_gripperTouchTableZ" store */
-
-  0 currentTableZ - pickFlushFactor + "scan_gripperTouchTableZ" store
-
-
-  currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-  0.01 setGridSize ( zUp ) scan_IRheight replicateWord comeToStop 
-
-
-
-  setPickModeToLearningAlgorithmC
-
-  ( scan_catScanCounter scan_catScanLimit <   scan_catScanSees   and ) (
-
-    1 changeToHeight 
-    currentPose
-
-    tempSpiralIsNewComponentNormalizedSum (
-
-      moveEeToPoseWord
-      tempFullScan
-
-      playWorkspace moveEeToPoseWord
-
-      integrateImageStreamBufferCrops
-/*
-      createCachedClassifierFromClassLabels
-*/
-      trainAndWriteFocusedClassKnn
-
-      moveEeToPoseWord
-      1 changeToHeight
-
-      clearClass3dGrasps
-      writeFocusedClass
-
-      tempAddBarGrasp
-
-      setPlaceModeToHold
-      clearMapForPatrol
-      tempMapFocusedAndPick
-
-      playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
-
-      isGripperGripping (
-	currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-	quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight replicateWord setMovementStateToMoving comeToStop 
-      ) ift
-      openGripper
-    ) (
-      pop pop pop
-
-      /* sets the target class */
-      setPlaceModeToHold
-      clearMapForPatrol
-
-      tempAddBarGrasp
-      tempPickWithAddedGrasp
-
-      setGridSizeCoarse departureSpeed ( zUp ) 10 replicateWord setMovementStateToMoving comeToStop
-
-      isGripperGripping (
-	playWorkspace moveEeToPoseWord
-
-	currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-	quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight replicateWord setMovementStateToMoving comeToStop 
-      ) ift
-      openGripper
-    ) ifte
-
-    1 changeToHeight
-    currentPose
-    scan_findObjectAfterDrop "scan_catScanSees" store
-
-    scan_catScanSees (
-      setBoundingBoxModeToMapping
-      clearMapForPatrol
-      synchronicServo 
-
-      currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-      0.01 setGridSize ( zUp ) scan_IRheight replicateWord comeToStop 
-    ) ift
-
-    scan_catScanCounter 1 + "scan_catScanCounter" store
-  ) while 
-
-  setPickModeToLearningAlgorithmC
-  setPlaceModeToShake
-
-  0 "scan_catPickCounter" store
-  playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
-  scan_findObjectAfterDrop "scan_catScanSees" store
-
-  ( scan_catPickCounter scan_catPickLimit <   scan_catScanSees   and ) (
-    1 changeToHeight
-    clearMapForPatrol clearBlueBoxMemories
-/*
-    mapLocal
-    pickClosestBlueBox
-*/
-    tempMapFocusedAndPick
-
-    playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
-    scan_findObjectAfterDrop "scan_catScanSees" store
-    scan_catPickCounter 1 + "scan_catPickCounter" store
-  ) while
-
-  /*
-  catScan4 currently uses new tech to perform pose estimation and configuration detection
-  */
-) "catScan4" store
-
-
-
-
-
 5 "catScan5NumVarianceTrials" store
 dateString "catScan5VarianceTrialBatchTime" store
 dateString "catScan5VarianceTrialThisTime" store
@@ -992,10 +469,6 @@ dateString "catScan5VarianceTrialThisTime" store
 
   sceneClearPredictedObjects tempUpdateMaps 
 
-    /*  
-    ( tempShortTakeScene tempServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord 
-    ( tempSpiralTakeScene tempServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord  
-    */
     ( tempSpiralServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord 
 
     scenePushNumSceneObjects
@@ -1217,14 +690,12 @@ dateString "catScan5VarianceTrialThisTime" store
       ">>>> re-entering pickFromInputPile2 <<<<" print
       openGripper
       halfImpulse
-      inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
-      1 changeToHeight 
-      waitUntilAtCurrentPosition
+      inputPileWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
 
       catScan5LoadInputBg
       catScan5InputPileTakeScene
       quarterImpulse
-      tempServoToBestSceneObject waitUntilAtCurrentPosition
+      tempSpiralServoToBestSceneObject waitUntilAtCurrentPosition
       tempMapBestAndPick
       
       /* 
