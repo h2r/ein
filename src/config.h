@@ -209,6 +209,11 @@ typedef enum {
   SC_DISCREPANCY_THEN_LOGLIKELIHOOD = 1
 } sceneClassificationMode;
 
+typedef enum {
+  WAIT_KEEP_ON = 0,
+  WAIT_BACK_UP = 1
+} waitMode;
+
 std::string pickModeToString(pickMode mode);
 
 
@@ -1040,6 +1045,7 @@ class EinConfig {
   double vaY[vaNumAngles];
 
 
+  waitMode currentWaitMode = WAIT_KEEP_ON;
   int waitUntilAtCurrentPositionCounter = 0;
   int waitUntilAtCurrentPositionCounterTimeout = 300;
   int waitUntilEffortCounter = 0;

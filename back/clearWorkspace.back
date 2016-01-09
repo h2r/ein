@@ -70,6 +70,8 @@
 ) "cw_servo_for_flick" store
 
 (
+  1 waitSetCurrentWaitMode
+
   halfImpulse 
   moveEeToPoseWord 
 
@@ -105,6 +107,7 @@
   waitUntilAtCurrentPosition
   openGripper
 
+  0 waitSetCurrentWaitMode
 ) "cw_flick" store
 
 (
