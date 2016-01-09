@@ -132,6 +132,7 @@ tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
   ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) tempSpiralStreamTakeSceneStride replicateWord endStackCollapseNoop ) tempSpiralStreamTakeSceneSamples replicateWord
 
   tempUpdateSpiralPos moveEeToPoseWord
+  waitUntilAtCurrentPosition
 /* XXX need to change this to not take an argument, split with a core */
 ) "tempUpdateSpiralCore" store
 
@@ -509,15 +510,16 @@ tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
   tempSpiralTakeScene tempServoToFocusedSceneObject
 ) "tempSpiralServoToFocusedSceneObject" store
 
+/* internal */
 (
   sceneClearPredictedObjects tempUpdateMaps scenePredictFocusedObject  tempUpdateMaps
   0 tempMoveToSceneObject
 ) "tempServoToFocusedSceneObject" store
-
 (
   sceneClearPredictedObjects tempUpdateMaps scenePredictBestObject tempUpdateMaps
   0 tempMoveToSceneObject
 ) "tempServoToBestSceneObject" store
+/* end internal */
 
 (
   /* if you are in blocks, you will end up back in blocks. if not you will get whatever you had. */
@@ -734,6 +736,7 @@ tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
 ) "tempAddBarGrasp" store
 
 (
+  /* XXX if the number of classes is zero, how does this work out? */
   clearMapForPatrol
 
   lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
@@ -805,14 +808,20 @@ tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
 
 (
   tempBlockUsingBlocks (
+    "tempRestoreFromBlocks: restoring from blocks." print    
+
     scenePredictedMapThreshDefault "scenePredictedMapThresh" store
     endArgs tempSwapClassLabels setClassLabels 
-    tempSwapTargetClass setTargetClass
+    numClasses 0 > (
+      tempSwapTargetClass setTargetClass
+    ) (
+      "Oops, restoring to ZERO classes!" print    
+    ) ifte
+
     createCachedClassifierFromClassLabels
     setGraspModeTo3D
     1 sceneSetClassificationMode
     0 "tempBlockUsingBlocks" store
-    "tempRestoreFromBlocks: restoring from blocks." print    
   ) (
     "tempRestoreFromBlocks: restoring from blocks but not holding blocks." print    
   ) ifte
@@ -848,8 +857,6 @@ tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
 
 (
   ( tempShortServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord
-
-  /* tempFivePointThreeWidthTakeScene tempServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop */
 
   0 sceneMapSceneObject
   recordPreTargetLock

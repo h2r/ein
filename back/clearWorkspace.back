@@ -66,6 +66,7 @@
 
 (
   tempSpiralServoToAnonymousObject
+  shiftIntoGraspGear1
 ) "cw_servo_for_flick" store
 
 (
@@ -190,7 +191,7 @@
     ) (
       "Workspace not clear, attempting to flick object." print
       
-      tempServoToBestSceneObject waitUntilAtCurrentPosition
+      tempSpiralServoToAnonymousObject waitUntilAtCurrentPosition
       cw_tri_flick
 
       cw_clearWorkspace_counter 1 + "cw_clearWorkspace_counter" store
