@@ -318,7 +318,7 @@ workspace4 "outputPileWorkspace" store
   1 changeToHeight
 
   catScan5LoadPlayBg
-  14 tempSpiralStreamTakeScene
+  tempSpiralTakeScene
   
   "scan_findObjectAfterDrop: " print
       cw_clearWorkspace_discrepancy_thresh_val sceneCountDiscrepantCells " discrepant cells at val threshold " 
@@ -332,7 +332,7 @@ workspace4 "outputPileWorkspace" store
   ) (
     "Found an object, moving to it." print
     1 "scan_breakInd" store
-    tempServoToBestObject waitUntilAtCurrentPosition
+    tempServoToBestSceneObject waitUntilAtCurrentPosition
   ) ifte
 
   scan_breakInd
@@ -879,7 +879,7 @@ workspace4 "outputPileWorkspace" store
     1 changeToHeight 
     currentPose
 
-    tempFivePointThreeWidthIsNewComponentNormalizedSum (
+    tempSpiralIsNewComponentNormalizedSum (
 
       moveEeToPoseWord
       tempFullScan
@@ -992,8 +992,11 @@ dateString "catScan5VarianceTrialThisTime" store
 
   sceneClearPredictedObjects tempUpdateMaps 
 
+    /*  
     ( tempShortTakeScene tempServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord 
-/*  ( 14 tempSpiralStreamTakeScene tempServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord  */
+    ( tempSpiralTakeScene tempServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord  
+    */
+    ( tempSpiralServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord 
 
     scenePushNumSceneObjects
     1
@@ -1021,12 +1024,19 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5VarianceTrial" store
 
 ( 
-"catScan5VarianceTrialName" store
-halfImpulse 
-( tempShortServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord
-currentPose 
-( catScan5VarianceTrial dup moveEeToPoseWord waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 5 replicateWord
-pop
+    /* string argument on stack */
+  "catScan5VarianceTrialName" store
+
+  halfImpulse 
+  ( 
+    tempShortServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
+  ) 3 replicateWord
+
+    currentPose 
+  ( 
+    catScan5VarianceTrial dup moveEeToPoseWord waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
+  ) 5 replicateWord
+  pop
 ) "catScan5VarianceTrials" store
 
 ( /* expects an eePose on the stack */
@@ -1079,7 +1089,7 @@ pop
     1 changeToHeight 
     currentPose "catScan5Pos" store
 
-    tempFivePointThreeWidthIsNewComponentNormalizedSum (
+    tempSpiralIsNewComponentNormalizedSum (
 
       catScan5Pos moveEeToPoseWord waitUntilAtCurrentPosition
       tempFullScan
@@ -1101,7 +1111,6 @@ pop
 
       setPlaceModeToHold
       clearMapForPatrol
-      tempMapFocusedAndPick
 
 	playWorkspace 
       moveEeToPoseWord waitUntilAtCurrentPosition
@@ -1119,7 +1128,9 @@ pop
 
       tempAddBlockGrasp
       setPickModeToLearningAlgorithmC
-      tempPickWithAddedGrasp
+
+      /* tempPickWithAddedGrasp */
+      tempMapFocusedAndPick
 
       setGridSizeCoarse departureSpeed ( zUp ) 10 replicateWord setMovementStateToMoving comeToStop
 
@@ -1137,9 +1148,11 @@ pop
 	currentPose
       scan_findObjectAfterDrop 
     "scan_catScanSees" store
+    currentPose "catScan5Pos" store
 
       scan_catScanCounter 1 + 
     "scan_catScanCounter" store
+
   ) while 
 
   setPickModeToLearningAlgorithmC
@@ -1211,7 +1224,7 @@ pop
       catScan5LoadInputBg
       catScan5InputPileTakeScene
       quarterImpulse
-      tempServoToBestObject waitUntilAtCurrentPosition
+      tempServoToBestSceneObject waitUntilAtCurrentPosition
       tempMapBestAndPick
       
       /* 
@@ -1242,8 +1255,6 @@ pop
 (
   setPickModeToLearningAlgorithmC
   1 setSnapToFlushGrasp
-  2 setGradientServoHardMaxIterations
-  2 setGradientServoSoftMaxIterations
 
   1 "somethingsThere" store
 
@@ -1278,32 +1289,37 @@ pop
   inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
   catScan5InputPileTakeScene
   "catScan5InputBg" "_" leftOrRightArm + + sceneSaveObservedMap
+  0.05 "tempSpiralMoveSpeed" store
   catScan5LoadInputBg
+  tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
 ) "catScan5UpdateInputBg" store
 
 (
   "catScan5InputBg" "_" leftOrRightArm + + sceneLoadBackgroundMap
+  tempRegularizeBackground
 ) "catScan5LoadInputBg" store
 
 (
   playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
   catScan5PlayTakeScene
   "catScan5PlayBg" "_" leftOrRightArm + + sceneSaveObservedMap
+  0.05 "tempSpiralMoveSpeed" store
   catScan5LoadPlayBg
+  tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
 ) "catScan5UpdatePlayBg" store
 
 (
   "catScan5PlayBg" "_" leftOrRightArm + + sceneLoadBackgroundMap
+  tempRegularizeBackground
 ) "catScan5LoadPlayBg" store
 
 (
-  1 5 8 tempSpiralStreamTakeSceneEccentric
+  1 5 4 tempUpdateSpiralEccentricCore tempUpdateMaps
 ) "catScan5InputPileTakeScene" store
 
 (
-  5 1 8 tempSpiralStreamTakeSceneEccentric
+  5 1 4 tempUpdateSpiralEccentricCore tempUpdateMaps
 ) "catScan5PlayTakeScene" store
-
 
 
 

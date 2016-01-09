@@ -45,8 +45,9 @@
 ) "cw_playWorkspaceIsClear" store
 
 ( 
-  slide ( pushClassLabels 1 sP ) "cw_swap_classLabels" store
-  focusedClassLabel "cw_swap_targetClass" store
+  /* if you are in blocks, you will end up back in blocks. if not you will get whatever you had. */
+  tempRestoreFromBlocks
+  tempSwapToBlocks
 
   setMovementStateToMoving comeToStop 
   sceneClearObservedMap sceneClearPredictedObjects
@@ -55,8 +56,7 @@
   tempRecaptureServo
   scenePushNumSceneObjects 0 = 1 0 ifte
 
-  endArgs cw_swap_classLabels setClassLabels 
-  cw_swap_targetClass setTargetClass
+  tempRestoreFromBlocks
 ) "cw_viewIsClear" store
 
 ( 
@@ -65,14 +65,7 @@
 ) "cw_viewIsClear_old" store
 
 (
-  slide ( pushClassLabels 1 sP ) "cw_swap_classLabels" store
-  focusedClassLabel "cw_swap_targetClass" store
-
-  initializeAndFocusOnTempClass
-  ( tempRecaptureServo ) 2 replicateWord
-
-  endArgs cw_swap_classLabels setClassLabels 
-  cw_swap_targetClass setTargetClass
+  tempSpiralServoToAnonymousObject
 ) "cw_servo_for_flick" store
 
 (
@@ -197,7 +190,7 @@
     ) (
       "Workspace not clear, attempting to flick object." print
       
-      tempServoToBestObject waitUntilAtCurrentPosition
+      tempServoToBestSceneObject waitUntilAtCurrentPosition
       cw_tri_flick
 
       cw_clearWorkspace_counter 1 + "cw_clearWorkspace_counter" store
