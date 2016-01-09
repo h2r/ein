@@ -1019,7 +1019,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
        (idx > -1) && (idx < ms->config.classHeight3AerialGradients.size()) ) {
     // do nothing
   } else {
-    cout << "writeAerialGradientsToServoCrop: invalid idx, not writing." << endl;
+    //cout << "writeAerialGradientsToServoCrop: invalid idx, not writing." << endl;
     return;
   }
 
@@ -1032,7 +1032,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
   {
     Mat this_grad = ms->config.classHeight0AerialGradients[idx];
     string png_path = servoCrop_file_path + "0" + ".png";
-    cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
+    //cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
     double minDepth = std::numeric_limits<double>::max();
     double maxDepth = std::numeric_limits<double>::min();
     for (int gx = 0; gx < this_grad.cols; gx++) {
@@ -1058,7 +1058,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
       string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_range_path;
       this_range_path = dirToMakePath + "aerialHeight0Gradients.yml";
-      cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
+      //cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
 
       FileStorage fsvO;
       fsvO.open(this_range_path, FileStorage::WRITE);
@@ -1069,7 +1069,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
   {
     Mat this_grad = ms->config.classHeight1AerialGradients[idx];
     string png_path = servoCrop_file_path + "1" + ".png";
-    cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
+    //cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
     double minDepth = std::numeric_limits<double>::max();
     double maxDepth = std::numeric_limits<double>::min();
     for (int gx = 0; gx < this_grad.cols; gx++) {
@@ -1094,7 +1094,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
       string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_range_path;
       this_range_path = dirToMakePath + "aerialHeight1Gradients.yml";
-      cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
+      //cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
 
       FileStorage fsvO;
       fsvO.open(this_range_path, FileStorage::WRITE);
@@ -1105,7 +1105,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
   {
     Mat this_grad = ms->config.classHeight2AerialGradients[idx];
     string png_path = servoCrop_file_path + "2" + ".png";
-    cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
+    //cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
     double minDepth = std::numeric_limits<double>::max();
     double maxDepth = std::numeric_limits<double>::min();
     for (int gx = 0; gx < this_grad.cols; gx++) {
@@ -1130,7 +1130,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
       string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_range_path;
       this_range_path = dirToMakePath + "aerialHeight2Gradients.yml";
-      cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
+      //cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
 
       FileStorage fsvO;
       fsvO.open(this_range_path, FileStorage::WRITE);
@@ -1141,7 +1141,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
   {
     Mat this_grad = ms->config.classHeight3AerialGradients[idx];
     string png_path = servoCrop_file_path + "3" + ".png";
-    cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
+    //cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
     double minDepth = std::numeric_limits<double>::max();
     double maxDepth = std::numeric_limits<double>::min();
     for (int gx = 0; gx < this_grad.cols; gx++) {
@@ -1166,7 +1166,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
       string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_range_path;
       this_range_path = dirToMakePath + "aerialHeight3Gradients.yml";
-      cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
+      //cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
 
       FileStorage fsvO;
       fsvO.open(this_range_path, FileStorage::WRITE);
@@ -2322,7 +2322,7 @@ void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStr
 
     string png_path = root_path + ".png";
     string yaml_path = root_path + ".yml";
-    cout << "streamImageAsClass: Streaming current frame to " << png_path << " " << yaml_path << endl;
+    //cout << "streamImageAsClass: Streaming current frame to " << png_path << " " << yaml_path << endl;
     // no compression!
     std::vector<int> args;
     args.push_back(CV_IMWRITE_PNG_COMPRESSION);
@@ -2345,7 +2345,7 @@ void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStr
     toAdd.filename = "CAMERA";
     ms->config.streamImageBuffer.push_back(toAdd);
 
-    cout << "streamImageAsClass: WARNING disk streaming not enabled, there are " << ms->config.streamImageBuffer.size() << " images in the buffer and growing..." << endl;
+    //cout << "streamImageAsClass: WARNING disk streaming not enabled, there are " << ms->config.streamImageBuffer.size() << " images in the buffer and growing..." << endl;
   }
 }
 
@@ -7193,7 +7193,7 @@ void drawMapRegisters(shared_ptr<MachineState> ms) {
 
 
 void applyGraspFilter(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB) {
-  cout << "Applying filter to rangeMapRegA and storing result in rangeMapRegA." << endl;
+  //cout << "Applying filter to rangeMapRegA and storing result in rangeMapRegA." << endl;
 
   // ATTN 2
   int dx[9] = { -1,  0,  1, 

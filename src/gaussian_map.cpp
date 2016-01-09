@@ -3216,12 +3216,10 @@ REGISTER_WORD(SceneUpdateObservedFromWrist)
 WORD(SceneUpdateObservedFromStreamBuffer)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int thisIdx = ms->config.sibCurIdx;
-  cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
+  //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
-
-
 
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {

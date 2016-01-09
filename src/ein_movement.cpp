@@ -1667,12 +1667,12 @@ REGISTER_WORD(CreateEEPose)
 
 WORD(WaitForSeconds)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "waitForSeconds: ";
+  //cout << "waitForSeconds: ";
   double secondsToWait = 0;
   GET_NUMERIC_ARG(ms, secondsToWait);
 
   ms->config.waitForSecondsTarget = ros::Time::now() + ros::Duration(secondsToWait);
-  cout << "waiting " << secondsToWait << " seconds until " << ms->config.waitForSecondsTarget << endl;
+  //cout << "waiting " << secondsToWait << " seconds until " << ms->config.waitForSecondsTarget << endl;
   ms->pushWord("waitForSecondsA");
 }
 END_WORD
@@ -1683,7 +1683,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //cout << "waitForSecondsA: ";
   ros::Time thisNow = ros::Time::now();
   if (thisNow.toSec() > ms->config.waitForSecondsTarget.toSec()) {
-    cout << "PASSED at time, target, delta: " << thisNow.toSec() << " " << ms->config.waitForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.waitForSecondsTarget.toSec() << endl;
+    //cout << "PASSED at time, target, delta: " << thisNow.toSec() << " " << ms->config.waitForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.waitForSecondsTarget.toSec() << endl;
   } else {
     //cout << "HELD at time, target, delta: " << thisNow.toSec() << " " << ms->config.waitForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.waitForSecondsTarget.toSec() << endl;
     ms->pushWord("waitForSecondsA");

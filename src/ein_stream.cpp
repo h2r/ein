@@ -383,7 +383,7 @@ WORD(IncrementImageStreamBufferNoLoadNoKick)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   int nextIdx = ms->config.sibCurIdx + 1;
-  cout << "incrementImageStreamBufferNoLoadNoKick: Incrementing to " << nextIdx << endl;
+  //cout << "incrementImageStreamBufferNoLoadNoKick: Incrementing to " << nextIdx << endl;
   if ( (nextIdx > -1) && (nextIdx < ms->config.streamImageBuffer.size()) ) {
     streamImage * result = setIsbIdxNoLoadNoKick(ms, nextIdx);  
     if (result == NULL) {
@@ -400,7 +400,7 @@ WORD(IncrementImageStreamBufferNoLoad)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   int nextIdx = ms->config.sibCurIdx + 1;
-  cout << "incrementImageStreamBufferNoLoad: Incrementing to " << nextIdx << endl;
+  //cout << "incrementImageStreamBufferNoLoad: Incrementing to " << nextIdx << endl;
   if ( (nextIdx > -1) && (nextIdx < ms->config.streamImageBuffer.size()) ) {
     streamImage * result = setIsbIdxNoLoad(ms, nextIdx);  
     if (result == NULL) {
@@ -417,7 +417,7 @@ WORD(ImageStreamBufferLoadCurrent)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   int thisIdx = ms->config.sibCurIdx;
-  cout << "imageStreamBufferLoadCurrent: reloading " << thisIdx << endl;
+  //cout << "imageStreamBufferLoadCurrent: reloading " << thisIdx << endl;
   if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
     streamImage * result = setIsbIdxNoLoad(ms, thisIdx);  
     if (result == NULL) {
