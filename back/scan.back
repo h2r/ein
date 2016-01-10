@@ -3,7 +3,7 @@
 100 "pileSwitchThreshold" store
 
 7 "scan_catScanLimit" store
-0 "scan_catPickLimit" store
+1 "scan_catPickLimit" store
 
 leftOrRightArm "right" =
 ( 
