@@ -98,7 +98,7 @@
   ( 
     localXDown 
     endStackCollapseNoop
-  ) 30 replicateWord 
+  ) 40 replicateWord 
   ( 
     closeGripper waitUntilGripperNotMoving 
     isGripperGripping ! ( openGripper waitUntilGripperNotMoving ) ift

@@ -2,8 +2,8 @@
 10 "catScan_dropHeight" store
 100 "pileSwitchThreshold" store
 
-4 "scan_catScanLimit" store
-4 "scan_catPickLimit" store
+7 "scan_catScanLimit" store
+0 "scan_catPickLimit" store
 
 leftOrRightArm "right" =
 ( 
@@ -439,10 +439,10 @@ workspace4 "outputPileWorkspace" store
 
 (
   1 setSnapToFlushGrasp
-  2 setMapServoMode
   setPlaceModeToHold
   setBoundingBoxModeToMapping
   clearMapForPatrol
+  100 setGripperMovingForce
   openGripper
 
   ( 1 )
@@ -740,7 +740,7 @@ dateString "catScan5VarianceTrialThisTime" store
 
     "somethingsThere: " print somethingsThere print
     somethingsThere (
-      pickFocusedClass
+      tempMapBestAndPick
     ) (
     ) ifte
 
