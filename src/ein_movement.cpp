@@ -122,7 +122,7 @@ END_WORD
 REGISTER_WORD(IsAtCurrentPosition)
 
 CONFIG_GETTER_INT(WaitGetCurrentWaitMode, ms->config.currentWaitMode)
-CONFIG_SETTER_INT(WaitSetCurrentWaitMode, ms->config.currentWaitMode)
+CONFIG_SETTER_ENUM(WaitSetCurrentWaitMode, ms->config.currentWaitMode, (waitMode))
 
 
 WORD(WaitUntilAtCurrentPositionB)
@@ -143,7 +143,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       
       if (ms->config.currentWaitMode == WAIT_KEEP_ON) {
 	cout << "waitUntilAtCurrentPositionB: currentWaitMode WAIT_KEEP_ON, so doing nothing...";
-      } else if ((ms->config.currentWaitMode == WAIT_BACK_UP) {
+      } else if (ms->config.currentWaitMode == WAIT_BACK_UP) {
 	cout << "waitUntilAtCurrentPositionB: currentWaitMode WAIT_BACK_UP, so...";
 	ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
 	cout << "  backing up just a little to dislodge, then waiting again." << endl;

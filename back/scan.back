@@ -449,7 +449,7 @@ workspace4 "outputPileWorkspace" store
   (
     pickFromInputPile2
     playWithObject
-    moveToOutputPile 
+    moveToOutputPile2
   ) while
 
 ) "infiniteScan" store
@@ -730,28 +730,38 @@ dateString "catScan5VarianceTrialThisTime" store
   1 "somethingsThere" store
 
   ( isGripperGripping ! somethingsThere and ) (
-    ">>>> entering moveToOutputPile <<<<" print
-    halfImpulse playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
-    ( perturbPosition ) 5 replicateWord 
-    openGripper
-    halfImpulse
-    1 changeToHeight
+    ">>>> entering moveToOutputPile2 <<<<" print
     setPlaceModeToHold
+    openGripper
+    halfImpulse playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
 
-    playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
     cw_playWorkspaceIsClear "somethingsThere" store
+    1 changeToHeight waitUntilAtCurrentPosition
 
     "somethingsThere: " print somethingsThere print
+    somethingsThere (
+      pickFocusedClass
+    ) (
+    ) ifte
 
-    1 changeToHeight
-    pickFocusedClass
-    isGripperGripping ( liftArm ) ( openGripper playWorkspace cw_clearWorkspace ) ifte
+    isGripperGripping ( 
+      liftArm 
+    ) ( 
+      /* oops didn't get it */
+      openGripper
+    ) ifte
   ) while
 
   somethingsThere isGripperGripping and (
-    halfImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
-    isGripperGripping ( comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper liftArm ) ift 
-  ) ( openGripper ) ifte
+    halfImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition waitUntilEndpointCallbackReceived
+    isGripperGripping ( 
+      comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper liftArm 
+    ) ( 
+      openGripper
+    ) ifte
+  ) ( 
+    openGripper 
+  ) ifte
 
   playWorkspace cw_clearWorkspace
 ) "moveToOutputPile2" store
