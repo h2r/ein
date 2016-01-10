@@ -877,9 +877,11 @@ tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
 
 (
   openGripper waitUntilGripperNotMoving
+  /*
   setGraspModeTo3D
   setIdleModeToEmpty
-  setPlaceModeToShake
+  setPlaceModeToShake 
+  */
 
   clearMapForPatrol clearBlueBoxMemories tempMapFocusedClass deliverTargetObject
 ) "tempMapFocusedAndPick" store
