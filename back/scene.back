@@ -706,7 +706,9 @@ tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
   tempUpdateSpiral
   tempCaptureCore
 
+  1 waitSetCurrentWaitMode
   scanObjectScene
+  0 waitSetCurrentWaitMode
 
   writeFocusedClass
 ) "tempFullScan" store
