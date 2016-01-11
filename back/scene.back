@@ -932,8 +932,8 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
   sceneClearPredictedObjects tempPredictAndRenderBest clearBlueBoxMemories 0 sceneMapSceneObject
 ) "tempClassifyOne" store
 
-0.2183 "tempReconstructWithZTopZ" store
-0.00 "tempReconstructWithZTotalZ" store
+0.2383 "tempReconstructWithZTopZ" store
+0.08 "tempReconstructWithZTotalZ" store
 tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBottomZ" store
 0.01 "tempReconstructWithZDeltaZ" store
 (

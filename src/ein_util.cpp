@@ -172,6 +172,7 @@ eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
 void initializeMachine(shared_ptr<MachineState> ms) {
   ms->evaluateProgram("\"init\" import");
   ms->pushWord("sceneInit"); 
+  ms->evaluateProgram("cameraFitQuadratic 1 cameraSetCalibrationMode");
 
   if (ms->config.currentRobotMode != PHYSICAL) {
     return;
