@@ -897,7 +897,15 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
   setPlaceModeToShake
   */
 
-  clearMapForPatrol clearBlueBoxMemories tempMapBestClass 0 scenePushSceneObjectLabel setTargetClass deliverTargetObject
+  clearMapForPatrol clearBlueBoxMemories tempMapBestClass 
+
+  scenePushNumSceneObjects 0 > (
+      0 scenePushSceneObjectLabel 
+    setTargetClass 
+    deliverTargetObject
+  ) (
+    "tempMapBestAndPick: oops, no sceneObjects..." print
+  ) ift
 ) "tempMapBestAndPick" store
 
 
