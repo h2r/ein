@@ -4809,7 +4809,7 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
   if (ms->config.shouldIRender) {
     //QMetaObject::invokeMethod(qtTestWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
     //QMetaObject::invokeMethod(ms-.config.wristViewWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
-    ms->config.wristViewWindow->updateImage(ms->config.wristViewImage);
+    ms->config.wristViewWindow->updateImage(ms->config.cam_img);
     //Mat firstYCBCR;  cvtColor(ms->config.wristViewImage, firstYCBCR, CV_BGR2YCrCb);
     //ms->config.wristViewWindow->updateImage(firstYCBCR);
   }
