@@ -768,7 +768,7 @@ dateString "catScan5VarianceTrialThisTime" store
 
 (
   0.04 "tempSpiralMoveSpeed" store
-  inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
+  inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition 1 changeToHeight
   2 6 4 tempUpdateSpiralEccentricCore tempUpdateMaps
   "catScan5InputBg" "_" leftOrRightArm + + sceneSaveObservedMap
   catScan5LoadInputBg
