@@ -585,6 +585,8 @@ dateString "catScan5VarianceTrialThisTime" store
       setPlaceModeToHold
       clearMapForPatrol
 
+      tempMapBestAndPick
+
 	playWorkspace 
       moveEeToPoseWord waitUntilAtCurrentPosition
 
