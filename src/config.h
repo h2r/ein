@@ -1522,6 +1522,7 @@ class EinConfig {
 
   shared_ptr<TransitionTable> transition_table;
   shared_ptr<Scene> scene;
+  shared_ptr<GaussianMap> gaussian_map_register;
   double sceneMinSigmaSquared = 10;
   int sceneCellCountThreshold = 20;
   int sceneDiscrepancySearchDepth = 3000;
