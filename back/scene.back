@@ -53,11 +53,11 @@ scenePredictedMapThreshDefault "scenePredictedMapThresh" store
 ) "tempUpdateMaps" store
 
 (
-  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 2 replicateWord tempUpdateMaps
+  sceneClearObservedMap ( waitUntilImageCallbackReceived sceneUpdateObservedFromWrist ) 2 replicateWord tempUpdateMaps
 ) "tempShortTakeScene" store
 
 (
-  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 5 replicateWord tempUpdateMaps
+  sceneClearObservedMap ( waitUntilImageCallbackReceived sceneUpdateObservedFromWrist ) 5 replicateWord tempUpdateMaps
 ) "tempLongTakeScene" store
 
 (
@@ -70,7 +70,8 @@ scenePredictedMapThreshDefault "scenePredictedMapThresh" store
 
 0.1 "tempSpiralMoveSpeedDefault" store
 tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
-0.02 "tempSpiralGridSize" store
+0.02 "tempSpiralGridSizeDefault" store
+tempSpiralGridSizeDefault "tempSpiralGridSize" store
 (
   "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
@@ -922,5 +923,50 @@ tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
 (
   sceneClearPredictedObjects tempPredictAndRenderBest clearBlueBoxMemories 0 sceneMapSceneObject
 ) "tempClassifyOne" store
+
+0.2183 "tempReconstructWithZTopZ" store
+0.00 "tempReconstructWithZTotalZ" store
+tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBottomZ" store
+0.01 "tempReconstructWithZDeltaZ" store
+(
+  sceneInitRegister
+  50 "tempSpiralStreamTakeSceneSamples" store
+  streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
+
+  tempReconstructWithZTopZ "tempReconstructWithZThisZ" store
+
+  ( tempReconstructWithZThisZ tempReconstructWithZBottomZ = 
+    tempReconstructWithZThisZ tempReconstructWithZBottomZ > or ) 
+  (
+  
+	  tempReconstructWithZBottomZ 
+	" " 
+	tempReconstructWithZThisZ	
+	" " 
+	tempReconstructWithZTopZ 
+	" " 
+      + + + + + print
+
+    sceneClearObservedMap
+    rewindImageStreamBufferNLNK 
+    ( tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZ ( incrementImageStreamBufferNoLoadNoKick ) tempSpiralStreamTakeSceneStride replicateWord endStackCollapseNoop ) tempSpiralStreamTakeSceneSamples replicateWord
+
+    sceneMinIntoRegister
+    tempReconstructWithZThisZ tempReconstructWithZDeltaZ - "tempReconstructWithZThisZ" store
+  ) while
+
+  sceneRecallFromRegister
+  sceneRenderObservedMap
+) "tempReconstructWithZ" store
+
+(
+  0.005 setW1GoThresh
+  0.03 "tempSpiralMoveSpeed" store
+  0.005 "tempSpiralGridSize" store
+  3 3 6 tempUpdateSpiralEccentricCore tempUpdateMaps
+) "tempReconstructTakeScene" store
+
+
+
 
 

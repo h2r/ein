@@ -4413,6 +4413,170 @@ END_WORD
 REGISTER_WORD(SceneFabricateIdealBlockModel)
 
 
+
+
+
+WORD(SceneInitRegister)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "sceneInitRegister: copying and maxing variances..." << endl;
+  ms->config.gaussian_map_register = ms->config.scene->observed_map->copy();
+  int t_height = ms->config.gaussian_map_register->height;
+  int t_width = ms->config.gaussian_map_register->width;
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+      ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared = DBL_MAX;
+      ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared = DBL_MAX;
+      ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared = DBL_MAX;
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneInitRegister)
+
+WORD(SceneRecallFromRegister)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "sceneRecallFromRegister: copying..." << endl;
+  ms->config.scene->observed_map = ms->config.gaussian_map_register->copy();
+}
+END_WORD
+REGISTER_WORD(SceneRecallFromRegister)
+
+WORD(SceneUpdateObservedFromStreamBufferAtZ)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  int thisIdx = ms->config.sibCurIdx;
+  //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
+
+  Mat bufferImage;
+  eePose thisPose, tBaseP;
+
+  int success = 1;
+  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+    if (tsi.image.data == NULL) {
+      cout << "  encountered NULL data in sib, returning." << endl;
+      return;
+    } else {
+      bufferImage = tsi.image.clone();
+    }
+    success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+  } else {
+    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    return;
+  }
+
+  if (success != 1) {
+    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    return;
+  }
+
+  if (fabs(thisPose.qz) > 0.01) {
+    ROS_ERROR("  Not doing update because arm not vertical.");
+    return;
+  }
+
+  Mat wristViewYCbCr = bufferImage.clone();
+
+  cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+  
+  Size sz = bufferImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int topx = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; //+ 20; // ms->config.grayTop.x;  
+  int botx = ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; //- 20; // ms->config.grayBot.x;  
+  int topy = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; //+ 50; // ms->config.grayTop.y;
+  int boty = ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; //- 50; // ms->config.grayBot.y;  
+  
+  pixelToGlobalCache data;
+  double z = z_to_use;
+  computePixelToGlobalCache(ms, z, thisPose, &data);
+  
+  for (int px = topx; px < botx; px++) {
+    for (int py = topy; py < boty; py++) {
+      if (isInGripperMask(ms, px, py)) {
+	continue;
+      }
+      double x, y;
+      pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
+      
+      if (1) {
+	// single sample update
+	int i, j;
+	ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+	GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+	if (cell != NULL) {
+	    Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+	    cell->newObservation(pixel);
+	    double p_samples = 1000;
+	    cell->z.counts = z * p_samples;
+	    cell->z.squaredcounts = z * z * p_samples;
+	    cell->z.mu = 0;
+	    cell->z.sigmasquared = 0;
+	    cell->z.samples = p_samples;
+	}
+      } else {
+      }
+    }
+  }
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+  ms->pushWord("sceneRenderObservedMap");
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZ)
+
+WORD(SceneMinIntoRegister)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "sceneMinIntoRegister: copying..." << endl;
+  int t_height = ms->config.scene->observed_map->height;
+  int t_width = ms->config.scene->observed_map->width;
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+      double this_observed_sigma_squared = 
+      ms->config.scene->observed_map->refAtCell(x,y)->red.sigmasquared +
+      ms->config.scene->observed_map->refAtCell(x,y)->green.sigmasquared +
+      ms->config.scene->observed_map->refAtCell(x,y)->blue.sigmasquared;
+
+      double this_register_sigma_squared = 
+      ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared +
+      ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared +
+      ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared;
+
+      if ( this_observed_sigma_squared < this_register_sigma_squared ) {
+	*(ms->config.gaussian_map_register->refAtCell(x,y)) = *(ms->config.scene->observed_map->refAtCell(x,y));
+      } else {
+      }
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneMinIntoRegister)
+
+
+/*
+WORD(SceneTrimDepthWithDiscrepancy)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(SceneTrimDepthWithDiscrepancy)
+
+WORD(SceneUpdateObservedFromStreamBufferRecast)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX this seems to require determining when a pixel in the stream buffer
+//  hits a cell known to be at a higher height. so this should loop height top down and for each height
+//  throw out pixels for the remaining heights below if they project to a cell at that height, and accumulate 
+//  at that height otherwise
+
+
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferRecast)
+*/
+
+
+
 /* 
 
 WORD(GaussianMapCalibrateVanishingPoint)
