@@ -722,19 +722,28 @@ dateString "catScan5VarianceTrialThisTime" store
   ) while
 ) "pickFromInputPile2" store
 
+4 "moveToOutputPile2MaxPicks" store
 (
-  setPickModeToLearningAlgorithmC
+  setPickModeToStaticMarginals
   1 setSnapToFlushGrasp
 
   1 "somethingsThere" store
+  0 "violatedMax" store
+  1 "moveToOutputPile2ThisPick" store
+  
 
-  ( isGripperGripping ! somethingsThere and ) (
-    ">>>> entering moveToOutputPile2 <<<<" print
+  ( isGripperGripping ! somethingsThere violatedMax ! and and ) (
+
+	">>>> entering moveToOutputPile2 <<<< with iteration " 
+        moveToOutputPile2ThisPick 
+      +
+    print
+
     setPlaceModeToHold
     openGripper
     halfImpulse playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
 
-    cw_playWorkspaceIsClear "somethingsThere" store
+    cw_playWorkspaceIsClear ! "somethingsThere" store
     1 changeToHeight waitUntilAtCurrentPosition
 
     "somethingsThere: " print somethingsThere print
@@ -749,6 +758,15 @@ dateString "catScan5VarianceTrialThisTime" store
       /* oops didn't get it */
       openGripper
     ) ifte
+
+    
+    moveToOutputPile2ThisPick 1 + "moveToOutputPile2ThisPick" store
+
+    moveToOutputPile2ThisPick moveToOutputPile2MaxPicks > (
+      1 "violatedMax" store
+      liftArm 
+    ) ift 
+
   ) while
 
   somethingsThere isGripperGripping and (

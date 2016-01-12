@@ -9867,44 +9867,47 @@ eePose pixelToGlobalEEPose(shared_ptr<MachineState> ms, int pX, int pY, double g
 
 void interpolateM_xAndM_yFromZ(shared_ptr<MachineState> ms, double dZ, double * m_x, double * m_y) {
 
-  // XXX disabling for calibration
-  //return;
+  if (ms->config.currentCameraCalibrationMode == CAMCAL_LINBOUNDED) {
+    double bBZ[4];
+    bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+    bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+    bBZ[2] = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+    bBZ[3] = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
-  double bBZ[4];
-  bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
-  bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
-  bBZ[2] = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
-  bBZ[3] = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
-
-  if (dZ <= bBZ[0]) {
-    *m_x = ms->config.m_x_h[0];
-    *m_y = ms->config.m_y_h[0];
-  } else if (dZ <= bBZ[1]) {
-    double gap = bBZ[1] - bBZ[0];
-    double c0 = 1.0 - ((dZ - bBZ[0])/gap);
-    double c1 = 1.0 - ((bBZ[1] - dZ)/gap);
-    *m_x = c0*ms->config.m_x_h[0] + c1*ms->config.m_x_h[1];
-    *m_y = c0*ms->config.m_y_h[0] + c1*ms->config.m_y_h[1];
-  } else if (dZ <= bBZ[2]) {
-    double gap = bBZ[2] - bBZ[1];
-    double c1 = 1.0 - ((dZ - bBZ[1])/gap);
-    double c2 = 1.0 - ((bBZ[2] - dZ)/gap);
-    *m_x = c1*ms->config.m_x_h[1] + c2*ms->config.m_x_h[2];
-    *m_y = c1*ms->config.m_y_h[1] + c2*ms->config.m_y_h[2];
-  } else if (dZ <= bBZ[3]) {
-    double gap = bBZ[3] - bBZ[2];
-    double c2 = 1.0 - ((dZ - bBZ[2])/gap);
-    double c3 = 1.0 - ((bBZ[3] - dZ)/gap);
-    *m_x = c2*ms->config.m_x_h[2] + c3*ms->config.m_x_h[3];
-    *m_y = c2*ms->config.m_y_h[2] + c3*ms->config.m_y_h[3];
-  } else if (dZ > bBZ[3]) {
-    *m_x = ms->config.m_x_h[3];
-    *m_y = ms->config.m_y_h[3];
+    if (dZ <= bBZ[0]) {
+      *m_x = ms->config.m_x_h[0];
+      *m_y = ms->config.m_y_h[0];
+    } else if (dZ <= bBZ[1]) {
+      double gap = bBZ[1] - bBZ[0];
+      double c0 = 1.0 - ((dZ - bBZ[0])/gap);
+      double c1 = 1.0 - ((bBZ[1] - dZ)/gap);
+      *m_x = c0*ms->config.m_x_h[0] + c1*ms->config.m_x_h[1];
+      *m_y = c0*ms->config.m_y_h[0] + c1*ms->config.m_y_h[1];
+    } else if (dZ <= bBZ[2]) {
+      double gap = bBZ[2] - bBZ[1];
+      double c1 = 1.0 - ((dZ - bBZ[1])/gap);
+      double c2 = 1.0 - ((bBZ[2] - dZ)/gap);
+      *m_x = c1*ms->config.m_x_h[1] + c2*ms->config.m_x_h[2];
+      *m_y = c1*ms->config.m_y_h[1] + c2*ms->config.m_y_h[2];
+    } else if (dZ <= bBZ[3]) {
+      double gap = bBZ[3] - bBZ[2];
+      double c2 = 1.0 - ((dZ - bBZ[2])/gap);
+      double c3 = 1.0 - ((bBZ[3] - dZ)/gap);
+      *m_x = c2*ms->config.m_x_h[2] + c3*ms->config.m_x_h[3];
+      *m_y = c2*ms->config.m_y_h[2] + c3*ms->config.m_y_h[3];
+    } else if (dZ > bBZ[3]) {
+      *m_x = ms->config.m_x_h[3];
+      *m_y = ms->config.m_y_h[3];
+    } else {
+      assert(0); // my my
+    }
+    //cout << ms->config.m_x_h[0] << " " << ms->config.m_x_h[1] << " " << ms->config.m_x_h[2] << " " << ms->config.m_x_h[3] << " " << *m_x << endl;
+    //cout << m_y_h[0] << " " << ms->config.m_y_h[1] << " " << ms->config.m_y_h[2] << " " << ms->config.m_y_h[3] << " " << *m_y << endl;
+  } else if (ms->config.currentCameraCalibrationMode == CAMCAL_QUADRATIC) {
+    *(m_y) = ms->config.m_YQ[0] + (dZ * ms->config.m_YQ[1]) + (dZ * dZ * ms->config.m_YQ[2]);
+    *(m_x) = ms->config.m_XQ[0] + (dZ * ms->config.m_XQ[1]) + (dZ * dZ * ms->config.m_XQ[2]);
   } else {
-    assert(0); // my my
   }
-  //cout << ms->config.m_x_h[0] << " " << ms->config.m_x_h[1] << " " << ms->config.m_x_h[2] << " " << ms->config.m_x_h[3] << " " << *m_x << endl;
-  //cout << m_y_h[0] << " " << ms->config.m_y_h[1] << " " << ms->config.m_y_h[2] << " " << ms->config.m_y_h[3] << " " << *m_y << endl;
 }
 
 void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY) {
@@ -10003,6 +10006,7 @@ void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double 
 
   double oldPx = pX;
   double oldPy = pY;
+
   pX = cache->reticlePixelX + (oldPy - cache->reticlePixelY) - ms->config.offX;
   pY = cache->reticlePixelY + (oldPx - cache->reticlePixelX) - ms->config.offY;
 
@@ -14805,6 +14809,10 @@ void initializeArmGui(shared_ptr<MachineState> ms, MainWindow * einMainWindow) {
   einMainWindow->addWindow(ms->config.discrepancyDensityWindow);
   ms->config.discrepancyDensityWindow->setVisible(true);
 
+  ms->config.zWindow = new EinWindow(NULL, ms);
+  ms->config.zWindow->setWindowTitle("Gaussian Map Z View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.zWindow);
+  ms->config.zWindow->setVisible(true);
 
 
   //createTrackbar("post_density_sigma", ms->config.densityViewerName, &ms->config.postDensitySigmaTrackbarVariable, 40);
