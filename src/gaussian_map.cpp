@@ -3408,9 +3408,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 
   
-  //ms->config.discrepancyDensityWindow->updateImage(ms->config.scene->discrepancy_density);
-  // XXX changed this because it looked wrong
-  ms->config.discrepancyDensityWindow->updateImage(densityImage);
+  ms->config.discrepancyDensityWindow->updateImage(ms->config.scene->discrepancy_density);
+  // XXX considered changing this because it looked wrong
+  //ms->config.discrepancyDensityWindow->updateImage(densityImage);
 }
 END_WORD
 REGISTER_WORD(SceneRenderDiscrepancy)
@@ -3427,12 +3427,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     for (int y = 0; y < ms->config.scene->height; y++) {
       if ((ms->config.scene->predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
       } else {
-	toShow.at<double>(y, x) = 0;
+	//toShow.at<double>(y, x) = 0;
       }
     }
   }
   double maxVal, minVal;
   minMaxLoc(toShow, &minVal, &maxVal);
+  minVal = max(minVal, ms->config.currentTableZ);
   double denom = max(1e-6, maxVal-minVal);
   cout << "sceneRenderZ min max denom: " << minVal << " " << maxVal << " " << denom << endl;
   for (int x = 0; x < ms->config.scene->width; x++) {
@@ -3440,7 +3441,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       if ((ms->config.scene->predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
 	toShow.at<double>(y, x) = (toShow.at<double>(y, x) - minVal) / denom;
       } else {
-	toShow.at<double>(y, x) = 0;
+	//toShow.at<double>(y, x) = 0;
       }
     }
   }
