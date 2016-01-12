@@ -763,7 +763,7 @@ dateString "catScan5VarianceTrialThisTime" store
     moveToOutputPile2ThisPick 1 + "moveToOutputPile2ThisPick" store
 
     moveToOutputPile2ThisPick moveToOutputPile2MaxPicks > (
-      0 "violatedMax" store
+      1 "violatedMax" store
       liftArm 
     ) ift 
 
