@@ -14809,6 +14809,10 @@ void initializeArmGui(shared_ptr<MachineState> ms, MainWindow * einMainWindow) {
   einMainWindow->addWindow(ms->config.discrepancyDensityWindow);
   ms->config.discrepancyDensityWindow->setVisible(true);
 
+  ms->config.zWindow = new EinWindow(NULL, ms);
+  ms->config.zWindow->setWindowTitle("Gaussian Map Z View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.zWindow);
+  ms->config.zWindow->setVisible(true);
 
 
   //createTrackbar("post_density_sigma", ms->config.densityViewerName, &ms->config.postDensitySigmaTrackbarVariable, 40);
