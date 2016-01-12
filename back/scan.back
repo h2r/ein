@@ -743,7 +743,7 @@ dateString "catScan5VarianceTrialThisTime" store
     openGripper
     halfImpulse playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
 
-    cw_playWorkspaceIsClear "somethingsThere" store
+    cw_playWorkspaceIsClear ! "somethingsThere" store
     1 changeToHeight waitUntilAtCurrentPosition
 
     "somethingsThere: " print somethingsThere print
