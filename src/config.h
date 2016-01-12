@@ -209,6 +209,16 @@ typedef enum {
   SC_DISCREPANCY_THEN_LOGLIKELIHOOD = 1
 } sceneClassificationMode;
 
+typedef enum {
+  WAIT_KEEP_ON = 0,
+  WAIT_BACK_UP = 1
+} waitMode;
+
+typedef enum {
+  CAMCAL_LINBOUNDED = 0,
+  CAMCAL_QUADRATIC = 1
+} cameraCalibrationMode;
+
 std::string pickModeToString(pickMode mode);
 
 
@@ -1028,6 +1038,9 @@ class EinConfig {
   double m_y = 0.94;
   double m_x_h[4];
   double m_y_h[4];
+  cameraCalibrationMode currentCameraCalibrationMode = CAMCAL_QUADRATIC;
+  double m_XQ[3] = {0,0,0};
+  double m_YQ[3] = {0,0,0};
 
   int mappingServoTimeout = 5;
   //const int mappingHeightIdx = 0;
@@ -1040,6 +1053,7 @@ class EinConfig {
   double vaY[vaNumAngles];
 
 
+  waitMode currentWaitMode = WAIT_KEEP_ON;
   int waitUntilAtCurrentPositionCounter = 0;
   int waitUntilAtCurrentPositionCounterTimeout = 300;
   int waitUntilEffortCounter = 0;
@@ -1516,9 +1530,10 @@ class EinConfig {
 
   shared_ptr<TransitionTable> transition_table;
   shared_ptr<Scene> scene;
+  shared_ptr<GaussianMap> gaussian_map_register;
   double sceneMinSigmaSquared = 10;
   int sceneCellCountThreshold = 20;
-  int sceneDiscrepancySearchDepth = 200;
+  int sceneDiscrepancySearchDepth = 3000;
   discrepancyModeState discrepancyMode = DISCREPANCY_POINT;
 
   vector<shared_ptr<Scene> > class_scene_models;

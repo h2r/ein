@@ -273,9 +273,17 @@ void _GaussianMapCell::newObservation(Vec3b vec) {
 void GaussianMap::reallocate() {
   if (width <= 0 || height <= 0) {
     cout << "GaussianMap area error: tried to allocate width, height: " << width << " " << height << endl;
-  } else if ((width % 2 == 0) || (height % 2 == 0)) {
-    cout << "GaussianMap parity error: tried to allocate width, height: " << width << " " << height << endl;
   } else {
+
+    if (width % 2 == 0) {
+      cout << "GaussianMap parity error: tried to allocate width: " << width << " " << height << endl;
+      width = width+1;
+    } else {}
+    if (height % 2 == 0) {
+      cout << "GaussianMap parity error: tried to allocate height: " << width << " " << height << endl;
+      height = height+1;
+    } else {}
+
     if (cells == NULL) {
       cells = new GaussianMapCell[width*height];
     } else {
@@ -312,11 +320,11 @@ int GaussianMap::safeBilinAt(int x, int y) {
 
 GaussianMapCell *GaussianMap::refAtCell(int x, int y) {
   if (x < 0 || x >= width) {
-    ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad x. " << x);
+    ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad x. " << x << " width: " << width);
     return NULL;
   }
   if (y < 0 || y >= height) {
-    ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad y. " << y);
+    ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad y. " << y << " height: " << height);
     return NULL;
   }
   
@@ -461,7 +469,7 @@ void GaussianMap::readFromFileNode(FileNode& it) {
     it["y_center_cell"] >> y_center_cell;
     it["cell_width"] >> cell_width;
   }
-  cout << "width: " << width << " height: " << height << endl;
+
   reallocate();
   {
     FileNode bnode = it["cells"];
@@ -492,7 +500,8 @@ void GaussianMap::readFromFileNode(FileNode& it) {
     if (numLoadedCells != width*height) {
       ROS_ERROR_STREAM("Error, GaussianMap loaded " << numLoadedCells << " but expected " << width*height << endl);
     } else {
-      cout << "successfully loaded " << numLoadedCells << " GaussianMapCells." << endl;
+      cout << "successfully loaded " << numLoadedCells << " GaussianMapCells. ";
+      cout << "width: " << width << " height: " << height << endl;
     }
   }
 }
@@ -647,7 +656,8 @@ shared_ptr<GaussianMap> GaussianMap::copy() {
 
 shared_ptr<Scene> Scene::copy() {
   shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, width, height, cell_width);
-  toReturn->className = className;
+  toReturn->annotated_class_name = annotated_class_name;
+  toReturn->predicted_class_name = predicted_class_name;
   toReturn->background_map = background_map->copy();
   toReturn->predicted_map = predicted_map->copy();
   toReturn->observed_map = observed_map->copy();
@@ -764,7 +774,19 @@ void SceneObject::readFromFileNode(FileNode& it) {
 
 
 Scene::Scene(shared_ptr<MachineState> _ms, int w, int h, double cw) {
-  className = string("NONAME");
+
+  if (w % 2 == 0) {
+    cout << "Scene parity error: tried to allocate width: " << w << " so adding 1..." << endl;
+    w = w+1;
+  }
+  if (h % 2 == 0) {
+    cout << "Scene parity error: tried to allocate height: " << h << " so adding 1..." << endl;
+    h = h+1;
+  }
+
+
+  predicted_class_name = string("NONAME");
+  annotated_class_name = string("NONAME");
   ms = _ms;
   width = w;
   height = h;
@@ -836,6 +858,7 @@ void Scene::initializePredictedMapWithBackground() {
 
 
 void Scene::composePredictedMap(double threshold) {
+  //REQUIRE_FOCUSED_CLASS(ms, tfc);
   // XXX
   // choose the argMAP distribution
   //   assign that color to the predicted map
@@ -1348,8 +1371,6 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 
   double p_scene_sigma = 2.0;
 
-  // XXX this should be passed, probably, and using .01 so some objects don't get washed out
-  double p_discrepancy_thresh = ms->config.scene_score_thresh;
 
   Mat prepared_discrepancy;
   {
@@ -1362,6 +1383,34 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   double max_dim = max(object_to_prepare.rows, object_to_prepare.cols);
 
   Mat prepared_object = object_to_prepare;
+
+  double p_discrepancy_thresh = ms->config.scene_score_thresh;
+  double overlap_thresh = 0.05;
+  if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
+  } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
+
+    /* 
+    // l2 normalizing might mess up comparison on the positive regions vs negative... 
+    double po_safe_l2norm = sqrt( std::max(1.0e-12, prepared_object.dot(prepared_object)) );
+    prepared_object = prepared_object / po_safe_l2norm;
+    {
+      double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
+      prepared_object = prepared_object - po_l1norm;
+      double po_meanless_l2norm = std::max(1.0e-12, prepared_object.dot(prepared_object));
+      prepared_object = prepared_object / po_meanless_l2norm;
+      cout << "TTTTTT: " << po_l1norm << " " << po_meanless_l2norm << endl;
+    }
+    {
+      double pd_l1norm = prepared_discrepancy.dot(Mat::ones(prepared_discrepancy.rows, prepared_discrepancy.cols, prepared_discrepancy.type()));
+      prepared_discrepancy = prepared_discrepancy - pd_l1norm;
+      double pd_meanless_l2norm = std::max(1.0e-12, prepared_discrepancy.dot(prepared_discrepancy));
+      prepared_discrepancy = prepared_discrepancy / pd_meanless_l2norm;
+    }
+    overlap_thresh = -DBL_MAX; 
+    */
+  } else {
+    assert(0);
+  }
 
 /*
   Mat prepared_object = Mat(max_dim, max_dim, CV_64F);
@@ -1390,7 +1439,6 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   //double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
   double po_l2norm = prepared_object.dot(prepared_object);
   cout << "  po_l2norm: " << po_l2norm << endl;
-  double overlap_thresh = 0.05;
 
   Size toBecome(max_dim, max_dim);
 
@@ -1402,6 +1450,8 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 
 
   vector<SceneObjectScore> local_scores;
+  local_scores.reserve(1e5);
+  int pushed = 0;
 
   for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
 /*
@@ -1527,6 +1577,8 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
 	  } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
 	    to_push.loglikelihood_valid = true;
 	    to_push.loglikelihood_score = to_push.discrepancy_score;
+	  } else {
+	    assert(0);
 	  }
 
 	  local_scores.push_back(to_push);
@@ -1545,6 +1597,8 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
     }
   }
 
+  cout << "  local_scores size:  " << local_scores.size() << endl;
+
   //cout << prepared_discrepancy << prepared_object ;
   double max_theta = -max_orient * 2.0 * M_PI / numOrientations;
   double max_x_meters, max_y_meters;
@@ -1559,16 +1613,23 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
   //*l_max_score = -DBL_MAX;
   *l_max_orient = -1;
   *l_max_i = -1;
-  std::sort(local_scores.begin(), local_scores.end(), compareDiscrepancyDescending);
-  int to_check = min( int(ms->config.sceneDiscrepancySearchDepth), int(local_scores.size()) );
-  for (int i = 0; i < to_check; i++) {
-    if ( ! local_scores[i].loglikelihood_valid ) {
-      // XXX score should return the delta of including vs not including
-      local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
-      local_scores[i].loglikelihood_valid = true;
-      //cout << "  running inference on class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
+
+  if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
+    std::sort(local_scores.begin(), local_scores.end(), compareDiscrepancyDescending);
+    int to_check = min( int(ms->config.sceneDiscrepancySearchDepth), int(local_scores.size()) );
+    for (int i = 0; i < to_check; i++) {
+      if ( ! local_scores[i].loglikelihood_valid ) {
+	// XXX score should return the delta of including vs not including
+	local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
+	local_scores[i].loglikelihood_valid = true;
+	//cout << "  running inference on class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
+      }
     }
+  } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
+  } else {
+    assert(0);
   }
+
 
   for (int i = 0; i < local_scores.size(); i++) {
     if ( (local_scores[i].loglikelihood_valid) && (local_scores[i].loglikelihood_score > *l_max_score) ) {
@@ -1917,17 +1978,19 @@ void Scene::tryToAddBestObjectToScene() {
   double l_max_x_meters, l_max_y_meters;
   cellToMeters(l_max_x, l_max_y, &l_max_x_meters, &l_max_y_meters);
 
+  cout << "findBestObjectAndScore: best object was class " << l_max_class << endl;
+
   //if (l_max_x > -1)
   if (l_max_score > -DBL_MAX)
   {
     if (l_max_score > 0) {
       cout << "best detection made an improvement..." << endl;
       cout << "adding object." << endl;
-      this->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, tfc);
+      this->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, l_max_class);
     } else {
       cout << "best detection made things worse alone..." << endl;
       cout << "should NOT adding object but for now we are..." << endl;
-      this->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, tfc);
+      this->addPredictedObject(l_max_x_meters, l_max_y_meters, l_max_theta, l_max_class);
     }
   } else {
     cout << "Did not find a valid cell... not adding object." << endl;
@@ -2017,6 +2080,8 @@ void Scene::cellToMeters(int xc, int yc, double * xm, double * ym) {
 
 void Scene::writeToFileStorage(FileStorage& fsvO) {
   fsvO << "{";
+  fsvO << "predicted_class_name" << predicted_class_name;
+  fsvO << "annotated_class_name" << annotated_class_name;
   fsvO << "width" << width;
   fsvO << "height" << height;
   fsvO << "x_center_cell" << x_center_cell;
@@ -2040,9 +2105,15 @@ void Scene::writeToFileStorage(FileStorage& fsvO) {
   fsvO << "predicted_objects";
   writePredictedObjects(fsvO);
 
-  fsvO << "predicted_segmentation" << predicted_segmentation;
-  fsvO << "discrepancy_magnitude" << discrepancy_magnitude;
-  fsvO << "discrepancy_density" << discrepancy_density;
+  fsvO << "predicted_segmentation";
+  writeMatToYaml(predicted_segmentation, fsvO);
+
+  
+  fsvO << "discrepancy_magnitude";
+  writeMatToYaml(discrepancy_magnitude, fsvO);
+
+  fsvO << "discrepancy_density";
+  writeMatToYaml(discrepancy_density, fsvO);
 
   fsvO << "}";
 }
@@ -2073,6 +2144,8 @@ void Scene::readFromFileNodeIterator(FileNodeIterator& it) {
 
 void Scene::readFromFileNode(FileNode& it) {
 
+  (it)["predicted_class_name"] >> predicted_class_name;
+  (it)["annotated_class_name"] >> annotated_class_name;
   (it)["width"] >> width;
   (it)["height"] >> height;
   (it)["x_center_cell"] >> x_center_cell;
@@ -2096,10 +2169,18 @@ void Scene::readFromFileNode(FileNode& it) {
 
   FileNode node = it["predicted_objects"];
   readPredictedObjects(node);
+  
+  node = it["predicted_segmentation"];
+  predicted_segmentation = readMatFromYaml(node);
 
-  it["predicted_segmentation"] >> predicted_segmentation;
-  it["discrepancy_magnitutde"] >> discrepancy_magnitude;
-  it["discrepancy_density"] >> discrepancy_density;
+  node = it["discrepancy_magnitude"];
+  discrepancy_magnitude = readMatFromYaml(node);
+
+  node = it["discrepancy_density"];
+  discrepancy_density = readMatFromYaml(node);
+
+
+  //cout << discrepancy_density.size() << discrepancy_magnitude.size() << width << " " << height << endl;
 
 }
 
@@ -3135,7 +3216,7 @@ REGISTER_WORD(SceneUpdateObservedFromWrist)
 WORD(SceneUpdateObservedFromStreamBuffer)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int thisIdx = ms->config.sibCurIdx;
-  cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
+  //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
@@ -3150,69 +3231,79 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       bufferImage = tsi.image.clone();
     }
     success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+  } else {
+    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    return;
   }
 
   if (success != 1) {
     ROS_ERROR("  Not doing update because of stream buffer errors.");
     return;
-  } else {
-    Mat wristViewYCbCr = bufferImage.clone();
-    cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+  }
 
-    Size sz = bufferImage.size();
-    int imW = sz.width;
-    int imH = sz.height;
+  if (fabs(thisPose.qz) > 0.01) {
+    ROS_ERROR("  Not doing update because arm not vertical.");
+    return;
+  }
 
-    int topx = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; //+ 20; // ms->config.grayTop.x;  
-    int botx = ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; //- 20; // ms->config.grayBot.x;  
-    int topy = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; //+ 50; // ms->config.grayTop.y;
-    int boty = ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; //- 50; // ms->config.grayBot.y;  
-      
-    //for (int px = ; px < ; px++) 
-      //for (int py = ; py < ; py++) 
-    pixelToGlobalCache data;
-    double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
-    computePixelToGlobalCache(ms, z, thisPose, &data);
+  Mat wristViewYCbCr = bufferImage.clone();
 
-    for (int px = topx; px < botx; px++) {
-      for (int py = topy; py < boty; py++) {
-    //for (int px = 0; px < imW; px++) 
+  cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+  
+  Size sz = bufferImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int topx = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; //+ 20; // ms->config.grayTop.x;  
+  int botx = ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; //- 20; // ms->config.grayBot.x;  
+  int topy = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; //+ 50; // ms->config.grayTop.y;
+  int boty = ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; //- 50; // ms->config.grayBot.y;  
+  
+  //for (int px = ; px < ; px++) 
+  //for (int py = ; py < ; py++) 
+  pixelToGlobalCache data;
+  double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
+  computePixelToGlobalCache(ms, z, thisPose, &data);
+  
+  for (int px = topx; px < botx; px++) {
+    for (int py = topy; py < boty; py++) {
+      //for (int px = 0; px < imW; px++) 
       //for (int py = 0; py < imH; py++) 
-	if (isInGripperMask(ms, px, py)) {
-	  continue;
-	}
-	double x, y;
-	pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
-
-	if (1) {
-	  // single sample update
-	  int i, j;
-	  ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
-	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
-	  if (cell != NULL) {
+      if (isInGripperMask(ms, px, py)) {
+	continue;
+      }
+      double x, y;
+      pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
+      
+      if (1) {
+	// single sample update
+	int i, j;
+	ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+	GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+	if (cell != NULL) {
 	    Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
 	    cell->newObservation(pixel);
-	  }
-	} else {
-  /*
+	}
+      } else {
+	/*
 	  Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
-
+	  
 	  // bilinear update
 	  double _i, _j;
 	  ms->config.scene->observed_map->metersToCell(x, y, &_i, &_j);
-
+	  
 	  if (ms->config.scene->safeBilinAt(_i,_j)) {
-
-	    double i = min( max(0.0, _i), double(width-1));
+	  
+	  double i = min( max(0.0, _i), double(width-1));
 	    double j = min( max(0.0, _j), double(height-1));
 
 	    // -2 makes for appropriate behavior on the upper boundary
 	    double i0 = std::min( std::max(0.0, floor(i)), double(width-2));
 	    double i1 = i0+1;
-
+	    
 	    double j0 = std::min( std::max(0.0, floor(j)), double(height-2));
 	    double j1 = j0+1;
-
+	    
 	    double wi0 = i1-i;
 	    double wi1 = i-i0;
 
@@ -3232,13 +3323,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	    cell->newObservation(pixel, wi1*wj1);
 	  }
   */
-	}
       }
-    }  
+    }
   }
-
-
-
   ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
   ms->pushWord("sceneRenderObservedMap");
 }
@@ -3420,6 +3507,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ScenePushNumSceneObjects)
 
+WORD(ScenePushSceneObjectLabel)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int to_map = 0;
+  GET_INT_ARG(ms, to_map);
+  REQUIRE_VALID_SCENE_OBJECT(ms, to_map);
+  shared_ptr<SceneObject> tso = ms->config.scene->predicted_objects[to_map];
+  REQUIRE_VALID_CLASS(ms, tso->labeled_class_index);
+  ms->pushWord( make_shared<StringWord>(ms->config.classLabels[ tso->labeled_class_index ]) );
+}
+END_WORD
+REGISTER_WORD(ScenePushSceneObjectLabel)
+
 WORD(SceneMapSceneObject)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int to_map = 0;
@@ -3545,17 +3644,29 @@ REGISTER_WORD(SceneSetDiscrepancyModePoint)
 
 
 
-WORD(SceneSetClassNameToFocusedClass)
+WORD(SceneSetPredictedClassNameToFocusedClass)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.scene->className = ms->config.focusedClassLabel;
-  cout << "sceneSetClassNameToFocusedClass: setting to " << ms->config.scene->className << endl;
+  ms->config.scene->predicted_class_name = ms->config.focusedClassLabel;
+  cout << "sceneSetPredictedClassNameToFocusedClass: setting to " << ms->config.scene->predicted_class_name << endl;
 }
 END_WORD
-REGISTER_WORD(SceneSetClassNameToFocusedClass)
+REGISTER_WORD(SceneSetPredictedClassNameToFocusedClass)
 
+WORD(SceneSetAnnotatedClassNameToFocusedClass)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.scene->annotated_class_name = ms->config.focusedClassLabel;
+  cout << "sceneSetAnnotatedClassNameToFocusedClass: setting to " << ms->config.scene->annotated_class_name << endl;
+}
+END_WORD
+REGISTER_WORD(SceneSetAnnotatedClassNameToFocusedClass)
+
+CONFIG_GETTER_STRING(SceneGetPredictedClassName, ms->config.scene->predicted_class_name)
+CONFIG_SETTER_STRING(SceneSetPredictedClassName, ms->config.scene->predicted_class_name)
+CONFIG_GETTER_STRING(SceneGetAnnotatedClassName, ms->config.scene->annotated_class_name)
+CONFIG_SETTER_STRING(SceneSetAnnotatedClassName, ms->config.scene->annotated_class_name)
 
 // count the number of equal digits
-int equalChars(string first, string second) {
+int numberOfEqualCharacters(string first, string second) {
   int i = 0;
   while ( (i<first.length()) && (i<second.length()) ) {
     if (first[i] < second[i]) {
@@ -3569,6 +3680,145 @@ int equalChars(string first, string second) {
   return i;
 }
 
+vector<double> poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vector<string> scene_files) {
+
+  double sum_x = 0.0;
+  double sum_y = 0.0;
+  double sum_theta = 0.0;
+  double sum_x_squared = 0.0;
+  double sum_y_squared = 0.0;
+  double sum_theta_squared = 0.0;
+  double counts = 0.0;
+
+  vector<shared_ptr<Scene> > scenes;
+
+  try {
+
+  for (int i = 0; i < scene_files.size(); i++) {
+    cout << " i " << i << " size: " << scene_files.size() << endl;
+    shared_ptr<Scene> this_scene = make_shared<Scene>(ms, 3, 3, 0.02);
+    this_scene->loadFromFile(scene_files[i]);
+    scenes.push_back(this_scene);
+  }
+  } catch( ... ) {
+        ROS_ERROR("In the weird sketchy exception block in ein main.");    
+    cout << "In the weird sketchy exception block in ein main." << endl;    
+    
+    std::exception_ptr p = std::current_exception();
+    std::clog <<(p ? p.__cxa_exception_type()->name() : "null") << std::endl;
+    throw;
+  }
+  cout << "Finished loop." << endl;
+
+
+  for (int i = 0; i < scenes.size(); i++) {
+    cout << "Scene " << i << endl;
+    shared_ptr<Scene> this_scene = scenes[i];
+    if (this_scene->predicted_objects.size() != 1) {
+      ROS_ERROR("Must be exactly one predicted object in these scenes.");
+    }
+    shared_ptr<SceneObject> predictedObject = this_scene->predicted_objects[0];
+
+    eePose scene_pose = predictedObject->scene_pose;
+    double roll, pitch, yaw;
+    scene_pose.getRollPitchYaw(&roll, &pitch, &yaw);
+    //this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
+
+    double this_theta = yaw;
+    double this_x = scene_pose.px;
+    double this_y = scene_pose.py;
+    cout << "Got pose: " << this_x << ", " << this_y << " and theta " << this_theta << endl;
+    
+    // integrate
+    sum_x += this_x;
+    sum_y += this_y;
+    sum_theta += this_theta;
+    sum_x_squared += this_x*this_x;
+    sum_y_squared += this_y*this_y;
+    sum_theta_squared += this_theta*this_theta;
+    counts++;
+  }
+
+  double safe_counts = std::max(counts, 1.0);
+  double mean_x = sum_x / safe_counts;
+  double mean_y = sum_y / safe_counts;
+  double mean_theta = sum_theta / safe_counts;
+
+
+  double sum_dist = 0.0;
+  double sum_dist_squared = 0.0;
+  vector<double> result;
+  for (int i = 0; i < scenes.size(); i++) {
+    shared_ptr<Scene> this_scene = scenes[i];
+    shared_ptr<SceneObject> predictedObject = this_scene->predicted_objects[0];
+
+    eePose scene_pose = predictedObject->scene_pose;
+    double roll, pitch, yaw;
+    scene_pose.getRollPitchYaw(&roll, &pitch, &yaw);
+    //this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
+
+    double this_theta = yaw;
+    double this_x = scene_pose.px;
+    double this_y = scene_pose.py;
+
+
+    double squaredist = pow(mean_x  - this_x, 2) + pow(mean_y - this_y, 2);
+    double dist = sqrt(squaredist);
+    result.push_back(dist);
+    sum_dist_squared += squaredist;
+    sum_dist += dist;
+      
+  }
+
+
+  
+  double mean_dist = sum_dist / safe_counts;
+  
+  double variance_x = ( sum_x_squared / safe_counts ) - ( mean_x * mean_x ); 
+  double variance_y = ( sum_y_squared / safe_counts ) - ( mean_y * mean_y ); 
+  double variance_theta = ( sum_theta_squared / safe_counts ) - ( mean_theta * mean_theta ); 
+  double variance_dist = ( sum_dist_squared / safe_counts ) - ( mean_dist * mean_dist );
+
+  double stddev_x = sqrt(variance_x);
+  double stddev_y = sqrt(variance_y);
+  double stddev_theta = sqrt(variance_theta);
+  double stddev_dist = sqrt(variance_dist);
+
+  double stderror_x = stddev_x / safe_counts;
+  double stderror_y = stddev_y / safe_counts;
+  double stderror_theta = stddev_theta / safe_counts;
+  double stderror_dist = stddev_dist / safe_counts;
+
+  double muconf95_x = stderror_x / 1.96;
+  double muconf95_y = stderror_theta / 1.96;
+  double muconf95_theta = stderror_theta / 1.96;
+  double muconf95_dist = stderror_dist / 1.96;
+
+
+  double stddevconf95_xlow = sqrt(pow((safe_counts - 1), 2) * variance_x) / 13.844;
+  double stddevconf95_xhigh = sqrt(pow((safe_counts - 1), 2) * variance_x) / 41.923;
+
+  double stddevconf95_ylow = sqrt(pow((safe_counts - 1), 2) * variance_y) / 13.844;
+  double stddevconf95_yhigh = sqrt(pow((safe_counts - 1), 2) * variance_y) / 41.923;
+
+  double stddevconf95_thetalow = sqrt(pow((safe_counts - 1), 2) * variance_theta) / 13.844;
+  double stddevconf95_thetahigh = sqrt(pow((safe_counts - 1), 2) * variance_theta) / 41.923;
+
+  double stddevconf95_distlow = sqrt(pow((safe_counts - 1), 2) * variance_dist) / 13.844;
+  double stddevconf95_disthigh = sqrt(pow((safe_counts - 1), 2) * variance_dist) / 41.923;
+
+
+
+
+  cout << "variance report: " << endl;
+  cout << "mu_x: " << mean_x << "+/-" << muconf95_x << " sigma_squared_x: " << variance_x << " stddev_x: " << stddev_x << "+/-" << stddevconf95_xlow << "-" << stddevconf95_xhigh << endl;
+  cout << "mu_y: " << mean_y << "+/-" << muconf95_y << " sigma_squared_y: " << variance_y << " stddev_y: " << stddev_y << "+/-" << stddevconf95_ylow << "-" << stddevconf95_yhigh << endl;
+  cout << "mu_theta: " << mean_theta << "+/-" << muconf95_theta << " sigma_squared_theta: " << variance_theta << " stddev_theta: " << stddev_theta << "+/-" << stddevconf95_thetalow << "-" << stddevconf95_thetahigh << endl;
+  cout << "mu_dist: " << mean_dist << "+/-" << muconf95_dist << " sigma_squared_dist: " << variance_dist << " stddev_dist: " << stddev_dist << "+/-" << stddevconf95_distlow << "-" << stddevconf95_disthigh << endl;
+
+  return result;
+}
+
 WORD(CatScan5VarianceTrialCalculatePoseVariances)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 // XXX 
@@ -3578,9 +3828,111 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
        configurations for the object whose variance trial folder you pass to this word. */
   string baseClassTrialFolderName;
   GET_STRING_ARG(ms, baseClassTrialFolderName);
+  vector< string > dir_files;
+  vector< vector<string> > scene_files;
 
-  vector<string> scene_files;
-  vector<string>::iterator it;
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+
+  dpdf = opendir(baseClassTrialFolderName.c_str());
+  if (dpdf == NULL){
+    ROS_ERROR_STREAM("catScan5VarianceTrialCalculatePoseVariances: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
+    return;
+  }
+
+  while (epdf = readdir(dpdf)){
+    string thisFileName(epdf->d_name);
+    
+    string thisFullFileName(baseClassTrialFolderName.c_str());
+    thisFullFileName = thisFullFileName + "/" + thisFileName;
+    
+    struct stat buf2;
+    stat(thisFullFileName.c_str(), &buf2);
+    
+    int itIsADir = S_ISDIR(buf2.st_mode);
+    if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+      cout << " is a directory." << endl;
+      dir_files.push_back(thisFullFileName);
+    } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
+      cout << " is NOT a directory." << endl;
+	//scene_files.push_back(thisFullFileName);
+    }
+  }
+  closedir(dpdf);
+  
+  for (int i = 0; i < dir_files.size(); i++){
+    vector<string> thisdir_files;
+    dpdf = opendir(dir_files[i].c_str());
+    cout << "Opening: " << dir_files[i] << endl;
+    while (epdf = readdir(dpdf)){
+      string thisFileName(epdf->d_name);
+      string thisFullFileName(dir_files[i].c_str());
+      thisFullFileName = thisFullFileName + "/" + thisFileName;
+      struct stat buf2;
+      stat(thisFullFileName.c_str(), &buf2);
+      int itIsADir = S_ISDIR(buf2.st_mode);
+      if (itIsADir) {
+	cout << " is a directory." << endl;
+	//dir_files.push_back(thisFullFileName);
+      } else {
+	cout << " is NOT a directory." << endl;
+	thisdir_files.push_back(thisFullFileName);
+      }
+    }
+    closedir(dpdf);
+    scene_files.push_back(thisdir_files);
+  }
+
+  cout << "catScan5VarianceTrialCalculatePoseVariances found the following files:" << endl;;
+  for (int i = 0; i < scene_files.size(); i++) {
+    for (int j = 0; j < scene_files[i].size(); j++) {
+      cout << "File: " << scene_files[i][j] << endl;
+    }
+  }
+  cout << endl;
+  vector<double> distances;
+  for (int i = 0; i < scene_files.size(); i++) {
+    vector<double> batch_distances = poseVarianceOfEvaluationScenes(ms, scene_files[i]);
+    for (int j = 0; j < batch_distances.size(); j++) {
+      distances.push_back(batch_distances[j]);
+    }
+  }
+  double sum_squared = 0;
+  double sum = 0;
+  for (int i = 0; i < distances.size(); i++) {
+    cout << "dist: " << distances[i] << endl;
+    sum += distances[i];
+    sum_squared += pow(distances[i], 2);
+  }
+  cout << "Sum: " << sum << endl;
+  double safe_counts = std::max((double) distances.size(), 1.0);
+  double mean = sum / safe_counts;
+  double variance = ( sum_squared / safe_counts ) - ( mean * mean ); 
+  double stddev = sqrt(variance);
+  double stderror = stddev / safe_counts;
+  double muconf95 = stderror / 1.96;
+  cout << "overall variance report: " << endl;
+  cout << "mu_d: " << mean << "+/-" << muconf95 << " sigma_squared: " << variance << " stddev: " << stddev << endl;
+
+}
+END_WORD
+REGISTER_WORD(CatScan5VarianceTrialCalculatePoseVariances)
+
+WORD(CatScan5VarianceTrialAutolabelClassNames)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX 
+  /* loop over all variance trial files, estimate poses and configurations, 
+     and pause to allow a human to set the true label.
+       pre-requisite: you should use setClassLabelsBaseClassAbsolute to load
+       configurations for the object whose variance trial folder you pass to this word. 
+       use note: stack will pause between each example, allowing you to relabel the scene
+       before proceeding, at which point the scene will be saved to disk and the next scene
+       loaded, pausing again. */
+
+  string baseClassTrialFolderName;
+  GET_STRING_ARG(ms, baseClassTrialFolderName);
 
   DIR *dpdf;
   struct dirent *epdf;
@@ -3589,13 +3941,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   dpdf = opendir(baseClassTrialFolderName.c_str());
   if (dpdf != NULL){
-    cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << baseClassTrialFolderName << " during snoop...";
+    cout << "catScan5VarianceTrialAutolabelClassNames: checking " << baseClassTrialFolderName << " during snoop...";
     while (epdf = readdir(dpdf)){
       string thisFileName(epdf->d_name);
 
       string thisFullFileName(baseClassTrialFolderName.c_str());
       thisFullFileName = thisFullFileName + "/" + thisFileName;
-      cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << thisFullFileName << " during snoop...";
+      cout << "catScan5VarianceTrialAutolabelClassNames: checking " << thisFullFileName << " during snoop...";
 
       struct stat buf2;
       stat(thisFullFileName.c_str(), &buf2);
@@ -3603,106 +3955,27 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       int itIsADir = S_ISDIR(buf2.st_mode);
       if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
 	cout << " is a directory." << endl;
-      } else {
+      } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
 	cout << " is NOT a directory." << endl;
-	scene_files.push_back(thisFullFileName);
+	ms->pushWord("sceneSaveSceneAbsolute");
+	ms->pushWord( make_shared<StringWord>(thisFullFileName) );
+	ms->pushWord("endStackCollapseNoop");
+	ms->pushWord("tempUpdateMaps");
+	// labels and leaves these detections in the scene
+	ms->pushWord("sceneSetClassNameToFocusedClass");
+	ms->pushWord("scenePredictBestObject");
+	ms->pushWord("tempUpdateMaps");
+	ms->pushWord("sceneClearPredictedObjects");
+	ms->pushWord("sceneLoadSceneRaw");
+	ms->pushWord( make_shared<StringWord>(thisFullFileName) );
       }
     }
   } else {
-    ROS_ERROR_STREAM("catScan5VarianceTrialCalculatePoseVariances: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
+    ROS_ERROR_STREAM("catScan5VarianceTrialAutolabelClassNames: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
   } 
-
-  std::sort(scene_files.begin(), scene_files.end(), less<string>());
-
-  cout << "catScan5VarianceTrialCalculatePoseVariances found the following files:" << endl;;
-  for (it=scene_files.begin(); it!=scene_files.end(); ++it) {
-    cout << *it << endl;
-  }
-  cout << endl;
-
-
-  // XXX this should be von mises or something instead for theta, but for now leave it at this
-  double sum_x = 0.0;
-  double sum_y = 0.0;
-  double sum_theta = 0.0;
-  double sum_x_squared = 0.0;
-  double sum_y_squared = 0.0;
-  double sum_theta_squared = 0.0;
-  double counts = 0.0;
-
-  bool initialized = false;
-  int batch_same_chars = 0;
-  int batch_id = 0;
-  while ( scene_files.size() > 1 ) {
-    int last = scene_files.size()-1;
-    if (initialized) { 
-      // load scene and detect 
-      int num_orientations = 37;
-      int this_class = -1;
-      double this_score = -DBL_MAX;
-      int this_i = -1;
-      int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
-      Scene this_scene(ms, 2, 2, 0.02);
-      this_scene.loadFromFile(scene_files[last]);
-      this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
-
-      double this_theta = -this_orient * 2.0 * M_PI / num_orientations;
-      double this_x, this_y;
-      this_scene.cellToMeters(this_x_cell, this_y_cell, &this_x, &this_y);
-
-      // integrate
-      sum_x += this_x;
-      sum_y += this_y;
-      sum_theta += this_theta;
-      sum_x_squared += this_x*this_x;
-      sum_y_squared += this_y*this_y;
-      sum_theta_squared += this_theta*this_theta;
-      counts++;
-
-      int this_same_chars = -1;
-      if ( scene_files.size() > 1 ) {
-	this_same_chars = equalChars(scene_files[last], scene_files[last-1]);
-      } else {
-      }
-
-      if ( (this_same_chars == batch_same_chars) && (this_same_chars != -1) ) {
-	// continue the batch
-      } else {
-	// end this batch if the next one differs in length or if this is the last batch
-	initialized = false;
-	double safe_counts = std::min(counts, 1.0);
-
-	double mean_x = sum_x / safe_counts;
-	double mean_y = sum_y / safe_counts;
-	double mean_theta = sum_theta / safe_counts;
-
-	double variance_x = ( sum_x_squared / safe_counts ) - ( mean_x * mean_x ); 
-	double variance_y = ( sum_y_squared / safe_counts ) - ( mean_y * mean_y ); 
-	double variance_theta = ( sum_theta_squared / safe_counts ) - ( mean_theta * mean_theta ); 
-    
-	cout << "Report for batch " << batch_id << " with prefix " << scene_files[last] << " : " << endl;
-	cout << "mu_x: " << mean_x << " sigma_squared_x: " << variance_x << endl;
-	cout << "mu_y: " << mean_y << " sigma_squared_y: " << variance_y << endl;
-	cout << "mu_theta: " << mean_theta << " sigma_squared_theta: " << variance_theta << endl;
-      }
-    } else {
-      sum_x = 0.0;
-      sum_y = 0.0;
-      sum_theta = 0.0;
-      sum_x_squared = 0.0;
-      sum_y_squared = 0.0;
-      sum_theta_squared = 0.0;
-      counts = 0.0;
-      initialized = true;
-      batch_same_chars = equalChars(scene_files[last], scene_files[last-1]);
-      batch_id++;
-      continue;
-    }
-    scene_files.pop_back();
-  }
 }
 END_WORD
-REGISTER_WORD(CatScan5VarianceTrialCalculatePoseVariances)
+REGISTER_WORD(CatScan5VarianceTrialAutolabelClassNames)
 
 WORD(CatScan5VarianceTrialAuditClassNames)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -3725,13 +3998,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   dpdf = opendir(baseClassTrialFolderName.c_str());
   if (dpdf != NULL){
-    cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << baseClassTrialFolderName << " during snoop...";
+    cout << "catScan5VarianceTrialAuditClassNames: checking " << baseClassTrialFolderName << " during snoop...";
     while (epdf = readdir(dpdf)){
       string thisFileName(epdf->d_name);
 
       string thisFullFileName(baseClassTrialFolderName.c_str());
       thisFullFileName = thisFullFileName + "/" + thisFileName;
-      cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << thisFullFileName << " during snoop...";
+      cout << "catScan5VarianceTrialAuditClassNames: checking " << thisFullFileName << " during snoop...";
 
       struct stat buf2;
       stat(thisFullFileName.c_str(), &buf2);
@@ -3739,18 +4012,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       int itIsADir = S_ISDIR(buf2.st_mode);
       if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
 	cout << " is a directory." << endl;
-      } else {
+      } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
 	cout << " is NOT a directory." << endl;
 	ms->pushWord("pauseStackExecution");
 	ms->pushWord("tempUpdateMaps");
-	ms->pushWord("scenePredictBestObject");
-	ms->pushWord("sceneLoadScene");
+	// preserves the prediction that was last saved
+	ms->pushWord("sceneLoadSceneRaw");
 	ms->pushWord( make_shared<StringWord>(thisFullFileName) );
        
       }
     }
   } else {
-    ROS_ERROR_STREAM("catScan5VarianceTrialCalculatePoseVariances: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
+    ROS_ERROR_STREAM("catScan5VarianceTrialAuditClassNames: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
   } 
 
 }
@@ -3764,8 +4037,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
        pre-requisite: you should use setClassLabelsBaseClassAbsolute to load
        configurations for the object whose variance trial folder you pass to this word. */
 
-  double * result =  new double[ms->config.numClasses * ms->config.numClasses];
   int nc = ms->config.numClasses;
+  double * result =  new double[nc * nc];
+  for (int i = 0; i < nc; i++) {
+    for (int j = 0; j < nc; j++) {
+      result[i + nc * j] = 0;
+    }
+  }
 
   string baseClassTrialFolderName;
   GET_STRING_ARG(ms, baseClassTrialFolderName);
@@ -3777,13 +4055,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   dpdf = opendir(baseClassTrialFolderName.c_str());
   if (dpdf != NULL){
-    cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << baseClassTrialFolderName << " during snoop...";
+    cout << "catScan5VarianceTrialCalculateConfigurationAccuracy: checking " << baseClassTrialFolderName << " during snoop...";
     while (epdf = readdir(dpdf)){
       string thisFileName(epdf->d_name);
 
       string thisFullFileName(baseClassTrialFolderName.c_str());
       thisFullFileName = thisFullFileName + "/" + thisFileName;
-      cout << "catScan5VarianceTrialCalculatePoseVariances: checking " << thisFullFileName << " during snoop...";
+      cout << "catScan5VarianceTrialCalculateConfigurationAccuracy: checking " << thisFullFileName << " during snoop...";
 
       struct stat buf2;
       stat(thisFullFileName.c_str(), &buf2);
@@ -3791,7 +4069,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       int itIsADir = S_ISDIR(buf2.st_mode);
       if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
 	cout << " is a directory." << endl;
-      } else {
+      } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
 	cout << " is NOT a directory." << endl;
 	// load scene and detect 
 	// XXX
@@ -3802,10 +4080,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
 	Scene this_scene(ms, 2, 2, 0.02);
 	this_scene.loadFromFile(thisFullFileName);
+	this_scene.predicted_objects.resize(0);
+	this_scene.composePredictedMap(0.01);
+	this_scene.measureDiscrepancy();
+
 	this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
 	int thisSceneLabelIdx = -1;
 	for (int i = 0; i < nc; i++) {
-	  if ( 0 == ms->config.classLabels[i].compare(this_scene.className) ) {
+	  if ( 0 == ms->config.classLabels[i].compare(this_scene.annotated_class_name) ) {
 	    thisSceneLabelIdx = i;
 	    break;
 	  } else {
@@ -3814,32 +4096,34 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	if ( (this_class != -1) && (thisSceneLabelIdx != -1) ) {
 	  result[thisSceneLabelIdx + nc * this_class]++;
 	} else {
-	  cout << "catScan5VarianceTrialCalculatePoseVariances: could not find match for label " << this_scene.className << " for file " << thisFullFileName << endl;
+	  cout << "catScan5VarianceTrialCalculateConfigurationAccuracy: could not find match for label " << this_scene.annotated_class_name << " for file " << thisFullFileName << endl;
 	}
       }
     }
   } else {
-    ROS_ERROR_STREAM("catScan5VarianceTrialCalculatePoseVariances: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
+    ROS_ERROR_STREAM("catScan5VarianceTrialCalculateConfigurationAccuracy: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
   } 
 
   cout << "catScan5VarianceTrialCalculateConfigurationAccuracy report: row (i) is true label, column (j) is assigned label" << endl;
 
-  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+  for (int j = 0; j < nc; j++) {
     cout << std::setw(3) << j << ": " << ms->config.classLabels[j] << endl;
   }
   cout << "   " ;
-  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+  for (int j = 0; j < nc; j++) {
     cout << std::setw(10) << j ;
   }
   cout << endl;
 
-  for (int i = 0; i < ms->config.classLabels.size(); i++) {
-    cout << std::setw(3) << i;
-    for (int j = 0; j < ms->config.classLabels.size(); j++) {
-      cout << std::setw(10) << result[i + nc * j];
+  for (int i = 0; i < nc; i++) {
+    cout << std::setw(3) << i << " ";
+    for (int j = 0; j < nc; j++) {
+      cout << std::setw(10) << result[i + nc * j] << " ";
     }
     cout << endl;
   }
+
+  delete result;
 }
 END_WORD
 REGISTER_WORD(CatScan5VarianceTrialCalculateConfigurationAccuracy)
@@ -3850,8 +4134,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   /* loop over all variance trial files and classify under all classes all configurations.
        pre-requisite: you should use setClassLabelsObjectFolderAbsolute to load all
        configurations for all objects whose base dirs are in the folder passed to this word. */
-  double * result =  new double[ms->config.numClasses * ms->config.numClasses];
   int nc = ms->config.numClasses;
+  double * result =  new double[nc * nc];
+  for (int i = 0; i < nc; i++) {
+    for (int j = 0; j < nc; j++) {
+      result[i + nc * j] = 0;
+    }
+  }
 
   string objectFolderAbsolute;
   GET_STRING_ARG(ms, objectFolderAbsolute);
@@ -3868,7 +4157,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       string thisFileName(epdf->d_name);
 
       string thisFullFileName(objectFolderAbsolute.c_str());
-      thisFullFileName = thisFullFileName + "/" + thisFileName;
+      thisFullFileName = thisFullFileName + "/" + thisFileName + "/catScan5VarianceTrials/";
       cout << "catScan5VarianceTrialCalculateAllClassesAccuracy level 1: checking " << thisFullFileName << " during snoop...";
 
       struct stat buf2;
@@ -3901,27 +4190,73 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	      string varianceTrials("catScan5VarianceTrials");
 
 	      int itIsADir = S_ISDIR(buf2.st_mode);
-	      if (varianceTrials.compare(epdf_2->d_name) && dot.compare(epdf_2->d_name) && dotdot.compare(epdf_2->d_name) && itIsADir) {
+	      if (dot.compare(epdf_2->d_name) && dotdot.compare(epdf_2->d_name) && itIsADir) {
 		cout << " is a directory." << endl;
-	      } else {
+	      } else if (dot.compare(epdf_2->d_name) && dotdot.compare(epdf_2->d_name)) {
 		cout << " is NOT a directory." << endl;
-		cout << "catScan5VarianceTrialCalculateAllClassesAccuracy report: row (i) is true label, column (j) is assigned label" << endl;
+		// load scene and detect 
+		// XXX
+		int num_orientations = 37;
+		int this_class = -1;
+		double this_score = -DBL_MAX;
+		int this_i = -1;
+		int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
+		Scene this_scene(ms, 2, 2, 0.02);
+		this_scene.loadFromFile(thisFullFileName_2);
+		this_scene.predicted_objects.resize(0);
+		this_scene.composePredictedMap(0.01);
+		this_scene.measureDiscrepancy();
 
-		for (int j = 0; j < ms->config.classLabels.size(); j++) {
-		  cout << std::setw(3) << j << ": " << ms->config.classLabels[j] << endl;
-		}
-		cout << "   " ;
-		for (int j = 0; j < ms->config.classLabels.size(); j++) {
-		  cout << std::setw(10) << j ;
-		}
-		cout << endl;
-
-		for (int i = 0; i < ms->config.classLabels.size(); i++) {
-		  cout << std::setw(3) << i;
-		  for (int j = 0; j < ms->config.classLabels.size(); j++) {
-		    cout << std::setw(10) << result[i + nc * j];
+		this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
+		int thisSceneLabelIdx = -1;
+		for (int i = 0; i < nc; i++) {
+		  // remove object folder token from front
+		  string class_label_to_trim = ms->config.classLabels[i]; 
+		  int first = 0;
+		  // find first non-slash character
+		  if (class_label_to_trim[first] == '/') {
+		    first = first+1;
+		    while (first < class_label_to_trim.size()) {
+		      if (class_label_to_trim[first] == '/') {
+			first = first+1;
+		      } else {
+			break;
+		      }
+		    }
 		  }
-		  cout << endl;
+		  // then find the next slash
+		  int next = first;
+		  while (next < class_label_to_trim.size()) {
+		    if (class_label_to_trim[next] == '/') {
+		      break;
+		    } else {
+		      next = next+1;
+		    }
+		  }
+		  // and the character after that series of slashes
+		  int after_next_series = next;
+		  while (after_next_series < class_label_to_trim.size()) {
+		    if (class_label_to_trim[after_next_series] == '/') {
+		      after_next_series = after_next_series+1;
+		    } else {
+		      break;
+		    }
+		  }
+		  std::min(after_next_series, int(class_label_to_trim.size()-1));
+		  // then take substring
+		  string trimmed_class_label = class_label_to_trim.substr(after_next_series, class_label_to_trim.size()-after_next_series);
+		  //cout << "TTTTTT: " << trimmed_class_label << "    " << this_scene.annotated_class_name << endl;
+
+		  if ( 0 == trimmed_class_label.compare(this_scene.annotated_class_name) ) {
+		    thisSceneLabelIdx = i;
+		    break;
+		  } else {
+		  }
+		}
+		if ( (this_class != -1) && (thisSceneLabelIdx != -1) ) {
+		  result[thisSceneLabelIdx + nc * this_class]++;
+		} else {
+		  cout << "catScan5VarianceTrialCalculateConfigurationAccuracy: could not find match for label " << this_scene.annotated_class_name << " for file " << thisFullFileName << endl;
 		}
 	      }
 	    }
@@ -3930,7 +4265,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  } 
 	}
 
-      } else {
+      } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
 	cout << " is NOT a directory." << endl;
       }
     }
@@ -3940,22 +4275,23 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   cout << "catScan5VarianceTrialCalculateAllClassesAccuracy report: row (i) is true label, column (j) is assigned label" << endl;
 
-  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+  for (int j = 0; j < nc; j++) {
     cout << std::setw(3) << j << ": " << ms->config.classLabels[j] << endl;
   }
   cout << "   " ;
-  for (int j = 0; j < ms->config.classLabels.size(); j++) {
+  for (int j = 0; j < nc; j++) {
     cout << std::setw(10) << j ;
   }
   cout << endl;
 
-  for (int i = 0; i < ms->config.classLabels.size(); i++) {
-    cout << std::setw(3) << i;
-    for (int j = 0; j < ms->config.classLabels.size(); j++) {
-      cout << std::setw(10) << result[i + nc * j];
+  for (int i = 0; i < nc; i++) {
+    cout << std::setw(3) << i << " ";
+    for (int j = 0; j < nc; j++) {
+      cout << std::setw(10) << result[i + nc * j] << " ";
     }
     cout << endl;
   }
+  delete result;
 }
 END_WORD
 REGISTER_WORD(CatScan5VarianceTrialCalculateAllClassesAccuracy)
@@ -3982,10 +4318,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   REQUIRE_FOCUSED_CLASS(ms, tfc);
   ms->config.classLabels[tfc] = ss.str();
 
-  double this_collar_width_m = 0.01;
+  double scale = 1;
+  double negative_space_weight_ratio = 1.0;
+  double this_collar_width_m = 0.02;
   double this_cw = ms->config.scene->cell_width; 
-  int this_w = 3.0 * this_collar_width_m + ceil(breadth_m / this_cw);
-  int this_h = 3.0 * this_collar_width_m + ceil(length_m / this_cw);
+  int this_w = ceil( (3.0 * this_collar_width_m + breadth_m) / this_cw);
+  int this_h = ceil( (3.0 * this_collar_width_m + length_m) / this_cw);
   ms->config.class_scene_models[tfc] = make_shared<Scene>(ms, this_w, this_h, this_cw);
 
   // fill in the magnitude and density maps; positive region sums to 1, negative collar sums to -1
@@ -4007,32 +4345,236 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
     }
   }
+
+  cout << "w: " << w << " h: " << h << " num_pos: " << num_pos << " num_neg: " << num_neg << " this_w: " << this_w << " this_h: " << this_h << " this_cw: " << this_cw << endl;
+
+  num_pos = std::max(num_pos, 1.0);
+  num_neg = std::max(num_neg, 1.0);
+
+  // l2 norm is sqrt(num_pos)
+  //double pos_factor = 1.0/sqrt(num_pos);
+  //double neg_factor = 10.0/sqrt(num_neg);
+  double pos_factor = 1.0/(num_pos);
+  double neg_factor = 3.0/(num_neg);
+
+  double counts_scale = 1e4;
+
   // fill out proper values
   for (int y = 0; y < h; y++) {
     for (int x = 0; x < w; x++) {
       double this_x_m, this_y_m;
       ms->config.class_scene_models[tfc]->cellToMeters(x, y, &this_x_m, &this_y_m);
       if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/2.0)) ) {
-	fake_filter.at<double>(y,x) = 1.0/num_pos;
+	fake_filter.at<double>(y,x) = scale*pos_factor;
+	if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/4.0)) ) {
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*192;
+	} else {
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*64;
+	}
       } else if ( (fabs(this_y_m) <= (length_m/2.0)) && (  fabs(this_x_m) <= (this_collar_width_m + (   breadth_m/2.0   ))  ) ) {
-	fake_filter.at<double>(y,x) = -1.0/num_neg;
+	fake_filter.at<double>(y,x) = -negative_space_weight_ratio*scale*neg_factor;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*128;
       } else {
 	fake_filter.at<double>(y,x) = 0.0;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*128;
       }
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.samples = counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.samples = counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.samples = counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.squaredcounts = 
+	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts / counts_scale, 2.0)*counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.squaredcounts = 
+	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts / counts_scale, 2.0)*counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.squaredcounts = 
+	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts / counts_scale, 2.0)*counts_scale;
     }
   }
   ms->config.class_scene_models[tfc]->discrepancy_density = fake_filter.clone();
   // XXX push a table flush 3d crane grasp at the center
   Grasp toPush;
   double flushGraspZ = -ms->config.currentTableZ + ms->config.pickFlushFactor;
-  toPush.grasp_pose = eePose(0,0,flushGraspZ,0,1,0,0);
+  toPush.grasp_pose = eePose(0,0,flushGraspZ,0.0,0.0,0.707106,0.7071068);
+  //toPush.grasp_pose = eePose(0,0,flushGraspZ,0.0,0.0,0.0,1.0);
   toPush.tries = 1;
   toPush.successes = 1;
   toPush.failures = 0;
+  ms->config.class3dGrasps[tfc].resize(0);
   ms->config.class3dGrasps[tfc].push_back(toPush);
 }
 END_WORD
 REGISTER_WORD(SceneFabricateIdealBlockModel)
+
+
+
+
+
+WORD(SceneInitRegister)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "sceneInitRegister: copying and maxing variances..." << endl;
+  ms->config.gaussian_map_register = ms->config.scene->observed_map->copy();
+  int t_height = ms->config.gaussian_map_register->height;
+  int t_width = ms->config.gaussian_map_register->width;
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+      ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared = DBL_MAX;
+      ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared = DBL_MAX;
+      ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared = DBL_MAX;
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneInitRegister)
+
+WORD(SceneRecallFromRegister)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "sceneRecallFromRegister: copying..." << endl;
+  ms->config.scene->observed_map = ms->config.gaussian_map_register->copy();
+}
+END_WORD
+REGISTER_WORD(SceneRecallFromRegister)
+
+WORD(SceneUpdateObservedFromStreamBufferAtZ)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  int thisIdx = ms->config.sibCurIdx;
+  //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
+
+  Mat bufferImage;
+  eePose thisPose, tBaseP;
+
+  int success = 1;
+  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+    if (tsi.image.data == NULL) {
+      cout << "  encountered NULL data in sib, returning." << endl;
+      return;
+    } else {
+      bufferImage = tsi.image.clone();
+    }
+    success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+  } else {
+    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    return;
+  }
+
+  if (success != 1) {
+    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    return;
+  }
+
+  if (fabs(thisPose.qz) > 0.01) {
+    ROS_ERROR("  Not doing update because arm not vertical.");
+    return;
+  }
+
+  Mat wristViewYCbCr = bufferImage.clone();
+
+  cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+  
+  Size sz = bufferImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int topx = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; //+ 20; // ms->config.grayTop.x;  
+  int botx = ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; //- 20; // ms->config.grayBot.x;  
+  int topy = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; //+ 50; // ms->config.grayTop.y;
+  int boty = ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; //- 50; // ms->config.grayBot.y;  
+  
+  pixelToGlobalCache data;
+  double z = z_to_use;
+  computePixelToGlobalCache(ms, z, thisPose, &data);
+  
+  for (int px = topx; px < botx; px++) {
+    for (int py = topy; py < boty; py++) {
+      if (isInGripperMask(ms, px, py)) {
+	continue;
+      }
+      double x, y;
+      pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
+      
+      if (1) {
+	// single sample update
+	int i, j;
+	ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+	GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+	if (cell != NULL) {
+	    Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+	    cell->newObservation(pixel);
+	    double p_samples = 1000;
+	    cell->z.counts = z * p_samples;
+	    cell->z.squaredcounts = z * z * p_samples;
+	    cell->z.mu = 0;
+	    cell->z.sigmasquared = 0;
+	    cell->z.samples = p_samples;
+	}
+      } else {
+      }
+    }
+  }
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+  ms->pushWord("sceneRenderObservedMap");
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZ)
+
+WORD(SceneMinIntoRegister)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "sceneMinIntoRegister: copying..." << endl;
+  int t_height = ms->config.scene->observed_map->height;
+  int t_width = ms->config.scene->observed_map->width;
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+      double this_observed_sigma_squared = 
+      ms->config.scene->observed_map->refAtCell(x,y)->red.sigmasquared +
+      ms->config.scene->observed_map->refAtCell(x,y)->green.sigmasquared +
+      ms->config.scene->observed_map->refAtCell(x,y)->blue.sigmasquared;
+
+      double this_register_sigma_squared = 
+      ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared +
+      ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared +
+      ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared;
+
+      if ( this_observed_sigma_squared < this_register_sigma_squared ) {
+	*(ms->config.gaussian_map_register->refAtCell(x,y)) = *(ms->config.scene->observed_map->refAtCell(x,y));
+      } else {
+      }
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneMinIntoRegister)
+
+
+/*
+WORD(SceneTrimDepthWithDiscrepancy)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(SceneTrimDepthWithDiscrepancy)
+
+WORD(SceneUpdateObservedFromStreamBufferRecast)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX this seems to require determining when a pixel in the stream buffer
+//  hits a cell known to be at a higher height. so this should loop height top down and for each height
+//  throw out pixels for the remaining heights below if they project to a cell at that height, and accumulate 
+//  at that height otherwise
+
+
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferRecast)
+*/
+
 
 
 /* 

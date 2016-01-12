@@ -63,31 +63,30 @@ dogBark
 
 (
   4 dogHeadPanPGainTo 
-  4 dogHeadTiltPGainTo 
+  18 dogHeadTiltPGainTo 
   10 dogTailPanPGainTo 
   4 dogTailTiltPGainTo 
-  10 dogNeckPGainTo 
+  14 dogNeckPGainTo 
   4 dogMouthPGainTo 
 
   1 dogHeadPanIGainTo 
-  1 dogHeadTiltIGainTo 
+  3 dogHeadTiltIGainTo 
   1 dogTailPanIGainTo 
   1 dogTailTiltIGainTo 
-  1 dogNeckIGainTo 
+  3 dogNeckIGainTo 
   0 dogMouthIGainTo 
 
   1 dogHeadPanDGainTo 
-  1 dogHeadTiltDGainTo 
+  2 dogHeadTiltDGainTo 
   1 dogTailPanDGainTo 
   1 dogTailTiltDGainTo 
-  1 dogNeckDGainTo 
+  2 dogNeckDGainTo 
   1 dogMouthDGainTo 
 
   0 dogHeadPanTo 
   10 dogHeadTiltTo 
   0 dogTailPanTo 
   60 dogTailTiltTo 
-  75 dogNeckTo 
   0 dogNeckTo 
   0 dogMouthTo 
   0.0 dogSetIntendedEarR
@@ -158,7 +157,7 @@ dogBark
 
 (
   dogWatchOnce sceneSetBackgroundFromObserved sceneSetBackgroundFromObserved
-  ( 1 ) ( pushTime dogFormatImageDefault dogWatchOnce 0.7 sceneExponentialAverageObservedIntoBackground pushTime minus print endStackCollapseNoop ) while
+  ( 1 ) ( now dogFormatImageDefault dogWatchOnce 0.7 sceneExponentialAverageObservedIntoBackground now minus print endStackCollapseNoop ) while
 ) "dogWatchForAveragedChanges" store
 
 

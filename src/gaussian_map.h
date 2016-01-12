@@ -146,7 +146,8 @@ class SceneObject {
 
 class Scene {
   public:
-  string className;
+  string predicted_class_name;
+  string annotated_class_name;
   int width; // or columns
   int height; // or rows
   int x_center_cell;
