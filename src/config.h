@@ -612,6 +612,7 @@ class EinConfig {
   EinWindow * backgroundWindow;
   EinWindow * discrepancyWindow;
   EinWindow * discrepancyDensityWindow;
+  EinWindow * zWindow;
   EinWindow * observedWindow;
   EinWindow * predictedWindow;
   ArmWidget * armWidget;

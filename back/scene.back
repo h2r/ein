@@ -905,7 +905,7 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
     deliverTargetObject
   ) (
     "tempMapBestAndPick: oops, no sceneObjects..." print
-  ) ift
+  ) ifte
 ) "tempMapBestAndPick" store
 
 
@@ -932,10 +932,11 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
   sceneClearPredictedObjects tempPredictAndRenderBest clearBlueBoxMemories 0 sceneMapSceneObject
 ) "tempClassifyOne" store
 
-0.2383 "tempReconstructWithZTopZ" store
-0.08 "tempReconstructWithZTotalZ" store
+/* 0.3883 "tempReconstructWithZTopZ" store */
+ 0.3883 "tempReconstructWithZTopZ" store 
+0.18 "tempReconstructWithZTotalZ" store
 tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBottomZ" store
-0.01 "tempReconstructWithZDeltaZ" store
+0.005 "tempReconstructWithZDeltaZ" store
 (
   sceneInitRegister
   50 "tempSpiralStreamTakeSceneSamples" store
@@ -968,10 +969,10 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
 ) "tempReconstructWithZ" store
 
 (
-  0.005 setW1GoThresh
+  0.001 setW1GoThresh
   0.03 "tempSpiralMoveSpeed" store
-  0.005 "tempSpiralGridSize" store
-  3 3 6 tempUpdateSpiralEccentricCore tempUpdateMaps
+  0.01 "tempSpiralGridSize" store
+  6 tempUpdateSpiralCore tempUpdateMaps
 ) "tempReconstructTakeScene" store
 
 
