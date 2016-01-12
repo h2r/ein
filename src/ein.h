@@ -344,6 +344,7 @@ void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces);
 int simulatedServo();
 
 void initRangeMaps(shared_ptr<MachineState> ms);
+void initRangeMapsNoLoad(shared_ptr<MachineState> ms);
 
 int isThisGraspMaxedOut(shared_ptr<MachineState> ms, int i);
 

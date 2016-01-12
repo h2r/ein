@@ -1019,7 +1019,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
        (idx > -1) && (idx < ms->config.classHeight3AerialGradients.size()) ) {
     // do nothing
   } else {
-    cout << "writeAerialGradientsToServoCrop: invalid idx, not writing." << endl;
+    //cout << "writeAerialGradientsToServoCrop: invalid idx, not writing." << endl;
     return;
   }
 
@@ -1032,7 +1032,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
   {
     Mat this_grad = ms->config.classHeight0AerialGradients[idx];
     string png_path = servoCrop_file_path + "0" + ".png";
-    cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
+    //cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
     double minDepth = std::numeric_limits<double>::max();
     double maxDepth = std::numeric_limits<double>::min();
     for (int gx = 0; gx < this_grad.cols; gx++) {
@@ -1058,7 +1058,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
       string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_range_path;
       this_range_path = dirToMakePath + "aerialHeight0Gradients.yml";
-      cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
+      //cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
 
       FileStorage fsvO;
       fsvO.open(this_range_path, FileStorage::WRITE);
@@ -1069,7 +1069,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
   {
     Mat this_grad = ms->config.classHeight1AerialGradients[idx];
     string png_path = servoCrop_file_path + "1" + ".png";
-    cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
+    //cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
     double minDepth = std::numeric_limits<double>::max();
     double maxDepth = std::numeric_limits<double>::min();
     for (int gx = 0; gx < this_grad.cols; gx++) {
@@ -1094,7 +1094,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
       string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_range_path;
       this_range_path = dirToMakePath + "aerialHeight1Gradients.yml";
-      cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
+      //cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
 
       FileStorage fsvO;
       fsvO.open(this_range_path, FileStorage::WRITE);
@@ -1105,7 +1105,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
   {
     Mat this_grad = ms->config.classHeight2AerialGradients[idx];
     string png_path = servoCrop_file_path + "2" + ".png";
-    cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
+    //cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
     double minDepth = std::numeric_limits<double>::max();
     double maxDepth = std::numeric_limits<double>::min();
     for (int gx = 0; gx < this_grad.cols; gx++) {
@@ -1130,7 +1130,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
       string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_range_path;
       this_range_path = dirToMakePath + "aerialHeight2Gradients.yml";
-      cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
+      //cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
 
       FileStorage fsvO;
       fsvO.open(this_range_path, FileStorage::WRITE);
@@ -1141,7 +1141,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
   {
     Mat this_grad = ms->config.classHeight3AerialGradients[idx];
     string png_path = servoCrop_file_path + "3" + ".png";
-    cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
+    //cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
     double minDepth = std::numeric_limits<double>::max();
     double maxDepth = std::numeric_limits<double>::min();
     for (int gx = 0; gx < this_grad.cols; gx++) {
@@ -1166,7 +1166,7 @@ void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, 
       string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
       string this_range_path;
       this_range_path = dirToMakePath + "aerialHeight3Gradients.yml";
-      cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
+      //cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
 
       FileStorage fsvO;
       fsvO.open(this_range_path, FileStorage::WRITE);
@@ -2322,7 +2322,7 @@ void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStr
 
     string png_path = root_path + ".png";
     string yaml_path = root_path + ".yml";
-    cout << "streamImageAsClass: Streaming current frame to " << png_path << " " << yaml_path << endl;
+    //cout << "streamImageAsClass: Streaming current frame to " << png_path << " " << yaml_path << endl;
     // no compression!
     std::vector<int> args;
     args.push_back(CV_IMWRITE_PNG_COMPRESSION);
@@ -2345,7 +2345,7 @@ void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStr
     toAdd.filename = "CAMERA";
     ms->config.streamImageBuffer.push_back(toAdd);
 
-    cout << "streamImageAsClass: WARNING disk streaming not enabled, there are " << ms->config.streamImageBuffer.size() << " images in the buffer and growing..." << endl;
+    //cout << "streamImageAsClass: WARNING disk streaming not enabled, there are " << ms->config.streamImageBuffer.size() << " images in the buffer and growing..." << endl;
   }
 }
 
@@ -4809,7 +4809,7 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
   if (ms->config.shouldIRender) {
     //QMetaObject::invokeMethod(qtTestWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
     //QMetaObject::invokeMethod(ms-.config.wristViewWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
-    ms->config.wristViewWindow->updateImage(ms->config.wristViewImage);
+    ms->config.wristViewWindow->updateImage(ms->config.cam_img);
     //Mat firstYCBCR;  cvtColor(ms->config.wristViewImage, firstYCBCR, CV_BGR2YCrCb);
     //ms->config.wristViewWindow->updateImage(firstYCBCR);
   }
@@ -7193,7 +7193,7 @@ void drawMapRegisters(shared_ptr<MachineState> ms) {
 
 
 void applyGraspFilter(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB) {
-  cout << "Applying filter to rangeMapRegA and storing result in rangeMapRegA." << endl;
+  //cout << "Applying filter to rangeMapRegA and storing result in rangeMapRegA." << endl;
 
   // ATTN 2
   int dx[9] = { -1,  0,  1, 
@@ -9790,6 +9790,24 @@ void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces) {
 
 
 void initRangeMaps(shared_ptr<MachineState> ms) {
+  initRangeMapsNoLoad(ms);
+
+  ms->config.class3dGrasps.resize(ms->config.numClasses);
+  ms->config.classPlaceUnderPoints.resize(ms->config.numClasses);
+  ms->config.classPlaceOverPoints.resize(ms->config.numClasses);
+  for(int i = 0; i < ms->config.numClasses; i++) {
+    ms->config.class3dGrasps[i].resize(0);
+    ms->config.classPlaceUnderPoints[i].resize(0);
+    ms->config.classPlaceOverPoints[i].resize(0);
+  }
+
+  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    cout << "Trying to load range map for class " << i << endl;
+    tryToLoadRangeMap(ms, ms->config.class_crops_path, ms->config.classLabels[i].c_str(), i);
+  }
+}
+
+void initRangeMapsNoLoad(shared_ptr<MachineState> ms) {
   ms->config.classRangeMaps.resize(ms->config.numClasses);
   ms->config.classGraspMemoryTries1.resize(ms->config.numClasses);
   ms->config.classGraspMemoryPicks1.resize(ms->config.numClasses);
@@ -9810,21 +9828,8 @@ void initRangeMaps(shared_ptr<MachineState> ms) {
   ms->config.classGraspZs.resize(ms->config.numClasses);
   ms->config.classGraspZsSet.resize(ms->config.numClasses);
 
-  ms->config.class3dGrasps.resize(ms->config.numClasses);
-  ms->config.classPlaceUnderPoints.resize(ms->config.numClasses);
-  ms->config.classPlaceOverPoints.resize(ms->config.numClasses);
-  for(int i = 0; i < ms->config.numClasses; i++) {
-    ms->config.class3dGrasps[i].resize(0);
-    ms->config.classPlaceUnderPoints[i].resize(0);
-    ms->config.classPlaceOverPoints[i].resize(0);
-  }
-
   ms->config.classHeightMemoryTries.resize(ms->config.numClasses);
   ms->config.classHeightMemoryPicks.resize(ms->config.numClasses);
-  for (int i = 0; i < ms->config.classLabels.size(); i++) {
-    cout << "Trying to load range map for class " << i << endl;
-    tryToLoadRangeMap(ms, ms->config.class_crops_path, ms->config.classLabels[i].c_str(), i);
-  }
 }
 
 int isThisGraspMaxedOut(shared_ptr<MachineState> ms, int i) {
@@ -9862,44 +9867,47 @@ eePose pixelToGlobalEEPose(shared_ptr<MachineState> ms, int pX, int pY, double g
 
 void interpolateM_xAndM_yFromZ(shared_ptr<MachineState> ms, double dZ, double * m_x, double * m_y) {
 
-  // XXX disabling for calibration
-  //return;
+  if (ms->config.currentCameraCalibrationMode == CAMCAL_LINBOUNDED) {
+    double bBZ[4];
+    bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+    bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+    bBZ[2] = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+    bBZ[3] = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
-  double bBZ[4];
-  bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
-  bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
-  bBZ[2] = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
-  bBZ[3] = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
-
-  if (dZ <= bBZ[0]) {
-    *m_x = ms->config.m_x_h[0];
-    *m_y = ms->config.m_y_h[0];
-  } else if (dZ <= bBZ[1]) {
-    double gap = bBZ[1] - bBZ[0];
-    double c0 = 1.0 - ((dZ - bBZ[0])/gap);
-    double c1 = 1.0 - ((bBZ[1] - dZ)/gap);
-    *m_x = c0*ms->config.m_x_h[0] + c1*ms->config.m_x_h[1];
-    *m_y = c0*ms->config.m_y_h[0] + c1*ms->config.m_y_h[1];
-  } else if (dZ <= bBZ[2]) {
-    double gap = bBZ[2] - bBZ[1];
-    double c1 = 1.0 - ((dZ - bBZ[1])/gap);
-    double c2 = 1.0 - ((bBZ[2] - dZ)/gap);
-    *m_x = c1*ms->config.m_x_h[1] + c2*ms->config.m_x_h[2];
-    *m_y = c1*ms->config.m_y_h[1] + c2*ms->config.m_y_h[2];
-  } else if (dZ <= bBZ[3]) {
-    double gap = bBZ[3] - bBZ[2];
-    double c2 = 1.0 - ((dZ - bBZ[2])/gap);
-    double c3 = 1.0 - ((bBZ[3] - dZ)/gap);
-    *m_x = c2*ms->config.m_x_h[2] + c3*ms->config.m_x_h[3];
-    *m_y = c2*ms->config.m_y_h[2] + c3*ms->config.m_y_h[3];
-  } else if (dZ > bBZ[3]) {
-    *m_x = ms->config.m_x_h[3];
-    *m_y = ms->config.m_y_h[3];
+    if (dZ <= bBZ[0]) {
+      *m_x = ms->config.m_x_h[0];
+      *m_y = ms->config.m_y_h[0];
+    } else if (dZ <= bBZ[1]) {
+      double gap = bBZ[1] - bBZ[0];
+      double c0 = 1.0 - ((dZ - bBZ[0])/gap);
+      double c1 = 1.0 - ((bBZ[1] - dZ)/gap);
+      *m_x = c0*ms->config.m_x_h[0] + c1*ms->config.m_x_h[1];
+      *m_y = c0*ms->config.m_y_h[0] + c1*ms->config.m_y_h[1];
+    } else if (dZ <= bBZ[2]) {
+      double gap = bBZ[2] - bBZ[1];
+      double c1 = 1.0 - ((dZ - bBZ[1])/gap);
+      double c2 = 1.0 - ((bBZ[2] - dZ)/gap);
+      *m_x = c1*ms->config.m_x_h[1] + c2*ms->config.m_x_h[2];
+      *m_y = c1*ms->config.m_y_h[1] + c2*ms->config.m_y_h[2];
+    } else if (dZ <= bBZ[3]) {
+      double gap = bBZ[3] - bBZ[2];
+      double c2 = 1.0 - ((dZ - bBZ[2])/gap);
+      double c3 = 1.0 - ((bBZ[3] - dZ)/gap);
+      *m_x = c2*ms->config.m_x_h[2] + c3*ms->config.m_x_h[3];
+      *m_y = c2*ms->config.m_y_h[2] + c3*ms->config.m_y_h[3];
+    } else if (dZ > bBZ[3]) {
+      *m_x = ms->config.m_x_h[3];
+      *m_y = ms->config.m_y_h[3];
+    } else {
+      assert(0); // my my
+    }
+    //cout << ms->config.m_x_h[0] << " " << ms->config.m_x_h[1] << " " << ms->config.m_x_h[2] << " " << ms->config.m_x_h[3] << " " << *m_x << endl;
+    //cout << m_y_h[0] << " " << ms->config.m_y_h[1] << " " << ms->config.m_y_h[2] << " " << ms->config.m_y_h[3] << " " << *m_y << endl;
+  } else if (ms->config.currentCameraCalibrationMode == CAMCAL_QUADRATIC) {
+    *(m_y) = ms->config.m_YQ[0] + (dZ * ms->config.m_YQ[1]) + (dZ * dZ * ms->config.m_YQ[2]);
+    *(m_x) = ms->config.m_XQ[0] + (dZ * ms->config.m_XQ[1]) + (dZ * dZ * ms->config.m_XQ[2]);
   } else {
-    assert(0); // my my
   }
-  //cout << ms->config.m_x_h[0] << " " << ms->config.m_x_h[1] << " " << ms->config.m_x_h[2] << " " << ms->config.m_x_h[3] << " " << *m_x << endl;
-  //cout << m_y_h[0] << " " << ms->config.m_y_h[1] << " " << ms->config.m_y_h[2] << " " << ms->config.m_y_h[3] << " " << *m_y << endl;
 }
 
 void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY) {
@@ -9998,6 +10006,7 @@ void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double 
 
   double oldPx = pX;
   double oldPy = pY;
+
   pX = cache->reticlePixelX + (oldPy - cache->reticlePixelY) - ms->config.offX;
   pY = cache->reticlePixelY + (oldPx - cache->reticlePixelX) - ms->config.offY;
 

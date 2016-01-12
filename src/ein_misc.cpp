@@ -1082,6 +1082,92 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(DecMy)
 
+WORD(CameraZeroNonLinear)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  // kill quadratic and constant terms
+  // or use modes instead
+}
+END_WORD
+REGISTER_WORD(CameraZeroNonLinear)
+
+CONFIG_GETTER_INT(CameraGetCalibrationMode, ms->config.currentCameraCalibrationMode);
+CONFIG_SETTER_ENUM(CameraSetCalibrationMode, ms->config.currentCameraCalibrationMode, (cameraCalibrationMode));
+
+WORD(CameraFitQuadratic)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  double bBZ[4];
+  bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+  bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+  bBZ[2] = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+  bBZ[3] = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
+
+  cout << "cameraFitQuadratic: " << endl;
+  {
+    cout << "  running y reticles... 0 1 2 3: " <<
+       ms->config.m_y_h[0] << " " <<
+       ms->config.m_y_h[1] << " " <<
+       ms->config.m_y_h[2] << " " <<
+       ms->config.m_y_h[3] << endl;
+
+    Vector3d beta;
+    Vector4d Y;
+    Matrix<double, 4, 3> X;
+
+    X << 1 , bBZ[0] , bBZ[0] * bBZ[0] 
+       , 1 , bBZ[1] , bBZ[1] * bBZ[1] 
+       , 1 , bBZ[2] , bBZ[2] * bBZ[2] 
+       , 1 , bBZ[3] , bBZ[3] * bBZ[3];
+
+    Y << ms->config.m_y_h[0]
+       , ms->config.m_y_h[1]
+       , ms->config.m_y_h[2]
+       , ms->config.m_y_h[3];
+
+    beta = (X.transpose() * X).inverse() * X.transpose() * Y;
+
+    cout << "beta: " << endl << beta << endl << "X: " << endl << X << endl << "Y: " << endl << Y << endl << "X times beta: " << endl << X * beta << endl;
+
+    ms->config.m_YQ[0] = beta(0);
+    ms->config.m_YQ[1] = beta(1);
+    ms->config.m_YQ[2] = beta(2);
+  }
+  {
+    cout << "  running x reticles... 0 1 2 3: " <<
+       ms->config.m_x_h[0] << " " <<
+       ms->config.m_x_h[1] << " " <<
+       ms->config.m_x_h[2] << " " <<
+       ms->config.m_x_h[3] << endl;
+
+    Vector3d beta;
+    Vector4d Y;
+    Matrix<double, 4, 3> X;
+
+    X << 1 , bBZ[0] , bBZ[0] * bBZ[0] 
+       , 1 , bBZ[1] , bBZ[1] * bBZ[1] 
+       , 1 , bBZ[2] , bBZ[2] * bBZ[2] 
+       , 1 , bBZ[3] , bBZ[3] * bBZ[3];
+
+    Y << ms->config.m_x_h[0]
+       , ms->config.m_x_h[1]
+       , ms->config.m_x_h[2]
+       , ms->config.m_x_h[3];
+
+    beta = (X.transpose() * X).inverse() * X.transpose() * Y;
+
+    cout << "beta: " << endl << beta << endl << "X: " << endl << X << endl << "Y: " << endl << Y << endl << "X times beta: " << endl << X * beta << endl;
+
+    ms->config.m_XQ[0] = beta(0);
+    ms->config.m_XQ[1] = beta(1);
+    ms->config.m_XQ[2] = beta(2);
+  }
+}
+END_WORD
+REGISTER_WORD(CameraFitQuadratic)
+
+
+
 WORD(EndStackCollapse)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {

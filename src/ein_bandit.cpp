@@ -5,6 +5,9 @@
 
 namespace ein_words {
 
+CONFIG_GETTER_INT(BanditGetPickMode, ms->config.currentPickMode);
+CONFIG_SETTER_ENUM(BanditSetPickMode, ms->config.currentPickMode, (pickMode));
+
 WORD(SetRandomPositionAndOrientationForHeightLearning)
 CODE( 1179687)     // capslock + numlock + '
 virtual void execute(std::shared_ptr<MachineState> ms) {

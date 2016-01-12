@@ -121,6 +121,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(IsAtCurrentPosition)
 
+CONFIG_GETTER_INT(WaitGetCurrentWaitMode, ms->config.currentWaitMode)
+CONFIG_SETTER_ENUM(WaitSetCurrentWaitMode, ms->config.currentWaitMode, (waitMode))
+
 
 WORD(WaitUntilAtCurrentPositionB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -138,8 +141,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	ms->config.endThisStackCollapse = ms->config.endCollapse;
       }
       
-      ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
-      cout << "  backing up just a little to dislodge, then waiting again." << endl;
+      if (ms->config.currentWaitMode == WAIT_KEEP_ON) {
+	cout << "waitUntilAtCurrentPositionB: currentWaitMode WAIT_KEEP_ON, so doing nothing...";
+      } else if (ms->config.currentWaitMode == WAIT_BACK_UP) {
+	cout << "waitUntilAtCurrentPositionB: currentWaitMode WAIT_BACK_UP, so...";
+	ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
+	cout << "  backing up just a little to dislodge, then waiting again." << endl;
+      } else {
+	assert(0);
+      }
 
       ms->pushWord("waitUntilAtCurrentPosition"); 
       return;
@@ -231,10 +241,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(WaitUntilGripperNotMovingC)
 
-WORD(PerturbPosition)
-CODE(1048623)     // numlock + /
+WORD(PerturbPositionScale)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double param_perturbScale = 0.05;//0.1;
+  GET_NUMERIC_ARG(ms, param_perturbScale);
+
   double noX = param_perturbScale * ((drand48() - 0.5) * 2.0);
   double noY = param_perturbScale * ((drand48() - 0.5) * 2.0);
   double noTheta = 3.1415926 * ((drand48() - 0.5) * 2.0);
@@ -244,6 +255,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->config.currentEEDeltaRPY.pz += noTheta;
   endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
+}
+END_WORD
+REGISTER_WORD(PerturbPositionScale)
+
+
+WORD(PerturbPosition)
+CODE(1048623)     // numlock + /
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  stringstream cmd;
+  cmd << "0.05 perturbPositionScale";
+  ms->evaluateProgram(cmd.str());
 }
 END_WORD
 REGISTER_WORD(PerturbPosition)
@@ -1654,12 +1677,12 @@ REGISTER_WORD(CreateEEPose)
 
 WORD(WaitForSeconds)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "waitForSeconds: ";
+  //cout << "waitForSeconds: ";
   double secondsToWait = 0;
   GET_NUMERIC_ARG(ms, secondsToWait);
 
   ms->config.waitForSecondsTarget = ros::Time::now() + ros::Duration(secondsToWait);
-  cout << "waiting " << secondsToWait << " seconds until " << ms->config.waitForSecondsTarget << endl;
+  //cout << "waiting " << secondsToWait << " seconds until " << ms->config.waitForSecondsTarget << endl;
   ms->pushWord("waitForSecondsA");
 }
 END_WORD
@@ -1670,7 +1693,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //cout << "waitForSecondsA: ";
   ros::Time thisNow = ros::Time::now();
   if (thisNow.toSec() > ms->config.waitForSecondsTarget.toSec()) {
-    cout << "PASSED at time, target, delta: " << thisNow.toSec() << " " << ms->config.waitForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.waitForSecondsTarget.toSec() << endl;
+    //cout << "PASSED at time, target, delta: " << thisNow.toSec() << " " << ms->config.waitForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.waitForSecondsTarget.toSec() << endl;
   } else {
     //cout << "HELD at time, target, delta: " << thisNow.toSec() << " " << ms->config.waitForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.waitForSecondsTarget.toSec() << endl;
     ms->pushWord("waitForSecondsA");

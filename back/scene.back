@@ -28,12 +28,15 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy 0.1 sceneGrabDiscrepantCropAsClass 
 ) "tempCaptureCore" store
 
+(
+  15.0 sceneSetBackgroundStdDevY
+  11.0 sceneSetBackgroundStdDevColor
+) "tempRegularizeBackground" store
 
 ( 
   bg sceneLoadBackgroundMap 
-  15.0 sceneSetBackgroundStdDevY
-  11.0 sceneSetBackgroundStdDevColor
   5 sceneSetCellCountThreshold 
+  tempRegularizeBackground
 
 /* orion's left arm.
   10.0 sceneSetBackgroundStdDevY
@@ -43,18 +46,18 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   sceneClearObservedMap sceneClearPredictedObjects 
 ) "tempInit" store
 
-0.01 "scenePredictedMapThresh" store
-
+0.01 "scenePredictedMapThreshDefault" store
+scenePredictedMapThreshDefault "scenePredictedMapThresh" store
 (
   scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
 ) "tempUpdateMaps" store
 
 (
-  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 2 replicateWord tempUpdateMaps
+  sceneClearObservedMap ( waitUntilImageCallbackReceived sceneUpdateObservedFromWrist ) 2 replicateWord tempUpdateMaps
 ) "tempShortTakeScene" store
 
 (
-  sceneClearObservedMap ( sceneUpdateObservedFromWrist ) 5 replicateWord tempUpdateMaps
+  sceneClearObservedMap ( waitUntilImageCallbackReceived sceneUpdateObservedFromWrist ) 5 replicateWord tempUpdateMaps
 ) "tempLongTakeScene" store
 
 (
@@ -62,10 +65,17 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempFivePointThreeWidthTakeScene" store
 
 (
-  sceneClearObservedMap 0.01 setGridSize 10 tempUpdateSpiralStop tempUpdateMaps
+  sceneClearObservedMap tempUpdateSpiral tempUpdateMaps
 ) "tempSpiralTakeScene" store
 
+0.1 "tempSpiralMoveSpeedDefault" store
+tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
+0.02 "tempSpiralGridSizeDefault" store
+tempSpiralGridSizeDefault "tempSpiralGridSize" store
 (
+  "tempUpdateSpiralN" store
+  currentPose "tempUpdateSpiralPos" store
+
   /* clear it all */
   sceneClearObservedMap
   clearStreamBuffers
@@ -80,10 +90,12 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   activateSensorStreaming
 
   /* spiral scan pattern */
-  0.05 setSpeed
+  tempSpiralMoveSpeed setSpeed
+  tempSpiralGridSize setGridSize
   0.03 setW1GoThresh
+  shiftIntoGraspGear1 waitUntilAtCurrentPosition
 
-  "tempUpdateSpiralN" store
+
   1 "tempUpdateSpiralIdx" store
 
   ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
@@ -91,7 +103,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
     ( yUp ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
     ( xDown ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
     ( yDown ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    "test " print
+    "tempUpdateSpiralCore" print
     tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
   ) while
 
@@ -114,8 +126,82 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) 20 replicateWord endStackCollapseNoop ) 80 replicateWord
 */
 
+  50 "tempSpiralStreamTakeSceneSamples" store
+  streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
 
-) "tempSpiralStreamTakeScene" store
+  rewindImageStreamBufferNLNK 
+  ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) tempSpiralStreamTakeSceneStride replicateWord endStackCollapseNoop ) tempSpiralStreamTakeSceneSamples replicateWord
+
+  tempUpdateSpiralPos moveEeToPoseWord
+  waitUntilAtCurrentPosition
+/* XXX need to change this to not take an argument, split with a core */
+) "tempUpdateSpiralCore" store
+
+(
+  "tempUpdateSpiralN" store
+  "tempUpdateSpiralYNum" store
+  "tempUpdateSpiralXNum" store
+  currentPose "tempUpdateSpiralPos" store
+
+  /* clear it all */
+  sceneClearObservedMap
+  sceneClearPredictedObjects
+  clearStreamBuffers
+
+  /* turn streaming on, no disk streaming */ 
+  shutdownToSensorsAndMovement
+  disableDiskStreaming
+
+    /* Pose Range Image Joints Word Label */
+    1 0 1 0 0 0 
+  setSisFlags
+  activateSensorStreaming
+
+  /* spiral scan pattern */
+  tempSpiralMoveSpeed setSpeed
+  tempSpiralGridSize setGridSize
+  0.03 setW1GoThresh
+  shiftIntoGraspGear1 waitUntilAtCurrentPosition
+
+  1 "tempUpdateSpiralIdx" store
+
+  ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
+  ( ( xUp ) tempUpdateSpiralIdx tempUpdateSpiralXNum times replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( yUp ) tempUpdateSpiralIdx tempUpdateSpiralYNum times replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( xDown ) tempUpdateSpiralIdx tempUpdateSpiralXNum times 1 tempUpdateSpiralXNum times + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( yDown ) tempUpdateSpiralIdx tempUpdateSpiralYNum times 1 tempUpdateSpiralYNum times + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    "tempUpdateSpiralEccentricCore" print
+    tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
+  ) while
+
+  /* turn streaming off */
+  deactivateSensorStreaming
+  
+  /* integrate results */
+  rewindImageStreamBufferNLNK
+
+  bringUpAllNonessentialSystems
+
+  tempUpdateMaps
+
+/*
+  streamPushImageStreamIndex
+  streamPushImageStreamSize
+  incrementImageStreamBufferNoLoadNoKick:
+
+  rewindImageStreamBufferNLNK sceneClearObservedMap
+  ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) 20 replicateWord endStackCollapseNoop ) 80 replicateWord
+*/
+
+  50 "tempSpiralStreamTakeSceneSamples" store
+  streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
+
+  rewindImageStreamBufferNLNK 
+  ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) tempSpiralStreamTakeSceneStride replicateWord endStackCollapseNoop ) tempSpiralStreamTakeSceneSamples replicateWord
+
+  tempUpdateMaps
+  tempUpdateSpiralPos moveEeToPoseWord
+) "tempUpdateSpiralEccentricCore" store
 
 
 (
@@ -196,14 +282,11 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 (
   numClasses 0 > (
-    0.5 "tempNewComponentThresh" store
+    0.15 "tempNewComponentThresh" store
     sceneClearPredictedObjects
     sceneClearObservedMap
 
-    tempFivePointThreeWidthTakeScene
-    /*
-    tempShortTakeScene
-    */
+    tempUpdateSpiral
 
     tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
 
@@ -278,19 +361,19 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
     1
   ) ifte
 
-) "tempFivePointThreeWidthIsNewComponentNormalizedSum" store
+) "tempSpiralIsNewComponentNormalizedSum" store
 
 (
-  /* this probably has a name, like pseudo-likelihood or something */
   numClasses 0 > (
-    0.5 "tempNewComponentThresh" store
+    0.15 "tempNewComponentThresh" store
     sceneClearPredictedObjects
     sceneClearObservedMap
 
     /*
     tempFivePointThreeWidthTakeScene
-    */
     tempShortTakeScene
+    */
+    tempUpdateSpiralEccentric
 
     tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
     /* pauseStackExecution */
@@ -413,14 +496,53 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempMoveToSceneObject" store
 
 (
+  tempShortTakeScene tempServoToBestSceneObject
+) "tempShortServoToBestSceneObject" store
 
+(
   tempShortTakeScene tempServoToFocusedSceneObject
 ) "tempShortServoToFocusedSceneObject" store
 
 (
+  tempSpiralTakeScene tempServoToBestSceneObject
+) "tempSpiralServoToBestSceneObject" store
+
+(
+  tempSpiralTakeScene tempServoToFocusedSceneObject
+) "tempSpiralServoToFocusedSceneObject" store
+
+/* internal */
+(
   sceneClearPredictedObjects tempUpdateMaps scenePredictFocusedObject  tempUpdateMaps
   0 tempMoveToSceneObject
 ) "tempServoToFocusedSceneObject" store
+(
+  sceneClearPredictedObjects tempUpdateMaps scenePredictBestObject tempUpdateMaps
+  0 tempMoveToSceneObject
+) "tempServoToBestSceneObject" store
+/* end internal */
+
+(
+  /* if you are in blocks, you will end up back in blocks. if not you will get whatever you had. */
+  tempRestoreFromBlocks
+  tempSwapToBlocks
+
+  clearClassLabels
+  initializeAndFocusOnTempClass
+  tempRecaptureServoSpiral
+
+  tempRestoreFromBlocks
+) "tempSpiralServoToAnonymousObject" store
+
+(
+  /* if you are in blocks, you will end up back in blocks. if not you will get whatever you had. */
+  tempRestoreFromBlocks
+  tempSwapToBlocks
+
+  tempSpiralServoToBestSceneObject
+
+  tempRestoreFromBlocks
+) "tempSpiralServoToBestBlock" store
 
 (
 /* demos relative transforms */
@@ -442,16 +564,20 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempUsefulPhrases" store
   
 (
+  tempRecaptureServoSpiral
+) "tempRecaptureServo" store
+
+(
   sceneClearPredictedObjects
   tempShortTakeScene
   tempCaptureCore
 
   tempShortServoToFocusedSceneObject
-) "tempRecaptureServo" store
+) "tempRecaptureServoShort" store
 
 (
   sceneClearPredictedObjects
-  sceneClearObservedMap 0.01 setGridSize 10 tempUpdateSpiral tempUpdateMaps
+  sceneClearObservedMap tempUpdateSpiral tempUpdateMaps
   tempCaptureCore
 
   tempShortServoToFocusedSceneObject
@@ -494,6 +620,11 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempUpdateLawnmower" store
 
 (
+  "tempUpdateSpiral, pointing to another" print
+  7 tempUpdateSpiralCore
+) "tempUpdateSpiral" store
+
+(
   0.05 setSpeed
   0.03 setW1GoThresh
 
@@ -505,10 +636,10 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
     ( yUp ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
     ( xDown ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
     ( yDown ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
-    "test " print
+    "tempUpdateSpiralRing" print
     tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
   ) while
-) "tempUpdateSpiral" store
+) "tempUpdateSpiralRing" store
 
 (
   0.05 setSpeed
@@ -522,7 +653,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
     ( yUp ) tempUpdateSpiralIdx replicateWord waitWord sceneUpdateObservedFromWrist
     ( xDown ) tempUpdateSpiralIdx 1 + replicateWord waitWord sceneUpdateObservedFromWrist
     ( yDown ) tempUpdateSpiralIdx 1 + replicateWord waitWord sceneUpdateObservedFromWrist
-    "test " print
+    "tempUpdateSpiralStop" print
     tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
   ) while
 ) "tempUpdateSpiralStop" store
@@ -536,10 +667,8 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 (
   sceneClearObservedMap 
-/*   
-  tempUpdateFivePointThreeWidth  
-*/
-  0.02 setGridSize  11  tempUpdateSpiral
+  waitUntilAtCurrentPosition
+  9 tempUpdateSpiralCore tempUpdateMaps
   bg sceneSaveObservedMap 
   tempInit
 ) "tempUpdateBg" store
@@ -556,8 +685,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
   sceneClearObservedMap sceneClearPredictedObjects 
 
-  0.01 setGridSize
-  tempUpdateFivePointThreeWidth
+  tempUpdateSpiral
   tempCaptureCore
 
   /* no additional scan */
@@ -576,16 +704,18 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 
   sceneClearObservedMap sceneClearPredictedObjects 
 
-  0.01 setGridSize
-  tempUpdateFivePointThreeWidth
+  tempUpdateSpiral
   tempCaptureCore
 
+  1 waitSetCurrentWaitMode
   scanObjectScene
+  0 waitSetCurrentWaitMode
 
   writeFocusedClass
 ) "tempFullScan" store
 
 (
+  /* needs an update */
   clearMapForPatrol
 
   lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
@@ -609,6 +739,98 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempAddBarGrasp" store
 
 (
+  /* XXX if the number of classes is zero, how does this work out? */
+  clearMapForPatrol
+
+  lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
+  (
+    tempSpiralServoToBestSceneObject
+    quarterImpulse waitUntilAtCurrentPosition 
+  ) 2 replicateWord
+  currentPose tempScanBasePZ setEEPosePZ "tempScanBase" store
+
+  tempSwapToBlocks 
+  (
+    tempSpiralServoToBestSceneObject
+    quarterImpulse waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  ) 2 replicateWord
+  quarterTurn /* this gets into orientation to pick so it will be saved next, since this is a block grasp */
+  currentPose tempScanBasePZ pickFlushFactor + setEEPosePZ "tempScanNewGrasp" store
+  tempRestoreFromBlocks 
+
+  tempScanBase setC3dPoseBase
+  tempScanNewGrasp add3dGraspPoseWord
+  writeFocusedClass
+) "tempAddBlockGrasp" store
+
+0 "tempBlockUsingBlocks" store
+0.055 "tempBlockMaxGraspThickness" store
+0.04 "tempBlockGripperThrow" store
+0.01 "tempBlockGraspResolution" store
+0.03 "tempBlockTargetContactWidth" store
+(
+  tempBlockUsingBlocks not (
+    0.00 "scenePredictedMapThresh" store
+    slide ( pushClassLabels 1 sP ) "tempSwapClassLabels" store
+    focusedClassLabel "tempSwapTargetClass" store
+
+    clearClassLabels 
+
+    tempBlockMaxGraspThickness "thisBlockGraspThickness" store
+    ( 
+      tempBlockMaxGraspThickness thisBlockGraspThickness - tempBlockGripperThrow < 
+      tempBlockMaxGraspThickness thisBlockGraspThickness - tempBlockGripperThrow = or
+    ) ( 
+      tempBlockTargetContactWidth thisBlockGraspThickness sceneFabricateIdealBlockModel 
+      thisBlockGraspThickness tempBlockGraspResolution minus "thisBlockGraspThickness" store
+    ) while
+
+    setGraspModeTo3D
+    0 sceneSetClassificationMode
+    1 "tempBlockUsingBlocks" store
+    "tempSwapToBlocks: swapped to blocks." print
+  ) (
+    clearClassLabels 
+
+    tempBlockMaxGraspThickness "thisBlockGraspThickness" store
+    ( 
+      tempBlockMaxGraspThickness thisBlockGraspThickness - tempBlockGripperThrow < 
+      tempBlockMaxGraspThickness thisBlockGraspThickness - tempBlockGripperThrow = or
+    ) ( 
+      tempBlockTargetContactWidth thisBlockGraspThickness sceneFabricateIdealBlockModel 
+      thisBlockGraspThickness tempBlockGraspResolution minus "thisBlockGraspThickness" store
+    ) while
+
+    setGraspModeTo3D
+    0 sceneSetClassificationMode
+    1 "tempBlockUsingBlocks" store
+
+    "tempSwapToBlocks: swapped to blocks but already holding blocks, not storing state." print    
+  ) ifte
+) "tempSwapToBlocks" store
+
+(
+  tempBlockUsingBlocks (
+    "tempRestoreFromBlocks: restoring from blocks." print    
+
+    scenePredictedMapThreshDefault "scenePredictedMapThresh" store
+    endArgs tempSwapClassLabels setClassLabels 
+    numClasses 0 > (
+      tempSwapTargetClass setTargetClass
+    ) (
+      "Oops, restoring to ZERO classes!" print    
+    ) ifte
+
+    createCachedClassifierFromClassLabels
+    setGraspModeTo3D
+    1 sceneSetClassificationMode
+    0 "tempBlockUsingBlocks" store
+  ) (
+    "tempRestoreFromBlocks: restoring from blocks but not holding blocks." print    
+  ) ifte
+) "tempRestoreFromBlocks" store
+
+(
   0 sceneMapSceneObject
   recordPreTargetLock
   /* prepareForGraspFromMemory */
@@ -620,6 +842,8 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   deliverTargetObject
 ) "tempPickWithAddedGrasp" store
 
+
+/* consider deprecating or using */
 (
   lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
   tempShortServoToFocusedSceneObject
@@ -637,8 +861,6 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 (
   ( tempShortServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord
 
-  /* tempFivePointThreeWidthTakeScene tempServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop */
-
   0 sceneMapSceneObject
   recordPreTargetLock
   /* prepareForGraspFromMemory */
@@ -647,13 +869,44 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempMapFocusedClass" store
 
 (
+  ( tempShortServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord
+
+  0 sceneMapSceneObject
+  recordPreTargetLock
+  /* prepareForGraspFromMemory */
+  recordPostTargetLock
+  publishRecognizedObjectArrayFromBlueBoxMemory
+) "tempMapBestClass" store
+
+(
   openGripper waitUntilGripperNotMoving
+  /*
+  setGraspModeTo3D
+  setIdleModeToEmpty
+  setPlaceModeToShake 
+  */
+
+  clearMapForPatrol clearBlueBoxMemories tempMapFocusedClass deliverTargetObject
+) "tempMapFocusedAndPick" store
+
+(
+  openGripper waitUntilGripperNotMoving
+  /*
   setGraspModeTo3D
   setIdleModeToEmpty
   setPlaceModeToShake
+  */
 
-  clearMapForPatrol clearBlueBoxMemories tempMapFocusedClass deliverTargetObject
-) "tempMapAndPick" store
+  clearMapForPatrol clearBlueBoxMemories tempMapBestClass 
+
+  scenePushNumSceneObjects 0 > (
+      0 scenePushSceneObjectLabel 
+    setTargetClass 
+    deliverTargetObject
+  ) (
+    "tempMapBestAndPick: oops, no sceneObjects..." print
+  ) ift
+) "tempMapBestAndPick" store
 
 
 (
@@ -678,5 +931,50 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 (
   sceneClearPredictedObjects tempPredictAndRenderBest clearBlueBoxMemories 0 sceneMapSceneObject
 ) "tempClassifyOne" store
+
+0.2383 "tempReconstructWithZTopZ" store
+0.08 "tempReconstructWithZTotalZ" store
+tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBottomZ" store
+0.01 "tempReconstructWithZDeltaZ" store
+(
+  sceneInitRegister
+  50 "tempSpiralStreamTakeSceneSamples" store
+  streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
+
+  tempReconstructWithZTopZ "tempReconstructWithZThisZ" store
+
+  ( tempReconstructWithZThisZ tempReconstructWithZBottomZ = 
+    tempReconstructWithZThisZ tempReconstructWithZBottomZ > or ) 
+  (
+  
+	  tempReconstructWithZBottomZ 
+	" " 
+	tempReconstructWithZThisZ	
+	" " 
+	tempReconstructWithZTopZ 
+	" " 
+      + + + + + print
+
+    sceneClearObservedMap
+    rewindImageStreamBufferNLNK 
+    ( tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZ ( incrementImageStreamBufferNoLoadNoKick ) tempSpiralStreamTakeSceneStride replicateWord endStackCollapseNoop ) tempSpiralStreamTakeSceneSamples replicateWord
+
+    sceneMinIntoRegister
+    tempReconstructWithZThisZ tempReconstructWithZDeltaZ - "tempReconstructWithZThisZ" store
+  ) while
+
+  sceneRecallFromRegister
+  sceneRenderObservedMap
+) "tempReconstructWithZ" store
+
+(
+  0.005 setW1GoThresh
+  0.03 "tempSpiralMoveSpeed" store
+  0.005 "tempSpiralGridSize" store
+  3 3 6 tempUpdateSpiralEccentricCore tempUpdateMaps
+) "tempReconstructTakeScene" store
+
+
+
 
 
