@@ -4067,7 +4067,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("bringUpAllNonessentialSystems"); 
   ms->pushWord("deactivateSensorStreaming"); 
 
-  ms->pushWord("streamScanCentered");
+  // XXX take out for now, conserve space
+  //ms->pushWord("streamScanCentered");
 
   ms->pushWord("activateSensorStreaming"); 
   ms->pushWord("clearStreamBuffers"); 
@@ -4092,6 +4093,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("bringUpAllNonessentialSystems"); 
   ms->pushWord("deactivateSensorStreaming"); 
+  // XXX take out for now, conserve space
+  /*
   {
     ms->pushWord("deactivateSensorStreaming"); 
 
@@ -4137,6 +4140,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("changeToHeight1"); // change to height 1
   }
+  */
   {
     ms->pushWord("deactivateSensorStreaming"); 
 
