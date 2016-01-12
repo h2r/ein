@@ -214,6 +214,11 @@ typedef enum {
   WAIT_BACK_UP = 1
 } waitMode;
 
+typedef enum {
+  CAMCAL_LINBOUNDED = 0,
+  CAMCAL_QUADRATIC = 1
+} cameraCalibrationMode;
+
 std::string pickModeToString(pickMode mode);
 
 
@@ -607,6 +612,7 @@ class EinConfig {
   EinWindow * backgroundWindow;
   EinWindow * discrepancyWindow;
   EinWindow * discrepancyDensityWindow;
+  EinWindow * zWindow;
   EinWindow * observedWindow;
   EinWindow * predictedWindow;
   ArmWidget * armWidget;
@@ -1033,6 +1039,9 @@ class EinConfig {
   double m_y = 0.94;
   double m_x_h[4];
   double m_y_h[4];
+  cameraCalibrationMode currentCameraCalibrationMode = CAMCAL_QUADRATIC;
+  double m_XQ[3] = {0,0,0};
+  double m_YQ[3] = {0,0,0};
 
   int mappingServoTimeout = 5;
   //const int mappingHeightIdx = 0;

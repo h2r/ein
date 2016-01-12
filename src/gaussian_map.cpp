@@ -258,16 +258,23 @@ void _GaussianMapCell::readFromFileNode(FileNode& it) {
   z.samples        =  (double)(it)["zsamples"];          
 }
 
-void _GaussianMapCell::newObservation(Vec3b vec) {
-  red.counts += vec[2];
-  green.counts += vec[1];
-  blue.counts += vec[0];
-  red.squaredcounts += pow(vec[2], 2);
-  green.squaredcounts += pow(vec[1], 2);
-  blue.squaredcounts += pow(vec[0], 2);
+void _GaussianMapCell::newObservation(Vec3b obs) {
+  red.counts += obs[2];
+  green.counts += obs[1];
+  blue.counts += obs[0];
+  red.squaredcounts += pow(obs[2], 2);
+  green.squaredcounts += pow(obs[1], 2);
+  blue.squaredcounts += pow(obs[0], 2);
   red.samples += 1;
   green.samples += 1;
   blue.samples += 1;
+}
+
+void _GaussianMapCell::newObservation(Vec3b obs, double zobs) {
+  newObservation(obs);
+  z.counts += zobs;
+  z.squaredcounts += pow(zobs, 2);
+  z.samples += 1;
 }
 
 void GaussianMap::reallocate() {
@@ -3402,10 +3409,47 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   
   ms->config.discrepancyDensityWindow->updateImage(ms->config.scene->discrepancy_density);
+  // XXX considered changing this because it looked wrong
+  //ms->config.discrepancyDensityWindow->updateImage(densityImage);
 }
 END_WORD
 REGISTER_WORD(SceneRenderDiscrepancy)
 
+WORD(SceneRenderZ)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  Mat image;
+  ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(ms, image);
+  ms->config.discrepancyWindow->updateImage(image);
+
+  Mat toShow;
+  ms->config.scene->observed_map->zMuToMat(toShow);
+  for (int x = 0; x < ms->config.scene->width; x++) {
+    for (int y = 0; y < ms->config.scene->height; y++) {
+      if ((ms->config.scene->predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
+      } else {
+	//toShow.at<double>(y, x) = 0;
+      }
+    }
+  }
+  double maxVal, minVal;
+  minMaxLoc(toShow, &minVal, &maxVal);
+  minVal = max(minVal, ms->config.currentTableZ);
+  double denom = max(1e-6, maxVal-minVal);
+  cout << "sceneRenderZ min max denom: " << minVal << " " << maxVal << " " << denom << endl;
+  for (int x = 0; x < ms->config.scene->width; x++) {
+    for (int y = 0; y < ms->config.scene->height; y++) {
+      if ((ms->config.scene->predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
+	toShow.at<double>(y, x) = (toShow.at<double>(y, x) - minVal) / denom;
+      } else {
+	//toShow.at<double>(y, x) = 0;
+      }
+    }
+  }
+  
+  ms->config.zWindow->updateImage(toShow);
+}
+END_WORD
+REGISTER_WORD(SceneRenderZ)
 
 
 WORD(SceneGrabDiscrepantCropAsClass)
@@ -4509,13 +4553,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
 	if (cell != NULL) {
 	    Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
-	    cell->newObservation(pixel);
-	    double p_samples = 1000;
-	    cell->z.counts = z * p_samples;
-	    cell->z.squaredcounts = z * z * p_samples;
-	    cell->z.mu = 0;
-	    cell->z.sigmasquared = 0;
-	    cell->z.samples = p_samples;
+	    cell->newObservation(pixel, z);
 	}
       } else {
       }

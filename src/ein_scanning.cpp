@@ -1957,6 +1957,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   int nudgeSteps = 4;
 
+  ms->evaluateProgram("cameraFitQuadratic 1 cameraSetCalibrationMode");
   // move back
   // adjust until close	
   // move back over then down 
@@ -2054,6 +2055,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushCopies("xUp", nudgeSteps);
   ms->pushCopies("yUp", translationSteps);
   ms->pushWord("changeToHeight0");
+
+  ms->evaluateProgram("0 cameraSetCalibrationMode");
 }
 END_WORD
 REGISTER_WORD(SetMagnification)
@@ -4127,7 +4130,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->pushWord("bringUpAllNonessentialSystems"); 
   ms->pushWord("deactivateSensorStreaming"); 
 
-  ms->pushWord("streamScanCentered");
+  // XXX take out for now, conserve space
+  //ms->pushWord("streamScanCentered");
 
   ms->pushWord("activateSensorStreaming"); 
   ms->pushWord("clearStreamBuffers"); 
@@ -4152,6 +4156,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->pushWord("bringUpAllNonessentialSystems"); 
   ms->pushWord("deactivateSensorStreaming"); 
+  // XXX take out for now, conserve space
+  /*
   {
     ms->pushWord("deactivateSensorStreaming"); 
 
@@ -4197,6 +4203,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("changeToHeight1"); // change to height 1
   }
+  */
   {
     ms->pushWord("deactivateSensorStreaming"); 
 
