@@ -418,6 +418,44 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(Rangle)
 
+WORD(Leq)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("<=");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+  double v2;
+  GET_NUMERIC_ARG(ms, v2);
+
+  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(v2 <= v1);
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Leq)
+
+WORD(Geq)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back(">=");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+  double v2;
+  GET_NUMERIC_ARG(ms, v2);
+
+  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(v2 >= v1);
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Geq)
+
 WORD(Times)
 CODE('*') 
 virtual vector<string> names() {
