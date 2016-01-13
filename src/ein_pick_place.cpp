@@ -1007,10 +1007,15 @@ WORD(PressUntilEffortInit)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   ms->pushWord("setEffortThresh");
-  ms->pushWord("10.0");
+  ms->pushWord("7.0");
 
-  ms->pushWord("setGridSizeCoarse");
-  ms->pushWord("hundredthImpulse");
+  //ms->pushWord("hundredthImpulse");
+  ms->pushWord("setSpeed");
+  ms->pushWord("0.01");
+  ms->pushWord("setGridSize");
+  ms->pushWord("0.005");
+  ms->pushWord("setW1GoThresh");
+  ms->pushWord("0.005");
 }
 END_WORD
 REGISTER_WORD(PressUntilEffortInit)
@@ -1018,9 +1023,15 @@ REGISTER_WORD(PressUntilEffortInit)
 WORD(PressUntilEffort)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  ms->config.pressUntilEffortCounter = 0;
+  ms->pushWord("waitSetCurrentWaitMode");
+  ms->config.pressUntilEffortStart = ros::Time::now();
+  ms->pushWord("bringUpAllNonessentialSystems");
   ms->pushWord("pressUntilEffortA");
   ms->pushWord("setEffortHere");
+  ms->pushWord("shutdownToSensorsAndMovement");
+  ms->pushWord("waitSetCurrentWaitMode");
+    ms->pushWord("1");
+    ms->pushWord("waitGetCurrentWaitMode");
 }
 END_WORD
 REGISTER_WORD(PressUntilEffort)
@@ -1028,8 +1039,7 @@ REGISTER_WORD(PressUntilEffort)
 WORD(PressUntilEffortA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  if (ms->config.pressUntilEffortCounter < ms->config.pressUntilEffortCounterTimeout) {
-    ms->config.pressUntilEffortCounter++;
+  if ( ros::Time::now().toSec() - ms->config.pressUntilEffortStart.toSec() < ms->config.pressUntilEffortTimeout ) {
     cout << "pressUntilEffortA: ";
     double totalDiff = 0.0;
     for (int i = 0; i < NUM_JOINTS; i++) {
@@ -1042,7 +1052,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
     if (totalDiff > ms->config.actual_effort_thresh) {
       cout << "~~~~~~~~" << endl << "crossed effort thresh" << endl << endl;
-      ms->pushWord("stayNoRoll");
+      ms->pushWord("stayZOnly");
     } else {
       ms->pushWord("pressUntilEffortA");
       if (eePose::distance(ms->config.currentEEPose, ms->config.trueEEPoseEEPose) < ms->config.w1GoThresh) {
@@ -1075,12 +1085,17 @@ WORD(PressUntilEffortOrTwistInit)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   ms->pushWord("setEffortThresh");
-  ms->pushWord("30.0");
+  ms->pushWord("7.0");
   ms->pushWord("setTwistThresh");
-  ms->pushWord("0.005");
+  ms->pushWord("0.02");
 
-  ms->pushWord("setGridSizeCoarse");
-  ms->pushWord("hundredthImpulse");
+  //ms->pushWord("hundredthImpulse");
+  ms->pushWord("setSpeed");
+  ms->pushWord("0.01");
+  ms->pushWord("setGridSize");
+  ms->pushWord("0.005");
+  ms->pushWord("setW1GoThresh");
+  ms->pushWord("0.005");
 }
 END_WORD
 REGISTER_WORD(PressUntilEffortOrTwistInit)
@@ -1088,13 +1103,60 @@ REGISTER_WORD(PressUntilEffortOrTwistInit)
 WORD(PressUntilEffortOrTwist)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  ms->config.pressUntilEffortCounter = 0;
+  ms->config.pressUntilEffortStart = ros::Time::now();
+  ms->pushWord("waitSetCurrentWaitMode");
+  ms->pushWord("bringUpAllNonessentialSystems");
   ms->pushWord("pressUntilEffortOrTwistA");
   ms->pushWord("setEffortHere");
   ms->pushWord("setPressPose");
+  ms->pushWord("shutdownToSensorsAndMovement");
+  ms->pushWord("waitSetCurrentWaitMode");
+    ms->pushWord("1");
+    ms->pushWord("waitGetCurrentWaitMode");
 }
 END_WORD
 REGISTER_WORD(PressUntilEffortOrTwist)
+
+WORD(PressUntilEffortStart)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->pushWord("setSpeed");
+  ms->pushWord("waitSetCurrentWaitMode");
+  ms->evaluateProgram("0.01 setSpeed 0.01 setW1GoThresh 0.02 setGridSize zDown waitUntilAtCurrentPosition");
+  ms->pushWord("waitSetCurrentWaitMode");
+    ms->pushWord("1");
+    ms->pushWord("waitGetCurrentWaitMode");
+    ms->pushWord("getSpeed");
+}
+END_WORD
+REGISTER_WORD(PressUntilEffortStart)
+
+WORD(PressUntilEffortCombo)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->pushWord("localZDown");
+  ms->pushWord("setGridSize");
+  ms->pushWord("0.00125");
+  ms->pushWord("pressUntilEffort");
+  ms->pushWord("setGridSize");
+  ms->pushWord("0.00125");
+  ms->pushWord("setW1GoThresh");
+  ms->pushWord("0.00125");
+
+  ms->pushWord("waitUntilAtCurrentPosition");
+  ms->pushWord("localZDown");
+  ms->pushWord("setGridSize");
+  ms->pushWord("0.005");
+  ms->pushWord("pressUntilEffort");
+  ms->pushWord("setGridSize");
+  ms->pushWord("0.005");
+  ms->pushWord("setW1GoThresh");
+  ms->pushWord("0.005");
+
+  ms->pushWord("pressUntilEffortStart");
+}
+END_WORD
+REGISTER_WORD(PressUntilEffortCombo)
 
 WORD(PressUntilEffortOrTwistA)
 virtual void execute(std::shared_ptr<MachineState> ms)
@@ -1103,9 +1165,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 
 cout << "pressUntilEffortOrTwistA: qdistance, twistThresh" << qdistance << ", " << ms->config.twistThresh << endl;
 
-
-  if (ms->config.pressUntilEffortCounter < ms->config.pressUntilEffortCounterTimeout) {
-    ms->config.pressUntilEffortCounter++;
+  if ( ros::Time::now().toSec() - ms->config.pressUntilEffortStart.toSec() < ms->config.pressUntilEffortTimeout ) {
     cout << "pressUntilEffortOrTwistA: ";
     double totalDiff = 0.0;
     for (int i = 0; i < NUM_JOINTS; i++) {
@@ -1118,10 +1178,10 @@ cout << "pressUntilEffortOrTwistA: qdistance, twistThresh" << qdistance << ", " 
 
     if (totalDiff > ms->config.actual_effort_thresh) {
       cout << "~~~~~~~~" << endl << "crossed effort thresh" << endl << endl;
-      ms->pushWord("stayNoRoll");
+      ms->pushWord("stayZOnly");
     } else if (qdistance > ms->config.twistThresh) {
       cout << "^^^^^^^^" << endl << "crossed twist thresh" << endl << endl;
-      ms->pushWord("stayNoRoll");
+      ms->pushWord("stayZOnly");
     } else {
       ms->pushWord("pressUntilEffortOrTwistA");
       if (eePose::distance(ms->config.currentEEPose, ms->config.trueEEPoseEEPose) < ms->config.w1GoThresh) {
@@ -1166,6 +1226,15 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 }
 END_WORD
 REGISTER_WORD(StayNoRoll)
+
+WORD(StayZOnly)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  cout << "StayZOnly!" << endl;
+  ms->config.currentEEPose.pz = ms->config.trueEEPoseEEPose.pz;
+}
+END_WORD
+REGISTER_WORD(StayZOnly)
 
 WORD(RockInit)
 virtual void execute(std::shared_ptr<MachineState> ms)
