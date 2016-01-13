@@ -694,13 +694,14 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
 ) "tempQuickScan" store
 
 (
+  "tempFullScan: starting" print
   zeroGOff
   setPlaceModeToHold setIdleModeToEmpty setBoundingBoxModeToMapping
   tenthImpulse 1 changeToHeight shiftIntoGraspGear1 waitUntilAtCurrentPosition
 
   initializeAndFocusOnNewClass
 
-  ( tempRecaptureServo waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord
+  tempRecaptureServo 
 
   sceneClearObservedMap sceneClearPredictedObjects 
 
