@@ -86,12 +86,14 @@
 
   fullImpulse 
   ( 
+    0.01 setGridSize 
     localZDown 
   ) 3 replicateWord 
   comeToHover 
   ( 
+    0.005 setGridSize 
     localZUp 
-  ) 2 replicateWord  
+  ) 3 replicateWord  
   setMovementStateToMoving comeToHover 
   0.05 setSpeed 
 
@@ -105,7 +107,19 @@
   ) 3 replicateWord
 
   waitUntilAtCurrentPosition
-  openGripper
+  liftArm waitUntilAtCurrentPosition
+  currentPose "cw_flick_returnpoint" store
+
+  isGripperGripping (
+    tenthImpulse
+    outputPileWorkspace moveEeToPoseWord 0 changeToHeight waitUntilAtCurrentPosition comeToStop
+    pressUntilEffortInit 0.05 setSpeed pressUntilEffort openGripper waitUntilGripperNotMoving
+    liftArm waitUntilAtCurrentPosition
+    tenthImpulse
+    cw_flick_returnpoint moveEeToPoseWord waitUntilAtCurrentPosition
+  ) (
+    openGripper waitUntilGripperNotMoving
+  ) ifte
 
   0 waitSetCurrentWaitMode
 ) "cw_flick" store
@@ -160,7 +174,7 @@
 
 0.35 "cw_clearWorkspace_discrepancy_thresh_val" store
 20 "cw_clearWorkspace_discrepancy_thresh_cells" store
-10 "cw_clearWorkspace_max" store
+3 "cw_clearWorkspace_max" store
 (
   tempSwapToBlocks
   catScan5LoadPlayBg
