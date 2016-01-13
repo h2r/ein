@@ -33,17 +33,24 @@
   setMovementStateToMoving comeToStop 
   sceneClearObservedMap sceneClearPredictedObjects
 
+  clearClassLabels
   initializeAndFocusOnTempClass
 
   /* based on tempRecaptureServoSpiral */
   sceneClearPredictedObjects
   sceneClearObservedMap catScan5PlayTakeScene tempUpdateMaps
   tempCaptureCore
+  tempUpdateMaps
 
-  tempShortServoToFocusedSceneObject
+  tempServoToFocusedSceneObject
   /* end based on */
 
-  scenePushNumSceneObjects 0 = 1 0 ifte
+  scenePushNumSceneObjects 0 = 
+  ( 
+    1 
+  ) (
+    0 
+  ) ifte
 
   tempRestoreFromBlocks
 ) "cw_viewIsClear" store

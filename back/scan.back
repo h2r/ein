@@ -331,7 +331,10 @@ workspace4 "outputPileWorkspace" store
   ) (
     "Found an object, moving to it." print
     1 "scan_breakInd" store
+    /* probably unnecessary */
+    /* 
     tempSpiralServoToAnonymousObject waitUntilAtCurrentPosition
+    */
   ) ifte
 
   scan_breakInd
@@ -535,10 +538,6 @@ dateString "catScan5VarianceTrialThisTime" store
   setBoundingBoxModeToMapping
   clearMapForPatrol
   1 changeToHeight waitUntilAtCurrentPosition
-
-  initializeAndFocusOnTempClass
-  tempRecaptureServoSpiral
-  clearClassLabels
 
     0 currentTableZ - pickFlushFactor + 
   "scan_gripperTouchTableZ" store
@@ -817,7 +816,7 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5InputPileTakeScene" store
 
 (
-  0.01 setGridSize ( xDown ) 6 replicateWord 0 changeToHeight waitUntilAtCurrentPosition
+  0.01 setGridSize ( xDown ) 6 replicateWord 1 changeToHeight waitUntilAtCurrentPosition
   tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
   tempSpiralGridSizeDefault "tempSpiralGridSize" store
   5 1 4 tempUpdateSpiralEccentricCore tempUpdateMaps
