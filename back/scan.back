@@ -816,6 +816,7 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5InputPileTakeScene" store
 
 (
+  0.01 setGridSize ( xDown ) 4 replicateWord
   tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
   tempSpiralGridSizeDefault "tempSpiralGridSize" store
   5 1 4 tempUpdateSpiralEccentricCore tempUpdateMaps
