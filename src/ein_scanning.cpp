@@ -4709,18 +4709,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       if (ms->config.snapToFlushGrasp) {
 	// using twist and effort
 	ms->pushWord("closeGripper");
-	ms->pushWord("pressUntilEffortOrTwist");
-
-	ms->pushWord("setTwistThresh");
-	ms->pushWord("0.015");
+	ms->pushWord("pressUntilEffortCombo");
 
 	ms->pushWord("setEffortThresh");
-	ms->pushWord("20.0");
+	ms->pushWord("7.0");
 
 	ms->pushWord("setSpeed");
 	ms->pushWord("0.03");
 
-	ms->pushWord("pressUntilEffortOrTwistInit");
+	ms->pushWord("pressUntilEffortInit");
 	ms->pushWord("comeToStop");
 	ms->pushWord("setMovementStateToMoving");
 	ms->pushWord("comeToStop");
@@ -4906,18 +4903,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       if (ms->config.snapToFlushGrasp) {
 	// using twist and effort
 	ms->pushWord("closeGripper");
-	ms->pushWord("pressUntilEffortOrTwist");
-
-	ms->pushWord("setTwistThresh");
-	ms->pushWord("0.015");
+	ms->pushWord("pressUntilEffortCombo");
 
 	ms->pushWord("setEffortThresh");
-	ms->pushWord("20.0");
+	ms->pushWord("7.0");
 
 	ms->pushWord("setSpeed");
 	ms->pushWord("0.03");
 
-	ms->pushWord("pressUntilEffortOrTwistInit");
+	ms->pushWord("pressUntilEffortInit");
 	ms->pushWord("comeToStop");
 	ms->pushWord("setMovementStateToMoving");
 	ms->pushWord("comeToStop");
