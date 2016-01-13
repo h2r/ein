@@ -34,7 +34,15 @@
   sceneClearObservedMap sceneClearPredictedObjects
 
   initializeAndFocusOnTempClass
-  tempRecaptureServo
+
+  /* based on tempRecaptureServoSpiral */
+  sceneClearPredictedObjects
+  sceneClearObservedMap catScan5PlayTakeScene tempUpdateMaps
+  tempCaptureCore
+
+  tempShortServoToFocusedSceneObject
+  /* end based on */
+
   scenePushNumSceneObjects 0 = 1 0 ifte
 
   tempRestoreFromBlocks

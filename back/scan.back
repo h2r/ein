@@ -1,9 +1,10 @@
 8 "scan_IRheight" store
-10 "catScan_dropHeight" store
+/* 10 "catScan_dropHeight" store */
+1 "catScan_dropHeight" store 
 100 "pileSwitchThreshold" store
 
-7 "scan_catScanLimit" store
-1 "scan_catPickLimit" store
+2 "scan_catScanLimit" store
+0 "scan_catPickLimit" store
 
 leftOrRightArm "right" =
 ( 
