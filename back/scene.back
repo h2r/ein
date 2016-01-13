@@ -869,6 +869,8 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
 ) "tempMapFocusedClass" store
 
 (
+  /* entering tempMapBestClass */
+
   ( tempShortServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord
 
   0 sceneMapSceneObject
@@ -900,6 +902,7 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
   clearMapForPatrol clearBlueBoxMemories tempMapBestClass 
 
   scenePushNumSceneObjects 0 > (
+    "tempMapBestAndPick: delivering object..." print
       0 scenePushSceneObjectLabel 
     setTargetClass 
     deliverTargetObject
