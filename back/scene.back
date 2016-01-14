@@ -943,7 +943,7 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
 0.005 "tempReconstructWithZDeltaZ" store
 (
   sceneInitRegister
-  50 "tempSpiralStreamTakeSceneSamples" store
+  10 "tempSpiralStreamTakeSceneSamples" store
   streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
 
   tempReconstructWithZTopZ "tempReconstructWithZThisZ" store

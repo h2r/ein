@@ -219,6 +219,12 @@ END_WORD
 REGISTER_WORD(ExecuteStack)
 
 WORD(PauseStackExecution)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("Pause");
+  return result;
+}
 CODE('Y') 
 virtual void execute(std::shared_ptr<MachineState> ms)  {
   cout << "STACK EXECUTION PAUSED, press 'y' to continue." << endl;
