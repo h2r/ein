@@ -694,13 +694,14 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
 ) "tempQuickScan" store
 
 (
+  "tempFullScan: starting" print
   zeroGOff
   setPlaceModeToHold setIdleModeToEmpty setBoundingBoxModeToMapping
   tenthImpulse 1 changeToHeight shiftIntoGraspGear1 waitUntilAtCurrentPosition
 
   initializeAndFocusOnNewClass
 
-  ( tempRecaptureServo waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord
+  tempRecaptureServo 
 
   sceneClearObservedMap sceneClearPredictedObjects 
 
@@ -869,6 +870,8 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
 ) "tempMapFocusedClass" store
 
 (
+  /* entering tempMapBestClass */
+
   ( tempShortServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord
 
   0 sceneMapSceneObject
@@ -900,6 +903,7 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
   clearMapForPatrol clearBlueBoxMemories tempMapBestClass 
 
   scenePushNumSceneObjects 0 > (
+    "tempMapBestAndPick: delivering object..." print
       0 scenePushSceneObjectLabel 
     setTargetClass 
     deliverTargetObject
@@ -939,7 +943,7 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
 0.005 "tempReconstructWithZDeltaZ" store
 (
   sceneInitRegister
-  50 "tempSpiralStreamTakeSceneSamples" store
+  10 "tempSpiralStreamTakeSceneSamples" store
   streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
 
   tempReconstructWithZTopZ "tempReconstructWithZThisZ" store

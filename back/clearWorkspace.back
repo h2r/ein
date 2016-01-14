@@ -21,28 +21,9 @@
 (
   moveEeToPoseWord waitUntilAtCurrentPosition
   1 changeToHeight
-  0.01 setGridSize ( zDown ) 10 replicateWord
 
   cw_viewIsClear
 ) "cw_workspaceIsClear" store
-
-(
-  catScan5PlayTakeScene
-
-  "cw_playWorkspaceIsClear..." print
-      cw_clearWorkspace_discrepancy_thresh_val sceneCountDiscrepantCells " discrepant cells at val threshold " 
-      cw_clearWorkspace_discrepancy_thresh_val " cell threshold " cw_clearWorkspace_discrepancy_thresh_cells 
-    + + + +
-  print
-
-  cw_clearWorkspace_discrepancy_thresh_val sceneCountDiscrepantCells cw_clearWorkspace_discrepancy_thresh_cells < (
-    "Workspace clear." print
-    1
-  ) (
-    "Workspace not clear." print
-    0
-  ) ifte
-) "cw_playWorkspaceIsClear" store
 
 ( 
   /* if you are in blocks, you will end up back in blocks. if not you will get whatever you had. */
@@ -52,9 +33,24 @@
   setMovementStateToMoving comeToStop 
   sceneClearObservedMap sceneClearPredictedObjects
 
+  clearClassLabels
   initializeAndFocusOnTempClass
-  tempRecaptureServo
-  scenePushNumSceneObjects 0 = 1 0 ifte
+
+  /* based on tempRecaptureServoSpiral */
+  sceneClearPredictedObjects
+  sceneClearObservedMap catScan5PlayTakeScene tempUpdateMaps
+  tempCaptureCore
+  tempUpdateMaps
+
+  tempServoToFocusedSceneObject
+  /* end based on */
+
+  scenePushNumSceneObjects 0 = 
+  ( 
+    1 
+  ) (
+    0 
+  ) ifte
 
   tempRestoreFromBlocks
 ) "cw_viewIsClear" store
@@ -142,36 +138,6 @@
   pop
 ) "cw_tri_flick" store
 
-(
-  ">>>> clearing workspace a <<<<" print
-  ( dup quarterImpulse cw_workspaceIsClear ! ) ( 
-    "Workspace not clear, flicking..." print
-    cw_tri_flick
-  ) while 
-  pop
-) "cw_clearWorkspace_a" store
-
-(
-  1 setCurrentIKBoundaryMode
-  ">>>> clearing workspace <<<<" print
-  dup 
-  moveEeToPoseWord 0.01 setGridSize ( xDown ) 10 replicateWord currentPose
-  cw_clearWorkspace_a
-
-  dup 
-  cw_clearWorkspace_a
-
-  dup 
-  moveEeToPoseWord 0.01 setGridSize ( xUp ) 10 replicateWord currentPose
-  cw_clearWorkspace_a
-
-  dup 
-  moveEeToPoseWord 0.01 setGridSize ( xUp ) 15 replicateWord currentPose
-  cw_clearWorkspace_a
-
-  pop
-) "cw_clearWorkspace_old" store
-
 0.35 "cw_clearWorkspace_discrepancy_thresh_val" store
 20 "cw_clearWorkspace_discrepancy_thresh_cells" store
 3 "cw_clearWorkspace_max" store
@@ -191,17 +157,14 @@
     moveEeToPoseWord waitUntilAtCurrentPosition
     1 changeToHeight
 
-
     sceneClearPredictedObjects 
-    catScan5PlayTakeScene
   
     "Attempt " cw_clearWorkspace_counter " out of " cw_clearWorkspace_max + + + print
-	cw_clearWorkspace_discrepancy_thresh_val sceneCountDiscrepantCells " discrepant cells at val threshold " 
-	cw_clearWorkspace_discrepancy_thresh_val " cell threshold " cw_clearWorkspace_discrepancy_thresh_cells 
-      + + + +
-    print
 
-    cw_clearWorkspace_discrepancy_thresh_val sceneCountDiscrepantCells cw_clearWorkspace_discrepancy_thresh_cells < (
+      dup /* copy the workspace pose */
+    cw_workspaceIsClear "cw_clearWorkspace_space_clear" store
+
+    cw_clearWorkspace_space_clear (
       "Great! Workspace clear, moving on." print
       cw_clearWorkspace_max "cw_clearWorkspace_counter" store
       0 "cw_clearWorkspace_rescan" store

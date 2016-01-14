@@ -929,6 +929,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(IRCalibrationSpeed)
 
+CONFIG_GETTER_DOUBLE(GetSpeed, ms->config.currentEESpeedRatio)
 WORD(SetSpeed)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double v1;
