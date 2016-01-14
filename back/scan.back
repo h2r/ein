@@ -779,6 +779,7 @@ dateString "catScan5VarianceTrialThisTime" store
     openGripper 
   ) ifte
 
+  "moveToOutputPile2 clearing workspace so it will be clean for the input scan." print
   playWorkspace cw_clearWorkspace
 ) "moveToOutputPile2" store
 
@@ -817,7 +818,7 @@ dateString "catScan5VarianceTrialThisTime" store
 
 (
   0.01 setGridSize ( xDown ) 6 replicateWord 1 changeToHeight waitUntilAtCurrentPosition
-  tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
+  0.03 "tempSpiralMoveSpeed" store
   tempSpiralGridSizeDefault "tempSpiralGridSize" store
   5 1 4 tempUpdateSpiralEccentricCore tempUpdateMaps
 ) "catScan5PlayTakeScene" store
