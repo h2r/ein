@@ -1747,16 +1747,23 @@ WORD(FixCameraLightingToAutomaticParameters)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   stringstream p;
   p << "subscribeCameraParameterTrackerToRosOut 0.25 waitForSeconds ";
-  p << "unFixCameraLightingNoUpdate 0.5 waitForSeconds ";
-  stringstream cameracmd;
-  cameracmd << ms->config.observedCameraExposure << " " << ms->config.observedCameraGain << " " << ms->config.observedCameraWhiteBalanceRed << " " << ms->config.observedCameraWhiteBalanceGreen << " " << ms->config.observedCameraWhiteBalanceBlue << " fixCameraLightingNoUpdate ";
-  cout << cameracmd.str() << endl;
-  p << cameracmd.str();
+  p << "unFixCameraLightingNoUpdate 0.5 waitForSeconds  fixCameraLightingToObservedValues ";
   p << "0.5 waitForSeconds unsubscribeCameraParameterTrackerToRosOut ";
   ms->evaluateProgram(p.str());
 }
 END_WORD
 REGISTER_WORD(FixCameraLightingToAutomaticParameters)
+
+
+WORD(FixCameraLightingToObservedValues)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  stringstream p;
+  p << ms->config.observedCameraExposure << " " << ms->config.observedCameraGain << " " << ms->config.observedCameraWhiteBalanceRed << " " << ms->config.observedCameraWhiteBalanceGreen << " " << ms->config.observedCameraWhiteBalanceBlue << " fixCameraLightingNoUpdate ";
+  cout << p.str() << endl;
+  ms->evaluateProgram(p.str());
+}
+END_WORD
+REGISTER_WORD(FixCameraLightingToObservedValues)
 
 
 
