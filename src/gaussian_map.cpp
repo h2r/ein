@@ -3439,7 +3439,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int x = 0; x < ms->config.scene->width; x++) {
     for (int y = 0; y < ms->config.scene->height; y++) {
       if ((ms->config.scene->predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
-	toShow.at<double>(y, x) = (toShow.at<double>(y, x) - minVal) / denom;
+	//toShow.at<double>(y, x) = (toShow.at<double>(y, x) - minVal) / denom;
+	toShow.at<double>(y, x) = (maxVal - toShow.at<double>(y, x)) / denom;
       } else {
 	//toShow.at<double>(y, x) = 0;
       }
@@ -3597,8 +3598,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // this only does the timestamp to avoid obsessive behavior
   mapBox(ms, box);
   
-  if ( !positionIsSearched(ms, box.centroid.px, box.centroid.py) || 
-       !isBoxMemoryIkPossible(ms, box) ) 
+  // XXX didn't seem to be working quite right
+  //if ( !positionIsSearched(ms, box.centroid.px, box.centroid.py) || 
+       //!isBoxMemoryIkPossible(ms, box) ) 
+  if (0)
   {
     cout << "Not mapping box... " << " searched: " << positionIsSearched(ms, box.centroid.px, box.centroid.py) << " ikPossible: " << isBoxMemoryIkPossible(ms, box) << " " << box.cameraPose << endl;
     return;

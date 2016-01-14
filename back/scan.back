@@ -1,9 +1,10 @@
 8 "scan_IRheight" store
-10 "catScan_dropHeight" store
+/* 10 "catScan_dropHeight" store */
+1 "catScan_dropHeight" store 
 100 "pileSwitchThreshold" store
 
-7 "scan_catScanLimit" store
-1 "scan_catPickLimit" store
+2 "scan_catScanLimit" store
+0 "scan_catPickLimit" store
 
 leftOrRightArm "right" =
 ( 
@@ -211,7 +212,7 @@ workspace4 "outputPileWorkspace" store
 
     isGripperGripping (
       playWorkspace moveEeToPoseWord
-      comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight setMovementStateToMoving replicateWord comeToStop 
+      comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffortCombo quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight setMovementStateToMoving replicateWord comeToStop 
     ) ift
     openGripper
 
@@ -268,7 +269,7 @@ workspace4 "outputPileWorkspace" store
 
 ( 
   ">>>> entering playWithObject <<<<" print
-  comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper
+  comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffortCombo openGripper
   stay 
   0.01 setGridSize
   ( zUp ) scan_IRheight replicateWord
@@ -318,21 +319,22 @@ workspace4 "outputPileWorkspace" store
   1 changeToHeight
 
   catScan5LoadPlayBg
-  tempSpiralTakeScene
   
   "scan_findObjectAfterDrop: " print
-      cw_clearWorkspace_discrepancy_thresh_val sceneCountDiscrepantCells " discrepant cells at val threshold " 
-      cw_clearWorkspace_discrepancy_thresh_val " cell threshold " cw_clearWorkspace_discrepancy_thresh_cells 
-    + + + +
-  print
 
-  cw_clearWorkspace_discrepancy_thresh_val sceneCountDiscrepantCells cw_clearWorkspace_discrepancy_thresh_cells < (
+    currentPose
+  cw_workspaceIsClear "scan_findObjectAfterDrop_space_clear" store
+
+  scan_findObjectAfterDrop_space_clear (
     "Found no object." print
     0 "scan_breakInd" store
   ) (
     "Found an object, moving to it." print
     1 "scan_breakInd" store
+    /* probably unnecessary */
+    /* 
     tempSpiralServoToAnonymousObject waitUntilAtCurrentPosition
+    */
   ) ifte
 
   scan_breakInd
@@ -431,7 +433,7 @@ workspace4 "outputPileWorkspace" store
 
   somethingsThere isGripperGripping and (
     halfImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
-    isGripperGripping ( comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper liftArm ) ift 
+    isGripperGripping ( comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffortCombo openGripper liftArm ) ift 
   ) ( openGripper ) ifte
 
   playWorkspace cw_clearWorkspace
@@ -536,10 +538,6 @@ dateString "catScan5VarianceTrialThisTime" store
   setBoundingBoxModeToMapping
   clearMapForPatrol
   1 changeToHeight waitUntilAtCurrentPosition
-
-  initializeAndFocusOnTempClass
-  tempRecaptureServoSpiral
-  clearClassLabels
 
     0 currentTableZ - pickFlushFactor + 
   "scan_gripperTouchTableZ" store
@@ -743,7 +741,8 @@ dateString "catScan5VarianceTrialThisTime" store
     openGripper
     halfImpulse playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
 
-    cw_playWorkspaceIsClear ! "somethingsThere" store
+    playWorkspace cw_workspaceIsClear ! "somethingsThere" store
+
     1 changeToHeight waitUntilAtCurrentPosition
 
     "somethingsThere: " print somethingsThere print
@@ -772,7 +771,7 @@ dateString "catScan5VarianceTrialThisTime" store
   somethingsThere isGripperGripping and (
     halfImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition waitUntilEndpointCallbackReceived
     isGripperGripping ( 
-      comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffort openGripper liftArm 
+      comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffortCombo openGripper liftArm 
     ) ( 
       openGripper
     ) ifte
@@ -780,6 +779,7 @@ dateString "catScan5VarianceTrialThisTime" store
     openGripper 
   ) ifte
 
+  "moveToOutputPile2 clearing workspace so it will be clean for the input scan." print
   playWorkspace cw_clearWorkspace
 ) "moveToOutputPile2" store
 
@@ -799,7 +799,8 @@ dateString "catScan5VarianceTrialThisTime" store
 (
   0.04 "tempSpiralMoveSpeed" store
   playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
-  sceneClearObservedMap 6 2 4 tempUpdateSpiralEccentricCore tempUpdateMaps
+  0.01 setGridSize ( xDown ) 6 replicateWord waitUntilAtCurrentPosition
+  6 2 4 tempUpdateSpiralEccentricCore tempUpdateMaps
   "catScan5PlayBg" "_" leftOrRightArm + + sceneSaveObservedMap
   catScan5LoadPlayBg
 ) "catScan5UpdatePlayBg" store
@@ -816,8 +817,8 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5InputPileTakeScene" store
 
 (
-  0.01 setGridSize ( xDown ) 4 replicateWord
-  tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
+  0.01 setGridSize ( xDown ) 6 replicateWord 1 changeToHeight waitUntilAtCurrentPosition
+  0.03 "tempSpiralMoveSpeed" store
   tempSpiralGridSizeDefault "tempSpiralGridSize" store
   5 1 4 tempUpdateSpiralEccentricCore tempUpdateMaps
 ) "catScan5PlayTakeScene" store
