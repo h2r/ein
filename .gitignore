@@ -33,3 +33,4 @@ default/objects/*/ein/detectionCrops/
 *.sv?
 *.sv?
 
+default/objects
