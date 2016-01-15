@@ -1060,7 +1060,7 @@ class EinConfig {
   int waitUntilEffortCounter = 0;
   int waitUntilEffortCounterTimeout = 3000;
   ros::Time pressUntilEffortStart;
-  double pressUntilEffortTimeout = 20.0;
+  double pressUntilEffortTimeout = 30.0;
   int waitUntilGripperNotMovingCounter = 0;
   int waitUntilGripperNotMovingTimeout = 100;
   ros::Time waitUntilGripperNotMovingStamp;
