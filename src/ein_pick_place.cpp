@@ -1040,15 +1040,15 @@ WORD(PressUntilEffortA)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   if ( ros::Time::now().toSec() - ms->config.pressUntilEffortStart.toSec() < ms->config.pressUntilEffortTimeout ) {
-    cout << "pressUntilEffortA: ";
+    //cout << "pressUntilEffortA: ";
     double totalDiff = 0.0;
     for (int i = 0; i < NUM_JOINTS; i++) {
       double thisDiff = (ms->config.target_joint_actual_effort[i] - ms->config.last_joint_actual_effort[i]);
-      cout << ms->config.target_joint_actual_effort[i] << " " << ms->config.last_joint_actual_effort[i] << " " << thisDiff << " ";
+      //cout << ms->config.target_joint_actual_effort[i] << " " << ms->config.last_joint_actual_effort[i] << " " << thisDiff << " ";
       totalDiff = totalDiff + (thisDiff * thisDiff);
     }
 
-    cout << endl << "  totalDiff: " << totalDiff << "   actual_effort_thresh: " << ms->config.actual_effort_thresh << endl;
+    //cout << endl << "  totalDiff: " << totalDiff << "   actual_effort_thresh: " << ms->config.actual_effort_thresh << endl;
 
     if (totalDiff > ms->config.actual_effort_thresh) {
       cout << "~~~~~~~~" << endl << "crossed effort thresh" << endl << endl;
