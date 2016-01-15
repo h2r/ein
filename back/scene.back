@@ -872,7 +872,9 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
 (
   /* entering tempMapBestClass */
 
-  ( tempShortServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord
+  /* ( tempShortServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord */
+
+   ( tempSpiralServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 1 replicateWord 
 
   0 sceneMapSceneObject
   recordPreTargetLock
@@ -937,13 +939,13 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
 ) "tempClassifyOne" store
 
 /* 0.3883 "tempReconstructWithZTopZ" store */
- 0.3883 "tempReconstructWithZTopZ" store 
-0.18 "tempReconstructWithZTotalZ" store
+ 0.2383 "tempReconstructWithZTopZ" store 
+0.05 "tempReconstructWithZTotalZ" store
 tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBottomZ" store
 0.005 "tempReconstructWithZDeltaZ" store
 (
   sceneInitRegister
-  10 "tempSpiralStreamTakeSceneSamples" store
+  50 "tempSpiralStreamTakeSceneSamples" store
   streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
 
   tempReconstructWithZTopZ "tempReconstructWithZThisZ" store
