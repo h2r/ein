@@ -72,6 +72,8 @@ scenePredictedMapThreshDefault "scenePredictedMapThresh" store
 tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
 0.02 "tempSpiralGridSizeDefault" store
 tempSpiralGridSizeDefault "tempSpiralGridSize" store
+50 "tempSpiralStreamTakeSceneSamplesDefault" store
+tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 (
   "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
@@ -126,7 +128,6 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
   ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) 20 replicateWord endStackCollapseNoop ) 80 replicateWord
 */
 
-  50 "tempSpiralStreamTakeSceneSamples" store
   streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
 
   rewindImageStreamBufferNLNK 
@@ -193,7 +194,6 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
   ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) 20 replicateWord endStackCollapseNoop ) 80 replicateWord
 */
 
-  50 "tempSpiralStreamTakeSceneSamples" store
   streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
 
   rewindImageStreamBufferNLNK 
@@ -945,7 +945,6 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
 0.005 "tempReconstructWithZDeltaZ" store
 (
   sceneInitRegister
-  50 "tempSpiralStreamTakeSceneSamples" store
   streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
 
   tempReconstructWithZTopZ "tempReconstructWithZThisZ" store
