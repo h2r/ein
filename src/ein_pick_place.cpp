@@ -1134,6 +1134,9 @@ REGISTER_WORD(PressUntilEffortStart)
 WORD(PressUntilEffortCombo)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
+  // restore
+  ms->pushWord("setW1GoThresh");
+
   ms->pushWord("localZDown");
   ms->pushWord("setGridSize");
   ms->pushWord("0.00125");
@@ -1152,6 +1155,10 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   ms->pushWord("0.005");
   ms->pushWord("setW1GoThresh");
   ms->pushWord("0.005");
+
+  
+  // memorize
+    ms->pushWord("w1GoThresh");
 
   ms->pushWord("pressUntilEffortStart");
 }
