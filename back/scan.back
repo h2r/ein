@@ -797,9 +797,17 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5LoadInputBg" store
 
 (
+
+  400 "tempSpiralStreamTakeSceneSamples" store
+  playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
+  0.01 setGridSize ( xUp ) 6 replicateWord 1 changeToHeight waitUntilAtCurrentPosition
+  0.02 "tempSpiralMoveSpeed" store
+
+  /* 
   0.04 "tempSpiralMoveSpeed" store
   playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
   0.01 setGridSize ( xDown ) 6 replicateWord waitUntilAtCurrentPosition
+ */
   6 2 4 tempUpdateSpiralEccentricCore tempUpdateMaps
   "catScan5PlayBg" "_" leftOrRightArm + + sceneSaveObservedMap
   catScan5LoadPlayBg
@@ -817,8 +825,17 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5InputPileTakeScene" store
 
 (
+
+  400 "tempSpiralStreamTakeSceneSamples" store
+  playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
+  0.01 setGridSize ( xUp ) 6 replicateWord 1 changeToHeight waitUntilAtCurrentPosition
+  0.02 "tempSpiralMoveSpeed" store
+
+  /* 
   0.01 setGridSize ( xDown ) 6 replicateWord 1 changeToHeight waitUntilAtCurrentPosition
   0.03 "tempSpiralMoveSpeed" store
+  */
+
   tempSpiralGridSizeDefault "tempSpiralGridSize" store
   5 1 4 tempUpdateSpiralEccentricCore tempUpdateMaps
 ) "catScan5PlayTakeScene" store
