@@ -1985,7 +1985,12 @@ void Scene::tryToAddBestObjectToScene() {
   double l_max_x_meters, l_max_y_meters;
   cellToMeters(l_max_x, l_max_y, &l_max_x_meters, &l_max_y_meters);
 
-  cout << "findBestObjectAndScore: best object was class " << l_max_class << " " << ms->config.classLabels[l_max_class] << endl;
+  
+  cout << "findBestObjectAndScore: best object was class " << l_max_class;
+  if (l_max_class != -1) {
+    cout << " " << ms->config.classLabels[l_max_class];
+  }
+  cout << endl;
 
   //if (l_max_x > -1)
   if (l_max_score > -DBL_MAX)
@@ -3248,7 +3253,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  if (fabs(thisPose.qz) > 0.01) {
+  if (fabs(thisPose.qz) > 0.005) {
     ROS_ERROR("  Not doing update because arm not vertical.");
     return;
   }
