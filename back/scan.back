@@ -1,6 +1,6 @@
 8 "scan_IRheight" store
 /* 10 "catScan_dropHeight" store */
-1 "catScan_dropHeight" store 
+5 "catScan_dropHeight" store 
 100 "pileSwitchThreshold" store
 
 2 "scan_catScanLimit" store
@@ -786,7 +786,7 @@ dateString "catScan5VarianceTrialThisTime" store
 (
   0.04 "tempSpiralMoveSpeed" store
   inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition 1 changeToHeight
-  sceneClearObservedMap 2 6 4 tempUpdateSpiralEccentricCore tempUpdateMaps
+  2 6 4 tempUpdateSpiralEccentricCore tempUpdateMaps
   "catScan5InputBg" "_" leftOrRightArm + + sceneSaveObservedMap
   catScan5LoadInputBg
 ) "catScan5UpdateInputBg" store
@@ -822,18 +822,4 @@ dateString "catScan5VarianceTrialThisTime" store
   tempSpiralGridSizeDefault "tempSpiralGridSize" store
   5 1 4 tempUpdateSpiralEccentricCore tempUpdateMaps
 ) "catScan5PlayTakeScene" store
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
