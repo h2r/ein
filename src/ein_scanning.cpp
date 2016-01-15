@@ -4545,7 +4545,7 @@ WORD(AssumeBest3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
 
-  double p_backoffDistance = 0.10;
+  double p_backoffDistance = 0.20;
 
   vector<int> feasible_indeces;
   for (int _tc = 0; _tc < ms->config.class3dGrasps[ms->config.targetClass].size(); _tc++) {
