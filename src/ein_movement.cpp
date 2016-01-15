@@ -51,6 +51,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.lastMovementStateSet = ros::Time::now();
 
   ms->config.waitUntilAtCurrentPositionCounter = 0;
+  ms->config.waitUntilAtCurrentPositionStart = ros::Time::now();
   double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
   double dy = (ms->config.currentEEPose.py - ms->config.trueEEPose.position.y);
   double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
@@ -81,6 +82,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.lastMovementStateSet = ros::Time::now();
 
   ms->config.waitUntilAtCurrentPositionCounter = 0;
+  ms->config.waitUntilAtCurrentPositionStart = ros::Time::now();
 
   double distance, angleDistance;
   eePose::distanceXYZAndAngle(ms->config.currentEEPose, ms->config.trueEEPoseEEPose, &distance, &angleDistance);
@@ -127,7 +129,9 @@ CONFIG_SETTER_ENUM(WaitSetCurrentWaitMode, ms->config.currentWaitMode, (waitMode
 
 WORD(WaitUntilAtCurrentPositionB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  if (ms->config.waitUntilAtCurrentPositionCounter < ms->config.waitUntilAtCurrentPositionCounterTimeout) {
+  //if (ms->config.waitUntilAtCurrentPositionCounter < ms->config.waitUntilAtCurrentPositionCounterTimeout) 
+  if ( ros::Time::now().toSec() - ms->config.waitUntilAtCurrentPositionStart.toSec() < ms->config.waitUntilAtCurrentPositionTimeout )
+  {
 
     if ( (ms->config.currentMovementState == STOPPED) ||
 	 (ms->config.currentMovementState == BLOCKED) ) {
