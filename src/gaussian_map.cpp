@@ -4576,22 +4576,68 @@ REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZ)
 WORD(SceneMinIntoRegister)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "sceneMinIntoRegister: copying..." << endl;
+
+  // account for the dialation
+
+
   int t_height = ms->config.scene->observed_map->height;
   int t_width = ms->config.scene->observed_map->width;
   for (int y = 0; y < t_height; y++) {
     for (int x = 0; x < t_width; x++) {
-      double this_observed_sigma_squared = 
-      ms->config.scene->observed_map->refAtCell(x,y)->red.sigmasquared +
-      ms->config.scene->observed_map->refAtCell(x,y)->green.sigmasquared +
-      ms->config.scene->observed_map->refAtCell(x,y)->blue.sigmasquared;
+      if ( (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
+	double this_observed_sigma_squared = 
+	ms->config.scene->observed_map->refAtCell(x,y)->red.sigmasquared +
+	ms->config.scene->observed_map->refAtCell(x,y)->green.sigmasquared +
+	ms->config.scene->observed_map->refAtCell(x,y)->blue.sigmasquared;
 
-      double this_register_sigma_squared = 
-      ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared +
-      ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared +
-      ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared;
+	double this_register_sigma_squared = 
+	ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared +
+	ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared +
+	ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared;
 
-      if ( this_observed_sigma_squared < this_register_sigma_squared ) {
-	*(ms->config.gaussian_map_register->refAtCell(x,y)) = *(ms->config.scene->observed_map->refAtCell(x,y));
+	
+	double thisObservedPixelArea = 1.0;
+	double thisRegisterPixelArea = 1.0;
+	/*
+	{
+	  double meters_scene_x_0, meters_scene_y_0;
+	  ms->config.scene->cellToMeters(0, 0, &meters_scene_x_0, &meters_scene_y_0);
+	  double meters_scene_x_1, meters_scene_y_1;
+	  ms->config.scene->cellToMeters(1, 1, &meters_scene_x_1, &meters_scene_y_1);
+
+	  double zToUse = ms->config.scene->observed_map->refAtCell(x,y)->z.mu;
+	  int pixel_scene_x_0, pixel_scene_y_0;
+	  globalToPixel(ms, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
+	  int pixel_scene_x_1, pixel_scene_y_1;
+	  globalToPixel(ms, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
+
+	  thisObservedPixelArea =  fabs( pixel_scene_x_1 - pixel_scene_x_0 ) * fabs( pixel_scene_y_1 - pixel_scene_y_0 );
+	}
+
+	{
+	  double meters_scene_x_0, meters_scene_y_0;
+	  ms->config.gaussian_map_register->cellToMeters(0, 0, &meters_scene_x_0, &meters_scene_y_0);
+	  double meters_scene_x_1, meters_scene_y_1;
+	  ms->config.gaussian_map_register->cellToMeters(1, 1, &meters_scene_x_1, &meters_scene_y_1);
+
+	  double zToUse = ms->config.gaussian_map_register->refAtCell(x,y)->z.mu;
+	  int pixel_scene_x_0, pixel_scene_y_0;
+	  globalToPixel(ms, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
+	  int pixel_scene_x_1, pixel_scene_y_1;
+	  globalToPixel(ms, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
+
+	  thisRegisterPixelArea = fabs( pixel_scene_x_1 - pixel_scene_x_0 ) * fabs( pixel_scene_y_1 - pixel_scene_y_0 );
+	}
+	
+	
+	thisRegisterPixelArea = std::max(thisRegisterPixelArea, 1.0);
+	thisObservedPixelArea = std::max(thisObservedPixelArea, 1.0);
+	*/
+
+	if ( this_observed_sigma_squared/thisObservedPixelArea < this_register_sigma_squared/thisRegisterPixelArea ) {
+	  *(ms->config.gaussian_map_register->refAtCell(x,y)) = *(ms->config.scene->observed_map->refAtCell(x,y));
+	} else {
+	}
       } else {
       }
     }

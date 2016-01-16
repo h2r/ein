@@ -75,13 +75,12 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
 50 "tempSpiralStreamTakeSceneSamplesDefault" store
 tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 (
-  "tempUpdateSpiralN" store
-  currentPose "tempUpdateSpiralPos" store
+  rewindImageStreamBufferNLNK
+  streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
+  ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) tempSpiralStreamTakeSceneStride replicateWord endStackCollapseNoop ) tempSpiralStreamTakeSceneSamples replicateWord
+) "tempUpdateSpiralCoreIntegrate" store
 
-  /* clear it all */
-  sceneClearObservedMap
-  clearStreamBuffers
-
+(
   /* turn streaming on, no disk streaming */ 
   shutdownToSensorsAndMovement
   disableDiskStreaming
@@ -94,9 +93,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   /* spiral scan pattern */
   tempSpiralMoveSpeed setSpeed
   tempSpiralGridSize setGridSize
-  0.03 setW1GoThresh
   shiftIntoGraspGear1 waitUntilAtCurrentPosition
-
 
   1 "tempUpdateSpiralIdx" store
 
@@ -105,50 +102,34 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     ( yUp ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
     ( xDown ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
     ( yDown ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    "tempUpdateSpiralCore" print
+    "tempUpdateSpiralCoreNoClean" print
     tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
   ) while
 
   /* turn streaming off */
   deactivateSensorStreaming
-  
-  /* integrate results */
-  rewindImageStreamBufferNLNK
-
   bringUpAllNonessentialSystems
-
-  tempUpdateMaps
-
-/*
-  streamPushImageStreamIndex
-  streamPushImageStreamSize
-  incrementImageStreamBufferNoLoadNoKick:
-
-  rewindImageStreamBufferNLNK sceneClearObservedMap
-  ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) 20 replicateWord endStackCollapseNoop ) 80 replicateWord
-*/
-
-  streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
-
-  rewindImageStreamBufferNLNK 
-  ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) tempSpiralStreamTakeSceneStride replicateWord endStackCollapseNoop ) tempSpiralStreamTakeSceneSamples replicateWord
-
-  tempUpdateSpiralPos moveEeToPoseWord
-  waitUntilAtCurrentPosition
-/* XXX need to change this to not take an argument, split with a core */
-) "tempUpdateSpiralCore" store
+) "tempUpdateSpiralCoreNoClean" store
 
 (
   "tempUpdateSpiralN" store
-  "tempUpdateSpiralYNum" store
-  "tempUpdateSpiralXNum" store
   currentPose "tempUpdateSpiralPos" store
 
   /* clear it all */
   sceneClearObservedMap
-  sceneClearPredictedObjects
   clearStreamBuffers
+  0.03 setW1GoThresh
 
+  tempUpdateSpiralCoreNoClean
+
+  /* integrate results */
+  tempUpdateSpiralCoreIntegrate
+
+  tempUpdateSpiralPos moveEeToPoseWord
+  waitUntilAtCurrentPosition
+) "tempUpdateSpiralCore" store
+
+(
   /* turn streaming on, no disk streaming */ 
   shutdownToSensorsAndMovement
   disableDiskStreaming
@@ -177,27 +158,26 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   /* turn streaming off */
   deactivateSensorStreaming
+  bringUpAllNonessentialSystems
+) "tempUpdateSpiralEccentricCoreNoClean" store
+
+(
+  "tempUpdateSpiralN" store
+  "tempUpdateSpiralYNum" store
+  "tempUpdateSpiralXNum" store
+  currentPose "tempUpdateSpiralPos" store
+
+  /* clear it all */
+  sceneClearObservedMap
+  sceneClearPredictedObjects
+  clearStreamBuffers
+  0.03 setW1GoThresh
+
+  tempUpdateSpiralEccentricCoreNoClean
+
   
   /* integrate results */
-  rewindImageStreamBufferNLNK
-
-  bringUpAllNonessentialSystems
-
-  tempUpdateMaps
-
-/*
-  streamPushImageStreamIndex
-  streamPushImageStreamSize
-  incrementImageStreamBufferNoLoadNoKick:
-
-  rewindImageStreamBufferNLNK sceneClearObservedMap
-  ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) 20 replicateWord endStackCollapseNoop ) 80 replicateWord
-*/
-
-  streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
-
-  rewindImageStreamBufferNLNK 
-  ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) tempSpiralStreamTakeSceneStride replicateWord endStackCollapseNoop ) tempSpiralStreamTakeSceneSamples replicateWord
+  tempUpdateSpiralCoreIntegrate
 
   tempUpdateMaps
   tempUpdateSpiralPos moveEeToPoseWord
@@ -362,6 +342,89 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   ) ifte
 
 ) "tempSpiralIsNewComponentNormalizedSum" store
+
+
+(
+  numClasses 0 > (
+    0.15 "tempNewComponentThresh" store
+    sceneClearPredictedObjects
+
+    tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+
+    /* pauseStackExecution */
+
+    /*
+	  scenePushTotalDiscrepancyMagnitude 
+    */
+	  scenePushTotalDiscrepancy 
+	dup 
+	"tempSpiralIsNewComponentInPlace: total discrepancy before " 
+      swap + print 
+
+    scenePredictBestObject tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+
+    /*
+	  scenePushTotalDiscrepancyMagnitude 
+    */
+	  scenePushTotalDiscrepancy 
+	dup 
+	"tempSpiralIsNewComponentInPlace: total discrepancy after " 
+      swap + print 
+
+    "tempSpiralIsNewComponentInPlace_after" store
+    "tempSpiralIsNewComponentInPlace_before" store
+
+      tempSpiralIsNewComponentInPlace_before
+      "tempSpiralIsNewComponentInPlace: total discrepancy before is " 
+    swap + print
+
+
+	tempSpiralIsNewComponentInPlace_after
+	tempSpiralIsNewComponentInPlace_before
+      +
+    "tempSpiralIsNewComponentInPlace_sum" store
+
+      tempSpiralIsNewComponentInPlace_sum
+      "tempSpiralIsNewComponentInPlace: before after sum is" 
+    swap + print
+    
+
+
+	tempSpiralIsNewComponentInPlace_after
+	tempSpiralIsNewComponentInPlace_sum
+      divide
+    "tempSpiralIsNewComponentInPlace_ratio" store
+
+      tempSpiralIsNewComponentInPlace_ratio
+      "tempSpiralIsNewComponentInPlace: after / sum ratio is " 
+    swap + print
+
+      tempSpiralIsNewComponentInPlace_ratio
+      tempNewComponentThresh 
+    > (
+	    1
+	  dup
+	"tempSpiralIsNewComponentInPlace: IS a new component, returning " 
+      swap + print
+    ) (
+	    0
+	  dup
+	"tempSpiralIsNewComponentInPlace: AIN'T a new component, returning " 
+      swap + print
+    ) ifte
+
+	dup
+      "tempSpiralIsNewComponentInPlace: returning " 
+    swap + print
+  ) (
+      "tempSpiralIsNewComponentInPlace: numClasses is 0 so returning 1"
+    print
+    1
+  ) ifte
+
+) "tempSpiralIsNewComponentInPlace" store
+
+
 
 (
   numClasses 0 > (
@@ -562,6 +625,17 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   sceneClearPredictedObjects "brush" tempPredictAndRenderFile
   clearMapForPatrol clearBlueBoxMemories tempMapFocusedClass waitUntilAtCurrentPosition setMovementStateToMoving comeToStop tempMapFocusedClass deliverTargetObject
 ) "tempUsefulPhrases" store
+
+(
+  sceneClearPredictedObjects
+  tempUpdateMaps
+  tempCaptureCore
+
+  sceneClearPredictedObjects 
+  tempUpdateMaps
+  tempServoToFocusedSceneObject
+  waitUntilAtCurrentPosition
+) "tempRecaptureServoInPlace" store
   
 (
   tempRecaptureServoSpiral
@@ -580,7 +654,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   sceneClearObservedMap tempUpdateSpiral tempUpdateMaps
   tempCaptureCore
 
-  tempShortServoToFocusedSceneObject
+  tempServoToFocusedSceneObject
 ) "tempRecaptureServoSpiral" store
 
 (
@@ -764,6 +838,116 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   writeFocusedClass
 ) "tempAddBlockGrasp" store
 
+(
+  /* XXX if the number of classes is zero, how does this work out? */
+  clearMapForPatrol
+
+  lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
+  currentPose tempScanBasePZ setEEPosePZ "tempScanBase" store
+
+  tempSwapToBlocks 
+  sceneClearPredictedObjects 
+  tempUpdateMaps
+  tempServoToFocusedSceneObject
+  waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+
+  quarterTurn /* this gets into orientation to pick so it will be saved next, since this is a block grasp */
+  currentPose tempScanBasePZ pickFlushFactor + setEEPosePZ "tempScanNewGrasp" store
+  tempRestoreFromBlocks 
+
+  tempScanBase setC3dPoseBase
+  tempScanNewGrasp add3dGraspPoseWord
+  writeFocusedClass
+
+) "tempAddBlockGraspInPlace" store
+
+(
+/* XXX */ 
+  /* this is meant to be run after a sufficiently broad and detailed scan and for the moment interacts with catScan5 variables */
+
+  currentPose "catScan5Pos" store
+  tempSpiralIsNewComponentInPlace (
+
+    catScan5Pos moveEeToPoseWord waitUntilAtCurrentPosition
+
+    /* tempFullScan */
+    zeroGOff
+    setPlaceModeToHold setIdleModeToEmpty setBoundingBoxModeToMapping
+    tenthImpulse 1 changeToHeight shiftIntoGraspGear1 waitUntilAtCurrentPosition
+
+    initializeAndFocusOnNewClass
+
+    /* like recapture without taking a scene */
+    tempRecaptureServoInPlace
+
+    /* */
+      currentPose 
+
+      waitGetCurrentWaitMode
+    1 waitSetCurrentWaitMode
+    scanObjectScene
+    waitSetCurrentWaitMode
+
+    moveEeToPoseWord waitUntilAtCurrentPosition 
+    writeFocusedClass
+    /* */
+
+    createCachedClassifierFromClassLabels
+    trainAndWriteFocusedClassKnn
+
+    clearClass3dGrasps
+    writeFocusedClass
+
+    /*
+    tempAddBlockGrasp
+    */
+    tempAddBlockGraspInPlace
+    /*
+    */
+
+    setPlaceModeToHold
+    clearMapForPatrol
+
+    tempMapBestAndPickInPlace
+
+      playWorkspace 
+    moveEeToPoseWord waitUntilAtCurrentPosition
+
+    isGripperGripping (
+      currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
+      quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight replicateWord setMovementStateToMoving comeToStop 
+    ) ift
+    openGripper
+  ) (
+
+    /* sets the target class */
+    setPlaceModeToHold
+    clearMapForPatrol
+
+    /*
+    tempAddBlockGrasp
+    */
+    tempAddBlockGraspInPlace
+    /*
+    */
+
+    setPickModeToLearningAlgorithmC
+
+    /* tempPickWithAddedGrasp */
+    tempMapBestAndPickInPlace
+
+    setGridSizeCoarse departureSpeed ( zUp ) 10 replicateWord setMovementStateToMoving comeToStop
+
+    isGripperGripping (
+      playWorkspace moveEeToPoseWord
+
+      currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
+      quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight replicateWord setMovementStateToMoving comeToStop 
+    ) ift
+    openGripper
+  ) ifte
+) "tempAddBlockGraspSaveModelAndPickAfterFind" store
+
 0 "tempBlockUsingBlocks" store
 0.055 "tempBlockMaxGraspThickness" store
 0.04 "tempBlockGripperThrow" store
@@ -884,6 +1068,16 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempMapBestClass" store
 
 (
+  tempServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
+
+  0 sceneMapSceneObject
+  recordPreTargetLock
+  /* prepareForGraspFromMemory */
+  recordPostTargetLock
+  publishRecognizedObjectArrayFromBlueBoxMemory
+) "tempMapBestClassInPlace" store
+
+(
   openGripper waitUntilGripperNotMoving
   /*
   setGraspModeTo3D
@@ -914,6 +1108,21 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   ) ifte
 ) "tempMapBestAndPick" store
 
+(
+  openGripper waitUntilGripperNotMoving
+
+  clearMapForPatrol clearBlueBoxMemories tempMapBestClassInPlace
+
+  scenePushNumSceneObjects 0 > (
+    "tempMapBestAndPick: delivering object..." print
+      0 scenePushSceneObjectLabel 
+    setTargetClass 
+    deliverTargetObject
+  ) (
+    "tempMapBestAndPick: oops, no sceneObjects..." print
+  ) ifte
+
+) "tempMapBestAndPickInPlace" store
 
 (
   /* endArgs "banana" "mediumClamp" "redScrewdriver" setClassLabels */
@@ -939,12 +1148,13 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempClassifyOne" store
 
 /* 0.3883 "tempReconstructWithZTopZ" store */
- 0.2383 "tempReconstructWithZTopZ" store 
-0.05 "tempReconstructWithZTotalZ" store
+ 0.3883 "tempReconstructWithZTopZ" store 
+0.2 "tempReconstructWithZTotalZ" store
 tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBottomZ" store
 0.005 "tempReconstructWithZDeltaZ" store
 (
   sceneInitRegister
+  100 "tempSpiralStreamTakeSceneSamples" store
   streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
 
   tempReconstructWithZTopZ "tempReconstructWithZThisZ" store
@@ -975,11 +1185,34 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
 
 (
   0.001 setW1GoThresh
+  0.01 "tempSpiralMoveSpeed" store
+  0.008 "tempSpiralGridSize" store
+  100 "tempSpiralStreamTakeSceneSamples" store
+
+  playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
+
+  5 "tempUpdateSpiralN" store
+  currentPose "tempUpdateSpiralPos" store
+
+  /* clear it all */
+  sceneClearObservedMap
+  clearStreamBuffers
+
+  tempUpdateSpiralCoreNoClean tempUpdateMaps
+
+  /* integrate results */
+  tempUpdateSpiralCoreIntegrate
+
+  tempUpdateSpiralPos moveEeToPoseWord
+  waitUntilAtCurrentPosition
+) "tempReconstructTakeScene" store
+
+(
+  0.001 setW1GoThresh
   0.03 "tempSpiralMoveSpeed" store
   0.01 "tempSpiralGridSize" store
   6 tempUpdateSpiralCore tempUpdateMaps
-) "tempReconstructTakeScene" store
-
+) "tempReconstructTakeSceneMid" store
 
 
 
