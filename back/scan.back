@@ -3,7 +3,7 @@
 5 "catScan_dropHeight" store 
 100 "pileSwitchThreshold" store
 
-2 "scan_catScanLimit" store
+10 "scan_catScanLimit" store
 0 "scan_catPickLimit" store
 
 leftOrRightArm "right" =
@@ -534,6 +534,9 @@ dateString "catScan5VarianceTrialThisTime" store
       currentPose
     scan_findObjectAfterDrop 
   "scan_catScanSees" store
+  /* 
+  tempSpiralTakeScene
+  */ 
 
   setBoundingBoxModeToMapping
   clearMapForPatrol
@@ -542,84 +545,22 @@ dateString "catScan5VarianceTrialThisTime" store
     0 currentTableZ - pickFlushFactor + 
   "scan_gripperTouchTableZ" store
 
-      currentPose 
-      scan_gripperTouchTableZ 
-    setEEPosePZ 
-  moveEeToPoseWord
-
   setPickModeToLearningAlgorithmC
 
   ( scan_catScanCounter scan_catScanLimit <   scan_catScanSees   and ) (
 
-    1 changeToHeight 
-    currentPose "catScan5Pos" store
-
-    tempSpiralIsNewComponentNormalizedSum (
-
-      catScan5Pos moveEeToPoseWord waitUntilAtCurrentPosition
-      tempFullScan
-      catScan5Pos moveEeToPoseWord waitUntilAtCurrentPosition
-
-/*
-      integrateImageStreamBufferCrops
-*/
-      createCachedClassifierFromClassLabels
-      trainAndWriteFocusedClassKnn
-
-      1 changeToHeight
-      waitUntilAtCurrentPosition
-
-      clearClass3dGrasps
-      writeFocusedClass
-
-      tempAddBlockGrasp
-
-      setPlaceModeToHold
-      clearMapForPatrol
-
-      tempMapBestAndPick
-
-	playWorkspace 
-      moveEeToPoseWord waitUntilAtCurrentPosition
-
-      isGripperGripping (
-	currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-	quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight replicateWord setMovementStateToMoving comeToStop 
-      ) ift
-      openGripper
-    ) (
-
-      /* sets the target class */
-      setPlaceModeToHold
-      clearMapForPatrol
-
-      tempAddBlockGrasp
-      setPickModeToLearningAlgorithmC
-
-      /* tempPickWithAddedGrasp */
-      tempMapBestAndPick
-
-      setGridSizeCoarse departureSpeed ( zUp ) 10 replicateWord setMovementStateToMoving comeToStop
-
-      isGripperGripping (
-	playWorkspace moveEeToPoseWord
-
-	currentPose scan_gripperTouchTableZ setEEPosePZ moveEeToPoseWord
-	quarterImpulse 0.01 setGridSize ( zUp ) catScan_dropHeight replicateWord setMovementStateToMoving comeToStop 
-      ) ift
-      openGripper
-    ) ifte
-
-    1 changeToHeight
+    tempAddBlockGraspSaveModelAndPickAfterFind
 
 	currentPose
       scan_findObjectAfterDrop 
     "scan_catScanSees" store
     currentPose "catScan5Pos" store
+    /* 
+    tempSpiralTakeScene
+    */ 
 
       scan_catScanCounter 1 + 
     "scan_catScanCounter" store
-
   ) while 
 
   setPickModeToLearningAlgorithmC
@@ -631,10 +572,6 @@ dateString "catScan5VarianceTrialThisTime" store
     playWorkspace 
   moveEeToPoseWord 
   1 changeToHeight 
-
-      currentPose
-    scan_findObjectAfterDrop 
-  "scan_catScanSees" store
 
   ( scan_catPickCounter scan_catPickLimit <   scan_catScanSees   and ) (
     1 changeToHeight
@@ -666,6 +603,7 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5" store
 
 (
+  quarterImpulse
   playWorkspace moveEeToPoseWord 
   catScan5UpdatePlayBg
   playWorkspace cw_clearWorkspace
@@ -685,9 +623,23 @@ dateString "catScan5VarianceTrialThisTime" store
 
       catScan5LoadInputBg
       catScan5InputPileTakeScene
+
+      quarterImpulse
+      tempServoToBestSceneObject waitUntilAtCurrentPosition
+
+      /* if it starts missing, you can uncomment this to recenter */
+      /* 
+      tempSpiralTakeScene
+      tempServoToBestSceneObject waitUntilAtCurrentPosition
+      */ 
+
+      tempMapBestAndPickInPlace
+
+      /* 
       quarterImpulse
       tempSpiralServoToBestSceneObject waitUntilAtCurrentPosition
       setPickModeToStaticMarginals tempMapBestAndPick
+      */
       
       /* 
 	clearMapForPatrol clearBlueBoxMemories mapLocal
@@ -741,7 +693,7 @@ dateString "catScan5VarianceTrialThisTime" store
 
     "somethingsThere: " print somethingsThere print
     somethingsThere (
-      setPickModeToStaticMarginals tempMapBestAndPick
+      setPickModeToStaticMarginals tempMapBestAndPickInPlace
     ) (
     ) ifte
 
@@ -792,7 +744,7 @@ dateString "catScan5VarianceTrialThisTime" store
 
 (
 
-  400 "tempSpiralStreamTakeSceneSamples" store
+  200 "tempSpiralStreamTakeSceneSamples" store
   playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
   0.01 setGridSize ( xDown ) 6 replicateWord 1 changeToHeight waitUntilAtCurrentPosition
   0.03 "tempSpiralMoveSpeed" store
@@ -803,7 +755,7 @@ dateString "catScan5VarianceTrialThisTime" store
   playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
   0.01 setGridSize ( xDown ) 6 replicateWord waitUntilAtCurrentPosition
  */
-  6 2 4 tempUpdateSpiralEccentricCore tempUpdateMaps
+  6 3 4 tempUpdateSpiralEccentricCore tempUpdateMaps
   "catScan5PlayBg" "_" leftOrRightArm + + sceneSaveObservedMap
   catScan5LoadPlayBg
 ) "catScan5UpdatePlayBg" store
@@ -814,14 +766,16 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5LoadPlayBg" store
 
 (
+  100 "tempSpiralStreamTakeSceneSamples" store
   tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
   tempSpiralGridSizeDefault "tempSpiralGridSize" store
+  0.04 "tempSpiralMoveSpeed" store
   1 5 4 tempUpdateSpiralEccentricCore tempUpdateMaps
 ) "catScan5InputPileTakeScene" store
 
 (
 
-  400 "tempSpiralStreamTakeSceneSamples" store
+  100 "tempSpiralStreamTakeSceneSamples" store
   playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
   0.01 setGridSize ( xDown ) 6 replicateWord 1 changeToHeight waitUntilAtCurrentPosition
   0.04 "tempSpiralMoveSpeed" store
@@ -832,6 +786,6 @@ dateString "catScan5VarianceTrialThisTime" store
   */
 
   tempSpiralGridSizeDefault "tempSpiralGridSize" store
-  5 1 4 tempUpdateSpiralEccentricCore tempUpdateMaps
+  5 2 4 tempUpdateSpiralEccentricCore tempUpdateMaps
 ) "catScan5PlayTakeScene" store
 

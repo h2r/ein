@@ -549,6 +549,10 @@ void GaussianMap::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
   }
 }
 
+#define CELLREF_EQUALS_VEC3(cellRef, vec, statistic) \
+  cellRef->blue.statistic = vec[0]; \
+  cellRef->green.statistic = vec[1]; \
+  cellRef->red.statistic = vec[2]; \
 
 void GaussianMap::rgbMuToMat(Mat& out) {
   //out = Mat(height, width, CV_64FC3);
@@ -603,6 +607,17 @@ void GaussianMap::rgbCountsToMat(Mat& out) {
       out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->blue.counts;
       out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->green.counts;
       out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->red.counts;
+    }
+  }
+}
+
+void GaussianMap::rgbSquaredCountsToMat(Mat& out) {
+  out = Mat(height, width, CV_64FC3);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->blue.squaredcounts;
+      out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->green.squaredcounts;
+      out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->red.squaredcounts;
     }
   }
 }
@@ -4476,6 +4491,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int t_width = ms->config.gaussian_map_register->width;
   for (int y = 0; y < t_height; y++) {
     for (int x = 0; x < t_width; x++) {
+      ms->config.gaussian_map_register->refAtCell(x,y)->zero();
       ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared = DBL_MAX;
       ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared = DBL_MAX;
       ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared = DBL_MAX;
@@ -4573,22 +4589,21 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZ)
 
-WORD(SceneMinIntoRegister)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "sceneMinIntoRegister: copying..." << endl;
+void sceneMinIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<GaussianMap> toMin) {
 
-  // account for the dialation
+  int t_height = toMin->height;
+  int t_width = toMin->width;
 
+  assert( ms->config.gaussian_map_register->width == t_width );
+  assert( ms->config.gaussian_map_register->height == t_height );
 
-  int t_height = ms->config.scene->observed_map->height;
-  int t_width = ms->config.scene->observed_map->width;
   for (int y = 0; y < t_height; y++) {
     for (int x = 0; x < t_width; x++) {
-      if ( (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
+      if ( (toMin->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
 	double this_observed_sigma_squared = 
-	ms->config.scene->observed_map->refAtCell(x,y)->red.sigmasquared +
-	ms->config.scene->observed_map->refAtCell(x,y)->green.sigmasquared +
-	ms->config.scene->observed_map->refAtCell(x,y)->blue.sigmasquared;
+	toMin->refAtCell(x,y)->red.sigmasquared +
+	toMin->refAtCell(x,y)->green.sigmasquared +
+	toMin->refAtCell(x,y)->blue.sigmasquared;
 
 	double this_register_sigma_squared = 
 	ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared +
@@ -4605,7 +4620,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  double meters_scene_x_1, meters_scene_y_1;
 	  ms->config.scene->cellToMeters(1, 1, &meters_scene_x_1, &meters_scene_y_1);
 
-	  double zToUse = ms->config.scene->observed_map->refAtCell(x,y)->z.mu;
+	  double zToUse = toMin->refAtCell(x,y)->z.mu;
 	  int pixel_scene_x_0, pixel_scene_y_0;
 	  globalToPixel(ms, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
 	  int pixel_scene_x_1, pixel_scene_y_1;
@@ -4635,17 +4650,129 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	*/
 
 	if ( this_observed_sigma_squared/thisObservedPixelArea < this_register_sigma_squared/thisRegisterPixelArea ) {
-	  *(ms->config.gaussian_map_register->refAtCell(x,y)) = *(ms->config.scene->observed_map->refAtCell(x,y));
+	  *(ms->config.gaussian_map_register->refAtCell(x,y)) = *(toMin->refAtCell(x,y));
 	} else {
 	}
       } else {
       }
     }
   }
+
+}
+
+WORD(SceneMinIntoRegister)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "sceneMinIntoRegister: copying..." << endl;
+
+  sceneMinIntoRegisterHelper(ms, ms->config.scene->observed_map);
 }
 END_WORD
 REGISTER_WORD(SceneMinIntoRegister)
 
+WORD(SceneTrimDepthWithDiscrepancy)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double thresh = 0.0;
+  GET_NUMERIC_ARG(ms, thresh);
+
+  cout << "sceneTrimDepthWithDiscrepancy: trimming..." << endl;
+  int t_height = ms->config.scene->observed_map->height;
+  int t_width = ms->config.scene->observed_map->width;
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+      if (ms->config.scene->discrepancy_density.at<double>(y,x) > thresh) {
+	// keep its z value
+      } else {
+	// zero it out
+	ms->config.scene->observed_map->refAtCell(x,y)->z.counts = 0;
+	ms->config.scene->observed_map->refAtCell(x,y)->z.squaredcounts = 0;
+      }
+    }
+  }
+
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+}
+END_WORD
+REGISTER_WORD(SceneTrimDepthWithDiscrepancy)
+
+WORD(SceneSmoothSquaredCountsAndSamplesXY)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  //double darkSigma = 1.0;
+  //GaussianBlur(accToBlur, accToBlur, cv::Size(0,0), darkSigma, BORDER_REFLECT);
+
+  /*
+  Mat scs;
+  ms->config.scene->observed_map->rgbSquaredCountsToMat(scs);
+  Mat cs;
+  ms->config.scene->observed_map->rgbCountsToMat(cs);
+  Mat mus;
+  ms->config.scene->observed_map->rgbMuToMat(mus);
+  */
+
+  Mat ss;
+  ms->config.scene->observed_map->rgbSigmaSquaredToMat(ss);
+  double p_xySigma = 0.5;
+  GaussianBlur(ss, ss, cv::Size(0,0), p_xySigma, BORDER_REFLECT);
+
+  int t_height = ms->config.scene->observed_map->height;
+  int t_width = ms->config.scene->observed_map->width;
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+
+      CELLREF_EQUALS_VEC3(ms->config.scene->observed_map->refAtCell(x,y), ss.at<Vec3d>(y,x), sigmasquared);
+
+    }
+  }
+
+
+
+  //ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+}
+END_WORD
+REGISTER_WORD(SceneSmoothSquaredCountsAndSamplesXY)
+
+WORD(SceneSmoothDepthStackInZ)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "sceneSmoothDepthStackInZ: " << endl;
+}
+END_WORD
+REGISTER_WORD(SceneSmoothDepthStackInZ)
+
+WORD(ScenePushOntoDepthStack)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "scenePushOntoDepthStack: " << endl;
+  ms->config.depth_scene_models.push_back(ms->config.scene);
+}
+END_WORD
+REGISTER_WORD(ScenePushOntoDepthStack)
+
+WORD(SceneClearDepthStack)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "sceneClearDepthStack: " << endl;
+  ms->config.depth_scene_models.resize(0);
+}
+END_WORD
+REGISTER_WORD(SceneClearDepthStack)
+
+WORD(SceneDepthStackMinIntoRegister)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "sceneDepthStackMinIntoRegister: " << endl;
+
+  int tns = ms->config.depth_scene_models.size();
+
+  for (int i = 0; i < tns; i++) {
+    cout << "  minning " << i << " with max " << tns << endl;
+    sceneMinIntoRegisterHelper(ms, ms->config.depth_scene_models[i]->observed_map);
+  }
+}
+END_WORD
+REGISTER_WORD(SceneDepthStackMinIntoRegister)
+
+WORD(SceneUpdateObservedFromStreamBufferAtZWithRecastThroughDepthStack)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// updates entire stack from bottom up
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZWithRecastThroughDepthStack)
 
 /*
 WORD(SceneTrimDepthWithDiscrepancy)
