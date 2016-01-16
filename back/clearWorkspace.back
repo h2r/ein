@@ -19,6 +19,7 @@
 ) "cw_sweepToGreen" store
 
 (
+  /* warning, still hardcoded for playworkspace */
   moveEeToPoseWord waitUntilAtCurrentPosition
   1 changeToHeight
 
@@ -26,6 +27,7 @@
 ) "cw_workspaceIsClear" store
 
 ( 
+  /* warning, still hardcoded for playworkspace */
   /* if you are in blocks, you will end up back in blocks. if not you will get whatever you had. */
   tempRestoreFromBlocks
   tempSwapToBlocks
@@ -78,21 +80,10 @@
   ) 20 replicateWord 
   waitUntilAtCurrentPosition 
   comeToStop
-  pressUntilEffortInit 0.05 setSpeed pressUntilEffort 
+  pressUntilEffortInit 0.03 setSpeed pressUntilEffortCombo
 
-  fullImpulse 
-  ( 
-    0.01 setGridSize 
-    localZDown 
-  ) 3 replicateWord 
-  comeToHover 
-  ( 
-    0.005 setGridSize 
-    localZUp 
-  ) 3 replicateWord  
-  setMovementStateToMoving comeToHover 
-  0.05 setSpeed 
-
+  tenthImpulse 
+  0.01 setGridSize 
   ( 
     localXDown 
     endStackCollapseNoop
@@ -171,7 +162,11 @@
     ) (
       "Workspace not clear, attempting to flick object." print
       
-      tempSpiralServoToAnonymousObject waitUntilAtCurrentPosition
+      /* should already be at the right place thanks to cw_workspaceIsClear */
+      /* 
+      tempSpiralServoToAnonymousObject 
+      */
+      waitUntilAtCurrentPosition
       cw_tri_flick
 
       cw_clearWorkspace_counter 1 + "cw_clearWorkspace_counter" store
