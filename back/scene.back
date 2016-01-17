@@ -98,10 +98,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   1 "tempUpdateSpiralIdx" store
 
   ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
-  ( ( xUp ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( yUp ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( xDown ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( yDown ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+  ( ( xUp waitUntilAtCurrentPosition ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( yUp waitUntilAtCurrentPosition ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( xDown waitUntilAtCurrentPosition ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( yDown waitUntilAtCurrentPosition ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
     "tempUpdateSpiralCoreNoClean" print
     tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
   ) while
@@ -130,6 +130,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempUpdateSpiralCore" store
 
 (
+  shiftIntoGraspGear3 waitUntilAtCurrentPosition
+
   /* turn streaming on, no disk streaming */ 
   shutdownToSensorsAndMovement
   disableDiskStreaming
@@ -143,15 +145,14 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   tempSpiralMoveSpeed setSpeed
   tempSpiralGridSize setGridSize
   0.03 setW1GoThresh
-  shiftIntoGraspGear1 waitUntilAtCurrentPosition
 
   1 "tempUpdateSpiralIdx" store
 
   ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
-  ( ( xUp ) tempUpdateSpiralIdx tempUpdateSpiralXNum times replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( yUp ) tempUpdateSpiralIdx tempUpdateSpiralYNum times replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( xDown ) tempUpdateSpiralIdx tempUpdateSpiralXNum times 1 tempUpdateSpiralXNum times + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( yDown ) tempUpdateSpiralIdx tempUpdateSpiralYNum times 1 tempUpdateSpiralYNum times + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+  ( ( xUp waitUntilAtCurrentPosition ) tempUpdateSpiralIdx tempUpdateSpiralXNum times replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( yUp waitUntilAtCurrentPosition ) tempUpdateSpiralIdx tempUpdateSpiralYNum times replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( xDown waitUntilAtCurrentPosition ) tempUpdateSpiralIdx tempUpdateSpiralXNum times 1 tempUpdateSpiralXNum times + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( yDown waitUntilAtCurrentPosition ) tempUpdateSpiralIdx tempUpdateSpiralYNum times 1 tempUpdateSpiralYNum times + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
     "tempUpdateSpiralEccentricCore" print
     tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
   ) while
