@@ -1357,6 +1357,11 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
   6 tempUpdateSpiralCore tempUpdateMaps
 ) "tempReconstructTakeSceneMid" store
 
+(
+  "scene" import playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition tempReconstructTakeScene tempReconstructWithZ sceneRenderZ
+  catScan5LoadPlayBg tempUpdateMaps 0.1 sceneTrimDepthWithDiscrepancy sceneRenderZ
+  3.0 sceneSmoothDepthStackInZ sceneInitRegister sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ
+) "tempReconstructPhrases" store
 
 
 
