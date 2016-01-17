@@ -554,6 +554,11 @@ void GaussianMap::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
   cellRef->green.statistic = vec[1]; \
   cellRef->red.statistic = vec[2]; \
 
+#define VEC3_EQUALS_CELLREF(vec, cellRef, statistic) \
+  vec[0] = cellRef->blue.statistic; \
+  vec[1] = cellRef->green.statistic; \
+  vec[2] = cellRef->red.statistic ; \
+
 void GaussianMap::rgbMuToMat(Mat& out) {
   //out = Mat(height, width, CV_64FC3);
   Mat big = Mat(height, width, CV_8UC3);
@@ -2754,11 +2759,60 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ScenePushTotalDiscrepancy)
 
+WORD(ScenePushTotalRelevantOneMinusDiscrepancy)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double thresh = 0.0;
+  GET_NUMERIC_ARG(ms, thresh);
+  guardSceneModels(ms);
+
+  Mat tsd = ms->config.scene->discrepancy_density.clone();
+  Mat omtsd = ms->config.scene->discrepancy_density.clone();
+
+  int W = tsd.cols;
+  int H = tsd.rows;
+  for (int y = 0; y < H; y++) {
+    for (int x = 0; x < W; x++) {
+      if (tsd.at<double>(y,x) <= thresh) {
+	omtsd.at<double>(y,x) = 0.0;
+      } else {
+	omtsd.at<double>(y,x) = 1.0 - tsd.at<double>(y,x);
+      }
+    }
+  }
+
+  double omtsd_l1 = omtsd.dot(Mat::ones(omtsd.rows, omtsd.cols, omtsd.type()));
+  ms->pushWord(make_shared<DoubleWord>(omtsd_l1));
+}
+END_WORD
+REGISTER_WORD(ScenePushTotalRelevantOneMinusDiscrepancy)
+
+WORD(ScenePushFocusedClassModelArea)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  guardSceneModels(ms);
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+  ms->pushWord(make_shared<DoubleWord>(ms->config.class_scene_models[tfc]->width * ms->config.class_scene_models[tfc]->height));
+}
+END_WORD
+REGISTER_WORD(ScenePushFocusedClassModelArea)
+
+WORD(ScenePushFocusedClassTotalDiscrepancy)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  guardSceneModels(ms);
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+
+  Mat tsd = ms->config.class_scene_models[tfc]->discrepancy_density;
+  double tsd_l1 = tsd.dot(Mat::ones(tsd.rows, tsd.cols, tsd.type()));
+  ms->pushWord(make_shared<DoubleWord>(tsd_l1));
+}
+END_WORD
+REGISTER_WORD(ScenePushFocusedClassTotalDiscrepancy)
+
 WORD(ScenePushTotalLogDiscrepancy)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   guardSceneModels(ms);
 
   Mat tsd = ms->config.scene->discrepancy_density;
+  Mat omtsd = 1.0 - tsd;
 /*
   double tsd_l1 = tsd.dot(Mat::ones(tsd.rows, tsd.cols, tsd.type()));
   ms->pushWord(make_shared<DoubleWord>(tsd_l1));
@@ -2766,27 +2820,26 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   //---> seems solidly discriminative, counts the difference it makes. should stay in the log and normalize by the 
   //number norm of the chosen object
-  Mat tsd_log;
-  //log(1.0 - tsd, tsd_log);
-  log(1.0 + tsd, tsd_log);
-/*
+  Mat omtsd_log;
+  //log(1.0 - tsd, omtsd_log);
+  //log(1.0 + tsd, omtsd_log);
+
   double p_epsilon = DBL_MIN;
-  log(min(tsd, p_epsilon), tsd_log);
+  log(min(omtsd, p_epsilon), omtsd_log);
   int W = tsd.cols;
   int H = tsd.rows;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      if (tsd.at<double>(y,x) <= 0) {
-	tsd_log.at<double>(y,x) = 0.0;
+      if (omtsd.at<double>(y,x) <= 0) {
+	omtsd_log.at<double>(y,x) = 0.0;
       } else {
       }
     }
   }
-*/
 
-  double tsd_log_l1 = tsd_log.dot(Mat::ones(tsd_log.rows, tsd_log.cols, tsd_log.type()));
+  double omtsd_log_l1 = omtsd_log.dot(Mat::ones(omtsd_log.rows, omtsd_log.cols, omtsd_log.type()));
   //double tsd_prob = exp(tsd_log_l1);
-  ms->pushWord(make_shared<DoubleWord>(tsd_log_l1));
+  ms->pushWord(make_shared<DoubleWord>(omtsd_log_l1));
 
 /*
   double totalProb = 1.0;
@@ -4674,7 +4727,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double thresh = 0.0;
   GET_NUMERIC_ARG(ms, thresh);
 
-  cout << "sceneTrimDepthWithDiscrepancy: trimming..." << endl;
+  double zToUse = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+  cout << "sceneTrimDepthWithDiscrepancy: trimming with z " << zToUse << endl;
   int t_height = ms->config.scene->observed_map->height;
   int t_width = ms->config.scene->observed_map->width;
   for (int y = 0; y < t_height; y++) {
@@ -4683,8 +4737,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	// keep its z value
       } else {
 	// zero it out
-	ms->config.scene->observed_map->refAtCell(x,y)->z.counts = 0;
-	ms->config.scene->observed_map->refAtCell(x,y)->z.squaredcounts = 0;
+	double samples = ms->config.scene->observed_map->refAtCell(x,y)->z.samples;
+	ms->config.scene->observed_map->refAtCell(x,y)->z.counts = zToUse * samples;
+	ms->config.scene->observed_map->refAtCell(x,y)->z.squaredcounts = zToUse * zToUse * samples;
       }
     }
   }
@@ -4696,6 +4751,8 @@ REGISTER_WORD(SceneTrimDepthWithDiscrepancy)
 
 WORD(SceneSmoothSquaredCountsAndSamplesXY)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  double p_xySigma = 0.5;
+  GET_NUMERIC_ARG(ms, p_xySigma);
   //double darkSigma = 1.0;
   //GaussianBlur(accToBlur, accToBlur, cv::Size(0,0), darkSigma, BORDER_REFLECT);
 
@@ -4710,7 +4767,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   Mat ss;
   ms->config.scene->observed_map->rgbSigmaSquaredToMat(ss);
-  double p_xySigma = 0.5;
+  /* 0.5 give somewhat reasonable results */
   GaussianBlur(ss, ss, cv::Size(0,0), p_xySigma, BORDER_REFLECT);
 
   int t_height = ms->config.scene->observed_map->height;
@@ -4722,9 +4779,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     }
   }
-
-
-
   //ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
 }
 END_WORD
@@ -4732,7 +4786,32 @@ REGISTER_WORD(SceneSmoothSquaredCountsAndSamplesXY)
 
 WORD(SceneSmoothDepthStackInZ)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  double this_zSigma = 1.0;
+  GET_NUMERIC_ARG(ms, this_zSigma);
+
   cout << "sceneSmoothDepthStackInZ: " << endl;
+  int tns = ms->config.depth_maps.size();
+  Mat stack_core(1,tns, CV_64FC3);
+
+  int t_height = ms->config.scene->observed_map->height;
+  int t_width = ms->config.scene->observed_map->width;
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+
+      for (int i = 0; i < tns; i++) {
+	VEC3_EQUALS_CELLREF(stack_core.at<Vec3d>(0,i), ms->config.depth_maps[i]->refAtCell(x,y), sigmasquared);
+      }
+
+      //GaussianBlur(stack_core, stack_core, cv::Size(1,5), this_zSigma, BORDER_REFLECT);
+      //GaussianBlur(stack_core, stack_core, cv::Size(5,1), this_zSigma, this_zSigma, BORDER_REFLECT);
+      GaussianBlur(stack_core, stack_core, cv::Size(0,0), this_zSigma, this_zSigma, BORDER_REFLECT);
+
+      for (int i = 0; i < tns; i++) {
+	CELLREF_EQUALS_VEC3(ms->config.depth_maps[i]->refAtCell(x,y), stack_core.at<Vec3d>(0,i), sigmasquared);
+      }
+
+    }
+  }
 }
 END_WORD
 REGISTER_WORD(SceneSmoothDepthStackInZ)
@@ -4740,32 +4819,57 @@ REGISTER_WORD(SceneSmoothDepthStackInZ)
 WORD(ScenePushOntoDepthStack)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "scenePushOntoDepthStack: " << endl;
-  ms->config.depth_scene_models.push_back(ms->config.scene);
+  ms->config.depth_maps.push_back(ms->config.scene->observed_map->copy());
 }
 END_WORD
 REGISTER_WORD(ScenePushOntoDepthStack)
 
+WORD(ScenePushDepthStackSize)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "scenePushDepthStackSize: " << ms->config.depth_maps.size() << endl;
+  ms->pushWord( make_shared<DoubleWord>(ms->config.depth_maps.size()) );
+}
+END_WORD
+REGISTER_WORD(ScenePushDepthStackSize)
+
 WORD(SceneClearDepthStack)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "sceneClearDepthStack: " << endl;
-  ms->config.depth_scene_models.resize(0);
+  ms->config.depth_maps.resize(0);
 }
 END_WORD
 REGISTER_WORD(SceneClearDepthStack)
 
-WORD(SceneDepthStackMinIntoRegister)
+WORD(SceneMinDepthStackIntoRegister)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "sceneDepthStackMinIntoRegister: " << endl;
+  cout << "sceneMinDepthStackIntoRegister: " << endl;
 
-  int tns = ms->config.depth_scene_models.size();
+  int tns = ms->config.depth_maps.size();
 
   for (int i = 0; i < tns; i++) {
     cout << "  minning " << i << " with max " << tns << endl;
-    sceneMinIntoRegisterHelper(ms, ms->config.depth_scene_models[i]->observed_map);
+    sceneMinIntoRegisterHelper(ms, ms->config.depth_maps[i]);
   }
 }
 END_WORD
-REGISTER_WORD(SceneDepthStackMinIntoRegister)
+REGISTER_WORD(SceneMinDepthStackIntoRegister)
+
+WORD(SceneRecallDepthStackIndex)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int idx = 0;
+  GET_INT_ARG(ms, idx);
+  cout << "sceneRecallDepthStackIndex: " << idx << endl;
+
+  int tns = ms->config.depth_maps.size();
+
+  if (idx >= 0 && idx < tns) {
+    ms->config.scene->observed_map = ms->config.depth_maps[idx]->copy();
+  } else {
+    cout << "  sorry, invalid idx." << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(SceneRecallDepthStackIndex)
 
 WORD(SceneUpdateObservedFromStreamBufferAtZWithRecastThroughDepthStack)
 virtual void execute(std::shared_ptr<MachineState> ms) {
