@@ -1542,7 +1542,7 @@ class EinConfig {
   vector<shared_ptr<Scene> > class_scene_models;
   double scene_score_thresh = 0.01;
 
-  vector<shared_ptr<Scene> > depth_scene_models;
+  vector<shared_ptr<GaussianMap> > depth_maps;
   
 }; // config end
 

@@ -424,7 +424,140 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 ) "tempSpiralIsNewComponentInPlace" store
 
+(
+  numClasses 0 > (
+    0.15 "tempNewComponentThresh" store
+    sceneClearPredictedObjects
 
+    tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+
+    /* pauseStackExecution */
+
+	"tempSpiralIsNewComponentPseudoGeometricInPlace_tempScene"
+	"_"
+	leftOrRightArm 
+	"_"
+	robotSerial
+      + + + +
+      "tempSpiralIsNewComponentPseudoGeometricInPlace_tempSceneName"
+    store
+
+
+      tempSpiralIsNewComponentPseudoGeometricInPlace_tempSceneName
+    sceneSaveFocusedSceneModel
+
+    sceneClearPredictedObjects
+    tempUpdateMaps
+    tempCaptureCore
+
+    sceneClearPredictedObjects 
+    tempUpdateMaps
+
+    scenePredictBestObject tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+
+    /*
+	  scenePushTotalDiscrepancy 
+	  scenePushTotalDiscrepancyMagnitude 
+	  scenePushTotalLogDiscrepancy
+	  -10.00 scenePushTotalRelevantOneMinusDiscrepancy
+
+	    scenePushFocusedClassModelArea
+	    scenePushTotalDiscrepancy 
+	  -
+
+	    scenePushFocusedClassTotalDiscrepancy
+	    scenePushTotalDiscrepancy 
+	  -
+    */
+	    scenePushFocusedClassModelArea
+	    scenePushTotalDiscrepancy 
+	  -
+	dup 
+	"tempSpiralIsNewComponentPseudoGeometricInPlace: total discrepancy with new component" 
+      swap + print 
+
+      tempSpiralIsNewComponentPseudoGeometricInPlace_tempSceneName
+    sceneLoadFocusedSceneModel
+
+    sceneClearPredictedObjects 
+    tempUpdateMaps
+
+    scenePredictBestObject tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+
+    /*
+	  scenePushTotalDiscrepancy 
+	  scenePushTotalDiscrepancyMagnitude 
+	  scenePushTotalLogDiscrepancy
+	  -10.00 scenePushTotalRelevantOneMinusDiscrepancy
+    */
+	    scenePushFocusedClassModelArea
+	    scenePushTotalDiscrepancy 
+	  -
+	dup 
+	"tempSpiralIsNewComponentPseudoGeometricInPlace: total discrepancy with best old component"
+      swap + print 
+
+    "tempSpiralIsNewComponentPseudoGeometricInPlace_after" store
+    "tempSpiralIsNewComponentPseudoGeometricInPlace_before" store
+
+      tempSpiralIsNewComponentPseudoGeometricInPlace_before
+      "tempSpiralIsNewComponentPseudoGeometricInPlace: total discrepancy before is " 
+    swap + print
+
+
+	tempSpiralIsNewComponentPseudoGeometricInPlace_after
+	tempSpiralIsNewComponentPseudoGeometricInPlace_before
+      +
+    "tempSpiralIsNewComponentPseudoGeometricInPlace_sum" store
+
+      tempSpiralIsNewComponentPseudoGeometricInPlace_sum
+      "tempSpiralIsNewComponentPseudoGeometricInPlace: before after sum is" 
+    swap + print
+    
+
+
+	tempSpiralIsNewComponentPseudoGeometricInPlace_after
+	tempSpiralIsNewComponentPseudoGeometricInPlace_sum
+      divide
+    "tempSpiralIsNewComponentPseudoGeometricInPlace_sum_ratio" store
+
+      tempSpiralIsNewComponentPseudoGeometricInPlace_sum_ratio
+      "tempSpiralIsNewComponentPseudoGeometricInPlace: old / sum ratio is " 
+    swap + print
+
+	tempSpiralIsNewComponentPseudoGeometricInPlace_before
+	tempSpiralIsNewComponentPseudoGeometricInPlace_after
+      divide
+    "tempSpiralIsNewComponentPseudoGeometricInPlace_before_after_ratio" store
+
+      tempSpiralIsNewComponentPseudoGeometricInPlace_before_after_ratio
+      "tempSpiralIsNewComponentPseudoGeometricInPlace: new / old ratio (USING) is " 
+    swap + print
+
+      tempSpiralIsNewComponentPseudoGeometricInPlace_before_after_ratio
+      tempNewComponentThresh 
+    > (
+	    1
+	  dup
+	"tempSpiralIsNewComponentPseudoGeometricInPlace: IS a new component, returning " 
+      swap + print
+    ) (
+	    0
+	  dup
+	"tempSpiralIsNewComponentPseudoGeometricInPlace: AIN'T a new component, returning " 
+      swap + print
+    ) ifte
+
+	dup
+      "tempSpiralIsNewComponentPseudoGeometricInPlace: returning " 
+    swap + print
+  ) (
+      "tempSpiralIsNewComponentPseudoGeometricInPlace: numClasses is 0 so returning 1"
+    print
+    1
+  ) ifte
+
+) "tempSpiralIsNewComponentPseudoGeometricInPlace" store
 
 (
   numClasses 0 > (
@@ -866,7 +999,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   /* this is meant to be run after a sufficiently broad and detailed scan and for the moment interacts with catScan5 variables */
 
   currentPose "catScan5Pos" store
-  tempSpiralIsNewComponentInPlace (
+
+  tempSpiralIsNewComponentPseudoGeometricInPlace (
 
     catScan5Pos moveEeToPoseWord waitUntilAtCurrentPosition
 
@@ -1159,6 +1293,8 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
 
   tempReconstructWithZTopZ "tempReconstructWithZThisZ" store
 
+  sceneClearDepthStack
+
   ( tempReconstructWithZThisZ tempReconstructWithZBottomZ = 
     tempReconstructWithZThisZ tempReconstructWithZBottomZ > or ) 
   (
@@ -1175,7 +1311,12 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
     rewindImageStreamBufferNLNK 
     ( tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZ ( incrementImageStreamBufferNoLoadNoKick ) tempSpiralStreamTakeSceneStride replicateWord endStackCollapseNoop ) tempSpiralStreamTakeSceneSamples replicateWord
 
+    /*
     sceneSmoothSquaredCountsAndSamplesXY
+    0.1 sceneTrimDepthWithDiscrepancy
+    */
+
+    scenePushOntoDepthStack
     sceneMinIntoRegister
     tempReconstructWithZThisZ tempReconstructWithZDeltaZ - "tempReconstructWithZThisZ" store
   ) while
