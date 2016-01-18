@@ -10,14 +10,14 @@ leftOrRightArm "right" =
 ( 
 -0.350000 -0.568750 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace1" store
 -0.068750 -0.712500 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace2" store
-0.281250 -0.741250 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose  "workspace3" store
+0.281250 -0.801250 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose  "workspace3" store
 0.068750 -0.812500 0.200000 -0.001554 0.999990 0.003099 -0.002801 createEEPose  "workspace3_1" store
 0.575000 -0.368750 0.201245 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace4" store )
 ( 
 leftOrRightArm "left" = 
 ( -0.350000 0.568750 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace1" store
 -0.068750 0.712500 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace2" store
-0.281250 0.741250 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose  "workspace3" store
+0.281250 0.801250 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose  "workspace3" store
 0.068750 0.812500 0.200000 -0.001554 0.999990 0.003099 -0.002801 createEEPose  "workspace3_1" store
 0.575000 0.368750 0.201245 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace4" store  )
  ( "Neither left or right arm." leftOrRighArm pauseStackExecution ) 
@@ -27,7 +27,7 @@ ifte
 
 
 workspace1 "inputPileWorkspace" store
-workspace3_1 "playWorkspace" store
+workspace3 "playWorkspace" store
 workspace4 "outputPileWorkspace" store
 
 "catScan_" robotSerial "_" leftOrRightArm "_" dateString + + + + + "scan_catScanObjectName" store
@@ -313,8 +313,6 @@ workspace4 "outputPileWorkspace" store
 ) "scan_findObjectAfterDrop_old" store
 
 ( 
-  tempSwapToBlocks
-
   0 "scan_breakInd" store
 
   moveEeToPoseWord waitUntilAtCurrentPosition
@@ -340,8 +338,6 @@ workspace4 "outputPileWorkspace" store
   ) ifte
 
   scan_breakInd
-
-  tempRestoreFromBlocks
 ) "scan_findObjectAfterDrop" store
 
 (
@@ -666,6 +662,8 @@ dateString "catScan5VarianceTrialThisTime" store
 
     isGripperGripping ! ( playWorkspace cw_clearWorkspace ) ift 
   ) while
+
+  tempRestoreFromBlocks
 ) "pickFromInputPile2" store
 
 4 "moveToOutputPile2MaxPicks" store
@@ -732,6 +730,7 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "moveToOutputPile2" store
 
 (
+  shiftIntoGraspGear3 waitUntilAtCurrentPosition
   800 "tempSpiralStreamTakeSceneSamples" store
   0.03 "tempSpiralMoveSpeed" store
   inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition 1 changeToHeight
@@ -746,7 +745,7 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5LoadInputBg" store
 
 (
-
+  shiftIntoGraspGear1 waitUntilAtCurrentPosition
   400 "tempSpiralStreamTakeSceneSamples" store
   playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
   0.01 setGridSize ( xDown ) 6 replicateWord 1 changeToHeight waitUntilAtCurrentPosition
@@ -769,6 +768,7 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5LoadPlayBg" store
 
 (
+  shiftIntoGraspGear3 waitUntilAtCurrentPosition
   100 "tempSpiralStreamTakeSceneSamples" store
   tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
   tempSpiralGridSizeDefault "tempSpiralGridSize" store
@@ -777,7 +777,7 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5InputPileTakeScene" store
 
 (
-
+  shiftIntoGraspGear1 waitUntilAtCurrentPosition
   100 "tempSpiralStreamTakeSceneSamples" store
   playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
   0.01 setGridSize ( xDown ) 6 replicateWord 1 changeToHeight waitUntilAtCurrentPosition

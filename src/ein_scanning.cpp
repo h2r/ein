@@ -370,6 +370,11 @@ virtual void execute(std::shared_ptr<MachineState> ms)  {
     changeTargetClass(ms, 0);
   } else {
     cout << "didn't get any valid labels, are you sure this is what you want?" << endl;
+    ms->config.classLabels.resize(0);
+    ms->config.classPoseModels.resize(0);
+    ms->pushWord("clearBlueBoxMemories");
+    ms->config.numClasses = ms->config.classLabels.size();
+    changeTargetClass(ms, 0);
     return;
   }
 

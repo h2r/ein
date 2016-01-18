@@ -6305,12 +6305,12 @@ int getGlobalGraspGear(shared_ptr<MachineState> ms, int localGraspGearIn) {
 
 void changeTargetClass(shared_ptr<MachineState> ms, int newTargetClass) {
 
-  if ( (newTargetClass < 0) || (newTargetClass > ms->config.classLabels.size()) ) {
+  if ( (newTargetClass < 0) || (newTargetClass >= ms->config.classLabels.size()) ) {
     ROS_ERROR_STREAM("changeTargetClass: tried to change to an invalid class. setting class to 0." << endl); 
     newTargetClass = 0;
-    //ms->config.targetClass = 0;
-    //ms->config.focusedClass = 0;
-    //return;
+    ms->config.targetClass = 0;
+    ms->config.focusedClass = 0;
+    return;
   } else {
   }
 

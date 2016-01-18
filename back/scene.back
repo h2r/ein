@@ -130,8 +130,6 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempUpdateSpiralCore" store
 
 (
-  shiftIntoGraspGear3 waitUntilAtCurrentPosition
-
   /* turn streaming on, no disk streaming */ 
   shutdownToSensorsAndMovement
   disableDiskStreaming
@@ -427,7 +425,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   numClasses 0 > (
-    0.15 "tempNewComponentThresh" store
+	1.0
+	1.20 
+      divide
+    "tempNewComponentThresh" store
     sceneClearPredictedObjects
 
     tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
@@ -526,18 +527,25 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
       "tempSpiralIsNewComponentPseudoGeometricInPlace: old / sum ratio is " 
     swap + print
 
-	tempSpiralIsNewComponentPseudoGeometricInPlace_before
-	tempSpiralIsNewComponentPseudoGeometricInPlace_after
-      divide
-    "tempSpiralIsNewComponentPseudoGeometricInPlace_before_after_ratio" store
+    
+      tempSpiralIsNewComponentPseudoGeometricInPlace_before
+      0.0
+    equals (
+      -1.0 "tempSpiralIsNewComponentPseudoGeometricInPlace_before" store
+    ) ift
 
-      tempSpiralIsNewComponentPseudoGeometricInPlace_before_after_ratio
-      "tempSpiralIsNewComponentPseudoGeometricInPlace: new / old ratio (USING) is " 
+	tempSpiralIsNewComponentPseudoGeometricInPlace_after
+	tempSpiralIsNewComponentPseudoGeometricInPlace_before
+      divide
+    "tempSpiralIsNewComponentPseudoGeometricInPlace_after_before_ratio" store
+
+      tempSpiralIsNewComponentPseudoGeometricInPlace_after_before_ratio
+      "tempSpiralIsNewComponentPseudoGeometricInPlace: old / new ratio (USING) is " 
     swap + print
 
-      tempSpiralIsNewComponentPseudoGeometricInPlace_before_after_ratio
+      tempSpiralIsNewComponentPseudoGeometricInPlace_after_before_ratio
       tempNewComponentThresh 
-    > (
+    < (
 	    1
 	  dup
 	"tempSpiralIsNewComponentPseudoGeometricInPlace: IS a new component, returning " 
@@ -1085,8 +1093,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 0 "tempBlockUsingBlocks" store
 0.055 "tempBlockMaxGraspThickness" store
+/*
 0.04 "tempBlockGripperThrow" store
 0.01 "tempBlockGraspResolution" store
+*/
+0.025 "tempBlockGripperThrow" store
+0.005 "tempBlockGraspResolution" store
 0.03 "tempBlockTargetContactWidth" store
 (
   tempBlockUsingBlocks not (
@@ -1364,5 +1376,21 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
   3.0 sceneSmoothDepthStackInZ sceneInitRegister sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ
 ) "tempReconstructPhrases" store
 
+(
+    "/home/aibo/catkin_ws/src/ein/default/objects/scene_eval_set"
+  setClassLabelsObjectFolderAbsolute
+
+  setPickModeToStaticMarginals
+
+  (
+      playWorkspace
+    scan_findObjectAfterDrop
+    tempMapBestAndPickInPlace
+
+      playWorkspace
+    moveEeToPoseWord waitUntilAtCurrentPosition
+    0.04 setSpeed pressUntilEffortCombo openGripper liftArm
+  ) 10 replicateWord
+) "tempEvaluateObject" store
 
 
