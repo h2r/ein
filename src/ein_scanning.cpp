@@ -4462,6 +4462,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     toPush.tries = 1;
     toPush.successes = 1;
     toPush.failures = 0;
+    toPush.jams = 0;
     ms->config.class3dGrasps[ms->config.targetClass].push_back(toPush);
     cout << " added " << toPush << endl;
   } else {
@@ -4499,6 +4500,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     toPush.tries = 1;
     toPush.successes = 1;
     toPush.failures = 0;
+    toPush.jams = 0;
     ms->config.class3dGrasps[ms->config.targetClass].push_back(toPush);
     cout << " added relative grasp: " << toPush << endl;
   } else {

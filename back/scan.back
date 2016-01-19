@@ -1,6 +1,6 @@
 8 "scan_IRheight" store
 /* 10 "catScan_dropHeight" store */
-5 "catScan_dropHeight" store 
+10 "catScan_dropHeight" store 
 100 "pileSwitchThreshold" store
 
 10 "scan_catScanLimit" store
@@ -547,6 +547,9 @@ dateString "catScan5VarianceTrialThisTime" store
 
   ( scan_catScanCounter scan_catScanLimit <   scan_catScanSees   and ) (
 
+    setPickModeToLearningAlgorithmC
+    setPlaceModeToShake
+
     tempAddBlockGraspSaveModelAndPickAfterFind
 
 	currentPose
@@ -560,9 +563,6 @@ dateString "catScan5VarianceTrialThisTime" store
       scan_catScanCounter 1 + 
     "scan_catScanCounter" store
   ) while 
-
-  setPickModeToLearningAlgorithmC
-  setPlaceModeToShake
 
     0 
   "scan_catPickCounter" store
@@ -580,7 +580,7 @@ dateString "catScan5VarianceTrialThisTime" store
       catScan5VarianceTrial 
     ) catScan5NumVarianceTrials replicateWord
 
-    tempMapBestAndPick
+    tempMapBestAndPickInPlace
 
       playWorkspace 
     moveEeToPoseWord 

@@ -607,7 +607,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   if (ms->config.currentGraspMode == GRASP_3D) {
     int t3dgi = ms->config.current3dGraspIndex;
-    if ( (t3dgi > -1) && (t3dgi < ms->config.class3dGrasps.size()) ) {
+    if ( (t3dgi > -1) && (t3dgi < ms->config.class3dGrasps[tfc].size()) ) {
       cout << "checkAndCountGrasp: using t3dgi " << t3dgi << endl;
     } else {
       cout << "checkAndCountGrasp: bad t3dgi, returning... " << t3dgi << endl;
