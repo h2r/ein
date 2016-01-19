@@ -12812,6 +12812,7 @@ void loadROSParamsFromArgs(shared_ptr<MachineState> ms) {
 			 (std::istreambuf_iterator<char>()    ) );
     ms->config.robot_description = content;
     ms->config.robot_serial = "simulatedserial";
+    ms->config.currentCameraCalibrationMode = CAMCAL_LINBOUNDED;
   } 
 
   ms->config.config_directory = "/config_" + ms->config.robot_serial + "/";
