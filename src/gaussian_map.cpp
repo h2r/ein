@@ -1788,9 +1788,11 @@ double Scene::computeProbabilityOfMap() {
   doubleWithLotsOfDigits logResult = logNumerator - logDenominator;
   
   doubleWithLotsOfDigits resultProb = boost::multiprecision::exp(logResult);
+
+  doubleWithLotsOfDigits ratio = logLikelihood - logNormalizer;
   //checkProb("result", resultProb);
 
-  cout << "prior: " << prior << endl;
+  cout << "            prior: " << prior << endl;
   cout << "    logLikelihood: " << logLikelihood << endl;
   cout << "     logNumerator: " << logNumerator << endl;
   cout << "    logNormalizer: " << logNormalizer << endl;
@@ -1803,6 +1805,7 @@ double Scene::computeProbabilityOfMap() {
   cout << "logDenominatorLog: " << logDenominatorLog << endl;
   cout << "        logResult: " << logResult << endl;
   cout << "       resultProb: " << resultProb << endl;
+  cout << "            ratio: " << ratio << endl;
   double resultDouble = (double) resultProb;
   cout << " resultProbDouble: " << resultDouble << endl;
   ms->config.scene = new_component_scene;
