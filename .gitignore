@@ -33,4 +33,5 @@ default/objects/*/ein/detectionCrops/
 *.sv?
 *.sv?
 
+back/practice.back
 default/objects
