@@ -125,8 +125,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   /* integrate results */
   tempUpdateSpiralCoreIntegrate
 
-  tempUpdateSpiralPos moveEeToPoseWord
-  waitUntilAtCurrentPosition
+  tempUpdateMaps
+
+  quarterImpulse tempUpdateSpiralPos moveEeToPoseWord waitUntilAtCurrentPosition
 ) "tempUpdateSpiralCore" store
 
 (
@@ -179,7 +180,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   tempUpdateSpiralCoreIntegrate
 
   tempUpdateMaps
-  tempUpdateSpiralPos moveEeToPoseWord
+
+  quarterImpulse tempUpdateSpiralPos moveEeToPoseWord waitUntilAtCurrentPosition
 ) "tempUpdateSpiralEccentricCore" store
 
 
@@ -1051,7 +1053,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     setPlaceModeToHold
     clearMapForPatrol
 
+    setPickModeToLearningAlgorithmC
     tempMapBestAndPickInPlace
+    writeFocusedClass
 
       playWorkspace 
     moveEeToPoseWord waitUntilAtCurrentPosition
@@ -1074,10 +1078,11 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     /*
     */
 
-    setPickModeToLearningAlgorithmC
 
     /* tempPickWithAddedGrasp */
+    setPickModeToLearningAlgorithmC
     tempMapBestAndPickInPlace
+    writeFocusedClass
 
     setGridSizeCoarse departureSpeed ( zUp ) 10 replicateWord setMovementStateToMoving comeToStop
 
@@ -1381,6 +1386,7 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
   setClassLabelsObjectFolderAbsolute
 
   setPickModeToStaticMarginals
+  setPlaceModeToHold
 
   (
       playWorkspace
@@ -1389,6 +1395,13 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
 
       playWorkspace
     moveEeToPoseWord waitUntilAtCurrentPosition
+    0.05 perturbPositionScale waitUntilAtCurrentPosition
+
+	"EVAL CLASSIFICATION " 
+	focusedClassLabel
+      +
+    print
+
     0.04 setSpeed pressUntilEffortCombo openGripper liftArm
   ) 10 replicateWord
 ) "tempEvaluateObject" store
