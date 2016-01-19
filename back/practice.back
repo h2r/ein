@@ -1,0 +1,455 @@
+
+
+(
+  dogGetSensoryMotorStates dogStay dogPushIntendedPose print
+) "dogRepIntended" store
+
+(
+  1 dogSetPackSize
+  0 dogSetFocusedMember "192.168.1.132" 54000 socketOpen /* squeeky */
+  /* 0 dogSetFocusedMember "192.168.160.130" 54000 socketOpen  */ /* ella */
+  /* 0 dogSetFocusedMember "192.168.1.131" 54000 socketOpen */ /* traveler */
+  dogSocketDidConnect (
+    dogGetSensoryMotorStates dogStay dogSendMotorState
+  ) ift
+  /* 
+  dogPracticeInit */
+) "dogSummonSqueaky" store
+
+
+(
+  6.0 dogSetGainGridSize
+  dogMotorsOn
+  dogEagle
+) "dogPracticeInit" store
+
+(
+  dogLegRH1PGainDown
+  dogLegRH2PGainDown
+  dogLegRH3PGainDown
+
+  dogLegLH1PGainDown
+  dogLegLH2PGainDown
+  dogLegLH3PGainDown
+  dogSendMotorState
+) "dogLessHind" store
+
+(
+  dogLegRH1PGainUp
+  dogLegRH2PGainUp
+  dogLegRH3PGainUp
+
+  dogLegLH1PGainUp
+  dogLegLH2PGainUp
+  dogLegLH3PGainUp
+  dogSendMotorState
+) "dogMoreHind" store
+
+(
+  dogLegRF1PGainDown
+  dogLegRF2PGainDown
+  dogLegRF3PGainDown
+
+  dogLegLF1PGainDown
+  dogLegLF2PGainDown
+  dogLegLF3PGainDown
+  dogSendMotorState
+) "dogLessFront" store
+
+(
+  dogLegRF1PGainUp
+  dogLegRF2PGainUp
+  dogLegRF3PGainUp
+
+  dogLegLF1PGainUp
+  dogLegLF2PGainUp
+  dogLegLF3PGainUp
+  dogSendMotorState
+) "dogMoreFront" store
+
+0.25 "dogShiftInterGap" store
+1.0 "dogShiftStayGap" store
+
+(
+  ( dogLessFront dogLessHind dogShiftInterGap spinForSeconds endStackCollapseNoop ) 3 replicateWord
+) "dogShiftDown" store
+
+(
+  ( dogMoreFront dogMoreHind dogShiftInterGap spinForSeconds endStackCollapseNoop ) 3 replicateWord
+) "dogShiftUp" store
+
+(
+  ( dogLessFront dogMoreHind dogShiftInterGap spinForSeconds endStackCollapseNoop ) 3 replicateWord
+) "dogShiftForward" store
+
+(
+  ( dogMoreFront dogLessHind dogShiftInterGap spinForSeconds endStackCollapseNoop ) 3 replicateWord
+) "dogShiftBackward" store
+
+(
+  dogEagle
+  dogShiftDown dogShiftDown dogShiftDown
+  ( 1 ) ( dogShiftForward dogShiftStayGap spinForSeconds dogShiftBackward dogShiftStayGap spinForSeconds endStackCollapseNoop ) while
+
+) "dogLoopShift" store
+
+(
+  /* 21.1267 0.978899 59.0588 34.1216 3.26311 62.4696 20.0637 -0.652141 71.5857 20.1987 -7.82603 56.0958 -80 16.6221 -9.82451 21.7499 2.34535 -0.740204 dogCreatePose */
+  /* -6.99994 10.1157 67.4706 -18.1818 1.63156 123.571 -25.5319 -5.86955 99.2929 -9.27149 -14.3478 65.0791 2.99995 -2.35171 -8.77187 20.9999 2.68041 -4.1948 dogCreatePose */
+  /* -25.6666 1.95785 91.7352 -40.909 -9.13037 93.6437 -40.4255 -8.47823 95.1046 -21.192 -2.28255 96.5208 -60 -2.35171 -2.10522 26.9999 5.02576 -2.4675 dogCreatePose */
+  -1.0 4.0 98.0 
+  -10.0 -10.4348 93.6437 
+  -10.0 -9.13037 96.7155 
+  -1.0 4.0 98.0 
+  -65.0793 0.42078 -0.701701 23.2499 2.01028 -3.94802 dogCreatePose
+  dogSetIntendedPose 
+  dogSendMotorState
+) "dogEagle" store
+
+
+
+
+
+(
+  " flap:legRH1.val = legRH1.val sin:dogFlapPeriod ampli: dogFlapAmplitude," 
+  " flap:legRH2.val = legRH2.val sin:dogFlapPeriod ampli: dogFlapAmplitude," +
+  " flap:legRH3.val = legRH3.val sin:dogFlapPeriod ampli: dogFlapAmplitude," +
+  " flap:legLH1.val = legLH1.val sin:dogFlapPeriod ampli: dogFlapAmplitude," +
+  " flap:legLH2.val = legLH2.val sin:dogFlapPeriod ampli: dogFlapAmplitude," +
+  " flap:legLH3.val = legLH3.val sin:dogFlapPeriod ampli: dogFlapAmplitude," +
+  socketSend
+) "dogFlapSoftHind" store
+
+(
+  " flap:legRF1.val = legRF1.val sin:dogFlapPeriod  ampli: dogFlapAmplitude," 
+  " flap:legRF2.val = legRF2.val sin:dogFlapPeriod  ampli: dogFlapAmplitude," +
+  " flap:legRF3.val = legRF3.val sin:dogFlapPeriod  ampli: dogFlapAmplitude," +
+
+  " flap:legLF1.val = legLF1.val sin:dogFlapPeriod  ampli: dogFlapAmplitude," +
+  " flap:legLF2.val = legLF2.val sin:dogFlapPeriod  ampli: dogFlapAmplitude," +
+  " flap:legLF3.val = legLF3.val sin:dogFlapPeriod  ampli: dogFlapAmplitude," +
+  socketSend
+) "dogFlapSoftFront" store
+
+(
+  " flap:legRH1.val = "   dogPushIntendedPose aiboPoseLegRH1 + " sin:dogFlapPeriod ampli:dogFlapAmplitude," +
+  " flap:legRH2.val = " + dogPushIntendedPose aiboPoseLegRH2 + " sin:dogFlapPeriod ampli:dogFlapAmplitude," +
+  " flap:legRH3.val = " + dogPushIntendedPose aiboPoseLegRH3 + " sin:dogFlapPeriod ampli:dogFlapAmplitude," +
+
+  " flap:legLH1.val = " + dogPushIntendedPose aiboPoseLegLH1 + " sin:dogFlapPeriod ampli:dogFlapAmplitude," +
+  " flap:legLH2.val = " + dogPushIntendedPose aiboPoseLegLH2 + " sin:dogFlapPeriod ampli:dogFlapAmplitude," +
+  " flap:legLH3.val = " + dogPushIntendedPose aiboPoseLegLH3 + " sin:dogFlapPeriod ampli:dogFlapAmplitude," +
+  socketSend
+) "dogFlapHardHind" store
+
+(
+  " flap:legRF1.val = "   dogPushIntendedPose aiboPoseLegRF1 + " sin:dogFlapPeriod ampli:dogFlapAmplitude," +
+  " flap:legRF2.val = " + dogPushIntendedPose aiboPoseLegRF2 + " sin:dogFlapPeriod ampli:dogFlapAmplitude," +
+  " flap:legRF3.val = " + dogPushIntendedPose aiboPoseLegRF3 + " sin:dogFlapPeriod ampli:dogFlapAmplitude," +
+
+  " flap:legLF1.val = " + dogPushIntendedPose aiboPoseLegLF1 + " sin:dogFlapPeriod ampli:dogFlapAmplitude," +
+  " flap:legLF2.val = " + dogPushIntendedPose aiboPoseLegLF2 + " sin:dogFlapPeriod ampli:dogFlapAmplitude," +
+  " flap:legLF3.val = " + dogPushIntendedPose aiboPoseLegLF3 + " sin:dogFlapPeriod ampli:dogFlapAmplitude," +
+  socketSend
+) "dogFlapHardFront" store
+
+(
+  " flap:legRH1.val = "   dogPushIntendedPose aiboPoseLegRH1 + " sin:dogFlapPeriod ampli:dogFlapAmplitude," +
+  " flap:legRH2.val = " + dogPushIntendedPose aiboPoseLegRH2 + " sin:dogFlapPeriod ampli:0," +
+  " flap:legRH3.val = " + dogPushIntendedPose aiboPoseLegRH3 + " sin:dogFlapPeriod ampli:0," +
+
+  " flap:legLH1.val = " + dogPushIntendedPose aiboPoseLegLH1 + " sin:dogFlapPeriod ampli:dogFlapAmplitude," +
+  " flap:legLH2.val = " + dogPushIntendedPose aiboPoseLegLH2 + " sin:dogFlapPeriod ampli:0," +
+  " flap:legLH3.val = " + dogPushIntendedPose aiboPoseLegLH3 + " sin:dogFlapPeriod ampli:0," +
+  socketSend
+) "dogKickHardHind" store
+
+(
+  " flap:legRF1.val = "   dogPushIntendedPose aiboPoseLegRF1 + " sin:dogFlapPeriod ampli:dogFlapAmplitude," +
+  " flap:legRF2.val = " + dogPushIntendedPose aiboPoseLegRF2 + " sin:dogFlapPeriod ampli:0," +
+  " flap:legRF3.val = " + dogPushIntendedPose aiboPoseLegRF3 + " sin:dogFlapPeriod ampli:0," +
+
+  " flap:legLF1.val = " + dogPushIntendedPose aiboPoseLegLF1 + " sin:dogFlapPeriod ampli:dogFlapAmplitude," +
+  " flap:legLF2.val = " + dogPushIntendedPose aiboPoseLegLF2 + " sin:dogFlapPeriod ampli:0," +
+  " flap:legLF3.val = " + dogPushIntendedPose aiboPoseLegLF3 + " sin:dogFlapPeriod ampli:0," +
+  socketSend
+) "dogKickHardFront" store
+
+(
+  "var dogFlapPeriod = " swap + "," + socketSend 
+) "dogSetFlapPeriod" store
+
+(
+  "var dogFlapAmplitude = " swap + "," + socketSend 
+) "dogSetFlapAmplitude" store
+
+(
+  " flap:legRH1.PGain = dogFlapGainStart sin:dogFlapGainPeriod ampli:dogFlapGainAmplitude," 
+  " flap:legRH2.PGain = dogFlapGainStart-2 sin:dogFlapGainPeriod ampli:dogFlapGainAmplitude," +
+  /* " flap:legRH3.PGain = dogFlapGainStart sin:dogFlapGainPeriod ampli:dogFlapGainAmplitude," + */
+  " flap:legRH3.PGain = 0," +
+
+  " flap:legLH1.PGain = dogFlapGainStart sin:dogFlapGainPeriod ampli:dogFlapGainAmplitude," +
+  " flap:legLH2.PGain = dogFlapGainStart-2 sin:dogFlapGainPeriod ampli:dogFlapGainAmplitude," +
+  " flap:legLH3.PGain = dogFlapGainStart sin:dogFlapGainPeriod ampli:dogFlapGainAmplitude," +
+  socketSend
+) "dogFlapGainHardHind" store
+
+(
+  " flap:legRF1.PGain = dogFlapGainStart sin:dogFlapGainPeriod ampli:dogFlapGainAmplitude," 
+  " flap:legRF2.PGain = dogFlapGainStart-2 sin:dogFlapGainPeriod ampli:dogFlapGainAmplitude," +
+  " flap:legRF3.PGain = dogFlapGainStart sin:dogFlapGainPeriod ampli:dogFlapGainAmplitude," +
+
+  " flap:legLF1.PGain = dogFlapGainStart sin:dogFlapGainPeriod ampli:dogFlapGainAmplitude," +
+  " flap:legLF2.PGain = dogFlapGainStart-2 sin:dogFlapGainPeriod ampli:dogFlapGainAmplitude," +
+  " flap:legLF3.PGain = dogFlapGainStart sin:dogFlapGainPeriod ampli:dogFlapGainAmplitude," +
+  socketSend
+) "dogFlapGainHardFront" store
+
+(
+  "var dogFlapGainPeriod = " swap + "," + socketSend 
+) "dogSetFlapGainPeriod" store
+
+(
+  "var dogFlapGainAmplitude = " swap + "," + socketSend 
+) "dogSetFlapGainAmplitude" store
+
+(
+  "var dogFlapGainStart = " swap + "," + socketSend 
+) "dogSetFlapGainStart" store
+
+(
+  "stop flap;" socketSend
+) "dogStopFlap" store
+
+
+(
+  "tailTilt.PGain = 0, tailPan.PGain = 0," socketSend 
+) "dogRelaxTail" store
+
+(
+  "headTilt.val'n = 0.6 sin:4000 ampli:0.4," socketSend
+  "neck.val'n = 0.4 sin:4000 ampli:0.4 phase:pi," socketSend
+  "mouth.val'n = 0.5 sin:500 ampli:0.5 phase:pi," socketSend
+
+  "headTilt.PGain = 8, headTilt.IGain = 1, headTilt.DGain = 1," socketSend
+  "neck.PGain = 8, neck.IGain = 1, neck.DGain = 1," socketSend
+  "mouth.PGain = 8, mouth.IGain = 0, mouth.DGain = 1," socketSend
+) "dogBabble" store
+
+(
+  "headTilt.val'n = 0.5," socketSend
+  "neck.val'n = 0.5," socketSend
+  "mouth.val'n = 1," socketSend
+
+  "headTilt.PGain = 1, headTilt.IGain = 0, headTilt.DGain = 0," socketSend
+  "neck.PGain = 1, neck.IGain = 0, neck.DGain = 0," socketSend
+  "mouth.PGain = 1, mouth.IGain = 0, mouth.DGain = 0," socketSend
+) "dogUnBabble" store
+
+(
+  "neck.val'n = 0.5 sin:dogFlapPeriod ampli:0.5 phase:pi," socketSend
+  "neck.PGain = 8, neck.IGain = 1, neck.DGain = 1," socketSend
+) "dogFlapNeck" store
+
+(
+  "legs.val->blend = cancel;" socketSend
+  "neck.val->blend = cancel;" socketSend
+  "headPan.val->blend = cancel;" socketSend
+  "headTilt.val->blend = cancel;" socketSend
+  "tailPan.val->blend = cancel;" socketSend
+  "tailTilt.val->blend = cancel;" socketSend
+  "mouth.val->blend = cancel;" socketSend
+
+  "ledBFC.val->blend = cancel;" socketSend
+  "ledBFW.val->blend = cancel;" socketSend
+  "ledBMC.val->blend = cancel;" socketSend
+  "ledBMW.val->blend = cancel;" socketSend
+  "ledBRC.val->blend = cancel;" socketSend
+  "ledBRW.val->blend = cancel;" socketSend
+  "ledF1.val->blend = cancel;" socketSend
+  "ledF2.val->blend = cancel;" socketSend
+  "ledF3.val->blend = cancel;" socketSend
+  "ledF4.val->blend = cancel;" socketSend
+  "ledF5.val->blend = cancel;" socketSend
+  "ledF6.val->blend = cancel;" socketSend
+  "ledF7.val->blend = cancel;" socketSend
+  "ledF8.val->blend = cancel;" socketSend
+  "ledF9.val->blend = cancel;" socketSend
+  "ledF10.val->blend = cancel;" socketSend
+  "ledF11.val->blend = cancel;" socketSend
+  "ledF12.val->blend = cancel;" socketSend
+  "ledF13.val->blend = cancel;" socketSend
+  "ledF14.val->blend = cancel;" socketSend
+  "ledHC.val->blend = cancel;" socketSend
+  "modeR.val->blend = cancel;" socketSend
+  "modeG.val->blend = cancel;" socketSend
+  "modeB.val->blend = cancel;" socketSend
+
+  "earL.val->blend = cancel;" socketSend
+  "earR.val->blend = cancel;" socketSend
+) "dogBlendAll" store
+
+(
+  dogRelaxTail
+
+  1750 dogSetFlapPeriod
+  30 dogSetFlapAmplitude
+  5000 dogSetFlapGainPeriod
+  6 dogSetFlapGainAmplitude
+  8 dogSetFlapGainStart
+
+  dogFlapHardFront
+  dogFlapHardHind
+
+  dogFlapGainHardFront
+  dogFlapGainHardHind
+
+
+) "dogSimpleFlap" store
+
+
+(
+
+  1750 dogSetFlapPeriod
+  30 dogSetFlapAmplitude
+  5000 dogSetFlapGainPeriod
+  6 dogSetFlapGainAmplitude
+  8 dogSetFlapGainStart
+
+  dogBlendAll
+
+  dogFlapHardFront
+  dogFlapHardHind
+  dogFlapGainHardFront
+  dogFlapGainHardHind
+
+
+
+  ( 1 ) ( 
+
+    dogNeedsReinit (
+      dogRelaxTail
+      dogEagle
+      1750 dogSetFlapPeriod
+      30 dogSetFlapAmplitude
+      5000 dogSetFlapGainPeriod
+      6 dogSetFlapGainAmplitude
+      8 dogSetFlapGainStart
+
+      dogBlendAll
+      dogFlapGainHardFront
+      dogFlapGainHardHind
+      dogSignalReinitDone
+
+    ) ift
+
+    dogBabble
+
+    1750 dogSetFlapPeriod
+    30 dogSetFlapAmplitude
+    5000 dogSetFlapGainPeriod
+    6 dogSetFlapGainAmplitude
+    8 dogSetFlapGainStart
+    dogFlapHardFront
+    dogFlapHardHind
+    10 spinForSeconds 
+
+    endStackCollapseNoop
+    1750 dogSetFlapPeriod
+    30 dogSetFlapAmplitude
+    5000 dogSetFlapGainPeriod
+    4 dogSetFlapGainAmplitude
+    10 dogSetFlapGainStart
+    10 spinForSeconds 
+
+    endStackCollapseNoop
+    1500 dogSetFlapPeriod
+    15 dogSetFlapAmplitude
+    5000 dogSetFlapGainPeriod
+    4 dogSetFlapGainAmplitude
+    10 dogSetFlapGainStart
+    10 spinForSeconds 
+
+    endStackCollapseNoop
+    3000 dogSetFlapPeriod
+    35 dogSetFlapAmplitude
+    5000 dogSetFlapGainPeriod
+    6 dogSetFlapGainAmplitude
+    8 dogSetFlapGainStart
+    10 spinForSeconds 
+
+    endStackCollapseNoop
+    3000 dogSetFlapPeriod
+    35 dogSetFlapAmplitude
+    1000 dogSetFlapGainPeriod
+    6 dogSetFlapGainAmplitude
+    8 dogSetFlapGainStart
+    10 spinForSeconds 
+
+    endStackCollapseNoop
+    3000 dogSetFlapPeriod
+    40 dogSetFlapAmplitude
+    3000 dogSetFlapGainPeriod
+    6 dogSetFlapGainAmplitude
+    8 dogSetFlapGainStart
+
+    dogKickHardHind
+    dogKickHardFront
+    10 spinForSeconds 
+
+    endStackCollapseNoop
+    dogFlapHardHind
+    5000 dogSetFlapPeriod
+    35 dogSetFlapAmplitude
+    500 dogSetFlapGainPeriod
+    6 dogSetFlapGainAmplitude
+    8 dogSetFlapGainStart
+    10 spinForSeconds 
+
+    endStackCollapseNoop
+    dogFlapHardFront
+    5000 dogSetFlapPeriod
+    35 dogSetFlapAmplitude
+    500 dogSetFlapGainPeriod
+    6 dogSetFlapGainAmplitude
+    8 dogSetFlapGainStart
+    10 spinForSeconds 
+
+  ) while 
+
+) "dogMultiFlap" store
+
+
+(
+
+  "practice" import dogSummonSqueaky ( endStackCollapseNoop dogSocketDidConnect not ) ( dogSummonSqueaky ) while 15.0 waitForSeconds dogMotorsOn dogEagle 1.0 waitForSeconds dogMultiFlap
+
+) "dogTestStart" store
+
+
+
+(
+  " flap:legRH1.PGain = 10," 
+  " flap:legRH2.PGain = 10," +
+  /* " flap:legRH3.PGain = 10," + */
+  " flap:legRH3.PGain = 10," +
+
+  " flap:legLH1.PGain = 10," +
+  " flap:legLH2.PGain = 10," +
+  " flap:legLH3.PGain = 10," +
+  " flap:legRF1.PGain = 10," +
+  " flap:legRF2.PGain = 10," +
+  " flap:legRF3.PGain = 10," +
+
+  " flap:legLF1.PGain = 10," +
+  " flap:legLF2.PGain = 10," +
+  " flap:legLF3.PGain = 10," +
+  socketSend
+) "dogLegGainOn" store
+
+
+
+
+
+

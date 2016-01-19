@@ -1057,6 +1057,8 @@ class EinConfig {
   waitMode currentWaitMode = WAIT_KEEP_ON;
   int waitUntilAtCurrentPositionCounter = 0;
   int waitUntilAtCurrentPositionCounterTimeout = 300;
+  ros::Time waitUntilAtCurrentPositionStart;
+  double  waitUntilAtCurrentPositionTimeout = 60.0;
   int waitUntilEffortCounter = 0;
   int waitUntilEffortCounterTimeout = 3000;
   ros::Time pressUntilEffortStart;
@@ -1539,6 +1541,8 @@ class EinConfig {
 
   vector<shared_ptr<Scene> > class_scene_models;
   double scene_score_thresh = 0.01;
+
+  vector<shared_ptr<GaussianMap> > depth_maps;
   
 }; // config end
 
