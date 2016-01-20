@@ -1302,7 +1302,6 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 /* 0.3883 "tempReconstructWithZTopZ" store */
  0.3883 "tempReconstructWithZTopZ" store 
 0.20 "tempReconstructWithZTotalZ" store
-tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBottomZ" store
 0.005 "tempReconstructWithZDeltaZ" store
 200 "tempReconstructStreamTakeSceneSamples" store
 (
@@ -1310,6 +1309,7 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
   streamPushImageStreamSize tempReconstructStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
 
   tempReconstructWithZTopZ "tempReconstructWithZThisZ" store
+  tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBottomZ" store
 
   sceneClearDepthStack
 
