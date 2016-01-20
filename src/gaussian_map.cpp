@@ -4713,6 +4713,78 @@ void sceneMinIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<Gau
 
 }
 
+void sceneMarginalizeIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<GaussianMap> toMin) {
+
+// XXX 
+  int t_height = toMin->height;
+  int t_width = toMin->width;
+
+  assert( ms->config.gaussian_map_register->width == t_width );
+  assert( ms->config.gaussian_map_register->height == t_height );
+
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+      if ( (toMin->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
+	double this_observed_sigma_squared = 
+	toMin->refAtCell(x,y)->red.sigmasquared +
+	toMin->refAtCell(x,y)->green.sigmasquared +
+	toMin->refAtCell(x,y)->blue.sigmasquared;
+
+	double this_register_sigma_squared = 
+	ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared +
+	ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared +
+	ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared;
+
+	
+	double thisObservedPixelArea = 1.0;
+	double thisRegisterPixelArea = 1.0;
+	/*
+	{
+	  double meters_scene_x_0, meters_scene_y_0;
+	  ms->config.scene->cellToMeters(0, 0, &meters_scene_x_0, &meters_scene_y_0);
+	  double meters_scene_x_1, meters_scene_y_1;
+	  ms->config.scene->cellToMeters(1, 1, &meters_scene_x_1, &meters_scene_y_1);
+
+	  double zToUse = toMin->refAtCell(x,y)->z.mu;
+	  int pixel_scene_x_0, pixel_scene_y_0;
+	  globalToPixel(ms, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
+	  int pixel_scene_x_1, pixel_scene_y_1;
+	  globalToPixel(ms, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
+
+	  thisObservedPixelArea =  fabs( pixel_scene_x_1 - pixel_scene_x_0 ) * fabs( pixel_scene_y_1 - pixel_scene_y_0 );
+	}
+
+	{
+	  double meters_scene_x_0, meters_scene_y_0;
+	  ms->config.gaussian_map_register->cellToMeters(0, 0, &meters_scene_x_0, &meters_scene_y_0);
+	  double meters_scene_x_1, meters_scene_y_1;
+	  ms->config.gaussian_map_register->cellToMeters(1, 1, &meters_scene_x_1, &meters_scene_y_1);
+
+	  double zToUse = ms->config.gaussian_map_register->refAtCell(x,y)->z.mu;
+	  int pixel_scene_x_0, pixel_scene_y_0;
+	  globalToPixel(ms, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
+	  int pixel_scene_x_1, pixel_scene_y_1;
+	  globalToPixel(ms, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
+
+	  thisRegisterPixelArea = fabs( pixel_scene_x_1 - pixel_scene_x_0 ) * fabs( pixel_scene_y_1 - pixel_scene_y_0 );
+	}
+	
+	
+	thisRegisterPixelArea = std::max(thisRegisterPixelArea, 1.0);
+	thisObservedPixelArea = std::max(thisObservedPixelArea, 1.0);
+	*/
+
+	if ( this_observed_sigma_squared/thisObservedPixelArea < this_register_sigma_squared/thisRegisterPixelArea ) {
+	  *(ms->config.gaussian_map_register->refAtCell(x,y)) = *(toMin->refAtCell(x,y));
+	} else {
+	}
+      } else {
+      }
+    }
+  }
+
+}
+
 WORD(SceneMinIntoRegister)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "sceneMinIntoRegister: copying..." << endl;
@@ -4853,6 +4925,20 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneMinDepthStackIntoRegister)
+
+WORD(SceneMarginalizeDepthStackIntoRegister)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "sceneMarginalizeDepthStackIntoRegister: " << endl;
+
+  int tns = ms->config.depth_maps.size();
+
+  for (int i = 0; i < tns; i++) {
+    cout << "  minning " << i << " with max " << tns << endl;
+    sceneMarginalizeIntoRegisterHelper(ms, ms->config.depth_maps[i]);
+  }
+}
+END_WORD
+REGISTER_WORD(SceneMarginalizeDepthStackIntoRegister)
 
 WORD(SceneRecallDepthStackIndex)
 virtual void execute(std::shared_ptr<MachineState> ms) {
