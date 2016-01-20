@@ -559,7 +559,7 @@ dateString "catScan5VarianceTrialThisTime" store
     0.20 "tempReconstructWithZTotalZ" store
 
     /* XXX save table height rendered  */
-      "table_height_" catScan5VarianceTrialThisFileName ".yml" + +
+      catScan5VarianceTrialThisFileName "_table_height" ".yml" + +
     sceneSaveSceneAbsolute
 
     clearBlueBoxMemories 
