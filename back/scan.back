@@ -549,7 +549,7 @@ dateString "catScan5VarianceTrialThisTime" store
     tempReconstructFromStream
 
     /* XXX save Reconstructed */
-      catScan5VarianceTrialThisFileName "inferred_height" ".yml" + +
+      catScan5VarianceTrialThisFileName "_inferred_height" ".yml" + +
     sceneSaveSceneAbsolute
 
     /* XXX form table height rendered  */
