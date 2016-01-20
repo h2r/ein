@@ -1301,12 +1301,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 /* 0.3883 "tempReconstructWithZTopZ" store */
  0.3883 "tempReconstructWithZTopZ" store 
-0.20 "tempReconstructWithZTotalZ" store
+0.00 "tempReconstructWithZTotalZ" store
 tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBottomZ" store
 0.005 "tempReconstructWithZDeltaZ" store
 (
   sceneInitRegister
-  100 "tempSpiralStreamTakeSceneSamples" store
+  200 "tempSpiralStreamTakeSceneSamples" store
   streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
 
   tempReconstructWithZTopZ "tempReconstructWithZThisZ" store
@@ -1346,11 +1346,14 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
 (
   0.001 setW1GoThresh
   0.01 "tempSpiralMoveSpeed" store
-  0.010 "tempSpiralGridSize" store
+  0.030 "tempSpiralGridSize" store
   /* 0.008 "tempSpiralGridSize" store */
-  100 "tempSpiralStreamTakeSceneSamples" store
 
-  playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
+  /* 
+  10 "tempSpiralStreamTakeSceneSamples" store
+  playWorkspace moveEeToPoseWord 
+  */
+  1 changeToHeight waitUntilAtCurrentPosition
 
   5 "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
@@ -1382,6 +1385,11 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
 ) "tempReconstructPhrases" store
 
 (
+  tempReconstructWithZ sceneRenderZ
+  3.0 sceneSmoothDepthStackInZ sceneInitRegister sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ
+) "tempReconstructFromStreamSmoothed" store
+
+(
     "/home/aibo/catkin_ws/src/ein/default/objects/scene_eval_set"
   setClassLabelsObjectFolderAbsolute
 
@@ -1405,5 +1413,12 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
     0.04 setSpeed pressUntilEffortCombo openGripper liftArm
   ) 10 replicateWord
 ) "tempEvaluateObject" store
+
+
+(
+  tempReconstructTakeScene
+  tempReconstructFromStreamSmoothed
+  tempServoToBestSceneObject
+) "tempReconstructServoToBestSceneObject" store
 
 

@@ -512,6 +512,83 @@ dateString "catScan5VarianceTrialThisTime" store
   pop
 ) "catScan5VarianceTrials" store
 
+(
+  dataDirectory "/objects/" scan_catScanObjectName "/" catScan5VarianceTrialName "/" + + + + + "catScan5VarianceTrialDir" store
+  catScan5VarianceTrialDir mkdirs
+
+  "catScan5VarianceTrialZ BEGINNING" print
+
+  0.1 perturbPositionScale waitUntilAtCurrentPosition
+
+  sceneClearPredictedObjects tempUpdateMaps 
+
+/* XXX Reconstruct Servo */
+
+  10 "tempSpiralStreamTakeSceneSamples" store
+  ( 
+    tempReconstructServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
+  ) 3 replicateWord 
+
+    scenePushNumSceneObjects
+    1
+  = 
+  (
+       dateString
+    "catScan5VarianceTrialThisTime" store
+
+      catScan5VarianceTrialDir "scene_" catScan5VarianceTrialBatchTime "_" catScan5VarianceTrialThisTime + + + + 
+    "catScan5VarianceTrialThisFileName" store
+
+    sceneSetAnnotatedClassNameToFocusedClass
+    sceneSetPredictedClassNameToFocusedClass
+
+
+    200 "tempSpiralStreamTakeSceneSamples" store
+    /* XXX form Reconstructed */
+    0.20 "tempReconstructWithZTotalZ" store
+    tempReconstructFromStreamSmoothed
+
+    /* XXX save Reconstructed */
+      "inferred_height_" catScan5VarianceTrialThisFileName ".yml" + +
+    sceneSaveSceneAbsolute
+
+    /* XXX form table height rendered  */
+    0.00 "tempReconstructWithZTotalZ" store
+    tempReconstructFromStreamSmoothed
+
+    /* XXX save table height rendered  */
+      "table_height_" catScan5VarianceTrialThisFileName ".yml" + +
+    sceneSaveSceneAbsolute
+
+    clearBlueBoxMemories 
+
+      0 
+    sceneMapSceneObject
+  ) (
+    "catScan5VarianceTrialZ: no scene objects, not recording." print
+  ) ifte
+
+  "catScan5VarianceTrialZ ENDING" print
+) "catScan5VarianceTrialZ" store
+
+(
+    /* string argument on stack */
+  "catScan5VarianceTrialName" store
+
+  halfImpulse 
+  10 "tempSpiralStreamTakeSceneSamples" store
+  ( 
+    tempReconstructServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
+  ) 3 replicateWord
+
+    currentPose 
+  ( 
+    catScan5VarianceTrialZ dup moveEeToPoseWord waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
+  ) 5 replicateWord
+  pop
+
+) "catScan5VarianceTrialsZ" store
+
 ( /* expects an eePose on the stack */
   clearClassLabels
   setGraspModeTo3D
