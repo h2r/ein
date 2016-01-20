@@ -23,6 +23,7 @@ public:
     ~EinWindow();
     void showImage(CvMat mat);
     Q_INVOKABLE void updateImage(const Mat image) ;
+    Mat myImage;
     void setMouseCallBack(EinMouseCallback m, void* param);
     void keyPressEvent(QKeyEvent *evnt);
 
@@ -32,8 +33,10 @@ public:
 
     void setVisible(bool);
 
+
 public slots:
     void toggleVisible(bool show);
+    void saveImage();
 
 signals: 
   void visibleChanged(bool visible);
