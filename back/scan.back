@@ -460,7 +460,7 @@ dateString "catScan5VarianceTrialBatchTime" store
 dateString "catScan5VarianceTrialThisTime" store
 "trial" "catScan5VarianceTrialName" store
 (
-  dataDirectory "/objects/" scan_catScanObjectName "/" catScan5VarianceTrialName "/" + + + + + "catScan5VarianceTrialDir" store
+  dataDirectory "/objects/" focusedClassLabel "/" catScan5VarianceTrialName "/" + + + + + "catScan5VarianceTrialDir" store
   catScan5VarianceTrialDir mkdirs
 
   "catScan5VarianceTrial BEGINNING" print
@@ -513,7 +513,7 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5VarianceTrials" store
 
 (
-  dataDirectory "/objects/" scan_catScanObjectName "/" catScan5VarianceTrialName "/" + + + + + "catScan5VarianceTrialDir" store
+  dataDirectory "/objects/" focusedClassLabel "/" catScan5VarianceTrialName "/" + + + + + "catScan5VarianceTrialDir" store
   catScan5VarianceTrialDir mkdirs
 
   "catScan5VarianceTrialZ BEGINNING" print
@@ -524,7 +524,7 @@ dateString "catScan5VarianceTrialThisTime" store
 
 /* XXX Reconstruct Servo */
 
-  10 "tempSpiralStreamTakeSceneSamples" store
+  10 "tempReconstructStreamTakeSceneSamples" store
   ( 
     tempReconstructServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
   ) 3 replicateWord 
@@ -543,18 +543,20 @@ dateString "catScan5VarianceTrialThisTime" store
     sceneSetPredictedClassNameToFocusedClass
 
 
-    200 "tempSpiralStreamTakeSceneSamples" store
+    25 "tempReconstructStreamTakeSceneSamples" store
     /* XXX form Reconstructed */
     0.20 "tempReconstructWithZTotalZ" store
-    tempReconstructFromStreamSmoothed
+    tempReconstructFromStream
 
     /* XXX save Reconstructed */
-      "inferred_height_" catScan5VarianceTrialThisFileName ".yml" + +
+      catScan5VarianceTrialThisFileName "inferred_height" ".yml" + +
     sceneSaveSceneAbsolute
 
     /* XXX form table height rendered  */
     0.00 "tempReconstructWithZTotalZ" store
-    tempReconstructFromStreamSmoothed
+    tempReconstructFromStream
+
+    0.20 "tempReconstructWithZTotalZ" store
 
     /* XXX save table height rendered  */
       "table_height_" catScan5VarianceTrialThisFileName ".yml" + +
@@ -575,8 +577,10 @@ dateString "catScan5VarianceTrialThisTime" store
     /* string argument on stack */
   "catScan5VarianceTrialName" store
 
+  catScan5LoadPlayBg
+
   halfImpulse 
-  10 "tempSpiralStreamTakeSceneSamples" store
+  10 "tempReconstructStreamTakeSceneSamples" store
   ( 
     tempReconstructServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
   ) 3 replicateWord

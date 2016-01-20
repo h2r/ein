@@ -1301,13 +1301,13 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 /* 0.3883 "tempReconstructWithZTopZ" store */
  0.3883 "tempReconstructWithZTopZ" store 
-0.00 "tempReconstructWithZTotalZ" store
+0.20 "tempReconstructWithZTotalZ" store
 tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBottomZ" store
 0.005 "tempReconstructWithZDeltaZ" store
+200 "tempReconstructStreamTakeSceneSamples" store
 (
   sceneInitRegister
-  200 "tempSpiralStreamTakeSceneSamples" store
-  streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
+  streamPushImageStreamSize tempReconstructStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
 
   tempReconstructWithZTopZ "tempReconstructWithZThisZ" store
 
@@ -1327,7 +1327,7 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
 
     sceneClearObservedMap
     rewindImageStreamBufferNLNK 
-    ( tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZ ( incrementImageStreamBufferNoLoadNoKick ) tempSpiralStreamTakeSceneStride replicateWord endStackCollapseNoop ) tempSpiralStreamTakeSceneSamples replicateWord
+    ( tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZ ( incrementImageStreamBufferNoLoadNoKick ) tempSpiralStreamTakeSceneStride replicateWord endStackCollapseNoop ) tempReconstructStreamTakeSceneSamples replicateWord
 
     /*
     sceneSmoothSquaredCountsAndSamplesXY
@@ -1344,16 +1344,20 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
 ) "tempReconstructWithZ" store
 
 (
+  quarterImpulse
+  1 changeToHeight 
+  shiftIntoGraspGear1
+  waitUntilAtCurrentPosition
+
   0.001 setW1GoThresh
   0.01 "tempSpiralMoveSpeed" store
   0.030 "tempSpiralGridSize" store
   /* 0.008 "tempSpiralGridSize" store */
 
   /* 
-  10 "tempSpiralStreamTakeSceneSamples" store
+  10 "tempReconstructStreamTakeSceneSamples" store
   playWorkspace moveEeToPoseWord 
   */
-  1 changeToHeight waitUntilAtCurrentPosition
 
   5 "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
@@ -1362,11 +1366,18 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
   sceneClearObservedMap
   clearStreamBuffers
 
+
   tempUpdateSpiralCoreNoClean tempUpdateMaps
 
   /* integrate results */
+  /*
   tempUpdateSpiralCoreIntegrate
+  */
+  tempReconstructFromStream
+  sceneRenderZ
+  
 
+  quarterImpulse
   tempUpdateSpiralPos moveEeToPoseWord
   waitUntilAtCurrentPosition
 ) "tempReconstructTakeScene" store
@@ -1379,15 +1390,19 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
 ) "tempReconstructTakeSceneMid" store
 
 (
-  "scene" import playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition tempReconstructTakeScene tempReconstructWithZ sceneRenderZ
+  "scene" import playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition tempReconstructTakeScene 
+  /* 
   catScan5LoadPlayBg tempUpdateMaps 0.1 sceneTrimDepthWithDiscrepancy sceneRenderZ
-  3.0 sceneSmoothDepthStackInZ sceneInitRegister sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ
+  3.0 sceneSmoothDepthStackInZ sceneInitRegister sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ tempUpdateMaps
+  */
 ) "tempReconstructPhrases" store
 
 (
   tempReconstructWithZ sceneRenderZ
-  3.0 sceneSmoothDepthStackInZ sceneInitRegister sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ
-) "tempReconstructFromStreamSmoothed" store
+  /* 
+  3.0 sceneSmoothDepthStackInZ sceneInitRegister sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ tempUpdateMaps
+  */
+) "tempReconstructFromStream" store
 
 (
     "/home/aibo/catkin_ws/src/ein/default/objects/scene_eval_set"
@@ -1417,8 +1432,9 @@ tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBotto
 
 (
   tempReconstructTakeScene
-  tempReconstructFromStreamSmoothed
+  quarterImpulse
   tempServoToBestSceneObject
+  pixelServoPutGripperUnderVanishingPoint waitUntilAtCurrentPosition 
 ) "tempReconstructServoToBestSceneObject" store
 
 
