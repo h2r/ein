@@ -1648,14 +1648,30 @@ WORD(PixelServoPutVanishingPointUnderGripper)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double vpx = 0.0;
   double vpy = 0.0;
-  double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-  pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &vpx, &vpy);
+  double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
+  pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &vpx, &vpy, ms->config.currentEEPose);
 
   ms->config.currentEEPose.px = vpx;
   ms->config.currentEEPose.py = vpy;
 }
 END_WORD
 REGISTER_WORD(PixelServoPutVanishingPointUnderGripper)
+
+WORD(PixelServoPutGripperUnderVanishingPoint)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double vpx = 0.0;
+  double vpy = 0.0;
+  double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
+  pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &vpx, &vpy, ms->config.currentEEPose);
+
+  double gpx = ms->config.currentEEPose.px;
+  double gpy = ms->config.currentEEPose.py;
+
+  ms->config.currentEEPose.px = gpx + (gpx - vpx);
+  ms->config.currentEEPose.py = gpy + (gpy - vpy);
+}
+END_WORD
+REGISTER_WORD(PixelServoPutGripperUnderVanishingPoint)
 
 WORD(PixelServoPickUnderVanishingPoint)
 virtual void execute(std::shared_ptr<MachineState> ms) {

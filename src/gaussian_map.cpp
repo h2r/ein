@@ -4719,6 +4719,7 @@ void sceneMinIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<Gau
 void sceneMarginalizeIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<GaussianMap> toMin) {
 
 // XXX 
+// XXX  NOT DONE TODO
   int t_height = toMin->height;
   int t_width = toMin->width;
 
