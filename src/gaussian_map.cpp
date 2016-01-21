@@ -121,12 +121,14 @@ void _GaussianMapCell::multS(double scalar) {
   red.multS(scalar);
   green.multS(scalar);
   blue.multS(scalar);
+  z.multS(scalar);
 }  
 
 void _GaussianMapCell::addC(_GaussianMapCell * cell) {
   red.addC(&(cell->red));
   green.addC(&(cell->green));
   blue.addC(&(cell->blue));
+  z.addC(&(cell->z));
 }  
 
 void GaussianMap::multS(double scalar) {
@@ -4539,7 +4541,7 @@ REGISTER_WORD(SceneFabricateIdealBlockModel)
 
 
 
-WORD(SceneInitRegister)
+WORD(SceneInitRegisterMax)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "sceneInitRegister: copying and maxing variances..." << endl;
   ms->config.gaussian_map_register = ms->config.scene->observed_map->copy();
@@ -4555,7 +4557,25 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 }
 END_WORD
-REGISTER_WORD(SceneInitRegister)
+REGISTER_WORD(SceneInitRegisterMax)
+
+WORD(SceneInitRegisterZero)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "sceneInitRegister: copying and maxing variances..." << endl;
+  ms->config.gaussian_map_register = ms->config.scene->observed_map->copy();
+  int t_height = ms->config.gaussian_map_register->height;
+  int t_width = ms->config.gaussian_map_register->width;
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+      ms->config.gaussian_map_register->refAtCell(x,y)->zero();
+      ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared = 0;
+      ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared = 0;
+      ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared = 0;
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneInitRegisterZero)
 
 WORD(SceneRecallFromRegister)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -4739,7 +4759,6 @@ void sceneMarginalizeIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared
 	ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared +
 	ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared;
 
-	
 	double thisObservedPixelArea = 1.0;
 	double thisRegisterPixelArea = 1.0;
 	/*
@@ -4748,16 +4767,13 @@ void sceneMarginalizeIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared
 	  ms->config.scene->cellToMeters(0, 0, &meters_scene_x_0, &meters_scene_y_0);
 	  double meters_scene_x_1, meters_scene_y_1;
 	  ms->config.scene->cellToMeters(1, 1, &meters_scene_x_1, &meters_scene_y_1);
-
 	  double zToUse = toMin->refAtCell(x,y)->z.mu;
 	  int pixel_scene_x_0, pixel_scene_y_0;
 	  globalToPixel(ms, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
 	  int pixel_scene_x_1, pixel_scene_y_1;
 	  globalToPixel(ms, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
-
 	  thisObservedPixelArea =  fabs( pixel_scene_x_1 - pixel_scene_x_0 ) * fabs( pixel_scene_y_1 - pixel_scene_y_0 );
 	}
-
 	{
 	  double meters_scene_x_0, meters_scene_y_0;
 	  ms->config.gaussian_map_register->cellToMeters(0, 0, &meters_scene_x_0, &meters_scene_y_0);
@@ -4769,17 +4785,20 @@ void sceneMarginalizeIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared
 	  globalToPixel(ms, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
 	  int pixel_scene_x_1, pixel_scene_y_1;
 	  globalToPixel(ms, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
-
 	  thisRegisterPixelArea = fabs( pixel_scene_x_1 - pixel_scene_x_0 ) * fabs( pixel_scene_y_1 - pixel_scene_y_0 );
 	}
-	
-	
 	thisRegisterPixelArea = std::max(thisRegisterPixelArea, 1.0);
 	thisObservedPixelArea = std::max(thisObservedPixelArea, 1.0);
 	*/
 
-	if ( this_observed_sigma_squared/thisObservedPixelArea < this_register_sigma_squared/thisRegisterPixelArea ) {
-	  *(ms->config.gaussian_map_register->refAtCell(x,y)) = *(toMin->refAtCell(x,y));
+	// weight by normalizing function
+	if (this_observed_sigma_squared > 1.0) {
+	  double rescalar = 1.0;
+	  cout << " hit " << this_observed_sigma_squared << " " ;
+	  GaussianMapCell toAdd = *(toMin->refAtCell(x,y));
+	  toAdd.multS(rescalar/sqrt(this_observed_sigma_squared * 2.0 * M_PI));
+	  ms->config.gaussian_map_register->refAtCell(x,y)->addC(&toAdd);
+	  ms->config.gaussian_map_register->refAtCell(x,y)->recalculateMusAndSigmas(ms);
 	} else {
 	}
       } else {
@@ -4937,7 +4956,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int tns = ms->config.depth_maps.size();
 
   for (int i = 0; i < tns; i++) {
-    cout << "  minning " << i << " with max " << tns << endl;
+    cout << "  marginalizing" << i << " with max " << tns << endl;
     sceneMarginalizeIntoRegisterHelper(ms, ms->config.depth_maps[i]);
   }
 }

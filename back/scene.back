@@ -1301,11 +1301,11 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 /* 0.3883 "tempReconstructWithZTopZ" store */
  0.3883 "tempReconstructWithZTopZ" store 
-0.20 "tempReconstructWithZTotalZ" store
+0.16 "tempReconstructWithZTotalZ" store
 0.005 "tempReconstructWithZDeltaZ" store
-200 "tempReconstructStreamTakeSceneSamples" store
+10 "tempReconstructStreamTakeSceneSamples" store
 (
-  sceneInitRegister
+  sceneInitRegisterZero
   streamPushImageStreamSize tempReconstructStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
 
   tempReconstructWithZTopZ "tempReconstructWithZThisZ" store
@@ -1335,11 +1335,22 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     */
 
     scenePushOntoDepthStack
+
+    /*
     sceneMinIntoRegister
+    */
+
     tempReconstructWithZThisZ tempReconstructWithZDeltaZ - "tempReconstructWithZThisZ" store
   ) while
 
-  sceneRecallFromRegister
+  /*
+  sceneMinDepthStackIntoRegister 
+  */
+  sceneMarginalizeDepthStackIntoRegister
+
+  sceneRecallFromRegister 
+
+  sceneRenderZ 
   sceneRenderObservedMap
 ) "tempReconstructWithZ" store
 
@@ -1374,8 +1385,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   tempUpdateSpiralCoreIntegrate
   */
   tempReconstructFromStream
-  sceneRenderZ
-  
+  tempUpdateMaps
 
   quarterImpulse
   tempUpdateSpiralPos moveEeToPoseWord
@@ -1391,16 +1401,17 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   "scene" import playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition tempReconstructTakeScene 
+
   /* 
   catScan5LoadPlayBg tempUpdateMaps 0.1 sceneTrimDepthWithDiscrepancy sceneRenderZ
-  3.0 sceneSmoothDepthStackInZ sceneInitRegister sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ tempUpdateMaps
+  3.0 sceneSmoothDepthStackInZ sceneInitRegisterMax sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ tempUpdateMaps
   */
 ) "tempReconstructPhrases" store
 
 (
-  tempReconstructWithZ sceneRenderZ
+  tempReconstructWithZ 
   /* 
-  3.0 sceneSmoothDepthStackInZ sceneInitRegister sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ tempUpdateMaps
+  3.0 sceneSmoothDepthStackInZ sceneInitRegisterMax sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ tempUpdateMaps
   */
 ) "tempReconstructFromStream" store
 
