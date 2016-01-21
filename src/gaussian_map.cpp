@@ -627,8 +627,8 @@ void GaussianMap::rgbSigmaToMat(Mat& out) {
       big.at<Vec3b>(y,x)[2] = uchar(sqrt(refAtCell(x,y)->red.sigmasquared) * 4);
     }
   }
-  cout << "max: " << max_val << endl;
-  cout << "min: " << min_val << endl;
+  //cout << "max: " << max_val << endl;
+  //cout << "min: " << min_val << endl;
   out = big;
 }
 
