@@ -607,6 +607,31 @@ void GaussianMap::rgbSigmaSquaredToMat(Mat& out) {
   }
 }
 
+void GaussianMap::rgbSigmaToMat(Mat& out) {
+  Mat big = Mat(height, width, CV_8UC3);
+  double max_val = -DBL_MAX;
+  double min_val = DBL_MAX;
+  
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+
+      double bval = sqrt(refAtCell(x,y)->blue.sigmasquared);
+      if (bval > max_val) {
+	max_val = bval;
+      }
+      if (bval < min_val) {
+	min_val = bval;
+      }
+      big.at<Vec3b>(y,x)[0] = uchar(sqrt(refAtCell(x,y)->blue.sigmasquared) * 4);
+      big.at<Vec3b>(y,x)[1] = uchar(sqrt(refAtCell(x,y)->green.sigmasquared) * 4);
+      big.at<Vec3b>(y,x)[2] = uchar(sqrt(refAtCell(x,y)->red.sigmasquared) * 4);
+    }
+  }
+  cout << "max: " << max_val << endl;
+  cout << "min: " << min_val << endl;
+  out = big;
+}
+
 void GaussianMap::rgbCountsToMat(Mat& out) {
   out = Mat(height, width, CV_64FC3);
   for (int y = 0; y < height; y++) {
@@ -3420,11 +3445,21 @@ REGISTER_WORD(SceneUpdateObservedFromStreamBuffer)
 
 WORD(SceneRenderObservedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  Mat image;
-  ms->config.scene->observed_map->rgbMuToMat(image);
-  Mat rgb = image.clone();  
-  cvtColor(image, rgb, CV_YCrCb2BGR);
-  ms->config.observedWindow->updateImage(rgb);
+  {
+    Mat image;
+    ms->config.scene->observed_map->rgbMuToMat(image);
+    Mat rgb = image.clone();  
+    cvtColor(image, rgb, CV_YCrCb2BGR);
+    ms->config.observedWindow->updateImage(rgb);
+  }
+
+  {
+    Mat image;
+    ms->config.scene->observed_map->rgbSigmaToMat(image);
+    Mat rgb = image.clone();  
+    //cvtColor(image, rgb, CV_YCrCb2BGR);
+    ms->config.observedStdDevWindow->updateImage(rgb);
+  }
 }
 END_WORD
 REGISTER_WORD(SceneRenderObservedMap)
@@ -3449,11 +3484,21 @@ REGISTER_WORD(SceneComposePredictedMapThreshed)
 
 WORD(SceneRenderPredictedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  Mat image;
-  ms->config.scene->predicted_map->rgbMuToMat(image);
-  Mat rgb = image.clone();  
-  cvtColor(image, rgb, CV_YCrCb2BGR);
-  ms->config.predictedWindow->updateImage(rgb);
+  {
+    Mat image;
+    ms->config.scene->predicted_map->rgbMuToMat(image);
+    Mat rgb = image.clone();  
+    cvtColor(image, rgb, CV_YCrCb2BGR);
+    ms->config.predictedWindow->updateImage(rgb);
+  }
+
+  {
+    Mat image;
+    ms->config.scene->predicted_map->rgbSigmaToMat(image);
+    Mat rgb = image.clone();  
+    //cvtColor(image, rgb, CV_YCrCb2BGR);
+    ms->config.predictedStdDevWindow->updateImage(rgb);
+  }
 }
 END_WORD
 REGISTER_WORD(SceneRenderPredictedMap)
