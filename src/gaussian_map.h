@@ -86,6 +86,7 @@ class GaussianMap {
   void rgbSigmaSquaredToMat(Mat& out);
   void rgbCountsToMat(Mat& out);
   void rgbSquaredCountsToMat(Mat& out);
+  void rgbSigmaToMat(Mat& out);
 
   void zMuToMat(Mat& out);
   void zSigmaSquaredToMat(Mat& out);
