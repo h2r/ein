@@ -287,18 +287,17 @@ void GaussianMap::reallocate() {
     if (width % 2 == 0) {
       cout << "GaussianMap parity error: tried to allocate width: " << width << " " << height << endl;
       width = width+1;
-    } else {}
+    } 
     if (height % 2 == 0) {
       cout << "GaussianMap parity error: tried to allocate height: " << width << " " << height << endl;
       height = height+1;
-    } else {}
+    } 
 
-    if (cells == NULL) {
-      cells = new GaussianMapCell[width*height];
-    } else {
+    if (cells != NULL) {
       delete cells;
-      cells = new GaussianMapCell[width*height];
+
     }
+    cells = new GaussianMapCell[width*height];
   }
 }
 
@@ -316,8 +315,7 @@ GaussianMap::~GaussianMap() {
   if (cells != NULL) {
     delete cells;
     cells = NULL;
-  } else {
-  }
+  } 
 }
 
 int GaussianMap::safeAt(int x, int y) {
@@ -853,6 +851,18 @@ Scene::Scene(shared_ptr<MachineState> _ms, int w, int h, double cw) {
 }
 
 void Scene::reallocate() {
+  if (width <= 0 || height <= 0) {
+    cout << "Scene area error: tried to allocate width, height: " << width << " " << height << endl;
+  } else {
+    if (width % 2 == 0) {
+      cout << "Scene parity error: tried to allocate width: " << width << " " << height << endl;
+      width = width+1;
+    } 
+    if (height % 2 == 0) {
+      cout << "Scene parity error: tried to allocate height: " << width << " " << height << endl;
+      height = height+1;
+    } 
+  }
   background_map = make_shared<GaussianMap>(width, height, cell_width);
   predicted_map = make_shared<GaussianMap>(width, height, cell_width);
   predicted_segmentation = Mat(height, width, CV_64F);
@@ -2231,18 +2241,36 @@ void Scene::readFromFileNode(FileNode& it) {
 
   FileNode node = it["predicted_objects"];
   readPredictedObjects(node);
-  
+
+  cout << "Loading predicted segmentation...";
   node = it["predicted_segmentation"];
   predicted_segmentation = readMatFromYaml(node);
+  cout << "done" << endl;
 
+  cout << "Loading discrepancy magnitude...";
   node = it["discrepancy_magnitude"];
   discrepancy_magnitude = readMatFromYaml(node);
+  cout << "done" << endl;
 
+  cout << "Loading discrepancy density...";
   node = it["discrepancy_density"];
   discrepancy_density = readMatFromYaml(node);
+  cout << "done" << endl;
 
+  if (discrepancy_density.rows != width || discrepancy_density.cols != height) {
+    ROS_ERROR_STREAM("Discrepancy density has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_density.rows << "x" << discrepancy_density.cols);
+    discrepancy_density = Mat(height, width, CV_64F);
+  }
 
-  //cout << discrepancy_density.size() << discrepancy_magnitude.size() << width << " " << height << endl;
+  if (discrepancy_magnitude.rows != width || discrepancy_magnitude.cols != height) {
+    ROS_ERROR_STREAM("Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_magnitude.rows << "x" << discrepancy_magnitude.cols);
+    discrepancy_magnitude = Mat(height, width, CV_64F);
+  }
+
+  if (predicted_segmentation.rows != width || predicted_segmentation.cols != height) {
+    ROS_ERROR_STREAM("Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << predicted_segmentation.rows << "x" << predicted_segmentation.cols);
+    predicted_segmentation = Mat(height, width, CV_64F);
+  }
 
 }
 
@@ -2484,7 +2512,6 @@ WORD(SceneLoadSceneRaw)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   string file;
   GET_STRING_ARG(ms, file);
-  cout << "Loading scene " << file << endl;
   ms->config.scene->loadFromFile(file);
   ms->pushWord("sceneRenderScene");
 }
@@ -3128,6 +3155,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneInit)
 
+WORD(SceneInitSmall)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double p_cell_width = 0.0025; //0.01;
+  int p_width = 50; // 601;
+  int p_height = 50; // 601;
+  ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
+  ms->pushWord("sceneRenderScene");
+}
+END_WORD
+REGISTER_WORD(SceneInitSmall)
+
+
 WORD(SceneClearObservedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.scene->observed_map->zero();
@@ -3530,7 +3569,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }
 
-  
+  //cout << "scene: " << ms->config.scene.get() << endl;
+  //cout << "discrepancy_density: " << ms->config.scene->discrepancy_density << endl;
   ms->config.discrepancyDensityWindow->updateImage(ms->config.scene->discrepancy_density);
   // XXX considered changing this because it looked wrong
   //ms->config.discrepancyDensityWindow->updateImage(densityImage);
