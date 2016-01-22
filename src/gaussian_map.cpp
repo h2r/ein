@@ -2257,19 +2257,26 @@ void Scene::readFromFileNode(FileNode& it) {
   discrepancy_density = readMatFromYaml(node);
   cout << "done" << endl;
 
+  bool error = false;
   if (discrepancy_density.rows != width || discrepancy_density.cols != height) {
     ROS_ERROR_STREAM("Discrepancy density has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_density.rows << "x" << discrepancy_density.cols);
     discrepancy_density = Mat(height, width, CV_64F);
+    error = true;
   }
 
   if (discrepancy_magnitude.rows != width || discrepancy_magnitude.cols != height) {
     ROS_ERROR_STREAM("Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_magnitude.rows << "x" << discrepancy_magnitude.cols);
     discrepancy_magnitude = Mat(height, width, CV_64F);
+    error = true;
   }
 
   if (predicted_segmentation.rows != width || predicted_segmentation.cols != height) {
     ROS_ERROR_STREAM("Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << predicted_segmentation.rows << "x" << predicted_segmentation.cols);
     predicted_segmentation = Mat(height, width, CV_64F);
+  }
+  
+  if (error) {
+    measureDiscrepancy();
   }
 
 }
