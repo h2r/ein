@@ -5091,6 +5091,21 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneCoalesceClassHarmonics)
 
+WORD(SceneSaveObservedMapImage)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string fname;
+  GET_STRING_ARG(ms, fname);
+  
+  Mat image;
+  ms->config.scene->observed_map->rgbMuToMat(image);
+  Mat rgb = image.clone();  
+  cvtColor(image, rgb, CV_YCrCb2BGR);
+  cout << "Writing " << fname << endl;
+  imwrite(fname, rgb);
+
+}
+END_WORD
+REGISTER_WORD(SceneSaveObservedMapImage)
 
 
 /*
