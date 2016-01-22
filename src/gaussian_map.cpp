@@ -4884,15 +4884,18 @@ void sceneMarginalizeIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared
 	*/
 
 	// weight by normalizing function
-	if (this_observed_sigma_squared > 1.0) {
 	  double rescalar = 1.0;
-	  cout << " hit " << this_observed_sigma_squared << " " ;
+	  //cout << " hit " << this_observed_sigma_squared << " " ;
 	  GaussianMapCell toAdd = *(toMin->refAtCell(x,y));
 	  toAdd.multS(rescalar/sqrt(this_observed_sigma_squared * 2.0 * M_PI));
 	  ms->config.gaussian_map_register->refAtCell(x,y)->addC(&toAdd);
+
+	  if ( ( ms->config.gaussian_map_register->refAtCell(x,y)->red.samples < 1.1 ) &&
+	       ( ms->config.gaussian_map_register->refAtCell(x,y)->red.samples > 0.0 ) ) {
+	    ms->config.gaussian_map_register->refAtCell(x,y)->multS( 1.0 / ms->config.gaussian_map_register->refAtCell(x,y)->red.samples ); 
+	  } else {}
+
 	  ms->config.gaussian_map_register->refAtCell(x,y)->recalculateMusAndSigmas(ms);
-	} else {
-	}
       } else {
       }
     }
@@ -5072,6 +5075,25 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneRecallDepthStackIndex)
 
+WORD(SceneSpawnClassHarmonics)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+
+}
+END_WORD
+REGISTER_WORD(SceneSpawnClassHarmonics)
+
+WORD(SceneCoalesceClassHarmonics)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+
+}
+END_WORD
+REGISTER_WORD(SceneCoalesceClassHarmonics)
+
+
+
+/*
 WORD(SceneUpdateObservedFromStreamBufferAtZWithRecastThroughDepthStack)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 // updates entire stack from bottom up
@@ -5079,7 +5101,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZWithRecastThroughDepthStack)
 
-/*
 WORD(SceneTrimDepthWithDiscrepancy)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 }
