@@ -1341,6 +1341,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
     scenePushOntoDepthStack
 
+      "zoom_figure_" tempReconstructWithZThisZ + 
+    sceneSaveScene
+
     /*
     sceneMinIntoRegister
     */
