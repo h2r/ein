@@ -3,6 +3,8 @@
 #include "mainwindow.h"
 
 #include <QTest>
+#include <boost/algorithm/string.hpp>
+
 
 EinWindow::EinWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
     QMainWindow(parent),
@@ -21,10 +23,12 @@ EinWindow::EinWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
 
 void EinWindow::saveImage() {
   cout << "Saving image." << endl;
-  QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
+  QString qFileName = QFileDialog::getSaveFileName(this, tr("Save File"),
 						  ".",
 						  tr("Images (*.png *.jpg)"));
-  cout << "filename: " << fileName.toStdString() << endl;
+  string fileName = qFileName.toStdString();
+  
+  cout << "filename: " << fileName << endl;
   cout << "channels: " << myImage.channels() << endl;
   cout << "type: " << myImage.type() << endl;
   Mat dst;
@@ -36,8 +40,16 @@ void EinWindow::saveImage() {
   }
 
   cout << "dst channels: " << dst.channels() << endl;
-  
-  imwrite(fileName.toStdString(), dst);
+
+  if (boost::algorithm::ends_with(fileName, "jpg") || 
+      boost::algorithm::ends_with(fileName, "png") || 
+      boost::algorithm::ends_with(fileName, "ppm") || 
+      boost::algorithm::ends_with(fileName, "tif") || 
+      boost::algorithm::ends_with(fileName, "bmp")) {
+    imwrite(fileName, dst);
+  } else {
+    ROS_ERROR_STREAM("Bad extension for " << fileName << endl);
+  }
 }
 
 void EinWindow::updateImage(const Mat image)  {
