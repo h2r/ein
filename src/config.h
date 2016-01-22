@@ -614,7 +614,9 @@ class EinConfig {
   EinWindow * discrepancyDensityWindow;
   EinWindow * zWindow;
   EinWindow * observedWindow;
+  EinWindow * observedStdDevWindow;
   EinWindow * predictedWindow;
+  EinWindow * predictedStdDevWindow;
   ArmWidget * armWidget;
 
   int last_key;
