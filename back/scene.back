@@ -1334,6 +1334,11 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     0.1 sceneTrimDepthWithDiscrepancy
     */
 
+/*
+      "zFigure_" tempReconstructWithZThisZ +
+    sceneSaveScene
+*/
+
     scenePushOntoDepthStack
 
     /*

@@ -4877,7 +4877,7 @@ void sceneMarginalizeIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared
 	*/
 
 	// weight by normalizing function
-	  double rescalar = 1.0;
+	  double rescalar = 1024.0;
 	  //cout << " hit " << this_observed_sigma_squared << " " ;
 	  GaussianMapCell toAdd = *(toMin->refAtCell(x,y));
 	  toAdd.multS(rescalar/sqrt(this_observed_sigma_squared * 2.0 * M_PI));
