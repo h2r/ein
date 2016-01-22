@@ -2192,12 +2192,17 @@ void activateSensorStreaming(std::shared_ptr<MachineState> ms) {
 }
 
 void deactivateSensorStreaming(std::shared_ptr<MachineState> ms) {
+  cout << "deactivateSensorStreaming: Making node handle." << endl;
   ros::NodeHandle n("~");
+  cout << "deactivateSensorStreaming: Making image transport." << endl;
   image_transport::ImageTransport it(n);
   ms->config.sensorStreamOn = 0;
   // restore those queue sizes to defaults.
+  cout << "deactivateSensorStreaming: Subscribe to endpoint_state." << endl;
   ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, &MachineState::endpointCallback, ms.get());
+  cout << "deactivateSensorStreaming: Subscribe to hand_range." << endl;
   ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, &MachineState::rangeCallback, ms.get());
+  cout << "deactivateSensorStreaming: Subscribe to image." << endl;
   ms->config.image_sub = it.subscribe(ms->config.image_topic, 1, &MachineState::imageCallback, ms.get());
 
   if (ms->config.diskStreamingEnabled) {
@@ -14795,10 +14800,23 @@ void initializeArmGui(shared_ptr<MachineState> ms, MainWindow * einMainWindow) {
   einMainWindow->addWindow(ms->config.observedWindow);
   ms->config.observedWindow->setVisible(true);
 
+  ms->config.observedStdDevWindow = new EinWindow(NULL, ms);
+  ms->config.observedStdDevWindow->setWindowTitle("Gaussian Map Observed Std Dev View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.observedStdDevWindow);
+  ms->config.observedStdDevWindow->setVisible(true);
+
+
+
   ms->config.predictedWindow = new EinWindow(NULL, ms);
   ms->config.predictedWindow->setWindowTitle("Gaussian Map Predicted View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.predictedWindow);
   ms->config.predictedWindow->setVisible(true);
+
+  ms->config.predictedStdDevWindow = new EinWindow(NULL, ms);
+  ms->config.predictedStdDevWindow->setWindowTitle("Gaussian Map Predicted Std Dev View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.predictedStdDevWindow);
+  ms->config.predictedStdDevWindow->setVisible(true);
+
 
   ms->config.discrepancyWindow = new EinWindow(NULL, ms);
   ms->config.discrepancyWindow->setWindowTitle("Gaussian Map Discrepancy View " + ms->config.left_or_right_arm);
@@ -14814,6 +14832,7 @@ void initializeArmGui(shared_ptr<MachineState> ms, MainWindow * einMainWindow) {
   ms->config.zWindow->setWindowTitle("Gaussian Map Z View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.zWindow);
   ms->config.zWindow->setVisible(true);
+
 
 
   //createTrackbar("post_density_sigma", ms->config.densityViewerName, &ms->config.postDensitySigmaTrackbarVariable, 40);
