@@ -518,7 +518,10 @@ dateString "catScan5VarianceTrialThisTime" store
 
   "catScan5VarianceTrialZ BEGINNING" print
 
+  /*
   0.1 perturbPositionScale waitUntilAtCurrentPosition
+  */
+  0.05 perturbPositionScale waitUntilAtCurrentPosition
 
   sceneClearPredictedObjects tempUpdateMaps 
 
@@ -527,7 +530,7 @@ dateString "catScan5VarianceTrialThisTime" store
   10 "tempReconstructStreamTakeSceneSamples" store
   ( 
     tempReconstructServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
-  ) 3 replicateWord 
+  ) 2 replicateWord 
 
     scenePushNumSceneObjects
     1
@@ -545,18 +548,24 @@ dateString "catScan5VarianceTrialThisTime" store
 
     25 "tempReconstructStreamTakeSceneSamples" store
     /* XXX form Reconstructed */
-    0.20 "tempReconstructWithZTotalZ" store
+    0.16 "tempReconstructWithZTotalZ" store
     tempReconstructFromStream
 
     /* XXX save Reconstructed */
-      catScan5VarianceTrialThisFileName "_inferred_height" ".yml" + +
+      catScan5VarianceTrialThisFileName "_marginals_height" ".yml" + +
+    sceneSaveSceneAbsolute
+
+    sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ sceneRenderObservedMap
+    tempUpdateMaps
+
+      catScan5VarianceTrialThisFileName "_maximum_likelihood_height" ".yml" + +
     sceneSaveSceneAbsolute
 
     /* XXX form table height rendered  */
     0.00 "tempReconstructWithZTotalZ" store
     tempReconstructFromStream
 
-    0.20 "tempReconstructWithZTotalZ" store
+    0.16 "tempReconstructWithZTotalZ" store
 
     /* XXX save table height rendered  */
       catScan5VarianceTrialThisFileName "_table_height" ".yml" + +
@@ -583,7 +592,7 @@ dateString "catScan5VarianceTrialThisTime" store
   10 "tempReconstructStreamTakeSceneSamples" store
   ( 
     tempReconstructServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
-  ) 3 replicateWord
+  ) 2 replicateWord
 
     currentPose 
   ( 
@@ -839,6 +848,16 @@ dateString "catScan5VarianceTrialThisTime" store
   0.01 setGridSize ( xDown ) 6 replicateWord waitUntilAtCurrentPosition
  */
   6 3 4 tempUpdateSpiralEccentricCore tempUpdateMaps
+
+
+/*
+    100 "tempReconstructStreamTakeSceneSamples" store
+    /* XXX form Reconstructed */
+    0.20 "tempReconstructWithZTotalZ" store
+    tempReconstructFromStream
+*/
+
+
   "catScan5PlayBg" "_" leftOrRightArm + + sceneSaveObservedMap
   catScan5LoadPlayBg
 ) "catScan5UpdatePlayBg" store
