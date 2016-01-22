@@ -532,52 +532,65 @@ dateString "catScan5VarianceTrialThisTime" store
     tempReconstructServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
   ) 2 replicateWord 
 
+
+
+     dateString
+  "catScan5VarianceTrialThisTime" store
+
+
     scenePushNumSceneObjects
     1
   = 
   (
-       dateString
-    "catScan5VarianceTrialThisTime" store
 
       catScan5VarianceTrialDir "scene_" catScan5VarianceTrialBatchTime "_" catScan5VarianceTrialThisTime + + + + 
     "catScan5VarianceTrialThisFileName" store
 
-    sceneSetAnnotatedClassNameToFocusedClass
-    sceneSetPredictedClassNameToFocusedClass
-
-
-    25 "tempReconstructStreamTakeSceneSamples" store
-    /* XXX form Reconstructed */
-    0.16 "tempReconstructWithZTotalZ" store
-    tempReconstructFromStream
-
-    /* XXX save Reconstructed */
-      catScan5VarianceTrialThisFileName "_marginals_height" ".yml" + +
-    sceneSaveSceneAbsolute
-
-    sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ sceneRenderObservedMap
-    tempUpdateMaps
-
-      catScan5VarianceTrialThisFileName "_maximum_likelihood_height" ".yml" + +
-    sceneSaveSceneAbsolute
-
-    /* XXX form table height rendered  */
-    0.00 "tempReconstructWithZTotalZ" store
-    tempReconstructFromStream
-
-    0.16 "tempReconstructWithZTotalZ" store
-
-    /* XXX save table height rendered  */
-      catScan5VarianceTrialThisFileName "_table_height" ".yml" + +
-    sceneSaveSceneAbsolute
-
-    clearBlueBoxMemories 
-
-      0 
-    sceneMapSceneObject
   ) (
-    "catScan5VarianceTrialZ: no scene objects, not recording." print
+    "catScan5VarianceTrialZ: no scene objects, recording with different label." print
+
+      catScan5VarianceTrialDir "no_objects_scene_" catScan5VarianceTrialBatchTime "_" catScan5VarianceTrialThisTime + + + + 
+    "catScan5VarianceTrialThisFileName" store
+
   ) ifte
+
+
+  sceneSetAnnotatedClassNameToFocusedClass
+  sceneSetPredictedClassNameToFocusedClass
+
+
+  25 "tempReconstructStreamTakeSceneSamples" store
+  /* XXX form Reconstructed */
+  0.16 "tempReconstructWithZTotalZ" store
+  tempReconstructFromStream
+
+  /* XXX save Reconstructed */
+    catScan5VarianceTrialThisFileName "_marginals_height" ".yml" + +
+  sceneSaveSceneAbsolute
+
+  sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ sceneRenderObservedMap
+  tempUpdateMaps
+
+    catScan5VarianceTrialThisFileName "_maximum_likelihood_height" ".yml" + +
+  sceneSaveSceneAbsolute
+
+  /* XXX form table height rendered  */
+  0.00 "tempReconstructWithZTotalZ" store
+  tempReconstructFromStream
+
+  0.16 "tempReconstructWithZTotalZ" store
+
+  /* XXX save table height rendered  */
+    catScan5VarianceTrialThisFileName "_table_height" ".yml" + +
+  sceneSaveSceneAbsolute
+
+  clearBlueBoxMemories 
+
+    0 
+  sceneMapSceneObject
+
+
+
 
   "catScan5VarianceTrialZ ENDING" print
 ) "catScan5VarianceTrialZ" store
