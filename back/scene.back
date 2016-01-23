@@ -1299,11 +1299,13 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   sceneClearPredictedObjects tempPredictAndRenderBest clearBlueBoxMemories 0 sceneMapSceneObject
 ) "tempClassifyOne" store
 
-/* 0.3883 "tempReconstructWithZTopZ" store */
- 0.3883 "tempReconstructWithZTopZ" store 
-0.16 "tempReconstructWithZTotalZ" store
+/* 
+0.3883 "tempReconstructWithZTopZ" store 
+*/
+0.3983 "tempReconstructWithZTopZ" store 
+0.20 "tempReconstructWithZTotalZ" store
 0.005 "tempReconstructWithZDeltaZ" store
-25 "tempReconstructStreamTakeSceneSamples" store
+100 "tempReconstructStreamTakeSceneSamples" store
 (
   sceneInitRegisterZero
   streamPushImageStreamSize tempReconstructStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
@@ -1327,28 +1329,56 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
     sceneClearObservedMap
     rewindImageStreamBufferNLNK 
-    ( tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZ ( incrementImageStreamBufferNoLoadNoKick ) tempSpiralStreamTakeSceneStride replicateWord endStackCollapseNoop ) tempReconstructStreamTakeSceneSamples replicateWord
+    ( 
+      tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalc 
 
-    /*
+
+      ( 
+	incrementImageStreamBufferNoLoadNoKick 
+      ) tempSpiralStreamTakeSceneStride replicateWord 
+
+/*
+      sceneRecalculateObservedMusAndSigmas
+      sceneRenderObservedMap
+*/
+
+      endStackCollapseNoop 
+    ) tempReconstructStreamTakeSceneSamples replicateWord
+
+    sceneRecalculateObservedMusAndSigmas
+    sceneRenderObservedMap
+  
+/*
     sceneSmoothSquaredCountsAndSamplesXY
     0.1 sceneTrimDepthWithDiscrepancy
-    */
+*/
 
-    scenePushOntoDepthStack
-
-      "zoom_figure_" tempReconstructWithZThisZ + 
+/*
+      "zFigure_" tempReconstructWithZThisZ +
     sceneSaveScene
 
-    /*
+*/
+
+      "high_zoom_figure_" tempReconstructWithZThisZ + 
+    sceneSaveScene
+
+/*
+*/
+    scenePushOntoDepthStack
+
+
+/*
     sceneMinIntoRegister
-    */
+*/
 
     tempReconstructWithZThisZ tempReconstructWithZDeltaZ - "tempReconstructWithZThisZ" store
   ) while
 
-  /*
+
+
+/*
   sceneMinDepthStackIntoRegister 
-  */
+*/
   sceneMarginalizeDepthStackIntoRegister
 
   sceneRecallFromRegister 
@@ -1363,9 +1393,19 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   shiftIntoGraspGear1
   waitUntilAtCurrentPosition
 
+  /*
   0.001 setW1GoThresh
-  0.01 "tempSpiralMoveSpeed" store
-  0.030 "tempSpiralGridSize" store
+  0.020 "tempSpiralGridSize" store
+  */
+  0.005 setW1GoThresh
+  /*
+  0.0325 "tempSpiralGridSize" store
+  */
+  0.01625 "tempSpiralGridSize" store
+
+90 setMapGrayBoxPixelSkirtRows 140 setMapGrayBoxPixelSkirtCols
+
+  0.02 "tempSpiralMoveSpeed" store
   /* 0.008 "tempSpiralGridSize" store */
 
   /* 
@@ -1373,7 +1413,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   playWorkspace moveEeToPoseWord 
   */
 
-  5 "tempUpdateSpiralN" store
+  12 "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
 
   /* clear it all */
