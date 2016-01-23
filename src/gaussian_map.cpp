@@ -1449,7 +1449,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   Mat prepared_object = object_to_prepare;
 
   double p_discrepancy_thresh = ms->config.scene_score_thresh;
-  double overlap_thresh = 0.05;
+  double overlap_thresh = 0.01;
   if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
   } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
 
@@ -3915,6 +3915,13 @@ vector<double> poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vecto
     cout << " i " << i << " size: " << scene_files.size() << endl;
     shared_ptr<Scene> this_scene = make_shared<Scene>(ms, 3, 3, 0.02);
     this_scene->loadFromFile(scene_files[i]);
+
+    this_scene->predicted_objects.resize(0);
+    this_scene->composePredictedMap(0.01);
+    this_scene->measureDiscrepancy();
+    this_scene->tryToAddBestObjectToScene();
+
+
     scenes.push_back(this_scene);
   }
   } catch( ... ) {
@@ -3933,27 +3940,28 @@ vector<double> poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vecto
     shared_ptr<Scene> this_scene = scenes[i];
     if (this_scene->predicted_objects.size() != 1) {
       ROS_ERROR("Must be exactly one predicted object in these scenes.");
+    } else {
+      shared_ptr<SceneObject> predictedObject = this_scene->predicted_objects[0];
+
+      eePose scene_pose = predictedObject->scene_pose;
+      double roll, pitch, yaw;
+      scene_pose.getRollPitchYaw(&roll, &pitch, &yaw);
+      //this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
+
+      double this_theta = yaw;
+      double this_x = scene_pose.px;
+      double this_y = scene_pose.py;
+      cout << "Got pose: " << this_x << ", " << this_y << " and theta " << this_theta << endl;
+      
+      // integrate
+      sum_x += this_x;
+      sum_y += this_y;
+      sum_theta += this_theta;
+      sum_x_squared += this_x*this_x;
+      sum_y_squared += this_y*this_y;
+      sum_theta_squared += this_theta*this_theta;
+      counts++;
     }
-    shared_ptr<SceneObject> predictedObject = this_scene->predicted_objects[0];
-
-    eePose scene_pose = predictedObject->scene_pose;
-    double roll, pitch, yaw;
-    scene_pose.getRollPitchYaw(&roll, &pitch, &yaw);
-    //this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
-
-    double this_theta = yaw;
-    double this_x = scene_pose.px;
-    double this_y = scene_pose.py;
-    cout << "Got pose: " << this_x << ", " << this_y << " and theta " << this_theta << endl;
-    
-    // integrate
-    sum_x += this_x;
-    sum_y += this_y;
-    sum_theta += this_theta;
-    sum_x_squared += this_x*this_x;
-    sum_y_squared += this_y*this_y;
-    sum_theta_squared += this_theta*this_theta;
-    counts++;
   }
 
   double safe_counts = std::max(counts, 1.0);
@@ -3967,24 +3975,27 @@ vector<double> poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vecto
   vector<double> result;
   for (int i = 0; i < scenes.size(); i++) {
     shared_ptr<Scene> this_scene = scenes[i];
-    shared_ptr<SceneObject> predictedObject = this_scene->predicted_objects[0];
+    if (this_scene->predicted_objects.size() != 1) {
+      ROS_ERROR("Must be exactly one predicted object in these scenes.");
+    } else {
+      shared_ptr<SceneObject> predictedObject = this_scene->predicted_objects[0];
 
-    eePose scene_pose = predictedObject->scene_pose;
-    double roll, pitch, yaw;
-    scene_pose.getRollPitchYaw(&roll, &pitch, &yaw);
-    //this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
+      eePose scene_pose = predictedObject->scene_pose;
+      double roll, pitch, yaw;
+      scene_pose.getRollPitchYaw(&roll, &pitch, &yaw);
+      //this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
 
-    double this_theta = yaw;
-    double this_x = scene_pose.px;
-    double this_y = scene_pose.py;
+      double this_theta = yaw;
+      double this_x = scene_pose.px;
+      double this_y = scene_pose.py;
 
 
-    double squaredist = pow(mean_x  - this_x, 2) + pow(mean_y - this_y, 2);
-    double dist = sqrt(squaredist);
-    result.push_back(dist);
-    sum_dist_squared += squaredist;
-    sum_dist += dist;
-      
+      double squaredist = pow(mean_x  - this_x, 2) + pow(mean_y - this_y, 2);
+      double dist = sqrt(squaredist);
+      result.push_back(dist);
+      sum_dist_squared += squaredist;
+      sum_dist += dist;
+    }
   }
 
 
