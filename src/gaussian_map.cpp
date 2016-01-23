@@ -327,11 +327,11 @@ int GaussianMap::safeBilinAt(int x, int y) {
 
 GaussianMapCell *GaussianMap::refAtCell(int x, int y) {
   if (x < 0 || x >= width) {
-    ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad x. " << x << " width: " << width);
+    // XXX ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad x. " << x << " width: " << width);
     return NULL;
   }
   if (y < 0 || y >= height) {
-    ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad y. " << y << " height: " << height);
+    // XXX ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad y. " << y << " height: " << height);
     return NULL;
   }
   
@@ -3153,9 +3153,10 @@ REGISTER_WORD(SceneIsNewConfiguration)
 
 WORD(SceneInit)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  double p_cell_width = 0.0025; //0.01;
-  int p_width = 1001; // 601;
-  int p_height = 1001; // 601;
+// XXX UNDO THIS
+  double p_cell_width = 0.00175; //0.0025; //0.01;
+  int p_width = 1501; // 1001 // 601;
+  int p_height = 1501; // 1001 / 601;
   ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
   ms->pushWord("sceneRenderScene");
 }
@@ -4679,6 +4680,21 @@ REGISTER_WORD(SceneRecallFromRegister)
 
 WORD(SceneUpdateObservedFromStreamBufferAtZ)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("sceneUpdateObservedFromStreamBufferAtZNoRecalc sceneRecalculateObservedMusAndSigmas sceneRenderObservedMap");
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZ)
+
+WORD(SceneRecalculateObservedMusAndSigmas)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "sceneRecalculateObservedMusAndSigmas: ." << endl;
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+}
+END_WORD
+REGISTER_WORD(SceneRecalculateObservedMusAndSigmas)
+
+WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalc)
+virtual void execute(std::shared_ptr<MachineState> ms) {
   double z_to_use = 0.0;
   GET_NUMERIC_ARG(ms, z_to_use);
 
@@ -4751,11 +4767,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
     }
   }
-  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
-  ms->pushWord("sceneRenderObservedMap");
+  //ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
 }
 END_WORD
-REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZ)
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalc)
 
 void sceneMinIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<GaussianMap> toMin) {
 
@@ -4884,15 +4899,21 @@ void sceneMarginalizeIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared
 	*/
 
 	// weight by normalizing function
-	  double rescalar = 1024.0;
+	  double rescalar = 128.0;
+	  double resamples = 256.0;
 	  //cout << " hit " << this_observed_sigma_squared << " " ;
 	  GaussianMapCell toAdd = *(toMin->refAtCell(x,y));
+	  // renormalize
+	  //toAdd.multS(resamples/toAdd.red.samples);
+	  //  actually the map is smoother and more consistent when the sample information is kept
+
+	  this_observed_sigma_squared = max(this_observed_sigma_squared, 1.0);
 	  toAdd.multS(rescalar/sqrt(this_observed_sigma_squared * 2.0 * M_PI));
 	  ms->config.gaussian_map_register->refAtCell(x,y)->addC(&toAdd);
 
 	  if ( ( ms->config.gaussian_map_register->refAtCell(x,y)->red.samples < 1.1 ) &&
 	       ( ms->config.gaussian_map_register->refAtCell(x,y)->red.samples > 0.0 ) ) {
-	    ms->config.gaussian_map_register->refAtCell(x,y)->multS( 1.0 / ms->config.gaussian_map_register->refAtCell(x,y)->red.samples ); 
+	    //ms->config.gaussian_map_register->refAtCell(x,y)->multS( 1.0 / ms->config.gaussian_map_register->refAtCell(x,y)->red.samples ); 
 	  } else {}
 
 	  ms->config.gaussian_map_register->refAtCell(x,y)->recalculateMusAndSigmas(ms);
