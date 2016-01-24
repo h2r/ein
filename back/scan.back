@@ -871,7 +871,6 @@ dateString "catScan5VarianceTrialThisTime" store
 
 /*
     100 "tempReconstructStreamTakeSceneSamples" store
-    /* XXX form Reconstructed */
     0.20 "tempReconstructWithZTotalZ" store
     tempReconstructFromStream
 */
