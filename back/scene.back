@@ -1503,7 +1503,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempReconstructTakeSceneMid" store
 
 (
-  "scene" import playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition tempReconstructTakeScene 
+  playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition tempReconstructTakeScene 
 
   /* 
   catScan5LoadPlayBg tempUpdateMaps 0.1 sceneTrimDepthWithDiscrepancy sceneRenderZ
