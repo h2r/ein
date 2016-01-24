@@ -3154,9 +3154,9 @@ REGISTER_WORD(SceneIsNewConfiguration)
 WORD(SceneInit)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 // XXX UNDO THIS
-  double p_cell_width = 0.00175; //0.0025; //0.01;
-  int p_width = 1501; // 1001 // 601;
-  int p_height = 1501; // 1001 / 601;
+  double p_cell_width = 0.0025;//0.00175; //0.0025; //0.01;
+  int p_width = 1001; //1501; // 1001 // 601;
+  int p_height = 1001; //1501; // 1001 / 601;
   ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
   ms->pushWord("sceneRenderScene");
 }

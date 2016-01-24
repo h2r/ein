@@ -860,7 +860,12 @@ dateString "catScan5VarianceTrialThisTime" store
   playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
   0.01 setGridSize ( xDown ) 6 replicateWord waitUntilAtCurrentPosition
  */
+
+ /*
   6 3 4 tempUpdateSpiralEccentricCore tempUpdateMaps
+ */
+
+  tempReconstructTakeScene
 
 
 /*

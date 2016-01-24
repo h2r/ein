@@ -1302,10 +1302,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 /* 
 0.3883 "tempReconstructWithZTopZ" store 
 */
-0.3983 "tempReconstructWithZTopZ" store 
-0.20 "tempReconstructWithZTotalZ" store
-0.005 "tempReconstructWithZDeltaZ" store
-100 "tempReconstructStreamTakeSceneSamples" store
+0.3883 "tempReconstructWithZTopZ" store 
+0.16 "tempReconstructWithZTotalZ" store
+0.01 "tempReconstructWithZDeltaZ" store
+50 "tempReconstructStreamTakeSceneSamples" store
 (
   sceneInitRegisterZero
   streamPushImageStreamSize tempReconstructStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
@@ -1403,9 +1403,13 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   */
   0.01625 "tempSpiralGridSize" store
 
+/*
+90 setMapGrayBoxPixelSkirtRows 140 setMapGrayBoxPixelSkirtCols
+20 setMapGrayBoxPixelSkirtRows 40 setMapGrayBoxPixelSkirtCols
+*/
 90 setMapGrayBoxPixelSkirtRows 140 setMapGrayBoxPixelSkirtCols
 
-  0.02 "tempSpiralMoveSpeed" store
+  0.025 "tempSpiralMoveSpeed" store
   /* 0.008 "tempSpiralGridSize" store */
 
   /* 
