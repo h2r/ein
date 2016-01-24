@@ -5128,6 +5128,23 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneSaveObservedMapImage)
 
+WORD(SceneFocusedClassDepthStackClear)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(SceneFocusedClassDepthStackClear)
+
+WORD(SceneFocusedClassDepthStackPushObserved)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(SceneFocusedClassDepthStackPushObserved)
+
+WORD(SceneFocusedClassDepthStackLoadAndPushRaw)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(SceneFocusedClassDepthStackLoadAndPushRaw)
 
 /*
 WORD(SceneUpdateObservedFromStreamBufferAtZWithRecastThroughDepthStack)
