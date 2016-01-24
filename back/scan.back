@@ -559,7 +559,7 @@ dateString "catScan5VarianceTrialThisTime" store
   sceneSetPredictedClassNameToFocusedClass
 
 
-  25 "tempReconstructStreamTakeSceneSamples" store
+  100 "tempReconstructStreamTakeSceneSamples" store
   /* XXX form Reconstructed */
   0.16 "tempReconstructWithZTotalZ" store
   tempReconstructFromStream
@@ -862,10 +862,11 @@ dateString "catScan5VarianceTrialThisTime" store
  */
 
  /*
-  6 3 4 tempUpdateSpiralEccentricCore tempUpdateMaps
+  tempReconstructTakeScene
  */
 
-  tempReconstructTakeScene
+  6 3 4 tempUpdateSpiralEccentricCore tempUpdateMaps
+
 
 
 /*
