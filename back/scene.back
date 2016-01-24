@@ -1440,6 +1440,61 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempReconstructTakeScene" store
 
 (
+  quarterImpulse
+  1 changeToHeight 
+  shiftIntoGraspGear1
+  waitUntilAtCurrentPosition
+
+  /*
+  0.001 setW1GoThresh
+  0.020 "tempSpiralGridSize" store
+  */
+  0.005 setW1GoThresh
+  /*
+  0.0325 "tempSpiralGridSize" store
+  0.01625 "tempSpiralGridSize" store
+  */
+  0.0325 "tempSpiralGridSize" store
+
+/*
+  90 setMapGrayBoxPixelSkirtRows 140 setMapGrayBoxPixelSkirtCols
+  20 setMapGrayBoxPixelSkirtRows 40 setMapGrayBoxPixelSkirtCols
+*/
+  20 setMapGrayBoxPixelSkirtRows 40 setMapGrayBoxPixelSkirtCols
+
+  0.025 "tempSpiralMoveSpeed" store
+  /* 
+  0.008 "tempSpiralGridSize" store 
+  */
+
+  /* 
+  10 "tempReconstructStreamTakeSceneSamples" store
+  playWorkspace moveEeToPoseWord 
+  */
+
+  8 "tempUpdateSpiralN" store
+  currentPose "tempUpdateSpiralPos" store
+
+  /* clear it all */
+  sceneClearObservedMap
+  clearStreamBuffers
+
+
+  tempUpdateSpiralCoreNoClean tempUpdateMaps
+
+  /* integrate results */
+  /*
+  tempUpdateSpiralCoreIntegrate
+  */
+  tempReconstructFromStream
+  tempUpdateMaps
+
+  quarterImpulse
+  tempUpdateSpiralPos moveEeToPoseWord
+  waitUntilAtCurrentPosition
+) "tempReconstructTakeSceneWide" store
+
+(
   0.001 setW1GoThresh
   0.03 "tempSpiralMoveSpeed" store
   0.01 "tempSpiralGridSize" store
