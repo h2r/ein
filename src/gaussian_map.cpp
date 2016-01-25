@@ -71,11 +71,14 @@ double computeLogLikelihood(GaussianMapChannel & channel1, GaussianMapChannel & 
   double likelihood = computeEnergy(channel1, channel2);
 
   return likelihood - log(total);*/
-  double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
-  double energy = 1.0 / (2.0 * safesigmasquared1) * pow(channel2.mu - channel1.mu, 2);
-  double normalized = -0.5 * log(2 * M_PI) - 0.5 * log(safesigmasquared1) - energy;
-  return normalized;
-  
+  if (channel2.samples < 10) {
+    return log(-256000000.0);
+  } else {
+    double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
+    double energy = 1.0 / (2.0 * safesigmasquared1) * pow(channel2.mu - channel1.mu, 2);
+    double normalized = -0.5 * log(2 * M_PI) - 0.5 * log(safesigmasquared1) - energy;
+    return normalized;
+  }
 }
 
 void computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * likelihood, double * channel_term_out) {
@@ -1323,7 +1326,7 @@ double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
 */
 	    if ( 
 		(predicted_map->refAtCell(x,y)->red.samples > 0) &&   
-		(observed_map->refAtCell(x,y)->red.samples > 0) &&
+		//(observed_map->refAtCell(x,y)->red.samples > 0) &&
 		(tos->observed_map->refAtCell(cells_object_x,cells_object_y)->red.samples > 0) 
 	       ) {
 	      GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
@@ -1351,7 +1354,7 @@ double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
 	      score -= computeLogLikelihood(predicted_cell->red, observed_cell->red);
 	      score -= computeLogLikelihood(predicted_cell->green, observed_cell->green);
 	      score -= computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
-	    }
+	    } 
 	  } else {
 	  }
 	} else {
@@ -5315,8 +5318,14 @@ WORD(SceneRegularizeSceneL2)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double decay = 1.0;
   GET_NUMERIC_ARG(ms, decay);
-
-  ms->config.scene->observed_map->multS(decay);
+  for (int y = 0; y < ms->config.scene->height; y++) {
+    for (int x = 0; x < ms->config.scene->width; x++) {
+      if (ms->config.scene->observed_map->refAtCell(x, y)->red.samples > 40) {
+	ms->config.scene->observed_map->refAtCell(x,y)->multS(decay);
+      }
+    }
+  }
+  //ms->config.scene->observed_map->multS(decay);
   ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
 }
 END_WORD
