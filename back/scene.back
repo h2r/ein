@@ -1551,3 +1551,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempReconstructServoToBestSceneObject" store
 
 
+
+(
+  sceneClearPredictedObjects 
+  scenePredictFocusedObject 
+  sceneComposePredictedMap 
+  sceneRenderScene 
+  sceneAddPredictedToObserved
+  sceneRenderScene 
+) "tempMergeFocusedClass" store
