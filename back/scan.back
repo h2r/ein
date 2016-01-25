@@ -3,7 +3,7 @@
 10 "catScan_dropHeight" store 
 100 "pileSwitchThreshold" store
 
-10 "scan_catScanLimit" store
+1 "scan_catScanLimit" store
 0 "scan_catPickLimit" store
 
 leftOrRightArm "right" =
@@ -559,7 +559,7 @@ dateString "catScan5VarianceTrialThisTime" store
   sceneSetPredictedClassNameToFocusedClass
 
 
-  25 "tempReconstructStreamTakeSceneSamples" store
+  100 "tempReconstructStreamTakeSceneSamples" store
   /* XXX form Reconstructed */
   0.16 "tempReconstructWithZTotalZ" store
   tempReconstructFromStream
@@ -862,15 +862,15 @@ dateString "catScan5VarianceTrialThisTime" store
  */
 
  /*
-  6 3 4 tempUpdateSpiralEccentricCore tempUpdateMaps
+  tempReconstructTakeScene
  */
 
-  tempReconstructTakeScene
+  6 3 4 tempUpdateSpiralEccentricCore tempUpdateMaps
+
 
 
 /*
     100 "tempReconstructStreamTakeSceneSamples" store
-    /* XXX form Reconstructed */
     0.20 "tempReconstructWithZTotalZ" store
     tempReconstructFromStream
 */
