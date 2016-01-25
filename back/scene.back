@@ -1561,7 +1561,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   scenePredictFocusedObject 
   tempUpdateMaps
   /*  sceneAddPredictedToObserved */
-  1.0 sceneAddDiscrepantPredictedToObserved 
+  .10 sceneAddDiscrepantPredictedToObserved 
   sceneRenderScene  endStackCollapseNoop
 ) "tempMergeFocusedClass" store
 
@@ -1595,7 +1595,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     sceneClearPredictedObjects
     0 0 0 sceneAddPredictedFocusedObject 
     tempUpdateMaps
-    sceneAddPredictedToObserved
+    1.0 sceneAddDiscrepantPredictedToObserved
   ) numClasses replicateWord
 ) "tempLoadAverageModel" store
 
@@ -1604,21 +1604,23 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   sceneClearPredictedObjects
   0 0 0 sceneAddPredictedFocusedObject 
   tempUpdateMaps
-  sceneAddPredictedToObserved
+  1.0 sceneAddDiscrepantPredictedToObserved
 ) "tempLoadFirstModel" store
 
 
 (
   sceneClearObservedMap
-
+  10000 sceneSetDiscrepancySearchDepth
+  0.5 sceneSetScoreThresh
   sceneInit
-  128 128 128 sceneLoadMonochromeBackground
+  128 128 128 sceneLoadMonochromeBackground 
   "bgtemp" sceneSaveBackgroundMap
-  "bgtemp" sceneLoadObservedMap
+  "bgtemp" sceneLoadObservedMap 
+  sceneClearObservedMap
   /* tempRegularizeBackground */ 
 
-  /*  tempLoadAverageModel */
-  tempLoadFirstModel
+  /* tempLoadAverageModel */
+  tempLoadFirstModel  
 
   sceneClearPredictedObjects  tempUpdateMaps  sceneRenderObservedMap
 
