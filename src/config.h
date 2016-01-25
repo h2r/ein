@@ -1348,6 +1348,8 @@ class EinConfig {
   double mapBlueBoxCooldown = 180; // cooldown is a temporal skirt
   int mapGrayBoxPixelSkirtRows = 60;
   int mapGrayBoxPixelSkirtCols = 110;
+  int mapGrayBoxPixelWaistRows = 0;
+  int mapGrayBoxPixelWaistCols = 0;
   int ikMap[mapWidth * mapHeight];
   int clearanceMap[mapWidth * mapHeight];
   int drawClearanceMap = 1;

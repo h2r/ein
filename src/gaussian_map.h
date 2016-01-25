@@ -163,6 +163,7 @@ class Scene {
   Scene(shared_ptr<MachineState> ms, int w, int h, double cw);
   void reallocate();
 
+  vector< shared_ptr<GaussianMap> > depth_stack;
   eePose background_pose;
   shared_ptr<GaussianMap> background_map;
   shared_ptr<GaussianMap> predicted_map;
