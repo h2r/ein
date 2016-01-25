@@ -183,6 +183,7 @@ class Scene {
   bool isDiscrepantCellBilin(double threshold, double x, double y);
   bool isDiscrepantMetersBilin(double threshold, double x, double y);
   void composePredictedMap(double threshold=0.5);
+  void addPredictedObjectsToObservedMap(double threshold=0.5);
   void initializePredictedMapWithBackground();
   void measureDiscrepancy();
   double computeProbabilityOfMap();
