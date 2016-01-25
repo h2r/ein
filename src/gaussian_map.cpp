@@ -526,7 +526,7 @@ void GaussianMap::loadFromFile(string filename) {
   cout << "done." << endl;
 }
 
-
+CONFIG_GETTER_INT(SceneNumPredictedObjects, ms->config.scene->predicted_objects.size());
 CONFIG_GETTER_DOUBLE(SceneMinSigmaSquared, ms->config.sceneMinSigmaSquared)
 CONFIG_SETTER_DOUBLE(SceneSetMinSigmaSquared, ms->config.sceneMinSigmaSquared)
 
@@ -1729,7 +1729,7 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   cellToMeters(l_max_x, l_max_y, &l_max_x_meters, &l_max_y_meters);
   cout << "  loglikelihood says: " << endl;
   cout << l_max_x << " " << l_max_y << " " << l_max_orient << " " << l_max_x_meters << " " << l_max_y_meters << " " << 
-    l_max_theta << endl << "l_max_score: " << l_max_score << " l_max_i: " << l_max_i << endl;
+    l_max_theta << endl << "l_max_score: " << l_max_score << " l_max_i: " << l_max_i << " search depth: " << ms->config.sceneDiscrepancySearchDepth << endl;
 
   //if (max_x > -1)
   if (l_max_score > -DBL_MAX)
@@ -5107,8 +5107,30 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneRecallDepthStackIndex)
 
+WORD(SceneAddPredictedToObserved)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+  shared_ptr<Scene> focusedScene = ms->config.class_scene_models[tfc];
+
+  ms->config.scene->observed_map->addM(ms->config.scene->predicted_map);
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+
+}
+END_WORD
+REGISTER_WORD(SceneAddPredictedToObserved)
+
+
 WORD(SceneSpawnClassHarmonics)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+
+  vector<shared_ptr<Scene> > scenes;
+
+  for (double s = 0.1; s < 2; s += 0.1) {
+    //shared_ptr<Scene> scene = make_shared<Scene>();
+    //ms->config.class_scene_models[tfc]->clone();
+    //scenes.push_back(scene);
+  }
 
 
 }

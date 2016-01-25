@@ -29,7 +29,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempCaptureCore" store
 
 (
-  3.0 sceneSetBackgroundStdDevY
+  7.0 sceneSetBackgroundStdDevY
   1.0 sceneSetBackgroundStdDevColor
 ) "tempRegularizeBackground" store
 
@@ -49,7 +49,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 0.01 "scenePredictedMapThreshDefault" store
 scenePredictedMapThreshDefault "scenePredictedMapThresh" store
 (
-  scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+  sceneScoreThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
 ) "tempUpdateMaps" store
 
 (
@@ -839,7 +839,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   "tempUpdateSpiral, pointing to another" print
-  7 tempUpdateSpiralCore
+  10 tempUpdateSpiralCore
 ) "tempUpdateSpiral" store
 
 (
@@ -1196,7 +1196,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 
 (
-  ( tempShortServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord
+  ( tempSpiralServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 1 replicateWord
 
   0 sceneMapSceneObject
   recordPreTargetLock
@@ -1556,8 +1556,28 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 (
   sceneClearPredictedObjects 
   scenePredictFocusedObject 
-  sceneComposePredictedMap 
-  sceneRenderScene 
+  tempUpdateMaps
   sceneAddPredictedToObserved
   sceneRenderScene 
 ) "tempMergeFocusedClass" store
+
+(
+  sceneClearPredictedObjects
+  scenePredictFocusedObject
+  tempUpdateMaps sceneRenderScene
+) "tempPredictFocusedObject" store
+
+
+(
+  sceneLoadFocusedObjectModel 
+    ( incrementTargetClass tempMergeFocusedClass ) 
+    numClasses 1 - 
+  replicateWord
+
+  /* initializeAndFocusOnNewClass
+  0.1 sceneGrabDiscrepantCropAsClass
+  writeFocusedClass */
+
+) "tempCreateClassScene" store
+
+
