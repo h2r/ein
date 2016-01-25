@@ -1449,7 +1449,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   Mat prepared_object = object_to_prepare;
 
   double p_discrepancy_thresh = ms->config.scene_score_thresh;
-  double overlap_thresh = 0.01;
+  double overlap_thresh = 0.001;
   if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
   } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
 
@@ -4762,6 +4762,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       if (isInGripperMask(ms, px, py)) {
 	continue;
       }
+
+      if ( (ms->config.mapGrayBoxPixelWaistRows > 0) && (ms->config.mapGrayBoxPixelWaistCols > 0) ) {
+	if ( (py > imH/2.0 - ms->config.mapGrayBoxPixelWaistRows) && (py < imH/2.0 + ms->config.mapGrayBoxPixelWaistRows) &&
+	     (px > imW/2.0 - ms->config.mapGrayBoxPixelWaistCols) && (px < imW/2.0 + ms->config.mapGrayBoxPixelWaistCols) ) {
+	  continue;
+	} 
+      } 
+
       double x, y;
       pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
       
@@ -5156,6 +5164,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneFocusedClassDepthStackLoadAndPushRaw)
+
+
+WORD(SceneRegularizeSceneL2)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double decay = 1.0;
+  GET_NUMERIC_ARG(ms, decay);
+
+  ms->config.scene->observed_map->multS(decay);
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+}
+END_WORD
+REGISTER_WORD(SceneRegularizeSceneL2)
 
 /*
 WORD(SceneUpdateObservedFromStreamBufferAtZWithRecastThroughDepthStack)

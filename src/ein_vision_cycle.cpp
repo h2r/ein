@@ -716,6 +716,12 @@ CONFIG_SETTER_INT(SetMapGrayBoxPixelSkirtCols, ms->config.mapGrayBoxPixelSkirtCo
 CONFIG_GETTER_INT(MapGrayBoxPixelSkirtRows, ms->config.mapGrayBoxPixelSkirtRows)
 CONFIG_SETTER_INT(SetMapGrayBoxPixelSkirtRows, ms->config.mapGrayBoxPixelSkirtRows)
 
+CONFIG_GETTER_INT(MapGrayBoxPixelWaistCols, ms->config.mapGrayBoxPixelWaistCols)
+CONFIG_SETTER_INT(SetMapGrayBoxPixelWaistCols, ms->config.mapGrayBoxPixelWaistCols)
+
+CONFIG_GETTER_INT(MapGrayBoxPixelWaistRows, ms->config.mapGrayBoxPixelWaistRows)
+CONFIG_SETTER_INT(SetMapGrayBoxPixelWaistRows, ms->config.mapGrayBoxPixelWaistRows)
+
 CONFIG_GETTER_INT(MapFreeSpacePixelSkirt, ms->config.mapFreeSpacePixelSkirt)
 CONFIG_SETTER_INT(SetMapFreeSpacePixelSkirt, ms->config.mapFreeSpacePixelSkirt)
 
