@@ -130,6 +130,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetTargetClass)
 
+WORD(SetTargetClassIdx)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int class_idx;
+  GET_INT_ARG(ms, class_idx);
+  changeTargetClass(ms, class_idx);
+}
+END_WORD
+REGISTER_WORD(SetTargetClassIdx)
+
+
 WORD(SetTargetClassToLastLabelLearned)
 CODE(1179730)     // capslock + numlock + r
 virtual void execute(std::shared_ptr<MachineState> ms) {
