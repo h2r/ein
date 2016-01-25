@@ -29,8 +29,8 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempCaptureCore" store
 
 (
-  15.0 sceneSetBackgroundStdDevY
-  11.0 sceneSetBackgroundStdDevColor
+  3.0 sceneSetBackgroundStdDevY
+  1.0 sceneSetBackgroundStdDevColor
 ) "tempRegularizeBackground" store
 
 ( 
@@ -1303,9 +1303,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 0.3883 "tempReconstructWithZTopZ" store 
 */
 0.3883 "tempReconstructWithZTopZ" store 
-0.16 "tempReconstructWithZTotalZ" store
+0.0 "tempReconstructWithZTotalZ" store
 0.01 "tempReconstructWithZDeltaZ" store
-50 "tempReconstructStreamTakeSceneSamples" store
+250 "tempReconstructStreamTakeSceneSamples" store
 (
   sceneInitRegisterZero
   streamPushImageStreamSize tempReconstructStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
@@ -1357,10 +1357,11 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
       "zFigure_" tempReconstructWithZThisZ +
     sceneSaveScene
 
-*/
-
       "high_zoom_figure_" tempReconstructWithZThisZ + 
     sceneSaveScene
+
+*/
+
 
 /*
 */
@@ -1409,7 +1410,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 */
 90 setMapGrayBoxPixelSkirtRows 140 setMapGrayBoxPixelSkirtCols
 
-  0.025 "tempSpiralMoveSpeed" store
+  0.04 "tempSpiralMoveSpeed" store
   /* 0.008 "tempSpiralGridSize" store */
 
   /* 
@@ -1502,7 +1503,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempReconstructTakeSceneMid" store
 
 (
-  "scene" import playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition tempReconstructTakeScene 
+  playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition tempReconstructTakeScene 
 
   /* 
   catScan5LoadPlayBg tempUpdateMaps 0.1 sceneTrimDepthWithDiscrepancy sceneRenderZ
