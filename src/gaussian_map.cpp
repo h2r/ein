@@ -63,7 +63,7 @@ double safeSigmaSquared(double sigmasquared) {
 // }
 
 
-double computeLogLikelihood(GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
+double computeLogLikelihood(shared_ptr<MachineState> ms, GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
   /*double total = 0.0;
   for (int i = 0; i < 256; i++) {
     total += exp(computeEnergy(channel1, i));
@@ -71,8 +71,9 @@ double computeLogLikelihood(GaussianMapChannel & channel1, GaussianMapChannel & 
   double likelihood = computeEnergy(channel1, channel2);
 
   return likelihood - log(total);*/
-  if (channel2.samples < 10) {
-    return log(-256000000.0);
+  if (channel2.samples < ms->config.sceneCellCountThreshold) {
+    //cout << "Returning small likelihood: " << -10e100 << endl;
+    return -10e100;
   } else {
     double safesigmasquared1 = safeSigmaSquared(channel1.sigmasquared);
     double energy = 1.0 / (2.0 * safesigmasquared1) * pow(channel2.mu - channel1.mu, 2);
@@ -1063,9 +1064,9 @@ double Scene::computeScore() {
       if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
 	GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
-	score += computeLogLikelihood(predicted_cell->red, observed_cell->red);
-	score += computeLogLikelihood(predicted_cell->green, observed_cell->green);
-	score += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+	score += computeLogLikelihood(ms, predicted_cell->red, observed_cell->red);
+	score += computeLogLikelihood(ms, predicted_cell->green, observed_cell->green);
+	score += computeLogLikelihood(ms, predicted_cell->blue, observed_cell->blue);
       }
     }
   }
@@ -1319,9 +1320,9 @@ double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
 	    if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	      GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
 	      GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
-	      score += computeLogLikelihood(predicted_cell->red, observed_cell->red);
-	      score += computeLogLikelihood(predicted_cell->green, observed_cell->green);
-	      score += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+	      score += computeLogLikelihood(ms, predicted_cell->red, observed_cell->red);
+	      score += computeLogLikelihood(ms, predicted_cell->green, observed_cell->green);
+	      score += computeLogLikelihood(ms, predicted_cell->blue, observed_cell->blue);
 	    }
 */
 	    if ( 
@@ -1337,23 +1338,25 @@ double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
 //cout << "score " << score << " ";
 	      //temp = object_cell->red.sigmasquared;
 	      //object_cell->red.sigmasquared = predicted_cell->red.sigmasquared;
-	      score += computeLogLikelihood(object_cell->red, observed_cell->red);
+	      score += computeLogLikelihood(ms, object_cell->red, observed_cell->red);
 	      //object_cell->red.sigmasquared = temp;
 
 	      //temp = object_cell->green.sigmasquared;
 	      //object_cell->green.sigmasquared = predicted_cell->green.sigmasquared;
-	      score += computeLogLikelihood(object_cell->green, observed_cell->green);
+	      score += computeLogLikelihood(ms, object_cell->green, observed_cell->green);
 	      //object_cell->green.sigmasquared = temp;
 
 	      //temp = object_cell->blue.sigmasquared;
 	      //object_cell->blue.sigmasquared = predicted_cell->blue.sigmasquared;
-	      score += computeLogLikelihood(object_cell->blue, observed_cell->blue);
+	      score += computeLogLikelihood(ms, object_cell->blue, observed_cell->blue);
 	      //object_cell->blue.sigmasquared = temp;
 
 //cout << "score " << score << " ";
-	      score -= computeLogLikelihood(predicted_cell->red, observed_cell->red);
-	      score -= computeLogLikelihood(predicted_cell->green, observed_cell->green);
-	      score -= computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+	      if (observed_cell->red.samples >= ms->config.sceneCellCountThreshold) {
+		score -= computeLogLikelihood(ms, predicted_cell->red, observed_cell->red);
+		score -= computeLogLikelihood(ms, predicted_cell->green, observed_cell->green);
+		score -= computeLogLikelihood(ms, predicted_cell->blue, observed_cell->blue);
+	      }
 	    } 
 	  } else {
 	  }
@@ -1868,19 +1871,19 @@ double Scene::computeProbabilityOfMap() {
 	
 
 	if (discrepancy > 0.01) {
-	  logLikelihood += computeLogLikelihood(predicted_cell->red, observed_cell->red);
-	  logLikelihood += computeLogLikelihood(predicted_cell->green, observed_cell->green);
-	  logLikelihood += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+	  logLikelihood += computeLogLikelihood(ms, predicted_cell->red, observed_cell->red);
+	  logLikelihood += computeLogLikelihood(ms, predicted_cell->green, observed_cell->green);
+	  logLikelihood += computeLogLikelihood(ms, predicted_cell->blue, observed_cell->blue);
 	  
-	  //normalizerLogLikelihood += computeLogLikelihood(background_cell->red, observed_cell->red);
-	  //normalizerLogLikelihood += computeLogLikelihood(background_cell->green, observed_cell->green);
-	  //normalizerLogLikelihood += computeLogLikelihood(background_cell->blue, observed_cell->blue);
+	  //normalizerLogLikelihood += computeLogLikelihood(ms, background_cell->red, observed_cell->red);
+	  //normalizerLogLikelihood += computeLogLikelihood(ms, background_cell->green, observed_cell->green);
+	  //normalizerLogLikelihood += computeLogLikelihood(ms, background_cell->blue, observed_cell->blue);
 
 	  //normalizerLogLikelihood += log(1.0/256.0) * 3;
 
-	  normalizerLogLikelihood += computeLogLikelihood(new_scene_cell->red, observed_cell->red);
-	  normalizerLogLikelihood += computeLogLikelihood(new_scene_cell->green, observed_cell->green);
-	  normalizerLogLikelihood += computeLogLikelihood(new_scene_cell->blue, observed_cell->blue);
+	  normalizerLogLikelihood += computeLogLikelihood(ms, new_scene_cell->red, observed_cell->red);
+	  normalizerLogLikelihood += computeLogLikelihood(ms, new_scene_cell->green, observed_cell->green);
+	  normalizerLogLikelihood += computeLogLikelihood(ms, new_scene_cell->blue, observed_cell->blue);
 
 	} else {
 	  
@@ -1959,14 +1962,14 @@ double Scene::computeProbabilityOfMap1() {
 	GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
 	GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
 	GaussianMapCell * background_cell = background_map->refAtCell(x, y);
-	logLikelihood += computeLogLikelihood(predicted_cell->red, observed_cell->red);
-	logLikelihood += computeLogLikelihood(predicted_cell->green, observed_cell->green);
-	logLikelihood += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+	logLikelihood += computeLogLikelihood(ms, predicted_cell->red, observed_cell->red);
+	logLikelihood += computeLogLikelihood(ms, predicted_cell->green, observed_cell->green);
+	logLikelihood += computeLogLikelihood(ms, predicted_cell->blue, observed_cell->blue);
 
 
-	normalizerLogLikelihood += computeLogLikelihood(background_cell->red, observed_cell->red);
-	normalizerLogLikelihood += computeLogLikelihood(background_cell->green, observed_cell->green);
-	normalizerLogLikelihood += computeLogLikelihood(background_cell->blue, observed_cell->blue);
+	normalizerLogLikelihood += computeLogLikelihood(ms, background_cell->red, observed_cell->red);
+	normalizerLogLikelihood += computeLogLikelihood(ms, background_cell->green, observed_cell->green);
+	normalizerLogLikelihood += computeLogLikelihood(ms, background_cell->blue, observed_cell->blue);
 
 	numCells += 1;
       }
@@ -2032,9 +2035,9 @@ double Scene::computeProbabilityOfMapDouble() {
       if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	GaussianMapCell * observed_cell = observed_map->refAtCell(x, y);
 	GaussianMapCell * predicted_cell = predicted_map->refAtCell(x, y);
-	logLikelihood += computeLogLikelihood(predicted_cell->red, observed_cell->red);
-	logLikelihood += computeLogLikelihood(predicted_cell->green, observed_cell->green);
-	logLikelihood += computeLogLikelihood(predicted_cell->blue, observed_cell->blue);
+	logLikelihood += computeLogLikelihood(ms, predicted_cell->red, observed_cell->red);
+	logLikelihood += computeLogLikelihood(ms, predicted_cell->green, observed_cell->green);
+	logLikelihood += computeLogLikelihood(ms, predicted_cell->blue, observed_cell->blue);
 	numCells += 1;
       }
     }
