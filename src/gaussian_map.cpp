@@ -1516,11 +1516,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   Mat prepared_object = object_to_prepare;
 
   double p_discrepancy_thresh = ms->config.scene_score_thresh;
-<<<<<<< HEAD
-  double overlap_thresh = 0.001;
-=======
   double overlap_thresh = 0.01; // 0.0001;
->>>>>>> 22a15e7e2d1f92f6fd87d007de3e7b75f76efe25
   if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
   } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
 
