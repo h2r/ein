@@ -5236,6 +5236,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneSaveObservedMapImage)
 
+
 WORD(SceneLoadMonochromeBackground)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int r, g, b;
@@ -5273,6 +5274,25 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneCropToDiscrepantRegion)
+
+
+WORD(SceneFocusedClassDepthStackClear)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(SceneFocusedClassDepthStackClear)
+
+WORD(SceneFocusedClassDepthStackPushObserved)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(SceneFocusedClassDepthStackPushObserved)
+
+WORD(SceneFocusedClassDepthStackLoadAndPushRaw)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(SceneFocusedClassDepthStackLoadAndPushRaw)
 
 
 /*

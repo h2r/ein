@@ -1338,9 +1338,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
       ) tempSpiralStreamTakeSceneStride replicateWord 
 
 /*
+*/
       sceneRecalculateObservedMusAndSigmas
       sceneRenderObservedMap
-*/
 
       endStackCollapseNoop 
     ) tempReconstructStreamTakeSceneSamples replicateWord
@@ -1359,6 +1359,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
       "high_zoom_figure_" tempReconstructWithZThisZ + 
     sceneSaveScene
+*/
+
 
 */
 
@@ -1462,8 +1464,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   20 setMapGrayBoxPixelSkirtRows 40 setMapGrayBoxPixelSkirtCols
 */
   20 setMapGrayBoxPixelSkirtRows 40 setMapGrayBoxPixelSkirtCols
+  15 setMapGrayBoxPixelWaistRows 15 setMapGrayBoxPixelWaistCols
 
-  0.025 "tempSpiralMoveSpeed" store
+  0.04 "tempSpiralMoveSpeed" store
   /* 
   0.008 "tempSpiralGridSize" store 
   */
