@@ -1578,7 +1578,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempCreateClassScene" store
 
 (
-    ( incrementTargetClass tempMergeFocusedClass ) 
+    ( incrementTargetClass 0.93 sceneRegularizeSceneL2 tempMergeFocusedClass ) 
     numClasses 1 - 
   replicateWord
   sceneClearPredictedObjects
