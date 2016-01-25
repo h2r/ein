@@ -987,7 +987,7 @@ void Scene::composePredictedMap(double threshold) {
 }
 
 
-void Scene::addPredictedObjectsToObservedMap(double threshold) {
+void Scene::addPredictedObjectsToObservedMap(double threshold, double learning_weight) {
   //REQUIRE_FOCUSED_CLASS(ms, tfc);
   // XXX
   // choose the argMAP distribution
@@ -1037,6 +1037,7 @@ void Scene::addPredictedObjectsToObservedMap(double threshold) {
 	if ( tos->safeBilinAt(cells_object_x, cells_object_y) ) {
 	  if (tos->isDiscrepantMetersBilin(threshold, meters_object_x, meters_object_y)) {
 	    GaussianMapCell cell = tos->observed_map->bilinValAtMeters(meters_object_x, meters_object_y);
+	    cell.multS(learning_weight);
 	    observed_map->refAtCell(x,y)->addC(&cell);
 	    observed_map->refAtCell(x,y)->recalculateMusAndSigmas(ms);
 	  } else {
@@ -1516,11 +1517,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   Mat prepared_object = object_to_prepare;
 
   double p_discrepancy_thresh = ms->config.scene_score_thresh;
-<<<<<<< HEAD
   double overlap_thresh = 0.001;
-=======
-  double overlap_thresh = 0.01; // 0.0001;
->>>>>>> 22a15e7e2d1f92f6fd87d007de3e7b75f76efe25
   if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
   } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
 
@@ -5200,7 +5197,10 @@ REGISTER_WORD(SceneAddPredictedToObserved)
 
 WORD(SceneAddDiscrepantPredictedToObserved)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.scene->addPredictedObjectsToObservedMap(ms->config.scene_score_thresh);
+  double learning_weight = 0.0;
+  GET_NUMERIC_ARG(ms, learning_weight);
+  cout << "sceneAddDiscrepantPredictedToObserved: using learning rate " << learning_weight << endl;
+  ms->config.scene->addPredictedObjectsToObservedMap(ms->config.scene_score_thresh, learning_weight);
 }
 END_WORD
 REGISTER_WORD(SceneAddDiscrepantPredictedToObserved)
