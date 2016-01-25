@@ -1051,7 +1051,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
     //cout << endl << "  totalDiff: " << totalDiff << "   actual_effort_thresh: " << ms->config.actual_effort_thresh << endl;
 
     if (totalDiff > ms->config.actual_effort_thresh) {
-      cout << "~~~~~~~~" << endl << "crossed effort thresh" << endl << endl;
+      cout << "~~~~~~~~" << endl << "crossed effort thresh: " << totalDiff << " thresh: " << ms->config.actual_effort_thresh << endl << endl;
       ms->pushWord("stayZOnly");
     } else {
       ms->pushWord("pressUntilEffortA");
