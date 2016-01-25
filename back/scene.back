@@ -49,7 +49,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 0.01 "scenePredictedMapThreshDefault" store
 scenePredictedMapThreshDefault "scenePredictedMapThresh" store
 (
-  scenePredictedMapThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+  sceneScoreThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
 ) "tempUpdateMaps" store
 
 (
@@ -839,7 +839,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   "tempUpdateSpiral, pointing to another" print
-  7 tempUpdateSpiralCore
+  10 tempUpdateSpiralCore
 ) "tempUpdateSpiral" store
 
 (
@@ -1196,7 +1196,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 
 (
-  ( tempShortServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord
+  ( tempSpiralServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 1 replicateWord
 
   0 sceneMapSceneObject
   recordPreTargetLock
@@ -1553,5 +1553,66 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   tempServoToBestSceneObject
   pixelServoPutGripperUnderVanishingPoint waitUntilAtCurrentPosition 
 ) "tempReconstructServoToBestSceneObject" store
+
+
+
+(
+  sceneClearPredictedObjects 
+  scenePredictFocusedObject 
+  tempUpdateMaps
+  /*  sceneAddPredictedToObserved */
+  sceneAddDiscrepantPredictedToObserved 
+  sceneRenderScene  endStackCollapseNoop
+) "tempMergeFocusedClass" store
+
+(
+  sceneClearPredictedObjects
+  scenePredictFocusedObject
+  tempUpdateMaps sceneRenderScene
+) "tempPredictFocusedObject" store
+
+
+(
+  sceneLoadFocusedObjectModel 
+  tempUpdateClassScene
+) "tempCreateClassScene" store
+
+(
+    ( incrementTargetClass tempMergeFocusedClass ) 
+    numClasses 1 - 
+  replicateWord
+  sceneClearPredictedObjects
+  tempUpdateMaps
+  /* initializeAndFocusOnNewClass
+  0.1 sceneGrabDiscrepantCropAsClass
+  writeFocusedClass */
+
+) "tempUpdateClassScene" store
+
+
+(
+  sceneClearObservedMap
+
+  sceneInit
+  128 128 128 sceneLoadMonochromeBackground
+  "bgtemp" sceneSaveBackgroundMap
+  "bgtemp" sceneLoadObservedMap
+  /* tempRegularizeBackground */ 
+
+  ( 
+    incrementTargetClass 
+    sceneClearPredictedObjects
+    0 0 0 sceneAddPredictedFocusedObject 
+    tempUpdateMaps
+    sceneAddPredictedToObserved
+  ) numClasses replicateWord
+
+  sceneClearPredictedObjects  tempUpdateMaps  sceneRenderObservedMap
+
+  /* sceneScoreThresh sceneCropToDiscrepantRegion */
+
+
+) "tempInitializeCategoryModel" store
+
 
 

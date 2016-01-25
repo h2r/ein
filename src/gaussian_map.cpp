@@ -526,7 +526,7 @@ void GaussianMap::loadFromFile(string filename) {
   cout << "done." << endl;
 }
 
-
+CONFIG_GETTER_INT(SceneNumPredictedObjects, ms->config.scene->predicted_objects.size());
 CONFIG_GETTER_DOUBLE(SceneMinSigmaSquared, ms->config.sceneMinSigmaSquared)
 CONFIG_SETTER_DOUBLE(SceneSetMinSigmaSquared, ms->config.sceneMinSigmaSquared)
 
@@ -985,6 +985,73 @@ void Scene::composePredictedMap(double threshold) {
     }
   }
 }
+
+
+void Scene::addPredictedObjectsToObservedMap(double threshold) {
+  //REQUIRE_FOCUSED_CLASS(ms, tfc);
+  // XXX
+  // choose the argMAP distribution
+  //   assign that color to the predicted map
+  //   assign the source to the segmentation
+  //
+  // Currently uses a "fallen leaves" model of composition, assuming objects
+  //   are painted onto the scene in reverse order of discovery 
+
+ 
+  for (int i = predicted_objects.size()-1; i >= 0; i--) {
+    shared_ptr<SceneObject> tsob = predicted_objects[i];
+    shared_ptr<Scene> tos = ms->config.class_scene_models[ tsob->labeled_class_index ];
+
+    int center_x, center_y;
+    metersToCell(tsob->scene_pose.px, tsob->scene_pose.py, &center_x, &center_y);
+
+    // XXX optimize by transforming corners 
+    int mdim = max(tos->width, tos->height);
+    int mpad = ceil(mdim*sqrt(2.0)/2.0);
+    int top_x, top_y;
+    metersToCell(tsob->scene_pose.px - mpad*cell_width, tsob->scene_pose.py - mpad*cell_width, &top_x, &top_y);
+    int bot_x, bot_y;
+    metersToCell(tsob->scene_pose.px + mpad*cell_width, tsob->scene_pose.py + mpad*cell_width, &bot_x, &bot_y);
+
+    for (int x = top_x; x < bot_x; x++) {
+      for (int y = top_y; y < bot_y; y++) {
+	if (!safeAt(x,y)) {
+	  continue;
+	} 
+
+	double meters_scene_x, meters_scene_y;
+	cellToMeters(x, y, &meters_scene_x, &meters_scene_y);
+
+	
+	double meters_object_x, meters_object_y;
+	eePose cell_eep = eePose::identity();
+	cell_eep.px = meters_scene_x;
+	cell_eep.py = meters_scene_y;
+	cell_eep.pz = 0.0;
+	eePose eep_object = cell_eep.getPoseRelativeTo(tsob->scene_pose);
+	meters_object_x = eep_object.px;
+	meters_object_y = eep_object.py;
+
+	double cells_object_x, cells_object_y;
+	tos->metersToCell(meters_object_x, meters_object_y, &cells_object_x, &cells_object_y);
+	if ( tos->safeBilinAt(cells_object_x, cells_object_y) ) {
+	  if (tos->isDiscrepantMetersBilin(threshold, meters_object_x, meters_object_y)) {
+	    GaussianMapCell cell = tos->observed_map->bilinValAtMeters(meters_object_x, meters_object_y);
+	    observed_map->refAtCell(x,y)->addC(&cell);
+	    observed_map->refAtCell(x,y)->recalculateMusAndSigmas(ms);
+	  } else {
+	  }
+	} else {
+	}
+	
+	// take exaggerated bounding box of object in scene
+	//   look up each scene cell in the object's frame
+	//   if one of the contributors is valid, replace this scene cell with the interpolated object cell 
+      }
+    }
+  }
+}
+
 double Scene::computeScore() { 
   double score = 0.0;
   for (int x = 0; x < width; x++) {
@@ -1449,7 +1516,11 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   Mat prepared_object = object_to_prepare;
 
   double p_discrepancy_thresh = ms->config.scene_score_thresh;
+<<<<<<< HEAD
   double overlap_thresh = 0.001;
+=======
+  double overlap_thresh = 0.01; // 0.0001;
+>>>>>>> 22a15e7e2d1f92f6fd87d007de3e7b75f76efe25
   if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
   } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
 
@@ -1668,7 +1739,7 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
   double max_x_meters, max_y_meters;
   cellToMeters(max_x, max_y, &max_x_meters, &max_y_meters);
   cout << "  discrepancy says: " << endl;
-  cout << max_x << " " << max_y << " " << max_orient << " " << max_x_meters << " " << max_y_meters << " " << max_theta << endl << "max_score: " << max_score << endl;
+  cout << "max x: " << max_x << " max_y: " << max_y << " max_orient: " << max_orient << " max x (meters): " << max_x_meters << " max y (meters): " << max_y_meters << " max theta: " << max_theta << endl << "max_score: " << max_score << endl;
   cout << "  currentSceneClassificationMode: " << ms->config.currentSceneClassificationMode << endl;
 
 
@@ -1728,8 +1799,8 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   double l_max_x_meters, l_max_y_meters;
   cellToMeters(l_max_x, l_max_y, &l_max_x_meters, &l_max_y_meters);
   cout << "  loglikelihood says: " << endl;
-  cout << l_max_x << " " << l_max_y << " " << l_max_orient << " " << l_max_x_meters << " " << l_max_y_meters << " " << 
-    l_max_theta << endl << "l_max_score: " << l_max_score << " l_max_i: " << l_max_i << endl;
+  cout << "x: " << l_max_x << " y: " << l_max_y << " orient: " << l_max_orient << " x (meters): " << l_max_x_meters << " y (meters):" << l_max_y_meters << " " << 
+    l_max_theta << endl << "l_max_score: " << l_max_score << " l_max_i: " << l_max_i << " search depth: " << ms->config.sceneDiscrepancySearchDepth << endl;
 
   //if (max_x > -1)
   if (l_max_score > -DBL_MAX)
@@ -2020,7 +2091,7 @@ void Scene::findBestObjectAndScore(int * class_idx, int num_orientations, int * 
     }
 
     cout << "  findBestObjectAndScore, class " << j << " " << ms->config.classLabels[j] << " : " << endl;
-    cout << *l_max_x << " " << *l_max_y << " " << *l_max_orient << " " << "l_max_score: " << *l_max_score << " l_max_i: " << *l_max_i << " -DBL_MAX: " << -DBL_MAX << endl;
+    cout << *l_max_x << " " << *l_max_y << " " << *l_max_orient << " " << "l_max_score: " << *l_max_score << " l_max_i: " << *l_max_i << " search depth: " << ms->config.sceneDiscrepancySearchDepth << " -DBL_MAX: " << -DBL_MAX << endl;
   }
 }
 
@@ -2258,19 +2329,19 @@ void Scene::readFromFileNode(FileNode& it) {
   cout << "done" << endl;
 
   bool error = false;
-  if (discrepancy_density.rows != width || discrepancy_density.cols != height) {
+  if (discrepancy_density.rows != height || discrepancy_density.cols != width) {
     ROS_ERROR_STREAM("Discrepancy density has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_density.rows << "x" << discrepancy_density.cols);
     discrepancy_density = Mat(height, width, CV_64F);
     error = true;
   }
 
-  if (discrepancy_magnitude.rows != width || discrepancy_magnitude.cols != height) {
+  if (discrepancy_magnitude.rows != height || discrepancy_magnitude.cols != width) {
     ROS_ERROR_STREAM("Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_magnitude.rows << "x" << discrepancy_magnitude.cols);
     discrepancy_magnitude = Mat(height, width, CV_64F);
     error = true;
   }
 
-  if (predicted_segmentation.rows != width || predicted_segmentation.cols != height) {
+  if (predicted_segmentation.rows != height || predicted_segmentation.cols != width) {
     ROS_ERROR_STREAM("Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << predicted_segmentation.rows << "x" << predicted_segmentation.cols);
     predicted_segmentation = Mat(height, width, CV_64F);
   }
@@ -5115,8 +5186,38 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneRecallDepthStackIndex)
 
+WORD(SceneAddPredictedToObserved)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+  shared_ptr<Scene> focusedScene = ms->config.class_scene_models[tfc];
+
+  ms->config.scene->observed_map->addM(ms->config.scene->predicted_map);
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+
+}
+END_WORD
+REGISTER_WORD(SceneAddPredictedToObserved)
+
+WORD(SceneAddDiscrepantPredictedToObserved)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.scene->addPredictedObjectsToObservedMap(ms->config.scene_score_thresh);
+}
+END_WORD
+REGISTER_WORD(SceneAddDiscrepantPredictedToObserved)
+
+
+
 WORD(SceneSpawnClassHarmonics)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+
+  vector<shared_ptr<Scene> > scenes;
+
+  for (double s = 0.1; s < 2; s += 0.1) {
+    //shared_ptr<Scene> scene = make_shared<Scene>();
+    //ms->config.class_scene_models[tfc]->clone();
+    //scenes.push_back(scene);
+  }
 
 
 }
@@ -5146,6 +5247,46 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneSaveObservedMapImage)
+
+
+WORD(SceneLoadMonochromeBackground)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int r, g, b;
+  GET_INT_ARG(ms, b);
+  GET_INT_ARG(ms, g);
+  GET_INT_ARG(ms, r);
+
+  //ms->config.scene->background_map = ms->config.scene->observed_map->copy();
+  shared_ptr<GaussianMap> bg = ms->config.scene->background_map;
+
+  for (int y = 0; y < bg->height; y++) {
+    for (int x = 0; x < bg->width; x++) {
+      bg->refAtCell(x,y)->zero();
+      for (int i = 0; i < ms->config.sceneCellCountThreshold * 2; i++) {
+	bg->refAtCell(x,y)->newObservation(Vec3b(b,g,r));
+      }
+    }
+  }
+  bg->recalculateMusAndSigmas(ms);
+}
+END_WORD
+REGISTER_WORD(SceneLoadMonochromeBackground)
+
+WORD(SceneCropToDiscrepantRegion)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+
+  double p_crop_pad = 0.05;
+  guardSceneModels(ms);
+  double threshold = 0.0;
+  GET_NUMERIC_ARG(ms, threshold);
+  shared_ptr<Scene> scene_crop = ms->config.scene->copyPaddedDiscrepancySupport(threshold, p_crop_pad);
+
+  ms->config.scene = scene_crop;
+}
+END_WORD
+REGISTER_WORD(SceneCropToDiscrepantRegion)
+
 
 WORD(SceneFocusedClassDepthStackClear)
 virtual void execute(std::shared_ptr<MachineState> ms) {
