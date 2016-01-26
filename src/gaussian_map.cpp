@@ -1759,12 +1759,19 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
   if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
     std::sort(local_scores.begin(), local_scores.end(), compareDiscrepancyDescending);
     int to_check = min( int(ms->config.sceneDiscrepancySearchDepth), int(local_scores.size()) );
-    for (int i = 0; i < to_check; i++) {
-      if ( ! local_scores[i].loglikelihood_valid ) {
-	// XXX score should return the delta of including vs not including
-	local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
-	local_scores[i].loglikelihood_valid = true;
-	//cout << "  running inference on class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
+    int numThreads = 4;
+    #pragma omp parallel for
+    for (int thr = 0; thr < numThreads; thr++) {
+      shared_ptr<Scene> thisscene = ms->config.scene->copy();
+      for (int i = 0; i < to_check; i++) {
+	if ( i % numThreads == thr ) {
+	  if ( ! local_scores[i].loglikelihood_valid ) {
+	    // score should return the delta of including vs not including
+	    local_scores[i].loglikelihood_score = thisscene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
+	    local_scores[i].loglikelihood_valid = true;
+	    //cout << "  running inference on class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
+	  }
+	}
       }
     }
   } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
