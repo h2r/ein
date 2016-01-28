@@ -4853,7 +4853,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   #pragma omp parallel for
   for (int i = 0; i < numThreads; i++) {
     for (int py = topy; py < boty; py++) {
-      if (py % i == 0) {
+      if (py % numThreads == i) {
 	for (int px = topx; px < botx; px++) {
 	  if (isInGripperMask(ms, px, py)) {
 	    continue;
