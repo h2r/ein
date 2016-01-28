@@ -4849,32 +4849,38 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double z = z_to_use;
   computePixelToGlobalCache(ms, z, thisPose, &data);
   
-  for (int px = topx; px < botx; px++) {
+  int numThreads = 8;
+  #pragma omp parallel for
+  for (int i = 0; i < numThreads; i++) {
     for (int py = topy; py < boty; py++) {
-      if (isInGripperMask(ms, px, py)) {
-	continue;
-      }
+      if (py % i == 0) {
+	for (int px = topx; px < botx; px++) {
+	  if (isInGripperMask(ms, px, py)) {
+	    continue;
+	  }
 
-      if ( (ms->config.mapGrayBoxPixelWaistRows > 0) && (ms->config.mapGrayBoxPixelWaistCols > 0) ) {
-	if ( (py > imH/2.0 - ms->config.mapGrayBoxPixelWaistRows) && (py < imH/2.0 + ms->config.mapGrayBoxPixelWaistRows) &&
-	     (px > imW/2.0 - ms->config.mapGrayBoxPixelWaistCols) && (px < imW/2.0 + ms->config.mapGrayBoxPixelWaistCols) ) {
-	  continue;
-	} 
-      } 
+	  if ( (ms->config.mapGrayBoxPixelWaistRows > 0) && (ms->config.mapGrayBoxPixelWaistCols > 0) ) {
+	    if ( (py > imH/2.0 - ms->config.mapGrayBoxPixelWaistRows) && (py < imH/2.0 + ms->config.mapGrayBoxPixelWaistRows) &&
+		 (px > imW/2.0 - ms->config.mapGrayBoxPixelWaistCols) && (px < imW/2.0 + ms->config.mapGrayBoxPixelWaistCols) ) {
+	      continue;
+	    } 
+	  } 
 
-      double x, y;
-      pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
-      
-      if (1) {
-	// single sample update
-	int i, j;
-	ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
-	GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
-	if (cell != NULL) {
-	    Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
-	    cell->newObservation(pixel, z);
+	  double x, y;
+	  pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
+	  
+	  if (1) {
+	    // single sample update
+	    int i, j;
+	    ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+	    GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+	    if (cell != NULL) {
+		Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+		cell->newObservation(pixel, z);
+	    }
+	  } else {
+	  }
 	}
-      } else {
       }
     }
   }
