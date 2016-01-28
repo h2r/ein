@@ -4850,6 +4850,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   computePixelToGlobalCache(ms, z, thisPose, &data);
   
   int numThreads = 8;
+  // there is a faster way to stride it but i am risk averse atm
   #pragma omp parallel for
   for (int i = 0; i < numThreads; i++) {
     for (int py = topy; py < boty; py++) {
