@@ -1524,7 +1524,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 
   double p_discrepancy_thresh = ms->config.scene_score_thresh;
 
-  double overlap_thresh = 0.01; // 0.0001;
+  double overlap_thresh = 0.0001; // 0.01 // 0.0001;
 
 
 
@@ -1739,15 +1739,17 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
     }
   }
 
-  cout << "  local_scores size:  " << local_scores.size() << endl;
 
   //cout << prepared_discrepancy << prepared_object ;
   double max_theta = -max_orient * 2.0 * M_PI / numOrientations;
   double max_x_meters, max_y_meters;
   cellToMeters(max_x, max_y, &max_x_meters, &max_y_meters);
-  cout << "  discrepancy says: " << endl;
-  cout << "max x: " << max_x << " max_y: " << max_y << " max_orient: " << max_orient << " max x (meters): " << max_x_meters << " max y (meters): " << max_y_meters << " max theta: " << max_theta << endl << "max_score: " << max_score << endl;
-  cout << "  currentSceneClassificationMode: " << ms->config.currentSceneClassificationMode << endl;
+  {
+    cout << "  local_scores size:  " << local_scores.size() << endl;
+    cout << "  discrepancy says: " << endl;
+    cout << "max x: " << max_x << " max_y: " << max_y << " max_orient: " << max_orient << " max x (meters): " << max_x_meters << " max y (meters): " << max_y_meters << " max theta: " << max_theta << endl << "max_score: " << max_score << endl;
+    cout << "  currentSceneClassificationMode: " << ms->config.currentSceneClassificationMode << endl;
+  }
 
 
   *l_max_x = -1;
@@ -1759,7 +1761,7 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
   if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
     std::sort(local_scores.begin(), local_scores.end(), compareDiscrepancyDescending);
     int to_check = min( int(ms->config.sceneDiscrepancySearchDepth), int(local_scores.size()) );
-    int numThreads = 4;
+    int numThreads = 8;
     #pragma omp parallel for
     for (int thr = 0; thr < numThreads; thr++) {
       shared_ptr<Scene> thisscene = ms->config.scene->copy();
@@ -1769,7 +1771,9 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
 	    // score should return the delta of including vs not including
 	    local_scores[i].loglikelihood_score = thisscene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
 	    local_scores[i].loglikelihood_valid = true;
-	    //cout << "  running inference on class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
+	    if (i % 10000 == 0) {
+	      cout << "  running inference on detection " << i << " of class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
+	    }
 	  }
 	}
       }
@@ -1792,6 +1796,9 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
   }
   if (*l_max_i >= ms->config.sceneDiscrepancySearchDepth - 25) {
     ROS_ERROR_STREAM("Take note that the best one was near our search limit; maybe you need to increase the search depth.  l_max_i: " << *l_max_i << " search depth: " << ms->config.sceneDiscrepancySearchDepth);
+  }
+  {
+    cout << "  local_scores size:  " << local_scores.size() << endl;
   }
 }
 
@@ -5303,6 +5310,63 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneCropToDiscrepantRegion)
+
+WORD(SceneDepthStackLoadAndPushRaw)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX 
+  string depthStackFolderPath;
+  GET_STRING_ARG(ms, depthStackFolderPath);
+
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+
+  dpdf = opendir(depthStackFolderPath.c_str());
+  if (dpdf != NULL){
+    cout << "sceneDepthStackLoadAndPushRaw: checking " << depthStackFolderPath << " during snoop...";
+    while (epdf = readdir(dpdf)){
+      string thisFileName(epdf->d_name);
+
+      string thisFullFileName(depthStackFolderPath.c_str());
+      thisFullFileName = thisFullFileName + "/" + thisFileName;
+      cout << "sceneDepthStackLoadAndPushRaw: checking " << thisFullFileName << " during snoop...";
+
+      struct stat buf2;
+      stat(thisFullFileName.c_str(), &buf2);
+
+      int itIsADir = S_ISDIR(buf2.st_mode);
+      if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+	cout << " is a directory." << endl;
+      } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
+	cout << " is NOT a directory." << endl;
+	shared_ptr<Scene> this_scene = make_shared<Scene>(ms, 2, 2, 0.02);
+	this_scene->loadFromFile(thisFullFileName);
+	shared_ptr<GaussianMap> this_map = this_scene->observed_map;
+	ms->config.depth_maps.push_back(this_map);
+      }
+    }
+  } else {
+    ROS_ERROR_STREAM("sceneDepthStackLoadAndPushRaw: could not open base class dir " << depthStackFolderPath << " ." << endl);
+  } 
+}
+END_WORD
+REGISTER_WORD(SceneDepthStackLoadAndPushRaw)
+
+WORD(SceneDepthStackSaveRaw)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string depthStackFolderPath;
+  GET_STRING_ARG(ms, depthStackFolderPath);
+
+  for (int i = 0; i < ms->config.depth_maps.size(); i++) {
+    stringstream ss;
+    ss << depthStackFolderPath << "/stack" << std::setprecision(5) << i << ".png";
+    string thisFilePath = ss.str();
+    ms->config.depth_maps[i]->saveToFile(thisFilePath);
+  }
+}
+END_WORD
+REGISTER_WORD(SceneDepthStackSaveRaw)
 
 
 WORD(SceneFocusedClassDepthStackClear)

@@ -29,9 +29,14 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempCaptureCore" store
 
 (
-  15.0 sceneSetBackgroundStdDevY
-  11.0 sceneSetBackgroundStdDevColor
+  32.0 sceneSetBackgroundStdDevY
+  32.0 sceneSetBackgroundStdDevColor
 ) "tempRegularizeBackground" store
+
+(
+  32.0 sceneSetFocusedSceneStdDevY
+  32.0 sceneSetFocusedSceneStdDevColor
+) "tempRegularizeFocusedClassModel" store
 
 ( 
   bg sceneLoadBackgroundMap 
@@ -46,7 +51,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   sceneClearObservedMap sceneClearPredictedObjects 
 ) "tempInit" store
 
-0.01 "scenePredictedMapThreshDefault" store
+0.1 "scenePredictedMapThreshDefault" store
 scenePredictedMapThreshDefault "scenePredictedMapThresh" store
 (
   sceneScoreThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
