@@ -862,10 +862,10 @@ dateString "catScan5VarianceTrialThisTime" store
  */
 
  /*
-  tempReconstructTakeScene
- */
-
   6 3 4 tempUpdateSpiralEccentricCore tempUpdateMaps
+ */
+  tempReconstructTakeScene
+
 
 
 
