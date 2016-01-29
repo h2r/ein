@@ -1188,11 +1188,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 /* consider deprecating or using */
 (
   lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
-  tempShortServoToFocusedSceneObject
-  waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
-  tempShortServoToFocusedSceneObject
-  waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
-  tempShortServoToFocusedSceneObject
+  tempReconstructServoToBestSceneObject
   waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
   currentPose tempScanBasePZ setEEPosePZ "tempScanBase" store
 
@@ -1405,7 +1401,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   0.001 setW1GoThresh
   0.020 "tempSpiralGridSize" store
   */
-  0.005 setW1GoThresh
+  0.01 setW1GoThresh
   /*
   0.0325 "tempSpiralGridSize" store
   */
@@ -1417,7 +1413,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 */
 90 setMapGrayBoxPixelSkirtRows 140 setMapGrayBoxPixelSkirtCols
 
-  0.04 "tempSpiralMoveSpeed" store
+  0.05 "tempSpiralMoveSpeed" store
   /* 0.008 "tempSpiralGridSize" store */
 
   /* 
@@ -1555,9 +1551,16 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 (
   tempReconstructTakeScene
   quarterImpulse
-  tempServoToBestSceneObject
+  tempServoToFocusedSceneObject
   pixelServoPutGripperUnderVanishingPoint waitUntilAtCurrentPosition 
 ) "tempReconstructServoToBestSceneObject" store
+
+(
+  tempReconstructTakeScene
+  quarterImpulse
+  tempServoToBestSceneObject
+  pixelServoPutGripperUnderVanishingPoint waitUntilAtCurrentPosition 
+) "tempReconstructServoToFocusedSceneObject" store
 
 
 
