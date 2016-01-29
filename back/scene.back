@@ -29,13 +29,13 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempCaptureCore" store
 
 (
-  32.0 sceneSetBackgroundStdDevY
-  32.0 sceneSetBackgroundStdDevColor
+  16.0 sceneSetBackgroundStdDevY
+  16.0 sceneSetBackgroundStdDevColor
 ) "tempRegularizeBackground" store
 
 (
-  32.0 sceneSetFocusedSceneStdDevY
-  32.0 sceneSetFocusedSceneStdDevColor
+  16.0 sceneSetFocusedSceneStdDevY
+  16.0 sceneSetFocusedSceneStdDevColor
 ) "tempRegularizeFocusedClassModel" store
 
 ( 
@@ -1303,10 +1303,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 /* 
 0.3883 "tempReconstructWithZTopZ" store 
 */
-0.3683 "tempReconstructWithZTopZ" store 
-0.16 "tempReconstructWithZTotalZ" store
+0.3883 "tempReconstructWithZTopZ" store 
+0.0 "tempReconstructWithZTotalZ" store
 0.02 "tempReconstructWithZDeltaZ" store
-50 "tempReconstructStreamTakeSceneSamples" store
+200 "tempReconstructStreamTakeSceneSamples" store
 (
   sceneInitRegisterZero
   streamPushImageStreamSize tempReconstructStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
