@@ -1232,7 +1232,11 @@ WORD(ShakeHeadPositive)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   ms->config.currentHeadPanCommand.target = 3.1415926/2.0;
+#ifdef RETHINK_SDK_1_2_0
+  ms->config.currentHeadPanCommand.speed_ratio = 0.5;
+#else
   ms->config.currentHeadPanCommand.speed = 50;
+#endif
   ms->config.headPub.publish(ms->config.currentHeadPanCommand);
 }
 END_WORD
@@ -1243,7 +1247,7 @@ WORD(ShakeHeadNegative)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   ms->config.currentHeadPanCommand.target = -3.1415926/2.0;
-  ms->config.currentHeadPanCommand.speed = 50;
+  ms->config.currentHeadPanCommand.speed_ratio = 0.5;
   ms->config.headPub.publish(ms->config.currentHeadPanCommand);
 }
 END_WORD
@@ -1253,7 +1257,7 @@ WORD(CenterHead)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   ms->config.currentHeadPanCommand.target = 0;
-  ms->config.currentHeadPanCommand.speed = 50;
+  ms->config.currentHeadPanCommand.speed_ratio = 0.5;
   ms->config.headPub.publish(ms->config.currentHeadPanCommand);
 }
 END_WORD
@@ -1270,7 +1274,7 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   cout << "setHeadPanTargetSpeed: " << t_target << " " << t_speed << endl;
 
   ms->config.currentHeadPanCommand.target = t_target;
-  ms->config.currentHeadPanCommand.speed = floor(t_speed);
+  ms->config.currentHeadPanCommand.speed_ratio = floor(t_speed);
   ms->config.headPub.publish(ms->config.currentHeadPanCommand);
 }
 END_WORD

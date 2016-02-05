@@ -60,7 +60,6 @@ class Scene;
 #include <baxter_core_msgs/SolvePositionIK.h>
 #include <baxter_core_msgs/JointCommand.h>
 #include <baxter_core_msgs/HeadPanCommand.h>
-#include <baxter_core_msgs/ITBState.h>
 #include <baxter_core_msgs/DigitalIOState.h>
 
 
@@ -408,7 +407,6 @@ class EinConfig {
   double red_halo_state = 100.0;
   double green_halo_state = 100.0;
   int repeat_halo = 1;
-
 
   int zero_g_toggle = 1;
 
@@ -1521,8 +1519,6 @@ class EinConfig {
   ros::Time measureTimeStart;
   double measureTimePeriod = 1.0;
 
-  baxter_core_msgs::ITBState lastItbs;
-
   eePose pressPose;
   double twistThresh = 0.01;
 
@@ -1605,7 +1601,6 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
 
   void jointCallback(const sensor_msgs::JointState& js);
   void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
-  void armItbCallback(const baxter_core_msgs::ITBState& itbs);
   void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);
   void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg);
   void forthCommandCallback(const std_msgs::String::ConstPtr& msg);

@@ -9,7 +9,6 @@
 
 #define PROGRAM_NAME "ein"
 
-
 #include <ein/EinState.h>
 
 #include <vector>
@@ -63,7 +62,7 @@
 #include <cv.h>
 #include <highgui.h>
 #include <ml.h>
-#include <opencv2/nonfree/nonfree.hpp>
+/*#include <opencv2/nonfree/nonfree.hpp>*/
 #include <opencv2/gpu/gpu.hpp>
 
 
