@@ -14608,7 +14608,11 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
 
 
   ms->config.currentHeadPanCommand.target = 0;
+#ifdef RETHINK_SDK_1_2_0
   ms->config.currentHeadPanCommand.speed_ratio = 0.5;
+#else
+  ms->config.currentHeadPanCommand.speed = 50;
+#endif
   ms->config.currentHeadNodCommand.data = 0;
   ms->config.currentSonarCommand.data = 0;
 
