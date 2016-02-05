@@ -21,6 +21,8 @@ find_package(catkin REQUIRED COMPONENTS
   kdl_parser
 )
 
+
+
 find_package(LAPACK REQUIRED)
 find_package(GSL REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -45,6 +47,9 @@ catkin_package(CATKIN_DEPENDS
 link_directories(${PCL_LIBRARY_DIRS})
 
 add_definitions(${PCL_DEFINITIONS})
+
+string(REPLACE "." "_" happy_version ${baxter_core_msgs_VERSION}     )
+add_definitions(-DRETHINK_SDK_${happy_version})
 
 
 include_directories(include
