@@ -5,7 +5,6 @@
 #include "eigen_util.h"
 #include <cv.h>
 #include <ml.h>
-#include <opencv2/nonfree/nonfree.hpp>
 #include <opencv2/gpu/gpu.hpp>
 using namespace cv;
 using namespace std;

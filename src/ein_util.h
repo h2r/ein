@@ -7,7 +7,6 @@
 
 #include <cv.h>
 #include <ml.h>
-#include <opencv2/nonfree/nonfree.hpp>
 #include <opencv2/gpu/gpu.hpp>
 #include <geometry_msgs/Pose.h>
 
