@@ -28,7 +28,7 @@ dogBark
 
 (
   1 dogSetPackSize
-  0 dogSetFocusedMember "192.168.160.130" 54000 socketOpen
+  0 dogSetFocusedMember "192.168.43.30" 54000 socketOpen
   dogMotorsOn
   dogFormatImageDefault
 ) "dogSummonElla" store
@@ -385,3 +385,90 @@ Snare
   dogVoiceSing
 ) "dogTomSong" store
 
+(
+dogSitDown
+) "demoDogSit" store
+
+(
+dogStandUp
+) "demoDogStand" store
+
+(
+dogSitDown dogLayDown
+) "demoDogLayDown" store
+
+(
+dogBark dogBark dogBark 
+) "demoDogBark" store
+
+(
+2 dogWalkSeconds
+) "demoDogLocalXUp" store
+
+(
+-2 dogWalkSeconds
+) "demoDogLocalXDown" store
+
+(
+-2 dogTurnSeconds
+) "demoDogOXDown" store
+
+(
+2 dogTurnSeconds
+) "demoDogOXUp" store
+
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  0 dogTailTiltTo 
+  dogSendMotorState
+) "demoDogTailUp" store
+
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  60 dogTailTiltTo 
+  dogSendMotorState
+) "demoDogTailDown" store
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  60 dogTailPanTo
+  dogSendMotorState
+) "demoDogTailSwishRight" store
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  -60 dogTailPanTo
+  dogSendMotorState
+) "demoDogTailSwishLeft" store
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  0 dogTailPanTo
+  dogSendMotorState
+) "demoDogTailCenter" store
+
+
+
+( 
+  demoDogTailUp 0.15 waitForSeconds
+  demoDogTailSwishLeft 0.15 waitForSeconds
+  demoDogTailSwishRight 0.15 waitForSeconds
+  demoDogTailDown 0.15 waitForSeconds
+  demoDogTailSwishLeft 0.15 waitForSeconds
+  demoDogTailSwishRight 0.15 waitForSeconds
+  demoDogTailUp 0.15 waitForSeconds
+  demoDogTailDown 0.15 waitForSeconds
+  demoDogTailUp 0.15 waitForSeconds
+  demoDogTailDown 0.15 waitForSeconds
+  demoDogTailUp 0.15 waitForSeconds
+  demoDogTailDown 0.15 waitForSeconds
+  demoDogTailCenter
+
+) "demoDogWag" store

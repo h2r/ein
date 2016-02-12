@@ -2947,6 +2947,17 @@ END_WORD
 REGISTER_WORD(DogVoiceToPCM)
 
 
+WORD(DogWriteIntendedFromTrue)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+  EinAiboConfig & dog = ms->pack[this_dog];
+
+  dog.intendedPose = dog.truePose;
+  memcpy(dog.intendedGain, dog.trueGain, 3 * sizeof(EinAiboJoints));
+  dog.intendedIndicators = dog.trueIndicators;
+}
+END_WORD
+REGISTER_WORD(DogWriteIntendedFromTrue)
 
 
 

@@ -14618,7 +14618,8 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
 
 
   ms->config.facePub = n.advertise<std_msgs::Int32>("/confusion/target/command", 10);
-  ms->config.einPub = n.advertise<EinState>("state", 10);
+  string topic = "/ein_" + ms->config.left_or_right_arm + "/state";
+  ms->config.einPub = n.advertise<EinState>(topic, 10);
 
   ms->config.vmMarkerPublisher = n.advertise<visualization_msgs::MarkerArray>("volumetric_rgb_map", 10);
 
