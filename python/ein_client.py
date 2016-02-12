@@ -113,7 +113,7 @@ def main():
     for wordline in open("ein_words.txt"):
         words.append(wordline.split(" ")[0])
         
-    print words
+    #print words
 
 
     client = EinClient(words, 
