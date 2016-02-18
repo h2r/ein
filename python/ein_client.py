@@ -55,6 +55,7 @@ class EinClient:
         save_history_hook()
 
     def state_callback(self, msg):
+        #print "received state."
         self.state = msg
         self.call_stack = self.state.call_stack
         self.data_stack = self.state.data_stack
@@ -87,7 +88,7 @@ class EinClient:
     
             if line == 'stop':
                 break
-            print 'ENTERED: "%s"' % line
+            #print 'ENTERED: "%s"' % line
             self.forth_command_publisher.publish(line);
 
 def save_history_hook():
