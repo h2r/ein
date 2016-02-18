@@ -486,6 +486,7 @@ dogComeToStop
 (
 dogBark dogBark dogBark 
 dogBark dogBark dogBark 
+2 waitForSeconds
 dogComeToStop
 ) "demoDogBark" store
 
