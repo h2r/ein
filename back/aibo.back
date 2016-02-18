@@ -499,3 +499,9 @@ dogComeToStop
 dogStandUp
 dogComeToStop
 ) "demoDogStandUp" store
+
+(
+demoDogSit demoDogLieDown demoDogStandUp  demoDogSit demoDogStandUp demoDogLieDown   demoDogStandUp demoDogSit demoDogLieDown  demoDogStandUp demoDogLieDown  demoDogSit
+) "dogAllStaticPoses" store
+
+
