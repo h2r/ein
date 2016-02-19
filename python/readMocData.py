@@ -94,22 +94,31 @@ def readBinaryFromYaml(yamlList):
     decompressed = zlib.decompress(decoded)
     return decompressed
 
+doubleunpacker = struct.Struct('d')
+uintunpacker = struct.Struct('I')
 def readMatFromYaml(fs):
     rows = fs["rows"]
     cols = fs["cols"]
     imgtype = fs["type"]
-    mat = cv2.cv.CreateMat(rows, cols, imgtype)
+    print "type", imgtype
+    m = cv2.cv.CreateMat(rows, cols, imgtype)
     
-    # somehow need to copy the binary data into the mat and view the image.
-    # in c++ this was a memcpy... 
-
-    print "mat", mat
-    array = na.asarray(mat)
-    print "array", array.size
-    print "rows: ", rows, "cols: ", cols, "type: ", imgtype
+    if imgtype == 6:
+        numpytype = na.float32
+        unpacker = doubleunpacker
+        #numpytype = na.uint32
+        #unpacker = uintunpacker
+    else:
+        raise ValueError("Unknown image type: " + repr(imgtype))
+    array = na.zeros(m.rows * m.cols * m.channels, dtype=numpytype)
     binary = readBinaryFromYaml(fs["data"])
-
-    return binary
+    size = unpacker.size
+    for i in range(len(array)):
+        data = unpacker.unpack(binary[i*size:(i+1)*size])
+        assert len(data) == 1
+        array[i] = data[0]
+    array = na.transpose(array.reshape((m.rows, m.cols, m.channels)), axes=(1,0,2))
+    return array
 
 def main():
 
@@ -136,11 +145,17 @@ def main():
         image = observed_map.toImage()
         cv2.imwrite("observed.png", image)
         cv2.imshow("observed map", image)
+        
+        
+        
+        
+        print "observed map: ", observed_map.width, "x", observed_map.height
+        dimage = readMatFromYaml(scene["discrepancy_magnitude"])
+        cv2.imshow("discrepancy magnitude", dimage)
+
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-        print "observed map: ", observed_map.width, "x", observed_map.height
-        readMatFromYaml(scene["discrepancy_magnitude"])
-        print scene.keys()
+
         #cells = scene["cells"]
         #print "cells", len(cells)
 
