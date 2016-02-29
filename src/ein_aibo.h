@@ -29,6 +29,10 @@ class EinAiboJoints {
   double tailPan;
   double tailTilt;
   double mouth;
+
+  string toString();
+
+  double dist(EinAiboJoints & other);
 };
 
 class EinAiboIndicators {
@@ -92,7 +96,7 @@ class EinAiboConfig {
 
   public:
   ros::Publisher aibo_snout_pub;
-
+  ros::Time lastSensoryMotorUpdateTime;
 
   EinAiboJoints targetJoints;
   EinAiboJoints trueJoints;
