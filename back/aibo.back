@@ -385,37 +385,23 @@ Snare
   dogVoiceSing
 ) "dogTomSong" store
 
-(
-dogSitDown
-) "demoDogSit" store
 
-(
-dogStandUp
-) "demoDogStand" store
-
-(
-dogSitDown dogLayDown
-) "demoDogLayDown" store
-
-(
-dogBark dogBark dogBark 
-) "demoDogBark" store
 
 (
 2 dogWalkSeconds
-) "demoDogLocalXUp" store
+) "dogLocalXUp" store
 
 (
 -2 dogWalkSeconds
-) "demoDogLocalXDown" store
+) "dogLocalXDown" store
 
 (
 -2 dogTurnSeconds
-) "demoDogOXDown" store
+) "dogOXDown" store
 
 (
 2 dogTurnSeconds
-) "demoDogOXUp" store
+) "dogOXUp" store
 
 
 (
@@ -423,7 +409,7 @@ dogBark dogBark dogBark
   dogWriteIntendedFromTrue
   0 dogTailTiltTo 
   dogSendMotorState
-) "demoDogTailUp" store
+) "dogTailUp" store
 
 
 (
@@ -431,44 +417,91 @@ dogBark dogBark dogBark
   dogWriteIntendedFromTrue
   60 dogTailTiltTo 
   dogSendMotorState
-) "demoDogTailDown" store
+) "dogTailDown" store
 
 (
   dogGetSensoryMotorStates
   dogWriteIntendedFromTrue
   60 dogTailPanTo
   dogSendMotorState
-) "demoDogTailSwishRight" store
+) "dogTailSwishRight" store
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  0 dogHeadPanTo 
+  0 dogHeadTiltTo 
+  dogSendMotorState
+) "dogHeadLowerLeft" store
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  100 dogHeadPanTo 
+  100 dogHeadTiltTo 
+  dogSendMotorState
+) "dogHeadUpperRight" store
+
+
 
 (
   dogGetSensoryMotorStates
   dogWriteIntendedFromTrue
   -60 dogTailPanTo
   dogSendMotorState
-) "demoDogTailSwishLeft" store
+) "dogTailSwishLeft" store
 
 (
   dogGetSensoryMotorStates
   dogWriteIntendedFromTrue
   0 dogTailPanTo
   dogSendMotorState
-) "demoDogTailCenter" store
+) "dogTailCenter" store
 
 
 
 ( 
-  demoDogTailUp 0.15 waitForSeconds
-  demoDogTailSwishLeft 0.15 waitForSeconds
-  demoDogTailSwishRight 0.15 waitForSeconds
-  demoDogTailDown 0.15 waitForSeconds
-  demoDogTailSwishLeft 0.15 waitForSeconds
-  demoDogTailSwishRight 0.15 waitForSeconds
-  demoDogTailUp 0.15 waitForSeconds
-  demoDogTailDown 0.15 waitForSeconds
-  demoDogTailUp 0.15 waitForSeconds
-  demoDogTailDown 0.15 waitForSeconds
-  demoDogTailUp 0.15 waitForSeconds
-  demoDogTailDown 0.15 waitForSeconds
-  demoDogTailCenter
+  dogTailUp 0.15 waitForSeconds
+  dogTailSwishLeft 0.15 waitForSeconds
+  dogTailSwishRight 0.15 waitForSeconds
+  dogTailDown 0.15 waitForSeconds
+  dogTailSwishLeft 0.15 waitForSeconds
+  dogTailSwishRight 0.15 waitForSeconds
+  dogTailUp 0.15 waitForSeconds
+  dogTailDown 0.15 waitForSeconds
+  dogTailUp 0.15 waitForSeconds
+  dogTailDown 0.15 waitForSeconds
+  dogTailUp 0.15 waitForSeconds
+  dogTailDown 0.15 waitForSeconds
+  dogTailCenter
+  dogComeToStop
+) "demoDogWagYourTail" store
 
-) "demoDogWag" store
+
+(
+dogSitDown dogLayDown
+dogComeToStop
+) "demoDogLieDown" store
+
+(
+dogBark dogBark dogBark 
+dogBark dogBark dogBark 
+2 waitForSeconds
+dogComeToStop
+) "demoDogBark" store
+
+(
+dogSitDown
+dogComeToStop
+) "demoDogSit" store
+
+(
+dogStandUp
+dogComeToStop
+) "demoDogStandUp" store
+
+(
+demoDogSit demoDogLieDown demoDogStandUp  demoDogSit demoDogStandUp demoDogLieDown   demoDogStandUp demoDogSit demoDogLieDown  demoDogStandUp demoDogLieDown  demoDogSit
+) "dogAllStaticPoses" store
+
+
