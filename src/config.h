@@ -228,6 +228,21 @@ typedef enum {
   POSE_REPORTED = 3
 } memoryLockType;
 
+
+
+typedef enum { 
+	ANIMATION_OFF = 0,
+	ANIMATION_ON = 1 
+} animationMode; 
+
+struct AnimationState {
+	String emotion; 
+	int value; 
+}; 
+
+
+
+
 struct Grasp {
   eePose grasp_pose;
   double tries;
@@ -1543,6 +1558,18 @@ class EinConfig {
   double scene_score_thresh = 0.01;
 
   vector<shared_ptr<GaussianMap> > depth_maps;
+
+
+  animationMode currentAnimationMode = ANIMATION_ON; 
+  AnimationState currentAnimationState = {"confused", 0}; 
+  vector<String> emotionNames; 
+  vector< vector<String> > emotionValuePaths;
+
+
+
+
+
+
   
 }; // config end
 
@@ -1571,6 +1598,9 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   int focusedMember = 0;
   std::vector<EinAiboConfig> pack;
 
+  ros::Time aiboStoppedTime;
+  EinAiboJoints stoppedJoints;
+  ros::Time aiboComeToStopTime;
   int execute_stack = 0;
 
   executionMode execution_mode = INSTANT;
