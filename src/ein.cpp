@@ -26,6 +26,8 @@
 
 //#define DEBUG_RING_BUFFER
 
+#define stringer(token) #token
+#define stringer_value(token) stringer(token)
 
 
 
@@ -2724,26 +2726,6 @@ void MachineState::moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg
   } else {
     assert(0);
   }
-}
-
-void MachineState::armItbCallback(const baxter_core_msgs::ITBState& itbs) {
-  MachineState * ms = this;
-
-  if ((itbs.buttons[2]) && (!ms->config.lastItbs.buttons[2])) {
-    ms->pushData(std::make_shared<EePoseWord>(ms->config.currentEEPose));
-  }
-
-  if ((itbs.buttons[1]) && (!ms->config.lastItbs.buttons[1])) {
-    ms->clearStack();
-    ms->clearData();
-  }
-
-  if ((itbs.buttons[0]) && (!ms->config.lastItbs.buttons[0])) {
-    ms->config.zero_g_toggle = !ms->config.zero_g_toggle;
-  }
-
-  ms->config.lastItbs = itbs;
-
 }
 
 void MachineState::pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
@@ -12890,6 +12872,7 @@ void detectorsInit(shared_ptr<MachineState> ms) {
   if (ms->config.detector == NULL)
     ms->config.detector = new FastFeatureDetector(4);
 
+#ifdef __OPENCV_NONFREE_HPP__
   if (ms->config.extractor == NULL) {
     if (ms->config.chosen_feature == SIFTBOW_GLOBALCOLOR_HIST)
       ms->config.extractor = new SiftDescriptorExtractor();
@@ -12899,7 +12882,7 @@ void detectorsInit(shared_ptr<MachineState> ms) {
       ms->config.extractor = new SiftDescriptorExtractor();
     }
   }
-  
+#endif
   if ( (ms->config.chosen_feature == GRADIENT) || 
        (ms->config.chosen_feature == OPPONENT_COLOR_GRADIENT) ||
        (ms->config.chosen_feature == CBCR_HISTOGRAM) ){
@@ -14589,7 +14572,6 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
   ms->config.placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, &MachineState::placeObjectInEndEffectorCommandCallback, ms.get());
   ms->config.moveEndEffectorCommandCallbackSub = n.subscribe("/ein/eeMoveCommand", 1, &MachineState::moveEndEffectorCommandCallback, ms.get());
 
-  ms->config.armItbCallbackSub = n.subscribe("/robot/itb/" + ms->config.left_or_right_arm + "_itb/state", 1, &MachineState::armItbCallback, ms.get());
 
   if (ms->config.currentRobotMode == PHYSICAL || ms->config.currentRobotMode == SIMULATED) {
     ms->config.forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1, 
@@ -14626,13 +14608,18 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
 
 
   ms->config.currentHeadPanCommand.target = 0;
+#ifdef RETHINK_SDK_1_2_0
+  ms->config.currentHeadPanCommand.speed_ratio = 0.5;
+#else
   ms->config.currentHeadPanCommand.speed = 50;
+#endif
   ms->config.currentHeadNodCommand.data = 0;
   ms->config.currentSonarCommand.data = 0;
 
 
   ms->config.facePub = n.advertise<std_msgs::Int32>("/confusion/target/command", 10);
-  ms->config.einPub = n.advertise<EinState>("state", 10);
+  string topic = "/ein_" + ms->config.left_or_right_arm + "/state";
+  ms->config.einPub = n.advertise<EinState>(topic, 10);
 
   ms->config.vmMarkerPublisher = n.advertise<visualization_msgs::MarkerArray>("volumetric_rgb_map", 10);
 
@@ -14960,6 +14947,10 @@ int main(int argc, char **argv) {
   cv::redirectError(opencvError, NULL, NULL);
 
   //a.exec();
+
+  //string x = stringer(BAXTER_CORE_MSGS_VERSION);
+  string x = stringer_value(BAXTER_CORE_MSGS_VERSION);
+  cout << "Printing: " << x <<  endl;
   
   ros::spin();
   /*  try {

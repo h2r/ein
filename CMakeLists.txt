@@ -21,6 +21,8 @@ find_package(catkin REQUIRED COMPONENTS
   kdl_parser
 )
 
+
+
 find_package(LAPACK REQUIRED)
 find_package(GSL REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -45,6 +47,9 @@ catkin_package(CATKIN_DEPENDS
 link_directories(${PCL_LIBRARY_DIRS})
 
 add_definitions(${PCL_DEFINITIONS})
+
+string(REPLACE "." "_" happy_version ${baxter_core_msgs_VERSION}     )
+add_definitions(-DRETHINK_SDK_${happy_version})
 
 
 include_directories(include
@@ -85,7 +90,7 @@ add_library (CmakeLib SHARED
 
 add_executable(ein src/ein.cpp src/ein_words.cpp src/config.cpp
 src/ein_bandit.cpp src/ein_render.cpp src/ein_movement.cpp src/ein_servo.cpp src/ein_vision_cycle.cpp src/ein_scanning.cpp src/ein_misc.cpp src/ein_pick_place.cpp src/ein_ik.cpp src/ein_stream.cpp src/ikfast/ikfast_wrapper_left.cpp src/ikfast/ikfast_wrapper_right.cpp  src/ein_collision.cpp
-src/word.cpp src/gaussian_map.cpp src/faces.cpp src/eePose.cpp src/eigen_util.cpp  src/ein_util.cpp src/ein_polyhedron.cpp src/ein_aibo.cpp
+src/word.cpp src/gaussian_map.cpp src/faces.cpp src/eePose.cpp src/eigen_util.cpp  src/ein_util.cpp src/ein_polyhedron.cpp src/ein_aibo.cpp src/ein_face_animation.cpp
 src/slu/math2d.cpp src/slu/gsl_utilities.cpp   src/base64.cpp src/compress.cpp
 src/distributions.c src/randomkit.c src/cephes/airy.c    src/cephes/fdtr.c    src/cephes/kn.c          src/cephes/scipy_iv.c
 src/cephes/bdtr.c    src/cephes/fresnl.c  src/cephes/kolmogorov.c  src/cephes/setprec.c

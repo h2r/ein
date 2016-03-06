@@ -60,7 +60,6 @@ class Scene;
 #include <baxter_core_msgs/SolvePositionIK.h>
 #include <baxter_core_msgs/JointCommand.h>
 #include <baxter_core_msgs/HeadPanCommand.h>
-#include <baxter_core_msgs/ITBState.h>
 #include <baxter_core_msgs/DigitalIOState.h>
 
 
@@ -228,6 +227,21 @@ typedef enum {
   POSE_LOCK = 2,
   POSE_REPORTED = 3
 } memoryLockType;
+
+
+
+typedef enum { 
+	ANIMATION_OFF = 0,
+	ANIMATION_ON = 1 
+} animationMode; 
+
+struct AnimationState {
+	String emotion; 
+	int value; 
+}; 
+
+
+
 
 struct Grasp {
   eePose grasp_pose;
@@ -408,7 +422,6 @@ class EinConfig {
   double red_halo_state = 100.0;
   double green_halo_state = 100.0;
   int repeat_halo = 1;
-
 
   int zero_g_toggle = 1;
 
@@ -1521,8 +1534,6 @@ class EinConfig {
   ros::Time measureTimeStart;
   double measureTimePeriod = 1.0;
 
-  baxter_core_msgs::ITBState lastItbs;
-
   eePose pressPose;
   double twistThresh = 0.01;
 
@@ -1547,6 +1558,18 @@ class EinConfig {
   double scene_score_thresh = 0.01;
 
   vector<shared_ptr<GaussianMap> > depth_maps;
+
+
+  animationMode currentAnimationMode = ANIMATION_ON; 
+  AnimationState currentAnimationState = {"confused", 0}; 
+  vector<String> emotionNames; 
+  vector< vector<String> > emotionValuePaths;
+
+
+
+
+
+
   
 }; // config end
 
@@ -1575,6 +1598,9 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   int focusedMember = 0;
   std::vector<EinAiboConfig> pack;
 
+  ros::Time aiboStoppedTime;
+  EinAiboJoints stoppedJoints;
+  ros::Time aiboComeToStopTime;
   int execute_stack = 0;
 
   executionMode execution_mode = INSTANT;
@@ -1605,7 +1631,6 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
 
   void jointCallback(const sensor_msgs::JointState& js);
   void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
-  void armItbCallback(const baxter_core_msgs::ITBState& itbs);
   void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);
   void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg);
   void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
