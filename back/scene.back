@@ -29,8 +29,8 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempCaptureCore" store
 
 (
-  16.0 sceneSetBackgroundStdDevY
-  16.0 sceneSetBackgroundStdDevColor
+  9.0 sceneSetBackgroundStdDevY
+  9.0 sceneSetBackgroundStdDevColor
 ) "tempRegularizeBackground" store
 
 (
@@ -1102,12 +1102,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempAddBlockGraspSaveModelAndPickAfterFind" store
 
 0 "tempBlockUsingBlocks" store
-0.055 "tempBlockMaxGraspThickness" store
+0.05 "tempBlockMaxGraspThickness" store
 /*
 0.04 "tempBlockGripperThrow" store
 0.01 "tempBlockGraspResolution" store
 */
-0.025 "tempBlockGripperThrow" store
+0.03 "tempBlockGripperThrow" store
 0.005 "tempBlockGraspResolution" store
 0.03 "tempBlockTargetContactWidth" store
 (
@@ -1636,6 +1636,88 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 
 ) "tempInitializeCategoryModel" store
+
+
+
+(
+
+
+
+) "socialFeedbackMapLeftWorkspace" store
+
+(
+  halfImpulse
+  assumeCrane1
+  assumeBeeHome
+  1 changeToHeight
+  waitUntilAtCurrentPosition
+  0.1 setSpeed
+  0.05 setW1GoThresh
+
+  /* clear it all */
+  sceneClearObservedMap
+  clearStreamBuffers
+
+  /* turn streaming on, no disk streaming */ 
+  shutdownToSensorsAndMovement
+  disableDiskStreaming
+
+    /* Pose Range Image Joints Word Label */
+    1 0 1 0 0 0 
+  setSisFlags
+  activateSensorStreaming
+
+  -0.506250 -0.375000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.531250 -0.550000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.381250 -0.475000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.412500 -0.693750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.281250 -0.575000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.275000 -0.812500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.143750 -0.643750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.075000 -0.893750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.025000 -0.700000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.125000 -0.881250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.181250 -0.687500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.337500 -0.837500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.350000 -0.606250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.506250 -0.725000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.468750 -0.468750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.637500 -0.556250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.537500 -0.293750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.725000 -0.393750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.662500 -0.218750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+
+  followPath
+
+  /* turn streaming off */
+  deactivateSensorStreaming
+  bringUpAllNonessentialSystems
+
+  tempUpdateMaps
+
+  quarterImpulse tempUpdateSpiralPos moveEeToPoseWord waitUntilAtCurrentPosition
+
+  tempUpdateSpiralCoreIntegrate
+
+) "socialFeedbackMapRightWorkspace" store
+
+(
+  leftOrRightArm "right" = ( 
+    socialFeedbackMapRightWorkspace
+  ) ( 
+    leftOrRightArm "left" = ( 
+      socialFeedbackMapLeftWorkspace
+    ) ( 
+      "Neither left or right arm." leftOrRighArm pauseStackExecution 
+    ) ifte
+  ) ifte
+) "socialFeedbackMapWorkspace" store
+
+
+
+
+
+
 
 
 
