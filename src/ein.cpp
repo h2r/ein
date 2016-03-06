@@ -2869,6 +2869,9 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& eps) 
   //cout << "JJJ " << ms->config.averagedWrechMass << " " << ms->config.averagedWrechAcc << endl;
 
   //cout << "endpoint frame_id: " << eps.header.frame_id << endl;
+// XXX
+//ms->config.tfListener
+
   ms->config.trueEEPose = eps.pose;
   ms->config.trueEEPoseEEPose.px = eps.pose.position.x;
   ms->config.trueEEPoseEEPose.py = eps.pose.position.y;
