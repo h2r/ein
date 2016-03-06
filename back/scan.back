@@ -54,7 +54,7 @@ workspace4 "outputPileWorkspace" store
     } 
     { |B 
       ( 1 ) ( 
-	drand48 -0.5 plus 4.0 times 5 setHeadPanTargetSpeed 
+	0.5 setHeadPanTargetSpeed 
 	drand48 20 times spinForSeconds 
 	endStackCollapseNoop 
       ) while 
@@ -90,7 +90,7 @@ workspace4 "outputPileWorkspace" store
     } 
     { |B 
       ( 1 ) ( 
-	drand48 -0.5 plus 4.0 times 5 setHeadPanTargetSpeed 
+	0.5 setHeadPanTargetSpeed 
 	drand48 20 times spinForSeconds 
 	endStackCollapseNoop 
       ) while 
@@ -121,7 +121,7 @@ workspace4 "outputPileWorkspace" store
     } 
     { |B 
       ( 1 ) ( 
-	drand48 -0.5 plus 4.0 times 5 setHeadPanTargetSpeed 
+	0.5 setHeadPanTargetSpeed 
 	drand48 20 times spinForSeconds 
 	endStackCollapseNoop 
       ) while 
@@ -159,7 +159,7 @@ workspace4 "outputPileWorkspace" store
 (
   { |B 
     ( 1 ) ( 
-      drand48 -0.5 plus 4.0 times 5 setHeadPanTargetSpeed 
+      0.5 setHeadPanTargetSpeed 
       drand48 20 times spinForSeconds 
       drand48 0.5 > ( 
 	"ursula_yes.tif" publishImageFileToFace 

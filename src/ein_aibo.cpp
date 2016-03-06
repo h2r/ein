@@ -105,6 +105,9 @@ SSDP_ENABLE=1
 
 #define DOG_READ_VAR(x) \
   nextCoreMessage = findStringInDogBuffer(ms, this_dog, string("] "), nextCoreMessage); \
+  if (nextCoreMessage == -1) {\
+    return;\
+  }\
   r = stod(&(ms->pack[this_dog].aibo_sock_buf[nextCoreMessage]), &idx);  \
   x = r; \
   cout << "dgbi got: " << r << " for " << #x << endl; 
@@ -116,8 +119,66 @@ void dogReconnect(std::shared_ptr<MachineState> ms) {
   ms->evaluateProgram("dogFocusedIP 54000 socketOpen ( endStackCollapseNoop dogSocketDidConnect not ) ( dogFocusedIP 54000 socketOpen ) while 15.0 waitForSeconds dogMotorsOn 1.0 waitForSeconds");
 }
 
+double EinAiboJoints::dist(EinAiboJoints & other) {
+  double result = (fabs(legLF1 - other.legLF1) + 
+		   fabs(legLF2 - other.legLF2) +
+		   fabs(legLF3 - other.legLF3) +
+		   fabs(legLH1 - other.legLH1) +
+		   fabs(legLH2 - other.legLH2) +
+		   fabs(legLH3 - other.legLH3) +
+		   fabs(legRH1 - other.legRH1) +
+		   fabs(legRH2 - other.legRH2) +
+		   fabs(legRH3 - other.legRH3) +
+		   fabs(legRF1 - other.legRF1) +
+		   fabs(legRF2 - other.legRF2) +
+		   fabs(legRF3 - other.legRF3) +
+		   fabs(neck - other.neck) +
+		   fabs(headPan - other.headPan) +
+		   fabs(headTilt - other.headTilt) +
+		   fabs(tailPan - other.tailPan) +
+		   fabs(tailTilt - other.tailTilt) +
+		   fabs(mouth - other.mouth));
+  return result;
+}
+string EinAiboJoints::toString() {
+  stringstream buf;
+  buf << "legLF1: " << legLF1 << " ";
+  buf << "legLF2: " << legLF2 << " ";
+  buf << "legLF3: " << legLF3 << " ";
+  buf << "legLH1: " << legLH1 << " ";
+  buf << "legLH2: " << legLH2 << " ";
+  buf << "legLH3: " << legLH3 << " ";
+  buf << "legRH1: " << legRH1 << " ";
+  buf << "legRH2: " << legRH2 << " ";
+  buf << "legRH3: " << legRH3 << " ";
+  buf << "legRF1: " << legRF1 << " ";
+  buf << "legRF2: " << legRF2 << " ";
+  buf << "legRF3: " << legRF3 << " ";
+  buf << "neck: " <<  neck << " ";
+  buf << "headPan: " <<  headPan << " ";
+  buf << "headTilt: " <<  headTilt << " ";
+  buf << "tailPan: " <<  tailPan << " ";
+  buf << "tailTilt: " <<  tailTilt << " ";
+  buf << "mouth: " <<  mouth << " ";
+  return buf.str();
+}
+bool dogIsStopped(std::shared_ptr<MachineState> ms, int member) {
+  EinAiboConfig & dog = ms->pack[member];
+  cout << "Intended joints: " << dog.targetJoints.toString() << endl;
+  cout << "True joints: " << dog.trueJoints.toString() << endl;
+
+  cout << "Intended pose: " << dog.intendedPose.toString() << endl;
+  cout << "True pose: " << dog.truePose.toString() << endl;
+
+  return false;
+}
+
 void sendOnDogSocket(std::shared_ptr<MachineState> ms, int member, string message) {
   int p_send_poll_timeout = 5000;
+  if (ms->pack.size() == 0) {
+    ROS_ERROR_STREAM("No pack; need to initialize.");
+    return;
+  }
   struct pollfd fd = { ms->pack[member].aibo_socket_desc, POLLOUT, 0 };
   if (poll(&fd, 1, p_send_poll_timeout) != 1) {
     ROS_ERROR_STREAM("poll says unavailable for sending after " << p_send_poll_timeout << " ms" << endl);
@@ -873,6 +934,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   readBytesFromDogUntilString(ms, this_dog, 5000, string(":dgsms] *** end\n"));
 
   int startCoreMessage = findStringInDogBuffer(ms, this_dog, string(":dgsms] *** begin\n"), 0);
+  if (startCoreMessage == -1) {
+    return;
+  }
   cout << ms->pack[this_dog].aibo_sock_buf[startCoreMessage] << endl;
 
   size_t idx;
@@ -970,7 +1034,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   DOG_READ_VAR(ms->pack[this_dog].trueSensors.backTouchR);
   DOG_READ_VAR(ms->pack[this_dog].trueSensors.backTouchM);
   DOG_READ_VAR(ms->pack[this_dog].trueSensors.backTouchF);
-
+  ms->pack[this_dog].lastSensoryMotorUpdateTime = ros::Time::now();
   cout << "dogGetSensoryMotorStates: finished" << endl;
 }
 END_WORD
@@ -991,6 +1055,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   readBytesFromDogUntilString(ms, this_dog, 250, string(":dgbi] *** end\n"));
 
   int startCoreMessage = findStringInDogBuffer(ms, this_dog, string(":dgbi] *** begin\n"), 0);
+  if (startCoreMessage == -1) {
+    return;
+  }
   cout << ms->pack[this_dog].aibo_sock_buf[startCoreMessage] << endl;
 
   size_t idx;
@@ -2947,6 +3014,17 @@ END_WORD
 REGISTER_WORD(DogVoiceToPCM)
 
 
+WORD(DogWriteIntendedFromTrue)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int this_dog = ms->focusedMember;
+  EinAiboConfig & dog = ms->pack[this_dog];
+
+  dog.intendedPose = dog.truePose;
+  memcpy(dog.intendedGain, dog.trueGain, 3 * sizeof(EinAiboJoints));
+  dog.intendedIndicators = dog.trueIndicators;
+}
+END_WORD
+REGISTER_WORD(DogWriteIntendedFromTrue)
 
 
 
@@ -2984,6 +3062,49 @@ REGISTER_WORD(Dog)
   // loop over relevant pixels
   // lay down density at parts probably not background
 
+WORD(DogComeToStop)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord("dogComeToStopA");
+  ms->pushWord("dogGetSensoryMotorStates");
+  ms->pushWord("endStackCollapseNoop");
+
+  int this_dog = ms->focusedMember;
+  EinAiboConfig & dog = ms->pack[this_dog];
+
+  ms->aiboStoppedTime = ros::Time(0,0);
+  ms->stoppedJoints = dog.truePose;
+  ms->aiboComeToStopTime = ros::Time::now();
+}
+END_WORD
+REGISTER_WORD(DogComeToStop)
+
+
+WORD(DogComeToStopA)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ros::Duration comeToStopLength = ros::Time::now() - ms->aiboComeToStopTime;
+  cout << "Length: " << comeToStopLength << endl;
+  if (comeToStopLength > ros::Duration(10, 0)) {
+    return;
+  }
+
+  int this_dog = ms->focusedMember;
+  EinAiboConfig & dog = ms->pack[this_dog];
+  cout << "Dist: " << ms->stoppedJoints.dist(dog.truePose) << endl;
+  if (ms->stoppedJoints.dist(dog.truePose) < 6.0) {
+    ros::Duration stoppedTime = ros::Time::now()- ms->aiboStoppedTime;
+    if (stoppedTime < ros::Duration(1, 0)) {
+      ms->pushWord("dogComeToStopA");
+    }
+  } else {
+    ms->pushWord("dogComeToStopA");
+    ms->aiboStoppedTime = ros::Time::now();
+    ms->stoppedJoints = dog.truePose;
+  }
+  ms->pushWord("dogGetSensoryMotorStates");
+  ms->pushWord("endStackCollapseNoop");
+}
+END_WORD
+REGISTER_WORD(DogComeToStopA)
 
 
 

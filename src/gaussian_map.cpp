@@ -3769,7 +3769,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       int cell_x = 0;
       int cell_y = 0;
       ms->config.scene->discrepancy->metersToCell(meter_x, meter_y, &cell_x, &cell_y);
-      ms->config.density[y*imW+x] = ms->config.scene->discrepancy_density.at<double>(cell_y,cell_x);
+      if (ms->config.scene->discrepancy->safeAt(cell_y, cell_x)) {
+        ms->config.density[y*imW+x] = ms->config.scene->discrepancy_density.at<double>(cell_y,cell_x);
+      }
     }
   }
   drawDensity(ms, 1);
