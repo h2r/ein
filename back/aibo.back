@@ -28,7 +28,7 @@ dogBark
 
 (
   1 dogSetPackSize
-  0 dogSetFocusedMember "192.168.160.130" 54000 socketOpen
+  0 dogSetFocusedMember "192.168.43.30" 54000 socketOpen
   dogMotorsOn
   dogFormatImageDefault
 ) "dogSummonElla" store
@@ -384,4 +384,124 @@ Snare
 
   dogVoiceSing
 ) "dogTomSong" store
+
+
+
+(
+2 dogWalkSeconds
+) "dogLocalXUp" store
+
+(
+-2 dogWalkSeconds
+) "dogLocalXDown" store
+
+(
+-2 dogTurnSeconds
+) "dogOXDown" store
+
+(
+2 dogTurnSeconds
+) "dogOXUp" store
+
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  0 dogTailTiltTo 
+  dogSendMotorState
+) "dogTailUp" store
+
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  60 dogTailTiltTo 
+  dogSendMotorState
+) "dogTailDown" store
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  60 dogTailPanTo
+  dogSendMotorState
+) "dogTailSwishRight" store
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  0 dogHeadPanTo 
+  0 dogHeadTiltTo 
+  dogSendMotorState
+) "dogHeadLowerLeft" store
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  100 dogHeadPanTo 
+  100 dogHeadTiltTo 
+  dogSendMotorState
+) "dogHeadUpperRight" store
+
+
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  -60 dogTailPanTo
+  dogSendMotorState
+) "dogTailSwishLeft" store
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  0 dogTailPanTo
+  dogSendMotorState
+) "dogTailCenter" store
+
+
+
+( 
+  dogTailUp 0.15 waitForSeconds
+  dogTailSwishLeft 0.15 waitForSeconds
+  dogTailSwishRight 0.15 waitForSeconds
+  dogTailDown 0.15 waitForSeconds
+  dogTailSwishLeft 0.15 waitForSeconds
+  dogTailSwishRight 0.15 waitForSeconds
+  dogTailUp 0.15 waitForSeconds
+  dogTailDown 0.15 waitForSeconds
+  dogTailUp 0.15 waitForSeconds
+  dogTailDown 0.15 waitForSeconds
+  dogTailUp 0.15 waitForSeconds
+  dogTailDown 0.15 waitForSeconds
+  dogTailCenter
+  dogComeToStop
+) "demoDogWagYourTail" store
+
+
+(
+dogSitDown dogLayDown
+dogComeToStop
+) "demoDogLieDown" store
+
+(
+dogBark dogBark dogBark 
+dogBark dogBark dogBark 
+2 waitForSeconds
+dogComeToStop
+) "demoDogBark" store
+
+(
+dogSitDown
+dogComeToStop
+) "demoDogSit" store
+
+(
+dogStandUp
+dogComeToStop
+) "demoDogStandUp" store
+
+(
+demoDogSit demoDogLieDown demoDogStandUp  demoDogSit demoDogStandUp demoDogLieDown   demoDogStandUp demoDogSit demoDogLieDown  demoDogStandUp demoDogLieDown  demoDogSit
+) "dogAllStaticPoses" store
+
 

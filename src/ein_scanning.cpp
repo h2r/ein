@@ -1948,6 +1948,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int darkY = 0;
   findDarkness(ms, &darkX, &darkY);
 
+  ms->config.pilotTarget.px = darkX;
+  ms->config.pilotTarget.py = darkY;
+
   int Px = darkX - ms->config.vanishingPointReticle.px;
   int Py = darkY - ms->config.vanishingPointReticle.py;
 
