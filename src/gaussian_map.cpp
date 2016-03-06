@@ -3245,7 +3245,6 @@ REGISTER_WORD(SceneIsNewConfiguration)
 
 WORD(SceneInit)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-// XXX UNDO THIS
   double p_cell_width = 0.0025;//0.00175; //0.0025; //0.01;
   int p_width = 1001; //1501; // 1001 // 601;
   int p_height = 1001; //1501; // 1001 / 601;
@@ -3254,6 +3253,26 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneInit)
+
+WORD(SceneInitDimensions)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double p_cell_width = 0.0025;//0.00175; //0.0025; //0.01;
+  int p_width = 1001; //1501; // 1001 // 601;
+  int p_height = 1001; //1501; // 1001 / 601;
+  
+  GET_INT_ARG(ms, p_height);
+  GET_INT_ARG(ms, p_width);
+  GET_NUMERIC_ARG(ms, p_cell_width);
+
+  cout << "sceneInitDimensions cell_width width height: " << p_cell_width << " " << p_width << " " << p_height << endl;
+
+  ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
+  ms->config.scene->background_map = ms->config.scene->observed_map->copy();
+  ms->pushWord("sceneRenderScene");
+}
+END_WORD
+REGISTER_WORD(SceneInitDimensions)
+
 
 WORD(SceneInitSmall)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -4850,6 +4869,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   computePixelToGlobalCache(ms, z, thisPose, &data);
   
   int numThreads = 8;
+  // XXX actually this is not thread safe... 
   // there is a faster way to stride it but i am risk averse atm
   #pragma omp parallel for
   for (int i = 0; i < numThreads; i++) {
@@ -5359,6 +5379,170 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneDepthStackLoadAndPushRaw)
+
+WORD(SceneDepthStackLoadAndCropRaw)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int x1,y1,x2,y2;
+  GET_NUMERIC_ARG(ms,y2);
+  GET_NUMERIC_ARG(ms,x2);
+  GET_NUMERIC_ARG(ms,y1);
+  GET_NUMERIC_ARG(ms,x1);
+
+  string depthStackFolderPath;
+  GET_STRING_ARG(ms, depthStackFolderPath);
+
+  cout << "sceneDepthStackLoadAndCropRaw got path x1 y1 x2 y2: " << depthStackFolderPath << " " << x1 << " " << y1 << " " << x2 << " " << y2 << endl; 
+
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+
+  dpdf = opendir(depthStackFolderPath.c_str());
+  if (dpdf != NULL){
+    cout << "sceneDepthStackLoadAndCropRaw: checking " << depthStackFolderPath << " during snoop...";
+    while (epdf = readdir(dpdf)){
+      string thisFileName(epdf->d_name);
+
+      string thisFullFileName(depthStackFolderPath.c_str());
+      thisFullFileName = thisFullFileName + "/" + thisFileName;
+      cout << "sceneDepthStackLoadAndCropRaw: checking " << thisFullFileName << " during snoop...";
+
+      struct stat buf2;
+      stat(thisFullFileName.c_str(), &buf2);
+
+      string extension;
+      if (thisFullFileName.size() >=3 ) {
+	extension = thisFullFileName.substr(thisFullFileName.size()-3, 3);
+      } else {
+      }
+
+      int itIsADir = S_ISDIR(buf2.st_mode);
+      if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+	cout << " is a directory." << endl;
+      } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && !extension.compare("yml")) {
+	cout << " is NOT a directory." << endl;
+	shared_ptr<Scene> this_scene = make_shared<Scene>(ms, 2, 2, 0.02);
+	this_scene->loadFromFile(thisFullFileName);
+	shared_ptr<GaussianMap> this_map = this_scene->observed_map;
+
+	shared_ptr<GaussianMap> this_crop = this_map->copyBox(x1, y1, x2, y2);
+
+	stringstream ss;
+	ss << thisFullFileName << ".png";
+	Mat toConvert;
+	Mat toWrite;
+	this_crop->rgbMuToMat(toConvert);
+	cvtColor(toConvert, toWrite, CV_YCrCb2BGR);
+	imwrite(ss.str(), toWrite);
+      }
+    }
+  } else {
+    ROS_ERROR_STREAM("sceneDepthStackLoadAndCropRaw: could not open base class dir " << depthStackFolderPath << " ." << endl);
+  } 
+}
+END_WORD
+REGISTER_WORD(SceneDepthStackLoadAndCropRaw)
+
+WORD(SceneDepthStackLoadAndMarginalizeRaw)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string depthStackFolderPath;
+  GET_STRING_ARG(ms, depthStackFolderPath);
+
+  cout << "sceneDepthStackLoadAndMarginalizeRaw got path: " << depthStackFolderPath << endl; 
+
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+
+  dpdf = opendir(depthStackFolderPath.c_str());
+  if (dpdf != NULL){
+    cout << "sceneDepthStackLoadAndMarginalizeRaw: checking " << depthStackFolderPath << " during snoop...";
+    while (epdf = readdir(dpdf)){
+      string thisFileName(epdf->d_name);
+
+      string thisFullFileName(depthStackFolderPath.c_str());
+      thisFullFileName = thisFullFileName + "/" + thisFileName;
+      cout << "sceneDepthStackLoadAndMarginalizeRaw: checking " << thisFullFileName << " during snoop...";
+
+      struct stat buf2;
+      stat(thisFullFileName.c_str(), &buf2);
+
+      string extension;
+      if (thisFullFileName.size() >=3 ) {
+	extension = thisFullFileName.substr(thisFullFileName.size()-3, 3);
+      } else {
+      }
+
+      int itIsADir = S_ISDIR(buf2.st_mode);
+      if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+	cout << " is a directory." << endl;
+      } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && !extension.compare("yml")) {
+	cout << " is NOT a directory." << endl;
+	shared_ptr<Scene> this_scene = make_shared<Scene>(ms, 2, 2, 0.02);
+	this_scene->loadFromFile(thisFullFileName);
+	shared_ptr<GaussianMap> this_map = this_scene->observed_map;
+
+	sceneMarginalizeIntoRegisterHelper(ms, this_map);
+      }
+    }
+  } else {
+    ROS_ERROR_STREAM("sceneDepthStackLoadAndMarginalizeRaw: could not open base class dir " << depthStackFolderPath << " ." << endl);
+  } 
+}
+END_WORD
+REGISTER_WORD(SceneDepthStackLoadAndMarginalizeRaw)
+
+WORD(SceneDepthStackLoadAndMinRaw)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string depthStackFolderPath;
+  GET_STRING_ARG(ms, depthStackFolderPath);
+
+  cout << "sceneDepthStackLoadAndMinRaw got path: " << depthStackFolderPath << endl; 
+
+  DIR *dpdf;
+  struct dirent *epdf;
+  string dot(".");
+  string dotdot("..");
+
+  dpdf = opendir(depthStackFolderPath.c_str());
+  if (dpdf != NULL){
+    cout << "sceneDepthStackLoadAndMinRaw: checking " << depthStackFolderPath << " during snoop...";
+    while (epdf = readdir(dpdf)){
+      string thisFileName(epdf->d_name);
+
+      string thisFullFileName(depthStackFolderPath.c_str());
+      thisFullFileName = thisFullFileName + "/" + thisFileName;
+      cout << "sceneDepthStackLoadAndMinRaw: checking " << thisFullFileName << " during snoop...";
+
+      struct stat buf2;
+      stat(thisFullFileName.c_str(), &buf2);
+
+      string extension;
+      if (thisFullFileName.size() >=3 ) {
+	extension = thisFullFileName.substr(thisFullFileName.size()-3, 3);
+      } else {
+      }
+
+      int itIsADir = S_ISDIR(buf2.st_mode);
+      if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
+	cout << " is a directory." << endl;
+      } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && !extension.compare("yml")) {
+	cout << " is NOT a directory." << endl;
+	shared_ptr<Scene> this_scene = make_shared<Scene>(ms, 2, 2, 0.02);
+	this_scene->loadFromFile(thisFullFileName);
+	shared_ptr<GaussianMap> this_map = this_scene->observed_map;
+
+	sceneMinIntoRegisterHelper(ms, this_map);
+      }
+    }
+  } else {
+    ROS_ERROR_STREAM("sceneDepthStackLoadAndMinRaw: could not open base class dir " << depthStackFolderPath << " ." << endl);
+  } 
+}
+END_WORD
+REGISTER_WORD(SceneDepthStackLoadAndMinRaw)
 
 WORD(SceneDepthStackSaveRaw)
 virtual void execute(std::shared_ptr<MachineState> ms) {
