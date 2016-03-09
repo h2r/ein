@@ -1562,8 +1562,10 @@ class EinConfig {
 
   animationMode currentAnimationMode = ANIMATION_ON; 
   AnimationState currentAnimationState = {"confused", 0}; 
-  vector<String> emotionNames; 
-  vector< vector<String> > emotionValuePaths;
+  AnimationState targetAnimationState = {"confused", 0}; 
+  std::map<string, int> emotionIndex; 
+  vector< vector<Mat> > emotionImages;
+  double animationRate = 60; 
 
 
 
