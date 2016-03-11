@@ -13,7 +13,6 @@ void queryIKService(shared_ptr<MachineState> ms, int * thisResult, baxter_core_m
 
 namespace MY_NAMESPACE {
 
-eePose ikfast_computeFK(shared_ptr<MachineState> ms, vector<double> joint_angles);
 int ikfast_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, IkSolutionListBase<IkReal> &solutions);
 bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, std::vector<double>& solutions);
 
@@ -39,7 +38,19 @@ eePose ikfast_computeFK(shared_ptr<MachineState> ms, vector<double> joint_angles
   pose.pose.position.x = eetrans[0];
   pose.pose.position.y = eetrans[1];
   pose.pose.position.z = eetrans[2];
-  pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(eerot[0], eerot[1], eerot[2]);
+  //pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(eerot[0], eerot[1], eerot[2]);
+
+  KDL::Rotation mult;
+  mult(0,0) = eerot[0];
+  mult(0,1) = eerot[1];
+  mult(0,2) = eerot[2];
+  mult(1,0) = eerot[3];
+  mult(1,1) = eerot[4];
+  mult(1,2) = eerot[5];
+  mult(2,0) = eerot[6];
+  mult(2,1) = eerot[7];
+  mult(2,2) = eerot[8];
+  mult.GetQuaternion(pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w);
 
   pose.header.stamp = ros::Time(0);
   pose.header.frame_id =  ms->config.left_or_right_arm + "_arm_mount";
@@ -47,6 +58,8 @@ eePose ikfast_computeFK(shared_ptr<MachineState> ms, vector<double> joint_angles
   geometry_msgs::PoseStamped transformed_pose;
 
   ms->config.tfListener->transformPose("base", pose, transformed_pose);
+
+  //ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_arm_mount", transformed_pose);
   
   return eePose::fromGeometryMsgPose(transformed_pose.pose);
 
@@ -125,9 +138,11 @@ bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, doubl
 
 
   double max_dist = VERYBIGNUMBER;
+  double min_dist = -VERYBIGNUMBER;
   int max_idx = -1;
   vector<double> max_solution;
 
+  double p_elbow_twist_thresh = M_PI/4.0;
 
   for (double f = joint_min_vector[free_joint_idx]; f < joint_max_vector[free_joint_idx]; f+= step) {
     IkSolutionList<IkReal> solutions;
@@ -139,12 +154,54 @@ bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, doubl
       ikfast_getSolution(solutions,s,solution);
       
       if (ikfast_obeys_limits(solution, joint_min_vector, joint_max_vector, joint_safety)) {
-        double error = ikfast_joint_error(solution, current_joints);
-        if (error < max_dist) {
-          max_dist = error;
+        double shift_from_current = ikfast_joint_error(solution, current_joints);
+	/*
+	// prefer minimum shift_from_current
+        if (shift_from_current < max_dist) {
+          max_dist = shift_from_current;
           max_idx = s;
           max_solution = solution;
         }
+        if (fabs(f) > min_dist) {
+          min_dist = fabs(f);
+          max_idx = s;
+          max_solution = solution;
+        }
+	*/
+	// prefer elbow twisted up
+	//double eff = solution[2];
+	/*
+        if (fabs(eff) < max_dist) {
+          max_dist = fabs(eff);
+          max_idx = s;
+          max_solution = solution;
+        }
+	// find minimum shift_from_current of those with elbow pointed correctly
+        if (fabs(eff) < p_elbow_twist_thresh) 
+	{
+	  if (shift_from_current < max_dist) {
+	    max_dist = shift_from_current;
+	    max_idx = s;
+	    max_solution = solution;
+	  }
+        }
+	*/
+
+	// use a prior; it is good for that joint to be small and for the solution to remain close
+	//   to the current solution. if we are allowed to travel far, oscillations can occur.
+	// constraining only the first twist takes us from a 1 dimensional manifold to a zero. but
+	//   remember, the zero dimensional sphere is actually 2 points, so an additional twist penalty
+	//   keeps us from flipping across the 0-sphere on those rare occasions.
+	//   one being bigger helps keep them from fighting.
+	double p_twist_top_radians_scale = 2*M_PI/4.0;
+	double p_twist_middle_radians_scale = M_PI/4.0;
+	double p_shift_from_current_scale = 0.1;
+	double cost = p_shift_from_current_scale*shift_from_current + p_twist_top_radians_scale*fabs(solution[2]) + p_twist_top_radians_scale*fabs(solution[4]); 
+	if (cost < max_dist) {
+	  max_dist = cost;
+	  max_idx = s;
+	  max_solution = solution;
+	}
       }
     }
   }
