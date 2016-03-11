@@ -80,9 +80,29 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
 50 "tempSpiralStreamTakeSceneSamplesDefault" store
 tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 (
+/*
+    0 
+  "buildFigNum" store
+*/
+
   rewindImageStreamBufferNLNK
   streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
-  ( sceneUpdateObservedFromStreamBuffer ( incrementImageStreamBufferNoLoadNoKick ) tempSpiralStreamTakeSceneStride replicateWord endStackCollapseNoop ) tempSpiralStreamTakeSceneSamples replicateWord
+  ( 
+    sceneUpdateObservedFromStreamBuffer 
+    ( 
+      incrementImageStreamBufferNoLoadNoKick 
+    ) tempSpiralStreamTakeSceneStride replicateWord 
+    endStackCollapseNoop 
+
+/*
+      "buildFigure_" buildFigNum +
+    sceneSaveScene
+
+      buildFigNum 1 + 
+    "buildFigNum" store
+*/
+
+  ) tempSpiralStreamTakeSceneSamples replicateWord
 ) "tempUpdateSpiralCoreIntegrate" store
 
 (
@@ -708,6 +728,15 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempMoveToSceneObject" store
 
 (
+  0 "tempCounter" store
+  ( tempCounter scenePushNumSceneObjects < ) (
+    tempCounter sceneMapSceneObject
+    publishRecognizedObjectArrayFromBlueBoxMemory
+    tempCounter 1 +  "tempCounter" store
+  ) while
+) "tempAddBlueBoxesForSceneObjects" store
+
+(
   tempShortTakeScene tempServoToBestSceneObject
 ) "tempShortServoToBestSceneObject" store
 
@@ -1304,9 +1333,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 0.3883 "tempReconstructWithZTopZ" store 
 */
 0.3883 "tempReconstructWithZTopZ" store 
-0.0 "tempReconstructWithZTotalZ" store
-0.02 "tempReconstructWithZDeltaZ" store
-200 "tempReconstructStreamTakeSceneSamples" store
+0.16 "tempReconstructWithZTotalZ" store
+0.01 "tempReconstructWithZDeltaZ" store
+100 "tempReconstructStreamTakeSceneSamples" store
 (
   sceneInitRegisterZero
   streamPushImageStreamSize tempReconstructStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
@@ -1339,9 +1368,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
       ) tempSpiralStreamTakeSceneStride replicateWord 
 
 /*
+*/
       sceneRecalculateObservedMusAndSigmas
       sceneRenderObservedMap
-*/
 
       endStackCollapseNoop 
     ) tempReconstructStreamTakeSceneSamples replicateWord
@@ -1640,10 +1669,48 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 
 (
-
-
-
+  -0.506250 0.375000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.531250 0.550000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.381250 0.475000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.412500 0.693750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.281250 0.575000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.275000 0.812500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.143750 0.643750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.075000 0.893750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.025000 0.700000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.125000 0.881250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.181250 0.687500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.337500 0.837500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.350000 0.606250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.506250 0.725000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.468750 0.468750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.637500 0.556250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.537500 0.293750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.725000 0.393750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.662500 0.218750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
 ) "socialFeedbackMapLeftWorkspace" store
+
+(
+  -0.506250 -0.375000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.531250 -0.550000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.381250 -0.475000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.412500 -0.693750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.281250 -0.575000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.275000 -0.812500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.143750 -0.643750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.075000 -0.893750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.025000 -0.700000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.125000 -0.881250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.181250 -0.687500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.337500 -0.837500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.350000 -0.606250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.506250 -0.725000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.468750 -0.468750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.637500 -0.556250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.537500 -0.293750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.725000 -0.393750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.662500 -0.218750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+) "socialFeedbackMapRightWorkspace" store
 
 (
   halfImpulse
@@ -1667,25 +1734,15 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   setSisFlags
   activateSensorStreaming
 
-  -0.506250 -0.375000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.531250 -0.550000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.381250 -0.475000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.412500 -0.693750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.281250 -0.575000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.275000 -0.812500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.143750 -0.643750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.075000 -0.893750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.025000 -0.700000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.125000 -0.881250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.181250 -0.687500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.337500 -0.837500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.350000 -0.606250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.506250 -0.725000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.468750 -0.468750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.637500 -0.556250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.537500 -0.293750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.725000 -0.393750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.662500 -0.218750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  leftOrRightArm "right" = ( 
+    socialFeedbackMapRightWorkspace
+  ) ( 
+    leftOrRightArm "left" = ( 
+      socialFeedbackMapLeftWorkspace
+    ) ( 
+      "Neither left or right arm." leftOrRighArm pauseStackExecution 
+    ) ifte
+  ) ifte
 
   followPath
 
@@ -1697,24 +1754,22 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   quarterImpulse tempUpdateSpiralPos moveEeToPoseWord waitUntilAtCurrentPosition
 
+  500 "tempSpiralStreamTakeSceneSamples" store
   tempUpdateSpiralCoreIntegrate
-
-) "socialFeedbackMapRightWorkspace" store
+) "socialFeedbackTakeScene" store
 
 (
-  leftOrRightArm "right" = ( 
-    socialFeedbackMapRightWorkspace
-  ) ( 
-    leftOrRightArm "left" = ( 
-      socialFeedbackMapLeftWorkspace
-    ) ( 
-      "Neither left or right arm." leftOrRighArm pauseStackExecution 
-    ) ifte
-  ) ifte
+  sceneClearPredictedObjects 
+  clearMapForPatrol clearBlueBoxMemories 
+
+  socialFeedbackTakeScene
+
+  scenePredictBestObject 
+  scenePredictBestObject 
+  scenePredictBestObject 
+
+  tempAddBlueBoxesForSceneObjects
 ) "socialFeedbackMapWorkspace" store
-
-
-
 
 
 

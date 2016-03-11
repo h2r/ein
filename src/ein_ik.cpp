@@ -84,6 +84,8 @@ bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositi
 }
 
 void queryIKService(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
+    // fill in 
+
     *thisResult = ms->config.ikClient.call(*thisRequest);
     //cout << "Asking for IK: " << thisRequest->request.pose_stamp[0].pose.position.x << ",";
     //cout << thisRequest->request.pose_stamp[0].pose.position.y << ",";
@@ -98,11 +100,66 @@ void queryIKService(shared_ptr<MachineState> ms, int * thisResult, baxter_core_m
     // } else {
     //   cout << "invalid" << endl;
     // }
- 
 }
 
 
 void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
+  // cache for later
+  eePose currentEEPoseRequested;
+  {
+    currentEEPoseRequested.px = thisRequest->request.pose_stamp[0].pose.position.x;
+    currentEEPoseRequested.py = thisRequest->request.pose_stamp[0].pose.position.y;
+    currentEEPoseRequested.pz = thisRequest->request.pose_stamp[0].pose.position.z;
+
+    currentEEPoseRequested.qx = thisRequest->request.pose_stamp[0].pose.orientation.x;
+    currentEEPoseRequested.qy = thisRequest->request.pose_stamp[0].pose.orientation.y;
+    currentEEPoseRequested.qz = thisRequest->request.pose_stamp[0].pose.orientation.z;
+    currentEEPoseRequested.qw = thisRequest->request.pose_stamp[0].pose.orientation.w;
+  }
+
+  eePose handPoint;
+  if (ms->config.currentRobotMode == PHYSICAL) {
+    if(ms->config.currentIKMode == IKSERVICE) {
+      handPoint = ms->config.handToRethinkEndPointTransform;
+    } else if (ms->config.currentIKMode == IKFAST) {
+      handPoint = eePose(0,0,0.0437, 0,0,0,1);
+    } else if (ms->config.currentIKMode == IKFASTDEBUG) {
+    } else {
+      assert(0);
+    }
+  } else if (ms->config.currentRobotMode == SIMULATED) {
+    *thisResult = 1;
+  } else {
+    assert(0);
+  }
+
+  // correct for IK service
+  eePose endPointCorrectedEEPoseToRequest;
+  {
+    eePose desiredHandPose = ms->config.handFromEndEffectorTransform.applyAsRelativePoseTo(currentEEPoseRequested);
+    eePose desiredEndPointPose = handPoint.applyAsRelativePoseTo(desiredHandPose);
+    //cout << currentEEPoseRequested << desiredHandPose << desiredEndPointPose << endl;
+    //cout << ms->config.handFromEndEffectorTransform << ms->config.handToRethinkEndPointTransform << endl;
+    //endPointCorrectedEEPoseToRequest = ms->config.handToRethinkEndPointTransform.applyAsRelativePoseTo(desiredHandPose);
+    //endPointCorrectedEEPoseToRequest = ms->config.handToRethinkEndPointTransform.applyAsRelativePoseTo(currentEEPoseRequested);
+    //cout << ms->config.handToRethinkEndPointTransform << endl;
+
+
+    //endPointCorrectedEEPoseToRequest = currentEEPoseRequested;
+    endPointCorrectedEEPoseToRequest = desiredEndPointPose;
+  }
+
+  {
+    thisRequest->request.pose_stamp[0].pose.position.x = endPointCorrectedEEPoseToRequest.px;
+    thisRequest->request.pose_stamp[0].pose.position.y = endPointCorrectedEEPoseToRequest.py;
+    thisRequest->request.pose_stamp[0].pose.position.z = endPointCorrectedEEPoseToRequest.pz;
+
+    thisRequest->request.pose_stamp[0].pose.orientation.x = endPointCorrectedEEPoseToRequest.qx;
+    thisRequest->request.pose_stamp[0].pose.orientation.y = endPointCorrectedEEPoseToRequest.qy;
+    thisRequest->request.pose_stamp[0].pose.orientation.z = endPointCorrectedEEPoseToRequest.qz;
+    thisRequest->request.pose_stamp[0].pose.orientation.w = endPointCorrectedEEPoseToRequest.qw;
+  }
+
   if (ms->config.currentRobotMode == PHYSICAL) {
     if(ms->config.currentIKMode == IKSERVICE) {
       queryIKService(ms, thisResult, thisRequest);
@@ -130,10 +187,19 @@ void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::So
   } else {
     assert(0);
   }
+
+  // replace with original before returning
+  {
+    thisRequest->request.pose_stamp[0].pose.position.x = currentEEPoseRequested.px;
+    thisRequest->request.pose_stamp[0].pose.position.y = currentEEPoseRequested.py;
+    thisRequest->request.pose_stamp[0].pose.position.z = currentEEPoseRequested.pz;
+
+    thisRequest->request.pose_stamp[0].pose.orientation.x = currentEEPoseRequested.qx;
+    thisRequest->request.pose_stamp[0].pose.orientation.y = currentEEPoseRequested.qy;
+    thisRequest->request.pose_stamp[0].pose.orientation.z = currentEEPoseRequested.qz;
+    thisRequest->request.pose_stamp[0].pose.orientation.w = currentEEPoseRequested.qw;
+  }
 }
-
-
-
 
 
 ikMapState ikAtPose(shared_ptr<MachineState> ms, eePose pose) {

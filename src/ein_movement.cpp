@@ -1,3 +1,8 @@
+#include "ikfast/ikfast_wrapper_left.h"
+#undef IKFAST_NAMESPACE
+#undef IKFAST_SOLVER_CPP
+#undef MY_NAMESPACE
+#include "ikfast/ikfast_wrapper_right.h"
 
 #include "ein_words.h"
 #include "ein.h"
@@ -69,6 +74,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->config.shouldIDoIK = 1;
   } else {
   }
+
+  if (ms->config.currentControlMode == VELOCITY) {
+  } else if (ms->config.currentControlMode == EEPOSITION) {
+  } else if (ms->config.currentControlMode == ANGLES) {
+    ms->pushWord("setCurrentPoseFromJoints"); 
+  } else {
+    assert(0);
+  }
 }
 END_WORD
 REGISTER_WORD(WaitUntilAtCurrentPositionCollapse)
@@ -94,6 +107,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   } else {
     // try not collapsing if you are where you want to be
     ms->config.endThisStackCollapse = 1;
+  }
+
+  if (ms->config.currentControlMode == VELOCITY) {
+  } else if (ms->config.currentControlMode == EEPOSITION) {
+  } else if (ms->config.currentControlMode == ANGLES) {
+    ms->pushWord("setCurrentPoseFromJoints"); 
+  } else {
+    assert(0);
   }
 }
 END_WORD
@@ -1993,5 +2014,193 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(PushCurrentJointAngles)
 
+WORD(SetCurrentPoseFromJoints)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  vector<double> joint_angles(NUM_JOINTS);
+  for (int i =  0; i < ms->config.currentJointPositions.response.joints[0].position.size(); i++) {
+    joint_angles[i] = ms->config.currentJointPositions.response.joints[0].position[i];
+  }
+
+  eePose ikfastEndPointPose;
+  if (ms->config.left_or_right_arm == "left") {
+    ikfastEndPointPose = ikfast_left_ein::ikfast_computeFK(ms, joint_angles);
+  } else if (ms->config.left_or_right_arm == "right") {
+    ikfastEndPointPose = ikfast_right_ein::ikfast_computeFK(ms, joint_angles);
+  } else {
+    assert(0);
+  }
+
+  eePose handFromIkFastEndPoint = {0,0,-0.0661, 0,0,0,1};
+
+  eePose desiredHandPose = handFromIkFastEndPoint.applyAsRelativePoseTo(ikfastEndPointPose);
+  eePose desiredEndPointPose = ms->config.handToRethinkEndPointTransform.applyAsRelativePoseTo(desiredHandPose);
+
+  ms->config.currentEEPose = desiredEndPointPose;
+
+  cout << "setCurrentPoseFromJoints: doing it " << ms->config.currentEEPose << endl;
+}
+END_WORD
+REGISTER_WORD(SetCurrentPoseFromJoints)
+
+/*
+
+WORD(WaitUntilOnSideOfPlane)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD()
+
+WORD(WaitUntilOnSideOfPlane)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  ms->config.currentMovementState = MOVING;
+  ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
+  ms->config.lastMovementStateSet = ros::Time::now();
+
+  ms->config.waitUntilAtCurrentPositionCounter = 0;
+  ms->config.waitUntilAtCurrentPositionStart = ros::Time::now();
+
+  double distance, angleDistance;
+  eePose::distanceXYZAndAngle(ms->config.currentEEPose, ms->config.trueEEPoseEEPose, &distance, &angleDistance);
+
+  if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
+    ms->pushWord("waitUntilAtCurrentPositionB"); 
+    ms->config.endThisStackCollapse = 1;
+    ms->config.shouldIDoIK = 1;
+  } else {
+    // try not collapsing if you are where you want to be
+    ms->config.endThisStackCollapse = 1;
+  }
+
+  if (ms->config.currentControlMode == VELOCITY) {
+  } else if (ms->config.currentControlMode == EEPOSITION) {
+  } else if (ms->config.currentControlMode == ANGLES) {
+    ms->pushWord("setCurrentPoseFromJoints"); 
+  } else {
+    assert(0);
+  }
+}
+END_WORD
+REGISTER_WORD(WaitUntilOnSideOfPlane)
+
+WORD(WaitUntilOnSideOfPlaneB)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  //if (ms->config.waitUntilAtCurrentPositionCounter < ms->config.waitUntilAtCurrentPositionCounterTimeout) 
+  if ( ros::Time::now().toSec() - ms->config.waitUntilAtCurrentPositionStart.toSec() < ms->config.waitUntilAtCurrentPositionTimeout )
+  {
+
+    if ( (ms->config.currentMovementState == STOPPED) ||
+	 (ms->config.currentMovementState == BLOCKED) ) {
+
+      if (ms->config.currentMovementState == STOPPED) {
+	cout << "Warning: waitUntilOnSideOfPlane ms->config.currentMovementState = STOPPED, moving on." << endl;
+	ms->config.endThisStackCollapse = ms->config.endCollapse;
+      }
+      if (ms->config.currentMovementState == BLOCKED) {
+	cout << "Warning: waitUntilOnSideOfPlane ms->config.currentMovementState = BLOCKED, moving on." << endl;
+	ms->config.endThisStackCollapse = ms->config.endCollapse;
+      }
+      
+      if (ms->config.currentWaitMode == WAIT_KEEP_ON) {
+	cout << "waitUntilOnSideOfPlaneB: currentWaitMode WAIT_KEEP_ON, so doing nothing...";
+      } else if (ms->config.currentWaitMode == WAIT_BACK_UP) {
+	cout << "waitUntilOnSideOfPlaneB: currentWaitMode WAIT_BACK_UP, so...";
+	ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
+	cout << "  backing up just a little to dislodge, then waiting again." << endl;
+      } else {
+	assert(0);
+      }
+
+      ms->pushWord("waitUntilOnSideOfPlane"); 
+      return;
+    }
+
+  double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
+  double dy = (ms->config.currentEEPose.py - ms->config.trueEEPose.position.y);
+  double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
+  double distance = dx*dx + dy*dy + dz*dz;
+  // XXX TODO
+  // representation... one pose or two points?
+  
+  double qx = (fabs(ms->config.currentEEPose.qx) - fabs(ms->config.trueEEPose.orientation.x));
+  double qy = (fabs(ms->config.currentEEPose.qy) - fabs(ms->config.trueEEPose.orientation.y));
+  double qz = (fabs(ms->config.currentEEPose.qz) - fabs(ms->config.trueEEPose.orientation.z));
+  double qw = (fabs(ms->config.currentEEPose.qw) - fabs(ms->config.trueEEPose.orientation.w));
+  double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
+
+
+
+
+    ms->config.waitUntilAtCurrentPositionCounter++;
+    if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
+      ms->pushWord("waitUntilOnSideOfPlaneB"); 
+      ms->config.endThisStackCollapse = 1;
+      ms->config.shouldIDoIK = 1;
+    } else {
+      ms->config.endThisStackCollapse = ms->config.endCollapse;
+    }
+  } else {
+    cout << "Warning: waitUntilOnSideOfPlane timed out, moving on." << endl;
+    ms->config.endThisStackCollapse = 1;
+  }
+}
+END_WORD
+REGISTER_WORD(WaitUntilOnSideOfPlaneB)
+
+*/
+
+#define ARM_POSE_DELTAS(J, C, T, D) \
+WORD(Arm ## J ## Up) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  C += D; \
+} \
+END_WORD \
+REGISTER_WORD(Arm ## J ## Up) \
+\
+WORD(Arm ## J ## Down) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  C -= D; \
+} \
+END_WORD \
+REGISTER_WORD(Arm ## J ## Down) \
+\
+WORD(Arm ## J ## By) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  double amount = 0.0; \
+  GET_NUMERIC_ARG(ms, amount); \
+  C += amount; \
+} \
+END_WORD \
+REGISTER_WORD(Arm ## J ## By) \
+WORD(Arm ## J ## To) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  double amount = 0.0; \
+  GET_NUMERIC_ARG(ms, amount); \
+  C = amount; \
+} \
+END_WORD \
+REGISTER_WORD(Arm ## J ## To) \
+WORD(Arm ## J ## Current) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  ms->pushData(make_shared<DoubleWord>(C)); \
+} \
+END_WORD \
+REGISTER_WORD(Arm ## J ## Current) \
+WORD(Arm ## J ## True) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  ms->pushData(make_shared<DoubleWord>(T)); \
+} \
+END_WORD \
+REGISTER_WORD(Arm ## J ## True) \
+
+// 1 indexed to match aibo
+ARM_POSE_DELTAS(1, ms->config.currentJointPositions.response.joints[0].position[0], ms->config.trueJointPositions[0], ms->config.bDelta)
+ARM_POSE_DELTAS(2, ms->config.currentJointPositions.response.joints[0].position[1], ms->config.trueJointPositions[1], ms->config.bDelta)
+ARM_POSE_DELTAS(3, ms->config.currentJointPositions.response.joints[0].position[2], ms->config.trueJointPositions[2], ms->config.bDelta)
+ARM_POSE_DELTAS(4, ms->config.currentJointPositions.response.joints[0].position[3], ms->config.trueJointPositions[3], ms->config.bDelta)
+ARM_POSE_DELTAS(5, ms->config.currentJointPositions.response.joints[0].position[4], ms->config.trueJointPositions[4], ms->config.bDelta)
+ARM_POSE_DELTAS(6, ms->config.currentJointPositions.response.joints[0].position[5], ms->config.trueJointPositions[5], ms->config.bDelta)
+ARM_POSE_DELTAS(7, ms->config.currentJointPositions.response.joints[0].position[6], ms->config.trueJointPositions[6], ms->config.bDelta)
 
 }

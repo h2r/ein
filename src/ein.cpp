@@ -2830,8 +2830,20 @@ void MachineState::forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
 }
 
 
-void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& eps) {
+void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps) {
+  baxter_core_msgs::EndpointState eps = _eps;
   shared_ptr<MachineState> ms = this->sharedThis;
+
+  eePose endPointEEPose;
+  {
+    endPointEEPose.px = _eps.pose.position.x;
+    endPointEEPose.py = _eps.pose.position.y;
+    endPointEEPose.pz = _eps.pose.position.z;
+    endPointEEPose.qx = _eps.pose.orientation.x;
+    endPointEEPose.qy = _eps.pose.orientation.y;
+    endPointEEPose.qz = _eps.pose.orientation.z;
+    endPointEEPose.qw = _eps.pose.orientation.w;
+  }
 
   ms->config.lastEndpointCallbackReceived = ros::Time::now();
 
@@ -2851,17 +2863,129 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& eps) 
   //cout << "JJJ " << ms->config.averagedWrechMass << " " << ms->config.averagedWrechAcc << endl;
 
   //cout << "endpoint frame_id: " << eps.header.frame_id << endl;
-// XXX
-//ms->config.tfListener
+  // XXX
+  //ms->config.tfListener
+  //tf::StampedTransform transform;
+  //ms->config.tfListener->lookupTransform("base", ms->config.left_or_right_arm + "_gripper_base", ros::Time(0), transform);
+
+  geometry_msgs::PoseStamped hand_pose;
+  //tf::StampedTransform base_to_hand_transform;
+  {
+    geometry_msgs::PoseStamped pose;
+    pose.pose.position.x = 0;
+    pose.pose.position.y = 0;
+    pose.pose.position.z = 0;
+    pose.pose.orientation.x = 0;
+    pose.pose.orientation.y = 0;
+    pose.pose.orientation.z = 0;
+    pose.pose.orientation.w = 1;
+
+    pose.header.stamp = ros::Time(0);
+    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
+    
+    ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", hand_pose);
+    //ms->config.tfListener->lookupTransform("base", ms->config.left_or_right_arm + "_hand", ros::Time(0), base_to_hand_transform);
+  }
+  eePose handEEPose;
+  {
+    handEEPose.px = hand_pose.pose.position.x;
+    handEEPose.py = hand_pose.pose.position.y;
+    handEEPose.pz = hand_pose.pose.position.z;
+    handEEPose.qx = hand_pose.pose.orientation.x;
+    handEEPose.qy = hand_pose.pose.orientation.y;
+    handEEPose.qz = hand_pose.pose.orientation.z;
+    handEEPose.qw = hand_pose.pose.orientation.w;
+  }
+  ms->config.handToRethinkEndPointTransform = endPointEEPose.getPoseRelativeTo(handEEPose);
+  {
+    geometry_msgs::PoseStamped pose;
+    pose.pose.position.x = ms->config.handEndEffectorOffset.px;
+    pose.pose.position.y = ms->config.handEndEffectorOffset.py;
+    pose.pose.position.z = ms->config.handEndEffectorOffset.pz;
+    pose.pose.orientation.x = ms->config.handEndEffectorOffset.qx;
+    pose.pose.orientation.y = ms->config.handEndEffectorOffset.qy;
+    pose.pose.orientation.z = ms->config.handEndEffectorOffset.qz;
+    pose.pose.orientation.w = ms->config.handEndEffectorOffset.qw;
+
+    pose.header.stamp = ros::Time(0);
+    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
+    
+    geometry_msgs::PoseStamped transformed_pose;
+    ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
+
+    eps.pose.position.x = transformed_pose.pose.position.x;
+    eps.pose.position.y = transformed_pose.pose.position.y;
+    eps.pose.position.z = transformed_pose.pose.position.z;
+    eps.pose.orientation = transformed_pose.pose.orientation;
+
+    //cout << pose << transformed_pose << hand_pose;
+    //cout << base_to_hand_transform.getOrigin().x() << base_to_hand_transform.getOrigin().y() << base_to_hand_transform.getOrigin().z() << endl;
+    //tf::Vector3 test(0,0,0.03);
+    //tf::Vector3 test2 = base_to_hand_transform * test;
+    //cout <<  test2.x() << test2.y() << test2.z() << endl;
+  }
+  {
+    geometry_msgs::PoseStamped pose;
+    pose.pose.position.x = ms->config.handCameraOffset.px;
+    pose.pose.position.y = ms->config.handCameraOffset.py;
+    pose.pose.position.z = ms->config.handCameraOffset.pz;
+    pose.pose.orientation.x = ms->config.handCameraOffset.qx;
+    pose.pose.orientation.y = ms->config.handCameraOffset.qy;
+    pose.pose.orientation.z = ms->config.handCameraOffset.qz;
+    pose.pose.orientation.w = ms->config.handCameraOffset.qw;
+
+    pose.header.stamp = ros::Time(0);
+    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
+    
+    geometry_msgs::PoseStamped transformed_pose;
+    ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
+
+    ms->config.trueCameraPose.px = transformed_pose.pose.position.x;
+    ms->config.trueCameraPose.py = transformed_pose.pose.position.y;
+    ms->config.trueCameraPose.pz = transformed_pose.pose.position.z;
+    ms->config.trueCameraPose.qx = transformed_pose.pose.orientation.x;
+    ms->config.trueCameraPose.qy = transformed_pose.pose.orientation.y;
+    ms->config.trueCameraPose.qz = transformed_pose.pose.orientation.z;
+    ms->config.trueCameraPose.qw = transformed_pose.pose.orientation.w;
+  }
+  {
+    geometry_msgs::PoseStamped pose;
+    pose.pose.position.x = ms->config.handRangeOffset.px;
+    pose.pose.position.y = ms->config.handRangeOffset.py;
+    pose.pose.position.z = ms->config.handRangeOffset.pz;
+    pose.pose.orientation.x = ms->config.handRangeOffset.qx;
+    pose.pose.orientation.y = ms->config.handRangeOffset.qy;
+    pose.pose.orientation.z = ms->config.handRangeOffset.qz;
+    pose.pose.orientation.w = ms->config.handRangeOffset.qw;
+
+    pose.header.stamp = ros::Time(0);
+    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
+    
+    geometry_msgs::PoseStamped transformed_pose;
+    ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
+
+    ms->config.trueRangePose.px = transformed_pose.pose.position.x;
+    ms->config.trueRangePose.py = transformed_pose.pose.position.y;
+    ms->config.trueRangePose.pz = transformed_pose.pose.position.z;
+    ms->config.trueRangePose.qx = transformed_pose.pose.orientation.x;
+    ms->config.trueRangePose.qy = transformed_pose.pose.orientation.y;
+    ms->config.trueRangePose.qz = transformed_pose.pose.orientation.z;
+    ms->config.trueRangePose.qw = transformed_pose.pose.orientation.w;
+  }
 
   ms->config.trueEEPose = eps.pose;
-  ms->config.trueEEPoseEEPose.px = eps.pose.position.x;
-  ms->config.trueEEPoseEEPose.py = eps.pose.position.y;
-  ms->config.trueEEPoseEEPose.pz = eps.pose.position.z;
-  ms->config.trueEEPoseEEPose.qx = eps.pose.orientation.x;
-  ms->config.trueEEPoseEEPose.qy = eps.pose.orientation.y;
-  ms->config.trueEEPoseEEPose.qz = eps.pose.orientation.z;
-  ms->config.trueEEPoseEEPose.qw = eps.pose.orientation.w;
+  {
+    ms->config.trueEEPoseEEPose.px = eps.pose.position.x;
+    ms->config.trueEEPoseEEPose.py = eps.pose.position.y;
+    ms->config.trueEEPoseEEPose.pz = eps.pose.position.z;
+    ms->config.trueEEPoseEEPose.qx = eps.pose.orientation.x;
+    ms->config.trueEEPoseEEPose.qy = eps.pose.orientation.y;
+    ms->config.trueEEPoseEEPose.qz = eps.pose.orientation.z;
+    ms->config.trueEEPoseEEPose.qw = eps.pose.orientation.w;
+  }
+  ms->config.handFromEndEffectorTransform = handEEPose.getPoseRelativeTo(ms->config.trueEEPoseEEPose);
+
+
   //cout << "Setting true pose: " << ms->config.trueEEPoseEEPose << endl;
 
   int cfClass = ms->config.focusedClass;
@@ -4176,13 +4300,13 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
     }
     ms->config.goodIkInitialized = 1;
   } else if (ms->config.currentControlMode == ANGLES) {
-    ms->config.currentEEPose.px = ms->config.trueEEPose.position.x;
-    ms->config.currentEEPose.py = ms->config.trueEEPose.position.y;
-    ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z;
-    ms->config.currentEEPose.qx = ms->config.trueEEPose.orientation.x;
-    ms->config.currentEEPose.qy = ms->config.trueEEPose.orientation.y;
-    ms->config.currentEEPose.qz = ms->config.trueEEPose.orientation.z;
-    ms->config.currentEEPose.qw = ms->config.trueEEPose.orientation.w;
+    //ms->config.currentEEPose.px = ms->config.trueEEPose.position.x;
+    //ms->config.currentEEPose.py = ms->config.trueEEPose.position.y;
+    //ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z;
+    //ms->config.currentEEPose.qx = ms->config.trueEEPose.orientation.x;
+    //ms->config.currentEEPose.qy = ms->config.trueEEPose.orientation.y;
+    //ms->config.currentEEPose.qz = ms->config.trueEEPose.orientation.z;
+    //ms->config.currentEEPose.qw = ms->config.trueEEPose.orientation.w;
 
     myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
     myCommand.command.resize(NUM_JOINTS);

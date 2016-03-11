@@ -691,6 +691,9 @@ class EinConfig {
   double averagedWrechDecay = 0.95;
   eePose trueEEPoseEEPose;
 
+  eePose trueCameraPose;
+  eePose trueRangePose;
+
   std::string forthCommand;
 
 
@@ -1030,7 +1033,21 @@ class EinConfig {
   // this needs to place the gripper BELOW the table
   //  by a margin, or it could prevent getting flush
   //  with the table near a sag
+  //almost vertical for signs
+  //camera: 0.25525; 0.85732; 0.94282
+  //range: 0.24561; 0.82523; 0.956
+  //hand: 0.21624; 0.84881; 0.92597
+  //straight down for magnitudes
+  //
+  //camera 0.29581; 0.76695; 0.066762
+  //range  0.30204; 0.73505; 0.053803
+  //hand   0.33396; 0.75551; 0.082641
   double pickFlushFactor = 0.108;//0.08;//0.09;//0.11;
+  eePose handEndEffectorOffset = {0,0,0.028838, 0,0,0,1};
+  eePose handCameraOffset = {0.03815,0.01144,0.01589, 0,0,0,1};
+  eePose handRangeOffset = {0.03192,-0.02046,0.028838, 0,0,0,1};
+  eePose handToRethinkEndPointTransform = {0,0,0, 0,0,0,1};
+  eePose handFromEndEffectorTransform = {0,0,0, 0,0,0,1};
 
 
   int useContinuousGraspTransform = 1;

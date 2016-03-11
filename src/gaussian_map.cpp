@@ -697,8 +697,8 @@ shared_ptr<GaussianMap> GaussianMap::copyBox(int _x1, int _y1, int _x2, int _y2)
   y2 = min( max(0,y2), height-1);
 
   shared_ptr<GaussianMap> toReturn = std::make_shared<GaussianMap>(x2-x1+1, y2-y1+1, cell_width);
-  for (int y = y1; y < y2; y++) {
-    for (int x = x1; x < x2; x++) {
+  for (int y = y1; y <= y2; y++) {
+    for (int x = x1; x <= x2; x++) {
       *(toReturn->refAtCell(x-x1,y-y1)) = *(refAtCell(x,y));
     }
   }
