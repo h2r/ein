@@ -2426,13 +2426,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(InterlaceBottom)
 
-WORD(PlanToPointCrane)
+WORD(PlanToPointCraneFourStroke)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   eePose targetPoseIn;
   GET_ARG(ms, EePoseWord, targetPoseIn);
 
   if ( (ms->config.bDelta <= 0) || (ms->config.bDelta > 0.5*ms->config.w1GoThresh) ) {
-    cout << "planToPointCrane: Oops, there's a problem with bDelta and w1GoThresh, " << ms->config.bDelta << " " << ms->config.w1GoThresh << endl;
+    cout << "planToPointCraneFourStroke: Oops, there's a problem with bDelta and w1GoThresh, " << ms->config.bDelta << " " << ms->config.w1GoThresh << endl;
     cout << "bDelta needs to be < 0.5 * w1GoThresh but greater than 0." << endl;
   }
 
@@ -2443,37 +2443,52 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double p_inter_target_r = 0.8;
 
   double target_plane_distance = sqrt( pow(ms->config.currentEEPose.px - targetPoseIn.px, 2.0) + pow(ms->config.currentEEPose.py - targetPoseIn.py, 2.0) );
-  double target_z_distance = fabs(ms->config.currentEEPose.pz - targetPoseIn.pz);
+  double target_z_difference = targetPoseIn.pz - ms->config.currentEEPose.pz;
+  double target_z_distance = fabs(target_z_difference);
   double target_r_coordinate = sqrt( pow(targetPoseIn.px, 2.0) + pow(targetPoseIn.py, 2.0) );
-  double target_r_difference = sqrt( pow(ms->config.currentEEPose.px, 2.0) + pow(ms->config.currentEEPose.py, 2.0) ) - sqrt( pow(targetPoseIn.px, 2.0) + pow(targetPoseIn.py, 2.0) );
-  double target_r_distance = fabs( sqrt( pow(ms->config.currentEEPose.px, 2.0) + pow(ms->config.currentEEPose.py, 2.0) ) - sqrt( pow(targetPoseIn.px, 2.0) + pow(targetPoseIn.py, 2.0) ) );
+  double target_r_difference = target_r_coordinate - current_r_coordinate;
+  double target_r_distance = fabs( target_r_difference );
   double target_theta_coordinate = atan2(targetPoseIn.py, targetPoseIn.px);
   double target_theta_difference = target_theta_coordinate - current_theta_coordinate;
-  double target_theta_distance = fabs(target_theta_coordinate - current_theta_coordinate);
+  double target_theta_distance = fabs(target_theta_difference);
 
-  double inter_r_distance = fabs( sqrt( pow(ms->config.currentEEPose.px, 2.0) + pow(ms->config.currentEEPose.py, 2.0) ) - p_inter_target_r);
-  double inter_z_distance = fabs(ms->config.currentEEPose.pz - p_inter_target_z);
+  double inter_r_distance = fabs( current_r_coordinate - p_inter_target_r);
+  double inter_z_difference = p_inter_target_z - ms->config.currentEEPose.pz;
+  double inter_z_distance = fabs(inter_z_difference);
+
+  cout << "target plane_d: " << target_plane_distance << " z_dist: " << target_z_distance << " r_c: " 
+  << target_r_coordinate << " r_diff: " << target_r_difference << " r_dist: " << target_r_distance << " theta_c: " 
+  << target_theta_coordinate << " theta_diff: " << target_theta_difference << " theta_dist: " << target_theta_distance << endl;
+  cout << "inter r_dist: " << inter_r_distance << " z_dist: " << inter_z_distance << endl;
 
   eePose nextPose = ms->config.currentEEPose;
   if (target_plane_distance > ms->config.w1GoThresh) { 
+    cout << "A" << endl;
     if (inter_z_distance > ms->config.w1GoThresh) {
-      nextPose.pz += ms->config.bDelta * (p_inter_target_z - ms->config.currentEEPose.pz) / fabs(targetPoseIn.pz - ms->config.currentEEPose.pz);
+      double tSign = 0.0;
+      if (inter_z_distance > 0.0) {
+	tSign = inter_z_difference / inter_z_distance;
+      }
+
+      nextPose.pz += ms->config.bDelta * tSign;
+      cout << "AA" << endl;
     } else {
+      cout << "AB" << endl;
       if (target_r_distance > ms->config.w1GoThresh) {
+	cout << "ABA" << endl;
 	double tSign = 0.0;
 	if (target_r_distance > 0.0) {
-	  target_r_difference / target_r_distance;
+	  tSign = target_r_difference / target_r_distance;
 	}
 	nextPose.px += ms->config.bDelta * tSign * ms->config.currentEEPose.px / current_r_coordinate;
 	nextPose.py += ms->config.bDelta * tSign * ms->config.currentEEPose.py / current_r_coordinate;
-
-
       } else {
+	cout << "ABB" << endl;
 	//[ cos -sin 
 	//  sin  cos ]
 	double tSign = 0.0;
 	if (target_theta_distance > 0.0) {
-	  target_theta_difference / target_theta_distance;
+	  tSign = target_theta_difference / target_theta_distance;
 	}
 	
 	double t_rotation_theta = ms->config.bDelta * tSign / current_r_coordinate;
@@ -2486,30 +2501,164 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
     }
 
-    ms->pushWord(make_shared<EePoseWord>(nextPose));
-    ms->pushWord("moveEeToPoseWord");
+    ms->pushWord("planToPointCraneFourStroke");
+    ms->pushWord(make_shared<EePoseWord>(targetPoseIn));
     ms->pushWord("waitUntilAtCurrentPosition");
-    ms->pushWord("planToEePoseCrane");
+    ms->pushWord("moveEeToPoseWord");
+    ms->pushWord(make_shared<EePoseWord>(nextPose));
   } else if (target_z_distance > ms->config.w1GoThresh) {
+    cout << "B" << endl;
     if (target_z_distance > ms->config.bDelta) {
-      nextPose.pz += ms->config.bDelta * (targetPoseIn.pz - ms->config.currentEEPose.pz) / fabs(targetPoseIn.pz - ms->config.currentEEPose.pz);
-      ms->pushWord(make_shared<EePoseWord>(nextPose));
-      ms->pushWord("moveEeToPoseWord");
+      cout << "BA" << endl;
+
+      double tSign = 0.0;
+      if (target_z_distance > 0.0) {
+	tSign = target_z_difference / target_z_distance;
+      }
+
+      nextPose.pz += ms->config.bDelta * tSign;
+
+      ms->pushWord("planToPointCraneFourStroke");
+      ms->pushWord(make_shared<EePoseWord>(targetPoseIn));
       ms->pushWord("waitUntilAtCurrentPosition");
-      ms->pushWord("planToEePoseCrane");
+      ms->pushWord("moveEeToPoseWord");
+      ms->pushWord(make_shared<EePoseWord>(nextPose));
     } else {
+      cout << "BB" << endl;
       nextPose = targetPoseIn;
-      ms->pushWord(make_shared<EePoseWord>(nextPose));
-      ms->pushWord("moveEeToPoseWord");
+
       ms->pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord("moveEeToPoseWord");
+      ms->pushWord(make_shared<EePoseWord>(nextPose));
     }
 
   } else {
-    //cout << "planToPointCrane: done." << endl;
+    cout << "C" << endl;
+    //cout << "planToPointCraneFourStroke: done." << endl;
   }
 }
 END_WORD
-REGISTER_WORD(PlanToPointCrane)
+REGISTER_WORD(PlanToPointCraneFourStroke)
+
+WORD(PlanToPointCraneThreeStroke)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose targetPoseIn;
+  GET_ARG(ms, EePoseWord, targetPoseIn);
+
+  if ( (ms->config.bDelta <= 0) || (ms->config.bDelta > 0.5*ms->config.w1GoThresh) ) {
+    cout << "planToPointCraneThreeStroke: Oops, there's a problem with bDelta and w1GoThresh, " << ms->config.bDelta << " " << ms->config.w1GoThresh << endl;
+    cout << "bDelta needs to be < 0.5 * w1GoThresh but greater than 0." << endl;
+  }
+
+  double current_r_coordinate = sqrt( pow(ms->config.currentEEPose.px, 2.0) + pow(ms->config.currentEEPose.py, 2.0) );
+  double current_theta_coordinate = atan2(ms->config.currentEEPose.py, ms->config.currentEEPose.px);
+
+  double p_inter_target_z = convertHeightIdxToGlobalZ(ms, 1);
+  double p_inter_target_r = 0.8;
+
+  double target_plane_distance = sqrt( pow(ms->config.currentEEPose.px - targetPoseIn.px, 2.0) + pow(ms->config.currentEEPose.py - targetPoseIn.py, 2.0) );
+  double target_z_difference = targetPoseIn.pz - ms->config.currentEEPose.pz;
+  double target_z_distance = fabs(target_z_difference);
+  double target_r_coordinate = sqrt( pow(targetPoseIn.px, 2.0) + pow(targetPoseIn.py, 2.0) );
+  double target_r_difference = target_r_coordinate - current_r_coordinate;
+  double target_r_distance = fabs( target_r_difference );
+  double target_theta_coordinate = atan2(targetPoseIn.py, targetPoseIn.px);
+  double target_theta_difference = target_theta_coordinate - current_theta_coordinate;
+  double target_theta_distance = fabs(target_theta_difference);
+
+  double inter_r_distance = fabs( current_r_coordinate - p_inter_target_r);
+  double inter_z_difference = p_inter_target_z - ms->config.currentEEPose.pz;
+  double inter_z_distance = fabs(inter_z_difference);
+
+  cout << "target plane_d: " << target_plane_distance << " z_dist: " << target_z_distance << " r_c: " 
+  << target_r_coordinate << " r_diff: " << target_r_difference << " r_dist: " << target_r_distance << " theta_c: " 
+  << target_theta_coordinate << " theta_diff: " << target_theta_difference << " theta_dist: " << target_theta_distance << endl;
+  cout << "inter r_dist: " << inter_r_distance << " z_dist: " << inter_z_distance << endl;
+
+  eePose nextPose = ms->config.currentEEPose;
+  if (target_plane_distance > ms->config.w1GoThresh) { 
+    cout << "A" << endl;
+    if (inter_z_distance > ms->config.w1GoThresh) {
+      double tSign = 0.0;
+      if (inter_z_distance > 0.0) {
+	tSign = inter_z_difference / inter_z_distance;
+      }
+
+      nextPose.pz += ms->config.bDelta * tSign;
+      cout << "AA" << endl;
+    } else {
+      cout << "AB" << endl;
+      {
+	cout << "ABB" << endl;
+	//[ cos -sin 
+	//  sin  cos ]
+	double tSign = 0.0;
+	if (target_theta_distance > 0.0) {
+	  tSign = target_theta_difference / target_theta_distance;
+	}
+	
+	double t_rotation_theta = ms->config.bDelta * tSign / current_r_coordinate;
+  
+	nextPose.px = nextPose.px * cos(t_rotation_theta) - nextPose.py * sin(t_rotation_theta);
+	nextPose.py = nextPose.px * sin(t_rotation_theta) + nextPose.py * cos(t_rotation_theta);
+	
+	//nextPose.px = target_r_coordinate * nextPose.px / current_r_coordinate;
+	//nextPose.py = target_r_coordinate * nextPose.py / current_r_coordinate;
+      }
+      if (target_r_distance > ms->config.w1GoThresh) {
+	cout << "ABA" << endl;
+	double tSign = 0.0;
+	if (target_r_distance > 0.0) {
+	  tSign = target_r_difference / target_r_distance;
+	}
+	double radius_steps = target_r_coordinate * M_PI * target_theta_distance / ms->config.bDelta;
+	double r_plan_steps = std::max(1.0, radius_steps/2.0);
+	double r_delta = target_r_distance / r_plan_steps;
+	nextPose.px += r_delta * tSign * ms->config.currentEEPose.px / current_r_coordinate;
+	nextPose.py += r_delta * tSign * ms->config.currentEEPose.py / current_r_coordinate;
+	//nextPose.px += ms->config.bDelta * tSign * ms->config.currentEEPose.px / current_r_coordinate;
+	//nextPose.py += ms->config.bDelta * tSign * ms->config.currentEEPose.py / current_r_coordinate;
+      }
+    }
+
+    ms->pushWord("planToPointCraneThreeStroke");
+    ms->pushWord(make_shared<EePoseWord>(targetPoseIn));
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("moveEeToPoseWord");
+    ms->pushWord(make_shared<EePoseWord>(nextPose));
+  } else if (target_z_distance > ms->config.w1GoThresh) {
+    cout << "B" << endl;
+    if (target_z_distance > ms->config.bDelta) {
+      cout << "BA" << endl;
+
+      double tSign = 0.0;
+      if (target_z_distance > 0.0) {
+	tSign = target_z_difference / target_z_distance;
+      }
+
+      nextPose.pz += ms->config.bDelta * tSign;
+
+      ms->pushWord("planToPointCraneThreeStroke");
+      ms->pushWord(make_shared<EePoseWord>(targetPoseIn));
+      ms->pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord("moveEeToPoseWord");
+      ms->pushWord(make_shared<EePoseWord>(nextPose));
+    } else {
+      cout << "BB" << endl;
+      nextPose = targetPoseIn;
+
+      ms->pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord("moveEeToPoseWord");
+      ms->pushWord(make_shared<EePoseWord>(nextPose));
+    }
+
+  } else {
+    cout << "C" << endl;
+    //cout << "planToPointCraneThreeStroke: done." << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(PlanToPointCraneThreeStroke)
 
 
 /*
