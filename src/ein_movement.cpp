@@ -2455,8 +2455,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double inter_z_distance = fabs(ms->config.currentEEPose.pz - p_inter_target_z);
 
   eePose nextPose = ms->config.currentEEPose;
-  if (plane_distance > ms->config.w1GoThresh) { 
-    if (z_distance > ms->config.w1GoThresh) {
+  if (target_plane_distance > ms->config.w1GoThresh) { 
+    if (inter_z_distance > ms->config.w1GoThresh) {
       nextPose.pz += ms->config.bDelta * (p_inter_target_z - ms->config.currentEEPose.pz) / fabs(targetPoseIn.pz - ms->config.currentEEPose.pz);
     } else {
       if (target_r_distance > ms->config.w1GoThresh) {
@@ -2490,8 +2490,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->pushWord("moveEeToPoseWord");
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("planToEePoseCrane");
-  } else if (z_distance > ms->config.w1GoThresh) {
-    if (z_distance > ms->config.bDelta) {
+  } else if (target_z_distance > ms->config.w1GoThresh) {
+    if (target_z_distance > ms->config.bDelta) {
       nextPose.pz += ms->config.bDelta * (targetPoseIn.pz - ms->config.currentEEPose.pz) / fabs(targetPoseIn.pz - ms->config.currentEEPose.pz);
       ms->pushWord(make_shared<EePoseWord>(nextPose));
       ms->pushWord("moveEeToPoseWord");
