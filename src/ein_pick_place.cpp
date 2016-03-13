@@ -85,20 +85,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(DucksInARow)
 
-WORD(FollowPath)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  eePose destPose;
-  CONSUME_EEPOSE(destPose,ms);
-
-  ms->pushWord("followPath");
-
-  ms->pushWord("waitUntilAtCurrentPositionCollapse");
-  ms->pushWord("moveEeToPoseWord");
-  ms->pushWord(std::make_shared<EePoseWord>(destPose));
-}
-END_WORD
-REGISTER_WORD(FollowPath)
-
 WORD(CornellMugsOnTables)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   
