@@ -18,6 +18,9 @@ CONFIG_SETTER_DOUBLE(SetW1AngleThresh, ms->config.w1AngleThresh)
 CONFIG_GETTER_INT(CurrentIKBoundaryMode, ms->config.currentIKBoundaryMode)
 CONFIG_SETTER_ENUM(SetCurrentIKBoundaryMode, ms->config.currentIKBoundaryMode, (ikBoundaryMode))
 
+CONFIG_GETTER_INT(CurrentIKFastMode, ms->config.currentIKFastMode)
+CONFIG_SETTER_ENUM(SetCurrentIKFastMode, ms->config.currentIKFastMode, (ikFastMode))
+
 WORD(AssumeAimedPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int idxToRemove = ms->config.targetBlueBox;
@@ -180,21 +183,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       return;
     }
 
-  double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
-  double dy = (ms->config.currentEEPose.py - ms->config.trueEEPose.position.y);
-  double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
-  double distance = dx*dx + dy*dy + dz*dz;
-  
-  double qx = (fabs(ms->config.currentEEPose.qx) - fabs(ms->config.trueEEPose.orientation.x));
-  double qy = (fabs(ms->config.currentEEPose.qy) - fabs(ms->config.trueEEPose.orientation.y));
-  double qz = (fabs(ms->config.currentEEPose.qz) - fabs(ms->config.trueEEPose.orientation.z));
-  double qw = (fabs(ms->config.currentEEPose.qw) - fabs(ms->config.trueEEPose.orientation.w));
-  double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
-
-
-
-
     ms->config.waitUntilAtCurrentPositionCounter++;
+
+    double distance, angleDistance;
+    eePose::distanceXYZAndAngle(ms->config.currentEEPose, ms->config.trueEEPoseEEPose, &distance, &angleDistance);
+
     if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
       ms->pushWord("waitUntilAtCurrentPositionB"); 
       ms->config.endThisStackCollapse = 1;
@@ -1684,8 +1677,6 @@ REGISTER_WORD(MoveToEEPose)
 
 WORD(CreateEEPose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  // get 7 strings, make them into doubles, move there
-  // order px py pz qx qy qz qw
   double vals[7]; 
 
   for (int i = 6; i >= 0; i--) { 
@@ -1700,6 +1691,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(CreateEEPose)
+
+WORD(CreateArmPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double vals[7]; 
+  for (int i = 6; i >= 0; i--) { 
+    GET_NUMERIC_ARG(ms, vals[i]);
+  }
+
+  _armPose pose(vals[0],vals[1],vals[2],vals[3],vals[4],vals[5],vals[6]);
+  ms->pushWord(std::make_shared<ArmPoseWord>(pose));
+}
+END_WORD
+REGISTER_WORD(CreateArmPose)
 
 WORD(WaitForSeconds)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -1871,49 +1875,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(MeasureTimeA)
 
-
-WORD(Interlace)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-}
-END_WORD
-REGISTER_WORD(Interlace)
-
-WORD(ScaleMeasures)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  // parse a compound word and rewrite the measureTime statements
-  // XXX OR this should be written into hardInterlace vs softInterlace
-}
-END_WORD
-REGISTER_WORD(ScaleMeasures)
-
-// twistWords takes two compound words A and B as arguments. 
-// A and B must start with MeasureTimeStart
-WORD(ReverseCompound)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-// XXX 
-  shared_ptr<CompoundWord> toReverse;
-  GET_WORD_ARG(ms, CompoundWord, toReverse);
-
-  shared_ptr<CompoundWord> reversedWord = std::make_shared<CompoundWord>();
-
-  std::shared_ptr<Word> word = toReverse->popWord();
-  while (word != NULL) {
-    reversedWord->pushWord(word);
-    word = toReverse->popWord();
-  }
-  
-  ms->pushWord(reversedWord);
-}
-END_WORD
-REGISTER_WORD(ReverseCompound)
-
-WORD(TwistWords)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-// XXX 
-}
-END_WORD
-REGISTER_WORD(TwistWords)
-
 WORD(AboutFace)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentEEDeltaRPY.pz = ( M_PI );
@@ -2014,6 +1975,30 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(PushCurrentJointAngles)
 
+WORD(CurrentJointWord)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  armPose pose;
+  for (int i = NUM_JOINTS-1; i >= 0; i--) {
+    pose.joints[i] = ms->config.currentJointPositions.response.joints[0].position[i];
+  }
+
+  ms->pushWord(make_shared<ArmPoseWord>(pose));
+}
+END_WORD
+REGISTER_WORD(CurrentJointWord)
+
+WORD(MoveArmToPoseWord)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  armPose pose;
+  GET_ARG(ms, ArmPoseWord, pose);
+
+  for (int i = NUM_JOINTS-1; i >= 0; i--) {
+    ms->config.currentJointPositions.response.joints[0].position[i] = pose.joints[i];
+  }
+}
+END_WORD
+REGISTER_WORD(MoveArmToPoseWord)
+
 WORD(SetCurrentPoseFromJoints)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
@@ -2035,6 +2020,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   eePose desiredHandPose = handFromIkFastEndPoint.applyAsRelativePoseTo(ikfastEndPointPose);
   eePose desiredEndPointPose = ms->config.handToRethinkEndPointTransform.applyAsRelativePoseTo(desiredHandPose);
+  // XXX factor1
 
   ms->config.currentEEPose = desiredEndPointPose;
 
@@ -2043,114 +2029,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SetCurrentPoseFromJoints)
 
-/*
-
-WORD(WaitUntilOnSideOfPlane)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-}
-END_WORD
-REGISTER_WORD()
-
-WORD(WaitUntilOnSideOfPlane)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-
-  ms->config.currentMovementState = MOVING;
-  ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-  ms->config.lastMovementStateSet = ros::Time::now();
-
-  ms->config.waitUntilAtCurrentPositionCounter = 0;
-  ms->config.waitUntilAtCurrentPositionStart = ros::Time::now();
-
-  double distance, angleDistance;
-  eePose::distanceXYZAndAngle(ms->config.currentEEPose, ms->config.trueEEPoseEEPose, &distance, &angleDistance);
-
-  if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
-    ms->pushWord("waitUntilAtCurrentPositionB"); 
-    ms->config.endThisStackCollapse = 1;
-    ms->config.shouldIDoIK = 1;
-  } else {
-    // try not collapsing if you are where you want to be
-    ms->config.endThisStackCollapse = 1;
-  }
-
-  if (ms->config.currentControlMode == VELOCITY) {
-  } else if (ms->config.currentControlMode == EEPOSITION) {
-  } else if (ms->config.currentControlMode == ANGLES) {
-    ms->pushWord("setCurrentPoseFromJoints"); 
-  } else {
-    assert(0);
-  }
-}
-END_WORD
-REGISTER_WORD(WaitUntilOnSideOfPlane)
-
-WORD(WaitUntilOnSideOfPlaneB)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  //if (ms->config.waitUntilAtCurrentPositionCounter < ms->config.waitUntilAtCurrentPositionCounterTimeout) 
-  if ( ros::Time::now().toSec() - ms->config.waitUntilAtCurrentPositionStart.toSec() < ms->config.waitUntilAtCurrentPositionTimeout )
-  {
-
-    if ( (ms->config.currentMovementState == STOPPED) ||
-	 (ms->config.currentMovementState == BLOCKED) ) {
-
-      if (ms->config.currentMovementState == STOPPED) {
-	cout << "Warning: waitUntilOnSideOfPlane ms->config.currentMovementState = STOPPED, moving on." << endl;
-	ms->config.endThisStackCollapse = ms->config.endCollapse;
-      }
-      if (ms->config.currentMovementState == BLOCKED) {
-	cout << "Warning: waitUntilOnSideOfPlane ms->config.currentMovementState = BLOCKED, moving on." << endl;
-	ms->config.endThisStackCollapse = ms->config.endCollapse;
-      }
-      
-      if (ms->config.currentWaitMode == WAIT_KEEP_ON) {
-	cout << "waitUntilOnSideOfPlaneB: currentWaitMode WAIT_KEEP_ON, so doing nothing...";
-      } else if (ms->config.currentWaitMode == WAIT_BACK_UP) {
-	cout << "waitUntilOnSideOfPlaneB: currentWaitMode WAIT_BACK_UP, so...";
-	ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
-	cout << "  backing up just a little to dislodge, then waiting again." << endl;
-      } else {
-	assert(0);
-      }
-
-      ms->pushWord("waitUntilOnSideOfPlane"); 
-      return;
-    }
-
-  double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
-  double dy = (ms->config.currentEEPose.py - ms->config.trueEEPose.position.y);
-  double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
-  double distance = dx*dx + dy*dy + dz*dz;
-  // XXX TODO
-  // representation... one pose or two points?
-  
-  double qx = (fabs(ms->config.currentEEPose.qx) - fabs(ms->config.trueEEPose.orientation.x));
-  double qy = (fabs(ms->config.currentEEPose.qy) - fabs(ms->config.trueEEPose.orientation.y));
-  double qz = (fabs(ms->config.currentEEPose.qz) - fabs(ms->config.trueEEPose.orientation.z));
-  double qw = (fabs(ms->config.currentEEPose.qw) - fabs(ms->config.trueEEPose.orientation.w));
-  double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
-
-
-
-
-    ms->config.waitUntilAtCurrentPositionCounter++;
-    if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
-      ms->pushWord("waitUntilOnSideOfPlaneB"); 
-      ms->config.endThisStackCollapse = 1;
-      ms->config.shouldIDoIK = 1;
-    } else {
-      ms->config.endThisStackCollapse = ms->config.endCollapse;
-    }
-  } else {
-    cout << "Warning: waitUntilOnSideOfPlane timed out, moving on." << endl;
-    ms->config.endThisStackCollapse = 1;
-  }
-}
-END_WORD
-REGISTER_WORD(WaitUntilOnSideOfPlaneB)
-
-*/
-
-#define ARM_POSE_DELTAS(J, C, T, D) \
+#define ARM_POSE_DELTAS(J, I, C, T, D) \
 WORD(Arm ## J ## Up) \
 virtual void execute(std::shared_ptr<MachineState> ms) { \
   C += D; \
@@ -2193,14 +2072,467 @@ virtual void execute(std::shared_ptr<MachineState> ms) { \
 } \
 END_WORD \
 REGISTER_WORD(Arm ## J ## True) \
+WORD(ArmPose ## J ## Get) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  armPose pose; \
+  GET_ARG(ms, ArmPoseWord, pose); \
+  ms->pushData(make_shared<DoubleWord>(pose.joints[I])); \
+} \
+END_WORD \
+REGISTER_WORD(ArmPose ## J ## Get) \
+WORD(ArmPose ## J ## Set) \
+virtual void execute(std::shared_ptr<MachineState> ms) { \
+  double amount = 0.0; \
+  GET_NUMERIC_ARG(ms, amount); \
+\
+  armPose pose; \
+  GET_ARG(ms, ArmPoseWord, pose); \
+\
+  pose.joints[I] = amount;\
+\
+  ms->pushWord(make_shared<ArmPoseWord>(pose));\
+} \
+END_WORD \
+REGISTER_WORD(ArmPose ## J ## Set) \
 
 // 1 indexed to match aibo
-ARM_POSE_DELTAS(1, ms->config.currentJointPositions.response.joints[0].position[0], ms->config.trueJointPositions[0], ms->config.bDelta)
-ARM_POSE_DELTAS(2, ms->config.currentJointPositions.response.joints[0].position[1], ms->config.trueJointPositions[1], ms->config.bDelta)
-ARM_POSE_DELTAS(3, ms->config.currentJointPositions.response.joints[0].position[2], ms->config.trueJointPositions[2], ms->config.bDelta)
-ARM_POSE_DELTAS(4, ms->config.currentJointPositions.response.joints[0].position[3], ms->config.trueJointPositions[3], ms->config.bDelta)
-ARM_POSE_DELTAS(5, ms->config.currentJointPositions.response.joints[0].position[4], ms->config.trueJointPositions[4], ms->config.bDelta)
-ARM_POSE_DELTAS(6, ms->config.currentJointPositions.response.joints[0].position[5], ms->config.trueJointPositions[5], ms->config.bDelta)
-ARM_POSE_DELTAS(7, ms->config.currentJointPositions.response.joints[0].position[6], ms->config.trueJointPositions[6], ms->config.bDelta)
+ARM_POSE_DELTAS(1, 0, ms->config.currentJointPositions.response.joints[0].position[0], ms->config.trueJointPositions[0], ms->config.bDelta)
+ARM_POSE_DELTAS(2, 1, ms->config.currentJointPositions.response.joints[0].position[1], ms->config.trueJointPositions[1], ms->config.bDelta)
+ARM_POSE_DELTAS(3, 2, ms->config.currentJointPositions.response.joints[0].position[2], ms->config.trueJointPositions[2], ms->config.bDelta)
+ARM_POSE_DELTAS(4, 3, ms->config.currentJointPositions.response.joints[0].position[3], ms->config.trueJointPositions[3], ms->config.bDelta)
+ARM_POSE_DELTAS(5, 4, ms->config.currentJointPositions.response.joints[0].position[4], ms->config.trueJointPositions[4], ms->config.bDelta)
+ARM_POSE_DELTAS(6, 5, ms->config.currentJointPositions.response.joints[0].position[5], ms->config.trueJointPositions[5], ms->config.bDelta)
+ARM_POSE_DELTAS(7, 6, ms->config.currentJointPositions.response.joints[0].position[6], ms->config.trueJointPositions[6], ms->config.bDelta)
+
+WORD(FollowPath)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose destPose;
+  CONSUME_EEPOSE(destPose,ms);
+
+  ms->pushWord("followPath");
+
+  ms->pushWord("waitUntilAtCurrentPositionCollapse");
+  ms->pushWord("moveEeToPoseWord");
+  ms->pushWord(std::make_shared<EePoseWord>(destPose));
+}
+END_WORD
+REGISTER_WORD(FollowPath)
+
+WORD(InterpolatePath)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  vector<eePose> pathPoints;
+  GET_WORD_ARG_VALUE_LIST(ms, EePoseWord, pathPoints);
+
+  double position_tolerance;
+  GET_NUMERIC_ARG(ms, position_tolerance);
+
+  double angle_tolerance;
+  GET_NUMERIC_ARG(ms, angle_tolerance);
+
+  int numPathPoints = pathPoints.size();
+  cout << "interpolatePath: ok, interpolating a path with " << numPathPoints << " points to have at most " << 
+    position_tolerance << " meters and at most " << angle_tolerance << " radians between points." << endl;
+ 
+  double p_undershoot = 0.99;
+
+  vector<eePose> newPathPoints;
+  for (int i = 0; i < numPathPoints-1; i++) {
+    newPathPoints.push_back(pathPoints[i]);
+
+    double pos_d = eePose::distance( pathPoints[i], pathPoints[i+1]);
+    double pos_q = eePose::distanceQ(pathPoints[i], pathPoints[i+1]);
+
+    double minFraction = std::min( position_tolerance / pos_d, angle_tolerance / pos_q ); 
+    double interpStep = minFraction * p_undershoot;
+
+    for (double mu = interpStep; mu < 1.0; mu += interpStep) {
+      newPathPoints.push_back(pathPoints[i].getInterpolation(pathPoints[i+1], mu));
+    }
+  }
+  ms->pushWord(std::make_shared<EePoseWord>(pathPoints[numPathPoints-1]));
+
+  for (int i = 0; i < newPathPoints.size(); i++) {
+    ms->pushWord(std::make_shared<EePoseWord>(newPathPoints[i]));
+  }
+}
+END_WORD
+REGISTER_WORD(InterpolatePath)
+
+WORD(ReversePath)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  vector<eePose> pathPoints;
+  GET_WORD_ARG_VALUE_LIST(ms, EePoseWord, pathPoints);
+
+  int numPathPoints = pathPoints.size();
+  cout << "reversePath: ok, reversing a path with " << numPathPoints << " points." << endl;
+
+  for (int i = 0; i < numPathPoints; i++) {
+    ms->pushWord(std::make_shared<EePoseWord>(pathPoints[numPathPoints-1-i]));
+  }
+}
+END_WORD
+REGISTER_WORD(ReversePath)
+
+WORD(ReverseCompound)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX 
+  shared_ptr<CompoundWord> toReverse;
+  GET_WORD_ARG(ms, CompoundWord, toReverse);
+
+  shared_ptr<CompoundWord> reversedWord = std::make_shared<CompoundWord>();
+
+  std::shared_ptr<Word> word = toReverse->popWord();
+  while (word != NULL) {
+    reversedWord->pushWord(word);
+    word = toReverse->popWord();
+  }
+  
+  ms->pushWord(reversedWord);
+}
+END_WORD
+REGISTER_WORD(ReverseCompound)
+
+WORD(TransformPath)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // maintains order
+  // use:
+  // ( eePoseBase eePoseApplyRelativePoseTo ) endArgs toApply1 toApply2 ... transformPath
+  // ( eePoseToApply swap eePoseApplyRelativePoseTo ) endArgs eePoseBase1 eePoseBase2 ... transformPath
+  vector<eePose> pathPoints;
+  GET_WORD_ARG_VALUE_LIST(ms, EePoseWord, pathPoints);
+
+  shared_ptr<CompoundWord> transformation;
+  GET_WORD_ARG(ms, CompoundWord, transformation);
+
+  int numPathPoints = pathPoints.size();
+  cout << "transformPath: ok, transforming a path with " << numPathPoints << " points." << endl;
+
+  for (int i = 0; i < numPathPoints; i++) {
+    ms->pushWord(transformation);
+    ms->pushWord(std::make_shared<EePoseWord>(pathPoints[i]));
+  }
+}
+END_WORD
+REGISTER_WORD(TransformPath)
+
+WORD(ArmPoseToEePose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// ComputeFk
+// XXX 
+  armPose armPoseIn;
+  GET_ARG(ms, ArmPoseWord, armPoseIn);
+
+  vector<double> joint_angles(NUM_JOINTS);
+  for (int i =  0; i < ms->config.currentJointPositions.response.joints[0].position.size(); i++) {
+    joint_angles[i] = armPoseIn.joints[i];
+  }
+
+  eePose ikfastEndPointPose;
+  if (ms->config.left_or_right_arm == "left") {
+    ikfastEndPointPose = ikfast_left_ein::ikfast_computeFK(ms, joint_angles);
+  } else if (ms->config.left_or_right_arm == "right") {
+    ikfastEndPointPose = ikfast_right_ein::ikfast_computeFK(ms, joint_angles);
+  } else {
+    assert(0);
+  }
+
+  eePose handFromIkFastEndPoint = {0,0,-0.0661, 0,0,0,1};
+
+  eePose desiredHandPose = handFromIkFastEndPoint.applyAsRelativePoseTo(ikfastEndPointPose);
+  eePose desiredEndPointPose = ms->config.handToRethinkEndPointTransform.applyAsRelativePoseTo(desiredHandPose);
+  // XXX factor1
+
+  ms->pushWord(std::make_shared<EePoseWord>(desiredEndPointPose));
+}
+END_WORD
+REGISTER_WORD(ArmPoseToEePose)
+
+WORD(EePoseToArmPose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// ComputeIk
+// XXX 
+  eePose eePoseIn;
+  GET_ARG(ms, EePoseWord, eePoseIn);
+
+  baxter_core_msgs::SolvePositionIK thisIkRequest;
+  fillIkRequest(ms->config.currentEEPose, &thisIkRequest);
+
+  int ikCallResult = 0;
+  queryIK(ms, &ikCallResult, &thisIkRequest);
+
+  if (ikCallResult && thisIkRequest.response.isValid[0]) {
+    cout << "eePoseToArmPose: got " << thisIkRequest.response.joints.size() << " solutions, using first." << endl;
+    ms->pushWord( 
+      std::make_shared<ArmPoseWord>(  
+	armPose(
+	  thisIkRequest.response.joints[0].position[0],
+	  thisIkRequest.response.joints[0].position[1],
+	  thisIkRequest.response.joints[0].position[2],
+	  thisIkRequest.response.joints[0].position[3],
+	  thisIkRequest.response.joints[0].position[4],
+	  thisIkRequest.response.joints[0].position[5],
+	  thisIkRequest.response.joints[0].position[6]
+	)
+      )
+    );
+  } else {
+    cout << "eePoseToArmPose: ik failed..." << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(EePoseToArmPose)
+
+WORD(WaitUntilOnSideOfPlane)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose normalIn;
+  GET_ARG(ms, EePoseWord, normalIn);
+  normalIn = normalIn.getNormalized();
+
+  eePose anchorIn;
+  GET_ARG(ms, EePoseWord, anchorIn);
+
+  ms->config.currentMovementState = MOVING;
+  ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
+  ms->config.lastMovementStateSet = ros::Time::now();
+
+  ms->config.waitUntilAtCurrentPositionCounter = 0;
+  ms->config.waitUntilAtCurrentPositionStart = ros::Time::now();
+
+  eePose anchorDiff = ms->config.trueEEPoseEEPose.minusP(anchorIn);
+  double distFromPlane = eePose::dotP(anchorDiff, normalIn);
+
+  if (distFromPlane > ms->config.w1GoThresh) {
+    ms->pushWord(make_shared<EePoseWord>(anchorIn));
+    ms->pushWord(make_shared<EePoseWord>(normalIn));
+    ms->pushWord("waitUntilOnSideOfPlaneB"); 
+    ms->config.endThisStackCollapse = 1;
+    ms->config.shouldIDoIK = 1;
+  } else {
+    // try not collapsing if you are where you want to be
+    ms->config.endThisStackCollapse = 1;
+  }
+
+  if (ms->config.currentControlMode == VELOCITY) {
+  } else if (ms->config.currentControlMode == EEPOSITION) {
+  } else if (ms->config.currentControlMode == ANGLES) {
+    ms->pushWord("setCurrentPoseFromJoints"); 
+  } else {
+    assert(0);
+  }
+}
+END_WORD
+REGISTER_WORD(WaitUntilOnSideOfPlane)
+
+WORD(WaitUntilOnSideOfPlaneB)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose normalIn;
+  GET_ARG(ms, EePoseWord, normalIn);
+
+  eePose anchorIn;
+  GET_ARG(ms, EePoseWord, anchorIn);
+
+  if ( ros::Time::now().toSec() - ms->config.waitUntilAtCurrentPositionStart.toSec() < ms->config.waitUntilAtCurrentPositionTimeout )
+  {
+    if ( (ms->config.currentMovementState == STOPPED) ||
+	 (ms->config.currentMovementState == BLOCKED) ) {
+
+      if (ms->config.currentMovementState == STOPPED) {
+	cout << "Warning: waitUntilOnSideOfPlane ms->config.currentMovementState = STOPPED, moving on." << endl;
+	ms->config.endThisStackCollapse = ms->config.endCollapse;
+      }
+      if (ms->config.currentMovementState == BLOCKED) {
+	cout << "Warning: waitUntilOnSideOfPlane ms->config.currentMovementState = BLOCKED, moving on." << endl;
+	ms->config.endThisStackCollapse = ms->config.endCollapse;
+      }
+      
+      if (ms->config.currentWaitMode == WAIT_KEEP_ON) {
+	cout << "waitUntilOnSideOfPlaneB: currentWaitMode WAIT_KEEP_ON, so doing nothing...";
+      } else if (ms->config.currentWaitMode == WAIT_BACK_UP) {
+	cout << "waitUntilOnSideOfPlaneB: currentWaitMode WAIT_BACK_UP, so...";
+	cout << " doing nothing!" << endl;
+	//ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
+	//cout << "  backing up just a little to dislodge, then waiting again." << endl;
+      } else {
+	assert(0);
+      }
+
+      ms->pushWord(make_shared<EePoseWord>(anchorIn));
+      ms->pushWord(make_shared<EePoseWord>(normalIn));
+      ms->pushWord("waitUntilOnSideOfPlane"); 
+      return;
+    }
+
+    ms->config.waitUntilAtCurrentPositionCounter++;
+
+    eePose anchorDiff = ms->config.trueEEPoseEEPose.minusP(anchorIn);
+    double distFromPlane = eePose::dotP(anchorDiff, normalIn);
+
+    if (distFromPlane > ms->config.w1GoThresh) {
+      ms->pushWord(make_shared<EePoseWord>(anchorIn));
+      ms->pushWord(make_shared<EePoseWord>(normalIn));
+      ms->pushWord("waitUntilOnSideOfPlaneB"); 
+      ms->config.endThisStackCollapse = 1;
+      ms->config.shouldIDoIK = 1;
+    } else {
+      ms->config.endThisStackCollapse = ms->config.endCollapse;
+    }
+  } else {
+    cout << "Warning: waitUntilOnSideOfPlane timed out, moving on." << endl;
+    ms->config.endThisStackCollapse = 1;
+  }
+}
+END_WORD
+REGISTER_WORD(WaitUntilOnSideOfPlaneB)
+
+WORD(InterlaceTop)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // XXX perhaps this is in fact "map"
+  //  at any rate, a generalized TransformPath in the style of ReverseCompound
+  vector< shared_ptr<Word> > theseWords;
+  GET_WORD_ARG_LIST(ms, Word, theseWords);
+
+  shared_ptr<CompoundWord> transformation;
+  GET_WORD_ARG(ms, CompoundWord, transformation);
+
+  int numTheseWords = theseWords.size();
+  cout << "interlaceTop: ok, transforming a path with " << numTheseWords << " points." << endl;
+
+  for (int i = 0; i < numTheseWords; i++) {
+    ms->pushWord(transformation);
+    ms->pushWord(theseWords[i]);
+  }
+}
+END_WORD
+REGISTER_WORD(InterlaceTop)
+
+WORD(InterlaceBottom)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // XXX perhaps this is in fact "map"
+  //  at any rate, a generalized TransformPath in the style of ReverseCompound
+  vector< shared_ptr<Word> > theseWords;
+  GET_WORD_ARG_LIST(ms, Word, theseWords);
+
+  shared_ptr<CompoundWord> transformation;
+  GET_WORD_ARG(ms, CompoundWord, transformation);
+
+  int numTheseWords = theseWords.size();
+  cout << "interlaceBottom: ok, transforming a path with " << numTheseWords << " points." << endl;
+
+  for (int i = 0; i < numTheseWords; i++) {
+    ms->pushWord(theseWords[i]);
+    ms->pushWord(transformation);
+  }
+}
+END_WORD
+REGISTER_WORD(InterlaceBottom)
+
+WORD(PlanToPointCrane)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose targetPoseIn;
+  GET_ARG(ms, EePoseWord, targetPoseIn);
+
+  if ( (ms->config.bDelta <= 0) || (ms->config.bDelta > 0.5*ms->config.w1GoThresh) ) {
+    cout << "planToPointCrane: Oops, there's a problem with bDelta and w1GoThresh, " << ms->config.bDelta << " " << ms->config.w1GoThresh << endl;
+    cout << "bDelta needs to be < 0.5 * w1GoThresh but greater than 0." << endl;
+  }
+
+  double current_r_coordinate = sqrt( pow(ms->config.currentEEPose.px, 2.0) + pow(ms->config.currentEEPose.py, 2.0) );
+  double current_theta_coordinate = atan2(ms->config.currentEEPose.py, ms->config.currentEEPose.px);
+
+  double p_inter_target_z = convertHeightIdxToGlobalZ(ms, 1);
+  double p_inter_target_r = 0.8;
+
+  double target_plane_distance = sqrt( pow(ms->config.currentEEPose.px - targetPoseIn.px, 2.0) + pow(ms->config.currentEEPose.py - targetPoseIn.py, 2.0) );
+  double target_z_distance = fabs(ms->config.currentEEPose.pz - targetPoseIn.pz);
+  double target_r_coordinate = sqrt( pow(targetPoseIn.px, 2.0) + pow(targetPoseIn.py, 2.0) );
+  double target_r_difference = sqrt( pow(ms->config.currentEEPose.px, 2.0) + pow(ms->config.currentEEPose.py, 2.0) ) - sqrt( pow(targetPoseIn.px, 2.0) + pow(targetPoseIn.py, 2.0) );
+  double target_r_distance = fabs( sqrt( pow(ms->config.currentEEPose.px, 2.0) + pow(ms->config.currentEEPose.py, 2.0) ) - sqrt( pow(targetPoseIn.px, 2.0) + pow(targetPoseIn.py, 2.0) ) );
+  double target_theta_coordinate = atan2(targetPoseIn.py, targetPoseIn.px);
+  double target_theta_difference = target_theta_coordinate - current_theta_coordinate;
+  double target_theta_distance = fabs(target_theta_coordinate - current_theta_coordinate);
+
+  double inter_r_distance = fabs( sqrt( pow(ms->config.currentEEPose.px, 2.0) + pow(ms->config.currentEEPose.py, 2.0) ) - p_inter_target_r);
+  double inter_z_distance = fabs(ms->config.currentEEPose.pz - p_inter_target_z);
+
+  eePose nextPose = ms->config.currentEEPose;
+  if (plane_distance > ms->config.w1GoThresh) { 
+    if (z_distance > ms->config.w1GoThresh) {
+      nextPose.pz += ms->config.bDelta * (p_inter_target_z - ms->config.currentEEPose.pz) / fabs(targetPoseIn.pz - ms->config.currentEEPose.pz);
+    } else {
+      if (target_r_distance > ms->config.w1GoThresh) {
+	double tSign = 0.0;
+	if (target_r_distance > 0.0) {
+	  target_r_difference / target_r_distance;
+	}
+	nextPose.px += ms->config.bDelta * tSign * ms->config.currentEEPose.px / current_r_coordinate;
+	nextPose.py += ms->config.bDelta * tSign * ms->config.currentEEPose.py / current_r_coordinate;
+
+
+      } else {
+	//[ cos -sin 
+	//  sin  cos ]
+	double tSign = 0.0;
+	if (target_theta_distance > 0.0) {
+	  target_theta_difference / target_theta_distance;
+	}
+	
+	double t_rotation_theta = ms->config.bDelta * tSign / current_r_coordinate;
+  
+	nextPose.px = nextPose.px * cos(t_rotation_theta) - nextPose.py * sin(t_rotation_theta);
+	nextPose.py = nextPose.px * sin(t_rotation_theta) + nextPose.py * cos(t_rotation_theta);
+	
+	nextPose.px = target_r_coordinate * nextPose.px / current_r_coordinate;
+	nextPose.py = target_r_coordinate * nextPose.py / current_r_coordinate;
+      }
+    }
+
+    ms->pushWord(make_shared<EePoseWord>(nextPose));
+    ms->pushWord("moveEeToPoseWord");
+    ms->pushWord("waitUntilAtCurrentPosition");
+    ms->pushWord("planToEePoseCrane");
+  } else if (z_distance > ms->config.w1GoThresh) {
+    if (z_distance > ms->config.bDelta) {
+      nextPose.pz += ms->config.bDelta * (targetPoseIn.pz - ms->config.currentEEPose.pz) / fabs(targetPoseIn.pz - ms->config.currentEEPose.pz);
+      ms->pushWord(make_shared<EePoseWord>(nextPose));
+      ms->pushWord("moveEeToPoseWord");
+      ms->pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord("planToEePoseCrane");
+    } else {
+      nextPose = targetPoseIn;
+      ms->pushWord(make_shared<EePoseWord>(nextPose));
+      ms->pushWord("moveEeToPoseWord");
+      ms->pushWord("waitUntilAtCurrentPosition");
+    }
+
+  } else {
+    //cout << "planToPointCrane: done." << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(PlanToPointCrane)
+
+
+/*
+
+
+WORD(ScaleMeasures)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // parse a compound word and rewrite the measureTime statements
+  // XXX OR this should be written into hardInterlace vs softInterlace
+}
+END_WORD
+REGISTER_WORD(ScaleMeasures)
+
+// twistWords takes two compound words A and B as arguments. 
+// A and B must start with MeasureTimeStart
+
+WORD(TwistWords)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX 
+}
+END_WORD
+REGISTER_WORD(TwistWords)
+*/
+
 
 }

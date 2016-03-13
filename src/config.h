@@ -151,6 +151,12 @@ typedef enum {
   IKFASTDEBUG
 } ikMode;
 
+typedef enum {
+  IKF_NO_ARGUMENTS_LOCAL = 0,
+  IKF_NO_ARGUMENTS_GLOBAL = 1,
+  IKF_SWITCHING = 2
+} ikFastMode;
+
 string ikModeToString(ikMode mode);
 
 
@@ -460,6 +466,7 @@ class EinConfig {
   graspMode currentGraspMode = GRASP_3D;
   robotMode currentRobotMode = PHYSICAL;
   ikMode currentIKMode = IKSERVICE;
+  ikFastMode currentIKFastMode = IKF_SWITCHING;
   ikBoundaryMode currentIKBoundaryMode = IK_BOUNDARY_STOP;
   scanMode currentScanMode = CENTERED;
   mapServoMode currentMapServoMode = HISTOGRAM_CLASSIFY;

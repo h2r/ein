@@ -537,6 +537,10 @@ string EePoseWord::repr() {
   return std::to_string(pose.px) + " " + std::to_string(pose.py) + " " + std::to_string(pose.pz) + " " + std::to_string(pose.qx) + " " + std::to_string(pose.qy) + " " + std::to_string(pose.qz) + " " + std::to_string(pose.qw) + " createEEPose";
 }
 
+string ArmPoseWord::repr() {
+  return std::to_string(pose.joints[0]) + " " + std::to_string(pose.joints[1]) + " " + std::to_string(pose.joints[2]) + " " + std::to_string(pose.joints[3]) + " " + std::to_string(pose.joints[4]) + " " + std::to_string(pose.joints[5]) + " " + std::to_string(pose.joints[6]) + " createArmPose";
+}
+
 string AiboPoseWord::repr() {
   stringstream ss;
   ss << pose.legLF1 << " " << pose.legLF2 << " " << pose.legLF3 << " " << pose.legLH1 << " " << pose.legLH2 << " " << pose.legLH3 << " " << pose.legRH1 << " " << pose.legRH2 << " " << pose.legRH3 << " " << pose.legRF1 << " " << pose.legRF2 << " " << pose.legRF3 << " " << pose.neck << " " << pose.headPan << " " << pose.headTilt << " " << pose.tailPan << " " << pose.tailTilt << " " << pose.mouth << " " << "dogCreatePose";
