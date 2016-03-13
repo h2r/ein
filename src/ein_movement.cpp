@@ -2523,7 +2523,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(ScaleMeasures)
 
-// twistWords takes two compound words A and B as arguments. 
+// twistWords takes two compound words A and B as arguments.
 // A and B must start with MeasureTimeStart
 
 WORD(TwistWords)
