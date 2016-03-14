@@ -2472,6 +2472,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
       nextPose.pz += ms->config.bDelta * tSign;
       cout << "AA" << endl;
+
+      ms->pushWord("planToPointCraneFourStroke");
+      ms->pushWord(make_shared<EePoseWord>(targetPoseIn));
+      ms->pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord("moveEeToPoseWord");
+      ms->pushWord(make_shared<EePoseWord>(nextPose));
+      ms->evaluateProgram("0 setCurrentIKFastMode");
     } else {
       cout << "AB" << endl;
       if (target_r_distance > ms->config.w1GoThresh) {
@@ -2499,13 +2506,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	nextPose.px = target_r_coordinate * nextPose.px / current_r_coordinate;
 	nextPose.py = target_r_coordinate * nextPose.py / current_r_coordinate;
       }
-    }
 
-    ms->pushWord("planToPointCraneFourStroke");
-    ms->pushWord(make_shared<EePoseWord>(targetPoseIn));
-    ms->pushWord("waitUntilAtCurrentPosition");
-    ms->pushWord("moveEeToPoseWord");
-    ms->pushWord(make_shared<EePoseWord>(nextPose));
+      ms->pushWord("planToPointCraneFourStroke");
+      ms->pushWord(make_shared<EePoseWord>(targetPoseIn));
+      ms->pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord("moveEeToPoseWord");
+      ms->pushWord(make_shared<EePoseWord>(nextPose));
+      ms->evaluateProgram("1 setCurrentIKFastMode");
+    }
   } else if (target_z_distance > ms->config.w1GoThresh) {
     cout << "B" << endl;
     if (target_z_distance > ms->config.bDelta) {
@@ -2523,6 +2531,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("waitUntilAtCurrentPosition");
       ms->pushWord("moveEeToPoseWord");
       ms->pushWord(make_shared<EePoseWord>(nextPose));
+      ms->evaluateProgram("0 setCurrentIKFastMode");
     } else {
       cout << "BB" << endl;
       nextPose = targetPoseIn;
@@ -2530,6 +2539,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("waitUntilAtCurrentPosition");
       ms->pushWord("moveEeToPoseWord");
       ms->pushWord(make_shared<EePoseWord>(nextPose));
+      ms->evaluateProgram("2 setCurrentIKFastMode");
     }
 
   } else {
@@ -2586,6 +2596,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
       nextPose.pz += ms->config.bDelta * tSign;
       cout << "AA" << endl;
+
+      ms->pushWord("planToPointCraneThreeStroke");
+      ms->pushWord(make_shared<EePoseWord>(targetPoseIn));
+      ms->pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord("moveEeToPoseWord");
+      ms->pushWord(make_shared<EePoseWord>(nextPose));
+
+      ms->evaluateProgram("0 setCurrentIKFastMode");
     } else {
       cout << "AB" << endl;
       {
@@ -2619,13 +2637,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	//nextPose.px += ms->config.bDelta * tSign * ms->config.currentEEPose.px / current_r_coordinate;
 	//nextPose.py += ms->config.bDelta * tSign * ms->config.currentEEPose.py / current_r_coordinate;
       }
-    }
 
-    ms->pushWord("planToPointCraneThreeStroke");
-    ms->pushWord(make_shared<EePoseWord>(targetPoseIn));
-    ms->pushWord("waitUntilAtCurrentPosition");
-    ms->pushWord("moveEeToPoseWord");
-    ms->pushWord(make_shared<EePoseWord>(nextPose));
+      ms->pushWord("planToPointCraneThreeStroke");
+      ms->pushWord(make_shared<EePoseWord>(targetPoseIn));
+      ms->pushWord("waitUntilAtCurrentPosition");
+      ms->pushWord("moveEeToPoseWord");
+      ms->pushWord(make_shared<EePoseWord>(nextPose));
+      ms->evaluateProgram("1 setCurrentIKFastMode");
+    }
   } else if (target_z_distance > ms->config.w1GoThresh) {
     cout << "B" << endl;
     if (target_z_distance > ms->config.bDelta) {
@@ -2643,6 +2662,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("waitUntilAtCurrentPosition");
       ms->pushWord("moveEeToPoseWord");
       ms->pushWord(make_shared<EePoseWord>(nextPose));
+      ms->evaluateProgram("0 setCurrentIKFastMode");
     } else {
       cout << "BB" << endl;
       nextPose = targetPoseIn;
@@ -2650,6 +2670,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ms->pushWord("waitUntilAtCurrentPosition");
       ms->pushWord("moveEeToPoseWord");
       ms->pushWord(make_shared<EePoseWord>(nextPose));
+      ms->evaluateProgram("2 setCurrentIKFastMode");
     }
 
   } else {
