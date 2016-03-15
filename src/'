@@ -201,13 +201,14 @@ bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, doubl
     }
   }
 
+  
   int totalnumsol = 0;
   for (int thread = 0; thread < p_num_threads; thread++) {
     totalnumsol += threadsolutions[thread].size();
   }
   allsolutions.reserve(totalnumsol);
   for (int thread = 0; thread < p_num_threads; thread++) {
-    allsolutions.insert( allsolutions.end(), threadsolutions[thread].begin(), threadsolutions[thread].end() );
+    allsolutions.insert(allsolutions.end(), threadsolutions[thread].begin(), threadsolutions.end());
   }
 
   for (int s = 0; s < totalnumsol; s++) {
