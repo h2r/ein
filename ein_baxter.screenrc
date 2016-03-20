@@ -51,14 +51,14 @@ stuff "rosrun ein ein_client.py right"
 #screen -t " subscreenR" 
 #stuff "subscreen disabled, uncomment in screenrc. in a subscreen you must double meta / escape characters. remember to quit subscreens, too."
 #######
-screen -t " subscreenR" screen -t " ss1" -S subscreenR
+screen -t " subscreenR" 
 stuff "./baxter.sh"
 # subscreen voodoo
 #stuff "screen -t \" ss2\""
 #stuff "./baxter.sh"
 #meta
 #stuff "1"
-stuff "in a subscreen you must double meta / escape characters"
+#stuff "in a subscreen you must double meta / escape characters"
 #meta
 #stuff "c"
 ## meta n meta p forces redraw of internal screen
@@ -83,9 +83,8 @@ stuff "emacs -nw src/ein.cpp"
 #screen -t " subscreenL" 
 #stuff "subscreen disabled, uncomment in screenrc. in a subscreen you must double meta / escape characters. remember to quit subscreens, too."
 #######
-screen -t " subscreenL" screen -S subscreenL
+screen -t " subscreenL" 
 stuff "./baxter.sh"
-stuff "in a subscreen you must double meta / escape characters"
 #######
 screen -t " replL"
 stuff "./baxter.sh"
