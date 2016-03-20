@@ -2,6 +2,14 @@ cmake_minimum_required(VERSION 2.8.3)
 
 project(ein)
 
+
+
+LIST(APPEND CMAKE_MODULE_PATH "/home/stefie10/dev/baxter-dev1.2.0/src/ein/cmake") 
+MESSAGE(CMAKE_MODULE_PATH)
+MESSAGE(${CMAKE_MODULE_PATH})
+
+
+
 find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   roscpp
@@ -26,6 +34,13 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(LAPACK REQUIRED)
 find_package(GSL REQUIRED)
 find_package(ZLIB REQUIRED)
+find_package(OpenGL REQUIRED)
+find_package(GLUT REQUIRED)
+find_package(GLEW REQUIRED)
+find_package(OpenCL REQUIRED)
+
+
+
 
 
 
@@ -78,6 +93,7 @@ qt5_wrap_cpp(CmakeLib_hdr_moc ${CmakeLib_hdr})
 qt5_wrap_ui (CmakeLib_ui_moc  ${CmakeLib_ui})
 
 include_directories (${PROJECT_SOURCE_DIR}/src)
+include_directories (${PROJECT_SOURCE_DIR}/src/opencl/oclNbody/inc/)
 include_directories (${PROJECT_BINARY_DIR})
 
 add_library (CmakeLib SHARED 
@@ -86,6 +102,30 @@ add_library (CmakeLib SHARED
     ${CmakeLib_ui_moc}
 )
 
+
+
+add_executable(nbody
+src/opencl/oclNbody/src/cmd_arg_reader.cpp
+src/opencl/oclNbody/src/oclBodySystemCpu.cpp
+src/opencl/oclNbody/src/oclBodySystemOpencl.cpp
+src/opencl/oclNbody/src/oclBodySystemOpenclLaunch.cpp
+src/opencl/oclNbody/src/oclNbody.cpp
+src/opencl/oclNbody/src/oclNbodyGold.cpp
+src/opencl/oclNbody/src/oclRenderParticles.cpp
+src/opencl/oclNbody/src/oclUtils.cpp
+src/opencl/oclNbody/src/param.cpp
+src/opencl/oclNbody/src/paramgl.cpp
+src/opencl/oclNbody/src/shrUtils.cpp)
+
+target_link_libraries(nbody
+        ${OPENGL_LIBRARIES}
+        ${GLEW_LIBRARIES}
+        ${GLUT_LIBRARIES}
+        ${OpenCL_LIBRARY}
+)
+MESSAGE("OPENCL_Found: " ${OpenCL_FOUND})
+MESSAGE("OPENCL_LIBRARY: " ${OpenCL_LIBRARY})
+MESSAGE("OPENCL_LIBRARIES: " ${OpenCL_LIBRARiES})
 
 
 add_executable(ein src/ein.cpp src/ein_words.cpp src/config.cpp
