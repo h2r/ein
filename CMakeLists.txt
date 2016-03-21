@@ -142,8 +142,11 @@ target_link_libraries(ein
 
 
 qt5_use_modules(EinQtLib Core Gui Widgets Test OpenGL)
-
-if (OpenGL AND GLEW AND GLUT AND OpenCL)
+message("OpenGL" ${OpenGL})
+message("OpenGL_FOUND" ${OpenGL_FOUND})
+message("OpenGL" ${OPENGL})
+message("OpenGL_FOUND" ${OPENGL_FOUND})
+if (OPENGL_FOUND AND GLEW_FOUND AND GLUT_FOUND AND OpenCL_FOUND)
 MESSAGE("Building openCL with hardware acceleration.")
 add_definitions(-DUSE_OPENCL)
 add_library(EinOpenCLLib SHARED

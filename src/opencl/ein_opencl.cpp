@@ -6,6 +6,7 @@
 #ifdef USE_OPENCL
 using namespace boost::filesystem;
 int runFunction(int argc, char** argv) ;
+ 
 
 namespace ein_words {
 
