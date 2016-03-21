@@ -3,7 +3,7 @@
 #include "ein.h"
 #include <boost/filesystem.hpp>
 
-
+#ifdef USE_OPENCL
 using namespace boost::filesystem;
 int runFunction(int argc, char** argv) ;
 
@@ -18,3 +18,4 @@ END_WORD
 REGISTER_WORD(OpenClNbodyDemo)
 
 }
+#endif

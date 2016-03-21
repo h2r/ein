@@ -34,11 +34,11 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(LAPACK REQUIRED)
 find_package(GSL REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(OpenGL REQUIRED)
-find_package(GLUT REQUIRED)
-find_package(GLEW REQUIRED)
-message("${GLUT_Found}")
-find_package(OpenCL REQUIRED)
+
+find_package(OpenGL)
+find_package(GLUT)
+find_package(GLEW)
+find_package(OpenCL)
 
 
 
@@ -103,52 +103,6 @@ add_library (EinQtLib SHARED
     ${EinQtLib_ui_moc}
 )
 
-add_library(EinOpenCLLib SHARED
-src/opencl/oclNbody/src/cmd_arg_reader.cpp
-src/opencl/oclNbody/src/oclBodySystemCpu.cpp
-src/opencl/oclNbody/src/oclBodySystemOpencl.cpp
-src/opencl/oclNbody/src/oclBodySystemOpenclLaunch.cpp
-src/opencl/oclNbody/src/oclNbody.cpp
-src/opencl/oclNbody/src/oclNbodyGold.cpp
-src/opencl/oclNbody/src/oclRenderParticles.cpp
-src/opencl/oclNbody/src/oclUtils.cpp
-src/opencl/oclNbody/src/param.cpp
-src/opencl/oclNbody/src/paramgl.cpp
-src/opencl/oclNbody/src/shrUtils.cpp)
-
-
-target_link_libraries(EinOpenCLLib
-        ${OPENGL_LIBRARIES}
-        ${GLEW_LIBRARIES}
-        ${GLUT_LIBRARIES}
-        ${OpenCL_LIBRARY}
-)
-
-
-add_executable(nbody
-src/opencl/oclNbody/src/cmd_arg_reader.cpp
-src/opencl/oclNbody/src/oclBodySystemCpu.cpp
-src/opencl/oclNbody/src/oclBodySystemOpencl.cpp
-src/opencl/oclNbody/src/oclBodySystemOpenclLaunch.cpp
-src/opencl/oclNbody/src/oclNbody.cpp
-src/opencl/oclNbody/src/oclNbodyMain.cpp
-src/opencl/oclNbody/src/oclNbodyGold.cpp
-src/opencl/oclNbody/src/oclRenderParticles.cpp
-src/opencl/oclNbody/src/oclUtils.cpp
-src/opencl/oclNbody/src/param.cpp
-src/opencl/oclNbody/src/paramgl.cpp
-src/opencl/oclNbody/src/shrUtils.cpp)
-
-target_link_libraries(nbody
-        ${OPENGL_LIBRARIES}
-        ${GLEW_LIBRARIES}
-        ${GLUT_LIBRARIES}
-        ${OpenCL_LIBRARY}
-)
-MESSAGE("OPENCL_Found: " ${OpenCL_FOUND})
-MESSAGE("OPENCL_LIBRARY: " ${OpenCL_LIBRARY})
-MESSAGE("OPENCL_LIBRARIES: " ${OpenCL_LIBRARiES})
-
 
 add_executable(ein src/ein.cpp src/ein_words.cpp src/config.cpp
 src/ein_bandit.cpp src/ein_render.cpp src/ein_movement.cpp src/ein_servo.cpp src/ein_vision_cycle.cpp src/ein_scanning.cpp src/ein_misc.cpp src/ein_pick_place.cpp src/ein_ik.cpp src/ein_stream.cpp src/ikfast/ikfast_wrapper_left.cpp src/ikfast/ikfast_wrapper_right.cpp  src/ein_collision.cpp
@@ -184,12 +138,63 @@ target_link_libraries(ein
         ${LAPACK_LIBRARIES}
 	${ZLIB_LIBRARIES}
         EinQtLib
-        EinOpenCLLib
 )
 
 
 qt5_use_modules(EinQtLib Core Gui Widgets Test OpenGL)
 
+if (OpenGL AND GLEW AND GLUT AND OpenCL)
+MESSAGE("Building openCL with hardware acceleration.")
+add_definitions(-DUSE_OPENCL)
+add_library(EinOpenCLLib SHARED
+src/opencl/oclNbody/src/cmd_arg_reader.cpp
+src/opencl/oclNbody/src/oclBodySystemCpu.cpp
+src/opencl/oclNbody/src/oclBodySystemOpencl.cpp
+src/opencl/oclNbody/src/oclBodySystemOpenclLaunch.cpp
+src/opencl/oclNbody/src/oclNbody.cpp
+src/opencl/oclNbody/src/oclNbodyGold.cpp
+src/opencl/oclNbody/src/oclRenderParticles.cpp
+src/opencl/oclNbody/src/oclUtils.cpp
+src/opencl/oclNbody/src/param.cpp
+src/opencl/oclNbody/src/paramgl.cpp
+src/opencl/oclNbody/src/shrUtils.cpp)
+
+
+target_link_libraries(EinOpenCLLib
+        ${OPENGL_LIBRARIES}
+        ${GLEW_LIBRARIES}
+        ${GLUT_LIBRARIES}
+        ${OpenCL_LIBRARY}
+)
+
+
+
+
+add_executable(nbody
+src/opencl/oclNbody/src/cmd_arg_reader.cpp
+src/opencl/oclNbody/src/oclBodySystemCpu.cpp
+src/opencl/oclNbody/src/oclBodySystemOpencl.cpp
+src/opencl/oclNbody/src/oclBodySystemOpenclLaunch.cpp
+src/opencl/oclNbody/src/oclNbody.cpp
+src/opencl/oclNbody/src/oclNbodyMain.cpp
+src/opencl/oclNbody/src/oclNbodyGold.cpp
+src/opencl/oclNbody/src/oclRenderParticles.cpp
+src/opencl/oclNbody/src/oclUtils.cpp
+src/opencl/oclNbody/src/param.cpp
+src/opencl/oclNbody/src/paramgl.cpp
+src/opencl/oclNbody/src/shrUtils.cpp)
+
+target_link_libraries(nbody
+        ${OPENGL_LIBRARIES}
+        ${GLEW_LIBRARIES}
+        ${GLUT_LIBRARIES}
+        ${OpenCL_LIBRARY}
+)
+target_link_libraries(ein EinOpenCLLib)
+
+else()
+MESSAGE("Not building openCL with hardware accelleration.")
+endif()
 
 
 
