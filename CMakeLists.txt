@@ -82,25 +82,25 @@ set(CMAKE_BUILD_TYPE Debug)
 
 find_package (Qt5Widgets)
 
-set (CmakeLib_src ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.cpp 
+set (EinQtLib_src ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.cpp 
 ${PROJECT_SOURCE_DIR}/src/qtgui/window_QT.cpp  ${PROJECT_SOURCE_DIR}/src/qtgui/stackmodel.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/windowmanager.cpp
 ${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/armwidget.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/capturelineedit.cpp
 )
-set (CmakeLib_hdr ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/window_QT.h ${PROJECT_SOURCE_DIR}/src/qtgui/stackmodel.h  ${PROJECT_SOURCE_DIR}/src/qtgui/windowmanager.h   ${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.h ${PROJECT_SOURCE_DIR}/src/qtgui/armwidget.h
+set (EinQtLib_hdr ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/window_QT.h ${PROJECT_SOURCE_DIR}/src/qtgui/stackmodel.h  ${PROJECT_SOURCE_DIR}/src/qtgui/windowmanager.h   ${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.h ${PROJECT_SOURCE_DIR}/src/qtgui/armwidget.h
 ${PROJECT_SOURCE_DIR}/src/qtgui/capturelineedit.h)
-set (CmakeLib_ui  ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.ui ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.ui ${PROJECT_SOURCE_DIR}/src/qtgui/armwidget.ui)
+set (EinQtLib_ui  ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.ui ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.ui ${PROJECT_SOURCE_DIR}/src/qtgui/armwidget.ui)
 
-qt5_wrap_cpp(CmakeLib_hdr_moc ${CmakeLib_hdr})
-qt5_wrap_ui (CmakeLib_ui_moc  ${CmakeLib_ui})
+qt5_wrap_cpp(EinQtLib_hdr_moc ${EinQtLib_hdr})
+qt5_wrap_ui (EinQtLib_ui_moc  ${EinQtLib_ui})
 
 include_directories (${PROJECT_SOURCE_DIR}/src)
 include_directories (${PROJECT_SOURCE_DIR}/src/opencl/oclNbody/inc/)
 include_directories (${PROJECT_BINARY_DIR})
 
-add_library (CmakeLib SHARED 
-    ${CmakeLib_src}
-    ${CmakeLib_hdr_moc}
-    ${CmakeLib_ui_moc}
+add_library (EinQtLib SHARED 
+    ${EinQtLib_src}
+    ${EinQtLib_hdr_moc}
+    ${EinQtLib_ui_moc}
 )
 
 
@@ -161,11 +161,11 @@ target_link_libraries(ein
         ${GSL_LIBRARIES}
         ${LAPACK_LIBRARIES}
 	${ZLIB_LIBRARIES}
-        CmakeLib
+        EinQtLib
 )
 
 
-qt5_use_modules(CmakeLib Core Gui Widgets Test OpenGL)
+qt5_use_modules(EinQtLib Core Gui Widgets Test OpenGL)
 
 
 
