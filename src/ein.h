@@ -57,6 +57,7 @@
 #include <baxter_core_msgs/HeadPanCommand.h>
 #include <baxter_core_msgs/SEAJointState.h>
 #include <baxter_core_msgs/DigitalOutputCommand.h>
+#include <baxter_core_msgs/AnalogOutputCommand.h>
 
 
 #include <cv.h>
