@@ -1549,6 +1549,64 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(ResetAveragedWrenchNorm)
 
+
+WORD(AnalogIOCommand)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  string component;
+  double value;
+  GET_ARG(ms, StringWord, component);
+  GET_NUMERIC_ARG(ms, value);
+
+  baxter_core_msgs::AnalogOutputCommand thisCommand;
+
+  thisCommand.name = component;
+  thisCommand.value = value;
+
+  ms->config.analog_io_pub.publish(thisCommand);
+}
+END_WORD
+REGISTER_WORD(AnalogIOCommand)
+
+WORD(TorsoFanOn)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->evaluateProgram("100 \"torso_fan\" analogIOCommand");
+}
+END_WORD
+REGISTER_WORD(TorsoFanOn)
+
+WORD(TorsoFanOff)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->evaluateProgram("1 \"torso_fan\" analogIOCommand");
+}
+END_WORD
+REGISTER_WORD(TorsoFanOff)
+
+WORD(TorsoFanAuto)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->evaluateProgram("0 \"torso_fan\" analogIOCommand");
+}
+END_WORD
+REGISTER_WORD(TorsoFanAuto)
+
+
+WORD(SetTorsoFanLevel)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  double value;
+  GET_NUMERIC_ARG(ms, value);
+  std::stringstream program;
+  program << value << " \"torso_fan\" analogIOCommand";
+  ms->evaluateProgram(program.str());
+}
+END_WORD
+REGISTER_WORD(SetTorsoFanLevel)
+
+
+
 WORD(DigitalIOCommand)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
@@ -2262,6 +2320,8 @@ CONFIG_SETTER_INT(SceneSetDiscrepancySearchDepth, ms->config.sceneDiscrepancySea
 CONFIG_GETTER_INT(ArmOkButtonState, ms->config.lastArmOkButtonState)
 CONFIG_GETTER_INT(ArmShowButtonState, ms->config.lastArmShowButtonState)
 CONFIG_GETTER_INT(ArmBackButtonState, ms->config.lastArmBackButtonState)
+
+CONFIG_GETTER_DOUBLE(TorsoFanState, ms->config.torsoFanState)
 
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
 
