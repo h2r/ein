@@ -2728,6 +2728,7 @@ void MachineState::moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg
   }
 }
 
+
 void MachineState::pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
   shared_ptr<MachineState> ms = this->sharedThis;
   if (ms->config.currentRobotMode == PHYSICAL) {
@@ -4966,23 +4967,64 @@ void MachineState::cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDI
 
 }
 
-void MachineState::shoulderCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
+void MachineState::armShowButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
+  shared_ptr<MachineState> ms = this->sharedThis;
+
+
+  if (dios.state) {
+    ms->config.lastArmShowButtonState = 1;
+  } else {
+    ms->config.lastArmShowButtonState = 0;
+  }
+}
+
+void MachineState::armBackButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
+  shared_ptr<MachineState> ms = this->sharedThis;
+
+  if (dios.state) {
+    ms->config.lastArmBackButtonState = 1;
+  } else {
+    ms->config.lastArmBackButtonState = 0;
+  }
+
+}
+
+void MachineState::armOkButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
+  shared_ptr<MachineState> ms = this->sharedThis;
+  if (dios.state == 1) {
+    // only if this is the first of recent presses
+    if (ms->config.lastArmOkButtonState == 0) {
+      ms->evaluateProgram("zeroGToggle");
+    }      
+  }
+
+  if (dios.state == 1) {
+    ms->config.lastArmOkButtonState = 1;
+  } else if (dios.state == 0) {
+    ms->config.lastArmOkButtonState = 0;
+  } else {
+    ROS_ERROR_STREAM("Unexpected state: " << dios);
+    assert(0);
+  }
+
+}
+
+void MachineState::shoulderCallback(const baxter_core_msgs::DigitalIOState& dios) {
   shared_ptr<MachineState> ms = this->sharedThis;
 
   // this is backwards, probably a bug
-  if (cuffDIOS.state) {
+  if (!dios.state && ms->config.lastShoulderState == 1) {
+    ms->config.intendedEnableState = !ms->config.intendedEnableState;
+    if (ms->config.intendedEnableState) {
+      int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -e\"");
+    } else {
+      int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -d\"");
+    }
+  }
+
+  if (dios.state) {
     ms->config.lastShoulderState = 1;
   } else {
-    // only if this is the first of recent presses
-    if (ms->config.lastShoulderState == 1) {
-      ms->config.intendedEnableState = !ms->config.intendedEnableState;
-      if (ms->config.intendedEnableState) {
-	int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -e\"");
-      } else {
-	int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -d\"");
-      }
-    } else {
-    }
     ms->config.lastShoulderState = 0;
   }
 }
@@ -14582,6 +14624,12 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
     ms->config.cuff_grasp_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_upper_button/state", 1, &MachineState::cuffGraspCallback, ms.get());
     ms->config.cuff_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_lower_button/state", 1, &MachineState::cuffOkCallback, ms.get());
     ms->config.shoulder_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_shoulder_button/state", 1, &MachineState::shoulderCallback, ms.get());
+
+
+    ms->config.cuff_grasp_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_show/state", 1, &MachineState::armShowButtonCallback, ms.get());
+    ms->config.cuff_grasp_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_back/state", 1, &MachineState::armBackButtonCallback, ms.get());
+    ms->config.cuff_grasp_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_ok/state", 1, &MachineState::armOkButtonCallback, ms.get());
+
 
 
     ms->config.collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, &MachineState::collisionDetectionStateCallback, ms.get());

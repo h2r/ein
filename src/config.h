@@ -1557,6 +1557,7 @@ class EinConfig {
   ros::Time measureTimeTarget;
   ros::Time measureTimeStart;
   double measureTimePeriod = 1.0;
+  
 
   eePose pressPose;
   double twistThresh = 0.01;
@@ -1568,7 +1569,11 @@ class EinConfig {
   double wrenchThresh = 15.0;
 
   int intendedEnableState = 1;
-  int lastShoulderState = 1;
+  int lastShoulderState = 0;
+
+  int lastArmOkButtonState = 0;
+  int lastArmShowButtonState = 0;
+  int lastArmBackButtonState = 0;
 
   shared_ptr<TransitionTable> transition_table;
   shared_ptr<Scene> scene;
@@ -1657,6 +1662,8 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
 
   void jointCallback(const sensor_msgs::JointState& js);
   void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
+
+
   void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);
   void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg);
   void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
@@ -1673,6 +1680,10 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) ;
   void cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) ;
   void shoulderCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
+  void armShowButtonCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
+  void armBackButtonCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
+  void armOkButtonCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
+
   void targetCallback(const geometry_msgs::Point& point);
   void simulatorCallback(const ros::TimerEvent&);
   void einStateCallback(const ein::EinState & msg);
