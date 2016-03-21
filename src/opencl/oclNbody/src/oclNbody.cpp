@@ -159,9 +159,10 @@ void Cleanup(int iExitCode);
 void (*pCleanup)(int) = &Cleanup;
 void TriggerFPSUpdate();
 
+
 // Main program
 //*****************************************************************************
-int main(int argc, char** argv) 
+int runFunction(int argc, char** argv) 
 {
 	// Locals used with command line args
     int p = 256;            // workgroup X dimension
