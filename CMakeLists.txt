@@ -4,7 +4,7 @@ project(ein)
 
 
 
-LIST(APPEND CMAKE_MODULE_PATH "/home/stefie10/dev/baxter-dev1.2.0/src/ein/cmake") 
+LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/ein/cmake") 
 MESSAGE(CMAKE_MODULE_PATH)
 MESSAGE(${CMAKE_MODULE_PATH})
 
@@ -37,6 +37,7 @@ find_package(ZLIB REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
 find_package(GLEW REQUIRED)
+message("${GLUT_Found}")
 find_package(OpenCL REQUIRED)
 
 
