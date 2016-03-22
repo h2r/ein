@@ -3481,7 +3481,7 @@ END_WORD
 REGISTER_WORD(SceneUpdateObservedFromWrist)
 
 // XXX TODO NOT DONE
-WORD(SceneUpdateObservedFromStreamBuffer)
+WORD(SceneUpdateObservedFromStreamBufferNoRecalc)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int thisIdx = ms->config.sibCurIdx;
   //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
@@ -3594,12 +3594,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
     }
   }
-  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
-  ms->pushWord("sceneRenderObservedMap");
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferNoRecalc)
+
+WORD(SceneUpdateObservedFromStreamBuffer)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("sceneUpdateObservedFromStreamBufferRecalc sceneRecalculateObservedMusAndSigmas sceneRenderObservedMap");
 }
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBuffer)
-
 
 WORD(SceneRenderObservedMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
