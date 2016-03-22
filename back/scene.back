@@ -88,7 +88,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   rewindImageStreamBufferNLNK
   streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
   ( 
-    sceneUpdateObservedFromStreamBuffer 
+    sceneUpdateObservedFromStreamBufferNoRecalc 
     ( 
       incrementImageStreamBufferNoLoadNoKick 
     ) tempSpiralStreamTakeSceneStride replicateWord 
@@ -103,6 +103,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 */
 
   ) tempSpiralStreamTakeSceneSamples replicateWord
+  sceneRecalculateObservedMusAndSigmas  sceneRenderObservedMap
 ) "tempUpdateSpiralCoreIntegrate" store
 
 (
@@ -148,7 +149,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   tempUpdateSpiralCoreNoClean
 
   /* integrate results */
-  tempUpdateSpiralCoreIntegrate
+
+  tempUpdateSpiralCoreIntegrate 
 
   tempUpdateMaps
 
