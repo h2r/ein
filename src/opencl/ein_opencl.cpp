@@ -3,10 +3,11 @@
 #include "ein.h"
 #include <boost/filesystem.hpp>
 
+#ifdef USE_OPENCL
+
 #include <oclUtils.h>
 #include <shrQATest.h>
 
-#ifdef USE_OPENCL
 using namespace boost::filesystem;
 int runFunction(int argc, char** argv) ;
 
@@ -26,6 +27,40 @@ struct ImageGPU {
   cl_mem* cmDevBufIn;                 // OpenCL device memory input buffer object  
   cl_float* uiInput = NULL;            // Mapped Pointer to pinned Host input buffer for host processing
 };
+
+
+// Helper to clean up
+//*****************************************************************************
+void Cleanup(int iExitCode)
+{
+/*
+//    shrLog("\nStarting Cleanup...\n\n");
+
+    // Cleanup allocated objects
+    if(nbodyGPU)delete nbodyGPU;
+    if(cqCommandQueue)clReleaseCommandQueue(cqCommandQueue);
+    if(cxContext)clReleaseContext(cxContext);
+    if(hPos)delete [] hPos;
+    if(hVel)delete [] hVel;
+    if(hColor)delete [] hColor;
+    if(renderer)delete renderer;
+
+    // finalize logs and leave
+    if (bNoPrompt || bQATest)
+    {
+//        shrLogEx(LOGBOTH | CLOSELOG, 0, "%s Exiting...\n", cExecutablePath);
+    }
+    else 
+    {
+        shrLogEx(LOGBOTH | CLOSELOG, 0, "%s Exiting...\nPress <Enter> to Quit\n", cExecutablePath);
+        #ifdef WIN32
+            getchar();
+        #endif
+    }
+    exit (iExitCode);
+*/
+}
+void (*pCleanup)(int) = &Cleanup;
 
 void gaussianMapEcho(shared_ptr<GaussianMap> in, shared_ptr<GaussianMap> out) {
 
@@ -66,6 +101,16 @@ void gaussianMapEcho(shared_ptr<GaussianMap> in, shared_ptr<GaussianMap> out) {
   printf("platform: %d\n", ciErrNum);
   oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
   shrLog("clGetPlatformID...\n\n"); 
+
+/*
+  shrLog("Get the Device info and select Device...\n");
+  ciErrNum = clGetDeviceIDs(cpPlatform, CL_DEVICE_TYPE_GPU, 0, NULL, &uiNumDevices);
+  oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
+  cdDevices = (cl_device_id *)malloc(uiNumDevices * sizeof(cl_device_id) );
+  ciErrNum = clGetDeviceIDs(cpPlatform, CL_DEVICE_TYPE_GPU, uiNumDevices, cdDevices, NULL);
+  oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
+*/
+
 /*
       
       if (bDouble)
@@ -80,12 +125,6 @@ void gaussianMapEcho(shared_ptr<GaussianMap> in, shared_ptr<GaussianMap> out) {
       flopsPerInteraction = bDouble ? 30 : 20; 
   
       //Get all the devices
-  shrLog("Get the Device info and select Device...\n");
-  ciErrNum = clGetDeviceIDs(cpPlatform, CL_DEVICE_TYPE_GPU, 0, NULL, &uiNumDevices);
-  oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
-  cdDevices = (cl_device_id *)malloc(uiNumDevices * sizeof(cl_device_id) );
-  ciErrNum = clGetDeviceIDs(cpPlatform, CL_DEVICE_TYPE_GPU, uiNumDevices, cdDevices, NULL);
-  oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
 */
 
 
