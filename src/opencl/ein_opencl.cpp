@@ -3,10 +3,12 @@
 #include "ein.h"
 #include <boost/filesystem.hpp>
 
+
+#ifdef USE_OPENCL
+
 #include <oclUtils.h>
 #include <shrQATest.h>
 
-#ifdef USE_OPENCL
 using namespace boost::filesystem;
 int runFunction(int argc, char** argv) ;
 
