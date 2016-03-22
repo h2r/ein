@@ -353,13 +353,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(CurrentPose)
 
-WORD(PushTruePose)
+WORD(TruePose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   shared_ptr<EePoseWord> word = std::make_shared<EePoseWord>(ms->config.trueEEPoseEEPose);
   ms->pushWord(word);
 }
 END_WORD
-REGISTER_WORD(PushTruePose)
+REGISTER_WORD(TruePose)
 
 
 WORD(SaveRegister1)

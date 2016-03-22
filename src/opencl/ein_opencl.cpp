@@ -95,8 +95,10 @@ namespace ein_words {
 
 WORD(OpenClNbodyDemo)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  char * programName = "einOpenClNbodyDemo";
-  runFunction(1, &programName);
+  string programName = "einOpenClNbodyDemo";
+  const char *cstr = programName.c_str();
+  char ** arg = (char **) & cstr;
+  runFunction(1, arg);
 }
 END_WORD
 REGISTER_WORD(OpenClNbodyDemo)
