@@ -455,9 +455,13 @@ int CompoundWord::size() {
 }
 
 shared_ptr<Word> CompoundWord::popWord() {
+  if (stack.size() > 0) {
     std::shared_ptr<Word> word = stack.back();
     stack.pop_back();
     return word;
+  } else {
+    return NULL;
+  }
 }
 
 shared_ptr<Word> CompoundWord::getWord(int i) {

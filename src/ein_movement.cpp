@@ -2187,7 +2187,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     word = toReverse->popWord();
   }
   
-  ms->pushWord(reversedWord);
+  ms->pushData(reversedWord);
 }
 END_WORD
 REGISTER_WORD(ReverseCompound)
@@ -2255,10 +2255,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   GET_ARG(ms, EePoseWord, eePoseIn);
 
   baxter_core_msgs::SolvePositionIK thisIkRequest;
-  fillIkRequest(ms->config.currentEEPose, &thisIkRequest);
+  fillIkRequest(eePoseIn, &thisIkRequest);
 
   int ikCallResult = 0;
   queryIK(ms, &ikCallResult, &thisIkRequest);
+
+  // XXX this maintains history in the solver
+  //  not good form
+  for (int i = NUM_JOINTS-1; i >= 0; i--) {
+    ms->config.currentJointPositions.response.joints[0].position[i] =
+	  thisIkRequest.response.joints[0].position[i];
+  }
 
   if (ikCallResult && thisIkRequest.response.isValid[0]) {
     cout << "eePoseToArmPose: got " << thisIkRequest.response.joints.size() << " solutions, using first." << endl;
@@ -2681,6 +2688,219 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(PlanToPointCraneThreeStroke)
 
+WORD(ArmPublishJointPositionCommand)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // XXX needs to be an ArmPose reactive variables currentArmPose, trueArmPose
+  baxter_core_msgs::JointCommand myCommand;
+
+  if (!ms->config.jointNamesInit) {
+    ms->config.jointNames.resize(NUM_JOINTS);
+    for (int j = 0; j < NUM_JOINTS; j++) {
+      ms->config.jointNames[j] = ms->config.ikRequest.response.joints[0].name[j];
+    }
+    ms->config.jointNamesInit = 1;
+  }
+
+  myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
+  myCommand.command.resize(NUM_JOINTS);
+  myCommand.names.resize(NUM_JOINTS);
+
+  ms->config.lastGoodIkRequest.response.joints.resize(1);
+  ms->config.lastGoodIkRequest.response.joints[0].name.resize(NUM_JOINTS);
+  ms->config.lastGoodIkRequest.response.joints[0].position.resize(NUM_JOINTS);
+
+  ms->config.currentJointPositions.response.joints.resize(1);
+  ms->config.currentJointPositions.response.joints[0].name.resize(NUM_JOINTS);
+  ms->config.currentJointPositions.response.joints[0].position.resize(NUM_JOINTS);
+
+  for (int j = 0; j < NUM_JOINTS; j++) {
+    myCommand.names[j] = ms->config.currentJointPositions.response.joints[0].name[j];
+    myCommand.command[j] = ms->config.currentJointPositions.response.joints[0].position[j];
+  }
+
+  ms->config.joint_mover.publish(myCommand);
+}
+END_WORD
+REGISTER_WORD(ArmPublishJointPositionCommand)
+
+WORD(PlanToPointCraneThreeStrokeOpenJointHyperPlanner)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose startPoseIn;
+  GET_ARG(ms, EePoseWord, startPoseIn);
+
+  eePose targetPoseIn;
+  GET_ARG(ms, EePoseWord, targetPoseIn);
+
+  if ( (ms->config.bDelta <= 0) || (ms->config.bDelta > 0.5*ms->config.w1GoThresh) ) {
+    cout << "planToPointCraneThreeStroke: Oops, there's a problem with bDelta and w1GoThresh, " << ms->config.bDelta << " " << ms->config.w1GoThresh << endl;
+    cout << "bDelta needs to be < 0.5 * w1GoThresh but greater than 0." << endl;
+  }
+
+  double current_r_coordinate = sqrt( pow(startPoseIn.px, 2.0) + pow(startPoseIn.py, 2.0) );
+  double current_theta_coordinate = atan2(startPoseIn.py, startPoseIn.px);
+
+  double p_inter_target_z = convertHeightIdxToGlobalZ(ms, 1);
+  double p_inter_target_r = 0.8;
+
+  double target_plane_distance = sqrt( pow(startPoseIn.px - targetPoseIn.px, 2.0) + pow(startPoseIn.py - targetPoseIn.py, 2.0) );
+  double target_z_difference = targetPoseIn.pz - startPoseIn.pz;
+  double target_z_distance = fabs(target_z_difference);
+  double target_r_coordinate = sqrt( pow(targetPoseIn.px, 2.0) + pow(targetPoseIn.py, 2.0) );
+  double target_r_difference = target_r_coordinate - current_r_coordinate;
+  double target_r_distance = fabs( target_r_difference );
+  double target_theta_coordinate = atan2(targetPoseIn.py, targetPoseIn.px);
+  double target_theta_difference = target_theta_coordinate - current_theta_coordinate;
+  double target_theta_distance = fabs(target_theta_difference);
+
+  double inter_r_distance = fabs( current_r_coordinate - p_inter_target_r);
+  double inter_z_difference = p_inter_target_z - startPoseIn.pz;
+  double inter_z_distance = fabs(inter_z_difference);
+
+  cout << "target plane_d: " << target_plane_distance << " z_dist: " << target_z_distance << " r_c: " 
+  << target_r_coordinate << " r_diff: " << target_r_difference << " r_dist: " << target_r_distance << " theta_c: " 
+  << target_theta_coordinate << " theta_diff: " << target_theta_difference << " theta_dist: " << target_theta_distance << endl;
+  cout << "inter r_dist: " << inter_r_distance << " z_dist: " << inter_z_distance << endl;
+
+  eePose nextPose = startPoseIn;
+  if (target_plane_distance > ms->config.w1GoThresh) { 
+    cout << "A" << endl;
+    if (inter_z_distance > ms->config.w1GoThresh) {
+      double tSign = 0.0;
+      if (inter_z_distance > 0.0) {
+	tSign = inter_z_difference / inter_z_distance;
+      }
+
+      nextPose.pz += ms->config.bDelta * tSign;
+      cout << "AA" << endl;
+
+      ms->pushWord(this->name());
+      ms->pushWord(make_shared<EePoseWord>(nextPose));
+      ms->pushWord(make_shared<EePoseWord>(targetPoseIn));
+      ms->pushData("eePoseToArmPose");
+      ms->pushData(make_shared<EePoseWord>(nextPose));
+	ms->pushData("setCurrentIKFastMode");
+	ms->pushData(make_shared<IntegerWord>(0));
+    } else {
+      cout << "AB" << endl;
+      {
+	cout << "ABB" << endl;
+	//[ cos -sin 
+	//  sin  cos ]
+	double tSign = 0.0;
+	if (target_theta_distance > 0.0) {
+	  tSign = target_theta_difference / target_theta_distance;
+	}
+	
+	double t_rotation_theta = ms->config.bDelta * tSign / current_r_coordinate;
+  
+	nextPose.px = nextPose.px * cos(t_rotation_theta) - nextPose.py * sin(t_rotation_theta);
+	nextPose.py = nextPose.px * sin(t_rotation_theta) + nextPose.py * cos(t_rotation_theta);
+	
+	//nextPose.px = target_r_coordinate * nextPose.px / current_r_coordinate;
+	//nextPose.py = target_r_coordinate * nextPose.py / current_r_coordinate;
+      }
+      if (target_r_distance > ms->config.w1GoThresh) {
+	cout << "ABA" << endl;
+	double tSign = 0.0;
+	if (target_r_distance > 0.0) {
+	  tSign = target_r_difference / target_r_distance;
+	}
+	double radius_steps = target_r_coordinate * M_PI * target_theta_distance / ms->config.bDelta;
+	double r_plan_steps = std::max(1.0, radius_steps/2.0);
+	double r_delta = target_r_distance / r_plan_steps;
+	nextPose.px += r_delta * tSign * startPoseIn.px / current_r_coordinate;
+	nextPose.py += r_delta * tSign * startPoseIn.py / current_r_coordinate;
+	//nextPose.px += ms->config.bDelta * tSign * startPoseIn.px / current_r_coordinate;
+	//nextPose.py += ms->config.bDelta * tSign * startPoseIn.py / current_r_coordinate;
+      }
+
+      ms->pushWord(this->name());
+      ms->pushWord(make_shared<EePoseWord>(nextPose));
+      ms->pushWord(make_shared<EePoseWord>(targetPoseIn));
+      ms->pushData("eePoseToArmPose");
+      ms->pushData(make_shared<EePoseWord>(nextPose));
+	ms->pushData("setCurrentIKFastMode");
+	ms->pushData(make_shared<IntegerWord>(1));
+    }
+  } else if (target_z_distance > ms->config.w1GoThresh) {
+    cout << "B" << endl;
+    if (target_z_distance > ms->config.bDelta) {
+      cout << "BA" << endl;
+
+      double tSign = 0.0;
+      if (target_z_distance > 0.0) {
+	tSign = target_z_difference / target_z_distance;
+      }
+
+      nextPose.pz += ms->config.bDelta * tSign;
+
+      ms->pushWord(this->name());
+      ms->pushWord(make_shared<EePoseWord>(nextPose));
+      ms->pushWord(make_shared<EePoseWord>(targetPoseIn));
+      ms->pushData("eePoseToArmPose");
+      ms->pushData(make_shared<EePoseWord>(nextPose));
+	ms->pushData("setCurrentIKFastMode");
+	ms->pushData(make_shared<IntegerWord>(0));
+    } else {
+      cout << "BB" << endl;
+      nextPose = targetPoseIn;
+
+      ms->pushData("eePoseToArmPose");
+      ms->pushData(make_shared<EePoseWord>(nextPose));
+	ms->pushData("setCurrentIKFastMode");
+	ms->pushData(make_shared<IntegerWord>(2));
+    }
+
+  } else {
+    cout << "C" << endl;
+    //cout << "planToPointCraneThreeStroke: done." << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(PlanToPointCraneThreeStrokeOpenJointHyperPlanner)
+
+WORD(PlanExecuteHyperPlanner)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // uses hyper planner to make a JIT planner (eePose plan with style info embedded in the eePose stream)
+  //   this allows changes to ik policies to be made between executions of the JIT planner while it remains the same.
+  // the output of a JIT planner is a joint trajectory.
+//XXX needs a couple of little touches like priming the ik and resetting the ik upon return
+// slide ( placeC placeB planToPointCraneThreeStrokeOpenJointHyperPlanner 1 |S ) reverseCompound "eePathTwo" store
+// slide ( eePathTwo 1 |S ) reverseCompound "jointPathTwo" store
+// 0.525866 -0.710611 -0.146919 -0.001222 0.999998 0.001162 -0.001101 createEEPose
+// 0.525866 -0.710611 0.279748 -0.001222 0.999998 0.001162 -0.001101 createEEPose
+// 0.525866 -0.710611 -0.066919 -0.001222 0.999998 0.001162 -0.001101 createEEPose
+// 5 waitForSeconds ( setControlModeAngles jointPathTwoReverse jointPathTwo ( moveArmToPoseWord armPublishJointPositionCommand 0.02 spinForSeconds ) 80 replicateWord setControlModeEePosition placeC moveEeToPoseWord 3.0 waitForSeconds setControlModeAngles 0.5 spinForSeconds ) 10 replicateWord
+
+//  13 "frames" store 2 "unframes" store 0.015 "gap" store fullImpulse 2 waitForSeconds ( setControlModeAngles jointPathFive ( moveArmToPoseWord armPublishJointPositionCommand gap spinForSeconds ) frames replicateWord ( pop ) unframes replicateWord setControlModeAngles quarterImpulse 2 waitForSeconds jointPathFiveReverse ( pop ) unframes replicateWord ( moveArmToPoseWord armPublishJointPositionCommand 0.002 spinForSeconds ) frames replicateWord fullImpulse 5.0 waitForSeconds ) 7 replicateWord 
+}
+END_WORD
+REGISTER_WORD(PlanExecuteHyperPlanner)
+
+WORD(PlanFollowPathWithWaits)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // markov planner takes a position on the stack, pushes and dups the next point in the sequence, and pushes itself (or another reentrant)
+  //  onto the stack until the plan is done. So takes a start point and returns a list of points, which is the plan backwards.
+
+  // this function list of points and pushes to the data stack a compound word program that executes the plan from the current positin
+
+// XXX need waitless planners
+// XXX test interleaving 
+}
+END_WORD
+REGISTER_WORD(PlanFollowPathWithWaits)
+
+WORD(PlanCommandJointsAtRateWait)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(PlanCommandJointsAtRateWait)
+
+WORD(PlanCommandJointsAtRateSpin)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(PlanCommandJointsAtRateSpin)
 
 /*
 
