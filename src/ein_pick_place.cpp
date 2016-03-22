@@ -574,10 +574,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     assert(0);
   }
 
-  ms->pushWord("cruisingSpeed");
-  ms->pushWord("waitUntilAtCurrentPosition"); 
-  ms->pushWord("tryToMoveToTheLastPrePickHeight");   
-  ms->pushWord("departureSpeed");
+  if (ms->config.currentPlaceMode == HOLD) {
+  } else {
+    ms->pushWord("cruisingSpeed");
+    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("tryToMoveToTheLastPrePickHeight");   
+    ms->pushWord("departureSpeed");
+  }
 }
 END_WORD
 REGISTER_WORD(PlaceObjectInDeliveryZone)
