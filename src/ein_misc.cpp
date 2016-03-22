@@ -1514,6 +1514,17 @@ END_WORD
 REGISTER_WORD(Help)
 
 
+WORD(CurrentIKModeString)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  shared_ptr<StringWord> currentIkModeWord = make_shared<StringWord>(ikModeToString(ms->config.currentIKMode));
+  ms->pushWord(currentIkModeWord);
+}
+END_WORD
+REGISTER_WORD(CurrentIKModeString)
+
+
+
 WORD(IkModeService)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
@@ -2322,6 +2333,8 @@ CONFIG_GETTER_INT(ArmShowButtonState, ms->config.lastArmShowButtonState)
 CONFIG_GETTER_INT(ArmBackButtonState, ms->config.lastArmBackButtonState)
 
 CONFIG_GETTER_DOUBLE(TorsoFanState, ms->config.torsoFanState)
+
+CONFIG_GETTER_INT(CurrentIKMode, ms->config.currentIKMode)
 
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
 
