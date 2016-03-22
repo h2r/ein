@@ -4561,11 +4561,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(AddPlaceOverPoint)
 
+CONFIG_GETTER_DOUBLE(GraspBackoffDistance, ms->config.graspBackoffDistance) 
+CONFIG_SETTER_DOUBLE(SetGraspBackoffDistance, ms->config.graspBackoffDistance) 
+
 WORD(AssumeBest3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
 
-  double p_backoffDistance = 0.20;
+  double p_backoffDistance = ms->config.graspBackoffDistance;
 
   vector<int> feasible_indeces;
   for (int _tc = 0; _tc < ms->config.class3dGrasps[ms->config.targetClass].size(); _tc++) {
