@@ -480,6 +480,8 @@ class EinConfig {
   bool mapAutoPick = false;
   bool snapToFlushGrasp = true;
 
+  double graspBackoffDistance = 0.20;
+
   int fakeBBWidth = 50;
 
   eePose placeTarget;

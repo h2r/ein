@@ -29,8 +29,8 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempCaptureCore" store
 
 (
-  9.0 sceneSetBackgroundStdDevY
-  9.0 sceneSetBackgroundStdDevColor
+  16.0 sceneSetBackgroundStdDevY
+  16.0 sceneSetBackgroundStdDevColor
 ) "tempRegularizeBackground" store
 
 (
@@ -87,6 +87,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   rewindImageStreamBufferNLNK
   streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
+  tempSpiralStreamTakeSceneStride 1 < (
+    1 "tempSpiralStreamTakeSceneStride" store
+  ) ift
+
   ( 
     sceneUpdateObservedFromStreamBufferNoRecalc 
     ( 
@@ -801,12 +805,6 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "demoRelativeTransformations" store
 
 (
-  "scene" import tempInit assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition tempShortTakeScene 
-  sceneClearPredictedObjects "brush" tempPredictAndRenderFile
-  clearMapForPatrol clearBlueBoxMemories tempMapFocusedClass waitUntilAtCurrentPosition setMovementStateToMoving comeToStop tempMapFocusedClass deliverTargetObject
-) "tempUsefulPhrases" store
-
-(
   sceneClearPredictedObjects
   tempUpdateMaps
   tempCaptureCore
@@ -1219,7 +1217,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 /* consider deprecating or using */
 (
   lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
+  /*
   tempReconstructServoToBestSceneObject
+  */
+  tempSpiralServoToBestSceneObject
   waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
   currentPose tempScanBasePZ setEEPosePZ "tempScanBase" store
 
@@ -1339,7 +1340,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 0.01 "tempReconstructWithZDeltaZ" store
 100 "tempReconstructStreamTakeSceneSamples" store
 (
-  sceneInitRegisterZero
+  /* sceneInitRegisterZero */
+  sceneInitRegisterMax 
   streamPushImageStreamSize tempReconstructStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
 
   tempReconstructWithZTopZ "tempReconstructWithZThisZ" store
@@ -1412,9 +1414,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 
 /*
-  sceneMinDepthStackIntoRegister 
-*/
   sceneMarginalizeDepthStackIntoRegister
+*/
+  sceneMinDepthStackIntoRegister 
 
   sceneRecallFromRegister 
 
@@ -1671,47 +1673,49 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 
 (
-  -0.506250 0.375000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.531250 0.550000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.381250 0.475000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.412500 0.693750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.281250 0.575000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.275000 0.812500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.143750 0.643750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.075000 0.893750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.025000 0.700000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.125000 0.881250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.181250 0.687500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.337500 0.837500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.350000 0.606250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.506250 0.725000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.468750 0.468750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.637500 0.556250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.537500 0.293750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.725000 0.393750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.662500 0.218750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  1 changeToHeight currentPose eePosePZ "thisZ" store
+  -0.506250 0.375000 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.531250 0.550000 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.381250 0.475000 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.412500 0.693750 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.281250 0.575000 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.275000 0.812500 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.143750 0.643750 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.075000 0.893750 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.025000 0.700000 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.125000 0.881250 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.181250 0.687500 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.337500 0.837500 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.350000 0.606250 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.506250 0.725000 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.468750 0.468750 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.637500 0.556250 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.537500 0.293750 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.725000 0.393750 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.662500 0.218750 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
 ) "socialFeedbackMapLeftWorkspace" store
 
 (
-  -0.506250 -0.375000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.531250 -0.550000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.381250 -0.475000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.412500 -0.693750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.281250 -0.575000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.275000 -0.812500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.143750 -0.643750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  -0.075000 -0.893750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.025000 -0.700000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.125000 -0.881250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.181250 -0.687500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.337500 -0.837500 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.350000 -0.606250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.506250 -0.725000 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.468750 -0.468750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.637500 -0.556250 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.537500 -0.293750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.725000 -0.393750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
-  0.662500 -0.218750 0.204825 -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  1 changeToHeight currentPose eePosePZ "thisZ" store
+  -0.506250 -0.375000 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.531250 -0.550000 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.381250 -0.475000 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.412500 -0.693750 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.281250 -0.575000 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.275000 -0.812500 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.143750 -0.643750 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  -0.075000 -0.893750 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.025000 -0.700000 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.125000 -0.881250 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.181250 -0.687500 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.337500 -0.837500 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.350000 -0.606250 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.506250 -0.725000 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.468750 -0.468750 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.637500 -0.556250 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.537500 -0.293750 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.725000 -0.393750 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
+  0.662500 -0.218750 thisZ -0.036120 0.999346 0.001199 -0.001060 createEEPose
 ) "socialFeedbackMapRightWorkspace" store
 
 (
@@ -1734,7 +1738,6 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     /* Pose Range Image Joints Word Label */
     1 0 1 0 0 0 
   setSisFlags
-  activateSensorStreaming
 
   endArgs 
 
@@ -1748,6 +1751,11 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     ) ifte
   ) ifte
 
+  moveEeToPoseWord waitUntilAtCurrentPosition
+  activateSensorStreaming
+  
+  1 changeToHeight
+
   followPath
 
   /* turn streaming off */
@@ -1756,9 +1764,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   tempUpdateMaps
 
-  quarterImpulse tempUpdateSpiralPos moveEeToPoseWord waitUntilAtCurrentPosition
-
-  500 "tempSpiralStreamTakeSceneSamples" store
+  700 "tempSpiralStreamTakeSceneSamples" store
   tempUpdateSpiralCoreIntegrate
 ) "socialFeedbackTakeScene" store
 
@@ -1776,6 +1782,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "socialFeedbackMapWorkspace" store
 
 
+
+(
+  "scene" import tempInit assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition tempShortTakeScene 
+  sceneClearPredictedObjects "brush" tempPredictAndRenderFile
+  clearMapForPatrol clearBlueBoxMemories tempMapFocusedClass waitUntilAtCurrentPosition setMovementStateToMoving comeToStop tempMapFocusedClass deliverTargetObject
+) "tempUsefulPhrases" store
 
 
 
