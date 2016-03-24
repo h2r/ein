@@ -96,7 +96,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     ( 
       incrementImageStreamBufferNoLoadNoKick 
     ) tempSpiralStreamTakeSceneStride replicateWord 
-    endStackCollapseNoop 
+    /* endStackCollapseNoop  */
 
 /*
       "buildFigure_" buildFigNum +
