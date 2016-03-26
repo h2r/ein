@@ -92,11 +92,11 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   ) ift
 
   ( 
-    sceneUpdateObservedFromStreamBuffer 
+    sceneUpdateObservedFromStreamBufferNoRecalc 
     ( 
       incrementImageStreamBufferNoLoadNoKick 
     ) tempSpiralStreamTakeSceneStride replicateWord 
-    endStackCollapseNoop 
+    /* endStackCollapseNoop  */
 
 /*
       "buildFigure_" buildFigNum +
@@ -107,6 +107,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 */
 
   ) tempSpiralStreamTakeSceneSamples replicateWord
+  sceneRecalculateObservedMusAndSigmas  sceneRenderObservedMap
 ) "tempUpdateSpiralCoreIntegrate" store
 
 (
@@ -152,7 +153,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   tempUpdateSpiralCoreNoClean
 
   /* integrate results */
-  tempUpdateSpiralCoreIntegrate
+
+  tempUpdateSpiralCoreIntegrate 
 
   tempUpdateMaps
 
