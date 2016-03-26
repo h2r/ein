@@ -14588,6 +14588,14 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
 
   ms->config.left_or_right_arm = left_or_right_arm;
 
+  if (left_or_right_arm == "left") {
+    ms->config.other_arm = "right";
+  } else if (left_or_right_arm == "right") {
+    ms->config.other_arm = "left";
+  } else {
+    ms->config.other_arm = "none";
+  }
+
   ms->config.it = make_shared<image_transport::ImageTransport>(n);
 
   cout << "n namespace: " << n.getNamespace() << endl;
@@ -14760,6 +14768,7 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
   if (ms->config.currentRobotMode == PHYSICAL || ms->config.currentRobotMode == SIMULATED) {
     ms->config.forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1, 
 						    &MachineState::forthCommandCallback, ms.get());
+    ms->config.forthCommandPublisher = n.advertise<std_msgs::String>("/ein/" + ms->config.other_arm + "/forth_commands", 10);
   } else if (ms->config.currentRobotMode == SNOOP) {
     ms->config.forthCommandPublisher = n.advertise<std_msgs::String>("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 10);
     ms->config.einSub = n.subscribe("/ein_" + ms->config.left_or_right_arm + "/state", 1, &MachineState::einStateCallback, ms.get());

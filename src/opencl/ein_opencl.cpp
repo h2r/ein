@@ -39,10 +39,13 @@ void Cleanup(int iExitCode)
             getchar();
         #endif
     }
-    exit (iExitCode);
 */
+    ROS_ERROR_STREAM("Oops, hit Cleanup in OpenCL code...");
+    exit (iExitCode);
 }
 void (*pCleanup)(int) = &Cleanup;
+
+typedef struct GaussianMapGpu GaussianMapGpu;
 
 struct EinGpuConfig {
   EinGpuConfig() {
@@ -67,7 +70,8 @@ struct EinGpuConfig {
     cl_uint uiNumComputeUnits;        
     clGetDeviceInfo(cdDevices[uiTargetDevice], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(uiNumComputeUnits), &uiNumComputeUnits, NULL);
     shrLog("  # of Compute Units = %u\n", uiNumComputeUnits); 
-    //Create the context
+
+    //Create the CPU context
     shrLog("clCreateContext...\n"); 
     cxContext = clCreateContext(0, uiNumDevsUsed, &cdDevices[uiTargetDevice], NULL, NULL, &ciErrNum);
     oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
@@ -78,15 +82,36 @@ struct EinGpuConfig {
     oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
   }
 
+  ~EinGpuConfig() {
+    if(cdDevices)free(cdDevices);
+    if(cxContext)clReleaseContext(cxContext);
+    if(cSourceCL)free(cSourceCL);             // Buffer to hold source for compilation 
+
+    if(cpProgram)clReleaseProgram(cpProgram);
+    if(ckSobel)clReleaseKernel(ckSobel);
+  }
+
   cl_platform_id cpPlatform;          // OpenCL Platform
-  cl_context cxGPUContext;            // OpenCL context
   cl_context cxContext;               // OpenCL Context
   cl_command_queue cqCommandQueue;    // OpenCL Command Queue
 
   cl_device_id *cdDevices = NULL;     // OpenCL device list
   cl_uint uiNumDevices = 0;           // Number of OpenCL devices available
   cl_uint uiNumDevsUsed = 1;          // Number of OpenCL devices used in this sample 
-  cl_uint uiTargetDevice = 0;	        // OpenCL Device to compute on
+  cl_uint uiTargetDevice = 0;	      // OpenCL Device to compute on
+
+  size_t szKernelLength;	      // Byte size of kernel code
+  char* cSourceCL = NULL;             // Buffer to hold source for compilation 
+  cl_program cpProgram;               // OpenCL program
+  cl_kernel ckSobel;                 // OpenCL Kernel array for Sobel
+
+  const char* clSourcefile = "SobelFilter.cl";  // OpenCL kernel source file
+  char* cPathAndName = NULL;          // var for full paths to data, src, etc.
+
+  void programBuild();
+  void kernelCreate(shared_ptr<GaussianMapGpu> gmgpu);
+  void kernelRun(shared_ptr<GaussianMapGpu> gmgpu);
+  void kernelReturn(shared_ptr<GaussianMapGpu> gmgpu);
 };
  
 struct GaussianMapGpu {
@@ -99,10 +124,10 @@ struct GaussianMapGpu {
     szBuffBytes = cpuReflection->width * cpuReflection->height * sizeof(float);
 
     // Allocate pinned input and output host image buffers:  mem copy operations to/from pinned memory is much faster than paged memory
-    cl_int ciErrNum;
-    cmPinnedBufIn = clCreateBuffer(gConfig->cxGPUContext, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, szBuffBytes, NULL, &ciErrNum);
+    cl_int ciErrNum = CL_SUCCESS;
+    cmPinnedBufIn = clCreateBuffer(gConfig->cxContext, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, szBuffBytes, NULL, &ciErrNum);
     oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
-    cmPinnedBufOut = clCreateBuffer(gConfig->cxGPUContext, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, szBuffBytes, NULL, &ciErrNum);
+    cmPinnedBufOut = clCreateBuffer(gConfig->cxContext, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, szBuffBytes, NULL, &ciErrNum);
     oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
     shrLog("\nclCreateBuffer (Input and Output Pinned Host buffers)...\n"); 
 
@@ -114,32 +139,18 @@ struct GaussianMapGpu {
     shrLog("clEnqueueMapBuffer (Pointer to Input and Output pinned host buffers)...\n"); 
 
     // Create the device buffers in GMEM on each device
-    cmDevBufIn = clCreateBuffer(gConfig->cxGPUContext, CL_MEM_READ_ONLY, szBuffBytes, NULL, &ciErrNum);
+    cmDevBufIn = clCreateBuffer(gConfig->cxContext, CL_MEM_READ_ONLY, szBuffBytes, NULL, &ciErrNum);
     oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
-    cmDevBufOut = clCreateBuffer(gConfig->cxGPUContext, CL_MEM_WRITE_ONLY, szBuffBytes, NULL, &ciErrNum);
+    cmDevBufOut = clCreateBuffer(gConfig->cxContext, CL_MEM_WRITE_ONLY, szBuffBytes, NULL, &ciErrNum);
     oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
     shrLog("clCreateBuffer (Input and Output GMEM buffers)...\n"); 
+  }
 
-/*
-      // Create the device buffers in GMEM on each device
-      cmDevBufIn[i] = clCreateBuffer(cxGPUContext, CL_MEM_READ_ONLY, szAllocDevBytes[i], NULL, &ciErrNum);
-      oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
-      cmDevBufOut[i] = clCreateBuffer(cxGPUContext, CL_MEM_WRITE_ONLY, szAllocDevBytes[i], NULL, &ciErrNum);
-      oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
-      shrLog("clCreateBuffer (Input and Output GMEM buffers, Device %u)...\n", i); 
-
-
-  //szBuffBytes = uiImageWidth * uiImageHeight * sizeof (unsigned int);
-
-
-
-  // Load image data from file to pinned input host buffer
-  ciErrNum = shrLoadPPM4ub(cPathAndName, (unsigned char **)&uiInput, &uiImageWidth, &uiImageHeight);
-  oclCheckErrorEX(ciErrNum, shrTRUE, pCleanup);
-  shrLog("Load Input Image to Input pinned host buffer...\n"); 
-
-*/
-
+  ~GaussianMapGpu() { 
+    if(uiInput)clEnqueueUnmapMemObject(gConfig->cqCommandQueue, cmPinnedBufIn, (void*)uiInput, 0, NULL, NULL);
+    if(uiOutput)clEnqueueUnmapMemObject(gConfig->cqCommandQueue, cmPinnedBufOut, (void*)uiOutput, 0, NULL, NULL);
+    if(cmPinnedBufIn)clReleaseMemObject(cmPinnedBufIn);
+    if(cmPinnedBufOut)clReleaseMemObject(cmPinnedBufOut);
   }
 
   // XXX consider 
@@ -164,127 +175,11 @@ struct ImageGpu {
 };
 
 
-shared_ptr<GaussianMapGpu> gaussianMapGpuEchoTest(shared_ptr<GaussianMap> gm_in) {
+void gaussianMapGpuEchoTest(shared_ptr<GaussianMap> gm_in) {
 
   shared_ptr<EinGpuConfig> gc = make_shared<EinGpuConfig>(); 
+  cout << "Made config." << endl;
   shared_ptr<GaussianMapGpu> gmgpu_out = make_shared<GaussianMapGpu>(gm_in, gc);
-
-
-/*
-
-  // Read the kernel in from file
-  free(cPathAndName);
-  cPathAndName = shrFindFilePath(clSourcefile, argv[0]);
-  oclCheckErrorEX(cPathAndName != NULL, shrTRUE, pCleanup);
-  cSourceCL = oclLoadProgSource(cPathAndName, "// My comment\n", &szKernelLength);
-  oclCheckErrorEX(cSourceCL != NULL, shrTRUE, pCleanup);
-  shrLog("Load OpenCL Prog Source from File...\n"); 
-
-  // Create the program object
-  cpProgram = clCreateProgramWithSource(cxGPUContext, 1, (const char **)&cSourceCL, &szKernelLength, &ciErrNum);
-  oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
-  shrLog("clCreateProgramWithSource...\n"); 
-
-  // Build the program with 'mad' Optimization option
-#ifdef MAC
-  char *flags = "-cl-fast-relaxed-math -DMAC";
-#else
-  char *flags = "-cl-fast-relaxed-math";
-#endif
-
-  ciErrNum = clBuildProgram(cpProgram, 0, NULL, flags, NULL, NULL);
-  if (ciErrNum != CL_SUCCESS)
-  {
-      // On error: write out standard error, Build Log and PTX, then cleanup and exit
-      shrLogEx(LOGBOTH | ERRORMSG, ciErrNum, STDERROR);
-      oclLogBuildInfo(cpProgram, oclGetFirstDev(cxGPUContext));
-      oclLogPtx(cpProgram, oclGetFirstDev(cxGPUContext), "oclSobelFilter.ptx");
-      shrQAFinish(argc, (const char **)argv, QA_FAILED);
-      Cleanup(EXIT_FAILURE);
-  }
-  shrLog("clBuildProgram...\n\n"); 
-*/
-
-/*
-  // Determine, the size/shape of the image portions for each dev and create the device buffers
-  unsigned uiSumHeight = 0;
-  for (cl_uint i = 0; i < GpuDevMngr->uiUsefulDevCt; i++)
-  {
-      // Create kernel instance
-      ckSobel[i] = clCreateKernel(cpProgram, "ckSobel", &ciErrNum);
-      oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
-      shrLog("clCreateKernel (ckSobel), Device %u...\n", i); 
-
-      // Allocations and offsets for the portion of the image worked on by each device
-      if (GpuDevMngr->uiUsefulDevCt == 1)
-      {
-	  // One device processes the whole image with no offset 
-	  uiDevImageHeight[i] = uiImageHeight; 
-	  uiInHostPixOffsets[i] = 0;
-	  uiOutHostPixOffsets[i] = 0;
-	  szAllocDevBytes[i] = uiDevImageHeight[i] * uiImageWidth * sizeof(cl_uint);
-      }
-      else if (i == 0)
-      {
-	  // Multiple devices, top stripe zone including topmost row of image:  
-	  // Over-allocate on device by 1 row 
-	  // Set offset and size to copy extra 1 padding row H2D (below bottom of stripe)
-	  // Won't return the last row (dark/garbage row) D2H
-	  uiInHostPixOffsets[i] = 0;
-	  uiOutHostPixOffsets[i] = 0;
-	  uiDevImageHeight[i] = (cl_uint)(GpuDevMngr->fLoadProportions[GpuDevMngr->uiUsefulDevs[i]] * (float)uiImageHeight);     // height is proportional to dev perf 
-	  uiSumHeight += uiDevImageHeight[i];
-	  uiDevImageHeight[i] += 1;
-	  szAllocDevBytes[i] = uiDevImageHeight[i] * uiImageWidth * sizeof(cl_uint);
-      }
-      else if (i < (GpuDevMngr->uiUsefulDevCt - 1))
-      {
-	  // Multiple devices, middle stripe zone:  
-	  // Over-allocate on device by 2 rows 
-	  // Set offset and size to copy extra 2 padding rows H2D (above top and below bottom of stripe)
-	  // Won't return the first and last rows (dark/garbage rows) D2H
-	  uiInHostPixOffsets[i] = (uiSumHeight - 1) * uiImageWidth;
-	  uiOutHostPixOffsets[i] = uiInHostPixOffsets[i] + uiImageWidth;
-	  uiDevImageHeight[i] = (cl_uint)(GpuDevMngr->fLoadProportions[GpuDevMngr->uiUsefulDevs[i]] * (float)uiImageHeight);     // height is proportional to dev perf 
-	  uiSumHeight += uiDevImageHeight[i];
-	  uiDevImageHeight[i] += 2;
-	  szAllocDevBytes[i] = uiDevImageHeight[i] * uiImageWidth * sizeof(cl_uint);
-      }
-      else 
-      {
-	  // Multiple devices, last boundary tile:  
-	  // Over-allocate on device by 1 row 
-	  // Set offset and size to copy extra 1 padding row H2D (above top of stripe)
-	  // Won't return the first row (dark/garbage rows D2H 
-	  uiInHostPixOffsets[i] = (uiSumHeight - 1) * uiImageWidth;
-	  uiOutHostPixOffsets[i] = uiInHostPixOffsets[i] + uiImageWidth;
-	  uiDevImageHeight[i] = uiImageHeight - uiSumHeight;                              // "leftover" rows 
-	  uiSumHeight += uiDevImageHeight[i];
-	  uiDevImageHeight[i] += 1;
-	  szAllocDevBytes[i] = uiDevImageHeight[i] * uiImageWidth * sizeof(cl_uint);
-      }
-      shrLog("Image Height (rows) for Device %u = %u...\n", i, uiDevImageHeight[i]); 
-
-      // Create the device buffers in GMEM on each device
-      cmDevBufIn[i] = clCreateBuffer(cxGPUContext, CL_MEM_READ_ONLY, szAllocDevBytes[i], NULL, &ciErrNum);
-      oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
-      cmDevBufOut[i] = clCreateBuffer(cxGPUContext, CL_MEM_WRITE_ONLY, szAllocDevBytes[i], NULL, &ciErrNum);
-      oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
-      shrLog("clCreateBuffer (Input and Output GMEM buffers, Device %u)...\n", i); 
-
-      // Set the common argument values for the Median kernel instance for each device
-      int iLocalPixPitch = iBlockDimX + 2;
-      ciErrNum = clSetKernelArg(ckSobel[i], 0, sizeof(cl_mem), (void*)&cmDevBufIn[i]);
-      ciErrNum |= clSetKernelArg(ckSobel[i], 1, sizeof(cl_mem), (void*)&cmDevBufOut[i]);
-      ciErrNum |= clSetKernelArg(ckSobel[i], 2, (iLocalPixPitch * (iBlockDimY + 2) * sizeof(cl_uchar4)), NULL);
-      ciErrNum |= clSetKernelArg(ckSobel[i], 3, sizeof(cl_int), (void*)&iLocalPixPitch);
-      ciErrNum |= clSetKernelArg(ckSobel[i], 4, sizeof(cl_uint), (void*)&uiImageWidth);
-      ciErrNum |= clSetKernelArg(ckSobel[i], 6, sizeof(cl_float), (void*)&fThresh);        
-      oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
-      shrLog("clSetKernelArg (0-4), Device %u...\n\n", i); 
-  }
-
-*/
 
 /*
 
@@ -436,7 +331,119 @@ double SobelFilterGPU(cl_uint* uiInputImage, cl_uint* uiOutputImage)
 */
 }
 
+void EinGpuConfig::programBuild() {
+  // Read the kernel in from file
+  free(cPathAndName);
+  oclCheckErrorEX(cPathAndName != NULL, shrTRUE, pCleanup);
+  cSourceCL = oclLoadProgSource(cPathAndName, "// My comment\n", &szKernelLength);
+  oclCheckErrorEX(cSourceCL != NULL, shrTRUE, pCleanup);
+  shrLog("Load OpenCL Prog Source from File...\n"); 
+
+  // Create the program object
+  cl_int ciErrNum = oclGetPlatformID(&cpPlatform);
+  cpProgram = clCreateProgramWithSource(cxContext, 1, (const char **)&cSourceCL, &szKernelLength, &ciErrNum);
+  oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
+  shrLog("clCreateProgramWithSource...\n"); 
+
+  // Build the program with 'mad' Optimization option
+//#ifdef MAC
+  //char *flags = "-cl-fast-relaxed-math -DMAC";
+//#else
+  //char *flags = "-cl-fast-relaxed-math";
+//#endif
+  char *flags = "";
+
+  ciErrNum = clBuildProgram(cpProgram, 0, NULL, flags, NULL, NULL);
+  if (ciErrNum != CL_SUCCESS)
+  {
+      // On error: write out standard error, Build Log and PTX, then cleanup and exit
+      shrLogEx(LOGBOTH | ERRORMSG, ciErrNum, STDERROR);
+      oclLogBuildInfo(cpProgram, oclGetFirstDev(cxContext));
+      oclLogPtx(cpProgram, oclGetFirstDev(cxContext), "oclSobelFilter.ptx");
+      //shrQAFinish(argc, (const char **)argv, QA_FAILED);
+      Cleanup(EXIT_FAILURE);
+  }
+  shrLog("clBuildProgram...\n\n"); 
+}
+
+void EinGpuConfig::kernelCreate(shared_ptr<GaussianMapGpu> gmgpu) {
+  cl_int ciErrNum = CL_SUCCESS;
+  // Create kernel instance
+  ckSobel = clCreateKernel(cpProgram, "ckSobel", &ciErrNum);
+  oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
+  shrLog("clCreateKernel (ckSobel)...\n"); 
+
+  // Set the common argument values for the Median kernel instance for each device
+  int iBlockDimX = 1;
+  int iBlockDimY = 2;
+  int iLocalPixPitch = iBlockDimX + 2;
+  int uiImageWidth = 10;
+  float fThresh = 1.0;
+  ciErrNum = clSetKernelArg(ckSobel, 0, sizeof(cl_mem), (void*)&(gmgpu->cmDevBufIn));
+  ciErrNum |= clSetKernelArg(ckSobel, 1, sizeof(cl_mem), (void*)&(gmgpu->cmDevBufOut));
+  ciErrNum |= clSetKernelArg(ckSobel, 2, (iLocalPixPitch * (iBlockDimY + 2) * sizeof(cl_uchar4)), NULL);
+  ciErrNum |= clSetKernelArg(ckSobel, 3, sizeof(cl_int), (void*)&iLocalPixPitch);
+  ciErrNum |= clSetKernelArg(ckSobel, 4, sizeof(cl_uint), (void*)&uiImageWidth);
+  ciErrNum |= clSetKernelArg(ckSobel, 6, sizeof(cl_float), (void*)&fThresh);        
+  oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
+  shrLog("clSetKernelArg (0-4), Device %u...\n"); 
+}
+
+void EinGpuConfig::kernelRun(shared_ptr<GaussianMapGpu> gmgpu) {
+  cl_int ciErrNum = CL_SUCCESS;
+  // For each device: copy fresh input H2D 
+
+  int input_offset = 10;
+  // Nonblocking Write of input image data from host to device
+  ciErrNum |= clEnqueueWriteBuffer(cqCommandQueue, gmgpu->cmDevBufIn, CL_FALSE, 0, gmgpu->szBuffBytes, 
+				  (void*)&(gmgpu->uiInput)[input_offset], 0, NULL, NULL);
+
+  // Sync all queues to host and start computation timer on host to get computation elapsed wall clock  time
+  // (Only for timing... can be omitted in a production app)
+  ciErrNum |= clFinish(cqCommandQueue);
+  oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
+
+  // Pass in dev image height (# of rows worked on) for this device
+  int heightArg = 10;
+  ciErrNum |= clSetKernelArg(ckSobel, 5, sizeof(cl_float), (void*)&heightArg);
+
+  // Launch Sobel kernel(s) into queue(s) and push to device(s)
+  size_t szLocalWorkSize[2] = {10, 10};
+  size_t szGlobalWorkSize[2] = {10, 10};
+  ciErrNum |= clEnqueueNDRangeKernel(cqCommandQueue, ckSobel, 2, NULL, szGlobalWorkSize, szLocalWorkSize, 0, NULL, NULL);
+
+  // Push to device(s) so subsequent clFinish in queue 0 doesn't block driver from issuing enqueue command for higher queues
+  ciErrNum |= clFlush(cqCommandQueue);
+
+  // Sync all queues to host and get elapsed wall clock time for computation in all queues
+  // (Only for timing... can be omitted in a production app)
+  ciErrNum |= clFinish(cqCommandQueue);
+}
+
+void EinGpuConfig::kernelReturn(shared_ptr<GaussianMapGpu> gmgpu) {
+  cl_int ciErrNum = CL_SUCCESS;
+
+  int output_offset = 10;
+  // Non Blocking Read of output image data from device to host 
+  ciErrNum |= clEnqueueReadBuffer(cqCommandQueue, gmgpu->cmDevBufOut, CL_FALSE, 0, gmgpu->szBuffBytes, 
+				 (void*)&(gmgpu->uiOutput)[output_offset], 0, NULL, NULL);
+
+  // Finish all queues and check for errors before returning 
+  // The block here assures valid output data for subsequent host processing
+  ciErrNum |= clFinish(cqCommandQueue);
+  oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
+}
+
+
 namespace ein_words {
+
+WORD(OpenClEchoTest)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<GaussianMap> a_map = make_shared<GaussianMap>(100,100,0.1);
+  gaussianMapGpuEchoTest( a_map );
+}
+END_WORD
+REGISTER_WORD(OpenClEchoTest)
 
 WORD(OpenClNbodyDemo)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -447,6 +454,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(OpenClNbodyDemo)
+
+
+
+
+
+
+
+
 
 }
 #endif
