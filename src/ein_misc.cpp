@@ -2234,6 +2234,31 @@ END_WORD
 REGISTER_WORD(Dsr)
 
 
+WORD(OSB)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("[");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("slide (");
+}
+END_WORD
+REGISTER_WORD(OSB)
+
+WORD(CSB)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("]");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("1 |S )");
+}
+END_WORD
+REGISTER_WORD(CSB)
 
 
 WORD(Time)
@@ -2249,6 +2274,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(Time)
+
+WORD(CommandOtherArm)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string string_in;
+  GET_STRING_ARG(ms, string_in);
+
+  std_msgs::String command;
+  command.data = string_in;
+  ms->config.forthCommandPublisher.publish(command);
+}
+END_WORD
+REGISTER_WORD(CommandOtherArm)
 
 
 CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)

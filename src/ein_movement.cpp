@@ -2139,6 +2139,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int i = 0; i < numPathPoints-1; i++) {
     newPathPoints.push_back(pathPoints[i]);
 
+    // enforce tolerance
     double pos_d = eePose::distance( pathPoints[i], pathPoints[i+1]);
     double pos_q = eePose::distanceQ(pathPoints[i], pathPoints[i+1]);
 
@@ -2149,7 +2150,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       newPathPoints.push_back(pathPoints[i].getInterpolation(pathPoints[i+1], mu));
     }
   }
-  ms->pushWord(std::make_shared<EePoseWord>(pathPoints[numPathPoints-1]));
+  newPathPoints.push_back((pathPoints[numPathPoints-1]));
 
   for (int i = 0; i < newPathPoints.size(); i++) {
     ms->pushWord(std::make_shared<EePoseWord>(newPathPoints[i]));
@@ -2405,8 +2406,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "interlaceTop: ok, transforming a path with " << numTheseWords << " points." << endl;
 
   for (int i = 0; i < numTheseWords; i++) {
-    ms->pushWord(transformation);
-    ms->pushWord(theseWords[i]);
+    ms->pushData(transformation);
+    ms->pushData(theseWords[i]);
   }
 }
 END_WORD
@@ -2426,8 +2427,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "interlaceBottom: ok, transforming a path with " << numTheseWords << " points." << endl;
 
   for (int i = 0; i < numTheseWords; i++) {
-    ms->pushWord(theseWords[i]);
-    ms->pushWord(transformation);
+    ms->pushData(theseWords[i]);
+    ms->pushData(transformation);
   }
 }
 END_WORD
@@ -2898,9 +2899,61 @@ REGISTER_WORD(PlanCommandJointsAtRateWait)
 
 WORD(PlanCommandJointsAtRateSpin)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+//  13 "frames" store 2 "unframes" store 0.015 "gap" store fullImpulse 2 waitForSeconds ( setControlModeAngles jointPathFive ( moveArmToPoseWord armPublishJointPositionCommand gap spinForSeconds ) frames replicateWord ( pop ) unframes replicateWord setControlModeAngles quarterImpulse 2 waitForSeconds jointPathFiveReverse ( pop ) unframes replicateWord ( moveArmToPoseWord armPublishJointPositionCommand 0.002 spinForSeconds ) frames replicateWord fullImpulse 5.0 waitForSeconds ) 7 replicateWord 
+
+  // XXX perhaps this is in fact "map"
+  //  at any rate, a generalized TransformPath in the style of ReverseCompound
+  vector< shared_ptr<Word> > theseWords;
+  GET_WORD_ARG_LIST(ms, Word, theseWords);
+
+  double gap = 0.05;
+  GET_NUMERIC_ARG(ms, gap);
+
+  int numTheseWords = theseWords.size();
+  cout << "planCommandJointsAtRateSpin: ok, commanding path with " << numTheseWords << " points with " << gap << " seconds in between." << endl;
+
+  for (int i = 0; i < numTheseWords; i++) {
+    ms->pushWord("armPublishJointPositionCommand");
+    ms->pushWord("moveArmToPoseWord");
+    ms->pushWord(theseWords[i]);
+    ms->pushWord("spinForSeconds");
+    ms->pushWord(make_shared<DoubleWord>(gap));
+  }
+
+
+
+
+
+
 }
 END_WORD
 REGISTER_WORD(PlanCommandJointsAtRateSpin)
+
+WORD(TwistWords)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX 
+  vector< shared_ptr<Word> > theseWords;
+  GET_WORD_ARG_LIST(ms, Word, theseWords);
+
+  vector< shared_ptr<Word> > thoseWords;
+  GET_WORD_ARG_LIST(ms, Word, thoseWords);
+
+  int numTheseWords = theseWords.size();
+  int numThoseWords = thoseWords.size();
+  cout << "twistWords: ok, twisting lists with " << numTheseWords << " and " << numThoseWords << " points." << endl;
+  int numTwists = std::max(numTheseWords, numThoseWords);
+
+  for (int i = 0; i < numTwists; i++) {
+    if (i < numTheseWords) {
+      ms->pushData(theseWords[i]);
+    }
+    if ( i < numThoseWords) {
+      ms->pushData(thoseWords[i]);
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(TwistWords)
 
 /*
 
