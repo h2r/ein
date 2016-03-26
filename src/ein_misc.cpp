@@ -2266,11 +2266,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   shared_ptr<CompoundWord> block;
   GET_WORD_ARG(ms, CompoundWord, block);
 
-  ms->pushWord("-");
-  ms->pushWord("swap");
-  ms->pushWord("now");
+  ms->evaluateProgram("time_endTime time_startTime -");
+  ms->evaluateProgram("now \"time_endTime\" store");
   ms->pushWord(block);
-  ms->pushWord("now");
+  ms->evaluateProgram("now \"time_startTime\" store");
 }
 END_WORD
 REGISTER_WORD(Time)
