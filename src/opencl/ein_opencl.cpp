@@ -351,7 +351,7 @@ void EinGpuConfig::programBuild() {
 //#else
   //char *flags = "-cl-fast-relaxed-math";
 //#endif
-  char *flags = "";
+  const char *flags = "";
 
   ciErrNum = clBuildProgram(cpProgram, 0, NULL, flags, NULL, NULL);
   if (ciErrNum != CL_SUCCESS)
