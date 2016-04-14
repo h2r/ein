@@ -51,7 +51,7 @@ stuff "rosrun ein ein_client.py right"
 #screen -t " subscreenR" 
 #stuff "subscreen disabled, uncomment in screenrc. in a subscreen you must double meta / escape characters. remember to quit subscreens, too."
 #######
-screen -t " subscreenR" 
+screen -t " free"
 stuff "./baxter.sh"
 # subscreen voodoo
 #stuff "screen -t \" ss2\""
@@ -71,7 +71,7 @@ screen -t " vim"
 stuff "./baxter.sh"
 stuff "cd $(rospack find ein)/src"
 #stuff "vim -p ../ein_baxter.screenrc ein.cpp ein.h config.h word.h ein_pick_place.cpp ein_stream.cpp ein_vision_cycle.cpp ein_misc.cpp ein_servo.cpp ein_scanning.cpp ein_movement.cpp eePose.h"
-stuff "vim -p ein.cpp ein.h config.h gaussian_map.cpp gaussian_map.h ein_aibo.cpp ein_aibo.h"
+stuff "vim -p ein.cpp ein.h config.h gaussian_map.cpp gaussian_map.h ../back/scene.back ../back/scan.back"
 screen -t " git"
 stuff "./baxter.sh"
 stuff "cd $(rospack find ein)/src"
@@ -83,7 +83,7 @@ stuff "emacs -nw src/ein.cpp"
 #screen -t " subscreenL" 
 #stuff "subscreen disabled, uncomment in screenrc. in a subscreen you must double meta / escape characters. remember to quit subscreens, too."
 #######
-screen -t " subscreenL" 
+screen -t " free"
 stuff "./baxter.sh"
 #######
 screen -t " replL"
