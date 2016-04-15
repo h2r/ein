@@ -2159,7 +2159,7 @@ void populateStreamPoseBuffer(std::shared_ptr<MachineState> ms) {
 
 void activateSensorStreaming(std::shared_ptr<MachineState> ms) {
   ros::NodeHandle n("~");
-  image_transport::ImageTransport it(n);
+
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
     string this_label_name = ms->config.classLabels[cfClass]; 
@@ -2184,7 +2184,7 @@ void activateSensorStreaming(std::shared_ptr<MachineState> ms) {
     // turn that queue size up!
     ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 100, &MachineState::endpointCallback, ms.get());
     ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 100, &MachineState::rangeCallback, ms.get());
-    ms->config.image_sub = it.subscribe(ms->config.image_topic, 30, &MachineState::imageCallback, ms.get());
+    ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 30, &MachineState::imageCallback, ms.get());
     cout << "Activating sensor stream." << endl;
     ros::Time thisTime = ros::Time::now();
     ms->config.sensorStreamLastActivated = thisTime.toSec();
@@ -2197,16 +2197,15 @@ void deactivateSensorStreaming(std::shared_ptr<MachineState> ms) {
   cout << "deactivateSensorStreaming: Making node handle." << endl;
   ros::NodeHandle n("~");
   cout << "deactivateSensorStreaming: Making image transport." << endl;
-  image_transport::ImageTransport it(n);
   ms->config.sensorStreamOn = 0;
   // restore those queue sizes to defaults.
   cout << "deactivateSensorStreaming: Subscribe to endpoint_state." << endl;
   ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, &MachineState::endpointCallback, ms.get());
   cout << "deactivateSensorStreaming: Subscribe to hand_range." << endl;
   ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, &MachineState::rangeCallback, ms.get());
-  cout << "deactivateSensorStreaming: Subscribe to image." << endl;
-  ms->config.image_sub = it.subscribe(ms->config.image_topic, 1, &MachineState::imageCallback, ms.get());
-
+  cout << "deactivateSensorStreaming: Subscribe to image." << ms->config.image_topic << endl;
+  ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 1, &MachineState::imageCallback, ms.get());
+  cout << "Subscribed to image." << endl;
   if (ms->config.diskStreamingEnabled) {
     cout << "deactivateSensorStreaming: About to write batches... ";
     int cfClass = ms->config.focusedClass;
@@ -14703,11 +14702,15 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
 
 
     ms->config.cuff_grasp_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_show/state", 1, &MachineState::armShowButtonCallback, ms.get());
+#ifdef RETHINK_SDK_1_2_0
     ms->config.arm_button_back_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_back/state", 1, &MachineState::armBackButtonCallback, ms.get());
     ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_ok/state", 1, &MachineState::armOkButtonCallback, ms.get());
-
     ms->config.arm_button_show_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_show/state", 1, &MachineState::armShowButtonCallback, ms.get());
-
+#else
+    ms->config.arm_button_back_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_back/state", 1, &MachineState::armBackButtonCallback, ms.get());
+    ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_ok/state", 1, &MachineState::armOkButtonCallback, ms.get());
+    ms->config.arm_button_show_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_show/state", 1, &MachineState::armShowButtonCallback, ms.get());
+#endif
 
 
     ms->config.collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, &MachineState::collisionDetectionStateCallback, ms.get());
