@@ -2860,42 +2860,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(PlanToPointCraneThreeStrokeOpenJointHyperPlanner)
 
-WORD(PlanExecuteHyperPlanner)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  // uses hyper planner to make a JIT planner (eePose plan with style info embedded in the eePose stream)
-  //   this allows changes to ik policies to be made between executions of the JIT planner while it remains the same.
-  // the output of a JIT planner is a joint trajectory.
-//XXX needs a couple of little touches like priming the ik and resetting the ik upon return
-// slide ( placeC placeB planToPointCraneThreeStrokeOpenJointHyperPlanner 1 |S ) reverseCompound "eePathTwo" store
-// slide ( eePathTwo 1 |S ) reverseCompound "jointPathTwo" store
-// 0.525866 -0.710611 -0.146919 -0.001222 0.999998 0.001162 -0.001101 createEEPose
-// 0.525866 -0.710611 0.279748 -0.001222 0.999998 0.001162 -0.001101 createEEPose
-// 0.525866 -0.710611 -0.066919 -0.001222 0.999998 0.001162 -0.001101 createEEPose
-// 5 waitForSeconds ( setControlModeAngles jointPathTwoReverse jointPathTwo ( moveArmToPoseWord armPublishJointPositionCommand 0.02 spinForSeconds ) 80 replicateWord setControlModeEePosition placeC moveEeToPoseWord 3.0 waitForSeconds setControlModeAngles 0.5 spinForSeconds ) 10 replicateWord
-
-//  13 "frames" store 2 "unframes" store 0.015 "gap" store fullImpulse 2 waitForSeconds ( setControlModeAngles jointPathFive ( moveArmToPoseWord armPublishJointPositionCommand gap spinForSeconds ) frames replicateWord ( pop ) unframes replicateWord setControlModeAngles quarterImpulse 2 waitForSeconds jointPathFiveReverse ( pop ) unframes replicateWord ( moveArmToPoseWord armPublishJointPositionCommand 0.002 spinForSeconds ) frames replicateWord fullImpulse 5.0 waitForSeconds ) 7 replicateWord 
-}
-END_WORD
-REGISTER_WORD(PlanExecuteHyperPlanner)
-
-WORD(PlanFollowPathWithWaits)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  // markov planner takes a position on the stack, pushes and dups the next point in the sequence, and pushes itself (or another reentrant)
-  //  onto the stack until the plan is done. So takes a start point and returns a list of points, which is the plan backwards.
-
-  // this function list of points and pushes to the data stack a compound word program that executes the plan from the current positin
-
-// XXX need waitless planners
-// XXX test interleaving 
-}
-END_WORD
-REGISTER_WORD(PlanFollowPathWithWaits)
-
-WORD(PlanCommandJointsAtRateWait)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-}
-END_WORD
-REGISTER_WORD(PlanCommandJointsAtRateWait)
 
 WORD(PlanCommandJointsAtRateSpin)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -2956,7 +2920,99 @@ END_WORD
 REGISTER_WORD(TwistWords)
 
 /*
+currentPose "placeA" store
+currentPose "placeB" store
 
+[ 0.01 0.01 endArgs placeA placeB interpolatePath ] "placeEePath" store
+
+(might be reversed now)
+
+[ ( eePoseToArmPose ) endArgs placeEePath interlaceBottom ] "placeHyperPlanner" store
+
+[ placeHyperPlanner ] "placeJointPath" store
+
+0.03 "placeSpeed" store setControlModeAngles
+
+placeSpeed endArgs placeJointPath planCommandJointsAtRateSpin
+placeSpeed endArgs [ placeJointPath ] reverseCompound slip planCommandJointsAtRateSpin
+
+
+*/
+
+WORD(PlanKeepPushingDemonstratedEePoses)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  double p_tol = 0.01;
+  GET_NUMERIC_ARG(ms, p_tol);
+
+  double q_tol = 0.01;
+  GET_NUMERIC_ARG(ms, q_tol);
+
+  eePose topPose;
+  GET_ARG(ms,EePoseWord,topPose);
+  
+
+}
+END_WORD
+REGISTER_WORD(PlanKeepPushingDemonstratedEePoses)
+
+WORD(PlanStopPushingDemonstratedEePoses)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(PlanStopPushingDemonstratedEePoses)
+
+/*
+WORD(PlanStartPushingDemonstratedEePoses)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  double p_tol = 0.01;
+  GET_NUMERIC_ARG(ms, p_tol);
+
+  double q_tol = 0.01;
+  GET_NUMERIC_ARG(ms, q_tol);
+
+}
+END_WORD
+REGISTER_WORD(PlanStartPushingDemonstratedEePoses)
+
+
+WORD(PlanExecuteHyperPlanner)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // uses hyper planner to make a JIT planner (eePose plan with style info embedded in the eePose stream)
+  //   this allows changes to ik policies to be made between executions of the JIT planner while it remains the same.
+  // the output of a JIT planner is a joint trajectory.
+//XXX needs a couple of little touches like priming the ik and resetting the ik upon return
+// slide ( placeC placeB planToPointCraneThreeStrokeOpenJointHyperPlanner 1 |S ) reverseCompound "eePathTwo" store
+// slide ( eePathTwo 1 |S ) reverseCompound "jointPathTwo" store
+// 0.525866 -0.710611 -0.146919 -0.001222 0.999998 0.001162 -0.001101 createEEPose
+// 0.525866 -0.710611 0.279748 -0.001222 0.999998 0.001162 -0.001101 createEEPose
+// 0.525866 -0.710611 -0.066919 -0.001222 0.999998 0.001162 -0.001101 createEEPose
+// 5 waitForSeconds ( setControlModeAngles jointPathTwoReverse jointPathTwo ( moveArmToPoseWord armPublishJointPositionCommand 0.02 spinForSeconds ) 80 replicateWord setControlModeEePosition placeC moveEeToPoseWord 3.0 waitForSeconds setControlModeAngles 0.5 spinForSeconds ) 10 replicateWord
+
+//  13 "frames" store 2 "unframes" store 0.015 "gap" store fullImpulse 2 waitForSeconds ( setControlModeAngles jointPathFive ( moveArmToPoseWord armPublishJointPositionCommand gap spinForSeconds ) frames replicateWord ( pop ) unframes replicateWord setControlModeAngles quarterImpulse 2 waitForSeconds jointPathFiveReverse ( pop ) unframes replicateWord ( moveArmToPoseWord armPublishJointPositionCommand 0.002 spinForSeconds ) frames replicateWord fullImpulse 5.0 waitForSeconds ) 7 replicateWord 
+}
+END_WORD
+REGISTER_WORD(PlanExecuteHyperPlanner)
+
+WORD(PlanFollowPathWithWaits)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // markov planner takes a position on the stack, pushes and dups the next point in the sequence, and pushes itself (or another reentrant)
+  //  onto the stack until the plan is done. So takes a start point and returns a list of points, which is the plan backwards.
+
+  // this function list of points and pushes to the data stack a compound word program that executes the plan from the current positin
+
+// XXX need waitless planners
+// XXX test interleaving 
+}
+END_WORD
+REGISTER_WORD(PlanFollowPathWithWaits)
+
+WORD(PlanCommandJointsAtRateWait)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(PlanCommandJointsAtRateWait)
 
 WORD(ScaleMeasures)
 virtual void execute(std::shared_ptr<MachineState> ms) {
