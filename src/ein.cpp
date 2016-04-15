@@ -4939,8 +4939,7 @@ void MachineState::gravityCompCallback(const baxter_core_msgs::SEAJointState& se
 
 void MachineState::cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
   shared_ptr<MachineState> ms = this->sharedThis;
-
-  if (cuffDIOS.state) {
+  if (cuffDIOS.state == 1) {
     baxter_core_msgs::EndEffectorCommand command;
     command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
     command.args = "{\"position\": 0.0}";
@@ -4953,8 +4952,7 @@ void MachineState::cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuf
 
 void MachineState::cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
   shared_ptr<MachineState> ms = this->sharedThis;
-
-  if (cuffDIOS.state) {
+  if (cuffDIOS.state == 1) {
     baxter_core_msgs::EndEffectorCommand command;
     command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
     command.args = "{\"position\": 100.0}";
@@ -14700,8 +14698,6 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
 
     ms->config.torso_fan_sub = n.subscribe("/robot/analog_io/torso_fan/state", 1, &MachineState::torsoFanCallback, ms.get());
 
-
-    ms->config.cuff_grasp_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_show/state", 1, &MachineState::armShowButtonCallback, ms.get());
 #ifdef RETHINK_SDK_1_2_0
     ms->config.arm_button_back_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_back/state", 1, &MachineState::armBackButtonCallback, ms.get());
     ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_ok/state", 1, &MachineState::armOkButtonCallback, ms.get());
