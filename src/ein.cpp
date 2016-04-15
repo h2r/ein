@@ -10191,22 +10191,22 @@ void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double 
   pX = didUn.at<double>(0,0);
   pY = didUn.at<double>(1,0);*/
 
-  pX = (cache->un_rot_mat.at<double>(0, 0) * pX +
-        cache->un_rot_mat.at<double>(0, 1) * pY +
-        cache->un_rot_mat.at<double>(0, 2) * 1);
-  pY = (cache->un_rot_mat.at<double>(1, 0) * pX +
-        cache->un_rot_mat.at<double>(1, 1) * pY +
-        cache->un_rot_mat.at<double>(1, 1) * 1);
-    //assert(0);
+  int rotatedPX = (cache->un_rot_mat.at<double>(0, 0) * pX +
+		   cache->un_rot_mat.at<double>(0, 1) * pY +
+		   cache->un_rot_mat.at<double>(0, 2) * 1);
+  int rotatedPY = (cache->un_rot_mat.at<double>(1, 0) * pX +
+		   cache->un_rot_mat.at<double>(1, 1) * pY +
+		   cache->un_rot_mat.at<double>(1, 2) * 1);
+  //assert(0);
 
-  double oldPx = pX;
-  double oldPy = pY;
+  double oldPx = rotatedPX;
+  double oldPy = rotatedPY;
 
   pX = cache->reticlePixelX + (oldPy - cache->reticlePixelY) - ms->config.offX;
   pY = cache->reticlePixelY + (oldPx - cache->reticlePixelX) - ms->config.offY;
 
   {
-    /*    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
     //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
     //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
@@ -10216,10 +10216,10 @@ void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double 
     //*gX = d + ( (pX-c)*(ms->config.currentEEPose.px-d) )/(x1-c) ;
     //*gX = givenEEPose.px - d + ( (pX-c)*(d) )/( (x_thisZ-c)*ms->config.m_x ) ;
     *gX = givenEEPose.px - cache->dx + ( (pX-cache->cx)*(cache->dx) )/( (x_thisZ-cache->cx) ) ;
-    x_thisZ = cache->cx + ( (cache->dx)*(x_thisZ-cache->cx) )/(cache->dx);
-    */
+    //x_thisZ = cache->cx + ( (cache->dx)*(x_thisZ-cache->cx) )/(cache->dx);
 
-    double d = ms->config.d_x/ms->config.m_x;
+
+    /*    double d = ms->config.d_x/ms->config.m_x;
     double c = ((cache->z4*cache->x4-cache->z2*cache->x2)*(cache->x3-cache->x1)-(cache->z3*cache->x3-cache->z1*cache->x1)*(cache->x4-cache->x2))/((cache->z1-cache->z3)*(cache->x4-cache->x2)-(cache->z2-cache->z4)*(cache->x3-cache->x1));
  
     double b42 = (cache->z4*cache->x4-cache->z2*cache->x2+(cache->z2-cache->z4)*c)/(cache->x4-cache->x2);
@@ -10238,20 +10238,20 @@ void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double 
      //*gX = d + ( (pX-c)*(ms->config.currentEEPose.px-d) )/(x1-c) ;
      //*gX = givenEEPose.px - d + ( (pX-c)*(d) )/( (x_thisZ-c)*ms->config.m_x ) ;
     *gX = givenEEPose.px - d + ( (pX-c)*(d) )/( (x_thisZ-c) ) ;
-    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);*/
 
   }
   {
 
-    /*    int y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(gZ-cache->by);
+    int y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(gZ-cache->by);
     //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
     //*gY = d + ( (pY-c)*(ms->config.currentEEPose.py-d) )/(y1-c) ;
     //*gY = givenEEPose.py - d + ( (pY-c)*(d) )/( (y_thisZ-c)*ms->config.m_y ) ;
     *gY = givenEEPose.py - cache->dy + ( (pY-cache->cy)*(cache->dy) )/( (y_thisZ-cache->cy) ) ;
-    y_thisZ = cache->cy + ( (cache->dy)*(y_thisZ-cache->cy) )/(cache->dy);
-    */
+    //y_thisZ = cache->cy + ( (cache->dy)*(y_thisZ-cache->cy) )/(cache->dy);
 
-    double d = ms->config.d_y/ms->config.m_y;
+
+    /*    double d = ms->config.d_y/ms->config.m_y;
     double c = ((cache->z4*cache->y4-cache->z2*cache->y2)*(cache->y3-cache->y1)-(cache->z3*cache->y3-cache->z1*cache->y1)*(cache->y4-cache->y2))/((cache->z1-cache->z3)*(cache->y4-cache->y2)-(cache->z2-cache->z4)*(cache->y3-cache->y1));
     
     double b42 = (cache->z4*cache->y4-cache->z2*cache->y2+(cache->z2-cache->z4)*c)/(cache->y4-cache->y2);
@@ -10271,7 +10271,7 @@ void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double 
      //*gY = givenEEPose.py - d + ( (pY-c)*(d) )/( (y_thisZ-c)*ms->config.m_y ) ;
     *gY = givenEEPose.py - d + ( (pY-c)*(d) )/( (y_thisZ-c) ) ;
     y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
-
+    */
 
   }
 }
