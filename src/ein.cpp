@@ -14703,9 +14703,9 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
     ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_ok/state", 1, &MachineState::armOkButtonCallback, ms.get());
     ms->config.arm_button_show_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_show/state", 1, &MachineState::armShowButtonCallback, ms.get());
 #else
-    ms->config.arm_button_back_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_back/state", 1, &MachineState::armBackButtonCallback, ms.get());
-    ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_ok/state", 1, &MachineState::armOkButtonCallback, ms.get());
-    ms->config.arm_button_show_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_show/state", 1, &MachineState::armShowButtonCallback, ms.get());
+    ms->config.arm_button_back_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button1/state", 1, &MachineState::armBackButtonCallback, ms.get());
+    ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button0/state", 1, &MachineState::armOkButtonCallback, ms.get());
+    ms->config.arm_button_show_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button2/state", 1, &MachineState::armShowButtonCallback, ms.get());
 #endif
 
 
