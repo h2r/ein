@@ -10080,7 +10080,11 @@ void pixelToPlane(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double
   
 }
 
+void computePixelToPlaneCache(shared_ptr<MachineState> ms, double gZ, eePose givenEEPose, eePose referenceFrame, pixelToGlobalCache * cache) {
+  eePose transformedPose = givenEEPose.getPoseRelativeTo(referenceFrame);
+  computePixelToGlobalCache(ms, gZ, transformedPose, cache);
 
+}
 
 void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache) {
   interpolateM_xAndM_yFromZ(ms, gZ, &ms->config.m_x, &ms->config.m_y);
