@@ -179,7 +179,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	assert(0);
       }
 
-      ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->evaluateProgram("0.01 waitForSeconds waitUntilAtCurrentPositionB");
       return;
     }
 
