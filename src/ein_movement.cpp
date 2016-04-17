@@ -10,6 +10,10 @@
 
 namespace ein_words {
 
+CONFIG_GETTER_DOUBLE(GridSize, ms->config.bDelta)
+CONFIG_SETTER_DOUBLE(SetGridSize, ms->config.bDelta)
+
+
 CONFIG_GETTER_DOUBLE(W1GoThresh, ms->config.w1GoThresh)
 CONFIG_SETTER_DOUBLE(SetW1GoThresh, ms->config.w1GoThresh)
 CONFIG_GETTER_DOUBLE(W1AngleThresh, ms->config.w1AngleThresh)
@@ -961,21 +965,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SetSpeed)
-
-WORD(SetGridSize)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  double v1;
-  GET_NUMERIC_ARG(ms, v1);
-
-  //double newgrid = min( max(0.0, v1), 1.0);
-  double newgrid = v1;
-
-  cout << "setGridSize got " << v1 << " setting " << newgrid << endl;
-  
-  ms->config.bDelta = newgrid;
-}
-END_WORD
-REGISTER_WORD(SetGridSize)
 
 WORD(Hover)
 virtual void execute(std::shared_ptr<MachineState> ms) {
