@@ -3254,11 +3254,30 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double p_cell_width = 0.0025;//0.00175; //0.0025; //0.01;
   int p_width = 1001; //1501; // 1001 // 601;
   int p_height = 1001; //1501; // 1001 / 601;
-  ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width, eePose::identity());
+  eePose scenePose = eePose::identity();
+  scenePose.pz = -ms->config.currentTableZ;
+  ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width, scenePose);
   ms->pushWord("sceneRenderScene");
 }
 END_WORD
 REGISTER_WORD(SceneInit)
+
+WORD(SceneInitFromEePose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose destPose;
+  GET_ARG(ms,EePoseWord,destPose);
+  double p_cell_width = 0.0025;//0.00175; //0.0025; //0.01;
+  int p_width = 1001; //1501; // 1001 // 601;
+  int p_height = 1001; //1501; // 1001 / 601;
+  //eePose flipZ = {.px = 0.0, .py = 0.0, .pz = 0.0,
+  //.qx = 0.0, .qy = 1.0, .qz = 1.0, .qw = 0.0}; 
+
+  destPose = destPose.multQ(ms->config.straightDown);
+  ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width, destPose);
+  ms->pushWord("sceneRenderScene");
+}
+END_WORD
+REGISTER_WORD(SceneInitFromEePose)
 
 WORD(SceneInitDimensions)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -3522,9 +3541,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  if (fabs(thisPose.qz) > 0.005) {
-    ROS_ERROR("  Not doing update because arm not vertical.");
-    return;
+  //if (fabs(thisPose.qz) > 0.005) {
+  //ROS_ERROR("  Not doing update because arm not vertical.");
+  //return;
+  //}
+
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  cout << "untransformed qz: " << thisPose.qz << endl;
+  cout << "  transformed qz: " << transformed.qz << endl;
+  cout << "    reference qz: " << ms->config.scene->background_pose.qz << endl;
+
+  if (fabs(transformed.qz) > 0.01) {
+    ROS_ERROR(" Maybe shouldn't do update because arm not perpendicular to plane of scene.");
+    //return;
   }
 
   Mat wristViewYCbCr = bufferImage.clone();
@@ -3543,8 +3572,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //for (int px = ; px < ; px++) 
   //for (int py = ; py < ; py++) 
   pixelToGlobalCache data;
-  double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
+  //double z = thisPose.pz + ms->config.currentTableZ;
+  double z = transformed.pz;
   //computePixelToGlobalCache(ms, z, thisPose, &data);
+  cout << "z: " << z << endl;
   computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);
 
   for (int px = topx; px < botx; px++) {
@@ -4847,11 +4878,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
     streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
     if (tsi.image.data == NULL) {
-      cout << "  encountered NULL data in sib, returning." << endl;
-      return;
-    } else {
-      bufferImage = tsi.image.clone();
+      tsi.image = imread(tsi.filename);
+      if (tsi.image.data == NULL) {
+        cout << " Failed to load " << tsi.filename << endl;
+        tsi.loaded = 0;
+        return;
+      } else {
+        tsi.loaded = 1;
+      }
     }
+    bufferImage = tsi.image.clone();
     success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
   } else {
     ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
@@ -4863,7 +4899,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  if (fabs(thisPose.qz) > 0.01) {
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  if (fabs(transformed.qz) > 0.01) {
     ROS_ERROR("  Not doing update because arm not vertical.");
     return;
   }
