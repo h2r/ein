@@ -3421,7 +3421,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	continue;
       }
       double x, y;
-      pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
+      pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
 
       if (1) {
 	// single sample update
@@ -3493,11 +3493,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
     streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
     if (tsi.image.data == NULL) {
-      cout << "  encountered NULL data in sib, returning." << endl;
-      return;
-    } else {
-      bufferImage = tsi.image.clone();
+      tsi.image = imread(tsi.filename);
+      if (tsi.image.data == NULL) {
+        cout << " Failed to load " << tsi.filename << endl;
+        tsi.loaded = 0;
+        return;
+      } else {
+        tsi.loaded = 1;
+      }
     }
+    bufferImage = tsi.image.clone();
+
     success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
   } else {
     ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
@@ -3541,7 +3547,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	continue;
       }
       double x, y;
-      pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
+      pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
       
       if (1) {
 	// single sample update
@@ -3600,7 +3606,7 @@ REGISTER_WORD(SceneUpdateObservedFromStreamBufferNoRecalc)
 
 WORD(SceneUpdateObservedFromStreamBuffer)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->evaluateProgram("sceneUpdateObservedFromStreamBufferRecalc sceneRecalculateObservedMusAndSigmas sceneRenderObservedMap");
+  ms->evaluateProgram("sceneUpdateObservedFromStreamBufferNoRecalc sceneRecalculateObservedMusAndSigmas sceneRenderObservedMap");
 }
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBuffer)
@@ -3769,7 +3775,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     for (int x = 0; x < imW; x++) {
       double meter_x = 0;
       double meter_y = 0;
-      pixelToGlobalFromCache(ms, x, y, zToUse, &meter_x, &meter_y, ms->config.currentEEPose, &data);
+      pixelToGlobalFromCache(ms, x, y, &meter_x, &meter_y, &data);
       int cell_x = 0;
       int cell_y = 0;
       ms->config.scene->discrepancy->metersToCell(meter_x, meter_y, &cell_x, &cell_y);
@@ -4894,7 +4900,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  } 
 
 	  double x, y;
-	  pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
+	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
 	  
 	  if (1) {
 	    // single sample update

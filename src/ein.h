@@ -350,14 +350,18 @@ int isThisGraspMaxedOut(shared_ptr<MachineState> ms, int i);
 
 void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY);
 void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose);
-void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose, pixelToGlobalCache * cache);
+void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache);
 void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache);
 void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY);
 void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY);
 eePose pixelToGlobalEEPose(shared_ptr<MachineState> ms, int pX, int pY, double gZ);
 
-void pixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double yMax, int px, int py, double &x, double &y) ;
-cv::Point worldToPixel(Mat mapImage, double xMin, double xMax, double yMin, double yMax, double x, double y);
+void pixelToPlane(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose, eePose referenceFrame);
+
+
+
+void mapPixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double yMax, int px, int py, double &x, double &y) ;
+cv::Point worldToMapPixel(Mat mapImage, double xMin, double xMax, double yMin, double yMax, double x, double y);
 
 void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar theColor);
 
