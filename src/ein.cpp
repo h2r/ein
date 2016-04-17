@@ -10083,7 +10083,6 @@ void pixelToPlane(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double
 void computePixelToPlaneCache(shared_ptr<MachineState> ms, double gZ, eePose givenEEPose, eePose referenceFrame, pixelToGlobalCache * cache) {
   eePose transformedPose = givenEEPose.getPoseRelativeTo(referenceFrame);
   computePixelToGlobalCache(ms, gZ, transformedPose, cache);
-
 }
 
 void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache) {
@@ -13542,8 +13541,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
 
   {
     guardSceneModels(ms);
-    ms->config.class_scene_models[i] = make_shared<Scene>(ms, 3, 3, 0.005);
-    ms->config.class_scene_models[i]->loadFromFile(sceneModelFile(ms, thisLabelName));
+    ms->config.class_scene_models[i] = Scene::createFromFile(ms, sceneModelFile(ms, thisLabelName));
   }
 }
 
