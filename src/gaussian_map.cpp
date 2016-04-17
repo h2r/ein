@@ -3411,7 +3411,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     //for (int py = ; py < ; py++) 
   pixelToGlobalCache data;
   double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
-  computePixelToGlobalCache(ms, z, thisPose, &data);
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);
 
   for (int px = topx; px < botx; px++) {
     for (int py = topy; py < boty; py++) {
@@ -3537,8 +3538,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //for (int py = ; py < ; py++) 
   pixelToGlobalCache data;
   double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
-  computePixelToGlobalCache(ms, z, thisPose, &data);
-  
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);
+
   for (int px = topx; px < botx; px++) {
     for (int py = topy; py < boty; py++) {
       //for (int px = 0; px < imW; px++) 
@@ -3769,8 +3771,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int imH = sz.height;
   pixelToGlobalCache data;
   double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
-  computePixelToGlobalCache(ms, zToUse, ms->config.currentEEPose, &data);
-
+  //computePixelToGlobalCache(ms, zToUse, ms->config.currentEEPose, &data);
+  computePixelToPlaneCache(ms, zToUse, ms->config.currentEEPose, ms->config.scene->background_pose, &data);
   for (int y = 0; y < imH; y++) {
     for (int x = 0; x < imW; x++) {
       double meter_x = 0;
@@ -4878,8 +4880,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   pixelToGlobalCache data;
   double z = z_to_use;
-  computePixelToGlobalCache(ms, z, thisPose, &data);
-  
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
   int numThreads = 8;
   // XXX actually this is not thread safe... 
   // there is a faster way to stride it but i am risk averse atm
