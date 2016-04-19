@@ -123,15 +123,15 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   /* spiral scan pattern */
   tempSpiralMoveSpeed setSpeed
   tempSpiralGridSize setGridSize
-  shiftIntoGraspGear1 waitUntilAtCurrentPosition
+  /* shiftIntoGraspGear1 waitUntilAtCurrentPosition */
 
   1 "tempUpdateSpiralIdx" store
 
   ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
-  ( ( xUp waitUntilAtCurrentPosition ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( yUp waitUntilAtCurrentPosition ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( xDown waitUntilAtCurrentPosition ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( yDown waitUntilAtCurrentPosition ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+  ( ( localXUp waitUntilAtCurrentPosition ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( localYUp waitUntilAtCurrentPosition ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( localXDown waitUntilAtCurrentPosition ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( localYDown waitUntilAtCurrentPosition ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
     "tempUpdateSpiralCoreNoClean" print
     tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
   ) while
@@ -1335,8 +1335,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 /* 
 0.3883 "tempReconstructWithZTopZ" store 
 */
-0.3883 "tempReconstructWithZTopZ" store 
-0.16 "tempReconstructWithZTotalZ" store
+1.85 "tempReconstructWithZTopZ" store 
+0.00 "tempReconstructWithZTotalZ" store
 0.01 "tempReconstructWithZDeltaZ" store
 500 "tempReconstructStreamTakeSceneSamples" store
 (
