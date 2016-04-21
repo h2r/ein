@@ -250,7 +250,9 @@ workspace4 "outputPileWorkspace" store
       clearMapForPatrol clearBlueBoxMemories mapLocal
       deliverTargetObject
       liftArm
+      /*
       pileSwitchCounter 1 + "pileSwitchCounter" store
+      */
       pileSwitchCounter pileSwitchThreshold > ( 
 	"  >>>> switching piles " print
 	inputPileWorkspace "temp" store 
@@ -748,7 +750,9 @@ dateString "catScan5VarianceTrialThisTime" store
       */
 
       liftArm
+      /*
       pileSwitchCounter 1 + "pileSwitchCounter" store
+      */
       pileSwitchCounter pileSwitchThreshold > ( 
 	"  >>>> switching piles " print
 	inputPileWorkspace "temp" store 
@@ -888,7 +892,7 @@ dateString "catScan5VarianceTrialThisTime" store
 
 (
   shiftIntoGraspGear3 waitUntilAtCurrentPosition
-  100 "tempSpiralStreamTakeSceneSamples" store
+  300 "tempSpiralStreamTakeSceneSamples" store
   tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
   tempSpiralGridSizeDefault "tempSpiralGridSize" store
   0.04 "tempSpiralMoveSpeed" store

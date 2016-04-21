@@ -4967,6 +4967,12 @@ void MachineState::cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDI
 void MachineState::armShowButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
   shared_ptr<MachineState> ms = this->sharedThis;
 
+  if (dios.state == 1) {
+    // only if this is the first of recent presses
+    if (ms->config.lastArmOkButtonState == 0) {
+      ms->evaluateProgram("infiniteScan");
+    }      
+  }
 
   if (dios.state) {
     ms->config.lastArmShowButtonState = 1;
@@ -4978,12 +4984,21 @@ void MachineState::armShowButtonCallback(const baxter_core_msgs::DigitalIOState&
 void MachineState::armBackButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
   shared_ptr<MachineState> ms = this->sharedThis;
 
+  if (dios.state == 1) {
+    // only if this is the first of recent presses
+    if (ms->config.lastArmOkButtonState == 0) {
+      ms->clearStack();
+      ms->clearData();
+
+      ms->evaluateProgram("inputPileWorkspace moveEeToPoseWord");
+    }      
+  }
+
   if (dios.state) {
     ms->config.lastArmBackButtonState = 1;
   } else {
     ms->config.lastArmBackButtonState = 0;
   }
-
 }
 
 void MachineState::armOkButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
