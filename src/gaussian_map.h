@@ -147,6 +147,8 @@ class SceneObject {
   void readFromFileNode(FileNode& it);
 };
 
+
+
 class Scene {
   public:
   string predicted_class_name;
@@ -160,7 +162,7 @@ class Scene {
 
   std::shared_ptr<MachineState> ms;
 
-  Scene(shared_ptr<MachineState> ms, int w, int h, double cw);
+  Scene(shared_ptr<MachineState> ms, int w, int h, double cw, eePose pose);
   void reallocate();
 
   vector< shared_ptr<GaussianMap> > depth_stack;
@@ -232,7 +234,11 @@ class Scene {
 
   void readPredictedObjects(FileNode & fn);
   void writePredictedObjects(FileStorage & fsvO);
+
+  static shared_ptr<Scene> createFromFile(shared_ptr<MachineState> ms, string filename);
 };
+
+
 
 // transition tables can be instanced for particular settings; transitions may differ in low gravity, high wind, or soft ground, 
 //   especially helpful when running experiments to compare two subroutimnes or parameter choices.

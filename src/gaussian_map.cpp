@@ -21,6 +21,11 @@ void _GaussianMapChannel::zero() {
   samples = 0.0;
 }
 
+shared_ptr<Scene> Scene::createFromFile(shared_ptr<MachineState> ms, string filename) {
+  shared_ptr<Scene> scene = make_shared<Scene>(ms, 2, 2, 0.02, eePose::identity());
+  scene->loadFromFile(filename);
+  return scene;
+}
 
 void _GaussianMapCell::zero() {
   red.zero();
@@ -711,7 +716,7 @@ shared_ptr<GaussianMap> GaussianMap::copy() {
 }
 
 shared_ptr<Scene> Scene::copy() {
-  shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, width, height, cell_width);
+  shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, width, height, cell_width, background_pose);
   toReturn->annotated_class_name = annotated_class_name;
   toReturn->predicted_class_name = predicted_class_name;
   toReturn->background_map = background_map->copy();
@@ -829,7 +834,7 @@ void SceneObject::readFromFileNode(FileNode& it) {
 
 
 
-Scene::Scene(shared_ptr<MachineState> _ms, int w, int h, double cw) {
+Scene::Scene(shared_ptr<MachineState> _ms, int w, int h, double cw, eePose pose) {
 
   if (w % 2 == 0) {
     cout << "Scene parity error: tried to allocate width: " << w << " so adding 1..." << endl;
@@ -849,7 +854,8 @@ Scene::Scene(shared_ptr<MachineState> _ms, int w, int h, double cw) {
   x_center_cell = (width-1)/2;
   y_center_cell = (height-1)/2;
   cell_width = cw;
-  background_pose = eePose::identity();
+  //background_pose = eePose::identity();
+  background_pose = pose;
   predicted_objects.resize(0);
   reallocate();
 }
@@ -1385,7 +1391,7 @@ shared_ptr<Scene> Scene::copyBox(int _x1, int _y1, int _x2, int _y2) {
   y1 = min( max(0,y1), height-1);
   y2 = min( max(0,y2), height-1);
 
-  shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, x2-x1+1, y2-y1+1, cell_width);
+  shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, x2-x1+1, y2-y1+1, cell_width, background_pose);
 
   toReturn->background_map = background_map->copyBox(x1,y1,x2,y2);
   toReturn->predicted_map = predicted_map->copyBox(x1,y1,x2,y2);
@@ -3248,11 +3254,30 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double p_cell_width = 0.0025;//0.00175; //0.0025; //0.01;
   int p_width = 1001; //1501; // 1001 // 601;
   int p_height = 1001; //1501; // 1001 / 601;
-  ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
+  eePose scenePose = eePose::identity();
+  scenePose.pz = -ms->config.currentTableZ;
+  ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width, scenePose);
   ms->pushWord("sceneRenderScene");
 }
 END_WORD
 REGISTER_WORD(SceneInit)
+
+WORD(SceneInitFromEePose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose destPose;
+  GET_ARG(ms,EePoseWord,destPose);
+  double p_cell_width = 0.0025;//0.00175; //0.0025; //0.01;
+  int p_width = 1001; //1501; // 1001 // 601;
+  int p_height = 1001; //1501; // 1001 / 601;
+  //eePose flipZ = {.px = 0.0, .py = 0.0, .pz = 0.0,
+  //.qx = 0.0, .qy = 1.0, .qz = 1.0, .qw = 0.0}; 
+
+  destPose = destPose.multQ(ms->config.straightDown);
+  ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width, destPose);
+  ms->pushWord("sceneRenderScene");
+}
+END_WORD
+REGISTER_WORD(SceneInitFromEePose)
 
 WORD(SceneInitDimensions)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -3266,7 +3291,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   cout << "sceneInitDimensions cell_width width height: " << p_cell_width << " " << p_width << " " << p_height << endl;
 
-  ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
+  ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width, eePose::identity());
   ms->config.scene->background_map = ms->config.scene->observed_map->copy();
   ms->pushWord("sceneRenderScene");
 }
@@ -3279,7 +3304,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double p_cell_width = 0.0025; //0.01;
   int p_width = 50; // 601;
   int p_height = 50; // 601;
-  ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width);
+  ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width, eePose::identity());
   ms->pushWord("sceneRenderScene");
 }
 END_WORD
@@ -3411,7 +3436,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     //for (int py = ; py < ; py++) 
   pixelToGlobalCache data;
   double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
-  computePixelToGlobalCache(ms, z, thisPose, &data);
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);
 
   for (int px = topx; px < botx; px++) {
     for (int py = topy; py < boty; py++) {
@@ -3421,7 +3447,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	continue;
       }
       double x, y;
-      pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
+      pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
 
       if (1) {
 	// single sample update
@@ -3493,11 +3519,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
     streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
     if (tsi.image.data == NULL) {
-      cout << "  encountered NULL data in sib, returning." << endl;
-      return;
-    } else {
-      bufferImage = tsi.image.clone();
+      tsi.image = imread(tsi.filename);
+      if (tsi.image.data == NULL) {
+        cout << " Failed to load " << tsi.filename << endl;
+        tsi.loaded = 0;
+        return;
+      } else {
+        tsi.loaded = 1;
+      }
     }
+    bufferImage = tsi.image.clone();
+
     success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
   } else {
     ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
@@ -3509,9 +3541,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  if (fabs(thisPose.qz) > 0.005) {
-    ROS_ERROR("  Not doing update because arm not vertical.");
-    return;
+  //if (fabs(thisPose.qz) > 0.005) {
+  //ROS_ERROR("  Not doing update because arm not vertical.");
+  //return;
+  //}
+
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  cout << "untransformed qz: " << thisPose.qz << endl;
+  cout << "  transformed qz: " << transformed.qz << endl;
+  cout << "    reference qz: " << ms->config.scene->background_pose.qz << endl;
+
+  if (fabs(transformed.qz) > 0.01) {
+    ROS_ERROR(" Maybe shouldn't do update because arm not perpendicular to plane of scene.");
+    //return;
   }
 
   Mat wristViewYCbCr = bufferImage.clone();
@@ -3530,9 +3572,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //for (int px = ; px < ; px++) 
   //for (int py = ; py < ; py++) 
   pixelToGlobalCache data;
-  double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
-  computePixelToGlobalCache(ms, z, thisPose, &data);
-  
+  //double z = thisPose.pz + ms->config.currentTableZ;
+  double z = transformed.pz;
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  cout << "z: " << z << endl;
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);
+
   for (int px = topx; px < botx; px++) {
     for (int py = topy; py < boty; py++) {
       //for (int px = 0; px < imW; px++) 
@@ -3541,7 +3586,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	continue;
       }
       double x, y;
-      pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
+      pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
       
       if (1) {
 	// single sample update
@@ -3600,7 +3645,7 @@ REGISTER_WORD(SceneUpdateObservedFromStreamBufferNoRecalc)
 
 WORD(SceneUpdateObservedFromStreamBuffer)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->evaluateProgram("sceneUpdateObservedFromStreamBufferRecalc sceneRecalculateObservedMusAndSigmas sceneRenderObservedMap");
+  ms->evaluateProgram("sceneUpdateObservedFromStreamBufferNoRecalc sceneRecalculateObservedMusAndSigmas sceneRenderObservedMap");
 }
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBuffer)
@@ -3763,13 +3808,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int imH = sz.height;
   pixelToGlobalCache data;
   double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
-  computePixelToGlobalCache(ms, zToUse, ms->config.currentEEPose, &data);
-
+  //computePixelToGlobalCache(ms, zToUse, ms->config.currentEEPose, &data);
+  computePixelToPlaneCache(ms, zToUse, ms->config.currentEEPose, ms->config.scene->background_pose, &data);
   for (int y = 0; y < imH; y++) {
     for (int x = 0; x < imW; x++) {
       double meter_x = 0;
       double meter_y = 0;
-      pixelToGlobalFromCache(ms, x, y, zToUse, &meter_x, &meter_y, ms->config.currentEEPose, &data);
+      pixelToGlobalFromCache(ms, x, y, &meter_x, &meter_y, &data);
       int cell_x = 0;
       int cell_y = 0;
       ms->config.scene->discrepancy->metersToCell(meter_x, meter_y, &cell_x, &cell_y);
@@ -4031,8 +4076,7 @@ vector<double> poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vecto
 
   for (int i = 0; i < scene_files.size(); i++) {
     cout << " i " << i << " size: " << scene_files.size() << endl;
-    shared_ptr<Scene> this_scene = make_shared<Scene>(ms, 3, 3, 0.02);
-    this_scene->loadFromFile(scene_files[i]);
+    shared_ptr<Scene> this_scene = Scene::createFromFile(ms, scene_files[i]);
 
     this_scene->predicted_objects.resize(0);
     this_scene->composePredictedMap(0.01);
@@ -4424,16 +4468,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	double this_score = -DBL_MAX;
 	int this_i = -1;
 	int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
-	Scene this_scene(ms, 2, 2, 0.02);
-	this_scene.loadFromFile(thisFullFileName);
-	this_scene.predicted_objects.resize(0);
-	this_scene.composePredictedMap(0.01);
-	this_scene.measureDiscrepancy();
+	shared_ptr<Scene> this_scene = Scene::createFromFile(ms, thisFullFileName);
+	this_scene->predicted_objects.resize(0);
+	this_scene->composePredictedMap(0.01);
+	this_scene->measureDiscrepancy();
 
-	this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
+	this_scene->findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
 	int thisSceneLabelIdx = -1;
 	for (int i = 0; i < nc; i++) {
-	  if ( 0 == ms->config.classLabels[i].compare(this_scene.annotated_class_name) ) {
+	  if ( 0 == ms->config.classLabels[i].compare(this_scene->annotated_class_name) ) {
 	    thisSceneLabelIdx = i;
 	    break;
 	  } else {
@@ -4442,7 +4485,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	if ( (this_class != -1) && (thisSceneLabelIdx != -1) ) {
 	  result[thisSceneLabelIdx + nc * this_class]++;
 	} else {
-	  cout << "catScan5VarianceTrialCalculateConfigurationAccuracy: could not find match for label " << this_scene.annotated_class_name << " for file " << thisFullFileName << endl;
+	  cout << "catScan5VarianceTrialCalculateConfigurationAccuracy: could not find match for label " << this_scene->annotated_class_name << " for file " << thisFullFileName << endl;
 	}
       }
     }
@@ -4547,13 +4590,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 		double this_score = -DBL_MAX;
 		int this_i = -1;
 		int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
-		Scene this_scene(ms, 2, 2, 0.02);
-		this_scene.loadFromFile(thisFullFileName_2);
-		this_scene.predicted_objects.resize(0);
-		this_scene.composePredictedMap(0.01);
-		this_scene.measureDiscrepancy();
+		shared_ptr<Scene> this_scene = Scene::createFromFile(ms, thisFullFileName_2);
+		this_scene->predicted_objects.resize(0);
+		this_scene->composePredictedMap(0.01);
+		this_scene->measureDiscrepancy();
 
-		this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
+		this_scene->findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
 		int thisSceneLabelIdx = -1;
 		for (int i = 0; i < nc; i++) {
 		  // remove object folder token from front
@@ -4593,7 +4635,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 		  string trimmed_class_label = class_label_to_trim.substr(after_next_series, class_label_to_trim.size()-after_next_series);
 		  //cout << "TTTTTT: " << trimmed_class_label << "    " << this_scene.annotated_class_name << endl;
 
-		  if ( 0 == trimmed_class_label.compare(this_scene.annotated_class_name) ) {
+		  if ( 0 == trimmed_class_label.compare(this_scene->annotated_class_name) ) {
 		    thisSceneLabelIdx = i;
 		    break;
 		  } else {
@@ -4602,7 +4644,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 		if ( (this_class != -1) && (thisSceneLabelIdx != -1) ) {
 		  result[thisSceneLabelIdx + nc * this_class]++;
 		} else {
-		  cout << "catScan5VarianceTrialCalculateConfigurationAccuracy: could not find match for label " << this_scene.annotated_class_name << " for file " << thisFullFileName << endl;
+		  cout << "catScan5VarianceTrialCalculateConfigurationAccuracy: could not find match for label " << this_scene->annotated_class_name << " for file " << thisFullFileName << endl;
 		}
 	      }
 	    }
@@ -4670,7 +4712,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double this_cw = ms->config.scene->cell_width; 
   int this_w = ceil( (3.0 * this_collar_width_m + breadth_m) / this_cw);
   int this_h = ceil( (3.0 * this_collar_width_m + length_m) / this_cw);
-  ms->config.class_scene_models[tfc] = make_shared<Scene>(ms, this_w, this_h, this_cw);
+  ms->config.class_scene_models[tfc] = make_shared<Scene>(ms, this_w, this_h, this_cw, ms->config.scene->background_pose);
 
   // fill in the magnitude and density maps; positive region sums to 1, negative collar sums to -1
   Mat fake_filter = ms->config.class_scene_models[tfc]->discrepancy_magnitude;
@@ -4836,11 +4878,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
     streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
     if (tsi.image.data == NULL) {
-      cout << "  encountered NULL data in sib, returning." << endl;
-      return;
-    } else {
-      bufferImage = tsi.image.clone();
+      tsi.image = imread(tsi.filename);
+      if (tsi.image.data == NULL) {
+        cout << " Failed to load " << tsi.filename << endl;
+        tsi.loaded = 0;
+        return;
+      } else {
+        tsi.loaded = 1;
+      }
     }
+    bufferImage = tsi.image.clone();
     success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
   } else {
     ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
@@ -4852,7 +4899,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  if (fabs(thisPose.qz) > 0.01) {
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  if (fabs(transformed.qz) > 0.01) {
     ROS_ERROR("  Not doing update because arm not vertical.");
     return;
   }
@@ -4872,8 +4920,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   pixelToGlobalCache data;
   double z = z_to_use;
-  computePixelToGlobalCache(ms, z, thisPose, &data);
-  
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
   int numThreads = 8;
   // XXX actually this is not thread safe... 
   // there is a faster way to stride it but i am risk averse atm
@@ -4894,7 +4942,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  } 
 
 	  double x, y;
-	  pixelToGlobalFromCache(ms, px, py, z, &x, &y, thisPose, &data);
+	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
 	  
 	  if (1) {
 	    // single sample update
@@ -5373,8 +5421,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	cout << " is a directory." << endl;
       } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
 	cout << " is NOT a directory." << endl;
-	shared_ptr<Scene> this_scene = make_shared<Scene>(ms, 2, 2, 0.02);
-	this_scene->loadFromFile(thisFullFileName);
+	shared_ptr<Scene> this_scene = Scene::createFromFile(ms, thisFullFileName);
 	shared_ptr<GaussianMap> this_map = this_scene->observed_map;
 	ms->config.depth_maps.push_back(this_map);
       }
@@ -5428,8 +5475,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	cout << " is a directory." << endl;
       } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && !extension.compare("yml")) {
 	cout << " is NOT a directory." << endl;
-	shared_ptr<Scene> this_scene = make_shared<Scene>(ms, 2, 2, 0.02);
-	this_scene->loadFromFile(thisFullFileName);
+	shared_ptr<Scene> this_scene = Scene::createFromFile(ms, thisFullFileName);
 	shared_ptr<GaussianMap> this_map = this_scene->observed_map;
 
 	shared_ptr<GaussianMap> this_crop = this_map->copyBox(x1, y1, x2, y2);
@@ -5486,8 +5532,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	cout << " is a directory." << endl;
       } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && !extension.compare("yml")) {
 	cout << " is NOT a directory." << endl;
-	shared_ptr<Scene> this_scene = make_shared<Scene>(ms, 2, 2, 0.02);
-	this_scene->loadFromFile(thisFullFileName);
+	shared_ptr<Scene> this_scene = Scene::createFromFile(ms, thisFullFileName);
 	shared_ptr<GaussianMap> this_map = this_scene->observed_map;
 
 	sceneMarginalizeIntoRegisterHelper(ms, this_map);
@@ -5536,8 +5581,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	cout << " is a directory." << endl;
       } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && !extension.compare("yml")) {
 	cout << " is NOT a directory." << endl;
-	shared_ptr<Scene> this_scene = make_shared<Scene>(ms, 2, 2, 0.02);
-	this_scene->loadFromFile(thisFullFileName);
+	shared_ptr<Scene> this_scene = Scene::createFromFile(ms, thisFullFileName);
 	shared_ptr<GaussianMap> this_map = this_scene->observed_map;
 
 	sceneMinIntoRegisterHelper(ms, this_map);
