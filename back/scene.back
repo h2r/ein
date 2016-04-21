@@ -1131,12 +1131,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempAddBlockGraspSaveModelAndPickAfterFind" store
 
 0 "tempBlockUsingBlocks" store
-0.05 "tempBlockMaxGraspThickness" store
+0.04 "tempBlockMaxGraspThickness" store
 /*
 0.04 "tempBlockGripperThrow" store
 0.01 "tempBlockGraspResolution" store
 */
-0.03 "tempBlockGripperThrow" store
+0.035 "tempBlockGripperThrow" store
 0.005 "tempBlockGraspResolution" store
 0.03 "tempBlockTargetContactWidth" store
 (
