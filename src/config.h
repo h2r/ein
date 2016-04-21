@@ -353,6 +353,8 @@ typedef struct streamLabel {
 
 
 typedef struct pixelToGlobalCache {
+  eePose givenEEPose;
+  double gZ;
   int x1;
   int x2;
   int x3;
