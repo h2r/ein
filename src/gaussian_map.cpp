@@ -3272,8 +3272,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //eePose flipZ = {.px = 0.0, .py = 0.0, .pz = 0.0,
   //.qx = 0.0, .qy = 1.0, .qz = 1.0, .qw = 0.0}; 
 
-  destPose = destPose.multQ(ms->config.straightDown);
+  destPose = destPose.multQ(ms->config.straightDown.invQ());
   ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width, destPose);
+  cout << "sceneInitFromEePose: destPose is " << destPose << endl;
   ms->pushWord("sceneRenderScene");
 }
 END_WORD
@@ -4923,12 +4924,20 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //computePixelToGlobalCache(ms, z, thisPose, &data);
   computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
   int numThreads = 8;
-  // XXX actually this is not thread safe... 
   // there is a faster way to stride it but i am risk averse atm
   #pragma omp parallel for
   for (int i = 0; i < numThreads; i++) {
+    double frac = double(boty - topy) / double(numThreads);
+    double bfrac = i*frac;
+    double tfrac = (i+1)*frac;
+
     for (int py = topy; py < boty; py++) {
-      if (py % numThreads == i) {
+      // XXX actually this is not thread safe... 
+      //if (py % numThreads == i) 
+      double opy = py-topy;
+      // this is superior
+      if ( (bfrac <= opy) && (opy < tfrac) ) 
+      {
 	for (int px = topx; px < botx; px++) {
 	  if (isInGripperMask(ms, px, py)) {
 	    continue;
@@ -4963,6 +4972,111 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalc)
+
+CONFIG_SETTER_INT(SceneSetAngularApertureRows, ms->config.angular_aperture_rows)
+CONFIG_GETTER_INT(SceneAngularApertureRows, ms->config.angular_aperture_rows)
+
+CONFIG_GETTER_INT(SceneAngularApertureCols, ms->config.angular_aperture_cols)
+CONFIG_SETTER_INT(SceneSetAngularApertureCols, ms->config.angular_aperture_cols)
+
+CONFIG_SETTER_INT(SceneSetAngularBaffleRows, ms->config.angular_baffle_rows)
+CONFIG_GETTER_INT(SceneAngularBaffleRows, ms->config.angular_baffle_rows)
+
+CONFIG_GETTER_INT(SceneAngularBaffleCols, ms->config.angular_baffle_cols)
+CONFIG_SETTER_INT(SceneSetAngularBaffleCols, ms->config.angular_baffle_cols)
+
+WORD(SceneUpdateObservedFromStreamBufferAtEePose)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("sceneUpdateObservedFromStreamBufferAtEePoseRecalc sceneRecalculateObservedMusAndSigmas sceneRenderObservedMap");
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtEePose)
+
+WORD(SceneUpdateObservedFromStreamBufferAtEePoseNoRecalc)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose thisPose;
+  GET_ARG(ms,EePoseWord,thisPose);
+
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  int thisIdx = ms->config.sibCurIdx;
+  //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
+
+  Mat bufferImage;
+
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  if (fabs(transformed.qz) > 0.01) {
+    ROS_ERROR("  Not doing update because arm not vertical.");
+    return;
+  }
+
+  Mat wristViewYCbCr = bufferImage.clone();
+
+  cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+  
+  Size sz = bufferImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int topx = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; //+ 20; // ms->config.grayTop.x;  
+  int botx = ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; //- 20; // ms->config.grayBot.x;  
+  int topy = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; //+ 50; // ms->config.grayTop.y;
+  int boty = ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; //- 50; // ms->config.grayBot.y;  
+  
+  pixelToGlobalCache data;
+  double z = z_to_use;
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
+  int numThreads = 8;
+  // there is a faster way to stride it but i am risk averse atm
+  #pragma omp parallel for
+  for (int i = 0; i < numThreads; i++) {
+    double frac = double(boty - topy) / double(numThreads);
+    double bfrac = i*frac;
+    double tfrac = (i+1)*frac;
+
+    for (int py = topy; py < boty; py++) {
+      // XXX actually this is not thread safe... 
+      //if (py % numThreads == i) 
+      double opy = py-topy;
+      // this is superior
+      if ( (bfrac <= opy) && (opy < tfrac) ) 
+      {
+	for (int px = topx; px < botx; px++) {
+	  if (isInGripperMask(ms, px, py)) {
+	    continue;
+	  }
+
+	  if ( (ms->config.mapGrayBoxPixelWaistRows > 0) && (ms->config.mapGrayBoxPixelWaistCols > 0) ) {
+	    if ( (py > imH/2.0 - ms->config.mapGrayBoxPixelWaistRows) && (py < imH/2.0 + ms->config.mapGrayBoxPixelWaistRows) &&
+		 (px > imW/2.0 - ms->config.mapGrayBoxPixelWaistCols) && (px < imW/2.0 + ms->config.mapGrayBoxPixelWaistCols) ) {
+	      continue;
+	    } 
+	  } 
+
+	  double x, y;
+	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+	  
+	  if (1) {
+	    // single sample update
+	    int i, j;
+	    ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+	    GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+	    if (cell != NULL) {
+		Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+		cell->newObservation(pixel, z);
+	    }
+	  } else {
+	  }
+	}
+      }
+    }
+  }
+  //ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtEePoseNoRecalc)
 
 void sceneMinIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<GaussianMap> toMin) {
 
