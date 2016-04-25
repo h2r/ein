@@ -1620,6 +1620,10 @@ class EinConfig {
 
   vector<shared_ptr<GaussianMap> > depth_maps;
 
+  int angular_aperture_cols = 201;
+  int angular_aperture_rows = 201;
+  int angular_baffle_cols = 0;
+  int angular_baffle_rows = 0;
 
   animationMode currentAnimationMode = ANIMATION_ON; 
   AnimationState currentAnimationState = {"confused", 0}; 
