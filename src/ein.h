@@ -353,6 +353,7 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
 void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache);
 void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache);
 void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY);
+void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY, eePose givenEEPose);
 void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY);
 eePose pixelToGlobalEEPose(shared_ptr<MachineState> ms, int pX, int pY, double gZ);
 
