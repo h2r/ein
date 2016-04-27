@@ -225,6 +225,11 @@ typedef enum {
   CAMCAL_QUADRATIC = 1
 } cameraCalibrationMode;
 
+typedef enum {
+  FIXATE_STREAM = 0,
+  FIXATE_CURRENT = 1
+} sceneFixationMode;
+
 std::string pickModeToString(pickMode mode);
 
 
@@ -1103,6 +1108,7 @@ class EinConfig {
   double m_x_h[4];
   double m_y_h[4];
   cameraCalibrationMode currentCameraCalibrationMode = CAMCAL_QUADRATIC;
+  sceneFixationMode currentSceneFixationMode = FIXATE_STREAM;
   double m_XQ[3] = {0,0,0};
   double m_YQ[3] = {0,0,0};
 
@@ -1620,8 +1626,8 @@ class EinConfig {
 
   vector<shared_ptr<GaussianMap> > depth_maps;
 
-  int angular_aperture_cols = 201;
-  int angular_aperture_rows = 201;
+  int angular_aperture_cols = 401;
+  int angular_aperture_rows = 401;
   int angular_baffle_cols = 0;
   int angular_baffle_rows = 0;
 

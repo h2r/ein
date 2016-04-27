@@ -343,6 +343,54 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(Pow)
 
+WORD(Max)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+  double v2;
+  GET_NUMERIC_ARG(ms, v2);
+
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(std::max(v2,v1));
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Max)
+
+WORD(Min)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+  double v2;
+  GET_NUMERIC_ARG(ms, v2);
+
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(std::min(v2,v1));
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Min)
+
+WORD(Floor)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(floor(v1));
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Floor)
+
+WORD(Ceil)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(ceil(v1));
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Ceil)
+
 WORD(Plus)
 CODE('+') 
 virtual vector<string> names() {
@@ -1137,6 +1185,9 @@ REGISTER_WORD(CameraZeroNonLinear)
 
 CONFIG_GETTER_INT(CameraGetCalibrationMode, ms->config.currentCameraCalibrationMode);
 CONFIG_SETTER_ENUM(CameraSetCalibrationMode, ms->config.currentCameraCalibrationMode, (cameraCalibrationMode));
+
+CONFIG_GETTER_INT(SceneGetFixationMode, ms->config.currentSceneFixationMode);
+CONFIG_SETTER_ENUM(SceneSetFixationMode, ms->config.currentSceneFixationMode, (sceneFixationMode));
 
 WORD(CameraFitQuadratic)
 virtual void execute(std::shared_ptr<MachineState> ms)
