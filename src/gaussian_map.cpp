@@ -5668,6 +5668,91 @@ END_WORD
 REGISTER_WORD(SceneDepthStackSaveRaw)
 
 
+
+WORD(SceneRegularizeSceneL2)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double decay = 1.0;
+  GET_NUMERIC_ARG(ms, decay);
+  for (int y = 0; y < ms->config.scene->height; y++) {
+    for (int x = 0; x < ms->config.scene->width; x++) {
+      if (ms->config.scene->observed_map->refAtCell(x, y)->red.samples > 40) {
+	ms->config.scene->observed_map->refAtCell(x,y)->multS(decay);
+      }
+    }
+  }
+  //ms->config.scene->observed_map->multS(decay);
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+}
+END_WORD
+REGISTER_WORD(SceneRegularizeSceneL2)
+
+
+
+
+WORD(SceneSetVanishingPointFromVariance)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // convert map cell into global xy
+  // convert global xy into pixels
+  double minEnergy = DBL_MAX;
+  int minEnergyX = -1;
+  int minEnergyY = -1;
+
+  for (int y = 0; y < ms->config.scene->height; y++) {
+    for (int x = 0; x < ms->config.scene->width; x++) {
+      if (ms->config.scene->observed_map->refAtCell(x, y)->red.samples > 40) {
+	double thisEnergy = 
+	  ms->config.scene->observed_map->refAtCell(x,y)->red.sigmasquared +
+	  ms->config.scene->observed_map->refAtCell(x,y)->green.sigmasquared; 
+	  // + ms->config.scene->observed_map->refAtCell(x,y)->blue.sigmasquared;
+	if (thisEnergy < minEnergy) {
+	  minEnergy = thisEnergy;
+	  minEnergyX = x;
+	  minEnergyY = y;
+	}
+      }
+    }
+  }
+
+  double meters_scene_x, meters_scene_y;
+  ms->config.scene->observed_map->cellToMeters(minEnergyX, minEnergyY, &meters_scene_x, &meters_scene_y);
+
+  double zToUse = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+  int pixel_scene_x, pixel_scene_y;
+  globalToPixel(ms, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.currentEEPose);
+
+  cout << "sceneSetVanishingPointFromVariance x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
+  cout << "sceneSetVanishingPointFromVariance r,g mus: " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->red.mu << " " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->green.mu << endl;
+}
+END_WORD
+REGISTER_WORD(SceneSetVanishingPointFromVariance)
+
+WORD(SceneSetHeightReticleFromVariance)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+}
+END_WORD
+REGISTER_WORD(SceneSetHeightReticleFromVariance)
+
+WORD(ScenePushDepthStackMinVarIdx)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  // find the index of the depth stack with the least total variance
+  double minEnergy = DBL_MAX;
+  int minEnergyI = -1;
+
+  for (int i = 0; i < ms->config.depth_maps.size(); i++) {
+    //ms->config.depth_maps[i]->saveToFile(thisFilePath);
+  }
+  //ms->pushWord(make_shared<DoubleWord>());
+}
+END_WORD
+REGISTER_WORD(ScenePushDepthStackMinVarIdx)
+
+
+
+
+
+
+/*
+
 WORD(SceneFocusedClassDepthStackClear)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 }
@@ -5687,24 +5772,9 @@ END_WORD
 REGISTER_WORD(SceneFocusedClassDepthStackLoadAndPushRaw)
 
 
-WORD(SceneRegularizeSceneL2)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  double decay = 1.0;
-  GET_NUMERIC_ARG(ms, decay);
-  for (int y = 0; y < ms->config.scene->height; y++) {
-    for (int x = 0; x < ms->config.scene->width; x++) {
-      if (ms->config.scene->observed_map->refAtCell(x, y)->red.samples > 40) {
-	ms->config.scene->observed_map->refAtCell(x,y)->multS(decay);
-      }
-    }
-  }
-  //ms->config.scene->observed_map->multS(decay);
-  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
-}
-END_WORD
-REGISTER_WORD(SceneRegularizeSceneL2)
 
-/*
+
+
 WORD(SceneUpdateObservedFromStreamBufferAtZWithRecastThroughDepthStack)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 // updates entire stack from bottom up
