@@ -1335,14 +1335,34 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 /* 
 0.3883 "tempReconstructWithZTopZ" store 
 */
-1.85 "tempReconstructWithZTopZ" store 
-0.00 "tempReconstructWithZTotalZ" store
+0.3883 "tempReconstructWithZTopZ" store 
+0.0 "tempReconstructWithZTotalZ" store
 0.01 "tempReconstructWithZDeltaZ" store
 500 "tempReconstructStreamTakeSceneSamples" store
 (
+
+      streamPushImageStreamSize 
+      tempReconstructStreamTakeSceneSamples  
+    min
+  "tempRSTSSMax" store
+
+
   /* sceneInitRegisterZero */
   sceneInitRegisterMax 
-  streamPushImageStreamSize tempReconstructStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
+
+  /* find the right stride */
+      streamPushImageStreamSize tempRSTSSMax divide 
+    ceil
+  "tempSpiralStreamTakeSceneStride" store
+
+  /* don't try to use more images than you have */
+      streamPushImageStreamSize tempSpiralStreamTakeSceneStride divide 
+    floor
+  "tempRSTSSMax" store
+  
+  streamPushImageStreamSize print
+  tempRSTSSMax print
+  tempSpiralStreamTakeSceneStride print
 
   tempReconstructWithZTopZ "tempReconstructWithZThisZ" store
   tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBottomZ" store
@@ -1377,7 +1397,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 */
 
       endStackCollapseNoop 
-    ) tempReconstructStreamTakeSceneSamples replicateWord
+    ) tempRSTSSMax replicateWord
 
     sceneRecalculateObservedMusAndSigmas
     sceneRenderObservedMap
@@ -1392,6 +1412,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     sceneSaveScene
 
       "high_zoom_figure_" tempReconstructWithZThisZ + 
+    sceneSaveScene
+
+      "slfg_giraffe_back_right_" tempReconstructWithZThisZ + 
     sceneSaveScene
 */
 
@@ -1426,8 +1449,6 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   quarterImpulse
-  1 changeToHeight 
-  shiftIntoGraspGear1
   waitUntilAtCurrentPosition
 
   /*
@@ -1443,6 +1464,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 /*
 90 setMapGrayBoxPixelSkirtRows 140 setMapGrayBoxPixelSkirtCols
 20 setMapGrayBoxPixelSkirtRows 40 setMapGrayBoxPixelSkirtCols
+120 setMapGrayBoxPixelSkirtRows 180 setMapGrayBoxPixelSkirtCols
 */
 90 setMapGrayBoxPixelSkirtRows 140 setMapGrayBoxPixelSkirtCols
 
@@ -1462,18 +1484,28 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   clearStreamBuffers
 
 
+  /*
+  tempUpdateSpiralCoreNoClean tempUpdateMaps
+  1 0 tempUpdateSpiralN tempUpdateSpiralEccentricCore tempUpdateMaps
+  tempUpdateZoomCoreNoClean
+  tempUpdateSpinCoreNoClean
+  tempUpdateMagCoreNoClean
+  */
   tempUpdateSpiralCoreNoClean tempUpdateMaps
 
+  quarterImpulse
+  tempUpdateSpiralPos moveEeToPoseWord
+  waitUntilAtCurrentPosition
+
+
   /* integrate results */
+  /* this actually needs to happen after movement so position is still correct for FIXATION calibrators */
   /*
   tempUpdateSpiralCoreIntegrate
   */
   tempReconstructFromStream
   tempUpdateMaps
 
-  quarterImpulse
-  tempUpdateSpiralPos moveEeToPoseWord
-  waitUntilAtCurrentPosition
 ) "tempReconstructTakeScene" store
 
 (
@@ -1789,6 +1821,363 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   clearMapForPatrol clearBlueBoxMemories tempMapFocusedClass waitUntilAtCurrentPosition setMovementStateToMoving comeToStop tempMapFocusedClass deliverTargetObject
 ) "tempUsefulPhrases" store
 
+
+
+(
+    0.5521307 
+  setCurrentTableZ
+
+    0.205395 -0.602756 -0.163797 0.000000 1.000000 0.000000 0.000000 createEEPose
+    "slfgTopPoint"
+  store
+
+
+    0.339503 -0.468648 -0.277915 0.357388 -0.862812 0.136822 0.330318 createEEPose
+    "slfgFrontLeftPoint" 
+  store 
+
+
+    0.035009 -0.727180 -0.277547 0.896570 0.371371 0.222972 -0.092358 createEEPose
+    "slfgBackRightPoint" 
+  store 
+
+/*
+
+
+    -0.023189 -0.671408 -0.255637 0.661075 0.690562 0.202508 0.212354 createEEPose
+    "slfgBackPoint"
+  store
+*/
+
+
+) "slfgReconstructPoints" store
+
+
+( 
+  0.01 setGridSize currentPose ( localZUp ) 38 replicateWord currentPose sceneInitFromEePose ( localZDown ) 38 replicateWord 
+) "slfgRebase" store
+
+
+(
+  /* turn streaming on, no disk streaming */ 
+  shutdownToSensorsAndMovement
+  disableDiskStreaming
+
+    /* Pose Range Image Joints Word Label */
+    1 0 1 0 0 0 
+  setSisFlags
+
+
+  0.02 setW1AngleThresh
+
+  /*
+  0.005 setGridSize
+  ( xUp yUp ) 3 replicateWord
+  waitUntilAtCurrentPosition
+  activateSensorStreaming
+  ( ( oZDown ) 30 replicateWord waitUntilAtCurrentPosition ) 8 replicateWord
+  ( ( oZUp ) 30 replicateWord waitUntilAtCurrentPosition ) 8 replicateWord
+  deactivateSensorStreaming
+
+  ( xDown ) 6 replicateWord
+  waitUntilAtCurrentPosition
+  activateSensorStreaming
+  ( ( oZDown ) 30 replicateWord waitUntilAtCurrentPosition ) 8 replicateWord
+  ( ( oZUp ) 30 replicateWord waitUntilAtCurrentPosition ) 8 replicateWord
+  deactivateSensorStreaming
+
+  ( yDown ) 6 replicateWord
+  waitUntilAtCurrentPosition
+  activateSensorStreaming
+  ( ( oZDown ) 30 replicateWord waitUntilAtCurrentPosition ) 8 replicateWord
+  ( ( oZUp ) 30 replicateWord waitUntilAtCurrentPosition ) 8 replicateWord
+  deactivateSensorStreaming
+
+  ( xUp ) 6 replicateWord
+  waitUntilAtCurrentPosition
+  activateSensorStreaming
+  ( ( oZDown ) 30 replicateWord waitUntilAtCurrentPosition ) 8 replicateWord
+  ( ( oZUp ) 30 replicateWord waitUntilAtCurrentPosition ) 8 replicateWord
+  deactivateSensorStreaming
+
+  ( xDown yDown ) 3 replicateWord
+  waitUntilAtCurrentPosition
+  activateSensorStreaming
+  ( ( oZDown ) 30 replicateWord waitUntilAtCurrentPosition ) 8 replicateWord
+  ( ( oZUp ) 30 replicateWord waitUntilAtCurrentPosition ) 8 replicateWord
+  deactivateSensorStreaming
+  */
+
+  0.01 setGridSize
+  0.15 setSpeed
+  ( setMovementStateToMoving ( oZDown ) 30 replicateWord waitUntilAtCurrentPosition comeToStop activateSensorStreaming 1.0 waitForSeconds deactivateSensorStreaming ) 20 replicateWord
+
+  waitUntilAtCurrentPosition
+
+
+  /* turn streaming off */
+  bringUpAllNonessentialSystems
+) "tempUpdateSpinCoreNoClean" store
+
+(
+  /* turn streaming on, no disk streaming */ 
+  shutdownToSensorsAndMovement
+  disableDiskStreaming
+
+    /* Pose Range Image Joints Word Label */
+    1 0 1 0 0 0 
+  setSisFlags
+
+  /* spiral scan pattern */
+  0.03 setSpeed
+
+  0.02 setW1AngleThresh
+  0.01 setW1GoThresh
+
+  0.005 setGridSize
+  40 "zoomCoreSteps" store
+
+  (
+    ( setMovementStateToMoving localZDown waitUntilAtCurrentPosition comeToStop activateSensorStreaming 1.0 waitForSeconds deactivateSensorStreaming ) zoomCoreSteps replicateWord
+    gridSize 2.0 divide setGridSize
+    zDown
+    gridSize 2.0 times setGridSize
+    ( setMovementStateToMoving localZUp waitUntilAtCurrentPosition comeToStop activateSensorStreaming 1.0 waitForSeconds deactivateSensorStreaming ) zoomCoreSteps replicateWord
+  ) 1 replicateWord
+
+  /* turn streaming off */
+  bringUpAllNonessentialSystems
+) "tempUpdateZoomCoreNoClean" store
+
+(
+  /* turn streaming on, no disk streaming */ 
+  shutdownToSensorsAndMovement
+  disableDiskStreaming
+
+    /* Pose Range Image Joints Word Label */
+    1 0 1 0 0 0 
+  setSisFlags
+  activateSensorStreaming
+
+  /* spiral scan pattern */
+  0.05 setSpeed
+  0.01 setGridSize
+
+  0.02 setW1AngleThresh
+  0.005 setW1GoThresh
+
+  waitUntilAtCurrentPosition
+
+  ( xUp yUp ) 3 replicateWord
+  waitUntilAtCurrentPosition
+
+  ( xDown ) 6 replicateWord
+  waitUntilAtCurrentPosition
+
+  ( yDown ) 6 replicateWord
+  waitUntilAtCurrentPosition
+
+  ( xUp ) 6 replicateWord
+  waitUntilAtCurrentPosition
+
+  ( xDown yDown ) 3 replicateWord
+  waitUntilAtCurrentPosition
+
+  /* turn streaming off */
+  deactivateSensorStreaming
+  bringUpAllNonessentialSystems
+) "tempUpdateMagCoreNoClean" store
+
+(
+  201 sceneSetAngularApertureRows 201 sceneSetAngularApertureCols
+
+  1 sceneSetFixationMode
+  quarterImpulse
+  waitUntilAtCurrentPosition
+
+  /* do binning from this height for good sample size */
+  1 changeToHeight 
+  currentPose "tempUpdateSpiralPos" store
+
+  0 "tempChrThisHeight" store
+
+  (
+    tempChrThisHeight 1 < 
+  ) (
+    tempChrThisHeight changeToHeight 
+
+    sceneInit 
+    sceneClearObservedMap
+    clearStreamBuffers
+
+    tempUpdateSpinCoreNoClean
+
+    quarterImpulse
+    tempUpdateSpiralPos moveEeToPoseWord
+    waitUntilAtCurrentPosition
+
+    /* this actually needs to happen after movement so position is still correct for FIXATION calibrators */
+    tempReconstructFromStream
+    tempUpdateMaps
+
+    tempChrThisHeight sceneSetHeightReticleFromVariance
+
+      tempChrThisHeight 1 +
+    "tempChrThisHeight" store
+    
+    pauseStackExecution
+  ) while 
+  
+  0 sceneSetFixationMode
+) "tempCalibrateHeightReticles" store
+
+(
+  201 sceneSetAngularApertureRows 201 sceneSetAngularApertureCols
+
+  1 sceneSetFixationMode
+  quarterImpulse
+  waitUntilAtCurrentPosition
+
+  /* do binning from this height for good sample size */
+  1 changeToHeight 
+  currentPose "tempUpdateSpiralPos" store
+
+  0 changeToHeight 
+  0.01 setGridSize ( zDown ) 5 replicateWord
+  waitUntilAtCurrentPosition
+
+  sceneInit 
+  sceneClearObservedMap
+  clearStreamBuffers
+
+  tempUpdateZoomCoreNoClean
+
+  quarterImpulse
+  tempUpdateSpiralPos moveEeToPoseWord
+  waitUntilAtCurrentPosition
+
+  /* this actually needs to happen after movement so position is still correct for FIXATION calibrators */
+  tempReconstructFromStream
+  tempUpdateMaps
+  sceneSetVanishingPointFromVariance
+
+  
+  0 sceneSetFixationMode
+) "tempCalibrateVanishingPointReticle" store
+
+0.2 "magCalDelta" store
+10 "magCalSteps" store
+(
+  0 cameraSetCalibrationMode
+
+  cameraGetIdxMagX "magCalInitial" store
+
+    magCalSteps
+    2.0
+  / 
+  -1.0 *
+  magCalDelta *
+  magCalInitial +
+  "magCalLo" store
+
+    magCalSteps
+    2.0
+  / 
+  magCalDelta *
+  magCalInitial +
+  "magCalHi" store
+
+  magCalLo "magCalThis" store
+
+  /*
+  sceneClearDepthStack
+  */
+
+  1000000000000000 "magCalMinVar" store
+  -1 "magCalMinVarMag" store
+
+  ( 
+    magCalThis magCalHi < 
+    magCalThis magCalHi = or
+  ) (
+    magCalThis cameraSetIdxMagX
+
+    tempReconstructFromStream
+    tempUpdateMaps
+
+      scenePushAverageCrCbSigmaSquared 
+    dup magCalMinVar < (
+      "magCalMinVar" store
+      magCalThis "magCalMinVarMag" store
+      "This WAS INDEED a new winner." print
+    ) (
+      "This was not a new winner." print
+      pop
+    ) ifte
+
+    " just tried magnification " magCalThis + print
+
+    /*
+    pauseStackExecution
+    scenePushOntoDepthStack
+    */
+
+      magCalThis magCalDelta + 
+    "magCalThis" store
+  ) while
+
+  " The winner was " magCalMinVarMag " with a variance of " magCalMinVar + + + print
+
+  magCalMinVarMag cameraSetIdxMagX
+
+) "tempMagCalibrationGridSearcher" store
+
+(
+  201 sceneSetAngularApertureRows 201 sceneSetAngularApertureCols
+
+  0 sceneSetFixationMode
+  quarterImpulse
+  waitUntilAtCurrentPosition
+
+  1 changeToHeight 
+  currentPose "tempUpdateSpiralPos" store
+
+  0 "tempChrThisHeight" store
+
+  (
+    tempChrThisHeight 4 < 
+  ) (
+    tempChrThisHeight changeToHeight 
+
+    sceneInit 
+    sceneClearObservedMap
+    clearStreamBuffers
+
+    tempUpdateMagCoreNoClean
+
+    quarterImpulse
+    tempUpdateSpiralPos moveEeToPoseWord
+    waitUntilAtCurrentPosition
+
+    0.16 "magCalDelta" store
+    10 "magCalSteps" store
+    tempMagCalibrationGridSearcher
+
+    0.04 "magCalDelta" store
+    10 "magCalSteps" store
+    tempMagCalibrationGridSearcher
+
+    0.01 "magCalDelta" store
+    10 "magCalSteps" store
+    tempMagCalibrationGridSearcher
+
+      tempChrThisHeight 1 +
+    "tempChrThisHeight" store
+    
+    pauseStackExecution
+  ) while 
+  
+) "tempCalibrateMagnification" store
 
 
 

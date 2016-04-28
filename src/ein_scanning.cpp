@@ -2142,10 +2142,10 @@ END_WORD
 REGISTER_WORD(SetMagnificationA)
 
 CONFIG_GETTER_DOUBLE(CameraGetIdxMagX, ms->config.m_x_h[ms->config.currentThompsonHeightIdx]) 
-CONFIG_SETTER_DOUBLE(CameraSetIdxMaxX, ms->config.m_x_h[ms->config.currentThompsonHeightIdx]) 
+CONFIG_SETTER_DOUBLE(CameraSetIdxMagX, ms->config.m_x_h[ms->config.currentThompsonHeightIdx]) 
 
 CONFIG_GETTER_DOUBLE(CameraGetIdxMagY, ms->config.m_y_h[ms->config.currentThompsonHeightIdx]) 
-CONFIG_SETTER_DOUBLE(CameraSetIdxMaxY, ms->config.m_y_h[ms->config.currentThompsonHeightIdx]) 
+CONFIG_SETTER_DOUBLE(CameraSetIdxMagY, ms->config.m_y_h[ms->config.currentThompsonHeightIdx]) 
 
 WORD(SetMagnificationB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
