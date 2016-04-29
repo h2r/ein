@@ -2152,7 +2152,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 0.2 "magCalDelta" store
 10 "magCalSteps" store
-2.00 "magCalMinVarImprovement" store
+0.10 "magCalMinVarImprovement" store
 ( cameraGetIdxMagX ) "magCalGetter" store
 ( cameraSetIdxMagX ) "magCalSetter" store
 (
@@ -2355,6 +2355,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     to address data at all heights jointly
   */
 
+/*
   200 "tempReconstructStreamTakeSceneSamples" store
 
   0 "tempChrStartHeight" store
@@ -2372,7 +2373,6 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   ( cameraSetCurrentHeightReticleY ) "magCalSetter" store
   tempCalibrateOnBundleOneDimensionJointHeights
 
-/*
 */
 
 
@@ -2383,75 +2383,41 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   */
 
   0 changeToHeight
-  2.5 cameraSetIdxMagY 
-  2.5 cameraSetIdxMagX 
+  1.0 cameraSetIdxMagY 
+  1.0 cameraSetIdxMagX 
 
   1 changeToHeight
-  2.5 cameraSetIdxMagY 
-  2.5 cameraSetIdxMagX 
+  1.0 cameraSetIdxMagY 
+  1.0 cameraSetIdxMagX 
 
   2 changeToHeight
-  2.5 cameraSetIdxMagY 
-  2.5 cameraSetIdxMagX 
+  1.0 cameraSetIdxMagY 
+  1.0 cameraSetIdxMagX 
 
   3 changeToHeight
-  2.5 cameraSetIdxMagY 
-  2.5 cameraSetIdxMagX 
+  1.0 cameraSetIdxMagY 
+  1.0 cameraSetIdxMagX 
 
   50 "tempReconstructStreamTakeSceneSamples" store
   0 "tempChrStartHeight" store
   3 "tempChrEndHeight" store
   0.0 "tempChrExtraZ" store
 
-    0.2 "magCalDelta" store
-    20 "magCalSteps" store
-    ( cameraGetIdxMagX ) "magCalGetter" store
-    ( cameraSetIdxMagX ) "magCalSetter" store
-    tempCalibrateOnBundleOneDimension
+  0.01 "magCalDelta" store
+  50 "magCalSteps" store
+  ( cameraGetIdxMagY ) "magCalGetter" store
+  ( cameraSetIdxMagY ) "magCalSetter" store
+  tempCalibrateOnBundleOneDimension
 
-    0.2 "magCalDelta" store
-    20 "magCalSteps" store
-    ( cameraGetIdxMagY ) "magCalGetter" store
-    ( cameraSetIdxMagY ) "magCalSetter" store
-    tempCalibrateOnBundleOneDimension
-
-    0.2 "magCalDelta" store
-    20 "magCalSteps" store
-    ( cameraGetIdxMagX ) "magCalGetter" store
-    ( cameraSetIdxMagX ) "magCalSetter" store
-    tempCalibrateOnBundleOneDimension
-
-    0.2 "magCalDelta" store
-    20 "magCalSteps" store
-    ( cameraGetIdxMagY ) "magCalGetter" store
-    ( cameraSetIdxMagY ) "magCalSetter" store
-    tempCalibrateOnBundleOneDimension
+  0.01 "magCalDelta" store
+  50 "magCalSteps" store
+  ( cameraGetIdxMagX ) "magCalGetter" store
+  ( cameraSetIdxMagX ) "magCalSetter" store
+  tempCalibrateOnBundleOneDimension
 
 
-      0.04 "magCalDelta" store
-      20 "magCalSteps" store
-      ( cameraGetIdxMagX ) "magCalGetter" store
-      ( cameraSetIdxMagX ) "magCalSetter" store
-      tempCalibrateOnBundleOneDimension
-
-      0.04 "magCalDelta" store
-      20 "magCalSteps" store
-      ( cameraGetIdxMagY ) "magCalGetter" store
-      ( cameraSetIdxMagY ) "magCalSetter" store
-      tempCalibrateOnBundleOneDimension
-
-      0.04 "magCalDelta" store
-      20 "magCalSteps" store
-      ( cameraGetIdxMagX ) "magCalGetter" store
-      ( cameraSetIdxMagX ) "magCalSetter" store
-      tempCalibrateOnBundleOneDimension
-
-      0.04 "magCalDelta" store
-      10 "magCalSteps" store
-      ( cameraGetIdxMagY ) "magCalGetter" store
-      ( cameraSetIdxMagY ) "magCalSetter" store
-      tempCalibrateOnBundleOneDimension
-
+  /*
+  */
 
 
 /*
