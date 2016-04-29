@@ -1338,7 +1338,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 0.3883 "tempReconstructWithZTopZ" store 
 0.0 "tempReconstructWithZTotalZ" store
 0.01 "tempReconstructWithZDeltaZ" store
-50 "tempReconstructStreamTakeSceneSamples" store
+500 "tempReconstructStreamTakeSceneSamples" store
 (
 
       streamPushImageStreamSize 
@@ -2354,8 +2354,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   these parameters interact through the pixelToGlobal function so they need
     to address data at all heights jointly
   */
-/*
-  200 "tempSpiralStreamTakeSceneSamplesDefault" store
+
+  200 "tempReconstructStreamTakeSceneSamples" store
 
   0 "tempChrStartHeight" store
   3 "tempChrEndHeight" store
@@ -2371,6 +2371,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   ( cameraGetCurrentHeightReticleY ) "magCalGetter" store
   ( cameraSetCurrentHeightReticleY ) "magCalSetter" store
   tempCalibrateOnBundleOneDimensionJointHeights
+
+/*
 */
 
 
@@ -2396,7 +2398,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   2.5 cameraSetIdxMagY 
   2.5 cameraSetIdxMagX 
 
-  50 "tempSpiralStreamTakeSceneSamplesDefault" store
+  50 "tempReconstructStreamTakeSceneSamples" store
   0 "tempChrStartHeight" store
   3 "tempChrEndHeight" store
   0.0 "tempChrExtraZ" store
