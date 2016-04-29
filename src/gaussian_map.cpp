@@ -3572,14 +3572,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   Mat wristViewYCbCr = bufferImage.clone();
 
-  if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-    cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
-  } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
-    cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
-  } else {
-    assert(0);
-  }
-  
+  cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+
   Size sz = bufferImage.size();
   int imW = sz.width;
   int imH = sz.height;
@@ -3683,12 +3677,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->config.scene->observed_map->rgbMuToMat(image);
     Mat rgb = image.clone();  
 
-    if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-      cvtColor(image, rgb, CV_YCrCb2BGR);
-    } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
-    } else {
-      assert(0);
-    }
+    cvtColor(image, rgb, CV_YCrCb2BGR);
 
     ms->config.observedWindow->updateImage(rgb);
   }
@@ -4949,13 +4938,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   Mat wristViewYCbCr = bufferImage.clone();
 
-  if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-    cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
-  } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
-    cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
-  } else {
-    assert(0);
-  }
+  cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
   
   Size sz = bufferImage.size();
   int imW = sz.width;
@@ -5707,9 +5690,7 @@ END_WORD
 REGISTER_WORD(SceneRegularizeSceneL2)
 
 
-
-
-WORD(SceneSetVanishingPointFromVariance)
+WORD(ScenePushPixelsOfMinVariance)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // convert map cell into global xy
   // convert global xy into pixels
@@ -5721,14 +5702,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     for (int x = 0; x < ms->config.scene->width; x++) {
       if (ms->config.scene->observed_map->refAtCell(x, y)->red.samples > 40) {
 	// this is for FIXATE_STREAM so ignore Y channel
-	//double thisEnergy = 
-	  //ms->config.scene->observed_map->refAtCell(x,y)->red.sigmasquared +
-	  //ms->config.scene->observed_map->refAtCell(x,y)->green.sigmasquared; 
-	// this is assuming image still in RGB due to FIXATE_CURRENT so use all 3 channels
 	double thisEnergy = 
 	  ms->config.scene->observed_map->refAtCell(x,y)->red.sigmasquared +
-	  ms->config.scene->observed_map->refAtCell(x,y)->green.sigmasquared +
-	   + ms->config.scene->observed_map->refAtCell(x,y)->blue.sigmasquared;
+	  ms->config.scene->observed_map->refAtCell(x,y)->green.sigmasquared; 
+	// this is assuming image still in RGB due to FIXATE_CURRENT so use all 3 channels
+	//double thisEnergy = 
+	  //ms->config.scene->observed_map->refAtCell(x,y)->red.sigmasquared +
+	  //ms->config.scene->observed_map->refAtCell(x,y)->green.sigmasquared +
+	   //+ ms->config.scene->observed_map->refAtCell(x,y)->blue.sigmasquared;
 
 	if (thisEnergy < minEnergy) {
 	  minEnergy = thisEnergy;
@@ -5746,16 +5727,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int pixel_scene_x, pixel_scene_y;
   globalToPixel(ms, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.currentEEPose);
 
-  cout << "sceneSetVanishingPointFromVariance x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
-  cout << "sceneSetVanishingPointFromVariance r,g mus: " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->red.mu << " " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->green.mu << endl;
+  cout << "scenePushPixelsOfMinVariance x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
+  cout << "scenePushPixelsOfMinVariance r,g mus: " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->red.mu << " " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->green.mu << endl;
 
-  ms->config.vanishingPointReticle.px = pixel_scene_x;
-  ms->config.vanishingPointReticle.py = pixel_scene_y;
+  ms->pushWord(make_shared<DoubleWord>(pixel_scene_x));
+  ms->pushWord(make_shared<DoubleWord>(pixel_scene_y));
 }
 END_WORD
-REGISTER_WORD(SceneSetVanishingPointFromVariance)
+REGISTER_WORD(ScenePushPixelsOfMinVariance)
 
-WORD(SceneSetVanishingPointFromVarianceDepthStack)
+WORD(ScenePushPixelOfMinStackVariance)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // convert map cell into global xy
   // convert global xy into pixels
@@ -5770,14 +5751,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       for (int i = 0; i < ms->config.depth_maps.size(); i++) {
 	if (ms->config.depth_maps[i]->refAtCell(x, y)->red.samples > 40) {
 	  // this is for FIXATE_STREAM so ignore Y channel
-	  //thisTotalEnergy = thisTotalEnergy + 
-	    //ms->config.depth_maps[i]->refAtCell(x,y)->red.sigmasquared +
-	    //ms->config.depth_maps[i]->refAtCell(x,y)->green.sigmasquared; 
-	  // this is assuming image still in RGB due to FIXATE_CURRENT so use all 3 channels
 	  thisTotalEnergy = thisTotalEnergy + 
 	    ms->config.depth_maps[i]->refAtCell(x,y)->red.sigmasquared +
-	    ms->config.depth_maps[i]->refAtCell(x,y)->green.sigmasquared +
-	     + ms->config.depth_maps[i]->refAtCell(x,y)->blue.sigmasquared;
+	    ms->config.depth_maps[i]->refAtCell(x,y)->green.sigmasquared; 
+	  // this is assuming image still in RGB due to FIXATE_CURRENT so use all 3 channels
+	  //thisTotalEnergy = thisTotalEnergy + 
+	    //ms->config.depth_maps[i]->refAtCell(x,y)->red.sigmasquared +
+	    //ms->config.depth_maps[i]->refAtCell(x,y)->green.sigmasquared +
+	     //+ ms->config.depth_maps[i]->refAtCell(x,y)->blue.sigmasquared;
 
 	  thisSamples = thisSamples + 1;
 	}
@@ -5800,60 +5781,70 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int pixel_scene_x, pixel_scene_y;
   globalToPixel(ms, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.currentEEPose);
 
-  cout << "sceneSetVanishingPointFromVarianceDepthStack x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
-  cout << "sceneSetVanishingPointFromVarianceDepthStack r,g mus: " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->red.mu << " " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->green.mu << endl;
+  cout << "scenePushPixelOfMinStackVariance x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
+  cout << "scenePushPixelOfMinStackVariance r,g mus: " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->red.mu << " " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->green.mu << endl;
+
+  ms->pushWord(make_shared<DoubleWord>(pixel_scene_x));
+  ms->pushWord(make_shared<DoubleWord>(pixel_scene_y));
+}
+END_WORD
+REGISTER_WORD(ScenePushPixelOfMinStackVariance)
+
+WORD(SceneSetVanishingPointFromPixel)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int pixel_scene_x, pixel_scene_y;
+  GET_NUMERIC_ARG(ms, pixel_scene_x);
+  GET_NUMERIC_ARG(ms, pixel_scene_y);
+
+  cout << "sceneSetVanishingPointFromPixel x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
+
+  // XXX optionally add a translation of the height reticles here to avoid going into "dead" configurations
+  double delta_x = pixel_scene_x - ms->config.vanishingPointReticle.px;
+  double delta_y = pixel_scene_x - ms->config.vanishingPointReticle.py;
+
+  ms->config.heightReticles[0].px += delta_x;
+  ms->config.heightReticles[1].px += delta_x;
+  ms->config.heightReticles[2].px += delta_x;
+  ms->config.heightReticles[3].px += delta_x;
+
+  ms->config.heightReticles[0].py += delta_y;
+  ms->config.heightReticles[1].py += delta_y;
+  ms->config.heightReticles[2].py += delta_y;
+  ms->config.heightReticles[3].py += delta_y;
 
   ms->config.vanishingPointReticle.px = pixel_scene_x;
   ms->config.vanishingPointReticle.py = pixel_scene_y;
 }
 END_WORD
-REGISTER_WORD(SceneSetVanishingPointFromVarianceDepthStack)
+REGISTER_WORD(SceneSetVanishingPointFromPixel)
 
-WORD(SceneSetHeightReticleFromVariance)
+WORD(SceneSetHeightReticleFromPixel)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+  int pixel_scene_x, pixel_scene_y;
+  GET_NUMERIC_ARG(ms, pixel_scene_y);
+  GET_NUMERIC_ARG(ms, pixel_scene_x);
+
   int this_height_idx = 0;
   GET_NUMERIC_ARG(ms, this_height_idx);
 
-  // convert map cell into global xy
-  // convert global xy into pixels
-  double minEnergy = DBL_MAX;
-  int minEnergyX = -1;
-  int minEnergyY = -1;
-
-  for (int y = 0; y < ms->config.scene->height; y++) {
-    for (int x = 0; x < ms->config.scene->width; x++) {
-      if (ms->config.scene->observed_map->refAtCell(x, y)->red.samples > 40) {
-	// this is for FIXATE_STREAM so ignore Y channel
-	//double thisEnergy = 
-	  //ms->config.scene->observed_map->refAtCell(x,y)->red.sigmasquared +
-	  //ms->config.scene->observed_map->refAtCell(x,y)->green.sigmasquared; 
-	// this is assuming image still in RGB due to FIXATE_CURRENT so use all 3 channels
-	double thisEnergy = 
-	  ms->config.scene->observed_map->refAtCell(x,y)->red.sigmasquared +
-	  ms->config.scene->observed_map->refAtCell(x,y)->green.sigmasquared +
-	   + ms->config.scene->observed_map->refAtCell(x,y)->blue.sigmasquared;
-
-	if (thisEnergy < minEnergy) {
-	  minEnergy = thisEnergy;
-	  minEnergyX = x;
-	  minEnergyY = y;
-	}
-      }
-    }
-  }
-
-  double meters_scene_x, meters_scene_y;
-  ms->config.scene->observed_map->cellToMeters(minEnergyX, minEnergyY, &meters_scene_x, &meters_scene_y);
-
-  double zToUse = ms->config.currentEEPose.pz + ms->config.currentTableZ;
-  int pixel_scene_x, pixel_scene_y;
-  globalToPixel(ms, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.currentEEPose);
-
-  cout << "sceneSetHeightReticleFromVariance x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
-  cout << "sceneSetHeightReticleFromVariance r,g mus: " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->red.mu << " " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->green.mu << endl;
+  cout << "sceneSetHeightReticleFromPixel x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
 
   ms->config.heightReticles[this_height_idx].px = pixel_scene_x;
   ms->config.heightReticles[this_height_idx].py = pixel_scene_y;
+}
+END_WORD
+REGISTER_WORD(SceneSetHeightReticleFromPixel)
+
+WORD(SceneSetVanishingPointFromVariance)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("scenePushPixelsOfMinVariance sceneSetVanishingPointFromPixel");
+}
+END_WORD
+REGISTER_WORD(SceneSetVanishingPointFromVariance)
+
+WORD(SceneSetHeightReticleFromVariance)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("scenePushPixelsOfMinVariance sceneSetHeightReticleFromPixel");
 }
 END_WORD
 REGISTER_WORD(SceneSetHeightReticleFromVariance)
@@ -5880,6 +5871,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   if (samples > 0) {
     mean = total / samples;
+  } else {
+    // XXX if something went wrong, we don't want to choose this height. 
+    // right now, only functions that want this to be low are used but they should check in the future.
+    mean = DBL_MAX;
   }
 
   cout << "scenePushAverageCrCbSigmaSquared total samples mean: " << total << " " << samples << " " << mean << endl;
