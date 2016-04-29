@@ -2147,6 +2147,20 @@ CONFIG_SETTER_DOUBLE(CameraSetIdxMagX, ms->config.m_x_h[ms->config.currentThomps
 CONFIG_GETTER_DOUBLE(CameraGetIdxMagY, ms->config.m_y_h[ms->config.currentThompsonHeightIdx]) 
 CONFIG_SETTER_DOUBLE(CameraSetIdxMagY, ms->config.m_y_h[ms->config.currentThompsonHeightIdx]) 
 
+
+CONFIG_GETTER_DOUBLE(CameraGetVpX, ms->config.vanishingPointReticle.px) 
+CONFIG_SETTER_DOUBLE(CameraSetVpX, ms->config.vanishingPointReticle.px) 
+
+CONFIG_GETTER_DOUBLE(CameraGetVpY, ms->config.vanishingPointReticle.py) 
+CONFIG_SETTER_DOUBLE(CameraSetVpY, ms->config.vanishingPointReticle.py) 
+
+
+CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleX, ms->config.heightReticles[ms->config.currentThompsonHeightIdx].px) 
+CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleX, ms->config.heightReticles[ms->config.currentThompsonHeightIdx].px) 
+
+CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleY, ms->config.heightReticles[ms->config.currentThompsonHeightIdx].py) 
+CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleY, ms->config.heightReticles[ms->config.currentThompsonHeightIdx].py) 
+
 WORD(SetMagnificationB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // adjust until close	
@@ -2574,6 +2588,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(LoadCalibration)
+
+WORD(LoadCalibrationRaw)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string fileName;
+  GET_ARG(ms, StringWord, fileName);
+  cout << "Loading calibration file from " << fileName << endl;
+  loadCalibration(ms, fileName);
+}
+END_WORD
+REGISTER_WORD(LoadCalibrationRaw)
+
 
 WORD(SaveCalibration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
