@@ -5821,8 +5821,8 @@ REGISTER_WORD(SceneSetVanishingPointFromPixel)
 WORD(SceneSetHeightReticleFromPixel)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   int pixel_scene_x, pixel_scene_y;
-  GET_NUMERIC_ARG(ms, pixel_scene_y);
   GET_NUMERIC_ARG(ms, pixel_scene_x);
+  GET_NUMERIC_ARG(ms, pixel_scene_y);
 
   int this_height_idx = 0;
   GET_NUMERIC_ARG(ms, this_height_idx);
