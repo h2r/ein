@@ -7,6 +7,7 @@
 class GaussianMap;
 class TransitionTable;
 class Scene;
+class OrientedRay;
 
 #include <ros/package.h>
 #include <tf/transform_listener.h>
@@ -222,7 +223,8 @@ typedef enum {
 
 typedef enum {
   CAMCAL_LINBOUNDED = 0,
-  CAMCAL_QUADRATIC = 1
+  CAMCAL_QUADRATIC = 1,
+  CAMCAL_HYPERBOLIC = 2
 } cameraCalibrationMode;
 
 typedef enum {
@@ -1097,8 +1099,11 @@ class EinConfig {
   //  the camera
   // the estimated vanishing point is actually pretty
   //  close to the measured one
-  double d_y = -0.04;
-  double d_x = 0.018;
+  //double d_y = -0.04;
+  //double d_x = 0.018;
+  //eePose handCameraOffset = {0.03815,0.01144,0.01589, 0,0,0,1};
+  double d_y = -0.038;
+  double d_x = 0.011;
   double offX = 0;
   double offY = 0;
   // these corrective magnification factors should be close to 1
@@ -1626,8 +1631,10 @@ class EinConfig {
 
   vector<shared_ptr<GaussianMap> > depth_maps;
 
-  int angular_aperture_cols = 401;
-  int angular_aperture_rows = 401;
+  vector<OrientedRay> rayBuffer;
+
+  int angular_aperture_cols = 351;
+  int angular_aperture_rows = 351;
   int angular_baffle_cols = 0;
   int angular_baffle_rows = 0;
 

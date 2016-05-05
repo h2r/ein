@@ -7,6 +7,20 @@
 class MachineState;
 class Word;
 
+typedef enum {
+  RAY_RGB = 1,
+  RAY_A = 2
+} rayType;
+
+class OrientedRay {
+public:
+  eePose pa;
+  eePose pb;
+  double r,g,b,a;
+  rayType t;
+};
+
+
 typedef struct _GaussianMapChannel {
   double counts;
   double squaredcounts;
