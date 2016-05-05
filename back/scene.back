@@ -1364,8 +1364,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempClassifyOne" store
 
 
-50 "lensArraySize" store
-0.50 "lensArrayStrength" store
+25 "lensArraySize" store
+1.0 "lensArrayStrength" store
+0.05 "lensArrayGap" store
 
 /* 
 0.3883 "tempReconstructWithZTopZ" store 
@@ -1535,7 +1536,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   sceneClearObservedMap
   rewindImageStreamBufferNLNK 
   ( 
-    lensArrayStrength lensArraySize tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray
+    lensArrayGap lensArrayStrength lensArraySize tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray
 
     ( 
       incrementImageStreamBufferNoLoadNoKick 

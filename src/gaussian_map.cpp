@@ -5062,6 +5062,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double lens_strength = 0.5;
   GET_NUMERIC_ARG(ms, lens_strength);
 
+  if (lens_strength == 0) {
+    lens_strength = 1.0e-6;
+    cout << "sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray: given 0 lens_strength, using " << lens_strength << " instead." << endl;
+  }
+
+  double lens_gap = 0.01;
+  GET_NUMERIC_ARG(ms, lens_gap);
+
   cout << "zToUse arrayDimension lens_strength: " << z_to_use << " " << arrayDimension << " " << lens_strength << endl;
 
   Mat bufferImage;
@@ -5130,9 +5138,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int boty = imHoT + aahr; 
   
   pixelToGlobalCache data;
+  pixelToGlobalCache data_gap;
   double z = z_to_use;
+  double z_gap = z_to_use + lens_gap;
   //computePixelToGlobalCache(ms, z, thisPose, &data);
   computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
+  computePixelToPlaneCache(ms, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -5178,6 +5189,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
 	  double x, y;
 	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+
+	  double x_gap, y_gap;
+	  pixelToGlobalFromCache(ms, px, py, &x_gap, &y_gap, &data_gap);
 	  
 	  if (1) {
 	    // single sample update
@@ -5191,7 +5205,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
 	    GaussianMapCell * lcell = ms->config.scene->observed_map->refAtCell(li, lj);
 
-	    if (lcell != NULL) {
+	    //if (lcell != NULL) 
+	    {
 
 	      // find the physical coordinate of the lens, also the focal point
 	      double mi, mj;
@@ -5200,9 +5215,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	      // shrink this ray towards the focal point
 	      //double ri = ((1.0 - lens_strength) * x + (lens_strength) * mi) * (1.0-lens_strength);
 	      //double rj = ((1.0 - lens_strength) * y + (lens_strength) * mj) * (1.0-lens_strength);
+	
+	      // projected angle is proportional to displacement caused by the gap
+	      // the bigger the gap the more angles we get
 
-	      double ri = (-(1.0 - lens_strength) * (x-mi) + mi) * (lens_strength);
-	      double rj = (-(1.0 - lens_strength) * (y-mj) + mj) * (lens_strength);
+	      double ri = ((x_gap-x)/(lens_strength) + mi);
+	      double rj = ((y_gap-y)/(lens_strength) + mj);
 
 	      // and put it in that cell
 	      int cri, crj;
