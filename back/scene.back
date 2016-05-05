@@ -142,6 +142,37 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempUpdateSpiralCoreNoClean" store
 
 (
+  /* turn streaming on, no disk streaming */ 
+  shutdownToSensorsAndMovement
+  disableDiskStreaming
+
+    /* Pose Range Image Joints Word Label */
+    1 1 1 0 0 0 
+  setSisFlags
+  activateSensorStreaming
+
+  /* spiral scan pattern */
+  tempSpiralMoveSpeed setSpeed
+  tempSpiralGridSize setGridSize
+  /* shiftIntoGraspGear1 waitUntilAtCurrentPosition */
+
+  1 "tempUpdateSpiralIdx" store
+
+  ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
+  ( ( localXUp waitUntilAtCurrentPosition ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( localYUp waitUntilAtCurrentPosition ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( localXDown waitUntilAtCurrentPosition ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( localYDown waitUntilAtCurrentPosition ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    "tempUpdateSpiralCoreNoClean" print
+    tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
+  ) while
+
+  /* turn streaming off */
+  deactivateSensorStreaming
+  bringUpAllNonessentialSystems
+) "tempFusionSpiralCoreNoClean" store
+
+(
   "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
 
@@ -1332,14 +1363,35 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   sceneClearPredictedObjects tempPredictAndRenderBest clearBlueBoxMemories 0 sceneMapSceneObject
 ) "tempClassifyOne" store
 
+
+50 "lensArraySize" store
+0.50 "lensArrayStrength" store
+
 /* 
 0.3883 "tempReconstructWithZTopZ" store 
+0.343 "tempReconstructWithZTopZ" store 
 */
-0.3883 "tempReconstructWithZTopZ" store 
+0.343 "tempReconstructWithZTopZ" store 
 0.0 "tempReconstructWithZTotalZ" store
-0.01 "tempReconstructWithZDeltaZ" store
-500 "tempReconstructStreamTakeSceneSamples" store
+0.10 "tempReconstructWithZDeltaZ" store
+50 "tempReconstructStreamTakeSceneSamples" store
 (
+
+  /*
+  351 sceneSetAngularApertureRows 351 sceneSetAngularApertureCols
+  171 sceneSetAngularBaffleRows 171 sceneSetAngularBaffleCols
+
+  100 sceneSetAngularApertureRows 100 sceneSetAngularApertureCols
+  0 sceneSetAngularBaffleRows 0 sceneSetAngularBaffleCols
+
+  351 sceneSetAngularApertureRows 351 sceneSetAngularApertureCols
+  151 sceneSetAngularApertureRows 151 sceneSetAngularApertureCols
+  51 sceneSetAngularApertureRows 51 sceneSetAngularApertureCols
+
+  85 sceneSetAngularApertureRows 85 sceneSetAngularApertureCols
+  0 sceneSetAngularBaffleRows 0 sceneSetAngularBaffleCols
+  */
+
 
       streamPushImageStreamSize 
       tempReconstructStreamTakeSceneSamples  
@@ -1448,6 +1500,76 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempReconstructWithZ" store
 
 (
+      streamPushImageStreamSize 
+      tempReconstructStreamTakeSceneSamples  
+    min
+  "tempRSTSSMax" store
+
+  /* sceneInitRegisterZero */
+  sceneInitRegisterMax 
+
+  /* find the right stride */
+      streamPushImageStreamSize tempRSTSSMax divide 
+    ceil
+  "tempSpiralStreamTakeSceneStride" store
+
+  /* don't try to use more images than you have */
+      streamPushImageStreamSize tempSpiralStreamTakeSceneStride divide 
+    floor
+  "tempRSTSSMax" store
+  
+  streamPushImageStreamSize print
+  tempRSTSSMax print
+  tempSpiralStreamTakeSceneStride print
+
+  tempReconstructWithZTopZ "tempReconstructWithZThisZ" store
+
+      tempReconstructWithZBottomZ 
+    " " 
+    tempReconstructWithZThisZ	
+    " " 
+    tempReconstructWithZTopZ 
+    " " 
+  + + + + + print
+
+  sceneClearObservedMap
+  rewindImageStreamBufferNLNK 
+  ( 
+    lensArrayStrength lensArraySize tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray
+
+    ( 
+      incrementImageStreamBufferNoLoadNoKick 
+    ) tempSpiralStreamTakeSceneStride replicateWord 
+
+    endStackCollapseNoop 
+  ) tempRSTSSMax replicateWord
+
+  sceneRecalculateObservedMusAndSigmas
+  sceneRenderObservedMap
+  sceneRenderZ 
+) "tempReconstructWithoutZ" store
+
+(
+  sceneInitRegisterZero 
+  sceneMarginalizeDepthStackIntoRegister
+
+  sceneRecallFromRegister 
+
+  sceneRenderZ 
+  sceneRenderObservedMap
+)  "tempReconstructMarginalsFromStack" store
+
+(
+  sceneInitRegisterMax 
+  sceneMinDepthStackIntoRegister 
+
+  sceneRecallFromRegister 
+
+  sceneRenderZ 
+  sceneRenderObservedMap
+)  "tempReconstructMaxLikelihoodFromStack" store
+
+(
   quarterImpulse
   waitUntilAtCurrentPosition
 
@@ -1461,22 +1583,22 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   */
   0.01625 "tempSpiralGridSize" store
 
-/*
-90 setMapGrayBoxPixelSkirtRows 140 setMapGrayBoxPixelSkirtCols
-20 setMapGrayBoxPixelSkirtRows 40 setMapGrayBoxPixelSkirtCols
-120 setMapGrayBoxPixelSkirtRows 180 setMapGrayBoxPixelSkirtCols
-*/
-90 setMapGrayBoxPixelSkirtRows 140 setMapGrayBoxPixelSkirtCols
 
-  0.05 "tempSpiralMoveSpeed" store
-  /* 0.008 "tempSpiralGridSize" store */
 
   /* 
   10 "tempReconstructStreamTakeSceneSamples" store
   playWorkspace moveEeToPoseWord 
+
+  0.05 "tempSpiralMoveSpeed" store
+  12 "tempUpdateSpiralN" store
+  currentPose "tempUpdateSpiralPos" store
+
+  24 "tempUpdateSpiralN" store
+  currentPose "tempUpdateSpiralPos" store
   */
 
-  12 "tempUpdateSpiralN" store
+  0.015 "tempSpiralMoveSpeed" store
+  16 "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
 
   /* clear it all */
@@ -1853,8 +1975,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "slfgReconstructPoints" store
 
 
+0.1 "slfgRebaseCellWidth" store
 ( 
-  0.01 setGridSize currentPose ( localZUp ) 38 replicateWord currentPose sceneInitFromEePose ( localZDown ) 38 replicateWord 
+  0.001 setGridSize currentPose ( localZUp ) 388 replicateWord slfgRebaseCellWidth currentPose sceneInitFromEePoseScale ( localZDown ) 388 replicateWord 
 ) "slfgRebase" store
 
 
@@ -2017,7 +2140,11 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   ) (
     tempChrThisHeight changeToHeight 
 
+    /*
     sceneInit 
+    */
+    slfgRebase
+
     sceneClearObservedMap
     clearStreamBuffers
 
@@ -2088,31 +2215,31 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   waitUntilAtCurrentPosition
   tempCalibrateVanishingPointReticle
   scenePushOntoDepthStack
-  scenePushPixelsOfMinVariance
+  scenePushPixelOfMinVariance
 
   thisGridSize setGridSize 
   xUp yUp
   tempCalibrateVanishingPointReticle
   scenePushOntoDepthStack
-  scenePushPixelsOfMinVariance
+  scenePushPixelOfMinVariance
 
   thisGridSize setGridSize 
   xDown xDown
   tempCalibrateVanishingPointReticle
   scenePushOntoDepthStack
-  scenePushPixelsOfMinVariance
+  scenePushPixelOfMinVariance
 
   thisGridSize setGridSize 
   yDown yDown
   tempCalibrateVanishingPointReticle
   scenePushOntoDepthStack
-  scenePushPixelsOfMinVariance
+  scenePushPixelOfMinVariance
 
   thisGridSize setGridSize 
   xUp xUp
   tempCalibrateVanishingPointReticle
   scenePushOntoDepthStack
-  scenePushPixelsOfMinVariance
+  scenePushPixelOfMinVariance
 
   thisGridSize setGridSize 
   xDown yUp
@@ -2152,7 +2279,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 0.2 "magCalDelta" store
 10 "magCalSteps" store
-0.10 "magCalMinVarImprovement" store
+0.00 "magCalMinVarImprovement" store
 ( cameraGetIdxMagX ) "magCalGetter" store
 ( cameraSetIdxMagX ) "magCalSetter" store
 (
@@ -2225,7 +2352,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     "We won more than once so setting the new value." print
     magCalMinVarMag magCalSetter 
   ) (
-    "We only won " magCalNumWins " times so we are NOT SETTING THE VALUE." + + print
+    "We only won " magCalNumWins " times but we are SETTING THE VALUE ANYWAY." + + print
+    magCalMinVarMag magCalSetter 
   ) ifte
 
 
@@ -2350,9 +2478,76 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   /*
+  depth dependent magnification 
+  don't bias different heights by the others,
+   address each height separately
+  */
+
+  /* 
+
+  0 changeToHeight
+  1.0 cameraSetIdxMagY 
+  1.0 cameraSetIdxMagX 
+
+  1 changeToHeight
+  1.0 cameraSetIdxMagY 
+  1.0 cameraSetIdxMagX 
+
+  2 changeToHeight
+  1.0 cameraSetIdxMagY 
+  1.0 cameraSetIdxMagX 
+
+  3 changeToHeight
+  1.0 cameraSetIdxMagY 
+  1.0 cameraSetIdxMagX 
+
+  */
+
+  /*
+  50 "tempReconstructStreamTakeSceneSamples" store
+  1 "tempChrStartHeight" store
+  3 "tempChrEndHeight" store
+  0.0 "tempChrExtraZ" store
+
+
+  0.01 "magCalDelta" store
+  5 "magCalSteps" store
+  ( cameraGetIdxMagY ) "magCalGetter" store
+  ( cameraSetIdxMagY ) "magCalSetter" store
+  tempCalibrateOnBundleOneDimension
+
+  0.01 "magCalDelta" store
+  5 "magCalSteps" store
+  ( cameraGetIdxMagX ) "magCalGetter" store
+  ( cameraSetIdxMagX ) "magCalSetter" store
+  tempCalibrateOnBundleOneDimension
+
+  */
+
+
+
+  /* 
+  although we don't use heights 3 and 4 explicitly, setting them to the value of height 1 helps the quadratic
+  fit better if we don't feel like collecting them explicitly
+  */
+  1 changeToHeight cameraGetIdxMagY dup 2 changeToHeight cameraSetIdxMagY 3 changeToHeight cameraSetIdxMagY
+  1 changeToHeight cameraGetIdxMagX dup 2 changeToHeight cameraSetIdxMagX 3 changeToHeight cameraSetIdxMagX
+  cameraFitQuadratic 1 cameraSetCalibrationMode
+
+
+
+/*
+  /*
   gripper projections
-  these parameters interact through the pixelToGlobal function so they need
-    to address data at all heights jointly
+  these parameters interact through the pixelToGlobal function so they might need
+    to address data at all heights jointly.
+
+  variance reduction was successful during joint optimization but it lost metric
+    calibration somehow in the process. maybe a strange interaction between
+    the amount of space over which the average is happening due to the projection's
+    changes and the variance due to focus.
+
+  separate case not fully chased because calibration from spinning was adequate.
   */
 
 /*
@@ -2376,69 +2571,163 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 */
 
 
-  /*
-  depth dependent magnification 
-  don't bias different heights by the others,
-   address each height separately
-  */
-
-  0 changeToHeight
-  1.0 cameraSetIdxMagY 
-  1.0 cameraSetIdxMagX 
-
-  1 changeToHeight
-  1.0 cameraSetIdxMagY 
-  1.0 cameraSetIdxMagX 
-
-  2 changeToHeight
-  1.0 cameraSetIdxMagY 
-  1.0 cameraSetIdxMagX 
-
-  3 changeToHeight
-  1.0 cameraSetIdxMagY 
-  1.0 cameraSetIdxMagX 
-
-  50 "tempReconstructStreamTakeSceneSamples" store
-  0 "tempChrStartHeight" store
-  3 "tempChrEndHeight" store
-  0.0 "tempChrExtraZ" store
-
-  0.01 "magCalDelta" store
-  50 "magCalSteps" store
-  ( cameraGetIdxMagY ) "magCalGetter" store
-  ( cameraSetIdxMagY ) "magCalSetter" store
-  tempCalibrateOnBundleOneDimension
-
-  0.01 "magCalDelta" store
-  50 "magCalSteps" store
-  ( cameraGetIdxMagX ) "magCalGetter" store
-  ( cameraSetIdxMagX ) "magCalSetter" store
-  tempCalibrateOnBundleOneDimension
 
 
-  /*
-  */
-
-
-/*
-
-  0 "tempChrStartHeight" store
-  3 "tempChrEndHeight" store
-  0 "tempChrExtraZ" store
-  0.0000001 "magCalMinVarImprovement" store
-
-  5 "magCalDelta" store
-  40 "magCalSteps" store
-  ( cameraGetVpX ) "magCalGetter" store
-  ( cameraSetVpX ) "magCalSetter" store
-  tempCalibrateOnBundleOneDimension
-
-  5 "magCalDelta" store
-  40 "magCalSteps" store
-  ( cameraGetVpY ) "magCalGetter" store
-  ( cameraSetVpY ) "magCalSetter" store
-  tempCalibrateOnBundleOneDimension
 */
 
 ) "tempCalibrateMagnification" store
+
+
+
+(
+  quarterImpulse
+  waitUntilAtCurrentPosition
+
+  0.05 "tempSpiralMoveSpeed" store
+  0.01 setW1GoThresh
+
+  /*
+  16 "tempUpdateSpiralN" store
+  0.01625 "tempSpiralGridSize" store
+
+  32 "tempUpdateSpiralN" store
+  0.008125 "tempSpiralGridSize" store
+
+  32 2.0 * "tempUpdateSpiralN" store
+  0.008125 2.0 divide "tempSpiralGridSize" store
+  */
+
+  32 "tempUpdateSpiralN" store
+  0.008125 "tempSpiralGridSize" store
+
+  currentPose "tempUpdateSpiralPos" store
+
+  /* clear it all */
+  sceneClearObservedMap
+  clearStreamBuffers
+
+  tempFusionSpiralCoreNoClean tempUpdateMaps
+
+  quarterImpulse
+  tempUpdateSpiralPos moveEeToPoseWord
+  waitUntilAtCurrentPosition
+
+
+  /* integrate results */
+  /* this actually needs to happen after movement so position is still correct for FIXATION calibrators */
+  /*
+  tempUpdateSpiralCoreIntegrate
+  */
+  tempReconstructFromStream
+  tempUpdateMaps
+
+) "tempFusionTakeScene" store
+
+(
+  quarterImpulse
+  waitUntilAtCurrentPosition
+
+  0.01 setW1GoThresh
+  0.01625 "tempSpiralGridSize" store
+
+
+  0.05 "tempSpiralMoveSpeed" store
+
+  6 "tempUpdateSpiralN" store
+  currentPose "tempUpdateSpiralPos" store
+
+  /* clear it all */
+  sceneClearObservedMap
+  clearStreamBuffers
+
+  /* turn streaming on, no disk streaming */ 
+  shutdownToSensorsAndMovement
+  disableDiskStreaming
+
+    /* Pose Range Image Joints Word Label */
+    1 1 1 0 0 0 
+  setSisFlags
+  activateSensorStreaming
+
+
+
+) "tempFissionStartScene" store
+
+(
+      streamPushImageStreamSize 
+      tempReconstructStreamTakeSceneSamples  
+    min
+  "tempRSTSSMax" store
+
+
+  /* find the right stride */
+      streamPushImageStreamSize tempRSTSSMax divide 
+    ceil
+  "tempSpiralStreamTakeSceneStride" store
+
+  /* don't try to use more images than you have */
+      streamPushImageStreamSize tempSpiralStreamTakeSceneStride divide 
+    floor
+  "tempRSTSSMax" store
+  
+  streamPushImageStreamSize print
+  tempRSTSSMax print
+  tempSpiralStreamTakeSceneStride print
+
+
+  rewindImageStreamBufferNLNK 
+  ( 
+    0.388 rayBufferPopulateFromImageBuffer 
+
+    ( 
+      incrementImageStreamBufferNoLoadNoKick 
+    ) tempSpiralStreamTakeSceneStride replicateWord 
+
+/*
+    sceneRecalculateObservedMusAndSigmas
+    sceneRenderObservedMap
+*/
+
+    endStackCollapseNoop 
+  ) tempRSTSSMax replicateWord
+
+) "tempFusionGetRaysFromStream" store
+
+(
+
+
+
+  /* turn streaming off */
+  deactivateSensorStreaming
+  bringUpAllNonessentialSystems
+
+  tempUpdateMaps
+
+  quarterImpulse
+  tempUpdateSpiralPos moveEeToPoseWord
+  waitUntilAtCurrentPosition
+
+
+  /* integrate results */
+  /* this actually needs to happen after movement so position is still correct for FIXATION calibrators */
+  /*
+  tempUpdateSpiralCoreIntegrate
+  */
+
+  tempReconstructFromStream
+  tempUpdateMaps
+) "tempFissionEndScene" store
+
+(
+  "scene" import rayBufferInit tempFusionTakeScene 0.388 rayBufferPopulateFromImageBuffer "/home/oberlin/Desktop/slfgRays/test1.ray" rayBufferSaveRaw
+
+
+  "scene" import rayBufferInit tempFissionStartScene 
+  tempFissionEndScene
+
+  0.388 rayBufferPopulateFromImageBuffer "/home/oberlin/Desktop/slfgRays/test1.ray" rayBufferSaveRaw
+  rayBufferPopulateFromRangeBuffer "/home/oberlin/Desktop/slfgRays/test1.ray" rayBufferSaveRaw
+) "tempRayUsefulPhrases" store
+
+
 

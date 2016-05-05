@@ -3266,7 +3266,8 @@ WORD(SceneInitFromEePose)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   eePose destPose;
   GET_ARG(ms,EePoseWord,destPose);
-  double p_cell_width = 0.0025;//0.00175; //0.0025; //0.01;
+  // XXX THIS ONE IS FINER GRAINED since it is centerered
+  double p_cell_width = 0.001;//0.0025;//0.00175; //0.0025; //0.01;
   int p_width = 1001; //1501; // 1001 // 601;
   int p_height = 1001; //1501; // 1001 / 601;
   //eePose flipZ = {.px = 0.0, .py = 0.0, .pz = 0.0,
@@ -3279,6 +3280,28 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneInitFromEePose)
+
+WORD(SceneInitFromEePoseScale)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  eePose destPose;
+  GET_ARG(ms,EePoseWord,destPose);
+  double gridSize = 0.0;
+  GET_NUMERIC_ARG(ms, gridSize);
+
+  // XXX THIS ONE IS FINER GRAINED since it is centerered
+  double p_cell_width = gridSize;//0.0025;//0.00175; //0.0025; //0.01;
+  int p_width = 1001; //1501; // 1001 // 601;
+  int p_height = 1001; //1501; // 1001 / 601;
+  //eePose flipZ = {.px = 0.0, .py = 0.0, .pz = 0.0,
+  //.qx = 0.0, .qy = 1.0, .qz = 1.0, .qw = 0.0}; 
+
+  destPose = destPose.multQ(ms->config.straightDown.invQ());
+  ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width, destPose);
+  cout << "sceneInitFromEePose: destPose is " << destPose << endl;
+  ms->pushWord("sceneRenderScene");
+}
+END_WORD
+REGISTER_WORD(SceneInitFromEePoseScale)
 
 WORD(SceneInitDimensions)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -4964,20 +4987,30 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
+
+
+  int numPixels = 0;
+  int numNulls = 0;
+
   #pragma omp parallel for
   for (int i = 0; i < numThreads; i++) {
-    double frac = double(boty - topy) / double(numThreads);
-    double bfrac = i*frac;
-    double tfrac = (i+1)*frac;
+    //double frac = double(boty - topy) / double(numThreads);
+    //double bfrac = i*frac;
+    //double tfrac = (i+1)*frac;
 
-    for (int py = topy; py < boty; py++) {
-      // XXX actually this is not thread safe... 
-      //if (py % numThreads == i) 
-      double opy = py-topy;
-      // this is superior
-      if ( (bfrac <= opy) && (opy < tfrac) ) 
+    double frac = double(boty - topy) / double(numThreads);
+    int ttopy = floor(topy + i*frac);
+    int tboty = floor(topy + (i+1)*frac);
+
+    //for (int py = topy; py <= boty; py++) 
+      for (int py = ttopy; py < tboty; py++) 
       {
-	for (int px = topx; px < botx; px++) {
+
+      //double opy = py-topy;
+      // this is superior
+      //if ( (bfrac <= opy) && (opy < tfrac) ) 
+      //{
+	for (int px = topx; px <= botx; px++) {
 	  if (isInGripperMask(ms, px, py)) {
 	    continue;
 	  }
@@ -5000,17 +5033,581 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	    if (cell != NULL) {
 		Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
 		cell->newObservation(pixel, z);
+	      numPixels++;
 	    }
 	  } else {
+	      numNulls++;
+	  }
+	}
+      //}
+    }
+  }
+  //cout << "numPixels numNulls sum apertureSize: " << numPixels << " " << numNulls << " " << numPixels + numNulls << " " << ms->config.angular_aperture_rows * ms->config.angular_aperture_cols << endl;
+  //ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalc)
+
+WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  int thisIdx = ms->config.sibCurIdx;
+  //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
+
+  double arrayDimension = 25;
+  GET_NUMERIC_ARG(ms, arrayDimension);
+
+  double lens_strength = 0.5;
+  GET_NUMERIC_ARG(ms, lens_strength);
+
+  cout << "zToUse arrayDimension lens_strength: " << z_to_use << " " << arrayDimension << " " << lens_strength << endl;
+
+  Mat bufferImage;
+  eePose thisPose, tBaseP;
+
+  int success = 1;
+  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+    if (tsi.image.data == NULL) {
+      tsi.image = imread(tsi.filename);
+      if (tsi.image.data == NULL) {
+        cout << " Failed to load " << tsi.filename << endl;
+        tsi.loaded = 0;
+        return;
+      } else {
+        tsi.loaded = 1;
+      }
+    }
+    bufferImage = tsi.image.clone();
+
+    if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+    } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+      success = 1;
+      thisPose = ms->config.currentEEPose;
+      z_to_use = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+    } else {
+      assert(0);
+    }
+  } else {
+    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    return;
+  }
+
+  if (success != 1) {
+    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    return;
+  }
+
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  if (fabs(transformed.qz) > 0.01) {
+    ROS_ERROR("  Not doing update because arm not vertical.");
+    return;
+  }
+
+  Mat wristViewYCbCr = bufferImage.clone();
+
+  cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+  
+  Size sz = bufferImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+  
+  pixelToGlobalCache data;
+  double z = z_to_use;
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
+  int numThreads = 8;
+  // there is a faster way to stride it but i am risk averse atm
+
+
+  int numPixels = 0;
+  int numNulls = 0;
+
+
+  int lens_row_spacing = ceil(ms->config.scene->height / arrayDimension);
+  int lens_col_spacing = ceil(ms->config.scene->width / arrayDimension);
+
+  cout << "lens_row_spacing lens_col_spacing: " << lens_row_spacing << " " << lens_col_spacing << endl;
+
+  #pragma omp parallel for
+  for (int i = 0; i < numThreads; i++) {
+    //double frac = double(boty - topy) / double(numThreads);
+    //double bfrac = i*frac;
+    //double tfrac = (i+1)*frac;
+
+    double frac = double(boty - topy) / double(numThreads);
+    int ttopy = floor(topy + i*frac);
+    int tboty = floor(topy + (i+1)*frac);
+
+    //for (int py = topy; py <= boty; py++) 
+      for (int py = ttopy; py < tboty; py++) 
+      {
+
+      //double opy = py-topy;
+      // this is superior
+      //if ( (bfrac <= opy) && (opy < tfrac) ) 
+      //{
+	for (int px = topx; px <= botx; px++) {
+	  if (isInGripperMask(ms, px, py)) {
+	    continue;
+	  }
+
+	  if ( (abhr > 0) && (abhc > 0) ) {
+	    if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+		 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+	      continue;
+	    } 
+	  } 
+
+	  double x, y;
+	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+	  
+	  if (1) {
+	    // single sample update
+	    int i, j;
+	    ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+
+	    // find the cell of the lens this ray falls into
+	    int li, lj;
+	    li = (i / lens_row_spacing) * lens_row_spacing; 
+	    lj = (j / lens_col_spacing) * lens_col_spacing; 
+
+	    GaussianMapCell * lcell = ms->config.scene->observed_map->refAtCell(li, lj);
+
+	    if (lcell != NULL) {
+
+	      // find the physical coordinate of the lens, also the focal point
+	      double mi, mj;
+	      ms->config.scene->observed_map->cellToMeters(li, lj, &mi, &mj);
+
+	      // shrink this ray towards the focal point
+	      //double ri = ((1.0 - lens_strength) * x + (lens_strength) * mi) * (1.0-lens_strength);
+	      //double rj = ((1.0 - lens_strength) * y + (lens_strength) * mj) * (1.0-lens_strength);
+
+	      double ri = (-(1.0 - lens_strength) * (x-mi) + mi) * (lens_strength);
+	      double rj = (-(1.0 - lens_strength) * (y-mj) + mj) * (lens_strength);
+
+	      // and put it in that cell
+	      int cri, crj;
+	      ms->config.scene->observed_map->metersToCell(ri, rj, &cri, &crj);
+
+	      GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(cri, crj);
+	      if (cell != NULL) {
+		  Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+		  cell->newObservation(pixel, z);
+		numPixels++;
+	      } else {
+		  numNulls++;
+	      }
+	    }
+	  }
+	}
+      //}
+    }
+  }
+  //cout << "numPixels numNulls sum apertureSize: " << numPixels << " " << numNulls << " " << numPixels + numNulls << " " << ms->config.angular_aperture_rows * ms->config.angular_aperture_cols << endl;
+  //ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray)
+
+
+
+
+
+WORD(SceneUpdateObservedFromStreamBufferAtZCellwiseNoRecalc)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double zToUse = 0.0;
+  GET_NUMERIC_ARG(ms, zToUse);
+
+  int thisIdx = ms->config.sibCurIdx;
+  //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
+
+  Mat bufferImage;
+  eePose thisPose, tBaseP;
+
+  int success = 1;
+  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+    if (tsi.image.data == NULL) {
+      tsi.image = imread(tsi.filename);
+      if (tsi.image.data == NULL) {
+        cout << " Failed to load " << tsi.filename << endl;
+        tsi.loaded = 0;
+        return;
+      } else {
+        tsi.loaded = 1;
+      }
+    }
+    bufferImage = tsi.image.clone();
+
+    if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+    } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+      success = 1;
+      thisPose = ms->config.currentEEPose;
+      zToUse = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+    } else {
+      assert(0);
+    }
+  } else {
+    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    return;
+  }
+
+  if (success != 1) {
+    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    return;
+  }
+
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  if (fabs(transformed.qz) > 0.01) {
+    ROS_ERROR("  Not doing update because arm not vertical.");
+    return;
+  }
+
+  Mat wristViewYCbCr = bufferImage.clone();
+
+  cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+  
+  Size sz = bufferImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+  
+  pixelToGlobalCache data;
+  //computePixelToGlobalCache(ms, zToUse, thisPose, &data);
+  computePixelToPlaneCache(ms, zToUse, thisPose, ms->config.scene->background_pose, &data);  
+  int numThreads = 8;
+  // there is a faster way to stride it but i am risk averse atm
+
+  double topMx, topMy, botMx, botMy;
+  pixelToGlobalFromCache(ms, topx, topy, &topMx, &topMy, &data);
+  pixelToGlobalFromCache(ms, botx, boty, &botMx, &botMy, &data);
+  int topCx, topCy, botCx, botCy;
+  ms->config.scene->metersToCell(topMx, topMy, &topCx, &topCy);
+  ms->config.scene->metersToCell(botMx, botMy, &botCx, &botCy);
+
+  double cellWidthO2 = ms->config.scene->cell_width/2.0;
+
+  int temp = 0;
+  if (topCy > botCy) {
+    temp = botCy;
+    botCy = topCy;
+    topCy = temp;
+  }
+  if (topCx > botCx) {
+    temp = botCx;
+    botCx = topCx;
+    topCx = temp;
+  }
+     
+
+  #pragma omp parallel for
+  for (int cy = topCy; cy <= botCy; cy++) {
+    for (int cx = topCx; cx <= botCx; cx++) {
+
+      double mx,my;
+      ms->config.scene->cellToMeters(cx, cy, &mx, &my);
+	
+
+      int topPx, topPy, botPx, botPy;
+      globalToPixel(ms, &topPx, &topPy, zToUse, mx-cellWidthO2, my-cellWidthO2, ms->config.straightDown);
+      globalToPixel(ms, &botPx, &botPy, zToUse, mx+cellWidthO2, my+cellWidthO2, ms->config.straightDown);
+
+      if (topPy > botPy) {
+	temp = botPy;
+	botPy = topPy;
+	topPy = temp;
+      }
+      if (topPx > botPx) {
+	temp = botPx;
+	botPx = topPx;
+	topPx = temp;
+      }
+    
+
+      for (int py = topPy; py <= botPy; py++) {
+	for (int px = topPx; px <= botPx; px++) {
+	  if (isInGripperMask(ms, px, py)) {
+	    continue;
+	  }
+
+	  if ( (abhr > 0) && (abhc > 0) ) {
+	    if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+		 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+	      continue;
+	    } 
+	  } 
+	  
+	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(cx, cy);
+	  if (cell != NULL) {
+	      Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+	      cell->newObservation(pixel, zToUse);
 	  }
 	}
       }
+
     }
   }
   //ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
 }
 END_WORD
-REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalc)
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZCellwiseNoRecalc)
+
+WORD(SceneUpdateObservedFromStreamBufferAtZCellwiseApproxNoRecalc)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double zToUse = 0.0;
+  GET_NUMERIC_ARG(ms, zToUse);
+
+  int thisIdx = ms->config.sibCurIdx;
+  //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
+
+  Mat bufferImage;
+  eePose thisPose, tBaseP;
+
+  int success = 1;
+  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+    if (tsi.image.data == NULL) {
+      tsi.image = imread(tsi.filename);
+      if (tsi.image.data == NULL) {
+        cout << " Failed to load " << tsi.filename << endl;
+        tsi.loaded = 0;
+        return;
+      } else {
+        tsi.loaded = 1;
+      }
+    }
+    bufferImage = tsi.image.clone();
+
+    if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+    } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+      success = 1;
+      thisPose = ms->config.currentEEPose;
+      zToUse = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+    } else {
+      assert(0);
+    }
+  } else {
+    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    return;
+  }
+
+  if (success != 1) {
+    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    return;
+  }
+
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  if (fabs(transformed.qz) > 0.01) {
+    ROS_ERROR("  Not doing update because arm not vertical.");
+    return;
+  }
+
+  Mat wristViewYCbCr = bufferImage.clone();
+
+  cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+  
+  Size sz = bufferImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+  
+  pixelToGlobalCache data;
+  //computePixelToGlobalCache(ms, zToUse, thisPose, &data);
+  computePixelToPlaneCache(ms, zToUse, thisPose, ms->config.scene->background_pose, &data);  
+  int numThreads = 8;
+  // there is a faster way to stride it but i am risk averse atm
+
+  double topMx, topMy, botMx, botMy;
+  pixelToGlobalFromCache(ms, topx, topy, &topMx, &topMy, &data);
+  pixelToGlobalFromCache(ms, botx, boty, &botMx, &botMy, &data);
+
+  double temp = 0;
+  if (topMy > botMy) {
+    temp = botMy;
+    botMy = topMy;
+    topMy = temp;
+  }
+  if (topMx > botMx) {
+    temp = botMx;
+    botMx = topMx;
+    topMx = temp;
+  }
+
+  int topCx, topCy, botCx, botCy;
+  ms->config.scene->metersToCell(topMx, topMy, &topCx, &topCy);
+  ms->config.scene->metersToCell(botMx, botMy, &botCx, &botCy);
+
+  double cellWidthO2 = ms->config.scene->cell_width/2.0;
+  double cellWidth = ms->config.scene->cell_width;
+
+
+  int prePixelsPerCellY, prePixelsPerCellX;
+  int postPixelsPerCellY, postPixelsPerCellX;
+  double numToApp = 10.0;
+  globalToPixel(ms, &prePixelsPerCellX, &prePixelsPerCellY, zToUse, 0, 0, transformed);
+  globalToPixel(ms, &postPixelsPerCellX, &postPixelsPerCellY, zToUse, numToApp*ms->config.scene->cell_width, numToApp*ms->config.scene->cell_width, transformed);
+  double pixelsPerCellXD = (postPixelsPerCellX - prePixelsPerCellX)/numToApp;
+  double pixelsPerCellYD = (postPixelsPerCellY - prePixelsPerCellY)/numToApp;
+
+  int pcsX, pcsY;
+  if (pixelsPerCellXD < 0) {
+    pcsX = -1;
+  } else {
+    pcsX = 1;
+  }
+  if (pixelsPerCellYD < 0) {
+    pcsY = -1;
+  } else {
+    pcsY = 1;
+  }
+
+
+  int topCxPx, topCyPy;
+  globalToPixel(ms, &topCxPx, &topCyPy, zToUse, topMx-cellWidthO2, topMy-cellWidthO2, transformed);
+
+  //cout << "NoRecalcApprox: -- " << pixelsPerCellXD << " " << pixelsPerCellYD << " -- " << topCx << " " << topCy << " " << topCxPx << " " << topCyPy << endl;
+
+  int scW = ms->config.scene->width;
+  int scH = ms->config.scene->height;
+
+  topCy = std::max(0,topCy);
+  topCx = std::max(0,topCx);
+  topCy = std::min(scH-1,topCy);
+  topCx = std::min(scW-1,topCx);
+
+  botCy = std::max(0,botCy);
+  botCx = std::max(0,botCx);
+  botCy = std::min(scH-1,botCy);
+  botCx = std::min(scW-1,botCx);
+
+  #pragma omp parallel for
+  for (int cy = topCy; cy <= botCy; cy++) {
+    for (int cx = topCx; cx <= botCx; cx++) {
+
+      double mx,my;
+      ms->config.scene->cellToMeters(cx, cy, &mx, &my);
+	
+
+      int topPx = topCxPx + (cx-topCx)*pixelsPerCellXD;
+      int botPx = topPx + pixelsPerCellXD;
+      int topPy = topCyPy + (cy-topCy)*pixelsPerCellYD;
+      int botPy = topPy + pixelsPerCellYD;
+
+/*
+      if (topPy > botPy) {
+	temp = botPy;
+	botPy = topPy;
+	topPy = temp;
+      }
+      if (topPx > botPx) {
+	temp = botPx;
+	botPx = topPx;
+	topPx = temp;
+      }
+
+
+      if ( (topPx < 0) || (topPy < 0) || (topPx >= imW) || (topPy >= imH) ||
+	   (botPx < 0) || (botPy < 0) || (botPx >= imW) || (botPy >= imH) ) {
+	continue;
+      }
+*/
+
+      topPy = std::max(0,topPy);
+      topPx = std::max(0,topPx);
+      topPy = std::min(imH-1,topPy);
+      topPx = std::min(imW-1,topPx);
+
+      botPy = std::max(0,botPy);
+      botPx = std::max(0,botPx);
+      botPy = std::min(imH-1,botPy);
+      botPx = std::min(imW-1,botPx);
+
+      if ( ( (topPx == botPx) && ( (topPx == 0) || (topPx == imW-1) ) ) ||
+	   ( (topPy == botPy) && ( (topPy == 0) || (topPy == imH-1) ) ) ) {
+	continue;
+      } 
+
+    
+      //cout << "  NoRecalcApprox: " << topPx << " " << topPy << " " << botPx << " " << botPy << " " << pcsX << " " << pcsY << endl;
+
+      for (int py = topPy; py * pcsY <= botPy * pcsY; py+=pcsY) {
+	for (int px = topPx; px * pcsX <= botPx * pcsX; px+=pcsX) {
+	  if (isInGripperMask(ms, px, py)) {
+	    continue;
+	  }
+
+	  if ( (abhr > 0) && (abhc > 0) ) {
+	    if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+		 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+	      continue;
+	    } 
+	  } 
+
+	  if ( (px < 0) || (py < 0) || (px >= imW) || (py >= imH) ) {
+	    continue;
+	  }
+	  
+	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(cx, cy);
+	  if (cell != NULL) {
+	      Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+	      cell->newObservation(pixel, zToUse);
+	  }
+	}
+      }
+
+    }
+  }
+  //ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZCellwiseApproxNoRecalc)
 
 CONFIG_SETTER_INT(SceneSetAngularApertureRows, ms->config.angular_aperture_rows)
 CONFIG_GETTER_INT(SceneAngularApertureRows, ms->config.angular_aperture_rows)
@@ -5662,7 +6259,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   for (int i = 0; i < ms->config.depth_maps.size(); i++) {
     stringstream ss;
-    ss << depthStackFolderPath << "/stack" << std::setprecision(5) << i << ".png";
+    ss << depthStackFolderPath << "/stack" << std::setprecision(5) << i << ".yml";
     string thisFilePath = ss.str();
     ms->config.depth_maps[i]->saveToFile(thisFilePath);
   }
@@ -5690,7 +6287,7 @@ END_WORD
 REGISTER_WORD(SceneRegularizeSceneL2)
 
 
-WORD(ScenePushPixelsOfMinVariance)
+WORD(ScenePushPixelOfMinVariance)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // convert map cell into global xy
   // convert global xy into pixels
@@ -5725,16 +6322,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   double zToUse = ms->config.currentEEPose.pz + ms->config.currentTableZ;
   int pixel_scene_x, pixel_scene_y;
-  globalToPixel(ms, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.currentEEPose);
+  globalToPixel(ms, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.straightDown);
 
-  cout << "scenePushPixelsOfMinVariance x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
-  cout << "scenePushPixelsOfMinVariance r,g mus: " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->red.mu << " " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->green.mu << endl;
+  cout << "scenePushPixelOfMinVariance x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
+  cout << "scenePushPixelOfMinVariance r,g mus: " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->red.mu << " " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->green.mu << endl;
 
   ms->pushWord(make_shared<DoubleWord>(pixel_scene_x));
   ms->pushWord(make_shared<DoubleWord>(pixel_scene_y));
 }
 END_WORD
-REGISTER_WORD(ScenePushPixelsOfMinVariance)
+REGISTER_WORD(ScenePushPixelOfMinVariance)
 
 WORD(ScenePushPixelOfMinStackVariance)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -5763,6 +6360,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  thisSamples = thisSamples + 1;
 	}
       }
+      // XXX this should take a running average of those equal to the current winner
       if (thisSamples > 0 ) {
 	double thisEnergy = thisTotalEnergy / thisSamples;
 	if (thisEnergy < minEnergy) {
@@ -5779,7 +6377,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   double zToUse = ms->config.currentEEPose.pz + ms->config.currentTableZ;
   int pixel_scene_x, pixel_scene_y;
-  globalToPixel(ms, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.currentEEPose);
+  globalToPixel(ms, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.straightDown);
 
   cout << "scenePushPixelOfMinStackVariance x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
   cout << "scenePushPixelOfMinStackVariance r,g mus: " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->red.mu << " " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->green.mu << endl;
@@ -5831,20 +6429,23 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   ms->config.heightReticles[this_height_idx].px = pixel_scene_x;
   ms->config.heightReticles[this_height_idx].py = pixel_scene_y;
+
+  // XXX should really consider regressing a straight line for the reticles since if
+  // they are bad the whole thing will be ill posed
 }
 END_WORD
 REGISTER_WORD(SceneSetHeightReticleFromPixel)
 
 WORD(SceneSetVanishingPointFromVariance)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->evaluateProgram("scenePushPixelsOfMinVariance sceneSetVanishingPointFromPixel");
+  ms->evaluateProgram("scenePushPixelOfMinVariance sceneSetVanishingPointFromPixel");
 }
 END_WORD
 REGISTER_WORD(SceneSetVanishingPointFromVariance)
 
 WORD(SceneSetHeightReticleFromVariance)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->evaluateProgram("scenePushPixelsOfMinVariance sceneSetHeightReticleFromPixel");
+  ms->evaluateProgram("scenePushPixelOfMinVariance sceneSetHeightReticleFromPixel");
 }
 END_WORD
 REGISTER_WORD(SceneSetHeightReticleFromVariance)
@@ -5883,10 +6484,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(ScenePushAverageCrCbSigmaSquared)
-
-
-
-
 
 
 /*
@@ -6022,6 +6619,257 @@ END_WORD
 REGISTER_WORD(PlanWithTransitionTable)
 
 */
+WORD(RayBufferInit)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.rayBuffer.resize(0);
+}
+END_WORD
+REGISTER_WORD(RayBufferInit)
+
+WORD(RayBufferSize)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->pushWord(make_shared<DoubleWord>(ms->config.rayBuffer.size()));
+}
+END_WORD
+REGISTER_WORD(RayBufferSize)
+
+WORD(RayBufferSaveRaw)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string file_name;
+  GET_STRING_ARG(ms, file_name);
+
+//#include <iostream>
+//#include <fstream>
+//using namespace std;
+
+  ofstream rayfile;
+  rayfile.open(file_name);
+
+  int numRays = ms->config.rayBuffer.size();
+
+  cout << "RayBufferSaveRaw: writing " << numRays << " to file " << file_name << endl;
+
+  //vector<OrientedRay> rayBuffer;
+  for (int i = 0; i < numRays; i++) {
+    OrientedRay * newRay =  &(ms->config.rayBuffer[i]);
+    rayfile << 
+    " ax: " << newRay->pa.px << " ay: " << newRay->pa.py << " az: " << newRay->pa.pz << 
+    " bx: " << newRay->pb.px << " by: " << newRay->pb.py << " bz: " << newRay->pb.pz << 
+    " r: "  << newRay->r     << " g: "  << newRay->g     << " b: "  << newRay->b     << " a: " << newRay->a <<  
+    " t: "  << newRay->t << endl;
+  }
+  rayfile.close();
+}
+END_WORD
+REGISTER_WORD(RayBufferSaveRaw)
+
+WORD(RayBufferPopulateFromRangeBuffer)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  int p_printSkip = 1000; 
+
+  for (int i = 0; i < ms->config.streamRangeBuffer.size(); i++) {
+    streamRange &tsr = ms->config.streamRangeBuffer[i];
+    eePose tArmP, tBaseP, tRelP;
+    int success = getStreamPoseAtTime(ms, tsr.time, &tArmP, &tBaseP);
+//XXX
+    cout << tBaseP << endl;
+    tBaseP = eePose::identity();
+
+    tRelP = tArmP.getPoseRelativeTo(tBaseP); 
+    double tRange = tsr.range;
+    cout << tsr.range << endl;
+
+    //cout << "got stream pose at time " << tsr.time << " " << tArmP << tBaseP << tRelP << endl;
+
+    if (success) {
+
+      ms->config.rmcX = tBaseP.px;
+      ms->config.rmcY = tBaseP.py;
+      ms->config.rmcZ = tBaseP.pz;
+
+      // this allows us to stitch together readings from different scans
+      //cout << "XXX: " << endl << tArmP << tBaseP << tRelP << tRelP.applyAsRelativePoseTo(tBaseP) << "YYY" << endl;
+      eePose thisCrane = tBaseP;
+      thisCrane.copyQ(ms->config.straightDown); 
+      eePose thisCraneRelativeThisBase = thisCrane.getPoseRelativeTo(tBaseP);
+
+      eePose rebasedRelative = tRelP.applyAsRelativePoseTo(thisCraneRelativeThisBase);
+      eePose rebasedArm = rebasedRelative.applyAsRelativePoseTo(tBaseP);
+
+      Eigen::Vector3d rayDirection;
+      Eigen::Vector3d castPoint;
+
+      //castRangeRay(ms, tRange, rebasedArm, &castPoint, &rayDirection);
+      castRangeRay(ms, tRange, tArmP, &castPoint, &rayDirection);
+
+
+      int newIdx = ms->config.rayBuffer.size();
+      ms->config.rayBuffer.resize(newIdx+1);
+
+      OrientedRay * newRay =  &(ms->config.rayBuffer[newIdx]);
+      newRay->pa = eePose::identity();
+      newRay->pa.px = castPoint[0];
+      newRay->pa.py = castPoint[1];
+      newRay->pa.pz = castPoint[2];
+      newRay->pb = newRay->pa;
+      newRay->r = 0;
+      newRay->g = 0;
+      newRay->b = 0;
+      newRay->a = 1;
+      newRay->t = RAY_A;
+
+      if ((i % p_printSkip) == 0) {
+	cout << "cast rays for measurement " << i << " z: " << castPoint[2] << " range: " << tRange << endl;// << tRelP;// << " " << castPoint << endl;
+      } else {
+      }
+    } else {
+      cout << "ray " << i << " failed to get pose, not casting." << endl;
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(RayBufferPopulateFromRangeBuffer)
+
+WORD(RayBufferPopulateFromImageBuffer)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  int thisIdx = ms->config.sibCurIdx;
+  //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
+
+  Mat bufferImage;
+  eePose thisPose, tBaseP;
+
+  int success = 1;
+  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+    if (tsi.image.data == NULL) {
+      tsi.image = imread(tsi.filename);
+      if (tsi.image.data == NULL) {
+        cout << " Failed to load " << tsi.filename << endl;
+        tsi.loaded = 0;
+        return;
+      } else {
+        tsi.loaded = 1;
+      }
+    }
+    bufferImage = tsi.image.clone();
+
+    if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+    } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+      success = 1;
+      thisPose = ms->config.currentEEPose;
+      z_to_use = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+    } else {
+      assert(0);
+    }
+  } else {
+    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    return;
+  }
+
+  if (success != 1) {
+    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    return;
+  }
+
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  if (fabs(transformed.qz) > 0.01) {
+    ROS_ERROR("  Not doing update because arm not vertical.");
+    return;
+  }
+
+  Mat wristViewYCbCr = bufferImage.clone();
+
+  cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+  
+  Size sz = bufferImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+  
+  pixelToGlobalCache data;
+  pixelToGlobalCache data2;
+  double z = z_to_use;
+  double z2 = z_to_use-0.01;
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
+  computePixelToPlaneCache(ms, z2, thisPose, ms->config.scene->background_pose, &data2);  
+  int numThreads = 8;
+  // there is a faster way to stride it but i am risk averse atm
+  //#pragma omp parallel for
+  for (int i = 0; i < numThreads; i++) {
+    double frac = double(boty - topy) / double(numThreads);
+    double bfrac = i*frac;
+    double tfrac = (i+1)*frac;
+
+    for (int py = topy; py < boty; py++) {
+      // XXX actually this is not thread safe... 
+      //if (py % numThreads == i) 
+      double opy = py-topy;
+      // this is superior
+      if ( (bfrac <= opy) && (opy < tfrac) ) 
+      {
+	for (int px = topx; px < botx; px++) {
+	  if (isInGripperMask(ms, px, py)) {
+	    continue;
+	  }
+
+	  if ( (abhr > 0) && (abhc > 0) ) {
+	    if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+		 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+	      continue;
+	    } 
+	  } 
+
+	  Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+
+	  double x, y;
+	  double x2, y2;
+	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+	  pixelToGlobalFromCache(ms, px, py, &x2, &y2, &data2);
+
+	  int newIdx = ms->config.rayBuffer.size();
+	  ms->config.rayBuffer.resize(newIdx+1);
+
+	  OrientedRay * newRay =  &(ms->config.rayBuffer[newIdx]);
+	  newRay->pa = eePose::identity();
+	  newRay->pa.px = x;
+	  newRay->pa.py = y;
+	  newRay->pa.pz = z;
+	  newRay->pb = eePose::identity();
+	  newRay->pb.px = x2;
+	  newRay->pb.py = y2;
+	  newRay->pb.pz = z2;
+	  newRay->r = pixel[0];
+	  newRay->g = pixel[1];
+	  newRay->b = pixel[2];
+	  newRay->a = 0;
+	  newRay->t = RAY_RGB;
+	}
+      }
+    }
+  }
+  //ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+}
+END_WORD
+REGISTER_WORD(RayBufferPopulateFromImageBuffer)
 
 }
 

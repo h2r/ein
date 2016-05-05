@@ -10064,6 +10064,16 @@ void interpolateM_xAndM_yFromZ(shared_ptr<MachineState> ms, double dZ, double * 
   } else if (ms->config.currentCameraCalibrationMode == CAMCAL_QUADRATIC) {
     *(m_y) = ms->config.m_YQ[0] + (dZ * ms->config.m_YQ[1]) + (dZ * dZ * ms->config.m_YQ[2]);
     *(m_x) = ms->config.m_XQ[0] + (dZ * ms->config.m_XQ[1]) + (dZ * dZ * ms->config.m_XQ[2]);
+  } else if (ms->config.currentCameraCalibrationMode == CAMCAL_HYPERBOLIC) {
+    
+    double ooDZ = dZ;
+    if (dZ == 0) {
+      cout << "oops, magnification interpolate failed." << endl;
+    } else {
+      ooDZ = 1.0/dZ;
+    } 
+    *(m_y) = ms->config.m_YQ[0] + (ooDZ * ms->config.m_YQ[1]) + (ooDZ * ooDZ * ms->config.m_YQ[2]);
+    *(m_x) = ms->config.m_XQ[0] + (ooDZ * ms->config.m_XQ[1]) + (ooDZ * ooDZ * ms->config.m_XQ[2]);
   } else {
   }
 }
@@ -10117,8 +10127,10 @@ void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose gi
     double b = (b42+b31)/2.0;
 
     int x_thisZ = c + ( (cache->x1-c)*(cache->z1-b) )/(gZ-b);
-    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    // removed the above correction
     cache->reticlePixelX = x_thisZ;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
   }
   {
     double d = ms->config.d_y;
@@ -10131,8 +10143,10 @@ void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose gi
     double b = (b42+b31)/2.0;
 
     int y_thisZ = c + ( (cache->y1-c)*(cache->z1-b) )/(gZ-b);
-    y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    // removed the above correction
     cache->reticlePixelY = y_thisZ;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
   }
 
   // account for rotation of the end effector 
@@ -10205,10 +10219,10 @@ void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double 
   pX = cache->reticlePixelX + (oldPy - cache->reticlePixelY) - ms->config.offX;
   pY = cache->reticlePixelY + (oldPx - cache->reticlePixelX) - ms->config.offY;
 
-  int x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ-cache->bx);
+  double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ-cache->bx);
   *gX = cache->givenEEPose.px - cache->dx + ( (pX-cache->cx)*(cache->dx) )/( (x_thisZ-cache->cx) ) ;
 
-  int y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(cache->gZ-cache->by);
+  double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(cache->gZ-cache->by);
   *gY = cache->givenEEPose.py - cache->dy + ( (pY-cache->cy)*(cache->dy) )/( (y_thisZ-cache->cy) ) ;
 
 }
@@ -10256,11 +10270,16 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
     *pX = c + ( (gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
     //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
-    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    // removed the above correction
     reticlePixelX = x_thisZ;
 
+/*
     cout << "(x pass) d c b42 b31 bDiff b x_thisZ m_x: " << endl 
 	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << x_thisZ << " "  << ms->config.m_x << " " << endl;
+    cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+*/
   }
   {
     //double d = ms->config.d_y;
@@ -10285,11 +10304,14 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
     *pY = c + ( (gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
     //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
-    y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    // XXX removed the above correction still need to check
     reticlePixelY = y_thisZ;
 
+/*
     cout << "(y pass) d c b42 b31 bDiff b y_thisZ m_y: " << endl 
 	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << y_thisZ << " "  << ms->config.m_y << " " << endl;
+*/
   }
 
   //cout << "reticlePixelX, reticlePixelY: " << reticlePixelX << " " << reticlePixelY << endl;
@@ -10373,7 +10395,8 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
     *pX = c + ( (gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
     //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
-    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    // removed the above correction
     reticlePixelX = x_thisZ;
   }
   {
@@ -10399,7 +10422,8 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
     *pY = c + ( (gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
     //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
-    y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    // removed the above correction
     reticlePixelY = y_thisZ;
   }
 
@@ -10485,7 +10509,8 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
     *pX = c + ( (gX-givenEEPose.px+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
     //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
-    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    // removed the above correction
     reticlePixelX = x_thisZ;
   }
   {
@@ -10511,7 +10536,8 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
     *pY = c + ( (gY-givenEEPose.py+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
     //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
-    y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    // removed the above correction
     reticlePixelY = y_thisZ;
   }
 
@@ -10578,7 +10604,7 @@ void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar 
   }
 
   // draw the test pattern for the inverse transformation 
-  if (0) {
+  if (1) {
     double gX = 0, gY = 0;
     pixelToGlobal(ms, pX, pY, zToUse, &gX, &gY);
     globalToPixel(ms, &pX, &pY, zToUse, gX, gY);
