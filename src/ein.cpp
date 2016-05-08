@@ -2882,8 +2882,10 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
 
     pose.header.stamp = ros::Time(0);
     pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
-    
-    ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", hand_pose);
+
+    if (ms->config.currentRobotMode != SIMULATED) {    
+      ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", hand_pose);
+    }
     //ms->config.tfListener->lookupTransform("base", ms->config.left_or_right_arm + "_hand", ros::Time(0), base_to_hand_transform);
   }
   eePose handEEPose;
@@ -2911,7 +2913,9 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
     
     geometry_msgs::PoseStamped transformed_pose;
-    ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
+    if (ms->config.currentRobotMode != SIMULATED) {    
+      ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
+    }
 
     eps.pose.position.x = transformed_pose.pose.position.x;
     eps.pose.position.y = transformed_pose.pose.position.y;
@@ -2938,7 +2942,9 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
     
     geometry_msgs::PoseStamped transformed_pose;
-    ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
+    if (ms->config.currentRobotMode != SIMULATED) {    
+      ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
+    }
 
     ms->config.trueCameraPose.px = transformed_pose.pose.position.x;
     ms->config.trueCameraPose.py = transformed_pose.pose.position.y;
@@ -2962,7 +2968,9 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
     
     geometry_msgs::PoseStamped transformed_pose;
-    ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
+    if (ms->config.currentRobotMode != SIMULATED) {    
+      ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
+    }
 
     ms->config.trueRangePose.px = transformed_pose.pose.position.x;
     ms->config.trueRangePose.py = transformed_pose.pose.position.y;
